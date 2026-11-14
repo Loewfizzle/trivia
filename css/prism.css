@@ -266,11 +266,13 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 /* ---- THE SLAM BUTTON (PD-1, the owner: "a premium glossy RED PUSH BUTTON, SLAM in white, a chrome bezel, a real press-down"): a chrome ring,
    a red dome (bright top-left → deep red edge), a gloss, white SLAM; the press sinks the dome + darkens it, the release flashes. An in-game
    control — nothing like a shell DANGER tube (those are flat neon). transform + opacity only; every glow is static ---- */
-.pd-slam { position: relative; flex: none; height: var(--slamA, 50px); display: flex; align-items: flex-end; justify-content: flex-end; margin-right: calc((var(--railW, 34px) - var(--slamD, 40px)) / 2 - 3px); }   /* (SLAM is wider than the rail: it leans OUT into the screen margin, never toward the board) */
-.pd[data-slam='left'] .pd-slam { justify-content: flex-start; margin-right: 0; margin-left: calc((var(--railW, 34px) - var(--slamD, 40px)) / 2 - 3px); }
+/* (THE DROP B add-on: SLAM = the WHOLE STRIP from the board's edge to the screen's safe edge − 4 pt each side (layout.js), in every layout — centred
+   across that strip at the column's foot: centred in the column, then shifted outward by --slamX (LEFT mirrors it); it may be wider than the rail,
+   never over the board) */
+.pd-slam { position: relative; flex: none; height: var(--slamA, 50px); display: flex; align-items: flex-end; justify-content: center; }
 .pd[data-scheme='buttons'] .pd-slam, .pd.is-spectating .pd-slam { display: none; }
-/* (PD-6 — THE SPARE-WIDTH COLUMN: the column is wider than SLAM → SLAM centred at its foot, both settings) */
-.pd.is-wide .pd-slam, .pd.is-wide[data-slam='left'] .pd-slam { justify-content: center; margin: 0; }
+.pd-slam .pd-slam-b { flex: none; left: var(--slamX, 0px); }
+.pd[data-slam='left'] .pd-slam .pd-slam-b { left: calc(var(--slamX, 0px) * -1); }
 .pd-slam-b {
   position: relative;
   width: var(--slamD, 40px);

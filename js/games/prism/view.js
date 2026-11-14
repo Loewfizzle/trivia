@@ -1116,7 +1116,7 @@ export function createView() {
     L = prismLayout({ W0, H0, safe: safeInsets(), scheme, spectating, btnScale, tier, dpr, n, duel: duelist });
     const px = v => `${v}px`;
     const set = { '--cell': px(L.cell), '--boardW': px(L.boardW), '--boardH': px(L.boardH), '--topH': px(L.topH), '--btnH': px(L.btnH), '--railW': px(L.railW),
-      '--gap': px(L.gap), '--holdW': px(L.hold.w), '--holdH': px(L.hold.h), '--nextW': px(L.next.w), '--nextH': px(L.next.h), '--slamD': px(L.slamD),
+      '--gap': px(L.gap), '--holdW': px(L.hold.w), '--holdH': px(L.hold.h), '--nextW': px(L.next.w), '--nextH': px(L.next.h), '--slamD': px(L.slamD), '--slamX': px(L.slamX),
       '--slamA': px(L.slamArea), '--tileH': px(L.tileH), '--btnS': String(btnScale) };
     for (const [k, v] of Object.entries(set)) root.style.setProperty(k, v);
     root.classList.toggle('is-wide', !!L.wide);   // (PD-6 — THE SPARE-WIDTH COLUMN: SLAM centred in the column, the tiles' initials bigger)

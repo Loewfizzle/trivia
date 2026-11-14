@@ -3,7 +3,7 @@
 // smaller, the tiers step the board's pixel ratio down, the corner panels' cover zones.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { prismLayout, panelCells, MARGIN, GAP, RAIL, TOP, TILE_MIN, TILE_GAP, COL_MAX, SLAM_MAX, SLAM_PAD } from '../js/games/prism/layout.js';
+import { prismLayout, panelCells, MARGIN, GAP, RAIL, TOP, TILE_MIN, TILE_GAP, COL_MAX, SLAM_RIM, SLAM_CAP } from '../js/games/prism/layout.js';
 import { TIERS } from '../js/games/prism/tiers.js';
 
 const PHONES = [[390, 844, 47, 34], [402, 874, 62, 34], [430, 932, 59, 34], [375, 667, 20, 0], [412, 915, 24, 16]];
@@ -74,7 +74,7 @@ test('PD-6 THE SPARE-WIDTH COLUMN: Safari with its toolbars → a wide column, a
       const L = prismLayout({ W0, H0, dpr: 3, n });
       assert.ok(L.wide, `${W0}×${H0}: the column took the spare width`);
       assert.ok(L.railW > RAIL && L.railW <= COL_MAX, `${W0}×${H0}: the column ${L.railW} in (34, ${COL_MAX}]`);
-      assert.ok(L.slamD >= 44 && L.slamD <= SLAM_MAX && L.slamD <= L.railW, `${W0}×${H0}: SLAM ${L.slamD} inside the column ${L.railW}`);
+      assert.ok(L.slamD >= 44 && L.slamD <= L.strip - 2 * SLAM_RIM, `${W0}×${H0}: SLAM ${L.slamD} inside the strip ${L.strip}`);
       assert.ok(L.slamD + 12 >= 44, 'the tap area ≥ 44 pt');
       // the board at the outer margin: nothing left to split when the column isn't capped
       const left = W0 - 2 * MARGIN - L.fieldW;
@@ -88,21 +88,44 @@ test('PD-6 THE SPARE-WIDTH COLUMN: Safari with its toolbars → a wide column, a
     assert.ok(lf.railW >= 60, `${W0}×${H0}: a real column (${lf.railW})`);
   }
   const L = prismLayout({ W0: 390, H0: 650, dpr: 3, n: 5 });
-  assert.deepEqual([L.cell, L.railW, L.slamD], [29, 68, 62], 'the owner screenshot (390 × ~650): 29-pt cells, a 68-pt column, SLAM 62 (THE DROP A — the column − 6)');
-  // THE DROP A Group 0 — SLAM as big as the column allows: the column − SLAM_PAD (6) on every Safari phone, its rim clear of both edges
-  for (const [W0, H0] of SAFARI) { const S = prismLayout({ W0, H0, dpr: 3, n: 5 }); assert.equal(S.slamD, Math.round(S.railW - SLAM_PAD), `${W0}×${H0}: SLAM = the column − ${SLAM_PAD}`); assert.ok(S.slamD <= S.railW - 6, 'the rim clear'); }
+  assert.deepEqual([L.cell, L.railW, L.slamD], [29, 68, 80], 'the owner screenshot (390 × ~650): 29-pt cells, a 68-pt column, SLAM 80 (THE DROP B add-on — the whole strip − 8; was 62)');
 });
 
-test('PD-6: a home-screen app / fullscreen (width-bound) keeps the PD-1 34-pt rail + the old SLAM exactly', () => {
+test('PD-6: a home-screen app / fullscreen (width-bound) keeps the PD-1 34-pt rail + board exactly (SLAM: the strip — THE DROP B add-on)', () => {
   for (const [W0, H0, t, b] of APP) for (const btnScale of [0, 0.5, 1]) {
     const L = prismLayout({ W0, H0, safe: { t, b }, dpr: 3, n: 5, btnScale });
     assert.equal(L.wide, false, `${W0}: width-bound`);
     assert.equal(L.railW, RAIL);
-    assert.equal(L.slamD, Math.round(36 + 8 * btnScale));
+    assert.equal(L.slamD, Math.floor(L.strip - 2 * SLAM_RIM), 'SLAM = the strip − 8, whatever BUTTON SIZE says');
     assert.equal(L.fieldW, L.boardW + GAP + L.railW);   // (PD-6: the 375 x 667 SE row is height-bound: its spare width went to the column)
     if (!L.wide) assert.equal(L.railW, RAIL);
   }
   // a duel tile in a wide column holds a bigger board, never wider than the column
   const d = prismLayout({ W0: 390, H0: 650, dpr: 3, n: 1, duel: true });
   assert.ok(d.duelCell >= 3 && d.duelCell * 10 <= d.railW - 4, `the duel board (${d.duelCell}) fits the column (${d.railW})`);
+});
+
+// THE DROP B ADD-ON (Ben, Nov 13 9:56 pm — his iPhone HOME-SCREEN APP): SLAM = the WHOLE STRIP from the board's edge to the screen's safe edge − 8 pt
+// in EVERY layout, centred across that strip (slamX from the column's centre, outward); the board + the rail never change for it
+test('THE DROP B add-on — SLAM fills the strip in every layout: the home-screen app (≈ 46 pt, was 40) + Safari with its toolbars (80 / 72 / 73, was 62 / 54 / 55)', () => {
+  const was = { '390x844': 40, '402x874': 40, '430x932': 40, '390x650': 62, '402x690': 54, '430x746': 55 };
+  for (const [W0, H0, t = 0, b = 0] of [...APP, ...SAFARI.filter(([w, h]) => h !== 664)]) {
+    const L = prismLayout({ W0, H0, safe: { t, b }, dpr: 3, n: 7 });
+    const outer = (W0 - (L.boardW + GAP + L.railW)) / 2;
+    assert.ok(Math.abs(L.strip - (GAP + L.railW + outer)) < 1e-9, `${W0}×${H0}: the strip = gap + column + the outer margin`);
+    assert.equal(L.slamD, Math.floor(L.strip - 2 * SLAM_RIM), `${W0}×${H0}: SLAM = the strip − 8 (${L.slamD} in ${L.strip.toFixed(2)})`);
+    assert.ok(L.slamD >= was[`${W0}x${H0}`], `${W0}×${H0}: never smaller than before (${L.slamD} ≥ ${was[`${W0}x${H0}`]})`);
+    // centred across the strip: its left edge SLAM_RIM past the board's edge, its right edge ≥ SLAM_RIM clear of the screen's
+    const centre = GAP + L.railW / 2 + L.slamX;
+    assert.ok(Math.abs(centre - L.slamD / 2 - SLAM_RIM) < 0.34, `${W0}×${H0}: SLAM_RIM clear of the board (${(centre - L.slamD / 2).toFixed(2)})`);
+    assert.ok(L.strip - (centre + L.slamD / 2) >= SLAM_RIM - 0.01, `${W0}×${H0}: its chrome rim clear of the screen's edge`);
+    // nothing else moves: the board + the rail as PD-1 / PD-6 made them; 7 tiles + SLAM still fit the column
+    assert.equal(L.fieldW, L.boardW + GAP + L.railW);
+    assert.ok(7 * L.tileH + 6 * TILE_GAP + L.slamArea <= L.boardH + 0.5, `${W0}×${H0}: 7 tiles + SLAM fit`);
+  }
+  const app = prismLayout({ W0: 390, H0: 844, safe: { t: 47, b: 34 }, dpr: 3 });
+  assert.equal(app.slamD, 46, 'the home-screen app at 390: 46 pt (the real strip is 54.3 pt)');
+  assert.equal(prismLayout({ W0: 1440, H0: 900, dpr: 3 }).slamD, SLAM_CAP, 'a desktop: capped at the widest phone strip');
+  const left = prismLayout({ W0: 390, H0: 844, safe: { t: 47, b: 34 }, dpr: 3, scheme: 'gesture' });
+  assert.ok(left.slamX > 0, 'the shift is outward (the LEFT setting mirrors it in CSS)');
 });

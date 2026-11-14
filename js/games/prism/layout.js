@@ -10,7 +10,11 @@
 //   PD-6 — THE SPARE-WIDTH COLUMN: when the cell is HEIGHT-bound (Safari WITH its toolbars — 20 square rows can't get wider without getting
 //   taller) the spare width is no longer split as empty strips: the board sits at the outer margin and the spare goes to the rail + SLAM
 //   column (34 → COL_MAX pt); SLAM grows with it (the column − SLAM_PAD, centred across the column at its foot — THE DROP A). WIDTH-bound (fullscreen / a home-screen app / a
-//   narrow phone / a desktop's MAX_CELL) = PD-1's numbers exactly.
+//   narrow phone / a desktop's MAX_CELL) = PD-1's board + rail exactly.
+//   THE DROP B ADD-ON (Ben, Nov 13 9:56 pm — his home-screen app's SLAM was still ~40 pt): in EVERY layout SLAM = THE WHOLE STRIP from the board's
+//   edge to the screen's safe edge − SLAM_RIM × 2 (its chrome rim clear of both), centred across that strip at the column's foot (`slamX` = its
+//   centre's shift from the column's centre, outward); never the board's width, the rail tiles keep theirs; LEFT mirrors it. Capped at SLAM_CAP
+//   (the widest phone strip) so a desktop / tablet's wide margins never make a giant button.
 import { W, VISIBLE } from './engine.js';
 import { tierOf, TOP_TIER } from './tiers.js';
 
@@ -26,12 +30,15 @@ export const TILE_GAP = 6;
 export const COL_MAX = 72;    // PD-6: the widest the rail + SLAM column grows into the spare width
 export const SLAM_PAD = 6;    // THE DROP A Group 0 (PD-6's review, Ben): SLAM's diameter = the column − this — AS BIG AS THE COLUMN ALLOWS, its chrome rim 3 pt
                               //   clear of each edge (PD-6 had −10 / max 56 → 56 / 50 / 51 pt; now ≈ 62 pt at 390 in Safari with its toolbars)
-export const SLAM_MAX = COL_MAX - SLAM_PAD;   // the biggest SLAM (the widest column): 66
+export const SLAM_MAX = COL_MAX - SLAM_PAD;   // the biggest SLAM in THE DROP A's column rule: 66 (kept for reference)
+export const SLAM_RIM = 4;    // THE DROP B add-on: the clearance each side of SLAM inside the strip (board edge … SLAM … the screen's safe edge) — "minus ~8 pt"
+export const SLAM_CAP = GAP + COL_MAX + MARGIN - 2 * SLAM_RIM;   // the widest strip a phone has (the widest column at the margin): 84
 
 /**
  * { W0, H0 (the screen, pt), safe: { t, r, b, l }, scheme: 'gesture' | 'buttons', spectating, btnScale (0–1), tier (2 | 1 | 0), dpr, n (opponents
  *   on the rail), duel (one opponent left — its tile shows their board) }
- * → { cell, boardW, boardH, fieldW, topH, btnH, railW, gap, hold: { w, h }, next: { w, h }, pieceCell, slamD, slamArea, tileH, duelCell,
+ * → { cell, boardW, boardH, fieldW, topH, btnH, railW, gap, hold: { w, h }, next: { w, h }, pieceCell, slamD, slamX (THE DROP B: its shift outward from
+ *     the column's centre), strip (board edge → the screen's safe edge), slamArea, tileH, duelCell,
  *     boardDpr, fxDpr, wide (PD-6: the column took spare width) }
  */
 export function prismLayout({ W0, H0, safe = {}, scheme = 'gesture', spectating = false, btnScale = 0.5, tier = TOP_TIER, dpr = 1, n = 1, duel = false }) {
@@ -49,8 +56,13 @@ export function prismLayout({ W0, H0, safe = {}, scheme = 'gesture', spectating 
   const spare = W0 - s.l - s.r - 2 * MARGIN - boardW - GAP;
   const railW = heightBound ? Math.max(RAIL, Math.floor(Math.min(spare, COL_MAX) * q) / q) : RAIL;
   const wide = railW > RAIL;
-  const slamD0 = Math.round(36 + 8 * btnScale);
-  const slamD = wide ? Math.max(slamD0, Math.min(Math.round(railW - SLAM_PAD), SLAM_MAX)) : slamD0;
+  // THE DROP B add-on — THE STRIP: the field is centred in the safe width (.pd-stage), so the outer margin = half of what the field leaves; the
+  // strip = the gap + the column + that margin; SLAM = the strip − the rim each side (whole points), at least the old 36–44 pt never past the strip
+  const outer = Math.max(0, (W0 - s.l - s.r - (boardW + GAP + railW)) / 2);
+  const strip = GAP + railW + outer;
+  const slamD = Math.max(36, Math.min(SLAM_CAP, Math.floor(strip - 2 * SLAM_RIM)));
+  const slamX = Math.round((SLAM_RIM + slamD / 2 - (GAP + railW / 2)) * q) / q;   // (its centre from the column's centre, toward the screen's edge)
+  void btnScale;   // (the BUTTON SIZE slider now sizes the BUTTONS scheme's bar only — SLAM is the strip's)
   const slamArea = gesture && !spectating ? slamD + 10 : 0;
   const count = Math.max(1, n | 0);
   const free = boardH - slamArea;
@@ -64,7 +76,7 @@ export function prismLayout({ W0, H0, safe = {}, scheme = 'gesture', spectating 
   const pieceCell = Math.max(6, Math.floor(Math.min((next.w / 3 - 6) / 4, (hold.h - 15) / 2) * q) / q);
   return {
     W0, H0, cell, boardW, boardH, fieldW: boardW + GAP + railW, topH: TOP, btnH, railW, gap: GAP,
-    hold, next, pieceCell, slamD, slamArea, tileH, duelCell, wide,
+    hold, next, pieceCell, slamD, slamX, strip, slamArea, tileH, duelCell, wide,
     // THE BOARD at the phone's FULL pixel ratio (3× on an iPhone); only the LAST tier steps it to 2× (PD-3 — tiers.js: the light, the spill +
     // the particles step down first). The world + the shards keep their own reduced resolution (fxDpr)
     boardDpr: Math.min(q, tierOf(tier).board),
