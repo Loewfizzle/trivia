@@ -42,7 +42,9 @@ import { glassSprite, clearGlass, glassCount } from './glass-art.js';
 import { CRAYON_PAGE, warmDay, loadMarker, loadImg } from './page.js';
 import { WATER, PENCIL, WASH, VARIANTS as WATER_VARIANTS, waterSprite, warmWater, clearWater, waterCount } from './water-art.js';
 import { createWaterFx } from './waterfx.js';
-import { WATER_PAGE, WATER_TEX, WATER_PAPER } from './skin-pages.js';
+import { WATER_PAGE, WATER_TEX, WATER_PAPER, PAPER_PAGE, KRAFT_TEX, SHEET } from './skin-pages.js';
+import { CUT, CARD, CUT_LINE, VARIANTS as PAPER_VARIANTS, paperSprite, warmPaper, clearPaper, paperCount } from './paper-art.js';
+import { createPaperFx } from './paperfx.js';
 import { skinK } from './skin-deal.js';
 export { skinK, dealSkin, soloSkin, dropSkin, SK_START } from './skin-deal.js';
 
@@ -141,6 +143,47 @@ const watercolor = {
   warm: (px, ms) => warmWater(px, ms), drop: clearWater, count: waterCount,
 };
 
+// ================================================================ PAPER CUT-OUT (day — SKINS 1: cut paper on a white sheet, a kraft-board table)
+const paper = {
+  id: 'paper', name: 'PAPER CUT-OUT', line: 'Cut paper on a kraft table', look: 'day', unlock: null, family: 'crayon', holiday: false,
+  tokens: { ink: '#3a2a18', sub: '#5a4630', panel: SHEET, line: 'rgba(58, 42, 24, 0.34)', line2: 'rgba(58, 42, 24, 0.16)' },
+  lettering: 'label', sounds: { lock: 'tap', clear: 'rip' },
+  variants: PAPER_VARIANTS,
+  sprite: (px, kind, t, v = 0) => paperSprite(px, kind, t, v),
+  fallV: (n, i) => (n * 5 + i) % PAPER_VARIANTS,
+  pieceV: (x, y, t) => (x * 3 + y * 5 + t) % PAPER_VARIANTS,
+  env: () => null, glow: 0, pieceGlow: 0,
+  /** the sheet's guide: faint cut-marks at the crossings — the columns to aim by, nothing ruled */
+  grid(g, { px }) {
+    g.fillStyle = rgba(CUT_LINE, 0.16);
+    const d = Math.max(2, Math.round(px * 0.03)), l = Math.max(4, Math.round(px * 0.1));
+    for (let x = 1; x < W; x++) for (let y = 1; y < VISIBLE; y++) { g.fillRect(x * px - l / 2, y * px - d / 2, l, d); g.fillRect(x * px - d / 2, y * px - l / 2, d, l); }
+  },
+  // the INCOMING rows: GREY CARD STOCK (a due row's edge inked), the leading edge a dashed cut line
+  incoming: sketchIncoming({
+    spr: (px, hot) => paperSprite(px, hot ? 'ihot' : 'incoming', 0), ink: '#7b756d',
+    edge(ctx, yTop, px) {
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = '#5a4a38';
+      const dash = Math.max(6, Math.round(px * 0.22)), gap = Math.max(4, Math.round(px * 0.14)), hgt = Math.max(2, Math.round(px * 0.045));
+      for (let x = 0; x < W * px; x += dash + gap) ctx.fillRect(x, yTop - hgt / 2, dash, hgt);
+    },
+  }),
+  /** a big mini draws the real cut squares; a small one a flat paper fill with its white top edge (a KO'd board in grey card) */
+  mini(ctx, { X, Y, s, px, t, ko, x, y }) {
+    if (px >= 18 && !ko) { ctx.drawImage(paperSprite(px, 'block', t, (x * 7 + y * 13) % PAPER_VARIANTS), X, Y); return; }
+    ctx.fillStyle = ko ? '#aaa7a1' : CUT[t] || CUT[8]; ctx.fillRect(X, Y, s, s);
+    if (s > 3) { ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(X, Y, s, Math.max(1, Math.round(px * 0.14))); }
+  },
+  shard: t => CUT[t] || CUT[8], crumbs: true,
+  fx: () => createPaperFx(), light: false, flash: false, bands: false, pulse: false,
+  world: 'page', page: PAPER_PAGE,
+  /** its kraft board + the marker font — fetched only when the skin shows */
+  enter() { loadImg(KRAFT_TEX); loadMarker(); },
+  warm: (px, ms) => warmPaper(px, ms), drop: clearPaper, count: paperCount,
+};
+void CARD;
+
 // ================================================================ NEON (night — PD-3: neon tubes in the world's palette)
 const neonEnv = pal => pal || neonPalette('');
 const neon = {
@@ -193,7 +236,7 @@ const glass = {
 };
 
 // (the order = each pool's rotation: DAY crayon · watercolor · paper — NIGHT neon)
-export const SKINS = Object.freeze({ crayon: Object.freeze(crayon), watercolor: Object.freeze(watercolor), neon: Object.freeze(neon), glass: Object.freeze(glass) });
+export const SKINS = Object.freeze({ crayon: Object.freeze(crayon), watercolor: Object.freeze(watercolor), paper: Object.freeze(paper), neon: Object.freeze(neon), glass: Object.freeze(glass) });
 export const SKIN_IDS = Object.freeze(Object.keys(SKINS));
 /** every hook a skin must have (the contract — tests/prism-skins.test.mjs) */
 export const HOOKS = Object.freeze({

@@ -102,3 +102,94 @@ export const WATER_PAGE = Object.freeze({
     }
   },
 });
+
+// ================================================================ PAPER CUT-OUT
+// the song's world as LAYERED PAPER SILHOUETTES along the screen's foot (+ one cut-out in a top corner): each world = its layers' profiles
+// (y as a share of the band's height, by x 0–1), back to front, in its own muted papers. Cut once into a layer (page.js caches it).
+const hills = (n, amp, ph) => u => 0.45 + amp * Math.sin(u * Math.PI * n + ph) + amp * 0.4 * Math.sin(u * Math.PI * n * 2.3 + ph * 2);
+const zig = (n, amp, ph) => u => { const t = (u * n + ph) % 1; return 0.35 + amp * (t < 0.5 ? t * 2 : 2 - t * 2); };
+const steps = (n, seed) => { const r = seeded(seed), hs = Array.from({ length: n + 1 }, () => 0.25 + r() * 0.6); return u => hs[Math.min(n, Math.floor(u * n))]; };
+const WORLD_CUTS = {
+  sunset: { papers: ['#e9967a', '#b56a8e', '#6f4a86'], shapes: [zig(3, 0.5, 0.2), zig(4, 0.42, 0.6), hills(2, 0.14, 1)], disc: { col: '#f6c453', at: [0.78, 0.5], r: 0.42 } },
+  city: { papers: ['#7f8fc4', '#566aa8', '#39457c'], shapes: [steps(9, 5), steps(12, 9), steps(7, 14)], disc: { col: '#f3e3a6', at: [0.2, 0.42], r: 0.3 } },
+  crystal: { papers: ['#8fd3e0', '#6aa9d8', '#7b6fcf'], shapes: [zig(7, 0.75, 0.1), zig(9, 0.6, 0.45), zig(5, 0.5, 0.8)], disc: { col: '#e8f6fb', at: [0.82, 0.4], r: 0.26 } },
+  nebula: { papers: ['#a57fd6', '#7a5cc0', '#4b3f92'], shapes: [hills(2, 0.2, 0.4), hills(3, 0.16, 2), hills(1.5, 0.2, 4)], disc: { col: '#f2a65e', at: [0.76, 0.48], r: 0.36, ring: '#f6d27a' } },
+  aurora: { papers: ['#7fd1b2', '#56b0c4', '#3c7fb8'], shapes: [hills(4, 0.12, 0), hills(6, 0.09, 1.4), hills(8, 0.07, 3)], disc: { col: '#f4efc8', at: [0.2, 0.5], r: 0.28 } },
+};
+function cutWorld(world, w, h, dpr) {
+  const c = canvasOf(w * dpr, h * dpr), x = c.getContext('2d'), C = WORLD_CUTS[world] || WORLD_CUTS.sunset;
+  x.scale(dpr, dpr);
+  const shadow = () => { x.shadowColor = 'rgba(60, 38, 10, 0.4)'; x.shadowBlur = 7; x.shadowOffsetY = -2; };
+  // the corner cut-out (a sun, a moon, a planet): a disc of paper high on the page, half off its edge
+  // (rising over the page's top edge, between the top line and a corner button: never behind the lettering, never under a button)
+  const top = Math.min(110, h * 0.13), D = C.disc, R = top * 0.62, cx = w * (D.at[0] > 0.5 ? 0.7 : 0.3), cy = -R * 0.28;
+  x.save(); x.shadowColor = 'rgba(60, 38, 10, 0.38)'; x.shadowBlur = 6; x.shadowOffsetY = 3;
+  x.fillStyle = D.col; x.beginPath(); x.arc(cx, cy, R, 0, Math.PI * 2); x.fill();
+  if (D.ring) { x.strokeStyle = D.ring; x.lineWidth = R * 0.22; x.beginPath(); x.ellipse(cx, cy, R * 1.7, R * 0.5, -0.3, 0, Math.PI * 2); x.stroke(); }
+  x.restore();
+  // the layers along the foot, back to front (each casts its shadow on the one behind)
+  const band = Math.min(120, h * 0.14), y0 = h - band;
+  C.shapes.forEach((f, i) => {
+    const lift = band * (0.95 - i * 0.26);
+    x.save(); shadow();
+    x.fillStyle = C.papers[i];
+    x.beginPath();
+    x.moveTo(-10, h + 10);
+    for (let k = 0; k <= 60; k++) { const u = k / 60; x.lineTo(u * (w + 20) - 10, y0 + band - lift * f(u)); }
+    x.lineTo(w + 10, h + 10);
+    x.closePath();
+    x.fill();
+    x.restore();
+  });
+  return c;
+}
+/** the white sheet's faint fibres (so it is paper, not a white box): a few pale + grey flecks — drawn once with the sheet */
+function fleck(x, bx, by, bw, bh, r) {
+  for (let i = 0; i < 260; i++) {
+    const fx = bx + r() * bw, fy = by + r() * bh, a = r() * Math.PI, l = 1 + r() * 4;
+    x.beginPath(); x.moveTo(fx, fy); x.lineTo(fx + Math.cos(a) * l, fy + Math.sin(a) * l);
+    x.lineWidth = 0.6;
+    x.strokeStyle = i % 3 ? 'rgba(120, 100, 70, 0.07)' : 'rgba(255, 255, 255, 0.5)';
+    x.stroke();
+  }
+}
+export const PAPER_PAGE = Object.freeze({
+  id: 'paper', lite: true,
+  ok: () => true,
+  key: () => '',
+  files: () => [KRAFT_TEX],
+  paint(ctx, st, T) {
+    const { world, w, h, board, lite } = st;
+    // the table: kraft board (its fibres), a soft fall of light from the top-left
+    const pat = tile(ctx, T.img(KRAFT_TEX));
+    ctx.fillStyle = pat || KRAFT;
+    ctx.fillRect(0, 0, w, h);
+    const v = ctx.createRadialGradient(w * 0.3, h * 0.25, h * 0.1, w * 0.5, h * 0.5, h * 0.75);
+    v.addColorStop(0, 'rgba(255, 244, 220, 0.12)');
+    v.addColorStop(1, 'rgba(70, 40, 10, 0.14)');
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, w, h);
+    // the song's world: layered paper silhouettes at the edges (the low tier drops them)
+    const W0 = Math.round(w), H0 = Math.round(h);
+    if (!lite) ctx.drawImage(T.layer(`pc|${world || 'sunset'}|${W0}|${H0}|${T.dpr}`, () => cutWorld(world || 'sunset', W0, H0, T.dpr)), 0, 0, w, h);
+    if (!board) return;
+    // THE SHEET: a big white sheet under the board, turned a hair, its soft shadow on the table
+    const b = board, m = 9, r = seeded(53);
+    ctx.save();
+    ctx.translate(b.x + b.w / 2, b.y + b.h / 2);
+    ctx.rotate(-0.006);
+    ctx.shadowColor = 'rgba(60, 36, 8, 0.42)'; ctx.shadowBlur = 16; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 6;
+    ctx.fillStyle = SHEET;
+    ctx.fillRect(-b.w / 2 - m, -b.h / 2 - m, b.w + 2 * m, b.h + 2 * m);
+    ctx.shadowColor = 'transparent';
+    fleck(ctx, -b.w / 2 - m, -b.h / 2 - m, b.w + 2 * m, b.h + 2 * m, r);
+    ctx.restore();
+    // the board's frame: a DASHED CUT LINE
+    ctx.save();
+    ctx.setLineDash([7, 5]);
+    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = 'rgba(90, 74, 56, 0.6)';
+    ctx.strokeRect(b.x - 3.5, b.y - 3.5, b.w + 7, b.h + 7);
+    ctx.restore();
+  },
+});

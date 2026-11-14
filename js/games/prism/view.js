@@ -530,8 +530,16 @@ export function createView() {
     const neon = skin.light && nfx && light;   // (the clear is LIGHT: the light layer's race + burst)
     const onBoard = !skin.light && !skin.flash;   // (the clear is the skin's own, on the board's canvas)
     // (a day skin's clears — the crayon's rows SCRIBBLED OUT then crumbs + the star burst, a wash's drips, a peel — its fx on the board's canvas)
-    if (onBoard) board.event(ev, { reduced: reduced() });
-    else if (!neon) board.flashRows(ev.rows.map((y, i) => y - i >= 0 ? ev.rows[i] : y), strength, (fxs.hue * 57) % 360);
+    if (onBoard) {
+      const ask = board.event(ev, { reduced: reduced() });
+      // (a skin's clear may ask for a beat: the stack held as it was, the cleared rows EMPTY — the paper strip peels off + leaves a clean gap;
+      //  the rows above come down after it. A lock / landed rows end it early — endsHold)
+      if (ask && ask.hold > 0 && holdOn && eng) {
+        const pre = preClear(eng.cells, ev);
+        if (ask.gap) for (const y of ev.rows) if (y >= 0 && (y + 1) * E.W <= pre.length) pre.fill(0, y * E.W, (y + 1) * E.W);
+        board.holdClear(pre, ask.hold);
+      }
+    } else if (!neon) board.flashRows(ev.rows.map((y, i) => y - i >= 0 ? ev.rows[i] : y), strength, (fxs.hue * 57) % 360);
     // (PD-3 — THE NEON LOOK's clears: light RACES along the rows, then they BURST into shards (fx.js, behind the board) + sparks (the light layer)
     //  — every clear, bigger clears bigger; 4 LINES = a full-board flash; a combo lifts the frame's light)
     else {

@@ -129,8 +129,9 @@ export function createBoardView(canvas) {
     },
     setSkin,
     /** the skin's moments on the board: an engine event (hard · lock · clear) → its fx (the crayon's boing + scribble, a wash's drips, a peel…);
-     *  o: { reduced }. A skin with no fx here (the night: its moments are light) takes nothing. */
-    event(ev, o = {}) { if (bfx) bfx.event(ev, { px, reduced: !!o.reduced }); },
+     *  o: { reduced }. A skin with no fx here (the night: its moments are light) takes nothing. → what the fx answers: null, or a clear's
+     *  { hold (ms), gap } — the view holds the stack that long with the cleared rows EMPTY (a strip peeling off leaves a clean gap for a beat) */
+    event(ev, o = {}) { return bfx ? bfx.event(ev, { px, reduced: !!o.reduced }) || null : null; },
     /** a clear cancelled `n` incoming rows: the skin's own cancel (the pencil rows crumble into eraser crumbs…) — or the shards (shatterGhost) */
     cancelGhost(n, o = {}) {
       if (!bfx || !bfx.erase) return this.shatterGhost(n);
