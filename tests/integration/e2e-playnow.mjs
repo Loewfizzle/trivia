@@ -83,8 +83,13 @@ try {
     await openCard(P, 'prism');
     // (PD-6 — TWO SOLO BUTTONS: PRISM DROP's SOLO_RUNS → SCORE RUSH · ONE SONG (the pink MAIN) + SURVIVAL · UNTIL YOU TOP OUT (plain) + PLAY WITH FRIENDS)
     const btns = await P.ev("[...document.querySelectorAll('.nd-card-actions .btn')].map(b => [b.dataset.act, b.dataset.mode || '', (b.querySelector('span') || b).textContent.trim(), (b.querySelector('small') || {}).textContent || '', /btn-primary/.test(b.className) ? 'MAIN' : 'plain'].join(':'))");
-    ok(btns.length === 3 && btns[0] === 'solo:rush:SCORE RUSH:ONE SONG:MAIN' && btns[1] === 'solo:survival:SURVIVAL:UNTIL YOU TOP OUT:plain' && btns[2] === 'friends::PLAY WITH FRIENDS::plain', `PRISM DROP's card: SCORE RUSH · ONE SONG (the pink MAIN) + SURVIVAL · UNTIL YOU TOP OUT + PLAY WITH FRIENDS (${btns.join(' | ')})`);
+    // (THE DROP B add-on — Ben: one pink read as "pre-selected" → all three the SAME plain white tube, no MAIN on this card; the pills → ONE plain line)
+    ok(btns.length === 3 && btns[0] === 'solo:rush:SCORE RUSH:ONE SONG:plain' && btns[1] === 'solo:survival:SURVIVAL:UNTIL YOU TOP OUT:plain' && btns[2] === 'friends::PLAY WITH FRIENDS::plain', `PRISM DROP's card: SCORE RUSH · ONE SONG + SURVIVAL · UNTIL YOU TOP OUT + PLAY WITH FRIENDS — three EQUAL plain tubes (${btns.join(' | ')})`);
+    const metaLine = await P.ev("(() => { const e = document.querySelector('.nd-pv-meta'); return e ? { text: e.textContent, spans: e.querySelectorAll('span').length } : null; })()");
+    ok(metaLine && metaLine.spans === 0 && /^SOLO · \d–\d PLAYERS · ABOUT \d+ MIN$/.test(metaLine.text), `ONE plain info line, no pills (${metaLine && metaLine.text})`);
     await P.shot('card-prism');
+    // (THE DROP B add-on: the card in Safari WITH its toolbars — 390 × 650 / 402 × 690 / 430 × 746 — then back to the phone's 390 × 844)
+    if (SHOTS) { for (const [w, h] of [[390, 650], [402, 690], [430, 746]]) { await P.p.setViewportSize({ width: w, height: h }); await new Promise(r => setTimeout(r, 500)); await P.shot(`card-prism-${w}x${h}`); } await P.p.setViewportSize({ width: 390, height: 844 }); await new Promise(r => setTimeout(r, 300)); }
     const t0 = Date.now();
     await P.ev("document.querySelector('.nd-card-solo[data-mode=\"rush\"]').click()");
     const live = await P.waitFor(`(() => { const s = ${S}; const go = s.meta && s.meta.go; return !!(s.game && s.game.id === 'prism' && (s.game.phase === 'count' || s.game.phase === 'play') && go && go.m === s.game.matchId && window.__arcade.serverNow() >= go.at + 2000); })()`, 15000);

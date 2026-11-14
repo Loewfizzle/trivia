@@ -29,12 +29,15 @@ export function soloCode(hushWords = [], rand = Math.random) {
  *  id: 'solo' (a solo run, one tap) · 'friends' (PLAY WITH FRIENDS = HOST with the game picked) · 'pick' (PICK THIS GAME — the host, in a room).
  *  In a room: the host picks, a guest is told who does; a SOLO game: PLAY NOW is the pink MAIN, PLAY WITH FRIENDS the second; no SOLO: PLAY WITH
  *  FRIENDS is the MAIN + one line. PD-6 — TWO SOLO BUTTONS (general): `runs` = the cartridge's SOLO_RUNS list ([{ mode, label, sub }]) → ONE
- *  action per entry — the FIRST the pink MAIN, the rest in `more` (plain tubes), each carrying its mode; no list → the single PLAY NOW */
+ *  action per entry — the FIRST first (`main`), the rest in `more`, each carrying its mode — THE DROP B: `equal` = all of them the SAME plain tube
+ *  (no pink on that card); no list → the single PLAY NOW (the pink MAIN) */
 export function cardActions({ solo = false, runs = null, inRoom = false, host = false } = {}) {
   if (inRoom) return host ? { main: { id: 'pick', label: 'PICK THIS GAME' }, more: [], second: null, note: null } : { main: null, more: [], second: null, note: 'The host picks the game' };
   const list = solo && Array.isArray(runs) ? runs.filter(r => r && typeof r.mode === 'string' && typeof r.label === 'string') : [];
   const run = r => ({ id: 'solo', label: r.label, sub: typeof r.sub === 'string' ? r.sub : null, mode: r.mode });
-  if (list.length) return { main: run(list[0]), more: list.slice(1).map(run), second: { id: 'friends', label: 'PLAY WITH FRIENDS' }, note: null };
+  // (THE DROP B add-on — Ben, Nov 13 10:17 pm: one pink + two white read as "one is pre-selected" → `equal`: every button on this card the SAME
+  //  plain white tube, no MAIN; the order + labels + sub lines unchanged. A game with no list keeps its single pink PLAY NOW)
+  if (list.length) return { main: run(list[0]), more: list.slice(1).map(run), second: { id: 'friends', label: 'PLAY WITH FRIENDS' }, note: null, equal: true };
   if (solo) return { main: { id: 'solo', label: 'PLAY NOW' }, more: [], second: { id: 'friends', label: 'PLAY WITH FRIENDS' }, note: null };
   return { main: { id: 'friends', label: 'PLAY WITH FRIENDS' }, more: [], second: null, note: 'Needs 2+ players' };
 }

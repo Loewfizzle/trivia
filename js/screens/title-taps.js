@@ -250,8 +250,9 @@ export function createTaps(T) {
       if (a.sub) b.append(h('small.nd-card-sub', a.sub));
       return b;
     };
-    const actions = h('div.nd-card-actions',
-      A.main ? tube(A.main, 'main') : null,
+    // (THE DROP B add-on: a card with a solo list = EQUAL buttons — the same plain white tube each, no pink "pre-selected" one)
+    const actions = h(`div.nd-card-actions${A.equal ? '.is-equal' : ''}`,
+      A.main ? tube(A.main, A.equal ? 'secondary' : 'main') : null,
       ...(A.more || []).map(a => tube(a, 'secondary')),
       A.second ? tube(A.second, 'secondary') : null,
       A.note ? h('p.nd-card-note', A.note) : null);
@@ -262,7 +263,8 @@ export function createTaps(T) {
         h('div.nd-pv-art', art),
         h('div.nd-pv-body',
           h('p.nd-pv-blurb', g.blurb),
-          h('div.nd-pv-meta', h('span', m.players), m.mins ? h('span', m.mins) : null)),
+          // (THE DROP B add-on: ONE plain quiet line — "SOLO · 2–8 PLAYERS · ABOUT 5 MIN" — never two pills)
+          h('p.nd-pv-meta', [m.players, m.mins ? m.mins.replace('≈', 'ABOUT') : null].filter(Boolean).join(' · '))),
         actions,
         h('div.nd-pv-actions',
           h('button.nd-card-help', { type: 'button', onclick: () => { close(); openHelp(g.id); } }, h('span', 'HOW TO PLAY'), h('i', { 'aria-hidden': 'true' }, ' ›'))),   // (a quiet link — the two PLAY actions lead)

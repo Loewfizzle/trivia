@@ -117,8 +117,10 @@ test('PD-6 TWO SOLO BUTTONS: no list / one / two — each a solo run with its mo
   const one = [{ mode: 'rush', label: 'SCORE RUSH', sub: 'ONE SONG' }];
   const two = [...one, { mode: 'survival', label: 'SURVIVAL', sub: 'UNTIL YOU TOP OUT' }];
   assert.deepEqual(cardActions({ solo: true, runs: null }).main, { id: 'solo', label: 'PLAY NOW' }, 'no list: the single PLAY NOW');
-  assert.deepEqual(cardActions({ solo: true, runs: one }), { main: { id: 'solo', label: 'SCORE RUSH', sub: 'ONE SONG', mode: 'rush' }, more: [], second: { id: 'friends', label: 'PLAY WITH FRIENDS' }, note: null });
+  assert.deepEqual(cardActions({ solo: true, runs: one }), { main: { id: 'solo', label: 'SCORE RUSH', sub: 'ONE SONG', mode: 'rush' }, more: [], second: { id: 'friends', label: 'PLAY WITH FRIENDS' }, note: null, equal: true });
+  assert.equal(cardActions({ solo: true, runs: null }).equal, undefined, 'THE DROP B add-on: no list = the single pink PLAY NOW (not equal)');
   const t = cardActions({ solo: true, runs: two });
+  assert.equal(t.equal, true, 'THE DROP B add-on: a solo list = EQUAL buttons (no pink MAIN on that card)');
   assert.deepEqual([t.main.label, ...t.more.map(a => a.label), t.second.label], ['SCORE RUSH', 'SURVIVAL', 'PLAY WITH FRIENDS'], 'the first the MAIN, then the rest, then PLAY WITH FRIENDS');
   assert.deepEqual(t.more[0], { id: 'solo', label: 'SURVIVAL', sub: 'UNTIL YOU TOP OUT', mode: 'survival' });
   assert.equal(cardActions({ solo: false, runs: two }).main.id, 'friends', 'a list on a game that is not SOLO is ignored');
