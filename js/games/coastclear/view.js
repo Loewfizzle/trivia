@@ -14,6 +14,7 @@
 //   createView() → { mount(el, state), update(state), unmount() }   state.game = the run shell (daily.create / start) · state.judge = a judge
 //   (the preview's fake; default THE API JUDGE — judge.js) · window.__coastclear = the test hook (the preview + the E2E)
 import { h, clear, reducedMotion } from '../../ui/dom.js';
+import { PING_MS, SURF_MS, DIAG_N, diagLine } from './logic.js';   // (DFIX5 — the ping's timings + the owner's readout line: pure)
 import { foldAnswer, emptyView, clockMs, fmtClock, buoysLeft, chordTargets, nbOf, headline, endLine, finalMs, endMap, shareLine, shareInputs, MAX_SPOTS, W, H, LIGHTS, SPOT_S } from './logic.js';
 import { retryable, recordFinish, tickTurn, endActions, endShare, NOT_RECORDED } from '../../daily/end.js';
 import { runDayKey } from '../../daily/clock.js';
@@ -42,12 +43,16 @@ const BURST = '<g class="cc-lt-rays"><path d="M12 1.5V5 M12 19V22.5 M1.5 12H5 M1
 /** DIG = a sounding probe: a ring with its centre dot + four ticks (where the tap lands) */
 const RIPPLE = '<circle cx="12" cy="12" r="2.2"/><path d="M12 4.5 A7.5 7.5 0 1 1 11.99 4.5 Z M12 1.5 V4.2 M12 19.8 V22.5 M1.5 12 H4.2 M19.8 12 H22.5"/>';
 
+export { PING_MS, SURF_MS, DIAG_N, diagLine };
+
 export function createView() {
   let root = null, st = null, judge = null, gone = false;
   let view = emptyView(), om = new Map(), ls = new Set(), ready = false, mode = 'dig', day = null, doneScore = null, finished = null, ended = false;
   let buoys = new Set(), pending = new Set(), inflight = new Map(), seq = 0, offset = 0, bestRtt = Infinity, net = false;
   let queue = [], flying = false, calls = 0;   // DFIX3 — the taps waiting for the next call; one coalesced call in flight at a time; the calls made
   const taps = [];                             // the dev-only timing: { cell, ms: the tap → its number on screen, server: Server-Timing's phases }
+  let owner = false, pings = 0;                // DFIX5 — the owner's readout on (the server's `start` says so — never the phone); the rings sent
+  const digMs = [];                            // DFIX5 — the owner's readout: the last DIAG_N digs (release → the number painted)
   let timers = [], tickT = 0, netT = 0, clockT = 0, press = null;
   const landing = new Set();      // CC2: lights the server has named whose beam is still on its way (painted lit when it lands)
   let beams = 0;                  // beams in flight (the hook + the E2E)
@@ -94,6 +99,9 @@ export function createView() {
     els.fx.append(els.red);
     root.classList.add('cc-screen');
     els.play.append(els.hint);   // (right under the board — it moves with it)
+    // DFIX5 — THE OWNER'S DIG READOUT (owner only — `start` says so): "DIG 148 MS · SERVER 9 MS · NET 139 MS · MEDIAN 152 MS" under the board
+    els.diag = h('p.cc-diag', { hidden: true, 'aria-hidden': 'true' });
+    els.play.append(els.diag);
     root.append(els.head, els.play, els.note, els.mode, els.end, els.fx);
     els.board.addEventListener('pointerdown', onDown);
     els.board.addEventListener('pointermove', onMove);
@@ -105,7 +113,7 @@ export function createView() {
 
   // ---- painting ----------------------------------------------------------------------------------------------------------------------
   /** one cell from the view (opts.delay: the ripple's wait before it pops; opts.pop: animate it in) */
-  function paintCell(i, { pop = false, delay = 0, burst = false } = {}) {
+  function paintCell(i, { pop = false, delay = 0, burst = false, surf = false } = {}) {
     const c = cells[i];
     if (!c) return;
     const n = om.get(i), coming = landing.has(i), lit = ls.has(i) && !coming, b = buoys.has(i) && n == null && !ls.has(i);
@@ -124,7 +132,11 @@ export function createView() {
     if (!b && bu) bu.remove();
     let lt = c.querySelector('.cc-light');
     if (lit && !lt) { lt = svg('0 0 24 24', 'cc-light', BURST); c.append(lt); if (burst && !reducedMotion()) { const ring = h('i.cc-ring'); c.append(ring); later(() => ring.remove(), 900); } }
-    if (pop && !reducedMotion()) {
+    if (surf && !reducedMotion()) {
+      // DFIX5 — THE NUMBER SURFACES: the tapped cell's own number rises into place the moment its answer lands (never waits for the rings)
+      c.classList.remove('is-pop', 'is-surf'); void c.offsetWidth; c.classList.add('is-surf');
+      later(() => c.classList.remove('is-surf'), SURF_MS + 80);
+    } else if (pop && !reducedMotion()) {
       c.style.setProperty('--d', `${delay}ms`);
       c.classList.remove('is-pop'); void c.offsetWidth; c.classList.add('is-pop');
       later(() => c.classList.remove('is-pop'), delay + 420);
@@ -273,6 +285,21 @@ export function createView() {
     taps.push({ cell: m.cell, ms, server });
     if (taps.length > 400) taps.shift();
     if (DEBUG) console.info(`[cc] tap → number ${ms} ms`, server ? Object.entries(server).map(([k, v]) => `${k} ${v}`).join(' · ') : '');
+    if (owner && m.a === 'dig') {
+      // (the frame after the number lands = painted; a page with no frames coming — a hidden pane — falls back to a timer)
+      let once = false; const go = () => { if (!once) { once = true; diag(m, server); } };
+      requestAnimationFrame(go); setTimeout(go, 100);
+    }
+  }
+  /** DFIX5 — THE OWNER'S DIG READOUT: the last dig (the finger lifted → its number painted — measured at the frame after it lands), the
+   *  server's own total (Server-Timing), the rest = the network; + the median of the last DIAG_N. Owner only (the server's `start` says so). */
+  function diag(m, server) {
+    if (gone || !els.diag) return;
+    const ms = Math.round(performance.now() - m.at);
+    digMs.push(ms); if (digMs.length > DIAG_N) digMs.shift();
+    const sv = server && Number.isFinite(Number(server.total)) ? Math.round(Number(server.total)) : null;
+    els.diag.textContent = diagLine(ms, sv, digMs);
+    els.diag.hidden = false;
   }
   /** the newest /api/daily answer's Server-Timing (same origin: the browser hands the phases to the resource entries) → { phase: ms, phase_: desc } */
   function serverTimingNow() {
@@ -298,7 +325,7 @@ export function createView() {
       fresh++; if (n === 0) calm = true; else numbered = true;
       const d = reducedMotion() ? 0 : Math.min(14, ring(c, origin)) * RIPPLE_MS;
       far = Math.max(far, d);
-      paintCell(c, { pop: true, delay: d });
+      paintCell(c, c === origin ? { surf: true } : { pop: true, delay: d });   // (DFIX5 — the tapped cell's number SURFACES; the flood ripples as before)
     }
     const caughtNow = view.done && !wasDone && view.out === 'caught';
     const lights = (resp.lit || []).filter(c => !litBefore.has(c));
@@ -366,12 +393,26 @@ export function createView() {
     const c = cells[i];
     const diggable = !om.has(i) && !ls.has(i);
     if (diggable && !pending.has(i)) c.classList.add('is-press');
+    // DFIX5 — THE SONAR PING: at once, on the DOWN (the dig itself still goes on the lift — a long-press must stay a buoy)
+    const pingEl = diggable && !pending.has(i) && mode === 'dig' && !buoys.has(i) && !view.done && !ended ? ping(i) : null;
     press = { i, x: e.clientX, y: e.clientY, id: e.pointerId, done: false, t: setTimeout(() => {
       if (!press || press.i !== i) return;
       press.done = true;
+      if (pingEl) pingEl.remove();   // (DFIX5 — the long-press is a BUOY: the ping gives way to the buoy's own drop — no dig)
       if (diggable && !pending.has(i)) { toggleBuoy(i); try { navigator.vibrate && navigator.vibrate(12); } catch { /* fine */ } }
       c.classList.remove('is-press');
     }, LONG_MS) };
+  }
+  /** DFIX5 — two quick sonar rings out of the cell (one element, its two rings in CSS — transform + opacity on the compositor); reduced
+   *  motion = one soft flash. Gone after PING_MS. Never waits for anything, never holds the number back. */
+  function ping(i) {
+    const c = cells[i];
+    if (!c) return null;
+    const el = h(`i.cc-ping${reducedMotion() ? '.is-flash' : ''}`, { 'aria-hidden': 'true' });
+    c.append(el); c.classList.add('is-ping');   // (the cell over its neighbours while it rings — css z-index, no layout)
+    pings++;
+    later(() => { el.remove(); if (!c.querySelector('.cc-ping')) c.classList.remove('is-ping'); }, PING_MS + 40);
+    return el;
   }
   function onMove(e) {
     if (!press || e.pointerId !== press.id) return;
@@ -411,6 +452,7 @@ export function createView() {
     els.note.textContent = ''; els.note.classList.remove('is-on'); net = false;
     const first = !ready;
     day = r.day || day;
+    owner = !!r.owner;   // (DFIX5 — the owner's dig readout: the server's word, never the phone's)
     doneScore = r.done != null ? r.done : null;
     if (doneScore != null) finished = 'RECORDED';
     setView({ ...emptyView(), ...r.run, startedAt: (r.run && r.run.startedAt) || r.startedAt });
@@ -524,6 +566,7 @@ export function createView() {
         view: () => view, buoys: () => [...buoys], pending: () => [...pending], mode: () => mode, ready: () => ready, finished: () => finished, score: () => doneScore,
         setMode, tap, long: i => toggleBuoy(i), resync, share, rtts: () => rtts.slice(), offset: () => offset, inflight: () => inflight.size, beams: () => beams,
         queued: () => queue.length, calls: () => calls, taps: () => taps.slice(),   // (DFIX3 — the coalescing + the timing)
+        pings: () => pings, diag: () => (els.diag && !els.diag.hidden ? els.diag.textContent : ''), owner: () => owner,   // (DFIX5)
         shareInputs: () => shareInputs(view, dayKey()), shareLine: () => shareLine(view, dayKey()),
         state: () => ({ ready, done: view.done, out: view.out, spots: view.spots, shown: shownSpots(), open: view.open.length, lit: view.lit.length, buoys: buoys.size, pending: pending.size, inflight: inflight.size, queued: queue.length, calls, beams, landing: landing.size, mode, note: els.note.textContent, end: ended && els.end.classList.contains('is-in'), clock: els.time.textContent, paused: !!view.paused, pauses: view.pauses, hint: !!(els.hint && !els.hint.hidden && !hintGone) }),
       };
@@ -538,6 +581,7 @@ export function createView() {
       if (root) { clear(root); root.classList.remove('cc-screen', 'is-end', 'is-leaving'); delete root.dataset.ready; delete root.dataset.mode; delete root.dataset.out; }
       delete window.__coastclear;
       root = null; cells.length = 0; press = null; pending = new Set(); inflight = new Map(); landing.clear(); beams = 0; queue = []; flying = false; taps.length = 0;
+      digMs.length = 0; owner = false; pings = 0;
     },
   };
   return api;

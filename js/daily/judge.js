@@ -2,7 +2,7 @@
 // CLEAR): start (the run's own day asked for — DFIX1, js/daily/run-day.js), its moves (each carries the run's day), finish (then the next start
 // opens today's). Everything goes through js/profile/api.js (fetch + the ID token — no database socket: THE PARKED DATABASE never wakes).
 //   const j = createDailyJudge('coastclear', { moves: { dig: cell => ({ cell }), pause: () => ({}) } })
-//   j.start() → { startedAt, done, run, day, now } · j.dig(cell) → the server's answer · j.finish() → { score, stand, outcome, counted }
+//   j.start() → { startedAt, done, run, day, now, owner? } · j.dig(cell) → the server's answer · j.finish() → { score, stand, outcome, counted }
 import { api } from '../profile/api.js';
 import { runDay } from './run-day.js';
 
@@ -16,7 +16,7 @@ export function createDailyJudge(game, { moves = {} } = {}) {
       const asked = rd.asked();
       const r = await api('daily', { action: 'start', game, ...(asked ? { day: asked } : {}) });
       rd.started(r);
-      return { startedAt: r.startedAt, done: r.done, run: r.run, day: r.day, now: r.now };
+      return { startedAt: r.startedAt, done: r.done, run: r.run, day: r.day, now: r.now, ...(r.owner ? { owner: true } : {}) };   // (DFIX5 — the owner's readout: the server's word)
     },
     async finish() { const r = await call('finish', { result: null }); rd.scored(); return r; },
   };

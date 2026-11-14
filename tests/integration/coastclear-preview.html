@@ -21,6 +21,9 @@
                               three beams converging) · + &still=1 = the end already reached (a resume: lands on the end screen, no motion)
        &sweep=1               mid-run, once ready a light is dug → THE SWEEP (the beam lands, the gold burst, "+30 s") · &sweep=3 = the CAUGHT converge
        &share=1               the rendered share image (NO BOARD) over the screen, once the run has ended (with &end=…)
+       &ping=1                DFIX5 — THE SONAR PING: a 300 ms line (unless &lat is given) + a scripted press every 2.2 s on the next safe cell
+                              (real pointer events: the rings on the DOWN, the number SURFACING when it lands) — a real touch stops the script
+       &diag=1                DFIX5 — THE OWNER'S DIG READOUT under the board (the fake's `start` says owner, as the server does for ADMIN_PIDS)
        the audio: the console's unlock-on-tap is installed here (audio/engine.js#installAudio) — tap once and the sounds play (an iPhone too)
        window.__coastclear = the view's hook · window.__preview = { judge, board, counts, play } -->
 <link rel="stylesheet" href="/css/base.css">
@@ -65,7 +68,7 @@ for (let k = 0; k < 60 && !board; k++) {
   if (big >= 18 || k === 59) board = b;
 }
 const counts = countsOf(board), L = new Set(board.lights);
-const lat = Number(q.get('lat') || 40);
+const lat = Number(q.get('lat') || (q.get('ping') === '1' ? 300 : 40));
 const T0 = Date.now() - 1000 * Number(q.get('t') || ((q.get('state') && q.get('state') !== 'opening') || q.get('end') || q.get('sweep') ? 95 : 0));
 let dropUntil = q.get('drop') === '1' ? Infinity : 0;
 const tick = () => new Promise(r => setTimeout(r, lat * (0.8 + Math.random() * 0.4)));
@@ -74,7 +77,7 @@ const fail = (status, code) => Object.assign(new Error(code), { status, code });
 // THE FAKE SERVER: a local record, the same pure rules (api/_lib/cc.js → logic.js#serverAct)
 const judge = {
   kind: 'fake', record: newRecord(T0), board, score: null, calls: 0,
-  async start() { await tick(); return { startedAt: T0, done: this.score, run: runView(this.record, board, { startedAt: T0 }), day: DAY, now: Date.now() }; },
+  async start() { await tick(); return { startedAt: T0, done: this.score, run: runView(this.record, board, { startedAt: T0 }), day: DAY, now: Date.now(), ...(q.get('diag') === '1' ? { owner: true } : {}) }; },
   async act(action, args) {
     this.calls++;
     await tick();
@@ -168,6 +171,20 @@ if (q.get('share') === '1') {
   cv.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);height:min(96vh, 1350px);width:auto;max-width:96vw;object-fit:contain;z-index:98;box-shadow:0 20px 60px rgba(0,0,0,.6);border-radius:8px'; cv.id = 'pv-share'; document.body.append(cv);
 }
 if (q.get('flood') === '1') { await new Promise(r => setTimeout(r, Number(q.get('fdelay') || 600))); const z = bigZero(); if (z.cell != null) window.__coastclear.tap(z.cell); }
+// DFIX5 — &ping=1: a scripted press (pointerdown → 90 ms → pointerup, real events on the cell) every 2.2 s on the next safe numbered cell
+if (q.get('ping') === '1') {
+  let live = true;
+  addEventListener('pointerdown', e => { if (e.isTrusted) live = false; }, { capture: true });
+  const next = () => { const v = window.__coastclear.view(), open = new Set(v.open.map(c => c[0])); for (let i = 0; i < board.w * board.h; i++) if (!open.has(i) && !L.has(i) && counts[i] > 0 && v.open.some(([c]) => Math.abs((c % board.w) - (i % board.w)) <= 1 && Math.abs(Math.floor(c / board.w) - Math.floor(i / board.w)) <= 1)) return i; return null; };
+  const press = () => {
+    if (!live || window.__coastclear.view().done) return;
+    const i = next(), el = i == null ? null : document.querySelector(`.cc-cell[data-i="${i}"]`);
+    if (el) { const r = el.getBoundingClientRect(), o = { bubbles: true, pointerId: 7, isPrimary: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+      el.dispatchEvent(new PointerEvent('pointerdown', o)); setTimeout(() => el.dispatchEvent(new PointerEvent('pointerup', o)), 90); }
+    setTimeout(press, 2200);
+  };
+  setTimeout(press, 900);
+}
 document.body.dataset.ready = '1';   // (shots.mjs --page waits for this)
 </script>
 </body>

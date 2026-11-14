@@ -419,3 +419,53 @@ test('DFIX3 — THE DIG PATH: a move\'s transaction runs ONCE (the record held i
   await dailyAction('cc-tim', { action: 'moves', game: 'coastclear', list: safe.slice(3, 6).map(cell => ({ a: 'dig', cell })) }, NOW + 45e3, T2);
   assert.match(T2.header(), /tx;dur=[\d.]+;desc="1"/, 'a batch too: one attempt');
 });
+
+// ---------------------------------------------------------------- DFIX5 — THE HELD RUN + THE OWNER'S READOUT (docs/coastclear.md "DFIX5")
+import { heldCount, forgetHeld, HOLD_IDLE_MS } from '../../api/daily.js';
+
+test('DFIX5 — THE HELD RUN: a warm move reads NOTHING before its transaction (the record + the start held on the instance); one attempt; another instance\'s write is seen; idle runs let go', async () => {
+  forgetHeld();
+  await ensure('cc-hld', 'Holder');
+  const s = await A('cc-hld', 'start', NOW + 50e3);
+  const board = await ccBoard(day), counts = countsOf(board), opening = new Set(s.run.open.map(c => c[0]));
+  const safe = [...Array(108).keys()].filter(i => !opening.has(i) && !board.lights.includes(i) && counts[i] > 0);
+  const loads = [];
+  for (const [k, cell] of safe.slice(0, 4).entries()) {
+    const T = timing();
+    const r = await dailyAction('cc-hld', { action: 'dig', game: 'coastclear', cell }, NOW + 51e3 + k, T);
+    await honest('cc-hld', r, board);
+    const h = T.header();
+    assert.match(h, /tx;dur=[\d.]+;desc="1"/, `one transaction attempt (${h})`);
+    loads.push(Number(/load;dur=([\d.]+)/.exec(h)[1]));
+  }
+  assert.equal(heldCount(), 1, 'the run held on the instance');
+  // the warm moves (2nd …): nothing read from the database before the transaction — the cache answers (well under one emulator round trip)
+  assert.ok(Math.max(...loads.slice(1)) < 1.5, `warm moves read from the held cache (load ${loads.join(' / ')} ms)`);
+  // ANOTHER INSTANCE writes the record (a move answered elsewhere): the held listener hears it — the next move builds on it, nothing lost
+  const pid = await pidOf('cc-hld'), P = `dly/coastclear/${day}/p/${pid}`;
+  const rec = await val(P);
+  await ref(P).update({ mv: [...rec.mv, `d${safe[4]}`] });
+  const r5 = await A('cc-hld', 'dig', NOW + 60e3, { cell: safe[5] });
+  await honest('cc-hld', r5, board);
+  assert.deepEqual((await val(P)).mv.slice(-2), [`d${safe[4]}`, `d${safe[5]}`], 'the other instance\'s move kept, this one after it');
+  const again = await A('cc-hld', 'dig', NOW + 61e3, { cell: safe[4] });
+  assert.equal(again.already, true, 'a repeat of the other instance\'s move: free');
+  // an idle run is let go by the next call after HOLD_IDLE_MS (another player's)
+  await ensure('cc-hl2', 'Second');
+  await A('cc-hl2', 'start', NOW + 62e3);
+  await A('cc-hl2', 'dig', NOW + 62e3 + HOLD_IDLE_MS + 1, { cell: safe[0] });
+  assert.equal(heldCount(), 1, 'the idle run let go, the new one held');
+  forgetHeld();
+  assert.equal(heldCount(), 0);
+});
+
+test('DFIX5 — THE OWNER\'S READOUT: `start` says owner ONLY for ADMIN_PIDS (on the emulators also testAdmins/{pid}) — never anyone else', async () => {
+  await ensure('cc-own', 'Owner');
+  const pid = await pidOf('cc-own');
+  assert.equal((await A('cc-own', 'start', NOW + 70e3)).owner, undefined, 'a player: no readout');
+  process.env.ADMIN_PIDS = pid;
+  try { assert.equal((await A('cc-own', 'start', NOW + 70e3)).owner, true, 'ADMIN_PIDS: the readout'); } finally { process.env.ADMIN_PIDS = ''; }
+  await ref(`testAdmins/${pid}`).set(true);
+  try { assert.equal((await A('cc-own', 'start', NOW + 70e3)).owner, true, 'the emulators\' testAdmins: the readout'); } finally { await ref(`testAdmins/${pid}`).remove(); }
+  assert.equal((await A('cc-own', 'start', NOW + 70e3)).owner, undefined);
+});

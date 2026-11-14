@@ -89,10 +89,14 @@ await H.run(async () => {
   // ---- a DIG: a numbered cell beside the opening → its number from the server
   const opening = new Set(board.open);
   const num = [...Array(108).keys()].find(i => !opening.has(i) && counts[i] > 0 && NB[i].some(j => opening.has(j)));
-  const pressNow = await p.evaluate(sel => { const el = document.querySelector(sel); const r = el.getBoundingClientRect(); el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: r.x + 4, clientY: r.y + 4, pointerId: 3, button: 0 })); const now = el.classList.contains('is-press'); el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: r.x + 4, clientY: r.y + 4, pointerId: 3, button: 0 })); return now; }, cellSel(num));
+  // (DFIX5 — THE SONAR PING: the rings are on the cell IN THE SAME pointerdown event, before any answer; the tapped number SURFACES — no delay)
+  const pressNow = await p.evaluate(sel => { const el = document.querySelector(sel); const r = el.getBoundingClientRect(); el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: r.x + 4, clientY: r.y + 4, pointerId: 3, button: 0 })); const now = el.classList.contains('is-press'); const ping = !!el.querySelector('.cc-ping') && el.classList.contains('is-ping'); el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: r.x + 4, clientY: r.y + 4, pointerId: 3, button: 0 })); return now && ping; }, cellSel(num));
   await idle(p);
   v = await V(p);
-  ok(pressNow && openSet(v).has(num) && new Map(v.open).get(num) === counts[num], `a DIG: the tile pressed in the same event, the number (${counts[num]}) from the server`);
+  ok(pressNow && openSet(v).has(num) && new Map(v.open).get(num) === counts[num], `a DIG: the tile pressed + THE SONAR PING on it in the same event (DFIX5), the number (${counts[num]}) from the server`);
+  { const surf = await p.$eval(cellSel(num), e => ({ n: e.querySelector('.cc-n').textContent, rings: e.querySelectorAll('.cc-ping').length }));
+    await p.waitForFunction(sel => !document.querySelector(sel).querySelector('.cc-ping'), { timeout: 2000 }, cellSel(num));
+    ok(surf.n === String(counts[num]), `the number SURFACED the moment it landed ("${surf.n}"); the rings go by themselves (${surf.rings} still out then)`); }
   // CC2 — THE LOOK FLIP mid-dig: the tap fires, the look flips while it's in flight → the answer still lands, the tile re-themes, the switch kept
   {
     const nxt = [...Array(108).keys()].find(i => !openSet(v).has(i) && !L.has(i) && counts[i] > 0 && NB[i].some(j => openSet(v).has(j)));
@@ -158,9 +162,11 @@ await H.run(async () => {
     const unk = NB[c].filter(j => !openSet(v).has(j));
     const lights = unk.filter(j => L.has(j)), safe = unk.filter(j => !L.has(j));
     if (!lights.length || !safe.length || lights.length !== n) continue;
+    const pg0 = await p.evaluate(() => window.__coastclear.pings()), n00 = answers.length;
     for (const j of lights) await longPress(p, j);
     const bu = await p.evaluate(() => window.__coastclear.buoys());
-    ok(lights.every(j => bu.includes(j)) && (await S(p)).pending === 0, `BUOYS by long-press: ${lights.length} placed on the phone (no server call)`);
+    const pg1 = await p.evaluate(() => window.__coastclear.pings());
+    ok(lights.every(j => bu.includes(j)) && (await S(p)).pending === 0 && answers.length === n00 && pg1 - pg0 === lights.length, `BUOYS by long-press: ${lights.length} placed on the phone (no server call) — each press pinged on the DOWN, then became the buoy, never a dig (DFIX5)`);
     const n0 = answers.length;
     await tap(p, c); await idle(p);
     v = await V(p);
@@ -294,6 +300,25 @@ await H.run(async () => {
   ok(press.every(x => x.ok && x.ms < 16) && peak.inflight === 1 && peak.queued >= 3 && made <= 3, `150 ms LINE: every press shows in the same event (${Math.max(...press.map(x => x.ms)).toFixed(1)} ms max), ${peak.queued} taps queued behind the one in flight, six taps in ${made} call${made === 1 ? '' : 's'} (coalesced), all answered in ${all} ms`);
   const tapsB = await q.evaluate(() => window.__coastclear.taps());
   ok(tapsB.length >= 6 && tapsB.every(t => t.ms > 0) && tapsB.some(t => t.server && 'tx' in t.server), `the dev timing: ${tapsB.length} taps timed (tap → number ${tapsB.map(t => t.ms).join(' / ')} ms), Server-Timing read (${JSON.stringify(tapsB.find(t => t.server) && tapsB.find(t => t.server).server)})`);
+  // DFIX5 — THE PING NEVER HOLDS A NUMBER BACK: the first tap's number was on screen within a frame of its answer (the tap → number time less
+  // the call's own network time, from the browser's resource entry)
+  { const lag = await q.evaluate(t0 => { const e = performance.getEntriesByType('resource').filter(x => /\/api\/daily$/.test(x.name) && x.startTime >= t0 - 5)[0]; const t = window.__coastclear.taps()[0]; return e && t ? Math.round(t.ms - (e.responseEnd - e.startTime)) : null; }, await q.evaluate(() => performance.now()) - (Date.now() - t0) - 50);
+    ok(lag != null && lag < 40, `the number lands the moment its answer does — never held for the ping (tap → number minus the call: ${lag} ms)`); }
+  // DFIX5 — THE OWNER'S DIG READOUT: BOB made the owner on the emulators (testAdmins — ADMIN_PIDS on the live site): a fresh start says so, the
+  // next dig writes "DIG … MS · SERVER … MS · NET … MS · MEDIAN … MS" under the board; ALICE (a player) never sees it
+  {
+    const bobPid = await pidOf(q);
+    await ref(`testAdmins/${bobPid}`).set(true);
+    await q.evaluate(() => window.__coastclear.resync());
+    const v2 = await V(q), c2 = [...Array(108).keys()].find(i => !L.has(i) && !openSet(v2).has(i));
+    await tap(q, c2); await idle(q);
+    await q.waitForFunction(() => window.__coastclear.diag() !== '', { timeout: 3000 });
+    const d = await q.evaluate(() => ({ text: window.__coastclear.diag(), owner: window.__coastclear.owner(), box: (() => { const e = document.querySelector('.cc-diag'), b = document.querySelector('.cc-board'); const r = e.getBoundingClientRect(), rb = b.getBoundingClientRect(); return { below: r.top >= rb.bottom - 1, fits: e.scrollWidth <= e.clientWidth + 1 }; })() }));
+    const aliceSees = await p.evaluate(() => (window.__coastclear ? window.__coastclear.diag() : ''));
+    await ref(`testAdmins/${bobPid}`).remove();
+    ok(d.owner && /^DIG \d+ MS · SERVER \d+ MS · NET \d+ MS · MEDIAN \d+ MS$/.test(d.text) && d.box.below && d.box.fits && !aliceSees, `THE OWNER'S READOUT under the board, one line ("${d.text}"); a player sees none`);
+    await shotAll(q, 'cc-02b-owner-readout');
+  }
   for (const c of board.lights.slice(0, 2)) { await tap(q, c); await calm(q); }
   await tap(q, board.lights[2]);
   const conv = await q.waitForFunction(() => window.__coastclear.state().beams >= 3, { timeout: 8000, polling: 'raf' }).then(() => true, () => false);

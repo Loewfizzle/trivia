@@ -39,7 +39,7 @@
 //   uid → pid memoised a minute. Every answer carries `Server-Timing` (auth · pre · load · tx;desc=attempts · total · region — no secrets).
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
-import { ref, val } from './_lib/fb.js';
+import { ref, val, adminPids, emulated } from './_lib/fb.js';
 import { pidOf } from './_lib/profiles.js';
 import { bumpOwners } from './_lib/owners.js';
 import { take } from './_lib/limit.js';
@@ -95,6 +95,39 @@ async function mine(uid) {
   return pid;
 }
 export const forgetPids = () => PIDS.clear();
+
+// DFIX5 — THE HELD RUN (the owner: "noticeable lag on every dig"): a warm instance KEEPS the runner's record listener between moves (keyed by
+// the player + the run's day — never the phone's word: the pid is the token's, the day dayOfCall's), and the run's start once it exists (written
+// ONCE by `start` — one try), both through listeners held on the instance. A warm dig then reads NOTHING before its transaction — the record is already in the SDK's cache,
+// pushed by the server on every change — and the transaction is its ONE database round trip (cle1 ↔ Iowa ≈ 20 ms, was two). Every guarantee is
+// the transaction's, as before: a stale cached value is checked by the database and retried (the server's record is the truth), a repeat / a
+// reorder free, the replay score, the throwaway gate, THE ROOM WINS. Idle runs are let go after HOLD_IDLE_MS; at most HOLD_MAX at once.
+// THE DROP's moves (a cartridge with a `stash`) keep their own per-call read (PFIX-3 — the record read fresh before a chunk is stored).
+export const HOLD_IDLE_MS = 3 * 60_000, HOLD_MAX = 300;
+const HELD = new Map();   // `${base}/p/${pid}` → { ref (the record), sref (the start), at }
+const noop = () => {};
+const letGo = h => { h.ref.off('value', noop); h.sref.off('value', noop); };
+function heldRun(base, pid, now) {
+  const key = `${base}/p/${pid}`;
+  for (const [k, h] of HELD) { if (now - h.at < HOLD_IDLE_MS && HELD.size <= HOLD_MAX) break; if (k !== key) { letGo(h); HELD.delete(k); } }
+  let h = HELD.get(key);
+  if (!h) { h = { ref: ref(key), sref: ref(`${base}/s/${pid}`), at: now }; h.ref.on('value', noop); h.sref.on('value', noop); HELD.set(key, h); }
+  else { HELD.delete(key); HELD.set(key, h); }   // (the newest at the end — the sweep above lets the oldest go first)
+  h.at = now;
+  return h;
+}
+/** a value through a listener already held (the SDK's cache answers at once once the first value is in) */
+const heldVal = r => new Promise((res, rej) => r.once('value', snap => res(snap.val()), rej));
+/** the tests: let every held run go (a test that rewrites a record behind the server's back starts clean) */
+export const forgetHeld = () => { for (const h of HELD.values()) letGo(h); HELD.clear(); };
+export const heldCount = () => HELD.size;
+/** DFIX5 — the OWNER (ADMIN_PIDS — the same test /admin uses; on the emulators also `testAdmins/{pid}`, like the dealer's): COAST CLEAR's dig
+ *  readout is shown to him only — the phone hears it from `start`, never decides it */
+async function ownerOf(pid) {
+  if (!pid) return false;
+  if (adminPids().includes(pid)) return true;
+  return emulated() ? !!(await val(`testAdmins/${pid}`)) : false;
+}
 const cartOf = id => { const c = dailyOf(id); if (!c) throw new ApiError(404, 'no_daily'); return c; };
 const DAY_KEY = /^d\d{8}$/;
 /** the streak day before `dk` */
@@ -156,7 +189,8 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
           const tx = await ref(`${base}/p/${pid}`).transaction(cur => { const b = cart.begin({ record: cur, startedAt, now, data }); return b === cur ? undefined : b; });
           record = tx.snapshot.val();
         }
-        return { day, startedAt, done: done ?? null, run: await cart.resume({ record, day, startedAt, data, now, pid, base }), now };
+        const [run, owner] = await Promise.all([cart.resume({ record, day, startedAt, data, now, pid, base }), cart.diag ? ownerOf(pid) : false]);
+        return { day, startedAt, done: done ?? null, run, now, ...(owner ? { owner: true } : {}) };
       }
       return { day, seed: await dailySeed(cart.id, day), startedAt, done: done ?? null };
     }
@@ -212,13 +246,16 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       }
       // the record HELD in the SDK's cache for this call (a listener): the transaction's first attempt then runs on the real value — ONE round
       // trip, not the "first null" two (the listener goes in `finally`, whatever happens)
-      const recRef = ref(`${base}/p/${pid}`), hold = () => {};
-      recRef.on('value', hold);
+      // DFIX5 — THE HELD RUN (heldRun above): a cartridge without a `stash` (COAST CLEAR) keeps its listener + its start between calls — a warm
+      // move then waits on the database ONCE (the transaction); THE DROP keeps the per-call listener exactly as before
+      const held = cart.stash ? null : heldRun(base, pid, now);
+      const recRef = held ? held.ref : ref(`${base}/p/${pid}`), hold = () => {};
+      if (!held) recRef.on('value', hold);
       let outs = [], attempts = 0;
       try {
         const [rec0, startedAt, data, room] = await Promise.all([
-          new Promise((res, rej) => recRef.once('value', s => res(s.val()), rej)),
-          val(`${base}/s/${pid}`), cart.load ? cart.load(day, now) : null,
+          heldVal(recRef),
+          held ? heldVal(held.sref) : val(`${base}/s/${pid}`), cart.load ? cart.load(day, now) : null,
           body.action === 'pause' ? roomStarted({ uid, pid, code: body.room, now }) : null]);
         T.mark('load');
         if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
@@ -248,7 +285,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
           return rec !== cur ? rec : undefined;                     // nothing changed (a repeat, a refusal) → nothing written
         });
         T.mark('tx', attempts);
-      } finally { recRef.off('value', hold); }
+      } finally { if (!held) recRef.off('value', hold); }
       const wording = code => (code === 'finished' ? 'Today’s run is done.' : code === 'pause_limit' ? 'No more pauses this run — the clock is running.' : code === 'paused' ? 'The run is paused.' : 'That move doesn’t work there.');
       if (batch) return { day, answers: outs.map(o => (o.refused ? { refused: o.refused === 'done' ? 'finished' : o.refused } : o.resp)), now };
       const o = outs[0];

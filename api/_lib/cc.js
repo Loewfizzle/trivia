@@ -23,6 +23,7 @@ export const CC_DAILY = {
   id: 'coastclear', name: 'COAST CLEAR', better: 'low', buckets: BUCKETS,
   bucket: bucketOf,
   judged: true,                                                    // the server holds the record: start returns the run, its moves exist, finish ignores the claim
+  diag: true,                                                      // DFIX5 — `start` tells the OWNER's phone (only) to show the dig readout under the board
   moves: ['dig', 'chord', 'pause', 'resume'],                      // the /api/daily actions it answers (api/daily.js — one transaction each)
   /** the day's server-side data, before any call (the board) */
   load: day => ccBoard(day),

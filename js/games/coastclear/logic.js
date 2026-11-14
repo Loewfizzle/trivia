@@ -370,3 +370,21 @@ export function endMap(view, buoys = []) {
 export const GHOST_S = 50;
 /** a finished result (replay) → its flags: { clear: 1 (LIGHTHOUSE), ghost?: 1 (GHOST RUN — zero spots, score ≤ GHOST_S) } | null (a caught run earns nothing) */
 export const runFlags = r => (r && r.out === 'clear' ? { clear: 1, ...(r.spots === 0 && r.score <= GHOST_S ? { ghost: 1 } : {}) } : null);
+
+// ---- DFIX5 — THE SONAR PING + THE OWNER'S DIG READOUT (pure — view.js reads them; tests/dfix5.test.mjs) ---------------------------------------
+// DFIX5 — THE SONAR PING (the owner: "noticeable lag on every dig" — the wait becomes the effect): a pointer DOWN on a diggable cell in DIG
+// mode sends two quick rings out from it AT ONCE (css/coastclear.css .cc-ping — transform + opacity; reduced motion = one soft flash); the
+// number SURFACES the moment its answer lands (.is-surf — a quick rise, never held back for the rings). A long-press turns it into the buoy.
+export const PING_MS = 190;           // the two rings, the second 45 ms behind the first (the element goes after this)
+export const SURF_MS = 120;           // the tapped cell's number rising into place
+/** DFIX5 — the owner's dig readout: the last DIAG_N digs' median */
+export const DIAG_N = 10;
+
+/** DFIX5 — the owner's readout line (pure): "DIG 148 MS · SERVER 9 MS · NET 139 MS · MEDIAN 152 MS" (no server time → no SERVER / NET) */
+export function diagLine(ms, server, last = [ms]) {
+  const xs = last.slice().sort((a, b) => a - b), med = xs.length ? xs[Math.floor((xs.length - 1) / 2)] : ms;
+  const bits = [`DIG ${ms} MS`];
+  if (server != null) bits.push(`SERVER ${server} MS`, `NET ${Math.max(0, ms - server)} MS`);
+  bits.push(`MEDIAN ${med} MS`);
+  return bits.join(' · ');
+}
