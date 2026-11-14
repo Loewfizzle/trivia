@@ -187,8 +187,9 @@ export function fromSnapshot(str) {
  *   reasons: bad_log (a char no log has) · too_big · out_of_order (an event inside an already-checked span / a tick before the run's) ·
  *   illegal (an input that does nothing there) · lock_mismatch (a K with no lock / a lock with no K) · too_fast (past the human floor) ·
  *   past_end (anything after the top-out / THE END, or `to` past it) · not_over (final, the run still going) · bad_to
+ *   cut: a tick the replay STOPS at — later events are left unread (the server's end for a run uploaded too late: drop-judge.js)
  */
-export function replay(log, seed, { from = null, to = null, final = false } = {}) {
+export function replay(log, seed, { from = null, to = null, final = false, cut = null } = {}) {
   if (typeof log !== 'string') return { ok: false, refused: 'bad_log', at: 0 };
   if (log.length > LOG_MAX) return { ok: false, refused: 'too_big', at: 0 };
   let run;
@@ -216,6 +217,7 @@ export function replay(log, seed, { from = null, to = null, final = false } = {}
     if (!CODES.includes(code)) return no('bad_log');
     if (m[1].length > 6 || (m[1].length > 1 && m[1][0] === '0')) return no('bad_log');
     tick += m[1] ? Number(m[1]) : 0;
+    if (cut != null && tick > cut) { seen = part.length; break; }
     if (tick < run.k && !(code === 'K' && pendingK === tick)) return no('out_of_order');
     if (tick > END_TICK) return no('past_end');
     const bad = stepUntil(tick);
@@ -235,6 +237,7 @@ export function replay(log, seed, { from = null, to = null, final = false } = {}
     E.takeEvents(run.eng);
   }
   if (seen !== part.length) return no('bad_log');
+  if (cut != null) to = Math.max(run.k, Math.min(END_TICK, Math.floor(cut)));
   if (to != null) {
     if (!Number.isInteger(to) || to < run.k) return no('bad_to');
     if (to > END_TICK) return no('past_end');

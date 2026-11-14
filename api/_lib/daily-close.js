@@ -37,6 +37,37 @@ export async function closeDays({ games, now = Date.now() }) {
 }
 
 /**
+ * THE DROP A — THE SWEEP of runs left in flight (a cartridge with `abandon` — THE DROP): yesterday's (once, at its close: only the runs that can
+ * never come back) and the day before's (its run window — DFIX1's "until 4 am the day after" — is over: every unfinished run) are scored at
+ * their last checkpoint through `settle` (api/daily.js#settleRun — the finish's own path). A memo per warm function; the starters' keys read
+ * once a day (cheap at this size — dly/ cleanup before ~500 a day: the BEFORE-PUBLIC list).
+ */
+const SWEPT = new Set();
+export const forgetSwept = () => SWEPT.clear();
+export async function sweepRuns({ games, now = Date.now(), settle }) {
+  const today = streakDay(now), out = [];
+  for (const game of games || []) {
+    const cart = dailyOf(game);
+    if (!cart || !cart.abandon || typeof settle !== 'function') continue;
+    for (const back of [1, 2]) {
+      const day = dayOf(dayNum(today) - back), key = `${game}|${day}|${back}`;
+      if (SWEPT.has(key)) continue;
+      SWEPT.add(key);
+      try {
+        const [starts, scores] = await Promise.all([val(`dly/${game}/${day}/s`), val(`dly/${game}/${day}/r`)]);
+        for (const pid of Object.keys(starts || {})) {
+          if (scores && scores[pid] != null) continue;
+          // (yesterday: settleRun scores only a run that can't come back; the day before: its window is over — the next run can't resume it)
+          const r = await settle({ pid, cart, day, now, today, force: back === 2 }).catch(() => null);
+          if (r) out.push({ game, day, pid, score: r.score });
+        }
+      } catch { SWEPT.delete(key); }
+    }
+  }
+  return out;
+}
+
+/**
  * THE ONE DAY LINE (FR7 FIXES C — S2): a COUNTING finish that lands on a day ALREADY CLOSED (a run started before 4 am, finished after — the
  * close ran on the first call after the turn and left it out) RE-RANKS that day ONCE more: penthouseStep is idempotent (m/ph_<game>_<day>), so
  * this can only ADD a PENTHOUSE (the late 50th finisher opening the day, a late better score), never take one away — the marker's winners are

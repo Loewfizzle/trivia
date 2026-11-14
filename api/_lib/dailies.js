@@ -2,7 +2,7 @@
 // knows, THE GO-LIVE SWITCH, THE 4 AM PICKER + the secret seed.
 //
 // PLUG-AND-PLAY (DM1): config.js#DAILIES is the list; SERVER_CARTS maps a row's id to its server cartridge (THE PASSWORD — pw.js, COAST CLEAR —
-// cc.js). Adding a daily = its cartridge (client + server parts, docs/cartridge.md D2) + its row (+ its line in SERVER_CARTS, the cartridge's
+// cc.js, THE DROP — drop.js). Adding a daily = its cartridge (client + server parts, docs/cartridge.md D2) + its row (+ its line in SERVER_CARTS, the cartridge's
 // server half). Nothing else counts the dailies: THE SWEEP, the XP cap, `today`, the picker all read core/daily.js#todaysDailies.
 //
 // THE GO-LIVE SWITCH (DM1): progress/dailies = { on: true, at, by } (server-only — the rules' default deny), flipped by the owner only
@@ -16,6 +16,7 @@ import { dailySecret, clearSecretCache } from './daily-secret.js';
 import { registerDaily, unregisterDaily, dailyOf, dailyIds, dailyRows, todaysDailies, addDailyRow, removeDailyRow } from '../../js/core/daily.js';
 import { PW_DAILY } from './pw.js';
 import { CC_DAILY } from './cc.js';
+import { DROP_DAILY } from './drop.js';
 
 export const FAKE_DAILY = {
   id: 'test', name: 'THE TEST DAILY', better: 'high', buckets: 101,
@@ -28,7 +29,7 @@ export const FAKE_DAILY = {
   },
 };
 /** a row's id → its SERVER cartridge (the list's rows; the test ones join through registerTestDaily) */
-export const SERVER_CARTS = { password: PW_DAILY, coastclear: CC_DAILY };
+export const SERVER_CARTS = { password: PW_DAILY, coastclear: CC_DAILY, drop: DROP_DAILY };   // (THE DROP A: its row ships `on: false`)
 const TEST_CARTS = new Map();
 const testing = () => process.env.DAILY_TEST === '1';
 
@@ -71,7 +72,8 @@ export function syncDailies(live) {
   const open = lastSwitch || testing();
   const want = new Map();
   for (const r of dailyRows()) {
-    if (r.on === false) continue;
+    // (THE DROP A: a row that ships OFF is never opened — except, on the emulators only, the ids DAILY_TEST_OFF names (the tests + e2e-drop))
+    if (r.on === false && !(testing() && String(process.env.DAILY_TEST_OFF || '').split(',').includes(r.id))) continue;
     const c = SERVER_CARTS[r.id] || (testing() ? TEST_CARTS.get(r.id) : null);
     if (c && open) want.set(r.id, c);
   }
