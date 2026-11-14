@@ -182,7 +182,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   const isGame = () => S.tab !== 'xp' && S.tab !== 'dailies';
   function boardsNow() {
     if (S.tab === 'xp') return [boardDef('xp')];
-    if (S.tab === 'dailies') return [{ ...boardDef('daily'), chip: 'ALL DAILIES' }, ...POINT_DAILIES.map(g => ({ ...boardDef(`daily-${g}`), chip: gameName(g) }))];
+    if (S.tab === 'dailies') return [{ ...boardDef('daily'), chip: 'ALL DAILIES' }, ...POINT_DAILIES.filter(g => (DAILIES.find(d => d.id === g) || {}).on !== false).map(g => ({ ...boardDef(`daily-${g}`), chip: gameName(g) }))];   // (THE DROP A: a row that ships OFF gets no chip)
     const own = tabBoards(S.tab);   // (HOLD'EM: its one board — no RECORDS / CAREER switch)
     if (own) return own.filter(Boolean).map(b => ({ ...b, game: S.tab }));
     return S.cat === 'career' ? careerBoards(S.tab).map(b => ({ ...b, game: S.tab })) : recordBoards(S.tab).map(b => ({ ...b, game: S.tab }));

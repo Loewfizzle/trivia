@@ -53,10 +53,23 @@ function coastPoints(score) {
   return 40;
 }
 
+// ---- THE DROP (THE DROP A — score = time survived in TENTHS × 1000 + lines: js/games/prism/drop.js#scoreOf). A CAPPED curve on the time:
+//   POINTS_FLOOR (10) + 90 × (t / 8:00)^0.6 — 0:30 → 27 · 1:00 → 35 · 2:00 → 49 · 3:00 → 59 · 4:00 → 69 · 6:00 → 85 · THE END (8:00 — the
+//   guaranteed end) → 100. A longer run never fewer points; the lines only break ties on the board, never here; any played day ≥ the floor.
+export const DROP_END_TENTHS = 4800;
+function dropPoints(score) {
+  const s = Number(score);
+  if (!Number.isFinite(s) || s < 0) return null;
+  const tenths = Math.min(DROP_END_TENTHS, Math.floor(s / 1000));
+  if (tenths >= DROP_END_TENTHS) return POINTS_MAX;
+  return Math.min(POINTS_MAX - 1, Math.floor(POINTS_FLOOR + (POINTS_MAX - POINTS_FLOOR) * Math.pow(tenths / DROP_END_TENTHS, 0.6)));
+}
+
 /** THE TABLE — a row per daily: its score → points (+ the row's own best / worst / lost, for the docs + the tests) */
 export const POINTS = Object.freeze({
   password: { of: passwordPoints, best: 2, worstWin: 12, lost: 206, label: 'both doors in 2 · both in 12 · locked out at the first door' },
   coastclear: { of: coastPoints, best: 30, worstWin: 3600, lost: 10090, label: 'cleared in 0:30 · cleared in 1:00:00 · caught with nothing opened' },
+  drop: { of: dropPoints, best: DROP_END_TENTHS * 1000 + 120, worstWin: 600 * 1000, lost: 0, label: 'THE END (8:00) · 1:00 survived · topped out at once', high: true },
 });
 /** the dailies with a points row (the boards' list — DAILIES' order) */
 export const POINT_DAILIES = DAILIES.map(d => d.id).filter(id => POINTS[id]);

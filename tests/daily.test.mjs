@@ -57,7 +57,8 @@ test('the daily\'s step: the streak + DAILY BREAD / THE SWEEP / EARLY BIRD / PEN
 // ---------------------------------------------------------------- DM1 — PLUG-AND-PLAY (no fixed count anywhere)
 test('DM1 — PLUG-AND-PLAY: a FAKE 3rd + 4th daily appear in the list, the live set, THE SWEEP and the XP cap with no other change; one fewer → the sweep needs one fewer', () => {
   const ids = () => todaysDailies();
-  assert.deepEqual(dailyRows().filter(r => !r.test).map(r => r.id), ['password', 'coastclear'], 'config.js#DAILIES, in order');
+  assert.deepEqual(dailyRows().filter(r => !r.test).map(r => r.id), ['password', 'coastclear', 'drop'], 'config.js#DAILIES, in order');
+  assert.equal(dailyRow('drop').on, false, 'THE DROP A: its row ships OFF (never live in this pass)');
   assert.ok(dailyRows().every(r => r.ticket && typeof r.lesson === 'boolean' && Number.isFinite(r.order)), 'every row: order · ticket · lesson');
   assert.equal(dailyRow('coastclear').lesson, true, 'COAST CLEAR has a first-time lesson (DFIX3: THE ONE-TIME HINT under the board)');
   const cart = id => ({ id, name: id, buckets: 10, bucket: s => s, verify: () => 1 });

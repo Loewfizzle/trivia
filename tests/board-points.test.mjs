@@ -130,3 +130,20 @@ test('THE SIMULATION — 40 bots with mixed habits, 2 weeks: every board\'s orde
     assert.deepEqual(server[b], hand[b], b);
   }
 });
+
+test('THE DROP A — THE DROP\'s row: a CAPPED curve on the time survived; a longer run never fewer points (the lines never lower them); any played day ≥ the floor; THE END = 100', async () => {
+  const { scoreOf, DROP_END_MS } = await import('../js/games/prism/drop.js');
+  assert.ok(POINTS.drop, 'a points row');
+  assert.equal(dailyPoints('drop', scoreOf(0, 0)), POINTS_FLOOR, 'topped out at once = the floor');
+  assert.equal(dailyPoints('drop', scoreOf(DROP_END_MS, 120)), 100, 'THE END (the guaranteed end) = POINTS_MAX');
+  assert.equal(dailyPoints('drop', scoreOf(DROP_END_MS - 100, 999)), 99, 'just short of THE END: under 100 whatever the lines');
+  assert.equal(dailyPoints('drop', scoreOf(120_000, 30)), 49);
+  assert.equal(dailyPoints('drop', scoreOf(240_000, 60)), 69);
+  let last = -1;
+  for (let t = 0; t <= DROP_END_MS; t += 100) for (const ln of [0, 500, 999]) {
+    const p = dailyPoints('drop', scoreOf(t, ln));
+    assert.ok(p >= POINTS_FLOOR && p <= 100, `${t}: ${p}`);
+    if (ln === 0) { assert.ok(p >= last, `never fewer at ${t} (${p} < ${last})`); last = p; }
+    assert.equal(p, dailyPoints('drop', scoreOf(t, 0)), 'the lines break board ties only — never the points');
+  }
+});
