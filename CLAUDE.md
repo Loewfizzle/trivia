@@ -33,6 +33,10 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 | `docs/pulse.md` `docs/golf.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that frozen game |
 
 ## Ground rules
+- **THE ADD-ON INBOX:** every pass reads `C:\Users\benja\Downloads\NEON\ADDONS.md` at its START, after each group's commit and before its
+  final tests; it builds only OPEN entries addressed to its pass (or its game's earlier / next pass) as its next group and marks each
+  '✓ done <time> (<commit>)'; an entry that arrives after the final tests started stays OPEN, is named in the summary, and the game's next
+  pass builds it. Never edit or delete others' entries. Rules at the top of that file.
 - **No build step.** Plain HTML/CSS/ES modules. No npm deps in the shipped site (the root `package.json` only gives the `/api`
   functions firebase-admin; Vercel installs it, the browser never sees it). Firebase comes
   from `https://www.gstatic.com/firebasejs/11.10.0/…` — loaded with a *dynamic* import inside `initFirebase()`;
