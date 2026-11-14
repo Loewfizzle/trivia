@@ -197,6 +197,13 @@ const CALLOUT = { send: ['+4 → DANA', 'send'], blocked: ['BLOCKED!\n+2 → DAN
 if (q.has('callout') && CALLOUT[q.get('callout')]) window.__prism.calloutHold(...CALLOUT[q.get('callout')]);
 if (q.has('after')) await wait(Number(q.get('after')));
 if (q.get('down') === '1') document.querySelector('.pd-slam-b')?.classList.add('is-down');
+// (SKINS 1) &settings=1 opens the SETTINGS sheet at PRISM DROP's SKINS rows (the real sheet — a tile tap changes the board behind it, live)
+if (q.get('settings') === '1') {
+  const m = await import('/js/ui/settings-panel.js');
+  m.installSettingsPanel();
+  document.querySelector('.gear')?.click();
+  setTimeout(() => document.querySelector('.set-skins')?.scrollIntoView({ block: 'center' }), 800);
+}
 if (q.get('hit') === '1') setTimeout(() => { const t = document.querySelector('.pd-tile'); if (t) t.classList.add('is-hit'); }, 200);
 if (q.has('tier')) window.__prism && window.__prism.setTier(Number(q.get('tier')));
 if (q.get('collapse') === 'now' && window.__prism && window.__prism.collapseHold) window.__prism.collapseHold(false);   // (PD-5B: the old look — the before)
