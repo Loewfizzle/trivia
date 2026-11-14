@@ -93,7 +93,8 @@ test("THE SKINS' SOURCED SOUNDS: only a skin's own files, each ≤ 30 KB + in CR
   for (const f of have.filter(x => x.endsWith('.mp3'))) {
     const n = statSync(new URL(f, dir)).size;
     assert.ok(n > 600 && n <= 30 * 1024, `${f}: ${n} B ≤ 30 KB`);
-    assert.match(credits, new RegExp(`\`${f.replace('.', '\.')}\` — .*CC0 1\.0`), `${f} is credited, CC0`);
+    const line = credits.split('\n').find(l => l.startsWith(`- \`${f}\` — `)) || '';
+    assert.ok(line.includes('CC0 1.0'), `${f} is credited, CC0`);
   }
   assert.doesNotMatch(credits, /CC BY-NC|CC BY-ND|All rights|Sonniss/i);
   // the synth: fetched at setVoices (the skin shows), never before; a file not ready → the code-made voice
@@ -101,7 +102,7 @@ test("THE SKINS' SOURCED SOUNDS: only a skin's own files, each ≤ 30 KB + in CR
   assert.equal((audio.match(/fetchSample\(/g) || []).length, 2, 'fetched in two places only: setVoices (the skin shows) + the decode');
   for (const [voice, code] of [['plip', 'else drip(m, ctx.currentTime + 0.002, { gain: 0.05, dur: 0.1 });'], ['swish', 'else brush(q.at, { gain: 0.035 + 0.008 * Math.min(4, lines)'], ['tap', 'noise(at, { gain: 0.045, dur: 0.035, from: 3800, to: 1600, q: 1.4 });'], ['rip', 'tear(q.at, { gain: 0.05 + 0.008 * Math.min(4, lines)']]) {
     assert.ok(audio.includes(code), `${voice}: its code-made sound is still there — the fallback`);
-    assert.match(audio, new RegExp(`SAMPLE_GAIN\.${voice}\(`), `${voice}: the file plays at the voice's own level`);
+    assert.ok(audio.includes(`SAMPLE_GAIN.${voice}(`), `${voice}: the file plays at the voice's own level`);
   }
   const A = await import('../js/games/prism/skins.js').catch(() => null);   // (the registry imports DOM-free)
   if (A) { const { soundFiles } = { soundFiles: s => (s && s.files ? [...new Set(Object.values(s.files))] : []) }; assert.deepEqual(soundFiles(A.SKINS.watercolor.sounds), ['watercolor-lock', 'watercolor-clear']); assert.deepEqual(soundFiles(A.SKINS.crayon.sounds), []); }
