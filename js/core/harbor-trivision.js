@@ -11,6 +11,7 @@
 //   overrides it on every phone. &force=billboard-jaywalk (+ &jaywalk=open) = the JAYWALK face from TODAY on this phone.
 import { knob } from './harbor-schedule.js';
 import { holdemShow } from './harbor-holdem.js';
+import { streakDay } from './streak.js';
 
 const KEY_RE = /^\d{4}-\d{1,2}-\d{1,2}$/;
 const dayNum = key => { const [y, m, d] = String(key).split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 864e5); };
@@ -85,8 +86,18 @@ export const isDropId = id => id === 'drop';
  *  (progress/dlive.drop.from 'dYYYYMMDD') → 'YYYY-MM-DD' | null; the owner's mode cleaned */
 export function dropLiveDay(switchOn, sched) { const f = String((sched && sched.from) || ''); return switchOn && /^d\d{8}$/.test(f) ? `${f.slice(1, 5)}-${f.slice(5, 7)}-${f.slice(7, 9)}` : null; }
 export const cleanDropMode = v => (DROP_MODES.includes(v) ? v : 'on');
-/** the faces a day key turns between, in order (HOLD'EM → JAYWALK → THE DROP) — null when fewer than two are up (one face alone = no turning) */
-export function triFaces(dayKey) { const F = [holdemShow(dayKey), jaywalkShow(dayKey), dropShow(dayKey)].filter(Boolean); return F.length >= 2 ? F : null; }
+/** CITY D (THE DROP never joined the rotation — the owner's iPhone after CITY C): THE DROP goes live at the 4 am ET turn (the dailies' streak day),
+ *  but the board's own day key is its WORK DAY — still YESTERDAY until the billposter's evening turn — so on its go-live day (and the first hours
+ *  of each day) the face was counted a day late and dropped. PURE: the day THE DROP's window is judged on = the later of the board's key and the
+ *  streak day of `nowMs` (null = the board's key alone — the day chart, the tests' fixed days) */
+export function dropKey(dayKey, nowMs = null) {
+  if (!Number.isFinite(nowMs)) return dayKey;
+  const s = String(streakDay(nowMs) || ''), k = /^d\d{8}$/.test(s) ? `${s.slice(1, 5)}-${s.slice(5, 7)}-${s.slice(7, 9)}` : null;
+  return k && (!KEY_RE.test(String(dayKey || '')) || dayNum(k) > dayNum(dayKey)) ? k : dayKey;
+}
+/** the faces a day key turns between, in order (HOLD'EM → JAYWALK → THE DROP) — null when fewer than two are up (one face alone = no turning);
+ *  nowMs (the city's clock): THE DROP judged on the streak day (dropKey) */
+export function triFaces(dayKey, nowMs = null) { const F = [holdemShow(dayKey), jaywalkShow(dayKey), dropShow(dropKey(dayKey, nowMs))].filter(Boolean); return F.length >= 2 ? F : null; }
 /** THE BILLPOSTER stays home while the tri-vision is up (the turning board is the motion — no paste) */
 export const triKeeps = dayKey => !!triFaces(dayKey);
 export const isJaywalkId = id => id === 'jaywalk' || id === 'jaywalk-open';
