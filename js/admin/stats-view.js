@@ -10,6 +10,7 @@ import { fmtTag } from '../core/names.js';
 import { GAMES, DAILIES } from '../config.js';
 import { GAME_LIGHT } from '../board/view.js';
 import { lazyImport } from '../ui/lazy-import.js';
+import { neonTabs } from '../ui/neon-tabs.js';   // (CITY E: THE NEON TABS — ONE builder with THE BOARD's)
 
 const gameName = id => ([...GAMES, ...DAILIES].find(g => g.id === id) || { name: id }).name;
 const light = id => (GAME_LIGHT[id] || ['#f2c869'])[0];
@@ -20,7 +21,7 @@ export function big(n, label, sub) {
 }
 
 function tabs(view, key, opts, rerender) {
-  return h('div.ad-tabs', ...opts.map(([v, label]) => h('button.ad-tab', { type: 'button', class: view[key] === v ? 'is-on' : '', onclick: () => { view[key] = v; rerender(); } }, label)));
+  return neonTabs(opts.map(([v, l]) => ({ v, l })), { value: view[key], cls: 'ad-tabs', onPick: v => { view[key] = v; rerender(); } }).el;
 }
 
 function gamesBlock(S, o) {
@@ -139,7 +140,7 @@ function whoBlock(g, W, view, rerender) {
   const k = `who:${g.id}`, scope = view[k] || 'today', open = view[`${k}:all`];
   const L = g[scope] || { n: 0, rows: [] }, rows = open ? L.rows : L.rows.slice(0, WHO_SHOW);
   const faces = rows.map(r => W.faces[r.i] || { n: '?' });
-  const t = h('div.ad-tabs.st-who-tabs', ...[['today', 'TODAY'], ['week', 'THIS WEEK']].map(([v, label]) => h('button.ad-tab', { type: 'button', 'data-press': true, class: scope === v ? 'is-on' : '', 'aria-pressed': String(scope === v), onclick: () => { view[k] = v; view[`${k}:all`] = false; rerender(); } }, label)));
+  const t = neonTabs([{ v: 'today', l: 'TODAY' }, { v: 'week', l: 'THIS WEEK' }], { value: scope, cls: 'ad-tabs st-who-tabs', onPick: v => { view[k] = v; view[`${k}:all`] = false; rerender(); } }).el;
   const res = h('div.st-who-res');
   const list = h('ol.wo-list.is-strips.is-still.st-who', ...rows.map(r => {
     const out = h('b.wo-where.st-res', r.s != null ? '…' : (scope === 'today' && r.d === W.day ? 'NOT DONE YET' : 'DIDN’T FINISH'));

@@ -5,10 +5,12 @@
 // playable games only), opening on XP, THIS WEEK; THIS WEEK / ALL TIME on every tab. SLIM CARDS EVERYWHERE: every row = that player's slim
 // card through ui/strip-board.js (stripKit / stripFor / stripFx — never a second strip system; the public rows carry exactly its fields:
 // cd es tb g l n a c), the RANK at the left (gold / silver / bronze coins for the top 3), the SCORE on the line UNDER the card at its right
-// end (DFIX2's rule), the ⋯ (REPORT) at that line's left; YOUR card in a drawn gold frame (profile.bid) + pinned at the foot with your exact
+// end (DFIX2's rule), the ⋯ (REPORT — a bare icon, CITY E) at that line's left; YOUR row marked by a glowing left edge (CITY E — never a gold
+// frame; profile.bid) + pinned at the foot with your exact
 // rank (from the server, even outside the top 100) — or "N MORE DAYS TO BE RANKED · YOUR AVERAGE 83.3" on a dailies board's ALL TIME. A tap on
-// a card = THE PLAYER PAGE (the app only — `onPlayer`). THE BACKGROUND = BLACK VELVET + GOLD DECO (the owner's pick over the brown bar hall):
-// drawn in CSS + one SVG sunburst, nothing animates.
+// a card = THE PLAYER PAGE (the app only — `onPlayer`). CITY E (the owner, Nov 15): THE BACKGROUND = a darkened, faded still of the REAL night
+// harbor skyline (assets/board-sky.webp, baked from the city by shots.mjs), nothing animates; the tabs THE NEON TABS (ui/neon-tabs.js); no
+// pill, no gold; the buttons THE NEON TUBE (tubeButton).
 // THE SPEED RULES: only the top 10 cards are built (SHOW ALL builds the rest, the pages after it as they scroll in), ONE fx surface for the list
 // (every strip CALM — fx/renderer.js draws only the slots on screen), the city is not running behind (the board is its own screen); a tab
 // switch rebuilds the list only. THE TAP WATCH (the owner's LOST TAP on the HOLD'EM tab, Nov 13): the tabs, the switches and the picks are
@@ -21,7 +23,7 @@
 import { openSheet } from '../ui/sheet.js';
 import { rankMedal } from '../ui/medal.js';   // (CITY B: THE DECO MEDALS — one component)
 import { h } from '../ui/dom.js';
-import { avatar } from '../ui/components.js';
+import { avatar, tubeButton } from '../ui/components.js';
 import { emblem } from '../ui/emblems.js';
 import { GAMES, DAILIES } from '../config.js';
 import { boardDef, recordBoards, careerBoards, tabBoards, fmtValue, MIN_WR_GAMES } from '../core/boards.js';
@@ -32,6 +34,7 @@ import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
 import { boardSfx } from './audio.js';
 import { lazyImport } from '../ui/lazy-import.js';
 import { afterTap } from '../ui/tapwatch.js';
+import { neonTabs } from '../ui/neon-tabs.js';   // (CITY E: THE NEON TABS — ONE builder with the STATS sheet's)
 
 // each tab's light: [key colour, second colour] (the tab's lit pill + the panel's glow)
 export const GAME_LIGHT = {
@@ -51,12 +54,6 @@ const tabName = id => TAB_NAMES[id] || gameName(id);
 export const tabOf = g => (TABS.includes(g) ? g : g && String(g).startsWith('daily') ? 'dailies' : 'xp');
 const PAGE = 25, TOP = 10, MAX = 100;
 const DOTS = '<svg viewBox="0 0 16 4" aria-hidden="true"><circle cx="2" cy="2" r="1.8"/><circle cx="8" cy="2" r="1.8"/><circle cx="14" cy="2" r="1.8"/></svg>';
-// the gold Art Deco sunburst behind the title (drawn once, in code): rays + three arcs
-const SUN = (() => {
-  const rays = Array.from({ length: 29 }, (_, i) => { const a = Math.PI * (i / 28); const x = 380 - Math.cos(a) * 380, y = 120 + Math.sin(a) * 340; return `<line x1="380" y1="120" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#f2c869" stroke-opacity="${i % 2 ? 0.07 : 0.16}" stroke-width="${i % 2 ? 1 : 1.4}"/>`; }).join('');
-  const arcs = [110, 190, 280].map((r, i) => `<path d="M${380 - r} 120 A${r} ${r} 0 0 0 ${380 + r} 120" fill="none" stroke="#f2c869" stroke-opacity="${(0.22 - i * 0.05).toFixed(2)}" stroke-width="1.2"/>`).join('');
-  return `<svg viewBox="0 0 760 460" width="760" height="460" aria-hidden="true">${rays}${arcs}</svg>`;
-})();
 
 /** the unit under a score: XP · PTS · AVG (a game's record keeps its own format: km, s, %) */
 export function unitOf(def, period) {
@@ -102,11 +99,17 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   const myRankCache = new Map();
 
   // ------------------------------------------------------------------ skeleton
+  // (CITY E — THE BACKGROUND: a darkened, faded still of the REAL night harbor skyline baked from the city — assets/board-sky.webp, made by
+  //  shots.mjs --scenes board-sky --crop boardsky --webp; css/board.css .bd-bg-sky — nothing animates)
   els.scene = h('div.bd-scene', { 'aria-hidden': 'true' },
-    h('div.bd-bg', h('i.bd-bg-base'), h('i.bd-bg-glow'), h('i.bd-bg-pin'), h('i.bd-bg-sun', { html: SUN })));
-  els.tabs = h('nav.bd-tabs', { 'aria-label': 'Boards' });
-  els.cat = h('div.bd-seg', { role: 'tablist', 'aria-label': 'Records or career' });
-  els.period = h('div.bd-seg.bd-period', { role: 'tablist', 'aria-label': 'This week or all time' });
+    h('div.bd-bg', h('i.bd-bg-base'), h('i.bd-bg-sky'), h('i.bd-bg-shade')));
+  // (CITY E — THE NEON TABS: the games, RECORDS · CAREER, THIS WEEK · ALL TIME — js/ui/neon-tabs.js, the STATS sheet's builder; no pill, no gold)
+  const gameTabs = neonTabs(TABS.map(id => ({ v: id, l: tabName(id), id })), { tag: 'nav', cls: 'bd-tabs', btnCls: 'bd-tab', even: true, label: 'Boards', onPick: id => pickTab(id) });
+  const catSeg = neonTabs([{ v: 'records', l: 'RECORDS' }, { v: 'career', l: 'CAREER' }], { cls: 'bd-seg', btnCls: 'bd-seg-b', even: true, label: 'Records or career', onPick: v => { S.cat = v; S.board = null; boardSfx('tab'); refresh(); } });
+  const periodSeg = neonTabs([{ v: 'week', l: 'THIS WEEK' }, { v: 'all', l: 'ALL TIME' }], { cls: 'bd-seg bd-period', btnCls: 'bd-seg-b', even: true, label: 'This week or all time', onPick: v => { S.period = v; boardSfx('tab'); refresh(); } });
+  els.tabs = gameTabs.el;
+  els.cat = catSeg.el;
+  els.period = periodSeg.el;
   els.ctrl = h('div.bd-ctrl', els.cat, els.period);
   els.picks = h('div.bd-picks');
   els.label = h('h2.bd-label');
@@ -138,7 +141,8 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       els.picks,
       els.card,
       pub ? h('div.bd-cta',
-        h('a.bd-play', { href: '/', onclick: e => { if (onPlay) { e.preventDefault(); onPlay(); } } }, h('span.bd-play-sheen'), h('span.bd-play-l', 'PLAY NOW')),
+        // (CITY E: THE NEON TUBE — the page's ONE pink MAIN; no gold, no drawn pill)
+        tubeButton('PLAY NOW', { kind: 'main', block: true, cls: 'bd-play', attrs: { 'data-press': true }, onClick: () => { if (onPlay) onPlay(); else location.href = '/'; } }),
         h('span.bd-cta-line', 'Party games · one phone each · no signup')) : null));
 
   // ------------------------------------------------------------------ controls — BUILT ONCE, their state painted IN PLACE (THE TAP WATCH — the
@@ -146,34 +150,14 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   // was a new node at the lift and iOS sent no click). The tabs, the two switches and every set of picks keep their nodes for the page's life;
   // a change only flips classes / aria / disabled / hidden. tests/integration/wk-board-taps.mjs.
   let ctrlSig = '';
-  /** a segmented switch: its buttons built once (`opts` fixed), the value + each one's `off` set in place; a tap reads the value AT the tap */
-  function makeSeg(holder, opts, onPick) {
-    let value = null;
-    const btns = opts.map(o => h('button.bd-seg-b', { type: 'button', 'data-press': true, role: 'tab', 'aria-selected': 'false', onclick: () => { if (o.v !== value) onPick(o.v); } }, o.l));
-    holder.replaceChildren(...btns);
-    return {
-      set(v, off = {}) {
-        value = v;
-        opts.forEach((o, i) => {
-          const b = btns[i], on = o.v === v;
-          b.classList.toggle('is-on', on);
-          b.setAttribute('aria-selected', String(on));
-          b.disabled = !!off[o.v];
-        });
-      },
-    };
-  }
-  const catSeg = makeSeg(els.cat, [{ v: 'records', l: 'RECORDS' }, { v: 'career', l: 'CAREER' }], v => { S.cat = v; S.board = null; boardSfx('tab'); refresh(); });
-  const periodSeg = makeSeg(els.period, [{ v: 'week', l: 'THIS WEEK' }, { v: 'all', l: 'ALL TIME' }], v => { S.period = v; boardSfx('tab'); refresh(); });
   /** the picks: ONE row of chips per list of boards (a tab, a game's RECORDS / CAREER), built the first time it shows, then only shown / hidden */
   const chipRows = new Map();   // key → { row, chips: Map(boardId → button) }
   function chipRow(key, list) {
     let r = chipRows.get(key);
     if (!r) {
-      const chips = new Map(list.map(b => [b.id, h('button.bd-chip', {
-        type: 'button', 'data-press': true, onclick: () => { if (b.id !== S.board) { S.board = b.id; boardSfx('tab'); refresh(); } },
-      }, b.chip || b.short || b.label)]));
-      r = { row: h('div.bd-chips', { hidden: true }, ...chips.values()), chips };
+      const t = neonTabs(list.map(b => ({ v: b.id, l: b.chip || b.short || b.label })), { cls: 'bd-chips', btnCls: 'bd-chip', scroll: true, label: 'Boards on this tab', onPick: id => { if (id !== S.board) { S.board = id; boardSfx('tab'); refresh(); } } });
+      t.el.hidden = true;
+      r = { row: t.el, tabs: t };
       chipRows.set(key, r);
       els.picks.append(r.row);   // (an append — never a node under a finger replaced)
     }
@@ -187,20 +171,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     if (own) return own.filter(Boolean).map(b => ({ ...b, game: S.tab }));
     return S.cat === 'career' ? careerBoards(S.tab).map(b => ({ ...b, game: S.tab })) : recordBoards(S.tab).map(b => ({ ...b, game: S.tab }));
   }
-  const tabBtns = TABS.map(id => {
-    const [a1, a2] = GAME_LIGHT[id] || ['#fff', '#fff'];
-    return h('button.bd-tab', {
-      type: 'button', 'data-press': true, 'aria-pressed': 'false', style: { '--a1': a1, '--a2': a2 }, dataset: { id }, onclick: () => pickTab(id),
-    }, h('span', tabName(id)));
-  });
-  els.tabs.append(...tabBtns);
-  function renderTabs() {
-    TABS.forEach((id, i) => {
-      const on = id === S.tab;
-      tabBtns[i].classList.toggle('is-on', on);
-      tabBtns[i].setAttribute('aria-pressed', String(on));
-    });
-  }
+  function renderTabs() { gameTabs.set(S.tab); }
   function renderControls() {
     if (isGame()) { const rec = recordBoards(S.tab).length > 0; if (!S.cat || (S.cat === 'records' && !rec)) S.cat = rec ? 'records' : 'career'; }
     const list = boardsNow();
@@ -215,7 +186,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     for (const r of chipRows.values()) {
       const show = r === want;
       if (r.row.hidden === show) r.row.hidden = !show;
-      if (show) for (const [id, b] of r.chips) b.classList.toggle('is-on', id === S.board);
+      if (show) r.tabs.set(S.board);
     }
     els.picks.hidden = !want;
   }
@@ -352,7 +323,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
         els.rows = h('ol.bd-rows', h('li.bd-empty.is-error',
           h('b', 'THE BOARD IS DARK RIGHT NOW'),
           h('span', 'The games still work — results are saved and land here when the lights come back.'),
-          h('button.bd-retry', { type: 'button', onclick: () => refresh() }, 'TRY AGAIN')));
+          tubeButton('TRY AGAIN', { size: 'sm', cls: 'bd-retry', attrs: { 'data-press': true }, onClick: () => refresh() })));
         els.scroll.replaceChildren(els.rows);
       });
     }
@@ -383,8 +354,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     els.rows.querySelectorAll('.bd-sentinel, .bd-showall-li, .bd-end').forEach(x => x.remove());
     els.rows.append(...frag);
     if (!S.all && (S.rows.length > TOP || S.more)) {
-      els.rows.append(h('li.bd-showall-li', h('button.bd-showall', { type: 'button', 'data-press': true, onclick: () => { boardSfx('tab'); S.all = true; renderRows(def, false); } },
-        h('span', S.more ? 'SHOW ALL' : `SHOW ALL ${S.rows.length}`), h('i', { 'aria-hidden': 'true' }))));
+      els.rows.append(h('li.bd-showall-li', tubeButton(S.more ? 'SHOW ALL' : `SHOW ALL ${S.rows.length}`, { size: 'sm', cls: 'bd-showall', attrs: { 'data-press': true }, onClick: () => { boardSfx('tab'); S.all = true; renderRows(def, false); } })));
     } else if (S.all && S.more) els.rows.append(els.sentinel);
     else els.rows.append(h('li.bd-end', h('span', S.rows.length < 10 ? 'THE HOUSE AWAITS NEW NAMES' : 'THE TOP OF THE HOUSE')));
     els.rows.dataset.built = String(els.rows.querySelectorAll('.bd-row').length);

@@ -169,8 +169,8 @@ const same = await p.evaluate(() => {
 });
 ok(Object.values(same).every(Boolean), `the SAME nodes at the end as at the load: ${Object.entries(same).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
 // the selected state painted in place: one tab on (aria-pressed), one period on (aria-selected)
-const sel = await p.evaluate(() => ({ tabsOn: document.querySelectorAll('.bd-tab.is-on').length, pressed: document.querySelectorAll('.bd-tab[aria-pressed="true"]').length, onIsState: document.querySelector('.bd-tab.is-on').dataset.id === window.__board.state().tab, periodOn: document.querySelectorAll('.bd-period .bd-seg-b.is-on[aria-selected="true"]').length }));
-ok(sel.tabsOn === 1 && sel.pressed === 1 && sel.onIsState && sel.periodOn === 1, `the selected state in place: ${sel.tabsOn} tab lit (${sel.pressed} aria-pressed, the state's tab: ${sel.onIsState}) · ${sel.periodOn} period lit`);
+const sel = await p.evaluate(() => ({ tabsOn: document.querySelectorAll('.bd-tab.is-on').length, pressed: document.querySelectorAll('.bd-tab[aria-selected="true"]').length, onIsState: document.querySelector('.bd-tab.is-on').dataset.id === window.__board.state().tab, periodOn: document.querySelectorAll('.bd-period .bd-seg-b.is-on[aria-selected="true"]').length }));
+ok(sel.tabsOn === 1 && sel.pressed === 1 && sel.onIsState && sel.periodOn === 1, `the selected state in place: ${sel.tabsOn} tab lit (${sel.pressed} aria-selected, the state's tab: ${sel.onIsState}) · ${sel.periodOn} period lit`);
 ok(errs.length === 0, `no page error (${errs.slice(0, 2).join(' | ') || 'none'})`);
 console.log(`THE TAP TABLE: mouse ${summary.mouse[0]} landed / ${summary.mouse[1]} failed · touch ${summary.touch[0]} landed / ${summary.touch[1]} failed · lost taps (the watch, rescue off) ${summary.lost}`);
 

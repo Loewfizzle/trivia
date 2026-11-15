@@ -115,7 +115,10 @@ test('CITY A — the browser\'s click after the press acted is swallowed (near t
 });
 test('CITY A — the owner\'s list carries data-press: THE BOARD\'s tabs, the radio\'s tabs + × + jacks, bd-open, the slim cards, the games shelf, EVERY dy- button (but SHARE)', () => {
   const B = rd('js/board/view.js'), R = rd('js/screens/harbor/radio.js'), D = rd('js/screens/daily.js');
-  for (const c of ['bd-tab', 'bd-open', 'bd-seg-b', 'bd-chip']) assert.match(B, new RegExp(`h\\('button\\.${c}', \\{\\s*type: 'button', 'data-press': true`), c);
+  assert.match(B, /h\('button\.bd-open', \{\s*type: 'button', 'data-press': true/, 'bd-open');
+  // (CITY E: the tabs, the switches + the picks through THE NEON TABS — ONE builder, its every button data-press)
+  for (const c of ['bd-tab', 'bd-seg-b', 'bd-chip']) assert.match(B, new RegExp(`btnCls: '${c}'`), c);
+  assert.match(rd('js/ui/neon-tabs.js'), /h\(`button\.nt-tab\$\{dots\(btnCls\)\}`, \{\s*type: 'button', 'data-press': true/);
   for (const c of ['rd-x', 'rd-bb', 'rd-jack']) assert.match(R, new RegExp(`h\\('button\\.${c}', \\{ type: 'button', 'data-press': true`), c);
   assert.match(R, /'aria-label': 'The radio', dataset: \{ born:/, 'the desk settles before its jacks take taps');
   assert.match(rd('js/profile/friends-ui.js'), /h\('button\.fr-open', \{ type: 'button', 'data-press': true/);

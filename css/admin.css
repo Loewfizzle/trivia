@@ -71,9 +71,6 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-block > .ad-row { flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .ad-block > h3 { margin-bottom: 12px; }
 .ad-subh { margin: 14px 0 8px; font: 700 10px/1 var(--font-mono); letter-spacing: 0.2em; color: var(--bd-faint); text-transform: uppercase; }
-.ad-tabs { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(0, 0, 0, 0.35); }
-.ad-tab { white-space: nowrap; min-height: 32px; padding: 0 12px; border-radius: 999px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.06em; color: var(--bd-dim); }
-.ad-tab.is-on { color: #1a1007; background: #f2c869; }
 .ad-bars, .ad-top { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .ad-bars li { display: grid; grid-template-columns: 22px 118px minmax(0, 1fr) 40px; grid-template-rows: auto auto; column-gap: 8px; align-items: center; min-height: 30px; }
 .ad-bars li small { grid-column: 3 / -1; font-size: 11px; color: var(--bd-faint); line-height: 1; }
@@ -118,7 +115,6 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-pidbox span { font: 700 10px/1 var(--font-mono); letter-spacing: 0.2em; color: var(--bd-faint); }
 .ad-pidbox code { font-size: 15px; color: #fff3dc; }
 .ad-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--bd-dim); line-height: 1.5; }
-@media (max-width: 420px) { .ad-tab { padding: 0 9px; letter-spacing: 0.03em; } }
 /* LOBBY FIXES — REMOVE TEST PLAYERS */
 .ad-tp-list { display: flex; flex-direction: column; gap: 6px; }
 .ad-tp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-height: 48px; padding: 6px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 220, 180, 0.1); cursor: pointer; }

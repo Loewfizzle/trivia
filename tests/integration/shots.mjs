@@ -24,6 +24,7 @@
 // Scenes (built in; or name=YYYY-MM-DDTHH:MM for any moment): night day ramp catch dawn first join halloween christmas
 // valentine rejoin sun rain rainbow rainbow2 moonbow neonbow blossom summer autumn autumn-night winter plow owl day-bus golden
 // street-party street-rain umbrellas party-line hail small-hours halloween-kids nye-sparklers door door-day party snow. --crop street: the street strip (the towers' feet down to the dock).  --crop crossing: the crosswalk close up (C4a). --crop shop: the barbershop front. "first" has no profile; --guest makes every scene a first-time visitor.
+// --crop boardsky (CITY E): the full width from under the logo to the far quay — THE BOARD's background (scene board-sky, --webp q).
 // --idle: the screen AT REST before the shot (the dock + the tagline faded away: title.js#goIdle, then the 1.8 s fade) — FP2's
 //   street under the dock. --crop band = the band under the dock (the promenade's front edge down to the screen's foot).
 // --load: FP3a — THE LOAD GATE's burst: the shots start at the navigation itself (--every ms --count n from t = 0, no wait for the
@@ -61,6 +62,8 @@ const IDLE = !!opt('idle', false);
 const SHEET = opt('sheet', false) ? (Number(opt('sheet')) || 5) : 0;
 // --dsf N: the device scale factor (default 2 on a phone size, 1 on desktop) — FP2: the barber pole's frame burst at dpr 3 (an iPhone)
 const DSF = Number(opt('dsf', 0)) || 0;
+// --webp q (CITY E): each crop saved as WebP at quality q (a still the site ships — THE BOARD's background) instead of a PNG
+const WEBP = Number(opt('webp', 0)) || 0;
 const EXTRA = opt('qs', '') ? `&${opt('qs')}` : '';
 // --when 2026-10-26T06:00:30: every scene at that moment instead of its own (8b1: a worker's show, a wildlife moment)
 const WHEN = opt('when', '') || '';
@@ -171,6 +174,10 @@ const SCENE = {
   'ufo-lift': ['2026-09-15T23:00', { qs: 'force=ufo&lgs=14' }], 'ufo-leave': ['2026-09-15T23:00', { qs: 'force=ufo&lgs=25.4' }],
   'ufo-classic': ['2026-09-15T23:00', { qs: 'force=ufo&lgs=7&ufo=classic' }], 'ufo-lift-classic': ['2026-09-15T23:00', { qs: 'force=ufo&lgs=14&ufo=classic' }],
   'ufo-pumpkin': ['2026-10-29T22:00', { qs: 'force=ufo&lgs=14' }],
+  // CITY E — THE BOARD's BACKGROUND (assets/board-sky.webp): a plain clear Tuesday night in June (no holiday dressing, no party, no show), the
+  // promenade + the roof empty, no legendary; act 'bare' hides every page layer but the city's canvases (no logo, no dock, no corners).
+  //   node shots.mjs "<browser>" --preview --city 2 --sizes 430x932 --dsf 3 --idle --scenes board-sky --crop boardsky --webp 70 --out <dir>
+  'board-sky': ['2026-06-09T23:20', { qs: 'wx=clear&wind=1&force=no-people,no-legend', act: 'bare' }],
   drones: ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 26000 }], 'drones-launch': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 9000 }], 'drones-text': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 40000 }],
 };
 const scenes = String(opt('scenes', 'night,day')).split(',').filter(Boolean).map(s => {
@@ -354,6 +361,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     await sleep(700);
     if (o.scroll) { await p.evaluate(k => { const s = document.querySelector('.hr-sheet'); s.scrollTop = (s.scrollHeight - s.clientHeight) * k; }, o.scroll); await sleep(200); }
   }
+  if (o.act === 'bare') { await p.addStyleTag({ content: 'body * { visibility: hidden !important; } canvas { visibility: visible !important; }' }); await sleep(300); }
   if (o.act === 'menu') { await p.click('.menu-btn'); await p.waitForSelector('.gm .sh-panel'); await sleep(500); }
   // (PLAY NOW: the shelf · a card (the shelf → its row) · a solo run played to its podium — the clock pushed past its end)
   if (o.act === 'shelf' || o.act === 'card') {
@@ -514,6 +522,9 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
         if (cc === 'upper') { const ws = sp.windows(); const x0 = 0, y0 = Math.min(...ws.map(w => w.rect.y)) - 10 * k, x1 = Math.max(...ws.map(w => w.rect.x + w.rect.w)) + 12 * k, y1 = Math.max(...ws.map(w => w.rect.y + w.rect.h)) + 8 * k; return { x: x0, y: Math.max(0, y0), width: Math.min(innerWidth, x1), height: y1 - Math.max(0, y0) }; }
         if (cc === 'crest') { const y = Math.max(0, b.y - 6 * k); return { x: 0, y, width: Math.min(innerWidth, b.x + b.w * 0.75), height: b.h * 0.2 }; }   // (POL4: the crest + the date stone)
         const y = Math.max(0, b.y - 26 * k); return { x: 0, y, width: Math.min(innerWidth, b.x + b.w + 6 * k), height: Math.min(innerHeight - y, b.h + 30 * k) }; }, c);
+    } else if (c === 'boardsky') {
+      // CITY E: THE BOARD's background — the whole width, from under the logo's sign (its unlit tubes are on the city's canvas) down to the far quay
+      clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam, lg = document.querySelector('.nd-logo-wrap'), y = Math.max(0, lg ? lg.getBoundingClientRect().bottom + 24 : c.limitY - 60); return { x: 0, y, width: innerWidth, height: Math.min(innerHeight, c.VPY + c.F * c.CAMH / 230 + 14) - y }; });
     } else if (c === 'skyline') {
       // CITY 2.0: the skyline close up — from above the tallest crown down to the far quay
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const c = hb.cam, y = Math.max(0, c.limitY - 24); return { x: 0, y, width: innerWidth, height: c.VPY + c.F * c.CAMH / 230 + 14 - y }; });
@@ -568,7 +579,8 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
     if (ZOOM > 1 && !['shop', 'pole', 'facade', 'upper', 'crest', 'cart', 'treel', 'compass'].includes(c) && !c.startsWith('win-')) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }   // (shop / pole: already close — zoomed whole)
-    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'crossing', 'pole', 'facade', 'upper', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill', 'crest', 'cart', 'treel', 'compass', 'heli'].includes(c) || c.startsWith('boat-') || c.startsWith('win-') ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'crossing', 'pole', 'facade', 'upper', 'skyline', 'boardsky', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill', 'crest', 'cart', 'treel', 'compass', 'heli'].includes(c) || c.startsWith('boat-') || c.startsWith('win-') ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    if (WEBP) { const wp = path.replace(/\.png$/, '.webp'); await p.screenshot({ path: wp, clip, type: 'webp', quality: WEBP }); n++; written.push([c, wp, shot]); continue; }   // (CITY E: --webp q — a baked still for the site)
     if (ZOOM > 1) await magnify(ctx, await p.screenshot({ clip }), ZOOM, path); else await p.screenshot({ path, clip });
     n++; written.push([c, path, shot]);
   }
