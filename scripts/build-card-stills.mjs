@@ -6,16 +6,19 @@
 //   node scripts/build-card-stills.mjs "<browser>"      (needs scripts/serve.mjs on :5173)   · --check = exit 1 when css/vault.css's block is stale
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { STILLS } from '../js/vault/stills.js';
+import { HERO } from '../js/vault/hero.js';
 
 const ROOT = new URL('../', import.meta.url);
 const CSS = new URL('css/vault.css', ROOT), OUT = new URL('assets/vault/still/', ROOT);
 const A = '/* CARD STILLS (GENERATED: node scripts/build-card-stills.mjs — LOAD FIX 3, NO BLACK TILES; js/vault/stills.js) */', Z = '/* /CARD STILLS */';
-const SIZES = { s: [360, 64], f: [400, 252] };
+const SIZES = { s: [360, 64], f: [400, 252], o: [360, 64] };   // (CITY C: o = a strip still baked TRANSPARENT — layered over the card's own material by a hand-written rule)
 
 /** the CSS block for a set of cards ({ card: { mat, kinds } }) — strips first, then the full cards (they win on the after-match tile, which wears both) */
 export function stillsBlock(rows) {
-  const line = (sel, file) => `${sel}:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/${file}') 50% 50% / cover no-repeat; }`;
-  const s = rows.filter(r => r.kinds.includes('s')).map(r => line(`.vl-s-${r.mat}`, `${r.card}-s.webp`));
+  // (CITY C — THE STRIP MATCH: a strip's still sits at its HERO's centre across (vault/hero.js — 66 % when none): a list row narrower than the
+  //  360-pt bake keeps the hero where the effect draws it (x proportional, size by height) — no swap when the live frame fades in)
+  const line = (sel, file, px = 50) => `${sel}:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/${file}') ${px}% 50% / cover no-repeat; }`;
+  const s = rows.filter(r => r.kinds.includes('s')).map(r => line(`.vl-s-${r.mat}`, `${r.card}-s.webp`, r.hx != null ? r.hx : 66));
   const f = rows.filter(r => r.kinds.includes('f')).map(r => line(`.vl-fcm-${r.mat}`, `${r.card}-f.webp`));
   return [A, ...s, ...f, Z].join('\n');
 }
@@ -30,7 +33,8 @@ export function stillRows() {
   return Object.entries(STILLS).map(([card, kinds]) => {
     const m = src.match(new RegExp(`'${card}': \\{ mat: '([\\w-]+)'`));
     if (!m) throw new Error(`${card}: no LOOKS row in js/vault/strip.js`);
-    return { card, mat: m[1], kinds };
+    const hb = HERO[card] && HERO[card][0];   // (CITY C: the hero's centre across → the strip still's x)
+    return { card, mat: m[1], kinds, hx: hb ? Math.round((hb[0] + hb[2] / 2) * 100) : null };
   });
 }
 
@@ -55,21 +59,21 @@ if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('scripts/bui
     for (const f of ['900 40px Orbitron', '700 20px "Chakra Petch"', '700 20px "JetBrains Mono"']) await document.fonts.load(f).catch(() => {});
     const { LOOKS, fxOpts } = await import('/js/vault/strip.js');
     const { FX } = await import('/js/fx/index.js');
-    const draw = (fx, card, W, H, full) => {
+    const draw = (fx, card, W, H, full, clear = false) => {
       const c = document.createElement('canvas'); c.width = W * 2; c.height = H * 2;
       const x = c.getContext('2d'); x.scale(2, 2);
-      x.fillStyle = '#05060a'; x.fillRect(0, 0, W, H);
+      if (!clear) { x.fillStyle = '#05060a'; x.fillRect(0, 0, W, H); }
       fx.draw(x, { w: W, h: H, x: 0, y: 0, opts: fxOpts(card, { radius: 0, full, seed: 3 }) }, fx.stillT != null ? fx.stillT : 3, { still: true, dpr: 2, q: 1 });
       return c;
     };
     // (a first pass starts every effect's own loads — sprites, plates, fonts — then the real one)
-    for (const r of rows) { const fx = FX[LOOKS[r.card].fx]; for (const k of r.kinds) try { draw(fx, r.card, ...SIZES[k], k === 'f'); } catch { /* the next pass */ } }
+    for (const r of rows) { const fx = FX[LOOKS[r.card].fx]; for (const k of r.kinds) try { draw(fx, r.card, ...SIZES[k], k === 'f', k === 'o'); } catch { /* the next pass */ } }
     await new Promise(r => setTimeout(r, 3500));
     const out = {};
     for (const r of rows) {
       const fx = FX[LOOKS[r.card].fx];
       for (const k of r.kinds) {
-        const [W, H] = SIZES[k], c = draw(fx, r.card, W, H, k === 'f');
+        const [W, H] = SIZES[k], c = draw(fx, r.card, W, H, k === 'f', k === 'o');
         const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let lit = 0;
         for (let i = 0; i < d.length; i += 4) if (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2] > 40) lit++;
         out[`${r.card}-${k}`] = { url: c.toDataURL('image/webp', 0.84), lit: +(lit / (d.length / 4)).toFixed(3) };

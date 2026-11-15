@@ -1040,6 +1040,7 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-s-g-sunsetstrip .vl-mat { background: #3a1450 url('../assets/vault/gift/sunsetstrip.webp') 100% 44% / 87% auto no-repeat; }
 .vl-fcm-g-sunsetstrip .vl-mat { background-position: 50% 50%; }
 .vl-s-g-goldenhour .vl-mat { background: #ffeadf url('../assets/vault/gift/goldenhour.webp') 100% 48% / 82% auto no-repeat; }
+.vl-s-g-goldenhour:not(.fx-on) .vl-mat { background-image: url('../assets/vault/still/card-gift-goldenhour-o.webp'), url('../assets/vault/gift/goldenhour.webp'); background-position: 76% 50%, 100% 48%; background-size: auto 100%, 82% auto; background-repeat: no-repeat; }   /* (CITY C — THE STRIP MATCH: the polaroid is an effect layer — its transparent still over the page, until the effect paints) */
 .vl-fcm-g-goldenhour .vl-mat { background-position: 50% 50%; }
 .vl-s-g-anarchist .vl-mat { background: #07060a url('../assets/vault/gift/anarchist.webp') 50% 38% / cover no-repeat; }
 .vl-fcm-g-anarchist .vl-mat { background-position: 50% 50%; }
@@ -1051,7 +1052,7 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
    edge (paint-order: the stroke under the fill); MEMBER SINCE untouched */
 .vl-fcm-g-bruh .vl-fc-card { font: 900 max(14px, 4.2cqi)/1 var(--font-display); letter-spacing: 0.06em; color: #ffd36a; -webkit-text-stroke: 0.08em #1a0a02; paint-order: stroke fill;
   text-shadow: 0 1px 0 rgba(26, 10, 2, 0.9), 0 0 10px rgba(0, 0, 0, 0.55); }
-.vl-s-g-buzzed .vl-mat { background: #2a0a20 url('../assets/vault/gift/buzzed-strip.webp') 100% 50% / 90% auto no-repeat; }   /* (THE SEEING-STARS CARD, Nov 6 — its OWN strip picture, eyes → mouth; the spiral turns in js/fx/gift.js) */
+.vl-s-g-buzzed .vl-mat { background: #2a0a20 url('../assets/vault/gift/buzzed-strip.webp') 100% 50% / max(90%, 288px) auto no-repeat; }   /* (its OWN strip picture, 1280 × 256; CITY C — THE STRIP MATCH: the effect's own scale, fx/gift.js#artMap = max(w / 1280, h / 256) × 0.9 → max(90 %, 64 × 5 × 0.9 = 288 px) — a list row under ~320 pt is height-led, the old 90 % auto swapped to a bigger picture when the effect came in) */
 .vl-fcm-g-buzzed .vl-mat { background-image: url('../assets/vault/gift/buzzed.webp'); background-position: 50% 50%; }
 .vl-s-g-icecold .vl-mat { background: #07060a url('../assets/vault/gift/icecold.webp') 50% 32.5% / cover no-repeat; }
 .vl-fcm-g-icecold .vl-mat { background-position: 50% 50%; }
@@ -1211,30 +1212,30 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-fc-since small, .vl-fc-since b { white-space: nowrap; }
 
 /* CARD STILLS (GENERATED: node scripts/build-card-stills.mjs — LOAD FIX 3, NO BLACK TILES; js/vault/stills.js) */
-.vl-s-inferno:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-inferno-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-prism:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-prism-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-noir:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-noir-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-legend:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-legend-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-marqueegold:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-marquee-gold-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-neoncamo:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-neoncamo-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-penthouse:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-penthouse-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-wildfire:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-wildfire-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-eternal:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-eternal-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-witness:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-witness-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-founder:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-founder-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-house:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-house-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-devsource:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-dev-source-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-ufo:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-ufo-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-sg-tr3b:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-tr3b-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-sg-blackbird:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-blackbird-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-sg-f22:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-f22-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-sg-ghostship:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-ghostship-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-sg-aurora:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-aurora-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-sg-fireball:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-fireball-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-sg-skull:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-skull-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-pd-firstko:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-first-ko-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-pd-perfect:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-perfect-clear-s.webp') 50% 50% / cover no-repeat; }
-.vl-s-pd-comeback:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-comeback-s.webp') 50% 50% / cover no-repeat; }
+.vl-s-inferno:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-inferno-s.webp') 66% 50% / cover no-repeat; }
+.vl-s-prism:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-prism-s.webp') 64% 50% / cover no-repeat; }
+.vl-s-noir:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-noir-s.webp') 66% 50% / cover no-repeat; }
+.vl-s-legend:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-legend-s.webp') 66% 50% / cover no-repeat; }
+.vl-s-marqueegold:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-marquee-gold-s.webp') 66% 50% / cover no-repeat; }
+.vl-s-neoncamo:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-neoncamo-s.webp') 66% 50% / cover no-repeat; }
+.vl-s-penthouse:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-penthouse-s.webp') 77% 50% / cover no-repeat; }
+.vl-s-wildfire:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-wildfire-s.webp') 66% 50% / cover no-repeat; }
+.vl-s-eternal:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-eternal-s.webp') 64% 50% / cover no-repeat; }
+.vl-s-witness:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-witness-s.webp') 66% 50% / cover no-repeat; }
+.vl-s-founder:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-founder-s.webp') 67% 50% / cover no-repeat; }
+.vl-s-house:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-house-s.webp') 66% 50% / cover no-repeat; }
+.vl-s-devsource:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-dev-source-s.webp') 71% 50% / cover no-repeat; }
+.vl-s-ufo:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-ufo-s.webp') 66% 50% / cover no-repeat; }
+.vl-s-sg-tr3b:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-tr3b-s.webp') 62% 50% / cover no-repeat; }
+.vl-s-sg-blackbird:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-blackbird-s.webp') 66% 50% / cover no-repeat; }
+.vl-s-sg-f22:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-f22-s.webp') 69% 50% / cover no-repeat; }
+.vl-s-sg-ghostship:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-ghostship-s.webp') 66% 50% / cover no-repeat; }
+.vl-s-sg-aurora:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-aurora-s.webp') 66% 50% / cover no-repeat; }
+.vl-s-sg-fireball:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-fireball-s.webp') 77% 50% / cover no-repeat; }
+.vl-s-sg-skull:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-skull-s.webp') 68% 50% / cover no-repeat; }
+.vl-s-pd-firstko:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-first-ko-s.webp') 80% 50% / cover no-repeat; }
+.vl-s-pd-perfect:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-perfect-clear-s.webp') 79% 50% / cover no-repeat; }
+.vl-s-pd-comeback:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-comeback-s.webp') 78% 50% / cover no-repeat; }
 .vl-fcm-inferno:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-inferno-f.webp') 50% 50% / cover no-repeat; }
 .vl-fcm-prism:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-prism-f.webp') 50% 50% / cover no-repeat; }
 .vl-fcm-noir:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-noir-f.webp') 50% 50% / cover no-repeat; }

@@ -57,16 +57,20 @@ export async function openPlayer(target = {}, o = {}) {
   const born = performance.now();
   const el = h('div.vl-full.pp', { role: 'dialog', 'aria-modal': 'true', 'aria-label': name ? `${name} — their card` : 'A player’s card', dataset: { state: 'loading', pid: target.pid || '' },
     onclick: e => { if (e.target === el && performance.now() - born > 350) close(); } }, box);
-  release = takeLayer(el, { close });
-  uncover = F.coverBehind(el);
-  document.body.append(el);
+  // CITY C — ONE CLEAN STEP (the owner: a tap on a slim card = their page, no skeleton swap, no fade-in-again, no zoom): the page opens ONCE,
+  //  whole — the answer in, the card built, laid out HIDDEN (vault/layout.js settles it) and its material's picture decoded — so the card never
+  //  moves and the live art arriving over its matching still changes only the motion. A slow answer (> SLOW_MS) opens on the skeleton as before.
   open = { close, el };
-  let d = null;
-  try { d = await api('profile', { action: 'player', ...q }); } catch (e) { d = { error: e }; }
+  const answer = api('profile', { action: 'player', ...q }).catch(e => ({ error: e }));
+  let d = await Promise.race([answer, new Promise(r => setTimeout(() => r(null), SLOW_MS))]);
+  const show = () => { release = takeLayer(el, { close }); uncover = F.coverBehind(el); if (!el.isConnected) document.body.append(el); el.style.visibility = ''; };
   if (gone) return open;
-  if (d.error || !d.card) { paintLimited(d.error ? 'Their card is resting — try again in a minute.' : 'This member keeps their card private.', d.card || row); el.dataset.state = d.error ? 'error' : 'limited'; return open; }
-  if (d.limited) { paintLimited('This member keeps their card private.', d.card); el.dataset.state = 'limited'; return open; }
+  if (!d) { show(); d = await answer; if (gone) return open; }
+  if (d.error || !d.card) { paintLimited(d.error ? 'Their card is resting — try again in a minute.' : 'This member keeps their card private.', d.card || row); el.dataset.state = d.error ? 'error' : 'limited'; if (!release) show(); return open; }
+  if (d.limited) { paintLimited('This member keeps their card private.', d.card); el.dataset.state = 'limited'; if (!release) show(); return open; }
+  if (!release) { el.style.visibility = 'hidden'; document.body.append(el); }   // (built + laid out unseen: one step)
   await paintCard(d);
+  if (!release && !gone) { await materialIn(stage); if (!gone) show(); }
   el.dataset.state = 'card';
   return open;
 
@@ -137,6 +141,12 @@ export async function openPlayer(target = {}, o = {}) {
   }
 }
 
+const SLOW_MS = 2500;
+/** CITY C — the card's material picture decoded before the page shows (≤ 900 ms — a missing picture never holds it) */
+function materialIn(stage) {
+  const m = stage.querySelector('.vl-mat'), urls = m ? [...getComputedStyle(m).backgroundImage.matchAll(/url\(["']?([^"')]+)["']?\)/g)].map(x => x[1]) : [];
+  return Promise.race([Promise.all(urls.map(u => { const i = new Image(); i.src = u; return i.decode().catch(() => {}); })), new Promise(r => setTimeout(r, 900))]).then(() => new Promise(r => requestAnimationFrame(() => r())));
+}
 /** the card-shaped skeleton: the emblem + the name the screen already had (a board row, a friend, a name tag) */
 function skeletonCard(row, name) {
   const emb = h('span.pp-sk-emb');

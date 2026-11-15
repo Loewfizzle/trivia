@@ -35,7 +35,7 @@ installEmblems(); vaultSheet();
 const q = new URLSearchParams(location.search);
 if (q.get('still') === '1') setFxReduced(true);
 const app = document.getElementById('app');
-const cards = (q.get('cards') || 'card-founder,card-dev-switchboard,card-emerald').split(',').filter(Boolean);
+const cards = q.get('strips') && !q.get('cards') ? [] : (q.get('cards') || 'card-founder,card-dev-switchboard,card-emerald').split(',').filter(Boolean);
 const who = { name: q.get('name') || 'AMBER', lv: Number(q.get('lv') || 12), avatar: 'hex', color: 'yellow', at: Date.UTC(2026, 10, 3), no: q.get('no') || '0012', fd: q.get('fd') === '1' };
 const surface = createSurface(app, { label: 'preview' });
 for (const id of cards) {
@@ -43,6 +43,19 @@ for (const id of cards) {
   const el = fullCardEl({ card: id, who: { ...who, ...(id.startsWith('card-dev-') ? { name: 'BEN', lv: 41, no: '0001', avatar: 'star', color: 'cyan' } : {}) }, spotted: Date.UTC(2026, 10, 3, 3, 14) });
   app.append(el); mountFull(surface, el, id, { seed: 3 });
   if (q.get('strip') === '1') { const s = stripEl({ card: id, name: who.name, lv: who.lv, no: who.no }); app.append(s); const look = LOOKS[id]; if (look && look.fx && FX[look.fx]) surface.add(s, FX[look.fx], fxOpts(id, { seed: 1, calm: 1, radius: 12 })); }
+}
+// (CITY C group 3 — THE STRIP MATCH: ?strips=all|id,id → each slim strip TWICE — its material alone (#m-<id>, no effect) + live (#l-<id>);
+//  tests/integration/strip-match.mjs compares the two)
+if (q.get('strips')) {
+  const ids = q.get('strips') === 'all' ? Object.keys(LOOKS).filter(id => LOOKS[id].fx && FX[LOOKS[id].fx]) : q.get('strips').split(',');
+  const surf2 = createSurface(app, { label: 'strips' });
+  for (const id of ids) {
+    const m = stripEl({ card: id, name: 'AMBER', lv: 12 }); m.id = `m-${id}`;
+    const l = stripEl({ card: id, name: 'AMBER', lv: 12 }); l.id = `l-${id}`;
+    app.append(h('div.lbl', id), m, l);
+    if (LOOKS[id] && LOOKS[id].fx && FX[LOOKS[id].fx]) surf2.add(l, FX[LOOKS[id].fx], fxOpts(id, { seed: 1, calm: 1, radius: 12 }));
+  }
+  window.__stripIds = ids;
 }
 if (q.get('gilded') === '1') { app.append(h('div.lbl', 'THE GILDED (fallback)')); app.append(gildedCard({ n: who.name, a: 'hex', c: 'yellow', x: 9000, at: who.at, fd: who.fd, mn: Number(who.no) })); }
 document.fonts.ready.then(() => setTimeout(() => { document.body.dataset.ready = '1'; }, 900));

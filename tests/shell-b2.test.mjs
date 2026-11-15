@@ -118,7 +118,8 @@ test('THE GIFT CARDS: 19 one-of-ones (18 giftable + the owner\'s own — + THE C
     assert.ok(strip.includes(`'${id}': { mat: 'g-${S.art}', fx: 'gift:${id}' }`), `${id}: its LOOK`);
     // the CSS crop = the effect's crop (one set of numbers — a glint lands on the lens)
     // (CARD FIXES: a zoom out — strip[2] — is `z·100% auto` over the art's own ground colour)
-    const sz = S.strip[2] ? `${+(S.strip[2] * 100).toFixed(2)}% auto` : 'cover', sa = S.stripArt ? S.stripArt.art : S.art, sc = S.stripArt ? (S.stripArt.crop || [50, 50]) : S.strip;   // (BRUH: its own strip picture)
+    const zs = S.stripArt ? (S.stripArt.crop || [])[2] : S.strip[2];   // (CITY C — THE STRIP MATCH: a strip picture of its own zoomed = the effect's max(w-led, h-led) scale)
+    const sz = zs ? (S.stripArt ? `max\\(${+(zs * 100).toFixed(2)}%, ${Math.round(64 * 1280 / S.stripArt.h * zs)}px\\) auto` : `${+(zs * 100).toFixed(2)}% auto`) : 'cover', sa = S.stripArt ? S.stripArt.art : S.art, sc = S.stripArt ? (S.stripArt.crop || [50, 50]) : S.strip;   // (BRUH: its own strip picture)
     assert.match(css, new RegExp(`\\.vl-s-g-${S.art} \\.vl-mat \\{ background: #[0-9a-f]{6} url\\('\\.\\./assets/vault/gift/${sa}\\.webp'\\) ${sc[0]}% ${sc[1]}% / ${sz} no-repeat`), `${id}: the strip's crop = gift-specs`);
     assert.ok(existsSync(new URL(`../assets/vault/gift/${S.art}.webp`, import.meta.url)), `${id}: its art file`);
   }
