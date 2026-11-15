@@ -2271,3 +2271,21 @@ test('CITY C: THE LEDGER — ROOMS OPEN as a list (the desk\'s own read), LEGEND
     await assert.rejects(adminAction('u-lg-x', { action: 'founderState' }), 'a non-admin is refused');
   } finally { process.env.ADMIN_PIDS = ''; await ref('progress/founder').set(f0 || null); }
 });
+
+test('CITY C: STATS (the ☰ sheet) — owner only, ONE snapshot handed to everyone (rebuilt at most every 5 min; REFRESH once a minute old)', async () => {
+  const owner = await ensure('u-st-own', 'StOwner'); await ensure('u-st-x', 'Stranger5');
+  process.env.ADMIN_PIDS = `${owner.pid}`;
+  try {
+    await ref('progress/statsSnap').remove();
+    const t0 = Date.UTC(2026, 10, 15, 18);
+    const A = await adminAction('u-st-own', { action: 'statsSheet' }, t0);
+    assert.equal(A.cached, false); assert.ok(A.S && A.S.totals && Array.isArray(A.week) && A.week.length === 7 && Array.isArray(A.spotted), 'the history: stats + the week + spotted');
+    const B = await adminAction('u-st-own', { action: 'statsSheet' }, t0 + 4 * 60e3);
+    assert.equal(B.cached, true); assert.equal(B.at, t0, 'the same copy within 5 min');
+    const C = await adminAction('u-st-own', { action: 'statsSheet', fresh: true }, t0 + 30e3);
+    assert.equal(C.cached, true, 'REFRESH under a minute old: still the copy');
+    const D = await adminAction('u-st-own', { action: 'statsSheet', fresh: true }, t0 + 90e3);
+    assert.equal(D.cached, false, 'REFRESH after a minute: rebuilt');
+    await assert.rejects(adminAction('u-st-x', { action: 'statsSheet' }, t0), 'a non-owner is refused');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('progress/statsSnap').remove(); }
+});

@@ -52,12 +52,7 @@ export function paint({ api, now }) {
         h('div.rd-lg', h('span', 'Legendaries spotted'), h('b', T.spotted == null ? '—' : String(T.spotted))),   // (CITY C: the real count — api/_lib/sightings.js counts each one)
         h('div.rd-lg', h('span', 'Longest streak alive'), h('b', T.streak ? `${T.streak} night${T.streak > 1 ? 's' : ''}` : '—')),
         h('div.rd-lg', h('span', h('a', { href: '/admin#errors', target: '_blank', rel: 'noopener' }, 'Errors from phones'), h('small', 'last 24 h')), h('b', { class: T.errors ? 'bad' : '' }, String(T.errors)))),
-      h('section.rd-paper', h('h4', 'THIS WEEK', h('em', 'visits · games')),
-        h('div.rd-chart', ...wk.map(x => {
-          const d = new Date(Date.UTC(+x.d.slice(1, 5), +x.d.slice(5, 7) - 1, +x.d.slice(7, 9))), vh = Math.round(72 * x.visits / max), gh = Math.round(72 * x.games / max);
-          return h('div', { title: `${x.visits} visits · ${x.games} games` }, h('i', { style: { height: `${vh}px` } }), h('i.g', { style: { height: `${Math.max(gh, x.games ? 3 : 0)}px` } }), h('span', DOW[d.getUTCDay()]));
-        })),
-        h('div.rd-key', h('span', h('i'), 'visits (estimate)'), h('span', h('i.g'), 'games'))),
+      // (CITY C: THIS WEEK moved to STATS — the ☰ menu's owner sheet; the radio keeps the RIGHT-NOW numbers)
       founderPaper(L),   // (CITY C: + its twin at the foot of /admin — the same server switch)
       // THE VAULT 1A — THE CARD LAB (admins only, server-checked): every new card / emblem, moving, at its phone size → APPROVE · FIX · CUT
       h('section.rd-paper', h('h4', 'THE CARD LAB', h('em', 'the vault · mark the new cards')),

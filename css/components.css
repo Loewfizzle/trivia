@@ -1309,3 +1309,17 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .shr-img { display: block; width: min(100%, 300px); height: auto; aspect-ratio: 4 / 5; margin: 0 auto; border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   -webkit-touch-callout: default; user-select: auto; -webkit-user-select: auto; pointer-events: auto; }
 .shr-hold { margin: 2px 0 4px; text-align: center; font: 700 12px/1.3 var(--font-ui); letter-spacing: 0.14em; color: var(--text-dim); }
+
+/* CITY C — STATS (the ☰ sheet, the owner only — js/admin/stats-view.js; /admin's own blocks + css/admin.css loaded with it): the board's colour
+   vars on the city page, NO PILLS (the tabs + the bars squared off here), REFRESH a plain glass button */
+.st-sheet { --bd-dim: rgba(246, 230, 205, 0.72); --bd-faint: rgba(246, 230, 205, 0.6); }
+.st-sheet .ad-tabs, .st-sheet .ad-tab { border-radius: 8px; }
+.st-sheet .ad-bar, .st-sheet .ad-bar i { border-radius: 3px; }
+.st-sheet .ad-block { padding: 12px; }
+.st-sheet .ad-stats-grid { grid-template-columns: 1fr; }
+.st-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.st-stamp { font: 600 12px/1.3 var(--font-ui); color: var(--text-dim); }
+.st-refresh { min-height: 44px; padding: 0 16px; border: 0; border-radius: 10px; cursor: pointer; font: 800 12px/1 var(--font-ui); letter-spacing: 0.18em; color: var(--text); background: rgba(255, 255, 255, 0.07); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
+.st-dly { display: grid; gap: 14px; }
+.st-dly-cols { height: 90px; }
+.st-sheet .wo-list.st-top { display: grid; gap: 8px; margin: 0; padding: 0; }

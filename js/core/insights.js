@@ -84,7 +84,7 @@ export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {},
   // ---- players
   const who = pid => {
     const p = profiles[pid] || {};
-    return { pid, n: p.n || 'Player', t: p.t || null, a: p.a || null, c: p.c || null, r: p.r || 0, x: p.x || 0, h: !!p.h };
+    return { pid, n: p.n || 'Player', t: p.t || null, a: p.a || null, c: p.c || null, r: p.r || 0, x: p.x || 0, h: !!p.h, cd: p.cd || null, es: p.es || null, tb: p.tb || null, g: p.g || null, mn: p.mn || null };   // (CITY C: + the card's face — STATS' slim cards)
   };
   const topWeek = Object.entries(weekCount).sort((a, b) => b[1] - a[1] || (allCount[b[0]] || 0) - (allCount[a[0]] || 0)).slice(0, topN).map(([pid, n]) => ({ ...who(pid), n_matches: n }));
   const topToday = Object.entries(dayCount).sort((a, b) => b[1] - a[1] || (allCount[b[0]] || 0) - (allCount[a[0]] || 0)).slice(0, topN).map(([pid, n]) => ({ ...who(pid), n_matches: n }));

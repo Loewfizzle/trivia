@@ -320,6 +320,8 @@ export function createRemote({ scene, api = apiCall }) {
     setMenuExtra('lab', ({ close: closeMenu }) => (destroyed || !admin ? null : row({ icon: 'lab', ic: '#ffc23d', label: 'The Lab', value: labNeed(), cls: 'gm-lab', attrs: { 'aria-label': 'The Card Lab' }, onClick: () => { closeMenu(); location.href = '/lab'; } })));
     // (LOBBY FIXES — the owner, Nov 4 3:01 pm "where is /admin?": an ADMIN row beside THE LAB → /admin — the same server yes; the old
     //  preview-panel row below reads CITY PREVIEW so the two never share a name)
+    // (CITY C — STATS: an owner-only row → THE SHEET over the city (js/admin/stats-view.js — the same builder as /admin); the page never changes)
+    setMenuExtra('stats', ({ close: closeMenu }) => (destroyed || !admin ? null : row({ icon: 'admin', ic: '#7dd8ff', label: 'Stats', sub: 'The history · the owner only', cls: 'gm-stats', onClick: () => { Promise.all([lazyImport(import('../../admin/stats-view.js'), '../../admin/stats-view.js'), lazyImport(import('../../ui/sheet.js'), '../../ui/sheet.js')]).then(([m, Sh]) => m.openStatsSheet({ api: apiCall, openSheet: Sh.openSheet })).catch(() => {}); } })));
     setMenuExtra('adminpage', ({ close: closeMenu }) => (destroyed || !admin ? null : row({ icon: 'admin', ic: '#ffc23d', label: 'Admin', cls: 'gm-admpage', attrs: { 'aria-label': 'Admin — players, reports, test players' }, onClick: () => { closeMenu(); location.href = '/admin'; } })));
     setMenuExtra('admin', adminRow);
     if (liveNext && !cd) countdown('all', liveNext.startAt, R.describe(liveNext.state));
@@ -1045,7 +1047,7 @@ export function createRemote({ scene, api = apiCall }) {
       clearTimeout(pollT); pollOn = false; document.removeEventListener('visibilitychange', onVis); document.removeEventListener('visibilitychange', helloBack); window.removeEventListener('focus', onVis); window.removeEventListener('focus', helloBack); window.removeEventListener('nd:me', onMe);
       if (bar) bar.remove();
       if (sheet) sheet.remove(); if (hrRelease) { hrRelease(); hrRelease = null; }
-      setMenuExtra('admin', null); setMenuExtra('adminpage', null); setMenuExtra('lab', null); setMenuCue(null);
+      setMenuExtra('admin', null); setMenuExtra('adminpage', null); setMenuExtra('lab', null); setMenuExtra('stats', null); setMenuCue(null);
       sheet = bar = cdEl = null;
     },
   };

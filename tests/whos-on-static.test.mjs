@@ -26,5 +26,6 @@ test('/admin STATS: WHO\'S ON on its own class (a block — the heading over ful
   assert.match(js, /section\.ad-whoson/);
   assert.doesNotMatch(js, /h\('section\.ad-who',/);
   assert.match(css, /\.ad-whoson \{ display: block;/);
-  assert.match(js, /\.filter\(r => r\.on \|\| r\.n > 0\)/);
+  assert.match(R('js/admin/stats-view.js'), /\.filter\(r => r\.on \|\| r\.n > 0\)/);   // (CITY C: the blocks moved to ONE builder — /admin + the ☰ STATS sheet)
+  assert.match(js, /statsBlocks\(S, \{ view, rerender: renderStats, onPlayer: open \}\)/);
 });

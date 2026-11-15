@@ -56,6 +56,7 @@
 import { cleanHoldem } from '../js/core/harbor-holdem.js';
 import { cleanJaywalk, cleanDropMode } from '../js/core/harbor-trivision.js';
 import { founderState } from './_lib/founder.js';
+import { dayKey as weekDayKey } from '../js/core/week.js';
 import { knob as schedKnob } from '../js/core/harbor-schedule.js';
 /** CITY FIXES + HOLD'EM: the switch as /admin shows it (the timetable's default when never set) */
 const holdemPublic = v => { const D = schedKnob('billboard.holdem'), c = cleanHoldem(v && v.holdem); return c ? { on: c.on, bar: c.bar, since: c.since || D.since, set: true } : { on: D.on !== false, bar: D.bar || 'soon', since: D.since, set: false }; };
@@ -180,6 +181,30 @@ async function stats(now, fresh = false) {
   try { const o = await val('logstats/old'); data.oldBrowsers = { n: (o && o.n) || 0, last: (o && o.last) || null }; } catch { data.oldBrowsers = { n: 0, last: null }; }
   statsCache = { at: now, data };
   return data;
+}
+
+// CITY C — STATS (the ☰ sheet — js/admin/stats-view.js#openStatsSheet): the HISTORY in ONE snapshot (progress/statsSnap — every phone, every
+// warm function hands out the same copy), rebuilt at most every 5 min (a REFRESH tap: once it is over a minute old) — the stats (core/insights.js
+// #summarize, the same builder as /admin), the dailies (plays a day + finish rates — dailyStats, its players' list left out), the legendaries
+// spotted a day (radio/spotted), the founders, the week (visits + games — THE LEDGER's old THIS WEEK block)
+const STATS_SHEET_MS = 5 * 60e3, STATS_SHEET_FRESH_MS = 60e3;
+async function statsSheet(me, now, fresh = false) {
+  const cur = await val('progress/statsSnap').catch(() => null);
+  if (cur && cur.v === 1 && cur.data && now - cur.at < (fresh ? STATS_SHEET_FRESH_MS : STATS_SHEET_MS) && now >= cur.at) return { ...cur.data, at: cur.at, cached: true };
+  const [S, D, F, visits, spotted] = await Promise.all([stats(now, true), dailyStats(me, now).catch(() => null), founderState().catch(() => null), val('radio/visits'), val('radio/spotted')]);
+  const days = []; for (let k = 6; k >= 0; k--) days.push(weekDayKey(now - k * 864e5));
+  const daily = Object.fromEntries(((S.games && S.games.daily) || []).map(x => [x.k, x.n]));
+  const V = visits || {}, SP = spotted || {};
+  const data = {
+    S: { games: S.games, players: S.players, totals: S.totals, times: S.times, today: S.today },
+    daily: D ? { dailies: (D.dailies || []).map(g => ({ id: g.id, name: g.name, days: g.days })) } : null,
+    founders: (F && F.holders) || 0, founder: F ? { open: F.open, at: F.at } : null,
+    week: days.map(d => ({ d, visits: Object.keys(V[d] || {}).length, games: daily[`d${d.replace(/-/g, '')}`] || daily[d] || 0 })),
+    spotted: days.map(d => ({ d, n: Number(SP[d]) || 0 })),
+  };
+  const clean = JSON.parse(JSON.stringify(data));   // (no undefined into the database)
+  await ref('progress/statsSnap').set({ v: 1, at: now, data: clean }).catch(() => {});
+  return { ...clean, at: now, cached: false };
 }
 
 // Errors from players' phones (api/log.js): newest first; entries quiet for 30 days are pruned on the way.
@@ -321,6 +346,8 @@ export async function adminAction(uid, body, now = Date.now()) {
       return { log, names };
     }
     case 'stats': return stats(now, !!body.fresh);
+    // CITY C — STATS in the ☰ menu (the owner only — this gate): ONE snapshot for everyone, built at most every STATS_SHEET_MS (REFRESH: a minute)
+    case 'statsSheet': return statsSheet(me, now, !!body.fresh);
     case 'errors': return { errors: await errorList(now), quiet: await quietCounts() };
     case 'clearErrors': {
       const sig = body.sig ? String(body.sig) : null, sigs = logIds(body.sigs, SIG_RE);

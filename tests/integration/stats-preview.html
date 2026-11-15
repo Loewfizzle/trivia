@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stats sheet — preview</title>
+<!-- CITY C — the ☰ STATS sheet (js/admin/stats-view.js#openStatsSheet) with SAMPLE numbers — no Firebase, no server. The local server only. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>html, body { margin: 0; min-height: 100%; background: #070612; }</style>
+</head>
+<body>
+<script type="module">
+import { openStatsSheet } from '/js/admin/stats-view.js';
+import { openSheet } from '/js/ui/sheet.js';
+import { installEmblems } from '/js/ui/emblems.js';
+installEmblems();
+const day = k => { const d = new Date(Date.UTC(2026, 10, 15) - k * 864e5); return `d${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`; };
+const ek = k => { const d = new Date(Date.UTC(2026, 10, 15) - k * 864e5); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; };
+const people = ['AMBER', 'DIME TIME', 'MAXIMILIANOS', 'BEN', 'KATIE', 'LIAM', 'ROSA', 'OZ'].map((n, i) => ({ pid: `p${i}`, n, t: '1234', a: ['bolt', 'crown', 'hex', 'star', 'moon', 'ghost', 'alien', 'diamond'][i], c: ['magenta', 'cyan', 'yellow', 'green', 'violet', 'orange', 'magenta', 'cyan'][i], r: 2, x: 9000 - i * 900, n_matches: 40 - i * 4, cd: ['card-emerald', 'card-sg-ufo', 'card-inferno', 'card-dev-switchboard', 'card-gilded', 'card-prism', 'card-brushed', 'card-midnight'][i] }));
+const S = {
+  games: { today: { prism: 4, overclock: 6, holdem: 2 }, week: { prism: 31, overclock: 40, holdem: 12 }, last30: { prism: 120, overclock: 150, holdem: 44 }, all: { prism: 300, overclock: 410, holdem: 90 }, avgPlayers: { prism: 3.1, overclock: 4.2, holdem: 4.8 },
+    daily: Array.from({ length: 30 }, (_, i) => ({ k: day(29 - i), n: Math.round(6 + 8 * Math.abs(Math.sin(i * 0.7)) + i / 3) })) },
+  players: { topToday: people.slice(0, 4), topWeek: people, topAll: people, topXp: people, activeWeek: 23, returningWeek: 11, newByWeek: Array.from({ length: 8 }, (_, i) => ({ wk: day(7 * (7 - i)), n: 3 + (i * 5) % 9 })) },
+  totals: { players: 148, played: 97, multiNight: 52, matches: 800 },
+  times: { days: 30, max: 9, grid: Array.from({ length: 7 }, (_, d) => Array.from({ length: 24 }, (_, h) => (h >= 18 && h <= 23 ? (h + d) % 9 : h >= 12 ? (h * d) % 4 : 0))) },
+  today: { players: 12, matches: 12 },
+};
+const X = { at: Date.UTC(2026, 10, 15, 22), S, founders: 61, founder: { open: true, at: Date.UTC(2026, 10, 14, 15) },
+  daily: { dailies: [{ id: 'password', name: 'THE PASSWORD', days: Array.from({ length: 7 }, (_, i) => ({ day: day(6 - i), started: 20 + i * 3, finished: 15 + i * 2 })) }, { id: 'coastclear', name: 'COAST CLEAR', days: Array.from({ length: 7 }, (_, i) => ({ day: day(6 - i), started: 12 + i, finished: 7 + i })) }] },
+  week: Array.from({ length: 7 }, (_, i) => ({ d: ek(6 - i), visits: 40 + i * 9, games: 8 + i * 2 })), spotted: Array.from({ length: 7 }, (_, i) => ({ d: ek(6 - i), n: (i * 3) % 7 })) };
+openStatsSheet({ api: async () => X, openSheet });
+setTimeout(() => { document.body.dataset.ready = '1'; }, 2500);
+</script>
+</body>
+</html>

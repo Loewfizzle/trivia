@@ -16,6 +16,7 @@ import { GAMES } from '../config.js';
 import { GAME_LIGHT } from '../board/view.js';
 import { groupErrors, groupReports, filterGroups, countLine } from './groups.js';
 import { lazyImport } from '../ui/lazy-import.js';
+import { big, statsBlocks } from './stats-view.js';   // (CITY C — ONE stats builder: /admin + the ☰ STATS sheet)
 
 const app = document.getElementById('app');
 const gameName = id => (GAMES.find(g => g.id === id) || { name: id }).name;
@@ -399,10 +400,6 @@ async function loadStats(fresh = false, quiet = false) {
   } catch { /* the toast said so (or a quiet refresh failed: try again in 30 s) */ }
 }
 
-function big(n, label, sub) {
-  return h('div.ad-big', h('b', String(n)), h('span', label), sub ? h('small', sub) : null);
-}
-
 function renderLive() {
   const box = document.getElementById('ad-live-b2');
   if (!box || !S) return;
@@ -419,80 +416,6 @@ function renderLive() {
       h('span', `${r.online} online${r.players > r.online ? ` · ${r.players - r.online} away` : ''}`),
       h('span.ad-dim', `open ${ago(r.age)}`)))) : h('p.ad-dim', 'No one is in a room right now.'),
     h('p.ad-note', 'Counts people in rooms (the title screen has no connection, so visitors who never host or join aren’t seen).'));
-}
-
-function tabs(key, opts, rerender) {
-  return h('div.ad-tabs', ...opts.map(([v, label]) => h('button.ad-tab', { type: 'button', class: view[key] === v ? 'is-on' : '', onclick: () => { view[key] = v; rerender(); } }, label)));
-}
-
-function gamesBlock() {
-  const G = S.games;
-  const src = view.games === 'today' ? (G.today || {}) : view.games === 'week' ? G.week : view.games === '30' ? G.last30 : G.all;
-  // (THE POOL FIXES add-on 3: the PLAYABLE games + any game that has plays in this period — never the ten frozen games at 0)
-  const rows = GAMES.map(g => ({ id: g.id, n: src[g.id] || 0, on: !!g.playable })).filter(r => r.on || r.n > 0).sort((a, b) => b.n - a.n);
-  const max = Math.max(1, ...rows.map(r => r.n));
-  const total = rows.reduce((a, r) => a + r.n, 0);
-  return h('div.ad-block',
-    h('div.ad-row.ad-between', h('h3', 'Games played'), tabs('games', [['today', 'Today'], ['week', 'This week'], ['30', '30 days'], ['all', 'All time']], renderStats)),
-    h('ol.ad-bars', ...rows.map((r, i) => h('li', { style: { '--c': light(r.id), '--w': `${(r.n / max) * 100}%` } },
-      h('span.ad-bar-n', `${i + 1}`),
-      h('span.ad-bar-name', gameName(r.id)),
-      h('span.ad-bar', h('i')),
-      h('b', String(r.n)),
-      h('small', G.avgPlayers[r.id] ? `${G.avgPlayers[r.id]} avg players` : '')))),
-    h('p.ad-note', `${total} matches · counted when the server verifies a finished match`));
-}
-
-function dailyBlock() {
-  const D = S.games.daily;
-  const max = Math.max(1, ...D.map(d => d.n));
-  const label = k => { const d = new Date(Date.UTC(+k.slice(1, 5), +k.slice(5, 7) - 1, +k.slice(7, 9))); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`; };
-  return h('div.ad-block',
-    h('h3', 'Matches per day · last 30 days'),
-    h('div.ad-cols', ...D.map((d, i) => h('div.ad-col', { title: `${label(d.k)}: ${d.n}`, style: { '--h': `${(d.n / max) * 100}%` } },
-      h('i'), h('small', i % 5 === 4 || i === D.length - 1 ? label(d.k) : '')))));
-}
-
-function playersBlock() {
-  const P = S.players;
-  const list = view.players === 'today' ? (P.topToday || []) : view.players === 'week' ? P.topWeek : view.players === 'all' ? P.topAll : P.topXp;
-  const empty = { today: 'No matches yet today.', week: 'No matches yet this week.', all: 'No matches yet.', xp: 'No XP yet.' }[view.players];
-  return h('div.ad-block',
-    h('div.ad-row.ad-between', h('h3', 'Most active players'), tabs('players', [['today', 'Today'], ['week', 'This week'], ['all', 'All time'], ['xp', 'XP']], renderStats)),
-    list.length ? h('ol.ad-top', ...list.map((p, i) => h('li',
-      h('span.ad-bar-n', String(i + 1)),
-      avatar(p.a, p.c, 26),
-      h('button.ad-linkbtn', { type: 'button', onclick: () => open(p.pid) }, p.n, h('small', p.t ? fmtTag(p.t) : '')),
-      emblem(p.r, 18),
-      p.h ? h('span.ad-tag.is-hidden', 'HIDDEN') : null,
-      h('b', view.players === 'xp' ? `${p.x.toLocaleString()} XP` : `${p.n_matches} ${p.n_matches === 1 ? 'match' : 'matches'}`)))) : h('p.ad-dim', empty));
-}
-
-function growthBlock() {
-  const P = S.players, T = S.totals;
-  const max = Math.max(1, ...P.newByWeek.map(w => w.n));
-  const wl = k => `${+k.slice(5, 7)}/${+k.slice(7, 9)}`;
-  return h('div.ad-block',
-    h('h3', 'Players'),
-    h('div.ad-bigs.is-small',
-      big(S.today ? S.today.players : 0, 'played today', S.today ? `${S.today.matches} ${S.today.matches === 1 ? 'match' : 'matches'} today` : null),
-      big(P.activeWeek, 'played this week', P.activeWeek ? `${P.returningWeek} came back from an earlier week` : null),
-      big(T.played, 'have played', `${T.multiNight} on more than one night`),
-      big(T.players, 'profiles')),
-    h('div.ad-subh', 'New players per week'),
-    h('div.ad-cols.is-weeks', ...P.newByWeek.map(w => h('div.ad-col', { title: `week of ${wl(w.wk)}: ${w.n}`, style: { '--h': `${(w.n / max) * 100}%` } },
-      h('i'), h('em', String(w.n)), h('small', wl(w.wk))))));
-}
-
-function timesBlock() {
-  const T = S.times;
-  const hours = [0, 6, 12, 18];
-  return h('div.ad-block.ad-wide',
-    h('h3', `Busiest times · last ${T.days} days · Eastern`),
-    h('div.ad-heat',
-      h('span'), ...Array.from({ length: 24 }, (_, hr) => h('small.ad-heat-h', hours.includes(hr) ? ['12a', '6a', '12p', '6p'][hours.indexOf(hr)] : '')),
-      ...T.grid.flatMap((row, d) => [h('small.ad-heat-d', DOW[d]), ...row.map((n, hr) => h('i', { title: `${DOW[d]} ${hr}:00 — ${n} ${n === 1 ? 'match' : 'matches'}`, style: { '--a': T.max ? (n ? 0.15 + 0.85 * (n / T.max) : 0) : 0 } }))])),
-    h('p.ad-note', 'Each square is an hour; brighter = more matches finished then.'));
 }
 
 // PLAY NOW — WHO'S ON on /admin → STATS: the LEDGER's list (ui/whos-on.js — ONE builder), made once and kept across the stats' re-renders;
@@ -513,7 +436,7 @@ function renderStats() {
   { const c = cardOf('ad-stats'); if (c) c.count(`${S.totals.matches.toLocaleString()} matches`); }
   box.replaceChildren(
     whoSection(),
-    h('div.ad-stats-grid', gamesBlock(), playersBlock(), dailyBlock(), growthBlock(), timesBlock()),
+    h('div.ad-stats-grid', ...statsBlocks(S, { view, rerender: renderStats, onPlayer: open })),
     // (FR7 FIXES C2 — THE SUPPORTED FLOOR: one quiet line — browsers below it were told to update; never a BOOT HANG in the reports)
     h('p.ad-note.ad-old', `old browsers: ${(S.oldBrowsers && S.oldBrowsers.n) || 0}${S.oldBrowsers && S.oldBrowsers.last ? ` · last ${new Date(S.oldBrowsers.last).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''} — below the supported floor (Chrome 92 · Firefox 90 · Safari / iOS 16): shown “too old”, never a BOOT HANG`));
 }
