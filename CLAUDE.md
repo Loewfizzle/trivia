@@ -101,7 +101,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - Debug + preview flags: `&debug=1`, `&dpr=3`, `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary waits for the reveal + a tap; `&lgnow=1` at once).
 - A holiday SIGN FORCE (`&force=sign-*`) shows the FULL look any day, in season too; THANKSGIVING = the maple leaves BEHIND the letters + THE GOLD WEEK (`leafbank.js`) → docs/harbor.md.
 - THE TRI-VISION: the roof board turns HOLD'EM ↔ JAYWALK by ONE pure clock (`core/harbor-trivision.js`) → docs/harbor.md (moved).
-- THE SIGNS NAME PLAYABLE GAMES ONLY: ONE roster (`core/harbor-neon.js#signRoster`); THE DROP's face only from its go-live, via the cached feed → docs/harbor.md#city-b-nov-1415--what-the-citys-bible-gained-detail-passescity-bmd.
+- THE SIGNS: ONE roster (`core/harbor-neon.js#signRoster` — the playable games + JAYWALK); NO NAMED SIGN EVER DARK; OVER / CLOCK + JAY / WALK always stacked; THE DROP's face only from its go-live, via the cached feed → docs/harbor.md#city-b-nov-1415--what-the-citys-bible-gained-detail-passescity-bmd.
 
 **The console + the room** (→ docs/harbor.md (moved), docs/cartridge.md, docs/title.md)
 - THE ROOM IN THE CITY: the old lobby screen is RETIRED — the room lives in the city from the join to the podium (`screens/room-city.js`,

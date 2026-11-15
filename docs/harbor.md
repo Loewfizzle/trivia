@@ -1386,8 +1386,8 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - **THE BOSS'S SHADOW:** ONE size (no 1.35× while soft) — his walk by the blur + the fade.
 
 ## CITY B (Nov 14–15) — what the city's bible gained (detail: passes/city-b.md)
-- **THE SIGNS ADVERTISE PLAYABLE GAMES ONLY:** every sign + the speakeasy blade read ONE roster (`core/harbor-neon.js#signRoster` —
-  `GAMES[].playable`); a game whose row turns playable joins with no code change; `&force=sign-jaywalk` = JAYWALK as if released. THE HOTEL
+- **THE SIGNS:** every sign + the speakeasy blade read ONE roster (`core/harbor-neon.js#signRoster` — `GAMES[].playable` + JAYWALK, on the
+  signs as if released); NO NAMED SIGN IS EVER DARK; OVER / CLOCK + JAY / WALK always two stacked lines (`SIGN_SPLIT`). THE HOTEL
   BLADE (`n-blade`, `rot: 'hotel'`) rotates its own names (PRISM · HOLDEM · JAY / WALK — `signText`, `SIGN_SPLIT`), never the speakeasy blade's
   game that week (`hotelAvoid`); the phone's own spots fill before a panorama's extra blades. Timetable: `signs.shuffle`.
 - **THE SPEAKEASY BLADE's WEEK:** `bladeStyle` = { kind (enamel · neon · bulb), font, panel (10 saturated), bulb (6 colours), letter (≥ 4.5 : 1
@@ -1395,4 +1395,7 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - **THE TRI-VISION'S THIRD FACE — THE DROP:** `drop-art.js` (code-drawn, lazy, self-lit at night, violet by day); `dropShow` = 14 days from THE
   DROP's go-live day (the cached feed's `radio.drop` ← `progress/dlive`), the owner's ON · OFF · KEEP ON (`city2/billboard.drop`); `triFaces` = the
   live faces in order (two or more turn); a painter loads only when its face is up; `&force=billboard-drop`. Timetable: `billboard.drop` { days }.
-- **THE GLOW STICKS:** a coloured halo + a white-hot core at night (folk.js `glowTint`).
+- **THE GLOW WANDS + STICKS:** the party dancers' wands (`wands.js#drawWands`) a thick tube + a near-white core + a two-layer bloom; the
+  trick-or-treaters' sticks a coloured halo + a white-hot core at night (folk.js `glowTint`).
+- **THE BOOT TRIM:** the boot back under 6,500 KB by deleting pass-history comment blocks; `scripts/comment-only-diff.mjs <ref>` proves a
+  comment-only change (the code byte-identical).

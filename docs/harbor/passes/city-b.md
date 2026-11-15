@@ -2,22 +2,26 @@
 
 The owner's order (`docs/harbor/decisions.md` — CITY A's Step 0): … CITY A ✅ → **CITY B** (the city's looks) → CITY C (cards + social) → THE
 MAINTENANCE REVIEW → JAYWALK → THE GIRL CARDS → THE TOWER MOVE → the reset. **No rules change.** 8 functions. THE ADD-ON INBOX: no entry for CITY B
-(read at the start, after every group, before the final tests).
+(read at the start, after every group, before the final tests) — one arrived (Nov 15 1:16 am) and is Group 8. **THE OWNER'S ANSWERS (Nov 15)**
+to the first summary are built below: THE BOOT TRIM, NO DARK SIGN (OVER / CLOCK + JAY / WALK always stacked, JAYWALK on the signs now), THE
+PARTY's GLOW WANDS.
 
-## Group 1 — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY
-- **ONE roster** (`core/harbor-neon.js#signRoster`): the city's signs + the speakeasy blade's ghost ad name only `GAMES[].playable` (never a
-  frozen game, never a daily). A row turning playable joins every sign with no code change. JAYWALK has no GAMES row yet: `&force=sign-jaywalk`
-  (+ its panel row JAYWALK ON THE SIGNS) adds `JAYWALK_SIGN` "as if released"; a tap on its sign = COMING SOON.
+## Group 1 — THE SIGNS NAME THE PLAYABLE GAMES (+ JAYWALK) — NO NAMED SIGN EVER DARK
+- **ONE roster** (`core/harbor-neon.js#signRoster`): the city's signs + the speakeasy blade's ghost ad name the `GAMES[].playable` games + JAYWALK
+  (on the signs NOW, as if released — the owner, Nov 15; its billboard says COMING SOON; a tap on its sign = COMING SOON) — never a frozen game,
+  never a daily. The playable list alone still rules menus, rooms + the shelf. A row turning playable joins every sign with no code change.
+- **OVER / CLOCK + JAY / WALK — ALWAYS two stacked lines on every neon sign** (the owner's call, Nov 15 — never one line, even where one would
+  fit): `SIGN_SPLIT` (the roof signs on two lines; the hotel blade one column with a short break — `signs.js#BLADE_GAP`; the speakeasy blade two
+  columns — `speakeasy-blade.js#bladeWords` takes a listed split whatever its length). A vertical blade takes a split name only if its letters
+  stand at the glance size (≤ cap + 1: JAY / WALK yes, OVER / CLOCK only on the roofs).
+- **NO NAMED SIGN IS EVER DARK:** the hotel blade + both roof signs carry three of the four names every night; a name already up elsewhere only
+  if nothing else fits; a panorama blade too short for the shortest name (5 letters) never hangs; the phone's own spots fill before a panorama's.
 - **THE HOTEL BLADE** (`n-blade`: `rot: 'hotel'`, `split: 2`) has its OWN seeded rotation (shuffled per week, rotated per night — every phone
-  the same) of the names that fit it — PRISM · HOLDEM (a vertical blade drops the apostrophe — `signText`) · JAY / WALK (`SIGN_SPLIT` — two
-  stacked words with a short break, `signs.js#BLADE_GAP`) — never the speakeasy blade's game that week (`hotelAvoid`: the week's, and on a
-  Monday morning last week's when it can). Letters: PRISM / HOLDEM ≥ 10.4 pt, JAY / WALK 9.0 (390) · 9.3 (402) · 10.1 (430) pt.
-- With three playable games the second roof sign is dark most nights (OVERCLOCK's nine letters fit no skyline sign — it is on the speakeasy
-  blade + the room); with JAYWALK released every named sign is lit.
-- Found in Group 7: on a wide screen the panorama's extra blades were filled before the roofs (fewest words first) and left a roof dark — the
-  phone's own spots now come first (`assignSigns`), so desktop shows the phone's signs.
-- THE CITY TIMETABLE: `signs.shuffle` (calendar). Proof: `tests/city-b-signs.test.mjs` (a year of nights, 4 sizes, both rosters: no frozen name;
-  the blade's words fit + read; the blade ≠ the speakeasy blade every night + every week) + the harbor suite's sign tests moved to `signText`.
+  the same) — PRISM · HOLDEM (a vertical blade drops the apostrophe) · JAY / WALK — never the speakeasy blade's game that week (`hotelAvoid`).
+  Letters: PRISM / HOLDEM ≥ 10.4 pt, JAY / WALK 9.0 (390) · 9.3 (402) · 10.1 (430) pt.
+- THE CITY TIMETABLE: `signs.shuffle` (calendar). Proof: `tests/city-b-signs.test.mjs` — a year of nights at 390 / 402 / 430 + 1440: no named
+  sign dark, no frozen name, OVER / CLOCK + JAY / WALK stacked wherever they hang, every stacked word ≥ 9 pt and every one-word name ≥ 10 pt,
+  the hotel blade ≠ the speakeasy blade every night + every week; the harbor suite's sign checks run WITHOUT a flag.
 
 ## Group 2 — THE SPEAKEASY BLADE's BOLD WEEKLY LOOK
 - `core/harbor-speakeasy.js#bladeStyle(week)` — a seeded walk (every phone the same; the kind, the font and the panel never repeat two weeks
@@ -46,9 +50,14 @@ MAINTENANCE REVIEW → JAYWALK → THE GIRL CARDS → THE TOWER MOVE → the res
   `/api` (`server.test.mjs` "CITY B: THE DROP on the billboard") + `tri-flash.mjs --force billboard-drop --turns 6`: **6 / 6** (390 / 402 / 430 ×
   night + day, five turns each through the three faces — the new face whole in ~1 s, never an old-face frame).
 
-## Group 4 — THE GLOW STICKS (the trick-or-treaters' — the only glow sticks in the city)
-At night: a soft halo in its colour (one 64-px sprite per colour), the coloured tube, a white-hot core — on the far hand (its swing is the walk's
-own); by day a plain plastic stick. Before / after: `Downloads\NEON\city-b\glowsticks-before-after.png` (402, `&force=halloween-kids,trick-or-treat`).
+## Group 4 — THE GLOW STICKS
+- **THE PARTY's DANCERS** (the owner's answer, Nov 15 — the glow sticks he meant): the dance breaks' + the street party's dancers already hold
+  neon WANDS (`screens/harbor/wands.js#drawWands`) — they read far too dim on the phone (a ~1-pt line, a 22 % halo, down to 62 % between beats).
+  Now: a thicker tube (≥ 1.8 pt), a near-white core, a TWO-LAYER coloured bloom (≥ 10 pt + ≥ 5 pt wide), barely a dip between beats (86 %);
+  the trails brighter. Swinging with the dancer's hand as before (no new motion). Before / after at 402 on a party night
+  (`&force=party,dance&dance=wands`, 22:30): `Downloads\NEON\city-b\glowsticks-party.png`.
+- The trick-or-treaters' glow sticks kept brighter too (a coloured halo + a white-hot core at night — `folk.js#glowTint`):
+  `Downloads\NEON\city-b\glowsticks-before-after.png`.
 
 ## Group 5 — THE DECO MEDALS
 ONE component, `js/ui/medal.js#rankMedal` (the approved mockup's toothed disc + three stepped octagons + the numeral + the gloss; unique gradient
@@ -77,17 +86,23 @@ HOLD'EM + PRISM on the roof signs, JAY / WALK on the hotel blade. `assets/og.jpg
 ## Tests (local, the mini PC — my own emulators + `DAILY_TEST=1 scripts/serve.mjs --emu`, nothing else running)
 | suite | result |
 | --- | --- |
-| unit `node --test tests/*.test.mjs` | **1966 / 1967** — the one red: THE BOOT BUDGET (6,519.5 KB of 6,500 — below) |
-| harbor groups `core,dock,load,neon,speakeasy,trivision,billboard,workers,panel,panelrows,people,desktop,holiday,roofcrisp,corners,tapfit,youpage,sheetstack,shell,vault,progress,skyline` | 392 / 398 → the 6 reds (all "two roof signs lit" — now one with three playable games) updated (`&force=sign-jaywalk` where a check tests the sign mechanics; the playable roster where it tests the real city) + re-run `neon,roofcrisp,desktop,core` **72 / 72** (NO full local harbor — the cloud runs it) |
+| unit `node --test tests/*.test.mjs` | **1967 / 1967** (THE BOOT BUDGET green again — 6,457 KB of 6,500) |
+| harbor groups `core,dock,load,neon,speakeasy,trivision,billboard,workers,panel,panelrows,people,desktop,holiday,roofcrisp,corners,tapfit,youpage,sheetstack,shell,progress,skyline,party,streetparty` | **365 / 365** after the owner's answers — the sign checks WITHOUT a flag: three named signs lit, the desktop five (NO full local harbor — the cloud runs it). (The first run, before the answers: 392 / 398 → the "two roof signs" reds.) |
 | smoke | **8 / 8** |
 | `/api` `server.test.mjs` | **59 / 59** (+ THE DROP's switch + feed) |
-| e2e-daily | **92 / 92** (SCORES reads the medal's label; the iPad's tap-beside-the-column case runs with JAYWALK released — its sign is the second roof) |
+| e2e-daily | **94 / 94** — SCORES reads the medal's label; the tap-through sweep's helper now keeps 8 px from a button sideways too (a now-lit roof sign behind SEE THE FULL BOARD's very edge: the touch was the button's, which rightly acted) |
 | e2e-taps | Chromium **30 / 30** · WebKit **28 / 28** |
 | wk-press (WebKit) | **30 / 30**, 0 rescues |
 | tri-flash `--force billboard-drop --turns 6` | **6 / 6** |
+| pixdiff (the trim) | no change — see THE BOOT TRIM |
 | rules | not touched (no rules change) |
 
-## THE BOOT BUDGET — OPEN (Ben's decision)
-The boot was 6,495.6 KB of its 6,500; this pass adds ~24 KB to modules drawn before the reveal (the blade's three kinds, the hotel rotation,
-THE DROP's state, the glow sticks, the panel rows) → **6,519.5 KB**. THE DROP's poster + the medals were made lazy. Raising the budget is the
-owner's named decision — not taken here (see the summary).
+## THE BOOT TRIM (the owner's answer, Nov 15 — the limit stays 6,500 KB)
+- The boot was 6,520.6 KB after this pass's looks. **329 pass-history comment blocks** (whole-line `// (PASS NAME: …)` parentheticals — the
+  history lives in the pass logs) came out of the four files that held the most: `scene.js` (35.8 KB), `core/harbor-people.js` (12.3),
+  `folk.js` (7.8), `clouds.js` (6.3) — **62.1 KB** → the boot **6,457.3 KB** (42.7 KB under). Every other comment, the city timetable's
+  owner-decision notes and every other file untouched. THE DROP's poster + the game card's medals load lazily (never the boot).
+- **Proof:** `scripts/comment-only-diff.mjs HEAD` — each trimmed file vs its committed version with whole-line comments removed: **byte-identical**
+  (4 / 4 SAME); the unit suite **1967 / 1967**; pixdiff (A = a worktree at the pre-trim commit on :5174, `--pin`): night 5 px · noon 21 px ·
+  golden 0 px past the noise; party's crowd band swings 1.03 % → 0.41 % → 0.08 % over three runs and the baseline against ITSELF gives 0.14 %
+  — the dancing crowd's motion, not a change (the code is identical).

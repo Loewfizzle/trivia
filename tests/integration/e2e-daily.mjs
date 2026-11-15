@@ -221,7 +221,8 @@ await H.run(async () => {
     // (a REAL touch — and only on a plain part of the DAILY screen: what is under the point is asked again at the tap, a list may have moved)
     const tap = async (x, y, anywhere = false) => {
       // (plain = the DAILY screen's own non-button surface, with no button within 14 px above / below — a real button is never pressed here)
-      const plain = anywhere || await pg.evaluate((x, y) => [-14, 0, 14].every(d => { const e = document.elementFromPoint(x, y + d); return !!(e && e.closest('.dy-overlay') && !e.closest('button, a, input, label')); }), Math.round(x), Math.round(y));
+      // (CITY B: + 8 px left / right — a touch at a button's very edge is the button's: a lit roof sign behind SEE THE FULL BOARD's end found it)
+      const plain = anywhere || await pg.evaluate((x, y) => [[0, -14], [0, 0], [0, 14], [-8, 0], [8, 0]].every(([dx, d]) => { const e = document.elementFromPoint(x + dx, y + d); return !!(e && e.closest('.dy-overlay') && !e.closest('button, a, input, label')); }), Math.round(x), Math.round(y));
       if (!plain) return false;
       await pg.touchscreen.tap(Math.round(x), Math.round(y)); await new Promise(r => setTimeout(r, 40));
       return true;
