@@ -177,7 +177,7 @@ function shell() {
     jumpBar(),
     grid);
   audit();
-  backups();
+  nightlyBackups();   // (FIXES R1 — CITY E named it backups() too: the module failed to parse, /admin hung on "Signing in…")
   outages();
   dailies(); dailyStats(); billboard();
   errors();
@@ -581,7 +581,7 @@ function goLiveRows(st) {
 }
 /** CITY E — THE BACKUPS row: GITHUB · THE PC, each its last pickup (when · how big) — red past 36 h (BACKUP_LATE_H) */
 const BACKUP_LATE_H = 36;
-async function backups() {
+async function nightlyBackups() {
   const box = document.getElementById('ad-bk-rows');
   if (!box) return;
   try {

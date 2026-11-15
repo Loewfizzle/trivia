@@ -1,6 +1,6 @@
 # THE CARD LAB — the owner's marks (read this FIRST in the next VAULT pass)
 
-Exported 2026-11-15 19:46 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
+Exported 2026-11-15 22:34 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
 
 | # | item | tier | mark | note | when | v |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -22,13 +22,13 @@ Exported 2026-11-15 19:46 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 39 | MAKE A WISH (`card-sg-fireball`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC | v1 |
 | 40 | HOT AIR, COLD BLOOD (`card-sg-skull`) | legendary | APPROVE |  | 2026-11-03 16:30 UTC | v1 |
 | 41 | FIX THE MONEY, FIX THE WORLD (`card-sg-btc`) | legendary | APPROVE |  | 2026-11-09 13:32 UTC | v2 |
-| 42 | LIGHTS OUT · FULL CARD (`full-card-sg-tr3b`) | legendary | APPROVE |  | 2026-11-03 19:27 UTC | CHANGED (marked v1, now v2) |
-| 43 | SKY KING · FULL CARD (`full-card-sg-blackbird`) | legendary | APPROVE |  | 2026-11-03 16:42 UTC | CHANGED (marked v1, now v2) |
-| 44 | AFTERBURNER · FULL CARD (`full-card-sg-f22`) | legendary | APPROVE |  | 2026-11-03 16:32 UTC | CHANGED (marked v1, now v2) |
-| 45 | THE FLYING DUTCHMAN · FULL CARD (`full-card-sg-ghostship`) | legendary | APPROVE |  | 2026-11-03 16:42 UTC | CHANGED (marked v1, now v2) |
-| 46 | SKY DANCER · FULL CARD (`full-card-sg-aurora`) | legendary | APPROVE |  | 2026-11-03 16:32 UTC | CHANGED (marked v1, now v2) |
-| 47 | MAKE A WISH · FULL CARD (`full-card-sg-fireball`) | legendary | APPROVE |  | 2026-11-03 16:32 UTC | CHANGED (marked v1, now v2) |
-| 48 | HOT AIR, COLD BLOOD · FULL CARD (`full-card-sg-skull`) | legendary | APPROVE |  | 2026-11-03 16:32 UTC | CHANGED (marked v1, now v2) |
+| 42 | LIGHTS OUT · FULL CARD (`full-card-sg-tr3b`) | legendary | APPROVE |  | 2026-11-15 22:09 UTC | v2 |
+| 43 | SKY KING · FULL CARD (`full-card-sg-blackbird`) | legendary | APPROVE |  | 2026-11-15 22:09 UTC | v2 |
+| 44 | AFTERBURNER · FULL CARD (`full-card-sg-f22`) | legendary | APPROVE |  | 2026-11-15 22:09 UTC | v2 |
+| 45 | THE FLYING DUTCHMAN · FULL CARD (`full-card-sg-ghostship`) | legendary | APPROVE |  | 2026-11-15 22:09 UTC | v2 |
+| 46 | SKY DANCER · FULL CARD (`full-card-sg-aurora`) | legendary | APPROVE |  | 2026-11-15 22:09 UTC | v2 |
+| 47 | MAKE A WISH · FULL CARD (`full-card-sg-fireball`) | legendary | APPROVE |  | 2026-11-15 22:09 UTC | v2 |
+| 48 | HOT AIR, COLD BLOOD · FULL CARD (`full-card-sg-skull`) | legendary | APPROVE |  | 2026-11-15 22:10 UTC | v2 |
 | 49 | FIX THE MONEY, FIX THE WORLD · FULL CARD (`full-card-sg-btc`) | legendary | APPROVE |  | 2026-11-09 13:32 UTC | v3 |
 | 1 | BRUSHED GOLD (`card-brushed`) | common | APPROVE |  | 2026-11-03 11:00 UTC | v1 |
 | 2 | SMOKE ROOM (`card-smoke`) | uncommon | APPROVE |  | 2026-11-03 11:23 UTC | v1 |
@@ -62,7 +62,7 @@ Exported 2026-11-15 19:46 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 31 | NEON GLASS · FULL CARD (`full-card-neonglass`) | uncommon | APPROVE |  | 2026-11-03 14:20 UTC | v1 |
 | 32 | SILVER CHROME · FULL CARD (`full-card-chrome`) | uncommon | APPROVE |  | 2026-11-03 14:20 UTC | v1 |
 | 33 | MIDNIGHT & CHAMPAGNE · FULL CARD (`full-card-champagne`) | uncommon | APPROVE |  | 2026-11-03 14:21 UTC | v1 |
-| 18 | I WANT TO BELIEVE · FULL CARD (`full-card-sg-ufo`) | legendary | APPROVE |  | 2026-11-03 14:21 UTC | CHANGED (marked v1, now v2) |
+| 18 | I WANT TO BELIEVE · FULL CARD (`full-card-sg-ufo`) | legendary | APPROVE |  | 2026-11-15 22:10 UTC | v2 |
 | 50 | ZEBRA (`card-zebra`) | uncommon | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 51 | CAMO (`card-camo`) | uncommon | APPROVE |  | 2026-11-05 21:55 UTC | v2 |
 | 52 | VELVET ROOM (`card-velvet`) | rare | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
@@ -204,14 +204,14 @@ Exported 2026-11-15 19:46 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 196 | NOT GUILTY (`card-gift-notguilty`) | legendary | APPROVE |  | 2026-11-08 04:22 UTC | v1 |
 | 197 | WASTELANDER (`card-gift-wastelander`) | legendary | APPROVE |  | 2026-11-08 04:22 UTC | v1 |
 | 198 | SOLE SURVIVOR (`card-gift-survivor`) | legendary | APPROVE |  | 2026-11-08 04:22 UTC | v1 |
-| 199 | ZA DOMOVINU (`card-gift-zadomovinu`) | legendary | APPROVE |  | 2026-11-08 04:23 UTC | v1 |
+| 199 | MOSTARAC (`card-gift-zadomovinu`) | legendary | APPROVE |  | 2026-11-15 22:09 UTC | v2 |
 | 200 | STARI MOST (`card-gift-starimost`) | legendary | APPROVE |  | 2026-11-08 04:23 UTC | v1 |
 | 201 | THE DISPATCHER · FULL CARD (`full-card-gift-dispatcher`) | legendary | APPROVE |  | 2026-11-08 04:21 UTC | v1 |
 | 202 | OUT OF ORDER · FULL CARD (`full-card-gift-outoforder`) | legendary | APPROVE |  | 2026-11-08 04:22 UTC | v1 |
 | 203 | NOT GUILTY · FULL CARD (`full-card-gift-notguilty`) | legendary | APPROVE |  | 2026-11-08 04:22 UTC | v1 |
 | 204 | WASTELANDER · FULL CARD (`full-card-gift-wastelander`) | legendary | APPROVE |  | 2026-11-08 04:22 UTC | v1 |
 | 205 | SOLE SURVIVOR · FULL CARD (`full-card-gift-survivor`) | legendary | APPROVE |  | 2026-11-08 04:22 UTC | v1 |
-| 206 | ZA DOMOVINU · FULL CARD (`full-card-gift-zadomovinu`) | legendary | FIX | The checkered flag could be confused with Croatian culture.  That needs to be changed to something else or removed entirely.  Change the name of the card to “Mostarac”. | 2026-11-15 13:19 UTC | v1 |
+| 206 | MOSTARAC · FULL CARD (`full-card-gift-zadomovinu`) | legendary | APPROVE |  | 2026-11-15 22:09 UTC | v2 |
 | 207 | STARI MOST · FULL CARD (`full-card-gift-starimost`) | legendary | APPROVE |  | 2026-11-08 04:23 UTC | v1 |
 | 211 | FIRST KO (`card-first-ko`) | common | APPROVE |  | 2026-11-10 04:14 UTC | v1 |
 | 212 | PERFECT CLEAR (`card-perfect-clear`) | rare | APPROVE |  | 2026-11-10 04:14 UTC | v1 |
@@ -225,4 +225,4 @@ Exported 2026-11-15 19:46 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 220 | SONIC BOOM · FULL CARD (`full-card-sonicboom`) | rare | APPROVE |  | 2026-11-13 19:30 UTC | v1 |
 | 221 | CLOSE ENCOUNTER · FULL CARD (`full-card-closeencounter`) | rare | APPROVE |  | 2026-11-13 19:30 UTC | v1 |
 | 222 | RIGHT OF WAY · FULL CARD (`full-card-rightofway`) | legendary | APPROVE |  | 2026-11-13 19:30 UTC | v1 |
-| 208 | HORSESHOE (`emb-horseshoe`) | uncommon | FIX | It looks like a donut, it needs to look more like a horseshoe | 2026-11-15 13:23 UTC | v1 |
+| 208 | HORSESHOE (`emb-horseshoe`) | uncommon | APPROVE |  | 2026-11-15 22:10 UTC | v2 |

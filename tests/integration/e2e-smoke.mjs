@@ -6,6 +6,7 @@
 // "undefined", "NaN" or "[object Object]", on page errors, and on console errors. Takes about two minutes.
 import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { chromiumPages, webkitPages } from './kit/page-loads.mjs';
 
 const BROWSER = process.argv[2];
 const OUT = (process.argv[3] || './shots').replace(/\/?$/, '/');
@@ -121,6 +122,13 @@ async function backToLobbyNow(id) {
 }
 
 try {
+  // ---- 0. FIXES R1 (THE REVIEW A1) — THE PAGES LOAD: the app, /admin, /board, /lab, /daychart with no page error and their script run, in
+  //      Chromium + WebKit (WebKit only where Playwright's is installed: the mini PC — the cloud says so). PAGES=0 skips it.
+  if (process.env.PAGES !== '0') {
+    const rows = [...await chromiumPages(browser, BASE), ...(await webkitPages(BASE) || [])];
+    if (!rows.some(r => r.engine === 'webkit')) log('NOTE', 'THE PAGES LOAD: WebKit not installed here — Chromium only');
+    for (const r of rows) ok(r.ok, `THE PAGES LOAD: ${r.engine} ${r.path}${r.why ? ' — ' + r.why : ''}`);
+  }
   // ---- title + create (host) — a brand-new phone
   const host = await open(0);
   await host.waitForSelector('.nd-host', { timeout: 20000 });

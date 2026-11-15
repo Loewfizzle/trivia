@@ -6773,3 +6773,11 @@ OWNER'S NOTES — NOV 15 (the CITY E prompt, from the city chat)
 - Anything in /admin or the owner's STATS sheet never needs animation: stills are fine.
 - The roof board's rotation stays on the shared clock (HOLD'EM → JAYWALK → THE DROP) — no "first face on load".
 ```
+
+### OWNER'S NOTES — NOV 15 (FIXES R1's Step 0)
+* THE REVIEW (docs/reviews/review-nov15.md, report only) read; its split ACCEPTED: FIXES R1 = the bugs (A1 /admin stuck on "Signing in…", A2 / A4 1–2 / A5 the share card, A3 the cloud back to green, A7 the silent master, the owner's crashes — CUSTOMIZE's emblems, the home-screen app after SHARE TODAY — and the home-screen squeal, the small ones A10 / A12 / A13 / A14 / A16), FIXES R2 = the rest.
+* THE FROZEN GAMES = option (b) "keep compatible" — built in R2, not here.
+* THE SOURCE's "1 OF 1" tag stays as it is.
+* The share message = the LINK ONLY (no text) — the link preview carries the card.
+* The ticket pop-up (R2) = TODAY only, no history.
+

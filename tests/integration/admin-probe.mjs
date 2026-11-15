@@ -4,6 +4,7 @@
 //   node tests/integration/admin-probe.mjs "<browser>" [./shots-dfix3]      (the emulators up; port 5179)
 // STATS=1 (THE POOL FIXES add-on 3): /admin → STATS instead — WHO'S ON (its server answer stubbed in the browser: two rows, the city + a room)
 // + GAMES PLAYED, at 390 / 402 / 430 + 1440
+// BACKUPS=1 (FIXES R1): /admin signed in as the owner — the BACKUPS row + SHARE CARDS (seeded), at 390 + 1440
 // GOLIVE=1 (THE DROP B): /admin → THE DAILIES → THE SCHEDULED GO-LIVE rows — THE DROP OFF, GO LIVE AT THE NEXT 4 AM tapped twice (the confirm) →
 // LIVE FROM <date> 4 AM + CANCEL, then CANCEL twice → OFF again; shots of each at 390 / 402 / 430 + 1440 (the schedule removed after)
 process.env.FIREBASE_DATABASE_EMULATOR_HOST ||= '127.0.0.1:9000';
@@ -97,7 +98,33 @@ try {
     await ref('progress/dlive').remove();
     console.log(`shots → ${OUT}admin-golive-*.png`);
   }
-  for (const [w, h, tag] of process.env.STATS || process.env.GOLIVE ? [] : [[390, 844, 'phone'], [1440, 900, 'desk']]) {
+  if (process.env.BACKUPS) {
+    // FIXES R1 Group 0 — /admin LOADS AGAIN: signed in as the owner, the BACKUPS row (GITHUB fresh · THE PC 40 h late = red) + SHARE CARDS (one
+    // seeded card) — the shots the owner checks after A1's fix (the page used to hang on "Signing in…")
+    const day = (await import('../../js/core/streak.js')).streakDay(Date.now());
+    await ref('progress/backup').set({ gh: { at: Date.now() - 3 * 3600e3, bytes: 1.7e6, parts: 29 }, pc: { at: Date.now() - 40 * 3600e3, bytes: 1.7e6, parts: 29 } });
+    await ref().update({ 'shr/ProbeCard001': { p: owner.pid, d: day, g: ['password'], n: 'BEN', at: Date.now(), img: 'iVBORw0KGgo=' }, [`shrx/${day}/ProbeCard001`]: owner.pid });
+    for (const [w, h, tag] of [[390, 844, '390'], [1440, 900, 'desk']]) {
+      const ph = tag !== 'desk';
+      await p.setViewport({ width: w, height: h, deviceScaleFactor: ph ? 2 : 1, isMobile: ph, hasTouch: ph });
+      await p.evaluate(() => { try { localStorage.setItem('ad:open:ad-backup', '1'); localStorage.setItem('ad:open:ad-dailies', '1'); } catch { /* fine */ } });
+      await p.goto(`http://localhost:${PORT}/admin?emu&slot=adm`);
+      await p.waitForFunction(() => !!document.querySelector('#ad-bk-rows .ad-bk') && !!document.querySelector('#ad-dly-shares .ad-shr'), { timeout: 40000 }).catch(() => console.log(tag, 'rows missing'));
+      await new Promise(r2 => setTimeout(r2, 800));
+      const info = await p.evaluate(() => ({ wait: !!document.querySelector('.ad-wait'), bk: [...document.querySelectorAll('#ad-bk-rows .ad-bk')].map(r => `${r.className.includes('is-late') ? 'LATE ' : ''}${r.innerText.replace(/\s+/g, ' ')}`), shr: [...document.querySelectorAll('#ad-dly-shares .ad-shr')].map(r => r.innerText.replace(/\s+/g, ' ')) }));
+      console.log(tag, JSON.stringify(info));
+      for (const [sel, name] of [['#ad-backup', 'backups'], ['#ad-dly-shares', 'sharecards']]) {
+        await p.evaluate(s => document.querySelector(s).scrollIntoView({ block: 'center' }), sel);
+        await new Promise(r2 => setTimeout(r2, 300));
+        await p.screenshot({ path: `${OUT}admin-${name}-${tag}.png` });
+      }
+      await p.evaluate(() => window.scrollTo(0, 0)); await new Promise(r2 => setTimeout(r2, 200));
+      await p.screenshot({ path: `${OUT}admin-top-${tag}.png` });
+    }
+    await ref().update({ 'progress/backup': null, 'shr/ProbeCard001': null, [`shrx/${day}/ProbeCard001`]: null });
+    console.log(`shots → ${OUT}admin-{backups,sharecards,top}-*.png`);
+  }
+  for (const [w, h, tag] of process.env.STATS || process.env.GOLIVE || process.env.BACKUPS ? [] : [[390, 844, 'phone'], [1440, 900, 'desk']]) {
     await p.setViewport({ width: w, height: h, deviceScaleFactor: tag === 'phone' ? 2 : 1, isMobile: tag === 'phone', hasTouch: tag === 'phone' });
     await p.goto(`http://localhost:${PORT}/admin?emu&slot=adm`);
     await p.waitForFunction(() => !!document.querySelector('.ad-dly-players, #ad-dly-stats p'), { timeout: 40000 });
