@@ -6,7 +6,7 @@
 <title>Full cards — preview</title>
 <!-- CITY C — the REAL full cards (js/vault/full.js#fullCardEl) without Firebase, one under the other, each with its live effect:
      ?cards=card-founder,card-dev-switchboard,…  &fd=1 (a FOUNDING MEMBER)  &no=12 (MEMBER Nº)  &lv=12  &name=AMBER  &still=1 (reduced motion)
-     &gilded=1 (+ THE GILDED fallback card — progress/card.js) · &strip=1 (+ each card's slim strip under it). The local server only. -->
+     &glow=glow-candle (the name's glow) · &gilded=1 (+ THE GILDED fallback card — progress/card.js) · &strip=1 (+ each card's slim strip under it). The local server only. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
 <link rel="stylesheet" href="/css/base.css">
@@ -36,7 +36,7 @@ const q = new URLSearchParams(location.search);
 if (q.get('still') === '1') setFxReduced(true);
 const app = document.getElementById('app');
 const cards = q.get('strips') && !q.get('cards') ? [] : (q.get('cards') || 'card-founder,card-dev-switchboard,card-emerald').split(',').filter(Boolean);
-const who = { name: q.get('name') || 'AMBER', lv: Number(q.get('lv') || 12), avatar: 'hex', color: 'yellow', at: Date.UTC(2026, 10, 3), no: q.get('no') || '0012', fd: q.get('fd') === '1' };
+const who = { name: q.get('name') || 'AMBER', lv: Number(q.get('lv') || 12), avatar: 'hex', color: 'yellow', at: Date.UTC(2026, 10, 3), no: q.get('no') || '0012', fd: q.get('fd') === '1', glow: q.get('glow') || null };
 const surface = createSurface(app, { label: 'preview' });
 for (const id of cards) {
   app.append(h('div.lbl', id));

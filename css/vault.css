@@ -799,14 +799,16 @@ body.reduced-fx .vg > i, .vl-still .vg > i, .vg.vg-still > i { animation: none !
 /* NEON (uncommon): pink tube light with a cyan halo; the tube BUZZES — a hotter copy flickering on now + then */
 .vg-neon { color: #fff0fa !important; text-shadow: 0 0 3px #fff, 0 0 8px rgba(255, 79, 216, 0.95), 0 0 18px rgba(0, 220, 255, 0.5), 0 1px 2px rgba(0, 0, 0, 0.7) !important; }
 .vg-neon::after { color: #fff; text-shadow: 0 0 4px #fff, 0 0 12px #ff4fd8, 0 0 24px rgba(255, 79, 216, 0.8); animation: vg-buzz 3.4s steps(1) infinite; }
-@keyframes vg-buzz { 0%, 61% { opacity: 0; } 62% { opacity: 0.9; } 64% { opacity: 0.1; } 66% { opacity: 0.85; } 70%, 100% { opacity: 0; } }
-/* CANDLELIGHT (uncommon): warm amber, a candle's flicker in it */
-.vg-candle { color: #fff1d8 !important; text-shadow: 0 0 5px rgba(255, 180, 80, 0.85), 0 0 12px rgba(255, 140, 40, 0.45), 0 1px 2px rgba(0, 0, 0, 0.75) !important; }
-.vg-candle::after { color: #fff6e4; text-shadow: 0 0 7px rgba(255, 200, 100, 0.95), 0 0 18px rgba(255, 150, 50, 0.6); animation: vg-flame 1.5s steps(1) infinite; }
-@keyframes vg-flame { 0% { opacity: 0.55; } 14% { opacity: 0.25; } 27% { opacity: 0.7; } 43% { opacity: 0.35; } 58% { opacity: 0.6; } 72% { opacity: 0.2; } 86% { opacity: 0.5; } }
+@keyframes vg-buzz { 0%, 21% { opacity: 0; } 22% { opacity: 0.8; } 24%, 61% { opacity: 0; } 62% { opacity: 1; } 64% { opacity: 0.1; } 66% { opacity: 0.95; } 70%, 100% { opacity: 0; } }   /* (CITY C: + an early blink — it moves at 390) */
+/* CANDLELIGHT (uncommon): warm amber, a candle's flicker in it — CITY C: the FLICKER lives in the warm HALO. The letters keep a faint halo of
+   their own (always ≥ 4.5 : 1 — the copy is the same light colour); the COPY carries a strong amber glow and only its opacity moves (the
+   compositor): a long steady burn, two quick gutters, a flare — an uneven candle, never a strobe (no step under ~120 ms) */
+.vg-candle { color: #fff1d8 !important; text-shadow: 0 0 3px rgba(255, 176, 76, 0.55), 0 1px 2px rgba(0, 0, 0, 0.8) !important; }
+.vg-candle::after { color: #fff4df; text-shadow: 0 0 5px rgba(255, 206, 110, 1), 0 0 13px rgba(255, 160, 50, 0.95), 0 0 26px rgba(255, 120, 30, 0.8), 0 0 40px rgba(255, 96, 20, 0.5); animation: vg-flame 4.6s ease-in-out infinite; }
+@keyframes vg-flame { 0% { opacity: 0.5; } 18% { opacity: 0.62; } 34% { opacity: 0.48; } 46% { opacity: 0.58; } 50% { opacity: 0.06; } 53.5% { opacity: 0.55; } 57% { opacity: 0.04; } 61% { opacity: 0.6; } 70% { opacity: 1; } 76% { opacity: 0.82; } 88% { opacity: 0.56; } 100% { opacity: 0.5; } }
 /* FROST (uncommon): icy white letters; frost crystals CREEPING onto their top edge, one after another */
 .vg-frost { color: #f2fbff !important; text-shadow: 0 0 4px rgba(170, 230, 255, 0.95), 0 0 10px rgba(90, 180, 255, 0.5), 0 1px 2px rgba(0, 0, 0, 0.75) !important; }
-.vg-xtal { width: 0.44em; height: 0.44em; margin-left: -0.22em; transform-origin: 50% 100%; top: -0.36em;
+.vg-xtal { width: 0.56em; height: 0.56em; margin-left: -0.28em;   /* (CITY C: bigger — they read at 390) */ transform-origin: 50% 100%; top: -0.36em;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg stroke='%23eafaff' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M10 1v18M2 5.5l16 9M2 14.5l16-9M10 4l-2.4-2M10 4l2.4-2M10 16l-2.4 2M10 16l2.4 2'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
   animation: vg-xtal 5.2s ease-out infinite; }
 .vg-xtal0 { left: calc(var(--w) * 0.1); animation-delay: 0s; } .vg-xtal1 { left: calc(var(--w) * 0.38); animation-delay: 1.3s; }
