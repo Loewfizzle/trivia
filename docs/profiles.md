@@ -521,6 +521,14 @@ A second way to bring your card to a device, beside the restore key (which stays
   their card private." (never says a block); /api down → the same from what the screen had. Your own name → YOUR CARD. The room's MAKE HOST + CREW
   rows ride under it. Proof: `e2e-profiles` 8b. **PD-1 GROUP 0: its backdrop is OPAQUE** (`css/player.css` — the list behind no longer shows through).
 
+## CITY E — THE BOARD's NEW LOOK (Nov 15 2026 — docs/harbor/passes/city-e.md; the owner: no pills, no gold buttons)
+- **THE NEON TABS** (`js/ui/neon-tabs.js`, css/components.css): the games, RECORDS · CAREER, THIS WEEK · ALL TIME and a tab's boards = neon-underline
+  tabs (built once, set in place — `wk-board-taps.mjs`); the SAME builder as the STATS sheet + /admin's stats. No pill, no gold anywhere on THE BOARD
+  (PLAY NOW / SHOW ALL / TRY AGAIN = THE NEON TUBE); YOU = a glowing left edge (static) + the word in neon; ••• = a bare icon (44 × 44).
+- **THE BACKGROUND** = `assets/board-sky.webp` — the REAL night harbor skyline baked from the city (`shots.mjs --scenes board-sky --crop boardsky
+  --webp 72`; no people, no legendary, no holiday), darkened + faded out ABOVE the tabs (labels ≥ 5.3 : 1); a wide screen = a column-width skyline,
+  its sides faded (css/board.css `.bd-bg-sky`). Re-bake it after a skyline change with the same command.
+
 ## THE HOLD'EM BOARD (HOLD'EM IN THE CITY, Nov 11 2026 — docs/harbor/passes/holdem-city.md)
 - `holdem-tw` (`core/boards.js` — `GAME_BOARDS.holdem`, a career board with `tie: 'ko'`): **TOURNAMENT WINS** (pstats `g/gw.holdem.tw`), **KNOCKOUTS** the
   tie-break (`ko`), then the EARLIER to reach it (`ra` — the moment the standing last moved, `progress.js#matchStep` from a row's `reach`). ONE sort value

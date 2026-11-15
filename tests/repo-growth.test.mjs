@@ -28,6 +28,6 @@ test('a backup file / folder / token stays out of git (the ignore rule) and none
   const probe = ['x/profiles.json.gz', 'NeonBackups/d20261115/index.json', 'neon-backup-2026-11-15/profiles.json.gz', 'backups/a.json', 'backup-token.txt'];
   const out = execSync(`git check-ignore ${probe.join(' ')}`, { encoding: 'utf8' });
   assert.equal(out.trim().split('\n').length, probe.length, out);
-  const tracked = execSync('git ls-files', { encoding: 'utf8' }).split('\n').filter(f => /\.json\.gz$|(^|\/)NeonBackups\/|(^|\/)neon-backup|backup-token/i.test(f));
+  const tracked = execSync('git ls-files', { encoding: 'utf8' }).split('\n').filter(f => /\.json\.gz$|(^|\/)NeonBackups\/|(^|\/)neon-backup[^/]*\/|backup-token/i.test(f));   // (a backup FOLDER — scripts/backup/neon-backups-*.md|yml are the private repo's sources, no data)
   assert.deepEqual(tracked, [], 'no backup file is tracked');
 });

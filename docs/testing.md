@@ -721,6 +721,16 @@ load problem, not a flake to patch.
   closed, the same tap opens the game's card). e2e-daily needs **`DAILY_TEST=1 node scripts/serve.mjs <port> --emu`** (its fake third
   daily) — a plain `--emu` server ends at "the DAILY button".
 
+## CITY E (Nov 15 2026 — docs/harbor/passes/city-e.md)
+- `node --test share-card.test.mjs` (tests/integration, the emulators) — THE TAPPABLE SHARE CARD: refused (no finish · an unfinished second daily ·
+  wrong size · not a PNG · too big · a closed day), accepted + the page + the picture's edge cache, a re-share replaces, /admin list + delete, the sweep.
+- Run `share-card.test.mjs` and `backup.test.mjs` ONE AT A TIME (`node --test a b` runs files side by side — the backup test wipes the durable nodes).
+- `node --test backup.test.mjs` (tests/integration, the emulators — NEVER THE LIVE SITE) — THE NIGHTLY BACKUP: the door (404 / 401), export → wipe →
+  restore = identical, a split part, THE REAL SIZE (`SEED=<players>`, default 4000). Unit: `tests/backup.test.mjs` (THE CLASSIFICATION RULE).
+- `wk-press.mjs` + SHARE TODAY (the link, ONE share() inside the lift) — needs `DAILY_TEST=1 node scripts/serve.mjs --emu` (the DAILY screen's cases
+  fail on a server without it: the dailies' switch is off on fresh emulators).
+- `shots.mjs --scenes board-sky --crop boardsky --webp 72` — THE BOARD's background bake; `--webp q` = any crop as a WebP still.
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

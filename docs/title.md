@@ -824,6 +824,13 @@ number pill; the streak lives on YOU, the member card, the round-end line + the 
 owner's CREW row); the title is the stage of THE GIFT's reveal (6 s after it is up — profile/gift-reveal.js); the page's music fades after 5 h idle
 (audio/idle.js); the link-preview image is now the Harbor at night under NEON (assets/og.jpg — og.png is gone — `shots.mjs --sizes og`).
 
+## THE NEON TABS (CITY E, Nov 15 2026)
+ONE builder for a tab row that isn't a page nav: `neonTabs([{ v, l, id? }], { onPick, value, cls, btnCls, scroll, even, tag })` (`js/ui/neon-tabs.js`)
+→ `{ el, set(v, off), btns }`. The words on the glass, the chosen one pink (#ff8fe0) over a glowing 2-pt line (static), a hairline under the row,
+44-pt taps, every button `data-press`; built ONCE, `set()` flips classes / aria / disabled in place (THE TAP WATCH). `.is-even` = shared width
+(THE BOARD), `.is-scroll` = one sideways row. Users: THE BOARD (games · RECORDS / CAREER · THIS WEEK / ALL TIME · a tab's boards), the STATS sheet
++ /admin's stats (`js/admin/stats-view.js`). NO PILLS: it replaced the board's pills and /admin's gold pill tabs.
+
 ## FR7 FIXES B — UMBRELLAS IN THE RAIN (Nov 12)
 The share carrying something grows with the rain (`folk.js#rainGear`): none under 0.12, light drizzle (0.22) ≈ 1 in 3 umbrellas, real rain (≥ 0.3)
 ≈ 3 in 4 with the same draws as before; newspapers + collars up fill in (the collar on its own seeded stream). A walker's gear is decided by the rain

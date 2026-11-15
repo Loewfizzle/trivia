@@ -450,6 +450,10 @@ that pass — the art / words changed, `LAB_V` bumped, its dated `LAB_CHANGES` l
 the item then shows under CHANGED until the owner re-marks it. A FIX the prompt names as a stray tap is left alone (said in the summary); a CUT
 is listed in the summary, never deleted by the pass. A FIX whose note renames the item changes the name in `api/_lib/lab-text.js` (server-only
 — ITEM NAMES ONLY TO OWNERS), never the id.
+CITY E built the first two: **MOSTARAC** (#206/#199, was ZA DOMOVINU — the chequered flag → the Stari Most, `scripts/build-card-pass-art.py#stari_most`,
+`ONLY=zadomovinu,zadomovinu-strip`; its own strip `zadomovinu-strip.webp`) + **THE HORSESHOE** (#208 — a U: `emblem-art.js#SHOE`). **THE TEXT GLASS HUGS
+ITS WORDS (CITY E):** a full card's rank line and its MEMBER rows (`.vl-fc-rows`) each wear their own glass, trimmed to their words — never one panel
+over the space beside a short rank (vault.css THE CARD TEXT STANDARD; `full.js`). `fullcard-preview.html &emb=<emblem>` shows an emblem on a card.
 Preview: `vault-preview.html?marks=old` (every item approved at v1 + INFERNO's FIX — what he meets after this pass) · `&marks=done` (all caught
 up) · `&filter=` · `&face=full` · `&fd=1` (every sample member a FOUNDER).
 

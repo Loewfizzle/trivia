@@ -636,6 +636,23 @@ counts like any finish (the streak, the XP, the points of the score it could pro
 - **Proof:** `tests/share-rhythm.test.mjs` · `tests/integration/share-same.html` (59 rows; the copies in `_old/` re-taken on purpose) ·
   `e2e-daily` (the file ready before any tap, the share 0.3 ms after it, a double tap = one share, the sheet).
 
+## THE TAPPABLE SHARE CARD (CITY E, Nov 15 2026 — docs/harbor/passes/city-e.md)
+SHARE TODAY sends a **LINK** (+ the same line) whose link-preview picture IS the day's card — tapping the preview opens the site's DAILY screen.
+- **THE PHONE** (`js/daily/share.js#prepShare` — THE CARD IS BUILT BEFORE THE TAP unchanged): `make()` may return `upload(png)` → the half-size PNG
+  (`halfPng` — exactly **540 × 675**: the full 1080 × 1350 card is 365 KB – 1 MB, over the cap; the half 79 – 246 KB) is sent while the screen opens
+  (`js/daily/share-today.js` → `contract.js#dailyShareCard`); `sendReady` then shares `{ text, url }` (one `navigator.share`, inside the tap); no
+  link (the upload failed / refused) → the image + line as before. `shareAddress` + THE ONE RULE untouched.
+- **THE SERVER** (`api/_lib/share-card.js`, from `api/daily.js` — no new function, no rewrite, THE WRONG DOOR holds): `POST { action: 'shareCard',
+  day, games, png }` — a JUDGED finish (`dly/{g}/{day}/r/{pid}`) of EVERY named daily that day, a real PNG (magic + IHDR) at exactly 540 × 675,
+  ≤ 400 KB → a server-made 12-char code; ONE card a player a day (a re-share replaces it). Stored server-only: `shr/{code}` = { p, d, g, n, at, img }
+  · `shrx/{day}/{code}` = pid (the sweep's index) · `shrp/{pid}/{day}` = code. `GET ?s=<code>` = the preview page (og:title `<NAME> · <DAILY> ·
+  <day>` — the public name, ONE daily's name or THE DAILIES, "Nov 15"; og:image `?si=`; summary_large_image; → `/?daily=1`); `GET ?si=<code>` = the PNG,
+  `s-maxage` 7 days + immutable; an unknown / expired code → `/` (the picture → `/assets/og.jpg`). THE DAY'S CLOSE sweeps cards past 7 days
+  (`sweepShares`, once a day per warm function — no idle poll). /admin → THE DAILIES → SHARE CARDS (list + delete one).
+- **`/?daily=1`** (`js/app.js`): the DAILY screen opens once the city is up (never in a room); the flag dropped from the address at once.
+- **Cost ≈ 3 requests a share** (the upload, the page, the picture — repeated preview fetches are edge hits). Tests: `tests/integration/share-card.test.mjs`
+  + `wk-press.mjs` (SHARE TODAY = ONE share() with the link inside the touch's lift).
+
 ## EVERYONE ON SCORES (DFIX5, Nov 14 2026 — the owner: "show everyone playing the dailies, friends or not"; docs/games/passes/dfix5.md)
 - **SCORES opens on EVERYONE.** Each daily's panel ("EVERYONE · TODAY") lists the day's top COUNTING finishers as slim cards (ui/strip-board.js — the
   one strip system): the rank LEFT, the card, the result under it at its right end (COAST CLEAR's spots as drawn searchlights), YOU = the lit frame,

@@ -477,6 +477,7 @@ tests/integration/  kit/harness.mjs e2e-*.mjs harbor-e2e/ (the Harbor suite: kit
 tests/fixtures/finals.mjs                                finished matches of every game (profile/board tests)
 ```
 
+- **CITY E (server only — the rules' default deny):** `shr/{code}` = `{ p, d, g, n, at, img }` (THE TAPPABLE SHARE CARD's picture, 7 days) · `shrx/{day}/{code}` = pid · `shrp/{pid}/{day}` = code (docs/progression.md) · `progress/backup/{gh|pc}` = `{ at, bytes, parts }` (THE NIGHTLY BACKUP's pickups — docs/backup.md).
 - **CITY C (server only — the rules' default deny):** `flink/{code}` = `{ p, at }` (THE ADD-ME LINK) + `pfr/{pid}/lk` (its code) · `progress/statsSnap`
   = `{ v, at, data }` (STATS' one snapshot) · `radio/spotted/{day}` = n (legendaries spotted a day, 8 kept) · `progress/dailies.onAt` (the switch's
   OFF → ON flip) · `progress/founder` now `{ open, at, by }` both ways.

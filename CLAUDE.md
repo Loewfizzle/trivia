@@ -25,6 +25,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 | `docs/harbor/decisions.md` | the owner's CURRENT City 2.0 decisions — **read first in a Harbor pass**; Step 0 updates it (`plan.md` = the dated archive) |
 | `docs/progression.md` | PROGRESSION (levels, the streak, items, achievements, THE ONE DAY LINE), the daily contract + THE DAILY MODULE, SIGHTINGS |
 | `docs/vault.md` | THE VAULT: the cards' art, THE CARD LAB (`docs/vault-lab-marks.md` = the owner's marks, read FIRST), `js/fx/`, emblems, gems |
+| `docs/backup.md` | **THE NIGHTLY BACKUP** — the export, the two copies, the restore, a leaked token |
 | `docs/launch.md` | **THE LAUNCH** (THE RESET MORNING, FOUNDING MEMBER) + **THE PRIVATE FLIP** — the owner's steps; the edge cache |
 | `docs/profiles.md` | profiles, keys, FRIENDS, passkeys, `/api`, result reporting, THE BOARD, `/board`, `/admin`, the Vercel setup |
 | `docs/chat.md` · `docs/content.md` | room chat · adding questions / puzzles / words to any bank |
@@ -115,6 +116,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE STALE-MODULE RULE (FR7 FIXES C2): a LAZY chunk never imports a boot-graph module for a NEW export — it reads a hub that module registers (NOW PLAYING → `globalThis.__nsNowPlaying`); a face that fails to load says TAP TO RETRY + reports it → docs/audio.md.
 - A SCREEN ON TOP OF THE CITY OWNS THE TOUCH: the city answers a touch only through `title-taps.js#covered` (`ui/layers.js#cityCovered` — a layer open · the city held · a touch begun off the city: `touchInCity` = the root, its ancestors, the scene's wrap); never a per-screen class list → docs/title.md.
 - THE TAP WATCH (`js/ui/tapwatch.js`, always on): never re-render a control under a finger; every `:hover` behind `@media (hover: hover)` → docs/title.md (moved).
+- THE NEON TABS (CITY E): every tab row on THE BOARD + STATS / /admin's stats through ONE builder (`ui/neon-tabs.js` — neon-underline, built once, set in place) → docs/title.md.
 - EVERY TAP ACTS (CITY A): a control acts on its own press + lift — `data-press` (+ every `.btn-block`, every `.btn` in `[data-press-all]`); a control needing Safari's own gesture (share, passkey, clipboard, a submit) = `data-gesture` — it acts INSIDE the touch's lift, never rescued (CITY D) → docs/title.md.
 - COLOUR-BLIND: right / close = `--good` / `--close` only, NEVER by colour alone (a shape / mark too); `body[data-cb]` → docs/title.md (moved).
 - EVERYONE TIED = a DRAW for every game (`core/night.js#nightPoints`); every corner button's tap area 44 × 44 (harbor `tapfit`).
@@ -157,6 +159,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   SHARE TODAY section: the NAME in its result's colour (green made · red failed · white) · ONE big TIME · ONE grey stat line · the art strip,
   through the kit's `paintName` / `paintBig` / `paintStat` — never a win word; `tests/share-rhythm.test.mjs`); tracked lettering only through
   `spacedText`; THE CARD IS BUILT BEFORE THE TAP (`prepShare` — never a share drawn at the tap, never a download) → docs/progression.md.
+- THE TAPPABLE SHARE CARD (CITY E): SHARE TODAY shares a LINK whose preview IS the day's card (540 × 675, uploaded at prepare — `api/_lib/share-card.js` from api/daily.js; one a player a day, 7 days) → docs/progression.md.
 - EVERYONE ON SCORES: the day's top = ONE node a daily a day (`dly/{g}/{day}/t` — one transaction per COUNTING finish, `api/_lib/every.js` + pure `core/every.js`), never a scan; public faces only (board ids, never a pid) → docs/progression.md.
 - THE DROP: the phone PLAYS, the server REPLAYS (ONE pure engine — `prism/drop.js` + `drop-judge.js`); a log upload never re-sends the log (chunks beside a small record); a pause never waits on its chunk, a refused finish is scored at its last provable point (PFIX-3) → docs/prism.md#the-drop.
 
@@ -175,6 +178,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   summary's FIRST line says RE-PUBLISH + how; a feature on a new rule keeps a fallback that works on the old one.
 - THE EDGE CACHE is live (one copy per deploy); THE FROZEN SONGS OUT OF DEPLOYS (`.vercelignore`); pass screenshots stay out of git (`tests/repo-growth.test.mjs`).
 - ONE DEPLOY AT A TIME: a phone never runs two deploys' code — `sw.js` pins every page to its build (lazy chunks too; gone → ONE reload, only at a RETURN — never mid-tap, mid-match or with a pop-up open — logged to /admin) → docs/harbor.md#one-deploy-at-a-time.
+- THE NIGHTLY BACKUP (CITY E): every top-level node is DURABLE, LIVE or SECRET (`api/_lib/backup.js` — `tests/backup.test.mjs`); never a backup file / the token in this repo → docs/backup.md.
 - THE CARRY (CITY A): `node scripts/build-file-hashes.mjs` after ANY change under js/ css/ assets/ data/ (`tests/file-hashes.test.mjs`) — a deploy downloads only the changed files; /audio kept by version → docs/harbor.md.
 
 ## Working efficiently (what cost the most in past sessions)
