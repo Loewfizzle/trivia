@@ -119,6 +119,27 @@ try {
         ok(r && s1.pressed - s0.pressed === 1 && s1.rescues === s0.rescues, `${tag} CUSTOMIZE YOUR CARD moved 6 px under a still finger (held 113 ms): it ACTS (${r ? 'opened' : 'NEVER opened'}; rescues +${s1.rescues - s0.rescues})`);
         await p.keyboard.press('Escape'); await waitFor("!document.querySelector('.vl-dress')", 4000); await sleep(400);
       }
+      // ---- CITY B's add-on (Nov 15 1:16 am — a LOST TAP on the profile's BACK: a FRIENDS update re-built the box, the badge + the card slot
+      // while the finger was down): BACK pressed, a friends update lands mid-press (friends.js#setBadge → every subscriber), the lift →
+      // BACK acts ONCE, nothing under the finger re-built (0 mutations in the friends box, its count, the card slot, the YOU tab between
+      // the touch + the lift), 0 rescues
+      if (noClick && await waitFor("!!document.querySelector('.pf-screen .pf-back')", 8000)) {
+        const s0 = await tw();
+        const r = await p.evaluate(async () => {
+          const F = await import('/js/profile/friends.js');
+          const b = document.querySelector('.pf-screen .pf-back'), q = b.getBoundingClientRect(), x = q.left + q.width / 2, y = q.top + q.height / 2;
+          let muts = 0; const mo = new MutationObserver(l => { muts += l.length; });
+          for (const e of document.querySelectorAll('.fr-body, .fr-count, .pf-card-slot, .nd-tab')) mo.observe(e, { childList: true, subtree: true, characterData: true });
+          const ev = t => b.dispatchEvent(new PointerEvent(t, { bubbles: true, cancelable: true, composed: true, pointerId: 93, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y }));
+          ev('pointerdown'); await new Promise(r2 => setTimeout(r2, 40));
+          F.setBadge(F.pendingBadge() + 3); await new Promise(r2 => setTimeout(r2, 73));
+          const under = muts; mo.disconnect(); ev('pointerup');
+          await new Promise(r2 => setTimeout(r2, 600));
+          return { under, view: window.__arcade.state.view };
+        });
+        const s1 = await tw();
+        ok(r.view !== 'profile' && r.under === 0 && s1.pressed - s0.pressed === 1 && s1.rescues === s0.rescues, `${tag} the profile's BACK with a FRIENDS update mid-press: it ACTS once (${r.view}), ${r.under} re-renders under the finger, rescues +${s1.rescues - s0.rescues}`);
+      }
     } else ok(false, `${tag} the profile's CUSTOMIZE YOUR CARD on screen (${await p.evaluate("(() => { const o = document.querySelector('.pf-screen'); return o ? [...o.querySelectorAll('.btn')].map(b => b.className + ' ' + b.textContent.trim().slice(0, 20)).join(' | ') + ' :: ' + o.textContent.replace(/\s+/g, ' ').slice(0, 160) : 'no .pf-screen; view ' + window.__arcade.state.view; })()")})`);
     await home();
     // ---- THE DAILY SCREEN: SCORES → ALL TIME ↔ TODAY, the FRIENDS box, the TODAY tab, BACK

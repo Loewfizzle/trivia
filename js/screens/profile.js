@@ -29,6 +29,7 @@ import { openPfSheet, closeAllPfSheets } from '../profile/sheets.js';
 import { friendsSection, frSheet } from '../profile/friends-ui.js';
 import { saveToPasswordsForm, keyFields, keyForm } from '../profile/keychain.js';
 import { lazyImport } from '../ui/lazy-import.js';
+import { afterTap } from '../ui/tapwatch.js';
 
 const HL = { gridlock: [['sunk', 'FLEETS SUNK'], ['w_classic', 'CLASSIC WINS'], ['w_salvo', 'SALVO WINS'], ['w_royale', 'ROYALE WINS'], ['w_arcade', 'ARCADE WINS']], agent: [['esc', 'ESCAPES'], ['spot', 'AGENTS CAUGHT']], signal: [['el', 'ELIMINATIONS']], bluff: [['fool', 'PLAYERS FOOLED']], prism: [['ko', 'KNOCKOUTS']] };
 const num = n => Math.round(n || 0).toLocaleString('en-US');
@@ -300,7 +301,9 @@ export function createView({ onBack = null, overlay = false } = {}) {
   // the hero is painted from THIS device's saved profile at once — the equipped card, or (a full card still loading) a neutral BLANK card
   // shape — never another card; the server's answer repaints only if it changed something (the same card stays mounted, no second flash)
   let fullMounted = null, paintN = 0, heroSig = '';
-  function paintHero(pub, xp, st, spotted) {
+  // (CITY B's add-on: the card slot is never re-built under a finger — the server's answer waits for the lift)
+  function paintHero(pub, xp, st, spotted) { afterTap(() => paintHeroNow(pub, xp, st, spotted)); }
+  function paintHeroNow(pub, xp, st, spotted) {
     const n = ++paintN, p = pub || {}, cd = p.cd, local = loadProfile() || {};
     const gilded = () => {
       if (fullMounted) { fullMounted.destroy(); fullMounted = null; }

@@ -39,7 +39,8 @@ export const PRESS_MS = 600, PRESS_SLOP = 10, TOOK_SWALLOW_MS = 800, SETTLE_MS =
 // press + lift ALSO on every full-width tube (.btn.btn-block — a layout shift nudges those) and every .btn inside a screen that says so
 // (`data-press-all` — the profile screen), with no attribute on each. NOT on a control that needs Safari's OWN gesture — a share sheet, the
 // clipboard, a passkey, a notification prompt, a form's submit (the password keychain): `data-gesture` (or data-act copy / share) keeps its click.
-export const PRESS_IMPLICIT = '.btn.btn-block, [data-press-all] .btn';
+// (CITY B's add-on — a LOST TAP on the profile's BACK: + every icon button + the two corner buttons — ☰ and the music note)
+export const PRESS_IMPLICIT = '.btn.btn-block, [data-press-all] .btn, .icon-btn, .menu-btn, .music-btn';
 // (+ a control with its OWN pointer-up path — the dock's pressTap — never twice; the implicit rule is off while a GAME runs: a game's buttons
 //  keep their own pointer events — only an explicit data-press acts there)
 export const PRESS_NEVER = '[data-gesture], [data-act="copy"], [data-act="share"], [type="submit"], [data-press-tap], [data-tap-own], [data-tap-own] *';

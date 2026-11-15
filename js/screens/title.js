@@ -49,6 +49,7 @@ import { createTaps } from './title-taps.js';
 import { createNeon } from './title-neon.js';
 import { onScreenWait } from '../ui/onscreen.js';
 import { lazyImport } from '../ui/lazy-import.js';
+import { afterTap } from '../ui/tapwatch.js';
 // CITY 2.0 — THE HARBOR (docs/harbor.md): THE city (CITY 1.0 OUT, Nov 5 — City 1.0 deleted; an old `?city=1` / `?city=2` link lands here).
 // No top-level await (iOS 14 can't parse one — the whole app would die, every game too): app.js holds the title on the boot screen until
 // harborReady settles. A failed load is tried 3 times (LOAD FIX 3), then the boot watchdog's one reload; after that → the title shows THE CITY COULDN'T LOAD + RELOAD
@@ -974,7 +975,9 @@ export function createTitle() {
       }).catch(() => {});
     }, ms);
   }
-  function frBadge(n) {
+  // (CITY B's add-on: the YOU tab's badge never changes under a finger — afterTap)
+  function frBadge(n) { afterTap(() => frBadgeNow(n)); }
+  function frBadgeNow(n) {
     for (const t of [els.youTab, roomUi && roomUi.dock && roomUi.dock.els.youTab]) {
       if (!t) continue;
       let b = t.querySelector(':scope > .fr-badge');

@@ -133,7 +133,8 @@ test('CITY A — the owner\'s list carries data-press: THE BOARD\'s tabs, the ra
 });
 test('CITY A — the add-on (Nov 14 7:56 pm): every .btn-block tube + every .btn on the profile screen act on press + lift; Safari\'s own gestures keep their click', () => {
   const T = rd('js/ui/tapwatch.js');
-  assert.match(T, /export const PRESS_IMPLICIT = '\.btn\.btn-block, \[data-press-all\] \.btn';/);
+  // (CITY B's add-on: + every icon button + the corner buttons — the profile's BACK lost a tap)
+  assert.match(T, /export const PRESS_IMPLICIT = '\.btn\.btn-block, \[data-press-all\] \.btn, \.icon-btn, \.menu-btn, \.music-btn';/);
   for (const k of ['[data-gesture]', '[data-act="copy"]', '[data-act="share"]', '[type="submit"]', '[data-press-tap]', '[data-tap-own]']) assert.ok(T.includes(k), `never on ${k}`);
   assert.match(T, /\(!game && el\.matches\(PRESS_IMPLICIT\)\)/, 'off while a game runs (its own pointer events) — only an explicit data-press there');
   assert.match(rd('js/screens/profile.js'), /el\.classList\.add\('pf-screen'\);[\s\S]{0,400}el\.dataset\.pressAll = '';/, 'the YOU page + the room overlay');
@@ -143,3 +144,16 @@ test('CITY A — the add-on (Nov 14 7:56 pm): every .btn-block tube + every .btn
     ['js/profile/friends-ui.js', /cls: 'fr-share', attrs: \{ 'data-gesture': true \}/], ['js/profile/passkey-ui.js', /cls: 'pk-add', attrs: \{ 'data-gesture': true \}/],
     ['js/profile/passkey-ui.js', /pk-signin\$\{cls \? ` \$\{cls\}` : ''\}`, attrs: \{ 'data-gesture': true \}/]]) assert.match(rd(f), re, f);
 });
+
+// CITY B's add-on (Nov 15 1:16 am): a LOST TAP on the profile's BACK — a friends update re-built the box, the badge + the card slot under the
+// finger. Every icon / corner button acts on press + lift; the friends box, the YOU tab's badge + the hero card wait for the lift (afterTap).
+test('CITY B add-on: the profile BACK + the corner buttons press + lift; the friends box, the badge + the card slot never re-built under a finger', async () => {
+  const { pressControl } = await import('../js/ui/tapwatch.js');
+  const el = cls => ({ matches: sel => sel.split(',').map(x => x.trim()).some(x => x === cls) });
+  for (const c of ['.icon-btn', '.menu-btn', '.music-btn']) { assert.ok(pressControl(el(c)), c); assert.equal(pressControl(el(c), true), null, `${c}: off in a game`); }
+  const R = f => fs.readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
+  assert.match(R('js/profile/friends-ui.js'), /const paint = S => afterTap\(\(\) => paintNow\(S\)\);/);
+  assert.match(R('js/screens/profile.js'), /function paintHero\(pub, xp, st, spotted\) \{ afterTap\(\(\) => paintHeroNow\(pub, xp, st, spotted\)\); \}/);
+  assert.match(R('js/screens/title.js'), /function frBadge\(n\) \{ afterTap\(\(\) => frBadgeNow\(n\)\); \}/);
+});
+

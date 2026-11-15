@@ -98,7 +98,9 @@ export function friendsSection(o = {}) {
     // (DM2 — YOUR TABLE: today's table in short — one line per live daily (your place at the table, or WAITING) + SEE SCORES › (the DAILY
     //  screen's SCORES tab). Nothing at all while no daily is live (THE GO-LIVE SWITCH off / /api down))
     tableCard(), ...(o.extra || []));
-  const paint = S => {
+  // (CITY B's add-on: a friends update never rebuilds the box under a finger — THE TAP WATCH's afterTap holds it until the lift)
+  const paint = S => afterTap(() => paintNow(S));
+  const paintNow = S => {
     if (!S) { count.textContent = ''; body.replaceChildren(h('p.fr-hint', 'Your friends show here when the membership office is open.')); return; }
     count.textContent = S.friends.length ? `${S.friends.length}` : '';
     const kids = [];
