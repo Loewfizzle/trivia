@@ -6759,3 +6759,17 @@ OWNER'S NOTES — NOV 15 (the CITY D prompt)
 - The hotel's vertical sign = PRISM / HOLDEM only (JAY / WALK is too long there).
 - The four named signs (roof A, roof B, the hotel blade, the speakeasy blade's weekly game) show four DIFFERENT games every night.
 ```
+
+## OWNER'S NOTES — NOV 15 (CITY E's Step 0)
+
+```
+OWNER'S NOTES — NOV 15 (the CITY E prompt, from the city chat)
+- THE BOARD: no pills, no gold buttons; neon-underline tabs; YOU = a glowing left edge; ••• = a bare icon; the background = a
+  darkened, faded still of the REAL night harbor skyline baked from the city (not drawn boxes).
+- THE TAPPABLE SHARE CARD: the share sends a link whose link-preview picture IS the day's scorecard.
+- THE NIGHTLY BACKUP: a private GitHub repo (main, off-site) + the mini PC (second copy), 14 days each; never in the public repo;
+  the service account stays in Vercel.
+- THE LAB FEEDS EVERY PASS: each pass exports the owner's marks at its START and builds the open FIX marks.
+- Anything in /admin or the owner's STATS sheet never needs animation: stills are fine.
+- The roof board's rotation stays on the shared clock (HOLD'EM → JAYWALK → THE DROP) — no "first face on load".
+```

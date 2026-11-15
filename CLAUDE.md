@@ -145,6 +145,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE GIFT CARDS: 1-of-1, given ONLY by the owner's `/admin → GIFTS`; the DEV cards the owner's only (`js/core/dev-cards.js`); a MEMBER Nº is server-only.
 - A pass that edits a lab item's art bumps `js/vault/catalog.js#LAB_V` + writes its line in `api/_lib/lab-text.js#LAB_CHANGES`.
 - An unknown path gets THE WRONG DOOR (`404.html` — keep vercel.json free of rewrites).
+- THE LAB FEEDS EVERY PASS: every pass runs scripts/lab-export.mjs <live> at its START and builds the open FIX marks (bump LAB_V + its LAB_CHANGES line) — rebuilt items show under CHANGED for the owner's re-mark → docs/vault.md.
 
 **The dailies** (→ docs/progression.md (moved), docs/password.md, docs/coastclear.md)
 - A daily = its cartridge + ONE row in `config.js#DAILIES` (+ its server half in `api/_lib/dailies.js#SERVER_CARTS`) — PLUG-AND-PLAY, no fixed count.

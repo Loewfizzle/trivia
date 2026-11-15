@@ -443,6 +443,13 @@ mark stores the version it was made at (the server stamps `v` — `cleanMark`); 
 pass that edits an item's art or words bumps its LAB_V + writes its line** — it drops back into NEEDS YOU beside his old mark. (An APPROVE still
 ships the newer art: CHANGED asks for a re-look, it never pulls approved art.) **NEW** = a lab number above the highest this device has seen
 (`localStorage vl:seen`; a first visit marks nothing new). The export (`scripts/lab-export.mjs`) adds each item's version + CHANGED.
+**THE LAB FEEDS EVERY PASS (the owner, Nov 15 — CITY E):** EVERY pass (not only a VAULT pass) starts with
+`node scripts/lab-export.mjs https://www.neonspeakeasy.com` (a GET of the marks — nothing written to the live site) → `docs/vault-lab-marks.md`
+committed with the pass; every OPEN FIX mark (`| FIX |` with a version equal to the item's current one) is built to its note as a group of
+that pass — the art / words changed, `LAB_V` bumped, its dated `LAB_CHANGES` line, the stills rebaked (`build-card-stills.mjs`) + THE STRIP MATCH;
+the item then shows under CHANGED until the owner re-marks it. A FIX the prompt names as a stray tap is left alone (said in the summary); a CUT
+is listed in the summary, never deleted by the pass. A FIX whose note renames the item changes the name in `api/_lib/lab-text.js` (server-only
+— ITEM NAMES ONLY TO OWNERS), never the id.
 Preview: `vault-preview.html?marks=old` (every item approved at v1 + INFERNO's FIX — what he meets after this pass) · `&marks=done` (all caught
 up) · `&filter=` · `&face=full` · `&fd=1` (every sample member a FOUNDER).
 
