@@ -49,7 +49,7 @@ export const skull = {
     c.save(); rrect(c, 0, 0, w, h, rad); c.clip();
     c.drawImage(backdrop(full ? 'sk-full' : 'sk', w, h, dpr, NIGHT), 0, 0, w, h);
     c.drawImage(skylineLayer(full ? 'sk-full' : 'sk', w, h, dpr, { ...ROOFS, y: full ? 0.88 : 0.96, tall: full ? 0.06 : 0.1 }, h, 111, 'all'), 0, 0, w, h);
-    const R = full ? h * 0.14 : h * 0.38, cx = (full ? w * 0.5 : w * 0.69) + (still ? 0 : wob(tt * 0.12, 2) * R * 0.25), top = (full ? h * 0.115 : -h * 0.06) + (still ? 0 : wob(tt * 0.3, 4) * R * 0.06);
+    const R = full ? h * 0.14 : h * 0.38, cx = (full ? w * 0.73 : w * 0.69)   /* (CITY C — the standard layout: the hero right of the plate) */ + (still ? 0 : wob(tt * 0.12, 2) * R * 0.25), top = (full ? h * 0.115 : -h * 0.06) + (still ? 0 : wob(tt * 0.3, 4) * R * 0.06);
     const sway = still ? 0 : wob(tt * 0.5, 7) * 0.025, b = burnAt(tt, still);
     if (B && fxDiag.sprites) {
       const A = art(B, 'skull', R, B.BALLOON_SCHEMES.skull[0], { side: -1, day: 0, gold: 0 }, dpr, 'skull');
@@ -105,7 +105,7 @@ export const btc = {
       }
       c.globalAlpha = 1;
       // THE BLACK ₿ (farther, an orange ₿ glowing)
-      const R2 = full ? h * 0.085 : h * 0.24, x2 = (full ? w * 0.22 : w * 0.53) + (still ? 0 : wob(tt * 0.15, 3) * R2 * 0.2), y2 = (full ? h * 0.17 : h * 0.04) + (still ? 0 : wob(tt * 0.3, 5) * R2 * 0.08);
+      const R2 = full ? h * 0.085 : h * 0.24, x2 = (full ? w * 0.9 : w * 0.53) + (still ? 0 : wob(tt * 0.15, 3) * R2 * 0.2), y2 = (full ? h * 0.42 : h * 0.04) + (still ? 0 : wob(tt * 0.3, 5) * R2 * 0.08);
       const A2 = art(B, 'btc-black', R2, null, light, dpr, 'bitcoin');
       c.drawImage(A2.cv, x2 - A2.w / 2, y2, A2.w, A2.h);
       // THE ORANGE ₿ (near — the hero)

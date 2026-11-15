@@ -73,7 +73,7 @@ export default {
     // THE SHIP SAILS: materialises, crosses on the swell with its wake, dissolves, comes again (a 26-s crossing)
     const CROSS = 26, cu = still ? 0.5 : (tt % CROSS) / CROSS;
     const shipH = full ? h * 0.4 : h * 0.78, k = shipH / (BU1 - BU0);
-    const xa = full ? w * 0.4 : w * 0.5, xb = full ? w * 0.84 : w * 0.82, cx = xa + (xb - xa) * cu;
+    const xa = full ? w * 0.62 : w * 0.5, xb = full ? w * 0.9 : w * 0.82   /* (CITY C — the standard layout: the hero right of the plate) */, cx = xa + (xb - xa) * cu;
     const step = Math.floor(tt * 6), hsh = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
     const fadeIn = Math.min(1, cu / 0.09), fadeOut = Math.min(1, (1 - cu) / 0.1);
     const appear = still ? 1 : Math.min(fadeIn, fadeOut) * ((fadeIn < 1 || fadeOut < 1) && hsh(step) < 0.4 ? 0.35 + 0.5 * hsh(step + 7) : 1);

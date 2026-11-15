@@ -56,9 +56,9 @@ export default {
     scrollTile(c, cloudDeck(`f2f:${full}`, w, fh, dpr, DECK_FAR), still ? 0 : tt * (full ? 40 : 30), 0, dy, w, fh);
     scrollTile(c, cloudDeck(`f2n:${full}`, w, nh, dpr, DECK_NEAR), still ? 0 : tt * (full ? 110 : 80), 0, dy + fh * 0.3, w, nh);
     if (img && m && fxDiag.sprites) {
-      const span = full ? w * 0.26 : w * 0.16, rot = full ? 0.02 : 0.1, fa = Math.atan2(m.nose[1] - m.tail[1], m.nose[0] - m.tail[0]) + rot, back = fa + Math.PI;
+      const span = full ? w * 0.2 : w * 0.16, rot = full ? 0.02 : 0.1, fa = Math.atan2(m.nose[1] - m.tail[1], m.nose[0] - m.tail[0]) + rot, back = fa + Math.PI;
       const dx = Math.cos(fa), dy2 = Math.sin(fa), nx = dy2, ny = -dx;                          // (the flight, + its left side on screen)
-      const lead = full ? [w * 0.68, h * 0.235] : [w * 0.76, h * 0.34];
+      const lead = full ? [w * 0.8, h * 0.4] : [w * 0.76, h * 0.34];   /* (CITY C — the standard layout: the hero right of the plate) */
       // the vic: two wingmen behind + to each side (the far one smaller + higher, the near one bigger + lower)
       const JETS = [
         { p: [lead[0] - span * 0.9 * dx + span * 0.24 * nx, lead[1] - span * 0.9 * dy2 + span * 0.24 * ny], k: 0.86, i: 1 },

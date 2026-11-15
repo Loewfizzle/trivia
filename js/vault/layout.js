@@ -26,7 +26,14 @@ import { PD_SPECS, pdMap } from '../fx/pd-specs.js';
 /** any other card's full-card hero, as fractions of the card [x, y, w, h] (none declared yet — a NEW focal full card adds its row) */
 export const FULL_HERO = Object.freeze({});
 /** the card's hero on a full card of w × h → [x, y, w, h] in px (or null) */
+// CITY C — THE SIGHTING CARDS IN THE STANDARD LAYOUT: the code-drawn sightings' heroes on a FULL card (fractions [x, y, w, h]) — moved right of
+// the plate (fx/ufo.js, sg-kit.js#stage, sg-tr3b / -f22 / -blackbird / -ghost / -balloons); the plate keeps off them like any hero
+export const SIGHT_HERO = Object.freeze({
+  'card-sg-ufo': [0.6, 0.1, 0.32, 0.6], 'card-sg-tr3b': [0.57, 0.24, 0.37, 0.24], 'card-sg-f22': [0.56, 0.24, 0.4, 0.32],
+  'card-sg-blackbird': [0.57, 0.32, 0.4, 0.2], 'card-sg-ghostship': [0.58, 0.12, 0.36, 0.62], 'card-sg-skull': [0.62, 0.06, 0.34, 0.6],
+});
 export function heroBox(card, w, h) {
+  if (SIGHT_HERO[card]) { const [x, y, bw, bh] = SIGHT_HERO[card]; return [x * w, y * h, bw * w, bh * h]; }
   const S = GIFT_SPECS[card];
   if (S && (S.heroFull || S.hero)) { const M = artMap(w, h, S.full || [50, 50]), [x, y, bw, bh] = S.heroFull || S.hero; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
   const O = OC_SPECS[card];   // (OVERCLOCK CARDS — their 1280 × 720 art)

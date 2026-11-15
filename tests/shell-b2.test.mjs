@@ -18,7 +18,7 @@ test('THE HERO-SPOT RULE: every declared hero centred middle → middle-right, n
   assert.match(read('js/fx/deco.js'), /const ox = full \? w \* 0\.5 : w \* 0\.62/);
   assert.match(read('js/fx/sg-tr3b.js'), /cx = \(full \? S\.cx : w \* 0\.62\)/);
   assert.match(read('js/fx/prism.js'), /pcx = w \* \(full \? 0\.6 : 0\.63\)/);
-  assert.match(read('js/fx/ufo.js'), /cx = full \? w \* 0\.5 : w \* 0\.66/);
+  assert.match(read('js/fx/ufo.js'), /cx = full \? w \* 0\.72 : w \* 0\.66/);   // (CITY C: the full card's UFO right of the plate — the standard layout)
   assert.match(read('js/fx/marquee.js'), /const x0 = w \* \(full \? 0\.62 : 0\.6\), x1 = w \* \(full \? 0\.88 : 0\.86\)/);
   assert.match(read('js/fx/dev-source.js'), /sign: \[w \* 0\.705 - w \* 0\.125,/);
   // THE SWITCHBOARD's full card: ON AIR up in the band (the owner's B1 look: it sat under a long name's plate) — its BADGE part moved too

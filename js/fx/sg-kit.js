@@ -114,7 +114,7 @@ export function skylineLayer(key, w, h, dpr, S, foot, seed, mode) {
 /** the layout: the subject's box on a strip (right of the name plate, clear of the tier tag) or on a full card (centred high) */
 export function stage(s) {
   const { w, h } = s, full = !!(s.opts && s.opts.full);
-  return full ? { full, w, h, cx: w * 0.5, cy: h * 0.27, u: h * 0.46, span: w * 0.62 } : { full, w, h, cx: w * 0.7, cy: h * 0.42, u: h, span: w * 0.42 };
+  return full ? { full, w, h, cx: w * 0.71, cy: h * 0.36, u: h * 0.4, span: w * 0.42 }   /* (CITY C — the standard layout: the hero right of the plate) */ : { full, w, h, cx: w * 0.7, cy: h * 0.42, u: h, span: w * 0.42 };
 }
 /** a stepped flicker 0..1 (a light failing): mostly on, dropping out in bursts — seeded per i */
 export function failing(t, i, rate = 9) {

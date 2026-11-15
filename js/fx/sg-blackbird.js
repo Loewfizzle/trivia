@@ -50,8 +50,8 @@ export default {
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     if (img && m && fxDiag.sprites) {
       // the jet: its length ~74 % of a full card (~50 % of a strip), banked into a near-level line on a strip
-      const span = full ? w * 0.74 : w * 0.42, k = span / m.w, rot = full ? 0.12 : 0.27;
-      const cx = full ? w * 0.54 : w * 0.72, cy = full ? h * 0.27 : h * 0.44;
+      const span = full ? w * 0.46 : w * 0.42, k = span / m.w, rot = full ? 0.12 : 0.27;
+      const cx = full ? w * 0.72 : w * 0.72, cy = full ? h * 0.42 : h * 0.44;   /* (CITY C — the standard layout: the hero right of the plate) */
       const bx = still ? 0 : wob(tt * 3.1, 2) * 0.6, by = still ? 0 : wob(tt * 2.3, 5) * 0.8 + wob(tt * 0.4, 1) * (full ? 3 : 1.5);
       const fa = Math.atan2(m.nose[1] - m.tail[1], m.nose[0] - m.tail[0]) + rot, back = fa + Math.PI;
       const cs = Math.cos(rot), sn = Math.sin(rot);

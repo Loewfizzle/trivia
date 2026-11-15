@@ -142,7 +142,10 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const cname = nameOf(card) || (typeof who.cardName === 'string' ? who.cardName : '');
   // (a sighting card keeps its own layout — the title + the spot line, the plate at the foot — EXCEPT one rebuilt on premium art, laid out like
   //  every other full card: THE BTC CARD — the owner's approved mock mock-btc-v1: the top line, the plate mid-left, MEMBER SINCE + the name)
-  const sighting = /^card-sg-/.test(card) && !ART_SIGHTINGS.has(card);
+  // (CITY C — THE SIGHTING CARDS IN THE STANDARD LAYOUT: every sighting card is laid out like every other card —
+  //  the top line, the plate (vault/layout.js: off the hero), the gem, the bottom corners: MEMBER SINCE left, the sighting's printed name + its
+  //  spot line right (the BTC CARD's foot) — no special arrangement left (`sighting` stays false; `sgt` = a sighting's foot)
+  const sighting = false, sgt = /^card-sg-/.test(card);
   const name = (who.name || 'MEMBER').toUpperCase();
   const plate = h('div.vl-fc-plate',
     // (THE VAULT 2A: the player's emblem + tube style + name glow — as on their strip)
@@ -168,7 +171,7 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
     // (CITY C: the rank reads like everyone's — no "DEV ·"; MEMBER Nº sits under MEMBER SINCE — a member number stays server-only data, `who.no`)
     h('div.vl-fc-foot', h('span.vl-fc-since', h('em.vl-fc-rank', bandOf(lv).name), h('small', 'MEMBER SINCE'), h('b', sinceOf(who.at)),
       who.no != null && who.no !== '' && card !== 'card-founder' ? [h('small.vl-fc-no', 'MEMBER Nº'), h('b.vl-fc-no', String(who.no))] : null),
-      sighting ? null : ART_SIGHTINGS.has(card) ? h('span.vl-fc-card.vl-fc-sgt', h('b', cname), h('small.vl-fc-spot', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : h('span.vl-fc-card', cname)),
+      sgt ? h('span.vl-fc-card.vl-fc-sgt', h('b', cname), h('small.vl-fc-spot', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : h('span.vl-fc-card', cname)),
     // FOUNDING MEMBER (THE VAULT 2A): the member's REAL number, stamped in gold — a numbered first edition (+ MEMBER SINCE moves in)
     card === 'card-founder' ? h('div.vl-fc-stamp', h('small', 'FOUNDING MEMBER'), h('b', who.no != null ? `№ ${who.no}` : '№ —'), h('em', `SINCE ${sinceOf(who.at)}`)) : null,
     t === 'legendary' ? h('i.vl-fc-brackets', { 'aria-hidden': 'true' }, h('i'), h('i')) : null,
