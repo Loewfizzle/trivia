@@ -119,7 +119,11 @@ export function openDress(data, o = {}) {
   // the tabs + the grid (one surface for the tiles, inside the scrolling list)
   const tabBtns = TABS.map(([k, label]) => h('button.vl-dr-tab', { type: 'button', role: 'tab', dataset: { tab: k }, 'aria-selected': String(k === tab), onclick: () => { if (tab !== k) { tab = k; paintGrid(); } } }, label));
   const note = h('p.vl-dr-note');
-  const grid = h('div.vl-dr-grid', { role: 'tabpanel' }), gridHost = h('div.vl-dr-gridhost', grid);
+  // (FIXES R1 — CUSTOMIZE crashed AGAIN on the owner's iPhone while browsing the EMBLEMS: every emblem tile is a stack of animated composited
+  //  layers — ~50 emblems × 3–6 layers at 3× = hundreds of GPU backing stores. The grid is STILL ART now (.vl-dr-still — no animation, no
+  //  will-change on any tile: emblems, glows, tubes, gems) and an off-screen tile isn't rendered at all (content-visibility); only the PINNED
+  //  strip above moves — THE LIVE LANE's rule)
+  const grid = h('div.vl-dr-grid.vl-dr-still', { role: 'tabpanel' }), gridHost = h('div.vl-dr-gridhost', grid);
   const scroll = h('div.vl-dr-scroll', note, gridHost);
 
   /** one tile: its art (a card's live mini · an emblem · the name in a glow · a tube style on your neon), its name, its tier edge */

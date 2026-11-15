@@ -1859,3 +1859,18 @@ for the effects (the city's beds). /audio is kept BY VERSION in the worker (`na-
   (`tests/audio-hush.test.mjs`). The city's long one-shot takes + the synced song stay scheduled under the zero master (their place on the clock).
 - The proof: `tests/integration/audio-leave.mjs` (Chromium — Playwright's WebKit on Windows has no Web Audio): three settings, the output's peak 0 at
   the suspend, no loop, no element playing.
+## FIXES R1 (Nov 15) — THE SQUEAL IN THE HOME-SCREEN APP + THE REVIEW A7 / A15 — passes/fixes-r1.md
+- A saved home-screen app (standalone) gets iOS's leave / return signals in another order: often NO `blur`, a late or missing `visibilitychange`,
+  and the AudioContext INTERRUPTED as the app goes (and RESUMED by the OS before the page's JS runs again). `engine.js#createContext`'s
+  `onstatechange` now: **'interrupted' = a leave signal** (the master 0 at once, every bed stopped, `pendingFadeIn`; a resume asked only if the page
+  is still on screen `BLUR_BACK_MS` later — never fighting the OS on its way out) · **'running' while the page is NOT on screen** = silenced +
+  suspended at once (the sound comes back only through the return: visible → resume → running → the ramp from 0) · **'running' while HUSHED**
+  (A15 — Chrome / Android's self-starting context) = hushed again.
+- **A7** — `blurBack()` on a context that isn't running (the OS took it during the blur): `pendingFadeIn = true` + a resume — the fade + the beds
+  come with 'running' (it was `resumeBeds()` alone: the master stayed at 0 until the next hide / show).
+- `navigator.audioSession` stays **'playback'** with the music on: an 'ambient' session is what left the graph dead after the background (M4) — not
+  used as a squeal fix.
+- The proof: `tests/audio-standalone.test.mjs` — the REAL engine + a fake DOM / AudioContext through the standalone orders (interrupted first, the
+  OS resuming in the background, a focus-only return, A7, A15): 7 / 7 (6 red on the old engine) + `audio-leave.mjs` (Chromium) unchanged green.
+  **Not provable off a real iPhone:** what Core Audio does with its own output buffer at the switch — the owner's ear in the home-screen app is the
+  check (leave to another app, come back).

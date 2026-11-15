@@ -66,13 +66,15 @@ async function sample(P, label) {
     const cs = await import('/js/ui/canvas-safe.js'), fx = await import('/js/fx/renderer.js');
     const c = cs.canvasMb();
     let px = 0; for (const cv of document.querySelectorAll('canvas')) px += cv.width * cv.height;
-    return { marker: window.__marker, gl: window.__glLive(), glEver: window.__glEver(), canvases: document.querySelectorAll('canvas').length, mp: +(px / 1e6).toFixed(2),
+    // (FIXES R1: the animations running INSIDE a list / grid — CUSTOMIZE's tiles + the trophies must hold none: still art)
+    const gridAnims = document.getAnimations().filter(a => { const t = a.effect && a.effect.target; return t && t.closest && t.closest('.vl-dr-grid, .pg-trs'); }).length;
+    return { marker: window.__marker, gl: window.__glLive(), glEver: window.__glEver(), canvases: document.querySelectorAll('canvas').length, mp: +(px / 1e6).toFixed(2), gridAnims, tab: (document.querySelector('.vl-dr-grid') || {}).dataset?.tab || '', tiles: document.querySelectorAll('.vl-dt').length,
       mb: +(c.mb || 0).toFixed(1), live: fx.fxStats.slots, strips: document.querySelectorAll('.vl-strip').length, fxOn: document.querySelectorAll('.vl-strip.fx-on').length };
   });
   const m = await P.cdp.send('Performance.getMetrics');
   const heap = Math.round((m.metrics.find(x => x.name === 'JSHeapUsedSize') || {}).value / 1048576);
   const row = { label, ...s, heap, browser: browserMb(pid), reloaded: s.marker !== P.marker };
-  console.log(`  · ${label.padEnd(18)} strips ${String(row.strips).padStart(3)} · live fx ${row.live} (painted ${row.fxOn}) · GL ${row.gl} (made ${row.glEver}) · canvases ${row.canvases} = ${row.mp} MP (${row.mb} MB) · heap ${heap} MB · browser ${row.browser ?? '—'} MB${row.reloaded ? ' · RELOADED' : ''}`);
+  console.log(`  · ${label.padEnd(18)} grid anims ${row.gridAnims}${row.tab ? ` (${row.tab}: ${row.tiles} tiles)` : ''} · strips ${String(row.strips).padStart(3)} · live fx ${row.live} (painted ${row.fxOn}) · GL ${row.gl} (made ${row.glEver}) · canvases ${row.canvases} = ${row.mp} MP (${row.mb} MB) · heap ${heap} MB · browser ${row.browser ?? '—'} MB${row.reloaded ? ' · RELOADED' : ''}`);
   return row;
 }
 const click = async (p, sel, re) => {
@@ -120,7 +122,8 @@ if (CASE === 'scores' || CASE === 'all') {
   await P.p.close();
 }
 if (CASE === 'customize' || CASE === 'all') {
-  console.log(`CUSTOMIZE YOUR CARD — 390 × 844 @3, ${CPU}× CPU, every card owned, the grid scrolled ×3`);
+  // (FIXES R1 — CUSTOMIZE crashed again browsing the EMBLEMS: EVERY tab — CARD · EMBLEM · GLOW · TUBE — opened + scrolled end to end, ×3)
+  console.log(`CUSTOMIZE YOUR CARD — 390 × 844 @3, ${CPU}× CPU, every item owned, EVERY tab scrolled end to end ×3`);
   const P = await phone(`${BASE}/tests/integration/profile-preview.html?all=1&dev=1&labmarks=all`);
   await P.p.waitForSelector('.vl-dp-go', { timeout: 30000 });
   await click(P.p, '.vl-dp-go');
@@ -129,10 +132,16 @@ if (CASE === 'customize' || CASE === 'all') {
   console.log(`  (the grid: ${await P.p.evaluate(() => document.querySelectorAll('.vl-dt').length)} cards)`);
   const rows = [await sample(P, 'CUSTOMIZE')];
   for (let i = 1; i <= 3; i++) {
-    await scrollAll(P.p, '.vl-dr-scroll', 300);
-    rows.push(await sample(P, `${i}: the grid scrolled`));
+    for (const [tab, label] of [['card', 'CARD'], ['emblem', 'EMBLEM'], ['glow', 'GLOW'], ['tube', 'TUBE']]) {
+      await click(P.p, `.vl-dr-tab[data-tab="${tab}"]`);
+      await P.p.waitForFunction(t => (document.querySelector('.vl-dr-grid') || {}).dataset?.tab === t, { timeout: 10000 }, tab).catch(() => null);
+      await sleep(400);
+      await scrollAll(P.p, '.vl-dr-scroll', 300);
+      rows.push(await sample(P, `${i}: ${label}`));
+    }
   }
   judge('CUSTOMIZE', rows);
+  ok(rows.every(r => !r.gridAnims), `CUSTOMIZE: no tile animates — still art in every tab (${rows.map(r => r.gridAnims).join(' · ')})`);
   await P.p.close();
 }
 await browser.close();

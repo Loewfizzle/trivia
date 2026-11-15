@@ -49,6 +49,16 @@
 //    stops (holdBed — the neon hum, a game's loop), and the context suspends ~60 ms later (the zeros already on the audio thread). Back on
 //    screen: resume → the master ramps up from 0 + the beds ramp back in. A blur that comes back while the page stayed visible (the share
 //    sheet, a system alert) brings it all back after ~400 ms — and a desktop's blur (another window clicked) is not a leave at all.
+//  - FIXES R1 — THE SQUEAL IN THE HOME-SCREEN APP (the owner: fixed in Safari by CITY D, still heard in the saved home-screen app, leaving
+//    AND coming back). A standalone app gets its leave / return signals in another order — often NO blur, a late (or no) visibilitychange —
+//    and iOS INTERRUPTS the context as the app goes (and may resume it before the page's JS runs again). Now: (1) the context's own
+//    'interrupted' is a LEAVE signal too — the master to 0 at once, the beds stopped, the fade back waits for 'running' (a resume is asked only
+//    if the page is still on screen BLUR_BACK_MS later — never fighting the OS on its way out); (2) a context that turns 'running' while the
+//    page is NOT on screen (the OS gave it back in the background) is silenced + suspended at once — the sound comes back only through the
+//    return (visible → resume → running → the ramp from 0); (3) THE REVIEW A7: a blur's return that finds the context not running asks for it
+//    + leaves the fade pending (it was resumeBeds() alone — the master stayed at 0 until the next hide / show); (4) THE REVIEW A15: running
+//    while hushed → hushed again (NOTHING RUNS). navigator.audioSession stays 'playback' with the music on: an 'ambient' session is what left
+//    the graph dead after the background (M4, above) — not used as a squeal fix.
 //  - THE LOG (audioLog / audioEvents): the last events with times — what the &debug=1 AUDIO block shows (audio/diag.js).
 import { settings, onSettings } from './settings.js';
 
@@ -56,7 +66,7 @@ let ctx = null;
 let musicBus = null;
 let sfxBus = null;
 let master = null;        // THE MASTER (DFIX3 ADD-ON): the one gain every path leaves through — the fade on leaving / the ramp back
-let fadeT = 0, pendingFadeIn = false;
+let fadeT = 0, pendingFadeIn = false, intT = 0;
 const FADE_OUT_S = 0.09, FADE_IN_S = 0.15, SUSPEND_AFTER_MS = 60, BLUR_BACK_MS = 400;
 let unlocked = false;
 let visibleNow = true;
@@ -136,7 +146,22 @@ function createContext() {
   c.onstatechange = () => {
     if (c !== ctx) return;
     audioLog(`ctx → ${c.state}`);
-    if (c.state === 'running') { stuck = false; askedAt = 0; gestureAskAt = 0; if (pendingFadeIn) fadeIn('running again'); resumeListeners.forEach(fn => { try { fn(); } catch (e) { console.warn(e); } }); }
+    if (c.state === 'running') {
+      stuck = false; askedAt = 0; gestureAskAt = 0; clearTimeout(intT); intT = 0;
+      // (FIXES R1: running OFF SCREEN — the OS gave it back while the app is away: never a sound there; the return brings it back from 0)
+      if (!visibleNow || document.visibilityState === 'hidden') { if (master) silence(c); pendingFadeIn = false; c.suspend().catch(() => {}); audioLog('running off screen — silenced + suspended'); return; }
+      // (FIXES R1 — THE REVIEW A15: a context that started itself while hushed — NOTHING RUNS)
+      if (hushed) { hushNow('running while hushed'); return; }
+      if (pendingFadeIn) fadeIn('running again');
+      resumeListeners.forEach(fn => { try { fn(); } catch (e) { console.warn(e); } });
+    } else if (c.state === 'interrupted' && visibleNow && unlocked && !hushed) {
+      // (FIXES R1: the OS interrupting the context IS a leave signal — the home-screen app often gets it before any blur / hidden: silent at
+      //  once + the beds stopped; the fade back waits for 'running'; a resume is asked only if the page is still on screen a moment later)
+      if (master) silence(c);
+      pauseBeds('interrupted'); pendingFadeIn = true;
+      clearTimeout(intT);
+      intT = setTimeout(() => { intT = 0; if (ctx === c && visibleNow && unlocked && !hushed && document.visibilityState === 'visible' && c.state !== 'running') ask('os took it'); }, BLUR_BACK_MS);
+    }
     // the OS took it away while we're on screen (a call, Siri, another app's audio, the route changed): ask for it back
     else if (visibleNow && unlocked && !hushed && document.visibilityState === 'visible') ask('os took it');
   };
@@ -426,7 +451,11 @@ function blurBack() {
   blurT = 0;
   if (!blurred || !visibleNow || document.visibilityState === 'hidden') return;
   blurred = false;
-  if (ctx && master && !hushed && ctx.state === 'running') fadeIn('still on screen after a blur'); else resumeBeds();
+  if (ctx && master && !hushed && ctx.state === 'running') fadeIn('still on screen after a blur');
+  // (FIXES R1 — THE REVIEW A7: the OS took the context meanwhile (interrupted — Siri, a call, a prompt): ask for it back and leave the fade
+  //  PENDING — it runs with 'running' (onstatechange), the beds with it; resumeBeds() alone left the master at 0 for good)
+  else if (ctx && master && !hushed && ctx.state !== 'closed') { pendingFadeIn = true; ask('back after a blur'); }
+  else resumeBeds();
 }
 /** hidden / shown — visibilitychange, pagehide / pageshow (the back-forward cache), freeze / resume (the page frozen in the background) */
 function setVisible(visible, why = '') {
@@ -441,7 +470,7 @@ function setVisible(visible, why = '') {
       pendingFadeIn = true;
       try { if (master) { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(0, ctx.currentTime); } } catch { /* closed */ }
       if (ctx.state === 'running' && !frozen) fadeIn('back on screen'); else ask('back on screen');
-    } else if (!visible) { askedAt = 0; gestureAskAt = 0; frozen = false; pendingFadeIn = false; fadeOut(why || 'hidden'); }
+    } else if (!visible) { askedAt = 0; gestureAskAt = 0; frozen = false; pendingFadeIn = false; clearTimeout(intT); intT = 0; fadeOut(why || 'hidden'); }
   }
   visibilityListeners.forEach(fn => fn(visible));
 }

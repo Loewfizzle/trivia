@@ -74,14 +74,14 @@ export function trophiesSection(data, o = {}) {
   const all = held.length > LATEST ? h('button.pf-more', { type: 'button', onclick: () => openTrophyCase(data, o) }, h('span', `ALL ACHIEVEMENTS · ${held.length}`), h('b', '›')) : null;
   return h('section.pg-panel.pg-trophies',
     h('div.pg-prof-h', h('span', 'ACHIEVEMENTS'), h('em', 'tap a reward to equip it')),
-    h('div.pg-trs', ...rows), all);
+    h('div.pg-trs.vl-dr-still', ...rows), all);   // (FIXES R1 — the trophies' emblem icons: still art, like CUSTOMIZE's grid)
 }
 
 /** THE TROPHY CASE — every trophy you hold, newest first (a pop-up over the profile; ‹ goes back to it) */
 export async function openTrophyCase(data, o = {}) {
   const { openPfSheet } = await lazyImport(import('../profile/sheets.js'), '../profile/sheets.js');
   const s = data.stats || {}, now = o.now || Date.now(), held = heldNewest(s.ac);
-  const list = h('div.pg-trs.pf-case', ...held.map(a => trophyRow(a, data, o, now)));
+  const list = h('div.pg-trs.pf-case.vl-dr-still', ...held.map(a => trophyRow(a, data, o, now)));
   const sh = openPfSheet({ kicker: `${held.length} EARNED · NEWEST FIRST`, title: 'THE TROPHY CASE', body: [h('p.sh-note', 'Tap a reward to equip it.'), list], cls: 'pf-case-sheet' });
   lazyImport(import('./look.js'), './look.js').then(L => L.pctFor().then(P => { list.querySelectorAll('.pg-pct').forEach(x => { x.textContent = L.pctLine(P.a[x.dataset.a]); }); })).catch(() => {});
   return sh;

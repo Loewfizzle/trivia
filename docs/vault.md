@@ -821,4 +821,10 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   Never `createSurface` over a list again (`tests/live-lane.test.mjs`). WHO'S ON, STATS and the radio's lists stay plain stills.
 - CUSTOMIZE YOUR CARD (`vault/dress.js`): the grid's tiles = stills (no canvas in the grid); the pinned strip is the one live card; the profile
   behind it is held (`fxCover`). The proof: `tests/integration/scores-memory.mjs` (docs/testing.md).
+- **FIXES R1 — STILL ART IN EVERY GRID** (CUSTOMIZE crashed again on the owner's iPhone browsing the EMBLEMS): every emblem tile was a stack of
+  animated composited layers (91 animations running in the EMBLEM tab, 40 in GLOW — measured). `.vl-dr-still` (CUSTOMIZE's grid + the trophies'
+  lists): no animation / will-change / transition on any tile (emblems, glows, tubes, gems); a glow tile = its letters' own light (the moving
+  pieces hidden, as `.vg-still`); an off-screen tile is skipped (`content-visibility: auto`). Only the PINNED strip moves. Proof: `scores-memory.mjs
+  --case customize` — EVERY tab (CARD · EMBLEM · GLOW · TUBE) scrolled end to end ×3 at 390 @3, 4× CPU: 0 tile animations, GPU contexts / canvas
+  pixels / memory flat, no reload. Shots: Downloads/NEON/fixes-r1/customize-*.png.
 - The owner's slim card reads **LV n** like everyone's (was DEV); ✦ PROPRIETOR ✦ lives on the full card only; the dev gem stays.
