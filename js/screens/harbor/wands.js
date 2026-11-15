@@ -172,24 +172,25 @@ export function drawWands(c, J, fx, fy, H, o) {
     let dx = hd[0] - el[0], dy = hd[1] - el[1]; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
     if (g.tw) { const c0 = Math.cos(g.tw), s0 = Math.sin(g.tw); [dx, dy] = [dx * c0 - dy * s0, dx * s0 + dy * c0]; }
     const x0 = fx + hd[0] * H, y0 = fy - hd[1] * H, x1 = x0 + dx * WAND.len * H, y1 = y0 - dy * WAND.len * H;
-    const col = pal[(o.idx + i + ph) % pal.length], k = clamp01(o.k) * g.k * strobe * (0.62 + 0.38 * Math.max(clamp01(o.punch), race));
-    const w = Math.max(1, WAND.w * H), hot = col.map(v => Math.min(255, v + 90));
+    // (CITY B — the owner: "far too dim on the phone": barely a dip between beats, a thicker tube, a near-white core, a two-layer bloom)
+    const col = pal[(o.idx + i + ph) % pal.length], k = clamp01(o.k) * g.k * strobe * (0.86 + 0.14 * Math.max(clamp01(o.punch), race));
+    const w = Math.max(1.8, WAND.w * H * 1.6), hot = col.map(v => Math.round(v + (255 - v) * 0.8));
     // the trail: the last few positions, each a thin quad from where the wand was to where it is (short: ~3 frames)
     if (o.tier !== 0 && o.trails) {
       const key = `${o.key}|${i}`, tr = o.trails.get(key) || [];
       let prev = [x0, y0, x1, y1];
       for (let j = 0; j < tr.length && j < WAND.trail.length; j++) {
         const p = tr[j]; if (Math.hypot(p[2] - prev[2], p[3] - prev[3]) < 0.6) { prev = p; continue; }
-        c.globalAlpha = WAND.trail[j] * k; c.fillStyle = `rgb(${col.join(',')})`;
+        c.globalAlpha = Math.min(1, WAND.trail[j] * k * 1.4); c.fillStyle = `rgb(${col.join(',')})`;
         c.beginPath(); c.moveTo(prev[0], prev[1]); c.lineTo(prev[2], prev[3]); c.lineTo(p[2], p[3]); c.lineTo(p[0], p[1]); c.closePath(); c.fill();
         prev = p;
       }
       if (o.advance) { tr.unshift([x0, y0, x1, y1]); if (tr.length > WAND.trail.length) tr.length = WAND.trail.length; o.trails.set(key, tr); }
     }
     // the tube: a tight halo (not at tier 0), the coloured glass, the white-hot core — crisp
-    if (o.tier !== 0) { c.globalAlpha = 0.22 * k; c.strokeStyle = `rgb(${col.join(',')})`; c.lineWidth = w * 3.4; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); }
-    c.globalAlpha = Math.min(1, 0.95 * k); c.strokeStyle = `rgb(${col.join(',')})`; c.lineWidth = w; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
-    c.globalAlpha = Math.min(1, 0.85 * k); c.strokeStyle = `rgb(${hot.join(',')})`; c.lineWidth = Math.max(0.5, w * 0.42); c.beginPath(); c.moveTo(x0 + dx * w * 0.3, y0 - dy * w * 0.3); c.lineTo(x1, y1); c.stroke();
+    if (o.tier !== 0) for (const [a, ww] of [[0.2, Math.max(10, w * 8)], [0.42, Math.max(5, w * 3.6)]]) { c.globalAlpha = a * k; c.strokeStyle = `rgb(${col.join(',')})`; c.lineWidth = ww; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); }
+    c.globalAlpha = Math.min(1, k); c.strokeStyle = `rgb(${col.join(',')})`; c.lineWidth = w; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+    c.globalAlpha = Math.min(1, k); c.strokeStyle = `rgb(${hot.join(',')})`; c.lineWidth = Math.max(0.7, w * 0.5); c.beginPath(); c.moveTo(x0 + dx * w * 0.3, y0 - dy * w * 0.3); c.lineTo(x1, y1); c.stroke();
   }
   c.restore();
 }
