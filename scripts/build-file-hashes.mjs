@@ -22,9 +22,13 @@ export function files() {
 }
 /** PURE: a file's bytes → its short hash (12 hex of a SHA-1 — a content id, not a secret) */
 export const hashOf = buf => createHash('sha1').update(buf).digest('hex').slice(0, 12);
+// (a text file is hashed with LF line endings — what git stores and Vercel serves (.gitattributes: eol=lf); a Windows checkout can hold
+//  CRLF in its working copy without git calling it changed — the cloud's unit run caught two such files)
+const TEXT = /\.(m?js|css|json|svg|html|txt|md|xml|webmanifest)$/i;
+const bytesOf = f => { const b = readFileSync(resolve(ROOT, f)); return TEXT.test(f) && b.includes(13) ? Buffer.from(b.toString('utf8').replace(/\r\n/g, '\n'), 'utf8') : b; };
 export function render() {
   const map = {};
-  for (const f of files()) map[`/${f}`] = hashOf(readFileSync(resolve(ROOT, f)));
+  for (const f of files()) map[`/${f}`] = hashOf(bytesOf(f));
   return `${JSON.stringify({ v: 1, n: Object.keys(map).length, files: map })}\n`;
 }
 if (process.argv[1] && resolve(process.argv[1]) === resolve(ROOT, 'scripts/build-file-hashes.mjs')) {

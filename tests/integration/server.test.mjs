@@ -663,13 +663,13 @@ test('TEST PLAYERS from the first profile + the pre-tick; the grouped logs: MARK
     await ref('phonelog').set({ rep0000000001: { at: clock, kind: 'hang', text: 'x' }, rep0000000002: { at: clock, kind: 'tap', text: 'y' } });
     await rejects(adminAction('u-tp1', { action: 'seenLogs', sigs: ['e000000000000001'] }), 403, 'not_admin');
     await rejects(adminAction('u-tpown', { action: 'seenLogs', sigs: ['../profiles'] }), 400, 'bad_ids');
-    const seen = await adminAction('u-tpown', { action: 'seenLogs', sigs: ['e000000000000001', 'e000000000000002'], ids: ['rep0000000001'] });
+    const seen = await adminAction('u-tpown', { action: 'seenLogs', sigs: ['e000000000000001', 'e000000000000002'], ids: ['rep0000000001'] }, clock);   // (CITY A: the test's own clock — its rows are dated by it; the real one pruned them as 30 days old once Nov 13 passed)
     assert.equal(await val('errlog/e000000000000001/seen'), 4); assert.equal(await val('errlog/e000000000000002/seen'), 2); assert.equal(await val('errlog/e000000000000003/seen'), null);
     assert.equal(await val('phonelog/rep0000000001/seen'), true); assert.equal(await val('phonelog/rep0000000002/seen'), null);
     assert.ok(seen.errors.length === 3 && seen.reports.length === 2, 'MARK SEEN returns the fresh lists');
-    const cl = await adminAction('u-tpown', { action: 'clearErrors', sigs: ['e000000000000001', 'e000000000000002'] });
+    const cl = await adminAction('u-tpown', { action: 'clearErrors', sigs: ['e000000000000001', 'e000000000000002'] }, clock);
     assert.deepEqual(cl.errors.map(e => e.sig), ['e000000000000003'], 'CLEAR a group: only its entries go');
-    const cr = await adminAction('u-tpown', { action: 'clearReports', ids: ['rep0000000002'] });
+    const cr = await adminAction('u-tpown', { action: 'clearReports', ids: ['rep0000000002'] }, clock);
     assert.deepEqual(cr.reports.map(r => r.id), ['rep0000000001']);
     const acts = Object.values((await val('audit')) || {}).map(a => a.act);
     assert.ok(acts.includes('seenLogs') && acts.includes('clearError') && acts.includes('clearReport'), `audited (${acts.join(', ')})`);

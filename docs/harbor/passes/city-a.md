@@ -141,8 +141,21 @@ The harbor batch's reds and their causes: THE DELAY's new count sat on the wrong
 moment, 21:30 on Sep 15, IS a fireworks show: the taxi is now rightly held (NO TRAFFIC DURING THE FIREWORKS) → the tests moved to 21:40;
 roomperf's 4× cost +4.1 ms "standing" (limit 3) — green on the re-run.
 
-## The cloud run
-FILLED AT THE CLOSE.
+## The cloud runs (the ONE push `9d046861..b52c8dca`, the harbor tag on the last — one run of each, none re-run)
+- **harbor** (43677318223): **GREEN — 15 / 15 jobs** (show · holiday · perf · speed · audio · wild · city · lobby · windows · models · room2 ·
+  lobbyfix2 · legend · street · lobbyfix).
+- **tests** (43677318189): **RED, two checks — both fixed after, test / generator only:**
+  - `file-hashes.json is current`: 2 stale (`leafbank.js`, `scene-holiday.js`) — this Windows checkout held CRLF in their working copies
+    (git stores LF, so `git status` said nothing) and the generator hashed the working bytes. The generator now hashes text files with LF
+    line endings — the two hashes now equal git's committed bytes. (On the live site the deployed list only made those two files download
+    once more after a deploy — harmless.)
+  - `/api` "TEST PLAYERS … the grouped logs": a TIME BOMB, not this pass's code — the test dates its error rows by its fake clock (`NOW` =
+    Oct 14 2026) but called `seenLogs` / `clearErrors` / `clearReports` on the real clock, and `errorList` prunes rows quiet for 30 days:
+    red from mid-November (the code before this pass failed it locally tonight too). The calls take the test's clock now — `/api` 58 / 58 on
+    fresh emulators.
+  - The fix commit is pushed WITHOUT a tag (no second deployment, no second cloud run — the next tagged push runs it); verified locally.
+- **Vercel:** the tagged push deployed `b52c8dca`.
+- This pass's servers (its emulators, :5173, the baseline worktree's :5174) are STOPPED; the worktree removed; :5190 left running.
 
 ## Left open
 - THE 8-CARD LOBBY at 4× CPU: the GUESTS sheet builds its 8 slim strips in one go (~4.6 s to come in) → CITY C.
