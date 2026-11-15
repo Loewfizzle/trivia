@@ -43,7 +43,7 @@ test('THE PROMINENCE RULE: the higher tier leads — a still common card + a rar
 
 test('THE PINK PAIR: HEARTBREAKER (uncommon) + GLITTER BOMB (epic) — EARLY level rewards; no PINK CHAMPAGNE', () => {
   const at = id => (LEVEL_REWARDS.find(r => r.item === id) || {}).lvl;
-  assert.equal(at('card-heartbreaker'), 4); assert.equal(at('card-glitter'), 8);
+  assert.equal(at('card-heartbreaker'), 4); assert.equal(at('card-glitter'), 50);   // (CITY B: GLITTER BOMB moved to LV 50)
   assert.equal(ITEM['card-heartbreaker'].tier, 'uncommon'); assert.equal(ITEM['card-glitter'].tier, 'epic');
   assert.ok(!Object.keys(ITEM).some(k => /champagne/i.test(k) && ITEM[k].tier === 'rare' && /pink/i.test(ITEM[k].name)), 'no pink champagne card');
   const lv = LEVEL_REWARDS.map(r => r.lvl); assert.deepEqual([...lv].sort((a, b) => a - b), lv, 'the table stays in level order');

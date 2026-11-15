@@ -265,7 +265,6 @@ export const LEVEL_REWARD_ROWS = [
   { lvl: 5, item: 'card-brass' },
   { lvl: 6, item: 'emb-sweetheart' },        // (THE VAULT 2A — the pink pair's emblem, early)
   { lvl: 7, item: 'tube-twotone' },
-  { lvl: 8, item: 'card-glitter' },
   { lvl: 9, item: 'emb-butterfly' },           // (THE VAULT 2B — the pink pair's second emblem, early)
   { lvl: 10, item: 'card-emerald' },
   { lvl: 12, item: 'card-smoke' },          // (THE VAULT 1B — the 1A samples that unlocked nowhere: SMOKE ROOM · FROSTBITE · PRISM · INFERNO)
@@ -289,6 +288,7 @@ export const LEVEL_REWARD_ROWS = [
   { lvl: 44, item: 'card-gold' },
   { lvl: 47, item: 'tube-gold' },
   { lvl: 50, item: 'glow-gold' },
+  { lvl: 50, item: 'card-glitter' },        // (CITY B — the owner, Nov 14: GLITTER BOMB moved from LV 8 to 50, beside GLOW GOLD; an owner keeps it, nothing re-granted)
   { lvl: 53, item: 'tube-burnt' },            // (THE VAULT 2B)
   { lvl: 55, item: 'emb-crown' },
   { lvl: 58, item: 'card-noir' },
