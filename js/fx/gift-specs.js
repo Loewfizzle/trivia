@@ -234,14 +234,15 @@ export const GIFT_SPECS = Object.freeze({
     { t: 'region', src: [866, 3, 276, 253], mode: 'creak', piv: [1004, 294], amp: 0.007, period: 4.2, poly: [[1004, 11], [1136, 132], [1004, 259], [872, 132]] },
     { t: 'motes', box: [560, 0, 720, 256], n: 14, rgb: '255,150,60', size: [1.2, 3], dir: 'up', speed: 14, a: 0.7, kind: 'spark', tw: 0.7 },
   ] } },
-  // the flag card — Bosnia's flag: the chequered flag ripples, the stars twinkle in turn, the speed lines rush. Its strip = THE FLAG STRIP (shared
-  // with the Old Bridge card): the stars twinkle, a sparkle or two
+  // the flag card — Bosnia's flag: the stars twinkle in turn, the speed lines rush, the river shimmers under Mostar's old bridge (CITY E — the owner's
+  // Lab FIX: the chequered flag GONE, the bridge in its place; the card renamed — the name lives server-side). Its strip = its OWN flag strip (THE FLAG STRIP +
+  // a small Old Bridge left of him — the Old Bridge card keeps the shared one): the stars twinkle, a sparkle or two
   'card-gift-zadomovinu': { art: 'zadomovinu', hero: [870, 130, 270, 330], heroFull: [870, 130, 270, 330], strip: [50, 50], layers: [
     { t: 'rush', at: [1150, 330], ang: [2.72, 3.48], r: [380, 1250], n: 26, rgb: '220,235,255', a: 0.55, len: 160, speed: 0.55 },
-    { t: 'region', src: [740, 700, 540, 100], mode: 'ripple', axis: 'y', slices: 30, amp: 5, k: 7, speed: 3, shade: 0.12 },
-    { t: 'twinkle', pts: [[600, 17], [695, 113], [789, 207], [1263, 681]], rgb: '255,255,255', size: 34, period: 2.2 },
+    { t: 'shimmer', box: [600, 774, 680, 24], n: 22, rgb: '255,214,140', a: 0.5, len: 22 },
+    { t: 'twinkle', pts: [[600, 17], [695, 113], [789, 207]], rgb: '255,255,255', size: 34, period: 2.2 },
     { t: 'twinkle', pts: [[740, 60], [1210, 110], [1240, 450], [1000, 40]], rgb: '255,250,210', size: 22, period: 2.7 },
-  ], stripArt: { art: 'mostar-strip', h: 256, crop: [50, 50], hero: [958, 15, 135, 190], layers: [   // (the owner's flag strip, moved 100 px left)
+  ], stripArt: { art: 'zadomovinu-strip', h: 256, crop: [50, 50], hero: [958, 15, 135, 190], layers: [   // (the owner's flag strip, moved 100 px left, + the Old Bridge)
     { t: 'twinkle', pts: [[612, 32], [652, 76], [695, 116], [737, 160], [778, 200], [822, 242]], rgb: '255,255,255', size: 22, period: 2.4 },
     { t: 'twinkle', pts: [[520, 66], [725, 30], [905, 82], [1138, 80], [1048, 165]], rgb: '255,255,235', size: 18, period: 2.8 },
   ] } },

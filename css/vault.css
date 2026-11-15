@@ -1070,7 +1070,7 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-fcm-g-wastelander .vl-mat { background-image: url('../assets/vault/gift/wastelander.webp'); background-position: 50% 50%; }
 .vl-s-g-survivor .vl-mat { background: #120c06 url('../assets/vault/gift/survivor-strip.webp') 50% 50% / cover no-repeat; }
 .vl-fcm-g-survivor .vl-mat { background-image: url('../assets/vault/gift/survivor.webp'); background-position: 50% 50%; }
-.vl-s-g-zadomovinu .vl-mat { background: #0a2a8f url('../assets/vault/gift/mostar-strip.webp') 50% 50% / cover no-repeat; }
+.vl-s-g-zadomovinu .vl-mat { background: #0a2a8f url('../assets/vault/gift/zadomovinu-strip.webp') 50% 50% / cover no-repeat; }   /* (CITY E: its own strip — + the Old Bridge) */
 .vl-s-g-starimost .vl-mat { background: #0a2a8f url('../assets/vault/gift/mostar-strip.webp') 50% 50% / cover no-repeat; }
 .vl-fcm-g-zadomovinu .vl-mat { background-image: url('../assets/vault/gift/zadomovinu.webp'); background-position: 50% 50%; }
 .vl-fcm-g-starimost .vl-mat { background-image: url('../assets/vault/gift/starimost.webp'); background-position: 50% 50%; }
@@ -1176,10 +1176,13 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
    its own size (its approved exception) + gets the wash; ON AIR unchanged. Static (no animation). */
 .vl-fc { --vl-tw: 8, 5, 14; --vl-ta: 0.6; }
 .vl-fc.vl-fcm-brushed, .vl-fc.vl-fcm-chrome, .vl-fc.vl-fcm-brass, .vl-fc.vl-fcm-platinum, .vl-fc.vl-fcm-g-goldenhour { --vl-tw: 255, 248, 232; --vl-ta: 0.62; }
-.vl-fc-house, .vl-fc-since, .vl-fc-card { position: relative; }
-.vl-fc-house::before, .vl-fc-since::before, .vl-fc-card::before { content: ''; position: absolute; inset: -0.2em -0.45em; z-index: -1; pointer-events: none;
+/* (CITY E — THE TEXT PANEL HUGS THE TEXT, the owner, Nov 15: the glass is trimmed to the WORDS + a small even pad on every full card — the
+   rank line wears its own, the MEMBER SINCE / MEMBER Nº rows theirs; never one panel over the empty space beside a short rank. The top line,
+   the foil line + the card's name already hug theirs) */
+.vl-fc-house, .vl-fc-rank, .vl-fc-rows, .vl-fc-card { position: relative; }
+.vl-fc-house::before, .vl-fc-rank::before, .vl-fc-rows::before, .vl-fc-card::before { content: ''; position: absolute; inset: -0.2em -0.45em; z-index: -1; pointer-events: none;
   border-radius: 0.9em; background: rgba(var(--vl-tw), var(--vl-ta)); box-shadow: 0 0 0.9em 0.55em rgba(var(--vl-tw), var(--vl-ta)); }
-.vl-fc-since::before { inset: -0.35em -0.55em; border-radius: 1.1em; }
+.vl-fc-rows::before { inset: -0.35em -0.55em; border-radius: 1.1em; }
 .vl-fc-house { font-size: max(10.5px, 2.9cqi); font-weight: 800; }   /* (11 px pushed every 1-of-1 line to its short "№ n" form at 402 — 10.5 keeps NEON SPEAKEASY beside the badge; fitTop never goes under 10) */
 .vl-fc-card { font-size: max(13px, 3.6cqi); font-weight: 800; letter-spacing: 0.14em; text-wrap: balance; }
 .vl-fc-since small { font-size: max(10px, 2.6cqi); }
@@ -1209,8 +1212,9 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
   background: linear-gradient(100deg, #4a2e04 0%, #6e4708 35%, #3a2403 60%, #5e3c06 100%); -webkit-background-clip: text; background-clip: text;
 }
 /* MEMBER SINCE + MEMBER Nº: label | value rows (the prototype) — the rank over both; never wrapped */
-.vl-fc-since { display: grid; grid-template-columns: auto auto; column-gap: 1.2em; row-gap: 0.62em; align-items: baseline; justify-content: start; }
-.vl-fc-since .vl-fc-rank { grid-column: 1 / -1; }
+.vl-fc-since { display: flex; flex-direction: column; align-items: flex-start; }
+.vl-fc-rows { display: grid; grid-template-columns: auto auto; column-gap: 1.2em; row-gap: 0.62em; align-items: baseline; justify-content: start; }
+.vl-fc-since .vl-fc-rank { display: block; }
 .vl-fc-since b { margin-top: 0; }
 .vl-fc-since small, .vl-fc-since b { white-space: nowrap; }
 

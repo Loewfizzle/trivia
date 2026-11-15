@@ -371,6 +371,8 @@ const FIN = {
 // bright accent); the effects TOUCH or SURROUND it. The neon ones carry their own accents (fx: their own layers); the specials use the
 // finishes below (METAL — silver · gold · black · grey · obsidian —, SPECTRAL, AURORA, COMET, BALLOON, COIN, AUTUMN).
 const circ = (cx, cy, r) => `M${cx - r} ${cy} A${r} ${r} 0 1 0 ${cx + r} ${cy} A${r} ${r} 0 1 0 ${cx - r} ${cy} Z`;
+// (CITY E — the horseshoe as a clear U: the flared heel tops, the straight arms, the toe's two arcs (radius 15 out, 9 in, round (24, 27)))
+const SHOE = 'M5.8 8.5 H14.8 L15 13 V27 A9 9 0 0 0 33 27 V13 L33.2 8.5 H42.2 L39 14 V27 A15 15 0 0 1 9 27 V14 Z';
 const star5 = (cx, cy, R, r = R * 0.45) => { let d = ''; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r : R; d += `${i ? 'L' : 'M'}${(cx + Math.cos(a) * q).toFixed(2)} ${(cy + Math.sin(a) * q).toFixed(2)} `; } return `${d}Z`; };
 const scaleY = (d, cy, k) => d.replace(/(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g, (m, x, y) => `${x} ${(cy + (+y - cy) * k).toFixed(2)}`);
 const mirrorX = d => d.replace(/([MLCQHAVZ])|(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)|(-?\d+(?:\.\d+)?)/g, (m, cmd, x, y, n) => (cmd ? cmd : x != null ? `${(48 - +x).toFixed(2)} ${y}` : m));
@@ -413,13 +415,14 @@ Object.assign(SH, {
       const B = C.layer('ve-lhbeam', `transform-origin:${pct(24)} ${pct(16.2)}`); B.g.append(el('path', { d: 'M24 16.2 L44 10.5 L44 21.9 Z', fill: '#ffe6a3', opacity: 0.56 }), el('path', { d: 'M24 16.2 L4 10.5 L4 21.9 Z', fill: '#ffe6a3', opacity: 0.28 }));
     } },
   // emb-horseshoe (THE CARD PASS — B7: OVERCLOCK's DUMB LUCK — you backed the winning horse) — a LUCKY GOLD horseshoe in neon tubes, opening UP
-  // (it holds the luck): the band one closed tube (gold) — a round ~300° shoe with a narrow gap at the top, so it never reads as a letter U, its six nail holes (pale gold dots — they read at 24 pt as a dotted band), a soft warm
-  // glow breathing behind it + a glint TWINKLING on its right heel (two layers: opacity + transform). Readable at the plate's ~24 pt size.
-  shoe: { tubes: [{ d: 'M17.45 10.95 A15.5 15.5 0 1 0 30.55 10.95 L26.33 16.31 A9 9 0 1 1 21.67 16.31 Z', col: '#ffc94a' },
-      { d: `${circ(12.9, 19.8, 1.05)} ${circ(12.17, 28.17, 1.05)} ${circ(16.97, 35.03, 1.05)} ${circ(31.03, 35.03, 1.05)} ${circ(35.83, 28.17, 1.05)} ${circ(35.1, 19.8, 1.05)}`, col: '#fff1b8', thin: true }],
+  // (it holds the luck). CITY E — the owner's Lab FIX ("it looks like a donut"): a clear U — a WIDE open gap at the top (the inner arms 18 apart),
+  // straight arms, FLARED heels (each heel wider than its arm), the round toe at the bottom; its eight nail holes along both arms (pale gold
+  // dots), a soft warm glow breathing behind it + a glint TWINKLING on its right heel (two layers: opacity + transform). Reads at ~24 pt.
+  shoe: { tubes: [{ d: SHOE, col: '#ffc94a' },
+      { d: [[12, 14.5], [12, 20.5], [12.2, 26.5], [14.3, 33.4], [36, 14.5], [36, 20.5], [35.8, 26.5], [33.7, 33.4]].map(([x, y]) => circ(x, y, 1.05)).join(' '), col: '#fff1b8', thin: true }],
     fx(C) {
-      const G = C.layer('ve-keyglow'); G.g.append(el('path', { d: 'M17.45 10.95 A15.5 15.5 0 1 0 30.55 10.95 L26.33 16.31 A9 9 0 1 1 21.67 16.31 Z', fill: '#ffd27a', opacity: 0.28 }));
-      const L = C.layer('ve-tw2', `transform-origin:${pct(33.5)} ${pct(8.6)}`); L.g.append(el('path', { d: starPath(33.5, 8.6, 4.4), fill: '#fffbe6' }), el('circle', { cx: 33.5, cy: 8.6, r: 3, fill: '#ffd27a', opacity: 0.4 }));
+      const G = C.layer('ve-keyglow'); G.g.append(el('path', { d: SHOE, fill: '#ffd27a', opacity: 0.28 }));
+      const L = C.layer('ve-tw2', `transform-origin:${pct(38.5)} ${pct(7.6)}`); L.g.append(el('path', { d: starPath(38.5, 7.6, 4.2), fill: '#fffbe6' }), el('circle', { cx: 38.5, cy: 7.6, r: 3, fill: '#ffd27a', opacity: 0.4 }));
     } },
   // emb-stars — three stars (gold, pink, cyan); the light HOPPING star to star
   stars3: { tubes: [{ d: star5(24, 13.5, 8), col: '#ffcf5a' }, { d: star5(13.5, 31.5, 7), col: '#ff5fb4' }, { d: star5(34.5, 31.5, 7), col: '#5fd7ff' }],

@@ -39,7 +39,10 @@ for name, rel in FILES.items():
 src = lambda n: Image.open(os.path.join(SRC, n)).convert('RGB')
 fit, sizes = {}, {}
 
+ONLY = set(filter(None, os.environ.get('ONLY', '').split(',')))   # (CITY E: ONLY=zadomovinu,zadomovinu-strip — a Lab FIX rebuilds just its art)
+
 def save(im, name, q=86):
+    if ONLY and name not in ONLY: return
     p = os.path.join(OUT, name + '.webp'); im.save(p, 'WEBP', quality=q, method=6); sizes[name] = os.path.getsize(p) // 1024
 
 def grok800(im, c):
@@ -74,6 +77,70 @@ def shifted(im, dx, fill='mirror'):
         col = np.asarray(im)[:, -8:-2].mean(axis=1, keepdims=True).astype(np.uint8)
         blk = Image.fromarray(np.repeat(col, dx, axis=1)).filter(ImageFilter.GaussianBlur(3))
         out.paste(blk, (im.width - dx, 0))
+    return out
+
+def stari_most(im, ox, oy, k, water=True, glow_r=150):
+    """CITY E — THE STARI MOST (Mostar's Old Bridge; the owner's Lab FIX on ZA DOMOVINU, Nov 15): ONE tall, slender stone arch over the river,
+    its humped walkway, a small tower at each end (Halebija left, a touch taller; Tara right) — a BOLD dark silhouette (the stone in shadow
+    against the flag's blue) with ONE bright accent: the arch's underside lit gold (+ its reflection on the river). Drawn at 4× and scaled
+    down (clean edges). (ox, oy) = the springing line's centre in art px, k = the scale (1 = the full card's 220-px span)."""
+    from PIL import ImageDraw
+    S = 4
+    Wd, Hd = im.width * S, im.height * S
+    sil = Image.new('L', (Wd, Hd), 0); acc = Image.new('L', (Wd, Hd), 0); riv = Image.new('L', (Wd, Hd), 0)
+    ds, da, dr = ImageDraw.Draw(sil), ImageDraw.Draw(acc), ImageDraw.Draw(riv)
+    P = lambda x, y: ((ox + x * k) * S, (oy + y * k) * S)
+    half, rise, ring = 110, 122, 11          # (the span 220, the rise 122 — tall + slender; the ring 11 thick)
+    def intra(u): return -rise * (1 - u * u) ** 0.5 * (1 + 0.06 * (1 - abs(u)))   # (a touch pointed at the crown)
+    N = 60
+    us = [i / N * 2 - 1 for i in range(N + 1)]
+    E = half + 40                             # (the walkway's ends — each meets its tower)
+    def deck(x): u = x / E; return -rise - ring - 10 + 44 * u * u   # (the walkway's hump: highest over the crown)
+    xs = [-E + i * (2 * E) / N for i in range(N + 1)]
+    top = [P(x, deck(x) - 8) for x in xs]     # (the parapet's top — one solid wall with the spandrels)
+    bot = [P(u * half, intra(u)) for u in reversed(us)]
+    ds.polygon(top + [P(E, 30), P(half, 0)] + bot + [P(-half, 0), P(-E, 30)], fill=255)
+    # the abutments + the rocky banks, down past the water line
+    ds.polygon([P(-E - 120, 90), P(-E - 96, 46), P(-E - 40, 26), P(-half - 4, 4), P(-half + 8, 30), P(-half + 2, 90)], fill=255)
+    ds.polygon([P(E + 130, 90), P(E + 104, 40), P(E + 46, 20), P(half + 4, 4), P(half - 8, 30), P(half - 2, 90)], fill=255)
+    # the towers (rising over the walkway's crown): Halebija (left, slimmer + lower here: clear of the MEMBER rows) + Tara (right, broader + taller)
+    for (cx, w, h, roof) in ((-(half + 56), 40, 112, 22), (half + 62, 48, 156, 26)):
+        ds.rectangle([P(cx - w / 2, -h), P(cx + w / 2, 60)], fill=255)
+        ds.polygon([P(cx - w / 2 - 5, -h), P(cx + w / 2 + 5, -h), P(cx, -h - roof)], fill=255)
+    # THE ACCENT: the arch's underside lit gold (a line + its glow)
+    line = [P(u * half, intra(u) + 1) for u in us]
+    da.line(line, fill=255, width=int(7 * k * S), joint='curve')
+    if water:
+        dr.rectangle([P(-(half + 300), 18), P(half + 520, 120)], fill=255)
+    small = lambda m: m.resize(im.size, Image.LANCZOS)
+    sil, acc, riv = small(sil), small(acc), small(riv)
+    out = im.convert('RGB')
+    if water:   # the river: a deep band under the bridge, feathered at its top
+        rv = Image.new('RGB', im.size, (6, 22, 84)); out = Image.composite(rv, out, riv.filter(ImageFilter.GaussianBlur(6 * k)))
+        # the gold arch's reflection: the line mirrored on the water, soft + dim
+        ref = acc.transpose(Image.FLIP_TOP_BOTTOM)
+        dy = round(2 * (oy + 1 * k)) - im.height
+        ref = ref.transform(im.size, Image.AFFINE, (1, 0, 0, 0, 1, -dy)).filter(ImageFilter.GaussianBlur(3 * k))
+        ref = Image.fromarray((np.asarray(ref).astype(np.float32) * 0.35).astype(np.uint8))
+        out = Image.composite(Image.new('RGB', im.size, (255, 196, 70)), out, ref)
+    # the backlight: a warm sunset glow behind the arch — the silhouette reads crisp against it (the opening glows)
+    if glow_r:
+        gy, gx = np.mgrid[0:im.height, 0:im.width]
+        cx_, cy_ = ox, oy - rise * 0.42 * k
+        d = np.sqrt(((gx - cx_) / (glow_r * k * 1.25)) ** 2 + ((gy - cy_) / (glow_r * k)) ** 2)
+        al = np.clip(1 - d, 0, 1) ** 1.1
+        o = np.asarray(out).astype(np.float32)
+        col = np.array([255, 184, 80], np.float32)
+        out = Image.fromarray((o * (1 - al[..., None]) + col * al[..., None]).clip(0, 255).astype(np.uint8))
+    # the stone: a deep indigo, a hair lighter at the top (the night sky on it)
+    a = np.zeros((im.height, im.width, 3), np.float32)
+    g = np.linspace(0, 1, im.height)[:, None]
+    a[..., 0] = 10 - 4 * g; a[..., 1] = 12 - 5 * g; a[..., 2] = 42 - 16 * g
+    out = Image.composite(Image.fromarray(a.clip(0, 255).astype(np.uint8)), out, sil)
+    glow = acc.filter(ImageFilter.GaussianBlur(7 * k))
+    glow = Image.fromarray(np.minimum(255, np.asarray(glow).astype(np.float32) * 1.6).astype(np.uint8))
+    out = Image.composite(Image.new('RGB', im.size, (255, 186, 40)), out, glow)
+    out = Image.composite(Image.new('RGB', im.size, (255, 226, 120)), out, acc)
     return out
 
 def compose(full, s, ox, y0, base=(0, 0, 0), fade=0, left='base', right='edge'):
@@ -148,7 +215,20 @@ for y in range(470, 650):
     for x in range(1192, 1244):
         k = w * min(1.0, (x - 1192) / 10) * min(1.0, (1244 - x) / 10)
         z[y, x] = z[y, x] * (1 - k) + ref * k
-save(Image.fromarray(z.clip(0, 255).astype(np.uint8)), 'zadomovinu')
+# (CITY E — the owner's Lab FIX on #206, Nov 15: the chequered race flag read as Croatian → GONE: the lower right repainted in the flag's own
+#  blue (a vertical gradient from the field's colour, feathered into the picture above + to the left), then THE STARI MOST drawn there)
+fill = np.zeros_like(z)
+gy = np.clip((np.arange(H) - 560) / 240.0, 0, 1)[:, None]
+fill[..., 0] = (14 * (1 - gy) + 10 * gy); fill[..., 1] = (52 * (1 - gy) + 42 * gy); fill[..., 2] = (168 * (1 - gy) + 146 * gy)
+yy, xx = np.mgrid[0:H, 0:W]
+m = np.clip((yy - 588) / 56.0, 0, 1) * np.clip((xx - 640) / 90.0, 0, 1)
+m = m * (yy > (xx - 1280) * 1.0 + 640 - 40)   # (below the flag's yellow triangle — its edge runs to the lower right corner)
+z = z * (1 - m[..., None]) + fill * m[..., None]
+zimg = stari_most(Image.fromarray(z.clip(0, 255).astype(np.uint8)), 862, 762, 0.8, water=False, glow_r=200)   # (under his hands, between MEMBER Nº and the card's name — the name sits on the right bank + tower, the left tower under the date)
+save(zimg, 'zadomovinu')
+# (its OWN strip now — THE FLAG STRIP + a small Old Bridge between the flag's yellow and him, well right of the name; the Old Bridge card
+#  keeps the shared mostar-strip)
+save(stari_most(shifted(src('mostar-flag-strip.png'), 100, fill='edge'), 905, 236, 0.5, water=False, glow_r=150), 'zadomovinu-strip')
 # ---- STARI MOST — Grok's golden hour + him (the sun's flare, the sparks off the car, the river = the fx): his shirt's soft box blended
 #      into the river — the river's own rows from left of him (y 470–560) laid under his lower edge with a ragged, feathered top
 s_ = np.asarray(src('stari-most-full.png')).astype(np.float32)

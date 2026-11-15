@@ -103,7 +103,7 @@ export const ITEM_ROWS = [
   C('card-gift-notguilty', 'NOT GUILTY', 'legendary', '#ece8e0', '#e8405a', '#1a1a1a', 'Case dismissed. One of one.', { gift: true, ink: '#1a1416' }),
   C('card-gift-wastelander', 'WASTELANDER', 'legendary', '#050806', '#5cff7a', '#c8ffd0', 'The terminal still works. One of one.', { gift: true }),
   C('card-gift-survivor', 'SOLE SURVIVOR', 'legendary', '#120c06', '#ffb347', '#ffd23a', 'Last one standing at sundown. One of one.', { gift: true }),
-  C('card-gift-zadomovinu', 'ZA DOMOVINU', 'legendary', '#0b2a8f', '#ffcf1a', '#ffffff', 'Blue, gold + the chequered flag. One of one.', { gift: true }),
+  C('card-gift-zadomovinu', 'MOSTARAC', 'legendary', '#0b2a8f', '#ffcf1a', '#ffffff', 'Blue, gold + the Old Bridge. One of one.', { gift: true }),   // (CITY E — the owner's Lab note: was ZA DOMOVINU)
   C('card-gift-starimost', 'STARI MOST', 'legendary', '#1a1020', '#ffb35a', '#ff3b3b', 'Golden hour on the Old Bridge. One of one.', { gift: true }),
   // ---- PROGRESSION B — CITY SIGHTINGS: each legendary's MATCHED PAIR (a LEGENDARY card + its EMBLEM), first tap that the server
   // believes (core/sightings.js — the ids final, the art THE VAULT's: the city's own baked models on the cards)

@@ -307,6 +307,8 @@ export const LAB_V = Object.freeze({
   'full-card-safecracker': 2, 'full-card-ghost-run': 2, 'full-card-perfect-week': 2,   // (DM2 — PENTHOUSE's new face: design A · THE DIAL, drawn in code)   // (Nov 6: the tape card's strip v4 — its effects back on their spots)
   'card-sg-btc': 2, 'full-card-sg-btc': 3,   // (THE BTC CARD — new premium art (Grok's ₿ balloon over the harbor) + THE BURNER FLARE; BOARD 2.0 A: the full card's name on one line, the sighting line back, the rise-in fixed)
   'card-dev-switchboard': 4, 'card-dev-source': 4, 'full-card-dev-switchboard': 6, 'full-card-dev-source': 6,
+  // (CITY E — THE LAB FEEDS EVERY PASS: the owner's two open FIX marks built — the Mostar flag card (the chequered flag → Mostar's old bridge, renamed) + the horseshoe as a U)
+  'full-card-gift-zadomovinu': 2, 'card-gift-zadomovinu': 2, 'emb-horseshoe': 2,
 });
 /** an item's current version */
 export const verOf = id => LAB_V[id] || 1;

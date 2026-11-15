@@ -169,8 +169,10 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
     // (BOARD 2.0 A: a sighting rebuilt on premium art keeps the SIGHTING's title + spot line — the printed name in the sighting's glow with the spot
     //  line under it, at the foot: vault/layout.js keeps the plate clear of them, the balloon's hero box above them)
     // (CITY C: the rank reads like everyone's — no "DEV ·"; MEMBER Nº sits under MEMBER SINCE — a member number stays server-only data, `who.no`)
-    h('div.vl-fc-foot', h('span.vl-fc-since', h('em.vl-fc-rank', bandOf(lv).name), h('small', 'MEMBER SINCE'), h('b', sinceOf(who.at)),
-      who.no != null && who.no !== '' && card !== 'card-founder' ? [h('small.vl-fc-no', 'MEMBER Nº'), h('b.vl-fc-no', String(who.no))] : null),
+    // (CITY E — THE TEXT PANEL HUGS THE TEXT: the rank and the MEMBER rows each wear their OWN glass (vault.css "THE CARD TEXT STANDARD"),
+    //  trimmed to their words + a small even pad — the card's art shows beside + between them; the block measured whole by vault/layout.js)
+    h('div.vl-fc-foot', h('span.vl-fc-since', h('em.vl-fc-rank', bandOf(lv).name), h('span.vl-fc-rows', h('small', 'MEMBER SINCE'), h('b', sinceOf(who.at)),
+      who.no != null && who.no !== '' && card !== 'card-founder' ? [h('small.vl-fc-no', 'MEMBER Nº'), h('b.vl-fc-no', String(who.no))] : null)),
       sgt ? h('span.vl-fc-card.vl-fc-sgt', h('b', cname), h('small.vl-fc-spot', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : h('span.vl-fc-card', cname)),
     // FOUNDING MEMBER (THE VAULT 2A): the member's REAL number, stamped in gold — a numbered first edition (+ MEMBER SINCE moves in)
     card === 'card-founder' ? h('div.vl-fc-stamp', h('small', 'FOUNDING MEMBER'), h('b', who.no != null ? `№ ${who.no}` : '№ —'), h('em', `SINCE ${sinceOf(who.at)}`)) : null,
