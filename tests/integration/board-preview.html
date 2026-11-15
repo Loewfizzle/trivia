@@ -27,6 +27,8 @@
   const N = Number(q.get('n') || 100), MY = Number(q.get('me') || 14);
   const NAMES = ['MAXIMILIANOS', 'Mike', 'Ava', 'Dex', 'Luna', 'Rook', 'Juno', 'Vee', 'Kai', 'Nova', 'Zed', 'Iris', 'Bo', 'Remy', 'Sasha', 'Theo', 'Pip', 'Marlowe', 'Quinn', 'Wren', 'Jax', 'Echo', 'Odette', 'Cass', 'Milo'];
   const ME = { pid: 'pmeeeeeeeeee', profile: { n: 'AVA', t: '4821', a: 'bolt', c: 'magenta', x: 2300, r: 2, h: false, bid: 'b-me', cd: 'card-marquee', m: 12, mm: 3 } };
+  // (CITY D — &dev=1: YOU are the owner — THE SWITCHBOARD, Nº 1, LV 16: his slim card reads LV 16 like everyone's, never DEV)
+  if (q.get('dev') === '1') Object.assign(ME.profile, { n: 'LOEWFIZZLE', cd: 'card-dev-switchboard', mn: 1, x: 4200 });
   const CARDS = ['card-sg-aurora', 'card-inferno', 'card-chrome', 'card-emerald', 'card-heartbreaker', 'card-neonglass', 'card-velvet', null, 'card-carbon', 'card-sapphire', 'card-noir', 'card-brass', 'card-zebra', 'card-marquee'];
   function rows(b, P = q.get('p')) {
     const def = boardDef(b);

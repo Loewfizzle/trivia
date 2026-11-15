@@ -52,6 +52,8 @@ try {
   localStorage.setItem('na:pv:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' }));
   localStorage.setItem('na:pv:me', JSON.stringify({ uid: 'pv', pid: 'P_ava', profile: { n: 'AVA', t: '0042', l: 12, x: 2600, a: 'bolt', c: 'magenta', cd: 'card-marquee', es: null, g: null, tb: null, mn: 42 } }));
   localStorage.removeItem('ns:fr:v1');
+  // (CITY D — &dev=1: YOU are the owner — THE SWITCHBOARD, Nº 1: his slim card on SCORES reads LV 16, never DEV)
+  if (q.get('dev') === '1') localStorage.setItem('na:pv:me', JSON.stringify({ uid: 'pv', pid: 'P_ava', profile: { n: 'LOEWFIZZLE', t: '0001', l: 16, x: 4200, a: 'bolt', c: 'magenta', cd: 'card-dev-switchboard', es: null, g: null, tb: null, mn: 1 } }));
 } catch { /* fine */ }
 const D = [
   { id: 'password', name: 'THE PASSWORD', order: 1, ticket: 'password', lesson: false, better: 'low', hook: 'Two doors. Six guesses each.' },
@@ -128,7 +130,7 @@ const table2 = q.get('solo') === '1' ? [] : table;
 // DFIX5 — EVERYONE ON SCORES: the `every` answer (14 counting finishers a daily, public faces — board ids, never a pid), you 2ND (or 23RD of 30
 // with &rank=23), 3 friends marked; COAST CLEAR's results carry their spots (0 / 1 / 2) + one CAUGHT; scores hidden until you've played
 {
-  const ME = { id: 'bme', n: 'AVA', a: 'bolt', c: 'magenta', l: 12, cd: 'card-marquee' };
+  const ME = q.get('dev') === '1' ? { id: 'bme', n: 'LOEWFIZZLE', a: 'bolt', c: 'magenta', l: 16, cd: 'card-dev-switchboard', mn: 1 } : { id: 'bme', n: 'AVA', a: 'bolt', c: 'magenta', l: 12, cd: 'card-marquee' };
   const P = [['NOVA', 'card-sg-aurora', 'star', 'cyan', 44], ['BEN', 'card-sg-aurora', 'star', 'cyan', 45, 1], ['ROOK', 'card-velvet', 'bolt', 'red', 12], ['KIM', 'card-chrome', 'hex', 'yellow', 19, 1],
     ['DEX', null, 'moon', 'green', 9], ['MAXIMILIANOS', 'card-inferno', 'wave', 'orange', 15, 1], ['ZOE', 'card-emerald', 'diamond', 'green', 7], ['IVY', 'card-neonglass', 'wave', 'violet', 22],
     ['JUNO', 'card-carbon', 'hex', 'cyan', 5], ['OTTO', 'card-heartbreaker', 'bolt', 'magenta', 31], ['PRIYA', 'card-sapphire', 'star', 'yellow', 11], ['QUINN', 'card-noir', 'moon', 'orange', 3],

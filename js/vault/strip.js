@@ -132,14 +132,15 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
   else if (TEST_EMBLEMS[emblem] || (!emblem && !avatar)) { embId = TEST_EMBLEMS[emblem] ? emblem : look.emblem || 'emb-test-neon'; const em = TEST_EMBLEMS[embId] || TEST_EMBLEMS['emb-test-neon']; mode = prominence(tier, em.tier); emb = emblemSvg(em.finish, mode); }
   else { embId = hasArt(emblem) ? emblem : ''; mode = prominence(tier, embTier(embId)); emb = emblemEl({ id: embId || null, avatar, color, tube, mode }); }
   // (the name glow follows the same rule: on a LEGENDARY card it holds its still, lit look — the card leads)
-  // (THE VAULT 2B — a DEV card: THE DEVELOPER on the plate; 2C: THE DEV GEM for its tag; FRIENDS B: the slim dev line reads just DEV)
+  // (THE VAULT 2B — a DEV card: THE DEVELOPER on the plate; 2C: THE DEV GEM for its tag; FRIENDS B: the slim dev line read just DEV → CITY D:
+  //  the owner's slim card shows his LEVEL like everyone's — LV 16 — ✦ PROPRIETOR ✦ lives only on the full card; the dev gem stays)
   const dev = !plain && isDevCard(card), one = !plain && isOneOfOne(card);   // (B2: a GIFT card is 1-of-1 too — the gem; the plate's dev line stays the dev cards')
   const nameEl = applyGlow(h('b.vl-name', name), glow);
   if (tier === 'legendary') nameEl.classList.add('vg-still');
   const plate = h('div.vl-plate',
     h('span.vl-emb', emb),
-    h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', dev ? 'DEV' : host ? `LV ${lv} · HOST` : friend ? [`LV ${lv} · `, h('span.vl-friend', 'FRIEND')] : `LV ${lv}`)));   // (DFIX5 — a FRIEND in an everyone list: the word in gold foil after the level)
-  const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}${one ? ' vl-dev1' : ''}${one && !dev ? ' vl-gift' : ''}${friend && !dev && !host ? ' vl-has-friend' : ''}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
+    h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', host ? `LV ${lv} · HOST` : friend ? [`LV ${lv} · `, h('span.vl-friend', 'FRIEND')] : `LV ${lv}`)));   // (DFIX5 — a FRIEND in an everyone list: the word in gold foil after the level)
+  const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}${one ? ' vl-dev1' : ''}${one && !dev ? ' vl-gift' : ''}${friend && !host ? ' vl-has-friend' : ''}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     plate,
     // (THE VAULT 2C — THE TIER GEM, the owner's approved mock: no words on the strip — a small gem in the corner; the DEV cards' own
