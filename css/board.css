@@ -152,14 +152,7 @@ button.bd-open:focus-visible { outline: 2px solid var(--bd-gold); outline-offset
 .bd-showall i { width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translateY(-2px); }
 .bd-showall-li { display: flex; justify-content: center; }
 .bd-sentinel { height: 1px; }
-.bd-medal {
-  width: 28px; height: 28px; margin: 0 auto; display: grid; place-items: center; border-radius: 50%;
-  font: 800 13px/1 var(--font-num); color: #2a1a06;
-  background: radial-gradient(circle at 35% 28%, #fff9e0, #f6d27a 38%, #b8842c 78%, #6d4812);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 220, 140, 0.5), 0 0 16px rgba(242, 200, 105, 0.5);
-}
-.bd-medal.is-silver { color: #1b2230; background: radial-gradient(circle at 35% 28%, #ffffff, #dfe7f3 40%, #8f9cb0 80%, #5a6578); box-shadow: inset 0 1px 1px #fff, inset 0 -2px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(230, 238, 250, 0.5), 0 0 14px rgba(210, 225, 245, 0.35); }
-.bd-medal.is-bronze { color: #2a1206; background: radial-gradient(circle at 35% 28%, #ffe6cf, #e6a06c 40%, #9a5a30 80%, #5e3216); box-shadow: inset 0 1px 1px rgba(255, 240, 225, 0.8), inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(240, 180, 130, 0.5), 0 0 14px rgba(232, 160, 106, 0.35); }
+/* (CITY B: the top three are THE DECO MEDALS — js/ui/medal.js, css/components.css .rk-medal) */
 
 /* the list fades in (the cards + their effect layer together: opacity on the list) */
 .bd-card.is-cascade .bd-rows { animation: bd-rows-in 0.38s var(--ease) both; }

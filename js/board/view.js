@@ -19,6 +19,7 @@
 //                     onBack, onProfile, onPlay, onPlayer({ b, bid, row }), initial: { game | tab, cat, period, board } })
 //   → { el, start(), destroy() }
 import { openSheet } from '../ui/sheet.js';
+import { rankMedal } from '../ui/medal.js';   // (CITY B: THE DECO MEDALS — one component)
 import { h } from '../ui/dom.js';
 import { avatar } from '../ui/components.js';
 import { emblem } from '../ui/emblems.js';
@@ -49,7 +50,6 @@ const tabName = id => TAB_NAMES[id] || gameName(id);
 /** a deep link's / the title preview's game → its tab (a game without a tab → XP) */
 export const tabOf = g => (TABS.includes(g) ? g : g && String(g).startsWith('daily') ? 'dailies' : 'xp');
 const PAGE = 25, TOP = 10, MAX = 100;
-const MEDAL = ['', 'gold', 'silver', 'bronze'];
 const DOTS = '<svg viewBox="0 0 16 4" aria-hidden="true"><circle cx="2" cy="2" r="1.8"/><circle cx="8" cy="2" r="1.8"/><circle cx="14" cy="2" r="1.8"/></svg>';
 // the gold Art Deco sunburst behind the title (drawn once, in code): rays + three arcs
 const SUN = (() => {
@@ -261,7 +261,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       class: [top ? `is-top is-${r.rank}` : '', mine ? 'is-me' : ''].join(' '),
       dataset: { id: r.id || '', n: name || '' },
     },
-    h('span.bd-rank', top ? h('span.bd-medal', { class: `is-${MEDAL[r.rank]}` }, String(r.rank)) : String(r.rank)),
+    h('span.bd-rank', (top && rankMedal(r.rank, { size: 32 })) || String(r.rank)),
     h('div.bd-scard', card, h('div.bd-ssub',
       mine ? h('span.bd-you', 'YOU') : r.id ? h('button.bd-more', { type: 'button', 'aria-label': pub ? `Report ${r.n}` : `${r.n} — add friend or report`, html: DOTS, onclick: e => { e.stopPropagation(); openReport(r, def); } }) : null,
       h('span.bd-v', fmtValue({ ...def, fmt: S.period === 'all' && def.allFmt ? def.allFmt : def.fmt }, r.v), unitOf(def, S.period) ? h('small', unitOf(def, S.period)) : null))));

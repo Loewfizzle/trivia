@@ -10,6 +10,7 @@
 // THE ROOM WINS (DM1's server half): the room starts a game mid-run → the run closes ("GAME STARTING · YOUR DAILY IS SAVED"), COAST CLEAR's
 // clock paused on the server (+15 s), the run HELD (js/daily/today.js) → the RESUME chip after the match brings it back exactly where it was.
 import { h, clear, reducedMotion } from '../ui/dom.js';
+import { rankMedal } from '../ui/medal.js';
 import { tubeButton } from '../ui/components.js';
 import { sfx } from '../audio/sfx.js';
 import { state, setState } from '../store.js';
@@ -324,7 +325,7 @@ function openScreen(tab0) {
   function everyRow(d, r, played, i) {
     const shown = played && r.v != null;
     return h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${shown && r.rank === 1 ? '.is-first' : ''}${r.below ? '.is-below' : ''}`, { dataset: { pid: r.id || `me${i}` } },
-      h('span.lb-rank', shown && r.rank ? ordinal(r.rank) : ''),
+      h('span.lb-rank', shown && r.rank ? (rankMedal(r.rank, { size: 32 }) || ordinal(r.rank)) : ''),   // (CITY B: THE DECO MEDALS for 1–3)
       h('div.lb-card.dy-card', h('div.lb-sub',
         r.gated ? h('small.dy-cnote', 'NOT COUNTED') : null,
         h('span.lb-pts', shown ? resultEl(d.id, r.v, r.e) : h('span.lb-score.dy-cscore', 'PLAYED')))));
@@ -395,7 +396,7 @@ function openScreen(tab0) {
     const all = [...rows, ...(you ? [you] : [])];
     ev.append(...all.map((r, i) => {
       const ln = r.mine ? allTimeLine(r.mine, MIN_DAYS) : null;
-      return h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.rank === 1 ? '.is-first' : ''}${r.below ? '.is-below' : ''}`, { dataset: { pid: r.id || `me${i}` } }, h('span.lb-rank', r.rank ? ordinal(r.rank) : ''),
+      return h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.rank === 1 ? '.is-first' : ''}${r.below ? '.is-below' : ''}`, { dataset: { pid: r.id || `me${i}` } }, h('span.lb-rank', r.rank ? (rankMedal(r.rank, { size: 32 }) || ordinal(r.rank)) : ''),
         h('div.lb-card.dy-card', h('div.lb-sub', ln && ln.note ? h('small.dy-cnote.dy-anote', ...ln.note.split(' · ').map(x => h('span', x))) : null,
           ln ? (ln.score ? h('span.lb-pts', h('span.lb-score.dy-cscore', ln.score, h('small.dy-unit', ln.unit))) : null)
             : h('span.lb-pts', h('span.lb-score.dy-cscore', (r.v / 100).toFixed(1), h('small.dy-unit', 'AVG'))))));

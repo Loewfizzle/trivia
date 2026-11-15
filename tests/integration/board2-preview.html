@@ -37,7 +37,6 @@
   .bd-srows { list-style: none; margin: 0; padding: 10px 12px 12px 6px; display: grid; gap: 12px; }
   .bd-srow { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: start; column-gap: 6px; }
   .bd-srank { height: 58px; display: grid; place-items: center; font: 800 14px/1 var(--font-num); color: var(--bd-dim); }
-  .bd-srank .bd-medal { width: 28px; height: 28px; font-size: 13px; }
   .bd-scard { position: relative; min-width: 0; }
   .bd-scard .vl-strip { width: 100%; }
   .bd-ssub { display: flex; align-items: center; gap: 8px; margin: 4px 2px 0; min-height: 22px; }
@@ -127,6 +126,7 @@
   if (!q.get('labmarks')) { q.set('labmarks', 'all'); history.replaceState(null, '', `?${q}`); }
   const SHOT = q.get('shot') || 'board';
   const { h } = await import('/js/ui/dom.js');
+  const { rankMedal } = await import('/js/ui/medal.js');
   const { installEmblems } = await import('/js/ui/emblems.js');
   const { tubeButton } = await import('/js/ui/components.js');
   const { stripKit, stripFor, stripFx } = await import('/js/ui/strip-board.js');
@@ -159,7 +159,7 @@
   function srow(r, i, kind, unit, surface) {
     const mine = r.id === 'me';
     const s = stripFor(K, r);
-    const rk = r.rank <= 3 ? h('span.bd-medal', { class: `is-${['', 'gold', 'silver', 'bronze'][r.rank]}` }, String(r.rank)) : String(r.rank);
+    const rk = (r.rank <= 3 && rankMedal(r.rank, { size: 32 })) || String(r.rank);   // (CITY B: THE DECO MEDALS — the one component)
     const li = h(`li.bd-srow${mine ? '.is-me' : ''}${r.rank === 1 ? '.is-1' : ''}`,
       h('span.bd-srank', rk),
       h('div.bd-scard', s.el, h('div.bd-ssub',
