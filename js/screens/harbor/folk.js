@@ -1217,6 +1217,14 @@ function glowSprite(soft = false) {
   GLOW[k] = cv; return cv;
 }
 const nightOf = env => Math.max(clamp01(env.dark || 0), clamp01((env.T && env.T.night) || 0));
+/** CITY B: a glow in a colour (the glow sticks' halo) — one small sprite per colour, made once */
+const TINTS = new Map();
+function glowTint(c, col, x, y, r, a) {
+  if (a <= 0.01 || typeof document === 'undefined') return;
+  const k = col.join(','); let cv = TINTS.get(k);
+  if (!cv) { cv = document.createElement('canvas'); cv.width = cv.height = 64; const g2 = safeCtx(cv); if (g2) { const gr = g2.createRadialGradient(32, 32, 0, 32, 32, 32); for (const [t, al] of [[0, 1], [0.2, 0.6], [0.45, 0.22], [0.75, 0.05], [1, 0]]) gr.addColorStop(t, `rgba(${k},${al})`); g2.fillStyle = gr; g2.fillRect(0, 0, 64, 64); } TINTS.set(k, cv); }
+  const ga = c.globalAlpha; c.globalAlpha = ga * Math.min(1, a); c.drawImage(cv, x - r, y - r, r * 2, r * 2); c.globalAlpha = ga;
+}
 function glow(c, x, y, r, a, soft = false) { const g = glowSprite(soft); if (!g || a <= 0.01) return; c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, a) * (c.globalAlpha || 1); c.drawImage(g, x - r, y - r, r * 2, r * 2); c.restore(); }
 /** a cape from the shoulders: trailing behind the walk (a hero's flutters), its lining showing on the edge that swings out */
 function cape(c, J, L, X, Y, H, f) {
@@ -1492,10 +1500,20 @@ function holidayCarry(c, J, L, X, Y, H, f, env, hand) {
     c.strokeStyle = f([220, 210, 190], 1.2); c.lineWidth = Math.max(0.25, H * 0.005); c.beginPath(); c.moveTo(hx - d * H * 0.12, hy + H * 0.03); c.lineTo(hx + d * H * 0.08, hy - H * 0.03); c.stroke();
   }
   if (L.glowstick) {
-    const o = J.hands[1 - J.near], gx = X(o[0]), gy = Y(o[1]), col = L.glowstick, a = 0.5 + 0.5 * nk;
-    c.save(); c.strokeStyle = `rgba(${col.join(',')},${a.toFixed(2)})`; c.lineWidth = Math.max(0.6, H * 0.016); c.lineCap = 'round';
-    c.beginPath(); c.moveTo(gx - d * H * 0.02, gy + H * 0.03); c.lineTo(gx + d * H * 0.03, gy - H * 0.05); c.stroke();
-    if (nk > 0.2) { c.globalCompositeOperation = 'lighter'; c.strokeStyle = `rgba(${col.join(',')},${(0.25 * nk).toFixed(2)})`; c.lineWidth = Math.max(1.5, H * 0.06); c.stroke(); }
+    // CITY B — MUCH BRIGHTER (the owner): at night a soft halo in its colour, the coloured tube, a WHITE-HOT core — readable at party distance
+    // on a phone; by day a plain plastic stick. It rides the far hand (its swing is the walk's own — no new motion)
+    const o = J.hands[1 - J.near], gx = X(o[0]), gy = Y(o[1]), col = L.glowstick, x0 = gx - d * H * 0.022, y0 = gy + H * 0.035, x1 = gx + d * H * 0.034, y1 = gy - H * 0.06;
+    c.save(); c.lineCap = 'round';
+    const line = (w, st) => { c.strokeStyle = st; c.lineWidth = w; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); };
+    if (nk > 0.2) {
+      const k = Math.min(1, (nk - 0.2) / 0.4);
+      c.globalCompositeOperation = 'lighter';
+      glowTint(c, col, (x0 + x1) / 2, (y0 + y1) / 2, Math.max(5.5, H * 0.22), 0.7 * k);
+      line(Math.max(3, H * 0.085), `rgba(${col.join(',')},${(0.38 * k).toFixed(2)})`);
+      c.globalCompositeOperation = 'source-over';
+      line(Math.max(1.3, H * 0.03), `rgb(${col.join(',')})`);
+      line(Math.max(0.6, H * 0.013), `rgba(255,255,255,${(0.9 * k).toFixed(2)})`);
+    } else line(Math.max(0.6, H * 0.016), `rgba(${col.map(v => Math.round(v * 0.75 + 40)).join(',')},0.9)`);
     c.restore();
   }
 }
