@@ -26,8 +26,12 @@ export function goneAnswer({ reloadedFor, live }) {
   return { mix: true, reload: true };
 }
 /** PURE: may the queued catch-up reload run NOW? Only at a RETURN (the app back on screen / opened), never mid-match (holding), never with a
- *  sheet open or a finger down (gated) */
-export const reloadAtReturn = ({ returning, holding, gated }) => !!returning && !holding && !gated;
+ *  sheet open or a finger down (gated). FIXES R1 — THE SHARE HOLD (the owner's home-screen app reloaded after SHARE TODAY → sending it to
+ *  himself): a share sheet, and the app it hands the link to, is no return — never within SHARE_HOLD_MS of a share's start or end
+ *  (`sharedAgo` — js/daily/share.js#shareHold stamps globalThis.__nsShareAt: a hub, THE STALE-MODULE RULE) */
+export const SHARE_HOLD_MS = 60_000;
+export const reloadAtReturn = ({ returning, holding, gated, sharedAgo = Infinity }) => !!returning && !holding && !gated && !(sharedAgo >= 0 && sharedAgo < SHARE_HOLD_MS);
+const sharedAgo = () => { const t = Number(globalThis.__nsShareAt) || 0; return t ? Date.now() - t : Infinity; };
 let gate = () => false, whereFn = () => '';
 /** app.js: hold() → true while a match is on screen; o.gate() → true while a sheet / pop-up is open or a finger is down; o.where() = the screen */
 export function holdSkewReload(fn, o = {}) {
@@ -98,7 +102,7 @@ function onVis() {
   wasHidden = false; pending.returns++;
   let holding = true, gated = true;
   try { holding = !!hold(); gated = !!gate(); } catch { /* both stay true: wait */ }
-  if (!reloadAtReturn({ returning: true, holding, gated })) return;
+  if (!reloadAtReturn({ returning: true, holding, gated, sharedAgo: sharedAgo() })) return;
   doReload();
 }
 async function doReload() {

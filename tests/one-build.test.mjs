@@ -18,6 +18,11 @@ test('the page\'s answer to ns:build-gone (CITY A — item 10): keep going on th
   assert.equal(reloadAtReturn({ returning: false, holding: false, gated: false }), false, 'never mid-tap: a tap is not a return');
   assert.equal(reloadAtReturn({ returning: true, holding: true, gated: false }), false, 'never mid-match');
   assert.equal(reloadAtReturn({ returning: true, holding: false, gated: true }), false, 'never with a sheet open');
+  // (FIXES R1 — THE SHARE HOLD: a return within 60 s of a share's start / end — the share sheet, Messages — is no return)
+  assert.equal(reloadAtReturn({ returning: true, holding: false, gated: false, sharedAgo: 2000 }), false, 'never right after a share');
+  assert.equal(reloadAtReturn({ returning: true, holding: false, gated: false, sharedAgo: 59_000 }), false);
+  assert.equal(reloadAtReturn({ returning: true, holding: false, gated: false, sharedAgo: 61_000 }), true, 'a later return still reloads');
+  assert.equal(reloadAtReturn({ returning: true, holding: false, gated: false, sharedAgo: Infinity }), true, 'no share = the old rule');
   const L = fs.readFileSync('js/ui/lazy-import.js', 'utf8');
   assert.doesNotMatch(L.slice(L.indexOf('function checkSkew'), L.indexOf('function queueReload')), /location\.reload\(\)/, 'a failed import never reloads on the spot');
   assert.match(L, /kind: 'reload', text/, 'each one logged to /admin');

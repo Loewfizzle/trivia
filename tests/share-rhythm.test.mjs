@@ -314,7 +314,7 @@ test('PFIX-3 — S11, THE CARD IS BUILT BEFORE THE TAP: prepShare builds once, t
   // where it is warmed: the DAILY screen as TODAY shows the button, each daily's end screen, THE DROP's end card
   assert.match(read('js/screens/daily.js'), /if \(share\) warmShare\(t\);/);
   assert.match(read('js/games/drop/view.js'), /sharer\(sc\)\.then\(H => H\.warm\(\)\)/);
-  assert.match(read('js/daily/share-today.js'), /export function prepToday\(today, lineOf, \{ streak = 0, look \} = \{\}\) \{\n  return prepShare\(async \(\) => \{/);
+  assert.match(read('js/daily/share-today.js'), /export function prepToday\(today, lineOf, \{ streak = 0, look, pid = null \} = \{\}\) \{\n  return prepShare\(async \(\) => \{/);
 });
 
 test('PFIX-3 (Ben, Nov 14) — SHARE TODAY: THE DROP\'s board box is DECENT SIZED — its strip is taller than the rhythm\'s, COAST CLEAR\'s lamps gave up the room', async () => {

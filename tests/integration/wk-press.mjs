@@ -190,7 +190,7 @@ try {
 
   // ---- CITY E — THE TAPPABLE SHARE CARD: SHARE TODAY now shares a LINK (its preview = the day's card, uploaded while the screen opened —
   //      js/daily/share.js#prepShare's `upload`). The tap stays ONE share() call inside the touch's own lift (a real gesture), nothing awaited
-  //      before it, never rescued; the share carries the url + the same line (no file)
+  //      before it, never rescued; the share carries the url ONLY (FIXES R1 — the owner: no text; no file)
   await p.evaluate(async () => {
     window.__shareArgs = []; window.__act = [];
     const ua = () => (navigator.userActivation ? navigator.userActivation.isActive : 'n/a');
@@ -213,8 +213,9 @@ try {
     await waitFor('window.__shareArgs.length >= 1', 3000); await sleep(500);
     const r = await p.evaluate('({ args: window.__shareArgs, act: window.__act, up: window.__upBytes })'), s1 = await tw();
     const a = r.args[0] || {};
-    ok(r.args.length === 1 && a.url === 'https://www.neonspeakeasy.com/api/daily?s=TESTcode0001' && !a.files && /DAILIES/.test(a.text || '') && r.act[0]?.[1] !== false && s1.rescues === s0.rescues,
-      `${tag} SHARE TODAY → ONE share() with the LINK (${a.url || 'none'}) + the line, no file, inside the touch's lift (user activation: ${JSON.stringify(r.act[0]?.[1])}) · the half card uploaded at prepare (${r.up} B) · rescues +${s1.rescues - s0.rescues}`);
+    // (FIXES R1 — THE OWNER: the LINK ONLY — no text in the message; the preview carries the card)
+    ok(r.args.length === 1 && a.url === 'https://www.neonspeakeasy.com/api/daily?s=TESTcode0001' && !a.files && !('text' in a) && r.act[0]?.[1] !== false && s1.rescues === s0.rescues,
+      `${tag} SHARE TODAY → ONE share() with the LINK ONLY (${a.url || 'none'}; text: ${JSON.stringify(a.text)}), no file, inside the touch's lift (user activation: ${JSON.stringify(r.act[0]?.[1])}) · the half card uploaded at prepare (${r.up} B) · rescues +${s1.rescues - s0.rescues}`);
     table.push(`${noClick ? 'no click' : 'click on'} · SHARE TODAY (the link): share ${r.args.length}×`);
   }
   await p.evaluate("document.getElementById('dy-test').remove(); window.__noClick = false");

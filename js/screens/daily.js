@@ -524,7 +524,7 @@ async function shareHandle(t) {
   const key = shareKeyOf(t);
   if (key === shareKey && shareH) return shareH;
   const m = await lazyImport(import('../daily/share-today.js'), '../daily/share-today.js');
-  if (key !== shareKey || !shareH) { shareKey = key; shareH = m.prepToday(t, lineOf, { streak: shareStreak() }); }
+  if (key !== shareKey || !shareH) { shareKey = key; shareH = m.prepToday(t, lineOf, { streak: shareStreak(), pid: pidNow() }); }
   return shareH;
 }
 function warmShare(t) { shareHandle(t).then(H => H.warm()).catch(e => console.warn('[daily share] warm', e)); }

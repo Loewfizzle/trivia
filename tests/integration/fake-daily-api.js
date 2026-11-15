@@ -11,6 +11,8 @@ export async function api(name, body = {}) {
   if (name === 'daily' && body.action === 'room') return { mid: window.__dyMid || [] };
   if (name === 'daily' && body.action === 'every') { if (!window.__dyEvery) throw new ApiFail(0, 'offline', 'preview'); const e = JSON.parse(JSON.stringify(window.__dyEvery)); for (const g of body.all || []) if (e[g] && window.__dyEveryAll) e[g] = window.__dyEveryAll(g); return { day: 'd20261108', every: e }; }   // (DFIX5)
   if (name === 'daily' && body.action === 'lesson') return { ok: true };
+  // (FIXES R1 — THE REVIEW A4: the uploads counted across reloads — localStorage test:shrup — wk-share-standalone.mjs proves a reopen uploads nothing)
+  if (name === 'daily' && body.action === 'shareCard') { let n = 0; try { n = Number(localStorage.getItem('test:shrup') || 0) + 1; localStorage.setItem('test:shrup', String(n)); } catch { /* fine */ } window.__shrUp = n; return { code: 'PREVIEWcode1', v: 'h' + n, path: '/api/daily?s=PREVIEWcode1' }; }
   if (name === 'daily' && body.action === 'points') { if (!window.__dyPoints) throw new ApiFail(0, 'offline', 'preview'); return JSON.parse(JSON.stringify(window.__dyPoints)); }
   if (name === 'profile' && body.action === 'player') { if (!window.__ppAnswer) throw new ApiFail(0, 'offline', 'preview'); await new Promise(r => setTimeout(r, window.__ppDelay || 200)); return JSON.parse(JSON.stringify(window.__ppAnswer(body))); }
   if (name === 'profile' && body.action === 'friends') return { friends: window.__dyFriends || [], in: [], out: [], blocked: [], recent: [], caps: {} };

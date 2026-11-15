@@ -436,8 +436,8 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
     case 'shareCard': {
       // CITY E — THE TAPPABLE SHARE CARD: the day's card (540 × 675 PNG) uploaded when SHARE TODAY is PREPARED (never at the tap) — api/_lib/share-card.js
       const pid = await mine(uid);
-      const { code } = await saveShareCard({ pid, day: body.day, games: body.games, png: body.png, now });
-      return { code, path: `/api/daily?s=${code}` };
+      const { code, v, same } = await saveShareCard({ pid, day: body.day, games: body.games, png: body.png, now });
+      return { code, v, path: `/api/daily?s=${code}`, ...(same ? { same: true } : {}) };
     }
     case 'room': {
       const mid = await midDaily({ uid, code: body.room, games: todaysDailies(), now });
@@ -559,8 +559,9 @@ async function finishRun({ pid, cart, day, now, today = streakDay(now), result =
 }
 
 /** CITY E — THE TAPPABLE SHARE CARD's two GETs (no sign-in: a link preview fetches them): ?s=<code> → the link-preview page (an unknown /
- *  expired code → the site's home, never an error page) · ?si=<code> → the PNG with a long EDGE cache (s-maxage — repeated preview fetches hit
- *  the CDN, not the database; a gone card → the site's link picture) */
+ *  expired code → the site's home, never an error page) · ?si=<code>&v=<h> → the PNG with an HOUR's edge cache (FIXES R1 A5 — was 7 days
+ *  immutable: a card the owner deletes stops showing within the hour; the page names the picture by its hash, so a re-shared card is a new
+ *  URL; a gone card → the site's link picture) */
 export async function shareGet(req, res) {
   const q = new URL(req.url || '/', 'http://x').searchParams;
   const host = String(req.headers['x-forwarded-host'] || req.headers.host || 'www.neonspeakeasy.com').split(',')[0].trim();
@@ -575,7 +576,7 @@ export async function shareGet(req, res) {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Content-Length', String(buf.length));
-    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=604800, immutable');   // (a code's picture never changes: a re-share makes a NEW code)
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');   // (FIXES R1 A5 — ≤ 1 h: a deleted card stops showing within the hour)
     return res.end(buf);
   }
   const code = q.get('s');
@@ -584,7 +585,7 @@ export async function shareGet(req, res) {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600');
-  return res.end(sharePage({ code, name: r.n, games: r.g, day: r.d, base }));
+  return res.end(sharePage({ code, name: r.n, games: r.g, day: r.d, base, v: r.h || '' }));
 }
 
 export default route(['POST', 'GET'], async (req, res) => {

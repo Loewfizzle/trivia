@@ -10,7 +10,7 @@
 // "NOT YET: <name>" line. ONE daily finished = that daily's OWN card, exactly as it is. A daily with no section painter (a new one plugged in) or
 // no share data → its name + its result line (its meta's scoreLine). Up to 6 sections, scaled evenly. Both looks (the day sky / the night neon).
 // THE BAR: shown 360 px wide in a text thread, THE PASSWORD's grid colours, the time and the address still read (the pass log's shots).
-import { shareFrame, prepShare, shareAddress, paintName, spacedText, spacedWidth, RHYTHM, FOOT, base64Of } from './share.js';
+import { shareFrame, prepShare, shareAddress, paintName, spacedText, spacedWidth, RHYTHM, FOOT, base64Of, blobHash, keptLink, keepLink, rememberedLink } from './share.js';
 import { shareTodayLine, MAX_ROWS } from './today-logic.js';
 import { dateLineOf } from './ticket-art.js';
 import { lazyImport } from '../ui/lazy-import.js';
@@ -124,7 +124,7 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
  * { share }`), the card and its PNG are made when the DAILY screen SHOWS the button (`warm()`); the tap (`send()`) then opens the share sheet
  * at once with the ready file + the one line (js/daily/share.js#prepShare — one send at a time; no file sharing → the card shown in a sheet).
  */
-export function prepToday(today, lineOf, { streak = 0, look } = {}) {
+export function prepToday(today, lineOf, { streak = 0, look, pid = null } = {}) {
   return prepShare(async () => {
     const line = shareTodayLine(today, (id, s) => String(lineOf(id, s)).toLowerCase());
     let share = {};
@@ -132,10 +132,18 @@ export function prepToday(today, lineOf, { streak = 0, look } = {}) {
     // (CITY E — THE TAPPABLE SHARE CARD: the card's half-size PNG goes to the server while the screen opens; the tap then shares the LINK — its
     //  preview IS this card. The dailies it names = the ones this player finished today (the server checks each has its judged result))
     const games = list(today).filter(d => today.mine && today.mine[d.id] != null).map(d => d.id);
+    // (FIXES R1 — THE REVIEW A4: uploaded ONLY when this day's card CHANGED — the same picture again (a reload, the screen reopened) shares
+    //  the remembered link; nothing goes up)
     const upload = games.length ? async png => {
+      const h = await blobHash(png).catch(() => '');
+      const who = { pid: pid || '', day: today.day, h };
+      const kept = h ? rememberedLink(keptLink(), who) : '';
+      if (kept) return kept;
       const { dailyShareCard } = await lazyImport(import('./contract.js'), './contract.js');
       const r = await dailyShareCard(today.day, games, await base64Of(png));
-      return r && r.path ? new URL(r.path, location.origin).href : '';
+      const url = r && r.path ? new URL(r.path, location.origin).href : '';
+      if (url && h) keepLink({ ...who, url });
+      return url;
     } : null;
     return { cv: await drawToday(today, lineOf, look, { streak, share }), name: 'neon-speakeasy-dailies.png', line, upload };
   });

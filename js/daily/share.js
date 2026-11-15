@@ -174,19 +174,25 @@ const canShareFile = file => { try { return !!(file && navigator.share && naviga
  */
 export async function sendReady({ blob, file, line = '', url = '' } = {}) {
   if (!blob) return 'failed';
-  // (CITY E — THE TAPPABLE SHARE CARD: the card's picture is on the server — the LINK goes out with the same line, its preview IS the card;
-  //  no link (the upload failed) → the image + the line as before)
+  // (CITY E — THE TAPPABLE SHARE CARD: the card's picture is on the server — the LINK goes out, its preview IS the card. FIXES R1 — THE OWNER:
+  //  the LINK ONLY, no text in the message. No link (the upload failed) → the image + the line as before)
   if (url && canShareLink(url)) {
-    try { await navigator.share({ text: line, url }); return 'shared'; }
+    try { shareHold(); await navigator.share({ url }); return 'shared'; }
     catch (e) { if (e && e.name === 'AbortError') return 'none'; /* refused → the image path below */ }
+    finally { shareHold(); }
   }
   const can = canShareFile(file);
   if (can) {
-    try { await navigator.share({ files: [file], text: line }); return 'shared'; }
+    try { shareHold(); await navigator.share({ files: [file], text: line }); return 'shared'; }
     catch (e) { if (e && e.name === 'AbortError') return 'none'; /* refused (too long after the tap · not allowed here) → shown */ }
+    finally { shareHold(); }
   }
   return showCard({ blob, file, line, can });
 }
+/** FIXES R1 — THE SHARE HOLD: the share sheet (and the app it hands the link to — Messages, Mail…) is not "the player came back" — the queued
+ *  catch-up reload (ui/lazy-import.js#reloadAtReturn — ONE DEPLOY AT A TIME) waits 60 s past a share's start AND its end; it reads this hub
+ *  (a lazy chunk never imports a boot module for a new export — THE STALE-MODULE RULE) */
+export const shareHold = () => { try { globalThis.__nsShareAt = Date.now(); } catch { /* fine */ } };
 /** the card in THE SHEET: the picture (press and hold saves it on a phone), ONE line under it, a SHARE tube where a file can be shared — and
  *  nothing over the card (no message) → 'shown' */
 export async function showCard({ blob, file = null, line = '', can = false } = {}) {
@@ -198,7 +204,7 @@ export async function showCard({ blob, file = null, line = '', can = false } = {
     let busy = false;
     const again = can ? tubeButton('SHARE', { kind: 'main', block: true, cls: 'shr-go', attrs: { 'data-gesture': true }, onClick: async () => {
       if (busy) return; busy = true;
-      try { await navigator.share({ files: [file], text: line }); S.close(); } catch { /* closed / refused: the picture stays */ } finally { busy = false; }
+      try { shareHold(); await navigator.share({ files: [file], text: line }); S.close(); } catch { /* closed / refused: the picture stays */ } finally { busy = false; shareHold(); }
     } }) : null;
     const S = openSheet({ title: 'YOUR CARD', cls: 'shr-sheet', label: 'Your share card', body: [img, h('p.shr-hold', 'PRESS AND HOLD TO SAVE'), again], onClose: () => setTimeout(() => URL.revokeObjectURL(url), 1500) });
     // (THE ADD-ON, Nov 14 4:14 pm: NO message over this sheet — it covered the card and repeated the line under it; the sheet IS the answer)
@@ -253,6 +259,21 @@ export async function halfPng(cv) {
     return b;
   } catch { return null; }
 }
+/** FIXES R1 (THE REVIEW A4) — A CARD UPLOADS ONCE: the picture's fingerprint (SHA-256 where the page is secure, else FNV-1a over the bytes —
+ *  a LAN preview on plain http) → a short string. The phone remembers { pid, day, h, url } (localStorage ns:shr — ONE entry, the latest day):
+ *  the same card again (a reload, the screen reopened) shares the remembered link, nothing uploaded; a CHANGED card uploads (the server keeps
+ *  that day's code — the link already sent keeps working) */
+export async function blobHash(blob) {
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  try { if (globalThis.crypto && crypto.subtle && globalThis.isSecureContext) return [...new Uint8Array(await crypto.subtle.digest('SHA-256', buf))].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join(''); } catch { /* below */ }
+  let h = 0x811c9dc5; for (let i = 0; i < buf.length; i++) { h ^= buf[i]; h = Math.imul(h, 0x01000193) >>> 0; }
+  return `f${h.toString(16)}${buf.length.toString(16)}`;
+}
+export const SHARE_LINK_KEY = 'ns:shr';
+/** PURE: the remembered link for this card, or '' (another player · another day · another picture) */
+export const rememberedLink = (kept, { pid, day, h }) => (kept && kept.pid === pid && kept.day === day && kept.h === h && typeof kept.url === 'string' ? kept.url : '');
+export function keptLink() { try { return JSON.parse(localStorage.getItem(SHARE_LINK_KEY) || 'null'); } catch { return null; } }
+export function keepLink(v) { try { localStorage.setItem(SHARE_LINK_KEY, JSON.stringify(v)); } catch { /* private mode: it uploads again next time */ } }
 /** a blob → its base64 (no data: prefix) */
 export const base64Of = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).replace(/^data:[^,]*,/, '')); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
 /** SHARE a card drawn at the tap (SHARE YOUR RUN's podium card — small, drawn in one frame): the same sender → 'shared' | 'none' | 'shown' | 'failed' */

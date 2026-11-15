@@ -640,18 +640,35 @@ counts like any finish (the streak, the XP, the points of the score it could pro
 SHARE TODAY sends a **LINK** (+ the same line) whose link-preview picture IS the day's card — tapping the preview opens the site's DAILY screen.
 - **THE PHONE** (`js/daily/share.js#prepShare` — THE CARD IS BUILT BEFORE THE TAP unchanged): `make()` may return `upload(png)` → the half-size PNG
   (`halfPng` — exactly **540 × 675**: the full 1080 × 1350 card is 365 KB – 1 MB, over the cap; the half 79 – 246 KB) is sent while the screen opens
-  (`js/daily/share-today.js` → `contract.js#dailyShareCard`); `sendReady` then shares `{ text, url }` (one `navigator.share`, inside the tap); no
+  (`js/daily/share-today.js` → `contract.js#dailyShareCard`); `sendReady` then shares `{ url }` (FIXES R1 — the link only; one `navigator.share`, inside the tap); no
   link (the upload failed / refused) → the image + line as before. `shareAddress` + THE ONE RULE untouched.
 - **THE SERVER** (`api/_lib/share-card.js`, from `api/daily.js` — no new function, no rewrite, THE WRONG DOOR holds): `POST { action: 'shareCard',
   day, games, png }` — a JUDGED finish (`dly/{g}/{day}/r/{pid}`) of EVERY named daily that day, a real PNG (magic + IHDR) at exactly 540 × 675,
-  ≤ 400 KB → a server-made 12-char code; ONE card a player a day (a re-share replaces it). Stored server-only: `shr/{code}` = { p, d, g, n, at, img }
+  ≤ 400 KB → a server-made 12-char code; ONE card a player a day (FIXES R1: under ONE code for the day — a re-share replaces its picture). Stored server-only: `shr/{code}` = { p, d, g, n, at, img }
   · `shrx/{day}/{code}` = pid (the sweep's index) · `shrp/{pid}/{day}` = code. `GET ?s=<code>` = the preview page (og:title `<NAME> · <DAILY> ·
   <day>` — the public name, ONE daily's name or THE DAILIES, "Nov 15"; og:image `?si=`; summary_large_image; → `/?daily=1`); `GET ?si=<code>` = the PNG,
-  `s-maxage` 7 days + immutable; an unknown / expired code → `/` (the picture → `/assets/og.jpg`). THE DAY'S CLOSE sweeps cards past 7 days
+  `s-maxage` 1 h (FIXES R1 — was 7 days + immutable); an unknown / expired code → `/` (the picture → `/assets/og.jpg`). THE DAY'S CLOSE sweeps cards past 7 days
   (`sweepShares`, once a day per warm function — no idle poll). /admin → THE DAILIES → SHARE CARDS (list + delete one).
 - **`/?daily=1`** (`js/app.js`): the DAILY screen opens once the city is up (never in a room); the flag dropped from the address at once.
 - **Cost ≈ 3 requests a share** (the upload, the page, the picture — repeated preview fetches are edge hits). Tests: `tests/integration/share-card.test.mjs`
   + `wk-press.mjs` (SHARE TODAY = ONE share() with the link inside the touch's lift).
+- **FIXES R1 (Nov 15 — THE REVIEW A2 / A4 / A5 + the owner):**
+  - **THE LINK ONLY** — `sendReady` shares `{ url }` (no text: the owner — the preview carries the card); the image fallback keeps its line.
+  - **ONE CARD A PLAYER A DAY, PROVEN** — THE SLOT `shrp/{pid}/{day}` is claimed in a TRANSACTION: the first upload mints the day's code, every
+    other (12 at once, later waves) gets the SAME code; ≤ `SHARE_UPLOADS_A_DAY` (6) uploads a player a day (`rl/shrup:{pid}:{day}` → 429 `share_limit`).
+  - **THE SAME DAY KEEPS ITS CODE** — a changed card replaces the picture under the same code (a link already sent keeps working); the same bytes
+    (`shr/{code}/h` = sha256) write nothing (`{ same: true }`). The page's og:image = `?si=<code>&v=<h>` (a changed picture = a new picture URL).
+  - **THE PHONE UPLOADS ONLY A CHANGED CARD** — `share.js#blobHash` + localStorage `ns:shr` = ONE entry `{ pid, day, h, url }`: a reload / a reopened
+    screen shares the remembered link, nothing goes up (`wk-share-standalone.mjs` A: 1 upload over two reloads).
+  - **A WHOLE PNG** — `checkPng` walks every chunk to IEND (IHDR first at 13 bytes, each CRC, an IDAT, NOTHING after IEND): a header-only "PNG" or a
+    real card with a payload behind it is refused (`not_png`). Only a COUNTED finisher uploads (no `dly/{g}/{day}/x/{pid}` — THE THROWAWAY GATE → 403
+    `not_counted`; the phone then shares the image, as before).
+  - **THE PICTURE's EDGE CACHE = 1 HOUR** (`max-age=3600, s-maxage=3600`, no `immutable`; the page's stays 1 h). **Deleting a card (/admin → THE
+    DAILIES → SHARE CARDS) stops it showing within the hour.** To stop it AT ONCE: Vercel → the project → Settings → Caches → **Purge CDN Cache**
+    (or push a tagged deploy — THE EDGE CACHE keeps one copy per deploy). Chat apps that already fetched the preview keep their own copy.
+  - **THE SHARE HOLD** (the owner's home-screen app reloaded after SHARE TODAY → sending it to himself): a queued catch-up reload (ONE DEPLOY AT A
+    TIME) never runs at a return within 60 s of a share's start / end (`ui/lazy-import.js#reloadAtReturn` `sharedAgo`; `share.js#shareHold`
+    stamps the hub `globalThis.__nsShareAt`) — `wk-share-standalone.mjs` C: on the old rule the return from the share RELOADED the page.
 
 ## EVERYONE ON SCORES (DFIX5, Nov 14 2026 — the owner: "show everyone playing the dailies, friends or not"; docs/games/passes/dfix5.md)
 - **SCORES opens on EVERYONE.** Each daily's panel ("EVERYONE · TODAY") lists the day's top COUNTING finishers as slim cards (ui/strip-board.js — the
