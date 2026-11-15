@@ -981,8 +981,10 @@ export function assignSigns(games, spots, key = 'x', { avoid = null } = {}) {
   const fitsAny = id => others.some(s => signText(byId.get(id), s));
   const pool = shuffle(rngFrom(`signs|w${week}`), games.map(g => g.id).filter(fitsAny));
   const rot = pool.length ? (d * Math.max(1, named.length)) % pool.length : 0, order = [...pool.slice(rot), ...pool.slice(0, rot)];
-  // the most particular spots first (fewest words, then the shortest cap)
-  for (const s of [...others].sort((a, b) => (a.words || 1) - (b.words || 1) || (a.cap || 99) - (b.cap || 99))) {
+  // the phone's own spots first (CITY B: few games hang now — a panorama's extra blade never leaves a roof sign dark), then the most particular
+  // (fewest words, then the shortest cap)
+  const pano = x => (String(x.id).startsWith('n-pano') ? 1 : 0);
+  for (const s of [...others].sort((a, b) => pano(a) - pano(b) || (a.words || 1) - (b.words || 1) || (a.cap || 99) - (b.cap || 99))) {
     const g = order.find(id => !used.has(id) && signText(byId.get(id), s));
     if (g) { out.set(s.id, g); used.add(g); }
   }
