@@ -150,6 +150,42 @@ export function countQuiet(kind) {
 }
 export const quietCounts = () => ({ ...quietN });
 
+// CITY D — 1, A KILLED-PAGE MARKER (CUSTOMIZE + SCORES reloaded themselves on the owner's iPhone and NOTHING reached /admin — iOS kills the
+// tab's process for memory: no error, no pagehide). While the page is ON SCREEN it keeps a note of the screen it's on (sessionStorage
+// ns:alive — a tab's own, it survives the kill's reload); a clean exit (pagehide · hidden — iOS may evict a hidden tab, that's not a crash)
+// clears it. A load that finds it still there sends ONE quiet report: "PAGE KILLED (likely memory) · screen · device · build" (a row in
+// /admin's phone reports, grouped + counted — never a toast). app.js calls markScreen(where, build) on each screen change.
+const ALIVE = 'ns:alive';
+/** PURE: the note a load found → the report's text, or null (none / unreadable / older than a day — a stale tab) */
+export function killedText(note, now = Date.now()) {
+  if (!note || typeof note !== 'object' || typeof note.s !== 'string' || !(now - (note.at || 0) < 864e5)) return null;
+  const secs = Math.max(0, Math.round((now - (note.at0 || note.at)) / 1000));
+  return clip(`PAGE KILLED (likely memory) · ${note.s || '?'} · ${note.d || '?'} · build ${note.b || '?'}\nthe page reloaded itself with no clean exit (iOS ends a tab that runs out of memory); it had been on that screen ${secs} s`, 600);
+}
+let aliveNote = null;
+const deviceShort = () => { try { const u = navigator.userAgent; const m = u.match(/(iPhone|iPad|Android[^;)]*|Macintosh|Windows NT [\d.]+|CrOS)/); const v = u.match(/OS (\d+)_(\d+)/) || u.match(/Version\/([\d.]+)/); return `${m ? m[1] : 'device'}${v ? ` ${v[1]}${v[2] ? `.${v[2]}` : ''}` : ''}`; } catch { return '?'; } };
+function writeAlive() { try { if (aliveNote && document.visibilityState !== 'hidden') sessionStorage.setItem(ALIVE, JSON.stringify(aliveNote)); } catch { /* private mode: no marker */ } }
+const clearAlive = () => { try { sessionStorage.removeItem(ALIVE); } catch { /* fine */ } };
+/** the screen this page is on (no ids, no names) + the build it runs — written only when it changes */
+export function markScreen(where, build) {
+  const s = clip(String(where || '?'), 120), b = String(build || '?').slice(0, 9);
+  if (aliveNote && aliveNote.s === s && aliveNote.b === b) return;
+  const now = Date.now();
+  aliveNote = { s, b, d: deviceShort(), at: now, at0: aliveNote && aliveNote.s === s ? aliveNote.at0 : now };
+  writeAlive();
+}
+function checkKilled() {
+  let note = null;
+  try { note = JSON.parse(sessionStorage.getItem(ALIVE) || 'null'); } catch { note = null; }
+  clearAlive();
+  const text = killedText(note);
+  if (!text || BOT) return;
+  try {
+    const body = JSON.stringify({ p: 'report', r: { kind: 'killed', text } });
+    if (!(navigator.sendBeacon && navigator.sendBeacon('/api/log', new Blob([body], { type: 'text/plain' })))) fetch('/api/log', { method: 'POST', body, keepalive: true, headers: { 'Content-Type': 'text/plain' } }).catch(() => {});
+  } catch { /* the log is polish */ }
+}
+
 /** Report an error by hand (a caught failure that leaves the player stuck: a game screen that couldn't load…). */
 export const reportError = (error, label = '') => record({ error: error instanceof Error ? error : new Error(String(error)) }, label);
 const onEvent = input => record(input);
@@ -164,4 +200,9 @@ if (typeof window !== 'undefined' && typeof location !== 'undefined' && !window.
   window.addEventListener('unhandledrejection', ev => onEvent({ reason: ev.reason }));
   window.addEventListener('pagehide', flush);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+  // (CITY D — the killed-page marker: checked once at load, cleared on every clean exit, back on screen = written again)
+  checkKilled();
+  window.addEventListener('pagehide', clearAlive);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') clearAlive(); else writeAlive(); });
+  window.__errlog.killed = () => { try { return sessionStorage.getItem(ALIVE); } catch { return null; } };
 }

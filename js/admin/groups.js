@@ -27,7 +27,7 @@ export function groupErrors(list) {
 export function groupReports(list) {
   const by = new Map();
   for (const r of list || []) {
-    const key = r.kind === 'lost' ? 'LOST TAP' : r.kind === 'boot' ? 'BOOT HANG' : r.kind === 'reload' ? 'CATCH-UP RELOAD' : String(r.kind || 'tap').toUpperCase();   // (CITY FIXES: THE TAP WATCH's own kind; LOAD FIX 3: THE BOOT WATCHDOG's)
+    const key = r.kind === 'lost' ? 'LOST TAP' : r.kind === 'boot' ? 'BOOT HANG' : r.kind === 'reload' ? 'CATCH-UP RELOAD' : r.kind === 'killed' ? 'PAGE KILLED' : String(r.kind || 'tap').toUpperCase();   // (CITY FIXES: THE TAP WATCH's own kind; LOAD FIX 3: THE BOOT WATCHDOG's)
     let g = by.get(key);
     if (!g) by.set(key, g = { key, title: key, n: 0, newN: 0, first: Infinity, last: 0, items: [] });
     g.n++;

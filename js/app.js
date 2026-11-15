@@ -1,5 +1,5 @@
 // Entry point: boot Firebase, restore session, route state -> screen.
-import { setErrorContext } from './errlog.js';   // first: errors from phones (it also sees errors while the app boots)
+import { setErrorContext, markScreen } from './errlog.js';   // first: errors from phones (it also sees errors while the app boots)
 import { installTapWatch } from './ui/tapwatch.js';   // (CITY FIXES: THE TAP WATCH — a lost first tap → /admin, + THE RESCUE)
 import { h, $ } from './ui/dom.js';
 import './ui/vv.js';   // (THE VAULT 1B: --vv-ob — every bottom sheet above Safari's toolbar)
@@ -32,7 +32,7 @@ import { settings, onSettings, PAGE_SILENT, setPageQuiet } from './audio/setting
 import { lazyView } from './games/lazy-view.js';
 import { startShow } from './core/room-show.js';
 import { debugTool, onDebugTools } from './ui/debug-tools.js';
-import { lazyImport, holdSkewReload } from './ui/lazy-import.js';
+import { lazyImport, holdSkewReload, skewDebug } from './ui/lazy-import.js';
 // (FR7 FIXES C2 — THE SUPPORTED FLOOR: a browser below it keeps the boot screen's plain "too old" line — index.html's watchdog; the app stops
 //  HERE, before anything renders or listens: a below-floor engine that still parsed the code would otherwise half-run under that line)
 if (window.__boot && window.__boot.old) throw new Error('NEON SPEAKEASY: this browser is below the supported floor — the boot screen says so');
@@ -295,7 +295,13 @@ const whereNow = () => {
 };
 setErrorContext(whereNow);
 // (CITY FIXES — THE TAP WATCH: the screen + the top sheet's title — never a code or a name)
-installTapWatch({ where: () => { const sh = document.querySelector('.sh.is-in:last-of-type .sh-t b'); const ov = document.querySelector('.vl-full') ? ' + a full card' : document.querySelector('.vl-dress') ? ' + CUSTOMIZE' : document.querySelector('.rd-modal') ? ' + the radio' : ''; return `${whereNow()}${sh ? ` › ${sh.textContent.slice(0, 30)}` : ''}${ov}${state.daily ? ` · daily ${state.daily.v || ''}` : ''}`; } });
+const screenNow = () => { const sh = document.querySelector('.sh.is-in:last-of-type .sh-t b'); const ov = document.querySelector('.vl-full') ? ' + a full card' : document.querySelector('.vl-dress') ? ' + CUSTOMIZE' : document.querySelector('.rd-modal') ? ' + the radio' : ''; return `${whereNow()}${sh ? ` › ${sh.textContent.slice(0, 30)}` : ''}${ov}${state.daily ? ` · daily ${state.daily.v || ''}` : ''}`; };
+installTapWatch({ where: screenNow });
+// (CITY D — 1, THE KILLED-PAGE MARKER — js/errlog.js#markScreen: the screen this page is on, kept while it's on screen; the dailies' tab +
+//  TODAY / ALL TIME say where on SCORES. Checked every 2 s while visible — a session-storage write only when it changes)
+const markNow = () => { try { const t = document.querySelector('.dy-tab.is-on'), sc = document.querySelector('.dy-scope-b.is-on'); const sk = skewDebug(); markScreen(`${screenNow()}${t ? ` › ${t.textContent}` : ''}${sc ? ` › ${sc.textContent}` : ''}`, sk.page || sk.worker || 'local'); } catch { /* polish */ } };
+setInterval(() => { if (document.visibilityState !== 'hidden') markNow(); }, 2000);
+setTimeout(markNow, 0);
 // A finished match goes to the global boards: every phone in it queues one report when the podium appears
 // (the server counts it once and answers each phone with its own outcome). Back in the lobby, the key reminder.
 let reportedKey = '';

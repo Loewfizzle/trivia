@@ -20,7 +20,7 @@ export const LOG_LIMITS = { perRequest: 10, ipPerHour: 40, perDay: 3000, maxBody
 // js/hangwatch.js): POST /api/log { p: 'report', r: { kind: 'tap' | 'hang' | 'stall', text } } → phonelog/{push} { at, kind, text, ua, d,
 // b, v } — plain text the owner reads (+ screenshots) on /admin. 8 an hour per IP, 120 a day in all, the newest 40 kept.
 export const REPORT_LIMITS = { ipPerHour: 8, perDay: 120, keep: 40, text: 24_000 };
-const REPORT_KINDS = ['tap', 'hang', 'stall', 'bench', 'lost', 'boot', 'old', 'gone', 'ext', 'reload'];   // (CITY A — item 10: 'reload' = a CATCH-UP RELOAD, logged as a row: the build from → to, the screen, the reason)
+const REPORT_KINDS = ['tap', 'hang', 'stall', 'bench', 'lost', 'boot', 'old', 'gone', 'ext', 'reload', 'killed'];   // (CITY D: 'killed' = A KILLED PAGE — js/errlog.js's marker found at the next load: the screen, the device, the build)   // (CITY A — item 10: 'reload' = a CATCH-UP RELOAD, logged as a row: the build from → to, the screen, the reason)
 // CITY A — THE QUIET COUNTS: kinds COUNTED on one line, never stored as a row — 'old' (a browser below THE SUPPORTED FLOOR), 'gone' (a room write
 // the rules refused after this phone had left / lost the host / seen its room close — item 6), 'ext' (an error from a browser extension — item 28)
 export const QUIET_KINDS = ['old', 'gone', 'ext'];   // (FR7 FIXES C2: 'old' — a browser below THE SUPPORTED FLOOR, COUNTED, never stored)   // (C4c: 'bench' — THE PHONE BENCH's report, &bench=1; CITY FIXES: 'lost' — THE TAP WATCH; LOAD FIX 3: 'boot' — THE BOOT WATCHDOG's BOOT HANG, index.html)
