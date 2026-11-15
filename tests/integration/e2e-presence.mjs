@@ -60,6 +60,8 @@ await H.run(async () => {
   await p.waitForSelector('.lobby-screen, .title-screen.is-room', { timeout: 20000 });
   uids[2] = await evalIn(p, s => s.uid);
   await waitFor(host, s => Object.keys(s.players).length === 3, '3 players');
+  // (CITY D — 0a: SLOW=<rate> throttles every phone's CPU — the cloud runner is ~2× slower than the mini PC; the repro tool)
+  if (Number(process.env.SLOW) > 1) for (const pg of [host, pages[1], p]) { const c = await pg.createCDPSession(); await c.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.SLOW) }); }
   await waitFor(p, () => true, 'settle');
   ok(!!held, 'LOBBY STRIP: the chat strip\'s module is held while the lobby is up');
   const started = await H.startGame(host, 'overclock', { mode: 'quick' }).then(v => String(v), e => String(e && e.message || e));
@@ -77,6 +79,12 @@ await H.run(async () => {
   // ---------------------------------------------------------------- 2. a guest refreshes mid-challenge
   let q = await nextPlay(host, -1);
   ok(q === 0, 'OVERCLOCK: the first challenge');
+  // (CITY D — 0a, THE PRESENCE RED: a FLAKE of this test, not the game. DUMB LUCK never ends early — every board done or not, it runs its
+  //  27.7 s (luck.js#DL_MS) — and buildOrder may deal it FIRST; then "resolves once BOB is done" (20 s) timed out at ~25 s into the
+  //  challenge on every cloud run that drew it (Nov 13 · PD-6 · CITY C). The refresh case runs on the first SKILL challenge.)
+  const typeAt = ci => evalIn(host, (s, i) => s.game.order[i], ci);
+  while ((await typeAt(q)) === 'dumbluck') { log(`challenge ${q} is DUMB LUCK (never ends early) — the refresh case waits for the next one`); q = await nextPlay(host, q); }
+  ok(await evalIn(host, s => s.game.phase === 'play'), `REFRESH: a skill challenge to refresh in (${await typeAt(q)})`);
   pages[1].on('console', m => { if (/presence|heal/i.test(m.text())) log('BOB console', m.type(), m.text().slice(0, 200)); });
   log('BOB refreshes mid-challenge');
   await H.refresh(pages[1]);
@@ -93,7 +101,14 @@ await H.run(async () => {
     const still = await evalIn(host, (s, prev) => s.game.phase === 'play' && s.game.ci === prev, q);
     ok(still, 'REFRESH: the challenge WAITS for BOB (not skipped as offline) after the other two are done');
     await fileDone(1, g0);
-    await waitFor(host, (s, prev) => !(s.game.phase === 'play' && s.game.ci === prev), 'the challenge resolves once BOB is done', 20000, q);
+    try {
+      await waitFor(host, (s, prev) => !(s.game.phase === 'play' && s.game.ci === prev), 'the challenge resolves once BOB is done', 20000, q);
+    } catch (e) {
+      // (CITY D — 0a: what the host's director was looking at when it didn't move)
+      log('RESOLVE diag host', JSON.stringify(await evalIn(host, s => ({ me: s.uid, host: s.meta && s.meta.hostId, conn: s.connected, liveKey: s.liveKey, unseal: s.game && s.game.unseal, phase: s.game && s.game.phase, ci: s.game && s.game.ci, ck: s.game && s.game.ck, boards: s.live && s.live.boards, pres: s.presence }))));
+      log('RESOLVE diag db', JSON.stringify(await admin(db => import('firebase/database').then(m => m.get(ref(db, `rooms/${H.code}/oc`))).then(x => x.val()))));
+      throw e;
+    }
     ok(true, "REFRESH: BOB's board closes the challenge");
   } else ok(false, `REFRESH: the challenge was still open after BOB came back (phase ${g0.phase}, ci ${g0.ci})`);
 

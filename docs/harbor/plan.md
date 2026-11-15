@@ -6744,3 +6744,18 @@ OWNER'S NOTES — NOV 15 (the CITY C prompt)
 - og.jpg = CITY B's candidate 2 + a readable NEON SPEAKEASY title (the app's display font, a dark backing glow — not the city's tubes).
 - STATS lives in an owner-only ☰ sheet; the radio stays LIVE only (its THIS WEEK block moves to STATS).
 ```
+
+## OWNER'S NOTES — NOV 15 (CITY D's Step 0)
+
+```
+OWNER'S NOTES — NOV 15 (the CITY D prompt)
+- THE ORDER: CITY C ✅ → CITY D (fixes: the presence red, the memory kills, the leaving squeal with effects on, THE DROP's end card,
+  no room messages for a solo player, the owner's level on his slim card, the skyline's four different games, SCORES instantly)
+  → CITY E → THE MAINTENANCE REVIEW → JAYWALK → THE GIRL CARDS → THE TOWER MOVE → the reset + telling people.
+- CITY E follows D: THE BOARD's restyle (no pills, no gold buttons, neon-underline tabs, the REAL night city skyline behind it)
+  + THE TAPPABLE SHARE CARD (the shared link's preview picture IS the day's scorecard) + the Lab items (ZA DOMOVINU loses the
+  chequered flag; the horseshoe as a clear U; every pass reads the Lab's FIX list) + the full card's text panel trimmed to the
+  text's width (PROPRIETOR stays over THE SWITCHBOARD's VU meter).
+- The hotel's vertical sign = PRISM / HOLDEM only (JAY / WALK is too long there).
+- The four named signs (roof A, roof B, the hotel blade, the speakeasy blade's weekly game) show four DIFFERENT games every night.
+```
