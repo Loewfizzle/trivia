@@ -936,3 +936,15 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   (`.menu-btn { left: calc(var(--safe-l) + 12px) }` + `.music-btn { right: calc(var(--safe-r) + 12px) }`) — the frozen gridlock / slip / stakes / rum
   files still pin the old stacked pair (fix each when it comes back) — otherwise on desktop the buttons stay at the phone column's edge and land on
   the game's panels. Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
+
+## EVERY TAP ACTS (CITY A, Nov 14 — the owner's iPhone, Safari 27: taps with NO click at all — docs/harbor/passes/city-a.md)
+THE TAP WATCH's §4 (`js/ui/tapwatch.js`): a control marked **`data-press`** acts on its own press + lift — a touch / pen down + up of the same
+finger that began on it, < 10 px, ≤ 600 ms, not cancelled → its click is dispatched AT THE LIFT, once; the browser's own click after it is
+swallowed (≤ 800 ms, near the lift point); a control that MOVED under a still finger (a sliding sheet's row) or was replaced by its twin still
+acts. **Implicitly** too: every `.btn.btn-block` and every `.btn` inside a `[data-press-all]` screen (the YOU page + the room's overlay).
+**Never** on `[data-gesture]` (Safari's own gesture: `navigator.share`, passkeys, the notification prompt), copy / share (`data-act`), a
+form's submit, a `pressTap` control (the dock — never twice), and the implicit rule is off while a game runs. **A SHEET SETTLES:** a click
+inside a pop-up younger than 350 ms (`data-born` — THE SHEET, the full card, the radio's desk) that no press began on is swallowed (the
+opening tap's own click). ONE just-born guard for the backdrops: `ui/layers.js#bornGuard`. A lazy chunk only writes the attribute (no new
+import — THE STALE-MODULE RULE). Proof: `tests/integration/wk-press.mjs` (WebKit, the page's trusted clicks killed as iOS drops them).
+A layer whose element left the page is dropped by `layersOpen()` (`layerGone`) — a leaked layer never kills the city's taps again.

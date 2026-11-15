@@ -1200,7 +1200,7 @@ test('old browsers: counted on one line, never a BOOT HANG; a current browser st
 
 // ---- CITY A — THE QUIET COUNTS: 'gone' (a room write refused after the phone had left / lost the host / seen the room close — item 6) +
 // 'ext' (a browser extension's error — item 28) are COUNTED on one line each (logstats/{kind}), never a row; /admin's errors carries them
-test('THE QUIET COUNTS: gone + ext counted (≤ 3 an hour per IP + kind), never a row; /admin's errors action returns them', async () => {
+test('THE QUIET COUNTS: gone + ext counted (≤ 3 an hour per IP + kind), never a row; /admin errors action returns them', async () => {
   await ref('/').update({ phonelog: null, rl: null, logstats: null });
   const now = Date.UTC(2026, 10, 14, 21);
   const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 27_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1';

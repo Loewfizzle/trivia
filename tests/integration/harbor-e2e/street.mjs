@@ -307,9 +307,10 @@ G('people', async () => {
   // the stage band's pixels, as one fingerprint (the A/B against &force=no-people)
   const band = p => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, c = ${P}.cam, y0 = Math.round((c.dock.y - 130) * k), h = Math.round(120 * k);
     const d = cv.getContext('2d').getImageData(0, y0, cv.width, h).data, out = []; for (let i = 0; i < d.length; i += 4 * 97) out.push(d[i] + d[i + 1] + d[i + 2]); res(out); }))`);
+  // (CITY A: at 21:40 — the 21:30 FIREWORKS show holds every vehicle now, the cab stand's taxi too: NO TRAFFIC DURING THE FIREWORKS)
   // ---- PROM — THE CAB STAND: a waiter sits on the front bench (&force=cabstand); only once the dock RESTS does the taxi pull up on the
   // front street — the waiter gets in (gone from this device's promenade) and it drives off; with the dock up nothing comes
-  { const Q = await open({ slot: 'pp-cab', qs: `when=2026-09-15T21:30${GR}&wx=clear&force=cabstand`, view: [402, 874] });
+  { const Q = await open({ slot: 'pp-cab', qs: `when=2026-09-15T21:40${GR}&wx=clear&force=cabstand`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.people.members.some(m => m.kind === 'cabwait' && m.pose === 'sit')`, 'a waiter sitting at the cab stand', 40000).catch(() => {});
     await sleep(4500);
@@ -329,7 +330,7 @@ G('people', async () => {
   // ---- THE BENCH OVER THE TAXI (Nov 12 night — the owner's friend: the taxi drew UNDER the cab stand's bench). At 3× (THE CRISP LAYER on): while
   // the taxi stands in front of the bench its sharp overlay is FADED OUT — the composite over the overlap = the city's own canvas (the car drawn over
   // the bench in depth order), never the overlay; back once the taxi has gone (occluders.js + scene.js#crispTick)
-  { const Q = await open({ slot: 'pp-cab3', qs: `when=2026-09-15T21:30${GR}&wx=clear&force=cabstand`, view: [402, 874], dpr: 3 }), p = Q.page;
+  { const Q = await open({ slot: 'pp-cab3', qs: `when=2026-09-15T21:40${GR}&wx=clear&force=cabstand`, view: [402, 874], dpr: 3 }), p = Q.page;
     await harborUp(p);
     await waitFor(p, `${P}.people.members.some(m => m.kind === 'cabwait' && m.pose === 'sit')`, 'a waiter at the cab stand', 40000).catch(() => {});
     await sleep(4500); await ev(p, 'window.__district.idle()');

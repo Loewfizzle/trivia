@@ -65,7 +65,15 @@ await H.run(async () => {
 
   // ================================================================ 1. THE DOCK BUTTON's states (the title preview — the switch off / on)
   { const ctx = await browser.createBrowserContext(), p = await ctx.newPage(); await p.setViewport(H.VIEW);
-    const at = async q => { await p.goto(`${BASE}/tests/integration/title-preview.html?${q}`); await waitFor(p, '!!document.querySelector(".nd-flank .nd-tab-daily") && !!window.__district', 'the title preview', 40000); await sleep(400); return dock(p); };
+    // (CITY A: waits for the state the URL asks for — a fixed 400 ms read the dock before its DAILY tab settled, a different check each run)
+    const at = async q => {
+      await p.goto(`${BASE}/tests/integration/title-preview.html?${q}`); await waitFor(p, '!!document.querySelector(".nd-flank .nd-tab-daily") && !!window.__district', 'the title preview', 40000);
+      const Q = new URLSearchParams(q), st = Q.get('daily'), T = 'document.querySelector(".nd-flank:not(.rdk-dock) .nd-tab-daily")';
+      const want = st === 'off' ? `${T}.hidden` : st === 'done' ? `!${T}.hidden && ${T}.dataset.state === 'done'` : `!${T}.hidden && ${T}.dataset.state === '${st}' && ${T}.querySelector('.nd-dy-n').textContent === '${Q.get('left') || ''}'`;
+      await waitFor(p, want, `the dock settled for ${q}`, 8000).catch(() => {});
+      await sleep(150);
+      return dock(p);
+    };
     let d = await at('daily=off');
     ok(d && d.hidden && !d.four && d.tabs === 3, `OFF (no live daily): no DAILY button — the pill's 3 old icons exactly as before (${JSON.stringify(d)})`);
     d = await at('daily=waiting&of=2&left=2');

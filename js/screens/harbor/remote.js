@@ -559,7 +559,7 @@ export function createRemote({ scene, api = apiCall }) {
       // real clock + the live weather back, every piece in flight stopped), an active EVERYONE state ignored here — a second tap within
       // 8 s clears it for everyone too (the button says so; never a toast asking)
       if (clearAgainT > Date.now()) { clearAgainT = 0; await clearEveryone(); return; }
-      if (cd && cd.mode === 'me') { stopCd(); cdCancels++; }
+      if (cd && cd.mode === 'me') stopCd();
       if (!R.isEmpty(mine.state)) cleared.push(`JUST ME (${R.describe(mine.state).toUpperCase().slice(0, 40)})`);
       pend = null; restart.clear(); mine.state = {}; mine.ui = {}; mine.at = serverNow(); saveMine();
       if (liveOn()) ignoreLiveAt = live.startAt;
@@ -599,7 +599,7 @@ export function createRemote({ scene, api = apiCall }) {
   function open() {
     if (sheet) return;
     // (reopening during JUST ME's countdown cancels it — what was queued stays queued: close again to start it)
-    if (cd && cd.mode === 'me') stopCd();
+    if (cd && cd.mode === 'me') { stopCd(); cdCancels++; }
     if (mode === 'all' && !draftDirty()) draft = { state: clone(liveBase()), ui: {} };
     if (mode === 'me') ensurePend();
     // (SHELL 2.0 A: a full-screen TOOL on THE LAYER STACK — ui/layers.js's one Esc closes it; Esc inside the search box stays the box's)

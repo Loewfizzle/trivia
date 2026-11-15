@@ -318,3 +318,7 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   through `api/daily.js`'s generic path (ONE transaction each, never aborting on a transaction's first null; a repeat writes nothing); a phone gets only
   the cells it opened; buoys are the phone's alone; the clock = server time (+30 s a spot, +15 s a pause — THE DAILY MODULE calls pause); NO PILLS,
   drawn searchlights + buoy, every colour a `--cc-*` token; `LOOKS: ['day', 'night']` since CC2.
+
+- **THE END LINE (CITY A, Nov 14):** on the screen every number stays with its unit (`logic.js#endLineNb` — no-break spaces; the share card
+  keeps `endLine`) and the letter-spacing tightens 0.2 → 0.16 → 0.12 em before a wrap; `e2e-coastclear` checks 390 / 402 / 430 × both looks ×
+  0–3 pauses × 0–2 spots break only at " · ".

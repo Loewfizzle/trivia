@@ -1839,3 +1839,13 @@ Now each player registers its reader on ONE shared object when it loads — `glo
 a player that never registered = "NOW PLAYING · —". The rule (CLAUDE.md, THE STALE-MODULE RULE): a lazy chunk reads the boot graph through a hub,
 never a new export. radio.js: a face (PROGRAM / LEDGER) whose import or paint fails shows "Couldn't open … — TAP TO RETRY" (one fresh import,
 `?again=N`) and reports to /admin (`errlog.js#reportError`, `radio-ledger` / `radio-program`).
+
+## THE LEAVING SQUEAL — MUTED = NOTHING RUNS (CITY A, Nov 14 — docs/harbor/passes/city-a.md)
+The owner's iPhone, SOUND MUTED, no music: a short high-pitched noise switching from Safari to another app — the machinery still live (the
+context running for THE PROBE / the beat analysers, the elements on their silent activation). Now `engine.js#hushWanted` (muted, or the
+music AND the effects off): the master ramps to 0, the context is SUSPENDED after the ramp; `music.js#onHush` pauses every element, releases
+the direct path's src, carries the song; a tap no longer resumes / blips / rebuilds; back on screen wakes nothing. UNMUTE is a tap: inside
+its gesture the context resumes, the elements are activated again, the master ramps up from 0 (no pop). **ONLY the master reaches
+`ctx.destination`** — THE PROBE's silent tap, the beat's + PRISM DROP's analysers and the unlock blip ride it (`tests/audio-hush.test.mjs`
+sweeps the code; `tests/integration/audio-hush.mjs` records the graph from the first line). MUSIC OFF with the effects on keeps the context
+for the effects (the city's beds). /audio is kept BY VERSION in the worker (`na-audio-v1`) — docs/harbor.md "THE CARRY".

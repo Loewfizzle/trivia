@@ -2813,3 +2813,15 @@ district" in code (the `nd-` class prefix, the `window.__district` test hook). `
   neon by night, gold glass by day, Mon → Thanksgiving night); every holiday sign force shows its full look any day, in season too.
 - **THE SMALL ONES**: THE LEDGER's NOW PLAYING; the radio's switches inside their panels (+ the SWITCH FIT guard); the stale count checked (nothing
   stale left); THE JAYWALK POSTER readable (the owner's add-on — JAYWALK ≥ HOLD'EM's cap, the band ≥ NOW OPEN, measured on the live board).
+
+## CITY A — COSTS + STABILITY (Nov 14, 2026 — docs/harbor/passes/city-a.md)
+- Group 0: the leaked layers (C2) + the opening tap's click (C3, ONE `bornGuard`); PFIX-3's three cloud reds explained + fixed in the tests.
+- Group 1 + the add-on: EVERY TAP ACTS — `data-press` (THE TAP WATCH §4) on the owner's list + every `.btn-block` + the profile's `.btn`
+  (wk-press.mjs: WebKit with iOS's dropped click — every control once, 0 rescues).
+- Group 2: e2e-gone.mjs — leave / lost host / the close / the solo podium: 0 writes, 0 refusals; THE QUIET COUNTS (`logstats/gone`, `ext`).
+- Group 3: THE BILLBOARD FLASH reproduced (tri-flash.mjs, by day at 4× CPU) + fixed (the crisp poster cuts back); the slats hold until the
+  bake lands; N faces.
+- Group 4: the catch-up reload queued for a return + logged (wk-onebuild 19/19).
+- Group 5: THE PHONE KEEPS ITS FILES — file-hashes.json + THE CARRY + /audio by version (req-count.mjs: warm 13, after a deploy 17, cold 384).
+- Group 6: the picked game only + THE PER-GAME BUDGET. Group 7: fireworks traffic hold, the boss one size, the fireball's photo, the 8-card
+  lobby measured. Group 8: extension noise counted, THE LEAVING SQUEAL, the radio's poll by face, COAST CLEAR's end line.

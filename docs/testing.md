@@ -851,3 +851,15 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   unchecked on the next visit, the spot icons (BOBBY clears COAST CLEAR with one spot through /api), a same-day profile never listed.
 - Previews: `daily-preview.html?state=swept&tab=scores` (+ `&friends=1` · `&scope=all` · `&look=day` · `&rank=23` · `&evday=empty`) ·
   `coastclear-preview.html?ping=1` · `&diag=1`.
+
+## CITY A's scripts (Nov 14 — docs/harbor/passes/city-a.md)
+- `wk-press.mjs` — EVERY TAP ACTS in WebKit with iOS's dropped click (every listed control once, 0 rescues; THE MOVED ROW; CUSTOMIZE YOUR CARD).
+- `e2e-gone.mjs "<chromium>"` — every Firebase write frame after leave / lost host / the close / the solo podium (CDP WebSocket frames): 0.
+- `tri-flash.mjs "<chromium>" [--sizes] [--times night,day] [--turns 4] [--cpu 4] [--dpr 3] [--keep DIR]` — every painted frame of the roof
+  board per slat: never the old face after the new one showed (the day + 4× CPU case found THE BILLBOARD FLASH).
+- `req-count.mjs` — the request numbers through THE LINE (cold / warm / after a deploy, at the live pace); `audio-hush.mjs "<chromium>"` — muted =
+  nothing runs + the graph; `lobby8.mjs "<chromium>" [--cpu 4]` — THE 8-CARD LOBBY's timings + every frame > 50 ms.
+- `wk-onebuild.mjs` now proves THE CATCH-UP RELOAD at a return (a simulated hide → show) + its /admin row; its synthetic builds rewrite
+  `/file-hashes.json` for the files they change (THE CARRY trusts the list).
+- Unit: `file-hashes.test.mjs` (run `node scripts/build-file-hashes.mjs` after ANY file change), `game-budget.test.mjs`, `audio-hush.test.mjs`.
+- `e2e-daily` / anything opening the DAILY screen needs the server started with `DAILY_TEST=1` (e2e-taps' TODAY'S SCORES case too).
