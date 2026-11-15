@@ -6715,3 +6715,22 @@ ADD-ON (the owner, Nov 13 1:21 pm — WHO'S ON on his iPhone at 390, the LEDGER 
   THIS PASS — THE POOL FIXES + THE SLIDER + OVERCLOCK'S NEW ICON (+ GROUP 0: the icon in OVERDRIVE's blue + orange, CARD NAMES YOU CAN SEE,
   the chat false alarm, the dock's first tap on iOS, PLAY NOW's cloud reds; GROUP 3: WHO'S ON's slim cards one width — the 1:21 pm add-on)
   (docs/games/passes/pool-fixes.md) ← NOW → JAYWALK's passes; THE LAUNCH whenever the owner taps.
+
+## OWNER'S NOTES — NOV 14 (CITY A's Step 0)
+
+```
+OWNER'S NOTES — NOV 14 (the CITY A prompt)
+- THE ORDER: the Fable review's fixes → the daily fix → CITY A (costs + stability) → CITY B (the city's looks) → CITY C (cards + social)
+  → THE MAINTENANCE REVIEW (report only) → JAYWALK → THE GIRL CARDS → THE TOWER MOVE (before Apr 18 2027) → the reset + telling people.
+- CITY B: the signs advertise playable games only (JAYWALK joins; the hotel sign cycles PRISM / HOLDEM / JAYWALK, never the blade's game
+  that week) · the speakeasy blade's bold weekly look · THE DROP as the tri-vision's THIRD face (drawn in code — a beam falling from the
+  TOP, vertical neon tubes, shards falling; never the left-beam → rainbow-fan layout) · brighter glow sticks · the deco medals · the new
+  og.jpg · GLITTER BOMB to LV 50.
+- CITY C: the card top lines (✦ FOUNDING MEMBER ✦ / ✦ PROPRIETOR ✦ in gold foil, MEMBER Nº under MEMBER SINCE, NO PILLS) · the sighting
+  cards · the player page in one step · the slim-card picture swap · friend requests · ROOMS OPEN tappable · legendaries spotted · the
+  FOUNDER WINDOW at the bottom of /admin (Ben REOPENED it Nov 14; nothing closes it automatically) · STATS as an owner-only ☰-menu SHEET
+  over the city (NOT a radio face; loads once + tap to refresh, server-cached; the same stats code as /admin) — the radio stays LIVE only
+  + keeps the right-now numbers · CANDLELIGHT + the moving glows made visible.
+- THE GIRL CARDS (after JAYWALK): PINK RIOT LV 22 · GARDEN PARTY LV 48 (replaces MIDNIGHT ROSES; its slim card framed on the bouquet) ·
+  THE VANITY LV 66 — epic, purple gem; Grok's art in Downloads\grok\girl-cards\.
+```
