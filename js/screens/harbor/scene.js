@@ -104,7 +104,7 @@ import { createStrings } from './strings.js';   // (the roof's café-light canop
 import { auroraTonight, stormKp } from '../../core/harbor-sky.js';
 
 import { setCityClock } from '../../core/city.js';
-import { lhEdgeBlocks, signSpots } from '../../core/harbor-neon.js';
+import { lhEdgeBlocks, signSpots, signRoster } from '../../core/harbor-neon.js';
 import { tracesAt } from '../../core/harbor-crew.js';
 import { folkMap, FOLK } from '../../core/harbor-people.js';
 import { BODY_H, folkWind } from './folk.js';
@@ -199,7 +199,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const baker = createBaker();
   const litBaker = createBaker();                 // THE LIT WINDOWS (lights.js): re-baked on the light key, crossfaded on their own
   const lights = createLights();
-  const neon = createNeon({ games, onContent: () => { lookAt = 0; } });          // THE NEON (Part 3): the signs, the billboards, the outlines on the buildings
+  // CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY (core/harbor-neon.js#signRoster): every sign + the speakeasy blade name only these;
+  // &force=sign-jaywalk = JAYWALK on every sign now, "as if released" (this phone only)
+  const signGames = signRoster(games, { jaywalk: !!(clock.force && clock.force.has('sign-jaywalk')) });
+  const neon = createNeon({ games: signGames, onContent: () => { lookAt = 0; } });          // THE NEON (Part 3): the signs, the billboards, the outlines on the buildings
   const water = createWater();                    // THE WATER (Part 4): the mirror of the frame above it, ripples, the light columns, the paths
   let waterMirrors = [];                          // the harbor pieces standing in the water: their screen rects + waterlines (the lighthouse: baked)
   const wheel = createWheel();                    // THE HARBOR'S HERO PIECES (Part 5): the Ferris wheel, the lighthouse's beam, the boats
@@ -1128,7 +1131,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let sheetK = '', sheetV = null, bladeK = '', bladeV = null, boardCheck = 0, boardHeld = 0;
   // (8b1: the BLADE is the week's — stable from the Monday painters to the next; the roof board steps aside from the blade's game, never the
   // other way round, so the billposter's daily change can never flip the blade)
-  const bladeGameOn = key => { const [y, m, d] = key.split('-').map(Number); return ghostAdGame(Date.UTC(y, m - 1, d, 23), games.filter(g => g.sign).map(g => g.id), null); };
+  const bladeGameOn = key => { const [y, m, d] = key.split('-').map(Number); return ghostAdGame(Date.UTC(y, m - 1, d, 23), signGames.map(g => g.id), null); };
   const boardGameOf = (key, l) => { try { let g = neon.boardPick(key, 0, l); const nx = new Date(Date.UTC(...key.split('-').map((v, i) => +v - (i === 1 ? 1 : 0))) + 864e5).toISOString().slice(0, 10), bl = [bladeGameOn(key), bladeGameOn(nx)]; for (let n = 1; n < 4 && g && bl.includes(g); n++) g = neon.boardPick(key, n, l) || g; return g; } catch { return null; } };
   // CITY FIXES + HOLD'EM — THE BASE POSTER (core/harbor-holdem.js): a day key the ad covers shows HOLD'EM instead of its game (the owner's
   // switch via the cached GET; &force=billboard-holdem (+ &holdem=open) = from TODAY on this phone — the billposter pastes it at his slot)
@@ -1633,7 +1636,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return null;
   }
   // PART 7a: the speakeasy's bake inputs — this week's GHOST AD (the same for everyone: core/harbor-speakeasy.js), the month (the ivy)
-  const playable = games.filter(g => g.sign);   // (WINDOWS — THE FIVE SIGNS: the ghost ad rotates the five sign games)
+  const playable = signGames;   // (CITY B: the ghost ad rotates the PLAYABLE games only — core/harbor-neon.js#signRoster)
   let speakMemo = null, trRevealSeen = false;
   // (8b1 — THE SIGN PAINTERS: on Monday the blade keeps LAST week's name until they've finished repainting it, ~4 pm)
   function speakCtxFor(ms) {

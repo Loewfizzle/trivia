@@ -12,7 +12,7 @@ import { tube, drawLit, drawGlass, sprite, bbox, mix, rgba } from './tubes.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 
 /** each game's sign colour (its accent; the same as the title's game tiles) */
-export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ff6a1a', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', holdem: '#ff5a64' };   // (HOLD'EM IN THE CITY: casino red — its chip's; gold would twin HIGH STAKES beside it)
+export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ff6a1a', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2', jaywalk: '#ff4fc4', holdem: '#ff5a64' };   // (HOLD'EM IN THE CITY: casino red — its chip's; gold would twin HIGH STAKES beside it)
 /**
  * THE NAME A SIGN SPELLS (DT1 — the owner: "never a shortened name anywhere"): the game's city name, whole — the two-word ones
  * with both words (HIGH STAKES, DOUBLE AGENT, NEON PAR: never "STAKES" or "AGENT"); the others their one-word sign name (the
@@ -45,6 +45,7 @@ export const DAY_PAINT = {
   gridlock: { face: [34, 70, 150], ink: [248, 238, 214], edge: GOLD_LEAF },            // cream on royal blue
   slip: { face: [232, 174, 74], ink: [28, 38, 84], edge: [250, 236, 206] },            // navy on amber
   holdem: { face: [20, 84, 52], ink: [240, 202, 108], edge: [250, 236, 206] },          // gold on casino felt, a cream keyline (its billboard's cream + gold)
+  jaywalk: { face: [58, 4, 40], ink: [255, 214, 240], edge: [255, 79, 196] },           // CITY B: pink-white on its poster's plum, a hot-pink keyline
 };
 // POLISH 4 — THE ROOF BILLBOARD's POSTERS (the owner: OVERCLOCK read amber-on-amber under the warm gooseneck lamps): a poster may not
 // stand on a warm orange / amber / gold field — under those lamps it blends; each game's poster gets a field that CONTRASTS with warm
@@ -142,10 +143,12 @@ function lettersRow(text, x0, y0, w, h, { skew = 0 } = {}) {
   const boxes = r.cells.map(lx => ({ x0: lx + dx - 0.6, y0: oy - 0.6, x1: lx + dx + r.lw + r.lh * skew + 0.6, y1: oy + r.lh + 0.6 }));
   return { polys, lh: r.lh, boxes };
 }
-function lettersCol(text, x0, y0, w, h, { fill = 0.8, wide = 0.64 } = {}) {
-  const ch = [...text], n = ch.length, lh = Math.min(w * wide * 1.4, h / Math.max(1, n) * fill), s = lh / 14, lw = 10 * s, step = h / Math.max(1, n);
+function lettersCol(text, x0, y0, w, h, { fill = 0.8, wide = 0.64, gap = 1 } = {}) {
+  // (CITY B: `gap` — a space's share of a row: JAY / WALK on the hotel blade keeps a short break between its two words; 1 = the old full row)
+  const ch = [...text], rows = ch.reduce((a, c) => a + (c === ' ' ? gap : 1), 0), n = rows, lh = Math.min(w * wide * 1.4, h / Math.max(1, n) * fill), s = lh / 14, lw = 10 * s, step = h / Math.max(1, n);
+  const at = []; ch.reduce((a, c) => { at.push(a); return a + (c === ' ' ? gap : 1); }, 0);
   const out = [], boxes = [];
-  ch.forEach((c, i) => { const d = glyphAdvance(c) < 1 ? null : LETTERS[c]; if (!d) return; const lx = x0 + (w - lw) / 2, ly = y0 + i * step + (step - lh) / 2; for (const p of flattenPath(d, s, lx, ly, 1)) out.push(p); boxes.push({ x0: lx - 0.6, y0: ly - 0.6, x1: lx + lw + 0.6, y1: ly + lh + 0.6 }); });
+  ch.forEach((c, i) => { const d = glyphAdvance(c) < 1 ? null : LETTERS[c]; if (!d) return; const lx = x0 + (w - lw) / 2, ly = y0 + at[i] * step + (step - lh) / 2; for (const p of flattenPath(d, s, lx, ly, 1)) out.push(p); boxes.push({ x0: lx - 0.6, y0: ly - 0.6, x1: lx + lw + 0.6, y1: ly + lh + 0.6 }); });
   return { polys: out, lh, boxes };
 }
 const skewP = (p, k, base) => (k ? { ...p, pts: p.pts.map(([x, y]) => [x + (base - y) * k, y]) } : p);
@@ -159,6 +162,8 @@ function markTubes(g, x0, y0, size) {
  * inside the cabinet's edge), the dark PANEL inside it (a clear gap between the bulbs and the panel), the letters' box inside the
  * panel, and the height six stacked letters stand (pt) — the glance test reads it (tests/harbor.test.mjs).
  */
+/** CITY B: a split name's break on the blade (a share of a row) + its letters' fill (closer than the one-word 0.93 so JAY / WALK stand ≥ 9 pt) */
+export const BLADE_GAP = 0.35, BLADE_SPLIT_FILL = 0.99;
 export function bladeLayout(R, n = 6) {
   // (NEON PASS 4: the blade got 2.5 pt shorter — clear of docked Rosie — so the margins inside it tightened a touch: the dark
   // gap 2.0 pt, the letters' box 1 pt in from the panel's top + bottom; six letters still stand ≥ 10 pt)
@@ -186,13 +191,15 @@ export function buildSign(spot, game, ctx) {
   const parts = [];
   let panel = null, border = null, bulbs = null, tw = Math.max(0.6, Math.min(1.2, R.w * 0.085));
   if (spot.type === 'vbox' || spot.type === 'box') {
-    const text = spot.text || signName(game);
+    const text = spot.text || (game && game.signText) || signName(game);   // (CITY B: the spot's own text — core/harbor-neon.js#signText)
     panel = { x: R.x, y: R.y, w: R.w, h: R.h, r: Math.min(R.w, R.h) * 0.12 };
     if (spot.bulbs) {
       // THE GAME BLADE (NEON PASS 3): the bulbs on the outer frame, a dark gap, the dark panel, big bright letters inside it
-      const bl = bladeLayout(R, [...text.replace(/ /g, '')].length);
+      // (CITY B: a SPLIT name — JAY / WALK — keeps a short break between its words: BLADE_GAP of a row, the letters a touch closer)
+      const split = text.includes(' '), bt = split ? text.replace(/\s+/g, ' ') : text.replace(/ /g, '');
+      const bl = bladeLayout(R, [...bt].reduce((a, c) => a + (c === ' ' ? BLADE_GAP : 1), 0));
       panel = { ...bl.panel, r: Math.min(bl.panel.w, bl.panel.h) * 0.1, frame: { x: R.x, y: R.y, w: R.w, h: R.h, r: Math.min(R.w, R.h) * 0.14 } };
-      const L2 = lettersCol(text.replace(/ /g, ''), bl.box.x, bl.box.y, bl.box.w, bl.box.h, { fill: bl.fill, wide: bl.wide });
+      const L2 = lettersCol(bt, bl.box.x, bl.box.y, bl.box.w, bl.box.h, { fill: split ? BLADE_SPLIT_FILL : bl.fill, wide: bl.wide, gap: BLADE_GAP });
       // (DT1 — the owner: "a little bolder / brighter, it's hard to read"): thicker tubes, a whiter core colour, a touch more glow
       tw = Math.max(0.85, Math.min(1.85, L2.lh * 0.17));
       parts.push({ tubes: L2.polys, col: mix(col, [255, 255, 255], 0.22), w: tw, hot: true, boxes: L2.boxes });
@@ -250,7 +257,7 @@ export function buildSign(spot, game, ctx) {
   // the tubes, ready to draw (uneven light, electrodes at the open ends)
   for (const p of parts) p.t = p.tubes.map(pl => tube(pl.pts, pl.closed, p.w));
   if (border) border.t = [tube(border.pts, true, tw * 0.75, [false, false])];
-  const sign = { id: spot.id, spot, game: game ? game.id : null, rect: R, col, parts, panel, border, bulbs, mid, kind: spot.kind, type: spot.type, frame: ctx.frame || null, letterBoxes: (parts.find(p => p.boxes) || {}).boxes || [], nText: [...String(spot.text || (game ? signName(game) : '')).replace(/ /g, '')].length };
+  const sign = { id: spot.id, spot, game: game ? game.id : null, rect: R, col, parts, panel, border, bulbs, mid, kind: spot.kind, type: spot.type, frame: ctx.frame || null, letterBoxes: (parts.find(p => p.boxes) || {}).boxes || [], nText: [...String(spot.text || (game ? game.signText || signName(game) : '')).replace(/ /g, '')].length };
   sign.lit = (dpr, scheme) => litSprites(sign, dpr);
   sign.litSwap = dpr => (border ? litSprites(sign, dpr, true) : null);   // (SP6: TWO-TONE)
   return sign;

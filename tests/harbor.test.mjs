@@ -405,7 +405,7 @@ test('events: when() gates by the context; forced events run at once', () => {
 
 // ================================================================== Part 3: NEON + SIGNS + BILLBOARDS
 import { signName } from '../js/screens/harbor/signs.js';
-import { signSpots, spotConflicts, assignSigns, billboardPick, fitsSpot, nightKey, outlines, roleFamily, SCHEMES, roleColour, MIN_STEP, fillet, WARM_ROLES, DEPTH, depthStrength } from '../js/core/harbor-neon.js';
+import { signSpots, spotConflicts, assignSigns, billboardPick, fitsSpot, signText, signRoster, nightKey, outlines, roleFamily, SCHEMES, roleColour, MIN_STEP, fillet, WARM_ROLES, DEPTH, depthStrength } from '../js/core/harbor-neon.js';
 import { showItems, showFrame, newShowOut, sceneAt, everyday, signMotion, beatEnv, FX, MAX_MOVING, MAX_RACE, SHOW_SCENES, nightStage, rotateMix, burnout, burnoutFlicker, punchEnv, beatOf, harborParty } from '../js/core/harbor-show.js';
 import { flattenPath, tubeLight } from '../js/core/tube-path.js';
 import { scrollColumns } from '../js/core/harbor-windows.js';
@@ -455,7 +455,7 @@ test('signs (DT1): 3 named (the blade + 2 stacked roof signs — the left roof s
       const all = new Set(); for (const n of NIGHTS) { const pk = assignSigns(GAMES12, spots, n); for (const g of pk.values()) all.add(g); all.add(billboardPick(GAMES12, spots, pk, n)); }
       assert.equal(all.size, GAMES12.length, `${k}: over the nights every game shows — a named sign or the billboard (the nightly shuffle)`);
     } else if (k === '1440x900') assert.ok(got.size >= 3 && spots.some(s => s.type === 'billboard'), `desktop: ${got.size} games + the billboard (DESKTOP: the closer camera shows the phone's own signs — THE FIVE SIGNS)`);
-    for (const s of spots.filter(s => s.kind === 'named')) { const g = GAMES12.find(x => x.id === pick.get(s.id)); if (g) assert.ok(fitsSpot(g.short, s), `${k}: ${g.short} fits ${s.id}`); }
+    for (const s of spots.filter(s => s.kind === 'named')) { const g = GAMES12.find(x => x.id === pick.get(s.id)); if (g) assert.ok(signText(g, s), `${k}: ${g.short} fits ${s.id}`); }   // (CITY B: the spot's own text — HOLDEM on a blade)
     // the named spots read on a phone: a vertical sign's letters ≥ 6 pt
     if (!cam.wide) for (const s of spots.filter(s => s.kind === 'named' && s.type === 'vbox')) assert.ok(s.rect.h / s.cap >= 6 * (cam.F / 600) * 0.95, `${k}: ${s.id} letters ${(s.rect.h / s.cap).toFixed(1)} pt`);
   }
@@ -1936,10 +1936,11 @@ test('THE SLOT RULE (DT1 — the owner: never a shortened name): the blade one-w
       const pick = assignSigns(GAMES12, spots, night);
       for (const sp of named) {
         const g = GAMES12.find(x => x.id === pick.get(sp.id)); if (!g) continue;
-        assert.ok(fitsSpot(g.short, sp), `${k} ${night}: ${g.short} on ${sp.id}`);
-        if (sp.id === 'n-blade') assert.ok(!g.short.includes(' '), `${k} ${night}: the blade takes one word (${g.short})`);
-        const sg = buildSign(sp, GAMES.find(x => x.id === g.id), { W: cam.W, s: cam.F / 600 });
-        assert.equal(sg.nText, g.short.replace(/ /g, '').length, `${k} ${night}: ${sp.id} spells all of ${g.short}`);
+        const txt = signText(g, sp);   // (CITY B: the text the spot spells — a blade drops the apostrophe: HOLDEM)
+        assert.ok(txt, `${k} ${night}: ${g.short} on ${sp.id}`);
+        if (sp.id === 'n-blade') assert.ok(!txt.includes(' '), `${k} ${night}: the blade takes one word (${txt}) — only a SIGN_SPLIT name stacks`);
+        const sg = buildSign(sp, { ...GAMES.find(x => x.id === g.id), signText: txt }, { W: cam.W, s: cam.F / 600 });
+        assert.equal(sg.nText, txt.replace(/ /g, '').length, `${k} ${night}: ${sp.id} spells all of ${txt}`);
         assert.ok(!CUT.includes(g.short.replace(/ /g, '')) || g.short === 'NEON PAR', `${k} ${night}: a cut-down name ${g.short}`);
         const p = sg.parts.find(q => q.boxes); assert.ok(Math.min(...p.boxes.map(b => b.y1 - b.y0 - 1.2)) >= 10, `${k}: ${sp.id} "${g.short}" ≥ 10 pt`);
         if (g.short.includes(' ')) assert.equal(p.lines, 2, `${k}: ${g.short} stacked on two lines`);
@@ -1947,17 +1948,18 @@ test('THE SLOT RULE (DT1 — the owner: never a shortened name): the blade one-w
       const bb = billboardPick(GAMES12, spots, pick, night);
       assert.ok(bb && ![...pick.values()].includes(bb), `${k} ${night}: the billboard advertises a game with no sign`);
     }
-    // every calendar week (Monday → Sunday) every SIGN game that fits a skyline sign hangs on one (THE FIVE SIGNS — the roof billboard is
-    // HOLD'EM's ad since CITY FIXES, so the skyline is what the phone shows; OVERCLOCK's nine letters fit none: the speakeasy's blade + the room);
-    // the mechanics on all thirteen (HOLD'EM IN THE CITY — a ninth game in the named pool): every game within any two weeks, a sign or the billboard
-    const FIVE = GAMES.filter(g => g.sign).map(g => GAMES12.find(x => x.id === g.id)), ROOF = FIVE.filter(g => spots.some(sp => sp.kind === 'named' && fitsSpot(g.short, sp)));
-    assert.deepEqual(ROOF.map(g => g.id).sort(), ['golf', 'holdem', 'prism', 'stakes'], `${k}: the sign games a skyline sign takes`);
-    for (let w = 0; w < 16; w++) {
-      const seen = new Set(), s13 = new Set();
-      for (let d = 0; d < 7; d++) { const n = new Date(Date.UTC(2026, 9, 5) + (w * 7 + d) * 864e5).toISOString().slice(0, 10); for (const v of assignSigns(FIVE, spots, n).values()) seen.add(v); }
-      assert.deepEqual(ROOF.map(g => g.id).filter(id => !seen.has(id)), [], `${k}: week ${w}: a sign game missing from the skyline`);
-      for (let d = 0; d < 14; d++) { const n = new Date(Date.UTC(2026, 9, 5) + (w * 7 + d) * 864e5).toISOString().slice(0, 10), pk = assignSigns(GAMES12, spots, n); for (const v of pk.values()) s13.add(v); s13.add(billboardPick(GAMES12, spots, pk, n)); }
-      assert.equal(s13.size, GAMES12.length, `${k}: weeks ${w}–${w + 1}: ${GAMES12.length - s13.size} games missing`);
+    // CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY: every calendar week (Monday → Sunday) every PLAYABLE game that fits a skyline sign
+    // hangs on one — today's three, and with JAYWALK released (&force=sign-jaywalk's roster); OVERCLOCK's nine letters fit none (the speakeasy's
+    // blade + the room). (The old all-thirteen two-week check went with the frozen games: they never hang now.)
+    for (const jay of [false, true]) {
+      const ROSTER = signRoster(GAMES, { jaywalk: jay }).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
+      const ROOF = ROSTER.filter(g => spots.some(sp => sp.kind === 'named' && signText(g, sp)));
+      assert.deepEqual(ROOF.map(g => g.id).sort(), jay ? ['holdem', 'jaywalk', 'prism'] : ['holdem', 'prism'], `${k}: the playable games a skyline sign takes`);
+      for (let w = 0; w < 16; w++) {
+        const seen = new Set();
+        for (let d = 0; d < 7; d++) { const n = new Date(Date.UTC(2026, 9, 5) + (w * 7 + d) * 864e5).toISOString().slice(0, 10); for (const v of assignSigns(ROSTER, spots, n).values()) seen.add(v); }
+        assert.deepEqual(ROOF.map(g => g.id).filter(id => !seen.has(id)), [], `${k}: week ${w}: a playable game missing from the skyline (jaywalk ${jay})`);
+      }
     }
   }
 });

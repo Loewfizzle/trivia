@@ -150,6 +150,9 @@ export const SCHEDULE = Object.freeze([
     knobs: { litMin: 1, litMax: 2, outFrom: 22.25, outTo: 25.5 }, conflicts: ['window.party'] },
   { id: 'signs.modes', trigger: 'clock', status: 'live', src: 'core/harbor-roofmodes.js', what: 'the roof signs\' hourly modes (spell / race / breath)',
     knobs: { minute: 60, slot: 15, spellEvery: 180, spellJitter: 60, nightStages: [22, 1] } },
+  // CITY B (the owner, Nov 14): the signs name PLAYABLE games only; THE HOTEL BLADE's own nightly rotation (seeded by the week + the night — every
+  // phone the same), never the speakeasy blade's game that week
+  { id: 'signs.shuffle', trigger: 'calendar', status: 'live', src: 'core/harbor-neon.js#assignSigns + signRoster + hotelAvoid', what: 'THE NIGHTLY SHUFFLE: which PLAYABLE game hangs on which named sign tonight (from 5 am the day shows tonight’s pick); THE HOTEL BLADE cycles PRISM · HOLDEM · JAY / WALK, never the speakeasy blade’s game that week (&force=sign-jaywalk = JAYWALK as if released)' },
   { id: 'party.pulse', trigger: 'beat', status: 'live', src: 'core/harbor-beat.js', what: 'the party pulse: the lights on the song\'s grid (a trusted grid always punches)' },
   { id: 'holidays', trigger: 'calendar', status: 'live', src: 'core/harbor-holiday.js', what: 'the holidays, their build-ups day by day + the sign dressings',
     knobs: {

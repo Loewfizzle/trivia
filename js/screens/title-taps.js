@@ -108,7 +108,7 @@ export function createTaps(T) {
     // (PLAY NOW — THE SKYLINE SIGNS open the game's CARD (the playable games' signs + the speakeasy's PRISM DROP blade — scene.hit). The split:
     //  THE SIGN's own gestures (a letter's tap, THE RACE, THE SURGE) live on NEON SPEAKEASY's letters — answered above (logoRect), before
     //  any city hit; a game sign is only ever a city hit, so a card never steals them)
-    if (hit.kind === 'sign') { const g = GAMES.find(x => x.id === hit.id); if (g && !g.playable) { toast(`${g.name} — coming soon`, 'info'); return; } if (g) gameCard(g); }   // (WINDOWS — THE FIVE SIGNS: next on deck = a quiet COMING SOON)
+    if (hit.kind === 'sign') { const g = GAMES.find(x => x.id === hit.id) || (hit.id === 'jaywalk' ? { id: 'jaywalk', name: 'JAYWALK' } : null); if (g && !g.playable) { toast(`${g.name} — coming soon`, 'info'); return; } if (g) gameCard(g); }   // (WINDOWS: next on deck = a quiet COMING SOON · CITY B: &force=sign-jaywalk's sign too, until its row is playable)
     else if (hit.kind === 'ufo') sfx('portal');
     else if (hit.kind === 'cat') sfx('key');
     // THE STREET: knock on the speakeasy's door — a soft double knock, the peephole slides open, and the JOIN panel opens (a real

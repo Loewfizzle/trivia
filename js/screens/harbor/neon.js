@@ -11,7 +11,7 @@
 //               light of the evening), each with its sputter-on / stutter-off, its tubes one by one; a rare flicker; a core flutter
 //   moments     hooks for later parts, previewed now with &force=: party (chasers + the beat + colour shifts), flash (a game's
 //               colours sweeping across the skyline: Lobby 2.0's start), scheme (holidays, CITY CONTROL)
-import { outlines, signSpots, assignSigns, billboardPick, nightKey, roleColour, SCHEMES, depthStrength, HAZE, depthLinks, partyPieces, lineKey, partySlot, neonClash } from '../../core/harbor-neon.js';
+import { outlines, signSpots, assignSigns, billboardPick, signText as spotText, nightKey, roleColour, SCHEMES, depthStrength, HAZE, depthLinks, partyPieces, lineKey, partySlot, neonClash } from '../../core/harbor-neon.js';
 import { project } from '../../core/harbor-layout.js';
 import { skyItems } from './skyline.js';
 import { tube, drawLit, drawGlass, caps, sprite, bbox, free, mix, rgba } from './tubes.js';
@@ -36,7 +36,8 @@ const lineK = ln => (ln.needle ? 1.5 : ln.thin ? THIN : 1);
 const capLight = lv => lv.map((v, i) => { const e = Math.min(i, lv.length - 1 - i); return e < 4 ? v * (0.62 + 0.095 * e) : v; });
 
 export function createNeon({ games: allGames = [], onContent = () => {} } = {}) {
-  const games = allGames.filter(g => g.sign).map(g => ({ ...g, short: signName(g) }));   // (WINDOWS — THE FIVE SIGNS: config.js GAMES[].sign)
+  // (CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY: the scene hands the sign roster — core/harbor-neon.js#signRoster; a frozen game never hangs)
+  const games = allGames.filter(g => g.playable).map(g => ({ ...g, short: signName(g) }));
   let L = null, cam = null, dpr = 1, tier = 2, W = 0;
   let signs = [], boards = [], outs = [], items = [], queue = [], key = '', scheme = 'city', assignKey = '';
   let built = 0, lastOn = false, mbSprites = 0, rev = 0, fresh = null;
@@ -84,7 +85,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       }
       const g = sp.kind === 'fixed' ? null : games.find(x => x.id === pick.get(sp.id));
       if (sp.kind !== 'fixed' && !g) continue;
-      signs.push(buildSign(sp, g, { W, s, roofY, frame: frameOf(sp) }));
+      signs.push(buildSign(sp, g && { ...g, signText: spotText(g, sp) || g.short }, { W, s, roofY, frame: frameOf(sp) }));
     }
     // the outlines, projected + cut (the far group and the near group: each against its own nearer buildings)
     const signRects = new Map();

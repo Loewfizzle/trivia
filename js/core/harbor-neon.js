@@ -12,6 +12,7 @@
 //    units; assignSigns(): which game takes which spot tonight (a new pick each night, never while you watch).
 import { REF_TITLE, cameraFor, fxAt, fOf, project, lighthouseBoxes } from './harbor-layout.js';
 import { rngFrom, shuffle } from './rng.js';
+import { ghostAdGame } from './harbor-speakeasy.js';
 
 export { flattenPath, tubeLight } from './tube-path.js';
 
@@ -764,7 +765,9 @@ export const SPOTS = [
   // She now rests bow-out (core/harbor-boats.js) and the blade ends 2.5 pt over her stern's bulb string (its top 1.5 pt under the
   // hotel's roof): every letter clear, still ≥ 10 pt (signs.js#bladeLayout) — tested against her docked silhouette
   // (DT1 — THE SLOT RULE: the blade takes ONE-WORD names only — words: 1)
-  { id: 'n-blade', kind: 'named', type: 'vbox', host: 'hotel', bulbs: true, x: [248, 266], y: [474.5, 552], z: 229.4, cap: 6, words: 1 },
+  // (CITY B — THE HOTEL BLADE, the owner Nov 14: `rot: 'hotel'` = its OWN seeded rotation of the playable names that fit (PRISM · HOLDEM ·
+  //  JAY / WALK), never the speakeasy blade's game that week; `split: 2` = a SIGN_SPLIT name may stack as its two words here)
+  { id: 'n-blade', kind: 'named', type: 'vbox', host: 'hotel', bulbs: true, x: [248, 266], y: [474.5, 552], z: 229.4, cap: 6, words: 1, rot: 'hotel', split: 2 },
   // NEON PASS 6 (the owner: "remove the tiny floating game icons — distracting"): every ICON spot is gone (i-par, i-par2, i-left,
   // i-c1, i-r1, i-r2; i-mid went in Neon Pass 5). The games are carried by the NAMED signs — the roof signs, the blade, the
   // billboard (it advertises a game with no sign tonight) — and the nightly shuffle rotates which games hang, so every game shows
@@ -913,6 +916,42 @@ export function fitsSpot(name, sp) {
   return words.length > 0 && words.length <= (sp.words || 1) && words.every(w => count(w) <= (sp.cap || 99));
 }
 const dayNo = key => { const m = /^(\d+)-(\d+)-(\d+)$/.exec(key || ''); return m ? Math.round(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000) : null; };
+
+// ------------------------------------------------------------------ CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY (the owner, Nov 14)
+/** JAYWALK's sign row until its own GAMES row is playable: &force=sign-jaywalk hangs it on every sign "as if released" (this phone only) */
+export const JAYWALK_SIGN = Object.freeze({ id: 'jaywalk', name: 'JAYWALK', playable: true, signPreview: true });
+/** the games a city sign may name: ONLY the playable ones (config.js GAMES[].playable — never a frozen game, never a daily); a game whose
+ *  row turns playable joins every sign with no code change; `jaywalk` (the force) adds JAYWALK now */
+export function signRoster(games, { jaywalk = false } = {}) {
+  const out = (games || []).filter(g => g && g.playable && !g.daily);
+  if (jaywalk && !out.some(g => g.id === 'jaywalk')) { const row = (games || []).find(g => g && g.id === 'jaywalk'); out.push(row ? { ...row, playable: true, signPreview: true } : JAYWALK_SIGN); }
+  return out;
+}
+/** a name too long for one word of a spot, stacked as these words where the spot takes two (a roof sign) or allows a split (`split` — the
+ *  hotel blade): JAY / WALK */
+export const SIGN_SPLIT = Object.freeze({ jaywalk: ['JAY', 'WALK'] });
+/**
+ * CITY B: the text a spot spells for a game (its words joined by ' ') — null when it fits nowhere there. A vertical blade (a 'vbox') drops the
+ * apostrophe (it can't stand in a column: HOLD'EM → HOLDEM); a name whose single word is too long stacks as its SIGN_SPLIT words where the
+ * spot allows it. g.short = signs.js#signName.
+ */
+export function signText(g, sp) {
+  if (!g || !sp) return null;
+  let t = String(g.short || g.name || '').trim();
+  if (sp.type === 'vbox') t = t.replace(/['’]/g, '');
+  if (fitsSpot(t, sp)) return t;
+  const sw = SIGN_SPLIT[g.id];
+  if (sw && fitsSpot(sw.join(' '), { ...sp, words: Math.max(sp.words || 1, sp.split || 1) })) return sw.join(' ');
+  return null;
+}
+/** CITY B: the speakeasy blade's games on a night key (the evening's week first; on a Monday the morning still shows LAST week's until the
+ *  painters finish) — the hotel blade never names them. ids: the sign roster's (the same list the speakeasy's ghost ad rotates) */
+export function hotelAvoid(key, ids) {
+  const m = /^(\d+)-(\d+)-(\d+)$/.exec(key || '');
+  if (!m) return [];
+  const eve = ghostAdGame(Date.UTC(+m[1], +m[2] - 1, +m[3], 23), ids, null), morn = ghostAdGame(Date.UTC(+m[1], +m[2] - 1, +m[3], 8), ids, null);
+  return [...new Set([eve, morn].filter(Boolean))];
+}
 /**
  * Which game takes which spot tonight. games: [{ id, name, short }] (short: the FULL name a sign spells — signs.js#signName);
  * spots: signSpots(); key: the night (nightKey). DT1: THE WEEK'S ROTATION — each week (Monday → Sunday) a new seeded order of the
@@ -921,18 +960,30 @@ const dayNo = key => { const m = /^(\d+)-(\d+)-(\d+)$/.exec(key || ''); return m
  * that fit none (long single words) take the billboard (billboardPick). A list that grows or shrinks fills more or fewer spots.
  * → Map(spot id → game id).
  */
-export function assignSigns(games, spots, key = 'x') {
+export function assignSigns(games, spots, key = 'x', { avoid = null } = {}) {
   const n = dayNo(key) ?? Math.floor(rngFrom(`signs|${key}`)() * 7000), week = Math.floor((n + 3) / 7), d = n + 3 - week * 7;
   const byId = new Map(games.map(g => [g.id, g]));
   const named = spots.filter(s => s.kind === 'named'), icons = spots.filter(s => s.kind === 'icon');
+  const out = new Map(), used = new Set();
+  // CITY B — THE HOTEL BLADE first: its own seeded order of the names that fit it (shuffled for the week, rotated night by night — every phone
+  // the same), never the speakeasy blade's game (avoid — hotelAvoid: the week's, then Monday morning's last week's); when only the blade's own
+  // game fits, the evening's avoid alone; nothing left = a dark blade
+  const bad = avoid || hotelAvoid(key, games.map(g => g.id));
+  for (const s of named.filter(x => x.rot === 'hotel')) {
+    const cand = shuffle(rngFrom(`hotel|w${week}`), games.map(g => g.id).filter(id => signText(byId.get(id), s)));
+    const r = cand.length ? d % cand.length : 0, ord = [...cand.slice(r), ...cand.slice(0, r)];
+    const take = ex => ord.find(id => !used.has(id) && !ex.includes(id));
+    const g = take(bad) || take(bad.slice(0, 1));
+    if (g) { out.set(s.id, g); used.add(g); }
+  }
+  const others = named.filter(x => x.rot !== 'hotel');
   // the week's order: the games that fit a named spot, shuffled for the week, rotated by tonight's place in it
-  const fitsAny = id => named.some(s => fitsSpot(byId.get(id).short, s));
+  const fitsAny = id => others.some(s => signText(byId.get(id), s));
   const pool = shuffle(rngFrom(`signs|w${week}`), games.map(g => g.id).filter(fitsAny));
   const rot = pool.length ? (d * Math.max(1, named.length)) % pool.length : 0, order = [...pool.slice(rot), ...pool.slice(0, rot)];
-  const out = new Map(), used = new Set();
-  // the most particular spots first (fewest words, then the shortest cap): the blade before the roof signs
-  for (const s of [...named].sort((a, b) => (a.words || 1) - (b.words || 1) || (a.cap || 99) - (b.cap || 99))) {
-    const g = order.find(id => !used.has(id) && fitsSpot(byId.get(id).short, s));
+  // the most particular spots first (fewest words, then the shortest cap)
+  for (const s of [...others].sort((a, b) => (a.words || 1) - (b.words || 1) || (a.cap || 99) - (b.cap || 99))) {
+    const g = order.find(id => !used.has(id) && signText(byId.get(id), s));
     if (g) { out.set(s.id, g); used.add(g); }
   }
   const rest = shuffle(rngFrom(`signs|i${week}|${d}`), games.map(g => g.id).filter(id => !used.has(id)));
@@ -954,7 +1005,7 @@ export function billboardPick(games, spots, pick, key = 'x', n = 0) {
   // DT1 — THE WEEK'S ROTATION: the games that fit no named sign (a long single word) take the board on the week's first nights, one
   // each (shuffled for the week), the others after; never a game already on a sign tonight
   const week = Math.floor((day + 3) / 7), d = day + 3 - week * 7;
-  const only = games.filter(g => !namedSpots.some(s => fitsSpot(g.short, s))).map(g => g.id), others = games.map(g => g.id).filter(id => !only.includes(id));
+  const only = games.filter(g => !namedSpots.some(s => signText(g, s))).map(g => g.id), others = games.map(g => g.id).filter(id => !only.includes(id));
   const list = [...shuffle(rngFrom(`bb|w${week}`), only), ...shuffle(rngFrom(`bb2|w${week}`), others)];
   for (let i = 0; i < list.length; i++) { const id = list[(d + n + i) % list.length]; if (!signed.has(id)) return id; }
   return null;
