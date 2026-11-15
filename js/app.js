@@ -9,7 +9,7 @@ import { APP_NAME, GAMES, gameRow } from './config.js';
 import { state, setState, subscribe } from './store.js';
 import { initFirebase, isConfigured, serverNow, lineInfo } from './firebase.js';
 import { inviteCode, watchDuplicateTabs, slot, loadSession } from './identity.js';
-import { resumeSession, armPresence, roomExists } from './room.js';
+import { resumeSession, armPresence, roomExists, soloRejoin } from './room.js';
 import { startHostLoop } from './host.js';
 import { keepAwake } from './wakelock.js';
 import { GAME_MODULES, GAME_IDS, loadGame, metaOf } from './games/registry.js';
@@ -341,20 +341,31 @@ subscribe(st => {
 // ---- connection banner: "reconnecting…" while our own socket is down, "back online" when it returns ----
 // CONN: a PARKED database (no room, nothing wanted it — firebase.js#want) is not "offline": no banner. st.net: 'parked' · 'waking'
 // (opening; never warned, as before the first connection) · 'online' · 'lost' (it was up and the network dropped it)
+// CITY D — A SILENT RECONNECT STAYS SILENT (the owner: SIGNAL RESTORED on screen on the morning's first open — a phone waking re-opens its socket):
+// SIGNAL LOST shows only once the signal has been gone LOST_GRACE_MS; SIGNAL RESTORED only when SIGNAL LOST was really ON SCREEN that long
+// (≥ RESTORED_AFTER_MS) — a drop that heals before then is never mentioned
+const LOST_GRACE_MS = 1500, RESTORED_AFTER_MS = 1500;
 let wasOffline = false;
-let backTimer = 0;
+let backTimer = 0, lostT = 0, lostAt = 0;
 function renderConnection(st) {
   const offline = st.ready && (st.net === 'lost' || (st.net === 'online' && !navigator.onLine));
   if (offline && !wasOffline) {
-    clearTimeout(backTimer);
-    netBadge.classList.remove('is-back');
-    netBadge.classList.add('is-on');
-    netBadge.querySelector('.net-text').textContent = navigator.onLine ? 'SIGNAL LOST — RECONNECTING…' : 'NO NETWORK — WAITING FOR SIGNAL…';
+    clearTimeout(backTimer); clearTimeout(lostT);
+    lostT = setTimeout(() => {
+      lostT = 0; lostAt = performance.now();
+      netBadge.classList.remove('is-back');
+      netBadge.classList.add('is-on');
+      netBadge.querySelector('.net-text').textContent = navigator.onLine ? 'SIGNAL LOST — RECONNECTING…' : 'NO NETWORK — WAITING FOR SIGNAL…';
+    }, LOST_GRACE_MS);
   } else if (!offline && wasOffline) {
-    netBadge.classList.add('is-back');
-    netBadge.querySelector('.net-text').textContent = 'SIGNAL RESTORED';
-    sfx('lock');
-    backTimer = setTimeout(() => netBadge.classList.remove('is-on', 'is-back'), 1800);
+    clearTimeout(lostT); lostT = 0;
+    if (lostAt && performance.now() - lostAt >= RESTORED_AFTER_MS) {
+      netBadge.classList.add('is-back');
+      netBadge.querySelector('.net-text').textContent = 'SIGNAL RESTORED';
+      sfx('lock');
+      backTimer = setTimeout(() => netBadge.classList.remove('is-on', 'is-back'), 1800);
+    } else netBadge.classList.remove('is-on', 'is-back');
+    lostAt = 0;
   }
   wasOffline = offline;
 }
@@ -469,11 +480,13 @@ async function boot() {
       });
       setState({ uid });
       withProfile().then(m => { m.me.watchProfile(); m.me.syncMe(); m.queue.startQueue(); }).catch(e => console.warn('profile', e));   // (the profile's ensure: never on the boot path)
+      // (CITY D: a SOLO room's end says nothing — the player never saw a room: no "YOUR ROOM CLOSED…", no expired-invite line)
+      const wasSolo = !!(saved && saved.code) && soloRejoin(saved.code);
       const resumed = await resumeSession();
       if (resumed === 'ok') setState({ invite: '', rejoin: '' });   // (CITY 1.0 OUT — THE STUCK JOIN: a reload in a room left ?room= as an "invite" that filled JOIN after a LEAVE)
-      else if (resumed === 'gone') setState({ inviteExpired: saved.code, invite: '', rejoin: '' });
+      else if (resumed === 'gone') setState({ inviteExpired: wasSolo ? '' : saved.code, invite: '', rejoin: '' });
       else if (resumed === 'moved') { setState({ invite: '', rejoin: '' }); lazyImport(import('./room.js'), './room.js').then(m => toast(`You’re in room ${m.movedTo() || ''} on another device`, 'info', { ms: 5000, sub: 'Join here to move your seat.' })).catch(() => {}); }
-      else if (resumed === 'idle') { setState({ invite: '', rejoin: '' }); toast('YOUR ROOM CLOSED AFTER AN HOUR WITHOUT A GAME', 'info', 5000); }
+      else if (resumed === 'idle') { setState({ invite: '', rejoin: '' }); if (!wasSolo) toast('YOUR ROOM CLOSED AFTER AN HOUR WITHOUT A GAME', 'info', 5000); }
       // Couldn't reach the room (weak signal): keep the seat and offer a one-tap REJOIN on the title.
       else if (resumed === 'error') setState({ rejoin: saved.code });
       // ('cancelled': a HOST / another JOIN won while the resume was out — nothing to say)

@@ -445,6 +445,9 @@ setRoomGone(leftRoom);
 globalThis.__nsRoomGone = leftRoom;   // (the hub the lazy chat reads before every write — js/chat/chat.js#mayWrite)
 export function exitRoom(reason, kind = 'warn', { keepSeat = false, how = 'closed' } = {}) {
   const code = state.code;
+  // CITY D — NO MESSAGES A SOLO PLAYER NEVER NEEDED: a SOLO room (PLAY NOW's one-seat room — the player never saw a room) leaves without a word
+  // ("ROOM CLOSED", "YOU WERE DISCONNECTED…", a leave's reason); the messages stay for real rooms with other people
+  const solo = !!code && (isSoloMeta(state.meta) || soloRejoin(code));
   lastExit = { code, how };
   leavingCode = null;
   if (code && !keepSeat) freeSeat(code);   // (LOBBY FIXES — the seat goes back with the room: only while it's still this device's)
@@ -457,7 +460,7 @@ export function exitRoom(reason, kind = 'warn', { keepSeat = false, how = 'close
   setUrlRoom(null);
   setState({ ...EMPTY_ROOM, view: 'title', invite: '', rejoin: '' });   // (CITY 1.0 OUT — THE STUCK JOIN: no invite / REJOIN offer survives the room it was for)
   release('room');
-  if (reason) toast(reason, kind, 3500);
+  if (reason && !solo) toast(reason, kind, 3500);
 }
 
 export async function leaveRoom({ keepSeat = false, reason = null, heir: given = null } = {}) {
