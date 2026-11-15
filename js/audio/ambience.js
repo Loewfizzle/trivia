@@ -226,6 +226,8 @@ export function neonHumFade({ level = 1, fadeIn = 0.8, hold = 1.5, fade = 10 } =
   out.gain.setValueAtTime(0, ctx.currentTime);
   out.connect(getSfxBus());
   const t0 = ctx.currentTime;
+  // (CITY D — a LOOP is a bed: leaving the page stops it AT ONCE — engine.js#holdBed; the hum is a moment, it doesn't come back)
+  const release = (globalThis.__nsAudioBeds || (() => () => {}))({ pause() { if (stopped) return; stopped = true; release(); try { out.gain.cancelScheduledValues(0); out.gain.value = 0; } catch {} try { if (src) src.stop(); } catch {} try { out.disconnect(); } catch {} }, resume() {} });
   neonBuf(ctx, NEON_REC.hum).then(buf => {
     if (!buf || stopped) return;
     src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
@@ -238,10 +240,10 @@ export function neonHumFade({ level = 1, fadeIn = 0.8, hold = 1.5, fade = 10 } =
     for (let i = 0; i < curve.length; i++) curve[i] = top * Math.cos((i / (curve.length - 1)) * Math.PI / 2);
     out.gain.setValueCurveAtTime(curve, Math.max(fadeAt, n + up), left);
     endT = Math.max(fadeAt, n + up) + left;
-    setTimeout(() => { if (stopped) return; stopped = true; try { src.stop(); } catch {} out.disconnect(); }, (endT - n) * 1000 + 150);
+    setTimeout(() => { if (stopped) return; stopped = true; release(); try { src.stop(); } catch {} out.disconnect(); }, (endT - n) * 1000 + 150);
   });
   return (f = 0.6) => {
-    if (stopped) return; stopped = true;
+    if (stopped) return; stopped = true; release();
     const n = ctx.currentTime;
     // (mid-curve: hold where it is, then ramp down — setValueAtTime inside a running curve throws in some browsers)
     try {

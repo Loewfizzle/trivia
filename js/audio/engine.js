@@ -43,6 +43,12 @@
 //    run, and the moment it runs everything ramps back up over ~150 ms — never a jump to full (no pop). THE DIRECT PATH's plain <audio>
 //    (iOS ignores an element's volume) is paused at the START of the fade; the graph's voices after it (music.js). The clock watch, the
 //    unlock, the retries + the rebuilds are unchanged. The log reads: fade out → suspended after the fade → fade in.
+//  - CITY D — THE LEAVING SQUEAL WITH EFFECTS ON (the owner's iPhone: music off, effects ON, the daily screen → leaving Safari → the glitch
+//    again; CITY A fixed only muted / everything off): on the EARLIEST leave signal (blur on a touch phone · pagehide · hidden · freeze) the
+//    master goes to 0 AT ONCE (setValueAtTime — no ramp: a 90-ms ramp was still sounding when iOS froze the page), every BED / LOOP source
+//    stops (holdBed — the neon hum, a game's loop), and the context suspends ~60 ms later (the zeros already on the audio thread). Back on
+//    screen: resume → the master ramps up from 0 + the beds ramp back in. A blur that comes back while the page stayed visible (the share
+//    sheet, a system alert) brings it all back after ~400 ms — and a desktop's blur (another window clicked) is not a leave at all.
 //  - THE LOG (audioLog / audioEvents): the last events with times — what the &debug=1 AUDIO block shows (audio/diag.js).
 import { settings, onSettings } from './settings.js';
 
@@ -51,7 +57,7 @@ let musicBus = null;
 let sfxBus = null;
 let master = null;        // THE MASTER (DFIX3 ADD-ON): the one gain every path leaves through — the fade on leaving / the ramp back
 let fadeT = 0, pendingFadeIn = false;
-const FADE_OUT_S = 0.09, FADE_IN_S = 0.15, SUSPEND_AFTER_MS = 110;
+const FADE_OUT_S = 0.09, FADE_IN_S = 0.15, SUSPEND_AFTER_MS = 60, BLUR_BACK_MS = 400;
 let unlocked = false;
 let visibleNow = true;
 let visibleAt = 0;        // performance.now() when the page last came back on screen
@@ -372,18 +378,27 @@ export function onVisibility(fn) {
   visibilityListeners.add(fn);
 }
 
-// ---- THE FADE ON LEAVING (DFIX3 ADD-ON — the header): the master ramps on the AUDIO clock first, the suspend follows; back = 0 → up once running
+// ---- THE BEDS (CITY D): every LOOPING source registers here — { pause(why), resume() }; on leaving each stops AT ONCE, back on screen each
+// ramps back in. A lazy chunk (a game's sounds) reaches it through the hub globalThis.__nsAudioBeds (THE STALE-MODULE RULE)
+const beds = new Set();
+let bedsPaused = false;
+export function holdBed(bed) { beds.add(bed); if (bedsPaused) { try { bed.pause('left'); } catch { /* fine */ } } return () => beds.delete(bed); }
+globalThis.__nsAudioBeds = holdBed;
+export const bedCount = () => beds.size;
+function pauseBeds(why) { bedsPaused = true; for (const b of [...beds]) { try { b.pause(why); } catch { /* gone */ } } }
+function resumeBeds() { if (!bedsPaused) return; bedsPaused = false; for (const b of [...beds]) { try { b.resume(); } catch { /* gone */ } } }
+// ---- THE FADE ON LEAVING (DFIX3 ADD-ON → CITY D): the master to 0 AT ONCE on the audio clock + the beds stopped, the suspend follows; back = 0 → up once running
 function fadeOut(why) {
-  clearTimeout(fadeT);
+  clearTimeout(fadeT); clearTimeout(blurT); blurT = 0;
   const c = ctx;
+  pauseBeds(why);
   if (!c || !master || c.state !== 'running') { if (c && c.state === 'running') c.suspend().catch(() => {}); return; }
-  try {
-    const t = c.currentTime, g = master.gain;
-    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + FADE_OUT_S);
-  } catch { /* closed */ }
-  audioLog(`fade out (${why})`);
+  silence(c);
+  audioLog(`fade out (${why}) — the master 0 at once`);
   fadeT = setTimeout(() => { if (ctx === c && !visibleNow && c.state === 'running') c.suspend().then(() => { if (ctx === c) audioLog('suspended after the fade'); }, () => {}); }, SUSPEND_AFTER_MS);
 }
+/** the master to 0 now — no ramp (CITY D: what is still sounding when iOS freezes the page is what it loops) */
+function silence(c) { try { const t = c.currentTime, g = master.gain; g.cancelScheduledValues(t); g.setValueAtTime(0, t); } catch { /* closed */ } }
 function fadeIn(why) {
   const c = ctx;
   pendingFadeIn = false;
@@ -392,12 +407,32 @@ function fadeIn(why) {
     const t = c.currentTime, g = master.gain;
     g.cancelScheduledValues(t); g.setValueAtTime(0, t); g.linearRampToValueAtTime(1, t + FADE_IN_S);
   } catch { /* closed */ }
+  resumeBeds();
   audioLog(`fade in (${why})`);
+}
+// CITY D — a BLUR on a touch phone is the earliest sign of leaving Safari (before pagehide / hidden): silent at once, the beds stopped; the
+// suspend waits for hidden — still visible ~400 ms later (the share sheet, an alert) → everything back. A desktop's blur is not a leave.
+let blurT = 0, blurred = false;
+const coarse = () => { try { return matchMedia('(pointer: coarse)').matches; } catch { return false; } };
+function onBlur() {
+  if (!coarse() || !visibleNow || !ctx || hushed) return;
+  blurred = true;
+  pauseBeds('blur');
+  if (master && ctx.state === 'running') { silence(ctx); audioLog('blur — the master 0 at once'); }
+  clearTimeout(blurT);
+  blurT = setTimeout(blurBack, BLUR_BACK_MS);
+}
+function blurBack() {
+  blurT = 0;
+  if (!blurred || !visibleNow || document.visibilityState === 'hidden') return;
+  blurred = false;
+  if (ctx && master && !hushed && ctx.state === 'running') fadeIn('still on screen after a blur'); else resumeBeds();
 }
 /** hidden / shown — visibilitychange, pagehide / pageshow (the back-forward cache), freeze / resume (the page frozen in the background) */
 function setVisible(visible, why = '') {
   if (visible === visibleNow) { if (visible) kick(); return; }
   visibleNow = visible;
+  blurred = false; clearTimeout(blurT); blurT = 0;
   if (visible) { visibleAt = performance.now(); setSession('back on screen'); }
   if (ctx) {
     if (visible && unlocked && hushed) { /* (CITY A: hushed — back on screen wakes nothing) */ }
@@ -418,8 +453,8 @@ export function installAudio() {
   for (const ev of ['pointerdown', 'touchend', 'click', 'keydown']) document.addEventListener(ev, unlock, { capture: true, passive: true });
   // typing on the iOS system keyboard / focusing inputs / coming back to the app: try again
   for (const ev of ['input', 'focusin', 'touchstart']) document.addEventListener(ev, kick, { capture: true, passive: true });
-  window.addEventListener('focus', () => { audioLog('focus'); kick(); });
-  window.addEventListener('blur', () => audioLog('blur'));
+  window.addEventListener('focus', () => { audioLog('focus'); if (blurred) { clearTimeout(blurT); blurBack(); } kick(); });
+  window.addEventListener('blur', () => { audioLog('blur'); onBlur(); });
   // hidden / shown: visibilitychange, + pagehide / pageshow for the back-forward cache (a restored page may get no visibilitychange), + the
   // Page Lifecycle's freeze / resume (DFIX3 ADD-ON) — each through THE FADE ON LEAVING (above)
   document.addEventListener('visibilitychange', () => { audioLog(`visibility ${document.visibilityState}`); setVisible(document.visibilityState === 'visible', 'hidden'); });

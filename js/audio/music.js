@@ -753,7 +753,7 @@ onVisibility(v => {
     if (tape.active()) tape.abort('hidden'); positions[current.id] = current.voice.el.currentTime || 0;
     const pauseAll = list => { for (const x of list) if (!x.el.src.startsWith('blob:')) x.el.pause(); };
     if (direct) pauseAll([direct]);
-    setTimeout(() => { if (!visible) pauseAll(voices); }, 110);
+    setTimeout(() => { if (!visible) pauseAll(voices); }, 30);   // (CITY D: the master is 0 AT ONCE now — the voices stop under silence, before the suspend at ~60 ms)
     stall = { t: -1, since: 0, still: false };
   }
   else {

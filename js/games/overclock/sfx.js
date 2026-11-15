@@ -81,19 +81,25 @@ export function ocLoop(name, { gain = 1, fadeMs = 400 } = {}) {
     const g = ctx.createGain();
     g.gain.value = 0;
     g.connect(bus || ctx.destination);
-    let src = null, dead = false, want = def[1] * gain;
+    let src = null, dead = false, want = def[1] * gain, held = false, theBuf = null;
     const b = buffer(def[0]);
     const start = buf => {
-      if (dead || !buf || ctx.state !== 'running') return;
+      theBuf = buf || theBuf;
+      if (dead || held || !buf || ctx.state !== 'running') return;
       src = ctx.createBufferSource();
       src.buffer = buf; src.loop = true; src.loopStart = 0; src.loopEnd = buf.duration;
       src.connect(g);
       src.start();
       g.gain.setTargetAtTime(want, ctx.currentTime, fadeMs / 3000);
     };
+    // (CITY D — a LOOP is a BED (engine.js#holdBed, through the hub): leaving the page stops it AT ONCE, back on screen it ramps back in)
+    const release = (globalThis.__nsAudioBeds || (() => () => {}))({
+      pause() { held = true; try { g.gain.cancelScheduledValues(0); g.gain.value = 0; if (src) src.stop(); } catch { /* gone */ } src = null; },
+      resume() { held = false; if (!dead && theBuf) { try { g.gain.value = 0; } catch { /* gone */ } start(theBuf); } },
+    });
     if (b && typeof b.then === 'function') b.then(start); else start(b);
     return {
-      stop(ms = 500) { dead = true; try { g.gain.setTargetAtTime(0, ctx.currentTime, ms / 3000); if (src) src.stop(ctx.currentTime + ms / 1000 + 0.1); } catch { /* gone */ } },
+      stop(ms = 500) { dead = true; release(); try { g.gain.setTargetAtTime(0, ctx.currentTime, ms / 3000); if (src) src.stop(ctx.currentTime + ms / 1000 + 0.1); } catch { /* gone */ } },
       gain(v, ms = 600) { want = def[1] * v; try { g.gain.setTargetAtTime(want, ctx.currentTime, ms / 3000); } catch { /* gone */ } },
     };
   } catch { return none; }
