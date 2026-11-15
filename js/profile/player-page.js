@@ -88,7 +88,7 @@ export async function openPlayer(target = {}, o = {}) {
     else {
       const { gildedCard } = await lazyImport(import('../progress/card.js'), '../progress/card.js');
       card = gildedCard({ n: c.n, a: c.a, c: c.c, cd: c.cd || 'card-gilded', g: c.g, at: c.at, fd: c.fd, x: XP_AT[lv] || 0 }, {}, { card: c.cd || 'card-gilded' });
-      const no = card.querySelector('.pg-card-no'); if (no) no.remove();   // (no member line on someone else's page)
+      card.querySelectorAll('.pg-card-no').forEach(n => n.remove());   // (no member line on someone else's page — CITY C: the label + its value)
     }
     if (gone) return;
     stage.replaceChildren(card);

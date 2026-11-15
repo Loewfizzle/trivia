@@ -256,7 +256,7 @@ G('radio', async () => {
   await waitFor(O.page, '!!document.querySelector(".rd-big3 .rd-nixie")', 'THE LEDGER', 10000);
   await shotFace(O.page, 'ledger');
   const led = await ev(O.page, `({ nix: document.querySelectorAll('.rd-big3 .rd-nixie').length, rows: document.querySelectorAll('.rd-lg').length, bars: document.querySelectorAll('.rd-chart > div').length })`);
-  ok(led.nix === 3 && led.rows >= 6 && led.bars === 7, `RADIO: THE LEDGER — 3 nixies, TODAY's rows (${led.rows}), THIS WEEK's 7 bars`);
+  ok(led.nix === 3 && led.rows >= 6 && led.bars === 0, `RADIO: THE LEDGER — 3 nixies, TODAY's rows (${led.rows}); THIS WEEK moved to STATS (CITY C — the ☰ sheet: ${led.bars} bars here)`);
   // (FR7 FIXES C — NOW PLAYING under the nixies: what THIS phone plays — the engine's own state; MUSIC OFF / nothing sounding are honest answers here)
   { const npx = await ev(O.page, `(() => { const e = document.querySelector('.rd-big3 + .rd-np'); return e ? { t: e.textContent, w: Math.round(e.getBoundingClientRect().width), sw: e.scrollWidth, cw: e.clientWidth } : null; })()`);
     ok(npx && /^NOW PLAYING · (MUSIC OFF|nothing sounding|.+ · .+)/.test(npx.t) && npx.sw <= npx.cw + 1, `RADIO: THE LEDGER's NOW PLAYING under the nixies ("${npx && npx.t}")`); }
@@ -355,7 +355,7 @@ G('radio', async () => {
     ok(log.length >= 1, `RADIO: the FOUNDER switch is audited (${log.length})`);
     await tap(); await sleep(150); await tap();
     await waitFor(O.page, '(document.querySelector(".rd-fsw-state") || {}).textContent === "OPEN"', 'OPEN again', 10000).catch(() => {});
-    ok((await get('progress/founder')) === null, 'RADIO: … and reopened (the test leaves it OPEN)'); }
+    ok(((await get('progress/founder')) || { open: true }).open !== false, 'RADIO: … and reopened (the test leaves it OPEN — CITY C: the reopen records its time)'); }
   // ---- THE CITY BEHIND keeps running at its tier while the radio is open (a warning on a slow machine)
   // (FRIENDS C: counted from the LOOP's own drawn frames over the 3 s — the tiering's frame window (frames()) is emptied BY DESIGN while a
   //  bake is pending, and the radio's own billboard messages swap the roof board (a neon re-bake) in this very window: it read ~0 fps)

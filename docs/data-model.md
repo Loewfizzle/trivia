@@ -476,3 +476,7 @@ tests/*.test.mjs                                         unit + whole-match simu
 tests/integration/  kit/harness.mjs e2e-*.mjs harbor-e2e/ (the Harbor suite: kit + one file per cloud job) title-perf.mjs pixdiff.mjs rules.test.mjs server.test.mjs *-preview.html   the E2E harness, per-game suites, rules tests, /api tests, no-Firebase look previews
 tests/fixtures/finals.mjs                                finished matches of every game (profile/board tests)
 ```
+
+- **CITY C (server only — the rules' default deny):** `flink/{code}` = `{ p, at }` (THE ADD-ME LINK) + `pfr/{pid}/lk` (its code) · `progress/statsSnap`
+  = `{ v, at, data }` (STATS' one snapshot) · `radio/spotted/{day}` = n (legendaries spotted a day, 8 kept) · `progress/dailies.onAt` (the switch's
+  OFF → ON flip) · `progress/founder` now `{ open, at, by }` both ways.

@@ -68,6 +68,7 @@ G('vault', async () => {
   // (THE BTC CARD: the ₿ balloon card's new art (both faces v2) → 16 rows, 28 NEED YOU)
   // (BOARD 2.0 B — THE LONG-NAME FIX: PERFECT WEEK's full card CHANGED (+ PENTHOUSE / SAFECRACKER / GHOST RUN's full cards — rows already listed) → 17 rows, 29 NEED YOU)
   // (JAYWALK CARDS: + JAYWALK's 3 cards — &marks=old approves them at v1 like every item → still 17 rows, 29 NEED YOU, 61 in all)
+  // (CITY C — THE SIGHTINGS' STANDARD LAYOUT: + six sighting full cards CHANGED (v2) → 23 rows, 35 NEED YOU)
   // the counts; one row per item + the FULL toggle flipping in place (its own mark); a re-mark leaves NEEDS YOU; ALL CAUGHT UP; NEW since his
   // last visit (vl:seen); the top bar's ← THE CITY
   { const { ctx, p } = await page('marks=old');
@@ -76,8 +77,8 @@ G('vault', async () => {
       chg: [...document.querySelectorAll('.vl-item .vl-chg:not([hidden]) b')].length, was: document.querySelectorAll('.vl-mark.is-was').length,
       counts: Object.fromEntries([...document.querySelectorAll('.vl-filter')].map(b => [b.dataset.f, +b.querySelector('.vl-filter-n').textContent])),
       back: (document.querySelector('.vl-back') || {}).getAttribute && document.querySelector('.vl-back').getAttribute('href'), house: ((document.querySelector('.vl-item[data-id="card-house"]') || {}).dataset || {}).face || '' }))()`);
-    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 17 && L.rows.includes('card-perfect-week') && L.rows.includes('card-sg-btc') && L.rows.includes('card-penthouse') && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.rows.includes('card-camo') && L.rows.includes('card-safecracker') && L.chg === 17 && L.was >= 11 && /^29 NEEDS? YOU$/.test(L.need)
-      && L.counts.needs === 17 && L.counts.changed === 17 && L.counts.all === 61 && L.back === '/' && L.house === 'full',
+    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 23 && L.rows.includes('card-perfect-week') && L.rows.includes('card-sg-btc') && L.rows.includes('card-penthouse') && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.rows.includes('card-camo') && L.rows.includes('card-safecracker') && L.chg === 23 && L.was >= 11 && /^35 NEEDS? YOU$/.test(L.need)
+      && L.counts.needs === 23 && L.counts.changed === 23 && L.counts.all === 61 && L.back === '/' && L.house === 'full',
       `THE LAB 2.0: NEEDS YOU by default — ${L.rows.length} CHANGED rows (${L.rows.join(', ')}), each with its CHANGED line (${L.chg}) beside the old mark (${L.was} lit as "was"); the bar "${L.need}"; counts ${JSON.stringify(L.counts)}; THE HOUSE opens on its FULL face (only it changed); ← THE CITY → ${L.back}`);
     // the FULL toggle flips in place (the strip's surface slot swapped), its own mark; a re-mark drops the row's CHANGED count
     await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-face').click()`); await sleep(400);
@@ -88,7 +89,7 @@ G('vault', async () => {
     await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-mark[data-m="approve"]').click()`);
     await sleep(400);
     const A = await ev(p, `({ need: document.querySelector('.vl-need').textContent, m: window.__lab.marks['full-card-founder'], rows: document.querySelectorAll('.vl-item').length })`);
-    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^28 NEEDS? YOU$/.test(A.need) && A.rows === 17,
+    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^34 NEEDS? YOU$/.test(A.need) && A.rows === 23,
       `THE LAB 2.0: FULL CARD › flips the row in place (${F.face}, one canvas) with the full card's own marks (${F.mk}); a re-mark stores the version seen (v${A.m.v}) — "${A.need}" (the rows stay put until the filter changes: ${A.rows})`);
     await ctx.close(); }
   { const { ctx, p } = await page('marks=none&filter=needs&view=glows');
@@ -113,10 +114,12 @@ G('vault', async () => {
         const el = b.slot === 'stamp' ? fc.querySelector('.vl-fc-stamp') : fc.querySelector('.vl-fc-fd'); if (!el) { out.push({ id, miss: true }); continue; }
         const r = el.getBoundingClientRect(), bx = [(r.left - R.left) / R.width, (r.top - R.top) / R.height, r.width / R.width, r.height / R.height];
         const hit = b.moving.filter(m => bx[0] < m[0] + m[2] && m[0] < bx[0] + bx[2] && bx[1] < m[1] + m[3] && m[1] < bx[1] + bx[3]).length;
-        out.push({ id, slot: b.slot, txt: el.textContent, hit, parts: b.moving.length, top: b.slot !== 'top' || /№ \\d+ · FOUNDER/.test(fc.querySelector('.vl-fc-house').textContent) }); }
+        out.push({ id, slot: b.slot, dev: /^card-dev-/.test(id), txt: el.textContent, hit, parts: b.moving.length, top: fc.querySelector('.vl-fc-house').textContent === 'NEON SPEAKEASY' }); }
       return out; })()`);
-    ok(B.length === 5 && B.every(x => !x.miss && x.hit === 0 && x.top) && B.filter(x => x.slot !== 'stamp').every(x => x.txt === 'FOUNDER') && B.filter(x => x.parts).length >= 4,
-      `FOUNDER + THE BADGE SLOT at ${W}: ${B.map(x => `${x.id.replace('card-', '')} ${x.slot}${x.hit ? ` HITS ${x.hit}` : ''}`).join(' · ')} — no badge on a moving part; the dev cards' top line "… № 0001 · FOUNDER"`);
+    // (CITY C — THE CARD TOP LINES: the FOUNDER pill → the gold-FOIL line under the top line — "✦ FOUNDING MEMBER ✦" / the dev cards' "✦ PROPRIETOR ✦";
+    //  the top line only NEON SPEAKEASY. No overlap on a moving part — the dev cards' line over THE SWITCHBOARD's meter band is REPORTED (the owner's call: the art))
+    ok(B.length === 5 && B.every(x => !x.miss && x.top && (x.dev || x.hit === 0)) && B.filter(x => x.slot !== 'stamp').every(x => x.txt === (x.dev ? '✦ PROPRIETOR ✦' : '✦ FOUNDING MEMBER ✦')) && B.filter(x => x.parts).length >= 4,
+      `THE FOIL LINE at ${W}: ${B.map(x => `${x.id.replace('card-', '')} ${x.slot}${x.hit ? ` touches ${x.hit}` : ''}`).join(' · ')} — never on a moving part (the dev cards reported); the top line NEON SPEAKEASY alone`);
     await ctx.close(); }
   // THE VAULT 2C — THE WRONG DOOR (/404.html — Vercel's page for any unknown path; scripts/serve.mjs does the same): made-up paths land on the
   // door with a 404, ONE way back to the city, the right DID YOU MEAN — /lab + /admin only on a device the app called an admin
@@ -342,12 +345,12 @@ G('vault', async () => {
   // is the full card's own (full-<card>) + flashes SAVED ✓
   { const { ctx, p } = await page('view=cards&filter=all&face=full');
     await sleep(900);
-    const f = await ev(p, `({ cards: document.querySelectorAll('.vl-fc').length, canvases: document.querySelectorAll('canvas.fx-canvas').length, sight: !!document.querySelector('.vl-fc.is-sight .vl-fc-title b') })`);
+    const f = await ev(p, `({ cards: document.querySelectorAll('.vl-fc').length, canvases: document.querySelectorAll('canvas.fx-canvas').length, sight: !document.querySelector('.vl-fc.is-sight') && !!document.querySelector('.vl-fc[data-card="card-sg-ufo"] .vl-fc-sgt b') })`);   // (CITY C: the sightings in the STANDARD layout — the name in the bottom-right corner)
     await ev(p, `document.querySelector('.vl-item[data-id="card-inferno"] .vl-mark[data-m="approve"]').click()`);
     const saved = await waitFor(p, `!!document.querySelector('.vl-item[data-id="card-inferno"] .vl-saved')`, 'SAVED', 3000).then(() => true).catch(() => false);
     const txt = saved ? await ev(p, `document.querySelector('.vl-item[data-id="card-inferno"] .vl-saved').textContent`) : '';
     const fm = await ev(p, `({ full: (window.__lab.marks['full-card-inferno'] || {}).m || null, strip: (window.__lab.marks['card-inferno'] || {}).m || null })`);
-    ok(f.cards === 60 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt) && fm.full === 'approve' && !fm.strip, `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark on the FULL face is the full card's own (full ${fm.full}, strip ${fm.strip}) + flashes "${txt}"`);
+    ok(f.cards === 60 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt) && fm.full === 'approve' && !fm.strip, `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sightings in the standard layout: ${f.sight}); a mark on the FULL face is the full card's own (full ${fm.full}, strip ${fm.strip}) + flashes "${txt}"`);
     await ctx.close(); }
   // THE VAULT 1C — THE SIGHTING'S SCENE (the reveal's pair + the album's no-photo tile): once its full card is APPROVED the placeholder becomes
   // the card's real scene (js/vault/full.js#upgradeScene) — all 9 sightings, each its own canvas drawn; unapproved → the placeholder stays
@@ -380,7 +383,7 @@ G('vault', async () => {
         tabs: [...document.querySelectorAll('.vl-dr-tab')].map(b => b.textContent).join(), sel: (document.querySelector('.vl-dr-tab[aria-selected="true"]') || {}).textContent,
         tiles: document.querySelectorAll('.vl-dt').length, on: document.querySelectorAll('.vl-dt.is-on').length, tiers: [...document.querySelectorAll('.vl-dt')].every(t => /vl-dt-(common|uncommon|rare|epic|legendary)/.test(t.className)),
         dev1: [...document.querySelectorAll('.vl-dt')].slice(0, 2).map(t => t.dataset.id).join(), pin: document.querySelectorAll('.vl-dr-pin .vl-strip').length,
-        names: names.length, over: names.filter(over).length, ell: names.filter(e => getComputedStyle(e).textOverflow === 'ellipsis').length, no: (document.querySelector('.pg-card-no') || {}).textContent || '' }; })()`);
+        names: names.length, over: names.filter(over).length, ell: names.filter(e => getComputedStyle(e).textOverflow === 'ellipsis').length, no: (document.querySelector('b.pg-card-no, b.vl-fc-no') || {}).textContent || '' }; })()`);   // (CITY C: MEMBER Nº under MEMBER SINCE — the value's b)
     ok(r.panel && r.title === 'CUSTOMIZE' && /^cz,level,goal,stats,trophies/.test(r.order) && !r.board && r.bday && r.coll && r.lists === 0 && r.tabs === 'CARD,EMBLEM,GLOW,TUBE' && r.sel === 'CARD' && r.tiles > 10 && r.on === 1 && r.tiers && r.dev1 === 'card-dev-switchboard,card-dev-source' && r.pin === 1 && r.names >= 2 && r.over === 0 && r.ell === 0 && /0001/.test(r.no),
       `CUSTOMIZE + THE PROFILE's ORDER (${r.order}; no BOARD button: ${!r.board}; the birthday at the foot: ${r.bday}) + YOUR COLLECTION (${r.lists} long lists left); CUSTOMIZE ("${r.title}") — the pinned strip, tabs ${r.tabs}, ${r.tiles} card tiles tier-edged (${r.on} ticked, the DEV cards first: ${r.dev1}); WWWWWWWWWWWW whole on the card + the strips (${r.over} over, ${r.ell} cut); the card's ${r.no}`);
     await ctx.close(); }

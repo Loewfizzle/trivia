@@ -863,3 +863,12 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   `/file-hashes.json` for the files they change (THE CARRY trusts the list).
 - Unit: `file-hashes.test.mjs` (run `node scripts/build-file-hashes.mjs` after ANY file change), `game-budget.test.mjs`, `audio-hush.test.mjs`.
 - `e2e-daily` / anything opening the DAILY screen needs the server started with `DAILY_TEST=1` (e2e-taps' TODAY'S SCORES case too).
+
+## CITY C's tools (Nov 15 2026)
+- `load-log.mjs` + `--dpr N` · `--desktop` (no mobile / touch emulation) · `--maxframe MS` (every rAF gap after the reveal; exit 1 over it, each with
+  its offset) · `--nodebug` (no &debug=1 — no PIXEL WATCH readback). THE CHROMEBOOK repro: `VSYNC=display node load-log.mjs "<chromium>" --size 1366x647
+  --dpr 1 --desktop --cpu 4 --maxframe 250 --nodebug --qs "force=party"`.
+- `strip-match.mjs "<chromium>" [--still] [--size 402] [--max 6] [--only ids] [--out dir]` — every slim strip's material vs its live first frame.
+- Previews: `fullcard-preview.html` (the real full cards: `?cards=…&fd=1&no=…&glow=…&gilded=1&strip=1` · `?strips=all` = THE STRIP MATCH's page) ·
+  `stats-preview.html` (the ☰ STATS sheet on sample numbers).
+- `scripts/build-og.mjs <in.jpg> <out.jpg>` — the link preview's title composite (+ the 300-px check copy).

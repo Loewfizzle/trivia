@@ -175,7 +175,7 @@ G('room', async () => {
   ok(hc && hcA, `THE HOST CHANGE: PLAY moves to the new host, the old one now sees WAITING FOR … (${hc}/${hcA})`);
   // GUESTS: the sheet (8 → 6 strips), the dot cleared on open; CHAT: the unread dot; YOU → the card
   await ev(p, "document.querySelector('.rdk-guests').click()");
-  await waitFor(p, "document.querySelectorAll('.rg-sheet .rg-row').length >= 6", 'the guest list', 10000).catch(() => {});
+  await waitFor(p, "document.querySelectorAll('.rg-sheet .vl-strip').length >= 6", 'the guest list', 10000).catch(() => {});   // (CITY C 0d: the names at once, the strips one per frame)
   const gl = await ev(p, "({ rows: document.querySelectorAll('.rg-sheet .rg-row').length, strips: document.querySelectorAll('.rg-sheet .vl-strip').length, dot: !document.querySelector('.rdk-guests .rdk-dot').hidden, host: [...document.querySelectorAll('.rg-sheet .vl-lv')].some(l => /HOST/.test(l.textContent)) })");
   ok(gl.rows === 6 && gl.strips === 6 && !gl.dot && gl.host, `THE GUEST LIST: everyone as their SLIM CARD STRIP (${gl.strips}), the host marked; GUESTS' dot cleared on open (${!gl.dot})`);
   if (SHOTS) await p.screenshot({ path: `${OUT}lobby-guests.png` });

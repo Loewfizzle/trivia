@@ -534,7 +534,7 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
 .rg-row { position: relative; cursor: pointer; border-radius: 12px; transition: opacity 0.28s ease, transform 0.28s ease; }
 .rg-row .vl-strip { pointer-events: none; }
 /* CITY C 0d: a guest's name row while their strip waits its frame (the same 64 px as .vl-strip — nothing moves when it lands) */
-.rg-ph { height: 64px; display: flex; align-items: center; padding: 0 18px; background: rgba(255, 255, 255, 0.05); color: var(--text-dim); font: 700 15px var(--font-ui); letter-spacing: 0.06em; cursor: default; }
+.rg-ph { height: 64px; display: flex; align-items: center; padding: 0 18px; background: rgba(255, 255, 255, 0.05); color: var(--text-dim); font: 700 15px var(--font-ui); letter-spacing: 0.06em; cursor: pointer; }
 .rg-row.is-off .vl-strip { opacity: 0.5; filter: saturate(0.4); }
 .rg-row.is-in { animation: rg-in 0.55s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes rg-in { from { opacity: 0; transform: translateX(46px); } to { opacity: 1; transform: none; } }

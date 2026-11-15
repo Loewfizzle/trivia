@@ -789,3 +789,15 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   shown only where its effect isn't painting (`fx/renderer.js` marks `.fx-on`); a new one = its STILLS row (`tests/card-stills.test.mjs`).
 - **THE VAULT 2C:** the strip's tier mark is THE TIER GEM (`js/vault/gems.js` — no words; the dev cards' DEV GEM); a pass that edits a lab item's art bumps `js/vault/catalog.js#LAB_V` + writes its line in `api/_lib/lab-text.js#LAB_CHANGES` (it shows CHANGED in THE LAB 2.0); the 12 sign-up shapes are commons everyone owns (`core/items.js#SIGN_EMBLEMS`) — the shape changes only in CUSTOMIZE; an unknown path gets THE WRONG DOOR (`404.html` — keep vercel.json free of rewrites).
 - **ITEM NAMES ONLY TO OWNERS (THE VAULT 1B):** the catalog (names, lines, achievements, what each level / milestone gives, the lab's names) lives in `api/_lib/catalog.js` + `lab-text.js` (never served); a phone gets display rows only for what it owns (`withShow` → the /api wrapper registers them). A new item = its row there. `tests/vault-names.test.mjs` fails on a leak. The two approved exceptions, both on THE PLAYER PAGE's answer only (`api/_lib/player.js`): the TOP 3 RAREST achievements' names, and (Nov 13) the WORN card's name (`card.cn` — CARD NAMES YOU CAN SEE: someone else's full card never shows a blank name).
+
+## CITY C — THE CARD TOP LINES · THE SIGHTINGS' STANDARD LAYOUT · THE STRIP MATCH (Nov 15 2026 — docs/harbor/passes/city-c.md)
+- **THE TOP LINES** (`vault/full.js#foilOf`): the top line = NEON SPEAKEASY only; a gold-FOIL text line under it — "✦ FOUNDING MEMBER ✦" (a founder's
+  card; not a gift card, not FOUNDING MEMBER itself) / "✦ PROPRIETOR ✦" (the owner's DEV cards) — `.vl-fc-fd.vl-fc-foil` (no pill, the top line's soft
+  backing, a dark bronze foil on the light materials; vault/layout.js sets it close under the top line); the rank without "DEV ·"; MEMBER Nº under
+  MEMBER SINCE (label | value rows). THE GILDED (`progress/card.js`) the same. Preview: `tests/integration/fullcard-preview.html?cards=…&fd=1&glow=…`.
+- **THE SIGHTINGS** use the standard layout: the heroes right of the plate on a full card + `vault/layout.js#SIGHT_HERO`; the name + spot line in the
+  bottom-right corner (`.vl-fc-sgt`). LAB_V 2 for the eight full cards.
+- **THE STRIP MATCH**: a slim card's material frames its picture exactly as its effect's first frame, at any width — a zoomed strip picture of its own
+  = `max(z%, 64 × 1280 / h × z px) auto` (fx/gift.js#artMap's own scale — BUZZED); a picture that is an effect LAYER = a transparent baked still over
+  the page (stills kind `o` + a hand rule — GOLDEN HOUR); baked strip stills sit at the hero's centre across. Check: `node tests/integration/strip-match.mjs
+  "<chromium>" --still --size 330` (and 402).

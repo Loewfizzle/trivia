@@ -97,6 +97,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE BOX GATE: every camera / box change through ONE gate (scene.js#boxCheck) — never a second canvas resize; NO TWO CAMERAS (`wk-double.mjs`;
   a new path = its row in `tests/integration/kit/two-cameras.mjs`).
 - THE LONG NIGHT's RULE: every module the scene creates is destroyed in scene.js#destroy(), its canvases freed at once (`ui/canvas-safe.js#freeCanvases`).
+- THE ONE-STALL RULE (CITY C): a > 1 s frame in the city's first moments steps a tier at once + is remembered (`core/harbor-tiers.js#stallStepMs`, `na:tier`) → docs/harbor/passes/city-c.md.
 - THE CITY'S IDLE POLLS: every call = an edge request — only from a tab on screen AND focused, ≥ 5 min; a new idle poll = a named decision (`tests/cdn-hotfix.test.mjs`) → docs/launch.md (moved).
 - Debug + preview flags: `&debug=1`, `&dpr=3`, `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary waits for the reveal + a tap; `&lgnow=1` at once).
 - A holiday SIGN FORCE (`&force=sign-*`) shows the FULL look any day, in season too; THANKSGIVING = the maple leaves BEHIND the letters + THE GOLD WEEK (`leafbank.js`) → docs/harbor.md.
@@ -130,6 +131,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE REAL PLAYER COUNT: anything the server PAYS BY A COUNT takes it from what it can verify (`api/report.js`); A SEAT IS NOT A PLAY (`PROOF_TREES`).
 - Anti-cheat never depends on the code being secret: the server checks + replays every result; secrets only in Vercel's env.
 - ITEM NAMES ONLY TO OWNERS (`api/_lib/catalog.js` + `lab-text.js`, never served; `tests/vault-names.test.mjs`) — ONE named exception: the WORN card's name on THE PLAYER PAGE (`card.cn`).
+- THE ADD-ME LINK + STATS (CITY C): a friend link = a server-made `flink/` code, never a pid; STATS = ONE builder (`js/admin/stats-view.js`) + ONE cached snapshot (`progress/statsSnap`) → docs/profiles.md.
 - FRIENDS: `pfr/{pid}` server-written, its owner reads it (`core/friends.js#friendStep`); PASSKEYS (`api/_lib/passkeys.js`, the RESTORE KEY stays the fallback) → docs/profiles.md (moved).
 - SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS — only through `ui/strip-board.js` (never a second strip system); every place 1 / 2 / 3 = THE DECO MEDALS (`ui/medal.js`).
 
@@ -137,6 +139,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - EMBLEMS + GLOWS MOVE ON THE COMPOSITOR (`js/vault/emblem-art.js` — never a CSS animation on an SVG element); THE PROMINENCE RULE is the budget.
 - A FULL CARD ON TOP HOLDS EVERYTHING BEHIND IT — every full card through `vault/full.js#openFullCard`.
 - THE CARD LAYOUT RULE (`js/vault/layout.js`) + THE CARD TEXT STANDARD; THE SLIM-CARD LONG-NAME STANDARD (`NAME_MAX` 12); THE HERO-SPOT RULE (`js/vault/hero.js`).
+- THE STRIP MATCH (CITY C): a slim card's material frames its picture EXACTLY as its effect does at any width (`tests/integration/strip-match.mjs`; stills at the hero's centre, kind `o` = transparent) → docs/vault.md.
 - NO BLACK TILES: a card drawn in code = a baked still (`js/vault/stills.js` + `node scripts/build-card-stills.mjs`).
 - THE GIFT CARDS: 1-of-1, given ONLY by the owner's `/admin → GIFTS`; the DEV cards the owner's only (`js/core/dev-cards.js`); a MEMBER Nº is server-only.
 - A pass that edits a lab item's art bumps `js/vault/catalog.js#LAB_V` + writes its line in `api/_lib/lab-text.js#LAB_CHANGES`.

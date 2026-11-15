@@ -625,3 +625,21 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 
 - **BOARD 2.0 A (Nov 9 — docs/harbor/passes/board-2a.md):** EVERY XP PAYMENT through `core/progress.js#payXp` (+ `pstats.xw` — THE OVERALL BOARD `xp`; a test greps for a stray `.xp =`) and its board row in the SAME update as the XP (`lb.js#overallPaths`); DAILY POINTS = ONE pure table (`core/daily-points.js` — a row per daily; the server's stored score only) → `daily` / `daily-<game>` boards; a public row = `api/board.js#ROW_KEYS` (+ the slim card's ids — never a pid / tag / member Nº); THE PLAYER PAGE = `/api/profile player` (the top 3 achievement NAMES — the owner's ONE approved exception: `api/_lib/player.js` only); the BACK-FILL = /admin → THE BOARDS (the owner's tap).
 - **BOARD 2.0 B (Nov 9 — docs/harbor/passes/board-2b.md):** THE BOARD = slim cards (`ui/strip-board.js` only) on BLACK VELVET + GOLD DECO, tabs `board/view.js#TABS` (XP · DAILIES · OVERCLOCK · PRISM · HOLD'EM — HOLD'EM IN THE CITY: five on one row at 390, PRISM DROP's tab reads PRISM); THE PLAYER PAGE = `profile/player-page.js#openPlayer` (tap ANY name — reads only `/api/profile player`, through THE COVER); a full card's art has ITS OWN layout (`.vl-fcm-*` — never the strip's zoom) and its map says the same (`full: [x, y, z, 'w']`); SHARE TODAY = each daily's `share.js#paintSection` (the same pieces as its own card — `share-same.html` proves it) + `today { share }` (spoiler-free, the tap only).
+
+## CITY C — FRIEND REQUESTS + STATS (Nov 15 2026 — docs/harbor/passes/city-c.md)
+- **THE KNOCK CARD** (`profile/friends-ui.js#knockCards`, under YOUR card): each waiting request (≤ 3) = the sender's slim card + NOT NOW · ACCEPT;
+  painted in place after a lift; NOT NOW hides it on this phone (`ns:fr:knock-later`), the request stays in FRIENDS → REQUESTS. The city's one-line
+  note for a NEW request (`inviteCheck` → `frName`, `frAt`; `ns:fr:noted`). The badge on YOU as before.
+- **THE PUSH on a request** (`api/_lib/friends.js#requestPush`): only when it LANDS (`pfr/{them}/in/{me}` written — a block swallows it with no
+  push); ≤ 1 a day per sender → receiver (`rl/frp_<me>_<them>`); the INVITES' subscriptions + VAPID keys; `/?fr=in` opens YOUR card.
+- **THE ADD-ME LINK**: `friendLink` → `{ code }` (7 letters a–z / 2–9 without look-alikes; `flink/{code}` = `{ p, at }` + `pfr/{pid}/lk`; one a
+  profile; minted only past THE THROWAWAY GATE — `ppriv/{pid}/at` before today's 4 am; ≤ 5 tries a day) · `friendLinkGet { code }` → `{ card }`
+  (the public face, NO pid / board id; the requests' house nickname) + `rel` | `{ self: true }` · `friendAdd { code }` = the normal request.
+  The phone: FRIENDS → SHARE MY FRIEND LINK (data-gesture, the code fetched before the tap; no share sheet → copied) → `/?add=<code>` (kept in
+  `ns:fr:addme` until the phone has a profile) → "ADD <NAME>?" (`friendsUi#openAddLink`).
+- **STATS** (the ☰ menu, admins): `api/admin.js#statsSheet` — ONE snapshot (`progress/statsSnap` `{ v, at, data }`), rebuilt at most every 5 min (a
+  REFRESH once a minute old): `summarize` (the same as /admin's STATS) + `dailyStats` (its players' list left out) + the founders + the week
+  (`radio/visits`) + legendaries spotted (`radio/spotted/{day}` — `api/_lib/sightings.js` +1 per counted sighting). The phone:
+  `js/admin/stats-view.js` (ONE builder — /admin's blocks live there; css/admin.css loaded with the sheet).
+- **/admin → Founder window** (the very bottom, folded): `founderState` → OPEN / CLOSED + since when (`progress/founder` `{ open, at, by }` — a reopen
+  records its time now) + the founders; the switch = `radioFounder`.

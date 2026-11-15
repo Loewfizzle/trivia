@@ -452,7 +452,7 @@ G('sheetstack', async () => {
   await settledRoom(q, 4, 40000).catch(() => {});
   const steps = [];
   // GUESTS → a guest's card
-  await ev(q, "document.querySelector('.rdk-guests').click()"); await waitFor(q, "document.querySelectorAll('.rg-sheet .rg-row').length >= 3", 'guests', 10000);
+  await ev(q, "document.querySelector('.rdk-guests').click()"); await waitFor(q, "document.querySelectorAll('.rg-sheet .vl-strip').length >= 3", 'guests', 10000);   // (CITY C 0d: the strips fill in one per frame)
   await ev(q, `(() => { const r = [...document.querySelectorAll('.rg-sheet .rg-row')].find(x => x.dataset.uid === '${fakes[0]}') || document.querySelectorAll('.rg-sheet .rg-row')[1]; (r.querySelector('button, .vl-strip') || r).click(); })()`);
   await sleep(700);
   steps.push(['GUESTS → a card', await topAt(q)]);

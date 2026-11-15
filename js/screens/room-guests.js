@@ -28,13 +28,15 @@ export const ENTRANCE_MS = 3200;
 // names at once (a plain row a guest), then the strips fill in ONE PER FRAME (the stills), then the live art one per frame.
 export async function openGuestList(ctx) {
   let unhold = ctx.hold || holdCity(), closedEarly = false;
+  // (a guest's NAME ROW while their strip waits its frame — it acts like the strip: a tap = their card)
+  const phRow = (uid, name) => h('div.rg-row.rg-ph', { 'data-press': true, role: 'button', tabindex: '0', dataset: { uid, ph: '1' }, 'aria-label': `${name || 'A guest'} — their card`, onclick: () => ctx.openCard(uid) }, h('span', String(name || '').toUpperCase()));
   const { openPfSheet } = await lazyImport(import('../profile/sheets.js'), '../profile/sheets.js');
   const list = h('div.rg-list'), count = h('span.rg-count'), lockRow = h('div.rg-lock'), night = h('div.rg-night');
   const surfHost = h('div.rg-strips');
   list.append(surfHost);
   // (the names at once: a plain row per guest, replaced by its strip — never a blank sheet)
   { const st = ctx.st, P = st.players || {};
-    for (const { uid } of roomOrder(P, st.meta && st.meta.hostId)) surfHost.append(h('div.rg-row.rg-ph', { dataset: { uid, ph: '1' } }, h('span', String((P[uid] || {}).name || '').toUpperCase())));
+    for (const { uid } of roomOrder(P, st.meta && st.meta.hostId)) surfHost.append(phRow(uid, (P[uid] || {}).name));
     count.textContent = `${surfHost.children.length} / ${MAX_PLAYERS}`; }
   let surface = null, paint = () => {};
   const leave = tubeButton('LEAVE ROOM', { kind: 'danger', block: true, cls: 'rg-leave', confirm: 'TAP AGAIN TO LEAVE', onClick: () => { sheet.close(); leaveRoom(); } });
@@ -86,7 +88,7 @@ export async function openGuestList(ctx) {
       if (!r || r.sig !== sig) {
         // (0d: the first fill waits its frame — the name row holds the place; its sig left empty so a change before then rebuilds it)
         if (first && !r) {
-          const ph = [...surfHost.children].find(c => c.dataset.ph && c.dataset.uid === uid) || h('div.rg-row.rg-ph', { dataset: { uid, ph: '1' } }, h('span', String(p.name || '').toUpperCase()));
+          const ph = [...surfHost.children].find(c => c.dataset.ph && c.dataset.uid === uid) || phRow(uid, p.name);
           r = { el: ph, sig: '' }; rows.set(uid, r); pendingIds.add(uid);
           queue(() => { if (rows.get(uid) === r) paint(uid); });
           if (surfHost.children[i] !== r.el) surfHost.insertBefore(r.el, surfHost.children[i] || null);
