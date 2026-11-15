@@ -33,6 +33,7 @@ test('CITY B: the medal — 1 / 2 / 3 only, the numeral in it (colour-blind: the
 test('CITY B: ONE component — THE BOARD, the title’s peek + the dailies’ scores use rankMedal; the old circles are gone', () => {
   const R = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
   for (const f of ['js/board/view.js', 'js/screens/title-taps.js', 'js/screens/daily.js']) assert.match(R(f), /rankMedal\(r\.rank/, f);
+  assert.match(R('js/screens/title-taps.js'), /lazyImport\(import\('\.\.\/ui\/medal\.js'\)/, 'the title loads it lazily (never the boot)');
   assert.doesNotMatch(R('css/board.css'), /\.bd-medal\.is-silver/);
   assert.doesNotMatch(R('css/title.css'), /\.nd-pv-medal\.is-bronze/);
 });

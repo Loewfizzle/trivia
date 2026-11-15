@@ -1,5 +1,4 @@
 import { openSheet } from '../ui/sheet.js';
-import { rankMedal } from '../ui/medal.js';
 import { GAMES, MIN_PLAYERS, MAX_PLAYERS } from '../config.js';
 import { toast } from '../ui/toast.js';
 import { sfx } from '../audio/sfx.js';
@@ -311,7 +310,7 @@ export function createTaps(T) {
       list, mine,
       // (BOARD 2.0 B: THE BOARD's tabs are the two playable games — a sign of a game without a tab shows its top three, no link)
       g.playable !== false ? h('button.nd-pv-more', { type: 'button', onclick: () => { close(); setState({ view: 'board', boardGame: g.id, boardBoard: null, boardPeriod: null }); } }, 'SEE THE FULL BOARD ›') : null);
-    Promise.all([lazyImport(import('../profile/api.js'), '../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })), lazyImport(import('../ui/strip-board.js'), '../ui/strip-board.js').then(m => m.stripKit().then(K => ({ ...m, K })))]).then(([d, SB]) => {
+    Promise.all([lazyImport(import('../profile/api.js'), '../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })), lazyImport(import('../ui/strip-board.js'), '../ui/strip-board.js').then(m => m.stripKit().then(K => ({ ...m, K }))), lazyImport(import('../ui/medal.js'), '../ui/medal.js')]).then(([d, SB, MD]) => {
       // (LOBBY 2.0 A — REAL USERNAMES: the rows carry the players' usernames; your own row, by your board id, is yours)
       // (BOARD 2.0 B — SLIM CARDS EVERYWHERE: each of the three = their slim card (ui/strip-board.js), the medal at the left, the score under it)
       const you = loadMe();
@@ -322,7 +321,7 @@ export function createTaps(T) {
       list.classList.add('is-strips');
       list.replaceChildren(...d.rows.map(r => (own(r) ? { ...r, ...you.profile, l: r.l } : r)).map(r => {
         const st = SB.stripFor(SB.K, r); strips.push(st);
-        return h('li', rankMedal(r.rank, { size: 32, cls: 'nd-pv-medal' }) || h('span.nd-pv-medal', String(r.rank)), h('div.nd-pv-card', st.el, h('b', fmtValue(def, r.v))));   // (CITY B: THE DECO MEDALS)
+        return h('li', MD.rankMedal(r.rank, { size: 32, cls: 'nd-pv-medal' }) || h('span.nd-pv-medal', String(r.rank)), h('div.nd-pv-card', st.el, h('b', fmtValue(def, r.v))));   // (CITY B: THE DECO MEDALS — lazy, with the strips: never the boot)
       }));
       const surface = SB.K.createSurface(list, { label: 'preview-top' });
       strips.forEach((st, i) => SB.stripFx(SB.K, surface, st, i + 1));
