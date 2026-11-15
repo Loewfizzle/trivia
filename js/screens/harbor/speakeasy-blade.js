@@ -66,10 +66,12 @@ export const LETTER = Object.freeze({ fill: 0.86, tall: 1.5, wide: 1.9, gap: 0.0
 /** 8P — a long ONE-WORD name reads as two stacked columns at its seam (the owner: SLIPSTREAM was ~8.6 pt, under the 10 pt rule; one
  *  column of 9–10 letters can't get bigger on a ~25 pt board): SLIP / STREAM like the two-word names. Unknown long words split at
  *  their middle; ≤ BLADE_ONE letters stay one column. */
-export const BLADE_SPLIT = Object.freeze({ SLIPSTREAM: ['SLIP', 'STREAM'], RUMRUNNER: ['RUM', 'RUNNER'], OVERCLOCK: ['OVER', 'CLOCK'] });
+export const BLADE_SPLIT = Object.freeze({ SLIPSTREAM: ['SLIP', 'STREAM'], RUMRUNNER: ['RUM', 'RUNNER'], OVERCLOCK: ['OVER', 'CLOCK'], JAYWALK: ['JAY', 'WALK'] });
 export const BLADE_ONE = 8;
 export function bladeWords(name) {
   const words = String(name || '').toUpperCase().split(/\s+/).filter(Boolean).slice(0, 2);
+  // (the owner, Nov 15: OVER / CLOCK + JAY / WALK are ALWAYS two words on every sign — a listed split is taken whatever its length)
+  if (words.length === 1 && BLADE_SPLIT[words[0]]) return [...BLADE_SPLIT[words[0]]];
   if (words.length !== 1 || words[0].length <= BLADE_ONE) return words;
   const w = words[0];
   return BLADE_SPLIT[w] ? [...BLADE_SPLIT[w]] : [w.slice(0, Math.ceil(w.length / 2)), w.slice(Math.ceil(w.length / 2))];

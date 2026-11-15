@@ -534,12 +534,11 @@ await H.run(async () => {
       // (the SIDEWAYS framing with a fine pointer — a short wide window. A real PHONE held sideways shows the console's TURN YOUR PHONE UPRIGHT
       //  card over everything (index.html #ns-turn — the owner's Nov 2 rule): its own case below)
       { name: '844 × 390 (the sideways framing, mouse)', view: { width: 844, height: 390, deviceScaleFactor: 1, isMobile: false, hasTouch: false }, touch: false, need: ['door'] },
-      // (CITY B: the sign beside the column on an iPad is the second roof sign — lit once a fourth game is playable: JAYWALK released for this case)
-      { name: '820 × 1180 (an iPad, touch)', view: { width: 820, height: 1180, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, touch: true, need: ['sign'], qs: '&force=sign-jaywalk' },
+      { name: '820 × 1180 (an iPad, touch)', view: { width: 820, height: 1180, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, touch: true, need: ['sign'] },
       { name: '1440 × 900 (a desktop, mouse)', view: { width: 1440, height: 900, deviceScaleFactor: 1, isMobile: false, hasTouch: false }, touch: false, need: ['door'] },
     ]) {
       await pg.setViewport(V.view);
-      if (V.qs && !pg.url().includes(V.qs)) await pg.goto(pg.url().replace(/#.*$/, '') + V.qs); else await pg.reload();
+      await pg.reload();
       await waitFor(pg, `!document.getElementById('boot') && !!window.__arcade && !!window.__district && !!document.querySelector('.title-screen.nd')`, `${V.name}: the title`, 40000);
       // (the city's own hit map must have landed at this size — the door is always on it)
       await waitFor(pg, `(() => { for (let y = 30; y < innerHeight; y += 8) for (let x = 6; x < innerWidth; x += 8) { const h = window.__district.hit(x, y); if (h && h.kind === 'door') return true; } return false; })()`, `${V.name}: the city's hit map`, 30000);

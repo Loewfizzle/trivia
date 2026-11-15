@@ -199,9 +199,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const baker = createBaker();
   const litBaker = createBaker();                 // THE LIT WINDOWS (lights.js): re-baked on the light key, crossfaded on their own
   const lights = createLights();
-  // CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY (core/harbor-neon.js#signRoster): every sign + the speakeasy blade name only these;
-  // &force=sign-jaywalk = JAYWALK on every sign now, "as if released" (this phone only)
-  const signGames = signRoster(games, { jaywalk: !!(clock.force && clock.force.has('sign-jaywalk')) });
+  // CITY B — THE SIGNS NAME THE PLAYABLE GAMES + JAYWALK (core/harbor-neon.js#signRoster): every sign + the speakeasy blade; never a frozen game
+  const signGames = signRoster(games);
   const neon = createNeon({ games: signGames, onContent: () => { lookAt = 0; } });          // THE NEON (Part 3): the signs, the billboards, the outlines on the buildings
   const water = createWater();                    // THE WATER (Part 4): the mirror of the frame above it, ripples, the light columns, the paths
   let waterMirrors = [];                          // the harbor pieces standing in the water: their screen rects + waterlines (the lighthouse: baked)

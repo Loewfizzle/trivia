@@ -83,10 +83,9 @@ G('neon', async () => {
     // game with no sign tonight, the nightly shuffle rotates the rest)
     // (NEON PASS 6, the owner: the tiny floating icons are gone — 4 named signs + the billboard a fifth game)
     // (DT1: the left roof slot is gone — 3 named signs: the blade + the two roof signs; the billboard a fourth game)
-    // (CITY B — THE SIGNS NAME PLAYABLE GAMES ONLY: with three playable games the hotel blade + one roof sign are lit — OVERCLOCK's nine letters fit
-    //  no skyline sign; every named game is a playable one; the billboard a game with no sign tonight)
-    const PLAY = ['prism', 'holdem', 'overclock'];
-    ok(new Set(games).size >= 2 && games.every(g => PLAY.includes(g)) && h.neon.signs.filter(s => s.kind === 'named').length >= 2 && !h.neon.signs.some(s => s.kind === 'icon') && h.neon.signs.every(s => s.on) && bb && !games.includes(h.neon.boards[0].game),
+    // (CITY B — the playable games + JAYWALK, never a frozen one; NO NAMED SIGN EVER DARK — the blade + both roof signs; the billboard a fourth)
+    const PLAY = ['prism', 'holdem', 'overclock', 'jaywalk'];
+    ok(new Set(games).size === 3 && games.every(g => PLAY.includes(g)) && h.neon.signs.filter(s => s.kind === 'named').length === 3 && !h.neon.signs.some(s => s.kind === 'icon') && h.neon.signs.every(s => s.on) && bb && !games.includes(h.neon.boards[0].game),
       `SIGNS: the playable games named in the skyline tonight (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')}; stacked roof signs + the blade), no icons, the billboard a fourth (${bb}), every sign lit at night`);
     ok(h.neon.outlines.length >= 12 && h.neon.outlines.some(o => o.id === 'needle') && h.neon.led === 2 && h.beacons.length >= 10,
       `NEON OUTLINES: ${h.neon.outlines.length} buildings outlined (the needle, the heroes…), the 2 glass towers' LED facades, ${h.beacons.length} aircraft beacons`);
@@ -248,7 +247,7 @@ G('neon', async () => {
 G('neon', async () => {
   // ================================================================ SP3: THE ROOF SIGNS' HOURLY MODES — one mode a sign this hour, neighbours
   // different, one big move at a time; the previews put every sign in one mode and its turn comes round
-  { const N = await open({ slot: 'rm1', qs: `${NIGHT}&force=sign-jaywalk`, view: [402, 874] });   // (CITY B: JAYWALK released — all three named signs lit)
+  { const N = await open({ slot: 'rm1', qs: NIGHT, view: [402, 874] });
     await harborUp(N.page);
     await waitFor(N.page, '!!window.__district.harbor().roofModes', 'the roof modes', 15000).catch(() => {});
     // (11a-1: on a slow runner a sign can join the skyline a moment after the modes first exist — wait until every lit sign has its mode)

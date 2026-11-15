@@ -17,8 +17,7 @@ G('desktop', async () => {
     ok(lg && lg.w >= 560 && Math.abs(lg.x + lg.w / 2 - 720) < 4, `THE SIGN bigger + centred: ${lg && lg.w.toFixed(0)} pt wide (was 470), its middle at ${lg && (lg.x + lg.w / 2).toFixed(0)}`);
     ok(dk && Math.abs(dk.x + dk.w / 2 - 720) < 4 && dk.w <= 640 && dk.y + dk.h <= 900, `THE DOCK centred at the bottom, a sensible width (${dk && dk.w.toFixed(0)} pt, its middle ${dk && (dk.x + dk.w / 2).toFixed(0)})`);
     const nb = await ev(p, `(() => { const n = window.__district.harbor().neon; return { boards: n.boards.length, signs: n.signs.filter(s => s.game).map(s => ({ id: s.id, r: s.rect })) }; })()`);
-    ok(nb.boards >= 1 && nb.signs.length >= 2 &&   // (CITY B: the playable games' signs — two named while three are playable; the phone's own spots first)
-       nb.signs.every(s => s.r.x >= 0 && s.r.x + s.r.w <= 1440), `THE SIGNS: the billboard + ${nb.signs.length} named signs, all on screen (${nb.signs.map(s => s.id).join(' · ')})`);
+    ok(nb.boards >= 1 && nb.signs.length >= 3 && nb.signs.every(s => s.r.x >= 0 && s.r.x + s.r.w <= 1440), `THE SIGNS: the billboard + ${nb.signs.length} named signs, all on screen (${nb.signs.map(s => s.id).join(' · ')})`);
     // the hover: a mouse over a game sign → the pointer + the ring on it; over the open sky → neither
     await waitFor(p, '!!(window.__district.phase().done)', 'the menu', 10000);
     const s0 = nb.signs[0].r;

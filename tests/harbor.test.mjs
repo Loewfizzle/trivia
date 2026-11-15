@@ -1948,17 +1948,16 @@ test('THE SLOT RULE (DT1 — the owner: never a shortened name): the blade one-w
       const bb = billboardPick(GAMES12, spots, pick, night);
       assert.ok(bb && ![...pick.values()].includes(bb), `${k} ${night}: the billboard advertises a game with no sign`);
     }
-    // CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY: every calendar week (Monday → Sunday) every PLAYABLE game that fits a skyline sign
-    // hangs on one — today's three, and with JAYWALK released (&force=sign-jaywalk's roster); OVERCLOCK's nine letters fit none (the speakeasy's
-    // blade + the room). (The old all-thirteen two-week check went with the frozen games: they never hang now.)
-    for (const jay of [false, true]) {
-      const ROSTER = signRoster(GAMES, { jaywalk: jay }).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
+    // CITY B — the signs name the PLAYABLE games + JAYWALK (the owner, Nov 15): every calendar week (Monday → Sunday) every one of them hangs on a
+    // skyline sign — OVER / CLOCK + JAY / WALK always stacked on two lines (a roof sign; JAY / WALK on the hotel blade too)
+    {
+      const ROSTER = signRoster(GAMES).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
       const ROOF = ROSTER.filter(g => spots.some(sp => sp.kind === 'named' && signText(g, sp)));
-      assert.deepEqual(ROOF.map(g => g.id).sort(), jay ? ['holdem', 'jaywalk', 'prism'] : ['holdem', 'prism'], `${k}: the playable games a skyline sign takes`);
+      assert.deepEqual(ROOF.map(g => g.id).sort(), ['holdem', 'jaywalk', 'overclock', 'prism'], `${k}: the games a skyline sign takes`);
       for (let w = 0; w < 16; w++) {
         const seen = new Set();
         for (let d = 0; d < 7; d++) { const n = new Date(Date.UTC(2026, 9, 5) + (w * 7 + d) * 864e5).toISOString().slice(0, 10); for (const v of assignSigns(ROSTER, spots, n).values()) seen.add(v); }
-        assert.deepEqual(ROOF.map(g => g.id).filter(id => !seen.has(id)), [], `${k}: week ${w}: a playable game missing from the skyline (jaywalk ${jay})`);
+        assert.deepEqual(ROOF.map(g => g.id).filter(id => !seen.has(id)), [], `${k}: week ${w}: a game missing from the skyline`);
       }
     }
   }
@@ -3347,16 +3346,16 @@ test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM); the 
   assert.ok(/GAMES\.filter\(x => x\.playable \|\| x\.id === current\)/.test(readFileSync(new URL('../js/ui/help.js', import.meta.url), 'utf8')), 'HOW TO PLAY: the playable tabs (+ the match on screen)');
   const title = ['title', 'title-taps', 'title-neon', 'title-dock'].map(f => readFileSync(new URL(`../js/screens/${f}.js`, import.meta.url), 'utf8')).join(String.fromCharCode(10));   // (CITY 1.0 OUT: the title in four files)
   assert.ok(/const games = GAMES\.filter\(g => g\.playable\);/.test(title) && /!g\.playable\) \{ toast\(`\$\{g\.name\} — coming soon`/.test(title), 'the games sheet + the sign tap');
-  // THE FIVE SIGNS on the phone: over two weeks every one of the five hangs (a named sign or the billboard), nothing else does
-  const five = GAMES.filter(g => g.sign).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
+  // CITY B: the signs name the playable games + JAYWALK (signRoster) — over two weeks every one hangs (a named sign or the billboard), nothing else
+  const five = signRoster(GAMES).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
   const { L } = setup('402x874'), spots = signSpots(L), seen = new Set();
   for (let d = 0; d < 14; d++) { const n = new Date(Date.UTC(2026, 10, 2) + d * 864e5).toISOString().slice(0, 10), pk = assignSigns(five, spots, n); for (const v of pk.values()) seen.add(v); seen.add(billboardPick(five, spots, pk, n)); }
-  assert.deepEqual([...seen].filter(Boolean).sort(), ['golf', 'holdem', 'overclock', 'prism', 'stakes'], 'the five, every one of them, over two weeks');
+  assert.deepEqual([...seen].filter(Boolean).sort(), ['holdem', 'jaywalk', 'overclock', 'prism'], 'every sign game, over two weeks');
   // (HOLD'EM IN THE CITY: the roof billboard is HOLD'EM's ad now — every one of the five hangs on a SKYLINE SIGN over two weeks, not only the
   //  board; HOLD'EM spells HOLD'EM whole — the apostrophe tube, never HOLDEM)
   const onSign = new Set();
   for (let d = 0; d < 14; d++) { const n = new Date(Date.UTC(2026, 10, 9) + d * 864e5).toISOString().slice(0, 10); for (const v of assignSigns(five, spots, n).values()) onSign.add(v); }
-  assert.deepEqual([...onSign].sort(), ['golf', 'holdem', 'prism', 'stakes'], 'every sign game a skyline sign takes, over two weeks (OVERCLOCK: the speakeasy blade)');
+  assert.deepEqual([...onSign].sort(), ['holdem', 'jaywalk', 'overclock', 'prism'], 'every sign game on a skyline sign over two weeks (OVER / CLOCK stacked on a roof)');
   assert.equal(five.find(g => g.id === 'holdem').short, "HOLD'EM");
   assert.ok(!GAMES.find(g => g.id === 'gridlock').sign && !GAMES.find(g => g.id === 'gridlock').playable, 'GRIDLOCK off the skyline, its game frozen as before');
 });

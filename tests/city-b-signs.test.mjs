@@ -1,14 +1,16 @@
-// CITY B — GROUP 1: THE SIGNS ADVERTISE PLAYABLE GAMES ONLY (core/harbor-neon.js#signRoster + assignSigns' hotel blade; docs/harbor/passes/city-b.md).
-//  - over a simulated year, no FROZEN game's name on any sign: the named signs, the roof billboard's pick, the speakeasy blade's ghost ad
-//  - THE HOTEL BLADE's words always fit — one word ≥ 10 pt, JAY / WALK stacked ≥ 9 pt (the glance size) at 390 / 402 / 430
-//  - the hotel blade never names the speakeasy blade's game that week (+ Monday morning's last week's when it can)
-//  - &force=sign-jaywalk's roster: JAYWALK hangs (the hotel blade JAY / WALK some nights); a GAMES row turning playable joins with no code change
+// CITY B — GROUP 1 (+ the owner's answers, Nov 15): THE CITY's SIGNS (core/harbor-neon.js#signRoster + assignSigns; docs/harbor/passes/city-b.md).
+//  - the signs name the PLAYABLE games + JAYWALK (on the signs now, as if released) — never a frozen game, over a simulated year
+//  - NO NAMED SIGN IS EVER DARK (the hotel blade + both roof signs, every night, every phone size + the desktop)
+//  - OVERCLOCK = OVER / CLOCK and JAYWALK = JAY / WALK — ALWAYS two stacked lines on every sign (never one line); every stacked word ≥ the
+//    glance size (~9 pt on a phone); the one-word names ≥ 10 pt
+//  - THE HOTEL BLADE cycles PRISM · HOLDEM · JAY / WALK, never the speakeasy blade's game that week; the speakeasy blade stacks them too
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
 import { signSpots, assignSigns, billboardPick, signText, signRoster, hotelAvoid, SIGN_SPLIT } from '../js/core/harbor-neon.js';
 import { ghostAdGame } from '../js/core/harbor-speakeasy.js';
 import { signName, buildSign } from '../js/screens/harbor/signs.js';
+import { bladeWords } from '../js/screens/harbor/speakeasy-blade.js';
 import { GAMES } from '../js/config.js';
 
 const SIZES = {
@@ -21,81 +23,73 @@ const signOf = s => { const wide = s.W > s.H, desk = wide && s.W >= 1000;
   return { neon: { x: s.W / 2 - 140, y: s.tag.y - (desk ? 205 : wide ? 121 : 141), w: 280, h: desk ? 125 : wide ? 72 : 85 }, word: { x: s.W / 2 - 150, y: s.tag.y - 34, w: 300, h: 21 }, corner: { x: s.W - 60, y: s.safe.top + 6, w: 52, h: 44 } }; };
 const setup = k => { const s = SIZES[k]; const cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock, ...signOf(s) }, s.safe); return { cam, L: harborLayout(cam) }; };
 const YEAR = Array.from({ length: 371 }, (_, i) => new Date(Date.UTC(2026, 10, 2) + i * 864e5).toISOString().slice(0, 10));
-const rosterOf = jay => signRoster(GAMES, { jaywalk: jay }).map(g => ({ ...g, short: signName(g) }));
+const ROSTER = signRoster(GAMES).map(g => ({ ...g, short: signName(g) }));
+const IDS = ROSTER.map(g => g.id);
 const FROZEN = new Set(GAMES.filter(g => !g.playable).map(g => g.id));
+const PHONE = ['n-blade', 'n-roofA', 'n-roofB'];
 
-test('CITY B: the sign roster is the PLAYABLE games only (+ JAYWALK under its force) — a row turning playable joins with no code change', () => {
-  assert.deepEqual(signRoster(GAMES).map(g => g.id).sort(), GAMES.filter(g => g.playable).map(g => g.id).sort());
-  assert.ok(signRoster(GAMES).every(g => !FROZEN.has(g.id) && !g.daily));
-  assert.deepEqual(signRoster(GAMES, { jaywalk: true }).map(g => g.id).filter(id => id === 'jaywalk'), ['jaywalk']);
-  // its future row: playable → on the roster by itself; frozen → only under the force
-  const later = [...GAMES, { id: 'jaywalk', name: 'JAYWALK', playable: true }], frozen = [...GAMES, { id: 'jaywalk', name: 'JAYWALK', playable: false }];
-  assert.ok(signRoster(later).some(g => g.id === 'jaywalk'));
-  assert.ok(!signRoster(frozen).some(g => g.id === 'jaywalk') && signRoster(frozen, { jaywalk: true }).some(g => g.id === 'jaywalk'));
-  assert.equal(signRoster(later, { jaywalk: true }).filter(g => g.id === 'jaywalk').length, 1, 'never twice');
+test('the roster: the PLAYABLE games + JAYWALK (as if released) — never a frozen game or a daily; a row turning playable joins with no code change', () => {
+  assert.deepEqual(IDS.slice().sort(), [...GAMES.filter(g => g.playable).map(g => g.id), 'jaywalk'].sort());
+  assert.ok(ROSTER.every(g => g.id === 'jaywalk' || (!FROZEN.has(g.id) && !g.daily)));
+  const later = [...GAMES, { id: 'jaywalk', name: 'JAYWALK', playable: true }];
+  assert.equal(signRoster(later).filter(g => g.id === 'jaywalk').length, 1, 'its own row, never twice');
+  assert.ok(!signRoster(GAMES, { jaywalk: false }).some(g => g.id === 'jaywalk'));
 });
 
-test('CITY B: over a year no FROZEN game names any sign — the named signs, the billboard, the speakeasy blade', () => {
+test('a year of nights at 390 / 402 / 430 + 1440: NO NAMED SIGN EVER DARK, no frozen name anywhere (the signs, the billboard, the speakeasy blade)', () => {
   for (const k of Object.keys(SIZES)) {
-    const { L } = setup(k), spots = signSpots(L);
-    for (const jay of [false, true]) {
-      const R = rosterOf(jay), ids = R.map(g => g.id);
-      for (const n of YEAR) {
-        const pk = assignSigns(R, spots, n);
-        for (const [sp, id] of pk) assert.ok(!FROZEN.has(id) || id === 'jaywalk', `${k} ${n}: ${id} on ${sp}`);
-        const bb = billboardPick(R, spots, pk, n);
-        assert.ok(bb == null || ids.includes(bb), `${k} ${n}: the billboard ${bb}`);
-        const ad = ghostAdGame(Date.UTC(...n.split('-').map((v, i) => +v - (i === 1 ? 1 : 0)), 23), ids, null);
-        assert.ok(ids.includes(ad), `${k} ${n}: the speakeasy blade ${ad}`);
-      }
+    const { L } = setup(k), spots = signSpots(L), named = spots.filter(s => s.kind === 'named');
+    for (const id of PHONE) assert.ok(named.some(s => s.id === id), `${k}: ${id} hangs`);
+    for (const n of YEAR) {
+      const pk = assignSigns(ROSTER, spots, n);
+      for (const s of named) assert.ok(pk.get(s.id), `${k} ${n}: ${s.id} is DARK`);
+      for (const [sp, id] of pk) assert.ok(IDS.includes(id), `${k} ${n}: ${id} on ${sp}`);
+      for (const id of PHONE) assert.equal(new Set(PHONE.map(x => pk.get(x))).size, 3, `${k} ${n}: the phone's three named signs, three games`);
+      const bb = billboardPick(ROSTER, spots, pk, n);
+      assert.ok(bb == null || IDS.includes(bb), `${k} ${n}: the billboard ${bb}`);
+      assert.ok(IDS.includes(ghostAdGame(Date.UTC(...n.split('-').map((v, i) => +v - (i === 1 ? 1 : 0)), 23), IDS, null)), `${k} ${n}: the speakeasy blade`);
     }
   }
 });
 
-test('CITY B: THE HOTEL BLADE cycles the playable names that fit (PRISM · HOLDEM · JAY / WALK), never the speakeasy blade’s game that week', () => {
+test('OVER / CLOCK + JAY / WALK ALWAYS stacked on two lines on every sign; every stacked word ≥ ~9 pt, every one-word name ≥ 10 pt; every letter spelled', () => {
+  assert.deepEqual(Object.keys(SIGN_SPLIT).sort(), ['jaywalk', 'overclock']);
   for (const k of ['390x844', '402x874', '430x932']) {
-    const { cam, L } = setup(k), spots = signSpots(L), blade = spots.find(s => s.id === 'n-blade');
-    assert.ok(blade && blade.rot === 'hotel');
-    for (const jay of [false, true]) {
-      const R = rosterOf(jay), ids = R.map(g => g.id), seen = new Map();
-      for (const n of YEAR) {
-        const pk = assignSigns(R, spots, n), id = pk.get('n-blade');
-        assert.ok(id, `${k} ${n}: the hotel blade is lit`);
-        const ad = hotelAvoid(n, ids);
-        assert.notEqual(id, ad[0], `${k} ${n}: the hotel blade = the speakeasy blade's ${id}`);
-        seen.set(id, (seen.get(id) || 0) + 1);
-        // never the same game on two signs a night
-        assert.equal(new Set(pk.values()).size, pk.size, `${k} ${n}: a game twice`);
-      }
-      assert.deepEqual([...seen.keys()].sort(), jay ? ['holdem', 'jaywalk', 'prism'] : ['holdem', 'prism'], `${k}: the names the hotel blade cycles (jaywalk ${jay})`);
-      // the words fit + read: one word ≥ 10 pt, a split name ≥ 9 pt (the glance size); every letter spelled
-      for (const id of seen.keys()) {
-        const g = R.find(x => x.id === id), txt = signText(g, blade);
-        assert.equal(txt, { prism: 'PRISM', holdem: 'HOLDEM', jaywalk: 'JAY WALK' }[id], `${k}: the hotel blade spells ${txt}`);
-        assert.ok(txt.split(' ').every(w => w.length <= 6), `${k}: ${txt} — each word ≤ 6`);
-        const sg = buildSign(blade, { ...GAMES.find(x => x.id === id) || g, signText: txt }, { W: cam.W, s: cam.F / 600 });
-        assert.equal(sg.nText, txt.replace(/ /g, '').length);
+    const { cam, L } = setup(k), spots = signSpots(L).filter(s => s.kind === 'named'), seen = new Set();
+    for (const n of YEAR) {
+      const pk = assignSigns(ROSTER, spots, n);
+      for (const sp of spots) {
+        const g = ROSTER.find(x => x.id === pk.get(sp.id)), txt = signText(g, sp), key = `${sp.id}|${g.id}`;
+        if (seen.has(key)) continue; seen.add(key);
+        if (SIGN_SPLIT[g.id]) assert.equal(txt, SIGN_SPLIT[g.id].join(' '), `${k}: ${g.id} on ${sp.id} stacked (${txt})`);
+        const sg = buildSign(sp, { ...(GAMES.find(x => x.id === g.id) || g), signText: txt }, { W: cam.W, s: cam.F / 600 });
+        assert.equal(sg.nText, txt.replace(/ /g, '').length, `${k}: ${sp.id} spells all of ${txt}`);
         const p = sg.parts.find(q => q.boxes), lh = Math.min(...p.boxes.map(b => b.y1 - b.y0 - 1.2));
-        assert.ok(lh >= (txt.includes(' ') ? 9 : 10), `${k}: ${txt} letters ${lh.toFixed(2)} pt`);
-        if (txt.includes(' ')) {
-          // the two words read as two: a clear break between Y and W, inside the panel
-          const gap = p.boxes[3].y0 - p.boxes[2].y1;
-          assert.ok(gap > 1.2, `${k}: JAY / WALK break ${gap.toFixed(2)} pt`);
-          assert.ok(p.boxes[p.boxes.length - 1].y1 <= sg.panel.y + sg.panel.h + 0.6, `${k}: WALK inside the panel`);
-        }
+        assert.ok(lh >= (txt.includes(' ') ? 9 : 10), `${k}: ${txt} on ${sp.id} — letters ${lh.toFixed(2)} pt`);
+        if (txt.includes(' ') && sp.type === 'box') assert.equal(p.lines, 2, `${k}: ${txt} on two lines on ${sp.id}`);
       }
     }
+    // every game has hung on a skyline sign over the year, the split names stacked wherever they hung
+    for (const id of IDS) assert.ok([...seen].some(x => x.endsWith(`|${id}`)), `${k}: ${id} never hung`);
   }
+  // the speakeasy blade stacks them too (two columns side by side, each read top-down)
+  assert.deepEqual(bladeWords('OVERCLOCK'), ['OVER', 'CLOCK']); assert.deepEqual(bladeWords('JAYWALK'), ['JAY', 'WALK']); assert.deepEqual(bladeWords('PRISM'), ['PRISM']);
 });
 
-test('CITY B: the hotel blade ≠ the speakeasy blade EVERY WEEK (Monday 9 am UTC → Monday), the rotation seeded (the same on every call)', () => {
-  const { L } = setup('402x874'), spots = signSpots(L), R = rosterOf(false), ids = R.map(g => g.id);
-  for (let w = 0; w < 52; w++) {
-    const mon = new Date(Date.UTC(2026, 10, 16) + w * 7 * 864e5);
-    const week = Array.from({ length: 7 }, (_, d) => new Date(+mon + d * 864e5).toISOString().slice(0, 10));
-    const ad = ghostAdGame(+mon + 20 * 3600e3, ids, null);
-    for (const n of week) assert.notEqual(assignSigns(R, spots, n).get('n-blade'), ad, `week of ${week[0]}: ${n}`);
+test('THE HOTEL BLADE cycles PRISM · HOLDEM · JAY / WALK — never the speakeasy blade’s game that week (every night, 52 weeks); seeded', () => {
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { L } = setup(k), spots = signSpots(L), seen = new Set();
+    for (const n of YEAR) {
+      const id = assignSigns(ROSTER, spots, n).get('n-blade');
+      assert.notEqual(id, hotelAvoid(n, IDS)[0], `${k} ${n}: the hotel blade = the speakeasy blade's ${id}`);
+      seen.add(id);
+    }
+    assert.deepEqual([...seen].sort(), ['holdem', 'jaywalk', 'prism'], `${k}: the names the hotel blade cycles`);
   }
-  assert.deepEqual([...assignSigns(R, spots, '2026-12-01')], [...assignSigns(R, spots, '2026-12-01')]);
-  assert.deepEqual(Object.keys(SIGN_SPLIT), ['jaywalk']);
+  const { L } = setup('402x874'), spots = signSpots(L);
+  for (let w = 0; w < 52; w++) {
+    const mon = new Date(Date.UTC(2026, 10, 16) + w * 7 * 864e5), ad = ghostAdGame(+mon + 20 * 3600e3, IDS, null);
+    for (let d = 0; d < 7; d++) assert.notEqual(assignSigns(ROSTER, spots, new Date(+mon + d * 864e5).toISOString().slice(0, 10)).get('n-blade'), ad);
+  }
+  assert.deepEqual([...assignSigns(ROSTER, spots, '2026-12-01')], [...assignSigns(ROSTER, spots, '2026-12-01')]);
 });
