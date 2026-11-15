@@ -76,6 +76,7 @@ export function createView() {
 }
 
 const UNCHECKED = 'THIS RUN COULDN’T BE CHECKED';
+export const BAR_MS = 1500;   // (CITY D: the SCORED end card holds this long, then shrinks to the slim bar)
 const doneCard = (score, rf = false) => h('div.dr-done', h('b', 'TODAY’S DROP IS DONE'), h('span', dropLine(score)), rf ? h('small.dr-sub', UNCHECKED) : null);
 
 /** the run's driver — what PRISM's view asks each frame (+ the pause control, the end) */
@@ -281,6 +282,13 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
   // ---- the view's places: the PAUSE control at the rail's top, the paused / the end card over the board
   function attach({ root, rail, overlay }) {
     els = { root, rail, overlay };
+    // (CITY D: a tap outside a SCORED end card shrinks it at once; a tap on the bar — not its SHARE — opens it again)
+    root.addEventListener('pointerdown', e => {
+      if (!(ended && finished && !refused) || !els.card) return;
+      const inCard = els.card.contains(e.target);
+      if (!barred && !inCard) toBar(true);
+      else if (barred && inCard && !(e.target.closest && e.target.closest('.btn'))) toBar(false);
+    }, true);
     els.pause = h('button.dr-pause', { type: 'button', 'data-nogesture': '', 'aria-label': 'Pause', onpointerup: () => pause() }, h('i.dr-bars', { 'aria-hidden': 'true' }), h('small.dr-left'));
     rail.prepend(els.pause);
     els.card = h('div.dr-card');
@@ -303,7 +311,9 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     const kids = [];
     if (ended) {
       const sc = result && result.score != null ? result.score : scoreOf(run.k * TICK, run.eng.lines);
-      kids.push(h('b.dr-title', 'THE DROP'), h('span.dr-line', dropLine(sc)));
+      // (CITY D: the time and the lines apart — the slim bar keeps the time only: THE DROP · 2:10.7 · SHARE)
+      const line = dropLine(sc), cut = line.indexOf(' · ');
+      kids.push(h('b.dr-title', 'THE DROP'), h('span.dr-line', h('span.dr-t', cut > 0 ? line.slice(0, cut) : line), cut > 0 ? h('span.dr-ln', line.slice(cut)) : null));
       kids.push(h('small.dr-sub', refused && (finished || !finishing) ? UNCHECKED : finished ? (result && result.counted === false ? 'COUNTS FROM TOMORROW' : 'SCORED') : 'SENDING YOUR RUN…'));
       // THE DROP B — SHARE: SHARE YOUR RUN's card with THE DROP's final board (every junk row SOLID — js/games/drop/share.js), the time, the lines
       if (finished && !refused) { kids.push(tubeButton('SHARE', { kind: 'secondary', cls: 'dr-share', onClick: () => shareRun(sc) })); sharer(sc).then(H => H.warm()).catch(() => {}); }   // (PFIX-3 — S11: built as the card shows)
@@ -316,6 +326,22 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     }
     els.card.replaceChildren(...kids);
     els.card.hidden = !kids.length;
+    // CITY D — THE END CARD SHRINKS (the owner: it never went away — he had to hit BACK on the screen behind it): a SCORED end card holds BAR_MS,
+    // then becomes a slim straight-edged bar at the board's foot — THE DROP · 2:10.7 · SHARE — so the finished board shows and SHARE stays one
+    // tap away; a tap anywhere outside the card shrinks it at once; a tap on the bar (not SHARE) opens the card again; ‹ is always the way out
+    const canBar = ended && finished && !refused;
+    if (!canBar) { clearTimeout(barT); barT = 0; barred = false; }
+    else if (!barred && !barT && !barOpened) barT = setTimeout(() => { barT = 0; toBar(true); }, BAR_MS);
+    els.card.classList.toggle('is-bar', barred);
+    els.root.classList.toggle('dr-barred', barred);
+  }
+  let barT = 0, barred = false, barOpened = false;
+  function toBar(on) {
+    if (!els.card || barred === on) return;
+    barred = on; if (!on) barOpened = true;
+    clearTimeout(barT); barT = 0;
+    els.card.classList.toggle('is-bar', on);
+    els.root.classList.toggle('dr-barred', on);
   }
   function hintGo() {
     if (!els.hint || els.hint.classList.contains('is-gone')) return;
@@ -367,6 +393,7 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
     hide: () => gone(),
     hint: () => !!(els.hint && !els.hint.classList.contains('is-gone')),
     shared: () => shared,
+    bar: () => barred,   // (CITY D: the end card shrunk to its bar)
     show: () => back(),
     send: () => send().catch(() => null),
     off: () => off,

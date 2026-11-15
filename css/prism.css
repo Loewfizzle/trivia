@@ -954,3 +954,13 @@ body.pd-duel .pd-mode { letter-spacing: 0.2em; }
 .pd[data-look='crayon'] .dr-sub, .pd[data-look='crayon'] .dr-left { color: #5a5040; }
 .pd[data-look='crayon'] .dr-pause { background: rgba(255, 252, 244, 0.9); color: #2a2418; border-color: rgba(60, 50, 30, 0.35); }
 .pd[data-slam='left'] .dr-card { left: auto; right: 12px; }   /* (THE LEFT slam setting: the board sits on the right) */
+/* CITY D — THE END CARD SHRINKS: after ~1.5 s (or a tap outside it) the SCORED card is a slim STRAIGHT-EDGED bar at the board's foot — THE DROP ·
+   2:10.7 · SHARE — the finished board shows above it; it slides up into place (transform + opacity only); reduced motion: no slide */
+.dr-card.is-bar { top: auto; bottom: 8px; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; padding: 6px 6px 6px 12px; border-radius: 3px; animation: drBarIn 0.28s ease-out; }
+.dr-card.is-bar .dr-title { font-size: 14px; letter-spacing: 0.08em; white-space: nowrap; }
+.dr-card.is-bar .dr-line { margin-right: auto; font-size: 16px; white-space: nowrap; }
+.dr-card.is-bar .dr-line::before { content: '· '; opacity: 0.7; }
+.dr-card.is-bar .dr-ln, .dr-card.is-bar .dr-sub { display: none; }
+.dr-card.is-bar .btn { margin: 0; min-width: 0; min-height: 44px; padding: 0 18px; flex: none; }
+@keyframes drBarIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .dr-card.is-bar { animation: none; } }

@@ -143,6 +143,17 @@ await H.run(async () => {
   const endCard = await A.page.evaluate(() => document.querySelector('.dr-card').innerText.replace(/\s+/g, ' '));
   ok(/THE DROP/.test(endCard) && /SCORED/.test(endCard), `the end card: ${endCard}`);
   await sizes(A.page, 'drop-04-end');
+  // CITY D — THE END CARD SHRINKS (the owner: it never went away): ~1.5 s later a slim straight-edged bar at the board's foot — THE DROP · the
+  // time · SHARE; a tap on the bar opens the card again, a tap outside it shrinks it at once
+  await waitFor(A.page, 'window.__drop.bar()', 'the end card shrinks to its bar', 6000);
+  const barOf = () => A.page.evaluate(() => { const c = document.querySelector('.dr-card'), r = c.getBoundingClientRect(), o = c.parentElement.getBoundingClientRect(); return { text: c.innerText.replace(/\s+/g, ' ').trim(), h: Math.round(r.height), foot: Math.round(o.bottom - r.bottom), share: !!c.querySelector('.dr-share'), rad: parseFloat(getComputedStyle(c).borderTopLeftRadius), at: [r.left + 30, r.top + r.height / 2], out: [o.left + o.width / 2, o.top + o.height * 0.3] }; });
+  const bar = await barOf();
+  ok(bar.h <= 60 && bar.foot <= 16 && bar.share && /^THE DROP · \d+:\d\d/.test(bar.text) && !/SCORED|LINES?\b/.test(bar.text) && bar.rad <= 4, `THE END CARD SHRINKS: a ${bar.h}-pt bar ${bar.foot} pt off the board's foot, straight-edged (${bar.rad} px) — "${bar.text}"`);
+  await sizes(A.page, 'drop-04b-bar');
+  await A.page.mouse.click(...bar.at);
+  await waitFor(A.page, '!window.__drop.bar()', 'a tap on the bar opens the card again', 3000);
+  await A.page.mouse.click(...bar.out);
+  ok(await waitFor(A.page, 'window.__drop.bar()', 'a tap outside the card shrinks it at once', 1000).then(() => true, () => false), 'THE END CARD: a tap on the bar opens the card again, a tap outside it shrinks it at once');
   ok(!(await A.page.evaluate(() => !!document.querySelector('.pd-board-over .pd-ko, .pd-ko'))), 'no room KO card over THE DROP\'s end (the driver\'s card alone)');
   ok((await val('rooms/undefined')) == null, 'the run wrote nothing under rooms/ (a daily is /api only)');
 
