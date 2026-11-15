@@ -635,6 +635,32 @@ counts like any finish (the streak, the XP, the points of the score it could pro
 - **Proof:** `tests/share-rhythm.test.mjs` · `tests/integration/share-same.html` (59 rows; the copies in `_old/` re-taken on purpose) ·
   `e2e-daily` (the file ready before any tap, the share 0.3 ms after it, a double tap = one share, the sheet).
 
+## EVERYONE ON SCORES (DFIX5, Nov 14 2026 — the owner: "show everyone playing the dailies, friends or not"; docs/games/passes/dfix5.md)
+- **SCORES opens on EVERYONE.** Each daily's panel ("EVERYONE · TODAY") lists the day's top COUNTING finishers as slim cards (ui/strip-board.js — the
+  one strip system): the rank LEFT, the card, the result under it at its right end (COAST CLEAR's spots as drawn searchlights), YOU = the lit frame,
+  a FRIEND = **"LV 3 · FRIEND" in gold foil** on the card's plate (`vault/strip.js` `friend` — the plate may run to the gem for it); the top 10,
+  then — you below them — one more row with your place (a dashed rule above it); **SHOW ALL n** (up to 50); "NO ONE HAS FINISHED YET"; the scores
+  only once YOU have finished that daily ("Play it to see their scores" — YOUR TABLE's rule); the TOP x% OF EVERYONE line at the foot (n ≥ 50).
+- **THE FRIENDS BOX** — the scope row = the TODAY'S SCORES / ALL TIME switch (unchanged) on the left + a drawn square ☐ FRIENDS on the right (the
+  ink's outline, a white tick on blue when checked, the house small caps, a 44 pt tap; it wraps under the switch if the row can't hold both).
+  **Unchecked on every visit** (never remembered). Checked → every list narrows to YOUR TABLE ("YOUR FRIENDS · TODAY" — DFIX2's view, no FRIEND
+  word, STILL TO PLAY; ALL TIME "YOUR FRIENDS · AVERAGE A DAY"); no friends → the foot hint (ADD FRIENDS BY THEIR NAME TAG).
+- **ALL TIME, unchecked** = the daily's ALL TIME board: its top 10 (friends marked by their BOARD ids — `/api/daily points` returns `ids: { me, f }`,
+  HMACs that name nobody — never a pid) + YOU (your place below the 10, or "3 MORE DAYS TO BE RANKED · YOUR AVERAGE 83.3") + SEE THE FULL BOARD ›.
+  The ten-days rule + the average a day unchanged.
+- **TODAY's ticket line = the everyone place: "4TH OF 12 TODAY"** (`core/every.js#everyPlaceLine`; `today.place` — exact inside the kept top, the
+  histogram's "strictly better + 1" past it); a same-day profile keeps YOUR SCORE COUNTS FROM TOMORROW.
+- **THE SERVER — a cheap per-day aggregate, never a scan per request:** `dly/{game}/{day}/t` = the day's top 50 counting finishers (`{ v, rows: [{ k,
+  s, at?, e? }] }`), ONE transaction per COUNTING finish (`api/_lib/every.js#addTop` from `finishRun`; a failure never fails the finish). THE ORDER
+  (`core/every.js#cmpRows`): the daily's stored number by its `better`; a TIE → the EARLIER finish (THE PASSWORD — no timer added); THE DROP by
+  its packed number automatically; a row from before the pass (no `at`) after the timed ones. A day with finishers but no node is built ONCE from
+  `r/` − `x/` (`ensureTop`). THE THROWAWAY GATE: a same-day profile / a pre-reset run is never in it and never counts in "OF n".
+- **`/api/daily every { all? }`** (the SCORES screen — once a visit, again when one of YOUR results changes; `all` = the dailies whose SHOW ALL is
+  open): per live daily `{ n, played, rows: [public face + rank + v? + e? + me? + f?], me?, more }` — a public face = the board row's own keys
+  (`lb.js#publicFaces` — the board id + the username, rude names → the house nickname; a HIDDEN profile left out, the places never re-ranked);
+  never a pid. `today` gains `place` + `extra` (your spots) + a friend's `e` once you've played. Works for 1–6 dailies.
+- **BEFORE PUBLIC:** the everyone lists are a cheater target (a throwaway can see the day's results) — harden or limit them before the site goes public.
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

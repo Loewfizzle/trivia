@@ -261,6 +261,40 @@ E2E. PLACEHOLDER: the end (time + spots only). NOT BUILT (CC2): the lighthouse w
 (`LOOKS` is night-only now), the sounds, LIGHTHOUSE + GHOST RUN. NOT BUILT (THE DAILY MODULE): the way in, the banner, the pause call + the RESUME chip,
 the rankings, the streak hooks, the switch-over.
 
+## DFIX5 — THE DIG FEEL + THE SPOT ICONS (Nov 14 2026 — docs/games/passes/dfix5.md; the owner: "noticeable lag on every dig")
+**Measured (before):** the live site from the Beelink (plain GETs only — no live profile, no live dig): the functions in **cle1**, a warm call
+**60–75 ms** to the first byte (now and then ~170), a cold one **1.1 s**. The emulators (e2e-coastclear): the dig round trip **p50 14 · p95 34 ms**;
+the server's own work **7 ms** (auth 1 · load 3 · tx 3 — one attempt). So the server barely works; its real cost on the live site is the DISTANCE:
+two database round trips cle1 ↔ Iowa (~20 ms each) per dig. And the dig fires on the finger's LIFT (a long-press must stay a buoy), so the
+press itself was part of the wait.
+- **THE OWNER'S READOUT** (`view.js#diag`, `logic.js#diagLine`): `start` says `owner: true` to the owner's phone only (ADMIN_PIDS — the /admin
+  test; on the emulators also `testAdmins/{pid}`; a cartridge with `diag`); the view writes ONE line under the board after every dig — **"DIG 148 MS
+  · SERVER 9 MS · NET 139 MS · MEDIAN 152 MS"** (the finger lifted → the number painted, measured at the next frame; Server-Timing's total; the
+  rest = the network; the median of the last 10). Never shown to anyone else; both looks (`.cc-diag`, the game's ink). The judge passes `owner` through.
+- **THE HELD RUN** (`api/daily.js#heldRun`): a warm instance KEEPS the runner's record + start listeners between moves (keyed by the token's pid
+  + the run's day — never the phone's word), so a warm dig reads NOTHING before its transaction: **one database round trip, was two** (~20 ms off
+  each warm dig on the live site). Every guarantee is the transaction's — a stale cache is checked by the database and retried; a repeat / a
+  reorder free; the replay score, the throwaway gate, THE ROOM WINS, the coalesced moves unchanged. Idle 3 min → let go (`HOLD_IDLE_MS`), at
+  most `HOLD_MAX` 300 held. THE DROP (a cartridge with a `stash`) keeps its per-call read (PFIX-3's chunk rule). **After (emulators): p50 13 · p95
+  19 ms; the server 3 ms (load 0 · tx 1).** Proof: `coastclear.test.mjs` "DFIX5 — THE HELD RUN" (warm moves read from the cache, another
+  instance's write kept, idle runs let go) + the owner flag test.
+- **THE SONAR PING** (`view.js#ping`, `.cc-ping`): a pointer DOWN on a diggable cell in DIG mode sends two quick rings out of it AT ONCE (`PING_MS`
+  190 — the second 45 ms behind; `--cc-ping`: the night's cyan + its glow, the day's strong blue + a white halo; the cell rises over its
+  neighbours while it rings — `is-ping`, z-index only); transform + opacity only; reduced motion = ONE soft flash on the cell. A long-press that
+  becomes a BUOY: the ping gives way to the buoy's drop, no dig. **THE NUMBER SURFACES** the moment its answer lands (`.is-surf` — a 120 ms rise
+  into focus; never held for the rings); the flood still ripples (`.is-pop`, RIPPLE_MS unchanged). No new sound (the brief's optional tick
+  skipped — the reveal sound on landing stays the only one). LONG_MS and the DIG / BUOY switch exactly as they were.
+- **If it still lags after this:** the owner's next lever is digging on touch-DOWN (his call — a buoy then needs the BUOY switch or a second gesture).
+- **THE SPOT ICONS** (Group 6): COAST CLEAR's result anywhere a list shows it (SCORES — everyone + FRIENDS — and TODAY's ticket) = the time + one
+  small drawn SEARCHLIGHT per spot (`meta.js#resultMarks` 0–2 · `RESULT_MARK` · `LAMP_SVG` — the status row's own lamp, view.js draws the same
+  path; `js/screens/daily.js#resultEl`); CAUGHT stays CAUGHT; one line, the result's colour, aria "2:18, 1 spot". The count is the SERVER's:
+  `cc.js#extra` replays the record at the finish → `dly/coastclear/{day}/e/{pid}` (a run finished before this pass: computed once from its
+  record — `api/_lib/every.js#extraOf`). The end screen already says it ("1 SPOTTED · +30 s" + the spot on the shrunk harbor); SHARE TODAY's
+  section already draws a lit lamp per spot in its art strip — both unchanged.
+- Previews: `coastclear-preview.html?ping=1` (a 300 ms line + a scripted press every 2.2 s; a real touch stops it) · `&diag=1` (the readout).
+- Tests: `tests/dfix5.test.mjs` (the line, the timings, transform + opacity only, the icons) · `coastclear.test.mjs` 16 · `e2e-coastclear` 41 (+ the
+  ping in the same event, a long-press pinged then a buoy and no dig, a number never held for the ping, the readout + a player sees none).
+
 ## FR7 FIXES A (Nov 12 2026 — docs/harbor/passes/fr7-fixes-a.md)
 - **THE ROOM'S PAUSE DOESN'T COUNT** (the owner's decision 4): a pause the server verified as THE ROOM WINS is a ROOM pause (`p.r` in the record) —
   outside the player caps (`MAX_PAUSES` 3, `PAUSE_CAP_MS` 20 min), under its own bound (`ROOM_MAX_PAUSES` 12, `ROOM_PAUSE_CAP_MS` 3 h); the phone's

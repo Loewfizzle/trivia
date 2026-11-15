@@ -840,3 +840,14 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   the unit suite once with `node_modules` renamed away.
 - Known local flake (both trees, the harbor `cameras` group at three pages at a time): `no-observer-pre` red ~1 run in 3 ("fit … 85 ms after the
   reveal"); green alone 8/8.
+
+## DFIX5 (Nov 14 2026 — docs/games/passes/dfix5.md)
+- Unit: `tests/dfix5.test.mjs` (the owner's readout line, the ping's timings + transform / opacity only, the EVERYONE ranking — ties, insert / retry,
+  the backfill less x/, the view, the ticket line — and the spot icons).
+- `/api`: `coastclear.test.mjs` + THE HELD RUN + the owner flag (16) · `daily-module.test.mjs` + EVERYONE ON SCORES (22 — on its own far day).
+- E2E: `e2e-coastclear` 41 (+ the ping in the same event, a long-press pinged then a buoy, a number never held for the ping, the owner's readout via
+  `testAdmins/{pid}`) · `e2e-daily` 92 — it now starts from a CLEAN DAY for its dailies (every earlier run's finishers removed, the day's b + c
+  kept) because the everyone list shows the whole day; + the FRIENDS box, EVERYONE before / after you play, FRIEND marks, "1ST OF 2 TODAY", the box
+  unchecked on the next visit, the spot icons (BOBBY clears COAST CLEAR with one spot through /api), a same-day profile never listed.
+- Previews: `daily-preview.html?state=swept&tab=scores` (+ `&friends=1` · `&scope=all` · `&look=day` · `&rank=23` · `&evday=empty`) ·
+  `coastclear-preview.html?ping=1` · `&diag=1`.

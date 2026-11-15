@@ -843,6 +843,9 @@ canvas), so a touch on ANYTHING over it reached `title-taps.js#onCityTap`, which
 `[data-layer]`) and whose slim cards, gaps and padding are plain `div`s — not on the list → the city answered at that x, y (a sign's game
 card, a sighting, a letter of the sign, the door). (It was never the strips' effect canvas: the overlay's own surface took the DOM event —
 the WINDOW listener did not care whose it was.)
+**DFIX5 (Nov 14) — re-proven on the NEW SCORES** (EVERYONE by default, the FRIENDS box, the YOU-below row, the spot icons): the same e2e-daily sweep —
+real touches on every card's middle + edges, the gaps, the padding, a billboard's own points under the screen, on SCORES · TODAY, SCORES · ALL TIME
+and TODAY's tickets — no pop-up ever; the rule lives where it did (`ui/layers.js#cityCovered`, asked by `title-taps.js#covered`) — nothing per screen.
 
 **THE RULE — fixed at the shared layer, for every screen over the city:** the city answers a touch only when NO screen sits on top —
 `ui/layers.js#cityCovered({ layers, held, inCity })` (PURE):

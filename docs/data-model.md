@@ -334,6 +334,11 @@ dly/{game}/{day}/p/{pid}: record       ← a JUDGED daily's record: THE PASSWORD
 dly/coastclear/{day}/b: board          ← the day's board, built once from THE DAILY SECRET (never served)
 dly/{game}/{day}/c: { at, st, n, w }   ← DFIX2 — THE DAY'S CLOSE (api/_lib/daily-close.js): claimed by the first start / today after 4 am Eastern (st 'busy' → 'done'),
                                           n = the counting finishers, w = PENTHOUSE's winners (rank ≤ max(1, ⌊n / 100⌋), n ≥ 50)
+dly/{game}/{day}/t: { v: 1, rows: [{ k: pid, s: score, at?, e? }] }   ← DFIX5 — EVERYONE ON SCORES: the day's top ≤ 50 COUNTING finishers, best first
+                                          (the daily's `better`; a tie → the earlier finish `at`) — ONE transaction per counting finish (api/_lib/every.js
+                                          #addTop; pure rules js/core/every.js); built once from r/ − x/ for a day that had finishers before it. Never a scan.
+dly/{game}/{day}/e/{pid}: extra        ← DFIX5 — a cartridge's EXTRA for a finished run, from the SERVER's record (COAST CLEAR: { sp: spots } — the spot icons)
+dly/{game}/{day}/x/{pid}: 1            ← DM1 — a NON-COUNTING result (THE THROWAWAY GATE / a pre-reset start): out of h/, n, t, YOUR TABLE, THE BOARD
 ```
 A run's calls name its own day (DFIX1): today's or yesterday's with a start there. Never pruned yet (THE DAILY MODULE's; before ~500 players a day).
 

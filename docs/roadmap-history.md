@@ -2740,6 +2740,18 @@ The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept th
 district" in code (the `nd-` class prefix, the `window.__district` test hook). `ROADMAP.md` lists what shipped and what is next.
 **Keep this file, ROADMAP.md (one line per shipped feature; the detail goes in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
 
+## DFIX5 — COAST CLEAR's DIG FEEL + EVERYONE ON SCORES + THE TAP-THROUGH + THE SPOT ICONS (Nov 14, 2026 — docs/games/passes/dfix5.md)
+- **THE DIG FEEL:** measured (live: cle1, warm 60–75 ms, cold 1.1 s; emulators: p50 14 · p95 34 ms, the server 7 ms) → the owner's readout under the
+  board (ADMIN_PIDS only — "DIG · SERVER · NET · MEDIAN"), THE HELD RUN (`api/daily.js#heldRun` — the record + the start held on a warm instance:
+  one database round trip a dig, was two; emulators after p50 13 · p95 19 ms, the server 3 ms), THE SONAR PING on the touch-down (two rings, both
+  looks, reduced motion = a flash) + the number SURFACING the moment it lands; a long-press still a buoy. docs/coastclear.md "DFIX5".
+- **EVERYONE ON SCORES:** SCORES opens on everyone's counting results — the top 10 + YOU + SHOW ALL (50), FRIEND in gold foil on the card, the drawn
+  FRIENDS box (unchecked every visit) → YOUR TABLE; ALL TIME = the daily's board top 10 + YOU; TODAY's ticket = "4TH OF 12 TODAY". The server keeps
+  `dly/{game}/{day}/t` (one transaction per counting finish; ties → the earlier finish; THE DROP by its packed number) + `every` (public faces,
+  never a pid; same-day profiles never listed). docs/progression.md "EVERYONE ON SCORES".
+- **THE SPOT ICONS:** COAST CLEAR's result = the time + a drawn searchlight per spot (0–2; CAUGHT unchanged), from the server's replay (`e/{pid}`).
+- **THE TAP-THROUGH:** fixed in SKINS 2B (`097dcc34`); re-proven on the new SCORES (docs/title.md).
+
 ## THE POOL FIXES + THE SLIDER + OVERCLOCK'S NEW ICON (Nov 13, 2026 — docs/games/passes/pool-fixes.md)
 
 - **OVERCLOCK'S ICON:** the neon mark + the game card's art in OVERDRIVE's palette — the dial's sweep blue, its redline + the bolt orange, the needle

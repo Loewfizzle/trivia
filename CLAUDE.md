@@ -150,6 +150,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   SHARE TODAY section: the NAME in its result's colour (green made · red failed · white) · ONE big TIME · ONE grey stat line · the art strip,
   through the kit's `paintName` / `paintBig` / `paintStat` — never a win word; `tests/share-rhythm.test.mjs`); tracked lettering only through
   `spacedText`; THE CARD IS BUILT BEFORE THE TAP (`prepShare` — never a share drawn at the tap, never a download) → docs/progression.md.
+- EVERYONE ON SCORES: the day's top = ONE node a daily a day (`dly/{g}/{day}/t` — one transaction per COUNTING finish, `api/_lib/every.js` + pure `core/every.js`), never a scan; public faces only (board ids, never a pid) → docs/progression.md.
 - THE DROP: the phone PLAYS, the server REPLAYS (ONE pure engine — `prism/drop.js` + `drop-judge.js`); a log upload never re-sends the log (chunks beside a small record); a pause never waits on its chunk, a refused finish is scored at its last provable point (PFIX-3) → docs/prism.md#the-drop.
 
 **The games** (read the game's doc before a pass on it)
