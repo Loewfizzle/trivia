@@ -448,6 +448,8 @@ export function billboardContent(show, games) {
   if (show && (show.game === 'holdem' || show.game === 'holdem-open')) return { title: 'HOLD’EM', sub: show.game === 'holdem-open' ? 'NOW OPEN' : 'COMING SOON', poster: show.game, bar: show.game === 'holdem-open' ? 'open' : 'soon', game: null, lines: null, bg: [31, 50, 99], ink: [239, 228, 198], acc: [198, 50, 59] };
   // (THE TRI-VISION: the roof board's second face — JAYWALK's poster, painted by jaywalk-art.js, COMING SOON or NOW OPEN)
   if (show && (show.game === 'jaywalk' || show.game === 'jaywalk-open')) return { title: 'JAYWALK', sub: show.game === 'jaywalk-open' ? 'NOW OPEN' : 'COMING SOON', poster: show.game, bar: show.game === 'jaywalk-open' ? 'open' : 'soon', game: null, lines: null, bg: [3, 2, 8], ink: [255, 61, 180], acc: [255, 61, 180] };
+  // (CITY B: the third face — THE DROP · NEW DAILY, drawn in code by drop-art.js; SELF-LIT neon at night, never under the lamps' pools)
+  if (show && show.game === 'drop') return { title: 'THE DROP', sub: 'NEW DAILY', poster: 'drop', selfLit: true, game: null, lines: null, bg: [8, 6, 26], ink: [238, 241, 255], acc: [106, 63, 208] };
   const g = games.find(x => x.id === (show && show.game)) || null;
   if (g) { const acc = accOf(g); return { title: g.name, sub: g.tag || '', game: g, bg: mix(acc, [30, 18, 40], 0.78), ink: mix(acc, [255, 246, 226], 0.35), acc }; }
   return { title: (show && show.title) || 'NEON SPEAKEASY', sub: (show && show.sub) || 'YOUR FRIENDS ARE ALREADY INSIDE', game: null, bg: (show && show.bg) || [40, 22, 48], ink: (show && show.ink) || [255, 214, 120], acc: (show && show.acc) || [255, 46, 151] };
@@ -591,6 +593,10 @@ function hintPoster(x, R, content, pt, sd, FONT, SQ) {
 let JW_PAINT = null;
 export function setJaywalkPainter(f) { JW_PAINT = typeof f === 'function' ? f : null; }
 const paintJaywalk = (x, R, bar, sd) => { if (JW_PAINT) JW_PAINT(x, R, bar, sd); else { x.fillStyle = '#030208'; x.fillRect(R.x, R.y, R.w, R.h); } };
+// CITY B: THE DROP's painter (screens/harbor/drop-art.js — lazy, after the reveal, like JAYWALK's); night = its neon, day = the violet print
+let DR_PAINT = null;
+export function setDropPainter(f) { DR_PAINT = typeof f === 'function' ? f : null; }
+const paintDrop = (x, R, night) => { if (DR_PAINT) DR_PAINT(x, R, night); else { x.fillStyle = night ? '#08061a' : '#6a3fd0'; x.fillRect(R.x, R.y, R.w, R.h); } };
 export function buildBillboard(spot, content, ctx) {
   const R = spot.rect, dpr = ctx.dpr, dun = spot.mount === 'speak', lamps = gooseneckLamps(R, dun ? 5 : 4);
   // (8b1: a burnt-out gooseneck — ctx.dead, its index — throws no light until the billposter fixes it; its shade still hangs there)
@@ -600,7 +606,8 @@ export function buildBillboard(spot, content, ctx) {
   const FONT = fs => `700 ${fs}px "Chakra Petch", Orbitron, sans-serif`;
   const SQ = 0.8;                                               // (the name's condensed hand: 80 % width)
   // THE POSTER (the same art by day + night; sd: the sun's side for the paint's shadows, 0 at night)
-  const poster = (x, sd) => {
+  const poster = (x, sd, night = false) => {
+    if (content.poster === 'drop') { paintDrop(x, R, night); return; }
     if (content.poster) { (String(content.poster).startsWith('jaywalk') ? paintJaywalk : paintHoldem)(x, R, content.bar, sd); return; }   // (CITY FIXES + HOLD'EM: its own painted poster · THE TRI-VISION: JAYWALK's)
     const pt = posterPaint(content.game, content.acc);
     x.fillStyle = rgba(pt.face); x.fillRect(R.x, R.y, R.w, R.h);
@@ -722,10 +729,12 @@ export function buildBillboard(spot, content, ctx) {
   // the board in its lamps' light: the poster × the warm pools (brightest at the top, falling off down the board), the catwalk +
   // railing catching the spill, the bulbs glowing under their shades (drawn over the dark board with the lamps' level)
   const nightS = sprite(box, 2, dpr, x => {
-    poster(x, 0);
+    poster(x, 0, true);
+    if (!content.selfLit) {   // (CITY B: a self-lit poster — THE DROP's neon — is never multiplied by the lamps' pools)
     const lightC = document.createElement('canvas'); lightC.width = Math.ceil(R.w * dpr); lightC.height = Math.ceil(R.h * dpr);
     const lx = safeCtx(lightC); lx.scale(dpr, dpr); lampLightMap(lx, R, litLamps, dun ? 0.17 : 0);
     x.globalCompositeOperation = 'multiply'; x.drawImage(lightC, R.x, R.y, R.w, R.h); lightC.width = lightC.height = 0;
+    }
     x.globalCompositeOperation = 'source-over';
     structure(x, 0, 0);
     // the catwalk + railing in the poster's spill (a faint warm edge)
@@ -737,7 +746,7 @@ export function buildBillboard(spot, content, ctx) {
   const light = (x, T) => {
     const day = Math.min(1, T.day + 0.8 * T.gold), dk = Math.max(T.night || 0, 1 - day);
     x.fillStyle = `rgba(238,226,204,${0.1 * day})`; x.fillRect(R.x, R.y, R.w, R.h);
-    if (dk > 0.02) {
+    if (dk > 0.02 && !content.selfLit) {
       const lc = document.createElement('canvas'); lc.width = Math.max(1, Math.ceil(R.w * 2)); lc.height = Math.max(1, Math.ceil(R.h * 2));
       const lx = safeCtx(lc); if (!lx) return; lx.scale(2, 2); lampLightMap(lx, R, litLamps, dun ? 0.17 : 0);
       x.save(); x.globalCompositeOperation = 'multiply'; x.globalAlpha = dk; x.drawImage(lc, R.x, R.y, R.w, R.h); x.restore(); lc.width = lc.height = 0;
@@ -750,9 +759,9 @@ export function buildBillboard(spot, content, ctx) {
   const nightPoster = (x, hiDpr = 3, k = 1) => {
     x.save(); x.beginPath(); x.rect(R.x, R.y, R.w, R.h); x.clip();
     if (k < 0.999) { poster(x, 0); x.fillStyle = 'rgba(6,5,14,0.88)'; x.fillRect(R.x, R.y, R.w, R.h); x.globalAlpha = Math.max(0, k); }
-    poster(x, 0);
+    poster(x, 0, true);
     const lc = document.createElement('canvas'); lc.width = Math.max(1, Math.ceil(R.w * hiDpr)); lc.height = Math.max(1, Math.ceil(R.h * hiDpr));
-    const lx = safeCtx(lc); if (lx) { lx.scale(hiDpr, hiDpr); lampLightMap(lx, R, litLamps, dun ? 0.17 : 0); x.globalCompositeOperation = 'multiply'; x.drawImage(lc, R.x, R.y, R.w, R.h); }
+    const lx = !content.selfLit && safeCtx(lc); if (lx) { lx.scale(hiDpr, hiDpr); lampLightMap(lx, R, litLamps, dun ? 0.17 : 0); x.globalCompositeOperation = 'multiply'; x.drawImage(lc, R.x, R.y, R.w, R.h); }
     lc.width = lc.height = 0; x.globalCompositeOperation = 'source-over';
     lampGlows(x, litLamps, R, 1);   // (at k too: globalAlpha)
     x.restore();

@@ -87,7 +87,9 @@ test('THE RIPPLE: the slats turn left → right inside the turn; each a prism go
 
 test('the scene: the tri-vision\'s pieces (the warm after the reveal, the swap under the slats, the crisp z 4, reduced motion = a cut, the click quiet)', () => {
   const sc = readFileSync(new URL('../js/screens/harbor/scene.js', import.meta.url), 'utf8');
-  assert.match(sc, /if \(F && !tri\.warmed && shownAt >= 0 && performance\.now\(\) >= tri\.retryAt\) \{ tri\.warmed = true; lazyImport\(import\('\.\/jaywalk-art\.js'\)/, 'the poster module + its art load only after the reveal (never the boot graph)');
+  // (CITY B: only when a JAYWALK face is up — needJw; THE DROP's painter the same way — needDr)
+  assert.match(sc, /if \(needJw && !tri\.warmed && shownAt >= 0 && performance\.now\(\) >= tri\.retryAt\) \{ tri\.warmed = true; lazyImport\(import\('\.\/jaywalk-art\.js'\)/, 'the poster module + its art load only after the reveal (never the boot graph)');
+  assert.match(sc, /if \(needDr && !tri\.drWarm && shownAt >= 0 && performance\.now\(\) >= tri\.drRetry\) \{ tri\.drWarm = true; lazyImport\(import\('\.\/drop-art\.js'\)/);
   // (PLAY NOW 0c — THE ROOF BOARD STOPPED TURNING: a failed art / painter is asked again on a backoff + reported, never left for good)
   assert.match(sc, /tri\.retryAt = performance\.now\(\) \+ \[3e3, 15e3, 60e3, 300e3\]\[Math\.min\(tri\.fails - 1, 3\)\]/);
   assert.match(sc, /m\.warmJaywalk\(\(\) => \{[^}]*\}, why => \{ if \(!destroyed\) triWarmFailed\(/);

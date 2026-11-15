@@ -48,8 +48,45 @@ export function jaywalkShow(dayKey) {
   if (!S.on || !dayKey || !KEY_RE.test(dayKey) || !S.since || dayNum(dayKey) < dayNum(S.since)) return null;
   return jaywalkBar(S, dayKey) === 'open' ? 'jaywalk-open' : 'jaywalk';
 }
-/** the two faces a day key turns between ([A, B]) — null when only one (or none) is up: JAYWALK off = HOLD'EM alone, no turning */
-export function triFaces(dayKey) { const a = holdemShow(dayKey), b = jaywalkShow(dayKey); return a && b ? [a, b] : null; }
+// ---- CITY B — THE DROP, the third face (the owner, Nov 14): up ONLY once THE DROP is live — its go-live day from the cached feed (api/_lib/radio.js
+// radioPublic.drop ← progress/dlive.drop, while the dailies' switch is on: no new poll) — for `days` (14, THE CITY TIMETABLE's billboard.drop)
+// from that day, then it retires by itself; the owner's switch (/admin → THE BILLBOARD → city2/billboard.drop) ON = that window · OFF · KEEP ON
+// (never retires). &force=billboard-drop = live from TODAY on this phone.
+const DROP_MODES = ['on', 'off', 'keep'];
+let DROP = null, DROP_FORCE = null;
+/** PURE: the feed's { live, mode } → a clean state (live: the go-live day 'YYYY-MM-DD' | null) */
+export function cleanDrop(v) {
+  if (!v || typeof v !== 'object') return null;
+  return { live: KEY_RE.test(String(v.live || '')) ? String(v.live) : null, mode: DROP_MODES.includes(v.mode) ? v.mode : 'on' };
+}
+const LSD = 'nd:drop';
+/** the feed's drop (radio.drop) — undefined / null = not live */
+export function setDrop(v) {
+  const n = cleanDrop(v);
+  if (JSON.stringify(n) !== JSON.stringify(DROP)) { DROP = n; REV++; }
+  if (typeof window !== 'undefined') { try { localStorage.setItem(LSD, JSON.stringify(n)); } catch { /* private mode */ } }
+}
+if (typeof window !== 'undefined') { try { DROP = cleanDrop(JSON.parse(localStorage.getItem(LSD) || 'null')); } catch { DROP = null; } }
+/** &force=billboard-drop: THE DROP live from `since` (today) on this phone; null clears it */
+export function setDropForce(f) { DROP_FORCE = f && KEY_RE.test(String(f.since || '')) ? { since: f.since } : null; REV++; }
+export function dropState() {
+  if (DROP_FORCE) return { live: DROP_FORCE.since, mode: 'on', src: 'force' };
+  return { ...(DROP || { live: null, mode: 'on' }), src: DROP ? 'feed' : 'default' };
+}
+/** PURE: the face a day key shows for a state → 'drop' | null */
+export function dropFace(S, dayKey, days = 14) {
+  if (!S || !S.live || S.mode === 'off' || !KEY_RE.test(String(dayKey || ''))) return null;
+  const d = dayNum(dayKey), l = dayNum(S.live);
+  return d >= l && (S.mode === 'keep' || d < l + days) ? 'drop' : null;
+}
+export const dropShow = dayKey => dropFace(dropState(), dayKey, (knob('billboard.drop') || {}).days || 14);
+export const isDropId = id => id === 'drop';
+/** PURE (the server's half — api/_lib/radio.js radioPublic): THE DROP's go-live day for the feed — the dailies' switch on + its scheduled day
+ *  (progress/dlive.drop.from 'dYYYYMMDD') → 'YYYY-MM-DD' | null; the owner's mode cleaned */
+export function dropLiveDay(switchOn, sched) { const f = String((sched && sched.from) || ''); return switchOn && /^d\d{8}$/.test(f) ? `${f.slice(1, 5)}-${f.slice(5, 7)}-${f.slice(7, 9)}` : null; }
+export const cleanDropMode = v => (DROP_MODES.includes(v) ? v : 'on');
+/** the faces a day key turns between, in order (HOLD'EM → JAYWALK → THE DROP) — null when fewer than two are up (one face alone = no turning) */
+export function triFaces(dayKey) { const F = [holdemShow(dayKey), jaywalkShow(dayKey), dropShow(dayKey)].filter(Boolean); return F.length >= 2 ? F : null; }
 /** THE BILLPOSTER stays home while the tri-vision is up (the turning board is the motion — no paste) */
 export const triKeeps = dayKey => !!triFaces(dayKey);
 export const isJaywalkId = id => id === 'jaywalk' || id === 'jaywalk-open';

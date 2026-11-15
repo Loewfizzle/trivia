@@ -131,7 +131,10 @@ function shell() {
       h('div.ad-row', { id: 'ad-bb-row' }, h('span.ad-dim', 'Loading…')),
       // THE TRI-VISION: JAYWALK's poster = the board's second face (the slats turn HOLD'EM ↔ JAYWALK every 45–60 s while both are on)
       h('p.ad-dim', 'JAYWALK — the board’s second face: while both are ON the board TURNS between HOLD’EM and JAYWALK every 45–60 s (every phone the same face). COMING SOON until you say NOW OPEN — or set an OPEN DAY: from that day it reads NOW OPEN (the days before stay COMING SOON). OFF = HOLD’EM alone, no turning.'),
-      h('div.ad-row', { id: 'ad-jw-row' }, h('span.ad-dim', 'Loading…'))),
+      h('div.ad-row', { id: 'ad-jw-row' }, h('span.ad-dim', 'Loading…')),
+      // CITY B — THE DROP's face (the third): ON = 14 days from THE DROP's go-live, then it retires · OFF · KEEP ON
+      h('p.ad-dim', 'THE DROP — the board’s third face (THE DROP · NEW DAILY): it appears by itself on THE DROP’s go-live day and turns with the others for 14 days, then retires. ON = that window · OFF = never · KEEP ON = it never retires.'),
+      h('div.ad-row', { id: 'ad-drop-row' }, h('span.ad-dim', 'Loading…'))),
     // DM2 — THE DAILIES (owner only — the server checks): THE GO-LIVE SWITCH (a second tap flips it) + THE RESEED (DM2 ADD-ON: server-side —
     // PREVIEW shows the plan, nothing written; RESEED NOW on a second tap: a fresh daily secret from the next 4 am, today + the past untouched)
     card('ad-dailies', 'The dailies', { cls: 'ad-dailies' },
@@ -538,7 +541,7 @@ async function billboard(st) {
   if (!row) return;
   try {
     let jw = null;
-    if (!st) { const r0 = await call('billboardState'); st = r0.billboard; jw = r0.jaywalk; jaywalkRow(jw); }
+    if (!st) { const r0 = await call('billboardState'); st = r0.billboard; jw = r0.jaywalk; jaywalkRow(jw); dropRow(r0.drop); }
     const set = async patch => { const r = await call('billboardSet', patch); toast(r.billboard.on ? `HOLD’EM ad ON · ${r.billboard.bar === 'open' ? 'NOW OPEN' : 'COMING SOON'}` : 'HOLD’EM ad OFF — the game posters are back'); billboard(r.billboard); audit(); };
     row.replaceChildren(
       h('b.ad-dly-state', st.on ? `HOLD’EM AD: ON · ${st.bar === 'open' ? 'NOW OPEN' : 'COMING SOON'}` : 'HOLD’EM AD: OFF'),
@@ -560,6 +563,17 @@ function jaywalkRow(st) {
     h('label.ad-dim', 'Open day'), day,
     tubeButton('SET DAY', { kind: 'secondary', size: 'sm', cls: 'ad-btn', onClick: () => set({ on: st.on, bar: st.bar, open: day.value || '' }) }),
     h('span.ad-dim', st.set ? `since ${st.since}` : `the default (since ${st.since})`));
+}
+/** CITY B — THE DROP's face: ON (the 14-day window from its go-live) · OFF · KEEP ON */
+function dropRow(st) {
+  const row = document.getElementById('ad-drop-row');
+  if (!row || !st) return;
+  const set = async mode => { const r = await call('billboardDrop', { mode }); toast(`THE DROP's face: ${{ on: 'ON (14 days from its go-live)', off: 'OFF', keep: 'KEEP ON' }[r.drop.mode]}`); dropRow({ ...st, mode: r.drop.mode }); audit(); };
+  const word = { on: 'ON', off: 'OFF', keep: 'KEEP ON' };
+  row.replaceChildren(
+    h('b.ad-dly-state', `THE DROP's FACE: ${word[st.mode] || 'ON'}`),
+    ...['on', 'off', 'keep'].filter(m => m !== st.mode).map(m => confirmBtn(word[m], () => set(m), m === 'on' ? 'is-primary' : '')),
+    h('span.ad-dim', st.live ? `THE DROP goes live ${st.live} — the face ${st.mode === 'keep' ? 'stays on' : `retires after ${st.days || 14} days`}` : 'THE DROP isn’t scheduled live yet — the face waits for it'));
 }
 async function dailies(st) {
   const row = document.getElementById('ad-dly-row'), out = document.getElementById('ad-dly-out');

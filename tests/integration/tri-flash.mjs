@@ -4,7 +4,7 @@
 // matched against the two faces at rest (the frames just before the turn = the OLD face, just before the next turn = the NEW one):
 //   THE RULE: once a slat has shown the NEW face, no later frame of that turn shows it OLD again — never a frame of the old face after the new
 //   one showed (per slat AND for the whole board). N faces: a turn is judged from the face before it to the face after it.
-//   node tests/integration/tri-flash.mjs "<chromium>" [--sizes 390x844,402x874,430x932] [--times night,day] [--turns 4] [--keep DIR]
+//   node tests/integration/tri-flash.mjs "<chromium>" [--sizes 390x844,402x874,430x932] [--times night,day] [--turns 4] [--keep DIR] [--force billboard-drop]
 //   (THE CITY TIMETABLE's knobs: billboard.trivision — 12 slats, 1.2-s turns, force 8 s)
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -16,6 +16,8 @@ const BASE = opt('base', 'http://localhost:5173');
 const SIZES = opt('sizes', '390x844,402x874,430x932').split(',').map(s => s.split('x').map(Number));
 const TIMES = { night: '2026-11-10T21:30', day: '2026-11-10T13:30' };
 const WHEN = opt('times', 'night,day').split(',');
+// (CITY B: --force billboard-drop — THE DROP's face too: the three-face turn A → B → C → A, each judged from the face before it)
+const EXTRA = opt('force', '');
 const TURNS = Number(opt('turns', 4)), KEEP = opt('keep', ''), DSF = Number(opt('dpr', 2)), CPU = Number(opt('cpu', 1));   // (--cpu 6: a slow phone — the bake lands late)
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const { default: puppeteer } = await import('./kit/puppeteer.mjs');
@@ -51,7 +53,7 @@ async function run(when, [w, h]) {
   const p = await ctx.newPage();
   await p.evaluateOnNewDocument(() => { try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('na:tf:profile', JSON.stringify({ name: 'AVA', color: 'cyan', avatar: 'bolt' })); } catch { /* fine */ } });
   await p.setViewport({ width: w, height: h, deviceScaleFactor: DSF, isMobile: true, hasTouch: true });
-  await p.goto(guardUrl(`${BASE}/?emu&slot=tf&city=2&idle=1&when=${TIMES[when]}&force=trivision`, 'tri-flash.mjs'));
+  await p.goto(guardUrl(`${BASE}/?emu&slot=tf&city=2&idle=1&when=${TIMES[when]}&force=trivision${EXTRA ? `,${EXTRA}` : ''}`, 'tri-flash.mjs'));
   const ev = js => p.evaluate(js);
   const waitFor = async (js, ms = 30000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await ev(js)) return true; } catch { /* navigating */ } await sleep(100); } return false; };
   const label = `${when} ${w}×${h}${CPU > 1 ? ` · CPU ÷${CPU}` : ''}${DSF !== 2 ? ` · @${DSF}` : ''}`;

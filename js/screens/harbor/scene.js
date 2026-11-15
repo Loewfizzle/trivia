@@ -36,7 +36,7 @@ import { createSceneRadio } from './scene-radio.js';
 import { setShowcase } from '../../core/harbor-showcase.js';
 import { hintAt, ownerMessages, intercomHead } from '../../core/harbor-billboard.js';
 import { holdemShow, setHoldemForce, holdemRev } from '../../core/harbor-holdem.js';
-import { triFaces, triClock, triKnobs, triProgress, slatU, slatLook, setJaywalkForce, jaywalkRev } from '../../core/harbor-trivision.js';
+import { triFaces, triClock, triKnobs, triProgress, slatU, slatLook, setJaywalkForce, jaywalkRev, setDropForce, isJaywalkId } from '../../core/harbor-trivision.js';
 import { roomRects } from '../../core/harbor-room.js';
 import { createScenePanel } from './scene-panel.js';
 import { createScenePerf } from './scene-perf.js';
@@ -65,7 +65,7 @@ import { facadeSteps } from './skyline.js';
 import { litSteps, createLights, newMeta } from './lights.js';
 import { rayStrength, drawRays } from './rays.js';
 import { searchlightStep, drawBeams } from './searchlights.js';
-import { cabinetCut, setJaywalkPainter } from './signs.js';
+import { cabinetCut, setJaywalkPainter, setDropPainter } from './signs.js';
 import { vehiclesReset, vehicleInFront } from './occluders.js';
 
 import { quaySteps, drawQuayLamps, quayLampSprite } from './quay.js';
@@ -1137,9 +1137,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // switch via the cached GET; &force=billboard-holdem (+ &holdem=open) = from TODAY on this phone — the billposter pastes it at his slot)
   let holdemForced = false;
   // (THE TRI-VISION's state — its functions below workBoard; declared up here: boardSync reads it)
-  let jaywalkForced = false;
+  let jaywalkForced = false, dropForced = false;
   const benchK = new Map(), BENCH_XF_S = 0.25;   // (THE BENCH OVER THE TAXI: each bench overlay's own fade, 1 = shown)
-  const tri = { shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null, fails: 0, retryAt: 0 };
+  const tri = { shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null, fails: 0, retryAt: 0, dr: null, drWarm: false, drRetry: 0 };
   // (PLAY NOW — 0c: THE ROOF BOARD STOPPED TURNING — a poster art that failed to load ONCE (a refresh on a blip) left `warmed` set and the art
   //  never asked again: HOLD'EM alone for the life of the page. Now a failed art / painter is retried — 3 s, 15 s, 1 min, then every 5 min — and
   //  reported to /admin (the first failure + the fourth))
@@ -1280,14 +1280,23 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   /** the faces the board turns between today, once JAYWALK's art has decoded (warmed after the reveal) — else null (HOLD'EM alone) */
   function triFacesNow(key) {
     if (!jaywalkForced && (clock.force.has('billboard-jaywalk') || clock.force.has('trivision')) && LK.local) { jaywalkForced = true; setJaywalkForce({ since: workDayOf(clock.now() / 1000 - 86400, LK.local.off || 0).key, bar: qp.get('jaywalk') === 'open' ? 'open' : 'soon' }); }
-    const F = key ? triFaces(key) : null;
-    if (F && !tri.warmed && shownAt >= 0 && performance.now() >= tri.retryAt) { tri.warmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jw = m; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (!destroyed) triWarmFailed(`poster art (${why})`); }); }).catch(e => { if (!destroyed) triWarmFailed(`painter (${(e && e.message) || e})`); }); }   // (the poster's module + its art: AFTER the reveal — never the boot graph)
-    return F && tri.jw ? F : null;
+    // (CITY B — &force=billboard-drop: THE DROP live from today on this phone — its face turns with the others)
+    if (!dropForced && clock.force.has('billboard-drop') && LK.local) { dropForced = true; setDropForce({ since: workDayOf(clock.now() / 1000 - 86400, LK.local.off || 0).key }); }
+    const F = key ? triFaces(key) : null, needJw = !!F && F.some(isJaywalkId), needDr = !!F && F.includes('drop');
+    if (needJw && !tri.warmed && shownAt >= 0 && performance.now() >= tri.retryAt) { tri.warmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jw = m; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (!destroyed) triWarmFailed(`poster art (${why})`); }); }).catch(e => { if (!destroyed) triWarmFailed(`painter (${(e && e.message) || e})`); }); }   // (the poster's module + its art: AFTER the reveal — never the boot graph)
+    // (CITY B: THE DROP's painter — code-drawn, its module after the reveal like JAYWALK's; until it is in, the board turns without it)
+    if (needDr && !tri.drWarm && shownAt >= 0 && performance.now() >= tri.drRetry) { tri.drWarm = true; lazyImport(import('./drop-art.js'), './drop-art.js').then(m => { if (!destroyed) m.warmDrop(() => { if (destroyed) return; tri.dr = m; setDropPainter(m.paintDrop); boardCheck = 0; }); }).catch(e => { if (destroyed) return; tri.drWarm = false; tri.drRetry = performance.now() + 15e3; reportError(new Error(`THE TRI-VISION: THE DROP's painter failed to load (${(e && e.message) || e})`), 'trivision art'); }); }
+    if (!F) return null;
+    const G = F.filter(f => (!isJaywalkId(f) || tri.jw) && (f !== 'drop' || tri.dr));
+    return G.length >= 2 ? G : null;
   }
   /** every frame (boardSync): the clock's turn → a turn from the face on show to the clock's (never a pop-in) → the faces [A, B], or null */
   function triFrame(tr) {
     const F = triFacesNow(tr.board.key);
-    if (!F) { tri.lastN = null; tri.shown = 0; tri.turn = null; return null; }
+    if (!F) { tri.lastN = null; tri.shown = 0; tri.turn = null; tri.faces = null; return null; }
+    // (CITY B: the list can grow — a painter in, THE DROP's day — the face on show keeps its NAME: never a swap without a turn)
+    if (tri.faces && tri.faces.join() !== F.join()) { const was = tri.faces[tri.shown]; tri.shown = Math.max(0, F.indexOf(was)); }
+    tri.faces = F;
     const K = triKnobs(), C = triClock(clock.now() / 1000, K, triForce(), F.length);
     if (tri.lastN == null) { tri.lastN = C.n; return F; }   // (the first frame it's up: the board keeps what it shows — the next turn brings the clock's face)
     if (C.n === tri.lastN) {

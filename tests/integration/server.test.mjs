@@ -1982,6 +1982,38 @@ test('THE TRI-VISION: JAYWALK\'s switch — the default, an open day, OFF; HOLD\
   } finally { process.env.ADMIN_PIDS = ''; await ref('city2/billboard').remove(); }
 });
 
+// CITY B — THE DROP's face: its go-live day rides the cached feed (radioPublic.drop — the dailies' switch + THE SCHEDULED GO-LIVE), the owner's
+// ON · OFF · KEEP ON beside HOLD'EM's + JAYWALK's (one never wipes another); audited; a non-admin refused
+test('CITY B: THE DROP on the billboard — the go-live day in the feed only while the dailies are on, ON / OFF / KEEP ON, the others kept', async () => {
+  const { cityLiveNow } = await import('../../api/admin.js');
+  await ref('city2/billboard').remove();
+  const owner = await ensure('u-dr-own', 'DrOwner'); await ensure('u-dr-x', 'Stranger3');
+  process.env.ADMIN_PIDS = `${owner.pid}`;
+  const sw0 = await val('progress/dailies'), sc0 = await val('progress/dlive/drop');
+  try {
+    await ref('progress/dlive/drop').set({ from: 'd20261201', at: 1, by: owner.pid });
+    await ref('progress/dailies').set({ on: false });
+    assert.deepEqual((await cityLiveNow()).radio.drop, { live: null, mode: 'on' }, 'the dailies off: THE DROP is not live');
+    await ref('progress/dailies').set({ on: true });
+    assert.deepEqual((await cityLiveNow()).radio.drop, { live: '2026-12-01', mode: 'on' }, 'its go-live day');
+    await adminAction('u-dr-own', { action: 'billboardJaywalk', on: true, bar: 'open', open: '' });
+    let st = (await adminAction('u-dr-own', { action: 'billboardDrop', mode: 'keep' })).drop;
+    assert.equal(st.mode, 'keep');
+    const F = await cityLiveNow();
+    assert.equal(F.radio.drop.mode, 'keep'); assert.equal(F.radio.base.jaywalk.bar, 'open', 'THE DROP switch never wipes JAYWALK');
+    st = (await adminAction('u-dr-own', { action: 'billboardDrop', mode: 'nonsense' })).drop;
+    assert.equal(st.mode, 'on', 'a bad mode = ON');
+    await adminAction('u-dr-own', { action: 'billboardDrop', mode: 'off' });
+    const S = await adminAction('u-dr-own', { action: 'billboardState' });
+    assert.deepEqual([S.drop.mode, S.drop.live, S.drop.days, S.jaywalk.bar], ['off', '2026-12-01', 14, 'open']);
+    assert.ok(Object.values((await val('audit')) || {}).filter(a => a.act === 'billboardDrop').length >= 3, 'every switch audited');
+    await assert.rejects(adminAction('u-dr-x', { action: 'billboardDrop', mode: 'off' }), 'a non-admin is refused');
+  } finally {
+    process.env.ADMIN_PIDS = ''; await ref('city2/billboard').remove();
+    await ref('progress/dailies').set(sw0 || null); await ref('progress/dlive/drop').set(sc0 || null);
+  }
+});
+
 test('CITY FIXES — THE TAP WATCH on the server: LOST TAP is its own kind with its own buckets; the log keeps the newest per kind', async () => {
   const { LOST_LIMITS } = await import('../../api/log.js'); const { prunePlan, REPORT_KEEP } = await import('../../api/_lib/prune.js'); const { groupReports } = await import('../../js/admin/groups.js');
   assert.deepEqual(cleanReport({ kind: 'lost', text: 'A LOST TAP' }), { kind: 'lost', text: 'A LOST TAP' });

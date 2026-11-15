@@ -54,7 +54,7 @@
 //                                    (the plan, nothing written); confirm: true = a new daily secret from the NEXT 4 am (today + the past + every
 //                                    result untouched; a second run says "already reseeded"); audited (dailyReseed). Owner only (the admin gate)
 import { cleanHoldem } from '../js/core/harbor-holdem.js';
-import { cleanJaywalk } from '../js/core/harbor-trivision.js';
+import { cleanJaywalk, cleanDropMode, dropLiveDay } from '../js/core/harbor-trivision.js';
 import { knob as schedKnob } from '../js/core/harbor-schedule.js';
 /** CITY FIXES + HOLD'EM: the switch as /admin shows it (the timetable's default when never set) */
 const holdemPublic = v => { const D = schedKnob('billboard.holdem'), c = cleanHoldem(v && v.holdem); return c ? { on: c.on, bar: c.bar, since: c.since || D.since, set: true } : { on: D.on !== false, bar: D.bar || 'soon', since: D.since, set: false }; };
@@ -370,7 +370,15 @@ export async function adminAction(uid, body, now = Date.now()) {
     // DM1 — THE GO-LIVE SWITCH (owner only — the admin gate above): OFF until THE SWITCH-OVER; every flip audited
     // CITY FIXES + HOLD'EM — THE BILLBOARD: the roof board's BASE POSTER (HOLD'EM on / off, COMING SOON / NOW OPEN) → city2/billboard (every
     // phone through the cached GET ?live=1 → radioPublic.base); turning it ON starts it from TODAY (Eastern) — the billposter pastes it at ~5 pm
-    case 'billboardState': { const v = await val('city2/billboard'); return { billboard: holdemPublic(v), jaywalk: jaywalkPublic(v) }; }
+    case 'billboardState': { const [v, dsw, ds] = await Promise.all([val('city2/billboard'), val('progress/dailies'), val('progress/dlive/drop')]); return { billboard: holdemPublic(v), jaywalk: jaywalkPublic(v), drop: { mode: cleanDropMode(v && v.drop && v.drop.mode), live: dropLiveDay(!!(dsw && dsw.on === true), ds), days: schedKnob('billboard.drop').days } }; }
+    // CITY B — THE DROP's face (the roof board's third): ON = 14 days from THE DROP's go-live day, then it retires by itself · OFF · KEEP ON
+    // (never retires) → city2/billboard.drop (every phone through the cached feed)
+    case 'billboardDrop': {
+      const mode = cleanDropMode(body.mode);
+      await ref('city2/billboard').update({ drop: { mode }, at: now });
+      await audit(me, 'billboardDrop', null, { b: mode });
+      return { drop: { mode } };
+    }
     case 'billboardSet': {
       const cur = holdemPublic(await val('city2/billboard')), on = body.on !== false, bar = body.bar === 'open' ? 'open' : body.bar === 'soon' ? 'soon' : cur.bar;
       const since = on && cur.on && cur.since ? cur.since : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(now));

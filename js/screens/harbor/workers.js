@@ -379,7 +379,7 @@ export function sheetArt(b, T, dpr = 2) {
   const R = b.rect, cv = document.createElement('canvas'); cv.width = Math.max(1, Math.ceil(R.w * dpr)); cv.height = Math.max(1, Math.ceil(R.h * dpr));
   const x = safeCtx(cv); if (!x) return null;
   x.setTransform(dpr, 0, 0, dpr, -R.x * dpr, -R.y * dpr);
-  b.poster(x, T.sunDir || 0);
+  b.poster(x, T.sunDir || 0, Math.max(T.night || 0, 1 - Math.min(1, (T.day || 0) + 0.8 * (T.gold || 0))) > 0.5);   // (CITY B: the night flag — THE DROP's neon)
   if (b.light) b.light(x, T);
   return { rect: R, canvas: cv };
 }
