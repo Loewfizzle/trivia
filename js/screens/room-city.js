@@ -75,7 +75,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     wiredPick = id;
     lazyImport(import('../games/preload.js'), '../games/preload.js').then(P => P.wireGame(id)).catch(() => {});
   };
-  const wireT = setTimeout(() => { wireReady = true; wirePick(); }, (typeof window !== 'undefined' && window.__wireDelay) || 4000);   // (__wireDelay: the slow-3G E2E's hook)
+  // (CITY A — item 19, THE 8-CARD LOBBY: the GUESTS sheet came in 519 ms after its tap at 1× (4.7 s at 4× CPU) — its module + the slim cards'
+  //  were fetched AT the tap; they are warmed with the wiring now, so the tap only builds the sheet)
+  const wireT = setTimeout(() => { wireReady = true; wirePick(); if (!destroyed) lazyImport(import('./room-guests.js'), './room-guests.js').catch(() => {}); }, (typeof window !== 'undefined' && window.__wireDelay) || 4000);   // (__wireDelay: the slow-3G E2E's hook)
   lazyImport(import('../games/preload.js'), '../games/preload.js').catch(() => {});
   let st = state, destroyed = false, raf = 0, dock = null, lastRoster = '';
   const tags = new Map();            // uid → { el, emb, name, bubble, sig, nameUntil }

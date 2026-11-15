@@ -549,7 +549,7 @@ export function bossWatchAt(plan, s, seed = 11) {
     // the draws: one every 30–55 s (seeded per draw), 2.6 s each (the hand up 0.5 s, the ember flaring, down) — never in the walk
     let ember = 0, k = 0, t = 12 + 10 * h01(i, seed + 58);
     while (t < sl && k < 80) { if (sl < t + 2.6) { const u = (sl - t) / 2.6; ember = Math.sin(Math.PI * Math.min(1, u * 1.15)) * (u < 0.85 ? 1 : (1 - u) / 0.15); break; } t += 30 + 25 * h01(k++, seed + i * 13 + 59); }
-    return { phase, a: +a.toFixed(4), near: +near.toFixed(4), x: x0 + 0.2 * side, shift, head, ember: phase === 'stand' ? Math.max(0, ember) : 0, hold: phase === 'stand' ? 0.22 : 0.1, stand: i };
+    return { phase, a: +a.toFixed(4), near: +near.toFixed(4), x: x0 + 0.2 * side, shift, head, ember: phase === 'stand' ? Math.max(0, ember) : 0, hold: +(0.1 + 0.12 * near).toFixed(4), stand: i };   // (CITY A: the ember's hold eases with his walk — no step at the stand)
   }
   return null;
 }

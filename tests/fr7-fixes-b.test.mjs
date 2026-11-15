@@ -81,11 +81,11 @@ test('D2 — the worker: ONE COPY PER DEPLOY by the build id; the network path a
   assert.match(sw, /fetch\('\/api\/time', \{ cache: 'no-store'/, 'the build id from /api/time, never cached');
   assert.match(sw, /const BUILD_PREFIX = 'na-b-'/);
   assert.match(sw, /if \(!v\) return \{ mode: 'net', cache: CACHE, v: null \}/, 'no build id → exactly as before');
-  assert.match(sw, /if \(held !== v\)[\s\S]{0,200}dropUnpinned\(name\)/, 'a new build drops the old build\'s cache (once no page is on it)');
+  assert.match(sw, /if \(held !== v\)[\s\S]{0,1400}c\.then\(\(\) => within\(dropUnpinned\(name\)/, 'a new build drops the old build\'s cache (once no page is on it) — CITY A: after THE CARRY of its unchanged files');
   assert.match(sw, /k !== name && !keepC\.has\(k\)\) await caches\.delete\(k\)/);
   assert.match(sw, /return toPage\(hit\)/, 'a copy is handed over no-cache (WebKit\'s memory cache then asks the worker, never an older deploy\'s copy)');
   assert.match(sw, /fetch\(req, \{ cache: 'no-cache' \}\)/, 'the network fetch never reads the HTTP cache — a copy is only ever kept from the network in its own build');
-  assert.match(sw, /url\.pathname\.startsWith\('\/audio\/'\) \|\| url\.pathname\.startsWith\('\/api\/'\)/);
+  assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\) \|\| url\.pathname\.startsWith\('\/_vercel\/'\)/);   // (CITY A: /audio in its own cache, by version — audioFetch)
   assert.match(sw, /return req\.mode === 'navigate' \? res : toPage\(res\)/, 'the HTML always from the network, as it came');
 });
 

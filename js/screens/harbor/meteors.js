@@ -22,6 +22,8 @@ function harborMeteorRate(y, m, d) {
 // (PROGRESSION B: the fireball is SEEDED now — core/harbor-fireball.js, its row 'sky.fireball': a few nights a year at one seeded minute,
 // the same for every phone in a time zone, so the server can check a tap on it — a CITY SIGHTING)
 
+// (CITY A — item 25: the fireball's length, 150 — a test may ask a LONGER one (globalThis.__nsFireLen: harbor-e2e sgfast's long-meteor case))
+const fireLen = () => { const n = Number(globalThis.__nsFireLen); return n > 0 ? n : 150; };
 export function createMeteors() {
   let list = [], W = 1, H = 1, dotC = null, rateKey = '', rate = { rate: 0, shower: null }, forcedAt = 0, fbKey = '', fb = null, fbDone = '';
   const dot = () => {
@@ -40,7 +42,7 @@ export function createMeteors() {
     else if (seeded) ang = seeded.dir > 0 ? 0.55 : Math.PI - 0.55;
     else ang = (R() < 0.5 ? 0.35 + R() * 0.5 : Math.PI - 0.35 - R() * 0.5);
     const v = fire ? 150 + R() * 60 : 380 + R() * 520, max = fire ? 2.6 + R() * 0.8 : 0.35 + R() * 0.55;
-    list.push({ x, y, ang, v, life: 0, max, len: fire ? 150 : 50 + R() * 90, w: fire ? 4.5 : 1.1 + R() * 1.4, b: fire ? 1 : 0.55 + R() * 0.45, tint: fire ? [190, 255, 200] : TINTS[Math.floor(R() * TINTS.length)], flare: fire || R() < 0.15, fire, forced, sparks: [], trainAt: null, react: 0 });
+    list.push({ x, y, ang, v, life: 0, max, len: fire ? fireLen() : 50 + R() * 90, w: fire ? 4.5 : 1.1 + R() * 1.4, b: fire ? 1 : 0.55 + R() * 0.45, tint: fire ? [190, 255, 200] : TINTS[Math.floor(R() * TINTS.length)], flare: fire || R() < 0.15, fire, forced, sparks: [], trainAt: null, react: 0 });
   }
   return {
     resize(w, h) { W = w; H = h; },
@@ -71,7 +73,10 @@ export function createMeteors() {
         // (PROGRESSION B — CITY SIGHTINGS: the fireball answers a tap — it FLARES (a hot white burst) + sheds a shower of sparks; its box
         // rides its head)
         const rkF = m.fire ? SR.k('fireball') : 0;
-        if (m.fire && k < 1) SR.box('fireball', hx - dx * m.len * 0.3, hy - dy * m.len * 0.3, m.len * 0.45, 26);
+        // (CITY A — item 25, THE FIREBALL'S PHOTO: its box was m.len × 0.45 a side behind the head — a long one ran off the screen's edge and outgrew
+        //  the photo ("the craft 83 % in the photo"). The box = the HEAD + the NEAR TRAIL (≤ 80 px of it) — the bright part a player taps and the
+        //  photo frames, whatever the meteor's length)
+        if (m.fire && k < 1) { const nl = Math.min(m.len, 80); SR.box('fireball', hx - dx * nl * 0.5, hy - dy * nl * 0.5, Math.max(22, nl * 0.5 + 6), 26); }
         if (rkF > 0.3 && k < 1 && Math.random() < 0.8) m.sparks.push({ x: hx, y: hy, vx: (Math.random() - 0.5) * 140, vy: (Math.random() - 0.5) * 140, t: 0, max: 0.4 + Math.random() * 0.6 });
         const flare = (m.flare ? 1 + 1.6 * Math.exp(-((life - 0.7) ** 2) / 0.006) : 1) * (1 + 2.8 * rkF);
         const a = m.b * fade * flare;

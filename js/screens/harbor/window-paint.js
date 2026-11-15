@@ -184,7 +184,9 @@ export function createPaint(life) {
       // in the room (walking up / away — the shade catches him from the lamp's side); a fedora's brim + crown, the shoulders; the
       // weight shift (a lean + a step across), the head's slow turn (narrowing to a profile), the cigar's ember — faint at his side,
       // raised to the mouth + flaring on a draw
-      const nr = wa.near == null ? 1 : wa.near, soft = 1 - nr, sc = 1 + 0.35 * soft, sway = mo ? Math.sin(t * 0.7) * 0.008 : 0;
+      // (CITY A — item 21, THE BOSS'S SIZE JUMP: his shadow was drawn up to 1.35× while soft — on each walk-up / away (the party night's 10:30 stand)
+      //  he visibly changed size. ONE size now (THE WINDOW STANDARD): the walk reads by the blur + the fade alone)
+      const nr = wa.near == null ? 1 : wa.near, soft = 1 - nr, sc = 1, sway = mo ? Math.sin(t * 0.7) * 0.008 : 0;
       const x = G.g0 + G.cw * wa.x + (wa.shift || 0) * G.cw * 0.035 + sway, lean = (wa.shift || 0) * 0.025, hd = wa.head || 0;
       // (ATM-C — HE's SOLID (the owner, Oct 31: when his silhouette stands in front of the TV "the flicker seems to SHINE THROUGH HIM"): his
       // darkness was 0.9 × the TV's glow — so he lightened + darkened WITH the flicker. A body blocks the light: fully OPAQUE + steady (only
@@ -200,10 +202,10 @@ export function createPaint(life) {
         const cx0 = X(0.03 * hd - 0.085, 0.66) + ox, cx1 = X(0.03 * hd + 0.085, 0.66) + ox, ct = Y(0.745) + oy, cb = Y(0.655) + oy;
         c.beginPath(); c.moveTo(cx0, cb); c.lineTo(cx0 + G.cw * 0.012, ct - G.ch * 0.012); c.quadraticCurveTo((cx0 + cx1) / 2, ct - G.ch * 0.004, cx1 - G.cw * 0.012, ct - G.ch * 0.012); c.lineTo(cx1, cb); c.closePath(); c.fill();   // (the crown, pinched)
       };
-      const passes = soft > 0.06 ? 7 : 1, br = soft * G.cw * 0.09;
+      const passes = soft > 0.002 ? 7 : 1, br = soft * G.cw * 0.09;   // (CITY A: the blur fades to nothing before it ends — never a step from soft to sharp)
       // (the rim: the same body a hair bigger in the screen's light, ADDED, under the dark one — a thin bright edge where the light wraps him)
       if (nr > 0.6) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = `rgba(${glowC.col.map(Math.round).join(',')},${(0.32 * nr * wa.a * glowC.a).toFixed(3)})`; const rr = G.cw * 0.012; for (const [ox, oy] of [[rr, 0], [-rr, 0], [0, rr]]) body(ox, oy); c.restore(); }
-      c.fillStyle = `rgba(4,3,9,${(passes > 1 ? Math.min(1, A * (0.45 + 0.4 * nr)) : A).toFixed(3)})`;
+      c.fillStyle = `rgba(4,3,9,${(passes > 1 ? Math.min(1, A * (0.45 + 0.55 * nr)) : A).toFixed(3)})`;   // (CITY A: at near 1 the blurred fill = the sharp one — no darkness step)
       for (let i = 0; i < passes; i++) { const an = i * TAU / Math.max(1, passes - 1); body(i ? Math.cos(an) * br : 0, i ? Math.sin(an) * br : 0); }
       glow(c, [2, 2, 6], x, Y(0.5), G.cw * 0.32 * sc, 0.35 * wa.a, 1.1); c.globalAlpha = 1;
       const em = wa.ember || 0, hold = wa.hold || 0, up = Math.min(1, em * 1.7);

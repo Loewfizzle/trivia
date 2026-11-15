@@ -3352,7 +3352,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         fastUntil = performance.now() + 600;
         // (FR6 FIXES A: with o.key the crop centres on that legendary's box as THIS frame drew it — a fast craft never leaves the photo
         //  between the ask and the frame; src says which: 'live' (the craft now) or 'given' (the caller's point: the craft already gone))
-        snapWant = () => { try { const sh = o.key ? SR.shot(o.key) : null, r = composeCity({ host: canvas.parentElement, cx: sh ? sh.x : cx, cy: sh ? sh.y : cy, ...o }); r.at = { x: Math.round(sh ? sh.x : cx), y: Math.round(sh ? sh.y : cy) }; r.craft = sh ? { w: Math.round(sh.w), h: Math.round(sh.h) } : null; r.src = sh ? 'live' : 'given'; res(r); } catch (e) { rej(e); } };   // (in THIS frame, synchronously)
+        // (CITY A — item 25, THE FIREBALL'S PHOTO: a live craft's crop holds its whole box — 2.3× its half size, the default at least, the screen at most)
+        snapWant = () => { try { const sh = o.key ? SR.shot(o.key) : null, side = sh ? Math.max(Math.min(innerWidth * 0.8, innerHeight * 0.5), Math.min(innerWidth, innerHeight, 2.3 * Math.max(sh.w, sh.h))) : null, r = composeCity({ host: canvas.parentElement, cx: sh ? sh.x : cx, cy: sh ? sh.y : cy, side, ...o }); r.at = { x: Math.round(sh ? sh.x : cx), y: Math.round(sh ? sh.y : cy) }; r.craft = sh ? { w: Math.round(sh.w), h: Math.round(sh.h) } : null; r.src = sh ? 'live' : 'given'; res(r); } catch (e) { rej(e); } };   // (in THIS frame, synchronously)
       });
     },
     /** the legendaries' tap boxes up now (tests + &debug) */

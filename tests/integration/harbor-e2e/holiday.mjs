@@ -418,15 +418,17 @@ G('citylife', async () => {
 // Blackbird, the F-22 flyby and the fireball, a real tap → the photo's source is the craft's LIVE box (not the tap point), taken within a
 // few frames of the tap, and the craft (its own half size, no finger pad) is inside the crop.
 G('sgfast', async () => {
-  const FASTC = [['blackbird', 'when=2026-11-04T15:00&force=blackbird'], ['f22', 'when=2026-11-04T17:30&force=flyby'], ['fireball', 'when=2026-11-03T23:00&force=fireball']];
+  // (CITY A — item 25: + a LONG fireball (420 px — the cloud's red: "the craft 83×100 % in the photo"); the rule as strict: ≥ 90 % of its box in the photo)
+  const FASTC = [['blackbird', 'when=2026-11-04T15:00&force=blackbird'], ['f22', 'when=2026-11-04T17:30&force=flyby'], ['fireball', 'when=2026-11-03T23:00&force=fireball'], ['fireball', 'when=2026-11-03T23:00&force=fireball', 420]];
   const res = [];
-  for (const [id, qs] of FASTC) {
-    const P = await open({ slot: `sgf${id}`, qs, view: [402, 874] });
+  for (const [id, qs, len] of FASTC) {
+    const P = await open({ slot: `sgf${id}${len ? 'l' : ''}`, qs, view: [402, 874] });
     await harborUp(P.page);
+    if (len) await ev(P.page, `globalThis.__nsFireLen = ${len}`);
     await P.page.mouse.click(30, 800).catch(() => {});      // (a legendary from a link waits for a tap)
     let b = null; const t0 = Date.now();
     // (the craft well inside the screen — a tap where a player would make it)
-    while (Date.now() - t0 < 45000 && !b) { const bs = await ev(P.page, 'window.__district.sightBoxes()').catch(() => []); b = (bs || []).find(x => x.id === id && x.x > 60 && x.x < 342 && x.y > 40 && x.y < 760) || null; if (!b) await sleep(60); }
+    while (Date.now() - t0 < 45000 && !b) { const bs = await ev(P.page, 'window.__district.sightBoxes()').catch(() => []); b = (bs || []).find(x => x.id === id && x.x > 60 && x.x < 342 && x.y > 40 && x.y < 760 && x.x - (x.rx || 0) >= 0 && x.x + (x.rx || 0) <= 402 && x.y - (x.ry || 0) >= 0) || null; if (!b) await sleep(60); }   // (CITY A: + its WHOLE box on the screen — a photo can't hold what's off it)
     if (!b) { res.push(`${id}: no box`); await P.ctx.close(); continue; }
     await P.page.mouse.click(b.x, b.y);
     await waitFor(P.page, `import('/js/progress/sighting.js').then(m => !!m.last.snap)`, 'the photo', 8000).catch(() => {});
@@ -436,7 +438,7 @@ G('sgfast', async () => {
     const ov = (c, r, lo, hi) => (r > 0 ? Math.max(0, Math.min(hi, c + r) - Math.max(lo, c - r)) / (2 * r) : (c >= lo && c <= hi ? 1 : 0));
     const inX = ov(s.at.x, cw, B.left, B.left + B.side), inY = ov(s.at.y, ch, B.top, B.top + B.side);
     const good = s.fast && s.src === 'live' && s.dt < 450 && inX >= 0.9 && inY >= 0.9;
-    res.push(`${id}: ${good ? 'ok' : 'BAD'} (${s.src}, ${s.dt} ms after the tap, the craft ${Math.round(inX * 100)}×${Math.round(inY * 100)} % in the photo)`);
+    res.push(`${id}${len ? ` (${len} px)` : ''}: ${good ? 'ok' : 'BAD'} (${s.src}, ${s.dt} ms after the tap, the craft ${Math.round(inX * 100)}×${Math.round(inY * 100)} % in the photo)`);
     if (SHOTS) await P.page.screenshot({ path: `${OUT}sgfast-${id}.png` });
     await P.ctx.close();
   }

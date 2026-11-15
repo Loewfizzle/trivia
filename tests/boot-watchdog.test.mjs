@@ -69,7 +69,8 @@ test('#11 — the service worker writes a copy only when it changed, never a thr
   assert.match(sw, /const keepable = url => \[\.\.\.url\.searchParams\.keys\(\)\]\.every\(k => k === 'v'\)/);
   assert.match(sw, /req\.mode === 'navigate' \? `\$\{url\.origin\}\$\{url\.pathname\}`/);
   assert.match(sw, /MAX_ENTRIES = \d+/);
-  assert.match(sw, /url\.pathname\.startsWith\('\/audio\/'\) \|\| url\.pathname\.startsWith\('\/api\/'\)/, 'never /api or /audio');
+  assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\) \|\| url\.pathname\.startsWith\('\/_vercel\/'\)/, 'never /api');
+  assert.match(sw, /if \(url\.pathname\.startsWith\('\/audio\/'\)\) \{ event\.respondWith\(audioFetch\(req, url, event\)\); return; \}/, 'CITY A — item 14: /audio kept BY VERSION (its own cache), never in a build\'s');
   assert.match(sw, /url\.origin !== self\.location\.origin\) return/, 'same-origin only');
 });
 

@@ -26,7 +26,15 @@ const BUILD_WAIT_MS = 1200;   // (the most a static request waits for its page's
 //   - a build's cache is kept while a live page is pinned to it (never dropped under an open page)
 // A page this worker never saw boot (the first visit, a worker update) is adopted by the live build at its first file. The edge header on
 // /js + /css is `max-age=300` with NO stale-while-revalidate (it was a day): a load the worker doesn't control never boots on a day-old copy.
-const LIVE_FRESH_MS = 3e3, VERIFY_MS = 2500, ASK_MS = 700, PIN_KEEP_MS = 10e3;   // (a miss trusts a build answer ≤ 3 s old — a boot's first wave; later misses ask again)
+const LIVE_FRESH_MS = 3e3, VERIFY_MS = 2500, ASK_MS = 700, PIN_KEEP_MS = 10e3;
+// CITY A — item 14, THE PHONE KEEPS ITS FILES (no build step kept): a new build started on an EMPTY cache — every file downloaded again. Each
+// build's list of its files' hashes (/file-hashes.json — scripts/build-file-hashes.mjs, committed + checked current by a unit test) is kept in
+// META; when a new build arrives, every file whose hash did NOT change is CARRIED from the old build's cache into the new one (the same bytes —
+// ONE DEPLOY AT A TIME still holds: a page only ever runs one build's code), and only the changed files come over the network. The old cache is
+// dropped once the carry is done. /audio: a song is kept BY ITS URL (its name + music.js#REV) in its own cache — fetched whole once (music.js's
+// prefetch), the media element's range requests answered from that copy — never downloaded again per deploy; a new REV replaces it.
+const HASH_URL = '/file-hashes.json', AUDIO = 'na-audio-v1', CARRY_WAIT_MS = 2500;
+const carries = new Map();   // new build cache → the running carry (a miss waits for it, bounded)   // (a miss trusts a build answer ≤ 3 s old — a boot's first wave; later misses ask again)
 const CODE_RE = /^\/(js|css)\//;
 const modes = new Map();      // clientId → Promise<{ mode: 'build' | 'net', cache, v }>
 const pins = new Map();       // clientId → { v, cache, at }  (persisted: META /__pins)
@@ -39,7 +47,7 @@ let lastMode = null;          // (a request with no client id — or a browser w
 // than ?v= (a real version) is never kept; the cache is capped (the oldest copies trimmed). Still network-first, same-origin static only,
 // never /api or /audio; offline = the last good copy (tests/integration/sw-cache.mjs).
 const MAX_ENTRIES = 700;
-const stats = { puts: 0, same: 0, notKept: 0, trimmed: 0, hits: 0, misses: 0, net: 0, build: null, mode: null, fresh: 0, gone: 0, refused: 0, dropped: 0 };
+const stats = { puts: 0, same: 0, notKept: 0, trimmed: 0, hits: 0, misses: 0, net: 0, build: null, mode: null, fresh: 0, gone: 0, refused: 0, dropped: 0, carried: 0, carryMs: 0, audioHits: 0, audioKept: 0 };
 const keepable = url => [...url.searchParams.keys()].every(k => k === 'v');
 const keyOf = (req, url) => (req.mode === 'navigate' ? `${url.origin}${url.pathname}` : keepable(url) ? req : null);
 const sameCopy = (a, b) => {
@@ -123,6 +131,38 @@ async function dropUnpinned(name) {
 }
 const SILENT = { silent: true };   // (within's answer when the store didn't — never a real value)
 async function heldBuild() { try { const r = await within(caches.open(META).then(c => c.match('/__build')), STORE_WAIT_MS, SILENT); if (r === SILENT) return undefined; return r ? (await within(r.text(), STORE_WAIT_MS, '')) || null : null; } catch { return undefined; } }
+// ---- CITY A — item 14: the hash lists + THE CARRY
+const hashKey = v => `/__hashes/${v}`;
+/** build v's list of hashes: META's copy, else the network's (it IS build v's while v is live), kept */
+async function hashesFor(v) {
+  const m = await caches.open(META), hit = await m.match(hashKey(v));
+  if (hit) return (await hit.json()).files || null;
+  const r = await fetch(`${HASH_URL}?b=${encodeURIComponent(v)}`, { cache: 'no-store' });
+  if (!r.ok) return null;
+  const j = await r.json();
+  if (!j || !j.files) return null;
+  if ((await liveBuild()) !== v) return null;   // (the network moved on while it answered: not this build's list — never kept as it)
+  await m.put(hashKey(v), new Response(JSON.stringify(j)));
+  for (const k of await m.keys()) { const p = new URL(k.url).pathname; if (p.startsWith('/__hashes/') && p !== hashKey(v)) { const b = p.slice(10); if (!(await caches.has(BUILD_PREFIX + b))) await m.delete(k); } }
+  return j.files;
+}
+/** every file of the OLD build whose hash is the same in the NEW build: its copy carried into the new cache → how many */
+async function carryUnchanged(from, to, v) {
+  const t0 = Date.now(), m = await caches.open(META), oldR = await m.match(hashKey(from));
+  if (!oldR || !(await caches.has(BUILD_PREFIX + from))) return 0;
+  const oldH = (await oldR.json()).files || {}, newH = await hashesFor(v);
+  if (!newH) return 0;
+  const src = await caches.open(BUILD_PREFIX + from), dst = await caches.open(to);
+  let n = 0;
+  for (const req of await src.keys()) {
+    const p = new URL(req.url).pathname;
+    if (!oldH[p] || oldH[p] !== newH[p] || await dst.match(req)) continue;
+    const res = await src.match(req);
+    if (res) { await dst.put(req, res); n++; }
+  }
+  stats.carried += n; stats.carryMs = Date.now() - t0;
+  return n;
+}
 /** a page load's mode: the same build as the copies held → 'build' (its copies); a new one → 'build' on a FRESH cache; none → 'net' */
 async function modeFor() {
   const v = await liveBuild(true);
@@ -135,11 +175,18 @@ async function modeFor() {
     stats.fresh++;
     try {
       await within((async () => {
-        await dropUnpinned(name);   // (an older build's cache goes — unless a page is still on it: caches.delete(k) once it's left)
         await (await caches.open(META)).put('/__build', new Response(v));
       })(), STORE_WAIT_MS * 2, null);
     } catch { /* polish: the network path still works */ }
-  } else within(dropUnpinned(name), STORE_WAIT_MS * 2, null).catch(() => {});   // (an older build whose pages have all gone)
+    // (CITY A — item 14: THE CARRY first — the unchanged files from the old build's cache — then the old cache goes (unless a page is still on
+    //  it). The page's files don't wait for the whole carry: a miss waits for it ≤ CARRY_WAIT_MS, then the network)
+    const c = (held ? carryUnchanged(held, name, v) : hashesFor(v).then(() => 0)).catch(() => 0).then(n => { carries.delete(name); return n; });
+    carries.set(name, c);
+    c.then(() => within(dropUnpinned(name), STORE_WAIT_MS * 2, null)).catch(() => {});
+  } else {
+    within(dropUnpinned(name), STORE_WAIT_MS * 2, null).catch(() => {});   // (an older build whose pages have all gone)
+    hashesFor(v).catch(() => {});   // (CITY A: this build's list kept — the NEXT deploy carries from it)
+  }
   return { mode: 'build', cache: name, v };
 }
 
@@ -216,7 +263,7 @@ self.addEventListener('activate', event => {
   //  then the worker takes over anyway; whatever it didn't clean waits for the next activation)
   event.waitUntil((async () => {
     await within((async () => {
-      for (const key of await caches.keys()) if (key !== CACHE && key !== META && !key.startsWith(BUILD_PREFIX)) await caches.delete(key);
+      for (const key of await caches.keys()) if (key !== CACHE && key !== META && key !== AUDIO && !key.startsWith(BUILD_PREFIX)) await caches.delete(key);
       // (LOAD FIX 4: the pile an older worker left — throwaway queries + a copy per page query — goes, then the cap)
       try { const c = await caches.open(CACHE); for (const r of await c.keys()) { const u = new URL(r.url); if (u.search && !keepable(u)) { await c.delete(r); stats.trimmed++; } } await trim(c); } catch { /* polish */ }
     })(), ACTIVATE_STORE_MS, null);
@@ -229,7 +276,8 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
   // (VERCEL WEB ANALYTICS, Nov 12 night: /_vercel/* — the analytics' script + beacon — passes straight through like /api, never kept)
-  if (url.pathname.startsWith('/audio/') || url.pathname.startsWith('/api/') || url.pathname.startsWith('/_vercel/') || req.headers.has('range')) return;
+  if (url.pathname.startsWith('/audio/')) { event.respondWith(audioFetch(req, url, event)); return; }   // (CITY A — item 14: kept by version)
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_vercel/') || req.headers.has('range')) return;
   // (FR7 FIXES B — a page load decides its mode ONCE, in parallel with its HTML; its files wait for it ≤ BUILD_WAIT_MS)
   let modeP = null;
   if (req.mode === 'navigate') {
@@ -248,6 +296,9 @@ self.addEventListener('fetch', event => {
       // BUILD MODE: this page's own build's copy — no request leaves the phone
       if (M.mode === 'build') {
         try { const hit = await within(caches.open(M.cache).then(c => c.match(key)), STORE_WAIT_MS, null); if (hit) { stats.hits++; stats.mode = 'build'; return toPage(hit); } } catch { /* the network */ }
+        // (CITY A — item 14: a new build's CARRY still running — the file may be on its way from the old build's cache: wait for it, bounded)
+        const cr = carries.get(M.cache);
+        if (cr) { try { await within(cr, CARRY_WAIT_MS, 0); const hit = await within(caches.open(M.cache).then(c => c.match(key)), STORE_WAIT_MS, null); if (hit) { stats.hits++; stats.mode = 'build'; return toPage(hit); } } catch { /* the network */ } }
         stats.misses++;
       }
     }
@@ -280,6 +331,49 @@ self.addEventListener('fetch', event => {
     }
   })());
 });
+
+// CITY A — item 14: /audio BY VERSION — a whole song fetched once (music.js#prefetch, the lobby's synced song) is kept under its URL (the file's
+// name + its ?v= REV); a range request (the media element) is answered from that copy (a 206 slice); a miss is the network's, as before. Any
+// failure here = the network's answer: audio is polish, never a dependency.
+const RANGE_RE = /^bytes=(\d*)-(\d*)$/, audioWhole = new Set();
+/** has this song + REV been asked for by an EARLIER page load? (META /__aseen/… holds the page that first asked — another page = a return) */
+async function audioSeenBefore(url, cid) {
+  try {
+    const m = await within(caches.open(META), STORE_WAIT_MS, null); if (!m) return false;
+    const k = `/__aseen${url.pathname}${url.search}`, was = await within(m.match(k), STORE_WAIT_MS, null);
+    if (!was) { await m.put(k, new Response(String(cid || ''))); return false; }
+    return (await was.text()) !== String(cid || '');
+  } catch { return false; }
+}
+async function audioFetch(req, url, event) {
+  try {
+    const c = await within(caches.open(AUDIO), STORE_WAIT_MS, null);
+    const hit = c ? await within(c.match(url.href), STORE_WAIT_MS, null) : null;
+    const range = req.headers.get('range');
+    if (hit) {
+      stats.audioHits++;
+      if (!range) return hit;
+      const m = RANGE_RE.exec(range.trim()), blob = await hit.blob(), size = blob.size;
+      if (!m || (!m[1] && !m[2])) return fetch(req);
+      let a = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2])), b = m[1] && m[2] ? Math.min(size - 1, Number(m[2])) : size - 1;
+      if (!(a <= b && a < size)) return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } });
+      return new Response(blob.slice(a, b + 1), { status: 206, headers: { 'Content-Type': hit.headers.get('content-type') || 'audio/mpeg', 'Content-Range': `bytes ${a}-${b}/${size}`, 'Content-Length': String(b - a + 1), 'Accept-Ranges': 'bytes' } });
+    }
+    const res = await fetch(req);
+    // (a range miss — the media element playing a song this phone hasn't kept: on the song's SECOND visit (a returning phone — a one-time
+    //  visitor never pays twice for it) the WHOLE file is fetched once in the background + kept, so every later visit / deploy answers its
+    //  ranges here; one copy a song + REV, never twice at once)
+    if (range && c && !audioWhole.has(url.href) && res.ok && await audioSeenBefore(url, event.clientId)) { audioWhole.add(url.href); event.waitUntil(fetch(url.href).then(full => (full.status === 200 && full.type === 'basic' ? c.put(url.href, full).then(() => { stats.audioKept++; }) : null)).catch(() => {}).finally(() => audioWhole.delete(url.href))); }
+    if (!range && res.status === 200 && res.type === 'basic' && c) {
+      const copy = res.clone();
+      event.waitUntil((async () => {
+        await c.put(url.href, copy); stats.audioKept++;
+        for (const k of await c.keys()) { const u = new URL(k.url); if (u.pathname === url.pathname && u.href !== url.href) await c.delete(k); }   // (a new REV replaces the old copy)
+      })().catch(() => {}));
+    }
+    return res;
+  } catch { return fetch(req); }
+}
 
 // (LOAD FIX 4: the cache's counts for the test — tests/integration/sw-cache.mjs)
 self.addEventListener('message', e => {

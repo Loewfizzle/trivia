@@ -15,6 +15,7 @@
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { startLine } from './kit/line-proxy.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
 
@@ -41,7 +42,12 @@ const FACES = {
   LEDGER: '(() => { const w = document.querySelector(".rd-paperwrap[data-face=ledger]"); return !!(w && w.querySelector(".rd-big3 .rd-nixie") && /^NOW PLAYING · /.test((w.querySelector(".rd-np") || {}).textContent || "")); })()',
 };
 // (build B's files: C2's exact shape — a module gains an export, lazy chunks import it)
+// (CITY A — item 14: a real deploy's /file-hashes.json names every changed file's new hash — the worker carries the rest from the old build;
+//  this synthetic build's list says the same for the files it changes)
+const HASHES = JSON.parse(readFileSync(new URL('../../file-hashes.json', import.meta.url), 'utf8')).files;
+const listRule = (path, tag) => ({ re: '^/file-hashes\\.json$', from: `"${path}":"${HASHES[path]}"`, to: `"${path}":"${tag.toLowerCase().repeat(12).slice(0, 12)}"` });
 const rulesFor = tag => [
+  ...['/js/audio/music.js', '/js/screens/harbor/radio-ledger.js', '/js/games/prism/index.js', '/js/games/overclock/index.js'].map(f => listRule(f, tag)),
   { re: '^/js/audio/music\\.js$', prepend: `export const __only${tag} = 1;\n` },
   { re: '^/js/screens/harbor/radio-ledger\\.js$', prepend: `import { __only${tag} } from '../../audio/music.js'; globalThis.__ledger${tag} = __only${tag};\n` },
   { re: '^/js/games/prism/index\\.js$', prepend: `import { __only${tag} } from '../../audio/music.js'; globalThis.__prism${tag} = __only${tag};\n` },
@@ -112,6 +118,8 @@ try {
   await sleep(500); await returnTrip(); await sleep(2500);
   ok(navs.length === n0, `3. a return with a sheet open: no reload (${navs.length - n0} navigations)`);
   await p.evaluate("import('/js/ui/sheet.js').then(m => m.closeAllSheets())"); await sleep(600);
+  // (the radio's desk from step 1 is a pop-up too — the catch-up reload never runs with one open: closed for the clean return)
+  await p.evaluate(`(document.querySelector('.rd-modal.is-in .rd-x') || { click() {} }).click()`).catch(() => {}); await sleep(600);
   // a clean return → ONE reload to B
   const c0b = cons.length;
   await returnTrip();
@@ -147,6 +155,7 @@ try {
   await sleep(2500);
   ok(/loaded|failed/.test(oc) && navs.length === n2, `5. a match on screen: the new chunk answered (${oc}) and no reload mid-match (${navs.length - n2} navigations)`);
   ok(oc === 'loaded', '5. … and it LOADED (the network\'s file — never a dead face mid-match)');
+  await p.evaluate(`(document.querySelector('.rd-modal.is-in .rd-x') || { click() {} }).click()`).catch(() => {}); await sleep(600);   // (no pop-up open: the hold alone keeps it)
   await returnTrip(); await sleep(2500);
   ok(navs.length === n2, `5. a return mid-match: still no reload (${navs.length - n2} navigations)`);
   await p.evaluate('globalThis.__holdOn = false');

@@ -434,3 +434,25 @@ test('SP6 tvScene: the picked blues, cuts every ~3–8 s (long steady stretches)
   assert.ok(longs > 100, 'long steady stretches');
   assert.deepEqual(tvScene(1234.5, 11), tvScene(1234.5, 11));
 });
+
+// CITY A — item 21, THE BOSS'S SIZE JUMP (the owner: on a party night at 10:30 his silhouette changed size — the walk-up drew him 1.35× while
+// soft): ONE size, the walk by the blur + the fade; every value of his watch moves smoothly through a whole night (no step anywhere)
+test('CITY A — the boss\'s shadow keeps ONE size; his watch never steps (near, a, the ember\'s hold) over a whole party night', async () => {
+  const { bossWatchAt: at, bossWatchPlan: plan } = await import('../js/core/harbor-moments.js');
+  const { readFileSync } = await import('node:fs');
+  for (const seed of [11, 7, 1924]) {
+    const P = plan(seed), end = P[P.length - 1].t1 + 30;
+    let prev = null, worst = { near: 0, a: 0, hold: 0 };
+    for (let s = 0; s < end; s += 0.1) {
+      const w = at(P, s, seed);
+      if (w && prev) for (const k of ['near', 'a', 'hold']) worst[k] = Math.max(worst[k], Math.abs(w[k] - prev[k]));
+      if (w && !prev) assert.ok(w.a < 0.25, `he FADES in at a stand's start (a ${w.a} at ${s.toFixed(1)} s)`);
+      if (!w && prev) assert.ok(prev.a < 0.25, `he fades OUT at a stand's end (a ${prev.a})`);
+      prev = w;
+    }
+    assert.ok(worst.near < 0.06 && worst.a < 0.12 && worst.hold < 0.01, `seed ${seed}: the largest step in 0.1 s — near ${worst.near.toFixed(3)}, a ${worst.a.toFixed(3)}, hold ${worst.hold.toFixed(3)}`);
+  }
+  const src = readFileSync(new URL('../js/screens/harbor/window-paint.js', import.meta.url), 'utf8');
+  assert.match(src, /soft = 1 - nr, sc = 1,/, 'one size: no 1.35× while soft');
+  assert.doesNotMatch(src, /sc = 1 \+ 0\.35 \* soft/);
+});
