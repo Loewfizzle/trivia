@@ -16,3 +16,5 @@ export const dailyShare = () => api('daily', { action: 'today', share: true });
 /** DFIX5 — EVERYONE ON SCORES: per live daily, the day's top counting finishers ({ every: { [game]: { n, played, rows, me?, more } } });
  *  `all` = the dailies whose SHOW ALL is open (up to 50 rows each) */
 export const dailyEvery = (all = []) => api('daily', { action: 'every', ...(all.length ? { all } : {}) });
+/** CITY E — THE TAPPABLE SHARE CARD: the day's card (a 540 × 675 PNG, base64) for the shared link's preview → { code, path } (api/_lib/share-card.js) */
+export const dailyShareCard = (day, games, png) => api('daily', { action: 'shareCard', day, games, png });

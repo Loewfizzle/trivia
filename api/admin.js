@@ -461,6 +461,15 @@ export async function adminAction(uid, body, now = Date.now()) {
       return { jaywalk: jaywalkPublic({ jaywalk: { on, bar, open, since } }) };
     }
     case 'dailyState': return { dailies: await dailiesState(now) };
+    // CITY E — THE TAPPABLE SHARE CARD: the live share cards (their words only) + the owner deletes ONE (audited) — api/_lib/share-card.js
+    case 'shareCards': { const { listShares } = await import('./_lib/share-card.js'); return { cards: await listShares({ limit: 20 }) }; }
+    case 'shareDelete': {
+      const { deleteShare, listShares } = await import('./_lib/share-card.js');
+      const code = String(body.code || '').trim().replace(/^.*[?&]s=/, '').slice(0, 24);
+      const r = await deleteShare(code);
+      await audit(me, 'shareDelete', null, { b: code });
+      return { ...r, cards: await listShares({ limit: 20 }) };
+    }
     case 'dailyStats': return { stats: await dailyStats(me, now) };
     case 'dailySwitch': {
       const on = body.on === true;

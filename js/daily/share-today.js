@@ -10,10 +10,11 @@
 // "NOT YET: <name>" line. ONE daily finished = that daily's OWN card, exactly as it is. A daily with no section painter (a new one plugged in) or
 // no share data → its name + its result line (its meta's scoreLine). Up to 6 sections, scaled evenly. Both looks (the day sky / the night neon).
 // THE BAR: shown 360 px wide in a text thread, THE PASSWORD's grid colours, the time and the address still read (the pass log's shots).
-import { shareFrame, prepShare, shareAddress, paintName, spacedText, spacedWidth, RHYTHM, FOOT } from './share.js';
+import { shareFrame, prepShare, shareAddress, paintName, spacedText, spacedWidth, RHYTHM, FOOT, base64Of } from './share.js';
 import { shareTodayLine, MAX_ROWS } from './today-logic.js';
 import { dateLineOf } from './ticket-art.js';
 import { lazyImport } from '../ui/lazy-import.js';
+const list = t => (t && Array.isArray(t.dailies) ? t.dailies.slice(0, MAX_ROWS) : []);
 
 const LOOKS = {
   night: { bg0: '#05040c', bg1: '#140a24', ink: '#f6f2ff', dim: 'rgba(226,222,246,0.72)', sign: '#ff6fc8', glow: 'rgba(255,111,200,0.75)', rule: 'rgba(255,255,255,0.12)' },
@@ -128,7 +129,15 @@ export function prepToday(today, lineOf, { streak = 0, look } = {}) {
     const line = shareTodayLine(today, (id, s) => String(lineOf(id, s)).toLowerCase());
     let share = {};
     try { const { dailyShare } = await lazyImport(import('./contract.js'), './contract.js'); const r = await dailyShare(); share = (r && r.day === today.day && r.share) || {}; } catch { /* the sections fall back to the result lines */ }
-    return { cv: await drawToday(today, lineOf, look, { streak, share }), name: 'neon-speakeasy-dailies.png', line };
+    // (CITY E — THE TAPPABLE SHARE CARD: the card's half-size PNG goes to the server while the screen opens; the tap then shares the LINK — its
+    //  preview IS this card. The dailies it names = the ones this player finished today (the server checks each has its judged result))
+    const games = list(today).filter(d => today.mine && today.mine[d.id] != null).map(d => d.id);
+    const upload = games.length ? async png => {
+      const { dailyShareCard } = await lazyImport(import('./contract.js'), './contract.js');
+      const r = await dailyShareCard(today.day, games, await base64Of(png));
+      return r && r.path ? new URL(r.path, location.origin).href : '';
+    } : null;
+    return { cv: await drawToday(today, lineOf, look, { streak, share }), name: 'neon-speakeasy-dailies.png', line, upload };
   });
 }
 /** SHARE TODAY at a tap with nothing prepared (the old path — kept for a caller that has no handle) */

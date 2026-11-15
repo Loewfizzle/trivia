@@ -188,6 +188,37 @@ try {
   }
   await p.evaluate("document.getElementById('kp-test').remove(); window.__noClick = false");
 
+  // ---- CITY E — THE TAPPABLE SHARE CARD: SHARE TODAY now shares a LINK (its preview = the day's card, uploaded while the screen opened —
+  //      js/daily/share.js#prepShare's `upload`). The tap stays ONE share() call inside the touch's own lift (a real gesture), nothing awaited
+  //      before it, never rescued; the share carries the url + the same line (no file)
+  await p.evaluate(async () => {
+    window.__shareArgs = []; window.__act = [];
+    const ua = () => (navigator.userActivation ? navigator.userActivation.isActive : 'n/a');
+    navigator.share = async a => { window.__shareArgs.push(a); window.__act.push(['share', ua()]); };
+    navigator.canShare = () => true;
+    const S = await import('/js/daily/share.js');
+    window.__dyH = S.prepShare(async () => { const cv = document.createElement('canvas'); cv.width = S.SHARE_W; cv.height = S.SHARE_H; cv.getContext('2d').fillRect(0, 0, 10, 10); return { cv, name: 't.png', line: 'NEON SPEAKEASY DAILIES · neonspeakeasy.com', upload: async png => { window.__upBytes = png.size; return 'https://www.neonspeakeasy.com/api/daily?s=TESTcode0001'; } }; });
+    await window.__dyH.ready();
+    const box = document.createElement('div');
+    box.id = 'dy-test'; box.style.cssText = 'position:fixed;left:20px;right:20px;top:300px;z-index:99999';
+    box.innerHTML = '<button type="button" class="btn btn-ghost btn-block dy-share" data-gesture style="height:56px">SHARE TODAY</button>';
+    document.body.append(box);
+    box.querySelector('.dy-share').onclick = () => window.__dyH.send();
+  });
+  for (const noClick of [true, false]) {
+    await p.evaluate(v => { window.__noClick = v; window.__shareArgs = []; window.__act = []; }, noClick);
+    const tag = noClick ? '[iOS: NO click]' : '[the click arrives]';
+    const s0 = await tw();
+    const sh = await centre('#dy-test .dy-share'); await p.touchscreen.tap(sh.x, sh.y);
+    await waitFor('window.__shareArgs.length >= 1', 3000); await sleep(500);
+    const r = await p.evaluate('({ args: window.__shareArgs, act: window.__act, up: window.__upBytes })'), s1 = await tw();
+    const a = r.args[0] || {};
+    ok(r.args.length === 1 && a.url === 'https://www.neonspeakeasy.com/api/daily?s=TESTcode0001' && !a.files && /DAILIES/.test(a.text || '') && r.act[0]?.[1] !== false && s1.rescues === s0.rescues,
+      `${tag} SHARE TODAY → ONE share() with the LINK (${a.url || 'none'}) + the line, no file, inside the touch's lift (user activation: ${JSON.stringify(r.act[0]?.[1])}) · the half card uploaded at prepare (${r.up} B) · rescues +${s1.rescues - s0.rescues}`);
+    table.push(`${noClick ? 'no click' : 'click on'} · SHARE TODAY (the link): share ${r.args.length}×`);
+  }
+  await p.evaluate("document.getElementById('dy-test').remove(); window.__noClick = false");
+
   // ---- THE MOVED ROW (Safari 27.0.1: a shelf row slid 38 px under a still finger): down on the row → the row moves → the still finger lifts.
   //      The pointer events are the page's own here (a touch down, the move, the up — no click from anyone): the row still acts, once
   await p.evaluate("window.__noClick = true; document.querySelector('.nd-tab-play').click()");

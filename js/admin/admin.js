@@ -145,6 +145,9 @@ function shell() {
       // THE DROP B — THE SCHEDULED GO-LIVE: one row per daily — LIVE / LIVE FROM <date> 4 AM (+ CANCEL) / OFF (+ GO LIVE AT THE NEXT 4 AM)
       h('p.ad-dim', 'GO LIVE AT THE NEXT 4 AM (per daily, any time): the daily turns on by itself at the next 4 am Eastern turn — never mid-day. CANCEL works until then. From that day THE SWEEP and PERFECT WEEK need it too. (Only while the switch above is ON.)'),
       h('div.ad-dly-golive', { id: 'ad-dly-golive' }),
+      // CITY E — THE TAPPABLE SHARE CARD: the cards shared links show (7 days each); the owner deletes ONE (a second tap)
+      h('p.ad-dim', 'SHARE CARDS — the day’s scorecard a shared link previews (kept 7 days). Delete one by its row, or paste its link / code.'),
+      h('div.ad-dly-shares', { id: 'ad-dly-shares' }, h('span.ad-dim', 'Loading…')),
       // DFIX3 — THE STATS (started / finished per daily, today + 7 days) + TODAY'S PLAYERS (ADD FRIEND = the ordinary friend request)
       h('div.ad-dly-stats', { id: 'ad-dly-stats' }, h('p.ad-dim', 'Loading…'))),
     // PROGRESSION A — THE OUTAGE BUTTON: a day the site was down breaks nobody's streak (audited; the streak day turns at 4 am Eastern)
@@ -533,7 +536,24 @@ async function dailies(st) {
           r.dryRun ? confirmBtn('RESEED NOW', async () => { const x = (await call('dailyReseed', { confirm: true })).reseed; out.replaceChildren(h('p.ad-dim', x.changed ? `DONE — the new days start ${x.from} at 4 am Eastern (today untouched).` : 'Nothing changed.'), lines(x)); toast(x.changed ? 'Reseeded' : 'Nothing changed'); audit(); }, 'is-danger') : null);
       } }));
     goLiveRows(st);
+    shareRows();
   } catch (e) { row.replaceChildren(h('span.ad-dim', `Couldn’t load (${e.message || e})`)); }
+}
+/** CITY E — THE SHARE CARDS row: the live cards (name · daily · day · code) + DELETE (TAP AGAIN TO CONFIRM) + a paste box; stills only */
+async function shareRows(cards) {
+  const box = document.getElementById('ad-dly-shares');
+  if (!box) return;
+  try {
+    cards ||= (await call('shareCards')).cards || [];
+    const del = async code => { const r = await call('shareDelete', { code }); toast(r.gone ? 'Share card deleted' : 'No such card (already gone)'); shareRows(r.cards || []); audit(); };
+    const paste = h('input.input.ad-shr-code', { type: 'text', placeholder: 'a link or a code', 'aria-label': 'A share link or code', autocomplete: 'off' });
+    box.replaceChildren(
+      ...(cards.length ? cards.map(c => h('div.ad-row.ad-shr', { dataset: { code: c.code } },
+        h('b.ad-dly-state', `${c.n || '?'} · ${(c.g || []).length === 1 ? String(c.g[0]).toUpperCase() : 'THE DAILIES'} · ${dayLabel(c.day)}`),
+        h('span.ad-dim', c.code),
+        confirmBtn('DELETE', () => del(c.code), 'is-danger'))) : [h('p.ad-dim', 'No share cards right now.')]),
+      h('div.ad-row', paste, confirmBtn('DELETE THIS ONE', () => del(paste.value), 'is-danger')));
+  } catch (e) { box.replaceChildren(h('span.ad-dim', `Couldn’t load (${e.message || e})`)); }
 }
 /** THE DROP B — "SUN NOV 15" from a day key (its own calendar day — never the admin's zone) */
 const dayLabel = dk => { const m = /^d(\d{4})(\d{2})(\d{2})$/.exec(String(dk || '')); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }).replace(',', '').toUpperCase() : String(dk || ''); };

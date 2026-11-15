@@ -57,6 +57,7 @@ import { dailyPoints } from '../js/core/daily-points.js';
 import { timing, noTiming } from './_lib/timing.js';
 import { ensureTop, addTop, extraOf } from './_lib/every.js';
 import { everyView, placeIn, TOP_KEEP, TOP_SHOW } from '../js/core/every.js';
+import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE } from './_lib/share-card.js';   // (CITY E — THE TAPPABLE SHARE CARD)
 
 /** DM1 — THE CALL BUDGET: generous for real play (both dailies, retries, refreshes), a flood refused */
 export const CALLS = { max: 400, windowMs: 10 * 60_000 };
@@ -177,6 +178,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       const picked = pickDay(day, now).catch(() => null);
       // DFIX2 — THE DAY'S CLOSE (PENTHOUSE for yesterday's final finishers): lazy too, a memo per warm function (never on a move)
       const closed = closeDays({ games: todaysDailies(), now }).then(() => sweepRuns({ games: todaysDailies(), now, settle: settleRun })).catch(() => null);
+      sweepShares({ now }).catch(() => null);   // (CITY E: the share cards past 7 days — once a day per warm function, never waited on)
       if (startedAt == null) {
         const tx = await ref(`${base}/s/${pid}`).transaction(cur => (cur ? undefined : now));
         startedAt = tx.snapshot.val();
@@ -312,6 +314,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       const pid = await pidOf(uid);
       // DFIX2 — THE DAY'S CLOSE runs from `today` too (the title's first call of the day): a memo per warm function
       const closing = closeDays({ games, now }).then(() => sweepRuns({ games, now, settle: settleRun })).catch(() => null);
+      sweepShares({ now }).catch(() => null);   // (CITY E: the share cards past 7 days — THE DAY'S CLOSE's sweep, no idle poll)
       if (!pid) { await closing; return { day, dailies, mine: {}, gated: {}, started: {}, stand: {}, lessons: {}, friends: {}, table: [], noProfile: true }; }
       const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {}, shareOf = {}, rfOf = {}, placeOf = {}, extraMine = {};
       // (CITY D — SCORES SHOWS INSTANTLY: the profile's own reads + YOUR TABLE's friends list start NOW, beside the dailies' reads — never after)
@@ -429,6 +432,12 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       const { boardId } = await import('./_lib/lb.js');
       const fr = Object.keys(((await val(`pfr/${pid}`)) || {}).f || {}).filter(isPid).slice(0, 300);
       return { mine: me0, friends: Object.fromEntries(pids.map((p, i) => [p, rest[i]])), table: pids, ids: { me: boardId(pid), f: fr.map(boardId) } };
+    }
+    case 'shareCard': {
+      // CITY E — THE TAPPABLE SHARE CARD: the day's card (540 × 675 PNG) uploaded when SHARE TODAY is PREPARED (never at the tap) — api/_lib/share-card.js
+      const pid = await mine(uid);
+      const { code } = await saveShareCard({ pid, day: body.day, games: body.games, png: body.png, now });
+      return { code, path: `/api/daily?s=${code}` };
     }
     case 'room': {
       const mid = await midDaily({ uid, code: body.room, games: todaysDailies(), now });
@@ -549,7 +558,37 @@ async function finishRun({ pid, cart, day, now, today = streakDay(now), result =
     outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach, xp: res.xp, lv: res.lv, swept: res.swept, run: res.swept && res.dl.sr ? res.dl.sr.n : 0, points: res.points } : null };
 }
 
-export default route(['POST'], async (req, res) => {
+/** CITY E — THE TAPPABLE SHARE CARD's two GETs (no sign-in: a link preview fetches them): ?s=<code> → the link-preview page (an unknown /
+ *  expired code → the site's home, never an error page) · ?si=<code> → the PNG with a long EDGE cache (s-maxage — repeated preview fetches hit
+ *  the CDN, not the database; a gone card → the site's link picture) */
+export async function shareGet(req, res) {
+  const q = new URL(req.url || '/', 'http://x').searchParams;
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || 'www.neonspeakeasy.com').split(',')[0].trim();
+  const proto = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host) ? 'http' : 'https';
+  const base = `${proto}://${host}`;
+  const redirect = (to, cache) => { res.statusCode = 302; res.setHeader('Location', to); res.setHeader('Cache-Control', cache); res.end(); };
+  if (q.has('si')) {
+    const code = q.get('si');
+    const r = CODE_RE.test(code || '') ? await readShare(code, { img: true }).catch(() => null) : null;
+    if (!r || !r.img) return redirect('/assets/og.jpg', 'public, max-age=300, s-maxage=300');
+    const buf = Buffer.from(r.img, 'base64');
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Length', String(buf.length));
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=604800, immutable');   // (a code's picture never changes: a re-share makes a NEW code)
+    return res.end(buf);
+  }
+  const code = q.get('s');
+  const r = CODE_RE.test(code || '') ? await readShare(code).catch(() => null) : null;
+  if (!r) return redirect('/', 'public, max-age=60, s-maxage=60');
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600');
+  return res.end(sharePage({ code, name: r.n, games: r.g, day: r.d, base }));
+}
+
+export default route(['POST', 'GET'], async (req, res) => {
+  if (req.method === 'GET') return shareGet(req, res);
   const T = timing();
   const uid = await requireUser(req);
   T.mark('auth');

@@ -219,6 +219,16 @@ holdSkewReload(() => roomGameOn(state) && state.game.phase !== 'final' && !!GAME
   gate: () => { try { return layersOpen() > 0 || !!(window.__tapwatch && window.__tapwatch.pressing()); } catch { return true; } },
   where: () => whereNow(),
 });
+// CITY E — THE TAPPABLE SHARE CARD: a shared link's page sends a person to /?daily=1 → the DAILY screen opens once the city is up (the flag
+// dropped from the address at once; nothing opens in a room; ≤ 30 s of checks on that one landing — no network)
+if (/[?&]daily=1(?:&|$)/.test(location.search)) {
+  try { const u = new URL(location.href); u.searchParams.delete('daily'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } catch { /* fine */ }
+  const t0 = Date.now(), tick = setInterval(() => {
+    const d = window.__district, up = state.view === 'title' && d && typeof d.phase === 'function' && d.phase().done;
+    if (up && !state.daily && !state.code) setState({ daily: { v: 'screen', tab: 'today' } });
+    if (up || Date.now() - t0 > 30000) clearInterval(tick);
+  }, 400);
+}
 const dailyOn = st => !!(st.daily && !roomGameOn(st));
 let dailyMod = null;
 function paintDaily(st) {

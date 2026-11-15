@@ -163,6 +163,7 @@ export async function shareFile(cv, name) {
   try { file = new File([blob], name, { type: 'image/png' }); } catch { /* an old WebView: no File */ }
   return { blob, file };
 }
+const canShareLink = url => { try { return !!(url && navigator.share && (!navigator.canShare || navigator.canShare({ url }))); } catch { return false; } };
 const canShareFile = file => { try { return !!(file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })); } catch { return false; } };
 /**
  * SEND A READY CARD (PFIX-3 — S11): the share sheet with the image + the line, called with NOTHING awaited before it (the file is ready —
@@ -171,8 +172,14 @@ const canShareFile = file => { try { return !!(file && navigator.share && naviga
  * silent download prompt, never nothing.
  * → 'shared' | 'none' (the player closed the share sheet) | 'shown' | 'failed'
  */
-export async function sendReady({ blob, file, line = '' } = {}) {
+export async function sendReady({ blob, file, line = '', url = '' } = {}) {
   if (!blob) return 'failed';
+  // (CITY E — THE TAPPABLE SHARE CARD: the card's picture is on the server — the LINK goes out with the same line, its preview IS the card;
+  //  no link (the upload failed) → the image + the line as before)
+  if (url && canShareLink(url)) {
+    try { await navigator.share({ text: line, url }); return 'shared'; }
+    catch (e) { if (e && e.name === 'AbortError') return 'none'; /* refused → the image path below */ }
+  }
   const can = canShareFile(file);
   if (can) {
     try { await navigator.share({ files: [file], text: line }); return 'shared'; }
@@ -217,9 +224,13 @@ export function prepShare(make) {
   let p = null, busy = false;
   const build = () => (p ||= shareFonts().then(make).then(async o => {
     if (!o || !o.cv) return null;
+    // (CITY E — THE TAPPABLE SHARE CARD: `o.upload(png)` → the link (an absolute URL) — the half-size PNG sent NOW, while the screen opens,
+    //  never at the tap; a failed upload = no link: the share still goes out as the image + the line)
+    const linkP = o.upload ? halfPng(o.cv).then(b => (b ? o.upload(b) : '')).catch(e => { console.warn('[share] upload', e); return ''; }) : Promise.resolve('');
     const f = await shareFile(o.cv, o.name || 'neon-speakeasy.png');
+    const url = await linkP;
     try { o.cv.width = o.cv.height = 0; } catch { /* fine */ }               // (5.8 MB a card — freed at once: only the PNG is kept)
-    return f ? { ...f, line: o.line || '' } : null;
+    return f ? { ...f, line: o.line || '', url: url || '' } : null;
   }).catch(e => { console.warn('[share] build', e); return null; }).then(r => { if (!r) p = null; return r; }));
   return {
     warm() { build(); },
@@ -231,6 +242,19 @@ export function prepShare(make) {
     },
   };
 }
+/** CITY E — the card at EXACTLY half its size (540 × 675 — the link preview's picture; api/_lib/share-card.js checks the size) as a PNG blob */
+export const LINK_W = SHARE_W / 2, LINK_H = SHARE_H / 2;
+export async function halfPng(cv) {
+  try {
+    const h = document.createElement('canvas'); h.width = LINK_W; h.height = LINK_H;
+    const c = h.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(cv, 0, 0, LINK_W, LINK_H);
+    const b = await blobOf(h);
+    h.width = h.height = 0;
+    return b;
+  } catch { return null; }
+}
+/** a blob → its base64 (no data: prefix) */
+export const base64Of = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).replace(/^data:[^,]*,/, '')); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
 /** SHARE a card drawn at the tap (SHARE YOUR RUN's podium card — small, drawn in one frame): the same sender → 'shared' | 'none' | 'shown' | 'failed' */
 export async function sendShare(cv, { file: name, line }) {
   const f = await shareFile(cv, name);
