@@ -974,7 +974,7 @@ export function folkAt(t, world, cache = new Map()) {
   const procX0 = L.speakeasy ? L.speakeasy.x1 - 2.6 : -20, procX1 = z => (L.cam && L.cam.hw ? L.cam.hw(z) : 20) + 1.6, procCross = (procX1(PROC.files[1]) - procX0 + 2) / PROC.v;
   // 11a-2 — THE PARADE (core/harbor-parade.js — Thanksgiving morning, or &force=parade): the same route + rule as the procession
   const PA = paradeWindow(t, { off: ctx.off, forceAt: HF.parade == null ? null : HF.parade }), paraCross = (procX1(PARADE.files[1]) - procX0 + 12) / PARADE.v;
-  const hold = PW ? procHold(PW, procCross) : PA ? paradeHold(PA, paraCross) : trafficHold(ctx.legend), hk = hold ? Math.round(hold[0]) : '';
+  const hold = PW ? procHold(PW, procCross) : PA ? paradeHold(PA, paraCross) : trafficHold(ctx.trafficLegend || ctx.legend), hk = hold ? Math.round(hold[0]) : '';   // (CITY A: ctx.trafficLegend = a legendary OR a fireworks show — the witnesses keep ctx.legend)
   const hourBuses = hAbs => get(`bus|${hAbs}|${ctx.forceBus ? 1 : 0}`, () => { const loc = localOf(hAbs * 3600 + 1, ctx.off); return busesOf(L, loc.key, Math.floor(loc.h), hAbs * 3600 - (((ctx.off || 0) * 60) % 3600 + 3600) % 3600, { force: !!ctx.forceBus }); });
   const busesNear = (a, b) => { const out = []; for (let h = Math.floor(a / 3600) - 1; h <= Math.floor(b / 3600) + 1; h++) out.push(...hourBuses(h)); return out.filter(x => x.tE < b + 600 && x.tX > a - 600 && !inHold(hold, x.tE) && !busBlocked(x) && !(ctx.forceBus && ctx.forceBusAt != null && x.tE < ctx.forceBusAt)); };   // (POLISH 5: a forced bus never joins mid-stop — the first one drives in after the fire)
   // (8b1: a bus due while a worker's truck holds the stop rides on — it never comes)

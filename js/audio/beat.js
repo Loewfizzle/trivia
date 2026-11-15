@@ -14,7 +14,7 @@ import { partyNow } from './party-music.js';
 const bufNow = () => lobbyNow() || partyNow();
 import { moodData } from './mood.js';
 import { settings } from './settings.js';
-import { getContext, getMusicBus, clockFrozen, onRebuild, onResume } from './engine.js';
+import { getContext, getMusicBus, getMaster, clockFrozen, onRebuild, onResume } from './engine.js';
 import { createOnsets, onsetStep, onsetEnergy, kickLag, createLead, leadKick, leadFast, leadAnchor, leadState, leadToSave, heardPos, createSongClock, songClockStep, kickErrWide, outputKey, outputLabel, readLeads, LEAD_N } from '../core/harbor-beat.js';
 
 // ---- WHEN THE BEAT IS HEARD (M2, the owner: the party's sync "kind of — not perfect")
@@ -194,7 +194,7 @@ function analyser() {
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 150; lp.Q.value = 0.7;
     const a = ctx.createAnalyser(); a.fftSize = 1024; a.smoothingTimeConstant = 0;
     const z = ctx.createGain(); z.gain.value = 0;
-    bus.connect(lp); lp.connect(a); a.connect(z); z.connect(ctx.destination);
+    bus.connect(lp); lp.connect(a); a.connect(z); z.connect(getMaster() || ctx.destination);   // (CITY A — item 29: ONLY the master reaches the destination)
     an = { ctx, a, f: typeof a.getFloatTimeDomainData === 'function' ? new Float32Array(a.fftSize) : null, b: new Uint8Array(a.fftSize) };
   } catch (e) { console.warn('beat analyser', e); an = null; }
   return an;

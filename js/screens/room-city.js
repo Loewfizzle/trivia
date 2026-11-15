@@ -52,11 +52,30 @@ function sayWatching(name) {
   setTimeout(go, 150);
 }
 
+/** PURE (CITY A — item 15): the game a room has PICKED, as every phone can see it — the start's stamp (meta.go.g), else the match in play / just
+ *  played (game.id, meta.back.g — the rematch plays it again); null = nothing picked yet (the host's options sheet wires its own choice) */
+export function pickedGame(st) {
+  const go = st && st.meta && st.meta.go, back = st && st.meta && st.meta.back, g = st && st.game;
+  return (go && typeof go.g === 'string' && go.g) || (g && typeof g.id === 'string' && g.id) || (back && typeof back.g === 'string' && back.g) || null;
+}
+
 export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   // (FRIENDS C — THE SLOW-3G START: the cartridges' module lists fetched now, in the lobby — the start then puts a whole graph on the wire at once)
   //  + THE LOBBY IS THE LOADING TIME: a few seconds in, the playable cartridges' graphs are WIRED (modulepreload — fetched + parsed, never run;
   //  the guests only learn the game at the start, and a slow line needs the lobby's wait) — not on a Save-Data line
-  const wireT = setTimeout(() => { if (navigator.connection && navigator.connection.saveData) return; Promise.all([lazyImport(import('../games/registry.js'), '../games/registry.js'), lazyImport(import('../games/preload.js'), '../games/preload.js')]).then(([R, P]) => { for (const id of Object.keys(R.META)) P.wireGame(id); }).catch(() => {}); }, (typeof window !== 'undefined' && window.__wireDelay) || 4000);   // (__wireDelay: the slow-3G E2E's hook)
+  // (CITY A — item 15, A GAME COSTS NOTHING UNTIL IT'S PICKED: the lobby wired EVERY playable cartridge's graph a few seconds in — every guest
+  //  paid for three games to play one. Now ONLY the room's PICKED game (pickedGame — the start's stamp, else the match in play / just played:
+  //  the rematch) is wired, a few seconds in, and again whenever it changes; the host's options sheet wires its own pick at the tap
+  //  (game-options.js), every phone's start wires the room's game (host.js, startShow). Not on a Save-Data line.)
+  let wiredPick = null, wireReady = false;
+  const wirePick = () => {
+    if (!wireReady || destroyed || (navigator.connection && navigator.connection.saveData)) return;
+    const id = pickedGame(st);
+    if (!id || id === wiredPick) return;
+    wiredPick = id;
+    lazyImport(import('../games/preload.js'), '../games/preload.js').then(P => P.wireGame(id)).catch(() => {});
+  };
+  const wireT = setTimeout(() => { wireReady = true; wirePick(); }, (typeof window !== 'undefined' && window.__wireDelay) || 4000);   // (__wireDelay: the slow-3G E2E's hook)
   lazyImport(import('../games/preload.js'), '../games/preload.js').catch(() => {});
   let st = state, destroyed = false, raf = 0, dock = null, lastRoster = '';
   const tags = new Map();            // uid → { el, emb, name, bubble, sig, nameUntil }
@@ -479,6 +498,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   function update(s) {
     st = s;
     if (destroyed || !st.code) return;
+    wirePick();   // (CITY A — item 15: the picked game's graph, re-wired when the host changes it)
     paintTags();   // (first: a tag must exist before its name pops)
     const list = roster(), key = list.map(q => `${q.uid}|${q.slot}|${q.online ? 1 : 0}|${q.goT != null ? 'i' : ''}`).join(',');
     if (key !== lastRoster) {

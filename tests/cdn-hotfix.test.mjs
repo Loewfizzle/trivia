@@ -45,3 +45,19 @@ test('THE EDGE CACHE is live again (reverted early): /assets 5 min at the edge; 
   assert.match(sw, /const BUILD_PREFIX = 'na-b-'/);
   assert.match(sw, /const STORE_WAIT_MS = 800, ACTIVATE_STORE_MS = 2000;/, 'the two-tab bounds kept');
 });
+
+// CITY A — item 31, THE RADIO'S POLL BY FACE: 3 s only on the live DESK, a paper face every 15 s (+ at once when it opens / is tapped), closed 20 s
+test('CITY A — the radio polls radioState by face: DESK 3 s · PROGRAM / LEDGER 15 s · closed 20 s (calls an hour 1200 → 240 → 180)', () => {
+  const src = fs.readFileSync('js/screens/harbor/radio.js', 'utf8');
+  const m = src.match(/export const radioPollMs = (\(\{[^\n]*)\n/);
+  assert.ok(m, 'radioPollMs is one PURE line');
+  const radioPollMs = (0, eval)(m[1].replace(/;\s*$/, ''));
+  assert.equal(radioPollMs({ open: true, band: 'desk', isOwner: true }), 3000);
+  assert.equal(radioPollMs({ open: true, band: 'program', isOwner: true }), 15000);
+  assert.equal(radioPollMs({ open: true, band: 'ledger', isOwner: true }), 15000);
+  assert.equal(radioPollMs({ open: true, band: 'ledger', isOwner: false }), 3000, 'the crew\'s radio is the desk only');
+  assert.equal(radioPollMs({ open: false, band: 'ledger', isOwner: true }), 20000);
+  assert.equal(3600 / 3 + 0, 1200); assert.equal(3600 / 15, 240); assert.equal(3600 / 20, 180);
+  assert.match(src, /}, radioPollMs\(\{ open, band, isOwner \}\)\);/);
+  assert.match(src, /band = id; ls\.set\(BAND_KEY, id\); card = null; render\(\); refresh\(\); schedule\(\);/, 'a face opened → its numbers at once');
+});

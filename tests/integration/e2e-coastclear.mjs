@@ -245,7 +245,7 @@ await H.run(async () => {
   const fin = await recOf(p), rep = replay(fin, board);
   const score = await p.evaluate(() => window.__coastclear.score());
   const endOf = page => page.evaluate(() => ({
-    t: document.querySelector('.cc-end-t').textContent, n: (document.querySelector('.cc-end-n') || {}).textContent, line: document.querySelector('.cc-end-line').textContent,
+    t: document.querySelector('.cc-end-t').textContent, n: (document.querySelector('.cc-end-n') || {}).textContent, line: document.querySelector('.cc-end-line').textContent.replace(/\u00a0/g, ' '),   // (CITY A: the screen keeps each number with its unit — no-break spaces)
     buoys: window.__coastclear.buoys().length, text: document.querySelector('.cc-screen').innerText,
     gone: !document.querySelector('.cc-play:not([hidden])') && !document.querySelector('.cc-mode:not([hidden])'),
     sign: getComputedStyle(document.querySelector('.cc-sign')).opacity, lh: !!document.querySelector('.cc-lh-beam'),
@@ -346,6 +346,29 @@ await H.run(async () => {
     if (/"(l|mv|board|counts)"/.test(JSON.stringify(b))) bad++;
   }
   ok(bad === 0 && answers.length > 40, `NO LEAK: ${answers.length} answers, every cell named was opened by its own player, no board / record in any`);
+
+  // ---- CITY A — item 32, THE END LINE NEVER WRAPS A UNIT: 390 / 402 / 430 × both looks × 0–3 pauses × 0–2 spots on the preview's end screen —
+  //      the line breaks only at a " · " (never "+15" | "s"), and the letter-spacing tightens a touch before any wrap
+  { const bad = [], seen = new Set();
+    for (const [w, hh] of [[390, 844], [402, 874], [430, 932]]) for (const look of ['night', 'day']) {
+      const pg = await browser.newPage();
+      await pg.setViewport({ width: w, height: hh, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+      await pg.goto(guardUrl(`${BASE}/tests/integration/coastclear-preview.html?end=clear&still=1&look=${look}&toggle=0`, 'e2e-coastclear'));
+      await pg.waitForFunction(() => !!document.querySelector('.cc-end-line') && !!(window.__coastclear && window.__coastclear.endLineFor), { timeout: 30000 });
+      for (let pauses = 0; pauses <= 3; pauses++) for (let spots = 0; spots <= 2; spots++) {
+        const r = await pg.evaluate(async v => {
+          const out = await window.__coastclear.endLineFor(v), el = document.querySelector('.cc-end-line'), t = el.firstChild, txt = t ? t.textContent : '';
+          // where each line box begins: a char whose rect top moved down = a break before it
+          const breaks = []; let top = null;
+          for (let i = 0; i < txt.length; i++) { const rg = document.createRange(); rg.setStart(t, i); rg.setEnd(t, i + 1); const q = rg.getClientRects()[0]; if (!q) continue; if (top != null && q.top > top + 4) breaks.push(i); top = q.top; }
+          return { ...out, breaks: breaks.map(i => txt.slice(Math.max(0, i - 3), i) + '|' + txt.slice(i, i + 4)), wrong: breaks.filter(i => !txt.slice(0, i).trimEnd().endsWith('·')).length };
+        }, { out: 'clear', pauses, spots });
+        seen.add(r.ls);
+        if (r.wrong) bad.push(`${w} ${look} ${pauses}p ${spots}s: "${r.text.replace(/\u00a0/g, '_')}" breaks ${r.breaks.join(' , ')}`);
+      }
+      await pg.close();
+    }
+    ok(bad.length === 0, `THE END LINE: every number stays with its unit — 3 sizes × 2 looks × 0–3 pauses × 0–2 spots break only at " · " (letter-spacing used: ${[...seen].join(', ')})${bad.length ? ` · WRAPPED: ${bad.slice(0, 4).join(' · ')}` : ''}`); }
 
   // ---- CC2 — 60 FPS: real frame timing (rAF) through the sweep, the catch + the lighthouse, on the preview page (no network in the way), + at 4× CPU
   const perf = [];

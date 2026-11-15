@@ -230,9 +230,13 @@ export function blackAll(s, depth = 'city') {
  * (the abduction). The planners (core/harbor-traffic.js, core/harbor-people.js: the cars, the buses, the cabs; screens/harbor/
  * roadlight.js: the street under the dock) drop every start inside it; one already on the road finishes. PURE — every phone the same.
  */
-export const HOLD = Object.freeze({ lead: 4, tr3b: BLACK.on0 + 1.5, ufo: UFO_LEN + 2 });
+// CITY A — item 20, NO TRAFFIC DURING THE FIREWORKS (the owner): a fireworks show joins the hold — { kind: 'fireworks', t0, len } (the show's own
+// length: a party night's finale runs long) → [t0 − lead, t0 + len + fireworksTail]; the boats keep moving (they are no vehicle on the road)
+export const HOLD = Object.freeze({ lead: 4, tr3b: BLACK.on0 + 1.5, ufo: UFO_LEN + 2, fireworksTail: 2 });
 export function trafficHold(legend) {
-  if (!legend || HOLD[legend.kind] == null || !Number.isFinite(legend.t0)) return null;
+  if (!legend || !Number.isFinite(legend.t0)) return null;
+  if (legend.kind === 'fireworks') return Number.isFinite(legend.len) && legend.len > 0 ? [legend.t0 - HOLD.lead, legend.t0 + legend.len + HOLD.fireworksTail] : null;
+  if (HOLD[legend.kind] == null) return null;
   return [legend.t0 - HOLD.lead, legend.t0 + HOLD[legend.kind]];
 }
 /** is t (abs s) inside the hold? */

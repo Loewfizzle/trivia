@@ -4,16 +4,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { goneAnswer } from '../js/ui/lazy-import.js';
+import { goneAnswer, reloadAtReturn } from '../js/ui/lazy-import.js';
 
 const sw = fs.readFileSync('sw.js', 'utf8');
 
-test('the page\'s answer to ns:build-gone: reload now, or (a match on screen) the network until the podium; never a loop', () => {
-  assert.deepEqual(goneAnswer({ holding: false, reloadedFor: null, live: 'b' }), { mix: false, reload: true }, 'no match: the file refused, ONE reload');
-  assert.deepEqual(goneAnswer({ holding: true, reloadedFor: null, live: 'b' }), { mix: true, reload: true }, 'a match: keeps playing, reloads after');
-  assert.deepEqual(goneAnswer({ holding: false, reloadedFor: 'b', live: 'b' }), { mix: true, reload: false }, 'already reloaded for b: never again');
-  assert.deepEqual(goneAnswer({ holding: false, reloadedFor: undefined, live: 'b' }), { mix: true, reload: false }, 'no session storage: no reload (no loop guard)');
-  assert.deepEqual(goneAnswer({ holding: false, reloadedFor: 'a', live: 'b' }), { mix: false, reload: true }, 'a reload for an older deploy doesn\'t count');
+test('the page\'s answer to ns:build-gone (CITY A — item 10): keep going on the live files, the ONE reload QUEUED for the next return; never a loop', () => {
+  assert.deepEqual(goneAnswer({ reloadedFor: null, live: 'b' }), { mix: true, reload: true }, 'mid-tap / any screen: the file served, the reload waits for a return');
+  assert.deepEqual(goneAnswer({ reloadedFor: 'b', live: 'b' }), { mix: true, reload: false }, 'already reloaded for b: never again');
+  assert.deepEqual(goneAnswer({ reloadedFor: undefined, live: 'b' }), { mix: true, reload: false }, 'no session storage: no reload (no loop guard)');
+  assert.deepEqual(goneAnswer({ reloadedFor: 'a', live: 'b' }), { mix: true, reload: true }, 'a reload for an older deploy doesn\'t count');
+  // the gate: only at a RETURN, never mid-match, never with a sheet open / a finger down
+  assert.equal(reloadAtReturn({ returning: true, holding: false, gated: false }), true);
+  assert.equal(reloadAtReturn({ returning: false, holding: false, gated: false }), false, 'never mid-tap: a tap is not a return');
+  assert.equal(reloadAtReturn({ returning: true, holding: true, gated: false }), false, 'never mid-match');
+  assert.equal(reloadAtReturn({ returning: true, holding: false, gated: true }), false, 'never with a sheet open');
+  const L = fs.readFileSync('js/ui/lazy-import.js', 'utf8');
+  assert.doesNotMatch(L.slice(L.indexOf('function checkSkew'), L.indexOf('function queueReload')), /location\.reload\(\)/, 'a failed import never reloads on the spot');
+  assert.match(L, /kind: 'reload', text/, 'each one logged to /admin');
+  assert.match(fs.readFileSync('js/app.js', 'utf8'), /gate: \(\) => \{ try \{ return layersOpen\(\) > 0 \|\| !!\(window\.__tapwatch && window\.__tapwatch\.pressing\(\)\)/);
 });
 
 test('the worker: every page pinned (in memory + META), a miss reaches the network only while it is that build, a build\'s cache kept under its pages', () => {

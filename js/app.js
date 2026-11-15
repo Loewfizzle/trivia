@@ -3,7 +3,7 @@ import { setErrorContext } from './errlog.js';   // first: errors from phones (i
 import { installTapWatch } from './ui/tapwatch.js';   // (CITY FIXES: THE TAP WATCH — a lost first tap → /admin, + THE RESCUE)
 import { h, $ } from './ui/dom.js';
 import './ui/vv.js';   // (THE VAULT 1B: --vv-ob — every bottom sheet above Safari's toolbar)
-import { watchLayers } from './ui/layers.js';
+import { watchLayers, layersOpen } from './ui/layers.js';
 import { toast } from './ui/toast.js';
 import { APP_NAME, GAMES, gameRow } from './config.js';
 import { state, setState, subscribe } from './store.js';
@@ -214,7 +214,11 @@ const roomGameOn = st => !!(st.code && st.meta && st.meta.status === 'playing' &
 // (LOAD FIX 4 — THE SKEW WRAPPER's reload never lands in a match being PLAYED here: it waits for the room or the podium — ui/lazy-import.js; the
 //  rejoin brings the phone back. A match whose own cartridge couldn't load is no match on this phone — it would stay blank to the end — so that
 //  one reloads at once: the rejoin walks it back INTO the match.)
-holdSkewReload(() => roomGameOn(state) && state.game.phase !== 'final' && !!GAME_MODULES[state.game.id]);
+// (CITY A — item 10: the catch-up reload runs only at a RETURN, and never with a match on, a pop-up / sheet open or a finger down — logged to /admin)
+holdSkewReload(() => roomGameOn(state) && state.game.phase !== 'final' && !!GAME_MODULES[state.game.id], {
+  gate: () => { try { return layersOpen() > 0 || !!(window.__tapwatch && window.__tapwatch.pressing()); } catch { return true; } },
+  where: () => whereNow(),
+});
 const dailyOn = st => !!(st.daily && !roomGameOn(st));
 let dailyMod = null;
 function paintDaily(st) {

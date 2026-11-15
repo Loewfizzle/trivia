@@ -4,11 +4,12 @@
 // skips it), as the owner (the radio's faces):
 //   1. a page boots on build A (the worker's copy) and opens the radio DESK
 //   2. build B is PUBLISHED under it: music.js gains a new export, and the LEDGER + PRISM DROP's cartridge import it (exactly C2's shape)
-//   3. on the A page: PRISM DROP's cartridge (never loaded on A) → ONE clean reload to B (the worker asks, the page reloads) — never a mix
+//   3. on the A page: PRISM DROP's cartridge (never loaded on A) → NO reload at the tap (CITY A — item 10: the live file answers, its caller
+//      handles a link error), the ONE reload QUEUED → a return with a sheet open: still none → a clean return: ONE reload to B, logged to /admin
 //   4. on B: DESK → PROGRAM → LEDGER paint their real content, the LEDGER + the cartridge are B's (the new export linked), the profile + THE
 //      BOARD's modules load — no link error anywhere
-//   5. A MATCH ON SCREEN (holdSkewReload): build C published — the next new chunk still loads (the network's, `mix`), no reload until the hold
-//      ends, then ONE reload to C
+//   5. A MATCH ON SCREEN (holdSkewReload): build C published — the next new chunk still loads (the network's, `mix`), a return mid-match: no
+//      reload; the hold over + a return → ONE reload to C
 //   6. a refresh → all C (the worker's pin = C)
 //   node tests/integration/wk-onebuild.mjs [--browser webkit|chromium] [--upstream http://localhost:5173]   (serve.mjs --emu + the emulators)
 import { pathToFileURL } from 'node:url';
@@ -62,6 +63,9 @@ p.on('framenavigated', f => { if (f === p.mainFrame()) navs.push(Date.now()); })
 const waitFor = async (js, ms) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await p.evaluate(js)) return true; } catch { /* navigating */ } await sleep(120); } return false; };
 const mixedSince = i => cons.slice(i).filter(c => MIXED.test(c));
 const skew = () => p.evaluate("import('/js/ui/lazy-import.js').then(m => m.skewDebug())").catch(() => null);
+// (CITY A — a RETURN: the app hidden (another app, the home screen) and back — Safari's visibilitychange, as wk-trivision's hidden case)
+const vis = st => p.evaluate(v => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => v }); document.dispatchEvent(new Event('visibilitychange')); }, st).catch(() => {});
+const returnTrip = async () => { await vis('hidden'); await sleep(500); await vis('visible'); };
 const openRadio = async (label) => {
   await p.evaluate(`(document.querySelector('.rd-modal.is-in .rd-x') || { click() {} }).click()`).catch(() => {});
   await sleep(300);
@@ -97,16 +101,31 @@ try {
   await sleep(3500);   // (past the worker's 3-s trust in its last build answer — on a phone the deploy comes minutes later)
   line.set({ build: B, rules: rulesFor('B') });
   const c0 = cons.length, n0 = navs.length;
-  // 3. a chunk the A page never loaded → ONE clean reload to B (never a mix)
-  await p.evaluate("import('/js/games/prism/index.js').then(() => 'loaded', e => 'failed: ' + e.message)").catch(e => `navigated (${e.message.slice(0, 40)})`);
+  // 3. a chunk the A page never loaded → NO reload at the tap (CITY A — item 10); the reload queued for a return
+  void c0;
+  const r3 = await p.evaluate("import('/js/games/prism/index.js').then(() => 'loaded', e => 'failed: ' + e.message)").catch(e => `navigated (${e.message.slice(0, 40)})`);
+  await sleep(4000);
+  const q3 = await skew();
+  ok(navs.length === n0 && /loaded|failed/.test(r3) && q3 && q3.pending && q3.pending.live === B, `3. B under an A page: the new chunk answered its caller (${r3.slice(0, 60)}) — NO reload mid-tap (${navs.length - n0} navigations), ONE queued for a return (${q3 && q3.pending ? q3.pending.live : 'none'})`);
+  // a return WITH A SHEET OPEN: still no reload (never while a sheet is open)
+  await p.evaluate("import('/js/ui/sheet.js').then(m => m.openSheet({ title: 'TEST' }))");
+  await sleep(500); await returnTrip(); await sleep(2500);
+  ok(navs.length === n0, `3. a return with a sheet open: no reload (${navs.length - n0} navigations)`);
+  await p.evaluate("import('/js/ui/sheet.js').then(m => m.closeAllSheets())"); await sleep(600);
+  // a clean return → ONE reload to B
+  const c0b = cons.length;
+  await returnTrip();
   const t3 = Date.now(); while (navs.length === n0 && Date.now() - t3 < 8000) await sleep(150);
   await sleep(1000);
   if (!await waitFor(UPJS, 45000)) ok(false, '3. the city back after the reload');
   await sleep(1500);
   const sB = await skew();
-  ok(navs.length - n0 === 1, `3. B under an A page: the new chunk → ONE reload (${navs.length - n0} navigation${navs.length - n0 === 1 ? '' : 's'})`);
+  ok(navs.length - n0 === 1, `3. the next clean return → ONE reload (${navs.length - n0} navigation${navs.length - n0 === 1 ? '' : 's'})`);
   ok(sB && sB.worker === B, `3. the reloaded page is on build B (the worker's pin ${sB && sB.worker})`);
-  ok(mixedSince(c0).length === 0, `3. never a mix — no link error (${mixedSince(c0).slice(0, 2).join(' | ') || 'none'})`);
+  ok(mixedSince(c0b).length === 0, `3. after the reload: no link error (${mixedSince(c0b).slice(0, 2).join(' | ') || 'none'})`);
+  { const log = await fetch(`${DB}/phonelog.json?ns=demo-arcade-default-rtdb`, { headers: { Authorization: 'Bearer owner' } }).then(r => r.json()).catch(() => null);
+    const row = Object.values(log || {}).filter(r => r.kind === 'reload').sort((a, b) => b.at - a.at)[0];
+    ok(!!row && row.text.includes(`${A.slice(0, 7)} → the live ${B.slice(0, 7)}`) && /screen: /.test(row.text) && /reason: /.test(row.text), `3. /admin's reports: the CATCH-UP RELOAD logged (${row ? row.text.split('\n').slice(0, 3).join(' · ') : 'none'})`); }
 
   // 4. on B: every lazy face paints, the new export linked everywhere
   const c1 = cons.length;
@@ -128,13 +147,14 @@ try {
   await sleep(2500);
   ok(/loaded|failed/.test(oc) && navs.length === n2, `5. a match on screen: the new chunk answered (${oc}) and no reload mid-match (${navs.length - n2} navigations)`);
   ok(oc === 'loaded', '5. … and it LOADED (the network\'s file — never a dead face mid-match)');
+  await returnTrip(); await sleep(2500);
+  ok(navs.length === n2, `5. a return mid-match: still no reload (${navs.length - n2} navigations)`);
   await p.evaluate('globalThis.__holdOn = false');
-  const back = await waitFor('false', 1);
-  void back;
+  await returnTrip();
   const t5 = Date.now(); while (navs.length === n2 && Date.now() - t5 < 8000) await sleep(150);
   await waitFor(UPJS, 45000); await sleep(1500);
   const sC = await skew();
-  ok(navs.length - n2 === 1 && sC && sC.worker === C, `5. the hold over → ONE reload to C (${navs.length - n2} navigations, pin ${sC && sC.worker})`);
+  ok(navs.length - n2 === 1 && sC && sC.worker === C, `5. the hold over + a return → ONE reload to C (${navs.length - n2} navigations, pin ${sC && sC.worker})`);
 
   // 6. a refresh → all C
   await sleep(4000);   // (the C page's own late imports — the radio gate at 2.5 s — land before the refresh: a reload mid-import aborts it)

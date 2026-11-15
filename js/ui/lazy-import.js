@@ -17,14 +17,24 @@ let busy = null;            // the one check running
 export function noteDeploy(v) { if (bootV === undefined) bootV = v == null || v === '' ? null : String(v); }
 let workerV = false;        // PLAY NOW — Group 0a: the build the worker serves this page from (its pin) — truer than /api/time's first answer
 
-/** PURE: the page's answer to the worker's ns:build-gone → { mix, reload } (a match on screen = mix now, the reload after; a reload already
- *  done for that deploy = mix, never a loop; no session storage = mix — it couldn't stop a loop) */
-export function goneAnswer({ holding, reloadedFor, live }) {
+/** PURE: the page's answer to the worker's ns:build-gone → { mix, reload }. CITY A — item 10, THE CATCH-UP RELOAD WAITS FOR A RETURN (the owner's
+ *  home-screen app reloaded on a YOU tap — the music stopped): the page ALWAYS keeps going on the live deploy's files for now (`mix` — the way a
+ *  match already did) and its ONE reload is QUEUED for the next time the app comes back on screen (reloadAtReturn); a reload already done for
+ *  that deploy = mix, never a loop; no session storage = mix, no reload — it couldn't stop a loop. (`holding` no longer changes the answer.) */
+export function goneAnswer({ reloadedFor, live }) {
   if (reloadedFor === undefined || (live && reloadedFor === live)) return { mix: true, reload: false };
-  return holding ? { mix: true, reload: true } : { mix: false, reload: true };
+  return { mix: true, reload: true };
 }
-/** app.js: () → true while a match is on screen (the reload waits for the room / the podium) */
-export function holdSkewReload(fn) { hold = typeof fn === 'function' ? fn : () => false; }
+/** PURE: may the queued catch-up reload run NOW? Only at a RETURN (the app back on screen / opened), never mid-match (holding), never with a
+ *  sheet open or a finger down (gated) */
+export const reloadAtReturn = ({ returning, holding, gated }) => !!returning && !holding && !gated;
+let gate = () => false, whereFn = () => '';
+/** app.js: hold() → true while a match is on screen; o.gate() → true while a sheet / pop-up is open or a finger is down; o.where() = the screen */
+export function holdSkewReload(fn, o = {}) {
+  hold = typeof fn === 'function' ? fn : () => false;
+  if (typeof o.gate === 'function') gate = o.gate;
+  if (typeof o.where === 'function') whereFn = o.where;
+}
 
 /** PURE: could this error be two deploys' files meeting? (a link / parse error, or a failed fetch — the deploy id decides) */
 export function maySkew(e) {
@@ -64,15 +74,45 @@ function checkSkew(e, tag, known) {
       if (v === 'reload') console.warn(`[skew] ${tag}: deploy ${bootV} → ${live}, but no session storage — no reload`);
       busy = null; return false;
     }
-    try { sessionStorage.setItem(RK, live); } catch { busy = null; return false; }
-    console.warn(`[skew] ${tag} failed to load (${(e && e.message) || e}) — this page is deploy ${bootV}, the live one ${live}: ONE reload${hold() ? ' once the match is over' : ''}`);
-    while (hold()) await new Promise(r => setTimeout(r, 1000));
-    // (the boot's files asked for afresh first — WebKit's reload alone reused another deploy's cached copy: LOAD FIX 3)
-    try { if (window.__boot && window.__boot.refresh) await window.__boot.refresh(); } catch { /* the reload still goes */ }
-    location.reload();
+    console.warn(`[skew] ${tag} failed to load (${(e && e.message) || e}) — this page is deploy ${bootV}, the live one ${live}: ONE reload, when the app next comes back on screen`);
+    queueReload(bootV, live, tag);
     return true;
   })();
   return busy;
+}
+
+// CITY A — item 10: THE QUEUED CATCH-UP RELOAD. Runs at a RETURN only (visibilitychange → visible after the page was hidden — the app reopened from
+// the home screen / another app): never mid-tap, never mid-match, never while a sheet is open (a return with one open waits for the next return).
+// Each one is LOGGED to /admin's reports first (kind 'reload': the build from → to, the screen, the reason, how long it waited) — sendBeacon,
+// so the line survives the reload.
+let pending = null, wasHidden = false;
+function queueReload(from, live, tag) {
+  if (pending) return;
+  pending = { from: from == null ? '?' : String(from), live, tag, at: Date.now(), returns: 0 };
+  if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
+}
+function onVis() {
+  if (!pending) return;
+  if (document.visibilityState === 'hidden') { wasHidden = true; return; }
+  if (!wasHidden) return;
+  wasHidden = false; pending.returns++;
+  let holding = true, gated = true;
+  try { holding = !!hold(); gated = !!gate(); } catch { /* both stay true: wait */ }
+  if (!reloadAtReturn({ returning: true, holding, gated })) return;
+  doReload();
+}
+async function doReload() {
+  const P = pending; if (!P) return;
+  try { sessionStorage.setItem(RK, P.live); } catch { pending = null; return; }   // (ONE per deploy — never a loop)
+  let where = ''; try { where = String(whereFn() || ''); } catch { /* fine */ }
+  try {
+    const text = `A CATCH-UP RELOAD — ONE DEPLOY AT A TIME: this page's build ${String(P.from).slice(0, 7)} → the live ${String(P.live).slice(0, 7)}\nscreen: ${where || '?'}\nreason: ${P.tag}\nwaited: ${Math.round((Date.now() - P.at) / 1000)} s for a return (${P.returns} return${P.returns === 1 ? '' : 's'}) — never mid-tap, mid-match or with a sheet open`;
+    const body = JSON.stringify({ p: 'report', r: { kind: 'reload', text } });
+    if (!(navigator.sendBeacon && navigator.sendBeacon('/api/log', new Blob([body], { type: 'text/plain' })))) fetch('/api/log', { method: 'POST', body, keepalive: true, headers: { 'Content-Type': 'text/plain' } }).catch(() => {});
+  } catch { /* the log is polish */ }
+  // (the boot's files asked for afresh first — WebKit's reload alone reused another deploy's cached copy: LOAD FIX 3)
+  try { if (window.__boot && window.__boot.refresh) await window.__boot.refresh(); } catch { /* the reload still goes */ }
+  location.reload();
 }
 
 // PLAY NOW — Group 0a: ONE BUILD PER PAGE (sw.js) — the worker tells this page its build (ns:build) and asks before it leaves it
@@ -86,7 +126,7 @@ if (sw && typeof sw.addEventListener === 'function') {
     if (!d || typeof d !== 'object') return;
     if (d.t === 'ns:build') { if (d.v) { workerV = String(d.v); if (bootV === undefined || bootV !== workerV) bootV = workerV; } return; }
     if (d.t !== 'ns:build-gone') return;
-    const a = goneAnswer({ holding: !!hold(), reloadedFor: readRK(), live: d.live ? String(d.live) : null });
+    const a = goneAnswer({ reloadedFor: readRK(), live: d.live ? String(d.live) : null });
     if (bootV === undefined || bootV !== d.v) bootV = d.v ? String(d.v) : bootV;
     try { if (!d.tell && ev.source) ev.source.postMessage({ t: 'ns:build-gone-ans', mix: a.mix }); else if (d.tell && a.mix && sw.controller) sw.controller.postMessage({ t: 'ns:build-gone-ans', mix: true }); } catch { /* the worker's own timeout answers */ }
     if (a.reload) checkSkew(new Error(`this page's build ${d.v} is gone (live ${d.live})`), 'one build per page', d.live ? String(d.live) : null);
@@ -95,4 +135,4 @@ if (sw && typeof sw.addEventListener === 'function') {
 }
 
 /** the test hook (tests/lazy-import.test.mjs + the skew E2E) */
-export const skewDebug = () => ({ page: bootV === undefined ? undefined : bootV, worker: workerV || null, reloadedFor: readRK(), checking: !!busy });
+export const skewDebug = () => ({ page: bootV === undefined ? undefined : bootV, worker: workerV || null, reloadedFor: readRK(), checking: !!busy, pending: pending ? { ...pending } : null });

@@ -322,6 +322,9 @@ export function endLine(view) {
   if (view.pauses) bits.push(`${view.pauses} ${view.pauses === 1 ? 'PAUSE' : 'PAUSES'} · +${PAUSE_S * view.pauses} s`);
   return bits.join(' · ');
 }
+/** CITY A — item 32 (PURE): the end line for the SCREEN — every number kept with its unit by a no-break space ("+15 s", "1 PAUSE",
+ *  "3 SPOTTED"): with a pause the line wrapped a lone "s" at 390. The line breaks only at its " · " (the share card + the tests read endLine) */
+export const endLineNb = view => endLine(view).replace(/(\d) (s|SPOTTED|PAUSES?)(?![A-Z])/g, '$1\u00a0$2').replace(/· \+/g, '·\u00a0+');
 /** ms until the next 4 am Eastern (the daily's turn — core/streak.js) from the Eastern clock now ({ h, mi, s } — core/week.js#easternParts) */
 export { msToTurn } from '../../daily/clock.js';   // (DM1 — THE DAILY KIT's clock)
 /** h:mm:ss (the countdown to the next harbor) */

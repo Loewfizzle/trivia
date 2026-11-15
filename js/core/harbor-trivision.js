@@ -63,11 +63,20 @@ export function chapterHash(j, seed = 1924) {
 }
 /** the knobs (the timetable's billboard.trivision) */
 export const triKnobs = () => knob('billboard.trivision');
+/** PURE (CITY A — item 7, THE BILLBOARD FLASH): the turn's progress e s after its start → 0..1 while it turns, 1 while the NEW face's bake is
+ *  still on its way (the slats HOLD it — on a slow phone the city's re-bake lands seconds late, and the crisp poster copy follows the LANDED
+ *  bake: letting go at a fixed 3 s showed the OLD face for a moment), null = over. `holdMax` (s, THE CITY TIMETABLE) = the safety cap only */
+export function triProgress(e, dur, baking, holdMax = 20) {
+  if (e < dur) return Math.max(0, e / dur);
+  if (baking && e < dur + holdMax) return 1;
+  return null;
+}
 /** the turns' times (s) in chapter j: [j × C, j × C + p] */
 export function chapterTurns(j, K = triKnobs()) { const [e0, e1] = K.every, C = e0 + e1; return [j * C, j * C + e0 + (e1 - e0) * chapterHash(j, K.seed)]; }
-/** the clock at t (server s) → { n (turns started so far — the face shown = n % 2: 0 A, 1 B), at (the last turn's start), u (0 → 1 while it turns,
- *  else null), id } — `force` (s) = a turn every force s (&force=trivision) */
-export function triClock(t, K = triKnobs(), force = 0) {
+/** the clock at t (server s) → { n (turns started so far — the face shown = n % faces: 0 A, 1 B, 2 C …), at (the last turn's start), u (0 → 1
+ *  while it turns, else null), id } — `force` (s) = a turn every force s (&force=trivision) · `faces` (CITY A: N faces — CITY B's THE DROP is the
+ *  third; the turns' TIMES never depend on it, only which face each turn lands on) */
+export function triClock(t, K = triKnobs(), force = 0, faces = 2) {
   const dur = K.turn;
   let n, at;
   if (force > 0) { const k = Math.floor(t / force); n = k + 1; at = k * force; }
@@ -76,7 +85,8 @@ export function triClock(t, K = triKnobs(), force = 0) {
     if (t >= t1) { n = 2 * j + 2; at = t1; } else { n = 2 * j + 1; at = t0; }
   }
   const u = t - at < dur ? (t - at) / dur : null;
-  return { n, face: ((n % 2) + 2) % 2, at, u, id: `${force ? 'f' : 'c'}${n}` };
+  const N = Math.max(1, faces | 0);
+  return { n, face: ((n % N) + N) % N, at, u, id: `${force ? 'f' : 'c'}${n}` };
 }
 /** the turns that START in [t0, t1) (the day chart, the golden table) */
 export function turnsBetween(t0, t1, K = triKnobs(), force = 0) {

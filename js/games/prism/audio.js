@@ -20,7 +20,7 @@
 // clock − SPEAKER DELAY − what the browser can't report − the measured lead), and the musical SFX schedule on the song's own clock
 // (+ the lead) — never the server clock beside it. QUICK START: the songs stream in and start from their first slices
 // (synced-songs.js `quick`). A day song's CUE-IN (game.cu) is inside the voice's origin.
-import { getContext, getMusicBus, getSfxBus } from '../../audio/engine.js';
+import { getContext, getMusicBus, getSfxBus, getMaster } from '../../audio/engine.js';
 import { serverNow } from '../../firebase.js';
 import { settings } from '../../audio/settings.js';
 import { ctxAtServer, heard } from '../pulse/clock.js';
@@ -79,7 +79,7 @@ export function createSongPlayer() {
       const z = ctx.createGain();
       z.gain.value = 0;
       inp.connect(filter);
-      inp.connect(lp).connect(an).connect(z).connect(ctx.destination);
+      inp.connect(lp).connect(an).connect(z).connect(getMaster() || ctx.destination);   // (CITY A — item 29: ONLY the master reaches the destination)
       wave = new Float32Array(an.fftSize);
       chain = { filter, lift, out, dk, inp, an, lp, z };
       return inp;

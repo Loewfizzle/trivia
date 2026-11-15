@@ -16,7 +16,7 @@
 import { h, clear, reducedMotion } from '../../ui/dom.js';
 import { PING_MS, SURF_MS, DIAG_N, diagLine } from './logic.js';
 import { LAMP_SVG } from './meta.js';   // (DFIX5 — the ping's timings + the owner's readout line: pure)
-import { foldAnswer, emptyView, clockMs, fmtClock, buoysLeft, chordTargets, nbOf, headline, endLine, finalMs, endMap, shareLine, shareInputs, MAX_SPOTS, W, H, LIGHTS, SPOT_S } from './logic.js';
+import { foldAnswer, emptyView, clockMs, fmtClock, buoysLeft, chordTargets, nbOf, headline, endLineNb, finalMs, endMap, shareLine, shareInputs, MAX_SPOTS, W, H, LIGHTS, SPOT_S } from './logic.js';
 import { retryable, recordFinish, tickTurn, endActions, endShare, NOT_RECORDED } from '../../daily/end.js';
 import { runDayKey } from '../../daily/clock.js';
 import { createApiJudge } from './judge.js';
@@ -526,10 +526,21 @@ export function createView() {
       h('div.cc-end-result',
         stage,
         clean ? h('div.cc-end-n', fmtClock(finalMs(view))) : null,
-        h('div.cc-end-line', endLine(view)),
+        h('div.cc-end-line', endLineNb(view)),
         endHarbor()),
       acts.el);
+    fitEndLine(els.end.querySelector('.cc-end-line'));
     tickClock(next);
+  }
+  /** CITY A — item 32: the letter-spacing tightens a touch BEFORE the line wraps (0.2 → 0.16 → 0.12 em) — read once, as the end screen paints */
+  function fitEndLine(el) {
+    if (!el) return;
+    requestAnimationFrame(() => {
+      if (!el.isConnected) return;
+      const one = parseFloat(getComputedStyle(el).fontSize) * 1.5;
+      for (const ls of ['0.2em', '0.16em', '0.12em']) { el.style.letterSpacing = ls; if (el.getBoundingClientRect().height <= one) { el.dataset.ls = ls; return; } }
+      el.dataset.ls = 'wrap';
+    });
   }
   /** "NEXT HARBOR IN 13:06:44" — to the next 4 am Eastern, ticking (the server's clock); a run that crossed the turn (DFIX1): today's is open */
   function tickClock(el) {
@@ -568,6 +579,8 @@ export function createView() {
         setMode, tap, long: i => toggleBuoy(i), resync, share, rtts: () => rtts.slice(), offset: () => offset, inflight: () => inflight.size, beams: () => beams,
         queued: () => queue.length, calls: () => calls, taps: () => taps.slice(),   // (DFIX3 — the coalescing + the timing)
         pings: () => pings, diag: () => (els.diag && !els.diag.hidden ? els.diag.textContent : ''), owner: () => owner,   // (DFIX5)
+        // (CITY A — item 32: the end line for a made-up result (spots / pauses), painted + fitted as the end screen does — the e2e's wrap check)
+        endLineFor: (v) => new Promise(res => { const el = els.end && els.end.querySelector('.cc-end-line'); if (!el) { res(null); return; } el.style.letterSpacing = ''; el.textContent = endLineNb({ ...view, ...v }); fitEndLine(el); requestAnimationFrame(() => requestAnimationFrame(() => res({ text: el.textContent, ls: el.dataset.ls }))); }),
         shareInputs: () => shareInputs(view, dayKey()), shareLine: () => shareLine(view, dayKey()),
         state: () => ({ ready, done: view.done, out: view.out, spots: view.spots, shown: shownSpots(), open: view.open.length, lit: view.lit.length, buoys: buoys.size, pending: pending.size, inflight: inflight.size, queued: queue.length, calls, beams, landing: landing.size, mode, note: els.note.textContent, end: ended && els.end.classList.contains('is-in'), clock: els.time.textContent, paused: !!view.paused, pauses: view.pauses, hint: !!(els.hint && !els.hint.hidden && !hintGone) }),
       };

@@ -95,6 +95,7 @@ test("#7 — the city's graph: a LINK error skips the retries → the watchdog's
 });
 
 test('never mid-match: app.js holds the skew reload while a match is on screen (until the room or the podium)', () => {
-  assert.match(read('js/app.js'), /holdSkewReload\(\(\) => roomGameOn\(state\) && state\.game\.phase !== 'final' && !!GAME_MODULES\[state\.game\.id\]\)/);
-  assert.match(read('js/ui/lazy-import.js'), /while \(hold\(\)\) await/);
+  assert.match(read('js/app.js'), /holdSkewReload\(\(\) => roomGameOn\(state\) && state\.game\.phase !== 'final' && !!GAME_MODULES\[state\.game\.id\], \{/);
+  // (CITY A — item 10: the reload is QUEUED for a return; at the return it still waits while a match is on — hold() — or a sheet is open)
+  assert.match(read('js/ui/lazy-import.js'), /holding = !!hold\(\); gated = !!gate\(\);/);
 });

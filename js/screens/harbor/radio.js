@@ -55,6 +55,9 @@ function glyph() {
   return s;
 }
 
+/** PURE (CITY A — item 31): the radio's poll pace → ms. Open on the live DESK (or the crew's desk-only radio) 3 s · open on a paper face 15 s · closed 20 s */
+export const radioPollMs = ({ open = false, band = 'desk', isOwner = false } = {}) => (!open ? 20000 : band === 'desk' || !isOwner ? 3000 : 15000);
+
 export function createRadio({ role = 'owner', remote = () => null, roomCode = () => null, api = apiCall, sheetsReady = Promise.resolve(), onGone = null } = {}) {
   let destroyed = false, open = false, modal = null, sheet = null, st = null, stAt = 0, pollT = 0, tickT = 0, busy = false;
   let band = ls.get(BAND_KEY) || 'desk', aud = role === 'crew' ? 'room' : (RD.AUDIENCES.includes(ls.get(AUD_KEY)) ? ls.get(AUD_KEY) : 'everyone'), room = null;
@@ -98,9 +101,12 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       if (open && !card && !(ic && ic.busy()) && !scrolling()) { if (band !== 'desk' && isOwner) paintPaper(); else render(); } else if (open) paintLive();
     } catch (e) { if (e && e.status === 403) { destroy(); return; } }
   }
+  // (CITY A — item 31, THE POLL BY FACE: 3 s only on the live DESK (its lamps + the crew's moments are the right-now numbers); a PAPER face (the
+  //  PROGRAM, the LEDGER) every 15 s + at once when it opens or is tapped; closed 20 s + the visibility rule as before. Calls an hour with the
+  //  desk open: 1200 → the paper faces 240 → closed 180 — radioPollMs is PURE)
   function schedule() {
     clearTimeout(pollT); if (destroyed) return;
-    pollT = setTimeout(async () => { if (document.visibilityState === 'visible') await refresh(); schedule(); }, open ? 3000 : 20000);
+    pollT = setTimeout(async () => { if (document.visibilityState === 'visible') await refresh(); schedule(); }, radioPollMs({ open, band, isOwner }));
   }
   // the owner's own moments played on THIS phone at once (JUST ME + the city's — the cached GET catches up for everyone else)
   function feedDesk() { const r = remote(); if (r && r.deskMoments) r.deskMoments((st && st.moments || []).filter(m => m.mine && m.aud !== 'room' && m.state !== 'stopped')); }
@@ -138,6 +144,9 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     sheet.addEventListener('pointerdown', e => { touching = true; y0 = sheet.scrollTop <= 0 && !card ? e.clientY : null; });
     sheet.addEventListener('pointerup', e => { touching = false; scrollAt = performance.now(); if (y0 != null && e.clientY - y0 > 90) hide(); y0 = null; });
     sheet.addEventListener('pointercancel', () => { touching = false; scrollAt = performance.now(); });
+    // (CITY A — item 31: a tap on a PAPER face refreshes it at once — at most every 2 s — between its 15-s polls)
+    let paperTapAt = 0;
+    sheet.addEventListener('click', () => { if (band !== 'desk' && isOwner && performance.now() - paperTapAt > 2000) { paperTapAt = performance.now(); refresh(); } });
     // (iOS: a finger that scrolls fires pointercancel, then the list coasts — the touch + scroll events say when it has really stopped)
     sheet.addEventListener('touchstart', () => { touching = true; }, { passive: true });
     sheet.addEventListener('touchend', () => { touching = false; scrollAt = performance.now(); }, { passive: true });
@@ -168,7 +177,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     const faces = isOwner ? [['desk', 'DESK'], ['program', 'PROGRAM'], ['ledger', 'LEDGER']] : [['desk', 'DESK']];
     if (faces.length < 2) return null;
     return h('nav.rd-band', { 'aria-label': 'The radio’s faces' }, ...faces.map(([id, l]) => h('button.rd-bb', { type: 'button', 'data-press': true, class: band === id ? 'is-on' : '', 'aria-pressed': String(band === id),
-      onclick: () => { if (band === id) return; sfx.play('band'); band = id; ls.set(BAND_KEY, id); card = null; render(); } }, l)));
+      onclick: () => { if (band === id) return; sfx.play('band'); band = id; ls.set(BAND_KEY, id); card = null; render(); refresh(); schedule(); } }, l)));   // (a face opened: its numbers at once, then its own pace)
   }
 
   // ---------------------------------------------------------------- THE DESK

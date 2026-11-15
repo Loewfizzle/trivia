@@ -471,3 +471,25 @@ test('the looks are keyed on the weather\'s STEADY wind (windLook), not the per-
   assert.ok(env.includes('windLook:'), 'peopleEnv hands the looks the steady wind');
   assert.equal((env.match(/(?<![\w.])wind:/g) || []).length, 1, 'peopleEnv has ONE wind key (a duplicate key silently wins)');
 });
+
+// ---------------------------------------------------------------- CITY A — item 20, NO TRAFFIC DURING THE FIREWORKS (a show = a hold, like a legendary's)
+test('CITY A — NO TRAFFIC DURING THE FIREWORKS: a bus due under a show never comes, one at the curb finishes, no car enters the back road; the witnesses don\'t see a legendary', async () => {
+  const { L } = setup('402x874'), M = folkMap(L);
+  const { trafficHold, HOLD } = await import('../js/core/harbor-legend.js');
+  assert.deepEqual(trafficHold({ kind: 'fireworks', t0: 100, len: 240 }), [100 - HOLD.lead, 100 + 240 + HOLD.fireworksTail], 'the show\'s own length');
+  assert.equal(trafficHold({ kind: 'fireworks', t0: 100 }), null, 'no length, no hold');
+  let b = null;
+  for (let h = 8; h < 23 && !b; h++) { const bs = busesOf(L, '2026-10-22', h, DAY + h * 3600); if (bs.length) b = bs[0]; }
+  const t = b.tA + 3;
+  const held = folkAt(t, { L, M, ctx: { off: OFF, trafficLegend: { kind: 'fireworks', t0: b.tE - 1, len: 300 } } }, new Map());
+  assert.ok(!held.buses.some(x => x.id === b.id), 'due under the show: it never comes');
+  const before = folkAt(t, { L, M, ctx: { off: OFF, trafficLegend: { kind: 'fireworks', t0: b.tE + 6, len: 300 } } }, new Map());
+  assert.ok(before.buses.some(x => x.id === b.id), 'already at the curb when the show starts: it finishes its stop');
+  const lg = { kind: 'fireworks', t0: b.tE - 1, len: 300 }, hold = trafficHold(lg), cache = new Map();
+  const ins = new Map();
+  for (let s = hold[0] - 30; s < hold[1] + 30; s += 2) { const f = folkAt(s, { L, M, ctx: { off: OFF, trafficLegend: lg } }, cache); for (const c of f.cars) if (c.ts != null && c.ts >= hold[0] && c.ts < hold[1]) ins.set(c.id, `${c.id}@+${Math.round(c.ts - hold[0])}s ${c.lane || ''} ${c.kind || ''}`); }
+  assert.equal(ins.size, 0, `no car entered under the show (${[...ins.values()].slice(0, 6).join(', ')})`);
+  const src = (await import('node:fs')).readFileSync(new URL('../js/screens/harbor/scene.js', import.meta.url), 'utf8');
+  assert.match(src, /legend: legendForPeople\(\), trafficLegend: trafficLegend\(\)/, 'the witnesses keep the legendary; the traffic gets the show too');
+  assert.match(src, /const trafficHoldNow = \(\) => \{ const h = trafficHold\(trafficLegend\(\)\);/, 'the road light, the cab stand, the banner read it too');
+});

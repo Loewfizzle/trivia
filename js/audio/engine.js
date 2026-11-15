@@ -132,7 +132,7 @@ function createContext() {
     audioLog(`ctx → ${c.state}`);
     if (c.state === 'running') { stuck = false; askedAt = 0; gestureAskAt = 0; if (pendingFadeIn) fadeIn('running again'); resumeListeners.forEach(fn => { try { fn(); } catch (e) { console.warn(e); } }); }
     // the OS took it away while we're on screen (a call, Siri, another app's audio, the route changed): ask for it back
-    else if (visibleNow && unlocked && document.visibilityState === 'visible') ask('os took it');
+    else if (visibleNow && unlocked && !hushed && document.visibilityState === 'visible') ask('os took it');
   };
   const limiter = ctx.createDynamicsCompressor();
   limiter.threshold.value = -12;
@@ -150,6 +150,7 @@ function createContext() {
   sfxBus.connect(limiter);
   applyVolumes(true);
   clock = { t: -1, since: performance.now(), moving: 0 }; frozen = false;
+  if (hushWanted()) { hushed = true; master.gain.value = 0; }   // (CITY A: made while muted — silent from its first sample)
   return ctx;
 }
 
@@ -166,14 +167,49 @@ function applyVolumes(instant) {
   musicBus.gain.setTargetAtTime(m, t, 0.08);
   sfxBus.gain.setTargetAtTime(s, t, 0.05);
 }
-onSettings(() => { applyVolumes(false); setSession('settings'); });
+onSettings(() => { applyVolumes(false); setSession('settings'); hushCheck('settings'); });
+
+// ---- CITY A — item 29, THE LEAVING SQUEAL (the owner's iPhone, SOUND MUTED, no music: a short high-pitched noise switching from Safari to another
+// app). Muted = every voice at 0, so it was the audio MACHINERY still live — the context running for THE PROBE / the beat analysers, the
+// elements on their silent activation. Now while MUTED (or the music AND the effects both off) NOTHING RUNS: the master ramps to 0, the context
+// is SUSPENDED after the ramp (music.js pauses every element + releases the direct path's src — no silent loop); a tap no longer resumes it.
+// UNMUTE is a tap: inside that gesture the context resumes, music.js re-activates its elements, the master ramps up from 0 (no pop).
+export const hushWanted = (s = settings) => !!(s.muted || (s.musicOff && s.sfxOff));
+let hushed = false, hushT = 0;
+/** is the audio machinery hushed now (muted / everything off)? */
+export const audioHushed = () => hushed;
+function hushCheck(why) {
+  const want = hushWanted();
+  if (want === hushed) { if (want && ctx && ctx.state === 'running' && !hushT) hushNow(why); return; }
+  hushed = want;
+  if (want) { audioLog(`hush (${why}) — the master to 0, then the context suspended`); hushNow(why); return; }
+  clearTimeout(hushT); hushT = 0;
+  audioLog(`unhush (${why}${inGesture() ? ' · in tap' : ''})`);
+  if (!ctx || !unlocked) return;
+  pendingFadeIn = true;
+  try { if (master) { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(0, ctx.currentTime); } } catch { /* closed */ }
+  if (ctx.state === 'running' && !frozen) fadeIn('unmuted'); else { ask('unmuted'); blip(); }
+  hushListeners.forEach(fn => { try { fn(false); } catch (e) { console.warn(e); } });
+}
+function hushNow(why) {
+  const c = ctx;
+  hushListeners.forEach(fn => { try { fn(true); } catch (e) { console.warn(e); } });
+  if (!c) return;
+  clearTimeout(hushT); clearTimeout(fadeT);
+  if (c.state !== 'running' || !master) { hushT = 0; if (c.state === 'running') c.suspend().catch(() => {}); return; }
+  try { const t = c.currentTime, g = master.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + FADE_OUT_S); } catch { /* closed */ }
+  hushT = setTimeout(() => { hushT = 0; if (ctx === c && hushed && c.state === 'running') c.suspend().then(() => { if (ctx === c) audioLog(`suspended (hushed: ${why})`); }, () => {}); }, SUSPEND_AFTER_MS);
+}
+const hushListeners = new Set();
+/** music.js: (on) → the hush began (pause + release every element) / ended (inside the unmuting tap: re-activate + play) */
+export function onHush(fn) { hushListeners.add(fn); return () => hushListeners.delete(fn); }
 
 // A 1-sample silent buffer started inside the gesture fully unlocks iOS.
 function blip() {
   try {
     const s = ctx.createBufferSource();
     s.buffer = ctx.createBuffer(1, 1, 22050);
-    s.connect(ctx.destination);
+    s.connect(master || ctx.destination);   // (CITY A — item 29: ONLY the master reaches the destination — a silent buffer too)
     s.start(0);
   } catch { /* closed */ }
 }
@@ -237,6 +273,14 @@ function unlock(e) {
   gestureAt = performance.now();
   setSession('tap');
   if (!ctx && !createContext()) return;
+  // (CITY A — item 29: HUSHED — the tap unlocks (the listeners learn it) but nothing is resumed, blipped or rebuilt: the context stays asleep)
+  if (hushed || hushWanted()) {
+    hushed = true;
+    if (ctx.state === 'running') hushNow('a tap while hushed');
+    if (!unlocked) { unlocked = true; audioLog(`unlock (${e ? e.type : '?'} · hushed)`); unlockListeners.forEach(fn => { try { fn(); } catch (err) { console.warn(err); } }); }
+    gestureListeners.forEach(fn => { try { fn(); } catch (err) { console.warn(err); } });
+    return;
+  }
   const s = ctx.state;
   // the tap looks at the clock itself: 'running' yet not past the watcher's last sample (≥ 300 ms old, the page on screen for
   // 500 ms) = frozen NOW — no waiting 1.5 s for the watcher (the owner's tap right after coming back did nothing: M4)
@@ -280,7 +324,7 @@ export function onGesture(fn) { gestureListeners.add(fn); return () => gestureLi
 export function onFrozen(fn) { frozenListeners.add(fn); return () => frozenListeners.delete(fn); }
 
 /** The engine's state for tests + the readout. */
-export const audioHealth = () => ({ state: ctx ? ctx.state : 'none', stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
+export const audioHealth = () => ({ state: ctx ? ctx.state : 'none', hushed, stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
   time: ctx ? +ctx.currentTime.toFixed(2) : 0, session: sessionInfo(), sessionSet: { ...sessionSet }, made, closed, alive: made - closed,
   movingFor: clock.moving > 0 && !frozen ? Math.round(performance.now() - clock.moving) : 0, ok: graphOk() });
 function sessionInfo() { try { const a = navigator.audioSession; return a ? `${a.type || '?'}/${'state' in a ? a.state || '?' : 'n/a'}` : ''; } catch { return ''; } }
@@ -305,7 +349,7 @@ export function simulateFrozen() {
 
 // Retry a resume (no-op when already running or not yet unlocked by a gesture).
 function kick() {
-  if (!ctx || !unlocked || document.visibilityState !== 'visible') return;
+  if (!ctx || !unlocked || hushed || document.visibilityState !== 'visible') return;
   if (ctx.state !== 'running') ask('retry');
 }
 
@@ -356,7 +400,8 @@ function setVisible(visible, why = '') {
   visibleNow = visible;
   if (visible) { visibleAt = performance.now(); setSession('back on screen'); }
   if (ctx) {
-    if (visible && unlocked) {
+    if (visible && unlocked && hushed) { /* (CITY A: hushed — back on screen wakes nothing) */ }
+    else if (visible && unlocked) {
       clearTimeout(fadeT);
       pendingFadeIn = true;
       try { if (master) { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(0, ctx.currentTime); } } catch { /* closed */ }

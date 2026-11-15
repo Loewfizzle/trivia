@@ -129,3 +129,26 @@ test('the remote panel: &force=billboard-jaywalk (+ &jaywalk=) + &force=trivisio
   assert.match(r, /\{ id: 'trivision', /);
   assert.match(r, /'holdem', 'jaywalk'\];/);
 });
+
+// CITY A — item 7, THE BILLBOARD FLASH: the slats HOLD the new face until its bake has landed (no fixed 3 s); N faces (CITY B's THE DROP)
+import { triProgress, triClock as triClock2, triKnobs as triKnobs2 } from '../js/core/harbor-trivision.js';
+test('CITY A — the turn holds the NEW face until the city\'s re-bake has landed (the old face never shows again); the cap is a timetable knob', () => {
+  assert.equal(triProgress(0.6, 1.2, true), 0.5);
+  assert.equal(triProgress(1.3, 1.2, true), 1, 'turned, the bake still out: the new face held');
+  assert.equal(triProgress(1.2 + 6, 1.2, true), 1, 'a slow phone\'s bake 6 s late: STILL held (it let go at 3 s — the flash)');
+  assert.equal(triProgress(1.3, 1.2, false), null, 'landed: the slats go, the city shows the new face');
+  assert.equal(triProgress(1.2 + 20, 1.2, true, 20), null, 'the safety cap (holdMax) only');
+  assert.equal(triKnobs2().holdMax, 20, 'THE CITY TIMETABLE row billboard.trivision carries holdMax');
+  const src = readFileSync(new URL('../js/screens/harbor/scene.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /e < T\.dur \+ 3\)/, 'no fixed 3-s hold');
+  assert.match(src, /triProgress\(e, T\.dur, baking, triKnobs\(\)\.holdMax \|\| 20\)/);
+});
+test('CITY A — the turn works for N faces: the turns\' TIMES never change, only which face each lands on', () => {
+  const K = triKnobs2();
+  for (const t of [1794364216, 1794364224.5, 1800000000]) {
+    const a = triClock2(t, K, 8, 2), b = triClock2(t, K, 8, 3);
+    assert.equal(a.at, b.at); assert.equal(a.n, b.n); assert.equal(a.face, a.n % 2); assert.equal(b.face, b.n % 3);
+  }
+  assert.equal(triClock2(1794364216, K, 8).face, triClock2(1794364216, K, 8, 2).face, 'two faces = as before');
+  assert.match(readFileSync(new URL('../js/screens/harbor/scene.js', import.meta.url), 'utf8'), /triClock\(clock\.now\(\) \/ 1000, K, triForce\(\), F\.length\)/);
+});
