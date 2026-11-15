@@ -39,14 +39,17 @@ export function paint({ api, now }) {
         // (PLAY NOW — WHO'S ON: IN THE CITY is a door — a tap → who's online now (the owner's list; ui/whos-on.js — the server refuses anyone else))
         h('button.rd-who', { type: 'button', 'aria-label': `${L.now.here} in the city — who's on`, onclick: () => lazyImport(import('../../ui/whos-on.js'), '../../ui/whos-on.js').then(m => m.openWhosOn({ api, openSheet })).catch(() => {}) },
           nixie(L.now.here), h('small', 'IN THE CITY ›')),
-        h('div', nixie(L.now.rooms), h('small', 'ROOMS OPEN')),
-        h('div', nixie(L.now.games), h('small', 'GAMES ON'))),
+        // (CITY C — ROOMS OPEN + GAMES ON are doors too: the open rooms (the ledger's own list) → a room → its players' slim cards)
+        h('button.rd-who', { type: 'button', 'aria-label': `${L.now.rooms} rooms open — the list`, onclick: () => lazyImport(import('../../ui/whos-on.js'), '../../ui/whos-on.js').then(m => m.openRooms({ api, openSheet, rooms: L.rooms })).catch(() => {}) },
+          nixie(L.now.rooms), h('small', 'ROOMS OPEN ›')),
+        h('button.rd-who', { type: 'button', 'aria-label': `${L.now.games} games on — the list`, onclick: () => lazyImport(import('../../ui/whos-on.js'), '../../ui/whos-on.js').then(m => m.openRooms({ api, openSheet, rooms: L.rooms, playing: true })).catch(() => {}) },
+          nixie(L.now.games), h('small', 'GAMES ON ›'))),
       np,
       h('section.rd-paper', h('h4', 'TODAY', h('em', 'since midnight · Eastern')),
         h('div.rd-lg', h('span', 'Visitors', h('small', 'an estimate')), h('b', String(T.visitors))),
         h('div.rd-lg', h('span', 'New players'), h('b', String(T.newPlayers))),
         h('div.rd-lg', h('span', 'Matches played'), h('b', String(T.matches))),
-        h('div.rd-lg', h('span', 'Legendaries spotted', h('small', 'counted from PROGRESSION 2.0')), h('b', T.spotted == null ? '—' : String(T.spotted))),
+        h('div.rd-lg', h('span', 'Legendaries spotted'), h('b', T.spotted == null ? '—' : String(T.spotted))),   // (CITY C: the real count — api/_lib/sightings.js counts each one)
         h('div.rd-lg', h('span', 'Longest streak alive'), h('b', T.streak ? `${T.streak} night${T.streak > 1 ? 's' : ''}` : '—')),
         h('div.rd-lg', h('span', h('a', { href: '/admin#errors', target: '_blank', rel: 'noopener' }, 'Errors from phones'), h('small', 'last 24 h')), h('b', { class: T.errors ? 'bad' : '' }, String(T.errors)))),
       h('section.rd-paper', h('h4', 'THIS WEEK', h('em', 'visits · games')),
@@ -55,7 +58,7 @@ export function paint({ api, now }) {
           return h('div', { title: `${x.visits} visits · ${x.games} games` }, h('i', { style: { height: `${vh}px` } }), h('i.g', { style: { height: `${Math.max(gh, x.games ? 3 : 0)}px` } }), h('span', DOW[d.getUTCDay()]));
         })),
         h('div.rd-key', h('span', h('i'), 'visits (estimate)'), h('span', h('i.g'), 'games'))),
-      founderPaper(L),
+      founderPaper(L),   // (CITY C: + its twin at the foot of /admin — the same server switch)
       // THE VAULT 1A — THE CARD LAB (admins only, server-checked): every new card / emblem, moving, at its phone size → APPROVE · FIX · CUT
       h('section.rd-paper', h('h4', 'THE CARD LAB', h('em', 'the vault · mark the new cards')),
         h('div.rd-lg', h('span', h('a', { href: '/lab', target: '_blank', rel: 'noopener' }, 'Open THE CARD LAB'), h('small', 'approve · fix · cut')), h('b', '›'))),

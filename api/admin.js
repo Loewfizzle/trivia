@@ -55,6 +55,7 @@
 //                                    result untouched; a second run says "already reseeded"); audited (dailyReseed). Owner only (the admin gate)
 import { cleanHoldem } from '../js/core/harbor-holdem.js';
 import { cleanJaywalk, cleanDropMode } from '../js/core/harbor-trivision.js';
+import { founderState } from './_lib/founder.js';
 import { knob as schedKnob } from '../js/core/harbor-schedule.js';
 /** CITY FIXES + HOLD'EM: the switch as /admin shows it (the timetable's default when never set) */
 const holdemPublic = v => { const D = schedKnob('billboard.holdem'), c = cleanHoldem(v && v.holdem); return c ? { on: c.on, bar: c.bar, since: c.since || D.since, set: true } : { on: D.on !== false, bar: D.bar || 'soon', since: D.since, set: false }; };
@@ -370,6 +371,8 @@ export async function adminAction(uid, body, now = Date.now()) {
     // DM1 — THE GO-LIVE SWITCH (owner only — the admin gate above): OFF until THE SWITCH-OVER; every flip audited
     // CITY FIXES + HOLD'EM — THE BILLBOARD: the roof board's BASE POSTER (HOLD'EM on / off, COMING SOON / NOW OPEN) → city2/billboard (every
     // phone through the cached GET ?live=1 → radioPublic.base); turning it ON starts it from TODAY (Eastern) — the billposter pastes it at ~5 pm
+    // CITY C — THE FOUNDER WINDOW at the foot of /admin: its CURRENT state (OPEN / CLOSED + since when + the founders); the switch = radioFounder
+    case 'founderState': return { founder: await founderState() };
     case 'billboardState': { const [v, live] = await Promise.all([val('city2/billboard'), goLive('drop', now)]); return { billboard: holdemPublic(v), jaywalk: jaywalkPublic(v), drop: { mode: cleanDropMode(v && v.drop && v.drop.mode), live, days: schedKnob('billboard.drop').days } }; }
     // CITY B — THE DROP's face (the roof board's third): ON = 14 days from THE DROP's go-live day, then it retires by itself · OFF · KEEP ON
     // (never retires) → city2/billboard.drop (every phone through the cached feed)

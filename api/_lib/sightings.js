@@ -9,6 +9,7 @@ import './catalog.js';   // (THE VAULT 1B: the server-only catalog registered be
 import { ref, val } from './fb.js';
 import { bumpOwners } from './owners.js';
 import { founderOpen } from './founder.js';
+import { dayKey } from '../../js/core/week.js';
 import { eventStep } from '../../js/core/progress.js';
 import { verifySighting, SIGHTING, QUEUE_MS } from '../../js/core/sightings.js';
 
@@ -71,6 +72,8 @@ export async function claimSighting(pid, uid, body, o = {}, now = Date.now()) {
   await ref(`ppriv/${pid}/sgk/${safeKey(v.key)}`).transaction(cur => { if (cur) { isNew = false; return undefined; } isNew = true; return now; });
   if (!isNew) return again();
   pruneKeys(pid, now).catch(() => {});
+  // (CITY C — LEGENDARIES SPOTTED on THE LEDGER: one counted sighting = +1 on its day (radio/spotted/{day} — the ledger's TODAY reads it; no scan)
+  ref(`radio/spotted/${dayKey(now)}`).transaction(n => (Number(n) || 0) + 1).catch(() => {});
   const fOpen = await founderOpen(now).catch(() => false);
   let got = null;
   await ref(`pstats/${pid}`).transaction(cur => { got = eventStep(cur, { k: 'sighting', id }, now, { founderOpen: fOpen }); return got ? got.next : undefined; });

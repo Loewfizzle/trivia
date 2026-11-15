@@ -25,7 +25,7 @@ THIS WEEK's boards + XP-this-week start fresh anyway — a mid-week reset leaves
    (M1) — nobody should be mid-match.
 4. **PREVIEW = 0 items removed** (/admin → Progress reset → PREVIEW — step 3 below).
 5. **RESET** (type `RESET` → CONFIRM — step 4 below; write the backup stamp down).
-6. **Close the FOUNDER window AT ONCE** (step 5 below).
+6. **Check the founder window's state** (step 5 below) — OPEN or CLOSED is YOUR call (you REOPENED it Nov 14 for new joiners); nothing closes it by itself.
 7. **Check on a fresh tab** (step 6 below) — the freezes you held now SHOW on the streak card before your first play (FR7 FIXES C — S5).
 8. **Only then tell people.**
 
@@ -41,14 +41,15 @@ The taps in detail:
    backup stamp down** (b + a long number) — /admin → Progress reset → Backups → RESTORE takes everything back if something looks wrong.
    While the founder window is still open the reset first gives FOUNDING MEMBER to every player who already played — that is the point
    of doing step 5 AFTER this.
-5. **Close FOUNDING MEMBER — before you tell anyone.** In the city: the radio → THE LEDGER (the right face) → FOUNDER WINDOW → CLOSE (a
-   second tap confirms). Closing sweeps everyone who already played one last time, then nobody new can get the card. (While it is open,
-   ANY first counted match grants it — so it must be closed before strangers play.)
+5. **Check the founder window's state (CITY C — the owner reopened it Nov 14).** /admin → the very BOTTOM → **Founder window** (folded): OPEN or
+   CLOSED + since when + the founders' count (its twin: the radio → THE LEDGER → FOUNDER WINDOW). Nothing closes it automatically — only
+   your switch. Want it closed for the launch? CLOSE IT (a second tap confirms): closing sweeps everyone who already played one last time, then
+   nobody new can get the card (while it is open, ANY first counted match grants it).
 6. **Check (on your phone, a fresh tab):**
    - YOUR CARD: LEVEL 1, your cards + emblems + glows still owned and still worn; your member Nº unchanged; FOUNDING MEMBER still yours.
    - Your streak: 0 days, but the freezes you held are still there (the streak card).
    - THE BOARD (`/board`): every tab empty ("be the first") — the XP board, DAILIES, OVERCLOCK, PRISM, HOLD'EM.
-   - The radio's LEDGER: FOUNDER WINDOW closed, the holders' count.
+   - /admin → Founder window (the bottom): the state you chose + since when, the holders' count.
    - (/admin → **The boards** → PREVIEW + CONFIRM are safe to press at any time — THE RESET EPOCH: it only rebuilds from after the reset;
      since FR7 FIXES C (S4) it never takes a COUNTED PLAY away (the larger of the live count + the rebuilt one) and a daily STARTED before the
      reset is never paid, so the live numbers + the rebuilt ones agree. It isn't needed.)

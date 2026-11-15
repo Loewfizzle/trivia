@@ -63,6 +63,32 @@ export function whosOnBlock({ api }) {
   return { el, refresh, destroy };
 }
 
+// CITY C — ROOMS OPEN TAPPABLE (the radio's LEDGER): ROOMS OPEN → the open rooms (the hush word · the game · players · PLAYING / LOBBY — from
+// the ledger's own answer, no new poll); GAMES ON → the same list, the playing ones; a room → its players' SLIM CARDS (read-only — ONE WHO'S ON
+// read on that tap, filtered to the room; still cards, no motion)
+export function openRooms({ api, openSheet, rooms = [], playing = false }) {
+  const list = (rooms || []).filter(r => !playing || r.status === 'playing');
+  const body = h('div.wo.wo-rooms', list.length
+    ? h('ol.wo-rlist', ...list.map(r => h('li', h('button.wo-room', { type: 'button', 'data-press': true, 'aria-label': `Room ${r.code} — its players`, onclick: () => openRoom({ api, openSheet, room: r }) },
+        h('b.wo-rcode', r.code),
+        h('span.wo-rgame', r.game ? (NAMES[r.game] || r.game.toUpperCase()) : 'IN THE LOBBY'),
+        h('span.wo-rn', `${r.online}${r.online !== r.players ? ` of ${r.players}` : ''} ${r.players === 1 ? 'player' : 'players'}`),
+        h('em.wo-rst', { class: r.status === 'playing' ? 'is-on' : '' }, r.status === 'playing' ? 'PLAYING' : 'LOBBY'),
+        h('span.wo-rchev', { 'aria-hidden': 'true' }, '›')))))
+    : h('p.wo-wait', playing ? 'No game on right now.' : 'No room open right now.'));
+  return openSheet({ title: playing ? 'GAMES ON' : 'ROOMS OPEN', kicker: 'RIGHT NOW · THE OWNER ONLY', cls: 'wo-sheet', label: playing ? 'Games on' : 'Rooms open', body: [body] });
+}
+function openRoom({ api, openSheet, room }) {
+  const list = h('ol.wo-list.is-still', { 'aria-live': 'polite' }, h('li.wo-wait', 'Asking the room…'));
+  const s = openSheet({ title: `ROOM ${room.code}`, kicker: room.game ? `${NAMES[room.game] || room.game.toUpperCase()} · ${room.status === 'playing' ? 'PLAYING' : 'LOBBY'}` : 'IN THE LOBBY', cls: 'wo-sheet', label: `Room ${room.code}`, body: [h('div.wo', list)] });
+  Promise.all([api('admin', { action: 'radioWhosOn' }), lazyImport(import('./strip-board.js'), './strip-board.js').then(m => m.stripKit().then(K => ({ ...m, K })))]).then(([d, SB]) => {
+    const rows = ((d && d.rows) || []).filter(r => r.where && r.where.k === 'room' && r.where.code === room.code);
+    list.classList.toggle('is-strips', rows.length > 0);
+    list.replaceChildren(...(rows.length ? rows.map(r => h('li.wo-row', h('div.wo-card', SB.stripFor(SB.K, r.card).el), h('div.wo-meta', h('small.wo-ago', agoLine(r.at, d.now))))) : [h('li.wo-wait', 'Only guests here (no card yet) — or they just left.')]));
+  }).catch(() => list.replaceChildren(h('li.wo-wait', 'Couldn’t ask the room — try again in a moment.')));
+  return s;
+}
+
 /** THE SHEET (the radio's LEDGER → IN THE CITY) */
 export function openWhosOn({ api, openSheet }) {
   const B = whosOnBlock({ api });

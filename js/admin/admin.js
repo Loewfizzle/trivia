@@ -158,7 +158,10 @@ function shell() {
       h('div.ad-gift-prev', { id: 'ad-gift-prev' }),
       h('div.ad-row.ad-gift-give', h('input.input.ad-gift-tag', { id: 'ad-gift-tag', type: 'text', placeholder: 'NAME#1234', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'The player’s name tag' }),
         tubeButton('GIVE', { kind: 'main', size: 'sm', cls: 'ad-btn ad-gift-go', confirm: 'TAP AGAIN TO GIVE', onClick: giveGift }))),
-    card('ad-audit', 'Audit log', { cls: 'ad-audit', open: false }, h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: audit }, 'Refresh')), h('ol.ad-log', { id: 'ad-log' })));
+    // CITY C — THE FOUNDER WINDOW, folded at the very BOTTOM (the owner REOPENED it Nov 14 for new joiners): its CURRENT state — OPEN / CLOSED +
+    // since when + the founders. Nothing ever closes it automatically: only this switch (a second tap confirms; closing sweeps first — founder.js)
+    card('ad-audit', 'Audit log', { cls: 'ad-audit', open: false }, h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: audit }, 'Refresh')), h('ol.ad-log', { id: 'ad-log' })),
+    card('ad-founder', 'Founder window', { cls: 'ad-founder', open: false }, h('div.ad-row', { id: 'ad-founder-row' }, h('span.ad-dim', 'Loading…'))));
   app.replaceChildren(
     h('a.ad-link.ad-back', { href: '/' }, '‹ BACK TO THE CITY'),   // (DFIX3 — the owner: the authorized page had no way back; the denied page always had one)
     h('header.ad-head', h('div', h('div.ad-kicker', 'NEON SPEAKEASY'), h('h1', 'Admin')), h('div.ad-head-links', h('a.ad-link', { href: '/lab' }, 'The Card Lab ›'), ' ', h('a.ad-link', { href: '/board' }, 'The Board ›'))),
@@ -173,9 +176,25 @@ function shell() {
   testPlayers();
   backups();
   gifts();
+  founderWin();
   loadStats();
   // "live now" keeps itself current while the page is open and visible (the server caches it for 30 s)
   setInterval(() => { if (document.visibilityState === 'visible') loadStats(false, true); }, 30_000);
+}
+
+/** CITY C — THE FOUNDER WINDOW's row: OPEN / CLOSED + since when + the founders · the switch (CLOSE / REOPEN, a second tap) */
+async function founderWin(f) {
+  const row = document.getElementById('ad-founder-row');
+  if (!row) return;
+  try {
+    f ||= (await call('founderState')).founder;
+    const when = f.at ? new Date(f.at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : null;
+    row.replaceChildren(
+      h('b.ad-dly-state', { class: f.open ? 'is-open' : 'is-closed' }, f.open ? 'OPEN' : 'CLOSED'),
+      h('span.ad-dim', `${when ? `since ${when}` : f.open ? 'open since the start' : ''} · ${f.holders || 0} founding member${f.holders === 1 ? '' : 's'}`),
+      confirmBtn(f.open ? 'CLOSE IT' : 'REOPEN', async () => { const r = await call('radioFounder', { open: !f.open }); toast(r.founder.open ? 'The founder window is OPEN' : 'The founder window is CLOSED'); founderWin(r.founder); audit(); }, f.open ? 'is-danger' : 'is-primary'),
+      h('p.ad-dim', f.open ? 'While it’s open, everyone who plays a counted match gets FOUNDING MEMBER — and keeps it. Nothing closes it by itself.' : 'Closed: nobody new gets FOUNDING MEMBER; the founders keep it.'));
+  } catch (e) { row.replaceChildren(h('span.ad-dim', `Couldn’t load (${e.message || e})`)); }
 }
 
 async function search(text) {

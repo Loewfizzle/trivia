@@ -1287,6 +1287,16 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 /* STATIC CARDS (the owner's call — add-on 3): nothing in the list moves (an emblem's tube style, a gem's glint, a 1-of-1's dressing) */
 .wo-list.is-still *, .wo-list.is-still *::before, .wo-list.is-still *::after { animation: none !important; transition: none !important; }
 .wo-row[data-k='room'] .wo-where, .wo-row[data-k='solo'] .wo-where { color: #ffb3e6; }
+/* CITY C — ROOMS OPEN TAPPABLE: the open rooms (a row each — the hush word, the game, players, PLAYING / LOBBY; a tap → its players' slim cards) */
+.wo-rlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.wo-room { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'code game st chev' 'code n st chev'; align-items: center; column-gap: 12px; row-gap: 3px;
+  width: 100%; min-height: 56px; padding: 8px 14px; border: 0; border-radius: 12px; cursor: pointer; text-align: left; color: var(--text); background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.wo-rcode { grid-area: code; font: 800 18px/1 var(--font-display); letter-spacing: 0.12em; color: #ffd84a; }
+.wo-rgame { grid-area: game; font: 700 14px/1.1 var(--font-ui); letter-spacing: 0.08em; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wo-rn { grid-area: n; font: 600 12.5px/1 var(--font-ui); letter-spacing: 0.06em; color: var(--text-dim); }
+.wo-rst { grid-area: st; font: 800 11px/1 var(--font-ui); font-style: normal; letter-spacing: 0.18em; color: var(--text-dim); }
+.wo-rst.is-on { color: #7dffb0; }
+.wo-rchev { grid-area: chev; color: var(--text-dim); font-size: 20px; }
 .wo-row[data-k='daily'] .wo-where { color: #9ff3d4; }
 .wo-ago { font: 600 11px/1 var(--font-num); letter-spacing: 0.06em; color: var(--text-dim); }
 .wo-wait { padding: 14px 0; font: 600 13px/1.4 var(--font-ui); color: var(--text-dim); text-align: center; }

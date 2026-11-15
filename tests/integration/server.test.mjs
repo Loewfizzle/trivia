@@ -2251,3 +2251,23 @@ test('PLAY NOW — WHO\'S ON: the city + a room + a solo run + a daily, sorted; 
     await ref('/').update({ here: null, 'radio/crew': null, 'rooms/WHOA': null, 'rooms/QZXJ': null, [`dly/password/${day}`]: null });
   }
 });
+
+test('CITY C: THE LEDGER — ROOMS OPEN as a list (the desk\'s own read), LEGENDARIES SPOTTED counted, THE FOUNDER WINDOW\'s state for /admin', async () => {
+  const { dayKey } = await import('../../js/core/week.js');
+  const owner = await ensure('u-lg-own', 'LgOwner'); await ensure('u-lg-x', 'Stranger4');
+  process.env.ADMIN_PIDS = `${owner.pid}`;
+  const f0 = await val('progress/founder');
+  try {
+    await ref(`radio/spotted/${dayKey(Date.now())}`).set(3);
+    const L = await adminAction('u-lg-own', { action: 'radioLedger' });
+    assert.equal(L.today.spotted, 3, 'the real count today (sightings.js counts each one)');
+    assert.ok(Array.isArray(L.rooms) && L.rooms.length === L.now.rooms, 'the open rooms as a list');
+    assert.ok(L.rooms.every(r => /^[A-Z]{4}$/.test(r.code) && ['playing', 'lobby'].includes(r.status) && typeof r.players === 'number'), 'each: the hush word, the status, the players');
+    const F0 = (await adminAction('u-lg-own', { action: 'founderState' })).founder;
+    assert.equal(typeof F0.open, 'boolean'); assert.equal(typeof F0.holders, 'number');
+    const r = await adminAction('u-lg-own', { action: 'radioFounder', open: true });
+    assert.equal(r.founder.open, true); assert.ok(r.founder.at > 0, 'a REOPEN records when (OPEN since …)');
+    assert.equal((await adminAction('u-lg-own', { action: 'founderState' })).founder.open, true, 'nothing closes it by itself');
+    await assert.rejects(adminAction('u-lg-x', { action: 'founderState' }), 'a non-admin is refused');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('progress/founder').set(f0 || null); }
+});

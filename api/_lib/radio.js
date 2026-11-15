@@ -265,19 +265,22 @@ export async function hello(uid, now, me = null, w = null) {
  *  + games a day). o: { stats (admin.js's STATS), errors () → the error list } */
 async function ledger(me, role, now, o) {
   need(rolePower(role, 'stats'), 'not_owner');
-  const [S, here, rooms, errs, pst, visits] = await Promise.all([o.stats(now), cityCount(now), openRooms(now), o.errors(now), val('pstats'), val('radio/visits')]);
+  const [S, here, rooms, errs, pst, visits, spotted] = await Promise.all([o.stats(now), cityCount(now), openRooms(now), o.errors(now), val('pstats'), val('radio/visits'), val(`radio/spotted/${dayKey(now)}`)]);
   const today = dayKey(now), days = [];
   for (let k = 6; k >= 0; k--) days.push(dayKey(now - k * 864e5));
-  // (the visits a day: keep 8 days)
+  // (the visits a day: keep 8 days — CITY C: + the spotted counts)
   const V = visits || {}, gone = {}; for (const d of Object.keys(V)) if (d < dayKey(now - 8 * 864e5)) gone[d] = null;
   if (Object.keys(gone).length) await ref('radio/visits').update(gone);
+  ref('radio/spotted').orderByKey().endAt(dayKey(now - 8 * 864e5)).once('value').then(sn => { const g = {}; sn.forEach(c => { g[c.key] = null; }); if (Object.keys(g).length) return ref('radio/spotted').update(g); }).catch(() => {});
   const yest = dayKey(now - 864e5);
   let streak = 0; for (const s of Object.values(pst || {})) { const st = s && s.st; if (st && (st.d === today || st.d === yest) && st.n > streak) streak = st.n; }
   const daily = Object.fromEntries((S.games && S.games.daily || []).map(x => [x.k, x.n]));
   const t0 = new Date(now); const dayStart = now - ((t0.getUTCHours() * 60 + t0.getUTCMinutes()) * 60e3);   // (errors: the last 24 h — the list's own clock)
   return {
     now: { here, rooms: rooms.length, games: rooms.filter(r => r.status === 'playing').length },
-    today: { visitors: Object.keys(V[today] || {}).length, newPlayers: (S.today && S.today.newPlayers) || 0, matches: (S.today && S.today.matches) || 0, spotted: null, streak,
+    // (CITY C — ROOMS OPEN TAPPABLE: the open rooms as the desk already reads them — the hush word, the game, players, playing / lobby)
+    rooms: rooms.map(r => ({ code: r.code, game: r.game, players: r.players, online: r.online, status: r.status })),
+    today: { visitors: Object.keys(V[today] || {}).length, newPlayers: (S.today && S.today.newPlayers) || 0, matches: (S.today && S.today.matches) || 0, spotted: Number(spotted) || 0, streak,   // (CITY C: the real count — sightings.js counts each one)
       errors: (errs || []).filter(e => e.last > now - 864e5).length },
     week: days.map(d => ({ d, visits: Object.keys(V[d] || {}).length, games: daily[d] || 0 })),
     estimate: true, since: dayStart,

@@ -41,7 +41,7 @@ export async function founderState() {
 export async function setFounder(me, open, now = Date.now()) {
   let swept = 0;
   if (!open) swept = await founderSweep(now);
-  await ref('progress/founder').set(open ? null : { open: false, at: now, by: me });
+  await ref('progress/founder').set({ open: !!open, at: now, by: me });   // (CITY C: a REOPEN records its time too — /admin shows "OPEN since …"; nothing ever closes it but this switch)
   clearFounderCache();
   return { ...(await founderState()), swept };
 }
