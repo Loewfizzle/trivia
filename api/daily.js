@@ -155,6 +155,9 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
   body = body && typeof body === 'object' ? body : {};
   // THE CALL BUDGET (in memory — DFIX3: it never adds a wait to a dig) + the live dailies (THE GO-LIVE SWITCH, cached ~30 s)
   if (!budget(uid, now)) throw new ApiError(429, 'slow_down', 'Too many moves — wait a minute.');
+  // (CITY D — SCORES SHOWS INSTANTLY: `every` asks for its pid + the faces module WHILE the switch is read — one trip, not three)
+  const early = body.action === 'every' ? { pid: mine(uid), lb: import('./_lib/lb.js') } : null;
+  if (early) { early.pid.catch(() => {}); early.lb.catch(() => {}); }
   await openDailies(now);
   T.mark('pre');
   const today = streakDay(now);
@@ -311,13 +314,15 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       const closing = closeDays({ games, now }).then(() => sweepRuns({ games, now, settle: settleRun })).catch(() => null);
       if (!pid) { await closing; return { day, dailies, mine: {}, gated: {}, started: {}, stand: {}, lessons: {}, friends: {}, table: [], noProfile: true }; }
       const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {}, shareOf = {}, rfOf = {}, placeOf = {}, extraMine = {};
-      const [ls, createdAt] = await Promise.all([val(`pstats/${pid}/ls`), createdAtOf(pid)]);
+      // (CITY D — SCORES SHOWS INSTANTLY: the profile's own reads + YOUR TABLE's friends list start NOW, beside the dailies' reads — never after)
+      const lsP = Promise.all([val(`pstats/${pid}/ls`), createdAtOf(pid)]), pfrP = val(`pfr/${pid}`);
       const yday = prevDay(day);
       await Promise.all(games.map(async g => {
         const base = `dly/${g}/${day}`;
-        let [v, s0] = await Promise.all([val(`${base}/r/${pid}`), val(`${base}/s/${pid}`)]);
+        // (CITY D: the result, the start + the NOT COUNTED mark in ONE trip)
+        let [v, s0, xg] = await Promise.all([val(`${base}/r/${pid}`), val(`${base}/s/${pid}`), val(`${base}/x/${pid}`)]);
         // (THE DROP A: a run in flight that can never come back — or ended with no finish — is scored now, at its last checkpoint)
-        if (s0 && v == null && dailyOf(g) && dailyOf(g).abandon) { const f = await settleRun({ pid, cart: dailyOf(g), day, now, today }).catch(() => null); if (f && f.score != null) v = f.score; }
+        if (s0 && v == null && dailyOf(g) && dailyOf(g).abandon) { const f = await settleRun({ pid, cart: dailyOf(g), day, now, today }).catch(() => null); if (f && f.score != null) { v = f.score; xg = await val(`${base}/x/${pid}`); } }
         if (s0 && v == null) started[g] = true;                   // (IN PROGRESS → RESUME)
         // DFIX2 (FABLE REVIEW #2, finding 7): YESTERDAY's run still in flight (DFIX1's yesterday-key rule — a tap resumes it) reads RESUME too
         if (!s0 && v == null) {
@@ -327,15 +332,21 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         }
         if (v == null) return;
         mineScores[g] = v;
-        // (DFIX5 — THE SPOT ICONS: your finished run's extra from the server's record — COAST CLEAR's spots)
-        if (dailyOf(g) && dailyOf(g).extra) { const ex = await extraOf(dailyOf(g), base, pid, { day, now }).catch(() => null); if (ex) extraMine[g] = ex; }
-        // (PFIX-3: a run its finish could not check — the ticket says so; one small read, only for a cartridge that can rescue)
-        if (dailyOf(g) && dailyOf(g).rescue && await val(`${base}/p/${pid}/rf`)) rfOf[g] = true;
-        // (BOARD 2.0 B — SHARE TODAY: the finished run's spoiler-free share inputs from the SERVER's record, only when asked — the share tap)
-        if (body.share) { let cart = null; try { cart = cartOf(g); } catch { /* not a judged daily */ } if (cart && cart.share) { try { const [record, data] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day, now) : null]); const s = await cart.share({ record, day, startedAt: s0, data, base, pid }); if (s) shareOf[g] = s; } catch { /* the card falls back to the line */ } } }
-        if (await val(`${base}/x/${pid}`)) { gated[g] = true; return; }
-        // THE EVERYONE LINE (DM2): where a COUNTED score stands — only once the day has BAND_MIN counting finishers (never a stranger's data)
-        const [hist, n, top] = await Promise.all([val(`${base}/h`), val(`${base}/n`), dailyOf(g) ? ensureTop(dailyOf(g), base, { day, now }).catch(() => null) : null]);
+        // (CITY D: the finished run's pieces SIDE BY SIDE — the spot icons, the rescue mark, the share inputs + the EVERYONE line's numbers)
+        const shareIn = async () => { let cart = null; try { cart = cartOf(g); } catch { /* not a judged daily */ } if (cart && cart.share) { try { const [record, data] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day, now) : null]); const s = await cart.share({ record, day, startedAt: s0, data, base, pid }); if (s) shareOf[g] = s; } catch { /* the card falls back to the line */ } } };
+        const [ex, rf, , H] = await Promise.all([
+          // (DFIX5 — THE SPOT ICONS: your finished run's extra from the server's record — COAST CLEAR's spots)
+          dailyOf(g) && dailyOf(g).extra ? extraOf(dailyOf(g), base, pid, { day, now }).catch(() => null) : null,
+          // (PFIX-3: a run its finish could not check — the ticket says so; one small read, only for a cartridge that can rescue)
+          dailyOf(g) && dailyOf(g).rescue ? val(`${base}/p/${pid}/rf`) : null,
+          // (BOARD 2.0 B — SHARE TODAY: the finished run's spoiler-free share inputs from the SERVER's record, only when asked — the share tap)
+          body.share ? shareIn() : null,
+          // THE EVERYONE LINE (DM2): where a COUNTED score stands — only once the day has BAND_MIN counting finishers (never a stranger's data)
+          xg ? null : Promise.all([val(`${base}/h`), val(`${base}/n`), dailyOf(g) ? ensureTop(dailyOf(g), base, { day, now }).catch(() => null) : null])]);
+        if (ex) extraMine[g] = ex;
+        if (rf) rfOf[g] = true;
+        if (xg) { gated[g] = true; return; }
+        const [hist, n, top] = H;
         if ((n || 0) >= BAND_MIN) { const st = standing(dailyOf(g), hist || {}, n, v); stand[g] = { n, top: Math.round(st.top * 10) / 10, pct: st.pct }; }
         // DFIX5 — THE TICKET LINE = the EVERYONE place among the day's counting finishers ("4TH OF 12 TODAY"): exact inside the kept top; below it
         // (a day of more than TOP_KEEP), from the histogram (the finishers strictly better + 1)
@@ -345,13 +356,13 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       // (FRIENDS A — YOUR TABLE reads YOUR FRIENDS LIST on the server: a stranger's daily is never readable by naming their id; ≤ 12 —
       //  the phone's own pick kept to friends, else the friends you PLAYED WITH most recently, then the newest friendships)
       const picked = (Array.isArray(body.pids) ? body.pids : []).map(String).filter(isPid);
-      const pids = tablePids((await val(`pfr/${pid}`)) || {}, pid, picked.length ? picked : null, now);
+      const pids = tablePids((await pfrP) || {}, pid, picked.length ? picked : null, now);
       await Promise.all(pids.map(async p => {
         const theirs = {}, ex = {};
         await Promise.all(games.map(async g => {
-          const v = await val(`dly/${g}/${day}/r/${p}`);
+          const [v, xp] = await Promise.all([val(`dly/${g}/${day}/r/${p}`), val(`dly/${g}/${day}/x/${p}`)]);   // (CITY D: one trip)
           if (v == null) return;
-          if (await val(`dly/${g}/${day}/x/${p}`)) return;          // (DM1 — THE THROWAWAY GATE: a non-counting result never ranks at YOUR TABLE)
+          if (xp) return;          // (DM1 — THE THROWAWAY GATE: a non-counting result never ranks at YOUR TABLE)
           theirs[g] = v;
           // (DFIX5 — their spot icons, once you have played that daily too — the score's own rule)
           if (mineScores[g] != null && dailyOf(g) && dailyOf(g).extra) { const e = await extraOf(dailyOf(g), `dly/${g}/${day}`, p, { day, now }).catch(() => null); if (e) ex[g] = e; }
@@ -360,6 +371,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         for (const [g, e] of Object.entries(ex)) if (tv[g] && tv[g].score != null) tv[g].e = e;
         friends[p] = tv;
       }));
+      const [ls, createdAt] = await lsP;
       await closing;
       return { day, dailies, mine: mineScores, gated, started, startedDay, stand, place: placeOf, ...(Object.keys(extraMine).length ? { extra: extraMine } : {}), ...(Object.keys(rfOf).length ? { rf: rfOf } : {}), lessons: ls || {}, friends, table: pids, ...(body.share ? { share: shareOf } : {}),
         ...(countsOn(createdAt, day) ? {} : { countsFrom: dayStartAt(dayOf(dayNum(day) + 1)) }) };
@@ -368,17 +380,19 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       // DFIX5 — EVERYONE ON SCORES (the DAILY screen's SCORES, once a visit — never the dock's `today`): per live daily, the day's top COUNTING
       // finishers as public slim-card faces (the board id, the username — never a pid), each with its PLACE; the scores (+ COAST CLEAR's spots)
       // only once YOU have finished that daily (the YOUR TABLE rule); your friends marked; your own row when below them; `all` = up to TOP_KEEP
-      const pid = await mine(uid), day = today;
+      const pid = await (early ? early.pid : mine(uid)), day = today;
       const games = todaysDailies().filter(g => !body.game || g === body.game);
-      const [pfr, createdAt] = await Promise.all([val(`pfr/${pid}`), createdAtOf(pid)]);
-      const friendsOf = new Set(Object.keys((pfr && pfr.f) || {}));
+      // (CITY D: the friends list + the profile's age beside the dailies' reads, never before them)
+      const fP = Promise.all([val(`pfr/${pid}`), createdAtOf(pid)]), lbP = early ? early.lb : import('./_lib/lb.js');
+      fP.catch(() => {});
       const out = {};
       await Promise.all(games.map(async g => {
         const cart = dailyOf(g), base = `dly/${g}/${day}`;
         if (!cart) return;
         const [top, n, mineV, gatedX] = await Promise.all([ensureTop(cart, base, { day, now }).catch(() => []), val(`${base}/n`), val(`${base}/r/${pid}`), val(`${base}/x/${pid}`)]);
         const played = mineV != null;
-        const { publicFaces } = await import('./_lib/lb.js');
+        const [[pfr, createdAt], { publicFaces }] = await Promise.all([fP, lbP]);
+        const friendsOf = new Set(Object.keys((pfr && pfr.f) || {}));
         const faces = await publicFaces(top.map(r => r.k));
         const hidden = new Set(top.filter(r => !faces[r.k]).map(r => r.k));
         const limit = body.all === true || (Array.isArray(body.all) && body.all.includes(g)) ? TOP_KEEP : TOP_SHOW;

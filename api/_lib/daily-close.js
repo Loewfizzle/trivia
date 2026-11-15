@@ -22,18 +22,21 @@ export const forgetClosed = () => CLOSED.clear();
 
 /** every unclosed day among `games`' last LOOK_BACK days (yesterday first) closed → [{ game, day, n, winners }] for the days THIS call closed */
 export async function closeDays({ games, now = Date.now() }) {
-  const today = streakDay(now), out = [];
+  const today = streakDay(now), jobs = [];
+  // (CITY D — SCORES SHOWS INSTANTLY: the (game, day) closes are independent — each claims its own dly/{g}/{day}/c — so they run SIDE BY SIDE;
+  //  one after another they were ~21 serial database trips on a fresh function, the bulk of a cold `today`)
   for (const game of games || []) {
     for (let back = 1; back <= LOOK_BACK; back++) {
       const day = dayOf(dayNum(today) - back), key = `${game}|${day}`;
       if (CLOSED.has(key)) continue;
-      const r = await closeDay({ game, day, now }).catch(() => null);
-      if (r === null) continue;                                   // (a read failed: try again on the next call)
-      CLOSED.add(key);
-      if (r.closed) out.push(r);
+      jobs.push(closeDay({ game, day, now }).catch(() => null).then(r => {
+        if (r === null) return null;                              // (a read failed: try again on the next call)
+        CLOSED.add(key);
+        return r.closed ? r : null;
+      }));
     }
   }
-  return out;
+  return (await Promise.all(jobs)).filter(Boolean);
 }
 
 /**
@@ -46,12 +49,13 @@ const SWEPT = new Set();
 export const forgetSwept = () => SWEPT.clear();
 export async function sweepRuns({ games, now = Date.now(), settle }) {
   const today = streakDay(now), out = [];
-  for (const game of games || []) {
+  // (CITY D: each daily's sweep + its two days + its prune days side by side — independent nodes; a day's own runs still settle one by one)
+  await Promise.all((games || []).map(async game => {
     const cart = dailyOf(game);
-    if (!cart || !cart.abandon || typeof settle !== 'function') continue;
-    for (const back of [1, 2]) {
+    if (!cart || !cart.abandon || typeof settle !== 'function') return;
+    await Promise.all([1, 2].map(async back => {
       const day = dayOf(dayNum(today) - back), key = `${game}|${day}|${back}`;
-      if (SWEPT.has(key)) continue;
+      if (SWEPT.has(key)) return;
       SWEPT.add(key);
       try {
         const [starts, scores] = await Promise.all([val(`dly/${game}/${day}/s`), val(`dly/${game}/${day}/r`)]);
@@ -62,16 +66,20 @@ export async function sweepRuns({ games, now = Date.now(), settle }) {
           if (r) out.push({ game, day, pid, score: r.score });
         }
       } catch { SWEPT.delete(key); }
-    }
+    }));
     // THE PRUNE (THE DROP A's add-on — the cost check): once a day's board is final (2 days on: its run window over, every run swept above) the
     // cartridge keeps only what the boards + the anti-cheat need — its own `pr` marker makes each step once; a memo per warm function
-    if (cart.prune) for (let back = 2; back <= (cart.pruneDays || 9); back++) {
-      const day = dayOf(dayNum(today) - back), key = `${game}|${day}|prune`;
-      if (SWEPT.has(key)) continue;
-      SWEPT.add(key);
-      await cart.prune({ day, back, now }).catch(() => { SWEPT.delete(key); });
+    if (cart.prune) {
+      const days = [];
+      for (let back = 2; back <= (cart.pruneDays || 9); back++) days.push(back);
+      await Promise.all(days.map(async back => {
+        const day = dayOf(dayNum(today) - back), key = `${game}|${day}|prune`;
+        if (SWEPT.has(key)) return;
+        SWEPT.add(key);
+        await cart.prune({ day, back, now }).catch(() => { SWEPT.delete(key); });
+      }));
     }
-  }
+  }));
   return out;
 }
 

@@ -283,3 +283,5 @@ body[data-look="day"] .dy-overlay { --dy-box-line: #16305c; --dy-box-on: #2f86ff
 .dy-mark .cc-sl-head { fill: currentColor; }
 .dy-mark .cc-sl-lens { fill: var(--dy-bg-0); opacity: 0.55; }
 .dy-mark .cc-sl-stand { fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; }
+/* CITY D — SCORES SHOWS INSTANTLY: the kept scores while the fresh ones are on their way — a quiet word after the heading, never a spinner */
+.dy-upd { font-weight: 600; letter-spacing: 0.12em; color: var(--text-faint); }

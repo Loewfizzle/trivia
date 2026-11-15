@@ -153,6 +153,21 @@ function openScreen(tab0) {
   // DFIX5 — EVERYONE ON SCORES: the FRIENDS box (unchecked on every visit — never remembered), the `every` answer + its SHOW ALLs
   let friendsOnly = false, ev = null, evP = null, evAgain = false, evKey = '';
   const evAll = new Set();
+  // CITY D — SCORES SHOWS INSTANTLY (the owner: ~5 s on the morning's first open — a cold function + its first database trips): the LAST scores this
+  // phone saw today (EVERYONE today, the ALL TIME boards, YOUR TABLE's averages — kept per player in localStorage) paint AT ONCE, marked
+  // UPDATING (never blank, never a spinner); each fresh answer replaces them IN PLACE once any finger is up (repaint = afterTap); asked once a visit
+  const C0 = scoresCache(), dayNow = () => ((today && today.day) || streakDay(serverNow()));
+  const fresh0 = C0 && C0.day === dayNow() ? C0 : null;
+  let rev = 0, evCached = false, ptsCached = false;
+  const everyCached = new Set(), everyAsked = new Set();
+  if (fresh0) {
+    // (the day's list of dailies + your results as last seen: on a fresh page `today` itself waits for the same cold function)
+    if (!today && fresh0.today && Array.isArray(fresh0.today.dailies)) today = fresh0.today;
+    if (fresh0.ev) { ev = fresh0.ev; evCached = true; }
+    if (fresh0.pts) { pts = fresh0.pts; ptsCached = true; }
+    for (const [b, rows] of Object.entries(fresh0.boards || {})) if (Array.isArray(rows)) { every[b] = rows; everyCached.add(b); }
+  }
+  const upd = on => (on ? h('span.dy-upd', ' · UPDATING…') : null);
   const dropSurfaces = () => { for (const sf of surfaces) { try { sf.destroy(); } catch { /* fine */ } } surfaces = []; };
   els.head = h('header.dy-head', backBtn('Back', () => closeAll()),
     h('h1.dy-sign', { 'aria-label': 'The dailies' }, h('span.dy-sign-t', 'THE DAILIES')));
@@ -172,7 +187,7 @@ function openScreen(tab0) {
     await loadMetas(t.dailies || []);
     if (gone) return;
     // (a repaint only when something on screen changed — a tap never lands on a row that was just rebuilt)
-    const sig = JSON.stringify([tab, t, names(), pidNow(), showAll, scope, pts, Object.keys(every).filter(k => every[k] !== 'loading'), friendsOnly, ev, [...evAll]]);
+    const sig = JSON.stringify([tab, t, names(), pidNow(), showAll, scope, pts, Object.keys(every).filter(k => every[k] !== 'loading'), friendsOnly, ev, [...evAll], rev]);   // (CITY D: rev — a fresh answer over a kept one)
     if (sig === lastSig && !sweepNext && !stampNext.size) return;
     lastSig = sig;
     dropSurfaces();
@@ -295,7 +310,7 @@ function openScreen(tab0) {
   function loadEvery() {
     if (evP) { evAgain = true; return; }
     evP = lazyImport(import('../daily/contract.js'), '../daily/contract.js').then(C => C.dailyEvery([...evAll]))
-      .then(r => { ev = (r && r.every) || {}; }).catch(() => { if (!ev) ev = { down: true }; })
+      .then(r => { ev = (r && r.every) || {}; evCached = false; rev++; if (!evAll.size) keepScores({ day: (r && r.day) || dayNow(), ev }); }).catch(() => { if (!ev || evCached) { if (!ev) ev = { down: true }; } })
       .finally(() => { evP = null; if (evAgain) { evAgain = false; loadEvery(); } else if (!gone) repaint(); });
   }
   function paintEveryone(t) {
@@ -303,7 +318,7 @@ function openScreen(tab0) {
     if (key !== evKey) { evKey = key; loadEvery(); }
     for (const d of t.dailies) {
       const E = ev && !ev.down ? ev[d.id] : null;
-      const sec = h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } }, secHead(d), h('h3.dy-sub', 'EVERYONE · TODAY'));
+      const sec = h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } }, secHead(d), h('h3.dy-sub', 'EVERYONE · TODAY', upd(evCached)));
       if (!ev) sec.append(h('p.dy-quiet', '…'));
       else if (!E) sec.append(h('p.dy-quiet', 'The scores are resting. Try again in a minute.'));
       else if (!E.rows.length && !E.me) sec.append(h('p.dy-none', 'NO ONE HAS FINISHED YET'));
@@ -352,9 +367,9 @@ function openScreen(tab0) {
   // being ranked) + SEE THE FULL BOARD ›, friends marked · FRIENDS (checked) = YOUR TABLE's average a day as slim cards (ranked from MIN_DAYS
   // days played — the boards' rule; YOU below it: "3 MORE DAYS TO BE RANKED · YOUR AVERAGE 83.3"). /api down → a quiet line, never a dead panel.
   function paintAllTime(t) {
-    if (!pts && !ptsP) {
+    if ((!pts || ptsCached) && !ptsP) {
       ptsP = lazyImport(import('../daily/contract.js'), '../daily/contract.js').then(C => C.dailyPoints(((friends && friends.friends) || []).map(c => c.pid)))
-        .then(r => { pts = r || { down: true }; }).catch(() => { pts = { down: true }; }).finally(() => { if (!gone) repaint(); });
+        .then(r => { pts = r || { down: true }; ptsCached = false; rev++; if (r && !r.down) keepScores({ day: dayNow(), pts: r }); }).catch(() => { if (!pts || ptsCached) { ptsCached = false; if (!pts) pts = { down: true }; } }).finally(() => { if (!gone) repaint(); });
     }
     if (!pts) { els.body.append(h('p.dy-quiet', 'Counting up the averages…')); return; }
     for (const d of t.dailies) {
@@ -363,7 +378,7 @@ function openScreen(tab0) {
       const myRows = pts.down ? [] : allTimeRows(pts, { board, me: { pid: pidNow() || 'me', name: me().name }, names: names(), need: MIN_DAYS });
       if (!friendsOnly) {
         const evl = h('ol.board-list.is-strips.dy-cards.dy-every-list', { 'aria-label': `${d.name} — everyone, all time` });
-        els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } }, secHead(d), h('h3.dy-sub', 'EVERYONE · ALL TIME'), evl, seeBoard));
+        els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } }, secHead(d), h('h3.dy-sub', 'EVERYONE · ALL TIME', upd(everyCached.has(board) || ptsCached)), evl, seeBoard));
         paintEvery(evl, board, d, myRows.find(r => r.me) || null);
         continue;
       }
@@ -386,7 +401,11 @@ function openScreen(tab0) {
    *  board ids — `points` hands them over, never a pid), YOU framed — below the 10 your own row with your place, unranked your days to go */
   function paintEvery(ev, board, d, mine) {
     const got = every[board];
-    if (!got) { every[board] = 'loading'; lazyImport(import('../profile/api.js'), '../profile/api.js').then(A => A.board(board, 'all', { n: 100 })).then(r => { every[board] = (r && r.rows) || []; }).catch(() => { every[board] = []; }).finally(() => { if (!gone) repaint(); }); }
+    if (!got || (everyCached.has(board) && !everyAsked.has(board))) {
+      everyAsked.add(board);
+      if (!got) every[board] = 'loading';
+      lazyImport(import('../profile/api.js'), '../profile/api.js').then(A => A.board(board, 'all', { n: 100 })).then(r => { every[board] = (r && r.rows) || []; everyCached.delete(board); rev++; const kept = (scoresCache() || {}).boards || {}; keepScores({ day: dayNow(), boards: { ...kept, [board]: every[board].slice(0, 20) } }); }).catch(() => { if (!Array.isArray(every[board])) every[board] = []; everyCached.delete(board); }).finally(() => { if (!gone) repaint(); });
+    }
     if (!Array.isArray(got)) { ev.replaceWith(h('p.dy-quiet', '…')); return; }
     const ids = (pts && pts.ids) || {}, fids = new Set(ids.f || []);
     const rows = got.slice(0, TOP_SHOW).map(r => ({ ...r, me: r.id && r.id === ids.me, f: fids.has(r.id) }));
@@ -453,10 +472,11 @@ function openScreen(tab0) {
   //  repainted the whole body — the tab rebuilt under the finger, its click on a detached button. Every repaint an answer asks for waits for the
   //  tap to land (ui/tapwatch.js#afterTap — the shared layer's rule); a tap's own repaint stays at once)
   const repaint = () => afterTap(() => { if (!gone) paint(); });
-  const off = onToday(t => { today = t; repaint(); });
+  const off = onToday(t => { today = t; if (t && !t.down && Array.isArray(t.dailies) && t.dailies.length && t.day) keepScores({ day: t.day, today: t }); repaint(); });
   lazyImport(import('../profile/friends.js'), '../profile/friends.js').then(F => F.loadFriends()).then(f => { friends = f; if (!gone) repaint(); }).catch(() => {});
   paint();
-  pidReady.then(() => { if (!gone) repaint(); });
+  // (CITY D: the kept scores were another player's — a key restored on this phone: back to waiting for the fresh ones)
+  pidReady.then(() => { if (fresh0 && fresh0.pid && pidNow() && fresh0.pid !== pidNow()) { if (evCached) { ev = null; evCached = false; } if (ptsCached) { pts = null; ptsCached = false; } for (const b of everyCached) delete every[b]; everyCached.clear(); rev++; } if (!gone) repaint(); });
   loadToday({ fresh: true });
   return {
     setTab(t) { if (t !== tab) { tab = t; paint(); } },
@@ -466,6 +486,12 @@ function openScreen(tab0) {
 }
 let pidMod = null;
 const pidNow = () => (pidMod ? pidMod.myPid() : null);
+// CITY D — the kept SCORES (one entry, this player's — a restored account on the same phone never sees another's): { pid, day, ev, pts, boards }
+const SKEY = 'ns:dy:scores';
+function scoresCache() { try { const v = JSON.parse(localStorage.getItem(SKEY) || 'null'); return v && (!pidNow() || v.pid === pidNow()) ? v : null; } catch { return null; } }
+function keepScores(patch) {
+  try { const cur = scoresCache(), base = cur && cur.day === patch.day ? cur : {}; localStorage.setItem(SKEY, JSON.stringify({ ...base, ...patch, pid: pidNow(), at: Date.now() })); } catch { /* private mode: no keeping */ }
+}
 const pidReady = lazyImport(import('../profile/me.js'), '../profile/me.js').then(m => { pidMod = m; }).catch(() => {});
 /** DFIX3 — the one hint at the foot of SCORES while no friend sits at any table (the house small-caps style) */
 export const FOOT_HINT = 'ADD FRIENDS BY THEIR NAME TAG — THEIR SCORES LAND HERE';
