@@ -22,3 +22,12 @@ test('no NEW big picture committed under docs/ or screenshots/ (a new one = a JP
   assert.ok(docsBig <= BEFORE.docs, `docs/: ${docsBig} pictures over ${SMALL_KB} KB (the line: ${BEFORE.docs})`);
   assert.ok(shotsBig <= BEFORE.screenshots, `screenshots/: ${shotsBig} over ${SMALL_KB} KB (the line: ${BEFORE.screenshots})`);
 });
+
+// CITY E — THE NIGHTLY BACKUP: a backup part, a backup folder or the token file never enters this PUBLIC repo (docs/backup.md)
+test('a backup file / folder / token stays out of git (the ignore rule) and none is tracked', () => {
+  const probe = ['x/profiles.json.gz', 'NeonBackups/d20261115/index.json', 'neon-backup-2026-11-15/profiles.json.gz', 'backups/a.json', 'backup-token.txt'];
+  const out = execSync(`git check-ignore ${probe.join(' ')}`, { encoding: 'utf8' });
+  assert.equal(out.trim().split('\n').length, probe.length, out);
+  const tracked = execSync('git ls-files', { encoding: 'utf8' }).split('\n').filter(f => /\.json\.gz$|(^|\/)NeonBackups\/|(^|\/)neon-backup|backup-token/i.test(f));
+  assert.deepEqual(tracked, [], 'no backup file is tracked');
+});

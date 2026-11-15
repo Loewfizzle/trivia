@@ -1,0 +1,35 @@
+# CITY E — THE NIGHTLY BACKUP, the MAIN copy (docs/backup.md). This file lives in the PRIVATE repo Loewfizzle/neon-backups as
+# .github/workflows/backup.yml — kept here (scripts/backup/, NOT .github/) as its source; it never runs in this public repo.
+# Nightly ~4:30 am Eastern (09:30 UTC — GitHub may start a scheduled run a little late) + a manual run (Actions → nightly backup → Run).
+# ONE artifact a night, kept 14 days (GitHub prunes it — never committed to git history). The secret BACKUP_TOKEN = Vercel's BACKUP_TOKEN.
+name: nightly backup
+on:
+  schedule:
+    - cron: '30 9 * * *'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: the day
+        id: d
+        run: echo "day=$(TZ=America/New_York date +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+      - name: fetch every part + check each checksum
+        env:
+          BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
+          BASE: https://www.neonspeakeasy.com
+          WHO: gh
+          OUT: out
+        run: bash fetch.sh
+      - name: keep it 14 days
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-backup-${{ steps.d.outputs.day }}
+          path: out/
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error

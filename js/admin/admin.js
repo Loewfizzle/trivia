@@ -150,6 +150,11 @@ function shell() {
       h('div.ad-dly-shares', { id: 'ad-dly-shares' }, h('span.ad-dim', 'Loading…')),
       // DFIX3 — THE STATS (started / finished per daily, today + 7 days) + TODAY'S PLAYERS (ADD FRIEND = the ordinary friend request)
       h('div.ad-dly-stats', { id: 'ad-dly-stats' }, h('p.ad-dim', 'Loading…'))),
+    // CITY E — THE NIGHTLY BACKUP (docs/backup.md): the last pickup of each copy — GitHub (the private repo, the main copy) · the PC (the second)
+    // — its time + size; RED when older than 36 h (a night missed). A still row — no animation.
+    card('ad-backup', 'Backups', { cls: 'ad-backup' },
+      h('p.ad-dim', 'Every night ~4:30 am ET the private GitHub repo takes a copy of every durable node (kept 14 days), then the mini PC (~4:45 am, 14 days). Red = no copy for 36 hours. How to restore: docs/backup.md.'),
+      h('div.ad-bk-rows', { id: 'ad-bk-rows' }, h('span.ad-dim', 'Loading…'))),
     // PROGRESSION A — THE OUTAGE BUTTON: a day the site was down breaks nobody's streak (audited; the streak day turns at 4 am Eastern)
     card('ad-outage', 'Streak outage', { cls: 'ad-outage' },
       h('p.ad-dim', 'The site was down? Mark the day: nobody’s streak breaks over it (no freeze used, no day added). The streak day turns at 4 am Eastern.'),
@@ -172,6 +177,7 @@ function shell() {
     jumpBar(),
     grid);
   audit();
+  backups();
   outages();
   dailies(); dailyStats(); billboard();
   errors();
@@ -572,6 +578,23 @@ function goLiveRows(st) {
     r.state === 'off' ? confirmBtn('GO LIVE AT THE NEXT 4 AM', () => act(r.id, false), 'is-primary') : null,
     r.state === 'scheduled' ? confirmBtn('CANCEL', () => act(r.id, true)) : null,
     h('span.ad-dim', r.always ? 'always in the set' : r.state === 'off' ? `would open ${dayLabel(st.next)} at 4 am` : r.state === 'scheduled' ? 'opens by itself — no deploy needed' : `live since ${dayLabel(r.from)}`))));
+}
+/** CITY E — THE BACKUPS row: GITHUB · THE PC, each its last pickup (when · how big) — red past 36 h (BACKUP_LATE_H) */
+const BACKUP_LATE_H = 36;
+async function backups() {
+  const box = document.getElementById('ad-bk-rows');
+  if (!box) return;
+  try {
+    const { backup = {}, now = Date.now() } = await call('backupState');
+    const mb = n => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.round((n || 0) / 1e3)} KB`);
+    box.replaceChildren(...[['gh', 'GITHUB (private repo)'], ['pc', 'THE PC']].map(([k, label]) => {
+      const b = backup[k], late = !b || now - b.at > BACKUP_LATE_H * 3600e3;
+      return h('div.ad-row.ad-bk', { class: late ? 'is-late' : '' },
+        h('b.ad-dly-state', label),
+        h('span', b ? `${new Date(b.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${mb(b.bytes)} · ${b.parts || 0} parts` : 'never'),
+        late ? h('span.ad-tag.is-bad', b ? `${Math.round((now - b.at) / 3600e3)} H AGO` : 'NO COPY YET') : h('span.ad-dim', `${Math.round((now - b.at) / 3600e3)} h ago`));
+    }));
+  } catch (e) { box.replaceChildren(h('span.ad-dim', `Couldn’t load (${e.message || e})`)); }
 }
 async function outages(r) {
   const row = document.getElementById('ad-outage-row');

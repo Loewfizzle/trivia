@@ -434,6 +434,8 @@ export async function adminAction(uid, body, now = Date.now()) {
     // phone through the cached GET ?live=1 → radioPublic.base); turning it ON starts it from TODAY (Eastern) — the billposter pastes it at ~5 pm
     // CITY C — THE FOUNDER WINDOW at the foot of /admin: its CURRENT state (OPEN / CLOSED + since when + the founders); the switch = radioFounder
     case 'founderState': return { founder: await founderState() };
+    // CITY E — THE NIGHTLY BACKUP: the last pickup of each copy (GitHub · the PC) — progress/backup/{gh|pc} = { at, bytes, parts }
+    case 'backupState': return { backup: (await val('progress/backup')) || {}, now };
     case 'billboardState': { const [v, live] = await Promise.all([val('city2/billboard'), goLive('drop', now)]); return { billboard: holdemPublic(v), jaywalk: jaywalkPublic(v), drop: { mode: cleanDropMode(v && v.drop && v.drop.mode), live, days: schedKnob('billboard.drop').days } }; }
     // CITY B — THE DROP's face (the roof board's third): ON = 14 days from THE DROP's go-live day, then it retires by itself · OFF · KEEP ON
     // (never retires) → city2/billboard.drop (every phone through the cached feed)
@@ -567,6 +569,8 @@ export default route(['GET', 'POST'], async (req, res) => {
       res.statusCode = 200; res.setHeader('Content-Type', c.mime); res.setHeader('Content-Length', String(c.buf.length));
       res.setHeader('Cache-Control', CLIP_CACHE); res.end(c.buf); return;
     }
+    // CITY E — THE NIGHTLY BACKUP's EXPORT (api/_lib/backup.js): the x-backup-token header = env BACKUP_TOKEN (constant time; no env → 404)
+    if (q.has('backup')) { const { backupGet } = await import('./_lib/backup.js'); await backupGet(req, res); return; }
     // THE VAULT 1A — THE CARD LAB's EXPORT (ids + marks + notes, no names / profile ids; a minute at the edge)
     if (q.get('lab') === 'export') { send(res, 200, await labExport(), { 'Cache-Control': LAB_CACHE }); return; }
     if (q.get('live') !== '1') throw new ApiError(400, 'bad_action');

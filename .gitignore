@@ -71,3 +71,11 @@ docs/games/**/*.jpg
 docs/games/**/*.jpeg
 docs/games/**/*.webp
 /screenshots/
+
+# CITY E — THE NIGHTLY BACKUP: a backup file / folder / token NEVER enters this public repo (they live in the PRIVATE repo's artifacts + the
+# mini PC's C:\Users\benja\NeonBackups — docs/backup.md; tests/repo-growth.test.mjs checks the rule holds)
+*.json.gz
+NeonBackups/
+neon-backup*/
+backups/
+backup-token*.txt
