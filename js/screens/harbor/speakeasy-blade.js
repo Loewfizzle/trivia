@@ -6,10 +6,12 @@ import { rngFrom } from '../../core/rng.js';
 import { rgb, mix, shade, box, poly } from './shapes.js';
 import { faces } from './blocks.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
-import { dayPaint } from './signs.js';
+import { dayPaint, SIGN_ACC } from './signs.js';
 import { paintRoom, createWindowLife, lateOf } from './windows.js';
 import { createHushSign } from './hushsign.js';
-import { BLADE_PANELS, INK_COLS } from '../../core/harbor-speakeasy.js';
+import { BLADE_PANELS, BLADE_BULBS, BULB_GLASS, bladeGround, bladeLetterCol } from '../../core/harbor-speakeasy.js';
+import { LETTERS, hexRgb } from '../../core/marks.js';
+import { flattenPath } from '../../core/tube-path.js';
 import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
 
 // ------------------------------------------------------------------ THE BLADE SIGN (the weekly ghost ad's home — the owner's pick, 8a)
@@ -82,8 +84,9 @@ export function bladeLetters(name, bw = BLADE.bw, v0 = BLADE.v0, v1 = BLADE.v1) 
 /** paint the name (board units, v up): each letter centred in its slot, squeezed / stretched to fill the column; style: 'day' (cream +
  *  gold paint, a dark keyline, a drop shade), 'dark' (the night's unlit letters: dull paint), 'lit' (the warm-white self-lit letter
  *  + a tight glow — the live layer) */
-// SP5 — THE WEEKLY LOOK (core/harbor-speakeasy.js#bladeStyle on game.style): four Art Deco letter styles, the ink (the game's colour with a
-// white-hot core / warm white / amber), the panel's enamel — the painters repaint all of it on Mondays
+// SP5 + CITY B — THE WEEKLY LOOK (core/harbor-speakeasy.js#bladeStyle on game.style): the KIND (enamel · neon · bulb), the font, the saturated
+// panel, the letter colour (≥ 4.5 : 1 — bladeLetterCol), the bulbs' colour. BULB letters follow the tube alphabet's strokes (a bulb letter is a
+// stroke of bulbs — the fonts are the painted + the neon kinds')
 const BLADE_FONT = {
   block: FONT,                                                                                     // (a bold Deco block: Chakra Petch, stretched wide)
   condensed: px => `700 ${px}px "Chakra Petch", Orbitron, sans-serif`,                                // (a condensed marquee sans: tall, never stretched)
@@ -91,48 +94,82 @@ const BLADE_FONT = {
 };
 const BLADE_WIDE = { block: LETTER.wide, condensed: 1.08, slab: 1.55 };   // (ATM-C: 'inline' gone — it split each letter into two strokes at blade size)
 const lum3 = c => (c[0] * 0.2126 + c[1] * 0.7152 + c[2] * 0.0722);
-/** the week's ink colour for a game (the game's painted colour lifted toward white until it reads lit) */
-function bladeInk(game) {
-  const S = game.style || { ink: 'warm' };
-  if (S.ink === 'warm') return INK_COLS.warm;
-  if (S.ink === 'amber') return INK_COLS.amber;
-  let c = dayPaint(game).face;
-  for (let i = 0; i < 6 && lum3(c) < 150; i++) c = mix(c, [255, 255, 255], 0.22);
-  return c;
+const gameNeon = game => { if (SIGN_ACC[game.id]) return hexRgb(SIGN_ACC[game.id]); let c = dayPaint(game).face; for (let i = 0; i < 6 && lum3(c) < 150; i++) c = mix(c, [255, 255, 255], 0.22); return c; };
+const lookMemo = new Map();
+/** the week's look for a game: { S (the style), G (the board day / night), letter, bulb, panel } */
+export function bladeLook(game) {
+  const S = game.style || { kind: 'enamel', font: 'block', panel: 'ink', bulb: 'warm', letter: 'cream' }, k = `${game.id}|${S.kind}|${S.panel}|${S.bulb}|${S.letter}`;
+  if (!lookMemo.has(k)) lookMemo.set(k, { S, G: bladeGround(S.kind, S.panel), letter: bladeLetterCol(S, gameNeon(game)), bulb: BLADE_BULBS[S.bulb] || BLADE_BULBS.warm, panel: BLADE_PANELS[S.panel] || BLADE_PANELS.ink });
+  return lookMemo.get(k);
 }
-const bladePanel = game => BLADE_PANELS[(game.style && game.style.panel) || 'navy'] || BLADE_PANELS.navy;
+/** a BULB letter's bulbs (board units): points every BULB.pitch along the tube alphabet's strokes, scaled into the letter's slot */
+export const BULB = Object.freeze({ pitch: 0.2, r: 0.074 });
+function bulbPoints(ch, cx, vb, cap, cw) {
+  const d = LETTERS[ch]; if (!d) return [];
+  // (the glyph 80 % of the cap, centred: a gap of ≥ one bulb pitch between letters — else their bulbs run together)
+  const gh = cap * 0.8, gw = Math.min(cw * 0.86, gh * 0.85), sx = gw / 10, sy = gh / 14, y0 = vb + (cap - gh) / 2, pts = [];
+  for (const pl of flattenPath(d, 1, 0, 0, 1)) {
+    const P = pl.pts.map(([px, py]) => [cx + (px - 5) * sx, y0 + gh - py * sy]);
+    let acc = BULB.pitch;
+    for (let i = 1; i < P.length; i++) {
+      const [ax, ay] = P[i - 1], [bx, by] = P[i], L = Math.hypot(bx - ax, by - ay);
+      for (let t = 0; t < L; t += 0.01) { acc += 0.01; if (acc >= BULB.pitch) { acc = 0; pts.push([ax + (bx - ax) * t / L, ay + (by - ay) * t / L]); } }
+    }
+    if (pl.closed !== true) pts.push(P[P.length - 1]);
+  }
+  return pts.filter((p, i) => pts.findIndex(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < BULB.pitch * 0.62) === i);
+}
+const dot = (x, u, v, r, col, a = 1) => { x.fillStyle = rgb(col, a); x.beginPath(); x.arc(u, v, r, 0, Math.PI * 2); x.fill(); };
+const glowDot = (x, u, v, r, col, a) => { const g = x.createRadialGradient(u, v, 0, u, v, r); g.addColorStop(0, rgb(col, a)); g.addColorStop(0.35, rgb(col, a * 0.45)); g.addColorStop(1, rgb(col, 0)); x.fillStyle = g; x.beginPath(); x.arc(u, v, r, 0, Math.PI * 2); x.fill(); };
+/** paint the name (board units, v up): style 'day' (painted / unlit glass), 'dark' (the night's unlit letters), 'lit' (the live layer) */
 export function paintLetters(x, game, style, M) {
-  const L = bladeLetters(game.name || game.id), S = game.style || { font: 'block', ink: 'warm', panel: 'navy' }, font = BLADE_FONT[S.font] || FONT, wide = BLADE_WIDE[S.font] || LETTER.wide;
-  const ink = bladeInk(game), panel = bladePanel(game);
+  const L = bladeLetters(game.name || game.id), LK = bladeLook(game), S = LK.S, font = BLADE_FONT[S.font] || FONT, wide = BLADE_WIDE[S.font] || LETTER.wide, ink = LK.letter;
   x.save(); x.font = font(100); const cap = (x.measureText('H').actualBoundingBoxAscent || 70) / 100; x.restore();
   for (const col of L.cols) [...col.word].forEach((ch, i) => {
     const size = col.cap / cap, vb = col.top - col.lh * (i + 1) + (col.lh - col.cap) / 2;
+    if (S.kind === 'bulb') {
+      // BULB LETTERS: by day glass globes in their sockets, at night the bulbs' own light (a hot core + a soft halo)
+      const vb2 = col.top - col.lh * (i + 1) + (col.lh - col.cap) / 2, r = BULB.r;
+      for (const [u, v] of bulbPoints(ch, col.cx, vb2, col.cap, L.cw)) {
+        if (style === 'lit') { glowDot(x, u, v, r * 3.2, LK.bulb, 0.6); dot(x, u, v, r * 1.12, mix(LK.bulb, [255, 255, 255], 0.5)); dot(x, u, v, r * 0.62, mix(LK.bulb, [255, 255, 255], 0.88)); }
+        else { dot(x, u, v, r * 1.3, mix(M.iron || [40, 36, 40], [0, 0, 0], 0.3)); dot(x, u, v, r, style === 'day' ? mix(BULB_GLASS, LK.bulb, 0.18) : mix(LK.bulb, LK.G.night, 0.72)); if (style === 'day') dot(x, u - r * 0.3, v + r * 0.3, r * 0.34, [255, 255, 255], 0.8); }
+      }
+      return;
+    }
     // (one stretch for every letter, from an H: an I stays a narrow stroke, never a block)
     x.save(); x.font = font(size * 100); const nat = x.measureText('H').width / 100, own = x.measureText(ch).width / 100; x.restore();
     const sq = Math.max(0.6, Math.min(wide, (L.cw * LETTER.fill) / Math.max(1e-3, nat), (L.cw * 0.98) / Math.max(1e-3, own)));   // (a wide M / W never past its column)
-    if (style === 'day') {
-      const paintCol = S.ink === 'game' ? mix(ink, [255, 255, 255], 0.1) : S.ink === 'amber' ? INK_COLS.amber : [246, 232, 196];
-      // (ATM-C: the painted letters' offset shadow SUBTLE — a soft depth, never a second outline beside the letter)
-      text(x, ch, col.cx + size * 0.025, vb - size * 0.025, size, { fill: rgb(mix(M.giltLo, [10, 10, 20], 0.3), 0.32), sq, font });
-      text(x, ch, col.cx, vb, size, { fill: rgb(mix(paintCol, M.inside, 0.5 * M.night)), stroke: rgb(mix(S.ink === 'game' ? mix(ink, [20, 20, 30], 0.45) : M.gilt, M.inside, 0.5 * M.night)), lw: size * 0.07, sq, font });
-    } else if (style === 'dark') { text(x, ch, col.cx, vb, size, { fill: rgb(M.letterN), stroke: rgb(M.letterN), lw: size * 0.06, sq, font }); }
-    else {
-      // (9e — the owner: "a weird font or effect on the vertical blade sign": the WHITE-HOT CORE was a second, 80 %-size letter shifted up
-      //  inside a coloured letter with a thick edge — the two never lined up, so every letter read as a hollow outlined tile. Now ONE clean
-      //  letter: near-white (a breath of the game's colour), a thin edge in its colour, the glow in its colour — a lit sign, one shape)
-      const body = mix(ink, [255, 252, 244], 0.8), edge = mix(ink, [255, 255, 255], 0.35);
-      text(x, ch, col.cx, vb, size, { fill: rgb(body), stroke: rgb(edge), lw: size * 0.045, sq, font, glow: [M.glowPx, rgb(ink, 0.95)] });
+    const keyCol = lum3(ink) > 128 ? mix(ink, [10, 8, 14], 0.62) : mix(ink, [255, 255, 255], 0.5);
+    if (S.kind === 'neon') {
+      // NEON TUBES: by day pale unlit glass on the dark board; at night ONE clean letter in its colour, a white-hot body, its glow (9e: never a
+      // second letter inside the first)
+      if (style === 'day') text(x, ch, col.cx, vb, size, { fill: rgb(mix(ink, [236, 236, 242], 0.55)), stroke: rgb(mix(ink, [10, 10, 16], 0.5)), lw: size * 0.05, sq, font });
+      else if (style === 'dark') text(x, ch, col.cx, vb, size, { fill: rgb(mix(ink, LK.G.night, 0.7)), sq, font });
+      else text(x, ch, col.cx, vb, size, { fill: rgb(mix(ink, [255, 255, 255], 0.42)), stroke: rgb(mix(ink, [255, 255, 255], 0.12)), lw: size * 0.05, sq, font, glow: [M.glowPx * 2.2, rgb(ink, 1)] });
+      return;
     }
+    // ENAMEL: flat painted letters + a keyline + a soft shade; at night the floodlit board (paintBlade's lit layer) shows them in their paint
+    if (style === 'day') {
+      text(x, ch, col.cx + size * 0.025, vb - size * 0.025, size, { fill: rgb([10, 8, 14], 0.3), sq, font });
+      text(x, ch, col.cx, vb, size, { fill: rgb(mix(ink, M.inside, 0.5 * M.night)), stroke: rgb(mix(keyCol, M.inside, 0.5 * M.night)), lw: size * 0.06, sq, font });
+    } else if (style === 'dark') text(x, ch, col.cx, vb, size, { fill: rgb(M.letterN), stroke: rgb(M.letterN), lw: size * 0.06, sq, font });
+    else text(x, ch, col.cx, vb, size, { fill: rgb(ink), stroke: rgb(keyCol), lw: size * 0.06, sq, font, glow: lum3(ink) > 128 ? [M.glowPx * 0.5, rgb(ink, 0.5)] : null });
   });
 }
 /** the board, painted (by day / the night's unlit board: the baked layer; lit: only what lights — the letters + the bulbs' glass) */
 export function paintBlade(x, M, game, lit = false) {
   const B = BLADE, p = dayPaint(game), bw = B.bw, v0 = B.v0, v1 = B.v1, r = rngFrom(17), outline = bladeOutline(bw, v0, v1);
+  const LK = bladeLook(game), e0 = MARQUEE.edge;
   if (lit) {
+    // (CITY B: the ENAMEL board FLOODLIT by its marquee at night — the week's colour reads after dark; brightest under the crest's bulbs)
+    if (LK.S.kind === 'enamel') {
+      const g = x.createLinearGradient(0, v1, 0, v0); g.addColorStop(0, rgb(mix(LK.G.night, LK.bulb, 0.12))); g.addColorStop(0.25, rgb(LK.G.night)); g.addColorStop(1, rgb(mix(LK.G.night, [0, 0, 0], 0.18)));
+      x.fillStyle = g; x.beginPath(); bladeOutline(bw - 2 * e0, v0 + e0, v1 - e0).forEach(([a, b], i) => (i ? x.lineTo(a + e0, b) : x.moveTo(a + e0, b))); x.closePath(); x.fill();
+    }
     paintLetters(x, game, 'lit', M);
     return;
   }
-  const PN = bladePanel(game), enamel = tri(M.T, PN, mix(PN, [60, 44, 30], 0.18), mix(PN, [0, 0, 0], 0.55)), giltE = mix(M.gilt, enamel, 0.15);   // (SP5: the week's panel colour, by the time of day)
+  const PN = LK.G.day, enamel = LK.S.kind === 'neon' ? tri(M.T, PN, PN, mix(PN, [0, 0, 0], 0.3)) : tri(M.T, PN, mix(PN, [60, 44, 30], 0.18), mix(PN, [0, 0, 0], 0.5)), giltE = mix(M.gilt, enamel, 0.15);   // (the week's board, by the time of day)
   // the iron brackets from the wall (scrolled arms) at the top and the foot
   x.strokeStyle = rgb(M.iron); x.lineWidth = 0.07; x.lineCap = 'round';
   for (const v of [v1 - 0.55, v0 + 0.35]) { x.beginPath(); x.moveTo(-B.out, v); x.lineTo(0.1, v); x.stroke(); x.beginPath(); x.arc(-B.out * 0.45, v - 0.12, 0.09, 0, Math.PI * 1.6); x.stroke(); }
@@ -141,16 +178,14 @@ export function paintBlade(x, M, game, lit = false) {
   const e = MARQUEE.edge;
   { const g = x.createLinearGradient(0, 0, bw, 0); g.addColorStop(0, rgb(shade(enamel, -0.25))); g.addColorStop(0.35, rgb(shade(enamel, 0.18 * (M.day + M.gold)))); g.addColorStop(1, rgb(shade(enamel, -0.12)));
     x.fillStyle = g; x.beginPath(); bladeOutline(bw - 2 * e, v0 + e, v1 - e).forEach(([a, b], i) => (i ? x.lineTo(a + e, b) : x.moveTo(a + e, b))); x.closePath(); x.fill(); }
-  // the game's colour: a thin pinstripe just inside the frame (the board's identity — the name itself is the theatre's white + gold)
-  { const pc = mix(p.face, enamel, 0.25 + 0.55 * M.night), q = 0.14;
-    x.strokeStyle = rgb(pc); x.lineWidth = 0.035; x.beginPath(); bladeOutline(bw - 2 * q, v0 + q, v1 - q).forEach(([a, b], i) => (i ? x.lineTo(a + q, b) : x.moveTo(a + q, b))); x.closePath(); x.stroke(); }
+  // (CITY B: the game's pinstripe is gone — a sub-pt line; the board's own colour is the week's identity now)
   // the name: painted cream + gold by day (the night's bake: the letters' dull paint — the live layer lights them)
   paintLetters(x, game, M.night > 0.5 ? 'dark' : 'day', { ...M, letterN: mix([120, 108, 92], enamel, 0.55) });
   // the weather: a few chips in the enamel at the edges, a rain streak from the crest
   for (let i = 0; i < 12; i++) { const ed = r() < 0.5, u = ed ? e + r() * 0.08 : bw - e - 0.1 + r() * 0.08, v = v0 + 0.2 + r() * (v1 - v0 - 0.8); R(x, u, v, u + 0.03 + r() * 0.04, v + 0.03 + r() * 0.06, rgb(mix(enamel, [120, 110, 100], 0.4), 0.7)); }
   streak(x, bw * 0.7, v1 - 0.5, 0.1, 1.4, M.soot, 0.14 * (M.day + M.gold));
   // THE MARQUEE'S BULBS (crest + foot): a dark socket ring, the glass globe — unlit: pale glass + a highlight (the live layer lights them)
-  const glass = mix(tri(M.T, [226, 222, 210], [240, 214, 180], [44, 40, 52]), [255, 255, 255], 0.1), ring = shade(M.iron, 0.25);
+  const glass = mix(mix(tri(M.T, [226, 222, 210], [240, 214, 180], [44, 40, 52]), [255, 255, 255], 0.1), LK.bulb, 0.28 * (1 - 0.6 * M.night)), ring = shade(M.iron, 0.25);   // (CITY B: the glass tinted the week's bulb colour)
   for (const [u, v] of marqueeBulbs(bw, v0, v1)) {
     x.fillStyle = rgb(ring); x.beginPath(); x.arc(u, v, MARQUEE.r * 1.32, 0, Math.PI * 2); x.fill();
     x.fillStyle = rgb(glass); x.beginPath(); x.arc(u, v, MARQUEE.r, 0, Math.PI * 2); x.fill();

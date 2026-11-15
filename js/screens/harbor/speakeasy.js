@@ -25,7 +25,7 @@ import { createHushSign } from './hushsign.js';
 import { wallVP } from '../../core/harbor-rooms.js';
 import { frontProfile } from './strings.js';
 import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
-import { BLADE, BLADE_GLOW, bladeGeo, bladeOutline, MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, LETTER, BLADE_SPLIT, BLADE_ONE, bladeWords, bladeLetters, paintLetters, paintBlade } from './speakeasy-blade.js';
+import { BLADE, BLADE_GLOW, bladeGeo, bladeOutline, MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, LETTER, BLADE_SPLIT, BLADE_ONE, bladeWords, bladeLetters, paintLetters, paintBlade, bladeLook } from './speakeasy-blade.js';
 import { paintStructure, paintFrontDeco, DATE, paintDateStone, paintWindow, paintGround, WASH, washCone, smooth, paintWashers, paintWasherLamps, paintLight, bladeStep, speakeasySteps, paintSideLeaf, paintShopLeaf } from './speakeasy-bake.js';
 export * from './speakeasy-geo.js';
 export * from './speakeasy-blade.js';
@@ -197,23 +197,23 @@ export function createSpeakeasy() {
   // THE MARQUEE's lit bulbs, all in one sprite over the blade (screen pt + a halo's pad): each a crisp warm-white globe (the hot core) + a
   // small TIGHT halo (none at tier 0) at its level (steady; the party's slow chase: marqueeLevel)
   let bulbCv = null, bulbKey = '', bulbAt = null;
-  function paintBulbs(a, tier, pk, beats, beatU) {
+  function paintBulbs(a, tier, pk, beats, beatU, col) {
     const S = marqueeScreen(bladeGeo(G)), pad = S[0].r * MARQUEE.halo + 2;
     const x0 = Math.min(...S.map(b => b.x)) - pad, y0 = Math.min(...S.map(b => b.y)) - pad, x1 = Math.max(...S.map(b => b.x)) + pad, y1 = Math.max(...S.map(b => b.y)) + pad;
     bulbAt = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
     bulbCv = bulbCv || document.createElement('canvas'); bulbCv.width = Math.ceil(bulbAt.w * dpr); bulbCv.height = Math.ceil(bulbAt.h * dpr);
     const x = safeCtx(bulbCv); x.setTransform(dpr, 0, 0, dpr, -x0 * dpr, -y0 * dpr); x.clearRect(x0, y0, bulbAt.w, bulbAt.h);
-    bulbsInto(x, a, tier, pk, beats, beatU);
+    bulbsInto(x, a, tier, pk, beats, beatU, col);
   }
   /** the lit bulbs painted into x (in pt): the sprite above, or 9c's crisp layer at full dpr */
-  function bulbsInto(x, a, tier, pk, beats, beatU) {
+  function bulbsInto(x, a, tier, pk, beats, beatU, col = [255, 214, 150]) {   // (CITY B: col — the week's bulb colour)
     const S = marqueeScreen(bladeGeo(G));
     x.globalCompositeOperation = 'lighter';
     for (const b of S) {
       const lv = marqueeLevel(b.i, pk, beats, beatU) * a * (b.i === dead.i ? dead.k : 1);   // (8b1: a dead bulb — the repairman's next morning)
-      if (tier !== 0) soft(x, [255, 206, 140], b.x, b.y, b.r * MARQUEE.halo, 0.55 * lv);
-      soft(x, [255, 236, 196], b.x, b.y, b.r * 1.7, 0.9 * lv);
-      soft(x, [255, 252, 240], b.x, b.y, b.r * 0.95, lv);
+      if (tier !== 0) soft(x, mix(col, [255, 190, 120], 0.12), b.x, b.y, b.r * MARQUEE.halo, 0.6 * lv);
+      soft(x, mix(col, [255, 255, 255], 0.45), b.x, b.y, b.r * 1.7, 0.9 * lv);
+      soft(x, mix(col, [255, 255, 255], 0.85), b.x, b.y, b.r * 0.95, lv);
     }
   }
   // FP — A SOFT GLOW (the owner: the sconce + the shop's lamp read as hard-edged blobs): a near-gaussian falloff, no knee, per colour
@@ -617,9 +617,9 @@ export function createSpeakeasy() {
       const pt = f.party, pk = pt && f.motion ? clamp01(pt.ramp == null ? 1 : pt.ramp) : 0;
       // (one sprite of every lit bulb, re-painted only when the level or the chase steps — a steady night is one drawImage a frame)
       const beats = pt ? pt.beats || 0 : 0, fq = pt ? Math.round(clamp01((pt.beatU || 0) * 3) * 4) / 4 : 1, aq = Math.round(a * 16) / 16;
-      const bk = `${dead.i}:${dead.k}|${aq}|${f.tier === 0 ? 0 : 1}|${pk > 0.01 ? `${((beats % 3) + 3) % 3}|${fq}|${Math.round(pk * 8)}` : 's'}|${dpr}|${G.K.toFixed(2)}`;
-      if (bk !== bulbKey) { bulbKey = bk; paintBulbs(aq, f.tier, pk, beats, fq / 3); }
-      const crispB = CR && bulbAt && CR.show(c, { id: 'blade-bulbs', z: 3, box: bulbAt, key: `${bk}|${CR.dpr}`, alpha: 1, draw: x => bulbsInto(x, aq, f.tier, pk, beats, fq / 3) });
+      const bcol = bladeLook(f.game).bulb, bk = `${bcol}|${dead.i}:${dead.k}|${aq}|${f.tier === 0 ? 0 : 1}|${pk > 0.01 ? `${((beats % 3) + 3) % 3}|${fq}|${Math.round(pk * 8)}` : 's'}|${dpr}|${G.K.toFixed(2)}`;
+      if (bk !== bulbKey) { bulbKey = bk; paintBulbs(aq, f.tier, pk, beats, fq / 3, bcol); }
+      const crispB = CR && bulbAt && CR.show(c, { id: 'blade-bulbs', z: 3, box: bulbAt, key: `${bk}|${CR.dpr}`, alpha: 1, draw: x => bulbsInto(x, aq, f.tier, pk, beats, fq / 3, bcol) });
       if (!crispB && bulbCv && bulbAt) { c.globalAlpha = 1; c.drawImage(bulbCv, bulbAt.x, bulbAt.y, bulbAt.w, bulbAt.h); }
       c.globalCompositeOperation = 'source-over';
     }

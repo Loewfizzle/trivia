@@ -127,7 +127,7 @@ test('the remote panel: &force=billboard-jaywalk (+ &jaywalk=) + &force=trivisio
   const r = readFileSync(new URL('../js/core/harbor-remote.js', import.meta.url), 'utf8');
   assert.match(r, /\{ id: 'billboard-jaywalk', [^\n]*inputs: \['jaywalk'\]/);
   assert.match(r, /\{ id: 'trivision', /);
-  assert.match(r, /'holdem', 'jaywalk'\];/);
+  assert.match(r, /'holdem', 'jaywalk'[,\]]/);   // (CITY B: the blade look's inputs follow)
 });
 
 // CITY A — item 7, THE BILLBOARD FLASH: the slats HOLD the new face until its bake has landed (no fixed 3 s); N faces (CITY B's THE DROP)

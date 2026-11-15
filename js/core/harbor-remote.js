@@ -22,7 +22,7 @@ import { SHOWCASE_LEVELS } from './harbor-showcase.js';
 import { knob } from './harbor-schedule.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
-export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'showcase', 'hint', 'horn', 'hum', 'depart', 'round', 'min', 'holdem', 'jaywalk'];
+export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'showcase', 'hint', 'horn', 'hum', 'depart', 'round', 'min', 'holdem', 'jaywalk', 'bk', 'bf', 'bp', 'bb'];
 /** SP5 — CLEAR ALL = THE REAL CITY NOW (the owner): every PREVIEW flag a link may carry — the panel's keys (not the tools &debug / &grid)
  *  + the previews' own extras (&moment, &hush, &letter, &ad, &season, &n, &wind, &rained, &tagms) + &at (a place for the sun WITH A FORCED
  *  CLEAR SKY — core/sky.js#skyClock — so it is a preview too: the real city is the zone's city with its LIVE weather). &tz, &city (an
@@ -58,7 +58,12 @@ export const INPUTS = {
   // (SCHED Group 4: which billboard hint the preview loops — core/harbor-billboard.js)
   hint: { kind: 'select', label: 'HINT', options: ['fireworks', 'party', 'lookup', 'postcard'], default: 'fireworks' },
   holdem: { kind: 'select', label: 'THE BAR', options: ['soon', 'open'], default: 'soon' },
-  jaywalk: { kind: 'select', label: 'THE BAR', options: ['soon', 'open'], default: 'soon' },   // (THE TRI-VISION: JAYWALK's COMING SOON · NOW OPEN)   // (CITY FIXES + HOLD'EM: COMING SOON · NOW OPEN)
+  jaywalk: { kind: 'select', label: 'THE BAR', options: ['soon', 'open'], default: 'soon' },
+  // (CITY B — THE BLADE'S WEEKLY LOOK: any part of the speakeasy blade's look; '' = the week's own — core/harbor-speakeasy.js#bladeStyle)
+  bk: { kind: 'select', label: 'KIND', options: ['', 'enamel', 'neon', 'bulb'], labels: { '': 'THE WEEK’S' } },
+  bf: { kind: 'select', label: 'FONT', options: ['', 'block', 'condensed', 'slab'], labels: { '': 'THE WEEK’S' } },
+  bp: { kind: 'select', label: 'PANEL', options: ['', 'red', 'cobalt', 'emerald', 'plum', 'mustard', 'teal', 'orange', 'rose', 'ink', 'cream'], labels: { '': 'THE WEEK’S' } },
+  bb: { kind: 'select', label: 'BULBS', options: ['', 'warm', 'gold', 'red', 'blue', 'green', 'pink'], labels: { '': 'THE WEEK’S' } },   // (THE TRI-VISION: JAYWALK's COMING SOON · NOW OPEN)   // (CITY FIXES + HOLD'EM: COMING SOON · NOW OPEN)
   // (9g — THE SOUNDS NOBODY HAS HEARD: the owner picks by ear — core/city-sounds.js#SOUND_PICKS; '' = the default: PROM — HORN B, HUM A, DEPART LAYERED)
   horn: { kind: 'select', label: 'HORN', options: ['', 'a', 'c'], labels: { '': 'B · THE OLD HORN', a: 'A · DESTROYER', c: 'C · SYNTHESIZED' } },
   hum: { kind: 'select', label: 'HUM', options: ['', 'b'], labels: { '': 'A · HOVER ENGINE', b: 'B · DEEP THROB' } },
@@ -264,6 +269,7 @@ export const EVENTS = [
   { id: 'billboard-holdem', label: 'THE HOLD’EM BILLBOARD', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['holdem'], kw: 'texas holdem poker coming soon now open roof billboard ad poster chip', hint: 'CITY FIXES + HOLD’EM: the roof board’s base poster (COMING SOON / NOW OPEN) from today on this phone — the billposter pastes it at his ~5 pm slot (+ &force=work-billposter); the owner’s real switch is /admin → THE BILLBOARD' },
   { id: 'billboard-jaywalk', label: 'THE JAYWALK POSTER', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['jaywalk'], kw: 'jaywalk coming soon now open roof billboard poster tri-vision kid hop', hint: 'THE TRI-VISION: the roof board’s second face (JAYWALK — COMING SOON / NOW OPEN) from today on this phone — the board turns HOLD’EM ↔ JAYWALK every 45–60 s (+ &force=trivision for a turn every 8 s); the owner’s real switch is /admin → THE BILLBOARD' },
   { id: 'trivision', label: 'THE TRI-VISION · A TURN EVERY 8 s', cat: 'signs', group: 'THE CITY’S NEON', kw: 'tri-vision trivision billboard slats turn ripple jaywalk holdem', hint: 'THE TRI-VISION: the roof board’s slats turn HOLD’EM ↔ JAYWALK every 8 s (the look review) instead of every 45–60 s' },
+  { id: 'blade-look', label: 'THE BLADE’S WEEKLY LOOK', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['bk', 'bf', 'bp', 'bb'], kw: 'speakeasy blade enamel neon bulb panel font colour week look', hint: 'CITY B: the speakeasy blade in any combo — KIND (enamel · neon tubes · bulb letters), FONT, PANEL, BULBS (the link: &blade=<kind>-<font>-<panel>-<bulb>, any part)' },
   { id: 'sign-jaywalk', label: 'JAYWALK ON THE SIGNS', cat: 'signs', group: 'THE CITY’S NEON', kw: 'jaywalk signs released hotel blade jay walk roof sign speakeasy playable', hint: 'CITY B: JAYWALK joins every sign as if released (this phone only) — the hotel blade stacks it JAY / WALK, a roof sign JAY / WALK, the speakeasy blade in its turn; the real switch is its GAMES row turning playable' },
   { id: 'billboard-hints', label: 'THE BILLBOARD’S HINTS', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['hint'], hint: 'the speakeasy’s billboard as a message board: 20 s of a hint, 10 s of the game, looping (SCHED)' },
   { id: 'roof-breath', label: 'ROOF SIGNS · BREATH', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'a slow brighten / dim, never off' },

@@ -1636,12 +1636,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return null;
   }
   // PART 7a: the speakeasy's bake inputs — this week's GHOST AD (the same for everyone: core/harbor-speakeasy.js), the month (the ivy)
+  // (CITY B: &blade=<kind>-<font>-<panel>-<bulb>, or the panel's THE BLADE'S WEEKLY LOOK row — &force=blade-look + &bk &bf &bp &bb)
+  const bladeForce = () => qp.get('blade') || (clock.force.has('blade-look') ? ['bk', 'bf', 'bp', 'bb'].map(k => qp.get(k)).filter(Boolean).join('-') : null) || null;
   const playable = signGames;   // (CITY B: the ghost ad rotates the PLAYABLE games only — core/harbor-neon.js#signRoster)
   let speakMemo = null, trRevealSeen = false;
   // (8b1 — THE SIGN PAINTERS: on Monday the blade keeps LAST week's name until they've finished repainting it, ~4 pm)
   function speakCtxFor(ms) {
     const id = ghostAdGame(ms, playable.map(g => g.id), null), g = playable.find(g => g.id === id) || null;
-    return { game: g ? { ...g, style: bladeStyle(adWeek(ms), qp.get('blade')) } : null };   // (SP5: the week's letter style + colours)
+    return { game: g ? { ...g, style: bladeStyle(adWeek(ms), bladeForce()) } : null };   // (SP5: the week's letter style + colours)
   }
   function bladeMs() {
     const ms = clock.now(), tr = pplLive0() ? (people.crew() || {}).traces : null;
@@ -1671,7 +1673,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (WIN2 — the owner: the right pier's wall-washer is removed ONLY while the lobby sign is lit, so the hush word grows to ~17 pt; the
     // facade re-bakes through the city's crossfade — a smooth swap — when the sign comes or goes)
     const hushLit = !!hushPreview();
-    const g0 = playable.find(g => g.id === id) || null, style = bladeStyle(adWeek(bladeMs()), qp.get('blade'));   // (SP5: the week's blade look; &blade=<font>-<ink>-<panel> previews one)
+    const g0 = playable.find(g => g.id === id) || null, style = bladeStyle(adWeek(bladeMs()), bladeForce());   // (SP5: the week's blade look; &blade=<font>-<ink>-<panel> previews one)
     const v = { game: g0 ? { ...g0, style } : null, hushLit, key: `${id}|${style.key}|${hushLit ? 'h' : ''}` };
     speakMemo = { at: now, cms, v };
     return v;
