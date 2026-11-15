@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" class="vl-lab-html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Full cards — preview</title>
+<!-- CITY C — the REAL full cards (js/vault/full.js#fullCardEl) without Firebase, one under the other, each with its live effect:
+     ?cards=card-founder,card-dev-switchboard,…  &fd=1 (a FOUNDING MEMBER)  &no=12 (MEMBER Nº)  &lv=12  &name=AMBER  &still=1 (reduced motion)
+     &gilded=1 (+ THE GILDED fallback card — progress/card.js) · &strip=1 (+ each card's slim strip under it). The local server only. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/vault.css">
+<link rel="stylesheet" href="/css/progress.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>html, body { margin: 0; background: #05060f; color: #fff; } #app { max-width: 520px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+  .lbl { font: 700 11px var(--font-ui); letter-spacing: .2em; color: #9aa0c0; }</style>
+</head>
+<body>
+<main id="app"></main>
+<script type="module">
+import { registerLabText, registerLabChanges } from '/js/vault/catalog.js';
+import { LAB_TEXT, LAB_CHANGES } from '/__dev/api-lib/lab-text.js';
+import '/__dev/api-lib/catalog.js';
+registerLabText(LAB_TEXT); registerLabChanges(LAB_CHANGES);
+import { fullCardEl, mountFull } from '/js/vault/full.js';
+import { stripEl, fxOpts, LOOKS, vaultSheet } from '/js/vault/strip.js';
+import { gildedCard } from '/js/progress/card.js';
+import { createSurface, setFxReduced } from '/js/fx/renderer.js';
+import { FX } from '/js/fx/index.js';
+import { installEmblems } from '/js/ui/emblems.js';
+import { h } from '/js/ui/dom.js';
+installEmblems(); vaultSheet();
+const q = new URLSearchParams(location.search);
+if (q.get('still') === '1') setFxReduced(true);
+const app = document.getElementById('app');
+const cards = (q.get('cards') || 'card-founder,card-dev-switchboard,card-emerald').split(',').filter(Boolean);
+const who = { name: q.get('name') || 'AMBER', lv: Number(q.get('lv') || 12), avatar: 'hex', color: 'yellow', at: Date.UTC(2026, 10, 3), no: q.get('no') || '0012', fd: q.get('fd') === '1' };
+const surface = createSurface(app, { label: 'preview' });
+for (const id of cards) {
+  app.append(h('div.lbl', id));
+  const el = fullCardEl({ card: id, who: { ...who, ...(id.startsWith('card-dev-') ? { name: 'BEN', lv: 41, no: '0001', avatar: 'star', color: 'cyan' } : {}) }, spotted: Date.UTC(2026, 10, 3, 3, 14) });
+  app.append(el); mountFull(surface, el, id, { seed: 3 });
+  if (q.get('strip') === '1') { const s = stripEl({ card: id, name: who.name, lv: who.lv, no: who.no }); app.append(s); const look = LOOKS[id]; if (look && look.fx && FX[look.fx]) surface.add(s, FX[look.fx], fxOpts(id, { seed: 1, calm: 1, radius: 12 })); }
+}
+if (q.get('gilded') === '1') { app.append(h('div.lbl', 'THE GILDED (fallback)')); app.append(gildedCard({ n: who.name, a: 'hex', c: 'yellow', x: 9000, at: who.at, fd: who.fd, mn: Number(who.no) })); }
+document.fonts.ready.then(() => setTimeout(() => { document.body.dataset.ready = '1'; }, 900));
+</script>
+</body>
+</html>

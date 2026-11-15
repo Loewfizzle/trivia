@@ -128,6 +128,11 @@ function tierBadge(t, dev) {
   return h('span.vl-fc-gem', { class: dev ? 'is-1of1' : null, dataset: { tier: dev ? 'dev' : t } },
     dev ? h('b.vl-fc-1of1', h('i.vl-fc-1of1-t', ONE_OF_ONE)) : null, gemEl(dev ? null : t, { dev }));   // (its size: css/vault.css; B2: the rainbow on the inner span, the backing on the outer)
 }
+/** CITY C — the card's gold-FOIL line under the top line → 'PROPRIETOR' (the owner's DEV cards) | 'FOUNDING MEMBER' | null */
+export function foilOf(card, who = {}, sighting = false) {
+  if (isDevCard(card)) return 'PROPRIETOR';
+  return who && who.fd && !sighting && !isGiftCard(card) && card !== 'card-founder' ? 'FOUNDING MEMBER' : null;
+}
 /** the sighting cards rebuilt on Grok's art (the standard full-card layout — vault/layout.js keeps the plate off their hero) */
 export const ART_SIGHTINGS = new Set(['card-sg-btc']);
 export function fullCardEl({ card, tier, who = {}, spotted = null }) {
@@ -150,16 +155,19 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const el = h('div.vl-fc', { class: `vl-t-${t} vl-s-${look.mat} vl-fcm-${look.mat}${sighting ? ' is-sight' : ''}${dev ? ' vl-dev1' : ''}${isGiftCard(card) ? ' vl-gift-fc' : ''}`, dataset: { card, tier: t } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     t !== 'common' ? h('i.vl-fc-sheen', { 'aria-hidden': 'true' }, h('i')) : null,
-    fitTop(h('div.vl-fc-top', badge.slot === 'top'
-      ? h('span.vl-fc-house', { dataset: { short: `№ ${who.no || '0001'}` } }, `NEON SPEAKEASY · № ${who.no || '0001'}`, who.fd ? [' · ', h('b.vl-fc-fd.is-top', 'FOUNDER')] : null)   // (CARD FIXES' 6:04 pm ADD-ON: his № back on the top line — it left the plate)
-      : h('span.vl-fc-house', { dataset: who.no ? { short: `№ ${who.no}` } : {} }, who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), tierBadge(t, dev))),
-    // (CARD FIXES — the owner: NO FOUNDER PILL on any GIFT card; elsewhere vault/layout.js sets it a clear gap under the top line)
-    who.fd && !sighting && badge.slot === 'pill' && !isGiftCard(card) ? h('span.vl-fc-fd', 'FOUNDER') : null,
+    // CITY C — THE CARD TOP LINES (the owner's approved prototype, Nov 13 — Downloads/NEON/vault/card-top-line-approved-nov13.png): the top line
+    //  reads ONLY "NEON SPEAKEASY" (the № moved under MEMBER SINCE); a FOUNDING MEMBER's card carries a gold-FOIL text line under it —
+    //  "✦ FOUNDING MEMBER ✦" (no pill, no outline; was the pink FOUNDER pill) — and the owner's DEV cards "✦ PROPRIETOR ✦" in that same line
+    //  (never "DEV"); the 1 OF 1 tag by the gem untouched. Not on a GIFT card (CARD FIXES) nor FOUNDING MEMBER itself (its gold stamp says it).
+    fitTop(h('div.vl-fc-top', h('span.vl-fc-house', 'NEON SPEAKEASY'), tierBadge(t, dev))),
+    foilOf(card, who, sighting) ? h('span.vl-fc-fd.vl-fc-foil', { class: isDevCard(card) ? 'is-prop' : null }, h('b.vl-fc-foil-t', `✦ ${foilOf(card, who, sighting)} ✦`)) : null,
     sighting ? h('div.vl-fc-title', { class: cname.length > 18 ? 'is-long' : '' }, h('b', cname), h('small', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : null,
     plate,
     // (BOARD 2.0 A: a sighting rebuilt on premium art keeps the SIGHTING's title + spot line — the printed name in the sighting's glow with the spot
     //  line under it, at the foot: vault/layout.js keeps the plate clear of them, the balloon's hero box above them)
-    h('div.vl-fc-foot', h('span.vl-fc-since', h('em.vl-fc-rank', isDevCard(card) ? `DEV · ${bandOf(lv).name}` : bandOf(lv).name), h('small', 'MEMBER SINCE'), h('b', sinceOf(who.at))),
+    // (CITY C: the rank reads like everyone's — no "DEV ·"; MEMBER Nº sits under MEMBER SINCE — a member number stays server-only data, `who.no`)
+    h('div.vl-fc-foot', h('span.vl-fc-since', h('em.vl-fc-rank', bandOf(lv).name), h('small', 'MEMBER SINCE'), h('b', sinceOf(who.at)),
+      who.no != null && who.no !== '' && card !== 'card-founder' ? [h('small.vl-fc-no', 'MEMBER Nº'), h('b.vl-fc-no', String(who.no))] : null),
       sighting ? null : ART_SIGHTINGS.has(card) ? h('span.vl-fc-card.vl-fc-sgt', h('b', cname), h('small.vl-fc-spot', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : h('span.vl-fc-card', cname)),
     // FOUNDING MEMBER (THE VAULT 2A): the member's REAL number, stamped in gold — a numbered first edition (+ MEMBER SINCE moves in)
     card === 'card-founder' ? h('div.vl-fc-stamp', h('small', 'FOUNDING MEMBER'), h('b', who.no != null ? `№ ${who.no}` : '№ —'), h('em', `SINCE ${sinceOf(who.at)}`)) : null,

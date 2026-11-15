@@ -31,8 +31,9 @@ export function gildedCard(pub, local = {}, opts = {}) {
   const glow = glowClass(p.g);
   const el = h('div.pg-card', { class: opts.mini ? 'is-mini' : '', dataset: { card }, style: { ...cardVars(card), '--c': colorHex(p.c || 'magenta') } },
     h('span.pg-card-clip', { 'aria-hidden': 'true' }, h('span.pg-card-sun')),
-    opts.mini ? null : h('div.pg-card-top', h('span', 'NEON SPEAKEASY'), h('span.pg-card-no', memberLabel(p.mn) ? `№ ${memberLabel(p.mn)}` : 'GUEST')),
-    p.fd && !opts.mini ? h('span.pg-card-fd', 'FOUNDER') : null,   // (THE VAULT 2C: the badge reads FOUNDER — the card FOUNDING MEMBER keeps its name)
+    // (CITY C — THE CARD TOP LINES: the top line reads only NEON SPEAKEASY; a founder's gold-FOIL line under it (no pill); the № under MEMBER SINCE)
+    opts.mini ? null : h('div.pg-card-top', h('span', 'NEON SPEAKEASY')),
+    p.fd && !opts.mini ? h('span.pg-card-fd.pg-card-foil', '✦ FOUNDING MEMBER ✦') : null,
     opts.mini ? null : h('div.pg-card-mid',
       h('span.pg-card-emb', avatar(p.a || 'bolt', p.c || 'magenta', 80)),
       h('div.pg-card-id',
@@ -40,7 +41,7 @@ export function gildedCard(pub, local = {}, opts = {}) {
         fitName(GLOW_ART[p.g] ? applyGlow(h('div.pg-card-name', (p.n || 'MEMBER').toUpperCase()), p.g) : h('div.pg-card-name', { class: glow ? `is-plain-ink ${glow}` : '' }, (p.n || 'MEMBER').toUpperCase()), { min: 17 }),
         h('div.pg-card-lv', `${L.band.name} · LEVEL ${L.lvl}`))),
     opts.mini ? null : h('div.pg-card-bot',
-      h('div.pg-card-since', h('small', 'MEMBER SINCE'), h('b', sinceOf(p.at))),
+      h('div.pg-card-since', h('small', 'MEMBER SINCE'), h('b', sinceOf(p.at)), memberLabel(p.mn) ? [h('small.pg-card-no', 'MEMBER Nº'), h('b.pg-card-no', memberLabel(p.mn))] : null),
       flame),
     h('span.pg-card-clip', { 'aria-hidden': 'true' }, h('span.pg-card-sheen')));
   if (!opts.mini && !reduced()) tilt(el);

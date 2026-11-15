@@ -1189,6 +1189,27 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-fc.vl-fcm-g-goldenhour :is(.vl-fc-house, .vl-fc-card, .vl-fc-rank, .vl-fc-since small, .vl-fc-since b) { text-shadow: 0 0 1px rgba(255, 255, 255, 0.9), 0 1px 0 rgba(255, 255, 255, 0.6); }
 .vl-fcm-g-bruh .vl-fc-card { font-size: max(14px, 4.2cqi); letter-spacing: 0.06em; }   /* (the tape card's approved big name keeps its size) */
 
+/* CITY C — THE CARD TOP LINES: the gold-FOIL line under NEON SPEAKEASY ("✦ FOUNDING MEMBER ✦" · the owner's "✦ PROPRIETOR ✦") — a TEXT line, no
+   pill, no outline (it replaces the pink FOUNDER pill: same element, vault/layout.js places it close under the top line). The foil = a static
+   metallic gradient clipped to the letters (the inner b), over the SAME soft backing the top line wears (::before) —
+   ≥ 4.5 : 1 on every material; a dark bronze foil on the light ones. */
+.vl-fc .vl-fc-fd.vl-fc-foil { padding: 0; border-radius: 0; background: none; box-shadow: none; border: 0; color: #e9c46a;
+  font: 800 max(10.5px, 2.75cqi)/1.15 var(--font-ui); letter-spacing: 0.3em; white-space: nowrap; overflow: visible; }
+.vl-fc .vl-fc-fd.vl-fc-foil::after { content: none; display: none; }
+.vl-fc .vl-fc-fd.vl-fc-foil::before { content: ''; position: absolute; inset: -0.2em -0.45em; z-index: -1; pointer-events: none; border-radius: 0.9em;
+  background: rgba(var(--vl-tw), var(--vl-ta)); box-shadow: 0 0 0.9em 0.55em rgba(var(--vl-tw), var(--vl-ta)); }
+.vl-fc-foil-t { display: inline-block; font: inherit; letter-spacing: inherit;
+  background: linear-gradient(100deg, #f7e2a0 0%, #d9a944 28%, #fff1c2 48%, #c8902c 70%, #f3d27a 100%); -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent; }   /* (no filter — THE MOTION RULE; the backing ::before carries the contrast) */
+.vl-fc:is(.vl-fcm-brushed, .vl-fcm-chrome, .vl-fcm-brass, .vl-fcm-platinum, .vl-fcm-g-goldenhour, .vl-fcm-g-notguilty) .vl-fc-foil-t {
+  background: linear-gradient(100deg, #4a2e04 0%, #6e4708 35%, #3a2403 60%, #5e3c06 100%); -webkit-background-clip: text; background-clip: text;
+}
+/* MEMBER SINCE + MEMBER Nº: label | value rows (the prototype) — the rank over both; never wrapped */
+.vl-fc-since { display: grid; grid-template-columns: auto auto; column-gap: 1.2em; row-gap: 0.62em; align-items: baseline; justify-content: start; }
+.vl-fc-since .vl-fc-rank { grid-column: 1 / -1; }
+.vl-fc-since b { margin-top: 0; }
+.vl-fc-since small, .vl-fc-since b { white-space: nowrap; }
+
 /* CARD STILLS (GENERATED: node scripts/build-card-stills.mjs — LOAD FIX 3, NO BLACK TILES; js/vault/stills.js) */
 .vl-s-inferno:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-inferno-s.webp') 50% 50% / cover no-repeat; }
 .vl-s-prism:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-prism-s.webp') 50% 50% / cover no-repeat; }

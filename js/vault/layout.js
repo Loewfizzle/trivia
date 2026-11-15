@@ -75,7 +75,8 @@ export function layFull(el) {
   // 1 · the FOUNDER pill: a clear gap under the top line
   const house = text(el.querySelector('.vl-fc-house')), gem = box(el.querySelector('.vl-fc-gem'));
   const fd = el.querySelector('.vl-fc > .vl-fc-fd');
-  if (fd && house) { const t = `${Math.round(bottom(house) + gap)}px`; if (fd.style.top !== t) fd.style.top = t; }
+  if (fd && house) { const t = `${Math.round(bottom(house) + (fd.classList.contains('vl-fc-foil') ? Math.max(4, H * 0.014) : gap))}px`;   // (CITY C: the foil line sits close under the top line — a second line of it, not a badge)
+    if (fd.style.top !== t) fd.style.top = t; }
   // 2 · the zone the plate may use: under the top pieces, above the foot
   const zTop = Math.max(bottom(house), bottom(gem), fd ? bottom(box(fd)) : 0) + gap;
   const feet = [box(el.querySelector('.vl-fc-since')), text(el.querySelector('.vl-fc-card'))].filter(b => b && b[2] > 0 && b[3] > 0);   // (an empty piece measures nothing)

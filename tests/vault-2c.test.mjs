@@ -70,9 +70,10 @@ test('"1 OF 1 · DEV" (the owner\'s ADD-ON, 7:16 pm) on the full card + CUSTOMIZ
   assert.doesNotMatch(read('js/vault/full.js') + read('js/vault/dress.js') + read('api/_lib/lab-text.js'), /#1 OF #1|ONE OF ONE · DEV/);
   assert.match(read('css/vault.css'), /\.vl-fc-1of1 \{ font: 900/);   // (SHELL 2.0 A: "1 OF 1" beside the rainbow gem, in its light)
   const f = read('js/vault/full.js');
-  assert.match(f, /h\('span\.vl-fc-fd', 'FOUNDER'\)/); assert.match(f, /h\('b\.vl-fc-fd\.is-top', 'FOUNDER'\)/);
-  assert.doesNotMatch(f, /'FOUNDING MEMBER'\) : null/);
-  assert.match(read('js/progress/card.js'), /h\('span\.pg-card-fd', 'FOUNDER'\)/);
+  // (CITY C — THE CARD TOP LINES: the FOUNDER pill → the gold-FOIL line "✦ FOUNDING MEMBER ✦" / the dev cards' "✦ PROPRIETOR ✦"; the top line only NEON SPEAKEASY)
+  assert.match(f, /h\('span\.vl-fc-fd\.vl-fc-foil'/); assert.match(f, /if \(isDevCard\(card\)\) return 'PROPRIETOR';/); assert.match(f, /h\('span\.vl-fc-house', 'NEON SPEAKEASY'\)/);
+  assert.doesNotMatch(f, /'FOUNDER'\)|DEV · \$\{bandOf/);
+  assert.match(read('js/progress/card.js'), /h\('span\.pg-card-fd\.pg-card-foil', '✦ FOUNDING MEMBER ✦'\)/);
   const sf = read('js/fx/speak-front.js');
   assert.match(sf, /live = o\.live \|\| \['back'\]/); assert.match(sf, /rm\.lit === 'table'\) return;/, 'the card-game room is never baked');
   assert.match(read('js/fx/opening.js'), /drawBoxer\(c, F, bx, by, t, still\)/); assert.match(read('js/fx/house.js'), /drawBoxer\(c, F, bx, by, t, still\)/);
