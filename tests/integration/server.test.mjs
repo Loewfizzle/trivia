@@ -2289,3 +2289,26 @@ test('CITY C: STATS (the ☰ sheet) — owner only, ONE snapshot handed to every
     await assert.rejects(adminAction('u-st-x', { action: 'statsSheet' }, t0), 'a non-owner is refused');
   } finally { process.env.ADMIN_PIDS = ''; await ref('progress/statsSnap').remove(); }
 });
+
+// CITY D — the add-on (Nov 15 10:47 am): STATS → THE DAILIES — WHO played each daily, today + this week, from dly/{g}/{day}/s · r · x (no scan of
+// every profile): newest first, the result or none, NOT COUNTED; the faces by index (no pid in the copy)
+test('CITY D: STATS → THE DAILIES — who played each daily (today + this week), newest first, the result, NOT COUNTED, faces by index', async () => {
+  const owner = await ensure('u-sw-own', 'SwOwner'); const a = await ensure('u-sw-a', 'SwAlpha'); const b = await ensure('u-sw-b', 'SwBravo');
+  process.env.ADMIN_PIDS = `${owner.pid}`;
+  const { streakDay, dayNum, dayOf } = await import('../../js/core/streak.js'), { openDailies, clearSwitchCache } = await import('../../api/_lib/dailies.js');
+  const was = await val('progress/dailies'); await ref('progress/dailies').set({ on: true, at: Date.UTC(2026, 9, 1) }); clearSwitchCache();
+  const t0 = Date.UTC(2026, 10, 15, 18), today = streakDay(t0), y2 = dayOf(dayNum(today) - 2);
+  const g = (await openDailies(t0))[0];
+  try {
+    await ref('progress/statsSnap').remove();
+    await ref(`dly/${g}/${today}`).update({ [`s/${a.pid}`]: t0 - 60e3, [`r/${a.pid}`]: 4, [`s/${b.pid}`]: t0 - 30e3, [`x/${b.pid}`]: 1 });
+    await ref(`dly/${g}/${y2}`).update({ [`s/${owner.pid}`]: t0 - 2 * 864e5, [`r/${owner.pid}`]: 7 });
+    const A = await adminAction('u-sw-own', { action: 'statsSheet' }, t0);
+    const W = A.who, D = W && W.dailies.find(x => x.id === g);
+    assert.ok(D, 'the daily is in the copy');
+    assert.equal(D.today.n, 2); assert.deepEqual(D.today.rows.map(r => W.faces[r.i].n), ['SwBravo', 'SwAlpha'], 'today: newest start first');
+    assert.equal(D.today.rows[1].s, 4); assert.equal(D.today.rows[0].s, undefined, 'started, no result = none'); assert.equal(D.today.rows[0].x, 1, 'NOT COUNTED');
+    assert.equal(D.week.n, 3); assert.equal(D.week.rows[2].d, y2); assert.equal(D.week.rows[2].s, 7, 'this week: the owner two days ago');
+    assert.ok(!JSON.stringify(W).includes(a.pid), 'no pid in the copy — a face by index');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('progress/statsSnap').remove(); await ref(`dly/${g}/${today}`).remove(); await ref(`dly/${g}/${y2}`).remove(); await ref('progress/dailies').set(was); clearSwitchCache(); }
+});

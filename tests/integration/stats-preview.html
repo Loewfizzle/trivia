@@ -31,6 +31,18 @@ const S = {
 const X = { at: Date.UTC(2026, 10, 15, 22), S, founders: 61, founder: { open: true, at: Date.UTC(2026, 10, 14, 15) },
   daily: { dailies: [{ id: 'password', name: 'THE PASSWORD', days: Array.from({ length: 7 }, (_, i) => ({ day: day(6 - i), started: 20 + i * 3, finished: 15 + i * 2 })) }, { id: 'coastclear', name: 'COAST CLEAR', days: Array.from({ length: 7 }, (_, i) => ({ day: day(6 - i), started: 12 + i, finished: 7 + i })) }] },
   week: Array.from({ length: 7 }, (_, i) => ({ d: ek(6 - i), visits: 40 + i * 9, games: 8 + i * 2 })), spotted: Array.from({ length: 7 }, (_, i) => ({ d: ek(6 - i), n: (i * 3) % 7 })) };
+// CITY D — the add-on: WHO played each daily (today + this week) — 14 players a daily (the fold past 10), a NOT COUNTED one, a DIDN'T FINISH
+{
+  const cards = ['card-inferno', 'card-sg-aurora', 'card-chrome', 'card-noir', 'card-velvet', 'card-prism', 'card-gold', 'card-legend', null, 'card-marble', 'card-circuit', 'card-house', 'card-confetti', 'card-sapphire'];
+  const names = ['AMBER', 'DIMETIME', 'MAXIMILIANOS', 'BEN', 'KATIE', 'LIAM', 'ROSA', 'OZ', 'NIA', 'OTTO', 'PRIYA', 'QUINN', 'THEO', 'WREN'];
+  const faces = names.map((n, i) => ({ n, x: 900 + i * 700, cd: cards[i], a: ['bolt', 'crown', 'hex', 'star', 'moon', 'ghost', 'alien'][i % 7], c: ['magenta', 'cyan', 'yellow', 'green', 'orange', 'violet', 'red'][i % 7], ...(n === 'BEN' ? { mn: 1 } : {}) }));
+  const t0 = Date.UTC(2026, 10, 15, 16);
+  const rowsFor = (scores, week) => scores.map((s, i) => ({ i, at: t0 - i * 41 * 60e3, d: week ? day(i % 7) : day(0), ...(s != null ? { s } : {}), ...(i === 4 ? { x: 1 } : {}) }));
+  const pw = [3, 4, 5, 102, 4, null, 6, 5, 3, 4, 5, 6, 2, 4], cc = [98, 132, 10004, 171, 189, 201, null, 230, 244, 260, 275, 290, 302, 140];
+  X.who = { day: day(0), days: 7, faces, dailies: [
+    { id: 'password', name: 'THE PASSWORD', today: { n: 14, rows: rowsFor(pw) }, week: { n: 14, rows: rowsFor(pw, true) } },
+    { id: 'coastclear', name: 'COAST CLEAR', today: { n: 14, rows: rowsFor(cc) }, week: { n: 14, rows: rowsFor(cc, true) } }] };
+}
 openStatsSheet({ api: async () => X, openSheet });
 setTimeout(() => { document.body.dataset.ready = '1'; }, 2500);
 </script>

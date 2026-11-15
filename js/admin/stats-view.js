@@ -70,12 +70,26 @@ function playersBlock(S, o) {
 function playersSlim(S, o) {
   const view = o.view, P = S.players;
   const list = view.players === 'today' ? (P.topToday || []) : view.players === 'week' ? P.topWeek : view.players === 'all' ? P.topAll : P.topXp;
-  const ol = h('ol.wo-list.is-strips.is-still.st-top');
+  // (CITY D — the add-on: the list's class was .st-top — the sheet's own header row's: its justify-content shrank the grid to its content →
+  //  every card collapsed to its plate. Now .st-players; the strips built once the list HAS its width — fillWhenSized)
+  const ol = h('ol.wo-list.is-strips.is-still.st-players');
   ol.append(...list.slice(0, 8).map(p => h('li.wo-row', h('div.wo-card', h('span.fr-knock-ph', String(p.n || '').toUpperCase())), h('div.wo-meta', h('b.wo-where', view.players === 'xp' ? `${(p.x || 0).toLocaleString()} XP` : `${p.n_matches} ${p.n_matches === 1 ? 'match' : 'matches'}`)))));
-  lazyImport(import('../ui/strip-board.js'), '../ui/strip-board.js').then(m => m.stripKit().then(K => { [...ol.children].forEach((li, i) => { const c = li.querySelector('.wo-card'); if (c && list[i]) c.replaceChildren(m.stripFor(K, list[i]).el); }); })).catch(() => {});
+  fillWhenSized(ol, list.slice(0, 8));
   return h('div.ad-block',
     h('div.ad-row.ad-between', h('h3', 'Most active players'), tabs(view, 'players', [['today', 'Today'], ['week', 'This week'], ['all', 'All time'], ['xp', 'XP']], o.rerender)),
     list.length ? ol : h('p.ad-dim', 'No matches yet.'));
+}
+/** CITY D: the slim cards into a list's rows once it HAS a width (a sheet still opening measures 0 — the long-name fit then wrapped a name
+ *  one letter a line) — the STILLS (stripFor: no effect, ui/live-lane.js's rule), ONE per frame */
+function fillWhenSized(ol, faces) {
+  const go = () => lazyImport(import('../ui/strip-board.js'), '../ui/strip-board.js').then(m => m.stripKit().then(K => {
+    const rows = [...ol.children];
+    const step = i => { if (i >= rows.length || !ol.isConnected) return; const c = rows[i].querySelector('.wo-card'); if (c && faces[i]) c.replaceChildren(m.stripFor(K, faces[i]).el); requestAnimationFrame(() => step(i + 1)); };
+    step(0);
+  })).catch(() => {});
+  if (typeof ResizeObserver === 'undefined') { go(); return; }
+  const ro = new ResizeObserver(es => { for (const e of es) if (e.contentRect.width > 0) { ro.disconnect(); go(); return; } });
+  ro.observe(ol);
 }
 function growthBlock(S) {
   const P = S.players, T = S.totals;
@@ -112,13 +126,42 @@ export function statsBlocks(S, o = {}) {
 
 // ---- THE SHEET's own sections (the snapshot's extras)
 const dayLabel = k => { const m = /^d?(\d{4})-?(\d{2})-?(\d{2})$/.exec(String(k || '')); return m ? `${+m[2]}/${+m[3]}` : String(k || ''); };
-function dailiesBlock(D) {
+const metas = new Map();
+/** a daily's thin meta (its scoreLine) — the daily screen's own way (lazy, tiny) */
+const metaFor = id => { if (!metas.has(id)) metas.set(id, lazyImport(import(`../games/${id}/meta.js`), '../games/*/meta.js').catch(() => ({}))); return metas.get(id); };
+const DOW3 = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const dow = k => { const m = /^d(\d{4})(\d{2})(\d{2})$/.exec(String(k || '')); return m ? DOW3[new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay()] : ''; };
+/** CITY D — the add-on (Nov 15 10:47 am): WHO played a daily — TODAY · THIS WEEK (neon-underline tabs), newest first, as slim cards (stills)
+ *  with the result (its scoreLine — guesses / time / lines; LOCKED OUT / CAUGHT say they failed) or DIDN'T FINISH, a quiet NOT COUNTED (THE
+ *  THROWAWAY GATE); ~10 shown, "+N MORE" opens the rest the snapshot kept */
+const WHO_SHOW = 10;
+function whoBlock(g, W, view, rerender) {
+  const k = `who:${g.id}`, scope = view[k] || 'today', open = view[`${k}:all`];
+  const L = g[scope] || { n: 0, rows: [] }, rows = open ? L.rows : L.rows.slice(0, WHO_SHOW);
+  const faces = rows.map(r => W.faces[r.i] || { n: '?' });
+  const t = h('div.ad-tabs.st-who-tabs', ...[['today', 'TODAY'], ['week', 'THIS WEEK']].map(([v, label]) => h('button.ad-tab', { type: 'button', 'data-press': true, class: scope === v ? 'is-on' : '', 'aria-pressed': String(scope === v), onclick: () => { view[k] = v; view[`${k}:all`] = false; rerender(); } }, label)));
+  const res = h('div.st-who-res');
+  const list = h('ol.wo-list.is-strips.is-still.st-who', ...rows.map(r => {
+    const out = h('b.wo-where.st-res', r.s != null ? '…' : (scope === 'today' && r.d === W.day ? 'NOT DONE YET' : 'DIDN’T FINISH'));
+    if (r.s != null) metaFor(g.id).then(m => { out.textContent = m && typeof m.scoreLine === 'function' ? m.scoreLine(r.s) : String(r.s); });
+    return h('li.wo-row', h('div.wo-card', h('span.fr-knock-ph', String((W.faces[r.i] || {}).n || '').toUpperCase())),
+      h('div.wo-meta', out, h('small.wo-ago', scope === 'week' ? dow(r.d) : new Date(r.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })), r.x ? h('small.st-nc', 'NOT COUNTED') : null));
+  }));
+  if (rows.length) fillWhenSized(list, faces);
+  const more = L.n - rows.length;
+  res.append(rows.length ? list : h('p.ad-dim', scope === 'today' ? 'Nobody has played it today yet.' : 'Nobody played it this week.'),
+    more > 0 ? (open ? h('p.ad-note', `+${more} more not kept in this copy`) : h('button.st-more', { type: 'button', 'data-press': true, onclick: () => { view[`${k}:all`] = true; rerender(); } }, `+${more} MORE`)) : null);
+  return h('div.st-who', h('div.ad-row.ad-between', h('small.ad-dim', `${L.n} ${L.n === 1 ? 'player' : 'players'}`), t), res);
+}
+function dailiesBlock(D, W, view = {}, rerender = () => {}) {
   const rows = (D && D.dailies) || [];
-  return h('div.ad-block', h('h3', 'The dailies · plays a day · finish rate'),
+  const whoOf = id => (W && Array.isArray(W.dailies) ? W.dailies.find(x => x.id === id) : null);
+  return h('div.ad-block', h('h3', 'The dailies · plays a day · finish rate · who'),
     rows.length ? h('div.st-dly', ...rows.map(g => {
       const days = g.days || [], max = Math.max(1, ...days.map(x => x.started || 0)), st = days.reduce((a, x) => a + (x.started || 0), 0), fi = days.reduce((a, x) => a + (x.finished || 0), 0);
       return h('div.st-dly-g', h('div.ad-row.ad-between', h('b', g.name || g.id), h('small.ad-dim', st ? `${Math.round(100 * fi / st)}% finish · ${st} plays / ${days.length} days` : 'no plays yet')),
-        h('div.ad-cols.st-dly-cols', ...days.map(x => h('div.ad-col', { title: `${dayLabel(x.day)}: ${x.started || 0} plays · ${x.finished || 0} finished`, style: { '--h': `${((x.started || 0) / max) * 100}%` } }, h('i'), h('small', dayLabel(x.day))))));
+        h('div.ad-cols.st-dly-cols', ...days.map(x => h('div.ad-col', { title: `${dayLabel(x.day)}: ${x.started || 0} plays · ${x.finished || 0} finished`, style: { '--h': `${((x.started || 0) / max) * 100}%` } }, h('i'), h('small', dayLabel(x.day))))),
+        whoOf(g.id) ? whoBlock(whoOf(g.id), W, view, rerender) : null);
     })) : h('p.ad-dim', 'No daily is live.'));
 }
 function weekBlock(W, spotted) {
@@ -148,7 +191,7 @@ export function openStatsSheet({ api, openSheet }) {
   const paint = () => {
     if (!X) return;
     const S = X.S;
-    body.replaceChildren(playersLine(S, X), h('div.ad-stats-grid', dailyBlock(S), timesBlock(S), playersSlim(S, { view, rerender: paint }), dailiesBlock(X.daily), weekBlock(X.week, X.spotted), gamesBlock(S, { view, rerender: paint })));
+    body.replaceChildren(playersLine(S, X), h('div.ad-stats-grid', dailyBlock(S), timesBlock(S), playersSlim(S, { view, rerender: paint }), dailiesBlock(X.daily, X.who, view, paint), weekBlock(X.week, X.spotted), gamesBlock(S, { view, rerender: paint })));
     stamp.textContent = `built ${new Date(X.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} · the same copy for everyone`;
   };
   const load = async fresh => {

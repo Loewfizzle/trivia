@@ -1313,7 +1313,21 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 /* CITY C — STATS (the ☰ sheet, the owner only — js/admin/stats-view.js; /admin's own blocks + css/admin.css loaded with it): the board's colour
    vars on the city page, NO PILLS (the tabs + the bars squared off here), REFRESH a plain glass button */
 .st-sheet { --bd-dim: rgba(246, 230, 205, 0.72); --bd-faint: rgba(246, 230, 205, 0.6); }
-.st-sheet .ad-tabs, .st-sheet .ad-tab { border-radius: 8px; }
+/* CITY D — the add-on: NO PILLS, NO GOLD — the sheet's tabs are NEON-UNDERLINE tabs (THE BOARD's coming restyle): the words on the glass, the
+   chosen one lit pink with a glowing line under it; 44-pt tap areas */
+.st-sheet .ad-tabs { gap: 2px; padding: 0; border-radius: 0; background: none; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.14); }
+.st-sheet .ad-tab { position: relative; min-height: 44px; padding: 0 10px; border-radius: 0; background: none; color: var(--bd-dim); }
+.st-sheet .ad-tab.is-on { background: none; color: #ff8fe0; text-shadow: 0 0 10px rgba(255, 79, 200, 0.55); }
+.st-sheet .ad-tab.is-on::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: 0; height: 2px; background: #ff4fc8; box-shadow: 0 0 8px rgba(255, 79, 200, 0.85); }
+.st-sheet .st-players, .st-sheet .st-who { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; }
+.st-sheet .st-who-tabs .ad-tab { min-height: 44px; }
+/* (the card FULL WIDTH, the count / result on its own line UNDER it at the right end — THE BOARD's score; a side column capped the plate at ~84 px) */
+.st-sheet .st-players .wo-row, .st-sheet .st-who .wo-row { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+.st-sheet .st-players .wo-meta, .st-sheet .st-who .wo-meta { flex-direction: row; justify-content: flex-end; align-items: baseline; gap: 10px; padding-right: 4px; }
+.st-who { margin-top: 12px; padding-top: 10px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.st-res { font: 700 14px/1.1 var(--font-num); letter-spacing: 0.04em; color: #fff; white-space: nowrap; }
+.st-nc { font: 700 10px/1 var(--font-ui); letter-spacing: 0.12em; color: var(--text-faint, rgba(246, 230, 205, 0.6)); }
+.st-more { display: block; width: 100%; min-height: 44px; margin-top: 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); font: 700 12px/1 var(--font-ui); letter-spacing: 0.12em; color: #fff; }
 .st-sheet .ad-bar, .st-sheet .ad-bar i { border-radius: 3px; }
 .st-sheet .ad-block { padding: 12px; }
 .st-sheet .ad-stats-grid { grid-template-columns: 1fr; }
@@ -1322,4 +1336,3 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .st-refresh { min-height: 44px; padding: 0 16px; border: 0; border-radius: 10px; cursor: pointer; font: 800 12px/1 var(--font-ui); letter-spacing: 0.18em; color: var(--text); background: rgba(255, 255, 255, 0.07); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
 .st-dly { display: grid; gap: 14px; }
 .st-dly-cols { height: 90px; }
-.st-sheet .wo-list.st-top { display: grid; gap: 8px; margin: 0; padding: 0; }

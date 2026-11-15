@@ -190,21 +190,55 @@ async function stats(now, fresh = false) {
 const STATS_SHEET_MS = 5 * 60e3, STATS_SHEET_FRESH_MS = 60e3;
 async function statsSheet(me, now, fresh = false) {
   const cur = await val('progress/statsSnap').catch(() => null);
-  if (cur && cur.v === 1 && cur.data && now - cur.at < (fresh ? STATS_SHEET_FRESH_MS : STATS_SHEET_MS) && now >= cur.at) return { ...cur.data, at: cur.at, cached: true };
-  const [S, D, F, visits, spotted] = await Promise.all([stats(now, true), dailyStats(me, now).catch(() => null), founderState().catch(() => null), val('radio/visits'), val('radio/spotted')]);
+  if (cur && cur.v === 2 && cur.data && now - cur.at < (fresh ? STATS_SHEET_FRESH_MS : STATS_SHEET_MS) && now >= cur.at) return { ...cur.data, at: cur.at, cached: true };
+  const [S, D, F, visits, spotted, who] = await Promise.all([stats(now, true), dailyStats(me, now).catch(() => null), founderState().catch(() => null), val('radio/visits'), val('radio/spotted'), dailyWho(now).catch(() => null)]);
   const days = []; for (let k = 6; k >= 0; k--) days.push(weekDayKey(now - k * 864e5));
   const daily = Object.fromEntries(((S.games && S.games.daily) || []).map(x => [x.k, x.n]));
   const V = visits || {}, SP = spotted || {};
   const data = {
     S: { games: S.games, players: S.players, totals: S.totals, times: S.times, today: S.today },
     daily: D ? { dailies: (D.dailies || []).map(g => ({ id: g.id, name: g.name, days: g.days })) } : null,
+    who,   // (CITY D — the add-on: WHO played each daily, today + this week — dailyWho)
     founders: (F && F.holders) || 0, founder: F ? { open: F.open, at: F.at } : null,
     week: days.map(d => ({ d, visits: Object.keys(V[d] || {}).length, games: daily[`d${d.replace(/-/g, '')}`] || daily[d] || 0 })),
     spotted: days.map(d => ({ d, n: Number(SP[d]) || 0 })),
   };
   const clean = JSON.parse(JSON.stringify(data));   // (no undefined into the database)
-  await ref('progress/statsSnap').set({ v: 1, at: now, data: clean }).catch(() => {});
+  await ref('progress/statsSnap').set({ v: 2, at: now, data: clean })   /* (CITY D: v 2 — + who) */.catch(() => {});
   return { ...clean, at: now, cached: false };
+}
+
+// CITY D — the add-on (Nov 15 10:47 am — STATS → THE DAILIES: WHO is playing, not only the counts): per open daily, TODAY + THIS WEEK (the last
+// 7 streak days) — every player who STARTED it, newest first, with their result (the day's score — or none: didn't finish) and a NOT COUNTED
+// mark (THE THROWAWAY GATE — dly/{g}/{day}/x). From the nodes the server keeps (dly/{g}/{day}/s · r · x — 3 reads a day a daily, inside the
+// 5-min snapshot; never a scan of every profile); the faces once per player (publicProfile — what a slim card wears). Rows point at a face by
+// index (no pid in the sheet's copy); WHO_KEEP rows a list, the count beside it (the sheet folds past ~10).
+const WHO_KEEP = 30, WHO_FACES = 80;
+async function dailyWho(now) {
+  const games = await openDailies(now);
+  const today = streakDay(now), days = Array.from({ length: STATS_DAYS }, (_, i) => dayOf(dayNum(today) - i));   // (newest first)
+  const per = await Promise.all(games.map(async g => ({ g, byDay: await Promise.all(days.map(async d => {
+    const [s, r, x] = await Promise.all([val(`dly/${g}/${d}/s`), val(`dly/${g}/${d}/r`), val(`dly/${g}/${d}/x`)]);
+    return { d, s: s || {}, r: r || {}, x: x || {} };
+  })) })));
+  const faceAt = new Map(), faces = [];
+  const idx = pid => { if (!faceAt.has(pid)) { faceAt.set(pid, faces.length); faces.push(pid); } return faceAt.get(pid); };
+  const rowOf = (pid, day) => ({ i: idx(pid), at: Number(day.s[pid]) || 0, d: day.d, ...(day.r[pid] != null ? { s: day.r[pid] } : {}), ...(day.x[pid] ? { x: 1 } : {}) });
+  const dailies = per.map(({ g, byDay }) => {
+    const t = byDay[0], todayRows = Object.keys(t.s).filter(isPid).map(p => rowOf(p, t)).sort((a, b) => b.at - a.at);
+    const seen = new Set(), weekRows = [];
+    for (const day of byDay) for (const p of Object.keys(day.s).filter(isPid).sort((a, b) => (Number(day.s[b]) || 0) - (Number(day.s[a]) || 0))) if (!seen.has(p)) { seen.add(p); weekRows.push(rowOf(p, day)); }
+    weekRows.sort((a, b) => b.at - a.at);
+    const row = dailyRow(g) || {};
+    return { id: g, name: row.name || g.toUpperCase(), today: { n: todayRows.length, rows: todayRows.slice(0, WHO_KEEP) }, week: { n: weekRows.length, rows: weekRows.slice(0, WHO_KEEP) } };
+  });
+  // (the faces a kept row points at — every other index dropped; WHO_FACES at most)
+  const used = new Set(dailies.flatMap(x => [...x.today.rows, ...x.week.rows].map(r => r.i)));
+  const keepPids = faces.filter((_, i) => used.has(i)).slice(0, WHO_FACES), map = new Map(keepPids.map((p, j) => [faces.indexOf(p), j]));
+  const pubs = await Promise.all(keepPids.map(p => publicProfile(p).catch(() => null)));
+  const face = p => (p ? { n: p.n, x: p.x || 0, l: p.l, cd: p.cd || null, es: p.es || null, tb: p.tb || null, g: p.g || null, mn: p.mn || null, a: p.a, c: p.c, h: p.h ? 1 : 0 } : { n: 'GONE' });
+  for (const x of dailies) for (const k of ['today', 'week']) x[k].rows = x[k].rows.filter(r => map.has(r.i)).map(r => ({ ...r, i: map.get(r.i) }));
+  return { day: today, days: days.length, dailies, faces: pubs.map(face) };
 }
 
 // Errors from players' phones (api/log.js): newest first; entries quiet for 30 days are pruned on the way.
