@@ -1072,7 +1072,8 @@ G('roofcrisp', async () => {
     const o = document.createElement('canvas'); o.width = im.width; o.height = im.height; const x = o.getContext('2d'); x.drawImage(im, 0, 0); const d = im.width / innerWidth;
     res(boxes.map(b => { const a = x.getImageData(b.x * d, b.y * d, b.w * d, b.h * d).data; let s = 0; for (let i = 0; i < a.length; i += 4) s += 0.2126 * a[i] + 0.7152 * a[i + 1] + 0.0722 * a[i + 2]; return s / (a.length / 4); })); }; im.src = 'data:image/png;base64,' + b64; }), b64, boxes); };
   const got = {};
-  for (const [tag, qs] of [['crisp', 'wx=clear&force=no-people'], ['soft', 'wx=clear&force=no-people,no-roof-crisp'], ['rain', 'wx=rain&force=no-people']]) {
+  // (CITY B: JAYWALK released — both roof signs lit: today's three playable games light one)
+  for (const [tag, qs] of [['crisp', 'wx=clear&force=no-people,sign-jaywalk'], ['soft', 'wx=clear&force=no-people,no-roof-crisp,sign-jaywalk'], ['rain', 'wx=rain&force=no-people,sign-jaywalk']]) {
     const Q = await open({ slot: `rc${tag}`, qs: `when=2026-10-27T22:10${GR}&${qs}`, view: [402, 874], dpr: 3 });
     await harborUp(Q.page);
     if (tag === 'crisp') await waitFor(Q.page, `(${P}.roofCrisp || []).length === 2 && ${P}.roofCrisp.every(r => r.k === 1)`, 'the roof signs crisp', 20000).catch(() => {});

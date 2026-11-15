@@ -199,7 +199,9 @@ await H.run(async () => {
     const rows = [...document.querySelectorAll('.dy-sec[data-id="password"] .dy-crow')];
     const me = rows.find(r => r.classList.contains('is-me'));
     const sr = me.querySelector('.vl-strip').getBoundingClientRect(), sc = me.querySelector('.dy-cscore').getBoundingClientRect(), rk = me.querySelector('.lb-rank').getBoundingClientRect();
-    return { rows: rows.map(r => `${r.querySelector('.lb-rank').textContent}|${r.querySelector('.vl-name').textContent}|${r.querySelector('.dy-cscore').textContent}`),
+    // (CITY B: places 1–3 are THE DECO MEDALS — their label says the place: "1st place" → 1ST)
+    const place = r => { const m = r.querySelector('.lb-rank .rk-medal'); return m ? m.getAttribute('aria-label').split(' ')[0].toUpperCase() : r.querySelector('.lb-rank').textContent; };
+    return { rows: rows.map(r => `${place(r)}|${r.querySelector('.vl-name').textContent}|${r.querySelector('.dy-cscore').textContent}`),
       under: sc.top >= sr.bottom - 1, rightEnd: Math.abs(sc.right - sr.right) < 8, rankLeft: rk.right <= sr.left, frame: getComputedStyle(me.querySelector('.dy-card .vl-strip')).boxShadow !== 'none' && getComputedStyle(me.querySelector('.dy-card'), '::after').boxShadow === 'none', still: !!document.querySelector('.dy-sec[data-id="password"] .dy-still') };
   });
   ok(sc2.rows[0] === '1ST|ALICE|2 GUESSES' && sc2.rows[1] === '2ND|BOBBY|3 GUESSES', `SCORES · EVERYONE as slim cards: ${sc2.rows.join(' · ')}`);
@@ -532,11 +534,12 @@ await H.run(async () => {
       // (the SIDEWAYS framing with a fine pointer — a short wide window. A real PHONE held sideways shows the console's TURN YOUR PHONE UPRIGHT
       //  card over everything (index.html #ns-turn — the owner's Nov 2 rule): its own case below)
       { name: '844 × 390 (the sideways framing, mouse)', view: { width: 844, height: 390, deviceScaleFactor: 1, isMobile: false, hasTouch: false }, touch: false, need: ['door'] },
-      { name: '820 × 1180 (an iPad, touch)', view: { width: 820, height: 1180, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, touch: true, need: ['sign'] },
+      // (CITY B: the sign beside the column on an iPad is the second roof sign — lit once a fourth game is playable: JAYWALK released for this case)
+      { name: '820 × 1180 (an iPad, touch)', view: { width: 820, height: 1180, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, touch: true, need: ['sign'], qs: '&force=sign-jaywalk' },
       { name: '1440 × 900 (a desktop, mouse)', view: { width: 1440, height: 900, deviceScaleFactor: 1, isMobile: false, hasTouch: false }, touch: false, need: ['door'] },
     ]) {
       await pg.setViewport(V.view);
-      await pg.reload();
+      if (V.qs && !pg.url().includes(V.qs)) await pg.goto(pg.url().replace(/#.*$/, '') + V.qs); else await pg.reload();
       await waitFor(pg, `!document.getElementById('boot') && !!window.__arcade && !!window.__district && !!document.querySelector('.title-screen.nd')`, `${V.name}: the title`, 40000);
       // (the city's own hit map must have landed at this size — the door is always on it)
       await waitFor(pg, `(() => { for (let y = 30; y < innerHeight; y += 8) for (let x = 6; x < innerWidth; x += 8) { const h = window.__district.hit(x, y); if (h && h.kind === 'door') return true; } return false; })()`, `${V.name}: the city's hit map`, 30000);

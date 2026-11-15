@@ -45,7 +45,8 @@ LEGEND's until THE VAULT); `profiles/{pid}/l` = the level. Everything that showe
 strip, the lobby chip "LV n", THE BOARD's #1 crown + your button, /admin).
 
 ### THE LEVEL REWARDS (40 — item ids; THE VAULT replaces the ART, never the ids)
-1 GILDED (everyone) · 3 MIDNIGHT · **4 HEARTBREAKER** · 5 BRASS DECO · **6 emblem SWEETHEART** (THE VAULT 2A) · 7 tube TWO-TONE · **8 GLITTER BOMB** (THE VAULT 1A — the pink pair, early) · **10 EMERALD & BRASS** · 13 emblem DIAMOND · 15 glow ICE · 18 NEON GLASS ·
+1 GILDED (everyone) · 3 MIDNIGHT · **4 HEARTBREAKER** · 5 BRASS DECO · **6 emblem SWEETHEART** (THE VAULT 2A) · 7 tube TWO-TONE · **10 EMERALD & BRASS** · 13 emblem DIAMOND · 15 glow ICE · 18 NEON GLASS ·
+(CITY B, Nov 15 — the owner: **GLITTER BOMB moved from LV 8 to LV 50, beside GLOW GOLD**; an owner keeps it, nothing re-granted — `tests/city-b-glitter.test.mjs`.)
 20 SILVER CHROME · **25 MIDNIGHT & CHAMPAGNE** · **26 tube A CHASING LIGHT** (2A) · 28 glow NEON · 30 tube BREATHING · 32 VELVET ROOM · 35 AURORA · 37 emblem CRESCENT ·
 **40 ONYX & ROSE GOLD** · 44 GOLD FOIL · 47 tube GOLD · 50 glow GOLD LEAF · 55 emblem THE CROWN · 58 VELVET NOIR · **60 SAPPHIRE & SILVER** (the 4th
 Gilded-family slot — a name + palette for THE VAULT to design) · 65 tube OLD SIGN · 70 PRISM LEGEND + glow PRISM · 75 emblem SUNBURST ·

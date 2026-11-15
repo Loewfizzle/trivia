@@ -2825,3 +2825,10 @@ district" in code (the `nd-` class prefix, the `window.__district` test hook). `
 - Group 5: THE PHONE KEEPS ITS FILES — file-hashes.json + THE CARRY + /audio by version (req-count.mjs: warm 13, after a deploy 17, cold 384).
 - Group 6: the picked game only + THE PER-GAME BUDGET. Group 7: fireworks traffic hold, the boss one size, the fireball's photo, the 8-card
   lobby measured. Group 8: extension noise counted, THE LEAVING SQUEAL, the radio's poll by face, COAST CLEAR's end line.
+
+## CITY B — THE CITY'S LOOKS (Nov 14–15, 2026 — docs/harbor/passes/city-b.md)
+- Group 1: the signs name PLAYABLE games only (one roster); THE HOTEL BLADE's own rotation (PRISM · HOLDEM · JAY / WALK), never the speakeasy
+  blade's game; `&force=sign-jaywalk`. Group 2: the speakeasy blade's bold week — enamel / neon / bulb letters, 10 saturated panels, coloured
+  bulbs, letters ≥ 4.5 : 1. Group 3: THE DROP as the tri-vision's third face (code-drawn; 14 days from its go-live; /admin ON · OFF · KEEP ON).
+- Group 4: the glow sticks much brighter. Group 5: THE DECO MEDALS (`ui/medal.js`, one component). Group 6: GLITTER BOMB → LV 50 beside GLOW
+  GOLD. Group 7: two og.jpg candidates (not swapped in).

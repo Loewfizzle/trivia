@@ -83,8 +83,11 @@ G('neon', async () => {
     // game with no sign tonight, the nightly shuffle rotates the rest)
     // (NEON PASS 6, the owner: the tiny floating icons are gone — 4 named signs + the billboard a fifth game)
     // (DT1: the left roof slot is gone — 3 named signs: the blade + the two roof signs; the billboard a fourth game)
-    ok(new Set(games).size === 3 && h.neon.signs.filter(s => s.kind === 'named').length === 3 && !h.neon.signs.some(s => s.kind === 'icon') && h.neon.signs.every(s => s.on) && bb && !games.includes(h.neon.boards[0].game),
-      `SIGNS: 3 named games in the skyline tonight (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')}; stacked roof signs + the blade), no icons, the billboard a fourth (${bb}), every sign lit at night`);
+    // (CITY B — THE SIGNS NAME PLAYABLE GAMES ONLY: with three playable games the hotel blade + one roof sign are lit — OVERCLOCK's nine letters fit
+    //  no skyline sign; every named game is a playable one; the billboard a game with no sign tonight)
+    const PLAY = ['prism', 'holdem', 'overclock'];
+    ok(new Set(games).size >= 2 && games.every(g => PLAY.includes(g)) && h.neon.signs.filter(s => s.kind === 'named').length >= 2 && !h.neon.signs.some(s => s.kind === 'icon') && h.neon.signs.every(s => s.on) && bb && !games.includes(h.neon.boards[0].game),
+      `SIGNS: the playable games named in the skyline tonight (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')}; stacked roof signs + the blade), no icons, the billboard a fourth (${bb}), every sign lit at night`);
     ok(h.neon.outlines.length >= 12 && h.neon.outlines.some(o => o.id === 'needle') && h.neon.led === 2 && h.beacons.length >= 10,
       `NEON OUTLINES: ${h.neon.outlines.length} buildings outlined (the needle, the heroes…), the 2 glass towers' LED facades, ${h.beacons.length} aircraft beacons`);
     const sg = h.neon.signs.find(s => s.game), hit = await ev(N.page, `window.__district.hit(${sg.rect.x + sg.rect.w / 2}, ${sg.rect.y + sg.rect.h / 2})`);
@@ -93,10 +96,10 @@ G('neon', async () => {
     ok(h.powerUp && h.powerUp.on === h.powerUp.of && h.power === 1, `THE POWER-UP at night: every light on (${h.powerUp && h.powerUp.on} of ${h.powerUp && h.powerUp.of}, tonight's sweep ${h.powerUp && h.powerUp.sweep})`);
     const scroll = await ev(N.page, "(() => { const hb = window.__district.harbor(); const okk = hb.spell('HAPPY BIRTHDAY SAMANTHA', { style: 'scroll' }); return okk && window.__district.harbor().windows.spelling; })()");
     ok(scroll && scroll.style === 'scroll' && scroll.towers[0] === 'wordA', `THE SCROLL: a long message tickers across ${scroll && scroll.towers}`);
-    await ev(N.page, "window.__district.harbor().moment('flash', { game: 'pulse' }), window.__district.harbor().billboard('bb-left', { game: 'stakes' })");
+    await ev(N.page, "window.__district.harbor().moment('flash', { game: 'prism' }), window.__district.harbor().billboard('bb-left', { game: 'overclock' })");   // (CITY B: playable games only)
     await waitFor(N.page, 'window.__district.harbor().neon.moment.flash', 'the flash', 3000);
     const h2 = await ev(N.page, 'window.__district.harbor()');
-    ok(h2.neon.moment.flash && h2.neon.boards[0].show === 'HIGH STAKES', `MOMENTS + BILLBOARDS: a game's flash sweeps the skyline; a billboard shows ${h2.neon.boards[0].show}`);
+    ok(h2.neon.moment.flash && h2.neon.boards[0].show === 'OVERCLOCK', `MOMENTS + BILLBOARDS: a game's flash sweeps the skyline; a billboard shows ${h2.neon.boards[0].show}`);
     ok(h2.mem.mb + h2.neon.mb <= h2.mem.budget, `MEMORY (neon): the sprites ${h2.neon.mb} MB + the baked layers ${h2.mem.mb} MB ≤ ${h2.mem.budget}`);
     if (SHOTS) await N.page.screenshot({ path: `${OUT}part3-neon-390x844.png` });
     void sc;
@@ -245,7 +248,7 @@ G('neon', async () => {
 G('neon', async () => {
   // ================================================================ SP3: THE ROOF SIGNS' HOURLY MODES — one mode a sign this hour, neighbours
   // different, one big move at a time; the previews put every sign in one mode and its turn comes round
-  { const N = await open({ slot: 'rm1', qs: NIGHT, view: [402, 874] });
+  { const N = await open({ slot: 'rm1', qs: `${NIGHT}&force=sign-jaywalk`, view: [402, 874] });   // (CITY B: JAYWALK released — all three named signs lit)
     await harborUp(N.page);
     await waitFor(N.page, '!!window.__district.harbor().roofModes', 'the roof modes', 15000).catch(() => {});
     // (11a-1: on a slow runner a sign can join the skyline a moment after the modes first exist — wait until every lit sign has its mode)

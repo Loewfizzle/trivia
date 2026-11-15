@@ -948,3 +948,9 @@ inside a pop-up younger than 350 ms (`data-born` — THE SHEET, the full card, t
 opening tap's own click). ONE just-born guard for the backdrops: `ui/layers.js#bornGuard`. A lazy chunk only writes the attribute (no new
 import — THE STALE-MODULE RULE). Proof: `tests/integration/wk-press.mjs` (WebKit, the page's trusted clicks killed as iOS drops them).
 A layer whose element left the page is dropped by `layersOpen()` (`layerGone`) — a leaked layer never kills the city's taps again.
+
+## THE DECO MEDALS (CITY B, Nov 15 — docs/harbor/passes/city-b.md; the owner's approved mockup, Nov 13)
+Every place 1 / 2 / 3 badge is ONE component, `js/ui/medal.js#rankMedal(n, { size })` (~32 pt; null for any other place — the caller shows its own
+number): THE BOARD (every tab), the game card's top three (lazy, with the strips), the dailies' SCORES. A toothed disc, three stepped Art Deco
+octagons, the numeral in a dark ink ≥ 4.5 : 1 on its face (the innermost face reaches its dark stop only at its foot), a gloss; colour-blind safe
+(the numeral carries the place); unique gradient ids per medal. Never a per-screen copy (`tests/medal.test.mjs`). No pills.

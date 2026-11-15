@@ -101,6 +101,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - Debug + preview flags: `&debug=1`, `&dpr=3`, `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary waits for the reveal + a tap; `&lgnow=1` at once).
 - A holiday SIGN FORCE (`&force=sign-*`) shows the FULL look any day, in season too; THANKSGIVING = the maple leaves BEHIND the letters + THE GOLD WEEK (`leafbank.js`) → docs/harbor.md.
 - THE TRI-VISION: the roof board turns HOLD'EM ↔ JAYWALK by ONE pure clock (`core/harbor-trivision.js`) → docs/harbor.md (moved).
+- THE SIGNS NAME PLAYABLE GAMES ONLY: ONE roster (`core/harbor-neon.js#signRoster`); THE DROP's face only from its go-live, via the cached feed → docs/harbor.md#city-b-nov-1415--what-the-citys-bible-gained-detail-passescity-bmd.
 
 **The console + the room** (→ docs/harbor.md (moved), docs/cartridge.md, docs/title.md)
 - THE ROOM IN THE CITY: the old lobby screen is RETIRED — the room lives in the city from the join to the podium (`screens/room-city.js`,
@@ -130,7 +131,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - Anti-cheat never depends on the code being secret: the server checks + replays every result; secrets only in Vercel's env.
 - ITEM NAMES ONLY TO OWNERS (`api/_lib/catalog.js` + `lab-text.js`, never served; `tests/vault-names.test.mjs`) — ONE named exception: the WORN card's name on THE PLAYER PAGE (`card.cn`).
 - FRIENDS: `pfr/{pid}` server-written, its owner reads it (`core/friends.js#friendStep`); PASSKEYS (`api/_lib/passkeys.js`, the RESTORE KEY stays the fallback) → docs/profiles.md (moved).
-- SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS — only through `ui/strip-board.js` (never a second strip system).
+- SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS — only through `ui/strip-board.js` (never a second strip system); every place 1 / 2 / 3 = THE DECO MEDALS (`ui/medal.js`).
 
 **THE VAULT** (→ docs/vault.md (moved))
 - EMBLEMS + GLOWS MOVE ON THE COMPOSITOR (`js/vault/emblem-art.js` — never a CSS animation on an SVG element); THE PROMINENCE RULE is the budget.
