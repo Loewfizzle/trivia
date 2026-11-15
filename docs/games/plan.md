@@ -424,3 +424,4 @@
 - Nov 14 — No tap on a screen over the city ever reaches the city (Ben's live bug: tapping a SCORES card opened PRISM DROP's billboard card).
 - Nov 14 — COAST CLEAR's result = the time + one small drawn SEARCHLIGHT icon per spot (0–2); CAUGHT unchanged.
 - BEFORE PUBLIC: the everyone lists are a cheater target (throwaways can learn the day) — harden or limit them before going public.
+- Nov 14 (Ben, after DFIX5) — SHARE TODAY's COAST CLEAR section stays as it is: its three lamps (one lit per spot) already show the spots — no lamps beside the big time.

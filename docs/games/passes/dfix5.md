@@ -29,7 +29,7 @@ functions. The reference: docs/coastclear.md "DFIX5" · docs/progression.md "EVE
   in public). Friends are marked by the server (`f: 1`) / by their board ids (`points.ids`).
 - **Scores before you play:** the everyone list shows the cards + PLAYED, no score, until you finish that daily — YOUR TABLE's existing rule.
 - **SHARE TODAY unchanged:** its COAST CLEAR section already draws ONE LIT LAMP PER SPOT in its art strip (+ "1 SPOTTED · +30 s") — adding lamps
-  beside the big time would say it a third time and break THE ONE RULE's rhythm. Say the word and they go beside the time instead.
+  beside the big time would say it a third time and break THE ONE RULE's rhythm. **Ben (Nov 14, after the pass): keep it as is.**
 - **No touch sound** (the brief's optional sonar tick): a new sound would be a new file (Grok) — the reveal sound on landing stays the only one.
 
 ## Known issues (not this pass's)
