@@ -19,20 +19,15 @@ export const LOG_LIMITS = { perRequest: 10, ipPerHour: 40, perDay: 3000, maxBody
 // 9e — SEND REPORT (the &debug=1 strip's button) + THE HANG WATCH (a worker that reports when the page's main thread stops answering —
 // js/hangwatch.js): POST /api/log { p: 'report', r: { kind: 'tap' | 'hang' | 'stall', text } } → phonelog/{push} { at, kind, text, ua, d,
 // b, v } — plain text the owner reads (+ screenshots) on /admin. 8 an hour per IP, 120 a day in all, the newest 40 kept.
-export const REPORT_LIMITS = { ipPerHour: 8, perDay: 120, keep: 40, text: 24_000 };
-const REPORT_KINDS = ['tap', 'hang', 'stall', 'bench', 'lost', 'boot', 'old', 'gone', 'ext', 'reload', 'killed'];   // (CITY D: 'killed' = A KILLED PAGE — js/errlog.js's marker found at the next load: the screen, the device, the build)   // (CITY A — item 10: 'reload' = a CATCH-UP RELOAD, logged as a row: the build from → to, the screen, the reason)
+// (FIXES R1: REPORT_LIMITS, REPORT_KINDS + cleanReport live in ./_lib/log-pure.js — the unit tests import that, never this file)
+export { REPORT_LIMITS, REPORT_KINDS, cleanReport } from './_lib/log-pure.js';
+import { REPORT_LIMITS, REPORT_KINDS, cleanReport } from './_lib/log-pure.js';
 // CITY A — THE QUIET COUNTS: kinds COUNTED on one line, never stored as a row — 'old' (a browser below THE SUPPORTED FLOOR), 'gone' (a room write
 // the rules refused after this phone had left / lost the host / seen its room close — item 6), 'ext' (an error from a browser extension — item 28)
 export const QUIET_KINDS = ['old', 'gone', 'ext'];   // (FR7 FIXES C2: 'old' — a browser below THE SUPPORTED FLOOR, COUNTED, never stored)   // (C4c: 'bench' — THE PHONE BENCH's report, &bench=1; CITY FIXES: 'lost' — THE TAP WATCH; LOAD FIX 3: 'boot' — THE BOOT WATCHDOG's BOOT HANG, index.html)
 // CITY FIXES — THE TAP WATCH's LOST TAPS (js/ui/tapwatch.js — always on, ≤ 1 a minute + ≤ 20 a day per device): their OWN buckets, so a burst
 // of lost taps never eats the hang watch's + SEND REPORT's; the newest REPORT_KEEP kept PER KIND (prune.js) — never pushing a hang out
 export const LOST_LIMITS = { ipPerHour: 20, perDay: 400, text: 4000 };
-
-/** PURE: a report body → { kind, text } to store, or null */
-export function cleanReport(r) {
-  if (!r || typeof r !== 'object' || typeof r.text !== 'string' || !r.text.trim()) return null;
-  return { kind: REPORT_KINDS.includes(r.kind) ? r.kind : 'tap', text: r.text.slice(0, REPORT_LIMITS.text) };
-}
 
 /** Stores one report (rate-limited). Returns 1 when kept, 0 when dropped. */
 export async function logReport(body, { ip = '', ua = '', now = Date.now() } = {}) {

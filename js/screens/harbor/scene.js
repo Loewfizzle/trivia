@@ -193,6 +193,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   //  automation unless &tiermem=1, so a test's tier is its own)
   const TIER_MEM = 'na:tier', TIER_MEM_DAYS = 14;
   const tierMemOn = (() => { try { return !navigator.webdriver || new URLSearchParams(location.search).has('tiermem'); } catch { return false; } })();
+  // (FIXES R1 — THE REVIEW A3: the step itself, too, only for a person's phone — never under automation unless &stallstep=1: the cloud's slow
+  //  runner stalled in the first moments, stepped down to 1.5× and the harbor `windows` checks — drawn for 2× — went red on every run since
+  //  CITY C. A test keeps the tier it was given; the rule is unchanged for every real visit)
+  const stallOn = (() => { try { return !navigator.webdriver || new URLSearchParams(location.search).has('stallstep'); } catch { return true; } })();
   const tierMem = (() => { if (!tierMemOn) return null; try { const m = JSON.parse(localStorage.getItem(TIER_MEM) || 'null'); return m && Number.isInteger(m.t) && Date.now() - m.at < TIER_MEM_DAYS * 864e5 ? m : null; } catch { return null; } })();
   if (tierMem && tierMem.t < tier0) tier0 = Math.max(0, tierMem.t);
   let tier = tier0, W = 0, H = 0, dpr = 1, HZ = 0;
@@ -1757,7 +1761,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
    *  Once a session; a tier a test set by hand stays. */
   let stallStepped = false;
   function stallStep(ms, now) {
-    if (stallStepped || tier <= 0 || manualTier || document.visibilityState !== 'visible' || now - hiddenAt < ms + 500) return;
+    if (stallStepped || !stallOn || tier <= 0 || manualTier || document.visibilityState !== 'visible' || now - hiddenAt < ms + 500) return;
     stallStepped = true;
     const why = `a ${Math.round(ms)} ms frame ${shownAt < 0 ? 'before' : 'after'} the reveal`;
     if (shownAt < 0) { LOADLOG.add('tier', `${tier} → ${tier - 1} at once (${why})`); stepTier(tier - 1, why); } else scenePerf.stepDown(why);

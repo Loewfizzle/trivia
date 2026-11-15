@@ -279,6 +279,8 @@ Rules of thumb: a player writes only under their own uid; anything secret lives 
 - Unit: `node --test tests/*.test.mjs`. Rules: `node --test rules.test.mjs`; `/api`: `node --test server.test.mjs` (both in tests/integration,
   on the emulators: `npm run emulators`). Smoke: `node e2e-smoke.mjs "<browser>" ./shots` (`GAMES=…`). Sockets: `e2e-conn.mjs`. Per game:
   `e2e-<id>.mjs` (`FAST=1`). `ONLY=perf` = THE BASELINE GUARD. App: `node scripts/serve.mjs` → `http://localhost:5173/?emu`.
+- THE UNIT JOB INSTALLS NOTHING (FIXES R1): a `tests/*.test.mjs` unit test never imports a file that reaches `api/_lib/fb.js` (or any package) — a server file's pure half gets its own module (`tests/unit-imports.test.mjs`).
+- THE PAGES LOAD (FIXES R1 — /admin shipped dead): every shipped file parses (`tests/parse-all.test.mjs`) + the smoke test loads /, /admin, /board, /lab, /daychart in Chromium + WebKit (`kit/page-loads.mjs`).
 
 ## Firebase setup notes
 - Console → Build → Realtime Database (create), Authentication → Sign-in method → **Anonymous: enable**.

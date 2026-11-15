@@ -42,7 +42,7 @@ test('the app + the city tell the watchdog where they are; the city feeds the bo
 });
 
 test('the BOOT HANG report: a kind /api/log keeps + /admin names', () => {
-  assert.match(read('api/log.js'), /REPORT_KINDS = \[[^\]]*'boot'/);
+  assert.match(read('api/_lib/log-pure.js'), /REPORT_KINDS = \[[^\]]*'boot'/);   // (FIXES R1: /api/log's pure half)
   assert.match(read('js/admin/groups.js'), /'boot' \? 'BOOT HANG'/);
 });
 

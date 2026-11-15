@@ -3,7 +3,7 @@
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
 import { normalize as wxNormalize } from '../../../js/core/weather.js';
 import { easternParts } from '../../../js/core/week.js';
-import { OUT, BASE, SHOTS, t0, log, sleep, errors, ok, okT, okF, GR, NIGHT, launch, open, ev, waitFor, tapAt, tap, tapUntil, harborUp, dbPut, flags, settled, G } from './kit.mjs';
+import { OUT, BASE, SHOTS, t0, log, sleep, errors, warnings, ok, okT, okF, GR, NIGHT, launch, open, ev, waitFor, tapAt, tap, tapUntil, harborUp, dbPut, flags, settled, G } from './kit.mjs';
 
 // ================================================================ THE PREVIEW PANEL (the owner's test remote; ONLY=panel runs just this)
 async function panelSection() {
@@ -1020,6 +1020,17 @@ G('cameras', async () => {
   let next = 0;
   const worker = async () => { while (next < names.length) { const i = next++, name = names[i]; let r = null; try { r = await runPath(D, name, { base: BASE, slot: `c${i}`, fast: true }); } catch (e) { r = { bad: true, line: `${name}: ${e && e.message}`, frames: { n: 0, seen: 0 }, pixels: [] }; } out.set(name, r); } };
   await Promise.all(Array.from({ length: process.env.CI ? 2 : 3 }, worker));
+  // FIXES R1 — THE QUARANTINE (THE REVIEW A3; docs/testing.md "THE CAMERAS QUARANTINE"): this group went red on CITY B / D / E's cloud runs on
+  // ONE path each time — "hours-box" (an item's copy 47 pt away 0.25 s after the return), green on C's — and locally on FIXES R1's first run on
+  // ANOTHER ("no-observer-pre"), green on the rerun: a timing flake across paths under load, not one reproducible double. A path that fails is
+  // run ONCE more, ALONE (no pages beside it): a pass then counts green and is NAMED in the warnings (`[quarantine]`); a second fail stays RED.
+  for (const name of names) {
+    if (!out.get(name).bad) continue;
+    const first = out.get(name);
+    let r2 = null; try { r2 = await runPath(D, name, { base: BASE, slot: `c${names.indexOf(name)}r`, fast: true }); } catch (e) { r2 = { bad: true, line: `${name}: ${e && e.message}` }; }
+    if (r2 && !r2.bad) { warnings.push(`[quarantine] NO TWO CAMERAS — ${name}: failed once (${first.line.replace(/^\S+\s+/, '').slice(0, 160)}), passed on the retry alone`); log('cameras', 'QUARANTINE', name, 'passed on the retry'); out.set(name, { ...r2, line: `${r2.line} · (a retry: the first run failed — quarantined, docs/testing.md)`, errs: [...(first.errs || []), ...(r2.errs || [])] }); }
+    else out.set(name, { ...(r2 || first), line: `${(r2 || first).line} · FAILED TWICE (the first: ${first.line.replace(/^\S+\s+/, '').slice(0, 120)})` });
+  }
   for (const name of names) {
     const r = out.get(name);
     for (const m of r.errs || []) { errors.push(`cameras pageerror (${name}): ${m}`); log('cameras', 'PAGEERROR', m); }

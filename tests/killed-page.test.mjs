@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { killedText } from '../js/errlog.js';
-import { cleanReport } from '../api/log.js';
+import { cleanReport } from '../api/_lib/log-pure.js';   // (FIXES R1: the pure half — api/log.js reaches fb.js / firebase-admin)
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 
 test('killedText: a fresh note → "PAGE KILLED (likely memory) · screen · device · build"; none / stale / junk → nothing', () => {

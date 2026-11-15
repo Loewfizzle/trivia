@@ -12,46 +12,18 @@
 // without them = /admin → RESEED). docs/backup.md has the list, the restore steps and what to do if the token leaks.
 // THE CHECKSUMS: each part's sha256 travels WITH that part (its header) — the database is live, so an index computed first would not match parts
 // read seconds later; the fetcher checks every part against its own header and writes the folder's checksums.sha256 for the restore's check.
-import { createHash, timingSafeEqual } from 'node:crypto';
-import { gzipSync, gunzipSync } from 'node:zlib';
 import { ref, val, emulated } from './fb.js';
 import { ApiError } from './http.js';
 
-/** every node a restore needs — the players' progress, their keys, the boards, the dailies' results, the Lab, the radio, the city */
-export const DURABLE = Object.freeze(['profiles', 'pstats', 'uids', 'seats', 'progress', 'lb', 'dly', 'results', 'ppriv', 'pkeys', 'pfr', 'flink', 'tags',
-  'vault', 'radio', 'city2', 'members', 'gifts', 'streak', 'gplay', 'pcount', 'pkc', 'pkx', 'audit', 'flags', 'logstats', 'errlog', 'phonelog', 'backups']);
-/** left out — live / ephemeral (a room's nodes, presence, the rate limits, caches, a passkey's one-time challenge, the 7-day share pictures) */
-export const LIVE = Object.freeze(['rooms', 'hush', 'chats', 'fleets', 'glsonar', 'spy', 'hsbet', 'rrp', 'rrsec', 'seal', 'hole', 'hrec', 'rl', 'here', 'wx',
-  'pkch', 'shr', 'shrx', 'shrp', 'testAdmins', 'testReportAll', 'testHoldemGate']);
-/** left out ON PURPOSE — THE DAILY SECRET + THE FROZEN SCHEDULE (future answers): only in the database (tests/daily-secrets.test.mjs) */
-export const SECRET = Object.freeze(['dsecret', 'dsched']);
-/** the biggest gzipped part an answer may carry (Vercel answers at most 4.5 MB) — BACKUP_PART_MAX lowers it (the tests) */
-export const partMax = (env = process.env) => Math.max(1024, Number(env.BACKUP_PART_MAX) || 4_200_000);
-export const WHO = Object.freeze(['gh', 'pc']);
-
+// (FIXES R1: the lists, the token's verdict, the slices + the packing live in ./backup-pure.js — the unit tests import that, never this file)
+export { DURABLE, LIVE, SECRET, partMax, WHO, tokenVerdict, sliceOf, packPart, unpackPart } from './backup-pure.js';
+import { DURABLE, LIVE, SECRET, partMax, WHO, tokenVerdict, sliceOf, packPart, unpackPart } from './backup-pure.js';
 /** the token check (constant time; the env's token missing → 404: no backup door at all) */
 export function checkToken(given, env = process.env) {
-  const want = String(env.BACKUP_TOKEN || '');
-  if (!want) throw new ApiError(404, 'not_found');
-  const a = createHash('sha256').update(String(given || '')).digest(), b = createHash('sha256').update(want).digest();
-  if (!given || !timingSafeEqual(a, b)) throw new ApiError(401, 'bad_token');
+  const v = tokenVerdict(given, env);
+  if (v === 404) throw new ApiError(404, 'not_found');
+  if (v) throw new ApiError(401, 'bad_token');
 }
-
-/** fnv1a over a key → a stable slice index (PURE) */
-export function sliceOf(key, k) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
-  return h % k;
-}
-const sha = buf => createHash('sha256').update(buf).digest('hex');
-/** a value → its gzipped JSON part (PURE) → { buf, sha, raw } */
-export function packPart(value) {
-  const raw = Buffer.from(JSON.stringify(value === undefined ? null : value));
-  const buf = gzipSync(raw, { level: 9 });
-  return { buf, sha: sha(buf), raw: raw.length };
-}
-/** a part's bytes → its value (the restore; PURE) */
-export const unpackPart = buf => JSON.parse(gunzipSync(buf).toString('utf8'));
 
 /** ONE part: the node (or its slice i/k) → { buf, sha } | { split: k } when the whole node is over the limit */
 export async function exportPart(node, slice = null, env = process.env) {

@@ -851,6 +851,29 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - Known local flake (both trees, the harbor `cameras` group at three pages at a time): `no-observer-pre` red ~1 run in 3 ("fit … 85 ms after the
   reveal"); green alone 8/8.
 
+## FIXES R1 (Nov 15 2026 — docs/harbor/passes/fixes-r1.md) — THE CLOUD BACK TO GREEN (THE REVIEW A3)
+- **THE UNIT JOB INSTALLS NOTHING:** `tests/unit-imports.test.mjs` walks every `tests/*.test.mjs` file's STATIC import graph (+ the unit file's own
+  literal `await import('…')` — one followed by `.catch(` tolerates a missing package) and fails on any path to `api/_lib/fb.js` or a package.
+  `tests/backup.test.mjs` + `tests/killed-page.test.mjs` (red in the cloud since CITY D / E) now import the PURE halves: `api/_lib/backup-pure.js`
+  (the lists, `tokenVerdict`, the slices, the packing — `backup.js` re-exports them) + `api/_lib/log-pure.js` (`cleanReport` — `api/log.js`
+  re-exports it). Proof: the unit suite run once with the root `node_modules` renamed away (fixes-r1.md).
+- **THE PAGES LOAD:** `tests/parse-all.test.mjs` parses every shipped `js/` `api/` `sw.js` file in ONE child (`vm.SourceTextModule` — 0.3 s) and
+  `tests/integration/kit/page-loads.mjs` (run FIRST by `e2e-smoke.mjs`, `PAGES=0` skips; alone: `node kit/page-loads.mjs "<chrome>"`) loads the
+  app, /admin, /board, /lab, /daychart in Chromium + WebKit (WebKit where `~/wk` is installed — the cloud says "Chromium only") and fails on a
+  page error or a page left on its placeholder. Both were red on CITY E's `admin.js`.
+- **THE `windows` TIER:** the cloud drew the city at 1.5× (its slow runner stalled in the first moments → THE ONE-STALL RULE stepped the tier);
+  the stall step now runs only for a person's phone — never under automation unless `&stallstep=1` (like its memory's `&tiermem=1`). Real visits
+  unchanged.
+- **THE CAMERAS QUARANTINE** (the harbor `cameras` group, the `lobby` job): red on CITY B / D / E's cloud runs on ONE path each time
+  (`hours-box`), green on C's; locally on FIXES R1's first run on ANOTHER (`no-observer-pre` — the known flake above), green on the rerun = a
+  timing flake across paths under load, not one reproducible double. A failed path is run ONCE more, ALONE: a pass counts green and is NAMED in
+  the run's warnings (`[quarantine] NO TWO CAMERAS — <path>`); a second fail stays RED. A quarantine line in a cloud run = look at that path
+  (R2 may root-cause `no-observer-pre`'s "fit" frames); never re-run the cloud to confirm.
+- **New scripts:** `tests/integration/wk-share-standalone.mjs` (WebKit as the home-screen app: the card uploads once, the link-only share, THE
+  SHARE HOLD — red on the old reload rule) · `scores-memory.mjs --case customize` browses EVERY CUSTOMIZE tab ×3 (+ `gridAnims`: the animations
+  inside a grid — 0 = still art) · `admin-probe.mjs` `BACKUPS=1` (/admin as the owner: BACKUPS + SHARE CARDS) · unit `tests/audio-standalone.test.mjs`
+  (the real engine + a fake AudioContext through the standalone app's signal orders) · `tests/share-link.test.mjs`.
+
 ## DFIX5 (Nov 14 2026 — docs/games/passes/dfix5.md)
 - Unit: `tests/dfix5.test.mjs` (the owner's readout line, the ping's timings + transform / opacity only, the EVERYONE ranking — ties, insert / retry,
   the backfill less x/, the view, the ticket line — and the spot icons).

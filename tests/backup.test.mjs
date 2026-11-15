@@ -5,7 +5,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { DURABLE, LIVE, SECRET, checkToken, sliceOf, packPart, unpackPart, partMax } from '../api/_lib/backup.js';
+// (FIXES R1: the PURE half — api/_lib/backup.js reaches fb.js / firebase-admin, which the cloud's unit job doesn't install; the HTTP door's
+//  401 / 404 answers: tests/integration/backup.test.mjs)
+import { DURABLE, LIVE, SECRET, tokenVerdict, sliceOf, packPart, unpackPart, partMax } from '../api/_lib/backup-pure.js';
 
 const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => (e.isDirectory() ? walk(path.join(d, e.name)) : e.name.endsWith('.js') ? [path.join(d, e.name)] : []));
 
@@ -28,11 +30,11 @@ test('THE CLASSIFICATION RULE: every top-level node the /api code reads or write
 });
 
 test('the token: constant-time, BACKUP_TOKEN missing → 404 (no door), wrong / empty → 401', () => {
-  assert.throws(() => checkToken('abc', {}), e => e.status === 404);
-  assert.throws(() => checkToken('', { BACKUP_TOKEN: 'x'.repeat(64) }), e => e.status === 401);
-  assert.throws(() => checkToken('y'.repeat(64), { BACKUP_TOKEN: 'x'.repeat(64) }), e => e.status === 401);
-  assert.throws(() => checkToken('x'.repeat(63), { BACKUP_TOKEN: 'x'.repeat(64) }), e => e.status === 401, 'a different length is no shortcut');
-  assert.doesNotThrow(() => checkToken('x'.repeat(64), { BACKUP_TOKEN: 'x'.repeat(64) }));
+  assert.equal(tokenVerdict('abc', {}), 404);
+  assert.equal(tokenVerdict('', { BACKUP_TOKEN: 'x'.repeat(64) }), 401);
+  assert.equal(tokenVerdict('y'.repeat(64), { BACKUP_TOKEN: 'x'.repeat(64) }), 401);
+  assert.equal(tokenVerdict('x'.repeat(63), { BACKUP_TOKEN: 'x'.repeat(64) }), 401, 'a different length is no shortcut');
+  assert.equal(tokenVerdict('x'.repeat(64), { BACKUP_TOKEN: 'x'.repeat(64) }), 0);
 });
 
 test('a part round-trips (gzip JSON + its sha256), slices are stable + cover every key once, the part limit stays under Vercel\'s 4.5 MB', () => {
