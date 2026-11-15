@@ -46,12 +46,13 @@ export async function copyKey(k = loadKey(), sel = null) {
   catch { if (sel) { try { const r = document.createRange(); r.selectNodeContents(sel); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch { /* fine */ } } toast('SELECT THE KEY AND COPY IT', 'info'); return false; }
 }
 /** SHARE the key through the phone's own share sheet (Notes · Mail · Messages · a password manager) */
-export async function shareKey(k = loadKey()) {
-  if (!k || !canShare()) return false;
+// (CITY D — the add-on: a share the phone refuses — NotAllowedError, no gesture — calls onRefused: the caller shows the KEY + COPY at once, never a dead button)
+export async function shareKey(k = loadKey(), { onRefused } = {}) {
+  if (!k || !canShare()) { if (k && onRefused) onRefused(); return false; }
   try {
     await navigator.share({ title: 'My NEON SPEAKEASY key', text: `My NEON SPEAKEASY membership key — it brings my card to any device:\n${k}\nhttps://neonspeakeasy.com` });
     last.shared = Date.now(); markSaved(); toast('SAVED — YOUR CARD CAN ALWAYS COME BACK', 'ok'); return true;
-  } catch (e) { if (e && e.name !== 'AbortError') toast('COULDN’T OPEN THE SHARE SHEET — COPY IT INSTEAD', 'info'); return false; }
+  } catch (e) { if (e && e.name !== 'AbortError') { if (onRefused) onRefused(); else toast('COULDN’T OPEN THE SHARE SHEET — COPY IT INSTEAD', 'info'); } return false; }
 }
 
 function keyActions(k, sel, { onSaved } = {}) {

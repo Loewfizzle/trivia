@@ -44,6 +44,15 @@ export const PRESS_IMPLICIT = '.btn.btn-block, [data-press-all] .btn, .icon-btn,
 // (+ a control with its OWN pointer-up path — the dock's pressTap — never twice; the implicit rule is off while a GAME runs: a game's buttons
 //  keep their own pointer events — only an explicit data-press acts there)
 export const PRESS_NEVER = '[data-gesture], [data-act="copy"], [data-act="share"], [type="submit"], [data-press-tap], [data-tap-own], [data-tap-own] *';
+// CITY D — the add-on (Nov 15 10:43 am — a LOST TAP on SAVE YOUR KEY → SHARE, iOS sent no click; the rescue's synthetic click can't open a share
+// sheet — the key most likely never saved): a control that needs Safari's OWN gesture (a share sheet, the clipboard, a passkey) acts INSIDE THE
+// TOUCH's own lift — a pointerup (not a mouse's) is a user activation, and its click() runs inside that dispatch — the browser's late click
+// swallowed after; THE RESCUE never clicks one (it would always fail) — it is logged instead. A form's submit keeps its real click (the keychain).
+export const GESTURE_OWN = '[data-gesture], [data-act="copy"], [data-act="share"]';
+/** PURE: does a press on `el` (a pointer of `type`) act at its lift as a gesture control? (a mouse's click carries the gesture itself) */
+export function gestureControl(el, type = 'touch') {
+  try { return !!(el && el.matches && type !== 'mouse' && el.matches(GESTURE_OWN) && !el.matches('[type="submit"], [data-press-tap], [data-tap-own], [data-tap-own] *')) ? el : null; } catch { return null; }
+}
 /** the control a press acts on (the element itself), or null */
 export function pressControl(el, game = false) {
   try {
@@ -205,7 +214,7 @@ function onDown(e) {
       id: e.pointerId, type: e.pointerType || 'touch', el, sig: sigOf(el), x: e.clientX, y: e.clientY, t: e.timeStamp,
       inDelay: Math.max(0, performance.now() - e.timeStamp), rect: [r.left, r.top], travel: 0, muts: [], up: null,
       own: !!el.closest('[data-tap-own]'), game: gameOn(), where: screenName(), clicked: false,
-      act: pressControl(el, gameOn()),   // (the control itself — a kick button inside a pressable row is its own; a press that BEGAN on a row acts even while its sheet still slides in: the 38-px shelf row)
+      act: pressControl(el, gameOn()) || gestureControl(el, e.pointerType || 'touch'),   // (the control itself — a kick button inside a pressable row is its own; a press that BEGAN on a row acts even while its sheet still slides in: the 38-px shelf row)
     };
     // what re-renders while the finger is down (childList only, until the tap ends — off the rest of the time)
     if (typeof MutationObserver !== 'undefined') {
@@ -289,7 +298,8 @@ function check(p) {
   // (still there at the lift, gone now, no twin = its own lift handler took it away — closed the sheet it sat on: handled, not lost)
   if (!target && p.connectedAtUp) { if (press === p) endPress('gone'); return; }
   stats.lost++;
-  const mayRescue = rescueOn && p.type !== 'mouse' && target && !disabled(target);
+  const gesture = !!(target && target.matches && target.matches(GESTURE_OWN));
+  const mayRescue = rescueOn && p.type !== 'mouse' && target && !disabled(target) && !gesture;
   if (press === p) endPress('lost');
   if (mayRescue) {
     stats.rescues++;
@@ -297,7 +307,7 @@ function check(p) {
     try { target.click(); } catch (e) { console.warn('[tapwatch] rescue', e); }
   }
   // the report a moment later (a late real click, if one comes, is counted in it)
-  setTimeout(() => report(p, mayRescue ? how : 'none'), 250);
+  setTimeout(() => report(p, mayRescue ? how : gesture ? 'gesture' : 'none'), 250);
 }
 
 function pageNow() {
@@ -331,7 +341,7 @@ function report(p, rescue) {
       `long tasks around it: ${lt.length ? lt.map(x => `${Math.round(x.d)} ms`).join(', ') : typeof PerformanceObserver !== 'undefined' && (PerformanceObserver.supportedEntryTypes || []).includes('longtask') ? 'none' : 'not counted on this browser'}`,
       `re-rendered while the finger was down: ${p.muts.length ? [...new Set(p.muts)].join(', ') : 'nothing'}`,
       `the page: ${pageNow() || '—'}`,
-      `rescued: ${rescue === 'none' ? 'NO (not a clean tap to rescue)' : `yes — clicked ${rescue}`}${rescued && rescued.late ? ` · a late real click came ${rescued.late} ms after the lift (swallowed)` : ''}`,
+      `rescued: ${rescue === 'none' ? 'NO (not a clean tap to rescue)' : rescue === 'gesture' ? 'NO — a gesture control (share / copy / passkey): a synthetic click cannot open it, so it is never rescued' : `yes — clicked ${rescue}`}${rescued && rescued.late ? ` · a late real click came ${rescued.late} ms after the lift (swallowed)` : ''}`,
       `this page so far: ${stats.downs} taps watched · ${stats.lost} lost · ${stats.rescues} rescued`,
     ];
     lastReport = lines.join('\n');

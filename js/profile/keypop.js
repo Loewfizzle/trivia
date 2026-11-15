@@ -49,13 +49,17 @@ async function show(why) {
   let saved = false;
   const done = () => { if (saved) return; saved = true; setNotes({ saved: true }); emit(); if (open) open.close(); };   // (copyKey / shareKey say so themselves)
   const copy = h('button.btn.btn-primary.kp-copy', { type: 'button', 'data-act': 'copy', onclick: async () => { if (await B.copyKey(loadKey())) done(); } }, 'COPY');
-  const share = typeof navigator.share === 'function' ? h('button.btn.btn-ghost.kp-share', { type: 'button', 'data-act': 'share', onclick: async () => { if (await B.shareKey(loadKey())) done(); } }, 'SHARE') : null;
+  // (CITY D — the add-on: SHARE acts inside the touch's own lift (ui/tapwatch.js#gestureControl); a share the phone still refuses shows the
+  //  KEY itself + COPY at once — never a dead button)
+  const keyBox = h('p.kp-key', { hidden: true, 'aria-live': 'polite' });
+  const showKey = () => { keyBox.textContent = loadKey() || ''; keyBox.hidden = false; try { const rg = document.createRange(); rg.selectNodeContents(keyBox); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg); } catch { /* fine */ } copy.focus(); };
+  const share = typeof navigator.share === 'function' ? h('button.btn.btn-ghost.kp-share', { type: 'button', 'data-act': 'share', onclick: async () => { if (await B.shareKey(loadKey(), { onRefused: showKey })) done(); } }, 'SHARE') : null;
   const later = h('button.btn.btn-text.btn-block.kp-later', { type: 'button', onclick: () => { setNotes({ kp: 'later' }); open && open.close(); } }, 'LATER');
   open = openPfSheet({ kicker: 'YOUR MEMBERSHIP', title: 'SAVE YOUR KEY', cls: 'kp-sheet',
     body: [h('div.kp-card', memberCard(pub, {}, pub ? pub.x : 0)),
       h('p.kp-line', 'Save your key so you never lose your card.'),
       h('p.sh-note', 'Send it to yourself — Notes, Mail or a password manager. It brings this card back on any device; never give it to anyone else.'),
-      h('div.kp-acts', copy, share), later],
+      h('div.kp-acts', copy, share), keyBox, later],
     onClose: () => { open = null; if (!saved) setNotes({ kp: 'later' }); emit(); } });
   open.el.dataset.why = why;
   emit();

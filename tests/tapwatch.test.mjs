@@ -157,3 +157,22 @@ test('CITY B add-on: the profile BACK + the corner buttons press + lift; the fri
   assert.match(R('js/screens/title.js'), /function frBadge\(n\) \{ afterTap\(\(\) => frBadgeNow\(n\)\); \}/);
 });
 
+
+// CITY D — the add-on (Nov 15 10:43 am): SAVE YOUR KEY → SHARE lost its tap; the rescue's synthetic click can't open a share sheet. A gesture
+// control acts INSIDE the touch's own lift (a pointerup is a user activation); THE RESCUE never clicks one; a refused share shows the key + COPY.
+test('CITY D add-on: share / copy / passkey act inside the touch\'s lift, never rescued; a refused share → the key + COPY', async () => {
+  const { gestureControl, GESTURE_OWN } = await import('../js/ui/tapwatch.js');
+  const el = sel => ({ matches: q => q.split(',').map(x => x.trim()).some(x => x === sel) });
+  for (const s of ['[data-gesture]', '[data-act="copy"]', '[data-act="share"]']) {
+    assert.ok(gestureControl(el(s), 'touch'), `${s}: acts at the touch's lift`);
+    assert.equal(gestureControl(el(s), 'mouse'), null, `${s}: a mouse's own click carries the gesture`);
+  }
+  assert.equal(gestureControl(el('[type="submit"]'), 'touch'), null, 'a form submit keeps its real click (the keychain)');
+  assert.equal(GESTURE_OWN, '[data-gesture], [data-act="copy"], [data-act="share"]');
+  const T = fs.readFileSync(new URL('../js/ui/tapwatch.js', import.meta.url), 'utf8');
+  assert.match(T, /act: pressControl\(el, gameOn\(\)\) \|\| gestureControl\(el, e\.pointerType \|\| 'touch'\)/);
+  assert.match(T, /const mayRescue = rescueOn && p\.type !== 'mouse' && target && !disabled\(target\) && !gesture;/, 'never rescued — logged');
+  const K = fs.readFileSync(new URL('../js/profile/keypop.js', import.meta.url), 'utf8');
+  assert.match(K, /B\.shareKey\(loadKey\(\), \{ onRefused: showKey \}\)/);
+  assert.match(fs.readFileSync(new URL('../js/profile/bring.js', import.meta.url), 'utf8'), /if \(onRefused\) onRefused\(\); else toast/);
+});

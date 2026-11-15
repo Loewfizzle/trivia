@@ -555,6 +555,9 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
 .kp-card > * { width: 100%; max-width: 420px; }
 .kp-line { margin: 2px 0 0; font: 800 clamp(18px, 5.4vw, 21px)/1.25 var(--font-ui); color: #fff; text-align: center; }
 .kp-acts { display: flex; gap: 10px; }
+/* CITY D — a share the phone refused: the KEY itself, selected, beside COPY (never a dead button) */
+.kp-key { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); font: 700 16px/1.3 var(--font-mono); letter-spacing: 0.08em; color: #fff; text-align: center; user-select: all; -webkit-user-select: all; word-break: break-all; }
+.kp-key[hidden] { display: none; }
 .kp-later { color: rgba(240, 236, 250, 0.82) !important; }
 
 /* LOBBY 2.0 B — LEAVE ROOM at the foot of GUESTS (the owner's ADD-ON): red-edged glass, a second tap = SURE? */

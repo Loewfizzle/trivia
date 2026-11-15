@@ -158,6 +158,36 @@ try {
     await home();
   }
 
+  // ---- CITY D — the add-on (Nov 15 10:43 am): SAVE YOUR KEY → SHARE lost its tap (iOS sent no click) and the rescue's synthetic click can't
+  //      open a share sheet. A gesture control (data-act share / copy, data-gesture) acts INSIDE the touch's own lift — a user activation —
+  //      never rescued. The phone's share + clipboard stubbed (they record the call + whether the page held a user activation then)
+  await p.evaluate(() => {
+    window.__shared = 0; window.__copied = null; window.__act = [];
+    const ua = () => (navigator.userActivation ? navigator.userActivation.isActive : 'n/a');
+    navigator.share = async () => { window.__shared++; window.__act.push(['share', ua()]); };
+    try { Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async t => { window.__copied = t; window.__act.push(['copy', ua()]); } } }); } catch { /* fine */ }
+    const box = document.createElement('div');
+    box.id = 'kp-test'; box.style.cssText = 'position:fixed;left:20px;right:20px;top:300px;z-index:99999;display:flex;gap:10px';
+    box.innerHTML = '<button type="button" class="btn btn-ghost kp-share" data-act="share" style="flex:1;height:56px">SHARE</button><button type="button" class="btn btn-primary kp-copy" data-act="copy" style="flex:1;height:56px">COPY</button>';
+    document.body.append(box);
+    box.querySelector('.kp-share').onclick = () => import('/js/profile/bring.js').then(B => B.shareKey('NEON-TEST-KEY1'));
+    box.querySelector('.kp-copy').onclick = () => import('/js/profile/bring.js').then(B => B.copyKey('NEON-TEST-KEY1'));
+  });
+  for (const noClick of [true, false]) {
+    await p.evaluate(v => { window.__noClick = v; window.__shared = 0; window.__copied = null; window.__act = []; }, noClick);
+    const tag = noClick ? '[iOS: NO click]' : '[the click arrives]';
+    const s0 = await tw();
+    const sh = await centre('#kp-test .kp-share'); await p.touchscreen.tap(sh.x, sh.y);
+    await waitFor('window.__shared >= 1', 3000); await sleep(400);
+    const cp = await centre('#kp-test .kp-copy'); await p.touchscreen.tap(cp.x, cp.y);
+    await waitFor('!!window.__copied', 3000); await sleep(400);
+    const r = await p.evaluate('({ shared: window.__shared, copied: window.__copied, act: window.__act })'), s1 = await tw();
+    ok(r.shared === 1 && r.act.find(a => a[0] === 'share')?.[1] !== false && s1.rescues === s0.rescues, `${tag} SAVE YOUR KEY → SHARE: share() called ${r.shared}× inside the touch's lift (user activation: ${JSON.stringify(r.act.find(a => a[0] === 'share')?.[1])}) · rescues +${s1.rescues - s0.rescues}`);
+    ok(r.copied === 'NEON-TEST-KEY1' && s1.rescues === s0.rescues, `${tag} SAVE YOUR KEY → COPY copies the key (${r.copied || 'nothing'}) · rescues +${s1.rescues - s0.rescues}`);
+    table.push(`${noClick ? 'no click' : 'click on'} · SAVE YOUR KEY: share ${r.shared}× · copy ${r.copied ? 'ok' : 'LOST'}`);
+  }
+  await p.evaluate("document.getElementById('kp-test').remove(); window.__noClick = false");
+
   // ---- THE MOVED ROW (Safari 27.0.1: a shelf row slid 38 px under a still finger): down on the row → the row moves → the still finger lifts.
   //      The pointer events are the page's own here (a touch down, the move, the up — no click from anyone): the row still acts, once
   await p.evaluate("window.__noClick = true; document.querySelector('.nd-tab-play').click()");
