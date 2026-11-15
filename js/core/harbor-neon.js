@@ -767,7 +767,9 @@ export const SPOTS = [
   // (DT1 — THE SLOT RULE: the blade takes ONE-WORD names only — words: 1)
   // (CITY B — THE HOTEL BLADE, the owner Nov 14: `rot: 'hotel'` = its OWN seeded rotation of the playable names that fit (PRISM · HOLDEM ·
   //  JAY / WALK), never the speakeasy blade's game that week; `split: 2` = a SIGN_SPLIT name may stack as its two words here)
-  { id: 'n-blade', kind: 'named', type: 'vbox', host: 'hotel', bulbs: true, x: [248, 266], y: [474.5, 552], z: 229.4, cap: 6, words: 1, rot: 'hotel', split: 2 },
+  // (CITY D — the owner, Nov 15: the hotel's vertical sign rotates PRISM / HOLDEM ONLY — JAY / WALK is too long there: no `split` — a two-word
+  //  name never fits it)
+  { id: 'n-blade', kind: 'named', type: 'vbox', host: 'hotel', bulbs: true, x: [248, 266], y: [474.5, 552], z: 229.4, cap: 6, words: 1, rot: 'hotel' },
   // NEON PASS 6 (the owner: "remove the tiny floating game icons — distracting"): every ICON spot is gone (i-par, i-par2, i-left,
   // i-c1, i-r1, i-r2; i-mid went in Neon Pass 5). The games are carried by the NAMED signs — the roof signs, the blade, the
   // billboard (it advertises a game with no sign tonight) — and the nightly shuffle rotates which games hang, so every game shows
@@ -990,7 +992,10 @@ export function assignSigns(games, spots, key = 'x', { avoid = null } = {}) {
   const pano = x => (String(x.id).startsWith('n-pano') ? 1 : 0);
   for (const s of [...others].sort((a, b) => pano(a) - pano(b) || (a.words || 1) - (b.words || 1) || (a.cap || 99) - (b.cap || 99))) {
     // (the owner, Nov 15: NO NAMED SIGN IS EVER DARK — a name not yet up tonight first; only when none fits, one already up elsewhere)
-    const g = order.find(id => !used.has(id) && signText(byId.get(id), s)) || order.find(id => signText(byId.get(id), s));
+    // (CITY D — NO GAME TWICE: the four named signs — roof A, roof B, the hotel blade + the speakeasy blade's weekly game — four DIFFERENT games
+    //  every night: a roof skips the speakeasy blade's game too (the week's, then Monday morning's last week's); a repeat only if names < signs)
+    const fits = id => signText(byId.get(id), s), free = id => !used.has(id) && fits(id);
+    const g = order.find(id => free(id) && !bad.includes(id)) || order.find(id => free(id) && !bad.slice(0, 1).includes(id)) || order.find(free) || order.find(fits);
     if (g) { out.set(s.id, g); used.add(g); }
   }
   const rest = shuffle(rngFrom(`signs|i${week}|${d}`), games.map(g => g.id).filter(id => !used.has(id)));

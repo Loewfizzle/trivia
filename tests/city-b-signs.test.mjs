@@ -3,7 +3,8 @@
 //  - NO NAMED SIGN IS EVER DARK (the hotel blade + both roof signs, every night, every phone size + the desktop)
 //  - OVERCLOCK = OVER / CLOCK and JAYWALK = JAY / WALK — ALWAYS two stacked lines on every sign (never one line); every stacked word ≥ the
 //    glance size (~9 pt on a phone); the one-word names ≥ 10 pt
-//  - THE HOTEL BLADE cycles PRISM · HOLDEM · JAY / WALK, never the speakeasy blade's game that week; the speakeasy blade stacks them too
+//  - THE HOTEL BLADE cycles PRISM · HOLDEM only (CITY D), never the speakeasy blade's game that week; the speakeasy blade stacks them too
+//  - CITY D — NO GAME TWICE: roof A · roof B · the hotel blade · the speakeasy blade's weekly game = four DIFFERENT games every night, every one shown
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
@@ -76,7 +77,7 @@ test('OVER / CLOCK + JAY / WALK ALWAYS stacked on two lines on every sign; every
   assert.deepEqual(bladeWords('OVERCLOCK'), ['OVER', 'CLOCK']); assert.deepEqual(bladeWords('JAYWALK'), ['JAY', 'WALK']); assert.deepEqual(bladeWords('PRISM'), ['PRISM']);
 });
 
-test('THE HOTEL BLADE cycles PRISM · HOLDEM · JAY / WALK — never the speakeasy blade’s game that week (every night, 52 weeks); seeded', () => {
+test('THE HOTEL BLADE cycles PRISM · HOLDEM ONLY (CITY D — JAY / WALK too long there) — never the speakeasy blade’s game that week (every night, 52 weeks); seeded', () => {
   for (const k of ['390x844', '402x874', '430x932']) {
     const { L } = setup(k), spots = signSpots(L), seen = new Set();
     for (const n of YEAR) {
@@ -84,7 +85,7 @@ test('THE HOTEL BLADE cycles PRISM · HOLDEM · JAY / WALK — never the speakea
       assert.notEqual(id, hotelAvoid(n, IDS)[0], `${k} ${n}: the hotel blade = the speakeasy blade's ${id}`);
       seen.add(id);
     }
-    assert.deepEqual([...seen].sort(), ['holdem', 'jaywalk', 'prism'], `${k}: the names the hotel blade cycles`);
+    assert.deepEqual([...seen].sort(), ['holdem', 'prism'], `${k}: the names the hotel blade cycles (CITY D: PRISM / HOLDEM only)`);
   }
   const { L } = setup('402x874'), spots = signSpots(L);
   for (let w = 0; w < 52; w++) {
@@ -92,4 +93,21 @@ test('THE HOTEL BLADE cycles PRISM · HOLDEM · JAY / WALK — never the speakea
     for (let d = 0; d < 7; d++) assert.notEqual(assignSigns(ROSTER, spots, new Date(+mon + d * 864e5).toISOString().slice(0, 10)).get('n-blade'), ad);
   }
   assert.deepEqual([...assignSigns(ROSTER, spots, '2026-12-01')], [...assignSigns(ROSTER, spots, '2026-12-01')]);
+});
+
+// CITY D — NO GAME TWICE (the owner saw roof A HOLD'EM · roof B OVER/CLOCK · the hotel blade PRISM · the speakeasy blade OVER/CLOCK — JAYWALK nowhere):
+// the four named signs show four DIFFERENT games every night — the roster has four names, so none repeats and every one shows
+test('CITY D — a year of nights: roof A · roof B · the hotel blade · the speakeasy blade’s game = FOUR DIFFERENT games, all four names up', () => {
+  assert.equal(IDS.length, 4, 'the roster: PRISM · HOLD’EM · OVERCLOCK · JAYWALK');
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { L } = setup(k), spots = signSpots(L);
+    for (const n of YEAR) {
+      const pk = assignSigns(ROSTER, spots, n), [y, m, d] = n.split('-').map(Number);
+      // (the speakeasy blade as the evening shows it — on a Monday morning its painters still show last week's, avoided too where possible)
+      const blade = ghostAdGame(Date.UTC(y, m - 1, d, 23), IDS, null);
+      const four = [pk.get('n-roofA'), pk.get('n-roofB'), pk.get('n-blade'), blade];
+      assert.equal(new Set(four).size, 4, `${k} ${n}: ${four.join(' · ')} — a game twice`);
+      assert.ok(['prism', 'holdem'].includes(pk.get('n-blade')), `${k} ${n}: the hotel blade ${pk.get('n-blade')}`);
+    }
+  }
 });

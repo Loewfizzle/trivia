@@ -1949,14 +1949,14 @@ test('THE SLOT RULE (DT1 — the owner: never a shortened name): the blade one-w
       assert.ok(bb && ![...pick.values()].includes(bb), `${k} ${night}: the billboard advertises a game with no sign`);
     }
     // CITY B — the signs name the PLAYABLE games + JAYWALK (the owner, Nov 15): every calendar week (Monday → Sunday) every one of them hangs on a
-    // skyline sign — OVER / CLOCK + JAY / WALK always stacked on two lines (a roof sign; JAY / WALK on the hotel blade too)
+    // skyline sign — OVER / CLOCK + JAY / WALK always stacked on two lines (a roof sign; CITY D: the hotel blade PRISM / HOLDEM only — the speakeasy blade counts)
     {
       const ROSTER = signRoster(GAMES).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
       const ROOF = ROSTER.filter(g => spots.some(sp => sp.kind === 'named' && signText(g, sp)));
       assert.deepEqual(ROOF.map(g => g.id).sort(), ['holdem', 'jaywalk', 'overclock', 'prism'], `${k}: the games a skyline sign takes`);
       for (let w = 0; w < 16; w++) {
         const seen = new Set();
-        for (let d = 0; d < 7; d++) { const n = new Date(Date.UTC(2026, 9, 5) + (w * 7 + d) * 864e5).toISOString().slice(0, 10); for (const v of assignSigns(ROSTER, spots, n).values()) seen.add(v); }
+        for (let d = 0; d < 7; d++) { const n = new Date(Date.UTC(2026, 9, 5) + (w * 7 + d) * 864e5).toISOString().slice(0, 10); for (const v of assignSigns(ROSTER, spots, n).values()) seen.add(v); { const [yy, mm, dd] = n.split('-').map(Number); seen.add(ghostAdGame(Date.UTC(yy, mm - 1, dd, 23), ROSTER.map(g => g.id), null)); } }   // (CITY D: the speakeasy blade's weekly game is on the skyline too — the roofs skip it)
         assert.deepEqual(ROOF.map(g => g.id).filter(id => !seen.has(id)), [], `${k}: week ${w}: a game missing from the skyline`);
       }
     }
