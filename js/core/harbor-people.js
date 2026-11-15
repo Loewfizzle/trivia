@@ -67,8 +67,6 @@ export function capByTier(members, tier = 2) {
     return [...capByTier(members.filter(m => m.kind !== 'proc'), tt), ...pr];
   }
   const cap = TIER_CAP[tt];
-  // (FP3b: the dance circle at tier 0 is its first DANCE.tier0 dancers — the square — and a routine's people are kept FIRST)
-  // (POLISH 4: the dance circle is ON TOP of the crowd — its dancers always drawn (tier 0: the square), the cap is the crowd's)
   const ms = tt === 0 ? members.filter(m => !(m.routine === 'dance' && m.kind === 'dancer' && m.idx >= DANCE.tier0)) : members;
   if (cap >= FOLK.cap) return ms;
   const dancers = ms.filter(m => m.routine === 'dance' && m.kind === 'dancer'), crowd = ms.filter(m => !(m.routine === 'dance' && m.kind === 'dancer'));
@@ -88,12 +86,6 @@ function capCrowd(ms, cap) {
 /** periods of the day (local hours [from, to)): n = the people out on average [weekday, weekend] (~¾ of them on screen: the rest are
  *  walking in / out past the edges or round behind the speakeasy); mix = the kinds' weights
  *  (KINDS below). Weekends: busier (n) and LATER (lateShift moves the evening's hours on by an hour). */
-// (POLISH 4 — THE PEOPLE CALMER, the owner: "a little too chaotic — too many people walking briskly, in and out of the speakeasy".
-// ON SCREEN: a weekday daytime 4–5 (WSP: ~5–6, lunch ~7–8); lunch + after work 6–7; a normal night after dark 3–4; weekend + party nights 8–12 (the dance
-// circle on top); late at night 0–3 — tests/harbor-people.test.mjs measures it over a simulated day. LINGER MORE, PASS THROUGH LESS:
-// the mix is mostly people who STAY a while — the bench (minutes), the railing over the water, a pair stopped chatting, the bus stop,
-// the cart — and only a few walking straight through. THE SPEAKEASY STAYS SECRET: nobody walks into it from the mix — the barbershop's
-// occasional customer by day; the side door's guests come on their own schedule (DOOR_STREAM) + THE LINE on party nights (lineNight))
 export const MIX = Object.freeze(knob('people.mix').periods.map(p => Object.freeze(p)));
 /** party nights: the guests' weight × this, the count × partyN; rain (0..1): the count × (1 − rainCut × rain), the gaits × (1 + rainFast) */
 export const MOOD = Object.freeze({ ...knob('people.mix').mood });
@@ -107,11 +99,8 @@ function periodAt(h, weekend = false) {
 }
 /** how many people on average now + the kinds' weights (PURE). ctx: { h, dow, party, rain, budget } */
 export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, rush = 0, street = 0 } = {}) {
-  // (9a: a STORM — the heaviest rain — almost empties the promenade: on top of the rain's cut)
   const storm = Math.max(0, Math.min(1, (rain - 0.75) / 0.2));
   const PM = knob('people.mix'), weekend = dow === 0 || dow === 6 || (dow === 5 && h >= PM.weekendFrom), p = periodAt(h, weekend);
-  // (NIGHT-B: while THE STREET PARTY's crowd stands — street 0..1, its curve — the pockets ARE the party; the everyday crowd eases back to
-  // the walkers passing through: × (1 − streetCut × street))
   let n = p.n[weekend ? 1 : 0] * (party ? MOOD.partyN : 1) * (1 - MOOD.streetCut * Math.max(0, Math.min(1, street)));
   n *= 1 - MOOD.rainCut * Math.max(0, Math.min(1, rain));
   n *= 1 - MOOD.stormCut * storm;
@@ -120,7 +109,6 @@ export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, r
   n *= Math.max(0, Math.min(1, budget));
   const mix = { ...p.mix };
   if (rush > 0.05) { mix.brisk = (mix.brisk || 0.5) + 2.4 * rush; mix.couple = (mix.couple || 0.5) * (1 + 0.5 * rush); if (mix.bench) mix.bench *= 1 - 0.6 * rush; if (mix.stargazer) delete mix.stargazer; }
-  // (POLISH 4: party nights — more people out ENJOYING it: couples, the water, the bench; the guests themselves come by THE LINE)
   if (party) { mix.couple = (mix.couple || 1) * 1.6; mix.meet = (mix.meet || 0) + 1.2; mix.water = (mix.water || 0) + 0.8; }
   // (9e's JOGGERS' hours were weights in this mix — 1 person in ~20, the owner watched minutes and saw none; 9f: they run on their own
   // seeded lane, JOG below, one every ~1–2 min in their hours)
@@ -161,26 +149,17 @@ export function folkMap(L, { event = false, line = null, cart = false, ring = fa
     shopDoor: { x: s.x0 + (s.shop.door[0] + s.shop.door[1]) / 2, z: F.doorZ },
     sideDoor: { x: s.x0 + (s.door.u0 + s.door.u1) / 2, z: F.doorZ },
     shopWin: { x: s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2 + 0.6, z: F.doorZ - 0.35 },
-    // (PROM — THE WATER BENCH faces the harbor: its seat behind its back (from us), its sitters face away — reached from the water side)
     bench: b.face === 'water' ? { x: b.x, z: b.z + 0.95 } : { x: b.x, z: b.z - 0.2 },
     benchFront: b.face === 'water' ? { x: b.x, z: b.z + 2.05 } : { x: b.x, z: b.z - 1.4 },
     benchFace: b.face === 'water' ? 2 : 0,
-    // (PROM: a couple stopped by the water bench, watching the skyline — seen from behind)
     skyline: { x: b.x + b.w / 2 + 1.1, z: b.z + 1.5 },
     inlay: { x: L.medallion.x, z: L.medallion.z },
     curbWait: { x: cx, z: F.curbZ },
     farWait: { x: cx, z: F.farZ },
     busStop: { x: busStopX(L) + 0.75, z: F.curbZ - 0.05 },
     busDoor: { x: busStopX(L), z: F.busZ },
-    // (POLISH 5 — THE HYDRANT: where a dog walker stands so the dog (on the right, a step ahead) has its nose at the hydrant)
-    // (C4c: on its RIGHT since PROM put the hydrant at the left curb — from its left the walker stood off the screen, the dog at the edge)
     hydrant: L.hydrant ? { x: L.hydrant.x + 1.1, z: F.zMin + 0.02 } : null,   // (the dog's nose at it from x + 0.62: clear of a holiday piece at + 2.1 — core/harbor-spots.js)
-    // (FP3b — the vendor spot at the front curb: the VENDOR beside his tray of chestnuts at the cart's end (behind the cart his head would
-    // hide under its counter at phone size), a customer a step further out facing him. SP5 — the owner: the vendor stood on the cart's LEFT,
-    // right behind Halloween's front-strip jack-o'-lantern (core/harbor-spots.js#corner-right = the cart's rest − 2.5) → the cart's RIGHT
-    // side is his serving spot now, the customer right of him; the newsboy's stand (8b's hook) would share the same rule)
     // (the framing maple's trunk stands at the cart's right end (x + 2.05, nearer the camera): the vendor steps past it, the customer past him)
-    // (PROM: on the cart's HANDLE side — L.cart.hand: its left end now, away from the compass)
     cart: L.cart && L.cart.shown !== false ? { x: L.cart.x + (L.cart.hand || 1) * 4.3, z: Math.max(FOLK.zMin + 0.05, L.cart.z + 0.6) } : null,
     vendor: L.cart && L.cart.shown !== false ? { x: L.cart.x + (L.cart.hand || 1) * 2.95, z: L.cart.z + 0.45 } : null,
     view: { x: cx + cww * 0.15, z: F.zMax - 0.15 },
@@ -197,16 +176,8 @@ export function folkMap(L, { event = false, line = null, cart = false, ring = fa
   const rects = [
     { id: 'building', x0: -1e3, x1: s.x1 + 0.35, z0: F.doorZ + 0.2, z1: 61 },
     // (behind the bench + the crabapple, and under the blade: nobody — they're baked with the stage, the walkers drawn over it)
-    // (PROM: the water bench is LIVE + faces the harbor — the strip behind it, where its sitters sit, is open from its right; only the
-    // corner left of it, under the blade + the crabapple, stays closed)
     ...(b.face === 'water' ? [{ id: 'back-left', x0: -1e3, x1: b.x - b.w / 2 - 0.25, z0: b.z - 0.05, z1: F.roadZ }, { id: 'back-bench', x0: b.x - b.w / 2 - 0.25, x1: b.x + b.w / 2 + 0.55, z0: b.z + 2.6, z1: F.roadZ }, { id: 'bench', x0: b.x - b.w / 2 - 0.15, x1: b.x + b.w / 2 + 0.15, z0: b.z - 0.25, z1: b.z + 1.6 }]   // (C4c: the whole bench — its back + its SEAT + its far legs (to b.z + 1.66, props.js#frame's depth ×1.8); a sitter steps into a seat from its water side: a route may END inside)
       : [{ id: 'back-left', x0: -1e3, x1: b.x + b.w / 2 + 0.55, z0: b.z - 0.05, z1: F.roadZ }]),
-    // (C4c — THE BENCHES ARE SOLID (the owner, Oct 29: a waiter from behind walked straight THROUGH the cab-stand bench, then sat): the cab
-    // stand's bench had no obstacle at all — the front lane (z ≥ zMin 38.75) ran through its back half. Its footprint from the seat's front
-    // edge to its back (props.js: b.z … b.z + 1.66); `front`: its FRONT corners are waypoints too (in front of the lane) — a waiter goes
-    // round its END to the front, then turns + sits, and leaves the same way)
-    // (C4c — THE SIDE DOOR SWINGS OUT: where its leaf stands open (hinged at the right jamb, 77° out: to u1 − 0.34, z0 − 1.46) — a route
-    // from the door to the right goes round its FREE EDGE, never between the leaf + the wall; the doorman holds it from just right of it)
     { id: 'leaf', x0: s.x0 + s.door.u1 - 0.6, x1: s.x0 + s.door.u1 + 0.08, z0: s.z0 - 1.6, z1: s.z0 + 0.1 },
     ...(L.cabStand ? [{ id: 'cabstand', x0: L.cabStand.x - L.cabStand.w / 2 - 0.15, x1: L.cabStand.x + L.cabStand.w / 2 + 0.15, z0: L.cabStand.z + 0.15, z1: L.cabStand.z + 1.75, front: true }] : []),
     { id: 'road', x0: -1e3, x1: 1e3, z0: F.roadZ, z1: F.farZ - 0.3 },
@@ -220,11 +191,9 @@ export function folkMap(L, { event = false, line = null, cart = false, ring = fa
   // (the cart, only while it's OUT — FP3b's vendor spot is shared by time: nobody walks through it or behind its handles; the vendor's
   // own spot behind it stays free for him)
   if (cart && L.cart && L.cart.shown !== false) { const hd = L.cart.hand || 1; rects.push({ id: 'cart', x0: L.cart.x - (hd > 0 ? 1.3 : 2.0), x1: L.cart.x + (hd > 0 ? 2.0 : 1.3), z0: F.zMin - 2, z1: L.cart.z + 0.75 }); }
-  // (POL4: the dance circle spreads round the compass — the closed floor reaches its outer dancers: DANCE.reach × the ring)
   // (11a-2: THE GIANT on the inlay (ring) — the closed floor its plinth's corners + a step: RING.clear)
   if (event) { const m = L.medallion; circles.push({ id: 'event', x: m.x, z: m.z, r: ring ? Math.max(m.ring * DANCE.reach + 0.4, RING.clear) + 0.6 : m.ring * DANCE.reach + 0.4 });   // (9f: + a partner's offset round the giant — a pair's chat spot is checked for the lead; the friend stands 0.55 aside)
     for (const sg of [-1, 1]) circles.push({ id: 'event', x: m.x + sg * m.ring * DANCE.side.at, z: m.z, r: DANCE.side.r }); }
-  // (C4c: the benches' footprints as drawn — props.js#frame: from the seat's front edge b.z back 1.66 u — for the groups' offsets in folkAt)
   const solid = [...[b, L.cabStand].filter(Boolean).map(q => ({ id: q.face === 'water' ? 'water-bench' : 'cab-stand', x0: q.x - q.w / 2, x1: q.x + q.w / 2, z0: q.z, z1: q.z + 1.66 })), { id: 'leaf', x0: s.x0 + s.door.u1 - 0.6, x1: s.x0 + s.door.u1 + 0.08, z0: s.z0 - 1.6, z1: s.z0 }];   // (+ the side door's open leaf)
   return { nodes, exits, rects, circles, solid, hydrantSpot: L.hydrant || null, face: s.z0, cw: { x0: cw.x0 + cww * 0.22, x1: cw.x1 - cww * 0.22, z0: F.curbZ, z1: F.farZ } };
 }
@@ -254,8 +223,6 @@ export function clear(map, a, b) {
 }
 /** the shortest route a → b round the obstacles: [{ x, z }, …] (a and b included); straight when clear */
 export function route(map, a, b, depth = 0) {
-  // (POL4: a start just INSIDE a closed circle — someone planned before the dance circle spread — first steps straight out of it, then
-  // routes round it: clear() lets a segment leave a circle, which let them cut straight across the dancers)
   if (depth < 3) for (const c of map.circles) {
     const d = Math.hypot(a.x - c.x, a.z - c.z);
     if (d < c.r - 1e-6 && d > 1e-3 && Math.hypot(b.x - c.x, b.z - c.z) > c.r) {
@@ -339,7 +306,6 @@ export function busesOf(L, key, hour, t0, { force = false } = {}) {
   for (let i = 0; i < n; i++) {
     // the riders: off first (one every offGap from offAt), then the boarders' window [tB, tB + board] (only when someone boards: on)
     const off = hour >= B.dayFrom && hour < B.dayTo ? Math.floor(r() * 3.2) : Math.floor(r() * 1.5), on = Math.floor(r() * 3);
-    // (C4d: the stop placed on the signal's clock — its expected departure greenIn s into a green (24 s long: ready up to ~7 s early or ~10 s late still goes at once); a forced one on every cycle)
     const lead = busEstLast(off, on) + goMid - B.greenIn, nominal = force ? t0 + (i + 0.5) * P : t0 + (i + 0.15 + r() * 0.7) * 3600 / n;
     const tA = Math.round((nominal + lead) / P) * P - lead, tE = tA - tBr - dCruise / B.v, tb = tA - tBr;
     const tB = tA + B.offAt + off * B.offGap, last = on ? tB + B.board : off ? tA + B.offAt + (off - 1) * B.offGap : tA + 1;
@@ -360,21 +326,16 @@ const jitter = (r, p, dx = 0.8, dz = 0.6) => ({ x: p.x + (r() - 0.5) * 2 * dx, z
 const anySide = r => (r() < 0.5 ? 'left' : 'right');
 const floor = (r, M) => {
   // a spot on the open floor — never inside the building, the bench's corner, the cart, a lamp
-  // (C4d: never within a step (0.4) of one either — a spot 0.1 u wide between the water bench + the closed strip left of it had no
-  // way in, and route() fell back to a straight line through the speakeasy's corner)
   const near = (p, o) => p.x > o.x0 - 0.4 && p.x < o.x1 + 0.4 && p.z > o.z0 - 0.4 && p.z < o.z1 + 0.4;
   for (let i = 0; i < 12; i++) { const p = { x: (r() - 0.5) * 1.6 * Math.abs(M.exits.right[1].x), z: FOLK.zMin + 0.4 + r() * (FOLK.zMax - FOLK.zMin - 1.2) }; if (!M.rects.some(o => near(p, o)) && !M.circles.some(c => Math.hypot(p.x - c.x, p.z - c.z) < c.r + 0.3)) return p; }
   return { ...M.nodes.inlay };
 };
 export const KINDS = {
   stroller: (r, M) => ({ look: 'stroll', gait: 'stroll', goals: [{ from: anySide(r) }, ...(r() < 0.7 ? [{ at: jitter(r, M.nodes.inlay, 2.5, 1.5) }, { pose: 'look', dur: 8 + r() * 16 }] : []), { exit: 'any' }] }),
-  // (POLISH 4 — the bench at any hour: one or two sitting a few minutes, reading the day, watching the harbor)
   bench: (r, M) => ({ look: r() < 0.5 ? 'walker' : 'lady', gait: 'stroll', sit: true, goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: M.nodes.bench, seat: true }, { pose: 'sit', dur: 120 + r() * 200, face: M.nodes.benchFace || 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
-  // (PROM — THE WATER BENCH: a couple stops beside it to watch the skyline, seen from behind)
   skyline: (r, M) => ({ look: 'couple', gait: 'stroll', pair: true, goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.skyline, 0.4, 0.3) }, { pose: 'watch', dur: 50 + r() * 90, face: 2 }, { exit: 'any' }] }),
   brisk: (r) => ({ look: 'commuter', gait: 'brisk', goals: [{ from: r() < 0.3 ? 'cross' : anySide(r) }, { exit: r() < 0.3 ? 'cross' : 'any' }] }),
   jogger: (r) => ({ look: 'jogger', gait: 'jog', goals: [{ from: r() < 0.25 ? 'cross' : anySide(r) }, { exit: r() < 0.25 ? 'cross' : 'any' }] }),
-  // (POLISH 5: now and then the dog stops to SNIFF THE HYDRANT on the way — the walker waits, facing it)
   dogwalker: (r, M) => { const sniff = M.nodes.hydrant && r() < 0.42; return { look: 'walker', gait: 'stroll', dog: true, goals: [{ from: r() < 0.2 ? 'cross' : anySide(r) }, ...(sniff ? [{ at: M.nodes.hydrant }, { pose: 'wait', dur: 4.5 + r() * 3, face: -1, sniff: true }] : []), { at: floor(r, M) }, { pose: 'wait', dur: 14 + r() * 26 }, { exit: 'any' }] }; },
   worker: (r) => ({ look: 'worker', gait: 'walk', goals: [{ from: anySide(r) }, { bus: true }] }),
   busrider: (r) => ({ look: r() < 0.5 ? 'commuter' : 'walker', gait: 'walk', goals: [{ from: r() < 0.3 ? 'cross' : anySide(r) }, { bus: true }] }),
@@ -402,12 +363,6 @@ export const KINDS = {
  *  they're `clear` units past the threshold and is shut `close` s later. Going in, they walk on into the dark while it shuts behind
  *  them (inside: drawn between the doorway + the leaf — screens/harbor/doors.js); coming out, it opens on them standing `inside`
  *  units in. The BUS: its own door is open at the stop — riders step up `bus.floor` onto its floor / down off it. */
-// (POL4 — the owner: "the swing is jaggy", "people ENTERING walk in at a WEIRD angle": a slower, eased swing (open 0.8 s, close 0.9 s); the
-// last APPROACH units straight at the door, facing it; at the side door they STEP UP its two granite steps (SIDE_STEPS: the treads' z
-// from the wall + their heights) through the opening, then down the stair inside)
-// (C4c — THE SIDE DOOR SWINGS OUT toward the doorman, hinged at its right (screens/harbor/doors.js): its leaf sweeps 1.5 u round the
-// hinge, so whoever opens it stands OUTSIDE that arc — stepSide 0.95 -> 1.55 (every side-door user: guests, the line, the crew, the raid,
-// the witnesses) — and one coming out is past it (out of the arc) before it starts to close)
 export const DOOR = Object.freeze({ open: 0.8, close: 1.3, pace: 0.75, step: 0.45, stepSide: 1.55, approach: 1.4, clear: 0.8, inside: 1.3, bus: { open: 0.15, floor: 0.6 } });
 const SIDE_STEPS = Object.freeze([[-0.75, 0.13], [-0.4, 0.26]]);
 /** the ground's height at z (world) in front of + through the side door: the two steps up, the stair going down inside (PURE) */
@@ -417,8 +372,6 @@ function sideStepY(z, face) {
   return up - Math.max(0, d - 0.35) * 0.45;                    // (inside: down the stair to the club)
 }
 /** a door leg (PURE): kind 'side' | 'shop' | a bus's id, dir 'in' | 'out', at x, from t, the walker's gait v, the door's plane zFace */
-// (LOBBY 2.0 B — held: THE GAME START's file-in — the doorman HOLDS the door: it is already open as they reach the step (no wait for the
-//  swing), it shuts behind the last one in; dir 'in' only)
 export function doorLeg(kind, dir, x, t, v, zFace, { bus = false, held = false } = {}) {
   const u = Math.max(0.5, v * DOOR.pace), zs = zFace - (kind === 'side' ? DOOR.stepSide : DOOR.step), op = bus ? DOOR.bus.open : held ? 0.05 : DOOR.open, tWalk = t + op;
   const y = bus ? DOOR.bus.floor : 0;
@@ -455,16 +408,13 @@ export const doorOpenK = (lg, t) => (t < lg.tOpen || t > lg.tClose + DOOR.close 
  */
 export function planVisit(spec, t, M, ctx = {}) {
   const F = FOLK, r = ctx.r || Math.random, legs = [], rain = ctx.rain || 0;
-  // (SP3 — HEAVY RAIN: a share of the few still out RUN for it — the jog's gait + its run cycle; drawn only past the heavy line)
   const dash = rain > 0.8 && (spec.gait === 'walk' || spec.gait === 'brisk' || spec.gait === 'stroll') && r() < 0.65 * Math.min(1, (rain - 0.8) / 0.08);
   const v = dash ? F.speed.jog * (0.8 + r() * 0.15) : F.speed[spec.gait] * (1 + MOOD.rainFast * rain) * (1 - MOOD.fogSlow * Math.max(0, Math.min(1, ctx.fog || 0))) * (0.88 + r() * 0.24);
   let cur = ctx.start ? { ...ctx.start } : null, now = t;
-  // (FP3b: a goal inside a closed inlay — the dance circle — moves to just outside it, toward where they came from)
   const ev = M.circles.find(c => c.id === 'event');
   const free = q => q.z >= FOLK.zMin && q.z <= FOLK.zMax && !M.rects.some(o => inRect(q, o)) && !M.circles.some(c => c !== ev && Math.hypot(q.x - c.x, q.z - c.z) < c.r + 0.2);
   const outside = p => {
     const dx = p.x - ev.x, dz = p.z - ev.z, d = Math.hypot(dx, dz), a0 = d > 1e-3 ? Math.atan2(dz, dx) : Math.atan2(cur.z - ev.z, cur.x - ev.x);
-    // (POL4: two rings of candidates — the dance circle has a small closed spot out at each side: past it if the near ring is taken)
     for (const rr of [0.4, 1.4]) for (const da of [0, 0.5, -0.5, 1, -1, 1.6, -1.6, 2.2, -2.2, PI]) { const q = { x: ev.x + Math.cos(a0 + da) * (ev.r + rr), z: ev.z + Math.sin(a0 + da) * (ev.r + rr) }; if (free(q)) return q; }
     return { x: ev.x + (ev.r + 0.4), z: ev.z };
   };
@@ -486,7 +436,6 @@ export function planVisit(spec, t, M, ctx = {}) {
         const p = { x: cur.x + (r() - 0.5) * 0.4, z: F.curbZ }, d = Math.hypot(p.x - cur.x, p.z - cur.z);
         legs.push({ k: 'walk', pts: [cur, p], t0: now, t1: now + d / cv, v: cv, cross: true }); now += d / cv; cur = p;
       } else if (g.from === 'shop' || g.from === 'side') {
-        // (FP3b: out through a REAL door — it swings open on them standing inside, they step out onto the step)
         const d = M.nodes[g.from === 'shop' ? 'shopDoor' : 'sideDoor'], lg = doorLeg(g.from, 'out', d.x + (r() - 0.5) * 0.3, now, v, M.face);
         legs.push(lg); now = lg.t1; cur = { x: lg.x1, z: lg.z1 };
         walkTo({ x: cur.x - (g.from === 'side' ? r() * 0.3 : (r() - 0.5) * 0.6), z: Math.min(cur.z - 0.25, F.doorZ - 0.9) });   // (C4c: on out + a little LEFT, away from the side door's open leaf on its right — never back toward the wall)
@@ -512,8 +461,6 @@ export function planVisit(spec, t, M, ctx = {}) {
     } else if (g.door) {
       if (g.door === 'shop' && ctx.shopOpen === false) return null;
       const d = M.nodes[g.door === 'shop' ? 'shopDoor' : 'sideDoor'];
-      // (FP3b: in through a REAL door — up to the step, it swings open, they step through, it shuts behind them)
-      // (POL4: the last DOOR.approach units STRAIGHT at the door — facing it, never sidling in at an angle — then the step / the steps)
       const dx0 = d.x + (r() - 0.5) * 0.3, zs = M.face - (g.door === 'side' ? DOOR.stepSide : DOOR.step);
       walkTo({ x: dx0, z: zs - DOOR.approach }); walkTo({ x: dx0, z: zs });
       const lg = doorLeg(g.door, 'in', cur.x, now, v, M.face); legs.push(lg); now = lg.t1; cur = { x: lg.x1, z: lg.z1 };
@@ -527,7 +474,6 @@ export function planVisit(spec, t, M, ctx = {}) {
       const tb = bus.tB + r() * 1.4;
       if (tb > now) { legs.push({ k: 'pose', pose: r() < 0.5 ? 'wait' : 'watch', x: cur.x, z: cur.z, t0: now, t1: tb, face: -1 }); now = tb; }
       // (to the door: a few direct steps from the kerb — the stop is right beside it)
-      // (FP3b: up the step through its open door — no fade)
       const dx = bus.x(bus.tA) + bus.len / 2 - 0.9, pts = [cur, { x: dx + 0.15, z: F.curbZ }, { x: dx, z: bus.z - DOOR.step }], dl = pathLen(pts);
       legs.push({ k: 'walk', pts, t0: now, t1: now + dl / (v * 0.8), v: v * 0.8 }); now += dl / (v * 0.8);
       const lg = doorLeg(bus.id, 'in', dx, now, v, bus.z, { bus: true }); legs.push(lg); now = lg.t1; cur = { x: lg.x1, z: lg.z1 };
@@ -594,8 +540,6 @@ export function visitAt(vis, t) {
   if (t < vis.t0 || t >= vis.t1) return null;
   let dist = 0, lastHd = null;
   const out = (s, hd) => ({ ...s, hd, dir: dirOfHd(hd) });
-  // (8b2 — NO SNAPPING BETWEEN POSES: each state names the leg before + after it (`prev` / `next`: 'walk' or the pose) with `since` / `left`,
-  // so folk.js#rigOf blends one into the other over a third of a second)
   const kindOf = lg => (!lg ? null : lg.k === 'pose' ? lg.pose : lg.k === 'walk' || lg.k === 'door' ? 'walk' : null);
   for (let li = 0; li < vis.legs.length; li++) {
     const lg = vis.legs[li], prev = kindOf(vis.legs[li - 1]), next = kindOf(vis.legs[li + 1]);
@@ -627,9 +571,6 @@ export function visitAt(vis, t) {
     } else if (t < lg.t1 && t >= lg.t0) {
       if (lg.k === 'pose') {
         const want = lg.hd != null ? lg.hd : hdOfDir(lg.face === 0 ? 0 : lg.face || (lastHd != null && Math.cos(lastHd) < 0 ? -1 : 1)), since = t - lg.t0;
-        // (8b1 — the workers: a carried prop, a height — a ladder's rungs, the platform, the catwalk — and a climb moving along its ladder)
-        // (8b2 — RUNG BY RUNG: a climb moves one rung (CLIMB.rung units) at a time — a step up, a beat's pause on the rung — never a glide;
-        // `rung` = { n (the step), q (0..1 through it) } for the arms + legs)
         let uu = (t - lg.t0) / Math.max(1e-3, lg.t1 - lg.t0), rung = null;
         if (lg.pose === 'climb' && lg.y0 != null) { const nR = Math.max(1, Math.round(Math.abs(lg.y1 - lg.y0) / CLIMB.rung)), w = uu * nR, n = Math.min(nR - 1, Math.floor(w)), q = w - n, e = q < CLIMB.move ? smooth01(q / CLIMB.move) : 1; uu = (n + e) / nR; rung = { n, q: Math.min(1, q / CLIMB.move), up: lg.y1 >= lg.y0 }; }
         const px = lg.x1 != null ? lg.x + (lg.x1 - lg.x) * uu : lg.x, pz = lg.z1 != null ? lg.z + (lg.z1 - lg.z) * uu : lg.z, py = lg.y0 != null ? lg.y0 + (lg.y1 - lg.y0) * uu : lg.y || 0;
@@ -660,10 +601,8 @@ function streamOf(k, t0, ctx, party) {
     for (let tt = t0 + r() * gap[0]; tt < t0 + B - 70; tt += gap[0] + r() * (gap[1] - gap[0])) { const h = evHour(tt, ctx.off); if (h >= hours[0] && h < hours[1]) { const e = make(tt); if (e) out.push(e); } }
   };
   if (!party) lane(STREAM.inGap, STREAM.inHours, tt => ({ t: tt, kind: 'guests', seed: Math.floor(r() * 2147483647), spec: { look: 'guest', gait: 'walk', group: 2, goals: [{ from: r() < 0.25 ? 'cross' : anySide(r) }, { door: 'side' }] } }));
-  // (9e — WEEKDAY LATE NIGHTS livelier: Sun–Thu evenings 10 pm → 1 am more couples leave the bar arm in arm — a second, closer lane)
   if (!party) { const wk = tt => { const lc = localOf(tt, ctx.off), dw = lc.h < 12 ? (lc.dow + 6) % 7 : lc.dow; return dw <= 4; };
     lane(STREAM.late.outGap, STREAM.late.outHours, tt => (wk(tt) ? { t: tt, kind: 'leaving', seed: Math.floor(r() * 2147483647), spec: { look: 'guest', gait: 'stroll', pair: true, goals: [{ from: 'side' }, { exit: r() < 0.3 ? 'cross' : 'any' }] } } : null)); }
-  // (9f — THE JOGGERS' lane: in their hours; the rain thins them, heavy rain stops them; forced: every ~20 s)
   { const rain = ctx.rain || 0, forced = !!ctx.forceJog;
     if (forced || rain < JOG.noRain) lane(forced ? JOG.forced : JOG.gap, [0, 48], tt => {
       const lc = localOf(tt, ctx.off), we = lc.dow === 0 || lc.dow === 6;
@@ -734,8 +673,6 @@ function lineNight(day0, key, M, L, ctx = {}) {
     const out = planVisit({ look: 'doorman', gait: 'walk', goals: [{ from: 'side' }, { at: spot }] }, T0 - 40, M, { r: rr });
     if (out) {
       const legs = [...out.legs]; let now = out.t1;
-      // (PROM: between admissions he leans at the wall right of the door (people.js turns his head after the guests); at each admission he
-      // steps out to beckon them in, then back to the brick)
       const wall = doormanWall(L);   // (C4b: his post a step off the wall, facing us — 'attend')
       const step = (a, b, t) => { const d = Math.hypot(b.x - a.x, b.z - a.z), t1 = t + d / 1.1; legs.push({ k: 'walk', pts: [a, b], t0: t, t1, v: 1.1 }); return t1; };
       for (const a of admits) {
@@ -789,7 +726,6 @@ function blockVisits(phase, k, M, ctx = {}) {
   const B = FOLK.block, t0 = k * B + (phase ? B / 2 : 0), t1 = t0 + B, loc = localOf(t0 + B / 2, ctx.off);
   const r = rngFrom(hashString(`folk|${ctx.seed || 1924}|${loc.key}|${phase}|${k}`));
   const party = ctx.party ? ctx.party(t0 + B / 2) : partyAtT(t0 + B / 2, ctx.off);
-  // (ATM-B: THE BLIZZARD — few people out: it counts like a storm's rain here; the looks keep their own rain — no umbrellas in it)
   const mn = mixNow({ h: loc.h, dow: loc.dow, party, rain: Math.max(ctx.rain || 0, ctx.blizzard > 0.05 ? 0.75 + 0.2 * Math.min(1, ctx.blizzard) : 0), budget: ctx.budget == null ? 1 : ctx.budget, rush: ctx.rush ? ctx.rush(t0 + B / 2) : 0, street: party && !ctx.noStreetParty ? (ctx.partyForced ? 1 : crowdK(loc.h < 12 ? loc.h + 24 : loc.h)) : 0 });
   const rushK = ctx.rush ? ctx.rush(t0 + B / 2) : 0;
   // (×1.3: a phase's visits must fit inside its block, so its load falls off toward the block's end — the other phase fills in)
@@ -797,13 +733,8 @@ function blockVisits(phase, k, M, ctx = {}) {
   const occ = [...(ctx.others || [])], taken = [...(ctx.seats || [])];
   // (the peak count over [a, b): exact — it can only rise at a or where someone arrives inside it)
   const load = (a, b) => { let mx = 0; for (const tt of [a, ...occ.filter(o => o.t0 > a && o.t0 < b).map(o => o.t0)]) { let n = 0; for (const o of occ) if (tt >= o.t0 && tt < o.t1) n += o.n; if (n > mx) mx = n; } return mx; };
-  // (8b1 — THE WORKERS ARE PART OF THE COUNT: the crowd gives way to them — a phase's budget starts with half the workers' time out
-  // on the promenade in its block already spent, so the owner's calmer counts hold with the milkman, the newsboy, the cop out)
   let spent = ctx.workLoad ? ctx.workLoad(t0, t1) / 2 : 0;
-  // (POLISH 4 — NEVER A BURST: two arrivals at least STREAM.gap s apart, whoever they are — the other phase's, the bus's riders' too)
   const spaced = tt => !occ.some(o => Math.abs(o.t0 - tt) < STREAM.gap);
-  // (POLISH 4 — THE SIDE DOOR's GUESTS on their own schedule, before the mix: phase A only, seeded per block — a pair now and then in the
-  // evening, leavers later; on party nights the guests go in by THE LINE (lineNight) and only the leavers come out here)
   if (phase === 0) for (const e of streamOf(k, t0, ctx, party)) {
     if (!spaced(e.t)) continue;
     const vis = planVisit(e.spec, e.t, ctx.mapAt ? ctx.mapAt(e.t, e.t + 60, M) : M, { rain: ctx.rain || 0, fog: ctx.fog || 0, r: rngFrom(e.seed), noCross: ctx.noCross || null });   // (9f: + noCross — a stream's jogger never crosses through the procession)
@@ -819,16 +750,12 @@ function blockVisits(phase, k, M, ctx = {}) {
     let spec = KINDS[kind](r, M);
     // (11a-2 — Black Friday: everyone in a hurry — a stroll becomes a walk, a walk brisk)
     if (rushK > 0.3 && !spec.sit && !spec.pair) spec = { ...spec, gait: spec.gait === 'stroll' ? 'walk' : spec.gait === 'walk' ? 'brisk' : spec.gait };
-    // (9e: a slower Sunday morning — a walk becomes a stroll; the joggers keep their pace)
     if (mn.sunday && (spec.gait === 'walk' || spec.gait === 'brisk')) spec = { ...spec, gait: 'stroll' };
     if (spec.need === 'cart' && (!M.nodes.cart || !ctx.cartOut)) continue;
     if (spec.hours && (loc.h < spec.hours[0] || loc.h >= spec.hours[1])) continue;
     const start = t0 + 2 + r() * (B * 0.75);
-    // (FP3b: each visit on its own seed — one that would still be out while the dance circle closes the compass is planned again
-    // round it: ctx.closed(t0, t1) + ctx.Mev)
     const vseed = Math.floor(r() * 2147483647), vctx = { rain: ctx.rain || 0, fog: ctx.fog || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(start) : true, buses: ctx.buses ? ctx.buses(start, start + 300) : [], noCross: ctx.noCross || null };
     if (!spaced(start)) continue;
-    // (8b2: a sitter takes a FREE seat — this block's own sitters + the other phase's: ctx.seats — the seat order seeded with the visit)
     const order = spec.sit ? (r() < 0.5 ? [0, 2, 1] : [2, 0, 1]) : null, plan = Mx => (spec.sit ? planSeated(spec, start, Mx, vctx, vseed, taken, order) : planVisit(spec, start, Mx, { ...vctx, r: rngFrom(vseed) }));
     let vis = plan(M);
     // (a visit while the dance circle closes the compass / the cart stands / THE LINE queues: planned again on that map — mapAt)
@@ -849,7 +776,6 @@ function blockVisits(phase, k, M, ctx = {}) {
 function busRiders(bus, M, ctx = {}) {
   const r = rngFrom(hashString(`riders|${bus.id}`)), out = [];
   for (let i = 0; i < bus.riders.off; i++) {
-    // (FP3b: each steps DOWN out of the open door onto the road by the kerb — no fade)
     const t = bus.tA + BUS.offAt + i * BUS.offGap, dx = bus.x(bus.tA) + bus.len / 2 - 0.9, lg = doorLeg(bus.id, 'out', dx, t - 1.2, FOLK.speed.walk, bus.z, { bus: true });
     const spec = { look: r() < 0.5 ? 'commuter' : r() < 0.5 ? 'lady' : 'walker', gait: 'walk', goals: [{ from: 'bus' }, { at: { x: dx + 0.7, z: FOLK.curbZ - 0.3 } }, ...(r() < 0.3 ? [{ door: 'shop' }] : [{ exit: r() < 0.25 ? 'cross' : 'any' }])] };
     const vis = planVisit(spec, lg.t1, M, { r, rain: ctx.rain || 0, fog: ctx.fog || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(lg.t1) : true, start: { x: lg.x1, z: lg.z1 } });
@@ -906,9 +832,7 @@ const inFoot = (p, q) => p.x > q.x0 && p.x < q.x1 && p.z > q.z0 && p.z < q.z1;
 function outOf(p, S, circles = [], base = []) {
   for (const q of S) if (inFoot(p, q)) {
     const c = [[q.x0 - 0.02, p.z, p.x - q.x0], [q.x1 + 0.02, p.z, q.x1 - p.x], [p.x, q.z0 - 0.02, p.z - q.z0], [p.x, q.z1 + 0.02, q.z1 - p.z]].sort((a, b) => a[2] - b[2]);
-    // (NIGHT-B: never out into a closed circle — the dance — either)
     for (const [x, z] of c) if (!S.some(o => inFoot({ x, z }, o)) && z >= FOLK.zMin - 0.3 && !circles.some(o => Math.hypot(x - o.x, z - o.z) < o.r + 0.3) && !base.some(o => x > o.x0 - 0.3 && x < o.x1 + 0.3 && z > o.z0 - 0.3 && z < o.z1 + 0.3)) return { ...p, x, z };
-    // (NIGHT-B: two pieces side by side — every nearest edge is inside the other: the nearest free spot round it, ring by ring)
     const free = (x, z) => !S.some(o => inFoot({ x, z }, o)) && z >= FOLK.zMin - 0.3 && !circles.some(o => Math.hypot(x - o.x, z - o.z) < o.r + 0.3) && !base.some(o => x > o.x0 - 0.3 && x < o.x1 + 0.3 && z > o.z0 - 0.3 && z < o.z1 + 0.3);
     for (let r = 0.4; r <= 4.01; r += 0.3) for (let i = 0; i < 16; i++) { const a = i * PI / 8, x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r; if (free(x, z)) return { ...p, x, z }; }
     return { ...p, x: c[0][0], z: c[0][1] };
@@ -918,8 +842,6 @@ function outOf(p, S, circles = [], base = []) {
 export function aroundSolids(vis, S0, key = '', circles = [], base = []) {
   if (!vis || !vis.legs || !S0 || !S0.length) return vis;
   let seen = SOLID_SEEN.get(vis); if (seen && seen.key === key) return seen.out;
-  // (NIGHT-B — THE SOLIDS, core/harbor-solids.js: the ones this visit doesn't USE — a sitter's bench, the vendor's cart, a bench dancer's
-  // bench — and, leg by leg, only those whose time window (the cart: parked / rolling) overlaps the leg)
   // (the ones it USES still shape a detour round another piece — the route map has them all; route() lets a walk end inside its own seat)
   const SV = S0.filter(q => !usesSolid(vis, q)), UV = S0.filter(q => !SV.includes(q)).map(q => ({ ...q, x0: q.x0 + 0.4, x1: q.x1 - 0.4, z0: q.z0 + 0.4, z1: q.z1 - 0.4 }));   // (unpadded: its seat just in front stays outside it)
   if (!SV.length) { SOLID_SEEN.set(vis, { key, out: vis }); return vis; }
@@ -977,24 +899,19 @@ export function folkAt(t, world, cache = new Map()) {
   const hold = PW ? procHold(PW, procCross) : PA ? paradeHold(PA, paraCross) : trafficHold(ctx.trafficLegend || ctx.legend), hk = hold ? Math.round(hold[0]) : '';   // (CITY A: ctx.trafficLegend = a legendary OR a fireworks show — the witnesses keep ctx.legend)
   const hourBuses = hAbs => get(`bus|${hAbs}|${ctx.forceBus ? 1 : 0}`, () => { const loc = localOf(hAbs * 3600 + 1, ctx.off); return busesOf(L, loc.key, Math.floor(loc.h), hAbs * 3600 - (((ctx.off || 0) * 60) % 3600 + 3600) % 3600, { force: !!ctx.forceBus }); });
   const busesNear = (a, b) => { const out = []; for (let h = Math.floor(a / 3600) - 1; h <= Math.floor(b / 3600) + 1; h++) out.push(...hourBuses(h)); return out.filter(x => x.tE < b + 600 && x.tX > a - 600 && !inHold(hold, x.tE) && !busBlocked(x) && !(ctx.forceBus && ctx.forceBusAt != null && x.tE < ctx.forceBusAt)); };   // (POLISH 5: a forced bus never joins mid-stop — the first one drives in after the fire)
-  // (8b1: a bus due while a worker's truck holds the stop rides on — it never comes)
   const busBlocked = x => get(`BB|${x.id}`, () => trucksNear(x.tE - 60, x.tX + 60).some(T => x.tE < T.tX + 12 && x.tX > T.tE - 35));
-  // (FP3b: while the dance circle holds the promenade, nobody gets off here — they ride on: the circle's people stay within the cap)
   const riders = bus => get(`riders|${bus.id}`, () => (closed(bus.tA - 20, bus.tA + 90) ? [] : busRiders(bus, M, ctx)));
   // (FP3a, POL4, C4d: the bus's door folds shut BUS.shut s after the LAST rider the planner placed is through — off or on — seeded per
   // bus; an empty stop at tA + emptyShut; never after the worst-case departure)
   const doorShut = b => get(`shut|${b.id}`, () => {
     let last = b.tA + 1;
     const k0 = Math.floor(b.tB / B);
-    // (FP3b: a rider is through once past the threshold — the door leg's tClose; the last of a group lags behind the lead)
     const through = v => { let e = 0; for (const lg of v.legs) if (lg.k === 'door' && lg.bus === b.id) e = Math.max(e, lg.tClose + tailOf(v.members)); return e; };
     for (let k = k0 - 1; k <= k0 + 1; k++) for (const v of [...A(k), ...Bv(k)]) last = Math.max(last, through(v));
     for (const v of riders(b)) last = Math.max(last, through(v));
     const r = rngFrom(hashString(`shut|${b.id}`)), sh = last + BUS.shut[0] + r() * (BUS.shut[1] - BUS.shut[0]);
     return Math.min(b.tD - 0.5, last <= b.tA + 1 ? Math.max(sh, b.tA + BUS.emptyShut) : sh);
   });
-  // (C4d: THE BUS AS IT DRIVES — re-timed from the real shut: away go0 s after the door is shut (seeded), on green; the planners + the
-  // cabs keep busesOf's worst case, the cars behind it + the screen see this one)
   const busLive = b => get(`live|${b.id}`, () => {
     const sh = doorShut(b), r = rngFrom(hashString(`go|${b.id}`)), tD = Math.min(b.tD, b.goAt(sh + BUS.go0[0] + r() * (BUS.go0[1] - BUS.go0[0])));
     return { ...b, ...b.leave(tD), shut: sh, tDplan: b.tD };
@@ -1050,8 +967,6 @@ export function folkAt(t, world, cache = new Map()) {
   };
   // THE ROUTINES (FP3b — core/harbor-routines.js): the dance circle's sessions near t, their people; while one runs the inlay is
   // CLOSED to the crowd (the blocks route round it: Mev) and its people count against the cap (the blocks plan around them)
-  // (NIGHT-B: the party nights' hourly circle is RETIRED — THE STREET PARTY's dance breaks replace it (core/harbor-streetparty.js); the
-  // old circle stays only as a preview, &force=circle, for comparing)
   const rctx = { off: ctx.off, seed: ctx.seed, party: ctx.party, force: !!ctx.forceCircle, forceAt: ctx.forceCircle && ctx.forceCircleAt != null ? ctx.forceCircleAt : null, event: !!ctx.event, ring: !!ctx.ring, blocked: ctx.blocked || null };   // (SP5: no circle under a centrepiece, during a raid or a legendary)
   const sess = j => get(`DS|${j}|${rctx.force ? 1 : 0}|${rctx.forceAt == null ? '' : Math.round(rctx.forceAt)}|${rctx.event ? 1 : 0}${rctx.ring ? 1 : 0}`, () => danceSlot(j, rctx));
   const sessionsNear = (a, b) => (ctx.noDance || !ctx.forceCircle ? [] : danceSlotsNear(a, b, rctx).map(sess).filter(x => x && x.s1 + 90 > a && x.s0 - 40 < b));
@@ -1060,14 +975,10 @@ export function folkAt(t, world, cache = new Map()) {
   const closed = (a, b) => sessionsNear(a, b).some(x => b > x.s0 - 30 && a < x.s1 + 60);
   // THE VENDOR SPOT (FP3b — core/harbor-routines.js#VENDOR): the chestnut cart's evening, wheeled in from the right edge + out again;
   // never while the inlay is in use (a centrepiece: ctx.event; the dance circle: &force=dance — the real circles start after it's gone)
-  // (PROM: from the cart's handle side — the LEFT edge now: the cab stand stands on its old way in from the right)
-  // (C4b: from BELOW THE DOCK — L.cart.from 'below': across the front street + up over the curb at its spot; the schedule's one coordinate
-  // is then the cart's z (CART_IN_Z → its rest), its x fixed)
   const below = !!(L.cart && L.cart.from === 'below');
   const cartX = L.cart ? (below ? L.cart.z : L.cart.x) : 0, cartHand = (L.cart && L.cart.hand) || 1, cartIn = cam => (below ? CART_IN_Z : cartHand * (cam ? cam.hw(L.cart.z) + 3.2 : Math.abs(cartX) + 12));
   // (Part 9's hook: in HEAVY rain — ctx.rain > 0.6 — the cart doesn't come out; in drizzle people.js puts its little hood up)
   const cartEv = tt => { if (!L.cart || L.cart.shown === false || (ctx.event && !ctx.ring) || ctx.forceDance || (ctx.rain || 0) > 0.6) return null; const loc = localOf(tt, ctx.off), day0 = tt - loc.h * 3600;
-    // (NIGHT-B: on a PARTY NIGHT it packs up before the street party's crowd — THE CITY TIMETABLE's cart.party)
     const pty = !!(ctx.party ? ctx.party(day0 + 22 * 3600) : partyAtT(day0 + 22 * 3600, ctx.off));
     return get(`CE|${loc.key}|${pty ? 1 : 0}`, () => cartEvening(loc.key, loc.month, day0, cartIn(L.cam), cartX, { seed: ctx.seed, party: pty })); };
   const cartOut = (a, b) => { for (const tt of [a, b]) { const e = cartEv(tt); if (e && b > e.t0 - 10 && a < e.t1 + 10) return true; } return false; };
@@ -1116,16 +1027,12 @@ export function folkAt(t, world, cache = new Map()) {
   }
   // (11a-1: while THE PROCESSION is in the street, nobody crosses it — the crowd's visits are planned without a crossing then)
   cx0.noCross = PW ? tt => tt > PW.T0 - PROC.lead - 60 && tt < PW.T1 + procCross : PA ? tt => tt > PA.T0 - PARADE.lead - 60 && tt < PA.T1 + paraCross : null;
-  // (POLISH 4: the dance circle is ON TOP of the crowd's count — the owner: "8–12 (the dance circle on top)"; the vendor + the line count)
   const routineOcc = (a, b) => [...[a, b].map(cartEv).filter((e, i, arr) => e && arr.indexOf(e) === i && b > e.t0 && a < e.t1).map(e => ({ t0: e.t0, t1: e.t1, n: 1 })), ...occOf(lineVisits(a, b)), ...occOf(crewIn(a, b).visits)];
-  // (8b2: the cabs' riders count in the crowd's budget too — the calmer counts hold on a night of cabs)
   const workLoad = (a, b) => get(`WL|${a}`, () => [...crewIn(a, b).visits.filter(v => !v.plat), ...cabsNear(a, b).flatMap(pl => pl.riders)].reduce((s, v) => s + Math.max(0, Math.min(b, v.tEnd || v.t1) - Math.max(a, v.t0)), 0));
   const cx = { ...ctx, buses: busesNear, closed, Mev, cartOut, cartParked, Mc, mapAt, workLoad, noCross: cx0.noCross };
   const cabOcc = (a, b) => [...cabsNear(a, b).flatMap(pl => occOf(pl.riders)), ...occOf(standsNear(a, b).map(pl => pl.rider))];
   const A = k => get(`A|${k}`, () => { const t0 = k * B; return blockVisits(0, k, M, { ...cx, others: [...busesNear(t0, t0 + B).flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B), ...cabOcc(t0, t0 + B)] }); });
   const Bv = k => get(`B|${k}`, () => { const t0 = k * B + B / 2, bs = busesNear(t0, t0 + B); return blockVisits(1, k, M, { ...cx, others: [...occOf(A(k)), ...occOf(A(k + 1)), ...bs.flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B), ...cabOcc(t0, t0 + B)], seats: [...seatsOf(A(k)), ...seatsOf(A(k + 1))] }); });
-  // (SPEED PASS B — A2 (1): world.warm = ['A' | 'B', k] plans ONE block into the cache and stops — the scene warms the first frame's
-  //  blocks one per task while the city bakes, never the whole first plan inside one long task; folkWarmSteps(t) names them)
   if (world.warm) { const [w, k] = world.warm; if (w === 'A') A(k); else Bv(k); return null; }
   const ka = Math.floor(t / B), kb = Math.floor((t - B / 2) / B);
   const buses = busesLive(t, t).filter(b => t >= b.tE && t < b.tX);
@@ -1208,7 +1115,6 @@ export function folkAt(t, world, cache = new Map()) {
   }
   // NIGHT-A2 — THE STANDING PROPS ARE SOLID (ctx.solids: core/harbor-holidayprops.js#standingFootprints — the harvest display + the
   // holidays' set pieces): whoever planned a visit, a walk leg that would cross one goes round it, a stop inside one moves to its edge
-  // (NIGHT-B — THE SOLIDS: + the chestnut cart on its evening — parked its body + handles, rolling the corridor it rolls along)
   const evS = evNow || cartEv(t - 900) || cartEv(t + 900), cartS = evS ? get(`CS|${Math.round(evS.t0)}`, () => cartSolids(L, evS, { below, xIn: cartIn(L.cam) })) : [];
   const spS = sp ? sp.solids : [];
   { const S = cartS.length || spS.length ? [...(ctx.solids || []), ...cartS, ...spS] : ctx.solids || [];
@@ -1227,8 +1133,6 @@ export function folkAt(t, world, cache = new Map()) {
       const s = visitAt(v, t - m.lag);
       if (!s) continue;
       if (m.role === 'lead') { members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, routine: v.routine || null, idx: v.idx, m, s, plat: !!v.plat, hween: hw, ...(v.sp ? { sp: v.sp } : {}) }); continue; }
-      // (FP3b: beside / behind the lead in the lead's OWN frame — forward along its heading, the lateral to its left — so the offset
-      // turns smoothly with it, never jumping at a 4-way threshold; a dog keeps the old world offsets: it trots on the walker's right)
       // (in a pose: the walking offset of the heading they arrived with / will leave with — fixed, never the lead's turn in place)
       const fh = s.pose === 'walk' ? s.hd : (s.since || 0) < (s.left || 0) ? (s.from == null ? s.hd : s.from) : (s.to == null ? s.hd : s.to);
       const cx = Math.cos(fh), cz = Math.sin(fh);
@@ -1276,17 +1180,11 @@ export function folkAt(t, world, cache = new Map()) {
         if (pg) { const dp = dogPlace(v, m, t - DOG_DT, pg), sp = Math.hypot(s.x + off.x - pg.x - dp.off.x, s.z + off.z - pg.z - dp.off.z) / DOG_DT;
           st = { ...st, turn: Math.abs(((hd - dp.hd) % (2 * PI) + 3 * PI) % (2 * PI) - PI) / DOG_DT };
           if (s.pose !== 'walk' && !s.sniff && sp > 0.3) st = { ...st, v: sp, dist: (m.seed % 97) + (s.since || 0) * 1.4 }; }
-        // (POLISH 5 — THE SNIFF: the dog trots forward on its leash off the floor's edge to the hydrant, its nose at it, and back — 0.9 s each way)
         if (s.sniff && M.hydrantSpot) { sniffK = Math.max(0, Math.min(1, (s.since || 0) / 0.9, (s.left == null ? 1 : s.left) / 0.9)); const tx = M.hydrantSpot.x + 0.62 - s.x, tz = M.hydrantSpot.z + 0.1 - s.z, e = sniffK * sniffK * (3 - 2 * sniffK);
           off = { x: off.x + (tx - off.x) * e, z: off.z + (tz - off.z) * e }; if (sniffK < 1) st = { ...st, v: 1.4, dist: (m.seed % 97) + (s.since || 0) * 1.4 }; } }
-      // (FP3b — REAL DOORS: near a doorway a group falls into SINGLE FILE — each on the lead's path, its own lag behind — so nobody walks
-      // through the wall beside the door; through the door itself, exactly on the path)
       else if (s.door) off = { x: 0, z: 0 };
       else if (s.z > M.face - 2.4 && s.pose !== 'treat') {   // (11a-1: the trick-or-treaters' row at the door keeps its spacing)
         const dn = Math.min(Math.abs(s.x - M.nodes.sideDoor.x), Math.abs(s.x - M.nodes.shopDoor.x)); if (dn < 1.8) { const k = Math.max(0, Math.min(1, (M.face - 0.6 - s.z) / 1.8)); off = { x: off.x * k, z: off.z * k }; } }
-      // (C4c — THE BENCHES ARE SOLID for a group too: a partner's offset that would stand them inside a bench's footprint — the lead
-      // routed round it — pulls in toward the lead, as at a doorway, until clear)
-      // (NIGHT-A2: the standing props too — the dog included: it walks beside its walker, who goes round the piece)
       // (never past the railing, never under the dock — NIGHT-B: BEFORE the solids' pull-in, which it used to undo: a partner clamped back
       // inside the cart / the cab bench)
       const zz = s.z + off.z;
@@ -1339,10 +1237,8 @@ export function folkAt(t, world, cache = new Map()) {
   const cart = evNow ? (() => { const a = cartAt(evNow, t, cartIn(L.cam), cartX); return below ? { ...a, x: L.cart.x, z: a.x } : { ...a, z: L.cart.z }; })() : { on: false };
   if (evNow) cart.parked = t >= evNow.ta && t < evNow.tb;
   // POL4 — THE BACK ROAD'S TRAFFIC (core/harbor-traffic.js): the motorcars on the waterside road, queued behind the bus, on the signal
-  // (8b2: the raid's convoy holds the near lane — nobody enters it behind them — and its patrol cars join the road's cars)
   const raidIn = (a, b) => (ctx.raid && ctx.raid.tEnd > a && ctx.raid.t0 < b ? [raidHold(ctx.raid)] : []);
   const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: (a, b) => [...busesLive(a, b), ...trucksNear(a, b), ...raidIn(a, b), ...cabsNear(a, b).map(pl => pl.T)], off: ctx.off, seed: ctx.seed, party: ctx.party, tag: ctx.raid ? ctx.raid.key : '', extra: ctx.snowWork ? (j, lane) => workSpawns(j, lane, ctx.snowWork) : null, extraKey: workKey(ctx.snowWork), hold });
-  // (8b2: the cabs at the curb — the back road's cars drawn the same way; sign: the TAXI lamp, lit when free)
   if (!ctx.noCars) for (const pl of cabsNear(t - 5, t + 5)) { const T = pl.T; if (t < T.tE || t > T.tX) continue; const x = T.x(t); cars.push({ id: T.id, model: 'taxi', paint: 0, len: T.len, z: T.z, dir: 1, x, dist: T.dist(t), speed: t < T.tA ? Math.max(0, (T.x(t + 0.05) - x) / 0.05) : t >= T.tD ? (T.x(t + 0.05) - x) / 0.05 : 0, n: 5, glow: -1, cab: true, sign: T.sign(t), door: T.door ? T.door(t) : 0, ts: T.tE }); }
   if (RP) { const R = raidAt(RP, t); if (R) cars.push(...R.cars); }
   // 8b1 — THE CREW now: the roof's workers (the billposter, the gardener, the cleanup crew), their props, their trucks, the traces
@@ -1419,7 +1315,6 @@ function planDance(sess, M, L) {
     const a = planVisit({ look: 'guest', gait: 'walk', goals: [{ from: 'side' }, { at: spot }] }, start, M, { r });
     const tEnd = sess.s1 + i * 1.3;
     if (!a || a.t1 >= tEnd - 20) continue;
-  // (NIGHT-B: the retired circle — now only the &force=circle preview — keeps its dancers on their own ring: solidsOk, as before THE SOLIDS)
     // (facing mostly toward us — the moves read — turned a little toward the compass's centre)
     const hd = lerpHd(-PI / 2, Math.atan2(m.z - spot.z, m.x - spot.x), 0.3);
     const b = planVisit({ look: 'guest', gait: 'walk', goals: [{ door: 'side' }] }, tEnd, M, { r, start: spot });

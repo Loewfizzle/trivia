@@ -75,14 +75,12 @@ function heapLobes(R, w, h, tall, ragged) {
   // the body: broad flattened masses along the base (one mass, never a string of beads)
   const nb = 3 + Math.floor(R() * 3);
   for (let i = 0; i < nb; i++) {
-    // (SP: the outer masses rounder — a flat thin one at the end drew a pointed saucer rim on the base)
     const u = 0.16 + 0.68 * (i + 0.2 + R() * 0.6) / nb, r = w * (0.13 + R() * 0.06) * (1 - 0.5 * Math.abs(u - 0.5)), sq = 0.5 + R() * 0.12 + 0.36 * Math.abs(u - 0.5);
     S.push([w * u, base - r * sq * 0.62, r, sq, R() * r * 0.25]);
   }
   const mains = [];
   for (const T of towers) {
     const H = h * 0.86 * T.ht;
-    // (SP: each dome its own size — never a row of equal domes)
     let r = Math.min(w * 0.21, H * 0.56) * (0.8 + R() * 0.32), y = base - r * 0.45, x = w * T.u;
     for (let guard = 0; guard < 4 && y - r > base - H - r * 0.15; guard++) {
       const L = [x, y, r, 0.96 + R() * 0.08, R() * r * 0.3]; S.push(L); mains.push(L);
@@ -157,13 +155,11 @@ const isFrag = d => d.form === 'frag' || d.form === 'wisp' || d.kind === 'scud';
  *  small billows on the bigger ones (the same engine as the cumulus: a smooth union, the self-shadow) */
 function stratoLobes(R, w, h) {
   const S = [], base = h * 0.86, n = 10 + Math.floor(R() * 8);
-  // (SP — a string of flattened beads read as sausages: the heaps overlap into one lumpy mass, of every size, a few gaps)
   let x = w * (0.04 + R() * 0.06);
   for (let i = 0; i < n && x < w * 0.96; i++) {
     const r = h * (0.28 + R() * 0.4) * (1 - 0.4 * Math.abs(x / w - 0.5) * 2), sq = 0.55 + R() * 0.3;
     const cy = base - r * sq * (0.4 + R() * 0.35);
     S.push([x, cy, r, sq, R() * r * 0.3]);
-    // (SP: each heap lumpy — a few billows along its top, never a smooth bubble)
     for (let k = 0, nk = 2 + Math.floor(R() * 3); k < nk; k++) {
       const a = -Math.PI * (0.12 + 0.76 * (k + 0.2 + R() * 0.6) / nk), rc = r * (0.24 + R() * 0.16);
       const bx = x + Math.cos(a) * (r - rc * 0.55), by2 = cy + Math.sin(a) * (r * sq - rc * 0.55);
@@ -178,7 +174,6 @@ function* heapField(d, F, N) {
   const frag = isFrag(d), wisp = d.form === 'wisp', ragged = frag || d.form === 'fractus';
   const { pw, ph, res } = F, R = rngFrom(`heap|${d.seed}`), { lobes, base, rMed } = d.kind === 'strato' ? stratoLobes(R, d.w, d.h) : frag ? fragLobes(R, d.w, d.h, wisp || d.kind === 'scud') : heapLobes(R, d.w, d.h, d.tall || 0, ragged);
   const n = pw * ph, TK = new Float32Array(n), TM = new Float32Array(n), WS = new Float32Array(n), NX = new Float32Array(n), NY = new Float32Array(n), NZ = new Float32Array(n), NB = new Float32Array(n);
-  // (M3: a fragment / wisp much more broken at its edges — torn, see-through in places)
   const fq = (frag ? 9 : 7) / Math.max(20, d.w), amp = frag ? (wisp ? 0.88 : 0.78) : ragged ? 0.62 : d.kind === 'strato' ? 0.46 : 0.36;
   for (let py = 0; py < ph; py++) {
     for (let px = 0; px < pw; px++) NB[py * pw + px] = N.fbm2(px / res * fq, py / res * fq, 4);
@@ -186,7 +181,6 @@ function* heapField(d, F, N) {
   }
   let zTop = -1e9;
   for (const L of lobes) zTop = Math.max(zTop, L[4] + L[2]);
-  // (SP: the domes melt into each other over a wider soft crease — a sharp one read as bubbles stuck together)
   const kS = 1 / Math.max(0.6, (d.kind === 'strato' ? 0.32 : 0.135) * rMed);
   for (let li = 0; li < lobes.length; li++) {
     const [cx, cy, r, sq, zc] = lobes[li], ry = r * sq;
@@ -211,7 +205,6 @@ function* heapField(d, F, N) {
   const tRef = Math.max(4, d.h * 0.5), bump = 1.5 * res, colTop = new Float32Array(pw).fill(ph);
   for (let px = 0; px < pw; px++) for (let py = 0; py < ph; py++) if (TK[py * pw + px] > tRef * 0.05) { colTop[px] = py; break; }
   const rawTop = Float32Array.from(colTop);
-  // (SP: where the cloud's foot runs, end to end — its base curls up softly at both ends instead of a ruled cut)
   let xL = pw, xR = 0;
   for (let py = Math.floor(ph * 0.55); py < ph; py++) for (let px = 0; px < pw; px++) if (TK[py * pw + px] > tRef * 0.05) { if (px < xL) xL = px; if (px > xR) xR = px; }
   if (xR <= xL) { xL = 0; xR = pw - 1; }
@@ -230,8 +223,6 @@ function* heapField(d, F, N) {
       F.nx[i] = Math.round(nx / nl * 127); F.ny[i] = Math.round(ny / nl * 127); F.nz[i] = Math.round(nz / nl * 127);
       // the base: flat-ish but uneven (a slow wobble along it), cut softly
       // (a long base wobbles more: a wide patch is never ruled flat — its heaps' bellies show)
-      // (SP — the owner: "no flat grey slab bases": slightly flat but SOFT, UNEVEN (a slow wobble + a finer ragged one) and
-      // curling up at its ends, so the base is lighter + thinner at the edges, never a hard horizontal cut)
       const st = d.kind === 'strato', u = (px - xL) / Math.max(1, xR - xL), endK = Math.pow(Math.min(1, Math.abs(2 * u - 1)), 2);
       // (the ends ROUNDED: within its own thickness of either tip the base curls up on a quarter circle of that thickness —
       // never the pointed rim a sloping top met a flat base in)
@@ -239,7 +230,6 @@ function* heapField(d, F, N) {
       const round = hc * 0.5 * (1 - Math.sqrt(Math.max(0, 1 - qe * qe))) / res;
       const by = (base - round - endK * d.h * (st ? 0.06 : frag ? 0.3 : 0.12) + (N.fbm2(px / res / Math.max(30, d.w) * (st ? 6 : frag ? 5 : 3.2), 3.7, 2) - 0.5) * (d.h * (st ? 0.22 : frag ? 0.4 : 0.1) + d.w * 0.012)
         + (N.fbm2(px / res * 0.07, 11.3, 2) - 0.5) * d.h * 0.035) * res;
-      // (M3: a fragment / wisp / the scud has NO flat base — its underside feathers away over a third of its height)
       const soft = Math.max(1.6, d.h * (st ? 0.1 : frag ? 0.3 : 0.08) * res);
       const cut = frag ? 1 - 0.55 * smooth(base * res - d.h * 0.45 * res, base * res + d.h * 0.05 * res, py) - 0.3 * smooth(by - soft, by + soft, py) : 1 - smooth(by - soft, by + soft * 0.45, py);
       F.t[i] = Math.min(255, Math.round(TK[i] / tRef * 255 * cut));
@@ -322,7 +312,6 @@ export const KINDS = { cumulus: heapField, scud: heapField, strato: heapField, a
 const LOOK = {
   // (lc: the self-shadow's length — the share of the cloud's height that, solid, dims the light to 1 / e)
   cumulus: { s: 4.6, h: 10, a: 1, occ: 0.5, lc: 0.25 }, scud: { s: 2.2, h: 3.6, a: 0.74, occ: 0.3, lc: 0.34 },
-  // (M3: the small ones — thinner reads see-through; the same light as the big ones)
   frag: { s: 2.2, h: 4, a: 0.92, occ: 0.4, lc: 0.3 }, wisp: { s: 1.8, h: 2.8, a: 0.86, occ: 0.26, lc: 0.45 },
   strato: { s: 3.4, h: 6, a: 0.95, occ: 0.42, lc: 0.3 }, alto: { s: 2.6, h: 4.5, a: 0.85, occ: 0.25, lc: 0.5 },
   cirrus: { s: 1.8, h: 2.2, a: 0.82, occ: 0, lc: 1 }, deck: { s: 3.2, h: 4, a: 1, occ: 0.5, lc: 1 },
@@ -338,11 +327,8 @@ function lutOf(sg) {
 function* shadeField(d, F, G, Lt, img) {
   const { pw, ph, res } = F, D = img.data, lk = LOOK[d.form === 'frag' || d.form === 'wisp' ? d.form : d.kind] || LOOK.cumulus, aS = lutOf(lk.s), aH = lutOf(lk.h), T8 = F.t, M8 = F.m || F.t;
   const { lx, ly, lz, l2, rim, haze, farA, glow, glowK } = Lt;
-  // (6b: a HEAP cloud's body is OPAQUE at any hour — nothing behind it shows through, only its thin edges; the layer clouds thin at night)
   const sc = G.sunC, sk = G.sunK, at = G.ambTop, ab = G.ambBot, hz = G.hazeC, occK = lk.occ, alpha = lk.a * (KINDS[d.kind] === heapField ? 1 : G.body) * farA * (d.k == null ? 1 : clamp01(d.k * 1.15));
   const cir = d.kind === 'cirrus', deck = d.kind === 'deck';
-  // (SP: the scud under a deck is darker than the deck — low, wet, ragged fragments in its shade)
-  // (M3: a little lighter than before — it melts into the deck instead of floating in front of it as a dark cut-out)
   const scudK = d.kind === 'scud' ? 0.92 - 0.08 * G.grey : 1;
   // THE SELF-SHADOW: from each pixel, a short march TOWARD the light through the cloud's own thickness (the optical depth) — the
   // far side + the bellies fall into shade, billows shade the ones behind them, and after sunset (the light from below) the bellies
@@ -364,7 +350,6 @@ function* shadeField(d, F, G, Lt, img) {
         trans = 1 - w2d * (1 - Math.exp(-s * tau));
       } else if (!cir) trans = 1 - oc * occK;
       const dk = sk * trans * (0.32 + 0.68 * wd) * (cir ? 0.85 : 1);
-      // (SP: the shade low in the cloud only where it is thick — a thin end or edge of the base stays light)
       const up = 0.5 - 0.5 * ny, ak = 1 - 0.34 * oc * (cir ? 0 : 0.4 + 0.6 * Math.min(1, t / 170)), gk = glowK * (1 - up) * (0.45 + 0.55 * oc);
       const thin = 1 - as, rv = rim * thin * Math.sqrt(thin) * (Lt.back + 0.5 * Math.max(0, nx * l2[0] + ny * l2[1]));
       const tex = (1 + (F.det[i] - 128) / 128 * (deck ? 0.16 : 0.05)) * scudK;
@@ -548,8 +533,6 @@ export function createClouds() {
   let extra = { grey: 0, dark: 0, base: 0 };              // (the weather's set() — 9a)
   let res = 1.8, N = null, epoch = 0, rr = 0, lastA = 0, lastT = 0, mix = null, t0Clock = 0, e0 = 0, windSgn = 1;
   let veilTile = null, veilBake = null;   // (ATM-C: the high veil's fibres — veilFibres; its sheen baked — veilLook)
-  // (POLISH 5 — THE LOAD: the plans made (the load log names each), the new set's fade (1.6 s; SLOW_MS once the city has shown —
-  // the weather landing, a new block: a slow blend, never a pop) and whether the scene has settled the first set (settle()))
   let plans = 0, appearMs = 1600, shown = false, cuts = 0, lastCut = '', lastNow = null, lastPerf = 0, jumps = 0;   // (LOAD FIX 2: cuts = a set still on screen dropped by a re-plan)
   let thinB = null, thinK = 0;                            // (POLISH 5: a sky message's box — the clouds over it thin to a quarter while it is up)
   const SLOW_MS = 6000;
@@ -560,11 +543,6 @@ export function createClouds() {
   const windX = LK => Math.sin(((LK.windDir == null ? 250 : LK.windDir)) * Math.PI / 180);
   const free = arr => { MB.key = ''; for (const d of arr || []) { if (d.cv) d.cv.width = 0; if (d.prev) d.prev.width = 0; if (d.mix) d.mix.cv.width = 0; d.cv = d.prev = d.mix = null; d.F = null; } };
   function plan(LK, seed, motion) {
-    // (LOAD FIX 2 — THE SNAP: a re-plan while the last change still blends drops the set fading out — on screen at oldK — in one frame)
-    // (LOAD FIX 2 — NEVER A CUT after the reveal: a set still on screen is never freed here. The incoming set not baked yet (invisible —
-    //  its appear is 0) is simply replaced while the old one keeps fading at its level; a blend in progress with BOTH sets showing never
-    //  reaches here — drawAll waits for it to end (THE CLOUDS, NEVER A SNAP). And every set after the reveal blends SLOWLY — the first
-    //  one after a late reveal included: it drifts in over SLOW_MS, never a 1.6-s fade from an empty sky)
     // (THE CUT counter — what is really freed while on screen: the fading set, or a set showing that isn't kept)
     if (shown && old && oldK > 0.02 && !born) free(list);
     else {
@@ -582,10 +560,7 @@ export function createClouds() {
     N = noiseOf(seed);
     // (the sprite's px per pt: the phone's own up to 2 — a deck or a far patch less: they are soft)
     for (const d of list) {
-      // (SP: the cirrus at the phone's own resolution — their fibres are a pixel wide; the veil half: it is soft)
       const r = d.kind === 'deck' ? Math.min(res * 0.55, Math.sqrt(260000 / (d.w * d.h))) : d.kind === 'cirrus' ? res * (d.veil ? 0.6 : 0.78) : d.kind === 'strato' || d.kind === 'alto' ? res * 0.8 : res * (d.s < 0.3 ? 1 : 0.92);
-      // (SP — the cloudy party's cost: each cloud's first bake is lit where it IS now — it has drifted since the 6-hour block began;
-      // baking it at its starting place re-lit every cloud a second time the moment the sky appeared)
       d.res = Math.max(0.4, r); d.lit = ''; d.cv = null; d.prev = null; d.fade = 1;
       d.xNow = d.kind === 'deck' ? 0 : driftAt(d, motion ? drift.dist(e0, (cloudWind != null ? cloudWind : LK.wind) || 3, windX(LK)) : 0, W);
       jobs.push({ d, gen: build(d) });
@@ -616,7 +591,6 @@ export function createClouds() {
     while (jobs.length && performance.now() - t0 < budget) { const j = jobs[0]; if (j.gen.next().done) jobs.shift(); }
   }
   function drawSet(c, arr, k, tSec, LK, motion, part) {
-    // (PERF-B — THE WIND IS ONE STATE: the clouds drift on WF's MEAN speed — never its gusts: a deck's x is speed × the clock's seconds)
     const wx = windX(LK), wind = (cloudWind != null ? cloudWind : LK.wind) || 3, P = motion ? drift.dist(tSec, wind, wx) : 0;
     for (const d of arr) {
       // (the deck: a seamless tile, wrapping by its own width)
@@ -624,31 +598,21 @@ export function createClouds() {
       d.xNow = x;
       if (!d.cv || (part === 'back' ? d.s >= 0.5 : part === 'front' ? d.s < 0.5 : part === 'high' ? !highKind(d) : part === 'low' ? highKind(d) : false)) continue;
       const by = d.y + (extra.base || 0), ty = by - d.h;
-      // (POLISH 5 — CLOUDS NEVER COVER A MESSAGE: a cloud over the message's letters thins out, white dots never sit on a white cloud)
       const tb = thinB && thinK > 0 && part !== 'front' ? thinB : null, over = tb && x < tb.x + tb.w && x + d.w > tb.x && by - d.h < tb.y + tb.h && by > tb.y;
       const thin = over ? 1 - 0.75 * thinK : 1;
       const draw = (cv, a) => {
         a *= thin;
         if (a <= 0.004) return;
         c.globalAlpha = a;
-        // (ATM-D — THE FOG's SEAM, the owner's night-fog screenshot: a thin vertical line mid-sky. The deck's two copies met at a FRACTIONAL
-        // device pixel — each copy's edge anti-aliased against the sky = a faint line drifting with the wind. Both copies + their join are
-        // snapped to whole device pixels: the tile's wrap meets edge to edge.)
         if (d.kind === 'deck') { const ds = c.getTransform().a || 1, sn = v => Math.round(v * ds) / ds, x0 = sn(x), dw = sn(d.w);
           for (const ox of [x0, x0 + dw]) if (ox < W && ox + dw > 0) c.drawImage(cv, ox, -2 + (extra.base || 0) * 0.3, dw, d.h); }
         else if (x < W && x + d.w > 0) {
-          // (6b — CLOUDS EVOLVE: each heap / patch slowly SWELLS + changes its shape (wider, taller, on its own slow clocks, anchored at
-          // its base) and THINS + RE-FORMS over minutes — a pure function of the sky's clock, every phone the same; never the deck/veil)
           const ev = evolve(d, tSec, motion);
           if (ev.a < 1) c.globalAlpha = a * ev.a;
           if (ev.sx !== 1 || ev.sy !== 1) { const w2 = d.w * ev.sx, h2 = d.h * ev.sy; c.drawImage(cv, x - (w2 - d.w) / 2, ty - (h2 - d.h), w2, h2); }
           else c.drawImage(cv, x, ty, d.w, d.h);
         }
       };
-      // (WSP — THE CLOUD FLICKER, the owner: the clouds "flicker in different brightness" as they roll by. The old crossfade drew the OLD
-      //  bake OVER the new one, so the moment a fade began a cloud's semi-transparent parts (the thin edges; most of a strato / alto /
-      //  cirrus layer) got DENSER at once — a brightness pop — then eased back. Now a TRUE crossfade: the two bakes SUMMED ('lighter',
-      //  premultiplied) into the cloud's own small canvas at (1 − f) + f — colour AND alpha blend exactly — drawn as one)
       if (d.prev && d.fade < 1 && d.cv) draw(fadeMix(d), k);
       else draw(d.cv, k);
     }
@@ -665,7 +629,6 @@ export function createClouds() {
   //  - THE SILVER EDGE: the clouds' outline (the mask minus its own erosion by ~2 pt), lit silver, brightest by the moon, fading within
   //    ~4 moon radii (the classic moon-behind-a-cloud rim). All scaled by how much of the moon is covered + its phase.
   const thinKind = d => d.kind === 'cirrus' || !!d.veil;
-  // (WINDOWS — the owner: balloons ALWAYS IN FRONT of the high layers — cirrus, the veil, alto are far higher; behind the low heaps only)
   const highKind = d => d.kind === 'cirrus' || d.kind === 'alto' || !!d.veil;
   const steer = { d: null, m: null, c: null };
   /** a cloud's BODY in its box (pt): the centroid + the width of its thick part (the baked thickness) — where the moon should go behind */
@@ -775,7 +738,6 @@ export function createClouds() {
   // the beams' glow sprites: one per colour (cached)
   const glows = new Map();
   function glowOf(col) {
-    // (NIGHT-A2 — the party's colour sweeps: the skybeams' 12-level steps, room for 48 (64 × 64 each: 0.8 MB) — was a new sprite most frames of a fade)
     const key = col.map(v => Math.round(v / 12)).join('.');
     let g = glows.get(key);
     if (!g) {
@@ -930,7 +892,6 @@ export function createClouds() {
       for (const d of list) if (d.kind !== 'deck' && d.xNow > -1e8) { x += d.xNow; k++; if (d.xProbe != null) { const dx = Math.abs(d.xNow - d.xProbe); if (dx < W * 0.5) step = Math.max(step, dx); } d.xProbe = d.xNow; }
       return { plans, cuts, jumps, key: planKey, cur: +(list.length * lastA).toFixed(2), old: old ? +(old.length * oldK).toFixed(2) : 0, x: k ? +(x / k).toFixed(1) : null, step: +step.toFixed(1) };
     },
-    // (LOAD FIX 2: a LATE reveal — the first set not baked yet — lets that set drift in slowly once it is, never a 1.6-s fade)
     //  and a baked set still on hand (the one before a last re-plan) stays on screen until it does: the reveal never shows an empty sky)
     settle() { shown = true; if (born) { born = performance.now() - appearMs - 1; if (old) { free(old); old = null; } } else appearMs = SLOW_MS; },
     /** SP: tonight's cirrostratus veil 0..1 (the moon's 22° halo lives under it) */
@@ -971,8 +932,6 @@ export function createClouds() {
     if (k < 0.02 || day < 0.05) return;
     const gold = clamp01((LK.w.golden || 0) + (LK.w.dawn || 0) * 0.6), H0 = HZ, kd = k * day * (1 - 0.25 * gold);   // (a low sun's veil a touch lighter: warm, not beige)
     const tint = (a, w) => [a[0] + (w[0] - a[0]) * gold, a[1] + (w[1] - a[1]) * gold, a[2] + (w[2] - a[2]) * gold].map(Math.round).join(',');
-    // (THE SPEED: the sheen + the sky whitened round the sun BAKED into one half-resolution canvas — remade only when the veil, the low sun's
-    // warmth or the sun's place moves a step; a frame draws it once + the fibres (the 4× CPU A/B: the four full-sky fills cost +22 ms))
     const sv = sun && sun.x != null && sun.vis > 0.05 ? sun : null, vk = `${W}|${H0}|${Math.round(kd * 24)}|${Math.round(gold * 10)}|${sv ? `${Math.round(sv.x / 6)},${Math.round(sv.y / 6)},${Math.round(sv.vis * 10)}` : '-'}`;
     if (!veilBake || veilBake.key !== vk) {
       const cw = Math.max(1, Math.ceil(W / 2)), ch = Math.max(1, Math.ceil(H0 / 2)), cv = veilBake && veilBake.cv ? veilBake.cv : document.createElement('canvas');
@@ -1048,26 +1007,18 @@ export function createClouds() {
       const LK = fs.L; cloudWind = fs.windF ? fs.windF.speed : null;
       if (!box) return;
       if (part === 'front') { if (G && list.length) { drawSet(c, list, lastA, lastT, LK, fs.motion, 'front'); c.globalAlpha = 1; } return; }
-      // (WINDOWS: 'high' = the frame's update + the veil + the high clouds; then the balloons; then 'low' = the low clouds + the moon's light)
       if (part === 'low') { if (G && (list.length || old)) { if (old) { drawSet(c, old, oldK, lastT, LK, fs.motion, 'low'); if (oldK <= 0) { free(old); old = null; } } drawSet(c, list, lastA, lastT, LK, fs.motion, 'low'); c.globalAlpha = 1; moonLight(c, fs, LK, lastT); } return; }
       const lc = LK.local, blk = lc ? Math.floor(lc.h / 6) : 0;
       const cover = clamp01(LK.cloud || 0), lay = LK.cloudLayers;
       const seed = `${lc ? `${lc.y}-${lc.m}-${lc.d}-${blk}` : 'x'}|${Math.round(cover * 8)}|${lay ? `${Math.round(lay.lo * 4)}${Math.round(lay.mid * 4)}${Math.round(lay.hi * 4)}` : '-'}|${LK.rain > 0.05 || LK.storm ? 'w' : ''}`;
       if (lc) epoch = (((lc.h % 6) * 60 + lc.mi) * 60 + (lc.s || 0));
       windSgn = windX(LK) < 0 ? -1 : 1;
-      // (LOAD FIX 2: after the reveal a new field waits while a blend shows both sets — the newest seed is read again every frame, so it
-      //  plans the moment the blend ends: two slow blends in a row, never one set dropped mid-fade)
       const blending = shown && old && born && oldK > 0.02;
       if (seed !== planKey && !blending) { planKey = seed; t0Clock = fs.now; e0 = epoch; G = null; drift.reset(); plan(LK, seed, fs.motion); lastNow = fs.now; lastPerf = performance.now(); }
-      // (LOAD FIX 2 — THE CLOCK's JUMP: the field's time is the city's clock, and that clock jumps when the server's offset lands (or a
-      //  phone's clock is minutes off) — every cloud jumped with it. After the reveal a jump the real time doesn't explain (≤ 15 min) is
-      //  taken out of the field's time: the clouds keep drifting where they are)
       { const pn = performance.now();
         if (shown && lastNow != null) { const d = fs.now - lastNow, real = (pn - lastPerf) * (fs.speed || 1), j = d - real; if (Math.abs(j) > 1500 && Math.abs(j) < 15 * 60e3) { t0Clock += j; jumps++; } }
         lastNow = fs.now; lastPerf = pn; }
       if (!list.length && !old) return;
-      // (WSP — &force=moon-cloud, the panel's MOON BEHIND A CLOUD: the biggest heap / patch steered back + forth across the moon, its body
-      //  at the moon's height — the preview of the moon behind a thick cloud; let go, it returns to its own place)
       if (fs.force && fs.force.has('moon-cloud') && fs.moonAt && list.length) {
         if (!steer.d || !list.includes(steer.d)) steer.d = list.filter(d => d.kind !== 'deck' && !thinKind(d)).sort((p, q) => (q.kind === 'cumulus') - (p.kind === 'cumulus') || q.w * q.h - p.w * p.h)[0] || null;
         if (steer.d && steer.d.F && (!steer.c || steer.c.d !== steer.d)) steer.c = bodyOf(steer.d);
@@ -1086,12 +1037,9 @@ export function createClouds() {
         const key = cloudLit(G, d, d.xNow > -1e8 ? d.xNow : d.x0, box).key;
         if (key !== d.lit) { d.queued = true; perf.relit++; jobs.push({ d, gen: build(d, true) }); }
       }
-      // (LOAD FIX 2: before the reveal — the frames are hidden + the first set is the reveal's LAST gate in WebKit — a bigger slice)
       { const j0 = performance.now(); run(born ? 1.2 : shown ? 10 : 22); perf.jobMs = perf.jobMs * 0.97 + (performance.now() - j0) * 0.03; }
       if (!born && !jobs.length) born = performance.now();
       const now = performance.now(), dt = Math.min(100, fs.dt || 16);
-      // (WSP — the light changes SLOWLY: a re-lit cloud eases into its new light over CLOUD_FADE_MS (was 0.9 s — each step of the light a
-      //  visible change): a drifting cloud re-lights every ~30 s, so its light glides from one bake to the next, never steps)
       for (const d of list) if (d.prev && d.fade < 1) { d.fade = Math.min(1, d.fade + dt / CLOUD_FADE_MS); if (d.fade >= 1) { d.prev.width = 0; d.prev = null; if (d.mix) { d.mix.cv.width = 0; d.mix = null; } } }
       const appear = born ? smooth(0, appearMs, now - born) : 0;
       // (the time on the cloud field: seconds into this 6-hour block on the city's clock — every phone the same sky)

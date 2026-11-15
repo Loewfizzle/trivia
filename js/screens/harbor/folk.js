@@ -116,15 +116,12 @@ export function lookOf(name, seed, o = {}) {
   if (name === 'commuter') { L.carry = r() < 0.55 ? (woman ? 'purse' : 'case') : 'papers'; if (!woman) L.hat = summer ? 'boater' : 'fedora'; }
   if (name === 'lady') L.carry = 'purse';
   if (name === 'worker' || name === 'nightworker') { L.hat = 'flatcap'; L.coat = 'short'; L.carry = 'pail'; L.cols.coat = pick(r, [[70, 84, 112], [112, 96, 74], [88, 88, 90]]); L.dress = null; L.woman = false; }
-  // (PROM — THE JOGGERS IN RUNNING KIT (the owner: "running kit, not street clothes"): 1920s runners — SHORTS + a light SLEEVELESS
-  // SINGLET (bare arms + legs: the silhouette reads at phone size), or a GREY WOOL SWEATSUIT; a mix; no hat (a flat cap at most, sweats only))
   if (name === 'jogger') {
     L.jog = true; L.coat = 'none'; L.dress = null; L.woman = false; L.scarf = null; L.cols.scarf = null; L.carry = null;
     L.kit = r() < 0.55 ? 'shorts' : 'sweats';
     if (L.kit === 'shorts') { L.hat = null; L.cols.shirt = pick(r, [[236, 232, 220], [228, 222, 204], [220, 226, 232]]); L.cols.shorts = pick(r, [[34, 36, 52], [30, 30, 34], [236, 232, 220], [112, 34, 40]]); L.cols.legs = L.cols.skin; }
     else { L.hat = r() < 0.3 ? 'flatcap' : null; L.cols.hat = [70, 70, 74]; L.cols.shirt = pick(r, [[138, 136, 132], [150, 148, 142], [120, 120, 124]]); L.cols.legs = L.cols.shirt.map(v => v - 8); }
   }
-  // (POLISH 5 — the kid who runs through the hydrant's spray: summer things, no coat, a flat cap)
   if (name === 'kid') { L.coat = 'none'; L.dress = null; L.hat = r() < 0.6 ? 'flatcap' : null; L.cols.shirt = pick(r, [[236, 232, 220], [120, 160, 210], [214, 120, 90]]); L.cols.legs = pick(r, [[110, 96, 80], [70, 80, 110]]); L.scarf = null; L.cols.scarf = null; L.carry = null; }
   if (name === 'newsboy') { L.hat = 'newsboy'; L.coat = 'short'; L.carry = 'papers'; L.cols.coat = pick(r, [[130, 108, 80], [100, 94, 86], [116, 92, 66]]); L.cols.legs = [116, 104, 86]; }
   if (name === 'guest' || (party && (name === 'couple' || name === 'stroll'))) {
@@ -132,8 +129,6 @@ export function lookOf(name, seed, o = {}) {
     else { L.cols.coat = pick(r, [[22, 22, 28], [30, 30, 38], [44, 40, 46]]); L.cols.legs = [24, 24, 30]; L.hat = party && r() < 0.3 ? 'top' : 'fedora'; L.cols.hat = [24, 22, 28]; L.coat = cold ? 'long' : 'short'; L.cols.shirt = [236, 232, 222]; L.tux = true; }
   }
   if (name === 'night') { L.cols.coat = pick(r, [[58, 58, 70], [74, 66, 60], [52, 62, 84]]); L.coat = 'long'; if (!L.woman) L.hat = 'fedora'; }
-  // (POLISH 4 — THE DOORMAN at the side door on party nights: a big man in a long dark overcoat, a dark fedora, gloves — broad, still)
-  // (C4b — the owner: a PEAKED CAP + the long doorman's coat + ONE bright accent: the brass buttons down the front read as one light stripe)
   if (name === 'doorman') { L.woman = false; L.dress = null; L.coat = 'long'; L.hat = 'peaked'; L.carry = null; L.cols.coat = [52, 58, 96]; L.cols.legs = [30, 30, 40]; L.cols.hat = [34, 38, 62]; L.cols.scarf = null; L.scarf = null; L.trim = [226, 186, 104]; L.trimLine = true; }
   // 8b1 — THE WORKERS' CLOTHES (period uniforms that read by colour + shape at ~27 pt): the white-wing sweeper all in white, the milkman's
   // white jacket + cap, the beat cop's navy tunic + peaked cap, the mailman's grey-blue, the barber's white jacket, the painters' white
@@ -158,9 +153,6 @@ export function lookOf(name, seed, o = {}) {
   // navy, bottle green, burgundy, slate, dove grey, a cream mac; grey / navy trousers)
   if (o.sit) { L.cols.coat = pick(r, SIT_COATS); L.cols.legs = pick(r, SIT_LEGS); if (L.coat === 'none') L.coat = 'short'; if (L.woman) L.cols.dress = pick(r, SIT_COATS); }
   L.h = L.hh || (L.kid ? 0.72 : name === 'doorman' ? 1.1 : (L.woman ? 0.95 : 1.02) * (0.95 + r() * 0.08));
-  // (9a: mostly BLACK umbrellas, a few colours — readable as shapes; without one, some hold a NEWSPAPER over the head; in a strong wind a
-  // hand goes to the hat)
-  // (FR7 FIXES B — UMBRELLAS IN THE RAIN: the chances from rainGear — from the drizzle up; at ≥ 0.3 the same draws as before)
   const wet = (o.rain || 0) >= RAIN_GEAR_MIN, gear = rainGear(o.rain);
   L.umbrella = wet && !L.jog && r() < gear.umbrella ? pick(r, [[28, 28, 34], [28, 28, 34], [30, 30, 36], [26, 24, 30], [150, 36, 42], [44, 62, 110], [190, 150, 54], [80, 50, 96]]) : null;
   L.paper = wet && !L.umbrella && !L.jog && !kid && r() < gear.paper;
@@ -171,8 +163,6 @@ export function lookOf(name, seed, o = {}) {
   // (never on an umbrella's holder — the umbrella keeps it off)
   if (o.cold && kid && L.coat === 'none' && !L.worker) { L.coat = 'short'; L.cols.coat = pick(r, [[150, 50, 46], [60, 80, 130], [70, 110, 80], [140, 110, 70]]); if (!L.hat) L.hat = 'flatcap'; }
   L.snowy = (o.snow || 0) > 0.2 && !L.umbrella;
-  // (FR6 FIXES A — ONE LOOK PER DOG: its coat + size from its OWN stream of the seed, never the tail of the person's — the weather's
-  //  draws above (an umbrella, a newspaper, a hand on the hat) used to shift it, so a gust re-coloured a walking dog)
   const rd = rngFrom(typeof seed === 'number' ? (Math.imul(seed | 0, 2654435761 | 0) ^ 0x5bd1e995) >>> 0 : `dog|${seed}`); L.dog = pick(rd, DOGS); L.dogSize = 0.75 + rd() * 0.5;
   L.stride = 0.94 + r() * 0.12;   // (PEO: a little longer or shorter in the step, per person)
   return L;
@@ -261,8 +251,6 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const hd = headingOf(st), cx = Math.cos(hd), cz = Math.sin(hd), pose = st.pose || 'walk', jog = (!!L.jog || !!st.run) && st.v > 2, G = jog ? GAIT.jog : GAIT.walk;   // (8b1: st.run — anyone RUNNING, the witnesses fleeing)
   // (a step in heights — a stride is two; FP3b: a relaxed 1920s pace takes SHORTER steps — a long step at a slow speed reads as a
   // slow-motion glide — so the cadence stays ~1.8 steps a second)
-  // (8b2 — THE TALL LADDER: its two carriers walk IN STEP — their stride's phase from where they are along the street (the climber's a
-  // ladder's gap back), a common stride; 'walkback' — lowering it, stepping BACKWARD at LADDER.vUp: the stride run in reverse)
   const back = pose === 'walkback', cr0 = st.carry != null ? st.carry : L.carry, wrap = v => ((v % 1) + 1) % 1;
   const vS = back ? LADDER.vUp : st.v, S = st.run ? STEP({ ...L, jog: true }, vS) : STEP(L, vS), SL = strideLen(st.run ? { ...L, jog: true } : L, vS);   // (PEO: the step at this speed)
   const walking = (pose === 'walk' && st.v > 0.05) || back, sync = walking && !back && st.x != null && (cr0 === 'ladderA' || cr0 === 'ladderB');
@@ -291,8 +279,6 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   // ---- the legs (figure frame: a, b, y)
   const foot = [], hipJ = [], planted = [false, false], heel = [0, 0];
   let hipY = HIP0, lean = 0;
-  // (9g: the run's planted stretch sits BEHIND the hips — down at land × A in front, off at land × A − 2A behind; `mid` its middle, what
-  // the hips, the shoulders + the arms swing about: mid0)
   const runLeg = walking && jog && !L.zombie, land = runLeg ? G.land * A : 0, mid0 = runLeg ? land - A : 0;
   const rs0 = runLeg ? runSwing(0, HIP0 - 0.035) : null, rs1 = runLeg ? runSwing(1, HIP0 - 0.035) : null;
   for (let i = 0; i < 2; i++) {
@@ -356,8 +342,6 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   // 8b1 — ON A LADDER: the feet on the rungs (just in front), climbing = the legs + arms trading rung by rung with the height gained;
   // working at a height one foot a rung up
   const onRungs = pose === 'climb' || ((pose === 'reach' || pose === 'paint') && (st.y || 0) > 0.3 && !st.plat);
-  // (8b2 — RUNG BY RUNG, core/harbor-people.js#CLIMB: st.rung = { n, q }: one foot steps up a rung (a lifted arc) while the other stays on its
-  // rung and sinks in the body's frame as he rises; the roles swap each rung, a beat's pause on each — never a glide)
   const R1 = 0.152;
   let climbQ = 0, climbStep = 0;
   if (onRungs) {
@@ -381,9 +365,6 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   // the knees: two-segment IK in each leg's own plane, always bending FORWARD; sitting: the thighs forward along the seat
   const knee = [];
   for (let i = 0; i < 2; i++) {
-    // (C4b — SEATED FACING US / AWAY (review-4 §C4): the side rig's thighs run along the heading, so from the front they collapsed onto the
-    // hips' line — a short standing figure on sticks; now the knees go FORWARD + OUT, the feet planted wider, so the knees land below the
-    // seat's front edge and the shins stand apart + solid down to the cobbles)
     if (pose === 'sit') { const fr = Math.abs(cz) > 0.5; foot[i] = fr ? { a: 0.275, b: sg[i] * 0.105, y: ANKLE } : { a: 0.25, b: sg[i] * 0.065, y: ANKLE }; knee.push(fr ? { a: 0.27, b: sg[i] * 0.1, y: 0.3 } : { a: 0.235, b: sg[i] * 0.06, y: 0.28 }); continue; }
     const h = hipJ[i], f = foot[i], dx = f.a - h.a, dy = f.y - h.y, dl = Math.hypot(dx, dy), l = Math.min(dl, LEG - 1e-4);
     // (11a-1: the zombie's stiff leg never bends — the knee on the straight line, swung from the hip)
@@ -411,13 +392,10 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const near = cx >= 0 ? 0 : 1, farA = 1 - near;                                   // (the arm nearer us — the one a pose uses)
   const idle = mo ? Math.sin(t * 0.9 + L.h * 11) * 0.04 : 0;
   for (let i = 0; i < 2; i++) {
-    // (PROM — A JOGGER's ARMS TUCKED (the owner: "never flung wide"): the elbow bent ~90° and close to the ribs, a small swing mostly
-    // BACK (the elbow behind the body) — the hand closing toward the chest as it comes forward; anyone else running keeps the pump)
     if (walking && jog && L.jog) { const n = -(foot[i].a - mid0) / (A || 1); arm(i, -0.1 + 0.34 * n, 1.58 + 0.24 * Math.max(0, n), 0.012); }
     else if (walking) { const sw = -G.arm * (foot[i].a - mid0) / (A || 1) * (heavy ? 0.55 : 1); arm(i, sw, jog ? G.bend : G.bend + Math.max(0, sw) * 0.4); }
     else arm(i, 0.1 + (i ? -idle : idle), 0.12);
   }
-  // (8b2: a load on the shoulder — the near hand up on it; a heavy one in the hand — that arm straight down, a little out, no swing)
   if (onSh && (walking || pose === 'wait')) arm(FAR_SH.has(cr) ? farA : near, 2.62, 2.6, 0.14);
   else if (inHand && (walking || pose === 'wait')) arm(near, 0.06, 0.04, 0.2);
   // arm in arm (a couple strolling): the arm on the partner's side hooked, no swing (link: the side's sign, ±1)
@@ -449,8 +427,6 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
     arm(N, 1.48, 0.1, 0.04); arm(Fa, 2.75 + 0.12 * w, 0.3 + 0.25 * w, 0.22 + 0.32 * w);
   }
   if (pose === 'lean') { arm(0, 1.3, 0.3); arm(1, 1.25, 0.35); headA += 0.03; }
-  // (PROM: arms CROSSED high on the chest — the forearms folded across each other; pushed off the wall they drop to his sides for the nod)
-  // (C4b: hands CLASPED at the belt (attend); holding the door — the far arm out on the leaf at chest height, the near hand TIPS THE CAP: st.tip 0..1)
   if (pose === 'attend') { arm(0, 0.3, 1.3, -0.62); arm(1, 0.3, 1.3, -0.62); shJ.forEach(q => { q.b -= 0.01 * wShift; }); head.b -= 0.012 * wShift; }
   if (pose === 'holdDoor') { const k = clamp01(st.tip || 0); arm(Fa, 1.5, 0.15, 0.12); if (k > 0.01) arm(N, 0.3 + 2.45 * k, 0.4 + 1.25 * k, 0.1); else arm(N, 0.12, 0.2); head.a -= 0.03 * k; }
   // 9b — THE SNOWBALL THROW: the arm winds up over the head + back (0.55 s, leaning back), then snaps forward (the release ~0.6 s in)
@@ -479,14 +455,9 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   // PUSHED upright (the arms from overhead out to the front) / caught coming down, the fly HAULED up its rope hand over hand (a pull a
   // LADDER.pull — the fly rises pull by pull with it); THE STEPLADDER swung down off the shoulder + stood up ('upend' / back: 'lay'),
   // spread / folded (both hands at its top)
-  // (POLISH 5 — THE HANDS ON THE RAILS, the C2 known issue: the ladder's angle is built from where the hands are — core/harbor-crew.js#ladderAt:
-  // HANDS.up ahead, LADDER.hR up — so the arms now REACH that point (a two-bone IK in the body's own heights, this person's size), hand
-  // over hand a little apart along the rail, instead of a fixed overhead angle that missed the rails by up to ~3 px)
   const reach = (i, ta, ty, out = 0.1) => { const s0 = shJ[i], dx = ta - s0.a, dy = ty - s0.y, d = Math.min(Math.hypot(dx, dy), (upA + foreA) * 0.999), ph = Math.atan2(dx, -dy);
     const be = Math.acos(clamp01((upA * upA + d * d - foreA * foreA) / (2 * upA * d))), ga = Math.acos(clamp01((foreA * foreA + d * d - upA * upA) / (2 * foreA * d))); arm(i, ph - be, be + ga, out); };
   if ((walking && cr0 === 'walkup') || back) { const Hb = BODY_H * (L.h || 1), sw = walking ? 0.03 * Math.sin(p * Math.PI * 2) : 0; for (let i = 0; i < 2; i++) reach(i, HANDS.up / Hb + (i ? sw : -sw), LADDER.hR / Hb + (i ? -sw : sw) * 0.6); }
-  // (9a — POLISH 5's known issue: the push upright / the catch / the haul kept FIXED arm angles; now the hands REACH the rails as the
-  // ladder turns (core/harbor-crew.js#railAhead — the same eased turn the ladder makes) and the rope as he hauls, hand over hand)
   if (pose === 'push' || pose === 'catch') { const kk = pose === 'push' ? uP : 1 - uP, k = smooth(kk), Hb = BODY_H * (L.h || 1); shJ.forEach(q => { q.a += 0.03 * k; }); head.a += 0.03 * k;
     for (let i = 0; i < 2; i++) { const y = LADDER.hR + (1.55 - LADDER.hR) * k + (i === near ? 0 : -0.12); reach(i, railAhead(y, kk) / Hb, y / Hb); } }
   if (pose === 'haul') { const c8 = Math.cos((mo ? sN : 0) / LADDER.pull * Math.PI), Hb = BODY_H * (L.h || 1); for (let i = 0; i < 2; i++) { const y = 1.7 + (i === near ? 0.32 : -0.32) * c8; reach(i, (LADDER.push - 0.06) / Hb, y / Hb, 0.08); } }
@@ -508,7 +479,6 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   // 8b1 — THE WORKERS' POSES (big, readable motions: the broom's push, the crank's turn, the brush's strokes, the squeegee's sweep)
   const tw8 = mo ? t : 0;
   let sqS = null;   // (WSP: the squeegee's stroke for gear.js — { dir (+1 →, −1 ←, 0 dipping), k (0..1 through it), on (1 while the blade is on the glass) })
-  // (8b2 — STROKES, not wiggles: each work motion is a working stroke (slow, with weight) + a quick return — sk(period, share))
   const sk = (P, share, off = 0) => { const u = (((tw8 + L.h * 13 + off) / P) % 1 + 1) % 1; return u < share ? smooth(u / share) : 1 - smooth((u - share) / (1 - share)); };
   if (pose === 'sweep') { const k = sk(1.25, 0.62); shJ.forEach(q => { q.a += 0.04 * k; }); head.a += 0.04 * k; arm(N, 0.5 + 0.5 * k, 0.5 - 0.1 * k); arm(Fa, 0.8 + 0.5 * k, 0.22); }
   // 9c — THE SHOVEL STROKE (the owner: "back and forth like he's actually shovelling", "more premium"): st.ph 0..1 through ONE stroke —
@@ -548,11 +518,6 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'paste') { const k = sk(1.9, 0.68); shJ.forEach(q => { q.a += 0.03 * k; }); arm(N, 2.35 - 0.8 * k, 0.3 + 0.1 * k); arm(Fa, 2.0 - 0.65 * k, 0.45); }
   if (pose === 'pastehi') { const k = sk(2.2, 0.7); arm(N, 2.95 - 0.38 * k, 0.12 + 0.08 * k); arm(Fa, 2.55 - 0.32 * k, 0.28); }
   // the window washer's S: a level SWIPE across the pane (the arm out to the side), down a blade's width, back the other way
-  // (WSP — the owner: "each arm its own EASED stroke, no snapping back + forth, the two OUT OF PHASE + varied". The old swipe ran across,
-  //  SNAPPED back in a quarter of its time, and the next row began on the far side — the arm jumped. Now ONE CONTINUOUS S, the way a
-  //  window gets squeegeed: four eased strokes, each starting where the last ended (left → right, a notch down, right → left …), then the
-  //  arm down to the bucket + back up to the top; each washer his own tempo (2.0–2.6 s a stroke) + his own place in it — from his seeded
-  //  height L.h, so the two on the platform never move together. The free hand on the platform's rail, steady.)
   if (pose === 'squeegee') {
     const hz = (L.h * 977.13) % 1, P = 2.0 + 0.6 * hz, ph = mo ? (tw8 / P + hz * 5) : hz * 5, seg = Math.floor(ph) % 5, u = ph - Math.floor(ph);
     let across, ang;
@@ -574,7 +539,6 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'flash') { const sw = Math.sin(uP * Math.PI * 2.5); arm(N, 1.62 + 0.12 * Math.abs(sw), 0.08, 0.05 + 0.32 * (sw + 1) / 2); arm(Fa, 0.35, 1.2, 0.25); }
   // THE WANDS' dancer (FP3b item 9): st.moves = { arms: [[ang, bend, out], [ang, bend, out]], sway, dip } from people.js's routine
   // (phi: the arm raised in the FRONTAL plane — 0 hanging, π/2 out to the side, π straight up — so the moves read from the front)
-  // (PEO: the bend capped at 1.15 — the follow-through once pushed it to ~1.6: the forearm pointed straight at us and the wand shrank to a dot)
   if (pose === 'wands' && st.moves) { const m = st.moves; for (let i = 0; i < 2; i++) { const [phi, bend0] = m.arms[i], bend = Math.max(0, Math.min(1.15, bend0)); arm(i, phi <= Math.PI / 2 ? 0 : Math.PI, bend, phi <= Math.PI / 2 ? phi : Math.PI - phi); } shJ.forEach(s => { s.b += (m.sway || 0) * 0.03; }); head.b += (m.sway || 0) * 0.045; }
   // 11a-1 — THE HOLIDAYS' BODIES: the zombie's arms out in front + the head lolling + the torso swaying on the shamble (reaching harder when
   // it notices someone — st.reach); a walker STARTLED by one (st.startle 0..1: hands up, a lean back, then the shoulders shaking — a
@@ -607,7 +571,6 @@ export function rigOf(cam, st, L, t = 0, mo = true, yUp = 0) {
   let J = jointsOf(st, L, t, mo, kD);
   // 8b2 — NO SNAPPING BETWEEN POSES (the owner): the first BLEND s of every leg eases out of the one before (its last frame: a walk at the
   // same distance, a pose as it ended) — sitting down, standing up, a reach, a lift, setting off; every figure, workers or not
-  // (PART 10: `blendS` — a longer blend for one state: the cab stand's fare RISING off the bench, sit → stand)
   const BL = st.blendS || BLEND;
   if (mo && st.prev && st.prev !== st.pose && st.since != null && st.since < BL) {
     const was = jointsOf({ ...st, pose: st.prev, v: st.prev === 'walk' ? Math.max(st.v || 0, 1) : 0, since: 9, left: 0, rung: null }, L, t, mo, kD);
@@ -631,8 +594,6 @@ function blendJ(A, B, k) {
  * tier } → the figure's screen box
  */
 export function drawFolk(c, cam, it, env) {
-  // (LOBBY 2.0 A — LOST SIGNAL: a room player LIES DOWN where they stood — the standing rig laid flat on the ground (st.lieK 0..1 eased by
-  //  the caller, st.lieDir the side the head goes): readable at the phone's size as "down"; no shadow while down)
   const lieK = it.s.pose === 'lie' ? clamp01(it.s.lieK == null ? 1 : it.s.lieK) : 0;
   const st = lieK ? { ...it.s, pose: 'wait', v: 0, prev: null } : it.s, L = it.L, yUp = env.yUp || 0;
   const { fx, fy, H, J } = rigOf(cam, st, L, env.t || 0, env.mo !== false, yUp);
@@ -684,8 +645,6 @@ export function drawFolk(c, cam, it, env) {
     for (const [ox, oy] of [[-0.8, -0.5], [0.8, -0.5], [0, -0.9]]) { c.save(); c.translate(ox, oy); rimUpper(c, J, L, X, Y, H, 'rgb(236,232,220)'); c.restore(); }
     c.restore();
   }
-  // (8b1: a worker's carried gear changes leg by leg — st.carry; the sweeper's can cart stands on the ground ahead of him: behind him
-  // when he faces away)
   const LL = st.carry != null ? (st.carry === L.carry ? L : { ...L, carry: st.carry }) : L;
   if (LL.carry === 'sweepcart' && J.cz > 0.15) gearCart(c, J, X, Y, H, (col, k) => rgb(lit(col, k)), st);
   body(c, st.look != null ? { ...J, look: st.look } : J, LL, X, Y, H, lit, env);   // (PROM: st.look — the head turned on its own)
@@ -703,7 +662,6 @@ function body(c, J, L, X, Y, H, lit, env) {
     const hp = J.hips[i], k = J.knees[i], ft = J.feet[i];
     c.strokeStyle = f(col); c.lineWidth = w * H; c.lineCap = 'round'; c.lineJoin = 'round';
     c.beginPath(); c.moveTo(X(hp[0]), Y(hp[1])); c.lineTo(X(k[0]), Y(k[1])); c.lineTo(X(ft[0]), Y(ft[1] - 0.012)); c.stroke();
-    // (PROM: a jogger's SHORTS over the bare thigh — from the hip ~40 % of the way to the knee, a touch wider than the leg)
     if (kitShorts) { const q = 0.42; c.strokeStyle = f(col === legCol ? cols.shorts : far(cols.shorts)); c.lineWidth = w * 1.45 * H; c.lineCap = 'butt'; c.beginPath(); c.moveTo(X(hp[0]), Y(hp[1] + 0.03)); c.lineTo(X(hp[0] + (k[0] - hp[0]) * q), Y(hp[1] + (k[1] - hp[1]) * q)); c.stroke(); c.lineCap = 'round'; }
     // the shoe: long in profile, short + round from the front / the back; the heel lifting at push-off
     const tip = 0.024 * cx, hl = J.heel[i] * 0.012;
@@ -725,8 +683,6 @@ function body(c, J, L, X, Y, H, lit, env) {
   const behind = cz < 0.3;
   if (L.cape && behind) cape(c, J, L, X, Y, H, f);
   if (L.tail && behind) tail(c, J, X, Y, H, f, env);
-  // (C4b — THE FRONT-FACING SITTER: the shins thicker + the gap between them filled with the seat's shadow — nothing of the bench shows
-  // through or between the legs; the lap is drawn over the torso's foot below)
   const sitFront = J.pose === 'sit' && cz < -0.5;
   if (sitFront) {
     const [k0, k1] = J.knees, [f0, f1] = J.feet;
@@ -743,7 +699,6 @@ function body(c, J, L, X, Y, H, lit, env) {
   const top = J.sh[1] + 0.01, hipY = J.hip[1], sx = J.tw, tX = J.sh[0], hX = J.hip[0];
   const hem = J.pose === 'sit' ? hipY - 0.02 : L.hem != null ? L.hem : L.coat === 'long' ? 0.27 : L.dress === 'flapper' ? 0.3 : L.dress ? 0.24 : L.coat === 'short' ? hipY - 0.06 : hipY - 0.02;
   const swingHem = J.walking ? Math.sin(J.p * TAU * 2) * 0.012 : 0;
-  // (ATM-B: the wind's stream at this person — the gust wave at their place on screen; a seated coat stays put)
   const ph = L.fwPh != null ? L.fwPh : (L.fwPh = Math.random() * TAU);
   const wk = FW_FLAP > 0.01 && J.pose !== 'sit' && !L.jog ? FW_FLAP * (0.55 + 0.45 * (FW_AT ? FW_AT(Math.max(0, Math.min(1, X(0) / FW_W))) : 0.5)) : 0;
   const flut = wk ? Math.sin(FW_T * 8.5 + ph) * 0.6 + Math.sin(FW_T * 13.7 + ph * 2) * 0.4 : 0;
@@ -759,7 +714,6 @@ function body(c, J, L, X, Y, H, lit, env) {
     c.closePath();
   };
   c.fillStyle = f(torsoCol); torso(); c.fill();
-  // (C4b: THE LAP — the coat's skirt over both thighs from the hips out to the knees, a solid mass over the seat's front edge)
   if (sitFront) {
     const [h0, h1] = J.hips, [k0, k1] = J.knees, w = 0.055, l = k0[0] < k1[0] ? [k0, k1] : [k1, k0], hs = h0[0] < h1[0] ? [h0, h1] : [h1, h0];
     c.fillStyle = f(torsoCol); c.beginPath();
@@ -783,7 +737,6 @@ function body(c, J, L, X, Y, H, lit, env) {
   if (cols.scarf && L.coat !== 'none') {
     c.fillStyle = f(cols.scarf); c.beginPath(); c.ellipse(X(tX), Y(top - 0.005), sx * H * 0.92, H * 0.026, 0, 0, TAU); c.fill();
     if (wk > 0.06) {
-      // (ATM-B: THE SCARF's TAIL streaming out downwind from the neck — one bold ribbon, rippling, its end dropping as the gust eases)
       const len = 0.09 + 0.2 * wk, x0 = tX + FW_SIDE * sx * 0.55, y0 = top - 0.012, wv = 0.036 * (1 + 0.25 * flut), sag = 0.05 * (1 - wk);
       c.beginPath(); c.moveTo(X(x0), Y(y0 + 0.016));
       for (let i = 1; i <= 4; i++) { const u = i / 4, rip = Math.sin(FW_T * 11 + ph - u * 4.2) * 0.016 * wk * u; c.lineTo(X(x0 + FW_SIDE * len * u), Y(y0 + 0.016 - sag * u * u + rip)); }
@@ -803,7 +756,6 @@ function body(c, J, L, X, Y, H, lit, env) {
   }
   if (L.trim && cz < 0.35) {
     const bx = tX + cx * sx * 0.12; c.fillStyle = f(L.trim, 1.3);
-    // (C4b — the doorman's row of brass buttons as ONE light stripe down his coat's front: a fine line under the buttons, one accent)
     if (L.trimLine) { c.globalAlpha *= 0.55; c.fillRect(X(bx) - Math.max(0.3, H * 0.006), Y(top - 0.03), Math.max(0.6, H * 0.012), (top - 0.03 - hipY - 0.04) * H); c.globalAlpha /= 0.55; }
     for (let i = 0; i < 4; i++) { const by = top - 0.05 - i * (top - hipY - 0.02) / 4; c.beginPath(); c.arc(X(bx), Y(by), Math.max(0.35, H * 0.009), 0, TAU); c.fill(); }
     if (L.badge) { c.beginPath(); c.arc(X(tX - cx * sx * 0.35 - sx * 0.35 * (1 - ax)), Y(top - 0.06), Math.max(0.45, H * 0.014), 0, TAU); c.fill(); }
@@ -821,8 +773,6 @@ function body(c, J, L, X, Y, H, lit, env) {
   }
   // ---- the head: skin, then the hair by the facing (the back of the head walking away, the back half in profile, a fringe from the
   // front), the nose in profile, the sun's cheek, the hat, the brim's shadow across the face (no drawn features — the owner)
-  // (PROM — st.look: the HEAD turned on its own (the doorman following a guest) — the hair, the nose, the face + the hat's brim read it;
-  // the body keeps its heading)
   const HJ = J.look != null ? (() => { const hc = Math.cos(J.look), hs = Math.sin(J.look); return { ...J, cx: hc, cz: hs, d: hc >= 0 ? 1 : -1, side: Math.abs(hc) > 0.72 }; })() : J;
   const hx = J.head[0], hy = J.head[1], hr = HR, front = Math.max(0, -HJ.cz), back = Math.max(0, HJ.cz);
   c.fillStyle = f(cols.skin, 0.9); c.fillRect(X(hx - 0.022), Y(hy - hr * 0.6), 0.044 * H, 0.06 * H);
@@ -838,7 +788,6 @@ function body(c, J, L, X, Y, H, lit, env) {
   if (sun) { const g = c.createLinearGradient(X(hx - hr * sun.s), 0, X(hx + hr * sun.s), 0); g.addColorStop(0, `rgba(${sun.hi},${(0.24 * sun.k).toFixed(3)})`); g.addColorStop(0.5, `rgba(${sun.hi},0)`); g.addColorStop(0.55, 'rgba(30,20,40,0)'); g.addColorStop(1, `rgba(30,20,40,${(0.3 * sun.k).toFixed(3)})`); c.fillStyle = g; c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill(); }
   face(c, HJ, L, X, Y, H, f, hx, hy, hr);
   hat(c, L, X, Y, H, hx, hy, hr, HJ, f);
-  // (9b: snow settled on the hat's crown + its brim — or the bare head — while it falls: one bright accent that reads at 27 pt)
   if (L.snowy) { const sc = f([242, 246, 255]), top = L.hat === 'fedora' || L.hat === 'top' ? 1.48 : L.hat ? 1.2 : 1.0; c.fillStyle = sc; c.beginPath(); c.ellipse(X(hx + J.cx * hr * 0.06), Y(hy + hr * top), hr * 0.85 * H, Math.max(0.6, hr * 0.32 * H), 0, Math.PI, 0); c.fill();
     if (L.hat === 'fedora') c.fillRect(X(hx - hr * 1.5), Y(hy + hr * 0.62), hr * 3 * H, Math.max(0.6, 0.012 * H)); }
   if (L.cape && !behind) cape(c, J, L, X, Y, H, f);
@@ -852,7 +801,6 @@ function body(c, J, L, X, Y, H, lit, env) {
   if (L.hcarry) { holidayCarry(c, J, L, X, Y, H, f, env, hand); return; }
   const liftP = J.pose === 'pick' || J.pose === 'set';
   if (liftP && L.carry && !J.noCarry && GEAR[L.carry]) {
-    // (8b2: lifting with the knees — the load between both hands, low, not on the shoulder)
     const mx = (J.hands[0][0] + J.hands[1][0]) / 2, my = (J.hands[0][1] + J.hands[1][1]) / 2;
     GEAR[L.carry](c, { hand: [X(mx), Y(my)], J: { ...J, shs: [[mx, my - 0.06], [mx, my - 0.06]], sh0: J.shs }, X, Y, H, f, d, t: env.t || 0, mo: env.mo !== false, pose: J.pose });
   } else if (J.pose !== 'wands' && L.carry && !J.noCarry && GEAR[L.carry]) GEAR[L.carry](c, { hand, J, X, Y, H, f, d, t: env.t || 0, mo: env.mo !== false, pose: J.pose });
@@ -866,8 +814,6 @@ function body(c, J, L, X, Y, H, lit, env) {
     if (H > 24) { c.strokeStyle = f([120, 116, 110]); c.lineWidth = Math.max(0.25, H * 0.004); c.beginPath(); for (let i = 1; i < 4; i++) { const u = i / 4; c.moveTo(xl + (mid - xl) * 0.25, yb - (yb - pk) * u * 0.8 + H * 0.004); c.lineTo(mid - H * 0.01, pk + (yb - pk) * (1 - u) * 0.3 + H * 0.01 * u); } c.stroke(); }
   }
   if (L.umbrella && J.pose !== 'sit') {
-    // (ATM-C: the canopy RIDES WITH THE BODY — a fixed shaft above the held hand (never a fixed height the swinging hand pulled at), a slight
-    // lean into the wind + a tilt as a gust reaches this person (the shared wind's wave here); its handle hidden in the fist)
     const [ux, uy] = hand, g = FW_AT ? FW_AT(Math.max(0, Math.min(1, X(0) / FW_W))) : 0, tilt = Math.max(-0.3, Math.min(0.3, FW_SIDE * (FW_LEAN * 2.2 + 0.12 * g * Math.sin(FW_T * 3.1 + L.h * 9))));
     const sh = H * 0.36, tx = ux + Math.sin(tilt) * sh, ty = uy - Math.cos(tilt) * sh;
     c.strokeStyle = f([30, 26, 24]); c.lineWidth = Math.max(0.5, H * 0.012); c.beginPath(); c.moveTo(ux, uy); c.lineTo(tx, ty); c.stroke();
@@ -932,8 +878,6 @@ function hat(c, L, X, Y, H, hx, hy, hr, J, f) {
   const k = L.cols.hat, cx = J.cx, ax = Math.abs(cx);
   if (!L.hat) return;
   c.fillStyle = f(k);
-  // (PROM — a head turned on its own (J.look: the doorman following a guest): the brim swings toward where he looks + dips at its front —
-  // a clear left / front / right of the hat at phone size)
   if (L.hat === 'fedora' && J.look != null) {
     const off = cx * hr * 0.62, dip = hr * 0.32 * Math.abs(cx), y0 = hy + hr * 0.55, th = Math.max(0.6, 0.018 * H);
     c.beginPath(); c.moveTo(X(hx - hr * 1.6 + off), Y(y0 - (cx < 0 ? dip : 0))); c.lineTo(X(hx + hr * 1.6 + off), Y(y0 - (cx > 0 ? dip : 0))); c.lineTo(X(hx + hr * 1.6 + off), Y(y0 - (cx > 0 ? dip : 0)) + th); c.lineTo(X(hx - hr * 1.6 + off), Y(y0 - (cx < 0 ? dip : 0)) + th); c.closePath(); c.fill();
@@ -998,8 +942,6 @@ function carry(c, what, [hx, hy], H, f, d) {
   else if (what === 'purse') { c.fillStyle = f([70, 40, 44]); c.beginPath(); c.ellipse(hx, hy + H * 0.03, H * 0.035, H * 0.025, 0, 0, TAU); c.fill(); }
   else if (what === 'pie') {
     // a pie in its tin, held flat in front: the golden crust's dome + its lattice + a checked cloth under the tin
-    // (SP6 — ACT BIG, the owner: "too small at phone size": ~1.6× bigger, a dark outline round the whole (its silhouette against the
-    // coats + the cobbles), the crust's top edge catching the light)
     const px = hx + H * 0.05 * d, py = hy - H * 0.01, Q = 1.6, ol = 'rgba(12,8,10,0.85)', lw0 = Math.max(0.5, H * 0.009);
     c.fillStyle = ol; c.beginPath(); c.ellipse(px, py + H * 0.012 * Q, H * 0.075 * Q + lw0, H * 0.018 * Q + lw0, 0, 0, TAU); c.ellipse(px, py - H * 0.012 * Q, H * 0.056 * Q + lw0, H * 0.022 * Q + lw0, 0, Math.PI, 0); c.fill();
     c.fillStyle = f([196, 54, 48]); c.beginPath(); c.ellipse(px, py + H * 0.012 * Q, H * 0.075 * Q, H * 0.018 * Q, 0, 0, TAU); c.fill();
@@ -1032,7 +974,6 @@ function carry(c, what, [hx, hy], H, f, d) {
 
 /** a DOG at (x, z) trotting with its walker (dir ±1, dist: its own stride), or sitting (pose) → its collar on screen (the leash) */
 export function drawDog(c, cam, st, L, env, yUp = 0) {
-  // (FP3b: the dog foreshortened by its heading — side-on crossing the screen, shorter on a diagonal, never a flat profile toward us)
   const hc = st.hd != null ? Math.cos(st.hd) : st.dir === -1 ? -1 : 1, fs = Math.max(0.42, Math.abs(hc));
   // (HOTFIX Oct 29 — THE DOG's TURN: while it really turns (st.turn rad / s, core/harbor-people.js) its mirror-flip squashes through zero
   // width — one turn — instead of jumping from 42 % one way to 42 % the other; walking straight it keeps its 42 % floor)
@@ -1040,16 +981,11 @@ export function drawDog(c, cam, st, L, env, yUp = 0) {
   const [fx, fy] = project(cam, st.x, yUp, st.z), s = cam.F / st.z, H = 0.62 * FOLK_SCALE * L.dogSize * s, X = u => fx + u * H * sx, Y = v => fy - v * H;
   if (fx + H < 0 || fx - H > cam.W) return [fx, fy];
   const lampK = clamp01(env.dark || 0), dark = Math.max(lampK, clamp01((env.T && env.T.night) || 0)), lt = env.lightAt ? env.lightAt(st.x, st.z) : null;
-  // (C4c — THE DOGS AT NIGHT (the owner, Oct 29: "a dog walker with no dog" + "I haven't seen a dog in a while"): every walk after dark
-  // had its dog mixed 74 % to the night's near-black + a sliver of the lamps — a black blob on the dark cobbles beside a lit walker, the
-  // leash running to nothing. Now the coat keeps its colour in the lamps' light like the people's (SP4's lit figures): 0.5 to the night,
-  // the lamps' light 0.45 back off it, a LIT EDGE along its back + head (the lamps above) and a red COLLAR — one clear silhouette + one accent)
   let col = L.dog, rim = null; if (dark > 0.01) { col = mix(col, [18, 16, 28], 0.5 * dark); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); col = col.map((v, i) => Math.min(255, v + lt[i] * q * 0.45 * lampK)); rim = mix(col, [255, 214, 160], 0.55 * lampK); } else rim = mix(col, [150, 150, 190], 0.35 * dark); }
   c.fillStyle = `rgba(8,6,16,${(0.3 + 0.15 * dark).toFixed(3)})`; c.beginPath(); c.ellipse(fx, fy, H * 0.65, H * 0.08, 0, 0, TAU); c.fill();
   const p = st.v > 0.05 ? (st.dist / 0.9) % 1 : 0, trot = st.v > 0.05 ? 1 : 0;
   // (8b1 wildlife — THE LUNGE at the pigeons, st.lunge 0..1: the body stretched + low, the front legs reaching, the head down + out)
   const lg = Math.max(0, Math.min(1, st.lunge || 0)), fwd = 0.3 * lg, low = 0.1 * lg;
-  // (POLISH 5 — THE SNIFF at the hydrant: the head down to it + a little forward, the tail going)
   const sn = st.sniff && st.v < 0.05 ? Math.max(0, Math.min(1, (st.since || 0) / 0.5, (st.left == null ? 1 : st.left) / 0.5)) : 0, hdn = 0.34 * sn, hfw = 0.08 * sn;
   c.strokeStyle = rgb(col.map(v => v * 0.8)); c.lineWidth = Math.max(0.6, H * 0.09); c.lineCap = 'round';
   for (const [bx, ph] of [[-0.42, 0], [0.38, 0.5], [-0.32, 0.5], [0.28, 0]]) { const sw = trot * Math.sin((p + ph) * TAU) * 0.16, reach = bx > 0 ? fwd * 1.4 : -fwd * 0.3; c.beginPath(); c.moveTo(X(bx + (bx > 0 ? fwd : 0)), Y(0.42 - low)); c.lineTo(X(bx + sw + reach), Y(0.02)); c.stroke(); }
@@ -1426,7 +1362,6 @@ function holidayCarry(c, J, L, X, Y, H, f, env, hand) {
     c.fillStyle = f([60, 58, 66], 1.2); c.beginPath(); c.arc(hx, hy, Math.max(0.5, H * 0.014), 0, TAU); c.fill();
     if (nk > 0.25) {
       // the beam on the cobbles ahead (a soft cone down to a pool) — the torch's own light, so it reads in the dark between the lamps
-      // (9e: L.torchK — the night shift's flashlight is his one bright accent: a longer, brighter beam + a bigger pool at phone size)
       const tk = L.torchK || 1, reach = tk > 1 ? 1.25 : 1;
       const gx = hx + d * H * 0.75 * reach * Math.max(0.35, Math.abs(J.cx)), gy = hy + H * 0.62 * (J.cz < -0.3 ? 1.15 : 1);
       c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(0.5, 0.14 * nk * tk);
