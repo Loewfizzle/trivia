@@ -334,7 +334,7 @@ function openScreen(tab0) {
   async function dressEvery(list, rows, d) {
     const K = await stripKit();
     if (gone || !list.isConnected) return;
-    const surface = K.createSurface(list, { label: `every-today:${d.id}` });
+    const surface = K.liveList(list, { label: `every-today:${d.id}` });
     surfaces.push(surface);
     const slots = [...list.querySelectorAll('.dy-crow .dy-card')];
     rows.forEach((r, i) => {
@@ -403,7 +403,7 @@ function openScreen(tab0) {
     }));
     stripKit().then(K => {
       if (gone || !ev.isConnected) return;
-      const surface = K.createSurface(ev, { label: `every:${d.id}` }); surfaces.push(surface);
+      const surface = K.liveList(ev, { label: `every:${d.id}` }); surfaces.push(surface);
       const slots = [...ev.querySelectorAll('.dy-crow .dy-card')];
       all.forEach((r, i) => { const slot = slots[i]; if (!slot) return; const pub = r.mine ? (pidMod && pidMod.myPublic && pidMod.myPublic()) || { n: me().name } : r; const st = stripFor(K, pub, { friend: !!r.f && !r.me }); slot.prepend(st.el); stripFx(K, surface, st, i + 1); });
       ev.dataset.strips = String(all.length);
@@ -413,7 +413,7 @@ function openScreen(tab0) {
   async function dressCards(list, rows, d) {
     const K = await stripKit();
     if (gone || !list.isConnected) return;
-    const surface = K.createSurface(list, { label: `scores:${d.id}` });
+    const surface = K.liveList(list, { label: `scores:${d.id}` });
     surfaces.push(surface);
     rows.forEach((r, i) => {
       const slot = list.querySelector(`.dy-crow[data-pid="${r.pid}"] .dy-card`);

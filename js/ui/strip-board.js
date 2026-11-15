@@ -20,13 +20,14 @@ let kitP = null;
 export function stripKit() {
   if (kitP) return kitP;
   kitP = (async () => {
-    const [V, { FX }, { cardVars }, { approvedIds }, { createSurface }, { isOneOfOne }] = await Promise.all([
+    const [V, { FX }, { cardVars }, { approvedIds }, { createSurface }, { isOneOfOne }, { liveList }] = await Promise.all([
       lazyImport(import('../vault/strip.js'), '../vault/strip.js'), lazyImport(import('../fx/index.js'), '../fx/index.js'), lazyImport(import('../progress/look.js'), '../progress/look.js'), lazyImport(import('../vault/approved.js'), '../vault/approved.js'), lazyImport(import('../fx/renderer.js'), '../fx/renderer.js'),
-      lazyImport(import('../core/dev-cards.js'), '../core/dev-cards.js')]);
+      lazyImport(import('../core/dev-cards.js'), '../core/dev-cards.js'), lazyImport(import('./live-lane.js'), './live-lane.js')]);
     V.vaultSheet();
     let approved = new Set();
     try { approved = new Set((await approvedIds()) || []); } catch { /* the plain colours */ }
-    return { V, FX, cardVars, approved, createSurface, isOneOfOne };
+    // (CITY D — THE LIVE LANE: a LIST's strips go through liveList (stills; ≤ 3 live on screen page-wide), never a surface over the list)
+    return { V, FX, cardVars, approved, createSurface, isOneOfOne, liveList };
   })();
   return kitP;
 }
@@ -57,7 +58,7 @@ export async function upgradeBoard(list, rows, players) {
   list.dataset.strips = 'loading';
   const K = await stripKit();
   const rowEls = [...list.children];   // (before the surface: its canvas joins the list as a child)
-  const surface = K.createSurface(list, { label: 'results' });
+  const surface = K.liveList(list, { label: 'results' });
   const strips = [];
   rows.forEach((r, i) => {
     const row = rowEls[i];

@@ -128,7 +128,8 @@ function canvasFor(S) {
 
 export function createSurface(host, o = {}) {
   host.classList.add('fx-host');
-  const S = { host, cv: null, gl: null, c: null, slots: new Map(), w: 0, h: 0, dpr: 1, on: true, dirty: true, sized: false, label: o.label || '' };
+  // (CITY D — THE LIVE LANE: { gpu: false } = a small 2D canvas, never a GPU context — ui/live-lane.js, a strip's own)
+  const S = { host, cv: null, gl: null, c: null, slots: new Map(), w: 0, h: 0, dpr: 1, on: true, dirty: true, sized: false, label: o.label || '', noGpu: o.gpu === false };
   canvasFor(S);
   const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { measure(S); kick(); }) : null;
   if (ro) ro.observe(host);

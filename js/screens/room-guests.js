@@ -46,11 +46,12 @@ export async function openGuestList(ctx) {
     lazyImport(import('../vault/strip.js'), '../vault/strip.js'), lazyImport(import('../fx/index.js'), '../fx/index.js'), lazyImport(import('../progress/look.js'), '../progress/look.js'), lazyImport(import('../vault/approved.js'), '../vault/approved.js'), lazyImport(import('../core/dev-cards.js'), '../core/dev-cards.js'), lazyImport(import('../audio/lobby-sfx.js'), '../audio/lobby-sfx.js')]);
   // (LOBBY 2.0 B — the owner's ADD-ON: LEAVE ROOM at the foot of the guest list — red-edged, a second tap = "SURE?")
   // (SHELL 2.0 A: the danger tube; the second tap = the button itself red — ui/components.js#confirmTap)
-  const { createSurface } = await lazyImport(import('../fx/renderer.js'), '../fx/renderer.js');
+  // (CITY D — THE LIVE LANE: the guests' strips show their stills; ≤ 3 on screen run live — a joiner's entrance first — ui/live-lane.js)
+  const { liveList } = await lazyImport(import('../ui/live-lane.js'), '../ui/live-lane.js');
   if (closedEarly) return { update: () => {}, close: () => {} };
   V.vaultSheet();
   let approved = new Set();
-  surface = createSurface(surfHost, { label: 'guests' });
+  surface = liveList(surfHost, { label: 'guests' });
   const rows = new Map();     // uid → { el, sig, slot }
   let kickArmed = { uid: null, at: 0 }, first = true, lockBusy = false;
   // (CITY FIXES — the owner, Nov 8: THE GUEST LIST PAUSES THE CITY behind it — THE ROOM's OWN COST: 8 live strips + the full city at 4× CPU
@@ -109,7 +110,7 @@ export async function openGuestList(ctx) {
         else { surfHost.append(row); if (fresh) { row.classList.add('is-in'); lobbySfx('card-in'); } }
         const look = V.LOOKS[card];
         if (real && look && look.fx && FX[look.fx]) {
-          const addLive = () => { if (!row.isConnected) return; const sl = surface.add(el, FX[look.fx], V.fxOpts(card, { seed: i + 1, calm: fresh ? 0 : 1, radius: 12 })); if (fresh) setTimeout(() => { sl.opts = { ...sl.opts, calm: 1 }; }, ENTRANCE_MS); };
+          const addLive = () => { if (!row.isConnected) return; const sl = surface.add(el, FX[look.fx], V.fxOpts(card, { seed: i + 1, calm: fresh ? 0 : 1, radius: 12, prio: fresh ? 1 : 0 })); if (fresh && sl) setTimeout(() => { sl.opts = { ...sl.opts, calm: 1, prio: 0 }; }, ENTRANCE_MS); };
           if (filling) queue(addLive, true); else addLive();   // (0d: the first fill's live art after every still is up, one per frame)
         }
         r = { el: row, sig };

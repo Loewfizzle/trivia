@@ -37,6 +37,12 @@
 const q = new URLSearchParams(location.search);
 // the approved cards on this page (every friend's but LOU's zebra — the UNAPPROVED one shows its plain colours); your own: THE MARQUEE
 const APPROVED = ['card-marquee', 'card-sg-aurora', 'card-chrome', 'card-inferno', 'card-emerald', 'card-heartbreaker', 'card-neonglass', 'card-velvet', 'card-carbon', 'card-sapphire', 'card-noir', 'card-brass'];
+// CITY D — 0b, THE SCORES CRASH: &many=1 = 48 players a daily, every one in a FANCY card (an effect on its strip) — the ALL TIME boards + EVERYONE
+// TODAY (SHOW ALL = all 48) for the memory proof (tests/integration/scores-memory.mjs)
+const MANY = ['card-inferno', 'card-prism', 'card-noir', 'card-legend', 'card-marquee-gold', 'card-neoncamo', 'card-wildfire', 'card-eternal', 'card-witness', 'card-founder',
+  'card-house', 'card-platinum', 'card-century', 'card-sapphire', 'card-circuit', 'card-confetti', 'card-flame30', 'card-gold', 'card-aurora', 'card-velvet', 'card-heartbreaker',
+  'card-glitter', 'card-frostbite', 'card-smoke', 'card-sg-ufo', 'card-marble'];
+if (q.get('many') === '1') APPROVED.push(...MANY);
 let moved = false;
 if (!q.get('slot')) { q.set('slot', 'pv'); moved = true; }
 if (!q.get('labmarks')) { q.set('labmarks', APPROVED.join(',')); moved = true; }
@@ -127,15 +133,18 @@ const table2 = q.get('solo') === '1' ? [] : table;
     ['DEX', null, 'moon', 'green', 9], ['MAXIMILIANOS', 'card-inferno', 'wave', 'orange', 15, 1], ['ZOE', 'card-emerald', 'diamond', 'green', 7], ['IVY', 'card-neonglass', 'wave', 'violet', 22],
     ['JUNO', 'card-carbon', 'hex', 'cyan', 5], ['OTTO', 'card-heartbreaker', 'bolt', 'magenta', 31], ['PRIYA', 'card-sapphire', 'star', 'yellow', 11], ['QUINN', 'card-noir', 'moon', 'orange', 3],
     ['ROSA', 'card-brass', 'diamond', 'red', 8]].map(([n, cd, a, c, l, f], i) => ({ id: `b${i}`, n, cd, a, c, l, ...(f ? { f: 1 } : {}) }));
+  if (q.get('many') === '1') for (let i = P.length; i < 48; i++) P.push({ id: `b${i}`, n: `PLAYER${String(i).padStart(2, '0')}`, cd: MANY[i % MANY.length], a: ['bolt', 'star', 'hex', 'wave', 'moon', 'diamond'][i % 6], c: ['cyan', 'magenta', 'yellow', 'green', 'orange', 'violet', 'red'][i % 7], l: 5 + (i * 7) % 60 });
   const below = q.get('rank') === '23', empty = q.get('evday') === 'empty';
   const pwS = [3, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 10], ccS = [[98, 0], [132, 1], [158, 0], [171, 2], [189, 1], [201, 0], [214, 2], [230, 0], [244, 1], [260, 0], [275, 0], [290, 1], [302, 0], [10004, null]];
   const mk = (g, scoreOf) => {
     const played = pick.mine[g] != null;
     const order = below || !played ? [...P, { ...P[0], id: 'bz', n: 'WREN', f: undefined }] : [P[0], { ...ME, me: 1 }, ...P.slice(1)];   // (you're in it only once you've played)
-    const rows = order.slice(0, 14).map((r, i) => { const [v, sp] = scoreOf(i); const { f, me, ...face } = r; return { ...face, rank: i + 1, ...(played ? { v, ...(sp != null ? { e: { sp } } : {}) } : {}), ...(f ? { f: 1 } : {}), ...(me ? { me: 1 } : {}) }; });
+    const N = q.get('many') === '1' ? 48 : 14;
+    const rows = order.slice(0, N).map((r, i) => { const [v, sp] = scoreOf(i % 14); const { f, me, ...face } = r; return { ...face, rank: i + 1, ...(played ? { v, ...(sp != null ? { e: { sp } } : {}) } : {}), ...(f ? { f: 1 } : {}), ...(me ? { me: 1 } : {}) }; });
     if (empty) return { n: 0, played, rows: [], more: 0 };
     const all = q.get('all') === '1';
-    return { n: below ? 30 : 14, played, rows: rows.slice(0, all ? 14 : 10), ...(below && played ? { me: { ...ME, rank: 23, v: scoreOf(9)[0] + 2, e: { sp: 1 }, me: 1 } } : {}), more: below ? 30 : 14 };
+    if (N > 14) window.__dyEveryAll = g2 => ({ ...window.__dyEvery[g2], rows: window.__dyEvery[g2].full });
+    return { n: below ? 30 : N, full: rows, played, rows: rows.slice(0, all ? N : 10), ...(below && played ? { me: { ...ME, rank: 23, v: scoreOf(9)[0] + 2, e: { sp: 1 }, me: 1 } } : {}), more: below ? 30 : N };
   };
   window.__dyEvery = { password: mk('password', i => [pwS[i], null]), coastclear: mk('coastclear', i => ccS[i]) };
   if (pick.mine.password != null) pick.place = { password: below ? { p: 23, n: 30 } : { p: 2, n: 14 }, ...(pick.mine.coastclear != null ? { coastclear: below ? { p: 23, n: 30 } : { p: 2, n: 14 } } : {}) };

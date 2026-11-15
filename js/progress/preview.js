@@ -25,6 +25,8 @@ export function sampleProfile(q = new URLSearchParams()) {
   const it = {}; let t = 1;
   for (const id of rewardsUpTo(23)) it[id] = t++;
   for (const id of ['glow-ember', 'emb-key', 'card-brushed', 'card-founder', 'flame-full', 'glow-afterglow', 'emb-owl', 'tube-breath', 'tube-chase', 'glow-gold', 'glow-spark', 'emb-snowflake', 'card-inferno', 'card-prism', 'card-marquee', 'card-glitter', 'card-camo', 'card-zebra', 'card-platinum', 'emb-torch', 'emb-house', 'emb-lightning', 'emb-prism', 'emb-sweetheart', 'emb-sg-tr3b', 'tube-twotone']) it[id] = t++;
+  // (CITY D — 1: &all=1 — EVERY item owned: CUSTOMIZE's longest grid, the memory proof — tests/integration/scores-memory.mjs --case customize)
+  if (q.get('all') === '1') for (const x of ITEMS) if (!it[x.id]) it[x.id] = t++;
   // (THE VAULT 2B: &dev=1 — the owner's own: THE TWO DEV CARDS + Nº 0001)
   if (q.get('dev') === '1') { it['card-dev-switchboard'] = t++; it['card-dev-source'] = t++; }   // (2A: the samples' tube styles, glows + an ice emblem)
   // (PROGRESSION B: three CITY SIGHTINGS spotted — their pairs; the album shows the prints the owner's &sgdemo links took on this device)

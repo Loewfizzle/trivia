@@ -153,7 +153,7 @@ export function knockCards() {
     const mine = k;
     stripKit().then(K => {
       if (sig !== mine) return;
-      surface = K.createSurface(el, { label: 'knock' });
+      surface = K.liveList(el, { label: 'knock' });
       list.forEach((c, i) => { const slot = el.querySelector(`.fr-knock[data-pid="${c.pid}"] .fr-knock-card`); if (!slot) return; const st = stripFor(K, c); slot.replaceChildren(st.el); stripFx(K, surface, st, i + 1); });
       el.dataset.strips = String(list.length);
     }).catch(() => {});
@@ -194,7 +194,7 @@ export async function openAddLink(code) {
   } });
   const later = tubeButton('NOT NOW', { kind: 'secondary', block: true, cls: 'fr-add-later', onClick: () => s && s.close() });
   s = openPfSheet({ kicker: 'A FRIEND LINK', title: `ADD ${name}?`, cls: 'fr-add-sheet', body: [slot, h('p.fr-hint', already), ...(r.rel === 'friend' || r.rel === 'out' || r.rel === 'blocked' ? [later] : [add, later])] });
-  stripKit().then(K => { const st = stripFor(K, c); slot.replaceChildren(st.el); const sf = K.createSurface(slot, { label: 'addlink' }); stripFx(K, sf, st, 1); }).catch(() => {});
+  stripKit().then(K => { const st = stripFor(K, c); slot.replaceChildren(st.el); const sf = K.liveList(slot, { label: 'addlink' }); stripFx(K, sf, st, 1); }).catch(() => {});
   return s;
 }
 
@@ -240,7 +240,7 @@ function cardList(cs) {
   let done = false;
   function dress(K) {
     if (done) return; done = true;
-    const surface = K.createSurface(list, { label: 'friends' });
+    const surface = K.liveList(list, { label: 'friends' });
     cs.forEach((c, i) => { const slot = list.querySelector(`.fr-crow[data-pid="${c.pid}"] .fr-open`); if (!slot) return; const st = stripFor(K, c); slot.append(st.el); stripFx(K, surface, st, i + 1); });
     list.dataset.strips = String(cs.length);
     const iv = setInterval(() => { if (!list.isConnected && list.dataset.seen) { clearInterval(iv); try { surface.destroy(); } catch { /* fine */ } } else if (list.isConnected) list.dataset.seen = '1'; }, 2000);

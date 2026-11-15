@@ -323,7 +323,7 @@ export function createTaps(T) {
         const st = SB.stripFor(SB.K, r); strips.push(st);
         return h('li', MD.rankMedal(r.rank, { size: 32, cls: 'nd-pv-medal' }) || h('span.nd-pv-medal', String(r.rank)), h('div.nd-pv-card', st.el, h('b', fmtValue(def, r.v))));   // (CITY B: THE DECO MEDALS — lazy, with the strips: never the boot)
       }));
-      const surface = SB.K.createSurface(list, { label: 'preview-top' });
+      const surface = SB.K.liveList(list, { label: 'preview-top' });
       strips.forEach((st, i) => SB.stripFx(SB.K, surface, st, i + 1));
       const iv = setInterval(() => { if (!list.isConnected) { clearInterval(iv); try { surface.destroy(); } catch { /* fine */ } } }, 2000);
     }).catch(() => { wrap.remove(); });

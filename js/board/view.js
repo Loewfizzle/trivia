@@ -374,7 +374,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       dropSurface();
       els.rows = h('ol.bd-rows');
       els.scroll.replaceChildren(els.rows);
-      surface = K.createSurface(els.rows, { label: 'board' });
+      surface = K.liveList(els.rows, { label: 'board' });
       els.scroll.scrollTop = 0;
     }
     const built = els.rows.querySelectorAll('.bd-row').length;
@@ -472,7 +472,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       h('div.bd-scard', strip ? h('div.bd-open', strip.el) : h('div.bd-sk-card'), h('div.bd-ssub',
         h('span.bd-you', p.h ? 'YOU · HIDDEN' : 'YOU'),
         h('span.bd-me-note2', val != null ? h('b', val, unit ? h('small', unit) : null) : null, ...caps.filter(Boolean).map(c => h('span', c)))))));
-    if (strip) { meSurface = K.createSurface(els.me, { label: 'board-me' }); stripFx(K, meSurface, strip, 99); }
+    if (strip) { meSurface = K.liveList(els.me, { label: 'board-me' }); stripFx(K, meSurface, strip, 99); }
     els.me.classList.toggle('is-ranked', !!rank);
     els.me.classList.toggle('is-hidden-me', !!p.h);
   }

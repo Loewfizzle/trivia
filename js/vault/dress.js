@@ -9,14 +9,17 @@
 //                        (one list at a time); COMPACT TILES 3 across, each edged in its TIER colour (core/rarity.js — the one palette),
 //                        the worn one ticked ✓; TAP a tile → the strip above changes AT ONCE (worn — nothing to save; the server is
 //                        told, and a refusal puts it back); LONG-PRESS a card tile (or VIEW FULL ›) → the full card. Only owned items.
-// SPEED: the pinned strip is its own effect surface (it LEADS); the tiles are one more surface inside the scrolling list — only the
-// tiles on screen draw (js/fx/renderer.js), every emblem a stack of composited layers (emblem-art.js), the calmer cut on the tiles.
+// SPEED: the pinned strip is its own effect surface (it LEADS — the ONE live card on the screen); every emblem a stack of composited layers
+// (emblem-art.js). CITY D — 1 (CUSTOMIZE killed + reloaded the page on the owner's iPhone — an iOS memory kill: one GPU surface over the
+// whole grid, 12 tiles' effects live at once): the TILES show their BAKED STILLS (js/vault/stills.js — no canvas at all in the grid); the
+// card in focus is the pinned strip (live) or the full card a hold opens (its own surface, everything behind it held); the profile behind
+// CUSTOMIZE is HELD while it is open (fx/renderer.js#fxCover — not drawn).
 //   dressPanel(data, o) → [panel, collection]     o = { name, wear(slot, id) → Promise<boolean>, view(id, who) }
 //   openDress(data, o) → { close() }
 import { tapHandled, afterTap } from '../ui/tapwatch.js';
 import { row } from '../ui/components.js';
 import { h } from '../ui/dom.js';
-import { createSurface } from '../fx/renderer.js';
+import { createSurface, fxCover } from '../fx/renderer.js';
 import { FX } from '../fx/index.js';
 import { TIER_NAMES, TIERS, ITEM, ownedOf, signOf, signName } from '../core/items.js';
 import { levelInfo } from '../core/levels.js';
@@ -116,8 +119,7 @@ export function openDress(data, o = {}) {
   // the tabs + the grid (one surface for the tiles, inside the scrolling list)
   const tabBtns = TABS.map(([k, label]) => h('button.vl-dr-tab', { type: 'button', role: 'tab', dataset: { tab: k }, 'aria-selected': String(k === tab), onclick: () => { if (tab !== k) { tab = k; paintGrid(); } } }, label));
   const note = h('p.vl-dr-note');
-  const grid = h('div.vl-dr-grid', { role: 'tabpanel' }), gridHost = h('div.vl-dr-gridhost.fx-host', grid);
-  const gridSurf = tracked(gridHost, 'dress-tiles');
+  const grid = h('div.vl-dr-grid', { role: 'tabpanel' }), gridHost = h('div.vl-dr-gridhost', grid);
   const scroll = h('div.vl-dr-scroll', note, gridHost);
 
   /** one tile: its art (a card's live mini · an emblem · the name in a glow · a tube style on your neon), its name, its tier edge */
@@ -129,8 +131,7 @@ export function openDress(data, o = {}) {
     if (kind === 'card') {
       const real = !!(approved && approved.has(id) && LOOKS[id]);
       const m = h('div.vl-strip.vl-dt-mini', { class: `vl-t-${tier} vl-s-${real ? LOOKS[id].mat : 'plain'}`, style: real ? undefined : cardVars(id) }, h('i.vl-mat', { 'aria-hidden': 'true' }), h('i.vl-frame', { 'aria-hidden': 'true' }));
-      art.append(m);
-      if (real && LOOKS[id].fx && FX[LOOKS[id].fx]) gridSurf.add(m, FX[LOOKS[id].fx], fxOpts(id, { seed: 2 + i, calm: 1, radius: 8, tile: true }));
+      art.append(m);   // (CITY D: its baked still — no effect on a tile)
     } else if (kind === 'emblem') {
       art.append(emblemEl({ id: it && hasArt(id) ? id : null, avatar: sign || who.avatar, color: who.color, tube: W.tube, mode: 'even', size: 46 }));
     } else if (kind === 'glow') {
@@ -158,7 +159,6 @@ export function openDress(data, o = {}) {
   const youRows = h('div.vl-yr', youRow);
   function paintGrid() {
     for (const b of tabBtns) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
-    gridSurf.clear();
     const items = order(ownedOf(owned, tab));
     const list = tab === 'card' || tab === 'emblem' ? items : [null, ...items];
     grid.dataset.tab = tab;
@@ -191,7 +191,8 @@ export function openDress(data, o = {}) {
 
   const line = h('p.vl-dr-worn', wornLine(W, who));
   let release = null;
-  const close = () => { if (closed) return; closed = true; pinSurf.destroy(); gridSurf.destroy(); el.classList.remove('is-in'); setTimeout(() => el.remove(), 220); openNow = null; if (release) release(); if (o.onClose) o.onClose(); };
+  let uncover = null;
+  const close = () => { if (closed) return; closed = true; pinSurf.destroy(); if (uncover) { uncover(); uncover = null; } el.classList.remove('is-in'); setTimeout(() => el.remove(), 220); openNow = null; if (release) release(); if (o.onClose) o.onClose(); };
   const el = h('div.vl-dress', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Customize your card' },
     h('div.vl-dr-in',
       h('header.vl-dr-head', h('button.vl-dr-back', { type: 'button', 'aria-label': 'Back', onclick: close }, '‹'), h('h2', 'CUSTOMIZE')),
@@ -204,6 +205,7 @@ export function openDress(data, o = {}) {
   // (THE LAYER STACK — the owner's room test, Nov 4: it opened BEHIND the room's profile overlay; now always on top of what opened it)
   release = takeLayer(el, { close: () => close() });   // (SHELL 2.0 A: the one Esc — ui/layers.js — closes it when it's on top)
   document.body.append(el);
+  uncover = fxCover(el);   // (CITY D: the profile behind CUSTOMIZE holds its frame — only the pinned card moves)
   paintPin(); paintGrid(); paintYou();
   requestAnimationFrame(() => el.classList.add('is-in'));
   approvedIds().then(a => afterTap(() => { if (closed) return; approved = a; paintPin(); paintGrid(); })).catch(() => {});
