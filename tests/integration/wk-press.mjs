@@ -101,6 +101,26 @@ try {
       }
     } else ok(false, `${tag} THE BOARD opened`);
     await home();
+    // ---- THE PROFILE (the add-on, Nov 14 7:56 pm — "CUSTOMIZE YOUR CARD": held 113 ms, 0 px, MOVED 6 px, no click): every .btn there acts
+    await p.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'profile' })));
+    if (await waitFor("!!document.querySelector('.pf-screen .pg-cz-go')", 20000)) {
+      await press(`${tag} the profile's CUSTOMIZE YOUR CARD`, '.pf-screen .pg-cz-go', "!!document.querySelector('.vl-dress')", {
+        after: async () => { await p.keyboard.press('Escape'); await waitFor("!document.querySelector('.vl-dress')", 4000); await sleep(400); } });
+      // (+ THE MOVED TUBE: the same tube nudged 6 px between the touch + the lift — a layout shift under a still finger)
+      if (noClick) {
+        const s0 = await tw();
+        const r = await p.evaluate(async () => {
+          const b = document.querySelector('.pf-screen .pg-cz-go'), q = b.getBoundingClientRect(), x = q.left + q.width / 2, y = q.top + q.height / 2;
+          const ev = t => b.dispatchEvent(new PointerEvent(t, { bubbles: true, cancelable: true, composed: true, pointerId: 92, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y }));
+          ev('pointerdown'); await new Promise(r2 => setTimeout(r2, 50)); b.style.transform = 'translateY(6px)'; await new Promise(r2 => setTimeout(r2, 63)); ev('pointerup');
+          await new Promise(r2 => setTimeout(r2, 500)); b.style.transform = ''; return !!document.querySelector('.vl-dress');
+        });
+        const s1 = await tw();
+        ok(r && s1.pressed - s0.pressed === 1 && s1.rescues === s0.rescues, `${tag} CUSTOMIZE YOUR CARD moved 6 px under a still finger (held 113 ms): it ACTS (${r ? 'opened' : 'NEVER opened'}; rescues +${s1.rescues - s0.rescues})`);
+        await p.keyboard.press('Escape'); await waitFor("!document.querySelector('.vl-dress')", 4000); await sleep(400);
+      }
+    } else ok(false, `${tag} the profile's CUSTOMIZE YOUR CARD on screen (${await p.evaluate("(() => { const o = document.querySelector('.pf-screen'); return o ? [...o.querySelectorAll('.btn')].map(b => b.className + ' ' + b.textContent.trim().slice(0, 20)).join(' | ') + ' :: ' + o.textContent.replace(/\s+/g, ' ').slice(0, 160) : 'no .pf-screen; view ' + window.__arcade.state.view; })()")})`);
+    await home();
     // ---- THE DAILY SCREEN: SCORES → ALL TIME ↔ TODAY, the FRIENDS box, the TODAY tab, BACK
     await p.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'scores' } })));
     if (await waitFor("!!document.querySelector('.dy-scope-b')", 15000)) {

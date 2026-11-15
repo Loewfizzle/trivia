@@ -107,7 +107,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
       Promise.resolve(PN.leave()).catch(() => leave.classList.remove('is-busy'));
     } }, h('span', 'BACK TO THE CITY')) : back;
     const canShare = !!(mod && typeof mod.shareRun === 'function' && g && g.participants && g.participants[me]);
-    const share = canShare ? h('button.btn.btn-ghost.btn-block.final-share', { type: 'button', onclick: () => {
+    const share = canShare ? h('button.btn.btn-ghost.btn-block.final-share', { type: 'button', 'data-gesture': true, onclick: () => {
       if (busy(share)) return;
       share.classList.add('is-busy');
       Promise.resolve(mod.shareRun(g, state)).then(how => {

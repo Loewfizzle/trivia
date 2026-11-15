@@ -95,6 +95,9 @@ export function createView({ onBack = null, overlay = false } = {}) {
     //  loaded only through memberCard(), which paintHero skips for a full card. The page loads its sheets itself, before anything paints)
     pgSheet();
     el.classList.add('pf-screen');
+    // (CITY A — the add-on, Nov 14 7:56 pm: EVERY .btn on the profile screen (the YOU page + the room's overlay) acts on its own press + lift —
+    //  ui/tapwatch.js#PRESS_IMPLICIT; the copy / share buttons keep Safari's own click: data-act copy / share)
+    el.dataset.pressAll = '';
     document.body.classList.add('pf-on');
     els.card = h('div.pf-card-slot');
     els.show = h('input.pf-switch-in', { type: 'checkbox', role: 'switch', checked: true, onchange: onShow });

@@ -191,7 +191,7 @@ function openScreen(tab0) {
     const rows = t.dailies.map(d => ticketRow(t, d));
     // (CITY A — EVERY TAP ACTS: every dy- button acts on its press + lift (data-press, ui/tapwatch.js) — but SHARE TODAY keeps the browser's own
     //  click: navigator.share needs Safari's real gesture, never a click dispatched by code)
-    const share = sw.done ? tubeButton('SHARE TODAY', { kind: 'secondary', block: true, cls: 'dy-share', onClick: () => shareToday(t) }) : null;
+    const share = sw.done ? tubeButton('SHARE TODAY', { kind: 'secondary', block: true, cls: 'dy-share', attrs: { 'data-gesture': true }, onClick: () => shareToday(t) }) : null;
     if (share) warmShare(t);   // (PFIX-3 — S11: the card is built NOW — when the screen shows the button, and again when a result changes)
     els.next = h('div.dy-next', { 'aria-live': 'off' });
     // DFIX3 — TODAY CENTRED: one box (the meter → the tickets → SHARE → the countdown) sits mid-way between the tabs and the bottom safe area; taller

@@ -117,7 +117,9 @@ try {
   await tapTest(A, '☰ (the menu)', '.menu-btn', { land: "!!document.querySelector('.sh.gm.is-in')", reset: () => closeSheets(A) });
   // a sheet's row WHILE THE SHEET IS STILL SLIDING IN (≤ 320 ms after it opened)
   await tapTest(A, '☰ → SETTINGS (tapped while the menu slides in)', '.sh.gm .gm-settings', {
-    before: async () => { await A.p.evaluate("document.querySelector('.menu-btn').click()"); await A.wait("!!document.querySelector('.sh.gm .gm-settings')", 3000); await sleep(200); },
+    // (CITY A: tapped once the row is ON SCREEN — the sheet still sliding; headless WebKit's slide had it 270 px below the screen at a fixed
+    //  200 ms on the code before this pass too: an aim at nothing, never a test of the tap)
+    before: async () => { await A.p.evaluate("document.querySelector('.menu-btn').click()"); await A.wait("!!document.querySelector('.sh.gm .gm-settings')", 3000); await sleep(120); await A.wait("(() => { const r = document.querySelector('.sh.gm .gm-settings').getBoundingClientRect(); return r.top + r.height / 2 < innerHeight - 8; })()", 2000); },
     land: "!!document.querySelector('.sh.is-nested.is-in')", reset: () => closeSheets(A) });
   // a row inside SETTINGS (a switch) — its value flips on the first tap
   await A.p.evaluate("document.querySelector('.menu-btn').click()"); await A.wait("!!document.querySelector('.sh.gm .gm-settings')", 3000); await sleep(400);

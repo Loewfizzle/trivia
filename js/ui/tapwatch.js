@@ -35,6 +35,22 @@ const SLOP = 10;               // px the finger may travel and still be a tap
 const MOVE_PX = 6;             // the target moved under the finger (a layout shift)
 const MIN_GAP_MS = 60_000, DAY_MAX = 20;
 export const PRESS_MS = 600, PRESS_SLOP = 10, TOOK_SWALLOW_MS = 800, SETTLE_MS = 350;   // (4. EVERY TAP ACTS)
+// (the add-on, Nov 14 7:56 pm — a LOST TAP on the profile's "CUSTOMIZE YOUR CARD": held 113 ms, 0 px, the tube MOVED 6 px under the finger) — the
+// press + lift ALSO on every full-width tube (.btn.btn-block — a layout shift nudges those) and every .btn inside a screen that says so
+// (`data-press-all` — the profile screen), with no attribute on each. NOT on a control that needs Safari's OWN gesture — a share sheet, the
+// clipboard, a passkey, a notification prompt, a form's submit (the password keychain): `data-gesture` (or data-act copy / share) keeps its click.
+export const PRESS_IMPLICIT = '.btn.btn-block, [data-press-all] .btn';
+// (+ a control with its OWN pointer-up path — the dock's pressTap — never twice; the implicit rule is off while a GAME runs: a game's buttons
+//  keep their own pointer events — only an explicit data-press acts there)
+export const PRESS_NEVER = '[data-gesture], [data-act="copy"], [data-act="share"], [type="submit"], [data-press-tap], [data-tap-own], [data-tap-own] *';
+/** the control a press acts on (the element itself), or null */
+export function pressControl(el, game = false) {
+  try {
+    if (!el || !el.matches) return null;
+    if (el.matches(PRESS_NEVER)) return null;
+    return el.matches('[data-press]') || (!game && el.matches(PRESS_IMPLICIT)) ? el : null;
+  } catch { return null; }
+}
 const LS_KEY = 'nd:tapwatch';
 
 let ctxFn = null;
@@ -188,7 +204,7 @@ function onDown(e) {
       id: e.pointerId, type: e.pointerType || 'touch', el, sig: sigOf(el), x: e.clientX, y: e.clientY, t: e.timeStamp,
       inDelay: Math.max(0, performance.now() - e.timeStamp), rect: [r.left, r.top], travel: 0, muts: [], up: null,
       own: !!el.closest('[data-tap-own]'), game: gameOn(), where: screenName(), clicked: false,
-      act: el.matches && el.matches('[data-press]') ? el : null,   // (the control itself — a kick button inside a pressable row is its own; a press that BEGAN on a row acts even while its sheet still slides in: the 38-px shelf row)
+      act: pressControl(el, gameOn()),   // (the control itself — a kick button inside a pressable row is its own; a press that BEGAN on a row acts even while its sheet still slides in: the 38-px shelf row)
     };
     // what re-renders while the finger is down (childList only, until the tap ends — off the rest of the time)
     if (typeof MutationObserver !== 'undefined') {

@@ -26,7 +26,7 @@ export function passkeyBlock({ list = [], onChange = null } = {}) {
         catch (e) { toast(e.message || 'COULDN’T REACH THE SERVER', 'err'); }
       },
     }));
-    const add = passkeysOk() ? tubeButton(items.length ? 'ADD ANOTHER PASSKEY' : `ADD ${word} SIGN-IN`, { kind: 'secondary', size: 'sm', block: true, cls: 'pk-add', onClick: onAdd }) : null;
+    const add = passkeysOk() ? tubeButton(items.length ? 'ADD ANOTHER PASSKEY' : `ADD ${word} SIGN-IN`, { kind: 'secondary', size: 'sm', block: true, cls: 'pk-add', attrs: { 'data-gesture': true }, onClick: onAdd }) : null;
     box.replaceChildren(...[
       h('div.pk-h', h('b', `${word} SIGN-IN`), h('span', items.length ? `${items.length} PASSKEY${items.length > 1 ? 'S' : ''}` : 'the fast way in')),
       items.length ? h('div.pk-list', ...rows) : h('p.pk-why', `Save a passkey and a new device brings your card back with ${word === 'PASSKEY' ? 'your fingerprint, face or screen lock' : word} — no key to paste. Your key still works too.`),
@@ -56,7 +56,7 @@ export function passkeySignIn({ onDone = null, onError = null, cls = '' } = {}) 
   if (!passkeysOk()) return null;
   const word = pkWord();
   const label = word === 'PASSKEY' ? 'SIGN IN WITH A PASSKEY' : `SIGN IN WITH ${word}`;
-  const btn = tubeButton(label, { kind: 'secondary', block: true, cls: `pk-signin${cls ? ` ${cls}` : ''}`, onClick: run });
+  const btn = tubeButton(label, { kind: 'secondary', block: true, cls: `pk-signin${cls ? ` ${cls}` : ''}`, attrs: { 'data-gesture': true }, onClick: run });
   btn.prepend(h('i.pk-ic', { 'aria-hidden': 'true', html: FACE }));
   const sub = h('p.pk-sub', word === 'FACE ID' || word === 'TOUCH ID' ? 'If you added it on any of your Apple devices.' : 'With a passkey on this device — or your iPhone: the browser shows a code to scan.');
   async function run() {

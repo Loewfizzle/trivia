@@ -38,7 +38,7 @@ export function tickTurn(el, { now, day, open, next, alive = () => true }) {
 export function endActions(prefix, { onShare, rec = '' } = {}) {
   const next = h(`div.${prefix}-end-next`);
   const recEl = h(`div.${prefix}-end-rec`, { 'aria-live': 'polite' }, rec);
-  const el = h(`div.${prefix}-end-actions`, tubeButton('SHARE', { kind: 'main', block: true, cls: `${prefix}-share`, onClick: () => onShare() }), next, recEl);
+  const el = h(`div.${prefix}-end-actions`, tubeButton('SHARE', { kind: 'main', block: true, cls: `${prefix}-share`, attrs: { 'data-gesture': true }, onClick: () => onShare() }), next, recEl);
   return { el, next, rec: recEl };
 }
 /** the line the record shows only once every try failed */

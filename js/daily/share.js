@@ -189,7 +189,7 @@ export async function showCard({ blob, file = null, line = '', can = false } = {
     const url = URL.createObjectURL(blob);
     const img = h('img.shr-img', { src: url, alt: 'Your share card', draggable: 'false' });
     let busy = false;
-    const again = can ? tubeButton('SHARE', { kind: 'main', block: true, cls: 'shr-go', onClick: async () => {
+    const again = can ? tubeButton('SHARE', { kind: 'main', block: true, cls: 'shr-go', attrs: { 'data-gesture': true }, onClick: async () => {
       if (busy) return; busy = true;
       try { await navigator.share({ files: [file], text: line }); S.close(); } catch { /* closed / refused: the picture stays */ } finally { busy = false; }
     } }) : null;

@@ -247,7 +247,7 @@ export function inviteFriendsBlock({ code, share, here = new Set() }) {
     list,
     h('p.fr-small', 'INVITE sends a notification + waits on their card for 30 min. On an iPhone the notification needs the Home Screen app with notifications allowed.'),
     h('h4.fr-gh', 'ANYONE ELSE'),
-    tubeButton('SHARE INVITE LINK', { kind: 'secondary', block: true, cls: 'fr-share', onClick: share }),
+    tubeButton('SHARE INVITE LINK', { kind: 'secondary', block: true, cls: 'fr-share', attrs: { 'data-gesture': true }, onClick: share }),
   ];
 }
 
