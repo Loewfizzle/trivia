@@ -104,3 +104,9 @@ TABLE untouched. Shot `Downloads\NEON\city-d\night-390x844-skyline.png`.
 ## Left open
 - WebKit can't play Web Audio on this machine (the leave proof is Chromium's).
 - The DROP bar shot is by day (PRISM's crayon); the night skins use the same card CSS (the board's pixels proven identical).
+
+## The final local run (the mini PC, nothing else busy; a fresh `DAILY_TEST=1 serve.mjs --emu` + the emulators)
+unit 1985 / 1985 · /api server.test 62 / 62 · daily-module 22 / 22 · daily-drop 14 / 14 · smoke 8 / 8 · e2e-presence 13 / 13 · e2e-daily 95 / 95 ·
+e2e-taps 30 / 30 · e2e-prism FAST 65 / 65 · wk-press (WebKit) 34 / 34 · harbor groups core, neon, skyline, lobby, sounds, vault 138 / 138 (+ during
+the pass: e2e-drop 55 / 55, audio-leave 22 / 22, audio-hush 9 / 9, scores-memory 5 / 5 a case, prism-skin-snap 60 / 60 IDENTICAL). No rules change.
+The FULL harbor suite runs in the cloud on the tagged push.
