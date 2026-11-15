@@ -22,7 +22,8 @@
 //                         state); radio/clips/{id} the clip itself (base64 — served by GET /api/admin?clip=<id>, cached a minute); both
 //                         pruned after `keep` s (an hour); a lobby's copy at rooms/{CODE}/radio/{id} (kind 'intercom')
 import { cleanHoldem } from '../../js/core/harbor-holdem.js';
-import { cleanJaywalk, dropLiveDay, cleanDropMode } from '../../js/core/harbor-trivision.js';
+import { cleanJaywalk, cleanDropMode } from '../../js/core/harbor-trivision.js';
+import { goLive } from './dailies.js';
 import { ApiError } from './http.js';
 import { ref, val, adminPids, emulated } from './fb.js';
 import { liveRoomsRead } from './rooms-live.js';
@@ -372,7 +373,7 @@ export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
 /** the public part of the radio for GET /api/admin?live=1 (every phone, cached): the CITY's moments (everyone + city), the billboard's
  *  messages, the dial — never who fired them */
 export async function radioPublic(now) {
-  const [Q, b, sc, ics, base, dsw, dsched] = await Promise.all([queue(now), boardList(now), val('city2/showcase'), icList(now), val('city2/billboard'), val('progress/dailies'), val('progress/dlive/drop')]);
+  const [Q, b, sc, ics, base, dropDay] = await Promise.all([queue(now), boardList(now), val('city2/showcase'), icList(now), val('city2/billboard'), goLive('drop', now)]);
   return {
     moments: Q.filter(m => (m.aud === 'everyone' || m.aud === 'city') && m.until > now && m.state !== 'stopped').map(m => publicMoment(m.id, m)),
     stopped: [...Q.filter(m => (m.aud === 'everyone' || m.aud === 'city') && m.state === 'stopped' && m.until > now - 600e3).map(m => m.id),
@@ -383,8 +384,8 @@ export async function radioPublic(now) {
     showcase: SHOWCASE_LEVELS.includes(sc) ? sc : null,
     // CITY FIXES + HOLD'EM — the roof board's BASE POSTER switch (/admin → THE BILLBOARD); null = the timetable's default (ON · NOW OPEN from its `open` day — HOLD'EM IN THE CITY)
     // (THE TRI-VISION: + JAYWALK's switch — the roof board's second face: ON / OFF · COMING SOON / NOW OPEN · its OPEN DAY)
-    // (CITY B — THE DROP's face: its go-live day (the dailies' switch + THE SCHEDULED GO-LIVE) + the owner's mode — the city counts its 14 days)
-    drop: { live: dropLiveDay(!!(dsw && dsw.on === true), dsched), mode: cleanDropMode(base && base.drop && base.drop.mode) },
+    // (CITY B — THE DROP's face: its go-live day — CITY C 0a: "live" exactly as the daily screen reads it, dailies.js#goLive — + the owner's mode — the city counts its 14 days)
+    drop: { live: dropDay, mode: cleanDropMode(base && base.drop && base.drop.mode) },
     base: base && (base.holdem || base.jaywalk) ? { ...(base.holdem ? { holdem: cleanHoldem(base.holdem) } : {}), ...(base.jaywalk ? { jaywalk: cleanJaywalk(base.jaywalk) } : {}) } : null,
   };
 }

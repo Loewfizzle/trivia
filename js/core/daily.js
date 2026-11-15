@@ -49,6 +49,18 @@ export function rowOpenOn(row, sched, day) {
   if (row.on !== false) return true;
   return !!(sched && /^d\d{8}$/.test(String(sched.from || '')) && /^d\d{8}$/.test(String(day || '')) && String(day) >= String(sched.from));
 }
+/** CITY C 0a — a daily's GO-LIVE DAY (PURE — the roof board's DROP face counts its 14 days from it; api/_lib/dailies.js#goLive reads it):
+ *  "live" exactly as the daily screen has it — THE GO-LIVE SWITCH on AND the row in the set (its own on-switch, or THE SCHEDULED GO-LIVE).
+ *  The day: the scheduled day (sched.from — a future one too: the face waits for it, as the daily does) · else, for a switched-on row, the
+ *  day its switch flipped on (onDay) · else its first counted finish (firstDay) · else today. → a day key 'dYYYYMMDD' | null */
+export function goLiveDay({ row, switchOn, sched, onDay, firstDay, today }) {
+  const K = /^d\d{8}$/, ok = d => K.test(String(d || ''));
+  if (!switchOn || !row || !ok(today)) return null;
+  if (sched && ok(sched.from)) return String(sched.from);
+  if (row.on === false) return null;
+  for (const d of [onDay, firstDay]) if (ok(d) && String(d) <= String(today)) return String(d);
+  return String(today);
+}
 /** the next 4 am turn's day key (the day a GO LIVE AT THE NEXT 4 AM opens on) — from any time of today (never today itself) */
 export const nextLiveDay = now => dayOf(dayNum(streakDay(now)) + 1);
 

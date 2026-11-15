@@ -19,8 +19,8 @@
 import { createHmac } from 'node:crypto';
 import { ref, val } from './fb.js';
 import { dailySecret, clearSecretCache } from './daily-secret.js';
-import { registerDaily, unregisterDaily, dailyOf, dailyIds, dailyRows, dailyRow, todaysDailies, addDailyRow, removeDailyRow, rowOpenOn, nextLiveDay } from '../../js/core/daily.js';
-import { streakDay } from '../../js/core/streak.js';
+import { registerDaily, unregisterDaily, dailyOf, dailyIds, dailyRows, dailyRow, todaysDailies, addDailyRow, removeDailyRow, rowOpenOn, nextLiveDay, goLiveDay } from '../../js/core/daily.js';
+import { streakDay, dayNum, dayOf } from '../../js/core/streak.js';
 import { PW_DAILY } from './pw.js';
 import { CC_DAILY } from './cc.js';
 import { DROP_DAILY } from './drop.js';
@@ -72,7 +72,7 @@ export function cleanSched(v) {
 async function readState(now) {
   if (cache && now - cache.at >= 0 && now - cache.at < TTL_MS) return cache;
   const [v, sc] = await Promise.all([val(SWITCH_PATH).catch(() => null), val(SCHED_PATH).catch(() => null)]);
-  cache = { at: now, on: !!(v && v.on === true), sched: cleanSched(sc) };
+  cache = { at: now, on: !!(v && v.on === true), raw: v && typeof v === 'object' ? v : null, sched: cleanSched(sc) };
   return cache;
 }
 export async function dailiesOn(now = Date.now()) { return (await readState(now)).on; }
@@ -95,9 +95,11 @@ export async function scheduleDaily(id, { cancel = false, by = null, now = Date.
   clearSwitchCache();
   return dailiesState(now);
 }
-/** the owner's switch (the caller checks the admin role + audits) → { on, at, by } */
+/** the owner's switch (the caller checks the admin role + audits) → { on, at, by, onAt } — CITY C 0a: `onAt` = when it last flipped OFF → ON
+ *  (a repeated SWITCH ON keeps it — the go-live day a switched-on daily counts from: goLive) */
 export async function setDailiesSwitch(on, by, now = Date.now()) {
-  if (on) await ref(SWITCH_PATH).set({ on: true, at: now, by }); else await ref(SWITCH_PATH).remove();
+  if (on) { const was = await val(SWITCH_PATH).catch(() => null), onAt = was && was.on === true ? Number(was.onAt || was.at) || now : now; await ref(SWITCH_PATH).set({ on: true, at: now, by, onAt }); }
+  else await ref(SWITCH_PATH).remove();
   clearSwitchCache();
   return dailiesState(now);
 }
@@ -112,6 +114,27 @@ export async function dailiesState(now = Date.now()) {
     return { id: r.id, name: r.name, state, always: r.on !== false, ...(sc ? { from: sc.from } : {}) };
   });
   return { on: !!(v && v.on === true), at: (v && v.at) || null, by: (v && v.by) || null, test: testing(), live, today, next: nextLiveDay(now), rows };
+}
+
+/** CITY C 0a — a daily's GO-LIVE DAY for the roof board ('YYYY-MM-DD' | null), "live" exactly as the daily screen reads it
+ *  (core/daily.js#goLiveDay): the switch + the schedule as read (the 30 s cache); a switched-on row with no recorded flip → its first counted
+ *  finish in the last `days` (the n counts — read once a streak day a warm function, only then) or today */
+const FIRST = new Map();
+export async function goLive(id, now = Date.now(), days = 14) {
+  const row = dailyRow(id), st = await readState(now), today = streakDay(now);
+  if (!row || !st.on) return null;
+  const sw = st.raw || {}, onDay = Number(sw.onAt || sw.at) > 0 ? streakDay(Number(sw.onAt || sw.at)) : null;
+  let firstDay = null;
+  if (row.on !== false && !st.sched[id] && !onDay) {
+    const k = `${id}|${today}`;
+    if (!FIRST.has(k)) {
+      const T = dayNum(today), keys = Array.from({ length: days }, (_, i) => dayOf(T - days + 1 + i));
+      FIRST.set(k, Promise.all(keys.map(d => val(`dly/${id}/${d}/n`).catch(() => null))).then(ns => keys.find((d, i) => Number(ns[i]) > 0) || null));
+    }
+    firstDay = await FIRST.get(k);
+  }
+  const d = goLiveDay({ row, switchOn: st.on, sched: st.sched[id] || null, onDay, firstDay, today });
+  return d ? `${d.slice(1, 5)}-${d.slice(5, 7)}-${d.slice(7, 9)}` : null;
 }
 
 /** the emulators' own opener: the OFF rows DAILY_TEST_OFF names (the tests + e2e-drop) — open on every day */

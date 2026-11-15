@@ -1991,10 +1991,11 @@ test('CITY B: THE DROP on the billboard — the go-live day in the feed only whi
   process.env.ADMIN_PIDS = `${owner.pid}`;
   const sw0 = await val('progress/dailies'), sc0 = await val('progress/dlive/drop');
   try {
+    const { clearSwitchCache } = await import('../../api/_lib/dailies.js');   // (CITY C 0a: the feed reads the switch through dailies.js#goLive's 30 s cache)
     await ref('progress/dlive/drop').set({ from: 'd20261201', at: 1, by: owner.pid });
-    await ref('progress/dailies').set({ on: false });
+    await ref('progress/dailies').set({ on: false }); clearSwitchCache();
     assert.deepEqual((await cityLiveNow()).radio.drop, { live: null, mode: 'on' }, 'the dailies off: THE DROP is not live');
-    await ref('progress/dailies').set({ on: true });
+    await ref('progress/dailies').set({ on: true }); clearSwitchCache();
     assert.deepEqual((await cityLiveNow()).radio.drop, { live: '2026-12-01', mode: 'on' }, 'its go-live day');
     await adminAction('u-dr-own', { action: 'billboardJaywalk', on: true, bar: 'open', open: '' });
     let st = (await adminAction('u-dr-own', { action: 'billboardDrop', mode: 'keep' })).drop;
@@ -2007,10 +2008,18 @@ test('CITY B: THE DROP on the billboard — the go-live day in the feed only whi
     const S = await adminAction('u-dr-own', { action: 'billboardState' });
     assert.deepEqual([S.drop.mode, S.drop.live, S.drop.days, S.jaywalk.bar], ['off', '2026-12-01', 14, 'open']);
     assert.ok(Object.values((await val('audit')) || {}).filter(a => a.act === 'billboardDrop').length >= 3, 'every switch audited');
+    // CITY C 0a — THE SWITCH ON + NO SCHEDULE: a row in the set by its own on-switch shows from the day the switch flipped on
+    await ref('progress/dlive/drop').remove();
+    await ref('progress/dailies').set({ on: true, at: Date.UTC(2026, 10, 14, 18), onAt: Date.UTC(2026, 10, 14, 18) }); clearSwitchCache();
+    assert.equal((await cityLiveNow()).radio.drop.live, null, 'THE DROP OFF in the list + no schedule: no face');
+    const dropRow = (await import('../../js/config.js')).DAILIES.find(r => r.id === 'drop'), was = dropRow.on;
+    try { dropRow.on = true; clearSwitchCache(); assert.equal((await cityLiveNow()).radio.drop.live, '2026-11-14', 'switched on + no schedule → the face from its flip day'); }
+    finally { dropRow.on = was; clearSwitchCache(); }
     await assert.rejects(adminAction('u-dr-x', { action: 'billboardDrop', mode: 'off' }), 'a non-admin is refused');
   } finally {
     process.env.ADMIN_PIDS = ''; await ref('city2/billboard').remove();
     await ref('progress/dailies').set(sw0 || null); await ref('progress/dlive/drop').set(sc0 || null);
+    (await import('../../api/_lib/dailies.js')).clearSwitchCache();
   }
 });
 

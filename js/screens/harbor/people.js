@@ -103,14 +103,18 @@ export function createPeople() {
     return out.slice(0, 8).join('; ');
   };
   const mapSigOf = m => { try { return JSON.stringify(m, (k, v) => (typeof v === 'number' ? Math.round(v * 1000) / 1000 : v)); } catch { return String(Math.random()); } };
+  // (CITY C 0c: the detours round the solids a frame may re-route before the rest wait their turn — core/harbor-people.js#aroundSolids)
+  const SOLIDS_BUDGET = { ms: 20, now: () => performance.now() };
   // SPEED PASS B — A2 (1): the staged first plan (see frame): one block of folkWarmSteps(t) per task, in order; true once all are cached
-  let staging = true, stageBusy = false, stageN = 0;
+  // (CITY C 0c: + the whole first moment in a task of its own once the blocks are in — the crew's day, the detours — so the first frame after
+  //  the reveal never carries it: a 650 ms frame at 4× CPU on the Chromebook)
+  let staging = true, stageBusy = false, stageN = 0, stageWhole = false;
   function staged(t, ctx) {
     const left = folkWarmSteps(t).filter(([w, k]) => !cache.has(`${w}|${k}`));
-    if (!left.length) { staging = false; return true; }
+    if (!left.length && stageWhole) { staging = false; return true; }
     if (!stageBusy) {
       stageBusy = true; const Mw = M, step = left[0];
-      setTimeout(() => { stageBusy = false; if (!L || M !== Mw) return; try { folkAt(t, { L, M, ctx, warm: step }, cache); stageN++; } catch { staging = false; } }, 0);
+      setTimeout(() => { stageBusy = false; if (!L || M !== Mw) return; try { if (step) folkAt(t, { L, M, ctx, warm: step }, cache); else { folkAt(t, { L, M, ctx }, cache); stageWhole = true; } stageN++; } catch { staging = false; } }, 0);
     }
     return false;
   }
@@ -118,7 +122,7 @@ export function createPeople() {
   //  The plan is in world units on the walking map: a re-layout whose map comes out the SAME (mapSig) keeps every visit — re-projected by
   //  the new camera, never re-planned; a changed map (a wider screen moves the edges people enter from) plans again, as it must. The staged
   //  first plan (A2) is for the FIRST plan only — a later re-layout never blanks the promenade for a frame (THE PEOPLE RULE))
-  function layout(l) { L = l; mapKey = ''; if (!lived) staging = true; solidsHP = undefined; roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; backLight = L ? crossLightOf(L) : () => 0; }
+  function layout(l) { L = l; mapKey = ''; if (!lived) { staging = true; stageWhole = false; } solidsHP = undefined; roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; backLight = L ? crossLightOf(L) : () => 0; }
   function ensureMap(event, ring = false) {
     const key = `${event ? 1 : 0}${ring ? 1 : 0}|${lineN}|${roomOn ? 'room' : ''}`;
     if (key === mapKey && M) return;
@@ -163,7 +167,7 @@ export function createPeople() {
     ensureMap(!!f.event, !!f.ring);
     const hf = hforceOf(f);
     const fk = `${f.forceCircle ? 1 : 0}${f.partyForced ? 1 : 0}${f.noStreetParty ? 1 : 0}${f.danceKind || ''}|${f.forceCircleAt == null ? '' : Math.round(f.forceCircleAt)}|${f.forceJog ? 1 : 0}${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.forceWorkAt == null ? '' : Math.round(f.forceWorkAt)}|${f.noWork ? 1 : 0}|${f.forceBusAt == null ? '' : Math.round(f.forceBusAt)}|${f.forceDanceAt == null ? '' : Math.round(f.forceDanceAt)}|${f.forceStandAt == null ? '' : Math.round(f.forceStandAt)}|${f.forceBenchAt == null ? '' : Math.round(f.forceBenchAt)}|${f.forceDogAt == null ? '' : Math.round(f.forceDogAt)}|${JSON.stringify(hf)}`; if (fk !== forced) { forced = fk; cache.clear(); }
-    const t = f.ms / 1000, ctx = { snowWork: f.snowWork || null, off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, blizzard: f.blizzard || 0, fog: f.fog || 0, budget, party: f.party || null, rush: f.rush || null, shopOpen: f.shopOpen || null, forceJog: !!f.forceJog, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, deck: f.deck || null, forceStandAt: f.forceStandAt == null ? null : f.forceStandAt, forceBenchAt: f.forceBenchAt == null ? null : f.forceBenchAt, forceDogAt: f.forceDogAt == null ? null : f.forceDogAt, noDance: !!f.noDance, event: !!f.event, ring: !!f.ring, lobby: lineN,
+    const t = f.ms / 1000, ctx = { solidsBudget: SOLIDS_BUDGET, snowWork: f.snowWork || null, off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, blizzard: f.blizzard || 0, fog: f.fog || 0, budget, party: f.party || null, rush: f.rush || null, shopOpen: f.shopOpen || null, forceJog: !!f.forceJog, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, deck: f.deck || null, forceStandAt: f.forceStandAt == null ? null : f.forceStandAt, forceBenchAt: f.forceBenchAt == null ? null : f.forceBenchAt, forceDogAt: f.forceDogAt == null ? null : f.forceDogAt, noDance: !!f.noDance, event: !!f.event, ring: !!f.ring, lobby: lineN,
       // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
       forceWork: f.forceWork || null, forceWorkAt: f.forceWorkAt == null ? null : f.forceWorkAt, hot: f.hot || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
       // 8b2 — THE RAID's plan (core/harbor-raid.js): its patrol cars on the road, its officer, the crowd's reaction
@@ -252,8 +256,21 @@ export function createPeople() {
   function warm(t, ctx) {
     if (warmBusy || t - warmAt < 5) return;
     warmAt = t; warmBusy = true;
-    const Mw = M, run = () => { warmBusy = false; if (!L || M !== Mw) return; try { folkAt(t + 70, { L, M, ctx }, cache); roofAt(t + 70, L, ctx, roofCache); } catch { /* the frame will */ } };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 2500 }); else setTimeout(run, 300);
+    // (CITY C 0c — THE CHROMEBOOK's 1.1 s FRAME: the warm planned the whole window 70 s ahead in ONE idle task (~1.1 s of routing at 4× CPU —
+    //  a frame blocked behind it). Now ONE block of folkWarmSteps per task, as the first plan stages (staged()); then the whole moment (its
+    //  detours round the solids — the blocks already in) in a task of its own; the roofs last)
+    const Mw = M, T = t + 70, idle = f => (typeof requestIdleCallback === 'function' ? requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 300));
+    let phase = 0;
+    const run = () => {
+      if (!L || M !== Mw) { warmBusy = false; return; }
+      try {
+        if (phase === 0) { const left = folkWarmSteps(T).filter(([w, k]) => !cache.has(`${w}|${k}`)); if (left.length) { folkAt(T, { L, M, ctx, warm: left[0] }, cache); idle(run); return; } phase = 1; }
+        if (phase === 1) { folkAt(T, { L, M, ctx }, cache); phase = 2; idle(run); return; }
+        roofAt(T, L, ctx, roofCache);
+      } catch { /* the frame will */ }
+      warmBusy = false;
+    };
+    idle(run);
   }
   // the lamps' light where a figure stands (stage.js's pools, live by the lamps' ramp) + the side the strongest one is on
   function lights(dark) {

@@ -29,6 +29,7 @@ import { closeAll } from '../ui/layers.js';
 import { startShow, fileInOrder, backShow, voteState, GO_DEAD_MS, goWaiting } from '../core/room-show.js';
 import { createRoomBanner } from './room-banner.js';
 import { lazyImport } from '../ui/lazy-import.js';
+import { holdCity } from '../ui/city-hold.js';
 
 const rgbOf = id => { const x = colorHex(id).replace('#', ''); return [0, 2, 4].map(i => parseInt(x.slice(i, i + 2), 16)); };
 export const FRESH_MS = 12000;      // (a player who joined in the last 12 s walks in, even on a phone seeing the room for the first time)
@@ -218,7 +219,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     seen = new Set(Object.keys(players())); saveSeen(); paintDock();
     if (guestsUi) return;
     guestsUi = { pending: true };
-    lazyImport(import('./room-guests.js'), './room-guests.js').then(m => m.openGuestList({ get st() { return st; }, openCard: openPlayerCard, onClose: () => { guestsUi = null; } })).then(g => { if (destroyed) { g.close(); return; } guestsUi = g; }).catch(e => { guestsUi = null; console.warn('guests', e); });
+    // (CITY C 0d: the city HOLDS at the tap — its ~200 ms frames at 4× CPU stop before the list's modules load; the list takes the hold over)
+    const hold = holdCity();
+    lazyImport(import('./room-guests.js'), './room-guests.js').then(m => m.openGuestList({ get st() { return st; }, hold, openCard: openPlayerCard, onClose: () => { guestsUi = null; } }), e => { hold(); throw e; }).then(g => { if (destroyed) { g.close(); return; } guestsUi = g; }).catch(e => { guestsUi = null; console.warn('guests', e); });
   }
 
   // ---------------------------------------------------------------- a player's card (a tap on their figure or their strip)

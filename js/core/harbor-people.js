@@ -839,9 +839,13 @@ function outOf(p, S, circles = [], base = []) {
   }
   return p;
 }
-export function aroundSolids(vis, S0, key = '', circles = [], base = []) {
+export function aroundSolids(vis, S0, key = '', circles = [], base = [], budget = null) {
   if (!vis || !vis.legs || !S0 || !S0.length) return vis;
   let seen = SOLID_SEEN.get(vis); if (seen && seen.key === key) return seen.out;
+  // (CITY C 0c — THE CHROMEBOOK's 1.1 s FRAME: a changed solids key re-routed EVERY walker in one frame (~0.5 s at 4× CPU). With a frame
+  //  budget (folkAt's): past it, a walker keeps the detour it had (or its plain walk, the first time a set of solids appears — the party's
+  //  pockets) for a frame or two until its turn; nothing is cached for it, so the next frame routes it)
+  if (budget && budget.now() > budget.until) return seen ? seen.out : vis;
   // (the ones it USES still shape a detour round another piece — the route map has them all; route() lets a walk end inside its own seat)
   const SV = S0.filter(q => !usesSolid(vis, q)), UV = S0.filter(q => !SV.includes(q)).map(q => ({ ...q, x0: q.x0 + 0.4, x1: q.x1 - 0.4, z0: q.z0 + 0.4, z1: q.z1 - 0.4 }));   // (unpadded: its seat just in front stays outside it)
   if (!SV.length) { SOLID_SEEN.set(vis, { key, out: vis }); return vis; }
@@ -1122,7 +1126,7 @@ export function folkAt(t, world, cache = new Map()) {
     // (+ the walkers' own map's furniture — the building, the benches, the door's leaf: a detour round one piece never cuts through another)
     const baseRects = get('SB', () => M.rects.filter(r => !/^(road|curb-)/.test(r.id)));
     // (the conga's line keeps ONE path — planned round the pockets + the solids already: solidsOk)
-    if (S.length) { const sk = `${ctx.solidsKey || ''}|${cartS.length ? solidsKeyOf(cartS) : ''}|${spS.length ? get(`SPK|${spS.map(q => q.id).join(',')}`, () => solidsKeyOf(spS)) : ''}|${circ.length}`; all = all.map(v => (v.solidsOk ? v : aroundSolids(v, S, sk, circ, baseRects))); } }
+    if (S.length) { const sk = `${ctx.solidsKey || ''}|${cartS.length ? solidsKeyOf(cartS) : ''}|${spS.length ? get(`SPK|${spS.map(q => q.id).join(',')}`, () => solidsKeyOf(spS)) : ''}|${circ.length}`; const bud = ctx.solidsBudget ? { until: ctx.solidsBudget.now() + ctx.solidsBudget.ms, now: ctx.solidsBudget.now } : null; all = all.map(v => (v.solidsOk ? v : aroundSolids(v, S, sk, circ, baseRects, bud))); } }   // (CITY C 0c: ctx.solidsBudget { ms, now } — the phone's frame budget; none = all at once, as the tests + the server)
   const solidsNow = [...(ctx.solids || []), ...cartS.filter(q => t >= q.t0 && t < q.t1)];
   const members = [];
   // (11a-1: on Halloween night the speakeasy's own guests come in costume — its costume party: the side door's pairs, THE LINE)

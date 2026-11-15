@@ -54,14 +54,14 @@
 //                                    (the plan, nothing written); confirm: true = a new daily secret from the NEXT 4 am (today + the past + every
 //                                    result untouched; a second run says "already reseeded"); audited (dailyReseed). Owner only (the admin gate)
 import { cleanHoldem } from '../js/core/harbor-holdem.js';
-import { cleanJaywalk, cleanDropMode, dropLiveDay } from '../js/core/harbor-trivision.js';
+import { cleanJaywalk, cleanDropMode } from '../js/core/harbor-trivision.js';
 import { knob as schedKnob } from '../js/core/harbor-schedule.js';
 /** CITY FIXES + HOLD'EM: the switch as /admin shows it (the timetable's default when never set) */
 const holdemPublic = v => { const D = schedKnob('billboard.holdem'), c = cleanHoldem(v && v.holdem); return c ? { on: c.on, bar: c.bar, since: c.since || D.since, set: true } : { on: D.on !== false, bar: D.bar || 'soon', since: D.since, set: false }; };
 /** THE TRI-VISION: JAYWALK's switch as /admin shows it (the timetable's default when never set: ON, COMING SOON, no open day) */
 const jaywalkPublic = v => { const D = schedKnob('billboard.jaywalk'), c = cleanJaywalk(v && v.jaywalk); return c ? { on: c.on, bar: c.bar, open: c.open, since: c.since || D.since, set: true } : { on: D.on !== false, bar: 'soon', open: D.open || null, since: D.since, set: false }; };
 import { displayOf } from './_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
-import { dailiesState, setDailiesSwitch, forgetPicks, openDailies, scheduleDaily } from './_lib/dailies.js';
+import { dailiesState, setDailiesSwitch, forgetPicks, openDailies, scheduleDaily, goLive } from './_lib/dailies.js';
 import { countsOn } from './daily.js';
 import { relOf as friendRel } from '../js/core/friends.js';
 import { dailyRow } from '../js/core/daily.js';
@@ -370,7 +370,7 @@ export async function adminAction(uid, body, now = Date.now()) {
     // DM1 — THE GO-LIVE SWITCH (owner only — the admin gate above): OFF until THE SWITCH-OVER; every flip audited
     // CITY FIXES + HOLD'EM — THE BILLBOARD: the roof board's BASE POSTER (HOLD'EM on / off, COMING SOON / NOW OPEN) → city2/billboard (every
     // phone through the cached GET ?live=1 → radioPublic.base); turning it ON starts it from TODAY (Eastern) — the billposter pastes it at ~5 pm
-    case 'billboardState': { const [v, dsw, ds] = await Promise.all([val('city2/billboard'), val('progress/dailies'), val('progress/dlive/drop')]); return { billboard: holdemPublic(v), jaywalk: jaywalkPublic(v), drop: { mode: cleanDropMode(v && v.drop && v.drop.mode), live: dropLiveDay(!!(dsw && dsw.on === true), ds), days: schedKnob('billboard.drop').days } }; }
+    case 'billboardState': { const [v, live] = await Promise.all([val('city2/billboard'), goLive('drop', now)]); return { billboard: holdemPublic(v), jaywalk: jaywalkPublic(v), drop: { mode: cleanDropMode(v && v.drop && v.drop.mode), live, days: schedKnob('billboard.drop').days } }; }
     // CITY B — THE DROP's face (the roof board's third): ON = 14 days from THE DROP's go-live day, then it retires by itself · OFF · KEEP ON
     // (never retires) → city2/billboard.drop (every phone through the cached feed)
     case 'billboardDrop': {

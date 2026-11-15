@@ -76,6 +76,9 @@ export const TIERS = Object.freeze({
   // owner: "never buy speed with quality"); fxDpr stays the 2D fallback's
   fxDprGl: Object.freeze([15, 20, 30]),
   fxParticles: Object.freeze([45, 70, 100]),
+  // CITY C 0c — THE ONE-STALL RULE (a Chromebook's party night stalled twice): a frame this long (ms) in the city's first moments (to 15 s
+  // after the reveal) steps the tier down AT ONCE and the phone remembers it (scene.js#stallStep — `na:tier`, 14 days) — never stalls twice
+  stallStepMs: Object.freeze([1000, 1000, 1000]),
 });
 
 /** DESKTOP — a full-screen canvas's pixel ratio under THE PIXEL BUDGET: the wanted ratio, capped so W × H × r² ≤ sceneMp megapixels */

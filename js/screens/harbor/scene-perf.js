@@ -146,5 +146,5 @@ export function createScenePerf(C) {
   }
   function stepTo(t, d, why) { const was = `${C.tier}/${C.dprTier}`, rb = d !== C.dprTier; C.tier = t; C.dprTier = d; applyFx(); C.LOADLOG.add('tier', `${was} → ${C.tier}/${C.dprTier} (${why})`, { applied: true }); tierNote('to', `${was} → ${C.tier}/${C.dprTier} (${why})`); histPush(); if (rb) C.build('a tier step'); }
   function setTier(t) { C.manualTier = true; stepTier(t); }
-  return { LOAD_SKIP, TIER_GRACE, UP_RETRY, heavyNow, perf, sess, setTier, stepTier, tenMinSlow, tierHist, tierLog };
+  return { LOAD_SKIP, TIER_GRACE, UP_RETRY, heavyNow, perf, sess, setTier, stepDown, stepTier, tenMinSlow, tierHist, tierLog };
 }

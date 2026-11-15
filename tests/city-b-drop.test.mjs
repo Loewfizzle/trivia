@@ -63,7 +63,7 @@ test('CITY B: &force=billboard-drop = THE DROP live from the day it names (this 
 
 test('CITY B: NO NEW POLL — THE DROP rides the cached GET ?live=1 (radioPublic), the phone reads it where it reads JAYWALK’s switch', () => {
   const radio = readFileSync(new URL('../api/_lib/radio.js', import.meta.url), 'utf8'), remote = readFileSync(new URL('../js/screens/harbor/remote.js', import.meta.url), 'utf8');
-  assert.match(radio, /drop: \{ live: dropLiveDay\(/);
+  assert.match(radio, /drop: \{ live: dropDay, mode:/);   // (CITY C 0a: the go-live day from dailies.js#goLive)
   assert.match(remote, /setJaywalk\(r\.base && r\.base\.jaywalk\);[^\n]*\n\s*setDrop\(r\.drop\);/);
   const admin = readFileSync(new URL('../api/admin.js', import.meta.url), 'utf8');
   assert.match(admin, /case 'billboardDrop':/);

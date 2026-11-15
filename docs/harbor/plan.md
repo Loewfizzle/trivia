@@ -6734,3 +6734,13 @@ OWNER'S NOTES — NOV 14 (the CITY A prompt)
 - THE GIRL CARDS (after JAYWALK): PINK RIOT LV 22 · GARDEN PARTY LV 48 (replaces MIDNIGHT ROSES; its slim card framed on the bouquet) ·
   THE VANITY LV 66 — epic, purple gem; Grok's art in Downloads\grok\girl-cards\.
 ```
+
+## OWNER'S NOTES — NOV 15 (CITY C's Step 0)
+
+```
+OWNER'S NOTES — NOV 15 (the CITY C prompt)
+- JAYWALK on every neon sign now (as if released); OVERCLOCK = OVER / CLOCK and JAYWALK = JAY / WALK stacked on every sign; no named sign
+  is ever dark.
+- og.jpg = CITY B's candidate 2 + a readable NEON SPEAKEASY title (the app's display font, a dark backing glow — not the city's tubes).
+- STATS lives in an owner-only ☰ sheet; the radio stays LIVE only (its THIS WEEK block moves to STATS).
+```
