@@ -801,3 +801,13 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   = `max(z%, 64 × 1280 / h × z px) auto` (fx/gift.js#artMap's own scale — BUZZED); a picture that is an effect LAYER = a transparent baked still over
   the page (stills kind `o` + a hand rule — GOLDEN HOUR); baked strip stills sit at the hero's centre across. Check: `node tests/integration/strip-match.mjs
   "<chromium>" --still --size 330` (and 402).
+
+## CITY D (Nov 15) — THE LIVE LANE (the memory kills on SCORES + CUSTOMIZE) — passes/city-d.md
+- Every slim-card LIST goes through `ui/strip-board.js#stripKit().liveList(list)` (`js/ui/live-lane.js` — the surface API: add / remove / destroy):
+  its strips show their BAKED STILLS (`vault/stills.js`; a CSS card its own art); at most **3** strips ON SCREEN (≥ half in view) run live, PAGE-WIDE
+  (topmost first; `opts.prio` — the guest list's joiner), each on its OWN small 2D canvas (`createSurface(el, { gpu: false })` — never a GPU context),
+  one started a frame ~200 ms after the screen settles; a strip leaving the screen stops + frees its canvas at once; reduced motion = no live strip.
+  Never `createSurface` over a list again (`tests/live-lane.test.mjs`). WHO'S ON, STATS and the radio's lists stay plain stills.
+- CUSTOMIZE YOUR CARD (`vault/dress.js`): the grid's tiles = stills (no canvas in the grid); the pinned strip is the one live card; the profile
+  behind it is held (`fxCover`). The proof: `tests/integration/scores-memory.mjs` (docs/testing.md).
+- The owner's slim card reads **LV n** like everyone's (was DEV); ✦ PROPRIETOR ✦ lives on the full card only; the dev gem stays.

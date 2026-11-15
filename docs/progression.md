@@ -730,3 +730,13 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   /admin → THE DAILIES' STATS + TODAY'S PLAYERS (ADD FRIEND = the existing `friendButton`) + BACK TO THE CITY; SCORES: YOUR FRAME on the strip's own box,
   the foot hint once, a table of one = the card alone; THE FADE ON LEAVING in the SHARED audio engine (ONE MASTER gain — a ramp on the audio clock, THEN
   the suspend; back = resume + a ramp up; docs/audio.md) — never suspend a context hard again.
+
+## CITY D (Nov 15) — SCORES SHOWS INSTANTLY — passes/city-d.md
+- The daily screen keeps the LAST scores it saw today (`ns:dy:scores` — this player's: EVERYONE today, the ALL TIME boards, YOUR TABLE's averages +
+  the day's own list) and paints them AT ONCE, marked UPDATING (`.dy-upd` — never blank, never a spinner); each fresh answer (asked once a visit)
+  replaces them in place once any finger is up (`repaint` = afterTap; `rev` in the paint's signature).
+- The server: THE DAY'S CLOSE (`daily-close.js#closeDays` — every (daily, day) its own claim), the sweep + the prune run SIDE BY SIDE; `today` reads a
+  daily's result + start + NOT COUNTED in one trip, a finished run's pieces side by side, the friends list beside them; `every` asks its pid + the
+  faces module while the switch is read. Timing tools: `scores-timing.mjs` (RTT_MS) + `scores-open.mjs` (docs/testing.md).
+- STATS → THE DAILIES (the owner's sheet): WHO played each daily — TODAY · THIS WEEK — from `dly/{g}/{day}/s · r · x` (`api/admin.js#dailyWho`, inside
+  the 5-min snapshot `progress/statsSnap` v 2; faces by index, no pid).

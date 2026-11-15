@@ -872,3 +872,14 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - Previews: `fullcard-preview.html` (the real full cards: `?cards=…&fd=1&no=…&glow=…&gilded=1&strip=1` · `?strips=all` = THE STRIP MATCH's page) ·
   `stats-preview.html` (the ☰ STATS sheet on sample numbers).
 - `scripts/build-og.mjs <in.jpg> <out.jpg>` — the link preview's title composite (+ the 300-px check copy).
+
+## CITY D (Nov 15) — the new tools — passes/city-d.md
+- `tests/integration/scores-memory.mjs "<browser>" [--case scores|customize|all] [--rounds 5]` — the memory proof at 390 @3, 4× CPU: GL contexts,
+  canvas pixels, live effects (≤ 3), the browser's working set, a reload marker (any local server; the previews `daily-preview &many=1`,
+  `profile-preview &all=1&dev=1`).
+- `tests/integration/audio-leave.mjs "<chromium>"` — the leave in three audio settings: the output silent at the suspend (WebKit on Windows has no
+  Web Audio).
+- `tests/integration/scores-timing.mjs` (RTT_MS=40) — /api/daily `every` + `today` cold / warm; `scores-open.mjs "<browser>" --base … --visit 1|2|both
+  [--profile dir]` — SCORES in the real app at 150-ms latency against a cold `serve.mjs`.
+- `e2e-presence.mjs`: the refresh case runs on the first SKILL challenge (DUMB LUCK never ends early — the cloud flake); `SLOW=<rate>` throttles every
+  phone's CPU. `wk-press.mjs` + SAVE YOUR KEY (share / copy inside the touch). The daily screen's part of wk-press needs a `DAILY_TEST=1` server.

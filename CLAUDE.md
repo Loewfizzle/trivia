@@ -115,7 +115,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE STALE-MODULE RULE (FR7 FIXES C2): a LAZY chunk never imports a boot-graph module for a NEW export — it reads a hub that module registers (NOW PLAYING → `globalThis.__nsNowPlaying`); a face that fails to load says TAP TO RETRY + reports it → docs/audio.md.
 - A SCREEN ON TOP OF THE CITY OWNS THE TOUCH: the city answers a touch only through `title-taps.js#covered` (`ui/layers.js#cityCovered` — a layer open · the city held · a touch begun off the city: `touchInCity` = the root, its ancestors, the scene's wrap); never a per-screen class list → docs/title.md.
 - THE TAP WATCH (`js/ui/tapwatch.js`, always on): never re-render a control under a finger; every `:hover` behind `@media (hover: hover)` → docs/title.md (moved).
-- EVERY TAP ACTS (CITY A): a control acts on its own press + lift — `data-press` (+ every `.btn-block`, every `.btn` in `[data-press-all]`); a control needing Safari's own gesture (share, passkey, clipboard, a submit) = `data-gesture` → docs/title.md.
+- EVERY TAP ACTS (CITY A): a control acts on its own press + lift — `data-press` (+ every `.btn-block`, every `.btn` in `[data-press-all]`); a control needing Safari's own gesture (share, passkey, clipboard, a submit) = `data-gesture` — it acts INSIDE the touch's lift, never rescued (CITY D) → docs/title.md.
 - COLOUR-BLIND: right / close = `--good` / `--close` only, NEVER by colour alone (a shape / mark too); `body[data-cb]` → docs/title.md (moved).
 - EVERYONE TIED = a DRAW for every game (`core/night.js#nightPoints`); every corner button's tap area 44 × 44 (harbor `tapfit`).
 
@@ -134,6 +134,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE ADD-ME LINK + STATS (CITY C): a friend link = a server-made `flink/` code, never a pid; STATS = ONE builder (`js/admin/stats-view.js`) + ONE cached snapshot (`progress/statsSnap`) → docs/profiles.md.
 - FRIENDS: `pfr/{pid}` server-written, its owner reads it (`core/friends.js#friendStep`); PASSKEYS (`api/_lib/passkeys.js`, the RESTORE KEY stays the fallback) → docs/profiles.md (moved).
 - SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS — only through `ui/strip-board.js` (never a second strip system); every place 1 / 2 / 3 = THE DECO MEDALS (`ui/medal.js`).
+- THE LIVE LANE (CITY D): every slim-card LIST = baked STILLS; ≤ 3 on-screen strips live page-wide, each its own small 2D canvas (`K.liveList` — never a surface over a list); CUSTOMIZE's grid = stills → docs/vault.md.
 
 **THE VAULT** (→ docs/vault.md (moved))
 - EMBLEMS + GLOWS MOVE ON THE COMPOSITOR (`js/vault/emblem-art.js` — never a CSS animation on an SVG element); THE PROMINENCE RULE is the budget.
@@ -168,7 +169,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
 - NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).
-- THE QUIET COUNTS (CITY A): expected noise is COUNTED, never a row — `errlog.js#countQuiet` → `/api/log` → `logstats/{kind}` (old · gone · ext), one line in /admin's errors.
+- THE QUIET COUNTS (CITY A): expected noise is COUNTED, never a row — `errlog.js#countQuiet` → `/api/log` → `logstats/{kind}` (old · gone · ext), one line in /admin's errors. A page iOS killed reports itself at the next load (`errlog.js#markScreen` → kind `killed`).
 - THE RULES-LAG: every write through `firebase.js#write`; a rules change fails `tests/rules-live.test.mjs` until its ack names it, and the pass
   summary's FIRST line says RE-PUBLISH + how; a feature on a new rule keeps a fallback that works on the old one.
 - THE EDGE CACHE is live (one copy per deploy); THE FROZEN SONGS OUT OF DEPLOYS (`.vercelignore`); pass screenshots stay out of git (`tests/repo-growth.test.mjs`).
@@ -236,7 +237,7 @@ Rules of thumb: a player writes only under their own uid; anything secret lives 
 ## Audio (the short version; everything else in `docs/audio.md`)
 - MOOD MUSIC (`audio/mood.js`); City 2.0's stations play on the server clock — every phone the same song (`audio/party-music.js#stationOf`).
 - `playMusic(id, fallback)` driven by `app.js` from state; `sfx(name)` for the shared effects; a game's own palette in its `createSfx()`.
-- THE IDLE CUTOFF (`audio/idle.js`) — never during a match. MUTED (or music + effects off) = NOTHING RUNS (the context suspended, every element paused); ONLY the master reaches `ctx.destination` (`tests/audio-hush.test.mjs`). Audio is unlocked by a gesture (iOS); the engine retries on every tap.
+- THE IDLE CUTOFF (`audio/idle.js`) — never during a match. LEAVING (a touch blur · pagehide · hidden · freeze): the master to 0 AT ONCE + every loop a bed (`engine.js#holdBed`) stopped, then the suspend (CITY D). MUTED (or music + effects off) = NOTHING RUNS (the context suspended, every element paused); ONLY the master reaches `ctx.destination` (`tests/audio-hush.test.mjs`). Audio is unlocked by a gesture (iOS); the engine retries on every tap.
 - New songs: `scripts/add-city2-music.py` (City 2.0) — bump `music.js#REV` when replacing a file; never change a song element's playbackRate.
 
 ## Design system (the full text: docs/title.md (moved) + "THE SHELL")

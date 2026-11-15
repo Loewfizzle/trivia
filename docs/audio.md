@@ -1849,3 +1849,13 @@ its gesture the context resumes, the elements are activated again, the master ra
 `ctx.destination`** — THE PROBE's silent tap, the beat's + PRISM DROP's analysers and the unlock blip ride it (`tests/audio-hush.test.mjs`
 sweeps the code; `tests/integration/audio-hush.mjs` records the graph from the first line). MUSIC OFF with the effects on keeps the context
 for the effects (the city's beds). /audio is kept BY VERSION in the worker (`na-audio-v1`) — docs/harbor.md "THE CARRY".
+
+## CITY D (Nov 15) — THE LEAVING SQUEAL WITH EFFECTS ON — passes/city-d.md
+- On the EARLIEST leave signal — a touch phone's `blur` · `pagehide` · `visibilitychange` hidden · `freeze` — the master goes to **0 at once**
+  (`setValueAtTime`, no ramp — `engine.js#fadeOut` / `silence`), every BED / LOOP stops (`engine.js#holdBed({ pause, resume })` — the neon hum,
+  OVERCLOCK's loop; a lazy chunk reaches it through `globalThis.__nsAudioBeds`), music.js pauses its voices 30 ms later, the context suspends at ~60 ms.
+  Back on screen: resume → the master ramps up from 0 + the beds' `resume()`. A blur that stays visible (the share sheet) comes back after ~400 ms
+  (`BLUR_BACK_MS`); a desktop's blur (no coarse pointer) is not a leave. Every `.loop = true` in the shipped code must be a bed
+  (`tests/audio-hush.test.mjs`). The city's long one-shot takes + the synced song stay scheduled under the zero master (their place on the clock).
+- The proof: `tests/integration/audio-leave.mjs` (Chromium — Playwright's WebKit on Windows has no Web Audio): three settings, the output's peak 0 at
+  the suspend, no loop, no element playing.

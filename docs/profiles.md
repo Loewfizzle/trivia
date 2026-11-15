@@ -643,3 +643,11 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   `js/admin/stats-view.js` (ONE builder — /admin's blocks live there; css/admin.css loaded with the sheet).
 - **/admin → Founder window** (the very bottom, folded): `founderState` → OPEN / CLOSED + since when (`progress/founder` `{ open, at, by }` — a reopen
   records its time now) + the founders; the switch = `radioFounder`.
+
+## CITY D (Nov 15) — STATS on the phone + WHO played the dailies — passes/city-d.md
+- The ☰ STATS sheet's lists: `.st-players` / `.st-who` (never the header's `.st-top`), built once the list HAS a width (a ResizeObserver), stills one a
+  frame through `ui/strip-board.js`, each card full width with its count / result on its own line under it; NEON-UNDERLINE tabs (no pill, no gold).
+- STATS → THE DAILIES: TODAY · THIS WEEK per daily — the players (newest first) with their result / NOT DONE YET / DIDN'T FINISH + NOT COUNTED, +N MORE
+  past 10 (`api/admin.js#dailyWho` — `dly/{g}/{day}/s · r · x`, faces by index). /api: server.test.mjs "CITY D: STATS → THE DAILIES".
+- A page iOS killed reports itself at the next load: `phonelog` kind `killed` ("PAGE KILLED (likely memory) · screen · device · build") — /admin
+  groups it as PAGE KILLED.

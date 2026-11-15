@@ -808,3 +808,9 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   the sender's attack in the victim's queue (`creditedBy`, 20 s); the award flags only from plausible numbers (`prismExtra` — `pn` in the
   results); SCORE RUSH's bound = the SIM's (`scripts/sim-prism-rush.mjs` — re-run it after a scoring change); by day the tiers step 3 → 0
   (`tiers.js#stepTier`); the ghost rows = the first 12 to land.
+
+## CITY D (Nov 15) — THE DROP's END CARD SHRINKS — passes/city-d.md
+A SCORED end card holds `BAR_MS` (1.5 s — `games/drop/view.js`), then becomes a slim STRAIGHT-EDGED bar (3 px corners) at the board's foot —
+THE DROP · 2:10.7 · SHARE (`.dr-card.is-bar`: the lines + SCORED hidden) — so the finished board shows and SHARE stays one tap away; a tap outside the
+card shrinks it at once, a tap on the bar (not SHARE) opens the card again; ‹ stays the way back. It slides up by transform + opacity (reduced motion:
+none). `__drop.bar()` for the tests (e2e-drop). The board's own pixels unchanged (`prism-skin-snap PAGE=1 SKINS=all` IDENTICAL).

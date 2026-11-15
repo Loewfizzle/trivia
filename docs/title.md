@@ -954,3 +954,11 @@ Every place 1 / 2 / 3 badge is ONE component, `js/ui/medal.js#rankMedal(n, { siz
 number): THE BOARD (every tab), the game card's top three (lazy, with the strips), the dailies' SCORES. A toothed disc, three stepped Art Deco
 octagons, the numeral in a dark ink ≥ 4.5 : 1 on its face (the innermost face reaches its dark stop only at its foot), a gloss; colour-blind safe
 (the numeral carries the place); unique gradient ids per medal. Never a per-screen copy (`tests/medal.test.mjs`). No pills.
+
+## CITY D (Nov 15) — GESTURE CONTROLS ACT INSIDE THE TOUCH (the add-on: SAVE YOUR KEY → SHARE lost its tap) — passes/city-d.md
+- A control that needs Safari's OWN gesture — `[data-gesture]`, `[data-act="copy"]`, `[data-act="share"]` (a share sheet, the clipboard, a passkey) —
+  now ACTS at the touch's own lift (`ui/tapwatch.js#gestureControl` → its click() runs inside the trusted pointerup: a user activation; the browser's
+  late click swallowed). A mouse keeps its own click; a form submit keeps its real click (the keychain). THE RESCUE never clicks a gesture control
+  (a synthetic click can't open it) — the report says so. A refused share on SAVE YOUR KEY shows the key itself + COPY at once (`profile/keypop.js`).
+- SIGNAL LOST shows once the signal has been gone 1.5 s; SIGNAL RESTORED only when SIGNAL LOST was on screen ≥ 1.5 s (app.js#renderConnection).
+- A SOLO room (PLAY NOW's one seat) leaves without a word (`room.js#exitRoom` — no ROOM CLOSED / DISCONNECTED / leave reason; app.js's boot lines).
