@@ -44,7 +44,7 @@ test('ONE Esc: ui/layers.js owns the only Escape listener (a pop-up never listen
   assert.match(read('js/progress/streak-card.js'), /takeLayer\(el, \{ close: \(\) => close\(\), min: 9000 \}\)/);
   assert.match(read('js/progress/sighting.js'), /takeLayer\(modal, \{ close:/);
   assert.match(read('js/progress/album-view.js'), /takeLayer\(el, \{ close, min: 9200 \}\)/);
-  assert.match(read('js/progress/preview.js'), /takeLayer\(shell, \{ min: 9000 \}\)/);
+  assert.match(read('js/progress/preview.js'), /takeLayer\(shell, \{ min: 9000, close: pvClose \}\)/);   // (CITY A — C2: ✕ + Esc give it back)
   assert.match(read('js/screens/harbor/radio.js'), /rdRelease = takeLayer\(modal, \{ close:/);
   assert.match(read('js/profile/keypop.js'), /\.sg-fly, \.pg-sc, \.pg-pv, \.sg-big'/, 'H1: the key pop-up never lands on a card');
 });

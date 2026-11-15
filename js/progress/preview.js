@@ -91,9 +91,12 @@ export async function preview(view, q = new URLSearchParams(), root = null, keep
     if (!root) {
       const { pgSheet } = await lazyImport(import('./look.js'), './look.js');
       await pgSheet();
-      const shell = h('div.pg-pv', { role: 'dialog', 'aria-label': 'Membership card preview' }, h('div.pg-veil'), h('div.pg-pv-bar', { 'aria-hidden': 'true' }), h('button.pg-x', { type: 'button', 'aria-label': 'Close', onclick: () => shell.remove() }, '✕'), host);
+      // (CITY A — FABLE REVIEW 2's C2: ✕ removed the shell WITHOUT its release — the city dead until a reload. ✕ + Esc both give it back)
+      let pvRelease = null;
+      const pvClose = () => { shell.remove(); if (pvRelease) { pvRelease(); pvRelease = null; } };
+      const shell = h('div.pg-pv', { role: 'dialog', 'aria-label': 'Membership card preview' }, h('div.pg-veil'), h('div.pg-pv-bar', { 'aria-hidden': 'true' }), h('button.pg-x', { type: 'button', 'aria-label': 'Close', onclick: () => pvClose() }, '✕'), host);
       host.append(h('div.pg-pv-k', 'PREVIEW · A SAMPLE MEMBER'));
-      lazyImport(import('../ui/layers.js'), '../ui/layers.js').then(L => L.takeLayer(shell, { min: 9000 })).catch(() => {});   // (SHELL 2.0 A — H2: on THE LAYER STACK)
+      lazyImport(import('../ui/layers.js'), '../ui/layers.js').then(L => { if (shell.isConnected) pvRelease = L.takeLayer(shell, { min: 9000, close: pvClose }); }).catch(() => {});   // (SHELL 2.0 A — H2: on THE LAYER STACK)
       document.body.append(shell);
     }
     if (q.get('cards') === '1') {

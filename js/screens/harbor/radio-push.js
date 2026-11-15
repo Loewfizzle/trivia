@@ -21,11 +21,13 @@ export function pushPaper({ api }) {
     } else if (S && !S.key) {
       kids.push(h('p', 'The server has no push keys yet — add VAPID_PUBLIC_KEY + VAPID_PRIVATE_KEY in Vercel (Settings → Environment Variables), redeploy, then turn it on.'));
     } else {
+      // (CITY A: the lever keeps the browser's own click — Notification.requestPermission needs Safari's real gesture; the paper is never
+      //  re-rendered on a timer — only by its own taps)
       const on = !!(S && S.mine);
       kids.push(h('div.rd-lg', h('span', 'This phone', h('small', on ? 'gets a notification when anyone opens a room' : 'off')),
         h('button.rd-lever', { type: 'button', role: 'switch', 'aria-checked': String(on), class: on ? 'is-on' : '', disabled: busy, 'aria-label': 'A room just opened — this phone', onclick: () => (on ? turnOff() : turnOn()) }, h('i.rd-lever-arm'), h('span', on ? 'ON' : 'OFF'))));
       kids.push(h('div.rd-lg', h('span', 'Phones it goes to'), h('b', String(S ? S.subs : 0))));
-      if (S && S.subs) kids.push(h('button.rd-done.rd-ptest', { type: 'button', disabled: busy, onclick: test }, 'SEND A TEST'));
+      if (S && S.subs) kids.push(h('button.rd-done.rd-ptest', { type: 'button', 'data-press': true, disabled: busy, onclick: test }, 'SEND A TEST'));
     }
     if (msg) kids.push(h('p.rd-hint', msg));
     if (err) kids.push(h('p.rd-err', { role: 'alert' }, err));

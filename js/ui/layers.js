@@ -15,7 +15,7 @@ export function takeLayer(el, { close = null, min = 0 } = {}) {
   //  FROM it still takes the next layer above it: review-6.md H2)
   z = Math.max(z + 1, min);
   if (el) { el.style.zIndex = String(z); el.dataset.layer = String(z); }
-  const entry = { el, close };
+  const entry = { el, close, t: now(), seen: false };
   open.push(entry);
   listenEsc();
   let done = false;
@@ -25,10 +25,31 @@ export function takeLayer(el, { close = null, min = 0 } = {}) {
     if (!open.length) z = BASE;
   };
 }
+const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+/** CITY A — FABLE REVIEW 2's C2: a layer nobody gives back killed every city tap until a reload (THE RADIO's destroy(), ?preview=card).
+ *  An entry whose element LEFT THE PAGE is dropped here — once it was seen in the page, or 1 s after it was taken (a layer taken just
+ *  before its element is appended is never dropped in that gap). PURE on the entry: `gone(entry, t)`. */
+export function layerGone(e, t = now()) {
+  if (!e || !e.el || typeof e.el.isConnected !== 'boolean') return false;
+  if (e.el.isConnected) { e.seen = true; return false; }
+  return e.seen || t - (e.t || 0) > 1000;
+}
+function prune() {
+  const t = now();
+  for (let i = open.length - 1; i >= 0; i--) if (layerGone(open[i], t)) { open.splice(i, 1); pruned++; }
+  if (!open.length) z = BASE;
+}
+let pruned = 0;
 /** true when el is the newest open layer (or nothing is in the stack) */
-export const isTopLayer = el => !open.length || open[open.length - 1].el === el;
-/** how many pop-ups are open on THE LAYER STACK (CITY FIXES: the title's screen at rest waits for none) */
-export const layersOpen = () => open.length;
+export const isTopLayer = el => { prune(); return !open.length || open[open.length - 1].el === el; };
+/** how many pop-ups are open on THE LAYER STACK (CITY FIXES: the title's screen at rest waits for none) — a layer whose element left the page is gone (C2) */
+export const layersOpen = () => { prune(); return open.length; };
+/**
+ * THE JUST-BORN GUARD (CITY A — FABLE REVIEW 2's C3, ONE helper for every pop-up): a pop-up opened from a pointer-up gets that same tap's
+ * `click` a moment later (Chromium's touch emulation, Playwright's WebKit, Android) — on its backdrop, which closed it at once. A backdrop
+ * click in the pop-up's first `ms` is the opening finger, never a close. `const old = bornGuard(); … if (old()) close();`
+ */
+export function bornGuard(ms = 350) { const t0 = now(); return () => now() - t0 > ms; }
 /**
  * IS A SCREEN ON TOP OF THE CITY? — PURE (the owner's live bug, Nov 14 2026: a tap on a SCORES slim card opened a billboard's game card
  * THROUGH the DAILY screen; docs/title.md "A SCREEN ON TOP OF THE CITY"). The city listens on the WINDOW, so it asks before it answers a touch:
@@ -51,7 +72,7 @@ export function touchInCity(t, root, wrap) {
   const has = (a, b) => !!(a && b && typeof a.contains === 'function' && a.contains(b));
   return has(root, t) || has(t, root) || has(wrap, t);
 }
-export const layerDebug = () => ({ z, open: open.length, top: open.length ? open[open.length - 1].el.className : null, esc: escN });
+export const layerDebug = () => { prune(); return { z, open: open.length, top: open.length && open[open.length - 1].el ? open[open.length - 1].el.className : null, esc: escN, pruned }; };
 
 // THE ONE Esc: the top layer's own close (a layer taken without one — a watched .modal — gets its backdrop's click, the way a tap outside
 // closes it); nothing open → the ☰ menu's closer (registered as the fallback below) or nothing
@@ -63,6 +84,7 @@ function listenEsc() {
   escOn = true;
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape' || e.defaultPrevented) return;
+    prune();
     const top = open[open.length - 1];
     if (top) {
       e.preventDefault(); escN++;

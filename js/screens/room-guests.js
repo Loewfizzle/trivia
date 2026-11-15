@@ -64,7 +64,7 @@ export async function openGuestList(ctx) {
       if (!r || r.sig !== sig) {
         const { el, real, card } = stripOf(uid, p, pub, st);
         const kick = host && uid !== st.uid ? h('button.rg-kick', { type: 'button', 'aria-label': `Kick ${p.name}`, onclick: e => { e.stopPropagation(); onKick(uid, p.name); } }, kickArmed.uid === uid ? 'KICK?' : '✕') : null;
-        const row = h('div.rg-row', { dataset: { uid }, class: `${off ? 'is-off' : ''}${uid === st.uid ? ' is-me' : ''}`, role: 'button', tabindex: '0', 'aria-label': `${p.name}${off ? ' — signal lost' : ''} — their card`,
+        const row = h('div.rg-row', { 'data-press': true, dataset: { uid }, class: `${off ? 'is-off' : ''}${uid === st.uid ? ' is-me' : ''}`, role: 'button', tabindex: '0', 'aria-label': `${p.name}${off ? ' — signal lost' : ''} — their card`,
           onclick: () => ctx.openCard(uid), onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ctx.openCard(uid); } } },
           el, off ? h('span.rg-off', 'SIGNAL LOST') : null, kick);
         if (isOneOfOne(card) && real) lazyImport(import('../vault/dress.js'), '../vault/dress.js').then(m => m.oneOfOne(el)).catch(() => {});

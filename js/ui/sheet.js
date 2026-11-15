@@ -11,7 +11,7 @@
 // Replaces: the old `.modal > .sheet` builders (settings, HOW TO PLAY, CREDITS, a game's options, the chat, BRING YOUR CARD, CALL IN A FAVOR,
 // the radio's sheet) + openPfSheet (profile/sheets.js re-exports this). Its look: components.css "THE SHELL — THE SHEET".
 import { h, reducedMotion } from './dom.js';
-import { takeLayer, onCloseAll } from './layers.js';
+import { takeLayer, onCloseAll, bornGuard } from './layers.js';
 
 const stack = [];
 
@@ -30,6 +30,7 @@ export function openSheet({ title = '', kicker = '', body = [], cls = '', theme 
   const sheet = h('div.sh-panel', { role: 'dialog', 'aria-modal': 'true', 'aria-label': label || title || kicker || 'Sheet' }, head, inner);
   const el = h(`div.sh${cls ? `.${cls.split(' ').join('.')}` : ''}`, theme ? { dataset: { theme } } : null, h('div.sh-scrim'), sheet);
   if (nested) el.classList.add('is-nested');
+  el.dataset.born = String(performance.now());   // (CITY A — A SHEET SETTLES before its rows take taps: ui/tapwatch.js#settledAt)
   const close = () => {
     if (closed) return; closed = true;
     const i = stack.indexOf(api); if (i >= 0) stack.splice(i, 1);
@@ -41,7 +42,9 @@ export function openSheet({ title = '', kicker = '', body = [], cls = '', theme 
   // × closes the whole stack (from the top down), ‹ one step
   x.addEventListener('click', () => (xAll ? closeAllSheets() : close()));
   back.addEventListener('click', close);
-  el.firstChild.addEventListener('click', close);
+  // (CITY A — C3: the scrim's click in the sheet's first 350 ms is the tap that OPENED it (a sheet opened on a pointer-up), never a close)
+  const old = bornGuard();
+  el.firstChild.addEventListener('click', () => { if (old()) close(); });
   // the swipe down (the handle + the header): the sheet follows the finger (transform only); far enough or fast enough → closed
   let y0 = null, t0 = 0, dy = 0;
   head.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; y0 = e.clientY; t0 = performance.now(); dy = 0; try { head.setPointerCapture(e.pointerId); } catch { /* fine */ } sheet.style.transition = 'none'; });

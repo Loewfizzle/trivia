@@ -270,7 +270,11 @@ await H.run(async () => {
       await new Promise(r => setTimeout(r, 300));
       await tap(free[0], free[1], true);
       const opened = await pg.waitForFunction(() => !!document.querySelector('.nd-card-sheet'), { timeout: 4000 }).then(() => true).catch(() => false);
-      ok(opened, `the screen closed: the same tap on the city opens ${free[2]}'s card again (the point was a real billboard)`);
+      // (CITY A — FABLE REVIEW 2's C3: this used to pass while the card was only FADING OUT — the tap's own click closed it. The card must
+      //  still be up, not leaving, 700 ms later)
+      await new Promise(r => setTimeout(r, 700));
+      const stays = await pg.evaluate(() => { const c = document.querySelector('.nd-card-sheet'); return !!c && !c.classList.contains('is-out'); });
+      ok(opened && stays, `the screen closed: the same tap on the city opens ${free[2]}'s card again (the point was a real billboard) — and it STAYS open (no closing by its own tap: ${stays})`);
       await pg.keyboard.press('Escape');
       await waitFor(pg, `!document.querySelector('.nd-card-sheet')`, 'the card closed', 6000);
     } else ok(true, 'the screen closed (every sign point sits under the dock on this size — the city tap not repeated)');

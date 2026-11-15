@@ -31,7 +31,7 @@ import { isDevCard, isOneOfOne, ONE_OF_ONE } from '../core/dev-cards.js';
 import { isGiftCard } from '../core/gift-cards.js';
 import { gemEl } from './gems.js';
 import { tapHandled } from '../ui/tapwatch.js';
-import { takeLayer, onCloseAll } from '../ui/layers.js';
+import { takeLayer, onCloseAll, bornGuard } from '../ui/layers.js';
 
 /** the full card's id in THE CARD LAB (its own mark: a strip can be approved before its full card) */
 export const fullId = card => `full-${card}`;
@@ -257,8 +257,10 @@ export async function openFullCard(id, who = {}) {
   });
   box.append(who.head || '', stage, who.foot || '', xb);
   // (THE VAULT 2B: a backdrop click in its first 350 ms is the finger that opened it lifting — a long-press — never a close)
-  const born = performance.now();
-  const el = h('div.vl-full', { role: 'dialog', 'aria-modal': 'true', 'aria-label': nameOf(id), onclick: e => { if (e.target === el && performance.now() - born > 350) close(); } }, box);
+  //  (CITY A — C3: the ONE just-born guard, ui/layers.js#bornGuard — the sheet uses the same)
+  const old = bornGuard();
+  const el = h('div.vl-full', { role: 'dialog', 'aria-modal': 'true', 'aria-label': nameOf(id), onclick: e => { if (e.target === el && old()) close(); } }, box);
+  el.dataset.born = String(performance.now());   // (CITY A — the opening tap's click never lands on the card's controls: ui/tapwatch.js#settledAt)
   release = takeLayer(el, { close: () => close() });   // (SHELL 2.0 A: the one Esc — ui/layers.js — closes it when it's on top)   // (THE LAYER STACK: on top of whatever opened it — a sheet, CUSTOMIZE, the room's profile)
   // (SPEED PASS B — the owner's 8:05 pm lag: EVERYTHING behind the full card holds still while it's up — the fx slots on their current
   //  frame (renderer.js#fxCover), every CSS animation paused (body.vl-covered), the city's frames held — resumed on CLOSE)

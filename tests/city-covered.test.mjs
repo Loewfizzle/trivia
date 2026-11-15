@@ -73,3 +73,35 @@ test('PFIX-3 — C1, THE CITY\'s EDGES: the city = the title\'s root, the root\'
   assert.equal(cityCovered({ layers: 1, held: false, inCity: touchInCity(stage, root, wrap) }), true);
   assert.equal(cityCovered({ layers: 0, held: false, inCity: touchInCity(stage, root, wrap) }), false);
 });
+
+// CITY A — FABLE REVIEW 2's C2 + C3
+import { layerGone, bornGuard } from '../js/ui/layers.js';
+test('CITY A — C2: a layer whose element LEFT THE PAGE is dropped (once seen in the page, or 1 s after it was taken) — never in the gap before its append (PURE)', () => {
+  const el = { isConnected: false };
+  const e = { el, t: 0, seen: false };
+  assert.equal(layerGone(e, 500), false, 'taken, not yet appended, 0.5 s: kept (sheet.js takes the layer one line before it appends)');
+  assert.equal(layerGone(e, 1500), true, 'never appended after 1 s: gone');
+  const e2 = { el: { isConnected: true }, t: 0, seen: false };
+  assert.equal(layerGone(e2, 10), false); assert.equal(e2.seen, true, 'seen in the page');
+  e2.el.isConnected = false;
+  assert.equal(layerGone(e2, 20), true, 'seen, then removed without its release (THE RADIO\'s destroy, ?preview=card): gone at once');
+  assert.equal(layerGone({ el: null, t: 0 }, 1e9), false, 'a layer with no element (a test\'s, a watched node) is never dropped here');
+});
+test('CITY A — C2: THE RADIO\'s destroy + ?preview=card give their layer back; the city asks layersOpen() (which prunes)', () => {
+  const radio = read('js/screens/harbor/radio.js');
+  const d = radio.slice(radio.indexOf('function destroy()'), radio.indexOf('function destroy()') + 900);
+  assert.match(d, /rdRelease\(\)/, 'the desk\'s layer released in destroy()');
+  const pv = read('js/progress/preview.js');
+  assert.match(pv, /pvRelease = L\.takeLayer\(shell/, 'the preview shell keeps its release');
+  assert.match(pv, /const pvClose = \(\) => \{ shell\.remove\(\); if \(pvRelease\)/, '✕ gives it back');
+  assert.match(read('js/ui/layers.js'), /export const layersOpen = \(\) => \{ prune\(\);/);
+});
+test('CITY A — C3: ONE just-born guard — the sheet\'s scrim + the full card\'s backdrop ignore the opening tap\'s click for 350 ms', async () => {
+  const old = bornGuard(30);
+  assert.equal(old(), false, 'just born: the click is the opening finger');
+  await new Promise(r => setTimeout(r, 45));
+  assert.equal(old(), true, 'later: a real tap on the backdrop closes');
+  assert.match(read('js/ui/sheet.js'), /const old = bornGuard\(\);\s+el\.firstChild\.addEventListener\('click', \(\) => \{ if \(old\(\)\) close\(\); \}\);/);
+  const full = read('js/vault/full.js');
+  assert.match(full, /const old = bornGuard\(\);/); assert.doesNotMatch(full, /const born = performance\.now\(\)/, 'no second copy of the guard');
+});

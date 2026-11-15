@@ -122,7 +122,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     if (open || destroyed) return;
     await sheetsReady;
     open = true; card = null; cover = false; arrange = false;
-    modal = h('div.rd-modal', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'The radio' });
+    modal = h('div.rd-modal', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'The radio', dataset: { born: String(performance.now()) } });   // (CITY A: the desk settles before its jacks take taps)
     const back = h('div.rd-back', { onpointerup: e => { if (e.target === back) hide(); } });
     sheet = h('div.rd-sheet');
     modal.append(back, sheet);
@@ -162,12 +162,12 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     return h('header.rd-head', { class: isOwner ? '' : 'is-crew' },
       h('div.rd-brand', h('b', 'NEON SPEAKEASY ·'), h('b', 'RADIO'), isOwner ? null : h('span.rd-plate.rd-lobplate', 'THIS LOBBY ONLY')),
       isOwner ? h('div.rd-count', { 'aria-label': `${here == null ? 'unknown' : here} people in the city now (an estimate)` }, nixie(here || 0), h('small', 'IN', h('br'), 'THE', h('br'), 'CITY')) : null,
-      h('button.rd-x', { type: 'button', 'aria-label': 'Close the radio', onclick: () => { sfx.play('band'); hide(); } }, '✕'));
+      h('button.rd-x', { type: 'button', 'data-press': true, 'aria-label': 'Close the radio', onclick: () => { sfx.play('band'); hide(); } }, '✕'));
   }
   function bandSel() {
     const faces = isOwner ? [['desk', 'DESK'], ['program', 'PROGRAM'], ['ledger', 'LEDGER']] : [['desk', 'DESK']];
     if (faces.length < 2) return null;
-    return h('nav.rd-band', { 'aria-label': 'The radio’s faces' }, ...faces.map(([id, l]) => h('button.rd-bb', { type: 'button', class: band === id ? 'is-on' : '', 'aria-pressed': String(band === id),
+    return h('nav.rd-band', { 'aria-label': 'The radio’s faces' }, ...faces.map(([id, l]) => h('button.rd-bb', { type: 'button', 'data-press': true, class: band === id ? 'is-on' : '', 'aria-pressed': String(band === id),
       onclick: () => { if (band === id) return; sfx.play('band'); band = id; ls.set(BAND_KEY, id); card = null; render(); } }, l)));
   }
 
@@ -214,7 +214,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     const J = jackList();
     const grid = h('div.rd-jacks', { class: `${arrange ? 'is-arrange' : ''}` }, ...J.map(j => {
       const L = lamp(j);
-      const cell = h('button.rd-jack', { type: 'button', dataset: { jack: j.id, lamp: L }, class: L ? `is-${L}` : '', 'aria-label': `${j.label}${L === 'run' ? ' — running' : L === 'q' ? ' — on its way' : L === 'grey' ? ` — ${j.run.note}` : ''}` },
+      const cell = h('button.rd-jack', { type: 'button', 'data-press': true, dataset: { jack: j.id, lamp: L }, class: L ? `is-${L}` : '', 'aria-label': `${j.label}${L === 'run' ? ' — running' : L === 'q' ? ' — on its way' : L === 'grey' ? ` — ${j.run.note}` : ''}` },
         h('i.rd-lamp'), h('i.rd-hole', h('i.rd-plug')), h('span.rd-jl', j.label));
       // (CC-B — the owner: "thumb-scrolling set them wiggling": NO long-press; a tap is a tap, a scroll is a scroll — the button's own
       // click only fires for a tap that didn't scroll; drag only in ARRANGE mode)
@@ -223,7 +223,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       return cell;
     }));
     const P = isOwner && st && st.presets || [];
-    const presetRow = P.length ? h('div.rd-prow', h('span.rd-plate.rd-pplate', 'PRESETS'), h('div.rd-jacks.rd-presets', ...P.map(p => h('button.rd-jack.is-preset', { type: 'button', dataset: { preset: p.id }, 'aria-label': `Preset ${p.name} — ${p.steps.length} steps`, onclick: () => { sfx.play('jackIn'); card = { kind: 'preset', id: p.id, err: '', armed: false }; render(); } },
+    const presetRow = P.length ? h('div.rd-prow', h('span.rd-plate.rd-pplate', 'PRESETS'), h('div.rd-jacks.rd-presets', ...P.map(p => h('button.rd-jack.is-preset', { type: 'button', 'data-press': true, dataset: { preset: p.id }, 'aria-label': `Preset ${p.name} — ${p.steps.length} steps`, onclick: () => { sfx.play('jackIn'); card = { kind: 'preset', id: p.id, err: '', armed: false }; render(); } },
       h('i.rd-lamp'), h('i.rd-hole', h('i.rd-plug')), h('span.rd-jl', p.name))))) : null;
     return h('section.rd-face.rd-moments',
       h('div.rd-fh', plate('THE MOMENTS'), h('button.rd-done', { type: 'button', class: arrange ? 'is-on' : '', 'aria-pressed': String(arrange), onclick: () => { arrange = !arrange; sfx.play('tick'); render(); } }, arrange ? 'DONE' : 'ARRANGE')),
@@ -591,6 +591,10 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     destroyed = true; clearTimeout(pollT); clearInterval(tickT); clearTimeout(coverT); if (ic) ic.destroy();
     document.removeEventListener('visibilitychange', onVis);
     unsub(); clearTimeout(storeT); if (askEl) askEl.remove(); document.body.classList.remove('rd-owner');
+    // (CITY A — FABLE REVIEW 2's C2: a destroy with the desk OPEN (a 403 on refresh, the crew switch going off) gave its layer back to nobody —
+    //  every city tap refused until a reload. The layer is released with the desk)
+    if (rdRelease) { rdRelease(); rdRelease = null; }
+    open = false;
     if (modal) modal.remove(); btn.remove(); document.body.classList.remove('rd-open');
     if (onGone) try { onGone(); } catch { /* fine */ }   // (SHELL 2.0 B2: the gate forgets it — a later ON loads a fresh one)
   }

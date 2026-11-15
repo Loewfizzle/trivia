@@ -55,6 +55,7 @@ export const lineInfo = () => ({ net: 'parked', wants: [], parked: true, started
 //  The previews write nothing that can be refused — no-ops, so a page importing room.js / host.js loads here too)
 export const refusals = () => [];
 export const hostRefusals = () => [];
+export const goneRefusals = () => 0;   // (CITY A — item 6: the quiet count of refusals after leaving)
 export function setHostGone() {}
 export function setRoomGone() {}   // (THE CHAT FALSE ALARM: room.js registers which room this phone left)
 export function expectRefusal() {}

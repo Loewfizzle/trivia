@@ -58,10 +58,15 @@ function refused(op, r, patch, e) {
   const shape = `${op} ${pathShape(refPath(r))}${keys.length ? ` {${keys.join(', ')}}` : ''}`;
   const ex = expected(refPath(r));
   if (ex) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${ex}:`, shape); } return; }
-  if (/^\/?(rooms|chats)\//.test(refPath(r))) { setTimeout(() => { const quiet = quietRoomRefusal(refPath(r), { hostGone: safeGone, roomGone }); if (quiet) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${quiet} — a write refused after ${quiet === 'no longer the host' ? 'the hand-off' : 'leaving'}:`, shape); } return; } report(shape); }, HOST_SETTLE_MS); return; }
+  if (/^\/?(rooms|chats)\//.test(refPath(r))) { setTimeout(() => { const quiet = quietRoomRefusal(refPath(r), { hostGone: safeGone, roomGone }); if (quiet) { countGone(); if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${quiet} — a write refused after ${quiet === 'no longer the host' ? 'the hand-off' : 'leaving'}:`, shape); } return; } report(shape); }, HOST_SETTLE_MS); return; }
   report(shape);
 }
 const safeGone = () => { try { return !!hostGone(); } catch { return false; } };
+// (CITY A — item 6: a room / chat write refused once this phone had left / lost the host / seen the room close is COUNTED — one number in
+//  /admin's errors (errlog.js#countQuiet 'gone'), never a row per write, never a toast)
+let goneN = 0;
+export const goneRefusals = () => goneN;
+function countGone() { goneN++; lazyImport(import('./errlog.js'), './errlog.js').then(m => { if (typeof m.countQuiet === 'function') m.countQuiet('gone'); }).catch(() => {}); }
 function report(shape) {
   if (REFUSED.has(shape) || REFUSED.size >= 6) return;
   REFUSED.add(shape);

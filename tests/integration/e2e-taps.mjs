@@ -110,7 +110,9 @@ try {
   // (THE RESCUE stays ON here — the page as it ships; the watch's "lost" count = the drops the rescue saved: the pass log's data per control)
 
   // ---- THE TITLE
-  await tapTest(A, 'JOIN (the hush word panel)', '.nd-tab-join', { land: "document.querySelector('.nd-actions').classList.contains('is-join')", reset: async () => { await A.p.evaluate("document.querySelector('.nd-tab-join').click()"); await A.wait("!document.querySelector('.nd-actions').classList.contains('is-join')", 3000); } });
+  // (CITY A: JOIN's reset waits 850 ms — the dock's pressTap ignores a click inside 800 ms of the tap it took (never twice): the old reset's
+  //  click came sooner, was ignored, and the next measured tap closed the panel — counted LOST on the code before this pass too)
+  await tapTest(A, 'JOIN (the hush word panel)', '.nd-tab-join', { land: "document.querySelector('.nd-actions').classList.contains('is-join')", reset: async () => { await sleep(850); await A.p.evaluate("document.querySelector('.nd-tab-join').click()"); await A.wait("!document.querySelector('.nd-actions').classList.contains('is-join')", 3000); } });
   await tapTest(A, 'PLAY (the shelf)', '.nd-tab-play', { land: "!!document.querySelector('.sh.is-in')", reset: () => closeSheets(A) });
   await tapTest(A, '☰ (the menu)', '.menu-btn', { land: "!!document.querySelector('.sh.gm.is-in')", reset: () => closeSheets(A) });
   // a sheet's row WHILE THE SHEET IS STILL SLIDING IN (≤ 320 ms after it opened)
@@ -134,7 +136,7 @@ try {
   // THE SCREEN AT REST: the dock FADING (is-idle, not yet at rest) — a tap on HOST is a real tap (it used to only wake the dock)
   await tapTest(A, 'JOIN while the dock FADES to rest', '.nd-tab-join', { n: Math.min(N, 6), landMs: 3000,
     before: async () => { await A.p.evaluate(() => window.__district.idle()); await A.wait("document.body.classList.contains('nd-idle') && !document.body.classList.contains('nd-rest')", 3000); await sleep(250); },
-    land: "document.querySelector('.nd-actions').classList.contains('is-join')", reset: async () => { await A.p.evaluate("document.querySelector('.nd-tab-join').click()"); await sleep(300); } });
+    land: "document.querySelector('.nd-actions').classList.contains('is-join')", reset: async () => { await sleep(850); await A.p.evaluate("document.querySelector('.nd-tab-join').click()"); await sleep(300); } });
   // …and once it has FADED OUT (at rest) the waking tap only wakes — by design
   { await A.p.evaluate(() => window.__district.idle()); await A.wait("document.body.classList.contains('nd-rest')", 4000);
     const c = await centre(A, '.nd-tab-join'); await A.tap(c.x, c.y); await sleep(500);
@@ -143,6 +145,39 @@ try {
   { await A.p.evaluate("document.querySelector('.nd-tab-play').click()"); await A.wait("!!document.querySelector('.sh.is-in')", 3000);
     await A.p.evaluate(() => window.__district.idle()); await sleep(300);
     ok(await A.p.evaluate("!document.body.classList.contains('nd-idle')"), `${ENGINE} — never at rest while a pop-up is open`); await closeSheets(A); }
+
+  // ---- CITY A — FABLE REVIEW 2's C2 + C3: a layer nobody gives back used to kill every city tap until a reload; a sheet opened on a pointer-up
+  //      was closed by that same tap's click (this engine sends it). Both leaks driven, then a REAL touch on a billboard: its card opens AND STAYS
+  { const signAt = P => P.p.evaluate(async () => { const { GAMES } = await import('/js/config.js'), play = new Set(GAMES.filter(g => g.playable).map(g => g.id));
+      for (let y = 90; y < innerHeight - 220; y += 8) for (let x = 12; x < innerWidth - 12; x += 8) { const h = window.__district.hit(x, y), e = document.elementFromPoint(x, y); if (h && h.kind === 'sign' && play.has(h.id) && e && !e.closest('button, a, input, label, .nd-actions')) return [x, y, h.id]; }
+      return null; });
+    const cardStays = async (P, what) => {
+      const pt = await signAt(P);
+      if (!pt) { ok(true, `${ENGINE} — ${what}: no free billboard point at this size (skipped)`); return; }
+      await P.tap(pt[0], pt[1]);
+      const up = await P.wait("!!document.querySelector('.nd-card-sheet')", 4000);
+      await sleep(700);
+      const st = await P.p.evaluate(() => { const c = document.querySelector('.nd-card-sheet'); return { stays: !!c && !c.classList.contains('is-out'), layers: window.__layers ? window.__layers().open : null }; });
+      ok(up && st.stays, `${ENGINE} — ${what}: a touch on ${pt[2]}'s billboard opens its card${up ? '' : ' (NEVER OPENED — the city refused the tap)'} and it STAYS open 700 ms later (${st.stays ? 'up' : 'closed by its own tap'})`);
+      await closeSheets(P);
+    };
+    // C2 — the radio's old destroy(): its desk on THE LAYER STACK, removed without the release
+    await A.p.evaluate(() => import('/js/ui/layers.js').then(L => { const m = document.createElement('div'); m.className = 'rd-modal tw-leak'; document.body.append(m); L.takeLayer(m); m.remove(); }));
+    await sleep(1100);   // (a layer is dropped once seen in the page, or 1 s after it was taken — never in the gap before its element is appended)
+    const lo = await A.p.evaluate(() => import('/js/ui/layers.js').then(L => L.layersOpen()));
+    ok(lo === 0, `${ENGINE} — C2: a layer whose element left the page is gone from THE LAYER STACK (${lo} open)`);
+    await cardStays(A, 'C2 (a leaked layer) + C3 (the opening tap’s click)');
+    // C2 — ?preview=card (the owner's own link): open it, ✕ by touch, then the city
+    const V = await phone('tpv', '&preview=card');
+    if (await V.wait("!!document.querySelector('.pg-pv .pg-x')", 20000)) {
+      await sleep(400);
+      const x = await centre(V, '.pg-pv .pg-x'); await V.tap(x.x, x.y);
+      await V.wait("!document.querySelector('.pg-pv')", 4000);
+      const lv = await V.p.evaluate(() => import('/js/ui/layers.js').then(L => L.layersOpen()));
+      ok(lv === 0, `${ENGINE} — C2: ?preview=card's ✕ gives its layer back (${lv} open)`);
+      await cardStays(V, '?preview=card closed → the city');
+    } else ok(false, `${ENGINE} — ?preview=card opened its shell`);
+    await V.close(); }
 
   // ---- THE ERRORS GROUP (Nov 12 night — /admin's LOST TAPs, rescued by the watch): a FULL CARD's CLOSE (`vl-full-x` — the card's opening work kept the
   //      main thread busy: a late click) + TODAY'S SCORES' tab (`dy-scope-b` — 34 pt + an answer's repaint rebuilt it under the finger). Each tapped

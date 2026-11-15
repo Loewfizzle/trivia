@@ -17,6 +17,14 @@
 //   3. afterTap(fn) — the shared layer's "never re-render under a finger": a periodic repaint (the radio, the dock's DAILY slot, the guest
 //      list…) waits while a finger is down until its click has landed (≤ HOLD_MS after the lift), then runs once. A click's own handler runs
 //      after the press ends (the capture listener ends it first), so a tap's own re-render is never delayed.
+//   4. EVERY TAP ACTS (CITY A — item 5; the owner's iPhone, Safari 27.2: "ALL TIME" held 113 ms, travelled 0 px, nothing re-rendered — iOS
+//      simply sent no click). A control marked `data-press` acts on its OWN press + lift: a touch / pen pointerdown + pointerup of the SAME
+//      finger that began ON it, the finger travelled < 10 px, ≤ 600 ms, nothing cancelled it (a scroll) → its click is dispatched AT THE LIFT,
+//      once; the browser's own click, if it still arrives, is swallowed (never twice — any trusted click near the lift point for 800 ms). A lift
+//      counts even if the control MOVED under a still finger (the games shelf: a row slid 38 px as its sheet came in — Safari 27.0.1) or was
+//      replaced by its twin. A SHEET SETTLES before its rows take taps: a click landing in a pop-up younger than 350 ms (`data-born`) that no
+//      press began on (the opening tap's own click) is swallowed. ONE helper, no new import: a lazy chunk only writes the attribute (THE
+//      STALE-MODULE RULE). The mouse + the keyboard keep the plain click.
 // Polish like the error log: anything failing here never touches the app.
 
 const TAPPABLE = 'button, a[href], [role="button"], [role="tab"], [role="switch"], [role="menuitem"], [role="option"], label, summary, input[type="checkbox"], input[type="radio"], .sh-row, [data-tap]';
@@ -26,6 +34,7 @@ const LONG_MS = 700;           // a press longer than this is a long-press, not 
 const SLOP = 10;               // px the finger may travel and still be a tap
 const MOVE_PX = 6;             // the target moved under the finger (a layout shift)
 const MIN_GAP_MS = 60_000, DAY_MAX = 20;
+export const PRESS_MS = 600, PRESS_SLOP = 10, TOOK_SWALLOW_MS = 800, SETTLE_MS = 350;   // (4. EVERY TAP ACTS)
 const LS_KEY = 'nd:tapwatch';
 
 let ctxFn = null;
@@ -38,7 +47,7 @@ let rescued = null;            // { el, sig, at } — a late real click on it is
 const longTasks = [];          // [{ t, d }] (Chromium only — Safari doesn't count them)
 let installed = false, sentMem = null, rescueOn = true;
 let lastDown = '';   // (tests: which control the last touch pressed)
-const stats = { downs: 0, lost: 0, rescues: 0, swallowed: 0, deferred: 0, reports: 0 };
+const stats = { downs: 0, lost: 0, rescues: 0, swallowed: 0, deferred: 0, reports: 0, pressed: 0, tookSwallowed: 0, unsettled: 0 };
 let lastReport = '';
 
 /** PURE: a short, safe description of an element: tag.class1.class2 "LABEL" (the label ≤ 24 chars, letters only — never a name / code) */
@@ -61,6 +70,21 @@ export function mayReport(mem, now) {
 }
 
 /** PURE: was this press a clean TAP the page should have answered? (the rules the rescue + the report share) */
+/** PURE (4. EVERY TAP ACTS): does a data-press control act on this lift? p: { type, dur, travel, cancelled, settled, disabled } */
+export function pressActs(p) {
+  if (!p || p.type === 'mouse' || p.cancelled || p.disabled || p.settled === false) return false;
+  return p.dur >= 0 && p.dur <= PRESS_MS && p.travel < PRESS_SLOP;
+}
+/** PURE: is this trusted click the tail of a tap a data-press control already took? (near the lift point, inside 800 ms) */
+export function tookClick(took, c) {
+  if (!took || !c) return false;
+  return c.at - took.at >= 0 && c.at - took.at < TOOK_SWALLOW_MS && Math.abs(c.x - took.x) < 24 && Math.abs(c.y - took.y) < 24;
+}
+/** PURE: a pop-up born at `born` (performance.now) — has it SETTLED at `t`? (no data-born = always settled) */
+export const settledAt = (born, t) => !(born > 0) || t - born >= SETTLE_MS;
+const bornOf = el => { try { const b = el && el.closest && el.closest('[data-born]'); return b ? Number(b.dataset.born) || 0 : 0; } catch { return 0; } };
+let took = null;   // { el, x, y, at } — the last tap a data-press control acted on
+
 export function cleanTap(p) {
   if (!p) return false;
   if (p.cancelled || p.prevented || p.own || p.game) return false;
@@ -126,14 +150,17 @@ export function pressTap(el, fn) {
   el.addEventListener('pointerdown', e => {
     if (e.isPrimary === false || (e.pointerType === 'mouse' && e.button !== 0) || el.disabled) return;
     down = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() };
+    // (CITY A: the lift comes back to this control even if it MOVED under a still finger — the touch's capture, made explicit)
+    if (e.pointerType !== 'mouse') { try { el.setPointerCapture(e.pointerId); } catch { /* fine */ } }
     el.classList.add('is-press');
   });
   el.addEventListener('pointerup', e => {
     const d = down; lift();
     if (!d || e.pointerId !== d.id || el.disabled) return;
-    if (performance.now() - d.t > LONG_MS || Math.hypot(e.clientX - d.x, e.clientY - d.y) > SLOP) return;
-    const r = el.getBoundingClientRect();
-    if (e.clientX < r.left - 8 || e.clientX > r.right + 8 || e.clientY < r.top - 8 || e.clientY > r.bottom + 8) return;
+    // (CITY A — EVERY TAP ACTS: the FINGER decides — < 10 px, ≤ 600 ms; the control's own place at the lift doesn't (a row that slid 38 px under
+    //  a still finger is still the tap). A mouse lifting off the control is no tap)
+    if (performance.now() - d.t > PRESS_MS || Math.hypot(e.clientX - d.x, e.clientY - d.y) >= PRESS_SLOP) return;
+    if (e.pointerType === 'mouse') { const r = el.getBoundingClientRect(); if (e.clientX < r.left - 8 || e.clientX > r.right + 8 || e.clientY < r.top - 8 || e.clientY > r.bottom + 8) return; }
     tookAt = performance.now();
     tapHandled();
     run(e);
@@ -161,6 +188,7 @@ function onDown(e) {
       id: e.pointerId, type: e.pointerType || 'touch', el, sig: sigOf(el), x: e.clientX, y: e.clientY, t: e.timeStamp,
       inDelay: Math.max(0, performance.now() - e.timeStamp), rect: [r.left, r.top], travel: 0, muts: [], up: null,
       own: !!el.closest('[data-tap-own]'), game: gameOn(), where: screenName(), clicked: false,
+      act: el.matches && el.matches('[data-press]') ? el : null,   // (the control itself — a kick button inside a pressable row is its own; a press that BEGAN on a row acts even while its sheet still slides in: the 38-px shelf row)
     };
     // what re-renders while the finger is down (childList only, until the tap ends — off the rest of the time)
     if (typeof MutationObserver !== 'undefined') {
@@ -196,6 +224,19 @@ function onUp(e) {
     // (a press the page itself ended — the button's own pointerup closed the sheet it sat on — is no lost tap: it is judged at the check)
   } catch { /* fine */ }
   lastUp = { p, at: performance.now() };
+  // 4. EVERY TAP ACTS — a data-press control acts HERE, at the lift (its click dispatched once; the browser's own click swallowed in onClick)
+  try {
+    if (p.act && p.up && pressActs({ type: p.type, dur: p.dur, travel: p.travel, cancelled: p.cancelled, disabled: disabled(p.act) })) {
+      let target = p.act.isConnected ? p.act : null;
+      if (!target) { const at = document.elementFromPoint(p.up.x, p.up.y), tw = at && at.closest && at.closest('[data-press]'); if (tw && sigOf(tw) === sigOf(p.act)) target = tw; }
+      if (target) {
+        p.handled = true; stats.pressed++;
+        took = { el: target, x: p.up.x, y: p.up.y, at: performance.now() };
+        if (press === p) endPress('press');
+        target.click();
+      }
+    }
+  } catch (err) { console.warn('[tapwatch] press', err); }
   setTimeout(() => check(p), RESCUE_MS);
   setTimeout(() => { if (press === p) endPress('hold'); }, HOLD_MS);
 }
@@ -203,6 +244,10 @@ function onCancel(e) { if (press && e.pointerId === press.id) { press.cancelled 
 function onTouchEnd(e) { if (press && e.defaultPrevented) press.prevented = true; }
 function onClick(e) {
   try {
+    // 4. EVERY TAP ACTS: the browser's own click after a data-press control took the tap — swallowed (never twice, never on what slid in under it)
+    if (e.isTrusted && took && tookClick(took, { x: e.clientX, y: e.clientY, at: performance.now() })) { e.stopImmediatePropagation(); e.preventDefault(); stats.tookSwallowed++; took = null; return; }
+    // …and A SHEET SETTLES before its rows take taps: a click inside a pop-up younger than 350 ms that no press began on (the opening tap's own click)
+    if (e.isTrusted && e.detail > 0) { const b = bornOf(e.target); if (b && !settledAt(b, performance.now()) && !(press && inside(e.target, press.el)) && !(press && press.el && inside(press.el, e.target.closest ? (e.target.closest('[data-born]') || e.target) : e.target))) { e.stopImmediatePropagation(); e.preventDefault(); stats.unsettled++; return; } }
     // a late real click on a control the rescue already clicked: swallowed (never twice)
     if (rescued && e.isTrusted && performance.now() - rescued.at < 1000 && (inside(e.target, rescued.el) || (tappableOf(e.target) && sigOf(tappableOf(e.target)) === rescued.sig))) {
       e.stopImmediatePropagation(); e.preventDefault(); stats.swallowed++; rescued.late = Math.round(e.timeStamp - rescued.upT); return;

@@ -460,15 +460,19 @@ G('people', async () => {
 // (PLAY NOW 0f — the cloud's "THE DANCERS' ARMS NEVER JUMP: 1 jump": each drawn frame was stamped with the SAMPLER's time, not the frame's
 //  own draw time — on a slow machine a late sample beside a prompt one made a normal swing read as 1 rad in a short frame. A frame is now
 //  timed by the city's own draw (loop().drawnAt); the rule is unchanged)
+// (CITY A — PFIX-3's cloud red "7 jumps" on the cloud's ~8–10 fps software GL: the arms follow the BEAT CLOCK (people.js — beatsF), not the
+//  frame's rAF stamp; a slow frame's beat moved ~0.1 s while its draw stamp moved < 60 ms, so a normal swing across a DROPPED frame read as a
+//  jump. A step is now timed by the larger of its draw stamps and the dance's own time (Δ beats × 60 / bpm) — a jump is still 1 rad inside
+//  60 ms of the DANCE's own time: the rule is unchanged, a dropped frame is never flagged)
 const motionTrace = secs => `new Promise(res => { const D = window.__district, out = [], t0 = performance.now();
   (function loop() { const h = D.harbor(), lp = D.loop();
-    out.push({ t: performance.now(), td: lp && typeof lp.drawnAt === 'number' ? lp.drawnAt : performance.now(), drawn: lp ? lp.drawn : 0, fast: h.rate ? h.rate.fast : '', rigs: h.people.rigs().map(r => ({ id: r.id + '|' + r.role, kind: r.kind, pose: r.pose, hd: r.hd || 0, y: r.y || 0, v: r.v, fx: r.fx, fy: r.fy, H: r.H, feet: r.feet, planted: r.planted, heel: r.heel, hands: r.hands, shs: r.shs })) });
+    out.push({ t: performance.now(), td: lp && typeof lp.drawnAt === 'number' ? lp.drawnAt : performance.now(), tp: lp && typeof lp.drawnPerf === 'number' ? lp.drawnPerf : null, drawn: lp ? lp.drawn : 0, bpm: (lp && lp.bpm) || 0, fast: h.rate ? h.rate.fast : '', rigs: h.people.rigs().map(r => ({ bf: r.beatsF, id: r.id + '|' + r.role, kind: r.kind, pose: r.pose, hd: r.hd || 0, y: r.y || 0, v: r.v, fx: r.fx, fy: r.fy, H: r.H, feet: r.feet, planted: r.planted, heel: r.heel, hands: r.hands, shs: r.shs })) });
     if (performance.now() - t0 < ${secs * 1000}) requestAnimationFrame(loop); else res(out); })(); })`;
 function motionReport(frames) {
   const D = []; for (let i = 1; i < frames.length; i++) if (frames[i].drawn !== frames[i - 1].drawn) D.push(frames[i]);
   const med = a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
   const pct = (a, q) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(s.length * q))]; };
-  const by = new Map(); for (const f of D) for (const r of f.rigs) { if (!by.has(r.id)) by.set(r.id, []); by.get(r.id).push({ t: f.t, td: f.td, ...r }); }
+  const by = new Map(); for (const f of D) for (const r of f.rigs) { if (!by.has(r.id)) by.set(r.id, []); by.get(r.id).push({ t: f.t, td: f.td, tp: f.tp, dn: f.drawn, bpm: f.bpm, ...r }); }
   const walkers = [], dancers = [];
   for (const [id, seq] of by) {
     const sp = [], slide = [], slideT = [], ang = [], hs = []; let plants = 0, walkT = 0, jump = 0, prevA = null, maxRs = 0, wandsT = null;
@@ -478,7 +482,11 @@ function motionReport(frames) {
       // after a NORMAL-length frame (the runner's 50–100 ms pacing made dt < 0.06 itself an accident: a short frame after a long one)
       const dt0 = i > 1 ? (a.t - seq[i - 2].t) / 1000 : 1;
       if (a.pose === 'wands' && b.pose === 'wands') {
-        const dtD = ((b.td != null ? b.td : b.t) - (a.td != null ? a.td : a.t)) / 1000;   // (the arms: timed by the city's own draws — the cloud's lone "jump")
+        const dtF = ((b.td != null ? b.td : b.t) - (a.td != null ? a.td : a.t)) / 1000;   // (the arms: timed by the city's own draws — the cloud's lone "jump")
+        const dtB = a.bf != null && b.bf != null && b.bpm > 0 ? Math.abs(b.bf - a.bf) * 60 / b.bpm : 0;   // (CITY A: the dance's own time across the step)
+        const dtP = a.tp != null && b.tp != null ? (b.tp - a.tp) / 1000 : 0;   // (the draws' REAL start times — the planner's clock moves the heading)
+        const dtD = Math.max(dtF, dtB, dtP);
+        if (b.dn !== a.dn + 1) { prevA = null; continue; }   // (a draw the sampler never saw sits between these two: no step to judge — re-armed on the next pair)
         if (wandsT == null) wandsT = a.t;
         const settled = b.t - wandsT >= 1000 && dt0 > 0 && dt0 < 0.06;
         const an = [0, 1].map(k => Math.atan2(b.hands[k][1] - b.shs[k][1], b.hands[k][0] - b.shs[k][0])), ln = [0, 1].map(k => Math.hypot(b.hands[k][1] - b.shs[k][1], b.hands[k][0] - b.shs[k][0]));

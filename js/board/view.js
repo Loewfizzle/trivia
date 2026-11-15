@@ -149,7 +149,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   /** a segmented switch: its buttons built once (`opts` fixed), the value + each one's `off` set in place; a tap reads the value AT the tap */
   function makeSeg(holder, opts, onPick) {
     let value = null;
-    const btns = opts.map(o => h('button.bd-seg-b', { type: 'button', role: 'tab', 'aria-selected': 'false', onclick: () => { if (o.v !== value) onPick(o.v); } }, o.l));
+    const btns = opts.map(o => h('button.bd-seg-b', { type: 'button', 'data-press': true, role: 'tab', 'aria-selected': 'false', onclick: () => { if (o.v !== value) onPick(o.v); } }, o.l));
     holder.replaceChildren(...btns);
     return {
       set(v, off = {}) {
@@ -171,7 +171,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     let r = chipRows.get(key);
     if (!r) {
       const chips = new Map(list.map(b => [b.id, h('button.bd-chip', {
-        type: 'button', onclick: () => { if (b.id !== S.board) { S.board = b.id; boardSfx('tab'); refresh(); } },
+        type: 'button', 'data-press': true, onclick: () => { if (b.id !== S.board) { S.board = b.id; boardSfx('tab'); refresh(); } },
       }, b.chip || b.short || b.label)]));
       r = { row: h('div.bd-chips', { hidden: true }, ...chips.values()), chips };
       chipRows.set(key, r);
@@ -190,7 +190,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   const tabBtns = TABS.map(id => {
     const [a1, a2] = GAME_LIGHT[id] || ['#fff', '#fff'];
     return h('button.bd-tab', {
-      type: 'button', 'aria-pressed': 'false', style: { '--a1': a1, '--a2': a2 }, dataset: { id }, onclick: () => pickTab(id),
+      type: 'button', 'data-press': true, 'aria-pressed': 'false', style: { '--a1': a1, '--a2': a2 }, dataset: { id }, onclick: () => pickTab(id),
     }, h('span', tabName(id)));
   });
   els.tabs.append(...tabBtns);
@@ -255,7 +255,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     const strip = stripFor(K, pubFace);
     const name = mine ? myPub().n || r.n : r.n;
     const card = onPlayer && !pub && r.id
-      ? h('button.bd-open', { type: 'button', 'aria-label': `${name} — their card`, onclick: () => onPlayer({ b: def.id, bid: r.id, row: { ...r, n: name } }) }, strip.el)
+      ? h('button.bd-open', { type: 'button', 'data-press': true, 'aria-label': `${name} — their card`, onclick: () => onPlayer({ b: def.id, bid: r.id, row: { ...r, n: name } }) }, strip.el)
       : h('div.bd-open', strip.el);
     const li = h('li.bd-row', {
       class: [top ? `is-top is-${r.rank}` : '', mine ? 'is-me' : ''].join(' '),
@@ -383,7 +383,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     els.rows.querySelectorAll('.bd-sentinel, .bd-showall-li, .bd-end').forEach(x => x.remove());
     els.rows.append(...frag);
     if (!S.all && (S.rows.length > TOP || S.more)) {
-      els.rows.append(h('li.bd-showall-li', h('button.bd-showall', { type: 'button', onclick: () => { boardSfx('tab'); S.all = true; renderRows(def, false); } },
+      els.rows.append(h('li.bd-showall-li', h('button.bd-showall', { type: 'button', 'data-press': true, onclick: () => { boardSfx('tab'); S.all = true; renderRows(def, false); } },
         h('span', S.more ? 'SHOW ALL' : `SHOW ALL ${S.rows.length}`), h('i', { 'aria-hidden': 'true' }))));
     } else if (S.all && S.more) els.rows.append(els.sentinel);
     else els.rows.append(h('li.bd-end', h('span', S.rows.length < 10 ? 'THE HOUSE AWAITS NEW NAMES' : 'THE TOP OF THE HOUSE')));

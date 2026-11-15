@@ -240,7 +240,7 @@ export function createTaps(T) {
     sfx('select');
     const games = GAMES.filter(g => g.playable);
     openSheet({ title: 'PLAY', kicker: 'PICK A GAME', cls: 'nd-shelf-sheet', label: 'Play a game', body: [
-      h('div.nd-shelf', ...games.map(g => { const m = meta(g); return row({ icon: markSvg(g), label: g.name, sub: [m.players.replace(' PLAYERS', ''), m.mins].filter(Boolean).join(' · ').toLowerCase(), ic: T.ACC[g.id] || '#d6f0ff', cls: 'nd-shelf-row', attrs: { dataset: { game: g.id } }, onClick: () => gameCard(g) }); })),
+      h('div.nd-shelf', ...games.map(g => { const m = meta(g); return row({ icon: markSvg(g), label: g.name, sub: [m.players.replace(' PLAYERS', ''), m.mins].filter(Boolean).join(' · ').toLowerCase(), ic: T.ACC[g.id] || '#d6f0ff', cls: 'nd-shelf-row', attrs: { 'data-press': true, dataset: { game: g.id } }, onClick: () => gameCard(g) }); })),
       h('p.sh-note.is-small', 'One phone each. Solo games play right now — or bring friends.')] });
   }
 

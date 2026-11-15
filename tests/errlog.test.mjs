@@ -43,9 +43,10 @@ test('noise is skipped: audio not allowed, lost connections, extensions, content
     { reason: new TypeError('Failed to fetch') },
     { message: 'ResizeObserver loop completed with undelivered notifications.' },
     { message: 'Script error.', filename: '' },
-    { message: 'x is not defined', filename: 'chrome-extension://abc/inject.js', lineno: 1 },
   ];
   for (const s of skip) assert.equal(normalizeError(s, O), null, JSON.stringify(s.message || String(s.reason)));
+  // (CITY A: an extension's error is not ours — never a row; it is COUNTED now: { ext: true } → errlog.js#countQuiet('ext'))
+  assert.deepEqual(normalizeError({ message: 'x is not defined', filename: 'chrome-extension://abc/inject.js', lineno: 1 }, O), { ext: true });
   // a module that failed to load is NOT noise: that game's screen stays blank
   assert.ok(normalizeError({ reason: new TypeError('Importing a module script failed.') }, O));
 });
@@ -57,4 +58,22 @@ test('fields are clipped and the same error shares a key', () => {
   const b = normalizeError({ message: 'oops', filename: `${O}/js/app.js`, lineno: 5, colno: 9 }, O);
   assert.equal(errorKey(a), errorKey(b));
   assert.ok(shortStack('a\nb\nc\nd\ne\nf\ng\nh', O).split('\n').length <= 5);
+});
+
+// CITY A — item 28, EXTENSION NOISE: dropped + COUNTED (errlog.js#countQuiet 'ext'), never a row
+import { extensionNoise } from '../js/errlog.js';
+import { readFileSync } from 'node:fs';
+test('CITY A — an error from a browser extension is counted, never reported (the iPhone\'s "runtime.sendMessage … Tab not found.")', () => {
+  for (const m of ['Invalid call to runtime.sendMessage(). Tab not found.', 'chrome.runtime.connect failed', 'browser.runtime is undefined']) {
+    assert.equal(extensionNoise(m), true, m);
+    assert.deepEqual(normalizeError({ message: m, filename: `${O}/js/app.js`, lineno: 3 }, O), { ext: true }, `${m} → counted only`);
+  }
+  for (const st of ['at x (safari-web-extension://ABC/content.js:1:2)', 'chrome-extension://abc/x.js:3:4', 'moz-extension://u/y.js:1:1']) {
+    assert.equal(extensionNoise('TypeError: x', st), true, st);
+    assert.deepEqual(normalizeError({ error: Object.assign(new TypeError('x is not a function'), { stack: `TypeError: x\n    ${st}` }) }, O), { ext: true });
+  }
+  assert.equal(extensionNoise('TypeError: x is not a function', `at f (${O}/js/app.js:3:4)`), false, 'our own error is still reported');
+  assert.equal(normalizeError({ message: 'TypeError: boom', filename: `${O}/js/app.js`, lineno: 3 }, O).m, 'TypeError: boom');
+  const src = readFileSync(new URL('../js/errlog.js', import.meta.url), 'utf8');
+  assert.match(src, /if \(e\.ext\) \{ countQuiet\('ext'\); return; \}/, 'counted, never queued');
 });

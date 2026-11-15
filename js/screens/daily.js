@@ -134,7 +134,7 @@ function overlay(cls, onBack) {
   const unhold = holdCity();
   return { el, close() { release(); unhold(); el.classList.add('screen-out'); setTimeout(() => el.remove(), 240); } };
 }
-const backBtn = (label, onClick) => h('button.dy-back', { type: 'button', 'aria-label': label, onclick: onClick }, h('span', { html: BACK }));
+const backBtn = (label, onClick) => h('button.dy-back', { type: 'button', 'data-press': true, 'aria-label': label, onclick: onClick }, h('span', { html: BACK }));
 const goScreen = (tab = 'today') => setState({ daily: { v: 'screen', tab } });
 const closeAll = () => setState({ daily: null });
 
@@ -156,8 +156,8 @@ function openScreen(tab0) {
   els.head = h('header.dy-head', backBtn('Back', () => closeAll()),
     h('h1.dy-sign', { 'aria-label': 'The dailies' }, h('span.dy-sign-t', 'THE DAILIES')));
   els.tabs = h('nav.dy-tabs', { role: 'tablist' },
-    els.tToday = h('button.dy-tab', { type: 'button', role: 'tab', onclick: () => goScreen('today') }, 'TODAY'),
-    els.tScores = h('button.dy-tab', { type: 'button', role: 'tab', onclick: () => goScreen('scores') }, 'SCORES'));
+    els.tToday = h('button.dy-tab', { type: 'button', 'data-press': true, role: 'tab', onclick: () => goScreen('today') }, 'TODAY'),
+    els.tScores = h('button.dy-tab', { type: 'button', 'data-press': true, role: 'tab', onclick: () => goScreen('scores') }, 'SCORES'));
   els.body = h('div.dy-body');
   els.scroll = h('div.dy-scroll', els.head, els.tabs, els.body);
   O.el.append(els.scroll);
@@ -189,6 +189,8 @@ function openScreen(tab0) {
       h('div.dy-sweep-bar', { style: { '--n': sw.of } }, ...sw.segs.map((s, i) => h(`span.dy-seg${s.done ? '.is-done' : ''}`, { style: { '--i': i } }))),
       h('div.dy-sweep-l', sw.swept ? h('b', 'SWEPT') : h('span', h('b', `${sw.done} OF ${sw.of}`), ' · THE SWEEP')));
     const rows = t.dailies.map(d => ticketRow(t, d));
+    // (CITY A — EVERY TAP ACTS: every dy- button acts on its press + lift (data-press, ui/tapwatch.js) — but SHARE TODAY keeps the browser's own
+    //  click: navigator.share needs Safari's real gesture, never a click dispatched by code)
     const share = sw.done ? tubeButton('SHARE TODAY', { kind: 'secondary', block: true, cls: 'dy-share', onClick: () => shareToday(t) }) : null;
     if (share) warmShare(t);   // (PFIX-3 — S11: the card is built NOW — when the screen shows the button, and again when a result changes)
     els.next = h('div.dy-next', { 'aria-live': 'off' });
@@ -216,7 +218,7 @@ function openScreen(tab0) {
       info = h('div.dy-info', h('b.dy-name', d.name), resultEl(d.id, t.mine[d.id], t.extra && t.extra[d.id], 'dy-result'), h('small.dy-rank', sub));
       act = h('span.dy-stamp', { html: stampSvg(), role: 'img', 'aria-label': 'admitted — done for today' });
     } else info = h('div.dy-info', h('b.dy-name', d.name), h('span.dy-hook', d.hook || row.hook || row.tag || ''));
-    if (st !== 'done') act = tubeButton(st === 'progress' ? 'RESUME' : 'PLAY', { kind: st === 'progress' ? 'secondary' : 'main', cls: 'dy-play', onClick: () => play(d.id) });
+    if (st !== 'done') act = tubeButton(st === 'progress' ? 'RESUME' : 'PLAY', { kind: st === 'progress' ? 'secondary' : 'main', cls: 'dy-play', attrs: { 'data-press': true }, onClick: () => play(d.id) });
     const ticket = h(`div.dy-ticket.is-${st}`, { dataset: { id: d.id }, style: inkVars(d.id) },
       h('div.dy-stub', art, serial), info, h('div.dy-act', act), h('i.dy-foil', { 'aria-hidden': 'true' }));
     return h('div.dy-tkw', ticket);
@@ -238,8 +240,8 @@ function openScreen(tab0) {
   // board top 10 + YOU, friends marked · YOUR TABLE's averages). The ten-days rule + the average unchanged. Works for 1–6 dailies.
   function scopeRow() {
     const sw = h('div.dy-scope', { role: 'tablist', 'aria-label': 'Today or all time' }, ...[['today', 'TODAY’S SCORES'], ['all', 'ALL TIME']].map(([v, l]) =>
-      h(`button.dy-scope-b${scope === v ? '.is-on' : ''}`, { type: 'button', role: 'tab', 'aria-selected': String(scope === v), onclick: () => { if (scope !== v) { sfx('select'); scope = v; paint(); } } }, l)));
-    const box = h(`button.dy-fbox${friendsOnly ? '.is-on' : ''}`, { type: 'button', role: 'checkbox', 'aria-checked': String(friendsOnly), 'aria-label': 'Friends only', onclick: () => { sfx('select'); friendsOnly = !friendsOnly; paint(); } },
+      h(`button.dy-scope-b${scope === v ? '.is-on' : ''}`, { type: 'button', 'data-press': true, role: 'tab', 'aria-selected': String(scope === v), onclick: () => { if (scope !== v) { sfx('select'); scope = v; paint(); } } }, l)));
+    const box = h(`button.dy-fbox${friendsOnly ? '.is-on' : ''}`, { type: 'button', 'data-press': true, role: 'checkbox', 'aria-checked': String(friendsOnly), 'aria-label': 'Friends only', onclick: () => { sfx('select'); friendsOnly = !friendsOnly; paint(); } },
       h('i.dy-fbox-sq', { 'aria-hidden': 'true', html: TICK }), h('span', 'FRIENDS'));
     return h('div.dy-scope-row', sw, box);
   }
@@ -271,7 +273,7 @@ function openScreen(tab0) {
           h('div.lb-card.dy-card', h('div.lb-sub',
             r.gated ? h('small.dy-cnote', 'NOT COUNTED') : null,
             h('span.lb-pts', r.score != null ? resultEl(d.id, r.score, extraOf(r)) : h('span.lb-score.dy-cscore', 'PLAYED')))))));
-      const more = cut.hidden.length ? h('button.dy-more', { type: 'button', onclick: () => { sfx('select'); showAll[d.id] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
+      const more = cut.hidden.length ? h('button.dy-more', { type: 'button', 'data-press': true, onclick: () => { sfx('select'); showAll[d.id] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
       const still = stillToPlay(waiting);
       if (tb.rows.length > 1) lonely = false;
       els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } },
@@ -310,7 +312,7 @@ function openScreen(tab0) {
         const rows = [...E.rows, ...(meRow ? [meRow] : [])];
         const list = h('ol.board-list.is-strips.dy-cards.dy-every-today', { 'aria-label': `${d.name} — everyone today` }, ...rows.map((r, i) => everyRow(d, r, E.played, i)));
         sec.append(list);
-        if (E.more > E.rows.length && !evAll.has(d.id)) sec.append(h('button.dy-more', { type: 'button', onclick: () => { sfx('select'); evAll.add(d.id); paint(); } }, h('span', `SHOW ALL ${E.more}`), h('i', { 'aria-hidden': 'true' })));
+        if (E.more > E.rows.length && !evAll.has(d.id)) sec.append(h('button.dy-more', { type: 'button', 'data-press': true, onclick: () => { sfx('select'); evAll.add(d.id); paint(); } }, h('span', `SHOW ALL ${E.more}`), h('i', { 'aria-hidden': 'true' })));
         if (!E.played) sec.append(h('p.dy-quiet', 'Play it to see their scores.'));
         dressEvery(list, rows, d);
       }
@@ -356,7 +358,7 @@ function openScreen(tab0) {
     if (!pts) { els.body.append(h('p.dy-quiet', 'Counting up the averages…')); return; }
     for (const d of t.dailies) {
       const board = `daily-${d.id}`;
-      const seeBoard = h('button.dy-more.dy-seeboard', { type: 'button', onclick: () => { sfx('select'); setState({ daily: null, view: 'board', boardGame: 'dailies', boardBoard: board, boardPeriod: 'all' }); } }, h('span', 'SEE THE FULL BOARD'), h('b', { 'aria-hidden': 'true' }, '›'));
+      const seeBoard = h('button.dy-more.dy-seeboard', { type: 'button', 'data-press': true, onclick: () => { sfx('select'); setState({ daily: null, view: 'board', boardGame: 'dailies', boardBoard: board, boardPeriod: 'all' }); } }, h('span', 'SEE THE FULL BOARD'), h('b', { 'aria-hidden': 'true' }, '›'));
       const myRows = pts.down ? [] : allTimeRows(pts, { board, me: { pid: pidNow() || 'me', name: me().name }, names: names(), need: MIN_DAYS });
       if (!friendsOnly) {
         const evl = h('ol.board-list.is-strips.dy-cards.dy-every-list', { 'aria-label': `${d.name} — everyone, all time` });
@@ -370,7 +372,7 @@ function openScreen(tab0) {
           h('span.lb-rank', r.place ? ordinal(r.place) : ''),
           h('div.lb-card.dy-card', h('div.lb-sub', ln.note ? h('small.dy-cnote.dy-anote', ...ln.note.split(' · ').map(x => h('span', x))) : null,
             ln.score ? h('span.lb-pts', h('span.lb-score.dy-cscore', ln.score, h('small.dy-unit', ln.unit))) : null))); })) : null;
-      const more = cut.hidden.length ? h('button.dy-more', { type: 'button', onclick: () => { sfx('select'); showAll[`all:${d.id}`] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
+      const more = cut.hidden.length ? h('button.dy-more', { type: 'button', 'data-press': true, onclick: () => { sfx('select'); showAll[`all:${d.id}`] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
       els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } },
         secHead(d),
         h('h3.dy-sub', 'YOUR FRIENDS · AVERAGE A DAY'),

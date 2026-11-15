@@ -190,6 +190,11 @@ function logIds(list, re) {
   if (!Array.isArray(list) || !list.length || list.length > 200 || !list.every(x => typeof x === 'string' && re.test(x))) throw new ApiError(400, 'bad_ids');
   return [...new Set(list)];
 }
+// CITY A — THE QUIET COUNTS beside the errors (api/log.js#QUIET_KINDS): never a row each — one number + when it last happened
+async function quietCounts() {
+  const all = (await val('logstats').catch(() => null)) || {};
+  return Object.fromEntries(['gone', 'ext', 'old'].map(k => [k, { n: (all[k] && all[k].n) || 0, last: (all[k] && all[k].last) || null }]));
+}
 async function errorList(now) {
   const all = (await val('errlog')) || {};
   const stale = Object.keys(all).filter(k => !(all[k].last > now - ERR_KEEP_MS));
@@ -315,7 +320,7 @@ export async function adminAction(uid, body, now = Date.now()) {
       return { log, names };
     }
     case 'stats': return stats(now, !!body.fresh);
-    case 'errors': return { errors: await errorList(now) };
+    case 'errors': return { errors: await errorList(now), quiet: await quietCounts() };
     case 'clearErrors': {
       const sig = body.sig ? String(body.sig) : null, sigs = logIds(body.sigs, SIG_RE);
       if (sig && !SIG_RE.test(sig)) throw new ApiError(400, 'bad_sig');

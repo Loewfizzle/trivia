@@ -147,12 +147,19 @@ async function panelSection() {
   okT(dt > 2500 && dt < 4500, `THE DELAY: started ${dt} ms after the sheet closed (3 s)`);
   await waitFor(O.page, 'window.__district.scene().rain > 0', 'the rain falls', 6000);
   // reopening during the countdown CANCELS it — the queue stays queued; closing again starts it
+  // (CITY A — PFIX-3's cloud red "the city still rain after 3 s" read snow: on the cloud's slow runner the ☰ menu + its settle took longer than
+  //  the 3-s countdown, so it RAN OUT before the reopen — no cancel ever happened (the panel's code was right). The cancel case runs on the 5-s
+  //  delay, and the panel's own count proves the reopen landed INSIDE the countdown (cdCancels +1, cdFired unchanged) before the city is judged)
   await reopen(O.page);
-  await chip('SNOW'); await closeSheet(O.page); await sleep(600);
+  await ev(O.page, 'window.__district.remote().delay(5)');
+  await chip('SNOW');
+  const c0 = await ev(O.page, 'window.__district.remote().debug()');
+  await closeSheet(O.page); await sleep(600);
   await reopen(O.page);
-  { const d = await ev(O.page, 'window.__district.remote().debug()'); await sleep(3300);
-    const wx = (await flags(O.page)).wx;
-    ok(!d.countdown && d.queued && d.pend.wx === 'snow' && wx === 'rain', `THE DELAY: reopening cancels the countdown (${JSON.stringify(d.countdown)}), SNOW still QUEUED, the city still rain after 3 s (${wx})`); }
+  { const d = await ev(O.page, 'window.__district.remote().debug()'); await sleep(5600);
+    const wx = (await flags(O.page)).wx, inside = d.cdCancels === c0.cdCancels + 1 && d.cdFired === c0.cdFired;
+    ok(inside && !d.countdown && d.queued && d.pend.wx === 'snow' && wx === 'rain', `THE DELAY: reopening INSIDE the countdown cancels it (cancels +${d.cdCancels - c0.cdCancels}, ran out +${d.cdFired - c0.cdFired}; now ${JSON.stringify(d.countdown)}), SNOW still QUEUED, the city still rain after 5 s (${wx})`); }
+  await ev(O.page, 'window.__district.remote().delay(3)');
   // RECENT: the rows fired (this device); one tap fires one again — the sheet closes, the countdown runs, the queued SNOW goes with it
   // (9d: RECENT sits under the NOW bar — below the first screen on a phone: scrolled to, like a thumb would)
   { const rc = await ev(O.page, `[...document.querySelectorAll('.hr-rc')].map(b => b.dataset.rk)`);

@@ -97,6 +97,7 @@ function shell() {
     card('ad-errors', 'Errors from phones', { cls: 'ad-errors', open: false },
       logTools('ad-errors', v => { logs.errQ = v; paintErrors(); }, errors, confirmBtn('Clear all', async () => { renderErrors((await call('clearErrors')).errors); toast('Cleared'); audit(); }, 'is-danger')),
       h('p.ad-dim', 'Code errors on players’ screens — one row per kind (the message), with its count + first / last seen; tap a row for each place it happened. MARK SEEN resets the “new” count. Quiet for 30 days → removed.'),
+      h('p.ad-note.ad-quiet', { id: 'ad-quiet' }),   // (CITY A — THE QUIET COUNTS: counted, never a row each)
       h('ol.ad-errs', { id: 'ad-errs' }, h('li.ad-dim', 'Loading…'))),
     card('ad-reports', 'Reports from phones', { cls: 'ad-errors', open: false },
       logTools('ad-reports', v => { logs.repQ = v; paintReports(); }, reports, confirmBtn('Clear all', async () => { renderReports((await call('clearReports')).reports); toast('Cleared'); audit(); }, 'is-danger')),
@@ -615,7 +616,16 @@ async function outages(r) {
 const logs = { err: [], rep: [], errQ: '', repQ: '', openErr: new Set(), openRep: new Set() };
 async function errors() {
   if (!document.getElementById('ad-errs')) return;
-  renderErrors((await call('errors')).errors);
+  const r = await call('errors');
+  renderErrors(r.errors); paintQuiet(r.quiet);
+}
+// CITY A — THE QUIET COUNTS (api/log.js#QUIET_KINDS): the noise that is COUNTED, never a row — a room write refused after the phone had gone
+// (left / lost the host / the room closed) and a browser extension's error; one line, the last time each happened
+function paintQuiet(q) {
+  const el = document.getElementById('ad-quiet');
+  if (!el || !q) return;
+  const when = t => (t ? ` · last ${new Date(t).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : '');
+  el.textContent = `counted, not listed — room writes refused after leaving: ${(q.gone && q.gone.n) || 0}${when(q.gone && q.gone.last)} · browser-extension errors: ${(q.ext && q.ext.n) || 0}${when(q.ext && q.ext.last)}`;
 }
 const counts = o => Object.entries(o || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(' · ');
 function renderErrors(list) { logs.err = list || []; paintErrors(); }

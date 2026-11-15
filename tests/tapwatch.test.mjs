@@ -92,3 +92,42 @@ test('/admin groups THE TAP WATCH’s reports as LOST TAP (the server half — i
   const g = groupReports([{ id: 'a', kind: 'lost', at: 1 }, { id: 'b', kind: 'hang', at: 2 }]);
   assert.deepEqual(g.map(x => x.title).sort(), ['HANG', 'LOST TAP']);
 });
+
+// CITY A — item 5, EVERY TAP ACTS: ONE rule in the watch (data-press), the controls that carry it
+import { pressActs, tookClick, settledAt, PRESS_MS, PRESS_SLOP } from '../js/ui/tapwatch.js';
+const rd = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+test('CITY A — a data-press control acts on a still, short touch: < 10 px, ≤ 600 ms, never a mouse, a scroll or a disabled control (PURE)', () => {
+  assert.equal(PRESS_MS, 600); assert.equal(PRESS_SLOP, 10);
+  assert.equal(pressActs({ type: 'touch', dur: 113, travel: 0 }), true, 'the owner\'s ALL TIME: held 113 ms, travelled 0 px');
+  assert.equal(pressActs({ type: 'touch', dur: 600, travel: 9.9 }), true);
+  assert.equal(pressActs({ type: 'touch', dur: 601, travel: 0 }), false, 'a long-press');
+  assert.equal(pressActs({ type: 'touch', dur: 100, travel: 10 }), false, 'the finger travelled');
+  assert.equal(pressActs({ type: 'touch', dur: 100, travel: 0, cancelled: true }), false, 'a scroll (iOS cancels the pointer)');
+  assert.equal(pressActs({ type: 'mouse', dur: 100, travel: 0 }), false, 'a mouse keeps the plain click');
+  assert.equal(pressActs({ type: 'pen', dur: 100, travel: 0, disabled: true }), false);
+});
+test('CITY A — the browser\'s click after the press acted is swallowed (near the lift, < 800 ms) — never twice; a sheet settles in 350 ms (PURE)', () => {
+  const took = { x: 100, y: 200, at: 1000 };
+  assert.equal(tookClick(took, { x: 101, y: 199, at: 1300 }), true);
+  assert.equal(tookClick(took, { x: 100, y: 238, at: 1100 }), false, 'a click elsewhere is another tap');
+  assert.equal(tookClick(took, { x: 100, y: 200, at: 1900 }), false, 'too late: a new tap');
+  assert.equal(settledAt(1000, 1200), false); assert.equal(settledAt(1000, 1350), true); assert.equal(settledAt(0, 5), true, 'no data-born: settled');
+});
+test('CITY A — the owner\'s list carries data-press: THE BOARD\'s tabs, the radio\'s tabs + × + jacks, bd-open, the slim cards, the games shelf, EVERY dy- button (but SHARE)', () => {
+  const B = rd('js/board/view.js'), R = rd('js/screens/harbor/radio.js'), D = rd('js/screens/daily.js');
+  for (const c of ['bd-tab', 'bd-open', 'bd-seg-b', 'bd-chip']) assert.match(B, new RegExp(`h\\('button\\.${c}', \\{\\s*type: 'button', 'data-press': true`), c);
+  for (const c of ['rd-x', 'rd-bb', 'rd-jack']) assert.match(R, new RegExp(`h\\('button\\.${c}', \\{ type: 'button', 'data-press': true`), c);
+  assert.match(R, /'aria-label': 'The radio', dataset: \{ born:/, 'the desk settles before its jacks take taps');
+  assert.match(rd('js/profile/friends-ui.js'), /h\('button\.fr-open', \{ type: 'button', 'data-press': true/);
+  assert.match(rd('js/screens/room-guests.js'), /h\('div\.rg-row', \{ 'data-press': true/);
+  assert.match(rd('js/screens/title-taps.js'), /cls: 'nd-shelf-row', attrs: \{ 'data-press': true/);
+  const dy = D.match(/h\((['`])button\.dy-[^,]*?\1, \{ [^}]*/g) || [];
+  assert.ok(dy.length >= 9 && dy.every(x => x.includes("'data-press': true")), `every dy- button (${dy.length})`);
+  assert.match(D, /cls: 'dy-play', attrs: \{ 'data-press': true \}/);
+  assert.doesNotMatch(D, /cls: 'dy-share', attrs: \{ 'data-press'/, 'SHARE keeps Safari\'s own gesture (navigator.share)');
+  assert.match(rd('js/ui/sheet.js'), /el\.dataset\.born = String\(performance\.now\(\)\)/);
+  // NOW PLAYING's 1-s tick changes TEXT only; the push paper is never re-rendered on a timer
+  const L = rd('js/screens/harbor/radio-ledger.js');
+  assert.match(L, /const t = npLine\(\); if \(np\.textContent !== t\) np\.textContent = t;/);
+  assert.doesNotMatch(rd('js/screens/harbor/radio-push.js'), /setInterval|setTimeout\(\s*paint/);
+});

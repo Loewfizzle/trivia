@@ -1198,6 +1198,28 @@ test('old browsers: counted on one line, never a BOOT HANG; a current browser st
   await ref('/').update({ phonelog: null, rl: null, logstats: null });
 });
 
+// ---- CITY A — THE QUIET COUNTS: 'gone' (a room write refused after the phone had left / lost the host / seen the room close — item 6) +
+// 'ext' (a browser extension's error — item 28) are COUNTED on one line each (logstats/{kind}), never a row; /admin's errors carries them
+test('THE QUIET COUNTS: gone + ext counted (≤ 3 an hour per IP + kind), never a row; /admin's errors action returns them', async () => {
+  await ref('/').update({ phonelog: null, rl: null, logstats: null });
+  const now = Date.UTC(2026, 10, 14, 21);
+  const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 27_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1';
+  assert.equal(await logReport({ p: 'report', r: { kind: 'gone', text: 'gone' } }, { ip: '8.8.8.1', ua, now }), 1);
+  assert.equal(await logReport({ p: 'report', r: { kind: 'ext', text: 'ext' } }, { ip: '8.8.8.1', ua, now: now + 1 }), 1);
+  let more = 0; for (let i = 0; i < 5; i++) more += await logReport({ r: { kind: 'gone', text: 'gone' } }, { ip: '8.8.8.1', ua, now: now + 10 + i });
+  assert.equal(more, 2, '3 an hour per IP for a kind');
+  assert.equal(await val('phonelog'), null, 'never stored as a report row');
+  assert.deepEqual(await val('logstats/gone'), { n: 3, last: now + 11 });
+  assert.deepEqual(await val('logstats/ext'), { n: 1, last: now + 1 });
+  const boss = await ensure('u-quietboss', 'QuietBoss');
+  process.env.ADMIN_PIDS = boss.pid;
+  try {
+    const r = await adminAction('u-quietboss', { action: 'errors' }, now + 60_000);
+    assert.equal(r.quiet.gone.n, 3); assert.equal(r.quiet.ext.n, 1); assert.equal(r.quiet.old.n, 0);
+  } finally { process.env.ADMIN_PIDS = ''; }
+  await ref('/').update({ phonelog: null, rl: null, logstats: null });
+});
+
 // ---- 9e — SEND REPORT + the hang watch (api/log.js#logReport) and the admin's view of them
 test('phone reports: stored as plain text, rate-limited, newest 40 kept, admins only', async () => {
   await ref('/').update({ phonelog: null, rl: null });

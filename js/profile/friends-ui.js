@@ -153,7 +153,7 @@ function cardList(cs) {
   const list = h('ol.fr-cards');
   for (const c of cs) {
     list.append(h('li.fr-crow', { dataset: { pid: c.pid } }, h('div.fr-scard',
-      h('button.fr-open', { type: 'button', 'aria-label': `${c.n} — their card`, onclick: () => lazyImport(import('./player-page.js'), './player-page.js').then(m => m.openPlayer({ pid: c.pid, row: c })).catch(() => {}) }),
+      h('button.fr-open', { type: 'button', 'data-press': true, 'aria-label': `${c.n} — their card`, onclick: () => lazyImport(import('./player-page.js'), './player-page.js').then(m => m.openPlayer({ pid: c.pid, row: c })).catch(() => {}) }),
       h('div.fr-ssub',
         h('button.fr-dots', { type: 'button', 'aria-label': `More for ${c.n}`, html: '<svg viewBox="0 0 16 4" aria-hidden="true"><circle cx="2" cy="2" r="1.8"/><circle cx="8" cy="2" r="1.8"/><circle cx="14" cy="2" r="1.8"/></svg>', onclick: () => openMore(c) }),
         c.here ? h('span.fr-here', h('i.fr-dot', { 'aria-hidden': 'true' }), 'HERE') : null,

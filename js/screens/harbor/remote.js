@@ -143,6 +143,7 @@ export function createRemote({ scene, api = apiCall }) {
   const restart = new Set();       // events already on that a RECENT tap fires again (they start over)
   let draft = { state: {}, ui: {} }, mins = R.DEFAULT_MINS, delay = loadDelay(), query = '', recent = loadRecent();
   let cd = null;                   // the countdown: { mode, at (server ms), what, n, iv }
+  let cdCancels = 0, cdFired = 0;  // (CITY A — PFIX-3's cloud red "THE DELAY": how many countdowns a reopen cancelled / ran to the end — the test's proof)
   let play = null, paEl = null;    // WIN — PLAY ALL: { kind, items, i, paused, timer, t0, left (ms), before (the JUST ME state to restore) }
   const openSecs = loadOpen();
   const saveMine = () => ss.set(ME_KEY, R.isEmpty(mine.state) ? null : { state: mine.state, ui: mine.ui });
@@ -354,7 +355,7 @@ export function createRemote({ scene, api = apiCall }) {
   function cdTick() {
     if (!cd) return;
     const left = cd.at - serverNow();
-    if (left <= 0) { const m = cd.mode; stopCd(); if (m === 'me') commit(); else promote(); goFlash(m); return; }
+    if (left <= 0) { const m = cd.mode; stopCd(); cdFired++; if (m === 'me') commit(); else promote(); goFlash(m); return; }
     const n = Math.ceil(left / 1000);
     if (n !== cd.n) { cd.n = n; paintCd(); }
   }
@@ -558,7 +559,7 @@ export function createRemote({ scene, api = apiCall }) {
       // real clock + the live weather back, every piece in flight stopped), an active EVERYONE state ignored here — a second tap within
       // 8 s clears it for everyone too (the button says so; never a toast asking)
       if (clearAgainT > Date.now()) { clearAgainT = 0; await clearEveryone(); return; }
-      if (cd && cd.mode === 'me') stopCd();
+      if (cd && cd.mode === 'me') { stopCd(); cdCancels++; }
       if (!R.isEmpty(mine.state)) cleared.push(`JUST ME (${R.describe(mine.state).toUpperCase().slice(0, 40)})`);
       pend = null; restart.clear(); mine.state = {}; mine.ui = {}; mine.at = serverNow(); saveMine();
       if (liveOn()) ignoreLiveAt = live.startAt;
@@ -1034,7 +1035,7 @@ export function createRemote({ scene, api = apiCall }) {
     playAll, playSkip: () => { if (play) playStep(play.i + 1); }, playStop: () => stopPlay(true), playing: () => (play ? { kind: play.kind, i: play.i, id: play.items[play.i].id, n: play.items.length, paused: play.paused, when: mine.state.when || null, hour: play.items[play.i].hour } : null),
     /** (shots) a countdown chip on show, as if the sheet had just closed */
     previewCountdown(m = 'me', s = 3, what = 'AURORA · DUSK') { countdown(m, serverNow() + s * 1000 + 400, what); setTimeout(() => { if (cd && cd.what === what) clearInterval(cd.iv); }, 450); },
-    debug: () => ({ cue: effective() || null, what: R.describe(mine.state), words: nowWords(mine.state), mode, admin, mine: mine.state, pend: pend && pend.state, queued: dirtyMe(), live, liveNext, delay, query, recent: recent.slice(), countdown: cd && { mode: cd.mode, at: cd.at, n: cd.n, what: cd.what }, open: [...openSecs], effective: !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : null }),
+    debug: () => ({ cue: effective() || null, what: R.describe(mine.state), words: nowWords(mine.state), mode, admin, mine: mine.state, pend: pend && pend.state, queued: dirtyMe(), live, liveNext, delay, query, recent: recent.slice(), countdown: cd && { mode: cd.mode, at: cd.at, n: cd.n, what: cd.what }, cdCancels, cdFired, open: [...openSecs], effective: !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : null }),
     destroy() {
       destroyed = true; clearTimeout(helloT); clearInterval(tick); clearInterval(musicT); clearTimeout(typeT); clearTimeout(nextT); clearTimeout(goT);
       if (cd) clearInterval(cd.iv);

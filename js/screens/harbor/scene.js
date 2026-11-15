@@ -344,7 +344,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (the word's flags are read when it lights: THE PREVIEW PANEL changes them live)
   const spellOpts = () => [qp.get('text') || 'HELLO', { style: qp.get('style') || 'wipe', tower: qp.get('tower') || undefined }];
   let dbgFadeIn = 0; let spellBy = null;                             // who lit the current word: 'force' | an event's seed
-  let raf = 0, last = 0, lastRaf = 0, running = false, destroyed = false, t0 = performance.now();
+  let raf = 0, last = 0, lastRaf = 0, running = false, destroyed = false, t0 = performance.now(), drawnPerf = 0;
   const liveMe = () => running; LIVE.add(liveMe);
   let rafStamp = -1, loopDup = 0;          // (LOAD FIX 5: two frame callbacks in ONE animation frame = two loops — counted, the guard fails on one)
   // (LOAD FIX 4 — THE HIDDEN BOOT, Grok's boot audit #6: the reveal's gates — REVEAL_MAX, WX_WAIT, FONT_WAIT, the rects' wait — count the
@@ -1669,8 +1669,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!seasonForced() && !(LK && LK.south)) { const hs = holidaySeason(HS, L.season, L.seasonPhase); L.season = hs.season; L.seasonPhase = hs.phase; }
     const T = lookTones(), parts = bakeParts(), bk = Object.values(parts).join('|');
     { const d = partsDiff(bakeParts0, parts), slow = shownAt >= 0 && wxRecent() && /tones|sun|road/.test(d);
+      // (CITY A — PFIX-3's cloud red "LOAD WEATHER … bake crossfade 1200 ms · neon": the tri-vision TURNED inside the check's window (a turn every
+      //  45–60 s by the server clock — the real clock's seconds, whatever hour the test pins). A board swap whose re-bake lands UNDER THE TURNING
+      //  SLATS (they hold the new face until that bake has landed + faded — triU) is never seen: logged, not counted as a change after the reveal)
+      const slats = d === 'neon' && !!tri.turn && shownAt >= 0;
       fadeMs = slow ? WX_BLEND : 1200;
-      LOADLOG.add('bake', `${holdOn ? 'swap (under the held picture)' : shownAt >= 0 ? `crossfade ${fadeMs} ms` : 'swap (dark)'} · ${d}${slow ? ' (the weather: slow)' : ''}`, { fade: shownAt >= 0 && !slow && !holdOn }); bakeParts0 = parts; }
+      LOADLOG.add('bake', `${holdOn ? 'swap (under the held picture)' : slats ? `crossfade ${fadeMs} ms under the tri-vision's slats` : shownAt >= 0 ? `crossfade ${fadeMs} ms` : 'swap (dark)'} · ${d}${slow ? ' (the weather: slow)' : ''}`, { fade: shownAt >= 0 && !slow && !holdOn && !slats }); bakeParts0 = parts; }
     revOfBake.set(bk, neon.rev); if (revOfBake.size > 8) revOfBake.delete(revOfBake.keys().next().value);   // (8b1: the board swap's overlay)
     camOfBake.set(bk, camSig); if (camOfBake.size > 8) camOfBake.delete(camOfBake.keys().next().value);   // (THE LOAD FIX: the camera each bake was laid out for — the doubled-lettering probe)
     // 9b — THE SNOW (snow.js): the caps on every layer's tops, the ground after the paving (+ the day's shadows again over it), the
@@ -1831,7 +1835,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     lastDt = dt;
     last = now;
     const t = (now - t0) / 1000;
-    const c0 = performance.now();
+    const c0 = performance.now(); drawnPerf = c0;   // (CITY A: the draw's REAL start — the planner's clock — beside its rAF stamp `last`: the motion probe's frame stamps)
     // (the Safari floor: a frame that throws — iOS out of canvas memory, a layer's context refused — never takes the city down
     // every frame: it steps the tier down to free memory, and after many in a row stops the loop on the last good frame)
     try { draw(t, dt, now); fails = 0; } catch (e) { if (!frameFailed(e)) return; }
@@ -3389,7 +3393,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** FR7 FIXES A — THE LOST LOOK: { n, why, at, checks, sentinel } · purge(): TESTS — wipe every watched canvas as iOS would (no event) */
     lost: () => ({ ...lostLog, sentinel: sentinel ? sentinel.name : null, bakes: baker.bakes, holdOn }),
     purge: () => purgeForTest(),
-    loop: () => ({ running, ago: Math.round(performance.now() - seenAt), drawn, drawnAt: last, failStop, ...loopLog, at: Math.round(loopLog.at), wx: WXS ? WXS.state : null, wxBeds: snd.weatherBeds() }),
+    // (CITY A: drawnPerf = the last draw's REAL start; bpm = the pace the dancers' clock follows — 120 = the stand-in grid, people.js#danceBeat)
+    loop: () => ({ running, ago: Math.round(performance.now() - seenAt), drawn, drawnAt: last, drawnPerf, bpm: PT.on > 0.05 && PT.beatsF != null ? hbeat.bpm : 120, failStop, ...loopLog, at: Math.round(loopLog.at), wx: WXS ? WXS.state : null, wxBeds: snd.weatherBeds() }),
     /** 8a (test hook): what the watchdog does now (why: 'visible' | 'pageshow' | 'focus' | 'tap' | 'watchdog') → true = restarted */
     wakeLoop: why => wakeLoop(why),
     /** 9e — THE CONSTRUCTION TOWER: its stage now + what the live layer sees */

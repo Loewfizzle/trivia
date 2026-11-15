@@ -20,6 +20,12 @@ const IGNORE = [
 
 const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
+// CITY A — item 28, EXTENSION NOISE ("Invalid call to runtime.sendMessage(). Tab not found." — iPhone Safari, build 87cffc6): an error whose
+// message or stack points at a BROWSER EXTENSION is not ours to fix — dropped, COUNTED only (countQuiet('ext') — /admin's errors, one number)
+const EXTENSION = /runtime\.sendMessage|chrome\.runtime|browser\.runtime|safari-web-extension:\/\/|safari-extension:\/\/|chrome-extension:\/\/|moz-extension:\/\//i;
+/** PURE: does this message / stack come from a browser extension? */
+export const extensionNoise = (m, stack = '') => EXTENSION.test(String(m || '')) || EXTENSION.test(String(stack || ''));
+
 /** PURE: a file URL as a short path in our code ('js/app.js'), or null when it isn't ours (extensions, CDNs). */
 export function ownPath(url, origin) {
   if (!url) return '';
@@ -50,6 +56,7 @@ export function normalizeError(input, origin) {
   if (IGNORE.some(re => re.test(m))) return null;
   // the file the error came from: the event's own, else the stack's first frame
   const stack = err && err.stack ? String(err.stack) : '';
+  if (extensionNoise(m, stack) || extensionNoise('', input.filename)) return { ext: true };   // (CITY A — item 28: counted, never a row)
   const firstFrame = /(https?:\/\/[^\s)]+?):(\d+):(\d+)/.exec(stack);
   const file = input.filename || (firstFrame && firstFrame[1]) || '';
   const s = ownPath(file, origin);
@@ -110,6 +117,7 @@ function record(input, label = '') {
     if (typeof location === 'undefined') return;
     const e = normalizeError(input, location.origin);
     if (!e) return;
+    if (e.ext) { countQuiet('ext'); return; }
     if (label) e.m = clip(`${label}: ${e.m}`, 300);
     remember(e);
     if (sent >= MAX_PER_PAGE) return;
@@ -124,12 +132,30 @@ function record(input, label = '') {
   } catch { /* never let reporting throw */ }
 }
 
+// CITY A — THE QUIET COUNTS (api/log.js#QUIET_KINDS): a kind of noise that is COUNTED, never a row — once a page per kind (a page that saw it,
+// not every write): 'gone' = a room write the rules refused after this phone left / lost the host / saw its room close (firebase.js), 'ext' = a
+// browser extension's error. /admin's errors shows the two numbers.
+const QUIET = new Set(['gone', 'ext']), quietSent = new Set();
+const quietN = { gone: 0, ext: 0 };
+export function countQuiet(kind) {
+  try {
+    if (!QUIET.has(kind)) return;
+    quietN[kind]++;
+    if (quietSent.has(kind) || BOT || typeof navigator === 'undefined') return;
+    quietSent.add(kind);
+    const body = JSON.stringify({ p: 'report', r: { kind, text: kind } });
+    const blob = new Blob([body], { type: 'text/plain' });
+    if (!(navigator.sendBeacon && navigator.sendBeacon('/api/log', blob))) fetch('/api/log', { method: 'POST', body, keepalive: true, headers: { 'Content-Type': 'text/plain' } }).catch(() => {});
+  } catch { /* never let reporting throw */ }
+}
+export const quietCounts = () => ({ ...quietN });
+
 /** Report an error by hand (a caught failure that leaves the player stuck: a game screen that couldn't load…). */
 export const reportError = (error, label = '') => record({ error: error instanceof Error ? error : new Error(String(error)) }, label);
 const onEvent = input => record(input);
 
 if (typeof window !== 'undefined' && typeof location !== 'undefined' && !window.__errlog) {
-  window.__errlog = { reportError, pending: () => queue.slice(), seen: () => [...seen] };
+  window.__errlog = { reportError, pending: () => queue.slice(), seen: () => [...seen], quiet: quietCounts };
   window.addEventListener('error', ev => {
     // resource load errors (an <img>, <link>) have no message and target an element: not code errors
     if (ev.target && ev.target !== window && !ev.message) return;
