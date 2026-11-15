@@ -61,7 +61,9 @@ try {
       for ($i = 0; $i -lt $r.split; $i++) { $name = "$p@$($i)of$($r.split).json.gz"; Keep-Part (Fetch "backup=$p&slice=$i/$($r.split)" $name) $name }
     } else { Keep-Part $r "$p.json.gz" }
   }
-  [IO.File]::WriteAllLines((Join-Path $tmp 'checksums.sha256'), $sums)
+  # (FIXES R1: LF line ends, no BOM — WriteAllLines wrote CRLF on Windows and Git Bash's `sha256sum -c checksums.sha256` (docs/backup.md) then
+  #  looked for "profiles.json.gz": every line FAILED to open)
+  [IO.File]::WriteAllText((Join-Path $tmp 'checksums.sha256'), (($sums -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding $false))
   if (Test-Path $dir) { Remove-Item -Recurse -Force $dir }
   Rename-Item -Path $tmp -NewName (Split-Path $dir -Leaf)
   $H2 = $H.Clone(); $H2['x-backup-bytes'] = "$($script:bytes)"; $H2['x-backup-parts'] = "$($script:n)"

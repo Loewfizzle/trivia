@@ -990,8 +990,9 @@ export function createTitle() {
     if (!code || destroyed) return;
     lazyImport(import('../profile/me.js'), '../profile/me.js').then(M => {
       if (!M.myPid()) return;   // (no profile yet — it waits for the first one)
-      try { localStorage.removeItem('ns:fr:addme'); } catch { /* fine */ }
-      return lazyImport(import('../profile/friends-ui.js'), '../profile/friends-ui.js').then(m => m.openAddLink(code));
+      // (FIXES R1 — THE REVIEW A14: the link is forgotten only once the server ANSWERED — a failed fetch keeps "ADD <NAME>?" for the next visit)
+      return lazyImport(import('../profile/friends-ui.js'), '../profile/friends-ui.js').then(m => m.openAddLink(code))
+        .then(() => { try { localStorage.removeItem('ns:fr:addme'); } catch { /* fine */ } });
     }).catch(() => {});
   }
   { const q0 = new URLSearchParams(location.search), add = q0.get('add'), fr = q0.get('fr');

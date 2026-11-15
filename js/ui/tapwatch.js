@@ -49,6 +49,8 @@ export const PRESS_NEVER = '[data-gesture], [data-act="copy"], [data-act="share"
 // TOUCH's own lift — a pointerup (not a mouse's) is a user activation, and its click() runs inside that dispatch — the browser's late click
 // swallowed after; THE RESCUE never clicks one (it would always fail) — it is logged instead. A form's submit keeps its real click (the keychain).
 export const GESTURE_OWN = '[data-gesture], [data-act="copy"], [data-act="share"]';
+/** every control a press may act on (THE REVIEW A13 — the twin lookup at the lift) */
+export const TWIN_SEL = `[data-press], ${PRESS_IMPLICIT}, ${GESTURE_OWN}`;
 /** PURE: does a press on `el` (a pointer of `type`) act at its lift as a gesture control? (a mouse's click carries the gesture itself) */
 export function gestureControl(el, type = 'touch') {
   try { return !!(el && el.matches && type !== 'mouse' && el.matches(GESTURE_OWN) && !el.matches('[type="submit"], [data-press-tap], [data-tap-own], [data-tap-own] *')) ? el : null; } catch { return null; }
@@ -202,6 +204,9 @@ export function pressTap(el, fn) {
 }
 
 function onDown(e) {
+  // (FIXES R1 — THE REVIEW A12: a NEW press ends the last press-act's swallow window — `took` lived 800 ms, so a second tap in it on a control
+  //  that needs its REAL click had that click swallowed (inside a game: a lost tap). Only the click of the SAME tap is ever the tail)
+  if (e.isPrimary !== false) took = null;
   try {
     if (e.isPrimary === false) return;
     if (press) endPress('new');
@@ -254,7 +259,9 @@ function onUp(e) {
   try {
     if (p.act && p.up && pressActs({ type: p.type, dur: p.dur, travel: p.travel, cancelled: p.cancelled, disabled: disabled(p.act) })) {
       let target = p.act.isConnected ? p.act : null;
-      if (!target) { const at = document.elementFromPoint(p.up.x, p.up.y), tw = at && at.closest && at.closest('[data-press]'); if (tw && sigOf(tw) === sigOf(p.act)) target = tw; }
+      // (FIXES R1 — THE REVIEW A13: the twin of a control re-rendered between down + up is found by EVERY press rule — data-press, the implicit
+      //  .btn-block / icon buttons, AND the gesture controls (share / copy / passkey: re-rendered mid-press they never acted — the rescue refuses them))
+      if (!target) { const at = document.elementFromPoint(p.up.x, p.up.y), c = at && at.closest && at.closest(TWIN_SEL), tw = c && (pressControl(c, p.game) || gestureControl(c, p.type)); if (tw && sigOf(tw) === sigOf(p.act)) target = tw; }
       if (target) {
         p.handled = true; stats.pressed++;
         took = { el: target, x: p.up.x, y: p.up.y, at: performance.now() };

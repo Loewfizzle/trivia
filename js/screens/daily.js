@@ -160,6 +160,9 @@ function openScreen(tab0) {
   const fresh0 = C0 && C0.day === dayNow() ? C0 : null;
   let rev = 0, evCached = false, ptsCached = false;
   const everyCached = new Set(), everyAsked = new Set();
+  // (FIXES R1 — THE REVIEW A10: a refresh that FAILED over a kept list says so — COULDN'T UPDATE — never this morning's numbers read as fresh)
+  let evFailed = false, ptsFailed = false;
+  const everyFailed = new Set();
   if (fresh0) {
     // (the day's list of dailies + your results as last seen: on a fresh page `today` itself waits for the same cold function)
     if (!today && fresh0.today && Array.isArray(fresh0.today.dailies)) today = fresh0.today;
@@ -167,7 +170,7 @@ function openScreen(tab0) {
     if (fresh0.pts) { pts = fresh0.pts; ptsCached = true; }
     for (const [b, rows] of Object.entries(fresh0.boards || {})) if (Array.isArray(rows)) { every[b] = rows; everyCached.add(b); }
   }
-  const upd = on => (on ? h('span.dy-upd', ' · UPDATING…') : null);
+  const upd = (on, failed = false) => (on ? h('span.dy-upd', ' · UPDATING…') : failed ? h('span.dy-upd.is-failed', ' · COULDN’T UPDATE') : null);
   const dropSurfaces = () => { for (const sf of surfaces) { try { sf.destroy(); } catch { /* fine */ } } surfaces = []; };
   els.head = h('header.dy-head', backBtn('Back', () => closeAll()),
     h('h1.dy-sign', { 'aria-label': 'The dailies' }, h('span.dy-sign-t', 'THE DAILIES')));
@@ -310,7 +313,7 @@ function openScreen(tab0) {
   function loadEvery() {
     if (evP) { evAgain = true; return; }
     evP = lazyImport(import('../daily/contract.js'), '../daily/contract.js').then(C => C.dailyEvery([...evAll]))
-      .then(r => { ev = (r && r.every) || {}; evCached = false; rev++; if (!evAll.size) keepScores({ day: (r && r.day) || dayNow(), ev }); }).catch(() => { if (!ev || evCached) { if (!ev) ev = { down: true }; } })
+      .then(r => { ev = (r && r.every) || {}; evCached = false; evFailed = false; rev++; if (!evAll.size) keepScores({ day: (r && r.day) || dayNow(), ev }); }).catch(() => { if (ev && evCached) { evCached = false; evFailed = true; rev++; } else if (!ev) { ev = { down: true }; rev++; } })
       .finally(() => { evP = null; if (evAgain) { evAgain = false; loadEvery(); } else if (!gone) repaint(); });
   }
   function paintEveryone(t) {
@@ -318,7 +321,7 @@ function openScreen(tab0) {
     if (key !== evKey) { evKey = key; loadEvery(); }
     for (const d of t.dailies) {
       const E = ev && !ev.down ? ev[d.id] : null;
-      const sec = h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } }, secHead(d), h('h3.dy-sub', 'EVERYONE · TODAY', upd(evCached)));
+      const sec = h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } }, secHead(d), h('h3.dy-sub', 'EVERYONE · TODAY', upd(evCached, evFailed)));
       if (!ev) sec.append(h('p.dy-quiet', '…'));
       else if (!E) sec.append(h('p.dy-quiet', 'The scores are resting. Try again in a minute.'));
       else if (!E.rows.length && !E.me) sec.append(h('p.dy-none', 'NO ONE HAS FINISHED YET'));
@@ -369,7 +372,7 @@ function openScreen(tab0) {
   function paintAllTime(t) {
     if ((!pts || ptsCached) && !ptsP) {
       ptsP = lazyImport(import('../daily/contract.js'), '../daily/contract.js').then(C => C.dailyPoints(((friends && friends.friends) || []).map(c => c.pid)))
-        .then(r => { pts = r || { down: true }; ptsCached = false; rev++; if (r && !r.down) keepScores({ day: dayNow(), pts: r }); }).catch(() => { if (!pts || ptsCached) { ptsCached = false; if (!pts) pts = { down: true }; } }).finally(() => { if (!gone) repaint(); });
+        .then(r => { pts = r || { down: true }; ptsCached = false; ptsFailed = false; rev++; if (r && !r.down) keepScores({ day: dayNow(), pts: r }); }).catch(() => { if (pts && ptsCached) { ptsCached = false; ptsFailed = true; rev++; } else if (!pts) { pts = { down: true }; rev++; } }).finally(() => { if (!gone) repaint(); });
     }
     if (!pts) { els.body.append(h('p.dy-quiet', 'Counting up the averages…')); return; }
     for (const d of t.dailies) {
@@ -378,7 +381,7 @@ function openScreen(tab0) {
       const myRows = pts.down ? [] : allTimeRows(pts, { board, me: { pid: pidNow() || 'me', name: me().name }, names: names(), need: MIN_DAYS });
       if (!friendsOnly) {
         const evl = h('ol.board-list.is-strips.dy-cards.dy-every-list', { 'aria-label': `${d.name} — everyone, all time` });
-        els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } }, secHead(d), h('h3.dy-sub', 'EVERYONE · ALL TIME', upd(everyCached.has(board) || ptsCached)), evl, seeBoard));
+        els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } }, secHead(d), h('h3.dy-sub', 'EVERYONE · ALL TIME', upd(everyCached.has(board) || ptsCached, everyFailed.has(board) || ptsFailed)), evl, seeBoard));
         paintEvery(evl, board, d, myRows.find(r => r.me) || null);
         continue;
       }
@@ -404,7 +407,7 @@ function openScreen(tab0) {
     if (!got || (everyCached.has(board) && !everyAsked.has(board))) {
       everyAsked.add(board);
       if (!got) every[board] = 'loading';
-      lazyImport(import('../profile/api.js'), '../profile/api.js').then(A => A.board(board, 'all', { n: 100 })).then(r => { every[board] = (r && r.rows) || []; everyCached.delete(board); rev++; const kept = (scoresCache() || {}).boards || {}; keepScores({ day: dayNow(), boards: { ...kept, [board]: every[board].slice(0, 20) } }); }).catch(() => { if (!Array.isArray(every[board])) every[board] = []; everyCached.delete(board); }).finally(() => { if (!gone) repaint(); });
+      lazyImport(import('../profile/api.js'), '../profile/api.js').then(A => A.board(board, 'all', { n: 100 })).then(r => { every[board] = (r && r.rows) || []; everyCached.delete(board); everyFailed.delete(board); rev++; const kept = (scoresCache() || {}).boards || {}; keepScores({ day: dayNow(), boards: { ...kept, [board]: every[board].slice(0, 20) } }); }).catch(() => { if (!Array.isArray(every[board])) every[board] = []; else if (everyCached.has(board)) everyFailed.add(board); everyCached.delete(board); rev++; }).finally(() => { if (!gone) repaint(); });
     }
     if (!Array.isArray(got)) { ev.replaceWith(h('p.dy-quiet', '…')); return; }
     const ids = (pts && pts.ids) || {}, fids = new Set(ids.f || []);
@@ -476,7 +479,7 @@ function openScreen(tab0) {
   lazyImport(import('../profile/friends.js'), '../profile/friends.js').then(F => F.loadFriends()).then(f => { friends = f; if (!gone) repaint(); }).catch(() => {});
   paint();
   // (CITY D: the kept scores were another player's — a key restored on this phone: back to waiting for the fresh ones)
-  pidReady.then(() => { if (fresh0 && fresh0.pid && pidNow() && fresh0.pid !== pidNow()) { if (evCached) { ev = null; evCached = false; } if (ptsCached) { pts = null; ptsCached = false; } for (const b of everyCached) delete every[b]; everyCached.clear(); rev++; } if (!gone) repaint(); });
+  pidReady.then(() => { if (fresh0 && fresh0.pid && pidNow() && fresh0.pid !== pidNow()) { if (evCached) { ev = null; evCached = false; } if (ptsCached) { pts = null; ptsCached = false; } for (const b of everyCached) delete every[b]; everyCached.clear(); evFailed = ptsFailed = false; everyFailed.clear(); rev++; } if (!gone) repaint(); });
   loadToday({ fresh: true });
   return {
     setTab(t) { if (t !== tab) { tab = t; paint(); } },

@@ -182,7 +182,9 @@ export async function openAddLink(code) {
   frSheet();
   const [{ api }, { openPfSheet }] = await Promise.all([lazyImport(import('./api.js'), './api.js'), lazyImport(import('./sheets.js'), './sheets.js')]);
   let r;
-  try { r = await api('profile', { action: 'friendLinkGet', code }); } catch (e) { toast(why(e), 'warn'); return null; }
+  // (FIXES R1 — THE REVIEW A14: NO ANSWER (offline · a timeout — status 0) rethrows: the caller keeps the link for the next visit; a server's
+  //  answer — even "no such link" — is an answer)
+  try { r = await api('profile', { action: 'friendLinkGet', code }); } catch (e) { toast(why(e), 'warn'); if (!e || !e.status) throw e; return null; }
   if (r.self) { toast('That’s your own friend link — send it to someone', 'ok'); return null; }
   const c = r.card || {}, name = String(c.n || 'MEMBER').toUpperCase();
   const slot = h('div.fr-add-card', h('span.fr-knock-ph', name));

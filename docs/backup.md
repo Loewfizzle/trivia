@@ -56,6 +56,8 @@ boards, 30 days × 3 dailies, 8,000 match results) = **1.70 MB gzipped in 29 par
 1. **Get a copy:** GitHub → Loewfizzle/neon-backups → Actions → the night's run → Artifacts → `neon-backup-<date>` (unzip it) · or the PC:
    `C:\Users\benja\NeonBackups\<date>\`.
 2. **Verify the checksums:** in Git Bash, in the folder: `sha256sum -c checksums.sha256` (every line OK) — the restore script checks again.
+   (FIXES R1: the PC writes the file with LF line ends; a PC folder from BEFORE FIXES R1 has CRLF — every line then "FAILED open or read":
+   `tr -d '\r' < checksums.sha256 | sha256sum -c` checks it. The restore script reads either.)
 3. **Restore to the EMULATORS first and check:** `cd tests/integration && npm run emulators`, then
    `node scripts/backup/restore-emulators.mjs "<the folder>"` → `node scripts/serve.mjs --emu` → open `http://localhost:5173/?emu` and look
    (a player's card, THE BOARD, the dailies' scores).
@@ -64,6 +66,14 @@ boards, 30 days × 3 dailies, 8,000 match results) = **1.70 MB gzipped in 29 par
    console → Realtime Database → Data → hover the node (e.g. `profiles`) → ⋮ → **Import JSON** → that node's file. Import REPLACES that node.
    Do `profiles`, `uids`, `ppriv`, `pkeys`, `pstats` first (the accounts), then the rest.
 5. **The daily secrets** were never in the backup: /admin → THE DAILIES → RESEED.
+
+## When the PC's copy is skipped (THE REVIEW A16 — written down, FIXES R1)
+- The PC's task is registered to run **only while Ben's user is signed in** (`install.ps1` — `LogonType Interactive`: no stored password). After
+  a reboot with nobody signed in, or a sign-out, there is NO second copy until Ben signs in again — then the task runs "as soon as possible
+  after a missed start". **GitHub (the private repo, ~4:30 am) is the MAIN copy and never depends on the PC.** /admin's BACKUPS row shows THE PC
+  red once its last pickup is 36 h old — that's the sign to sign in (or check `C:\Users\benja\NeonBackups\backup.log`).
+- To make it run signed out too: Task Scheduler → "Neon Speakeasy nightly backup" → Properties → "Run whether user is logged on or not" (Windows
+  asks for Ben's password once) — Ben's call; not done by a pass.
 
 ## If the token leaks
 

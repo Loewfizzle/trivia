@@ -10,7 +10,7 @@ test('the daily screen keeps the last scores it saw today (this player\'s) and p
   assert.match(D, /v && \(!pidNow\(\) \|\| v\.pid === pidNow\(\)\)/, 'one player\'s — never another account\'s');
   assert.match(D, /const fresh0 = C0 && C0\.day === dayNow\(\) \? C0 : null;/, 'today\'s only');
   assert.match(D, /if \(!today && fresh0\.today && Array\.isArray\(fresh0\.today\.dailies\)\) today = fresh0\.today;/);
-  assert.match(D, /h\('h3\.dy-sub', 'EVERYONE · TODAY', upd\(evCached\)\)/);
+  assert.match(D, /h\('h3\.dy-sub', 'EVERYONE · TODAY', upd\(evCached, evFailed\)\)/);   // (FIXES R1 — A10: + COULDN'T UPDATE on a failed refresh)
   assert.match(D, /const repaint = \(\) => afterTap\(\(\) => \{ if \(!gone\) paint\(\); \}\);/, 'never re-rendered under a finger');
   assert.match(D, /ev, \[\.\.\.evAll\], rev\]\);/, 'a fresh answer over a kept one repaints');
 });

@@ -220,6 +220,50 @@ try {
   }
   await p.evaluate("document.getElementById('dy-test').remove(); window.__noClick = false");
 
+  // ---- FIXES R1 — THE REVIEW A12: a press-act with NO click from iOS leaves `took` (the swallow window, 800 ms); a SECOND tap in that window on
+  //      a control that needs its REAL click (a plain button: no data-press, not implicit) at the same spot — its click must ARRIVE (it was
+  //      swallowed as the first tap's tail)
+  await p.evaluate(() => {
+    window.__plain = 0;
+    const box = document.createElement('div');
+    box.id = 'a12-test'; box.style.cssText = 'position:fixed;left:20px;right:20px;top:360px;z-index:99999';
+    box.innerHTML = '<button type="button" class="btn btn-ghost btn-block a12-first" style="height:56px">FIRST</button>';
+    document.body.append(box);
+    box.querySelector('.a12-first').onclick = () => { box.innerHTML = '<button type="button" class="a12-plain" style="width:100%;height:56px">PLAIN</button>'; box.querySelector('.a12-plain').onclick = () => { window.__plain++; }; };
+  });
+  { const c1 = await centre('#a12-test .a12-first');
+    await p.evaluate("window.__noClick = true"); await p.touchscreen.tap(c1.x, c1.y);
+    await waitFor("!!document.querySelector('#a12-test .a12-plain')", 2000);
+    await p.evaluate("window.__noClick = false"); await sleep(150);
+    const s0 = await tw(); const c2 = await centre('#a12-test .a12-plain'); await p.touchscreen.tap(c2.x, c2.y); await sleep(450);
+    const r = await p.evaluate('window.__plain'), s1 = await tw();
+    ok(r === 1 && s1.tookSwallowed === s0.tookSwallowed, `A12 — a second tap inside the last press-act's window on a control needing its REAL click: it ACTED ${r}× (swallowed +${s1.tookSwallowed - s0.tookSwallowed})`);
+    table.push(`A12 · the second tap's real click: ${r === 1 ? 'arrived' : 'SWALLOWED'}`); }
+  await p.evaluate("document.getElementById('a12-test').remove(); window.__noClick = false");
+
+  // ---- FIXES R1 — THE REVIEW A13: a SHARE control re-rendered between the finger's down and up (a repaint lands mid-press) — its twin under
+  //      the lift acts INSIDE the lift (share() once, user activation), never lost, never rescued
+  await p.evaluate(() => {
+    window.__shared13 = 0;
+    navigator.share = async () => { window.__shared13++; };
+    const box = document.createElement('div');
+    box.id = 'a13-test'; box.style.cssText = 'position:fixed;left:20px;right:20px;top:360px;z-index:99999';
+    const paint = () => { box.innerHTML = '<button type="button" class="btn btn-ghost a13-share" data-gesture style="width:100%;height:56px">SHARE</button>'; box.querySelector('.a13-share').onclick = () => navigator.share({ url: 'https://www.neonspeakeasy.com/' }); };
+    paint(); window.__a13paint = paint;
+    document.body.append(box);
+  });
+  for (const noClick of [true, false]) {
+    await p.evaluate(v => { window.__noClick = v; window.__shared13 = 0; }, noClick);
+    const c = await centre('#a13-test .a13-share'), s0 = await tw();
+    // (the finger down → the control re-rendered → up: a CDP-style down / up pair so the repaint lands between them)
+    await p.evaluate(({ x, y }) => { const t = document.elementFromPoint(x, y); const o = { bubbles: true, cancelable: true, pointerId: 77, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y }; t.dispatchEvent(new PointerEvent('pointerdown', o)); window.__a13paint(); const t2 = document.elementFromPoint(x, y); t2.dispatchEvent(new PointerEvent('pointerup', o)); }, c);
+    await sleep(600);
+    const r = await p.evaluate('window.__shared13'), s1 = await tw();
+    ok(r === 1 && s1.rescues === s0.rescues, `A13 ${noClick ? '[iOS: NO click]' : '[the click arrives]'} — a SHARE re-rendered mid-press: its twin acted ${r}× at the lift · rescues +${s1.rescues - s0.rescues}`);
+    table.push(`A13 · ${noClick ? 'no click' : 'click on'} · the re-rendered share: ${r}×`);
+  }
+  await p.evaluate("document.getElementById('a13-test').remove(); window.__noClick = false");
+
   // ---- THE MOVED ROW (Safari 27.0.1: a shelf row slid 38 px under a still finger): down on the row → the row moves → the still finger lifts.
   //      The pointer events are the page's own here (a touch down, the move, the up — no click from anyone): the row still acts, once
   await p.evaluate("window.__noClick = true; document.querySelector('.nd-tab-play').click()");
