@@ -11,7 +11,8 @@ import { h } from '../ui/dom.js';
 import { avatar, tubeButton, row, ICONS } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
 import { openPfSheet } from './sheets.js';
-import { loadFriends, friendsNow, onFriends, relOf, relOfBid, friendDo } from './friends.js';
+import { loadFriends, friendsNow, onFriends, relOf, relOfBid, friendDo, friendLinkUrl, knockHidden, hideKnock } from './friends.js';
+import { myPublic } from './me.js';
 import { FR_WHY } from '../core/friends.js';
 import { state } from '../store.js';
 import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
@@ -94,7 +95,7 @@ export function friendsSection(o = {}) {
   frSheet();
   const body = h('div.fr-body', h('p.fr-hint', 'Loading your friends…'));
   const count = h('span.fr-count');
-  const el = h('section.pf-sec.fr-sec', { 'aria-label': 'Friends' }, h('h3.pf-h.fr-h', h('span', 'FRIENDS'), count), body, pushRow(),
+  const el = h('section.pf-sec.fr-sec', { 'aria-label': 'Friends' }, h('h3.pf-h.fr-h', h('span', 'FRIENDS'), count), body, shareLinkRow(), pushRow(),
     // (DM2 — YOUR TABLE: today's table in short — one line per live daily (your place at the table, or WAITING) + SEE SCORES › (the DAILY
     //  screen's SCORES tab). Nothing at all while no daily is live (THE GO-LIVE SWITCH off / /api down))
     tableCard(), ...(o.extra || []));
@@ -126,6 +127,77 @@ export function friendsSection(o = {}) {
   loadFriends({ fresh: true }).then(S => paint(S)).catch(() => paint(null));
   return el;
 }
+// ------------------------------------------------------------------------------------------------ CITY C — THE KNOCK + THE ADD-ME LINK
+/** THE KNOCK CARDS (the owner, CITY C): each waiting friend request as a card at the top of YOUR card — the sender's SLIM CARD (a tap = their page)
+ *  + NOT NOW · ACCEPT. Painted IN PLACE after a lift (THE TAP WATCH — afterTap; the same requests → nothing re-built). NOT NOW hides that card
+ *  on this phone (the request stays in FRIENDS → REQUESTS with ACCEPT · DECLINE). ≤ 3 cards; one fx surface for them. */
+export function knockCards() {
+  frSheet();
+  const el = h('div.fr-knocks', { 'aria-label': 'Friend requests', hidden: true });
+  let sig = null, surface = null;
+  const paintNow = S => {
+    const hid = knockHidden(), list = ((S && S.in) || []).filter(c => c && c.pid && !hid.has(c.pid)).slice(0, 3);
+    const k = list.map(c => `${c.pid}|${c.n}|${c.cd || ''}|${c.l || ''}`).join(',');
+    if (k === sig) return;
+    sig = k;
+    if (surface) { try { surface.destroy(); } catch { /* fine */ } surface = null; }
+    el.hidden = !list.length;
+    el.replaceChildren(...list.map(c => h('div.fr-knock', { dataset: { pid: c.pid } },
+      h('div.fr-knock-k', h('span', 'A FRIEND REQUEST')),
+      h('button.fr-knock-card', { type: 'button', 'data-press': true, 'aria-label': `${c.n} — their card`, onclick: () => lazyImport(import('./player-page.js'), './player-page.js').then(m => m.openPlayer({ pid: c.pid, row: c })).catch(() => {}) },
+        h('span.fr-knock-ph', String(c.n || 'MEMBER').toUpperCase())),
+      h('div.fr-knock-acts',
+        tubeButton('NOT NOW', { kind: 'secondary', size: 'sm', cls: 'fr-knock-later', onClick: () => hideKnock(c.pid) }),
+        tubeButton('ACCEPT', { kind: 'secondary', size: 'sm', cls: 'fr-knock-acc',   /* (THE SHELL: one pink MAIN a screen — YOUR card's CUSTOMIZE) */ onClick: act('accept', c, `You and ${c.n} are friends`) })))));
+    if (!list.length) return;
+    const mine = k;
+    stripKit().then(K => {
+      if (sig !== mine) return;
+      surface = K.createSurface(el, { label: 'knock' });
+      list.forEach((c, i) => { const slot = el.querySelector(`.fr-knock[data-pid="${c.pid}"] .fr-knock-card`); if (!slot) return; const st = stripFor(K, c); slot.replaceChildren(st.el); stripFx(K, surface, st, i + 1); });
+      el.dataset.strips = String(list.length);
+    }).catch(() => {});
+  };
+  const off = onFriends(S => { if (!el.isConnected && el.dataset.seen) { off(); if (surface) surface.destroy(); return; } el.dataset.seen = '1'; afterTap(() => paintNow(S)); });
+  if (friendsNow()) paintNow(friendsNow());
+  return el;
+}
+/** SHARE MY FRIEND LINK (YOU → FRIENDS): the server's short code, fetched before the tap — the share sheet keeps Safari's own gesture (data-gesture);
+ *  no share sheet → the link copied. A same-day profile: THE THROWAWAY GATE's line instead. */
+function shareLinkRow() {
+  let url = null;
+  const r = row({ icon: ICONS.friends, ic: '#ff7ad9', label: 'Share my friend link', sub: 'Anyone who opens it can add you', chevron: false, cls: 'fr-link', attrs: { 'data-gesture': '' }, onClick: () => share() });
+  friendLinkUrl().then(u => { url = u; }, e => { const s = r.querySelector('small'); if (s && e && e.message) s.textContent = e.message; });
+  async function share() {
+    if (!url) { try { url = await friendLinkUrl(); } catch (e) { toast(why(e), 'warn'); return; } }
+    if (!url) return;
+    const me = myPublic(), text = `Add me on NEON SPEAKEASY${me && me.n ? ` — ${String(me.n).toUpperCase()}` : ''}`;
+    if (navigator.share) { try { await navigator.share({ title: 'NEON SPEAKEASY', text, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+    try { await navigator.clipboard.writeText(url); toast('Your friend link is copied', 'ok'); } catch { toast(url, 'ok'); }
+  }
+  return r;
+}
+/** THE LINK's "ADD <NAME>?" (the app opened on /?add=<code>): their slim card + NOT NOW · ADD FRIEND — a sheet over the city */
+export async function openAddLink(code) {
+  frSheet();
+  const [{ api }, { openPfSheet }] = await Promise.all([lazyImport(import('./api.js'), './api.js'), lazyImport(import('./sheets.js'), './sheets.js')]);
+  let r;
+  try { r = await api('profile', { action: 'friendLinkGet', code }); } catch (e) { toast(why(e), 'warn'); return null; }
+  if (r.self) { toast('That’s your own friend link — send it to someone', 'ok'); return null; }
+  const c = r.card || {}, name = String(c.n || 'MEMBER').toUpperCase();
+  const slot = h('div.fr-add-card', h('span.fr-knock-ph', name));
+  const already = { friend: 'You’re already friends', out: 'Your request is waiting for them', in: 'They asked you first — this accepts it', blocked: 'You blocked them — unblock them first' }[r.rel] || 'A request they accept';
+  let s = null;
+  const add = tubeButton(r.rel === 'in' ? 'ACCEPT' : 'ADD FRIEND', { kind: 'main', block: true, cls: 'fr-add-go', onClick: async () => {
+    try { await friendDo('add', { code }); toast(r.rel === 'in' ? `You and ${c.n} are friends` : 'Friend request sent', 'ok'); } catch (e) { toast(why(e), 'warn'); }
+    if (s) s.close();
+  } });
+  const later = tubeButton('NOT NOW', { kind: 'secondary', block: true, cls: 'fr-add-later', onClick: () => s && s.close() });
+  s = openPfSheet({ kicker: 'A FRIEND LINK', title: `ADD ${name}?`, cls: 'fr-add-sheet', body: [slot, h('p.fr-hint', already), ...(r.rel === 'friend' || r.rel === 'out' || r.rel === 'blocked' ? [later] : [add, later])] });
+  stripKit().then(K => { const st = stripFor(K, c); slot.replaceChildren(st.el); const sf = K.createSurface(slot, { label: 'addlink' }); stripFx(K, sf, st, 1); }).catch(() => {});
+  return s;
+}
+
 const act = (kind, c, okMsg) => async () => {
   try { await friendDo(kind, { pid: c.pid }); if (okMsg) toast(okMsg, 'ok'); }
   catch (e) { toast(why(e), 'warn'); }
@@ -279,7 +351,7 @@ export function pushRow() {
       await navigator.serviceWorker.ready;
       const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(st.key) });
       await api('profile', { action: 'friendPush', op: 'sub', sub: sub.toJSON() });
-      paint(true, 'ON — a friend’s invite lands on this phone');
+      paint(true, 'ON — a friend’s invite or request lands on this phone');
     } catch (e) { paint(false, (e && e.message) || 'Couldn’t turn it on'); }
   }
   async function turnOff() {
@@ -289,7 +361,7 @@ export function pushRow() {
   }
   paint(false, can ? 'Checking this phone…' : say);
   if (can) (async () => {
-    try { const s = await curSub(); const { api } = await lazyImport(import('./api.js'), './api.js'); const st = await api('profile', { action: 'friendPush', op: 'state', endpoint: s ? s.endpoint : undefined }); paint(!!st.mine, st.mine ? 'ON — a friend’s invite lands on this phone' : say); }
+    try { const s = await curSub(); const { api } = await lazyImport(import('./api.js'), './api.js'); const st = await api('profile', { action: 'friendPush', op: 'state', endpoint: s ? s.endpoint : undefined }); paint(!!st.mine, st.mine ? 'ON — a friend’s invite or request lands on this phone' : say); }
     catch { paint(false, say); }
   })();
   return slot;

@@ -12,7 +12,9 @@ import { setBadge } from './friends.js';
 import { frSheet } from './friends-ui.js';
 import { lazyImport } from '../ui/lazy-import.js';
 
-let card = null, waitT = 0, checking = null;
+let card = null, waitT = 0, checking = null, lastReq = null;
+/** CITY C — the newest waiting friend request the last check saw → { n, at } | null (the city's one-line note) */
+export const lastRequest = () => lastReq;
 const inMatch = () => !!(state.code && state.meta && state.meta.status === 'playing');
 
 /** → the waiting invites (shown one at a time, newest first) — o.busy(): a legendary on screen (the card waits for it) */
@@ -23,6 +25,7 @@ export function checkInvites(o = {}) {
     try {
       const r = await api('profile', { action: 'inviteCheck' });
       if (typeof r.frIn === 'number') setBadge(r.frIn);
+      lastReq = r.frName && r.frAt ? { n: r.frName, at: r.frAt } : null;
       const list = (r.invites || []).filter(x => x.room !== state.code);
       for (const x of (r.invites || []).filter(y => y.room === state.code)) api('profile', { action: 'inviteDismiss', pid: x.pid }).catch(() => {});   // (already in that room)
       if (list.length) showWhenFree(list, o);

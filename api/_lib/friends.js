@@ -12,7 +12,8 @@ import { FR, FR_WHY, friendStep, relOf, fresh, suggestions, recentPatch, inviteL
 import { sendPush, okEndpoint, vapid } from './push.js';
 import { presenceOnline } from '../../js/core/room-logic.js';
 import { weekXp } from '../../js/core/progress.js';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
+import { countsOn, streakDay } from '../../js/core/streak.js';
 
 const node = async pid => (await val(`pfr/${pid}`)) || {};
 const fail = (status, why) => { throw new ApiError(status, why, FR_WHY[why] || why); };
@@ -74,6 +75,7 @@ export async function friendDo(me, body, now = Date.now()) {
   if (!kind) fail(400, 'bad_action');
   let other = isPid(body.pid) ? String(body.pid) : null;
   if (!other && body.bid) other = await pidOfRow(body.b, body.bid, now);
+  if (!other && body.code) other = await pidOfLink(body.code);   // (CITY C — THE ADD-ME LINK: the code → its owner, on the server only)
   if (!other) fail(404, 'no_profile');
   if (other === me) fail(400, 'self');
   if (kind === 'add') {
@@ -87,7 +89,59 @@ export async function friendDo(me, body, now = Date.now()) {
   const up = {};
   for (const [k, v] of Object.entries(r.up)) up[`pfr/${k.startsWith('a/') ? me : other}/${k.slice(2)}`] = v;
   if (Object.keys(up).length) await ref('/').update(up);
+  // CITY C — THE KNOCK's PUSH: a request that LANDED (their in-map written — a block swallows it silently, then no push) → their phones, if they
+  // turned notifications on; at most ONE a day per sender per receiver (rl/frp_<me>_<them>); a failed push never fails the request
+  if (kind === 'add' && Object.prototype.hasOwnProperty.call(up, `pfr/${other}/in/${me}`) && up[`pfr/${other}/in/${me}`]) await requestPush(me, other, now).catch(() => {});
   return { ok: true, rel: r.rel, pid: other, state: await friendsState(me, now) };
+}
+/** CITY C — the friend-request push (the INVITES' path: ppriv/{pid}/ps, the same VAPID keys) → phones reached */
+async function requestPush(me, to, now) {
+  if (!vapid() || !(await take(`frp_${me}_${to}`, 1, 864e5, now))) return 0;
+  const [prof, subs] = await Promise.all([publicProfile(me), val(`ppriv/${to}/ps`)]);
+  const name = publicName(boardId(me), String((prof && prof.n) || 'A player'));
+  let sent = 0;
+  await Promise.all(Object.entries(subs || {}).map(async ([k, sub]) => {
+    const st = await sendPush(sub, { title: `${name} wants to be friends`, body: 'Tap to answer · NEON SPEAKEASY', url: '/?fr=in', tag: `fr-${boardId(me)}` }, { ttl: 86400 }).catch(() => 0);
+    if (st >= 200 && st < 300) sent++;
+    else if (st === 404 || st === 410) await ref(`ppriv/${to}/ps/${k}`).remove();
+  }));
+  return sent;
+}
+
+// ------------------------------------------------------------------ CITY C — THE ADD-ME LINK (YOU → SHARE MY FRIEND LINK)
+// A short code the SERVER makes (never a pid in a link): flink/{code} = { p, at } + pfr/{pid}/lk = the code (one a profile — the same link every
+// time). The link /?add=<code> opens the app on "ADD <NAME>?" → friendAdd { code } (the normal request: rate limits, blocks, caps). THE THROWAWAY
+// GATE: a profile made today mints no link yet (ppriv/{pid}/at before today's 4 am start — no link spam from throwaways).
+const LINK_RE = /^[a-hj-km-np-z2-9]{7}$/, LINK_AB = 'abcdefghjkmnpqrstuvwxyz23456789';
+const newCode = () => [...randomBytes(7)].map(b => LINK_AB[b % LINK_AB.length]).join('');
+async function pidOfLink(code) {
+  const c = String(code || '').toLowerCase();
+  if (!LINK_RE.test(c)) return null;
+  const x = await val(`flink/${c}`);
+  return x && isPid(x.p) ? x.p : null;
+}
+/** friendLink → { code } (made once, kept) */
+export async function friendLink(me, now = Date.now()) {
+  const had = await val(`pfr/${me}/lk`);
+  if (had && LINK_RE.test(String(had)) && (await pidOfLink(had)) === me) return { code: had };
+  if (!countsOn(await val(`ppriv/${me}/at`), streakDay(now))) throw new ApiError(403, 'too_new', 'Your friend link opens tomorrow — play a game first.');
+  if (!(await take(`flk_${me}`, 5, 864e5, now))) fail(429, 'rate');
+  for (let i = 0; i < 6; i++) {
+    const code = newCode();
+    const r = await ref(`flink/${code}`).transaction(cur => (cur ? undefined : { p: me, at: now }));
+    if (r.committed) { await ref(`pfr/${me}/lk`).set(code); return { code }; }
+  }
+  throw new ApiError(503, 'busy', 'Try again in a moment.');
+}
+/** friendLinkGet { code } → { card: the owner's public face (NO pid / board id), rel, self } — "ADD <NAME>?" */
+export async function friendLinkGet(me, body, now = Date.now()) {
+  const p = await pidOfLink(body.code);
+  if (!p) throw new ApiError(404, 'no_link', 'That friend link doesn’t work any more.');
+  if (p === me) return { self: true };
+  const c = await cardOf(p);
+  if (!c) throw new ApiError(404, 'no_link', 'That friend link doesn’t work any more.');
+  const { pid: _p, bid: _b, ...face } = c;
+  return { card: { ...face, n: publicName(c.bid, c.n) }, rel: relOf(await node(me), me, p, now) };
 }
 
 /** a verified match (api/_lib/stats.js#applyMatch): every player's RECENTLY PLAYED WITH gets the others (best effort) */
@@ -140,7 +194,11 @@ export async function inviteCheck(me, now = Date.now()) {
     if (c) out.push({ pid: p, n: c.n, room: x.r, at: x.at, until: x.until, card: c });
   }));
   if (Object.keys(gone).length) await ref('/').update(gone);
-  return { invites: out.sort((a, b) => b.at - a.at), frIn: await pendingIn(me, now) };   // (+ the badge's count: one call on open)
+  // (+ the badge's count: one call on open — CITY C: + the newest requester's public name, for the city's one-line note)
+  const pin = fresh({ in: await val(`pfr/${me}/in`) }, now).in, newest = Object.entries(pin).sort((a, b) => b[1] - a[1])[0];
+  let frName = null;
+  if (newest) { const pr = await publicProfile(newest[0]); if (pr) frName = publicName(boardId(newest[0]), pr.n); }
+  return { invites: out.sort((a, b) => b.at - a.at), frIn: Object.keys(pin).length, frName, frAt: newest ? newest[1] : null };
 }
 /** NOT NOW (or JOIN taken) { pid } — the card goes */
 export async function inviteDismiss(me, body) {

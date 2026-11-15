@@ -26,7 +26,7 @@ import { sfx } from '../audio/sfx.js';
 import { settings } from '../audio/settings.js';
 import { memberLabel } from '../core/member.js';
 import { openPfSheet, closeAllPfSheets } from '../profile/sheets.js';
-import { friendsSection, frSheet } from '../profile/friends-ui.js';
+import { friendsSection, frSheet, knockCards } from '../profile/friends-ui.js';
 import { saveToPasswordsForm, keyFields, keyForm } from '../profile/keychain.js';
 import { lazyImport } from '../ui/lazy-import.js';
 import { afterTap } from '../ui/tapwatch.js';
@@ -112,6 +112,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
     //  a new key (profile/me.js#previousKey): a way back to that card. A glass row, only when there is one: tap = COPY; FORGET beside it)
     els.prevKey = prevKeyRow();
     els.mast = h('div.pf-mast-slot');
+    els.knock = h('div.pf-knock-slot');   // (CITY C — THE KNOCK: a waiting friend request's card, right under YOUR card)
     els.friends = h('div.pf-friends-slot');   // (FRIENDS A — the FRIENDS section: requests, the list, recently played with — painted once the server knows the card)
     frSheet();
     // (SHELL 2.0 A — THE ONE LOOK: NEW KEY a small danger tube, its second tap the button itself red; the two account rows THE ROW)
@@ -125,6 +126,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
         h('button.icon-btn.pf-back', { type: 'button', 'aria-label': 'Back', onclick: back }, '‹')),
       els.scroll = h('div.pf-scroll',
         els.card,
+        els.knock,
         els.cz,
         els.why,
         els.prog = h('div.pf-prog'),
@@ -282,6 +284,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
       paintProgress();
       paintMastery();
       if (!els.friends.firstChild) els.friends.replaceChildren(friendsSection());
+      if (!els.knock.firstChild) els.knock.replaceChildren(knockCards());
       els.pk.replaceChildren(passkeyBlock({ list: data.pk || [] }));   // (FRIENDS B)
       els.show.checked = !!data.priv.shown;
       els.show.disabled = !!data.priv.banned;

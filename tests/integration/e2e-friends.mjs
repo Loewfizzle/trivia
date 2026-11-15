@@ -1,4 +1,4 @@
-// FRIENDS A end to end (emulators + node scripts/serve.mjs --emu, which serves /api):
+// FRIENDS A (+ CITY C: THE KNOCK card + the city's note) end to end (emulators + node scripts/serve.mjs --emu, which serves /api):
 //   node tests/integration/e2e-friends.mjs "<browser>" ./shots-friends        (env SHOTS=0)
 // Two players in a room: ALICE taps BOB's card → ADD FRIEND → REQUESTED; BOB's YOU shows the badge, his card's FRIENDS section the request →
 // ACCEPT → both are friends (both cards; the green dot on the friend's emblem in the room); BOB leaves; ALICE's INVITE opens the sheet with
@@ -44,18 +44,25 @@ await H.run(async () => {
   await B.reload();
   await waitJs(B, "!!document.querySelector('.fr-badge:not([hidden])')", 'the badge on YOU', 30000);
   ok((await ev(B, "document.querySelector('.fr-badge').textContent")) === '1', 'BOB\'s YOU shows 1 waiting request');
+  // (CITY C: the city's one-line note for a NEW request — THE MESSAGE, once)
+  ok(await B.waitForFunction(() => [...document.querySelectorAll('.sh-msg')].some(t => /wants to be friends/i.test(t.textContent)), { timeout: 15000 }).then(() => true, () => false), 'BOB: the city says "Alice wants to be friends" (one line)');
   await shotAll(B, 'fr-03-badge', SIZES.slice(1, 2));
   await ev(B, "document.querySelector('.nd-tab-you, .rdk-you') && (document.querySelector('.rdk-you') || document.querySelector('.nd-tab-you')).click()");
   await waitJs(B, "!!document.querySelector('.fr-sec .fr-row.is-req')", 'the request on his card', 20000);
+  // (CITY C — THE KNOCK: the request as a KNOCK CARD right under his card — ALICE's slim card + NOT NOW · ACCEPT)
+  await waitJs(B, "!!document.querySelector('.fr-knocks:not([hidden]) .fr-knock .fr-knock-card .vl-strip')", 'the knock card with her slim card', 20000);
+  ok(/ALICE/.test(await ev(B, "document.querySelector('.fr-knock').textContent")) && !!(await ev(B, "!!document.querySelector('.fr-knock-acc') && !!document.querySelector('.fr-knock-later')")), 'BOB: the KNOCK CARD — her slim card + NOT NOW · ACCEPT');
+  await shotAll(B, 'fr-04a-knock');
   await ev(B, "document.querySelector('.fr-sec').scrollIntoView({ block: 'start' })");
   await shotAll(B, 'fr-04-profile-request');
-  await ev(B, "document.querySelector('.fr-row.is-req .fr-acc').click()");
-  await waitJs(B, "!!document.querySelector('.fr-sec .fr-row.is-friend') && !document.querySelector('.fr-row.is-req')", 'ALICE on his list');
+  await ev(B, "document.querySelector('.fr-knock-acc').click()");
+  await waitJs(B, "!!document.querySelector('.fr-sec .fr-crow, .fr-sec .fr-row.is-friend') && !document.querySelector('.fr-row.is-req')", 'ALICE on his list');
+  await waitJs(B, "!!document.querySelector('.fr-knocks[hidden]')", 'the knock card gone once accepted');
   ok(!!(await val(`pfr/${pa}/f/${pb}`)) && !!(await val(`pfr/${pb}/f/${pa}`)), 'ACCEPT → friends on both sides');
   await ev(B, "document.querySelector('.fr-sec').scrollIntoView({ block: 'start' })");
   await shotAll(B, 'fr-05-profile-friends');
   // the ⋯ sheet (look only here; BLOCK is step 5)
-  await ev(B, "document.querySelector('.fr-row.is-friend .fr-more').click()");
+  await ev(B, "document.querySelector('.fr-crow .fr-dots').click()");
   await waitJs(B, "!!document.querySelector('.fr-more-sheet .fr-block')", 'the ⋯ sheet');
   await shotAll(B, 'fr-06-more-sheet', SIZES.slice(1, 2));
   await closeAll(B);
@@ -96,12 +103,14 @@ await H.run(async () => {
   ok(!(await ev(B, 'location.search')).includes('inv=1'), 'THE PUSH LINK (/?room=…&inv=1): BOB is in the room without a tap; the link cleans itself');
 
   // ---- 5. BLOCK: BOB blocks ALICE from his card's ⋯ → both lists empty; her new request never lands
-  await ev(B, "(document.querySelector('.rdk-you') || document.querySelector('.nd-tab-you')).click()");
-  await waitJs(B, "!!document.querySelector('.fr-row.is-friend .fr-more')", 'his list', 20000);
-  await ev(B, "document.querySelector('.fr-row.is-friend .fr-more').click()");
+  await waitJs(B, "!!document.querySelector('.rdk-you')", 'the room dock', 20000); await sleep(1500);   // (CITY C: the push link's join settles first)
+  await ev(B, "document.querySelector('.rdk-you').click()");
+  await B.waitForFunction("!!document.querySelector('.fr-sec')", { timeout: 6000 }).catch(() => ev(B, "document.querySelector('.rdk-you').click()"));
+  if (!(await waitJs(B, "!!document.querySelector('.fr-crow .fr-dots')", 'his list', 20000))) log(`(the YOU page now: ${await ev(B, "(document.querySelector('.fr-sec') || {}).innerText || document.body.className")})`);
+  await ev(B, "document.querySelector('.fr-crow .fr-dots').click()");
   await waitJs(B, "!!document.querySelector('.fr-more-sheet .fr-block')", 'the ⋯ sheet');
   await ev(B, "document.querySelector('.fr-block').click()"); await sleep(200); await ev(B, "document.querySelector('.fr-block').click()");
-  await waitJs(B, "!document.querySelector('.fr-row.is-friend') && !!document.querySelector('.fr-blocked')", 'blocked');
+  await waitJs(B, "!document.querySelector('.fr-crow') && !!document.querySelector('.fr-blocked')", 'blocked');
   ok(!(await val(`pfr/${pa}/f/${pb}`)) && !!(await val(`pfr/${pb}/b/${pa}`)), 'BLOCK → the friendship gone on both sides, the block on his');
   await shotAll(B, 'fr-09-blocked', SIZES.slice(1, 2));
   const r = await evalIn(A, async (s, pid) => { const { api } = await import('/js/profile/api.js'); return api('profile', { action: 'friendAdd', pid }); }, pb);

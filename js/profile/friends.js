@@ -62,11 +62,24 @@ const ACT = { add: 'friendAdd', accept: 'friendAccept', decline: 'friendDecline'
 /** one action → the server's answer { rel, pid, state } (the state adopted + every view repainted) */
 export async function friendDo(kind, target) {
   const body = { action: ACT[kind] };
-  if (target.pid) body.pid = target.pid; else { body.b = target.b; body.bid = target.bid; }
+  if (target.pid) body.pid = target.pid; else if (target.code) body.code = target.code; else { body.b = target.b; body.bid = target.bid; }
   const r = await api('profile', body);
   adopt(r.state);
   return r;
 }
+
+// CITY C — THE ADD-ME LINK: this profile's link (made once by the server — a short code, never a pid), fetched BEFORE the tap so SHARE keeps
+// Safari's own gesture (data-gesture)
+let linkP = null;
+export function friendLinkUrl() {
+  if (testMode || !myPid()) return Promise.resolve(null);
+  if (!linkP) linkP = api('profile', { action: 'friendLink' }).then(r => (r && r.code ? `${location.origin}/?add=${r.code}` : null), e => { linkP = null; throw e; });
+  return linkP;
+}
+// CITY C — NOT NOW on a knock card: that request's card hides on this phone (the request stays in FRIENDS → REQUESTS)
+const KNOCK_KEY = 'ns:fr:knock-later';
+export const knockHidden = () => { try { return new Set(JSON.parse(localStorage.getItem(KNOCK_KEY) || '[]')); } catch { return new Set(); } };
+export function hideKnock(pid) { const s = knockHidden(); s.add(pid); try { localStorage.setItem(KNOCK_KEY, JSON.stringify([...s].slice(-60))); } catch { /* fine */ } emit(); }
 
 /** the friends IN THIS ROOM with you (the green dot): the room's players whose pid is a friend */
 export function friendsHere(players = {}) {

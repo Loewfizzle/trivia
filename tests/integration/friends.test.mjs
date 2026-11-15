@@ -15,7 +15,7 @@ import { profileAction } from '../../api/profile.js';
 import { noteRecent } from '../../api/_lib/friends.js';
 import { FR } from '../../js/core/friends.js';
 
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'pfr', 'rooms', 'members', 'radio', 'audit'];
+const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'pfr', 'rooms', 'members', 'radio', 'audit', 'flink'];
 before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); });
 after(async () => { await deleteApp(fb().app); });
 
@@ -235,4 +235,41 @@ test('THE CREW INTERCOM: the owner\'s switch (default OFF); ON → the crew talk
     const aud = Object.values((await val('audit')) || {}).filter(a => a.act === 'crewIcOn' || a.act === 'crewIcOff');
     assert.equal(aud.length, 2, 'both flips audited');
   } finally { process.env.ADMIN_PIDS = ''; await ref('rooms/CRIC').remove(); await ref('rooms/OTHR').remove(); }
+});
+
+// CITY C — FRIEND REQUESTS: the knock's push (once a day per sender → receiver, never through a block), no self / no duplicate, THE ADD-ME LINK
+test('CITY C: a request that lands → one push a day per sender; a duplicate adds nothing; to yourself refused; a block swallows it with no push', async () => {
+  const kim = await ensure('fr-kim', 'Kim'), lee = await ensure('fr-lee', 'Lee'), moe = await ensure('fr-moe', 'Moe');
+  await rejects(act('fr-kim', { action: 'friendAdd', pid: kim }), 400, 'self');
+  await act('fr-kim', { action: 'friendAdd', pid: lee });
+  assert.ok(await val(`rl/frp_${kim}_${lee}`), 'the push bucket taken for the landed request');
+  const n0 = (await val(`rl/frp_${kim}_${lee}`)).n;
+  await act('fr-kim', { action: 'friendCancel', pid: lee }); await act('fr-kim', { action: 'friendAdd', pid: lee });
+  assert.equal((await val(`rl/frp_${kim}_${lee}`)).n, n0, 'a second request the same day: no second push');
+  await act('fr-kim', { action: 'friendAdd', pid: lee });
+  assert.equal(Object.keys((await val(`pfr/${lee}/in`)) || {}).length, 1, 'no duplicate request');
+  await act('fr-moe', { action: 'friendBlock', pid: kim });
+  await act('fr-kim', { action: 'friendAdd', pid: moe });
+  assert.equal(await val(`rl/frp_${kim}_${moe}`), null, 'a blocked receiver: no push (the request never landed)');
+  assert.equal(await val(`pfr/${moe}/in/${kim}`), null);
+  const chk = await act('fr-lee', { action: 'inviteCheck' });
+  assert.equal(chk.frIn, 1); assert.equal(chk.frName, 'Kim', "the city's note: the newest requester's public name");
+  const acc = await act('fr-lee', { action: 'friendAccept', pid: kim });
+  assert.equal(acc.rel, 'friend', 'ACCEPT makes it mutual'); assert.ok(await val(`pfr/${kim}/f/${lee}`));
+});
+
+test('CITY C: THE ADD-ME LINK — a short server code (never a pid), THE THROWAWAY GATE, the link → "ADD <NAME>?" → a request; your own link = self', async () => {
+  const nia = await ensure('fr-nia', 'Nia'), oz = await ensure('fr-oz', 'Oz');
+  await rejects(act('fr-nia', { action: 'friendLink' }), 403, 'too_new');   // (a profile made today mints no link)
+  tick(2 * 864e5);
+  const { code } = await act('fr-nia', { action: 'friendLink' });
+  assert.match(code, /^[a-hj-km-np-z2-9]{7}$/); assert.ok(!code.includes(nia));
+  assert.equal((await act('fr-nia', { action: 'friendLink' })).code, code, 'the same link every time');
+  assert.deepEqual(await act('fr-nia', { action: 'friendLinkGet', code }), { self: true });
+  const g = await act('fr-oz', { action: 'friendLinkGet', code });
+  assert.equal(g.card.n, 'Nia'); assert.equal(g.rel, 'none'); assert.ok(!('pid' in g.card) && !('bid' in g.card), 'the answer carries no pid / board id');
+  await rejects(act('fr-oz', { action: 'friendLinkGet', code: 'zzzzzzz' }), 404, 'no_link');
+  const r = await act('fr-oz', { action: 'friendAdd', code });
+  assert.equal(r.rel, 'out'); assert.ok(await val(`pfr/${nia}/in/${oz}`), 'the ADD from a link = the normal request');
+  assert.equal((await act('fr-oz', { action: 'friendLinkGet', code })).rel, 'out');
 });

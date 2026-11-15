@@ -971,10 +971,33 @@ export function createTitle() {
       Promise.all([lazyImport(import('../profile/invites.js'), '../profile/invites.js'), lazyImport(import('../profile/friends.js'), '../profile/friends.js')]).then(([I, F]) => {
         if (destroyed) return;
         if (!offFrB) offFrB = F.onFriends(() => frBadge(F.pendingBadge()));
-        I.checkInvites({ busy: () => !!(scene && scene.legendBusy && scene.legendBusy()) }).then(() => frBadge(F.pendingBadge())).catch(() => {});
+        I.checkInvites({ busy: () => !!(scene && scene.legendBusy && scene.legendBusy()) }).then(() => { frBadge(F.pendingBadge()); knockNote(I.lastRequest()); addLinkSoon(); }).catch(() => {});
       }).catch(() => {});
     }, ms);
   }
+  // CITY C — THE KNOCK in the city: a NEW friend request (newer than the last one noted on this phone) → ONE line, THE MESSAGE (never a pill):
+  // "<NAME> wants to be friends · answer on YOUR card"; the badge on YOU carries the count. Never during a match / over a sheet.
+  function knockNote(r) {
+    if (!r || destroyed || (st && st.meta && st.meta.status === 'playing')) return;
+    let seen = 0; try { seen = Number(localStorage.getItem('ns:fr:noted')) || 0; } catch { /* fine */ }
+    if (!(r.at > seen)) return;
+    try { localStorage.setItem('ns:fr:noted', String(r.at)); } catch { /* fine */ }
+    toast(`${String(r.n || 'Someone').toUpperCase()} wants to be friends`, 'ok', { sub: 'Answer on YOUR card — tap YOU' });
+  }
+  // CITY C — THE ADD-ME LINK (/?add=<code>, kept until this phone has a profile) → "ADD <NAME>?"; the push's /?fr=in → YOUR card
+  function addLinkSoon() {
+    let code = null; try { code = localStorage.getItem('ns:fr:addme'); } catch { /* fine */ }
+    if (!code || destroyed) return;
+    lazyImport(import('../profile/me.js'), '../profile/me.js').then(M => {
+      if (!M.myPid()) return;   // (no profile yet — it waits for the first one)
+      try { localStorage.removeItem('ns:fr:addme'); } catch { /* fine */ }
+      return lazyImport(import('../profile/friends-ui.js'), '../profile/friends-ui.js').then(m => m.openAddLink(code));
+    }).catch(() => {});
+  }
+  { const q0 = new URLSearchParams(location.search), add = q0.get('add'), fr = q0.get('fr');
+    if (add && /^[a-z0-9]{7}$/i.test(add)) { try { localStorage.setItem('ns:fr:addme', add.toLowerCase()); } catch { /* fine */ } }
+    if (add || fr) { try { q0.delete('add'); q0.delete('fr'); history.replaceState(history.state, '', `${location.pathname}${q0.toString() ? `?${q0}` : ''}${location.hash}`); } catch { /* fine */ } }
+    if (fr === 'in') setTimeout(() => { if (!destroyed) lazyImport(import('./profile.js'), './profile.js').then(m => m.openCard()).catch(() => {}); }, 3600); }
   // (CITY B's add-on: the YOU tab's badge never changes under a finger — afterTap)
   function frBadge(n) { afterTap(() => frBadgeNow(n)); }
   function frBadgeNow(n) {

@@ -14,7 +14,8 @@
 //   favor    { jack, room, text?, colour?, show? } → { moment, spent }   CALL IN A FAVOR (a FAVOR token → one crew jack for the room)
 //   FRIENDS A (api/_lib/friends.js — docs/profiles.md "FRIENDS"):
 //   friends                          → { friends, in, out, blocked, recent, caps }   your own list (nobody else's, ever)
-//   friendAdd { pid } | { b, bid }   → { ok, rel, pid, state }   a REQUEST (they accept); a request from them already → friends at once
+//   friendAdd { pid } | { b, bid } | { code }   → { ok, rel, pid, state }   a REQUEST (they accept); a request from them already → friends at once
+//   friendLink → { code } (CITY C — THE ADD-ME LINK; /?add=<code>) · friendLinkGet { code } → { card (no pid), rel } | { self }
 //   friendAccept · friendDecline · friendCancel · friendRemove · friendBlock · friendUnblock { pid } → { ok, rel, pid, state }
 //   friendInvite { pid, room }       → { ok, sent, until }       a friend into your room: their push + the waiting card
 //   inviteCheck                      → { invites }                the waiting invites (on open; never a socket)
@@ -48,7 +49,7 @@ import { claimSighting } from './_lib/sightings.js';
 import { setBirthday, birthdayRoom } from './_lib/birthday.js';
 import { callFavor } from './_lib/favors.js';
 import { weekKey } from '../js/core/week.js';
-import { friendsState, friendDo, friendInvite, inviteCheck, inviteDismiss, friendPush, pendingIn } from './_lib/friends.js';
+import { friendsState, friendDo, friendInvite, inviteCheck, inviteDismiss, friendPush, pendingIn, friendLink, friendLinkGet } from './_lib/friends.js';
 import { regOptions, register, authOptions, authenticate, removePasskey, passkeyList, originOf } from './_lib/passkeys.js';
 
 /** the IP's zone (Vercel's header; tests: the body's, only without a request) */
@@ -182,6 +183,9 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
     case 'inviteCheck': return inviteCheck(await mine(uid), now);
     case 'inviteDismiss': return inviteDismiss(await mine(uid), body);
     case 'friendPush': return friendPush(await mine(uid), body, now);
+    // CITY C — THE ADD-ME LINK: SHARE MY FRIEND LINK (a short server-made code) + the link's "ADD <NAME>?"
+    case 'friendLink': return friendLink(await mine(uid), now);
+    case 'friendLinkGet': return friendLinkGet(await mine(uid), body, now);
     case 'pkRegOptions': return regOptions(await mine(uid), uid, { origin: originOf(req, body), now });
     case 'pkRegister': return register(await mine(uid), uid, body.response, { origin: originOf(req, body), ua: req ? req.headers['user-agent'] : body.ua, now });
     case 'pkAuthOptions': return authOptions(uid, { origin: originOf(req, body), now });
