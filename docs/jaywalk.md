@@ -193,6 +193,32 @@ corner; the kit's sign, name, result line ("RUN DOWN BY A VAN · 5 LANES") and N
 PHONE, readable as a small preview in a text. Solo (the podium's SHARE) + a match (SHARE MY RUN in the body). No frame on this phone (a
 refresh on the podium) → the same card on the night's dark.
 
+## THE LINES — YOUR BEST LINE + THE NEXT FRIEND'S LINE (H4 add-on, the owner Nov 16 — `lines.js` (PURE) · `night.js#setLines` / `flashLine` · `view.js`)
+- **YOUR BEST LINE** (a solo run — and, in a match, your own SOLO best): a glowing **GOLD** line across the WHOLE lane at your best
+  lane (its far edge — one lane more crosses it), **"YOUR BEST · 143" written big on the ground** beside it (the letters over half a
+  lane tall — ≈ 27 pt at the kid's row at ZOOM 8 on a 390 pt phone; a soft dark strip under them: they read on grass, asphalt, water,
+  the rails). **Bold, never a road marking:** a soft halo, a wide glowing band, a white-hot core, gold glints running along it (the
+  road's own markings are thin dashed pink / cyan). **On ANY lane kind:** painted on grass / road / the rails / the flight path; **on
+  water a floating row of glowing BUOYS on their rope** (they bob; clear of the logs). Seen a dozen lanes ahead (the view's own reach).
+  **CROSSING IT** (landing on the first lane past your best): a short light burst along the line (it flares + sparks; the flare alone
+  with reduce motion), **the new-best sound**, **the lane counter flashes and stays GOLD** — from then on the run is a new record.
+  **No line on a first-ever run** (no best yet).
+- **THE NEXT FRIEND'S LINE** (SOLO runs only — a match already has the real players as ghosts): ONE **white / cyan** line (never gold —
+  gold = YOUR BEST) at the LOWEST friend best you have not passed, with **"LIAM · 212"** on the ground (at the right, yours at the left).
+  Crossing it: a small burst + a quiet chime (`landmark` at 0.4), then the next friend above appears. **Never more than ONE friend line
+  on screen; a friend behind you never shows; no friend bests = no friend lines.** (Level with a friend — standing on their lane — the
+  line is still right ahead of you: one lane more beats them.)
+- **THE DATA = the SERVER-counted solo bests** (the board `jaywalk-solo`) — never a local guess: `/api/profile { action: 'table' }`,
+  YOUR TABLE's own read (you + the friends YOUR list names — never a pid), **asked ONCE at a run's start** (`view.js#loadTable` from
+  `reset`) and kept 90 s on the phone (`TABLE_KEEP_MS` — PLAY AGAIN restarts in a second: no call a run when they come that fast);
+  **nothing is asked during a run.** Until the answer lands — and with `/api` down — YOUR BEST LINE uses the best the server last TOLD
+  this phone (the end screen's `jw:lab:best`, set only from the server's own outcomes), and there are no friend lines. Your lines draw
+  on YOUR run only — never over a player you are watching.
+- The lab draws none (it never calls a server). Tests: `tests/jaywalk-lines.test.mjs` (the table → the data; no best = no line; one
+  friend line, the lowest ahead, never one behind; the crossings; a match = YOUR BEST alone; the looks; the sources — one call a run,
+  none in the frame loop) + `e2e-jaywalk.mjs` (a first-ever run: no gold line, a seeded friend's line seen coming + crossed with its
+  chime; the next run: the gold line at the server's best, crossed → the burst, the sound once, the counter gold).
+
 ## THE ICON — THE SIGNAL (H4 — `core/marks.js#MARKS.jaywalk`)
 The owner's pick (`Downloads\grok\jaywalk\icon\icon-2-signal.png`): **a pedestrian crossing-light box, upright, CYAN** (`#35e3ff`),
 **its walking figure lit HOT PINK** (`#ff3fa4` — lit when it shouldn't be: the jaywalking joke). Built in the game's own tube system —

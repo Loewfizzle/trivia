@@ -1021,6 +1021,8 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   ~4 min more).
 - **The lab check** (`jaywalk-lab.mjs`): + EVERY VEHICLE NAMES ITSELF (a kid stood on a road lane of each kind → the end line), `--h4`
   = H4's look shots; **THE POSTER:** `node tests/integration/jaywalk-poster.mjs "<chromium>" <outDir>` (the two PNGs, zero server calls).
+- **THE LINES** (the second add-on): `tests/jaywalk-lines.test.mjs` + the solo E2E (it makes a second profile — LIAM — seeds their
+  `pstats/{pid}/b/jaywalk-solo` + the owner's `pfr/{pid}/f/{friend}` on the emulator, then plays a first-ever run and the next one).
 - THE MOTHERSHIP's tick is proven at the rules only (no bot survives six minutes with one life).
 
 ## JAYWALK H3 (Nov 16 2026 — docs/games/passes/jaywalk-h3.md)

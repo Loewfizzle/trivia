@@ -100,7 +100,9 @@ try {
   await G(pages[2], 'window.__jwGame.bot(false)');
   ok(await until(async () => (await state(pages[2])).over, 40000), 'CHARLIE out');
   ok(await until(async () => { const s = await state(pages[2]); return s.watching && s.follow === uids[0] && !s.call; }, 8000), '… CHARLIE watches ALICE (one player in: no call to make)');
-  ok(await evalIn(host, s => s.game.phase) === 'play', 'the match goes on while one player is in');
+  // (no bot is sure to outlive the others: if ALICE's went out right behind CHARLIE, the last player out has already ended it)
+  const stillOn = await evalIn(host, s => s.game.phase) === 'play';
+  ok(stillOn || (await state(pages[0])).over, stillOn ? 'the match goes on while one player is in' : 'ALICE went out right behind CHARLIE this run: the last player out ended the match');
   const aliceLive = await state(pages[0]);
   await G(pages[0], 'window.__jwGame.bot(false)');
   await all(N, (p, i) => waitFor(p, s => s.game && s.game.phase === 'final' && !!document.querySelector('.jw-final .final'), `${NAMES[i]}: the podium`, 60000));
@@ -120,7 +122,8 @@ try {
   ok(isCause(pod.cause) && new RegExp(`^${fin.results[uids[1]].l} LANES? · YOU FINISHED [0-9](ST|ND|RD|TH)$`).test(pod.n), `… BOB's own end on his podium: "${pod.cause}" · ${pod.n}`);
   ok(pod.notes.length === 3 && pod.notes.every(isCause), `… everyone in order with their cause line: ${pod.notes.join(' · ')}`);
   ok(pod.foot.length === 1 && /BACK TO THE ROOM/.test(pod.foot[0]) && pod.share && parseFloat(pod.radius) <= 12, `… the foot: ${pod.foot.join(' · ')} + SHARE MY RUN; the buttons are the non-pill tube (radius ${pod.radius})`);
-  const right = rank[0] === uids[0] && !tie;
+  // (a right call = the player called finished first — alone or level for first: logic.js#scoreCalls)
+  const right = fin.results[uids[0]].l === fin.results[rank[0]].l && fin.results[uids[0]].t === fin.results[rank[0]].t;
   ok(!!fin.calls && fin.calls[uids[1]] && fin.calls[uids[1]].w === uids[0] && fin.calls[uids[1]].ok === right, `BOB's call: ${fin.calls && fin.calls[uids[1]] ? (fin.calls[uids[1]].ok ? `RIGHT (+${fin.calls[uids[1]].bonus})` : 'missed') : 'none'} — "${pod.callLine}"`);
   const night = await dbGet(`rooms/${code}/night/${m}`);
   ok(night && night.g === 'jaywalk' && Object.keys(night.p || {}).length === 3 && (!right || (night.b && night.b[uids[1]] === fin.calls[uids[1]].bonus)), 'the night record: three placings' + (right ? ' + the call\'s game-night points' : ''));

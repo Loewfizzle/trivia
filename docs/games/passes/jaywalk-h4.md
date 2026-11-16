@@ -78,6 +78,19 @@ it → the end line names that exact vehicle, through the game's path AND the la
 "HIT BY A CAR" in any JAYWALK file); the lab check stands a kid in front of each kind in a real page (all five named); the solo E2E
 names the vehicle of its own run. (The add-on arrived in the chat, not in the inbox file — nothing to mark there.)
 
+## THE SECOND ADD-ON (the owner, Nov 16 2:56 pm — it reached the pass AFTER the first push; built at once, a second tagged push)
+**YOUR BEST LINE + THE NEXT FRIEND'S LINE** — docs/jaywalk.md "THE LINES". The calls made:
+- **The line lies at the FAR EDGE of the best lane** — crossing it = landing on the first lane past your best = the moment the run
+  becomes a record (the same for a friend's: level with them the line is still ahead).
+- **"Above the player's current lane" = not yet passed by the farthest lane reached this run** (hopping back never brings a passed
+  friend's line back).
+- **ONE call a run at most — and none when runs come seconds apart** (the table is kept 90 s; your own best also follows the server's
+  outcomes between calls). The best the server last told the phone draws YOUR BEST LINE at once; the friends need the call.
+- The friend's chime = the `landmark` sound, quiet + pitched up (no new file; the mix is H6's).
+- Three refine passes on the shots (thin → far too bright, the halos washing the words out → a narrower band + a dark strip under the
+  words). Trees / cars on that lane can cover a few letters — it is paint on the ground.
+- The shots: `Downloads\NEON\jaywalk-h4\line-friend-coming.png` · `line-friend-crossed.png` · `line-best-coming.png` · `line-best-crossed.png`.
+
 ## Group 5 — THE CHECKS
 - Unit: `tests/jaywalk-match.test.mjs` (new, 10) + the updated `jaywalk-engine` / `-sim` / `-deep` / `-server` / `-solo` / `-cartridge`
   / `-night` / `-camera`, `registration` (`smoke` off the waits).
@@ -112,7 +125,10 @@ names the vehicle of its own run. (The add-on arrived in the chat, not in the in
   the fixture now keeps trying courses until the owner's run is clearly the farthest.
 - `node scripts/build-file-hashes.mjs` · `build-preload-graph.mjs` · `build-boot-preload.mjs` (309 modules) · `claude-md-coverage.mjs`
   (0 missing; CLAUDE.md 37.8 KB — ONE new line + two reworded). THE BOOT: 6,499.93 of 6,500 KB (67 bytes spare).
-- ONE tagged push (the ci tag). My servers stopped (the emulators + `serve.mjs --emu` this pass started); Ben's :5190 was not running
+- **After the second add-on (the lines):** unit **2,117 / 2,117** (+ `jaywalk-lines` 5) · smoke 21 / 21 · harbor `ONLY=cartridge,neon`
+  42 / 42 · jaywalk-lab 115 / 115 with `--webkit` · e2e-jaywalk **54 / 54** (+ the lines) · e2e-jaywalk-match 45 / 45 with `--perf`.
+  No rules, `/api` or boot file touched. A SECOND tagged push (the pass's two cloud runs).
+- ONE tagged push (the ci tag) for the pass itself. My servers stopped (the emulators + `serve.mjs --emu` this pass started); Ben's :5190 was not running
   when the pass began and was left as found.
 
 ## REAL vs PLACEHOLDER

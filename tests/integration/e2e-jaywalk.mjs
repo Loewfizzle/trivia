@@ -10,6 +10,9 @@
 //   · a FORGED log (hops the clock never saw) → counted as nothing: the best untouched
 //   · BACK TO THE CITY → the room gone
 //   · THE SHARE IMAGE: the frame of the moment the kid went out + the cause + the lanes + THE SIGNAL (drawn on the phone; saved to outDir)
+//   · THE LINES (H4 add-on): a first-ever run has NO gold line; THE NEXT FRIEND'S LINE (a friend's server-counted best, from YOUR TABLE's
+//     read — asked ONCE) is seen coming and crossed (a burst + a quiet chime; then no friend ahead = no line); the next run draws YOUR
+//     BEST LINE at the server's best — crossing it: the burst, the new-best sound, the lane counter flashes + stays gold
 //   · --perf: the real view at 390 × 844 @3 under a 4× CPU throttle — fps, frame time p95 / worst, the work a frame, per tier
 //   · --drop (H4 — THE DROPPED SIGNAL, a REAL offline gap): the bot plays, the phone's database line is cut for 30 s, then 60 s
 //     (goOffline / goOnline), the queued chunks land together → the SERVER's replay counts the FULL honest run, no cut
@@ -38,14 +41,14 @@ const b = await puppeteer.launch({ executablePath: argv[0], headless: true, args
 const UP = '!!(window.__district && window.__district.harbor() && window.__district.harbor().shown) && !!window.__arcade && window.__arcade.state.ready && !!window.__arcade.state.uid';
 const S = 'window.__arcade.state', G = 'window.__jwGame';
 
-async function phone(slot, dpr = 2) {
+async function phone(slot, dpr = 2, name = 'HOPPER') {
   const ctx = await b.createBrowserContext();
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(String(e.message || e)));
   if (process.env.JW_DEBUG) p.on('console', m => console.log(`   [${m.type()}] ${m.text().slice(0, 240)}`));
   await p.setViewport({ width: 390, height: 844, deviceScaleFactor: dpr, isMobile: true, hasTouch: true });
-  await p.evaluateOnNewDocument(s => { try { localStorage.setItem('nd:entered', '1'); localStorage.setItem(`na:${s}:profile`, JSON.stringify({ name: 'HOPPER', color: 'cyan', avatar: 'bolt' })); } catch { /* fine */ } }, slot);
+  await p.evaluateOnNewDocument(s => { try { localStorage.setItem('nd:entered', '1'); localStorage.setItem(`na:${s[0]}:profile`, JSON.stringify({ name: s[1], color: 'cyan', avatar: 'bolt' })); } catch { /* fine */ } }, [slot, name]);
   const waitFor = async (js, ms = 20000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await p.evaluate(js)) return true; } catch { /* navigating */ } await sleep(50); } return false; };
   const open = async () => { await p.goto(guardUrl(`${BASE}/?emu&slot=${slot}&city=2&when=2026-11-10T20:30`, 'e2e-jaywalk.mjs'), { waitUntil: 'domcontentloaded' }); if (!await waitFor(UP, 60000)) throw new Error('the city never came up'); };
   await open();
@@ -80,6 +83,12 @@ try {
   ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"jaywalk\"]')", 6000), 'PLAY → the shelf lists JAYWALK');
   ok(/JAYWALK · TEST/.test(await P.ev("document.querySelector('.nd-shelf-row[data-game=\"jaywalk\"]').textContent")), '… marked · TEST');
   await P.shot('owner-shelf.png');
+  // (THE LINES: a FRIEND with a server-counted JAYWALK best of 7 lanes — a real profile of their own, on the owner's friends list)
+  const FR = await phone(`jwf${Date.now() % 100000}`, 1, 'LIAM');
+  const friend = await pidOf(FR);
+  await FR.close();
+  await dbPut(`pstats/${friend.pid}/b/jaywalk-solo`, { a: 7 });
+  await dbPut(`pfr/${pid}/f/${friend.pid}`, Date.now());
   await P.tap('.nd-shelf-row[data-game="jaywalk"]');
   ok(await P.waitFor("!!document.querySelector('.nd-card-sheet.is-in .nd-card[data-game=\"jaywalk\"] .nd-card-solo')", 8000), 'its row → THE GAME CARD with PLAY NOW');
   await P.shot('owner-card.png');
@@ -99,8 +108,21 @@ try {
   ok(await P.ev("!!document.querySelector('.jw-hint') && /TAP TO HOP · SWIPE TO STEP/.test(document.querySelector('.jw-hint').textContent)"), 'the first-run hint: TAP TO HOP · SWIPE TO STEP');
   ok(await P.ev("document.body.dataset.look === 'night' && !!document.querySelector('.menu-btn') && !!document.querySelector('.music-btn')"), 'inside the console\'s game frame: the corner menu + music, the NIGHT look');
   await P.shot('run-start.png');
+  // ---- 3b. THE LINES — a first-ever run: NO gold line; THE NEXT FRIEND'S LINE from the server's table (asked once)
+  ok(await P.waitFor(`${G}.state().lines.friends.length === 1`, 10000), 'the table landed (ONE call at the run\'s start): a friend with a best');
+  let ln = (await P.ev(`${G}.state()`)).lines;
+  ok(ln.best === 0 && ln.shown === '0|LIAM · 7' && !ln.gold, `a FIRST-EVER run: no YOUR BEST line; THE NEXT FRIEND'S LINE = "${ln.shown.slice(2)}"`);
   // ---- 4. hops → the chunks, each stamped by the server
-  await hopUp(P, 5);
+  await hopUp(P, 2);   // (two real taps on the calm opening lanes — nothing can hit there)
+  await P.shot('line-friend-coming.png');
+  // … THE NEXT FRIEND'S LINE crossed (the bot hops on through the same input path): a small burst + a quiet chime — then no friend ahead
+  await P.ev(`${G}.bot(true)`);
+  const crossedF = await P.waitFor(`${G}.state().best > 7`, 30000);
+  await P.shot('line-friend-crossed.png');
+  await P.ev(`${G}.bot(false)`);
+  ln = (await P.ev(`${G}.state()`)).lines;
+  const chime = await P.ev("import('/js/games/jaywalk/sfx.js').then(S => S.wanted().filter(x => x.id === 'landmark').map(x => x.vol))");
+  ok(crossedF && ln.shown === '0|' && chime.length === 1 && chime[0] < 0.6, `LIAM's line crossed (lane ${(await P.ev(`${G}.state()`)).best}): a quiet chime (vol ${chime.join()}), and no friend ahead = no line ("${ln.shown}")`);
   await sleep(1400);
   st = await P.ev(`${G}.state()`); node = await nodeOf(g.code, g.m, uid);
   const chunks = Object.values(node.c || {});
@@ -159,6 +181,20 @@ try {
   ok(await P.ev("!document.querySelector('.jw-final') && !document.querySelector('.jw-hint')") , '… no end screen, no hint (once per phone)');
   await hopUp(P, 2);
   ok((await P.ev(`${G}.state()`)).best >= 1, '… and it hops');
+  // ---- 6b. YOUR BEST LINE: gold, at the SERVER's best — seen coming, then crossed: the burst, the new-best sound, the counter gold
+  const B1 = await board(pid);
+  ln = (await P.ev(`${G}.state()`)).lines;
+  ok(ln.best === B1 && B1 === v1.result.lanes && ln.shown.startsWith(`${B1}|`) && !ln.record, `YOUR BEST LINE at lane ${B1} — the server-counted best (the board's ${B1}); the friend's line again ahead ("${ln.shown}")`);
+  const nb0 = await P.ev("import('/js/games/jaywalk/sfx.js').then(S => S.wanted().filter(x => x.id === 'new-best').length)");
+  await P.shot('line-best-coming.png');   // (two lanes up the calm opening: the gold line + its words ahead)
+  await P.ev(`${G}.bot(true)`);
+  const crossedB = await P.waitFor(`${G}.state().lines.record`, 30000);
+  await P.shot('line-best-crossed.png');
+  ln = (await P.ev(`${G}.state()`)).lines;
+  await P.ev(`${G}.bot(false)`);
+  const nb1 = await P.ev("import('/js/games/jaywalk/sfx.js').then(S => S.wanted().filter(x => x.id === 'new-best').length)");
+  ok(crossedB && ln.record && ln.gold && (await P.ev(`${G}.state()`)).best > B1, `… CROSSED at lane ${(await P.ev(`${G}.state()`)).best}: the run is a NEW RECORD — the lane counter flashes and stays gold`);
+  ok(nb1 === nb0 + 1, '… the new-best sound, once');
   ok(await toEnd(P), 'run 2 ends');
   const r2 = await counted(g.code, g.m);
   ok(!!r2, 'run 2 — seconds after run 1 — is counted too (its own report; THE 45 s GAP never holds a quick solo run)');

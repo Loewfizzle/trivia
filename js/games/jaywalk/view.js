@@ -39,6 +39,7 @@ import * as SFX from './sfx.js';
 import { runLine } from './causes.js';
 import { buildEnd, finalRows } from './victory.js';
 import { keepShot } from './shot.js';
+import { BOARD, TABLE_KEEP_MS, parseTable, linesFor, isRecord, crossedFriends } from './lines.js';
 
 /** how long the hit is seen before the end screen / the spectator's view covers it (ms) */
 export const END_HOLD_MS = 850;
@@ -66,6 +67,17 @@ const park = (play, night) => { if (parked) { clearTimeout(parked.t); parked.nig
 const TEST = typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]emu(?:&|=|$)/.test(location.search || '');
 let scenesMade = 0;
 
+// THE LINES' DATA (H4 add-on — lines.js): the SERVER-counted solo bests (yours + your friends' — YOUR TABLE's own read), asked ONCE at
+// a run's start and kept a short while (PLAY AGAIN restarts in a second); nothing is asked during a run. /api down = no answer: the
+// best the server last told this phone still draws YOUR BEST LINE, and there are no friend lines.
+let table = null;   // { uid, at, p: Promise<{ best, friends } | null> }
+function loadTable(uid) {
+  if (table && table.uid === uid && performance.now() - table.at < TABLE_KEEP_MS) return table.p;
+  const p = lazyImport(import('../../profile/api.js'), '../../profile/api.js').then(A => A.api('profile', { action: 'table', b: BOARD })).then(d => parseTable(d && d.rows)).catch(() => null);
+  table = { uid, at: performance.now(), p };
+  return p;
+}
+
 const pick = (k, list, d) => { const m = getPref(k, String(d)); return list.map(String).includes(m) ? m : String(d); };
 /** HOW A RUN ENDED, in the game's words (causes.js#runLine — the vehicle named is the one the scene drew) */
 const lineOf = (r, course) => runLine(course, { cause: r.cause, y: r.y, x: r.x, end: r.end, lanes: r.best, taken: r.st === 'taken' });
@@ -82,6 +94,7 @@ export function createView() {
   let t0srv = 0, t0perf = 0, last = 0, markUntil = 0, lanesShown = -1, sndOn = false, bot = null, pinned = false, revealed = false;
   // the match
   const ghosts = new Map();   // uid → { uid, run, log, i, n (chunks read), lastT, hex, name, tagEl, dir, outAt }
+  let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;   // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, orderKey = '', countKey = '', watchKey = '';
   const frames = [], cost = [];
   const srvNow = () => t0srv + (performance.now() - t0perf);
@@ -111,7 +124,7 @@ export function createView() {
     tiers = createTiers({ apply: t => night && night.setTier(t), initial: night.tier() });
     offControls = wireControls(play, { onHop: hop, onAny: nextFollow });
     // the sounds: the SHARED engine's SFX bus (the console unlocked it on a tap long ago); silent if anything fails — audio is polish
-    try { SFX.fetchSounds(); sndOn = true; } catch { sndOn = false; }
+    try { SFX.fetchSounds(); SFX.fetchSounds(['new-best', 'landmark']); sndOn = true; } catch { sndOn = false; }
   }
 
   // ---- THE RUN
@@ -121,6 +134,16 @@ export function createView() {
     watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; orderKey = ''; countKey = ''; watchKey = '';
     for (const G of ghosts.values()) if (G.tagEl) G.tagEl.remove();
     ghosts.clear();
+    // THE LINES: the best the server last told this phone at once; the table (the server's own, ONE call a run at most) right behind it
+    lines = { best: Math.floor(Number(getPref('best', '0')) || 0), friends: [] }; record = false; lineKey = '';
+    if (lanesEl) lanesEl.classList.remove('is-record', 'is-flash');
+    if (night) night.setLines(null);
+    const tn = ++tableN;
+    loadTable(uid).then(T => {
+      if (!T || gone || tn !== tableN) return;
+      lines = { best: Math.max(T.best, lines.best), friends: T.friends };
+      if (T.best > 0 && T.best >= lines.best) setPref('best', T.best);
+    });
     if (markEl) markEl.textContent = '';
     if (night) night.setReveal(0, true);
     anchor();
@@ -215,9 +238,34 @@ export function createView() {
     const ev = [];
     step(run, course, d, ev);
     for (const e of ev) {
+      if (e.e === 'best') onBest(e.lane);
       if (e.e === 'landmark' && markEl) { markEl.textContent = e.name; markUntil = performance.now() + 2600; }
       if (sndOn) { try { SFX.onEvent(e); } catch { /* silent */ } }
     }
+  }
+  /** a lane farther than ever this run: YOUR BEST LINE crossed = the run is a NEW RECORD from here (a burst along the line, the new-best
+   *  sound, the lane counter flashes gold and stays gold); a FRIEND's line crossed (a solo run) = a small burst + a quiet chime */
+  function onBest(lane) {
+    if (!record && isRecord(lines.best, lane)) {
+      record = true;
+      night.flashLine('best', lines.best);
+      lanesEl.classList.add('is-record');
+      lanesEl.classList.remove('is-pop', 'is-flash'); void lanesEl.offsetWidth; lanesEl.classList.add('is-flash');
+      setTimeout(() => { if (lanesEl) lanesEl.classList.remove('is-flash'); }, 720);   // (the flash, then the counter's own small pop a lane again)
+      if (sndOn) { try { SFX.play('new-best'); } catch { /* silent */ } }
+    }
+    if (!isMatch) for (const f of crossedFriends(lines.friends, lane - 1, lane)) {
+      night.flashLine('friend', f.v);
+      if (sndOn) { try { SFX.play('landmark', { vol: 0.4, rate: 1.3 }); } catch { /* silent */ } }
+    }
+  }
+  /** what the scene draws of them now (set only when it changes): your own lines on your own run — never over a player you watch */
+  function drawLines(own) {
+    if (own && !record && isRecord(lines.best, run.best)) { record = true; lanesEl.classList.add('is-record'); }   // (a rejoin, an answer that came late: no burst)
+    const want = own ? linesFor({ best: lines.best, friends: lines.friends, reached: run.best, solo: !isMatch }) : { best: null, friend: null };
+    const key = `${want.best ? want.best.lane : 0}|${want.friend ? want.friend.text : ''}`;
+    if (key === lineKey) return;
+    lineKey = key; night.setLines(want);
   }
   /** THE PROOF: the new hops go up in chunks — each stamped by the server when it ARRIVES (the rules: at === now). Offline they queue
    *  in the database's own client and land together when the signal is back (THE DROPPED SIGNAL — the judge knows a burst from a slowed game) */
@@ -399,6 +447,7 @@ export function createView() {
       drawOrder(g, runs); drawWatch(g, runs);
     }
     if (isMatch) drawCount(g);
+    drawLines(mine(g) && drawRun === run);
     night.draw(drawRun, course, a, dt, extra);
     if (shotAt && performance.now() >= shotAt) takeShot();
     // the ghosts' name tags: each over its kid; two that would sit on each other (everyone on the start cell) stack upward
@@ -499,6 +548,7 @@ export function createView() {
       if (isMatch) root.classList.add('is-match');
       if (TEST) globalThis.__jwGame = {
         state: () => ({ mode, proven, haveGo, matchId, go, seed: course.seed, t: run.t, st: run.st, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent, chunks: chunkN, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
+          lines: { best: lines.best, friends: lines.friends.map(f => `${f.n} ${f.v}`), record, shown: lineKey, flash: lanesEl.classList.contains('is-flash'), gold: lanesEl.classList.contains('is-record') },
           isMatch, watching, follow: followUid, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
           ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag })),
           tier: night ? night.tier() : -1, info: night ? night.info() : null, kidPx: night ? night.kidHeightPx() : 0 }),

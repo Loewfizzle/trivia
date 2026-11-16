@@ -7,6 +7,8 @@
 //   · THE BLACKOUT (the wall): the lights die lane by lane from below, a cold edge where it bites
 //   · THE GHOSTS (H4 — a match): the other players' kids, SEE-THROUGH in their own colours — each one's run is their hop log through
 //     the same engine (the view steps it; this file only draws it), never colliding; `ghost.tag` = where its name tag goes on screen
+//   · THE LINES (H4 add-on — lines.js): YOUR BEST (gold) + THE NEXT FRIEND's (white / cyan) — a glowing line across the whole lane at
+//     the far edge of that lane (a row of glowing buoys on water), its words on the ground beside it, a burst when it is crossed
 //   · THE JAYWALKER (models.js#buildKid) + THE HOP's feel + the hits, one per cause — ALL DERIVED FROM THE RUN's STATE between ticks
 //     (the rules never read the frame clock; a refresh / a replay draws the same kid)
 //   · THE CAMERA (H2B — camera.js, shared with the graybox): ZOOM 7 · 8 · 9 columns across, the sideways follow, the slight TURN; the
@@ -20,6 +22,7 @@ import { loadKenney, SCENE_MODELS, buildKid, buildTree, buildTuft, buildLog, LOG
 import { FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, createBloom } from './night-fx.js';
 import { CAM, createCamera } from './camera.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
+import { LINE_HEX } from './lines.js';
 import { hsh, strSeed, vehicleAt } from './causes.js';   // (THE ONE SOURCE OF TRUTH for which vehicle a car IS — the end screen's cause line reads the same function)
 
 const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;   // (the most lanes alive: 36 — a closer zoom lays fewer ahead)
@@ -139,6 +142,34 @@ export function createNight(host, o = {}) {
   const ghostMat = () => { const m = paintMaterial(glossy(0.5, 0.35), { instanced: true }); m.transparent = true; m.opacity = 0.46; return m; };
   K.ghosts = kind(kidGeo.body, ghostMat(), 8, { aux: ['aLit', 1], order: 4 });
   K.ghostCaps = kind(kidGeo.cap, ghostMat(), 8, { aux: ['aLit', 1], order: 4 });
+  // THE LINES' WORDS (H4 add-on): "YOUR BEST · 143" / "LIAM · 212" written on the ground — one small canvas a line, drawn when its text
+  // changes (never per frame), lying flat beside its line; additive: it glows on any ground
+  const labelGeo = new THREE.PlaneGeometry(7.6, 0.95).rotateX(-Math.PI / 2);   // (BIG: the letters ≈ 0.55 of a lane tall — ≈ 27 pt at the kid's row at ZOOM 8 on a 390 pt phone)
+  const LBL = {};
+  for (const k of ['best', 'friend']) {
+    const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 128;
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    const m = new THREE.Mesh(labelGeo, new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    m.renderOrder = 2; m.visible = false; m.frustumCulled = false; m.layers.enable(1); scene.add(m);
+    LBL[k] = { m, cv, tex, text: null };
+  }
+  const css = hex => `#${hex.toString(16).padStart(6, '0')}`;
+  function writeLabel(k, text) {
+    const L = LBL[k];
+    if (L.text === text) return;
+    L.text = text;
+    const c = ctx2d(L.cv);
+    if (!c) return;
+    c.clearRect(0, 0, 1024, 128);
+    c.font = '900 104px "Orbitron", "Chakra Petch", system-ui, sans-serif'; c.textBaseline = 'middle'; c.textAlign = k === 'best' ? 'left' : 'right';
+    const w = c.measureText(text).width, sx = Math.min(1, 984 / Math.max(1, w)), x = k === 'best' ? 20 : 1004;
+    c.save(); c.translate(x, 70); c.scale(sx, 1);
+    c.shadowColor = css(LINE_HEX[k]); c.shadowBlur = 22; c.fillStyle = css(LINE_HEX[k]); c.fillText(text, 0, 0);
+    c.shadowBlur = 0; c.globalAlpha = 0.5; c.fillStyle = '#ffffff'; c.fillText(text, 0, 0);
+    c.restore();
+    L.tex.needsUpdate = true;
+  }
+  const LINES = { best: null, friend: null }, crossed = [];   // (crossed: a line's burst — { k, lane, t0 })
   // HE ALWAYS STANDS OUT (H2B): his colour → the hoodie + the cap, a rim light of his own (his colour pulled toward white), the glow ring under him
   const rimCol = new THREE.Color();
   let kidHex = 0xff3fb4;
@@ -522,6 +553,37 @@ export function createNight(host, o = {}) {
       g.wx = gpx; g.wy = gpy + kidGeo.height * gs + 0.16; g.wz = gpz; g.tag = gone > 0 ? null : true;
     }
     if (flat) K.shadow.put(kid.position.x, 0.034, kid.position.z - 0.47 * flat.wide * 0.8 * KID_S, 1.5 * flat.wide, 1, 1.75 * flat.wide, 0, 0, 1, 0, 0.5 * lit);
+    // THE LINES: the gold band of YOUR BEST + the next friend's — across the whole lane at its far edge; on water a row of glowing
+    // buoys on their rope; glints run along it; the words lie on the lane beside it. A crossed line bursts (it flares, then is gone)
+    for (const k of ['best', 'friend']) {
+      const Ln = LINES[k], lab = LBL[k];
+      if (!Ln || Ln.lane < base || Ln.lane >= top) { lab.m.visible = false; continue; }
+      const L = course.lane(Ln.lane), ll = litOf(Ln.lane), hex = LINE_HEX[k], both = k === 'friend' && LINES.best && LINES.best.lane === Ln.lane;
+      const z = Z(Ln.lane + (both ? 0.8 : 0.93)), hit = crossed.find(q => q.k === k && q.lane === Ln.lane), fl = hit ? Math.max(0, 1 - (clock - hit.t0) / 700) : 0;
+      if (L.type === 'water') {
+        K.flat.put(0, 0.06, z, 13, 1, 1.0, 0, hex, 1, 4, (0.14 + fl * 0.5) * ll);
+        K.flat.put(0, 0.062, z, 13, 1, 0.22, 0, hex, 1, 4, (0.6 + fl) * ll);
+        for (let c = -1.5; c <= COLS + 1.5; c += 0.75) { const bob = reduce ? 0 : Math.sin(clock / 480 + c * 1.9) * 0.03; K.bill.put(X(c), 0.15 + bob, z, 0.32 + fl * 0.2, 0.32 + fl * 0.2, 1, 0, hex, 1, 5, ll); K.flat.put(X(c), 0.055, z, 0.8, 1, 0.55, 0, hex, 1, 0, 0.32 * ll); }
+      } else {
+        // (BOLD — it never reads as a road marking: a wide soft halo, the glowing band, its white-hot core)
+        K.flat.put(0, 0.064, z, 13, 1, 1.0, 0, hex, 1, 4, (0.14 + fl * 0.5) * ll);
+        K.flat.put(0, 0.066, z, 13, 1, 0.6 + fl * 0.5, 0, hex, 1, 4, (0.95 + fl) * ll);
+        K.flat.put(0, 0.068, z, 13, 1, 0.15, 0, 0xffffff, 1, 4, (0.8 + fl * 0.6) * ll);
+      }
+      if (!reduce) for (let g = 0; g < 3; g++) K.bill.put(((clock / 1500 + g / 3) % 1) * 13 - 6.5, 0.1, z, 0.8, 0.3, 1, 0, hex, 1, 0, 0.7 * ll);
+      lab.m.visible = ll > 0.2;
+      // (the words read on ANY ground: a soft dark strip under them — grass, asphalt, water, the rails)
+      K.shadow.put(X(k === 'best' ? 3.9 : COLS - 3.9), 0.062, Z(Ln.lane + (both ? 1.42 : 0.42)), 8.4, 1, 0.9, 0, 0, 1, 4, 0.6 * ll);
+      lab.m.position.set(X(k === 'best' ? 3.9 : COLS - 3.9), 0.07, Z(Ln.lane + (both ? 1.42 : 0.42)));
+      lab.m.material.opacity = ll;
+    }
+    // (a FRIEND's line that was just crossed is no longer the next one: its flare alone, fading where it lay)
+    for (let j = crossed.length - 1; j >= 0; j--) {
+      const q = crossed[j], u = (clock - q.t0) / 700;
+      if (u >= 1) { crossed.splice(j, 1); continue; }
+      if (LINES[q.k] && LINES[q.k].lane === q.lane) continue;
+      if (q.lane >= base && q.lane < top) K.flat.put(0, 0.066, Z(q.lane + 0.93), 13, 1, 0.8 + (1 - u) * 0.5, 0, LINE_HEX[q.k], 1, 4, 1.5 * (1 - u) * litOf(q.lane));
+    }
     if (taken) { K.flat.put(px, 0.06, pz, 3.4, 1, 3.0, 0, 0x6dffb0, 1, 3, 0.9 * taken); K.flat.put(px, 0.055, pz, 3.0, 1, 2.6, 0, 0x3dff9a, 1, 0, 0.5 * taken); K.bill.put(px, 5.5, pz, 3.2, 11, 1, 0, 0x7dffc0, 1, 4, 0.5 * taken); }
     // the small moments: a dust ring, a ripple, a splash
     for (let j = fx.parts.length - 1; j >= 0; j--) {
@@ -564,6 +626,15 @@ export function createNight(host, o = {}) {
   return {
     /** (H4) the NEXT frame as a 2D canvas → fn(canvas | null): the share image's frame, the poster */
     snap(fn, width = 1080) { snapAsk = fn; snapW = width; },
+    /** (H4 add-on — lines.js#linesFor) the lines to draw: { best: { lane, text } | null, friend: { lane, text } | null } */
+    setLines(v) { for (const k of ['best', 'friend']) { LINES[k] = (v && v[k]) || null; if (LINES[k]) writeLabel(k, LINES[k].text); else LBL[k].m.visible = false; } },
+    /** … a line was CROSSED: a short light burst along it (never with reduce motion: the flare alone) */
+    flashLine(k, lane) {
+      crossed.push({ k, lane, t0: clock });
+      if (reduce) return;
+      for (let j = 0; j < 14; j++) part('drop', X(-0.5 + j * 0.78), 0.1, Z(lane + 0.93), 560, { hex: LINE_HEX[k], vx: (j % 3 - 1) * 0.4, vz: 0.15, vy: 2.4 + (j % 4) * 0.5 });
+      part('ring', kid.position.x, 0.06, Z(lane + 0.93), 520, { hex: LINE_HEX[k], r0: 0.3, r1: k === 'best' ? 2.6 : 1.6 });
+    },
     /** (H4 — SPECTATE: the camera moved to another player's kid) the kid's own feel starts clean */
     resetKid() { fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; fx.parts.length = 0; fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
     el, draw, resize: () => fit(), ready, setTier, tier: () => tier,
@@ -586,6 +657,8 @@ export function createNight(host, o = {}) {
       for (const { m, g } of made) { scene.remove(m); m.material.dispose(); if (g) g.dispose(); m.dispose(); }
       for (const g of Object.values(GEO)) g.dispose();
       for (const m of [kid, kidCap, curtain, ...ufos.map(q => q.d)]) { m.material.dispose(); }
+      for (const L of Object.values(LBL)) { scene.remove(L.m); L.m.material.dispose(); L.tex.dispose(); L.cv.width = 0; L.cv.height = 0; }
+      labelGeo.dispose();
       kidGeo.body.dispose(); kidGeo.cap.dispose(); discGeo.dispose(); flatGeo.dispose(); billGeo.dispose(); unit.dispose(); ground.dispose();
       if (bloom) bloom.dispose();
       if (env) env.dispose();
