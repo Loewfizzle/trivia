@@ -3,7 +3,7 @@
 //   · THE LAB IS OPEN (H2B): a STRANGER gets the lab — no door, no sign-in, ZERO server calls (no /api, no Firebase: only the page's own
 //     files, three.js from its CDN, the fonts); a &debug=1 link is dropped
 //   · THE NIGHT LOOK renders: the Kenney models + the skyline band loaded, no graybox unless ?gray=1
-//   · THE CAMERA (H2B — camera.js): ZOOM 7 · 8 · 9 (8 by default) + ANGLE STRAIGHT · TURNED (turned by default), remembered; the columns
+//   · THE CAMERA (H2B — camera.js): ZOOM 7 · 8 · 9 (8 by default) + ANGLE STRAIGHT · TURNED (STRAIGHT by default — H3), remembered; the columns
 //     across + THE KID's measured height at each zoom; the sideways follow keeps him on screen at both play edges + on a log ride (no
 //     jitter), never more than ~1 column past the play area; 3–4 lanes seen behind him; ?gray=1 follows the same camera
 //   · EVERY TAP ACTS (a tap hops on release · a swipe fires the moment it crosses its threshold · swipe down = back · no page scroll)
@@ -15,7 +15,7 @@
 //     frames slip (a heavy CPU throttle, nothing pinned)
 //   · the shots (ZOOM 8 TURNED: the start, a run, a water / log stretch, a train, lane 200+ traffic; ZOOM 7 + 9; STRAIGHT …) into [outDir]
 //     — kept out of git
-//   node tests/integration/jaywalk-lab.mjs "<chromium>" [outDir] [--perf] [--webkit] [--look] (--look: the shots only)
+//   node tests/integration/jaywalk-lab.mjs "<chromium>" [outDir] [--perf] [--webkit] [--look] [--h3] (--look: the shots only · --h3: H3's three shots only)
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -122,8 +122,35 @@ async function looks(p) {
   await L("window.__jwLab.restart('solo')");
 }
 
+// ---- H3's shots (ZOOM 8 STRAIGHT — the defaults): the water + the logs (each its own length, half-sunk, the waterline), a car from
+// behind (BOTH tail lights + their two thin streaks), THE BOX TRUCK
+async function looksH3(p) {
+  if (!OUT) return;
+  const L = js => p.evaluate(js);
+  await L("window.__jwLab.bot(false); window.__jwLab.restart('solo', 'look3'); window.__jwLab.setCamera(8, 'straight', true)"); await sleep(400);
+  // the water: the bank before the first stretch with 2+ water lanes (the logs of several lengths in one picture)
+  let i = await p.evaluate(() => { const J = window.__jwLab; for (let l = 14; l < 400; l++) if (J.lane(l).type === 'water' && J.lane(l + 1).type === 'water' && J.lane(l - 1).type === 'grass') return l; return J.find('water', 14); });
+  await p.evaluate(l => window.__jwLab.warp(l - 1, { blink: 9000 }), i); await sleep(1100); await shot(p, 'h3-water-logs.png');
+  await sleep(1600); await shot(p, 'h3-water-logs-b.png');
+  i = await p.evaluate(() => { const J = window.__jwLab; for (let l = 205; l < 400; l++) if (J.lane(l).type === 'water' && J.lane(l + 1).type === 'water' && J.lane(l - 1).type === 'grass') return l; return J.find('water', 205); });
+  await p.evaluate(l => window.__jwLab.warp(l - 1, { blink: 9000 }), i); await sleep(1100); await shot(p, 'h3-water-logs-lane200.png');
+  // a car from behind: a kid on the grass under a road lane, a 1-cell car just past him — its tail (both lights, both streaks) beside him
+  const carLane = len => p.evaluate(n => { const J = window.__jwLab; for (let l = 20; l < 400; l++) if (J.lane(l).type === 'road' && J.lane(l - 1).type === 'grass' && J.items(l).items.some(q => Math.round(q.len) === n)) return l; return -1; }, len);
+  const behind = async (lane, len, name) => {
+    await p.evaluate(l => window.__jwLab.warp(l - 1, { blink: 9000 }), lane);
+    await waitFor(p, `(() => { const q = window.__jwLab.items(${lane}); return q.items.some(c => Math.round(c.len) === ${len} && (q.dir > 0 ? c.left > 4.6 && c.left < 5.6 : c.left + c.len < 4.4 && c.left + c.len > 3.4)); })()`, 20000);
+    await shot(p, name);
+  };
+  await L("window.__jwLab.restart('solo', 'look3')");   // (a new run: the wall follows the BEST lane — a warp back down would be in the dark)
+  i = await carLane(1); ok(i > 0, `a road lane with a car over a grass lane (lane ${i})`); await behind(i, 1, 'h3-car-behind.png');
+  await L("window.__jwLab.restart('solo', 'look3')");
+  i = await carLane(3); ok(i > 0, `a road lane with THE BOX TRUCK over a grass lane (lane ${i})`); await behind(i, 3, 'h3-truck.png');
+  await L("window.__jwLab.restart('solo')");
+}
+
 try {
-  if (LOOK) { const o = await open(390, 844, 3, '&preview=1&seed=look3&fps=1'); await up(o.p); await sleep(600); await looks(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
+  if (argv.includes('--h3')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH3(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
+  if (LOOK) { const o = await open(390, 844, 3, '&preview=1&seed=look3&fps=1'); await up(o.p); await sleep(600); await looks(o.p); await looksH3(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   // ---- 1. THE LAB IS OPEN (H2B): a stranger — a fresh browser, a plain link — gets the lab; ZERO server calls
   {
     const { p, errs, reqs, close } = await open(390, 844, 2, '&debug=1');
@@ -158,12 +185,12 @@ try {
   ok(await p.evaluate(() => { const a = document.querySelector('.jw-skyline').getBoundingClientRect(), z = document.querySelector('.jw-blackout').getBoundingClientRect(), f = a.height / innerHeight; return a.top === 0 && f >= 0.215 && f <= 0.245 && z.bottom >= innerHeight - 1 && !document.querySelector('.jw-sky'); }), 'THE SKYLINE BAND: the top 22–24 % of the screen; the bottom always fades to black');
   ok(await p.evaluate(() => { const i = document.querySelector('.jw-skyline-img').getBoundingClientRect(); return i.width >= innerWidth * 1.1 && document.querySelectorAll('.jw-sky-l').length >= 6 && document.querySelectorAll('.jw-sky-n').length >= 3; }), '… the picture covers the band with room to slide; the aviation lights + the neon blocks are there (the night life)');
   ok(await p.evaluate(() => { const e = document.querySelector('.jw-lanes'), c = getComputedStyle(e); return e.textContent === '0' && e.getBoundingClientRect().height >= 56 && /rgb/.test(c.textShadow) && !/Orbitron/.test(c.fontFamily.split(',')[0]); }), 'THE LANE COUNT: big neon numerals at the top (the numbers\' font — never the heavy block 0)');
-  // THE CAMERA (H2B — camera.js): ZOOM 8 + ANGLE TURNED by default; each zoom + both angles render; the kid's height per zoom
+  // THE CAMERA (H2B — camera.js; H3: the defaults ZOOM 8 + ANGLE STRAIGHT — the owner's pick so far); each zoom + both angles render; the kid's height per zoom
   let c = await camOf(p);
-  ok(s.zoom === 8 && s.angle === 'turned' && s.info.zoom === 8 && Math.abs(c.yaw - 12 * Math.PI / 180) < 0.002, `ZOOM 8 + ANGLE TURNED by default (the turn: ${(c.yaw * 180 / Math.PI).toFixed(1)}°)`);
-  ok(Math.abs(c.across - 8) < 0.25 && c.slope > 5 && c.slope < 15, `… ${c.across.toFixed(2)} columns across at the kid's row; the lanes run ${c.slope.toFixed(1)}° off level (a gentle diagonal)`);
+  ok(s.zoom === 8 && s.angle === 'straight' && s.info.zoom === 8 && Math.abs(c.yaw) < 0.002, `ZOOM 8 + ANGLE STRAIGHT by default (H3 — the turn: ${(c.yaw * 180 / Math.PI).toFixed(1)}°)`);
+  ok(Math.abs(c.across - 8) < 0.25 && Math.abs(c.slope) < 0.4, `… ${c.across.toFixed(2)} columns across at the kid's row; the lanes level (${c.slope.toFixed(2)}°)`);
   ok(c.behind >= 3 && c.behind <= 5, `… ${c.behind} lanes seen behind the kid (THE BLACKOUT is seen climbing)`);
-  ok(await p.evaluate(() => !document.querySelector('.jw-w[data-cols]') && document.querySelectorAll('.jw-w[data-zoom]').length === 3 && document.querySelectorAll('.jw-ang').length === 2 && document.querySelector('.jw-w[data-zoom="8"]').classList.contains('is-on') && document.querySelector('.jw-ang[data-angle="turned"]').classList.contains('is-on')), 'the lab: ZOOM 7 · 8 · 9 + ANGLE STRAIGHT · TURNED (the WIDTH switch is retired)');
+  ok(await p.evaluate(() => !document.querySelector('.jw-w[data-cols]') && document.querySelectorAll('.jw-w[data-zoom]').length === 3 && document.querySelectorAll('.jw-ang').length === 2 && document.querySelector('.jw-w[data-zoom="8"]').classList.contains('is-on') && document.querySelector('.jw-ang[data-angle="straight"]').classList.contains('is-on')), 'the lab: ZOOM 7 · 8 · 9 + ANGLE STRAIGHT · TURNED (the WIDTH switch is retired)');
   const kidAt = {};
   let r;
   for (const z of [7, 9, 8]) {
@@ -175,6 +202,8 @@ try {
   ok(kidAt[7] > kidAt[8] * 1.08 && kidAt[8] > kidAt[9] * 1.08 && kidAt[9] >= 32, `THE KID's height at 390 × 844: ${kidAt[7].toFixed(1)} pt at ZOOM 7 · ${kidAt[8].toFixed(1)} pt at ZOOM 8 · ${kidAt[9].toFixed(1)} pt at ZOOM 9`);
   console.log('KID', JSON.stringify({ z7: +kidAt[7].toFixed(1), z8: +kidAt[8].toFixed(1), z9: +kidAt[9].toFixed(1) }));
   ok(await p.evaluate(() => localStorage.getItem('jw:lab:zoom') === '8'), '… the zoom is remembered on this phone');
+  r = await tapEl(p, '.jw-ang[data-angle="turned"]'); await sleep(1000); s = await st(p); c = await camOf(p);
+  ok(s.angle === 'turned' && Math.abs(c.yaw - 12 * Math.PI / 180) < 0.002 && c.slope > 5 && c.slope < 15 && s.hops === 0 && await p.evaluate(() => localStorage.getItem('jw:lab:angle') === 'turned'), `ANGLE TURNED is one switch away: the lanes run ${c.slope.toFixed(1)}° off level (a gentle diagonal); remembered`);
   r = await tapEl(p, '.jw-ang[data-angle="straight"]'); await sleep(1000); s = await st(p); c = await camOf(p);
   ok(s.angle === 'straight' && Math.abs(c.yaw) < 0.002 && Math.abs(c.slope) < 0.4 && s.hops === 0 && r[2] >= 44 && r[3] >= 44, `ANGLE STRAIGHT: the lanes level (${c.slope.toFixed(2)}°), its own press (${r[2].toFixed(0)} × ${r[3].toFixed(0)} pt)`);
   ok(Math.abs(c.across - 8) < 0.25 && c.kidY >= 0.6 && c.kidY <= 0.65 && await p.evaluate(() => localStorage.getItem('jw:lab:angle') === 'straight'), `… ${c.across.toFixed(2)} columns across, the kid ${(c.kidY * 100).toFixed(1)} % down; remembered`);

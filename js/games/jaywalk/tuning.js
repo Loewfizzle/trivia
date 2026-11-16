@@ -53,12 +53,15 @@ export const ROAD = Object.freeze({
   gapMin: 2600, gapVTicks: 26,             // (a gap is never under 2.6 cells + what a car covers in 26 ticks — the crossable window)
   gapExtra: [5200, 2400],                  // (+ a random 0 … this much, by heat)
 });
-/** WATER: the logs are LONG (4 cells) + slow at first, shorter + faster with distance (2 cells) */
+/** WATER (H3 — the owner, Nov 16): every log its OWN LENGTH, 1–4 cells, from the seed — long logs more common early, short ones later (the
+ *  difficulty curve) — and UNEVEN GAPS. A 1-cell log is the hard one: never on a lane beside another water lane, never on a fast lane. */
 export const WATER = Object.freeze({
   vMin: [16, 34], vMax: [26, 62],
-  lenMax: [4999, 3000], lenMin: [3999, 2000],   // (FP, floored to whole cells: 3–4 cells at first, 2–3 from lane 200, 2 deep in the loop)
+  lenW: [[4, 14, 36, 46], [30, 40, 22, 8]],     // (the weights of a 1 · 2 · 3 · 4-cell log at heat 0 → 1000; past 1000 they keep going, never under 1)
+  oneV: 44,                                     // (a 1-cell log only on a lane this slow or slower — its landing window stays ≥ ~0.5 s)
   logs: [3, 3],
-  gapMin: 1400, gapExtra: [1400, 2600],
+  gapShort: [900, 1500], shortOf: 380,          // (UNEVEN GAPS: this many gaps of 1000 are SHORT — 0.9–1.5 cells …)
+  gapMin: 1400, gapExtra: [1400, 2600],         // (… the rest LONG: 1.4 cells + a random 0 … this much, by heat)
 });
 /** RAIL: a train is a TELL (the signal lights) then a fast, long body; the lap in ticks by heat */
 export const RAIL = Object.freeze({ tell: 60, len: 14000, v: 750, period: [[300, 480], [170, 300]] });

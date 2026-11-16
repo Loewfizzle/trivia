@@ -106,9 +106,14 @@ export function buildLane(seed, i, o = {}) {
   } else if (type === 'water') {
     const dir = i % 2 ? 1 : -1;   // (two water lanes side by side always run OPPOSITE ways: a rider always meets the next lane's logs)
     const v = clamp(ri(rand, byHeat(WATER.vMin[0], WATER.vMin[1], heat), byHeat(WATER.vMax[0], WATER.vMax[1], heat)), 12, 80);
-    const lo = clamp(Math.floor(byHeat(WATER.lenMin[0], WATER.lenMin[1], heat) / FP), 2, 4), hi = clamp(Math.floor(byHeat(WATER.lenMax[0], WATER.lenMax[1], heat) / FP), lo, 4);
+    // H3 — every log its OWN length (1–4 cells: long ones early, short ones later — the weights by heat) + UNEVEN gaps (short · long). A
+    // 1-cell log is the hard one: only on a slow lane (WATER.oneV) with no water lane beside it (a hop log-to-log always has ≥ 2 cells to land on)
+    const W = [0, 1, 2, 3].map(k => Math.max(1, byHeat(WATER.lenW[0][k], WATER.lenW[1][k], heat))), sum = W[0] + W[1] + W[2] + W[3];
+    const one = v <= WATER.oneV && typeAt(seed, i - 1) !== 'water' && typeAt(seed, i + 1) !== 'water';
+    const lenOf = () => { let r = Math.floor(rand() * sum), n = 0; while (n < 3 && r >= W[n]) r -= W[n++]; return (n === 0 && !one ? 2 : n + 1) * FP; };
     const extra = clamp(byHeat(WATER.gapExtra[0], WATER.gapExtra[1], heat), 800, 3200);
-    const m = layMovers(rand, { v, n: ri(rand, WATER.logs[0], WATER.logs[1]), pad: 4000, lenOf: () => ri(rand, lo, hi) * FP, gapOf: () => WATER.gapMin + ri(rand, 0, extra) });
+    const gapOf = () => (Math.floor(rand() * 1000) < WATER.shortOf ? ri(rand, WATER.gapShort[0], WATER.gapShort[1]) : WATER.gapMin + ri(rand, 0, extra));
+    const m = layMovers(rand, { v, n: ri(rand, WATER.logs[0], WATER.logs[1]), pad: 4000, lenOf, gapOf });
     Object.assign(lane, { dir, v, pad: 4000, period: m.period, items: m.items });
   } else if (type === 'rail') {
     const dir = rand() < 0.5 ? 1 : -1;

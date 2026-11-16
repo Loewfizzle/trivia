@@ -61,9 +61,10 @@ void main() {
     float w1 = sin(x * 2.3 + t * 0.8 + sin(z * 7.0 + t * 0.5) * 0.8), w2 = sin(x * 5.3 - t * 0.55 + z * 8.0 + seed);
     float nz = vnoise(vec2(x * 1.4 + t * 0.22, z * 3.2 - t * 0.16) + seed * 5.0);   // (generated noise — no texture file: the surface drifts)
     float w = clamp(0.5 + 0.27 * w1 + 0.12 * w2 + 0.42 * (nz - 0.5), 0.0, 1.0);
-    c = mix(vec3(0.016, 0.105, 0.200), vec3(0.040, 0.250, 0.370), w * w);
-    float crest = smoothstep(0.90, 1.0, sin(x * 3.4 + sin(z * 12.0 + t * 0.7 + seed) * 1.5 + t * 0.9));
-    c += vec3(0.16, 0.42, 0.50) * crest * 0.5;
+    // (H3 — the owner: a clearly BRIGHTER, SATURATED night blue — it must pop beside the dark grass + the road at a glance: water you'd never step into)
+    c = mix(vec3(0.018, 0.150, 0.480), vec3(0.060, 0.360, 0.860), w * w);
+    float crest = smoothstep(0.86, 1.0, sin(x * 3.4 + sin(z * 12.0 + t * 0.7 + seed) * 1.5 + t * 0.9));
+    c += vec3(0.38, 0.68, 1.0) * crest * 0.5;                     // lighter ripple highlights, moving
     if (uQ > 0.5) {                                               // the reflections: streaks of the skyline's colours, wobbling
       float sx = x * 1.25 + seed * 3.1, id = floor(sx), f = fract(sx) - 0.5;
       float wob = sin(z * 17.0 + t * 1.6 + id * 4.0) * 0.11;
@@ -80,9 +81,9 @@ void main() {
     // THE SHORELINE: a bright wavering foam line + a pale shallow where the water meets anything that is not water
     float shD = step(0.5, abs(dn - 2.0)), shU = step(0.5, abs(up - 2.0));
     float lap = 0.016 * sin(x * 8.0 + t * 1.3 + seed) + 0.010 * sin(x * 19.0 - t * 0.9);
-    float foam = max(smoothstep(0.115 + lap, 0.06 + lap, z) * shD, smoothstep(0.115 + lap, 0.06 + lap, 1.0 - z) * shU);
-    c += vec3(0.05, 0.20, 0.24) * (smoothstep(0.42, 0.0, z) * shD + smoothstep(0.42, 0.0, 1.0 - z) * shU);
-    c = mix(c, vec3(0.70, 0.97, 1.0), foam * 0.9);
+    float foam = max(smoothstep(0.135 + lap, 0.075 + lap, z) * shD, smoothstep(0.135 + lap, 0.075 + lap, 1.0 - z) * shU);
+    c += vec3(0.06, 0.22, 0.30) * (smoothstep(0.42, 0.0, z) * shD + smoothstep(0.42, 0.0, 1.0 - z) * shU);
+    c = mix(c, vec3(0.95, 0.99, 1.0), foam * 0.96);               // a bright WHITE foam line on both banks
   } else if (type < 3.5) {
     c = vec3(0.088, 0.078, 0.09) * (0.85 + 0.3 * hash(floor(vec2(x * 18.0, z * 18.0))));
     float sl = step(fract(x * 2.0), 0.3) * step(0.17, z) * step(z, 0.83);
@@ -166,7 +167,8 @@ void main() {
   else if (s < 3.5) { a = smoothstep(0.16, 0.0, abs(d - 0.8)); }                                                  // 3 a ring
   else if (s < 4.5) { a = smoothstep(1.0, 0.15, abs(p.y)) * smoothstep(1.0, 0.8, abs(p.x)); }                     // 4 a soft line along x
   else if (s < 5.5) { a = smoothstep(0.42, 0.3, d) + 0.6 * smoothstep(1.0, 0.0, d) * smoothstep(1.0, 0.0, d); }   // 5 a lamp: a hot core + its halo
-  else { float u = vUv.x, w = mix(0.4, 1.0, u), e = smoothstep(w, 0.0, abs(p.y)); a = e * e * (1.0 - u) * (1.0 - u * u) * smoothstep(0.0, 0.07, u); }   // 6 a SHORT SOFT beam (a headlight's glow on the road: a quick falloff, soft edges)
+  else if (s < 6.5) { float u = vUv.x, w = mix(0.4, 1.0, u), e = smoothstep(w, 0.0, abs(p.y)); a = e * e * (1.0 - u) * (1.0 - u * u) * smoothstep(0.0, 0.07, u); }   // 6 a SHORT SOFT beam (a headlight's glow on the road: a quick falloff, soft edges)
+  else { float asp = max(1.0, (s - 7.0) * 10.0); vec2 q = vec2(abs(p.x) * asp - (asp - 1.0), p.y); a = smoothstep(0.2, 0.0, abs(length(vec2(max(q.x, 0.0), q.y)) - 0.78)); }   // 7 + aspect / 10: a thin STADIUM ring (the waterline round a log — its quad is that many times longer than wide)
   #ifdef JW_SHADOW
     gl_FragColor = vec4(0.0, 0.0, 0.0, a * vFx.y * (1.0 - vFog));
   #else

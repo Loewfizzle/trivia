@@ -26,8 +26,11 @@ function laneProblem(seed, L) {
       const gap = (j + 1 < it.length ? it[j + 1].off : L.period) - (it[j].off + it[j].len);
       if (L.type === 'road' && gap < 2 * T.KID_HALF + L.v * (T.HOP_TICKS + 12)) return `a gap of ${gap} no kid fits through at v ${L.v}`;
       if (L.type === 'water') {
-        if (it[j].len < 2 * T.FP || it[j].len > 4 * T.FP) return `a log of ${it[j].len}`;
-        if (gap > 9 * T.FP) return `${gap} of open water between two logs`;
+        // (H3: every log its OWN length, 1–4 whole cells; a 1-cell log only on a slow lane with no water beside it; a landing window ≥ 26 ticks)
+        if (![1, 2, 3, 4].includes(it[j].len / T.FP)) return `a log of ${it[j].len}`;
+        if (it[j].len === T.FP && (L.v > T.WATER.oneV || [L.i - 1, L.i + 1].some(n => buildLane(seed, n).type === 'water'))) return `a 1-cell log on a lane at v ${L.v} / beside water`;
+        if ((it[j].len + 2 * T.LOG_GRACE) / L.v < 26) return `a log of ${it[j].len} at v ${L.v}: a landing window under 26 ticks`;
+        if (gap < T.WATER.gapShort[0] || gap > T.WATER.gapMin + 3200) return `${gap} of open water between two logs`;
       }
     }
     if (L.type === 'water') {
@@ -110,9 +113,37 @@ test('THE DIFFICULTY RISES with the lane index — the SAME curve on every cours
     assert.ok(y.logV > x.logV && y.logLen < x.logLen, `${name}: faster, shorter logs`);
     assert.ok(y.rail > x.rail, `${name}: more trains`);
   }
-  assert.ok(a.logLen > 3 * T.FP && d.logLen <= 2.2 * T.FP, 'the logs: long at first (3–4 cells), 2 cells deep in the loop');
+  assert.ok(a.logLen > 3 * T.FP && d.logLen <= 2.4 * T.FP, `the logs: long at first (mostly 3–4 cells: ${(a.logLen / T.FP).toFixed(2)}), short deep in the loop (mostly 1–2: ${(d.logLen / T.FP).toFixed(2)})`);
   // the same curve on every course: two seeds' heat is the lane's alone
   for (const i of [0, 77, 400, 999]) assert.equal(buildLane('x', i).heat, buildLane('y', i).heat);
+});
+
+test('H3 — THE LOGS: every log its OWN length (1–4 cells, all four show up; long ones more common early, short ones later), UNEVEN gaps (short + long on the same lane), the same lane on every build', () => {
+  const count = (lo, hi) => {
+    const n = [0, 0, 0, 0, 0], g = { short: 0, long: 0, mixed: 0, lanes: 0, own: 0 };
+    for (let s = 0; s < 400; s++) for (let i = lo; i < hi; i++) {
+      const L = buildLane(`w${s}`, i);
+      if (L.type !== 'water') continue;
+      g.lanes++;
+      const gaps = L.items.map((it, j) => (j + 1 < L.items.length ? L.items[j + 1].off : L.period) - (it.off + it.len));
+      for (const it of L.items) n[it.len / T.FP]++;
+      for (const x of gaps) if (x <= T.WATER.gapShort[1]) g.short++; else g.long++;
+      if (Math.max(...gaps) - Math.min(...gaps) >= 500) g.mixed++;
+      if (new Set(L.items.map(it => it.len)).size > 1) g.own++;
+      assert.equal(JSON.stringify(buildLane(`w${s}`, i)), JSON.stringify(L), 'the same lane, built again');
+    }
+    const all = n[1] + n[2] + n[3] + n[4];
+    return { n, all, long: (n[3] + n[4]) / all, short: (n[1] + n[2]) / all, g };
+  };
+  const early = count(12, 60), mid = count(200, 248), late = count(420, 468);
+  for (const b of [early, mid, late]) for (const k of [1, 2, 3, 4]) assert.ok(b.n[k] > 0, `a ${k}-cell log shows up (${b.n.slice(1)})`);
+  assert.ok(early.long > 0.7 && early.long > mid.long && mid.long > late.long, `long logs more common early: ${early.long.toFixed(2)} → ${mid.long.toFixed(2)} → ${late.long.toFixed(2)}`);
+  assert.ok(late.short > 0.6 && late.short > mid.short && mid.short > early.short, `short ones later: ${early.short.toFixed(2)} → ${mid.short.toFixed(2)} → ${late.short.toFixed(2)}`);
+  for (const b of [early, mid, late]) {
+    assert.ok(b.g.short > b.all * 0.2 && b.g.long > b.all * 0.3, `short AND long gaps (${b.g.short} short, ${b.g.long} long)`);
+    assert.ok(b.g.mixed > b.g.lanes * 0.8, `uneven gaps on a lane (${b.g.mixed} of ${b.g.lanes} lanes)`);
+    assert.ok(b.g.own > b.g.lanes * 0.6, `logs of different lengths on a lane (${b.g.own} of ${b.g.lanes})`);
+  }
 });
 
 for (const mode of T.MODE_IDS) {

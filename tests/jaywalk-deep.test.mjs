@@ -116,7 +116,11 @@ function atFlightPath(tag) {
     for (let st = 3; st < 6 && !bb; st++) bb = specials(seed, st).bb;
     if (!bb || buildLane(seed, bb.y0 - 1).type !== 'grass') continue;
     const w = walkTo(seed, bb.y0 - 1);
-    if (w) return { seed, bb, ...w };
+    if (!w) continue;
+    // (H3: the tell must come SOON — a kid who waits a whole lap beside the band is caught by the wall (5 lanes behind his best, 0.6 lanes / s):
+    //  the scenario's own trap, not the moment's)
+    const q = pulseAt(bb.pulse, w.run.t), wait = q.st === 'idle' ? q.left - bb.pulse.tell : -1;
+    if (wait >= 40 && wait <= 200) return { seed, bb, ...w };
   }
   throw new Error('no course with a reachable flight path');
 }

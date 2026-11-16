@@ -174,6 +174,8 @@ async function mount() {
     warp(lane, o = {}) { warped = true; run.y = lane; run.best = Math.max(run.best, lane); run.x = o.x == null ? 4.5 * FP : o.x; run.st = 'idle'; run.buf = ''; run.blink = o.blink == null ? 600 : o.blink; run.wall = (lane - 5) * FP; queue = []; started = true; mark.textContent = ''; },
     /** (a look check) the middle of a log on this water lane that is well inside the 9 columns right now (FP; −1 = none) */
     logAt(lane) { const L = course.lane(lane); if (L.type !== 'water') return -1; for (const it of L.items) { const l = moverLeft(L, it, run.t); if (l > 1500 && l + it.len < 7500) return l + it.len / 2; } return -1; },
+    /** (a look check) a road / water lane's movers right now, in cells: [{ left, len }] + the lane's dir + v */
+    items(lane) { const L = course.lane(lane); return { dir: L.dir || 0, v: L.v || 0, items: (L.items || []).map(it => ({ left: moverLeft(L, it, run.t) / FP, len: it.len / FP })) }; },
     find(kind, from = 0) { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (kind === 'ufo' ? L.ufo && L.ufo.y0 === i : kind === 'mark' ? !!L.mark : L.type === kind) return i; } return -1; },
     pulse(lane) { const L = course.lane(lane); return L.pulse ? pulseAt(L.pulse, run.t) : null; },
   };

@@ -7,7 +7,7 @@
 //   · THE SIDEWAYS FOLLOW: the camera's x eases to the kid's x (a hop is led to where it lands; a log ride is followed smoothly), CLAMPED
 //     so the view never shows more than PAST_EDGE (1) column past the play area's edge — cars + logs are still seen coming.
 //   · THE TURN: a slight yaw, TURN_DEG, about the kid — the lanes run on a gentle diagonal and the cars' sides show. ANGLE: STRAIGHT · TURNED
-//     (default TURNED). Swipes stay screen-relative (the rules never know).
+//     (default STRAIGHT since H3). Swipes stay screen-relative (the rules never know).
 //   · THE FRAMING: the kid's feet sit KID_AT (62 %) down the screen on every screen shape → 3–4 lanes are seen behind him (THE BLACKOUT is
 //     seen climbing before it bites).
 // The rules never import this (tests/jaywalk-camera.test.mjs).
@@ -18,7 +18,7 @@ export const CAM = Object.freeze({ fov: 54, up: 16, back: 12, width: 9.42, kidAt
 export const ZOOMS = Object.freeze([7, 8, 9]);
 export const ZOOM = 8;
 export const ANGLES = Object.freeze(['straight', 'turned']);
-export const ANGLE = 'turned';
+export const ANGLE = 'straight';   // (H3 — the owner's pick so far, Nov 16: ZOOM 8 + STRAIGHT; the lab keeps both switches — a later pass flips it in this one line)
 /** THE TURN: the one tuned number — the camera sits this many degrees round the kid (to his right), so "up the course" runs up + a little right */
 export const TURN_DEG = 12;
 /** the follow never shows more than this many columns past the play area's edge (the dim edge column = the cue) */

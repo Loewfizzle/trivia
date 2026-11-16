@@ -30,14 +30,15 @@ function settled(zoom, angle, aspect, x = 4.5, y = 10.5) {
   return { rig, cam, kid: cam.project([x - COLS / 2, 0, -y]) };
 }
 
-test('THE CAMERA\'s numbers: ZOOM 7 · 8 · 9 (default 8), ANGLE straight · turned (default turned), ONE tuned turn, the proven rig', () => {
+test('THE CAMERA\'s numbers: ZOOM 7 · 8 · 9 (default 8), ANGLE straight · turned (default STRAIGHT — H3, the pick so far), ONE tuned turn, the proven rig', () => {
   assert.deepEqual([...ZOOMS], [7, 8, 9]); assert.equal(ZOOM, 8);
-  assert.deepEqual([...ANGLES], ['straight', 'turned']); assert.equal(ANGLE, 'turned');
+  assert.deepEqual([...ANGLES], ['straight', 'turned']); assert.equal(ANGLE, 'straight');
   assert.ok(TURN_DEG >= 10 && TURN_DEG <= 15, `the turn: ${TURN_DEG}° (a slight yaw)`);
   assert.deepEqual({ ...CAM }, { fov: 54, up: 16, back: 12, width: 9.42, kidAt: 0.62 }, 'H1\'s proven rig (16 up / 12 back), the kid 62 % down');
   assert.equal(PAST_EDGE, 1);
   const c = createCamera();
-  assert.equal(c.zoom(), 8); assert.equal(c.angle(), 'turned'); assert.ok(Math.abs(c.yaw() - TURN_DEG * Math.PI / 180) < 1e-9);
+  assert.equal(c.zoom(), 8); assert.equal(c.angle(), 'straight'); assert.equal(c.yaw(), 0);
+  assert.ok(Math.abs(createCamera({ angle: 'turned' }).yaw() - TURN_DEG * Math.PI / 180) < 1e-9, 'TURNED is still one switch away');
   assert.equal(createCamera({ zoom: 11, angle: 'sideways' }).zoom(), 8, 'a bad value = the default');
   assert.ok(Math.abs(lensFor(390 / 844).fov - 54.4) < 0.2, `fov ${lensFor(390 / 844).fov.toFixed(2)} on a 390 × 844 phone`);
 });

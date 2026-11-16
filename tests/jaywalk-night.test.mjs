@@ -111,25 +111,39 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   const water = fxs.slice(fxs.indexOf('} else if (type < 2.5) {'), fxs.indexOf('} else if (type < 3.5) {'));
   const base = /c = mix\(vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), w \* w\);/.exec(water);
   assert.ok(base && +base[3] >= 0.18 && +base[2] >= 0.1 && +base[3] > +base[1] * 4 && +base[6] >= 0.3, `the water's colour is a deep teal / blue, not black (${base && base.slice(1).join(' ')})`);
-  assert.match(water, /float crest =/); assert.match(water, /THE SHORELINE/); assert.match(water, /c = mix\(c, vec3\(0\.70, 0\.97, 1\.0\), foam \* 0\.9\);/, 'a bright foam line at the shore');
+  // (H3 — the owner: a clearly BRIGHTER, SATURATED night blue: the bright end's blue ≥ 0.8, the blue ≥ 2× the green — it pops beside the grass + the road)
+  assert.ok(+base[6] >= 0.8 && +base[6] >= 2 * +base[5] && +base[3] >= 0.4, `H3: a bright saturated blue (${base.slice(1).join(' ')})`);
+  assert.match(water, /float crest =/); assert.match(water, /THE SHORELINE/); assert.match(water, /c = mix\(c, vec3\(0\.95, 0\.99, 1\.0\), foam \* 0\.96\);/, 'a bright WHITE foam line on both banks');
   assert.match(water, /abs\(dn - 2\.0\)\), shU = step\(0\.5, abs\(up - 2\.0\)\)/, '… only where the neighbour is not water');
   assert.match(water, /float nz = vnoise\(/, 'generated noise — no texture file'); assert.match(water, /float spark = step\(0\.9, sh\)/, 'little sparkles of light');
-  assert.match(n, /0xc8f6ff, 1, 1, 0\.34 \* dim\);/, 'a soft wake behind each log'); assert.match(n, /0xd8faff, 1, 3, 0\.3 \* \(1 - rp\) \* dim\);/, '… + a ripple ring that swells behind its tail');
-  // THE LOGS (the add-on): bark with grooves, a wobble, pale ringed cut ends, a stub on the longer ones, moss on some; the amber only a thin underglow
-  assert.match(m, /export function buildLog\(len\)/); assert.match(n, /log2: buildLog\(2\), log3: buildLog\(3\), log4: buildLog\(4\), moss: buildMoss\(\)/, 'one geometry a length — nothing stretched');
-  assert.match(m, /const rad = x => 1 \+ 0\.05 \* Math\.sin\(/, 'the trunk\'s wobble'); assert.match(m, /GROOVE = \[1, 1, 0\.56,/, 'darker furrows along the bark');
-  assert.match(m, /const RINGS = \[\[0, 0\.2, 0xb98a55\], \[0\.2, 0\.42, 0xf3dcae\],/, 'light cut ends with tree rings'); assert.match(m, /if \(len < 3\) \{ g\.computeBoundingBox\(\); return g; \}/, 'the branch stub only on the longer logs');
-  assert.match(n, /if \(hsh\(vseed \^ \(i \* 2749\), j \* 19 \+ 5\) < 0\.45\) K\.moss\.put\(/, 'a little moss on some, from the seed');
+  assert.match(n, /0xc8f6ff, 1, 1, 0\.3 \* dim\);/, 'a soft wake behind each log');
+  // THE LOGS (H3 — the owner, Nov 16): all the SAME thickness, each its OWN length (1–4 cells — one geometry a length, nothing stretched), round +
+  // half-sunk (lit on top, dark down the sides), bark grain along the length, pale ringed ends; NO moss, NO branch stub, NO dot
+  assert.match(m, /export function buildLog\(len\)/); assert.match(n, /log1: buildLog\(1\), log2: buildLog\(2\), log3: buildLog\(3\), log4: buildLog\(4\), truck/, 'one geometry a length — nothing stretched');
+  assert.match(n, /K\[`log\$\{n\}`\]\.put\(cx, by, z, 1, 1, 1, 0,/, '… drawn at scale 1: every log the same thickness');
+  assert.match(m, /export const LOG = Object\.freeze\(\{ r: 0\.36, top: 0\.36 \}\);/, 'ONE radius — a true circle across');
+  assert.doesNotMatch(m, /const rad = x =>/, 'no wobble in its thickness'); assert.match(m, /GRAIN = \[1, 1, 0\.7,/, 'bark grain along the length');
+  assert.match(m, /const lit = a => 0\.3 \+ 0\.86 \* Math\.pow\(Math\.max\(0, Math\.cos\(a - 1\.3\)\), 2\.2\);/, 'lit on its shoulder, dark down the sides: round');
+  assert.match(m, /const RINGS = \[\[0, 0\.2, 0xb98a55\], \[0\.2, 0\.42, 0xf3dcae\],/, 'light cut ends with tree rings');
+  assert.doesNotMatch(m + n, /buildMoss|K\.moss|CircleGeometry\(0\.083|const stub = build\(/, 'NO moss, NO branch stub, NO dot — nothing that could read as a pickup');
+  assert.match(n, /const LOG_FEET = 0\.33;/, 'half-sunk: the kid stands on its round back');
   assert.match(n, /roughness: 0\.82, metalness: 0, envMapIntensity: 0\.25/, 'rough wood: the bark is seen, never a glow');
-  const logLights = n.slice(n.indexOf('K.moss.put('), n.indexOf('const rp = reduce'));
-  assert.match(logLights, /0xffa23a, 1, 0, 0\.2 \* dim\);/, 'a soft light on the water round it'); assert.match(logLights, /len - 0\.12, 1, 0\.1, 0, 0xffb648, 1, 4, 0\.6 \* dim\);/, 'a THIN underglow at the waterline');
+  const logLights = n.slice(n.indexOf('K[`log${n}`].put('), n.indexOf('} else {\n        const p = L.pulse'));
+  assert.match(logLights, /0xffa23a, 1, 0, 0\.17 \* dim\);/, 'a soft light on the water round it'); assert.match(logLights, /0xffb060, 1, asp, 0\.42 \* dim\);/, 'THE WATERLINE: a thin amber ring hugging the log (the glow shader\'s stadium ring)');
+  assert.match(logLights, /0xd8f4ff, 1, 7 \+ [^;]*0\.3 \* \(1 - rp\) \* dim\);/, '… + a small ripple ring swelling off it');
+  assert.match(fxs, /a thin STADIUM ring \(the waterline round a log/, 'shape 7');
   assert.doesNotMatch(logLights, /K\.bill\.put/, 'no glowing end caps (they made the pills)');
   assert.match(n, /rock = reduce \? 0 : Math\.sin\(clock \/ 880/, 'the logs rock gently — never with reduce motion');
   // CAR LIGHTS (the add-on): BOTH headlights + BOTH tail lights cast, short + soft, at the lamps' own places on each model — instanced quads
   assert.match(n, /const LAMPS = Object\.freeze\(\{ 'car-sedan': \[[\d.]+, [\d.]+\], 'car-hatchback': \[[\d.]+, [\d.]+\], 'car-taxi': \[[\d.]+, [\d.]+\], 'car-van': \[[\d.]+, [\d.]+\], truck: \[[\d.]+, [\d.]+\], train: \[[\d.]+, [\d.]+\] \}\);/);
   const reach = /const HEAD_REACH = ([\d.]+), TAIL_REACH = ([\d.]+);/.exec(n);
   assert.ok(reach && +reach[1] >= 1 && +reach[1] <= 1.5 && +reach[2] >= 0.5 && +reach[2] <= 1, `a headlight's glow is gone within ${reach && reach[1]} cells, a tail light's within ${reach && reach[2]}`);
-  assert.match(n, /for \(const e of \[-hw, hw\]\) \{[^}]*0xfff0c8, 1, 6, 0\.5 \* a1\);[^}]*0xff2030, 1, 0, 0\.36 \* a1\);[^}]*0xfff0c0, 1, 5,[^}]*0xff2840, 1, 5,[^}]*\}/, 'a car: two beams, two red glows, two + two lamps');
+  assert.match(n, /for \(const e of \[-hw, hw\]\) \{[^}]*0xfff0c8, 1, 6, 0\.5 \* a1\);[^}]*0xff2030, 1, 0, 0\.5 \* a1\);[^}]*streak, 1, 0\.12, back, tint, 1, 1,[^}]*0xfff0c0, 1, 5,[^}]*0xff2840, 1, 5,[^}]*\}/, 'a car: two beams, two red glows, TWO thin streaks (H3), two + two lamps');
+  // (H3 — the owner: the light trail = two THIN, SHORT, fast-fading streaks, one from EACH tail light — never one long lopsided beam)
+  const stk = /const streak = ([\d.]+) \+ L\.v \* ([\d.]+);/.exec(n);
+  assert.ok(stk && +stk[1] + 130 * +stk[2] <= 2, `a streak is short: ${stk && (+stk[1] + 22 * +stk[2]).toFixed(2)}–${stk && (+stk[1] + 130 * +stk[2]).toFixed(2)} cells`);
+  assert.doesNotMatch(n, /2\.0 \+ L\.v \* 0\.045, 1, 0\.62, back, tint/, 'the one long trail is gone');
+  assert.match(n, /for \(const e of \[-tw, tw\]\) \{[^}]*1\.8, 1, 0\.14, p\.dir > 0 \? 0 : Math\.PI, 0xff3a5a, 1, 1,[^}]*\}/, 'the train: a streak from each tail light too');
   assert.match(n, /for \(const e of \[-tw, tw\]\) \{[^}]*0xfff2d0, 1, 6,[^}]*0xff2030, 1, 0,[^}]*\}/, 'the train\'s front: two beams; its rear: two red glows');
   assert.doesNotMatch(n, /2\.6, 1, 1\.15|6\.6, 1, 2\.3|, 1, 2, 0\.\d+ \* (a1|lt)\)/, 'no single long spotlight is left');
   assert.match(fxs, /e \* e \* \(1\.0 - u\) \* \(1\.0 - u \* u\) \* smoothstep\(0\.0, 0\.07, u\); \}/, 'shape 6: a short soft beam — a quick falloff, soft edges');
