@@ -13,7 +13,6 @@ export const SOUNDS = Object.freeze([
   { id: 'lights-die', label: 'THE LIGHTS DIE', b: false, gain: 1.8, pri: 2 },
   { id: 'landmark', label: 'LANDMARK', b: false, gain: 1.6, pri: 2 },
   { id: 'new-best', label: 'NEW BEST', b: true, gain: 1.6, pri: 2 },
-  { id: 'respawn', label: 'RESPAWN', b: true, gain: 1.6, pri: 2 },
 ]);
 export const VOICES = 8;
 export const HOP_VARY = Object.freeze({ rate: 0.06, db: 2 });   // (a hop: pitch ± 6 %, gain ± 2 dB — never the same twice)

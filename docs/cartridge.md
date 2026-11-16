@@ -380,6 +380,16 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   `title-taps.js` went; the next pass that adds a byte to a boot file needs a named raise of `boot-budget.json#moduleKB` (or a trim).
 
 
+## JAYWALK H4 (Nov 16 2026) — a real-time match on the proof nodes (docs/jaywalk.md "THE MATCH")
+- **A game whose proof IS its live data:** `livePaths = { runs: jw/{matchId} }` — every player's own node (GO, the stamped hop-log
+  chunks, the end, the call) is mirrored to every phone: the ghosts, the live order, the director's end and the server's replay all
+  read the same nodes. The call lives on the caller's own node (`k`) — no call node, no registry entry.
+- **A match's course is not in `start()`'s game** (`seed: ''`): the director's first step (`count → play`) writes it once THE FIRST GO
+  has landed (THE 3 S RULE: the patch moves the phase). A game with NO options exports `DEFAULT_SETTINGS {}` + `OPTIONS []`.
+- **`AGAIN_LABEL`** is optional and JAYWALK no longer sets it (PLAY AGAIN everywhere); `nightBonus` = the call's game-night points.
+- **`host.js#startGameNow`:** `prevM` (the match whose proof a re-start keeps) is read BEFORE the start's stamp clears `meta/back`.
+- `JAYWALK_WAITS`: `meta` · `help` · `art` → the go-live pass (`smoke` done: the smoke row starts it on a page that asks).
+
 ## JAYWALK H3 (Nov 16 2026) — THE INSTANT AGAIN + three small optional pieces (docs/jaywalk.md "THE SOLO GAME")
 - **THE INSTANT AGAIN** (`js/games/kit/again.js` — a lazy chunk the solo podium loads): a cartridge that exports PURE
   **`soloAgain(game, { matchId, now })`** → the NEXT solo run's game (THE GAME FRAME: its own match id, a phase — `play` at once) gets its

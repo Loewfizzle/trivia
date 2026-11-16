@@ -26,6 +26,7 @@ const ALL_GAMES = [
   ['overclock', { mode: 'quick' }],
   ['prism', { mode: 'battle' }],
   ['holdem', { mode: 'tournament', speed: 'turbo' }],   // (HE10: ON for everyone — started here by a REGULAR host, no owner gate)
+  ['jaywalk', {}],   // (JAYWALK H4 — BEING BUILT: its smoke START = a local emulator page that ASKS (window.__nsPreview, set for this row alone) — the plain page above proved it can't start)
 ];
 const GAMES = ONLY_GAMES.length ? ALL_GAMES.filter(([id]) => ONLY_GAMES.includes(id)) : ALL_GAMES;
 // (FR7 FIXES B — FR7-A F: `GAMES=cipher` — the docs' old example — started NOTHING and passed. A filter that names no playable game is a
@@ -194,6 +195,8 @@ try {
 
   // ---- each game: start, watch its opening screens on both phones, back to the lobby
   for (const [id, settings] of GAMES) {
+    const building = id === 'jaywalk';   // (a game being built starts only where asked: config.js#isPlayable)
+    if (building) for (const p of [host, guest]) await p.evaluate(() => { window.__nsPreview = true; });
     await (await hostNow(`${id} start`)).evaluate(([g, s]) => import('/js/host.js').then(m => m.startGame(g, s)), [id, settings]);
     await waitFor(host, (s, g) => s.game && s.game.id === g, `${id} started`, 20000, id);
     await waitFor(guest, (s, g) => s.game && s.game.id === g, `${id} on the guest`, 20000, id);
@@ -206,6 +209,7 @@ try {
     await guest.waitForSelector('.lobby-screen, .title-screen.is-room', { timeout: 15000 });
     await sleep(800);
     await check(`lobby after ${id}`);
+    if (building) for (const p of [host, guest]) await p.evaluate(() => { delete window.__nsPreview; });
   }
 
   log('checks', `${checks.filter(c => c.ok).length}/${checks.length} passed`);

@@ -1002,6 +1002,27 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   WebGL — the page then says so ON its stage; a module that fails to load never puts the stage up → red). The lab's unit test greps the
   page's code for anything that could ask who is there (`whoami`, `api(`, `firebase.js`, `fetch(` …) and that nothing links to the page.
 
+## JAYWALK H4 (Nov 16 2026 — docs/games/passes/jaywalk-h4.md)
+- Unit: `tests/jaywalk-match.test.mjs` (ONE LIFE in every mode · THE FIRST GO → the seed + tick 0 · a whole 3-player match through the
+  pure director with bot logs in stamped chunks · the silent player · `endedFor` · Call the Winner · the server's `jaywalkMatch` = the
+  host's rows · THE DROPPED SIGNAL: 30 s / 60 s / two drops / over the run's end count in full; slow motion, a pause, a 95 s drop, a
+  fake drop are cut; the future + a backwards clock refused) · `tests/jaywalk-causes.test.mjs` (THE CAUSE LINE NAMES THE VEHICLE: ONE
+  source — `vehicleAt`; every vehicle kind + the train through the game's path and the lab's; no generic line in any JAYWALK file) ·
+  the older JAYWALK tests re-pointed (no lives / blink / respawn / one-up; PLAY AGAIN; THE SIGNAL).
+- Emulators: `rules.test.mjs` (the jw node's `k`) · `server.test.mjs` "JAYWALK H4 — THE MATCH" (a guest reports first → all three
+  credited from the server's replay; the silent player; a report after the rematch; the gates) · the smoke test's JAYWALK start (a
+  page that asks: `window.__nsPreview`, for that row alone).
+- **THE MATCH's own E2E:** `node tests/integration/e2e-jaywalk-match.mjs "<chromium>" [outDir] [--perf]` (~1.5 min, ~2 with `--perf`;
+  three phones on the kit's harness, the GPU path): the owner hosts → GO → the same course + clock → ghosts → the live order → out →
+  Call the Winner → watching → the end → the podium → the server's replay → the report for all three → the share image → a rematch;
+  `--perf` = a 4-player match (3 ghosts) at 390 × 844 @3 under 4× CPU, every tier.
+- **The solo E2E** gained the share image, the non-pill tubes, the named vehicle — and **`--drop`** (THE DROPPED SIGNAL with a REAL
+  offline gap: `goOffline` for 30 s then 60 s mid-run while the bot plays on, `goOnline` → the server's replay counts the full run;
+  ~4 min more).
+- **The lab check** (`jaywalk-lab.mjs`): + EVERY VEHICLE NAMES ITSELF (a kid stood on a road lane of each kind → the end line), `--h4`
+  = H4's look shots; **THE POSTER:** `node tests/integration/jaywalk-poster.mjs "<chromium>" <outDir>` (the two PNGs, zero server calls).
+- THE MOTHERSHIP's tick is proven at the rules only (no bot survives six minutes with one life).
+
 ## JAYWALK H3 (Nov 16 2026 — docs/games/passes/jaywalk-h3.md)
 - Unit: `tests/jaywalk-solo.test.mjs` (THE COURSE PICKED AFTER GO · the chunks' clock · THE SPEED CHECK both ways — a log from the future
   refused, a slowed / paused one cut, an honest one + 3 s of lag passes · the server's own result → `jaywalk-solo` · the solo director +

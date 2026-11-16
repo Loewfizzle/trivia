@@ -13,7 +13,7 @@ import { wireControls } from './controls.js';
 import { createTiers } from '../kit/tiers.js';
 import { getPref, setPref } from './lab-prefs.js';
 import { ZOOMS, ZOOM, ANGLES, ANGLE } from './camera.js';
-import { causeLine, hitVehicle, vehicleOf, strSeed } from './causes.js';
+import { runLine, hitVehicle, vehicleAt } from './causes.js';
 
 const app = document.getElementById('app');
 const Q = new URLSearchParams(location.search);
@@ -43,6 +43,8 @@ function press(el, fn) {
 }
 
 async function mount() {
+  // THE POSTER (H4 — `?poster=1`): the hero frame for THE TRI-VISION board, rendered from the game itself (poster.js)
+  if (Q.get('poster') === '1') { const P = await lazyImport(import('./poster.js'), './poster.js'); return P.mountPoster(app); }
   // THE NIGHT LOOK (H2 — night.js); `?gray=1` keeps H1's graybox for comparison (the same engine, the same camera — camera.js)
   const GRAY = Q.get('gray') === '1';
   const [{ createGraybox, createNight }, { greedyBot }] = await Promise.all([
@@ -114,8 +116,8 @@ async function mount() {
   function showEnd() {
     shown = true; overAt = performance.now();
     const live = resultOf(run);
-    // (the game's own words — causes.js: the line names the vehicle the night look drew)
-    endT.textContent = causeLine({ cause: live.cause, vehicle: live.cause === 'car' ? hitVehicle(course, { y: live.y, x: live.x, end: live.end }) : '', lanes: live.lanes, taken: live.taken });
+    // (the game's own words — causes.js#runLine: the SAME table + the SAME vehicle function the night look draws by; never a generic line)
+    endT.textContent = runLine(course, live);
     endL.textContent = live.taken ? 'THE MOTHERSHIP CAME — THAT IS A WIN' : `LANE ${live.lanes}`;
     // THE DETERMINISM CHECK: the run replayed from its seed + hop log — the SAME code the server runs
     const { used, ...r } = replay({ seed, mode, log });
@@ -160,7 +162,7 @@ async function mount() {
   // (the pass's own checks — tests/integration/jaywalk-lab.mjs: the bot plays through the same input path, the frame times, the camera)
   const lab = window.__jwLab = {
     ends: [], view,
-    state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, cause: run.cause, wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, steps, slow, kidY: view.kidScreenY(), kidX: view.kidScreenX(), kidPx: view.kidHeightPx ? view.kidHeightPx() : 0, zoom, angle, gray: GRAY, tier: tiers.get(), tierPath: tierPath.slice(), capped: tiers.capped(), info: view.info() }),
+    state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, cause: run.cause, line: endT.textContent, hitBy: run.cause === 'car' ? hitVehicle(course, { y: run.y, x: run.x, end: run.end }) : '', wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, steps, slow, kidY: view.kidScreenY(), kidX: view.kidScreenX(), kidPx: view.kidHeightPx ? view.kidHeightPx() : 0, zoom, angle, gray: GRAY, tier: tiers.get(), tierPath: tierPath.slice(), capped: tiers.capped(), info: view.info() }),
     bot(on) { bot = on ? greedyBot({ seed }) : null; },
     restart: (m, s) => restart(m || mode, s),
     setCamera, setTier: t => tiers.set(t), ready: view.ready || Promise.resolve(true),
@@ -177,7 +179,7 @@ async function mount() {
     /** (a look check) the middle of a log on this water lane that is well inside the 9 columns right now (FP; −1 = none) */
     logAt(lane) { const L = course.lane(lane); if (L.type !== 'water') return -1; for (const it of L.items) { const l = moverLeft(L, it, run.t); if (l > 1500 && l + it.len < 7500) return l + it.len / 2; } return -1; },
     /** (a look check) a road / water lane's movers right now, in cells: [{ left, len }] + the lane's dir + v */
-    items(lane) { const L = course.lane(lane); return { dir: L.dir || 0, v: L.v || 0, items: (L.items || []).map((it, j) => ({ left: moverLeft(L, it, run.t) / FP, len: it.len / FP, what: L.type === 'road' ? vehicleOf(strSeed(course.seed), lane, j, it.len / FP) : 'log' })) }; },
+    items(lane) { const L = course.lane(lane); return { dir: L.dir || 0, v: L.v || 0, items: (L.items || []).map((it, j) => ({ left: moverLeft(L, it, run.t) / FP, len: it.len / FP, what: L.type === 'road' ? vehicleAt(course, lane, j) : 'log' })) }; },
     find(kind, from = 0) { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (kind === 'ufo' ? L.ufo && L.ufo.y0 === i : kind === 'mark' ? !!L.mark : L.type === kind) return i; } return -1; },
     pulse(lane) { const L = course.lane(lane); return L.pulse ? pulseAt(L.pulse, run.t) : null; },
   };

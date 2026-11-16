@@ -116,7 +116,7 @@ test('ONE CAMERA, PURE: no three.js, no DOM, no clock; both views use it; the ru
   for (const f of ['night.js', 'graybox.js']) {
     const s = code(f);
     assert.match(s, /import \{ CAM, createCamera \} from '\.\/camera\.js';/, `${f}: the shared camera`);
-    assert.match(s, /const rig = createCamera\(\{ zoom: o\.zoom, angle: o\.angle \}\);/); assert.match(s, /cam\.fov = rig\.fit\(w \/ h\);/);
+    assert.match(s, /const rig = createCamera\(\{ zoom: o\.zoom, angle: o\.angle(, hero: o\.hero)? \}\);/); assert.match(s, /cam\.fov = rig\.fit\(w \/ h\);/);
     assert.match(s, /rig\.apply\(cam/); assert.match(s, /setCamera\(zoom, angle, snap\) \{ rig\.choose\(zoom, angle, snap\); \}/);
     assert.doesNotMatch(s, /export const CAM|WIDTHS|setCols|cam\.lookAt\(/, `${f}: no camera of its own`);
   }

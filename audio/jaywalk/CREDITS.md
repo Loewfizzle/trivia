@@ -23,8 +23,6 @@ credit lines with them). The train bells ship as 16-bit mono WAV — the whole f
 | landmark.mp3 | Triple_Ping Notification Sound Mobile Optimized | PiesHelpfulOven | CC0 | https://freesound.org/people/PiesHelpfulOven/sounds/842513/ |
 | new-best.mp3 | achievement-sparkle | SkySpeira | CC0 | https://freesound.org/people/SkySpeira/sounds/715067/ |
 | new-best-b.mp3 | Fantasy Achievement Unlock Magical Stinger | TommasoMotteran | CC BY 4.0 — CREDIT REQUIRED | https://freesound.org/people/TommasoMotteran/sounds/859080/ |
-| respawn.mp3 | Reverse Time Subtle Futuristic Rewind SFX | LilMati | CC0 | https://freesound.org/people/LilMati/sounds/714571/ |
-| respawn-b.mp3 | FX_UX_Quick_Shimmer_Reactive_Wait-and-Rise | PLukx | CC0 | https://freesound.org/people/PLukx/sounds/703284/ |
 
 ## CC BY 4.0 — these three need their credit in the game's credits (☰ → CREDITS) when they ship in play
 

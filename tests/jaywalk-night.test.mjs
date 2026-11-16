@@ -50,7 +50,7 @@ test('THE SKYLINE + THE SOUNDS: the night band ≤ 150 KB; every pick + every -b
   const have = readdirSync(new URL('audio/jaywalk/', root)).sort();
   const want = SOUNDS.flatMap(s => [`${s.id}.${s.ext || 'mp3'}`, ...(s.b ? [`${s.id}-b.${s.ext || 'mp3'}`] : [])]);
   assert.deepEqual(have, [...want, 'CREDITS.md'].sort(), 'audio/jaywalk = the table\'s files + CREDITS.md');
-  assert.equal(SOUNDS.length, 12); assert.equal(SOUNDS.filter(s => s.b).length, 7);
+  assert.equal(SOUNDS.length, 11); assert.equal(SOUNDS.filter(s => s.b).length, 6);   // (H4: ONE LIFE — the RESPAWN sound left with respawn)
   for (const [f, frames] of [['train-bell.wav', 84405], ['train-bell-b.wav', 78572]]) {
     const w = bytes(`audio/jaywalk/${f}`);
     assert.equal(w.toString('ascii', 0, 4), 'RIFF'); assert.equal(w.readUInt16LE(22), 1, 'mono'); assert.equal(w.readUInt32LE(24), 44100); assert.equal(w.readUInt16LE(34), 16, '16-bit');

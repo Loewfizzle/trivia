@@ -192,6 +192,7 @@ def sounds():
     total = 0
     for f in sorted(os.listdir(os.path.join(SRC, 'sfx'))):
         s = os.path.join(SRC, 'sfx', f)
+        if f.startswith('respawn'): continue   # (H4 — ONE LIFE EVERYWHERE: no respawn, so no respawn sound)
         if f.endswith('.mp3') and not f.startswith('train-bell'):
             shutil.copyfile(s, os.path.join(OUT_A, f)); total += os.path.getsize(s)
         elif f.endswith('.wav'):

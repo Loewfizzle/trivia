@@ -685,6 +685,18 @@ the full card's width (it reads as a card, not a placeholder). Shots: `Downloads
 - Authentication → Settings → Authorized domains: `neonspeakeasy.com` (keep the old `games.` / `trivia.loewfizzle.com`, which redirect to it).
 - Web config goes in `js/firebase-config.js` (public by design; the rules are the security).
 
+## JAYWALK H4 (Nov 16 2026) — a MATCH on the server (docs/jaywalk.md "THE MATCH" + "THE DROPPED SIGNAL")
+- **`/api/report` — a JAYWALK MATCH** (`jwMatch`: the night record's game is `jaywalk` and it is not a solo run) is counted ONLY from
+  the server's replay of EVERY named player's proof node (`api/_lib/jaywalk.js#jaywalkMatch`): the course + tick 0 from THE FIRST GO
+  among the match's nodes, each node through THE JUDGE (the bounds, THE SPEED CHECK both ways, THE DROPPED SIGNAL). Nothing the host
+  wrote is read (`game.seed`, `playAt`, `results`), so the placings-agreement check does not apply. On BOTH paths: the room still on
+  that match (`src: 'room'`), or the room moved on — a rematch (`src: 'proof'`: the proof nodes + the night record credit everyone it
+  names who has their own node). 409 `unverifiable`: an UNPROVEN match (`game.unproven`), no GO, **a match nobody ever hopped in**.
+  A silent-but-present player is credited; a seat with no node is dropped (A SEAT IS NOT A PLAY).
+- **THE OWNER'S LIVE TEST — his guests:** `reportableGame(id, uid, { code, matchId })` — a game being built is reportable when the
+  reporter is the owner, OR when the owner PLAYED that match (his own proof node of it in that room — only his phone can write it):
+  a guest in the owner's room is counted, and may be the phone that reports first.
+
 ## JAYWALK H3 (Nov 16 2026) — the solo run on the server (docs/jaywalk.md "THE ANTI-CHEAT")
 - **`/api/report` — a JAYWALK SOLO run** (one name on the night record, the reporter's) is counted ONLY from the server's replay of the
   player's proof node `rooms/{CODE}/jw/{matchId}/{uid}` (`api/_lib/jaywalk.js#jaywalkSolo`): GO's server time → the course's seed, the

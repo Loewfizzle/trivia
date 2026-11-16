@@ -1,7 +1,10 @@
 // JAYWALK — HOW YOU WENT OUT (H3 — docs/jaywalk.md "THE END SCREEN"): the end screen names it in big neon words — one line per cause +
-// vehicle (FLATTENED BY A TAXI · SWEPT AWAY · HIT BY THE 6:15 · THE LIGHTS WENT OUT). PURE (no DOM, no three.js): which vehicle a car IS
-// comes from the same pick the night look draws it by (vehicleOf — night.js imports it), so the words always match the picture; what hit
-// the kid is read back from the run's own end (the lane, the tick, the place — the engine's result), never stored anywhere.
+// vehicle (FLATTENED BY A TAXI · SWEPT AWAY · HIT BY THE 6:15 · THE LIGHTS WENT OUT). PURE (no DOM, no three.js).
+// H4 ADD-ON (the owner, Nov 16 — hit by a truck, the screen said "HIT BY A CAR"): **ONE SOURCE OF TRUTH for which vehicle a car IS** —
+// `vehicleAt(course, lane, j)`, from the course's seed. THE DRAWING (night.js) and THE WORDS (hitVehicle → causeLine) both read it, in
+// the game AND the lab, so the line always names the model on the screen. There is NO generic line: a kid a car got is always named
+// by its vehicle (sedan · hatchback · taxi · van · box truck); the train is THE 6:15. What hit the kid is read back from the run's own
+// end (the lane, the tick, the place — the engine's result), never stored anywhere.
 import { FP, KID_HALF } from './tuning.js';
 import { moverLeft } from './course.js';
 
@@ -10,28 +13,46 @@ export const hsh = (a, b) => { let x = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ M
 export const strSeed = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h | 0; };
 
 export const CAR_KINDS = Object.freeze(['sedan', 'hatchback', 'taxi']);
-/** which vehicle the j-th mover of a ROAD lane is: a 1-cell car = a sedan / a hatchback / a taxi (from the course's seed), 2 cells = the van, 3 = THE BOX TRUCK */
-export const vehicleOf = (vseed, lane, j, cells) => (cells > 2.5 ? 'truck' : cells >= 1.5 ? 'van' : CAR_KINDS[Math.floor(hsh(vseed ^ (lane * 7919), j * 13 + 1) * 3)]);
-
-/** the vehicle that hit a kid who went out by a car: { y: the lane, x: their centre (FP), end: the tick } on this course → its kind ('' = none found) */
-export function hitVehicle(course, { y, x, end }) {
-  const L = course.lane(y);
-  if (!L || L.type !== 'road') return '';
-  for (let j = 0; j < L.items.length; j++) {
-    const l = moverLeft(L, L.items[j], end);
-    if (l < x + KID_HALF && l + L.items[j].len > x - KID_HALF) return vehicleOf(strSeed(course.seed), y, j, L.items[j].len / FP);
-  }
-  return '';
+/** every vehicle a road lane can carry — each has its model (night.js) and its line (CAUSE_LINES) */
+export const VEHICLES = Object.freeze(['sedan', 'hatchback', 'taxi', 'van', 'truck']);
+const SEEDS = new WeakMap();
+const seedNum = course => { let v = SEEDS.get(course); if (v === undefined) { v = strSeed(String(course.seed)); SEEDS.set(course, v); } return v; };
+/**
+ * THE ONE SOURCE OF TRUTH: which vehicle the j-th mover of ROAD lane `lane` of this course IS — a 1-cell car = a sedan / a hatchback /
+ * a taxi (from the course's seed + the lane + its place in the lane), 2 cells = the van, 3 = THE BOX TRUCK. '' = not a car.
+ * The night look draws by it; the end screen's line names it.
+ */
+export function vehicleAt(course, lane, j) {
+  const L = course.lane(lane), it = L && L.type === 'road' && L.items ? L.items[j] : null;
+  if (!it) return '';
+  const cells = it.len / FP;
+  return cells > 2.5 ? 'truck' : cells >= 1.5 ? 'van' : CAR_KINDS[Math.floor(hsh(seedNum(course) ^ (lane * 7919), j * 13 + 1) * 3)];
 }
 
-/** THE WORDS — one line per cause + vehicle (≤ 2 short lines at phone size; no emoji, no dev text) */
+/** the vehicle that hit a kid who went out by a car: { y: the lane, x: their centre (FP), end: the tick } on this course → its kind.
+ *  The one on them at that tick — the engine's own box; were none found (never, for a real car hit) the NEAREST on the lane: a car hit
+ *  always names a vehicle that is on the screen ('' only when the lane is no road at all) */
+export function hitVehicle(course, { y, x, end }) {
+  const L = course.lane(y);
+  if (!L || L.type !== 'road' || !L.items.length) return '';
+  let near = 0, gap = Infinity;
+  for (let j = 0; j < L.items.length; j++) {
+    const l = moverLeft(L, L.items[j], end), r = l + L.items[j].len;
+    if (l < x + KID_HALF && r > x - KID_HALF) return vehicleAt(course, y, j);
+    const d = x < l ? l - x : x > r ? x - r : 0;
+    if (d < gap) { gap = d; near = j; }
+  }
+  return vehicleAt(course, y, near);
+}
+
+/** THE WORDS — one line per cause + vehicle (≤ 2 short lines at phone size; no emoji, no dev text). NO generic car line: a car hit is
+ *  always one of the five vehicles */
 export const CAUSE_LINES = Object.freeze({
   'car:sedan': 'FLATTENED BY A SEDAN',
   'car:hatchback': 'CLIPPED BY A HATCHBACK',
   'car:taxi': 'FLATTENED BY A TAXI',
   'car:van': 'RUN DOWN BY A VAN',
   'car:truck': 'FLATTENED BY A BOX TRUCK',
-  car: 'HIT BY A CAR',
   water: 'SWEPT AWAY',
   edge: 'CARRIED OFF BY A LOG',
   train: 'HIT BY THE 6:15',
@@ -43,4 +64,8 @@ export const CAUSE_LINES = Object.freeze({
 export function causeLine({ cause = '', vehicle = '', lanes = 0, taken = false } = {}) {
   if (taken || cause === 'taken') return `TAKEN AT LANE ${lanes}`;
   return CAUSE_LINES[`${cause}:${vehicle}`] || CAUSE_LINES[cause] || 'OUT';
+}
+/** the line of a finished run on its course (the game's views + the lab + the podium all come through here): { cause, y, x, end, lanes, taken } */
+export function runLine(course, { cause = '', y = 0, x = 0, end = -1, lanes = 0, taken = false } = {}) {
+  return causeLine({ cause, vehicle: cause === 'car' ? hitVehicle(course, { y, x, end }) : '', lanes, taken });
 }

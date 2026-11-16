@@ -3,23 +3,29 @@
 //     radio gate; on the emulators testAdmins/{pid}) gets JAYWALK · TEST → its card → PLAY NOW
 //   · GO with the server's time: the proof node's `go` ≈ the server clock, written once; the course = seedOf(code, matchId, go)
 //   · hops → the chunks, each { s, at: the server's time }; a forged chunk time is refused by the rules
-//   · out → the end screen (the cause in big words, the lanes, HOP AGAIN · SHARE · BACK TO THE CITY); the report COUNTED FROM THE REPLAY →
+//   · out → the end screen (the cause in big words, the lanes, PLAY AGAIN · SHARE · BACK TO THE CITY — the non-pill tubes); the report COUNTED FROM THE REPLAY →
 //     the solo board's best = the server's own lanes + NEW BEST on the end screen
-//   · HOP AGAIN: tap → the next run's course is up (ready to hop) — MEASURED; a new match id + its own proof + its own report; the scene
+//   · PLAY AGAIN (THE INSTANT AGAIN): tap → the next run's course is up (ready to hop) — MEASURED; a new match id + its own proof + its own report; the scene
 //     kept warm (one WebGL scene the whole session)
 //   · a FORGED log (hops the clock never saw) → counted as nothing: the best untouched
 //   · BACK TO THE CITY → the room gone
+//   · THE SHARE IMAGE: the frame of the moment the kid went out + the cause + the lanes + THE SIGNAL (drawn on the phone; saved to outDir)
 //   · --perf: the real view at 390 × 844 @3 under a 4× CPU throttle — fps, frame time p95 / worst, the work a frame, per tier
-//   node tests/integration/e2e-jaywalk.mjs "<chromium>" [outDir] [--perf]
+//   · --drop (H4 — THE DROPPED SIGNAL, a REAL offline gap): the bot plays, the phone's database line is cut for 30 s, then 60 s
+//     (goOffline / goOnline), the queued chunks land together → the SERVER's replay counts the FULL honest run, no cut
+//   node tests/integration/e2e-jaywalk.mjs "<chromium>" [outDir] [--perf] [--drop]
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { verifyNode } from '../../api/_lib/jaywalk.js';
-import { CAUSE_LINES } from '../../js/games/jaywalk/causes.js';
+import { chunkTimes } from '../../js/games/jaywalk/replay.js';
+import { CAUSE_LINES, hitVehicle } from '../../js/games/jaywalk/causes.js';
+import { createCourse } from '../../js/games/jaywalk/course.js';
+import { seedOf } from '../../js/games/jaywalk/logic.js';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
-const argv = process.argv.slice(2), PERF = argv.includes('--perf'), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
+const argv = process.argv.slice(2), PERF = argv.includes('--perf'), DROP = argv.includes('--drop'), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
 if (OUT) mkdirSync(OUT, { recursive: true });
 const DB = 'http://127.0.0.1:9000', NS = 'ns=demo-arcade-default-rtdb', AUTH = { Authorization: 'Bearer owner' };
 const dbGet = path => fetch(`${DB}/${path}.json?${NS}`, { headers: AUTH }).then(r => r.json());
@@ -108,8 +114,21 @@ try {
   await sleep(600);
   let end = await P.ev(`({ cause: document.querySelector('.jw-fin-cause').textContent, n: document.querySelector('.jw-fin-n b').textContent, unit: document.querySelector('.jw-fin-n span').textContent, foot: [...document.querySelectorAll('.final-actions button')].map(x => x.textContent.trim()), res: ${S}.game.results[${S}.uid], hud: getComputedStyle(document.querySelector('.jw-hud')).visibility, confetti: !!document.querySelector('.jw-final .burst') && getComputedStyle(document.querySelector('.jw-final .burst')).display !== 'none' })`);
   ok(Object.values(CAUSE_LINES).includes(end.cause), `HOW YOU WENT OUT, in big neon words: "${end.cause}"`);
+  // (H4 add-on: a car hit is named by THE VEHICLE on that lane at that tick — worked out here from the course alone; never a generic line)
+  { const veh = end.res.w === 'car' ? hitVehicle(createCourse(seedOf(g.code, g.m, node.go)), { y: end.res.y, x: end.res.px, end: end.res.e }) : '';
+    ok(end.res.w !== 'car' || (!!veh && end.cause === CAUSE_LINES[`car:${veh}`]), end.res.w === 'car' ? `… it names the vehicle that hit (${veh}) — never "HIT BY A CAR"` : `… (this run ended by "${end.res.w}": no vehicle to name)`); }
   ok(end.n === String(end.res.l) && /^LANES?$/.test(end.unit) && end.res.l >= 3, `the lanes: ${end.n} ${end.unit} (the host's replay of the log)`);
-  ok(JSON.stringify(end.foot) === JSON.stringify(['HOP AGAIN', 'SHARE', 'BACK TO THE CITY']), `the foot: ${end.foot.join(' · ')} (HOP AGAIN first)`);
+  ok(JSON.stringify(end.foot) === JSON.stringify(['PLAY AGAIN', 'SHARE', 'BACK TO THE CITY']), `the foot: ${end.foot.join(' · ')} (PLAY AGAIN first — never "HOP AGAIN")`);
+  ok(parseFloat(await P.ev("getComputedStyle(document.querySelector('.jw-final .final-again')).borderRadius")) <= 12, 'the end screen\'s buttons: the site\'s non-pill tube (10 px corners)');
+  // THE SHARE IMAGE: the frame of the moment the kid went out, on the share kit's card (drawn on the phone; nothing is sent here)
+  const card = await P.p.evaluate(async () => {
+    const s = window.__arcade.state, [Sh, K, T] = await Promise.all([import('/js/games/jaywalk/share.js'), import('/js/games/kit/share-run.js'), import('/js/games/jaywalk/shot.js')]);
+    const shot = T.shotFor(s.game.matchId), me = s.players[s.uid], c = Sh.jwRunCard(s.game, { uid: s.uid, name: me.name, line: shot ? shot.line : '' });
+    const cv = K.drawRunCard({ ...c, line: shot ? shot.line : '' }, (ctx, box, k) => Sh.drawRunMiddle(ctx, box, k, shot));
+    return { shot: !!shot, w: cv && cv.width, h: cv && cv.height, line: shot && shot.line, lanes: shot && shot.lanes, mode: c.mode, result: c.result, url: cv ? cv.toDataURL('image/png') : null };
+  });
+  ok(card.shot && card.w === 1080 && card.h === 1350 && card.line === end.cause && card.lanes === end.res.l && card.mode === 'SOLO', `THE SHARE IMAGE: the run's own frame + "${card.line}" + ${card.lanes} lanes (${card.w} × ${card.h})`);
+  if (OUT && card.url) writeFileSync(join(OUT, 'share-card-solo.png'), Buffer.from(card.url.split(',')[1], 'base64'));
   ok(end.hud === 'hidden' && !end.confetti, 'the HUD is off under it; no confetti over a run\'s end');
   const r1 = await counted(g.code, g.m);
   node = await nodeOf(g.code, g.m, uid);
@@ -118,7 +137,7 @@ try {
   ok(await board(pid) === v1.result.lanes, `the solo board (jaywalk-solo): best ${await board(pid)} — from the replay`);
   ok(await P.waitFor("!!document.querySelector('.jw-fin-best.is-new') && /NEW BEST/.test(document.querySelector('.jw-fin-best').textContent)", 10000), 'NEW BEST on the end screen — from the server\'s own answer');
   await P.shot('end-new-best.png');
-  // ---- 6. HOP AGAIN — measured: the tap → the next run's course is up (ready to hop)
+  // ---- 6. PLAY AGAIN — measured: the tap → the next run's course is up (ready to hop)
   const times = [];
   const again = async () => {
     const m0 = await P.ev(`${S}.game.matchId`);
@@ -130,7 +149,7 @@ try {
   };
   let A = await again();
   times.push(A.ms);
-  ok(A.up, `HOP AGAIN → the next run is on (${A.ms.toFixed(0)} ms from the tap to a course ready to hop)`);
+  ok(A.up, `PLAY AGAIN → the next run is on (${A.ms.toFixed(0)} ms from the tap to a course ready to hop)`);
   g = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId, phase: ${S}.game.phase })`);
   st = await P.ev(`${G}.state()`);
   ok(g.m !== A.m0 && g.m[0] === 's' && g.phase === 'play' && st.proven && st.t < 600, `… a match of its own (${g.m}), proven, on a fresh clock`);
@@ -148,8 +167,8 @@ try {
   // a few more, for the measure
   for (let i = 0; i < 3; i++) { A = await again(); if (A.up) times.push(A.ms); await hopUp(P, 1); if (i < 2) await toEnd(P); }
   times.sort((x, y) => x - y);
-  console.log('HOP_AGAIN_MS', JSON.stringify(times.map(t => Math.round(t))));
-  ok(times.length >= 4 && times[Math.floor(times.length / 2)] < 1000, `HOP AGAIN, ${times.length} taps: median ${times[Math.floor(times.length / 2)].toFixed(0)} ms, worst ${times[times.length - 1].toFixed(0)} ms (the target ≤ ~1 s)`);
+  console.log('PLAY_AGAIN_MS', JSON.stringify(times.map(t => Math.round(t))));
+  ok(times.length >= 4 && times[Math.floor(times.length / 2)] < 1000, `PLAY AGAIN, ${times.length} taps: median ${times[Math.floor(times.length / 2)].toFixed(0)} ms, worst ${times[times.length - 1].toFixed(0)} ms (the target ≤ ~1 s)`);
   // ---- 7. a FORGED log: hops the clock never saw (tick 5000 at second 2) — written honestly stamped; the server counts it as NOTHING
   g = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
   ok(await P.ev(`import('/js/firebase.js').then(f => f.set(f.dbRef('rooms/' + ${S}.code + '/jw/' + ${S}.game.matchId + '/' + ${S}.uid + '/c/900'), { s: 'U3uwU8U8U8U8U8U8U8U8', at: f.serverTimestamp() }).then(() => true, () => false))`), 'a forged chunk (well-formed, stamped by the server) can be written …');
@@ -166,6 +185,58 @@ try {
   ok((await dbGet(`rooms/${g.code}`)) == null, '… the solo room is gone');
   ok(!P.errs.length, `no page error (${P.errs.slice(0, 2).join(' | ') || 'none'})`);
   await P.close();
+
+  // ---- 8b. THE DROPPED SIGNAL (H4 — `--drop`): a REAL offline gap mid-run — the phone's database line cut, the run played on, the
+  // queued chunks landing together when it is back → the server's own replay counts the FULL honest run (never cut, never refused)
+  if (DROP) {
+    const Q = await phone(`jwd${Date.now() % 100000}`);
+    const who = await pidOf(Q);
+    await dbPut(`testAdmins/${who.pid}`, true);
+    await Q.ev('sessionStorage.clear()');
+    await Q.open();
+    await Q.waitFor("import('/js/config.js').then(c => c.isOwnerTest('jaywalk'))", 20000);
+    await Q.ev("import('/js/host.js').then(m => m.playSolo('jaywalk'))");
+    for (const secs of [30, 60]) {
+      let done = false;
+      for (let attempt = 0; attempt < 4 && !done; attempt++) {
+        await Q.waitFor(`!!${G} && ${G}.state().mode === 'run' && ${G}.state().proven && ${S}.game.phase === 'play'`, 30000);
+        const gd = await Q.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
+        await Q.ev(`${G}.bot(true, { lazy: true })`);
+        await Q.waitFor(`${G}.state().chunks >= 2 || ${G}.state().over`, 30000);   // (mid-run: a few hops are already proven when the line goes)
+        await sleep(1200);
+        const alive = async () => !(await Q.ev(`${G}.state().over`));
+        if (await alive()) {
+          const sent0 = (await Q.ev(`${G}.state()`)).chunks;
+          await Q.ev("import('/js/firebase.js').then(f => f.goOffline())");
+          const tOff = Date.now();
+          while (Date.now() - tOff < secs * 1000 && await alive()) await sleep(500);
+          const lasted = (Date.now() - tOff) / 1000, stillIn = await alive(), offline = await Q.ev(`${G}.state()`);
+          if (lasted >= secs - 1) {
+            const before = await nodeOf(gd.code, gd.m, who.uid), nBefore = Object.keys((before && before.c) || {}).length;
+            await Q.ev("import('/js/firebase.js').then(f => f.goOnline())");
+            await Q.ev(`${G}.bot(false)`);
+            ok(await toEnd(Q, 90000), `a ${secs} s DROP mid-run (the line cut for ${lasted.toFixed(0)} s, the kid ${stillIn ? 'still hopping' : 'out meanwhile'}; ${offline.chunks - sent0} chunk(s) queued): back online → the run ends on the podium`);
+            const node = await nodeOf(gd.code, gd.m, who.uid), times = chunkTimes(node.c), v = verifyNode({ code: gd.code, matchId: gd.m, node });
+            let gap = 0, prev = node.go; for (const t of times) { gap = Math.max(gap, t.at - prev); prev = t.at; }
+            const res = await Q.ev(`${S}.game.results[${S}.uid]`), mine = await Q.ev(`${G}.state()`);
+            ok(nBefore < times.length && gap >= (secs - 3) * 1000, `… the server saw a SILENCE of ${(gap / 1000).toFixed(1)} s, then ${times.length - nBefore} chunk(s) landing together`);
+            ok(v.ok && !v.cut && v.result.lanes === mine.best && res.l === mine.best && !res.cut && !res.bad, `… THE FULL HONEST RUN COUNTS: the server's replay = ${v.ok ? v.result.lanes : v.why} lanes = the phone's ${mine.best} (no cut, not refused)`);
+            ok(!!(await counted(gd.code, gd.m, 30000)), '… and the report is counted');
+            done = true;
+          } else await Q.ev("import('/js/firebase.js').then(f => f.goOnline())");
+        }
+        if (!done) { await Q.ev(`${G}.bot(false)`); await toEnd(Q, 60000); }
+        // the next run (PLAY AGAIN)
+        await Q.waitFor("!!document.querySelector('.final-again')", 15000);
+        const m0 = await Q.ev(`${S}.game.matchId`);
+        await Q.tap('.final-again');
+        await Q.waitFor(`${S}.game && ${S}.game.matchId !== '${m0}'`, 15000);
+      }
+      ok(done, `the ${secs} s drop was played (a bot that lived through it)`);
+    }
+    ok(!Q.errs.length, `no page error in the drop runs (${Q.errs.slice(0, 2).join(' | ') || 'none'})`);
+    await Q.close();
+  }
 
   // ---- 9. PERFORMANCE: the real view, 390 × 844 @3, 4× CPU, the bot playing — per tier
   if (PERF) {

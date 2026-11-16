@@ -2,7 +2,7 @@
 
 Mobile-first multiplayer party games (2–8 players, one phone each). Thirteen games, **THREE PLAYABLE**: PRISM DROP, OVERCLOCK, HOLD'EM
 (`js/config.js` GAMES[].playable is the one switch — the other ten are FROZEN (`config.js#FROZEN_IDS`, never loaded — docs/cartridge.md "THE FROZEN
-CONTRACT"), code + data + rules kept; + JAYWALK BEING BUILT — `preview`, never offered (its solo run: the owner's phone only): docs/jaywalk.md). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
+CONTRACT"), code + data + rules kept; + JAYWALK BEING BUILT — `preview`, never offered (its solo run: the owner's phone only; its matches: a room he hosts): docs/jaywalk.md). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
 **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (City 1.0 deleted Nov 5; its code at the tag `city-1.0-final`). Static site on Vercel
 (**neonspeakeasy.com**) + Firebase Realtime Database + Anonymous Auth + eight Vercel functions in `/api` (profiles, server-checked results +
 HOLD'EM's dealer, THE BOARD, admin, errors, the dailies, the weather, the clock). In code the city is still "the district" (`nd-` prefix,
@@ -174,7 +174,8 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - JAYWALK (BEING BUILT): the rules PURE + CROSS-ENGINE SAFE (integers + Math.floor — no sin / cos / pow / sqrt, never Math.random / Date.now / a
   frame clock); a lane = f(seed, index), a hazard = f(lane, tick); a result = THE REPLAY of the hop log; every pass ships its preview at
   /jaywalk-lab (OPEN since H2B: no gate, ZERO server calls, no writes, noindex + unlisted) — never a 192.168 / tests/ link in a summary → docs/jaywalk.md.
-- JAYWALK's SOLO RUN (H3): THE COURSE IS PICKED AFTER GO (`logic.js#seedOf` — hash(code + matchId + the server's GO time)); played on the SERVER's clock, never paused; the proof = server-stamped chunks; counted ONLY from the server's replay (`api/_lib/jaywalk.js#verifyNode` — a log AHEAD of the clock refused, one BEHIND cut); owner-only until go-live; HOP AGAIN = THE INSTANT AGAIN (`kit/again.js`) → docs/jaywalk.md "THE SOLO GAME".
+- JAYWALK's SOLO RUN (H3): THE COURSE IS PICKED AFTER GO (`logic.js#seedOf` — hash(code + matchId + the server's GO time)); played on the SERVER's clock, never paused; the proof = server-stamped chunks; counted ONLY from the server's replay (`api/_lib/jaywalk.js#verifyNode` — a log AHEAD of the clock refused, one BEHIND cut); owner-only until go-live; PLAY AGAIN = THE INSTANT AGAIN (`kit/again.js`) → docs/jaywalk.md "THE SOLO GAME".
+- JAYWALK's MATCH (H4): ONE LIFE EVERYWHERE (no lives / respawn / blink / one-up); the course + tick 0 from THE FIRST GO (`logic.js#matchStart`); the ghosts = the others' hop logs through the same engine; counted ONLY from the server's replay of every proof node (`jaywalkMatch`) — ONE judge (`replay.js#judgeRun`); THE DROPPED SIGNAL (a silence + a catch-up burst never costs a run, a growing lag is slow motion); THE CAUSE LINE NAMES THE VEHICLE (ONE source: `causes.js#vehicleAt` → `runLine`, no generic line) → docs/jaywalk.md "THE MATCH".
 - JAYWALK's LOOK (H2) is a VIEW (`night.js` — draws from (run, course), never writes; instanced, no point light, no bloom below the top
   tier); THE CAMERA = ONE pure module every view shares (`camera.js` — ZOOM columns across on every screen, the sideways follow, the turn; 9
   played, swipes screen-relative); its files only through `scripts/build-jaywalk-assets.py` → docs/jaywalk.md "THE NIGHT LOOK" + "THE CAMERA".

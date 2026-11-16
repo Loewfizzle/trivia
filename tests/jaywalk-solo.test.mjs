@@ -14,7 +14,7 @@ import { packLog, logFromChunks, chunkTimes, clockProblem, replay, seedProblem }
 import { seedOf, soloTick, scoreRun, scoreRuns, standings } from '../js/games/jaywalk/logic.js';
 import { createGame, nextStep, nextRun } from '../js/games/jaywalk/director.js';
 import { greedyBot, playBot } from '../js/games/jaywalk/bot.js';
-import { causeLine, CAUSE_LINES, hitVehicle, vehicleOf, CAR_KINDS, strSeed } from '../js/games/jaywalk/causes.js';
+import { causeLine, CAUSE_LINES, hitVehicle, vehicleAt, CAR_KINDS } from '../js/games/jaywalk/causes.js';
 import { extractMatch, soloEmpty } from '../js/core/match-report.js';
 import { boardDef } from '../js/core/boards.js';
 import { OPTIONAL, META_KEYS, checkCartridge } from '../js/games/contract.js';
@@ -186,14 +186,13 @@ test('THE SOLO DIRECTOR: no count (`play` at once, PLAY NOW\'s walk inside is th
 });
 
 test('THE END SCREEN\'s WORDS: one line per cause + vehicle — big neon words, never dev text; the vehicle named is the one the night look drew', () => {
-  for (const c of T.CAUSES) assert.ok(CAUSE_LINES[c], `a line for ${c}`);
+  for (const c of T.CAUSES) assert.ok(c === 'car' ? !CAUSE_LINES.car : CAUSE_LINES[c], c === 'car' ? 'a car hit has NO generic line — only its vehicle\'s (H4)' : `a line for ${c}`);
   for (const v of [...CAR_KINDS, 'van', 'truck']) assert.ok(CAUSE_LINES[`car:${v}`], `a line for a ${v}`);
   assert.equal(new Set(Object.values(CAUSE_LINES)).size, Object.keys(CAUSE_LINES).length, 'every line its own');
   for (const line of Object.values(CAUSE_LINES)) assert.match(line, /^[A-Z0-9][A-Z0-9 :]{5,25}$/, `${line}: capitals, ≤ 26 letters (two short lines at 390)`);
   assert.equal(causeLine({ cause: 'car', vehicle: 'taxi' }), 'FLATTENED BY A TAXI'); assert.equal(causeLine({ cause: 'water' }), 'SWEPT AWAY');
   assert.equal(causeLine({ cause: 'train' }), 'HIT BY THE 6:15'); assert.equal(causeLine({ cause: 'wall' }), 'THE LIGHTS WENT OUT');
-  assert.equal(causeLine({ cause: 'car' }), 'HIT BY A CAR'); assert.equal(causeLine({ cause: 'taken', lanes: 212 }), 'TAKEN AT LANE 212'); assert.equal(causeLine({}), 'OUT');
-  assert.deepEqual([vehicleOf(1, 5, 0, 3), vehicleOf(1, 5, 0, 2)], ['truck', 'van']); assert.ok(CAR_KINDS.includes(vehicleOf(1, 5, 0, 1)));
+  assert.equal(causeLine({ cause: 'car' }), 'OUT', 'H4: no generic "HIT BY A CAR" — a car hit is always named by its vehicle (tests/jaywalk-causes.test.mjs)'); assert.equal(causeLine({ cause: 'taken', lanes: 212 }), 'TAKEN AT LANE 212'); assert.equal(causeLine({}), 'OUT');
   // real runs that end under a car: the vehicle found at the end = the one on that lane at that tick; every kind shows up
   const seen = new Set();
   for (let s = 0; s < 400 && seen.size < 5; s++) {
@@ -205,7 +204,7 @@ test('THE END SCREEN\'s WORDS: one line per cause + vehicle — big neon words, 
     if (r.cause !== 'car') continue;
     const v = hitVehicle(course, r);
     assert.ok(v, `${seed}: the car that hit at lane ${r.y}, tick ${r.end}`);
-    const L = course.lane(r.y), j = L.items.findIndex((it, k) => vehicleOf(strSeed(seed), r.y, k, it.len / T.FP) === v);
+    const L = course.lane(r.y), j = L.items.findIndex((it, k) => vehicleAt(course, r.y, k) === v);
     assert.ok(j >= 0); seen.add(v);
     assert.equal(hitVehicle(course, replay({ seed, mode: 'solo', log: [] , until: null }).cause === 'car' ? r : r), v);
   }
@@ -213,10 +212,10 @@ test('THE END SCREEN\'s WORDS: one line per cause + vehicle — big neon words, 
   assert.equal(hitVehicle(createCourse('x'), { y: 0, x: 4500, end: 10 }), '', 'not a road: nothing');
   // night.js draws by the SAME pick
   const n = read('js/games/jaywalk/night.js');
-  assert.match(n, /import \{ hsh, strSeed, vehicleOf \} from '\.\/causes\.js';/); assert.match(n, /const what = vehicleOf\(vseed, i, j, len\)/);
+  assert.match(n, /import \{ hsh, strSeed, vehicleAt \} from '\.\/causes\.js';/); assert.match(n, /const what = vehicleAt\(course, i, j\)/);
   const v = read('js/games/jaywalk/victory.js');
   assert.match(v, /const seed = solo \? seedOf\(code, game\.matchId, r\.go\) : game\.seed;/, 'the course: a solo run\'s from its own GO, a match\'s the game\'s');
-  assert.match(v, /vehicle = hitVehicle\(course, \{ y: r\.y, x: r\.px, end: r\.e \}\);/, 'the end screen reads it back from the result');
+  assert.match(v, /const vehicle = course \? hitVehicle\(course, \{ y: r\.y, x: r\.px, end: r\.e \}\) : '';/, 'the end screen reads it back from the result');
   assert.doesNotMatch(v + read('js/games/jaywalk/causes.js'), /[\u{1F300}-\u{1FAFF}✅❌]/u, 'no emoji');
 });
 

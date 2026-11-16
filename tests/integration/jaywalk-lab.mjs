@@ -7,7 +7,7 @@
 //     across + THE KID's measured height at each zoom; the sideways follow keeps him on screen at both play edges + on a log ride (no
 //     jitter), never more than ~1 column past the play area; 3–4 lanes seen behind him; ?gray=1 follows the same camera
 //   · EVERY TAP ACTS (a tap hops on release · a swipe fires the moment it crosses its threshold · swipe down = back · no page scroll)
-//   · a run played to its end by the bot through the page's own input path: THE REPLAY = THE LIVE RUN, one tap = HOP AGAIN
+//   · a run played to its end by the bot through the page's own input path: THE REPLAY = THE LIVE RUN, one tap = PLAY AGAIN
 //   · THE SOUNDS: a hop asks for its sound (pitch ± 6 %, gain ± 2 dB); THE SOUND AUDITION opens, plays, loops the bell, remembers a pick,
 //     copies the picks' line — Chromium; + WebKit (--webkit: ~/wk Playwright) where it can
 //   · --perf: the frame rate + frame time (p95 / worst) + draw calls + triangles at EACH TIER, 390 × 844 @3 under a 4× CPU throttle, at
@@ -22,6 +22,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
+import { CAUSE_LINES, VEHICLES } from '../../js/games/jaywalk/causes.js';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), PERF = argv.includes('--perf'), WK = argv.includes('--webkit'), LOOK = argv.includes('--look'), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
@@ -86,10 +87,10 @@ async function looks(p) {
   // LANE 200+: busy traffic — the kid (cyan by default) beside the cars, at both sides of the play area too
   await L("window.__jwLab.restart('match', 'look3')");
   i = await p.evaluate(() => { for (let l = 204; l < 400; l++) if (window.__jwLab.lane(l).type === 'grass' && window.__jwLab.lane(l + 1).type === 'road' && window.__jwLab.lane(l - 1).type === 'road') return l; return 210; });
-  await p.evaluate(l => window.__jwLab.warp(l, { blink: 0 }), i); await sleep(900); await shot(p, 'z8-turned-lane200-a.png');
+  await p.evaluate(l => window.__jwLab.warp(l, { safe: false }), i); await sleep(900); await shot(p, 'z8-turned-lane200-a.png');
   await sleep(1300); await shot(p, 'z8-turned-lane200-b.png');
-  await p.evaluate(l => window.__jwLab.warp(l, { x: 8500, blink: 0 }), i); await sleep(900); await shot(p, 'z8-turned-lane200-right-edge.png');
-  await p.evaluate(l => window.__jwLab.warp(l, { x: 500, blink: 0 }), i); await sleep(900); await shot(p, 'z8-turned-lane200-left-edge.png');
+  await p.evaluate(l => window.__jwLab.warp(l, { x: 8500, safe: false }), i); await sleep(900); await shot(p, 'z8-turned-lane200-right-edge.png');
+  await p.evaluate(l => window.__jwLab.warp(l, { x: 500, safe: false }), i); await sleep(900); await shot(p, 'z8-turned-lane200-left-edge.png');
   i = await at('flight', 150, 3);
   ok(i >= 150, `a flight path on the course (lane ${i})`);
   await waitFor(p, `(window.__jwLab.pulse(${i}) || {}).st === 'tell' && window.__jwLab.pulse(${i}).left < 50`, 15000); await shot(p, 'night-flight-tell.png');
@@ -101,21 +102,21 @@ async function looks(p) {
   // THE WATER: a kid on the bank before a water stretch (water = danger, a log = safe), then a log ride
   await L("window.__jwLab.restart('match', 'look3')");   // (a new run: the wall follows the BEST lane — a warp back down would be behind it)
   i = await p.evaluate(() => window.__jwLab.find('water', 14));
-  await p.evaluate(l => window.__jwLab.warp(l - 1, { blink: 0 }), i); await sleep(900); await shot(p, 'z8-turned-water.png');
+  await p.evaluate(l => window.__jwLab.warp(l - 1, { safe: false }), i); await sleep(900); await shot(p, 'z8-turned-water.png');
   await cam(8, 'straight'); await shot(p, 'z8-straight-water.png'); await cam(8, 'turned');
   await waitFor(p, `window.__jwLab.logAt(${i}) > 0`, 12000);
-  await p.evaluate(l => window.__jwLab.warp(l, { x: window.__jwLab.logAt(l), blink: 0 }), i); await sleep(450);
+  await p.evaluate(l => window.__jwLab.warp(l, { x: window.__jwLab.logAt(l), safe: false }), i); await sleep(450);
   ok((await st(p)).st === 'idle', 'a log ride: the kid stands on a log');
   await shot(p, 'z8-turned-log-ride.png');
   // a hit: a car
   i = await p.evaluate(() => window.__jwLab.find('road', 20));
-  await p.evaluate(l => { window.__jwLab.restart('match', 'look3'); window.__jwLab.warp(l, { blink: 0 }); }, i);
-  ok(await waitFor(p, "window.__jwLab.state().st === 'down'", 15000), 'a hit: a car gets a kid who stands on the road');
+  await p.evaluate(l => { window.__jwLab.restart('match', 'look3'); window.__jwLab.warp(l, { safe: false }); }, i);
+  ok(await waitFor(p, "window.__jwLab.state().st === 'out' && window.__jwLab.state().cause === 'car'", 15000), 'a hit: a car gets a kid who stands on the road — ONE LIFE: out');
   await sleep(330); await shot(p, 'night-hit-car.png');
   // the water
   i = await p.evaluate(() => window.__jwLab.find('water', 14));
-  await p.evaluate(l => { window.__jwLab.restart('match', 'look3'); window.__jwLab.warp(l, { x: 4500, blink: 0 }); }, i);
-  await waitFor(p, "window.__jwLab.state().st === 'down'", 6000); await sleep(140); await shot(p, 'night-hit-water-or-edge.png');
+  await p.evaluate(l => { window.__jwLab.restart('match', 'look3'); window.__jwLab.warp(l, { x: 4500, safe: false }); }, i);
+  await waitFor(p, "window.__jwLab.state().st === 'out'", 6000); await sleep(140); await shot(p, 'night-hit-water-or-edge.png');
   // THE BLACKOUT coming up behind a kid who stops: seen climbing in the lanes behind him
   await L("window.__jwLab.restart('solo', 'look3'); window.__jwLab.hop('u')"); await sleep(9000); await shot(p, 'z8-turned-blackout.png');
   ok((await st(p)).wall > -4 && !(await st(p)).over, 'THE BLACKOUT comes up behind a kid who stops (seen before it catches them)');
@@ -130,14 +131,14 @@ async function looksH3(p) {
   await L("window.__jwLab.bot(false); window.__jwLab.restart('solo', 'look3'); window.__jwLab.setCamera(8, 'straight', true)"); await sleep(400);
   // the water: the bank before the first stretch with 2+ water lanes (the logs of several lengths in one picture)
   let i = await p.evaluate(() => { const J = window.__jwLab; for (let l = 14; l < 400; l++) if (J.lane(l).type === 'water' && J.lane(l + 1).type === 'water' && J.lane(l - 1).type === 'grass') return l; return J.find('water', 14); });
-  await p.evaluate(l => window.__jwLab.warp(l - 1, { blink: 9000 }), i); await sleep(1100); await shot(p, 'h3-water-logs.png');
+  await p.evaluate(l => window.__jwLab.warp(l - 1), i); await sleep(1100); await shot(p, 'h3-water-logs.png');
   await sleep(1600); await shot(p, 'h3-water-logs-b.png');
   i = await p.evaluate(() => { const J = window.__jwLab; for (let l = 205; l < 400; l++) if (J.lane(l).type === 'water' && J.lane(l + 1).type === 'water' && J.lane(l - 1).type === 'grass') return l; return J.find('water', 205); });
-  await p.evaluate(l => window.__jwLab.warp(l - 1, { blink: 9000 }), i); await sleep(1100); await shot(p, 'h3-water-logs-lane200.png');
+  await p.evaluate(l => window.__jwLab.warp(l - 1), i); await sleep(1100); await shot(p, 'h3-water-logs-lane200.png');
   // a car from behind: a kid on the grass under a road lane, a 1-cell car just past him — its tail (both lights, both streaks) beside him
   const carLane = len => p.evaluate(n => { const J = window.__jwLab; for (let l = 20; l < 400; l++) if (J.lane(l).type === 'road' && J.lane(l - 1).type === 'grass' && J.items(l).items.some(q => Math.round(q.len) === n)) return l; return -1; }, len);
   const behind = async (lane, len, name) => {
-    await p.evaluate(l => window.__jwLab.warp(l - 1, { blink: 9000 }), lane);
+    await p.evaluate(l => window.__jwLab.warp(l - 1), lane);
     await waitFor(p, `(() => { const q = window.__jwLab.items(${lane}); return q.items.some(c => Math.round(c.len) === ${len} && (q.dir > 0 ? c.left > 4.6 && c.left < 5.6 : c.left + c.len < 4.4 && c.left + c.len > 3.4)); })()`, 20000);
     await shot(p, name);
   };
@@ -277,6 +278,7 @@ try {
   await sleep(200);
   let e = await p.evaluate(() => ({ end: window.__jwLab.ends[0], t: document.querySelector('.jw-end-t').textContent, l: document.querySelector('.jw-end-l').textContent, c: document.querySelector('.jw-check').textContent, cls: document.querySelector('.jw-check').className, hidden: document.querySelector('.jw-end').hidden }));
   ok(!e.hidden && /LANE \d+/.test(e.l) && e.t.length > 2, `the end screen names the cause + the lane ("${e.t}" · "${e.l}")`);
+  ok(Object.values(CAUSE_LINES).includes(e.t) && !/A CAR\b/.test(e.t), `… in the GAME's own words (causes.js — the same table): "${e.t}"`);
   ok(e.end.same === true && /is-ok/.test(e.cls) && /^REPLAY = LIVE/.test(e.c), `THE REPLAY = THE LIVE RUN (${e.c})`);
   ok(e.end.live.lanes === e.end.replay.lanes && e.end.live.tick === e.end.replay.tick && e.end.live.cause === e.end.replay.cause, 'lanes, tick + cause identical');
   w = await p.evaluate(() => window.__jwLab.sfx.wanted().slice(-3).map(x => x.id));
@@ -285,13 +287,36 @@ try {
   await p.evaluate(() => window.__jwLab.bot(false));
   await sleep(350);
   await touch(p, [[195, 400]]); await sleep(200); s = await st(p);
-  ok(!s.over && s.seed !== 'labseed1' && s.best <= 1, `ONE TAP = HOP AGAIN, at once, on a NEW seed (${s.seed})`);
+  ok(!s.over && s.seed !== 'labseed1' && s.best <= 1, `ONE TAP = PLAY AGAIN, at once, on a NEW seed (${s.seed})`);
   ok(await p.evaluate(() => document.querySelector('.jw-end').hidden), 'the end screen is gone');
   // ---- 4. the mode switch + NEW SEED (their own press + lift — never the play area's hop)
+  // ---- H4 ADD-ON: THE CAUSE LINE NAMES THE VEHICLE THAT HIT YOU — every vehicle kind, in a real page: a kid stood on a road lane that
+  // carries it; whatever gets him, the end line names THAT vehicle (the one the scene drew) — never a generic "HIT BY A CAR"
+  {
+    const named = {};
+    await p.evaluate(() => { window.__jwLab.bot(false); window.__jwLab.restart('solo', 'named1'); });
+    const lanes = await p.evaluate(() => { const J = window.__jwLab, out = []; for (let l = 6; l < 260; l++) if (J.lane(l).type === 'road') out.push({ l, kinds: J.items(l).items.map(q => q.what) }); return out; });
+    for (const want of VEHICLES) {
+      for (const L of lanes.filter(q => q.kinds.includes(want)).slice(0, 6)) {
+        if (named[want]) break;
+        await p.evaluate(l => { window.__jwLab.restart('solo', 'named1'); window.__jwLab.warp(l, { safe: false }); }, L.l);
+        if (!await waitFor(p, 'window.__jwLab.state().over && window.__jwLab.state().shown', 25000)) continue;
+        const r = await p.evaluate(() => { const s = window.__jwLab.state(); return { cause: s.cause, line: s.line, hitBy: s.hitBy, shown: document.querySelector('.jw-end-t').textContent }; });
+        if (r.cause !== 'car') continue;
+        if (!(r.hitBy && r.line === CAUSE_LINES[`car:${r.hitBy}`] && r.shown === r.line)) { named[`BAD ${r.hitBy}: "${r.shown}"`] = 1; break; }
+        named[r.hitBy] = r.line;
+      }
+    }
+    const got = VEHICLES.filter(v => named[v]);
+    ok(got.length === VEHICLES.length && !Object.keys(named).some(k => k.startsWith('BAD')), `EVERY VEHICLE NAMES ITSELF on the lab's end screen: ${VEHICLES.map(v => `${v} → "${named[v] || '—'}"`).join(' · ')}${Object.keys(named).filter(k => k.startsWith('BAD')).join(' ')}`);
+    await p.evaluate(() => window.__jwLab.restart('solo', 'labseed2'));
+    await sleep(300);
+  }
+
   r = await tapEl(p, '.jw-tab[data-mode="match"]'); s = await st(p);
-  ok(s.mode === 'match' && s.lives === 3 && s.hops === 0, 'MATCH: 3 lives, a new run — the tap on the tab is no hop');
+  ok(s.mode === 'match' && s.lives === undefined && s.hops === 0, 'MATCH: a new run, ONE LIFE (no lives anywhere) — the tap on the tab is no hop');
   ok(r[2] >= 44 && r[3] >= 44, `the tabs' tap area ≥ 44 pt (${r[2].toFixed(0)} × ${r[3].toFixed(0)})`);
-  ok(/THE MOTHERSHIP 5:5\d|THE MOTHERSHIP 6:00/.test(await p.evaluate(() => document.querySelector('.jw-sub').textContent)), 'MATCH shows THE MOTHERSHIP\'s countdown (6:00) + the lives');
+  ok(/THE MOTHERSHIP 5:5\d|THE MOTHERSHIP 6:00/.test(await p.evaluate(() => document.querySelector('.jw-sub').textContent)), 'MATCH shows THE MOTHERSHIP\'s countdown (6:00) — and no lives HUD');
   await tapEl(p, '.jw-tab[data-mode="daily"]'); s = await st(p);
   ok(s.mode === 'daily' && /THE MOTHERSHIP 4:5\d|THE MOTHERSHIP 5:00/.test(await p.evaluate(() => document.querySelector('.jw-sub').textContent)), 'DAILY: THE MOTHERSHIP at 5:00');
   const seedA = s.seed;
@@ -308,7 +333,7 @@ try {
   const tA = (await st(p)).t; await sleep(500);
   ok((await st(p)).t === tA, '… and the run holds still under it');
   const rows = await p.evaluate(() => [...document.querySelectorAll('.jw-au-row')].map(x => ({ id: x.dataset.id, plays: x.querySelectorAll('.jw-au-play').length, picks: x.querySelectorAll('.jw-au-pick').length })));
-  ok(rows.length === 12 && rows.filter(x => x.plays === 2 && x.picks === 2).length === 7 && rows.filter(x => x.plays === 1 && x.picks === 0).length === 5, `EVERY JAYWALK sound: ${rows.length} rows — 7 with a pick + its backup side by side (PLAY A · PLAY B · USE A / B), 5 with one take`);
+  ok(rows.length === 11 && rows.filter(x => x.plays === 2 && x.picks === 2).length === 6 && rows.filter(x => x.plays === 1 && x.picks === 0).length === 5, `EVERY JAYWALK sound: ${rows.length} rows — 6 with a pick + its backup side by side (PLAY A · PLAY B · USE A / B), 5 with one take`);
   const n0 = await p.evaluate(() => ({ w: window.__jwLab.sfx.wanted().length, p: window.__jwLab.sfx.played().length }));
   await tapEl(p, '[data-snd="hop:a"]'); await tapEl(p, '[data-snd="hop:b"]'); await tapEl(p, '[data-snd="new-best:b"]'); await sleep(500);
   const n1 = await p.evaluate(() => ({ w: window.__jwLab.sfx.wanted().slice(-3).map(x => `${x.id}:${x.ab}`), p: window.__jwLab.sfx.played().length, last: window.__jwLab.sfx.played().slice(-3).map(x => `${x.id}:${x.ab}`) }));
@@ -323,7 +348,7 @@ try {
   ok(await p.evaluate(() => window.__jwLab.sfx.sounding() === 0 && !document.querySelector('.jw-au-play.is-on')), 'STOP ends it');
   await tapEl(p, '[data-pick="hop:b"]'); await tapEl(p, '[data-pick="land-wood:b"]');
   const line = await p.evaluate(() => ({ t: document.querySelector('.jw-au-line').textContent, ls: [localStorage.getItem('jw:lab:snd:hop'), localStorage.getItem('jw:lab:snd:land-wood')], on: document.querySelector('[data-pick="hop:b"]').classList.contains('is-on') }));
-  ok(line.on && line.ls.join() === 'b,b' && /^JAYWALK SOUNDS: hop B · land-wood B · hit A · splash A · car-pass A · horn A · train-bell A · train-pass A · lights-die A · landmark A · new-best A · respawn A$/.test(line.t), `a choice a sound, remembered on this phone ("${line.t}")`);
+  ok(line.on && line.ls.join() === 'b,b' && /^JAYWALK SOUNDS: hop B · land-wood B · hit A · splash A · car-pass A · horn A · train-bell A · train-pass A · lights-die A · landmark A · new-best A$/.test(line.t), `a choice a sound, remembered on this phone ("${line.t}")`);
   // COPY MY PICKS: inside the tap's own lift. A browser that REFUSES the clipboard (this headless one does) → the line itself is there to hold;
   // one that takes it → COPIED (the clipboard's write stood in for, so the text it was handed is read back)
   await tapEl(p, '.jw-au-copy'); await sleep(400);
@@ -361,7 +386,7 @@ try {
     const wl = await p.evaluate(() => window.__jwLab.find('water', 12));
     await p.evaluate(l => window.__jwLab.warp(l - 1), wl);
     await waitFor(p, `window.__jwLab.logAt(${wl}) > 0`, 15000);
-    await p.evaluate(l => window.__jwLab.warp(l, { x: window.__jwLab.logAt(l), blink: 0 }), wl); await sleep(600);
+    await p.evaluate(l => window.__jwLab.warp(l, { x: window.__jwLab.logAt(l), safe: false }), wl); await sleep(600);
     const ride = await p.evaluate(() => new Promise(res => { const out = []; const f = () => { const q = window.__jwLab.state(); out.push([q.x, q.info.camX, q.kidX, q.st === 'idle' ? 1 : 0]); if (out.length < 90) requestAnimationFrame(f); else res(out); }; requestAnimationFrame(f); }));
     const on = ride.filter(q => q[3] && Math.abs(q[1]) < 1.45), xs = on.map(q => q[2]), moved = Math.abs(ride[ride.length - 1][0] - ride[0][0]);
     let step = 0; for (let k = 1; k < on.length; k++) step = Math.max(step, Math.abs(xs[k] - xs[k - 1]));
@@ -482,11 +507,11 @@ try {
     ok(await wwait("!!document.querySelector('.sh.jw-au-sheet.is-in')", 6000), 'WebKit: SOUNDS → the audition sheet opens');
     await sleep(450);
     const b0 = await wp.evaluate(() => window.__jwLab.sfx.wanted().length);
-    await wtap('[data-snd="hop:a"]'); await wtap('[data-snd="splash:a"]'); await wtap('[data-snd="respawn:b"]');
+    await wtap('[data-snd="hop:a"]'); await wtap('[data-snd="splash:a"]'); await wtap('[data-snd="new-best:b"]');
     const ww = await wp.evaluate(n => ({ w: window.__jwLab.sfx.wanted().slice(n).map(x => `${x.id}:${x.ab}`), p: window.__jwLab.sfx.played().length }), b0);
-    ok(ww.w.join() === 'hop:a,splash:a,respawn:b', `WebKit: every PLAY tap acts (${ww.w.join(' · ')}; ${ww.p} started on its audio context — Playwright's WebKit on Windows may have no audio device)`);
-    await wtap('[data-pick="respawn:b"]');
-    ok(/respawn B$/.test(await wp.evaluate(() => document.querySelector('.jw-au-line').textContent)), 'WebKit: a pick is taken');
+    ok(ww.w.join() === 'hop:a,splash:a,new-best:b', `WebKit: every PLAY tap acts (${ww.w.join(' · ')}; ${ww.p} started on its audio context — Playwright's WebKit on Windows may have no audio device)`);
+    await wtap('[data-pick="new-best:b"]');
+    ok(/new-best B$/.test(await wp.evaluate(() => document.querySelector('.jw-au-line').textContent)), 'WebKit: a pick is taken');
     if (OUT) await wp.screenshot({ path: join(OUT, 'webkit-audition-390x844.png') });
     ok(!werr.length, `WebKit: no page error${werr.length ? `: ${werr[0]}` : ''}`);
     await wb.close();

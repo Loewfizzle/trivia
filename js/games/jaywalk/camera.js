@@ -41,6 +41,9 @@ export function lensFor(aspect) {
 export const followLimit = zoom => Math.max(0, COLS / 2 + PAST_EDGE - zoom / 2);
 
 export function createCamera(o = {}) {
+  // (hero — THE POSTER's frame alone, H4: a low camera in front of the kid — { at: [dx, y, dz], look: [dx, y, dz], fov } from where he
+  //  stands; the game never passes it)
+  const hero = o.hero || null;
   let zoom = ZOOMS.includes(o.zoom) ? o.zoom : ZOOM, angle = ANGLES.includes(o.angle) ? o.angle : ANGLE;
   let k = zoom / CAM.width, yaw = angle === 'turned' ? TURN_DEG * Math.PI / 180 : 0, x = 0, y = 0, fresh = true, lens = lensFor(0.462);
   const kT = () => zoom / CAM.width, yawT = () => (angle === 'turned' ? TURN_DEG * Math.PI / 180 : 0);
@@ -49,7 +52,7 @@ export function createCamera(o = {}) {
     /** the lab's switches (eased over EASE_MS.set; `snap` = at once) */
     choose(z, a, snap) { if (ZOOMS.includes(z)) zoom = z; if (ANGLES.includes(a)) angle = a; if (snap) { k = kT(); yaw = yawT(); } },
     /** the screen changed shape → the vertical fov to give the three.js camera */
-    fit(aspect) { lens = lensFor(aspect); return lens.fov; },
+    fit(aspect) { lens = lensFor(aspect); return hero ? hero.fov : lens.fov; },
     /** one frame: ease to the kid — `tx` his column centre (cells, 0 … 9; a hop's = where it lands), `ty` his lane (+ 0.5), `dt` ms */
     follow(tx, ty, dt) {
       const far = fresh || Math.abs(ty - y) > 12, e = ms => (far ? 1 : 1 - Math.exp(-dt / ms)), es = 1 - Math.exp(-dt / EASE_MS.set);
@@ -61,7 +64,8 @@ export function createCamera(o = {}) {
       fresh = false;
     },
     /** place a three.js camera (anything with position.set + lookAt); (sx, sy) = the view's own shake */
-    apply(cam, sx = 0, sy = 0) {
+    apply(cam, sx = 0, sy = 0, kid = null) {
+      if (hero && kid) { cam.position.set(kid[0] + hero.at[0], hero.at[1], kid[1] + hero.at[2]); cam.lookAt(kid[0] + hero.look[0], hero.look[1], kid[1] + hero.look[2]); return; }
       const s = Math.sin(yaw), c = Math.cos(yaw);
       cam.position.set(x + sx + s * CAM.back * k, CAM.up * k + sy, -y + c * CAM.back * k);
       cam.lookAt(x + sx - s * lens.ahead * k, sy, -y - c * lens.ahead * k);

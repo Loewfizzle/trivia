@@ -36,7 +36,7 @@ import { createNight } from './night.js';
 import { getPref, setPref } from './lab-prefs.js';
 import { ZOOMS, ZOOM, ANGLES, ANGLE } from './camera.js';
 import * as SFX from './sfx.js';
-import { causeLine, hitVehicle } from './causes.js';
+import { runLine } from './causes.js';
 import { buildEnd, finalRows } from './victory.js';
 import { keepShot } from './shot.js';
 
@@ -67,6 +67,8 @@ const TEST = typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.tes
 let scenesMade = 0;
 
 const pick = (k, list, d) => { const m = getPref(k, String(d)); return list.map(String).includes(m) ? m : String(d); };
+/** HOW A RUN ENDED, in the game's words (causes.js#runLine — the vehicle named is the one the scene drew) */
+const lineOf = (r, course) => runLine(course, { cause: r.cause, y: r.y, x: r.x, end: r.end, lanes: r.best, taken: r.st === 'taken' });
 const hexNum = c => parseInt(String(colorHex(c) || '#00f0ff').slice(1), 16) || 0x00f0ff;
 
 export function createView() {
@@ -243,8 +245,7 @@ export function createView() {
     const m = matchId, r = run, c = course;
     night.snap(cv => {
       if (!cv || gone || m !== matchId) return;
-      const vehicle = r.cause === 'car' ? hitVehicle(c, { y: r.y, x: r.x, end: r.end }) : '';
-      keepShot({ matchId: m, canvas: cv, lanes: r.best, line: causeLine({ cause: r.cause, vehicle, lanes: r.best, taken: r.st === 'taken' }), kidY: night.kidScreenY() });
+      keepShot({ matchId: m, canvas: cv, lanes: r.best, line: lineOf(r, c), kidY: night.kidScreenY() });
     });
   }
 
@@ -343,8 +344,7 @@ export function createView() {
   function afterOut(g, runs) {
     const since = performance.now() - overAt;
     if (!outCard && mine(g) && since < 60000 && overAt > 0) {
-      const vehicle = run.cause === 'car' ? hitVehicle(course, { y: run.y, x: run.x, end: run.end }) : '';
-      outCard = h('div.jw-outcard', h('div.jw-outcard-k', run.st === 'taken' ? 'THE MOTHERSHIP' : 'OUT'), h('div.jw-fin-cause', causeLine({ cause: run.cause, vehicle, lanes: run.best, taken: run.st === 'taken' })), h('div.jw-outcard-n', `${run.best} ${run.best === 1 ? 'LANE' : 'LANES'}`));
+      outCard = h('div.jw-outcard', h('div.jw-outcard-k', run.st === 'taken' ? 'THE MOTHERSHIP' : 'OUT'), h('div.jw-fin-cause', lineOf(run, course)), h('div.jw-outcard-n', `${run.best} ${run.best === 1 ? 'LANE' : 'LANES'}`));
       overEl.append(outCard);
       setTimeout(() => { if (outCard) outCard.classList.add('is-gone'); }, 2300);
     }
@@ -449,8 +449,7 @@ export function createView() {
    *  the run is in the phone's queue and counts when it lands; the podium takes this screen's place by itself) */
   function showLocalEnd(waiting) {
     const body = h('div.final-body.jw-fin-local');
-    const vehicle = run.cause === 'car' ? hitVehicle(course, { y: run.y, x: run.x, end: run.end }) : '';
-    buildEnd(body, { line: causeLine({ cause: run.cause, vehicle, lanes: run.best, taken: run.st === 'taken' }), lanes: run.best, note: waiting ? 'NO SIGNAL — YOUR RUN COUNTS WHEN IT IS BACK' : 'NOT COUNTED — NO LINE TO THE BOARD' });
+    buildEnd(body, { line: lineOf(run, course), lanes: run.best, note: waiting ? 'NO SIGNAL — YOUR RUN COUNTS WHEN IT IS BACK' : 'NOT COUNTED — NO LINE TO THE BOARD' });
     // (PLAY AGAIN here = another UNPROVEN run in the same match: this match's one GO is spent or was refused — PLAY NOW again gets a proven one)
     const again = waiting ? null : h('button.btn.btn-primary.btn-block', { type: 'button', onclick: () => { hideLocalEnd(); reset(); asked = true; unproven('again'); } }, h('span', 'PLAY AGAIN'));
     const PN = globalThis.__nsPlayNow, soloRoom = !!(PN && PN.isSolo && PN.isSolo());

@@ -20,7 +20,7 @@ import { loadKenney, SCENE_MODELS, buildKid, buildTree, buildTuft, buildLog, LOG
 import { FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, createBloom } from './night-fx.js';
 import { CAM, createCamera } from './camera.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
-import { hsh, strSeed, vehicleOf } from './causes.js';   // (H3: which vehicle a car IS — the end screen's cause line names the same one)
+import { hsh, strSeed, vehicleAt } from './causes.js';   // (THE ONE SOURCE OF TRUTH for which vehicle a car IS — the end screen's cause line reads the same function)
 
 const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;   // (the most lanes alive: 36 — a closer zoom lays fewer ahead)
 const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff];   // (a car's body tint + its trail: pink · cyan · violet · coral · blue)
@@ -55,7 +55,8 @@ export function createNight(host, o = {}) {
   const fogV = new THREE.Vector2(26, 35);          // (the shaders' copy of the fog's near / far)
   const cam = new THREE.PerspectiveCamera(CAM.fov, 1, 1, 90);
   cam.layers.enableAll();
-  const rig = createCamera({ zoom: o.zoom, angle: o.angle });   // THE CAMERA (camera.js): the zoom, the sideways follow, the turn
+  const rig = createCamera({ zoom: o.zoom, angle: o.angle, hero: o.hero });   // (hero: THE POSTER's low camera — camera.js; the game never passes it)
+  const heroCam = !!o.hero;   // THE CAMERA (camera.js): the zoom, the sideways follow, the turn
   // the light: a dim cool night, a soft key from the front-left, A RIM LIGHT from behind (pink) — the smooth finish
   scene.add(new THREE.HemisphereLight(0x8fa0ff, 0x1a1030, 1.5));
   const key = new THREE.DirectionalLight(0xdfe4ff, 1.55); key.position.set(-5, 12, 9); scene.add(key);
@@ -339,7 +340,7 @@ export function createNight(host, o = {}) {
     const camY = rig.y();
     let shx = 0, shy = 0;
     if (clock < fx.shake) { const q = (fx.shake - clock) / 240; shx = Math.sin(clock * 0.09) * 0.16 * q; shy = Math.cos(clock * 0.113) * 0.12 * q; }
-    rig.apply(cam, shx, shy);
+    rig.apply(cam, shx, shy, heroCam ? [px, pz] : null);
     // the skyline slides against the follow (a far thing barely moves) + sits a step over in the turned view
     const sl = Math.round((rig.x() * 2.2 - rig.yaw() * 28) * 20) / 20;
     if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; }
@@ -379,7 +380,7 @@ export function createNight(host, o = {}) {
             const cx = X(left + len / 2), inside = left + len > 0 && left < COLS, dim = lt * (inside ? 1 : 0.55);
             if (car) {
               // (H4 — THE TAXI is a TAXI: yellow, its roof light lit — the cause line "… BY A TAXI" must be true; every other car keeps its neon tint)
-              const what = vehicleOf(vseed, i, j, len), taxi = what === 'taxi', tint = taxi ? TAXI_HEX : NEON[Math.floor(hsh(vseed ^ (i * 104729), j * 31 + 7) * NEON.length)];
+              const what = vehicleAt(course, i, j), taxi = what === 'taxi', tint = taxi ? TAXI_HEX : NEON[Math.floor(hsh(vseed ^ (i * 104729), j * 31 + 7) * NEON.length)];
               const name = what === 'truck' ? 'car-van' : `car-${what}`, q = KM[name], B = BOX[name], ry = L.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
               const bodyL = len < 1.5 ? 0.96 : 1.9, sz = B ? bodyL / B.l : 1, sx = B ? (len < 1.5 ? 0.7 : 0.78) / B.w : 1, sy = B ? (len < 1.5 ? 0.42 : 0.52) : 1;
               const nose = left + (L.dir > 0 ? len - 0.02 : 0.02), bx = X(nose - L.dir * bodyL / 2), tail = left + (L.dir > 0 ? 0.02 : len - 0.02);
@@ -539,7 +540,7 @@ export function createNight(host, o = {}) {
     renderer.render(scene, cam);
     if (bloom) bloom.render(scene, cam);
     // (H4) THE SHARE IMAGE's frame: asked for → copied off the canvas in THIS frame (a WebGL canvas keeps no picture between frames)
-    if (snapAsk) { const ask = snapAsk; snapAsk = null; try { ask(grab()); } catch { ask(null); } }
+    if (snapAsk) { const ask = snapAsk; snapAsk = null; try { ask(grab(snapW)); } catch { ask(null); } }
     // where each ghost's name tag goes (CSS px from the top left; null = off the screen)
     if (ghosts) for (const g of ghosts) {
       if (!g.tag) continue;
@@ -548,7 +549,7 @@ export function createNight(host, o = {}) {
       g.tag = v3.z < 1 && sx > 0.04 && sx < 0.96 && sy > 0.2 && sy < 0.9 ? [sx * w, sy * h] : null;
     }
   }
-  let snapAsk = null;
+  let snapAsk = null, snapW = 1080;
   /** the picture on the canvas right now → a 2D canvas `width` px wide (the whole frame; null if this phone can't) */
   function grab(width = 1080) {
     const cv = document.createElement('canvas'), k = width / el.width;
@@ -562,7 +563,7 @@ export function createNight(host, o = {}) {
   const v3 = new THREE.Vector3();
   return {
     /** (H4) the NEXT frame as a 2D canvas → fn(canvas | null): the share image's frame, the poster */
-    snap(fn) { snapAsk = fn; },
+    snap(fn, width = 1080) { snapAsk = fn; snapW = width; },
     /** (H4 — SPECTATE: the camera moved to another player's kid) the kid's own feel starts clean */
     resetKid() { fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; fx.parts.length = 0; fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
     el, draw, resize: () => fit(), ready, setTier, tier: () => tier,

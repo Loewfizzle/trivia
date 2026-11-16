@@ -793,11 +793,16 @@ test('FR7 FIXES B — C5: the live rooms by the index — a stale room and the b
 });
 
 // JAYWALK H1 — THE PROOF NODE (rooms/{CODE}/jw/{matchId}/{uid} — api/report.js#PROOF_TREES): written by the player AT GO → present = proven.
-// A player who wrote GO and never hopped (silent but present) still counts; a seated guest with no node does not.
+// A player who wrote GO and never hopped (silent but present) still counts; a seated guest with no node does not. (H4: a match is the
+// server's replay of its proof nodes — at least one player must have hopped: a match where NOBODY ever did has nothing to count.)
 test('JAYWALK H1 — the proof node: GO alone proves a player (silent but present still counts); no node = a seat, never a play', async () => {
   await ensure('u-jw1', 'JAYONE'); await ensure('u-jw2', 'JAYTWO');
   const J = await seedRoom('jaywalk', ['u-jw1', 'u-jw2']);
   assert.deepEqual(Object.keys(await val(`rooms/${J.code}/jw/${J.matchId}`)).sort(), ['u-jw1', 'u-jw2'], 'both wrote GO — nothing else');
+  await rejects(report('u-jw1', J), 409, 'unverifiable');   // (H4: nobody hopped at all — nothing to replay, nothing counted)
+  // one hop by the first player (half a second after tick 0 = THE FIRST GO + 2 s, stamped on time): the second stays silent
+  const hopOnce = async (R, u) => { const n = await val(`rooms/${R.code}/jw/${R.matchId}`), g0 = Math.min(...Object.values(n).map(x => x.go)); await ref(`rooms/${R.code}/jw/${R.matchId}/${u}/c/0`).set({ s: 'Uu', at: g0 + 2000 + 700 }); };
+  await hopOnce(J, 'u-jw1');
   const r = await report('u-jw1', J);
   assert.equal(r.status, 'counted');
   assert.equal(r.outcome.n, 2, 'a 2-player match: the silent player counts');
@@ -806,6 +811,7 @@ test('JAYWALK H1 — the proof node: GO alone proves a player (silent but presen
   tick();
   await ensure('u-jw3', 'JAYHOST'); await ensure('u-jw4', 'JAYSEAT');
   const S = await seedRoom('jaywalk', ['u-jw3', 'u-jw4'], { noProof: ['u-jw4'] });
+  await hopOnce(S, 'u-jw3');
   const rs = await report('u-jw3', S);
   assert.equal(rs.outcome.n, 1, 'the seated guest who never wrote GO: not a player');
   assert.equal(rs.outcome.win, false, 'no 2-player win from a seat');
@@ -920,6 +926,102 @@ test('JAYWALK H3 — THE SOLO RUN: the best from the SERVER\'s replay (never the
   assert.ok(tb.rows.every(r => /^[0-9a-f]{16}$/.test(r.id)), 'the board ids only');
   await rejects(boardTable(pid, 'xp', clock), 400, 'bad_board');
   await rejects(boardTable(pid, 'nope', clock), 400, 'bad_board');
+  await ref('testReportAll').set(true);
+  tick();
+});
+
+// JAYWALK H4 — THE MATCH: counted ONLY from the server's replay of EVERY player's proof node (the course + tick 0 from THE FIRST GO) —
+// never the room's game.seed / playAt / results; a guest in THE OWNER's room is counted (and may be the one who reports); a
+// silent-but-present player is credited; a report landing after a REMATCH still credits everyone (the proof nodes + the night record);
+// a match the owner did not play, an UNPROVEN match, a match with no proof: never counted
+test('JAYWALK H4 — THE MATCH: every run from the SERVER\'s replay, the owner\'s guests counted, the silent player credited, a report after the rematch, the gates', async () => {
+  const { seedOf, GO_LEAD_MS, standings } = await import('../../js/games/jaywalk/logic.js');
+  const { createCourse } = await import('../../js/games/jaywalk/course.js');
+  const { createRun, step, isOver } = await import('../../js/games/jaywalk/engine.js');
+  const { packLog } = await import('../../js/games/jaywalk/replay.js');
+  const { greedyBot, playBot } = await import('../../js/games/jaywalk/bot.js');
+  const { jaywalkMatch } = await import('../../api/_lib/jaywalk.js');
+  const U = ['u-jm1', 'u-jm2', 'u-jm3'], NAME = ['OWNER', 'GUESTA', 'GUESTB'];
+  for (let i = 0; i < 3; i++) await ensure(U[i], NAME[i]);
+  const P = await Promise.all(U.map(u => val(`uids/${u}`)));
+  await ref('testReportAll').set(null);
+  await ref(`testAdmins/${P[0]}`).set(true);
+  const code = nextCode();
+  let mN = 0;
+  /** a finished 3-player match as the room holds it: the proof nodes (bot-played logs in stamped half-second chunks — the third player
+   *  never hops), the night record, the game (final) with FORGED host values the server must never read */
+  const seedMatch = async ({ moved = false, players = U, unproven = false, noProof = false, ticks = [1500, 900, 0] } = {}) => {
+    const matchId = `q${(mN++).toString(36)}jm${Math.floor(clock % 1e6).toString(36)}`.slice(0, 12);
+    const g0 = clock - 120_000, seed = seedOf(code, matchId, g0), playAt = g0 + GO_LEAD_MS, nodes = {}, live = {};
+    players.forEach((u, i) => {
+      const course = createCourse(seed), run = createRun({ seed, mode: 'match' });
+      const log = ticks[i] ? playBot(run, course, greedyBot({ seed: seed + u }), ticks[i]) : [];
+      while (!isOver(run)) step(run, course, '');
+      const c = {};
+      let from = 0, k = 0;
+      while (from < log.length) { const edge = (Math.floor(log[from].t / 30) + 1) * 30; let to = from; while (to < log.length && log[to].t < edge) to++; c[k++] = { s: packLog(log.slice(0, to), from), at: playAt + Math.ceil(edge * 1000 / 60) + 140 }; from = to; }
+      nodes[u] = { go: g0 + i * 37, ...(k ? { c } : {}), e: { l: run.best, t: run.bestT, w: run.cause } };
+      live[u] = { l: run.best, t: run.bestT, w: run.cause };
+    });
+    const participants = Object.fromEntries(players.map(u => [u, true]));
+    // (the host's own values — all WRONG on purpose: a seed, a clock and results the server must never read)
+    const game = { id: 'jaywalk', matchId, phase: 'final', mode: 'match', seed: 'forged', playAt: 12345, g0: 1, participants, phaseStartAt: clock, ...(unproven ? { unproven: 1 } : {}),
+      results: Object.fromEntries(players.map((u, i) => [u, { l: i === 1 ? 99999 : 1, t: 5, w: 'car', e: 9 }])) };
+    await ref(`rooms/${code}`).update({
+      meta: { hostId: players[0], status: 'playing', createdAt: clock - 600_000, activeAt: clock },
+      players: Object.fromEntries(players.map((u, i) => [u, { name: NAME[U.indexOf(u)] || 'X', color: 'cyan', avatar: 'bolt', joinedAt: i + 1, pid: P[U.indexOf(u)] || null }])),
+      game: moved ? { ...game, matchId: 'qnextmatch', phase: 'play', results: null } : game,
+      [`night/${matchId}`]: { g: 'jaywalk', at: clock, p: Object.fromEntries(players.map((u, i) => [u, i === 1 ? 3 : 1])), n: Object.fromEntries(players.map(u => [u, 'N'])) },
+      [`jw/${matchId}`]: noProof ? null : nodes,
+    });
+    return { code, matchId, live, nodes, seed, playAt };
+  };
+  // ---- a GUEST reports first: the owner played in it (his own proof node) → counted, for ALL THREE, from the server's replay
+  // (the fixture needs a clear winner who is NOT the reporter: the owner's bot hops for longer — tried on a few courses until it is so)
+  let A = null;
+  for (let k = 0; k < 40; k++) { A = await seedMatch({ ticks: [1500, 240, 0] }); if (A.live[U[0]].l > A.live[U[1]].l && A.live[U[1]].l > 0) break; tick(1000); }
+  const order = standings({ participants: Object.fromEntries(U.map(u => [u, true])), results: A.live }), top = order[0].uid;
+  assert.ok(A.live[U[0]].l > 0 && A.live[U[1]].l > 0 && A.live[U[2]].l === 0 && A.live[U[2]].w === 'wall', `the fixture: two real runs (${A.live[U[0]].l} + ${A.live[U[1]].l} lanes) + a silent player the blackout took`);
+  const ra = await report(U[1], A);
+  assert.equal(ra.status, 'counted', 'a guest in the owner\'s room reports — counted');
+  const done = await val(`results/${code}_${A.matchId}`);
+  assert.equal(done.src, 'room');
+  assert.deepEqual(Object.keys(done.o || {}).sort(), [...P].sort(), 'ALL THREE are credited — the two guests + the silent-but-present player included');
+  assert.equal(!!ra.outcome.win, false, `the placings are the SERVER's replay (the winner: ${NAME[U.indexOf(top)]}, ${A.live[top].l} lanes) — never the host's forged 99,999 for the reporter`);
+  assert.equal(!!done.o[P[U.indexOf(top)]].win, true, 'the farthest run wins');
+  assert.ok(done.o[P[2]] && !done.o[P[2]].win, 'the silent player: credited as played, never a win');
+  // (the server's own match: the seed + tick 0 from THE FIRST GO, the rows = each node's replay — the same lanes the logs really reached)
+  const SV = jaywalkMatch({ code, matchId: A.matchId, uids: U, nodes: A.nodes });
+  assert.equal(SV.game.seed, A.seed); assert.equal(SV.game.playAt, A.playAt);
+  for (const u of U) assert.deepEqual([SV.game.results[u].l, SV.game.results[u].t, SV.game.results[u].bad, SV.game.results[u].cut], [A.live[u].l, A.live[u].t, undefined, undefined], 'the replay = the run');
+  assert.equal((await report(U[0], A, clock + 3000)).status, 'done', 'credited once (the owner\'s own report finds it done)');
+  // ---- a report landing AFTER THE REMATCH: the room moved on — the proof nodes + the night record still credit everyone
+  tick(60_000);
+  const B = await seedMatch({ moved: true, ticks: [900, 1500, 0] });
+  const rb = await report(U[2], B);
+  assert.equal(rb.status, 'counted', 'the room is already on the next match: still counted');
+  const doneB = await val(`results/${code}_${B.matchId}`);
+  assert.equal(doneB.src, 'proof', 'from the proof nodes');
+  assert.deepEqual(Object.keys(doneB.o || {}).sort(), [...P].sort(), 'everyone the night record names (with their own proof) is credited');
+  // ---- THE OWNER'S LIVE TEST: a match the owner did NOT play is never counted (the game is being built)
+  tick(60_000);
+  await ensure('u-jm4', 'STRANGER');
+  const C = await seedMatch({ players: [U[1], U[2]], ticks: [900, 600] });
+  await rejects(report(U[1], C), 409, 'not_reportable');
+  // ---- an UNPROVEN match (no line to the board when it was played) · a match with no proof at all: never counted
+  tick(60_000);
+  const D = await seedMatch({ unproven: true });
+  await rejects(report(U[0], D), 409, 'unverifiable');
+  tick(60_000);
+  const E = await seedMatch({ noProof: true });
+  await rejects(report(U[0], E), 409, 'unverifiable');
+  // ---- a player with a seat but NO proof node of the match (A SEAT IS NOT A PLAY): the others are counted, they are not
+  tick(60_000);
+  const F = await seedMatch();
+  await ref(`rooms/${code}/jw/${F.matchId}/${U[2]}`).set(null);
+  const rf = await report(U[0], F);
+  assert.equal(rf.status, 'counted');
+  assert.deepEqual(Object.keys((await val(`results/${code}_${F.matchId}`)).o || {}).sort(), [P[0], P[1]].sort(), 'no node, no credit — the two who played are counted');
   await ref('testReportAll').set(true);
   tick();
 });

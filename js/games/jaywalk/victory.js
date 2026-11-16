@@ -8,7 +8,7 @@ import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { createCourse } from './course.js';
 import { seedOf, standings } from './logic.js';
-import { causeLine, hitVehicle } from './causes.js';
+import { causeLine, runLine, hitVehicle } from './causes.js';
 import { getPref, setPref } from './lab-prefs.js';
 
 const BOARD = 'jaywalk-solo';
@@ -74,16 +74,18 @@ function yourTable(el) {
  *  own GO, a MATCH's the game's (`courses` — one course built once for a whole podium) */
 export function endOf(game, uid, code, courses = null) {
   const r = ((game && game.results) || {})[uid] || {}, solo = game && game.mode === 'solo';
-  let vehicle = '';
+  let course = null;
   if (r.w === 'car' && r.e >= 0 && (solo ? r.go > 0 : !!(game && game.seed))) {
     try {
       const seed = solo ? seedOf(code, game.matchId, r.go) : game.seed;
-      const course = (courses && courses[seed]) || createCourse(seed);
+      course = (courses && courses[seed]) || createCourse(seed);
       if (courses) courses[seed] = course;
-      vehicle = hitVehicle(course, { y: r.y, x: r.px, end: r.e });
-    } catch { vehicle = ''; }
+    } catch { course = null; }
   }
-  return { line: causeLine({ cause: r.w, vehicle, lanes: r.l || 0, taken: !!r.x }), lanes: r.l || 0, vehicle };
+  // (causes.js#runLine — THE ONE path: a car hit is named by the vehicle the scene drew on that lane at that tick)
+  const vehicle = course ? hitVehicle(course, { y: r.y, x: r.px, end: r.e }) : '';
+  const line = course ? runLine(course, { cause: r.w, y: r.y, x: r.px, end: r.e, lanes: r.l || 0, taken: !!r.x }) : causeLine({ cause: r.w, lanes: r.l || 0, taken: !!r.x });
+  return { line, lanes: r.l || 0, vehicle };
 }
 /** H4 — the podium's rows (the console's results list — slim cards): the order + each player's lanes + their own cause line */
 export function finalRows(game, code) {
