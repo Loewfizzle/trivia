@@ -570,6 +570,7 @@ export function soundingNow() {
 }
 let episode = null, lastLeave = null;
 function leaveNote(sig, start = false) {
+  if (!reportable()) return;   // (only a phone that reports leaves records one — the owner's or &debug=1; nobody else gets a write)
   try {
     const now = Date.now();
     if (!episode) { if (!start) return; episode = { mode: leaveMode, at: now, dev: deviceLine(), session: sessionInfo() || 'n/a', vis: document.visibilityState, first: soundingNow(), sig: [], left: false }; }

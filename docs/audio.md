@@ -51,7 +51,7 @@ sounding at the first (`soundingNow()`: the context, the master, the buses, the 
 each element not paused), `songs` (synced-songs.js: each player's voices), `city` (city-sound.js: its loops)), and every step of the cut
 after it. The return (visible) closes it: ONE **AUDIO LEAVE** row (kind `leave`, /admin → errors from phones) 1.5 s later; a page that never
 came back sends it at its next load ("NEVER CAME BACK"); a blur that stays on screen (a share sheet) is no leave. The owner's phone
-(`body.rd-owner`) or `&debug=1` only; the text builder (`leave-text.js`) loads only when a row goes out (THE BOOT BUDGET).
+(`body.rd-owner`) or `&debug=1` only — nobody else's phone records (or stores) anything; the text builder (`leave-text.js`) loads only when a row goes out (THE BOOT BUDGET).
 
 **(2) THE LEAVE MODES** (the owner's switch: ☰ → **LEAVE MODE** — admins only, THIS PHONE (`ns:leavemode`); each tap = the next mode, a toast
 names it; the mode is in every AUDIO LEAVE row; engine.js reads it at boot, the lazy panel sets it through `globalThis.__nsLeaveMode`):

@@ -934,3 +934,15 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - e2e-daily's "no tap through the DAILY screen" sweep counts `[role=button]` / `[data-press]` as controls (a SCORES card + a finished ticket open
   something now, by design). THE STRIP MATCH (`--still`, 402): 13 over 9 — pre-existing (R1's commit: 14); not this pass's.
 - The frozen games' E2Es + previews: `tests/integration/parked/` (never run — README).
+
+## FIXES R3 (Nov 16 2026 — docs/harbor/passes/fixes-r3.md)
+- `tests/integration/city-away-race.mjs` (WebKit, 390 @3, serve.mjs --emu + the emulators): THE AWAY RACE — hidden → visible WITHOUT the event
+  (the watchdog's frame), hidden again mid-rebuild, a focus first; 0 failed frames (`loop().failed`) + the returns' canvas peak (≤ +25 %).
+- `tests/audio-leave-mode.test.mjs` (unit — the real engine on a fake DOM / AudioContext): THE LEAVE RECORD written in the handler + ONE AUDIO
+  LEAVE row; modes A / B / C1 / C2; MUTED = NOTHING RUNS in all four.
+- `tests/integration/audio-modes.mjs` (Chromium, the real graph; `ONLY=A,B`): what runs at an idle moment in each mode, an effect plays, the
+  record in the blur's own turn, the tail before the suspend, the row on the return. (`audio-resume.mjs` is a City 1.0 test — red since City 1.0
+  went; not run.)
+- `tests/integration/plate-hug.mjs` 64 checks: + THE STEPPED PLATE (the bottom step's edge vs the LV line ≤ the padding; plain when as wide).
+- `tests/integration/room-board.mjs`: PICK A GAME = the PLAY sheet's mark (40 px, no background, never `rc-mark`). `tests/fixes-r3.test.mjs` (unit pins).
+- **Lesson (R2's cloud reds):** when a pass removes a feature, grep the harbor + E2E + /api suites for its old checks before the push.

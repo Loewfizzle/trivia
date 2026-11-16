@@ -433,8 +433,10 @@ G('music', async () => {
     const mb = await ev(p, `(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
     await sleep(1600);        // (a tap within 1.5 s of a rescue is part of the same "play")
     await tapAt(p, mb[0], mb[1]); await sleep(500);
-    const off = await ev(p, `import('/js/audio/music.js').then(m => ({ off: JSON.parse(localStorage.getItem('na:settings') || '{}').musicOff, gain: m.musicDiag().el.gain, session: navigator.audioSession.type }))`);
-    ok(off.off === true && off.gain === 0 && off.session === 'ambient', `MUSIC BUTTON on the direct path: OFF (${off.off}, the element muted: gain ${off.gain}) — the session back to 'ambient' (${off.session})`);
+    // (FIXES R3 — LEAVE MODE A, the default: the music OFF RESTS the elements — released like THE HUSH (no element left, nothing playing) —
+    //  else the element stays, muted)
+    const off = await ev(p, `Promise.all([import('/js/audio/music.js'), import('/js/audio/engine.js')]).then(([m, E]) => { const d = m.musicDiag(); return { off: JSON.parse(localStorage.getItem('na:settings') || '{}').musicOff, gain: d.el ? d.el.gain : null, rest: E.musicResting(), playing: d.playing, session: navigator.audioSession.type }; })`);
+    ok(off.off === true && (off.rest ? off.playing == null && off.gain == null : off.gain === 0) && off.session === 'ambient', `MUSIC BUTTON on the direct path: OFF (${off.off}, ${off.rest ? 'rested — no element left (mode A)' : `the element muted: gain ${off.gain}`}) — the session back to 'ambient' (${off.session})`);
     await tapAt(p, mb[0], mb[1]);
     ok(await waitFor(p, `${SOUND} && !JSON.parse(localStorage.getItem('na:settings')).musicOff && navigator.audioSession.type === 'playback'`, 'music on again', 4000).catch(() => false), `MUSIC BUTTON on the direct path: ON again — sounding, 'playback' (${JSON.stringify(await D())})`);
     // the session comes back (the direct element's playback re-activated it): the rebuilt context's clock starts moving → back onto a voice at a tap
