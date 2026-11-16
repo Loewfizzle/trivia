@@ -113,7 +113,27 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   assert.ok(base && +base[3] >= 0.18 && +base[2] >= 0.1 && +base[3] > +base[1] * 4 && +base[6] >= 0.3, `the water's colour is a deep teal / blue, not black (${base && base.slice(1).join(' ')})`);
   assert.match(water, /float crest =/); assert.match(water, /THE SHORELINE/); assert.match(water, /c = mix\(c, vec3\(0\.70, 0\.97, 1\.0\), foam \* 0\.9\);/, 'a bright foam line at the shore');
   assert.match(water, /abs\(dn - 2\.0\)\), shU = step\(0\.5, abs\(up - 2\.0\)\)/, '… only where the neighbour is not water');
-  assert.match(n, /0xc8f6ff, 1, 1, 0\.34 \* dim\);/, 'a soft wake behind each log'); assert.match(n, /0xffa23a, 1, 0, 0\.36 \* dim\);/, 'its amber glow on the water');
+  assert.match(water, /float nz = vnoise\(/, 'generated noise — no texture file'); assert.match(water, /float spark = step\(0\.9, sh\)/, 'little sparkles of light');
+  assert.match(n, /0xc8f6ff, 1, 1, 0\.34 \* dim\);/, 'a soft wake behind each log'); assert.match(n, /0xd8faff, 1, 3, 0\.3 \* \(1 - rp\) \* dim\);/, '… + a ripple ring that swells behind its tail');
+  // THE LOGS (the add-on): bark with grooves, a wobble, pale ringed cut ends, a stub on the longer ones, moss on some; the amber only a thin underglow
+  assert.match(m, /export function buildLog\(len\)/); assert.match(n, /log2: buildLog\(2\), log3: buildLog\(3\), log4: buildLog\(4\), moss: buildMoss\(\)/, 'one geometry a length — nothing stretched');
+  assert.match(m, /const rad = x => 1 \+ 0\.05 \* Math\.sin\(/, 'the trunk\'s wobble'); assert.match(m, /GROOVE = \[1, 1, 0\.56,/, 'darker furrows along the bark');
+  assert.match(m, /const RINGS = \[\[0, 0\.2, 0xb98a55\], \[0\.2, 0\.42, 0xf3dcae\],/, 'light cut ends with tree rings'); assert.match(m, /if \(len < 3\) \{ g\.computeBoundingBox\(\); return g; \}/, 'the branch stub only on the longer logs');
+  assert.match(n, /if \(hsh\(vseed \^ \(i \* 2749\), j \* 19 \+ 5\) < 0\.45\) K\.moss\.put\(/, 'a little moss on some, from the seed');
+  assert.match(n, /roughness: 0\.82, metalness: 0, envMapIntensity: 0\.25/, 'rough wood: the bark is seen, never a glow');
+  const logLights = n.slice(n.indexOf('K.moss.put('), n.indexOf('const rp = reduce'));
+  assert.match(logLights, /0xffa23a, 1, 0, 0\.2 \* dim\);/, 'a soft light on the water round it'); assert.match(logLights, /len - 0\.12, 1, 0\.1, 0, 0xffb648, 1, 4, 0\.6 \* dim\);/, 'a THIN underglow at the waterline');
+  assert.doesNotMatch(logLights, /K\.bill\.put/, 'no glowing end caps (they made the pills)');
+  assert.match(n, /rock = reduce \? 0 : Math\.sin\(clock \/ 880/, 'the logs rock gently — never with reduce motion');
+  // CAR LIGHTS (the add-on): BOTH headlights + BOTH tail lights cast, short + soft, at the lamps' own places on each model — instanced quads
+  assert.match(n, /const LAMPS = Object\.freeze\(\{ 'car-sedan': \[[\d.]+, [\d.]+\], 'car-hatchback': \[[\d.]+, [\d.]+\], 'car-taxi': \[[\d.]+, [\d.]+\], 'car-van': \[[\d.]+, [\d.]+\], truck: \[[\d.]+, [\d.]+\], train: \[[\d.]+, [\d.]+\] \}\);/);
+  const reach = /const HEAD_REACH = ([\d.]+), TAIL_REACH = ([\d.]+);/.exec(n);
+  assert.ok(reach && +reach[1] >= 1 && +reach[1] <= 1.5 && +reach[2] >= 0.5 && +reach[2] <= 1, `a headlight's glow is gone within ${reach && reach[1]} cells, a tail light's within ${reach && reach[2]}`);
+  assert.match(n, /for \(const e of \[-hw, hw\]\) \{[^}]*0xfff0c8, 1, 6, 0\.5 \* a1\);[^}]*0xff2030, 1, 0, 0\.36 \* a1\);[^}]*0xfff0c0, 1, 5,[^}]*0xff2840, 1, 5,[^}]*\}/, 'a car: two beams, two red glows, two + two lamps');
+  assert.match(n, /for \(const e of \[-tw, tw\]\) \{[^}]*0xfff2d0, 1, 6,[^}]*0xff2030, 1, 0,[^}]*\}/, 'the train\'s front: two beams; its rear: two red glows');
+  assert.doesNotMatch(n, /2\.6, 1, 1\.15|6\.6, 1, 2\.3|, 1, 2, 0\.\d+ \* (a1|lt)\)/, 'no single long spotlight is left');
+  assert.match(fxs, /e \* e \* \(1\.0 - u\) \* \(1\.0 - u \* u\) \* smoothstep\(0\.0, 0\.07, u\); \}/, 'shape 6: a short soft beam — a quick falloff, soft edges');
+  assert.doesNotMatch(n + fxs, /PointLight|SpotLight/, 'still no real light');
   // THE KID: a glow pool + a ring in his colour under him, a rim light of his own
   assert.match(n, /paintMaterial\(glossy\(0\.42, 0\.7\), \{ rim: true \}\)/); assert.match(fxs, /outgoingLight \+= uRim \* pow\(1\.0 - clamp\(dot\(normalize\(normal\), normalize\(vViewPosition\)\), 0\.0, 1\.0\), 2\.6\);/);
   assert.match(n, /K\.flat\.put\(px, feet \+ 0\.045, pz \+ 0\.04, 1\.42 \* br, 1, 1\.16 \* br, 0, kidHex, 1, 3,/, 'the ring round his feet, in his colour');
@@ -135,7 +155,7 @@ test('THE LAB\'s TOOLS: ?gray=1 keeps the graybox, ZOOM + ANGLE (remembered — 
   assert.match(lab, /let zoom = Number\(pick\('zoom', ZOOMS, ZOOM\)\), angle = pick\('angle', ANGLES, ANGLE\);/, 'a link\'s ?zoom / ?angle, else what the phone remembers, else 8 + turned');
   assert.match(lab, /E\.installAudio\(\); S\.fetchSounds\(\);/, 'the SHARED engine: unlocked by the first tap, the bytes at preload');
   assert.match(lab, /if \(snd\) snd\.onEvent\(e\);/);
-  assert.match(lab, /createTiers\(\{ apply: t => \{ if \(view\.setTier\) view\.setTier\(t\); \}/, 'AUTOMATIC quality steps (the match kit\'s tiers)');
+  assert.match(lab, /createTiers\(\{ apply: t => \{ if \(view\.setTier\) view\.setTier\(t\); if \(tierPath\.length < 40\) tierPath\.push\(t\); \}/, 'AUTOMATIC quality steps (the match kit\'s tiers) — their path kept for the measure');
   assert.match(au, /openSheet\(\{ title: 'SOUNDS'/); assert.doesNotMatch(au, /addEventListener\('click'/, 'never a click');
   assert.match(au, /navigator\.clipboard\.writeText\(text\)/); assert.match(au, /PRESS AND HOLD THE LINE ABOVE TO COPY IT/, 'a refused clipboard is never a dead button');
   assert.match(html, /<link rel="stylesheet" href="css\/components\.css">/, 'THE SHEET + THE NEON TUBE\'s look');

@@ -16,6 +16,7 @@
 .jw-deny h1 { margin: 10px 0 14px; font: 900 26px/1.1 var(--font-display); letter-spacing: 0.05em; color: #ff4fc4; }
 .jw-deny p { margin: 0 0 12px; font-size: 15px; line-height: 1.5; color: var(--text-dim); }
 .jw-deny code { font-family: var(--font-mono); color: var(--text); word-break: break-all; }
+.jw-nogl { position: absolute; left: 24px; right: 24px; top: 40%; margin: 0; text-align: center; font: 500 15px/1.5 var(--font-ui); color: var(--text-dim); }
 .jw-a { color: #8ff0ff; text-decoration: none; display: inline-block; padding: 12px 0; min-height: 44px; }
 
 /* the stage: a phone-shaped column (a wide window gets the same play area, centred — DESKTOP COMES FREE) */

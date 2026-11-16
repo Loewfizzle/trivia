@@ -1,7 +1,7 @@
 // JAYWALK — THE MODELS (H2 — docs/jaywalk.md "THE NIGHT LOOK"): the 12 Kenney models (CC0 — assets/jaywalk/models/, re-packed by
 // scripts/build-jaywalk-assets.py: ONE mesh each, the colormap baked into vertex colours, a car's body paint in COLOR_0's alpha) through a
 // tiny GLB reader of our own (no loader add-on: the page's import map carries three's core only), + everything BUILT IN CODE in the smooth
-// toy style: THE JAYWALKER, the round puffy trees, the logs, the tufts, THE BOX TRUCK. Every geometry here carries `color` (linear RGB) +
+// toy style: THE JAYWALKER, the round puffy trees, THE LOGS (bark, cut ends, rings), the tufts, THE BOX TRUCK. Every geometry here carries `color` (linear RGB) +
 // `paint` (1 = the part that takes the player's / the car's colour). Kenney's normals are never recomputed.
 import * as THREE from 'three';
 
@@ -142,14 +142,70 @@ export function buildTuft() {
   const c = (x, z, h, r) => ({ g: new THREE.ConeGeometry(0.035, h, 5), color: 0x3fae55, at: [x, h / 2, z], rot: r, shade: y => 0.55 + y * 4 });
   return build([c(0, 0, 0.13, [0, 0, 0]), c(0.05, 0.02, 0.1, [0, 0, -0.5]), c(-0.05, -0.01, 0.1, [0, 0, 0.5]), c(0.01, 0.05, 0.09, [0.5, 0, 0])]);
 }
-/** a log, 1 cell long along x at scale 1 (the scene stretches x): long, rounded, smooth bark, a pale ring at each end */
-export function buildLog() {
-  const r = 0.36, b = 0.12, L = 0.5, pts = [new THREE.Vector2(0.001, -L)];
-  for (let i = 0; i <= 5; i++) { const a = (i / 5) * Math.PI / 2; pts.push(new THREE.Vector2(r - b + Math.sin(a) * b, -L + b - Math.cos(a) * b)); }
-  for (let i = 0; i <= 5; i++) { const a = (i / 5) * Math.PI / 2; pts.push(new THREE.Vector2(r - b + Math.cos(a) * b, L - b + Math.sin(a) * b)); }
-  pts.push(new THREE.Vector2(0.001, L));
-  return build([{ g: new THREE.LatheGeometry(pts, 14), color: 0x8a5a34, rot: [0, 0, Math.PI / 2], scale: [1, 1, 1],
-    shade: (y, x, z) => (Math.abs(x) > L - 0.03 ? 1.9 : 0.74 + 0.3 * (y / r)) * (Math.abs(x) > L - 0.03 && Math.hypot(y, z) < 0.14 ? 0.7 : 1) }]);
+/**
+ * A LOG (H2B add-on — the owner: "they read as glowing orange pills"; it must be unmistakably a log), `len` cells long along x (2 · 3 · 4 —
+ * one geometry a length: nothing is stretched), built in code in the smooth toy style:
+ *   · a round TRUNK with a slight irregular wobble along its length (its thickness + its line both wander)
+ *   · brown BARK with darker grooves running along it (vertex colours: a strip of the trunk is one colour → crisp furrows)
+ *   · LIGHT CUT ENDS with tree rings — sawn on a slant (the top a little shorter), so the pale ringed faces are SEEN from the camera above
+ *   · a stub of a cut branch on the longer logs (3 + 4 cells), on the shoulder the camera sees
+ * Only the part above the water is built (+ a little under it). Its top sits LOG.top above its centre — the scene floats it so the kid's
+ * feet stand on it. The moss (some logs, from the seed) is its own small piece: buildMoss().
+ */
+export const LOG = Object.freeze({ rz: 0.36, ry: 0.29, top: 0.29 });
+export function buildLog(len) {
+  const L = len - 0.1, RZ = LOG.rz, RY = LOG.ry, SL = 0.6, nx = len * 3, na = 14, nc = 8, A0 = -0.55, A1 = Math.PI + 0.55;
+  const pos = [], nor = [], col = [], c = new THREE.Color();
+  const rad = x => 1 + 0.05 * Math.sin(x * 2.3 + len) + 0.035 * Math.sin(x * 5.1 + 1.7 * len);
+  const cy = x => 0.016 * Math.sin(x * 1.9 + len * 2), cz = x => 0.03 * Math.sin(x * 1.4 + 1 + len);
+  const BARK = 0x8f5c34, GROOVE = [1, 1, 0.56, 1, 0.9, 0.52, 1, 1, 0.6, 0.94, 1, 0.5, 1, 0.9, 0.58, 1, 1, 0.55];   // (a strip round the trunk: bark, or a dark furrow)
+  const put = (x, y, z, nx_, ny, nz, hex, k) => { pos.push(x, y, z); const l = Math.hypot(nx_, ny, nz) || 1; nor.push(nx_ / l, ny / l, nz / l); c.set(hex); col.push(c.r * k, c.g * k, c.b * k); };
+  /** a point of the trunk: u 0 … 1 along it, a = the angle round it (0 = the camera's side, π / 2 = the top) */
+  const trunk = (u, a, hex, k) => {
+    const ca = Math.cos(a), sa = Math.sin(a), half = L / 2 - SL * RY * sa, x = -half + 2 * half * u, r = rad(x);
+    put(x, cy(x) + RY * r * sa, cz(x) + RZ * r * ca, 0, sa * RZ, ca * RY, hex, k);
+  };
+  for (let i = 0; i < nx; i++) for (let j = 0; j < na; j++) {
+    const u0 = i / nx, u1 = (i + 1) / nx, a0 = A0 + (A1 - A0) * j / na, a1 = A0 + (A1 - A0) * (j + 1) / na;
+    const k = GROOVE[j % GROOVE.length] * (0.9 + 0.2 * (((Math.sin(i * 12.9898 + j * 78.233 + len) * 43758.5453) % 1 + 1) % 1)) * (0.56 + 0.52 * Math.max(0, Math.sin((a0 + a1) / 2)));
+    trunk(u0, a0, BARK, k); trunk(u1, a0, BARK, k); trunk(u1, a1, BARK, k);
+    trunk(u0, a0, BARK, k); trunk(u1, a1, BARK, k); trunk(u0, a1, BARK, k);
+  }
+  // THE CUT ENDS: pale wood, tree rings (a darker heart, light / tan bands, the bark's edge) — on the slanted saw cut
+  const RINGS = [[0, 0.2, 0xb98a55], [0.2, 0.42, 0xf3dcae], [0.42, 0.56, 0xcfa56c], [0.56, 0.78, 0xf3dcae], [0.78, 0.88, 0xd4ab73], [0.88, 1, 0x6a4326]];
+  for (const side of [-1, 1]) {
+    const xe = side * L / 2, r = rad(xe);
+    const end = (q, a, hex) => { const y = q * RY * r * Math.sin(a); put(side * (L / 2 - SL * q * RY * Math.sin(a)), cy(xe) + y, cz(xe) + q * RZ * r * Math.cos(a), side, SL, 0, hex, 1.3); };
+    for (const [q0, q1, hex] of RINGS) for (let j = 0; j < nc; j++) {
+      const a0 = A0 + (A1 - A0) * j / nc, a1 = A0 + (A1 - A0) * (j + 1) / nc;
+      if (side < 0) { end(q0, a0, hex); end(q1, a0, hex); end(q1, a1, hex); end(q0, a0, hex); end(q1, a1, hex); end(q0, a1, hex); }
+      else { end(q0, a0, hex); end(q1, a1, hex); end(q1, a0, hex); end(q0, a0, hex); end(q0, a1, hex); end(q1, a1, hex); }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setAttribute('paint', new THREE.Float32BufferAttribute(new Float32Array(pos.length / 3), 1));
+  if (len < 3) { g.computeBoundingBox(); return g; }
+  // the stub of a cut branch, on the shoulder the camera sees (its own pale cut face)
+  const sx = len === 3 ? 0.62 : -0.95, A = 0.9, ax = [0, Math.sin(A), Math.cos(A)], at = [sx, cy(sx) + RY * Math.sin(A) + ax[1] * 0.07, cz(sx) + RZ * Math.cos(A) + ax[2] * 0.07];
+  const stub = build([
+    { g: new THREE.CylinderGeometry(0.085, 0.105, 0.2, 10), color: 0x7a4d2b, at, rot: [Math.PI / 2 - A, 0, 0] },
+    { g: new THREE.CircleGeometry(0.083, 10), color: 0xf3dcae, at: [at[0], at[1] + ax[1] * 0.102, at[2] + ax[2] * 0.102], rot: [-A, 0, 0] },
+    { g: new THREE.CircleGeometry(0.04, 8), color: 0xcfa56c, at: [at[0], at[1] + ax[1] * 0.104, at[2] + ax[2] * 0.104], rot: [-A, 0, 0] },
+  ]);
+  const out = new THREE.BufferGeometry();
+  for (const k of ['position', 'normal', 'color', 'paint']) { const A1_ = g.attributes[k].array, B1 = stub.attributes[k].array, m = new Float32Array(A1_.length + B1.length); m.set(A1_); m.set(B1, A1_.length); out.setAttribute(k, new THREE.BufferAttribute(m, k === 'paint' ? 1 : 3)); }
+  g.dispose(); stub.dispose(); out.computeBoundingBox();
+  return out;
+}
+/** a little moss on a log's back (some logs, from the seed): three soft flat pads */
+export function buildMoss() {
+  const m = 0x4fae4a, top = y => 0.8 + y * 3;
+  return build([
+    { g: ball(0.17, 10, 6), color: m, at: [0, 0.012, 0], scale: [1.5, 0.3, 0.95], shade: top },
+    { g: ball(0.12, 8, 6), color: 0x5fc257, at: [0.24, 0.008, 0.08], scale: [1.3, 0.3, 1], shade: top },
+    { g: ball(0.1, 8, 6), color: 0x47a043, at: [-0.26, 0.004, -0.07], scale: [1.4, 0.3, 1], shade: top },
+  ]);
 }
 /**
  * THE BOX TRUCK (the 3-cell vehicle — H2B, the owner: "a real box truck"), built in code in the smooth style: a rounded CAB in the truck's

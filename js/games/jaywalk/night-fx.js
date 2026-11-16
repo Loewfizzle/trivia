@@ -28,6 +28,7 @@ precision highp float;
 uniform float uTime; uniform vec3 uFogCol; uniform float uQ;
 varying vec2 vP; varying vec4 vKind; varying vec2 vState; varying float vFog; varying float vLane;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
 void main() {
   float type = vKind.x, dn = vKind.y, up = vKind.z, seed = vKind.w, x = vP.x, z = vP.y;
   vec3 c;
@@ -58,7 +59,8 @@ void main() {
     // neon reflected in long wobbling streaks, a bright shoreline where it meets the land
     float t = uTime;
     float w1 = sin(x * 2.3 + t * 0.8 + sin(z * 7.0 + t * 0.5) * 0.8), w2 = sin(x * 5.3 - t * 0.55 + z * 8.0 + seed);
-    float w = 0.5 + 0.34 * w1 + 0.16 * w2;
+    float nz = vnoise(vec2(x * 1.4 + t * 0.22, z * 3.2 - t * 0.16) + seed * 5.0);   // (generated noise — no texture file: the surface drifts)
+    float w = clamp(0.5 + 0.27 * w1 + 0.12 * w2 + 0.42 * (nz - 0.5), 0.0, 1.0);
     c = mix(vec3(0.016, 0.105, 0.200), vec3(0.040, 0.250, 0.370), w * w);
     float crest = smoothstep(0.90, 1.0, sin(x * 3.4 + sin(z * 12.0 + t * 0.7 + seed) * 1.5 + t * 0.9));
     c += vec3(0.16, 0.42, 0.50) * crest * 0.5;
@@ -69,6 +71,11 @@ void main() {
       float pick = hash(vec2(id + 3.0, seed));
       vec3 neon = pick < 0.36 ? vec3(1.0, 0.25, 0.75) : (pick < 0.7 ? vec3(0.15, 0.8, 1.0) : vec3(0.62, 0.36, 1.0));
       c += neon * streak * 0.20 * (0.6 + 0.4 * sin(t * 0.9 + id));
+      // little sparkles of light: a few cells of the surface twinkle, each to its own beat
+      vec2 sp = vec2(x * 6.0, z * 6.0), sid = floor(sp);
+      float sh = hash(sid + seed * 13.0);
+      float spark = step(0.9, sh) * smoothstep(0.5, 1.0, sin(t * (1.6 + sh * 2.6) + sh * 40.0)) * smoothstep(0.34, 0.04, length(fract(sp) - 0.5));
+      c += vec3(0.78, 1.0, 1.0) * spark * 0.85;
     }
     // THE SHORELINE: a bright wavering foam line + a pale shallow where the water meets anything that is not water
     float shD = step(0.5, abs(dn - 2.0)), shU = step(0.5, abs(up - 2.0));
@@ -158,7 +165,8 @@ void main() {
   else if (s < 2.5) { float u = vUv.x, w = mix(0.22, 1.0, u); a = smoothstep(w, 0.0, abs(p.y)) * (1.0 - u) * (1.0 - u * 0.4); }   // 2 a beam (from u = 0)
   else if (s < 3.5) { a = smoothstep(0.16, 0.0, abs(d - 0.8)); }                                                  // 3 a ring
   else if (s < 4.5) { a = smoothstep(1.0, 0.15, abs(p.y)) * smoothstep(1.0, 0.8, abs(p.x)); }                     // 4 a soft line along x
-  else { a = smoothstep(0.42, 0.3, d) + 0.6 * smoothstep(1.0, 0.0, d) * smoothstep(1.0, 0.0, d); }                // 5 a lamp: a hot core + its halo
+  else if (s < 5.5) { a = smoothstep(0.42, 0.3, d) + 0.6 * smoothstep(1.0, 0.0, d) * smoothstep(1.0, 0.0, d); }   // 5 a lamp: a hot core + its halo
+  else { float u = vUv.x, w = mix(0.4, 1.0, u), e = smoothstep(w, 0.0, abs(p.y)); a = e * e * (1.0 - u) * (1.0 - u * u) * smoothstep(0.0, 0.07, u); }   // 6 a SHORT SOFT beam (a headlight's glow on the road: a quick falloff, soft edges)
   #ifdef JW_SHADOW
     gl_FragColor = vec4(0.0, 0.0, 0.0, a * vFx.y * (1.0 - vFog));
   #else

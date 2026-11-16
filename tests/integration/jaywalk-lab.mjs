@@ -1,8 +1,8 @@
 // JAYWALK — THE JAYWALK LAB's own check (/jaywalk-lab — js/games/jaywalk/lab.js; H2: night.js · sfx.js · audition.js; H1's graybox behind
 // ?gray=1 — docs/jaywalk.md "THE LAB"), on the LOCAL server + the emulators (NEVER THE LIVE SITE):
-//   · a STRANGER gets the door (no canvas; three.js, the scene + the models never fetched) — the owner gate, like /lab
-//   · THE NIGHT LOOK renders (the local preview: localhost + ?emu + &preview=1): the Kenney models + the skyline band loaded, no graybox
-//     unless ?gray=1
+//   · THE LAB IS OPEN (H2B): a STRANGER gets the lab — no door, no sign-in, ZERO server calls (no /api, no Firebase: only the page's own
+//     files, three.js from its CDN, the fonts); a &debug=1 link is dropped
+//   · THE NIGHT LOOK renders: the Kenney models + the skyline band loaded, no graybox unless ?gray=1
 //   · THE CAMERA (H2B — camera.js): ZOOM 7 · 8 · 9 (8 by default) + ANGLE STRAIGHT · TURNED (turned by default), remembered; the columns
 //     across + THE KID's measured height at each zoom; the sideways follow keeps him on screen at both play edges + on a log ride (no
 //     jitter), never more than ~1 column past the play area; 3–4 lanes seen behind him; ?gray=1 follows the same camera
@@ -124,23 +124,29 @@ async function looks(p) {
 
 try {
   if (LOOK) { const o = await open(390, 844, 3, '&preview=1&seed=look3&fps=1'); await up(o.p); await sleep(600); await looks(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
-  // ---- 1. a stranger gets the door
+  // ---- 1. THE LAB IS OPEN (H2B): a stranger — a fresh browser, a plain link — gets the lab; ZERO server calls
   {
-    const { p, errs, reqs, close } = await open(390, 844, 2);
-    const door = await waitFor(p, "!!document.querySelector('.jw-deny')");
-    ok(door, 'a STRANGER gets the door (/api/admin whoami says no)');
-    ok(!(await p.evaluate(() => !!document.querySelector('canvas'))), '… no scene behind it');
-    ok(!reqs.some(u => /three/.test(u)), '… three.js was never fetched');
-    ok(!reqs.some(u => /graybox\.js|night\.js|\.glb|skyline|audio\/jaywalk/.test(u)), '… nor the scene, a model, the skyline or a sound');
+    const { p, errs, reqs, close } = await open(390, 844, 2, '&debug=1');
+    ok(await up(p), 'a STRANGER gets THE LAB (a fresh browser, no profile, no key): the night look opens');
+    ok(await p.evaluate(() => !document.querySelector('.jw-deny') && !!document.querySelector('.jw-stage canvas.jw-canvas')), '… no door, no "for the owner"');
+    await touch(p, [[195, 500]]); await sleep(350);
+    ok((await st(p)).y === 1, '… and it plays: a tap hops');
+    await sleep(1500);
+    const own = new URL(BASE).host, okHost = u => { try { const h = new URL(u).host; return h === own || h === 'cdn.jsdelivr.net' || h === 'fonts.googleapis.com' || h === 'fonts.gstatic.com'; } catch { return /^(data|blob):/.test(u); } };
+    const calls = reqs.filter(u => /\/api\/|firebase|identitytoolkit|securetoken|googleapis\.com\/(?!css)/i.test(u)), away = reqs.filter(u => !okHost(u));
+    ok(calls.length === 0, `ZERO server calls: no /api, no Firebase, no sign-in${calls.length ? ` — ${calls.slice(0, 3).join(' · ')}` : ` (${reqs.length} requests, all files)`}`);
+    ok(away.length === 0, `… every request = the page's own files, three.js (its CDN) or the fonts${away.length ? ` — ${away.slice(0, 3).join(' · ')}` : ''}`);
+    ok(await p.evaluate(() => !/debug/.test(location.search) && !document.body.classList.contains('rd-owner')), '… a &debug=1 link is dropped from the address (the shared audio engine never reports from here)');
     ok(await p.evaluate(() => document.querySelector('meta[name=robots]').content === 'noindex, nofollow'), 'noindex, nofollow');
-    ok(!errs.length, `no page error at the door${errs.length ? `: ${errs[0]}` : ''}`);
-    await shot(p, 'door-390x844.png');
+    ok(await p.evaluate(() => ['SOLO', 'MATCH', 'DAILY'].every(t => [...document.querySelectorAll('.jw-tab')].some(b => b.textContent === t)) && !!document.querySelector('.jw-snd') && document.querySelectorAll('.jw-w').length === 3 && document.querySelectorAll('.jw-ang').length === 2 && !!document.querySelector('.jw-new:not(.jw-snd)')), 'everything on it stays: SOLO · MATCH · DAILY, ZOOM, ANGLE, SOUNDS, NEW SEED');
+    ok(!errs.length, `no page error${errs.length ? `: ${errs[0]}` : ''}`);
+    await shot(p, 'open-390x844.png');
     ok(/localhost|127\.0\.0\.1/.test(await p.evaluate(() => location.hostname)), 'the test runs on a local host');
     await close();
   }
   // ---- 2. THE NIGHT LOOK (the local preview)
   const { p, errs, reqs, close } = await open(390, 844, 3, '&preview=1&seed=labseed1&fps=1');
-  ok(await up(p), 'the local preview opens THE NIGHT LOOK (three.js 0.160 from the import map) + Kenney\'s models arrive');
+  ok(await up(p), 'THE NIGHT LOOK opens (three.js 0.160 from the import map) + Kenney\'s models arrive');
   await sleep(700);
   let s = await st(p);
   ok(s.mode === 'solo' && s.seed === 'labseed1' && s.y === 0, `a solo run on its seed, the kid on lane 0 (${JSON.stringify({ mode: s.mode, seed: s.seed })})`);
@@ -347,15 +353,16 @@ try {
       await up(o.p); await o.p.evaluate(() => { window.__jwLab.restart('solo', 'perfseed7'); window.__jwLab.bot(true); });
       await sleep(2500);
       const t0 = (await st(o.p)).tier;
-      let rate = 0, slipped = null;
+      let rate = 0, slipped = 0;
       for (const r2 of [12, 20, 32]) {
-        await o.p.emulateCPUThrottling(r2); await sleep(2500); await o.p.evaluate(() => window.__jwLab.clearFrames()); await sleep(2500);
+        await o.p.evaluate(() => window.__jwLab.clearFrames()); await o.p.emulateCPUThrottling(r2); await sleep(3000);
         const fr = (await o.p.evaluate(() => window.__jwLab.frames())).sort((x, y) => x - y);
-        rate = r2; slipped = fr[Math.floor(fr.length * 0.75)];
+        rate = r2; slipped = fr[Math.floor(fr.length * 0.75)] || 0;
         if (slipped > 19.5 || (await st(o.p)).tier < 2) break;
       }
-      const seen = [t0], end = Date.now() + 40000;
-      while (Date.now() < end) { const t = (await st(o.p)).tier; if (t !== seen[seen.length - 1]) seen.push(t); if (t === 0) break; await sleep(250); }
+      const end = Date.now() + 40000;
+      while (Date.now() < end && (await st(o.p)).tier > 0) await sleep(250);
+      const seen = (await st(o.p)).tierPath;
       await o.p.emulateCPUThrottling(1);
       console.log('STEP', JSON.stringify({ cpu: `${rate}×`, p75Ms: +slipped.toFixed(1), tiers: seen }));
       ok(t0 === 2 && seen.length > 1 && Math.min(...seen) < 2, `THE AUTOMATIC STEP: at ${rate}× CPU the frames slip (p75 ${slipped.toFixed(1)} ms) → the tiers step by themselves: ${seen.join(' → ')}`);

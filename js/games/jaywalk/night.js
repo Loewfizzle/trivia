@@ -14,13 +14,18 @@
 import * as THREE from 'three';
 import { FP, COLS, HOP_TICKS, DOWN_TICKS } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod } from './course.js';
-import { loadKenney, SCENE_MODELS, buildKid, buildTree, buildTuft, buildLog, buildTruck, TRUCK, buildBarricade, buildDart } from './models.js';
+import { loadKenney, SCENE_MODELS, buildKid, buildTree, buildTuft, buildLog, LOG, buildMoss, buildTruck, TRUCK, buildBarricade, buildDart } from './models.js';
 import { FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, createBloom } from './night-fx.js';
 import { CAM, createCamera } from './camera.js';
 
 const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;   // (the most lanes alive: 36 — a closer zoom lays fewer ahead)
 const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff];   // (a car's body tint + its trail: pink · cyan · violet · coral · blue)
 const DPR_AT = [1.5, 2, 3];
+// THE LAMPS (H2B add-on — CAR LIGHTS): where each vehicle's two headlights / two tail lights sit — [half their spacing across the lane,
+// their height] on the model as the scene draws it. BOTH cast: a SHORT SOFT beam ahead (gone within HEAD_REACH cells) + a small red glow
+// behind (within TAIL_REACH) — a glow on the road, never a spotlight. All instanced quads: no real light.
+const LAMPS = Object.freeze({ 'car-sedan': [0.225, 0.2], 'car-hatchback': [0.225, 0.2], 'car-taxi': [0.225, 0.2], 'car-van': [0.26, 0.24], truck: [0.25, 0.3], train: [0.2, 0.45] });
+const HEAD_REACH = 1.35, TAIL_REACH = 0.75;
 const KID_S = 1.3;   // (THE JAYWALKER's size on the lane: ≈ 1.27 of a lane tall — he must read at real phone size; the rules' box stays 0.6 of a cell)
 // the skyline's night life, in % of the band's picture (assets/jaywalk/skyline-night.webp): [x, y, delay s] the red aviation lights ·
 // [x, y, w, h, delay s] the neon blocks that flicker
@@ -92,14 +97,18 @@ export function createNight(host, o = {}) {
   const ground = createGround(POOL, fogV);
   scene.add(ground.mesh);
   const flatGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), billGeo = new THREE.PlaneGeometry(1, 1), unit = new THREE.BoxGeometry(1, 1, 1);
-  const GEO = { tree: buildTree(), tuft: buildTuft(), log: buildLog(), truck: buildTruck(), barricade: buildBarricade(), dart: buildDart() };
+  const GEO = { tree: buildTree(), tuft: buildTuft(), log2: buildLog(2), log3: buildLog(3), log4: buildLog(4), moss: buildMoss(), truck: buildTruck(), barricade: buildBarricade(), dart: buildDart() };
   const K = {
     shadow: kind(flatGeo, glowMaterial(fogV, { shadow: true }), 160, { aux: ['aFx', 2], raw: true, order: 1 }),
-    flat: kind(flatGeo, glowMaterial(fogV), 520, { aux: ['aFx', 2], raw: true, order: 2, bloom: true }),          // pools · trails · beams · rings · edge lines
-    bill: kind(billGeo, glowMaterial(fogV, { bill: true }), 520, { aux: ['aFx', 2], raw: true, order: 3, bloom: true }),   // lamps · light quads · sparks
+    flat: kind(flatGeo, glowMaterial(fogV), 720, { aux: ['aFx', 2], raw: true, order: 2, bloom: true }),          // pools · trails · beams · rings · edge lines
+    bill: kind(billGeo, glowMaterial(fogV, { bill: true }), 600, { aux: ['aFx', 2], raw: true, order: 3, bloom: true }),   // lamps · light quads · sparks
     trees: kind(GEO.tree, lambert(), 150),
     tufts: kind(GEO.tuft, lambert(), 220),
-    logs: kind(GEO.log, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0, envMapIntensity: 0.5 }), 110),
+    // THE LOGS (H2B add-on): one geometry a length (2 · 3 · 4 cells — nothing stretched); rough wood — the bark must be SEEN, never a glow
+    log2: kind(GEO.log2, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0, envMapIntensity: 0.25 }), 60),
+    log3: kind(GEO.log3, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0, envMapIntensity: 0.25 }), 60),
+    log4: kind(GEO.log4, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0, envMapIntensity: 0.25 }), 60),
+    moss: kind(GEO.moss, lambert(), 60),
     trucks: kind(GEO.truck, paintMaterial(glossy(0.3, 1), { instanced: true }), 24, { aux: ['aLit', 1] }),
     barricades: kind(GEO.barricade, lambert(), 40),
     posts: kind(unit, new THREE.MeshLambertMaterial({ color: 0xffffff }), 180),
@@ -355,24 +364,32 @@ export function createNight(host, o = {}) {
               else if (q) q.put(bx - L.dir * B.cz * sz, 0, z, sx, sy, sz, ry, tint, 1, dim);
               K.shadow.put(cx, 0.03, z, len * 1.12, 1, 1.05, 0, 0, 1, 0, 0.6 * lt);
               if (on) {
-                const hw = len < 1.5 ? 0.2 : 0.24, hy = truck ? 0.3 : len < 1.5 ? 0.2 : 0.24, a1 = dim;
+                const [hw, hy] = LAMPS[truck ? 'truck' : name], a1 = dim, back = L.dir > 0 ? 0 : Math.PI;
                 // the truck's amber markers along the foot of the box's side (the side the camera sees)
                 if (truck) for (const m of [0, 0.34, 0.67, 1]) K.bill.put(cx + L.dir * (TRUCK.box[0] + (TRUCK.box[1] - TRUCK.box[0]) * m) * tz, 0.29, z + 0.4, 0.24, 0.24, 1, 0, 0xff9a1c, 1, 0, a1);
-                K.flat.put(X(nose + L.dir * 1.25), 0.04, z, 2.6, 1, 1.15, L.dir > 0 ? 0 : Math.PI, 0xfff0c8, 1, 2, 0.62 * a1);   // the headlight pool, ahead
-                K.flat.put(X(tail - L.dir * 0.45), 0.04, z, 1.5, 1, 1.0, 0, 0xff2030, 1, 0, 0.5 * a1);                            // the taillight pool, behind
-                K.flat.put(X(tail - L.dir * (1.0 + L.v * 0.02)), 0.3, z, 2.0 + L.v * 0.045, 1, 0.62, L.dir > 0 ? 0 : Math.PI, tint, 1, 1, 0.7 * a1);   // THE LIGHT TRAIL
-                K.bill.put(X(nose), hy, z - hw, 0.2, 0.2, 1, 0, 0xfff0c0, 1, 5, 0.8 * a1); K.bill.put(X(nose), hy, z + hw, 0.2, 0.2, 1, 0, 0xfff0c0, 1, 5, 0.8 * a1);
-                K.bill.put(X(tail), hy + 0.02, z - hw, 0.17, 0.17, 1, 0, 0xff2840, 1, 5, 0.9 * a1); K.bill.put(X(tail), hy + 0.02, z + hw, 0.17, 0.17, 1, 0, 0xff2840, 1, 5, 0.9 * a1);
+                K.flat.put(X(tail - L.dir * (1.0 + L.v * 0.02)), 0.3, z, 2.0 + L.v * 0.045, 1, 0.62, back, tint, 1, 1, 0.7 * a1);   // THE LIGHT TRAIL (its neon tint — not a lamp)
+                for (const e of [-hw, hw]) {   // BOTH headlights + BOTH tail lights, each at its own place on the model
+                  K.flat.put(X(nose + L.dir * HEAD_REACH / 2), 0.04, z + e, HEAD_REACH, 1, 0.8, back, 0xfff0c8, 1, 6, 0.5 * a1);   // a short soft beam on the road ahead
+                  K.flat.put(X(tail - L.dir * TAIL_REACH * 0.36), 0.04, z + e, TAIL_REACH * 1.25, 1, 0.52, 0, 0xff2030, 1, 0, 0.36 * a1);   // a small red glow behind
+                  K.bill.put(X(nose), hy, z + e, 0.2, 0.2, 1, 0, 0xfff0c0, 1, 5, 0.8 * a1);
+                  K.bill.put(X(tail), hy + 0.02, z + e, 0.17, 0.17, 1, 0, 0xff2840, 1, 5, 0.9 * a1);
+                }
               }
             } else {
+              // A LOG (models.js#buildLog): it bobs + rocks gently (and dips + rolls when the kid lands on it); some carry a little moss (the seed)
               const wob = fx.wob && fx.wob.lane === i && fx.wob.j === j && lap === 0 ? clock - fx.wob.t0 : 9e9, wv = wob < 520 && !reduce ? Math.exp(-wob / 170) * Math.sin(wob / 42) : 0;
-              const by = bobOf(i, j) - 0.05 - wv * 0.07;
-              K.logs.put(cx, by, z, len - 0.08, 0.78, 1.02, 0, 0xffffff, dim, 1, 1, wv * 0.16);
+              const by = bobOf(i, j) + 0.25 - LOG.top - wv * 0.07, rock = reduce ? 0 : Math.sin(clock / 880 + i * 1.3 + j * 2.1) * 0.045 + wv * 0.16;
+              const n = len < 2.5 ? 2 : len < 3.5 ? 3 : 4, tailX = L.dir > 0 ? left : left + len;
+              K[`log${n}`].put(cx, by, z, len / n, 1, 1, 0, 0xffffff, dim * 1.12, 1, 1, rock);
+              if (hsh(vseed ^ (i * 2749), j * 19 + 5) < 0.45) K.moss.put(cx + (hsh(vseed ^ (i * 911), j + 3) - 0.5) * (len - 1.3), by + LOG.top - 0.012, z - 0.03, 1, 1, 1, hsh(vseed ^ i, j + 9) * 6, 0xffffff, dim * 1.15, 1, 1, rock);
               if (on) {
-                K.flat.put(cx, 0.045, z, len + 1.5, 1, 2.0, 0, 0xffa23a, 1, 0, 0.36 * dim);                                       // its amber glow on the water
-                K.flat.put(X(L.dir > 0 ? left - 0.95 : left + len + 0.95), 0.05, z, 2.3, 1, 0.92, L.dir > 0 ? 0 : Math.PI, 0xc8f6ff, 1, 1, 0.34 * dim);   // a soft wake behind it
-                K.flat.put(cx, 0.06, z + 0.4, len + 0.1, 1, 0.2, 0, 0xffb648, 1, 4, 0.95 * dim); K.flat.put(cx, 0.06, z - 0.4, len + 0.1, 1, 0.2, 0, 0xffb648, 1, 4, 0.7 * dim);   // AMBER edges
-                K.bill.put(X(left + 0.03), 0.2 + by, z, 0.42, 0.5, 1, 0, 0xffb040, 1, 0, 0.9 * dim); K.bill.put(X(left + len - 0.03), 0.2 + by, z, 0.42, 0.5, 1, 0, 0xffb040, 1, 0, 0.9 * dim);
+                // at night the amber is ONLY a thin underglow at its waterline + a soft light on the water round it — the wood stays visible
+                K.flat.put(cx, 0.045, z, len + 1.2, 1, 1.7, 0, 0xffa23a, 1, 0, 0.2 * dim);
+                K.flat.put(cx, 0.05, z + 0.41, len - 0.12, 1, 0.1, 0, 0xffb648, 1, 4, 0.6 * dim); K.flat.put(cx, 0.05, z - 0.39, len - 0.12, 1, 0.08, 0, 0xffb648, 1, 4, 0.3 * dim);
+                // a small wake trails it: a soft pale ribbon + a ripple ring that swells behind its tail
+                K.flat.put(X(tailX - L.dir * 0.95), 0.05, z, 2.2, 1, 0.9, L.dir > 0 ? 0 : Math.PI, 0xc8f6ff, 1, 1, 0.34 * dim);
+                const rp = reduce ? 0.5 : (clock / 1400 + j * 0.37) % 1;
+                K.flat.put(X(tailX - L.dir * (0.25 + rp * 0.55)), 0.052, z, 0.6 + rp * 0.8, 1, 0.5 + rp * 0.45, 0, 0xd8faff, 1, 3, 0.3 * (1 - rp) * dim);
               }
             }
           }
@@ -406,8 +423,13 @@ export function createNight(host, o = {}) {
             }
             K.shadow.put(X(left + len / 2), 0.03, z, len * 1.03, 1, 1.25, 0, 0, 1, 0, 0.65 * lt);
             if (on) {
-              K.flat.put(X(nose + p.dir * 3.2), 0.05, z, 6.6, 1, 2.3, p.dir > 0 ? 0 : Math.PI, 0xfff2d0, 1, 2, 0.85 * lt);          // the headlight beam, sweeping ahead
-              K.bill.put(X(nose), 0.5, z, 0.7, 0.7, 1, 0, 0xfff6d8, 1, 5, lt);
+              const [tw, ty] = LAMPS.train, rear = nose - p.dir * len;
+              for (const e of [-tw, tw]) {   // the train's front: BOTH headlights cast a soft beam (a little longer than a car's); BOTH tail lights a red glow
+                K.flat.put(X(nose + p.dir * HEAD_REACH * 0.8), 0.05, z + e, HEAD_REACH * 1.6, 1, 0.95, p.dir > 0 ? 0 : Math.PI, 0xfff2d0, 1, 6, 0.6 * lt);
+                K.bill.put(X(nose), ty, z + e, 0.36, 0.36, 1, 0, 0xfff6d8, 1, 5, lt);
+                K.flat.put(X(rear - p.dir * TAIL_REACH * 0.36), 0.05, z + e, TAIL_REACH * 1.3, 1, 0.56, 0, 0xff2030, 1, 0, 0.4 * lt);
+                K.bill.put(X(rear), ty, z + e, 0.24, 0.24, 1, 0, 0xff2840, 1, 5, 0.9 * lt);
+              }
               K.flat.put(X(left + len / 2), 0.045, z + 0.55, len, 1, 0.9, 0, 0x7fd0ff, 1, 4, 0.3 * lt);
             }
           }

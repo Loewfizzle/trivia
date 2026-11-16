@@ -16,8 +16,9 @@ export const PAGES = [
   ['/board', "!!document.querySelector('#app') && document.querySelector('#app').children.length > 0"],
   ['/lab', "!!document.querySelector('#app') && !/Checking the door/.test(document.querySelector('#app').textContent)"],
   ['/daychart', "!!document.querySelector('#app') && document.querySelector('#app').textContent.trim() !== 'Checking…'"],
-  // (JAYWALK H1 — THE JAYWALK LAB: owner-gated like /lab — on the emulators a stranger gets THE DOOR, and nothing of the graybox behind it)
-  ['/jaywalk-lab', "!!document.querySelector('#app .jw-deny') && !document.querySelector('canvas')"],
+  // (JAYWALK H2B — THE JAYWALK LAB IS OPEN: no gate, no server call — a stranger gets the lab's stage, never a door. The stage alone:
+  //  a browser with no WebGL still loaded the page — it says so on the stage)
+  ['/jaywalk-lab', "!!document.querySelector('#app .jw-stage') && !document.querySelector('#app .jw-deny')"],
 ];
 const READY_MS = 25000;
 const sleep = ms => new Promise(r => setTimeout(r, ms));

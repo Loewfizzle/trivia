@@ -1,9 +1,8 @@
-// /jaywalk-lab — THE JAYWALK LAB (H1 — docs/jaywalk.md "THE LAB"): the owner's preview of a game BEING BUILT, on the LIVE site, on his
-// phone, on cellular. OWNER-GATED like /lab (POST /api/admin whoami → admin, else the door); NO room, NO database writes, NO Firebase
-// writes of any kind — the page signs in (this browser's own anonymous identity), asks who it is, and then never talks to the server
-// again: the run is the pure engine in this tab. noindex. three.js loads only once the door has opened.
-// A LOCAL emulator page that asks (`localhost` / `127.0.0.1` + `?emu` + `&preview=1` — config.js's rule for a game being built) skips the
-// door: the pass's own look + frame-rate checks (tests/integration/jaywalk-lab.mjs). Nothing else does.
+// /jaywalk-lab — THE JAYWALK LAB (H1 — docs/jaywalk.md "THE LAB"): the preview of a game BEING BUILT, on the LIVE site, on a phone, on
+// cellular. **OPEN SINCE H2B** (the owner, Nov 16: his brother tests it on his own phone from a shared link): NO owner gate, NO sign-in,
+// **ZERO server calls** — the page never loads Firebase, never calls /api: the run is the pure engine in this tab. Still noindex nofollow +
+// UNLISTED (nothing links to it), NO room, NO database writes of any kind. (Its one possible request beyond its own files: THE SKEW
+// WRAPPER asks the deploy's id if a module ever fails to link — ui/lazy-import.js, the rule for every dynamic import.)
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { TICK_MS, TICK_HZ, MODES, MODE_IDS, FP } from './tuning.js';
@@ -17,14 +16,16 @@ import { ZOOMS, ZOOM, ANGLES, ANGLE } from './camera.js';
 
 const app = document.getElementById('app');
 const Q = new URLSearchParams(location.search);
-const localOpen = () => /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && Q.has('emu') && Q.get('preview') === '1';
+// (ZERO server calls: the shared audio engine reports a cut only from the owner's phone inside the app, or on a link that says &debug=1 —
+//  the lab drops that flag from its own address before the engine is ever installed)
+if (Q.has('debug')) { try { Q.delete('debug'); history.replaceState(null, '', `${location.pathname}${Q.toString() ? `?${Q}` : ''}`); } catch { /* fine */ } }
 
-function door(who, msg) {
+/** the page could not start (a module that failed to load): say so — never a blank page */
+function cantOpen(msg) {
   app.replaceChildren(h('section.jw-deny',
     h('div.jw-lab-k', 'NEON SPEAKEASY · BEING BUILT'),
     h('h1', 'THE JAYWALK LAB'),
-    h('p', msg || 'This room is for the owner. Open it in the browser where your admin profile lives (the one with the radio).'),
-    who && who.pid ? h('p', 'This browser’s profile id: ', h('code', who.pid)) : null,
+    h('p', msg),
     h('p', h('a.jw-a', { href: '/' }, '‹ THE CITY'))));
 }
 
@@ -78,10 +79,13 @@ async function mount() {
   app.replaceChildren(h(`div.jw-stage${GRAY ? '.is-gray' : ''}`, play, GRAY ? h('div.jw-sky') : null, h('div.jw-blackout'),
     h('div.jw-hud', lanes, sub, mark), GRAY ? null : soundsBtn, tools, h('div.jw-bar', h('div.jw-tabs', ...tabs), seedBtn), end, seedLine, fps));
   const pin = /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null;   // (`?tier=0|1|2` pins a quality tier — the pass's measure)
-  const view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin });
+  let view;
+  try { view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin }); }
+  catch { app.querySelector('.jw-stage').append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); return; }   // (the page still loaded: its stage is up)
   markCamera();
   // AUTOMATIC quality steps (the match kit's tiers 2 / 1 / 0): the frame time slips → a step down; headroom → back up
-  const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); }, initial: pin == null ? 2 : pin });
+  const tierPath = [pin == null ? 2 : pin];   // (every tier the automatic steps went through — the pass's measure + ?fps=1 read it)
+  const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });
 
   // ---- the run: the pure engine, stepped at 60 ticks a second from the frame clock (the RULES never read it)
   let mode = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo', seed, course, run, log, queue = [], acc = 0, last = 0, overAt = 0, shown = false, bot = null, markUntil = 0;
@@ -145,7 +149,7 @@ async function mount() {
     }
     if (markUntil && now > markUntil) { mark.textContent = ''; markUntil = 0; }
     if (frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); }
-    if (fps && frames.length % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr}${i.tier == null ? '' : ` · tier ${i.tier}`} · tick ${run.t}`; }
+    if (fps && frames.length % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr}${i.tier == null ? '' : ` · tier ${tierPath.join('→')}`} · tick ${run.t}`; }
   }
   document.addEventListener('visibilitychange', () => { last = 0; acc = 0; });
   restart();
@@ -154,7 +158,7 @@ async function mount() {
   // (the pass's own checks — tests/integration/jaywalk-lab.mjs: the bot plays through the same input path, the frame times, the camera)
   const lab = window.__jwLab = {
     ends: [], view,
-    state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, lives: run.lives, wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, steps, slow, kidY: view.kidScreenY(), kidX: view.kidScreenX(), kidPx: view.kidHeightPx ? view.kidHeightPx() : 0, zoom, angle, gray: GRAY, tier: tiers.get(), capped: tiers.capped(), info: view.info() }),
+    state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, lives: run.lives, wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, steps, slow, kidY: view.kidScreenY(), kidX: view.kidScreenX(), kidPx: view.kidHeightPx ? view.kidHeightPx() : 0, zoom, angle, gray: GRAY, tier: tiers.get(), tierPath: tierPath.slice(), capped: tiers.capped(), info: view.info() }),
     bot(on) { bot = on ? greedyBot({ seed }) : null; },
     restart: (m, s) => restart(m || mode, s),
     setCamera, setTier: t => tiers.set(t), ready: view.ready || Promise.resolve(true),
@@ -176,17 +180,7 @@ async function mount() {
 }
 
 async function boot() {
-  try {
-    if (localOpen()) { await mount(); return; }
-    const { initFirebase, isConfigured } = await lazyImport(import('../../firebase.js'), '../../firebase.js');
-    if (!isConfigured) { door(null, 'Firebase is not configured.'); return; }
-    await initFirebase();
-    const { api } = await lazyImport(import('../../profile/api.js'), '../../profile/api.js');
-    const who = await api('admin', { action: 'whoami' });
-    if (!who.admin) { door(who); return; }
-    await mount();
-  } catch (e) {
-    door(null, `Can’t open the lab: ${(e && e.message) || e}`);
-  }
+  try { await mount(); }
+  catch (e) { cantOpen(`Can’t open the lab: ${(e && e.message) || e}`); }
 }
 boot();
