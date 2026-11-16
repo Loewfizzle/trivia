@@ -66,3 +66,19 @@ test('GROUP 2 — TAP A TICKET: the end screens through ONE builder each; the se
   assert.doesNotMatch(ended, /transaction|\/s\/\$\{pid\}`\)\.set|begin\(/, 'never a start, never a write');
   assert.match(dy, /const endTap = st === 'done' \?/, 'only a finished ticket is tappable');
 });
+
+test('GROUP 4 — the owner\'s look notes: PRISM / DROP on the roofs (the blades keep PRISM), STATS on TODAY, THE SOURCE + CANDLELIGHT bumped in the Lab, YOU reveals once', async () => {
+  const N = await import('../js/core/harbor-neon.js');
+  const prism = { id: 'prism', name: 'PRISM DROP', short: 'PRISM' };
+  assert.equal(N.signText(prism, { kind: 'named', type: 'box', cap: 6, words: 2 }), 'PRISM DROP', 'a roof sign: the full name, stacked');
+  assert.equal(N.signText(prism, { kind: 'named', type: 'vbox', cap: 6, words: 1, rot: 'hotel' }), 'PRISM', 'the hotel\'s vertical sign keeps PRISM');
+  const sv = read('js/admin/stats-view.js');
+  assert.equal((sv.match(/\{ games: 'today', players: 'today' \}/g) || []).length, 2, 'every STATS tab group opens on TODAY');
+  const { LAB_V } = await import('../js/vault/catalog.js');
+  assert.equal(LAB_V['full-card-dev-source'], 7); assert.equal(LAB_V['glow-candle'], 2);
+  const lt = read('api/_lib/lab-text.js');
+  assert.match(lt, /'glow-candle': \[\{ v: 2, at: '2026-11-15'/); assert.match(lt, /\{ v: 7, at: '2026-11-15', what: 'FIXES R2/);
+  const pf = read('js/screens/profile.js');
+  assert.match(pf, /el\.classList\.add\('pf-screen', 'pf-wait'\);/); assert.match(pf, /afterTap\(\(\) => reveal\('painted'\)\);/);
+  assert.match(read('css/board.css'), /\.pf-screen\.pf-wait \.pf-scroll \{ opacity: 0; \}/, 'the reveal = opacity only');
+});

@@ -828,3 +828,12 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   --case customize` — EVERY tab (CARD · EMBLEM · GLOW · TUBE) scrolled end to end ×3 at 390 @3, 4× CPU: 0 tile animations, GPU contexts / canvas
   pixels / memory flat, no reload. Shots: Downloads/NEON/fixes-r1/customize-*.png.
 - The owner's slim card reads **LV n** like everyone's (was DEV); ✦ PROPRIETOR ✦ lives on the full card only; the dev gem stays.
+
+### FIXES R2 — THE SOURCE (final adjustment) + CANDLELIGHT
+- **THE SOURCE** (`fx/dev-source.js#layoutOf`, full card): measured at 390 the name plate covers x ≤ 0.74, y 0.31–0.59 — the prompt
+  `> city.build({ by: 'LOEWFIZZLE' })` hid behind it. Now CENTRED over NEON in the band right under the plate (≤ 10.5 px, ~9 at a phone's card,
+  on its own dark strip) and NEON just below it in the card's right half (x 0.615–0.965, y 0.655–0.82), clear of OCT 2026 + THE SOURCE label —
+  its feet never cut. The 1 OF 1 tag as it was; the slim strip unchanged. `LAB_V` 7 + its LAB_CHANGES line; the stills rebuilt.
+- **CANDLELIGHT** (`glow-candle`, css/vault.css `.vg-candle`): the owner couldn't tell it was on at his phone size — the LETTERS are candle-gold
+  (#ffd38c) with their own steady amber halo (static: it reads in every still), the flickering copy on top brighter, never below 0.35. `LAB_V` 2.
+  Before / after: `Downloads\NEON\fixes-r2\candle-before|after\`. `plate-preview.html` takes `&glow=<id>`.

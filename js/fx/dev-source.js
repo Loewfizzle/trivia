@@ -80,7 +80,15 @@ const signOf = (wpx) => { let s = signMemo.get(wpx); if (!s) { s = signLayout([{
 const boxOf = L => { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const p of L.polys) for (const [x, y] of p.pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); } return [(x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2]; };
 
 function layoutOf(w, h, full) {
-  if (full) return { full, sign: [w * 0.49, h * 0.6, w * 0.43], cmd: [w * 0.07, h * 0.235, 10.5], fs: [5.4, 7, 9], cols: [9, 5, 3], dim: 0.62 };
+  // (FIXES R2 — the owner's final adjustment: the prompt hid behind the PROPRIETOR line. Measured on the full card (358 × 226 at 390): the
+  //  name plate covers x ≤ 0.74, y 0.31–0.59; OCT 2026 ends at x 0.61 from y 0.78; THE SOURCE starts at y 0.86. So the prompt sits CENTRED
+  //  over the NEON sign in the band right under the plate (y ≈ 0.625, ≤ 10.5 px — ~9 at a phone's card, on its own dark strip), and NEON just
+  //  below it in the card's right half (x 0.615–0.965, y 0.655–0.82) — higher than the bottom rows, its feet never cut. cmd = [left x, mid y, px])
+  if (full) {
+    const sw = w * 0.35, sx = w * 0.615, sy = h * 0.655, fs = Math.min(10.5, (w * 0.56) / (0.6 * (CMD.length + 2))), pw = 0.6 * fs * (CMD.length + 2);
+    const px = Math.max(w * 0.44, Math.min(w * 0.975 - pw, sx + sw / 2 - pw / 2));
+    return { full, sign: [sx, sy, sw], cmd: [px, h * 0.625, fs], fs: [5.4, 7, 9], cols: [9, 5, 3], dim: 0.62 };
+  }
   // (2C — the owner's FIX: NEON brought down + centred in the strip's art, right of the plate — the tier gem left the corner free)
   return { full, sign: [w * 0.705 - w * 0.125,   /* (B2 — THE HERO-SPOT RULE: NEON middle-right, clear of the dev gem) */ (h - w * 0.25 * 100 / 332) / 2, w * 0.25], cmd: null, fs: [4, 5.2, 6.6], cols: [12, 7, 3] };
 }

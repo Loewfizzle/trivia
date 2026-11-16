@@ -121,7 +121,7 @@ function timesBlock(S) {
 
 /** the blocks both places show */
 export function statsBlocks(S, o = {}) {
-  const O = { view: o.view || { games: '30', players: 'all' }, rerender: o.rerender || (() => {}), onPlayer: o.onPlayer || null };
+  const O = { view: o.view || { games: 'today', players: 'today' }, rerender: o.rerender || (() => {}), onPlayer: o.onPlayer || null };
   return [gamesBlock(S, O), playersBlock(S, O), dailyBlock(S), growthBlock(S), timesBlock(S)];
 }
 
@@ -185,7 +185,7 @@ function playersLine(S, X) {
 export function openStatsSheet({ api, openSheet }) {
   const css = document.querySelector('link[data-ad]') ? null : Object.assign(document.createElement('link'), { rel: 'stylesheet', href: '/css/admin.css' });
   if (css) { css.dataset.ad = '1'; document.head.append(css); }
-  const view = { games: '30', players: 'all' };
+  const view = { games: 'today', players: 'today' };   // (FIXES R2 — the owner: every tab group in the STATS sheet opens on TODAY)
   const body = h('div.st-body', h('p.ad-dim', 'Reading the numbers…'));
   const stamp = h('small.st-stamp');
   let X = null, busy = false;

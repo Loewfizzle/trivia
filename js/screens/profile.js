@@ -89,13 +89,19 @@ function dragScroll(sc) {
 
 export function createView({ onBack = null, overlay = false } = {}) {
   const els = {};
-  let data = null, destroyed = false;
+  let data = null, destroyed = false, rootEl = null, revealT = 0;
+  const REVEAL_MAX_MS = 1500;
 
   function mount(el) {
     // (HOTFIX after THE SPEED PASS — the owner's live iPhone: the YOU page was UNSTYLED for a non-Gilded card — css/progress.css + vault.css
     //  loaded only through memberCard(), which paintHero skips for a full card. The page loads its sheets itself, before anything paints)
     pgSheet();
-    el.classList.add('pf-screen');
+    rootEl = el;
+    el.classList.add('pf-screen', 'pf-wait');
+    // (FIXES R2 — THE YOU SCREEN LOADED MESSY: the card came up, then the blocks under it popped in + pushed it all around. Now the page is
+    //  laid out unseen and REVEALS ONCE, in a single fade (opacity only), when the server's answer has painted every block — or after
+    //  REVEAL_MAX_MS whatever came (a slow / closed office). css/progress.css .pf-wait)
+    revealT = setTimeout(() => reveal('the safety'), REVEAL_MAX_MS);
     // (CITY A — the add-on, Nov 14 7:56 pm: EVERY .btn on the profile screen (the YOU page + the room's overlay) acts on its own press + lift —
     //  ui/tapwatch.js#PRESS_IMPLICIT; the copy / share buttons keep Safari's own click: data-act copy / share)
     el.dataset.pressAll = '';
@@ -275,6 +281,12 @@ export function createView({ onBack = null, overlay = false } = {}) {
     } finally { if (btn) btn.classList.remove('is-busy'); }
   }
 
+  function reveal(why) {
+    clearTimeout(revealT); revealT = 0;
+    if (destroyed || !rootEl || !rootEl.classList.contains('pf-wait')) return;
+    // (two frames: whatever the paint just appended is laid out before the fade starts)
+    requestAnimationFrame(() => requestAnimationFrame(() => { if (destroyed || !rootEl) return; rootEl.classList.remove('pf-wait'); rootEl.dataset.revealed = why; }));
+  }
   async function load() {
     try {
       data = await fetchMe();
@@ -291,9 +303,11 @@ export function createView({ onBack = null, overlay = false } = {}) {
       els.foot.replaceChildren(
         h('span', `MEMBER SINCE ${since(data)}`),
         h('button.pf-pid', { type: 'button', title: 'Your profile id (for the admin page)', onclick: () => { navigator.clipboard && navigator.clipboard.writeText(data.pid).then(() => toast('PROFILE ID COPIED', 'ok')).catch(() => {}); } }, `ID ${data.pid}`));
+      afterTap(() => reveal('painted'));   // (the card's own paint waits for a lifted finger too — THE TAP WATCH)
     } catch (e) {
       if (destroyed) return;
       if (els.card.querySelector('.pf-card-blank') && !fullMounted && paintN === 0) paintHero(null, 0, null, null);   // (the office closed: the card we have)
+      reveal('the office closed');
       els.prog.replaceChildren(h('div.pf-loading.is-off', e.status === 404 ? 'Finish a match and your membership is made — automatically, no signup.' : 'The membership office is closed right now — your games still count and land here when it opens.'));
     }
   }
@@ -430,6 +444,6 @@ export function createView({ onBack = null, overlay = false } = {}) {
   return {
     mount,
     update() {},
-    unmount() { destroyed = true; if (fullMounted) { fullMounted.destroy(); fullMounted = null; } document.body.classList.remove('pf-on'); closeAllPfSheets(); },
+    unmount() { destroyed = true; clearTimeout(revealT); if (fullMounted) { fullMounted.destroy(); fullMounted = null; } document.body.classList.remove('pf-on'); closeAllPfSheets(); },
   };
 }

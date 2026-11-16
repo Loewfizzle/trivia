@@ -472,3 +472,7 @@ html body .music-btn.bd-music { top: calc(var(--safe-t) + 12px) !important; righ
 .pk-or { display: flex; align-items: center; gap: 10px; margin: 6px 0 0; font: 800 10px/1 var(--font-display); letter-spacing: 0.22em; color: rgba(226, 232, 255, 0.66); }
 .pk-or::before, .pk-or::after { content: ''; flex: 1; height: 1px; background: rgba(255, 255, 255, 0.16); }
 .pf-kb-none { gap: 8px; }
+/* FIXES R2 — THE YOU SCREEN REVEALS ONCE (js/screens/profile.js#reveal): laid out unseen until its blocks are painted, then ONE fade — opacity only */
+.pf-screen .pf-scroll { transition: opacity 0.28s ease-out; }
+.pf-screen.pf-wait .pf-scroll { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .pf-screen .pf-scroll { transition: none; } }

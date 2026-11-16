@@ -933,6 +933,9 @@ export function signRoster(games, { jaywalk = true } = {}) {
 /** the owner's call (Nov 15): these names are ALWAYS two stacked words on every neon sign — never one line — where the spot takes two (a roof
  *  sign) or allows a split (`split` — the vertical blades) */
 export const SIGN_SPLIT = Object.freeze({ jaywalk: ['JAY', 'WALK'], overclock: ['OVER', 'CLOCK'] });
+/** FIXES R2 (the owner, Nov 15): a ROOF sign (a 'box' spot taking two words) spells PRISM's FULL name, stacked — PRISM / DROP, like JAY / WALK;
+ *  a vertical blade (the hotel's, the speakeasy's) keeps the one word PRISM */
+export const SIGN_STACK = Object.freeze({ prism: ['PRISM', 'DROP'] });
 /**
  * CITY B: the text a spot spells for a game (its words joined by ' ') — null when it fits nowhere there. A vertical blade (a 'vbox') drops the
  * apostrophe (it can't stand in a column: HOLD'EM → HOLDEM); a name whose single word is too long stacks as its SIGN_SPLIT words where the
@@ -946,6 +949,8 @@ export function signText(g, sp) {
     if (sp.type === 'vbox' && sw.join('').length > (sp.cap || 99) + 1) return null;
     return fitsSpot(sw.join(' '), { ...sp, words: Math.max(sp.words || 1, sp.split || 1) }) ? sw.join(' ') : null;
   }
+  const st = SIGN_STACK[g.id];
+  if (st && sp.type === 'box' && (sp.words || 1) >= 2 && fitsSpot(st.join(' '), sp)) return st.join(' ');
   let t = String(g.short || g.name || '').trim();
   if (sp.type === 'vbox') t = t.replace(/['’]/g, '');
   return fitsSpot(t, sp) ? t : null;

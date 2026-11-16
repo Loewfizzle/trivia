@@ -49,7 +49,7 @@ const timeOf = at => { try { return new Date(at).toLocaleTimeString('en-US', { h
 // (FOUNDING MEMBER's own gold stamp is its badge). tests/integration/harbor-e2e/vault.mjs proves no overlap at 390 / 402 / 430.
 export const BADGE = Object.freeze({
   'card-dev-switchboard': { slot: 'top', moving: [[0.065, 0.185, 0.15, 0.115], [0.24, 0.215, 0.33, 0.06], [0.66, 0.205, 0.25, 0.095], [0.05, 0.39, 0.9, 0.52]] },
-  'card-dev-source': { slot: 'top', moving: [[0.49, 0.6, 0.43, 0.21], [0.07, 0.2, 0.62, 0.075]] },
+  'card-dev-source': { slot: 'top', moving: [[0.615, 0.655, 0.35, 0.17], [0.44, 0.59, 0.54, 0.07]] },   // (FIXES R2: the prompt over NEON, NEON in the right half)
   'card-founder': { slot: 'stamp', moving: [[0.362, 0.205, 0.276, 0.2], [0.41, 0.6, 0.14, 0.22]] },
   'card-house': { slot: 'pill', moving: [[0.47, 0.14, 0.47, 0.75]] },
   'card-sg-ufo': { slot: 'pill', moving: [[0.3, 0.16, 0.4, 0.4]] },

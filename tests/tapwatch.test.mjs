@@ -140,7 +140,7 @@ test('CITY A — the add-on (Nov 14 7:56 pm): every .btn-block tube + every .btn
   assert.match(T, /export const PRESS_IMPLICIT = '\.btn\.btn-block, \[data-press-all\] \.btn, \.icon-btn, \.menu-btn, \.music-btn';/);
   for (const k of ['[data-gesture]', '[data-act="copy"]', '[data-act="share"]', '[type="submit"]', '[data-press-tap]', '[data-tap-own]']) assert.ok(T.includes(k), `never on ${k}`);
   assert.match(T, /\(!game && el\.matches\(PRESS_IMPLICIT\)\)/, 'off while a game runs (its own pointer events) — only an explicit data-press there');
-  assert.match(rd('js/screens/profile.js'), /el\.classList\.add\('pf-screen'\);[\s\S]{0,400}el\.dataset\.pressAll = '';/, 'the YOU page + the room overlay');
+  assert.match(rd('js/screens/profile.js'), /el\.classList\.add\('pf-screen'(, 'pf-wait')?\);[\s\S]{0,800}el\.dataset\.pressAll = '';/, 'the YOU page + the room overlay');
   // the share sheets, the passkeys: Safari's real gesture
   for (const [f, re] of [['js/screens/daily.js', /cls: 'dy-share', attrs: \{ 'data-gesture': true \}/], ['js/daily/share.js', /cls: 'shr-go', attrs: \{ 'data-gesture': true \}/],
     ['js/daily/end.js', /-share`, attrs: \{ 'data-gesture': true \}/], ['js/ui/final.js', /final-share', \{ type: 'button', 'data-gesture': true/],

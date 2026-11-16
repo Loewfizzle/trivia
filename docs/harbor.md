@@ -495,6 +495,10 @@ activation 2 s, the offline reads 0.8 s) — Safari's storage can stop answering
   reloaded by hand → the report, once) + `server.test` "old browsers" + `tests/boot-watchdog.test.mjs` (every inline script PARSES — a newline
   slipped into one of its strings during this pass, caught).
 
+**PRISM / DROP ON THE ROOFS (FIXES R2, the owner Nov 15):** a ROOF sign (a 'box' spot taking two words) spells PRISM's full name stacked —
+PRISM / DROP, like JAY / WALK (`core/harbor-neon.js#SIGN_STACK` in `signText`); the vertical blades (the hotel's — the owner's call — and the
+speakeasy's weekly game) keep the one word PRISM; the billboard as it was. Shots: `Downloads\NEON\fixes-r2\signs\` (night Nov 30, day Dec 2).
+
 **AWAY, LIGHT (FIXES R2, Nov 15 — the owner's iPhone: PAGE KILLED (likely memory) while away in Messages after SHARE TODAY):** while the page
 is HIDDEN the city keeps none of its big bakes — at the hide (synchronously: iOS may freeze timers right after) the last frame as seen is kept
 as ONE picture at half resolution, then both bakers (`bake.js#free` — both sets, the plan kept), the merged bands, the main canvas, the sky +

@@ -984,3 +984,9 @@ within `DRAG_MS` (3 s — a pointer the browser cancelled for a scroll, or one p
   → the room. Proof: `tests/integration/room-board.mjs` (21 checks at 390 / 402 / 430).
 - **PICK A GAME** (the room's GAMES sheet) wears each game's NEON MARK — `ui/mark-svg.js`, the PLAY sheet's own builder (ONE builder, its own
   file: THE STALE-MODULE RULE) — never the poster tile; the tagline + the one-line description kept.
+
+### FIXES R2 — THE OWNER'S LOOK NOTES
+- **STATS** (the ☰ sheet, `admin/stats-view.js`): every tab group opens on TODAY (/admin's own page keeps its 30 days / all time).
+- **THE YOU SCREEN REVEALS ONCE** (`screens/profile.js#reveal`): laid out unseen (`.pf-wait` — the scroll at opacity 0) until the server's answer
+  has painted every block (after a lifted finger — afterTap), then ONE 0.28 s fade (opacity only; reduced motion: a cut); a 1.5 s safety. Measured
+  (`tests/integration/you-open.mjs`, 390 @3): CLS on screen **0.46 → 0**, shown ~0.2–0.3 s after the tap, no block moving after it shows.

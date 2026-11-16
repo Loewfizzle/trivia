@@ -28,7 +28,7 @@ test('THE HERO-SPOT RULE: every declared hero centred middle → middle-right, n
   const { LAB_V } = await import('../js/vault/catalog.js'), txt = read('api/_lib/lab-text.js');
   for (const id of ['card-camo', 'card-century', 'card-sg-tr3b', 'card-prism', 'card-emerald', 'card-sg-ufo', 'card-marquee', 'card-dev-source', 'card-dev-switchboard', 'full-card-dev-switchboard', 'full-card-dev-source']) {
     assert.ok(LAB_V[id] >= 2, `${id} bumped`);
-    assert.match(txt, new RegExp(`'${id}': \\[[^\\n]*v: ${LAB_V[id]}, at: '2026-11-05'`), `${id}: its CHANGED line`);
+    assert.match(txt, new RegExp(`'${id}': \\[[^\\n]*v: ${LAB_V[id]}, at: '2026-11-\\d\\d'`), `${id}: its CHANGED line`);   // (FIXES R2: a later pass's bump carries its own date)
   }
 });
 
