@@ -148,7 +148,37 @@ async function looksH3(p) {
   await L("window.__jwLab.restart('solo')");
 }
 
+// ---- H4's shots (ZOOM 8 STRAIGHT): THE WATER (calm night water) + THE LOG ENDS (plain pale wood), THE TAXI (yellow, its roof light), THE
+// FLATTENED KID (flat on his back, his cap on top)
+async function looksH4(p) {
+  if (!OUT) return;
+  const L = js => p.evaluate(js);
+  await L("window.__jwLab.bot(false); window.__jwLab.restart('solo', 'look3'); window.__jwLab.setCamera(8, 'straight', true)"); await sleep(400);
+  let i = await p.evaluate(() => { const J = window.__jwLab; for (let l = 14; l < 400; l++) if (J.lane(l).type === 'water' && J.lane(l + 1).type === 'water' && J.lane(l - 1).type === 'grass') return l; return J.find('water', 14); });
+  await p.evaluate(l => window.__jwLab.warp(l - 1), i); await sleep(1100); await shot(p, 'h4-water-logs.png');
+  await sleep(1700); await shot(p, 'h4-water-logs-b.png');
+  i = await p.evaluate(() => { const J = window.__jwLab; for (let l = 205; l < 400; l++) if (J.lane(l).type === 'water' && J.lane(l + 1).type === 'water' && J.lane(l - 1).type === 'grass') return l; return J.find('water', 205); });
+  await p.evaluate(l => window.__jwLab.warp(l - 1), i); await sleep(1100); await shot(p, 'h4-water-logs-lane200.png');
+  // THE TAXI: a kid on the grass under a road lane with a taxi on it — the taxi near the middle of the screen
+  await L("window.__jwLab.restart('solo', 'look3')");
+  i = await p.evaluate(() => { const J = window.__jwLab; for (let l = 20; l < 400; l++) if (J.lane(l).type === 'road' && J.lane(l - 1).type === 'grass' && J.items(l).items.some(q => q.what === 'taxi')) return l; return -1; });
+  ok(i > 0, `a road lane with THE TAXI over a grass lane (lane ${i})`);
+  await p.evaluate(l => window.__jwLab.warp(l - 1), i);
+  await waitFor(p, `window.__jwLab.items(${i}).items.some(c => c.what === 'taxi' && c.left > 3.2 && c.left < 5.2)`, 25000);
+  await shot(p, 'h4-taxi.png');
+  // THE FLATTENED KID: he stands on a road lane until a car comes
+  await L("window.__jwLab.restart('solo', 'look3')");
+  i = await p.evaluate(() => window.__jwLab.find('road', 20));
+  await p.evaluate(l => window.__jwLab.warp(l, { safe: false }), i);
+  ok(await waitFor(p, "window.__jwLab.state().over && window.__jwLab.state().cause === 'car'", 20000), 'a car gets a kid who stands on the road — ONE LIFE: out');
+  await L("document.querySelector('.jw-end').style.visibility = 'hidden'");
+  await sleep(260); await shot(p, 'h4-flat-kid.png');
+  await sleep(700); await shot(p, 'h4-flat-kid-b.png');
+  await L("document.querySelector('.jw-end').style.visibility = ''; window.__jwLab.restart('solo')");
+}
+
 try {
+  if (argv.includes('--h4')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH4(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   if (argv.includes('--h3')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH3(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   if (LOOK) { const o = await open(390, 844, 3, '&preview=1&seed=look3&fps=1'); await up(o.p); await sleep(600); await looks(o.p); await looksH3(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   // ---- 1. THE LAB IS OPEN (H2B): a stranger — a fresh browser, a plain link — gets the lab; ZERO server calls

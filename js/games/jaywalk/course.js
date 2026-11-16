@@ -4,7 +4,7 @@
 import { hashString, rngFrom } from '../../core/rng.js';
 import {
   FP, COLS, WIDTH, MID_COL, CALM_LANES, STRETCH, landmarkAt, heatAt, byHeat, MIX, FIRST, WATER_RUN_MAX, ROAD, WATER, RAIL, FLIGHT, UFO, GRASS,
-  KID_HALF, LOG_GRACE, ONE_UP_FROM, ONE_UP_CHANCE,
+  KID_HALF, LOG_GRACE,
 } from './tuning.js';
 
 const ri = (rand, a, b) => (b <= a ? a : a + Math.floor(rand() * (b - a + 1)));   // inclusive
@@ -60,15 +60,6 @@ export function typeAt(seed, i, sp = specials(seed, Math.floor(i / STRETCH))) {
   return t;
 }
 
-/** THE ONE-UP's lane in a stretch (−1 = none) — only when the switch is on; the first grass lane at / after its seeded spot */
-export function oneUpLane(seed, s) {
-  const rand = rngFrom(hashString(`${seed}:u${s}`)), base = s * STRETCH;
-  const pick = Math.floor(rand() * 1000), at = base + ri(rand, 5, 40), col = ri(rand, 0, COLS - 1);
-  if (pick >= ONE_UP_CHANCE || at < ONE_UP_FROM) return { lane: -1, col: -1 };
-  for (let i = at; i < at + 6; i++) if (i % STRETCH !== 0 && typeAt(seed, i) === 'grass') return { lane: i, col };
-  return { lane: -1, col: -1 };
-}
-
 /** movers (cars / logs): items laid out round ONE LAP of the lane (`period`, FP) — an item's left edge at a tick = mod(off + dir·v·tick, period) − pad */
 function layMovers(rand, { v, n, lenOf, gapOf, pad }) {
   const items = [], min = WIDTH + pad + 500;
@@ -79,11 +70,11 @@ function layMovers(rand, { v, n, lenOf, gapOf, pad }) {
 
 /**
  * ONE LANE — pure by (seed, lane index): { i, type, heat, mark (its landmark's name | null), ufo (THE UFO whose beam can reach it | null),
- *   grass:  obs [9 × 0 | 1], oneUp (its column | −1)
+ *   grass:  obs [9 × 0 | 1]
  *   road / water:  dir, v, period, pad, items [{ off, len }]   (cars · logs)
  *   rail / flight: pulse { period, phase, tell, pass, len, v, dir (+ band, n: the flight path's lanes share ONE pulse) } }
  */
-export function buildLane(seed, i, o = {}) {
+export function buildLane(seed, i) {
   const s = Math.floor(i / STRETCH), sp = specials(seed, s), type = typeAt(seed, i, sp), heat = heatAt(i);
   const rand = laneRand(seed, i); rand();   // (the first draw was the raw kind)
   const lane = { i, type, heat, mark: landmarkAt(i), ufo: ufoReach(sp.ufo, i) ? sp.ufo : null };
@@ -95,8 +86,7 @@ export function buildLane(seed, i, o = {}) {
       let n = ri(rand, clamp(byHeat(GRASS.obstacles[0][0], GRASS.obstacles[1][0], heat), 0, 3), clamp(byHeat(GRASS.obstacles[0][1], GRASS.obstacles[1][1], heat), 0, 6));
       while (n-- > 0) { const c = ri(rand, 0, COLS - 2); obs[c >= MID_COL ? c + 1 : c] = 1; }   // (never the centre column)
     }
-    lane.obs = obs; lane.oneUp = -1;
-    if (o.oneUp) { const u = oneUpLane(seed, s); if (u.lane === i) { lane.oneUp = u.col; obs[u.col] = 0; } }
+    lane.obs = obs;
   } else if (type === 'road') {
     const dir = rand() < 0.5 ? 1 : -1;
     const v = clamp(ri(rand, byHeat(ROAD.vMin[0], ROAD.vMin[1], heat), byHeat(ROAD.vMax[0], ROAD.vMax[1], heat)), 16, 130);
@@ -169,42 +159,19 @@ export function carNear(lane, tick, x, reach) {
   return -1;
 }
 
-/** a SAFE lane for a respawn: plain ground no beam can reach */
-export const isSafeLane = lane => lane.type === 'grass' && !lane.ufo;
-/** the free column nearest to `col` on a grass lane (the centre column is always free) */
-export function freeCol(lane, col) {
-  const c = clamp(col, 0, COLS - 1);
-  if (lane.type !== 'grass' || !lane.obs[c]) return c;
-  for (let d = 1; d < COLS; d++) {
-    const a = c < MID_COL ? c + d : c - d, b = c < MID_COL ? c - d : c + d;   // (toward the centre first)
-    if (a >= 0 && a < COLS && !lane.obs[a]) return a;
-    if (b >= 0 && b < COLS && !lane.obs[b]) return b;
-  }
-  return MID_COL;
-}
-
 /** THE COURSE of one seed: lane(i) built on demand + kept (a few hundred at most) — the same lanes whatever the order asked */
 export function createCourse(seed, o = {}) {
-  const key = String(seed), oneUp = !!o.oneUp, lanes = new Map(), keep = o.keep || 700;
+  const key = String(seed), lanes = new Map(), keep = o.keep || 700;
   return {
-    seed: key, oneUp,
+    seed: key,
     lane(i) {
       let L = lanes.get(i);
       if (!L) {
-        L = buildLane(key, i, { oneUp });
+        L = buildLane(key, i);
         lanes.set(i, L);
         if (lanes.size > keep) lanes.delete(lanes.keys().next().value);
       }
       return L;
-    },
-    /** the nearest SAFE lane to `from`, never under `lo` (a tie → the one behind: a respawn gives no free lane) */
-    safeLane(from, lo) {
-      const f = from < lo ? lo : from;
-      for (let d = 0; d < 400; d++) {
-        if (f - d >= lo && isSafeLane(this.lane(f - d))) return f - d;
-        if (d && isSafeLane(this.lane(f + d))) return f + d;
-      }
-      return f;
     },
   };
 }

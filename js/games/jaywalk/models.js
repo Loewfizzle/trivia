@@ -170,10 +170,10 @@ export function buildLog(len) {
     trunk(u0, a0, k); trunk(u1, a0, k); trunk(u1, a1, k);
     trunk(u0, a0, k); trunk(u1, a1, k); trunk(u0, a1, k);
   }
-  // THE CUT ENDS: pale wood, tree rings (a darker heart, light / tan bands, the bark's edge) — round discs on the slanted saw cut
-  const RINGS = [[0, 0.2, 0xb98a55], [0.2, 0.42, 0xf3dcae], [0.42, 0.56, 0xcfa56c], [0.56, 0.78, 0xf3dcae], [0.78, 0.88, 0xd4ab73], [0.88, 1, 0x6a4326]];
+  // THE CUT ENDS (H4): plain pale wood, subtle rings (three thin ones a shade darker, the bark's thin edge) — round discs on the slanted saw cut
+  const RINGS = [[0, 0.1, 0xdcc394], [0.1, 0.34, 0xe9d3a6], [0.34, 0.39, 0xdcc394], [0.39, 0.62, 0xe9d3a6], [0.62, 0.67, 0xdcc394], [0.67, 0.93, 0xe9d3a6], [0.93, 1, 0xa87c50]];   // (H4 — the owner: PLAIN PALE WOOD, the rings only a shade darker + thin — the banded ends read as a shell)
   for (const side of [-1, 1]) {
-    const end = (q, a, hex) => put(side * (L / 2 - SL * q * R * Math.sin(a)), q * R * Math.sin(a), q * R * Math.cos(a), side, SL, 0, hex, 1.3);
+    const end = (q, a, hex) => put(side * (L / 2 - SL * q * R * Math.sin(a)), q * R * Math.sin(a), q * R * Math.cos(a), side * 0.12, 1, 0.42, hex, 0.74);   // (H4: the cut faces look UP at the key light — plain pale wood on both ends, never the pink rim light's sheen)
     for (const [q0, q1, hex] of RINGS) for (let j = 0; j < nc; j++) {
       const a0 = A0 + (A1 - A0) * j / nc, a1 = A0 + (A1 - A0) * (j + 1) / nc;
       if (side < 0) { end(q0, a0, hex); end(q1, a0, hex); end(q1, a1, hex); end(q0, a0, hex); end(q1, a1, hex); end(q0, a1, hex); }

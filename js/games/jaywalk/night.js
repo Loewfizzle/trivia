@@ -5,6 +5,8 @@
 //   · LOGS built in code (H3: each its own length, half-sunk, a waterline ring; the amber only a thin underglow + a soft light on the water) · TRAINS: Kenney's front + carriages, lit windows, a headlight
 //     beam, the red signals + a warning glow on the side it comes from · TREES built in code, Kenney's props, the lamps' warm pools
 //   · THE BLACKOUT (the wall): the lights die lane by lane from below, a cold edge where it bites
+//   · THE GHOSTS (H4 — a match): the other players' kids, SEE-THROUGH in their own colours — each one's run is their hop log through
+//     the same engine (the view steps it; this file only draws it), never colliding; `ghost.tag` = where its name tag goes on screen
 //   · THE JAYWALKER (models.js#buildKid) + THE HOP's feel + the hits, one per cause — ALL DERIVED FROM THE RUN's STATE between ticks
 //     (the rules never read the frame clock; a refresh / a replay draws the same kid)
 //   · THE CAMERA (H2B — camera.js, shared with the graybox): ZOOM 7 · 8 · 9 columns across, the sideways follow, the slight TURN; the
@@ -12,15 +14,17 @@
 // Everything that repeats is INSTANCED; a window of lanes round the kid is alive (re-laid every frame — a few hundred matrices); no
 // post-processing below the top tier (THE HALF-RES BLOOM: tier 2 only). setTier(2 | 1 | 0): the match kit's tiers (games/kit/tiers.js).
 import * as THREE from 'three';
-import { FP, COLS, HOP_TICKS, DOWN_TICKS } from './tuning.js';
+import { FP, COLS, HOP_TICKS } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod } from './course.js';
 import { loadKenney, SCENE_MODELS, buildKid, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade, buildDart } from './models.js';
 import { FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, createBloom } from './night-fx.js';
 import { CAM, createCamera } from './camera.js';
+import { ctx2d } from '../../ui/canvas-safe.js';
 import { hsh, strSeed, vehicleOf } from './causes.js';   // (H3: which vehicle a car IS — the end screen's cause line names the same one)
 
 const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;   // (the most lanes alive: 36 — a closer zoom lays fewer ahead)
 const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff];   // (a car's body tint + its trail: pink · cyan · violet · coral · blue)
+const TAXI_HEX = 0xffc81a;   // (H4 — THE TAXI: cab yellow, never a neon tint)
 const DPR_AT = [1.5, 2, 3];
 // THE LAMPS (H2B add-on — CAR LIGHTS): where each vehicle's two headlights / two tail lights sit — [half their spacing across the lane,
 // their height] on the model as the scene draws it. BOTH cast: a SHORT SOFT beam ahead (gone within HEAD_REACH cells) + a small red glow
@@ -130,6 +134,10 @@ export function createNight(host, o = {}) {
   const kidMat = paintMaterial(glossy(0.42, 0.7), { rim: true }), capMat = paintMaterial(glossy(0.36, 0.8), { rim: true });
   const kid = new THREE.Mesh(kidGeo.body, kidMat), kidCap = new THREE.Mesh(kidGeo.cap, capMat);
   scene.add(kid, kidCap);
+  // THE GHOSTS (H4): the same kid, instanced, see-through — two draw calls for every ghost in the match
+  const ghostMat = () => { const m = paintMaterial(glossy(0.5, 0.35), { instanced: true }); m.transparent = true; m.opacity = 0.46; return m; };
+  K.ghosts = kind(kidGeo.body, ghostMat(), 8, { aux: ['aLit', 1], order: 4 });
+  K.ghostCaps = kind(kidGeo.cap, ghostMat(), 8, { aux: ['aLit', 1], order: 4 });
   // HE ALWAYS STANDS OUT (H2B): his colour → the hoodie + the cap, a rim light of his own (his colour pulled toward white), the glow ring under him
   const rimCol = new THREE.Color();
   let kidHex = 0xff3fb4;
@@ -210,7 +218,7 @@ export function createNight(host, o = {}) {
   const PROP_S = { 'bush-planter': 2.1, 'traffic-cone': 6.2, 'trash-dumpster': 2.5, 'street-lamp': 2.7 };
 
   // ---- the kid's feel + the hits: derived from the run between frames (never from the rules' clock)
-  const fx = { t: -1, st: 'idle', hits: 0, y: 0, yaw: Math.PI, landAt: -1e9, landOn: '', hit: null, parts: [], wob: null, shake: 0, seen: false, out: 0 };
+  const fx = { t: -1, st: 'idle', hits: 0, y: 0, yaw: Math.PI, landAt: -1e9, landOn: '', hit: null, parts: [], wob: null, shake: 0, seen: false, out: 0, endT: -1, after: 0 };
   let clock = 0, kidH = 0;
   const part = (kindOf, x, y, z, life, a = {}) => { if (fx.parts.length < 60) fx.parts.push({ k: kindOf, x, y, z, t0: clock, life, ...a }); };
   function splash(x, z, hex = 0x9fe8ff) {
@@ -219,12 +227,15 @@ export function createNight(host, o = {}) {
     if (!reduce) for (let j = 0; j < 9; j++) { const a = j / 9 * Math.PI * 2; part('drop', x, 0.1, z, 520, { hex: 0xd8f6ff, vx: Math.cos(a) * (0.9 + (j % 3) * 0.35), vz: Math.sin(a) * 0.7, vy: 3.2 + (j % 4) * 0.5 }); }
   }
 
-  /** one frame: the run after its last tick, `a` (0 … 1) into the next one, `dt` ms since the last frame */
-  function draw(run, course, a, dt) {
+  /** one frame: the run after its last tick, `a` (0 … 1) into the next one, `dt` ms since the last frame. `o.ghosts` (H4 — a match):
+   *  [{ run, hex, out? }] — the other players' runs; each gets `tag` = [x, y] on the screen (CSS px) or null (off screen / gone) */
+  function draw(run, course, a, dt, o = null) {
     clock += dt;
     if (reveal !== revealT) { reveal = reduce ? revealT : reveal + (revealT - reveal) * Math.min(1, dt / 130); if (Math.abs(revealT - reveal) < 0.004) reveal = revealT; }
     if (course !== courseRef) { courseRef = course; vseed = strSeed(course.seed); decor.clear(); }
-    const t = run.t + a, lane = course.lane(run.y);
+    // (H4: THE WORLD GOES ON after a hit — the run's own tick stops at the hit, the cars + logs drive on: the car rolls OFF the flat kid)
+    if (run.st === 'out') { if (fx.endT !== run.end) { fx.endT = run.end; fx.after = 0; } fx.after += dt * 0.06; } else { fx.endT = -1; fx.after = 0; }
+    const t = run.t + a + fx.after, lane = course.lane(run.y);
     if (run.t < fx.t || (run.t === 0 && fx.t !== 0)) { fx.hits = 0; fx.hit = null; fx.parts.length = 0; fx.yaw = Math.PI; fx.landAt = -1e9; fx.wob = null; fx.seen = false; fx.st = 'idle'; fx.out = 0; }
     // ---- the kid between ticks
     let kx = run.x / FP, ky = run.y + 0.5, lift = 0, f = 0, hopDir = '';
@@ -247,7 +258,7 @@ export function createNight(host, o = {}) {
       fx.shake = reduce ? 0 : clock + 240;
       if (run.cause === 'water') splash(X(kx), Z(run.y + 0.5));
     }
-    if (run.st !== 'down' && run.st !== 'out') { if (fx.hit && run.st !== 'taken') fx.hit = null; }
+    if (run.st !== 'out') { if (fx.hit && run.st !== 'taken') fx.hit = null; }
     fx.t = run.t; fx.st = run.st; fx.hits = run.hits; fx.fy = run.fy; fx.fx = run.fx;
     if (run.t > 0 || run.st === 'hop') fx.seen = true;
 
@@ -267,15 +278,20 @@ export function createNight(host, o = {}) {
     let dy = yawT - fx.yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
     fx.yaw += dy * (reduce ? 1 : 1 - Math.exp(-dt / 55));
     const sxz = 1 / Math.sqrt(sy);
-    let px = X(kx), py = feet + lift, pz = Z(ky), lit = 1, show = !(run.blink && (run.blink >> 2) % 2), capOff = null, rx = tilt, rz = 0, ry = fx.yaw, s3 = [sxz, sy, sxz];
+    let px = X(kx), py = feet + lift, pz = Z(ky), lit = 1, show = true, capOff = null, flat = null, taken = 0, rx = tilt, rz = 0, ry = fx.yaw, s3 = [sxz, sy, sxz];
     // THE HITS, one per cause
     const H = fx.hit;
-    if (H && (run.st === 'down' || run.st === 'out')) {
+    if (H && run.st === 'out') {
       const e = clock - H.t0, u = clamp01(e / 600);
       px = X(H.x); pz = Z(H.y); py = 0; rx = 0; show = true;
-      if (H.cause === 'car') {                                   // flattened + the cap spins off
-        s3 = [1.4, 0.13, 1.4];
-        capOff = { x: 0.6 * u * H.dir, y: 1.5 * Math.sin(u * Math.PI) - 0.74 * u, r: e * 0.022 * (u < 1 ? 1 : 0) + (u >= 1 ? 2.1 : 0), tip: u >= 1 ? 0 : 0.5 };
+      if (H.cause === 'car') {
+        // THE FLATTENED KID (H4 — the owner: a funny cartoon flat kid, never a smear): he lies FLAT ON HIS BACK like a paper doll — a
+        // PANCAKE half as wide again as he stood: face up (his two big eyes to the sky), arms + legs + sneakers splayed, his head up the
+        // screen — a quick squash + one small bounce; HIS CAP pops up, spins and lands back ON TOP of him (on his belly — his face shows)
+        const sq = clamp01(e / 90), bounce = reduce ? 0 : Math.exp(-e / 160) * Math.sin(e / 38) * 0.1 * sq;
+        flat = { thin: 1 - 0.9 * sq + bounce, wide: 1 + 0.5 * sq - bounce * 0.6 };   // (a PANCAKE: half as wide again, a tenth as thick)
+        const cu = reduce ? 1 : clamp01(e / 520);
+        capOff = { flat: true, y: 1.15 * Math.sin(cu * Math.PI), r: cu < 1 ? e * 0.02 : 0.5, tip: cu < 1 ? 0.5 * Math.sin(cu * Math.PI) : 0 };
       } else if (H.cause === 'water' || H.cause === 'edge') {    // (the edge: carried off on the log a moment more, then the splash) + the sink
         const carry = H.cause === 'edge' ? clamp01(e / 260) : 1, sink = clamp01((e - (H.cause === 'edge' ? 260 : 0)) / 380);
         if (H.cause === 'edge') { px += H.dir * 0.9 * carry; if (!H.wet && carry >= 1) { H.wet = 1; splash(px, pz); } py = LOG_FEET * (1 - sink); }
@@ -292,22 +308,32 @@ export function createNight(host, o = {}) {
         const v = clamp01(e / 650); py = v * 6; ry = fx.yaw + e * 0.012; s3 = [1 - v * 0.6, 1 - v * 0.6, 1 - v * 0.6];
         if (v >= 1) show = false;
       }
-    } else if (run.st === 'taken') { fx.out += dt; py = Math.min(16, fx.out * 0.007); ry = fx.yaw + fx.out * 0.008; }
+    } else if (run.st === 'taken') { fx.out += dt; py = Math.min(16, fx.out * 0.007); ry = fx.yaw + fx.out * 0.008; taken = Math.min(1, fx.out / 300); }   // (THE MOTHERSHIP — a PLACEHOLDER until H6: its green beam takes the kid up)
     // the blackout on him
     const wallE = run.wall / FP, darkOf = i => clamp01(wallE - i), litOf = i => 1 - 0.96 * darkOf(i);
     lit *= litOf(Math.floor(ky));
     kid.visible = show;
-    kid.position.set(px, py, pz); kid.rotation.set(rx, ry, rz, 'YXZ'); kid.scale.set(s3[0] * KID_S, s3[1] * KID_S, s3[2] * KID_S);
+    if (flat) {
+      // (flat on his back: rx = 90° lays him down, ry = 180° puts his head up the screen + his face to the sky; his local z = his thickness)
+      const F = 0.8 * KID_S, lie = clamp01((clock - H.t0) / 70), len = 0.98 * flat.wide * F;
+      kid.position.set(px, 0.075, pz + len * 0.46 * lie); kid.rotation.set(Math.PI / 2 * lie, Math.PI, 0, 'YXZ'); kid.scale.set(flat.wide * F, flat.wide * F, flat.thin * F);
+      s3 = [0, 0.14, 0];
+    } else {
+      kid.position.set(px, py, pz); kid.rotation.set(rx, ry, rz, 'YXZ'); kid.scale.set(s3[0] * KID_S, s3[1] * KID_S, s3[2] * KID_S);
+    }
     kidMat.userData.u.uLit.value = capMat.userData.u.uLit.value = lit;
     kidMat.userData.u.uRim.value.copy(rimCol).multiplyScalar(0.5 * lit); capMat.userData.u.uRim.value.copy(kidMat.userData.u.uRim.value);
-    if (capOff) { kidCap.position.set(px + capOff.x, py + capOff.y * KID_S, pz + 0.25 * clamp01(capOff.x * 2 * H.dir)); kidCap.rotation.set(capOff.tip, capOff.r, 0, 'YXZ'); kidCap.scale.setScalar(KID_S); }
+    if (capOff) {   // (the cap lands ON TOP of the flat kid, over his head — its dome's foot sits 0.81 up its own mesh)
+      const F = 0.8 * KID_S, cs = KID_S * 0.9;
+      kidCap.position.set(px + 0.04, 0.12 - 0.81 * cs + capOff.y * KID_S, kid.position.z - 0.36 * flat.wide * F); kidCap.rotation.set(capOff.tip, capOff.r, 0, 'YXZ'); kidCap.scale.setScalar(cs);
+    }
     else { kidCap.position.copy(kid.position); kidCap.rotation.copy(kid.rotation); kidCap.scale.copy(kid.scale); }
     kidCap.visible = show;
     kidH = kidGeo.height * s3[1] * KID_S;
 
     // ---- THE CAMERA (camera.js): a smooth follow that leads a hop to where it lands — up the lanes AND sideways (clamped at the play
     // area's edges; a log ride is followed) — the slight turn, a short shake on a hit (never with reduce motion)
-    const down = run.st === 'down' || run.st === 'out';
+    const down = run.st === 'out';
     rig.follow(run.st === 'hop' ? run.tx / FP : down && H ? H.x : kx, run.st === 'hop' ? run.ty + 0.5 : down ? (H ? H.y : ky) : ky, dt);
     depth();
     const camY = rig.y();
@@ -341,7 +367,6 @@ export function createNight(host, o = {}) {
           if (on) { K.flat.put(x - side * 0.75, 0.035, z, 3.6, 1, 3.0, 0, 0xffc27a, 1, 0, 0.34 * lt); K.bill.put(x - side * 0.5, 1.72, z, 0.34, 0.34, 1, 0, 0xffd9a0, 1, 5, 0.8 * lt); }
         }
         if (tier > 0) for (const q of D.tufts) K.tufts.put(X(q[0]), 0, z - 0.5 + q[1], q[2], q[2], q[2], q[0] * 9, 0xffffff, lt * (q[0] < 0 || q[0] > COLS ? 0.6 : 1));
-        if (L.oneUp >= 0 && !run.ups[i]) K.bill.put(X(L.oneUp + 0.5), 0.4, z, 0.6, 0.6, 1, 0, 0xff5ec4, 1, 5, 1);
       } else if (L.type === 'road' || L.type === 'water') {
         const car = L.type === 'road', per = L.period / FP;
         for (let j = 0; j < L.items.length; j++) {
@@ -353,7 +378,8 @@ export function createNight(host, o = {}) {
             if (left > COLS + 9 || left + len < -9) continue;
             const cx = X(left + len / 2), inside = left + len > 0 && left < COLS, dim = lt * (inside ? 1 : 0.55);
             if (car) {
-              const what = vehicleOf(vseed, i, j, len), tint = NEON[Math.floor(hsh(vseed ^ (i * 104729), j * 31 + 7) * NEON.length)];
+              // (H4 — THE TAXI is a TAXI: yellow, its roof light lit — the cause line "… BY A TAXI" must be true; every other car keeps its neon tint)
+              const what = vehicleOf(vseed, i, j, len), taxi = what === 'taxi', tint = taxi ? TAXI_HEX : NEON[Math.floor(hsh(vseed ^ (i * 104729), j * 31 + 7) * NEON.length)];
               const name = what === 'truck' ? 'car-van' : `car-${what}`, q = KM[name], B = BOX[name], ry = L.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
               const bodyL = len < 1.5 ? 0.96 : 1.9, sz = B ? bodyL / B.l : 1, sx = B ? (len < 1.5 ? 0.7 : 0.78) / B.w : 1, sy = B ? (len < 1.5 ? 0.42 : 0.52) : 1;
               const nose = left + (L.dir > 0 ? len - 0.02 : 0.02), bx = X(nose - L.dir * bodyL / 2), tail = left + (L.dir > 0 ? 0.02 : len - 0.02);
@@ -365,6 +391,7 @@ export function createNight(host, o = {}) {
                 const [hw, hy] = LAMPS[truck ? 'truck' : name], a1 = dim, back = L.dir > 0 ? 0 : Math.PI;
                 // the truck's amber markers along the foot of the box's side (the side the camera sees)
                 if (truck) for (const m of [0, 0.34, 0.67, 1]) K.bill.put(cx + L.dir * (TRUCK.box[0] + (TRUCK.box[1] - TRUCK.box[0]) * m) * tz, 0.29, z + 0.4, 0.24, 0.24, 1, 0, 0xff9a1c, 1, 0, a1);
+                if (taxi) { K.bill.put(bx, 0.5, z, 0.3, 0.2, 1, 0, 0xfff3b0, 1, 5, a1); K.bill.put(bx, 0.5, z, 0.62, 0.42, 1, 0, 0xffc21e, 1, 0, 0.55 * a1); }   // its ROOF LIGHT: a small lit box + its warm halo
                 const streak = 0.62 + L.v * 0.009;   // (H3 — THE LIGHT TRAIL: two THIN, SHORT streaks, one from EACH tail light, fading fast — never one long lopsided beam)
                 for (const e of [-hw, hw]) {   // BOTH headlights + BOTH tail lights, each at its own place on the model
                   K.flat.put(X(nose + L.dir * HEAD_REACH / 2), 0.04, z + e, HEAD_REACH, 1, 0.8, back, 0xfff0c8, 1, 6, 0.5 * a1);   // a short soft beam on the road ahead
@@ -386,9 +413,9 @@ export function createNight(host, o = {}) {
                 const lw = len + 0.1, ld = 0.92, asp = 7 + Math.min(9.9, lw / ld) / 10, rp = reduce ? 0.4 : (clock / 1700 + j * 0.37 + i * 0.21) % 1;
                 K.flat.put(cx, 0.045, z, len + 1.1, 1, 1.6, 0, 0xffa23a, 1, 0, 0.17 * dim);
                 K.flat.put(cx, 0.05, z, lw, 1, ld, 0, 0xffb060, 1, asp, 0.42 * dim);
-                K.flat.put(cx, 0.052, z, lw + 0.12 + rp * 0.5, 1, ld + 0.12 + rp * 0.5, 0, 0xd8f4ff, 1, 7 + Math.min(9.9, (lw + 0.12 + rp * 0.5) / (ld + 0.12 + rp * 0.5)) / 10, 0.3 * (1 - rp) * dim);
+                K.flat.put(cx, 0.052, z, lw + 0.12 + rp * 0.5, 1, ld + 0.12 + rp * 0.5, 0, 0xb8dcec, 1, 7 + Math.min(9.9, (lw + 0.12 + rp * 0.5) / (ld + 0.12 + rp * 0.5)) / 10, 0.2 * (1 - rp) * dim);
                 // a small wake trails it: a soft pale ribbon behind its tail
-                K.flat.put(X(tailX - L.dir * 0.8), 0.05, z, 1.7, 1, 0.8, L.dir > 0 ? 0 : Math.PI, 0xc8f6ff, 1, 1, 0.3 * dim);
+                K.flat.put(X(tailX - L.dir * 0.8), 0.05, z, 1.7, 1, 0.8, L.dir > 0 ? 0 : Math.PI, 0xa8d4e6, 1, 1, 0.13 * dim);
               }
             }
           }
@@ -471,6 +498,30 @@ export function createNight(host, o = {}) {
       K.flat.put(px, feet + 0.04, pz + 0.04, 2.3, 1, 1.9, 0, kidHex, 1, 0, 0.5 * lit);
       K.flat.put(px, feet + 0.045, pz + 0.04, 1.42 * br, 1, 1.16 * br, 0, kidHex, 1, 3, 0.8 * lit);
     }
+    // THE GHOSTS (H4): the others' kids from their own runs — see-through, their colour, a thin ring of it under their feet
+    const ghosts = (o && o.ghosts) || null;
+    if (ghosts) for (const g of ghosts) {
+      const r = g.run;
+      g.tag = null;
+      if (!r) continue;
+      if (r.st === 'out' || r.st === 'taken') { if (!g.outAt) g.outAt = clock; } else g.outAt = 0;
+      const gone = g.outAt ? clamp01((clock - g.outAt) / 420) : 0;
+      if (gone >= 1) continue;
+      let gx = r.x / FP, gy = r.y + 0.5, gl = 0, gf = 0;
+      const GL = course.lane(r.y);
+      if (r.st === 'hop') { gf = Math.min(1, (r.k + a) / HOP_TICKS); gx = (r.fx + (r.tx - r.fx) * gf) / FP; gy = r.fy + 0.5 + (r.ty - r.fy) * gf; gl = Math.sin(Math.PI * gf) * 0.5; g.dir = r.ty > r.fy ? 'u' : r.ty < r.fy ? 'd' : r.tx < r.fx ? 'l' : 'r'; }
+      else if (r.st === 'idle' && GL.type === 'water') gx += GL.dir * GL.v * a / FP;
+      if (gy < base - 1 || gy > top + 1) continue;
+      const onLog = r.st === 'hop' ? (course.lane(r.fy).type === 'water' ? LOG_FEET * (1 - gf) : 0) + (course.lane(r.ty).type === 'water' ? LOG_FEET * gf : 0) : GL.type === 'water' ? LOG_FEET : 0;
+      const yawG = g.dir === 'l' ? Math.PI / 2 : g.dir === 'r' ? -Math.PI / 2 : g.dir === 'd' ? Math.PI : 0, gs = KID_S * 0.94 * (1 - gone * 0.6), glit = litOf(Math.floor(gy)) * (1 - gone);
+      const gpx = X(gx), gpy = onLog + gl + (r.st === 'taken' ? gone * 3 : 0), gpz = Z(gy);
+      K.ghosts.put(gpx, gpy, gpz, gs, gs * (r.st === 'hop' ? 1 + 0.16 * Math.sin(Math.PI * gf) : 1), gs, yawG, g.hex, 1, glit);
+      K.ghostCaps.put(gpx, gpy, gpz, gs, gs * (r.st === 'hop' ? 1 + 0.16 * Math.sin(Math.PI * gf) : 1), gs, yawG, g.hex, 1, glit);
+      if (glit > 0.25) K.flat.put(gpx, onLog + 0.042, gpz + 0.04, 1.2, 1, 1.0, 0, g.hex, 1, 3, 0.4 * glit);
+      g.wx = gpx; g.wy = gpy + kidGeo.height * gs + 0.16; g.wz = gpz; g.tag = gone > 0 ? null : true;
+    }
+    if (flat) K.shadow.put(kid.position.x, 0.034, kid.position.z - 0.47 * flat.wide * 0.8 * KID_S, 1.5 * flat.wide, 1, 1.75 * flat.wide, 0, 0, 1, 0, 0.5 * lit);
+    if (taken) { K.flat.put(px, 0.06, pz, 3.4, 1, 3.0, 0, 0x6dffb0, 1, 3, 0.9 * taken); K.flat.put(px, 0.055, pz, 3.0, 1, 2.6, 0, 0x3dff9a, 1, 0, 0.5 * taken); K.bill.put(px, 5.5, pz, 3.2, 11, 1, 0, 0x7dffc0, 1, 4, 0.5 * taken); }
     // the small moments: a dust ring, a ripple, a splash
     for (let j = fx.parts.length - 1; j >= 0; j--) {
       const q = fx.parts[j], u = (clock - q.t0) / q.life;
@@ -487,10 +538,33 @@ export function createNight(host, o = {}) {
     renderer.info.reset();
     renderer.render(scene, cam);
     if (bloom) bloom.render(scene, cam);
+    // (H4) THE SHARE IMAGE's frame: asked for → copied off the canvas in THIS frame (a WebGL canvas keeps no picture between frames)
+    if (snapAsk) { const ask = snapAsk; snapAsk = null; try { ask(grab()); } catch { ask(null); } }
+    // where each ghost's name tag goes (CSS px from the top left; null = off the screen)
+    if (ghosts) for (const g of ghosts) {
+      if (!g.tag) continue;
+      v3.set(g.wx, g.wy, g.wz).project(cam);
+      const sx = (1 + v3.x) / 2, sy = (1 - v3.y) / 2;
+      g.tag = v3.z < 1 && sx > 0.04 && sx < 0.96 && sy > 0.2 && sy < 0.9 ? [sx * w, sy * h] : null;
+    }
+  }
+  let snapAsk = null;
+  /** the picture on the canvas right now → a 2D canvas `width` px wide (the whole frame; null if this phone can't) */
+  function grab(width = 1080) {
+    const cv = document.createElement('canvas'), k = width / el.width;
+    cv.width = width; cv.height = Math.max(1, Math.round(el.height * k));
+    const c = ctx2d(cv);
+    if (!c) return null;
+    c.drawImage(el, 0, 0, cv.width, cv.height);
+    return cv;
   }
 
   const v3 = new THREE.Vector3();
   return {
+    /** (H4) the NEXT frame as a 2D canvas → fn(canvas | null): the share image's frame, the poster */
+    snap(fn) { snapAsk = fn; },
+    /** (H4 — SPECTATE: the camera moved to another player's kid) the kid's own feel starts clean */
+    resetKid() { fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; fx.parts.length = 0; fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
     el, draw, resize: () => fit(), ready, setTier, tier: () => tier,
     /** the lab's switches: ZOOM 7 · 8 · 9 + ANGLE straight · turned (eased; `snap` = at once) */
     setCamera(zoom, angle, snap) { rig.choose(zoom, angle, snap); },

@@ -2,6 +2,8 @@
 // in (small, credited, the originals untouched), the scene's contract (the proven camera, THE WIDER VIEW, the tiers, instanced, view only),
 // the sounds' table + the voice rule (PURE), the lab's tools. (The browser half: tests/integration/jaywalk-lab.mjs.)
 import test from 'node:test';
+import { causeLine } from '../js/games/jaywalk/causes.js';
+const causeLineOf = vehicle => causeLine({ cause: 'car', vehicle });
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
 import { SOUNDS, VOICES, HOP_VARY, admit } from '../js/games/jaywalk/sounds.js';
@@ -102,21 +104,26 @@ test('THE NIGHT LOOK: THE CAMERA is camera.js (H2B — the rules stay 9 columns)
   }
   assert.match(m, /fetch\(new URL\(`\$\{n\}\.glb\?v=\$\{MODEL_REV\}`, DIR\)\)/, 'models.js fetches only assets/jaywalk/models/');
   assert.match(code('lab-prefs.js'), /const KEY = 'jw:lab:';/);
-  for (const f of ['engine.js', 'course.js', 'replay.js', 'tuning.js', 'logic.js', 'director.js']) assert.doesNotMatch(code(f), /night|models\.js|sfx|three/, `${f} never knows the view`);
+  for (const f of ['engine.js', 'course.js', 'replay.js', 'tuning.js', 'logic.js', 'director.js']) assert.doesNotMatch(code(f), /night\.js|night-fx|models\.js|sfx\.js|camera\.js|from 'three'/, `${f} never knows the view`);
 });
 
 test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a real box truck, no junk-looking props', () => {
   const n = code('night.js'), fxs = read('js/games/jaywalk/night-fx.js'), m = code('models.js');
-  // THE WATER: a teal / blue surface (never near-black), crests, the reflections, a bright shoreline where it meets the land
+  // THE WATER (H4 — the owner, Nov 16: CALM, real-looking night water — no electric zigzags): a deep night blue, navy → teal (never near-black,
+  // never electric), soft uneven ripples from drifting noise fields (never a sine stripe), gentle reflections + small glints, a thin soft foam line
   const water = fxs.slice(fxs.indexOf('} else if (type < 2.5) {'), fxs.indexOf('} else if (type < 3.5) {'));
-  const base = /c = mix\(vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), w \* w\);/.exec(water);
-  assert.ok(base && +base[3] >= 0.18 && +base[2] >= 0.1 && +base[3] > +base[1] * 4 && +base[6] >= 0.3, `the water's colour is a deep teal / blue, not black (${base && base.slice(1).join(' ')})`);
-  // (H3 — the owner: a clearly BRIGHTER, SATURATED night blue: the bright end's blue ≥ 0.8, the blue ≥ 2× the green — it pops beside the grass + the road)
-  assert.ok(+base[6] >= 0.8 && +base[6] >= 2 * +base[5] && +base[3] >= 0.4, `H3: a bright saturated blue (${base.slice(1).join(' ')})`);
-  assert.match(water, /float crest =/); assert.match(water, /THE SHORELINE/); assert.match(water, /c = mix\(c, vec3\(0\.95, 0\.99, 1\.0\), foam \* 0\.96\);/, 'a bright WHITE foam line on both banks');
-  assert.match(water, /abs\(dn - 2\.0\)\), shU = step\(0\.5, abs\(up - 2\.0\)\)/, '… only where the neighbour is not water');
-  assert.match(water, /float nz = vnoise\(/, 'generated noise — no texture file'); assert.match(water, /float spark = step\(0\.9, sh\)/, 'little sparkles of light');
-  assert.match(n, /0xc8f6ff, 1, 1, 0\.3 \* dim\);/, 'a soft wake behind each log');
+  const base = /c = mix\(vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), w \* w[^;]*\);/.exec(water);
+  assert.ok(base, 'the water\'s two colours');
+  const [r0, g0, b0, r1, g1, b1] = base.slice(1).map(Number);
+  assert.ok(b0 >= 0.12 && b0 > g0 * 2 && b0 > r0 * 6, `the troughs: a deep navy, not black (${base.slice(1, 4).join(' ')})`);
+  assert.ok(b1 >= 0.25 && b1 > g1 && g1 > r1 * 4 && b1 <= 0.6, `the swell: teal — still blue, never the electric blue (${base.slice(4).join(' ')})`);
+  assert.ok((water.match(/vnoise\(/g) || []).length >= 3, 'soft UNEVEN ripples: drifting generated noise — no texture file');
+  assert.doesNotMatch(water.replace(/\/\/[^\n]*/g, ''), /float crest =|sin\(z \* 1[0-9]|float wob =|float streak =/, 'NO zigzags: no sine crests, no wobbling streaks');
+  assert.match(water, /float rip = /, 'the ripples: thin pale contour lines'); assert.match(water, /float gl = step\(/, 'small moving glints of the neon');
+  assert.match(water, /abs\(dn - 2\.0\)\), shU = step\(0\.5, abs\(up - 2\.0\)\)/, 'the banks only where the neighbour is not water');
+  const foam = /float foam = max\(smoothstep\(([\d.]+) \+ lap, ([\d.]+) \+ lap, z\)/.exec(water), fmix = /c = mix\(c, vec3\([\d., ]+\), foam \* \(?([\d.]+)/.exec(water);
+  assert.ok(foam && +foam[1] <= 0.1 && fmix && +fmix[1] <= 0.8, `a THINNER, SOFT foam line at the banks (edge ${foam && foam[1]}, strength ${fmix && fmix[1]})`);
+  assert.match(n, /K\.flat\.put\(X\(tailX - L\.dir \* [\d.]+\), [^;]*0x[0-9a-f]{6}, 1, 1, 0\.\d+ \* dim\);/, 'a soft wake behind each log');
   // THE LOGS (H3 — the owner, Nov 16): all the SAME thickness, each its OWN length (1–4 cells — one geometry a length, nothing stretched), round +
   // half-sunk (lit on top, dark down the sides), bark grain along the length, pale ringed ends; NO moss, NO branch stub, NO dot
   assert.match(m, /export function buildLog\(len\)/); assert.match(n, /log1: buildLog\(1\), log2: buildLog\(2\), log3: buildLog\(3\), log4: buildLog\(4\), truck/, 'one geometry a length — nothing stretched');
@@ -124,13 +131,18 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   assert.match(m, /export const LOG = Object\.freeze\(\{ r: 0\.36, top: 0\.36 \}\);/, 'ONE radius — a true circle across');
   assert.doesNotMatch(m, /const rad = x =>/, 'no wobble in its thickness'); assert.match(m, /GRAIN = \[1, 1, 0\.7,/, 'bark grain along the length');
   assert.match(m, /const lit = a => 0\.3 \+ 0\.86 \* Math\.pow\(Math\.max\(0, Math\.cos\(a - 1\.3\)\), 2\.2\);/, 'lit on its shoulder, dark down the sides: round');
-  assert.match(m, /const RINGS = \[\[0, 0\.2, 0xb98a55\], \[0\.2, 0\.42, 0xf3dcae\],/, 'light cut ends with tree rings');
+  // (H4 — the owner: LOG ENDS = plain pale wood with subtle rings — the banded ends read as a shell)
+  const rings = [.../const RINGS = \[(.*?)\];/.exec(m)[1].matchAll(/\[([\d.]+), ([\d.]+), 0x([0-9a-f]{6})\]/g)].map(x => ({ a: +x[1], b: +x[2], lum: (parseInt(x[3].slice(0, 2), 16) * 0.299 + parseInt(x[3].slice(2, 4), 16) * 0.587 + parseInt(x[3].slice(4), 16) * 0.114) / 255 }));
+  const wood = rings.slice(0, -1), lums = wood.map(q => q.lum);
+  assert.ok(rings.length >= 5 && wood.every(q => q.lum > 0.7), `the cut ends: PALE wood (${lums.map(v => v.toFixed(2)).join(' ')})`);
+  assert.ok(Math.max(...lums) - Math.min(...lums) <= 0.1, 'SUBTLE rings: a shade darker, never bands');
+  assert.ok(rings[rings.length - 1].lum < Math.min(...lums) - 0.15 && rings[rings.length - 1].b - rings[rings.length - 1].a <= 0.12, 'the bark: a thin darker edge');
   assert.doesNotMatch(m + n, /buildMoss|K\.moss|CircleGeometry\(0\.083|const stub = build\(/, 'NO moss, NO branch stub, NO dot — nothing that could read as a pickup');
   assert.match(n, /const LOG_FEET = 0\.33;/, 'half-sunk: the kid stands on its round back');
   assert.match(n, /roughness: 0\.82, metalness: 0, envMapIntensity: 0\.25/, 'rough wood: the bark is seen, never a glow');
   const logLights = n.slice(n.indexOf('K[`log${n}`].put('), n.indexOf('} else {\n        const p = L.pulse'));
-  assert.match(logLights, /0xffa23a, 1, 0, 0\.17 \* dim\);/, 'a soft light on the water round it'); assert.match(logLights, /0xffb060, 1, asp, 0\.42 \* dim\);/, 'THE WATERLINE: a thin amber ring hugging the log (the glow shader\'s stadium ring)');
-  assert.match(logLights, /0xd8f4ff, 1, 7 \+ [^;]*0\.3 \* \(1 - rp\) \* dim\);/, '… + a small ripple ring swelling off it');
+  assert.match(logLights, /0xffa23a, 1, 0, 0\.\d+ \* dim\);/, 'a soft light on the water round it'); assert.match(logLights, /0xffb060, 1, asp, 0\.\d+ \* dim\);/, 'THE WATERLINE: a thin amber ring hugging the log (the glow shader\'s stadium ring)');
+  assert.match(logLights, /0x[0-9a-f]{6}, 1, 7 \+ [^;]*0\.\d+ \* \(1 - rp\) \* dim\);/, '… + a small ripple ring swelling off it');
   assert.match(fxs, /a thin STADIUM ring \(the waterline round a log/, 'shape 7');
   assert.doesNotMatch(logLights, /K\.bill\.put/, 'no glowing end caps (they made the pills)');
   assert.match(n, /rock = reduce \? 0 : Math\.sin\(clock \/ 880/, 'the logs rock gently — never with reduce motion');
@@ -175,6 +187,35 @@ test('THE LAB\'s TOOLS: ?gray=1 keeps the graybox, ZOOM + ANGLE (remembered — 
   assert.match(html, /<link rel="stylesheet" href="css\/components\.css">/, 'THE SHEET + THE NEON TUBE\'s look');
   assert.match(css, /\.jw-skyline \{[^}]*height: 24%;/); assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.jw-sky-l, \.jw-sky-n \{ animation: none; \} \}/);
   assert.match(css, /\.jw-stage:not\(\.is-gray\) \.jw-lanes \{ font: 700 76px\/1 var\(--font-num/, 'the numbers\' font (Orbitron\'s heavy 0 reads as a block)');
-  assert.doesNotMatch(css.slice(css.indexOf('THE SKYLINE BAND')), /border-radius/, 'no pills');
+  // NO PILLS (the owner): nothing in this sheet is a rounded capsule — a corner of ≤ 12 px, or a round dot (50 %) on a square
+  for (const x of css.matchAll(/border-radius: ([^;}]+)[;}]/g)) assert.match(x[1].trim(), /^(\d|1[0-2])px$|^50%$/, `no pills: border-radius ${x[1]}`);
+  assert.match(css, /\.jw-final \.btn, \.jw-final \.btn::before, \.jw-final \.btn::after \{ border-radius: 10px; \}/, 'H4: the end screen\'s buttons — the site\'s own non-pill tube (the dailies\' 10 px corners)');
   for (const k of ['jw-blink', 'jw-flick', 'jw-pop']) { const body = css.slice(css.indexOf(`@keyframes ${k}`)).split('\n')[0]; assert.doesNotMatch(body, /box-shadow|filter|width|height|left|top/, `${k}: transform / opacity only`); }
+});
+
+test('H4 — THE LOOK: ONE LIFE (no blink, no respawn, no one-up in any view), THE TAXI is yellow + its roof light, THE FLATTENED KID lies flat with his cap on top, THE GHOSTS, the frame for the share image', () => {
+  const n = code('night.js'), g = code('graybox.js'), lab = code('lab.js'), v = code('view.js');
+  for (const [f, s] of [['night.js', n], ['graybox.js', g], ['lab.js', lab], ['view.js', v], ['bot.js', code('bot.js')]]) assert.doesNotMatch(s, /\.blink\b|\.lives\b|oneUp|\.ups\b|'down'|DOWN_TICKS|safeLane|e\.e === 'respawn'/, `${f}: nothing of the lives / the blink / the one-up`);
+  assert.doesNotMatch(lab + v, /LIVES/, 'no lives HUD anywhere');
+  // THE TAXI: cab yellow, never a neon tint — the cause line "… BY A TAXI" is true; its roof light lit
+  const taxi = /const TAXI_HEX = 0x([0-9a-f]{6});/.exec(n);
+  assert.ok(taxi, 'TAXI_HEX');
+  const [tr, tg, tb] = [0, 2, 4].map(i => parseInt(taxi[1].slice(i, i + 2), 16));
+  assert.ok(tr > 220 && tg > 160 && tg < tr && tb < 90, `cab yellow (#${taxi[1]})`);
+  assert.match(n, /taxi = what === 'taxi', tint = taxi \? TAXI_HEX : NEON\[/, 'the taxi keeps its yellow; every other car its neon tint');
+  assert.match(n, /if \(taxi\) \{ K\.bill\.put\(/, 'its roof light');
+  assert.equal(causeLineOf('taxi'), 'FLATTENED BY A TAXI');
+  // THE FLATTENED KID: flat on his back (a paper doll, face up), the cap lands back on top — never a smear
+  const car = n.slice(n.indexOf("if (H.cause === 'car') {"), n.indexOf("} else if (H.cause === 'water' || H.cause === 'edge')"));
+  assert.match(car, /flat = \{ thin: /); assert.match(car, /capOff = \{ flat: true,/, 'his cap pops up and lands back ON TOP');
+  assert.doesNotMatch(car, /s3 = \[1\.4, 0\.13, 1\.4\]/, 'H3\'s squashed disc is gone');
+  assert.match(n, /kid\.rotation\.set\(Math\.PI \/ 2 \* lie, Math\.PI, 0, 'YXZ'\)/, 'he lies on his back, his head up the screen');
+  assert.match(car, /reduce \? 0 :/, 'the bounce: never with reduce motion');
+  // THE GHOSTS: instanced (two draw calls for all of them), see-through, their own colour; each gets its name tag's place
+  assert.match(n, /K\.ghosts = kind\(kidGeo\.body, ghostMat\(\), 8,/); assert.match(n, /K\.ghostCaps = kind\(kidGeo\.cap, ghostMat\(\), 8,/);
+  assert.match(n, /m\.transparent = true; m\.opacity = 0\.\d+;/, 'see-through');
+  assert.match(n, /function draw\(run, course, a, dt, o = null\)/); assert.match(n, /K\.ghosts\.put\(gpx, gpy, gpz,[^;]*g\.hex,/, 'in their colour');
+  assert.match(n, /g\.tag = v3\.z < 1 &&/, 'the name tag\'s place on the screen');
+  // THE SHARE IMAGE's frame: copied off the canvas in the SAME frame it was drawn
+  assert.match(n, /if \(snapAsk\) \{ const ask = snapAsk; snapAsk = null;/); assert.match(n, /import \{ ctx2d \} from '\.\.\/\.\.\/ui\/canvas-safe\.js';/, 'every canvas through ctx2d');
 });

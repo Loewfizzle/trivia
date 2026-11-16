@@ -13,6 +13,7 @@ import { wireControls } from './controls.js';
 import { createTiers } from '../kit/tiers.js';
 import { getPref, setPref } from './lab-prefs.js';
 import { ZOOMS, ZOOM, ANGLES, ANGLE } from './camera.js';
+import { causeLine, hitVehicle, vehicleOf, strSeed } from './causes.js';
 
 const app = document.getElementById('app');
 const Q = new URLSearchParams(location.search);
@@ -29,7 +30,6 @@ function cantOpen(msg) {
     h('p', h('a.jw-a', { href: '/' }, '‹ THE CITY'))));
 }
 
-const CAUSE = { car: 'HIT BY A CAR', water: 'IN THE WATER', train: 'HIT BY THE TRAIN', edge: 'CARRIED OFF THE EDGE', blackbird: 'THE BLACKBIRD', ufo: 'ABDUCTED', wall: 'THE WALL GOT YOU' };
 const newSeed = () => { const a = new Uint32Array(2); crypto.getRandomValues(a); return [...a].map(x => x.toString(36)).join(''); };
 const clock = ticks => { const s = Math.max(0, Math.ceil(ticks / TICK_HZ)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 /** a button that acts on its own press + lift (never a click: iOS drops them on a page that just moved) */
@@ -63,7 +63,7 @@ async function mount() {
   const angles = ANGLES.map(a => press(h('button.jw-tab.jw-ang', { type: 'button', 'data-angle': a, 'aria-label': `Angle: ${a}` }, a.toUpperCase()), () => setCamera(zoom, a)));
   const markCamera = () => { for (const b of zooms) b.classList.toggle('is-on', b.dataset.zoom === String(zoom)); for (const b of angles) b.classList.toggle('is-on', b.dataset.angle === angle); };
   function setCamera(z, a, snap) { zoom = z; angle = a; setPref('zoom', z); setPref('angle', a); view.setCamera(z, a, snap); markCamera(); }
-  const end = h('div.jw-end', { hidden: true }), endT = h('div.jw-end-t'), endL = h('div.jw-end-l'), endGo = h('div.jw-end-go', 'TAP — HOP AGAIN'), check = h('div.jw-check');
+  const end = h('div.jw-end', { hidden: true }), endT = h('div.jw-end-t'), endL = h('div.jw-end-l'), endGo = h('div.jw-end-go', 'TAP — PLAY AGAIN'), check = h('div.jw-check');
   end.append(endT, endL, endGo, check);
   const fps = Q.get('fps') === '1' ? h('div.jw-fps', '') : null, seedLine = h('div.jw-seed', '');
   // THE SOUNDS (sfx.js — the SHARED audio engine's SFX bus; unlocked by the first tap, never before) + THE SOUND AUDITION (the SOUNDS sheet)
@@ -90,9 +90,9 @@ async function mount() {
   // ---- the run: the pure engine, stepped at 60 ticks a second from the frame clock (the RULES never read it)
   let mode = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo', seed, course, run, log, queue = [], acc = 0, last = 0, overAt = 0, shown = false, bot = null, markUntil = 0;
   const frames = [], cost = [];   // (the frame times + the work in each frame, for &fps=1 + the pass's measure)
-  let steps = 0, slow = 0, warped = false, started = false;   // (started: the run's tick 0 is the FIRST touch — the page never runs the wall at a kid nobody is playing)
+  let steps = 0, slow = 0, warped = false, started = false, safe = false;   // (safe — a LOOK CHECK's warp only: the blackout holds still behind the kid; never in a real run)   // (started: the run's tick 0 is the FIRST touch — the page never runs the wall at a kid nobody is playing)
   function restart(m = mode, s = Q.get('seed') && !seed ? Q.get('seed') : newSeed()) {
-    mode = m; seed = s; course = createCourse(seed); run = createRun({ seed, mode }); log = []; queue = []; acc = 0; shown = false; overAt = 0; warped = false; started = false;
+    mode = m; seed = s; course = createCourse(seed); run = createRun({ seed, mode }); log = []; queue = []; acc = 0; shown = false; overAt = 0; warped = false; started = false; safe = false;
     end.hidden = true; mark.textContent = 'TAP TO HOP · SWIPE TO MOVE'; markUntil = 0;
     for (const t of tabs) t.classList.toggle('is-on', t.dataset.mode === mode);
     seedLine.textContent = `seed ${seed}`;
@@ -106,6 +106,7 @@ async function mount() {
     if (bot && !queue.length) { const b = bot(run, course); if (b) queue.push(b); }
     if (queue.length && canLog(log, run.t, queue[0])) { d = queue.shift(); log.push({ t: run.t, d }); }
     const ev = [];
+    if (safe && run.wall > (run.y - 5) * FP) run.wall = (run.y - 5) * FP;
     step(run, course, d, ev);
     for (const e of ev) { if (e.e === 'landmark') { mark.textContent = e.name; markUntil = performance.now() + 2600; } if (snd) snd.onEvent(e); }
     steps++;
@@ -113,7 +114,8 @@ async function mount() {
   function showEnd() {
     shown = true; overAt = performance.now();
     const live = resultOf(run);
-    endT.textContent = live.taken ? `TAKEN AT LANE ${live.lanes}` : (CAUSE[live.cause] || 'OUT');
+    // (the game's own words — causes.js: the line names the vehicle the night look drew)
+    endT.textContent = causeLine({ cause: live.cause, vehicle: live.cause === 'car' ? hitVehicle(course, { y: live.y, x: live.x, end: live.end }) : '', lanes: live.lanes, taken: live.taken });
     endL.textContent = live.taken ? 'THE MOTHERSHIP CAME — THAT IS A WIN' : `LANE ${live.lanes}`;
     // THE DETERMINISM CHECK: the run replayed from its seed + hop log — the SAME code the server runs
     const { used, ...r } = replay({ seed, mode, log });
@@ -141,11 +143,11 @@ async function mount() {
     view.draw(run, course, isOver(run) ? 0 : acc / TICK_MS, dt);
     tiers.sample(now, performance.now() - t0); if (pin == null && !GRAY) tiers.tick(now);
     const M = MODES[mode];
-    const key = `${run.best}|${run.lives}|${M.cap ? Math.ceil((M.cap - run.t) / TICK_HZ) : ''}`;
+    const key = `${run.best}|${M.cap ? Math.ceil((M.cap - run.t) / TICK_HZ) : ''}`;
     if (key !== hudKey) {
       if (lanes.textContent !== String(run.best)) { lanes.textContent = String(run.best); lanes.classList.remove('is-pop'); void lanes.offsetWidth; lanes.classList.add('is-pop'); }
       hudKey = key;
-      sub.textContent = [M.lives > 1 ? `LIVES ${run.lives}` : '', M.cap ? `THE MOTHERSHIP ${clock(M.cap - run.t)}` : 'ENDLESS'].filter(Boolean).join(' · ');
+      sub.textContent = M.cap ? `THE MOTHERSHIP ${clock(M.cap - run.t)}` : 'ENDLESS';
     }
     if (markUntil && now > markUntil) { mark.textContent = ''; markUntil = 0; }
     if (frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); }
@@ -158,7 +160,7 @@ async function mount() {
   // (the pass's own checks — tests/integration/jaywalk-lab.mjs: the bot plays through the same input path, the frame times, the camera)
   const lab = window.__jwLab = {
     ends: [], view,
-    state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, lives: run.lives, wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, steps, slow, kidY: view.kidScreenY(), kidX: view.kidScreenX(), kidPx: view.kidHeightPx ? view.kidHeightPx() : 0, zoom, angle, gray: GRAY, tier: tiers.get(), tierPath: tierPath.slice(), capped: tiers.capped(), info: view.info() }),
+    state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, cause: run.cause, wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, steps, slow, kidY: view.kidScreenY(), kidX: view.kidScreenX(), kidPx: view.kidHeightPx ? view.kidHeightPx() : 0, zoom, angle, gray: GRAY, tier: tiers.get(), tierPath: tierPath.slice(), capped: tiers.capped(), info: view.info() }),
     bot(on) { bot = on ? greedyBot({ seed }) : null; },
     restart: (m, s) => restart(m || mode, s),
     setCamera, setTier: t => tiers.set(t), ready: view.ready || Promise.resolve(true),
@@ -171,11 +173,11 @@ async function mount() {
     clearFrames() { frames.length = 0; cost.length = 0; },
     stop() { cancelAnimationFrame(raf); view.destroy(); },
     // (the look checks only: put the kid on a lane far up the course — the run is then no longer its log's, the end screen says WARPED)
-    warp(lane, o = {}) { warped = true; run.y = lane; run.best = Math.max(run.best, lane); run.x = o.x == null ? 4.5 * FP : o.x; run.st = 'idle'; run.buf = ''; run.blink = o.blink == null ? 600 : o.blink; run.wall = (lane - 5) * FP; queue = []; started = true; mark.textContent = ''; },
+    warp(lane, o = {}) { warped = true; safe = o.safe !== false; run.y = lane; run.best = Math.max(run.best, lane); run.x = o.x == null ? 4.5 * FP : o.x; run.st = 'idle'; run.buf = ''; run.wall = (lane - 5) * FP; queue = []; started = true; mark.textContent = ''; },
     /** (a look check) the middle of a log on this water lane that is well inside the 9 columns right now (FP; −1 = none) */
     logAt(lane) { const L = course.lane(lane); if (L.type !== 'water') return -1; for (const it of L.items) { const l = moverLeft(L, it, run.t); if (l > 1500 && l + it.len < 7500) return l + it.len / 2; } return -1; },
     /** (a look check) a road / water lane's movers right now, in cells: [{ left, len }] + the lane's dir + v */
-    items(lane) { const L = course.lane(lane); return { dir: L.dir || 0, v: L.v || 0, items: (L.items || []).map(it => ({ left: moverLeft(L, it, run.t) / FP, len: it.len / FP })) }; },
+    items(lane) { const L = course.lane(lane); return { dir: L.dir || 0, v: L.v || 0, items: (L.items || []).map((it, j) => ({ left: moverLeft(L, it, run.t) / FP, len: it.len / FP, what: L.type === 'road' ? vehicleOf(strSeed(course.seed), lane, j, it.len / FP) : 'log' })) }; },
     find(kind, from = 0) { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (kind === 'ufo' ? L.ufo && L.ufo.y0 === i : kind === 'mark' ? !!L.mark : L.type === kind) return i; } return -1; },
     pulse(lane) { const L = course.lane(lane); return L.pulse ? pulseAt(L.pulse, run.t) : null; },
   };

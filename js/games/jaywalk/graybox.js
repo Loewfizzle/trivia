@@ -54,7 +54,7 @@ export function createGraybox(host, o = {}) {
   const P = new THREE.Vector3(), S = new THREE.Vector3(), Q = new THREE.Quaternion(), M = new THREE.Matrix4(), C = new THREE.Color();
   const K = {
     ground: kind(POOL), side: kind(POOL), obs: kind(POOL * 7), cars: kind(POOL * 8), logs: kind(POOL * 6), trains: kind(POOL),
-    jets: kind(8), signals: kind(POOL * 2, flat()), runway: kind(POOL * COLS, flat()), ups: kind(8, flat()),
+    jets: kind(8), signals: kind(POOL * 2, flat()), runway: kind(POOL * COLS, flat()),
   };
   // the kid: a box in his colour
   const kid = new THREE.Mesh(box, new THREE.MeshLambertMaterial({ color: new THREE.Color(o.kidColor || '#00f0ff') }));
@@ -100,8 +100,8 @@ export function createGraybox(host, o = {}) {
       const f = Math.min(1, (run.k + a) / HOP_TICKS);
       kx = (run.fx + (run.tx - run.fx) * f) / FP; ky = run.fy + 0.5 + (run.ty - run.fy) * f; lift = Math.sin(Math.PI * f) * 0.5;
     } else if (run.st === 'idle') { const L = course.lane(run.y); if (L.type === 'water') kx += L.dir * L.v * a / FP; }
-    const flatK = run.st === 'down' || run.st === 'out';
-    kid.visible = run.st === 'taken' || flatK || !(run.blink && (run.blink >> 2) % 2);
+    const flatK = run.st === 'out';
+    kid.visible = true;
     kid.scale.set(0.62, flatK ? 0.16 : 0.82, 0.62);
     if (run.st === 'taken') lift = Math.min(14, (lift || 0) + (kid.userData.rise = (kid.userData.rise || 0) + dt * 0.006)); else kid.userData.rise = 0;
     kid.position.set(X(kx), (flatK ? 0.08 : 0.41) + lift + 0.1, Z(ky));
@@ -120,7 +120,6 @@ export function createGraybox(host, o = {}) {
       K.side.put(0, -0.16, z, 40, 0.2, 1, 0x101016);
       if (L.type === 'grass') {
         for (let c = 0; c < COLS; c++) if (L.obs[c]) K.obs.put(X(c + 0.5), 0.45, z, 0.78, 0.9, 0.78, 0x1c2b20);
-        if (L.oneUp >= 0 && !run.ups[i]) K.ups.put(X(L.oneUp + 0.5), 0.35, z, 0.4, 0.4, 0.4, 0xff5ec4);
       } else if (L.type === 'road' || L.type === 'water') {
         const car = L.type === 'road', q = car ? K.cars : K.logs;
         for (let j = 0; j < L.items.length; j++) {

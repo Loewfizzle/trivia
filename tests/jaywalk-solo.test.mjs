@@ -1,7 +1,8 @@
 // JAYWALK H3 — THE SOLO GAME's rules + its anti-cheat (PURE — THE UNIT JOB INSTALLS NOTHING): THE COURSE IS PICKED AFTER GO (seedOf), the
 // chunks' own clock, THE SPEED CHECK BOTH WAYS (a log from the future refused · a slowed log cut at its last on-time hop · an honest one
 // passes), the server's own result → the solo best (only a match the server replayed earns the record), the cause lines, the solo
-// director (no count, HOP AGAIN's next run), and the phone's side of the proof read from its source.
+// director (no count, PLAY AGAIN's next run), and the phone's side of the proof read from its source. (H4: ONE LIFE — no lives anywhere;
+// THE DROPPED SIGNAL + the match: tests/jaywalk-match.test.mjs.)
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -138,12 +139,12 @@ test('THE SERVER\'S OWN RESULT → THE SOLO BEST: only a match the server replay
   assert.equal(ex.rows[uid].win, false); assert.equal(ex.rows[uid].empty, undefined);
   assert.deepEqual({ ...boardDef('jaywalk-solo') }, { id: 'jaywalk-solo', kind: 'record', label: 'FARTHEST RUN', fmt: 'int', dir: 1, short: 'LANES', unit: '', game: 'jaywalk' }, 'lanes, max');
   // the room's own results (the host wrote them) never earn a record — whatever they claim
-  const claim = { id: 'jaywalk', matchId: M, phase: 'final', mode: 'solo', participants: { [uid]: true }, settings: { lives: 1 }, results: { [uid]: { l: 99999, t: 5 } } };
+  const claim = { id: 'jaywalk', matchId: M, phase: 'final', mode: 'solo', participants: { [uid]: true }, settings: {}, results: { [uid]: { l: 99999, t: 5 } } };
   assert.deepEqual(extractMatch(claim).rows[uid].rec, {}, 'a claim is never a record');
-  assert.deepEqual(extractMatch({ ...claim, sv: 1, participants: { [uid]: true, u2: true }, results: { [uid]: { l: 50, t: 5 }, u2: { l: 40, t: 5 } } }).rows[uid].rec, {}, 'the match has no board yet (H4)');
+  assert.deepEqual(extractMatch({ ...claim, sv: 1, participants: { [uid]: true, u2: true }, results: { [uid]: { l: 50, t: 5 }, u2: { l: 40, t: 5 } } }).rows[uid].rec, {}, 'a MATCH earns no solo record (its own board: not yet)');
   // a run from the future: refused → 0 lanes, named in `rejected`, EMPTY (no XP, no streak day)
   const bad = jaywalkSolo({ code: CODE, matchId: M, uid, node: nodeOf(h, { clock: () => h.go + 500, lag: 0 }) });
-  assert.equal(bad.v.ok, false); assert.deepEqual(bad.game.results[uid], { l: 0, t: 0, w: '', lv: 0, e: -1, bad: 'ahead of the clock' });
+  assert.equal(bad.v.ok, false); assert.deepEqual(bad.game.results[uid], { l: 0, t: 0, w: '', e: -1, bad: 'ahead of the clock' });
   const exBad = extractMatch(bad.game);
   assert.deepEqual(exBad.rows[uid].rec, {}); assert.equal(exBad.rows[uid].empty, 1); assert.deepEqual(exBad.rejected, [{ uid, board: 'jaywalk-solo', v: 'ahead of the clock' }]);
   // a slowed run: counted to its cut (marked), never its full lanes
@@ -156,9 +157,9 @@ test('THE SERVER\'S OWN RESULT → THE SOLO BEST: only a match the server replay
   assert.deepEqual(serverRow({ ok: false, why: 'x'.repeat(40) }).bad.length, 24);
 });
 
-test('THE SOLO DIRECTOR: no count (`play` at once, PLAY NOW\'s walk inside is the wait); the end = the run\'s own `e`; HOP AGAIN = the next run as a match of its own', () => {
+test('THE SOLO DIRECTOR: no count (`play` at once, PLAY NOW\'s walk inside is the wait); the end = the run\'s own `e`; PLAY AGAIN = the next run as a match of its own', () => {
   const g = createGame({ matchId: M, settings: { lives: 3 }, participants: { a: true }, now: GO, seed: 'x' });
-  assert.deepEqual([g.mode, g.phase, g.playAt, g.settings.lives], ['solo', 'play', GO, 1]);
+  assert.deepEqual([g.mode, g.phase, g.playAt, g.settings], ['solo', 'play', GO, {}], 'ONE LIFE: a lives setting is dropped — the game has no options');
   const match = createGame({ matchId: 'm2', settings: {}, participants: { a: true, b: true }, now: GO, seed: 'x' });
   assert.deepEqual([match.mode, match.phase, match.playAt], ['match', 'count', GO + 3000], 'the match keeps its 3 · 2 · 1');
   assert.equal(nextStep(g, { now: GO + 5000, live: { runs: {} }, code: CODE }), null, 'waiting for GO');
@@ -169,16 +170,18 @@ test('THE SOLO DIRECTOR: no count (`play` at once, PLAY NOW\'s walk inside is th
   assert.deepEqual([end.results.a.l, end.results.a.w, end.results.a.e, end.results.a.go], [h.live.lanes, h.live.cause, h.live.end, GO + 100], 'the result = the replay; + where it ended (the end screen) + its GO');
   assert.deepEqual(standings({ ...g, ...end }).map(r => [r.uid, r.rank, r.score]), [['a', 1, h.live.lanes]]);
   assert.equal(scoreRuns(g, { a: { ...node, e: { l: 99999, t: 1 } } }, GO + 100 + msOf(h.live.end) + 400, CODE).a.l, h.live.lanes, 'the node\'s `e` is a signal — never read as a score');
-  // HOP AGAIN
+  // PLAY AGAIN (the console's INSTANT AGAIN)
   const done = { ...g, ...end };
   const n = nextRun(done, { matchId: 'snext1', now: GO + 90000 });
-  assert.deepEqual([n.id, n.matchId, n.mode, n.phase, n.playAt, Object.keys(n.participants).join(), n.settings.lives, n.results], ['jaywalk', 'snext1', 'solo', 'play', GO + 90000, 'a', 1, undefined]);
+  assert.deepEqual([n.id, n.matchId, n.mode, n.phase, n.playAt, Object.keys(n.participants).join(), n.settings, n.results], ['jaywalk', 'snext1', 'solo', 'play', GO + 90000, 'a', {}, undefined]);
   assert.equal(nextRun(g, { matchId: 'snext1', now: 1 }), null, 'only after the run ended');
   assert.equal(nextRun({ ...match, phase: 'final' }, { matchId: 'snext1', now: 1 }), null, 'only a solo run');
   // the contract knows the two new optional pieces
   assert.equal(OPTIONAL.soloAgain, 'function'); assert.equal(OPTIONAL.AGAIN_LABEL, 'string'); assert.ok(META_KEYS.includes('AGAIN_LABEL'));
   const stub = { DEFAULT_SETTINGS: {}, OPTIONS: [], estimateMinutes() {}, MUSIC: null, start() {}, prepare() {}, step() {}, livePaths() {}, createView() {}, finalRanks() {} };
-  assert.deepEqual(checkCartridge('x', { ...stub, AGAIN_LABEL: 'HOP AGAIN' }), []);
+  assert.deepEqual(checkCartridge('x', { ...stub, AGAIN_LABEL: 'ONE MORE' }), []);
+  assert.doesNotMatch(read('js/games/jaywalk/meta.js').replace(/\/\/[^\n]*/g, ''), /AGAIN_LABEL|HOP AGAIN/, 'H4 — the owner: PLAY AGAIN everywhere (the console\'s own word): JAYWALK sets no label');
+  for (const f of ['view.js', 'lab.js', 'victory.js', 'help.js']) assert.doesNotMatch(read(`js/games/jaywalk/${f}`).replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, ''), /HOP AGAIN/, `${f}: never HOP AGAIN on screen`);
   assert.equal(checkCartridge('x', { ...stub, AGAIN_LABEL: 'go' }).length, 1);
 });
 
@@ -212,7 +215,8 @@ test('THE END SCREEN\'s WORDS: one line per cause + vehicle — big neon words, 
   const n = read('js/games/jaywalk/night.js');
   assert.match(n, /import \{ hsh, strSeed, vehicleOf \} from '\.\/causes\.js';/); assert.match(n, /const what = vehicleOf\(vseed, i, j, len\)/);
   const v = read('js/games/jaywalk/victory.js');
-  assert.match(v, /hitVehicle\(createCourse\(seedOf\(code, game\.matchId, r\.go\)\), \{ y: r\.y, x: r\.px, end: r\.e \}\)/, 'the end screen reads it back from the result');
+  assert.match(v, /const seed = solo \? seedOf\(code, game\.matchId, r\.go\) : game\.seed;/, 'the course: a solo run\'s from its own GO, a match\'s the game\'s');
+  assert.match(v, /vehicle = hitVehicle\(course, \{ y: r\.y, x: r\.px, end: r\.e \}\);/, 'the end screen reads it back from the result');
   assert.doesNotMatch(v + read('js/games/jaywalk/causes.js'), /[\u{1F300}-\u{1FAFF}✅❌]/u, 'no emoji');
 });
 
@@ -227,7 +231,7 @@ test('THE PHONE\'s SIDE OF THE PROOF (view.js): GO = the server\'s time, read ba
   assert.doesNotMatch(v, /Date\.now\(|localStorage|soloPause/, 'never the phone\'s own clock; its memory = lab-prefs.js; a run never pauses');
   assert.match(v, /e: \{ l: run\.best, t: run\.bestT, w: String\(run\.cause \|\| ''\)\.slice\(0, 12\) \}/, 'the end: a signal only');
   assert.match(v, /TAP TO HOP · SWIPE TO STEP/); assert.match(v, /setPref\('hint', '1'\)/, 'the first-run hint: once per phone, gone on the first hop');
-  assert.match(v, /if \(performance\.now\(\) - \(globalThis\.__nsAgainAt \|\| -1e9\) < 3000\) park\(play, night\); else night\.destroy\(\);/, 'the scene stays warm over HOP AGAIN only');
+  assert.match(v, /if \(performance\.now\(\) - \(globalThis\.__nsAgainAt \|\| -1e9\) < 3000\) park\(play, night\); else night\.destroy\(\);/, 'the scene stays warm over PLAY AGAIN\'s instant remount only');
   // the console's side
   const a = read('js/games/kit/again.js'), f = read('js/ui/final.js'), idx = read('js/games/jaywalk/index.js');
   assert.match(a, /const matchId = newMatchId\('solo'\);/); assert.match(a, /const patch = \{ game: next, 'meta\/go': null, 'meta\/back': null,/, 'ONE update: the next run, no start stamp → no walk inside');
@@ -238,8 +242,22 @@ test('THE PHONE\'s SIDE OF THE PROOF (view.js): GO = the server\'s time, read ba
   assert.match(idx, /export \{ finalScene \} from '\.\/victory\.js';/); assert.match(idx, /export const shareRun =/); assert.match(idx, /export function preload\(\)/);
   // the server: the owner's test only, the proof on both paths
   const r = read('api/report.js');
-  assert.match(r, /if \(uid && GAMES\.some\(g => g\.id === id && g\.preview && !g\.playable\)\) \{\s*const pid = await pidOf\(uid\);\s*if \(pid && adminPids\(\)\.includes\(pid\)\) return true;/, 'a game being built: THE OWNER\'s report alone');
-  assert.match(r, /try \{ ex = extractMatch\(jwSolo \? await jwGame\(\) : game,/); assert.match(r, /\} else if \(jwSolo\) \{/, 'the room moved on (HOP AGAIN): the proof node still counts the run');
+  assert.match(r, /if \(uid && GAMES\.some\(g => g\.id === id && g\.preview && !g\.playable\)\) \{\s*const owner = async u => \{ const pid = await pidOf\(u\); return !!pid && \(adminPids\(\)\.includes\(pid\) \|\|/, 'a game being built: THE OWNER\'s test');
+  assert.match(r, /if \(await owner\(uid\)\) return true;/);
+  // (H4 — HIS GUESTS: a match THE OWNER PLAYED IN — his own proof node of that match in that room — counts for everyone in it)
+  assert.match(r, /for \(const u of provenUids\(id, trees\)\) if \(u !== uid && \(await owner\(u\)\)\) return true;/, 'the owner\'s guests are counted — only in a match he played himself');
+  assert.match(r, /if \(!\(await reportableGame\(gid, uid, \{ code, matchId \}\)\)\) throw new ApiError\(409, 'not_reportable'/);
+  assert.match(r, /try \{ ex = extractMatch\(jwSolo \? await jwGame\(\) : jwMatch \? await jwMatchGame\(Object\.keys\(game\.participants\)\) : game,/, 'in the room: a solo run AND a match from the server\'s own replay');
+  assert.match(r, /\} else if \(jwSolo\) \{/, 'the room moved on (PLAY AGAIN): the proof node still counts the run');
+  assert.match(r, /\} else if \(jwMatch\) \{[\s\S]{0,700}ex = extractMatch\(await jwMatchGame\(Object\.keys\(night\.p\)\), \{\}\)/, '… a MATCH after a rematch: everyone the night record names, from their proof nodes');
+  assert.match(r, /if \(jwMatch && game\.unproven\) throw new ApiError\(409, 'unverifiable'/, 'an UNPROVEN match is never counted');
+  assert.match(r, /const agree = jwMatch \|\| /, 'a match the server replayed itself needs no second opinion on its placings');
+  // THE MATCH on the phone (H4): the first GO, the ghosts, the half-second chunks, Call the Winner, the frame for the share image
+  assert.match(v, /const m = runs \? matchStart\(code, matchId, runs\) : null;/, 'the course + tick 0 from THE FIRST GO');
+  assert.match(v, /srvNow\(\) >= g\.playAt - GO_EARLY_MS/, 'its own GO in the count\'s last 2 s (the rules\' window)');
+  assert.match(v, /isMatch \? CLOCK\.flushMatchMs : CLOCK\.flushMs/); assert.match(v, /stepGhosts\(c\.t - GHOST_DELAY\);/, 'the ghosts: the others\' logs through the same engine, a beat behind');
+  assert.match(v, /callEl = showCall\(\{/, 'Call the Winner = the match kit\'s piece'); assert.match(v, /const path = `\$\{nodePath\(\)\}\/k`;/, 'the call lives in the caller\'s own proof node');
+  assert.match(v, /night\.snap\(cv => \{/, 'the frame of the moment you went out'); assert.doesNotMatch(v, /jw-stub|BEING BUILT/, 'the match screen is real: the stub is gone');
 });
 
 test('HOW TO PLAY + YOUR TABLE (Group 3): the rules built OUT of the boot, ready to move in — shown through the help\'s hub; the table = you + your friends\' bests', async () => {

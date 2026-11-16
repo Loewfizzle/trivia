@@ -1,11 +1,13 @@
 // JAYWALK — THE END SCREEN (H3 — docs/jaywalk.md "THE END SCREEN"): the BODY inside the console's podium frame (ui/final.js owns the frame:
-// the XP box, HOP AGAIN · SHARE · BACK TO THE CITY). It names HOW YOU WENT OUT in big neon words (one line per cause + vehicle —
+// the XP box, PLAY AGAIN · SHARE · BACK TO THE CITY). H4 — A MATCH: the frame's own WINNER line, this body = HOW YOU WENT OUT + your lanes +
+// SHARE MY RUN, and the console's results list under it = everyone in order as slim cards, each with their lanes + their own cause line
+// (finalRows' `note`). It names HOW YOU WENT OUT in big neon words (one line per cause + vehicle —
 // causes.js), the lanes, then YOUR BEST — or NEW BEST (a moment + the new-best sound), only from the SERVER's own answer (the server
 // replays the run: profile/queue.js's outcome — /api down = just the lanes). No pills, no emoji, no dev text.
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { createCourse } from './course.js';
-import { seedOf } from './logic.js';
+import { seedOf, standings } from './logic.js';
 import { causeLine, hitVehicle } from './causes.js';
 import { getPref, setPref } from './lab-prefs.js';
 
@@ -68,16 +70,57 @@ function yourTable(el) {
   }).catch(() => slot.remove());
 }
 
-/** what this player's run was, from the match's result row (logic.js#scoreRun): the line + the lanes */
-export function endOf(game, uid, code) {
-  const r = ((game && game.results) || {})[uid] || {};
+/** what this player's run was, from the match's result row (logic.js#scoreRun): the line + the lanes. The course: a SOLO run's from its
+ *  own GO, a MATCH's the game's (`courses` — one course built once for a whole podium) */
+export function endOf(game, uid, code, courses = null) {
+  const r = ((game && game.results) || {})[uid] || {}, solo = game && game.mode === 'solo';
   let vehicle = '';
-  if (r.w === 'car' && r.go > 0 && r.e >= 0) { try { vehicle = hitVehicle(createCourse(seedOf(code, game.matchId, r.go)), { y: r.y, x: r.px, end: r.e }); } catch { vehicle = ''; } }
+  if (r.w === 'car' && r.e >= 0 && (solo ? r.go > 0 : !!(game && game.seed))) {
+    try {
+      const seed = solo ? seedOf(code, game.matchId, r.go) : game.seed;
+      const course = (courses && courses[seed]) || createCourse(seed);
+      if (courses) courses[seed] = course;
+      vehicle = hitVehicle(course, { y: r.y, x: r.px, end: r.e });
+    } catch { vehicle = ''; }
+  }
   return { line: causeLine({ cause: r.w, vehicle, lanes: r.l || 0, taken: !!r.x }), lanes: r.l || 0, vehicle };
+}
+/** H4 — the podium's rows (the console's results list — slim cards): the order + each player's lanes + their own cause line */
+export function finalRows(game, code) {
+  const courses = {}, solo = game && game.mode === 'solo';
+  return standings(game).map(r => ({ ...r, ...(solo ? {} : { note: endOf(game, r.uid, code, courses).line }) }));
+}
+
+/** a MATCH's body: how YOU went out + your lanes (a watcher: nothing of their own) + SHARE MY RUN; the list under it is the console's */
+function matchScene(el, game, state) {
+  const uid = state && state.uid, code = state && state.code, mine = !!(game.participants && game.participants[uid]);
+  el.dataset.mode = 'match'; el.dataset.podium = 'none';   // (the console lists EVERY place under this body — slim cards, the lanes, the cause lines)
+  if (!mine) { el.classList.add('jw-fin'); return; }
+  const E = endOf(game, uid, code), place = (standings(game).find(r => r.uid === uid) || {}).rank || 0;
+  // (compact: the frame's WINNER line leads and the list follows — the words, then ONE line: the lanes + the place)
+  const lanesTxt = `${num(E.lanes)} ${E.lanes === 1 ? 'LANE' : 'LANES'}`;
+  buildEnd(el, { line: E.line, lanes: E.lanes, note: game.unproven ? `${lanesTxt} · NOT COUNTED — NO LINE TO THE BOARD` : place ? `${lanesTxt} · YOU FINISHED ${place}${['', 'ST', 'ND', 'RD'][place] || 'TH'}` : lanesTxt });
+  const calls = game.calls || {}, c = calls[uid];
+  if (c) el.append(h('div.jw-fin-call', c.ok ? `YOUR CALL WAS RIGHT · +${c.bonus} POINTS` : 'YOUR CALL MISSED'));
+  // SHARE MY RUN (the console's foot has ONE button in a room: BACK TO THE ROOM) — the share image of THIS player's run
+  const share = h('button.btn.btn-ghost.jw-fin-share', { type: 'button', 'data-gesture': true, onclick: () => {
+    if (share.classList.contains('is-busy')) return;
+    share.classList.add('is-busy');
+    lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state)).then(how => {
+      if (how === 'failed') lazyImport(import('../../ui/toast.js'), '../../ui/toast.js').then(T => T.toast('Couldn’t draw the image', 'warn')).catch(() => {});
+      else if (how === 'saved' || how === 'copied') lazyImport(import('../../ui/toast.js'), '../../ui/toast.js').then(T => T.toast(how === 'saved' ? 'Your run is saved' : 'Link copied', 'ok')).catch(() => {});
+    }).catch(() => {}).finally(() => share.classList.remove('is-busy'));
+  } }, h('span', 'SHARE MY RUN'));
+  el.append(share);
+  // (the winner's moment: the console's own sting is off for this game's solo end — a match plays it here, once the crown lands)
+  const first = standings(game).filter(r => r.rank === 1);
+  if (first.length === 1) setTimeout(() => { if (el.isConnected) lazyImport(import('../../audio/progress-sfx.js'), '../../audio/progress-sfx.js').then(m => m.pgSfx('victory')).catch(() => {}); }, 2500);
 }
 
 export function finalScene(el, game, state) {
   const uid = state && state.uid, code = state && state.code;
+  if (game && game.mode !== 'solo') { matchScene(el, game, state); return; }
+  el.dataset.mode = 'solo';
   const E = endOf(game, uid, code);
   const known = Number(getPref('best', '0')) || 0;
   const B = buildEnd(el, { line: E.line, lanes: E.lanes });

@@ -22,7 +22,7 @@ import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the 
 import { readFileSync } from 'node:fs';
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, emulated, adminPids } from './_lib/fb.js';
-import { jaywalkSolo } from './_lib/jaywalk.js';
+import { jaywalkSolo, jaywalkMatch } from './_lib/jaywalk.js';
 import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
 import { applyMatch, needsRetry, mergeOutcomes, MIN_MATCH_GAP_MS } from './_lib/stats.js';
@@ -74,22 +74,27 @@ export function cipherAgrees(game, boardsByRound, code) {
  * running behind the test switch `testReportAll` (server.test / progression.test / e2e-profiles set it — never honoured in production).
  */
 export { DEALER_GAMES };
-export async function reportableGame(id, uid = null) {
+export async function reportableGame(id, uid = null, at = null) {
   if (typeof id !== 'string' || DEALER_GAMES.includes(id) || !REPORT_GAMES.includes(id)) return false;
   if (GAMES.some(g => g.id === id && g.playable)) return true;
   // JAYWALK H3 — THE OWNER'S LIVE TEST (HE8's rule, as the dealer's start — api/_lib/holdem-store.js#startOpen): a game BEING BUILT (`preview`)
   // is counted for THE OWNER alone (the reporter's uid → their profile id → ADMIN_PIDS; on the emulators also `testAdmins/{pid}`) — nobody
   // else can start it (config.js#isPlayable), and nobody else's report of it is ever counted
   if (uid && GAMES.some(g => g.id === id && g.preview && !g.playable)) {
-    const pid = await pidOf(uid);
-    if (pid && adminPids().includes(pid)) return true;
-    if (pid && emulated() && (await val(`testAdmins/${pid}`))) return true;
+    const owner = async u => { const pid = await pidOf(u); return !!pid && (adminPids().includes(pid) || (emulated() && !!(await val(`testAdmins/${pid}`)))); };
+    if (await owner(uid)) return true;
+    // JAYWALK H4 — HIS GUESTS (HE8: "guests in his room play normally"): a match THE OWNER PLAYED IN counts for everyone in it — his own
+    // proof node of THAT match in THAT room (only his phone can write it: the rules) is the yes; `at` = { code, matchId }
+    if (at && PROOF_TREES[id]) {
+      const trees = await Promise.all(PROOF_TREES[id](at.matchId).room.map(p => val(`rooms/${at.code}/${p}`)));
+      for (const u of provenUids(id, trees)) if (u !== uid && (await owner(u))) return true;
+    }
   }
   return emulated() && !!(await val('testReportAll'));
 }
 
-// (JAYWALK H3 — THE SERVER'S OWN RESULT: a SOLO run is counted ONLY from the server's replay of the player's proof node — api/_lib/jaywalk.js#jaywalkSolo)
-export { jaywalkSolo };
+// (JAYWALK H3 + H4 — THE SERVER'S OWN RESULT: a SOLO run and a MATCH are counted ONLY from the server's replay of the players' proof nodes — api/_lib/jaywalk.js)
+export { jaywalkSolo, jaywalkMatch };
 
 /**
  * FR7-A's C1 — THE REAL PLAYER COUNT (PURE). A match record may NAME at most MAX_REPORT_NAMES players (twice a full room — the join
@@ -160,7 +165,7 @@ export async function processReport(uid, body, now = Date.now()) {
   const [game, night, players, meta, resetAt] = await Promise.all([val(`rooms/${code}/game`), val(`rooms/${code}/night/${matchId}`), val(`rooms/${code}/players`), val(`rooms/${code}/meta`), val(RESET_AT)]);
   // HE10 (A2 / B1): a dealer's game or a game nobody can start is never credited here — on either path (the room's game, the snapshot's night)
   for (const gid of [game && game.matchId === matchId ? game.id : null, night && night.g].filter(v => v != null)) {
-    if (!(await reportableGame(gid, uid))) throw new ApiError(409, 'not_reportable', DEALER_GAMES.includes(gid) ? 'The dealer reports this game itself.' : 'This game can’t be counted.');
+    if (!(await reportableGame(gid, uid, { code, matchId }))) throw new ApiError(409, 'not_reportable', DEALER_GAMES.includes(gid) ? 'The dealer reports this game itself.' : 'This game can’t be counted.');
   }
   // the night record is required, with its time (the server's clock): no record, no match; too old (or from the future), no match
   // (PD-6 — found by the solo XP line's e2e: a phone reports the moment its match ends; the host's `final` step writes the night record a beat
@@ -194,11 +199,22 @@ export async function processReport(uid, body, now = Date.now()) {
     else if (J.v.cut) console.warn('jaywalk run cut', `${code}_${matchId}`, J.v.cut.why, J.v.cut.tick);
     return J.game;
   };
+  // JAYWALK H4: a MATCH is counted the same way — every named player's run replayed from their own proof node (the course + tick 0 from
+  // THE FIRST GO): nothing the host wrote is read, so the placings need no second opinion — on both paths
+  const jwMatch = night.g === 'jaywalk' && !jwSolo;
+  const jwMatchGame = async uids => {
+    const M = jaywalkMatch({ code, matchId, uids, nodes: (await val(`rooms/${code}/jw/${matchId}`)) || {} });
+    if (!M.game) throw new ApiError(409, 'unverifiable', `This match has no proof (${M.why}).`);
+    jwGo = M.game.playAt;
+    for (const [u, r] of Object.entries(M.game.results)) if (r.bad || r.cut) console.warn('jaywalk match run', `${code}_${matchId}`, u, r.bad || 'cut');
+    return M.game;
+  };
   if (game && game.matchId === matchId) {
     if (game.phase !== 'final') throw new ApiError(425, 'not_final', 'The match is still running.');
     if (!game.participants || !game.participants[uid]) throw new ApiError(403, 'not_in_match');
     if (game.id !== night.g) throw new ApiError(409, 'mismatch', 'The match doesn’t match its record.');
-    try { ex = extractMatch(jwSolo ? await jwGame() : game, { pulseCounts: loadPulseCounts() }); } catch (e) { throw new ApiError(409, 'unverifiable', e.message); }
+    if (jwMatch && game.unproven) throw new ApiError(409, 'unverifiable', 'This match was played without its proof.');
+    try { ex = extractMatch(jwSolo ? await jwGame() : jwMatch ? await jwMatchGame(Object.keys(game.participants)) : game, { pulseCounts: loadPulseCounts() }); } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(409, 'unverifiable', e.message); }
     // the placings the host computed must be the night record's
     // (SHELL 2.0 B1 — THE SOLO LANE: a room of one earns no night points — the host writes 0)
     // (HOLD'EM IN THE CITY — B4: a FULL TIE is a draw — 2 each (core/night.js#nightPoints); a phone still on the code before B4 wrote 3 each —
@@ -206,12 +222,18 @@ export async function processReport(uid, body, now = Date.now()) {
     const ranks = Object.entries(ex.rows).map(([u, r]) => ({ uid: u, rank: r.rank })), want = nightPoints(ranks, { solo: ex.solo });
     const old = !ex.solo && isAllTied(ranks) ? Object.fromEntries(ranks.map(r => [r.uid, 3])) : null;
     const same = w => ranks.every(r => (w[r.uid] || 0) === ((night.p || {})[r.uid] || 0));
-    const agree = (same(want) || (old && same(old))) && Object.keys(night.p || {}).every(u => ex.rows[u]);
+    const agree = jwMatch || ((same(want) || (old && same(old))) && Object.keys(night.p || {}).every(u => ex.rows[u]));
     if (!agree) throw new ApiError(409, 'mismatch', 'The placings don’t match the room.');
     if (game.id === 'cipher' && !cipherAgrees(game, await val(`rooms/${code}/boards/${matchId}`), code)) throw new ApiError(409, 'mismatch', 'The results don’t match the players’ boards.');
   } else if (jwSolo) {
     // (the room moved on — HOP AGAIN started the next run: this run's proof node is still there (the next start keeps it) → the same replay)
     try { ex = extractMatch(await jwGame(), {}); } catch (e) { throw new ApiError(409, 'unverifiable', e.message); }
+    src = 'proof';
+  } else if (jwMatch) {
+    // (the room moved on — a rematch: the finished match's proof nodes are still there (a start keeps the last match's) → the same replay
+    //  for EVERYONE the night record names; a report landing after the rematch still credits them all)
+    if (!(night.p && Object.prototype.hasOwnProperty.call(night.p, uid))) throw new ApiError(403, 'not_in_match');
+    try { ex = extractMatch(await jwMatchGame(Object.keys(night.p)), {}); } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(409, 'unverifiable', e.message); }
     src = 'proof';
   } else if (body.snap && typeof body.snap === 'object' && body.snap.matchId === matchId) {
     // the room moved on (a rematch): the PLACINGS from the night record only — never a client's game blob

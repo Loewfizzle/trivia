@@ -1,5 +1,5 @@
 // JAYWALK — THE NIGHT LOOK's SHADERS + small pieces (H2 — docs/jaywalk.md "THE NIGHT LOOK"): the lanes' ground (ONE instanced plane a lane,
-// drawn in the shader: grass · asphalt + curbs + dashed lines · THE WATER (teal, ripples, reflections, a bright shoreline) · rails + sleepers · the flight path · a landmark's
+// drawn in the shader: grass · asphalt + curbs + dashed lines · THE WATER (H4: calm night water — navy → teal, soft uneven ripples, gentle reflections, a thin foam line) · rails + sleepers · the flight path · a landmark's
 // paving — the edge columns dimmer, the BLACKOUT's per-lane darkness, the fog), the additive lights (flat on the ground + facing the
 // camera — pools, trails, beams, rings, lamps: NO real point light anywhere), the blob shadows, the paint patch (a car's body / the kid's
 // hoodie takes its colour; everything else keeps Kenney's), a tiny generated neon environment (the gloss) and THE HALF-RES BLOOM (top tier
@@ -55,35 +55,39 @@ void main() {
     vec3 neon = mod(b, 2.0) < 0.5 ? vec3(1.0, 0.62, 0.9) : vec3(0.6, 0.9, 1.0);
     c = mix(c, neon * 0.62, dash * ln);
   } else if (type < 2.5) {
-    // THE WATER (H2B — it must read as water at a glance): a deep teal / blue surface, slow ripples + their bright crests, the skyline's
-    // neon reflected in long wobbling streaks, a bright shoreline where it meets the land
+    // THE WATER (H4 — the owner, Nov 16: CALM, real-looking night water — no electric zigzags): a deep night blue, navy in the troughs →
+    // teal on the swell; soft UNEVEN ripples (the contour lines of two slow drifting noise fields — never a sine stripe); gentle broken
+    // reflections of the skyline's neon + a few small moving glints of it; a thin soft foam line at the banks. Still unmistakably water
+    // beside the grass + the road: the only blue ground, the only one that moves.
     float t = uTime;
-    float w1 = sin(x * 2.3 + t * 0.8 + sin(z * 7.0 + t * 0.5) * 0.8), w2 = sin(x * 5.3 - t * 0.55 + z * 8.0 + seed);
-    float nz = vnoise(vec2(x * 1.4 + t * 0.22, z * 3.2 - t * 0.16) + seed * 5.0);   // (generated noise — no texture file: the surface drifts)
-    float w = clamp(0.5 + 0.27 * w1 + 0.12 * w2 + 0.42 * (nz - 0.5), 0.0, 1.0);
-    // (H3 — the owner: a clearly BRIGHTER, SATURATED night blue — it must pop beside the dark grass + the road at a glance: water you'd never step into)
-    c = mix(vec3(0.018, 0.150, 0.480), vec3(0.060, 0.360, 0.860), w * w);
-    float crest = smoothstep(0.86, 1.0, sin(x * 3.4 + sin(z * 12.0 + t * 0.7 + seed) * 1.5 + t * 0.9));
-    c += vec3(0.38, 0.68, 1.0) * crest * 0.5;                     // lighter ripple highlights, moving
-    if (uQ > 0.5) {                                               // the reflections: streaks of the skyline's colours, wobbling
-      float sx = x * 1.25 + seed * 3.1, id = floor(sx), f = fract(sx) - 0.5;
-      float wob = sin(z * 17.0 + t * 1.6 + id * 4.0) * 0.11;
-      float streak = smoothstep(0.19, 0.0, abs(f + wob)) * step(0.35, hash(vec2(id, seed)));
+    vec2 q = vec2(x * 0.85, z * 2.4) + seed * 5.0;
+    float n1 = vnoise(q + vec2(t * 0.10, -t * 0.06));
+    float n2 = vnoise(q * 2.1 + vec2(-t * 0.15, t * 0.05) + 17.0);
+    float n3 = vnoise(q * 4.6 + vec2(t * 0.22, t * 0.09) + 41.0);
+    float w = clamp(0.58 * n1 + 0.42 * n2, 0.0, 1.0);
+    c = mix(vec3(0.018, 0.078, 0.215), vec3(0.030, 0.235, 0.375), w * w * 1.25);
+    // the ripples: thin pale lines along the swell's contours, broken up by a finer field — uneven, slow
+    float rip = smoothstep(0.075, 0.0, abs(n2 - 0.52)) * smoothstep(0.34, 0.66, n3) + 0.5 * smoothstep(0.06, 0.0, abs(n1 - 0.46)) * smoothstep(0.45, 0.72, n2);
+    c += vec3(0.16, 0.36, 0.46) * rip * 0.26;
+    if (uQ > 0.5) {
+      // gentle reflections: soft columns of the skyline's colours lying on the water, broken by the swell (no wobbling streaks)
+      float sx = x * 0.7 + seed * 3.1 + (n1 - 0.5) * 0.5, id = floor(sx), f = fract(sx) - 0.5;
+      float colm = smoothstep(0.46, 0.05, abs(f)) * step(0.42, hash(vec2(id, seed))) * smoothstep(0.28, 0.75, n2);
       float pick = hash(vec2(id + 3.0, seed));
-      vec3 neon = pick < 0.36 ? vec3(1.0, 0.25, 0.75) : (pick < 0.7 ? vec3(0.15, 0.8, 1.0) : vec3(0.62, 0.36, 1.0));
-      c += neon * streak * 0.20 * (0.6 + 0.4 * sin(t * 0.9 + id));
-      // little sparkles of light: a few cells of the surface twinkle, each to its own beat
-      vec2 sp = vec2(x * 6.0, z * 6.0), sid = floor(sp);
+      vec3 neon = pick < 0.36 ? vec3(1.0, 0.30, 0.75) : (pick < 0.7 ? vec3(0.20, 0.80, 1.0) : vec3(0.62, 0.40, 1.0));
+      c += neon * colm * 0.085;
+      // small moving glints of the neon: a few points of light that drift with the surface and come and go, each to its own slow beat
+      vec2 sp = vec2(x * 5.0 + t * 0.12, z * 5.0 - t * 0.05), sid = floor(sp);
       float sh = hash(sid + seed * 13.0);
-      float spark = step(0.9, sh) * smoothstep(0.5, 1.0, sin(t * (1.6 + sh * 2.6) + sh * 40.0)) * smoothstep(0.34, 0.04, length(fract(sp) - 0.5));
-      c += vec3(0.78, 1.0, 1.0) * spark * 0.85;
+      float gl = step(0.93, sh) * smoothstep(0.35, 1.0, sin(t * (0.9 + sh * 1.5) + sh * 40.0)) * smoothstep(0.30, 0.03, length(fract(sp) - 0.5));
+      c += mix(vec3(0.80, 0.97, 1.0), neon, 0.55) * gl * 0.7;
     }
-    // THE SHORELINE: a bright wavering foam line + a pale shallow where the water meets anything that is not water
+    // THE BANKS: a thin soft foam line + a slightly paler shallow where the water meets anything that is not water
     float shD = step(0.5, abs(dn - 2.0)), shU = step(0.5, abs(up - 2.0));
-    float lap = 0.016 * sin(x * 8.0 + t * 1.3 + seed) + 0.010 * sin(x * 19.0 - t * 0.9);
-    float foam = max(smoothstep(0.135 + lap, 0.075 + lap, z) * shD, smoothstep(0.135 + lap, 0.075 + lap, 1.0 - z) * shU);
-    c += vec3(0.06, 0.22, 0.30) * (smoothstep(0.42, 0.0, z) * shD + smoothstep(0.42, 0.0, 1.0 - z) * shU);
-    c = mix(c, vec3(0.95, 0.99, 1.0), foam * 0.96);               // a bright WHITE foam line on both banks
+    float lap = 0.012 * (n3 - 0.5) + 0.006 * sin(x * 3.1 + t * 0.7 + seed);
+    float foam = max(smoothstep(0.078 + lap, 0.040 + lap, z) * shD, smoothstep(0.078 + lap, 0.040 + lap, 1.0 - z) * shU);
+    c += vec3(0.03, 0.10, 0.13) * (smoothstep(0.30, 0.0, z) * shD + smoothstep(0.30, 0.0, 1.0 - z) * shU);
+    c = mix(c, vec3(0.74, 0.88, 0.92), foam * (0.5 + 0.3 * n3));
   } else if (type < 3.5) {
     c = vec3(0.088, 0.078, 0.09) * (0.85 + 0.3 * hash(floor(vec2(x * 18.0, z * 18.0))));
     float sl = step(fract(x * 2.0), 0.3) * step(0.17, z) * step(z, 0.83);

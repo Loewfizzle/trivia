@@ -102,35 +102,49 @@ test('A HAZARD\'s POSITION = a pure function of (lane, tick): a car / a log move
   assert.equal(pulseAt(p, p.phase + p.period - p.tell).left, p.tell, 'the tell begins `tell` ticks before the pass');
 });
 
-test('THE MODES in one table: solo 1 life, no speed-up, no end · match 3 lives (option 1), faster from 4 min, THE MOTHERSHIP at 6 · daily from 3, at 5', () => {
+test('THE MODES in one table: ONE LIFE everywhere (H4) · solo no speed-up, no end · match faster from 4 min, THE MOTHERSHIP at 6 · daily from 3, at 5', () => {
   const { solo, match, daily } = T.MODES;
-  assert.deepEqual([solo.lives, solo.cap, solo.wall.rampAt, solo.oneUp], [1, 0, 0, false]);
-  assert.deepEqual([match.lives, match.livesOpt, match.cap, match.wall.rampAt], [3, [3, 1], 6 * 60 * 60, 4 * 60 * 60]);
-  assert.deepEqual([daily.cap, daily.wall.rampAt, daily.oneUp], [5 * 60 * 60, 3 * 60 * 60, false]);
+  assert.deepEqual([solo.cap, solo.wall.rampAt], [0, 0]);
+  assert.deepEqual([match.cap, match.wall.rampAt], [6 * 60 * 60, 4 * 60 * 60]);
+  assert.deepEqual([daily.cap, daily.wall.rampAt], [5 * 60 * 60, 3 * 60 * 60]);
+  for (const m of T.MODE_IDS) assert.deepEqual(Object.keys(T.MODES[m]).sort(), ['cap', 'wall'], `${m}: the wall + the cap — no lives, no lives option, no one-up`);
   assert.equal(T.wallPace('solo', 10), 0, 'the wall waits out the calm opening');
   assert.equal(T.wallPace('solo', 999999), solo.wall.base, 'solo: a steady pace for ever');
   assert.equal(T.wallPace('match', match.wall.rampAt), match.wall.base);
   assert.ok(T.wallPace('match', match.wall.rampAt + 3600) > match.wall.base && T.wallPace('match', match.cap) === match.wall.max, 'the match speeds up to its max by the end');
-  assert.equal(createRun({ seed: 'x', mode: 'match', lives: 1 }).lives, 1); assert.equal(createRun({ seed: 'x', mode: 'match', lives: 9 }).lives, 3);
-  assert.equal(createRun({ seed: 'x', mode: 'solo', lives: 3 }).lives, 1, 'solo is one life');
-  assert.equal(T.ONE_UP, false, 'THE ONE-UP: the one switch ships OFF');
   assert.deepEqual(T.LANDMARKS, ['THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD', 'THE BRIDGE', 'DOWNTOWN', 'THE CANAL', 'THE LIGHTHOUSE', 'THE AIRFIELD']);
   assert.deepEqual([50, 100, 400, 450, 49, 0].map(T.landmarkAt), ['THE DOCKS', 'THE FISH MARKET', 'THE AIRFIELD', 'THE DOCKS', null, null]);
 });
 
-test('THE WALL: steady, never more than a few lanes behind the best (no banking distance); a kid who stops is caught — with lives left, a respawn ahead of it + the blink', () => {
-  const seed = 'wall', course = createCourse(seed), run = createRun({ seed, mode: 'match' });
-  playBot(run, course, greedyBot({ seed }), 900);
-  assert.ok(run.best > 20 && run.st !== 'out');
-  assert.ok(run.wall >= (run.best - T.WALL.behind) * T.FP, 'the wall keeps up with the best lane');
-  const lives = run.lives, ev = [];
-  while (run.lives === lives && run.t < 5000) step(run, course, '', ev);
-  assert.equal(run.lives, lives - 1, 'standing still: a hit');
-  while (run.st === 'down') step(run, course, '', ev);
-  const r = ev.find(e => e.e === 'respawn');
-  assert.ok(r && run.blink > 0, 'the respawn + the blink');
-  assert.equal(course.lane(run.y).type, 'grass', 'on a safe lane');
-  if (ev.find(e => e.e === 'hit').cause === 'wall') assert.ok(run.y * T.FP >= run.wall + (T.WALL.respawnGap - 1) * T.FP, 'ahead of the wall');
-  const h0 = run.hits; for (let i = 0; i < T.BLINK_TICKS - 2; i++) step(run, course, '');
-  assert.equal(run.hits, h0, 'nothing hits during the blink');
+test('ONE LIFE EVERYWHERE (H4 — the owner, Nov 16): the lives option, respawn + blink, THE ONE-UP are GONE from the rules — code, tuning, lanes, runs, events', () => {
+  for (const f of RULES) for (const bad of [/\blives\b/i, /\bblink\b/i, /oneUp|ONE_UP|one-up/i, /respawn/i, /safeLane/, /'down'/, /\.down\b/]) assert.doesNotMatch(code(f), bad, `${f}: ${bad}`);
+  for (const k of ['DOWN_TICKS', 'BLINK_TICKS', 'MAX_LIVES', 'ONE_UP', 'ONE_UP_FROM', 'ONE_UP_CHANCE']) assert.equal(T[k], undefined, `tuning.js#${k} is gone`);
+  assert.equal(T.WALL.respawnGap, undefined);
+  for (const mode of T.MODE_IDS) {
+    const run = createRun({ seed: 'x', mode, lives: 3, oneUp: true });
+    for (const k of ['lives', 'blink', 'down', 'oneUp', 'ups']) assert.ok(!(k in run), `${mode}: a run has no ${k}`);
+  }
+  for (let i = 0; i < 300; i++) assert.ok(!('oneUp' in buildLane('gone', i)), `lane ${i}: no one-up on any lane`);
+  assert.ok(!('lives' in resultOf(createRun({ seed: 'x' }))), 'a result has no lives');
+  assert.doesNotMatch(code('../../../js/games/jaywalk/meta.js'), /\blives\b|LIVES|AGAIN_LABEL/, 'the meta: no lives option, no HOP AGAIN label');
+});
+
+test('ONE HIT = OUT in every mode: a kid who stops is caught by the wall — the run ends there (no second life, nothing after it); the events never say hit / respawn / oneup', () => {
+  for (const mode of T.MODE_IDS) {
+    const seed = `wall-${mode}`, course = createCourse(seed), run = createRun({ seed, mode });
+    playBot(run, course, greedyBot({ seed }), 900);
+    assert.ok(run.best > 20 && run.st !== 'out', `${mode}: the bot is on its way (lane ${run.best})`);
+    assert.ok(run.wall >= (run.best - T.WALL.behind) * T.FP, 'the wall keeps up with the best lane (no banking distance)');
+    const ev = [], t0 = run.t;
+    for (let i = 0; i < 2000 && run.st !== 'out'; i++) step(run, course, '', ev);
+    assert.equal(run.st, 'out', `${mode}: standing still → out`);
+    assert.ok(run.t - t0 < 20 * T.TICK_HZ, `caught within 20 s (${((run.t - t0) / T.TICK_HZ).toFixed(1)} s)`);
+    assert.equal(run.hits, 1); assert.equal(run.end, run.t);
+    const outs = ev.filter(e => e.e === 'out');
+    assert.equal(outs.length, 1); assert.ok(T.CAUSES.includes(outs[0].cause), `a named cause (${outs[0].cause})`);
+    assert.ok(!ev.some(e => ['hit', 'respawn', 'oneup'].includes(e.e)), 'no hit / respawn / oneup events');
+    const snap = JSON.stringify(run);
+    for (let i = 0; i < 300; i++) step(run, course, i % 9 ? '' : 'u');
+    assert.equal(JSON.stringify(run), snap, 'out is final: nothing moves after it');
+  }
 });

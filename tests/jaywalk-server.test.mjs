@@ -1,6 +1,7 @@
 // JAYWALK H1 — THE SERVER HALF (api/_lib/jaywalk.js — pure: THE UNIT JOB INSTALLS NOTHING): verifyRun = THE HOP LOG's bounds + THE
 // REPLAY → the server's own result. An honest log comes back with the phone's result; a FORGED one (ticks backwards, too fast, past the
-// cap, hops after the run's end) is refused. (Wiring it into /api/report + the solo best: H3 / H4.)
+// cap, hops after the run's end) is refused. (Wired into /api/report: the solo best — tests/jaywalk-solo.test.mjs; the match + THE DROPPED
+// SIGNAL — tests/jaywalk-match.test.mjs. H4: ONE LIFE — verifyRun takes no lives / one-up.)
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -19,7 +20,7 @@ function honest(seed, mode, ticks = 1500) {
   return { seed, mode, log, live: resultOf(run) };
 }
 
-test('an honest log → ok + THE SERVER\'s result = the phone\'s (lanes, the tick, the cause, the lives, the feats)', () => {
+test('an honest log → ok + THE SERVER\'s result = the phone\'s (lanes, the tick, the cause, where, the feats)', () => {
   for (const mode of T.MODE_IDS) for (let s = 0; s < 6; s++) {
     const h = honest(`srv${s}`, mode);
     const v = verifyRun(h);
@@ -30,7 +31,7 @@ test('an honest log → ok + THE SERVER\'s result = the phone\'s (lanes, the tic
   }
 });
 
-test('A FORGED LOG IS REFUSED: ticks backwards · too fast · past the cap · a hop after the run ended · a bad entry / seed / mode / lives · too long', () => {
+test('A FORGED LOG IS REFUSED: ticks backwards · too fast · past the cap · a hop after the run ended · a bad entry / seed / mode · too long · a run that never ended', () => {
   const h = honest('forge', 'match', 2400), log = h.log;
   assert.ok(log.length > 100);
   const why = l => verifyRun({ ...h, log: l }).why;
@@ -52,7 +53,10 @@ test('A FORGED LOG IS REFUSED: ticks backwards · too fast · past the cap · a 
   for (const bad of [[{ t: 1.5, d: 'u' }], [{ t: -1, d: 'u' }], [{ t: 3, d: 'x' }], [null], [{ t: '3', d: 'u' }], 'u0', null]) assert.match(String(why(bad)), /entry|log/);
   assert.equal(verifyRun({ ...h, seed: '' }).why, 'seed'); assert.equal(verifyRun({ ...h, seed: 'x'.repeat(65) }).why, 'seed'); assert.equal(verifyRun({ ...h, seed: 7 }).why, 'seed');
   assert.equal(verifyRun({ ...h, mode: 'endless' }).why, 'mode');
-  assert.equal(verifyRun({ ...h, lives: 9 }).why, 'lives'); assert.equal(verifyRun({ ...solo, lives: 3 }).why, 'lives');
+  // (H4 — ONE LIFE: there is no lives option to forge — a `lives` riding along changes nothing)
+  assert.deepEqual(verifyRun({ ...h, lives: 9, oneUp: true }), verifyRun(h)); assert.ok(!('lives' in verifyRun(h).result));
+  // a log that stops while the kid is on a log ride … still ends (the edge, the water, the wall): every finished log has an end — `never ended` is only a log cut short of it
+  assert.equal(verifyRun({ ...solo, log: solo.log.slice(0, 5) }).ok, true, 'a kid who stops hopping is always caught');
   const long = []; for (let i = 0; i < T.MAX_LOG + 1; i++) long.push({ t: i * 3, d: 'u' });
   assert.equal(verifyRun({ seed: 's', mode: 'solo', log: long }).why, 'too long');
   // a forged CLAIM changes nothing: the result is the replay's, whatever else rides along
@@ -73,12 +77,14 @@ test('the phone\'s recorder never makes a log the server refuses (the same bound
   assert.deepEqual(logFromChunks(null), [], 'GO written, no hop yet: an empty log (a silent player still has a run)');
   assert.equal(logFromChunks({ 0: chunks[0], 2: chunks[2] }), null, 'a hole in the chunks');
   assert.equal(logFromChunks({ 0: 'u0' }), null, 'a bad chunk');
-  assert.equal(verifyRun({ seed: 'chunks', mode: 'match', log: logFromChunks(null) }).ok, true, 'a player who never hopped: the wall takes their lives — a real, replayed result');
+  assert.equal(verifyRun({ seed: 'chunks', mode: 'match', log: logFromChunks(null) }).ok, true, 'a player who never hopped: the wall takes them — a real, replayed result');
 });
 
 test('NOT a function (the 8 stay 8) + never imports fb.js', () => {
   const fns = readdirSync(new URL('../api/', import.meta.url)).filter(f => f.endsWith('.js'));
   assert.equal(fns.length, 8);
   const src = readFileSync(new URL('../api/_lib/jaywalk.js', import.meta.url), 'utf8');
-  assert.deepEqual([...src.matchAll(/^import .* from '([^']+)'/gm)].map(m => m[1]), ['../../js/games/jaywalk/replay.js', '../../js/games/jaywalk/tuning.js', '../../js/games/jaywalk/logic.js']);   // (H3: + the pure seedOf)
+  assert.deepEqual([...src.matchAll(/^import .* from '([^']+)'/gm)].map(m => m[1]), ['../../js/games/jaywalk/replay.js', '../../js/games/jaywalk/tuning.js', '../../js/games/jaywalk/logic.js']);   // (H3: + the pure seedOf · H4: + the match's pure rules)
+  for (const f of ['replay.js', 'tuning.js', 'logic.js', 'meta.js', 'course.js', 'engine.js']) assert.doesNotMatch(readFileSync(new URL(`../js/games/jaywalk/${f}`, import.meta.url), 'utf8'), /from '[^']*(firebase|fb)\.js'|from 'three'|\bdocument\.|\bwindow\./, `${f}: pure — the server runs it`);
+  assert.match(readFileSync(new URL('../js/games/jaywalk/logic.js', import.meta.url), 'utf8'), /from '\.\.\/\.\.\/core\/playlist\.js'/, 'logic.js reads Call the Winner\'s numbers from core/playlist.js (pure: its one import is core/rng.js)');
 });

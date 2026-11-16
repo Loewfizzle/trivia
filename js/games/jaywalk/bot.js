@@ -4,7 +4,7 @@ import { rngFrom, hashString } from '../../core/rng.js';
 import { step, isOver } from './engine.js';
 import { FP, WALL, MID_COL } from './tuning.js';
 
-const copy = run => ({ ...run, ups: { ...run.ups }, near: { ...run.near }, took: { ...run.took } });
+const copy = run => ({ ...run, near: { ...run.near }, took: { ...run.took } });
 /** does the kid live through `d` now + `look` idle ticks after it? (and really move, when a hop was asked) */
 function survives(run, course, d, look) {
   const c = copy(run), hits = c.hits;

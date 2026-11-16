@@ -126,7 +126,8 @@ test('ONE CAMERA, PURE: no three.js, no DOM, no clock; both views use it; the ru
   assert.match(lab, /setPref\('zoom', z\); setPref\('angle', a\); view\.setCamera\(z, a, snap\);/, 'remembered on the phone');
   assert.match(lab, /h\('span\.jw-bar-k', 'ZOOM'\), \.\.\.zooms\), h\('div\.jw-tabs', \.\.\.angles\)\)/);
   assert.doesNotMatch(lab, /WIDTH|setCols|'cols'/, 'the WIDTH 9 · 11 switch is retired');
-  assert.match(css, /\.jw-ang \{/); assert.doesNotMatch(css.slice(css.indexOf('.jw-bar2')), /border-radius/, 'neon-underline tabs — no pills');
+  assert.match(css, /\.jw-ang \{/); for (const line of css.split('\n').filter(l => /^\.jw-(bar|tab|tabs|ang|w|new)\b/.test(l))) assert.doesNotMatch(line, /border-radius/, `neon-underline tabs — no pills (${line.slice(0, 30)})`);
+  for (const x of css.matchAll(/border-radius: ([^;}]+)[;}]/g)) assert.match(x[1].trim(), /^(\d|1[0-2])px$|^50%$/, `no pills anywhere in the sheet (H4: the match's tags + order, the end screen's 10 px tubes): ${x[1]}`);
 });
 
 test('THE AUTOMATIC TIER STEP (the match kit\'s rule, as the lab runs it): slipping frames step down by themselves — a GPU-bound phone too; a 30 Hz cap ends back at the top', () => {

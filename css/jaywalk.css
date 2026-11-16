@@ -107,9 +107,11 @@
 @keyframes jw-fin-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .jw-final { animation: none; } }
 .jw-final > .final { flex: 1 1 auto; min-height: 0; background: none; --fin-bg: rgba(7, 6, 11, 0.96); }
-.final:has(> .final-body[data-game='jaywalk']) > .winner { display: none; }
-.jw-final .burst { display: none; }   /* (a run's end is how you went OUT — no confetti over it) */
-.jw-game.is-over .jw-hud, .jw-game.is-over .jw-hint { visibility: hidden; }
+.final:has(> .final-body[data-game='jaywalk'][data-mode='solo']) > .winner { display: none; }
+.jw-final .final.is-solo .burst { display: none; }   /* (a SOLO run's end is how you went OUT — no confetti over it; a MATCH keeps the frame's WINNER + its burst) */
+.jw-game.is-over .jw-hud, .jw-game.is-over .jw-hint, .jw-game.is-over .jw-order, .jw-game.is-over .jw-watch, .jw-game.is-over .jw-tags, .jw-game.is-over .jw-count, .jw-game.is-over .jw-over { visibility: hidden; }
+/* H4 — THE END SCREEN's BUTTONS: the site's NON-PILL tube (the dailies' — 10 px corners; the owner: no pills) */
+.jw-final .btn, .jw-final .btn::before, .jw-final .btn::after { border-radius: 10px; }
 .jw-fin { display: grid; justify-items: center; gap: 10px; padding: 6px 12px 4px; text-align: center; }
 /* HOW YOU WENT OUT — big neon words (a white-hot tube, its pink glow: static) */
 .jw-fin-cause { max-width: 11.5em; font: 900 34px/1.06 var(--font-display); letter-spacing: 0.04em; color: #fff3fb; text-wrap: balance;
@@ -138,3 +140,52 @@
 .jw-help li { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 12px; font-size: 16px; line-height: 1.3; }
 .jw-help li::before { content: none; }
 .jw-help-pic { display: grid; place-items: center; width: 44px; height: 44px; }
+
+/* ---------------------------------------------------------------- H4 — THE MATCH (view.js): the count, the ghosts' name tags, the live
+   order, out → the cause words → Call the Winner → watching. transform / opacity only; nothing here covers the play. */
+.jw-count { position: absolute; z-index: 4; left: 0; right: 0; top: 33%; text-align: center; pointer-events: none; font: 900 124px/1 var(--font-num, var(--font-display)); color: #fff;
+  text-shadow: 0 0 6px #fff, 0 0 26px #ff4fc4, 0 0 60px rgba(255, 79, 196, 0.85), 0 4px 0 rgba(0, 0, 0, 0.8); }
+.jw-count:empty { display: none; }
+.jw-count.is-go { color: #eaffd0; text-shadow: 0 0 6px #fff, 0 0 26px #7dff6a, 0 0 60px rgba(125, 255, 106, 0.85), 0 4px 0 rgba(0, 0, 0, 0.8); }
+.jw-count.is-wait { top: 40%; font: 800 20px/1.2 var(--font-display); letter-spacing: 0.24em; text-shadow: 0 0 12px rgba(255, 79, 196, 0.9), 0 2px 0 rgba(0, 0, 0, 0.8); }
+.jw-count.is-pop { animation: jw-count 0.42s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+@keyframes jw-count { from { transform: scale(1.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .jw-count.is-pop { animation: none; } }
+/* a ghost's name over them: its player's colour as the rule under the name */
+.jw-tags { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+.jw-tag { position: absolute; left: 0; top: 0; opacity: 0; padding: 2px 6px 1px; border-radius: 4px; background: rgba(7, 6, 11, 0.66); border-bottom: 2px solid var(--c, #fff);
+  font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.1em; color: #fff; white-space: nowrap; transition: opacity 0.15s; }
+/* THE LIVE ORDER — the top-left corner, under the menu: name + lanes, best first. OUT = a cross where the colour dot was + the name struck through (never colour alone) */
+.jw-order { position: absolute; z-index: 3; left: 8px; top: calc(env(safe-area-inset-top) + 64px); margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; width: max-content; max-width: 46vw; pointer-events: none; }
+.jw-order:empty { display: none; }
+.jw-order li { position: relative; display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 4px 8px 4px 6px; border-radius: 6px; background: rgba(7, 6, 11, 0.66);
+  font: 700 12px/1.1 var(--font-ui); letter-spacing: 0.08em; color: #fff; }
+.jw-order-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 6px var(--c); }
+.jw-order-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jw-order b { font: 700 13px/1 var(--font-num, var(--font-ui)); min-width: 1.6em; text-align: right; }
+.jw-order li.is-me { box-shadow: inset 0 0 0 1.5px var(--c); }
+.jw-order li.is-watched { box-shadow: inset 0 0 0 1.5px #fff; }
+.jw-order li.is-out { color: #c4c9dc; }
+.jw-order li.is-out .jw-order-n { text-decoration: line-through; }
+.jw-order li.is-out .jw-order-dot { position: relative; background: none; box-shadow: none; }
+.jw-order li.is-out .jw-order-dot::before, .jw-order li.is-out .jw-order-dot::after { content: ''; position: absolute; left: 4px; top: -1px; width: 2px; height: 12px; border-radius: 1px; background: #c4c9dc; transform: rotate(45deg); }
+.jw-order li.is-out .jw-order-dot::after { transform: rotate(-45deg); }
+.jw-order-out { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+/* the watcher's line (the foot): who the camera follows · your call · what the room waits for */
+.jw-watch { position: absolute; z-index: 3; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 20px); text-align: center; pointer-events: none; font: 700 13px/1.35 var(--font-ui); letter-spacing: 0.16em; color: #fff;
+  text-shadow: 0 0 10px rgba(34, 224, 255, 0.9), 0 2px 0 rgba(0, 0, 0, 0.85); }
+/* OUT: the cause in neon words over the scene for a moment; Call the Winner (the match kit's card) sits in the same layer */
+.jw-over { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.jw-outcard { position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 132px); display: grid; justify-items: center; gap: 8px; text-align: center; pointer-events: none; animation: jw-fin-in 0.25s ease-out both; transition: opacity 0.5s; }
+.jw-outcard.is-gone { opacity: 0; }
+.jw-outcard-k { font: 700 13px/1 var(--font-ui); letter-spacing: 0.34em; padding-left: 0.34em; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.8); }
+.jw-outcard .jw-fin-cause { font-size: 28px; }
+.jw-outcard-n { font: 700 20px/1 var(--font-num, var(--font-ui)); letter-spacing: 0.14em; color: #fff; text-shadow: 0 0 12px rgba(143, 240, 255, 0.6), 0 2px 0 rgba(0, 0, 0, 0.8); }
+@media (prefers-reduced-motion: reduce) { .jw-outcard { animation: none; } }
+/* the podium's body in a MATCH: smaller words (the frame's WINNER line leads), your place, your call, SHARE MY RUN */
+.jw-fin[data-mode='match'] { gap: 8px; }
+.jw-fin[data-mode='match'] .jw-fin-cause { font-size: 24px; }
+.jw-fin[data-mode='match'] .jw-fin-n { display: none; }
+.jw-fin[data-mode='match'] .jw-fin-best { font-size: 16px; color: #fff; }
+.jw-fin-call { font: 700 13px/1.3 var(--font-ui); letter-spacing: 0.16em; color: #eaffd0; }
+.jw-fin .btn.jw-fin-share { min-height: 44px; margin-top: 6px; padding: 0 22px; font-size: 12px; }

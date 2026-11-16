@@ -24,9 +24,8 @@ export const MARKS = {
     { d: 'M38 26 Q30 37 38 48 M62 26 Q70 37 62 48', col: '#ff8aa0' },
     { d: 'M28 16 Q15 37 28 58 M72 16 Q85 37 72 58', col: '#ff4466' },
   ] },
-  // OVERCLOCK: a gauge with its needle pinned, a bolt beneath — in OVERDRIVE's look (THE POOL FIXES 0a, the owner Nov 13: blue + orange,
-  // css/overclock.css --oc-cool / --oc-hot / --oc-white-hot): the dial's sweep COOL BLUE, its redline + the bolt HOT ORANGE, the needle white-hot
-  // (the same silhouette as before — the old one-tube arc split where the redline starts, so the split reads at a glance)
+  // OVERCLOCK: a gauge, its needle pinned, a bolt beneath — OVERDRIVE's look (THE POOL FIXES 0a: css/overclock.css --oc-cool / --oc-hot):
+  // the sweep COOL BLUE, the redline + the bolt HOT ORANGE, the needle white-hot
   overclock: { blade: 'OVERCLOCK', tubes: [
     { d: 'M18 68 A33 33 0 0 1 55.7 27.4', col: '#2e8bff' },
     { d: 'M55.7 27.4 A33 33 0 0 1 82 68', col: '#ff6a1a' },
@@ -63,8 +62,8 @@ export const MARKS = {
     { d: 'M24 24 L60 14 L74 70 L38 80 Z', col: '#f2c14e' },
     { d: 'M48 34 C40 44 30 50 30 58 C30 65 37 68 43 65 Q46 63 47 60 L44 76 H54 L51 60 Q52 63 55 65 C61 68 68 65 68 58 C68 50 58 44 48 34 Z', col: '#f6efd9' },
   ] },
-  // JAYWALK: a crosswalk + the hop's arrow, the signs' pink
-  jaywalk: { blade: 'JAYWALK', tubes: [{ d: 'M26 86 H74 M31 72 H69 M36 59 H64 M40 48 H60', col: '#ffd6f0' }, { d: 'M50 37 V13 M39 24 L50 13 L61 24', col: '#ff4fc4' }] },
+  // JAYWALK — THE SIGNAL (H4): an upright crossing-light box, CYAN, its walking figure lit HOT PINK
+  jaywalk: { blade: 'JAYWALK', tubes: [{ d: 'M32 8 H68 Q75 8 75 15 V85 Q75 92 68 92 H32 Q25 92 25 85 V15 Q25 8 32 8 Z', col: '#35e3ff' }, { d: 'M52 20.5 A3.5 3.5 0 1 0 52.1 20.5 M51 36 L48 55 L57 66 L56 80 M48 55 L41 67 L37 79 M51 39 L60 47 M50 39 L41 48', col: '#ff3fa4' }] },
   // THE PASSWORD (PW1): a keyhole — the round eye and the slot below it, a key's tip at the door
   password: { blade: 'PASSWORD', tubes: [
     { d: 'M50 18 A17 17 0 1 1 49.9 18 Z', col: '#ff5ec4' },

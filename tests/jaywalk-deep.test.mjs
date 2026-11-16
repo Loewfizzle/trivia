@@ -1,7 +1,7 @@
 // JAYWALK H1 — THE DEEP RUNS + THE CARD MOMENTS (docs/jaywalk.md): whole runs far up the curve, the per-mode END (the match / the daily
-// always end at THE MOTHERSHIP's tick, solo never ends by the clock), THE ONE-UP's switch, and the three moments THE REPLAY detects —
-// hand-built logs that EARN boom / ufo / airfield and the near-misses that must NOT (hit by the Blackbird, on its lane too late, taken by
-// that UFO, lane 400 in a match).
+// always end at THE MOTHERSHIP's tick, solo never ends by the clock), and the three moments THE REPLAY detects — (H4: ONE LIFE; THE ONE-UP is
+// gone — tests/jaywalk-engine.test.mjs proves it) hand-built logs that EARN boom / ufo / airfield and the near-misses that must NOT (hit
+// by the Blackbird, on its lane too late, taken by that UFO, lane 400 in a match).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from '../js/games/jaywalk/tuning.js';
@@ -17,7 +17,7 @@ test('DEEP RUNS: the greedy bot gets far up the curve + into the loop; every dea
     const seed = `deep${s}`, course = createCourse(seed), run = createRun({ seed, mode: 'solo' });
     playBot(run, course, greedyBot({ seed }), 9000);
     const r = resultOf(run);
-    if (r.over) { assert.ok(T.CAUSES.includes(r.cause), `a named cause (${r.cause})`); causes[r.cause] = (causes[r.cause] || 0) + 1; assert.equal(r.lives, 0); }
+    if (r.over) { assert.ok(T.CAUSES.includes(r.cause), `a named cause (${r.cause})`); causes[r.cause] = (causes[r.cause] || 0) + 1; assert.equal(r.hits, 1); }
     if (r.lanes >= 150) far++;
     if (r.lanes >= 400) deep++;
   }
@@ -36,58 +36,27 @@ test('THE END PER MODE: the match + the daily ALWAYS end at THE MOTHERSHIP\'s ti
       const log = playBot(run, course, greedyBot({ seed, lazy: true, look: 30 }), cap + 50);
       assert.ok(isOver(run), `${seed}: over by the cap`);
       assert.ok(run.end <= cap && run.t <= cap + 1, `${seed}: never a tick past ${cap}`);
-      if (run.st === 'taken') { taken++; assert.equal(run.end, cap); assert.equal(resultOf(run).cause, 'taken'); assert.ok(run.lives > 0); }
+      if (run.st === 'taken') { taken++; assert.equal(run.end, cap); assert.equal(resultOf(run).cause, 'taken'); assert.equal(run.hits, 0, 'taken = never hit'); }
       assert.ok(log.every(h => h.t < cap), 'no hop at / after the cap');
     }
     // (a kid still standing at the cap is taken AT the cap — whatever the bot managed above)
     const run = createRun({ seed: 'stand', mode }), course = createCourse('stand');
-    run.t = cap - 3; run.best = 212; run.y = 212; run.wall = 200 * T.FP; run.blink = 60;
+    let at = 212; while (course.lane(at).type !== 'grass' || course.lane(at).ufo || course.lane(at).obs[T.MID_COL]) at++;   // (plain ground: nothing else ends the run in these 10 ticks)
+    run.t = cap - 3; run.best = at; run.y = at; run.wall = (at - 12) * T.FP;
     const ev = [];
     for (let i = 0; i < 10; i++) step(run, course, '', ev);
     assert.deepEqual([run.st, run.end, run.t], ['taken', cap, cap], `${mode}: taken at tick ${cap}`);
-    assert.deepEqual(ev.filter(e => e.e === 'taken'), [{ e: 'taken', lane: 212 }], 'TAKEN AT LANE 212');
+    assert.deepEqual(ev.filter(e => e.e === 'taken'), [{ e: 'taken', lane: at }], `TAKEN AT LANE ${at}`);
     assert.equal(resultOf(run).taken, true); assert.equal(resultOf(run).feats.ufo, false, 'the mothership is never the UFO moment');
     void taken;   // (how many the lazy bot lasted is its luck — the rule is the check above: still standing at the cap = taken AT the cap)
   }
   assert.equal(T.MODES.solo.cap, 0);
   const run = createRun({ seed: 'solo', mode: 'solo' }), course = createCourse('solo');
-  run.t = 40 * 60 * T.TICK_HZ; run.best = 3000; run.y = 3000; run.wall = 2990 * T.FP; run.blink = 30;
+  let far = 3000; while (course.lane(far).type !== 'grass' || course.lane(far).ufo) far++;   // (plain ground: nothing hits a kid standing there)
+  run.t = 40 * 60 * T.TICK_HZ; run.best = far; run.y = far; run.wall = (far - 10) * T.FP;
   for (let i = 0; i < 20; i++) step(run, course, '');
   assert.notEqual(run.st, 'taken', 'solo endless: 40 minutes in, nobody comes');
   assert.equal(T.wallPace('solo', run.t), T.MODES.solo.wall.base, '… and the wall never speeds up');
-});
-
-test('THE ONE-UP: OFF = never on any lane, never taken; ON = multiplayer only, rare, from the seed (lane 60+, on free grass), never above 3 lives', () => {
-  let on = 0;
-  for (let s = 0; s < 200; s++) {
-    const seed = `up${s}`, off = createCourse(seed), yes = createCourse(seed, { oneUp: true });
-    for (let i = 0; i < 400; i++) {
-      const a = off.lane(i), b = yes.lane(i);
-      assert.ok(!(a.oneUp >= 0), `${seed} lane ${i}: none with the switch off`);
-      if (b.oneUp >= 0) { on++; assert.ok(i >= T.ONE_UP_FROM && b.type === 'grass' && !b.obs[b.oneUp] && !b.mark, 'on free grass, lane 60+, never a landmark'); }
-      if (a.type !== b.type || (a.items && JSON.stringify(a.items) !== JSON.stringify(b.items))) assert.fail('the switch moves nothing else on the course');
-    }
-  }
-  assert.ok(on > 100 && on < 200 * 8 * 0.6, `rare: ${on} over 200 courses × 8 stretches`);
-  assert.equal(createRun({ seed: 'x', mode: 'solo', oneUp: true }).oneUp, false, 'never in solo');
-  assert.equal(createRun({ seed: 'x', mode: 'daily', oneUp: true }).oneUp, false, 'never in the daily');
-  assert.equal(createRun({ seed: 'x', mode: 'match', oneUp: true }).oneUp, true);
-  // land on one: 2 → 3 lives; at 3 it stays 3
-  let seed = '', L = null;
-  for (let s = 0; s < 50 && !L; s++) { seed = `up${s}`; const c = createCourse(seed, { oneUp: true }); for (let i = 60; i < 400 && !L; i++) { const l = c.lane(i); if (l.oneUp >= 0 && c.lane(i - 1).type === 'grass' && !c.lane(i - 1).obs[l.oneUp]) L = l; } }
-  assert.ok(L, 'a one-up with plain grass before it');
-  for (const [lives, want] of [[2, 3], [3, 3]]) {
-    const course = createCourse(seed, { oneUp: true }), run = createRun({ seed, mode: 'match', oneUp: true });
-    run.y = L.i - 1; run.best = L.i - 1; run.x = L.oneUp * T.FP + 500; run.wall = (L.i - 6) * T.FP; run.lives = lives; run.blink = 30;
-    step(run, course, 'u'); for (let i = 0; i < T.HOP_TICKS; i++) step(run, course, '');
-    assert.equal(run.y, L.i); assert.equal(run.lives, want, `${lives} lives + a one-up = ${want}`); assert.equal(run.ups[L.i], 1);
-    step(run, course, 'd'); for (let i = 0; i < T.HOP_TICKS; i++) step(run, course, ''); step(run, course, 'u'); for (let i = 0; i < T.HOP_TICKS; i++) step(run, course, '');
-    assert.equal(run.lives, want, 'taken once');
-    const same = createCourse(seed), plain = createRun({ seed, mode: 'match' });   // (the switch off: the same hop gives nothing)
-    plain.y = L.i - 1; plain.best = L.i - 1; plain.x = run.x; plain.wall = run.wall; plain.lives = 2; plain.blink = 30;
-    step(plain, same, 'u'); for (let i = 0; i < T.HOP_TICKS; i++) step(plain, same, '');
-    assert.equal(plain.lives, 2);
-  }
 });
 
 // ---- THE CARD MOMENTS — hand-built logs (the bot walks to the spot; the hops that matter are placed by hand), then THE REPLAY judges them
@@ -149,12 +118,12 @@ test('jaywalk-boom: STANDING ON the flight path when THE BLACKBIRD\'s tell begin
 });
 
 test('jaywalk-boom is NOT earned: hit by the Blackbird (stayed on the lane) · on the lane only AFTER the tell began · never on it at all', () => {
-  // stayed: the Blackbird takes a life, no moment
+  // stayed: the Blackbird ends the run (ONE LIFE), no moment
   let w = atFlightPath('boom');
   waitForTell(w, 30); hop(w.run, w.course, w.log, 'u');
   const ev = [];
   for (let i = 0; i < 30 + w.bb.pulse.tell + w.bb.pulse.pass + 5; i++) step(w.run, w.course, '', ev);
-  assert.ok(ev.some(e => e.e === 'hit' && e.cause === 'blackbird'), 'the Blackbird hits a kid who stays');
+  assert.ok(ev.some(e => e.e === 'out' && e.cause === 'blackbird'), 'the Blackbird hits a kid who stays: out');
   assert.equal(replay({ seed: w.seed, mode: 'match', log: w.log }).feats.boom, false);
   // late: stepped on during the tell, hopped clear again — not standing on it when the tell BEGAN
   w = atFlightPath('boom');
@@ -184,11 +153,11 @@ function atUfo(tag) {
 function chase(w, until) {
   for (let i = 0; i < 4000 && !isOver(w.run) && !until(w.run); i++) {
     let d = '';
-    if (w.run.st === 'idle' && !w.run.blink) {
+    if (w.run.st === 'idle') {
       const dx = ufoX(w.u, w.run.t) - w.run.x, dy = ufoY(w.u, w.run.t) - (w.run.y * T.FP + 500);
       const want = Math.abs(dy) > Math.abs(dx) ? (dy > 0 ? 'u' : 'd') : dx > 0 ? 'r' : 'l';
       const type = w.course.lane(w.run.y + (want === 'u' ? 1 : want === 'd' ? -1 : 0)).type;
-      if ((type === 'grass' || type === 'flight') && (!w.log.length || w.run.t - w.log[w.log.length - 1].t >= 12)) d = want;   // (only ever onto plain ground: nothing else may take the life)
+      if ((type === 'grass' || type === 'flight') && (!w.log.length || w.run.t - w.log[w.log.length - 1].t >= 12)) d = want;   // (only ever onto plain ground: nothing else may end the run)
     }
     if (d) w.log.push({ t: w.run.t, d });
     step(w.run, w.course, d);

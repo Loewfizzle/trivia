@@ -1,7 +1,7 @@
 // JAYWALK H1 — THE WHOLE-RUN SIMULATIONS (docs/jaywalk.md "FAIR BY CONSTRUCTION"): a greedy bot + a random bot over 2,000 seeds PER MODE
 // through the real engine, and every lane's own numbers checked — every lane has a crossable window (no impossible lane), the opening is
 // calm, the difficulty rises, THE BLACKBIRD's tell ≥ 1.5 s every time, THE UFO + THE BLACKBIRD never share a stretch. (The deep runs, the
-// caps, the one-up + the card moments: tests/jaywalk-deep.test.mjs.)
+// caps + the card moments: tests/jaywalk-deep.test.mjs. H4 — ONE LIFE in every mode: the first hit ends the run.)
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from '../js/games/jaywalk/tuning.js';
@@ -148,7 +148,7 @@ test('H3 — THE LOGS: every log its OWN length (1–4 cells, all four show up; 
 
 for (const mode of T.MODE_IDS) {
   test(`${SEEDS} seeds, ${mode.toUpperCase()}: the GREEDY bot crosses the opening on every course (no impossible lane: the wall never catches it there), the RANDOM bot never breaks the rules`, () => {
-    const M = T.MODES[mode], TICKS = 900;
+    const TICKS = 900;
     let wall = 0, reached = 0, sum = 0;
     const dead = [];
     for (let s = 0; s < SEEDS; s++) {
@@ -159,14 +159,13 @@ for (const mode of T.MODE_IDS) {
       if (r.lanes >= 25) reached++;
       if (run.hits && r.cause === 'wall') { wall++; dead.push(`${seed} at lane ${run.y}`); }
       assert.ok(run.t <= TICKS && !r.taken, 'nobody is taken in the first 15 s');
-      assert.ok(run.lives >= 0 && run.lives <= M.lives, 'lives never above the mode\'s (THE ONE-UP is off)');
-      assert.equal(Object.keys(run.ups).length, 0, 'no one-up with the switch off');
-      // the random bot: any hops at all leave a legal run (lanes ≥ 0, a cause from the list, lives in range)
+      assert.ok(run.hits <= 1 && (run.hits === 1) === (run.st === 'out'), 'ONE LIFE: a hit = out, never a second one');
+      // the random bot: any hops at all leave a legal run (lanes ≥ 0, a cause from the list, one hit at most)
       if (s % 4 === 0) {
         const c2 = createCourse(seed), r2 = createRun({ seed, mode });
         playBot(r2, c2, randomBot({ seed }), 1500);
         const q = resultOf(r2);
-        assert.ok(q.lanes >= 0 && q.lives >= 0 && q.lives <= M.lives && (q.cause === '' || T.CAUSES.includes(q.cause)), `${seed}: the random bot's run is legal (${q.cause})`);
+        assert.ok(q.lanes >= 0 && q.hits <= 1 && (q.cause === '' || T.CAUSES.includes(q.cause)), `${seed}: the random bot's run is legal (${q.cause})`);
         assert.ok(r2.best >= r2.y - 1 || r2.st !== 'idle', 'the best lane is the farthest landed on');
       }
     }

@@ -15,9 +15,6 @@ export const MID_COL = 4;                 // (the centre column: never an obstac
 export const HOP_TICKS = 8;
 export const KID_HALF = 300;              // (the kid's half width against cars / trains / the Blackbird — 0.3 of a cell: a fair, slightly small box)
 export const LOG_GRACE = 150;             // (how far past a log's end the kid's centre may sit and still be on it)
-export const DOWN_TICKS = 45;             // (a hit: 0.75 s down, then the respawn)
-export const BLINK_TICKS = 120;           // (the respawn's ~2 s blink: nothing hits)
-export const MAX_LIVES = 3;
 
 // ---- THE COURSE
 export const CALM_LANES = 4;              // (lanes 0–3: plain grass — the opening is always calm)
@@ -79,21 +76,16 @@ export const WALL = Object.freeze({
   start: -8 * FP,                          // (it begins 8 lanes behind the start)
   delay: 180,                              // (and waits 3 s — the calm opening)
   behind: 5,                               // (never more than 5 lanes behind the kid's BEST: no banking distance — it waits just under the screen's foot)
-  respawnGap: 7,                           // (a respawn is never closer than 7 lanes ahead of it)
 });
 
-/** THE ONE-UP — THE ONE SWITCH (default OFF). If ever on: multiplayer only (MODES[mode].oneUp), rare, from the seed, never above MAX_LIVES. */
-export const ONE_UP = false;
-export const ONE_UP_FROM = 60;            // (the first lane one may sit on)
-export const ONE_UP_CHANCE = 400;         // (per stretch, of 1000)
-
-/** THE MODES — lives, the wall's pace (FP a tick) + its speed-up, THE MOTHERSHIP's tick (cap: 0 = never). All tunable here.
- *  SOLO ENDLESS = 1 life, no speed-up, no end · MATCH = 3 lives (the host's option: 1), faster from ~4 min, THE MOTHERSHIP at ~6 min ·
+/** THE MODES — the wall's pace (FP a tick) + its speed-up, THE MOTHERSHIP's tick (cap: 0 = never). All tunable here.
+ *  ONE LIFE EVERYWHERE (H4 — the owner, Nov 16): one hit = out, in every mode. No lives option, no respawn, no blink, no one-up.
+ *  SOLO ENDLESS = no speed-up, no end · MATCH = faster from ~4 min, THE MOTHERSHIP at ~6 min takes whoever is left (rare — a reward) ·
  *  DAILY (built later — DAILY A / B) = faster from ~3 min, THE MOTHERSHIP at ~5 min. */
 export const MODES = Object.freeze({
-  solo: Object.freeze({ lives: 1, livesOpt: [1], wall: { base: 10, rampAt: 0, rampTicks: 0, max: 10 }, cap: 0, oneUp: false }),
-  match: Object.freeze({ lives: 3, livesOpt: [3, 1], wall: { base: 10, rampAt: 4 * 60 * TICK_HZ, rampTicks: 2 * 60 * TICK_HZ, max: 30 }, cap: 6 * 60 * TICK_HZ, oneUp: true }),
-  daily: Object.freeze({ lives: 1, livesOpt: [1], wall: { base: 10, rampAt: 3 * 60 * TICK_HZ, rampTicks: 2 * 60 * TICK_HZ, max: 30 }, cap: 5 * 60 * TICK_HZ, oneUp: false }),
+  solo: Object.freeze({ wall: { base: 10, rampAt: 0, rampTicks: 0, max: 10 }, cap: 0 }),
+  match: Object.freeze({ wall: { base: 10, rampAt: 4 * 60 * TICK_HZ, rampTicks: 2 * 60 * TICK_HZ, max: 30 }, cap: 6 * 60 * TICK_HZ }),
+  daily: Object.freeze({ wall: { base: 10, rampAt: 3 * 60 * TICK_HZ, rampTicks: 2 * 60 * TICK_HZ, max: 30 }, cap: 5 * 60 * TICK_HZ }),
 });
 export const MODE_IDS = Object.freeze(Object.keys(MODES));
 /** the wall's pace at a tick (FP a tick): still for the delay, the base, then the ramp to its max */
@@ -112,13 +104,21 @@ export const MAX_INPUTS_PER_SEC = 20;     // (… and never more than 20 in any 
 export const MAX_LOG = 60000;             // (a solo run's whole log; a capped mode's = its cap / MIN_INPUT_GAP at most)
 export const SEED_MAX = 64;
 
-// ---- THE CLOCK (H3 — the anti-cheat: a run is played ON the server's clock; tick 0 = the player's GO, a server timestamp the rules enforce.
-// Every hop-log chunk carries its own server timestamp; the server refuses a log that runs AHEAD of the real clock, and stops counting
-// one that falls far BEHIND it — a slowed game — at the last hop that was on time: THE DROP's slow-motion check, both ways)
+// ---- THE CLOCK (H3 — the anti-cheat: a run is played ON the server's clock; tick 0 = GO, a server timestamp the rules enforce. Every
+// hop-log chunk carries its own server timestamp — the moment it ARRIVED. The server refuses a log that runs AHEAD of the real clock, and
+// stops counting one that falls BEHIND it — a slowed game — at the last hop that was on time.
+// H4 — THE DROPPED SIGNAL (the owner, Nov 16 — a phone in a moving van): the database queues writes while a phone is offline and stamps
+// them when they ARRIVE, so a lost connection looks like slow motion. They are told apart by HOW the chunks arrive (replay.js#clockProblem):
+//   · a DROP = a SILENCE, then a BURST of chunks landing together that catches up to the real clock → never held against the run (≤ `drop`)
+//   · SLOW MOTION = the ticks drifting behind the clock while the chunks keep arriving → cut, as before)
 export const CLOCK = Object.freeze({
   ahead: 2 * TICK_HZ,                      // (a chunk's LAST hop: at most 2 s ahead of the chunk's own timestamp — the phone's clock estimate + a frame)
   behind: 8 * TICK_HZ,                     // (… its FIRST hop: at most 8 s behind it — the upload every second + a slow network)
-  flushMs: 1000,                           // (the phone uploads its new hops every second)
+  drop: 75 * 1000,                         // (ms — THE DROPPED SIGNAL: a silence this long before a burst explains its lag: ~60 s offline + the reconnect)
+  catchUp: 15 * 1000,                      // (ms — … and the burst must be back on the clock within this of its first chunk, or it was never a drop)
+  jitter: 6,                               // (ticks — inside a burst a chunk may be this much later than the one before it, never more: a lag that grows is slow motion)
+  flushMs: 1000,                           // (the phone uploads its new hops every second — a solo run)
+  flushMatchMs: 500,                       // (… every half second in a MATCH: the others' ghosts are your hop log)
   chunkMax: 400,                           // (a chunk's packed string — the rules' bound)
   chunks: 10000,                           // (c/0 … c/9999)
 });

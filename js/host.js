@@ -256,6 +256,9 @@ async function startGameNow(gameId, settings, quick = false) {
   //  prepares the match (a question bank, a song); the game's OWN clock starts when the walk ends (START_MS later): a cartridge's start()
   //  gets the moment its match begins, never the tap — docs/cartridge.md. The stamp also ends the last match's walk-out, its REMATCH ring +
   //  every vote. A start that fails takes the stamp back down.)
+  // (FR7 FIXES B — A RE-START KEEPS THE LAST MATCH's PROOF: the one just ended — on the podium, or the walk-back stamp, read BEFORE the
+  //  start's stamp clears it)
+  const prevM = (state.game && state.game.matchId) || (state.meta && state.meta.back && state.meta.back.m) || null;
   const tGo = serverNow();
   await update(dbRef(`rooms/${state.code}`), { 'meta/go': { at: serverTimestamp(), m: matchId, g: gameId }, 'meta/back': null, rv: null }).catch(e => stampRefused('go', e));
   // (OC1 — THE CONTRACT's `used`: the room's night memory, rooms/{CODE}/meta/used, read once here — a cartridge deals around it, never
@@ -274,8 +277,6 @@ async function startGameNow(gameId, settings, quick = false) {
   }
   const { $room, ...game } = created;
   inflight = { sig: '', at: 0 };
-  // (FR7 FIXES B — A RE-START KEEPS THE LAST MATCH's PROOF: the match that just ended — still on the podium, or the room's walk-back stamp)
-  const prevM = (state.game && state.game.matchId) || (state.meta && state.meta.back && state.meta.back.m) || null;
   wipeSeal(state.code);
   await update(dbRef(`rooms/${state.code}`), {
     game: { ...game, go: serverTimestamp() },   // (the start's stamp in the match's own write too — core/room-show.js#goOf: the show never waits on a rules re-publish)
