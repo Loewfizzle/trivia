@@ -43,7 +43,7 @@ import { vapid, sendPush, okEndpoint } from './push.js';
 import { createHash } from 'node:crypto';
 import { SHOWCASE_LEVELS } from '../../js/core/harbor-showcase.js';
 import { cleanIntercom, icPublic, icLen, canUnsend, IC_WHY, icWhen } from '../../js/core/radio-intercom.js';
-import { setFounder, founderState } from './founder.js';
+import { setFounder } from './founder.js';
 import { dayKey } from '../../js/core/week.js';
 
 const HERE_MS = 360e3;   // (THE CDN HOTFIX: the hello every ~5 min (≤ 5.5) → 6 min — was 3 for the ~2-min hello)
@@ -285,7 +285,6 @@ async function ledger(me, role, now, o) {
     week: days.map(d => ({ d, visits: Object.keys(V[d] || {}).length, games: daily[d] || 0 })),
     estimate: true, since: dayStart,
     crew: await crewList(), crewCap: knob('radio').crew.cap, crewIc: { on: !!((await val('radio/crewIc')) || {}).on },
-    founder: await founderState().catch(() => null),
   };
 }
 

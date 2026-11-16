@@ -338,24 +338,11 @@ G('radio', async () => {
          `WHO'S ON: IN THE CITY → THE SHEET — the owner's own row (${mine ? mine.t : `none of ${rows.length}: ${rows.map(r => r.t).join(' | ').slice(0, 160)}`})`);
       await shotFace(F.page, 'whos-on'); }
     await F.ctx.close(); }
-  // ---- PROGRESSION A — THE FOUNDER WINDOW on THE LEDGER: OPEN by default; a tap arms it, a second tap CLOSES it (the server, audited);
-  // the same two taps reopen it (the test leaves it open)
-  { const sw = () => ev(O.page, `(() => { const b = document.querySelector('.rd-fsw'); return b ? { state: b.querySelector('.rd-fsw-state').textContent, armed: b.classList.contains('is-armed'), h: b.getBoundingClientRect().height } : null; })()`);
-    const tap = () => ev(O.page, `document.querySelector('.rd-fsw').click()`);
-    await waitFor(O.page, '!!document.querySelector(".rd-fsw")', 'the FOUNDER switch', 10000);
-    const s0 = await sw();
-    await tap(); await sleep(150);
-    const s1 = await sw();
-    await tap();
-    await waitFor(O.page, '(document.querySelector(".rd-fsw-state") || {}).textContent === "CLOSED"', 'CLOSED', 10000).catch(() => {});
-    const s2 = await sw(), node = await get('progress/founder');
-    ok(s0 && s0.state === 'OPEN' && s0.h >= 44 && s1.armed && s2 && s2.state === 'CLOSED' && node && node.open === false && node.by === pid,
-      `RADIO: THE FOUNDER WINDOW — OPEN by default, a tap arms it, the second CLOSES it on the server (${JSON.stringify({ s0, s1, s2, node })})`);
-    const log = Object.values((await get('audit')) || {}).filter(x => x && x.act === 'founderClose' && x.by === pid);
-    ok(log.length >= 1, `RADIO: the FOUNDER switch is audited (${log.length})`);
-    await tap(); await sleep(150); await tap();
-    await waitFor(O.page, '(document.querySelector(".rd-fsw-state") || {}).textContent === "OPEN"', 'OPEN again', 10000).catch(() => {});
-    ok(((await get('progress/founder')) || { open: true }).open !== false, 'RADIO: … and reopened (the test leaves it OPEN — CITY C: the reopen records its time)'); }
+  // ---- FIXES R2 (the owner's add-on): THE FOUNDER WINDOW is switched ONLY at the foot of /admin — THE LEDGER carries no FOUNDER paper / switch
+  // (the server's radioFounder + its audit: tests/integration/progression.test.mjs + server.test.mjs 'CITY C: … THE FOUNDER WINDOW')
+  { await waitFor(O.page, '!!document.querySelector(".rd-paper")', 'the ledger', 10000).catch(() => {});
+    const f = await ev(O.page, `({ papers: document.querySelectorAll('.rd-paper').length, founder: !!document.querySelector('.rd-founder, .rd-fsw') })`);
+    ok(f.papers > 0 && !f.founder, `RADIO: no FOUNDER WINDOW on the ledger — it lives at the foot of /admin only (${JSON.stringify(f)})`); }
   // ---- THE CITY BEHIND keeps running at its tier while the radio is open (a warning on a slow machine)
   // (FRIENDS C: counted from the LOOP's own drawn frames over the 3 s — the tiering's frame window (frames()) is emptied BY DESIGN while a
   //  bake is pending, and the radio's own billboard messages swap the roof board (a neon re-bake) in this very window: it read ~0 fps)

@@ -774,3 +774,11 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   faces module while the switch is read. Timing tools: `scores-timing.mjs` (RTT_MS) + `scores-open.mjs` (docs/testing.md).
 - STATS → THE DAILIES (the owner's sheet): WHO played each daily — TODAY · THIS WEEK — from `dly/{g}/{day}/s · r · x` (`api/admin.js#dailyWho`, inside
   the 5-min snapshot `progress/statsSnap` v 2; faces by index, no pid).
+
+### FIXES R2 — A SCORES ROW OPENS THE PLAYER (the owner's add-on, Nov 15 7:36 pm)
+Every slim card on SCORES (TODAY: YOUR FRIENDS + EVERYONE · TODAY; ALL TIME: YOUR FRIENDS + EVERYONE) is a press + lift control (`data-press`,
+`role=button`, a keyboard reaches it) that opens THAT player's page through THE BOARD's own opener (`profile/player-page.js#openPlayer` — never a
+second page): a friend by pid · an ALL TIME row by `{ b: 'daily-<g>', bid }` · an EVERYONE · TODAY row by `{ id, dg: <g> }` — the server finds that
+board id in the daily's top for today (`api/_lib/player.js#pidOfDaily` — a finisher need not be on any board yet); YOUR row = your card. The
+list stays stills (THE LIVE LANE). A touch that only STOPS the scrolling list never opens a row (THE REVIEW A8 — docs/title.md). Proof:
+wk-press 'a SCORES row → THAT PLAYER'S PAGE' + 'A8', server.test 'BOARD 2.0 A' (+ the dg path).

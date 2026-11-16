@@ -285,3 +285,8 @@ body[data-look="day"] .dy-overlay { --dy-box-line: #16305c; --dy-box-on: #2f86ff
 .dy-mark .cc-sl-stand { fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; }
 /* CITY D — SCORES SHOWS INSTANTLY: the kept scores while the fresh ones are on their way — a quiet word after the heading, never a spinner */
 .dy-upd { font-weight: 600; letter-spacing: 0.12em; color: var(--text-faint); }
+/* FIXES R2 (the owner's add-on): a SCORES row's slim card opens that player's page — press + lift (data-press), a quiet press, no pill */
+.dy-cards .dy-card[role="button"] { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform .12s ease-out; }
+.dy-cards .dy-card[role="button"]:active { transform: scale(0.985); }
+.dy-cards .dy-card[role="button"]:focus-visible { outline: 2px solid var(--dy-ink); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .dy-cards .dy-card[role="button"] { transition: none; } .dy-cards .dy-card[role="button"]:active { transform: none; } }

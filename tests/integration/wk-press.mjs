@@ -264,6 +264,55 @@ try {
   }
   await p.evaluate("document.getElementById('a13-test').remove(); window.__noClick = false");
 
+  // ---- FIXES R2 — the owner's add-on (Nov 15 7:36 pm): a SCORES row's slim card opens that player's page (THE BOARD's opener) — one touch, iOS's
+  //      click dropped, press + lift; and THE REVIEW A8: a touch that only STOPS a scrolling list (a fling still moving) never opens the row
+  { const { streakDay } = await import('../../js/core/streak.js');
+    const day = streakDay(Date.now()), fake = `wpz${Date.now() % 100000}`;
+    await dbPut(`profiles/${fake}`, { n: 'ZEDDY', a: 'star', c: 'cyan', x: 900 });
+    await dbPut(`dly/password/${day}/t`, { v: 1, rows: [{ k: fake, s: 3, at: Date.now() - 60000 }] });
+    await p.evaluate(() => { try { for (const k of Object.keys(localStorage)) if (/dy:scores/.test(k)) localStorage.removeItem(k); } catch { /* fine */ } });
+    await home();
+    await p.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'scores' } })));
+    await waitFor("!!document.querySelector('.dy-scope-b')", 15000);
+    // (SCORES → TODAY: EVERYONE · TODAY lists the seeded finisher)
+    await p.evaluate("document.querySelectorAll('.dy-scope-b').forEach(b => { if (/TODAY/.test(b.textContent) && !b.classList.contains('is-on')) b.click(); })");
+    const ROW = "document.querySelector('.dy-every-today .dy-card[role=\"button\"]')";
+    const there = await waitFor(`!!${ROW}`, 12000);
+    if (there && process.env.SHOTS) { await sleep(800); await p.screenshot({ path: join(process.env.SHOTS, 'scores-today-row-390.png') }); }
+    ok(there, `SCORES → TODAY: the EVERYONE row is a tappable card (${there ? await p.evaluate(`${ROW}.getAttribute('aria-label')`) : 'no row'})`);
+    if (there) {
+      await p.evaluate("window.__noClick = true");
+      await press('[iOS: NO click] a SCORES row → THAT PLAYER\'S PAGE', { js: ROW }, "!!document.querySelector('.vl-full.pp')");
+      if (process.env.SHOTS) { await sleep(900); await p.screenshot({ path: join(process.env.SHOTS, 'scores-row-player-page-390.png') }); }
+      await p.keyboard.press('Escape'); await waitFor("!document.querySelector('.vl-full.pp')", 3000);
+      if (!await waitFor(`!!${ROW}`, 3000)) {   // (the Esc took the daily screen too: back to SCORES → TODAY)
+        await p.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'scores' } })));
+        await waitFor("!!document.querySelector('.dy-scope-b')", 15000);
+        await p.evaluate("document.querySelectorAll('.dy-scope-b').forEach(b => { if (/TODAY/.test(b.textContent) && !b.classList.contains('is-on')) b.click(); })");
+        await waitFor(`!!${ROW}`, 12000);
+      }
+      await sleep(400);
+      // A8 — a FLING still moving: the list scrolls 2 px each frame, the finger lands on the row (where it is at that moment) mid-scroll
+      const c = await centre({ js: ROW });
+      await p.evaluate(sel => { const row = (0, eval)(sel); let sc = row.parentElement; while (sc && !/auto|scroll/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement; sc = sc || document.scrollingElement; if (sc.scrollHeight <= sc.clientHeight + 4) { const pad = document.createElement('div'); pad.id = 'a8-pad'; pad.style.height = '1600px'; sc.append(pad); } sc.scrollTop = Math.max(1, sc.scrollTop); window.__flingOn = true; const step = () => { if (!window.__flingOn) return; sc.scrollTop += 2; requestAnimationFrame(step); }; requestAnimationFrame(step); window.__fling = 0; window.__flingEl = sc.className || sc.tagName; }, ROW);
+      // (the FLING's finger: down on the list, dragged 90 px, then the browser takes it for the scroll — pointercancel, as iOS sends it)
+      await p.evaluate(() => { const el = document.querySelector('.dy-scroll') || document.body, o = { pointerId: 77, pointerType: 'touch', isPrimary: true, bubbles: true, clientX: 60, clientY: 600 };
+        el.dispatchEvent(new PointerEvent('pointerdown', o)); el.dispatchEvent(new PointerEvent('pointermove', { ...o, clientY: 510 })); el.dispatchEvent(new PointerEvent('pointercancel', { ...o, clientY: 510 })); });
+      await sleep(300);
+      const s0 = await tw();
+      console.log('   (the fling just before the tap:', JSON.stringify(await p.evaluate('window.__tapwatch.scrolls()')), ')');
+      await p.evaluate("window.__noClick = false");
+      const c2 = await p.evaluate(sel => { const r = (0, eval)(sel).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, ROW);   // (where the row is NOW — it moves with the fling)
+      await p.touchscreen.tap(c2.x, c2.y);
+      await sleep(900);
+      await p.evaluate("window.__flingOn = false; document.getElementById('a8-pad') && document.getElementById('a8-pad').remove()");
+      const s1 = await tw(), opened = await p.evaluate("!!document.querySelector('.vl-full.pp')");
+      ok(!opened && s1.pressed === s0.pressed && s1.rescues === s0.rescues && s1.stoppers > s0.stoppers, `A8 — a touch that STOPS a scrolling list (${await p.evaluate('window.__flingEl')}): the row did NOT open (${opened ? 'OPENED' : 'closed'}) · press +${s1.pressed - s0.pressed} · rescues +${s1.rescues - s0.rescues} · stoppers +${s1.stoppers - s0.stoppers}`);
+      table.push(`A8 · a fling-stop on a SCORES row: ${opened ? 'OPENED' : 'nothing'}`);
+      if (opened) await p.keyboard.press('Escape');
+    }
+    await home(); }
+
   // ---- THE MOVED ROW (Safari 27.0.1: a shelf row slid 38 px under a still finger): down on the row → the row moves → the still finger lifts.
   //      The pointer events are the page's own here (a touch down, the move, the up — no click from anyone): the row still acts, once
   await p.evaluate("window.__noClick = true; document.querySelector('.nd-tab-play').click()");

@@ -2139,6 +2139,16 @@ test('BOARD 2.0 A — the rows\' slim-card data (no forbidden key) + THE PLAYER 
   assert.ok(st.top.every(t => t.name && t.name !== t.id && t.group && t.tier), JSON.stringify(st.top));
   assert.deepEqual(Object.keys(st.card).sort(), ['a', 'at', 'c', 'cd', 'cn', 'es', 'fd', 'g', 'l', 'n', 'r', 'tb'].sort());
   assert.equal(st.card.cd, 'card-sg-btc'); assert.ok(st.band && st.streak && typeof st.streak.alive === 'boolean');
+  // FIXES R2 (the owner's SCORES add-on): a row of a daily's EVERYONE · TODAY list — its board id found in THAT daily's top for today (dg)
+  {
+    const { streakDay } = await import('../../js/core/streak.js');
+    const tp = `dly/password/${streakDay(later)}/t`, keep = await val(tp);
+    await ref(tp).set({ v: 1, rows: [{ k: s.pid, s: 3, at: later - 60e3 }] });
+    try {
+      assert.equal((await P({ id: boardId(s.pid), dg: 'password' })).card.cd, 'card-sg-btc', 'found through the day\'s top');
+      await rejects(P({ id: '0123456789abcdef', dg: 'password' }), 404, 'no_profile');   // (not in the day's top, nor on a board)
+    } finally { await ref(tp).set(keep || null); }
+  }
   // CARD NAMES YOU CAN SEE (the owner, Nov 13): the WORN card's name rides along (`cn`) — a stranger's full card is never blank — and NO other
   // item's name: not the emblem / tube / glow they wear, not an un-equipped card they own, not a card nobody here owns (the catalog stays server-only)
   const { ITEM_ROWS } = await import('../../api/_lib/catalog.js');

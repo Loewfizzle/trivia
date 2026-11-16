@@ -289,7 +289,7 @@ function openScreen(tab0) {
       const list = h(`ol.board-list.is-strips.dy-cards${soloTable ? '.is-solo' : ''}`, { 'aria-label': `${d.name} — your friends` },
         ...cut.shown.map(r => h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.place === 1 && !soloTable ? '.is-first' : ''}`, { dataset: { pid: r.pid } },
           h('span.lb-rank', r.place && !soloTable ? ordinal(r.place) : ''),
-          h('div.lb-card.dy-card', h('div.lb-sub',
+          h('div.lb-card.dy-card', opener({ pid: r.pid, row: { n: r.name } }, r.name), h('div.lb-sub',
             r.gated ? h('small.dy-cnote', 'NOT COUNTED') : null,
             h('span.lb-pts', r.score != null ? resultEl(d.id, r.score, extraOf(r)) : h('span.lb-score.dy-cscore', 'PLAYED')))))));
       const more = cut.hidden.length ? h('button.dy-more', { type: 'button', 'data-press': true, onclick: () => { sfx('select'); showAll[d.id] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
@@ -344,9 +344,17 @@ function openScreen(tab0) {
     const shown = played && r.v != null;
     return h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${shown && r.rank === 1 ? '.is-first' : ''}${r.below ? '.is-below' : ''}`, { dataset: { pid: r.id || `me${i}` } },
       h('span.lb-rank', shown && r.rank ? (rankMedal(r.rank, { size: 32 }) || ordinal(r.rank)) : ''),   // (CITY B: THE DECO MEDALS for 1–3)
-      h('div.lb-card.dy-card', h('div.lb-sub',
+      h('div.lb-card.dy-card', opener(r.me && !r.id ? { pid: me().pid } : { id: r.id, dg: d.id, row: r }, r.me ? me().name : r.n), h('div.lb-sub',
         r.gated ? h('small.dy-cnote', 'NOT COUNTED') : null,
         h('span.lb-pts', shown ? resultEl(d.id, r.v, r.e) : h('span.lb-score.dy-cscore', 'PLAYED')))));
+  }
+  /** FIXES R2 (the owner's add-on, Nov 15 7:36 pm): a SCORES row's slim card is TAPPABLE — that player's page through THE BOARD's own opener
+   *  (profile/player-page.js#openPlayer — never a second player page; YOUR row = your card). Press + lift (data-press — THE TAP WATCH; a touch
+   *  that only stops a scrolling list never acts: tapwatch.js#SCROLL_STOP_MS). target: { pid } (a friend / you) | { id } (a public face) */
+  function opener(target, name) {
+    const nm = String(name || '').toUpperCase();
+    const go = () => { if (!target || (!target.pid && !target.id && !target.bid)) return; sfx('select'); lazyImport(import('../profile/player-page.js'), '../profile/player-page.js').then(m => m.openPlayer(target)).catch(() => {}); };
+    return { role: 'button', tabindex: '0', 'data-press': true, 'aria-label': nm ? `${nm} — their card` : 'Their card', onclick: go, onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } } };
   }
   /** the strips into the EVERYONE rows (one surface per panel): a public face from the server (YOU: your own card), a FRIEND's "LV n · FRIEND" */
   async function dressEvery(list, rows, d) {
@@ -389,7 +397,7 @@ function openScreen(tab0) {
       const list = myRows.length ? h('ol.board-list.is-strips.dy-cards', { 'aria-label': `${d.name} — your friends, all time` },
         ...cut.shown.map(r => { const ln = allTimeLine(r, MIN_DAYS); return h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.place === 1 ? '.is-first' : ''}`, { dataset: { pid: r.pid } },
           h('span.lb-rank', r.place ? ordinal(r.place) : ''),
-          h('div.lb-card.dy-card', h('div.lb-sub', ln.note ? h('small.dy-cnote.dy-anote', ...ln.note.split(' · ').map(x => h('span', x))) : null,
+          h('div.lb-card.dy-card', opener({ pid: r.pid, row: { n: r.name } }, r.name), h('div.lb-sub', ln.note ? h('small.dy-cnote.dy-anote', ...ln.note.split(' · ').map(x => h('span', x))) : null,
             ln.score ? h('span.lb-pts', h('span.lb-score.dy-cscore', ln.score, h('small.dy-unit', ln.unit))) : null))); })) : null;
       const more = cut.hidden.length ? h('button.dy-more', { type: 'button', 'data-press': true, onclick: () => { sfx('select'); showAll[`all:${d.id}`] = true; paint(); } }, h('span', `SHOW ALL ${cut.more}`), h('i', { 'aria-hidden': 'true' })) : null;
       els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } },
@@ -419,7 +427,7 @@ function openScreen(tab0) {
     ev.append(...all.map((r, i) => {
       const ln = r.mine ? allTimeLine(r.mine, MIN_DAYS) : null;
       return h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.rank === 1 ? '.is-first' : ''}${r.below ? '.is-below' : ''}`, { dataset: { pid: r.id || `me${i}` } }, h('span.lb-rank', r.rank ? (rankMedal(r.rank, { size: 32 }) || ordinal(r.rank)) : ''),
-        h('div.lb-card.dy-card', h('div.lb-sub', ln && ln.note ? h('small.dy-cnote.dy-anote', ...ln.note.split(' · ').map(x => h('span', x))) : null,
+        h('div.lb-card.dy-card', opener(r.mine || (r.me && !r.id) ? { pid: me().pid } : { b: `daily-${d.id}`, bid: r.id, row: r }, r.mine || r.me ? me().name : r.n), h('div.lb-sub', ln && ln.note ? h('small.dy-cnote.dy-anote', ...ln.note.split(' · ').map(x => h('span', x))) : null,
           ln ? (ln.score ? h('span.lb-pts', h('span.lb-score.dy-cscore', ln.score, h('small.dy-unit', ln.unit))) : null)
             : h('span.lb-pts', h('span.lb-score.dy-cscore', (r.v / 100).toFixed(1), h('small.dy-unit', 'AVG'))))));
     }));

@@ -37,7 +37,7 @@ let open = null;
 onCloseAll(() => { if (open) open.close(); });
 
 /** the query the server takes: a pid, a board row ({ b, bid }), or a board id */
-const queryOf = t => (t.pid ? { pid: t.pid } : t.b && t.bid ? { b: t.b, bid: t.bid } : t.id ? { id: t.id } : null);
+const queryOf = t => (t.pid ? { pid: t.pid } : t.b && t.bid ? { b: t.b, bid: t.bid } : t.id ? { id: t.id, ...(t.dg ? { dg: t.dg } : {}) } : null);   // (FIXES R2: dg = the daily whose TODAY list the row came from)
 
 export async function openPlayer(target = {}, o = {}) {
   const row = target.row || o.row || {}, extra = (o.extra || target.extra || []).filter(Boolean);

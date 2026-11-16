@@ -75,7 +75,7 @@ let rescued = null;            // { el, sig, at } — a late real click on it is
 const longTasks = [];          // [{ t, d }] (Chromium only — Safari doesn't count them)
 let installed = false, sentMem = null, rescueOn = true;
 let lastDown = '';   // (tests: which control the last touch pressed)
-const stats = { downs: 0, lost: 0, rescues: 0, swallowed: 0, deferred: 0, reports: 0, pressed: 0, tookSwallowed: 0, unsettled: 0 };
+const stats = { downs: 0, lost: 0, rescues: 0, swallowed: 0, deferred: 0, reports: 0, pressed: 0, tookSwallowed: 0, unsettled: 0, stoppers: 0 };
 let lastReport = '';
 
 /** PURE: a short, safe description of an element: tag.class1.class2 "LABEL" (the label ≤ 24 chars, letters only — never a name / code) */
@@ -100,7 +100,7 @@ export function mayReport(mem, now) {
 /** PURE: was this press a clean TAP the page should have answered? (the rules the rescue + the report share) */
 /** PURE (4. EVERY TAP ACTS): does a data-press control act on this lift? p: { type, dur, travel, cancelled, settled, disabled } */
 export function pressActs(p) {
-  if (!p || p.type === 'mouse' || p.cancelled || p.disabled || p.settled === false) return false;
+  if (!p || p.type === 'mouse' || p.cancelled || p.disabled || p.settled === false || p.stopper) return false;
   return p.dur >= 0 && p.dur <= PRESS_MS && p.travel < PRESS_SLOP;
 }
 /** PURE: is this trusted click the tail of a tap a data-press control already took? (near the lift point, inside 800 ms) */
@@ -112,10 +112,24 @@ export function tookClick(took, c) {
 export const settledAt = (born, t) => !(born > 0) || t - born >= SETTLE_MS;
 const bornOf = el => { try { const b = el && el.closest && el.closest('[data-born]'); return b ? Number(b.dataset.born) || 0 : 0; } catch { return 0; } };
 let took = null;   // { el, x, y, at } — the last tap a data-press control acted on
+// FIXES R2 — THE REVIEW A8 (+ the owner's SCORES add-on): A TOUCH THAT ONLY STOPS A SCROLLING LIST never acts. A press is a STOPPER when the
+// list it sits in (or the page) scrolled within SCROLL_STOP_MS AND a finger DRAG (a pointer the browser cancelled for a scroll, or one that
+// travelled past the slop) ended within DRAG_MS — a fling's momentum, never a programmatic scroll. A stopper: no press-act, no rescue, and its
+// click (if the browser sends one) swallowed.
+export const SCROLL_STOP_MS = 120, DRAG_MS = 3000;
+let lastScroll = -1e9, scrollEl = null, lastDrag = -1e9, stopper = null;   // stopper: { x, y, at } — the last stopping touch's lift
+let drag = null;   // the pointer being tracked for "was it a drag": { id, x, y, far }
+/** PURE: did this press begin while a list a finger flung was still moving? (the press's time, the last scroll's, the last drag's end) */
+export const stopsScroll = (downAt, scrollAt, dragAt) => downAt - scrollAt >= 0 && downAt - scrollAt < SCROLL_STOP_MS && downAt - dragAt >= 0 && downAt - dragAt < DRAG_MS;
+const onScroll = e => { lastScroll = performance.now(); scrollEl = e && e.target; };
+const scrolledHolds = el => { const t = scrollEl; if (!t || !el) return false; if (t === document || t === document.documentElement || t === document.body || t === document.scrollingElement) return true; return !!(t.contains && t.contains(el)); };
+const trackDown = e => { if (e.pointerType !== 'mouse' && e.isPrimary !== false) drag = { id: e.pointerId, x: e.clientX, y: e.clientY, far: false }; };
+const trackMove = e => { if (drag && e.pointerId === drag.id && !drag.far && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) >= PRESS_SLOP) drag.far = true; };
+const trackEnd = e => { if (drag && e.pointerId === drag.id) { if (e.type === 'pointercancel' || drag.far) lastDrag = performance.now(); drag = null; } };
 
 export function cleanTap(p) {
   if (!p) return false;
-  if (p.cancelled || p.prevented || p.own || p.game) return false;
+  if (p.cancelled || p.prevented || p.own || p.game || p.stopper) return false;
   if (p.dur > LONG_MS || p.travel > SLOP) return false;
   return p.sameAtUp !== false;
 }
@@ -218,7 +232,7 @@ function onDown(e) {
     press = {
       id: e.pointerId, type: e.pointerType || 'touch', el, sig: sigOf(el), x: e.clientX, y: e.clientY, t: e.timeStamp,
       inDelay: Math.max(0, performance.now() - e.timeStamp), rect: [r.left, r.top], travel: 0, muts: [], up: null,
-      own: !!el.closest('[data-tap-own]'), game: gameOn(), where: screenName(), clicked: false,
+      own: !!el.closest('[data-tap-own]'), game: gameOn(), where: screenName(), clicked: false, stopper: stopsScroll(performance.now(), lastScroll, lastDrag) && scrolledHolds(el),
       act: pressControl(el, gameOn()) || gestureControl(el, e.pointerType || 'touch'),   // (the control itself — a kick button inside a pressable row is its own; a press that BEGAN on a row acts even while its sheet still slides in: the 38-px shelf row)
     };
     // what re-renders while the finger is down (childList only, until the tap ends — off the rest of the time)
@@ -255,9 +269,10 @@ function onUp(e) {
     // (a press the page itself ended — the button's own pointerup closed the sheet it sat on — is no lost tap: it is judged at the check)
   } catch { /* fine */ }
   lastUp = { p, at: performance.now() };
+  if (p.stopper && p.up) { stopper = { x: p.up.x, y: p.up.y, at: performance.now() }; stats.stoppers = (stats.stoppers || 0) + 1; }
   // 4. EVERY TAP ACTS — a data-press control acts HERE, at the lift (its click dispatched once; the browser's own click swallowed in onClick)
   try {
-    if (p.act && p.up && pressActs({ type: p.type, dur: p.dur, travel: p.travel, cancelled: p.cancelled, disabled: disabled(p.act) })) {
+    if (p.act && p.up && pressActs({ type: p.type, dur: p.dur, travel: p.travel, cancelled: p.cancelled, disabled: disabled(p.act), stopper: p.stopper })) {
       let target = p.act.isConnected ? p.act : null;
       // (FIXES R1 — THE REVIEW A13: the twin of a control re-rendered between down + up is found by EVERY press rule — data-press, the implicit
       //  .btn-block / icon buttons, AND the gesture controls (share / copy / passkey: re-rendered mid-press they never acted — the rescue refuses them))
@@ -279,6 +294,8 @@ function onClick(e) {
   try {
     // 4. EVERY TAP ACTS: the browser's own click after a data-press control took the tap — swallowed (never twice, never on what slid in under it)
     if (e.isTrusted && took && tookClick(took, { x: e.clientX, y: e.clientY, at: performance.now() })) { e.stopImmediatePropagation(); e.preventDefault(); stats.tookSwallowed++; took = null; return; }
+    // (FIXES R2 — A8: the click of a touch that only stopped a scrolling list — swallowed: the row under the finger never opens)
+    if (e.isTrusted && stopper && tookClick(stopper, { x: e.clientX, y: e.clientY, at: performance.now() })) { e.stopImmediatePropagation(); e.preventDefault(); stopper = null; return; }
     // …and A SHEET SETTLES before its rows take taps: a click inside a pop-up younger than 350 ms that no press began on (the opening tap's own click)
     if (e.isTrusted && e.detail > 0) { const b = bornOf(e.target); if (b && !settledAt(b, performance.now()) && !(press && inside(e.target, press.el)) && !(press && press.el && inside(press.el, e.target.closest ? (e.target.closest('[data-born]') || e.target) : e.target))) { e.stopImmediatePropagation(); e.preventDefault(); stats.unsettled++; return; } }
     // a late real click on a control the rescue already clicked: swallowed (never twice)
@@ -370,6 +387,8 @@ export function installTapWatch(o = {}) {
   installed = true;
   const opt = { capture: true, passive: true };
   document.addEventListener('pointerdown', onDown, opt);
+  document.addEventListener('scroll', onScroll, { capture: true, passive: true });   // (FIXES R2 — A8: every scroll, any list — capture sees them all)
+  for (const [t, fn] of [['pointerdown', trackDown], ['pointermove', trackMove], ['pointerup', trackEnd], ['pointercancel', trackEnd]]) document.addEventListener(t, fn, opt);
   document.addEventListener('pointermove', onMove, opt);
   document.addEventListener('pointerup', onUp, opt);
   document.addEventListener('pointercancel', onCancel, opt);
@@ -380,7 +399,7 @@ export function installTapWatch(o = {}) {
       new PerformanceObserver(l => { for (const x of l.getEntries()) { longTasks.push({ t: x.startTime, d: x.duration }); if (longTasks.length > 30) longTasks.shift(); } }).observe({ type: 'longtask', buffered: false });
     }
   } catch { /* fine */ }
-  window.__tapwatch = { stats: () => ({ ...stats }), last: () => lastReport, pressing: () => !!press, lastDown: () => lastDown, reset: () => { for (const k of Object.keys(stats)) stats[k] = 0; lastReport = ''; },
+  window.__tapwatch = { stats: () => ({ ...stats }), scrolls: () => ({ sinceScroll: Math.round(performance.now() - lastScroll), sinceDrag: Math.round(performance.now() - lastDrag), el: scrollEl && scrollEl.className }), last: () => lastReport, pressing: () => !!press, lastDown: () => lastDown, reset: () => { for (const k of Object.keys(stats)) stats[k] = 0; lastReport = ''; },
     rescue: on => { rescueOn = !!on; },
     resetLimit: () => { sentMem = null; try { localStorage.removeItem(LS_KEY); } catch { /* fine */ } } };   // (tests: THE RESCUE off = the raw lost taps; e2e-taps.mjs)
 }

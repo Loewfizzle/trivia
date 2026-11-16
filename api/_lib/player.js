@@ -22,6 +22,9 @@ import { boardDef, OVERALL_IDS } from '../../js/core/boards.js';
 import { relOf } from '../../js/core/friends.js';
 import { bandOf } from '../../js/core/levels.js';
 import { rarestThree, flameOf } from '../../js/core/player.js';
+import { DAILIES } from '../../js/config.js';
+import { streakDay } from '../../js/core/streak.js';
+import { topRows as dailyTop } from '../../js/core/every.js';
 
 export const PLAYER_LIMIT = { max: 120, windowMs: 10 * 60_000 };
 export const PLAYER_TTL = 30_000;
@@ -37,6 +40,15 @@ async function pidOfRow(b, bid, now) {
     if (row) return row.pid;
   }
   return null;
+}
+
+/** FIXES R2 (the owner's SCORES add-on): a board id from a daily's EVERYONE · TODAY list → its pid — matched in THAT daily's top for today
+ *  (dly/{g}/{day}/t — the list the row came from; a finisher there need not be on any board yet). Today's streak day only. */
+async function pidOfDaily(g, bid, now) {
+  if (!DAILIES.some(d => d.id === g)) return null;
+  const node = await val(`dly/${g}/${streakDay(now)}/t`);
+  const row = dailyTop(node).find(r => boardId(r.k) === bid);
+  return row ? row.k : null;
 }
 
 const cache = new Map();
@@ -63,6 +75,7 @@ export async function playerAnswer(uid, body = {}, now = Date.now()) {
   const id = String(body.pid || body.id || '');
   const bid = String(body.bid || (BID.test(id) ? id : ''));
   let pid = isPid(id) ? id : null;
+  if (!pid && BID.test(bid) && typeof body.dg === 'string') pid = await pidOfDaily(body.dg, bid, now);
   if (!pid && BID.test(bid)) pid = await pidOfRow(body.b, bid, now);
   if (!pid) throw new ApiError(404, 'no_profile', 'That player isn’t here.');
   const part = await partOf(pid, now);

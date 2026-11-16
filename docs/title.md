@@ -969,3 +969,9 @@ octagons, the numeral in a dark ink ≥ 4.5 : 1 on its face (the innermost face 
   (a synthetic click can't open it) — the report says so. A refused share on SAVE YOUR KEY shows the key itself + COPY at once (`profile/keypop.js`).
 - SIGNAL LOST shows once the signal has been gone 1.5 s; SIGNAL RESTORED only when SIGNAL LOST was on screen ≥ 1.5 s (app.js#renderConnection).
 - A SOLO room (PLAY NOW's one seat) leaves without a word (`room.js#exitRoom` — no ROOM CLOSED / DISCONNECTED / leave reason; app.js's boot lines).
+
+### FIXES R2 — A TOUCH THAT STOPS A SCROLLING LIST NEVER ACTS (THE REVIEW A8)
+`ui/tapwatch.js`: a press is a STOPPER when the list it sits in (or the page) scrolled within `SCROLL_STOP_MS` (120 ms) AND a finger DRAG ended
+within `DRAG_MS` (3 s — a pointer the browser cancelled for a scroll, or one past the slop): a fling's momentum, never a programmatic scroll
+(`scrollIntoView`). A stopper never press-acts, is never rescued, and its click (if the browser sends one) is swallowed. `stats.stoppers`;
+`window.__tapwatch.scrolls()`. Proof: wk-press 'A8' (a per-frame fling on SCORES, the finger lands on a row → nothing) + tests/fixes-r2.test.mjs.
