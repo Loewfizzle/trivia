@@ -98,8 +98,8 @@ test('THE SKYLINE + THE SOUNDS: the night band ≤ 150 KB; every pick + every -b
   assert.doesNotMatch(read('.vercelignore'), /jaywalk/, 'the files deploy');
 });
 
-test('THE SOUNDS (PURE): in play = hop · land-wood · hit · splash; ≈ 8 voices by PRIORITY — your own hit / splash over a hop / a landing', () => {
-  assert.deepEqual(SOUNDS.filter(s => s.play).map(s => s.id), ['hop', 'land-wood', 'hit', 'splash']);
+test('THE SOUNDS (PURE): every sound in play (H5A — the world\'s cues: tests/jaywalk-cues.test.mjs); ≈ 8 voices by PRIORITY — your own hit / splash over a hop / a landing', () => {
+  assert.deepEqual(SOUNDS.filter(s => s.play).map(s => s.id), SOUNDS.map(s => s.id));
   const pri = id => SOUNDS.find(s => s.id === id).pri;
   assert.ok(pri('hit') > pri('hop') && pri('splash') > pri('land-wood'));
   assert.equal(VOICES, 8); assert.deepEqual(HOP_VARY, { rate: 0.06, db: 2 });

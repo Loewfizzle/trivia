@@ -8,7 +8,7 @@ import { openSheet } from '../../ui/sheet.js';
 import { SOUNDS, fetchSounds, play, pick, setPick, picksLine, stopAll } from './sfx.js';
 
 export function openAudition({ press, onClose = null } = {}) {
-  fetchSounds(SOUNDS.map(s => s.id));
+  fetchSounds(SOUNDS.map(s => s.id), true);   // (the audition hears a sound's pick AND its backup)
   const loops = new Map();   // 'id:a' → its handle (the bell)
   const stopLoops = () => { for (const l of loops.values()) l.stop(); loops.clear(); for (const b of body.querySelectorAll('.jw-au-play.is-on')) b.classList.remove('is-on'); };
   const tube = (label, cls, fn) => press(h(`button.btn.btn-ghost.btn-sm${cls}`, { type: 'button' }, h('span', label)), fn);
@@ -31,7 +31,7 @@ export function openAudition({ press, onClose = null } = {}) {
     })) : [];
     for (const c of choice) c.classList.toggle('is-on', c.dataset.pick === `${s.id}:${pick(s.id)}`);
     return h('div.jw-au-row', { 'data-id': s.id },
-      h('div.jw-au-name', h('b', s.label), h('small', s.play ? 'in play now' : s.loop ? 'tap again or STOP to end it' : 'audition only')),
+      h('div.jw-au-name', h('b', s.label), h('small', s.loop ? 'in play now · tap again or STOP to end it' : s.play ? 'in play now' : 'audition only')),
       h('div.jw-au-btns', playBtn('a'), s.b ? playBtn('b') : null),
       s.b ? h('div.jw-au-choice', h('span.jw-bar-k', 'USE'), ...choice) : h('div.jw-au-choice.is-one', 'ONE TAKE'));
   });

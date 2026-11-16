@@ -39,6 +39,8 @@ import { createNight } from './night.js';
 import { getPref, setPref } from './lab-prefs.js';
 import { ZOOMS, ZOOM, ANGLES, ANGLE } from './camera.js';
 import * as SFX from './sfx.js';
+import { createCues, cuesAt } from './cues.js';
+import { duckMusic, musicDuckLevel } from '../../audio/music.js';
 import { runLine } from './causes.js';
 import { buildEnd, finalRows } from './victory.js';
 import { keepShot } from './shot.js';
@@ -98,6 +100,7 @@ export function createView() {
   let t0srv = 0, t0perf = 0, last = 0, markUntil = 0, lanesShown = -1, sndOn = false, bot = null, pinned = false, revealed = false;
   // the match
   const ghosts = new Map();   // uid → ghosts.js#createGhost (conf · run · log · done · held · vis · behind) + { uid, n (chunks read), lastT, hex, name, tagEl, dir, outAt }
+  let cues = createCues(), ducked = null, duckT = 0;   // (H5A — THE WORLD's SOUNDS: cues.js; the music's level before the train ducked it)
   let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;   // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, orderKey = '', countKey = '', watchKey = '';
   const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
@@ -130,7 +133,7 @@ export function createView() {
     offControls = wireControls(play, { onHop: hop, onAny: nextFollow });
     // the sounds: the SHARED engine's SFX bus (the console unlocked it on a tap long ago); silent if anything fails — audio is polish
     // (H4B — DECODED AHEAD, during the count / the wait for GO: the first hop's sound is ready — never a decode on the first tap)
-    try { SFX.fetchSounds(); SFX.fetchSounds(['new-best', 'landmark']); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }
+    try { SFX.fetchSounds(); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }
   }
 
   // ---- THE RUN
@@ -138,6 +141,7 @@ export function createView() {
     mode = 'wait'; course = START; run = createRun({ seed: 'start', mode: 'solo' }); log = []; queue = []; go = 0; proven = false; asked = false; goTries = 0; haveGo = false;
     sent = 0; chunkN = 0; lastFlush = 0; wroteE = false; overAt = 0; lanesShown = -1; markUntil = 0; shotAt = 0; revealed = false;
     watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; orderKey = ''; countKey = ''; watchKey = '';
+    cues = createCues(); quiet();
     for (const G of ghosts.values()) if (G.tagEl) G.tagEl.remove();
     ghosts.clear();
     // THE LINES: the best the server last told this phone at once; the table (the server's own, ONE call a run at most) right behind it
@@ -255,7 +259,22 @@ export function createView() {
       }
       if (sndOn) { try { SFX.onEvent(e); } catch { /* silent */ } }
     }
+    // THE WORLD's SOUNDS (H5A — cues.js, PURE): the train's bell + its pass, a car passing, the horn, the lights dying — this phone's
+    // own kid's only (a ghost makes no sound), only while he is in
+    if (sndOn && !isOver(run)) { try { for (const q of cuesAt(cues, run, course, ev)) { SFX.onCue(q); duck(q.cue); } } catch { /* silent */ } }
   }
+  /** the music ducks a little under the train: down with the bell, back up a moment after the pass / the bell's end */
+  function duck(cue) {
+    if (cue !== 'bell-on' && cue !== 'bell-off' && cue !== 'train-pass') return;
+    clearTimeout(duckT);
+    const D = SFX.TRAIN_DUCK;
+    if (cue === 'bell-off') { duckT = setTimeout(unduck, 250); return; }
+    if (ducked == null) { ducked = musicDuckLevel(); duckMusic(Math.min(ducked, D.level), D.inS); }
+    if (cue === 'train-pass') duckT = setTimeout(unduck, D.holdMs);
+  }
+  function unduck() { clearTimeout(duckT); if (ducked != null) { duckMusic(ducked, SFX.TRAIN_DUCK.outS); ducked = null; } }
+  /** the world goes quiet (the run ended, a new run, the view left): the bell stops, the music comes back up */
+  function quiet() { try { SFX.onCue({ cue: 'bell-off' }); } catch { /* silent */ } unduck(); }
   /** a lane farther than ever this run: YOUR BEST LINE crossed = the run is a NEW RECORD from here (a burst along the line, the new-best
    *  sound, the lane counter flashes gold and stays gold); a FRIEND's line crossed (a solo run) = a small burst + a quiet chime */
   function onBest(lane) {
@@ -297,6 +316,7 @@ export function createView() {
   /** the run is over: the last chunk, then `e` — the host's step ends the match on it (a signal: never read as a score) */
   function onOver() {
     mode = 'over'; overAt = performance.now(); shotAt = overAt + SHOT_MS; queue = [];
+    quiet();
     flush(true);
     if (proven && !wroteE) { wroteE = true; dbUpdate(dbRef(nodePath()), { e: { l: run.best, t: run.bestT, w: String(run.cause || '').slice(0, 12) } }).catch(() => {}); }
   }
@@ -578,6 +598,7 @@ export function createView() {
           isMatch, watching, follow: followUid, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
           ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag, held: G.held, done: G.done, behind: G.behind })),
           adopts: adopts.slice(), seen: { ...watch }, g0: st.game ? st.game.g0 || 0 : 0,
+          snd: { cues: SFX.cues(), wanted: SFX.wanted().map(q => q.id), ducked: ducked != null },
           tier: night ? night.tier() : -1, info: night ? night.info() : null, kidPx: night ? night.kidHeightPx() : 0 }),
         hop, frames: () => frames.slice(), cost: () => cost.slice(), clearFrames() { frames.length = 0; cost.length = 0; stamps.length = 0; },
         /** every frame so far: [ms after tick 0, the frame's length, its own work] — THE START's measure */
@@ -597,6 +618,7 @@ export function createView() {
       if (mode === 'run' && run && !isOver(run)) flush(true);   // (a QUIT mid-run: what was hopped is in the proof)
       if (offControls) offControls();
       if (final) final.destroy();
+      quiet();
       try { SFX.stopAll(); } catch { /* silent */ }
       if (night) {
         // (PLAY AGAIN's remount — the console's INSTANT AGAIN marks it: the scene is kept warm for the next run; anything else frees it at once)

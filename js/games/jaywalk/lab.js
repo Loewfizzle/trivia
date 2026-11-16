@@ -14,6 +14,7 @@ import { createTiers } from '../kit/tiers.js';
 import { getPref, setPref } from './lab-prefs.js';
 import { ZOOMS, ZOOM, ANGLES, ANGLE } from './camera.js';
 import { runLine, hitVehicle, vehicleAt } from './causes.js';
+import { createCues, cuesAt } from './cues.js';
 
 const app = document.getElementById('app');
 const Q = new URLSearchParams(location.search);
@@ -69,7 +70,7 @@ async function mount() {
   end.append(endT, endL, endGo, check);
   const fps = Q.get('fps') === '1' ? h('div.jw-fps', '') : null, seedLine = h('div.jw-seed', '');
   // THE SOUNDS (sfx.js — the SHARED audio engine's SFX bus; unlocked by the first tap, never before) + THE SOUND AUDITION (the SOUNDS sheet)
-  let snd = null, sheetOpen = false;
+  let snd = null, sheetOpen = false, cues = createCues();
   const soundsBtn = press(h('button.jw-new.jw-snd', { type: 'button' }, 'SOUNDS'), () => {
     if (sheetOpen) return;
     sheetOpen = true;
@@ -95,6 +96,7 @@ async function mount() {
   let steps = 0, slow = 0, warped = false, started = false, safe = false;   // (safe — a LOOK CHECK's warp only: the blackout holds still behind the kid; never in a real run)   // (started: the run's tick 0 is the FIRST touch — the page never runs the wall at a kid nobody is playing)
   function restart(m = mode, s = Q.get('seed') && !seed ? Q.get('seed') : newSeed()) {
     mode = m; seed = s; course = createCourse(seed); run = createRun({ seed, mode }); log = []; queue = []; acc = 0; shown = false; overAt = 0; warped = false; started = false; safe = false;
+    cues = createCues(); if (snd) snd.onCue({ cue: 'bell-off' });
     end.hidden = true; mark.textContent = 'TAP TO HOP · SWIPE TO MOVE'; markUntil = 0;
     for (const t of tabs) t.classList.toggle('is-on', t.dataset.mode === mode);
     seedLine.textContent = `seed ${seed}`;
@@ -110,7 +112,9 @@ async function mount() {
     const ev = [];
     if (safe && run.wall > (run.y - 5) * FP) run.wall = (run.y - 5) * FP;
     step(run, course, d, ev);
-    for (const e of ev) { if (e.e === 'landmark') { mark.textContent = gateName(e.lane); markUntil = performance.now() + 2600; } if (snd) snd.onEvent(e); }   // (H5A: the area's name as its gateway shows it — THE DOCKS · LAP 2)
+    for (const e of ev) { if (e.e === 'landmark') { mark.textContent = gateName(e.lane); markUntil = performance.now() + 2600; if (snd) snd.play('landmark'); } if (snd) snd.onEvent(e); }
+    if (snd && !isOver(run)) for (const q of cuesAt(cues, run, course, ev)) snd.onCue(q);   // (H5A — THE WORLD's SOUNDS: cues.js)
+    if (snd && isOver(run)) snd.onCue({ cue: 'bell-off' });   // (H5A: the area's name as its gateway shows it — THE DOCKS · LAP 2)
     steps++;
   }
   function showEnd() {
