@@ -264,6 +264,13 @@ try {
   }
   await p.evaluate("document.getElementById('a13-test').remove(); window.__noClick = false");
 
+  // ---- FIXES R2 — GROUP 1: a LOST TAP on the heads-up message's ✕ (button.sh-msg-x "Dismiss heads up", build 0973fed — iOS sent no click):
+  //      it acts on its own press + lift now (data-press)
+  await p.evaluate("window.__noClick = true");
+  await press('[iOS: NO click] the heads-up message\'s ✕', '.sh-msg-x', "!document.querySelector('.sh-msg:not(.is-out)')",
+    { before: () => p.evaluate(() => import('/js/ui/toast.js').then(m => m.toast('Heads up — a test message', 'warn', 20000))) });
+  await p.evaluate("window.__noClick = false");
+
   // ---- FIXES R2 — the owner's add-on (Nov 15 7:36 pm): a SCORES row's slim card opens that player's page (THE BOARD's opener) — one touch, iOS's
   //      click dropped, press + lift; and THE REVIEW A8: a touch that only STOPS a scrolling list (a fling still moving) never opens the row
   { const { streakDay } = await import('../../js/core/streak.js');

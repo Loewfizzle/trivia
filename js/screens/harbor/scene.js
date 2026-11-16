@@ -519,6 +519,48 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     reportLost(`the city: ${lost}`);
     return true;
   }
+  // FIXES R2 — AWAY, LIGHT (the owner's iPhone, build 385e0d6: PAGE KILLED (likely memory) at 5:11 pm while he was away in Messages after SHARE
+  // TODAY — iOS ends the heaviest app in the background). While the page is HIDDEN the city keeps none of its big bakes: the last frame as
+  // seen is kept as ONE picture at half its resolution, then both bakers' canvases (both sets: the city + its lit windows) and the merged
+  // bands are zeroed (the long night's rule — freed at once, not at a GC). Back on screen: that picture is HELD over the city (THE HOLD — no
+  // dark, no flash), the city re-built + re-baked through THE ONE RE-FIT PATH (the box gate's own: measure → build → layout → the bakers
+  // re-planned), and the hold lets go in the frame that draws the new bake — ONE cut. Freed AT the hide, synchronously: iOS may freeze the
+  // page's timers right after it (a timer set to free "a moment later" would never run while it matters).
+  let away = null;
+  const awayLog = { n: 0, freedMb: 0, keptMb: 0, backMs: 0, at: 0 };
+  function awayFree() {
+    if (destroyed || shownAt < 0 || !W || away || document.visibilityState === 'visible') return;
+    const mb0 = canvasMb().mb;
+    let pic = null;
+    const full = holdOn ? null : holdShoot();
+    if (full) { pic = document.createElement('canvas'); pic.width = Math.max(1, Math.round(full.width / 2)); pic.height = Math.max(1, Math.round(full.height / 2)); const x = safeCtx(pic, { alpha: false }); x.imageSmoothingQuality = 'high'; x.drawImage(full, 0, 0, pic.width, pic.height); full.width = full.height = 0; }
+    baker.free(); litBaker.free();
+    for (const m of Object.values(merged)) { m.cv.width = m.cv.height = 0; m.ok = false; }
+    // (+ the main canvas, the sky + its merged copy: build() + paintSky() size them again on the return, under the held picture)
+    for (const c of [canvas, skyCv, skyPrev, skyMix.cv]) if (c) { c.width = 0; c.height = 0; }
+    skyMix.sky = null; skyFadeFrom = -1;
+    sentinel = null; fadeFrom = -1; litFadeFrom = -1;
+    // (THE CANARY: the bakes' sentinel is gone with them — one opaque pixel on a tracked 1×1 canvas tells the return whether iOS discarded the
+    //  page's canvases meanwhile (FR7 FIXES A's blank city): read blank → every cache-holder hears reportLost and re-draws its own art)
+    const canary = document.createElement('canvas'); canary.width = canary.height = 1; { const x = safeCtx(canary); x.fillStyle = '#fff'; x.fillRect(0, 0, 1, 1); }
+    away = { at: performance.now(), pic, canary };
+    awayLog.n++; awayLog.at = Math.round(performance.now()); awayLog.keptMb = canvasMb().mb; awayLog.freedMb = +(mb0 - awayLog.keptMb).toFixed(1);
+    LOADLOG.add('away', `hidden: ${awayLog.freedMb} MB of bakes freed, ${awayLog.keptMb} MB kept (the picture ${pic ? `${pic.width}×${pic.height}` : 'none'})`);
+  }
+  function awayBack(why) {
+    if (!away || destroyed) return false;
+    const a = away; away = null;
+    awayLog.backMs = Math.round(performance.now());
+    let wiped = false;
+    try { wiped = safeCtx(a.canary).getImageData(0, 0, 1, 1).data[3] < 10; } catch { wiped = true; }
+    a.canary.width = a.canary.height = 0;
+    if (a.pic) holdStart(`back from away (${why})`, a.pic);
+    if (wiped) { lostLog.n++; lostLog.why = `the canvases discarded while away (${why})`; lostLog.at = Math.round(performance.now()); lostAt = performance.now(); reportLost('the city: the canvases discarded while away'); }
+    skyKey = ''; lookAt = 0; skyMix.sky = null;
+    wantBuild = `back from away (${why})`;
+    LOADLOG.add('away', `back (${why}): the picture held, the city re-baked under it${wiped ? ' — the canary read blank: every layer told (reportLost)' : ''}`);
+    return true;
+  }
   const offLost = onCanvasLost(why => { if (/lost|restored/.test(why) && !/^the city/.test(why) && document.visibilityState === 'visible') setTimeout(() => lostLook(why), 0); });
 
   let lastResizeAt = -1e9, wantBuild = false, wantStep = null, revealWhy = '';
@@ -2861,8 +2903,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const RETURN_GRACE = 3000;
   function returnGrace() { tierHold = Math.max(tierHold, performance.now() + RETURN_GRACE); frames.length = 0; cool = Math.max(cool, 30); returns++; }
   let returns = 0;
-  const onVis = () => { if (document.visibilityState === 'visible') { bigRelatch = true; smRelatch = true; returnGrace(); wakeLoop('visible'); boxLook('back on screen'); lostLook('back on screen'); } else { hiddenAt = performance.now(); stop(); } };   // (11a-2: back from the background — the big holiday pieces may change now)
-  const onShow = () => { bigRelatch = true; smRelatch = true; returnGrace(); wakeLoop('pageshow'); if (document.visibilityState === 'visible') { boxLook('a pageshow'); lostLook('a pageshow'); } }, onFocus = () => { wakeLoop('focus'); lostLook('focus'); }, onTapWake = () => wakeLoop('tap');
+  const onVis = () => { if (document.visibilityState === 'visible') { bigRelatch = true; smRelatch = true; returnGrace(); awayBack('visible'); wakeLoop('visible'); boxLook('back on screen'); lostLook('back on screen'); } else { hiddenAt = performance.now(); stop(); awayFree(); } };   // (11a-2: back from the background — the big holiday pieces may change now)
+  const onShow = () => { bigRelatch = true; smRelatch = true; returnGrace(); if (document.visibilityState === 'visible') awayBack('pageshow'); wakeLoop('pageshow'); if (document.visibilityState === 'visible') { boxLook('a pageshow'); lostLook('a pageshow'); } }, onFocus = () => { wakeLoop('focus'); lostLook('focus'); }, onTapWake = () => wakeLoop('tap');
   const watchdog = setInterval(() => { wakeLoop('watchdog'); if (document.visibilityState === 'visible') { boxLook('the once-a-second look'); pickSentinel(); } }, 1000);   // (FR7 FIXES A: + the bake's sentinel, once a bake)   // (LOAD FIX 5: + THE BOX GATE's look)
   let resizeT = 0, relayT = 0, laneKey = '';
   // (a resize that changed nothing — iOS fires one on the way back from the home screen — never re-bakes the city)
@@ -3199,6 +3241,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
+    away: () => ({ ...awayLog, on: !!away, hold: holdOn, holds: holdN, baked: !!baker.key && !!litBaker.key && !baker.pending && !litBaker.pending && !wantBuild && canvas.width > 0 }),   // (FIXES R2 — AWAY, LIGHT: tests/integration/city-away.mjs)
     loadProbe: () => ({ shown: shownAt >= 0, gates: gateAt, t0, sky: clouds.probe(), W, H, hold: holdOn ? 1 : 0, holds: holdN, cams: { now: camSig, baked: bakeCamShown, prev: fadeFrom >= 0 ? bakeCamPrev : null, lit: litBaker.key ? litBaker.key.includes(`|${camSig}|`) : null, litGeo: litBaker.key && camSig ? litBaker.key.includes(`|${camSig.split('|').slice(0, 4).join('|')}|`) : null },
       box: boxSeen ? [boxSeen.w, boxSeen.h] : null, boxOff: boxOff(), live: { scenes: LIVE.size, loops: [...LIVE].filter(f => f()).length, dup: loopDup } }),
     harbor: () => (L ? { fireworks: () => { const nowS = clock.now() / 1000; let tonight = []; try { tonight = LK.local ? fwNightOf(nowS).map(sh => ({ kind: sh.kind, t0: sh.t0, t1: sh.t1, inS: Math.round(sh.t0 - nowS) })) : []; } catch { /* fine */ } return { ...fwx.debug(), on: fwState.on, why: fwState.why, dim: fwState.dim, show: fwState.show ? { id: fwState.show.id, kind: fwState.show.kind, t0: fwState.show.t0, t1: fwState.show.t1, s: +(nowS - fwState.show.t0).toFixed(2) } : null, tonight, lights: fwx.lights().length, ly: fwx.lights().map(l => Math.round(l.y)), synced: !!(fwState.show && fwPlan(fwState.show.kind, fwState.show.seed, fwState.show.t0).synced), under: (() => { const cv = document.querySelector('.hb-fw'); return cv ? { parent: cv.parentElement ? cv.parentElement.className : '', afterCity: (() => { const k = [...cv.parentElement.children], i = k.indexOf(cv), crisp = k.findIndex(e => e.classList && e.classList.contains('hc-crisp')); return i > k.indexOf(canvas) && (crisp < 0 || i < crisp); })(), z: cv.style.zIndex } : null; })(), mb: fwx.mem(), crowd: (() => { try { return fwCrowd(); } catch (e) { return String(e); } })() }; }, tower: { st: TWS ? { stage: TWS.stage, k: TWS.k, s: TWS.s, crane: TWS.crane, announce: TWS.announce, design: TWS.design ? TWS.design.name : null } : null, key: L.towerKey, fx: towerFx.debug() }, holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), leaves: sceneHoliday.leavesDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), partyPools: partyPools.slice(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone, zFront: cam.zFront, cx0: cam.cx0 || 0, dpr }, squeeze: L.squeeze, medallion: L.medallion ? { x: L.medallion.x, z: L.medallion.z, ring: L.medallion.ring } : null, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
@@ -3284,7 +3327,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // the lit windows' sprites, the tower's, the crossing's light, the billposter's sheets + the blade's repaint, the board's cross-fade copy,
       // THE TRI-VISION's faces — every module the scene creates is destroyed here
       for (const m of [people, galeSea, raidFx, fw, fwx, chimneys, lights, towerFx, crossLit]) { try { if (m && m.destroy) m.destroy(); } catch { /* fine */ } }
-      freeCanvases(tri.art, bxf.cv, sheetV, bladeV); tri.art.clear(); tri.turn = null; bxf.cv = null; sheetV = bladeV = null;
+      freeCanvases(tri.art, bxf.cv, sheetV, bladeV, away && away.pic); away = null; tri.art.clear(); tri.turn = null; bxf.cv = null; sheetV = bladeV = null;
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
       if (haloSp) haloSp.cv.width = 0;
       still.destroy(); cabStand.destroy(); crisp.destroy(); fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); waterFog.destroy(); fogD.destroy(); stormDeck.destroy(); wetGround.destroy(); glassWx.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();

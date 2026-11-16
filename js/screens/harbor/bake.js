@@ -97,5 +97,8 @@ export function createBaker() {
     /** the current canvas of a group (+ the previous one, still in `next`, for the crossfade) */
     group: name => groups.find(g => g.name === name) || null,
     destroy() { for (const g of groups) { g.cur.width = g.cur.height = g.next.width = g.next.height = 0; } groups = []; queue = []; },
+    /** FIXES R2 — AWAY, LIGHT: every canvas zeroed (both sets) but the plan kept: nothing ready, no key — the next look re-bakes it all
+     *  (scene.js#awayFree on hidden → awayBack on the return, under the held picture) */
+    free() { for (const g of groups) { g.cur.width = g.cur.height = g.next.width = g.next.height = 0; g.ready = false; g.prev = null; } queue = []; key = ''; pendingKey = ''; },
   };
 }

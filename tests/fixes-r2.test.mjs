@@ -34,3 +34,16 @@ test('the owner\'s add-on — THE FOUNDER WINDOW is switched only at the foot of
   assert.match(read('js/admin/admin.js'), /call\('radioFounder', \{ open: !f\.open \}\)/, '/admin keeps its switch');
   assert.match(read('api/_lib/radio.js'), /case 'radioFounder': \{/, 'the server action stays');
 });
+
+test('GROUP 1 — AWAY, LIGHT: the hide frees the bakes at once (synchronously), the return holds the picture + rebuilds through the one re-fit path', () => {
+  const sc = read('js/screens/harbor/scene.js'), bk = read('js/screens/harbor/bake.js');
+  assert.match(bk, /free\(\) \{ for \(const g of groups\) \{ g\.cur\.width = g\.cur\.height = g\.next\.width = g\.next\.height = 0; g\.ready = false;/);
+  assert.match(sc, /else \{ hiddenAt = performance\.now\(\); stop\(\); awayFree\(\); \}/, 'at the hide, never on a timer');
+  assert.match(sc, /baker\.free\(\); litBaker\.free\(\);/);
+  assert.match(sc, /if \(a\.pic\) holdStart\(`back from away \(\$\{why\}\)`, a\.pic\);[\s\S]{0,120}wantBuild = `back from away/, 'the held picture, then THE ONE RE-FIT PATH');
+  assert.match(sc, /freeCanvases\(tri\.art, bxf\.cv, sheetV, bladeV, away && away\.pic\)/, 'THE LONG NIGHT: the kept picture freed with the scene');
+});
+
+test('GROUP 1 — the heads-up message\'s ✕ acts on its own press + lift (a LOST TAP, build 0973fed)', () => {
+  assert.match(read('js/ui/toast.js'), /h\('button\.sh-msg-x', \{ type: 'button', 'data-press': true,/);
+});

@@ -51,7 +51,7 @@ export function toast(msg, kind = 'info', opts = 2600) {
   const el = h(`div.sh-msg.sh-msg-${k}`, { dataset: { kind: k } },
     h('i.sh-msg-tube', { 'aria-hidden': 'true' }),
     h('div.sh-msg-t', h('b', sentenceCase(msg)), sub ? h('span', sentenceCase(sub)) : null),
-    h('button.sh-msg-x', { type: 'button', 'aria-label': `Dismiss ${LABEL[k].toLowerCase()}`, onclick: out }, h('span', { 'aria-hidden': 'true' }, '×')));
+    h('button.sh-msg-x', { type: 'button', 'data-press': true, 'aria-label': `Dismiss ${LABEL[k].toLowerCase()}`, onclick: out }, h('span', { 'aria-hidden': 'true' }, '×')));
   host.append(el);
   t = setTimeout(out, ms);
   return { close: out, el };

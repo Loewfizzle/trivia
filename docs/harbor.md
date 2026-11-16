@@ -495,6 +495,16 @@ activation 2 s, the offline reads 0.8 s) — Safari's storage can stop answering
   reloaded by hand → the report, once) + `server.test` "old browsers" + `tests/boot-watchdog.test.mjs` (every inline script PARSES — a newline
   slipped into one of its strings during this pass, caught).
 
+**AWAY, LIGHT (FIXES R2, Nov 15 — the owner's iPhone: PAGE KILLED (likely memory) while away in Messages after SHARE TODAY):** while the page
+is HIDDEN the city keeps none of its big bakes — at the hide (synchronously: iOS may freeze timers right after) the last frame as seen is kept
+as ONE picture at half resolution, then both bakers (`bake.js#free` — both sets, the plan kept), the merged bands, the main canvas, the sky +
+its merged copy are zeroed. Back on screen (`scene.js#awayBack` — visible / pageshow) the picture is HELD over the city (THE HOLD — no dark, no
+flash), the city rebuilt through THE ONE RE-FIT PATH (`wantBuild` → build → layout → the bakers re-planned — THE BOX GATE's own path, ONE
+CAMERA) and the hold lets go in the frame that draws the new bake. Measured at 390 @3 (Chromium, `tests/integration/city-away.mjs`): **73 →
+29.7 MB of canvases hidden (41 %)** — what stays is the small per-module art (the wheel + boats' sprites, the leaf bank, the water mirror, the
+crisp lettering, people), each rebuilt only by its own module; back: re-baked + the hold let go in **491 ms**, 0 bare frames, every bake at its
+size again. `__district.away()`.
+
 - **LOAD FIX 4 — GROK'S BOOT AUDIT (Nov 10; passes/load-fix-4.md + the audit):** **THE REJOIN LIMIT** — the boot's uplink (the gstatic SDK, the
   auth restore, the room resume) waits ≤ 8 s ON SCREEN, then the title + the city come up with REJOIN (the seat kept, the socket still trying); the
   late resume = a normal rejoin; ONE attempt (`room.js#pendingResume` — a REJOIN tap joins it; `cancelResume` — a HOST / another JOIN wins).

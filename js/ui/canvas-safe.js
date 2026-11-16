@@ -134,6 +134,13 @@ export function canvasMb() {
   return { mb: +(b / 1e6).toFixed(1), n };
 }
 
+/** the biggest live canvases now (tests + the readout — never in a frame): [{ w, h, mb, el }] — el = the canvas's class / its parent's, '' offscreen */
+export function canvasTop(n = 20) {
+  const out = [];
+  for (const r of tracked) { const cv = r.deref(); if (!cv) continue; const px = (cv.width || 0) * (cv.height || 0); if (px > 1) out.push({ w: cv.width, h: cv.height, mb: +(px * 4 / 1e6).toFixed(2), el: (cv.className && String(cv.className)) || (cv.parentElement && cv.parentElement.className ? `in ${cv.parentElement.className}` : (cv.isConnected ? 'in page' : '')) }); }
+  return out.sort((a, b) => b.mb - a.mb).slice(0, n);
+}
+
 // A context that draws nothing: what safeCtx() hands back when iOS refuses one, so a starved layer comes out blank instead of
 // throwing on every frame. Every method is a no-op; the few that must return something return a harmless stand-in.
 let starved = 0;

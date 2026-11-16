@@ -919,3 +919,5 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   [--profile dir]` — SCORES in the real app at 150-ms latency against a cold `serve.mjs`.
 - `e2e-presence.mjs`: the refresh case runs on the first SKILL challenge (DUMB LUCK never ends early — the cloud flake); `SLOW=<rate>` throttles every
   phone's CPU. `wk-press.mjs` + SAVE YOUR KEY (share / copy inside the touch). The daily screen's part of wk-press needs a `DAILY_TEST=1` server.
+- `tests/integration/city-away.mjs "<chromium>"` (FIXES R2 — AWAY, LIGHT) — the city's canvas MB on screen → hidden (at most half kept) → back
+  (the held picture from the first frame, re-baked inside THE REJOIN LIMIT, every bake at its size again). ~40 s.
