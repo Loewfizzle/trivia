@@ -230,8 +230,10 @@ html.nd-nohalo .nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 10px rgba(3, 3,
 
 /* ---- PLAY NOW — THE GAMES SHELF (the dock's PLAY): one ROW a game, its neon mark bigger than a line icon */
 .nd-shelf { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-.nd-shelf-row .sh-row-ic { width: 44px; height: 44px; }
-.nd-shelf-row .sh-row-ic svg.nd-shelf-mark { width: 40px; height: 40px; stroke-width: 7; }
+/* (FIXES R3 — PICK A GAME's marks = THESE: the same drawing (ui/mark-svg.js), the same size + glow, nothing behind them — R2's svg wore
+   `rc-mark`, THE BOARD's plaque class, and got its gold compass ring + star as a background) */
+.nd-shelf-row .sh-row-ic, .rc-game .rc-game-ic { width: 44px; height: 44px; }
+.nd-shelf-row .sh-row-ic svg.nd-shelf-mark, .rc-game .rc-game-ic svg.nd-shelf-mark { width: 40px; height: 40px; stroke-width: 7; }
 .nd-shelf-row .sh-row-l b { font-family: var(--font-display); letter-spacing: 0.08em; }
 .nd-shelf-row .sh-row-l small { font-family: var(--font-num); letter-spacing: 0.08em; }
 

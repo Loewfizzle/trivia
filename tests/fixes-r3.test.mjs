@@ -24,3 +24,12 @@ test('GROUP 3 — THE PLAYER PAGE\'s ACTION BAR (the owner\'s option B): ONE bar
   assert.match(bar, /\.pp-bar \.pp-main \.btn \{ padding: 0 6px; letter-spacing: 0\.1em; \}/, 'tighter tracking — the same 11 px as the others');
   assert.doesNotMatch(bar, /999px/, 'NO PILLS');
 });
+
+test('GROUP 4 — PICK A GAME = the PLAY sheet\'s marks EXACTLY: the same builder, markup, size + glow; nothing behind them (never THE BOARD\'s rc-mark)', () => {
+  const rc = read('js/screens/room-city.js'), tc = read('css/title.css'), pc = read('css/progress.css');
+  assert.match(rc, /h\('span\.sh-row-ic\.rc-game-ic', \{ style: \{ '--ic': LOGO_ACC\[g\.id\] \|\| '#d6f0ff' \}, html: markSvg\(g\), 'aria-hidden': 'true' \}\)/, 'the PLAY row\'s icon slot + its default mark class');
+  assert.doesNotMatch(rc, /markSvg\(g, 'rc-mark'\)/, 'never the board plaque\'s class (its gold compass ring + star)');
+  assert.match(tc, /\.nd-shelf-row \.sh-row-ic, \.rc-game \.rc-game-ic \{ width: 44px; height: 44px; \}/, 'ONE size rule for both');
+  assert.match(tc, /\.nd-shelf-row \.sh-row-ic svg\.nd-shelf-mark, \.rc-game \.rc-game-ic svg\.nd-shelf-mark \{ width: 40px; height: 40px; stroke-width: 7; \}/);
+  assert.doesNotMatch(pc, /\.rc-game-mark|svg\.rc-mark/, 'the old tile + its glow are gone');
+});
