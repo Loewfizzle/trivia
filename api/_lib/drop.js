@@ -81,6 +81,8 @@ export const DROP_DAILY = {
   abandon: ({ record, now }) => abandon(record, now),
   /** THE DROP B — SHARE TODAY's inputs for a FINISHED run (the share tap only — `today { share }`): its log replayed ONCE to the record's end →
    *  the time, the lines + the FINAL BOARD with every junk row drawn SOLID (share.js#solidJunk — the day's holes never leave the server) */
+  /** FIXES R2 — TAP A TICKET: the finished run's end screen = the share's own inputs (the time, the lines, the final board, junk SOLID) */
+  endView(ctx = {}) { return this.share(ctx); },
   async share({ record, data, base, pid, day } = {}) {
     if (!record || !record.e || !data || !base || !pid) return null;
     // (PFIX-3: a run the finish could not check — `rf` — shows the board at the point it was scored at: `rk`)

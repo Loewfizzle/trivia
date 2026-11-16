@@ -3,6 +3,8 @@
 //   start  { game }            → { day, seed, startedAt, done? }      ONE OFFICIAL TRY: the first start is recorded (a refresh = the same try)
 //                                 a JUDGED daily (PW1 — THE PASSWORD, _lib/pw.js: cart.judged) gets { day, startedAt, done?, run } instead — the run so
 //                                 far from the SERVER's record (a resume), and NO seed (a seed a phone holds must say nothing about the answers)
+//   ended  { game }            → { day, done, run, e? }   FIXES R2 — TAP A TICKET: YOUR OWN finished run of today for its end screen (read-only;
+//                                 409 not_finished while unfinished — never a start; THE DROP: its final board, never its log)
 //   guess  { game, word }      → { door, n, marks, solved?, failed?, word? (that door just closed), next?, done? }   a judged daily only: the server
 //                                 judges every guess inside a transaction on its record; a word that isn't one is refused with NO cost (422 not_a_word)
 //   dig / chord / pause / resume { game, … }  (CC1 — COAST CLEAR, _lib/cc.js: a judged cartridge's `moves`) → the cartridge's answer, ONE transaction
@@ -200,6 +202,21 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         return { day, startedAt, done: done ?? null, run, now, ...(owner ? { owner: true } : {}) };
       }
       return { day, seed: await dailySeed(cart.id, day), startedAt, done: done ?? null };
+    }
+    // FIXES R2 — TAP A TICKET: a player's OWN FINISHED run of TODAY, read back for its end screen (read-only — never a start: no s/ write, no
+    // begin, no clock). Refused while the run is unfinished (its answers + board stay server-side until then) and for a daily with no judged
+    // record. THE DROP answers its final board (cart.endView — the share's replay, junk SOLID), never its log.
+    case 'ended': {
+      const pid = await mine(uid), cart = cartOf(body.game), day = today, base = `dly/${cart.id}/${day}`;
+      const done = await val(`${base}/r/${pid}`);
+      if (done == null) throw new ApiError(409, 'not_finished', 'That run isn’t finished yet.');
+      if (!cart.judged) throw new ApiError(404, 'no_screen', 'That daily has no end screen to show.');
+      const [record, data, startedAt] = await Promise.all([val(`${base}/p/${pid}`), cart.load ? cart.load(day, now) : null, val(`${base}/s/${pid}`)]);
+      if (!record) throw new ApiError(404, 'no_screen', 'That run has no record to show.');
+      const ctx = { record, day, startedAt, data, now, pid, base };
+      const run = cart.endView ? await cart.endView(ctx) : await cart.resume(ctx);
+      if (!run) throw new ApiError(404, 'no_screen', 'That run has no record to show.');
+      return { day, done, run, ...(cart.id === 'coastclear' ? { e: await val(`${base}/e/${pid}`) } : {}) };
     }
     case 'guess': {
       const day = dayOfCall(body, now);

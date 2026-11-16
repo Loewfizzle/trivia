@@ -782,3 +782,14 @@ second page): a friend by pid · an ALL TIME row by `{ b: 'daily-<g>', bid }` ·
 board id in the daily's top for today (`api/_lib/player.js#pidOfDaily` — a finisher need not be on any board yet); YOUR row = your card. The
 list stays stills (THE LIVE LANE). A touch that only STOPS the scrolling list never opens a row (THE REVIEW A8 — docs/title.md). Proof:
 wk-press 'a SCORES row → THAT PLAYER'S PAGE' + 'A8', server.test 'BOARD 2.0 A' (+ the dg path).
+
+### FIXES R2 — TAP A TICKET (the owner, Nov 15 — TODAY only, no history)
+A FINISHED ticket on THE DAILIES → TODAY (made or failed) is a press + lift control → its END SCREEN in a sheet (`js/daily/end-sheet.js`, THE
+SHEET): THE PASSWORD the doors' marks grids + words (`games/password/end-card.js#pwEndResult`), COAST CLEAR the final harbor with every light +
+this phone's buoys (`games/coastclear/end-card.js#ccEndResult`) — each the live end screen's OWN builder (the views use them too: no second
+copy), the tokens through `.pw-tok` / `.cc-tok` — and THE DROP its final board + time / lines (its share card's own picture, `renderShare`, kept
+as a still `<img>`, the canvas freed). Stills: no entrance animation, no live effects. An unfinished ticket isn't tappable. THE SERVER hands it
+out — `api/daily.js` action **`ended { game }`** (the dailies' existing function): only YOUR run (the caller's pid), only once FINISHED (409
+`not_finished` before — never a start: no s/ write, no begin), today only; THE DROP answers `cart.endView` (the share's replay, junk SOLID —
+never its log or seed). Proof: password.test + coastclear.test + daily-drop.test 'FIXES R2 — TAP A TICKET', `tests/integration/daily-tickets.mjs`
+(5 checks + the three shots at 390).

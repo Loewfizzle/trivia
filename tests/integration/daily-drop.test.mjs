@@ -470,3 +470,19 @@ test('PFIX-3 — A REFUSED FINISH over /api (S3): a HOLE in the stored log → s
   const tc = await D('dr-cal', { action: 'today' }, NOW + 55 * 60e3);
   assert.equal(tc.rf, undefined);
 });
+
+test('FIXES R2 — TAP A TICKET: `ended` for THE DROP = the final board + the time + the lines (the share\'s replay, junk SOLID) — never its log; refused mid-run', async () => {
+  await ensure('dr-tk', 'DropTik');
+  const s = await D('dr-tk', { action: 'start', game: 'drop' }, NOW + 60e3);
+  const P = phone('dr-tk', s);
+  P.now = s.run.go;
+  await P.play(20e3);
+  await rejects(D('dr-tk', { action: 'ended', game: 'drop' }, P.now), 409, 'not_finished');
+  await P.play(10 * 60e3);
+  await P.send();
+  const f = await D('dr-tk', { action: 'finish', game: 'drop', day: P.day }, P.now + 500);
+  const r = await D('dr-tk', { action: 'ended', game: 'drop' }, P.now + 900);
+  assert.equal(r.done, f.score);
+  assert.ok(r.run && typeof r.run.b === 'string' && r.run.t > 0 && r.run.ln >= 0, `the end view: ${JSON.stringify(r.run).slice(0, 120)}`);
+  assert.equal(r.run.log, undefined, 'never the log'); assert.equal(r.run.seed, undefined, 'never the seed');
+});

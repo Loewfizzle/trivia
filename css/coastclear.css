@@ -18,7 +18,7 @@
 @property --cc-open-line { syntax: '<color>'; inherits: true; initial-value: transparent; }
 @property --cc-light-face { syntax: '<color>'; inherits: true; initial-value: transparent; }
 @property --cc-sea { syntax: '<color>'; inherits: true; initial-value: transparent; }
-.screen.cc-screen {
+.screen.cc-screen, .cc-tok {   /* (FIXES R2: .cc-tok — TAP A TICKET's sheet wears the same tokens) */
   /* THE NIGHT TOKENS */
   --cc-bg-0: #02050f; --cc-bg-1: #061226;
   --cc-sign: #7fe8ff; --cc-sign-glow: rgba(95, 214, 255, 0.55); --cc-sign-core: #effcff;
@@ -80,7 +80,7 @@
 
 /* ---------------- THE DAY TOKENS (CC2 — THE SUNNY HARBOR): frosted sea-blue glass, bright white open water, bold saturated numbers readable
    outdoors, red-and-white buoys, a warm gold spot, pale-gold beams, the blue accent (#2f86ff) for the active half of the switch */
-body[data-look="day"] .screen.cc-screen {
+body[data-look="day"] .screen.cc-screen, body[data-look="day"] .cc-tok {
   --cc-bg-0: #cfe6ff; --cc-bg-1: #e9f4ff;
   --cc-sign: #16305c; --cc-sign-glow: transparent; --cc-sign-core: #16305c; --cc-accent: #2f86ff;
   --cc-ink: #14284a; --cc-ink-dim: #3a5582;

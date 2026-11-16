@@ -55,3 +55,14 @@ test('the owner\'s add-on (8:13 pm) — THE PLAYER PAGE: a balanced column, the 
   assert.match(css, /\.pp-in \{ margin: clamp\(10px, 5vh, 48px\) 0 28px; \}/, 'from the top — no empty band above');
   assert.match(vc, /\.vl-full-x:not\(\.btn\) \{/, 'the gold-rimmed box never on a tube');
 });
+
+test('GROUP 2 — TAP A TICKET: the end screens through ONE builder each; the server\'s `ended` is read-only + own-run + finished-only', () => {
+  const pw = read('js/games/password/view.js'), cc = read('js/games/coastclear/view.js'), d = read('api/daily.js'), dy = read('js/screens/daily.js');
+  assert.match(pw, /const \{ el: result, title, crack \} = pwEndResult\(run\);/, 'the live PASSWORD end = the shared builder');
+  assert.match(cc, /const \{ el: result \} = ccEndResult\(view, \[\.\.\.buoys\]\);/, 'the live COAST CLEAR end = the shared builder');
+  const ended = d.slice(d.indexOf("case 'ended': {"), d.indexOf("case 'guess': {"));
+  assert.match(ended, /const pid = await mine\(uid\)/, 'the caller\'s own pid — never one from the body');
+  assert.match(ended, /if \(done == null\) throw new ApiError\(409, 'not_finished'/);
+  assert.doesNotMatch(ended, /transaction|\/s\/\$\{pid\}`\)\.set|begin\(/, 'never a start, never a write');
+  assert.match(dy, /const endTap = st === 'done' \?/, 'only a finished ticket is tappable');
+});

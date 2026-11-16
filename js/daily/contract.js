@@ -17,4 +17,6 @@ export const dailyShare = () => api('daily', { action: 'today', share: true });
  *  `all` = the dailies whose SHOW ALL is open (up to 50 rows each) */
 export const dailyEvery = (all = []) => api('daily', { action: 'every', ...(all.length ? { all } : {}) });
 /** CITY E — THE TAPPABLE SHARE CARD: the day's card (a 540 × 675 PNG, base64) for the shared link's preview → { code, path } (api/_lib/share-card.js) */
+// FIXES R2 — TAP A TICKET: your own FINISHED run of today, read back for its end screen (409 not_finished before — never a start)
+export const dailyEnded = game => api('daily', { action: 'ended', game });
 export const dailyShareCard = (day, games, png) => api('daily', { action: 'shareCard', day, games, png });

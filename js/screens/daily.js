@@ -238,7 +238,12 @@ function openScreen(tab0) {
       act = h('span.dy-stamp', { html: stampSvg(), role: 'img', 'aria-label': 'admitted — done for today' });
     } else info = h('div.dy-info', h('b.dy-name', d.name), h('span.dy-hook', d.hook || row.hook || row.tag || ''));
     if (st !== 'done') act = tubeButton(st === 'progress' ? 'RESUME' : 'PLAY', { kind: st === 'progress' ? 'secondary' : 'main', cls: 'dy-play', attrs: { 'data-press': true }, onClick: () => play(d.id) });
-    const ticket = h(`div.dy-ticket.is-${st}`, { dataset: { id: d.id }, style: inkVars(d.id) },
+    // (FIXES R2 — TAP A TICKET: a FINISHED ticket (made or failed) opens its END SCREEN in a sheet — js/daily/end-sheet.js, the server's own
+    //  read-back of YOUR run; an unfinished ticket isn't tappable)
+    const endTap = st === 'done' ? { role: 'button', tabindex: '0', 'data-press': true, 'aria-label': `${d.name} — how your run ended`,
+      onclick: () => { sfx('select'); lazyImport(import('../daily/end-sheet.js'), '../daily/end-sheet.js').then(m => m.openEndSheet(d, { uid: state.uid || '' })).catch(() => {}); },
+      onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } } } : {};
+    const ticket = h(`div.dy-ticket.is-${st}`, { dataset: { id: d.id }, style: inkVars(d.id), ...endTap },
       h('div.dy-stub', art, serial), info, h('div.dy-act', act), h('i.dy-foil', { 'aria-hidden': 'true' }));
     return h('div.dy-tkw', ticket);
   }

@@ -469,3 +469,20 @@ test('DFIX5 — THE OWNER\'S READOUT: `start` says owner ONLY for ADMIN_PIDS (on
   try { assert.equal((await A('cc-own', 'start', NOW + 70e3)).owner, true, 'the emulators\' testAdmins: the readout'); } finally { await ref(`testAdmins/${pid}`).remove(); }
   assert.equal((await A('cc-own', 'start', NOW + 70e3)).owner, undefined);
 });
+
+test('FIXES R2 — TAP A TICKET: `ended` = YOUR OWN finished run (the final board + every light) — refused while it runs (no reveal), never another\'s', async () => {
+  await ensure('cc-tk1', 'Tik'); await ensure('cc-tk2', 'Tok');
+  await A('cc-tk1', 'start', NOW);
+  const board = await ccBoard(day);
+  const l = board.lights;
+  await A('cc-tk1', 'dig', NOW + 1e3, { cell: l[0] });
+  const e1 = await rejects(A('cc-tk1', 'ended', NOW + 1500), 409, 'not_finished');
+  assert.doesNotMatch(JSON.stringify(e1), /"reveal"/, 'no light list while it runs');
+  await A('cc-tk1', 'dig', NOW + 2e3, { cell: l[1] });
+  await A('cc-tk1', 'dig', NOW + 3e3, { cell: l[2] });
+  await A('cc-tk1', 'finish', NOW + 4e3);
+  const r = await A('cc-tk1', 'ended', NOW + 5e3);
+  assert.equal(r.run.done, true); assert.equal(r.run.out, 'caught'); assert.deepEqual([...r.run.reveal].sort(), [...l].sort(), 'every light, once it\'s over');
+  assert.equal(r.e && r.e.sp, 3, 'its extra (the spots) with it');
+  await rejects(A('cc-tk2', 'ended', NOW + 6e3), 409, 'not_finished');   // (only the caller's own run — tk2 never played)
+});

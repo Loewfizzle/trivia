@@ -17,6 +17,7 @@ import { createDoors } from './doors.js';
 import { pwSfx, pwSfxBytes } from './sfx.js';
 import { createRun, applyGuess, canGuess, keyStates, scoreOf, doorOf, headline, failLine, fmtTime, shareLine, DOOR_NAMES, DOORS, GUESSES, WORD_LEN, HIT, NEAR } from './logic.js';
 import { lazyImport } from '../../ui/lazy-import.js';
+import { pwEndResult } from './end-card.js';   // (FIXES R2: THE END SCREEN's result — ONE builder, shared with TAP A TICKET's sheet)
 
 export const FLIP_STEP_MS = 250;      // the tiles flip one by one, this far apart (the owner: ~0.25 s)
 export const FLIP_MS = 500;
@@ -190,32 +191,20 @@ export function createView() {
   }
 
   // ---------------------------------------------------------------- THE END SCREEN (PW2)
-  const miniGrid = d => h('div.pw-mini', { role: 'img', 'aria-label': `${d.guesses.length} guesses` },
-    d.marks.map(m => h('div.pw-mini-row', m.map(x => h('i.pw-mini-c', { class: `is-${x}` })))));
   /** the board + keyboard leave (~0.4 s), one clean screen comes in; the server records the score */
   async function end() {
     if (!run || !run.done || ending) return;
     ending = true;
     kb.lock(true);
-    const s = scoreOf(run);
-    const crack = s.doors === DOORS;
+    const { el: result, title, crack } = pwEndResult(run);
     clear(els.end);
     els.end.classList.toggle('is-crack', crack);
     els.end.classList.toggle('is-fail', !crack);
-    const title = h('h2.pw-end-t', headline(run));
     // (the owner's ADD-ON: no status text on the end screen — the record's state lives in the hook + a quiet NO SIGNAL line only when it failed)
     const acts = endActions('pw', { onShare: () => share() });   // (DM1 — THE DAILY KIT: SHARE + the countdown + the record line)
     sharer().warm();   // (PFIX-3 — S11: the card is built NOW, as the end screen shows — the tap only sends it)
     const rec = acts.rec, next = acts.next;
-    const played = run.doors.filter(d => d.guesses.length);
-    els.end.append(
-      h('div.pw-end-result',
-        title,
-        // WELCOME IN: ONE big number + the time small under it · LOCKED OUT: one small line "6 GUESSES · 2:15" (no big number)
-        crack ? h('div.pw-end-n', h('b', String(s.guesses)), h('span', s.guesses === 1 ? 'GUESS' : 'GUESSES')) : null,
-        crack ? h('div.pw-end-time', fmtTime(s.time)) : h('div.pw-end-line', failLine(run)),
-        h('div.pw-end-grids', played.map(d => h('div.pw-end-door', miniGrid(d), h('b.pw-end-word', { class: d.state === 'solved' ? 'is-open' : 'is-shut' }, d.word || ''))))),
-      acts.el);
+    els.end.append(result, acts.el);
     // the board + the keys leave, the end screen comes in
     els.play.classList.add('is-out');
     doors.set(run);

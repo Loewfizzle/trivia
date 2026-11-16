@@ -310,3 +310,33 @@ test('FR7 FIXES A — DY2: THE GUESS IS IDEMPOTENT — a retry after a lost answ
   await G('pw-old', miss, NOW + 1e3); const o2 = await G('pw-old', miss, NOW + 2e3);
   assert.equal(o2.n, 2, 'no k = the old path (kept for a phone on the old script)');
 });
+
+test('FIXES R2 — TAP A TICKET: `ended` = YOUR OWN finished run of today (the end screen, read-only); unfinished → refused, never a start; another\'s → never', async () => {
+  const E = (uid, at) => dailyAction(uid, { action: 'ended', game: 'password' }, at);
+  await ensure('pw-tk1', 'Tik'); await ensure('pw-tk2', 'Tok'); await ensure('pw-tk3', 'Tak');
+  const day = streakDay(NOW), base = `dly/password/${day}`;
+  const [W1, W2] = await wordsFor(day);
+  const miss = blank([W1, W2]);
+  // never started: refused — and NOTHING written (no start, no clock)
+  await rejects(E('pw-tk3', NOW), 409, 'not_finished');
+  const tk3 = await val(`uids/pw-tk3`);
+  assert.equal(await val(`${base}/s/${tk3}`), null, 'an `ended` never starts a run');
+  // unfinished: refused — the answers + board stay on the server
+  await S('pw-tk1', NOW);
+  await G('pw-tk1', miss, NOW + 1e3);
+  const e1 = await rejects(E('pw-tk1', NOW + 2e3), 409, 'not_finished');
+  noLeak(e1.message, [W1, W2]);
+  // finished: the run view — its marks + the closed door's word; the unplayed door's word never
+  for (let i = 1; i < GUESSES; i++) await G('pw-tk1', miss, NOW + (i + 2) * 1e3);
+  await F('pw-tk1', NOW + 20e3);
+  const r = await E('pw-tk1', NOW + 21e3);
+  assert.equal(r.day, day); assert.equal(r.done, 206);
+  assert.equal(r.run.done, true); assert.equal(r.run.doors[0].state, 'failed'); assert.equal(r.run.doors[0].word, W1); assert.equal(r.run.doors[0].guesses.length, GUESSES);
+  assert.equal(r.run.doors[0].marks.length, GUESSES); noLeak(r, [W2]);
+  // someone else: only ever THEIR OWN run (the caller's pid — never a pid in the call): tk2 never played → refused, tk1's run never handed over
+  const e2 = await rejects(dailyAction('pw-tk2', { action: 'ended', game: 'password', pid: await val('uids/pw-tk1') }, NOW + 22e3), 409, 'not_finished');
+  noLeak(e2.message, [W1, W2]);
+  // a read-only call: the record untouched, no second start
+  const tk1 = await val('uids/pw-tk1');
+  assert.equal(await val(`${base}/r/${tk1}`), 206, 'the score as it was');
+});

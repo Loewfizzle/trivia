@@ -290,3 +290,14 @@ body[data-look="day"] .dy-overlay { --dy-box-line: #16305c; --dy-box-on: #2f86ff
 .dy-cards .dy-card[role="button"]:active { transform: scale(0.985); }
 .dy-cards .dy-card[role="button"]:focus-visible { outline: 2px solid var(--dy-ink); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .dy-cards .dy-card[role="button"] { transition: none; } .dy-cards .dy-card[role="button"]:active { transform: none; } }
+/* FIXES R2 — TAP A TICKET: a finished ticket opens its end screen (js/daily/end-sheet.js) — a quiet press; the sheet's body holds the game's own
+   end-screen result, still (no entrance animation, no live effects); THE DROP's as its share picture */
+.dy-ticket.is-done[role="button"] { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform .12s ease-out; }
+.dy-ticket.is-done[role="button"]:active { transform: scale(0.985); }
+.dy-ticket.is-done[role="button"]:focus-visible { outline: 2px solid var(--dy-ink); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .dy-ticket.is-done[role="button"] { transition: none; } .dy-ticket.is-done[role="button"]:active { transform: none; } }
+.dy-end-body { min-height: 180px; display: grid; place-items: start center; padding: 4px 0 8px; }
+.dy-end-body .dy-endscr { flex: none; width: 100%; padding: 6px 0 4px; min-height: 0; }
+.dy-end-body .dy-endscr * { animation: none !important; }
+.dy-end-body .cc-end.dy-endscr { --cc-mini: clamp(15px, calc((min(100vw, 460px) - 72px) / 9), 24px); }
+.dy-end-drop { display: block; width: min(100%, 420px); height: auto; margin: 0 auto; border-radius: 14px; }

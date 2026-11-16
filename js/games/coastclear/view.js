@@ -22,6 +22,7 @@ import { runDayKey } from '../../daily/clock.js';
 import { createApiJudge } from './judge.js';
 import { ccSfx, ccSfxBytes } from './sfx.js';
 import { lazyImport } from '../../ui/lazy-import.js';
+import { ccEndResult } from './end-card.js';   // (FIXES R2: THE END SCREEN's result — ONE builder, shared with TAP A TICKET's sheet)
 
 export const LONG_MS = 380;           // a long-press = a buoy (in DIG mode)
 export const RIPPLE_MS = 30;          // the flood: one ring outward every 30 ms
@@ -479,17 +480,7 @@ export function createView() {
 
   // ---- CC2: THE END SCREENS — the board + the switch leave; COAST CLEAR (the lighthouse sweep) or CAUGHT; the finished harbor; SHARE ------
   const dayKey = () => runDayKey(day, view.startedAt, Date.now());   // (DFIX1 — the run's own day; DM1 — THE DAILY KIT)
-  /** the finished harbor, shrunk: numbers, buoys, every searchlight (the server reveals them once the run is over) — animated in by rows */
-  function endHarbor() {
-    const map = endMap(view, [...buoys]);
-    const el = h('div.cc-end-map', { role: 'img', 'aria-label': 'the harbor you crossed', style: { '--cc-cols': String(view.w || W) } });
-    map.forEach((m, i) => {
-      const c = h('i.cc-mc', { class: `is-${m.k}`, style: { '--r': String(Math.floor(i / (view.w || W))) } });
-      if (m.k === 'open') { c.dataset.n = String(m.n); if (m.n > 0) c.textContent = String(m.n); }
-      el.append(c);
-    });
-    return el;
-  }
+  // (the finished harbor, shrunk: end-card.js#endHarbor — FIXES R2's ONE builder)
   function end(still) {
     if (ended) { paintEnd(still); return; }
     ended = true;
@@ -514,21 +505,13 @@ export function createView() {
   }
   function paintEnd() {
     clear(els.end);
-    const clean = view.out === 'clear';
     els.end.dataset.out = view.out || '';
-    const title = h('h2.cc-end-t', headline(view));
-    const stage = h('div.cc-end-stage', clean ? h('div.cc-lh', { 'aria-hidden': 'true' }, h('i.cc-lh-glow'), h('i.cc-lh-beam', h('i.cc-lh-core'))) : null, title);
+    const { el: result } = ccEndResult(view, [...buoys]);
     const acts = endActions('cc', { onShare: () => share(), rec: finished === 'FAILED' ? NOT_RECORDED : '' });   // (DM1 — THE DAILY KIT)
     sharer().warm();   // (PFIX-3 — S11: the card is built NOW, as the end screen shows — the tap only sends it)
     const next = acts.next;
     els.rec = acts.rec;
-    els.end.append(
-      h('div.cc-end-result',
-        stage,
-        clean ? h('div.cc-end-n', fmtClock(finalMs(view))) : null,
-        h('div.cc-end-line', endLineNb(view)),
-        endHarbor()),
-      acts.el);
+    els.end.append(result, acts.el);
     fitEndLine(els.end.querySelector('.cc-end-line'));
     tickClock(next);
   }
