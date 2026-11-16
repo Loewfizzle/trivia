@@ -224,7 +224,7 @@ let menuBtn = null, menuPanel = null, chatMod = null, chatUi = null, cueEl = nul
 // that way it's not taking up anything on my screen"): the Harbor's preview panel registers its ADMIN row here (admins only), and
 // while a preview is on, a small coloured dot on ☰ says so (JUST ME green, EVERYONE pink) — never a forced city mistaken for the real one
 const menuExtras = new Map();
-const EXTRA_ORDER = id => ({ stats: 1, lab: 2, adminpage: 3, admin: 4 }[id] || 0);   // (CITY C: + STATS, the owner's)
+const EXTRA_ORDER = id => ({ stats: 1, leavemode: 1.5, lab: 2, adminpage: 3, admin: 4 }[id] || 0);   // (FIXES R3: + LEAVE MODE, the owner's)   // (CITY C: + STATS, the owner's)
 /** a row for the menu's bottom: render({ close }) → an element (or null), or null to remove it */
 export function setMenuExtra(id, render) { if (render) menuExtras.set(id, render); else menuExtras.delete(id); }
 /** the cue on ☰: 'me' | 'all' | null */

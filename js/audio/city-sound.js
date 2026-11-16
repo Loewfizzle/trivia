@@ -211,6 +211,10 @@ export function cityReady(slot, i = 0) {
 // ---------------------------------------------------------------- loops
 const loops = new Set();
 let pumpT = 0;
+// (FIXES R3: the leave record's 'city' + mode A's rest — through engine.js's hubs)
+try { if (globalThis.__nsSounding) globalThis.__nsSounding('city', () => { const on = [...loops].filter(L => L.voices.length); return on.length ? on.map(L => L.slot).join(', ') : 'no loops'; }); } catch { /* polish */ }
+const resting = () => { try { return !!(globalThis.__nsAudioRest && globalThis.__nsAudioRest()); } catch { return false; } };
+const REST_FADE = 0.8;
 const SILENT = Object.freeze({ silent: true, slot: '', set() {}, stop() {}, playing: () => false, debug: () => null });
 
 /**
@@ -266,6 +270,12 @@ function pumpOne(L) {
   try {
     if (!L.want) return;
     const c = getContext();
+    if (resting()) {
+      if (L.voices.length && L.outG && L.c === c && c) { if (!L.restAt) { L.restAt = performance.now(); setP(L.outG.gain, 0, c, REST_FADE); } else if (performance.now() - L.restAt > REST_FADE * 1000 + 200) { drop(L); L.restAt = 0; } }
+      else if (L.voices.length) drop(L);
+      return;
+    }
+    if (L.restAt) { L.restAt = 0; if (L.outG && L.c === c) setP(L.outG.gain, L.s.gain * L.gain, c, REST_FADE); }   // (the music back on mid-fade: up again)
     // (FIXES R2: the effects switched off → the loop goes only once their bus has REACHED 0 — dropped mid-sound it was a click into the mix)
     if (!c || !isUnlocked() || !audible()) { if (L.voices.length && (!c || c !== L.c || (!audible() && sfxSilent()))) drop(L); return; }
     if (L.c && L.c !== c) drop(L);

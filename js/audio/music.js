@@ -15,7 +15,7 @@
 // is seen frozen. On it: no crossfades (a cut between songs), the volume slider / ducks only where an element's volume works (not
 // iOS), mute + MUSIC OFF mute the element; the beat follows the song's grid (the kick listener hears nothing). At the next tap with
 // the graph seen running for 2 s the song moves back onto a Web Audio voice at its place.
-import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, canStart, inGesture, clockFrozen, graphOk, onResume, onRebuild, onGesture, onFrozen, tapFoundSilence, audioHealth, audioLog, audioEvents, graphDead as engineGraphDead, getMaster, audioHushed, onHush } from './engine.js';
+import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, canStart, inGesture, clockFrozen, graphOk, onResume, onRebuild, onGesture, onFrozen, tapFoundSilence, audioHealth, audioLog, audioEvents, graphDead as engineGraphDead, musicResting, onMusicRest, soundingHub, getMaster, audioHushed, onHush } from './engine.js';
 import { settings, onSettings } from './settings.js';
 import { musicUrl } from './music-url.js';
 import { createTapeStop } from './tape-stop.js';
@@ -163,7 +163,7 @@ function watchErrors(voice) {
 }
 // Activate an element inside the gesture (iOS), then park it (unless a song took it meanwhile).
 function activate(voice) {
-  if (audioHushed()) { voice.needAct = true; return; }   // (CITY A — item 29: hushed — no silent activation loop; the unmuting tap activates it)
+  if (audioHushed() || musicResting()) { voice.needAct = true; return; }   // (CITY A — item 29: hushed — no silent activation loop; the unmuting tap activates it) (FIXES R3: + resting)
   voice.needAct = false;
   const silent = silentUrl || (silentUrl = silentWavUrl());
   voice.el.src = silent;
@@ -346,7 +346,7 @@ export function handoffFade(seconds) { nextStopFade = seconds; }
 
 function apply() {
   // (canStart: running — or inside a tap that just asked a fresh / suspended context to run: start the song IN the tap, iOS's rule)
-  if (!visible || audioHushed()) return;   // (CITY A — item 29: hushed — nothing plays, nothing is started)
+  if (!visible || audioHushed() || musicResting()) return;   // (CITY A — item 29: hushed — nothing plays, nothing is started) (FIXES R3: + resting)
   if ((!canStart() || !voices.length) && !useDirect()) return;   // (a dead graph with the direct element armed may still start a song)
   // the voices were re-made (a rebuilt context / a dead voice): the same song goes on from where it was
   if (carry && !current && desired) {
@@ -717,7 +717,8 @@ onFrozen(() => { if (visible && desired && current && !current.ended && !current
 // Every tap: anything that only a gesture may restart (a refused play(), a dead voice) — before the tap's own click runs.
 // CITY A — item 29, THE HUSH (engine.js): muted / everything off → every element PAUSED, the direct path's src RELEASED (no silent loop), the
 // song carried; the unmuting tap (inside its gesture) → every element activated again + the song goes on where the station is
-onHush(on => {
+// (FIXES R3 — mode A: the music OFF rests the elements as THE HUSH does)
+function hushMusic(on, why = 'hushed') {
   const all = [...voices, ...(direct ? [direct] : [])];
   if (on) {
     if (tape.active()) tape.abort('hushed');
@@ -725,14 +726,17 @@ onHush(on => {
     for (const x of all) { try { x.el.pause(); } catch { /* fine */ } x.armed = false; if (x.el.src && x.el.src.startsWith('blob:')) { x.el.removeAttribute('src'); try { x.el.load(); } catch { /* fine */ } } }
     if (direct && direct.el.getAttribute('src')) { direct.id = null; direct.el.removeAttribute('src'); try { direct.el.load(); } catch { /* fine */ } }
     if (current) { if (current.voice.gain) { try { current.voice.gain.gain.value = 0; } catch { /* fine */ } } current = null; }
-    audioLog('music hushed: every element paused, the direct path released');
+    audioLog(`music ${why}: every element paused, the direct path released`);
     return;
   }
   for (const x of all) if (x.needAct || !x.el.getAttribute('src')) activate(x);
   apply();
-});
+}
+onHush(on => hushMusic(on, 'hushed'));
+onMusicRest(on => { if (!on && audioHushed()) return; hushMusic(on, 'resting (the music off — FIXES R3 mode A)'); });
+soundingHub('media', () => { const on = [...voices, ...(direct ? [direct] : [])].filter(x => x.el && !x.el.paused); return on.length ? on.map(x => `${x.direct ? 'direct' : 'voice'} ${x.el.src && x.el.src.startsWith('blob:') ? 'silent blob' : x.id || 'song'} PLAYING${x.el.muted ? ' (el muted)' : ''}`).join(', ') : 'none playing'; });
 onGesture(() => {
-  if (audioHushed()) return;   // (CITY A: hushed — a tap restarts nothing)
+  if (audioHushed() || musicResting()) return;   // (CITY A: hushed — a tap restarts nothing)
   // elements whose activation never settled (iOS refused it outside a gesture; a pause aborted it): activate them again, in this tap
   for (const x of [...voices, ...(direct ? [direct] : [])]) if (!x.armed && x.el.src.startsWith('blob:') && (!current || x !== current.voice)) activate(x);
   if (!visible || !desired) return;

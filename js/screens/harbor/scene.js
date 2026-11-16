@@ -1759,10 +1759,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (DESKTOP Group 4: the window moved to a screen of another pixel ratio — not every browser fires 'resize' or the media query for it:
     //  a property read a frame (no layout) starts the same debounced re-fit)
     if (window.devicePixelRatio !== devDpr) { devDpr = window.devicePixelRatio; onResize(); }
-    // FIXES R3 — THE AWAY RACE (the owner's iPhone, build 62212dd, the home-screen app: "harbor frame: InvalidStateError" — the frame drew the SKY
-    // that AWAY, LIGHT had zeroed): iOS makes the page visible and runs a timer / a focus (the watchdog → wakeLoop → this frame) BEFORE it
-    // dispatches visibilitychange, the only signal that called awayBack. Any frame that finds the page back on screen with the away state still
-    // set runs the return itself — the picture held, the re-build in THIS frame (city-away-race.mjs)
+    // (FIXES R3 — THE AWAY RACE: iOS runs a frame (the watchdog / a focus) BEFORE visibilitychange — the frame runs the return itself; city-away-race.mjs)
     if (away && document.visibilityState === 'visible') awayBack('a frame first');
     if (wantBuild) { const why = typeof wantBuild === 'string' ? wantBuild : 'a rebuild'; wantBuild = false; measure(); build(why); }      // (FP3a: the clear and the redraw in ONE frame — never a blank one)
     if (benchPause || coverPause) { seenAt = performance.now(); lastRaf = now; last = now; return; }   // (+ SPEED PASS B: under a full card)   // (SKY-B: THE BENCH's COOL-DOWN — the city's frames skipped)
@@ -2009,8 +2006,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // NEON PASS 2 — FILL: the star field folded into the sky bitmap (one full-sky blend a frame instead of two; rebuilt when the
       // sky repaints, the stars turn (every 20 s) or their visibility moves a 64th); the twinkles + the planets still drawn live
       const sb = vis > 0.02 && !off.has('no-merge') ? stars.base(W, HZ, LK, clock.now(), milky) : null;
-      // (FIXES R3: a freed sky — 0 × 0, drawImage of it throws InvalidStateError in WebKit — is never drawn: the re-build is asked for and
-      //  the held picture covers this frame; never a throw)
+      // (FIXES R3: a freed (0 × 0) sky is never drawn — WebKit's InvalidStateError; a re-build asked instead)
       if (!skyCv.width || !skyCv.height) { if (!wantBuild) wantBuild = 'a freed sky'; }
       else if (sb && sb.cv.width === skyCv.width && sb.cv.height === skyCv.height) {
         const vq = Math.round(Math.min(1, vis) * 64) / 64;
@@ -3046,7 +3042,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const onFonts = e => { LOADLOG.add('fonts', `${(e.fontfaces || []).map(f => f.family).filter((v, i, a) => a.indexOf(v) === i).join(', ') || 'fonts'} in`); if (shownAt < 0 && !destroyed) { try { maybeRelayout(); } catch { /* the title is going */ } } };   // (CITY C 0c: a face landing before the reveal re-measures the dock at once)
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', onFonts);
   vpLast = vpSize();
-  let failedN = 0;   // (FIXES R3: every failed frame this session — the report names only the first; city-away-race.mjs)
+  let failedN = 0;   // (FIXES R3: every failed frame)
   function start() { if (running || destroyed) return; running = true; last = lastRaf = startAt = performance.now(); if (!seenAt) seenAt = startAt; fastUntil = last + 1500; raf = requestAnimationFrame(frame); }
   function stop() { running = false; cancelAnimationFrame(raf); }
   // the title reports the sign's and the dock's real rects a frame after mount (and every 500 ms): a moved rect re-lays the city

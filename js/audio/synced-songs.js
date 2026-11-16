@@ -24,6 +24,9 @@ import { settings } from './settings.js';
 // much earlier (ms), so its sound leaves the speakers in step with a phone's
 export const speakerLead = () => Math.max(0, Math.min(0.5, (Number(settings.speakerDelay) || 0) / 1000));
 
+const rest = () => { try { return !!(globalThis.__nsAudioRest && globalThis.__nsAudioRest()); } catch { return false; } };   // (FIXES R3: engine.js's hub)
+const PLAYERS = new Set();
+try { if (globalThis.__nsSounding) globalThis.__nsSounding('songs', () => { const on = [...PLAYERS].filter(p => p.voices.size).map(p => `${p.label} ×${p.voices.size}`); return on.length ? on.join(', ') : 'none'; }); } catch { /* polish */ }
 const LOOKAHEAD_MS = 45_000; // decode the next song this long before its crossfade
 const END_FADE = 1.5;        // seconds: the very end of the last song fades out
 
@@ -266,6 +269,7 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
   let swaps = 0;             // (PD-5A) part → longer part / whole song, on one sample
   const bufs = new Map();    // `${matchId}:${i}` -> { buf, part, failed }
   const voices = new Map();  // song index -> { src, gain, origin, startedAt, part, endS, env }
+  PLAYERS.add({ label, voices });   // (FIXES R3 — THE LEAVE RECORD: every player's songs sounding)
   const done = new Set();    // song indexes that played to their end (never restart)
   const keyOf = i => `${game.matchId}:${i}`;
   const cueOf = i => Math.max(0, Number(game && game.cu && game.cu[i]) || 0) / 1000;
@@ -419,6 +423,8 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
       // place), start again on the room clock once the new one runs
       if (dest && ctx && dest.context !== ctx) { voices.clear(); dest = null; restarts++; }
       if (!ctx || ctx.state !== 'running') return null;
+      // (FIXES R3 — mode A: the music off → no song on through a 0 bus; it re-joins at its place when the music is on)
+      if (rest()) { for (const i of [...voices.keys()]) stopVoice(ctx, i, 0.3); return null; }
       if (!dest) dest = connect(ctx);
       // a voice whose song isn't wanted any more (a jump in time): out, quickly
       for (const i of [...voices.keys()]) if (!want.includes(i)) stopVoice(ctx, i, 0.3);
@@ -486,6 +492,7 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
     // made is disconnected once the fade is over: every station change used to leave one more gain on the music bus)
     stop(fade = 0.6) {
       stopped = true;
+      for (const p of PLAYERS) if (p.voices === voices) PLAYERS.delete(p);
       const ctx = getContext();
       if (ctx) for (const i of [...voices.keys()]) stopVoice(ctx, i, fade);
       voices.clear();

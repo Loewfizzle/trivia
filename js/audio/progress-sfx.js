@@ -42,7 +42,7 @@ export function pgSfx(name, { gain = 1, rate = 1 } = {}) {
     last[name] = now;
     const ctx = getContext(), bus = getSfxBus();
     const play = b => {
-      if (!b || !ctx || ctx.state !== 'running') return;
+      if (!b || !ctx || !(globalThis.__nsAudioLive ? globalThis.__nsAudioLive(ctx) : ctx.state === 'running')) return;   // (FIXES R3: a context asleep between effects (mode A) is woken by the hub — engine.js#audioLive)
       const s = ctx.createBufferSource(), g = ctx.createGain();
       s.buffer = b; s.playbackRate.value = rate;
       g.gain.value = (GAIN[name] || 0.8) * gain;

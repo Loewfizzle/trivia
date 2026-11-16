@@ -31,6 +31,141 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
   unmasking); a track change resets it.
 
 
+## FIXES R3 — THE SQUEAL ON LEAVING THE HOME-SCREEN APP: THE LEAVE RECORD + THE LEAVE MODES (Nov 16 2026) — `audio/engine.js`, `audio/leave-report.js`, `audio/leave-text.js`
+
+**The owner's evidence (Nov 15 11:03–11:12 pm, iPhone iOS 18.7, the home-screen app, music OFF + effects ON):** R2 fixed the effects toggle
+(AUDIO CUT rows clean); leaving the app still squeals — and NO AUDIO CUT row came for that leave. The cut either never ran or iOS froze the
+page before the row was written (R2 wrote it ~125 ms after the leave, in a timer). Another fade can't fix a squeal that happens before our
+code gets a turn.
+
+**What actually runs with the music OFF + effects ON at an idle city moment** (measured on the real graph — `tests/integration/audio-modes.mjs`,
+before R3's mode A): the context runs nonstop; **a station song (`synced-songs.js`, a 257-s AudioBuffer) plays on through the 0-gain music
+bus**; **six or seven city ambience LOOPS** (water-lapping, city-hum-night, club-murmur-calm, tv-murmur, wind-leaves, wind-winter, boat-putter)
+— none of them registered as BEDS (`beds 0`: `holdBed` only holds ambience.js's hum), so R2's "the beds stop after the ramp" never stopped
+them; and a short city one-shot about every 0.7 s. No media element plays (the music's elements are paused with the music off). So nothing
+is ever silent between effects: a leave ALWAYS freezes a sounding graph. The prime suspect.
+
+**(1) THE LEAVE RECORD:** every leave signal — blur (a touch phone) · hidden · pagehide · freeze · the context's statechange · the session's —
+is written to localStorage `ns:audioleave` **synchronously, in the signal's own handler** (before anything that waits), with what was
+sounding at the first (`soundingNow()`: the context, the master, the buses, the beds, the idle sleep, the rest + every hub — `media` (music.js:
+each element not paused), `songs` (synced-songs.js: each player's voices), `city` (city-sound.js: its loops)), and every step of the cut
+after it. The return (visible) closes it: ONE **AUDIO LEAVE** row (kind `leave`, /admin → errors from phones) 1.5 s later; a page that never
+came back sends it at its next load ("NEVER CAME BACK"); a blur that stays on screen (a share sheet) is no leave. The owner's phone
+(`body.rd-owner`) or `&debug=1` only; the text builder (`leave-text.js`) loads only when a row goes out (THE BOOT BUDGET).
+
+**(2) THE LEAVE MODES** (the owner's switch: ☰ → **LEAVE MODE** — admins only, THIS PHONE (`ns:leavemode`); each tap = the next mode, a toast
+names it; the mode is in every AUDIO LEAVE row; engine.js reads it at boot, the lazy panel sets it through `globalThis.__nsLeaveMode`):
+- **A — IDLE SILENCE (the default — the best guess from the evidence above):** with the music OFF nothing continuous runs: the music's
+  elements rest (music.js — THE HUSH's own body, `hushMusic`), the station song fades out (`synced-songs.js`, re-joins at its place when the
+  music is on), the city's loops fade out (`city-sound.js`, 0.8 s then dropped once silent; back with their fade-in). The context SLEEPS once
+  the master's ear (an analyser off the master, never to the destination) has heard nothing for `IDLE_MS` 1.5 s and no bed holds it (R2's
+  order: the ramp → the zeros → the suspend); the NEXT SOURCE MADE on the context wakes it (the factories `createBufferSource` /
+  `createOscillator` / `createConstantSource` wrapped per context; the lazy effects' second checks through `globalThis.__nsAudioLive`);
+  `isUnlocked()` counts the sleep as unlocked; the OS-took-it resume and `kick()` never fight it; the return wakes nothing. With the music ON,
+  A = R2.
+- **B — CLOSE AT ONCE:** the first leave signal (blur on a touch phone · hidden · pagehide · freeze · interrupted): the master to 0 at once
+  (no ramp — the owner's spec) + the AudioContext CLOSED; the return (visible, a blur that stayed on screen, a tap, the unmuting tap) builds a
+  fresh one through `rebuild()` (every listener moves its nodes over), the master from 0 up once it runs (`freshBack`).
+- **C1 / C2 — SESSION TYPE:** `navigator.audioSession.type` set at BOOT and kept: 'ambient' (C1) / 'playback' (C2) — the intercom's
+  'play-and-record' aside — + R2's cut.
+- **MUTED = NOTHING RUNS in every mode** (`tests/audio-hush.test.mjs` + `tests/audio-leave-mode.test.mjs`: muted → suspended; a tap resumes /
+  builds nothing; leaving + coming back wakes nothing).
+
+**Proof off the device:** `tests/audio-leave-mode.test.mjs` 14 / 14 (the record written in the handler, one row on the return, the
+never-came-back row, no row for a share sheet, A's sleep + wake, B's close + fresh context, C's session, MUTED in all four) ·
+`tests/integration/audio-modes.mjs` 36 / 36 (Chromium, the real graph: what runs at an idle moment in each mode; an effect plays; the record
+in the blur's own turn; the tail before the suspend silent in A / C1 / C2 — B closes at once; the AUDIO LEAVE row on the return) ·
+`audio-cut` 33 / 33 · `audio-leave` 22 / 22 · `audio-hush` 9 / 9 (default A). **Only his iPhone can prove** which mode is silent: Core Audio's
+own buffer, the home-screen app's real signal order, whether WebKit resumes a sleeping context outside a tap (A), whether a fresh context
+starts without one (B). The winner becomes the only path in the next pass.
+
+## engine.js — THE HEADER (moved Nov 16)
+
+FIXES R3 moved `js/audio/engine.js`'s header comment here verbatim (it was ~10 KB of the boot's bytes — THE BOOT BUDGET); the file keeps a pointer.
+
+```
+//
+// Mobile rules handled here:
+//  - iOS/Chrome only allow audio after a user gesture: the context is created and
+//    resumed on the first tap/key (and re-resumed on later taps if iOS suspended it).
+//  - THE GESTURE (M3, the owner's iPhone: "still doesn't come back, even when I tap"): on iOS only touchend, click and
+//    keydown let a media element or an AudioContext START — a touch's pointerdown does NOT. The rebuild + the plays used to
+//    run in pointerdown (the first event of a tap): iOS refused them silently and nothing tried again in the touchend. Now
+//    the real work runs in touchend / click / keydown (+ a MOUSE pointerdown, a gesture on a computer); a touch's pointerdown
+//    only asks for a resume. Every tap retries — nothing is "tried once".
+//  - Audio pauses when the page is hidden and resumes when it comes back. iOS often refuses
+//    that resume (or 'interrupts' the context, e.g. around the system keyboard), so every
+//    later tap/keystroke/focus retries, and onResume listeners restart playback.
+//  - THE STUCK CONTEXT (iOS: leaving Safari, the lock screen, a call, Siri, another app's audio):
+//    sometimes the context never runs again: resume() is refused or never settles. Every resume we ask
+//    for is checked STUCK_MS later; a context still not running then is "stuck", and the next tap
+//    REBUILDS it (a fresh AudioContext, created + started inside that tap). Also rebuilt at once in a tap:
+//    an 'interrupted' context (the OS still holds it), one whose resume asked in an earlier tap never ran,
+//    and a FROZEN one (says 'running' but its clock has stopped — a WebKit bug after the background).
+//    onRebuild listeners move their nodes over (music.js re-makes its voices in the same tap); modules
+//    that key their nodes to getContext() follow on their own.
+//  - THE AUDIO SESSION (M4, the owner's iPhone AFTER M3 — the AUDIO panel's evidence: every NEW context, created inside a real
+//    touchend, said 'running' (resume ok) and never rendered one quantum: its clock stayed at 0.00, the probe heard nothing, while
+//    the song element's own clock ran on; six rebuilds, none ever started. A context that was started but is never called is
+//    what Core Audio does when the app's AVAudioSession isn't ACTIVE. This page set navigator.audioSession.type = 'ambient'
+//    (iOS 17+) on every context: an AMBIENT session is deactivated whenever the app leaves the foreground and iOS gives it no
+//    "resume" after another app's audio — and WebKit re-activates it for a media element's playback, not for Web Audio alone
+//    (the element here plays through the graph, so its sound only exists in the dead graph). Now: 'playback' while the music is
+//    ON — the category every music app uses: it survives the background and is re-activated with the element; it also PLAYS
+//    WITH THE RING / SILENT SWITCH ON SILENT, like YouTube in Safari, and stops other apps' music while ours plays —, 'ambient'
+//    only while the music is OFF or muted (effects only: mixes with other apps, respects the switch). Set BEFORE the context is
+//    made and re-asserted inside every tap, on the way back on screen and when the setting changes.
+//  - THE REBUILD LOOP (M4): a rebuilt context that freezes too is NOT rebuilt again on the next tap for REBUILD_GAP (iOS's hardware
+//    contexts are finite and every live graph costs a real-time thread — her readout showed 5–6 % slow frames in that state);
+//    music.js takes THE DIRECT PATH instead (a plain <audio> element, iOS's own pipeline — docs/audio.md#m4). A context that
+//    never started (clock 0.00 after 0.7 s of 'running') is frozen at once, not after 1.5 s. The old context is closed FIRST,
+//    and the panel counts the contexts alive (made − closed).
+//  - THE FADE ON LEAVING (DFIX3 ADD-ON, the owner's iPhone: a short high hum when switching out of Safari with the sound on — the context
+//    was suspended INSTANTLY, mid-buffer, and iOS clicked / looped the last buffer): EVERY sound path ends on ONE MASTER gain (music bus +
+//    SFX bus → the limiter → master → the speaker). On hidden / pagehide / freeze the master ramps to 0 ON THE AUDIO CLOCK first (scheduled
+//    synchronously — iOS may freeze the page's JS right after pagehide, so the ramp must already be on the audio thread before anything
+//    waits), the suspend follows ~110 ms later. Back on screen (visible / pageshow / resume): the master is set to 0, the context asked to
+//    run, and the moment it runs everything ramps back up over ~150 ms — never a jump to full (no pop). THE DIRECT PATH's plain <audio>
+//    (iOS ignores an element's volume) is paused at the START of the fade; the graph's voices after it (music.js). The clock watch, the
+//    unlock, the retries + the rebuilds are unchanged. The log reads: fade out → suspended after the fade → fade in.
+//  - CITY D — THE LEAVING SQUEAL WITH EFFECTS ON (the owner's iPhone: music off, effects ON, the daily screen → leaving Safari → the glitch
+//    again; CITY A fixed only muted / everything off): on the EARLIEST leave signal (blur on a touch phone · pagehide · hidden · freeze) the
+//    master goes to 0 AT ONCE (setValueAtTime — no ramp: a 90-ms ramp was still sounding when iOS froze the page), every BED / LOOP source
+//    stops (holdBed — the neon hum, a game's loop), and the context suspends ~60 ms later (the zeros already on the audio thread). Back on
+//    screen: resume → the master ramps up from 0 + the beds ramp back in. A blur that comes back while the page stayed visible (the share
+//    sheet, a system alert) brings it all back after ~400 ms — and a desktop's blur (another window clicked) is not a leave at all.
+//  - FIXES R1 — THE SQUEAL IN THE HOME-SCREEN APP (the owner: fixed in Safari by CITY D, still heard in the saved home-screen app, leaving
+//    AND coming back). A standalone app gets its leave / return signals in another order — often NO blur, a late (or no) visibilitychange —
+//    and iOS INTERRUPTS the context as the app goes (and may resume it before the page's JS runs again). Now: (1) the context's own
+//    'interrupted' is a LEAVE signal too — the master to 0 at once, the beds stopped, the fade back waits for 'running' (a resume is asked only
+//    if the page is still on screen BLUR_BACK_MS later — never fighting the OS on its way out); (2) a context that turns 'running' while the
+//    page is NOT on screen (the OS gave it back in the background) is silenced + suspended at once — the sound comes back only through the
+//    return (visible → resume → running → the ramp from 0); (3) THE REVIEW A7: a blur's return that finds the context not running asks for it
+//    + leaves the fade pending (it was resumeBeds() alone — the master stayed at 0 until the next hide / show); (4) THE REVIEW A15: running
+//    while hushed → hushed again (NOTHING RUNS). navigator.audioSession stays 'playback' with the music on: an 'ambient' session is what left
+//    the graph dead after the background (M4, above) — not used as a squeal fix.
+//  - FIXES R2 — THE SQUEAL IS THE CUT (the owner's tests, Nov 15 7:27 pm, iOS 18.7: ALL sound off → leaving = no squeal; music ON + effects
+//    OFF → no squeal; and switching the SOUND EFFECTS toggle OFF squeals by itself). The effects' cut was abrupt in three places, measured
+//    by tests/integration/audio-cut.mjs (the master + the effects bus recorded sample by sample): (1) THE HUSH suspended the context 60 ms
+//    into its 90-ms ramp — the last buffer rendered before the suspend still sounding (−51 dBFS): what iOS's output keeps playing; (2) the
+//    effects bus went down on setTargetAtTime — never exactly 0 (−66 dBFS a quarter-second later) — and the city's LOOPS were dropped at the
+//    next pump, mid-sound; (3) on leaving, the beds were stopped in the same instant as the master's step to 0 (a loop cut with the bus at
+//    49 %). Now EVERY CUT runs in one order: the bus / the master RAMPS to exactly 0 (linear: the effects bus CUT_S, the hush FADE_OUT_S,
+//    the leave LEAVE_S — short, the page may freeze any moment after a blur), a loop is stopped only once its sound is 0 (sfxSilent() ·
+//    the beds after the leave's ramp), and the context is suspended only after THE ZEROS FIRST — the output exactly 0 for ZERO_HOLD_MS.
+//    The way back is unchanged: the master from 0, ramped up once the context RUNS. THE PHONE'S ROW (kind 'audio', AUDIO CUT in /admin —
+//    the owner's phone or &debug=1 only): each cut's engine state, the session, the master at the suspend and the zeros held before it.
+//  - FIXES R3 — THE SQUEAL ON LEAVING THE HOME-SCREEN APP (the owner, Nov 15 11:03–11:12 pm, iOS 18.7, music OFF + effects ON: R2 fixed the
+//    effects toggle; leaving the app still squeals — and NO AUDIO CUT row came for that leave: the cut either never ran or iOS froze the page
+//    before its row was written). (1) THE LEAVE RECORD: every leave signal (blur on a touch phone · hidden · pagehide · freeze · the context's
+//    statechange · the session's) is written to localStorage SYNCHRONOUSLY with what was sounding (soundingNow — the buses, the beds, the
+//    music's elements, the city's loops) and sent as an AUDIO LEAVE row at the next return / load. (2) THE LEAVE MODES (leave-report.js — the
+//    owner's switch ☰ → LEAVE MODE): A IDLE SILENCE (music off: the elements rested, the context asleep between effects — woken by the next
+//    source made on it) · B CLOSE AT ONCE (the first leave signal closes the context; a fresh one on the return) · C1 / C2 the session type at
+//    BOOT ('ambient' / 'playback') + R2's cut. MUTED = NOTHING RUNS in every mode.
+//  - THE LOG (audioLog / audioEvents): the last events with times — what the &debug=1 AUDIO block shows (audio/diag.js).
+```
+
 ## OVERCLOCK's SOUNDS (OC1, Nov 5 2026) — `js/games/overclock/sfx.js`, `scripts/build-oc-sfx.py`, `audio/sfx/overclock/`
 The owner's Grok set (33 files + `credits.txt`, all CC0 / Sonniss GDC — no credit required, kept anyway) compressed to mono 96 kbps (955 → 478 KB),
 NOT re-normalised (Grok's four loudness tiers stay); `17-winner-fanfare-b.mp3` left out (the owner picked the main 17). `ocSfx(name)` plays

@@ -21,9 +21,10 @@ test('hushed: a tap never resumes / blips / rebuilds; the context suspended afte
   assert.match(E, /if \(hushed \|\| hushWanted\(\)\) \{[\s\S]{0,600}gestureListeners\.forEach[\s\S]{0,120}return;\s*\}/, 'unlock while hushed: listeners only');
   assert.match(E, /g\.linearRampToValueAtTime\(0, t \+ FADE_OUT_S\);[\s\S]{0,40}\} catch \{ \/\* closed \*\/ \}[\s\S]{0,400}if \(master && master\.gain\.value > 1e-5\) \{ hushT = setTimeout\(go, 40\); return; \}[\s\S]{0,120}c\.suspend\(\)[\s\S]{0,200}hushT = setTimeout\(go, Math\.round\(FADE_OUT_S \* 1000\) \+ ZERO_HOLD_MS\);/, 'the ramp first, THE ZEROS FIRST, the suspend after (FIXES R2)');
   assert.match(E, /function kick\(\) \{\s*if \(!ctx \|\| !unlocked \|\| hushed/);
-  assert.match(M, /function activate\(voice\) \{\s*if \(audioHushed\(\)\) \{ voice\.needAct = true; return; \}/, 'no silent activation loop while hushed');
-  assert.match(M, /if \(!visible \|\| audioHushed\(\)\) return;/, 'apply() starts nothing while hushed');
-  assert.match(M, /onHush\(on => \{[\s\S]{0,900}x\.el\.removeAttribute\('src'\)/, 'the elements released');
+  assert.match(M, /function activate\(voice\) \{\s*if \(audioHushed\(\)( \|\| musicResting\(\))?\) \{ voice\.needAct = true; return; \}/, 'no silent activation loop while hushed (FIXES R3: + while resting)');
+  assert.match(M, /if \(!visible \|\| audioHushed\(\)( \|\| musicResting\(\))?\) return;/, 'apply() starts nothing while hushed');
+  assert.match(M, /function hushMusic\(on, why = 'hushed'\) \{[\s\S]{0,900}x\.el\.removeAttribute\('src'\)/, 'the elements released');
+  assert.match(M, /onHush\(on => hushMusic\(on, 'hushed'\)\);/, 'the hush runs it (FIXES R3: one body for the hush + mode A\'s rest)');
 });
 
 test('ONLY the master reaches ctx.destination — every analyser / probe / blip in the shipped code rides it (a bus fallback aside)', () => {
@@ -50,7 +51,7 @@ test('leaving: the master ramps to 0 (LEAVE_S), the beds after it, the suspend a
   assert.match(E, /function fadeOut\(why\) \{[\s\S]{0,700}quiet\(c, LEAVE_S\);[\s\S]{0,200}setTimeout\(\(\) => \{ if \(!visibleNow\) pauseBeds\(why\); \}, Math\.round\(LEAVE_S \* 1000\) \+ 10\);[\s\S]{0,200}c\.suspend\(\)[\s\S]{0,150}Math\.round\(LEAVE_S \* 1000\) \+ ZERO_HOLD_MS\);/, 'the ramp, the beds, the zeros, then the suspend');
   assert.match(E, /function quiet\(c, s\) \{ try \{ const t = c\.currentTime, g = master\.gain; const v = g\.value; g\.cancelScheduledValues\(t\); g\.setValueAtTime\(v, t\); g\.linearRampToValueAtTime\(0, t \+ s\); \}/, 'a ramp from where it is');
   assert.match(E, /const CUT_S = 0\.08, LEAVE_S = 0\.025, ZERO_HOLD_MS = 100;/);
-  assert.match(E, /window\.addEventListener\('blur', \(\) => \{ audioLog\('blur'\); onBlur\(\); \}\);/);
+  assert.match(E, /window\.addEventListener\('blur', \(\) => \{ audioLog\('blur'\); if \(coarse\(\)\) leaveNote\('blur', true\); onBlur\(\); \}\);/);   // (FIXES R3: the blur recorded first)
   assert.match(E, /const coarse = \(\) => \{ try \{ return matchMedia\('\(pointer: coarse\)'\)\.matches;/, 'a desktop\'s blur is not a leave');
   assert.match(E, /function fadeIn\(why\) \{[\s\S]{0,300}linearRampToValueAtTime\(1, t \+ FADE_IN_S\);[\s\S]{0,60}resumeBeds\(\);/, 'back: the master from 0 + the beds back in');
   assert.match(E, /globalThis\.__nsAudioBeds = holdBed;/, 'the hub for a lazy chunk (THE STALE-MODULE RULE)');
