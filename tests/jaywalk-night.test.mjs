@@ -150,12 +150,11 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   assert.match(n, /const LAMPS = Object\.freeze\(\{ 'car-sedan': \[[\d.]+, [\d.]+\], 'car-hatchback': \[[\d.]+, [\d.]+\], 'car-taxi': \[[\d.]+, [\d.]+\], 'car-van': \[[\d.]+, [\d.]+\], truck: \[[\d.]+, [\d.]+\], train: \[[\d.]+, [\d.]+\] \}\);/);
   const reach = /const HEAD_REACH = ([\d.]+), TAIL_REACH = ([\d.]+);/.exec(n);
   assert.ok(reach && +reach[1] >= 1 && +reach[1] <= 1.5 && +reach[2] >= 0.5 && +reach[2] <= 1, `a headlight's glow is gone within ${reach && reach[1]} cells, a tail light's within ${reach && reach[2]}`);
-  assert.match(n, /for \(const e of \[-hw, hw\]\) \{[^}]*0xfff0c8, 1, 6, 0\.5 \* a1\);[^}]*0xff2030, 1, 0, 0\.5 \* a1\);[^}]*streak, 1, 0\.12, back, tint, 1, 1,[^}]*0xfff0c0, 1, 5,[^}]*0xff2840, 1, 5,[^}]*\}/, 'a car: two beams, two red glows, TWO thin streaks (H3), two + two lamps');
-  // (H3 — the owner: the light trail = two THIN, SHORT, fast-fading streaks, one from EACH tail light — never one long lopsided beam)
-  const stk = /const streak = ([\d.]+) \+ L\.v \* ([\d.]+);/.exec(n);
-  assert.ok(stk && +stk[1] + 130 * +stk[2] <= 2, `a streak is short: ${stk && (+stk[1] + 22 * +stk[2]).toFixed(2)}–${stk && (+stk[1] + 130 * +stk[2]).toFixed(2)} cells`);
+  assert.match(n, /for \(const e of \[-hw, hw\]\) \{[^}]*0xfff0c8, 1, 6, 0\.5 \* a1\);[^}]*0xff2030, 1, 0, 0\.5 \* a1\);[^}]*0xfff0c0, 1, 5,[^}]*0xff2840, 1, 5,[^}]*\}/, 'a car: two beams, two red glows, two + two lamps');
+  // (H5A — the owner: THE LIGHT TRAILS ARE GONE on every vehicle — from above they read as jet exhaust; afterburners are THE BLACKBIRD's alone)
+  assert.doesNotMatch(n, /streak/, 'no streak is drawn behind a car, the truck or the train');
+  assert.doesNotMatch(n, /back, tint, 1, 1,|0xff3a5a, 1, 1,/, 'no tapered ribbon (the glow shader\'s shape 1) in a vehicle\'s colour');
   assert.doesNotMatch(n, /2\.0 \+ L\.v \* 0\.045, 1, 0\.62, back, tint/, 'the one long trail is gone');
-  assert.match(n, /for \(const e of \[-tw, tw\]\) \{[^}]*1\.8, 1, 0\.14, p\.dir > 0 \? 0 : Math\.PI, 0xff3a5a, 1, 1,[^}]*\}/, 'the train: a streak from each tail light too');
   assert.match(n, /for \(const e of \[-tw, tw\]\) \{[^}]*0xfff2d0, 1, 6,[^}]*0xff2030, 1, 0,[^}]*\}/, 'the train\'s front: two beams; its rear: two red glows');
   assert.doesNotMatch(n, /2\.6, 1, 1\.15|6\.6, 1, 2\.3|, 1, 2, 0\.\d+ \* (a1|lt)\)/, 'no single long spotlight is left');
   assert.match(fxs, /e \* e \* \(1\.0 - u\) \* \(1\.0 - u \* u\) \* smoothstep\(0\.0, 0\.07, u\); \}/, 'shape 6: a short soft beam — a quick falloff, soft edges');

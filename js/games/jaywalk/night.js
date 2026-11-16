@@ -1,7 +1,7 @@
 // JAYWALK — THE NIGHT LOOK (H2 — docs/jaywalk.md "THE NIGHT LOOK"): the pure engine drawn in the SMOOTH STYLIZED 3D style on three.js
 // 0.160 — the same interface as the graybox (graybox.js: `?gray=1` on the lab keeps it for comparison): draw(run, course, a, dt).
 //   · THE GROUND: one instanced plane a lane, drawn in a shader (night-fx.js) · CARS: the Kenney models, a neon body tint per car from the
-//     seed, two thin light streaks (one a tail light — H3), bold headlight / taillight pools (decals — no real point light), our own light quads
+//     seed, both tail lights lit + a soft red glow on the road behind, a soft headlight glow in front (H5A — the light trails are GONE: they read as jet exhaust from above) (decals — no real point light), our own light quads
 //   · LOGS built in code (H3: each its own length, half-sunk, a waterline ring; the amber only a thin underglow + a soft light on the water) · TRAINS: Kenney's front + carriages, lit windows, a headlight
 //     beam, the red signals + a warning glow on the side it comes from · TREES built in code, Kenney's props, the lamps' warm pools
 //   · THE BLACKOUT (the wall): the lights die lane by lane from below, a cold edge where it bites
@@ -26,7 +26,7 @@ import { LINE_HEX } from './lines.js';
 import { hsh, strSeed, vehicleAt } from './causes.js';   // (THE ONE SOURCE OF TRUTH for which vehicle a car IS — the end screen's cause line reads the same function)
 
 const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;   // (the most lanes alive: 36 — a closer zoom lays fewer ahead)
-const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff];   // (a car's body tint + its trail: pink · cyan · violet · coral · blue)
+const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff];   // (a car's body tint: pink · cyan · violet · coral · blue)
 const TAXI_HEX = 0xffc81a;   // (H4 — THE TAXI: cab yellow, never a neon tint)
 const DPR_AT = [1.5, 2, 3];
 // THE LAMPS (H2B add-on — CAR LIGHTS): where each vehicle's two headlights / two tail lights sit — [half their spacing across the lane,
@@ -451,11 +451,10 @@ export function createNight(host, o = {}) {
                 // the truck's amber markers along the foot of the box's side (the side the camera sees)
                 if (truck) for (const m of [0, 0.34, 0.67, 1]) K.bill.put(cx + L.dir * (TRUCK.box[0] + (TRUCK.box[1] - TRUCK.box[0]) * m) * tz, 0.29, z + 0.4, 0.24, 0.24, 1, 0, 0xff9a1c, 1, 0, a1);
                 if (taxi) { K.bill.put(bx, 0.5, z, 0.3, 0.2, 1, 0, 0xfff3b0, 1, 5, a1); K.bill.put(bx, 0.5, z, 0.62, 0.42, 1, 0, 0xffc21e, 1, 0, 0.55 * a1); }   // its ROOF LIGHT: a small lit box + its warm halo
-                const streak = 0.62 + L.v * 0.009;   // (H3 — THE LIGHT TRAIL: two THIN, SHORT streaks, one from EACH tail light, fading fast — never one long lopsided beam)
+                // (H5A — the owner: NO LIGHT TRAILS on any vehicle — from above they read as jet exhaust; afterburners are THE BLACKBIRD's alone, H6)
                 for (const e of [-hw, hw]) {   // BOTH headlights + BOTH tail lights, each at its own place on the model
                   K.flat.put(X(nose + L.dir * HEAD_REACH / 2), 0.04, z + e, HEAD_REACH, 1, 0.8, back, 0xfff0c8, 1, 6, 0.5 * a1);   // a short soft beam on the road ahead
                   K.flat.put(X(tail - L.dir * TAIL_REACH * 0.3), 0.04, z + e, TAIL_REACH * 1.05, 1, 0.44, 0, 0xff2030, 1, 0, 0.5 * a1);   // a small red glow behind — one a tail light: two are seen
-                  K.flat.put(X(tail - L.dir * streak / 2), hy, z + e, streak, 1, 0.12, back, tint, 1, 1, 0.95 * a1);   // its streak (the car's neon)
                   K.bill.put(X(nose), hy, z + e, 0.2, 0.2, 1, 0, 0xfff0c0, 1, 5, 0.8 * a1);
                   K.bill.put(X(tail), hy + 0.02, z + e, 0.2, 0.2, 1, 0, 0xff2840, 1, 5, a1);
                 }
@@ -514,7 +513,6 @@ export function createNight(host, o = {}) {
                 K.bill.put(X(nose), ty, z + e, 0.36, 0.36, 1, 0, 0xfff6d8, 1, 5, lt);
                 K.flat.put(X(rear - p.dir * TAIL_REACH * 0.36), 0.05, z + e, TAIL_REACH * 1.3, 1, 0.56, 0, 0xff2030, 1, 0, 0.4 * lt);
                 K.bill.put(X(rear), ty, z + e, 0.24, 0.24, 1, 0, 0xff2840, 1, 5, 0.9 * lt);
-                K.flat.put(X(rear - p.dir * 0.9), ty, z + e, 1.8, 1, 0.14, p.dir > 0 ? 0 : Math.PI, 0xff3a5a, 1, 1, 0.95 * lt);   // (H3) its streak: thin, short, fading fast
               }
               K.flat.put(X(left + len / 2), 0.045, z + 0.55, len, 1, 0.9, 0, 0x7fd0ff, 1, 4, 0.3 * lt);
             }
