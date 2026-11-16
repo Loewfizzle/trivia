@@ -63,6 +63,27 @@ const nodeOf = async (code, m, uid) => dbGet(`rooms/${code}/jw/${m}/${uid}`);
 /** the run on screen to its end: the kid stands still — the blackout (or the traffic) takes them */
 const toEnd = async (P, ms = 45000) => P.waitFor(`${S}.game && ${S}.game.phase === 'final' && !!document.querySelector('.jw-final .jw-fin-cause')`, ms);
 const board = async pid => { const s = await dbGet(`pstats/${pid}`); return s && s.b && s.b['jaywalk-solo'] ? s.b['jaywalk-solo'].a : null; };
+/** H4B's add-on — THE SHARE = THE PICTURE ONLY: tap `sel` with the share sheet stubbed → what was shared + the link's page + its picture */
+async function shareLink(page, sel) {
+  await page.evaluate(() => { window.__shared = []; navigator.share = async d => { window.__shared.push(d); }; navigator.canShare = () => true; });
+  await page.evaluate(q => document.querySelector(q).click(), sel);
+  let out = null;
+  for (let i = 0; i < 100 && !(out && out.length); i++) { out = await page.evaluate(() => window.__shared); if (!(out && out.length)) await new Promise(r => setTimeout(r, 150)); }
+  const d = (out && out[0]) || {}, url = d.url || '';
+  const html = url ? await fetch(url, { redirect: 'manual' }).then(r => r.text()).catch(() => '') : '';
+  const meta = k => (new RegExp(`<meta property="${k}" content="([^"]*)"`).exec(html) || [])[1] || '';
+  const img = meta('og:image').replace(/&amp;/g, '&');
+  const png = img ? Buffer.from(await fetch(img).then(r => r.arrayBuffer())) : Buffer.alloc(0);
+  return { keys: Object.keys(d).sort(), url, code: (/[?&]s=([A-Za-z0-9_-]{12})/.exec(url) || [])[1] || '', title: meta('og:title'), img, go: (/url=([^"]*)"/.exec(html) || [])[1] || '',
+    png: png.length > 24 && png.toString('latin1', 1, 4) === 'PNG' ? { w: png.readUInt32BE(16), h: png.readUInt32BE(20), bytes: png.length } : null, buf: png };
+}
+/** (the emulator stays clean for the other suites: every run card these phones uploaded — the end screens warm one each — is removed) */
+async function dropRunCards(pids) {
+  await new Promise(r => setTimeout(r, 2500));   // (an upload still on its way lands first)
+  const all = (await dbGet('shr')) || {};
+  for (const [code, c] of Object.entries(all)) if (c && pids.includes(c.p) && c.k === 'run') { await dbPut(`shr/${code}`, null); if (c.d) await dbPut(`shrx/${c.d}/${code}`, null); }
+  for (const pid of pids) await dbPut(`shrp/${pid}:jaywalk`, null);
+}
 const counted = async (code, m, ms = 20000) => { const end = Date.now() + ms; while (Date.now() < end) { const r = await dbGet(`results/${code}_${m}`); if (r && r.st === 'done') return r; await sleep(150); } return null; };
 
 try {
@@ -142,20 +163,28 @@ try {
   ok(end.n === String(end.res.l) && /^LANES?$/.test(end.unit) && end.res.l >= 3, `the lanes: ${end.n} ${end.unit} (the host's replay of the log)`);
   ok(JSON.stringify(end.foot) === JSON.stringify(['PLAY AGAIN', 'SHARE', 'BACK TO THE CITY']), `the foot: ${end.foot.join(' · ')} (PLAY AGAIN first — never "HOP AGAIN")`);
   ok(parseFloat(await P.ev("getComputedStyle(document.querySelector('.jw-final .final-again')).borderRadius")) <= 12, 'the end screen\'s buttons: the site\'s non-pill tube (10 px corners)');
-  // THE SHARE IMAGE: the frame of the moment the kid went out, on the share kit's card (drawn on the phone; nothing is sent here)
+  // THE SHARE IMAGE (H4B's add-on — THE FRAME IS THE HERO, the cause ONCE): the run's own frame on the share kit's card (drawn on the phone)
   const card = await P.p.evaluate(async () => {
-    const s = window.__arcade.state, [Sh, K, T] = await Promise.all([import('/js/games/jaywalk/share.js'), import('/js/games/kit/share-run.js'), import('/js/games/jaywalk/shot.js')]);
-    const shot = T.shotFor(s.game.matchId), me = s.players[s.uid], c = Sh.jwRunCard(s.game, { uid: s.uid, name: me.name, line: shot ? shot.line : '' });
-    const cv = K.drawRunCard({ ...c, line: shot ? shot.line : '' }, (ctx, box, k) => Sh.drawRunMiddle(ctx, box, k, shot));
-    return { shot: !!shot, w: cv && cv.width, h: cv && cv.height, line: shot && shot.line, lanes: shot && shot.lanes, mode: c.mode, result: c.result, url: cv ? cv.toDataURL('image/png') : null };
+    const s = window.__arcade.state, [Sh, T] = await Promise.all([import('/js/games/jaywalk/share.js'), import('/js/games/jaywalk/shot.js')]);
+    const shot = T.shotFor(s.game.matchId), me = s.players[s.uid], c = Sh.jwRunCard(s.game, { uid: s.uid, name: me.name });
+    const cv = Sh.drawJwCard(s.game, { uid: s.uid, name: me.name, code: s.code });
+    return { shot: !!shot, w: cv && cv.width, h: cv && cv.height, line: shot && shot.line, lanes: shot && shot.lanes, mode: c.mode, result: c.result, box: Sh.JW_CARD.box, url: cv ? cv.toDataURL('image/png') : null };
   });
   ok(card.shot && card.w === 1080 && card.h === 1350 && card.line === end.cause && card.lanes === end.res.l && card.mode === 'SOLO', `THE SHARE IMAGE: the run's own frame + "${card.line}" + ${card.lanes} lanes (${card.w} × ${card.h})`);
+  ok(card.result === '' && card.box.w * card.box.h > 800 * 690 * 1.35, `H4B — the cause is on the card ONCE (no result line under the name) and THE FRAME IS THE HERO (${card.box.w} × ${card.box.h} of 1080 × 1350 — was 800 × 690)`);
   if (OUT && card.url) writeFileSync(join(OUT, 'share-card-solo.png'), Buffer.from(card.url.split(',')[1], 'base64'));
   ok(end.hud === 'hidden' && !end.confetti, 'the HUD is off under it; no confetti over a run\'s end');
   const r1 = await counted(g.code, g.m);
   node = await nodeOf(g.code, g.m, uid);
   const v1 = verifyNode({ code: g.code, matchId: g.m, node });
   ok(!!r1 && v1.ok && !v1.cut && v1.result.lanes === end.res.l, `the report is COUNTED — and the SERVER's own replay of the proof = ${v1.ok ? v1.result.lanes : '?'} lanes, the phone's ${end.res.l}`);
+  // H4B's add-on — THE SHARE = THE PICTURE ONLY: SHARE sends ONLY THE LINK; its preview IS the run's card; a tap on it opens the site
+  const L1 = await shareLink(P.p, '.jw-final .final-share');
+  ok(JSON.stringify(L1.keys) === '["url"]' && /\/api\/daily\?s=[A-Za-z0-9_-]{12}$/.test(L1.url), `H4B — SHARE sends ONLY THE LINK (${JSON.stringify(L1.keys)} — no text, no file, no site line): ${L1.url}`);
+  ok(/ · JAYWALK · /.test(L1.title) && L1.go === '/' && !!L1.png && L1.png.w === 540 && L1.png.h === 675 && L1.png.bytes <= 300 * 1024, `… the link's preview IS the card (og:image ${L1.png ? `${L1.png.w} × ${L1.png.h}, ${Math.round(L1.png.bytes / 1024)} KB` : 'none'}; "${L1.title}") and a tap on it opens the site ("${L1.go}")`);
+  if (OUT && L1.png) writeFileSync(join(OUT, 'share-link-solo-540.png'), L1.buf);
+  const slot = await dbGet(`shrp/${pid}:jaywalk`);
+  ok(slot && Object.values(slot).length === 1 && Object.values(slot)[0] === L1.code, 'ONE run card a player a day — its own slot (never the day\'s DAILIES card\'s)');
   ok(await board(pid) === v1.result.lanes, `the solo board (jaywalk-solo): best ${await board(pid)} — from the replay`);
   ok(await P.waitFor("!!document.querySelector('.jw-fin-best.is-new') && /NEW BEST/.test(document.querySelector('.jw-fin-best').textContent)", 10000), 'NEW BEST on the end screen — from the server\'s own answer');
   await P.shot('end-new-best.png');
@@ -221,6 +250,7 @@ try {
   ok((await dbGet(`rooms/${g.code}`)) == null, '… the solo room is gone');
   ok(!P.errs.length, `no page error (${P.errs.slice(0, 2).join(' | ') || 'none'})`);
   await P.close();
+  await dropRunCards([pid]);
 
   // ---- 8b. THE DROPPED SIGNAL (H4 — `--drop`): a REAL offline gap mid-run — the phone's database line cut, the run played on, the
   // queued chunks landing together when it is back → the server's own replay counts the FULL honest run (never cut, never refused)

@@ -23,9 +23,16 @@ import { randomBytes, createHash } from 'node:crypto';
 import { ref, val } from './fb.js';
 import { ApiError } from './http.js';
 import { dayNum, dayOf, streakDay } from '../../js/core/streak.js';
-import { DAILIES } from '../../js/config.js';
+import { DAILIES, GAMES } from '../../js/config.js';
 
 export const CARD_W = 540, CARD_H = 675, MAX_BYTES = 400 * 1024, KEEP_DAYS = 7;
+// JAYWALK H4B's ADD-ON (the owner, Nov 16) — A RUN's CARD: a game's SHARE MY RUN sends the same kind of link (its picture = the run's share
+// image). `run: { room, m }` names a match; the server accepts the picture ONLY from a player the server's own COUNTED result of that match
+// names (results/{ROOM}_{m} — st 'done', its game, o[pid]) on that result's own day (today / yesterday). ONE run card per player per game
+// per day, its own slot (shrp/{pid}:{game}/{day} — the day's DAILIES card keeps its own: a run never replaces a scorecard already sent),
+// replaced in place like the day's; stored with k: 'run' + s (the slot's owner). Its page opens the site's home.
+export const RUN_GAMES = Object.freeze(['jaywalk']), RUN_UPLOADS_A_DAY = 12;
+const ROOM_RE = /^[A-Z]{4}$/, MATCH_RE = /^[A-Za-z0-9_-]{4,24}$/;
 export const SHARE_UPLOADS_A_DAY = 6;   // (FIXES R1 A2 — a phone uploads only when its card changed: the day's finishes + a look turn ≈ 2–4)
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 export const CODE_RE = /^[A-Za-z0-9_-]{12}$/;
@@ -74,55 +81,69 @@ export function dailyLabel(games) {
 }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
-/** the link-preview page (PURE) — `base` = https://<host> of this request */
-export function sharePage({ code, name, games, day, base, v = '' }) {
-  const title = [String(name || 'A PLAYER').toUpperCase(), dailyLabel(games), dayLabel(day)].filter(Boolean).join(' · ');
-  const img = `${base}/api/daily?si=${code}${v ? `&v=${encodeURIComponent(v)}` : ''}`, go = '/?daily=1';
+/** a RUN card's game, in the site's words (config.js GAMES) */
+export function runLabel(games) { const row = GAMES.find(r => r.id === (Array.isArray(games) ? games[0] : '')); return row ? String(row.name).toUpperCase() : 'A RUN'; }
+/** the link-preview page (PURE) — `base` = https://<host> of this request; `k: 'run'` = a game's run card (it opens the site's home) */
+export function sharePage({ code, name, games, day, base, v = '', k = '' }) {
+  const run = k === 'run';
+  const title = [String(name || 'A PLAYER').toUpperCase(), run ? runLabel(games) : dailyLabel(games), dayLabel(day)].filter(Boolean).join(' · ');
+  const img = `${base}/api/daily?si=${code}${v ? `&v=${encodeURIComponent(v)}` : ''}`, go = run ? '/' : '/?daily=1';
+  const desc = run ? 'A run at the Neon Speakeasy — can you beat it?' : 'Today\'s dailies at the Neon Speakeasy — can you beat it?';
+  const alt = run ? 'the run' : 'the day\'s scorecard', say = run ? 'Play at the Neon Speakeasy' : 'Play today\'s dailies at the Neon Speakeasy';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)} — NEON SPEAKEASY</title>
 <meta property="og:type" content="website"><meta property="og:site_name" content="Neon Speakeasy">
-<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="Today's dailies at the Neon Speakeasy — can you beat it?">
+<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${esc(`${base}/api/daily?s=${code}`)}">
 <meta property="og:image" content="${esc(img)}"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="${CARD_W}"><meta property="og:image:height" content="${CARD_H}">
-<meta property="og:image:alt" content="${esc(title)} — the day's scorecard">
+<meta property="og:image:alt" content="${esc(title)} — ${alt}">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:image" content="${esc(img)}">
 <meta http-equiv="refresh" content="0; url=${go}">
 <style>html,body{margin:0;background:#07050f;color:#f4f6ff;font:16px system-ui}a{color:#ff8fe0}p{padding:24px}</style>
-</head><body><p><a href="${go}">Play today's dailies at the Neon Speakeasy</a></p><script>location.replace(${JSON.stringify(go)})</script></body></html>`;
+</head><body><p><a href="${go}">${esc(say)}</a></p><script>location.replace(${JSON.stringify(go)})</script></body></html>`;
 }
 
 /** POST shareCard — the checks, then ONE card per player per day under ONE code (THE SLOT, a transaction) → { code, same? } */
-export async function saveShareCard({ pid, day, games, png, now = Date.now(), takeFn }) {
-  const today = streakDay(now);
+export async function saveShareCard({ pid, day, games, png, run = null, now = Date.now(), takeFn }) {
+  const today = streakDay(now), isRun = !!run;
+  let gs, owner = pid;
+  if (isRun) {
+    // A RUN's CARD: the match's own COUNTED result names this player (the server wrote it — api/report.js); the day = that result's
+    const g = Array.isArray(games) ? games[0] : null, room = String(run.room || ''), m = String(run.m || '');
+    if (!RUN_GAMES.includes(g) || !ROOM_RE.test(room) || !MATCH_RE.test(m)) throw new ApiError(400, 'bad_game', 'Which run?');
+    const res = await val(`results/${room}_${m}`);
+    if (!res || res.st !== 'done' || res.g !== g || !res.o || res.o[pid] == null) throw new ApiError(403, 'no_run', 'Your link card comes with a counted run.');
+    day = streakDay(Number(res.at) || 0); gs = [g]; owner = `${pid}:${g}`;
+  }
   if (!DAY_RE.test(String(day || '')) || (day !== today && day !== dayOf(dayNum(today) - 1))) throw new ApiError(400, 'bad_day', 'That day isn’t open.');
-  const gs = [...new Set((Array.isArray(games) ? games : []).filter(g => typeof g === 'string' && DAILIES.some(r => r.id === g)))].slice(0, 6);
+  if (!isRun) gs = [...new Set((Array.isArray(games) ? games : []).filter(g => typeof g === 'string' && DAILIES.some(r => r.id === g)))].slice(0, 6);
   if (!gs.length) throw new ApiError(400, 'bad_game', 'Which daily?');
   if (typeof png !== 'string' || png.length > Math.ceil(MAX_BYTES / 3) * 4 + 8) throw new ApiError(413, 'too_big', 'The picture is too big.');
   const buf = Buffer.from(png, 'base64');
   const bad = checkPng(buf);
   if (bad) throw new ApiError(bad === 'too_big' ? 413 : 422, bad, 'That isn’t the day’s card.');
   // a JUDGED finish of every daily the card names, that day (the server's own result — dly/{g}/{day}/r/{pid})
-  const [done, gated] = await Promise.all([Promise.all(gs.map(g => val(`dly/${g}/${day}/r/${pid}`))), Promise.all(gs.map(g => val(`dly/${g}/${day}/x/${pid}`)))]);
+  const [done, gated] = isRun ? [[], []] : await Promise.all([Promise.all(gs.map(g => val(`dly/${g}/${day}/r/${pid}`))), Promise.all(gs.map(g => val(`dly/${g}/${day}/x/${pid}`)))]);
   if (done.some(r => r == null)) throw new ApiError(403, 'no_finish', 'Finish today’s daily first.');
   // (FIXES R1 A5 — THE THROWAWAY GATE: a result that doesn't count — a same-day account — shares the picture itself, never a link of ours)
   if (gated.some(x => x != null)) throw new ApiError(403, 'not_counted', 'Your link card comes with your first counted daily.');
   const h = pngHash(buf);
   // THE SLOT (FIXES R1 A2): the day's code claimed ONCE — the first upload mints it, every other (in parallel or later) gets the same one back
-  const slot = await ref(`shrp/${pid}/${day}`).transaction(cur => (typeof cur === 'string' && CODE_RE.test(cur) ? undefined : newCode()));
+  const slot = await ref(`shrp/${owner}/${day}`).transaction(cur => (typeof cur === 'string' && CODE_RE.test(cur) ? undefined : newCode()));
   const code = slot.snapshot.val();
   if (!CODE_RE.test(String(code || ''))) throw new ApiError(503, 'busy', 'Try again in a moment.');
   // the same picture again (a reload, a second phone) → nothing written, nothing counted
   if ((await val(`shr/${code}/h`)) === h) return { code, v: h, same: true };
   // a few uploads a player a day (a phone re-uploads only when its card changed — js/daily/share.js)
   const { take } = takeFn ? { take: takeFn } : await import('./limit.js');
-  if (!(await take(`shrup:${pid}:${day}`, SHARE_UPLOADS_A_DAY, 864e5, now))) throw new ApiError(429, 'share_limit', 'That’s enough cards for today.');
+  if (!(await take(`shrup:${owner}:${day}`, isRun ? RUN_UPLOADS_A_DAY : SHARE_UPLOADS_A_DAY, 864e5, now))) throw new ApiError(429, 'share_limit', 'That’s enough cards for today.');
   const prof = await val(`profiles/${pid}`);
   const { publicName } = await import('./lb.js');
   const name = publicName((prof && prof.bid) || pid, prof && prof.n);
   // (the same code: the picture replaced in place — a link already sent keeps working; set, never merged: no stale field survives)
   await ref().update({
-    [`shr/${code}`]: { p: pid, d: day, g: gs, n: String(name || '').slice(0, 24), at: now, h, img: buf.toString('base64') },
-    [`shrx/${day}/${code}`]: pid,
+    [`shr/${code}`]: { p: pid, d: day, g: gs, n: String(name || '').slice(0, 24), at: now, h, img: buf.toString('base64'), ...(isRun ? { k: 'run', s: owner } : {}) },
+    [`shrx/${day}/${code}`]: owner,   // (the slot's owner: the sweep clears shrp/{owner}/{day})
   });
   return { code, v: h };
 }
@@ -130,7 +151,7 @@ export async function saveShareCard({ pid, day, games, png, now = Date.now(), ta
 /** the stored card (the picture or only its words) — null when gone / expired */
 export async function readShare(code, { img = false, now = Date.now() } = {}) {
   if (!CODE_RE.test(String(code || ''))) return null;
-  const r = img ? await val(`shr/${code}`) : await Promise.all(['p', 'd', 'g', 'n', 'at', 'h'].map(k => val(`shr/${code}/${k}`))).then(([p, d, g, n, at, h]) => (p ? { p, d, g, n, at, h } : null));
+  const r = img ? await val(`shr/${code}`) : await Promise.all(['p', 'd', 'g', 'n', 'at', 'h', 'k'].map(k => val(`shr/${code}/${k}`))).then(([p, d, g, n, at, h, k]) => (p ? { p, d, g, n, at, h, ...(k ? { k } : {}) } : null));
   if (!r || !r.p) return null;
   if (now - Number(r.at || 0) > KEEP_DAYS * 864e5) return null;
   return r;
@@ -139,8 +160,9 @@ export async function readShare(code, { img = false, now = Date.now() } = {}) {
 /** delete ONE card (the owner's /admin row, or the sweep) */
 export async function deleteShare(code) {
   if (!CODE_RE.test(String(code || ''))) throw new ApiError(400, 'bad_code', 'That isn’t a share code.');
-  const [p, d] = await Promise.all([val(`shr/${code}/p`), val(`shr/${code}/d`)]);
-  if (!p) return { gone: false };
+  const [p0, d, sOwner] = await Promise.all([val(`shr/${code}/p`), val(`shr/${code}/d`), val(`shr/${code}/s`)]);
+  if (!p0) return { gone: false };
+  const p = sOwner || p0;   // (a run card's slot has its own owner: {pid}:{game})
   const up = { [`shr/${code}`]: null };
   if (d) { up[`shrx/${d}/${code}`] = null; if ((await val(`shrp/${p}/${d}`)) === code) up[`shrp/${p}/${d}`] = null; }
   await ref().update(up);

@@ -1015,6 +1015,10 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - Every run now logs each phone's seed + tick 0 + when it took them, and checks every drawn ghost of the match against the world
   (`window.__jwGame.state().seen` — `car` / `water` must be 0; `logs` = frames riding a log, `air` = catch-ups, `held`, `undead`),
   the ghosts' final lanes on every phone, spectating's frame pacing, and the proof's writes a minute.
+- **THE ADD-ON (THE SHARE = THE PICTURE ONLY):** `tests/jaywalk-share.test.mjs` · `cd tests/integration && node --test
+  share-card.test.mjs` (the emulators — "A RUN's CARD") · both JAYWALK E2Es stub the share sheet (`shareLink(page, selector)`: what
+  was shared, the link's page, its picture) and remove the run cards they uploaded (`dropRunCards` — `share-card.test.mjs` expects an
+  empty `shr`).
 - The view's hook gained `timeline()` ([ms after tick 0, the frame's length, its work]) and `state().adopts` (each course a phone
   took: when, on which tick).
 

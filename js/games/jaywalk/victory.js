@@ -121,6 +121,8 @@ function matchScene(el, game, state) {
 
 export function finalScene(el, game, state) {
   const uid = state && state.uid, code = state && state.code;
+  // (H4B's add-on — THE CARD IS BUILT BEFORE THE TAP: the share image is drawn + its link made while the end screen is read)
+  if (game && game.participants && game.participants[uid]) lazyImport(import('./share.js'), './share.js').then(m => m.warmShare(game, state)).catch(() => {});
   if (game && game.mode !== 'solo') { matchScene(el, game, state); return; }
   el.dataset.mode = 'solo';
   const E = endOf(game, uid, code);

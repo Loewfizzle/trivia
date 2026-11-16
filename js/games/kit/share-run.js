@@ -49,9 +49,10 @@ function neonText(c, text, x, y, { px, col, day, spacing = 0, weight = 800, fam 
 }
 /**
  * the card: the frame + the sign + the game's middle (`drawMiddle(c, box, card)` — the cartridge's) + the name + the result + the site
- * → a canvas (null when this phone can't make one)
+ * → a canvas (null when this phone can't make one). `o` (a cartridge whose middle is THE HERO — JAYWALK's frame): `box` = its own
+ * middle box, `nameY` / `namePx` = the name under it; a card with no `result` prints no result line.
  */
-export function drawRunCard(card, drawMiddle = null) {
+export function drawRunCard(card, drawMiddle = null, o = {}) {
   const W = RUN_W, H = RUN_H, day = card.look === 'day';
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const c = ctx2d(cv);
@@ -72,14 +73,16 @@ export function drawRunCard(card, drawMiddle = null) {
   c.fillStyle = day ? deepen(card.accent) : card.accent; if (!day) { c.shadowColor = card.accent; c.shadowBlur = 18; }
   spacedText(c, card.mode ? `${card.title} · ${card.mode}` : card.title, W / 2 + 4, 318, 8); c.restore();
   // the game's own middle
-  const box = { x: 140, y: 360, w: W - 280, h: 690 };
+  const box = o.box || { x: 140, y: 360, w: W - 280, h: 690 };
   if (drawMiddle) { try { drawMiddle(c, box, card); } catch (e) { console.warn('[share-run] middle', e); } }
   // the name + the result
   c.save(); c.textAlign = 'center';
-  c.font = FONT(800, 78, DISPLAY);
-  c.fillStyle = day ? '#1d2236' : '#ffffff'; spacedText(c, card.name || 'A PLAYER', W / 2 + 3, 1132, 6);
-  c.font = FONT(700, 46);
-  c.fillStyle = day ? '#2f3653' : '#e6e1ff'; spacedText(c, card.result, W / 2 + 2, 1190, 4, { maxW: W - 80 });
+  c.font = FONT(800, o.namePx || 78, DISPLAY);
+  c.fillStyle = day ? '#1d2236' : '#ffffff'; spacedText(c, card.name || 'A PLAYER', W / 2 + 3, o.nameY || 1132, 6);
+  if (card.result) {
+    c.font = FONT(700, 46);
+    c.fillStyle = day ? '#2f3653' : '#e6e1ff'; spacedText(c, card.result, W / 2 + 2, 1190, 4, { maxW: W - 80 });
+  }
   c.restore();
   // THE FOOT (SKINS 2A — the kit's, every share card's: ONE straight thin neon line + NEONSPEAKEASY.COM in plain neon lettering — no frame)
   shareAddress(c, card.look, { W, color: '#ff6fc8' });

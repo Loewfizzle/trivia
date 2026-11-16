@@ -34,6 +34,27 @@ const dbPut = (path, v) => fetch(`${DB}/${path}.json?${NS}`, { method: 'PUT', he
 const pidFor = async uid => { for (let i = 0; i < 80; i++) { const pid = await dbGet(`uids/${uid}`); if (pid) return pid; await sleep(250); } return null; };
 const state = p => G(p, 'window.__jwGame.state()');
 const until = async (fn, ms = 30000, step = 150) => { const end = Date.now() + ms; while (Date.now() < end) { try { const v = await fn(); if (v) return v; } catch { /* busy */ } await sleep(step); } return null; };
+/** H4B's add-on — THE SHARE = THE PICTURE ONLY: tap `sel` with the share sheet stubbed → what was shared + the link's page + its picture */
+async function shareLink(page, sel) {
+  await page.evaluate(() => { window.__shared = []; navigator.share = async d => { window.__shared.push(d); }; navigator.canShare = () => true; });
+  await page.evaluate(q => document.querySelector(q).click(), sel);
+  let out = null;
+  for (let i = 0; i < 100 && !(out && out.length); i++) { out = await page.evaluate(() => window.__shared); if (!(out && out.length)) await new Promise(r => setTimeout(r, 150)); }
+  const d = (out && out[0]) || {}, url = d.url || '';
+  const html = url ? await fetch(url, { redirect: 'manual' }).then(r => r.text()).catch(() => '') : '';
+  const meta = k => (new RegExp(`<meta property="${k}" content="([^"]*)"`).exec(html) || [])[1] || '';
+  const img = meta('og:image').replace(/&amp;/g, '&');
+  const png = img ? Buffer.from(await fetch(img).then(r => r.arrayBuffer())) : Buffer.alloc(0);
+  return { keys: Object.keys(d).sort(), url, code: (/[?&]s=([A-Za-z0-9_-]{12})/.exec(url) || [])[1] || '', title: meta('og:title'), img, go: (/url=([^"]*)"/.exec(html) || [])[1] || '',
+    png: png.length > 24 && png.toString('latin1', 1, 4) === 'PNG' ? { w: png.readUInt32BE(16), h: png.readUInt32BE(20), bytes: png.length } : null, buf: png };
+}
+/** (the emulator stays clean for the other suites: every run card these phones uploaded — the end screens warm one each — is removed) */
+async function dropRunCards(pids) {
+  await new Promise(r => setTimeout(r, 2500));   // (an upload still on its way lands first)
+  const all = (await dbGet('shr')) || {};
+  for (const [code, c] of Object.entries(all)) if (c && pids.includes(c.p) && c.k === 'run') { await dbPut(`shr/${code}`, null); if (c.d) await dbPut(`shrx/${c.d}/${code}`, null); }
+  for (const pid of pids) await dbPut(`shrp/${pid}:jaywalk`, null);
+}
 const CAUSES = new Set(Object.values(CAUSE_LINES));
 const isCause = t => CAUSES.has(t) || /^TAKEN AT LANE \d+$/.test(t) || t === 'OUT';
 
@@ -192,14 +213,19 @@ try {
   // ---- 6. the report: counted for ALL THREE — the guests in the owner's room included
   const res = await until(async () => { const r = await dbGet(`results/${code}_${m}`); return r && r.st === 'done' ? r : null; }, 30000);
   ok(!!res && pids.every(pid => res.o && res.o[pid]), `the report is COUNTED for all three (${res ? Object.keys(res.o || {}).length : 0} outcomes — the owner + his two guests)`);
-  // ---- 7. the share image: the frame of the moment BOB went out (drawn on the phone — never sent anywhere here)
+  // ---- 7. the share image: the frame of the moment BOB went out (H4B's add-on: THE FRAME IS THE HERO, the cause ONCE)
   const card = await pages[1].evaluate(async () => {
-    const s = window.__arcade.state, [S, K, T] = await Promise.all([import('/js/games/jaywalk/share.js'), import('/js/games/kit/share-run.js'), import('/js/games/jaywalk/shot.js')]);
-    const shot = T.shotFor(s.game.matchId), me = s.players[s.uid], c = S.jwRunCard(s.game, { uid: s.uid, name: me.name, line: shot ? shot.line : '' });
-    const cv = K.drawRunCard({ ...c, line: shot ? shot.line : '' }, (ctx, box, k) => S.drawRunMiddle(ctx, box, k, shot));
+    const s = window.__arcade.state, [S, T] = await Promise.all([import('/js/games/jaywalk/share.js'), import('/js/games/jaywalk/shot.js')]);
+    const shot = T.shotFor(s.game.matchId), me = s.players[s.uid], c = S.jwRunCard(s.game, { uid: s.uid, name: me.name });
+    const cv = S.drawJwCard(s.game, { uid: s.uid, name: me.name, code: s.code });
     return { shot: !!shot, w: cv && cv.width, h: cv && cv.height, line: shot && shot.line, result: c.result, url: cv ? cv.toDataURL('image/png') : null };
   });
-  ok(card.shot && card.w === 1080 && card.h === 1350 && isCause(card.line) && card.result.includes(card.line), `THE SHARE IMAGE: BOB's real frame + "${card.line}" (${card.w} × ${card.h})`);
+  ok(card.shot && card.w === 1080 && card.h === 1350 && isCause(card.line) && card.result === '', `THE SHARE IMAGE: BOB's real frame + "${card.line}" — ONCE (no result line) (${card.w} × ${card.h})`);
+  // H4B's add-on — THE SHARE = THE PICTURE ONLY: SHARE MY RUN sends ONLY THE LINK; its preview IS BOB's card; a guest of the owner's match has one too
+  const LK = await shareLink(pages[1], '.jw-final .jw-fin-share');
+  ok(JSON.stringify(LK.keys) === '["url"]' && /\/api\/daily\?s=[A-Za-z0-9_-]{12}$/.test(LK.url), `H4B — SHARE MY RUN sends ONLY THE LINK (${JSON.stringify(LK.keys)} — no text, no file): ${LK.url}`);
+  ok(/BOB · JAYWALK · /.test(LK.title) && LK.go === '/' && !!LK.png && LK.png.w === 540 && LK.png.h === 675 && LK.png.bytes <= 300 * 1024, `… the link's preview IS the card (og:image ${LK.png ? `${LK.png.w} × ${LK.png.h}, ${Math.round(LK.png.bytes / 1024)} KB` : 'none'}; "${LK.title}") and a tap opens the site`);
+  if (LK.png) { const { writeFileSync } = await import('node:fs'); writeFileSync(`${OUTDIR.replace(/\/?$/, '/')}share-link-match-540.png`, LK.buf); }
   if (card.url) { const { writeFileSync } = await import('node:fs'); writeFileSync(`${OUTDIR.replace(/\/?$/, '/')}share-card-match.png`, Buffer.from(card.url.split(',')[1], 'base64')); }
   // ---- 8. A REMATCH: a new match, a new course — the finished match's proof nodes stay
   await H.backToLobby(host);
@@ -246,6 +272,7 @@ try {
 } catch (e) { failed = true; log('THREW', e && e.stack || e); }
 const errs = H.errors || [];
 await H.browser.close().catch(() => {});
+try { await dropRunCards((await Promise.all(uids.map(u => dbGet(`uids/${u}`)))).filter(Boolean)); } catch { /* the emulator is gone */ }
 const checks = H.checks || [];
 const bad = checks.filter(c => !c.ok);
 console.log(`\n${checks.length - bad.length}/${checks.length} checks — ${bad.length || failed ? `FAILED:\n  ${bad.map(c => c.what).join('\n  ')}${failed ? '\n  (threw)' : ''}` : 'all green'}${errs.length ? `\nerrors: ${errs.slice(0, 6).join(' | ')}` : ''}`);

@@ -301,7 +301,7 @@ export function createView() {
     const m = matchId, r = run, c = course;
     night.snap(cv => {
       if (!cv || gone || m !== matchId) return;
-      keepShot({ matchId: m, canvas: cv, lanes: r.best, line: lineOf(r, c), kidY: night.kidScreenY() });
+      keepShot({ matchId: m, canvas: cv, lanes: r.best, line: lineOf(r, c), kidY: night.kidScreenY(), kidX: night.kidScreenX() });
     });
   }
 

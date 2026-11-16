@@ -453,7 +453,8 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
     case 'shareCard': {
       // CITY E — THE TAPPABLE SHARE CARD: the day's card (540 × 675 PNG) uploaded when SHARE TODAY is PREPARED (never at the tap) — api/_lib/share-card.js
       const pid = await mine(uid);
-      const { code, v, same } = await saveShareCard({ pid, day: body.day, games: body.games, png: body.png, now });
+      // (JAYWALK H4B's add-on: `run: { room, m }` = A RUN's CARD — accepted only from a player that match's own counted result names)
+      const { code, v, same } = await saveShareCard({ pid, day: body.day, games: body.games, png: body.png, run: body.run && typeof body.run === 'object' ? body.run : null, now });
       return { code, v, path: `/api/daily?s=${code}`, ...(same ? { same: true } : {}) };
     }
     case 'room': {
@@ -602,7 +603,7 @@ export async function shareGet(req, res) {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600');
-  return res.end(sharePage({ code, name: r.n, games: r.g, day: r.d, base, v: r.h || '' }));
+  return res.end(sharePage({ code, name: r.n, games: r.g, day: r.d, base, v: r.h || '', k: r.k || '' }));
 }
 
 export default route(['POST', 'GET'], async (req, res) => {

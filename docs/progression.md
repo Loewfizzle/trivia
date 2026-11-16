@@ -644,6 +644,10 @@ counts like any finish (the streak, the XP, the points of the score it could pro
 
 ## THE TAPPABLE SHARE CARD (CITY E, Nov 15 2026 — docs/harbor/passes/city-e.md)
 SHARE TODAY sends a **LINK** (+ the same line) whose link-preview picture IS the day's card — tapping the preview opens the site's DAILY screen.
+- **A GAME's RUN CARD (JAYWALK H4B's add-on, Nov 16 — docs/jaywalk.md "THE SHARE IMAGE"):** the same function + the same rules for a
+  game's SHARE MY RUN — `shareCard` with `run: { room, m }`: accepted only from a player the server's own counted result of that match
+  names (`results/{ROOM}_{m}`), ONE run card a player a game a day in ITS OWN slot (`shrp/{pid}:{game}/{day}` — the day's scorecard
+  keeps its own), the card stored with `k: 'run'` + `s`; its page names the game and opens the site's home. `RUN_GAMES` = JAYWALK.
 - **THE PHONE** (`js/daily/share.js#prepShare` — THE CARD IS BUILT BEFORE THE TAP unchanged): `make()` may return `upload(png)` → the half-size PNG
   (`halfPng` — exactly **540 × 675**: the full 1080 × 1350 card is 365 KB – 1 MB, over the cap; the half 79 – 246 KB) is sent while the screen opens
   (`js/daily/share-today.js` → `contract.js#dailyShareCard`); `sendReady` then shares `{ url }` (FIXES R1 — the link only; one `navigator.share`, inside the tap); no

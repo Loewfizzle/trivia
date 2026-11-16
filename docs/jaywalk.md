@@ -238,14 +238,39 @@ chunks arrive (`replay.js#clockProblem` + `tuning.js#CLOCK`):
   can slow the LAST ≤ 75 s of a run (it must end inside the fake drop, or catch up at real speed) · a bot that plays in real time is a
   very good player to the server (H3's).
 
-## THE SHARE IMAGE (H4 — `share.js` + `shot.js`; the share kit's frame + rules unchanged)
+## THE SHARE IMAGE (H4 + H4B's add-on — `share.js` + `shot.js`; on the share kit + the dailies' link machinery)
 **The player's real run — every share is a different picture.** `SHOT_MS` 460 ms after the hit the view asks the scene for that frame
-(`night.js#snap` — copied off the WebGL canvas in the same frame; kept on the phone until the next run: `shot.js`); the card's middle =
-that frame cropped round the kid (the kid + what got him — the world drives on after a hit, so the car has rolled off the flat kid),
-**HOW THEY WENT OUT in neon words** at its head, **the lanes in the game's big neon numerals** at its foot, **THE SIGNAL** in its
-corner; the kit's sign, name, result line ("RUN DOWN BY A VAN · 5 LANES") and NEONSPEAKEASY.COM round it. 1080 × 1350, drawn ON THE
-PHONE, readable as a small preview in a text. Solo (the podium's SHARE) + a match (SHARE MY RUN in the body). No frame on this phone (a
-refresh on the podium) → the same card on the night's dark.
+(`night.js#snap` — copied off the WebGL canvas in the same frame; kept on the phone until the next run, with where the kid stood:
+`shot.js`). 1080 × 1350, drawn ON THE PHONE from the result's PUBLIC fields. Solo (the podium's SHARE) + a match (SHARE MY RUN in the
+body). No frame on this phone (a refresh on the podium) → the same card on the night's dark.
+- **THE CARD (H4B's add-on, the owner Nov 16 4:33 pm — THE FRAME IS THE HERO):** the frame is the kit's middle at its own size
+  (`JW_CARD.box` 984 × 792 — was 800 × 690: `kit/share-run.js#drawRunCard`'s `o.box`), zoomed on the kid + what got him
+  (`shotCrop` — `SHOT_ZOOM` 1.12, centred a little above him; THE BLACKOUT's frame far above him: the lit lanes fill it, the dark is
+  only its foot) and BRIGHTER (the picture screened over itself — `SHOT_LIFT`; no canvas filter). **The cause line is on the card
+  ONCE** — the big neon words at the frame's head (the result line under the name is gone: `jwRunCard` has no `result`). The lanes in
+  the game's big neon numerals, THE SIGNAL, the name and NEONSPEAKEASY.COM stay. Reads as a small iMessage preview (the 540 × 675
+  picture is what a link shows).
+- **THE SHARE = THE PICTURE ONLY (H4B's add-on):** the share sends **ONLY THE LINK** — `navigator.share({ url })`, the site's rule
+  from FIXES R1 (`js/daily/share.js#sendReady`): no "My JAYWALK run — …" text, no site line. In iMessage + chat apps the link shows as
+  the big picture card (its `og:image` = this card) and a tap on it opens neonspeakeasy.com.
+  - **THE CARD IS BUILT BEFORE THE TAP** (`victory.js#finalScene` → `share.js#warmShare` → `prepShare`): the end screen draws the
+    card; `LINGER_MS` 1.5 s later (the end screen is being read — a quick PLAY AGAIN uploads nothing; a tap on SHARE ends the wait at
+    once) the half-size PNG goes up; the tap shares the ready link. A picture over 300 KB is re-encoded on 6, then 5 bits a channel
+    (`fitPng` — the server's cap is 400 KB; a game frame is a heavier PNG than a scorecard).
+  - **THE SERVER** (`api/_lib/share-card.js#saveShareCard` — `POST /api/daily { action: 'shareCard', games: ['jaywalk'], run: { room,
+    m }, png }`): a RUN's card is accepted ONLY from a player the server's own COUNTED result of that match names
+    (`results/{ROOM}_{m}` — `st: 'done'`, the game, `o[pid]`), on that result's own day (today / yesterday). The report lands a moment
+    after the podium: the phone tries `LINK_TRIES` 4 times, 1.2 s apart, on `no_run`. **The share kit's rules hold:** ONE run card a
+    player a day, replaced in place under the same code (a link already sent keeps working, its picture the latest run); the same
+    picture again uploads nothing (the phone remembers `{ pid, h, url }` — `ns:shr:jw`; the server compares the hash); a cap of
+    `RUN_UPLOADS_A_DAY` 12. **Its own slot** (`shrp/{pid}:jaywalk/{day}` — the card: `k: 'run'`, `s`): a run never replaces the day's
+    DAILIES scorecard. The page (`sharePage`, `k: 'run'`): "NAME · JAYWALK · Nov 16", the big-picture card, opens `/`.
+  - **No link** (an UNPROVEN / uncounted run, no signal, the cap, a desktop) → the picture itself goes out — still with no text.
+  - While JAYWALK is being built only the owner's runs + his guests' are counted — so only they get a link (everyone else: no JAYWALK).
+- **Proven:** `tests/jaywalk-share.test.mjs` (the card's fields, the frame's box + crop, the colour fit, the sender's source) ·
+  `tests/integration/share-card.test.mjs` "A RUN's CARD" (refused without a counted result naming the player; its own slot; replaced
+  in place; the page; the owner's delete + the sweep) · the solo + the match E2E (the share sheet stubbed: the tap shares `{ url }`
+  alone; the link's page → its `og:image` = a 540 × 675 PNG ≤ 300 KB; the page opens `/`).
 
 ## THE LINES — YOUR BEST LINE + THE NEXT FRIEND'S LINE (H4 add-on, the owner Nov 16 — `lines.js` (PURE) · `night.js#setLines` / `flashLine` · `view.js`)
 - **YOUR BEST LINE** (a solo run — and, in a match, your own SOLO best): a glowing **GOLD** line across the WHOLE lane at your best

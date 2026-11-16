@@ -96,6 +96,37 @@ SPECTATING "looks great" — but the GHOSTS walk through cars and water, and the
 - A note for the next pass: two `serve.mjs` on one emulator database, or a database wiped under a running server, make e2e-daily
   fail in other places (the server caches the day) — one fresh server, clean data.
 
+## THE ADD-ON (the owner, Nov 16 4:33 pm — typed into the session after the pass's push; built as its last group, a second push)
+**THE SHARE = THE PICTURE ONLY** (docs/jaywalk.md "THE SHARE IMAGE").
+1. **JAYWALK's SHARE sends ONLY THE LINK** (`navigator.share({ url })`): the run's card is uploaded while the end screen is read
+   (the dailies' `prepShare` — never at the tap), the tap shares the link, its preview IS the card, a tap on it opens the site. The
+   server (`api/_lib/share-card.js` — the dailies' own function, no new one) takes a RUN's card only from a player its own counted
+   result of that match names; one run card a player a day, replaced in place, the same picture never uploaded twice.
+   - **Two calls made here:** (a) the run card has ITS OWN slot (`shrp/{pid}:jaywalk/{day}`) — "one card a player a day" is kept
+     per kind: sharing a run must not replace the picture behind a DAILIES scorecard link already sent; (b) the upload waits 1.5 s
+     of the end screen being read (a quick PLAY AGAIN uploads nothing) and a player may upload 12 run cards a day — past it (or
+     with no counted result / no signal) the picture itself goes out, with no text.
+2. **THE CARD:** the cause ONCE (the big one in the frame — the result line is gone); the frame 984 × 792 (was 800 × 690), zoomed on
+   the kid, brighter; a blackout ending is framed on the lit lanes (its first shot was half black); the lanes, THE SIGNAL, the name,
+   the site stay. The link's picture is kept ≤ 300 KB (a 6-bit re-encode when a frame is heavier — the server's cap is 400 KB).
+- Refine passes on the card: the first shot (zoom 1.24 — soft; 337 KB) → zoom 1.12 + the size fit → the blackout's framing.
+- **Shots:** `Downloads\NEON\jaywalk-h4b\` — `share-card-solo.png` + `share-card-match.png` (1080 × 1350) and the link's own
+  pictures `share-link-solo-540.png` + `share-link-match-540.png` (what iMessage shows).
+- Tests: `tests/jaywalk-share.test.mjs` (NEW) · `tests/integration/share-card.test.mjs` "A RUN's CARD" · both JAYWALK E2Es (the share
+  sheet stubbed: `{ url }` alone → the page → the 540 × 675 picture; they remove the cards they uploaded).
+- **The add-on's own final local run** (fresh emulators + ONE `DAILY_TEST=1 serve.mjs --emu`): unit **2130 / 2130** · rules **83 /
+  83** · `/api`: share-card **2 / 2** (before AND after the E2Es — they leave no card behind) + server **65 / 65** + progression
+  **10 / 10** + friends **10 / 10** + daily-module **22 / 22** · smoke **21 / 21** · the harbor cartridge group **3 / 3** · wk-press
+  **43 / 43** · jaywalk-lab **115 / 115** with WebKit · e2e-jaywalk **61 / 61** with the perf measure · e2e-jaywalk-match **55 / 55**
+  with the perf measure (59.9 fps at every tier) · e2e-playnow **20 / 21** (the KNOWN pre-existing `lost` case; PRISM DROP's share —
+  the image + its line — unchanged) · **e2e-daily 95 / 95** this time (the key pop-up's race fell the other way — still logged in
+  the inbox). One solo E2E run in the chain was red (55 / 61): its second run's bot went out at lane 8, before YOUR BEST LINE at
+  lane 10 — a check from H4 that depends on the bot's luck; the re-run was 61 / 61.
+- The first push's cloud run (`59a9e00b`): green.
+- The files: `js/games/jaywalk/share.js` (rewritten) · `victory.js` (the warm) · `view.js` (the frame's `kidX`) ·
+  `js/games/kit/share-run.js` (`o.box` / `nameY` / `namePx`; no result line for a card without one — PRISM DROP + OVERCLOCK
+  unchanged) · `api/_lib/share-card.js` + `api/daily.js` (`run`).
+
 ## The files
 `js/games/jaywalk/ghosts.js` (NEW, pure) · `view.js` · `night.js` · `logic.js` (`startOf`) · `director.js` (the final patch) ·
 `tuning.js` (`flushMatchMs`) · `css/jaywalk.css` (the out card's fade) · `tests/jaywalk-ghosts.test.mjs` + `tests/jaywalk-firstgo.test.mjs`

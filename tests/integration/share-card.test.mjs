@@ -141,3 +141,71 @@ test('CITY E — THE TAPPABLE SHARE CARD: accept / refuse, ONE a day (a re-share
     await ref('progress/dailies').set(was); clearSwitchCache();
   }
 });
+
+// JAYWALK H4B's ADD-ON (the owner, Nov 16) — A RUN's CARD: SHARE MY RUN sends the same kind of link. The server takes the picture ONLY from
+// a player its own COUNTED result of that match names (results/{ROOM}_{m} — st 'done', the game, o[pid]); ONE run card a player a game a
+// day in ITS OWN slot (the day's DAILIES card keeps its own), replaced in place under the same code; the page says the game + opens the
+// site's home; the owner's delete + the sweep clear its slot too.
+test('JAYWALK H4B — A RUN\'s CARD: only a counted result\'s player, its own slot (never the day\'s scorecard), replaced in place, the page opens the site', async () => {
+  const a = await ensure('u-run-a', 'RunAmy'), b = await ensure('u-run-b', 'RunBob');
+  const ok = png(CARD_W, CARD_H).toString('base64'), at = T0 + 500;
+  const call = (uid, extra = {}) => dailyAction(uid, { action: 'shareCard', games: ['jaywalk'], run: { room: 'MOON', m: 'm1abc' }, png: ok, ...extra }, T0 + 1000);
+  const refused = async (p, code) => { await assert.rejects(p, e => e.code === code, `refused: ${code}`); };
+  try {
+    // REFUSED: no result at all · a result still being made · another game's · a result that doesn't name this player · a game with no run card
+    await refused(call('u-run-a'), 'no_run');
+    await ref('results/MOON_m1abc').set({ st: 'retry', at, g: 'jaywalk', o: { [a.pid]: { xp: 1 } } });
+    await refused(call('u-run-a'), 'no_run');
+    await ref('results/MOON_m1abc').set({ st: 'done', at, g: 'overclock', o: { [a.pid]: { xp: 1 } } });
+    await refused(call('u-run-a'), 'no_run');
+    await ref('results/MOON_m1abc').set({ st: 'done', at, g: 'jaywalk', mode: 'solo', n: 1, o: { [a.pid]: { xp: 12 } } });
+    await refused(call('u-run-b'), 'no_run');
+    await refused(call('u-run-a', { games: ['prism'] }), 'bad_game');
+    await refused(call('u-run-a', { run: { room: 'moon/../x', m: 'm1abc' } }), 'bad_game');
+    await refused(call('u-run-a', { png: png(1080, 1350).toString('base64') }), 'wrong_size');
+    // ACCEPTED: the counted player — the code, the page (the game's name, the site's home), the picture
+    const r1 = await call('u-run-a');
+    assert.match(r1.code, /^[A-Za-z0-9_-]{12}$/); assert.equal(r1.path, `/api/daily?s=${r1.code}`);
+    const card = await val(`shr/${r1.code}`);
+    assert.deepEqual({ p: card.p, d: card.d, g: card.g, k: card.k, s: card.s, n: card.n }, { p: a.pid, d: today, g: ['jaywalk'], k: 'run', s: `${a.pid}:jaywalk`, n: 'RunAmy' });
+    assert.equal(await val(`shrp/${a.pid}:jaywalk/${today}`), r1.code, 'ITS OWN slot');
+    assert.equal(await val(`shrp/${a.pid}/${today}`), null, 'the day\'s DAILIES slot is untouched — a run never replaces a scorecard already sent');
+    const page = (await get(`/api/daily?s=${r1.code}`)).body.toString();
+    assert.match(page, /<meta property="og:title" content="RUNAMY · JAYWALK · Nov 15">/); assert.match(page, new RegExp(`og:image" content="https://www.neonspeakeasy.com/api/daily\\?si=${r1.code}&amp;v=`));
+    assert.match(page, /<meta http-equiv="refresh" content="0; url=\/">/, 'a tap on the picture opens the site\'s home'); assert.doesNotMatch(page, /daily=1|dailies/i);
+    assert.match(page, /summary_large_image/, 'the BIG picture card');
+    const pic = await get(`/api/daily?si=${r1.code}`);
+    assert.equal(pic.status, 200); assert.equal(pic.headers['content-type'], 'image/png'); assert.equal(pic.body.length, Buffer.from(ok, 'base64').length);
+    // the same picture again: nothing written; ANOTHER run that day (a new match, a new picture): the SAME code, the picture replaced
+    assert.equal((await call('u-run-a')).same, true);
+    await ref('results/MOON_m2xyz').set({ st: 'done', at: at + 60000, g: 'jaywalk', mode: 'solo', n: 1, o: { [a.pid]: { xp: 9 } } });
+    const r2 = await call('u-run-a', { run: { room: 'MOON', m: 'm2xyz' }, png: png(CARD_W, CARD_H, 4).toString('base64') });
+    assert.equal(r2.code, r1.code, 'one run card a player a day — replaced in place'); assert.notEqual(r2.v, r1.v);
+    assert.equal(Object.values((await val('shr')) || {}).filter(c => c.p === a.pid && c.k === 'run').length, 1);
+    // a guest the result names has their own card; the day's DAILIES card lives beside the run's
+    await ref('results/MOON_m3mat').set({ st: 'done', at, g: 'jaywalk', mode: 'match', n: 2, o: { [a.pid]: { xp: 5 }, [b.pid]: { xp: 3 } } });
+    const rb = await call('u-run-b', { run: { room: 'MOON', m: 'm3mat' } });
+    assert.notEqual(rb.code, r1.code);
+    await ref(`dly/${G}/${today}/r/${a.pid}`).set(4);
+    const rd = await dailyAction('u-run-a', { action: 'shareCard', day: today, games: [G], png: png(CARD_W, CARD_H, 2).toString('base64') }, T0 + 2000);
+    assert.notEqual(rd.code, r1.code, 'the scorecard has its own code'); assert.equal(await val(`shrp/${a.pid}/${today}`), rd.code); assert.equal(await val(`shrp/${a.pid}:jaywalk/${today}`), r1.code);
+    assert.match((await get(`/api/daily?s=${rd.code}`)).body.toString(), /url=\/\?daily=1/, 'the scorecard\'s page still opens the dailies');
+    // an old result (two days back) → that day isn't open
+    await ref('results/MOON_m4old').set({ st: 'done', at: T0 - 3 * 864e5, g: 'jaywalk', n: 1, o: { [a.pid]: { xp: 1 } } });
+    await refused(call('u-run-a', { run: { room: 'MOON', m: 'm4old' }, png: png(CARD_W, CARD_H, 5).toString('base64') }), 'bad_day');
+    // the owner's delete clears the run's own slot; the sweep (8 days on) clears the rest
+    process.env.ADMIN_PIDS = b.pid;
+    const D = await adminAction('u-run-b', { action: 'shareDelete', code: r1.code }, T0);
+    assert.equal(D.gone, true); assert.equal(await val(`shr/${r1.code}`), null); assert.equal(await val(`shrp/${a.pid}:jaywalk/${today}`), null, 'the run\'s slot is cleared with its card');
+    process.env.ADMIN_PIDS = '';
+    forgetShareSweep();
+    await sweepShares({ now: T0 + 9 * 864e5 });
+    assert.equal(await val(`shr/${rb.code}`), null); assert.equal(await val(`shrp/${b.pid}:jaywalk/${today}`), null, 'the sweep clears a run card + its slot');
+  } finally {
+    process.env.ADMIN_PIDS = '';
+    await Promise.all(['MOON_m1abc', 'MOON_m2xyz', 'MOON_m3mat', 'MOON_m4old'].map(k => ref(`results/${k}`).remove()));
+    await Promise.all([ref(`dly/${G}/${today}/r/${a.pid}`).remove(), ref(`shrp/${a.pid}`).remove(), ref(`shrp/${a.pid}:jaywalk`).remove(), ref(`shrp/${b.pid}:jaywalk`).remove(), ref(`shrx/${today}`).remove()]);
+    for (const [code, c] of Object.entries((await val('shr')) || {})) if (c.p === a.pid || c.p === b.pid) await ref(`shr/${code}`).remove();
+    forgetShareSweep();
+  }
+});
