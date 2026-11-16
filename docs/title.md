@@ -975,3 +975,12 @@ octagons, the numeral in a dark ink ≥ 4.5 : 1 on its face (the innermost face 
 within `DRAG_MS` (3 s — a pointer the browser cancelled for a scroll, or one past the slop): a fling's momentum, never a programmatic scroll
 (`scrollIntoView`). A stopper never press-acts, is never rescued, and its click (if the browser sends one) is swallowed. `stats.stoppers`;
 `window.__tapwatch.scrolls()`. Proof: wk-press 'A8' (a per-frame fling on SCORES, the finger lands on a row → nothing) + tests/fixes-r2.test.mjs.
+
+### FIXES R2 — THE ROOM: BOARD in the dock + PICK A GAME's marks
+- **THE BOARD IN A ROOM** (the owner's nephew): the room dock = INVITE · [YOU · GUESTS · GAMES · BOARD · CHAT] · PLAY (`room-dock.js` — BOARD lit
+  gold like the title's). The icons (28 pt) + labels (8.5 px) unchanged; every tab 44 × 58 at 390 / 402 (48 from 420 pt, the desktop's 52),
+  the pill's padding 3, the rings 4 pt from it (were 10 — the group was 394 pt at 390, the rings clipped 2 pt; now fully on screen).
+  BOARD → THE BOARD's own screen (`app.js#routeKey` routes view 'board' while the room waits — a match starting is routed first); its BACK
+  → the room. Proof: `tests/integration/room-board.mjs` (21 checks at 390 / 402 / 430).
+- **PICK A GAME** (the room's GAMES sheet) wears each game's NEON MARK — `ui/mark-svg.js`, the PLAY sheet's own builder (ONE builder, its own
+  file: THE STALE-MODULE RULE) — never the poster tile; the tagline + the one-line description kept.

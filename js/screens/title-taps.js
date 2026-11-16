@@ -12,7 +12,7 @@ import { primaryBoard, fmtValue } from '../core/boards.js';
 import { setState, state, isHost } from '../store.js';
 import { tubeButton, row } from '../ui/components.js';
 import { cardActions, playersLine } from '../core/room-logic.js';
-import { markFor } from '../core/marks.js';
+import { markSvg } from '../ui/mark-svg.js';
 import { playSolo } from '../host.js';
 import { dbRef, update as dbUpdate } from '../firebase.js';
 import { layersOpen, cityCovered, touchInCity } from '../ui/layers.js';
@@ -227,12 +227,7 @@ export function createTaps(T) {
     try { mins = mod.estimateMinutes ? mod.estimateMinutes(mod.DEFAULT_SETTINGS || {}) : null; } catch { mins = null; }
     return { solo, runs, players: `${playersLine(solo, min, MAX_PLAYERS)} PLAYERS`, mins: mins ? `≈ ${Math.round(mins)} MIN` : null };
   }
-  /** the game's neon mark as a small inline SVG (the row's icon) — its own tubes, its own colours */
-  function markSvg(g) {
-    const m = markFor(g);
-    const tubes = ((m && m.tubes) || []).map(t => `<path d="${t.d}" style="stroke:${t.col};fill:none;stroke-width:7;stroke-linecap:round;stroke-linejoin:round"/>`).join('');
-    return `<svg viewBox="0 0 100 100" aria-hidden="true" class="nd-shelf-mark">${tubes}</svg>`;
-  }
+  // (the game's neon mark: ui/mark-svg.js — ONE builder, shared with the room's PICK A GAME)
 
   // PLAY NOW — THE GAMES SHELF (the dock's PLAY): the playable games, ONE ROW each (THE ROW — the game's neon mark, its name, "solo · 2–8" /
   // "2–8", the minutes) → a tap opens that game's CARD on top (nested: ‹ back to the shelf)

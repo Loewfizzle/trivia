@@ -22,7 +22,7 @@ test('freeCanvases zeroes canvases, their holders, Maps / Sets / arrays / plain 
 test('scene.js#destroy() destroys every module the scene creates (the long night\'s misses + the sweep) and frees the scene\'s own canvases', () => {
   const s = read('js/screens/harbor/scene.js'), d = s.slice(s.indexOf('    destroy() {'), s.indexOf('    destroy() {') + 9000);
   assert.match(d, /for \(const m of \[people, galeSea, raidFx, fw, fwx, chimneys, lights, towerFx, crossLit\]\)/);
-  assert.match(d, /freeCanvases\(tri\.art, bxf\.cv, sheetV, bladeV\)/, 'the tri-vision faces + the board copies');
+  assert.match(d, /freeCanvases\(tri\.art, bxf\.cv, sheetV, bladeV, away && away\.pic\)/, 'the tri-vision faces + the board copies');
   for (const m of ['baker', 'litBaker', 'wild', 'sky', 'snd', 'roadLight', 'leaves', 'waterfront', 'skyBeams', 'strings', 'speak', 'centre', 'neon', 'water', 'wheel', 'beam', 'boats', 'still', 'cabStand', 'crisp', 'fx', 'clouds', 'rain', 'waterFog', 'stormDeck', 'sun', 'bb', 'moth'])
     assert.match(d, new RegExp(`\\b${m}\\.destroy\\(\\)`), `${m}.destroy()`);
   // the modules that hold canvases each have a destroy that frees them

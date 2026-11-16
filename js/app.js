@@ -84,6 +84,8 @@ function routeKey(st) {
   }
   // LOBBY 2.0 A — THE ROOM IN THE CITY: a room's waiting part IS the live city — the title screen stays (its city never reloads) and
   // turns into the room (screens/room-city.js); the profile from YOU opens over it. (CITY 1.0 OUT: the old lobby screen is gone.)
+  // (FIXES R2 — THE BOARD IN A ROOM: the room dock's BOARD tab opens THE BOARD's own screen while the room waits; a match starting is routed above)
+  if (st.view === 'board') return 'board';
   return harborPending() ? 'boot' : 'title';   // (a refresh in a room waits for City 2.0's module, like the title does)
 }
 

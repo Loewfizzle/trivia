@@ -1201,3 +1201,11 @@ body.nd-rest .rd-btn { pointer-events: none; }
 .nd-down-card .sheet-title { max-width: 320px; }
 .nd-down-card .btn { min-width: 200px; }
 
+/* FIXES R2 — THE BOARD IN A ROOM: five tabs in the room's pill — each tab 44 pt wide (its 44 × 44 tap area; the icon + label sizes untouched),
+   the pill's padding 3 pt, the rings 4 pt from it (they were 10): the group fits 390 pt; a little roomier from 420 pt; the desktop keeps 52 */
+.rdk-pill.rdk-five { padding: 0 3px; gap: 0; }
+.rdk-pill.rdk-five .rdk-tab { width: 44px; min-width: 44px; padding: 4px 0 3px; }
+.nd-bar.nd-flank:has(.rdk-five) { --gap: 4px; }
+.rdk-board { --ic: #f2c869; }
+@media (min-width: 420px) { .rdk-pill.rdk-five .rdk-tab { width: 48px; min-width: 48px; } .nd-bar.nd-flank:has(.rdk-five) { --gap: 7px; } }
+@media (min-width: 900px) and (min-height: 640px) { .rdk-pill.rdk-five .rdk-tab { width: var(--cell); min-width: var(--cell); } .nd-bar.nd-flank:has(.rdk-five) { --gap: 14px; } }

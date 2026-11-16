@@ -1,6 +1,6 @@
 // LOBBY 2.0 A — THE ROOM DOCK (the owner's approved mock lobby-room.png, Nov 3 9:09–9:15 pm): THE FLANK restyled, not new colours — the
 // title's own dock (title-dock.js#createDock: the same rings, glass + tube icons, the same lighting from the sign) with the room's words:
-//   [ INVITE ring ]  [ glass pill: YOU · GUESTS · GAMES · CHAT ]  [ PLAY ring ]
+//   [ INVITE ring ]  [ glass pill: YOU · GUESTS · GAMES · BOARD · CHAT ]  [ PLAY ring ]   (FIXES R2: + BOARD — the owner's nephew)
 // the JOIN ring → INVITE (the same silver-white ring; EVERYONE may invite); the HOST ring → PLAY (the same hot-pink ring) for the HOST
 // only — a guest sees it greyed, WAITING FOR <HOST> (it changes hands with a host change); YOU = your emblem (the profile + CUSTOMIZE);
 // GUESTS = gold tube people + a YELLOW DOT when someone joined since you last opened it (no number); GAMES = the cyan grid; CHAT = the pink
@@ -49,13 +49,17 @@ export function createRoomDock(on) {
   E.guestsTab = tab('rdk-guests', 'The guest list', RICON.guests, 'GUESTS', on.guests);
   E.gamesTab = tab('nd-tab-games.rdk-games', 'The games', ICON.games, 'GAMES', on.games);
   E.chatTab = tab('rdk-chat', 'The room chat', RICON.chat, 'CHAT', on.chat);
+  // (FIXES R2 — THE BOARD IN A ROOM: a 5th tab — THE BOARD as it opens outside a room. The icons + labels keep their size, every tab its
+  //  44 × 44: the tabs 52 → 44 pt wide, the pill's padding + the ring gaps tighter — css/title.css .rdk-five)
+  E.bdTab = tab('nd-tab-board.rdk-board', 'The Board', ICON.board, 'BOARD', on.board || (() => {}));
+  E.bdTab.classList.add('is-lit');   // (the room's tabs are lit — the title's sign wave lights its own board tab, not this one)
   const glass = [...E.pill.children].filter(c => !c.classList.contains('nd-tab'));
-  E.pill.replaceChildren(...glass, E.youTab, E.guestsTab, E.gamesTab, E.chatTab);
-  E.pill.classList.add('rdk-pill');
+  E.pill.replaceChildren(...glass, E.youTab, E.guestsTab, E.gamesTab, E.bdTab, E.chatTab);
+  E.pill.classList.add('rdk-pill', 'rdk-five');
   // (the sign lights the tabs: the old three slots → GUESTS · GAMES · YOU; CHAT follows GAMES)
   E.boardTab = E.guestsTab;
   const light0 = d.light;
-  d.light = (i, lit) => { light0(i, lit); if (i === 1 && E.chatTab) E.chatTab.classList.toggle('is-lit', !!lit); };
+  d.light = (i, lit) => { light0(i, lit); if (i === 1 && E.chatTab) E.chatTab.classList.toggle('is-lit', !!lit); if (i === 0 && E.bdTab) E.bdTab.classList.toggle('is-lit', !!lit); };   // (FIXES R2: BOARD lights with GUESTS)
   d.tabs = () => [E.guestsTab, E.gamesTab, E.youTab];
 
   let last = '';

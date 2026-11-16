@@ -107,6 +107,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     guests: () => { sfx('select'); openGuests(); },
     games: () => { sfx('select'); ngTapped(); openGames(isHost()); },
     chat: () => { sfx('tap'); lazyImport(import('../chat/ui.js'), '../chat/ui.js').then(m => m.openChat()); },
+    // (FIXES R2 — THE BOARD IN A ROOM: the same screen as outside one — app.js routes view 'board' while the room waits; its BACK = the room)
+    board: () => { sfx('select'); setState({ view: 'board', boardGame: null, boardBoard: null, boardPeriod: null }); },
   });
   if (dockHost) dockHost.append(dock.els.door);
   // (PLAY NOW — PLAY WITH FRIENDS: the card's game PRESELECTED — once this phone hosts its fresh room, the options sheet opens on that game)
@@ -195,14 +197,14 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     if (gamesOpen) return;
     const { openPfSheet } = await lazyImport(import('../profile/sheets.js'), '../profile/sheets.js');
     const games = GAMES.filter(g => g.playable || (asHost && isOwnerTest(g.id)));   // (HE8 — THE OWNER'S LIVE TEST: a game being built, on the owner's host phone only)
-    const { gameArt } = await lazyImport(import('../ui/game-art.js'), '../ui/game-art.js');
+    const { markSvg } = await lazyImport(import('../ui/mark-svg.js'), '../ui/mark-svg.js');   // (FIXES R2 — the owner: the PLAY sheet's neon marks, never the poster tiles)
     const list = h('div.rc-games', ...games.map(g => h('button.rc-game', { type: 'button', dataset: { theme: g.theme, game: g.id }, onclick: () => {
       if (!asHost || !isHost()) { openHelp(g.id); return; }
       // (SHELL 2.0 B1: the options open ON the picker — ‹ = back to the games, × = both)
       // (the host picks ANOTHER game after a match: the REMATCH ring goes back to PLAY + every vote clears)
       if (st.meta && st.meta.back && st.meta.back.rm) dbUpdate(dbRef(`rooms/${code()}`), { 'meta/back/rm': false, rv: null }).catch(() => {});
       lazyImport(import('./game-options.js'), './game-options.js').then(m => m.openGameOptions(g, { meta: st.meta }));
-    } }, h('span.rc-game-art', gameArt(g.id) || ''), h('span.rc-game-t', h('small', g.tag), h('b', g.name, isOwnerTest(g.id) ? h('em.rc-game-test', 'TEST') : null), h('span', g.blurb)), h('i.rc-game-go', '›'))));
+    } }, h('span.rc-game-art.rc-game-mark', { html: markSvg(g, 'rc-mark') }), h('span.rc-game-t', h('small', g.tag), h('b', g.name, isOwnerTest(g.id) ? h('em.rc-game-test', 'TEST') : null), h('span', g.blurb)), h('i.rc-game-go', '›'))));
     const s = openPfSheet({ kicker: asHost && isHost() ? 'YOU’RE THE HOST' : `${hostName().toUpperCase()} PICKS THE GAME`, title: asHost && isHost() ? 'PICK A GAME' : 'THE GAMES', cls: 'rc-games-sheet',
       body: [list, h('p.sh-note.is-small', asHost && isHost() ? 'Pick one, set it up, then INITIATE — everyone in the line is dealt in.' : 'Tap one to read how it plays while you wait.')],
       onClose: () => { gamesOpen = null; } });
