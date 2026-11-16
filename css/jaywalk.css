@@ -1,5 +1,5 @@
-/* JAYWALK (prefix jw-) — H1: the match screen's STUB + THE JAYWALK LAB's graybox page (/jaywalk-lab — jaywalk-lab.html + js/games/jaywalk/lab.js).
-   Graybox only: no art. The real looks: H2 (night) + H5 (day). */
+/* JAYWALK (prefix jw-) — the match screen's STUB + THE JAYWALK LAB (/jaywalk-lab — jaywalk-lab.html + js/games/jaywalk/lab.js): H2's NIGHT
+   LOOK (night.js — the skyline band, the neon lane count, WIDTH 9 · 11, THE SOUND AUDITION) + H1's graybox behind ?gray=1. The day look: H5. */
 .jw-stub { min-height: 100dvh; display: grid; place-content: center; gap: 10px; text-align: center; padding: 24px; color: var(--text); }
 .jw-stub-k { font: 700 11px/1 var(--font-ui); letter-spacing: 0.28em; color: var(--text-dim); }
 .jw-stub-t { margin: 0; font: 900 34px/1 var(--font-display); letter-spacing: 0.06em; color: #ff4fc4; text-shadow: 0 0 18px rgba(255, 79, 196, 0.55); }
@@ -28,6 +28,22 @@
 
 .jw-hud { position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top) + 10px); text-align: center; pointer-events: none; }
 .jw-lanes { font: 900 64px/1 var(--font-num, var(--font-display)); letter-spacing: 0.02em; color: #fff; text-shadow: 0 2px 0 #000, 0 0 22px rgba(255, 79, 196, 0.55); }
+/* THE LANE COUNT in the game's own big neon numerals (the night look): a white-hot tube, its pink glow (static), a small pop on every new lane */
+.jw-stage:not(.is-gray) .jw-lanes { font: 700 76px/1 var(--font-num, var(--font-ui)); letter-spacing: 0.03em; color: #fff3fb; -webkit-text-stroke: 2px #ff62c8;
+  text-shadow: 0 0 3px #fff, 0 0 12px #ff4fc4, 0 0 26px #ff4fc4, 0 0 52px rgba(255, 79, 196, 0.75), 0 3px 0 rgba(20, 0, 14, 0.9); transform-origin: 50% 60%; }
+.jw-lanes.is-pop { animation: jw-pop 0.22s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+@keyframes jw-pop { 0% { transform: scale(1.22); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .jw-lanes.is-pop { animation: none; } }
+/* THE SKYLINE BAND (night.js): the top ≈ 24 % — the picture covers the band's height, slides ≈ 10 % with the kid's column (transform only);
+   its foot fades into the lanes' fog. NIGHT LIFE: the aviation lights blink, a few neon blocks flicker (opacity only). */
+.jw-skyline { position: absolute; left: 0; right: 0; top: 0; height: 24%; overflow: hidden; pointer-events: none; background: #0b0716;
+  -webkit-mask-image: linear-gradient(#000 0, #000 60%, rgba(0, 0, 0, 0) 100%); mask-image: linear-gradient(#000 0, #000 60%, rgba(0, 0, 0, 0) 100%); }
+.jw-skyline-img { position: absolute; left: 50%; top: 0; height: 100%; aspect-ratio: 1280 / 432; background-size: 100% 100%; transform: translate3d(-50%, 0, 0); will-change: transform; }
+.jw-sky-l { position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #ff4034; box-shadow: 0 0 6px 2px rgba(255, 64, 52, 0.85); animation: jw-blink 2.6s steps(1) infinite; }
+.jw-sky-n { position: absolute; background: rgba(9, 6, 20, 0.86); opacity: 0; animation: jw-flick 6.5s steps(1) infinite; }
+@keyframes jw-blink { 0%, 52% { opacity: 1; } 53%, 100% { opacity: 0.12; } }
+@keyframes jw-flick { 0%, 100% { opacity: 0; } 2% { opacity: 1; } 4% { opacity: 0; } 7% { opacity: 0.8; } 8.5% { opacity: 0; } 46% { opacity: 0.9; } 47.5% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .jw-sky-l, .jw-sky-n { animation: none; } }
 .jw-sub { margin-top: 6px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.2em; color: var(--text-dim); }
 .jw-mark { margin-top: 10px; min-height: 18px; font: 900 16px/1 var(--font-display); letter-spacing: 0.14em; color: #ffd6f0; text-shadow: 0 0 14px rgba(255, 79, 196, 0.7); }
 
@@ -37,6 +53,26 @@
 .jw-tab, .jw-new { min-height: 44px; min-width: 44px; padding: 0 12px; border: 0; background: none; color: var(--text-dim); font: 700 12px/1 var(--font-ui); letter-spacing: 0.16em; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .jw-tab { box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.14); }
 .jw-tab.is-on { color: #fff; box-shadow: inset 0 -2px 0 #ff4fc4, 0 10px 14px -10px rgba(255, 79, 196, 0.9); }
+/* the second row (the night look's tools): WIDTH 9 · 11 on the left, SOUNDS on the right */
+.jw-bar2 { bottom: calc(env(safe-area-inset-bottom) + 54px); }
+.jw-bar-k { align-self: center; padding: 0 8px 0 12px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.2em; color: var(--text-dim); }
+.jw-w { min-width: 46px; font-family: var(--font-num, var(--font-ui)); font-size: 13px; }
+.jw-snd { color: #ffd6f0; }
+/* THE SOUND AUDITION (audition.js — THE SHEET): a row a sound — its name, PLAY (· PLAY B), USE A · B; COPY MY PICKS at the foot */
+.jw-au { display: grid; gap: 4px; padding: 2px 0 calc(env(safe-area-inset-bottom) + 12px); }
+.jw-au-k { margin: 0 0 8px; font: 500 13px/1.4 var(--font-ui); color: var(--text-dim); }
+.jw-au-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'n c' 'b b'; gap: 6px 10px; align-items: center; padding: 10px 0 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.jw-au-name { grid-area: n; min-width: 0; }
+.jw-au-name b { display: block; font: 700 14px/1.2 var(--font-ui); letter-spacing: 0.12em; color: var(--text); }
+.jw-au-name small { display: block; margin-top: 3px; font: 500 11px/1.2 var(--font-ui); letter-spacing: 0.06em; color: var(--text-dim); }
+.jw-au-btns { grid-area: b; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.jw-au-choice { grid-area: c; display: flex; align-items: center; }
+.jw-au-choice.is-one { font: 700 10px/1 var(--font-ui); letter-spacing: 0.18em; color: var(--text-faint); padding-right: 6px; }
+.jw-au-pick { min-width: 44px; }
+.jw-au-play.is-on { --tc: #ffb648; }
+.jw-au-stop { margin-top: 6px; }
+.jw-au-line { margin: 14px 0 10px; padding: 10px 12px; font: 500 12px/1.5 var(--font-mono); color: var(--text); background: rgba(255, 255, 255, 0.05); -webkit-user-select: text; user-select: text; word-break: break-word; }
+.jw-au-said { min-height: 18px; margin: 8px 0 0; text-align: center; font: 700 11px/1.2 var(--font-ui); letter-spacing: 0.16em; color: var(--good, #3dff8b); }
 .jw-new { color: #8ff0ff; }
 
 .jw-end { position: absolute; left: 0; right: 0; top: 27%; text-align: center; padding: 58px 20px 62px; pointer-events: none;
@@ -51,4 +87,5 @@
 .jw-check.is-bad { color: #fff; background: #c8102e; padding: 8px 10px; font-weight: 700; }
 .jw-check.is-bad::before { content: '✕ '; }
 .jw-seed { position: absolute; right: 10px; top: calc(env(safe-area-inset-top) + 8px); font: 400 10px/1 var(--font-mono); color: var(--text-faint); pointer-events: none; }
+.jw-stage:not(.is-gray) .jw-fps { bottom: calc(env(safe-area-inset-bottom) + 104px); }
 .jw-fps { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 58px); font: 400 10px/1.35 var(--font-mono); color: #9dffb8; pointer-events: none; text-shadow: 0 1px 0 #000; }
