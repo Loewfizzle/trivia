@@ -223,8 +223,10 @@ test('THE FOUNDER WINDOW: the owner’s switch (server-checked, audited); a crew
   await ref(`pstats/${old.pid}`).set({ xp: 300, g: { prism: { p: 2 } } });
   process.env.ADMIN_PIDS = boss.pid;
   try {
+    // FIXES R2 took the FOUNDER WINDOW off the radio ledger (one place: the foot of /admin) — its state is read through 'founderState'
     const L = await adminAction('g-boss', { action: 'radioLedger' }, at);
-    assert.equal(L.founder.open, true, 'OPEN by default');
+    assert.ok(!L.founder, 'the radio ledger no longer carries the founder window');
+    assert.equal((await adminAction('g-boss', { action: 'founderState' }, at)).founder.open, true, 'OPEN by default');
     const r = await adminAction('g-boss', { action: 'radioFounder', open: false }, at);
     assert.equal(r.founder.open, false); assert.equal(r.founder.swept, 1);
     assert.ok((await val(`pstats/${old.pid}/it`))['card-founder'] && (await val(`profiles/${old.pid}`)).fd);

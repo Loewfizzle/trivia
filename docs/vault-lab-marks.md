@@ -1,13 +1,13 @@
 # THE CARD LAB — the owner's marks (read this FIRST in the next VAULT pass)
 
-Exported 2026-11-16 00:32 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
+Exported 2026-11-16 04:27 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
 
 | # | item | tier | mark | note | when | v |
 | --- | --- | --- | --- | --- | --- | --- |
 | 116 | THE SWITCHBOARD (`card-dev-switchboard`) | legendary | APPROVE |  | 2026-11-06 00:11 UTC | v4 |
 | 117 | THE SOURCE (`card-dev-source`) | legendary | APPROVE |  | 2026-11-06 05:29 UTC | v4 |
 | 118 | THE SWITCHBOARD · FULL CARD (`full-card-dev-switchboard`) | legendary | APPROVE |  | 2026-11-06 00:11 UTC | v6 |
-| 119 | THE SOURCE · FULL CARD (`full-card-dev-source`) | legendary | APPROVE |  | 2026-11-06 00:11 UTC | v6 |
+| 119 | THE SOURCE · FULL CARD (`full-card-dev-source`) | legendary | APPROVE |  | 2026-11-06 00:11 UTC | CHANGED (marked v6, now v7) |
 | 92 | FOUNDING MEMBER (`card-founder`) | legendary | APPROVE |  | 2026-11-04 02:04 UTC | v2 |
 | 93 | THE HOUSE (`card-house`) | legendary | APPROVE |  | 2026-11-03 19:25 UTC | v1 |
 | 94 | PLATINUM (`card-platinum`) | epic | APPROVE |  | 2026-11-03 19:25 UTC | v1 |
@@ -155,7 +155,7 @@ Exported 2026-11-16 00:32 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 149 | AFTERGLOW (`glow-afterglow`) | common | APPROVE |  | 2026-11-03 23:42 UTC | v1 |
 | 150 | ICE (`glow-ice`) | common | APPROVE |  | 2026-11-03 23:42 UTC | v1 |
 | 151 | NEON (`glow-neon`) | uncommon | APPROVE |  | 2026-11-03 23:42 UTC | v1 |
-| 152 | CANDLELIGHT (`glow-candle`) | uncommon | APPROVE |  | 2026-11-03 23:43 UTC | v1 |
+| 152 | CANDLELIGHT (`glow-candle`) | uncommon | APPROVE |  | 2026-11-03 23:43 UTC | CHANGED (marked v1, now v2) |
 | 153 | FROST (`glow-frost`) | uncommon | APPROVE |  | 2026-11-03 23:43 UTC | v1 |
 | 154 | FIRE (`glow-fire`) | rare | APPROVE |  | 2026-11-03 23:43 UTC | v1 |
 | 155 | STARLIGHT (`glow-starlight`) | rare | APPROVE |  | 2026-11-03 23:43 UTC | v1 |

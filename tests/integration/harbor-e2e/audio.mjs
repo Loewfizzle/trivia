@@ -57,10 +57,11 @@ G('dock', async () => {
   await waitFor(H.page, '!!window.__arcade.state.code && !!document.querySelector(".lobby-screen, .title-screen.is-room")', 'lobby after HOST', 20000);
   const code = await ev(H.page, 'window.__arcade.state.code');
   ok(!!code, `HOST (city 2): one tap opens room ${code}`);
-  ok(/[?&]city=2(&|$)/.test(await ev(H.page, 'location.search')) && /room=/.test(await ev(H.page, 'location.search')), `THE FLAG IN THE URL: the room's address keeps city=2 (${await ev(H.page, 'location.search')})`);
+  // FIXES R3 — the ?city=2 pass-through was removed on purpose (FIXES R2 F6: nothing read it — City 2.0 is the only city); the room's address keeps its room
+  ok(/room=/.test(await ev(H.page, 'location.search')), `THE ROOM IN THE URL: the room's address names it (${await ev(H.page, 'location.search')})`);
   await H.page.reload();
   await waitFor(H.page, '!!window.__arcade && window.__arcade.state.code === ' + JSON.stringify(code), 'rejoin after a refresh', 20000);
-  ok(/[?&]city=2(&|$)/.test(await ev(H.page, 'location.search')), 'THE FLAG IN THE URL: a refresh in the lobby rejoins and stays on city=2');
+  ok((await ev(H.page, 'window.__arcade.state.code')) === code && !!(await ev(H.page, 'window.__district')), 'THE ROOM IN THE URL: a refresh in the lobby rejoins the room, in the city');
   const B = await open({ slot: 'hb', qs: NIGHT, view: [402, 874] });
   await harborUp(B.page);
   const door = await ev(B.page, 'window.__district.door()');
