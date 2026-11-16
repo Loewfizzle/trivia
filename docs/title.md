@@ -990,3 +990,7 @@ within `DRAG_MS` (3 s — a pointer the browser cancelled for a scroll, or one p
 - **THE YOU SCREEN REVEALS ONCE** (`screens/profile.js#reveal`): laid out unseen (`.pf-wait` — the scroll at opacity 0) until the server's answer
   has painted every block (after a lifted finger — afterTap), then ONE 0.28 s fade (opacity only; reduced motion: a cut); a 1.5 s safety. Measured
   (`tests/integration/you-open.mjs`, 390 @3): CLS on screen **0.46 → 0**, shown ~0.2–0.3 s after the tap, no block moving after it shows.
+
+## THE RULES FROM CLAUDE.md (moved Nov 15 — FIXES R2 Part C: the text CLAUDE.md held, verbatim)
+- THE TAP WATCH (`js/ui/tapwatch.js`, always on): never re-render a control under a finger; every `:hover` behind `@media (hover: hover)` → docs/title.md (moved).
+- EVERY TAP ACTS (CITY A): a control acts on its own press + lift — `data-press` (+ every `.btn-block`, every `.btn` in `[data-press-all]`); a control needing Safari's own gesture (share, passkey, clipboard, a submit) = `data-gesture` — it acts INSIDE the touch's lift, never rescued (CITY D) → docs/title.md.

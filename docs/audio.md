@@ -1902,3 +1902,6 @@ for the effects (the city's beds). /audio is kept BY VERSION in the worker (`na-
   pinned). **Not provable off a real iPhone:** what Core Audio's own output buffer does at the cut (Playwright's WebKit on Windows has no Web
   Audio; Chromium renders the same graph) — the owner's ear is the check: the effects toggle off, leaving the home-screen app; the AUDIO CUT row
   in /admin says what the engine did on his phone.
+
+## THE RULES FROM CLAUDE.md (moved Nov 15 — FIXES R2 Part C: the text CLAUDE.md held, verbatim)
+- THE IDLE CUTOFF (`audio/idle.js`) — never during a match. LEAVING (a touch blur · pagehide · hidden · freeze): the master to 0 AT ONCE + every loop a bed (`engine.js#holdBed`) stopped, then the suspend (CITY D). MUTED (or music + effects off) = NOTHING RUNS (the context suspended, every element paused); ONLY the master reaches `ctx.destination` (`tests/audio-hush.test.mjs`). Audio is unlocked by a gesture (iOS); the engine retries on every tap.

@@ -837,3 +837,8 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - **CANDLELIGHT** (`glow-candle`, css/vault.css `.vg-candle`): the owner couldn't tell it was on at his phone size — the LETTERS are candle-gold
   (#ffd38c) with their own steady amber halo (static: it reads in every still), the flickering copy on top brighter, never below 0.35. `LAB_V` 2.
   Before / after: `Downloads\NEON\fixes-r2\candle-before|after\`. `plate-preview.html` takes `&glow=<id>`.
+- **THE NAME PLATE HUGS ITS CONTENT** (the owner's add-on, Nov 15 9:10 pm — "a regression"): measured on this build in Chromium AND WebKit, glow
+  on or off, BEN / LOEWFIZZLE / WWWWWWWWWWWW on GILDED + VELVET ROOM: the glass ended 9 px (full) / 16 px (slim) after its text — no empty tail
+  reproduced (LOEWFIZZLE's plate reaching ~74 % of a full card is the name's own size at LV 23). The right padding made EVEN with the left (slim
+  16 → 11 px, full 5 → 3.6 cqi — css/vault.css, the ONE place) and GUARDED: `tests/integration/plate-hug.mjs` (24 checks — the glass ≤ 4.5 % of
+  the card past its text on a full card, ≤ 13 px on a slim, three names × two materials × a glow). Shots: `Downloads\NEON\fixes-r2\plates-*\`.

@@ -113,3 +113,12 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
    refresh, offline player, late joiner, Call the Winner, finish, rematch, frame pacing at 4× CPU). Add it to the smoke test's game list.
 6. **Screens** at 390×844, 412×915, 1440×900: three refine passes, looked at, before calling it done. Update ROADMAP.md, this file's
    counts, and write `docs/<id>.md`.
+
+## THE RULES FROM CLAUDE.md (moved Nov 15 — FIXES R2 Part C: the text CLAUDE.md held, verbatim)
+## Adding a game (the full checklist: docs/match-kit.md (moved))
+1. **Rules:** pure `logic.js` + `director.js` + `tests/<id>.test.mjs` whole-match sims (2 + 8 players, a replayed step = the same patch) BEFORE any UI.
+2. **Contract:** `meta.js` + `index.js` (docs/cartridge.md), registered; `ALL_PLAYER_NODES`; `GAMES` in config.js; its css, art, help, theme, music,
+   THE BOARD's standings (`core/match-report.js` with plausibility bounds) + boards (`core/boards.js`), its neon mark (`core/marks.js`).
+3. **View on the match kit** (`docs/match-kit.md`) — renders purely from `state`, writes only its own node, checks `liveKey`.
+4. **Rules file** + cases in `tests/integration/rules.test.mjs` — remind the owner to re-publish.
+5. **E2E** `tests/integration/e2e-<id>.mjs` (`FAST=1` + the full path); add it to the smoke test. 6. **Screens** at three sizes, three refine passes; docs.

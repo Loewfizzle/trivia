@@ -2979,6 +2979,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const mv = rectsMoved();
       if (mv || relayT) { clearTimeout(relayT); relayT = 0; LOADLOG.add('dock', `measured before the reveal: ${mv || 'a re-layout queued'}`); layout('measured before the reveal'); heldAt('the title re-measured'); return; }
     }
+    // (FIXES R2 — THE CAMERAS FLAKE's root cause (`no-observer-pre`, "fit … 85 ms after the reveal", ~1 run in 3 at three pages at a time):
+    //  boxCheck answers "fine" while a re-fit is already ON ITS WAY (a debounced resize, a queued build) — so under load the reveal could go
+    //  out on the OLD build and the re-fit landed a few frames later: cover-fitted frames of the old camera right after the reveal. The
+    //  reveal now waits for that re-fit, in the dark, like every other re-measure before it.)
+    if ((!late || on < REVEAL_MAX + 2000) && (resizeT || wantBuild)) { heldAt('a re-fit on its way'); return; }
     if ((!late || on < REVEAL_MAX + 2000) && boxLook('at the reveal')) { heldAt('the box'); return; }
     shownAt = now; shownClock = clock.now() / 1000; revealWhy = ready && fonts && wx && sky && panel ? 'ready' : 'late';
     { let inst = false; try { inst = !!(S.revealInstant && S.revealInstant()); } catch { /* the title's */ } fadeT0 = inst ? now - 900 : now; if (inst) LOADLOG.add('note', 'revealed under the boot screen: at once (its fade is the one fade)'); }

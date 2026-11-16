@@ -814,3 +814,6 @@ A SCORED end card holds `BAR_MS` (1.5 s — `games/drop/view.js`), then becomes 
 THE DROP · 2:10.7 · SHARE (`.dr-card.is-bar`: the lines + SCORED hidden) — so the finished board shows and SHARE stays one tap away; a tap outside the
 card shrinks it at once, a tap on the bar (not SHARE) opens the card again; ‹ stays the way back. It slides up by transform + opacity (reduced motion:
 none). `__drop.bar()` for the tests (e2e-drop). The board's own pixels unchanged (`prism-skin-snap PAGE=1 SKINS=all` IDENTICAL).
+
+## THE RULES FROM CLAUDE.md (moved Nov 15 — FIXES R2 Part C: the text CLAUDE.md held, verbatim)
+- PRISM's SKINS: a skin = ONE definition in `prism/skins.js` + its art — NO skin-specific path in view / board / rail / victory; ONE counter a match (`game.sk`), every phone draws `pool[k % n]`; a refactor proves `prism-skin-snap.mjs` IDENTICAL; a skin's sourced sounds = `sounds.files` (the code-made voice the fallback); by day the tiers drop the extras FIRST, the board's 3× LAST; a NIGHT skin with its own background = a PAGE skin (no shader work — its moving pieces in the view's `.pd-sky`, by CSS; `.pd[data-lite]` / `[data-still]` stop them) → docs/prism.md "THE SKINS".

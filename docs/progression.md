@@ -793,3 +793,9 @@ out — `api/daily.js` action **`ended { game }`** (the dailies' existing functi
 `not_finished` before — never a start: no s/ write, no begin), today only; THE DROP answers `cart.endView` (the share's replay, junk SOLID —
 never its log or seed). Proof: password.test + coastclear.test + daily-drop.test 'FIXES R2 — TAP A TICKET', `tests/integration/daily-tickets.mjs`
 (5 checks + the three shots at 390).
+
+## THE RULES FROM CLAUDE.md (moved Nov 15 — FIXES R2 Part C: the text CLAUDE.md held, verbatim)
+- THE SHARE CARDS: ONE FOOT (`js/daily/share.js#shareAddress` — a straight line + the address, no frame) + THE ONE RULE (`share.js#RHYTHM` — every
+  SHARE TODAY section: the NAME in its result's colour (green made · red failed · white) · ONE big TIME · ONE grey stat line · the art strip,
+  through the kit's `paintName` / `paintBig` / `paintStat` — never a win word; `tests/share-rhythm.test.mjs`); tracked lettering only through
+  `spacedText`; THE CARD IS BUILT BEFORE THE TAP (`prepShare` — never a share drawn at the tap, never a download) → docs/progression.md.

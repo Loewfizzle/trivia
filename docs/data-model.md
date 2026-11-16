@@ -481,3 +481,7 @@ tests/fixtures/finals.mjs                                finished matches of eve
 - **CITY C (server only — the rules' default deny):** `flink/{code}` = `{ p, at }` (THE ADD-ME LINK) + `pfr/{pid}/lk` (its code) · `progress/statsSnap`
   = `{ v, at, data }` (STATS' one snapshot) · `radio/spotted/{day}` = n (legendaries spotted a day, 8 kept) · `progress/dailies.onAt` (the switch's
   OFF → ON flip) · `progress/founder` now `{ open, at, by }` both ways.
+
+## THE RULES FROM CLAUDE.md (moved Nov 15 — FIXES R2 Part C: the text CLAUDE.md held, verbatim)
+chats/ fleets/ glsonar/ spy/ hsbet/ rrp/ seal/ hole/ {CODE}   ← top level, NOT readable like rooms/ (seal = THE SEAL; hole = HOLD'EM's cards; hrec/ server only)
+city2/live  seats/{pid}  profiles/{pid}  uids/{uid}  pstats/{pid}  lb/ results/ ppriv/ pkeys/ tags/ rl/ audit/ flags/ (server only)  ← docs/profiles.md

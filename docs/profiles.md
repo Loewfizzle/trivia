@@ -665,3 +665,15 @@ A balanced column from the top (`.pp-in` — no empty band above a short page; 3
 yet = its heading + a quiet NO ACHIEVEMENTS YET, fewer than 3 = what they have; CLOSE is a NEON TUBE (`tubeButton`, secondary — gold is a vault /
 card accent, never a button; `.vl-full-x:not(.btn)` keeps the full card's own CLOSE as it was); a player wearing no card gets the gilded card at
 the full card's width (it reads as a card, not a placeholder). Shots: `Downloads\NEON\fixes-r2\player-page-bare-390.png` / `-full-390.png`.
+
+## Setup (production) — the Firebase notes moved from CLAUDE.md (FIXES R2 Part C)
+(FIXES R2 Part C — moved from CLAUDE.md, verbatim below; the env vars it lacked: `DAILY_SECRET` (THE DAILY SECRET — set once), `BACKUP_TOKEN`
+(THE NIGHTLY BACKUP — docs/backup.md), the three `VAPID_*` (the room push).)
+
+### Firebase setup notes
+- Console → Build → Realtime Database (create), Authentication → Sign-in method → **Anonymous: enable**.
+- Paste `database.rules.json` into Realtime Database → Rules → Publish (after every rules change).
+- Profiles / THE BOARD need Vercel environment variables: `FIREBASE_SERVICE_ACCOUNT` (the service-account key JSON),
+  `FIREBASE_DATABASE_URL`, `ADMIN_PIDS` (your profile id), optional `KEY_PEPPER` (set once, never change) — `docs/profiles.md`.
+- Authentication → Settings → Authorized domains: `neonspeakeasy.com` (keep the old `games.` / `trivia.loewfizzle.com`, which redirect to it).
+- Web config goes in `js/firebase-config.js` (public by design; the rules are the security).
