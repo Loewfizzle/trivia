@@ -66,6 +66,18 @@ The bots' numbers (solo, 300 seeds, ≤ 2 minutes of play): a median of 182 lane
 docs/jaywalk.md (new) · CLAUDE.md (the docs table row, ONE standing-rule line, the intro, the file layout) · docs/cartridge.md "JAYWALK H1" ·
 docs/testing.md "JAYWALK H1" · docs/data-model.md (the `jw` node) · ROADMAP. Builders: file hashes, the preload graph (the boot preload: unchanged).
 
+## THE FINAL LOCAL RUN (my own emulators + `scripts/serve.mjs --emu`, the mini PC — NEVER THE LIVE SITE)
+unit **2076 / 2076** · rules **83 / 83** · `/api` server **63 / 63** + progression **10 / 10** · smoke **20 / 20** (THE PAGES LOAD 12 / 12: the six
+pages × Chromium + WebKit, `/jaywalk-lab` among them) · e2e-daily **95 / 95** · wk-press **43 / 43** · harbor `ONLY=cartridge,neon` **42 / 42** ·
+jaywalk-lab **50 / 50** (+ three plain runs 45 / 45).
+- **Two older checks counted the games** and were red until updated: the smoke test's HIDDEN GAMES (10 → 11: JAYWALK, being built, can't start on
+  a plain page) and the harbor `cartridge` group (6 → 7 cartridges meet the contract in a real page — "jaywalk: ok").
+- **A wrong red of my own making:** e2e-daily + wk-press need the server started with `DAILY_TEST=1` and e2e-daily BEFORE wk-press (it seeds the
+  dailies) — on a plain `serve.mjs --emu` the DAILY screen never opens (5 / 5 then FATAL · 32 / 35). Now in docs/testing.md "JAYWALK H1".
+- A race in my own lab check (it read the hop LOG 12 ms after a swipe, before the next tick had logged it) → it reads the hop ASKED for.
+- **Not run:** e2e-playnow (long, not on this pass's list — its only touched line is the sign's COMING SOON, covered by e2e-daily's sign check
+  + `tests/play-now.test.mjs`); e2e-profiles; the full harbor suite (the cloud's, on a harbor tag — this is a game pass).
+
 ## REAL vs PLACEHOLDER
 REAL: the rules + the course + the modes + the wall, the replay + its bounds, the server's verify, the moments' detection, the cartridge's
 frame / step / ranks, the proof node + its rules + its tests, the controls. PLACEHOLDER: the graybox (boxes, no art, no sounds), the end

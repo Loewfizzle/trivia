@@ -959,4 +959,7 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   /api) — 50 checks; `--perf` = the frame rate at 390 × 844 @3 under a 4× CPU throttle; `outDir` = the shots (the look checks warp the kid up the
   course: `window.__jwLab.warp / find / pulse`). THE PAGES LOAD (`kit/page-loads.mjs`) now covers `/jaywalk-lab` (a stranger gets the door).
 - The bots (`js/games/jaywalk/bot.js`) play through the REAL engine with a look-ahead on a copy of the run — a new hazard needs no bot change.
-
+- **The final run's order (learned in H1):** start the server as `DAILY_TEST=1 node scripts/serve.mjs 5173 --emu`; rules → `/api` → smoke → **e2e-daily
+  BEFORE wk-press** (it seeds the dailies wk-press's DAILY cases open) → the harbor groups → the game's own. On a plain `--emu` server the DAILY
+  screen never opens (e2e-daily FATAL at the DAILY button, wk-press 32 / 35) — a wrong red.
+- A check that COUNTS the games (the smoke test's HIDDEN GAMES, the harbor `cartridge` group) moves when a game starts being built.

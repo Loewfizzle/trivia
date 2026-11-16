@@ -124,7 +124,7 @@ async function mount() {
   // (the pass's own checks — tests/integration/jaywalk-lab.mjs: the bot plays through the same input path, the frame times, the camera)
   const lab = window.__jwLab = {
     ends: [], view,
-    state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, lives: run.lives, wall: run.wall / FP, hops: log.length, over: isOver(run), shown, started, steps, slow, kidY: view.kidScreenY(), info: view.info() }),
+    state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, lives: run.lives, wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, steps, slow, kidY: view.kidScreenY(), info: view.info() }),
     bot(on) { bot = on ? greedyBot({ seed }) : null; },
     restart: (m, s) => restart(m || mode, s),
     hop,

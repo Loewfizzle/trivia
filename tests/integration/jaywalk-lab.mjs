@@ -73,11 +73,11 @@ try {
   ok(!s.started && s.t === 0 && /TAP TO HOP/.test(await p.evaluate(() => document.querySelector('.jw-mark').textContent)), 'the run waits for the FIRST touch (tick 0 = the first hop — the wall never runs at a kid nobody is playing)');
   // EVERY TAP ACTS
   let mid = await touch(p, [[195, 500]]);
-  ok(mid.y === 0 && mid.st === 'idle', 'a TAP does nothing while the finger is down …');
+  ok(mid.y === 0 && mid.st === 'idle' && mid.asked === 0, 'a TAP does nothing while the finger is down …');
   await sleep(260); s = await st(p);
   ok(s.y === 1 && s.hops === 1, '… and hops forward on RELEASE');
   mid = await touch(p, [[195, 500], [203, 501], [222, 503]]);
-  ok(mid.hops === 2, 'a SWIPE fires the moment it crosses its threshold (before the finger lifts)');
+  ok(mid.asked === 2, 'a SWIPE fires the moment it crosses its threshold (before the finger lifts — the hop is asked for; the next tick logs it)');
   await sleep(260); s = await st(p);
   ok(Math.abs(s.x - 5.5) < 0.01 && s.y === 1 && s.hops === 2, `swipe right = one column right (x ${s.x}) — and the lift adds no second hop`);
   await touch(p, [[195, 500], [180, 500], [150, 500]]); await sleep(260); s = await st(p);
