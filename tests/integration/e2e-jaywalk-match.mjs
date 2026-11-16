@@ -16,9 +16,17 @@ const { jaywalkMatch } = await import('../../api/_lib/jaywalk.js');
 const { seedOf, firstGo, GO_LEAD_MS } = await import('../../js/games/jaywalk/logic.js');
 const { CAUSE_LINES } = await import('../../js/games/jaywalk/causes.js');
 
+const { installLag, setLag } = await import('./kit/lag.mjs');
+const { matchStart } = await import('../../js/games/jaywalk/logic.js');
+
 const PERF = process.argv.includes('--perf');
+// H4B — `--lag[=ms]`: ONE phone on a slow line (every database frame held that long, each way): CHARLIE through the first match — his GO
+// + his listener late, his hops late on the others' screens, theirs late on his — then THE HOST through the rematch's start.
+const LAGARG = process.argv.find(a => /^--lag(=\d+)?$/.test(a)), LAG = LAGARG ? Number(LAGARG.split('=')[1] || 900) : 0;
+// H4B — `--start`: THE START's measure — BOB's phone at 390 × 844 @3 under a 4× CPU throttle from the count to 3 s after GO (a cold scene)
+const START = process.argv.includes('--start');
 const OUTDIR = process.argv[3] && !process.argv[3].startsWith('--') ? process.argv[3] : './shots-jaywalk-match';
-const H = await createHarness({ name: 'jaywalk-match', slot: `jm${Date.now() % 10000}x`, hook: '__jwGame', sizes: [[390, 844]], out: OUTDIR, extraArgs: ['--enable-webgl', '--ignore-gpu-blocklist'] });
+const H = await createHarness({ name: 'jaywalk-match', slot: `jm${Date.now() % 10000}x`, hook: '__jwGame', sizes: [[390, 844]], out: OUTDIR, extraArgs: ['--enable-webgl', '--ignore-gpu-blocklist'], beforeLoad: installLag });
 const { pages, log, ok, sleep, waitFor, evalIn, G, uids, NAMES } = H;
 const DB = 'http://127.0.0.1:9000', NS = 'ns=demo-arcade-default-rtdb', AUTH = { Authorization: 'Bearer owner' };
 const dbGet = path => fetch(`${DB}/${path}.json?${NS}`, { headers: AUTH }).then(r => r.json());
@@ -53,7 +61,19 @@ try {
   ok(await until(() => host.evaluate(() => import('/js/config.js').then(c => c.isOwnerTest('jaywalk'))), 25000), 'THE OWNER\'s phone: the server\'s yes → JAYWALK is his to host');
   ok(!(await pages[1].evaluate(() => import('/js/config.js').then(c => c.isOwnerTest('jaywalk') || c.isPlayable('jaywalk')))), '… a guest\'s phone: nothing changes (no JAYWALK anywhere)');
   // ---- 2. THE START: 3 · 2 · 1 · GO — THE FIRST GO picks the course + tick 0
-  await start(host, N);
+  if (LAG) { await setLag(pages[2], LAG, LAG); log(`CHARLIE's line is slow from here: ${LAG} ms each way`); }
+  let cdpB = null;
+  if (START) {
+    await pages[1].setViewport({ width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+    cdpB = await pages[1].target().createCDPSession();
+    await cdpB.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+  }
+  ok(await H.startGame(host, 'jaywalk', {}), 'the OWNER (host) starts JAYWALK');
+  if (START && process.argv.includes('--profile')) {   // (from the moment the match is in the room's state: the walk inside + the count + 1 s)
+    await waitFor(pages[1], st => st.game && st.game.id === 'jaywalk', 'BOB: the match is in the state', 20000);
+    await cdpB.send('Profiler.enable'); await cdpB.send('Profiler.setSamplingInterval', { interval: 500 }); await cdpB.send('Profiler.start');
+  }
+  for (let i = 0; i < N; i++) await waitFor(pages[i], st => st.game && st.game.id === 'jaywalk' && !!window.__jwGame && !!document.querySelector('.jw-game canvas.jw-canvas'), `${NAMES[i]}: the match screen`, 40000);
   const g0 = await evalIn(host, s => ({ m: s.game.matchId, mode: s.game.mode, phase: s.game.phase, seed: s.game.seed, n: Object.keys(s.game.participants).length }));
   ok(g0.mode === 'match' && g0.n === 3, `a room of three = THE MATCH (${g0.m}); the course is not known at the start (seed "${g0.seed || ''}")`);
   ok(await until(async () => /^[123]$|^GO$/.test((await state(pages[1])).count), 8000), `the count is on a guest's screen ("${(await state(pages[1])).count}")`);
@@ -65,8 +85,31 @@ try {
   ok(game.g0 === first && game.playAt === first + GO_LEAD_MS && game.seed === seedOf(code, m, first), `THE FIRST GO (${first}) picked the course (${game.seed}) + tick 0 = that time + ${GO_LEAD_MS} ms`);
   const sts = await all(N, p => state(p));
   ok(sts.every(s => s.seed === game.seed && s.go === game.playAt && s.proven && s.isMatch), 'the SAME course + the SAME clock on all three phones, each proven');
+  // H4B — THE SAME COURSE FOR EVERYONE, proven on the real line: each phone's own seed + tick 0, the server's own derivation, never a switch
+  const SV0 = matchStart(code, m, nodes0);
+  sts.forEach((s, i) => log(`  ${NAMES[i]}: seed ${s.seed} · tick 0 ${s.go} · took it ${s.adopts.map(a => `${a.at} ms from tick 0`).join(', ')}${LAG && i === 2 ? ` (a ${LAG} ms line)` : ''}`));
+  log(`  the server: seed ${SV0.seed} · tick 0 ${SV0.playAt} · GOs ${Object.values(nodes0).map(n => n.go - first).join(' / ')} ms after the first`);
+  ok(sts.every(s => s.seed === SV0.seed && s.go === SV0.playAt), `H4B — every phone's seed + tick 0 = the server's own (matchStart of the proof nodes)${LAG ? ` — one phone ${LAG} ms slow` : ''}`);
+  ok(sts.every(s => s.adopts.length === 1 && s.adopts[0].t === 0 && s.adopts[0].hops === 0), 'H4B — each phone took its course ONCE, before it had played a tick (never a switch)');
   // ---- 3. THE GHOSTS + THE LIVE ORDER
   await all(N, p => G(p, 'window.__jwGame.bot(true, { lazy: true })'));
+  if (START) {
+    // THE START's measure: BOB's phone (@3, 4× CPU, a cold scene) from the count to 3 s after GO — the worst frame of each part
+    await until(async () => (await state(pages[1])).t > 200, 12000);
+    if (process.argv.includes('--profile')) {
+      // (where the count's long frames go: the CPU profile's heaviest functions, by their own time)
+      const { profile } = await cdpB.send('Profiler.stop'), dtv = profile.timeDeltas, self = new Map(), byId = new Map(profile.nodes.map(n => [n.id, n]));
+      profile.samples.forEach((id, i) => { const n = byId.get(id), f = n.callFrame, k = `${f.functionName || '(anon)'} ${String(f.url).split('/').slice(-2).join('/')}:${f.lineNumber + 1}`; self.set(k, (self.get(k) || 0) + (dtv[i] || 0) / 1000); });
+      log('PROFILE (ms of own time, 4× CPU)', [...self.entries()].sort((x, y) => y[1] - x[1]).slice(0, 28).map(([k, v]) => `${v.toFixed(0)} ${k}`).join(' | '));
+    }
+    const tl = await G(pages[1], 'window.__jwGame.timeline()');
+    const part = (a, b) => tl.filter(f => f[0] >= a && f[0] < b), worst = fs => fs.reduce((w, f) => (f[1] > w[1] ? f : w), [0, 0, 0]), slow = fs => fs.filter(f => f[1] > 34);
+    const cnt = part(-3000, 0), go = part(0, 3000), w1 = worst(cnt), w2 = worst(go);
+    log('START', JSON.stringify({ count: { frames: cnt.length, worst: w1[1], at: w1[0], work: w1[2], over34: slow(cnt).map(f => `${f[0]}:${f[1]}/${f[2]}`) }, first3s: { frames: go.length, worst: w2[1], at: w2[0], work: w2[2], over34: slow(go).map(f => `${f[0]}:${f[1]}/${f[2]}`) } }));
+    ok(go.length > 120 && w2[1] <= 50, `THE START (BOB: 390 × 844 @3, 4× CPU, a cold scene): the first 3 s after GO — worst frame ${w2[1]} ms at +${w2[0]} ms (${go.length} frames, ${slow(go).length} over 34 ms); the count's worst ${w1[1]} ms at ${w1[0]} ms`);
+    await cdpB.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    await pages[1].setViewport({ ...H.VIEW, deviceScaleFactor: 2 });
+  }
   ok(await until(async () => (await all(N, p => state(p))).every(s => s.ghosts.length === 2 && s.ghosts.every(q => q.hops > 0 && q.best > 0)), 25000), 'each phone sees TWO GHOSTS — the others\' hop logs through the same engine (they hop)');
   await sleep(1500);
   const tags = await pages[0].evaluate(() => [...document.querySelectorAll('.jw-tag')].map(e => ({ t: e.textContent, on: getComputedStyle(e).opacity !== '0' })));
@@ -96,6 +139,12 @@ try {
   sb = await state(pages[1]);
   ok(sb.outs === 1 && sb.order.some(r => /BOB/.test(r) && /OUT/.test(r)), `the order marks BOB out (a cross + a struck name — never colour alone): ${sb.order.join(' | ')}`);
   await H.shot(pages[1], 'match-spectate');
+  // H4B — SPECTATING stays smooth: BOB's phone following the leader for 3 s (the watched kid's late hops catch up — never a teleport)
+  await G(pages[1], 'window.__jwGame.clearFrames()');
+  await sleep(3000);
+  const spec = await pages[1].evaluate(() => { const f = window.__jwGame.frames().slice().sort((a, b) => a - b); return { n: f.length, avg: f.reduce((a, b) => a + b, 0) / f.length, p95: f[Math.floor(f.length * 0.95)], worst: f[f.length - 1] }; });
+  ok(spec.n > 120 && spec.p95 < 34, `H4B — spectating is smooth: ${(1000 / spec.avg).toFixed(1)} fps, p95 ${spec.p95.toFixed(1)} ms, worst ${spec.worst.toFixed(1)} ms over 3 s of watching`);
+  await H.shot(pages[1], 'match-spectate-2');
   // ---- 5. CHARLIE out → only ALICE left; then ALICE → the match ends on the host's step
   await G(pages[2], 'window.__jwGame.bot(false)');
   ok(await until(async () => (await state(pages[2])).over, 40000), 'CHARLIE out');
@@ -111,6 +160,17 @@ try {
   const rank = Object.entries(fin.results).sort((a, b) => b[1].l - a[1].l || a[1].t - b[1].t).map(([u]) => u);
   ok(fin.phase === 'final' && Object.keys(fin.results).length === 3 && fin.results[uids[1]].l === bobEnd.best, `THE END: the last player out ends it — BOB ${fin.results[uids[1]].l} · CHARLIE ${fin.results[uids[2]].l} · ALICE ${fin.results[uids[0]].l} lanes (the replay of each log; BOB's = his own phone's ${bobEnd.best})`);
   ok(fin.results[uids[0]].l >= aliceLive.best, '… ALICE\'s lanes are her whole run');
+  // H4B — THE GHOSTS IN STEP WITH THE WORLD: every frame of the whole match, on every phone, each drawn ghost checked against the world it
+  // was drawn in (view.js#probe — course.js's own tests at the world's tick): never in a vehicle's box, never standing on open water
+  const ends = await all(N, p => state(p));
+  ends.forEach((s, i) => log(`  ${NAMES[i]} saw: ${JSON.stringify(s.seen)}`));
+  ok(ends.every(s => s.seen.n > 300 && s.seen.car === 0 && s.seen.water === 0), `H4B — the ghosts were NEVER drawn inside a vehicle or on open water (${ends.map(s => s.seen.n).join(' / ')} ghost-frames checked on the three phones; ${ends.reduce((a, s) => a + s.seen.logs, 0)} of them riding a log — on it)`);
+  ok(ends.every(s => s.seen.air > 0) && ends.every(s => s.seen.undead === 0), `H4B — a late hop catches up in a quick hop (${ends.map(s => s.seen.air).join(' / ')} frames in the air); no death ever un-happened`);
+  ok(ends.every((s, i) => s.ghosts.length === 2 && s.ghosts.every(q => q.done && q.st !== 'idle' && q.st !== 'hop' && q.best === fin.results[q.uid].l)), `H4B — every ghost's final lanes = that player's own, on every phone (${ends[1].ghosts.map(q => q.best).join(' · ')} on BOB's)`);
+  // … and the hops went up AT ONCE: the write count stays modest
+  const rate = uids.slice(0, N).map(u => { const c = Object.values((nodes[u] || {}).c || {}), hops = c.reduce((a, v) => a + (v.s.match(/[UDLR]/g) || []).length, 0), ms = c.length ? c[c.length - 1].at - nodes[u].go : 1; return { chunks: c.length, hops, perMin: c.length / (ms / 60000) }; });
+  log(`  the proof's writes: ${rate.map((r, i) => `${NAMES[i]} ${r.chunks} chunks for ${r.hops} hops (${r.perMin.toFixed(0)} a minute)`).join(' · ')}`);
+  ok(rate.every(r => r.chunks > 0 && r.perMin <= 500), `H4B — hops go up at once and the write count stays modest: ${rate.map(r => `${r.perMin.toFixed(0)}`).join(' / ')} writes a minute a player (the cap: ${Math.round(60000 / 120)})`);
   // the server's own replay of the same proof nodes agrees to the lane
   const SV = jaywalkMatch({ code, matchId: m, uids: uids.slice(0, N), nodes });
   ok(!!SV.game && uids.slice(0, N).every(u => SV.game.results[u].l === fin.results[u].l && SV.game.results[u].t === fin.results[u].t && !SV.game.results[u].bad && !SV.game.results[u].cut), 'THE SERVER\'s OWN replay of the proof nodes = the host\'s results, lane for lane (nothing the host wrote is read)');
@@ -144,11 +204,17 @@ try {
   // ---- 8. A REMATCH: a new match, a new course — the finished match's proof nodes stay
   await H.backToLobby(host);
   await waitFor(host, s => s.meta && s.meta.status === 'lobby', 'back in the room', 30000);
+  // (H4B — the rematch's start with THE HOST on the slow line: his GO + his listener late, his GO patch late)
+  if (LAG) { await setLag(pages[2], 0, 0); await setLag(host, LAG, LAG); log(`THE HOST's line is slow from here: ${LAG} ms each way`); }
   await start(host, N);
   const m2 = await evalIn(host, s => s.game.matchId);
   await all(N, (p, i) => waitFor(p, s => s.game.phase === 'play' && window.__jwGame.state().mode === 'run', `${NAMES[i]}: the rematch is on`, 25000));
   const game2 = await evalIn(host, s => s.game), kept = await dbGet(`rooms/${code}/jw/${m}`);
   ok(m2 !== m && game2.seed && game2.seed !== game.seed, `A REMATCH: a new match (${m2}) on a new course`);
+  const SV2 = matchStart(code, m2, await dbGet(`rooms/${code}/jw/${m2}`)), sts2 = await all(N, p => state(p));
+  sts2.forEach((s, i) => log(`  ${NAMES[i]}: seed ${s.seed} · tick 0 ${s.go} · took it ${s.adopts.filter(a => a.seed === s.seed).map(a => `${a.at} ms from tick 0`).join(', ')}${LAG && i === 0 ? ` (a ${LAG} ms line)` : ''}`));
+  ok(!!SV2 && game2.seed === SV2.seed && game2.playAt === SV2.playAt && sts2.every(s => s.seed === SV2.seed && s.go === SV2.playAt && s.adopts.filter(a => a.seed !== game.seed).length === 1), `H4B — the rematch: every phone + the host's GO patch = the server's own seed + tick 0, each took it once${LAG ? ` — THE HOST ${LAG} ms slow` : ''}`);
+  if (LAG) await setLag(host, 0, 0);
   ok(kept && Object.keys(kept).length === 3 && uids.slice(0, N).every(u => kept[u].go > 0), '… the finished match\'s proof nodes are still there (a late report still finds them)');
   await all(N, (p, i) => waitFor(p, s => s.game && s.game.phase === 'final', `${NAMES[i]}: the rematch ends (nobody hops: the blackout takes all three)`, 60000));
   const fin2 = await evalIn(host, s => s.game);

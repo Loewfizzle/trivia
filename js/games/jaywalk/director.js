@@ -10,7 +10,7 @@
 //     moment + a grace. The results are THE JUDGE's replay of each player's log (logic.js#scoreRuns), never their claim.
 // H3 — THE SOLO RUN: no count (PLAY NOW's walk inside is the wait) — `play` from the start; the run's own clock starts at the PLAYER's GO
 // (their proof node's server timestamp — the course is picked from it: logic.js#seedOf), never at game.playAt.
-import { cleanSettings, modeOf, capAt, scoreRuns, scoreCalls, matchStart, seedOf, COUNT_MS, END_GRACE_MS, NO_GO_MS, DROP_WAIT_MS } from './logic.js';
+import { cleanSettings, modeOf, capAt, scoreRuns, scoreCalls, matchStart, startOf, seedOf, COUNT_MS, END_GRACE_MS, NO_GO_MS, DROP_WAIT_MS } from './logic.js';
 
 /** a kid nobody moves is out within this (the blackout: 8 lanes behind at the start + its 3 s wait — ≈ 16 s; ≤ 9 s later on) */
 export const IDLE_OUT_MS = 18000;
@@ -27,8 +27,12 @@ export function createGame({ matchId, settings, participants, now, seed }) {
   };
 }
 
-function finalPatch(game, runs, now, code) {
-  const results = scoreRuns(game, runs, now, code), patch = { phase: 'final', phaseStartAt: now, endAt: now, results };
+function finalPatch(game0, runs, now, code) {
+  // (H4B — THE NODES ARE THE TRUTH: a match is scored on THE FIRST GO's course + clock, as the server's own count is; if the game ever
+  // said otherwise the patch puts it right — never seen in the tests: the GO patch is derived from the same nodes)
+  const S = game0.mode !== 'solo' ? startOf(game0, runs, code) : null, moved = !!S && (S.seed !== game0.seed || S.playAt !== game0.playAt);
+  const game = moved ? { ...game0, seed: S.seed, playAt: S.playAt, g0: S.g0 } : game0;
+  const results = scoreRuns(game, runs, now, code), patch = { phase: 'final', phaseStartAt: now, endAt: now, results, ...(moved ? { seed: S.seed, playAt: S.playAt, g0: S.g0 } : {}) };
   if (game.mode !== 'solo') { const calls = scoreCalls(game, runs, results); if (Object.keys(calls).length) patch.calls = calls; }
   return patch;
 }

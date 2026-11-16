@@ -48,6 +48,18 @@ export function firstGo(runs) {
 }
 /** the match's clock + course from its proof nodes (null = no GO yet) — PURE: the phones, the host's director and the server agree */
 export const matchStart = (code, matchId, runs) => { const g0 = firstGo(runs); return g0 ? { g0, playAt: g0 + GO_LEAD_MS, seed: seedOf(code, matchId, g0) } : null; };
+/**
+ * H4B — THE NODES ARE THE TRUTH: the course + tick 0 a phone PLAYS (and the host scores) = THE FIRST GO among the proof nodes it has
+ * from the SERVER — exactly what the server's own count derives — whatever the game says; the game's own (the director's GO patch — or
+ * an UNPROVEN match's stand-in) only when there is no node to read (the mirror not there yet, no GO anywhere). `runs` must hold
+ * CONFIRMED values only: a phone writes its GO as a transaction that is never applied locally (view.js#askGoMatch), so its own estimate
+ * of the server's time can never pick a course. null = not known yet (the count holds).
+ */
+export function startOf(game, runs, code) {
+  const m = game && !game.unproven && game.mode !== 'solo' && runs ? matchStart(code, game.matchId, runs) : null;
+  if (m) return m;
+  return game && game.phase !== 'count' && game.seed ? { g0: game.g0 || 0, playAt: game.playAt, seed: game.seed } : null;
+}
 /** the seed one player's run is played on: SOLO = from their own GO (null before it) · a MATCH = the game's (the director's GO patch) */
 export const runSeed = (game, node, code) => (game.mode === 'solo' ? (node && node.go > 0 ? seedOf(code, game.matchId, node.go) : null) : game.seed || null);
 

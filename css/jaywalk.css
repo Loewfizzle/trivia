@@ -176,7 +176,7 @@
   text-shadow: 0 0 10px rgba(34, 224, 255, 0.9), 0 2px 0 rgba(0, 0, 0, 0.85); }
 /* OUT: the cause in neon words over the scene for a moment; Call the Winner (the match kit's card) sits in the same layer */
 .jw-over { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
-.jw-outcard { position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 132px); display: grid; justify-items: center; gap: 8px; text-align: center; pointer-events: none; animation: jw-fin-in 0.25s ease-out both; transition: opacity 0.5s; }
+.jw-outcard { position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 132px); display: grid; justify-items: center; gap: 8px; text-align: center; pointer-events: none; animation: jw-fin-in 0.25s ease-out backwards; transition: opacity 0.5s; }
 .jw-outcard.is-gone { opacity: 0; }
 .jw-outcard-k { font: 700 13px/1 var(--font-ui); letter-spacing: 0.34em; padding-left: 0.34em; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.8); }
 .jw-outcard .jw-fin-cause { font-size: 28px; }

@@ -252,9 +252,10 @@ test('THE PHONE\'s SIDE OF THE PROOF (view.js): GO = the server\'s time, read ba
   assert.match(r, /if \(jwMatch && game\.unproven\) throw new ApiError\(409, 'unverifiable'/, 'an UNPROVEN match is never counted');
   assert.match(r, /const agree = jwMatch \|\| /, 'a match the server replayed itself needs no second opinion on its placings');
   // THE MATCH on the phone (H4): the first GO, the ghosts, the half-second chunks, Call the Winner, the frame for the share image
-  assert.match(v, /const m = runs \? matchStart\(code, matchId, runs\) : null;/, 'the course + tick 0 from THE FIRST GO');
+  assert.match(v, /const S = startOf\(g, runs, code\);/, 'the course + tick 0 from THE FIRST GO (H4B — logic.js#startOf: the nodes are the truth)');
+  assert.match(v, /runTransaction\(dbRef\(path\), cur => \(cur == null \? serverTimestamp\(\) : undefined\), \{ applyLocally: false \}\)/, 'H4B — a match\'s GO is a transaction never applied locally: the phone\'s own estimate is never in its mirror');
   assert.match(v, /srvNow\(\) >= g\.playAt - GO_EARLY_MS/, 'its own GO in the count\'s last 2 s (the rules\' window)');
-  assert.match(v, /isMatch \? CLOCK\.flushMatchMs : CLOCK\.flushMs/); assert.match(v, /stepGhosts\(c\.t - GHOST_DELAY\);/, 'the ghosts: the others\' logs through the same engine, a beat behind');
+  assert.match(v, /isMatch \? CLOCK\.flushMatchMs : CLOCK\.flushMs/); assert.match(v, /stepGhosts\(wt\);/, 'the ghosts: the others\' logs through the same engine, at THE WORLD\'s own tick (H4B)'); assert.doesNotMatch(v, /GHOST_DELAY/, 'no ghost delay any more');
   assert.match(v, /callEl = showCall\(\{/, 'Call the Winner = the match kit\'s piece'); assert.match(v, /const path = `\$\{nodePath\(\)\}\/k`;/, 'the call lives in the caller\'s own proof node');
   assert.match(v, /night\.snap\(cv => \{/, 'the frame of the moment you went out'); assert.doesNotMatch(v, /jw-stub|BEING BUILT/, 'the match screen is real: the stub is gone');
 });

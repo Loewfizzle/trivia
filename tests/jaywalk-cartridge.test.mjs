@@ -93,7 +93,7 @@ test('THE 3 S RULE + THE RANKING: every patch of the step moves the phase; lanes
   const step = src.slice(src.indexOf('export function nextStep'), src.indexOf('export const endNow'));
   for (const m of step.matchAll(/\{ phase: [^}]*\}/g)) assert.match(m[0], /phaseStartAt:/, `a patch moves the phase + its start: ${m[0]}`);
   assert.doesNotMatch(step.replace(/\{ phase: [^}]*\}/g, 'PATCH').replace(/finalPatch\([^)]*\)/g, 'PATCH'), /return \{|\? \{/, 'every patch the step returns moves the phase (a play patch or the final one)');
-  assert.match(src, /patch = \{ phase: 'final', phaseStartAt: now, endAt: now, results \}/);
+  assert.match(src, /patch = \{ phase: 'final', phaseStartAt: now, endAt: now, results, /);
   for (const bad of [/Math\.random/, /Date\.now/, /serverNow/, /\bstate\b/]) assert.doesNotMatch(src, bad, `the step is pure (${bad})`);
   const g = { participants: { a: 1, b: 1, c: 1, d: 1 }, results: { a: { l: 212, t: 9000 }, b: { l: 212, t: 8000 }, c: { l: 212, t: 8000 }, d: { l: 300, t: 20000 } } };
   assert.deepEqual(standings(g).map(r => [r.uid, r.rank]), [['d', 1], ['b', 2], ['c', 2], ['a', 4]]);

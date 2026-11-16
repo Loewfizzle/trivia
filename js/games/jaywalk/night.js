@@ -121,7 +121,7 @@ export function createNight(host, o = {}) {
   };
   // Kenney's (CC0): they arrive a moment after the first frame — until then (or if a file fails) that kind simply draws nothing
   const KM = {}, BOX = {};
-  let dead = false;
+  let dead = false, needWarm = true, warmed = 0;
   const ready = loadKenney(SCENE_MODELS).then(geos => {
     if (dead) { for (const g of Object.values(geos)) g.dispose(); return false; }
     for (const [name, g] of Object.entries(geos)) {
@@ -130,6 +130,7 @@ export function createNight(host, o = {}) {
       else if (name.startsWith('train-')) KM[name] = kind(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0, envMapIntensity: 0.9 }), 40);
       else KM[name] = kind(g, lambert(), 70);
     }
+    needWarm = true;   // (H4B — the new kinds' programs + buffers are made in the NEXT frame, not when a car first drives in)
     return true;
   }).catch(() => false);
 
@@ -259,15 +260,38 @@ export function createNight(host, o = {}) {
     if (!reduce) for (let j = 0; j < 9; j++) { const a = j / 9 * Math.PI * 2; part('drop', x, 0.1, z, 520, { hex: 0xd8f6ff, vx: Math.cos(a) * (0.9 + (j % 3) * 0.35), vz: Math.sin(a) * 0.7, vy: 3.2 + (j % 4) * 0.5 }); }
   }
 
+  /**
+   * H4B — THE START: everything the GPU needs is made BEFORE the first hop frame (the 3 · 2 · 1 / a solo run's wait for GO) — never when
+   * a train, a truck or THE UFO first comes into view. A phone builds a program's real pipeline + uploads a mesh's buffers at its FIRST
+   * DRAW WITH SOMETHING IN IT — and every kind here starts with 0 instances. So: every kind gets ONE instance far under the ground, the
+   * UFO's discs + the lines' words stand there too, the programs are compiled (renderer.compile) and ONE frame is rendered — the bloom's
+   * pass included — then all of it is put back. Run at the top of a normal frame (the real picture is drawn right over it: never seen):
+   * the first frame, and again in the frame after Kenney's models land.
+   */
+  function warm() {
+    const put = [];
+    for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.put(0, -60, 0, 0.01, 0.01, 0.01, 0, 0xffffff, 1); q.done(); }
+    for (const m of [...ufos.map(q => q.d), ...Object.values(LBL).map(L => L.m)]) { put.push([m, m.visible, m.position.y]); m.visible = true; m.position.y = -60; }
+    try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam); } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
+    for (const [m, v, y] of put) { m.visible = v; m.position.y = y; }
+    for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.done(); }
+    warmed++;
+  }
+
   /** one frame: the run after its last tick, `a` (0 … 1) into the next one, `dt` ms since the last frame. `o.ghosts` (H4 — a match):
-   *  [{ run, hex, out? }] — the other players' runs; each gets `tag` = [x, y] on the screen (CSS px) or null (off screen / gone) */
+   *  [{ run, hex, out? }] — the other players' runs; each gets `tag` = [x, y] on the screen (CSS px) or null (off screen / gone).
+   *  H4B — `o.t` = THE WORLD's TICK (+ its fraction): every car, log, train + light is drawn at it, whatever run the camera follows — the
+   *  ghosts are the engine's state at that same tick (ghosts.js). `o.a` = the ghosts' own fraction; `g.vis` / `o.off` = a late hop's
+   *  CATCH-UP ({ x, y: cells still to close, u: 0 … 1, d }) — the kid is drawn that far back, in the air: a quick hop, never a teleport;
+   *  `g.held` = standing still, unconfirmed (no ride, no bob). */
   function draw(run, course, a, dt, o = null) {
     clock += dt;
+    if (needWarm && w && h) { needWarm = false; warm(); }
     if (reveal !== revealT) { reveal = reduce ? revealT : reveal + (revealT - reveal) * Math.min(1, dt / 130); if (Math.abs(revealT - reveal) < 0.004) reveal = revealT; }
     if (course !== courseRef) { courseRef = course; vseed = strSeed(course.seed); decor.clear(); }
     // (H4: THE WORLD GOES ON after a hit — the run's own tick stops at the hit, the cars + logs drive on: the car rolls OFF the flat kid)
     if (run.st === 'out') { if (fx.endT !== run.end) { fx.endT = run.end; fx.after = 0; } fx.after += dt * 0.06; } else { fx.endT = -1; fx.after = 0; }
-    const t = run.t + a + fx.after, lane = course.lane(run.y);
+    const t = o && o.t != null ? o.t : run.t + a + fx.after, lane = course.lane(run.y);
     if (run.t < fx.t || (run.t === 0 && fx.t !== 0)) { fx.hits = 0; fx.hit = null; fx.parts.length = 0; fx.yaw = Math.PI; fx.landAt = -1e9; fx.wob = null; fx.seen = false; fx.st = 'idle'; fx.out = 0; }
     // ---- the kid between ticks
     let kx = run.x / FP, ky = run.y + 0.5, lift = 0, f = 0, hopDir = '';
@@ -276,6 +300,9 @@ export function createNight(host, o = {}) {
       kx = (run.fx + (run.tx - run.fx) * f) / FP; ky = run.fy + 0.5 + (run.ty - run.fy) * f; lift = Math.sin(Math.PI * f) * 0.52;
       hopDir = run.ty > run.fy ? 'u' : run.ty < run.fy ? 'd' : run.tx < run.fx ? 'l' : 'r';
     } else if (run.st === 'idle' && lane.type === 'water') kx += lane.dir * lane.v * a / FP;
+    // (H4B — a WATCHED ghost's late hop: drawn back where it was, closing in a quick hop)
+    const co = o && o.off && run.st !== 'out' && run.st !== 'taken' ? o.off : null;
+    if (co) { kx += co.x; ky += co.y; lift = lift * co.u + Math.sin(Math.PI * co.u) * 0.5 * Math.min(1, co.d); }
     // what just happened (the view's own reading of the state)
     const landed = (fx.st === 'hop' && run.st !== 'hop') || (run.st === 'hop' && fx.st === 'hop' && (run.fy !== fx.fy || run.fx !== fx.fx));
     if (landed && run.hits === fx.hits) {
@@ -532,6 +559,7 @@ export function createNight(host, o = {}) {
     }
     // THE GHOSTS (H4): the others' kids from their own runs — see-through, their colour, a thin ring of it under their feet
     const ghosts = (o && o.ghosts) || null;
+    const ga = o && o.a != null ? o.a : a;
     if (ghosts) for (const g of ghosts) {
       const r = g.run;
       g.tag = null;
@@ -541,14 +569,17 @@ export function createNight(host, o = {}) {
       if (gone >= 1) continue;
       let gx = r.x / FP, gy = r.y + 0.5, gl = 0, gf = 0;
       const GL = course.lane(r.y);
-      if (r.st === 'hop') { gf = Math.min(1, (r.k + a) / HOP_TICKS); gx = (r.fx + (r.tx - r.fx) * gf) / FP; gy = r.fy + 0.5 + (r.ty - r.fy) * gf; gl = Math.sin(Math.PI * gf) * 0.5; g.dir = r.ty > r.fy ? 'u' : r.ty < r.fy ? 'd' : r.tx < r.fx ? 'l' : 'r'; }
-      else if (r.st === 'idle' && GL.type === 'water') gx += GL.dir * GL.v * a / FP;
+      if (r.st === 'hop') { gf = Math.min(1, (r.k + ga) / HOP_TICKS); gx = (r.fx + (r.tx - r.fx) * gf) / FP; gy = r.fy + 0.5 + (r.ty - r.fy) * gf; gl = Math.sin(Math.PI * gf) * 0.5; g.dir = r.ty > r.fy ? 'u' : r.ty < r.fy ? 'd' : r.tx < r.fx ? 'l' : 'r'; }
+      else if (r.st === 'idle' && GL.type === 'water' && !g.held) gx += GL.dir * GL.v * ga / FP;
+      // (H4B — a late hop's catch-up: back where the ghost was drawn, closing in a quick hop through the air)
+      const gv = g.vis && !g.outAt ? g.vis : null, air = gv ? Math.sin(Math.PI * gv.u) * 0.5 * Math.min(1, gv.d) : 0;
+      if (gv) { gx += gv.x; gy += gv.y; gl = gl * gv.u + air; }
       if (gy < base - 1 || gy > top + 1) continue;
       const onLog = r.st === 'hop' ? (course.lane(r.fy).type === 'water' ? LOG_FEET * (1 - gf) : 0) + (course.lane(r.ty).type === 'water' ? LOG_FEET * gf : 0) : GL.type === 'water' ? LOG_FEET : 0;
       const yawG = g.dir === 'l' ? Math.PI / 2 : g.dir === 'r' ? -Math.PI / 2 : g.dir === 'd' ? Math.PI : 0, gs = KID_S * 0.94 * (1 - gone * 0.6), glit = litOf(Math.floor(gy)) * (1 - gone);
       const gpx = X(gx), gpy = onLog + gl + (r.st === 'taken' ? gone * 3 : 0), gpz = Z(gy);
-      K.ghosts.put(gpx, gpy, gpz, gs, gs * (r.st === 'hop' ? 1 + 0.16 * Math.sin(Math.PI * gf) : 1), gs, yawG, g.hex, 1, glit);
-      K.ghostCaps.put(gpx, gpy, gpz, gs, gs * (r.st === 'hop' ? 1 + 0.16 * Math.sin(Math.PI * gf) : 1), gs, yawG, g.hex, 1, glit);
+      K.ghosts.put(gpx, gpy, gpz, gs, gs * (r.st === 'hop' ? 1 + 0.16 * Math.sin(Math.PI * gf) : 1 + 0.32 * air), gs, yawG, g.hex, 1, glit);
+      K.ghostCaps.put(gpx, gpy, gpz, gs, gs * (r.st === 'hop' ? 1 + 0.16 * Math.sin(Math.PI * gf) : 1 + 0.32 * air), gs, yawG, g.hex, 1, glit);
       if (glit > 0.25) K.flat.put(gpx, onLog + 0.042, gpz + 0.04, 1.2, 1, 1.0, 0, g.hex, 1, 3, 0.4 * glit);
       g.wx = gpx; g.wy = gpy + kidGeo.height * gs + 0.16; g.wz = gpz; g.tag = gone > 0 ? null : true;
     }
@@ -651,7 +682,7 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kid.position).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px (= pt) — the wider view's readability number */
     kidHeightPx() { v3.set(kid.position.x, kid.position.y, kid.position.z).project(cam); const y0 = v3.y; v3.set(kid.position.x, kid.position.y + kidH, kid.position.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom, look: 'night' }),
+    info: () => ({ warmed, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom, look: 'night' }),
     destroy() {
       dead = true; ro.disconnect();
       for (const { m, g } of made) { scene.remove(m); m.material.dispose(); if (g) g.dispose(); m.dispose(); }

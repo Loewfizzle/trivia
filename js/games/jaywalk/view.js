@@ -6,20 +6,22 @@
 //     rules: the SERVER's time, once) and reads it back → THE COURSE IS PICKED AFTER GO (logic.js#seedOf). Until it lands the screen shows
 //     THE START (the kid on the calm opening lanes, the rest still in the dark — never a blank frame).
 //   · GO (a MATCH): 3 · 2 · 1 — every phone writes its own `go` in the count's last 2 s; THE FIRST GO to land picks the course and sets
-//     tick 0 (that time + 2 s) for everyone (logic.js#matchStart) — the same course, the same clock, on every phone.
+//     tick 0 (that time + 2 s) for everyone (logic.js#startOf) — the same course, the same clock, on every phone. H4B: the GO is a
+//     TRANSACTION never applied locally — a phone's own estimate of the server's time is never in its mirror, so it can never pick a course.
 //   · tick 0 = GO; the engine is stepped to the server clock's tick every frame (a stall / a hidden page is caught up — the rules never
 //     skip a tick, and a run never pauses: a pause would be a slow-motion hole)
-//   · THE PROOF: the hop log goes up in chunks (a second apart solo, half a second in a match), each stamped by the SERVER on arrival
+//   · THE PROOF: the hop log goes up in chunks (a second apart solo, AT ONCE in a match — H4B: ≤ CLOCK.flushMatchMs), each stamped by the SERVER on arrival
 //     (c/{i} = { s, at }); at the end the last chunk + `e` (a signal). The score is THE JUDGE's replay of that node — never this phone's
 //     claim. Offline, the chunks queue and land together when the signal is back: THE DROPPED SIGNAL never costs the run.
-//   · THE GHOSTS (a match): the other players' kids — their hop logs (the same proof nodes, mirrored) stepped through the same engine a
-//     beat behind the clock; see-through, their colour, their name over them; never colliding.
+//   · THE GHOSTS (a match — H4B, ghosts.js): the other players' kids — their hop logs (the same proof nodes, mirrored) stepped through the
+//     same engine TO THE WORLD's OWN TICK (no new hop assumed: they stand / ride their log with it); a late hop catches up in a quick hop;
+//     a death only once their own end confirms it. See-through, their colour, their name over them; never colliding.
 //   · OUT (a match) = SPECTATE: the hit is seen, then Call the Winner (the match kit's), and the camera follows the LEADER's ghost (a tap
 //     = the next player); the live order (top corner) shows everyone's lanes. The host's step ends the match; the podium = the console's.
 //   · a refused GO (no signal, rules not yet published) = an UNPROVEN run: it still plays, on a seed of its own, and is never counted.
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { dbRef, set as dbSet, get as dbGet, update as dbUpdate, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
+import { dbRef, set as dbSet, get as dbGet, update as dbUpdate, runTransaction, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
 import { colorHex } from '../../config.js';
 import { liveKeyFor } from '../registry.js';
 import { createFinal } from '../../ui/final.js';
@@ -27,10 +29,11 @@ import { backToLobby } from '../../host.js';
 import { createTiers } from '../kit/tiers.js';
 import { showCall } from '../kit/call.js';
 import { TICK_HZ, CLOCK } from './tuning.js';
-import { createCourse } from './course.js';
-import { createRun, step, isOver, canLog } from './engine.js';
+import { createCourse, laneHit, logUnder } from './course.js';
+import { createRun, step, isOver, canLog, kidAt } from './engine.js';
 import { packLog, unpackLog, logFromChunks } from './replay.js';
-import { seedOf, matchStart } from './logic.js';
+import { seedOf, startOf } from './logic.js';
+import { createGhost, resetGhost, feedGhost, stepGhost } from './ghosts.js';
 import { wireControls } from './controls.js';
 import { createNight } from './night.js';
 import { getPref, setPref } from './lab-prefs.js';
@@ -47,8 +50,6 @@ export const END_HOLD_MS = 850;
 export const GO_WAIT_MS = 4000;
 /** a MATCH: this phone writes its GO this long before the count's end (the rules open the window 2 s before it) */
 export const GO_EARLY_MS = 1800;
-/** THE GHOSTS run this many ticks behind the clock (the others' chunks land every half second + the network) */
-export const GHOST_DELAY = 75;
 /** the frame of the moment you went out (THE SHARE IMAGE) is taken this long after the hit */
 const SHOT_MS = 460;
 /** the most ticks one frame catches up (a long stall is spread over a few frames; the rules never skip one) */
@@ -78,6 +79,9 @@ function loadTable(uid) {
   return p;
 }
 
+/** H4B — the quality tier this phone last settled at (the city's rule — `na:tier`: remembered 14 days; the kit steps back up by itself after 8 good seconds) */
+export const TIER_MEM_DAYS = 14;
+const tierMem = () => { const m = /^([012]):(\d+)$/.exec(getPref('tier', '')); return m && serverNow() - Number(m[2]) < TIER_MEM_DAYS * 864e5 ? Number(m[1]) : 2; };
 const pick = (k, list, d) => { const m = getPref(k, String(d)); return list.map(String).includes(m) ? m : String(d); };
 /** HOW A RUN ENDED, in the game's words (causes.js#runLine — the vehicle named is the one the scene drew) */
 const lineOf = (r, course) => runLine(course, { cause: r.cause, y: r.y, x: r.x, end: r.end, lanes: r.best, taken: r.st === 'taken' });
@@ -93,10 +97,10 @@ export function createView() {
   let sent = 0, chunkN = 0, lastFlush = 0, wroteE = false, overAt = 0, goTimer = 0, shotAt = 0, lastPump = 0;
   let t0srv = 0, t0perf = 0, last = 0, markUntil = 0, lanesShown = -1, sndOn = false, bot = null, pinned = false, revealed = false;
   // the match
-  const ghosts = new Map();   // uid → { uid, run, log, i, n (chunks read), lastT, hex, name, tagEl, dir, outAt }
+  const ghosts = new Map();   // uid → ghosts.js#createGhost (conf · run · log · done · held · vis · behind) + { uid, n (chunks read), lastT, hex, name, tagEl, dir, outAt }
   let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;   // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, orderKey = '', countKey = '', watchKey = '';
-  const frames = [], cost = [];
+  const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
   const srvNow = () => t0srv + (performance.now() - t0perf);
   const anchor = () => { t0srv = serverNow(); t0perf = performance.now(); };
   const soloGame = g => !!g && g.mode === 'solo' && Object.keys(g.participants || {}).length === 1;
@@ -117,14 +121,16 @@ export function createView() {
     const me = (st.players && st.players[uid]) || {};
     try {
       if (!had) scenesMade++;
-      night = had ? had.night : createNight(play, { kidColor: colorHex(me.color), zoom: Number(pick('zoom', ZOOMS, ZOOM)), angle: pick('angle', ANGLES, ANGLE), tier: 2 });
+      night = had ? had.night : createNight(play, { kidColor: colorHex(me.color), zoom: Number(pick('zoom', ZOOMS, ZOOM)), angle: pick('angle', ANGLES, ANGLE), tier: tierMem() });
       if (had) { night.setKidColor(colorHex(me.color)); night.resize(); }
     } catch { root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); night = null; return; }
     night.setReveal(0, true);
-    tiers = createTiers({ apply: t => night && night.setTier(t), initial: night.tier() });
+    // (H4B — THE TIER IS REMEMBERED: a phone that had to step down starts there next time — never the first seconds of every match at a tier it can't hold)
+    tiers = createTiers({ apply: t => { if (night) night.setTier(t); if (!pinned) setPref('tier', `${t}:${Math.round(serverNow())}`); }, initial: night.tier() });
     offControls = wireControls(play, { onHop: hop, onAny: nextFollow });
     // the sounds: the SHARED engine's SFX bus (the console unlocked it on a tap long ago); silent if anything fails — audio is polish
-    try { SFX.fetchSounds(); SFX.fetchSounds(['new-best', 'landmark']); sndOn = true; } catch { sndOn = false; }
+    // (H4B — DECODED AHEAD, during the count / the wait for GO: the first hop's sound is ready — never a decode on the first tap)
+    try { SFX.fetchSounds(); SFX.fetchSounds(['new-best', 'landmark']); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }
   }
 
   // ---- THE RUN
@@ -180,7 +186,9 @@ export function createView() {
     if (node && node.go > 0) { haveGo = true; return; }
     expectRefusal(path, 'jaywalk GO: already written (a rejoin), a touch early, or the rules are not published yet');
     const again = () => { if (gone || m !== matchId) return; if (goTries++ < 7) setTimeout(() => { asked = false; }, 420); else refused(); };
-    dbSet(dbRef(path), serverTimestamp()).then(() => { if (m === matchId) haveGo = true; }).catch(() => {
+    // (H4B — a TRANSACTION, never applied locally: until the SERVER's own value comes back this phone's mirror holds no GO of its own —
+    //  a `set` shows the phone's ESTIMATE of the server's time at once, and a slow phone would pick the course from it)
+    runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }).then(() => { if (m === matchId) haveGo = true; }).catch(() => {
       dbGet(dbRef(path)).then(snap => { if (gone || m !== matchId) return; if (typeof snap.val() === 'number') haveGo = true; else again(); }).catch(again);
     });
   }
@@ -217,7 +225,7 @@ export function createView() {
     log = old || []; sent = log.length; chunkN = node && node.c ? Object.keys(node.c).length : 0; queue = [];
     if (node && node.go > 0) haveGo = true;
     if (node && node.e) wroteE = true;
-    for (const G of ghosts.values()) { G.run = createRun({ seed: S.seed, mode: 'match' }); G.i = 0; }
+    for (const G of ghosts.values()) resetGhost(G, S.seed);
     anchor();
     catchUp();
     revealed = false; lanesShown = -1;
@@ -298,36 +306,46 @@ export function createView() {
   }
 
   // ---- THE MATCH: the ghosts, the order, the count, out → Call the Winner → watching
-  /** the others' hop logs → their ghosts (their chunks read as they land — each chunk once) */
+  /** the others' hop logs → their ghosts (their chunks read as they land — each chunk once; their own END = the log is complete) */
   function feedGhosts(g, runs) {
     for (const u of Object.keys(g.participants || {})) {
       if (u === uid) continue;
       let G = ghosts.get(u);
       if (!G) {
         const p = (st.players && st.players[u]) || {};
-        G = { uid: u, run: createRun({ seed: course.seed, mode: 'match' }), log: [], i: 0, n: 0, lastT: 0, hex: hexNum(p.color), name: nameOf(u), tagEl: h('div.jw-tag', { style: { '--c': colorHex(p.color) } }, nameOf(u)), tagKey: '', dir: 'u', outAt: 0, tag: null };
+        G = { ...createGhost(course.seed), uid: u, n: 0, lastT: 0, hex: hexNum(p.color), name: nameOf(u), tagEl: h('div.jw-tag', { style: { '--c': colorHex(p.color) } }, nameOf(u)), tagKey: '', dir: 'u', outAt: 0, tag: null };
         tagsEl.append(G.tagEl); ghosts.set(u, G);
       }
-      const c = runs && runs[u] && runs[u].c;
-      if (!c) continue;
-      let late = false;
-      for (let v = c[G.n]; v && typeof v.s === 'string'; v = c[G.n]) {
+      const node = runs && runs[u], c = node && node.c;
+      if (c) for (let v = c[G.n]; v && typeof v.s === 'string'; v = c[G.n]) {
         const hops = unpackLog(v.s, G.lastT);
         if (!hops) break;
-        for (const x of hops) { if (x.t < G.run.t) late = true; G.log.push(x); }
+        feedGhost(G, hops, false);
         if (hops.length) G.lastT = hops[hops.length - 1].t;
         G.n++;
       }
-      // (a hop that landed later than the ghost already stood: their run from the start again — exact, a moment's catch-up)
-      if (late) { G.run = createRun({ seed: course.seed, mode: 'match' }); G.i = 0; }
+      if (node && node.e) feedGhost(G, null, true);
     }
   }
+  /** every ghost to THE WORLD's tick (ghosts.js: no new hop assumed · a late hop catches up · a death only once confirmed) */
   function stepGhosts(target) {
-    for (const G of ghosts.values()) {
-      let n = 0;
-      const r = G.run, lg = G.log;
-      while (!isOver(r) && r.t < target && n++ < CATCH_UP * 3) { let d = ''; if (G.i < lg.length && lg[G.i].t === r.t) d = lg[G.i++].d; step(r, course, d); }
-      G.behind = r.t < target - 30 && !isOver(r);   // (still catching up: not drawn)
+    const now = performance.now();
+    for (const G of ghosts.values()) stepGhost(G, course, target, now);
+  }
+  /** (the pass's own check, a local emulator page only) every DRAWN ghost against the world it is drawn in: its state must be the engine's
+   *  at the world's tick — never in a car's box, never idle on open water. `air` = mid catch-up (drawn in the air), `held` = standing, unconfirmed */
+  function probe(list, F, wt) {
+    for (const G of F ? [...list, F] : list) {
+      const r = G.run;
+      if (isOver(r)) { G.wasOut = true; continue; }
+      if (G.wasOut) watch.undead++;
+      watch.n++;
+      if (G.held) { watch.held++; continue; }
+      if (G.vis) { watch.air++; continue; }
+      if (r.t !== wt) { watch.late++; continue; }
+      const L = course.lane(r.st === 'hop' && r.k * 2 < 8 ? r.fy : r.st === 'hop' ? r.ty : r.y), x = Math.floor(kidAt(r).x * 1000);
+      if (L.type !== 'water' && laneHit(L, wt, x)) watch.car++;
+      if (r.st === 'idle' && L.type === 'water') { if (logUnder(L, wt, r.x) < 0) watch.water++; else watch.logs++; }
     }
   }
   /** who is still in, as far as this phone can tell: a ghost whose run goes on and whose own end has not been signalled */
@@ -432,7 +450,10 @@ export function createView() {
     if (isMatch && c) {
       const runs = runsNow();
       if (!revealed && srvNow() >= go - 260) { revealed = true; night.setReveal(1); }
-      stepGhosts(c.t - GHOST_DELAY);
+      // THE WORLD's TICK this frame (H4B): while this phone's kid runs, HIS (a stall is caught up over a few frames — the cars with him);
+      // once he is out / for a watcher, the clock's. The ghosts are stepped to it and the scene draws every car + log at it.
+      const alive = mode === 'run' && !isOver(run), wt = alive ? run.t : Math.max(0, c.t), wa = alive ? a : c.t < 0 ? 0 : c.a;
+      stepGhosts(wt);
       if (mode === 'over') afterOut(g, runs);
       const held = performance.now() - overAt > END_HOLD_MS;   // (the hit is seen first — the kid stays his own colour through it)
       if (watching && held) {
@@ -440,10 +461,11 @@ export function createView() {
         if (f !== followUid) { followUid = f; const F = ghosts.get(f); if (F) { night.setKidColor(colorHex(((st.players && st.players[f]) || {}).color)); night.resetKid(); } }
       }
       const F = watching && held ? ghosts.get(followUid) : null;
-      if (F) { drawRun = F.run; a = isOver(F.run) || F.run.t < c.t - GHOST_DELAY ? 0 : c.a; }
+      if (F) { drawRun = F.run; a = isOver(F.run) || F.held || F.run.t < wt ? 0 : wa; }
       const list = [];
       for (const G of ghosts.values()) if (G !== F && !G.behind) list.push(G);
-      extra = { ghosts: list };
+      extra = { ghosts: list, t: wt + wa, a: wa, off: F ? F.vis : null };
+      if (TEST) probe(list, F, wt);
       drawOrder(g, runs); drawWatch(g, runs);
     }
     if (isMatch) drawCount(g);
@@ -459,7 +481,7 @@ export function createView() {
       if (key !== G.tagKey) { G.tagKey = key; if (tg) { G.tagEl.style.transform = `translate3d(${Math.round(tg[0])}px,${Math.round(tg[1])}px,0) translate(-50%,-100%)`; G.tagEl.style.opacity = '1'; } else G.tagEl.style.opacity = '0'; }
     }
     tiers.sample(now, performance.now() - t0); if (!pinned) tiers.tick(now);
-    if (TEST && frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); }
+    if (TEST && frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); stamps.push(now); }
     const shownBest = watching && drawRun !== run ? drawRun.best : run.best;
     if (shownBest !== lanesShown) {
       lanesShown = shownBest; lanesEl.textContent = String(shownBest);
@@ -513,11 +535,10 @@ export function createView() {
     if (!g || !night) return;
     const runs = runsNow();
     if (mine(g) && !asked && !haveGo && (g.phase === 'play' || (g.phase === 'count' && srvNow() >= g.playAt - GO_EARLY_MS))) askGoMatch();
-    // the course + tick 0: in `play` the game's own (the director's GO step — or an UNPROVEN match's stand-in); before it, THE FIRST GO's
-    let S = null;
-    if (g.phase !== 'count') S = g.seed ? { seed: g.seed, playAt: g.playAt } : null;
-    else { const m = runs ? matchStart(code, matchId, runs) : null; if (m) S = { seed: m.seed, playAt: m.playAt }; }
-    if (S && (course.seed !== S.seed || go !== S.playAt)) adoptMatch(S, runs);
+    // the course + tick 0 (H4B — logic.js#startOf: THE NODES ARE THE TRUTH): THE FIRST GO among the proof nodes the SERVER sent — in the
+    // count and in `play` alike, exactly what the server's own count derives; the game's own only with no node to read (an UNPROVEN match)
+    const S = startOf(g, runs, code);
+    if (S && (course.seed !== S.seed || go !== S.playAt)) { if (TEST) adopts.push({ at: Math.round(srvNow() - S.playAt), seed: S.seed, t: run.t, hops: log.length }); adoptMatch(S, runs); }
     proven = haveGo && !g.unproven && mine(g);
     if (course !== START && runs) feedGhosts(g, runs);
   }
@@ -550,9 +571,12 @@ export function createView() {
         state: () => ({ mode, proven, haveGo, matchId, go, seed: course.seed, t: run.t, st: run.st, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent, chunks: chunkN, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
           lines: { best: lines.best, friends: lines.friends.map(f => `${f.n} ${f.v}`), record, shown: lineKey, flash: lanesEl.classList.contains('is-flash'), gold: lanesEl.classList.contains('is-record') },
           isMatch, watching, follow: followUid, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
-          ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag })),
+          ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag, held: G.held, done: G.done, behind: G.behind })),
+          adopts: adopts.slice(), seen: { ...watch }, g0: st.game ? st.game.g0 || 0 : 0,
           tier: night ? night.tier() : -1, info: night ? night.info() : null, kidPx: night ? night.kidHeightPx() : 0 }),
-        hop, frames: () => frames.slice(), cost: () => cost.slice(), clearFrames() { frames.length = 0; cost.length = 0; },
+        hop, frames: () => frames.slice(), cost: () => cost.slice(), clearFrames() { frames.length = 0; cost.length = 0; stamps.length = 0; },
+        /** every frame so far: [ms after tick 0, the frame's length, its own work] — THE START's measure */
+        timeline: () => { const z = t0perf + (go - t0srv); return frames.map((d, i) => [Math.round(stamps[i] - z), +d.toFixed(1), +cost[i].toFixed(1)]); },
         setTier(t) { pinned = t != null; if (t != null) tiers.set(t); },
         bot(on, o) { if (!on) { bot = null; return; } lazyImport(import('./bot.js'), './bot.js').then(B => { bot = B.greedyBot({ seed: `${course.seed}${uid}`, ...(o || {}) }); }); },
         follow: nextFollow,

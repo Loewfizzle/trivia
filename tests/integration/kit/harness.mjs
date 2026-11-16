@@ -18,7 +18,7 @@ export const REVIEW_SIZES = [[390, 844], [412, 915], [1440, 900]];
 export const BAD_TEXT = /\bnull\b|\bundefined\b|\bNaN\b|\[object Object\]/;
 const CONSOLE_NOISE = /ERR_|Failed to load resource|favicon|permission_denied|PERMISSION_DENIED|Client is offline|net::|WebGL|GPU stall/i;
 
-export async function createHarness({ name, slot = 'e', hook = null, sizes = REVIEW_SIZES, out = process.argv[3] || `./shots-${name}`, browserPath = process.argv[2], warnPattern = /game view/, extraArgs = [] } = {}) {
+export async function createHarness({ name, slot = 'e', hook = null, sizes = REVIEW_SIZES, out = process.argv[3] || `./shots-${name}`, browserPath = process.argv[2], warnPattern = /game view/, extraArgs = [], beforeLoad = null } = {}) {
   const OUT = out.replace(/\/?$/, '/');
   mkdirSync(OUT, { recursive: true });
   const BASE = process.env.E2E_BASE || 'http://localhost:5173';
@@ -53,6 +53,7 @@ export async function createHarness({ name, slot = 'e', hook = null, sizes = REV
       if (m.type() === 'error' && !CONSOLE_NOISE.test(t)) { errors.push(`${NAMES[i]}: ${t}`); log(`${NAMES[i]} console.error`, t); }
     });
     await page.setViewport(VIEW);
+    if (beforeLoad) await beforeLoad(page, i);   // (e.g. kit/lag.mjs#installLag — a slow line for one phone)
     await page.goto(`${BASE}/?emu&slot=${slot}${i}${qs ? '&' + qs : ''}`);
     pages[i] = page;
     return page;

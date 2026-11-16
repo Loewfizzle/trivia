@@ -118,7 +118,7 @@ export const CLOCK = Object.freeze({
   catchUp: 15 * 1000,                      // (ms — … and the burst must be back on the clock within this of its first chunk, or it was never a drop)
   jitter: 6,                               // (ticks — inside a burst a chunk may be this much later than the one before it, never more: a lag that grows is slow motion)
   flushMs: 1000,                           // (the phone uploads its new hops every second — a solo run)
-  flushMatchMs: 500,                       // (… every half second in a MATCH: the others' ghosts are your hop log)
+  flushMatchMs: 120,                       // (… AT ONCE in a MATCH — H4B: a hop goes up within this; the others' ghosts are your hop log. ≤ 8 small writes a second at the very most)
   chunkMax: 400,                           // (a chunk's packed string — the rules' bound)
   chunks: 10000,                           // (c/0 … c/9999)
 });
