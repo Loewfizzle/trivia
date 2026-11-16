@@ -67,3 +67,32 @@ open FIX. Step 0 → `decisions.md` "FIXES R2 (the owner, Nov 15 — DECIDED)" +
   `api/_lib/backup.js`, the env vars, `--sizes pass`, THE PASS LOGS, `config.js#NAME_MAX`); PRISM's skins, the share cards, the audio leave, the tap
   rules, the Firebase setup (docs/profiles.md "Setup (production)"), adding a game moved to their docs (each doc's "THE RULES FROM CLAUDE.md (moved
   Nov 15)"); 37.0 → 34.9 KB; `claude-md-coverage.mjs` 0 missing.
+
+## The final local run (my own emulators + `DAILY_TEST=1 serve.mjs --emu`, restarted after the `/api` suites; nothing else busy)
+| suite | result |
+| --- | --- |
+| unit `node --test tests/*.test.mjs` | **2020 / 2020** |
+| `/api` | `server.test` **62 / 62** · `password` 11 · `coastclear` 17 · `daily-drop` 15 · `daily-module` 22 · `share-card` 1 · `backup` 2 — all green (rules untouched — not run) |
+| smoke `e2e-smoke.mjs` | **18 / 18** (THE PAGES LOAD + the three games) |
+| `e2e-daily.mjs` | **95 / 95** (its "no tap through" sweep now counts the new `[role=button]` controls) |
+| the games, FAST | `e2e-prism` **67 / 67** · `e2e-oc-new` **75 / 75** · `e2e-holdem` **22 / 22** |
+| `wk-press.mjs` (WebKit) | **43 / 43** |
+| audio | `audio-cut` **33 / 33** · `audio-leave` **22 / 22** · `audio-standalone` 8 / 8 (unit) |
+| the pass's new scripts | `city-away` 6 / 6 (×2) · `room-board` 21 / 21 · `daily-tickets` 5 / 5 · `you-open` 4 / 4 · `plate-hug` 24 / 24 |
+| harbor (`ONLY=load,core,skyline,neon,trivision,longnight,room,cartridge,gamestart,radio,youpage,tapfit,vault,playercard,platefit,cardfit,stripfit`) | **304 / 311** → THE LAB's two counts fixed (my two Lab bumps: 38 / 37 NEED YOU) · the other **5 = frame-rate checks in `vault`** (A FULL LOBBY at 4× CPU) — **R1's commit fails the same five on this machine tonight** (run against it on :5174) = the machine's state, not this pass |
+| `cameras` | **13 / 13 ×3** (one quarantined retry on `hours-dusk` in the run with extra load — named) |
+| THE STRIP MATCH (`--still`, 402) | 13 over 9 — **pre-existing** (R1's commit: 14; THE SOURCE's rebuilt still dropped off) |
+| `build-file-hashes` · `build-boot-preload` · `build-preload-graph` · `build-card-stills --check` · `claude-md-coverage` | current · current · current · current · 0 missing |
+
+Servers: my own emulators + `serve.mjs --emu` (+ two short-lived :5174 servers for the R1 comparisons, their worktree removed) — all stopped at
+the end; Ben's `:5190` kept.
+
+## Known issues / left for the next pass
+- The `vault` group's 5 frame-rate checks red on this machine tonight (R1's code too) — re-check on a cool machine / the cloud.
+- THE STRIP MATCH's 13 pre-existing overs (aurora, marquee, frostbite, the BTC sighting, neonglass, century, noir, smoke, inferno, the switchboard,
+  neoncamo, glitter, marquee-gold).
+- The cameras group's `hours-*` family (an item's copy after the +10 h return) under load — quarantined, named.
+- THE NAME PLATE: no empty tail reproduced here (Chromium + WebKit) — if the owner still sees one, a screenshot + the device.
+- B1's `/api` suite off the CIPHER fixture (~a day); THE REVIEW's BEFORE LAUNCH list (A6, A8's iPhone check, A9, A11, A17, A4 step 3, T4 / T6 /
+  T7, F1 / F2 / F3 / F7).
+- Off-device only: the squeal's fix is proven on the graph (the recorded output) — the owner's ear + the AUDIO CUT row in /admin are the check.

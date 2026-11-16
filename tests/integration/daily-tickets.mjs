@@ -85,6 +85,9 @@ try {
   const dg = await p.waitForFunction(() => { const i = document.querySelector('.dy-end-body img.dy-end-drop'); return i && i.complete && i.naturalWidth > 0; }, { timeout: 15000 }).then(() => true, () => false);
   ok(dg, 'THE DROP: its final board + time / lines in the sheet (a still picture)');
   if (SHOTS) { await sleep(400); await p.screenshot({ path: `${SHOTS}/ticket-drop-390.png` }); }
+  // (the emulators' today left clean for the next suite — e2e-daily counts today's finishers)
+  const { ref } = await import('../../api/_lib/fb.js');
+  for (const g of ['password', 'coastclear', 'drop']) await ref(`dly/${g}/${day}`).remove();
 } catch (e) { console.log('CRASH', e && e.stack || e); fails.push(String(e && e.message)); }
 finally { await browser.close(); try { await deleteApp(fb().app); } catch { /* fine */ } }
 console.log(`\n${checks - fails.length}/${checks} checks${fails.length ? ` — FAILED:\n  ${fails.join('\n  ')}` : ' — all green'}`);

@@ -218,11 +218,12 @@ await H.run(async () => {
   {
     const pg = A.page;
     const cityOpened = () => pg.evaluate(() => ({ card: !!document.querySelector('.nd-card-sheet'), sheet: document.querySelectorAll('.sh, .modal').length, daily: !!document.querySelector('.dy-screen'), tab: (document.querySelector('.dy-tab.is-on, .dy-tab[aria-selected="true"]') || {}).textContent || '' }));
+    // (FIXES R2: a SCORES card + a finished ticket are CONTROLS now — they open the player page / the end sheet: [role=button] + [data-press] count as buttons)
     // (a REAL touch — and only on a plain part of the DAILY screen: what is under the point is asked again at the tap, a list may have moved)
     const tap = async (x, y, anywhere = false) => {
       // (plain = the DAILY screen's own non-button surface, with no button within 14 px above / below — a real button is never pressed here)
       // (CITY B: + 8 px left / right — a touch at a button's very edge is the button's: a lit roof sign behind SEE THE FULL BOARD's end found it)
-      const plain = anywhere || await pg.evaluate((x, y) => [[0, -14], [0, 0], [0, 14], [-8, 0], [8, 0]].every(([dx, d]) => { const e = document.elementFromPoint(x + dx, y + d); return !!(e && e.closest('.dy-overlay') && !e.closest('button, a, input, label')); }), Math.round(x), Math.round(y));
+      const plain = anywhere || await pg.evaluate((x, y) => [[0, -14], [0, 0], [0, 14], [-8, 0], [8, 0]].every(([dx, d]) => { const e = document.elementFromPoint(x + dx, y + d); return !!(e && e.closest('.dy-overlay') && !e.closest('button, a, input, label, [role="button"], [data-press]')); }), Math.round(x), Math.round(y));
       if (!plain) return false;
       await pg.touchscreen.tap(Math.round(x), Math.round(y)); await new Promise(r => setTimeout(r, 40));
       return true;
@@ -243,7 +244,7 @@ await H.run(async () => {
         pts.push([Math.max(2, r.left / 2), cy, 'padding left'], [Math.min(innerWidth - 2, (r.right + innerWidth) / 2), cy, 'padding right']);
         if (rows[i + 1] && rows[i + 1].top > r.bottom) pts.push([cx, (r.bottom + rows[i + 1].top) / 2, 'gap']);
       });
-      return pts.filter(p => p[1] > 0 && p[1] < innerHeight).map(p => { const e = document.elementFromPoint(p[0], p[1]); return [...p, !!(e && e.closest('button, a, input, label'))]; });
+      return pts.filter(p => p[1] > 0 && p[1] < innerHeight).map(p => { const e = document.elementFromPoint(p[0], p[1]); return [...p, !!(e && e.closest('button, a, input, label, [role="button"], [data-press]'))]; });
     }, sel);
     // (a list must have LANDED before it is tapped — ALL TIME's rows + EVERYONE's top 3 arrive async and push the buttons down)
     const settled = async () => { let last = '', same = 0; for (let i = 0; i < 40 && same < 4; i++) { const sig = await pg.evaluate(() => { const b = document.querySelector('.dy-body'); return b ? `${b.scrollHeight}|${b.querySelectorAll('*').length}|${[...b.querySelectorAll('.dy-quiet')].some(q => /…$/.test(q.textContent.trim()))}` : ''; }); same = sig === last && !/\|true$/.test(sig) ? same + 1 : 0; last = sig; await new Promise(r => setTimeout(r, 200)); } };
@@ -257,7 +258,7 @@ await H.run(async () => {
       let n = 0, m = 0;
       for (const [x, y] of pts) if (await tap(x, y)) n++;
       // + the city's own answering points under this screen (whatever lies over them — a card, a gap, the padding; never a button)
-      const under = (await pg.evaluate(pts => pts.filter(([x, y]) => { const e = document.elementFromPoint(x, y); return e && e.closest('.dy-overlay') && !e.closest('button, a, input, label'); }), signs)).filter((_, i) => i % 3 === 0).slice(0, 14);
+      const under = (await pg.evaluate(pts => pts.filter(([x, y]) => { const e = document.elementFromPoint(x, y); return e && e.closest('.dy-overlay') && !e.closest('button, a, input, label, [role="button"], [data-press]'); }), signs)).filter((_, i) => i % 3 === 0).slice(0, 14);
       for (const [x, y] of under) if (await tap(x, y)) m++;
       await new Promise(r => setTimeout(r, 350));
       const after = await cityOpened(), cov = await pg.evaluate(() => !!window.__district && window.__district.covered()), pops = await pg.evaluate(() => window.__popups.slice());
@@ -577,7 +578,7 @@ await H.run(async () => {
         await pg.evaluate(() => { window.__pops = 0; window.__popObs = new MutationObserver(l => { for (const m of l) for (const n of m.addedNodes) if (n.nodeType === 1 && n.matches('.sh, .modal, .sheet')) window.__pops++; }); window.__popObs.observe(document.body, { childList: true }); });
         await pg.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen' } })));
         await waitFor(pg, `!!document.querySelector('.dy-overlay.dy-screen')`, `${V.name}: the DAILY screen`, 15000);
-        const plain = await pg.evaluate((x, y) => { const e = document.elementFromPoint(x, y); return !!(e && e.closest('.dy-overlay') && !e.closest('button, a, input, label')); }, x, y);
+        const plain = await pg.evaluate((x, y) => { const e = document.elementFromPoint(x, y); return !!(e && e.closest('.dy-overlay') && !e.closest('button, a, input, label, [role="button"], [data-press]')); }, x, y);
         if (plain) { for (let i = 0; i < 3; i++) { await tapAt(x, y); await sleep(150); } }
         await sleep(400);
         const quiet = await pg.evaluate(() => ({ pops: window.__pops, card: !!document.querySelector('.nd-card-sheet'), daily: !!document.querySelector('.dy-screen') }));

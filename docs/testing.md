@@ -921,3 +921,16 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   phone's CPU. `wk-press.mjs` + SAVE YOUR KEY (share / copy inside the touch). The daily screen's part of wk-press needs a `DAILY_TEST=1` server.
 - `tests/integration/city-away.mjs "<chromium>"` (FIXES R2 — AWAY, LIGHT) — the city's canvas MB on screen → hidden (at most half kept) → back
   (the held picture from the first frame, re-baked inside THE REJOIN LIMIT, every bake at its size again). ~40 s.
+
+## FIXES R2 (Nov 15 2026 — docs/harbor/passes/fixes-r2.md)
+- Unit: `tests/fixes-r2.test.mjs` (the pass's pins) · `tests/registration.test.mjs` (B2 T1 — every playable game in every place + T3's frame).
+- `/api`: `password.test` / `coastclear.test` / `daily-drop.test` 'FIXES R2 — TAP A TICKET' (`ended`: own finished run only) · `server.test`
+  'BOARD 2.0 A' (+ the `dg` path — a SCORES row's player page).
+- New browser scripts (each `"<chromium>"`, serve.mjs --emu + the emulators unless said): `audio-cut.mjs` (THE SQUEAL IS THE CUT) ·
+  `city-away.mjs` (AWAY, LIGHT) · `room-board.mjs` (BOARD in the room dock at 390 / 402 / 430 + PICK A GAME's marks) · `daily-tickets.mjs` (TAP A
+  TICKET — finishes the three dailies in-process with `DAILY_TEST_OFF=drop`; cleans today after itself) · `you-open.mjs` (the YOU screen's layout
+  shift) · `plate-hug.mjs` (the name plate hugs its text — plate-preview.html, no emulators). wk-press: + the heads-up ✕, a SCORES row → the
+  player page, A8 (a fling-stop never acts) — it now cleans its seeded day.
+- e2e-daily's "no tap through the DAILY screen" sweep counts `[role=button]` / `[data-press]` as controls (a SCORES card + a finished ticket open
+  something now, by design). THE STRIP MATCH (`--still`, 402): 13 over 9 — pre-existing (R1's commit: 14); not this pass's.
+- The frozen games' E2Es + previews: `tests/integration/parked/` (never run — README).

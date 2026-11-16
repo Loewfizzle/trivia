@@ -328,6 +328,8 @@ try {
       table.push(`A8 · a fling-stop on a SCORES row: ${opened ? 'OPENED' : 'nothing'}`);
       if (opened) await p.keyboard.press('Escape');
     }
+    // (the seeded day's top + the two profiles go — e2e-daily counts today's EVERYONE list)
+    await dbPut(`dly/password/${day}/t`, null); await dbPut(`profiles/${fake}`, null); await dbPut(`profiles/${full}`, null); await dbPut(`pstats/${full}`, null);
     await home(); }
 
   // ---- THE MOVED ROW (Safari 27.0.1: a shelf row slid 38 px under a still finger): down on the row → the row moves → the still finger lifts.

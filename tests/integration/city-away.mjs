@@ -33,7 +33,9 @@ try {
   await sleep(300);
   const off = await MB(), a1 = await p.evaluate('window.__district.away()');
   console.log(`  · on screen ${on.mb} MB (${on.n} canvases; the bakes ${on.bake}) → hidden ${off.mb} MB (${off.n}); the away log ${JSON.stringify(a1)}`);
-  ok(off.mb <= on.mb * 0.5, `HIDDEN: the page's canvases ${on.mb} → ${off.mb} MB (${Math.round(off.mb / on.mb * 100)} % kept — at most half)`);
+  // (every BAKE's memory gone — the merged bands + the picture's swap included; the share kept varies with how many merged bands were built)
+  const bakers = +on.layers.split(' · ').reduce((t, x) => t + (parseFloat(x.split(' ').pop()) || 0), 0).toFixed(1);   // (both bakers' layers, both sets)
+  ok(on.mb - off.mb >= bakers - 1, `HIDDEN: the page's canvases ${on.mb} → ${off.mb} MB (${Math.round(off.mb / on.mb * 100)} % kept) — at least the bakers' ${bakers} MB freed (${(on.mb - off.mb).toFixed(1)})`);
   ok(a1 && a1.on && a1.freedMb > 20, `HIDDEN: the bakes freed (${a1 ? a1.freedMb : '?'} MB) + one picture kept for the return`);
   // BACK: every frame from the return until the re-bake, the held picture must be up (no blank city on screen)
   await p.evaluate(() => {
