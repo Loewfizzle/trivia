@@ -1,5 +1,6 @@
 /* JAYWALK (prefix jw-) — the match screen's STUB + THE JAYWALK LAB (/jaywalk-lab — jaywalk-lab.html + js/games/jaywalk/lab.js): H2's NIGHT
-   LOOK (night.js — the skyline band, the neon lane count, WIDTH 9 · 11, THE SOUND AUDITION) + H1's graybox behind ?gray=1. The day look: H5. */
+   LOOK (night.js — the skyline band, the neon lane count, THE SOUND AUDITION) + H2B's camera tools (ZOOM 7 · 8 · 9, ANGLE) + H1's graybox
+   behind ?gray=1. The day look: H5. */
 .jw-stub { min-height: 100dvh; display: grid; place-content: center; gap: 10px; text-align: center; padding: 24px; color: var(--text); }
 .jw-stub-k { font: 700 11px/1 var(--font-ui); letter-spacing: 0.28em; color: var(--text-dim); }
 .jw-stub-t { margin: 0; font: 900 34px/1 var(--font-display); letter-spacing: 0.06em; color: #ff4fc4; text-shadow: 0 0 18px rgba(255, 79, 196, 0.55); }
@@ -53,11 +54,13 @@
 .jw-tab, .jw-new { min-height: 44px; min-width: 44px; padding: 0 12px; border: 0; background: none; color: var(--text-dim); font: 700 12px/1 var(--font-ui); letter-spacing: 0.16em; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .jw-tab { box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.14); }
 .jw-tab.is-on { color: #fff; box-shadow: inset 0 -2px 0 #ff4fc4, 0 10px 14px -10px rgba(255, 79, 196, 0.9); }
-/* the second row (the night look's tools): WIDTH 9 · 11 on the left, SOUNDS on the right */
-.jw-bar2 { bottom: calc(env(safe-area-inset-bottom) + 54px); }
-.jw-bar-k { align-self: center; padding: 0 8px 0 12px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.2em; color: var(--text-dim); }
-.jw-w { min-width: 46px; font-family: var(--font-num, var(--font-ui)); font-size: 13px; }
-.jw-snd { color: #ffd6f0; }
+/* the second row (THE CAMERA's tools — H2B): ZOOM 7 · 8 · 9 on the left, ANGLE STRAIGHT · TURNED on the right (neon-underline tabs);
+   SOUNDS sits in the top left corner, off the play */
+.jw-bar2 { bottom: calc(env(safe-area-inset-bottom) + 54px); padding: 0 8px; }
+.jw-bar-k { align-self: center; padding: 0 6px 0 4px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.18em; color: var(--text-dim); }
+.jw-w { min-width: 44px; padding: 0 8px; font-family: var(--font-num, var(--font-ui)); font-size: 13px; }
+.jw-ang { padding: 0 9px; letter-spacing: 0.1em; }
+.jw-snd { position: absolute; left: 2px; top: calc(env(safe-area-inset-top) + 0px); color: #ffd6f0; font-size: 11px; }
 /* THE SOUND AUDITION (audition.js — THE SHEET): a row a sound — its name, PLAY (· PLAY B), USE A · B; COPY MY PICKS at the foot */
 .jw-au { display: grid; gap: 4px; padding: 2px 0 calc(env(safe-area-inset-bottom) + 12px); }
 .jw-au-k { margin: 0 0 8px; font: 500 13px/1.4 var(--font-ui); color: var(--text-dim); }
@@ -87,5 +90,4 @@
 .jw-check.is-bad { color: #fff; background: #c8102e; padding: 8px 10px; font-weight: 700; }
 .jw-check.is-bad::before { content: '✕ '; }
 .jw-seed { position: absolute; right: 10px; top: calc(env(safe-area-inset-top) + 8px); font: 400 10px/1 var(--font-mono); color: var(--text-faint); pointer-events: none; }
-.jw-stage:not(.is-gray) .jw-fps { bottom: calc(env(safe-area-inset-bottom) + 104px); }
-.jw-fps { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 58px); font: 400 10px/1.35 var(--font-mono); color: #9dffb8; pointer-events: none; text-shadow: 0 1px 0 #000; }
+.jw-fps { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 104px); font: 400 10px/1.35 var(--font-mono); color: #9dffb8; pointer-events: none; text-shadow: 0 1px 0 #000; }

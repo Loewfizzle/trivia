@@ -13,6 +13,7 @@ import { replay } from './replay.js';
 import { wireControls } from './controls.js';
 import { createTiers } from '../kit/tiers.js';
 import { getPref, setPref } from './lab-prefs.js';
+import { ZOOMS, ZOOM, ANGLES, ANGLE } from './camera.js';
 
 const app = document.getElementById('app');
 const Q = new URLSearchParams(location.search);
@@ -41,7 +42,7 @@ function press(el, fn) {
 }
 
 async function mount() {
-  // THE NIGHT LOOK (H2 — night.js); `?gray=1` keeps H1's graybox for comparison (the same engine, the same camera at 9 columns)
+  // THE NIGHT LOOK (H2 — night.js); `?gray=1` keeps H1's graybox for comparison (the same engine, the same camera — camera.js)
   const GRAY = Q.get('gray') === '1';
   const [{ createGraybox, createNight }, { greedyBot }] = await Promise.all([
     GRAY ? lazyImport(import('./graybox.js'), './graybox.js') : lazyImport(import('./night.js'), './night.js'), lazyImport(import('./bot.js'), './bot.js')]);
@@ -53,10 +54,14 @@ async function mount() {
   const lanes = h('div.jw-lanes', '0'), sub = h('div.jw-sub', ''), mark = h('div.jw-mark', '');
   const tabs = MODE_IDS.map(m => press(h('button.jw-tab', { type: 'button', 'data-mode': m }, m.toUpperCase()), () => restart(m)));
   const seedBtn = press(h('button.jw-new', { type: 'button' }, 'NEW SEED'), () => restart(mode));
-  // THE WIDER VIEW's switch (the owner judges by feel): WIDTH 9 · 11 — remembered on this phone; the rules are 9 columns either way
-  let cols = Q.get('cols') === '9' ? 9 : Q.get('cols') === '11' ? 11 : getPref('cols', '11') === '9' ? 9 : 11;
-  const widths = [9, 11].map(n => press(h('button.jw-tab.jw-w', { type: 'button', 'data-cols': String(n), 'aria-label': `Width ${n} columns` }, String(n)), () => setCols(n)));
-  function setCols(n) { cols = n; setPref('cols', n); view.setCols(n); for (const b of widths) b.classList.toggle('is-on', b.dataset.cols === String(n)); }
+  // THE CAMERA's switches (H2B — the owner judges by feel; remembered on this phone; the rules are 9 columns whatever he picks):
+  // ZOOM 7 · 8 · 9 = the columns seen across the screen · ANGLE STRAIGHT · TURNED = the slight turn (camera.js)
+  const pick = (k, list, d) => { const u = Q.get(k), m = getPref(k, String(d)); return list.map(String).includes(u) ? u : list.map(String).includes(m) ? m : String(d); };
+  let zoom = Number(pick('zoom', ZOOMS, ZOOM)), angle = pick('angle', ANGLES, ANGLE);
+  const zooms = ZOOMS.map(n => press(h('button.jw-tab.jw-w', { type: 'button', 'data-zoom': String(n), 'aria-label': `Zoom: ${n} columns across` }, String(n)), () => setCamera(n, angle)));
+  const angles = ANGLES.map(a => press(h('button.jw-tab.jw-ang', { type: 'button', 'data-angle': a, 'aria-label': `Angle: ${a}` }, a.toUpperCase()), () => setCamera(zoom, a)));
+  const markCamera = () => { for (const b of zooms) b.classList.toggle('is-on', b.dataset.zoom === String(zoom)); for (const b of angles) b.classList.toggle('is-on', b.dataset.angle === angle); };
+  function setCamera(z, a, snap) { zoom = z; angle = a; setPref('zoom', z); setPref('angle', a); view.setCamera(z, a, snap); markCamera(); }
   const end = h('div.jw-end', { hidden: true }), endT = h('div.jw-end-t'), endL = h('div.jw-end-l'), endGo = h('div.jw-end-go', 'TAP — HOP AGAIN'), check = h('div.jw-check');
   end.append(endT, endL, endGo, check);
   const fps = Q.get('fps') === '1' ? h('div.jw-fps', '') : null, seedLine = h('div.jw-seed', '');
@@ -68,12 +73,13 @@ async function mount() {
     lazyImport(import('./audition.js'), './audition.js').then(A => A.openAudition({ press, onClose: () => { sheetOpen = false; last = 0; } })).catch(() => { sheetOpen = false; });
   });
   if (!GRAY) Promise.all([lazyImport(import('../../audio/engine.js'), '../../audio/engine.js'), lazyImport(import('./sfx.js'), './sfx.js')]).then(([E, S]) => { E.installAudio(); S.fetchSounds(); snd = S; lab.sfx = S; }).catch(() => { /* silent: audio is polish */ });
-  const tools = GRAY ? null : h('div.jw-bar.jw-bar2', h('div.jw-tabs', h('span.jw-bar-k', 'WIDTH'), ...widths), soundsBtn);
+  // (the tools' row: ZOOM + ANGLE — the graybox follows the same camera; SOUNDS sits in the top left corner, off the play)
+  const tools = h('div.jw-bar.jw-bar2', h('div.jw-tabs', h('span.jw-bar-k', 'ZOOM'), ...zooms), h('div.jw-tabs', ...angles));
   app.replaceChildren(h(`div.jw-stage${GRAY ? '.is-gray' : ''}`, play, GRAY ? h('div.jw-sky') : null, h('div.jw-blackout'),
-    h('div.jw-hud', lanes, sub, mark), tools, h('div.jw-bar', h('div.jw-tabs', ...tabs), seedBtn), end, seedLine, fps));
+    h('div.jw-hud', lanes, sub, mark), GRAY ? null : soundsBtn, tools, h('div.jw-bar', h('div.jw-tabs', ...tabs), seedBtn), end, seedLine, fps));
   const pin = /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null;   // (`?tier=0|1|2` pins a quality tier — the pass's measure)
-  const view = GRAY ? createGraybox(play, { kidColor }) : createNight(play, { kidColor, cols, tier: pin == null ? 2 : pin });
-  for (const b of widths) b.classList.toggle('is-on', b.dataset.cols === String(cols));
+  const view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin });
+  markCamera();
   // AUTOMATIC quality steps (the match kit's tiers 2 / 1 / 0): the frame time slips → a step down; headroom → back up
   const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); }, initial: pin == null ? 2 : pin });
 
@@ -148,10 +154,12 @@ async function mount() {
   // (the pass's own checks — tests/integration/jaywalk-lab.mjs: the bot plays through the same input path, the frame times, the camera)
   const lab = window.__jwLab = {
     ends: [], view,
-    state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, lives: run.lives, wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, steps, slow, kidY: view.kidScreenY(), kidPx: view.kidHeightPx ? view.kidHeightPx() : 0, cols, gray: GRAY, info: view.info() }),
+    state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, lives: run.lives, wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, steps, slow, kidY: view.kidScreenY(), kidX: view.kidScreenX(), kidPx: view.kidHeightPx ? view.kidHeightPx() : 0, zoom, angle, gray: GRAY, tier: tiers.get(), capped: tiers.capped(), info: view.info() }),
     bot(on) { bot = on ? greedyBot({ seed }) : null; },
     restart: (m, s) => restart(m || mode, s),
-    setCols, setTier: t => tiers.set(t), ready: view.ready || Promise.resolve(true),
+    setCamera, setTier: t => tiers.set(t), ready: view.ready || Promise.resolve(true),
+    /** (the framing's checks) a ground point (column cells, lane) → [x, y] on the screen, 0 … 1 from the top left */
+    project: (cells, lane) => view.project(cells, lane),
     lane: i => { const L = course.lane(i); return { type: L.type, dir: L.dir || (L.pulse && L.pulse.dir) || 0, mark: L.mark || '' }; },
     hop,
     frames: () => frames.slice(),

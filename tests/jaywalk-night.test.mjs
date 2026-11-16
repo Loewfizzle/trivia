@@ -81,12 +81,10 @@ test('THE SOUNDS (PURE): in play = hop · land-wood · hit · splash; ≈ 8 voic
   assert.match(s, /fetch\(new URL\(`\$\{fileOf\(id, k\.slice\(-1\)\)\}\?v=\$\{JW_SFX_REV\}`, DIR\)\)/, 'its only fetch: audio/jaywalk/');
 });
 
-test('THE NIGHT LOOK: the proven camera, THE WIDER VIEW (11 seen by default, 9 — the rules stay 9), instanced kinds, the tiers, reduce motion; a VIEW (no rules, no writes)', () => {
+test('THE NIGHT LOOK: THE CAMERA is camera.js (H2B — the rules stay 9 columns), instanced kinds, the tiers, reduce motion; a VIEW (no rules, no writes)', () => {
   const n = code('night.js'), fxs = code('night-fx.js'), m = code('models.js');
-  assert.match(n, /export const CAM = Object\.freeze\(\{ fov: 54, up: 16, back: 12, ahead: 4\.5, width: 9\.42 \}\);/, 'H1\'s camera, unchanged');
-  assert.match(n, /export const WIDTHS = Object\.freeze\(\[9, 11\]\);/);
-  assert.match(n, /cols = WIDTHS\.includes\(o\.cols\) \? o\.cols : 11/, 'default 11');
-  assert.match(n, /const kOf = \(\) => \(cols \+ 0\.42\) \/ CAM\.width;/, 'one camera: the rig scales about the kid');
+  assert.match(n, /import \{ CAM, createCamera \} from '\.\/camera\.js';/, 'ONE camera, shared with the graybox (tests/jaywalk-camera.test.mjs)');
+  assert.match(n, /rig\.follow\(run\.st === 'hop' \? run\.tx \/ FP : down && H \? H\.x : kx, run\.st === 'hop' \? run\.ty \+ 0\.5 : down \? \(H \? H\.y : ky\) : ky, dt\);/, 'the follow leads a hop to where it lands — up the lanes AND sideways');
   assert.match(read('js/games/jaywalk/tuning.js'), /export const COLS = 9;/);
   assert.match(n, /new THREE\.InstancedMesh\(g, mat, n\)/); assert.match(fxs, /new THREE\.InstancedBufferGeometry\(\)/);
   assert.match(n, /const DPR_AT = \[1\.5, 2, 3\];/, 'full device sharpness at the top tier (≤ 3)');
@@ -96,7 +94,7 @@ test('THE NIGHT LOOK: the proven camera, THE WIDER VIEW (11 seen by default, 9 �
   assert.match(n, /prefers-reduced-motion: reduce/); assert.match(n, /fx\.shake = reduce \? 0 : clock \+ 240;/, 'the shake is off with reduce motion');
   for (const cause of ['car', 'water', 'edge', 'train', 'blackbird', 'wall']) assert.ok(n.includes(`H.cause === '${cause}'`), `a hit of its own: ${cause}`);
   assert.match(n, /for \(let lap = -1; lap <= 1; lap\+\+\)/, 'a mover\'s next lap is drawn: nothing pops at the screen\'s side');
-  for (const f of ['night.js', 'night-fx.js', 'models.js', 'audition.js', 'sfx.js', 'sounds.js', 'lab-prefs.js']) {
+  for (const f of ['night.js', 'night-fx.js', 'models.js', 'camera.js', 'audition.js', 'sfx.js', 'sounds.js', 'lab-prefs.js']) {
     const s = code(f);
     for (const bad of [/from '[^']*firebase\.js'/, /from '[^']*\/(room|host|store|seat|identity)\.js'/, /sendBeacon/, /(^|[^.\w])(set|update|remove|runTransaction|dbRef|onValue)\(/m]) assert.doesNotMatch(s, bad, `${f}: ${bad}`);
     if (!['models.js', 'sfx.js'].includes(f)) assert.doesNotMatch(s, /fetch\(/, `${f}: no fetch`);
@@ -107,11 +105,34 @@ test('THE NIGHT LOOK: the proven camera, THE WIDER VIEW (11 seen by default, 9 �
   for (const f of ['engine.js', 'course.js', 'replay.js', 'tuning.js', 'logic.js', 'director.js']) assert.doesNotMatch(code(f), /night|models\.js|sfx|three/, `${f} never knows the view`);
 });
 
-test('THE LAB\'s TOOLS: ?gray=1 keeps the graybox, WIDTH 9 · 11 (remembered), SOUNDS → THE SHEET, every button on its own press + lift; the skyline + the neon count', () => {
+test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a real box truck, no junk-looking props', () => {
+  const n = code('night.js'), fxs = read('js/games/jaywalk/night-fx.js'), m = code('models.js');
+  // THE WATER: a teal / blue surface (never near-black), crests, the reflections, a bright shoreline where it meets the land
+  const water = fxs.slice(fxs.indexOf('} else if (type < 2.5) {'), fxs.indexOf('} else if (type < 3.5) {'));
+  const base = /c = mix\(vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), w \* w\);/.exec(water);
+  assert.ok(base && +base[3] >= 0.18 && +base[2] >= 0.1 && +base[3] > +base[1] * 4 && +base[6] >= 0.3, `the water's colour is a deep teal / blue, not black (${base && base.slice(1).join(' ')})`);
+  assert.match(water, /float crest =/); assert.match(water, /THE SHORELINE/); assert.match(water, /c = mix\(c, vec3\(0\.70, 0\.97, 1\.0\), foam \* 0\.9\);/, 'a bright foam line at the shore');
+  assert.match(water, /abs\(dn - 2\.0\)\), shU = step\(0\.5, abs\(up - 2\.0\)\)/, '… only where the neighbour is not water');
+  assert.match(n, /0xc8f6ff, 1, 1, 0\.34 \* dim\);/, 'a soft wake behind each log'); assert.match(n, /0xffa23a, 1, 0, 0\.36 \* dim\);/, 'its amber glow on the water');
+  // THE KID: a glow pool + a ring in his colour under him, a rim light of his own
+  assert.match(n, /paintMaterial\(glossy\(0\.42, 0\.7\), \{ rim: true \}\)/); assert.match(fxs, /outgoingLight \+= uRim \* pow\(1\.0 - clamp\(dot\(normalize\(normal\), normalize\(vViewPosition\)\), 0\.0, 1\.0\), 2\.6\);/);
+  assert.match(n, /K\.flat\.put\(px, feet \+ 0\.045, pz \+ 0\.04, 1\.42 \* br, 1, 1\.16 \* br, 0, kidHex, 1, 3,/, 'the ring round his feet, in his colour');
+  assert.match(n, /const br = reduce \? 1 :/, '… it breathes — never with reduce motion');
+  // THE BOX TRUCK: built in code (a cab + a box), its amber markers + lit tail lights; never the van + a bare box
+  assert.match(m, /export function buildTruck\(\)/); assert.match(m, /roundBox\(0\.74, 0\.6, 0\.76, 0\.13\), color: 0xa6a6a6, paint: 1/, 'a cab in its own colour'); assert.match(m, /roundBox\(0\.8, 0\.8, 1\.9, 0\.1\), color: white/, 'a long white box'); assert.doesNotMatch(m + n, /buildTrailer|K\.trailers/);
+  assert.match(n, /if \(truck\) K\.trucks\.put\(cx, 0, z, 0\.94, 0\.9, tz, ry, tint, 1, dim\);\s*else if \(q\) q\.put\(/, 'a 3-cell vehicle = the truck alone, as long as its rules length');
+  assert.match(n, /if \(truck\) for \(const m of \[0, 0\.34, 0\.67, 1\]\) K\.bill\.put\([^;]*0xff9a1c/, 'amber marker lights along its side');
+  // THE PROPS: no crate, no pale jersey barrier (THE BARRICADE is built in code); the files stay in the folder
+  assert.match(m, /export const SCENE_MODELS = Object\.freeze\(KENNEY\.filter\(n => n !== 'crate-box' && n !== 'traffic-barrier'\)\);/);
+  assert.match(n, /loadKenney\(SCENE_MODELS\)/); assert.doesNotMatch(n, /crate-box|traffic-barrier/, 'the scene never places them');
+  assert.match(m, /export function buildBarricade\(\)/); assert.match(n, /K\.barricades\.put\(/);
+});
+
+test('THE LAB\'s TOOLS: ?gray=1 keeps the graybox, ZOOM + ANGLE (remembered — tests/jaywalk-camera.test.mjs), SOUNDS → THE SHEET, every button on its own press + lift; the skyline + the neon count', () => {
   const lab = code('lab.js'), au = code('audition.js'), css = read('css/jaywalk.css'), html = read('jaywalk-lab.html');
   assert.match(lab, /const GRAY = Q\.get\('gray'\) === '1';/);
   assert.match(lab, /GRAY \? lazyImport\(import\('\.\/graybox\.js'\), '\.\/graybox\.js'\) : lazyImport\(import\('\.\/night\.js'\), '\.\/night\.js'\)/, 'only the look asked for is fetched');
-  assert.match(lab, /getPref\('cols', '11'\) === '9' \? 9 : 11/); assert.match(lab, /setPref\('cols', n\)/);
+  assert.match(lab, /let zoom = Number\(pick\('zoom', ZOOMS, ZOOM\)\), angle = pick\('angle', ANGLES, ANGLE\);/, 'a link\'s ?zoom / ?angle, else what the phone remembers, else 8 + turned');
   assert.match(lab, /E\.installAudio\(\); S\.fetchSounds\(\);/, 'the SHARED engine: unlocked by the first tap, the bytes at preload');
   assert.match(lab, /if \(snd\) snd\.onEvent\(e\);/);
   assert.match(lab, /createTiers\(\{ apply: t => \{ if \(view\.setTier\) view\.setTier\(t\); \}/, 'AUTOMATIC quality steps (the match kit\'s tiers)');

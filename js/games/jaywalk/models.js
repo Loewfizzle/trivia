@@ -1,7 +1,7 @@
 // JAYWALK — THE MODELS (H2 — docs/jaywalk.md "THE NIGHT LOOK"): the 12 Kenney models (CC0 — assets/jaywalk/models/, re-packed by
 // scripts/build-jaywalk-assets.py: ONE mesh each, the colormap baked into vertex colours, a car's body paint in COLOR_0's alpha) through a
 // tiny GLB reader of our own (no loader add-on: the page's import map carries three's core only), + everything BUILT IN CODE in the smooth
-// toy style: THE JAYWALKER, the round puffy trees, the logs, the tufts, a truck's box. Every geometry here carries `color` (linear RGB) +
+// toy style: THE JAYWALKER, the round puffy trees, the logs, the tufts, THE BOX TRUCK. Every geometry here carries `color` (linear RGB) +
 // `paint` (1 = the part that takes the player's / the car's colour). Kenney's normals are never recomputed.
 import * as THREE from 'three';
 
@@ -9,6 +9,9 @@ const DIR = new URL('../../../assets/jaywalk/models/', import.meta.url);
 export const MODEL_REV = 1;   // (bump when a model file is replaced)
 export const KENNEY = Object.freeze(['car-sedan', 'car-hatchback', 'car-taxi', 'car-van', 'train-front', 'train-carriage',
   'bush-planter', 'street-lamp', 'traffic-cone', 'traffic-barrier', 'trash-dumpster', 'crate-box']);
+/** what the night look draws today (H2B — the owner: no junk-looking props): the crate is out (it stays in the folder for THE DOCKS, H5)
+ *  and so is the jersey barrier (from above it read as a pale cube — the barrier is now THE BARRICADE, built in code) */
+export const SCENE_MODELS = Object.freeze(KENNEY.filter(n => n !== 'crate-box' && n !== 'traffic-barrier'));
 const lin = c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
 const COMP = { 5120: Int8Array, 5121: Uint8Array, 5122: Int16Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array };
 const NORM = { 5120: 127, 5121: 255, 5122: 32767, 5123: 65535 };
@@ -148,13 +151,38 @@ export function buildLog() {
   return build([{ g: new THREE.LatheGeometry(pts, 14), color: 0x8a5a34, rot: [0, 0, Math.PI / 2], scale: [1, 1, 1],
     shade: (y, x, z) => (Math.abs(x) > L - 0.03 ? 1.9 : 0.74 + 0.3 * (y / r)) * (Math.abs(x) > L - 0.03 && Math.hypot(y, z) < 0.14 ? 0.7 : 1) }]);
 }
-/** a truck's box (behind the van on a 3-cell vehicle): a rounded cargo box on a dark base, 1 long along z */
-export function buildTrailer() {
+/**
+ * THE BOX TRUCK (the 3-cell vehicle — H2B, the owner: "a real box truck"), built in code in the smooth style: a rounded CAB in the truck's
+ * colour (paint) with dark glass, a long rounded white cargo BOX with a stripe in the truck's colour, a dark chassis, six wheels, a bumper.
+ * 2.9 long along z (its nose at +z, like Kenney's cars), 0.8 wide, ≈ 1.12 tall. Its lights (head, tail, the amber markers along the box's
+ * side) are the scene's light quads. TRUCK.box = where the box's side runs (z), for the markers.
+ */
+export const TRUCK = Object.freeze({ len: 2.9, box: [-1.36, 0.5], top: 1.12 });
+export function buildTruck() {
+  const dark = 0x1c1c24, glass = 0x121a2c, white = 0xe2e5f0, tyre = 0x101014, hub = 0x9aa0b4;
+  const wheel = (x, z) => [{ g: new THREE.CylinderGeometry(0.17, 0.17, 0.14, 14), color: tyre, at: [x, 0.17, z], rot: [0, 0, Math.PI / 2] },
+    { g: new THREE.CylinderGeometry(0.075, 0.075, 0.16, 10), color: hub, at: [x, 0.17, z], rot: [0, 0, Math.PI / 2] }];
   return build([
-    { g: roundBox(1, 0.78, 1, 0.09), color: 0xbababa, paint: 1, at: [0, 0.62, 0], shade: y => 0.7 + y * 0.35 },
-    { g: roundBox(0.94, 0.16, 1, 0.05), color: 0x23232b, at: [0, 0.17, 0] },
-    { g: new THREE.CylinderGeometry(0.2, 0.2, 1.04, 12), color: 0x18181d, at: [0, 0.2, 0.22], rot: [0, 0, Math.PI / 2] },
+    { g: roundBox(0.6, 0.12, 2.78, 0.04), color: dark, at: [0, 0.25, -0.02] },                                                  // the chassis
+    { g: roundBox(0.8, 0.8, 1.9, 0.1), color: white, at: [0, 0.72, -0.43], shade: y => 0.7 + y * 0.3 },                         // THE BOX
+    { g: roundBox(0.815, 0.2, 1.8, 0.03), color: 0x9c9c9c, paint: 1, at: [0, 0.55, -0.43] },                                    // … its stripe
+    { g: roundBox(0.7, 0.05, 0.05, 0.02), color: dark, at: [0, 0.36, -1.39] },                                                  // … its rear step
+    { g: roundBox(0.74, 0.6, 0.76, 0.13), color: 0xa6a6a6, paint: 1, at: [0, 0.6, 1.04], shade: y => 0.72 + y * 0.42 },         // THE CAB
+    { g: roundBox(0.64, 0.25, 0.1, 0.04), color: glass, at: [0, 0.71, 1.39] },                                                  // the windshield
+    { g: roundBox(0.755, 0.22, 0.42, 0.04), color: glass, at: [0, 0.72, 1.12] },                                                // the side windows
+    { g: roundBox(0.76, 0.11, 0.1, 0.04), color: 0x3b3e4c, at: [0, 0.3, 1.42] },                                                // the bumper
+    { g: roundBox(0.5, 0.07, 0.34, 0.03), color: 0x8c8c8c, paint: 1, at: [0, 0.93, 0.98] },                                     // the wind deflector
+    ...wheel(-0.33, 1.02), ...wheel(0.33, 1.02), ...wheel(-0.33, -0.62), ...wheel(0.33, -0.62), ...wheel(-0.33, -1.02), ...wheel(0.33, -1.02),
   ]);
+}
+/** THE BARRICADE (H2B): a road barricade that reads at phone size — two striped boards (orange / white) on two dark A-frame legs, a lamp
+ *  on one end (its amber glow is the scene's light quad). 0.9 wide along x, ≈ 0.66 tall; the boards face the camera (z). */
+export function buildBarricade() {
+  const parts = [];
+  for (const y of [0.47, 0.25]) for (let i = 0; i < 6; i++) parts.push({ g: roundBox(0.15, 0.14, 0.05, 0.015, 2), color: i % 2 ? 0xf4f4f8 : 0xff6418, at: [-0.375 + i * 0.15, y, 0] });
+  for (const x of [-0.38, 0.38]) for (const d of [1, -1]) parts.push({ g: roundBox(0.055, 0.62, 0.055, 0.015, 2), color: 0x2b2b36, at: [x, 0.29, d * 0.1], rot: [d * 0.32, 0, 0] });
+  parts.push({ g: ball(0.055, 8, 6), color: 0xffb030, at: [0.38, 0.63, 0] });
+  return build(parts);
 }
 /** THE BLACKBIRD's placeholder (H6 draws the real one): a dark dart, 1 long along x */
 export function buildDart() {

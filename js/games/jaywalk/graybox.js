@@ -6,10 +6,10 @@
 import * as THREE from 'three';
 import { FP, COLS, HOP_TICKS } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, ufoX, ufoY, mod } from './course.js';
+import { CAM, createCamera } from './camera.js';
 
-// THE PROVEN CAMERA: perspective, fov 54, ≈ 16 up / 12 back, looking ~4 lanes ahead — the kid sits ≈ 65 % down the screen and the 9
-// columns are ≈ 9.4 units wide at the kid on a phone (390 × 844). A narrower screen widens the fov so no column is ever cut.
-export const CAM = Object.freeze({ fov: 54, up: 16, back: 12, ahead: 4.5, width: 9.42 });
+// THE CAMERA = camera.js (H2B — the SAME one as the night look: THE PROVEN RIG 16 up / 12 back, ZOOM 7 · 8 · 9 columns across, the sideways
+// follow, the slight turn; the kid ≈ 62 % down the screen).
 const BACK = 8, AHEAD = 22, POOL = BACK + AHEAD;   // (the lanes alive: 30)
 const BG = 0x07060b;
 const GROUND = { grass: [0x2e4634, 0x2a4030], road: [0x2b2b33, 0x2b2b33], water: [0x16384f, 0x143349], rail: [0x40362b, 0x40362b], flight: [0x36425f, 0x3b4868] };
@@ -26,6 +26,7 @@ export function createGraybox(host, o = {}) {
   scene.background = new THREE.Color(BG);
   scene.fog = new THREE.Fog(BG, 26, 35);   // (the far lanes fade into the skyline band's dark)
   const cam = new THREE.PerspectiveCamera(CAM.fov, 1, 1, 70);
+  const rig = createCamera({ zoom: o.zoom, angle: o.angle });
   scene.add(new THREE.AmbientLight(0xffffff, 2.1));
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
   sun.position.set(-6, 14, 8);
@@ -74,17 +75,14 @@ export function createGraybox(host, o = {}) {
   wall.renderOrder = 5; lip.renderOrder = 5;
   scene.add(wall, lip);
 
-  let camY = 0, w = 0, h = 0;
+  let w = 0, h = 0;
   function resize() {
     const nw = host.clientWidth, nh = host.clientHeight;
     if (!nw || !nh || (nw === w && nh === h)) return;
     w = nw; h = nh;
     renderer.setSize(w, h, false);
-    const aspect = w / h, dist = Math.sqrt(CAM.up * CAM.up + CAM.back * CAM.back);
-    // (the 9 columns always fit: a narrow screen gets a taller fov so the width at the kid stays CAM.width)
-    const need = 2 * Math.atan(CAM.width / 2 / dist / aspect) * 180 / Math.PI;
-    cam.fov = Math.max(CAM.fov, need);
-    cam.aspect = aspect;
+    cam.fov = rig.fit(w / h);   // (ZOOM columns across on every screen shape — camera.js#lensFor)
+    cam.aspect = w / h;
     cam.updateProjectionMatrix();
   }
   const ro = new ResizeObserver(resize);
@@ -108,11 +106,10 @@ export function createGraybox(host, o = {}) {
     if (run.st === 'taken') lift = Math.min(14, (lift || 0) + (kid.userData.rise = (kid.userData.rise || 0) + dt * 0.006)); else kid.userData.rise = 0;
     kid.position.set(X(kx), (flatK ? 0.08 : 0.41) + lift + 0.1, Z(ky));
 
-    // the camera follows the kid up the lanes (eased), never the frame clock of the rules
-    const k = 1 - Math.exp(-dt / 110);
-    camY += (ky - camY) * (Math.abs(ky - camY) > 12 ? 1 : k);
-    cam.position.set(0, CAM.up, Z(camY) + CAM.back);
-    cam.lookAt(0, 0, Z(camY + CAM.ahead));
+    // THE CAMERA (camera.js): it follows the kid up the lanes + sideways (eased), never the frame clock of the rules
+    rig.follow(run.st === 'hop' ? run.tx / FP : kx, run.st === 'hop' ? run.ty + 0.5 : ky, dt);
+    rig.apply(cam);
+    const camY = rig.y();
 
     for (const q of Object.values(K)) q.reset();
     let nu = 0;
@@ -128,7 +125,7 @@ export function createGraybox(host, o = {}) {
         const car = L.type === 'road', q = car ? K.cars : K.logs;
         for (let j = 0; j < L.items.length; j++) {
           const it = L.items[j], left = moverLeft(L, it, t) / FP, len = it.len / FP;
-          if (left > COLS + 1 || left + len < -1) continue;
+          if (left > COLS + 4 || left + len < -4) continue;
           if (car) q.put(X(left + len / 2), 0.32, z, len - 0.12, 0.56, 0.7, CARS[Math.abs(i * 7 + j) % CARS.length]);
           else q.put(X(left + len / 2), 0.06, z, len - 0.06, 0.22, 0.82, 0x7a5536);
         }
@@ -170,7 +167,11 @@ export function createGraybox(host, o = {}) {
     el, draw, resize,
     /** where the kid is on the screen (0 … 1 from the top) — the camera's check */
     kidScreenY() { const v = kid.position.clone().project(cam); return (1 - v.y) / 2; },
-    info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov }),
+    kidScreenX() { const v = kid.position.clone().project(cam); return (1 + v.x) / 2; },
+    project(cells, lane) { const v = new THREE.Vector3(X(cells), 0, Z(lane)).project(cam); return [(1 + v.x) / 2, (1 - v.y) / 2]; },
+    setCamera(zoom, angle, snap) { rig.choose(zoom, angle, snap); },
+    zoom: () => rig.zoom(), angle: () => rig.angle(),
+    info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw() }),
     destroy() {
       ro.disconnect();
       for (const m of made) { m.material.dispose(); scene.remove(m); }

@@ -64,9 +64,10 @@ test('THE CONTROLS (PURE): a tap fires on RELEASE (under ~12 px) · a swipe fire
   assert.match(read('css/jaywalk.css'), /\.jw-stage \{[^}]*user-select: none;/);
 });
 
-test('THE GRAYBOX: the proven camera (fov 54, 16 up / 12 back, ~4 lanes ahead), pooled lanes (30 alive), instanced boxes, the view interpolates — the rules never read the frame clock', () => {
+test('THE GRAYBOX: THE CAMERA is camera.js (H2B — the proven rig: 16 up / 12 back), pooled lanes (30 alive), instanced boxes, the view interpolates — the rules never read the frame clock', () => {
   const g = read('js/games/jaywalk/graybox.js');
-  assert.match(g, /export const CAM = Object\.freeze\(\{ fov: 54, up: 16, back: 12, ahead: 4\.5, width: 9\.42 \}\);/);
+  assert.match(g, /import \{ CAM, createCamera \} from '\.\/camera\.js';/);
+  assert.match(read('js/games/jaywalk/camera.js'), /export const CAM = Object\.freeze\(\{ fov: 54, up: 16, back: 12, width: 9\.42, kidAt: 0\.62 \}\);/);
   assert.match(g, /const BACK = 8, AHEAD = 22, POOL = BACK \+ AHEAD;/);
   assert.match(g, /new THREE\.InstancedMesh\(box, mat, n\)/);
   assert.match(g, /function draw\(run, course, a, dt\)/);

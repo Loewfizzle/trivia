@@ -1,5 +1,5 @@
 // JAYWALK — THE NIGHT LOOK's SHADERS + small pieces (H2 — docs/jaywalk.md "THE NIGHT LOOK"): the lanes' ground (ONE instanced plane a lane,
-// drawn in the shader: grass · asphalt + curbs + dashed lines · water + its reflections · rails + sleepers · the flight path · a landmark's
+// drawn in the shader: grass · asphalt + curbs + dashed lines · THE WATER (teal, ripples, reflections, a bright shoreline) · rails + sleepers · the flight path · a landmark's
 // paving — the edge columns dimmer, the BLACKOUT's per-lane darkness, the fog), the additive lights (flat on the ground + facing the
 // camera — pools, trails, beams, rings, lamps: NO real point light anywhere), the blob shadows, the paint patch (a car's body / the kid's
 // hoodie takes its colour; everything else keeps Kenney's), a tiny generated neon environment (the gloss) and THE HALF-RES BLOOM (top tier
@@ -54,18 +54,28 @@ void main() {
     vec3 neon = mod(b, 2.0) < 0.5 ? vec3(1.0, 0.62, 0.9) : vec3(0.6, 0.9, 1.0);
     c = mix(c, neon * 0.62, dash * ln);
   } else if (type < 2.5) {
+    // THE WATER (H2B — it must read as water at a glance): a deep teal / blue surface, slow ripples + their bright crests, the skyline's
+    // neon reflected in long wobbling streaks, a bright shoreline where it meets the land
     float t = uTime;
-    float w = sin(x * 2.3 + t * 0.8 + sin(z * 7.0 + t * 0.5) * 0.8) * 0.5 + 0.5;
-    c = vec3(0.010, 0.024, 0.052) + vec3(0.010, 0.030, 0.052) * w * w;
-    if (uQ > 0.5) {                                               // dim reflections: streaks of the skyline's colours, wobbling
+    float w1 = sin(x * 2.3 + t * 0.8 + sin(z * 7.0 + t * 0.5) * 0.8), w2 = sin(x * 5.3 - t * 0.55 + z * 8.0 + seed);
+    float w = 0.5 + 0.34 * w1 + 0.16 * w2;
+    c = mix(vec3(0.016, 0.105, 0.200), vec3(0.040, 0.250, 0.370), w * w);
+    float crest = smoothstep(0.90, 1.0, sin(x * 3.4 + sin(z * 12.0 + t * 0.7 + seed) * 1.5 + t * 0.9));
+    c += vec3(0.16, 0.42, 0.50) * crest * 0.5;
+    if (uQ > 0.5) {                                               // the reflections: streaks of the skyline's colours, wobbling
       float sx = x * 1.25 + seed * 3.1, id = floor(sx), f = fract(sx) - 0.5;
       float wob = sin(z * 17.0 + t * 1.6 + id * 4.0) * 0.11;
-      float streak = smoothstep(0.17, 0.0, abs(f + wob)) * step(0.4, hash(vec2(id, seed)));
+      float streak = smoothstep(0.19, 0.0, abs(f + wob)) * step(0.35, hash(vec2(id, seed)));
       float pick = hash(vec2(id + 3.0, seed));
       vec3 neon = pick < 0.36 ? vec3(1.0, 0.25, 0.75) : (pick < 0.7 ? vec3(0.15, 0.8, 1.0) : vec3(0.62, 0.36, 1.0));
-      c += neon * streak * 0.10 * (0.6 + 0.4 * sin(t * 0.9 + id));
+      c += neon * streak * 0.20 * (0.6 + 0.4 * sin(t * 0.9 + id));
     }
-    c *= 1.0 - 0.55 * (smoothstep(0.14, 0.0, z) * step(0.5, abs(dn - 2.0)) + smoothstep(0.14, 0.0, 1.0 - z) * step(0.5, abs(up - 2.0)));
+    // THE SHORELINE: a bright wavering foam line + a pale shallow where the water meets anything that is not water
+    float shD = step(0.5, abs(dn - 2.0)), shU = step(0.5, abs(up - 2.0));
+    float lap = 0.016 * sin(x * 8.0 + t * 1.3 + seed) + 0.010 * sin(x * 19.0 - t * 0.9);
+    float foam = max(smoothstep(0.115 + lap, 0.06 + lap, z) * shD, smoothstep(0.115 + lap, 0.06 + lap, 1.0 - z) * shU);
+    c += vec3(0.05, 0.20, 0.24) * (smoothstep(0.42, 0.0, z) * shD + smoothstep(0.42, 0.0, 1.0 - z) * shU);
+    c = mix(c, vec3(0.70, 0.97, 1.0), foam * 0.9);
   } else if (type < 3.5) {
     c = vec3(0.088, 0.078, 0.09) * (0.85 + 0.3 * hash(floor(vec2(x * 18.0, z * 18.0))));
     float sl = step(fract(x * 2.0), 0.3) * step(0.17, z) * step(z, 0.83);
@@ -166,8 +176,8 @@ export function glowMaterial(fog, { bill = false, shadow = false } = {}) {
 
 /** THE PAINT PATCH on a lit material: vertices marked `paint` take the tint (an instance's colour, or uTint) by their own brightness; the
  *  rest keep their vertex colours; `lit` (0 … 1 — the blackout, the dim edge columns) scales both. */
-export function paintMaterial(mat, { instanced = false } = {}) {
-  const u = { uTint: { value: new THREE.Color(0xffffff) }, uLit: { value: 1 } };
+export function paintMaterial(mat, { instanced = false, rim = false } = {}) {
+  const u = { uTint: { value: new THREE.Color(0xffffff) }, uLit: { value: 1 }, uRim: { value: new THREE.Color(0x000000) } };
   mat.vertexColors = true;
   mat.onBeforeCompile = sh => {
     sh.uniforms.uTint = u.uTint; sh.uniforms.uLit = u.uLit;
@@ -176,8 +186,14 @@ export function paintMaterial(mat, { instanced = false } = {}) {
       .replace('#include <color_vertex>', instanced
         ? 'vColor = mix(color, instanceColor * (0.22 + 1.6 * dot(color, vec3(0.299, 0.587, 0.114))), paint) * aLit;'
         : 'vColor = mix(color, uTint * (0.22 + 1.6 * dot(color, vec3(0.299, 0.587, 0.114))), paint) * uLit;');
+    // THE RIM (the kid — H2B: he always stands out): a light of his own on every edge that turns away from the camera
+    if (rim) {
+      sh.uniforms.uRim = u.uRim;
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uRim;')
+        .replace('#include <opaque_fragment>', 'outgoingLight += uRim * pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 2.6);\n#include <opaque_fragment>');
+    }
   };
-  mat.customProgramCacheKey = () => `jw-paint-${instanced ? 'i' : 'u'}`;
+  mat.customProgramCacheKey = () => `jw-paint-${instanced ? 'i' : 'u'}${rim ? 'r' : ''}`;
   mat.userData.u = u;
   return mat;
 }

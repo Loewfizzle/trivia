@@ -7,21 +7,18 @@
 //   · THE BLACKOUT (the wall): the lights die lane by lane from below, a cold edge where it bites
 //   · THE JAYWALKER (models.js#buildKid) + THE HOP's feel + the hits, one per cause — ALL DERIVED FROM THE RUN's STATE between ticks
 //     (the rules never read the frame clock; a refresh / a replay draws the same kid)
-//   · THE WIDER VIEW: 11 columns seen = the 9 played + a dimmer edge column each side (setCols(9 | 11) — the same world, the camera
-//     further back). View only: the rules stay 9 columns.
+//   · THE CAMERA (H2B — camera.js, shared with the graybox): ZOOM 7 · 8 · 9 columns across, the sideways follow, the slight TURN; the
+//     dimmer edge column each side stays the cue for the play area's edge. View only: the rules stay 9 columns.
 // Everything that repeats is INSTANCED; a window of lanes round the kid is alive (re-laid every frame — a few hundred matrices); no
 // post-processing below the top tier (THE HALF-RES BLOOM: tier 2 only). setTier(2 | 1 | 0): the match kit's tiers (games/kit/tiers.js).
 import * as THREE from 'three';
 import { FP, COLS, HOP_TICKS, DOWN_TICKS } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod } from './course.js';
-import { loadKenney, buildKid, buildTree, buildTuft, buildLog, buildTrailer, buildDart } from './models.js';
+import { loadKenney, SCENE_MODELS, buildKid, buildTree, buildTuft, buildLog, buildTruck, TRUCK, buildBarricade, buildDart } from './models.js';
 import { FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, createBloom } from './night-fx.js';
+import { CAM, createCamera } from './camera.js';
 
-/** THE PROVEN CAMERA (H1) at 9 columns: perspective, fov 54, ≈ 16 up / 12 back, looking ~4.5 lanes ahead. THE WIDER VIEW scales the whole
- *  rig about the kid by (cols + 0.42) / 9.42 — the same picture, 11 columns wide. A narrower screen widens the fov so no column is cut. */
-export const CAM = Object.freeze({ fov: 54, up: 16, back: 12, ahead: 4.5, width: 9.42 });
-export const WIDTHS = Object.freeze([9, 11]);
-const BACK = 7, AHEAD = 27, POOL = BACK + AHEAD;   // (the lanes alive: 34)
+const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;   // (the most lanes alive: 36 — a closer zoom lays fewer ahead)
 const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff];   // (a car's body tint + its trail: pink · cyan · violet · coral · blue)
 const DPR_AT = [1.5, 2, 3];
 const KID_S = 1.3;   // (THE JAYWALKER's size on the lane: ≈ 1.27 of a lane tall — he must read at real phone size; the rules' box stays 0.6 of a cell)
@@ -49,6 +46,7 @@ export function createNight(host, o = {}) {
   const fogV = new THREE.Vector2(26, 35);          // (the shaders' copy of the fog's near / far)
   const cam = new THREE.PerspectiveCamera(CAM.fov, 1, 1, 90);
   cam.layers.enableAll();
+  const rig = createCamera({ zoom: o.zoom, angle: o.angle });   // THE CAMERA (camera.js): the zoom, the sideways follow, the turn
   // the light: a dim cool night, a soft key from the front-left, A RIM LIGHT from behind (pink) — the smooth finish
   scene.add(new THREE.HemisphereLight(0x8fa0ff, 0x1a1030, 1.5));
   const key = new THREE.DirectionalLight(0xdfe4ff, 1.55); key.position.set(-5, 12, 9); scene.add(key);
@@ -94,7 +92,7 @@ export function createNight(host, o = {}) {
   const ground = createGround(POOL, fogV);
   scene.add(ground.mesh);
   const flatGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), billGeo = new THREE.PlaneGeometry(1, 1), unit = new THREE.BoxGeometry(1, 1, 1);
-  const GEO = { tree: buildTree(), tuft: buildTuft(), log: buildLog(), trailer: buildTrailer(), dart: buildDart() };
+  const GEO = { tree: buildTree(), tuft: buildTuft(), log: buildLog(), truck: buildTruck(), barricade: buildBarricade(), dart: buildDart() };
   const K = {
     shadow: kind(flatGeo, glowMaterial(fogV, { shadow: true }), 160, { aux: ['aFx', 2], raw: true, order: 1 }),
     flat: kind(flatGeo, glowMaterial(fogV), 520, { aux: ['aFx', 2], raw: true, order: 2, bloom: true }),          // pools · trails · beams · rings · edge lines
@@ -102,15 +100,16 @@ export function createNight(host, o = {}) {
     trees: kind(GEO.tree, lambert(), 150),
     tufts: kind(GEO.tuft, lambert(), 220),
     logs: kind(GEO.log, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0, envMapIntensity: 0.5 }), 110),
-    trailers: kind(GEO.trailer, paintMaterial(glossy(0.3, 1), { instanced: true }), 24, { aux: ['aLit', 1] }),
+    trucks: kind(GEO.truck, paintMaterial(glossy(0.3, 1), { instanced: true }), 24, { aux: ['aLit', 1] }),
+    barricades: kind(GEO.barricade, lambert(), 40),
     posts: kind(unit, new THREE.MeshLambertMaterial({ color: 0xffffff }), 180),
     jets: kind(GEO.dart, lambert(), 8),
   };
   // Kenney's (CC0): they arrive a moment after the first frame — until then (or if a file fails) that kind simply draws nothing
-  const CARS = ['car-sedan', 'car-hatchback', 'car-taxi', 'car-van'], PROPS = ['bush-planter', 'street-lamp', 'traffic-cone', 'traffic-barrier', 'trash-dumpster', 'crate-box'];
+  const CARS = ['car-sedan', 'car-hatchback', 'car-taxi', 'car-van'];
   const KM = {}, BOX = {};
   let dead = false;
-  const ready = loadKenney().then(geos => {
+  const ready = loadKenney(SCENE_MODELS).then(geos => {
     if (dead) { for (const g of Object.values(geos)) g.dispose(); return false; }
     for (const [name, g] of Object.entries(geos)) {
       const b = g.boundingBox; BOX[name] = { w: b.max.x - b.min.x, h: b.max.y, l: b.max.z - b.min.z, cz: (b.max.z + b.min.z) / 2, x0: b.min.x, z0: b.min.z, z1: b.max.z };
@@ -123,10 +122,13 @@ export function createNight(host, o = {}) {
 
   // THE JAYWALKER
   const kidGeo = buildKid();
-  const kidMat = paintMaterial(glossy(0.42, 0.7)), capMat = paintMaterial(glossy(0.36, 0.8));
+  const kidMat = paintMaterial(glossy(0.42, 0.7), { rim: true }), capMat = paintMaterial(glossy(0.36, 0.8), { rim: true });
   const kid = new THREE.Mesh(kidGeo.body, kidMat), kidCap = new THREE.Mesh(kidGeo.cap, capMat);
   scene.add(kid, kidCap);
-  const tintOf = hex => { kidMat.userData.u.uTint.value.set(hex); capMat.userData.u.uTint.value.set(hex); };
+  // HE ALWAYS STANDS OUT (H2B): his colour → the hoodie + the cap, a rim light of his own (his colour pulled toward white), the glow ring under him
+  const rimCol = new THREE.Color();
+  let kidHex = 0xff3fb4;
+  const tintOf = hex => { kidMat.userData.u.uTint.value.set(hex); capMat.userData.u.uTint.value.set(hex); kidHex = C.set(hex).getHex(); rimCol.set(hex).lerp(C.set(0xffffff), 0.5); };
   tintOf(o.kidColor || '#ff3fb4');
   // THE UFO's placeholder (H6 draws the real one): a disc + its beam circle on the ground
   const discGeo = new THREE.CylinderGeometry(0.95, 1.25, 0.28, 20);
@@ -145,17 +147,21 @@ export function createNight(host, o = {}) {
   sky.append(skyImg); host.append(sky);
   let skyAt = 9;
 
-  let bloom = null, tier = 2, cols = WIDTHS.includes(o.cols) ? o.cols : 11, w = 0, h = 0, dpr = devDpr;
-  const kOf = () => (cols + 0.42) / CAM.width;
+  let bloom = null, tier = 2, w = 0, h = 0, dpr = devDpr, kAt = 0;
+  /** the rig's scale moved (a ZOOM change easing in): the far plane + the fog follow it */
+  function depth() {
+    const k = rig.k();
+    if (k === kAt) return;
+    kAt = k; cam.far = 90 * k; cam.updateProjectionMatrix();
+    scene.fog.near = 26 * k; scene.fog.far = 35 * k; fogV.set(26 * k, 35 * k);
+  }
   function fit(force) {
     const nw = host.clientWidth, nh = host.clientHeight, nd = Math.min(devDpr, DPR_AT[tier]);
     if (!nw || !nh || (!force && nw === w && nh === h && nd === dpr)) return;
     w = nw; h = nh; dpr = nd;
     renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
-    const aspect = w / h, k = kOf(), dist = Math.sqrt(CAM.up * CAM.up + CAM.back * CAM.back);
-    cam.fov = Math.max(CAM.fov, 2 * Math.atan(CAM.width / 2 / dist / aspect) * 180 / Math.PI);   // (the columns always fit)
-    cam.aspect = aspect; cam.far = 90 * k; cam.updateProjectionMatrix();
-    scene.fog.near = 26 * k; scene.fog.far = 35 * k; fogV.set(26 * k, 35 * k);
+    cam.fov = rig.fit(w / h);   // (ZOOM columns across on every screen shape — camera.js#lensFor)
+    cam.aspect = w / h; kAt = 0; depth();
     if (bloom) bloom.size(Math.round(w * dpr), Math.round(h * dpr));
   }
   const ro = new ResizeObserver(() => fit());
@@ -180,8 +186,9 @@ export function createNight(host, o = {}) {
       const docks = !!L.mark || (i > 40 && (i % 50 <= 3 || i % 50 >= 47));   // (by a landmark: the docks' clutter)
       const pick = (c, edge) => {
         const r = hsh(vseed ^ (i * 131), c * 17 + 3), s = hsh(vseed ^ (i * 977), c * 29 + 11);
-        const k = docks ? (r < 0.3 ? 'crate-box' : r < 0.55 ? 'trash-dumpster' : r < 0.75 ? 'traffic-barrier' : r < 0.88 ? 'traffic-cone' : 'tree')
-          : edge ? (r < 0.62 ? 'tree' : r < 0.8 ? 'bush-planter' : '') : (r < 0.7 ? 'tree' : r < 0.84 ? 'bush-planter' : r < 0.9 ? 'crate-box' : r < 0.95 ? 'traffic-barrier' : 'traffic-cone');
+        // (H2B — the owner: no junk-looking props: the crates are out; the barrier = THE BARRICADE, built in code; planters, cones, the dumpster stay)
+        const k = docks ? (r < 0.3 ? 'trash-dumpster' : r < 0.56 ? 'barricade' : r < 0.8 ? 'traffic-cone' : 'tree')
+          : edge ? (r < 0.62 ? 'tree' : r < 0.8 ? 'bush-planter' : '') : (r < 0.72 ? 'tree' : r < 0.9 ? 'bush-planter' : r < 0.95 ? 'barricade' : 'traffic-cone');
         if (k) d.obs.push({ c, k, s, ry: (hsh(vseed ^ i, c + 71) - 0.5) * 0.9, dx: edge ? (hsh(vseed ^ i, c + 5) - 0.5) * 0.3 : 0, dz: edge ? (s - 0.5) * 0.3 : 0 });
       };
       for (let c = 0; c < COLS; c++) if (L.obs[c]) pick(c, false);
@@ -194,11 +201,11 @@ export function createNight(host, o = {}) {
     if (decor.size > 160) decor.delete(decor.keys().next().value);
     return d;
   }
-  const PROP_S = { 'bush-planter': 2.1, 'traffic-cone': 6.2, 'traffic-barrier': 3.5, 'trash-dumpster': 2.5, 'crate-box': 0.82, 'street-lamp': 2.7 };
+  const PROP_S = { 'bush-planter': 2.1, 'traffic-cone': 6.2, 'trash-dumpster': 2.5, 'street-lamp': 2.7 };
 
   // ---- the kid's feel + the hits: derived from the run between frames (never from the rules' clock)
   const fx = { t: -1, st: 'idle', hits: 0, y: 0, yaw: Math.PI, landAt: -1e9, landOn: '', hit: null, parts: [], wob: null, shake: 0, seen: false, out: 0 };
-  let camY = 0, camX = 0, clock = 0, kidH = 0;
+  let clock = 0, kidH = 0;
   const part = (kindOf, x, y, z, life, a = {}) => { if (fx.parts.length < 60) fx.parts.push({ k: kindOf, x, y, z, t0: clock, life, ...a }); };
   function splash(x, z, hex = 0x9fe8ff) {
     part('ring', x, 0.06, z, 520, { hex, r0: 0.25, r1: 1.25 });
@@ -285,37 +292,41 @@ export function createNight(host, o = {}) {
     kid.visible = show;
     kid.position.set(px, py, pz); kid.rotation.set(rx, ry, rz, 'YXZ'); kid.scale.set(s3[0] * KID_S, s3[1] * KID_S, s3[2] * KID_S);
     kidMat.userData.u.uLit.value = capMat.userData.u.uLit.value = lit;
+    kidMat.userData.u.uRim.value.copy(rimCol).multiplyScalar(0.5 * lit); capMat.userData.u.uRim.value.copy(kidMat.userData.u.uRim.value);
     if (capOff) { kidCap.position.set(px + capOff.x, py + capOff.y * KID_S, pz + 0.25 * clamp01(capOff.x * 2 * H.dir)); kidCap.rotation.set(capOff.tip, capOff.r, 0, 'YXZ'); kidCap.scale.setScalar(KID_S); }
     else { kidCap.position.copy(kid.position); kidCap.rotation.copy(kid.rotation); kidCap.scale.copy(kid.scale); }
     kidCap.visible = show;
     kidH = kidGeo.height * s3[1] * KID_S;
 
-    // ---- THE CAMERA: a smooth follow that leads a hop to where it lands, a short shake on a hit (never with reduce motion)
-    const k = kOf(), tgtY = run.st === 'hop' ? run.ty + 0.5 : run.st === 'down' || run.st === 'out' ? (H ? H.y : ky) : ky, tgtX = (kx - COLS / 2) * 0.1;
-    const far = Math.abs(tgtY - camY) > 12;
-    camY += (tgtY - camY) * (far ? 1 : 1 - Math.exp(-dt / 105)); camX += (tgtX - camX) * (far ? 1 : 1 - Math.exp(-dt / 320));
+    // ---- THE CAMERA (camera.js): a smooth follow that leads a hop to where it lands — up the lanes AND sideways (clamped at the play
+    // area's edges; a log ride is followed) — the slight turn, a short shake on a hit (never with reduce motion)
+    const down = run.st === 'down' || run.st === 'out';
+    rig.follow(run.st === 'hop' ? run.tx / FP : down && H ? H.x : kx, run.st === 'hop' ? run.ty + 0.5 : down ? (H ? H.y : ky) : ky, dt);
+    depth();
+    const camY = rig.y();
     let shx = 0, shy = 0;
     if (clock < fx.shake) { const q = (fx.shake - clock) / 240; shx = Math.sin(clock * 0.09) * 0.16 * q; shy = Math.cos(clock * 0.113) * 0.12 * q; }
-    cam.position.set(camX + shx, CAM.up * k + shy, Z(camY) + CAM.back * k);
-    cam.lookAt(camX + shx, shy, Z(camY + CAM.ahead * k));
-    const sl = Math.round(camX / 0.45 * 3.4 * 20) / 20;
+    rig.apply(cam, shx, shy);
+    // the skyline slides against the follow (a far thing barely moves) + sits a step over in the turned view
+    const sl = Math.round((rig.x() * 2.2 - rig.yaw() * 28) * 20) / 20;
     if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; }
 
     // ---- the lanes
     for (const q of Object.values(K)) q.reset();
     for (const q of Object.values(KM)) q.reset();
     const kindOf = L => (L.mark ? KIND.mark : KIND[L.type]);
-    const base = Math.floor(camY) - BACK;
+    const base = Math.floor(camY) - BACK, top = base + BACK + Math.min(AHEAD, Math.ceil(24 * rig.k()) + 2);
     let nu = 0, gi = 0;
-    for (let i = base; i < base + POOL; i++) {
+    for (let i = base; i < top; i++) {
       const L = course.lane(i), z = Z(i + 0.5), dk = darkOf(i), lt = 1 - 0.96 * dk, on = lt > 0.3;
       let fxv = 0;
       if (L.type === 'grass') {
         const D = decorOf(i, L);
         for (const q of D.obs) {
           const x = X(q.c + 0.5) + q.dx, zz = z + q.dz, dim = lt * (q.c < 0 || q.c >= COLS ? 0.5 : 1);
-          if (q.k === 'tree' || !KM[q.k]) { const s = 0.72 + q.s * 0.3; K.trees.put(x, 0, zz, s, s, s, q.ry * 3, 0xffffff, dim); K.shadow.put(x, 0.03, zz + 0.1, 1.15 * s, 1, 1.0 * s, 0, 0, 1, 0, 0.5 * lt); }
-          else { const s = PROP_S[q.k]; KM[q.k].put(x, 0, zz, s, s, s, q.k === 'crate-box' ? q.ry * 0.5 : q.k === 'traffic-barrier' ? Math.PI / 2 + q.ry * 0.2 : Math.round(q.ry) * Math.PI / 2 + (q.k === 'traffic-cone' ? q.ry : 0), 0xffffff, dim * 1.35); K.shadow.put(x, 0.03, zz + 0.06, 0.95, 1, 0.8, 0, 0, 1, 0, 0.45 * lt); }
+          if (q.k === 'tree' || (q.k !== 'barricade' && !KM[q.k])) { const s = 0.72 + q.s * 0.3; K.trees.put(x, 0, zz, s, s, s, q.ry * 3, 0xffffff, dim); K.shadow.put(x, 0.03, zz + 0.1, 1.15 * s, 1, 1.0 * s, 0, 0, 1, 0, 0.5 * lt); }
+          else if (q.k === 'barricade') { K.barricades.put(x, 0, zz, 1.04, 1.04, 1.04, q.ry * 0.22, 0xffffff, dim * 1.3); K.shadow.put(x, 0.03, zz + 0.06, 1.1, 1, 0.6, 0, 0, 1, 0, 0.45 * lt); if (on) K.bill.put(x + 0.4, 0.68, zz, 0.3, 0.3, 1, 0, 0xffa530, 1, 0, 0.95 * dim); }
+          else { const s = PROP_S[q.k]; KM[q.k].put(x, 0, zz, s, s, s, Math.round(q.ry) * Math.PI / 2 + (q.k === 'traffic-cone' ? q.ry : 0), 0xffffff, dim * 1.35); K.shadow.put(x, 0.03, zz + 0.06, 0.95, 1, 0.8, 0, 0, 1, 0, 0.45 * lt); }
         }
         if (D.lamp) {                                            // a street lamp on the edge column: its head over the grass, a warm pool under it
           const side = D.lamp, x = X(side > 0 ? COLS + 0.55 : -0.55);
@@ -332,18 +343,21 @@ export function createNight(host, o = {}) {
           //  are always outside the 9 played columns)
           for (let lap = -1; lap <= 1; lap++) {
             const left = l0 + lap * per;
-            if (left > COLS + 6.5 || left + len < -6.5) continue;
+            if (left > COLS + 9 || left + len < -9) continue;
             const cx = X(left + len / 2), inside = left + len > 0 && left < COLS, dim = lt * (inside ? 1 : 0.55);
             if (car) {
               const r = hsh(vseed ^ (i * 7919), j * 13 + 1), tint = NEON[Math.floor(hsh(vseed ^ (i * 104729), j * 31 + 7) * NEON.length)];
               const name = len < 1.5 ? CARS[Math.floor(r * 3)] : 'car-van', q = KM[name], B = BOX[name], ry = L.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
               const bodyL = len < 1.5 ? 0.96 : 1.9, sz = B ? bodyL / B.l : 1, sx = B ? (len < 1.5 ? 0.7 : 0.78) / B.w : 1, sy = B ? (len < 1.5 ? 0.42 : 0.52) : 1;
               const nose = left + (L.dir > 0 ? len - 0.02 : 0.02), bx = X(nose - L.dir * bodyL / 2), tail = left + (L.dir > 0 ? 0.02 : len - 0.02);
-              if (q) q.put(bx - L.dir * B.cz * sz, 0, z, sx, sy, sz, ry, tint, 1, dim);
-              if (len > 2.5) K.trailers.put(X(tail + L.dir * 0.5), 0, z, 0.72, 0.74, 0.96, ry, tint, 1, dim);
+              const truck = len > 2.5, tz = (len - 0.1) / TRUCK.len;   // (3 cells = THE BOX TRUCK, built in code — models.js#buildTruck)
+              if (truck) K.trucks.put(cx, 0, z, 0.94, 0.9, tz, ry, tint, 1, dim);
+              else if (q) q.put(bx - L.dir * B.cz * sz, 0, z, sx, sy, sz, ry, tint, 1, dim);
               K.shadow.put(cx, 0.03, z, len * 1.12, 1, 1.05, 0, 0, 1, 0, 0.6 * lt);
               if (on) {
-                const hw = len < 1.5 ? 0.2 : 0.24, hy = len < 1.5 ? 0.2 : 0.24, a1 = dim;
+                const hw = len < 1.5 ? 0.2 : 0.24, hy = truck ? 0.3 : len < 1.5 ? 0.2 : 0.24, a1 = dim;
+                // the truck's amber markers along the foot of the box's side (the side the camera sees)
+                if (truck) for (const m of [0, 0.34, 0.67, 1]) K.bill.put(cx + L.dir * (TRUCK.box[0] + (TRUCK.box[1] - TRUCK.box[0]) * m) * tz, 0.29, z + 0.4, 0.24, 0.24, 1, 0, 0xff9a1c, 1, 0, a1);
                 K.flat.put(X(nose + L.dir * 1.25), 0.04, z, 2.6, 1, 1.15, L.dir > 0 ? 0 : Math.PI, 0xfff0c8, 1, 2, 0.62 * a1);   // the headlight pool, ahead
                 K.flat.put(X(tail - L.dir * 0.45), 0.04, z, 1.5, 1, 1.0, 0, 0xff2030, 1, 0, 0.5 * a1);                            // the taillight pool, behind
                 K.flat.put(X(tail - L.dir * (1.0 + L.v * 0.02)), 0.3, z, 2.0 + L.v * 0.045, 1, 0.62, L.dir > 0 ? 0 : Math.PI, tint, 1, 1, 0.7 * a1);   // THE LIGHT TRAIL
@@ -355,7 +369,8 @@ export function createNight(host, o = {}) {
               const by = bobOf(i, j) - 0.05 - wv * 0.07;
               K.logs.put(cx, by, z, len - 0.08, 0.78, 1.02, 0, 0xffffff, dim, 1, 1, wv * 0.16);
               if (on) {
-                K.flat.put(cx, 0.045, z, len + 1.3, 1, 1.9, 0, 0xffa23a, 1, 0, 0.26 * dim);                                       // a faint glow on the water round it
+                K.flat.put(cx, 0.045, z, len + 1.5, 1, 2.0, 0, 0xffa23a, 1, 0, 0.36 * dim);                                       // its amber glow on the water
+                K.flat.put(X(L.dir > 0 ? left - 0.95 : left + len + 0.95), 0.05, z, 2.3, 1, 0.92, L.dir > 0 ? 0 : Math.PI, 0xc8f6ff, 1, 1, 0.34 * dim);   // a soft wake behind it
                 K.flat.put(cx, 0.06, z + 0.4, len + 0.1, 1, 0.2, 0, 0xffb648, 1, 4, 0.95 * dim); K.flat.put(cx, 0.06, z - 0.4, len + 0.1, 1, 0.2, 0, 0xffb648, 1, 4, 0.7 * dim);   // AMBER edges
                 K.bill.put(X(left + 0.03), 0.2 + by, z, 0.42, 0.5, 1, 0, 0xffb040, 1, 0, 0.9 * dim); K.bill.put(X(left + len - 0.03), 0.2 + by, z, 0.42, 0.5, 1, 0, 0xffb040, 1, 0, 0.9 * dim);
               }
@@ -428,6 +443,12 @@ export function createNight(host, o = {}) {
     for (let j = nu; j < 2; j++) { ufos[j].d.visible = false; ufos[j].id = -1; }
     // his blob shadow: smaller + fainter as he rises
     if (show && py > -0.2) K.shadow.put(px, feet + 0.035, pz + 0.05, 0.98 * (1 - lift * 0.55) * s3[0], 1, 0.78 * (1 - lift * 0.55) * s3[2], 0, 0, 1, 0, 0.66 * (1 - lift * 0.9) * lit);
+    // HE ALWAYS STANDS OUT: a soft pool of his colour on the ground under him + a ring round his feet (it breathes — never with reduce motion)
+    if (show && py > -0.2 && lit > 0.25 && !(H && down)) {
+      const br = reduce ? 1 : 0.94 + 0.06 * Math.sin(clock / 260);
+      K.flat.put(px, feet + 0.04, pz + 0.04, 2.3, 1, 1.9, 0, kidHex, 1, 0, 0.5 * lit);
+      K.flat.put(px, feet + 0.045, pz + 0.04, 1.42 * br, 1, 1.16 * br, 0, kidHex, 1, 3, 0.8 * lit);
+    }
     // the small moments: a dust ring, a ripple, a splash
     for (let j = fx.parts.length - 1; j >= 0; j--) {
       const q = fx.parts[j], u = (clock - q.t0) / q.life;
@@ -449,14 +470,18 @@ export function createNight(host, o = {}) {
   const v3 = new THREE.Vector3();
   return {
     el, draw, resize: () => fit(), ready, setTier, tier: () => tier,
-    setCols(n) { if (WIDTHS.includes(n) && n !== cols) { cols = n; fit(true); } },
-    cols: () => cols,
+    /** the lab's switches: ZOOM 7 · 8 · 9 + ANGLE straight · turned (eased; `snap` = at once) */
+    setCamera(zoom, angle, snap) { rig.choose(zoom, angle, snap); },
+    zoom: () => rig.zoom(), angle: () => rig.angle(),
+    /** a ground point (column cells, lane) → where it is on the screen ([x, y] 0 … 1 from the top left) — the framing's checks */
+    project(cells, lane) { v3.set(X(cells), 0, Z(lane)).project(cam); return [(1 + v3.x) / 2, (1 - v3.y) / 2]; },
+    kidScreenX() { v3.copy(kid.position).project(cam); return (1 + v3.x) / 2; },
     setKidColor: tintOf,
     /** where the kid is on the screen (0 … 1 from the top) — the camera's check */
     kidScreenY() { v3.copy(kid.position).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px (= pt) — the wider view's readability number */
     kidHeightPx() { v3.set(kid.position.x, kid.position.y, kid.position.z).project(cam); const y0 = v3.y; v3.set(kid.position.x, kid.position.y + kidH, kid.position.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, cols, bloom: !!bloom, look: 'night' }),
+    info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom, look: 'night' }),
     destroy() {
       dead = true; ro.disconnect();
       for (const { m, g } of made) { scene.remove(m); m.material.dispose(); if (g) g.dispose(); m.dispose(); }
