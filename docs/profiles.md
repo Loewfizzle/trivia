@@ -659,3 +659,9 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   past 10 (`api/admin.js#dailyWho` — `dly/{g}/{day}/s · r · x`, faces by index). /api: server.test.mjs "CITY D: STATS → THE DAILIES".
 - A page iOS killed reports itself at the next load: `phonelog` kind `killed` ("PAGE KILLED (likely memory) · screen · device · build") — /admin
   groups it as PAGE KILLED.
+
+### FIXES R2 — THE PLAYER PAGE for a player with little to show (the owner, Nov 15 8:13 pm)
+A balanced column from the top (`.pp-in` — no empty band above a short page; 390 / 402 / 430); THE RAREST ACHIEVEMENTS block always shows — none
+yet = its heading + a quiet NO ACHIEVEMENTS YET, fewer than 3 = what they have; CLOSE is a NEON TUBE (`tubeButton`, secondary — gold is a vault /
+card accent, never a button; `.vl-full-x:not(.btn)` keeps the full card's own CLOSE as it was); a player wearing no card gets the gilded card at
+the full card's width (it reads as a card, not a placeholder). Shots: `Downloads\NEON\fixes-r2\player-page-bare-390.png` / `-full-390.png`.

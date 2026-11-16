@@ -276,21 +276,31 @@ try {
   { const { streakDay } = await import('../../js/core/streak.js');
     const day = streakDay(Date.now()), fake = `wpz${Date.now() % 100000}`;
     await dbPut(`profiles/${fake}`, { n: 'ZEDDY', a: 'star', c: 'cyan', x: 900 });
-    await dbPut(`dly/password/${day}/t`, { v: 1, rows: [{ k: fake, s: 3, at: Date.now() - 60000 }] });
+    const full = `${fake}f`;   // (a FULL player for the shots: a worn card + three achievements)
+    await dbPut(`profiles/${full}`, { n: 'FULLY', a: 'crown', c: 'gold', x: 40000, cd: 'card-velvet' });
+    await dbPut(`pstats/${full}/ac`, { 'first-round': 1, 'the-regular': 2, 'full-house': 3 }); await dbPut(`pstats/${full}/it`, { 'card-velvet': 1 });
+    await dbPut(`dly/password/${day}/t`, { v: 1, rows: [{ k: fake, s: 3, at: Date.now() - 60000 }, { k: full, s: 5, at: Date.now() - 50000 }] });
     await p.evaluate(() => { try { for (const k of Object.keys(localStorage)) if (/dy:scores/.test(k)) localStorage.removeItem(k); } catch { /* fine */ } });
     await home();
     await p.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'scores' } })));
     await waitFor("!!document.querySelector('.dy-scope-b')", 15000);
     // (SCORES → TODAY: EVERYONE · TODAY lists the seeded finisher)
     await p.evaluate("document.querySelectorAll('.dy-scope-b').forEach(b => { if (/TODAY/.test(b.textContent) && !b.classList.contains('is-on')) b.click(); })");
-    const ROW = "document.querySelector('.dy-every-today .dy-card[role=\"button\"]')";
+    const ROW = "document.querySelector('.dy-every-today .dy-card[role=\"button\"][aria-label^=\"ZEDDY\"]')";
     const there = await waitFor(`!!${ROW}`, 12000);
     if (there && process.env.SHOTS) { await sleep(800); await p.screenshot({ path: join(process.env.SHOTS, 'scores-today-row-390.png') }); }
     ok(there, `SCORES → TODAY: the EVERYONE row is a tappable card (${there ? await p.evaluate(`${ROW}.getAttribute('aria-label')`) : 'no row'})`);
     if (there) {
       await p.evaluate("window.__noClick = true");
       await press('[iOS: NO click] a SCORES row → THAT PLAYER\'S PAGE', { js: ROW }, "!!document.querySelector('.vl-full.pp')");
-      if (process.env.SHOTS) { await sleep(900); await p.screenshot({ path: join(process.env.SHOTS, 'scores-row-player-page-390.png') }); }
+      if (process.env.SHOTS) {
+        await sleep(900); await p.screenshot({ path: join(process.env.SHOTS, 'player-page-bare-390.png') });   // (no card, no achievements)
+        await p.keyboard.press('Escape'); await waitFor("!document.querySelector('.vl-full.pp')", 3000); await sleep(400);
+        const F = "document.querySelector('.dy-every-today .dy-card[role=\"button\"][aria-label^=\"FULLY\"]')";
+        if (await waitFor(`!!${F}`, 4000)) { const c = await centre({ js: F }); await p.touchscreen.tap(c.x, c.y); await waitFor("!!document.querySelector('.vl-full.pp[data-state=\"card\"]')", 6000); await sleep(1400); await p.screenshot({ path: join(process.env.SHOTS, 'player-page-full-390.png') }); }
+        else console.log('   (the FULLY row never showed — no full shot)');
+        await p.evaluate("window.__noClick = true");
+      }
       await p.keyboard.press('Escape'); await waitFor("!document.querySelector('.vl-full.pp')", 3000);
       if (!await waitFor(`!!${ROW}`, 3000)) {   // (the Esc took the daily screen too: back to SCORES → TODAY)
         await p.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'scores' } })));

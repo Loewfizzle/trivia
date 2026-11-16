@@ -47,3 +47,11 @@ test('GROUP 1 — AWAY, LIGHT: the hide frees the bakes at once (synchronously),
 test('GROUP 1 — the heads-up message\'s ✕ acts on its own press + lift (a LOST TAP, build 0973fed)', () => {
   assert.match(read('js/ui/toast.js'), /h\('button\.sh-msg-x', \{ type: 'button', 'data-press': true,/);
 });
+
+test('the owner\'s add-on (8:13 pm) — THE PLAYER PAGE: a balanced column, the RAREST block always there, CLOSE a neon tube (never gold)', () => {
+  const pp = read('js/profile/player-page.js'), css = read('css/player.css'), vc = read('css/vault.css');
+  assert.match(pp, /tubeButton\('CLOSE', \{ kind: 'secondary', cls: 'pp-close vl-full-x'/);
+  assert.match(pp, /h\('div\.pp-meds\.is-none', h\('div\.pp-h', 'RAREST ACHIEVEMENTS'\), h\('p\.pp-none', 'NO ACHIEVEMENTS YET'\)\)/);
+  assert.match(css, /\.pp-in \{ margin: clamp\(10px, 5vh, 48px\) 0 28px; \}/, 'from the top — no empty band above');
+  assert.match(vc, /\.vl-full-x:not\(\.btn\) \{/, 'the gold-rimmed box never on a tube');
+});

@@ -53,7 +53,8 @@ export async function openPlayer(target = {}, o = {}) {
   // the skeleton: a card-shaped glass with the name + the emblem the screen already had, two quiet bars under it (no spinner)
   const stage = h('div.vl-full-stage.pp-stage', skeletonCard(row, name));
   const foot = h('div.pp-foot', h('div.pp-skel-bar'), h('div.pp-skel-bar.is-short'), ...extra.map(x => h('div.pp-extra', x)));
-  const box = h('div.vl-full-in.pp-in', stage, foot, h('button.vl-full-x', { type: 'button', 'aria-label': 'Close', onclick: close }, 'CLOSE'));
+  // (FIXES R2 — the owner: CLOSE is a NEON TUBE — gold is a vault / card accent, never a button)
+  const box = h('div.vl-full-in.pp-in', stage, foot, tubeButton('CLOSE', { kind: 'secondary', cls: 'pp-close vl-full-x', attrs: { 'data-press': true, 'aria-label': 'Close' }, onClick: close }));
   const born = performance.now();
   const el = h('div.vl-full.pp', { role: 'dialog', 'aria-modal': 'true', 'aria-label': name ? `${name} — their card` : 'A player’s card', dataset: { state: 'loading', pid: target.pid || '' },
     onclick: e => { if (e.target === el && performance.now() - born > 350) close(); } }, box);
@@ -97,12 +98,13 @@ export async function openPlayer(target = {}, o = {}) {
     const flame = D.streak && D.streak.alive && D.streak.n ? await lazyImport(import('../progress/flame-art.js'), '../progress/flame-art.js').then(m => h('span.pp-fl', { 'aria-label': `${D.streak.n}-day streak` }, m.flameArt('lit', 26), String(D.streak.n))).catch(() => null) : null;
     const lvBox = h('div.pp-lv', h('span.pp-lvn', h('small', 'LEVEL'), String(lv)), h('span.pp-band', h('b', D.band || band.name), h('span', band.line)), flame);
     const top = Array.isArray(D.top) ? D.top.slice(0, 3) : [];
-    let meds = null;
+    // (FIXES R2 — the owner: the block always shows — none yet = its heading + a quiet line, fewer than 3 = what they have)
+    let meds;
     if (top.length) {
       const { medal } = await lazyImport(import('../progress/trophies.js'), '../progress/trophies.js');
       meds = h('div.pp-meds', h('div.pp-h', 'RAREST ACHIEVEMENTS'), ...top.map(a => h('div.pp-med', { dataset: { id: a.id } }, medal({ id: a.id, group: a.group, item: a.item }, a.tier || 'common'), h('b', a.name || ''), h('em', pctText(a.pct)))));
-    }
-    foot.replaceChildren(lvBox, meds || '', actions(D), ...extra.map(x => h('div.pp-extra', x)));
+    } else meds = h('div.pp-meds.is-none', h('div.pp-h', 'RAREST ACHIEVEMENTS'), h('p.pp-none', 'NO ACHIEVEMENTS YET'));
+    foot.replaceChildren(lvBox, meds, actions(D), ...extra.map(x => h('div.pp-extra', x)));
   }
 
   /** INVITE (in a room, a friend who isn't in it) or the friend button (ADD FRIEND · REQUESTED · ACCEPT · FRIENDS) + ⋯ (by `rel`) */
