@@ -468,3 +468,8 @@
 - THE SHARE IMAGE = the player's real run: the game frame frozen at the moment they went out + the lanes in big neon numerals + the cause line + the icon + the site name. Every share is different.
 - THE POSTER (for THE TRI-VISION billboard's JAYWALK COMING SOON face — the city chat swaps it in): rendered from the game itself, never Grok.
 - THE DROPPED SIGNAL (a phone in a moving van): a lost connection of up to ~60 s must NEVER cost an honest run; slow-motion play must still be caught.
+
+## JAYWALK (the owner, Nov 16 — after his first live match)
+- The owner played a live match: SPECTATING "looks great"; but the GHOSTS walk through cars and water, and the first seconds of the match felt laggy.
+- Cause (docs/jaywalk.md): ghosts are drawn GHOST_DELAY (75 ticks = 1.25 s) behind the clock while the world is drawn NOW — a friend safe on a log 1.25 s ago is drawn in the water today.
+- THE RULE FROM NOW ON: a ghost is ALWAYS drawn consistent with the world on screen — never inside a car, never in the water while alive.
