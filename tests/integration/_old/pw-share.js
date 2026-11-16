@@ -1,4 +1,4 @@
-// (PFIX-3 — the EXPECTED copy, re-taken ON PURPOSE on Nov 14 (FABLE REVIEW 2's fixes): by DAY the doors are day doors (a room never opened = a light panel, a held one a light rose — S8), the failed room's label a solid dark red + a locked room's the dim navy (>= 4.5:1), the room labels through the kit's spacing helper (S10); SHARE TODAY's strip BOTTOM-aligned (N6 — the own card's columns stay top-aligned). A frozen copy of js/games/password/share.js for tests/integration/share-same.html — never imported by the app.)
+// (FIXES R3 — the EXPECTED copy, re-taken ON PURPOSE on Nov 16: THE ONE RULE's big score = the daily's MAIN MEASURE — THE PASSWORD's GUESSES big ("8 GUESSES", fitted to the column), the TIME the grey stat line (the owner, Nov 15). Before it: PFIX-3's Nov 14 copy (day doors, the labels' contrast, the spacing helper, SHARE TODAY's strip bottom-aligned). A frozen copy of js/games/password/share.js for tests/integration/share-same.html — never imported by the app.)
 // THE PASSWORD — THE SHARE CARD (PW2 — docs/password.md "THE SHARE"): SHARE renders an IMAGE on a canvas (1080 × 1350, in the look on
 // screen — night neon or the day sky): the sign, the two drawn doors, the result line ("7 GUESSES · 2:54" or the held line), both doors'
 // MINI GRIDS (marks only — NO letters, NO words), neonspeakeasy.com. The headline: WELCOME IN · LOCKED OUT (the owner's ADD-ON). Sent through the phone's share sheet (navigator.share with the file)
@@ -20,7 +20,7 @@
 //   renderShare({ run, look }) → <canvas>      shareRun({ run, line, look }) → 'shared' | 'saved' | 'copied' | 'none'
 //   paintSection(c, { run, look, W, H }) — SHARE TODAY's section (the rhythm's box, centred in W × H)
 import { scoreOf, fmtTime, doorState, guessesLine, DOOR_NAMES, DOORS, HIT, NEAR } from '/js/games/password/logic.js';
-import { SHARE_W, SHARE_H, SITE, shareFrame, shareFoot, sendShare, spacedText, RHYTHM, OWN, paintName, paintBig, paintStat, MADE, FAILED } from '/js/daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
+import { SHARE_W, SHARE_H, SITE, shareFrame, shareFoot, sendShare, spacedText, RHYTHM, OWN, paintName, paintBig, paintStat, MADE, FAILED, measureOf } from '/js/daily/share.js';   // (DM1 — THE DAILY KIT: the card's frame + its sender)
 export { SHARE_W, SHARE_H, SITE };
 const LOOK = {
   night: { bg0: '#0d0a1c', bg1: '#05040c', sign: '#ff5ec4', signCore: '#fff2fa', ink: '#f4f6ff', dim: 'rgba(244,246,255,0.62)', faint: 'rgba(244,246,255,0.4)', good: '#3dff8b', close: '#ffd23d', red: '#ff3355', tile: 'rgba(255,255,255,0.05)', tileLine: 'rgba(255,255,255,0.16)', miss: 'rgba(0,0,0,0.42)', near: 'rgba(0,0,0,0.45)', hitInk: '#06130b', doorOn: '#ff5ec4', doorLock: 'rgba(255,255,255,0.28)', doorHeld: 'rgba(255,92,120,0.8)', room: '#ffc266', font: '"Orbitron", "Chakra Petch", system-ui, sans-serif' },
@@ -77,7 +77,11 @@ export const NAME = 'THE PASSWORD';
 export const resultOf = run => (scoreOf(run).doors === DOORS ? MADE : FAILED);
 /** the big TIME ("2:54") · the stat line ("5 GUESSES" — a locked-out run's too: the red name says it) */
 export const timeOf = run => fmtTime(scoreOf(run).time);
-export const statOf = run => guessesLine(run);
+/** THE ONE RULE (FIXES R3, the owner Nov 15): ONE big SCORE = the daily's MAIN MEASURE (config.js DAILIES `measure` — THE PASSWORD's is its
+ *  GUESSES: "8 GUESSES" big), the other = the grey stat line (the time) */
+const byGuesses = () => measureOf('password') === 'guesses';
+export const bigOf = run => (byGuesses() ? guessesLine(run) : timeOf(run));
+export const statOf = run => (byGuesses() ? timeOf(run) : guessesLine(run));
 /** THE ROOMS' sizes on the card (the door's scale — 1 = 34 × 44 — the tiles, the gap between the two columns, the label) */
 export const ROOMS = Object.freeze({ S: 2.3, cell: 56, gap: 10, colGap: 110, label: 24, ls: 4, padDoor: 14, padLabel: 20 });
 const roomsHead = () => 44 * ROOMS.S + ROOMS.padDoor + ROOMS.label + ROOMS.padLabel;
@@ -124,10 +128,10 @@ export function renderShare({ run, look = 'night', dayNo = null } = {}) {
     const hz = c.createRadialGradient(W / 2, -80, 0, W / 2, -80, 700); hz.addColorStop(0, 'rgba(255,94,196,0.18)'); hz.addColorStop(1, 'rgba(255,94,196,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, H);
   }
   c.textAlign = 'center'; c.textBaseline = 'middle';
-  // THE ONE RULE (SKINS 2B): the name (green made · red locked out) · ONE big TIME · ONE grey stat line · THE ART (the two rooms, each ONE
+  // THE ONE RULE (SKINS 2B): the name (green made · red locked out) · ONE big SCORE (FIXES R3: the GUESSES) · ONE grey stat line (the time) · THE ART (the two rooms, each ONE
   // centred column: its door + its label over its own grid — top-aligned, the pair centred) · the foot
   paintName(c, look, NAME, W / 2, OWN.nameY, OWN.namePx, W - 120, resultOf(run));
-  paintBig(c, look, timeOf(run), W / 2, OWN.bigY, OWN.bigPx);
+  paintBig(c, look, bigOf(run), W / 2, OWN.bigY, OWN.bigPx, W - 120);
   paintStat(c, look, statOf(run), W / 2, OWN.statY, OWN.statPx, W - 120);
   // (the rooms sit a little above the middle of the art box — a six-row room fills it)
   paintRooms(c, run, L, look, W / 2, OWN.artY + Math.max(0, (OWN.artBot - OWN.artY - roomsH(run)) * 0.4));
@@ -170,7 +174,7 @@ export function paintSection(c, { run, look = 'night', W = SHARE_W, H = SECTION_
   c.translate(0, Math.max(0, (H - sectionH({ run, W, k })) / 2));
   c.textAlign = 'center'; c.textBaseline = 'middle';
   paintName(c, look, NAME, W / 2, R.nameY, R.namePx, W - 2 * R.COL, resultOf(run));
-  paintBig(c, look, timeOf(run), W / 2, R.bigY, R.bigPx);
+  paintBig(c, look, bigOf(run), W / 2, R.bigY, R.bigPx, W - 2 * R.COL);
   paintStat(c, look, statOf(run), W / 2, R.statY, R.statPx, W - 2 * R.COL);
   paintGrids(c, run, L, W / 2, R.artY + (T.stripH - T.gridH) / 2, T.cell, T.gap, T.gx);
   c.restore();

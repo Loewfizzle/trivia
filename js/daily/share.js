@@ -8,6 +8,7 @@
 // opens, so the tap calls the share sheet AT ONCE; a phone that can't share a file — or refuses — is SHOWN the card in a sheet, PRESS AND HOLD
 // TO SAVE: never a silent download).
 import { lazyImport } from '../ui/lazy-import.js';
+import { gameRow } from '../config.js';
 export const SHARE_W = 1080, SHARE_H = 1350;
 export const SITE = 'neonspeakeasy.com';
 
@@ -54,8 +55,9 @@ export function shareFrame(L, look) {
  * THE SHARE CARD's ONE RULE (SKINS 2B — the owner, Nov 14, approved from a mockup + his 11:16 am add-on; it replaces SKINS 2A's "the name or
  * the win word"): every SHARE TODAY section = (1) THE NAME — the daily's own name, the SAME small size for all, and IT CARRIES THE RESULT:
  * a clean GREEN neon when the run was made, RED when it failed (a modest glow — never a blazing headline), WHITE for a daily with no win /
- * lose (THE DROP). No win word, no name-swap, no extra word for a lost run · (2) ONE big TIME, the same size for all, white (2:54 · 2:12 ·
- * 2:38.9) · (3) ONE stat line, grey (5 GUESSES · 1 SPOTTED · +30 s · 101 LINES) · (4) ONE art strip (THE PASSWORD's tiles — no doors · COAST
+ * lose (THE DROP). No win word, no name-swap, no extra word for a lost run · (2) ONE big SCORE = THE DAILY's MAIN MEASURE (FIXES R3, the
+ * owner Nov 15 — its DAILIES row's `measure`, measureOf below): THE PASSWORD its GUESSES (8 GUESSES), COAST CLEAR + THE DROP their TIME (2:12 ·
+ * 2:38.9) — the same size for all, white · (3) ONE stat line, grey (THE PASSWORD's time · 1 SPOTTED · +30 s · 101 LINES) · (4) ONE art strip (THE PASSWORD's tiles — no doors · COAST
  * CLEAR's 3 lamps · THE DROP's board, its top 8 rows) — the SAME sizes and spacing in every section, centred inside ONE column (COL each side
  * of a 1080 card). The three text pieces are drawn by ONE painter each (paintName · paintBig · paintStat — below), never by a daily's own.
  * A section's natural box = H tall (share-today.js scales every section by the same factor); every y is a text MIDDLE; the strip =
@@ -63,6 +65,9 @@ export function shareFrame(L, look) {
  * THE DROP's board is TALLER (a decent-sized box), COAST CLEAR's lamps SHORTER (they gave up the room), THE PASSWORD's the rhythm's
  * (grown for a tall grid). The name, the big time and the stat line stay the SAME sizes in every section.
  */
+/** FIXES R3 — THE ONE RULE's big score: a daily's MAIN MEASURE ('guesses' | 'time') from its DAILIES row (config.js) — 'time' when it names none */
+export const MEASURES = Object.freeze(['time', 'guesses']);
+export const measureOf = id => { const m = gameRow(id) && gameRow(id).measure; return MEASURES.includes(m) ? m : 'time'; };
 export const RHYTHM = Object.freeze({ H: 312, COL: 150, nameY: 18, namePx: 40, bigY: 87, bigPx: 84, statY: 141, statPx: 32, artY: 167, artH: 145 });
 /** the same rule on a daily's OWN card (1080 × 1350): the name · the big time · the stat line · the art (its box: artY → artBot) · the foot */
 export const OWN = Object.freeze({ nameY: 150, namePx: 72, bigY: 378, bigPx: 150, statY: 506, statPx: 46, artY: 590, artBot: 1150 });
@@ -101,10 +106,16 @@ export function paintName(c, look, name, cx, y, px, fitW = 0, result = null) {
   } else { c.fillStyle = col; spacedText(c, t, x, y, ls); }
   c.restore();
 }
-/** (2) THE BIG TIME — the number font's bold, the ink (white by night), centred on cx */
-export function paintBig(c, look, text, cx, y, px) {
+/** (2) THE BIG SCORE (the daily's main measure — a time, or THE PASSWORD's guesses) — the number font's bold, the ink (white by night),
+ *  centred on cx; fitW = the widest it may print (a long word line shrinks to it — FIXES R3) */
+export function paintBig(c, look, text, cx, y, px, fitW = 0) {
+  const t = String(text == null ? '' : text);
   c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.font = `700 ${px}px ${FONT_TEXT}`; c.fillStyle = inkOf(look).ink; c.fillText(String(text == null ? '' : text), cx, y);
+  let p = px;
+  const set = () => { c.font = `700 ${p}px ${FONT_TEXT}`; };
+  set();
+  while (fitW && p > 24 && c.measureText(t).width > fitW) { p -= 2; set(); }
+  c.fillStyle = inkOf(look).ink; c.fillText(t, cx, y);
   c.restore();
 }
 /** (3) THE STAT LINE — ONE grey line, centred on cx (never a coloured word: a lost run is said by the NAME's red); fitW = the widest it may print */

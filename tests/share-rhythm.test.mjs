@@ -45,7 +45,7 @@ test('every section is laid out by the SAME numbers: each daily\'s paintSection 
     for (const k of ['nameY', 'namePx', 'bigY', 'bigPx', 'statY', 'statPx', 'artY']) assert.match(sec, new RegExp(`R\\.${k}\\b`), `${p} reads RHYTHM.${k}`);
     // (SKINS 2B) the three text pieces are the KIT's — the same name, time and stat line in every section
     assert.match(sec, /paintName\(c, look, NAME, W \/ 2, R\.nameY, R\.namePx, [^;]+\);/, `${p}: the kit's name`);
-    assert.match(sec, /paintBig\(c, look, [^;]+, W \/ 2, R\.bigY, R\.bigPx\);/, `${p}: the kit's big time`);
+    assert.match(sec, /paintBig\(c, look, [^;]+, W \/ 2, R\.bigY, R\.bigPx(, [^;]+)?\);/, `${p}: the kit's big score`);
     assert.match(sec, /paintStat\(c, look, [^;]+, W \/ 2, R\.statY, R\.statPx, /, `${p}: the kit's stat line`);
     assert.doesNotMatch(code(p), /paintSign|paintHead|WORD_K|doubledName|HEAD_IN|glowText/, `${p}: no sign, headline or win word of its own`);
     assert.doesNotMatch(sec.split('\n/** SHARE')[0], /\b(1[0-9]{2}|[2-9][0-9]{2})px\b/, `${p}: no size of its own in the section`);
@@ -121,7 +121,7 @@ test('SKINS 2B — THE ONE RULE: the NAME carries the result (green made · red 
   assert.match(stat, /c\.fillStyle = inkOf\(look\)\.stat;/, 'the stat line is ONE grey — never a coloured word');
   assert.doesNotMatch(stat, /red|failed|made/);
   // a MODEST glow: the name's blur stays under half its size (WELCOME IN's headline glowed at 0.375 × 92 px)
-  for (const m of kit.slice(kit.indexOf('export function paintName'), kit.indexOf('/** (2) THE BIG TIME')).matchAll(/shadowBlur = p \* (?:\(result \? ([\d.]+) : ([\d.]+)\)|([\d.]+))/g)) for (const v of m.slice(1).filter(Boolean)) assert.ok(Number(v) <= 0.55, `a blur of ${v} × the name's size`);
+  for (const m of kit.slice(kit.indexOf('export function paintName'), kit.indexOf('/** (2) THE BIG SCORE')).matchAll(/shadowBlur = p \* (?:\(result \? ([\d.]+) : ([\d.]+)\)|([\d.]+))/g)) for (const v of m.slice(1).filter(Boolean)) assert.ok(Number(v) <= 0.55, `a blur of ${v} × the name's size`);
   // COAST CLEAR: a clear = MADE · its time · its line; a caught run = FAILED · the time its line ends with · the spots alone (no CAUGHT word)
   assert.deepEqual(partsOf({ head: 'COAST CLEAR', caught: false, time: '2:12', line: '1 SPOTTED · +30 s', spots: 1 }), { result: MADE, big: '2:12', stat: '1 SPOTTED · +30 s' });
   assert.deepEqual(partsOf({ head: 'CAUGHT', caught: true, time: null, line: '3 SPOTTED · 1:58', spots: 3 }), { result: FAILED, big: '1:58', stat: '3 SPOTTED' });
@@ -129,10 +129,10 @@ test('SKINS 2B — THE ONE RULE: the NAME carries the result (green made · red 
   assert.deepEqual(partsOf(null), { result: MADE, big: '', stat: '' });
   const cc = code('js/games/coastclear/share.js');
   assert.doesNotMatch(cc.slice(cc.indexOf('export function renderShare')), /I\.head/, "COAST CLEAR's card never prints its result word");
-  // THE PASSWORD: the stat line = the guesses alone; the name's colour = both doors opened or not; the strip = the tiles only
+  // THE PASSWORD: the stat line = the TIME alone (FIXES R3 — the guesses are its big score); the name's colour = both doors opened or not; the strip = the tiles only
   const pw = read('js/games/password/share.js');
   assert.match(pw, /export const resultOf = run => \(scoreOf\(run\)\.doors === DOORS \? MADE : FAILED\);/);
-  assert.match(pw, /export const statOf = run => guessesLine\(run\);/);
+  assert.match(pw, /export const statOf = run => \(byGuesses\(\) \? timeOf\(run\) : guessesLine\(run\)\);/);
   assert.doesNotMatch(code('js/games/password/share.js'), /HEAD_OUT|HEAD_IN|LOCKED OUT|WELCOME IN/);
   const sec = pw.slice(pw.indexOf('export function paintSection'));
   assert.doesNotMatch(sec, /door\(|paintDoor|paintDoors/, "no doors in SHARE TODAY's strip (the daily's own card keeps them)");
@@ -144,7 +144,7 @@ test('SKINS 2B — THE ONE RULE: the NAME carries the result (green made · red 
   for (const p of ['js/games/password/share.js', 'js/games/coastclear/share.js']) {
     const own = read(p).slice(read(p).indexOf('export function renderShare'), read(p).indexOf('export const SECTION_H'));
     assert.match(own, /paintName\(c, look, NAME, W \/ 2, OWN\.nameY, OWN\.namePx, W - 120, [^;]+\);/, p);
-    assert.match(own, /paintBig\(c, look, [^;]+, W \/ 2, OWN\.bigY, OWN\.bigPx\);/, p);
+    assert.match(own, /paintBig\(c, look, [^;]+, W \/ 2, OWN\.bigY, OWN\.bigPx(, [^;]+)?\);/, p);
     assert.match(own, /paintStat\(c, look, [^;]+, W \/ 2, OWN\.statY, OWN\.statPx, /, p);
   }
 });
@@ -335,4 +335,23 @@ test('PFIX-3 (Ben, Nov 14) — SHARE TODAY: THE DROP\'s board box is DECENT SIZE
   assert.ok(lamp >= 80, `the lamps still read: ${lamp.toFixed(0)} px tall`);
   assert.ok(RHYTHM.namePx * s >= 34 && RHYTHM.bigPx * s >= 72, `the names + the times stay their size (${(RHYTHM.namePx * s).toFixed(0)} / ${(RHYTHM.bigPx * s).toFixed(0)} px)`);
   void H;
+});
+
+// FIXES R3 — THE ONE RULE's big score (the owner, Nov 15): "ONE big SCORE = the daily's main measure" — THE PASSWORD: its GUESSES big, the
+// time the grey stat line; COAST CLEAR + THE DROP: the time big. Every DAILIES row declares its measure (a future daily declares its own).
+test('FIXES R3 — ONE big SCORE = the daily\'s MAIN MEASURE: THE PASSWORD its guesses (the time grey), COAST CLEAR + THE DROP their time', async () => {
+  const { DAILIES } = await import('../js/config.js');
+  const S = await import('../js/daily/share.js');
+  for (const d of DAILIES) assert.ok(S.MEASURES.includes(d.measure), `${d.id} declares its measure (${d.measure})`);
+  assert.equal(S.measureOf('password'), 'guesses'); assert.equal(S.measureOf('coastclear'), 'time'); assert.equal(S.measureOf('drop'), 'time');
+  assert.equal(S.measureOf('nope'), 'time', 'a daily that names none: the time');
+  const PW = await import('../js/games/password/share.js');
+  const run = { done: true, startedAt: 1000, finishedAt: 1000 + 174e3, doors: [{ state: 'solved', guesses: ['a', 'b', 'c'], marks: [] }, { state: 'solved', guesses: ['d', 'e', 'f', 'g', 'h'], marks: [] }] };
+  assert.equal(PW.bigOf(run), '8 GUESSES', 'the guesses BIG');
+  assert.equal(PW.statOf(run), '2:54', 'the time = the grey stat line');
+  const pw = read('js/games/password/share.js');
+  assert.match(pw, /paintBig\(c, look, bigOf\(run\), W \/ 2, OWN\.bigY, OWN\.bigPx, W - 120\);/, 'its own card: the guesses big (fitted)');
+  assert.match(pw, /paintBig\(c, look, bigOf\(run\), W \/ 2, R\.bigY, R\.bigPx, W - 2 \* R\.COL\);/, 'SHARE TODAY\'s section: the same');
+  for (const p of ['js/games/coastclear/share.js', 'js/games/drop/share.js']) assert.doesNotMatch(read(p), /bigOf|measureOf\('(coastclear|drop)'\) === 'guesses'/, `${p}: the time stays big`);
+  assert.match(read('js/daily/share.js'), /export function paintBig\(c, look, text, cx, y, px, fitW = 0\)/, 'a long word line shrinks to its column');
 });

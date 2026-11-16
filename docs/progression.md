@@ -467,6 +467,12 @@ The review: docs/games/review-dailies-2.md (each finding carries its DFIX2 line)
   **THE FOOT** of EVERY share card = ONE painter, `js/daily/share.js#shareAddress`: ONE straight thin neon line + NEONSPEAKEASY.COM in plain
   neon lettering (navy by day) — no frame, no rounded shape (SHARE TODAY's tube capsule is gone); each daily's own card (`shareFoot` = a small
   dim "Nº n" + it — the name is on a card ONCE, never again in the foot) and SHARE YOUR RUN's card (`games/kit/share-run.js`) draw the same.
+  **FIXES R3 (Nov 16 — the owner, Nov 15): "ONE big SCORE = the daily's MAIN MEASURE"** — each DAILIES row declares `measure` ('guesses' |
+  'time'; `share.js#measureOf`, 'time' when none — a future daily declares its own): **THE PASSWORD's big line = its GUESSES** ("8 GUESSES",
+  `password/share.js#bigOf` through `paintBig`, which now takes a `fitW` and shrinks a long word line to the column) and its **TIME is the one
+  grey stat line**; COAST CLEAR + THE DROP keep their time big. The share-card preview + the tappable link's picture follow (the phone builds the
+  card — THE CARD IS BUILT BEFORE THE TAP). `tests/share-rhythm.test.mjs` (the measure test) · share-same 60 / 60 (`_old/pw-share.js` re-taken ON
+  PURPOSE) · shots `Downloads/NEON/fixes-r3/share-today-{night,day}-390x844.png`.
   **THE ONE RULE (SKINS 2B, Nov 14 — the owner, from a mockup + his 11:16 am add-on; it replaces SKINS 2A's "the name or the win word" —
   docs/games/passes/skins-2b.md)** (`share.js#RHYTHM`): every SHARE TODAY section = (1) **THE NAME** — the daily's own name, the SAME small
   size for all, and **IT CARRIES THE RESULT**: a clean GREEN neon when the run was made, RED when it failed (a modest glow — never a blazing
