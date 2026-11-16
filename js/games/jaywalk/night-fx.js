@@ -12,9 +12,9 @@ export const rgb = hex => [((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, 
 export const KIND = Object.freeze({ grass: 0, road: 1, water: 2, rail: 3, flight: 4, mark: 5 });
 
 const GROUND_V = `
-attribute float aLane; attribute vec4 aKind; attribute vec2 aState;
+attribute float aLane; attribute vec4 aKind; attribute vec3 aState;
 uniform vec2 uFog;
-varying vec2 vP; varying vec4 vKind; varying vec2 vState; varying float vFog; varying float vLane;
+varying vec2 vP; varying vec4 vKind; varying vec3 vState; varying float vFog; varying float vLane;
 void main() {
   vec3 p = vec3(position.x * 46.0, 0.0, -(aLane + 0.5) + position.z);
   vP = vec2(p.x + 4.5, 0.5 - position.z);
@@ -26,16 +26,63 @@ void main() {
 const GROUND_F = `
 precision highp float;
 uniform float uTime; uniform vec3 uFogCol; uniform float uQ;
-varying vec2 vP; varying vec4 vKind; varying vec2 vState; varying float vFog; varying float vLane;
+varying vec2 vP; varying vec4 vKind; varying vec3 vState; varying float vFog; varying float vLane;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
+// THE AREAS' GROUND (H5A — areas.js: a WHOLE STRETCH looks like the place): what a "grass" lane is there — 1 THE DOCKS' pier planks ·
+// 2 THE FISH MARKET's wet cobbles · 3 THE RAIL YARD's gravel · 4 THE BRIDGE's steel deck · 5 DOWNTOWN's sidewalk · 6 THE CANAL's stone
+// embankment · 7 THE LIGHTHOUSE's sand + scrub · 8 THE AIRFIELD's apron. Each its own hue — never the asphalt's, never the water's.
+float joint(vec2 f, float w) { return smoothstep(0.0, w, f.x) * smoothstep(1.0, 1.0 - w, f.x) * smoothstep(0.0, w * 2.0, f.y) * smoothstep(1.0, 1.0 - w * 2.0, f.y); }
+vec3 areaGround(float ar, float x, float z, float seed, float lane) {
+  vec3 c;
+  if (ar < 1.5) {
+    float b = floor(x * 2.5), f = fract(x * 2.5);
+    c = vec3(0.170, 0.108, 0.062) * (0.74 + 0.5 * hash(vec2(b, lane)));
+    c *= smoothstep(0.0, 0.07, f) * smoothstep(1.0, 0.93, f) * 0.6 + 0.4;
+    c *= 0.92 + 0.16 * hash(floor(vec2(x * 40.0, z * 5.0)) + seed);
+    c = mix(c, vec3(0.34, 0.33, 0.36), smoothstep(0.05, 0.02, length(vec2((f - 0.5) * 0.4, abs(z - 0.5) - 0.38))) * 0.8);
+  } else if (ar < 2.5) {
+    vec2 q = vec2(x * 3.0 + step(0.5, fract(z * 1.5)) * 0.5, z * 3.0), f = fract(q) - 0.5;
+    c = vec3(0.075, 0.118, 0.140) * (0.7 + 0.6 * hash(floor(q) + seed));
+    c *= smoothstep(0.5, 0.34, max(abs(f.x), abs(f.y))) * 0.75 + 0.25;
+    c += vec3(0.05, 0.11, 0.13) * smoothstep(0.24, 0.0, length(f - vec2(-0.12, 0.14)));
+  } else if (ar < 3.5) {
+    c = vec3(0.120, 0.100, 0.086) * (0.62 + 0.76 * hash(floor(vec2(x * 13.0, z * 13.0)) + seed));
+    c *= 0.8 + 0.4 * vnoise(vec2(x * 1.3, z * 1.3 + lane));
+  } else if (ar < 4.5) {
+    vec2 q = vec2(x / 1.5, z * 2.0);
+    c = vec3(0.105, 0.070, 0.078) * (0.88 + 0.24 * hash(floor(q) + lane));
+    c *= joint(fract(q), 0.02) * 0.55 + 0.45;
+    c += vec3(0.12, 0.08, 0.08) * smoothstep(0.1, 0.04, length(abs(fract(vec2(x * 4.0, z * 4.0)) - 0.5) - 0.3));
+  } else if (ar < 5.5) {
+    vec2 q = vec2(x, z * 2.0);
+    c = vec3(0.150, 0.146, 0.185) * (0.88 + 0.24 * hash(floor(q) + lane * 3.0));
+    c *= joint(fract(q), 0.025) * 0.5 + 0.5;
+  } else if (ar < 6.5) {
+    vec2 q = vec2(x * 1.25 + step(0.5, fract(z)) * 0.5, z * 2.0);
+    c = vec3(0.150, 0.135, 0.112) * (0.8 + 0.4 * hash(floor(q) + seed));
+    c = mix(vec3(0.045, 0.115, 0.060), c, joint(fract(q), 0.035));
+  } else if (ar < 7.5) {
+    float n = vnoise(vec2(x * 0.9, z * 0.9 + lane));
+    c = mix(vec3(0.200, 0.170, 0.108), vec3(0.070, 0.170, 0.092), smoothstep(0.55, 0.75, n));
+    c *= 0.86 + 0.28 * hash(floor(vec2(x * 9.0, z * 9.0)) + seed);
+    c = mix(c, vec3(0.085, 0.09, 0.105), step(0.962, hash(floor(vec2(x * 5.0, z * 5.0)) + seed * 3.0)));
+  } else {
+    vec2 q = vec2(x / 3.0, z);
+    c = vec3(0.118, 0.132, 0.165) * (0.9 + 0.2 * hash(floor(q) + lane));
+    c *= smoothstep(0.0, 0.012, fract(q.x)) * smoothstep(1.0, 0.988, fract(q.x)) * 0.45 + 0.55;
+    c = mix(c, vec3(0.80, 0.62, 0.10), smoothstep(0.035, 0.015, abs(z - 0.13)) * 0.7);   // (a solid taxi line along its foot — never a road's dashed centre line)
+  }
+  return c;
+}
 void main() {
-  float type = vKind.x, dn = vKind.y, up = vKind.z, seed = vKind.w, x = vP.x, z = vP.y;
+  float type = vKind.x, dn = vKind.y, up = vKind.z, seed = vKind.w, x = vP.x, z = vP.y, ar = vState.z;
   vec3 c;
   if (type < 0.5 || type > 4.5) {
     float chk = mod(floor(x) + vLane, 2.0);
     c = mix(vec3(0.070, 0.205, 0.098), vec3(0.082, 0.232, 0.108), chk);
     c *= 0.9 + 0.2 * hash(floor(vec2(x * 2.5, z * 2.5)) + seed * 7.0);
+    if (ar > 0.5) c = areaGround(ar, x, z, seed, vLane);
     if (type > 4.5) {                                             // a LANDMARK's lane: dark paving, a neon trim on both edges
       c = vec3(0.105, 0.10, 0.15) * (0.9 + 0.2 * mod(floor(x * 2.0) + floor(z * 2.0), 2.0));
       float trim = smoothstep(0.05, 0.02, abs(z - 0.08)) + smoothstep(0.05, 0.02, abs(z - 0.92));
@@ -120,12 +167,12 @@ void main() {
   gl_FragColor = vec4(c, 1.0);
 }`;
 
-/** the lanes' ground: n instanced planes. → { mesh, lay(k, lane, kind, down, up, seed, dark, fx), done(n), uniforms } */
+/** the lanes' ground: n instanced planes. → { mesh, lay(k, lane, kind, down, up, seed, dark, fx, area), done(n), uniforms } */
 export function createGround(n, fog) {
   const base = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), g = new THREE.InstancedBufferGeometry();
   g.index = base.index; g.setAttribute('position', base.attributes.position);
-  const lane = new Float32Array(n), kind = new Float32Array(n * 4), state = new Float32Array(n * 2);
-  const aL = new THREE.InstancedBufferAttribute(lane, 1), aK = new THREE.InstancedBufferAttribute(kind, 4), aS = new THREE.InstancedBufferAttribute(state, 2);
+  const lane = new Float32Array(n), kind = new Float32Array(n * 4), state = new Float32Array(n * 3);
+  const aL = new THREE.InstancedBufferAttribute(lane, 1), aK = new THREE.InstancedBufferAttribute(kind, 4), aS = new THREE.InstancedBufferAttribute(state, 3);
   for (const a of [aL, aK, aS]) a.setUsage(THREE.DynamicDrawUsage);
   g.setAttribute('aLane', aL); g.setAttribute('aKind', aK); g.setAttribute('aState', aS);
   const uniforms = { uTime: { value: 0 }, uFog: { value: fog }, uFogCol: { value: new THREE.Vector3(...rgb(FOG_HEX)) }, uQ: { value: 1 } };
@@ -133,7 +180,7 @@ export function createGround(n, fog) {
   mesh.frustumCulled = false; mesh.renderOrder = -1;
   return {
     mesh, uniforms,
-    lay(k, i, t, dn, up, seed, dark, fx) { lane[k] = i; kind[k * 4] = t; kind[k * 4 + 1] = dn; kind[k * 4 + 2] = up; kind[k * 4 + 3] = seed; state[k * 2] = dark; state[k * 2 + 1] = fx; },
+    lay(k, i, t, dn, up, seed, dark, fx, ar = 0) { lane[k] = i; kind[k * 4] = t; kind[k * 4 + 1] = dn; kind[k * 4 + 2] = up; kind[k * 4 + 3] = seed; state[k * 3] = dark; state[k * 3 + 1] = fx; state[k * 3 + 2] = ar; },   // (ar — H5A: the lane's AREA, 0 = the opening · 1 … 8)
     done(c) { g.instanceCount = c; aL.needsUpdate = aK.needsUpdate = aS.needsUpdate = true; },
     dispose() { g.dispose(); base.dispose(); mesh.material.dispose(); },
   };

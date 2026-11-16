@@ -43,11 +43,18 @@
 .jw-skyline-img { position: absolute; left: 50%; top: 0; height: 100%; aspect-ratio: 1280 / 432; background-size: 100% 100%; transform: translate3d(-50%, 0, 0); will-change: transform; }
 .jw-sky-l { position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #ff4034; box-shadow: 0 0 6px 2px rgba(255, 64, 52, 0.85); animation: jw-blink 2.6s steps(1) infinite; }
 .jw-sky-n { position: absolute; background: rgba(9, 6, 20, 0.86); opacity: 0; animation: jw-flick 6.5s steps(1) infinite; }
+/* H5A — THE AREAS: the band takes a wash of the area's own colour (set by night.js when the kid crosses a gateway — opacity only) */
+.jw-sky-tint { position: absolute; inset: 0; opacity: 0; transition: opacity 0.9s ease; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .jw-sky-tint { transition: none; } }
 @keyframes jw-blink { 0%, 52% { opacity: 1; } 53%, 100% { opacity: 0.12; } }
 @keyframes jw-flick { 0%, 100% { opacity: 0; } 2% { opacity: 1; } 4% { opacity: 0; } 7% { opacity: 0.8; } 8.5% { opacity: 0; } 46% { opacity: 0.9; } 47.5% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .jw-sky-l, .jw-sky-n { animation: none; } }
 .jw-sub { margin-top: 6px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.2em; color: var(--text-dim); }
 .jw-mark { margin-top: 10px; min-height: 18px; font: 900 16px/1 var(--font-display); letter-spacing: 0.14em; color: #ffd6f0; text-shadow: 0 0 14px rgba(255, 79, 196, 0.7); }
+/* H5A — THE ARRIVAL GATEWAY: the area's name flashes once as the kid crosses it (transform + opacity only) */
+.jw-mark.is-flash { animation: jw-gate 0.62s ease-out 1; }
+@keyframes jw-gate { 0% { transform: scale(1.5); opacity: 0; } 30% { transform: scale(1.12); opacity: 1; } 55% { opacity: 0.45; } 75% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .jw-mark.is-flash { animation: none; } }
 
 /* the small mode switch (neon-underline tabs — never a pill) + NEW SEED */
 .jw-bar { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 8px); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; }

@@ -29,7 +29,7 @@ import { backToLobby } from '../../host.js';
 import { createTiers } from '../kit/tiers.js';
 import { showCall } from '../kit/call.js';
 import { TICK_HZ, CLOCK } from './tuning.js';
-import { createCourse, laneHit, logUnder } from './course.js';
+import { createCourse, laneHit, logUnder, gateName } from './course.js';
 import { createRun, step, isOver, canLog, kidAt } from './engine.js';
 import { packLog, unpackLog, logFromChunks } from './replay.js';
 import { seedOf, startOf } from './logic.js';
@@ -247,7 +247,12 @@ export function createView() {
     step(run, course, d, ev);
     for (const e of ev) {
       if (e.e === 'best') onBest(e.lane);
-      if (e.e === 'landmark' && markEl) { markEl.textContent = e.name; markUntil = performance.now() + 2600; }
+      // THE ARRIVAL GATEWAY (H5A): the area's name flashes ONCE under the lane count (the loop's laps named: THE DOCKS · LAP 2) + the landmark sound
+      if (e.e === 'landmark' && markEl) {
+        markEl.textContent = gateName(e.lane); markUntil = performance.now() + 2600;
+        markEl.classList.remove('is-flash'); void markEl.offsetWidth; markEl.classList.add('is-flash');
+        if (sndOn) { try { SFX.play('landmark'); } catch { /* silent */ } }
+      }
       if (sndOn) { try { SFX.onEvent(e); } catch { /* silent */ } }
     }
   }

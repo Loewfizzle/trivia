@@ -6,7 +6,7 @@
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { TICK_MS, TICK_HZ, MODES, MODE_IDS, FP } from './tuning.js';
-import { createCourse, pulseAt, moverLeft } from './course.js';
+import { createCourse, pulseAt, moverLeft, gateName } from './course.js';
 import { createRun, step, isOver, resultOf, canLog } from './engine.js';
 import { replay } from './replay.js';
 import { wireControls } from './controls.js';
@@ -110,7 +110,7 @@ async function mount() {
     const ev = [];
     if (safe && run.wall > (run.y - 5) * FP) run.wall = (run.y - 5) * FP;
     step(run, course, d, ev);
-    for (const e of ev) { if (e.e === 'landmark') { mark.textContent = e.name; markUntil = performance.now() + 2600; } if (snd) snd.onEvent(e); }
+    for (const e of ev) { if (e.e === 'landmark') { mark.textContent = gateName(e.lane); markUntil = performance.now() + 2600; } if (snd) snd.onEvent(e); }   // (H5A: the area's name as its gateway shows it — THE DOCKS · LAP 2)
     steps++;
   }
   function showEnd() {
@@ -185,6 +185,7 @@ async function mount() {
     pulse(lane) { const L = course.lane(lane); return L.pulse ? pulseAt(L.pulse, run.t) : null; },
     /** (a look check) hold the kid still the moment a hop is `k` ticks in (null = let go) — the world stops with him */
     hold(k) { holdAt = k; },
+    gate: gateName,
   };
 }
 

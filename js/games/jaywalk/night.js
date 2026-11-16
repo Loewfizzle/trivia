@@ -4,6 +4,9 @@
 //     seed, both tail lights lit + a soft red glow on the road behind, a soft headlight glow in front (H5A — the light trails are GONE: they read as jet exhaust from above) (decals — no real point light), our own light quads
 //   · LOGS built in code (H3: each its own length, half-sunk, a waterline ring; the amber only a thin underglow + a soft light on the water) · TRAINS: Kenney's front + carriages, lit windows, a headlight
 //     beam, the red signals + a warning glow on the side it comes from · TREES built in code, Kenney's props, the lamps' warm pools
+//   · THE AREAS (H5A — areas.js): a whole stretch looks like the place — its ground, its obstacles, its edge dressing, its signature
+//     pieces in the edge columns (THE DOCK CRANE, THE LIGHTHOUSE + its sweeping beam, THE CONTROL TOWER …), THE ARRIVAL GATEWAY (a neon arch +
+//     the area's name on its lane), the skyline band's tint
 //   · THE BLACKOUT (the wall): the lights die lane by lane from below, a cold edge where it bites
 //   · THE GHOSTS (H4 — a match): the other players' kids, SEE-THROUGH in their own colours — each one's run is their hop log through
 //     the same engine (the view steps it; this file only draws it), never colliding; `ghost.tag` = where its name tag goes on screen
@@ -18,12 +21,13 @@
 // post-processing below the top tier (THE HALF-RES BLOOM: tier 2 only). setTier(2 | 1 | 0): the match kit's tiers (games/kit/tiers.js).
 import * as THREE from 'three';
 import { FP, COLS, HOP_TICKS } from './tuning.js';
-import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod } from './course.js';
+import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod, area, gateName } from './course.js';
 import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade, buildDart } from './models.js';
 import { FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, createBloom } from './night-fx.js';
 import { CAM, createCamera } from './camera.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
 import { LINE_HEX } from './lines.js';
+import { LOOKS, PIECE, buildAreaGeo, dressLane, sigOf, drawBig, drawSig, drawFishSign } from './areas.js';
 import { hsh, strSeed, vehicleAt } from './causes.js';   // (THE ONE SOURCE OF TRUTH for which vehicle a car IS — the end screen's cause line reads the same function)
 
 const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;   // (the most lanes alive: 36 — a closer zoom lays fewer ahead)
@@ -123,6 +127,9 @@ export function createNight(host, o = {}) {
     posts: kind(unit, new THREE.MeshLambertMaterial({ color: 0xffffff }), 180),
     jets: kind(GEO.dart, lambert(), 8),
   };
+  // THE AREAS' PIECES (areas.js — built in code): the obstacles + the edge dressing + the plots' big pieces, one kind each
+  const AGEO = buildAreaGeo(), AK = {};
+  for (const [name, g] of Object.entries(AGEO)) AK[name] = K[`a_${name}`] = kind(g, lambert(), { bollard: 60, crate: 90, icecrate: 60, drum: 70, rock: 90, hydrant: 40, container: 60, stall: 30, rail: 60, house: 24 }[name] || 6);
   // Kenney's (CC0): they arrive a moment after the first frame — until then (or if a file fails) that kind simply draws nothing
   const KM = {}, BOX = {};
   let dead = false, needWarm = true, warmed = 0;
@@ -142,7 +149,7 @@ export function createNight(host, o = {}) {
       const b = g.boundingBox; BOX[name] = { w: b.max.x - b.min.x, h: b.max.y, l: b.max.z - b.min.z, cz: (b.max.z + b.min.z) / 2, x0: b.min.x, z0: b.min.z, z1: b.max.z };
       if (name.startsWith('car-')) KM[name] = kind(g, paintMaterial(glossy(0.28, 1.1), { instanced: true }), 40, { aux: ['aLit', 1] });
       else if (name.startsWith('train-')) KM[name] = kind(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0, envMapIntensity: 0.9 }), 40);
-      else KM[name] = kind(g, lambert(), 70);
+      else KM[name] = kind(g, lambert(), name === 'lighthouse' ? 2 : name === 'fishing-boat' ? 6 : 70);
     }
     needWarm = true;   // (H4B — the new kinds' programs + buffers are made in the NEXT frame, not when a car first drives in)
     return true;
@@ -162,6 +169,37 @@ export function createNight(host, o = {}) {
     LBL[k] = { m, cv, tex, text: null };
   }
   const css = hex => `#${hex.toString(16).padStart(6, '0')}`;
+  // THE ARRIVAL GATEWAY's NAME (H5A): the area's name written BIG on its gateway lane (two planes: this gateway + the next one in
+  // view), in the area's own neon — drawn when its text changes, never per frame. THE NEON FISH: the fish market's sign (one plane)
+  const gateGeo = new THREE.PlaneGeometry(7.3, 0.74).rotateX(-Math.PI / 2);   // (7.3 cells: the whole name is on screen at ZOOM 8 — the letters ≈ half a lane tall)
+  const fishGeo = new THREE.PlaneGeometry(2.4, 1.2);
+  const GATE = [0, 1].map(() => {
+    const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 104;
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    const m = new THREE.Mesh(gateGeo, new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    m.renderOrder = 2; m.visible = false; m.frustumCulled = false; m.layers.enable(1); scene.add(m);
+    return { m, cv, tex, text: null };
+  });
+  function writeGate(G, text, hex) {
+    if (G.text === text) return;
+    G.text = text;
+    const c = ctx2d(G.cv);
+    if (!c) return;
+    c.clearRect(0, 0, 1024, 104);
+    c.font = '900 84px "Orbitron", "Chakra Petch", system-ui, sans-serif'; c.textBaseline = 'middle'; c.textAlign = 'center';
+    try { c.letterSpacing = '8px'; } catch { /* an old browser: no tracking */ }
+    const tw = c.measureText(text).width, sx = Math.min(1, 980 / Math.max(1, tw));
+    c.save(); c.translate(512, 56); c.scale(sx, 1);
+    c.shadowColor = css(hex); c.shadowBlur = 20; c.fillStyle = css(hex); c.fillText(text, 0, 0);
+    c.shadowBlur = 0; c.globalAlpha = 0.62; c.fillStyle = '#ffffff'; c.fillText(text, 0, 0);
+    c.restore();
+    G.tex.needsUpdate = true;
+  }
+  const fishCv = document.createElement('canvas'); fishCv.width = 256; fishCv.height = 128;
+  const fishTex = new THREE.CanvasTexture(fishCv); fishTex.colorSpace = THREE.SRGBColorSpace;
+  { const c = ctx2d(fishCv); if (c) drawFishSign(c, 256, 128); }
+  const fish = new THREE.Mesh(fishGeo, new THREE.MeshBasicMaterial({ map: fishTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  fish.renderOrder = 3; fish.visible = false; fish.frustumCulled = false; fish.layers.enable(1); scene.add(fish);
   function writeLabel(k, text) {
     const L = LBL[k];
     if (L.text === text) return;
@@ -197,8 +235,9 @@ export function createNight(host, o = {}) {
   skyImg.style.backgroundImage = `url("${new URL('../../../assets/jaywalk/skyline-night.webp', import.meta.url).href}")`;
   for (const [x, y, d] of SKY_LIGHTS) { const i = document.createElement('i'); i.className = 'jw-sky-l'; i.style.cssText = `left:${x}%;top:${y}%;animation-delay:${-d}s`; skyImg.append(i); }
   for (const [x, y, bw, bh, d] of SKY_NEON) { const i = document.createElement('i'); i.className = 'jw-sky-n'; i.style.cssText = `left:${x}%;top:${y}%;width:${bw}%;height:${bh}%;animation-delay:${-d}s`; skyImg.append(i); }
-  sky.append(skyImg); host.append(sky);
-  let skyAt = 9;
+  const skyTint = document.createElement('i'); skyTint.className = 'jw-sky-tint';   // (H5A — the band takes a wash of the area's colour: opacity only)
+  sky.append(skyImg, skyTint); host.append(sky);
+  let skyAt = 9, skyArea = -2;
 
   let bloom = null, tier = 2, w = 0, h = 0, dpr = devDpr, kAt = 0, reveal = 1, revealT = 1;   // (reveal — H3: 0 = only the start's few lanes out of the dark · 1 = the whole view)
   /** the rig's scale moved (a ZOOM change easing in): the far plane + the fog follow it */
@@ -235,8 +274,13 @@ export function createNight(host, o = {}) {
   function decorOf(i, L) {
     let d = decor.get(i);
     if (d) return d;
-    d = { obs: [], tufts: [], lamp: 0 };
-    if (L.type === 'grass') {
+    d = { obs: [], tufts: [], lamp: 0, lampHex: 0xffc27a };
+    const T = L.type === 'grass' ? LOOKS[area(i).index] : null;
+    if (T) {
+      // (H5A — AN AREA's ground lane: its own obstacles, its edge dressing, its lamps — areas.js; grass tufts only where grass grows)
+      dressLane(d, T, i, L, (a, b) => hsh(vseed ^ (i * (131 + b * 46)), a));
+      if (T.tufts) { const n = 2 + Math.floor(hsh(vseed ^ i, 9) * 3); for (let t = 0; t < n; t++) { const x = hsh(vseed ^ (i * 53), t * 7 + 1) * 12 - 1.5, c = Math.floor(x); if (c < 0 || c >= COLS || !L.obs[c]) d.tufts.push([x, 0.12 + hsh(vseed ^ (i * 59), t) * 0.76, 0.8 + hsh(vseed ^ i, t + 40) * 0.6]); } }
+    } else if (L.type === 'grass') {
       const docks = !!L.mark || (i > 40 && (i % 50 <= 3 || i % 50 >= 47));   // (by a landmark: the docks' clutter)
       const pick = (c, edge) => {
         const r = hsh(vseed ^ (i * 131), c * 17 + 3), s = hsh(vseed ^ (i * 977), c * 29 + 11);
@@ -256,6 +300,14 @@ export function createNight(host, o = {}) {
     return d;
   }
   const PROP_S = { 'bush-planter': 2.1, 'traffic-cone': 6.2, 'trash-dumpster': 2.5, 'street-lamp': 2.7 };
+  // THE SIGNATURE PIECES (H5A — areas.js#sigOf: an area's big pieces, in the edge columns), per stretch → by their lane
+  const plots = new Map();
+  function sigAt(i) {
+    const s = Math.floor(i / 50);
+    let m = plots.get(s);
+    if (!m) { m = new Map(); for (const P of sigOf(courseRef, s, (a, b) => hsh(vseed ^ (a * 7919), b))) { const l = m.get(P.y0) || []; l.push(P); m.set(P.y0, l); } plots.set(s, m); if (plots.size > 6) plots.delete(plots.keys().next().value); }
+    return m.get(i) || null;
+  }
 
   // ---- the kid's feel + the hits: derived from the run between frames (never from the rules' clock)
   const fx = { t: -1, st: 'idle', hits: 0, y: 0, yaw: Math.PI, landAt: -1e9, landOn: '', hit: null, parts: [], wob: null, shake: 0, seen: false, out: 0, endT: -1, after: 0 };
@@ -278,7 +330,7 @@ export function createNight(host, o = {}) {
   function warm() {
     const put = [];
     for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.put(0, -60, 0, 0.01, 0.01, 0.01, 0, 0xffffff, 1); q.done(); }
-    for (const m of [...ufos.map(q => q.d), ...Object.values(LBL).map(L => L.m)]) { put.push([m, m.visible, m.position.y]); m.visible = true; m.position.y = -60; }
+    for (const m of [...ufos.map(q => q.d), ...Object.values(LBL).map(L => L.m), ...GATE.map(G => G.m), fish]) { put.push([m, m.visible, m.position.y]); m.visible = true; m.position.y = -60; }
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam); } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
     for (const [m, v, y] of put) { m.visible = v; m.position.y = y; }
     for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.done(); }
@@ -295,7 +347,7 @@ export function createNight(host, o = {}) {
     clock += dt;
     if (needWarm && w && h) { needWarm = false; warm(); }
     if (reveal !== revealT) { reveal = reduce ? revealT : reveal + (revealT - reveal) * Math.min(1, dt / 130); if (Math.abs(revealT - reveal) < 0.004) reveal = revealT; }
-    if (course !== courseRef) { courseRef = course; vseed = strSeed(course.seed); decor.clear(); }
+    if (course !== courseRef) { courseRef = course; vseed = strSeed(course.seed); decor.clear(); plots.clear(); }
     // (H4: THE WORLD GOES ON after a hit — the run's own tick stops at the hit, the cars + logs drive on: the car rolls OFF the flat kid)
     if (run.st === 'out') { if (fx.endT !== run.end) { fx.endT = run.end; fx.after = 0; } fx.after += dt * 0.06; } else { fx.endT = -1; fx.after = 0; }
     const t = o && o.t != null ? o.t : run.t + a + fx.after, lane = course.lane(run.y);
@@ -410,23 +462,28 @@ export function createNight(host, o = {}) {
     for (const q of Object.values(KM)) q.reset();
     if (kidDraw && KM.kid) KM.kid.put(...kidDraw);
     const kindOf = L => (L.mark ? KIND.mark : KIND[L.type]);
+    let beam = null, sign = null, gates = 0;
+    for (const G of GATE) G.m.visible = false;
     const base = Math.floor(camY) - BACK, top = base + BACK + Math.min(AHEAD, Math.ceil(24 * rig.k()) + 2);
     let nu = 0, gi = 0;
     for (let i = base; i < top; i++) {
       const L = course.lane(i), z = Z(i + 0.5), dk = darkOf(i), lt = 1 - 0.96 * dk, on = lt > 0.3;
       let fxv = 0;
       if (L.type === 'grass') {
-        const D = decorOf(i, L);
+        const D = decorOf(i, L), SG = sigAt(i), sgL = !!SG && SG.some(P => P.side < 0 && P.what !== 'pylons'), sgR = !!SG && SG.some(P => P.side > 0 && P.what !== 'pylons');
         for (const q of D.obs) {
+          if (q.edge && (q.c < 0 ? sgL : sgR)) continue;   // (a signature piece stands on this side of the lane)
           const x = X(q.c + 0.5) + q.dx, zz = z + q.dz, dim = lt * (q.c < 0 || q.c >= COLS ? 0.5 : 1);
-          if (q.k === 'tree' || (q.k !== 'barricade' && !KM[q.k])) { const s = 0.72 + q.s * 0.3; K.trees.put(x, 0, zz, s, s, s, q.ry * 3, 0xffffff, dim); K.shadow.put(x, 0.03, zz + 0.1, 1.15 * s, 1, 1.0 * s, 0, 0, 1, 0, 0.5 * lt); }
+          if (q.big) drawBig(q, X(q.c + 0.5), z, { K, A: AK, lt, on });
+          else if (AK[q.k]) { const [ps, sh] = PIECE[q.k]; AK[q.k].put(x, 0, zz, ps, ps, ps, q.ry, 0xffffff, dim * 1.25); K.shadow.put(x, 0.03, zz + 0.06, sh[0], 1, sh[1], 0, 0, 1, 0, 0.45 * lt); }
+          else if (q.k === 'tree' || (q.k !== 'barricade' && !KM[q.k])) { const s = 0.72 + q.s * 0.3; K.trees.put(x, 0, zz, s, s, s, q.ry * 3, 0xffffff, dim); K.shadow.put(x, 0.03, zz + 0.1, 1.15 * s, 1, 1.0 * s, 0, 0, 1, 0, 0.5 * lt); }
           else if (q.k === 'barricade') { K.barricades.put(x, 0, zz, 1.04, 1.04, 1.04, q.ry * 0.22, 0xffffff, dim * 1.3); K.shadow.put(x, 0.03, zz + 0.06, 1.1, 1, 0.6, 0, 0, 1, 0, 0.45 * lt); if (on) K.bill.put(x + 0.4, 0.68, zz, 0.3, 0.3, 1, 0, 0xffa530, 1, 0, 0.95 * dim); }
           else { const s = PROP_S[q.k]; KM[q.k].put(x, 0, zz, s, s, s, Math.round(q.ry) * Math.PI / 2 + (q.k === 'traffic-cone' ? q.ry : 0), 0xffffff, dim * 1.35); K.shadow.put(x, 0.03, zz + 0.06, 0.95, 1, 0.8, 0, 0, 1, 0, 0.45 * lt); }
         }
-        if (D.lamp) {                                            // a street lamp on the edge column: its head over the grass, a warm pool under it
+        if (D.lamp && !(D.lamp < 0 ? sgL : sgR)) {                // a street lamp on the edge column: its head over the grass, a warm pool under it
           const side = D.lamp, x = X(side > 0 ? COLS + 0.55 : -0.55);
           if (KM['street-lamp']) KM['street-lamp'].put(x, 0, z, 2.7, 2.7, 2.7, side > 0 ? Math.PI / 2 : -Math.PI / 2, 0xffffff, lt * 1.3);
-          if (on) { K.flat.put(x - side * 0.75, 0.035, z, 3.6, 1, 3.0, 0, 0xffc27a, 1, 0, 0.34 * lt); K.bill.put(x - side * 0.5, 1.72, z, 0.34, 0.34, 1, 0, 0xffd9a0, 1, 5, 0.8 * lt); }
+          if (on) { K.flat.put(x - side * 0.75, 0.035, z, 3.6, 1, 3.0, 0, D.lampHex, 1, 0, 0.34 * lt); K.bill.put(x - side * 0.5, 1.72, z, 0.34, 0.34, 1, 0, D.lampHex, 1, 5, 0.8 * lt); }
         }
         if (tier > 0) for (const q of D.tufts) K.tufts.put(X(q[0]), 0, z - 0.5 + q[1], q[2], q[2], q[2], q[0] * 9, 0xffffff, lt * (q[0] < 0 || q[0] > COLS ? 0.6 : 1));
       } else if (L.type === 'road' || L.type === 'water') {
@@ -546,10 +603,42 @@ export function createNight(host, o = {}) {
         K.flat.put(X(bx), 0.05, Z(by), r * 2.5, 1, r * 2.5, 0, 0x6dffb0, 1, 3, 0.95); K.flat.put(X(bx), 0.045, Z(by), r * 2.1, 1, r * 2.1, 0, 0x3dff9a, 1, 0, 0.42);
         K.bill.put(X(bx), 4.0, Z(by), 2.6, 1.2, 1, 0, 0x7dffc0, 1, 0, 0.7);
       }
-      ground.lay(gi++, i, kindOf(L), kindOf(course.lane(i - 1)), kindOf(course.lane(i + 1)), hsh(vseed, i) * 10, dk, fxv);
+      const AR = area(i).index;
+      if (L.mark && AR >= 0) {
+        // THE ARRIVAL GATEWAY (H5A): a neon arch spanning the lane — two posts in the edge columns, a see-through arc of light between
+        // them (nothing in the play columns is covered) — + the area's NAME written big on its lane, in the area's own neon
+        const hex = LOOKS[AR].accent, xl = X(-0.55), xr = X(COLS + 0.55), zf = z - 0.42;
+        for (const x of [xl, xr]) { K.posts.put(x, 1.5, zf, 0.2, 3.0, 0.2, 0, 0x2b2b3c, lt); K.bill.put(x, 3.1, zf, 0.5, 0.5, 1, 0, hex, 1, 5, lt); for (let k = 0; k < 5; k++) K.bill.put(x, 0.4 + k * 0.55, zf, 0.3, 0.42, 1, 0, hex, 1, 4, 0.85 * lt); if (on) K.flat.put(x, 0.05, zf, 2.6, 1, 2.0, 0, hex, 1, 0, 0.4 * lt); }
+        for (let k = 0; k <= 56; k++) { const u = k / 56, ax = xl + (xr - xl) * u, ay = 3.1 + Math.sin(Math.PI * u) * 1.05; K.bill.put(ax, ay, zf, 0.4, 0.4, 1, 0, hex, 1, 0, 0.55 * lt); K.bill.put(ax, ay, zf, 0.2, 0.2, 1, 0, 0xffffff, 1, 0, 0.6 * lt); }   // (a continuous neon TUBE: the glow + its hot core)
+        if (on) K.flat.put(0, 0.045, z, 11, 1, 1.5, 0, hex, 1, 4, 0.2 * lt);
+        if (gates < 2) { const G = GATE[gates++]; writeGate(G, gateName(i), hex); G.m.visible = lt > 0.2; G.m.position.set(0, 0.07, z); G.m.material.opacity = lt; }
+      }
+      const PL = AR >= 0 ? sigAt(i) : null;
+      if (PL) for (const P of PL) { const r = drawSig(P, { K, A: AK, KM, BOX, X, Z, lt, on, T: LOOKS[AR], h: (a, b) => hsh(vseed ^ (a * 2659), b), course }); if (r && r.beam && on) beam = { at: r.beam, side: P.side, lt }; if (r && r.sign && on && !sign) sign = { at: r.sign, lt }; }
+      // (THE CANAL: an arched stone footbridge over a water lane, in an edge column — the logs drift under it)
+      if (AR >= 0 && LOOKS[AR].footbridge && L.type === 'water' && i % 2 === 0) AK.footbridge.put(X(i % 4 ? -0.6 : COLS + 0.6), 0, z, 1.05, 1.0, 0.86, 0, 0xffffff, lt * 0.7);
+      // (THE RAIL YARD: a signal gantry over each rail lane's edge columns — two posts on the lane lines' side, a beam, its lamp: the train runs under it)
+      if (AR >= 0 && LOOKS[AR].gantry && L.type === 'rail') for (const sd of [-1, 1]) {
+        const gx = X(sd < 0 ? -0.55 : COLS + 0.55);
+        K.posts.put(gx - 0.42, 0.95, z - 0.47, 0.07, 1.9, 0.07, 0, 0x3a3a48, lt * 0.7); K.posts.put(gx + 0.42, 0.95, z - 0.47, 0.07, 1.9, 0.07, 0, 0x3a3a48, lt * 0.7); K.posts.put(gx, 1.9, z - 0.47, 0.95, 0.08, 0.08, 0, 0x4a4a5a, lt * 0.7);
+        K.bill.put(gx, 1.72, z - 0.47, 0.26, 0.26, 1, 0, fxv ? 0xff2a2a : 0x40ff80, 1, 5, 0.9 * lt);
+      }
+      ground.lay(gi++, i, kindOf(L), kindOf(course.lane(i - 1)), kindOf(course.lane(i + 1)), hsh(vseed, i) * 10, dk, fxv, AR + 1);
     }
     ground.done(gi);
     for (let j = nu; j < 2; j++) { ufos[j].d.visible = false; ufos[j].id = -1; }
+    // THE LIGHTHOUSE's BEAM (H5A): its lamp lit + a long soft beam lying over the lanes, SWEEPING across them (still with reduce motion)
+    if (beam) {
+      const [bx, bh, bz] = beam.at, sw = reduce ? 0.25 : Math.sin(clock / 2300) * 0.95, ang = beam.side < 0 ? sw : Math.PI - sw, len = 15;
+      K.bill.put(bx, bh, bz, 1.5, 1.5, 1, 0, 0xfff4c0, 1, 5, beam.lt); K.bill.put(bx, bh, bz, 4.2, 3.4, 1, 0, 0xffe9a0, 1, 0, 0.5 * beam.lt);
+      K.flat.put(bx + Math.cos(ang) * len / 2, 0.075, bz - Math.sin(ang) * len / 2, len, 1, 3.4, ang, 0xfff0b0, 1, 2, 0.5 * beam.lt);
+      K.flat.put(bx + Math.cos(ang) * len / 2, 0.076, bz - Math.sin(ang) * len / 2, len, 1, 1.3, ang, 0xffffff, 1, 2, 0.28 * beam.lt);
+    }
+    fish.visible = !!sign;
+    if (sign) { fish.position.set(sign.at[0], sign.at[1], sign.at[2]); fish.quaternion.copy(cam.quaternion); fish.material.opacity = sign.lt * (reduce ? 1 : 0.88 + 0.12 * Math.sin(clock / 190)); }
+    // the skyline band's tint: the colour of the area the kid is in (a change only when he crosses a gateway)
+    const ka = area(Math.max(0, Math.floor(ky))).index;
+    if (ka !== skyArea) { skyArea = ka; skyTint.style.background = ka < 0 ? 'none' : `linear-gradient(to top, ${LOOKS[ka].sky}, transparent 85%)`; skyTint.style.opacity = ka < 0 ? '0' : '0.2'; }
     // his blob shadow: smaller + fainter as he rises
     if (show && py > -0.2) K.shadow.put(px, feet + 0.035, pz + 0.05, 0.98 * (1 - lift * 0.55) * s3[0], 1, 0.78 * (1 - lift * 0.55) * s3[2], 0, 0, 1, 0, 0.66 * (1 - lift * 0.9) * lit);
     // HE ALWAYS STANDS OUT: a soft pool of his colour on the ground under him + a ring round his feet (it breathes — never with reduce motion)
@@ -606,8 +695,9 @@ export function createNight(host, o = {}) {
       if (!reduce) for (let g = 0; g < 3; g++) K.bill.put(((clock / 1500 + g / 3) % 1) * 13 - 6.5, 0.1, z, 0.8, 0.3, 1, 0, hex, 1, 0, 0.7 * ll);
       lab.m.visible = ll > 0.2;
       // (the words read on ANY ground: a soft dark strip under them — grass, asphalt, water, the rails)
-      K.shadow.put(X(k === 'best' ? 3.9 : COLS - 3.9), 0.062, Z(Ln.lane + (both ? 1.42 : 0.42)), 8.4, 1, 0.9, 0, 0, 1, 4, 0.6 * ll);
-      lab.m.position.set(X(k === 'best' ? 3.9 : COLS - 3.9), 0.07, Z(Ln.lane + (both ? 1.42 : 0.42)));
+      const wz = Z(Ln.lane + (both ? 1.42 : 0.42) - (L.mark ? 1 : 0));   // (H5A — a gateway lane carries its area's name: the line's words lie a lane lower)
+      K.shadow.put(X(k === 'best' ? 3.9 : COLS - 3.9), 0.062, wz, 8.4, 1, 0.9, 0, 0, 1, 4, 0.6 * ll);
+      lab.m.position.set(X(k === 'best' ? 3.9 : COLS - 3.9), 0.07, wz);
       lab.m.material.opacity = ll;
     }
     // (a FRIEND's line that was just crossed is no longer the next one: its flare alone, fading where it lay)
@@ -692,7 +782,9 @@ export function createNight(host, o = {}) {
       for (const m of [curtain, ...ufos.map(q => q.d)]) { m.material.dispose(); }
       if (kidGeo) { kidGeo.userData.poses.tex.dispose(); kidGeo.dispose(); }
       for (const L of Object.values(LBL)) { scene.remove(L.m); L.m.material.dispose(); L.tex.dispose(); L.cv.width = 0; L.cv.height = 0; }
-      labelGeo.dispose();
+      labelGeo.dispose(); gateGeo.dispose(); fishGeo.dispose(); fishTex.dispose(); fish.material.dispose(); scene.remove(fish); fishCv.width = 0;
+      for (const G of GATE) { scene.remove(G.m); G.m.material.dispose(); G.tex.dispose(); G.cv.width = 0; G.cv.height = 0; }
+      for (const g of Object.values(AGEO)) g.dispose();
       discGeo.dispose(); flatGeo.dispose(); billGeo.dispose(); unit.dispose(); ground.dispose();
       if (bloom) bloom.dispose();
       if (env) env.dispose();

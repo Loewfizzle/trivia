@@ -33,7 +33,7 @@ let checks = 0;
 const ok = (c, what) => { checks++; console.log(c ? 'OK  ' : 'FAIL', what); if (!c) fails.push(what); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const waitFor = async (p, js, ms = 20000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await p.evaluate(js)) return true; } catch { /* loading */ } await sleep(100); } return false; };
-const shot = async (p, name) => { if (OUT) await p.screenshot({ path: join(OUT, name) }); };
+const shot = async (p, name) => { if (OUT) { if (name.includes('/')) mkdirSync(join(OUT, name.split('/')[0]), { recursive: true }); await p.screenshot({ path: join(OUT, name) }); } };
 const open = async (w, h, dpr, q = '') => {
   const ctx = await b.createBrowserContext(), p = await ctx.newPage(), errs = [], reqs = [];
   try { await ctx.overridePermissions(BASE, ['clipboard-read', 'clipboard-write']); } catch { /* fine */ }
@@ -220,6 +220,21 @@ async function looksH5(p, what) {
     const px = await p.evaluate(() => { window.__jwLab.restart('solo', 'look3'); return new Promise(r => setTimeout(() => r(window.__jwLab.state().kidPx), 600)); });
     ok(px >= 34 && px <= 46, `THE KID reads at ZOOM 8 on a 390 pt phone: ${px.toFixed(1)} pt tall`);
     ok(await p.evaluate(() => window.__jwLab.state().info.kid === true), '… Kenney\'s skate boy is the kid the scene draws (his file landed)');
+  }
+  if (what !== 'kid') {
+    // THE AREAS (night): each one's GATEWAY (the kid two lanes before it) + three views of its stretch; the loop's second lap's gateway
+    const IDS = ['docks', 'fish-market', 'rail-yard', 'bridge', 'downtown', 'canal', 'lighthouse', 'airfield'];
+    await L("window.__jwLab.bot(false); window.__jwLab.restart('solo', 'look3'); window.__jwLab.setCamera(8, 'straight', true); window.__jwLab.hop('u')"); await sleep(500);
+    // (the kid stands on the gateway's own calm lane / on the first ground lane at each place, at a free column — the look, never a hit)
+    const stand = (lane, col) => p.evaluate((l, c) => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'look3'); J.hop('u'); } const y = J.find('grass', l); J.warp(y, c == null ? {} : { x: c * 1000 + 500 }); return y; }, lane, col);
+    for (let k = 0; k < 8; k++) {
+      const g = 50 * (k + 1);
+      await stand(g - 1); await sleep(350); await stand(g); await sleep(900); await shot(p, `areas/${k + 1}-${IDS[k]}-gateway.png`);
+      for (const [off, tag, col] of [[7, 'a', 4], [21, 'b', 1], [36, 'c', 7]]) { await stand(g + off, col); await sleep(1000); await shot(p, `areas/${k + 1}-${IDS[k]}-${tag}.png`); }
+    }
+    await stand(450); await sleep(900); await shot(p, 'areas/9-docks-lap-2-gateway.png');
+    const names = await p.evaluate(() => [50, 400, 450].map(l => window.__jwLab.gate(l)));
+    ok(names[0] === 'THE DOCKS' && names[1] === 'THE AIRFIELD' && names[2] === 'THE DOCKS · LAP 2', `the gateways' names: ${names.join(' | ')}`);
   }
 }
 
