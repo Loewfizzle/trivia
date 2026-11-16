@@ -1001,3 +1001,28 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   Firebase or a sign-in). THE PAGES LOAD's row = `#app .jw-stage` and no `.jw-deny` (the stage alone: the cloud's Chromium may have no
   WebGL — the page then says so ON its stage; a module that fails to load never puts the stage up → red). The lab's unit test greps the
   page's code for anything that could ask who is there (`whoami`, `api(`, `firebase.js`, `fetch(` …) and that nothing links to the page.
+
+## JAYWALK H3 (Nov 16 2026 — docs/games/passes/jaywalk-h3.md)
+- Unit: `tests/jaywalk-solo.test.mjs` (THE COURSE PICKED AFTER GO · the chunks' clock · THE SPEED CHECK both ways — a log from the future
+  refused, a slowed / paused one cut, an honest one + 3 s of lag passes · the server's own result → `jaywalk-solo` · the solo director +
+  HOP AGAIN's next run · the cause lines + the vehicle read back · the phone's side of the proof from its source · HOW TO PLAY + YOUR
+  TABLE) + `jaywalk-sim` (H3 — THE LOGS: all four lengths, the curve, uneven gaps; the fairness sims on 2,000 seeds a mode).
+- Emulators: `rules.test.mjs` (the jw node: a chunk = { s, at === now }, written once) · `server.test.mjs` "JAYWALK H3 — THE SOLO RUN"
+  (the owner-only gate, the best from the replay — never the claim —, the moved-on room, runs 9 s apart, a forged + a slowed log, no
+  proof = 403, YOUR TABLE).
+- **The solo game's own E2E:** `node tests/integration/e2e-jaywalk.mjs "<chromium>" [outDir] [--perf]` (the emulators + `serve.mjs
+  --emu`; ~1.5 min, ~3 with `--perf`): a stranger never sees JAYWALK → the OWNER (it sets `testAdmins/{pid}` + clears the tab's
+  remembered radio-gate NO — a tab that was a stranger a moment ago) → PLAY → JAYWALK · TEST → PLAY NOW → GO with the server's time → the
+  seed → taps → the stamped chunks → out → the end screen → the report counted from the replay (it runs `verifyNode` on the emulator's
+  own node) → NEW BEST → HOP AGAIN ×4 (**`HOP_AGAIN_MS`** = the tap → a course ready to hop) → a forged log refused → BACK TO THE CITY.
+  `--perf` = the REAL view at 390 × 844 @3 under a 4× CPU throttle, the bot playing (it hops again when a run ends), 7 s a tier: `PERF`
+  rows (fps · frame · p95 · worst · work · draw calls).
+- The view's test hook `window.__jwGame` (`state()` · `hop` · `bot(on)` · `setTier(t)` · `frames()` / `cost()`) exists ONLY on a local
+  emulator page (`localhost` + `?emu`) — never on the live site.
+- The lab check: `--h3` = H3's three shots only (the water + the logs, a car from behind, the truck); its camera-default checks are now
+  STRAIGHT first, TURNED one switch away.
+- A look-shot warp DOWN the course after a warp up needs a `restart` first (the wall follows the BEST lane — the shot is in the dark).
+- A hand-built scenario that waits beside a hazard must not out-wait the wall (5 lanes behind the best at 0.6 lanes / s): H3's log change
+  moved the bot's arrival and `jaywalk-boom`'s kid was caught by the blackout — `atFlightPath` now picks a course whose tell is 40–200
+  ticks away.
+- An edit script's regex / escaped quotes through a Bash heredoc loses a backslash layer: write the script with the Write tool, then run it.

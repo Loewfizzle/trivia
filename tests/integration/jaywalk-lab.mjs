@@ -444,7 +444,7 @@ try {
     ok(await wwait("!!window.__jwLab && !!document.querySelector('canvas.jw-canvas')") && await wp.evaluate(() => window.__jwLab.ready), 'WebKit: the night look opens + the models arrive');
     await sleep(600);
     const ws = await wp.evaluate(() => window.__jwLab.state());
-    ok(ws.info.look === 'night' && ws.info.calls >= 14 && ws.kidY >= 0.6 && ws.kidY <= 0.65 && ws.zoom === 8 && ws.angle === 'turned', `WebKit: the scene draws (${ws.info.calls} calls, ${ws.info.tris} tris, the kid ${ws.kidPx.toFixed(1)} pt)`);
+    ok(ws.info.look === 'night' && ws.info.calls >= 14 && ws.kidY >= 0.6 && ws.kidY <= 0.65 && ws.zoom === 8 && ws.angle === 'straight', `WebKit: the scene draws (${ws.info.calls} calls, ${ws.info.tris} tris, the kid ${ws.kidPx.toFixed(1)} pt)`);
     await wp.touchscreen.tap(195, 500); await sleep(300);
     ok((await wp.evaluate(() => window.__jwLab.state())).y === 1, 'WebKit: a tap hops');
     const wtap = async sel => { const bx = await wp.evaluate(q => { const el = document.querySelector(q); el.scrollIntoView({ block: 'center', behavior: 'instant' }); const x = el.getBoundingClientRect(); return [x.left + x.width / 2, x.top + x.height / 2]; }, sel); await wp.touchscreen.tap(bx[0], bx[1]); await sleep(200); };

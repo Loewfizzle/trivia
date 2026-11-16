@@ -684,3 +684,19 @@ the full card's width (it reads as a card, not a placeholder). Shots: `Downloads
   `FIREBASE_DATABASE_URL`, `ADMIN_PIDS` (your profile id), optional `KEY_PEPPER` (set once, never change) — `docs/profiles.md`.
 - Authentication → Settings → Authorized domains: `neonspeakeasy.com` (keep the old `games.` / `trivia.loewfizzle.com`, which redirect to it).
 - Web config goes in `js/firebase-config.js` (public by design; the rules are the security).
+
+## JAYWALK H3 (Nov 16 2026) — the solo run on the server (docs/jaywalk.md "THE ANTI-CHEAT")
+- **`/api/report` — a JAYWALK SOLO run** (one name on the night record, the reporter's) is counted ONLY from the server's replay of the
+  player's proof node `rooms/{CODE}/jw/{matchId}/{uid}` (`api/_lib/jaywalk.js#jaywalkSolo`): GO's server time → the course's seed, the
+  timestamped chunks → the hop log + THE SPEED CHECK both ways. On BOTH paths: the room still on that match (`src: 'room'`), or the room
+  already on the next run — HOP AGAIN (`src: 'proof'`: no snapshot needed, placings-only never applies). A refused run (a log ahead of
+  the clock, a broken clock, a forged hop) = 0 lanes + `rejected` + EMPTY (no XP, no streak day); a slowed run is cut at its last on-time
+  hop. No proof node = not a play (403). The record: `jaywalk-solo` (FARTHEST RUN — lanes, max) through THE SOLO LANE's `<board>-solo` map.
+- **THE OWNER'S LIVE TEST on the report path:** `reportableGame(id, uid)` — a game being built (`preview`, not playable) is reportable for
+  a reporter whose profile is in `ADMIN_PIDS` (the emulators: `testAdmins/{pid}`); everyone else: `not_reportable`, as before.
+- **THE 45 s GAP and a quick solo run:** `api/_lib/stats.js#gapFor(gid, n)` = 0 for a SOLO row of a `QUICK_SOLO` game (JAYWALK) — its runs
+  last seconds and restart at once (every run its own report); with the gap, most reports bounced `too_soon` and the phone's queue gave
+  up after 8 tries. THE SOLO LANE's own cap is untouched (XP for the day's first 4 solo runs, then 0; never a win, never a counted play).
+- **`/api/profile { action: 'table', b }`** (`api/_lib/friends.js#boardTable`) — YOUR TABLE for ONE record board: you + the ≤ 12 friends
+  YOUR OWN list names (`tablePids` — never ids from the phone) who have a value on it, best first → `{ b, rows: [{ the slim card's public
+  face (the board id — never a pid), v, me? }] }`; a friend hidden from the boards is not listed. JAYWALK's end screen shows it.

@@ -379,3 +379,25 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - **THE BOOT BYTES are at their limit too** (6,499.99 of 6,500 KB after H1): JAYWALK's sign reads its own GAMES row now, so the stand-in row in
   `title-taps.js` went; the next pass that adds a byte to a boot file needs a named raise of `boot-budget.json#moduleKB` (or a trim).
 
+
+## JAYWALK H3 (Nov 16 2026) — THE INSTANT AGAIN + three small optional pieces (docs/jaywalk.md "THE SOLO GAME")
+- **THE INSTANT AGAIN** (`js/games/kit/again.js` — a lazy chunk the solo podium loads): a cartridge that exports PURE
+  **`soloAgain(game, { matchId, now })`** → the NEXT solo run's game (THE GAME FRAME: its own match id, a phase — `play` at once) gets its
+  solo podium's first button with NO walk inside: ONE room update swaps the finished match for the new one (`game`, `meta/go` + `meta/back`
+  cleared, the last match's player nodes wiped — its PROOF nodes kept, the last `KEEP_RUNS` 4), the new game carries no `go`, so
+  `core/room-show.js#startShow` has nothing to show and `app.js` routes straight to `game:<id>:<newMatchId>` (the view remounts — a view
+  that wants to stay warm reads `globalThis.__nsAgainAt`, set right before the update). Every run is its OWN match: its own id, proof,
+  night record (`host.js#roomPatch` at its `final`) and report (`app.js` queues it at `final` as ever). Only in a room of ONE where this
+  phone is the host. Anything it can't do → the console's PLAY AGAIN (`host.js#rematch`, THE SOLO START). `frameProblems` checks the new
+  game like a start's. No boot file was touched: the chunk reads only exports the boot graph already has.
+- **`AGAIN_LABEL`** (meta — `META_KEYS`): that button's word (default PLAY AGAIN; 4–14 capitals — `checkCartridge`). JAYWALK: HOP AGAIN.
+- **THE HELP HUB**: a game BEING BUILT has no RULES in `ui/help.js` (a boot file); its cartridge may register its HOW TO PLAY body —
+  `globalThis.__nsHelp[id] = () => [nodes]` — and the shared sheet shows it (☰ → HOW TO PLAY in its match, its card's link), its tab the
+  first two letters of its name. The go-live pass moves the content into `ui/help.js` (`JAYWALK_WAITS.help`).
+- **A game with no tile** (`ui/game-art.js` — a boot file): THE GAME CARD shows its neon mark in the art's place (`.nd-pv-mark`).
+- **THE OWNER'S LIVE TEST reaches PLAY NOW** (HE8 + H3): on the owner's phone a `preview` game is also on the title's PLAY shelf
+  (`JAYWALK · TEST`) and its skyline sign opens its card (`title-taps.js` — `isOwnerTest`; it loads the cartridge first: no meta at boot).
+  The server's side: `api/report.js#reportableGame(id, uid)` counts a `preview` game for `ADMIN_PIDS` alone.
+- **A server-replayed solo result**: a cartridge whose solo run has a proof the server can replay (JAYWALK's `jw` node) is counted from
+  THAT on both report paths — the room's `game.results` are never read (`api/report.js` — `jwSolo`); `core/match-report.js#QUICK_SOLO`
+  lists the games whose solo runs THE 45 s GAP never holds back.
