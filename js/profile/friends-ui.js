@@ -60,9 +60,10 @@ export function friendButton(target, o = {}) {
       } catch (e) { toast(why(e), 'warn'); }
       busy = false; paint(true);
     };
-    const b = r === 'out' ? tubeButton(LABEL.out, { kind, size: o.size, block: o.block !== false, cls: 'fr-btn is-out', confirm: 'TAP AGAIN TO CANCEL', onClick: () => run('cancel') })
-      : r === 'friend' ? tubeButton(LABEL.friend, { kind, size: o.size, block: o.block !== false, cls: 'fr-btn is-friend', attrs: { 'aria-disabled': 'true' } })
-      : tubeButton(LABEL[r], { kind, size: o.size, block: o.block !== false, cls: `fr-btn is-${r}`, onClick: () => run(r === 'none' ? 'add' : r === 'in' ? 'accept' : 'unblock') });
+    const L = o.labels || LABEL;   // (FIXES R3: the player page's bar passes its short labels)
+    const b = r === 'out' ? tubeButton(L.out, { kind, size: o.size, block: o.block !== false, cls: 'fr-btn is-out', confirm: 'TAP AGAIN TO CANCEL', onClick: () => run('cancel') })
+      : r === 'friend' ? tubeButton(L.friend, { kind, size: o.size, block: o.block !== false, cls: 'fr-btn is-friend', attrs: { 'aria-disabled': 'true' } })
+      : tubeButton(L[r], { kind, size: o.size, block: o.block !== false, cls: `fr-btn is-${r}`, onClick: () => run(r === 'none' ? 'add' : r === 'in' ? 'accept' : 'unblock') });
     if (r === 'friend') b.prepend(h('i.fr-dot', { 'aria-hidden': 'true' }));
     wrap.replaceChildren(b);
   };

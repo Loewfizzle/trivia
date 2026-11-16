@@ -15,7 +15,7 @@ export async function api(name, body = {}) {
   if (name === 'daily' && body.action === 'shareCard') { let n = 0; try { n = Number(localStorage.getItem('test:shrup') || 0) + 1; localStorage.setItem('test:shrup', String(n)); } catch { /* fine */ } window.__shrUp = n; return { code: 'PREVIEWcode1', v: 'h' + n, path: '/api/daily?s=PREVIEWcode1' }; }
   if (name === 'daily' && body.action === 'points') { if (!window.__dyPoints) throw new ApiFail(0, 'offline', 'preview'); return JSON.parse(JSON.stringify(window.__dyPoints)); }
   if (name === 'profile' && body.action === 'player') { if (!window.__ppAnswer) throw new ApiFail(0, 'offline', 'preview'); await new Promise(r => setTimeout(r, window.__ppDelay || 200)); return JSON.parse(JSON.stringify(window.__ppAnswer(body))); }
-  if (name === 'profile' && body.action === 'friends') return { friends: window.__dyFriends || [], in: [], out: [], blocked: [], recent: [], caps: {} };
+  if (name === 'profile' && body.action === 'friends') return { friends: window.__dyFriends || [], in: window.__dyIn || [], out: window.__dyOut || [], blocked: [], recent: [], caps: {} };   // (FIXES R3: + in / out — the player page's bar follows the relation)
   throw new ApiFail(0, 'offline', 'preview');
 }
 export async function board(b, p, { n = 3 } = {}) { return { rows: ((window.__dyBoard || {})[b] || []).slice(0, n) }; }

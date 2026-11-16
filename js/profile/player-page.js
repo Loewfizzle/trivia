@@ -28,7 +28,6 @@ export function playerSheet() {
   });
   return css;
 }
-const DOTS = '<svg viewBox="0 0 16 4" aria-hidden="true"><circle cx="2" cy="2" r="1.8"/><circle cx="8" cy="2" r="1.8"/><circle cx="14" cy="2" r="1.8"/></svg>';
 /** "% OF PLAYERS" — under 1 % reads <1 % (a rare one never shows as 0) */
 export const pctText = p => (p == null ? '' : `${Number(p) < 1 ? '<1' : Math.round(Number(p))}% OF PLAYERS`);
 const isSelf = ({ pid, bid }) => { const m = loadMe(); return !!(m && ((pid && m.pid === pid) || (bid && m.profile && m.profile.bid === bid))); };
@@ -54,7 +53,12 @@ export async function openPlayer(target = {}, o = {}) {
   const stage = h('div.vl-full-stage.pp-stage', skeletonCard(row, name));
   const foot = h('div.pp-foot', h('div.pp-skel-bar'), h('div.pp-skel-bar.is-short'), ...extra.map(x => h('div.pp-extra', x)));
   // (FIXES R2 — the owner: CLOSE is a NEON TUBE — gold is a vault / card accent, never a button)
-  const box = h('div.vl-full-in.pp-in', stage, foot, tubeButton('CLOSE', { kind: 'secondary', cls: 'pp-close vl-full-x', attrs: { 'data-press': true, 'aria-label': 'Close' }, onClick: close }));
+  // FIXES R3 — THE ACTION BAR (the owner picked option B of three mockups): ONE compact bar at the BOTTOM, in a quiet framed strip —
+  //  [ + FRIEND (the main pink tube, a little wider — it follows the relation; INVITE in a room) ] [ MORE (the ⋯ menu) ] [ CLOSE ]: 44 px tall,
+  //  squared-off corners (no pills), every tap area ≥ 44 × 44; NOTHING over the card (no corner button on it). While loading / limited: CLOSE alone.
+  const closeBtn = tubeButton('CLOSE', { kind: 'secondary', cls: 'pp-close vl-full-x', size: 'sm', attrs: { 'data-press': true, 'aria-label': 'Close' }, onClick: close });
+  const bar = h('div.pp-bar', { role: 'group', 'aria-label': 'Actions' }, closeBtn);
+  const box = h('div.vl-full-in.pp-in', stage, foot, bar);
   const born = performance.now();
   const el = h('div.vl-full.pp', { role: 'dialog', 'aria-modal': 'true', 'aria-label': name ? `${name} — their card` : 'A player’s card', dataset: { state: 'loading', pid: target.pid || '' },
     onclick: e => { if (e.target === el && performance.now() - born > 350) close(); } }, box);
@@ -104,10 +108,11 @@ export async function openPlayer(target = {}, o = {}) {
       const { medal } = await lazyImport(import('../progress/trophies.js'), '../progress/trophies.js');
       meds = h('div.pp-meds', h('div.pp-h', 'RAREST ACHIEVEMENTS'), ...top.map(a => h('div.pp-med', { dataset: { id: a.id } }, medal({ id: a.id, group: a.group, item: a.item }, a.tier || 'common'), h('b', a.name || ''), h('em', pctText(a.pct)))));
     } else meds = h('div.pp-meds.is-none', h('div.pp-h', 'RAREST ACHIEVEMENTS'), h('p.pp-none', 'NO ACHIEVEMENTS YET'));
-    foot.replaceChildren(lvBox, meds, actions(D), ...extra.map(x => h('div.pp-extra', x)));
+    foot.replaceChildren(lvBox, meds, ...extra.map(x => h('div.pp-extra', x)));
+    bar.replaceChildren(...actions(D), closeBtn);
   }
 
-  /** INVITE (in a room, a friend who isn't in it) or the friend button (ADD FRIEND · REQUESTED · ACCEPT · FRIENDS) + ⋯ (by `rel`) */
+  /** THE BAR's first two: INVITE (in a room, a friend who isn't in it) or the friend button (+ FRIEND · REQUESTED · ACCEPT · FRIENDS) + MORE (the ⋯ menu, by `rel`) */
   function actions(D) {
     const rel = D.rel || 'none', pid = target.pid || (D.card && D.card.pid) || null;
     const ft = pid ? { pid } : { b: target.b, bid: target.bid };
@@ -116,14 +121,14 @@ export async function openPlayer(target = {}, o = {}) {
     const slot = h('div.pp-main');
     if (canInvite) {
       let sent = false;
-      slot.append(tubeButton('INVITE TO THE ROOM', { kind: 'main', block: true, cls: 'pp-invite', onClick: async () => {
+      slot.append(tubeButton('INVITE', { kind: 'main', size: 'sm', block: true, cls: 'pp-invite', attrs: { 'aria-label': 'Invite them to the room' }, onClick: async () => {
         if (sent) return;
         try { const r = await api('profile', { action: 'friendInvite', pid, room: state.code }); sent = true; toast(`${D.card.n} is invited`, 'ok', { sub: r.sent ? 'A notification is on its way — and it waits on their card for 30 min.' : 'It waits on their card for 30 min.' }); }
         catch (e) { toast((e && e.message) || 'Couldn’t send the invite.', 'warn'); }
       } }));
-    } else lazyImport(import('./friends-ui.js'), './friends-ui.js').then(m => { if (!gone) slot.replaceChildren(m.friendButton(ft, { name: D.card.n })); }).catch(() => {});
-    const dots = h('button.pp-dots', { type: 'button', 'aria-label': 'More', html: DOTS, onclick: () => openMore(D, ft, rel) });
-    return h('div.pp-acts', slot, dots);
+    } else lazyImport(import('./friends-ui.js'), './friends-ui.js').then(m => { if (!gone) slot.replaceChildren(m.friendButton(ft, { name: D.card.n, size: 'sm', labels: BAR_LABELS })); }).catch(() => {});
+    const more = tubeButton('MORE', { kind: 'secondary', size: 'sm', cls: 'pp-more', attrs: { 'data-press': true, 'aria-label': 'More — remove, block' }, onClick: () => openMore(D, ft, rel) });
+    return [slot, more];
   }
 
   /** ⋯ → by `rel`: friend → REMOVE · BLOCK; none → ADD FRIEND · BLOCK; in → ACCEPT · BLOCK; out → CANCEL REQUEST · BLOCK; blocked → UNBLOCK */
@@ -144,6 +149,8 @@ export async function openPlayer(target = {}, o = {}) {
 }
 
 const SLOW_MS = 2500;
+/** FIXES R3 — THE BAR's friend tube: the short labels (+ FRIEND · REQUESTED · ACCEPT · FRIENDS · UNBLOCK) */
+const BAR_LABELS = Object.freeze({ none: '+ FRIEND', out: 'REQUESTED', in: 'ACCEPT', friend: 'FRIENDS', blocked: 'UNBLOCK' });
 /** CITY C — the card's material picture decoded before the page shows (≤ 900 ms — a missing picture never holds it) */
 function materialIn(stage) {
   const m = stage.querySelector('.vl-mat'), urls = m ? [...getComputedStyle(m).backgroundImage.matchAll(/url\(["']?([^"')]+)["']?\)/g)].map(x => x[1]) : [];

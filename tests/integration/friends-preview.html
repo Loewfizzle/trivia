@@ -37,6 +37,8 @@ const ALL = [
   F('P_iris', 'IRIS', 'eye', 'magenta', 'card-emerald', 33, 905), F('P_bo', 'BO', 'crown', 'yellow', 'card-carbon', 7, 55),
 ];
 window.__dyFriends = q.has('none') ? [] : ALL.slice(0, Number(q.get('n') || 8));
+// (FIXES R3: &player=… &rel=none|out|in also sets the friends store — the bar's first tube reads the live relation)
+{ const rel = q.get('player') && q.get('rel'), who = q.get('player'); if (rel && rel !== 'friend') { const f = ALL.find(x => x.pid === who); window.__dyFriends = window.__dyFriends.filter(x => x.pid !== who); if (rel === 'out') window.__dyOut = [f]; if (rel === 'in') window.__dyIn = [f]; } }
 const { state } = await import('/js/store.js');
 state.uid = 'pv';
 const here = Number(q.get('here') || 0);

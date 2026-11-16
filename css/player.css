@@ -1,10 +1,9 @@
 /* ==========================================================================
    BOARD 2.0 B — THE PLAYER PAGE (js/profile/player-page.js; prefix pp-): a FULL SHEET over the paused city — the full card (vault.css .vl-full*),
-   LV + the rank line + the flame, the 3 rarest achievements, INVITE / the friend button + ⋯. Loaded on demand. Only transform + opacity animate.
+   LV + the rank line + the flame, the 3 rarest achievements, THE ACTION BAR (FIXES R3: the friend button / INVITE · MORE · CLOSE). Loaded on demand. Only transform + opacity animate.
    ========================================================================== */
 .vl-full.pp { overflow-y: auto; overscroll-behavior: contain; place-items: start center; background: radial-gradient(90% 50% at 50% 0%, #1a0f22 0%, #07050b 70%) #07050b; }   /* (PD-1 GROUP 0: OPAQUE — the list behind no longer shows through; the cover holds it still) */
 .pp-in { margin: clamp(10px, 5vh, 48px) 0 28px; }   /* (FIXES R2 — the owner: a balanced column from the top — no empty band above a short page) */
-.pp-close { min-width: 160px; }
 .pp-none { margin: 2px 0 0; font: 700 11px/1.3 var(--font-mono); letter-spacing: 0.2em; color: var(--text-faint); }
 .pp-stage { min-height: 0; }
 .pp-foot { width: 100%; display: grid; gap: 12px; }
@@ -22,13 +21,16 @@
 .pp-med .pg-medal .ve { transform: scale(0.85); }
 .pp-med b { font: 800 13px/1.15 var(--font-ui); letter-spacing: 0.08em; color: #fff; overflow-wrap: anywhere; }
 .pp-med em { font: 700 10px/1.2 var(--font-mono); font-style: normal; letter-spacing: 0.1em; color: #ff7ccb; text-align: right; white-space: nowrap; }
-.pp-acts { display: grid; grid-template-columns: minmax(0, 1fr) 52px; gap: 10px; align-items: stretch; }
-.pp-main { min-width: 0; display: grid; }
+/* FIXES R3 — THE ACTION BAR (the owner's option B of three mockups): ONE compact bar at the BOTTOM of the page, inside a quiet framed strip —
+   [ + FRIEND (the main pink tube, a little wider; INVITE in a room) ] [ MORE ] [ CLOSE ] — 44 px tall, squared-off corners (NO PILLS), each tap
+   area ≥ 44 × 44; it stays reachable while the page scrolls (sticky) and NOTHING sits over the card. Loading / limited: CLOSE alone, full width. */
+.pp-bar { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); z-index: 2; width: 100%; box-sizing: border-box; margin-top: 14px; display: flex; gap: 8px; padding: 8px; border-radius: 14px; background: rgba(16, 11, 22, 0.94); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 10px 24px rgba(0, 0, 0, 0.55); }
+.pp-bar > * { flex: 1 1 0; min-width: 0; }
+.pp-bar > .pp-main { flex: 1.45 1 0; display: grid; }
 .pp-main > *, .pp-main .fr-btn-slot { width: 100%; }
 .pp-main .fr-btn-slot[hidden] + * { display: none; }
-.pp-dots { min-height: 48px; display: grid; place-items: center; border-radius: 14px; border: 0; background: #1a1522; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22); color: #fff; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.pp-dots svg { width: 20px; height: 5px; fill: currentColor; }
-.pp-dots:active { transform: scale(0.95); }
+.pp-bar .btn { width: 100%; min-height: 44px; padding: 0 8px; border-radius: 9px; font-size: 11px; letter-spacing: 0.14em; white-space: nowrap; }
+.pp-bar .btn span { overflow: hidden; text-overflow: ellipsis; }
 .pp-extra:empty { display: none; }
 .pp-extra .rc-foot, .pp-extra > * { width: 100%; }
 /* limited / resting: the name + the emblem only */
