@@ -1002,6 +1002,22 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   WebGL — the page then says so ON its stage; a module that fails to load never puts the stage up → red). The lab's unit test greps the
   page's code for anything that could ask who is there (`whoami`, `api(`, `firebase.js`, `fetch(` …) and that nothing links to the page.
 
+## JAYWALK H4B (Nov 16 2026 — docs/games/passes/jaywalk-h4b.md)
+- Unit: `tests/jaywalk-ghosts.test.mjs` (THE GHOSTS IN STEP WITH THE WORLD — the old 75-tick delay reproduced in cars + water; the new
+  ghost against `course.js`'s own tests on every frame, with the network's delay, jitter, a 20 s drop; a late hop's catch-up; no false
+  deaths; the final lanes) · `tests/jaywalk-firstgo.test.mjs` (THE SAME COURSE FOR EVERYONE — a model of the start with one slow
+  phone, 147 rooms, the real `startOf` + `nextStep`; H4's local echo mismatches in the same rooms).
+- **The match E2E's new switches** (`e2e-jaywalk-match.mjs`): **`--lag[=ms]`** (default 900) — ONE phone on a slow line
+  (`kit/lag.mjs#installLag` / `setLag(page, up, down)`: the page's WebSocket frames held, in order — Chromium's own throttle does not
+  slow WebSockets; installed through the harness's new `beforeLoad(page, i)`): CHARLIE through the first match, THE HOST through the
+  rematch's start · **`--start`** — THE START's measure (BOB's phone @3 under 4× CPU from the count to 3 s after GO; the `START` row)
+  · **`--profile`** (with `--start`) — the CPU profile's heaviest functions through the walk inside + the count.
+- Every run now logs each phone's seed + tick 0 + when it took them, and checks every drawn ghost of the match against the world
+  (`window.__jwGame.state().seen` — `car` / `water` must be 0; `logs` = frames riding a log, `air` = catch-ups, `held`, `undead`),
+  the ghosts' final lanes on every phone, spectating's frame pacing, and the proof's writes a minute.
+- The view's hook gained `timeline()` ([ms after tick 0, the frame's length, its work]) and `state().adopts` (each course a phone
+  took: when, on which tick).
+
 ## JAYWALK H4 (Nov 16 2026 — docs/games/passes/jaywalk-h4.md)
 - Unit: `tests/jaywalk-match.test.mjs` (ONE LIFE in every mode · THE FIRST GO → the seed + tick 0 · a whole 3-player match through the
   pure director with bot logs in stamped chunks · the silent player · `endedFor` · Call the Winner · the server's `jaywalkMatch` = the

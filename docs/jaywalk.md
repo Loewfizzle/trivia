@@ -16,6 +16,7 @@ import map); the RULES are a pure engine that never knows about it.
 | H2B | Nov 16 2026 | `docs/games/passes/jaywalk-h2b.md` | THE CAMERA (ZOOM 7 · 8 · 9, the sideways follow, the slight turn — `camera.js`, shared with the graybox) + the look fixes (the water, THE LOGS that look like logs, the kid's glow ring + rim, THE BOX TRUCK, THE BARRICADE, no crates, the lamps: two per end, short + soft) |
 | H3 | Nov 16 2026 | `docs/games/passes/jaywalk-h3.md` | THE SOLO GAME: the real view, THE COURSE PICKED AFTER GO, the timestamped proof + THE SPEED CHECK both ways, the solo best from the server's replay (`jaywalk-solo`), THE END SCREEN's cause words, HOP AGAIN (THE INSTANT AGAIN), YOUR TABLE, HOW TO PLAY (out of the boot) + the look fixes (the logs' own lengths — a small rules change —, the brighter water, two tail-light streaks; ZOOM 8 + STRAIGHT) |
 | H4 | Nov 16 2026 | `docs/games/passes/jaywalk-h4.md` | THE MATCH (ONE LIFE EVERYWHERE — the lives option, respawn + blink, THE ONE-UP removed): the course + tick 0 from THE FIRST GO, THE GHOSTS, THE LIVE ORDER, out = SPECTATE + Call the Winner, the host's replayed end + the podium, the server's replay of every player (`jaywalkMatch`), the owner's guests counted; THE DROPPED SIGNAL; THE SHARE IMAGE; THE ICON (THE SIGNAL); THE POSTER (`?poster=1`); the look (calm water, plain log ends, the yellow taxi, the flat kid), PLAY AGAIN, the smoke START |
+| H4B | Nov 16 2026 | `docs/games/passes/jaywalk-h4b.md` | THE GHOST FIX (the owner's first live match): THE GHOSTS IN STEP WITH THE WORLD (`ghosts.js` — the engine's state at the world's tick, a late hop catches up, a death only once confirmed; hops go up at once), THE FIRST GO's PROOF (the GO = a transaction never applied locally; `startOf` — the nodes are the truth), THE START (the warm frame, the sounds decoded ahead, the tier remembered) |
 | H5 | — | — | the day look (the FOG BANK) + the landmarks' looks |
 | H6 | — | — | THE BLACKBIRD / UFO / mothership moments, the feat flags (jaywalk-boom / -ufo / -airfield), the mix, the credits |
 | the review → the fix pass | — | — | flips `playable` (empties `tests/registration.test.mjs#JAYWALK_WAITS`; the meta + its tile join the boot — after the city's CHROMEBOOK pass trims THE BOOT BUDGET: the owner, Nov 16) |
@@ -117,16 +118,49 @@ node of that match — counts for everyone in it, whoever reports first).
   the course (`seedOf(code, matchId, that time)`) and sets tick 0 (that time + `GO_LEAD_MS` 2 s) for everyone. The server stamps on
   arrival and a later arrival always carries a later time, so the first GO is FINAL the moment it lands — the same on every phone and
   on the server, whoever the host is, however the host changes (the prompt's "the host's GO": in practice the host's phone is as likely
-  as any; nobody chooses the millisecond, nobody can shop for a course). The director's step `count → play` writes `seed` + `playAt` +
+  as any; nobody chooses the millisecond, nobody can shop for a course) — **among the values the server sent: THE FIRST GO's PROOF, below**. The director's step `count → play` writes `seed` + `playAt` +
   `g0` into the game (THE 3 S RULE: it moves the phase); the phones already derived the same from the nodes and stand ready at tick 0.
   **No GO at all** `NO_GO_MS` (3 s) after the count (no signal anywhere, the rules not published) → **UNPROVEN**: the match plays on a
   stand-in course, nothing of it can be written, it ends after `UNPROVEN_MS` (90 s) and is never counted (THE RULES-LAG's fallback).
-- **THE GHOSTS** (`view.js` + `night.js`): `livePaths = { runs: jw/{matchId} }` — everyone's proof nodes ARE the ghosts. Each phone reads
-  the others' chunks as they land (each chunk once) and steps their hop logs through THE SAME ENGINE on the same course, `GHOST_DELAY`
-  75 ticks (1.25 s) behind the clock (a match's chunks go up every half second — `CLOCK.flushMatchMs`): **exact, deterministic** — a
-  ghost's lanes ARE that player's. A hop that lands later than the ghost already stood → their run from the start again (≈ 10 ms).
+- **THE FIRST GO's PROOF (H4B — the same course for everyone, with a slow phone in the room):** the first GO is final the moment it
+  lands **only among values the SERVER sent**. A plain `set(serverTimestamp())` shows the writer its own ESTIMATE of the server's time
+  in its own mirror at once — H4's phones could take a course from it (and switch when the real value, or an earlier GO, arrived), and
+  a slow host could write its estimate's course into the game while the server derives another. So: **(1) a match's GO is a
+  TRANSACTION, never applied locally** (`view.js#askGoMatch` — `runTransaction(…, { applyLocally: false })`): a phone's mirror holds
+  only confirmed GOs, in the server's own order; **(2) THE NODES ARE THE TRUTH** (`logic.js#startOf`): every phone — in the count AND
+  in `play` — and the host's final patch read the course + tick 0 from the first GO among the proof nodes, exactly what the server's
+  count derives (`jaywalkMatch`); the game's own `seed` / `playAt` only when there is no node to read (an UNPROVEN match). A very slow
+  phone learns the course late and starts late on the RIGHT course — never early on a wrong one. **Proven:**
+  `tests/jaywalk-firstgo.test.mjs` (a model of the start — the real `startOf` + `nextStep` — with one phone's line 0.3–3 s slow each
+  way / one way, as the host or a guest, its clock right, behind or ahead, the GOs landing in either order: 147 rooms — every phone,
+  the host's GO patch and the server agree, each phone takes its course once; **the same model with H4's local echo mismatches**) +
+  the real line (`e2e-jaywalk-match.mjs --lag=900` / `1800`: `kit/lag.mjs` holds every database frame of ONE phone — CHARLIE through
+  the first match, THE HOST through the rematch's start; each phone's seed + tick 0 are logged and must equal the server's own).
+- **THE GHOSTS — IN STEP WITH THE WORLD (H4B — `ghosts.js` (PURE) + `view.js` + `night.js`).** THE RULE (the owner, Nov 16 — after his
+  first live match): **a ghost is ALWAYS drawn consistent with the world on screen — never inside a car, never in the water while
+  alive.** (H4 stepped a ghost `GHOST_DELAY` 75 ticks BEHIND a world drawn NOW: a friend safe on a log 1.25 s ago was drawn in the
+  water today — `tests/jaywalk-ghosts.test.mjs` reproduces it. Spectating looked right only because the scene then drew the WORLD at
+  the watched ghost's old tick.) `livePaths = { runs: jw/{matchId} }` — everyone's proof nodes ARE the ghosts:
+  - **THE WORLD's TICK** (`view.js` frame): while this phone's kid runs, HIS tick; once he is out / for a watcher, the clock's. The
+    scene draws every car, log, train + light at it (`night.draw(…, { t })`) whatever run the camera follows.
+  - **`conf` — the confirmed run:** every hop this phone has of them, each applied in its own tick, through the same engine (never
+    past the world's tick). **`run` — the drawn run:** `conf` stepped on to the world's tick **with no new hop assumed** — they stand
+    / ride their log with it, exactly as the rules would. A drawn ghost IS the engine's state at the tick the cars are drawn at.
+  - **A LATE HOP** (it always is, by the network's delay): `run` is rebuilt from `conf`; from where the ghost WAS drawn to where the
+    rules put it now is closed in **A QUICK HOP** through the air (`CATCH_MS` 110 ms + 40 a cell, ≤ 320 ms — never a teleport, never
+    a slide along the ground; the watched ghost's too — `o.off`).
+  - **A DEATH ONLY ONCE CONFIRMED:** a ghost goes out only when that player's own log is complete — their node's `e` is here (it
+    arrives right behind their last chunk). Until then a drawn run that WOULD go out next tick **holds still in place** (`held`) — a
+    death never un-happens. Held longer than `HELD_SHOW_MS` (0.9 s — a dropped signal, not the network's beat) it is **not drawn**
+    until its hops / its end arrive (the "still catching up: not drawn" pattern — never a kid standing in what would have hit him).
+    THE MOTHERSHIP takes a ghost at its fixed tick with nothing to confirm.
+  - **HOPS GO UP AT ONCE:** a match's chunks are sent within `CLOCK.flushMatchMs` **120 ms** (was 500) — one small write a hop for a
+    human (≤ 8 a second at the very most; measured with the lazy bot: 12–44 writes a minute a player). THE DROPPED SIGNAL's rules +
+    the proof are unchanged (a chunk is still `{ s, at }`, the judge reads the same arrivals).
+  - **exact, deterministic** — with every hop in, a ghost's state = that player's, tick for tick; its final lanes ARE theirs.
   Drawn as the same kid, **SEE-THROUGH, in their colour**, a thin ring of it at their feet, **their NAME over them** (DOM tags moved by
-  transform; two that would overlap stack). Two draw calls for all of them (instanced). Never colliding — nothing in the rules knows them.
+  transform; two that would overlap stack). Two draw calls for all of them (instanced). Never colliding — nothing in the rules knows
+  them. THE LIVE ORDER reads the same runs (no new hop assumed = the confirmed lanes).
 - **THE LIVE ORDER** (`.jw-order` — the top-left corner, under ☰): everyone's name + lanes, best first, yours outlined. **OUT = a CROSS
   in the colour dot's place + the name struck through** (a shape — never colour alone). **No lives HUD anywhere.**
 - **OUT = SPECTATE:** the hit is seen (`END_HOLD_MS`), the cause in neon words over the scene (OUT · FLATTENED BY A TAXI · 12 LANES — it
@@ -159,6 +193,26 @@ node of that match — counts for everyone in it, whoever reports first).
   `css/base.css [data-theme='jaywalk']`, STANDINGS + `SOLO_OK`, `PROOF_TREES`, the per-game budget, the preload graph, **its smoke START
   (H4 — `e2e-smoke.mjs`: a local page that asks)**. **WAITING — ONE named list, `JAYWALK_WAITS`:** `meta` · `help` · `art` → the go-live pass.
 - The server never credits it until its row is playable — except a match / a run THE OWNER played (`reportableGame`).
+
+## THE START (H4B — the first seconds of a match)
+Measured (`e2e-jaywalk-match.mjs --start [--profile]`: BOB's phone at 390 × 844 @3 under a 4× CPU throttle, a cold scene — every frame
+from the count to 3 s after GO, `window.__jwGame.timeline()`): the scene's own start (the WebGL context, the models, the programs — the
+profile: native GPU work, not the city, not the rules) is ≈ 0.6 s of long frames in the count's FIRST second (worst 200–234 ms, all
+before the "2"); **after GO the worst frame was 16.9 ms before and after this pass on this machine** — the lag the owner felt on his
+iPhone could not be reproduced here. What a phone does differently, and what H4B does about it:
+- **THE WARM FRAME** (`night.js#warm`): a phone builds a program's real pipeline + uploads a mesh's buffers at its FIRST DRAW WITH
+  SOMETHING IN IT, and every instanced kind starts with 0 instances — so a train, a truck, THE UFO's disc, a ghost were first built
+  when they first came into view, mid-run. Now every kind gets ONE instance far under the ground, the UFO's discs + the lines' words
+  stand there too, the programs are compiled (`renderer.compile`) and ONE frame is rendered (the bloom's pass included) at the top of
+  the first frame — and again in the frame after Kenney's models land. Never seen (the real picture is drawn right over it).
+- **THE SOUNDS ARE DECODED AHEAD** (`view.js` build → `sfx.js#decode`): during the count / the wait for GO — never on the first hop.
+- **THE TIER IS REMEMBERED** (`jw:lab:tier`, 14 days — the city's `na:tier` rule): a phone that had to step down a quality tier starts
+  there next time (the kit steps back up by itself after 8 good seconds) — never the first seconds of EVERY match at a tier it can't hold.
+- **THE GHOSTS START WITH YOU:** H4's ghosts stood still for the first 1.25 s after GO (their delay) and then followed — part of
+  what read as lag. Now they hop as their hops land.
+- The course itself is cheap (`createCourse` 0.02 ms, a lane ≤ 0.3 ms) — nothing to prepare there.
+- **Left for a real phone:** the count's own first second (the scene's start) — moving it before the count means a second WebGL
+  scene alive during the walk inside (the city's memory rules: not done).
 
 ## THE DROPPED SIGNAL (H4 — the owner, Nov 16: a phone in a moving van)
 The database's client QUEUES writes while a phone is offline and the server stamps them when they ARRIVE — so a lost connection looks
@@ -508,6 +562,6 @@ audition; **THE SOLO GAME** and **THE MATCH** (GO from the first GO, the ghosts,
 end, the podium, the server's replay of everyone, the guests counted) — on the owner's phone / in the owner's room only; THE SHARE
 IMAGE; THE SIGNAL; THE POSTER's render. PLACEHOLDER: THE BLACKBIRD (a dark dart) + THE UFO (a disc + its beam ring) + THE MOTHERSHIP
 (a green beam + "TAKEN AT LANE n") + their cause lines — H6; the daily; every number in `tuning.js` (first-pass feel) + `CLOCK` (2 s
-ahead / 8 s behind / 75 s drop / 15 s catch-up — tune from real phones); `GHOST_DELAY`; the sounds' levels (the mix: H6) + the seven
+ahead / 8 s behind / 75 s drop / 15 s catch-up — tune from real phones); the ghosts' `CATCH_MS` / `HELD_SHOW_MS`; the sounds' levels (the mix: H6) + the seven
 sounds not yet in play (the RESPAWN sound left the audition with respawn); the day look (H5); no tile; the train's name ("THE 6:15");
 the poster's hero camera (`POSTER.hero` — the owner judges the frame).
