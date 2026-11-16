@@ -441,3 +441,9 @@
   - ANTI-CHEAT (planned): H3 — the server notes a solo run's start + a speed check before a best counts; H4 — every hop-log chunk carries a rules-enforced server timestamp + the replay refuses a log that runs ahead of the real clock (THE DROP's slow-motion check both ways).
   - THE BOOT: JAYWALK's meta stays OUT of the boot (as H1) until the city's CHROMEBOOK pass trims the budget; JAYWALK's go-live waits for that pass's log.
   - The city's UFO + Blackbird are 2D sprites, not 3D models — JAYWALK's flying hazards are decided before H6.
+
+## JAYWALK (the owner, Nov 16 — DECIDED, after H2 on his phone)
+- The owner played H2 on his iPhone: "the game feels good", but it needs to be ZOOMED IN. The reference is Crossy Road's camera (a genre convention — the framing only; never its chicken, its blocky daytime look or its name): a much closer camera, a view that FOLLOWS the player sideways, and a slight TURN so the lanes run on a gentle diagonal.
+- THE CAMERA: ~8 columns visible across the screen by default (ZOOM 7 · 8 · 9 on the lab to judge; the WIDTH 9 · 11 switch is retired). The 9 playable columns stay; the camera slides sideways with the kid (smooth, clamped at the play edges so cars + logs still show up before they reach him). THE SLIGHT TURN (yaw) with an ANGLE: STRAIGHT · TURNED switch on the lab; default TURNED.
+- THE BLACKOUT stays (the owner's brother prefers it to an eagle: you see it coming) — the camera always keeps ~3–4 lanes visible BEHIND the kid so the darkness is seen climbing before it bites.
+- Look fixes from the owner's review of H2: the water must read as water; the kid must always stand out; a real box truck; no junk-looking props.
