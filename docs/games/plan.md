@@ -450,3 +450,13 @@
 - THE LOGS + THE WATER (the owner, Nov 16 10:56): the logs must look like LOGS (a wobbling trunk, bark with grooves, light cut ends with tree rings, a branch stub on longer ones, moss on some; at night the amber is only a thin underglow + a soft light on the water) and the water like WATER (teal-blue, ripples, a foamy shoreline, stretched neon reflections, sparkles) — all built in code, no sourced model / texture.
 - CAR LIGHTS (the owner, Nov 16 10:55): BOTH headlights cast a beam + BOTH tail lights a red glow, at the lamps' real places on each model (the 4 Kenney cars, the box truck, the train's front); shorter + softer — a glow on the road (gone within ~1–1.5 cells ahead, ~0.5–1 behind), never a long spotlight; instanced, no real lights.
 - THE JAYWALK LAB IS OPEN (the owner, Nov 16 11:22): his brother tests it on his own phone from a shared link → the owner gate is removed from jaywalk-lab.html (no whoami — ZERO server calls); it stays noindex nofollow, unlisted (linked from nowhere), no room, no database writes; everything on it stays. (This replaces "owner-gated" in the LIVE PREVIEWS line above.)
+
+## JAYWALK (the owner, Nov 16 — DECIDED, after H2B on his phone)
+- THE CAMERA defaults: ZOOM 8 + STRAIGHT (the owner's pick so far; he is still testing with his nephew — the lab keeps ZOOM 7 · 8 · 9 + ANGLE so a later pass flips it in one line).
+- LOGS: all the SAME THICKNESS, each its OWN LENGTH (1–4 cells, from the seed), UNEVEN GAPS; long logs more common early, short ones later (the difficulty curve). No moss, no branch stubs, no dots — nothing on a log that could read as a pickup (JAYWALK has none).
+- WATER: a clearly brighter, saturated night blue that stands out from the dark grass + roads at a glance — water you would never step into.
+- TAIL LIGHTS: both tail lights glow; the neon light trail comes from BOTH tail lights as two thin, short, fast-fading streaks (cars, the truck, the train) — never one long lopsided beam.
+- THE END SCREEN names how you went out, in big neon words (e.g. FLATTENED BY A TAXI · SWEPT AWAY · HIT BY THE 6:15 · THE LIGHTS WENT OUT — one line per cause + vehicle).
+- THE COURSE IS PICKED AFTER GO: seed = hash(room code + matchId + the server's GO timestamp) — no one can shop for an easy course. Every hop-log chunk carries a rules-enforced server timestamp; the replay refuses a log that runs AHEAD of the real clock or far behind it (THE DROP's slow-motion check both ways). (Moved here from H4 — solo bests need it.)
+- OPTIONAL, not now: a ghost of your own best run.
+- The lab (https://neonspeakeasy.com/jaywalk-lab.html) stays OPEN for the owner's family to test — it never reports a score.
