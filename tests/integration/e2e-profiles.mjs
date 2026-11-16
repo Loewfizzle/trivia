@@ -493,8 +493,8 @@ await H.run(async () => {
     ok(await tapTag(p0, bobUid), 'the room: BOB\'s name tag tapped');
     const b = await pp(p0);
     ok(b.card && b.lv, 'THE PLAYER PAGE from a room\'s name tag');
-    await p0.waitForFunction(() => /\+ FRIEND/.test((document.querySelector('.vl-full.pp .pp-main') || {}).textContent || ''), { timeout: 10000 }).catch(() => {});
-    ok(/\+ FRIEND/.test(await p0.$eval('.vl-full.pp .pp-main', e => e.textContent).catch(() => '')), '…not friends yet: + FRIEND (FIXES R3: the bar’s short label)');
+    await p0.waitForFunction(() => /ADD FRIEND/.test((document.querySelector('.vl-full.pp .pp-main') || {}).textContent || ''), { timeout: 10000 }).catch(() => {});
+    ok(/ADD FRIEND/.test(await p0.$eval('.vl-full.pp .pp-main', e => e.textContent).catch(() => '')), '…not friends yet: ADD FRIEND');
     await ppClose(p0);
     // (c) a FRIEND: ALICE asks, BOB accepts → ALICE's friends list (slim cards, BOB HERE) → his page
     await p0.evaluate(pid => import('/js/profile/friends.js').then(m => m.friendDo('add', { pid })), me1.pid);

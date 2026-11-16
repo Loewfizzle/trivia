@@ -13,13 +13,14 @@ test('GROUP 3 — THE PLAYER PAGE\'s ACTION BAR (the owner\'s option B): ONE bar
   assert.match(pp, /bar\.replaceChildren\(\.\.\.actions\(D\), closeBtn\);/, 'the card in: the friend tube · MORE · CLOSE');
   assert.match(pp, /const more = tubeButton\('MORE', \{ kind: 'secondary', size: 'sm', cls: 'pp-more', attrs: \{ 'data-press': true/, 'MORE opens the ⋯ menu (press + lift)');
   assert.match(pp, /tubeButton\('INVITE', \{ kind: 'main', size: 'sm', block: true, cls: 'pp-invite'/, 'INVITE in a room');
-  assert.match(pp, /BAR_LABELS = Object\.freeze\(\{ none: '\+ FRIEND', out: 'REQUESTED', in: 'ACCEPT', friend: 'FRIENDS', blocked: 'UNBLOCK' \}\)/);
+  assert.match(pp, /BAR_LABELS = Object\.freeze\(\{ none: 'ADD FRIEND', out: 'REQUESTED', in: 'ACCEPT', friend: 'FRIENDS', blocked: 'UNBLOCK' \}\)/);
   assert.match(read('js/profile/friends-ui.js'), /const L = o\.labels \|\| LABEL;/, 'the friend tube takes the bar\'s labels');
   assert.doesNotMatch(pp, /pp-dots|pp-acts|DOTS/, 'the separate ⋯ button is gone');
   assert.doesNotMatch(css, /\.pp-dots|\.pp-acts|\.pp-close \{ min-width/, 'its CSS too');
   const bar = css.slice(css.indexOf('.pp-bar {'), css.indexOf('.pp-extra:empty'));
   assert.match(bar, /\.pp-bar \.btn \{[^}]*min-height: 44px;[^}]*border-radius: 9px;/, '44 px tall, squared-off corners (no pills)');
   assert.match(bar, /\.pp-bar \{ position: sticky; bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 10px\);/, 'reachable while the page scrolls, above the home bar');
-  assert.match(bar, /\.pp-bar > \.pp-main \{ flex: 1\.45 1 0;/, 'the main pink tube a little wider');
+  assert.match(bar, /\.pp-bar > \.pp-main \{ flex: 1\.75 1 0;/, 'the main pink tube wider (ADD FRIEND on one line)');
+  assert.match(bar, /\.pp-bar \.pp-main \.btn \{ padding: 0 6px; letter-spacing: 0\.1em; \}/, 'tighter tracking — the same 11 px as the others');
   assert.doesNotMatch(bar, /999px/, 'NO PILLS');
 });

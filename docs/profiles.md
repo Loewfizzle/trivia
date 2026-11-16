@@ -522,8 +522,8 @@ A second way to bring your card to a device, beside the restore key (which stays
   rows ride under it. Proof: `e2e-profiles` 8b. **PD-1 GROUP 0: its backdrop is OPAQUE** (`css/player.css` — the list behind no longer shows through).
   **FIXES R3 — THE ACTION BAR (Nov 16; the owner picked option B of three mockups):** the huge ADD FRIEND tube + the separate ⋯ + the separate
   CLOSE became ONE compact bar at the BOTTOM of the page, in a quiet framed strip (`.pp-bar` — sticky above the home bar while a long page
-  scrolls): **[ + FRIEND ] [ MORE ] [ CLOSE ]** — 44 px tall, squared-off corners (no pills), every tap area ≥ 44 × 44, the main pink tube a little
-  wider. The first follows the relation (`BAR_LABELS`: + FRIEND · REQUESTED · ACCEPT · FRIENDS · UNBLOCK — `friendButton(…, { labels })`; INVITE when
+  scrolls): **[ ADD FRIEND ] [ MORE ] [ CLOSE ]** — 44 px tall, squared-off corners (no pills), every tap area ≥ 44 × 44, the main pink tube a little
+  wider. The first follows the relation (`BAR_LABELS`: ADD FRIEND — the owner's 12:19 am add-on: the "+" read too small; full words, a touch tighter, 1.75 of the bar — · REQUESTED · ACCEPT · FRIENDS · UNBLOCK — `friendButton(…, { labels })`; INVITE when
   you're in a room and they're a friend not in it); MORE opens the existing ⋯ menu (REMOVE / CANCEL REQUEST / BLOCK / UNBLOCK); CLOSE closes.
   NOTHING sits over the card. Loading / limited: CLOSE alone, full width. Pins: `tests/fixes-r3.test.mjs`; preview `friends-preview.html?player=P_nova&rel=none|friend|out|in` (+ `&room=1`)
   — the fake friends store now carries `in` / `out` so the bar's tube shows the live relation; shots `Downloads/NEON/fixes-r3/pp-*`.

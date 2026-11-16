@@ -22,15 +22,16 @@
 .pp-med b { font: 800 13px/1.15 var(--font-ui); letter-spacing: 0.08em; color: #fff; overflow-wrap: anywhere; }
 .pp-med em { font: 700 10px/1.2 var(--font-mono); font-style: normal; letter-spacing: 0.1em; color: #ff7ccb; text-align: right; white-space: nowrap; }
 /* FIXES R3 — THE ACTION BAR (the owner's option B of three mockups): ONE compact bar at the BOTTOM of the page, inside a quiet framed strip —
-   [ + FRIEND (the main pink tube, a little wider; INVITE in a room) ] [ MORE ] [ CLOSE ] — 44 px tall, squared-off corners (NO PILLS), each tap
+   [ ADD FRIEND (the main pink tube, a little wider; INVITE in a room) ] [ MORE ] [ CLOSE ] — 44 px tall, squared-off corners (NO PILLS), each tap
    area ≥ 44 × 44; it stays reachable while the page scrolls (sticky) and NOTHING sits over the card. Loading / limited: CLOSE alone, full width. */
 .pp-bar { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); z-index: 2; width: 100%; box-sizing: border-box; margin-top: 14px; display: flex; gap: 8px; padding: 8px; border-radius: 14px; background: rgba(16, 11, 22, 0.94); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 10px 24px rgba(0, 0, 0, 0.55); }
 .pp-bar > * { flex: 1 1 0; min-width: 0; }
-.pp-bar > .pp-main { flex: 1.45 1 0; display: grid; }
+.pp-bar > .pp-main { flex: 1.75 1 0; display: grid; }   /* (the owner's 12:19 am add-on: ADD FRIEND in full words — more of the bar, one line at 390) */
 .pp-main > *, .pp-main .fr-btn-slot { width: 100%; }
 .pp-main .fr-btn-slot[hidden] + * { display: none; }
 .pp-bar .btn { width: 100%; min-height: 44px; padding: 0 8px; border-radius: 9px; font-size: 11px; letter-spacing: 0.14em; white-space: nowrap; }
 .pp-bar .btn span { overflow: hidden; text-overflow: ellipsis; }
+.pp-bar .pp-main .btn { padding: 0 6px; letter-spacing: 0.1em; }   /* (a touch tighter — never below the other two's 11 px) */
 .pp-extra:empty { display: none; }
 .pp-extra .rc-foot, .pp-extra > * { width: 100%; }
 /* limited / resting: the name + the emblem only */

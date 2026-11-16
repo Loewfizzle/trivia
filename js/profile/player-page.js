@@ -54,7 +54,7 @@ export async function openPlayer(target = {}, o = {}) {
   const foot = h('div.pp-foot', h('div.pp-skel-bar'), h('div.pp-skel-bar.is-short'), ...extra.map(x => h('div.pp-extra', x)));
   // (FIXES R2 — the owner: CLOSE is a NEON TUBE — gold is a vault / card accent, never a button)
   // FIXES R3 — THE ACTION BAR (the owner picked option B of three mockups): ONE compact bar at the BOTTOM, in a quiet framed strip —
-  //  [ + FRIEND (the main pink tube, a little wider — it follows the relation; INVITE in a room) ] [ MORE (the ⋯ menu) ] [ CLOSE ]: 44 px tall,
+  //  [ ADD FRIEND (the main pink tube, a little wider — it follows the relation; INVITE in a room) ] [ MORE (the ⋯ menu) ] [ CLOSE ]: 44 px tall,
   //  squared-off corners (no pills), every tap area ≥ 44 × 44; NOTHING over the card (no corner button on it). While loading / limited: CLOSE alone.
   const closeBtn = tubeButton('CLOSE', { kind: 'secondary', cls: 'pp-close vl-full-x', size: 'sm', attrs: { 'data-press': true, 'aria-label': 'Close' }, onClick: close });
   const bar = h('div.pp-bar', { role: 'group', 'aria-label': 'Actions' }, closeBtn);
@@ -112,7 +112,7 @@ export async function openPlayer(target = {}, o = {}) {
     bar.replaceChildren(...actions(D), closeBtn);
   }
 
-  /** THE BAR's first two: INVITE (in a room, a friend who isn't in it) or the friend button (+ FRIEND · REQUESTED · ACCEPT · FRIENDS) + MORE (the ⋯ menu, by `rel`) */
+  /** THE BAR's first two: INVITE (in a room, a friend who isn't in it) or the friend button (ADD FRIEND · REQUESTED · ACCEPT · FRIENDS) + MORE (the ⋯ menu, by `rel`) */
   function actions(D) {
     const rel = D.rel || 'none', pid = target.pid || (D.card && D.card.pid) || null;
     const ft = pid ? { pid } : { b: target.b, bid: target.bid };
@@ -149,8 +149,8 @@ export async function openPlayer(target = {}, o = {}) {
 }
 
 const SLOW_MS = 2500;
-/** FIXES R3 — THE BAR's friend tube: the short labels (+ FRIEND · REQUESTED · ACCEPT · FRIENDS · UNBLOCK) */
-const BAR_LABELS = Object.freeze({ none: '+ FRIEND', out: 'REQUESTED', in: 'ACCEPT', friend: 'FRIENDS', blocked: 'UNBLOCK' });
+/** FIXES R3 — THE BAR's friend tube: its labels (ADD FRIEND — the owner's 12:19 am add-on: the "+" read too small · REQUESTED · ACCEPT · FRIENDS · UNBLOCK) */
+const BAR_LABELS = Object.freeze({ none: 'ADD FRIEND', out: 'REQUESTED', in: 'ACCEPT', friend: 'FRIENDS', blocked: 'UNBLOCK' });
 /** CITY C — the card's material picture decoded before the page shows (≤ 900 ms — a missing picture never holds it) */
 function materialIn(stage) {
   const m = stage.querySelector('.vl-mat'), urls = m ? [...getComputedStyle(m).backgroundImage.matchAll(/url\(["']?([^"')]+)["']?\)/g)].map(x => x[1]) : [];
