@@ -946,3 +946,17 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - `tests/integration/plate-hug.mjs` 64 checks: + THE STEPPED PLATE (the bottom step's edge vs the LV line ≤ the padding; plain when as wide).
 - `tests/integration/room-board.mjs`: PICK A GAME = the PLAY sheet's mark (40 px, no background, never `rc-mark`). `tests/fixes-r3.test.mjs` (unit pins).
 - **Lesson (R2's cloud reds):** when a pass removes a feature, grep the harbor + E2E + /api suites for its old checks before the push.
+
+## JAYWALK H1 (Nov 16 2026 — docs/games/passes/jaywalk-h1.md)
+- Unit (Node, nothing installed): `tests/jaywalk-engine.test.mjs` (the rules are pure + cross-engine safe, the hop, determinism — twice, through
+  JSON, lanes out of order), `jaywalk-sim.test.mjs` (2,000 seeds per mode: every lane crossable, the opening calm, the difficulty rising, the
+  Blackbird's tell, the UFO + the Blackbird never in one stretch; the greedy + the random bot — ~3 s a mode), `jaywalk-deep.test.mjs` (deep runs,
+  the caps, THE ONE-UP, hand-built logs for boom / ufo / airfield + the near-misses), `jaywalk-server.test.mjs` (`api/_lib/jaywalk.js#verifyRun`:
+  forged logs refused), `jaywalk-cartridge.test.mjs` (the frame, the pure step, a whole match), `jaywalk-lab.test.mjs` (the page, the gate, no
+  writes, the controls). All six: `node --test tests/jaywalk-*.test.mjs` (~8 s).
+- Emulators: `rules.test.mjs` "JAYWALK H1 — the jw proof node" + `server.test.mjs` "JAYWALK H1 — the proof node" (GO alone proves a player).
+- The browser: `node tests/integration/jaywalk-lab.mjs "<chromium>" [outDir] [--perf]` (scripts/serve.mjs --emu + the emulators: the door needs
+  /api) — 50 checks; `--perf` = the frame rate at 390 × 844 @3 under a 4× CPU throttle; `outDir` = the shots (the look checks warp the kid up the
+  course: `window.__jwLab.warp / find / pulse`). THE PAGES LOAD (`kit/page-loads.mjs`) now covers `/jaywalk-lab` (a stranger gets the door).
+- The bots (`js/games/jaywalk/bot.js`) play through the REAL engine with a look-ahead on a copy of the run — a new hazard needs no bot change.
+

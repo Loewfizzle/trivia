@@ -2,7 +2,7 @@
 
 Mobile-first multiplayer party games (2–8 players, one phone each). Thirteen games, **THREE PLAYABLE**: PRISM DROP, OVERCLOCK, HOLD'EM
 (`js/config.js` GAMES[].playable is the one switch — the other ten are FROZEN (`config.js#FROZEN_IDS`, never loaded — docs/cartridge.md "THE FROZEN
-CONTRACT"), code + data + rules kept). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
+CONTRACT"), code + data + rules kept; + JAYWALK BEING BUILT — `preview`, never offered: docs/jaywalk.md). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
 **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (City 1.0 deleted Nov 5; its code at the tag `city-1.0-final`). Static site on Vercel
 (**neonspeakeasy.com**) + Firebase Realtime Database + Anonymous Auth + eight Vercel functions in `/api` (profiles, server-checked results +
 HOLD'EM's dealer, THE BOARD, admin, errors, the dailies, the weather, the clock). In code the city is still "the district" (`nd-` prefix,
@@ -30,6 +30,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 | `docs/profiles.md` | profiles, keys, FRIENDS, passkeys, `/api`, result reporting, THE BOARD, `/board`, `/admin`, the Vercel setup |
 | `docs/chat.md` · `docs/content.md` | room chat · adding questions / puzzles / words to any bank |
 | `docs/overclock.md` · `docs/prism.md` · `docs/holdem.md` | the three playable games (read before a pass on one) |
+| `docs/jaywalk.md` | **JAYWALK** (BEING BUILT): the engine, the replay + the proof node, THE LAB (/jaywalk-lab) — read before a JAYWALK pass |
 | `docs/password.md` · `docs/coastclear.md` · `docs/prism.md` "THE DROP" | the three dailies (`docs/games/plan.md` = the owner's game decisions) |
 | `docs/pulse.md` `docs/golf.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that frozen game |
 
@@ -170,6 +171,9 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - PRISM's SKINS: ONE definition each in `prism/skins.js` + its art — no skin-specific path; `prism-skin-snap.mjs` IDENTICAL after a refactor → docs/prism.md "THE SKINS".
 - HOLD'EM: the engine PURE + DETERMINISTIC; THE SERVER IS THE DEALER (the deck only in `hrec/{CODE}`); PLAY CHIPS ONLY — no money words;
   ANIMATIONS COME FROM THE STATE; THE PORTRAIT IS UNTOUCHED by sideways CSS → docs/holdem.md (moved).
+- JAYWALK (BEING BUILT): the rules PURE + CROSS-ENGINE SAFE (integers + Math.floor — no sin / cos / pow / sqrt, never Math.random / Date.now / a
+  frame clock); a lane = f(seed, index), a hazard = f(lane, tick); a result = THE REPLAY of the hop log; every pass ships its preview at
+  /jaywalk-lab (owner-gated, no writes) — never a 192.168 / tests/ link in a summary → docs/jaywalk.md.
 
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
 - NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).
@@ -198,7 +202,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 ## File layout (top level — the full map: docs/data-model.md (moved); the city's: docs/harbor.md "THE FILE MAP"; each game's: its doc)
 ```
 index.html sw.js manifest.webmanifest assets/   shell, service worker (one copy per deploy + THE CARRY, /audio kept by version, never /api), PWA, icons
-board.html admin.html lab.html daychart.html 404.html   /board, /admin, /lab, /daychart, THE WRONG DOOR
+board.html admin.html lab.html daychart.html jaywalk-lab.html 404.html   /board, /admin, /lab, /daychart, /jaywalk-lab, THE WRONG DOOR
 api/ (8 functions) + api/_lib/ + api/_data/      profile report board admin log sky time daily — firebase-admin, server-only data
 css/  base components screens title kit board admin vault progress daily chat + <game>.css   tokens, THE SHELL, screens, games
 js/config.js firebase-config.js firebase.js      APP_NAME, GAMES + DAILIES / the web config / init + db helpers + serverNow() + want/release

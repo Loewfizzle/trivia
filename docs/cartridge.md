@@ -366,3 +366,16 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   on every room open. Not one multi-path update: that write is atomic, one path the live rules refuse would take the rest down.
 - **Left for later (noted):** the `/api` suite's CIPHER fixture (`server.test.mjs`, `e2e-profiles.mjs`) → a playable game — about a day; the 882
   frozen rule lines stay (THE REVIEW's LEAVE ALONE — an older phone's start clears every node).
+
+## JAYWALK H1 (Nov 16 2026) — A GAME BEING BUILT AGAIN (docs/jaywalk.md; docs/games/passes/jaywalk-h1.md)
+- `tests/cartridge.test.mjs#BUILDING = ['jaywalk']`; its GAMES row `playable: false` + `preview: true`. **No meta at boot** while it is being built
+  (HE3's pattern — THE BOOT BUDGET is at 310 / 310 modules; the go-live pass adds it with a named raise): `metaOf(id)` falls back to the loaded cartridge.
+- **`tests/registration.test.mjs` checks a `preview` row in the SAME places**, minus ONE named list — `JAYWALK_WAITS` (`meta` → the go-live pass ·
+  `help` + `boards` → H3 · `art` → H2 · `smoke` → H4). A wait whose place is registered fails (take it off the list); a PLAYABLE game with a wait
+  left fails — the go-live pass must empty it. The next game being built gets its own list in `WAITS`.
+- A reported game being built is in `STANDINGS` + `SOLO_OK` + `PROOF_TREES` from its first pass (the server still refuses it until its row is
+  playable — `api/report.js#reportableGame`); `tests/profiles.test.mjs` walks every non-dealer GAMES row (its `finalGame` fixture: tests/fixtures/finals.mjs).
+- The per-game budget gets a NEW line for it (`tests/integration/game-budget.json`); `scripts/build-preload-graph.mjs#CARTRIDGES` = playable + being built.
+- **THE BOOT BYTES are at their limit too** (6,499.99 of 6,500 KB after H1): JAYWALK's sign reads its own GAMES row now, so the stand-in row in
+  `title-taps.js` went; the next pass that adds a byte to a boot file needs a named raise of `boot-budget.json#moduleKB` (or a trim).
+

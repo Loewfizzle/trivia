@@ -69,6 +69,7 @@ rooms/{CODE}/meta/settings/chat: { filter: bool }                 ← host; "Fil
   meta/used/agent/{wordKey}: true                 ← host; DOUBLE AGENT words already dealt in this room
   meta/prism: { seed, n }                         ← host; PRISM DROP room playlist (seeded shuffle, next position)
   prism/{matchId}/{uid}: { st: play|out, at, b (board string), h, p ("t,r,x,y"), sc, ln, lv, mc, se, pd, best, tg, by?, ev?, sv }
+  jw/{matchId}/{uid}:    { go (server time, ONCE at GO — present = proven), c/{i} (the packed hop log: append only, ≤ 400 chars, i 0–999), e { l, t, w? } (the end, once) }   ← JAYWALK (H1 — docs/jaywalk.md): own, own match, while it is on; never deleted by its player; the host deletes ONE match's node; nothing live writes it before H4
                                                   ← PRISM DROP, own; PFIX-B: PLAY (+ the countdown from GO − 2 s, + SCORE RUSH's END ≤ endAt + 4 s),
                                                     FROZEN once out (own st or game/out); at = now; sv CLOSED: { b, n, h, hd, lv, ln, sc, cb, mc, bb,
                                                     bc, se, fr, pd: [[n, gap, from, id, wait ms, risen ms]], sd, best, st: [pieces, quads, twists, pcs],
