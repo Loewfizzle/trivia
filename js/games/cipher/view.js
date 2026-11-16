@@ -1,3 +1,4 @@
+// FROZEN — NOT MAINTAINED (FIXES R2, THE REVIEW B1 option (b)): on config.js#FROZEN_IDS, never loaded (games/registry.js#loadGame refuses it). docs/cartridge.md "THE FROZEN CONTRACT".
 // CIPHER BREACH — player view. Renders from mirrored DB state; the only local
 // state is the row being typed and an optimistic copy of my own board.
 import { h, clear, pulseClass, vibrate, reducedMotion } from '../../ui/dom.js';

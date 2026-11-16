@@ -333,3 +333,36 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 ### A game's podium music
 
 - **A game's podium music:** `FINAL_MUSIC` in its index.js (HIGH STAKES: `victory1` = victory.mp3); default the victory playlist.
+
+## FIXES R2 (Nov 15) — READY FOR JAYWALK (THE REVIEW B1 + B2 T5 → T1 → T2 → T3)
+- **T5 — the boot cap back:** `js/games/cartridge.js` = the five console readers only (`minPlayersOf`, `chipsOf`, `looksOf`, `lookLockOf`,
+  `rematchSettingsOf`) + `LOOK_VALUES` + `frameProblems` (T3); the tables (`REQUIRED`, `OPTIONAL`, `START_ARGS`, `DAILY`, `META_KEYS`,
+  `PRELOAD_BUDGET`) and `checkCartridge` moved to **`js/games/contract.js`** — out of the boot graph. `js/games` at boot **35.0 → 26.2 KB**; the
+  cap in `tests/cartridge.test.mjs` LOWERED 36 → 30 KB (JAYWALK's meta fits with no named raise).
+- **T1 — ONE REGISTRATION CROSS-CHECK** (`tests/registration.test.mjs`): for every playable game, its row in each place — the GAMES row (name,
+  theme, tag, blurb), registry META + its loader, MARKS, help RULES + its tab, the tile (game-art ART), the theme (`css/base.css`), its boards,
+  STANDINGS or DEALER_GAMES, **SOLO ↔ SOLO_OK**, **PROOF_TREES ↔ PROOF_NODE_LIST**, **livePaths nodes ⊂ ALL_PLAYER_NODES ∪ NEW_PLAYER_NODES**
+  (HOLD'EM's `holdem` = a server-written table, named in the test), the smoke start, THE PER-GAME BUDGET, the preload graph, the contract on its meta.
+- **T2 — what the console reads, written down:** OPTIONAL now lists `NO_INTERCOM`, `cleanSettings`, `endGame` + `endGameLine`, `soloPause` +
+  `soloResume`, `shareRun` (all read already — nothing new). **THE GAME FRAME** — the fields of `game` the console reads: `id`, `matchId`,
+  `participants`, `phase` (required at the start — T3), `phaseStartAt`, `unseal`, `go`, `phase === 'final'` (the podium); PRISM's `pz` by name in
+  host.js (a known exception). **THE 3 S RULE** (host.js#tick): a step whose patch leaves `phase` + `phaseStartAt` (+ `unseal`) alone is the SAME
+  in-flight signature — it lands at most once per 3 s; a director that must write faster moves `phaseStartAt` (or a phase) with each step.
+- **T3 — a game that can't start fails LOUDLY at the start:** `host.js#startGameNow` checks the start()'s game against THE GAME FRAME
+  (`cartridge.js#frameProblems`: id = the picked game, the matchId host.js passed, participants, a phase) before ANY write → the stamp taken
+  down, COULD NOT START, a `cartridge` error report — never a broken match on every phone. On localhost `registry.js#loadGame` runs
+  `checkCartridge` and names the gaps in the console.
+
+## THE FROZEN CONTRACT (FIXES R2 — THE REVIEW B1 option (b) "keep compatible", the owner Nov 15)
+- **ONE list:** `config.js#FROZEN_IDS` = the GAMES rows not playable, not being built (`preview`), not a daily — derived, nothing to edit; a game
+  that comes back (`playable: true`) leaves it by itself. The whole-tree tests read it (`shell.test`, `lazy-import.test`, `audio-hush.test` — it
+  named only 7 of the 10 —, `cartridge.test` EXEMPT, the harbor `cartridge` group).
+- **Never loaded:** `registry.js#loadGame` returns null for a frozen id (the emulators' `&frozen=1` loads one on purpose). Before, a host who
+  flipped the flag in devtools could run a frozen game and every guest phone mounted its view.
+- **Kept:** each frozen game's pure `logic.js` + `director.js` stay importable and their whole-match sims green. **Not maintained:** their views
+  (each `view.js` says so on its first line), CSS, help, E2Es + previews — the 7 E2Es, 6 previews + 3 probes PARKED in
+  `tests/integration/parked/` (its README says how a game comes back).
+- **The room's side nodes** (`room.js#clearSideNodes`, 6 of 8 frozen-only): removed in ONE round trip (all at once) — they went one after another
+  on every room open. Not one multi-path update: that write is atomic, one path the live rules refuse would take the rest down.
+- **Left for later (noted):** the `/api` suite's CIPHER fixture (`server.test.mjs`, `e2e-profiles.mjs`) → a playable game — about a day; the 882
+  frozen rule lines stay (THE REVIEW's LEAVE ALONE — an older phone's start clears every node).

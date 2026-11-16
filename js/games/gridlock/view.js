@@ -1,3 +1,4 @@
+// FROZEN — NOT MAINTAINED (FIXES R2, THE REVIEW B1 option (b)): on config.js#FROZEN_IDS, never loaded (games/registry.js#loadGame refuses it). docs/cartridge.md "THE FROZEN CONTRACT".
 // GRIDLOCK view: the war table (scene.js, Canvas 2D) under a thin HUD. One board at a time, straight on; the other
 // fleets as mini-boards (tap one to aim at it or watch it). Placement (drag + rotate); aiming with a confirm step
 // (CLASSIC: one cell + FIRE; SALVO: one marker per ship afloat; ARCADE: a shot or one ability card, then LOCK IN);

@@ -5,8 +5,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { GAMES, DAILIES, gameRow } from '../js/config.js';
-import { REQUIRED, OPTIONAL, checkCartridge, minPlayersOf, chipsOf, rematchSettingsOf } from '../js/games/cartridge.js';
+import { GAMES, DAILIES, gameRow, FROZEN_IDS } from '../js/config.js';
+import { minPlayersOf, chipsOf, rematchSettingsOf } from '../js/games/cartridge.js';
+import { REQUIRED, OPTIONAL, checkCartridge } from '../js/games/contract.js';   // (FIXES R2 — B2 T5: the tables + the checker left the boot graph)
 import { MARKS } from '../js/core/marks.js';
 
 const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
@@ -24,7 +25,7 @@ const registered = [...REG.matchAll(/(\w+): \(\) => import\('\.\/(\w+)\/index\.j
 const PLAYABLE = GAMES.filter(g => g.playable).map(g => g.id);
 /** THE TEN HIDDEN GAMES — EXEMPT until each comes back (WINDOWS, Nov 1: their code + data + rules FROZEN). A game that returns leaves this
  *  list in the same pass that makes it playable — and then must pass every check below. */
-export const EXEMPT = Object.freeze(['cipher', 'signal', 'bluff', 'pulse', 'golf', 'agent', 'slip', 'gridlock', 'stakes', 'rum']);
+export const EXEMPT = FROZEN_IDS;   // (FIXES R2 — B1: config.js#FROZEN_IDS, the ONE list)
 /** PW1 — THE DAILY-ONLY cartridges: never playable in a room (GAMES `daily: true`, playable false — no lobby row, no sign), NOT exempt: they
  *  meet the whole contract like a playable game (THE DAILY MODULE opens them once a day, later) */
 export const DAILY_ONLY = Object.freeze(['password', 'coastclear', 'drop']);   // (THE DROP A: + THE DROP)
@@ -55,7 +56,7 @@ test('the PLAYABLE (+ DAILY-ONLY) games export every REQUIRED piece of the contr
 test('THE CONSOLE NEVER NAMES A GAME: the room, the dock, the banner, the start, host.js, app.js, the chat\'s runtime, the podium — no game id', () => {
   const ids = registered.map(id => `'${id}'`);
   const files = ['js/app.js', 'js/host.js', 'js/room.js', 'js/store.js', 'js/screens/room-city.js', 'js/screens/room-dock.js', 'js/screens/room-guests.js',
-    'js/screens/room-banner.js', 'js/screens/game-options.js', 'js/core/room-show.js', 'js/chat/chat.js', 'js/chat/ui.js', 'js/ui/final.js', 'js/games/cartridge.js'];
+    'js/screens/room-banner.js', 'js/screens/game-options.js', 'js/core/room-show.js', 'js/chat/chat.js', 'js/chat/ui.js', 'js/ui/final.js', 'js/games/cartridge.js', 'js/games/contract.js'];
   for (const f of files) { const s = read(f).replace(/\/\/[^\n]*/g, ''); for (const id of ids) assert.ok(!s.includes(id), `${f} names ${id}`); }
   // the chat's lock switch keeps ONLY the exempt games (the playable ones carry their own)
   const lg = read('js/chat/logic.js');
@@ -121,5 +122,6 @@ test("THE BOOT BYTES: no game's logic in the title's static graph (scripts/boot-
   const g = bootGraph(), games = g.rows.filter(r => r.f.startsWith('js/games/') && !/\/(meta|registry|cartridge|lazy-view)\.js$|\/kit\/|^js\/games\/pulse\/clock\.js$/.test(r.f));   // (pulse/clock.js = the console's shared audio clock — audio/synced-songs.js)
   assert.deepEqual(games.map(r => r.f), [], "only the metas + the console's own game files at boot");
   // (PD-6 — a NAMED raise, 34 → 36 KB: the contract's SOLO_RUNS check + PRISM DROP's solo list, +0.9 KB — 67 bytes of headroom was left; still no game logic)
-  assert.ok(g.games < 36 * 1024, `js/games at boot: ${(g.games / 1024).toFixed(1)} KB`);
+  // (FIXES R2 — B2 T5, a named LOWERING 36 → 30 KB: cartridge.js split — its tables + the checker left boot (35.0 → 26.2 KB); JAYWALK's meta fits)
+  assert.ok(g.games < 30 * 1024, `js/games at boot: ${(g.games / 1024).toFixed(1)} KB`);
 });

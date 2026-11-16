@@ -1,3 +1,4 @@
+// FROZEN — NOT MAINTAINED (FIXES R2, THE REVIEW B1 option (b)): on config.js#FROZEN_IDS, never loaded (games/registry.js#loadGame refuses it). docs/cartridge.md "THE FROZEN CONTRACT".
 // RUMRUNNER — the screen: the city (scene.js, three.js) behind a deco-gold glass UI.
 //
 // Layers: the city canvas (full screen; the camera frames the diorama in the rectangle the panels leave free) → district

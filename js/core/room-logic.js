@@ -66,6 +66,8 @@ export function presenceOnline(p) {
   if (!p || typeof p !== 'object') return false;
   if (p.c && typeof p.c === 'object') return Object.keys(p.c).length > 0;
   if (p.v === 2) return false;   // the new shape with no connection left
+  // (FIXES R2 — THE REVIEW F5: NOT only "the old shape" — this is the LIVE path too: normalizePresence's output { online, lastSeen } (no c, no v)
+  //  reads its flag HERE, so isOnline(state.presence, uid) — host election, the start's participants — rides this line. Never "clean it up")
   return p.online === true;
 }
 /** the raw presence node → { uid: { online, lastSeen } } (what every screen + director reads; store.state.presence) */

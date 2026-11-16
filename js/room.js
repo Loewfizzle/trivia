@@ -31,7 +31,9 @@ let lastHeal = 0;
 let healTimer = 0;
 let lastRaw = null;   // the newest raw presence snapshot (the heal's retry reads it)
 
-const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, night: {}, rv: {}, roomRadio: [], live: {}, liveKey: null };
+// (FIXES R2 — THE REVIEW F4: radioCrew joins — room A's stamp no longer survives into room B until B's listener fires; tests/fixes-r2.test.mjs:
+//  every key a room listener sets is reset here)
+const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, night: {}, rv: {}, roomRadio: [], radioCrew: null, live: {}, liveKey: null };
 
 function cleanProfile(profile) {
   return { name: sanitizeName(profile.name, NAME_MAX) || 'ANON', color: profile.color, avatar: sanitizeAvatar(profile.avatar) };
@@ -70,6 +72,10 @@ async function readRoomBasics(code) {
 // ---- HUSH WORDS: the room's code is a word (data/hushwords.json); js/core/hush.js picks it, the claim below makes it ours
 // The nodes outside rooms/ that belong to a room (secrets, chat): wiped when a room is made and when it closes.
 const ROOM_SIDE_NODES = ['chats', 'spy', 'fleets', 'glsonar', 'hsbet', 'rrp', 'rrsec', 'seal'];
+/** FIXES R2 — THE REVIEW B1: the room's side nodes cleared in ONE round trip — every remove at once (it was eight one after another on every room
+ *  open: six of them frozen games' nodes). Not one multi-path update: that write is atomic — one path the live rules refuse (THE RULES-LAG, a
+ *  frozen node's rule) would take every other delete down with it; each remove still fails alone, quietly. */
+const clearSideNodes = code => Promise.all(ROOM_SIDE_NODES.map(n => remove(dbRef(`${n}/${code}`)).catch(() => {})));
 let wordsP = null;
 function loadHushWords() {
   // fetched once, only by a phone that hosts (the service worker keeps a copy); [] if it can't load → the old random codes
@@ -106,7 +112,7 @@ export const createRoom = joining(async profile => {
   const lm = hostSeed(serverNow());
   if (lm) update(dbRef(`${R(code)}/meta/lm`), lm).catch(() => {});
   // a fresh room starts with a fresh chat, and no old DOUBLE AGENT / GRIDLOCK / HIGH STAKES / RUMRUNNER secrets
-  for (const n of ROOM_SIDE_NODES) await remove(dbRef(`${n}/${code}`)).catch(() => {});
+  await clearSideNodes(code);
   await takeSeat(code);
   await writePlayer(code, profile, {});
   enterRoom(code);
@@ -135,7 +141,7 @@ export const createSoloRoom = joining(async (profile, gameId) => {
   for (let i = 0; i < 6 && !code; i++) { const c = soloCode(words); if (await claimSolo(c, gameId)) code = c; }
   if (!code) throw new Error('COULDN’T START — CHECK YOUR CONNECTION AND TRY AGAIN');
   try { localStorage.setItem(SOLO_LS, code); } catch { /* the offer then shows the code — never worse than before */ }
-  await Promise.all(ROOM_SIDE_NODES.map(n => remove(dbRef(`${n}/${code}`)).catch(() => {})));   // (a stale secret under a reused code: gone, all at once)
+  await clearSideNodes(code);   // (a stale secret under a reused code: gone, all at once)
   await takeSeat(code);
   await writePlayer(code, profile, {});
   // (LOCKED once its one seat is taken — the rules refuse even the host's own first player write into a locked room; the code is 4 random
@@ -175,7 +181,7 @@ async function closeRoom(code, solo = false) {
     try { await update(dbRef(), { [R(code)]: null, [`hush/${code}`]: { closedAt: serverTimestamp() } }); }
     catch { await remove(dbRef(R(code))); }
   }
-  for (const n of ROOM_SIDE_NODES) await remove(dbRef(`${n}/${code}`)).catch(() => {});
+  await clearSideNodes(code);
 }
 
 // ---- the guessing guard (light): a device that keeps typing words that open nothing waits 30 s. Device-wide, not per slot.

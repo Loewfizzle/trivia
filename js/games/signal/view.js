@@ -1,3 +1,4 @@
+// FROZEN — NOT MAINTAINED (FIXES R2, THE REVIEW B1 option (b)): on config.js#FROZEN_IDS, never loaded (games/registry.js#loadGame refuses it). docs/cartridge.md "THE FROZEN CONTRACT".
 // LAST SIGNAL — player view: arena of rivals (tap to target), my vitals, the
 // question, and reveal/elimination drama. All state comes from the DB mirror;
 // local state is only "what I tapped" until the write lands.

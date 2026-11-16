@@ -1,3 +1,4 @@
+// FROZEN — NOT MAINTAINED (FIXES R2, THE REVIEW B1 option (b)): on config.js#FROZEN_IDS, never loaded (games/registry.js#loadGame refuses it). docs/cartridge.md "THE FROZEN CONTRACT".
 // DOUBLE AGENT — player view. A classified surveillance feed in graphite and silver: the players' own colours are
 // the only colour on screen. Everything renders from the room state; the unmasking runs on server time since the
 // phase began, so every phone (and a phone that rejoins) shows the same moment.

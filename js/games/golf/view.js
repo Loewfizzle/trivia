@@ -1,3 +1,4 @@
+// FROZEN — NOT MAINTAINED (FIXES R2, THE REVIEW B1 option (b)): on config.js#FROZEN_IDS, never loaded (games/registry.js#loadGame refuses it). docs/cartridge.md "THE FROZEN CONTRACT".
 // NEON PAR — player view. A three.js course (scene.js) under a light DOM HUD.
 // Every phone simulates its own ball (physics.js, fixed 120 Hz steps on the hole's server clock) and
 // publishes it ~10×/s; everyone else's ball is a translucent ghost interpolated from those samples.

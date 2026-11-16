@@ -1,3 +1,4 @@
+// FROZEN — NOT MAINTAINED (FIXES R2, THE REVIEW B1 option (b)): on config.js#FROZEN_IDS, never loaded (games/registry.js#loadGame refuses it). docs/cartridge.md "THE FROZEN CONTRACT".
 // SLIPSTREAM view: your rider (simulated here, on the server clock), everyone else as ghosts, the world, the HUD,
 // the adaptive music, spectating and Call the Winner.
 //

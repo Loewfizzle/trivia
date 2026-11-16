@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { hushWanted } from '../js/audio/engine.js';
+import { FROZEN_IDS } from '../js/config.js';
 
 test('the hush: muted, or the music AND the effects off — never the music off alone (the effects still play)', () => {
   assert.equal(hushWanted({ muted: true }), true);
@@ -59,7 +60,7 @@ test('every LOOPING source in the shipped code is a bed (engine.js#holdBed)', ()
   const files = [];
   const walk = d => { for (const n of readdirSync(d)) { const f = join(d, n); if (statSync(f).isDirectory()) walk(f); else if (f.endsWith('.js')) files.push(f); } };
   walk('js');
-  const FROZEN = /js\/games\/(pulse|golf|slip|gridlock|agent|stakes|rum)\//;
+  const FROZEN = new RegExp(`js/games/(${FROZEN_IDS.join('|')})/`);   // (FIXES R2 — B1: config.js#FROZEN_IDS — it named only 7 of the 10)
   const loose = [];
   for (const f0 of files) {
     const f = f0.split(String.fromCharCode(92)).join('/');

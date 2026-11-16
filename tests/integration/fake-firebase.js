@@ -39,7 +39,6 @@ export const goOnline = () => {};
 export const isConfigured = () => false;
 export const firebaseReady = Promise.resolve();
 export async function initFirebase() { return null; }
-export const getDb = () => null;
 export const dbRef = path => ({ path });
 // (OC5: a preview may FREEZE the server clock — window.__clock() — to hold a moving moment still for a screenshot)
 export const serverNow = () => (typeof window !== 'undefined' && typeof window.__clock === 'function' ? window.__clock() : Date.now());

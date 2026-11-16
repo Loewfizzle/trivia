@@ -8,7 +8,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { maySkew, skewVerdict, lazyImport } from '../js/ui/lazy-import.js';
-import { GAMES } from '../js/config.js';
+import { GAMES, FROZEN_IDS } from '../js/config.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const read = f => readFileSync(join(ROOT, f), 'utf8');
@@ -19,7 +19,7 @@ scan(join(ROOT, 'js'));
 const code = t => t.replace(/\/\*[\s\S]*?\*\//g, ' ').split('\n').map(l => l.replace(/^\s*\/\/.*$/, '').replace(/(^|[\s;,{}()])\/\/ .*$/, '$1')).join('\n');
 
 // THE ALLOW-LIST — the boot's own dynamic imports that skip the wrapper, each for a reason:
-const FROZEN = GAMES.filter(g => !g.playable && !g.preview).map(g => `js/games/${g.id}/`);   // (hidden + frozen: never started — their code untouched)
+const FROZEN = FROZEN_IDS.map(id => `js/games/${id}/`);   // (FIXES R2 — B1: config.js#FROZEN_IDS, the ONE list — never loaded, their code untouched)
 const ALLOWED = [
   { file: 'js/firebase.js', re: /^import\(`\$\{SDK\}\//, why: 'the gstatic SDK — another host, no deploy skew (THE REJOIN LIMIT bounds its wait)' },
   { file: 'js/screens/title.js', re: /^import\('\.\/harbor\/scene\.js'\)/, why: "the city's graph — title.js#tryHarbor's own skew path (#7)" },

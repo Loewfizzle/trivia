@@ -1,3 +1,4 @@
+// FROZEN — NOT MAINTAINED (FIXES R2, THE REVIEW B1 option (b)): on config.js#FROZEN_IDS, never loaded (games/registry.js#loadGame refuses it). docs/cartridge.md "THE FROZEN CONTRACT".
 // PULSE — player view. A canvas highway (render.js) under a light DOM HUD.
 // Timing: everything runs on the audio output clock (clock.js). Each phone plays its own copy of the
 // song, judges its own taps and publishes its stats every ~500 ms; nothing waits on the network.

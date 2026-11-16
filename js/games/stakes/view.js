@@ -1,3 +1,4 @@
+// FROZEN — NOT MAINTAINED (FIXES R2, THE REVIEW B1 option (b)): on config.js#FROZEN_IDS, never loaded (games/registry.js#loadGame refuses it). docs/cartridge.md "THE FROZEN CONTRACT".
 // HIGH STAKES — the high-roller back room of Neon Speakeasy.
 //
 // Layers: the baked room (scene.js) → the lamp's warm pool, the lamp itself and the ALL IN darkness (css, compositor

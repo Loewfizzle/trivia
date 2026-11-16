@@ -17,7 +17,8 @@ import { dealMatch, keysAt, playedTypes, typeKey, pickFresh, tlKey, DEALT } from
 import { usedOf } from '../js/games/kit/night.js';
 import { rngFrom } from '../js/core/rng.js';
 import { setLists, answersFor } from '../js/games/cipher/words.js';
-import { lookLockOf, looksOf, checkCartridge, META_KEYS, START_ARGS } from '../js/games/cartridge.js';
+import { lookLockOf, looksOf } from '../js/games/cartridge.js';
+import { checkCartridge, META_KEYS, START_ARGS } from '../js/games/contract.js';
 import * as PRISM_META from '../js/games/prism/meta.js';
 
 for (const n of [5, 6, 7]) setLists(n, JSON.parse(readFileSync(`data/words/answers-${n}.json`, 'utf8')), JSON.parse(readFileSync(`data/words/valid-${n}.json`, 'utf8')));
@@ -420,7 +421,7 @@ test('8 players, a whole Standard match: the deal, the marks, the skip, a host c
 // ---------------------------------------------------------------------------------------------- THE OVERDRIVE SKIN's assets (Group 3)
 test('OVERDRIVE assets: the fonts + their OFL licences, every sound the game names, credits kept, the preload inside its 1.5 MB budget', async () => {
   const { statSync, readdirSync } = await import('node:fs');
-  const { PRELOAD_BUDGET } = await import('../js/games/cartridge.js');
+  const { PRELOAD_BUDGET } = await import('../js/games/contract.js');
   const { OC_SOUNDS, OC1_FILES } = await import('../js/games/overclock/sfx.js');
   const idx = readFileSync('js/games/overclock/index.js', 'utf8');
   const fonts = [...idx.matchAll(/'((?:barlow|chakra)[\w-]+)'/g)].map(m => m[1]);

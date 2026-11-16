@@ -42,7 +42,7 @@ test('A6: the match ORDER comes from the match id (every phone predicts the firs
   const { readFileSync, statSync } = await import('node:fs');
   const { orderFor, orderSeed } = await import('../js/games/overclock/deal.js');
   const { buildOrder } = await import('../js/games/overclock/logic.js');
-  const { PRELOAD_BUDGET } = await import('../js/games/cartridge.js');
+  const { PRELOAD_BUDGET } = await import('../js/games/contract.js');
   const { BANK_FILES } = await import('../js/games/overclock/banks.js');
   // the same stamp → the same order on every phone; a different match → a different draw; the night memory still steers it
   for (let s = 0; s < 100; s++) {

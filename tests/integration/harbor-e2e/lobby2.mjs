@@ -362,11 +362,13 @@ G('afterparty', async () => {
 G('cartridge', async () => {
   const Q = await open({ slot: 'cart', qs: ROOMQ, view: [402, 874] }), p = Q.page;
   const r = await ev(p, `(async () => {
-    const [R, C, M, K] = await Promise.all([import('/js/games/registry.js'), import('/js/games/cartridge.js'), import('/js/core/marks.js'), import('/js/config.js')]);
+    const [R, C, M, K] = await Promise.all([import('/js/games/registry.js'), import('/js/games/contract.js'), import('/js/core/marks.js'), import('/js/config.js')]);
     const out = {};
     // (SHELL 2.0 B1 — THE LAZY LOGIC: nothing but the metas at boot — no cartridge loaded yet; then every one loads by id)
     out.$boot = { loaded: Object.keys(R.GAME_MODULES).length, metas: Object.keys(R.META).sort().join(',') };
     await Promise.all(R.GAME_IDS.map(id => R.loadGame(id)));
+    // (FIXES R2 — B1: a FROZEN id is never loaded — loadGame → null)
+    out.$frozen = { n: K.FROZEN_IDS.length, refused: (await Promise.all(K.FROZEN_IDS.map(id => R.loadGame(id)))).filter(m => m === null).length, loaded: K.FROZEN_IDS.filter(id => R.GAME_MODULES[id]).length };
     for (const [id, mod] of Object.entries(R.GAME_MODULES)) {
       const g = K.gameRow ? K.gameRow(id) : K.GAMES.find(x => x.id === id);   // (PW1: a DAILIES row for a daily-only cartridge)
       out[id] = { playable: !!(g && g.playable), daily: !!(g && g.daily), building: !!(g && g.preview), problems: C.checkCartridge(id, mod, { marks: M.MARKS, game: g }), warm: !!(mod.createView && mod.createView.warm), lock: typeof mod.chatLocked === 'function' };
@@ -374,13 +376,14 @@ G('cartridge', async () => {
     return out;
   })()`);
   const boot = r.$boot; delete r.$boot;
+  const frozen = r.$frozen; delete r.$frozen;
   ok(boot.loaded <= 2 && boot.metas === 'holdem,overclock,prism', `THE LAZY LOGIC: a fresh room page holds only the playable games' METAS (${boot.metas}) — ${boot.loaded} cartridge(s) loaded before a game`);
   // (PW1: a DAILY-ONLY cartridge — GAMES daily: true, never playable — is checked like a playable one, never counted as hidden)
   // (HE3: a game being BUILT — config.js `preview: true`, HOLD'EM — is checked like a playable one too)
   const play = Object.entries(r).filter(([, x]) => x.playable || x.daily || x.building), hidden = Object.entries(r).filter(([, x]) => !x.playable && !x.daily && !x.building);
   // (THE DROP A: + THE DROP — the third daily-only cartridge, its row OFF)
   ok(play.length === 6 && play.every(([, x]) => !x.problems.length && x.warm && x.lock), `THE CARTRIDGE PLUG: the playable + the daily-only games meet the contract in a real page (${play.map(([id, x]) => `${id}: ${x.problems.length ? x.problems.join('; ') : 'ok'}`).join(' · ')}) — warmable views, their own chat locks`);
-  ok(hidden.length === 10, `the ${hidden.length} hidden games are EXEMPT until each comes back (${hidden.map(([id, x]) => `${id} ${x.problems.length}`).join(', ')} gaps — frozen)`);
+  ok(frozen.n === 10 && frozen.refused === 10 && frozen.loaded === 0 && hidden.length === 0, `THE FROZEN CONTRACT: the ${frozen.n} frozen games are never loaded (refused ${frozen.refused}, loaded ${frozen.loaded}; ${hidden.length} hidden modules in the page)`);
   await Q.ctx.close();
 });
 

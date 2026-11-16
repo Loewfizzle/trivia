@@ -82,3 +82,26 @@ test('GROUP 4 — the owner\'s look notes: PRISM / DROP on the roofs (the blades
   assert.match(pf, /el\.classList\.add\('pf-screen', 'pf-wait'\);/); assert.match(pf, /afterTap\(\(\) => reveal\('painted'\)\);/);
   assert.match(read('css/board.css'), /\.pf-screen\.pf-wait \.pf-scroll \{ opacity: 0; \}/, 'the reveal = opacity only');
 });
+
+test('GROUP 5 — F4: every key a room listener sets is reset by EMPTY_ROOM (radioCrew joins — room A\'s stamp never survives into room B)', () => {
+  const r = read('js/room.js');
+  const empty = /const EMPTY_ROOM = \{(.*)\};/.exec(r)[1];
+  const keys = new Set([...empty.matchAll(/(\w+):/g)].map(m => m[1]));
+  const set = [...r.matchAll(/listen\('\w+', [^\n]*?setState\(\{ (\w+):/g)].map(m => m[1]);
+  for (const k of ['radioCrew', ...set]) assert.ok(keys.has(k), `EMPTY_ROOM resets ${k}`);
+});
+
+test('GROUP 5 — F5: isOnline over the NORMALIZED presence = presenceOnline over the raw node, for every shape (the "old shape" line is the live path)', async () => {
+  const { isOnline, normalizePresence, presenceOnline } = await import('../js/core/room-logic.js');
+  const raw = {
+    a: { online: true, lastSeen: 1, v: 2, c: { k1: 1 } },     // two-connection shape, one left
+    b: { online: true, lastSeen: 1, v: 2, c: {} },            // the new shape, no connection left (its stale flag ignored)
+    c: { online: true, lastSeen: 1, v: 2 },                   // the new shape, c removed entirely
+    d: { online: true, lastSeen: 1 },                         // the old shape, online
+    e: { online: false, lastSeen: 1 },                        // the old shape, offline
+    f: null,
+  };
+  const norm = normalizePresence(raw);
+  for (const uid of Object.keys(raw)) assert.equal(isOnline(norm, uid), presenceOnline(raw[uid]), uid);
+  assert.deepEqual(Object.keys(raw).filter(u => isOnline(norm, u)), ['a', 'd']);
+});

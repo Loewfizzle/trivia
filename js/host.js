@@ -6,7 +6,7 @@
 // mirrored database state on each tick, so any client can take over at any time.
 import { dbRef, update, remove, get, runTransaction, serverTimestamp, serverNow, firebaseReady } from './firebase.js';
 import { startOf, newMatchId, GO_ORPHAN_MS, goWaiting } from './core/room-show.js';
-import { minPlayersOf, rematchSettingsOf } from './games/cartridge.js';
+import { minPlayersOf, rematchSettingsOf, frameProblems } from './games/cartridge.js';
 import { state, isHost, onlineMap, setState, subscribe } from './store.js';
 import { setHostGone, expectRefusal } from './firebase.js';
 import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE, staleProofPaths, isSoloMeta, soloSettings } from './core/room-logic.js';
@@ -154,8 +154,7 @@ function soloHold(kind) {
   update(dbRef(`rooms/${state.code}`), roomPatch(game, patch)).catch(e => console.warn('solo pause', e && e.message));
   return true;
 }
-export const soloPauseNow = () => soloHold('pause');
-export const soloResumeNow = () => soloHold('resume');
+// (FIXES R2 — THE REVIEW F6: soloPauseNow / soloResumeNow removed — no caller; the hide / show below is the one path)
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => { if (pageHidden()) soloHold('pause'); else soloHold('resume'); });
   window.addEventListener('pagehide', () => soloHold('pause'));
@@ -264,6 +263,15 @@ async function startGameNow(gameId, settings, quick = false) {
   const used = (state.meta && state.meta.used) || {};
   const created = await mod.start({ code: state.code, matchId, settings, participants, now: tGo + startOf(matchId).len + 150, used }).catch(e => { console.warn('start', e); return null; });
   if (!created) { update(dbRef(`rooms/${state.code}/meta`), { go: null }).catch(() => {}); toast('COULD NOT START — TRY AGAIN', 'err'); return false; }
+  // (FIXES R2 — THE REVIEW B2 T3: A GAME THAT CAN'T START FAILS LOUDLY HERE — its frame checked before anything is written; never mid-match)
+  const bad = frameProblems(created, gameId, matchId);
+  if (bad.length) {
+    update(dbRef(`rooms/${state.code}/meta`), { go: null }).catch(() => {});
+    lazyImport(import('./errlog.js'), './errlog.js').then(m => m.reportError(new Error(`${gameId}: COULD NOT START — ${bad.join(' · ')}`), 'cartridge')).catch(() => {});
+    console.warn(`[cartridge] ${gameId} could not start:`, bad);
+    toast('COULD NOT START — TRY AGAIN', 'err');
+    return false;
+  }
   const { $room, ...game } = created;
   inflight = { sig: '', at: 0 };
   // (FR7 FIXES B — A RE-START KEEPS THE LAST MATCH's PROOF: the match that just ended — still on the podium, or the room's walk-back stamp)

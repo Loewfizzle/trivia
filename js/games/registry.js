@@ -1,27 +1,19 @@
-// Playable game modules by id. Each module exports:
-//   start({ code, matchId, settings, participants, now }) -> Promise<game | null>
-//   prepare(game, { code, host }) -> idempotent; preload assets / top up trivia (called every host tick)
-//   step(game, { code, now, live, online }) -> pure director step: patch | { lobby: true } | null
-//   livePaths(game)          -> { name: 'path/under/room' } player-written data to mirror into state.live
-//   createView()             -> { mount(el, state), update(state), unmount() }
-//   DEFAULT_SETTINGS, OPTIONS, estimateMinutes(settings)  (lobby options sheet)
-//   MUSIC                    -> music track id (js/audio/music.js)
-//   finalRanks(game)         -> [{ uid, rank }] for the game-night scoreboard
-//   MIN_PLAYERS (optional)   -> more than the app-wide minimum (DOUBLE AGENT needs 4)
-//   nightBonus(game) (opt.)  -> { uid: points } extra game-night points that aren't a placing (PRISM DROP's Call the Winner)
-// A director step may include `$room: { 'path/under/room': value }` for room-level side writes.
+// Playable game modules by id. THE CONTRACT each module meets is js/games/contract.js (REQUIRED + OPTIONAL — FIXES R2 T2: this file used to
+// carry a stale copy of it) and docs/cartridge.md (+ THE GAME FRAME the console reads, THE 3 S RULE). A director step may include
+// `$room: { 'path/under/room': value }` for room-level side writes. FROZEN games (config.js#FROZEN_IDS) are never loaded (FIXES R2 — B1).
 // SHELL 2.0 B1 — THE THIN META + LAZY LOGIC (THE CONTRACT, D1 — docs/cartridge.md): the title's boot carried all twelve games' code
 // (~297 KB of js/games in the static graph — scripts/boot-bytes.mjs). Now the registry imports only each PLAYABLE game's thin meta.js
 // (what the console reads before a match: OPTIONS, DEFAULT_SETTINGS, estimateMinutes, MUSIC, MIN_PLAYERS / SOLO, BANNER_NAME,
 // CHAT_CHIPS, chatLocked, daily.on) and loads a game's whole cartridge (index.js: start, prepare, step, livePaths, finalRanks,
 // finalScene, sealed, createView …) on demand: the host's start awaits it, every phone loads it during the walk inside, a refresh
-// mid-match waits for it. A HIDDEN game has no meta (it's never offered); its module still loads by id (the tests, a stale state).
+// mid-match waits for it. A HIDDEN game has no meta (it's never offered); a FROZEN one never loads (FIXES R2 — B1: loadGame → null; the emulators' &frozen=1 loads it on purpose).
 //   META[id]           the thin meta (sync)            metaOf(id)   the loaded cartridge, else its meta (sync — what the console reads)
 //   GAME_MODULES[id]   the LOADED cartridge or none   loadGame(id) → Promise<cartridge|null>   onGameLoaded(fn) → off()
 import * as overclockMeta from './overclock/meta.js';
 import * as prismMeta from './prism/meta.js';
 import * as holdemMeta from './holdem/meta.js';   // (HE10: HOLD'EM playable — its thin meta at boot, like every playable game)
 import { state } from '../store.js';
+import { FROZEN_IDS } from '../config.js';   // (FIXES R2 — B1: the frozen games are never loaded)
 import { unsealed } from './kit/seal.js';
 import { lazyImport } from '../ui/lazy-import.js';
 
@@ -39,11 +31,17 @@ export const GAME_IDS = Object.freeze(Object.keys(LOADERS));
 export const META = Object.freeze({ overclock: overclockMeta, prism: prismMeta, holdem: holdemMeta });
 export const GAME_MODULES = {};
 const pending = {}, loadedFns = new Set();
+// (FIXES R2 — B1: a FROZEN game is never loaded — config.js#FROZEN_IDS; the emulators' `&frozen=1` lets a test load one on purpose)
+const frozenOk = () => { try { return /[?&]emu(?:[=&]|$)/.test(location.search) && /[?&]frozen=1(?:&|$)/.test(location.search); } catch { return false; } };
+const isLocal = () => { try { return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname); } catch { return false; } };
 export function loadGame(id) {
   if (GAME_MODULES[id]) return Promise.resolve(GAME_MODULES[id]);
   if (!LOADERS[id]) return Promise.resolve(null);
+  if (FROZEN_IDS.includes(id) && !frozenOk()) return Promise.resolve(null);
   return (pending[id] ||= lazyImport(LOADERS[id](), `games/${id}`).then(m => {   // (LOAD FIX 4: the skew wrapper)
     GAME_MODULES[id] = m;
+    // (FIXES R2 — B2 T3: on localhost the contract is checked as the cartridge loads — its gaps named in the console, never a stop)
+    if (isLocal()) lazyImport(import('./contract.js'), './contract.js').then(C => { const p = C.checkCartridge(id, m); if (p.length) console.warn(`[cartridge] ${id} — the contract:`, p); }).catch(() => {});
     for (const fn of [...loadedFns]) { try { fn(id, m); } catch (e) { console.warn('[registry] onGameLoaded', e); } }
     return m;
   }, e => { delete pending[id]; throw e; }));

@@ -183,7 +183,6 @@ export async function initFirebase(onConnectedChange) {
   return user.uid;
 }
 
-export const getDb = () => db;
 /** The signed-in user's Firebase ID token (for /api calls; refreshed by the SDK when it expires). */
 // (FR7 FIXES A — THE FROZEN BUTTONS' proof: on the EMULATORS only, `window.__stallIdToken = true` makes the token refresh never answer — e2e-holdem)
 export const idToken = () => (useEmulator && typeof window !== 'undefined' && window.__stallIdToken ? new Promise(() => {})

@@ -5,10 +5,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { FROZEN_IDS } from '../js/config.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 // the ten FROZEN games (WINDOWS, Nov 1 — their code untouched until each comes back) are not audited
-const FROZEN = /js\/games\/(cipher|signal|bluff|pulse|golf|slip|gridlock|agent|stakes|rum)\//;
+const FROZEN = new RegExp(`js/games/(${FROZEN_IDS.join('|')})/`);   // (FIXES R2 — B1: config.js#FROZEN_IDS, the ONE list)
 function walk(dir, ext, out = []) {
   for (const n of readdirSync(new URL(`../${dir}`, import.meta.url))) {
     const p = `${dir}/${n}`;
@@ -134,7 +135,7 @@ test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the
   assert.match(f, /h\('button\.btn\.btn-primary\.btn-block\.final-back'/);
   assert.doesNotMatch(f, /'REMATCH'|rematch\(\)/, 'no rematch on the podium (the room dock has the vote)');
   assert.match(f, /mod\.finalScene\(body, g, state\)/);
-  assert.match(read('js/games/cartridge.js'), /finalScene: 'function'/);
+  assert.match(read('js/games/contract.js'), /finalScene: 'function'/);
   assert.match(read('css/components.css'), /\.winner \{ flex: none; overflow-x: clip; overflow-y: visible; \}/, 'the winner line never cut');
 });
 

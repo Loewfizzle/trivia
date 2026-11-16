@@ -3334,7 +3334,8 @@ test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM); the 
   const { isPlayable } = await import('../js/config.js');
   const ON = ['holdem', 'overclock', 'prism'];
   assert.deepEqual(GAMES.filter(g => g.playable).map(g => g.id).sort(), ON);
-  assert.deepEqual(GAMES.filter(g => g.sign).map(g => g.id).sort(), ['golf', 'holdem', 'overclock', 'prism', 'stakes']);
+  // (FIXES R2 — Part C: the `sign` flag is gone — nothing read it; the city's signs = core/harbor-neon.js#signRoster: the playable games + JAYWALK)
+  assert.ok(GAMES.every(g => !('sign' in g)), 'no GAMES row carries the old sign flag');
   for (const g of GAMES) assert.equal(isPlayable(g.id), ON.includes(g.id), `${g.id}: playable ${isPlayable(g.id)}`);
   assert.equal(isPlayable('nope'), false);
   // the start paths: host.js#startGame refuses a hidden game before anything is written (rematch goes through it);

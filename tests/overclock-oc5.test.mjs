@@ -15,7 +15,7 @@ import { keysAt, typeKey, playedTypes } from '../js/games/overclock/deal.js';
 import { extractMatch } from '../js/core/match-report.js';
 import { rngFrom } from '../js/core/rng.js';
 import { daily, create as dCreate, resumeKey, result as dResult, replay as dReplay, daySetProblems, dailyMatchId, rankOf, DAILY_N } from '../js/games/overclock/daily.js';
-import { checkCartridge, DAILY } from '../js/games/cartridge.js';
+import { checkCartridge, DAILY } from '../js/games/contract.js';
 import { readFileSync } from 'node:fs';
 
 function applyPatch(obj, patch) {

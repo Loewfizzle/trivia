@@ -20,7 +20,7 @@ test('HE10 — HOLD’EM is ON: playable for every phone, never a TEST (the tag 
     setOwnerPhone(owner);
     try {
       assert.equal(row.playable, true, 'HOLD’EM ships playable: true');
-      assert.equal(row.sign, true, 'its city sign (HOLD’EM IN THE CITY — GRIDLOCK’s spot)');
+      assert.ok(row.playable === true, 'its city sign comes from signRoster (playable) — FIXES R2: the `sign` flag is gone');
       assert.equal(isPlayable('holdem'), true);
       assert.equal(isOwnerTest('holdem'), false, 'never a TEST once playable');
       for (const g of GAMES) {

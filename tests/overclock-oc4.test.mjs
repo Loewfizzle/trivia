@@ -31,7 +31,7 @@ test('THE CRACK: the texture — small, credited on the site + in the repo, load
 });
 
 test('THE CRACK: the preload stays inside its 1.5 MB budget with the textures in it', async () => {
-  const { PRELOAD_BUDGET } = await import('../js/games/cartridge.js');
+  const { PRELOAD_BUDGET } = await import('../js/games/contract.js');
   const { OC1_FILES } = await import('../js/games/overclock/sfx.js');
   const { OC_FONT_FILES, OC_CRACK_FILES } = await import('../js/games/overclock/index.js').catch(() => ({}));
   const fonts = OC_FONT_FILES || ['barlow-condensed-900i', 'barlow-condensed-800i', 'chakra-petch-700', 'chakra-petch-500'];

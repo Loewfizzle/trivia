@@ -1,3 +1,4 @@
+// FROZEN — NOT MAINTAINED (FIXES R2, THE REVIEW B1 option (b)): on config.js#FROZEN_IDS, never loaded (games/registry.js#loadGame refuses it). docs/cartridge.md "THE FROZEN CONTRACT".
 // NEURAL BLUFF — player view. Ministry-of-Truth dossier aesthetic.
 // The reveal is driven by server time since the phase began, so every phone shows
 // the same exhibit at the same moment and a rejoining player lands mid-reveal.
