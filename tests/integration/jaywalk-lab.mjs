@@ -204,7 +204,7 @@ try {
   ok(s.y === y0 + 2, `two quick taps = two hops (one buffered): lane ${y0} → ${s.y}`);
   ok(await p.evaluate(() => scrollY === 0 && document.documentElement.scrollHeight <= innerHeight + 1 && getComputedStyle(document.querySelector('.jw-play')).touchAction === 'none'), 'no page scroll, touch-action none on the play area');
   // THE SOUNDS IN PLAY: every hop asked for its sound, never the same twice
-  ok(await waitFor(p, '!!window.__jwLab.sfx', 8000), 'the sounds are on the SHARED audio engine (installed after the door)');
+  ok(await waitFor(p, '!!window.__jwLab.sfx', 8000), 'the sounds are on the SHARED audio engine (installed when the lab mounts)');
   let w = await p.evaluate(() => window.__jwLab.sfx.wanted().filter(x => x.id === 'hop'));
   ok(w.length >= 6 && w.every(x => Math.abs(x.rate - 1) <= 0.0601 && x.vol >= 0.79 && x.vol <= 1.26) && new Set(w.map(x => x.rate)).size > 3, `a hop asks for its sound: ${w.length} hops, pitch ± 6 % (${Math.min(...w.map(x => x.rate))} … ${Math.max(...w.map(x => x.rate))}), gain ± 2 dB`);
   const heard = await p.evaluate(() => window.__jwLab.sfx.played().length);

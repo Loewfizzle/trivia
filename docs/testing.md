@@ -980,3 +980,24 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   with nothing else busy, or re-run those groups alone before naming them.
 - PRE-EXISTING reds found in Group 0 (on the commit before H1 too — not JAYWALK's): `e2e-profiles` hangs at its CIPHER podium step (step 3);
   `e2e-playnow --only lost` — "the shelf never opened" after BACK TO THE CITY at once.
+
+## JAYWALK H2B (Nov 16 2026 — docs/games/passes/jaywalk-h2b.md)
+- Unit: `tests/jaywalk-camera.test.mjs` (THE CAMERA, pure: a stand-in camera with `position.set` + `lookAt` and its own projection — ZOOM
+  columns across + the kid 62 % down on six screen shapes, the lanes behind him, the follow's clamp / ease / log ride, the turn, ONE module
+  for both views; THE AUTOMATIC TIER STEP on the kit's rule with synthetic phones: GPU-bound, CPU-bound, a 30 Hz cap, one long frame).
+  H2's "the proven camera, WIDTHS [9, 11]" checks are now "the camera is camera.js" (`jaywalk-night` · `jaywalk-lab`).
+- The browser: `jaywalk-lab.mjs` — the lab's hooks for the camera: `window.__jwLab.setCamera(zoom, angle, snap)` · `project(cells, lane)`
+  (a ground point → [x, y] on the screen, 0 … 1) · `state().kidX / kidY / kidPx / zoom / angle / tier / info.camX / info.yaw`; `?zoom=` +
+  `?angle=` on the link. `setCols` is gone. **A look shot of a kid on grass passes `warp(lane, { blink: 0 })`** — a warp's default blink
+  hides him in half the shots.
+- **A READOUT IN A SHOT IS NOT A MEASURE**: `?fps=1` shows the mean of the last 120 frames + their worst — ONE screenshot (≈ 250 ms at @3)
+  or a restart inside those 120 reads "≈ 50 fps · worst 250" on a page that runs at 60. The measure is `--perf` (15 s a row, no shot inside
+  it); it now also prints `HITCH` (a quiet run's worst frame vs a screenshot's own stall) and `STEP` (nothing pinned, a heavy CPU throttle →
+  the tiers' own path).
+- A test's regex over `code(file)` reads the file WITHOUT its comments: pin code, never a comment's words (three reds of my own making here).
+- A camera method named `set(` trips the no-writes greps (`(set|update|remove)\(`): it is `choose(`.
+- **THE LAB IS OPEN (H2B):** the browser check's first section is now "a stranger gets the lab": a fresh browser on a plain link → the night
+  look, a hop, and **ZERO server calls** (every request's host = the page's own, `cdn.jsdelivr.net` or the fonts; none matches `/api/`,
+  Firebase or a sign-in). THE PAGES LOAD's row = `#app .jw-stage` and no `.jw-deny` (the stage alone: the cloud's Chromium may have no
+  WebGL — the page then says so ON its stage; a module that fails to load never puts the stage up → red). The lab's unit test greps the
+  page's code for anything that could ask who is there (`whoami`, `api(`, `firebase.js`, `fetch(` …) and that nothing links to the page.

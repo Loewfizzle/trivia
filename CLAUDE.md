@@ -173,9 +173,10 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   ANIMATIONS COME FROM THE STATE; THE PORTRAIT IS UNTOUCHED by sideways CSS → docs/holdem.md (moved).
 - JAYWALK (BEING BUILT): the rules PURE + CROSS-ENGINE SAFE (integers + Math.floor — no sin / cos / pow / sqrt, never Math.random / Date.now / a
   frame clock); a lane = f(seed, index), a hazard = f(lane, tick); a result = THE REPLAY of the hop log; every pass ships its preview at
-  /jaywalk-lab (owner-gated, no writes) — never a 192.168 / tests/ link in a summary → docs/jaywalk.md.
-- JAYWALK's LOOK (H2) is a VIEW (`night.js` — draws from (run, course), never writes; 11 columns SEEN, 9 played; instanced, no point light, no
-  bloom below the top tier); its files only through `scripts/build-jaywalk-assets.py` (Kenney CC0, re-packed) → docs/jaywalk.md "THE NIGHT LOOK".
+  /jaywalk-lab (OPEN since H2B: no gate, ZERO server calls, no writes, noindex + unlisted) — never a 192.168 / tests/ link in a summary → docs/jaywalk.md.
+- JAYWALK's LOOK (H2) is a VIEW (`night.js` — draws from (run, course), never writes; instanced, no point light, no bloom below the top
+  tier); THE CAMERA = ONE pure module every view shares (`camera.js` — ZOOM columns across on every screen, the sideways follow, the turn; 9
+  played, swipes screen-relative); its files only through `scripts/build-jaywalk-assets.py` → docs/jaywalk.md "THE NIGHT LOOK" + "THE CAMERA".
 
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
 - NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).
