@@ -339,14 +339,25 @@ function rumExtra(game, uid, out, row) {
   if (f > 0 && RUM_LENGTHS.includes(days)) out.rec[`rum-f${days}`] = f;
 }
 
-// JAYWALK (H1): no counters / records yet — its boards + the replayed result on the server come in H3 (solo) / H4 (the match)
-function jaywalkExtra() {}
+// JAYWALK (H3 — THE SOLO BEST): the lanes of a SOLO run the SERVER replayed itself (`game.sv` — api/report.js#jaywalkSolo builds that match
+// from the player's proof node: the room's own results are never read) → rec 'jaywalk' (the solo lane maps it to the board jaywalk-solo). A
+// run the server refused (`bad`: a forged log, a log ahead of the clock) is named in `rejected` and earns nothing. The match's boards: H4.
+function jaywalkExtra(game, uid, out) {
+  const r = (game.results || {})[uid] || {};
+  if (r.bad) { out.rejected.push({ uid, board: 'jaywalk-solo', v: r.bad }); return; }
+  if (game.sv === 1 && Object.keys(game.participants || {}).length === 1 && num(r.l) > 0) out.rec.jaywalk = Math.floor(num(r.l));
+}
 
 const EXTRA = { jaywalk: jaywalkExtra, cipher: cipherExtra, signal: signalExtra, overclock: overclockExtra, bluff: bluffExtra, pulse: pulseExtra, golf: golfExtra, agent: agentExtra, prism: prismExtra, slip: slipExtra, gridlock: gridlockExtra, stakes: stakesExtra, rum: rumExtra };
 
 /** Is this a finished match we can count? (null = yes, else the reason) */
 // THE SOLO LANE (SHELL 2.0 B1 — D3): the cartridges a room of ONE may count (their meta's SOLO — the same flag the console starts them by)
 export const SOLO_OK = Object.freeze({ overclock: ocMeta.SOLO === true, prism: prismMeta.SOLO === true, jaywalk: jwMeta.SOLO === true });
+/** JAYWALK H3 — THE QUICK SOLO RUNS: the games whose SOLO runs last seconds and restart at once (HOP AGAIN — every run its own match + report).
+ *  THE 45 s GAP (api/_lib/stats.js — "one match per player per 45 s", the forged-room win farm's stop) does not hold their solo rows back: a
+ *  solo run is never a win, pays XP only for the day's first SOLO_DAY_XP runs, and its record is the server's own replay. Their ROOM matches
+ *  keep the gap like every game. */
+export const QUICK_SOLO = Object.freeze({ jaywalk: true });
 /** a solo match's records go to the game's SOLO board (`<board>-solo` — core/boards.js), never the multiplayer one; none → dropped */
 export const soloBoard = b => (boardDef(`${b}-solo`) ? `${b}-solo` : null);
 export function unreportable(game) {

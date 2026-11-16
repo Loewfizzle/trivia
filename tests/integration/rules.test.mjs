@@ -1499,7 +1499,7 @@ test('FR7 FIXES B — THE RULES-LAG: on THE RULES AS PUBLISHED the per-match pru
 // JAYWALK H1 — THE PROOF NODE: rooms/{CODE}/jw/{matchId}/{uid} = { go (written ONCE, at GO), c/{i} (the hop log's packed chunks — append
 // only), e (the run's end, once) } — the player's own uid, their own match, bounded; never deleted by its player; the host may delete ONE
 // match's node (a rematch keeps the just-finished match's — host.js#pruneProofs keeps [previous, new])
-test('JAYWALK H1 — the jw proof node: GO once, append-only chunks, bounded, own uid + own match only; a REMATCH keeps the old node', async () => {
+test('JAYWALK H1 + H3 — the jw proof node: GO once, write-once chunks each with the SERVER timestamp, bounded, own uid + own match only; a REMATCH keeps the old node', async () => {
   const room = playingRoom('play');
   room.rooms[CODE].game = { id: 'jaywalk', matchId: 'm1', phase: 'play', participants: { host: true, p2: true }, playAt: now() - 5000, seed: 's', mode: 'match' };
   room.rooms[CODE].players.p3 = { name: 'THREE', color: 'green', avatar: 'hex', joinedAt: 3 };
@@ -1509,28 +1509,35 @@ test('JAYWALK H1 — the jw proof node: GO once, append-only chunks, bounded, ow
   await assertSucceeds(set(ref(db('p2'), `${N}/go`), serverTimestamp()), 'GO');
   await assertFails(set(ref(db('p2'), `${N}/go`), serverTimestamp()), 'GO is written once');
   await assertFails(set(ref(db('p2'), `${R}/jw/m1/host/go`), serverTimestamp()), 'never another player\'s node');
-  await assertFails(set(ref(db('host'), `${N}/c/0`), 'U0'), 'the host never writes a player\'s log');
+  const C = x => ({ s: x, at: serverTimestamp() });   // (H3: a chunk = its packed hops + the SERVER's time it was written)
+  await assertFails(set(ref(db('host'), `${N}/c/0`), C('U0')), 'the host never writes a player\'s log');
   await assertFails(set(ref(db('p3'), `${R}/jw/m1/p3/go`), serverTimestamp()), 'seated but not in the match');
   await assertFails(set(ref(db('p2'), `${R}/jw/m2/p2/go`), serverTimestamp()), 'only the match that is on');
   await assertFails(set(ref(db('p2'), `${N}/go2`), 1), 'no other field');
   await assertFails(set(ref(db('p2'), N), { go: 1 }), 'never the whole node at once (its leaves only)');
-  await assertSucceeds(set(ref(db('p2'), `${N}/c/0`), 'U0U9'), 'a chunk');
-  await assertSucceeds(set(ref(db('p2'), `${N}/c/0`), 'U0U9R3'), 'the chunk grows');
-  await assertFails(set(ref(db('p2'), `${N}/c/0`), 'D0U9R3'), 'a chunk is never rewritten (append only)');
+  await assertFails(set(ref(db('p2'), `${N}/c/0`), 'U0U9'), 'H3: never a bare string — a chunk carries its server timestamp');
+  await assertFails(set(ref(db('p2'), `${N}/c/0`), { s: 'U0U9' }), '… a chunk without its time');
+  await assertFails(set(ref(db('p2'), `${N}/c/0`), { s: 'U0U9', at: now() - 60000 }), '… or with a time of its own choosing (the rules: === now)');
+  await assertFails(set(ref(db('p2'), `${N}/c/0`), { s: 'U0U9', at: now() + 60000 }), '… or one from the future');
+  await assertSucceeds(set(ref(db('p2'), `${N}/c/0`), C('U0U9')), 'a chunk, stamped by the server');
+  await assertFails(set(ref(db('p2'), `${N}/c/0`), C('U0U9R3')), 'a chunk is written ONCE (its time is the time of its hops)');
+  await assertFails(set(ref(db('p2'), `${N}/c/0/at`), serverTimestamp()), '… its time is never re-stamped');
   await assertFails(set(ref(db('p2'), `${N}/c/0`), null), 'a chunk is never deleted by its player');
-  await assertFails(set(ref(db('p2'), `${N}/c/1`), 'u0'), 'the packed alphabet only');
-  await assertFails(set(ref(db('p2'), `${N}/c/1`), 'U0'.repeat(201)), '≤ 400 characters a chunk');
-  await assertFails(set(ref(db('p2'), `${N}/c/1000`), 'U0'), '≤ 1000 chunks');
-  await assertFails(set(ref(db('p2'), `${N}/c/x`), 'U0'), 'a numbered chunk');
-  await assertSucceeds(update(ref(db('p2'), N), { 'c/1': 'L4', e: { l: 12, t: 900, w: 'car' } }), 'the last chunk + the end, together');
+  await assertFails(set(ref(db('p2'), `${N}/c/1`), C('u0')), 'the packed alphabet only');
+  await assertFails(set(ref(db('p2'), `${N}/c/1`), C('')), 'never an empty chunk');
+  await assertFails(set(ref(db('p2'), `${N}/c/1`), C('U0'.repeat(201))), '≤ 400 characters a chunk');
+  await assertFails(set(ref(db('p2'), `${N}/c/1`), { s: 'U0', at: serverTimestamp(), z: 1 }), 'no other field in a chunk');
+  await assertFails(set(ref(db('p2'), `${N}/c/10000`), C('U0')), '≤ 10000 chunks');
+  await assertFails(set(ref(db('p2'), `${N}/c/x`), C('U0')), 'a numbered chunk');
+  await assertSucceeds(update(ref(db('p2'), N), { 'c/1': C('L4'), e: { l: 12, t: 900, w: 'car' } }), 'the last chunk + the end, together');
   await assertFails(set(ref(db('p2'), `${N}/e`), { l: 99, t: 900 }), 'the end is written once');
   await assertFails(set(ref(db('host'), `${R}/jw/m1/host/e`), { l: -1, t: 0 }), 'a bad end');
   await assertFails(remove(ref(db('p2'), N)), 'a player never deletes their proof');
   // a REMATCH started (match m2): m1's node — GO + the log — is still there; p2 can't touch it any more; the host prunes only the OLDER one
   await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { matchId: 'm2', phase: 'count', playAt: now() + 3000 }));
   const kept = (await get(ref(db('host'), N))).val();
-  assert.ok(kept && kept.go > 0 && kept.c[0] === 'U0U9R3' && kept.e.l === 12, 'the just-finished match\'s node survives the next start');
-  await assertFails(set(ref(db('p2'), `${N}/c/2`), 'U1'), 'the old match is closed');
+  assert.ok(kept && kept.go > 0 && kept.c[0].s === 'U0U9' && Math.abs(kept.c[0].at - now()) < 60000 && kept.c[1].at >= kept.c[0].at && kept.e.l === 12, 'the just-finished match\'s node survives the next start');
+  await assertFails(set(ref(db('p2'), `${N}/c/2`), C('U1')), 'the old match is closed');
   await assertFails(update(ref(db('p2'), R), { 'jw/m0': null }), 'a guest never prunes');
   await assertSucceeds(update(ref(db('host'), R), { 'jw/m0': null }), 'the host prunes the match before the last (host.js#pruneProofs keeps [m1, m2])');
   await assertFails(set(ref(db('host'), `${R}/jw/m1`), { x: 1 }), 'the host only ever deletes');

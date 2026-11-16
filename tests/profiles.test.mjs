@@ -96,7 +96,7 @@ test('restore keys: NEON-XXXX-XXXX-XXXX, no look-alikes, typed any way', () => {
 });
 
 test('board catalog: every game has WINS + WIN RATE; records, pulse songs, sort order', () => {
-  assert.deepEqual([...BOARD_GAMES].sort(), GAMES.filter(g => !g.preview).map(g => g.id).sort());   // (HOLD'EM IN THE CITY: HOLD'EM's board — the skip removed)
+  assert.deepEqual([...BOARD_GAMES].sort(), GAMES.map(g => g.id).sort());   // (HOLD'EM IN THE CITY: HOLD'EM's board — the skip removed; JAYWALK H3: its solo best — a game being built has its board from the pass that counts it)
   for (const g of BOARD_GAMES) {
     const c = careerBoards(g);
     assert.equal(c[0].id, `${g}-wins`);

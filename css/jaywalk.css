@@ -92,3 +92,49 @@
 .jw-check.is-bad::before { content: '✕ '; }
 .jw-seed { position: absolute; right: 10px; top: calc(env(safe-area-inset-top) + 8px); font: 400 10px/1 var(--font-mono); color: var(--text-faint); pointer-events: none; }
 .jw-fps { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 104px); font: 400 10px/1.35 var(--font-mono); color: #9dffb8; pointer-events: none; text-shadow: 0 1px 0 #000; }
+
+/* ---- THE GAME (H3 — js/games/jaywalk/view.js): the same stage as the lab, inside the console's game frame; the console's corner buttons
+   sit over it (☰ top-left, music top-right — the lane count is centred between them). */
+.jw-game { z-index: 0; }
+.jw-game .jw-hud { top: calc(env(safe-area-inset-top) + 14px); }
+/* the first-run hint: once per phone, gone on the first hop */
+.jw-hint { position: absolute; left: 0; right: 0; top: 71%; text-align: center; pointer-events: none; font: 700 15px/1.2 var(--font-ui); letter-spacing: 0.18em; color: #fff;
+  text-shadow: 0 0 12px rgba(255, 79, 196, 0.9), 0 2px 0 rgba(0, 0, 0, 0.8); animation: jw-hint 1.6s ease-in-out infinite alternate; }
+@keyframes jw-hint { from { opacity: 0.55; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .jw-hint { animation: none; } }
+/* THE END SCREEN: the console's podium frame over the scene (the hit still shows through its top) */
+.jw-final { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; background: linear-gradient(rgba(7, 6, 11, 0.5) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%); animation: jw-fin-in 0.22s ease-out both; }
+@keyframes jw-fin-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .jw-final { animation: none; } }
+.jw-final > .final { flex: 1 1 auto; min-height: 0; background: none; --fin-bg: rgba(7, 6, 11, 0.96); }
+.final:has(> .final-body[data-game='jaywalk']) > .winner { display: none; }
+.jw-final .burst { display: none; }   /* (a run's end is how you went OUT — no confetti over it) */
+.jw-game.is-over .jw-hud, .jw-game.is-over .jw-hint { visibility: hidden; }
+.jw-fin { display: grid; justify-items: center; gap: 10px; padding: 6px 12px 4px; text-align: center; }
+/* HOW YOU WENT OUT — big neon words (a white-hot tube, its pink glow: static) */
+.jw-fin-cause { max-width: 11.5em; font: 900 34px/1.06 var(--font-display); letter-spacing: 0.04em; color: #fff3fb; text-wrap: balance;
+  text-shadow: 0 0 3px #fff, 0 0 12px #ff4fc4, 0 0 28px #ff4fc4, 0 0 54px rgba(255, 79, 196, 0.7); }
+.jw-fin-n { display: grid; justify-items: center; gap: 2px; margin-top: 6px; }
+.jw-fin-n b { font: 700 92px/0.95 var(--font-num, var(--font-ui)); letter-spacing: 0.02em; color: #fff; text-shadow: 0 0 18px rgba(143, 240, 255, 0.55), 0 3px 0 rgba(0, 0, 0, 0.8); }
+.jw-fin-n span { font: 700 15px/1 var(--font-ui); letter-spacing: 0.34em; color: var(--text-dim); padding-left: 0.34em; }
+.jw-fin-best { min-height: 20px; font: 700 15px/1.25 var(--font-ui); letter-spacing: 0.2em; color: var(--text-dim); }
+.jw-fin-best.is-new { font: 900 22px/1.1 var(--font-display); letter-spacing: 0.1em; color: #eaffd0; text-shadow: 0 0 4px #fff, 0 0 14px #7dff6a, 0 0 30px rgba(125, 255, 106, 0.8); animation: jw-new 0.5s cubic-bezier(0.2, 1.7, 0.4, 1) both; }
+@keyframes jw-new { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .jw-fin-best.is-new { animation: none; } }
+/* an UNPROVEN run's own end (no line to the board): the same body, two tubes at the foot */
+.jw-local-in { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: calc(env(safe-area-inset-top) + 72px) 18px calc(env(safe-area-inset-bottom) + 18px); }
+.jw-local-foot { display: grid; gap: 10px; }
+/* YOUR TABLE (the end screen): you + your friends' bests — slim cards (stills), the place at the left, the lanes at the right */
+.jw-table { width: min(100%, 360px); margin-top: 6px; }
+.jw-table-k { margin: 0 0 6px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.28em; color: var(--text-dim); text-align: left; padding-left: 2px; }
+.jw-table-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.jw-table-list li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.jw-table-n { font: 700 15px/1 var(--font-num, var(--font-ui)); color: var(--text-dim); text-align: center; }
+.jw-table-list li.is-me .jw-table-n { color: #ff8fd8; }
+.jw-table-card { min-width: 0; }
+.jw-table-list b { min-width: 44px; text-align: right; font: 700 20px/1 var(--font-num, var(--font-ui)); color: #fff; }
+/* HOW TO PLAY (js/games/jaywalk/help.js — the shared help's sheet): one small drawing a line */
+.jw-help { list-style: none; padding-left: 0; display: grid; gap: 10px; }
+.jw-help li { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 12px; font-size: 16px; line-height: 1.3; }
+.jw-help li::before { content: none; }
+.jw-help-pic { display: grid; place-items: center; width: 44px; height: 44px; }

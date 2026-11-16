@@ -1,7 +1,7 @@
 // JAYWALK — THE REPLAY (H1 — docs/jaywalk.md): replay({ seed, mode, log, oneUp }) → the run's result, PURE — the SAME code the phone runs
 // (engine.js#step, tick by tick). The phone shows it after every run (the owner's determinism check on a real iPhone); the server's verify
 // (api/_lib/jaywalk.js) = these bounds + this replay. + THE HOP LOG's packed form (the proof node's chunks — H4).
-import { MODES, DIRS, MIN_INPUT_GAP, MAX_INPUTS_PER_SEC, MAX_LOG, SEED_MAX, TICK_HZ, ONE_UP } from './tuning.js';
+import { MODES, DIRS, MIN_INPUT_GAP, MAX_INPUTS_PER_SEC, MAX_LOG, SEED_MAX, TICK_HZ, ONE_UP, CLOCK } from './tuning.js';
 import { createCourse } from './course.js';
 import { createRun, step, isOver, resultOf } from './engine.js';
 
@@ -56,11 +56,11 @@ export function packLog(log, from = 0, prev = from > 0 ? log[from - 1].t : 0) {
   for (let i = from; i < log.length; i++) { s += UP[log[i].d] + (log[i].t - p).toString(36); p = log[i].t; }
   return s;
 }
-/** the chunks joined → the log, or null (a bad string) */
-export function unpackLog(str) {
+/** the chunks joined → the log, or null (a bad string); `t0` = the tick of the hop before the string's first (0 for the log's start) */
+export function unpackLog(str, t0 = 0) {
   if (typeof str !== 'string') return null;
   const out = [];
-  let t = 0, i = 0;
+  let t = t0, i = 0;
   while (i < str.length) {
     const d = DOWN[str[i++]];
     let j = i;
@@ -73,11 +73,53 @@ export function unpackLog(str) {
   }
   return out;
 }
-/** the chunks of a proof node ({ 0: 'U0R1c…', 1: … } or an array) → the hop log, or null (a hole, a bad chunk); none = an empty log */
+/** a chunk as the proof node holds it: H3 = { s: the packed hops, at: the SERVER's time it was written (the rules: === now) }; a bare
+ *  string (H1's shape — the pure tests) still reads */
+const chunkStr = v => (typeof v === 'string' ? v : v && typeof v === 'object' && typeof v.s === 'string' ? v.s : null);
+const chunkKeys = c => Object.keys(c).map(Number).sort((a, b) => a - b);
+/** the chunks of a proof node ({ 0: { s, at }, 1: … } or an array) → the hop log, or null (a hole, a bad chunk); none = an empty log */
 export function logFromChunks(c) {
   if (c == null) return [];
-  const keys = Object.keys(c).map(Number).sort((a, b) => a - b);
+  const keys = chunkKeys(c);
   let s = '';
-  for (let i = 0; i < keys.length; i++) { if (keys[i] !== i || typeof c[i] !== 'string') return null; s += c[i]; }
+  for (let i = 0; i < keys.length; i++) { const x = chunkStr(c[i]); if (keys[i] !== i || x == null) return null; s += x; }
   return unpackLog(s);
+}
+/** THE CHUNKS' OWN CLOCK (H3) → [{ at (the server's time), n (its hops), t0, t1 (its first + last hop's tick) }], or null (a hole, a bad
+ *  chunk, a chunk without its timestamp) */
+export function chunkTimes(c) {
+  if (c == null) return [];
+  const keys = chunkKeys(c), out = [];
+  let t = 0;
+  for (let i = 0; i < keys.length; i++) {
+    const v = c[i], x = chunkStr(v), at = v && typeof v === 'object' ? v.at : null;
+    if (keys[i] !== i || x == null || typeof at !== 'number' || !Number.isFinite(at)) return null;
+    const hops = unpackLog(x, t);
+    if (!hops) return null;
+    out.push({ at, n: hops.length, t0: hops.length ? hops[0].t : t, t1: hops.length ? hops[hops.length - 1].t : t });
+    if (hops.length) t = hops[hops.length - 1].t;
+  }
+  return out;
+}
+/**
+ * THE SPEED CHECK, BOTH WAYS (H3 — PURE): tick 0 = `go` (the server's time of the player's GO). A chunk written at the server's time `at`
+ * may not hold a hop AHEAD of the real clock (tick > the clock's tick + CLOCK.ahead: a sped-up game, a log made in advance), nor one far
+ * BEHIND it (tick < the clock's − CLOCK.behind: a slowed game). → null (honest) | { why: 'go' | 'chunks' | 'clock' | 'ahead' | 'behind',
+ * tick (behind: the first late hop — the run counts up to it), hops (the hops before it) }
+ */
+export function clockProblem(go, times) {
+  if (typeof go !== 'number' || !(go > 0)) return { why: 'go' };
+  if (!Array.isArray(times)) return { why: 'chunks' };
+  let last = go, hops = 0;
+  for (const k of times) {
+    if (!(k.at >= last)) return { why: 'clock' };   // (a chunk's time never runs backwards, never before GO)
+    last = k.at;
+    if (k.n) {
+      const now = Math.floor((k.at - go) * TICK_HZ / 1000);
+      if (k.t1 > now + CLOCK.ahead) return { why: 'ahead' };
+      if (k.t0 < now - CLOCK.behind) return { why: 'behind', tick: k.t0, hops };
+    }
+    hops += k.n;
+  }
+  return null;
 }

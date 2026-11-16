@@ -11,12 +11,15 @@ import { founderOpen } from './founder.js';
 import { easternParts } from '../../js/core/week.js';
 import { holidayOf } from '../../js/core/sky.js';
 import { inPartyWindow } from '../../js/core/party.js';
+import { QUICK_SOLO } from '../../js/core/match-report.js';
 import { bumpOwners } from './owners.js';
 import { noteRecent } from './friends.js';
 
 // one match per player per this long — a real match takes minutes; this stops a forged room from farming wins
 export const MIN_MATCH_GAP_MS = Number(process.env.MATCH_GAP_MS ?? 45_000);
-const step = (stats, key, gid, row, n, now, at, outage, ctx) => matchStep(stats, { key, gid, row, n, now, at, gap: MIN_MATCH_GAP_MS, outage, ctx });
+// (JAYWALK H3: a QUICK SOLO run — seconds long, restarted at once — is never held back by the gap: core/match-report.js#QUICK_SOLO)
+export const gapFor = (gid, n) => (n === 1 && QUICK_SOLO[gid] ? 0 : MIN_MATCH_GAP_MS);
+const step = (stats, key, gid, row, n, now, at, outage, ctx) => matchStep(stats, { key, gid, row, n, now, at, gap: gapFor(gid, n), outage, ctx });
 // THE ONE DAY LINE's retry rules live in ./retry.js (PURE — the unit suite reads them without firebase-admin); re-exported here
 export { RETRY_SKIPS, needsRetry, mergeOutcomes } from './retry.js';
 

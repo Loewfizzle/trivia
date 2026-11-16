@@ -170,6 +170,7 @@ export function resultOf(run) {
   const ids = Object.keys(run.near);
   return {
     lanes: run.best, tick: run.bestT, end: run.end, over: isOver(run),
+    y: run.y, x: run.x,                                               // (where the kid is / went out — the end screen names what hit them: causes.js)
     cause: run.st === 'taken' ? 'taken' : run.cause, lives: run.lives, taken: run.st === 'taken', hits: run.hits,
     feats: {
       boom: run.boom === 1,                                           // jaywalk-boom

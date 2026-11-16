@@ -50,6 +50,9 @@ export async function loadKenney(names = KENNEY) {
   return out;
 }
 
+/** (H3 — the cartridge's preload, during the walk inside) the scene's model files into the HTTP cache — fetched, never parsed */
+export const warmModels = () => Promise.all(SCENE_MODELS.map(n => fetch(new URL(`${n}.glb?v=${MODEL_REV}`, DIR)).catch(() => null)));
+
 // ---- BUILT IN CODE
 const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), V = new THREE.Vector3(), S = new THREE.Vector3(), C = new THREE.Color();
 /** parts [{ g, color, paint?, at?, rot?, scale?, shade? (y → a colour multiplier) }] → ONE non-indexed geometry with color + paint */

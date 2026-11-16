@@ -1,12 +1,12 @@
-// "How to play" sheet: rules for every game, one tab each. Opened from the title screen,
-// the lobby (game cards + options sheet) and the settings sheet (any screen, mid-game too).
+// "How to play" sheet: rules for every game, one tab each (the title, the lobby, the settings sheet — mid-game too).
 import { gameArtSvg } from './game-art.js';
 import { h } from './dom.js';
 import { openSheet } from './sheet.js';
 import { GAMES } from '../config.js';
 import { lazyImport } from './lazy-import.js';
 
-// Each game: a one-line goal, then short scannable sections. Keep them phone-sized.
+// Each game: a one-line goal, then short sections. A game BEING BUILT gives its body through the hub: globalThis.__nsHelp[id]()
+const hub = id => (globalThis.__nsHelp || {})[id];
 const RULES = {
   rum: {
     goal: 'Fifteen, twenty or thirty days in a neon-lit Prohibition city. Buy contraband cheap, sell it dear, dodge the feds, pay Mr. Balboni. The biggest fortune at dawn wins.',
@@ -376,6 +376,7 @@ const TAB = { holdem: 'HE', rum: 'RR', stakes: 'HS', gridlock: 'GL', slip: 'SS',
 let sheet = null;
 
 function body(id) {
+  if (hub(id)) return hub(id)();
   const r = RULES[id];
   return [
     h('p.help-goal', r.goal),
@@ -392,9 +393,9 @@ function body(id) {
 
 export function openHelp(gameId) {
   closeHelp();
-  // (WINDOWS: only the PLAYABLE games' tabs — + a hidden game's own, when its match is the one on screen (the in-game menu))
+  // (only the PLAYABLE games' tabs + the game on screen's own)
   const first = (GAMES.find(g => g.playable) || GAMES[0]).id;
-  let current = gameId && RULES[gameId] ? gameId : first;
+  let current = gameId && (RULES[gameId] || hub(gameId)) ? gameId : first;
   const content = h('div.help-body');
   const tabs = h('div.help-tabs', { role: 'tablist' });
   const name = h('small.help-name');
@@ -408,9 +409,9 @@ export function openHelp(gameId) {
     content.scrollTop = 0;
   };
   for (const g of GAMES.filter(x => x.playable || x.id === current)) {
-    tabs.append(h('button.help-tab', { type: 'button', role: 'tab', dataset: { id: g.id, theme: g.theme }, onclick: () => show(g.id), 'aria-label': g.name, title: g.name }, gameArtSvg(g.id) || TAB[g.id]));
+    tabs.append(h('button.help-tab', { type: 'button', role: 'tab', dataset: { id: g.id, theme: g.theme }, onclick: () => show(g.id), 'aria-label': g.name, title: g.name }, gameArtSvg(g.id) || TAB[g.id] || g.name.slice(0, 2)));
   }
-  // (SHELL 2.0 A: THE SHEET — ui/sheet.js; the game's name is the sheet's small line under HOW TO PLAY)
+  // (THE SHEET; the game's name = its small line)
   sheet = openSheet({ title: 'HOW TO PLAY', kicker: ' ', cls: 'help-sheet', label: 'How to play', body: [tabs, content], onClose: () => { sheet = null; document.body.classList.remove('help-open'); } });
   const kick = sheet.head.querySelector('.sh-t small');
   name.remove(); if (kick) kick.replaceWith(name);

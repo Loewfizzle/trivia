@@ -96,11 +96,14 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   if (soloRoom || oneRoom) {
     const busy = b => !!b && b.classList.contains('is-busy');
     let leave = null;
+    // (JAYWALK H3 — THE INSTANT AGAIN: a cartridge with `soloAgain` starts its next run with NO walk inside (games/kit/again.js — loaded with
+    //  the podium, so the tap never waits for it); its own word on the button — `AGAIN_LABEL` (HOP AGAIN); anything it can't do here → PLAY AGAIN's path)
+    const instant = mod && typeof mod.soloAgain === 'function' ? lazyImport(import('../games/kit/again.js'), '../games/kit/again.js').catch(() => null) : null;
     const again = h('button.btn.btn-primary.btn-block.final-again', { type: 'button', onclick: () => {
       if (busy(again) || busy(leave)) return;
       again.classList.add('is-busy');
-      Promise.resolve(PN.again()).then(ok => { if (!ok) again.classList.remove('is-busy'); }, () => again.classList.remove('is-busy'));
-    } }, h('span', 'PLAY AGAIN'));
+      Promise.resolve(instant ? instant.then(A => (A ? A.instantAgain() : false)) : false).then(ok => ok || PN.again()).then(ok => { if (!ok) again.classList.remove('is-busy'); }, () => again.classList.remove('is-busy'));
+    } }, h('span', (mod && typeof mod.AGAIN_LABEL === 'string' && mod.AGAIN_LABEL) || 'PLAY AGAIN'));
     leave = soloRoom ? h('button.btn.btn-ghost.btn-block.final-city', { type: 'button', onclick: () => {
       if (busy(again) || busy(leave)) return;
       leave.classList.add('is-busy');

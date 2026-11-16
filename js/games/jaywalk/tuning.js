@@ -112,5 +112,16 @@ export const MAX_INPUTS_PER_SEC = 20;     // (… and never more than 20 in any 
 export const MAX_LOG = 60000;             // (a solo run's whole log; a capped mode's = its cap / MIN_INPUT_GAP at most)
 export const SEED_MAX = 64;
 
+// ---- THE CLOCK (H3 — the anti-cheat: a run is played ON the server's clock; tick 0 = the player's GO, a server timestamp the rules enforce.
+// Every hop-log chunk carries its own server timestamp; the server refuses a log that runs AHEAD of the real clock, and stops counting
+// one that falls far BEHIND it — a slowed game — at the last hop that was on time: THE DROP's slow-motion check, both ways)
+export const CLOCK = Object.freeze({
+  ahead: 2 * TICK_HZ,                      // (a chunk's LAST hop: at most 2 s ahead of the chunk's own timestamp — the phone's clock estimate + a frame)
+  behind: 8 * TICK_HZ,                     // (… its FIRST hop: at most 8 s behind it — the upload every second + a slow network)
+  flushMs: 1000,                           // (the phone uploads its new hops every second)
+  chunkMax: 400,                           // (a chunk's packed string — the rules' bound)
+  chunks: 10000,                           // (c/0 … c/9999)
+});
+
 /** the hit causes, the run's states */
 export const CAUSES = Object.freeze(['car', 'water', 'train', 'edge', 'blackbird', 'ufo', 'wall']);

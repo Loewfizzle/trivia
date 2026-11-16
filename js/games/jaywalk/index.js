@@ -1,14 +1,18 @@
 // JAYWALK — THE CARTRIDGE (H1 — docs/jaywalk.md; the contract: js/games/contract.js, docs/cartridge.md). BEING BUILT: config.js GAMES
 // `playable: false` + `preview: true` — the console never offers it; a local emulator page (`?emu&preview=1`) or the owner's phone may start it.
+// H3 = THE SOLO GAME: the real view (view.js — the night look, the proof written as you hop), the end screen (victory.js), HOP AGAIN.
 // H1 = the rules + the frame: start → THE GAME FRAME (id, matchId, participants, phase), a pure step (THE 3 S RULE: every patch moves the
 // phase), the live path (everyone's proof node — the hop logs ARE the ghosts), the ranks from THE REPLAY. Its screen: a stub until H2 / H4
 // (the graybox lives on /jaywalk-lab).
-import { createGame, nextStep } from './director.js';
+import { createGame, nextStep, nextRun } from './director.js';
 import { standings } from './logic.js';
 // (THE THIN META: DEFAULT_SETTINGS, OPTIONS, estimateMinutes, MUSIC, LOOKS, SOLO, the banner, the chat's lock, cleanSettings — meta.js)
 export * from './meta.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { lazyImport } from '../../ui/lazy-import.js';
+import { registerHelp } from './help.js';
+
+registerHelp();   // (HOW TO PLAY: its rules through the shared help's hub until the go-live pass moves them into ui/help.js)
 
 export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('jaywalk'));
 
@@ -16,7 +20,7 @@ export const createView = lazyView(() => lazyImport(import('./view.js'), './view
 // mirrored for everyone: the same seed + a player's log = their run, tick for tick (the see-through ghosts — H4)
 export const livePaths = g => ({ runs: `jw/${g.matchId}` });
 
-/** a new seed every match (and every solo run): the same course for everyone in it */
+/** a new seed every MATCH: the same course for everyone in it (a SOLO run's course is picked AFTER its GO — logic.js#seedOf — never this) */
 function newSeed() {
   const a = new Uint32Array(2);
   crypto.getRandomValues(a);
@@ -29,6 +33,18 @@ export async function start({ matchId, settings, participants, now }) {
 
 export function prepare() { /* nothing to top up: every phone runs its own kid on the shared seed */ }
 
-export const step = (game, { now, live }) => nextStep(game, { now, live });
+export const step = (game, { now, live, code }) => nextStep(game, { now, live, code });
+
+// H3 — THE SOLO GAME
+/** every phone, at the game start (the walk inside): the sounds' bytes + the models' files into the cache — fetch, never build (≤ 1.5 MB) */
+export function preload() {
+  lazyImport(import('./sfx.js'), './sfx.js').then(S => S.fetchSounds()).catch(() => {});
+  lazyImport(import('./models.js'), './models.js').then(M => M.warmModels && M.warmModels()).catch(() => {});
+}
+/** HOP AGAIN — the console's INSTANT AGAIN (games/kit/again.js): the next solo run as a match of its own, no walk inside */
+export const soloAgain = (game, { matchId, now }) => nextRun(game, { matchId, now });
+/** SHARE (the solo podium): "JAYWALK · 143 LANES" on the site's share kit */
+export const shareRun = (game, state) => lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state));
+export { finalScene } from './victory.js';
 
 export const finalRanks = game => standings(game).map(r => ({ uid: r.uid, rank: r.rank }));

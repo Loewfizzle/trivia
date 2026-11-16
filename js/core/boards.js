@@ -16,8 +16,8 @@ export const GAME_BOARDS = {
   slip: { records: [rec('slip-dist', 'LONGEST RIDE', 'dist', { short: 'DISTANCE' })], career: [] },
   pulse: { records: [], career: [], songs: true },
   prism: { records: [rec('prism-rush', 'SCORE RUSH', 'int', { short: 'BEST SCORE' })], career: [car('prism-ko', 'KNOCKOUTS', { stat: 'ko', short: 'KOs' })] },
-  // (SHELL 2.0 B1: the solo lane's own board · OC5: THE QUICK SOLO PERSONAL BEST — the server's own, from the room's record: a solo QUICK run)
-  // (THE CARD PASS — B3: the two solo boards' tabs + column said "SOLO BEST" twice → each its own name: QUICK · SOLO / STANDARD · SOLO)
+  // (the solo lane's own boards — OC5: QUICK · SOLO from the room's record; B3: each its own name)
+  jaywalk: { records: [rec('jaywalk-solo', 'FARTHEST RUN', 'int', { short: 'LANES' })], career: [] },   // (H3: the server's replay only)
   overclock: { records: [rec('overclock-std', 'STANDARD MATCH', 'int', { short: 'BEST SCORE' }), rec('overclock-std-solo', 'STANDARD · SOLO', 'int'), rec('overclock-quick-solo', 'QUICK · SOLO', 'int')], career: [] },
   cipher: { records: [rec('cipher-score', 'BEST MATCH', 'int', { short: 'BEST SCORE' }), rec('cipher-fast5', 'FASTEST 5-LETTER SOLVE', 'ms', { dir: -1, short: 'FASTEST' })], career: [] },
   golf: { records: [rec('golf-par9', 'BEST 9 HOLES', 'par', { dir: -1, short: 'TO PAR' })], career: [] },

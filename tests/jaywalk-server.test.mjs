@@ -80,5 +80,5 @@ test('NOT a function (the 8 stay 8) + never imports fb.js', () => {
   const fns = readdirSync(new URL('../api/', import.meta.url)).filter(f => f.endsWith('.js'));
   assert.equal(fns.length, 8);
   const src = readFileSync(new URL('../api/_lib/jaywalk.js', import.meta.url), 'utf8');
-  assert.deepEqual([...src.matchAll(/^import .* from '([^']+)'/gm)].map(m => m[1]), ['../../js/games/jaywalk/replay.js', '../../js/games/jaywalk/tuning.js']);
+  assert.deepEqual([...src.matchAll(/^import .* from '([^']+)'/gm)].map(m => m[1]), ['../../js/games/jaywalk/replay.js', '../../js/games/jaywalk/tuning.js', '../../js/games/jaywalk/logic.js']);   // (H3: + the pure seedOf)
 });

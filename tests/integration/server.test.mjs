@@ -813,6 +813,117 @@ test('JAYWALK H1 — the proof node: GO alone proves a player (silent but presen
   tick();
 });
 
+// JAYWALK H3 — THE SOLO RUN: counted ONLY from the server's replay of the player's proof node (GO's server time → the seed; the timestamped
+// chunks → the log + its clock) — never the room's game.results; the room may have moved on (HOP AGAIN); a forged log earns nothing; while
+// JAYWALK is being built only THE OWNER's report counts (THE OWNER'S LIVE TEST)
+test('JAYWALK H3 — THE SOLO RUN: the best from the SERVER\'s replay (never the claim), HOP AGAIN\'s moved-on room, runs seconds apart, a forged log, the owner-only gate', async () => {
+  const { seedOf } = await import('../../js/games/jaywalk/logic.js');
+  const { createCourse } = await import('../../js/games/jaywalk/course.js');
+  const { createRun, resultOf, step, isOver } = await import('../../js/games/jaywalk/engine.js');
+  const { packLog } = await import('../../js/games/jaywalk/replay.js');
+  const { greedyBot, playBot } = await import('../../js/games/jaywalk/bot.js');
+  const { SOLO_XP } = await import('../../js/core/ranks.js');
+  const uid = 'u-jws';
+  await ensure(uid, 'HOPPER');
+  const pid = await val(`uids/${uid}`);
+  const code = nextCode();
+  let mN = 0;
+  /** an honest run of ~`ticks` on the course its GO picked, ended `ago` ms before the clock → its proof node (a chunk a second, stamped) + the live result */
+  const runOf = (matchId, ticks, { clockOf = null, lag = 150 } = {}) => {
+    let go = clock - 120_000, seed, course, run, log;
+    for (let k = 0; ; k++) {
+      seed = seedOf(code, matchId, go); course = createCourse(seed); run = createRun({ seed, mode: 'solo' });
+      log = playBot(run, course, greedyBot({ seed }), ticks);
+      while (!isOver(run)) step(run, course, '');
+      if ((log.length >= 20 && run.best >= 8) || k > 200) break;
+      go += 7;
+    }
+    const at = clockOf || (t => go + Math.ceil(t * 1000 / 60)), c = {};
+    let from = 0, i = 0;
+    while (from < log.length) { const edge = (Math.floor(log[from].t / 60) + 1) * 60; let to = from; while (to < log.length && log[to].t < edge) to++; c[i++] = { s: packLog(log.slice(0, to), from), at: at(edge, go) + lag }; from = to; }
+    return { node: { go, c, e: { l: run.best, t: run.bestT, w: run.cause } }, live: resultOf(run), go };
+  };
+  /** the solo room as the phone leaves it at the end of a run: the game (final — its results the HOST's own claim), the night record, the proof */
+  const seedRun = async (R, { claim = 99999, moved = false } = {}) => {
+    const matchId = `s${(mN++).toString(36)}jw${Math.floor(clock % 1e6).toString(36)}`.slice(0, 12);
+    const r = R(matchId);
+    const game = { id: 'jaywalk', matchId, phase: 'final', mode: 'solo', seed: 'host', settings: { lives: 1 }, participants: { [uid]: true }, playAt: r.go - 50, phaseStartAt: clock, results: { [uid]: { l: claim, t: 5, w: 'car', lv: 0 } } };
+    await ref(`rooms/${code}`).update({
+      meta: { hostId: uid, status: 'playing', createdAt: clock - 600_000, activeAt: clock, locked: true, settings: { solo: { on: true, g: 'jaywalk' } } },
+      players: { [uid]: { name: 'HOPPER', color: 'cyan', avatar: 'bolt', joinedAt: 1, pid } },
+      game: moved ? { ...game, matchId: 'snextrun1', phase: 'play', results: null } : game,
+      [`night/${matchId}`]: { g: 'jaywalk', at: clock, p: { [uid]: 0 }, n: { [uid]: 'HOPPER' } },
+      [`jw/${matchId}/${uid}`]: r.node,
+    });
+    return { code, matchId, live: r.live };
+  };
+  const best = async () => { const s = await stats(uid); return s && s.b && s.b['jaywalk-solo'] ? s.b['jaywalk-solo'].a : null; };
+
+  // THE OWNER'S LIVE TEST: the game is being built — a stranger's run is never counted; the owner's is
+  await ref('testReportAll').set(null);
+  const A = await seedRun(m => runOf(m, 1500));
+  await rejects(report(uid, A), 409, 'not_reportable');
+  assert.equal(await best(), null, 'nothing counted for a player who is not the owner');
+  await ref(`testAdmins/${pid}`).set(true);
+  const ra = await report(uid, A);
+  assert.equal(ra.status, 'counted');
+  assert.equal(ra.outcome.win, false, 'a solo run: never a win'); assert.equal(ra.outcome.xp.gain, SOLO_XP, 'THE SOLO LANE\'s small XP');
+  assert.deepEqual(ra.outcome.pbs.map(p => [p.b, p.v, p.first]), [['jaywalk-solo', A.live.lanes, true]], `the best = the SERVER's replay (${A.live.lanes} lanes) — never the room's claim of 99,999`);
+  assert.equal(await best(), A.live.lanes);
+  assert.equal((await val(`results/${code}_${A.matchId}`)).src, 'room');
+  // HOP AGAIN: the next run ended SECONDS later, and its room has already moved on to the run after it — still counted, from the proof
+  tick(9000);
+  const B = await seedRun(m => runOf(m, 2600), { moved: true });
+  const rb = await report(uid, B);
+  assert.equal(rb.status, 'counted', 'a run 9 s after the last one: THE 45 s GAP never holds a quick solo run back');
+  assert.equal((await val(`results/${code}_${B.matchId}`)).src, 'proof', 'the room moved on: the proof node counted it');
+  assert.equal(rb.outcome.bests['jaywalk-solo'], Math.max(A.live.lanes, B.live.lanes));
+  assert.equal(await best(), Math.max(A.live.lanes, B.live.lanes));
+  assert.equal((await report(uid, B, clock + 3000)).status, 'done', 'credited once');
+  // a FORGED run — the whole log uploaded the moment it began (a log from the future): nothing counted, the best untouched
+  tick(9000);
+  const before = await best(), xpBefore = (await stats(uid)).xp;
+  const F = await seedRun(m => runOf(m, 4000, { clockOf: (t, go) => go + 400, lag: 0 }));
+  const rf = await report(uid, F);
+  assert.equal(rf.outcome && rf.outcome.skip, 'empty', 'a refused run is an empty one: no XP, no streak day');
+  assert.equal(await best(), before); assert.equal((await stats(uid)).xp, xpBefore);
+  assert.equal((await val(`results/${code}_${F.matchId}`)).rej, 1, 'named in the result (rejected)');
+  // a SLOWED run (every tick twice as long): counted only up to its last on-time hop — never its full lanes
+  tick(9000);
+  const S = await seedRun(m => runOf(m, 4000, { clockOf: (t, go) => go + Math.ceil(t * 1000 / 60) * 2 }));
+  const rs = await report(uid, S);
+  assert.equal(rs.status, 'counted');
+  const sv = (await stats(uid)).g.jaywalk;
+  assert.ok(sv.p >= 3, 'the runs count as plays of the game');
+  assert.ok(await best() < 99999 && (await best()) === Math.max(before, await best()), 'the best only ever from replayed lanes');
+  // no proof node at all (the phone never wrote GO): not a play
+  tick(9000);
+  const N = await seedRun(m => ({ ...runOf(m, 600), node: null }));
+  await rejects(report(uid, N), 403, 'not_in_match');
+  // somebody else's run: never yours
+  await ensure('u-jwx', 'OTHER');
+  await ref(`testAdmins/${await val('uids/u-jwx')}`).set(true);
+  const rx = await report('u-jwx', A);
+  assert.deepEqual([rx.status, rx.outcome], ['done', null], 'a counted run answers a stranger with nothing');
+  tick(9000);
+  const X = await seedRun(m => runOf(m, 1500));
+  await rejects(report('u-jwx', X), 403, 'not_in_match');
+  // YOUR TABLE (/api/profile `table`): you + the friends YOUR OWN list names, best first — never a pid, never a stranger
+  const { boardTable } = await import('../../api/_lib/friends.js');
+  await ensure('u-jwf', 'FRIENDO'); await ensure('u-jwz', 'STRANGER');
+  const fp = await val('uids/u-jwf'), zp = await val('uids/u-jwz');
+  await ref(`pstats/${fp}/b/jaywalk-solo`).set({ a: 777 }); await ref(`pstats/${zp}/b/jaywalk-solo`).set({ a: 999 });
+  await ref(`pfr/${pid}/f/${fp}`).set(clock);
+  const tb = await profileAction(uid, { action: 'table', b: 'jaywalk-solo' }, '', clock);
+  assert.deepEqual(tb.rows.map(r => [r.n, r.v, !!r.me]), [['FRIENDO', 777, false], ['HOPPER', await best(), true]], 'the friend + you, best first; the stranger (999) never');
+  for (const secret of [fp, zp, pid]) assert.ok(!JSON.stringify(tb).includes(secret), 'never a pid in the answer');
+  assert.ok(tb.rows.every(r => /^[0-9a-f]{16}$/.test(r.id)), 'the board ids only');
+  await rejects(boardTable(pid, 'xp', clock), 400, 'bad_board');
+  await rejects(boardTable(pid, 'nope', clock), 400, 'bad_board');
+  await ref('testReportAll').set(true);
+  tick();
+});
+
 // FR7 FIXES B — A SEAT IS NOT A PLAY (the owner's add-on — Grok's second opinion): EVERY credited uid needs its OWN node of THIS match in
 // THIS room (api/report.js#PROOF_TREES) — a seat alone is nothing
 test('FR7 FIXES B — A SEAT IS NOT A PLAY: a seated guest who wrote nothing gets nothing (no 2-player win for the host); a real match as before; challenge 0 skipped still counts', async () => {

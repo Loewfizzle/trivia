@@ -6,9 +6,9 @@ import { ref, val } from './fb.js';
 import { ApiError } from './http.js';
 import { take } from './limit.js';
 import { isPid, publicProfile } from './profiles.js';
-import { boardId, topRows, publicName } from './lb.js';
+import { boardId, topRows, publicName, publicFaces } from './lb.js';
 import { boardDef } from '../../js/core/boards.js';
-import { FR, FR_WHY, friendStep, relOf, fresh, suggestions, recentPatch, inviteLive } from '../../js/core/friends.js';
+import { FR, FR_WHY, friendStep, relOf, fresh, suggestions, recentPatch, inviteLive, tablePids } from '../../js/core/friends.js';
 import { sendPush, okEndpoint, vapid } from './push.js';
 import { presenceOnline } from '../../js/core/room-logic.js';
 import { weekXp } from '../../js/core/progress.js';
@@ -51,6 +51,26 @@ export async function friendsState(pid, now = Date.now()) {
     return { ...c, wx: hid ? null : weekXp({ xw }, now) };
   }));
   return { friends, in: inn, out, blocked, recent: recent.map(c => ({ ...c, rel: relOf(A, pid, c.pid, now) })), caps: { max: FR.max, outMax: FR.outMax } };
+}
+
+/**
+ * YOUR TABLE for ONE RECORD board (JAYWALK H3 — a game's end screen: friends' bests): you + the ≤ FR.tableN friends YOUR OWN list names
+ * (js/core/friends.js#tablePids — a stranger's best is never readable by naming their id), the ones with a value on that board, best first.
+ * → { b, rows: [{ ...the slim card's public face (the board id — NEVER a pid), v, me? }] } — a friend hidden from the boards is not listed.
+ */
+export async function boardTable(pid, b, now = Date.now()) {
+  const def = boardDef(String(b || ''));
+  if (!def || def.kind !== 'record') fail(400, 'bad_board');
+  const pids = [pid, ...tablePids(await node(pid), pid, null, now)];
+  const [vals, faces] = await Promise.all([Promise.all(pids.map(p => val(`pstats/${p}/b/${def.id}/a`))), publicFaces(pids)]);
+  const rows = [];
+  pids.forEach((p, i) => {
+    if (vals[i] == null || typeof vals[i] !== 'number') return;
+    const face = faces[p] || (p === pid ? { id: boardId(pid), n: 'YOU' } : null);
+    if (face) rows.push({ ...face, v: vals[i], ...(p === pid ? { me: true } : {}) });
+  });
+  rows.sort((x, y) => (def.dir === -1 ? x.v - y.v : y.v - x.v) || (x.me ? -1 : y.me ? 1 : 0));
+  return { b: def.id, rows };
 }
 
 /** the pending-requests count (the badge on the profile button — `me` carries it) */

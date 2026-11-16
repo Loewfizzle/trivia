@@ -17,6 +17,7 @@ import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod } from './cour
 import { loadKenney, SCENE_MODELS, buildKid, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade, buildDart } from './models.js';
 import { FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, createBloom } from './night-fx.js';
 import { CAM, createCamera } from './camera.js';
+import { hsh, strSeed, vehicleOf } from './causes.js';   // (H3: which vehicle a car IS — the end screen's cause line names the same one)
 
 const BACK = 9, AHEAD = 27, POOL = BACK + AHEAD;   // (the most lanes alive: 36 — a closer zoom lays fewer ahead)
 const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff];   // (a car's body tint + its trail: pink · cyan · violet · coral · blue)
@@ -33,8 +34,6 @@ const KID_S = 1.3;   // (THE JAYWALKER's size on the lane: ≈ 1.27 of a lane ta
 const SKY_LIGHTS = [[31.7, 31.8, 0], [66.3, 36.4, 0.9], [67.9, 36.4, 0.9], [62.6, 45.6, 1.7], [64.2, 45.6, 1.7], [88.7, 34.2, 0.4], [93.8, 44.6, 1.3], [10.9, 37, 2.1]];
 const SKY_NEON = [[24, 52.6, 2.5, 5.8, 0], [33.6, 47.4, 1.8, 8.4, 2.2], [80.2, 56.4, 2.6, 3.4, 3.7], [8.5, 57.6, 2.3, 3, 1.1], [75.3, 52.8, 1.8, 4.6, 4.4]];
 const X = c => c - COLS / 2, Z = l => -l;
-const hsh = (a, b) => { let x = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul((b | 0) + 0x7f4a7c15, 0xc2b2ae35); x ^= x >>> 15; x = Math.imul(x, 0x2c1b3c6d); x ^= x >>> 12; return (x >>> 0) / 4294967296; };
-const strSeed = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h | 0; };
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const ease = t => t * t * (3 - 2 * t);
 
@@ -113,7 +112,6 @@ export function createNight(host, o = {}) {
     jets: kind(GEO.dart, lambert(), 8),
   };
   // Kenney's (CC0): they arrive a moment after the first frame — until then (or if a file fails) that kind simply draws nothing
-  const CARS = ['car-sedan', 'car-hatchback', 'car-taxi', 'car-van'];
   const KM = {}, BOX = {};
   let dead = false;
   const ready = loadKenney(SCENE_MODELS).then(geos => {
@@ -154,13 +152,14 @@ export function createNight(host, o = {}) {
   sky.append(skyImg); host.append(sky);
   let skyAt = 9;
 
-  let bloom = null, tier = 2, w = 0, h = 0, dpr = devDpr, kAt = 0;
+  let bloom = null, tier = 2, w = 0, h = 0, dpr = devDpr, kAt = 0, reveal = 1, revealT = 1;   // (reveal — H3: 0 = only the start's few lanes out of the dark · 1 = the whole view)
   /** the rig's scale moved (a ZOOM change easing in): the far plane + the fog follow it */
   function depth() {
-    const k = rig.k();
-    if (k === kAt) return;
-    kAt = k; cam.far = 90 * k; cam.updateProjectionMatrix();
-    scene.fog.near = 26 * k; scene.fog.far = 35 * k; fogV.set(26 * k, 35 * k);
+    const k = rig.k(), key = k + reveal * 7;
+    if (key === kAt) return;
+    kAt = key; cam.far = 90 * k; cam.updateProjectionMatrix();
+    const n = (22 + 4 * reveal) * k, f = (24.5 + 10.5 * reveal) * k;   // (the fog's near / far — the kid stands ≈ 20 k from the lens: the start shows ≈ 3–5 lanes ahead of him, the rest in the dark)
+    scene.fog.near = n; scene.fog.far = f; fogV.set(n, f);
   }
   function fit(force) {
     const nw = host.clientWidth, nh = host.clientHeight, nd = Math.min(devDpr, DPR_AT[tier]);
@@ -223,6 +222,7 @@ export function createNight(host, o = {}) {
   /** one frame: the run after its last tick, `a` (0 … 1) into the next one, `dt` ms since the last frame */
   function draw(run, course, a, dt) {
     clock += dt;
+    if (reveal !== revealT) { reveal = reduce ? revealT : reveal + (revealT - reveal) * Math.min(1, dt / 130); if (Math.abs(revealT - reveal) < 0.004) reveal = revealT; }
     if (course !== courseRef) { courseRef = course; vseed = strSeed(course.seed); decor.clear(); }
     const t = run.t + a, lane = course.lane(run.y);
     if (run.t < fx.t || (run.t === 0 && fx.t !== 0)) { fx.hits = 0; fx.hit = null; fx.parts.length = 0; fx.yaw = Math.PI; fx.landAt = -1e9; fx.wob = null; fx.seen = false; fx.st = 'idle'; fx.out = 0; }
@@ -353,11 +353,11 @@ export function createNight(host, o = {}) {
             if (left > COLS + 9 || left + len < -9) continue;
             const cx = X(left + len / 2), inside = left + len > 0 && left < COLS, dim = lt * (inside ? 1 : 0.55);
             if (car) {
-              const r = hsh(vseed ^ (i * 7919), j * 13 + 1), tint = NEON[Math.floor(hsh(vseed ^ (i * 104729), j * 31 + 7) * NEON.length)];
-              const name = len < 1.5 ? CARS[Math.floor(r * 3)] : 'car-van', q = KM[name], B = BOX[name], ry = L.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+              const what = vehicleOf(vseed, i, j, len), tint = NEON[Math.floor(hsh(vseed ^ (i * 104729), j * 31 + 7) * NEON.length)];
+              const name = what === 'truck' ? 'car-van' : `car-${what}`, q = KM[name], B = BOX[name], ry = L.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
               const bodyL = len < 1.5 ? 0.96 : 1.9, sz = B ? bodyL / B.l : 1, sx = B ? (len < 1.5 ? 0.7 : 0.78) / B.w : 1, sy = B ? (len < 1.5 ? 0.42 : 0.52) : 1;
               const nose = left + (L.dir > 0 ? len - 0.02 : 0.02), bx = X(nose - L.dir * bodyL / 2), tail = left + (L.dir > 0 ? 0.02 : len - 0.02);
-              const truck = len > 2.5, tz = (len - 0.1) / TRUCK.len;   // (3 cells = THE BOX TRUCK, built in code — models.js#buildTruck)
+              const truck = what === 'truck', tz = (len - 0.1) / TRUCK.len;   // (3 cells = THE BOX TRUCK, built in code — models.js#buildTruck)
               if (truck) K.trucks.put(cx, 0, z, 0.94, 0.9, tz, ry, tint, 1, dim);
               else if (q) q.put(bx - L.dir * B.cz * sz, 0, z, sx, sy, sz, ry, tint, 1, dim);
               K.shadow.put(cx, 0.03, z, len * 1.12, 1, 1.05, 0, 0, 1, 0, 0.6 * lt);
@@ -499,6 +499,8 @@ export function createNight(host, o = {}) {
     project(cells, lane) { v3.set(X(cells), 0, Z(lane)).project(cam); return [(1 + v3.x) / 2, (1 - v3.y) / 2]; },
     kidScreenX() { v3.copy(kid.position).project(cam); return (1 + v3.x) / 2; },
     setKidColor: tintOf,
+    /** H3 — THE START WHILE THE COURSE LANDS: 0 = only the few lanes at the kid's feet out of the dark, 1 = the whole view (eased; `snap` = at once) */
+    setReveal(v, snap) { revealT = v < 0 ? 0 : v > 1 ? 1 : v; if (snap) reveal = revealT; },
     /** where the kid is on the screen (0 … 1 from the top) — the camera's check */
     kidScreenY() { v3.copy(kid.position).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px (= pt) — the wider view's readability number */

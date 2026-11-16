@@ -7,7 +7,15 @@ export const SOLO = true;
 // the EVENING station (MUSIC BY MOOD: every phone the same song on the server clock) — its own mix: H6
 export const MUSIC = 'mood:evening';
 export const BANNER_NAME = 'JAYWALK';
-export const LOOKS = ['day', 'night'];   // (night: THE BLACKOUT — H2 · day: a FOG BANK — H5)
+// (H3: ONE look until the day look is built — H5 adds 'day' back and the GAME LOOK setting returns by itself; the console paints NIGHT + says
+//  NIGHT · LOCKED in Settings while a run is on: docs/cartridge.md LOOKS)
+export const LOOKS = ['night'];
+// H3 — the solo podium's first button says HOP AGAIN (the console's default: PLAY AGAIN) — ui/final.js reads it
+export const AGAIN_LABEL = 'HOP AGAIN';
+// H3 — its end screen names how you went OUT: never the console's winner sting over it (its own sound = NEW BEST's, victory.js)
+export const OWN_VICTORY_SOUND = true;
+// H3 — the end screen's colour (the frame's main tube): the signs' pink
+export const ACCENT = '#ff4fc4';
 
 /** players (optional): one player = SOLO ENDLESS, always 1 life */
 export function cleanSettings(s = {}, players = 0) {

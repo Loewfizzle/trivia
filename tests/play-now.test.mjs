@@ -96,7 +96,7 @@ test('PLAY NOW → playSolo: the room, this phone its host + online, the default
   const fin = read('js/ui/final.js');
   assert.match(fin, /const PN = globalThis\.__nsPlayNow;/);
   assert.ok(!/isSoloMeta|playSolo/.test(fin.replace(/\/\/.*$/gm, '')), 'final.js imports no PLAY NOW export');
-  assert.match(fin, /h\('span', 'PLAY AGAIN'\)/); assert.match(fin, /h\('span', 'BACK TO THE CITY'\)/);
+  assert.match(fin, /h\('span', \(mod && typeof mod\.AGAIN_LABEL === 'string' && mod\.AGAIN_LABEL\) \|\| 'PLAY AGAIN'\)/); assert.match(fin, /h\('span', 'BACK TO THE CITY'\)/);
 });
 
 test('the dock\'s GAMES → PLAY (same spot, 4 icons the max); the signs + the blade open the card; the sign\'s own gestures untouched', () => {
@@ -105,7 +105,7 @@ test('the dock\'s GAMES → PLAY (same spot, 4 icons the max); the signs + the b
   const taps = read('js/screens/title-taps.js');
   // (JAYWALK H1: JAYWALK's sign finds its own GAMES row now (playable: false) — a quiet COMING SOON)
   assert.match(read('js/config.js'), /\{ id: 'jaywalk', name: 'JAYWALK'.*playable: false/, 'JAYWALK has its row — not playable yet');
-  assert.match(taps, /if \(hit\.kind === 'sign'\) \{ const g = GAMES\.find\(x => x\.id === hit\.id\); if \(g && !g\.playable\) \{ toast\(`\$\{g\.name\} — coming soon`, 'info'\); return; \} if \(g\) gameCard\(g\); \}/);
+  assert.match(taps, /if \(hit\.kind === 'sign'\) \{ const g = GAMES\.find\(x => x\.id === hit\.id\); if \(g && !g\.playable && !isOwnerTest\(g\.id\)\) \{ toast\(`\$\{g\.name\} — coming soon`, 'info'\); return; \} if \(g\) gameCard\(g\); \}/);
   // the letters' tap / race / surge are answered BEFORE any city hit (logoRect) — a card never steals them
   const tapFn = taps.slice(taps.indexOf('function onCityTap'), taps.indexOf('function buzz'));
   assert.ok(tapFn.indexOf('buzz(Math.max(0') < tapFn.indexOf('T.scene.hit(x, y)'));

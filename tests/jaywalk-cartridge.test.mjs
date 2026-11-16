@@ -30,12 +30,13 @@ test('HIDDEN: its GAMES row is playable: false + preview (THE ONE SWITCH stays o
   assert.doesNotMatch(read('js/games/registry.js'), /jaywalk\/meta\.js/, 'no meta at boot until its go-live (THE BOOT BUDGET)');
 });
 
-test('THE META: 3 lives (the host\'s option: 1), ~6 minutes, the EVENING station, day + night, SOLO; one player = 1 life; the contract', () => {
+test('THE META: 3 lives (the host\'s option: 1), ~6 minutes, the EVENING station, NIGHT (the day look: H5), SOLO; one player = 1 life; the contract', () => {
   assert.deepEqual(META.DEFAULT_SETTINGS, { lives: 3 });
   assert.deepEqual(META.OPTIONS[0].choices.map(c => c.value), [3, 1]);
   assert.equal(META.estimateMinutes(), 6);
   assert.deepEqual([META.MUSIC, META.SOLO, META.BANNER_NAME], ['mood:evening', true, 'JAYWALK']);
-  assert.deepEqual(META.LOOKS, ['day', 'night']);
+  assert.deepEqual(META.LOOKS, ['night'], 'H3: ONE look until H5 builds the day — the console paints NIGHT + shows it LOCKED');
+  assert.deepEqual([META.AGAIN_LABEL, META.OWN_VICTORY_SOUND, META.ACCENT], ['HOP AGAIN', true, '#ff4fc4']);
   assert.deepEqual(META.cleanSettings({ lives: 1 }, 4), { lives: 1 }); assert.deepEqual(META.cleanSettings({ lives: 7 }, 4), { lives: 3 });
   assert.deepEqual(META.cleanSettings({ lives: 3 }, 1), { lives: 1 }, 'SOLO ENDLESS is one life');
   assert.deepEqual(META.LIVES, MODES.match.livesOpt, 'the option = the rules\' own table');
@@ -116,14 +117,14 @@ test('THE END: THE MOTHERSHIP\'s moment + a grace ends the match for everyone; s
   const e = endNow(g, { now: g.playAt + 30_000, live: { runs: {} } });
   assert.equal(e.phase, 'final'); assert.equal(endNow({ ...g, phase: 'final' }, { now: 1 }), null);
   // a broken log (a bad chunk, a forged one) is scored as a kid who never hopped — never a throw
-  assert.deepEqual(Object.keys(scoreRun(g, { go: 1, c: { 0: 'zz' } }, 600)).sort(), ['l', 'lv', 't', 'w']);
-  assert.equal(scoreRun(g, { go: 1, c: { 0: 'U0U1' } }, 600).l, 0, 'inputs closer than a hand: the whole log refused');
+  assert.deepEqual(Object.keys(scoreRun(g, { go: 1, c: { 0: 'zz' } }, g.playAt + 10000)).sort(), ['e', 'l', 'lv', 'px', 't', 'w', 'y']);
+  assert.equal(scoreRun(g, { go: 1, c: { 0: 'U0U1' } }, g.playAt + 10000).l, 0, 'inputs closer than a hand: the whole log refused');
 });
 
 test('THE 3 S RULE + THE RANKING: every patch of the step moves the phase; lanes first, the earlier tick wins a tie, the same lanes at the same tick share the place', () => {
   const src = read('js/games/jaywalk/director.js').replace(/\/\/[^\n]*/g, '');
   for (const m of src.matchAll(/return (\{[^}]*\}|finalPatch\([^)]*\))/g)) assert.ok(/phase:|finalPatch/.test(m[1]), `a patch that moves the phase: ${m[1]}`);
-  assert.match(src, /const finalPatch = \(game, runs, now\) => \(\{ phase: 'final', phaseStartAt: now,/);
+  assert.match(src, /const finalPatch = \(game, runs, now, code\) => \(\{ phase: 'final', phaseStartAt: now,/);
   for (const bad of [/Math\.random/, /Date\.now/, /serverNow/, /\bstate\b/]) assert.doesNotMatch(src, bad, `the step is pure (${bad})`);
   const g = { participants: { a: 1, b: 1, c: 1, d: 1 }, results: { a: { l: 212, t: 9000 }, b: { l: 212, t: 8000 }, c: { l: 212, t: 8000 }, d: { l: 300, t: 20000 } } };
   assert.deepEqual(standings(g).map(r => [r.uid, r.rank]), [['d', 1], ['b', 2], ['c', 2], ['a', 4]]);

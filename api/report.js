@@ -21,7 +21,8 @@
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { readFileSync } from 'node:fs';
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
-import { ref, val, emulated } from './_lib/fb.js';
+import { ref, val, emulated, adminPids } from './_lib/fb.js';
+import { jaywalkSolo } from './_lib/jaywalk.js';
 import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
 import { applyMatch, needsRetry, mergeOutcomes, MIN_MATCH_GAP_MS } from './_lib/stats.js';
@@ -73,11 +74,22 @@ export function cipherAgrees(game, boardsByRound, code) {
  * running behind the test switch `testReportAll` (server.test / progression.test / e2e-profiles set it — never honoured in production).
  */
 export { DEALER_GAMES };
-export async function reportableGame(id) {
+export async function reportableGame(id, uid = null) {
   if (typeof id !== 'string' || DEALER_GAMES.includes(id) || !REPORT_GAMES.includes(id)) return false;
   if (GAMES.some(g => g.id === id && g.playable)) return true;
+  // JAYWALK H3 — THE OWNER'S LIVE TEST (HE8's rule, as the dealer's start — api/_lib/holdem-store.js#startOpen): a game BEING BUILT (`preview`)
+  // is counted for THE OWNER alone (the reporter's uid → their profile id → ADMIN_PIDS; on the emulators also `testAdmins/{pid}`) — nobody
+  // else can start it (config.js#isPlayable), and nobody else's report of it is ever counted
+  if (uid && GAMES.some(g => g.id === id && g.preview && !g.playable)) {
+    const pid = await pidOf(uid);
+    if (pid && adminPids().includes(pid)) return true;
+    if (pid && emulated() && (await val(`testAdmins/${pid}`))) return true;
+  }
   return emulated() && !!(await val('testReportAll'));
 }
+
+// (JAYWALK H3 — THE SERVER'S OWN RESULT: a SOLO run is counted ONLY from the server's replay of the player's proof node — api/_lib/jaywalk.js#jaywalkSolo)
+export { jaywalkSolo };
 
 /**
  * FR7-A's C1 — THE REAL PLAYER COUNT (PURE). A match record may NAME at most MAX_REPORT_NAMES players (twice a full room — the join
@@ -148,7 +160,7 @@ export async function processReport(uid, body, now = Date.now()) {
   const [game, night, players, meta, resetAt] = await Promise.all([val(`rooms/${code}/game`), val(`rooms/${code}/night/${matchId}`), val(`rooms/${code}/players`), val(`rooms/${code}/meta`), val(RESET_AT)]);
   // HE10 (A2 / B1): a dealer's game or a game nobody can start is never credited here — on either path (the room's game, the snapshot's night)
   for (const gid of [game && game.matchId === matchId ? game.id : null, night && night.g].filter(v => v != null)) {
-    if (!(await reportableGame(gid))) throw new ApiError(409, 'not_reportable', DEALER_GAMES.includes(gid) ? 'The dealer reports this game itself.' : 'This game can’t be counted.');
+    if (!(await reportableGame(gid, uid))) throw new ApiError(409, 'not_reportable', DEALER_GAMES.includes(gid) ? 'The dealer reports this game itself.' : 'This game can’t be counted.');
   }
   // the night record is required, with its time (the server's clock): no record, no match; too old (or from the future), no match
   // (PD-6 — found by the solo XP line's e2e: a phone reports the moment its match ends; the host's `final` step writes the night record a beat
@@ -171,11 +183,22 @@ export async function processReport(uid, body, now = Date.now()) {
   const named = inRoom ? Object.keys(game.participants || {}) : Object.keys(night.p || {});
   if (named.length > MAX_REPORT_NAMES || Object.keys(night.p || {}).length > MAX_REPORT_NAMES) throw new ApiError(409, 'unverifiable', 'Too many players for one match.');
   let ex, src = 'room';
+  // JAYWALK H3: a SOLO run (one name on the record, the reporter's) is counted from the SERVER's replay of their proof node — on both paths
+  const jwSolo = night.g === 'jaywalk' && named.length === 1 && named[0] === uid && Object.keys(night.p || {}).length <= 1;
+  let jwGo = 0;
+  const jwGame = async () => {
+    const node = await val(`rooms/${code}/jw/${matchId}/${uid}`);
+    const J = jaywalkSolo({ code, matchId, uid, node });
+    jwGo = (node && Number(node.go)) || 0;
+    if (!J.v.ok) console.warn('jaywalk run refused', `${code}_${matchId}`, J.v.why);
+    else if (J.v.cut) console.warn('jaywalk run cut', `${code}_${matchId}`, J.v.cut.why, J.v.cut.tick);
+    return J.game;
+  };
   if (game && game.matchId === matchId) {
     if (game.phase !== 'final') throw new ApiError(425, 'not_final', 'The match is still running.');
     if (!game.participants || !game.participants[uid]) throw new ApiError(403, 'not_in_match');
     if (game.id !== night.g) throw new ApiError(409, 'mismatch', 'The match doesn’t match its record.');
-    try { ex = extractMatch(game, { pulseCounts: loadPulseCounts() }); } catch (e) { throw new ApiError(409, 'unverifiable', e.message); }
+    try { ex = extractMatch(jwSolo ? await jwGame() : game, { pulseCounts: loadPulseCounts() }); } catch (e) { throw new ApiError(409, 'unverifiable', e.message); }
     // the placings the host computed must be the night record's
     // (SHELL 2.0 B1 — THE SOLO LANE: a room of one earns no night points — the host writes 0)
     // (HOLD'EM IN THE CITY — B4: a FULL TIE is a draw — 2 each (core/night.js#nightPoints); a phone still on the code before B4 wrote 3 each —
@@ -186,6 +209,10 @@ export async function processReport(uid, body, now = Date.now()) {
     const agree = (same(want) || (old && same(old))) && Object.keys(night.p || {}).every(u => ex.rows[u]);
     if (!agree) throw new ApiError(409, 'mismatch', 'The placings don’t match the room.');
     if (game.id === 'cipher' && !cipherAgrees(game, await val(`rooms/${code}/boards/${matchId}`), code)) throw new ApiError(409, 'mismatch', 'The results don’t match the players’ boards.');
+  } else if (jwSolo) {
+    // (the room moved on — HOP AGAIN started the next run: this run's proof node is still there (the next start keeps it) → the same replay)
+    try { ex = extractMatch(await jwGame(), {}); } catch (e) { throw new ApiError(409, 'unverifiable', e.message); }
+    src = 'proof';
   } else if (body.snap && typeof body.snap === 'object' && body.snap.matchId === matchId) {
     // the room moved on (a rematch): the PLACINGS from the night record only — never a client's game blob
     if (!(night.p && Object.prototype.hasOwnProperty.call(night.p, uid))) throw new ApiError(403, 'not_in_match');
@@ -229,7 +256,7 @@ export async function processReport(uid, body, now = Date.now()) {
   // (LOBBY FIXES — ONE PROFILE, ONE SEAT: two seats of one profile in a match are credited ONCE — the WORSE placing, so a second
   //  device never farms a better one; the match's window goes with it — ONE ACCOUNT, ONE ROOM: progress.js#overlaps)
   dedupePids(ex.rows, pids);
-  const win = { c: code, s: (game && game.matchId === matchId && Number(game.go)) || night.at, e: night.at };
+  const win = { c: code, s: Math.min(jwGo || Infinity, (game && game.matchId === matchId && Number(game.go)) || night.at), e: night.at };   // (a JAYWALK run began at its GO)
   return credit({ key, uid, myPid, ex, pids, now, room: { code, meta, win }, at, src });
 }
 

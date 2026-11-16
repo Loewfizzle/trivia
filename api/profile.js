@@ -49,7 +49,7 @@ import { claimSighting } from './_lib/sightings.js';
 import { setBirthday, birthdayRoom } from './_lib/birthday.js';
 import { callFavor } from './_lib/favors.js';
 import { weekKey } from '../js/core/week.js';
-import { friendsState, friendDo, friendInvite, inviteCheck, inviteDismiss, friendPush, pendingIn, friendLink, friendLinkGet } from './_lib/friends.js';
+import { friendsState, friendDo, friendInvite, inviteCheck, inviteDismiss, friendPush, pendingIn, friendLink, friendLinkGet, boardTable } from './_lib/friends.js';
 import { regOptions, register, authOptions, authenticate, removePasskey, passkeyList, originOf } from './_lib/passkeys.js';
 
 /** the IP's zone (Vercel's header; tests: the body's, only without a request) */
@@ -177,6 +177,7 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
     case 'prefs': { const pid = await mine(uid); await setPrefs(pid, body); return { priv: await privateInfo(pid) }; }
     // FRIENDS A — the friends list, invites that wait, invite notifications (api/_lib/friends.js)
     case 'friends': return friendsState(await mine(uid), now);
+    case 'table': return boardTable(await mine(uid), body.b, now);   // (JAYWALK H3 — YOUR TABLE for one record board: you + your friends' bests)
     case 'friendAdd': case 'friendAccept': case 'friendDecline': case 'friendCancel': case 'friendRemove': case 'friendBlock': case 'friendUnblock':
       return friendDo(await mine(uid), body, now);
     case 'friendInvite': return friendInvite(await mine(uid), uid, body, now);
