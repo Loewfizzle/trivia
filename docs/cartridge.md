@@ -371,7 +371,7 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - `tests/cartridge.test.mjs#BUILDING = ['jaywalk']`; its GAMES row `playable: false` + `preview: true`. **No meta at boot** while it is being built
   (HE3's pattern — THE BOOT BUDGET is at 310 / 310 modules; the go-live pass adds it with a named raise): `metaOf(id)` falls back to the loaded cartridge.
 - **`tests/registration.test.mjs` checks a `preview` row in the SAME places**, minus ONE named list — `JAYWALK_WAITS` (`meta` → the go-live pass ·
-  `help` + `boards` → H3 · `art` → H2 · `smoke` → H4). A wait whose place is registered fails (take it off the list); a PLAYABLE game with a wait
+  `help` + `boards` → H3 · `art` → the go-live pass (H2: a boot file — the boot is at its limit) · `smoke` → H4). A wait whose place is registered fails (take it off the list); a PLAYABLE game with a wait
   left fails — the go-live pass must empty it. The next game being built gets its own list in `WAITS`.
 - A reported game being built is in `STANDINGS` + `SOLO_OK` + `PROOF_TREES` from its first pass (the server still refuses it until its row is
   playable — `api/report.js#reportableGame`); `tests/profiles.test.mjs` walks every non-dealer GAMES row (its `finalGame` fixture: tests/fixtures/finals.mjs).

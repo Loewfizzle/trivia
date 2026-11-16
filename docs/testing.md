@@ -963,3 +963,20 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   BEFORE wk-press** (it seeds the dailies wk-press's DAILY cases open) → the harbor groups → the game's own. On a plain `--emu` server the DAILY
   screen never opens (e2e-daily FATAL at the DAILY button, wk-press 32 / 35) — a wrong red.
 - A check that COUNTS the games (the smoke test's HIDDEN GAMES, the harbor `cartridge` group) moves when a game starts being built.
+
+## JAYWALK H2 (Nov 16 2026 — docs/games/passes/jaywalk-h2.md)
+- Unit: `tests/jaywalk-night.test.mjs` (the 12 re-packed models: one mesh, vertex colours, no texture, never the trees · the skyline + every
+  sound + the bells' exact sample counts + the credits · the sounds' table + the voice rule `sounds.js#admit` (PURE) · the scene's contract:
+  the proven camera, WIDTHS [9, 11], the tiers, no point light / shadow map / recomputed normal, a view that never writes · the lab's tools).
+  All seven JAYWALK unit files: `node --test tests/jaywalk-*.test.mjs` (~9 s).
+- The browser: `node tests/integration/jaywalk-lab.mjs "<chromium>" [outDir] [--perf] [--webkit] [--look]` — 95 checks with both flags.
+  `--perf` = EVERY TIER (`?tier=2|1|0` pins one) at 1× + 4× CPU, 15 s a row (run it with nothing else busy); `--webkit` = Playwright's WebKit
+  (~/wk) as an iPhone: the scene, a hop, the audition; `--look` = the shots only (≈ 1 min — the refine loop). The lab's hooks for a look:
+  `window.__jwLab.warp(lane, { x, blink })` · `find(kind)` · `pulse(lane)` · `logAt(lane)` · `setCols(9 | 11)` · `setTier(t)` · `sfx.wanted()
+  / played() / sounding()`. **A warp back DOWN the course needs a `restart` first** (the wall follows the BEST lane: the shot is all blackout).
+- The sounds in a headless browser: Chromium plays them (launch with `--autoplay-policy=no-user-gesture-required`; the first touch still does
+  the unlock); a clipboard write is refused there → the check stands in for `navigator.clipboard` to read what COPY MY PICKS hands it.
+- **The full harbor suite beside other browser work goes red on its timing checks** (`roomnote`, `roomperf`, `motion` — green alone): run it
+  with nothing else busy, or re-run those groups alone before naming them.
+- PRE-EXISTING reds found in Group 0 (on the commit before H1 too — not JAYWALK's): `e2e-profiles` hangs at its CIPHER podium step (step 3);
+  `e2e-playnow --only lost` — "the shelf never opened" after BACK TO THE CITY at once.

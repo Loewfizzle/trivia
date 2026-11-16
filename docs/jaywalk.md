@@ -1,8 +1,9 @@
 # JAYWALK (id `jaywalk`) — the hop-through-lanes game
 
-**BEING BUILT** (H1, Nov 16 2026): `config.js` GAMES row `playable: false` + `preview: true` — never offered (docs/cartridge.md "A game BEING
-BUILT"). The owner's decisions: `docs/games/plan.md` "JAYWALK (the owner, Nov 12–16 — DECIDED)". This page = the rules, the modes table, the
-engine's contract, the replay + the proof, the lab page, what each later pass adds. Read it before a JAYWALK pass.
+**BEING BUILT** (H1 + H2, Nov 16 2026): `config.js` GAMES row `playable: false` + `preview: true` — never offered (docs/cartridge.md "A game
+BEING BUILT"). The owner's decisions: `docs/games/plan.md` "JAYWALK (the owner, Nov 12–16 — DECIDED)" + "H2's DECISIONS". This page = the
+rules, the modes table, the engine's contract, the replay + the proof, THE NIGHT LOOK + its assets + the sounds, the lab page, what each
+later pass adds. Read it before a JAYWALK pass.
 
 Tap = hop forward · swipe = sideways · swipe down = back. 9 columns. No coins, no pickups — just distance. Rendered on three.js 0.160 (the
 import map); the RULES are a pure engine that never knows about it.
@@ -11,15 +12,17 @@ import map); the RULES are a pure engine that never knows about it.
 | pass | date | log | what it built |
 | --- | --- | --- | --- |
 | H1 | Nov 16 2026 | `docs/games/passes/jaywalk-h1.md` | the pure engine, the replay + the server half, the hidden cartridge + the proof node (`jw`), THE JAYWALK LAB's graybox |
-| H2 | — | — | the night look (THE BLACKOUT) + the kid + the hop feel + the sound audition; its tile (`ui/game-art.js`) |
+| H2 | Nov 16 2026 | `docs/games/passes/jaywalk-h2.md` | THE NIGHT LOOK (smooth stylized 3D: Kenney's models + the code-built kid / trees / logs, THE BLACKOUT), THE WIDER VIEW (11 seen, 9 played), the kid + the hop's feel + the hits, the sounds in play + THE SOUND AUDITION |
 | H3 | — | — | solo endless: PLAY NOW, the solo best through `/api/report` (`verifyRun`), its boards, HOW TO PLAY |
 | H4 | — | — | multiplayer: the real match screen (GO + the chunks written to the proof node), the ghosts, the host's replayed end, the smoke START |
 | H5 | — | — | the day look (the FOG BANK) + the landmarks' looks |
 | H6 | — | — | THE BLACKBIRD / UFO / mothership moments, the feat flags (jaywalk-boom / -ufo / -airfield), the mix, the credits |
-| the review → the fix pass | — | — | flips `playable` (empties `tests/registration.test.mjs#JAYWALK_WAITS`; the meta joins the boot — a named raise of THE BOOT BUDGET) |
+| the review → the fix pass | — | — | flips `playable` (empties `tests/registration.test.mjs#JAYWALK_WAITS`; the meta + its tile join the boot — after the city's CHROMEBOOK pass trims THE BOOT BUDGET: the owner, Nov 16) |
 | DAILY A · DAILY B | — | — | its daily (`MODES.daily`) |
 
-Art style (chunky premium voxel vs smooth stylized) is decided before H2 — the engine never cares.
+Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
+this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO) are decided before H6 —
+H2 draws PLACEHOLDERS for them.
 
 ## THE RULES (js/games/jaywalk/ — `tuning.js` holds EVERY number)
 - **THE FIXED STEP:** the rules count TICKS, 60 a second (`TICK_HZ`); a hop = `HOP_TICKS` 8 = 133 ms. The rules NEVER read Math.random /
@@ -101,16 +104,98 @@ its zone holds no water / rail. Respawn lanes are safe for the blink. A greedy b
 - **Registered** (`tests/registration.test.mjs` checks a `preview` row too): the GAMES row, the registry loader, its tube mark (the signs' pink
   — the city's JAY / WALK), `css/base.css [data-theme='jaywalk']`, STANDINGS + `SOLO_OK`, `PROOF_TREES`, the per-game budget (a new line), the
   preload graph. **WAITING — ONE named list, `JAYWALK_WAITS`:** `meta` (registry META at boot → the go-live pass: THE BOOT BUDGET is at 310 /
-  310 modules) · `help` + `boards` → H3 · `art` → H2 · `smoke` → H4. A wait that is no longer missing fails the test; a playable game may keep none.
+  310 modules) · `help` + `boards` → H3 · `art` (its tile — a boot file) → the go-live pass · `smoke` → H4. A wait that is no longer missing fails the test; a playable game may keep none.
 - The server never credits it until its row is playable (`api/report.js#reportableGame`).
 
-## THE LAB — https://neonspeakeasy.com/jaywalk-lab.html (+ `?fps=1`)
+## THE NIGHT LOOK (H2 — `night.js` + `night-fx.js` + `models.js`; the same `draw(run, course, a, dt)` as the graybox)
+A VIEW: it reads the run + the course, never writes them; the rules never import it (`tests/jaywalk-night.test.mjs`). three.js 0.160 core
+only (no add-on: the GLB reader + the bloom are ours).
+- **THE GROUND** — ONE instanced plane a lane, drawn in a shader (`night-fx.js#createGround`): grass (soft patches, darker at a road / water
+  edge) · asphalt + curbs + dashed neon-tinted lines between two road lanes · water (near-black, a slow ripple, dim wobbling streaks in the
+  skyline's colours) · rails + sleepers (the rails catch the red signals in the tell) · THE FLIGHT PATH (slate tarmac; the tell = a bright
+  chevron band RACING to the crossing + the runway lights) · a landmark's lane (dark paving, a pink trim). Per lane: the BLACKOUT's darkness
+  (a cold flicker as its lights die), the tell; per pixel: the edge columns dimmer, the fog.
+- **CARS** — Kenney's sedan / hatchback / taxi (a 1-cell car, picked from the seed) + the van (2 cells; 3 cells = the van + a code-built box
+  behind it); a NEON BODY TINT per car from the seed (pink · cyan · violet · coral · blue) — only the model's PAINT takes it (`paintMaterial`
+  — the windows, wheels, bumpers keep Kenney's colours). Each car: an additive tapered LIGHT TRAIL in its tint, a warm headlight pool ahead
+  + a red taillight pool behind (decals on the asphalt — NO real point light anywhere), our own head / tail light quads, a blob shadow.
+- **LOGS** — built in code (a rounded lathe, pale end rings); amber edge lines + a faint amber glow on the water + an amber spark at each
+  end; they bob (and dip + roll when the kid lands on one).
+- **TRAINS** — Kenney's front + 5 carriages + a front turned round; lit windows, a headlight beam sweeping ahead, FOUR RED SIGNALS along the
+  lane that flash from the tell to the tail (the tell is the visual), a red warning glow on the side it comes from. The body is drawn ~10
+  ticks before + after its pass (it is SEEN coming through the edge column — the rules' pass is unchanged).
+- **MOVERS NEVER POP** — a road / water lane is one lap long: the view draws a mover's NEXT lap too (always outside the 9 played columns),
+  so a car / a log leaves through the edge column and the next one is seen coming.
+- **TREES** built in code (stacked soft blobs on a short trunk, 3 sizes from the seed); **PROPS** = Kenney's planter / box / dumpster /
+  barrier / cone as obstacles (the docks' clutter round a landmark) + the STREET LAMP on an edge column every 4th grass lane (a warm pool on
+  the ground + its bulb); tufts. What stands where is view-only, from the seed + the lane (`decorOf`) — the same on every phone.
+- **THE SKYLINE BAND** (`.jw-skyline`, DOM over the canvas): the top 24 %, the picture covers the band's height and slides ≈ 10 % with the
+  kid's column (transform); its foot fades into the lanes' fog. NIGHT LIFE: 8 aviation lights blink, 5 neon blocks flicker (opacity only;
+  none with reduce motion). Only the current look's picture loads (the day's: H5).
+- **THE BLACKOUT** (the wall): per-lane darkness in the ground shader + on everything standing on the lane (its lights go out), a cold
+  blue edge where it bites, a black curtain a lane behind it; the screen's foot always fades to black (`.jw-blackout`).
+- **THE SMOOTH FINISH**: low-roughness standard materials on the cars / the kid / the train + a tiny GENERATED neon environment
+  (`neonEnv` — a 64 × 32 picture, PMREM'd once), a pink rim light from behind, blob shadows, the ground's edge darkening. Kenney's normals
+  are never recomputed.
+- **THE WIDER VIEW** — `setCols(9 | 11)`, default **11**: the 9 played columns + a dimmer edge column each side (the ground, everything
+  standing or moving there at ~0.5). ONE camera: THE PROVEN CAMERA's rig scaled about the kid by (cols + 0.42) / 9.42 — the same picture,
+  wider. The rules stay 9 columns. **The kid's height at 390 × 844: ≈ 27 pt at WIDTH 11 · ≈ 34 pt at WIDTH 9** (measured —
+  `kidHeightPx()`; he is drawn 1.3 × a lane's unit so he reads at phone size; the rules' box stays 0.6 of a cell).
+- **PERFORMANCE**: ≈ 22–27 draw calls (one a kind — everything that repeats is instanced), ~100 k triangles (Kenney's wheels are most of
+  it); a window of 34 lanes re-laid every frame (a few hundred matrices). TIERS (the match kit's `createTiers`, automatic): **2** = the
+  device's sharpness (DPR ≤ 3) + THE HALF-RES BLOOM (the lights alone, layer 1 → a half-res target → blurred at a quarter → added back) ·
+  **1** = DPR ≤ 2, no bloom · **0** = DPR ≤ 1.5, no tufts, no water reflections. No post-processing below the top tier.
+
+### THE KID + THE HOP's FEEL (H2 — all derived from the run's state between frames: a replay draws the same kid)
+- **THE JAYWALKER** (`models.js#buildKid`, code-built): the head ≈ 45 % of him, a hoodie + a BACKWARDS cap in the player's colour (a white
+  brim to his back — it reads as a cap from the camera), brown hair under it, navy legs, big white sneakers, two big eyes. He faces the
+  camera until the first hop (the eyes), then the way he last hopped.
+- **THE HOP** (inside the engine's `HOP_TICKS`): a squash at the push, a stretch on the arc, a squash on landing (150 ms), a small turn the
+  way he hops, the blob shadow shrinking + fading as he rises; an idle bob; a dust ring on grass; a ripple + the log's wobble on a log.
+- **THE HITS, one per cause**: car = flattened + the cap spins off · water = a splash + the sink · train (+ the Blackbird's placeholder) =
+  knocked away, spinning · edge = carried off on the log, then the splash · the blackout = swallowed by the dark · the UFO (placeholder) =
+  beamed up. THE RESPAWN BLINK. **THE CAMERA**: a smooth follow that leads a hop to where it lands, a slight sideways lean with his column,
+  a short shake on a hit — never with reduce motion.
+- The lane count: big neon numerals (`.jw-lanes` — the numbers' font: Orbitron's heavy 0 reads as a block), a small pop a lane.
+
+## THE ASSETS (H2 — `scripts/build-jaywalk-assets.py` COPIES the owner's delivery; the originals in Downloads are only read)
+- `assets/jaywalk/models/` — **Kenney's 12 models (CC0)**: car-sedan · car-hatchback · car-taxi · car-van · train-front · train-carriage ·
+  bush-planter · street-lamp · traffic-cone · traffic-barrier · trash-dumpster · crate-box + `LICENSE.txt` (the four kits': Car Kit 3.1,
+  Train Kit 1.1, City Kit Suburban 2.0, City Kit Roads 2.2). **RE-PACKED**: every node flattened into ONE mesh, the kit's colormap BAKED INTO
+  VERTEX COLOURS (the colormap is a palette — every face sits on one swatch; the four kits' colormaps DIFFER, so one shared texture was never
+  possible: none ships), tangents + UVs dropped, int16 positions + int8 normals (`KHR_mesh_quantization` — still plain glTF 2.0), a car's
+  body PAINT marked in `COLOR_0`'s alpha (0 = paint). **1,174 KB → 276 KB.** Kenney's two trees are NOT used. Credit: "3D models: Kenney —
+  kenney.nl (CC0)" (the game's credits: H6).
+- `assets/jaywalk/skyline-night.webp` — the band (the lower 60 % of `backdrop\skyline-night.png`, 1280 × 432, q95): **66 KB**.
+- `audio/jaywalk/` — every pick + every `-b` backup (17 MP3s) + the two train bells as **16-bit mono WAV** (the delivery's exact sample
+  counts: the whole file is the loop — MP3 / AAC padding would click) + `CREDITS.md` (every file's source; three are CC BY 4.0 — credit
+  required when they ship in play): **594 KB**. The unpicked takes leave once the owner has chosen.
+- A model / a sound replaced: bump `models.js#MODEL_REV` / `sfx.js#JW_SFX_REV`. After any change: `node scripts/build-file-hashes.mjs`.
+
+## THE SOUNDS + THE AUDITION (H2 — `sounds.js` (the PURE table) + `sfx.js` + `audition.js`)
+- Through the SHARED engine (`audio/engine.js`): the bytes fetched at preload (no AudioContext — nothing sounds before a tap), decoded once at
+  the unlock, each sound a buffer source → its gain → a soft limiter (−8 dB, 8 : 1) + a trim → the console's SFX bus (the Effects slider,
+  the toggle, THE ONE MUTE, THE CUT). **8 VOICES by PRIORITY** (`sounds.js#admit`): a full house drops a new hop; a hit / a splash takes
+  the oldest hop's voice. Muted = every hazard keeps its visual tell.
+- **IN PLAY (H2):** `hop` (pitch ± 6 %, gain ± 2 dB a hop) · `land-wood` (a landing on a log) · `hit` · `splash` (the water / the edge) —
+  from the engine's events (`sfx.js#onEvent`). The rest (car-pass, horn, train-bell, train-pass, lights-die, landmark, new-best, respawn)
+  are in the audition only until their passes wire them; **the mix is H6's** (the gains here are a first level).
+- **THE SOUND AUDITION** (the lab's SOUNDS button → THE SHEET): every sound, its pick + its backup side by side (PLAY A · PLAY B), the train
+  bell as a seamless loop (tap again / STOP THE BELL), USE A · B per sound (remembered on the phone — `jw:lab:snd:<id>`; the game plays the
+  choice), **COPY MY PICKS** → one line ("JAYWALK SOUNDS: hop A · land-wood B · …") for the owner to paste into chat (a refused clipboard
+  shows the line to hold). The run holds still under the sheet. Every button on its own press + lift.
+
+## THE LAB — https://neonspeakeasy.com/jaywalk-lab.html (+ `?fps=1` · `?gray=1`)
 The owner tests on his phone on CELLULAR: every JAYWALK pass ships its preview on the LIVE site. `jaywalk-lab.html` at the site ROOT
 (deployed — never under tests/), noindex nofollow, its own import map for three.js 0.160, **owner-gated like /lab** (POST /api/admin whoami →
 admin, else the door). **No room, no database writes, no Firebase writes of any kind** — ONE server call (whoami), then the pure engine in the tab.
 - `lab.js`: the run loop (the frame clock → ticks; the rules never read it; **tick 0 = the first touch**), the lane count (big, top), SOLO ·
   MATCH · DAILY (neon-underline tabs), NEW SEED, on an end ONE tap = HOP AGAIN (a new seed), **the run REPLAYED after each end** (✓ REPLAY =
   LIVE, or a RED line — the owner's determinism check on a real iPhone), the seed (top right), the fps readout only with `?fps=1`.
+  **H2:** THE NIGHT LOOK by default (`?gray=1` = H1's graybox, for comparison — only the look asked for is fetched) · **WIDTH 9 · 11**
+  (remembered — `jw:lab:cols`; `?cols=9|11` for a link) · **SOUNDS** (the audition) · the automatic tiers (`?tier=0|1|2` pins one — the
+  pass's measure) · the shared audio engine installed after the door (its own leave report is the only other thing the page may ever send —
+  the owner's phone, as on every page). The lab's memory = `lab-prefs.js` alone (`jw:lab:*`).
 - `graybox.js` (three.js — graybox only, no art, no sounds): **THE PROVEN CAMERA** (`CAM`: perspective, fov 54, 16 up / 12 back, looking ~4.5
   lanes ahead — the kid ≈ 64 % down the screen, the 9 columns ≈ 9.4 units wide at the kid; a narrower screen widens the fov), the skyline band's
   space at the top (an empty dark band — 24 %) + the bottom blackout gradient (screen-space), ≈ 14 playable lanes on screen. Flat boxes per lane
@@ -121,13 +206,17 @@ admin, else the door). **No room, no database writes, no Firebase writes of any 
   is its swipe · swipe down = back · the play area keeps its own pointer events (`data-tap-own`), never a `click`; no page scroll / zoom /
   selection. Desktop: the arrows / WASD / space.
 - **Locally** (the pass's own checks — never the live site): `http://localhost:5173/jaywalk-lab?emu&preview=1` skips the door (a local emulator
-  page only — config.js's rule for a game being built). `node tests/integration/jaywalk-lab.mjs "<chromium>" [outDir] [--perf]` (50 checks +
-  shots + the frame-rate measure); THE PAGES LOAD covers `/jaywalk-lab` (a stranger gets the door).
+  page only — config.js's rule for a game being built). `node tests/integration/jaywalk-lab.mjs "<chromium>" [outDir] [--perf] [--webkit]
+  [--look]` (the night look, both widths, the kid's height, every tap, REPLAY = LIVE, the audition, the graybox behind `?gray=1`, the sizes;
+  `--perf` = every tier at 1× + 4× CPU; `--webkit` = Playwright's WebKit as an iPhone; `--look` = the shots only); THE PAGES LOAD covers
+  `/jaywalk-lab` (a stranger gets the door).
 - **Measured (H1, 390 × 844 @3, 4× CPU, the bot playing):** 59.9 fps · 16.7 ms a frame (p95 16.8, worst 17.0) · 1.2 ms of work a frame (p95
   1.8) · 8 draw calls, ~1,200 triangles.
 
-## REAL vs PLACEHOLDER after H1
+## REAL vs PLACEHOLDER after H2
 REAL: the rules, the course, the modes, the wall, the replay + its bounds, the server's verify, the moments' detection, the cartridge's frame +
-director + ranks, the proof node + its rules, the controls. PLACEHOLDER: the graybox look (boxes), the end screens' words ("TAKEN AT LANE n"),
-the match screen (a stub), the daily's lives, every number in `tuning.js` (first-pass feel — the owner plays the lab, the chat re-tunes), no
-sounds, no art, no boards, no HOW TO PLAY.
+director + ranks, the proof node + its rules, the controls; **the night look** (the ground, the cars, the logs, the trains, the trees +
+props, the skyline, THE BLACKOUT, THE WIDER VIEW), **the kid + the hop + the hits**, **hop / land-wood / hit / splash in play**, the
+audition. PLACEHOLDER: THE BLACKBIRD (a dark dart) + THE UFO (a disc + its beam ring) — decided before H6; the end screens' words; the
+match screen (a stub — the night look reaches a real match in H4); the daily's lives; every number in `tuning.js` (first-pass feel); the
+sounds' levels (the mix: H6) + the eight sounds not yet in play; the day look (H5); no tile, no boards, no HOW TO PLAY.

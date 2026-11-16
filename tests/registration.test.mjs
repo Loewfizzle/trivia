@@ -21,7 +21,7 @@ const BUILDING = GAMES.filter(g => !g.playable && g.preview && !g.daily);
 export const JAYWALK_WAITS = Object.freeze({
   meta: 'the go-live pass — its thin meta in registry META at boot (THE BOOT BUDGET is at its limit: 310 / 310 modules — a named raise then, as HOLD’EM’s was)',
   help: 'H3 — ui/help.js RULES + its tab (HOW TO PLAY)',
-  art: 'H2 — ui/game-art.js ART (its tile)',
+  art: 'the go-live pass — ui/game-art.js ART (its tile): a BOOT file, and the boot’s bytes are at their limit (the owner, Nov 16: JAYWALK stays out of the boot until the city’s CHROMEBOOK pass trims it)',
   boards: 'H3 — core/boards.js (the solo best + the match boards)',
   smoke: 'H4 — tests/integration/e2e-smoke.mjs (its smoke START: the first real match)',
 });

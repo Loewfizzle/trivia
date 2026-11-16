@@ -174,6 +174,8 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - JAYWALK (BEING BUILT): the rules PURE + CROSS-ENGINE SAFE (integers + Math.floor — no sin / cos / pow / sqrt, never Math.random / Date.now / a
   frame clock); a lane = f(seed, index), a hazard = f(lane, tick); a result = THE REPLAY of the hop log; every pass ships its preview at
   /jaywalk-lab (owner-gated, no writes) — never a 192.168 / tests/ link in a summary → docs/jaywalk.md.
+- JAYWALK's LOOK (H2) is a VIEW (`night.js` — draws from (run, course), never writes; 11 columns SEEN, 9 played; instanced, no point light, no
+  bloom below the top tier); its files only through `scripts/build-jaywalk-assets.py` (Kenney CC0, re-packed) → docs/jaywalk.md "THE NIGHT LOOK".
 
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
 - NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).
