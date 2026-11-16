@@ -706,6 +706,16 @@ COAST CLEAR's two collectibles, awarded by the SERVER from its own record of the
   **DEV** (the full card's stays DEV · <RANK>).
 
 ## SLIM CARDS ON SCORES (DFIX2, Nov 8 — Ben: "they look so good, we need to start using them"; docs/progression.md "DFIX2")
+- **FIXES R3 (Nov 16) — THE STEP IS BACK (the owner, Nov 15 11:16 pm; it supersedes DROP THE STEP for the normal step):** R2's plate hugged the
+  NAME only — under a short "LV 13" sat a block of empty glass over the art. `strip.js#layStep` cuts the glass again: the TOP step full width
+  behind the emblem + the NAME (+ its padding), the BOTTOM step ending ONE plate-padding (its computed right padding: slim 11 px, full 3.6 cqi)
+  after the LV line; rounded outer corners + a small inner radius; the plate's own glass through a clip-path (every material) + its own thin
+  edge line along the step (`.vl-step` — no seam). The LV line about as wide as the name (a step under 14 px) = the plain rectangle; never the
+  reverse step. FULL + SLIM through the ONE function (`vault/full.js` calls it too); `vault/layout.js#shape` already reads `data-step / x2 / y1`
+  (the full card's placement keeps off a hero with the real shape). Proof: `tests/integration/plate-hug.mjs` 64 / 64 (BEN · RYLEN · LOEWFIZZLE ·
+  12 W's, GILDED + VELVET, glow on / off — the bottom step's edge vs the LV line ≤ the padding); the stills unchanged (`build-card-stills --check`
+  current — they bake the material, not the plate). Shots `Downloads/NEON/fixes-r3/plate-rylen-390x844.png` (HALL OF FAME 1 OF 1 · GILDED ·
+  VELVET ROOM, full + slim).
 - **SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS** (the owner's standing decision from DFIX2 on): the dailies' SCORES → YOUR TABLE draws each FINISHER's row as
   their equipped slim card through the results lists' OWN code — `js/ui/strip-board.js` now exports the pieces (`stripKit()` loads the vault, the effects,
   the plain palettes + the APPROVED set once a page; `stripFor(K, pub, p)` = one card from any public face — a room player's profile, a friend's card

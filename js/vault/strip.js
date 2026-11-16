@@ -165,7 +165,7 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
 // long row runs full length: the upside-down L. The full card's plate steps too (vault/full.js — the same function, its own rows). A GIFT
 // strip's plate keeps off the card's hero (vault/hero.js — its face): the plate's max-width ends before it (the name fits smaller first).
 // The plate says what it did: data-step = n (normal) · r (reverse) · '' (none), data-x2 / data-y1 = the step's corner in plate px.
-// FRIENDS B: the step itself is gone — this observer now only keeps a strip's plate capped before its hero + tells a full card it can lay out.
+// FRIENDS B dropped the step; FIXES R3 brought the NORMAL step back (the owner, Nov 15 11:16 pm — layStep below; the reverse step stays gone).
 let stepRO = null;
 const ROWS = el => [el.querySelector('.vl-name, .vl-fc-name'), el.querySelector('.vl-lv, .vl-fc-lv')];
 export function stepPlate(plate) {
@@ -187,12 +187,41 @@ function layStep(plate) {
   // (THE CARD PASS: a STRIP's plate only — a full card's plate has its own cap from vault/layout.js#layFull; writing '' here wiped it, the two
   //  then fought through the ResizeObserver + Safari ended UNCAPPED: a 12-letter name ran over a gift card's face)
   if (!plate.classList.contains('vl-fc-plate')) { const room = heroRoom(plate); if (plate.style.maxWidth !== room) plate.style.maxWidth = room; }
-  // (FRIENDS B — DROP THE STEP, the owner: both kinds gone — every plate is ONE clean rounded box as wide as its longest row; the hero cap
-  //  above stays. data-step = '' says so to vault/layout.js, which lays a full card once it reads it)
-  const was = plate.dataset.step;
-  plate.style.clipPath = ''; plate.classList.remove('vl-stepped', 'vl-rstep'); plate.dataset.step = '';
-  const o = plate.querySelector(':scope > .vl-step'); if (o) o.remove();
-  if (was !== '' && plate.classList.contains('vl-fc-plate')) layFull(plate.closest('.vl-fc'));
+  // FIXES R3 — THE STEPPED PLATE (the owner, Nov 15 11:16 pm: R2 hugged the NAME only — under a short "LV 13" a block of empty glass sat over
+  //  the art): the TOP step full width behind the emblem + the NAME; the BOTTOM step cut in to end ONE PADDING (the plate's own right padding)
+  //  after the LV line — the art shows through the cut corner. Rounded outer corners + a small inner radius at the step; the plate's own glass
+  //  (its colours, every material) through a clip-path + the plate's own thin edge line drawn along the step (no seam). The LV line as wide as
+  //  the name (a short name) = the plain rectangle. FULL + SLIM alike (the step only — never FRIENDS B's reverse step).
+  const W = plate.offsetWidth, H = plate.offsetHeight, [nm, lv] = ROWS(plate);
+  const off = () => { const was = plate.dataset.step; plate.style.clipPath = ''; plate.classList.remove('vl-stepped', 'vl-rstep'); plate.dataset.step = ''; const o = plate.querySelector(':scope > .vl-step'); if (o) o.remove(); if (was !== '' && plate.classList.contains('vl-fc-plate')) layFull(plate.closest('.vl-fc')); };
+  if (!W || !H || !nm || !lv) return off();
+  // (rects in the plate's own px: a card shown scaled — the lab's 72 % viewer, the reveal's flip — divides out)
+  const P = plate.getBoundingClientRect(), sc = P.width / W || 1, rg = document.createRange();
+  const ext = el => { rg.selectNodeContents(el); const rs = [...rg.getClientRects()]; const r = rs.length ? { right: Math.max(...rs.map(x => x.right)), top: Math.min(...rs.map(x => x.top)), bottom: Math.max(...rs.map(x => x.bottom)) } : rg.getBoundingClientRect(); return { r: (r.right - P.left) / sc, t: (r.top - P.top) / sc, b: (r.bottom - P.top) / sc }; };
+  const N = ext(nm), V = ext(lv), full = plate.classList.contains('vl-fc-plate'), cs = getComputedStyle(plate);
+  const pad = Math.max(4, parseFloat(cs.paddingRight) || 0);
+  const x2 = Math.ceil(V.r + pad), y1 = Math.round((N.b + V.t) / 2 * 2) / 2;
+  if (W - x2 < STEP_MIN || y1 <= 4 || y1 >= H - 4) return off();
+  const R0 = parseFloat(cs.borderTopRightRadius) || STEP_R;
+  const r = Math.max(2, Math.min(full ? R0 * 0.6 : STEP_R * 0.75, (H - y1) / 2, (W - x2) / 2, y1 / 2)), m = full ? 28 : STEP_M, f = v => +v.toFixed(2);
+  plate.style.clipPath = `path('M ${-m} ${-m} L ${f(W + m)} ${-m} L ${f(W + m)} ${f(y1 - r)} L ${W} ${f(y1 - r)} A ${f(r)} ${f(r)} 0 0 1 ${f(W - r)} ${f(y1)} L ${f(x2 + r)} ${f(y1)} A ${f(r)} ${f(r)} 0 0 0 ${x2} ${f(y1 + r)} L ${x2} ${f(H - r)} A ${f(r)} ${f(r)} 0 0 1 ${f(x2 - r)} ${H} L ${f(x2 - r)} ${H + m} L ${-m} ${H + m} Z')`;
+  plate.classList.add('vl-stepped'); plate.classList.remove('vl-rstep');
+  plate.dataset.step = 'n'; plate.dataset.x2 = x2; plate.dataset.y1 = y1;
+  // the edge line along the step (the rest of the outline is the plate's own inset ring)
+  let svg = plate.querySelector(':scope > .vl-step');
+  if (!svg) { svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'vl-step'); svg.setAttribute('aria-hidden', 'true'); svg.append(document.createElementNS(SVGNS, 'path')); plate.append(svg); }
+  const L = lineOf(plate), k = L.w / 2, path = svg.firstChild;
+  svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  path.setAttribute('d', `M ${f(W - k)} ${f(y1 - r)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(W - r)} ${f(y1 - k)} L ${f(x2 + r)} ${f(y1 - k)} A ${f(r + k)} ${f(r + k)} 0 0 0 ${f(x2 - k)} ${f(y1 + r)} L ${f(x2 - k)} ${f(H - r)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(x2 - r)} ${f(H - k)}`);
+  path.setAttribute('stroke', L.c); path.setAttribute('stroke-width', L.w); path.setAttribute('fill', 'none');
+  if (full) layFull(plate.closest('.vl-fc'));   // (the full card's placement reads the step's real shape — lay it again now it's known)
+}
+const STEP_MIN = 14, STEP_R = 8, STEP_M = 16;   // (FIXES R3: a step under 14 px reads as a nick — the plain rectangle then)
+const SVGNS = 'http://www.w3.org/2000/svg';
+/** the plate's own thin inset line (its colour + width), read from its box-shadow — the step's edge follows it */
+function lineOf(plate) {
+  const m = /(rgba?\([^)]+\))\s+0px\s+0px\s+0px\s+([\d.]+)px\s+inset/.exec(getComputedStyle(plate).boxShadow || '');
+  return m ? { c: m[1], w: Math.min(2, parseFloat(m[2]) || 1) } : { c: 'rgba(255,255,255,0.09)', w: 1 };
 }
 
 /** a list of strips on ONE shared effect surface (the host becomes it) */

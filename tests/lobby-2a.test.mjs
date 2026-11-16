@@ -40,12 +40,13 @@ test('CENTURY: NO FLAMES — the bronze deco sunburst + embers (INFERNO keeps th
 });
 
 // (FRIENDS B — DROP THE STEP, the owner: both kinds gone; the observer stays — the hero cap + a full card's layout)
-test('THE PLATE: ONE clean rounded box — no step, no reverse step (FRIENDS B); the ONE ResizeObserver keeps the hero cap (never a frame loop)', () => {
+test('THE PLATE: the NORMAL STEP is back (FIXES R3 — the owner, Nov 15 11:16 pm; FRIENDS B had dropped it) — never the reverse step; the ONE ResizeObserver keeps the hero cap (never a frame loop)', () => {
   const s = read('js/vault/strip.js');
   assert.match(s, /stepPlate\(plate\);/);
   assert.match(s, /stepRO = new ResizeObserver/);
-  assert.doesNotMatch(s, /clipPath = rev|vl-stepped'\); plate\.classList\.toggle|STEP_MIN/, 'no step is cut any more');
-  assert.match(s, /plate\.style\.clipPath = ''; plate\.classList\.remove\('vl-stepped', 'vl-rstep'\); plate\.dataset\.step = '';/);
+  assert.doesNotMatch(s, /clipPath = rev|classList\.toggle\('vl-rstep'/, 'never the reverse step');
+  assert.match(s, /plate\.dataset\.step = 'n'; plate\.dataset\.x2 = x2; plate\.dataset\.y1 = y1;/, 'the step (the bottom row cut in after LV)');
+  assert.match(s, /plate\.style\.clipPath = ''; plate\.classList\.remove\('vl-stepped', 'vl-rstep'\); plate\.dataset\.step = '';/, 'the plain rectangle when the LV line is as wide');
   assert.match(s, /h\('small\.vl-lv', host \? `LV \$\{lv\} · HOST`/, 'CITY D: the owner’s slim card shows his LEVEL like everyone (no DEV line; PROPRIETOR on the full card only)');
   assert.doesNotMatch(s, /dev \? 'DEV'/);
   assert.doesNotMatch(s, /requestAnimationFrame\(.*layStep/);
