@@ -11,20 +11,30 @@
               A CAR's body paint is marked in COLOR_0's alpha (0 = paint, 255 = everything else): the view re-tints only the paint.
               + LICENSE.txt. The two trees are NOT copied (the round puffy trees are built in code).
   backdrop\\skyline-night.png → assets/jaywalk/skyline-night.webp (the band: the lower part of the picture, ≈ 100–150 KB)
+  models\\kid\\kid.glb → assets/jaywalk/models/kid.glb (H5A — THE KID: Kenney's Mini Skate skate boy, CC0): the two meshes as ONE, the
+              colormap baked into vertex colours, the PAINT (alpha 0) = the shirt (the material "top") + THE CAP (the head's faces on the
+              shirt's two swatches); every vertex follows ONE bone (measured: the rig is rigid) — its index rides in the normal's 4th byte
+              (`_BONE`); THE POSES = the skin matrices of the clips the game uses (idle · jump · fall) sampled per frame + a hand-made
+              SPLAY (the flattened kid), 7 bones × 3 rows of 4 floats a frame, in the GLB's own buffer (`extras.poses`). The other 33
+              clips, the textures, UVs, tangents and weights do not ship. + LICENSE-kid.txt
+  models\\landmarks\\ → lighthouse.glb (MaverickFX, CC0) + fishing-boat.glb (Kenney Watercraft Kit, CC0), re-packed as the 12 + their licences
+              + CREDITS.md (the credit lines for the game's CREDITS — H6)
   sfx\\     → audio/jaywalk/: every pick + every -b backup (mp3), the train bells as 16-bit mono WAV (the SAME samples count — the exact loop),
               + CREDITS.md from notes.txt.
 """
-import sys, os, io, json, struct, shutil, wave, colorsys, re
+import sys, os, io, json, struct, shutil, wave, colorsys, re, math
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = sys.argv[1] if len(sys.argv) > 1 else r'C:\Users\benja\Downloads\grok\jaywalk'
+ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
+SRC = ARGS[0] if ARGS else r'C:\Users\benja\Downloads\grok\jaywalk'
+ONLY = next((a[7:].split(',') for a in sys.argv[1:] if a.startswith('--only=')), None)   # (--only=kid,landmarks: just those steps)
 MODELS = ['car-sedan', 'car-hatchback', 'car-taxi', 'car-van', 'train-front', 'train-carriage',
           'bush-planter', 'street-lamp', 'traffic-cone', 'traffic-barrier', 'trash-dumpster', 'crate-box']
 OUT_M = os.path.join(ROOT, 'assets', 'jaywalk', 'models')
 OUT_A = os.path.join(ROOT, 'audio', 'jaywalk')
 os.makedirs(OUT_M, exist_ok=True); os.makedirs(OUT_A, exist_ok=True)
-N = {'SCALAR': 1, 'VEC2': 2, 'VEC3': 3, 'VEC4': 4}
+N = {'SCALAR': 1, 'VEC2': 2, 'VEC3': 3, 'VEC4': 4, 'MAT4': 16}
 FMT = {5126: 'f', 5123: 'H', 5121: 'B', 5125: 'I', 5122: 'h', 5120: 'b'}
 
 
@@ -101,12 +111,12 @@ def paint_mask(pos, col, idx):
     return [1 if (s > 0.3 and val > 0.3 and near(h)) else 0 for h, s, val in hs], round(hue * 360)
 
 
-def write_glb(path, name, pos, nor, col, paint, idx):
+def write_glb(path, name, pos, nor, col, paint, idx, bone=None, poses=None, copyright='Kenney (kenney.nl) — CC0 1.0'):
     # weld identical vertices (the four wheels stay four: their positions differ) — smaller, the same picture
-    seen, remap, P2, N2, C2 = {}, [], [], [], []
+    seen, remap, P2, N2, C2, B2 = {}, [], [], [], [], []
     for k in range(len(pos)):
-        key = (tuple(round(x, 5) for x in pos[k]), tuple(round(x, 3) for x in nor[k]), col[k], paint[k] if paint else 0)
-        if key not in seen: seen[key] = len(P2); P2.append(pos[k]); N2.append(nor[k]); C2.append(col[k] + ((0 if paint and paint[k] else 255),))
+        key = (tuple(round(x, 5) for x in pos[k]), tuple(round(x, 3) for x in nor[k]), col[k], paint[k] if paint else 0, bone[k] if bone else 0)
+        if key not in seen: seen[key] = len(P2); P2.append(pos[k]); N2.append(nor[k]); C2.append(col[k] + ((0 if paint and paint[k] else 255),)); B2.append(bone[k] if bone else 0)
         remap.append(seen[key])
     idx = [remap[i] for i in idx]
     ext = max(max(abs(x) for x in p) for p in P2) or 1
@@ -114,13 +124,13 @@ def write_glb(path, name, pos, nor, col, paint, idx):
     vb = bytearray()
     for k in range(len(P2)):
         n = N2[k]; ln = (n[0] ** 2 + n[1] ** 2 + n[2] ** 2) ** 0.5 or 1
-        vb += struct.pack('<hhhxxbbbxBBBB', q(P2[k][0]), q(P2[k][1]), q(P2[k][2]), *(max(-127, min(127, round(c / ln * 127))) for c in n), *C2[k])
+        vb += struct.pack('<hhhxxbbbBBBBB', q(P2[k][0]), q(P2[k][1]), q(P2[k][2]), *(max(-127, min(127, round(c / ln * 127))) for c in n), B2[k], *C2[k])   # (the normal's 4th byte: the vertex's bone — 0 on a model with none)
     ib = bytearray(struct.pack('<%dH' % len(idx), *idx)) if len(P2) < 65536 else None
     assert ib is not None
     while len(ib) % 4: ib += b'\0'
     qmin = [min(q(p[k]) for p in P2) for k in range(3)]; qmax = [max(q(p[k]) for p in P2) for k in range(3)]
     j = {
-        'asset': {'version': '2.0', 'generator': 'NEON SPEAKEASY scripts/build-jaywalk-assets.py', 'copyright': 'Kenney (kenney.nl) — CC0 1.0'},
+        'asset': {'version': '2.0', 'generator': 'NEON SPEAKEASY scripts/build-jaywalk-assets.py', 'copyright': copyright},
         'extensionsUsed': ['KHR_mesh_quantization'], 'extensionsRequired': ['KHR_mesh_quantization'],
         'scene': 0, 'scenes': [{'name': name, 'nodes': [0]}],
         'nodes': [{'name': name, 'mesh': 0, 'scale': [ext, ext, ext]}],
@@ -136,9 +146,19 @@ def write_glb(path, name, pos, nor, col, paint, idx):
             {'bufferView': 1, 'byteOffset': 0, 'componentType': 5123, 'count': len(idx), 'type': 'SCALAR'},
         ],
     }
+    pb = b''
+    if bone:
+        # THE KID: each vertex's bone (`_BONE` — the normal's 4th byte) + THE POSES (frames × bones × 3 rows of 4 floats — the skin matrices)
+        j['meshes'][0]['primitives'][0]['attributes']['_BONE'] = 4
+        j['accessors'].append({'bufferView': 0, 'byteOffset': 11, 'componentType': 5121, 'count': len(P2), 'type': 'SCALAR'})
+        pb = struct.pack('<%df' % len(poses['data']), *poses['data'])
+        j['bufferViews'].append({'buffer': 0, 'byteOffset': len(vb) + len(ib), 'byteLength': len(pb)})
+        j['accessors'].append({'bufferView': 2, 'byteOffset': 0, 'componentType': 5126, 'count': len(poses['data']) // 4, 'type': 'VEC4'})
+        j['buffers'][0]['byteLength'] += len(pb)
+        j['extras'] = {'poses': {'accessor': 5, 'bones': poses['bones'], 'frames': poses['frames'], 'clips': poses['clips']}}
     js = json.dumps(j, separators=(',', ':')).encode()
     while len(js) % 4: js += b' '
-    binc = bytes(vb) + bytes(ib)
+    binc = bytes(vb) + bytes(ib) + pb
     total = 12 + 8 + len(js) + 8 + len(binc)
     with open(path, 'wb') as f:
         f.write(struct.pack('<4sII', b'glTF', 2, total)); f.write(struct.pack('<I4s', len(js), b'JSON')); f.write(js)
@@ -162,6 +182,133 @@ def models():
               + (f' · paint hue {hue}° on {sum(paint)} verts' if paint else ''))
     shutil.copyfile(os.path.join(SRC, 'models', 'LICENSE.txt'), os.path.join(OUT_M, 'LICENSE.txt'))
     print(f'  models: {before} → {after} bytes (+ LICENSE.txt {os.path.getsize(os.path.join(OUT_M, "LICENSE.txt"))})')
+
+
+# ---- H5A — THE KID (Kenney's Mini Skate skate boy): the rig is RIGID (every vertex on ONE bone), so a pose = 7 matrices
+def q_mul(a, b):
+    ax, ay, az, aw = a; bx, by, bz, bw = b
+    return (aw * bx + ax * bw + ay * bz - az * by, aw * by - ax * bz + ay * bw + az * bx, aw * bz + ax * by - ay * bx + az * bw, aw * bw - ax * bx - ay * by - az * bz)
+
+
+def m_trs(t, r, s):
+    x, y, z, w = r
+    R = [[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)], [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)], [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]]
+    return [[R[i][0] * s[0], R[i][1] * s[1], R[i][2] * s[2], t[i]] for i in range(3)] + [[0, 0, 0, 1]]
+
+
+def m_mul(a, b): return [[sum(a[i][k] * b[k][c] for k in range(4)) for c in range(4)] for i in range(4)]
+
+
+def lerp_key(times, vals, interp, t, quat):
+    if t <= times[0]: return vals[0]
+    if t >= times[-1]: return vals[-1]
+    k = max(i for i in range(len(times)) if times[i] <= t)
+    if interp == 'STEP': return vals[k]
+    u = (t - times[k]) / ((times[k + 1] - times[k]) or 1); a, b = vals[k], vals[k + 1]
+    if quat and sum(a[i] * b[i] for i in range(4)) < 0: b = tuple(-x for x in b)
+    v = tuple(a[i] + (b[i] - a[i]) * u for i in range(len(a)))
+    if quat: ln = math.sqrt(sum(x * x for x in v)) or 1; v = tuple(x / ln for x in v)
+    return v
+
+
+KID_CLIPS = (('idle', 16), ('jump', 12), ('fall', 8))   # (a clip's frames = its samples + 1: the view blends frame k with k + 1)
+
+
+def kid():
+    src = os.path.join(SRC, 'models', 'kid', 'kid.glb')
+    j, bn = read_glb(src)
+    im = j['images'][0]; bv = j['bufferViews'][im['bufferView']]
+    img = Image.open(io.BytesIO(bn[bv.get('byteOffset', 0): bv.get('byteOffset', 0) + bv['byteLength']])).convert('RGBA')
+    W, H = img.size; px = img.load()
+    skin = j['skins'][0]; joints = skin['joints']
+    ibm = [[[m[c * 4 + r] for c in range(4)] for r in range(4)] for m in accessor(j, bn, skin['inverseBindMatrices'])]   # (glTF: column-major)
+    parent = {}
+    for ni, n in enumerate(j['nodes']):
+        for c in n.get('children', []): parent[c] = ni
+    rest = [(n.get('translation', [0, 0, 0]), n.get('rotation', [0, 0, 0, 1]), n.get('scale', [1, 1, 1])) for n in j['nodes']]
+    top = next(i for i, m in enumerate(j['materials']) if m['name'] == 'top')
+    pos, nor, col, paint, bone, idx = [], [], [], [], [], []
+    for node in j['nodes']:
+        if 'mesh' not in node: continue
+        assert not any(k in node for k in ('translation', 'rotation', 'scale', 'matrix')), 'the kid\'s meshes sit at the origin'
+        head = node['name'].startswith('head')
+        for p in j['meshes'][node['mesh']]['primitives']:
+            base = len(pos)
+            Pp, Nn, UV = accessor(j, bn, p['attributes']['POSITION']), accessor(j, bn, p['attributes']['NORMAL']), accessor(j, bn, p['attributes']['TEXCOORD_0'])
+            Jj, Ww = accessor(j, bn, p['attributes']['JOINTS_0']), accessor(j, bn, p['attributes']['WEIGHTS_0'])
+            for k in range(len(Pp)):
+                assert max(Ww[k]) > 0.999, 'a vertex on two bones: the rig is no longer rigid'
+                u, v = UV[k]; c = px[min(W - 1, max(0, int(u * W))), min(H - 1, max(0, int(v * H)))]
+                # THE PAINT: the shirt (the material "top") + THE WHOLE CAP — the head's faces on the colormap's right-hand column (x 448 of
+                # 512): the orange-red swatches (its crown + brim) and the white ones (its front panel — white takes a LIGHTER shade of the
+                # player's colour: from above the cap is what you see). The face, the arms, the shorts, the sneakers keep Kenney's colours
+                on = p['material'] == top or (head and u * 512 >= 448 and v * 512 >= 256)
+                pos.append(Pp[k]); nor.append(Nn[k]); col.append((c[0], c[1], c[2])); paint.append(1 if on else 0)
+                bone.append(Jj[k][max(range(4), key=lambda q: Ww[k][q])])
+            idx.extend(base + x[0] for x in accessor(j, bn, p['indices']))
+
+    def pose(local):
+        cache = {}
+        def world(ni):
+            if ni not in cache:
+                m = m_trs(*local[ni]); cache[ni] = m_mul(world(parent[ni]), m) if ni in parent else m
+            return cache[ni]
+        out = []
+        for b, ni in enumerate(joints):
+            m = m_mul(world(ni), ibm[b])
+            for r in range(3): out.extend(m[r])
+        return out
+
+    def clip(name, t):
+        a = next(x for x in j['animations'] if x['name'] == name)
+        local = [list(x) for x in rest]
+        for ch in a['channels']:
+            s = a['samplers'][ch['sampler']]; path = ch['target']['path']
+            times = [x[0] for x in accessor(j, bn, s['input'])]; vals = accessor(j, bn, s['output'])
+            local[ch['target']['node']][('translation', 'rotation', 'scale').index(path)] = lerp_key(times, vals, s['interpolation'], t, path == 'rotation')
+        return local
+
+    data, clips, f = [], {}, 0
+    for name, n in KID_CLIPS:
+        a = next(x for x in j['animations'] if x['name'] == name)
+        dur = max(accessor(j, bn, s['input'])[-1][0] for s in a['samplers'])
+        clips[name] = [f, n]
+        for k in range(n + 1): data.extend(pose(clip(name, dur * k / n))); f += 1
+    # THE SPLAY (the flattened kid — a cartoon flat kid under his cap, seen from above): the arms straight out (the rig's own bind), the
+    # legs kicked out BEHIND him + a little apart — squashed flat, his arms show left + right of the cap and his sneakers below it
+    by = {n['name']: i for i, n in enumerate(j['nodes'])}
+    splay = [list(x) for x in rest]
+    # (Kenney's kid faces +z: "behind him" = −z)
+    for nm, ang in (('leg-left', -0.34), ('leg-right', 0.34)):
+        splay[by[nm]][1] = q_mul((0, math.sin(ang / 2), 0, math.cos(ang / 2)), (math.sin(1.4 / 2), 0, 0, math.cos(1.4 / 2)))
+    clips['splay'] = [f, 1]
+    for k in range(2): data.extend(pose(splay)); f += 1
+    v, t, size = write_glb(os.path.join(OUT_M, 'kid.glb'), 'kid', pos, nor, col, paint, idx, bone=bone, poses={'data': data, 'bones': len(joints), 'frames': f, 'clips': clips})
+    lo = [min(p[k] for p in pos) for k in range(3)]; hi = [max(p[k] for p in pos) for k in range(3)]
+    shutil.copyfile(os.path.join(SRC, 'models', 'kid', 'LICENSE.txt'), os.path.join(OUT_M, 'LICENSE-kid.txt'))
+    print(f'  kid              {os.path.getsize(src):7d} → {size:6d} B · {v} verts · {t} tris · {f} pose frames × {len(joints)} bones {clips} · paint on {sum(paint)} verts · box {[round(x, 2) for x in lo]} … {[round(x, 2) for x in hi]}')
+
+
+def landmarks():
+    for name, lic, who in (('lighthouse', 'LICENSE-lighthouse.txt', 'MaverickFX (poly.pizza/m/KRebJXIRb8) — CC0 1.0'), ('fishing-boat', 'LICENSE-kenney-watercraft.txt', 'Kenney (kenney.nl) — CC0 1.0')):
+        src = os.path.join(SRC, 'models', 'landmarks', name + '.glb')
+        j, bn = read_glb(src)
+        im = j['images'][0]; bv = j['bufferViews'][im['bufferView']]
+        img = Image.open(io.BytesIO(bn[bv.get('byteOffset', 0): bv.get('byteOffset', 0) + bv['byteLength']])).convert('RGBA')
+        pos, nor, col, idx = flatten(j, bn, img)
+        # (it stands on y = 0, centred on its own foot)
+        lo = [min(p[k] for p in pos) for k in range(3)]; hi = [max(p[k] for p in pos) for k in range(3)]
+        cx, cz = (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2
+        pos = [(p[0] - cx, p[1] - lo[1], p[2] - cz) for p in pos]
+        v, t, size = write_glb(os.path.join(OUT_M, name + '.glb'), name, pos, nor, col, None, idx, copyright=who)
+        shutil.copyfile(os.path.join(SRC, 'models', 'landmarks', lic), os.path.join(OUT_M, lic))
+        print(f'  {name:16s} {os.path.getsize(src):7d} → {size:6d} B · {v} verts · {t} tris · {round(hi[0] - lo[0], 2)} × {round(hi[1] - lo[1], 2)} × {round(hi[2] - lo[2], 2)}')
+    md = ['# JAYWALK — the models\' credits', '',
+          'Copied from the owner\'s delivery (Downloads\\grok\\jaywalk\\models\\) by `scripts/build-jaywalk-assets.py`. All CC0 1.0 — no credit is required;',
+          'the game\'s CREDITS (☰ → CREDITS — H6) carry these lines anyway.', '',
+          '- 3D models: Kenney — kenney.nl (CC0) — the cars, the train, the props (`LICENSE.txt`), THE KID (Mini Skate 2.0 "character-skate-boy" — `LICENSE-kid.txt`), the fishing boat (Watercraft Kit 2.1 — `LICENSE-kenney-watercraft.txt`)',
+          '- Light House: MaverickFX — https://poly.pizza/m/KRebJXIRb8 (CC0 1.0) — `LICENSE-lighthouse.txt`', '']
+    open(os.path.join(OUT_M, 'CREDITS.md'), 'w', encoding='utf-8', newline='\n').write('\n'.join(md))
 
 
 def skyline():
@@ -223,4 +370,5 @@ if __name__ == '__main__':
     try: sys.stdout.reconfigure(encoding='utf-8')
     except Exception: pass
     print('JAYWALK — THE FILES IN, from', SRC)
-    models(); skyline(); sounds()
+    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('skyline', skyline), ('sounds', sounds)):
+        if not ONLY or name in ONLY: fn()

@@ -16,7 +16,7 @@ const MODELS = ['car-sedan', 'car-hatchback', 'car-taxi', 'car-van', 'train-fron
 
 test('THE MODELS: the 12 Kenney models (CC0), re-packed small — one mesh each, the colormap baked into vertex colours, NO texture, never the two trees', () => {
   const dir = readdirSync(new URL('assets/jaywalk/models/', root));
-  assert.deepEqual(dir.filter(f => f.endsWith('.glb')).sort(), MODELS.map(m => `${m}.glb`).sort());
+  assert.deepEqual(dir.filter(f => f.endsWith('.glb')).sort(), [...MODELS, 'kid', 'lighthouse', 'fishing-boat'].map(m => `${m}.glb`).sort(), 'the 12 + H5A\'s three (THE KID, the lighthouse, the fishing boat)');
   assert.ok(!dir.some(f => /^tree-/.test(f)), 'Kenney\'s trees are not used (the round puffy trees are built in code)');
   let total = 0;
   for (const m of MODELS) {
@@ -41,6 +41,42 @@ test('THE MODELS: the 12 Kenney models (CC0), re-packed small — one mesh each,
   for (let v = 0; v < n; v++) if (b[bin + v * 16 + 15] === 0) paint++;
   assert.ok(paint > 100 && paint < n / 2, `the sedan's paint: ${paint} of ${n} vertices`);
   assert.match(read('scripts/build-jaywalk-assets.py'), /never moved, renamed or edited/);
+});
+
+test('H5A — THE KID\'s FILE + THE AREAS\' TWO MODELS: Kenney\'s skate boy re-packed with his bones + poses (no texture, no other clip), the lighthouse + the fishing boat, the licences + the credit lines', () => {
+  const glb = f => { const b = bytes(`assets/jaywalk/models/${f}.glb`), jl = b.readUInt32LE(12); return { b, j: JSON.parse(b.subarray(20, 20 + jl).toString('utf8')), bin: 20 + jl + 8 }; };
+  const { b, j, bin } = glb('kid');
+  assert.ok(b.length < 40 * 1024, `kid.glb: ${b.length} B (the delivery: 325 KB)`);
+  assert.ok(!j.images && !j.textures && !j.animations && !j.skins, 'no texture, no clip, no skin object ships');
+  assert.match(j.asset.copyright, /Kenney.*CC0/);
+  const a = j.meshes[0].primitives[0].attributes, X = j.extras.poses;
+  assert.deepEqual(Object.keys(a).sort(), ['COLOR_0', 'NORMAL', 'POSITION', '_BONE']);
+  assert.equal(X.bones, 7); assert.deepEqual(Object.keys(X.clips).sort(), ['fall', 'idle', 'jump', 'splay'], 'only the clips the game uses (+ the hand-made splay)');
+  assert.equal(j.accessors[X.accessor].count, X.frames * X.bones * 3, 'a pose = 7 bones × 3 rows of 4 floats');
+  for (const [, [first, n]] of Object.entries(X.clips)) assert.ok(first + n < X.frames, 'every clip has its guard row (frame k blends with k + 1)');
+  // every vertex on one of the 7 bones; the paint (alpha 0) = the shirt + the cap: a good part of him, never all
+  const n = j.accessors[a.POSITION].count; let paint = 0, maxBone = 0;
+  for (let v = 0; v < n; v++) { if (b[bin + v * 16 + 15] === 0) paint++; maxBone = Math.max(maxBone, b[bin + v * 16 + 11]); }
+  assert.equal(maxBone, 6); assert.ok(paint > n * 0.25 && paint < n * 0.6, `the cap + the shirt: ${paint} of ${n} vertices`);
+  // the first idle row ≈ the rest pose: a rigid transform (its 3 × 3 rows unit length)
+  const pv = j.bufferViews[j.accessors[X.accessor].bufferView], at = bin + pv.byteOffset, row = k => [0, 1, 2, 3].map(c => b.readFloatLE(at + (k * 4 + c) * 4));
+  for (let k = 0; k < 21; k++) { const r = row(k); assert.ok(Math.abs(Math.hypot(r[0], r[1], r[2]) - 1) < 0.01, `row ${k}: ${r}`); }
+  const lh = glb('lighthouse'), fb = glb('fishing-boat');
+  assert.match(lh.j.asset.copyright, /MaverickFX.*CC0/); assert.match(fb.j.asset.copyright, /Kenney.*CC0/);
+  assert.ok(lh.b.length < 110 * 1024 && fb.b.length < 10 * 1024, `the lighthouse ${lh.b.length} B, the boat ${fb.b.length} B`);
+  for (const m of [lh, fb]) assert.ok(!m.j.images && !m.j.textures, 'no texture ships');
+  for (const f of ['LICENSE-kid.txt', 'LICENSE-lighthouse.txt', 'LICENSE-kenney-watercraft.txt']) assert.match(read(`assets/jaywalk/models/${f}`), /CC0|Creative Commons Zero/, f);
+  const cr = read('assets/jaywalk/models/CREDITS.md');
+  assert.match(cr, /3D models: Kenney — kenney\.nl \(CC0\)/); assert.match(cr, /Light House: MaverickFX — https:\/\/poly\.pizza\/m\/KRebJXIRb8 \(CC0 1\.0\)/);
+  const m = code('models.js'), n2 = code('night.js'), fxs = code('night-fx.js');
+  assert.doesNotMatch(m + n2, /buildKid|kidCap|capMat/, 'the code-built kid is gone everywhere');
+  assert.match(m, /export async function loadKid\(\)/); assert.match(m, /for \(let i = 0; i < 3; i\+\+\)/, 'tried three times');
+  assert.match(n2, /Promise\.all\(\[loadKenney\(SCENE_MODELS\), loadKid\(\)\]\)/);
+  assert.match(fxs, /texelFetch\(uPose, ivec2\(x, y\), 0\)/, 'the poses: a float texture read per vertex — every kid instanced');
+  assert.match(fxs, /mat4 jwM = jwPose\(aKid\.y\) \* \(1\.0 - aKid\.w\) \+ jwPose\(aKid\.z\) \* aKid\.w;/, 'an instance blends two poses (idle → the jump / the splay)');
+  assert.match(n2, /poseB = POSE\.jump\[0\] \+ q \* POSE\.jump\[1\]/, 'THE HOP = Kenney\'s jump clip timed to the hop'); assert.match(n2, /const q = run\.st === 'hop' \? f : co\.u;/);
+  assert.match(n2, /const f = |f = Math\.min\(1, \(run\.k \+ a\) \/ HOP_TICKS\)/, '… to HOP_TICKS');
+  assert.match(n2, /poseA = POSE\.idle\[0\] \+ \(reduce \? 0 :/, 'idle between hops — still with reduce motion');
 });
 
 test('THE SKYLINE + THE SOUNDS: the night band ≤ 150 KB; every pick + every -b backup; the bells as 16-bit mono WAV (the whole file is the loop); the credits', () => {
@@ -160,7 +196,7 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   assert.match(fxs, /e \* e \* \(1\.0 - u\) \* \(1\.0 - u \* u\) \* smoothstep\(0\.0, 0\.07, u\); \}/, 'shape 6: a short soft beam — a quick falloff, soft edges');
   assert.doesNotMatch(n + fxs, /PointLight|SpotLight/, 'still no real light');
   // THE KID: a glow pool + a ring in his colour under him, a rim light of his own
-  assert.match(n, /paintMaterial\(glossy\(0\.42, 0\.7\), \{ rim: true \}\)/); assert.match(fxs, /outgoingLight \+= uRim \* pow\(1\.0 - clamp\(dot\(normalize\(normal\), normalize\(vViewPosition\)\), 0\.0, 1\.0\), 2\.6\);/);
+  assert.match(n, /paintMaterial\(glossy\(0\.42, 0\.7\), \{ instanced: true, rim: true, skin: kg\.userData\.poses\.tex \}\)/); assert.match(fxs, /outgoingLight \+= uRim \* pow\(1\.0 - clamp\(dot\(normalize\(normal\), normalize\(vViewPosition\)\), 0\.0, 1\.0\), 2\.6\);/);
   assert.match(n, /K\.flat\.put\(px, feet \+ 0\.045, pz \+ 0\.04, 1\.42 \* br, 1, 1\.16 \* br, 0, kidHex, 1, 3,/, 'the ring round his feet, in his colour');
   assert.match(n, /const br = reduce \? 1 :/, '… it breathes — never with reduce motion');
   // THE BOX TRUCK: built in code (a cab + a box), its amber markers + lit tail lights; never the van + a bare box
@@ -168,7 +204,7 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   assert.match(n, /if \(truck\) K\.trucks\.put\(cx, 0, z, 0\.94, 0\.9, tz, ry, tint, 1, dim\);\s*else if \(q\) q\.put\(/, 'a 3-cell vehicle = the truck alone, as long as its rules length');
   assert.match(n, /if \(truck\) for \(const m of \[0, 0\.34, 0\.67, 1\]\) K\.bill\.put\([^;]*0xff9a1c/, 'amber marker lights along its side');
   // THE PROPS: no crate, no pale jersey barrier (THE BARRICADE is built in code); the files stay in the folder
-  assert.match(m, /export const SCENE_MODELS = Object\.freeze\(KENNEY\.filter\(n => n !== 'crate-box' && n !== 'traffic-barrier'\)\);/);
+  assert.match(m, /export const SCENE_MODELS = Object\.freeze\(\[\.\.\.KENNEY\.filter\(n => n !== 'crate-box' && n !== 'traffic-barrier'\), \.\.\.LANDMARK_MODELS\]\);/);
   assert.match(n, /loadKenney\(SCENE_MODELS\)/); assert.doesNotMatch(n, /crate-box|traffic-barrier/, 'the scene never places them');
   assert.match(m, /export function buildBarricade\(\)/); assert.match(n, /K\.barricades\.put\(/);
 });
@@ -192,7 +228,7 @@ test('THE LAB\'s TOOLS: ?gray=1 keeps the graybox, ZOOM + ANGLE (remembered — 
   for (const k of ['jw-blink', 'jw-flick', 'jw-pop']) { const body = css.slice(css.indexOf(`@keyframes ${k}`)).split('\n')[0]; assert.doesNotMatch(body, /box-shadow|filter|width|height|left|top/, `${k}: transform / opacity only`); }
 });
 
-test('H4 — THE LOOK: ONE LIFE (no blink, no respawn, no one-up in any view), THE TAXI is yellow + its roof light, THE FLATTENED KID lies flat with his cap on top, THE GHOSTS, the frame for the share image', () => {
+test('H4 — THE LOOK: ONE LIFE (no blink, no respawn, no one-up in any view), THE TAXI is yellow + its roof light, THE FLATTENED KID squashed flat with his cap on top, THE GHOSTS, the frame for the share image', () => {
   const n = code('night.js'), g = code('graybox.js'), lab = code('lab.js'), v = code('view.js');
   for (const [f, s] of [['night.js', n], ['graybox.js', g], ['lab.js', lab], ['view.js', v], ['bot.js', code('bot.js')]]) assert.doesNotMatch(s, /\.blink\b|\.lives\b|oneUp|\.ups\b|'down'|DOWN_TICKS|safeLane|e\.e === 'respawn'/, `${f}: nothing of the lives / the blink / the one-up`);
   assert.doesNotMatch(lab + v, /LIVES/, 'no lives HUD anywhere');
@@ -204,16 +240,17 @@ test('H4 — THE LOOK: ONE LIFE (no blink, no respawn, no one-up in any view), T
   assert.match(n, /taxi = what === 'taxi', tint = taxi \? TAXI_HEX : NEON\[/, 'the taxi keeps its yellow; every other car its neon tint');
   assert.match(n, /if \(taxi\) \{ K\.bill\.put\(/, 'its roof light');
   assert.equal(causeLineOf('taxi'), 'FLATTENED BY A TAXI');
-  // THE FLATTENED KID: flat on his back (a paper doll, face up), the cap lands back on top — never a smear
+  // THE FLATTENED KID (H5A — the new kid, HIS CAP ON TOP): squashed straight down under his cap in THE SPLAY (arms out, sneakers kicked
+  // out behind him), his head up the screen — a cartoon flat kid, never a smear
   const car = n.slice(n.indexOf("if (H.cause === 'car') {"), n.indexOf("} else if (H.cause === 'water' || H.cause === 'edge')"));
-  assert.match(car, /flat = \{ thin: /); assert.match(car, /capOff = \{ flat: true,/, 'his cap pops up and lands back ON TOP');
-  assert.doesNotMatch(car, /s3 = \[1\.4, 0\.13, 1\.4\]/, 'H3\'s squashed disc is gone');
-  assert.match(n, /kid\.rotation\.set\(Math\.PI \/ 2 \* lie, Math\.PI, 0, 'YXZ'\)/, 'he lies on his back, his head up the screen');
+  assert.match(car, /flat = \{ thin: /); assert.match(car, /poseB = POSE\.splay\[0\]; poseK = sq;/, 'THE SPLAY: his arms + his sneakers show round the cap');
+  assert.match(car, /s3 = \[flat\.wide, flat\.thin, flat\.wide\];/, 'squashed straight down: his cap stays ON TOP');
+  assert.match(car, /fx\.yaw \+= \(0 - fx\.yaw\) \* sq;/, 'his head up the screen');
   assert.match(car, /reduce \? 0 :/, 'the bounce: never with reduce motion');
-  // THE GHOSTS: instanced (two draw calls for all of them), see-through, their own colour; each gets its name tag's place
-  assert.match(n, /K\.ghosts = kind\(kidGeo\.body, ghostMat\(\), 8,/); assert.match(n, /K\.ghostCaps = kind\(kidGeo\.cap, ghostMat\(\), 8,/);
-  assert.match(n, /m\.transparent = true; m\.opacity = 0\.\d+;/, 'see-through');
-  assert.match(n, /function draw\(run, course, a, dt, o = null\)/); assert.match(n, /K\.ghosts\.put\(gpx, gpy, gpz,[^;]*g\.hex,/, 'in their colour');
+  // THE GHOSTS: the same skinned kid, instanced (ONE draw call for all of them), see-through, their own colour; each gets its name tag's place
+  assert.match(n, /KM\.ghosts = kind\(kg, gm, 8, \{ aux: \['aKid', 4\], order: 4 \}\);/); assert.match(n, /KM\.kid = kind\(kg, kidMat, 1, \{ aux: \['aKid', 4\] \}\);/);
+  assert.match(n, /gm\.transparent = true; gm\.opacity = 0\.\d+;/, 'see-through');
+  assert.match(n, /function draw\(run, course, a, dt, o = null\)/); assert.match(n, /KM\.ghosts\.put\(gpx, gpy, gpz,[^;]*g\.hex,/, 'in their colour');
   assert.match(n, /g\.tag = v3\.z < 1 &&/, 'the name tag\'s place on the screen');
   // THE SHARE IMAGE's frame: copied off the canvas in the SAME frame it was drawn
   assert.match(n, /if \(snapAsk\) \{ const ask = snapAsk; snapAsk = null;/); assert.match(n, /import \{ ctx2d \} from '\.\.\/\.\.\/ui\/canvas-safe\.js';/, 'every canvas through ctx2d');

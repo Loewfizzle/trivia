@@ -188,18 +188,33 @@ export function glowMaterial(fog, { bill = false, shadow = false } = {}) {
   });
 }
 
+const SKIN_V = `attribute float bone; attribute vec4 aKid; uniform highp sampler2D uPose;
+mat4 jwRow(int y) {
+  int x = int(bone + 0.5) * 3;
+  vec4 a = texelFetch(uPose, ivec2(x, y), 0), b = texelFetch(uPose, ivec2(x + 1, y), 0), c = texelFetch(uPose, ivec2(x + 2, y), 0);
+  return mat4(a.x, b.x, c.x, 0.0, a.y, b.y, c.y, 0.0, a.z, b.z, c.z, 0.0, a.w, b.w, c.w, 1.0);
+}
+mat4 jwPose(float row) { float f = fract(row); int y = int(floor(row)); return jwRow(y) * (1.0 - f) + jwRow(y + 1) * f; }`;
 /** THE PAINT PATCH on a lit material: vertices marked `paint` take the tint (an instance's colour, or uTint) by their own brightness; the
  *  rest keep their vertex colours; `lit` (0 … 1 — the blackout, the dim edge columns) scales both. */
-export function paintMaterial(mat, { instanced = false, rim = false } = {}) {
-  const u = { uTint: { value: new THREE.Color(0xffffff) }, uLit: { value: 1 }, uRim: { value: new THREE.Color(0x000000) } };
+export function paintMaterial(mat, { instanced = false, rim = false, skin = null } = {}) {
+  const u = { uTint: { value: new THREE.Color(0xffffff) }, uLit: { value: 1 }, uRim: { value: new THREE.Color(0x000000) }, uPose: { value: skin } };
   mat.vertexColors = true;
   mat.onBeforeCompile = sh => {
     sh.uniforms.uTint = u.uTint; sh.uniforms.uLit = u.uLit;
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', `#include <common>\nattribute float paint;\n${instanced ? 'attribute float aLit;' : 'uniform vec3 uTint; uniform float uLit;'}`)
+      .replace('#include <common>', `#include <common>\nattribute float paint;\n${skin ? SKIN_V : instanced ? 'attribute float aLit;' : 'uniform vec3 uTint; uniform float uLit;'}`)
       .replace('#include <color_vertex>', instanced
-        ? 'vColor = mix(color, instanceColor * (0.22 + 1.6 * dot(color, vec3(0.299, 0.587, 0.114))), paint) * aLit;'
+        ? `vColor = mix(color, instanceColor * (0.22 + 1.6 * dot(color, vec3(0.299, 0.587, 0.114))), paint) * ${skin ? 'aKid.x' : 'aLit'};`
         : 'vColor = mix(color, uTint * (0.22 + 1.6 * dot(color, vec3(0.299, 0.587, 0.114))), paint) * uLit;');
+    // THE KID's SKIN (H5A): every vertex follows ONE bone; a pose = a row of the pose texture (models.js#loadKid). An instance blends
+    // two poses — aKid = (lit, row A, row B, how far to B), each row a frame + a fraction to the next: idle → the jump → the splay
+    if (skin) {
+      sh.uniforms.uPose = u.uPose;
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nmat4 jwM = jwPose(aKid.y) * (1.0 - aKid.w) + jwPose(aKid.z) * aKid.w;\nobjectNormal = mat3(jwM) * objectNormal;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed = (jwM * vec4(transformed, 1.0)).xyz;');
+    }
     // THE RIM (the kid — H2B: he always stands out): a light of his own on every edge that turns away from the camera
     if (rim) {
       sh.uniforms.uRim = u.uRim;
@@ -207,7 +222,7 @@ export function paintMaterial(mat, { instanced = false, rim = false } = {}) {
         .replace('#include <opaque_fragment>', 'outgoingLight += uRim * pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 2.6);\n#include <opaque_fragment>');
     }
   };
-  mat.customProgramCacheKey = () => `jw-paint-${instanced ? 'i' : 'u'}${rim ? 'r' : ''}`;
+  mat.customProgramCacheKey = () => `jw-paint-${instanced ? 'i' : 'u'}${rim ? 'r' : ''}${skin ? 's' : ''}`;
   mat.userData.u = u;
   return mat;
 }

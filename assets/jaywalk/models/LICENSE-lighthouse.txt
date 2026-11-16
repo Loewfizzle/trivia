@@ -1,0 +1,9 @@
+lighthouse.glb
+  Source: https://poly.pizza/m/KRebJXIRb8
+  Author: MaverickFX
+  Title: Light House
+  License: CC0 1.0 Universal (public domain)
+  License URL: https://creativecommons.org/publicdomain/zero/1.0/
+  The model's Poly Pizza page lists the license as "Public Domain (CC0)"
+  and "CC0 1.0", linking to the CC0 deed above.
+  Credit line: Light House: MaverickFX — https://poly.pizza/m/KRebJXIRb8 (CC0 1.0)

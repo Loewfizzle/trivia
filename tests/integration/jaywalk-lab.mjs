@@ -15,7 +15,7 @@
 //     frames slip (a heavy CPU throttle, nothing pinned)
 //   · the shots (ZOOM 8 TURNED: the start, a run, a water / log stretch, a train, lane 200+ traffic; ZOOM 7 + 9; STRAIGHT …) into [outDir]
 //     — kept out of git
-//   node tests/integration/jaywalk-lab.mjs "<chromium>" [outDir] [--perf] [--webkit] [--look] [--h3] (--look: the shots only · --h3: H3's three shots only)
+//   node tests/integration/jaywalk-lab.mjs "<chromium>" [outDir] [--perf] [--webkit] [--look] [--h3] [--h5[=kid|areas]] (--look: the shots only · --h3: H3's three shots only · --h5: H5A's — THE KID + THE AREAS)
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -178,7 +178,53 @@ async function looksH4(p) {
   await L("document.querySelector('.jw-end').style.visibility = ''; window.__jwLab.restart('solo')");
 }
 
+// ---- H5A's shots: THE KID (Kenney's skate boy — standing, mid-hop each way, on a log, every hit) at ZOOM 8 STRAIGHT (+ ZOOM 7 close);
+// THE AREAS (every area's stretch + its gateway) — `--h5` (all) · `--h5=kid` · `--h5=areas`
+async function looksH5(p, what) {
+  if (!OUT) return;
+  const L = js => p.evaluate(js);
+  const hide = on => L(`document.querySelector('.jw-end').style.visibility = '${on ? 'hidden' : ''}'`);
+  if (what !== 'areas') {
+    await L("window.__jwLab.bot(false); window.__jwLab.restart('solo', 'look3'); window.__jwLab.setCamera(8, 'straight', true)"); await sleep(500);
+    await shot(p, 'kid-start-faces-you.png');
+    await L("window.__jwLab.setCamera(7, 'straight', true)"); await sleep(300); await shot(p, 'kid-start-zoom7.png'); await L("window.__jwLab.setCamera(8, 'straight', true)");
+    // mid-hop: up, then sideways — held 4 ticks in (the top of the arc)
+    await L("window.__jwLab.hop('u')"); await sleep(500);
+    for (const [d, name] of [['u', 'kid-hop-up.png'], ['l', 'kid-hop-left.png'], ['r', 'kid-hop-right.png'], ['d', 'kid-hop-back.png']]) {
+      await L(`window.__jwLab.hold(4); window.__jwLab.hop('${d}')`); await waitFor(p, "window.__jwLab.state().st === 'hop'", 3000); await sleep(350);
+      await shot(p, name); await L('window.__jwLab.hold(null)'); await sleep(400);
+    }
+    await shot(p, 'kid-idle-after-hops.png');
+    // on a log
+    let i = await p.evaluate(() => window.__jwLab.find('water', 14));
+    await p.evaluate(l => window.__jwLab.warp(l - 1), i);
+    await waitFor(p, `window.__jwLab.logAt(${i}) > 0`, 20000);
+    await p.evaluate(l => { const J = window.__jwLab; J.warp(l, { x: J.logAt(l) }); }, i); await sleep(450); await shot(p, 'kid-on-a-log.png');
+    // the hits: flattened (a car), the splash + the sink (the water), knocked by the train, swept by the blackout
+    await L("window.__jwLab.restart('solo', 'look3')"); i = await p.evaluate(() => window.__jwLab.find('road', 20));
+    await L("window.__jwLab.hop('u')"); await sleep(400);
+    await p.evaluate(l => window.__jwLab.warp(l, { safe: false }), i);
+    await waitFor(p, "window.__jwLab.state().over && window.__jwLab.state().cause === 'car'", 20000); await hide(true);
+    await sleep(120); await shot(p, 'kid-hit-flat-a.png'); await sleep(700); await shot(p, 'kid-hit-flat-b.png'); await hide(false);
+    await L("window.__jwLab.restart('solo', 'look3')"); i = await p.evaluate(() => window.__jwLab.find('water', 14));
+    await L("window.__jwLab.hop('u')"); await sleep(400);
+    await p.evaluate(l => window.__jwLab.warp(l - 1), i); await sleep(500);
+    await waitFor(p, `window.__jwLab.logAt(${i}) < 0 || true`, 100); await L("window.__jwLab.hop('u')");
+    await waitFor(p, "window.__jwLab.state().over", 8000); await hide(true); await sleep(60); await shot(p, 'kid-hit-water.png'); await hide(false);
+    await L("window.__jwLab.restart('solo', 'look3')"); i = await p.evaluate(() => window.__jwLab.find('rail', 25));
+    await L("window.__jwLab.hop('u')"); await sleep(400);
+    await p.evaluate(l => window.__jwLab.warp(l, { safe: false }), i);
+    await waitFor(p, "window.__jwLab.state().over && window.__jwLab.state().cause === 'train'", 20000); await hide(true); await sleep(150); await shot(p, 'kid-hit-train.png'); await hide(false);
+    await L("window.__jwLab.restart('solo', 'look3'); window.__jwLab.hop('u')");
+    await waitFor(p, "window.__jwLab.state().over && window.__jwLab.state().cause === 'wall'", 30000); await hide(true); await sleep(100); await shot(p, 'kid-hit-blackout.png'); await hide(false);
+    const px = await p.evaluate(() => { window.__jwLab.restart('solo', 'look3'); return new Promise(r => setTimeout(() => r(window.__jwLab.state().kidPx), 600)); });
+    ok(px >= 34 && px <= 46, `THE KID reads at ZOOM 8 on a 390 pt phone: ${px.toFixed(1)} pt tall`);
+    ok(await p.evaluate(() => window.__jwLab.state().info.kid === true), '… Kenney\'s skate boy is the kid the scene draws (his file landed)');
+  }
+}
+
 try {
+  { const h5 = argv.find(x => x === '--h5' || x.startsWith('--h5=')); if (h5) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5(o.p, h5.slice(5)); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   if (argv.includes('--h4')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH4(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   if (argv.includes('--h3')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH3(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   if (LOOK) { const o = await open(390, 844, 3, '&preview=1&seed=look3&fps=1'); await up(o.p); await sleep(600); await looks(o.p); await looksH3(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }

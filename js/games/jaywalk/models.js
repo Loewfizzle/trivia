@@ -1,17 +1,19 @@
 // JAYWALK — THE MODELS (H2 — docs/jaywalk.md "THE NIGHT LOOK"): the 12 Kenney models (CC0 — assets/jaywalk/models/, re-packed by
 // scripts/build-jaywalk-assets.py: ONE mesh each, the colormap baked into vertex colours, a car's body paint in COLOR_0's alpha) through a
-// tiny GLB reader of our own (no loader add-on: the page's import map carries three's core only), + everything BUILT IN CODE in the smooth
-// toy style: THE JAYWALKER, the round puffy trees, THE LOGS (bark, cut ends, rings), the tufts, THE BOX TRUCK. Every geometry here carries `color` (linear RGB) +
+// tiny GLB reader of our own (no loader add-on: the page's import map carries three's core only), THE KID (H5A — Kenney's skate boy, his
+// bones + poses read by the same reader), + everything BUILT IN CODE in the smooth toy style: the round puffy trees, THE LOGS (bark, cut ends, rings), the tufts, THE BOX TRUCK. Every geometry here carries `color` (linear RGB) +
 // `paint` (1 = the part that takes the player's / the car's colour). Kenney's normals are never recomputed.
 import * as THREE from 'three';
 
 const DIR = new URL('../../../assets/jaywalk/models/', import.meta.url);
-export const MODEL_REV = 1;   // (bump when a model file is replaced)
+export const MODEL_REV = 2;   // (bump when a model file is replaced)
 export const KENNEY = Object.freeze(['car-sedan', 'car-hatchback', 'car-taxi', 'car-van', 'train-front', 'train-carriage',
   'bush-planter', 'street-lamp', 'traffic-cone', 'traffic-barrier', 'trash-dumpster', 'crate-box']);
-/** what the night look draws today (H2B — the owner: no junk-looking props): the crate is out (it stays in the folder for THE DOCKS, H5)
- *  and so is the jersey barrier (from above it read as a pale cube — the barrier is now THE BARRICADE, built in code) */
-export const SCENE_MODELS = Object.freeze(KENNEY.filter(n => n !== 'crate-box' && n !== 'traffic-barrier'));
+/** what the night look draws today (H2B — the owner: no junk-looking props): the crate is out (THE DOCKS' crates are built in code — H5A)
+ *  and so is the jersey barrier (from above it read as a pale cube — the barrier is now THE BARRICADE, built in code);
+ *  H5A — THE AREAS' two models: the lighthouse (MaverickFX, CC0) + the fishing boat (Kenney's Watercraft Kit, CC0) */
+export const LANDMARK_MODELS = Object.freeze(['lighthouse', 'fishing-boat']);
+export const SCENE_MODELS = Object.freeze([...KENNEY.filter(n => n !== 'crate-box' && n !== 'traffic-barrier'), ...LANDMARK_MODELS]);
 const lin = c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
 const COMP = { 5120: Int8Array, 5121: Uint8Array, 5122: Int16Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array };
 const NORM = { 5120: 127, 5121: 255, 5122: 32767, 5123: 65535 };
@@ -40,6 +42,14 @@ export function parseGlb(buf) {
   g.setAttribute('paint', new THREE.BufferAttribute(paint, 1));
   g.setIndex(new THREE.BufferAttribute(P.count > 65535 ? Uint32Array.from(I.out) : Uint16Array.from(I.out), 1));
   g.computeBoundingBox();
+  // (H5A — THE KID: each vertex's ONE bone + THE POSES — the skin matrices, 3 rows of 4 floats a bone, a row of the texture a frame)
+  const X = json.extras && json.extras.poses;
+  if (X && prim.attributes._BONE != null) {
+    g.setAttribute('bone', new THREE.BufferAttribute(read(prim.attributes._BONE).out, 1));
+    const tex = new THREE.DataTexture(read(X.accessor).out, X.bones * 3, X.frames, THREE.RGBAFormat, THREE.FloatType);
+    tex.minFilter = tex.magFilter = THREE.NearestFilter; tex.generateMipmaps = false; tex.needsUpdate = true;
+    g.userData.poses = { tex, clips: X.clips, bones: X.bones, frames: X.frames };
+  }
   return g;
 }
 
@@ -51,7 +61,7 @@ export async function loadKenney(names = KENNEY) {
 }
 
 /** (H3 — the cartridge's preload, during the walk inside) the scene's model files into the HTTP cache — fetched, never parsed */
-export const warmModels = () => Promise.all(SCENE_MODELS.map(n => fetch(new URL(`${n}.glb?v=${MODEL_REV}`, DIR)).catch(() => null)));
+export const warmModels = () => Promise.all([...SCENE_MODELS, 'kid'].map(n => fetch(new URL(`${n}.glb?v=${MODEL_REV}`, DIR)).catch(() => null)));
 
 // ---- BUILT IN CODE
 const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), V = new THREE.Vector3(), S = new THREE.Vector3(), C = new THREE.Color();
@@ -97,36 +107,23 @@ export function roundBox(w, h, d, r, seg = 3) {
 const ball = (r, w = 14, h = 10) => new THREE.SphereGeometry(r, w, h);
 
 /**
- * THE JAYWALKER — smooth toy style, ≈ 1 lane tall (0.98), the head ≈ 45 % of him, a hoodie in the player's colour (paint), a BACKWARDS
- * cap (its brim to his back — toward the camera as he hops up the course), white sneakers, two big eyes. He faces −z (up the course).
- * → { body, cap } (the cap is its own mesh: a car knocks it off)
+ * THE KID (H5A — the owner, Nov 16): Kenney's "Mini Skate" skate boy (CC0) — assets/jaywalk/models/kid.glb, re-packed by
+ * scripts/build-jaywalk-assets.py: ONE mesh, the colormap in vertex colours, the PAINT = his T-shirt + THE CAP (they take the player's
+ * colour; the face, the arms, the jeans + the white sneakers stay Kenney's), each vertex's ONE bone (`bone`) and THE POSES (the skin
+ * matrices of idle · jump · fall + the SPLAY, a row a frame). He faces −z (up the course), 0.78 tall, his cap built into his head.
+ * → the geometry (+ `userData.poses` = { tex (a float texture: 3 texels a bone across, a row a frame), clips: { name: [first row,
+ * frames] } }), or null (the file never came: the scene draws his glow ring + shadow alone, never throws). Tried three times.
  */
-export function buildKid() {
-  const skin = 0xf3c7a0, navy = 0x262d52, hair = 0x54361f, white = 0xf4f4f8;
-  const body = build([
-    { g: new THREE.CapsuleGeometry(0.185, 0.13, 5, 14), color: 0x9a9a9a, paint: 1, at: [0, 0.36, 0], scale: [1.16, 1, 0.98], shade: y => 0.7 + (y - 0.2) * 0.9 },
-    { g: ball(0.115, 12, 8), color: 0x8c8c8c, paint: 1, at: [0, 0.515, 0.125], scale: [1.3, 0.7, 0.95] },                                  // the hood, on his back
-    { g: new THREE.CapsuleGeometry(0.062, 0.13, 4, 10), color: 0xbababa, paint: 1, at: [-0.255, 0.37, -0.05], rot: [0.75, 0, 0.18] },   // arms: a runner's swing
-    { g: new THREE.CapsuleGeometry(0.062, 0.13, 4, 10), color: 0xbababa, paint: 1, at: [0.255, 0.37, 0.05], rot: [-0.75, 0, -0.18] },
-    { g: ball(0.066, 10, 8), color: skin, at: [-0.275, 0.3, -0.135] },
-    { g: ball(0.066, 10, 8), color: skin, at: [0.275, 0.3, 0.135] },
-    { g: new THREE.CapsuleGeometry(0.078, 0.07, 4, 10), color: navy, at: [-0.095, 0.15, -0.05], rot: [0.35, 0, 0] },                    // legs
-    { g: new THREE.CapsuleGeometry(0.078, 0.07, 4, 10), color: navy, at: [0.095, 0.15, 0.06], rot: [-0.35, 0, 0] },
-    { g: roundBox(0.175, 0.11, 0.29, 0.052), color: white, at: [-0.105, 0.056, -0.1] },                                                     // the sneakers: big + white
-    { g: roundBox(0.175, 0.11, 0.29, 0.052), color: white, at: [0.105, 0.056, 0.07] },
-    { g: ball(0.222, 18, 14), color: skin, at: [0, 0.725, 0], scale: [1.06, 0.98, 1] },                                                 // the head
-    { g: new THREE.SphereGeometry(0.236, 16, 12, 0, Math.PI), color: hair, at: [0, 0.72, 0.014], scale: [1.07, 1.02, 1.04] },                // hair: the back of it
-    { g: ball(0.064, 12, 10), color: white, at: [-0.095, 0.74, -0.186], scale: [1, 1.15, 0.6] },                                        // two big eyes
-    { g: ball(0.064, 12, 10), color: white, at: [0.095, 0.74, -0.186], scale: [1, 1.15, 0.6] },
-    { g: ball(0.038, 10, 8), color: 0x14121c, at: [-0.092, 0.738, -0.222], scale: [1, 1.15, 0.5] },
-    { g: ball(0.038, 10, 8), color: 0x14121c, at: [0.092, 0.738, -0.222], scale: [1, 1.15, 0.5] },
-  ]);
-  const cap = build([
-    { g: new THREE.SphereGeometry(0.25, 18, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), color: 0xb4b4b4, paint: 1, at: [0, 0.762, -0.012], scale: [1.07, 0.86, 1.05] },
-    { g: roundBox(0.32, 0.045, 0.22, 0.021), color: 0xf4f4f8, at: [0, 0.83, 0.3], rot: [-0.1, 0, 0] },                       // the brim: BACKWARDS
-    { g: ball(0.034, 8, 6), color: 0xf4f4f8, at: [0, 0.98, -0.012] },
-  ]);
-  return { body, cap, height: 0.98 };
+export const KID = Object.freeze({ h: 0.78 });
+export async function loadKid() {
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await fetch(new URL(`kid.glb?v=${MODEL_REV}`, DIR));
+      if (r.ok) { const g = parseGlb(await r.arrayBuffer()); if (g.userData.poses) return g; }
+    } catch { /* the next try */ }
+    await new Promise(res => setTimeout(res, 600 * (i + 1)));
+  }
+  return null;
 }
 
 /** a round puffy tree (the concept's): stacked soft blobs on a short trunk — ≈ 1.25 tall at scale 1 */

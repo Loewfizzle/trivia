@@ -128,7 +128,7 @@ async function mount() {
     end.hidden = false;
     lab.ends.push({ seed, mode, same, live, replay: r, hops: log.length });
   }
-  let raf = 0, hudKey = '';
+  let raf = 0, hudKey = '', holdAt = null;
   function frame(now) {
     raf = requestAnimationFrame(frame);
     const dt = last ? Math.min(250, now - last) : TICK_MS;
@@ -139,10 +139,11 @@ async function mount() {
     if (!started) { if (queue.length || bot) { started = true; mark.textContent = ''; } else acc = -dt; }
     acc += dt;
     let n = 0;
-    while (acc >= TICK_MS && n < 6) { if (!isOver(run)) tick(); acc -= TICK_MS; n++; }
+    const held = () => holdAt != null && run.st === 'hop' && run.k >= holdAt;   // (a look check: the kid held mid-hop for a shot)
+    while (acc >= TICK_MS && n < 6) { if (!isOver(run) && !held()) tick(); acc -= TICK_MS; n++; }
     if (acc > TICK_MS) { acc = 0; slow++; }   // (a long stall: the run simply waits — it never skips rules)
     if (isOver(run) && !shown) showEnd();
-    view.draw(run, course, isOver(run) ? 0 : acc / TICK_MS, dt);
+    view.draw(run, course, isOver(run) || held() ? 0 : acc / TICK_MS, dt);
     tiers.sample(now, performance.now() - t0); if (pin == null && !GRAY) tiers.tick(now);
     const M = MODES[mode];
     const key = `${run.best}|${M.cap ? Math.ceil((M.cap - run.t) / TICK_HZ) : ''}`;
@@ -182,6 +183,8 @@ async function mount() {
     items(lane) { const L = course.lane(lane); return { dir: L.dir || 0, v: L.v || 0, items: (L.items || []).map((it, j) => ({ left: moverLeft(L, it, run.t) / FP, len: it.len / FP, what: L.type === 'road' ? vehicleAt(course, lane, j) : 'log' })) }; },
     find(kind, from = 0) { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (kind === 'ufo' ? L.ufo && L.ufo.y0 === i : kind === 'mark' ? !!L.mark : L.type === kind) return i; } return -1; },
     pulse(lane) { const L = course.lane(lane); return L.pulse ? pulseAt(L.pulse, run.t) : null; },
+    /** (a look check) hold the kid still the moment a hop is `k` ticks in (null = let go) — the world stops with him */
+    hold(k) { holdAt = k; },
   };
 }
 

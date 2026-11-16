@@ -9,7 +9,8 @@
 //     the same engine (the view steps it; this file only draws it), never colliding; `ghost.tag` = where its name tag goes on screen
 //   · THE LINES (H4 add-on — lines.js): YOUR BEST (gold) + THE NEXT FRIEND's (white / cyan) — a glowing line across the whole lane at
 //     the far edge of that lane (a row of glowing buoys on water), its words on the ground beside it, a burst when it is crossed
-//   · THE JAYWALKER (models.js#buildKid) + THE HOP's feel + the hits, one per cause — ALL DERIVED FROM THE RUN's STATE between ticks
+//   · THE KID (H5A — Kenney's skate boy: models.js#loadKid; his cap + shirt in the player's colour; a pose a frame — idle · the jump ·
+//     the fall · the splay) + THE HOP's feel + the hits, one per cause — ALL DERIVED FROM THE RUN's STATE between ticks
 //     (the rules never read the frame clock; a refresh / a replay draws the same kid)
 //   · THE CAMERA (H2B — camera.js, shared with the graybox): ZOOM 7 · 8 · 9 columns across, the sideways follow, the slight TURN; the
 //     dimmer edge column each side stays the cue for the play area's edge. View only: the rules stay 9 columns.
@@ -18,7 +19,7 @@
 import * as THREE from 'three';
 import { FP, COLS, HOP_TICKS } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod } from './course.js';
-import { loadKenney, SCENE_MODELS, buildKid, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade, buildDart } from './models.js';
+import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade, buildDart } from './models.js';
 import { FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, createBloom } from './night-fx.js';
 import { CAM, createCamera } from './camera.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
@@ -35,7 +36,10 @@ const DPR_AT = [1.5, 2, 3];
 const LAMPS = Object.freeze({ 'car-sedan': [0.225, 0.2], 'car-hatchback': [0.225, 0.2], 'car-taxi': [0.225, 0.2], 'car-van': [0.26, 0.24], truck: [0.25, 0.3], train: [0.2, 0.45] });
 const HEAD_REACH = 1.35, TAIL_REACH = 0.75;
 const LOG_FEET = 0.33;   // (H3 — where the kid's feet stand on a log: its round back, the log HALF-SUNK — its centre a hair under the waterline)
-const KID_S = 1.3;   // (THE JAYWALKER's size on the lane: ≈ 1.27 of a lane tall — he must read at real phone size; the rules' box stays 0.6 of a cell)
+const KID_S = 1.62;   // (THE KID's size on the lane — H5A, Kenney's skate boy, 0.78 tall: ≈ 1.26 of a lane tall — he must read at real phone size; the rules' box stays 0.6 of a cell)
+/** his poses (models.js#loadKid — a row of the pose texture a frame): the idle loop (ms), how fast the fall flails */
+const IDLE_MS = 1333, FALL_MS = 333;
+const KID_YAW = Math.PI;   // (Kenney's kid faces +z, as his cars do; the scene's "up the course" is −z)
 // the skyline's night life, in % of the band's picture (assets/jaywalk/skyline-night.webp): [x, y, delay s] the red aviation lights ·
 // [x, y, w, h, delay s] the neon blocks that flicker
 const SKY_LIGHTS = [[31.7, 31.8, 0], [66.3, 36.4, 0.9], [67.9, 36.4, 0.9], [62.6, 45.6, 1.7], [64.2, 45.6, 1.7], [88.7, 34.2, 0.4], [93.8, 44.6, 1.3], [10.9, 37, 2.1]];
@@ -84,14 +88,14 @@ export function createNight(host, o = {}) {
     return {
       mesh: m,
       reset() { i = 0; },
-      put(x, y, z, sx, sy, sz, ry, hex, k = 1, a0 = 1, a1 = 1, rx = 0, rz = 0) {
+      put(x, y, z, sx, sy, sz, ry, hex, k = 1, a0 = 1, a1 = 1, rx = 0, rz = 0, a2 = 0, a3 = 0) {
         if (i >= n) return;
         P.set(x, y, z); S.set(sx, sy, sz);
         if (rx || rz) Q.setFromEuler(E.set(rx, ry, rz, 'YXZ')); else if (ry) Q.setFromAxisAngle(UP, ry); else Q.identity();
         M.compose(P, Q, S); m.setMatrixAt(i, M);
         if (raw) { col[i * 3] = ((hex >> 16) & 255) / 255 * k; col[i * 3 + 1] = ((hex >> 8) & 255) / 255 * k; col[i * 3 + 2] = (hex & 255) / 255 * k; }
         else { C.setHex(hex); col[i * 3] = C.r * k; col[i * 3 + 1] = C.g * k; col[i * 3 + 2] = C.b * k; }
-        if (ax) { ax.array[i * aux[1]] = a0; if (aux[1] > 1) ax.array[i * aux[1] + 1] = a1; }
+        if (ax) { const q = i * aux[1]; ax.array[q] = a0; if (aux[1] > 1) ax.array[q + 1] = a1; if (aux[1] > 2) { ax.array[q + 2] = a2; ax.array[q + 3] = a3; } }
         i++;
       },
       done() { m.count = i; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; if (ax) ax.needsUpdate = true; },
@@ -122,8 +126,18 @@ export function createNight(host, o = {}) {
   // Kenney's (CC0): they arrive a moment after the first frame — until then (or if a file fails) that kind simply draws nothing
   const KM = {}, BOX = {};
   let dead = false, needWarm = true, warmed = 0;
-  const ready = loadKenney(SCENE_MODELS).then(geos => {
-    if (dead) { for (const g of Object.values(geos)) g.dispose(); return false; }
+  let kidGeo = null, kidMat = null, POSE = null;
+  const ready = Promise.all([loadKenney(SCENE_MODELS), loadKid()]).then(([geos, kg]) => {
+    if (dead) { for (const g of Object.values(geos)) g.dispose(); if (kg) { kg.userData.poses.tex.dispose(); kg.dispose(); } return false; }
+    if (kg) {
+      // THE KID (H5A): ONE skinned geometry, instanced — himself (opaque, his own rim light) + THE GHOSTS (see-through, their colours):
+      // two draw calls for every kid in the match; each instance carries its own poses (night-fx.js#paintMaterial `skin`)
+      kidGeo = kg; POSE = kg.userData.poses.clips;
+      kidMat = paintMaterial(glossy(0.42, 0.7), { instanced: true, rim: true, skin: kg.userData.poses.tex });
+      KM.kid = kind(kg, kidMat, 1, { aux: ['aKid', 4] });
+      const gm = paintMaterial(glossy(0.5, 0.35), { instanced: true, skin: kg.userData.poses.tex }); gm.transparent = true; gm.opacity = 0.46;
+      KM.ghosts = kind(kg, gm, 8, { aux: ['aKid', 4], order: 4 });
+    }
     for (const [name, g] of Object.entries(geos)) {
       const b = g.boundingBox; BOX[name] = { w: b.max.x - b.min.x, h: b.max.y, l: b.max.z - b.min.z, cz: (b.max.z + b.min.z) / 2, x0: b.min.x, z0: b.min.z, z1: b.max.z };
       if (name.startsWith('car-')) KM[name] = kind(g, paintMaterial(glossy(0.28, 1.1), { instanced: true }), 40, { aux: ['aLit', 1] });
@@ -134,15 +148,8 @@ export function createNight(host, o = {}) {
     return true;
   }).catch(() => false);
 
-  // THE JAYWALKER
-  const kidGeo = buildKid();
-  const kidMat = paintMaterial(glossy(0.42, 0.7), { rim: true }), capMat = paintMaterial(glossy(0.36, 0.8), { rim: true });
-  const kid = new THREE.Mesh(kidGeo.body, kidMat), kidCap = new THREE.Mesh(kidGeo.cap, capMat);
-  scene.add(kid, kidCap);
-  // THE GHOSTS (H4): the same kid, instanced, see-through — two draw calls for every ghost in the match
-  const ghostMat = () => { const m = paintMaterial(glossy(0.5, 0.35), { instanced: true }); m.transparent = true; m.opacity = 0.46; return m; };
-  K.ghosts = kind(kidGeo.body, ghostMat(), 8, { aux: ['aLit', 1], order: 4 });
-  K.ghostCaps = kind(kidGeo.cap, ghostMat(), 8, { aux: ['aLit', 1], order: 4 });
+  // THE KID's place this frame (the camera's checks, a line's burst) — set by draw()
+  const kidPos = new THREE.Vector3();
   // THE LINES' WORDS (H4 add-on): "YOUR BEST · 143" / "LIAM · 212" written on the ground — one small canvas a line, drawn when its text
   // changes (never per frame), lying flat beside its line; additive: it glows on any ground
   const labelGeo = new THREE.PlaneGeometry(7.6, 0.95).rotateX(-Math.PI / 2);   // (BIG: the letters ≈ 0.55 of a lane tall — ≈ 27 pt at the kid's row at ZOOM 8 on a 390 pt phone)
@@ -171,10 +178,10 @@ export function createNight(host, o = {}) {
     L.tex.needsUpdate = true;
   }
   const LINES = { best: null, friend: null }, crossed = [];   // (crossed: a line's burst — { k, lane, t0 })
-  // HE ALWAYS STANDS OUT (H2B): his colour → the hoodie + the cap, a rim light of his own (his colour pulled toward white), the glow ring under him
+  // HE ALWAYS STANDS OUT (H2B): his colour → THE CAP + the shirt (H5A), a rim light of his own (his colour pulled toward white), the glow ring under him
   const rimCol = new THREE.Color();
   let kidHex = 0xff3fb4;
-  const tintOf = hex => { kidMat.userData.u.uTint.value.set(hex); capMat.userData.u.uTint.value.set(hex); kidHex = C.set(hex).getHex(); rimCol.set(hex).lerp(C.set(0xffffff), 0.5); };
+  const tintOf = hex => { kidHex = C.set(hex).getHex(); rimCol.set(hex).lerp(C.set(0xffffff), 0.5); };
   tintOf(o.kidColor || '#ff3fb4');
   // THE UFO's placeholder (H6 draws the real one): a disc + its beam circle on the ground
   const discGeo = new THREE.CylinderGeometry(0.95, 1.25, 0.28, 20);
@@ -329,7 +336,7 @@ export function createNight(host, o = {}) {
     // THE HOP: a squash at the push, a stretch in the air, a squash on landing, a small turn the way he hops; an idle bob between
     const since = clock - fx.landAt;
     let sy = 1, yawT = fx.seen ? 0 : Math.PI, tilt = 0;
-    if (run.st === 'hop') { sy = 1 + 0.2 * Math.sin(Math.PI * f) - 0.17 * Math.exp(-f * 13); tilt = -0.3 * Math.sin(Math.PI * f); }
+    if (run.st === 'hop') { sy = 1 + 0.2 * Math.sin(Math.PI * f) - 0.17 * Math.exp(-f * 13); tilt = 0.3 * Math.sin(Math.PI * f); }   // (he leans INTO the hop — Kenney's kid faces +z: the lean's sign follows)
     else if (since < 150) sy = 1 - 0.2 * (1 - since / 150) * (1 - since / 150);
     else if (!reduce) sy = 1 + 0.022 * Math.sin(clock / 270);
     if (hopDir) fx.dir = hopDir;
@@ -337,58 +344,53 @@ export function createNight(host, o = {}) {
     let dy = yawT - fx.yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
     fx.yaw += dy * (reduce ? 1 : 1 - Math.exp(-dt / 55));
     const sxz = 1 / Math.sqrt(sy);
-    let px = X(kx), py = feet + lift, pz = Z(ky), lit = 1, show = true, capOff = null, flat = null, taken = 0, rx = tilt, rz = 0, ry = fx.yaw, s3 = [sxz, sy, sxz];
+    let px = X(kx), py = feet + lift, pz = Z(ky), lit = 1, show = true, flat = null, taken = 0, rx = tilt, rz = 0, ry = fx.yaw, s3 = [sxz, sy, sxz];
+    // HIS POSE (H5A — Kenney's clips, a row a frame): the idle loop; a hop = Kenney's JUMP timed to the hop (HOP_TICKS — in on the push, out
+    // on the landing); a hit = the fall (flailing) or THE SPLAY (the flattened kid)
+    let poseA = 0, poseB = 0, poseK = 0;
+    if (POSE) {
+      poseA = POSE.idle[0] + (reduce ? 0 : (clock % IDLE_MS) / IDLE_MS * POSE.idle[1]);
+      if (run.st === 'hop' || co) { const q = run.st === 'hop' ? f : co.u; poseB = POSE.jump[0] + q * POSE.jump[1]; poseK = Math.min(1, Math.sin(Math.PI * q) * 1.7); }
+    }
+    const fallPose = e => { if (POSE) { const u = (e % (FALL_MS * 2)) / FALL_MS; poseB = POSE.fall[0] + (u < 1 ? u : 2 - u) * POSE.fall[1]; poseK = Math.min(1, e / 90); } };
     // THE HITS, one per cause
     const H = fx.hit;
     if (H && run.st === 'out') {
       const e = clock - H.t0, u = clamp01(e / 600);
       px = X(H.x); pz = Z(H.y); py = 0; rx = 0; show = true;
       if (H.cause === 'car') {
-        // THE FLATTENED KID (H4 — the owner: a funny cartoon flat kid, never a smear): he lies FLAT ON HIS BACK like a paper doll — a
-        // PANCAKE half as wide again as he stood: face up (his two big eyes to the sky), arms + legs + sneakers splayed, his head up the
-        // screen — a quick squash + one small bounce; HIS CAP pops up, spins and lands back ON TOP of him (on his belly — his face shows)
+        // THE FLATTENED KID (H4 — the owner: a funny cartoon flat kid, never a smear; H5A — the new kid, HIS CAP ON TOP): squashed
+        // STRAIGHT DOWN under his cap like a cartoon — a tenth as tall, half as wide again — in THE SPLAY: from above his cap sits on
+        // top of a flat kid, his arms out left + right, his sneakers kicked out behind him; a quick squash + one small bounce
         const sq = clamp01(e / 90), bounce = reduce ? 0 : Math.exp(-e / 160) * Math.sin(e / 38) * 0.1 * sq;
-        flat = { thin: 1 - 0.9 * sq + bounce, wide: 1 + 0.5 * sq - bounce * 0.6 };   // (a PANCAKE: half as wide again, a tenth as thick)
-        const cu = reduce ? 1 : clamp01(e / 520);
-        capOff = { flat: true, y: 1.15 * Math.sin(cu * Math.PI), r: cu < 1 ? e * 0.02 : 0.5, tip: cu < 1 ? 0.5 * Math.sin(cu * Math.PI) : 0 };
+        flat = { thin: 1 - 0.86 * sq + bounce, wide: 1 + 0.5 * sq - bounce * 0.6 };   // (a PANCAKE: half as wide again, a seventh as thick)
+        if (POSE) { poseB = POSE.splay[0]; poseK = sq; }
+        fx.yaw += (0 - fx.yaw) * sq; ry = fx.yaw; s3 = [flat.wide, flat.thin, flat.wide];   // (his head up the screen: the sneakers kick out toward the camera)
       } else if (H.cause === 'water' || H.cause === 'edge') {    // (the edge: carried off on the log a moment more, then the splash) + the sink
         const carry = H.cause === 'edge' ? clamp01(e / 260) : 1, sink = clamp01((e - (H.cause === 'edge' ? 260 : 0)) / 380);
         if (H.cause === 'edge') { px += H.dir * 0.9 * carry; if (!H.wet && carry >= 1) { H.wet = 1; splash(px, pz); } py = LOG_FEET * (1 - sink); }
-        py -= sink * 1.05; s3 = [1 - sink * 0.3, 1, 1 - sink * 0.3]; rz = sink * 0.5;
+        py -= sink * 1.05; s3 = [1 - sink * 0.3, 1, 1 - sink * 0.3]; rz = sink * 0.5; fallPose(e);
         if (sink >= 1) show = false;
       } else if (H.cause === 'train' || H.cause === 'blackbird') {   // knocked away, spinning
         const v = clamp01(e / 700);
-        px += H.dir * v * 9; py = 0.2 + 2.4 * Math.sin(v * Math.PI * 0.85); rz = -H.dir * e * 0.016; ry = fx.yaw + e * 0.01;
+        px += H.dir * v * 9; py = 0.2 + 2.4 * Math.sin(v * Math.PI * 0.85); rz = -H.dir * e * 0.016; ry = fx.yaw + e * 0.01; fallPose(e);
         if (v >= 1) show = false;
       } else if (H.cause === 'wall') {                           // swallowed by the dark
         const v = clamp01(e / 420); lit = 1 - v; py = -v * 0.5; s3 = [1 - v * 0.35, 1 - v * 0.6, 1 - v * 0.35];
         if (v >= 1) show = false;
       } else {                                                   // (the UFO: a placeholder until H6 — beamed up)
-        const v = clamp01(e / 650); py = v * 6; ry = fx.yaw + e * 0.012; s3 = [1 - v * 0.6, 1 - v * 0.6, 1 - v * 0.6];
+        const v = clamp01(e / 650); py = v * 6; ry = fx.yaw + e * 0.012; s3 = [1 - v * 0.6, 1 - v * 0.6, 1 - v * 0.6]; fallPose(e);
         if (v >= 1) show = false;
       }
-    } else if (run.st === 'taken') { fx.out += dt; py = Math.min(16, fx.out * 0.007); ry = fx.yaw + fx.out * 0.008; taken = Math.min(1, fx.out / 300); }   // (THE MOTHERSHIP — a PLACEHOLDER until H6: its green beam takes the kid up)
+    } else if (run.st === 'taken') { fx.out += dt; py = Math.min(16, fx.out * 0.007); ry = fx.yaw + fx.out * 0.008; taken = Math.min(1, fx.out / 300); fallPose(fx.out); }   // (THE MOTHERSHIP — a PLACEHOLDER until H6: its green beam takes the kid up)
     // the blackout on him
     const wallE = run.wall / FP, darkOf = i => clamp01(wallE - i), litOf = i => 1 - 0.96 * darkOf(i);
     lit *= litOf(Math.floor(ky));
-    kid.visible = show;
-    if (flat) {
-      // (flat on his back: rx = 90° lays him down, ry = 180° puts his head up the screen + his face to the sky; his local z = his thickness)
-      const F = 0.8 * KID_S, lie = clamp01((clock - H.t0) / 70), len = 0.98 * flat.wide * F;
-      kid.position.set(px, 0.075, pz + len * 0.46 * lie); kid.rotation.set(Math.PI / 2 * lie, Math.PI, 0, 'YXZ'); kid.scale.set(flat.wide * F, flat.wide * F, flat.thin * F);
-      s3 = [0, 0.14, 0];
-    } else {
-      kid.position.set(px, py, pz); kid.rotation.set(rx, ry, rz, 'YXZ'); kid.scale.set(s3[0] * KID_S, s3[1] * KID_S, s3[2] * KID_S);
-    }
-    kidMat.userData.u.uLit.value = capMat.userData.u.uLit.value = lit;
-    kidMat.userData.u.uRim.value.copy(rimCol).multiplyScalar(0.5 * lit); capMat.userData.u.uRim.value.copy(kidMat.userData.u.uRim.value);
-    if (capOff) {   // (the cap lands ON TOP of the flat kid, over his head — its dome's foot sits 0.81 up its own mesh)
-      const F = 0.8 * KID_S, cs = KID_S * 0.9;
-      kidCap.position.set(px + 0.04, 0.12 - 0.81 * cs + capOff.y * KID_S, kid.position.z - 0.36 * flat.wide * F); kidCap.rotation.set(capOff.tip, capOff.r, 0, 'YXZ'); kidCap.scale.setScalar(cs);
-    }
-    else { kidCap.position.copy(kid.position); kidCap.rotation.copy(kid.rotation); kidCap.scale.copy(kid.scale); }
-    kidCap.visible = show;
-    kidH = kidGeo.height * s3[1] * KID_S;
+    // (the kid himself is laid with the lanes' kinds — below, once they are reset: ONE instance of the skinned kind)
+    kidPos.set(px, flat ? 0.02 : py, pz);
+    const kidDraw = show ? [px, flat ? 0.02 : py, pz, s3[0] * KID_S, s3[1] * KID_S, s3[2] * KID_S, ry + KID_YAW, kidHex, 1, lit, poseA, rx, rz, poseB, poseK] : null;
+    if (kidMat) kidMat.userData.u.uRim.value.copy(rimCol).multiplyScalar(0.5 * lit);
+    kidH = KID.h * s3[1] * KID_S;
 
     // ---- THE CAMERA (camera.js): a smooth follow that leads a hop to where it lands — up the lanes AND sideways (clamped at the play
     // area's edges; a log ride is followed) — the slight turn, a short shake on a hit (never with reduce motion)
@@ -406,6 +408,7 @@ export function createNight(host, o = {}) {
     // ---- the lanes
     for (const q of Object.values(K)) q.reset();
     for (const q of Object.values(KM)) q.reset();
+    if (kidDraw && KM.kid) KM.kid.put(...kidDraw);
     const kindOf = L => (L.mark ? KIND.mark : KIND[L.type]);
     const base = Math.floor(camY) - BACK, top = base + BACK + Math.min(AHEAD, Math.ceil(24 * rig.k()) + 2);
     let nu = 0, gi = 0;
@@ -552,7 +555,7 @@ export function createNight(host, o = {}) {
     // HE ALWAYS STANDS OUT: a soft pool of his colour on the ground under him + a ring round his feet (it breathes — never with reduce motion)
     if (show && py > -0.2 && lit > 0.25 && !(H && down)) {
       const br = reduce ? 1 : 0.94 + 0.06 * Math.sin(clock / 260);
-      K.flat.put(px, feet + 0.04, pz + 0.04, 2.3, 1, 1.9, 0, kidHex, 1, 0, 0.5 * lit);
+      K.flat.put(px, feet + 0.04, pz + 0.04, 2.3, 1, 1.9, 0, kidHex, 1, 0, 0.3 * lit);   // (H5A: softer — the new kid's own colours (his face, his arms, his sneakers) must read through it)
       K.flat.put(px, feet + 0.045, pz + 0.04, 1.42 * br, 1, 1.16 * br, 0, kidHex, 1, 3, 0.8 * lit);
     }
     // THE GHOSTS (H4): the others' kids from their own runs — see-through, their colour, a thin ring of it under their feet
@@ -576,12 +579,13 @@ export function createNight(host, o = {}) {
       const onLog = r.st === 'hop' ? (course.lane(r.fy).type === 'water' ? LOG_FEET * (1 - gf) : 0) + (course.lane(r.ty).type === 'water' ? LOG_FEET * gf : 0) : GL.type === 'water' ? LOG_FEET : 0;
       const yawG = g.dir === 'l' ? Math.PI / 2 : g.dir === 'r' ? -Math.PI / 2 : g.dir === 'd' ? Math.PI : 0, gs = KID_S * 0.94 * (1 - gone * 0.6), glit = litOf(Math.floor(gy)) * (1 - gone);
       const gpx = X(gx), gpy = onLog + gl + (r.st === 'taken' ? gone * 3 : 0), gpz = Z(gy);
-      K.ghosts.put(gpx, gpy, gpz, gs, gs * (r.st === 'hop' ? 1 + 0.16 * Math.sin(Math.PI * gf) : 1 + 0.32 * air), gs, yawG, g.hex, 1, glit);
-      K.ghostCaps.put(gpx, gpy, gpz, gs, gs * (r.st === 'hop' ? 1 + 0.16 * Math.sin(Math.PI * gf) : 1 + 0.32 * air), gs, yawG, g.hex, 1, glit);
+      // (the same kid: his idle, Kenney's jump through a hop / a catch-up)
+      const gq = r.st === 'hop' ? gf : gv ? gv.u : -1, gA = POSE ? POSE.idle[0] + (reduce ? 0 : ((clock + gpx * 400) % IDLE_MS + IDLE_MS) % IDLE_MS / IDLE_MS * POSE.idle[1]) : 0;
+      if (KM.ghosts) KM.ghosts.put(gpx, gpy, gpz, gs, gs * (r.st === 'hop' ? 1 + 0.16 * Math.sin(Math.PI * gf) : 1 + 0.32 * air), gs, yawG + KID_YAW, g.hex, 1, glit, gA, 0, 0, POSE && gq >= 0 ? POSE.jump[0] + gq * POSE.jump[1] : 0, gq >= 0 ? Math.min(1, Math.sin(Math.PI * gq) * 1.7) : 0);
       if (glit > 0.25) K.flat.put(gpx, onLog + 0.042, gpz + 0.04, 1.2, 1, 1.0, 0, g.hex, 1, 3, 0.4 * glit);
-      g.wx = gpx; g.wy = gpy + kidGeo.height * gs + 0.16; g.wz = gpz; g.tag = gone > 0 ? null : true;
+      g.wx = gpx; g.wy = gpy + KID.h * gs + 0.16; g.wz = gpz; g.tag = gone > 0 ? null : true;
     }
-    if (flat) K.shadow.put(kid.position.x, 0.034, kid.position.z - 0.47 * flat.wide * 0.8 * KID_S, 1.5 * flat.wide, 1, 1.75 * flat.wide, 0, 0, 1, 0, 0.5 * lit);
+    if (flat) K.shadow.put(px, 0.034, pz + 0.12, 1.5 * flat.wide, 1, 1.3 * flat.wide, 0, 0, 1, 0, 0.5 * lit);
     // THE LINES: the gold band of YOUR BEST + the next friend's — across the whole lane at its far edge; on water a row of glowing
     // buoys on their rope; glints run along it; the words lie on the lane beside it. A crossed line bursts (it flares, then is gone)
     for (const k of ['best', 'friend']) {
@@ -662,7 +666,7 @@ export function createNight(host, o = {}) {
       crossed.push({ k, lane, t0: clock });
       if (reduce) return;
       for (let j = 0; j < 14; j++) part('drop', X(-0.5 + j * 0.78), 0.1, Z(lane + 0.93), 560, { hex: LINE_HEX[k], vx: (j % 3 - 1) * 0.4, vz: 0.15, vy: 2.4 + (j % 4) * 0.5 });
-      part('ring', kid.position.x, 0.06, Z(lane + 0.93), 520, { hex: LINE_HEX[k], r0: 0.3, r1: k === 'best' ? 2.6 : 1.6 });
+      part('ring', kidPos.x, 0.06, Z(lane + 0.93), 520, { hex: LINE_HEX[k], r0: 0.3, r1: k === 'best' ? 2.6 : 1.6 });
     },
     /** (H4 — SPECTATE: the camera moved to another player's kid) the kid's own feel starts clean */
     resetKid() { fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; fx.parts.length = 0; fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
@@ -672,23 +676,24 @@ export function createNight(host, o = {}) {
     zoom: () => rig.zoom(), angle: () => rig.angle(),
     /** a ground point (column cells, lane) → where it is on the screen ([x, y] 0 … 1 from the top left) — the framing's checks */
     project(cells, lane) { v3.set(X(cells), 0, Z(lane)).project(cam); return [(1 + v3.x) / 2, (1 - v3.y) / 2]; },
-    kidScreenX() { v3.copy(kid.position).project(cam); return (1 + v3.x) / 2; },
+    kidScreenX() { v3.copy(kidPos).project(cam); return (1 + v3.x) / 2; },
     setKidColor: tintOf,
     /** H3 — THE START WHILE THE COURSE LANDS: 0 = only the few lanes at the kid's feet out of the dark, 1 = the whole view (eased; `snap` = at once) */
     setReveal(v, snap) { revealT = v < 0 ? 0 : v > 1 ? 1 : v; if (snap) reveal = revealT; },
     /** where the kid is on the screen (0 … 1 from the top) — the camera's check */
-    kidScreenY() { v3.copy(kid.position).project(cam); return (1 - v3.y) / 2; },
+    kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px (= pt) — the wider view's readability number */
-    kidHeightPx() { v3.set(kid.position.x, kid.position.y, kid.position.z).project(cam); const y0 = v3.y; v3.set(kid.position.x, kid.position.y + kidH, kid.position.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ warmed, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom, look: 'night' }),
+    kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
+    info: () => ({ warmed, kid: !!kidGeo, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom, look: 'night' }),
     destroy() {
       dead = true; ro.disconnect();
       for (const { m, g } of made) { scene.remove(m); m.material.dispose(); if (g) g.dispose(); m.dispose(); }
       for (const g of Object.values(GEO)) g.dispose();
-      for (const m of [kid, kidCap, curtain, ...ufos.map(q => q.d)]) { m.material.dispose(); }
+      for (const m of [curtain, ...ufos.map(q => q.d)]) { m.material.dispose(); }
+      if (kidGeo) { kidGeo.userData.poses.tex.dispose(); kidGeo.dispose(); }
       for (const L of Object.values(LBL)) { scene.remove(L.m); L.m.material.dispose(); L.tex.dispose(); L.cv.width = 0; L.cv.height = 0; }
       labelGeo.dispose();
-      kidGeo.body.dispose(); kidGeo.cap.dispose(); discGeo.dispose(); flatGeo.dispose(); billGeo.dispose(); unit.dispose(); ground.dispose();
+      discGeo.dispose(); flatGeo.dispose(); billGeo.dispose(); unit.dispose(); ground.dispose();
       if (bloom) bloom.dispose();
       if (env) env.dispose();
       renderer.dispose();
