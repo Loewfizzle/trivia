@@ -82,7 +82,7 @@ test('MUSIC BY MOOD: a cartridge may say MUSIC: "mood:<mood>" — every mood has
 test('THE SOLO LANE (the server): a SOLO cartridge alone counts — no win, no placing, its record on the SOLO board; a non-solo game alone does not', async () => {
   const { finalGame } = await import('./fixtures/finals.mjs');
   const { extractMatch, unreportable, SOLO_OK } = await import('../js/core/match-report.js');
-  assert.deepEqual(SOLO_OK, { overclock: true, prism: true });   // (PD-2: PRISM DROP's SCORE RUSH + SURVIVAL went solo)
+  assert.deepEqual(SOLO_OK, { overclock: true, prism: true, jaywalk: true });   // (JAYWALK H1: SOLO ENDLESS)   // (PD-2: PRISM DROP's SCORE RUSH + SURVIVAL went solo)
   const oc = finalGame('overclock', ['solo1']);
   assert.equal(unreportable(oc), null, 'OVERCLOCK alone is reportable');
   const ex = extractMatch(oc);

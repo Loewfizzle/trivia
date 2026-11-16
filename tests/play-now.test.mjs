@@ -103,8 +103,9 @@ test('the dock\'s GAMES → PLAY (same spot, 4 icons the max); the signs + the b
   const dock = read('js/screens/title-dock.js');
   assert.match(dock, /tab\('nd-tab-play\.nd-tab-games\.nd-link-games', 'Play a game', ICON\.play, 'PLAY', on\.games\)/);
   const taps = read('js/screens/title-taps.js');
-  // (CITY B: JAYWALK's sign has no GAMES row yet — a quiet COMING SOON too)
-  assert.match(taps, /if \(hit\.kind === 'sign'\) \{ const g = GAMES\.find\(x => x\.id === hit\.id\) \|\| \(hit\.id === 'jaywalk' \? \{ id: 'jaywalk', name: 'JAYWALK' \} : null\); if \(g && !g\.playable\) \{ toast\(`\$\{g\.name\} — coming soon`, 'info'\); return; \} if \(g\) gameCard\(g\); \}/);
+  // (JAYWALK H1: JAYWALK's sign finds its own GAMES row now (playable: false) — a quiet COMING SOON)
+  assert.match(read('js/config.js'), /\{ id: 'jaywalk', name: 'JAYWALK'.*playable: false/, 'JAYWALK has its row — not playable yet');
+  assert.match(taps, /if \(hit\.kind === 'sign'\) \{ const g = GAMES\.find\(x => x\.id === hit\.id\); if \(g && !g\.playable\) \{ toast\(`\$\{g\.name\} — coming soon`, 'info'\); return; \} if \(g\) gameCard\(g\); \}/);
   // the letters' tap / race / surge are answered BEFORE any city hit (logoRect) — a card never steals them
   const tapFn = taps.slice(taps.indexOf('function onCityTap'), taps.indexOf('function buzz'));
   assert.ok(tapFn.indexOf('buzz(Math.max(0') < tapFn.indexOf('T.scene.hit(x, y)'));

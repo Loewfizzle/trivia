@@ -102,6 +102,10 @@
   --accent: #f2c14e; --accent-2: #39d98a; --accent-ink: #1a1204;
   --accent-soft: rgba(242, 193, 78, 0.12); --accent-glow: rgba(242, 193, 78, 0.42);
 }
+[data-theme='jaywalk'] { /* JAYWALK (H1): the city's JAY / WALK pink on its poster's plum */
+  --accent: #ff4fc4; --accent-2: #ffd6f0; --accent-ink: #1a0414;
+  --accent-soft: rgba(255, 79, 196, 0.12); --accent-glow: rgba(255, 79, 196, 0.42);
+}
 [data-theme='prism'] { /* PRISM DROP: clean white light with spectral edges */
   --accent: #f4f7ff; --accent-2: #8fd8ff; --accent-ink: #070912;
   --accent-soft: rgba(244, 247, 255, 0.08); --accent-glow: rgba(190, 210, 255, 0.4);

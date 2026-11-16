@@ -73,3 +73,11 @@ export function unpackLog(str) {
   }
   return out;
 }
+/** the chunks of a proof node ({ 0: 'U0R1c…', 1: … } or an array) → the hop log, or null (a hole, a bad chunk); none = an empty log */
+export function logFromChunks(c) {
+  if (c == null) return [];
+  const keys = Object.keys(c).map(Number).sort((a, b) => a - b);
+  let s = '';
+  for (let i = 0; i < keys.length; i++) { if (keys[i] !== i || typeof c[i] !== 'string') return null; s += c[i]; }
+  return unpackLog(s);
+}

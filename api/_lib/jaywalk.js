@@ -3,17 +3,10 @@
 // the SAME engine the phone ran (js/games/jaywalk/) → the server's own result; a phone's claimed lanes are never read.
 // WIRING (later passes): H3 — /api/report's solo best (the log sent with the run); H4 — the match: each player's log read from the proof
 // node rooms/{CODE}/jw/{matchId}/{uid}/c (packed chunks → unpackLog) and replayed here.
-import { replay, logProblem, seedProblem, unpackLog } from '../../js/games/jaywalk/replay.js';
+import { replay, logProblem, seedProblem, logFromChunks } from '../../js/games/jaywalk/replay.js';
 import { MODES, ONE_UP } from '../../js/games/jaywalk/tuning.js';
 
-/** the chunks of a proof node ({ 0: 'U0R1c…', 1: … } or an array) → the hop log, or null (a hole, a bad chunk) */
-export function logFromChunks(c) {
-  if (c == null) return [];
-  const keys = Object.keys(c).map(Number).sort((a, b) => a - b);
-  let s = '';
-  for (let i = 0; i < keys.length; i++) { if (keys[i] !== i || typeof c[i] !== 'string') return null; s += c[i]; }
-  return unpackLog(s);
-}
+export { logFromChunks };
 
 /**
  * → { ok: true, result: { lanes, tick, end, cause, lives, taken, hits, feats: { boom, ufo, airfield } } } | { ok: false, why }

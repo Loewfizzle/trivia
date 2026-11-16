@@ -24,8 +24,9 @@ test('HE10 — HOLD’EM is ON: playable for every phone, never a TEST (the tag 
       assert.equal(isPlayable('holdem'), true);
       assert.equal(isOwnerTest('holdem'), false, 'never a TEST once playable');
       for (const g of GAMES) {
-        assert.equal(isOwnerTest(g.id), false, `${g.id} is never a TEST (no game is being built now)`);
-        assert.equal(isPlayable(g.id), !!g.playable, `${g.id}: the one switch`);
+        // (JAYWALK H1: a game IS being built again — `preview`: a TEST on the owner's phone only, never playable for anyone else)
+        assert.equal(isOwnerTest(g.id), owner && !!g.preview && !g.playable, `${g.id}: a TEST only while it is being built, only on the owner's phone`);
+        assert.equal(isPlayable(g.id), !!g.playable || (owner && !!g.preview), `${g.id}: the one switch (+ the owner's live test of a game being built)`);
       }
     } finally { setOwnerPhone(false); }
   }

@@ -63,6 +63,8 @@ export const MARKS = {
     { d: 'M24 24 L60 14 L74 70 L38 80 Z', col: '#f2c14e' },
     { d: 'M48 34 C40 44 30 50 30 58 C30 65 37 68 43 65 Q46 63 47 60 L44 76 H54 L51 60 Q52 63 55 65 C61 68 68 65 68 58 C68 50 58 44 48 34 Z', col: '#f6efd9' },
   ] },
+  // JAYWALK: a crosswalk + the hop's arrow, the signs' pink
+  jaywalk: { blade: 'JAYWALK', tubes: [{ d: 'M26 86 H74 M31 72 H69 M36 59 H64 M40 48 H60', col: '#ffd6f0' }, { d: 'M50 37 V13 M39 24 L50 13 L61 24', col: '#ff4fc4' }] },
   // THE PASSWORD (PW1): a keyhole — the round eye and the slot below it, a key's tip at the door
   password: { blade: 'PASSWORD', tubes: [
     { d: 'M50 18 A17 17 0 1 1 49.9 18 Z', col: '#ff5ec4' },

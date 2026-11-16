@@ -122,7 +122,7 @@ test('board catalog: every game has WINS + WIN RATE; records, pulse songs, sort 
 });
 
 test('every game reports its finished match: placings, wins, highlights, records', () => {
-  assert.deepEqual([...REPORT_GAMES].sort(), GAMES.filter(g => !g.preview && !DEALER_GAMES.includes(g.id)).map(g => g.id).sort());   // (HE3 / HE10: HOLD'EM's result is the SERVER DEALER's own — api/_lib/holdem-store.js#reportMatch, never extractMatch; api/report.js#DEALER_GAMES)
+  assert.deepEqual([...REPORT_GAMES].sort(), GAMES.filter(g => !DEALER_GAMES.includes(g.id)).map(g => g.id).sort());   // (JAYWALK H1: a game BEING BUILT reports like the rest — the server still refuses it until its row is playable)   // (HE3 / HE10: HOLD'EM's result is the SERVER DEALER's own — api/_lib/holdem-store.js#reportMatch, never extractMatch; api/report.js#DEALER_GAMES)
   const expectRec = { cipher: ['cipher-score', 'cipher-fast5'], overclock: ['overclock-std'], pulse: ['pulse-pulse1-normal'], golf: ['golf-par9'], slip: ['slip-dist'], stakes: ['stakes-chips', 'stakes-big'], rum: ['rum-f15'] };
   const expectC = { signal: 'el', bluff: 'fool', agent: 'esc', prism: 'ko', gridlock: 'sunk' };
   for (const id of REPORT_GAMES) {

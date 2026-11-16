@@ -56,6 +56,7 @@ const nextCode = () => { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; codeN++; return `
 function proofNodes(id, m, uids) {
   if (id === 'prism') return { prism: { [m]: Object.fromEntries(uids.map(u => [u, { st: 'out', at: clock, sc: 1 }])) } };
   if (id === 'overclock') return { oc: { [m]: { 1: Object.fromEntries(uids.map(u => [u, { done: true, doneAt: clock }])) } } };
+  if (id === 'jaywalk') return { jw: { [m]: Object.fromEntries(uids.map(u => [u, { go: clock }])) } };   // (JAYWALK H1: GO alone — a silent-but-present player)
   return {};
 }
 /** Seeds a room whose match just finished; returns { code, matchId, game }. */
@@ -789,6 +790,27 @@ test('FR7 FIXES B — C5: the live rooms by the index — a stale room and the b
     const open = (await openRooms(now)).map(r => r.code);
     assert.ok(open.includes('LIVA') && open.includes('LIVB') && !open.includes('OLDD'), `the radio's open rooms (${open.join(', ')})`);
   } finally { await ref('rooms').update({ LIVA: null, LIVB: null, OLDD: null }); }
+});
+
+// JAYWALK H1 — THE PROOF NODE (rooms/{CODE}/jw/{matchId}/{uid} — api/report.js#PROOF_TREES): written by the player AT GO → present = proven.
+// A player who wrote GO and never hopped (silent but present) still counts; a seated guest with no node does not.
+test('JAYWALK H1 — the proof node: GO alone proves a player (silent but present still counts); no node = a seat, never a play', async () => {
+  await ensure('u-jw1', 'JAYONE'); await ensure('u-jw2', 'JAYTWO');
+  const J = await seedRoom('jaywalk', ['u-jw1', 'u-jw2']);
+  assert.deepEqual(Object.keys(await val(`rooms/${J.code}/jw/${J.matchId}`)).sort(), ['u-jw1', 'u-jw2'], 'both wrote GO — nothing else');
+  const r = await report('u-jw1', J);
+  assert.equal(r.status, 'counted');
+  assert.equal(r.outcome.n, 2, 'a 2-player match: the silent player counts');
+  const o = (await val(`results/${J.code}_${J.matchId}`)).o;
+  assert.ok(o[await val('uids/u-jw1')] && o[await val('uids/u-jw2')], 'both credited');
+  tick();
+  await ensure('u-jw3', 'JAYHOST'); await ensure('u-jw4', 'JAYSEAT');
+  const S = await seedRoom('jaywalk', ['u-jw3', 'u-jw4'], { noProof: ['u-jw4'] });
+  const rs = await report('u-jw3', S);
+  assert.equal(rs.outcome.n, 1, 'the seated guest who never wrote GO: not a player');
+  assert.equal(rs.outcome.win, false, 'no 2-player win from a seat');
+  assert.equal((await val(`results/${S.code}_${S.matchId}`)).o[await val('uids/u-jw4')], undefined);
+  tick();
 });
 
 // FR7 FIXES B — A SEAT IS NOT A PLAY (the owner's add-on — Grok's second opinion): EVERY credited uid needs its OWN node of THIS match in

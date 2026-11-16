@@ -14,43 +14,82 @@ import { checkCartridge } from '../js/games/contract.js';
 
 const read = f => readFileSync(f, 'utf8');
 const PLAYABLE = GAMES.filter(g => g.playable && !g.daily);
+/** JAYWALK H1 — A GAME BEING BUILT (`preview: true`, not playable) is checked in the SAME places, minus the ones that honestly wait for a later pass */
+const BUILDING = GAMES.filter(g => !g.playable && g.preview && !g.daily);
+/** THE ONE LIST of the places JAYWALK does not have YET — each with the pass that gives it. A place that is there is REMOVED from this list
+ *  (a test below fails on a stale entry); the go-live pass (the fix pass that flips `playable`) must leave it EMPTY (a test says so). */
+export const JAYWALK_WAITS = Object.freeze({
+  meta: 'the go-live pass — its thin meta in registry META at boot (THE BOOT BUDGET is at its limit: 310 / 310 modules — a named raise then, as HOLD’EM’s was)',
+  help: 'H3 — ui/help.js RULES + its tab (HOW TO PLAY)',
+  art: 'H2 — ui/game-art.js ART (its tile)',
+  boards: 'H3 — core/boards.js (the solo best + the match boards)',
+  smoke: 'H4 — tests/integration/e2e-smoke.mjs (its smoke START: the first real match)',
+});
+const WAITS = Object.freeze({ jaywalk: JAYWALK_WAITS });
 /** a live node only the SERVER writes (rules: .write false) — not a player node, never in the wipe list (its dealer clears it) */
 const SERVER_LIVE = Object.freeze({ holdem: "HOLD'EM's public table — rooms/{CODE}/holdem, written by THE DEALER (api/_lib/holdem-store.js) only" });
-const keysOf = (src, name) => { const m = new RegExp(`(?:const|export const) ${name} = (?:Object\\.freeze\\()?\\{([\\s\\S]*?)\\n?\\}\\)?;`).exec(src); return m ? [...m[1].matchAll(/(?:^|[\s,{])'?([a-z][a-z0-9]*)'?\s*:/g)].map(x => x[1]) : []; };
 
-test('T1 — every playable game is registered in EVERY place the console, the server and the tests read', () => {
-  assert.ok(PLAYABLE.length >= 3, 'the playable games');
+/** every place ONE game must be registered in → [[key, what is missing]] */
+async function gaps(g) {
   const reg = read('js/games/registry.js'), help = read('js/ui/help.js'), art = read('js/ui/game-art.js'), base = read('css/base.css');
   const boards = read('js/core/boards.js'), smoke = read('tests/integration/e2e-smoke.mjs'), report = read('api/report.js');
   const budget = JSON.parse(read('tests/integration/game-budget.json')), graph = read('js/games/preload-graph.js');
   const proofs = Object.fromEntries([...report.matchAll(/^\s{2}([a-z]+): m => \(\{ room: \[([^\]]*)\]/gm)].map(x => [x[1], [...x[2].matchAll(/`([a-z]+)\//g)].map(y => y[1])]));
+  const id = g.id, idx = (() => { try { return read(`js/games/${id}/index.js`); } catch { return ''; } })();
+  // (a game being built has no meta at boot yet — its meta file is read directly, so SOLO ↔ SOLO_OK + the contract are still checked)
+  const meta = META[id] || await import(`../js/games/${id}/meta.js`).catch(() => null);
+  const out = [], miss = (key, what) => out.push([key, what]);
+  if (!g.name || !g.theme || !g.tag || !g.blurb) miss('row', 'config.js GAMES row — name, theme, tag, blurb');
+  if (!META[id]) miss('meta', 'games/registry.js META (its thin meta at boot)');
+  if (!meta) miss('metafile', `js/games/${id}/meta.js`);
+  if (!new RegExp(`\\b${id}: \\(\\) => import\\('\\./${id}/index\\.js'\\)`).test(reg)) miss('loader', 'games/registry.js#loadGame — its cartridge loader');
+  if (!MARKS[id]) miss('mark', 'core/marks.js MARKS (the sign at the game start + the city\'s signs)');
+  if (!new RegExp(`RULES\\.${id} = \\{|\\n  ${id}: \\{`).test(help) || !new RegExp(`[{ ]${id}: '[A-Z]{2}'`).test(help)) miss('help', 'ui/help.js — its RULES + its tab (else HOW TO PLAY shows the first game\'s rules)');
+  if (!new RegExp(`const ART = \\{[^}]*\\b${id}\\b`).test(art)) miss('art', 'ui/game-art.js ART (its tile)');
+  if (!base.includes(`[data-theme='${g.theme}']`)) miss('theme', `css/base.css [data-theme='${g.theme}'] (its theme)`);
+  if (!new RegExp(`\\n\\s+${id}: \\{ records:`).test(boards)) miss('boards', 'core/boards.js (its boards)');
+  if (!REPORT_GAMES.includes(id) && !DEALER_GAMES.includes(id)) miss('report', 'core/match-report.js — STANDINGS (the shared report) or DEALER_GAMES (its own dealer)');
+  if (meta && meta.SOLO === true && !SOLO_OK[id]) miss('solo', 'match-report.js SOLO_OK — a SOLO meta without it: PLAY NOW works, then the server refuses the run');
+  if (REPORT_GAMES.includes(id) && !proofs[id]) miss('proof', 'api/report.js PROOF_TREES — a reported game\'s proof of play (else the seat rule silently)');
+  for (const n of proofs[id] || []) if (!PROOF_NODE_LIST.includes(n)) miss('proofnode', `registry.js PROOF_NODE_LIST lacks '${n}' (its proof tree — wiped at the wrong time)`);
+  const lp = /export const livePaths = [^\n]*/.exec(idx);
+  if (!lp) miss('live', 'index.js livePaths');
+  else for (const n of [...lp[0].matchAll(/[`']([a-z]+)(?:\/|')/g)].map(x => x[1])) if (!ALL_PLAYER_NODES.includes(n) && !NEW_PLAYER_NODES.includes(n) && !SERVER_LIVE[n]) miss('live', `a livePaths node '${n}' outside ALL_PLAYER_NODES / NEW_PLAYER_NODES — never wiped`);
+  if (!new RegExp(`\\['${id}', \\{`).test(smoke)) miss('smoke', 'tests/integration/e2e-smoke.mjs — its smoke start');
+  if (!(id in (budget.games || {}))) miss('budget', 'tests/integration/game-budget.json — THE PER-GAME BUDGET');
+  if (!graph.includes(`"${id}": [`)) miss('graph', 'js/games/preload-graph.js — its preload graph (node scripts/build-preload-graph.mjs)');
+  // (the contract, read from the meta: the full module needs a browser — the harbor `cartridge` group checks the whole cartridge)
+  if (meta) for (const p2 of checkCartridge(id, { ...meta, start() {}, prepare() {}, step() {}, livePaths() {}, createView() {}, finalRanks() {} }, { marks: MARKS, game: g })) miss('contract', `the contract: ${p2}`);
+  return out;
+}
+
+test('T1 — every playable game is registered in EVERY place the console, the server and the tests read', async () => {
+  assert.ok(PLAYABLE.length >= 3, 'the playable games');
   const bad = [];
-  for (const g of PLAYABLE) {
-    const id = g.id, meta = META[id], idx = (() => { try { return read(`js/games/${id}/index.js`); } catch { return ''; } })();
-    const miss = what => bad.push(`${id}: ${what}`);
-    if (!g.name || !g.theme || !g.tag || !g.blurb) miss('config.js GAMES row — name, theme, tag, blurb');
-    if (!meta) miss('games/registry.js META (its thin meta at boot)');
-    if (!new RegExp(`\\b${id}: \\(\\) => import\\('\\./${id}/index\\.js'\\)`).test(reg)) miss('games/registry.js#loadGame — its cartridge loader');
-    if (!MARKS[id]) miss('core/marks.js MARKS (the sign at the game start + the city\'s signs)');
-    if (!new RegExp(`RULES\\.${id} = \\{|\\n  ${id}: \\{`).test(help) || !new RegExp(`[{ ]${id}: '[A-Z]{2}'`).test(help)) miss('ui/help.js — its RULES + its tab (else HOW TO PLAY shows the first game\'s rules)');
-    if (!new RegExp(`const ART = \\{[^}]*\\b${id}\\b`).test(art)) miss('ui/game-art.js ART (its tile)');
-    if (!base.includes(`[data-theme='${g.theme}']`)) miss(`css/base.css [data-theme='${g.theme}'] (its theme)`);
-    if (!new RegExp(`\\n\\s+${id}: \\{ records:`).test(boards)) miss('core/boards.js (its boards)');
-    if (!REPORT_GAMES.includes(id) && !DEALER_GAMES.includes(id)) miss('core/match-report.js — STANDINGS (the shared report) or DEALER_GAMES (its own dealer)');
-    if (meta && meta.SOLO === true && !SOLO_OK[id]) miss('match-report.js SOLO_OK — a SOLO meta without it: PLAY NOW works, then the server refuses the run');
-    if (REPORT_GAMES.includes(id) && !proofs[id]) miss('api/report.js PROOF_TREES — a reported game\'s proof of play (else the seat rule silently)');
-    for (const n of proofs[id] || []) if (!PROOF_NODE_LIST.includes(n)) miss(`registry.js PROOF_NODE_LIST lacks '${n}' (its proof tree — wiped at the wrong time)`);
-    const lp = /export const livePaths = [^\n]*/.exec(idx);
-    if (!lp) miss('index.js livePaths');
-    else for (const n of [...lp[0].matchAll(/[`']([a-z]+)(?:\/|')/g)].map(x => x[1])) if (!ALL_PLAYER_NODES.includes(n) && !NEW_PLAYER_NODES.includes(n) && !SERVER_LIVE[n]) miss(`a livePaths node '${n}' outside ALL_PLAYER_NODES / NEW_PLAYER_NODES — never wiped`);
-    if (!new RegExp(`\\['${id}', \\{`).test(smoke)) miss('tests/integration/e2e-smoke.mjs — its smoke start');
-    if (!(id in (budget.games || {}))) miss('tests/integration/game-budget.json — THE PER-GAME BUDGET');
-    if (!graph.includes(`"${id}": [`)) miss('js/games/preload-graph.js — its preload graph (node scripts/build-preload-graph.mjs)');
-    // (the contract, read from the meta: the full module needs a browser — the harbor `cartridge` group checks the whole cartridge)
-    const metaOnly = checkCartridge(id, { ...meta, start() {}, prepare() {}, step() {}, livePaths() {}, createView() {}, finalRanks() {} }, { marks: MARKS, game: g });
-    for (const p of metaOnly) miss(`the contract: ${p}`);
-  }
+  for (const g of PLAYABLE) for (const [, what] of await gaps(g)) bad.push(`${g.id}: ${what}`);
   assert.deepEqual(bad, [], 'every playable game, every place');
+});
+
+test('JAYWALK H1 — a game BEING BUILT (a `preview` row) is registered in the same places — minus its ONE named list of waits, each with its pass; none of them stale', async () => {
+  assert.deepEqual(BUILDING.map(g => g.id), ['jaywalk'], 'the game being built');
+  for (const g of BUILDING) {
+    const waits = WAITS[g.id] || {}, found = await gaps(g), keys = new Set(found.map(x => x[0]));
+    assert.deepEqual(found.filter(([k]) => !(k in waits)).map(([, what]) => `${g.id}: ${what}`), [], `${g.id}: every place that does not wait`);
+    for (const k of Object.keys(waits)) assert.ok(keys.has(k), `${g.id}: "${k}" is registered now — take it off its waits list (${waits[k]})`);
+    for (const why of Object.values(waits)) assert.match(why, /^(H[2-6]|the go-live pass) — /, 'every wait names the pass that empties it');
+  }
+});
+
+test('JAYWALK H1 — THE GO-LIVE PASS MUST EMPTY THE WAITS: a playable game has no waits list left; a wait for a game that is not being built is stale', () => {
+  for (const [id, waits] of Object.entries(WAITS)) {
+    const g = GAMES.find(x => x.id === id);
+    assert.ok(g, `${id} is a GAMES row`);
+    if (g.playable) assert.deepEqual(Object.keys(waits), [], `${id} is PLAYABLE — its waits list must be empty (and it then passes the playable games' check above in full)`);
+    else assert.ok(g.preview === true, `${id}: waits are only for a game being built`);
+  }
+  // (the rule bites: a playable row with a wait left fails — the same check on a copy)
+  const live = { ...GAMES.find(x => x.id === 'jaywalk'), playable: true };
+  assert.ok(live.playable && Object.keys(JAYWALK_WAITS).length > 0, 'today: being built, with waits — flipping the switch without emptying them is red');
 });
 
 test('T1 — the cross-check bites: a SOLO meta without SOLO_OK, a proof node outside the list, a livePaths node never wiped are named', () => {

@@ -108,13 +108,16 @@ export const proofPaths = (gid, matchId, uid) => (PROOF_PATHS[gid] ? PROOF_PATHS
 export const PROOF_TREES = Object.freeze({
   prism: m => ({ room: [`prism/${m}`], seal: [] }),
   overclock: m => ({ room: [`oc/${m}`, `ocm/${m}`], seal: [`oc/${m}`] }),
+  jaywalk: m => ({ room: [`jw/${m}`], seal: [] }),   // (JAYWALK H1: written AT GO — present = proven, a silent player included)
 });
-/** PURE: the uids a match's trees prove — prism's tree is { uid: board }; OVERCLOCK's { ci | key: { uid: … } } */
+/** the games whose proof tree is FLAT — { uid: node } (PRISM's boards, JAYWALK's runs); the others' = { ci | key: { uid: … } } (OVERCLOCK) */
+const FLAT_PROOF = new Set(['prism', 'jaywalk']);
+/** PURE: the uids a match's trees prove */
 export function provenUids(gid, trees) {
   const out = new Set();
   for (const t of trees || []) {
     if (!t || typeof t !== 'object') continue;
-    if (gid === 'prism') { for (const u of Object.keys(t)) out.add(u); continue; }
+    if (FLAT_PROOF.has(gid)) { for (const u of Object.keys(t)) out.add(u); continue; }
     for (const per of Object.values(t)) if (per && typeof per === 'object') for (const u of Object.keys(per)) out.add(u);
   }
   return out;

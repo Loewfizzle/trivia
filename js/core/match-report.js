@@ -10,6 +10,8 @@
 import { standings as cipherStandings, MAX_GUESSES } from '../games/cipher/logic.js';
 import * as ocMeta from '../games/overclock/meta.js';
 import * as prismMeta from '../games/prism/meta.js';
+import * as jwMeta from '../games/jaywalk/meta.js';
+import { standings as jaywalkStandings } from '../games/jaywalk/logic.js';
 import { boardDef } from './boards.js';
 import { rankings as signalRankings } from '../games/signal/logic.js';
 import { standings as ocStandings, MODES as OC_MODES, roundWin as ocRoundWin, ptsCeiling as ocPtsCeiling, matchMax as ocMatchMax } from '../games/overclock/logic.js';
@@ -30,6 +32,7 @@ const STANDINGS = {
   cipher: cipherStandings, signal: signalRankings, overclock: ocStandings, bluff: bluffStandings, pulse: pulseStandings,
   golf: golfStandings, agent: agentStandings, prism: prismStandings, slip: slipStandings, gridlock: gridlockStandings,
   stakes: stakesStandings, rum: rumStandings,
+  jaywalk: jaywalkStandings,   // (JAYWALK H1 — BEING BUILT: the server's report still refuses it until its row is playable — api/report.js#reportableGame)
 };
 export const REPORT_GAMES = Object.keys(STANDINGS);
 /** HE10 (the Fable review's A2 / B1): the games THE SERVER DEALS ITSELF — their result exists only from the dealer's own record
@@ -336,11 +339,14 @@ function rumExtra(game, uid, out, row) {
   if (f > 0 && RUM_LENGTHS.includes(days)) out.rec[`rum-f${days}`] = f;
 }
 
-const EXTRA = { cipher: cipherExtra, signal: signalExtra, overclock: overclockExtra, bluff: bluffExtra, pulse: pulseExtra, golf: golfExtra, agent: agentExtra, prism: prismExtra, slip: slipExtra, gridlock: gridlockExtra, stakes: stakesExtra, rum: rumExtra };
+// JAYWALK (H1): no counters / records yet — its boards + the replayed result on the server come in H3 (solo) / H4 (the match)
+function jaywalkExtra() {}
+
+const EXTRA = { jaywalk: jaywalkExtra, cipher: cipherExtra, signal: signalExtra, overclock: overclockExtra, bluff: bluffExtra, pulse: pulseExtra, golf: golfExtra, agent: agentExtra, prism: prismExtra, slip: slipExtra, gridlock: gridlockExtra, stakes: stakesExtra, rum: rumExtra };
 
 /** Is this a finished match we can count? (null = yes, else the reason) */
 // THE SOLO LANE (SHELL 2.0 B1 — D3): the cartridges a room of ONE may count (their meta's SOLO — the same flag the console starts them by)
-export const SOLO_OK = Object.freeze({ overclock: ocMeta.SOLO === true, prism: prismMeta.SOLO === true });
+export const SOLO_OK = Object.freeze({ overclock: ocMeta.SOLO === true, prism: prismMeta.SOLO === true, jaywalk: jwMeta.SOLO === true });
 /** a solo match's records go to the game's SOLO board (`<board>-solo` — core/boards.js), never the multiplayer one; none → dropped */
 export const soloBoard = b => (boardDef(`${b}-solo`) ? `${b}-solo` : null);
 export function unreportable(game) {
@@ -358,6 +364,7 @@ export function unreportable(game) {
 const SOLO_PLAYED = {
   overclock: (game, uid) => vals(game.results).some(rr => { const x = rr && rr[uid]; return !!x && (num(x.ok) > 0 || num(x.pts) > 0); }),
   prism: (game, uid) => { const r = (game.results || {})[uid] || {}; return num(r.sc) > 0 || num(r.ln) > 0; },
+  jaywalk: (game, uid) => num(((game.results || {})[uid] || {}).l) > 0,   // (a lane reached: a phone left on the table never counts)
 };
 // (PD-2 — PRISM DROP's solo SURVIVAL: the standings' score is the SECONDS SURVIVED, which a phone on the table earns too (the pieces fall + lock
 //  by themselves) — so PRISM's own check decides alone: points or lines (a solo SCORE RUSH's score IS its points — the same answer))

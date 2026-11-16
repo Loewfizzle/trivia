@@ -51,6 +51,9 @@ export function finalGame(id, uids, opts = {}) {
       return { ...base, settings: { mode: rush ? 'rush' : 'battle' }, sd: [200_000], out, winner: uids[0], playStartAt: T0 + 10_000,
         results: byRank(uids, i => ({ sc: opts.rushScore != null && i === 0 ? opts.rushScore : 40_000 - i * 5000, ln: 60 - i * 5, lv: 7, ko: rush ? 0 : (i === 0 ? n - 1 : 0), sent: 20 - i, bd: 0, pn: 160 - i * 10 })) };
     }
+    // (JAYWALK H1: the replayed results — lanes, the tick, the cause, the lives left)
+    case 'jaywalk': return { ...base, settings: { lives: 3 }, mode: n === 1 ? 'solo' : 'match', seed: 'fixture', playAt: T0,
+      results: byRank(uids, i => ({ l: opts.lanes != null && i === 0 ? opts.lanes : 240 - i * 40, t: 9000 - i * 900, w: i ? 'car' : 'taken', lv: i ? 0 : 2 })) };
     case 'slip': {
       const out = Object.fromEntries(uids.slice(1).map((u, k) => [u, { at: T0 + 200_000 - k * 1000, place: k + 2, rem: k + 1, d: 2000 - k * 200 }]));
       return { ...base, settings: { lives: 3 }, playStartAt: T0, phaseStartAt: T0 + 240_000, out, winner: uids[0],

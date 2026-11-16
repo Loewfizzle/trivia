@@ -9,7 +9,7 @@ import { GAMES } from '../js/config.js';
 
 test('THE PRELOAD GRAPH is fresh (node scripts/build-preload-graph.mjs) + covers every playable cartridge, none of the boot graph', () => {
   assert.equal(readFileSync(new URL('../js/games/preload-graph.js', import.meta.url), 'utf8'), render(), 'stale — run node scripts/build-preload-graph.mjs');
-  assert.deepEqual(CARTRIDGES.slice().sort(), GAMES.filter(g => g.playable).map(g => g.id).sort());
+  assert.deepEqual(CARTRIDGES.slice().sort(), GAMES.filter(g => g.playable || g.preview).map(g => g.id).sort());   // (JAYWALK H1: + a game being built)
   for (const id of CARTRIDGES) { assert.ok(PRELOAD[id].includes(`js/games/${id}/index.js`) && PRELOAD[id].includes(`js/games/${id}/view.js`), id); assert.ok(graphOf(id).bytes < 1.5 * 1024 * 1024, `${id}: within the preload budget`); }
 });
 

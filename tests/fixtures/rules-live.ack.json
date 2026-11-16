@@ -1,4 +1,4 @@
 {
- "hash": "0bdac1287e45a674",
- "line": "RULES CHANGED: rooms/{CODE}/prism/{m}, rooms/{CODE}/oc/{m}, rooms/{CODE}/ocm/{m} — the host may delete ONE match's node (A SEAT IS NOT A PLAY: a new start keeps the previous match's proof for a late report) — RE-PUBLISH database.rules.json in the Firebase console (Realtime Database → Rules → paste the whole file → Publish); until then the old rules run: the old matches' nodes stay until the room is deleted (the fallback)"
+ "hash": "260ecac86db0c6c3",
+ "line": "RULES CHANGED: rooms/{CODE}/jw/{matchId}/{uid} — JAYWALK's proof node, NEW (go · c/{i} · e: the player's own, their own match, bounded; the host may delete ONE match's node; nothing live writes it before H4) + still waiting from FR7 FIXES B: rooms/{CODE}/prism/{m}, oc/{m}, ocm/{m} (the host may delete ONE match's node — A SEAT IS NOT A PLAY) — RE-PUBLISH database.rules.json in the Firebase console (Realtime Database → Rules → paste the whole file → Publish); until then the old rules run: the old matches' nodes stay until the room is deleted (the fallback), and a jw write would be refused (no JAYWALK match can start on the live site yet)"
 }
