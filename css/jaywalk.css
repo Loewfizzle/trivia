@@ -5,3 +5,50 @@
 .jw-stub-t { margin: 0; font: 900 34px/1 var(--font-display); letter-spacing: 0.06em; color: #ff4fc4; text-shadow: 0 0 18px rgba(255, 79, 196, 0.55); }
 .jw-stub-line { margin: 0; font: 700 13px/1.3 var(--font-ui); letter-spacing: 0.16em; color: var(--text); }
 .jw-stub-sub { margin: 0; font: 500 13px/1.4 var(--font-ui); color: var(--text-dim); }
+
+/* ---- THE JAYWALK LAB (/jaywalk-lab) — the graybox: the play area + the screen-space bands + a small HUD. No pills, no gold. */
+.jw-lab-html, .jw-lab-on { height: 100%; margin: 0; background: #07060b; overscroll-behavior: none; }
+.jw-lab { min-height: 100dvh; color: var(--text); font-family: var(--font-ui); }
+.jw-lab-wait, .jw-deny { max-width: 520px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 64px) 24px 24px; }
+.jw-lab-wait { color: var(--text-dim); font-size: 14px; }
+.jw-lab-k { font: 700 11px/1 var(--font-ui); letter-spacing: 0.28em; color: var(--text-dim); }
+.jw-deny h1 { margin: 10px 0 14px; font: 900 26px/1.1 var(--font-display); letter-spacing: 0.05em; color: #ff4fc4; }
+.jw-deny p { margin: 0 0 12px; font-size: 15px; line-height: 1.5; color: var(--text-dim); }
+.jw-deny code { font-family: var(--font-mono); color: var(--text); word-break: break-all; }
+.jw-a { color: #8ff0ff; text-decoration: none; display: inline-block; padding: 12px 0; min-height: 44px; }
+
+/* the stage: a phone-shaped column (a wide window gets the same play area, centred — DESKTOP COMES FREE) */
+.jw-stage { position: fixed; inset: 0; width: min(100vw, calc(100dvh * 0.62)); margin: 0 auto; overflow: hidden; background: #07060b;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.jw-play { position: absolute; inset: 0; touch-action: none; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
+.jw-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* the skyline band's space at the top (an empty dark band for now — H2's skyline) + the bottom blackout gradient: screen-space, over the canvas */
+.jw-sky { position: absolute; left: 0; right: 0; top: 0; height: 24%; pointer-events: none; background: linear-gradient(#07060b 0, #07060b 72%, rgba(7, 6, 11, 0) 100%); }
+.jw-blackout { position: absolute; left: 0; right: 0; bottom: 0; height: 17%; pointer-events: none; background: linear-gradient(rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0.82) 70%, #000 100%); }
+
+.jw-hud { position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top) + 10px); text-align: center; pointer-events: none; }
+.jw-lanes { font: 900 64px/1 var(--font-num, var(--font-display)); letter-spacing: 0.02em; color: #fff; text-shadow: 0 2px 0 #000, 0 0 22px rgba(255, 79, 196, 0.55); }
+.jw-sub { margin-top: 6px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.2em; color: var(--text-dim); }
+.jw-mark { margin-top: 10px; min-height: 18px; font: 900 16px/1 var(--font-display); letter-spacing: 0.14em; color: #ffd6f0; text-shadow: 0 0 14px rgba(255, 79, 196, 0.7); }
+
+/* the small mode switch (neon-underline tabs — never a pill) + NEW SEED */
+.jw-bar { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 8px); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; }
+.jw-tabs { display: flex; gap: 2px; }
+.jw-tab, .jw-new { min-height: 44px; min-width: 44px; padding: 0 12px; border: 0; background: none; color: var(--text-dim); font: 700 12px/1 var(--font-ui); letter-spacing: 0.16em; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.jw-tab { box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.14); }
+.jw-tab.is-on { color: #fff; box-shadow: inset 0 -2px 0 #ff4fc4, 0 10px 14px -10px rgba(255, 79, 196, 0.9); }
+.jw-new { color: #8ff0ff; }
+
+.jw-end { position: absolute; left: 0; right: 0; top: 27%; text-align: center; padding: 58px 20px 62px; pointer-events: none;
+  background: linear-gradient(rgba(4, 3, 8, 0) 0, rgba(4, 3, 8, 0.8) 22%, rgba(4, 3, 8, 0.8) 78%, rgba(4, 3, 8, 0) 100%); }
+.jw-end[hidden] { display: none; }
+.jw-end-t { font: 900 26px/1.15 var(--font-display); letter-spacing: 0.06em; color: #fff; text-shadow: 0 2px 0 #000, 0 0 20px rgba(255, 79, 196, 0.7); }
+.jw-end-l { margin-top: 8px; font: 700 15px/1.2 var(--font-ui); letter-spacing: 0.2em; color: #ffd6f0; text-shadow: 0 1px 0 #000; }
+.jw-end-go { margin-top: 26px; font: 700 14px/1 var(--font-ui); letter-spacing: 0.24em; color: #8ff0ff; text-shadow: 0 1px 0 #000; }
+.jw-check { margin: 22px auto 0; max-width: 340px; font: 500 12px/1.4 var(--font-mono); text-shadow: 0 1px 0 #000; }
+.jw-check.is-ok { color: var(--good, #3dff8b); }
+.jw-check.is-ok::before { content: '✓ '; }
+.jw-check.is-bad { color: #fff; background: #c8102e; padding: 8px 10px; font-weight: 700; }
+.jw-check.is-bad::before { content: '✕ '; }
+.jw-seed { position: absolute; right: 10px; top: calc(env(safe-area-inset-top) + 8px); font: 400 10px/1 var(--font-mono); color: var(--text-faint); pointer-events: none; }
+.jw-fps { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 58px); font: 400 10px/1.35 var(--font-mono); color: #9dffb8; pointer-events: none; text-shadow: 0 1px 0 #000; }

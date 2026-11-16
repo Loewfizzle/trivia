@@ -75,7 +75,7 @@ export const GRASS = Object.freeze({ obstacles: [[0, 3], [1, 5]] });
 export const WALL = Object.freeze({
   start: -8 * FP,                          // (it begins 8 lanes behind the start)
   delay: 180,                              // (and waits 3 s — the calm opening)
-  behind: 7,                               // (never more than 7 lanes behind the kid's BEST: no banking distance)
+  behind: 5,                               // (never more than 5 lanes behind the kid's BEST: no banking distance — it waits just under the screen's foot)
   respawnGap: 7,                           // (a respawn is never closer than 7 lanes ahead of it)
 });
 

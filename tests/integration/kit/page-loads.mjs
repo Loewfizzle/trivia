@@ -1,7 +1,7 @@
 // FIXES R1 — THE PAGES LOAD (THE REVIEW A1): CITY E shipped js/admin/admin.js with `backups` declared twice — the module failed to parse and
 // /admin hung on "Signing in…" for everyone; nothing local ever opened /admin. Every page with its own script is loaded here, in a REAL browser,
 // and FAILS on any page error (an unparsed module is one) or a page that never leaves its placeholder:
-//   the app (/), /admin, /board, /lab, /daychart — on the emulators (?emu). e2e-smoke.mjs runs it first (Chromium; + WebKit when Playwright's
+//   the app (/), /admin, /board, /lab, /daychart, /jaywalk-lab — on the emulators (?emu). e2e-smoke.mjs runs it first (Chromium; + WebKit when Playwright's
 //   WebKit is installed at ~/wk — the cloud has none, it says so). Alone: node tests/integration/kit/page-loads.mjs "<chrome>" [--base URL]
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
@@ -16,6 +16,8 @@ export const PAGES = [
   ['/board', "!!document.querySelector('#app') && document.querySelector('#app').children.length > 0"],
   ['/lab', "!!document.querySelector('#app') && !/Checking the door/.test(document.querySelector('#app').textContent)"],
   ['/daychart', "!!document.querySelector('#app') && document.querySelector('#app').textContent.trim() !== 'Checking…'"],
+  // (JAYWALK H1 — THE JAYWALK LAB: owner-gated like /lab — on the emulators a stranger gets THE DOOR, and nothing of the graybox behind it)
+  ['/jaywalk-lab', "!!document.querySelector('#app .jw-deny') && !document.querySelector('canvas')"],
 ];
 const READY_MS = 25000;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
