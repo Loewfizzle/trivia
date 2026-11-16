@@ -252,7 +252,7 @@ test('CALL THE WINNER: a right call (made once out, on a player still in, in tim
 
 // ---- THE DROPPED SIGNAL (the owner, Nov 16 — a phone in a moving van): a solo run of two minutes on the course its GO picked
 const LONG = (() => {
-  const go = T0 + 1090, matchId = 'm9', seed = seedOf(CODE, matchId, go);
+  const go = T0 + 1092, matchId = 'm9', seed = seedOf(CODE, matchId, go);   // (H5A — THE AREAS changed every course: a GO whose course this bot lives two minutes on)
   const h = play(seed, 'solo', 7200, 'drop');
   return { go, matchId, seed, ...h, node: o => ({ go, c: chunksOf(h.log, go, { every: 1000, ...o }), e: { l: 0, t: 0 } }) };
 })();

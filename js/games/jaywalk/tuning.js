@@ -19,7 +19,7 @@ export const LOG_GRACE = 150;             // (how far past a log's end the kid's
 // ---- THE COURSE
 export const CALM_LANES = 4;              // (lanes 0–3: plain grass — the opening is always calm)
 export const STRETCH = 50;                // (a stretch = the 50 lanes from one landmark to the next)
-/** THE FIXED LANDMARKS, every 50 lanes, in this order — then the loop again, harder (their looks: H5) */
+/** THE FIXED LANDMARKS, every 50 lanes, in this order — then the loop again, harder (H5A: each one's lane is the GATEWAY into its AREA — below) */
 export const LANDMARKS = Object.freeze(['THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD', 'THE BRIDGE', 'DOWNTOWN', 'THE CANAL', 'THE LIGHTHOUSE', 'THE AIRFIELD']);
 export const LOOP_LANES = STRETCH * LANDMARKS.length;   // 400
 /** the landmark AT this lane (null = none): lane 50 → THE DOCKS … 400 → THE AIRFIELD, 450 → THE DOCKS again */
@@ -41,6 +41,27 @@ export const MIX = Object.freeze({
 });
 export const FIRST = Object.freeze({ road: CALM_LANES, water: 12, rail: 25, ufo: 100, flight: 150 });
 export const WATER_RUN_MAX = 3;           // (never more than 3 water lanes in a row)
+export const RAIL_RUN_MAX = 3;            // (… nor more than 3 rail lanes — H5A: THE RAIL YARD leans hard on them)
+
+/** THE AREAS (H5A — the owner, Nov 16): a new area every 50 lanes — the stretch that BEGINS at a landmark's lane IS that place (lanes
+ *  50–99 THE DOCKS · 100–149 THE FISH MARKET · … · 400–449 THE AIRFIELD · 450 on: the loop again, harder); lanes 0–49 are the plain
+ *  opening. Each area LEANS the lane mix — `mix` [grass, road, water, rail], a PERCENTAGE on the heat's own weights (MIX): the difficulty
+ *  curve keeps climbing underneath — the speeds, the gaps, the logs' lengths, the trains' laps stay the heat's alone. `cars` + `gap` =
+ *  HEAVIER TRAFFIC (more cars a lap, less spare room between them — never under the crossable gap, ROAD.gapMin + gapVTicks);
+ *  `flight` = the stretch has its flight paths FOR SURE, two of them (no UFO there: never both in one stretch). */
+export const AREAS = Object.freeze([
+  Object.freeze({ name: 'THE DOCKS', mix: Object.freeze([120, 70, 170, 60]) }),          // water + the piers
+  Object.freeze({ name: 'THE FISH MARKET', mix: Object.freeze([135, 90, 130, 50]) }),    // the market's ground + water
+  Object.freeze({ name: 'THE RAIL YARD', mix: Object.freeze([90, 60, 40, 420]) }),       // more trains
+  Object.freeze({ name: 'THE BRIDGE', mix: Object.freeze([35, 130, 190, 30]) }),         // water with roads
+  Object.freeze({ name: 'DOWNTOWN', mix: Object.freeze([80, 190, 25, 60]), cars: 1, gap: 65 }),   // roads + heavier traffic
+  Object.freeze({ name: 'THE CANAL', mix: Object.freeze([80, 60, 230, 40]) }),           // more water
+  Object.freeze({ name: 'THE LIGHTHOUSE', mix: Object.freeze([150, 60, 170, 40]) }),     // water + the rocks
+  Object.freeze({ name: 'THE AIRFIELD', mix: Object.freeze([110, 120, 30, 50]), flight: 2 }),     // more flight paths
+]);
+export const NO_LEAN = Object.freeze({ name: '', mix: Object.freeze([100, 100, 100, 100]) });
+/** the area AT this lane: −1 = the opening (lanes 0–49), else 0 … 7 (the index into AREAS / LANDMARKS) */
+export const areaIndex = lane => { const s = Math.floor(lane / STRETCH); return s < 1 ? -1 : (s - 1) % LANDMARKS.length; };
 
 /** ROAD: the cars' speed (FP a tick) [slowest, fastest] at heat 0 → 1000; their lengths; the gaps */
 export const ROAD = Object.freeze({

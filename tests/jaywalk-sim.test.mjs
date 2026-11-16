@@ -5,8 +5,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from '../js/games/jaywalk/tuning.js';
-import { buildLane, specials, createCourse, pulseAt, typeAt } from '../js/games/jaywalk/course.js';
-import { createRun, resultOf } from '../js/games/jaywalk/engine.js';
+import { readFileSync } from 'node:fs';
+import { buildLane, specials, createCourse, pulseAt, typeAt, area, gateName } from '../js/games/jaywalk/course.js';
+import { createRun, resultOf, step, isOver } from '../js/games/jaywalk/engine.js';
+import { replay } from '../js/games/jaywalk/replay.js';
 import { greedyBot, randomBot, playBot } from '../js/games/jaywalk/bot.js';
 
 const SEEDS = 2000;
@@ -96,7 +98,7 @@ test(`${SEEDS} seeds: THE UFO + THE BLACKBIRD are never in one stretch · the UF
   assert.ok(ufos < SEEDS * 14 * 0.5 && bbs < SEEDS * 14 * 0.5);
 });
 
-test('THE DIFFICULTY RISES with the lane index — the SAME curve on every course: less grass, faster cars, shorter + faster logs, more trains; harder again in the loop', () => {
+test('THE DIFFICULTY RISES with the lane index — the SAME curve on every course, UNDER the areas\' leans (H5A): faster cars, shorter + faster logs everywhere; less grass + more trains like for like (the same area one loop later)', () => {
   const band = (lo, hi) => {
     const o = { n: 0, grass: 0, rail: 0, carV: 0, cars: 0, logV: 0, logLen: 0, logs: 0 };
     for (let s = 0; s < 300; s++) for (let i = lo; i < hi; i++) {
@@ -107,15 +109,134 @@ test('THE DIFFICULTY RISES with the lane index — the SAME curve on every cours
     return { grass: o.grass / o.n, rail: o.rail / o.n, carV: o.carV / o.cars, logV: o.logV / o.logs, logLen: o.logLen / o.logs };
   };
   const a = band(30, 48), b = band(205, 223), c = band(370, 388), d = band(560, 578);
+  // the speeds, the logs: the heat's alone — whatever area the lanes are in
   for (const [x, y, name] of [[a, b, 'lane 30 → 205'], [b, c, '205 → 370'], [c, d, '370 → 560 (the loop)']]) {
-    assert.ok(y.grass < x.grass, `${name}: less grass (${x.grass.toFixed(2)} → ${y.grass.toFixed(2)})`);
     assert.ok(y.carV > x.carV, `${name}: faster cars`);
     assert.ok(y.logV > x.logV && y.logLen < x.logLen, `${name}: faster, shorter logs`);
-    assert.ok(y.rail > x.rail, `${name}: more trains`);
+  }
+  // the mix, like for like: the SAME area one loop later (lane + 400) — less grass, more trains: the curve under the lean
+  for (const lo of [60, 110, 160, 210, 260, 310, 360]) {
+    const x = band(lo, lo + 30), y = band(lo + T.LOOP_LANES, lo + T.LOOP_LANES + 30);
+    assert.ok(y.grass < x.grass, `lane ${lo} → ${lo + 400}: less grass (${x.grass.toFixed(2)} → ${y.grass.toFixed(2)})`);
+    assert.ok(y.rail > x.rail, `lane ${lo} → ${lo + 400}: more trains (${x.rail.toFixed(2)} → ${y.rail.toFixed(2)})`);
+    assert.ok(y.carV > x.carV && y.logV > x.logV, `lane ${lo} → ${lo + 400}: faster`);
   }
   assert.ok(a.logLen > 3 * T.FP && d.logLen <= 2.4 * T.FP, `the logs: long at first (mostly 3–4 cells: ${(a.logLen / T.FP).toFixed(2)}), short deep in the loop (mostly 1–2: ${(d.logLen / T.FP).toFixed(2)})`);
   // the same curve on every course: two seeds' heat is the lane's alone
   for (const i of [0, 77, 400, 999]) assert.equal(buildLane('x', i).heat, buildLane('y', i).heat);
+});
+
+// ---- H5A — THE AREAS (docs/jaywalk.md "THE AREAS"): the table, each area's lean, the gateway lanes, FAIRNESS in all 8 + the loop
+test('H5A — THE AREA TABLE: a new area every 50 lanes in the fixed order, then the loop again (named: LAP 2); lanes 0–49 = the plain opening; every gateway lane is calm, plain ground', () => {
+  assert.deepEqual(T.AREAS.map(a => a.name), T.LANDMARKS, 'the areas ARE the landmarks, in their order');
+  assert.deepEqual(T.LANDMARKS, ['THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD', 'THE BRIDGE', 'DOWNTOWN', 'THE CANAL', 'THE LIGHTHOUSE', 'THE AIRFIELD']);
+  assert.deepEqual([0, 49].map(area), [{ name: '', index: -1, loop: 0 }, { name: '', index: -1, loop: 0 }], 'the opening: no area');
+  assert.deepEqual([50, 99, 100, 150, 200, 250, 300, 350, 400, 449].map(l => area(l).name), ['THE DOCKS', 'THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD', 'THE BRIDGE', 'DOWNTOWN', 'THE CANAL', 'THE LIGHTHOUSE', 'THE AIRFIELD', 'THE AIRFIELD']);
+  assert.deepEqual(area(450), { name: 'THE DOCKS', index: 0, loop: 1 }); assert.deepEqual(area(849), { name: 'THE AIRFIELD', index: 7, loop: 1 }); assert.deepEqual(area(850), { name: 'THE DOCKS', index: 0, loop: 2 });
+  assert.deepEqual([50, 400, 450, 500, 850, 49, 0].map(gateName), ['THE DOCKS', 'THE AIRFIELD', 'THE DOCKS · LAP 2', 'THE FISH MARKET · LAP 2', 'THE DOCKS · LAP 3', '', ''], 'the loop\'s laps are named');
+  for (let l = 0; l < 900; l++) { assert.equal(T.areaIndex(l), area(l).index); if (l % T.STRETCH === 0 && l) assert.equal(T.landmarkAt(l), area(l).name, 'a landmark\'s lane = the gateway into its area'); }
+  for (const A of T.AREAS) { assert.equal(A.mix.length, 4); for (const m of A.mix) assert.ok(Number.isInteger(m) && m >= 20 && m <= 500, `${A.name}: a lean of ${m} %`); }
+  assert.deepEqual(T.NO_LEAN.mix, [100, 100, 100, 100]);
+  // THE GATEWAY LANES: plain calm ground on every course — no obstacle, never water / a road / a rail under the arch
+  for (let s = 0; s < 300; s++) for (let g = 50; g <= 850; g += 50) { const L = buildLane(`g${s}`, g); assert.ok(L.type === 'grass' && L.mark === area(g).name && !L.obs.some(Boolean), `g${s} lane ${g}: the gateway`); }
+  // … and the opening is untouched by any lean: lanes 0–49 read MIX alone (the calm start every course has)
+  assert.match(readFileSync(new URL('../js/games/jaywalk/course.js', import.meta.url), 'utf8'), /const leanOf = i => \{ const k = areaIndex\(i\); return k < 0 \? NO_LEAN : AREAS\[k\]; \};/);
+});
+
+test('H5A — EACH AREA LEANS ITS MIX: the rail yard = more trains, the canal = more water, downtown = roads + heavier traffic, the bridge = water with roads, the airfield = its flight paths for sure — in the loop too', () => {
+  const share = st => {
+    const o = { grass: 0, road: 0, water: 0, rail: 0, flight: 0, cars: 0, n: 0 };
+    for (let s = 0; s < 200; s++) for (let i = st * 50 + 1; i < st * 50 + 50; i++) { const L = buildLane(`q${s}`, i); o[L.type]++; o.n++; if (L.type === 'road') o.cars += L.items.length; }
+    return { grass: o.grass / o.n, road: o.road / o.n, water: o.water / o.n, rail: o.rail / o.n, flight: o.flight / o.n, cars: o.cars / (o.road * 200 || 1) * 200 };
+  };
+  for (const lap of [0, 1]) {
+    const S = Array.from({ length: 8 }, (_, k) => share(1 + k + lap * 8)), others = (k, f) => S.filter((_, j) => j !== k).map(f);
+    const [docks, fish, yard, bridge, down, canal, light, air] = S, tag = `lap ${lap + 1}`;
+    assert.ok(yard.rail > 2 * Math.max(...others(2, x => x.rail)), `${tag} THE RAIL YARD: far more trains (${yard.rail.toFixed(2)} vs ≤ ${Math.max(...others(2, x => x.rail)).toFixed(2)})`);
+    assert.ok(canal.water > Math.max(...others(5, x => x.water)), `${tag} THE CANAL: the most water (${canal.water.toFixed(2)})`);
+    assert.ok(down.road > Math.max(...others(4, x => x.road)) && down.road > 0.6, `${tag} DOWNTOWN: the most roads (${down.road.toFixed(2)})`);
+    assert.ok(down.cars > Math.max(...others(4, x => x.cars)) + 0.7, `${tag} … and HEAVIER TRAFFIC: ${down.cars.toFixed(2)} cars a lap (the others ≤ ${Math.max(...others(4, x => x.cars)).toFixed(2)})`);
+    assert.ok(bridge.water + bridge.road > 0.78 && bridge.water > 0.28, `${tag} THE BRIDGE: water with roads (${bridge.water.toFixed(2)} + ${bridge.road.toFixed(2)})`);
+    for (const [x, name] of [[docks, 'THE DOCKS'], [fish, 'THE FISH MARKET'], [light, 'THE LIGHTHOUSE']]) assert.ok(x.water + x.grass > 0.5 && x.water > 0.15, `${tag} ${name}: water + its own ground (${x.water.toFixed(2)} + ${x.grass.toFixed(2)})`);
+    assert.ok(air.flight > 3 * Math.max(...others(7, x => x.flight)) && air.road > 0.45, `${tag} THE AIRFIELD: its flight paths (${air.flight.toFixed(3)} of its lanes) + tarmac`);
+  }
+  // THE AIRFIELD's flight paths: two bands for sure, apart, inside the stretch, never a UFO; every other stretch as before (one band at most)
+  for (let s = 0; s < SEEDS; s++) for (const st of [8, 16]) {
+    const sp = specials(`af${s}`, st);
+    assert.ok(sp.bb && sp.bb2 && !sp.ufo, 'two flight paths, no UFO');
+    assert.ok(Math.abs(sp.bb.y0 - sp.bb2.y0) >= 16, 'the two bands stand apart');
+    for (const q of [sp.bb, sp.bb2]) { assert.ok(q.y0 >= st * 50 + 8 && q.y0 + q.n < (st + 1) * 50, 'inside the stretch, clear of both gateways'); assert.ok(q.pulse.tell >= T.MIN_TELL_TICKS && q.pulse.period - q.pulse.pass - q.pulse.tell >= 40, 'its tell ≥ 1.5 s, quiet time in its lap'); assert.equal(q.pulse.band, q.y0); }
+    for (const l of [sp.bb.y0, sp.bb.y0 + 1, sp.bb2.y0, sp.bb2.y0 + 1]) assert.equal(buildLane(`af${s}`, l).type, 'flight');
+    assert.deepEqual(buildLane(`af${s}`, sp.bb2.y0).pulse, buildLane(`af${s}`, sp.bb2.y0 + 1).pulse, 'a band\'s lanes share ONE pulse'); assert.deepEqual(buildLane(`af${s}`, sp.bb.y0).pulse, sp.bb.pulse);
+    for (const o of [1, 3, 9]) assert.equal(specials(`af${s}`, o).bb2, null, 'only the airfield has a second band');
+  }
+});
+
+test(`H5A — FAIR IN EVERY AREA: ${SEEDS} seeds — every lane of all 8 areas + the loop has a crossable window; never more than 3 water / 3 rail lanes in a row; the same lane whatever the order it is built in`, () => {
+  const bad = [];
+  let lanes = 0;
+  for (let s = 0; s < SEEDS; s++) {
+    const seed = `ar${s}`;
+    for (let st = 1; st <= 16; st++) for (let k = 0; k < 6; k++) {
+      const i = st * 50 + (s * 7 + k * 11 + st) % 50, L = buildLane(seed, i); lanes++;
+      const why = laneProblem(seed, L);
+      if (why) bad.push(`${seed} lane ${i} (${area(i).name}, ${L.type}): ${why}`);
+    }
+    if (s % 10 === 0) for (let st = 1; st <= 16; st++) {
+      let w = 0, r = 0;
+      for (let i = st * 50; i < st * 50 + 54; i++) {
+        const t = typeAt(seed, i);
+        w = t === 'water' ? w + 1 : 0; r = t === 'rail' ? r + 1 : 0;
+        if (w > T.WATER_RUN_MAX) bad.push(`${seed} lane ${i}: ${w} water lanes in a row`);
+        if (r > T.RAIL_RUN_MAX) bad.push(`${seed} lane ${i}: ${r} rail lanes in a row`);
+      }
+    }
+  }
+  assert.ok(lanes >= SEEDS * 96, `${lanes} lanes checked`);
+  assert.deepEqual(bad.slice(0, 8), [], 'every lane, every area, every seed');
+  // DETERMINISM: a lane is f(seed, index) — built alone, backwards or from a course's cache it is the same lane, in every area
+  for (let s = 0; s < 40; s++) {
+    const seed = `det${s}`, c1 = createCourse(seed), c2 = createCourse(seed);
+    for (let i = 849; i >= 0; i -= 7) c2.lane(i);
+    for (let i = 3; i < 850; i += 7) { const a = JSON.stringify(c1.lane(i)); assert.equal(a, JSON.stringify(c2.lane(i))); assert.equal(a, JSON.stringify(buildLane(seed, i))); }
+  }
+});
+
+for (const mode of T.MODE_IDS) {
+  test(`H5A — ${SEEDS} seeds, ${mode.toUpperCase()}: the GREEDY bot dropped at EVERY area's gateway (all 8 + the loop's second lap) plays on — the wall never traps it (no wall of lanes anywhere), every end has its cause`, () => {
+    const wall = Array(17).fill(0), adv = Array(17).fill(0), n = Array(17).fill(0);
+    for (let s = 0; s < SEEDS; s++) {
+      const st = 1 + s % 16, at = st * 50, seed = `ab-${mode}-${s}`, course = createCourse(seed), run = createRun({ seed, mode });
+      run.y = at; run.best = at; run.wall = (at - 8) * T.FP;
+      playBot(run, course, greedyBot({ seed }), 900);
+      n[st]++; adv[st] += run.best - at;
+      if (run.hits) { assert.ok(T.CAUSES.includes(run.cause), `a named cause (${run.cause})`); if (run.cause === 'wall') wall[st]++; }
+      assert.ok(run.hits <= 1 && (run.hits === 1) === (run.st === 'out'), 'ONE LIFE');
+    }
+    const walls = wall.reduce((a, b) => a + b, 0);
+    assert.ok(walls <= SEEDS * 0.015, `the wall caught the bot ${walls} times in ${SEEDS} drops (a stuck bot, never a wall of lanes)`);
+    for (let st = 1; st <= 16; st++) {
+      assert.ok(wall[st] <= n[st] * 0.06, `${area(st * 50).name} lap ${area(st * 50).loop + 1}: the wall ${wall[st]} of ${n[st]}`);
+      assert.ok(adv[st] / n[st] >= 8, `${area(st * 50).name} lap ${area(st * 50).loop + 1}: the bot gets on — + ${(adv[st] / n[st]).toFixed(1)} lanes in 15 s`);
+    }
+  });
+}
+
+test('H5A — THE REPLAY + THE SERVER read the same course: runs through 3 + areas replay to the phone\'s own result, hop for hop', () => {
+  let deep = 0;
+  for (let s = 0; s < 60 && deep < 6; s++) {
+    const seed = `rp${s}`, course = createCourse(seed), run = createRun({ seed, mode: 'solo' });
+    const log = playBot(run, course, greedyBot({ seed }), 9000);
+    while (!isOver(run)) step(run, course, '');
+    const live = resultOf(run);
+    if (live.lanes < 200) continue;
+    deep++;
+    const { used, ...r } = replay({ seed, mode: 'solo', log });
+    assert.deepEqual(r, live, `${seed}: the replay = the live run (lane ${live.lanes}, through ${Math.floor(live.lanes / 50)} areas)`); assert.equal(used, log.length);
+  }
+  assert.ok(deep >= 3, `${deep} runs past lane 200`);
+  const srv = readFileSync(new URL('../api/_lib/jaywalk.js', import.meta.url), 'utf8');
+  assert.match(srv, /from '\.\.\/\.\.\/js\/games\/jaywalk\/replay\.js'/, 'the server\'s judge is the game\'s own replay — the same course.js');
 });
 
 test('H3 — THE LOGS: every log its OWN length (1–4 cells, all four show up; long ones more common early, short ones later), UNEVEN gaps (short + long on the same lane), the same lane on every build', () => {

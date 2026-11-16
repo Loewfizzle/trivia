@@ -3,8 +3,8 @@
 // simulation is needed to know where anything is. PURE: no DOM, no clock, no Math.random; integers + Math.floor only (tuning.js says why).
 import { hashString, rngFrom } from '../../core/rng.js';
 import {
-  FP, COLS, WIDTH, MID_COL, CALM_LANES, STRETCH, landmarkAt, heatAt, byHeat, MIX, FIRST, WATER_RUN_MAX, ROAD, WATER, RAIL, FLIGHT, UFO, GRASS,
-  KID_HALF, LOG_GRACE,
+  FP, COLS, WIDTH, MID_COL, CALM_LANES, STRETCH, LANDMARKS, landmarkAt, heatAt, byHeat, MIX, FIRST, WATER_RUN_MAX, RAIL_RUN_MAX, ROAD, WATER, RAIL, FLIGHT, UFO, GRASS,
+  KID_HALF, LOG_GRACE, AREAS, NO_LEAN, areaIndex,
 } from './tuning.js';
 
 const ri = (rand, a, b) => (b <= a ? a : a + Math.floor(rand() * (b - a + 1)));   // inclusive
@@ -14,12 +14,22 @@ const ceilDiv = (a, b) => Math.floor((a + b - 1) / b);
 /** ALL randomness: core/rng.js seeded PER LANE — hashString(seed + lane index) */
 const laneRand = (seed, i) => rngFrom(hashString(`${seed}:${i}`));
 
-/** a lane's RAW kind — the first draw of its own rng (the mix by heat; nothing else is looked at) */
+/** THE AREA a lane is in (H5A — tuning.js#AREAS): { name, index (−1 = the opening, lanes 0–49 · 0 … 7), loop (0 = the first time
+ *  round, 1 = the loop's second lap …) } — lanes 50–99 THE DOCKS … 400–449 THE AIRFIELD, 450–499 THE DOCKS again */
+export function area(lane) {
+  const s = Math.floor(lane / STRETCH), n = LANDMARKS.length;
+  return s < 1 ? { name: '', index: -1, loop: 0 } : { name: LANDMARKS[(s - 1) % n], index: (s - 1) % n, loop: Math.floor((s - 1) / n) };
+}
+/** an area's name as its GATEWAY shows it: the loop's laps are named — THE DOCKS · LAP 2 */
+export const gateName = lane => { const a = area(lane); return a.index < 0 ? '' : a.loop ? `${a.name} · LAP ${a.loop + 1}` : a.name; };
+const leanOf = i => { const k = areaIndex(i); return k < 0 ? NO_LEAN : AREAS[k]; };
+
+/** a lane's RAW kind — the first draw of its own rng (the mix by heat × THE AREA's lean; nothing else is looked at) */
 export function rawType(seed, i) {
   if (i < CALM_LANES) return 'grass';
-  const heat = heatAt(i);
-  const wg = Math.max(4, byHeat(MIX.grass[0], MIX.grass[1], heat)), wr = byHeat(MIX.road[0], MIX.road[1], heat);
-  const ww = i >= FIRST.water ? byHeat(MIX.water[0], MIX.water[1], heat) : 0, wt = i >= FIRST.rail ? byHeat(MIX.rail[0], MIX.rail[1], heat) : 0;
+  const heat = heatAt(i), m = leanOf(i).mix, pc = (w, k) => Math.floor(w * m[k] / 100);
+  const wg = Math.max(4, pc(byHeat(MIX.grass[0], MIX.grass[1], heat), 0)), wr = pc(byHeat(MIX.road[0], MIX.road[1], heat), 1);
+  const ww = i >= FIRST.water ? pc(byHeat(MIX.water[0], MIX.water[1], heat), 2) : 0, wt = i >= FIRST.rail ? pc(byHeat(MIX.rail[0], MIX.rail[1], heat), 3) : 0;
   const r = Math.floor(laneRand(seed, i)() * (wg + wr + ww + wt));
   return r < wg ? 'grass' : r < wg + wr ? 'road' : r < wg + wr + ww ? 'water' : 'rail';
 }
@@ -37,25 +47,37 @@ export function specials(seed, s) {
   const phase = ri(rand, 0, period - 1);
   const cu = base >= FIRST.ufo ? Math.min(450, byHeat(UFO.chance[0], UFO.chance[1], heat)) : 0;
   const cb = base >= FIRST.flight ? Math.min(450, byHeat(FLIGHT.chance[0], FLIGHT.chance[1], heat)) : 0;
-  const out = { s, ufo: null, bb: null };
-  if (pick < cu) out.ufo = { id: s, y0: base + a, h: UFO.lanes, r: UFO.r, vx, vy, px, py };
-  else if (pick < cu + cb) out.bb = { id: s, y0: base + b, n: FLIGHT.lanes, pulse: { period, phase, tell: FLIGHT.tell, len: FLIGHT.len, v: FLIGHT.v, pass: ceilDiv(WIDTH + FLIGHT.len, FLIGHT.v), dir, band: base + b, n: FLIGHT.lanes } };
+  const out = { s, ufo: null, bb: null, bb2: null };
+  const band = (y0, per, ph, d) => ({ id: s, y0, n: FLIGHT.lanes, pulse: { period: per, phase: ph, tell: FLIGHT.tell, len: FLIGHT.len, v: FLIGHT.v, pass: ceilDiv(WIDTH + FLIGHT.len, FLIGHT.v), dir: d, band: y0, n: FLIGHT.lanes } });
+  if (leanOf(base).flight && base >= FIRST.flight) {
+    // THE AIRFIELD (H5A): its flight paths FOR SURE — two bands, 16–18 lanes apart, each with its own pulse; never a UFO in the stretch
+    const b2 = 8 + mod(b - 8 + 18, 34);
+    const period2 = Math.max(240, ri(rand, byHeat(FLIGHT.period[0][0], FLIGHT.period[1][0], heat), byHeat(FLIGHT.period[0][1], FLIGHT.period[1][1], heat)));
+    const phase2 = ri(rand, 0, period2 - 1), dir2 = rand() < 0.5 ? 1 : -1;
+    out.bb = band(base + b, period, phase, dir); out.bb2 = band(base + b2, period2, phase2, dir2);
+  } else if (pick < cu) out.ufo = { id: s, y0: base + a, h: UFO.lanes, r: UFO.r, vx, vy, px, py };
+  else if (pick < cu + cb) out.bb = band(base + b, period, phase, dir);
   return out;
 }
+/** the flight band (of a stretch's one or two) this lane is on — or null */
+const bandAt = (sp, i) => (sp.bb && i >= sp.bb.y0 && i < sp.bb.y0 + sp.bb.n ? sp.bb : sp.bb2 && i >= sp.bb2.y0 && i < sp.bb2.y0 + sp.bb2.n ? sp.bb2 : null);
 /** can THE UFO's beam reach this lane? (its zone + one lane each side — the circle's reach) */
 const ufoReach = (u, i) => !!u && i >= u.y0 - 1 && i <= u.y0 + u.h;
 
 /** a lane's FINAL kind: 'grass' | 'road' | 'water' | 'rail' | 'flight' — the raw kind after the course's rules (the calm opening, the
- *  landmark lanes, the flight path's band, no water / rail under a UFO, never more than 3 water lanes in a row). Reads raw kinds only: no recursion. */
+ *  landmark lanes, the flight path's bands, no water / rail under a UFO, never more than 3 water — or 3 rail — lanes in a row). Reads raw kinds only: no recursion. */
 export function typeAt(seed, i, sp = specials(seed, Math.floor(i / STRETCH))) {
   if (i < CALM_LANES || i % STRETCH === 0) return 'grass';
-  if (sp.bb && i >= sp.bb.y0 && i < sp.bb.y0 + sp.bb.n) return 'flight';
+  if (bandAt(sp, i)) return 'flight';
   let t = rawType(seed, i);
   if ((t === 'water' || t === 'rail') && ufoReach(sp.ufo, i)) return 'grass';
-  if (t === 'water') {
-    let run = true;
-    for (let k = 1; k <= WATER_RUN_MAX && run; k++) if (rawType(seed, i - k) !== 'water') run = false;
-    if (run) t = 'grass';
+  if (t === 'water' || t === 'rail') {
+    // (never more than 3 water — or 3 rail — lanes in a row: in a long raw run every 4th lane is ground. H5A: a run goes ON after its
+    //  break — THE CANAL / THE RAIL YARD read as water / rails with footings, not one block and then a field)
+    const max = t === 'water' ? WATER_RUN_MAX : RAIL_RUN_MAX;
+    let n = 0;
+    while (n < i && rawType(seed, i - 1 - n) === t) n++;   // (the raw run behind this lane — it ends at the calm opening at the latest)
+    if (n % (max + 1) === max) t = 'grass';
   }
   return t;
 }
@@ -69,7 +91,7 @@ function layMovers(rand, { v, n, lenOf, gapOf, pad }) {
 }
 
 /**
- * ONE LANE — pure by (seed, lane index): { i, type, heat, mark (its landmark's name | null), ufo (THE UFO whose beam can reach it | null),
+ * ONE LANE — pure by (seed, lane index): { i, type, heat, mark (its landmark's name | null — the GATEWAY into that area), ufo (THE UFO whose beam can reach it | null),
  *   grass:  obs [9 × 0 | 1]
  *   road / water:  dir, v, period, pad, items [{ off, len }]   (cars · logs)
  *   rail / flight: pulse { period, phase, tell, pass, len, v, dir (+ band, n: the flight path's lanes share ONE pulse) } }
@@ -90,8 +112,9 @@ export function buildLane(seed, i) {
   } else if (type === 'road') {
     const dir = rand() < 0.5 ? 1 : -1;
     const v = clamp(ri(rand, byHeat(ROAD.vMin[0], ROAD.vMin[1], heat), byHeat(ROAD.vMax[0], ROAD.vMax[1], heat)), 16, 130);
-    const extra = Math.max(600, byHeat(ROAD.gapExtra[0], ROAD.gapExtra[1], heat));
-    const m = layMovers(rand, { v, n: ri(rand, ROAD.cars[0], ROAD.cars[1]), pad: 3000, lenOf: () => ROAD.lens[Math.floor(rand() * ROAD.lens.length)], gapOf: () => ROAD.gapMin + v * ROAD.gapVTicks + ri(rand, 0, extra) });
+    // (H5A — an area's HEAVIER TRAFFIC, DOWNTOWN: more cars a lap + less spare room — the crossable gap itself, gapMin + gapVTicks, is never touched)
+    const A = leanOf(i), extra = Math.max(600, Math.floor(byHeat(ROAD.gapExtra[0], ROAD.gapExtra[1], heat) * (A.gap || 100) / 100));
+    const m = layMovers(rand, { v, n: ri(rand, ROAD.cars[0], ROAD.cars[1]) + (A.cars || 0), pad: 3000, lenOf: () => ROAD.lens[Math.floor(rand() * ROAD.lens.length)], gapOf: () => ROAD.gapMin + v * ROAD.gapVTicks + ri(rand, 0, extra) });
     Object.assign(lane, { dir, v, pad: 3000, period: m.period, items: m.items });
   } else if (type === 'water') {
     const dir = i % 2 ? 1 : -1;   // (two water lanes side by side always run OPPOSITE ways: a rider always meets the next lane's logs)
@@ -109,7 +132,7 @@ export function buildLane(seed, i) {
     const dir = rand() < 0.5 ? 1 : -1;
     const period = Math.max(150, ri(rand, byHeat(RAIL.period[0][0], RAIL.period[1][0], heat), byHeat(RAIL.period[0][1], RAIL.period[1][1], heat)));
     lane.pulse = { period, phase: ri(rand, 0, period - 1), tell: RAIL.tell, len: RAIL.len, v: RAIL.v, pass: ceilDiv(WIDTH + RAIL.len, RAIL.v), dir };
-  } else lane.pulse = sp.bb.pulse;   // (THE FLIGHT PATH: every lane of the band shares the band's one pulse)
+  } else lane.pulse = bandAt(sp, i).pulse;   // (THE FLIGHT PATH: every lane of the band shares the band's one pulse)
   return lane;
 }
 
