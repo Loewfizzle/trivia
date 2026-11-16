@@ -50,7 +50,8 @@ test('the first tap: unlocked, running, the master at 1', () => {
 
 test('THE REVIEW A7 — a blur, the OS interrupts meanwhile, the context runs again: the master back to 1 + the bed back (it stayed at 0)', async () => {
   win.fire('blur');
-  assert.equal(master(), 0, 'the blur: silent at once');
+  assert.equal(master(), 0, 'the blur: the master ramped to 0 (FIXES R2: LEAVE_S — the fake applies a ramp at once)');
+  await sleep(E.FADE.leaveS * 1000 + 25);   // (FIXES R2: the beds stop once the ramp is at 0 — never cut while sounding)
   assert.equal(bed, 'stopped');
   ctx().set('interrupted');
   await sleep(450);                         // (BLUR_BACK_MS → blurBack: the context isn't running — the fade stays PENDING, a resume asked)
@@ -76,7 +77,9 @@ test('THE HOME-SCREEN APP LEAVING: the INTERRUPTION comes first (no blur, no hid
 test('THE OS RESUMES IT IN THE BACKGROUND (before the page is back): silenced + suspended at once — nothing sounds off screen', async () => {
   const c = ctx(), s0 = c.suspends;
   c.set('running');
-  assert.equal(master(), 0, 'silent'); assert.equal(c.suspends, s0 + 1, 'suspended at once'); assert.equal(c.state, 'suspended');
+  assert.equal(master(), 0, 'silent at once');
+  await sleep(E.FADE.zeroHoldMs + 20);      // (FIXES R2 — THE ZEROS FIRST: the suspend after the output held 0)
+  assert.equal(c.suspends, s0 + 1, 'suspended'); assert.equal(c.state, 'suspended');
   assert.equal(bed, 'stopped', 'the beds stay stopped');
 });
 
@@ -94,6 +97,7 @@ test('COMING BACK: the master stays at 0 until the context RUNS, then ramps up f
 test('a return signalled ONLY by focus (no visibilitychange — the app got a blur alone): the fade still waits for running', async () => {
   win.fire('blur'); ctx().set('interrupted');
   assert.equal(master(), 0);
+  await sleep(E.FADE.leaveS * 1000 + 25);
   win.fire('focus');                        // (blurBack at once: the context isn't running → pending + a resume)
   assert.equal(master(), 0);
   ctx().set('running');
@@ -103,12 +107,30 @@ test('a return signalled ONLY by focus (no visibilitychange — the app got a bl
 
 test('THE REVIEW A15 — a context that runs while HUSHED (muted) is hushed again: NOTHING RUNS', async () => {
   updateSettings({ muted: true });
-  await sleep(150);                         // (the hush: the master to 0, the suspend after its ramp)
+  await sleep(E.FADE.hushSuspendMs + 60);   // (the hush: the master to 0, the suspend after its ramp + THE ZEROS FIRST)
   const c = ctx();
   if (c.state !== 'suspended') c.set('suspended');
   c.set('running');                         // (Chrome / Android: a context that starts itself)
-  await sleep(150);
+  await sleep(E.FADE.hushSuspendMs + 60);
   assert.equal(master(), 0, 'silent');
   assert.equal(c.state, 'suspended', 'suspended again');
   updateSettings({ muted: false });
+});
+
+// FIXES R2 — THE SQUEAL IS THE CUT: the effects toggle with the music off = the hush — the master ramps, and the suspend comes only after the
+// ramp + THE ZEROS FIRST (it was asked 60 ms into a 90-ms ramp); the phone's row is built from the trace (the browser proof: audio-cut.mjs)
+test('FIXES R2 — SOUND EFFECTS → OFF with the music off: no suspend before the ramp is done + the zeros held; the row built', async () => {
+  updateSettings({ musicOff: true, sfxOff: false, muted: false });
+  doc.fire('touchend');
+  const c = ctx(); if (c.state !== 'running') c.set('running');
+  await sleep(250);
+  const s0 = c.suspends;
+  updateSettings({ sfxOff: true });
+  await sleep(E.FADE.outS * 1000 + 20);
+  assert.equal(c.suspends, s0, 'not suspended while the ramp + the zeros run');
+  await sleep(E.FADE.zeroHoldMs + 60);
+  assert.equal(c.suspends, s0 + 1, 'suspended after them'); assert.equal(c.state, 'suspended');
+  const t = E.cutReportText({ why: 'effects off', from: 'running', ms: 190, mAt: 0, held: 100, master: 1, sfx: 0.49, beds: 1, session: 'ambient/active', visible: 'visible', ua: 'iPhone 18.7', log: ['hush (settings)'] });
+  assert.match(t, /^AUDIO CUT · effects off · ctx running → suspended after 190 ms · master 0\.000 at the suspend · 100 ms of zeros before it/);
+  updateSettings({ musicOff: false, sfxOff: false });
 });

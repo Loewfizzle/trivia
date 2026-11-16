@@ -6781,3 +6781,13 @@ OWNER'S NOTES — NOV 15 (the CITY E prompt, from the city chat)
 * The share message = the LINK ONLY (no text) — the link preview carries the card.
 * The ticket pop-up (R2) = TODAY only, no history.
 
+### OWNER'S NOTES — NOV 15 (FIXES R2's Step 0)
+* THE FROZEN GAMES = option (b) "keep compatible".
+* The ticket pop-up = TODAY only, no history.
+* BOARD joins the room's dock (the buttons never shrink).
+* PICK A GAME uses the neon marks.
+* The roof signs read PRISM / DROP (the hotel's vertical sign stays PRISM).
+* STATS opens on TODAY.
+* Anything in /admin or the STATS sheet = stills, no animation.
+* THE SOURCE's "1 OF 1" tag stays as it is.
+* The squeal clue (7:27 pm): all sound off → no squeal on leaving; music on + effects off → no squeal; switching SOUND EFFECTS off in settings squeals by itself — the cut of the effects makes it.

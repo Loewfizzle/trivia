@@ -59,6 +59,17 @@
 //    + leaves the fade pending (it was resumeBeds() alone — the master stayed at 0 until the next hide / show); (4) THE REVIEW A15: running
 //    while hushed → hushed again (NOTHING RUNS). navigator.audioSession stays 'playback' with the music on: an 'ambient' session is what left
 //    the graph dead after the background (M4, above) — not used as a squeal fix.
+//  - FIXES R2 — THE SQUEAL IS THE CUT (the owner's tests, Nov 15 7:27 pm, iOS 18.7: ALL sound off → leaving = no squeal; music ON + effects
+//    OFF → no squeal; and switching the SOUND EFFECTS toggle OFF squeals by itself). The effects' cut was abrupt in three places, measured
+//    by tests/integration/audio-cut.mjs (the master + the effects bus recorded sample by sample): (1) THE HUSH suspended the context 60 ms
+//    into its 90-ms ramp — the last buffer rendered before the suspend still sounding (−51 dBFS): what iOS's output keeps playing; (2) the
+//    effects bus went down on setTargetAtTime — never exactly 0 (−66 dBFS a quarter-second later) — and the city's LOOPS were dropped at the
+//    next pump, mid-sound; (3) on leaving, the beds were stopped in the same instant as the master's step to 0 (a loop cut with the bus at
+//    49 %). Now EVERY CUT runs in one order: the bus / the master RAMPS to exactly 0 (linear: the effects bus CUT_S, the hush FADE_OUT_S,
+//    the leave LEAVE_S — short, the page may freeze any moment after a blur), a loop is stopped only once its sound is 0 (sfxSilent() ·
+//    the beds after the leave's ramp), and the context is suspended only after THE ZEROS FIRST — the output exactly 0 for ZERO_HOLD_MS.
+//    The way back is unchanged: the master from 0, ramped up once the context RUNS. THE PHONE'S ROW (kind 'audio', AUDIO CUT in /admin —
+//    the owner's phone or &debug=1 only): each cut's engine state, the session, the master at the suspend and the zeros held before it.
 //  - THE LOG (audioLog / audioEvents): the last events with times — what the &debug=1 AUDIO block shows (audio/diag.js).
 import { settings, onSettings } from './settings.js';
 
@@ -68,6 +79,8 @@ let sfxBus = null;
 let master = null;        // THE MASTER (DFIX3 ADD-ON): the one gain every path leaves through — the fade on leaving / the ramp back
 let fadeT = 0, pendingFadeIn = false, intT = 0;
 const FADE_OUT_S = 0.09, FADE_IN_S = 0.15, SUSPEND_AFTER_MS = 60, BLUR_BACK_MS = 400;
+// (FIXES R2 — THE CUT: a bus to 0 · the leave's ramp · how long the output stays exactly 0 before any suspend)
+const CUT_S = 0.08, LEAVE_S = 0.025, ZERO_HOLD_MS = 100;
 let unlocked = false;
 let visibleNow = true;
 let visibleAt = 0;        // performance.now() when the page last came back on screen
@@ -96,7 +109,8 @@ export const getMusicBus = () => musicBus;
 export const getSfxBus = () => sfxBus;
 export const getMaster = () => master;
 /** the fade's timings (the tests + the docs): the ramp out, the ramp back, the suspend's wait after the ramp is scheduled */
-export const FADE = Object.freeze({ outS: FADE_OUT_S, inS: FADE_IN_S, suspendMs: SUSPEND_AFTER_MS });
+export const FADE = Object.freeze({ outS: FADE_OUT_S, inS: FADE_IN_S, suspendMs: SUSPEND_AFTER_MS, cutS: CUT_S, leaveS: LEAVE_S, zeroHoldMs: ZERO_HOLD_MS,
+  hushSuspendMs: Math.round(FADE_OUT_S * 1000) + ZERO_HOLD_MS, leaveSuspendMs: Math.round(LEAVE_S * 1000) + ZERO_HOLD_MS });
 export const isUnlocked = () => unlocked && !!ctx && ctx.state === 'running';
 /** Inside a gesture's handling right now (iOS lets a media element / a context start only here)? */
 export const inGesture = () => performance.now() - gestureAt < 60;
@@ -149,7 +163,7 @@ function createContext() {
     if (c.state === 'running') {
       stuck = false; askedAt = 0; gestureAskAt = 0; clearTimeout(intT); intT = 0;
       // (FIXES R1: running OFF SCREEN — the OS gave it back while the app is away: never a sound there; the return brings it back from 0)
-      if (!visibleNow || document.visibilityState === 'hidden') { if (master) silence(c); pendingFadeIn = false; c.suspend().catch(() => {}); audioLog('running off screen — silenced + suspended'); return; }
+      if (!visibleNow || document.visibilityState === 'hidden') { if (master) silence(c); pendingFadeIn = false; setTimeout(() => { if (ctx === c && c.state === 'running' && (!visibleNow || document.visibilityState === 'hidden')) c.suspend().catch(() => {}); }, ZERO_HOLD_MS); audioLog('running off screen — silenced + suspended'); return; }
       // (FIXES R1 — THE REVIEW A15: a context that started itself while hushed — NOTHING RUNS)
       if (hushed) { hushNow('running while hushed'); return; }
       if (pendingFadeIn) fadeIn('running again');
@@ -193,11 +207,24 @@ function applyVolumes(instant) {
   const t = ctx.currentTime;
   const m = settings.muted || settings.musicOff ? 0 : curve(settings.music);
   const s = settings.muted || settings.sfxOff ? 0 : curve(settings.sfx);   // (SHELL 2.0 A: the ☰ menu's SOUND EFFECTS toggle)
+  if (s > 0) sfxCutAt = 0; else if (!sfxCutAt) sfxCutAt = performance.now();
   // (a ramp on a clock that isn't moving never arrives: set it straight — M4)
   if (instant || frozen || t === 0) { musicBus.gain.value = m; sfxBus.gain.value = s; return; }
-  musicBus.gain.setTargetAtTime(m, t, 0.08);
-  sfxBus.gain.setTargetAtTime(s, t, 0.05);
+  busTo(musicBus.gain, m, t, 0.08, 0.12);
+  busTo(sfxBus.gain, s, t, 0.05, CUT_S);
 }
+/** FIXES R2 — a bus to its level: to 0 (or up from 0) on a LINEAR ramp that ARRIVES (setTargetAtTime never reaches 0: −66 dBFS a quarter-second
+ *  later, measured); a slider's move between two levels eases as before */
+function busTo(p, v, t, tau, ramp) {
+  try {
+    const cur = p.value;
+    if (v === 0 || cur < 1e-4) { p.cancelScheduledValues(t); p.setValueAtTime(cur, t); p.linearRampToValueAtTime(v, t + ramp); }
+    else p.setTargetAtTime(v, t, tau);
+  } catch { try { p.value = v; } catch { /* closed */ } }
+}
+let sfxCutAt = 0;   // performance.now() the effects went to 0 (0 = they're on)
+/** FIXES R2: the effects are OFF and their bus has reached 0 — a loop may be stopped now (city-sound.js: never mid-sound) */
+export const sfxSilent = () => !!sfxCutAt && performance.now() - sfxCutAt >= CUT_S * 1000 + 30;
 onSettings(() => { applyVolumes(false); setSession('settings'); hushCheck('settings'); });
 
 // ---- CITY A — item 29, THE LEAVING SQUEAL (the owner's iPhone, SOUND MUTED, no music: a short high-pitched noise switching from Safari to another
@@ -229,7 +256,16 @@ function hushNow(why) {
   clearTimeout(hushT); clearTimeout(fadeT);
   if (c.state !== 'running' || !master) { hushT = 0; if (c.state === 'running') c.suspend().catch(() => {}); return; }
   try { const t = c.currentTime, g = master.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + FADE_OUT_S); } catch { /* closed */ }
-  hushT = setTimeout(() => { hushT = 0; if (ctx === c && hushed && c.state === 'running') c.suspend().then(() => { if (ctx === c) audioLog(`suspended (hushed: ${why})`); }, () => {}); }, SUSPEND_AFTER_MS);
+  // (FIXES R2 — THE ZEROS FIRST: the suspend waits for the ramp's end + ZERO_HOLD_MS of exact silence; it was 60 ms into a 90-ms ramp)
+  cutStart(why === 'settings' ? (settings.muted ? 'muted' : 'effects off') : why);
+  const go = () => {
+    hushT = 0;
+    if (ctx !== c || !hushed || c.state !== 'running') return;
+    if (master && master.gain.value > 1e-5) { hushT = setTimeout(go, 40); return; }
+    cutSuspend(c);
+    c.suspend().then(() => { if (ctx === c) audioLog(`suspended (hushed: ${why})`); }, () => {});
+  };
+  hushT = setTimeout(go, Math.round(FADE_OUT_S * 1000) + ZERO_HOLD_MS);
 }
 const hushListeners = new Set();
 /** music.js: (on) → the hush began (pause + release every element) / ended (inside the unmuting tap: re-activate + play) */
@@ -416,14 +452,20 @@ function resumeBeds() { if (!bedsPaused) return; bedsPaused = false; for (const 
 function fadeOut(why) {
   clearTimeout(fadeT); clearTimeout(blurT); blurT = 0;
   const c = ctx;
-  pauseBeds(why);
-  if (!c || !master || c.state !== 'running') { if (c && c.state === 'running') c.suspend().catch(() => {}); return; }
-  silence(c);
+  if (!c || !master || c.state !== 'running') { pauseBeds(why); if (c && c.state === 'running') c.suspend().catch(() => {}); return; }
+  // (FIXES R2: the master RAMPS to 0 over LEAVE_S (it stepped — and the beds were cut in that same instant); the beds stop once it's 0; the
+  //  suspend after THE ZEROS FIRST. A blur already ramped it: then the ramp is already 0 and this only keeps it there.)
+  const already = master.gain.value < 1e-5 && blurred === false && bedsPaused;
+  quiet(c, LEAVE_S);
+  if (!already) cutStart('leave');
   audioLog(`fade out (${why}) — the master 0 at once`);
-  fadeT = setTimeout(() => { if (ctx === c && !visibleNow && c.state === 'running') c.suspend().then(() => { if (ctx === c) audioLog('suspended after the fade'); }, () => {}); }, SUSPEND_AFTER_MS);
+  setTimeout(() => { if (!visibleNow) pauseBeds(why); }, Math.round(LEAVE_S * 1000) + 10);
+  fadeT = setTimeout(() => { if (ctx === c && !visibleNow && c.state === 'running') { cutSuspend(c); c.suspend().then(() => { if (ctx === c) audioLog('suspended after the fade'); }, () => {}); } }, Math.round(LEAVE_S * 1000) + ZERO_HOLD_MS);
 }
-/** the master to 0 now — no ramp (CITY D: what is still sounding when iOS freezes the page is what it loops) */
+/** the master to 0 now — no ramp (an INTERRUPTED context renders nothing: a ramp there never runs) */
 function silence(c) { try { const t = c.currentTime, g = master.gain; g.cancelScheduledValues(t); g.setValueAtTime(0, t); } catch { /* closed */ } }
+/** FIXES R2 — the master to 0 on a ramp of `s` seconds from wherever it is (a step is a click; CITY D's 90 ms was too long for a leave) */
+function quiet(c, s) { try { const t = c.currentTime, g = master.gain; const v = g.value; g.cancelScheduledValues(t); g.setValueAtTime(v, t); g.linearRampToValueAtTime(0, t + s); } catch { /* closed */ } }
 function fadeIn(why) {
   const c = ctx;
   pendingFadeIn = false;
@@ -442,8 +484,9 @@ const coarse = () => { try { return matchMedia('(pointer: coarse)').matches; } c
 function onBlur() {
   if (!coarse() || !visibleNow || !ctx || hushed) return;
   blurred = true;
-  pauseBeds('blur');
-  if (master && ctx.state === 'running') { silence(ctx); audioLog('blur — the master 0 at once'); }
+  // (FIXES R2: a short ramp, then the beds — never a loop cut while it sounds)
+  if (master && ctx.state === 'running') { quiet(ctx, LEAVE_S); cutStart('leave'); audioLog('blur — the master 0 at once'); }
+  setTimeout(() => { if (blurred || !visibleNow) pauseBeds('blur'); }, Math.round(LEAVE_S * 1000) + 10);
   clearTimeout(blurT);
   blurT = setTimeout(blurBack, BLUR_BACK_MS);
 }
@@ -477,6 +520,43 @@ function setVisible(visible, why = '') {
 /** Test hook: the page leaves / comes back (the fade → the suspend → the resume → the ramp up, in the log). */
 export function simulateVisible(v) { setVisible(!!v, v ? 'test show' : 'test hide'); }
 
+// ---- FIXES R2 — THE PHONE'S ROW: each CUT (effects off · muted · leave) → its trace; at the suspend: the master + the zeros held. ONE row a page
+// per kind of cut, kind 'audio' (AUDIO CUT in /admin's phone reports) — only from the owner's phone (body.rd-owner) or with &debug=1; a leave's
+// row waits in localStorage for the return / the next load (the page may be frozen right after it). window.__audioCut.last() = the last one.
+let cut = null, lastCut = null;
+const cutSent = new Set();
+const CUT_KEY = 'ns:audiocut';
+function cutStart(why) {
+  if (!ctx || (cut && cut.why === why && performance.now() - cut.at < 1500)) return;
+  cut = { why, at: performance.now(), from: ctx.state, session: sessionInfo() || 'n/a', master: master ? +master.gain.value.toFixed(3) : null, sfx: sfxBus ? +sfxBus.gain.value.toFixed(3) : null, beds: beds.size, visible: document.visibilityState };
+}
+function cutSuspend(c) {
+  if (!cut || c !== ctx) return;
+  const ms = Math.round(performance.now() - cut.at), m = master ? master.gain.value : null;
+  lastCut = { why: cut.why, text: cutReportText({ ...cut, ms, mAt: m, held: ZERO_HOLD_MS, log: LOG.slice(-10).map(x => x.m), ua: deviceLine() }) };
+  cut = null;
+  report(lastCut);
+}
+const deviceLine = () => { try { const u = navigator.userAgent; const d = u.match(/(iPhone|iPad|Android[^;)]*|Macintosh|Windows NT [\d.]+)/); const v = u.match(/OS (\d+_\d+(?:_\d+)?)/); const sa = (typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches) || navigator.standalone ? ' · home-screen app' : ''; return `${d ? d[1] : 'device'}${v ? ' ' + v[1].replace(/_/g, '.') : ''}${sa}`; } catch { return 'device'; } };
+/** PURE (tests): a cut's trace → the row's text */
+export function cutReportText(t) {
+  const head = `AUDIO CUT · ${t.why} · ctx ${t.from} → suspended after ${t.ms} ms · master ${t.mAt == null ? '?' : (+t.mAt).toFixed(3)} at the suspend · ${t.held} ms of zeros before it`;
+  return `${head}\nat the cut: master ${t.master} · effects bus ${t.sfx} · ${t.beds} bed(s) · session ${t.session} · ${t.visible} · ${t.ua || ''}\nlog: ${(t.log || []).join(' · ')}`.slice(0, 1500);
+}
+const reportable = () => { try { return document.body.classList.contains('rd-owner') || /[?&]debug=1(?:&|$)/.test(location.search); } catch { return false; } };
+function report(row) {
+  if (!row || cutSent.has(row.why) || !reportable()) return;
+  if (row.why === 'leave' && document.visibilityState !== 'visible') { try { localStorage.setItem(CUT_KEY, JSON.stringify(row)); } catch { /* fine */ } return; }
+  cutSent.add(row.why);
+  if (navigator.webdriver) return;   // (a test browser builds the row — window.__audioCut — and sends nothing)
+  try {
+    const body = JSON.stringify({ p: 'report', r: { kind: 'audio', text: row.text } });
+    if (!(navigator.sendBeacon && navigator.sendBeacon('/api/log', new Blob([body], { type: 'text/plain' })))) fetch('/api/log', { method: 'POST', body, keepalive: true, headers: { 'Content-Type': 'text/plain' } }).catch(() => {});
+  } catch { /* the log is polish */ }
+}
+function sendKept() { let row = null; try { row = JSON.parse(localStorage.getItem(CUT_KEY) || 'null'); localStorage.removeItem(CUT_KEY); } catch { row = null; } if (row && row.text) report(row); }
+if (typeof window !== 'undefined') window.__audioCut = { last: () => lastCut };
+
 export function installAudio() {
   // the gestures (capture, on the document: a tap ANYWHERE counts, before any handler can stop it) — every tap, never removed
   for (const ev of ['pointerdown', 'touchend', 'click', 'keydown']) document.addEventListener(ev, unlock, { capture: true, passive: true });
@@ -494,4 +574,6 @@ export function installAudio() {
   // iOS 17+: the audio session comes back after a call / Siri / another app's audio
   try { if (navigator.audioSession && navigator.audioSession.addEventListener) navigator.audioSession.addEventListener('statechange', () => { audioLog(`session ${sessionInfo()}`); setSession('session change'); kick(); }); } catch { /* unsupported */ }
   setInterval(watchClock, 250);
+  setTimeout(sendKept, 4000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(sendKept, 1500); });
 }

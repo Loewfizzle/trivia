@@ -910,6 +910,9 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - `tests/integration/scores-memory.mjs "<browser>" [--case scores|customize|all] [--rounds 5]` — the memory proof at 390 @3, 4× CPU: GL contexts,
   canvas pixels, live effects (≤ 3), the browser's working set, a reload marker (any local server; the previews `daily-preview &many=1`,
   `profile-preview &all=1&dev=1`).
+- `tests/integration/audio-cut.mjs "<chromium>"` (FIXES R2; `ONLY=A,B,C,D`) — THE SQUEAL IS THE CUT: the master + the effects bus RECORDED sample by sample
+  through the effects toggle (music off / on), mute and the leave: no burst, silent 250 ms after, a loop stopped only once silent, THE ZEROS FIRST
+  (100 ms of exact silence before every suspend), the AUDIO CUT row built. ~90 s.
 - `tests/integration/audio-leave.mjs "<chromium>"` — the leave in three audio settings: the output silent at the suspend (WebKit on Windows has no
   Web Audio).
 - `tests/integration/scores-timing.mjs` (RTT_MS=40) — /api/daily `every` + `today` cold / warm; `scores-open.mjs "<browser>" --base … --visit 1|2|both

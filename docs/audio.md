@@ -1874,3 +1874,31 @@ for the effects (the city's beds). /audio is kept BY VERSION in the worker (`na-
   OS resuming in the background, a focus-only return, A7, A15): 7 / 7 (6 red on the old engine) + `audio-leave.mjs` (Chromium) unchanged green.
   **Not provable off a real iPhone:** what Core Audio does with its own output buffer at the switch — the owner's ear in the home-screen app is the
   check (leave to another app, come back).
+
+## FIXES R2 (Nov 15) — THE SQUEAL IS THE CUT — passes/fixes-r2.md
+- **The owner's clue (iOS 18.7, the home-screen app AND Safari, 7:27 pm):** all sound off → leaving = no squeal; music ON + effects OFF → no
+  squeal; switching the SOUND EFFECTS toggle OFF squeals with no leaving at all. So the squeal is the EFFECTS BEING CUT — leaving only squealed
+  because leaving cuts the effects.
+- **Measured** (`tests/integration/audio-cut.mjs` — a ScriptProcessor on the MASTER and one on the SFX BUS record every rendered sample while the
+  city's effects play: the water's loop through its low-pass, the neon hum's loop, one-shots every 120 ms). On the old engine: **(A) the effects
+  toggle with the music off = THE HUSH** asked the context to SUSPEND 60 ms into the master's 90-ms ramp — the output was still at −25 dBFS in the
+  100 ms before the suspend (one run: −51 dBFS in the last 20 ms rendered). A suspended graph's last buffer is exactly what an iPhone's output
+  keeps playing → the squeal. **(B) with the music on** the effects bus went down on `setTargetAtTime`, which never reaches 0 (−66 dBFS a
+  quarter-second later) and city-sound.js dropped each loop at its next pump, mid-sound. **(D) leaving:** every bed was stopped in the same
+  instant as the master's step to 0 — the stop landed with the bus × master at 0.49.
+- **THE CUT IN ONE ORDER (`engine.js`):** (1) the level RAMPS to exactly 0 on a linear ramp that arrives — the effects bus `CUT_S` 80 ms
+  (`busTo`), the hush's master `FADE_OUT_S` 90 ms, the leave's master `LEAVE_S` 25 ms (`quiet()` — short: the page may freeze any moment after a
+  blur; CITY D's step was a click and its beds were cut in the same instant); (2) a loop stops only once its sound is 0 — `sfxSilent()` gates
+  city-sound.js's drop, the beds stop `LEAVE_S` + 10 ms after the leave's ramp began; (3) **THE ZEROS FIRST** — the context is suspended only
+  after the output has been exactly 0 for `ZERO_HOLD_MS` (100 ms): the hush at 190 ms (and never while the master reads above 1e-5), the leave at
+  125 ms, a context the OS resumed off screen 100 ms after its silence. The way back is unchanged (the master from 0, ramped up once RUNNING);
+  MUTED = NOTHING RUNS still holds (`tests/audio-hush.test.mjs`). The idle cutoff + mute go through the same hush.
+- **THE PHONE'S ROW** — kind `audio`, **AUDIO CUT** in /admin's phone reports: each cut's trace (effects off · muted · leave) — the context's
+  state, the master + the effects bus at the cut, the beds, the audio session, the page's visibility, the device (+ "home-screen app"), the
+  master AT the suspend, the zeros held before it, the last 10 audio events. ONE row a page per kind of cut, ONLY from the owner's phone
+  (`body.rd-owner`) or with `&debug=1`; a leave's row waits in localStorage `ns:audiocut` for the return / the next load. `window.__audioCut.last()`.
+- **The proof:** `audio-cut.mjs` 33 / 33 (6 red on the old engine: A + C THE ZEROS FIRST, B never silent, D a bed cut at full level, the two
+  rows) · `audio-leave.mjs` 22 / 22 · `tests/audio-standalone.test.mjs` 8 / 8 (+ the effects-toggle case) · `audio-hush.test.mjs` (the new order
+  pinned). **Not provable off a real iPhone:** what Core Audio's own output buffer does at the cut (Playwright's WebKit on Windows has no Web
+  Audio; Chromium renders the same graph) — the owner's ear is the check: the effects toggle off, leaving the home-screen app; the AUDIO CUT row
+  in /admin says what the engine did on his phone.

@@ -12,7 +12,7 @@
 // LOOPS are seamless whatever the MP3 decoder's padding: the file holds the loop + a tail (`xf` s of what followed it in the
 // recording); each pass starts a fresh voice `loop` s after the last and crossfades the old voice's tail into it (equal power).
 // The first pass starts at a random place in the loop and fades in.
-import { getContext, getSfxBus, isUnlocked, onRebuild, clockFrozen } from './engine.js';
+import { getContext, getSfxBus, isUnlocked, onRebuild, clockFrozen, sfxSilent } from './engine.js';
 import { settings } from './settings.js';
 import { slotOf, takesOf, pickTake, syncStart } from '../core/city-sounds.js';
 
@@ -266,7 +266,8 @@ function pumpOne(L) {
   try {
     if (!L.want) return;
     const c = getContext();
-    if (!c || !isUnlocked() || !audible()) { if (L.voices.length && (!c || c !== L.c || !audible())) drop(L); return; }
+    // (FIXES R2: the effects switched off → the loop goes only once their bus has REACHED 0 — dropped mid-sound it was a click into the mix)
+    if (!c || !isUnlocked() || !audible()) { if (L.voices.length && (!c || c !== L.c || (!audible() && sfxSilent()))) drop(L); return; }
     if (L.c && L.c !== c) drop(L);
     if (!L.entry) { if (performance.now() < (L.retryAt || 0)) return; L.entry = load(L.t); L.entry.pins++; }
     L.entry.used = performance.now();
