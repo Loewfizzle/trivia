@@ -67,7 +67,7 @@ const all = (n, fn) => Promise.all(Array.from({ length: n }, (_, i) => fn(pages[
 
 let failed = false;
 try {
-  const N = 3;
+  const N = process.argv.includes('--four') ? 4 : 3;   // (H5C — `--four`: a 4-PHONE match (DANA joins, by night); the cloud's run stays three)
   const host = await H.joinAll(N);
   const code = await evalIn(host, s => s.code);
   for (let i = 0; i < N; i++) await pages[i].setViewport({ ...H.VIEW, deviceScaleFactor: 2 });   // (the shots at @2)
@@ -81,7 +81,7 @@ try {
   await dbPut(`testAdmins/${pids[0]}`, true);
   await host.evaluate(() => sessionStorage.clear());
   await host.reload();
-  await waitFor(host, s => s.ready && !!s.code && !!s.players && Object.keys(s.players).length === 3, 'the host is back in the room', 40000);
+  await waitFor(host, (s, k) => s.ready && !!s.code && !!s.players && Object.keys(s.players).length === k, 'the host is back in the room', 40000, N);
   ok(await until(() => host.evaluate(() => import('/js/config.js').then(c => c.isOwnerTest('jaywalk'))), 25000), 'THE OWNER\'s phone: the server\'s yes → JAYWALK is his to host');
   ok(!(await pages[1].evaluate(() => import('/js/config.js').then(c => c.isOwnerTest('jaywalk') || c.isPlayable('jaywalk')))), '… a guest\'s phone: nothing changes (no JAYWALK anywhere)');
   // H5B — THE DAY LOOK in a match: the site's GAME LOOK is PER PHONE (☰ → Settings: AUTO · DAY · NIGHT — no lock): the host + BOB
@@ -102,11 +102,11 @@ try {
   }
   for (let i = 0; i < N; i++) await waitFor(pages[i], st => st.game && st.game.id === 'jaywalk' && !!window.__jwGame && !!document.querySelector('.jw-game canvas.jw-canvas'), `${NAMES[i]}: the match screen`, 40000);
   const g0 = await evalIn(host, s => ({ m: s.game.matchId, mode: s.game.mode, phase: s.game.phase, seed: s.game.seed, n: Object.keys(s.game.participants).length }));
-  ok(g0.mode === 'match' && g0.n === 3, `a room of three = THE MATCH (${g0.m}); the course is not known at the start (seed "${g0.seed || ''}")`);
+  ok(g0.mode === 'match' && g0.n === N, `a room of three = THE MATCH (${g0.m}); the course is not known at the start (seed "${g0.seed || ''}")`);
   ok(await until(async () => /^[123]$|^GO$/.test((await state(pages[1])).count), 8000), `the count is on a guest's screen ("${(await state(pages[1])).count}")`);
   await H.shot(pages[1], 'match-count');
   // H5B's add-on — THE NAMES AT THE START: through the count every player's name is lined up ONCE (yours first); no ghost carries a tag
-  { const ros = await until(async () => { const s = await state(pages[1]); return s.roster.length === 3 ? s : null; }, 6000);
+  { const ros = await until(async () => { const s = await state(pages[1]); return s.roster.length === N ? s : null; }, 6000);
     ok(!!ros && ros.roster[0] === 'BOB' && ['ALICE', 'CHARLIE'].every(n => ros.roster.includes(n)), `THE NAMES AT THE START: lined up through the count (${ros ? ros.roster.join(' · ') : 'none'})`);
     ok(!!ros && ros.ghosts.every(q => !q.shown), '… and no name tag sits on the start square');
     await H.shot(pages[1], 'ghosts-1-the-count');
@@ -114,7 +114,7 @@ try {
   await all(N, (p, i) => waitFor(p, s => s.game.phase === 'play' && window.__jwGame.state().mode === 'run' && window.__jwGame.state().t >= 0, `${NAMES[i]}: GO`, 20000));
   const m = g0.m, game = await evalIn(host, s => s.game), nodes0 = await dbGet(`rooms/${code}/jw/${m}`);
   const first = firstGo(nodes0);
-  ok(Object.keys(nodes0 || {}).length === 3 && first > 0, `every phone wrote its own GO (${Object.keys(nodes0 || {}).length} proof nodes)`);
+  ok(Object.keys(nodes0 || {}).length === N && first > 0, `every phone wrote its own GO (${Object.keys(nodes0 || {}).length} proof nodes)`);
   ok(game.g0 === first && game.playAt === first + GO_LEAD_MS && game.seed === seedOf(code, m, first), `THE FIRST GO (${first}) picked the course (${game.seed}) + tick 0 = that time + ${GO_LEAD_MS} ms`);
   const sts = await all(N, p => state(p));
   ok(sts.every(s => s.seed === game.seed && s.go === game.playAt && s.proven && s.isMatch), 'the SAME course + the SAME clock on all three phones, each proven');
@@ -143,7 +143,7 @@ try {
     await cdpB.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     await pages[1].setViewport({ ...H.VIEW, deviceScaleFactor: 2 });
   }
-  ok(await until(async () => (await all(N, p => state(p))).every(s => s.ghosts.length === 2 && s.ghosts.every(q => q.hops > 0 && q.best > 0)), 25000), 'each phone sees TWO GHOSTS — the others\' hop logs through the same engine (they hop)');
+  ok(await until(async () => (await all(N, p => state(p))).every(s => s.ghosts.length === N - 1 && s.ghosts.every(q => q.hops > 0 && q.best > 0)), 25000), 'each phone sees TWO GHOSTS — the others\' hop logs through the same engine (they hop)');
   await sleep(1500);
   // H5B's add-on — THE GHOSTS STOP BLOCKING YOU, sampled on every phone for 3 s of play: the roster is gone after GO · a ghost NEAR you
   // is faint and carries no tag · the tags on screen are exactly the groups' leaders (ghosts on the same / touching squares share ONE
@@ -160,11 +160,11 @@ try {
       await sleep(150);
     }
     ok(roster === 0, 'the names\' line-up is gone after GO');
-    ok(bad.length === 0 && n === 60, `THE GHOSTS STOP BLOCKING YOU — ${n} samples on the three phones: a ghost near you is faint + has no tag (${faint} faint ghost-samples), the tags = the groups' leaders (${lone} single, ${merged} merged "NAME +N")${bad.length ? ` — ${bad.slice(0, 3).join(' | ')}` : ''}`); }
+    ok(bad.length === 0 && n === 20 * N, `THE GHOSTS STOP BLOCKING YOU — ${n} samples on the ${N} phones: a ghost near you is faint + has no tag (${faint} faint ghost-samples), the tags = the groups' leaders (${lone} single, ${merged} merged "NAME +N")${bad.length ? ` — ${bad.slice(0, 3).join(' | ')}` : ''}`); }
   const tags = await pages[0].evaluate(() => [...document.querySelectorAll('.jw-tag')].map(e => ({ t: e.textContent, on: getComputedStyle(e).opacity !== '0' })));
-  ok(tags.length === 2 && tags.every(t => /^(BOB|CHARLIE)( \+1)?$/.test(t.t)), `the ghosts carry their names (${tags.map(t => t.t).join(' · ')})`);
+  ok((N === 3 ? tags.length === 2 : tags.length >= 1 && tags.length <= N - 1) && tags.every(t => /^(BOB|CHARLIE|DANA)( \+\d)?$/.test(t.t)), `the ghosts carry their names (${tags.map(t => t.t).join(' · ')})`);
   let s0 = await state(pages[0]);
-  ok(s0.order.length === 3 && s0.order.some(r => /ALICE/.test(r)) && s0.order.some(r => /BOB/.test(r)) && s0.order.some(r => /CHARLIE/.test(r)) && s0.outs === 0, `THE LIVE ORDER: ${s0.order.join(' | ')}`);
+  ok(s0.order.length === N && s0.order.some(r => /ALICE/.test(r)) && s0.order.some(r => /BOB/.test(r)) && s0.order.some(r => /CHARLIE/.test(r)) && s0.outs === 0, `THE LIVE ORDER: ${s0.order.join(' | ')}`);
   ok(!(await pages[0].evaluate(() => /LIVES/i.test(document.querySelector('.jw-game').textContent))), 'no lives HUD anywhere (ONE LIFE)');
   await H.shot(pages[0], 'match-ghosts');
   // H5B — each phone's own look: the scene, the stage's words, the console's body all agree; the ghosts + the order as by night
@@ -173,7 +173,7 @@ try {
   ok(lk.every((q, i) => q.scene === (i < 2 ? 'day' : 'night') && q.body === q.scene && q.stage === q.scene && q.band === q.scene), `THE DAY LOOK in a match: ALICE (host) ${lk[0].scene} · BOB ${lk[1].scene} · CHARLIE ${lk[2].scene} — each phone its own GAME LOOK`);
   await pages[2].evaluate(() => import('/js/games/kit/look.js').then(m => m.saveLook('day')));
   ok(await until(async () => { const q = await lookOf(pages[2]); return q.scene === 'day' && q.stage === 'day' && q.band === 'day'; }, 6000), '… CHARLIE switches to DAY mid-match: his screen re-themes at once (read live)');
-  ok((await all(N, p => state(p))).every(s => s.ghosts.length === 2 && s.seed === game.seed), '… the same match on all three: the look is a view');
+  ok((await all(N, p => state(p))).every(s => s.ghosts.length === N - 1 && s.seed === game.seed), '… the same match on all three: the look is a view');
   await H.shot(pages[2], 'match-day-ghosts');
   // ---- 4. BOB out first (two still in) → the cause words → Call the Winner → WATCHING the leader
   await H.shot(pages[0], 'ghosts-3-two-seconds-in');
@@ -182,7 +182,7 @@ try {
   // own tag "BOB"; on BOB's phone ALICE + CHARLIE hop on ahead on the same squares: ONE tag — the leader's name + "+1"
   { const [away, mg] = await Promise.all([   // (both at once: ALICE + CHARLIE are off BOB's screen within a few seconds)
       until(async () => { const s = await state(pages[0]), q = s.ghosts.find(x => x.name === 'BOB'); return q && q.shown && q.text === 'BOB' && q.fade < 0.2 ? q : null; }, 12000, 60),
-      until(async () => { const on = (await state(pages[1])).ghosts.filter(x => x.shown); return on.length === 1 && /^(ALICE|CHARLIE) \+1$/.test(on[0].text) ? on[0].text : null; }, 12000, 60)]);
+      until(async () => { const on = (await state(pages[1])).ghosts.filter(x => x.shown); const mg = on.find(x => /^(ALICE|CHARLIE|DANA) \+\d$/.test(x.text)); return mg && (N > 3 || on.length === 1) ? mg.text : null; }, 12000, 60)]);
     ok(!!away, 'a ghost AWAY from you is itself again and carries its own name (BOB, behind ALICE)');
     ok(!!mg, `STACKED TAGS MERGE: two ghosts on the same / touching squares share ONE tag on BOB's phone — "${mg || 'none seen'}"`);
     await H.shot(pages[1], 'ghosts-4-merged-tag'); }
@@ -212,6 +212,7 @@ try {
   ok(spec.n > 120 && spec.p95 < 34, `H4B — spectating is smooth: ${(1000 / spec.avg).toFixed(1)} fps, p95 ${spec.p95.toFixed(1)} ms, worst ${spec.worst.toFixed(1)} ms over 3 s of watching`);
   await H.shot(pages[1], 'match-spectate-2');
   // ---- 5. CHARLIE out → only ALICE left; then ALICE → the match ends on the host's step
+  if (N > 3) { await G(pages[3], 'window.__jwGame.bot(false)'); ok(await until(async () => (await state(pages[3])).over, 40000), 'DANA (the 4th phone) out'); }
   await G(pages[2], 'window.__jwGame.bot(false)');
   ok(await until(async () => (await state(pages[2])).over, 40000), 'CHARLIE out');
   ok(await until(async () => { const s = await state(pages[2]); return s.watching && s.follow === uids[0] && !s.call; }, 8000), '… CHARLIE watches ALICE (one player in: no call to make)');
@@ -224,7 +225,7 @@ try {
   await sleep(3200);
   const fin = await evalIn(host, s => s.game), nodes = await dbGet(`rooms/${code}/jw/${m}`);
   const rank = Object.entries(fin.results).sort((a, b) => b[1].l - a[1].l || a[1].t - b[1].t).map(([u]) => u);
-  ok(fin.phase === 'final' && Object.keys(fin.results).length === 3 && fin.results[uids[1]].l === bobEnd.best, `THE END: the last player out ends it — BOB ${fin.results[uids[1]].l} · CHARLIE ${fin.results[uids[2]].l} · ALICE ${fin.results[uids[0]].l} lanes (the replay of each log; BOB's = his own phone's ${bobEnd.best})`);
+  ok(fin.phase === 'final' && Object.keys(fin.results).length === N && fin.results[uids[1]].l === bobEnd.best, `THE END: the last player out ends it — BOB ${fin.results[uids[1]].l} · CHARLIE ${fin.results[uids[2]].l} · ALICE ${fin.results[uids[0]].l} lanes (the replay of each log; BOB's = his own phone's ${bobEnd.best})`);
   ok(fin.results[uids[0]].l >= aliceLive.best, '… ALICE\'s lanes are her whole run');
   // H4B — THE GHOSTS IN STEP WITH THE WORLD: every frame of the whole match, on every phone, each drawn ghost checked against the world it
   // was drawn in (view.js#probe — course.js's own tests at the world's tick): never in a vehicle's box, never standing on open water
@@ -232,7 +233,7 @@ try {
   ends.forEach((s, i) => log(`  ${NAMES[i]} saw: ${JSON.stringify(s.seen)}`));
   ok(ends.every(s => s.seen.n > 300 && s.seen.car === 0 && s.seen.water === 0), `H4B — the ghosts were NEVER drawn inside a vehicle or on open water (${ends.map(s => s.seen.n).join(' / ')} ghost-frames checked on the three phones; ${ends.reduce((a, s) => a + s.seen.logs, 0)} of them riding a log — on it)`);
   ok(ends.every(s => s.seen.air > 0) && ends.every(s => s.seen.undead === 0), `H4B — a late hop catches up in a quick hop (${ends.map(s => s.seen.air).join(' / ')} frames in the air); no death ever un-happened`);
-  ok(ends.every((s, i) => s.ghosts.length === 2 && s.ghosts.every(q => q.done && q.st !== 'idle' && q.st !== 'hop' && q.best === fin.results[q.uid].l)), `H4B — every ghost's final lanes = that player's own, on every phone (${ends[1].ghosts.map(q => q.best).join(' · ')} on BOB's)`);
+  ok(ends.every((s, i) => s.ghosts.length === N - 1 && s.ghosts.every(q => q.done && q.st !== 'idle' && q.st !== 'hop' && q.best === fin.results[q.uid].l)), `H4B — every ghost's final lanes = that player's own, on every phone (${ends[1].ghosts.map(q => q.best).join(' · ')} on BOB's)`);
   // … and the hops went up AT ONCE: the write count stays modest
   const rate = uids.slice(0, N).map(u => { const c = Object.values((nodes[u] || {}).c || {}), hops = c.reduce((a, v) => a + (v.s.match(/[UDLR]/g) || []).length, 0), ms = c.length ? c[c.length - 1].at - nodes[u].go : 1; return { chunks: c.length, hops, perMin: c.length / (ms / 60000) }; });
   log(`  the proof's writes: ${rate.map((r, i) => `${NAMES[i]} ${r.chunks} chunks for ${r.hops} hops (${r.perMin.toFixed(0)} a minute)`).join(' · ')}`);
@@ -246,13 +247,13 @@ try {
   const tie = fin.results[rank[0]].l === fin.results[rank[1]].l && fin.results[rank[0]].t === fin.results[rank[1]].t;
   ok(pod.shown && (tie || (pod.word === 'WINNER' && /WENT THE FARTHEST/.test(pod.name))), `THE PODIUM: ${pod.word} — ${pod.name}`);
   ok(isCause(pod.cause) && new RegExp(`^${fin.results[uids[1]].l} LANES? · YOU FINISHED [0-9](ST|ND|RD|TH)$`).test(pod.n), `… BOB's own end on his podium: "${pod.cause}" · ${pod.n}`);
-  ok(pod.notes.length === 3 && pod.notes.every(isCause), `… everyone in order with their cause line: ${pod.notes.join(' · ')}`);
+  ok(pod.notes.length === N && pod.notes.every(isCause), `… everyone in order with their cause line: ${pod.notes.join(' · ')}`);
   ok(pod.foot.length === 1 && /BACK TO THE ROOM/.test(pod.foot[0]) && pod.share && parseFloat(pod.radius) <= 12, `… the foot: ${pod.foot.join(' · ')} + SHARE MY RUN; the buttons are the non-pill tube (radius ${pod.radius})`);
   // (a right call = the player called finished first — alone or level for first: logic.js#scoreCalls)
   const right = fin.results[uids[0]].l === fin.results[rank[0]].l && fin.results[uids[0]].t === fin.results[rank[0]].t;
   ok(!!fin.calls && fin.calls[uids[1]] && fin.calls[uids[1]].w === uids[0] && fin.calls[uids[1]].ok === right, `BOB's call: ${fin.calls && fin.calls[uids[1]] ? (fin.calls[uids[1]].ok ? `RIGHT (+${fin.calls[uids[1]].bonus})` : 'missed') : 'none'} — "${pod.callLine}"`);
   const night = await dbGet(`rooms/${code}/night/${m}`);
-  ok(night && night.g === 'jaywalk' && Object.keys(night.p || {}).length === 3 && (!right || (night.b && night.b[uids[1]] === fin.calls[uids[1]].bonus)), 'the night record: three placings' + (right ? ' + the call\'s game-night points' : ''));
+  ok(night && night.g === 'jaywalk' && Object.keys(night.p || {}).length === N && (!right || (night.b && night.b[uids[1]] === fin.calls[uids[1]].bonus)), 'the night record: three placings' + (right ? ' + the call\'s game-night points' : ''));
   await H.shot(pages[1], 'match-podium');
   await H.shot(pages[0], 'match-podium-winner');
   // ---- 6. the report: counted for ALL THREE — the guests in the owner's room included
@@ -297,7 +298,7 @@ try {
   sts2.forEach((s, i) => log(`  ${NAMES[i]}: seed ${s.seed} · tick 0 ${s.go} · took it ${s.adopts.filter(a => a.seed === s.seed).map(a => `${a.at} ms from tick 0`).join(', ')}${LAG && i === 0 ? ` (a ${LAG} ms line)` : ''}`));
   ok(!!SV2 && game2.seed === SV2.seed && game2.playAt === SV2.playAt && sts2.every(s => s.seed === SV2.seed && s.go === SV2.playAt && s.adopts.filter(a => a.seed !== game.seed).length === 1), `H4B — the rematch: every phone + the host's GO patch = the server's own seed + tick 0, each took it once${LAG ? ` — THE HOST ${LAG} ms slow` : ''}`);
   if (LAG) await setLag(host, 0, 0);
-  ok(kept && Object.keys(kept).length === 3 && uids.slice(0, N).every(u => kept[u].go > 0), '… the finished match\'s proof nodes are still there (a late report still finds them)');
+  ok(kept && Object.keys(kept).length === N && uids.slice(0, N).every(u => kept[u].go > 0), '… the finished match\'s proof nodes are still there (a late report still finds them)');
   await all(N, (p, i) => waitFor(p, s => s.game && s.game.phase === 'final', `${NAMES[i]}: the rematch ends (nobody hops: the blackout takes all three)`, 60000));
   const fin2 = await evalIn(host, s => s.game);
   ok(Object.values(fin2.results).every(r => r.l === 0 && r.w === 'wall'), 'three silent-but-present players: each has a run (the blackout\'s), 0 lanes');

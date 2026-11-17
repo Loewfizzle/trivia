@@ -144,7 +144,7 @@ try {
   await P.shot('line-friend-crossed.png');
   await P.ev(`${G}.bot(false)`);
   ln = (await P.ev(`${G}.state()`)).lines;
-  const chime = await P.ev("import('/js/games/jaywalk/sfx.js').then(S => S.wanted().filter(x => x.id === 'landmark').map(x => x.vol))");
+  const chime = await P.ev("import('/js/games/jaywalk/sfx.js').then(S => S.wanted().filter(x => x.id === 'area-arrive').map(x => x.vol))");
   ok(crossedF && ln.shown === '0|' && chime.length === 1 && chime[0] < 0.6, `LIAM's line crossed (lane ${(await P.ev(`${G}.state()`)).best}): a quiet chime (vol ${chime.join()}), and no friend ahead = no line ("${ln.shown}")`);
   await sleep(1400);
   st = await P.ev(`${G}.state()`); node = await nodeOf(g.code, g.m, uid);
@@ -255,7 +255,7 @@ try {
     let far = null, tries = 0, lm0 = 0;
     for (; tries < 10 && !far; tries++) {
       if (tries) { if (!(await toEnd(P, 60000))) break; const N = await again(); if (!N.up) break; }
-      lm0 = (await P.ev(`${G}.state().snd.by.landmark`)) || 0;   // (the totals: the lists keep only their last 200 — a long run's first gateways scroll out)
+      lm0 = (await P.ev(`${G}.state().snd.by['area-arrive']`)) || 0;   // (the totals: the lists keep only their last 200 — a long run's first gateways scroll out)
       await P.ev(`window.__marks.clear(); ${G}.bot(true)`);
       await P.waitFor(`${G}.state().best >= 156 || ${G}.state().over`, 150000);
       const st = await P.ev(`${G}.state()`);
@@ -264,9 +264,9 @@ try {
     }
     ok(!!far, `a bot's solo run got THROUGH 3 AREAS in ${tries} ${tries === 1 ? 'try' : 'tries'} (lane ${far ? far.best : '—'}: the opening → THE DOCKS → THE FISH MARKET → THE RAIL YARD)`);
     if (far) {
-      const marks = await P.ev('[...window.__marks]'), snd = far.snd, lm = (snd.by.landmark || 0) - lm0;
+      const marks = await P.ev('[...window.__marks]'), snd = far.snd, lm = (snd.by['area-arrive'] || 0) - lm0;
       ok(['THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD'].every(n => marks.includes(n)), `each ARRIVAL GATEWAY's name flashed under the lane count: ${marks.join(' · ')}`);
-      ok(lm >= 3, `… with the landmark sound (${lm} asked)`);
+      ok(lm >= 3, `… with THE AREA ARRIVAL sound (${lm} asked)`);
       ok(snd.cues.includes('car-pass') || snd.cues.includes('horn') || snd.cues.includes('bell-on'), `THE WORLD's SOUNDS were cued for this kid (${[...new Set(snd.cues)].join(' · ')})`);
       ok(far.info.kid === true && far.kidPx >= 30 && far.kidPx <= 58, `THE NEW KID is the one drawn — ${far.kidPx.toFixed(1)} pt tall on this 390 pt phone at that moment (mid-hop he stretches; standing: ≈ 38.5 pt — the lab check)`);
       const gA = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);

@@ -8,7 +8,7 @@ import * as THREE from 'three';
 
 export const FOG_HEX = 0x0b0716;
 /** H5B — THE DAY LOOK's haze (the far lanes fade into it; the day skyline's water meets it) */
-export const DAY_FOG_HEX = 0x9fd6f6;   // (H5C — THE FAR EDGE: the day picture's own haze where its sea meets the sky (#87cef4 → #b8e8fb): the far lanes fade into the same air)
+export const DAY_FOG_HEX = 0xc6e6f7;   // (H5C — THE FAR EDGE: the day picture's own haze where its sea meets the sky (#87cef4 → #b8e8fb): the far lanes fade into the same air)
 export const rgb = hex => [((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255];
 /** lane kinds as the ground shader counts them */
 export const KIND = Object.freeze({ grass: 0, road: 1, water: 2, rail: 3, flight: 4, mark: 5 });
@@ -54,17 +54,17 @@ vec3 areaGround(float ar, float x, float z, float seed, float lane) {
     c += DN(vec3(0.075, 0.056, 0.036), vec3(0.10, 0.085, 0.05)) * smoothstep(0.26, 0.0, length(f - vec2(-0.12, 0.14)));
   } else if (ar < 3.5) {
     // (H5C — by day the gravel is FINER + CALMER: a small soft grain, a gentle unevenness — never TV static)
-    float gs = mix(13.0, 30.0, uDay);
-    c = DN(vec3(0.120, 0.100, 0.086), vec3(0.66, 0.60, 0.53)) * (mix(0.62, 0.935, uDay) + mix(0.76, 0.12, uDay) * hash(floor(vec2(x * gs, z * gs)) + seed));
-    c *= mix(0.8, 0.93, uDay) + mix(0.4, 0.14, uDay) * vnoise(vec2(x * 1.3, z * 1.3 + lane));
+    float gs = mix(26.0, 30.0, uDay);   // (the review: the night gravel was still blocky — finer + calmer there too)
+    c = DN(vec3(0.120, 0.100, 0.086), vec3(0.66, 0.60, 0.53)) * (mix(0.84, 0.935, uDay) + mix(0.30, 0.12, uDay) * hash(floor(vec2(x * gs, z * gs)) + seed));
+    c *= mix(0.86, 0.93, uDay) + mix(0.26, 0.14, uDay) * vnoise(vec2(x * 1.3, z * 1.3 + lane));
   } else if (ar < 4.5) {
     vec2 q = vec2(x / 1.5, z * 2.0);
-    c = DN(vec3(0.105, 0.070, 0.078), vec3(0.66, 0.37, 0.33)) * (0.88 + 0.24 * hash(floor(q) + lane));
+    c = DN(vec3(0.105, 0.070, 0.078), vec3(0.66, 0.37, 0.33)) * (0.95 + 0.1 * hash(floor(q) + lane));
     c *= joint(fract(q), 0.02) * 0.55 + 0.45;
     c += DN(vec3(0.12, 0.08, 0.08), vec3(0.15, 0.12, 0.10)) * smoothstep(0.1, 0.04, length(abs(fract(vec2(x * 4.0, z * 4.0)) - 0.5) - 0.3));
   } else if (ar < 5.5) {
     vec2 q = vec2(x, z * 2.0);
-    c = DN(vec3(0.150, 0.146, 0.185), vec3(0.78, 0.77, 0.78)) * (0.88 + 0.24 * hash(floor(q) + lane * 3.0));
+    c = DN(vec3(0.150, 0.146, 0.185), vec3(0.78, 0.77, 0.78)) * (0.95 + 0.1 * hash(floor(q) + lane * 3.0));   // (the review: no two-tone checker — the slabs differ a little)
     c *= joint(fract(q), 0.025) * 0.5 + 0.5;
   } else if (ar < 6.5) {
     vec2 q = vec2(x * 1.25 + step(0.5, fract(z)) * 0.5, z * 2.0);
@@ -85,7 +85,7 @@ vec3 areaGround(float ar, float x, float z, float seed, float lane) {
     c = mix(c, DN(vec3(0.085, 0.09, 0.105), vec3(0.64, 0.61, 0.58)), step(0.95, hash(floor(pq) + 2.2)) * smoothstep(0.2, 0.09, length(fract(pq) - 0.5)) * 0.85);
   } else {
     vec2 q = vec2(x / 3.0, z);
-    c = DN(vec3(0.138, 0.136, 0.150), vec3(0.72, 0.72, 0.73)) * (0.9 + 0.2 * hash(floor(q) + lane));
+    c = DN(vec3(0.138, 0.136, 0.150), vec3(0.72, 0.72, 0.73)) * (0.96 + 0.08 * hash(floor(q) + lane));
     c *= smoothstep(0.0, 0.012, fract(q.x)) * smoothstep(1.0, 0.988, fract(q.x)) * 0.45 + 0.55;
     c = mix(c, DN(vec3(0.80, 0.62, 0.10), vec3(1.0, 0.80, 0.08)), smoothstep(0.035, 0.015, abs(z - 0.13)) * mix(0.7, 0.95, uDay));   // (a solid taxi line along its foot — never a road's dashed centre line)
   }
@@ -106,7 +106,7 @@ void main() {
     c *= 1.0 - 0.2 * step(0.87, hash(ti + 3.7)) * smoothstep(0.17, 0.05, length(fract(tq) - 0.5 - (vec2(hash(ti + 1.1), hash(ti + 2.3)) - 0.5) * 0.5));
     if (ar > 0.5) c = areaGround(ar, x, z, seed, vLane);
     if (type > 4.5) {                                             // a LANDMARK's lane: dark paving, a neon trim on both edges
-      c = DN(vec3(0.105, 0.10, 0.15), vec3(0.80, 0.78, 0.72)) * (0.9 + 0.2 * mod(floor(x * 2.0) + floor(z * 2.0), 2.0));
+      c = DN(vec3(0.105, 0.10, 0.15), vec3(0.80, 0.78, 0.72)) * (0.95 + 0.08 * hash(floor(vec2(x * 2.0, z * 2.0)) + seed)) * (joint(fract(vec2(x * 2.0, z * 2.0)), 0.03) * 0.22 + 0.78);   // (H5C: paving slabs + their joints — never a checker)
       float trim = smoothstep(0.05, 0.02, abs(z - 0.08)) + smoothstep(0.05, 0.02, abs(z - 0.92));
       c = mix(c + vec3(1.0, 0.25, 0.72) * trim * 0.75 * (1.0 - uDay), vec3(0.93, 0.30, 0.26), min(1.0, trim) * 0.9 * uDay);   // (by day: a PAINTED trim)
     }
@@ -166,16 +166,16 @@ void main() {
     c += vec3(0.10, 0.16, 0.10) * (smoothstep(0.30, 0.0, z) * shD + smoothstep(0.30, 0.0, 1.0 - z) * shU);
     c = mix(c, vec3(1.0), min(1.0, foam * (0.78 + 0.22 * n3)));
   } else if (type < 3.5) {
-    float bs = mix(18.0, 30.0, uDay);   // (H5C — by day the ballast's grain is finer + calmer)
-    c = DN(vec3(0.088, 0.078, 0.09), vec3(0.58, 0.53, 0.47)) * (mix(0.85, 0.93, uDay) + mix(0.3, 0.13, uDay) * hash(floor(vec2(x * bs, z * bs))));
+    float bs = mix(28.0, 30.0, uDay);   // (H5C — the ballast's grain is finer + calmer, night + day)
+    c = DN(vec3(0.088, 0.078, 0.09), vec3(0.58, 0.53, 0.47)) * (mix(0.9, 0.93, uDay) + mix(0.18, 0.13, uDay) * hash(floor(vec2(x * bs, z * bs))));
     float sl = step(fract(x * 2.0), 0.3) * step(0.17, z) * step(z, 0.83);
     c = mix(c, DN(vec3(0.21, 0.135, 0.085), vec3(0.43, 0.29, 0.18)), sl);
     float r = max(smoothstep(0.04, 0.016, abs(z - 0.33)), smoothstep(0.04, 0.016, abs(z - 0.67)));
     c = mix(c, DN(vec3(0.50, 0.53, 0.64), vec3(0.84, 0.86, 0.90)), r);
     // the tell: the rails catch the red signals (by day: the lane itself FLASHES red — still bold in sunlight)
-    c = mix(c + vec3(0.85, 0.05, 0.07) * vState.y * (0.16 + 0.6 * r) * (1.0 - uDay), vec3(0.98, 0.10, 0.08), vState.y * (0.42 + 0.45 * r) * uDay);
+    c = mix(c + vec3(0.85, 0.05, 0.07) * vState.y * (0.16 + 0.6 * r) * (1.0 - uDay), vec3(0.98, 0.10, 0.08), vState.y * (0.2 + 0.7 * r) * uDay);
   } else {
-    c = DN(vec3(0.088, 0.086, 0.104), vec3(0.46, 0.47, 0.50)) * (0.94 + 0.12 * hash(floor(vec2(x * 12.0, z * 12.0))));   // (by day: the PAINTED runway)
+    c = DN(vec3(0.088, 0.086, 0.104), vec3(0.46, 0.47, 0.50)) * (0.97 + 0.06 * hash(floor(vec2(x * 36.0, z * 36.0))));   // (by day: the PAINTED runway — a fine grain)
     float cl = step(fract(x * 0.5 + 0.25), 0.5) * smoothstep(0.035, 0.015, abs(z - 0.5));
     c = mix(c, DN(vec3(0.66, 0.63, 0.58), vec3(0.97, 0.97, 0.94)), cl * mix(0.55, 0.92, uDay));
     // (by day: white piano keys at both edges — a runway, never a road)
@@ -189,12 +189,12 @@ void main() {
       // (H5B's add-on: the runway's tell is AMBER by night too — a blue lane read as water)
       c += (vec3(1.0, 0.66, 0.14) * band * (0.35 + 0.5 * chev) + vec3(0.30, 0.15, 0.02) * fx) * (1.0 - uDay);
       // (by day — THE TELL MUST READ IN SUNLIGHT: the whole lane warms, a HOT yellow-white chevron band races to the crossing)
-      c = mix(c, vec3(1.0, 0.74, 0.08), 0.30 * fx * uDay);
+      c = mix(c, vec3(1.0, 0.74, 0.08), 0.16 * fx * uDay);
       c = mix(c, mix(vec3(1.0, 0.86, 0.10), vec3(1.0), chev * 0.75), clamp(band * 1.25, 0.0, 1.0) * uDay);
     }
   }
   // THE WIDER VIEW: the edge columns a step dimmer, the ground beyond them dimmer still
-  float inner = smoothstep(-0.06, 0.06, x) * smoothstep(9.06, 8.94, x);
+  float inner = smoothstep(-0.14, 0.1, x) * smoothstep(9.14, 8.9, x);
   float outer = smoothstep(-2.6, -1.0, x) * smoothstep(11.6, 10.0, x);
   c *= mix(mix(mix(0.30, 0.60, uDay), mix(0.52, 0.80, uDay), outer), 1.0, inner);
   // THE BLACKOUT: this lane's lights dying (a cold flicker as it goes), then dead
@@ -210,8 +210,16 @@ void main() {
     float thin = smoothstep(-1.5, 0.7, d + (bn - 0.5) * 1.9);
     float fogA = thin * mix(0.5, 1.0, smoothstep(0.1, 2.1, d));
     c *= 1.0 - 0.2 * smoothstep(-3.2, -0.3, d) * (1.0 - thin);
-    c = mix(c, vec3(0.83, 0.87, 0.905) * (0.95 + 0.1 * bn), clamp(fogA, 0.0, 1.0));
-  } else c = mix(c, vec3(0.012, 0.016, 0.03) + c * 0.05, clamp(dk + fl * 0.35, 0.0, 1.0));
+    c = mix(c, vec3(0.875, 0.906, 0.933) * (0.93 + 0.1 * bn), clamp(fogA, 0.0, 1.0));
+  } else {
+    // THE BLACKOUT's edge (H5C — the review: "a ruler-straight cut to black"): per pixel off the wall itself, soft + ragged (two drifting
+    // noise fields) — the lights still die lane by lane (the flicker), but the dark's edge is never a straight line; the cold violet
+    // glow rides its ragged lip
+    float ly = vLane + z, e = uWall - ly + (0.6 * vnoise(vec2(x * 0.5 + uTime * 0.12, ly * 0.9 + uTime * 0.07)) + 0.4 * vnoise(vec2(x * 1.4 - uTime * 0.2, ly * 2.1 + 5.0)) - 0.5) * 1.7;
+    float dkp = smoothstep(-0.75, 0.55, e);
+    c = mix(c, vec3(0.012, 0.016, 0.03) + c * 0.05, clamp(dkp + fl * 0.35, 0.0, 1.0));
+    c += vec3(0.42, 0.28, 0.80) * smoothstep(0.5, 0.0, abs(e + 0.25)) * 0.36 * (1.0 - dkp * 0.6);
+  }
   c = mix(c, uFogCol, vFog);
   gl_FragColor = vec4(c, 1.0);
 }`;
@@ -235,10 +243,26 @@ export function createGround(n, fog) {
   };
 }
 
+// THE FAR HAZE BY THE GROUND (H5C — the review: "the ground fades out before the things standing on it — trucks, trees, containers
+// hang as pale ghosts"): three's fog reads a fragment's own depth, and from this camera a thing's top is NEARER than the ground it stands
+// on. So every lit material adds its height back (uFogUp = how much nearer a unit of height is: −the camera's forward y) — a thing fades
+// exactly as the ground under it does.
+export const FOG_UP = { value: 0.72 };
+const FOG_UP_V = `#ifdef USE_FOG
+  vec4 jwW = vec4(transformed, 1.0);
+  #ifdef USE_INSTANCING
+    jwW = instanceMatrix * jwW;
+  #endif
+  vFogDepth = -mvPosition.z + uFogUp * (modelMatrix * jwW).y;
+#endif`;
+const fogPatch = sh => { sh.uniforms.uFogUp = FOG_UP; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uFogUp;').replace('#include <fog_vertex>', FOG_UP_V); };
+/** a plain lit material whose fog follows the ground under the thing */
+export function fogUp(mat) { mat.onBeforeCompile = fogPatch; mat.customProgramCacheKey = () => 'jw-fogup'; return mat; }
+
 // ---- THE LIGHTS: additive quads (flat on the ground, or facing the camera) + the blob shadows — ONE material each, the shape picked per instance
 const GLOW_V = `
 attribute vec2 aFx;
-uniform vec2 uFog; uniform float uBill;
+uniform vec2 uFog; uniform float uBill; uniform float uFogUp;
 varying vec2 vUv; varying vec3 vCol; varying vec2 vFx; varying float vFog;
 void main() {
   vUv = uv; vFx = aFx;
@@ -252,7 +276,7 @@ void main() {
     mv = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
     mv.xy += position.xy * vec2(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz));
   } else mv = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
-  vFog = smoothstep(uFog.x, uFog.y, -mv.z);
+  vFog = smoothstep(uFog.x, uFog.y, -mv.z + uFogUp * (modelMatrix * instanceMatrix * vec4(uBill > 0.5 ? vec3(0.0) : position, 1.0)).y);
   gl_Position = projectionMatrix * mv;
 }`;
 const GLOW_F = `
@@ -286,7 +310,7 @@ void main() {
 /** bill: 1 = the quad faces the camera · shadow: black, alpha-blended (the blob shadows) */
 export function glowMaterial(fog, { bill = false, shadow = false } = {}) {
   return new THREE.ShaderMaterial({
-    vertexShader: GLOW_V, fragmentShader: GLOW_F, uniforms: { uFog: { value: fog }, uBill: { value: bill ? 1 : 0 }, uDay: { value: 0 } },
+    vertexShader: GLOW_V, fragmentShader: GLOW_F, uniforms: { uFog: { value: fog }, uBill: { value: bill ? 1 : 0 }, uDay: { value: 0 }, uFogUp: FOG_UP },
     defines: shadow ? { JW_SHADOW: 1 } : {}, transparent: true, depthWrite: false,
     blending: shadow ? THREE.NormalBlending : THREE.AdditiveBlending,
   });
@@ -305,6 +329,7 @@ export function paintMaterial(mat, { instanced = false, rim = false, skin = null
   const u = { uTint: { value: new THREE.Color(0xffffff) }, uLit: { value: 1 }, uRim: { value: new THREE.Color(0x000000) }, uPose: { value: skin } };
   mat.vertexColors = true;
   mat.onBeforeCompile = sh => {
+    fogPatch(sh);
     sh.uniforms.uTint = u.uTint; sh.uniforms.uLit = u.uLit;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>\nattribute float paint;\n${skin ? SKIN_V : instanced ? 'attribute float aLit;' : 'uniform vec3 uTint; uniform float uLit;'}`)

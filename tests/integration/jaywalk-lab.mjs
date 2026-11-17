@@ -292,7 +292,7 @@ async function looksH5B(p, what, reqs) {
       const g = 50 * (k + 1);
       await stand(g - 4); await sleep(1000); await shot(p, `day/areas/${k + 1}-${IDS[k]}-gate-coming.png`);
       await stand(g); await sleep(900); await shot(p, `day/areas/${k + 1}-${IDS[k]}-gate.png`);
-      ok((await st(p)).info.mark === `${k}:day`, `${IDS[k]}: its landmark stands in the day skyline`);
+      ok(/^skyline-day-[a-z]+\.webp$/.test((await st(p)).info.sky.now) || /^skyline-day-[a-z]+\.webp$/.test((await st(p)).info.sky.held.join(' ')), `${IDS[k]}: its PAINTED skyline carries the landmark by day (H5C — skymarks.js is the night's)`);
       for (const [off, tag, col] of [[7, 'a', 4], [26, 'b', 2]]) { await stand(g + off, col); await sleep(1000); await shot(p, `day/areas/${k + 1}-${IDS[k]}-${tag}.png`); }
     }
     await look('night');
@@ -324,7 +324,7 @@ async function looksH5B(p, what, reqs) {
       ok(m.mark === `${k}:night` && m.on, `${IDS[k]}: its landmark stands in the skyline band (${m.area})`);
     }
     await stand(20); await sleep(700);
-    ok(await L("!document.querySelector('.jw-sky-mark').classList.contains('is-a') && !document.querySelector('.jw-sky-mark').classList.contains('is-b')"), 'the opening (lanes 0–49) has no landmark in the band');
+    ok(await L("!document.querySelector('.jw-sky-mark.is-a, .jw-sky-mark.is-b')"), 'the opening (lanes 0–49) has no landmark in the band');
   }
 }
 
@@ -410,6 +410,49 @@ async function looksH5C(p, what, reqs) {
     ok(s.now === 'skyline-night.webp' && s.held.length === 1, `by night: the ONE night picture (${s.held.join(' + ')})`);
     for (const [k, lane] of [[0, 59], [6, 359]]) { await fresh('night'); await sleep(300); await stand(lane, 4); await sleep(1500); await top(`h5c/sky/night-${k + 1}-${IDS[k]}-top.png`); await shot(p, `h5c/sky/night-${k + 1}-${IDS[k]}.png`); ok((await st(p)).info.mark === `${k}:night`, `${IDS[k]} by night: its neon-outline landmark stands in the band, as before`); }
   }
+  if (what === 'perf') {
+    // THE NEW HEAVY MOMENTS at 390 × 844 @3, tier 2, 4× CPU: the band's CROSS-FADE at a gate (day) · THE FOG BANK close (day) · THE
+    // BLACKOUT close (night)
+    const cdp = await p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    const measure = async (name, ms) => {
+      await L('window.__jwLab.clearFrames()'); await sleep(ms);
+      const f = (await L('window.__jwLab.frames()')).slice(2).sort((a, b) => a - b), avg = f.reduce((a, b) => a + b, 0) / f.length, p95 = f[Math.floor(f.length * 0.95)], worst = f[f.length - 1];
+      console.log('PERF', JSON.stringify({ moment: name, frames: f.length, fps: +(1000 / avg).toFixed(1), p95Ms: +p95.toFixed(1), worstMs: +worst.toFixed(1) }));
+      ok(1000 / avg >= 58 && p95 < 20, `${name} at tier 2, 4× CPU: ${(1000 / avg).toFixed(1)} fps (p95 ${p95.toFixed(1)} ms, worst ${worst.toFixed(1)})`);
+    };
+    await fresh('day'); await L('window.__jwLab.setTier(2)'); await sleep(600); await stand(38, 4); await sleep(1500);
+    const f0 = (await sky()).fades; await stand(50, 4); await measure('THE CROSS-FADE at THE DOCKS\' gate (day)', 2600);
+    ok((await sky()).fades === f0 + 1, '… the cross-fade ran inside the measure');
+    await fresh('day'); await sleep(7600); await measure('THE FOG BANK close (day)', 2200);
+    await fresh('night'); await sleep(7600); await measure('THE BLACKOUT close (night)', 2200);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 }); await cdp.detach();
+  }
+  if (all || what === 'basics') {
+    // the start · a run · water + logs · a train coming + passing · the flight path's tell · every area — DAY + NIGHT
+    for (const look of ['day', 'night']) {
+      await L(`window.__jwLab.bot(false); window.__jwLab.restart('solo', 'look3'); window.__jwLab.setCamera(8, 'straight', true); window.__jwLab.setLook('${look}')`); await sleep(900);
+      await shot(p, `h5c/basics/${look}-01-the-start.png`);
+      await L("window.__jwLab.hop('u')"); await sleep(400);
+      await stand(18, 3); await sleep(900); await shot(p, `h5c/basics/${look}-02-a-run.png`);
+      let i = await p.evaluate(() => window.__jwLab.find('water', 14));
+      await p.evaluate(l => window.__jwLab.warp(l - 1), i);
+      await waitFor(p, `window.__jwLab.logAt(${i}) > 0`, 20000);
+      await p.evaluate(l => { const J = window.__jwLab; J.warp(l, { x: J.logAt(l) }); }, i); await sleep(450); await shot(p, `h5c/basics/${look}-03-water-and-logs.png`);
+      await fresh(look); await sleep(300);
+      i = await p.evaluate(() => window.__jwLab.find('rail', 150)); await below(i, 4500);
+      await waitFor(p, `(window.__jwLab.pulse(${i}) || {}).st === 'idle'`, 60000);
+      await waitFor(p, `(window.__jwLab.pulse(${i}) || {}).st === 'tell' && window.__jwLab.state().t % 16 < 5`, 60000); await sleep(40); await shot(p, `h5c/basics/${look}-04-a-train-coming.png`);
+      await waitFor(p, `(window.__jwLab.pulse(${i}) || {}).st === 'pass'`, 30000); await sleep(300); await shot(p, `h5c/basics/${look}-05-the-train-passing.png`);
+      await fresh(look); await sleep(300);
+      i = await p.evaluate(() => window.__jwLab.find('flight', 400));
+      await p.evaluate(l => { const J = window.__jwLab; for (let d = 1; d < 9; d++) if (J.find('grass', l - d) === l - d) { J.warp(l - d, { x: 2500 }); return; } J.warp(l - 1); }, i);
+      await waitFor(p, `(window.__jwLab.pulse(${i}) || {}).st === 'idle'`, 40000);
+      await waitFor(p, `(window.__jwLab.pulse(${i}) || {}).st === 'tell'`, 60000); await sleep(650); await shot(p, `h5c/basics/${look}-06-the-flight-path-tell.png`);
+      for (let k = 0; k < 8; k++) { await fresh(look); await sleep(250); await stand(50 * (k + 1) + 9, 4); await sleep(look === 'day' ? 2600 : 1300); await shot(p, `h5c/basics/${look}-area-${k + 1}-${IDS[k]}.png`); }
+      await fresh(look); await sleep(250); await stand(262, 4); await sleep(1500); await shot(p, `h5c/basics/${look}-07-a-busy-road.png`);
+    }
+    ok(true, 'the basics, day + night: the start, a run, water + logs, a train coming + passing, the flight path\'s tell, every area, a busy road');
+  }
   if (all || what === 'fog') {
     for (const look of ['day', 'night']) {
       await fresh(look); await sleep(5200); await shot(p, `h5c/fog/${look}-1-coming.png`);
@@ -462,6 +505,7 @@ async function looksH5C(p, what, reqs) {
     await fresh('night'); await sleep(400);
     for (const [veh, name] of [['sedan', 'a-car'], ['van', 'a-van'], ['truck', 'a-truck']]) {
       for (const dir of [1, -1]) {
+        await fresh('night'); await sleep(300);   // (each its own fresh run: the wall never catches a standing kid mid-shot)
         const at = await p.evaluate((w, d) => { const J = window.__jwLab; for (let i = 12; i < 300; i++) if (J.find('road', i) === i && J.find('grass', i - 1) === i - 1 && J.lane(i).dir === d && J.items(i).items.some(q => q.what === w)) return i; return -1; }, veh, dir);
         if (at < 0) continue;
         await p.evaluate(l => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'look3'); J.hop('u'); } J.warp(l - 1, { x: 4500 }); }, at);
@@ -695,7 +739,7 @@ try {
   const tA = (await st(p)).t; await sleep(500);
   ok((await st(p)).t === tA, '… and the run holds still under it');
   const rows = await p.evaluate(() => [...document.querySelectorAll('.jw-au-row')].map(x => ({ id: x.dataset.id, plays: x.querySelectorAll('.jw-au-play').length, picks: x.querySelectorAll('.jw-au-pick').length })));
-  ok(rows.length === 10 && rows.filter(x => x.plays === 2 && x.picks === 2).length === 5 && rows.filter(x => x.plays === 1 && x.picks === 0).length === 5 && !rows.some(x => x.id === 'car-pass'), `EVERY JAYWALK sound: ${rows.length} rows (H5B: the car-pass is gone) — 5 with a pick + its backup side by side (PLAY A · PLAY B · USE A / B), 5 with one take`);
+  ok(rows.length === 11 && rows.filter(x => x.plays === 2 && x.picks === 2).length === 4 && rows.filter(x => x.plays === 1 && x.picks === 0).length === 7 && !rows.some(x => x.id === 'car-pass' || x.id === 'landmark') && rows.some(x => x.id === 'train-horn') && rows.some(x => x.id === 'area-arrive'), `EVERY JAYWALK sound: ${rows.length} rows (H5B: the car-pass is gone · H5C: the bell = one take, + the train horn, the landmark ping → the area arrival) — 4 with a pick + its backup side by side (PLAY A · PLAY B · USE A / B), 7 with one take`);
   const n0 = await p.evaluate(() => ({ w: window.__jwLab.sfx.totals().asked, p: window.__jwLab.sfx.totals().started }));   // (the totals: the two lists keep only their last 200)
   await tapEl(p, '[data-snd="hop:a"]'); await tapEl(p, '[data-snd="hop:b"]'); await tapEl(p, '[data-snd="new-best:b"]'); await sleep(500);
   const n1 = await p.evaluate(() => ({ w: window.__jwLab.sfx.wanted().slice(-3).map(x => `${x.id}:${x.ab}`), p: window.__jwLab.sfx.totals().started, last: window.__jwLab.sfx.played().slice(-3).map(x => `${x.id}:${x.ab}`) }));
@@ -710,7 +754,7 @@ try {
   ok(await p.evaluate(() => window.__jwLab.sfx.sounding() === 0 && !document.querySelector('.jw-au-play.is-on')), 'STOP ends it');
   await tapEl(p, '[data-pick="hop:b"]'); await tapEl(p, '[data-pick="land-wood:b"]');
   const line = await p.evaluate(() => ({ t: document.querySelector('.jw-au-line').textContent, ls: [localStorage.getItem('jw:lab:snd:hop'), localStorage.getItem('jw:lab:snd:land-wood')], on: document.querySelector('[data-pick="hop:b"]').classList.contains('is-on') }));
-  ok(line.on && line.ls.join() === 'b,b' && /^JAYWALK SOUNDS: hop B · land-wood B · hit A · splash A · horn A · train-bell A · train-pass A · lights-die A · landmark A · new-best A$/.test(line.t), `a choice a sound, remembered on this phone ("${line.t}")`);
+  ok(line.on && line.ls.join() === 'b,b' && /^JAYWALK SOUNDS: hop B · land-wood B · hit A · splash A · horn A · train-bell A · train-horn A · train-pass A · lights-die A · area-arrive A · new-best A$/.test(line.t), `a choice a sound, remembered on this phone ("${line.t}")`);
   // COPY MY PICKS: inside the tap's own lift. A browser that REFUSES the clipboard (this headless one does) → the line itself is there to hold;
   // one that takes it → COPIED (the clipboard's write stood in for, so the text it was handed is read back)
   await tapEl(p, '.jw-au-copy'); await sleep(400);

@@ -67,10 +67,15 @@
 .jw-skyline[data-look='day'] .jw-seawall { box-shadow: 0 -1px 0 rgba(20, 60, 110, 0.55), 0 -4px 6px rgba(16, 70, 130, 0.35); }
 .jw-skyline[data-look='day'] .jw-seawall i { background:
     linear-gradient(#fffaf0 0, #fffaf0 1.5px, rgba(0, 0, 0, 0) 1.5px),
-    repeating-linear-gradient(90deg, rgba(96, 76, 50, 0.5) 0, rgba(96, 76, 50, 0.5) 1.5px, rgba(0, 0, 0, 0) 1.5px, rgba(0, 0, 0, 0) 27px),
-    linear-gradient(#f3e7cd 0, #e9dabb 24%, #b9a685 26%, #c9b895 58%, #a8977a 100%); }
+    linear-gradient(rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 62%, rgba(86, 68, 44, 0.45) 62%, rgba(86, 68, 44, 0.45) calc(62% + 1.5px), rgba(0, 0, 0, 0) calc(62% + 1.5px)),
+    repeating-linear-gradient(90deg, rgba(96, 76, 50, 0.5) 0, rgba(96, 76, 50, 0.5) 1.5px, rgba(0, 0, 0, 0) 1.5px, rgba(0, 0, 0, 0) 31px) 0 0 / 100% 62% no-repeat,
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 15px, rgba(96, 76, 50, 0.5) 15px, rgba(96, 76, 50, 0.5) 16.5px, rgba(0, 0, 0, 0) 16.5px, rgba(0, 0, 0, 0) 31px) 0 100% / 100% 38% no-repeat,
+    linear-gradient(#f3e7cd 0, #e9dabb 24%, #c2af8c 26%, #cfbe9a 60%, #a39274 100%); }
 .jw-skyline[data-look='day'] .jw-seawall b { display: none; }
-.jw-farhaze[data-look='day'] { background: linear-gradient(#9fd6f6 0, rgba(159, 214, 246, 0.86) 22%, rgba(159, 214, 246, 0) 100%); }
+.jw-farhaze[data-look='day'] { background: linear-gradient(#c6e6f7 0, rgba(198, 230, 247, 0.86) 22%, rgba(198, 230, 247, 0) 100%); }
+/* (the review: the day wall was a flat strip that hovered — TWO courses of blocks, their joints staggered, and its own shadow on the
+   ground at its foot: the course reaches it) */
+.jw-farhaze[data-look='day']::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 7px; background: linear-gradient(rgba(64, 84, 112, 0.5), rgba(64, 84, 112, 0)); }
 .jw-sky-l { position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #ff4034; box-shadow: 0 0 6px 2px rgba(255, 64, 52, 0.85); animation: jw-blink 2.6s steps(1) infinite; }
 .jw-sky-n { position: absolute; background: rgba(9, 6, 20, 0.86); opacity: 0; animation: jw-flick 6.5s steps(1) infinite; }
 /* H5A — THE AREAS: the band takes a wash of the area's own colour (set by night.js when the kid crosses a gateway — opacity only) */
@@ -270,15 +275,17 @@
 /* THE DAY LOOK (night.js#setLook — the stage carries data-look: the game from the phone's GAME LOOK, the lab from its own switch):
    the band's day picture (no night life), a haze where the night band is dark, THE FOG BANK at the screen's foot where the blackout
    fades to black — and every word over the bright scene keeps a dark edge (the lane count, the area's name, the count, the hint) */
-.jw-skyline[data-look='day'] { background: #9fd6f6; }
+.jw-skyline[data-look='day'] { background: #c6e6f7; }
 .jw-skyline[data-look='day'] .jw-sky-l, .jw-skyline[data-look='day'] .jw-sky-n { display: none; }
-.jw-stage[data-look='day'] { background: #9fd6f6; --jw-ink: 0 0 2px #120818, 0 2px 0 rgba(18, 8, 24, 0.92), 0 0 9px rgba(18, 8, 24, 0.8), 0 0 22px rgba(18, 8, 24, 0.5); }
-.jw-stage[data-look='day'] .jw-blackout { background: linear-gradient(rgba(214, 222, 230, 0) 0, rgba(214, 222, 230, 0.86) 70%, #d6dee6 100%); }
+.jw-stage[data-look='day'] { background: #c6e6f7; --jw-ink: 0 0 2px #120818, 0 2px 0 rgba(18, 8, 24, 0.92), 0 0 9px rgba(18, 8, 24, 0.8), 0 0 22px rgba(18, 8, 24, 0.5); }
+.jw-stage[data-look='day'] .jw-blackout { background: linear-gradient(rgba(223, 231, 238, 0) 0, rgba(223, 231, 238, 0.5) 70%, rgba(223, 231, 238, 0.82) 100%); }   /* (H5C: lighter — the bank's own billows show through it) */
 .jw-stage[data-look='day']:not(.is-gray) .jw-lanes { color: #fff; -webkit-text-stroke: 2px #c4168a; text-shadow: 0 3px 0 rgba(30, 0, 22, 0.95), 0 0 4px #a01270, 0 0 14px rgba(30, 0, 40, 0.75), 0 0 30px rgba(30, 0, 40, 0.45); --jw-ns: #c4168a; }
 .jw-stage[data-look='day']:not(.is-gray) .jw-lanes.is-record { -webkit-text-stroke-color: #b87a00; --jw-ns: #b87a00; }
 .jw-stage[data-look='day'] .jw-mark { color: #fff; text-shadow: var(--jw-ink); }
 .jw-stage[data-look='day'] .jw-sub, .jw-stage[data-look='day'] .jw-seed { color: #fff; text-shadow: var(--jw-ink); }
 .jw-stage[data-look='day'] .jw-hint, .jw-stage[data-look='day'] .jw-watch, .jw-stage[data-look='day'] .jw-outcard-k, .jw-stage[data-look='day'] .jw-outcard-n { text-shadow: var(--jw-ink); }
+/* (the review: WATCHING … was white on white fog — a heavier dark edge by day) */
+.jw-stage[data-look='day'] .jw-watch { text-shadow: 0 0 2px #120818, 0 2px 0 #120818, 0 0 5px #120818, 0 0 12px rgba(18, 8, 24, 0.95), 0 0 26px rgba(18, 8, 24, 0.7); }
 .jw-stage[data-look='day'] .jw-count { text-shadow: 0 0 3px #fff, 0 4px 0 rgba(18, 8, 24, 0.95), 0 0 16px rgba(18, 8, 24, 0.85), 0 0 44px rgba(196, 22, 138, 0.9); }
 .jw-stage[data-look='day'] .jw-count.is-go { text-shadow: 0 0 3px #fff, 0 4px 0 rgba(8, 24, 8, 0.95), 0 0 16px rgba(8, 24, 8, 0.85), 0 0 44px rgba(40, 150, 30, 0.9); }
 .jw-stage[data-look='day'] .jw-count.is-wait { text-shadow: var(--jw-ink); }

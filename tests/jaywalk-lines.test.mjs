@@ -86,13 +86,17 @@ test('THE SOURCES: the lines come from the server\'s table, asked ONCE a run; dr
   assert.match(night, /import \{ LINE_HEX \} from '\.\/lines\.js';/);
   // H5C — ONE FORM FOR BOTH: a TAPE between two posts at the play's edges (GOLD = YOUR BEST · PINK = the friend's); on water the posts are BUOYS
   assert.match(night, /wet = L\.type === 'water', cap = k === 'best' \? 0xfff0c0 : 0xffe4f6;/); assert.match(night, /if \(wet\) \{\s+K\.posts\.put\(px0, 0\.1 \+ bob, z, 0\.34, 0\.24, 0\.34, 0, 0xe8432e, la\);/, 'on water the posts become buoys (they bob)');
-  assert.match(night, /K\.flat\.put\(0, 0\.36, z, 9\.06, 1, 0\.5 \+ fl \* 0\.4, 0, hex, 1, 4,/, 'the tape: across the play, a little above the ground, in the line\'s own colour');
+  assert.match(night, /K\.flat\.put\(0, 0\.36, z, 9\.06, 1, \(day \? 0\.62 : 0\.5\) \+ fl \* 0\.25, 0, hex, 1, 4,/, 'the tape: across the play, a little above the ground, in the line\'s own colour');
   assert.doesNotMatch(night, /K\.flat\.put\(0, 0\.066, z, 13, 1,/, 'YOUR BEST is no longer a band lying on the lane');
   // H5C — THE WORDS ARE ALWAYS READABLE: drawn above the logs / cars / water (no depth test, last) — never over your own kid (the stencil)
-  assert.match(night, /new THREE\.MeshBasicMaterial\(\{ map: tex, transparent: true, depthWrite: false, depthTest: false, blending: THREE\.AdditiveBlending \}\);\s+mat\.stencilWrite = true; mat\.stencilWriteMask = 0; mat\.stencilRef = 1; mat\.stencilFunc = THREE\.NotEqualStencilFunc;/, 'the words: no depth test; the kid\'s pixels are never drawn on');
+  assert.match(night, /new THREE\.MeshBasicMaterial\(\{ map: tex, transparent: true, depthWrite: false, depthTest: false \}\);\s+mat\.stencilWrite = true; mat\.stencilWriteMask = 0; mat\.stencilRef = 1; mat\.stencilFunc = THREE\.NotEqualStencilFunc;/, 'the words: no depth test; the kid\'s pixels are never drawn on');
   assert.match(night, /m\.renderOrder = 5; m\.visible = false; m\.frustumCulled = false; m\.layers\.enable\(1\); scene\.add\(m\);\s+LBL\[k\]/, '… drawn after the logs, the cars, the lights');
   assert.match(night, /setLines\(v\) \{/); assert.match(night, /flashLine\(k, lane\) \{/);
-  assert.match(night, /new THREE\.PlaneGeometry\(7\.6, 0\.95\)\.rotateX\(-Math\.PI \/ 2\)/, 'the words: BIG on the ground — 7.6 cells wide, the letters over half a lane tall');
+  assert.match(night, /new THREE\.PlaneGeometry\(7\.0, 0\.875\)\.rotateX\(-Math\.PI \/ 2\)/, 'the words: BIG on the ground — 7 cells wide, the letters half a lane tall');
+  // H5C (the review: "OUR BEST · 10" — cut by the screen's edge; washed out by night on water): CENTRED on the screen (they ride the camera's column), a dark halo in both looks
+  assert.match(night, /lab\.m\.position\.set\(rig\.x\(\), 0\.07, wz\);/, 'the words ride the camera\'s own column: never cut by an edge');
+  assert.match(night, /sx = Math\.min\(1, 930 \/ Math\.max\(1, w\)\), x0 = -w \/ 2;\s+c\.save\(\); c\.translate\(512, 106\);/, '… centred on their plane');
+  assert.match(night, /c\.shadowColor = 'rgba\(6, 4, 18, 0\.9\)'; c\.shadowBlur = 12; c\.fillStyle = '#0c1022'; for \(const \[dx, dy\] of RING8\) drawNum\(/, 'a dark edge + halo all round, night + day');
   assert.match(night, /L\.tex\.dispose\(\); L\.cv\.width = 0;/, 'freed with the scene');
   assert.match(css, /\.jw-lanes\.is-record \{[^}]*#ffc53a/); assert.match(css, /\.jw-lanes\.is-flash \{ animation: jw-record/);
   assert.match(css, /@keyframes jw-record \{[^@]*transform: scale[^@]*opacity/, 'the flash: transform + opacity only');

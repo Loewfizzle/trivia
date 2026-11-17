@@ -67,21 +67,21 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   assert.ok(r[0] >= 0.3 && r[0] <= 0.45 && Math.abs(r[0] - r[2]) < 0.06, `the day road: clean grey asphalt (${r})`);
   assert.match(main, /DN\(vec3\(1\.0, 0\.62, 0\.9\), vec3\(1\.0, 0\.84, 0\.20\)\) : DN\(vec3\(0\.93, 0\.86, 1\.0\), vec3\(0\.97, 0\.97, 0\.95\)\)/, 'yellow + white lane paint');
   // THE TELLS in sunlight
-  assert.match(main, /vec3\(0\.98, 0\.10, 0\.08\), vState\.y \* \(0\.42 \+ 0\.45 \* r\) \* uDay\);/, 'a rail lane in its tell FLASHES red by day');
+  assert.match(main, /vec3\(0\.98, 0\.10, 0\.08\), vState\.y \* \(0\.2 \+ 0\.7 \* r\) \* uDay\);/, 'a rail lane in its tell FLASHES red by day');
   assert.match(main, /c = mix\(c, mix\(vec3\(1\.0, 0\.86, 0\.10\), vec3\(1\.0\), chev \* 0\.75\), clamp\(band \* 1\.25, 0\.0, 1\.0\) \* uDay\);/, 'THE BLACKBIRD\'s tell: a hot yellow-white chevron band races to the crossing');
   assert.match(n, /hot \? \(day \? 0\.9 : 0\.74\) : \(day \? 0\.22 : 0\.3\)/, 'the runway lights: dim lenses by day, BIGGER than at night when they race');
-  assert.match(n, /blink \? \(day \? 1\.15 : 0\.62\) : 0\.24/, 'the rail signals\' red lens is bigger by day');
+  assert.match(n, /blink \? \(day \? 0\.7 : 0\.62\) : 0\.24/, 'the rail signals\' red lens is a touch bigger by day (H5C: in a dark signal head — a lamp, never a lollipop)'); assert.match(n, /K\.posts\.put\(x, 0\.66, z - 0\.46, 0\.3, 0\.34, 0\.12, 0, 0x1c1c24, lt\);/, 'the signal head\'s housing');
   // THE FOG BANK = the blackout's own darkness (vState.x), whitened — the same lanes, the same timing
   // (H5C — never a flat slab, never a hard line: the bank's edge is measured PER PIXEL off the wall itself (uWall), soft + ragged, the
   //  lane seen through its first metre, a cool shadow in front; night.js lays FOG_LAYERS — billows rolling at their own speeds)
   assert.match(fx, /float ly = vLane \+ z, d = uWall - ly;/, 'the bank\'s edge per pixel, off the wall itself'); assert.match(fx, /float thin = smoothstep\(-1\.5, 0\.7, d \+ \(bn - 0\.5\) \* 1\.9\);/, 'soft + ragged (two drifting noise fields)');
   assert.match(fx, /float fogA = thin \* mix\(0\.5, 1\.0, smoothstep\(0\.1, 2\.1, d\)\);/, 'the lane is seen THROUGH its first metre, solid two lanes in');
-  assert.match(fx, /c = mix\(c, vec3\(0\.83, 0\.87, 0\.905\) \* \(0\.95 \+ 0\.1 \* bn\), clamp\(fogA, 0\.0, 1\.0\)\);/, 'the lane whitens under the bank');
+  assert.match(fx, /c = mix\(c, vec3\(0\.875, 0\.906, 0\.933\) \* \(0\.93 \+ 0\.1 \* bn\), clamp\(fogA, 0\.0, 1\.0\)\);/, 'the lane whitens under the bank');
   assert.match(n, /ground\.uniforms\.uWall\.value = wallE;/, '… the SAME wall (the run\'s own)');
-  { const lay = /const FOG_LAYERS = Object\.freeze\(\[([\s\S]*?)\]\);/.exec(n)[1].split('\n').filter(l => l.trim().startsWith('[')).map(l => JSON.parse(l.trim().replace(/,$/, '').replace(/0x[0-9a-f]+/g, m => String(parseInt(m, 16))))); assert.equal(lay.length, 5, 'five layers: two mottle the body, three roll on its face'); assert.ok(new Set(lay.map(l => l[5])).size === 5 && lay.some(l => l[5] < 0) && lay.some(l => l[5] > 0), 'each layer its own speed, both ways'); assert.ok(lay[4][4] < 0.7, 'the front layer is thin: the lanes show through'); }
+  { const lay = /const FOG_LAYERS = Object\.freeze\(\[([\s\S]*?)\]\);/.exec(n)[1].split('\n').filter(l => l.trim().startsWith('[')).map(l => JSON.parse(l.trim().replace(/,$/, '').replace(/0x[0-9a-f]+/g, m => String(parseInt(m, 16))))); assert.equal(lay.length, 6, 'six layers: three mottle the body (never a flat fill), three roll on its face'); assert.ok(new Set(lay.map(l => l[5])).size === 6 && lay.some(l => l[5] < 0) && lay.some(l => l[5] > 0), 'each layer its own speed, both ways'); assert.ok(lay[5][4] < 0.7, 'the front layer is thin: the lanes show through'); assert.ok(lay.slice(0, 3).every(l => l[4] >= 0.8 && l[6] !== l[7]), 'the billows of the body are solid + two-toned'); }
   assert.match(n, /K\.shadow\.raw\(0, 0\.06, Z\(wallE \+ 1\.25\), 34, 1, 3\.2, 0, 0, 1, 4, 0\.2\);/, 'a cool shadow on the ground in front of it');
   assert.match(n, /fogK = day \? 2\.4 : -0\.96;/); assert.match(n, /lt = 1 \+ fogK \* dk, on = day \? dk < 0\.6 : lt > 0\.3;/, 'what stands on a taken lane: dark by night, whited out by day');
-  assert.match(n, /curtain\.material\.color\.setHex\(day \? 0xd3dde6 : 0x000000\);/, 'the bank\'s body = the blackout\'s curtain');
+  assert.match(n, /curtain\.material\.color\.setHex\(day \? 0xdfe7ee : 0x000000\);/, 'the bank\'s body = the blackout\'s curtain');
   assert.match(n, /const wallE = run\.wall \/ FP, darkOf = i => clamp01\(wallE - i\)/, 'ONE wall: the run\'s own (the rules\')');
   // light vs paint
   assert.match(n, /const LF = day \? NOP : K\.flat\.put, LB = day \? NOP : K\.bill\.put,/);
@@ -96,7 +96,7 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   assert.match(fx, /gl_FragColor = vec4\(vec3\(0\.03, 0\.07, 0\.17\) \* uDay, a \* vFx\.y \* \(1\.0 - vFog\)\);/, 'a day shadow is cool, never plain black');
   assert.match(n, /if \(bloom && !day\) bloom\.render\(scene, cam\);/);
   // the gate by day: painted — never neon
-  assert.match(n, /if \(day\) \{[\s\S]{0,400}const pc = LOOKS\[AR\]\.paint/); assert.match(n, /for \(let k = 0; k < 10; k\+\+\) K\.posts\.put\(xl \+ \(xr - xl\) \* \(k \+ 0\.5\) \/ 10, 3\.04, zf, \(xr - xl\) \/ 10 \+ 0\.01, 0\.2, 0\.16, 0, k % 2 \? wh : pc, li\);/, 'a painted, striped crossbar (H5C: the name\'s arched board stands on it)');
+  assert.match(n, /if \(day\) \{[\s\S]{0,400}const pc = LOOKS\[AR\]\.paint/); assert.match(n, /for \(let k = 0; k < 10; k\+\+\) K\.posts\.put\(xl \+ \(xr - xl\) \* \(k \+ 0\.5\) \/ 10, 3\.04, zf, \(xr - xl\) \/ 10 \+ 0\.01, 0\.34, 0\.2, 0, k % 2 \? wh : pc, li\);/, 'a painted, striped crossbar (H5C: the name\'s arched board stands on it)');
   assert.match(n, /if \(day\) \{[^}]*c\.strokeText\(text, 0, 0\); c\.fillStyle = '#ffffff'; c\.fillText\(text, 0, 0\);/, 'the name: white paint, a dark edge');
   // only the look on screen is fetched
   assert.match(n, /const plan = skyPlan\(lane, day \? 'day' : 'night'\), keep = skyHeld\(plan\);/, 'the band asks skyline.js: the look on screen, the kid\'s area');
@@ -130,7 +130,7 @@ test('THE HEADER + THE DAY WORDS: "JAYWALK · SOLO" / "JAYWALK · MATCH" is a bi
   assert.match(hd, /white-space: nowrap/); assert.doesNotMatch(hd, /border-radius|background|border:/, 'no pill, no box');
   for (const sel of ['.jw-mark', '.jw-hint', '.jw-watch', '.jw-count.is-wait']) assert.ok(css.includes(`.jw-stage[data-look='day'] ${sel}`), `${sel} has its day rule`);
   assert.match(css, /\.jw-stage\[data-look='day'\]:not\(\.is-gray\) \.jw-lanes \{ color: #fff; -webkit-text-stroke: 2px #c4168a;/, 'the lane count: white, a dark magenta edge');
-  assert.match(css, /\.jw-stage\[data-look='day'\] \.jw-blackout \{ background: linear-gradient\(rgba\(214, 222, 230, 0\) 0,/, 'the screen\'s foot fades to THE FOG, not to black');
+  assert.match(css, /\.jw-stage\[data-look='day'\] \.jw-blackout \{ background: linear-gradient\(rgba\(223, 231, 238, 0\) 0,/, 'the screen\'s foot fades to THE FOG, not to black');
   const day = css.slice(css.indexOf('/* THE DAY LOOK (night.js#setLook'));
   assert.doesNotMatch(day, /border-radius: (?:[2-9]\d|1[1-9])px|border-radius: 999/, 'no pill in the day rules');
 });

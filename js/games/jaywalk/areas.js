@@ -51,8 +51,8 @@ export function buildAreaGeo() {
   const G = {};
   // a mooring BOLLARD: an iron post with its round cap, a rope coiled at its foot
   G.bollard = build([
-    { g: cyl(0.15, 0.2, 0.5), color: 0x4a5068, at: [0, 0.25, 0], shade: by([0.7, 0.9]) },
-    { g: ball(0.23, 12, 8), color: 0x6a7594, at: [0, 0.52, 0], scale: [1, 0.55, 1] },
+    { g: cyl(0.15, 0.2, 0.5), color: 0x57504c, at: [0, 0.25, 0], shade: by([0.7, 0.9]) },   // (warm iron — the review: the bollards read indigo-blue by night)
+    { g: ball(0.23, 12, 8), color: 0x80766c, at: [0, 0.52, 0], scale: [1, 0.55, 1] },
     { g: new THREE.TorusGeometry(0.27, 0.07, 6, 14), color: 0xd8b070, at: [0, 0.08, 0], rot: [Math.PI / 2, 0, 0] },
     { g: new THREE.TorusGeometry(0.2, 0.06, 6, 12), color: 0xc49a5c, at: [0, 0.2, 0], rot: [Math.PI / 2, 0, 0] },
   ]);
@@ -68,9 +68,9 @@ export function buildAreaGeo() {
   // an ICE CRATE: a white fish box heaped with ice, two fish on top
   G.icecrate = build([
     { g: roundBox(0.82, 0.42, 0.62, 0.05, 2), color: 0xe9eef6, at: [0, 0.21, 0], shade: by([0.72, 0.9]) },
-    { g: roundBox(0.72, 0.16, 0.52, 0.07, 2), color: 0x9fe4ff, at: [0, 0.46, 0] },
+    { g: roundBox(0.72, 0.16, 0.52, 0.07, 2), color: 0xf4f6f4, at: [0, 0.46, 0] },   // (the ice: white — never pale blue: blue on the ground = water)
     { g: ball(0.16), color: 0xff8a5a, at: [-0.13, 0.56, 0.03], scale: [1.5, 0.35, 0.6], rot: [0, 0.5, 0] },
-    { g: ball(0.14), color: 0x7fc8ff, at: [0.17, 0.56, -0.06], scale: [1.5, 0.35, 0.6], rot: [0, -0.4, 0] },
+    { g: ball(0.14), color: 0xc9cdd0, at: [0.17, 0.56, -0.06], scale: [1.5, 0.35, 0.6], rot: [0, -0.4, 0] },
   ]);
   // an oil DRUM (H5C — the owner: NEVER BLUE (blue on the ground = water) + smaller): built WHITE — an instance's colour paints it red /
   // orange / yellow (night.js#DRUM_HEX) — two rolled hoops a shade darker, a dark lid with its bung, a little WEAR: a rust bloom low
@@ -109,7 +109,7 @@ export function buildAreaGeo() {
     ...[[-0.78, -0.4], [0.78, -0.4], [-0.78, 0.42], [0.78, 0.42]].map(([x, z]) => ({ g: box(0.06, z < 0 ? 1.12 : 0.88, 0.06), color: 0x39394a, at: [x, z < 0 ? 0.56 : 0.44, z] })),
     ...stripes,
     { g: roundBox(1.5, 0.44, 0.5, 0.04, 1), color: 0x8a5a33, at: [0, 0.22, 0.05], shade: by([0.75, 0.8]) },
-    { g: roundBox(1.4, 0.1, 0.42, 0.04, 1), color: 0xa6e6ff, at: [0, 0.48, 0.05] },
+    { g: roundBox(1.4, 0.1, 0.42, 0.04, 1), color: 0xf4f6f4, at: [0, 0.48, 0.05] },
   ]);
   // a bridge RAILING post + rail (a piece along z — 1 lane deep)
   G.rail = build([
@@ -126,7 +126,7 @@ export function buildAreaGeo() {
     { g: box(3.9, 0.22, 0.3), color: 0xf0a81e, at: [0.55, 3.2, 0] },
     { g: box(0.12, 0.9, 0.12), color: 0xd89214, at: [-0.6, 4.3, 0] }, { g: box(2.7, 0.06, 0.06), color: 0x8a6a1a, at: [0.7, 4.05, 0], rot: [0, 0, -0.32] },
     { g: box(0.05, 1.3, 0.05), color: 0x2a2a34, at: [2.1, 2.5, 0] },
-    { g: roundBox(1.0, 0.44, 0.5, 0.03, 1), color: 0x3f8fd8, at: [2.1, 1.66, 0], shade: by([0.2, 0.45]) },
+    { g: roundBox(1.0, 0.44, 0.5, 0.03, 1), color: 0xd8472f, at: [2.1, 1.66, 0], shade: by([0.2, 0.45]) },
   ]);
   // THE CONTROL TOWER: a pale shaft, its wide glass cab, the roof, an antenna
   G.tower = build([
@@ -165,8 +165,8 @@ export function buildAreaGeo() {
 export const PIECE = Object.freeze({
   bollard: [1.25, [0.85, 0.7]], crate: [1.02, [1.0, 0.9]], icecrate: [0.98, [1.05, 0.8]], drum: [0.84, [0.62, 0.54]], rock: [1.12, [1.2, 0.95]], hydrant: [1.35, [0.7, 0.6]],
 });
-const CONTAINER_HEX = [0xd8472f, 0x2f7fd8, 0x3ea86a, 0xe8a02a, 0x8a5fd0, 0xd8d8e0];
-const HOUSE_HEX = [0xd87a9a, 0x6fa8e0, 0xe0b46a, 0x8fd0a8, 0xb08ae0, 0xe08a6a];
+const CONTAINER_HEX = [0xd8472f, 0xb5522f, 0x3ea86a, 0xe8a02a, 0x8a5fd0, 0xd8d8e0];   // (H5C: no blue box — blue on the ground = water, the props too)
+const HOUSE_HEX = [0xd87a9a, 0xe6d08a, 0xe0b46a, 0x8fd0a8, 0xb08ae0, 0xe08a6a];
 const SIGN_HEX = [0xff3fb4, 0x22e0ff, 0xffe04a, 0x7dffb0, 0xff7a4a, 0xa05bff];
 /** the edge pieces that take the whole edge column (a lamp never shares it; the scene lays them through drawBig) */
 const BIG = { container: 1, stall: 1, shop: 1, house: 1, rail: 1 };

@@ -130,7 +130,7 @@ test('THE ARRIVAL GATEWAY: a neon arch on every area\'s first lane — posts in 
   assert.match(N, /if \(L\.mark && AR >= 0\) \{/); assert.match(N, /const hex = LOOKS\[AR\]\.accent, xl = X\(-0\.55\), xr = X\(COLS \+ 0\.55\)/, 'its posts stand in the two edge columns');
   assert.match(N, /writeGate\(G, gateName\(i\), hex, LOOKS\[AR\]\.paint\);/, 'the name = the rules\' own (course.js#gateName), in the area\'s neon (night) / on its painted board (day)');
   // H5C — THE NAME STANDS ON THE GATE's ARCH (never on the lane, under the kid): an upright sign on the crossbar, facing the camera
-  assert.match(N, /const GATE_W = 5\.9, GATE_H = 1\.014, GATE_Y = 3\.14;/); assert.match(N, /const gateGeo = new THREE\.PlaneGeometry\(GATE_W, GATE_H\);/, 'an UPRIGHT plane (not laid on the lane): all of it on screen at ZOOM 8');
+  assert.match(N, /const GATE_W = 5\.9, GATE_H = 1\.014, GATE_Y = 3\.42;/); assert.match(N, /const gateGeo = new THREE\.PlaneGeometry\(GATE_W, GATE_H\);/, 'an UPRIGHT plane (not laid on the lane): all of it on screen at ZOOM 8');
   assert.match(N, /G\.m\.position\.set\(0, gy, zf\); G\.m\.quaternion\.copy\(cam\.quaternion\);/, 'it stands on the crossbar, facing the camera');
   assert.match(N, /thru = clamp01\(\(i \+ 1\.3 - ky\) \/ 0\.5\)/, 'gone once he has hopped on through the gate (it never hangs over the lanes he plays next)');
   assert.doesNotMatch(N, /G\.m\.position\.set\(0, 0\.07, z\)/, 'the name no longer lies on the gate\'s lane');
