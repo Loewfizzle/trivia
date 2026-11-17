@@ -1,4 +1,4 @@
-// JAYWALK CARDS (Nov 12 night — docs/harbor/passes/jaywalk-cards.md) — SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY, as data (PURE — no imports;
+// JAYWALK CARDS (Nov 12 night — docs/harbor/passes/jaywalk-cards.md; H6A: + BEAM ME UP, RIGHT OF WAY's redone picture) — SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY · BEAM ME UP, as data (PURE — no imports;
 // js/fx/jw-cards.js draws them, vault/hero.js + vault/layout.js read the hero boxes, tests/jaywalk-cards.test.mjs the timing). Each card's art =
 // assets/vault/jw/<art>.webp, 1280 × 720 (Grok's masters — scripts/build-jaywalk-cards.mjs); `strip` / `full` = the CSS crop (background-position %
 // + a zoom OUT — THE SLIM-CARD LONG-NAME STANDARD: the strip's hero centred ≈ 0.78 across, the left its dark ground for a 12-letter name; the full
@@ -43,17 +43,26 @@ export const JW_SPECS = Object.freeze({
     beamK: [0.8, 0.408],                 // the plate's scale (x, y): the pool ~250 wide, tip → pool 250 tall
     vanish: [790, 528], trailAng: -25, trailK: 0.56,   // the trails' plate: its converging point at the far car, turned up-right
     calmX: [380, 540] },                 // the sheen fades in across here (never over the plate's corner)
-  // RIGHT OF WAY · legendary — the kid mid-hop on the runway (he leads: THE PROMINENCE RULE): his trailing hip (850, 398 — 66 % across); the blue
-  // runway lights in two rows from the far end toward the camera
-  'card-rightofway': { art: 'right-of-way', strip: [100, 35, 0.7], full: [100, 50, 0.8, 'w'],
-    hero: [740, 120, 280, 430],          // the kid (his front shoe runs on toward the gem's corner — clear at 0.86)
-    heroFull: [740, 115, 290, 440],      // the kid
-    hip: [850, 398],                     // the hop's puff lands here (the plate slides: its puff 750, 310 → here)
-    rows: [[[745, 345], [728, 354], [699, 368], [663, 385], [614, 408], [540, 443], [470, 476]],
-      [[1036, 343], [1054, 350], [1084, 365], [1123, 385], [1171, 408], [1245, 447], [1300, 474]]] },
+  // RIGHT OF WAY · legendary — H6A: Grok's REDONE picture (Nov 16 — the game's real kid: the forward cap, the pink T-shirt; the hoodie art is
+  // art/jaywalk-cards/src/right-of-way-old.png): the kid mid-run on the runway (he leads: THE PROMINENCE RULE), his trailing hip (842, 505); the
+  // blue runway lights in two rows from the far end toward the camera (measured on the picture; the right row's far end is behind him)
+  'card-rightofway': { art: 'right-of-way', strip: [100, 50, 0.7], full: [100, 50, 0.8, 'w'],
+    hero: [800, 280, 260, 250],          // the kid: his cap, his face, his shirt
+    heroFull: [790, 275, 275, 360],      // the kid
+    hip: [842, 505],                     // the hop's puff lands here (the plate slides: its puff 750, 310 → here)
+    rows: [[[823, 437], [800, 446], [768, 459], [722, 479], [684, 495], [621, 522], [549, 549]],
+      [[1065, 496], [1123, 521], [1201, 552], [1290, 588]]] },
+  // BEAM ME UP · epic (H6A — THE MOTHERSHIP's card): the kid afloat in the white-gold beam under the colossal ship — the belly's bright disc
+  // (930, 300), the pool's ring on the road (930, 665 — ~146 wide each way), the ring of lights round the belly
+  'card-beammeup': { art: 'mothership', strip: [100, 61, 0.7], full: [100, 50, 0.8, 'w'],
+    hero: [840, 330, 190, 220],          // the kid in the beam
+    heroFull: [800, 240, 280, 360],      // the belly's light + the kid
+    belly: [930, 300], pool: [930, 665], poolR: [146, 30],
+    ring: [930, 292, 196, 58],           // the belly's lit rim: centre, rx, ry — the lights chase round it
+    kid: [935, 455] },                   // the motes rise past him
 });
 // ---- the motion's timing (PURE — the effect + the tests read the same curves)
-export const RING_EVERY = 4, RING_DUR = 0.9, HOP_EVERY = 5, HOP_DRAW = 0.8;
+export const RING_EVERY = 4, RING_DUR = 0.9, HOP_EVERY = 5, HOP_DRAW = 0.8, LIFT_EVERY = 3.2;
 const sm = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 const fr = v => v - Math.floor(v);
 /** SONIC BOOM's ring at t s: { u (0 → 1 over the burst, -1 between), scale (0.6 → 1.15), a (bright → gone), flash, dip } */
@@ -72,4 +81,13 @@ export function hopAt(t, still) {
   const puff = ph < HOP_DRAW - 0.1 ? 0 : sm(HOP_DRAW - 0.1, HOP_DRAW + 0.15, ph) * (1 - sm(HOP_DRAW + 0.4, HOP_DRAW + 1.6, ph));
   const a = 1 - sm(HOP_DRAW + 0.5, HOP_DRAW + 2.0, ph);                   // (then the whole arc fades)
   return { draw, puff, a };
+}
+/** BEAM ME UP's beam at t s: { p (its slow pulse 0 → 1), chase (0 → 1 round the belly's ring), motes: [{ u (0 foot → 1 belly), x (−1 … 1 across), a }] } */
+export function liftAt(t, still, n = 7) {
+  const p = still ? 0.7 : 0.5 + 0.5 * Math.sin(t * Math.PI * 2 / LIFT_EVERY), motes = [];
+  for (let i = 0; i < n; i++) {
+    const u = still ? (i + 0.5) / n : fr(t / (LIFT_EVERY * 1.4) + i / n + 0.37 * fr(i * 0.618));
+    motes.push({ u, x: fr(i * 0.618 + 0.11) * 2 - 1, a: Math.sin(u * Math.PI) });
+  }
+  return { p, chase: still ? 0.2 : fr(t / 2.6), motes };
 }

@@ -121,6 +121,7 @@ export const CREDITS = [
   // THE BTC CARD (Nov 8 — art/btc-card/src/notes.txt): Grok's ₿ balloon master + two FX plates; xAI's terms ask for the attribution
   { group: 'ART', title: 'The ₿ balloon card — card art', by: 'Card art created with Grok (Grok Imagine, xAI)', licence: 'AI-generated — xAI terms of service (attributed as their brand guidelines ask)', link: 'https://x.ai/legal/faq' },
   // JAYWALK (Nov 12 night — art/jaywalk-cards/src/notes.txt + art/jaywalk-billboard/src/notes.txt): the three cards + the roof board's poster
+  { group: 'ART', title: 'JAYWALK — 3D models', by: 'Sr-71 by Kiiba (CC BY 4.0, recoloured + re-packed) · Flying saucer ×2: Poly by Google (CC BY 3.0, re-packed) · Kenney (CC0) · Light House: MaverickFX (CC0)', licence: 'CC BY 4.0 · CC BY 3.0 · CC0', link: 'https://sketchfab.com/3d-models/sr-71-79e6c14217ab417abe524a99ffbb472e' },
   { group: 'ART', title: 'JAYWALK — card art + billboard art', by: 'Card art created with Grok (Grok Imagine, xAI)', licence: 'AI-generated — xAI terms of service (attributed as their brand guidelines ask)', link: 'https://grok.com/imagine' },
   { group: 'ART', title: 'REDLINE + PHOTO FINISH — card art', by: 'Card art created with Grok (Grok Imagine, xAI)', licence: 'AI-generated — xAI terms of service (attributed as their brand guidelines ask)', link: 'https://grok.com/imagine' },
   // THE CARD PASS (Nov 7 — art/gifts/src/fallout-notes-v2.txt: xAI's terms ask for the attribution) — the wasteland cards + the Mostar background

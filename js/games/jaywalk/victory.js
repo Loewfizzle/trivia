@@ -90,7 +90,7 @@ export function endOf(game, uid, code, courses = null) {
   const vehicle = course ? hitVehicle(course, { y: r.y, x: r.px, end: r.e }) : '';
   const look = typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'day' : 'night';   // (H5B: by day the wall is THE FOG BANK)
   const line = course ? runLine(course, { cause: r.w, y: r.y, x: r.px, end: r.e, lanes: r.l || 0, taken: !!r.x }, look) : causeLine({ cause: r.w, lanes: r.l || 0, taken: !!r.x, look });
-  return { line, lanes: r.l || 0, vehicle };
+  return { line, lanes: r.l || 0, vehicle, ship: !!r.x };
 }
 /** H4 — the podium's rows (the console's results list — slim cards): the order + each player's lanes + their own cause line */
 export function finalRows(game, code) {
@@ -106,7 +106,17 @@ function matchScene(el, game, state) {
   const E = endOf(game, uid, code), place = (standings(game).find(r => r.uid === uid) || {}).rank || 0;
   // (compact: the frame's WINNER line leads and the list follows — the words, then ONE line: the lanes + the place)
   const lanesTxt = `${num(E.lanes)} ${E.lanes === 1 ? 'LANE' : 'LANES'}`;
-  buildEnd(el, { line: E.line, lanes: E.lanes, note: game.unproven ? `${lanesTxt} · NOT COUNTED — NO LINE TO THE BOARD` : place ? `${lanesTxt} · YOU FINISHED ${place}${['', 'ST', 'ND', 'RD'][place] || 'TH'}` : lanesTxt });
+  buildEnd(el, { line: E.ship ? `YOU ${E.line}` : E.line, lanes: E.lanes, note: game.unproven ? `${lanesTxt} · NOT COUNTED — NO LINE TO THE BOARD` : place ? `${lanesTxt} · YOU FINISHED ${place}${['', 'ST', 'ND', 'RD'][place] || 'TH'}` : lanesTxt });
+  // H6A — THE MOTHERSHIP = A FINISH LINE: gold words, the lanes big, a crown + a gold burst (the css — transform + opacity only)
+  if (E.ship) { el.classList.add('is-ship'); el.prepend(h('div.jw-fin-crown', { 'aria-hidden': 'true' }, h('i'), h('b'))); }
+  // H6A — YOUR BEST ANYWHERE: a counted match run past your best = NEW BEST here too (the server's own answer for this match)
+  if (code && E.lanes > 0 && !game.unproven) lazyImport(import('../../profile/queue.js'), '../../profile/queue.js').then(Q => {
+    watchBest(Q);
+    const k = Q.matchKey(code, game.matchId), nb = h('div.jw-fin-best');
+    const show = o => { const pb = o && (o.pbs || []).find(x => x.b === BOARD); if (!pb || nb.isConnected || !el.isConnected) return; setPref('best', pb.v); nb.textContent = pb.prev != null ? `NEW BEST · WAS ${num(pb.prev)}` : 'NEW BEST'; nb.classList.add('is-new'); el.querySelector('.jw-fin-best').after(nb); lazyImport(import('./sfx.js'), './sfx.js').then(S => S.play('new-best')).catch(() => {}); };
+    show(Q.outcomeFor(k));
+    const off = Q.onOutcome((kk, o) => { if (kk === k) show(o); }), iv = setInterval(() => { if (!el.isConnected) { clearInterval(iv); off(); } }, 3000);
+  }).catch(() => {});
   const calls = game.calls || {}, c = calls[uid];
   if (c) el.append(h('div.jw-fin-call', c.ok ? `YOUR CALL WAS RIGHT · +${c.bonus} POINTS` : 'YOUR CALL MISSED'));
   // SHARE MY RUN (the console's foot has ONE button in a room: BACK TO THE ROOM) — the share image of THIS player's run

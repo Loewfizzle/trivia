@@ -141,7 +141,7 @@ test('THE SERVER\'S OWN RESULT → THE SOLO BEST: only a match the server replay
   // the room's own results (the host wrote them) never earn a record — whatever they claim
   const claim = { id: 'jaywalk', matchId: M, phase: 'final', mode: 'solo', participants: { [uid]: true }, settings: {}, results: { [uid]: { l: 99999, t: 5 } } };
   assert.deepEqual(extractMatch(claim).rows[uid].rec, {}, 'a claim is never a record');
-  assert.deepEqual(extractMatch({ ...claim, sv: 1, participants: { [uid]: true, u2: true }, results: { [uid]: { l: 50, t: 5 }, u2: { l: 40, t: 5 } } }).rows[uid].rec, {}, 'a MATCH earns no solo record (its own board: not yet)');
+  assert.deepEqual(extractMatch({ ...claim, sv: 1, participants: { [uid]: true, u2: true }, results: { [uid]: { l: 50, t: 5 }, u2: { l: 40, t: 5 } } }).rows[uid].rec, { 'jaywalk-solo': 50 }, 'H6A — YOUR BEST ANYWHERE: a counted MATCH run raises the same best');
   // a run from the future: refused → 0 lanes, named in `rejected`, EMPTY (no XP, no streak day)
   const bad = jaywalkSolo({ code: CODE, matchId: M, uid, node: nodeOf(h, { clock: () => h.go + 500, lag: 0 }) });
   assert.equal(bad.v.ok, false); assert.deepEqual(bad.game.results[uid], { l: 0, t: 0, w: '', e: -1, bad: 'ahead of the clock' });
@@ -192,7 +192,7 @@ test('THE END SCREEN\'s WORDS: one line per cause + vehicle — big neon words, 
   for (const line of Object.values(CAUSE_LINES)) assert.match(line, /^[A-Z0-9][A-Z0-9 :]{5,25}$/, `${line}: capitals, ≤ 26 letters (two short lines at 390)`);
   assert.equal(causeLine({ cause: 'car', vehicle: 'taxi' }), 'FLATTENED BY A TAXI'); assert.equal(causeLine({ cause: 'water' }), 'SWEPT AWAY');
   assert.equal(causeLine({ cause: 'train' }), 'HIT BY THE 6:15'); assert.equal(causeLine({ cause: 'wall' }), 'THE LIGHTS WENT OUT');
-  assert.equal(causeLine({ cause: 'car' }), 'OUT', 'H4: no generic "HIT BY A CAR" — a car hit is always named by its vehicle (tests/jaywalk-causes.test.mjs)'); assert.equal(causeLine({ cause: 'taken', lanes: 212 }), 'TAKEN AT LANE 212'); assert.equal(causeLine({}), 'OUT');
+  assert.equal(causeLine({ cause: 'car' }), 'OUT', 'H4: no generic "HIT BY A CAR" — a car hit is always named by its vehicle (tests/jaywalk-causes.test.mjs)'); assert.equal(causeLine({ cause: 'taken', lanes: 212 }), 'MADE IT TO THE MOTHERSHIP'); assert.equal(causeLine({}), 'OUT');
   // real runs that end under a car: the vehicle found at the end = the one on that lane at that tick; every kind shows up
   const seen = new Set();
   for (let s = 0; s < 400 && seen.size < 5; s++) {

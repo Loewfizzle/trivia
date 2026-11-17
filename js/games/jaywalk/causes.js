@@ -58,13 +58,14 @@ export const CAUSE_LINES = Object.freeze({
   train: 'HIT BY THE 6:15',
   wall: 'THE LIGHTS WENT OUT',
   blackbird: 'BUZZED BY THE BLACKBIRD',
-  ufo: 'BEAMED UP',
+  ufo: 'ABDUCTED',
 });
+export const SHIP_LINE = 'MADE IT TO THE MOTHERSHIP';
 /** → the end screen's line: { cause, vehicle?, lanes?, taken? } */
 /** H5B — THE DAY LOOK's own words: by day the wall is A FOG BANK, never "the lights" (the same cause, the same rules) */
 export const DAY_LINES = Object.freeze({ wall: 'LOST IN THE FOG' });
 export function causeLine({ cause = '', vehicle = '', lanes = 0, taken = false, look = 'night' } = {}) {
-  if (taken || cause === 'taken') return `TAKEN AT LANE ${lanes}`;
+  if (taken || cause === 'taken') return SHIP_LINE;   // (H6A — a finish line, not a death: never "TAKEN" in anything a player reads)
   if (look === 'day' && DAY_LINES[cause]) return DAY_LINES[cause];
   return CAUSE_LINES[`${cause}:${vehicle}`] || CAUSE_LINES[cause] || 'OUT';
 }

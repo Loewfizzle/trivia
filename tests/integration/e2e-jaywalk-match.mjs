@@ -56,7 +56,7 @@ async function dropRunCards(pids) {
   for (const pid of pids) await dbPut(`shrp/${pid}:jaywalk`, null);
 }
 const CAUSES = new Set([...Object.values(CAUSE_LINES), ...Object.values(DAY_LINES)]);   // (H5B: by day the wall's line is the fog's)
-const isCause = t => CAUSES.has(t) || /^TAKEN AT LANE \d+$/.test(t) || t === 'OUT';
+const isCause = t => CAUSES.has(t) || /^(YOU )?MADE IT TO THE MOTHERSHIP$/.test(t) || t === 'OUT';
 
 /** start a JAYWALK match from the host's phone and wait for every phone's game screen */
 async function start(host, n) {

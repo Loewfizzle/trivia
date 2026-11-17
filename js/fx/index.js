@@ -44,7 +44,7 @@ import deco from './deco.js';
 import { giftFx } from './gift.js';
 import { GIFT_SPECS } from './gift-specs.js';
 import { ocRedline, ocPhoto } from './oc-cards.js';
-import { jwSonic, jwClose, jwRight } from './jw-cards.js';   // (JAYWALK CARDS)
+import { jwSonic, jwClose, jwRight, jwBeam } from './jw-cards.js';   // (JAYWALK CARDS)
 import { pwSafe } from './pw-cards.js';
 import { ccGhost } from './cc-cards.js';
 import { dmWeek } from './dm-cards.js';   // (DM2 — PERFECT WEEK)
@@ -79,7 +79,7 @@ export const FX = Object.freeze({ deco, ufo, laser, smoke, frost, flames, prism,
   ocRedline, ocPhoto,
   // JAYWALK CARDS (Nov 12 night) — SONIC BOOM (the afterburners, the ring bursting out of the vapor cone) · CLOSE ENCOUNTER (the beam's pulse +
   // sway, the sheen along the trails) · RIGHT OF WAY (the hop drawing on, the runway chase, the pink laser) — jw-cards.js
-  jwSonic, jwClose, jwRight,
+  jwSonic, jwClose, jwRight, jwBeam,
   // PW2 — THE PASSWORD's card (the gold dust pouring out of the vault, the blaze breathing, the glint on the wheel): Grok's art as the material, the layers in pw-cards.js
   pwSafe,
   // CC2 — COAST CLEAR's card (the spray off the bow, the lighthouse breathing + its beam, the searchlights' crossing, a light along the trim)

@@ -341,11 +341,18 @@ function rumExtra(game, uid, out, row) {
 
 // JAYWALK (H3 — THE SOLO BEST): the lanes of a SOLO run the SERVER replayed itself (`game.sv` — api/report.js#jaywalkSolo builds that match
 // from the player's proof node: the room's own results are never read) → rec 'jaywalk' (the solo lane maps it to the board jaywalk-solo). A
-// run the server refused (`bad`: a forged log, a log ahead of the clock) is named in `rejected` and earns nothing. The match's boards: H4.
+// run the server refused (`bad`: a forged log, a log ahead of the clock) is named in `rejected` and earns nothing.
+// H6A — YOUR BEST ANYWHERE (the owner: his 212-lane match counted for XP but not for his best): a counted MATCH run's lanes raise the SAME
+// best — the board keeps its id (`jaywalk-solo`: no data moved; everything a player reads calls it YOUR BEST). THE FOUR CARDS' flags
+// (`f`: boom · ufo · airfield · mothership) come from that same replay — never from a room's own results; mothership never from a solo run.
+export const JW_FEATS = Object.freeze(['boom', 'ufo', 'airfield', 'mothership']);
 function jaywalkExtra(game, uid, out) {
   const r = (game.results || {})[uid] || {};
   if (r.bad) { out.rejected.push({ uid, board: 'jaywalk-solo', v: r.bad }); return; }
-  if (game.sv === 1 && Object.keys(game.participants || {}).length === 1 && num(r.l) > 0) out.rec.jaywalk = Math.floor(num(r.l));
+  if (game.sv !== 1) return;
+  const solo = Object.keys(game.participants || {}).length === 1;
+  if (num(r.l) > 0) out.rec[solo ? 'jaywalk' : 'jaywalk-solo'] = Math.floor(num(r.l));
+  for (const k of String(r.f || '').split(' ')) if (JW_FEATS.includes(k) && !(solo && k === 'mothership')) (out.f ||= {})[k] = 1;
 }
 
 const EXTRA = { jaywalk: jaywalkExtra, cipher: cipherExtra, signal: signalExtra, overclock: overclockExtra, bluff: bluffExtra, pulse: pulseExtra, golf: golfExtra, agent: agentExtra, prism: prismExtra, slip: slipExtra, gridlock: gridlockExtra, stakes: stakesExtra, rum: rumExtra };

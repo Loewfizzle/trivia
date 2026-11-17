@@ -269,8 +269,8 @@ LAB.push(
   { id: 'full-card-perfect-clear', kind: 'full', of: 'card-perfect-clear', tier: 'rare', n: 215 },
   { id: 'full-card-comeback', kind: 'full', of: 'card-comeback', tier: 'epic', n: 216 },
 );
-// JAYWALK CARDS (Nov 12 night) — JAYWALK's three player cards (Grok's art + the game's layers — js/fx/jw-cards.js); NOTHING grants them yet
-// (JAYWALK's pass 6 wires the unlocks from the server's replay of a run) — the strips, then their full cards
+// JAYWALK CARDS (Nov 12 night) — JAYWALK's three player cards (Grok's art + the game's layers — js/fx/jw-cards.js) — the strips, then their
+// full cards (H6A: its achievements grant them — the feat flags from the server's replay of a run)
 LAB.push(
   { id: 'card-sonicboom', kind: 'card', tier: 'rare', n: 217 },
   { id: 'card-closeencounter', kind: 'card', tier: 'rare', n: 218 },
@@ -278,6 +278,11 @@ LAB.push(
   { id: 'full-card-sonicboom', kind: 'full', of: 'card-sonicboom', tier: 'rare', n: 220 },
   { id: 'full-card-closeencounter', kind: 'full', of: 'card-closeencounter', tier: 'rare', n: 221 },
   { id: 'full-card-rightofway', kind: 'full', of: 'card-rightofway', tier: 'legendary', n: 222 },
+);
+// JAYWALK H6A — BEAM ME UP: THE MOTHERSHIP's card (the fourth JAYWALK card — still in when THE MOTHERSHIP arrives, a counted match)
+LAB.push(
+  { id: 'card-beammeup', kind: 'card', tier: 'epic', n: 223 },
+  { id: 'full-card-beammeup', kind: 'full', of: 'card-beammeup', tier: 'epic', n: 224 },
 );
 // THE CARD PASS — B7: OVERCLOCK's lucky emblem (OC5 shipped it with a placeholder glyph) — its real neon art
 LAB.push({ id: 'emb-horseshoe', kind: 'emblem', tier: 'uncommon', n: 208, fin: 'neon' });
@@ -310,6 +315,8 @@ export const LAB_V = Object.freeze({
   'card-dev-switchboard': 4, 'card-dev-source': 4, 'full-card-dev-switchboard': 6, 'full-card-dev-source': 7,
   // (CITY E — THE LAB FEEDS EVERY PASS: the owner's two open FIX marks built — the Mostar flag card (the chequered flag → Mostar's old bridge, renamed) + the horseshoe as a U)
   'full-card-gift-zadomovinu': 2, 'card-gift-zadomovinu': 2, 'emb-horseshoe': 2,
+  // (JAYWALK H6A — RIGHT OF WAY's picture redone by Grok: the game's real kid — the forward cap, the pink T-shirt)
+  'card-rightofway': 2, 'full-card-rightofway': 2,
 });
 /** an item's current version */
 export const verOf = id => LAB_V[id] || 1;

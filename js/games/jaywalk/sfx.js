@@ -127,7 +127,7 @@ export const cues = () => cued.slice();
 export function onEvent(e, rnd = Math.random) {
   if (e.e === 'hop') return play('hop', { rate: 1 + (rnd() * 2 - 1) * HOP_VARY.rate, vol: Math.pow(10, (rnd() * 2 - 1) * HOP_VARY.db / 20) });
   if (e.e === 'land' && e.on === 'wood') return play('land-wood', { rate: 1 + (rnd() * 2 - 1) * 0.04 });
-  if (e.e === 'out') return e.cause === 'water' || e.cause === 'edge' ? play('splash') : play('hit');
+  if (e.e === 'out') return e.cause === 'water' || e.cause === 'edge' ? play('splash') : e.cause === 'ufo' ? null : play('hit');   // (THE UFO: the beam's own sounds — flyers.js)
   return null;
 }
 /** the test hooks: what started on the audio context · what was asked for · the voices sounding */

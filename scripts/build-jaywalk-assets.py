@@ -19,6 +19,11 @@
               clips, the textures, UVs, tangents and weights do not ship. + LICENSE-kid.txt
   models\\landmarks\\ → lighthouse.glb (MaverickFX, CC0) + fishing-boat.glb (Kenney Watercraft Kit, CC0), re-packed as the 12 + their licences
               + CREDITS.md (the credit lines for the game's CREDITS — H6)
+  models\\flyers\\ → blackbird.glb (Kiiba's Sr-71, CC BY 4.0) + ufo.glb + mothership.glb (Poly by Google's Flying saucers, CC BY 3.0) — H6A,
+              re-packed as the 12 (ONE mesh, vertex colours, no texture): the Blackbird's parts take their material's own near-black (its
+              normal map does not ship), nose at +z, 1 long; the saucers' palette textures baked into vertex colours, their normals
+              computed here (the files carry none: smooth under a 42° crease), 1 across, THE UFO's three landing legs left out (it
+              flies). + LICENSE-flyers.txt; their CC BY credit lines in CREDITS.md (REQUIRED). Loaded ON DEMAND by the game.
   sfx\\     → audio/jaywalk/: every pick + every -b backup (mp3), the train bells as 16-bit mono WAV (the SAME samples count — the exact loop),
               + CREDITS.md from notes.txt.
 """
@@ -303,12 +308,107 @@ def landmarks():
         v, t, size = write_glb(os.path.join(OUT_M, name + '.glb'), name, pos, nor, col, None, idx, copyright=who)
         shutil.copyfile(os.path.join(SRC, 'models', 'landmarks', lic), os.path.join(OUT_M, lic))
         print(f'  {name:16s} {os.path.getsize(src):7d} → {size:6d} B · {v} verts · {t} tris · {round(hi[0] - lo[0], 2)} × {round(hi[1] - lo[1], 2)} × {round(hi[2] - lo[2], 2)}')
+    credits_md()
+
+
+
+def credits_md():
+    """assets/jaywalk/models/CREDITS.md — every model's credit line (the landmarks' step and the flyers' step both write the whole file)"""
     md = ['# JAYWALK — the models\' credits', '',
-          'Copied from the owner\'s delivery (Downloads\\grok\\jaywalk\\models\\) by `scripts/build-jaywalk-assets.py`. All CC0 1.0 — no credit is required;',
-          'the game\'s CREDITS (☰ → CREDITS — H6) carry these lines anyway.', '',
+          'Copied from the owner\'s delivery (Downloads\\grok\\jaywalk\\models\\) by `scripts/build-jaywalk-assets.py`. The Kenney models, the kid,',
+          'the lighthouse + the boat are CC0 1.0 — no credit is required; the game\'s CREDITS (☰ → CREDITS) carry these lines anyway.', '',
           '- 3D models: Kenney — kenney.nl (CC0) — the cars, the train, the props (`LICENSE.txt`), THE KID (Mini Skate 2.0 "character-skate-boy" — `LICENSE-kid.txt`), the fishing boat (Watercraft Kit 2.1 — `LICENSE-kenney-watercraft.txt`)',
-          '- Light House: MaverickFX — https://poly.pizza/m/KRebJXIRb8 (CC0 1.0) — `LICENSE-lighthouse.txt`', '']
+          '- Light House: MaverickFX — https://poly.pizza/m/KRebJXIRb8 (CC0 1.0) — `LICENSE-lighthouse.txt`', '',
+          '## CC BY — THE FLYERS (H6A): these credits are REQUIRED wherever the models ship (`LICENSE-flyers.txt`)', '',
+          '- `blackbird.glb` — Sr-71 by Kiiba — https://sketchfab.com/3d-models/sr-71-79e6c14217ab417abe524a99ffbb472e (CC BY 4.0). This work is based on "Sr-71" by Kiiba (https://sketchfab.com/Kiiba), licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/). Changes: recoloured near-black (Grok\'s delivery), flattened into one mesh with vertex colours, its normal map dropped, scaled.',
+          '- `ufo.glb` — Flying saucer: Poly by Google — https://poly.pizza/m/b0N_HeT_Ttb (CC BY 3.0). Changes: one mesh with vertex colours, normals computed, the landing legs removed, scaled.',
+          '- `mothership.glb` — Flying saucer: Poly by Google — https://poly.pizza/m/6hu2h8v78mO (CC BY 3.0). Changes: one mesh with vertex colours, normals computed, scaled.', '']
     open(os.path.join(OUT_M, 'CREDITS.md'), 'w', encoding='utf-8', newline='\n').write('\n'.join(md))
+
+
+# ---- H6A — THE FLYERS (models\flyers\): THE BLACKBIRD (CC BY 4.0) + THE UFO + THE MOTHERSHIP (CC BY 3.0). The originals are only read.
+def srgb8(c):
+    c = max(0.0, min(1.0, c)); v = c * 12.92 if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
+    return max(0, min(255, round(v * 255)))
+
+
+def crease_normals(P, idx, crease=42.0):
+    """a file with NO normals → one per triangle corner: the faces round that point that turn less than `crease`° from this one, summed
+    (smooth on the hull's curve, a hard edge at a rim) → corner positions, normals, the corners' source vertex"""
+    faces = []
+    for t in range(0, len(idx), 3):
+        a, b, c = P[idx[t]], P[idx[t + 1]], P[idx[t + 2]]
+        e1 = [b[k] - a[k] for k in range(3)]; e2 = [c[k] - a[k] for k in range(3)]
+        n = (e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0])
+        ln = (n[0] ** 2 + n[1] ** 2 + n[2] ** 2) ** 0.5
+        faces.append((n, ln))
+    at = {}
+    for f in range(len(faces)):
+        for k in range(3):
+            at.setdefault(tuple(round(x, 3) for x in P[idx[f * 3 + k]]), []).append(f)
+    cosc = math.cos(math.radians(crease))
+    pos, nor, src = [], [], []
+    for f in range(len(faces)):
+        n0, l0 = faces[f]
+        for k in range(3):
+            v = idx[f * 3 + k]; s = [0.0, 0.0, 0.0]
+            for g in at[tuple(round(x, 3) for x in P[v])]:
+                n1, l1 = faces[g]
+                if l0 > 0 and l1 > 0 and (n0[0] * n1[0] + n0[1] * n1[1] + n0[2] * n1[2]) / (l0 * l1) >= cosc:
+                    s[0] += n1[0]; s[1] += n1[1]; s[2] += n1[2]   # (area-weighted: a face's cross product is twice its area)
+            ln = (s[0] ** 2 + s[1] ** 2 + s[2] ** 2) ** 0.5
+            if ln < 1e-12: s, ln = list(n0), (l0 or 1)
+            pos.append(P[v]); nor.append((s[0] / ln, s[1] / ln, s[2] / ln)); src.append(v)
+    return pos, nor, src
+
+
+def flyers():
+    F = os.path.join(SRC, 'models', 'flyers')
+    # THE BLACKBIRD: ten parts, each its material's own near-black (baseColorFactor — linear → the vertex colour's sRGB byte); the file's
+    # normals; nose at +z (as Kenney's cars), 1 long, its belly on y = 0, centred
+    j, bn = read_glb(os.path.join(F, 'blackbird.glb'))
+    pos, nor, col, idx = [], [], [], []
+    for n in j['nodes']:
+        if 'mesh' not in n: continue
+        assert not any(k in n for k in ('translation', 'rotation', 'scale', 'matrix')), n
+        for p in j['meshes'][n['mesh']]['primitives']:
+            base = len(pos); f = j['materials'][p['material']]['pbrMetallicRoughness']['baseColorFactor']
+            # (lifted a little off pure black: the scene's own lights + rims must be able to shape it — near-black, never a hole)
+            c = tuple(srgb8(x * 2.6 + 0.012) for x in f[:3])
+            P, Nn = accessor(j, bn, p['attributes']['POSITION']), accessor(j, bn, p['attributes']['NORMAL'])
+            pos.extend(P); nor.extend(Nn); col.extend([c] * len(P))
+            idx.extend(base + x[0] for x in accessor(j, bn, p['indices']))
+    lo = [min(q[k] for q in pos) for k in range(3)]; hi = [max(q[k] for q in pos) for k in range(3)]
+    ln = hi[2] - lo[2]; cx, cz = (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2
+    # (the nose: the thin end — the canopy sits toward it; the wide wings are the tail's)
+    wide = max(pos, key=lambda q: abs(q[0]))[2]
+    flip = 1 if wide < cz else -1
+    pos = [((q[0] - cx) / ln * flip, (q[1] - lo[1]) / ln, (q[2] - cz) / ln * flip) for q in pos]
+    nor = [(q[0] * flip, q[1], q[2] * flip) for q in nor]
+    v, t, size = write_glb(os.path.join(OUT_M, 'blackbird.glb'), 'blackbird', pos, nor, col, None, idx, copyright='Sr-71 by Kiiba (sketchfab.com/Kiiba) — CC BY 4.0')
+    print(f'  blackbird        {os.path.getsize(os.path.join(F, "blackbird.glb")):7d} → {size:6d} B · {v} verts · {t} tris · span {round((hi[0] - lo[0]) / ln, 3)} × height {round((hi[1] - lo[1]) / ln, 3)} × 1 long (nose +z)')
+    # THE SAUCERS (Poly by Google): a palette texture → vertex colours; no normals in the file → computed; 1 across, the hull's foot on y = 0
+    for name, cut in (('ufo', 10.0), ('mothership', None)):
+        j, bn = read_glb(os.path.join(F, name + '.glb'))
+        im = j['images'][0]; bv = j['bufferViews'][im['bufferView']]
+        img = Image.open(io.BytesIO(bn[bv.get('byteOffset', 0): bv.get('byteOffset', 0) + bv['byteLength']])).convert('RGB')
+        W, H = img.size; px = img.load()
+        p = j['meshes'][0]['primitives'][0]
+        P, UV = accessor(j, bn, p['attributes']['POSITION']), accessor(j, bn, p['attributes']['TEXCOORD_0'])
+        I = [x[0] for x in accessor(j, bn, p['indices'])]
+        if cut is not None:   # (THE UFO flies: its three landing legs — everything below the hull's own foot — are left out)
+            I = [i for t in range(0, len(I), 3) if min(P[I[t + k]][1] for k in range(3)) >= cut for i in I[t: t + 3]]
+        cpos, cnor, src = crease_normals(P, I)
+        ccol = []
+        for vtx in src:
+            u, vv = UV[vtx]; ccol.append(px[min(W - 1, max(0, int(u * W))), min(H - 1, max(0, int(vv * H)))][:3])
+        lo = [min(q[k] for q in cpos) for k in range(3)]; hi = [max(q[k] for q in cpos) for k in range(3)]
+        d = max(hi[0] - lo[0], hi[2] - lo[2]); cx, cz = (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2
+        cpos = [((q[0] - cx) / d, (q[1] - lo[1]) / d, (q[2] - cz) / d) for q in cpos]
+        v, t, size = write_glb(os.path.join(OUT_M, name + '.glb'), name, cpos, cnor, ccol, None, list(range(len(cpos))), copyright='Flying saucer: Poly by Google (poly.pizza) — CC BY 3.0')
+        print(f'  {name:16s} {os.path.getsize(os.path.join(F, name + ".glb")):7d} → {size:6d} B · {v} verts · {t} tris · 1 across × {round((hi[1] - lo[1]) / d, 3)} tall · colours {sorted(set(ccol))}')
+    shutil.copyfile(os.path.join(F, 'LICENSE.txt'), os.path.join(OUT_M, 'LICENSE-flyers.txt'))
+    credits_md()
 
 
 def skyline():
@@ -416,5 +516,5 @@ if __name__ == '__main__':
     try: sys.stdout.reconfigure(encoding='utf-8')
     except Exception: pass
     print('JAYWALK — THE FILES IN, from', SRC)
-    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('skyline', skyline), ('sounds', sounds)):
+    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('flyers', flyers), ('skyline', skyline), ('sounds', sounds)):
         if not ONLY or name in ONLY: fn()

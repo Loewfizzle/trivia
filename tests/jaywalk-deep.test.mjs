@@ -27,7 +27,7 @@ test('DEEP RUNS: the greedy bot gets far up the curve + into the loop; every dea
   assert.ok(causes.car > 0 && causes.water > 0, 'cars + the water do the work');
 });
 
-test('THE END PER MODE: the match + the daily ALWAYS end at THE MOTHERSHIP\'s tick (taken = a win: "TAKEN AT LANE n"); solo NEVER ends by the clock', () => {
+test('THE END PER MODE: the match + the daily ALWAYS end at THE MOTHERSHIP\'s tick (taken = A FINISH LINE — H6A: "MADE IT TO THE MOTHERSHIP"); solo NEVER ends by the clock', () => {
   for (const mode of ['match', 'daily']) {
     const cap = T.MODES[mode].cap;
     let taken = 0;
@@ -46,7 +46,7 @@ test('THE END PER MODE: the match + the daily ALWAYS end at THE MOTHERSHIP\'s ti
     const ev = [];
     for (let i = 0; i < 10; i++) step(run, course, '', ev);
     assert.deepEqual([run.st, run.end, run.t], ['taken', cap, cap], `${mode}: taken at tick ${cap}`);
-    assert.deepEqual(ev.filter(e => e.e === 'taken'), [{ e: 'taken', lane: at }], `TAKEN AT LANE ${at}`);
+    assert.deepEqual(ev.filter(e => e.e === 'taken'), [{ e: 'taken', lane: at }], `still in at lane ${at}: the finish line`);
     assert.equal(resultOf(run).taken, true); assert.equal(resultOf(run).feats.ufo, false, 'the mothership is never the UFO moment');
     void taken;   // (how many the lazy bot lasted is its luck — the rule is the check above: still standing at the cap = taken AT the cap)
   }
@@ -190,7 +190,7 @@ test('jaywalk-ufo: THE UFO\'s beam sweeps the cell beside the kid and that UFO n
   assert.deepEqual([resultOf(run).cause, resultOf(run).feats.ufo], ['taken', false]);
 });
 
-test('jaywalk-airfield: lane 400 in ONE SOLO run → earned; lane 399 → not; lane 400 in a MATCH → not', () => {
+test('jaywalk-airfield (H6A): lane 400 in ONE run → earned, SOLO OR MATCH; lane 399 → not; jaywalk-mothership never in a solo run', () => {
   let got = null;
   for (let s = 0; s < 300 && !got; s++) {
     const seed = `air${s}`, course = createCourse(seed), run = createRun({ seed, mode: 'solo' });
@@ -205,5 +205,6 @@ test('jaywalk-airfield: lane 400 in ONE SOLO run → earned; lane 399 → not; l
   const short = replay({ seed: got.seed, mode: 'solo', log: got.log.slice(0, got.log.length - 1) });
   assert.ok(short.lanes === 399 && short.feats.airfield === false, 'one hop short: lane 399, no moment');
   const m = replay({ seed: got.seed, mode: 'match', log: got.log });
-  assert.ok(m.lanes >= 400 && m.feats.airfield === false, 'the same hops in a match: lane 400, no moment (ONE SOLO run)');
+  assert.ok(m.lanes >= 400 && m.feats.airfield === true, 'the same hops in a match: lane 400 — RIGHT OF WAY is no longer solo-only (H6A)');
+  assert.ok(r.feats.mothership === false && m.feats.mothership === false, 'no mothership moment: the solo run has none, the match run ended before the cap');
 });

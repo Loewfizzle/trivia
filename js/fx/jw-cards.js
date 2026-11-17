@@ -14,7 +14,7 @@ import { stamp, glow, sparkle, fract } from './kit.js';
 import { image } from './sg-kit.js';
 import { rrect } from './renderer.js';
 import { drawLaser } from './laser.js';
-import { JW_SPECS, PLATES, jwMap, ringAt, hopAt } from './jw-specs.js';
+import { JW_SPECS, PLATES, jwMap, ringAt, hopAt, liftAt } from './jw-specs.js';
 
 export const JW_ART = new URL('../../assets/vault/jw/', import.meta.url).href;
 const img = n => image(`${JW_ART}jw-${n}.webp`);
@@ -124,6 +124,33 @@ function rightOfWay(c, s, t, Q) {
   c.save(); drawLaser(c, s.w, s.h, t, { rgb: '255,160,225', rgb2: '255,40,170', still, radius: rad }); c.restore();
 }
 
+// BEAM ME UP (epic — H6A, THE MOTHERSHIP's card): THE BEAM breathes — the belly's disc + the white-gold column + its ring on the road swell
+// together (a slow pulse); gold MOTES rise through the beam past the kid; the belly's ring of lights CHASES (a bright bead running round it)
+function beamMeUp(c, s, t, Q) {
+  const S = JW_SPECS['card-beammeup'], full = !!s.opts.full, still = !!Q.still, rad = s.opts.radius || 12;
+  const M = jwMap(s.w, s.h, full ? S.full : S.strip), k = M.k, X = x => M.ox + x * k, Y = y => M.oy + y * k;
+  const calm = full ? 1 : 0.88, L = liftAt(t, still), [bx, by] = S.belly, [px, py] = S.pool, [rx, ry] = S.poolR;
+  c.save(); rrect(c, 0, 0, s.w, s.h, rad); c.clip();
+  c.globalCompositeOperation = 'lighter';
+  // 1 · the belly's disc + the column + the pool swelling with the pulse
+  stamp(c, glow('255,240,205', 0.3), X(bx), Y(by), 330 * k, (0.1 + 0.26 * L.p) * calm, 96 * k);
+  stamp(c, glow('255,226,170', 0.2), X((bx + px) / 2), Y((by + py) / 2 + 20), 250 * k, (0.05 + 0.13 * L.p) * calm, 330 * k);
+  stamp(c, glow('255,236,190', 0.25), X(px), Y(py), rx * 2.5 * k, (0.12 + 0.3 * L.p) * calm, ry * 2.6 * k);
+  // 2 · the motes rising through the beam (it narrows toward the belly)
+  for (const m of L.motes) {
+    const y = py - 20 + (by + 40 - (py - 20)) * m.u, w = 150 - 80 * m.u, x = bx + m.x * w;
+    stamp(c, sparkle('255,244,214', 40), X(x), Y(y), (16 + 12 * m.a) * k * (full ? 1 : 1.5), m.a * 0.9 * calm);
+  }
+  // 3 · the chase round the belly's lit rim: a bright bead + its two fading followers
+  const [cx, cy, er, ey] = S.ring;
+  for (let i = 0; i < 3; i++) {
+    const a = (L.chase - i * 0.035) * Math.PI * 2, x = cx + Math.cos(a) * er, y = cy + Math.sin(a) * ey, near = 0.75 + 0.25 * Math.sin(a);
+    stamp(c, glow('255,236,196', 0.34), X(x), Y(y), 54 * near * k, (0.75 - i * 0.24) * calm);
+  }
+  c.restore(); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+}
+
 export const jwSonic = { id: 'jwSonic', tier: 'rare', bleed: 0, stillT: 1.3, draw: sonicBoom };
 export const jwClose = { id: 'jwClose', tier: 'rare', bleed: 0, stillT: 1.0, draw: closeEncounter };
 export const jwRight = { id: 'jwRight', tier: 'legendary', bleed: 0, stillT: 2.2, draw: rightOfWay };
+export const jwBeam = { id: 'jwBeam', tier: 'epic', bleed: 0, stillT: 1.2, draw: beamMeUp };

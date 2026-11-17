@@ -6,12 +6,14 @@
 // rooms/{CODE}/jw/{matchId}/{uid} read by the server (GO's server time → the course; the chunks → the log + its clock).
 import { judgeRun, seedProblem, logFromChunks, chunkTimes } from '../../js/games/jaywalk/replay.js';
 import { MODES } from '../../js/games/jaywalk/tuning.js';
-import { seedOf, matchStart, scoreNode, scoreCalls } from '../../js/games/jaywalk/logic.js';
+import { seedOf, matchStart, scoreNode, scoreCalls, featsOf } from '../../js/games/jaywalk/logic.js';
 
 export { logFromChunks, seedOf };
 
 /**
- * → { ok: true, result: { lanes, tick, end, cause, taken, hits, y, x, feats: { boom, ufo, airfield } }, cut? } | { ok: false, why }
+ * → { ok: true, result: { lanes, tick, end, cause, taken, hits, y, x, feats: { boom, ufo, airfield, mothership } }, cut? } | { ok: false, why }
+ * (H6A — THE FOUR CARDS: the feats ride each result row as `f` — 'boom ufo airfield mothership'; core/match-report.js#jaywalkExtra reads them
+ *  ONLY from a match the server built itself, `sv`)
  * Refused: a bad seed / mode · a log past its length cap · ticks not rising · inputs closer than a hand can tap · a hop past THE
  * MOTHERSHIP's tick · a hop logged after the run had ended (the replay never played it) · a run that never ended · (with `go` + `times` —
  * the chunks' clock) a log AHEAD of the real clock, or one whose clock is broken. A log that falls BEHIND the clock with no silence to
@@ -39,7 +41,7 @@ export function verifyNode({ code, matchId, node } = {}) {
 }
 
 /** the result row the match report reads (logic.js#scoreNode's shape) from the server's own verify — a refused run = a kid who never hopped */
-export const serverRow = v => (v && v.ok ? { l: v.result.lanes, t: v.result.tick, w: v.result.cause || '', e: v.result.end, ...(v.cut ? { cut: 1 } : {}) } : { l: 0, t: 0, w: '', e: -1, bad: String((v && v.why) || 'refused').slice(0, 24) });
+export const serverRow = v => (v && v.ok ? { l: v.result.lanes, t: v.result.tick, w: v.result.cause || '', e: v.result.end, ...(v.result.taken ? { x: 1 } : {}), ...(featsOf(v.result) ? { f: featsOf(v.result) } : {}), ...(v.cut ? { cut: 1 } : {}) } : { l: 0, t: 0, w: '', e: -1, bad: String((v && v.why) || 'refused').slice(0, 24) });
 
 /**
  * H3 — THE SERVER'S OWN RESULT (PURE): a SOLO run is counted ONLY from the server's replay of the player's proof node (GO's server time →

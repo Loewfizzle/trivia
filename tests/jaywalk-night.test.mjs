@@ -16,7 +16,7 @@ const MODELS = ['car-sedan', 'car-hatchback', 'car-taxi', 'car-van', 'train-fron
 
 test('THE MODELS: the 12 Kenney models (CC0), re-packed small — one mesh each, the colormap baked into vertex colours, NO texture, never the two trees', () => {
   const dir = readdirSync(new URL('assets/jaywalk/models/', root));
-  assert.deepEqual(dir.filter(f => f.endsWith('.glb')).sort(), [...MODELS, 'kid', 'lighthouse', 'fishing-boat'].map(m => `${m}.glb`).sort(), 'the 12 + H5A\'s three (THE KID, the lighthouse, the fishing boat)');
+  assert.deepEqual(dir.filter(f => f.endsWith('.glb')).sort(), [...MODELS, 'kid', 'lighthouse', 'fishing-boat', 'blackbird', 'ufo', 'mothership'].map(m => `${m}.glb`).sort(), 'the 12 + H5A\'s three (THE KID, the lighthouse, the fishing boat) + H6A\'s three flyers');
   assert.ok(!dir.some(f => /^tree-/.test(f)), 'Kenney\'s trees are not used (the round puffy trees are built in code)');
   let total = 0;
   for (const m of MODELS) {
@@ -118,7 +118,7 @@ test('THE SOUNDS (PURE): every sound in play (H5A — the world\'s cues: tests/j
   assert.match(s, /createDynamicsCompressor/);
   assert.doesNotMatch(s, /new (window\.)?(webkit)?AudioContext|new Audio\(/, 'never its own audio context / element');
   assert.match(s, /if \(e\.e === 'hop'\) return play\('hop', \{ rate: 1 \+ \(rnd\(\) \* 2 - 1\) \* HOP_VARY\.rate, vol: Math\.pow\(10, \(rnd\(\) \* 2 - 1\) \* HOP_VARY\.db \/ 20\) \}\);/);
-  assert.match(s, /e\.e === 'land' && e\.on === 'wood'/); assert.match(s, /e\.cause === 'water' \|\| e\.cause === 'edge' \? play\('splash'\) : play\('hit'\)/);
+  assert.match(s, /e\.e === 'land' && e\.on === 'wood'/); assert.match(s, /e\.cause === 'water' \|\| e\.cause === 'edge' \? play\('splash'\) : e\.cause === 'ufo' \? null : play\('hit'\)/);
   assert.match(s, /fetch\(new URL\(`\$\{fileOf\(id, k\.slice\(-1\)\)\}\?v=\$\{JW_SFX_REV\}`, DIR\)\)/, 'its only fetch: audio/jaywalk/');
 });
 

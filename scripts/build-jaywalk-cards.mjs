@@ -1,7 +1,7 @@
 // JAYWALK CARDS (Nov 12 night — docs/harbor/passes/jaywalk-cards.md) — SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY's art: Grok's masters + FX plates
 // (art/jaywalk-cards/src/ — copies of the owner's Downloads\grok\jaywalk\cards; never the originals, never the -b backups) → assets/vault/jw/*.webp.
 // Built like REDLINE + PHOTO FINISH (scripts/build-oc-cards.mjs): the masters converted (1280 × 720) with the owner's two marks BAKED here:
-//   · RIGHT OF WAY — the tiny lettering on the snapback's strap painted out (each row of the strap = its own plain pink, the median of the row)
+//   · (RIGHT OF WAY's strap lettering was painted out here until H6A — Grok's redone picture has none; BEAM ME UP's mothership.png: converted only)
 //   · CLOSE ENCOUNTER — the cars' pink / cyan trails faded down where they enter the left third (the lower-left corner only: the plate's calm)
 // The FX plates are light on PURE BLACK (Grok black-pointed + edge-feathered them — measured: every border pixel 0): each turned into light WITH
 // ALPHA (alpha = its brightest channel, the colour divided out — drawn 'lighter' it adds back exactly the plate's light, never a black box), cropped
@@ -55,26 +55,10 @@ const files = await p.evaluate(async PLATES => {
     report.closeLeftThirdLower = { before: Math.round(before / 1e3), after: Math.round(after / 1e3) };
     out['close-encounter'] = webp(c, 0.84);
   }
-  // ---- RIGHT OF WAY: the strap's lettering (x 930 → 966, y 192 → 199 — the dots read "WIKI & WE" in a tight zoom) → each row its plain pink
-  {
-    const c = of(await load('right-of-way.png')), x = c.getContext('2d'), X0 = 929, X1 = 967, Y0 = 191, Y1 = 200;
-    const d = x.getImageData(X0, Y0, X1 - X0, Y1 - Y0), px = d.data, W = X1 - X0;
-    const med = a => { const s = [...a].sort((p, q) => p - q); return s[s.length >> 1]; };
-    let changed = 0;
-    for (let r = 0; r < Y1 - Y0; r++) {
-      const row = [0, 1, 2].map(ch => med(Array.from({ length: W }, (_, q) => px[(r * W + q) * 4 + ch])));
-      for (let q = 0; q < W; q++) {
-        const i = (r * W + q) * 4, dl = Math.abs(px[i] - row[0]) + Math.abs(px[i + 1] - row[1]) + Math.abs(px[i + 2] - row[2]);
-        // (only what differs from the row — the marks; the strap's ends blend: the first + last 3 px keep half their own)
-        const e = Math.min(q, W - 1 - q), w = e >= 3 ? 1 : 0.5 + e / 6;
-        if (dl > 18) changed++;
-        for (let ch = 0; ch < 3; ch++) px[i + ch] = px[i + ch] * (1 - w) + row[ch] * w;
-      }
-    }
-    x.putImageData(d, X0, Y0);
-    report.strapPixelsRepainted = changed;
-    out['right-of-way'] = webp(c, 0.84);
-  }
+  // ---- RIGHT OF WAY (H6A — Grok's REDONE picture, Nov 16: the game's real kid, no lettering anywhere — converted only; the Nov 12 hoodie
+  //      picture, whose cap strap's lettering this step used to paint out, is kept as right-of-way-old.png) + BEAM ME UP (converted only)
+  out['right-of-way'] = webp(of(await load('right-of-way.png')), 0.84);
+  out['mothership'] = webp(of(await load('mothership.png')), 0.84);
   // ---- the FX plates
   for (const [n, [bx, by, bw, bh]] of Object.entries(PLATES)) {
     const img = await load(`fx-${n}.png`), c = crop(img, bx, by, bw, bh, 0.5);

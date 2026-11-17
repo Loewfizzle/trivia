@@ -160,7 +160,8 @@ export function resultOf(run) {
     feats: {
       boom: run.boom === 1,                                           // jaywalk-boom
       ufo: ids.some(id => !run.took[id]),                             // jaywalk-ufo: its beam swept beside them and THAT UFO never took them
-      airfield: run.mode === 'solo' && run.best >= LOOP_LANES,        // jaywalk-airfield: lane 400 in ONE SOLO run
+      airfield: run.best >= LOOP_LANES,                               // jaywalk-airfield: lane 400 in ONE run — solo OR match (H6A)
+      mothership: run.st === 'taken',                                 // jaywalk-mothership (H6A): still in when THE MOTHERSHIP arrives (solo has none)
     },
   };
 }

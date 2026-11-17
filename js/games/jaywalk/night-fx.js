@@ -306,6 +306,7 @@ void main() {
   else if (s < 4.5) { a = smoothstep(1.0, 0.15, abs(p.y)) * smoothstep(1.0, 0.8, abs(p.x)); }                     // 4 a soft line along x
   else if (s < 5.5) { a = smoothstep(0.42, 0.3, d) + 0.6 * smoothstep(1.0, 0.0, d) * smoothstep(1.0, 0.0, d); }   // 5 a lamp: a hot core + its halo
   else if (s < 6.5) { float u = vUv.x, w = mix(0.4, 1.0, u), e = smoothstep(w, 0.0, abs(p.y)); a = e * e * (1.0 - u) * (1.0 - u * u) * smoothstep(0.0, 0.07, u); }   // 6 a SHORT SOFT beam (a headlight's glow on the road: a quick falloff, soft edges)
+  else if (s > 8.5) { float w = mix(1.0, 0.3, vUv.y); a = smoothstep(w, w * 0.3, abs(p.x)) * (0.5 + 0.5 * vUv.y) * smoothstep(0.0, 0.07, vUv.y) * smoothstep(1.0, 0.93, vUv.y); }   // 9 a BEAM standing up (H6A — a bill: narrow at its top, wide at its foot)
   else { float asp = max(1.0, (s - 7.0) * 10.0); vec2 q = vec2(abs(p.x) * asp - (asp - 1.0), p.y); a = smoothstep(0.2, 0.0, abs(length(vec2(max(q.x, 0.0), q.y)) - 0.78)); }   // 7 + aspect / 10: a thin STADIUM ring (the waterline round a log — its quad is that many times longer than wide)
   #ifdef JW_SHADOW
     gl_FragColor = vec4(vec3(0.03, 0.07, 0.17) * uDay, a * vFx.y * (1.0 - vFog));   // (H5C — by day a shadow is COOL, never plain black: the sky fills it)

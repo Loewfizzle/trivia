@@ -25,9 +25,9 @@
 // Everything that repeats is INSTANCED; a window of lanes round the kid is alive (re-laid every frame — a few hundred matrices); no
 // post-processing below the top tier (THE HALF-RES BLOOM: tier 2 only). setTier(2 | 1 | 0): the match kit's tiers (games/kit/tiers.js).
 import * as THREE from 'three';
-import { FP, COLS, HOP_TICKS } from './tuning.js';
+import { FP, COLS, HOP_TICKS, MODES } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod, area, gateName } from './course.js';
-import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade, buildDart } from './models.js';
+import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade } from './models.js';
 import { FOG_HEX, DAY_FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, dayEnv, createBloom, fogUp, FOG_UP } from './night-fx.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { skyPlan, skyHeld, skyRoom, skyShift, SKY_FADE_MS, SKY_BAND, SKY_ASPECT } from './skyline.js';
@@ -141,7 +141,7 @@ export function createNight(host, o = {}) {
   const ground = createGround(POOL, fogV);
   scene.add(ground.mesh);
   const flatGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), billGeo = new THREE.PlaneGeometry(1, 1), unit = new THREE.BoxGeometry(1, 1, 1);
-  const GEO = { tree: buildTree(), tuft: buildTuft(), log1: buildLog(1), log2: buildLog(2), log3: buildLog(3), log4: buildLog(4), truck: buildTruck(), barricade: buildBarricade(), dart: buildDart() };
+  const GEO = { tree: buildTree(), tuft: buildTuft(), log1: buildLog(1), log2: buildLog(2), log3: buildLog(3), log4: buildLog(4), truck: buildTruck(), barricade: buildBarricade() };
   const K = {
     shadow: kind(flatGeo, glowMaterial(fogV, { shadow: true }), 420, { aux: ['aFx', 2], raw: true, order: 1 }),
     flat: kind(flatGeo, glowMaterial(fogV), 720, { aux: ['aFx', 2], raw: true, order: 2, bloom: true }),          // pools · trails · beams · rings · edge lines
@@ -153,7 +153,6 @@ export function createNight(host, o = {}) {
     trucks: kind(GEO.truck, paintMaterial(glossy(0.3, 1), { instanced: true }), 24, { aux: ['aLit', 1] }),
     barricades: kind(GEO.barricade, lambert(), 40),
     posts: kind(unit, fogUp(new THREE.MeshLambertMaterial({ color: 0xffffff })), 280),
-    jets: kind(GEO.dart, lambert(), 8),
   };
   // THE SUN's SHADOWS (H5B — the day look): the same blob shadows, thrown a little to one side + up the lanes (the sun is high on the
   // front-left), a touch softer. `raw` = straight under the thing (the kid's shadow-ring, the dark strip under a line's words)
@@ -302,9 +301,9 @@ export function createNight(host, o = {}) {
   let kidHex = 0xff3fb4;
   const tintOf = hex => { kidHex = C.set(hex).getHex(); rimCol.set(hex).lerp(C.set(0xffffff), 0.5); };
   tintOf(o.kidColor || '#ff3fb4');
-  // THE UFO's placeholder (H6 draws the real one): a disc + its beam circle on the ground
-  const discGeo = new THREE.CylinderGeometry(0.95, 1.25, 0.28, 20);
-  const ufos = [0, 1].map(() => { const d = new THREE.Mesh(discGeo, new THREE.MeshStandardMaterial({ color: 0x9fb0c8, roughness: 0.25, envMapIntensity: 1.2, transparent: true })); d.visible = false; scene.add(d); return { d, id: -1 }; });
+  // THE BIG MOMENTS (H6A — flyers.js: THE BLACKBIRD · THE UFO · THE MOTHERSHIP): fetched ON DEMAND — out of the cartridge's eager graph
+  let FL = null, flyAsk = null;
+  const flyGet = () => { if (!flyAsk) flyAsk = lazyImport(import('./flyers.js'), './flyers.js').then(M => { if (!dead) FL = M.createFlyers({ renderer, scene, cam, host, K, hazeAt, reduce, rewarm() { needWarm = true; } }); }).catch(NOP); };
   // THE BLACKOUT's curtain: everything a lane and more behind its edge is simply black
   const curtain = new THREE.Mesh(unit, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.93, depthWrite: false, fog: false }));
   curtain.renderOrder = 6; scene.add(curtain);
@@ -510,7 +509,7 @@ export function createNight(host, o = {}) {
   function warm() {
     const put = [];
     for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.put(0, -60, 0, 0.01, 0.01, 0.01, 0, 0xffffff, 1); q.done(); }
-    for (const m of [...ufos.map(q => q.d), ...Object.values(LBL).map(L => L.m), ...GATE.map(G => G.m), fish]) { put.push([m, m.visible, m.position.y]); m.visible = true; m.position.y = -60; }
+    for (const m of [...(FL ? FL.meshes() : []), ...Object.values(LBL).map(L => L.m), ...GATE.map(G => G.m), fish]) { put.push([m, m.visible, m.position.y]); m.visible = true; m.position.y = -60; }
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam); } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
     for (const [m, v, y] of put) { m.visible = v; m.position.y = y; }
     for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.done(); }
@@ -558,6 +557,7 @@ export function createNight(host, o = {}) {
       fx.hit = { cause: run.cause, t0: clock, x: kx, y: run.y + 0.5, dir, ground: L.type === 'water' ? -0.02 : 0 };
       fx.shake = reduce ? 0 : clock + 240;
       if (run.cause === 'water') splash(X(kx), Z(run.y + 0.5));
+      if (run.cause === 'blackbird') splash(X(kx), Z(run.y + 0.5), 0xeaf6ff);
     }
     if (run.st !== 'out') { if (fx.hit && run.st !== 'taken') fx.hit = null; }
     fx.t = run.t; fx.st = run.st; fx.hits = run.hits; fx.fy = run.fy; fx.fx = run.fx;
@@ -606,18 +606,25 @@ export function createNight(host, o = {}) {
         if (H.cause === 'edge') { px += H.dir * 0.9 * carry; if (!H.wet && carry >= 1) { H.wet = 1; splash(px, pz); } py = LOG_FEET * (1 - sink); }
         py -= sink * 1.05; s3 = [1 - sink * 0.3, 1, 1 - sink * 0.3]; rz = sink * 0.5; fallPose(e);
         if (sink >= 1) show = false;
-      } else if (H.cause === 'train' || H.cause === 'blackbird') {   // knocked away, spinning
-        const v = clamp01(e / 700);
-        px += H.dir * v * 9; py = 0.2 + 2.4 * Math.sin(v * Math.PI * 0.85); rz = -H.dir * e * 0.016; ry = fx.yaw + e * 0.01; fallPose(e);
+      } else if (H.cause === 'train' || H.cause === 'blackbird') {   // knocked away, spinning — THE BLACKBIRD's SHOCKWAVE blasts him higher, tumbling, toward the lens
+        const bb = H.cause === 'blackbird', v = clamp01(e / (bb ? 1000 : 700));
+        px += H.dir * v * (bb ? 3 : 9); py = 0.2 + (bb ? 3.6 : 2.4) * Math.sin(v * Math.PI * 0.85); rz = -H.dir * e * 0.016; ry = fx.yaw + e * 0.01; fallPose(e);
+        if (bb) { pz += v * 1.5; rx = e * 0.013; }
         if (v >= 1) show = false;
       } else if (H.cause === 'wall') {                           // swallowed by the dark
         const v = clamp01(e / 420); lit = day ? 1 + v * 2.4 : 1 - v; py = -v * 0.5; s3 = [1 - v * 0.35, 1 - v * 0.6, 1 - v * 0.35];
         if (v >= 1) show = false;
-      } else {                                                   // (the UFO: a placeholder until H6 — beamed up)
-        const v = clamp01(e / 650); py = v * 6; ry = fx.yaw + e * 0.012; s3 = [1 - v * 0.6, 1 - v * 0.6, 1 - v * 0.6]; fallPose(e);
-        if (v >= 1) show = false;
+      } else {                                                   // THE UFO's ABDUCTION (H6A — flyers.js): frozen mid-step, then up the beam, spinning + shrinking
+        const A = FL && FL.abduct(e, px, pz, course.lane(Math.floor(H.y)).ufo, t, kidHex), v = clamp01((e - 380) / 1150);
+        py = A ? A.y : v * 6; ry = fx.yaw + (A ? A.spin : e * 0.012); const k = A ? A.s : 1 - v * 0.6; s3 = [k, k, k]; if (e > 380) fallPose(e - 380);
+        if (A ? !A.show : v >= 1) show = false;
       }
-    } else if (run.st === 'taken') { fx.out += dt; py = Math.min(16, fx.out * 0.007); ry = fx.yaw + fx.out * 0.008; taken = Math.min(1, fx.out / 300); fallPose(fx.out); }   // (THE MOTHERSHIP — a PLACEHOLDER until H6: its green beam takes the kid up)
+    } else if (run.st === 'taken') {                             // THE MOTHERSHIP (H6A — a finish line): he rises into it, glowing in his colour
+      fx.out += dt; taken = 1;
+      const A = FL ? FL.lifted(fx.out) : { y: Math.min(15, fx.out * 0.006), spin: fx.out * 0.002, glow: 1, q: 0 };
+      py = A.y; ry = fx.yaw + A.spin; if (A.q >= 1) show = false; else if (FL) FL.lift(px, py, pz, A.q, kidHex, 1);
+      if (POSE) { poseB = POSE.jump[0] + 0.5 * POSE.jump[1]; poseK = clamp01(fx.out / 400); }
+    }
     // the blackout on him
     const wallE = run.wall / FP, darkOf = i => clamp01(wallE - i), litOf = i => 1 + fogK * darkOf(i);
     lit *= litOf(Math.floor(ky));
@@ -634,6 +641,7 @@ export function createNight(host, o = {}) {
     const camY = rig.y();
     let shx = 0, shy = 0;
     if (clock < fx.shake) { const q = (fx.shake - clock) / 240; shx = Math.sin(clock * 0.09) * 0.16 * q; shy = Math.cos(clock * 0.113) * 0.12 * q; }
+    if (FL) { const q = FL.shake(); shx += Math.sin(clock * 0.11) * q; shy += Math.cos(clock * 0.13) * q; }   // (THE BLACKBIRD's pass: ≤ 4 px, ≤ 200 ms)
     rig.apply(cam, shx, shy, heroCam ? [px, pz] : null);
     posed = true; fwd.set(0, 0, -1).applyQuaternion(cam.quaternion); FOG_UP.value = -fwd.y; depth();   // (the fog follows the lens: full at the sea wall's foot)
     // the skyline slides against the follow (a far thing barely moves) + sits a step over in the turned view
@@ -646,12 +654,15 @@ export function createNight(host, o = {}) {
     // ---- the lanes
     for (const q of Object.values(K)) q.reset();
     for (const q of Object.values(KM)) q.reset();
+    const capT = MODES[run.mode].cap;
+    if (capT) flyGet();
+    if (FL) FL.begin({ t, clock, dt, day, camX: rig.x(), kx: px, kz: pz, ky, own: !o || o.own !== false, alive: run.st === 'idle' || run.st === 'hop' });
     if (kidDraw && KM.kid) KM.kid.put(...kidDraw);
     const kindOf = L => (L.mark ? KIND.mark : KIND[L.type]);
     let beam = null, sign = null, gates = 0, gateSeen = false;
     for (const G of GATE) G.m.visible = false;
     const base = Math.floor(camY) - BACK, top = base + BACK + Math.min(AHEAD, Math.ceil(24 * rig.k()) + 2);
-    let nu = 0, gi = 0;
+    let nu = 0, gi = 0, ufoSeen = -1;
     for (let i = base; i < top; i++) {
       const L = course.lane(i), z = Z(i + 0.5), dk = darkOf(i), lt = 1 + fogK * dk, on = day ? dk < 0.6 : lt > 0.3;
       let fxv = 0, railGone = false;
@@ -794,22 +805,13 @@ export function createNight(host, o = {}) {
               if (on) K.flat.put(X(c + 0.5), 0.04, z + e, hot ? 1.7 : 0.8, 1, hot ? 1.2 : 0.6, 0, 0xffa820, 1, 0, (hot ? (day ? 0.6 : 0.75) : (day ? 0 : 0.35)) * lt * far);
             }
           }
-          if (s !== null) {                                       // THE BLACKBIRD's placeholder (H6): a dark dart + its burner
-            const left = pulseLeft(p, s) / FP, len = p.len / FP;
-            K.jets.put(X(left + len / 2), 1.0, z, len, 1.1, 1.1, p.dir > 0 ? 0 : Math.PI, 0xffffff, lt);
-            K.bill.put(X(p.dir > 0 ? left : left + len), 1.0, z, 1.3, 1.0, 1, 0, 0xff8a3a, 1, 0, lt);
-            K.shadow.put(X(left + len / 2), 0.03, z, len, 1, 1.0, 0, 0, 1, 0, 0.5 * lt);
-          }
+          // THE BLACKBIRD (H6A — flyers.js; once a band: its two lanes share ONE pulse). Until the module has landed: its shadow alone
+          if (L.i === p.band) { if (FL) FL.jet(p, u, z - (p.n - 1) / 2, lt); else { flyGet(); if (s !== null) K.shadow.put(X(pulseLeft(p, s) / FP + p.len / FP / 2), 0.03, z - 0.5, 3.6, 1, 1.9, 0, 0, 1, 0, 0.6 * lt); } }
         }
       }
-      if (L.ufo && nu < 2 && !ufos.slice(0, nu).some(q => q.id === L.ufo.id)) {   // THE UFO's placeholder (H6): a disc + its beam circle on the ground
-        const q = ufos[nu++], bx = ufoX(L.ufo, t) / FP, by = ufoY(L.ufo, t) / FP, r = L.ufo.r / FP;
-        // (H5C — THE FAR EDGE: the disc flies ABOVE the haze, so three's fog never takes it — it fades by where its beam stands on the
-        //  ground: fully gone before the sea wall, never a pale disc on the backdrop)
-        const hz = 1 - hazeAt(X(bx), 0, Z(by));
-        q.id = L.ufo.id; q.d.position.set(X(bx), 4.2, Z(by)); q.d.visible = hz > 0.02; q.d.material.opacity = hz * 0.5;   // (… and see-through: a placeholder must never hide the kid — H6 draws the real one)
-        K.flat.put(X(bx), 0.05, Z(by), r * 2.5, 1, r * 2.5, 0, 0x6dffb0, 1, 3, 0.95); K.flat.put(X(bx), 0.045, Z(by), r * 2.1, 1, r * 2.1, 0, 0x3dff9a, 1, 0, 0.42);
-        K.bill.put(X(bx), 4.0, Z(by), 2.6, 1.2, 1, 0, 0x7dffc0, 1, 0, 0.7 * hz);
+      if (L.ufo && nu < 2 && L.ufo.id !== ufoSeen) {   // THE UFO (H6A — flyers.js; once a UFO). Until the module has landed: its ring — the rules' warning — alone
+        nu++; ufoSeen = L.ufo.id;
+        if (FL) FL.ufo(L.ufo, t, lt); else { flyGet(); const r = L.ufo.r / FP * 2.5; K.flat.put(X(ufoX(L.ufo, t) / FP), 0.05, Z(ufoY(L.ufo, t) / FP), r, 1, r, 0, 0x3dff7a, 1, 3, 0.95); }
       }
       const AR = area(i).index;
       if (L.mark && AR >= 0) {
@@ -853,7 +855,6 @@ export function createNight(host, o = {}) {
     }
     ground.done(gi);
     if (!gateSeen) gateInfo.on = false;
-    for (let j = nu; j < 2; j++) { ufos[j].d.visible = false; ufos[j].id = -1; }
     // THE LIGHTHOUSE's BEAM (H5A): its lamp lit + a long soft beam lying over the lanes, SWEEPING across them (still with reduce motion)
     if (beam) {
       const [bx, bh, bz] = beam.at, sw = reduce ? 0.25 : Math.sin(clock / 2300) * 0.95, ang = beam.side < 0 ? sw : Math.PI - sw, len = 15;
@@ -891,7 +892,7 @@ export function createNight(host, o = {}) {
       g.tag = null;
       if (!r) continue;
       if (r.st === 'out' || r.st === 'taken') { if (!g.outAt) g.outAt = clock; } else g.outAt = 0;
-      const gone = g.outAt ? clamp01((clock - g.outAt) / 420) : 0;
+      const up = r.st === 'taken' ? 2 : r.cause === 'ufo' ? 1 : 0, gone = g.outAt ? clamp01((clock - g.outAt) / (up ? 1500 * up : r.cause === 'blackbird' ? 800 : 420)) : 0;
       if (gone >= 1) continue;
       let gx = r.x / FP, gy = r.y + 0.5, gl = 0, gf = 0;
       const GL = course.lane(r.y);
@@ -903,7 +904,9 @@ export function createNight(host, o = {}) {
       if (gy < base - 1 || gy > top + 1) continue;
       const onLog = r.st === 'hop' ? (course.lane(r.fy).type === 'water' ? LOG_FEET * (1 - gf) : 0) + (course.lane(r.ty).type === 'water' ? LOG_FEET * gf : 0) : GL.type === 'water' ? LOG_FEET : 0;
       const yawG = g.dir === 'l' ? Math.PI / 2 : g.dir === 'r' ? -Math.PI / 2 : g.dir === 'd' ? Math.PI : 0, gs = KID_S * 0.94 * (1 - gone * 0.6), glit = litOf(Math.floor(gy)) * (1 - gone);
-      const gpx = X(gx), gpy = onLog + gl + (r.st === 'taken' ? gone * 3 : 0), gpz = Z(gy);
+      const bb = r.cause === 'blackbird' && gone > 0 ? (GL.pulse ? GL.pulse.dir : 1) : 0;
+      const gpx = X(gx) + bb * gone * 5, gpy = onLog + gl + (up ? gone * gone * 5 * up : bb ? 4 * Math.sin(gone * Math.PI * 0.85) : 0), gpz = Z(gy) + (bb ? gone * 2.4 : 0);
+      if (up && gone > 0 && FL) FL.lift(X(gx), gpy, gpz, gone, g.hex, up === 2);
       // H5B's add-on (the owner — the start's pile-up: every kid on one square, the first road hidden) — NEAR YOU = FAINT: a ghost within
       // ≈ 1.5 cells of the kid on screen fades to a faint see-through outline (≈ 15 %) and its name tag hides (view.js); it eases
       // back as it moves away (≈ 150 ms — never a pop)
@@ -957,7 +960,8 @@ export function createNight(host, o = {}) {
       if (LINES[q.k] && LINES[q.k].lane === q.lane) continue;
       if (q.lane >= base && q.lane < top) K.flat.put(0, 0.36, Z(q.lane + 0.93), 9.06, 1, 0.55 + (1 - u) * 0.25, 0, LINE_HEX[q.k], 1, 4, (1 - u) * litOf(q.lane));
     }
-    if (taken) { K.flat.put(px, 0.06, pz, 3.4, 1, 3.0, 0, 0x6dffb0, 1, 3, 0.9 * taken); K.flat.put(px, 0.055, pz, 3.0, 1, 2.6, 0, 0x3dff9a, 1, 0, 0.5 * taken); K.bill.put(px, 5.5, pz, 3.2, 11, 1, 0, 0x7dffc0, 1, 4, 0.5 * taken); }
+    // THE MOTHERSHIP (H6A — a capped run alone: a match / the daily): its warning from the cap − 10 s, its arrival at the cap
+    if (FL) { if (capT) FL.ship(t, capT, taken ? fx.out : -1, 1); FL.end(); }
     // the small moments: a dust ring, a ripple, a splash
     for (let j = fx.parts.length - 1; j >= 0; j--) {
       const q = fx.parts[j], u = (clock - q.t0) / q.life;
@@ -1056,20 +1060,22 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px (= pt) — the wider view's readability number */
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ warmed, kid: !!kidGeo, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', mark: skyMark ? skyMark.shown() : '', words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ warmed, kid: !!kidGeo, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', fly: FL ? FL.info() : null, mark: skyMark ? skyMark.shown() : '', words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    /** H6A — how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
+    holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); },
     /** H5B — THE LOOK: 'day' | 'night' (at once; the same scene) */
     setLook, look: () => (day ? 'day' : 'night'),
     destroy() {
       dead = true; ro.disconnect();
       for (const { m, g } of made) { scene.remove(m); m.material.dispose(); if (g) g.dispose(); m.dispose(); }
       for (const g of Object.values(GEO)) g.dispose();
-      for (const m of [curtain, ...ufos.map(q => q.d)]) { m.material.dispose(); }
+      curtain.material.dispose(); if (FL) FL.destroy();
       if (kidGeo) { kidGeo.userData.poses.tex.dispose(); kidGeo.dispose(); }
       for (const L of Object.values(LBL)) { scene.remove(L.m); L.m.material.dispose(); L.tex.dispose(); L.cv.width = 0; L.cv.height = 0; }
       labelGeo.dispose(); gateGeo.dispose(); fishGeo.dispose(); fishTex.dispose(); fish.material.dispose(); scene.remove(fish); fishCv.width = 0;
       for (const G of GATE) { scene.remove(G.m); G.m.material.dispose(); G.tex.dispose(); G.cv.width = 0; G.cv.height = 0; }
       for (const g of Object.values(AGEO)) g.dispose();
-      discGeo.dispose(); flatGeo.dispose(); billGeo.dispose(); unit.dispose(); ground.dispose();
+      flatGeo.dispose(); billGeo.dispose(); unit.dispose(); ground.dispose();
       if (bloom) bloom.dispose();
       if (env) env.dispose();
       if (envDay) envDay.dispose();

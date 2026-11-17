@@ -109,6 +109,8 @@ export function createView() {
   let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;   // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, orderKey = '', countKey = '', watchKey = '';
   const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
+  /** how long a run's end is seen before the end screen / the spectator's view covers it: THE ABDUCTION + THE MOTHERSHIP's lift are longer (H6A) */
+  const hold = () => Math.max(END_HOLD_MS, night ? night.holdMs(run) : 0);
   const srvNow = () => t0srv + (performance.now() - t0perf);
   const anchor = () => { t0srv = serverNow(); t0perf = performance.now(); };
   const soloGame = g => !!g && g.mode === 'solo' && Object.keys(g.participants || {}).length === 1;
@@ -281,7 +283,7 @@ export function createView() {
   }
   function unduck() { clearTimeout(duckT); if (ducked != null) { duckMusic(ducked, SFX.TRAIN_DUCK.outS); ducked = null; } }
   /** the world goes quiet (the run ended, a new run, the view left): the bell stops, the music comes back up */
-  function quiet() { try { SFX.onCue({ cue: 'bell-off' }); } catch { /* silent */ } unduck(); }
+  function quiet() { try { SFX.onCue({ cue: 'bell-off' }); if (night) night.quiet(); } catch { /* silent */ } unduck(); }
   /** a lane farther than ever this run: YOUR BEST LINE crossed = the run is a NEW RECORD from here (a burst along the line, the new-best
    *  sound, the lane counter flashes gold and stays gold); a FRIEND's line crossed (a solo run) = a small burst + a quiet chime */
   function onBest(lane) {
@@ -322,7 +324,7 @@ export function createView() {
   }
   /** the run is over: the last chunk, then `e` — the host's step ends the match on it (a signal: never read as a score) */
   function onOver() {
-    mode = 'over'; overAt = performance.now(); shotAt = overAt + SHOT_MS; queue = [];
+    mode = 'over'; overAt = performance.now(); shotAt = overAt + Math.max(SHOT_MS, hold() * 0.42 - 200); queue = [];
     quiet();
     flush(true);
     if (proven && !wroteE) { wroteE = true; dbUpdate(dbRef(nodePath()), { e: { l: run.best, t: run.bestT, w: String(run.cause || '').slice(0, 12) } }).catch(() => {}); }
@@ -449,10 +451,11 @@ export function createView() {
   /** OUT in a match: the cause in neon words over the scene for a moment, then Call the Winner (two or more still in), then watching */
   function afterOut(g, runs) {
     const since = performance.now() - overAt;
-    if (!outCard && mine(g) && since < 60000 && overAt > 0) {
-      outCard = h('div.jw-outcard', h('div.jw-outcard-k', run.st === 'taken' ? 'THE MOTHERSHIP' : 'OUT'), h('div.jw-fin-cause', lineOf(run, course)), h('div.jw-outcard-n', `${run.best} ${run.best === 1 ? 'LANE' : 'LANES'}`));
+    const ship = run.st === 'taken';   // (H6A — THE MOTHERSHIP = A FINISH LINE: its gold card, once the arrival has been seen)
+    if (!outCard && mine(g) && since < 60000 && overAt > 0 && (!ship || since > 1500)) {
+      outCard = h(`div.jw-outcard${ship ? '.is-ship' : ''}`, h('div.jw-outcard-k', ship ? 'THE FINISH LINE' : 'OUT'), h('div.jw-fin-cause', `${ship ? 'YOU ' : ''}${lineOf(run, course)}`), h('div.jw-outcard-n', `${run.best} ${run.best === 1 ? 'LANE' : 'LANES'}`));
       overEl.append(outCard);
-      setTimeout(() => { if (outCard) outCard.classList.add('is-gone'); }, 2300);
+      setTimeout(() => { if (outCard) outCard.classList.add('is-gone'); }, ship ? 3600 : 2300);
     }
     if (!watching) { watching = true; night.resetKid(); }
     root.classList.add('is-watching');
@@ -497,7 +500,7 @@ export function createView() {
       const alive = mode === 'run' && !isOver(run), wt = alive ? run.t : Math.max(0, c.t), wa = alive ? a : c.t < 0 ? 0 : c.a;
       stepGhosts(wt);
       if (mode === 'over') afterOut(g, runs);
-      const held = performance.now() - overAt > END_HOLD_MS;   // (the hit is seen first — the kid stays his own colour through it)
+      const held = performance.now() - overAt > hold();   // (the hit is seen first — the kid stays his own colour through it)
       if (watching && held) {
         const f = chooseFollow(runs);
         if (f !== followUid) { followUid = f; const F = ghosts.get(f); if (F) { night.setKidColor(colorHex(((st.players && st.players[f]) || {}).color)); night.resetKid(); } }
@@ -506,7 +509,7 @@ export function createView() {
       if (F) { drawRun = F.run; a = isOver(F.run) || F.held || F.run.t < wt ? 0 : wa; }
       const list = [];
       for (const G of ghosts.values()) if (G !== F && !G.behind) list.push(G);
-      extra = { ghosts: list, t: wt + wa, a: wa, off: F ? F.vis : null };
+      extra = { ghosts: list, t: wt + wa, a: wa, off: F ? F.vis : null, own: drawRun === run };
       if (TEST) probe(list, F, wt);
       drawOrder(g, runs); drawWatch(g, runs);
     }
@@ -544,10 +547,10 @@ export function createView() {
     const g = st.game;
     if (isMatch) {
       // (the match is over — the host's step: the podium for everyone, a kid still hopping included — THE MOTHERSHIP took them the same tick)
-      if (g && g.phase === 'final' && !final && (mode !== 'over' || performance.now() - overAt >= END_HOLD_MS)) showFinal(g);
+      if (g && g.phase === 'final' && !final && (mode !== 'over' || performance.now() - overAt >= hold())) showFinal(g);
       return;
     }
-    if (performance.now() - overAt < END_HOLD_MS) return;
+    if (performance.now() - overAt < hold()) return;
     if (proven) {
       if (g && g.phase === 'final') { if (!final) { hideLocalEnd(); showFinal(g); } }
       else if (!final && !localEnd && performance.now() - overAt > 6000) showLocalEnd(true);   // (the end has not reached the room — no signal: never a frozen screen)

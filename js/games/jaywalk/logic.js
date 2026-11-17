@@ -64,6 +64,8 @@ export function startOf(game, runs, code) {
 export const runSeed = (game, node, code) => (game.mode === 'solo' ? (node && node.go > 0 ? seedOf(code, game.matchId, node.go) : null) : game.seed || null);
 
 const NONE = Object.freeze({ l: 0, t: 0, w: '', e: -1 });
+/** H6A — a result's feats as the row carries them: 'boom ufo airfield mothership' ('' = none) */
+export const featsOf = r => Object.keys(r.feats || {}).filter(k => r.feats[k]).join(' ');
 /**
  * ONE proof node ({ go, c: { i: { s, at } }, e?, k? }) → its result row — THE JUDGE's (replay.js#judgeRun: the bounds, THE SPEED CHECK +
  * THE DROPPED SIGNAL, the replay). { l: lanes, t: the tick they got there, w: the cause, e: the tick it ended (−1 = not yet), y · px:
@@ -75,8 +77,8 @@ export function scoreNode({ seed, mode, node, t0, from = null, until = null }) {
   const log = node && node.c != null ? logFromChunks(node.c) : [], times = node && node.c != null ? chunkTimes(node.c) : [];
   let j = log && times ? judgeRun({ seed, mode, log, go: t0, times, from, until }) : { ok: false, why: 'chunks' }, bad = '';
   if (!j.ok) { bad = String(j.why || 'refused').slice(0, 24); j = judgeRun({ seed, mode, log: [], until }); }
-  const r = j.result;
-  return { l: r.lanes, t: r.tick, w: r.cause || '', e: r.end, y: r.y, px: r.x, ...(r.taken ? { x: 1 } : {}), ...(j.cut ? { cut: 1 } : {}), ...(bad ? { bad } : {}) };
+  const r = j.result, f = bad ? '' : featsOf(r);
+  return { l: r.lanes, t: r.tick, w: r.cause || '', e: r.end, y: r.y, px: r.x, ...(r.taken ? { x: 1 } : {}), ...(f ? { f } : {}), ...(j.cut ? { cut: 1 } : {}), ...(bad ? { bad } : {}) };
 }
 /**
  * ONE player's result from their own node, to the server time `now` (a run still going is scored as it stands). No node / a refused log

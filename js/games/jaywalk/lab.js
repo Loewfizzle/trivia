@@ -6,7 +6,7 @@
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { TICK_MS, TICK_HZ, MODES, MODE_IDS, FP } from './tuning.js';
-import { createCourse, pulseAt, moverLeft, gateName } from './course.js';
+import { createCourse, pulseAt, moverLeft, gateName, ufoX, ufoY } from './course.js';
 import { createRun, step, isOver, resultOf, canLog } from './engine.js';
 import { replay } from './replay.js';
 import { wireControls } from './controls.js';
@@ -129,7 +129,7 @@ async function mount() {
     const live = resultOf(run);
     // (the game's own words — causes.js#runLine: the SAME table + the SAME vehicle function the night look draws by; never a generic line)
     endT.textContent = runLine(course, live, look);
-    endL.textContent = live.taken ? 'THE MOTHERSHIP CAME — THAT IS A WIN' : `LANE ${live.lanes}`;
+    endL.textContent = live.taken ? `LANE ${live.lanes} — THE FINISH LINE` : `LANE ${live.lanes}`;
     // THE DETERMINISM CHECK: the run replayed from its seed + hop log — the SAME code the server runs
     const { used, ...r } = replay({ seed, mode, log });
     const same = JSON.stringify(r) === JSON.stringify(live) && used === log.length;
@@ -139,7 +139,7 @@ async function mount() {
     end.hidden = false;
     lab.ends.push({ seed, mode, same, live, replay: r, hops: log.length });
   }
-  let raf = 0, hudKey = '', holdAt = null, fakes = null;
+  let raf = 0, hudKey = '', holdAt = null, fakes = null, frozen = false, endAt = 0;
   function frame(now) {
     raf = requestAnimationFrame(frame);
     const dt = last ? Math.min(250, now - last) : TICK_MS;
@@ -150,10 +150,11 @@ async function mount() {
     if (!started) { if (queue.length || bot) { started = true; mark.textContent = ''; } else acc = -dt; }
     acc += dt;
     let n = 0;
-    const held = () => holdAt != null && run.st === 'hop' && run.k >= holdAt;   // (a look check: the kid held mid-hop for a shot)
+    const held = () => frozen || (holdAt != null && run.st === 'hop' && run.k >= holdAt);   // (a look check: the kid held mid-hop for a shot)
     while (acc >= TICK_MS && n < 6) { if (!isOver(run) && !held()) tick(); acc -= TICK_MS; n++; }
     if (acc > TICK_MS) { acc = 0; slow++; }   // (a long stall: the run simply waits — it never skips rules)
-    if (isOver(run) && !shown) showEnd();
+    // (H6A — THE BIG MOMENTS are SEEN before the end's words cover them: the abduction, the shockwave, THE MOTHERSHIP's lift — as in the game)
+    if (isOver(run) && !shown) { if (!endAt) endAt = now; if (now - endAt >= (view.holdMs ? view.holdMs(run) : 0)) showEnd(); } else if (!isOver(run)) endAt = 0;
     // (a measure only — lab.ghosts(n): n see-through kids hop beside him, each a copy of his own run a column over: an 8-KID scene)
     if (fakes) for (let k = 0; k < fakes.length; k++) { if (fakes[k].still) continue; const dx = ((k + 1) % 2 ? 1 : -1) * Math.ceil((k + 1) / 2) * FP, r = fakes[k].run; Object.assign(r, run); r.x = Math.max(FP / 2, Math.min(8.5 * FP, run.x + dx)); r.fx = run.fx + (r.x - run.x); r.tx = run.tx + (r.x - run.x); }
     view.draw(run, course, isOver(run) || held() ? 0 : acc / TICK_MS, dt, fakes ? { ghosts: fakes } : null);
@@ -196,6 +197,12 @@ async function mount() {
     items(lane) { const L = course.lane(lane); return { dir: L.dir || 0, v: L.v || 0, items: (L.items || []).map((it, j) => ({ left: moverLeft(L, it, run.t) / FP, len: it.len / FP, what: L.type === 'road' ? vehicleAt(course, lane, j) : 'log' })) }; },
     find(kind, from = 0) { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (kind === 'ufo' ? L.ufo && L.ufo.y0 === i : kind === 'mark' ? !!L.mark : L.type === kind) return i; } return -1; },
     pulse(lane) { const L = course.lane(lane); return L.pulse ? pulseAt(L.pulse, run.t) : null; },
+    /** (H6A's look checks) the run's tick put somewhere (WARPED) · the world held still (the scene still draws) · a UFO's ring right now ·
+     *  the first flight band from a lane: { lane, period, phase, tell, pass, dir } */
+    setT(t) { warped = true; run.t = Math.max(0, Math.floor(t)); },
+    freeze(on) { frozen = !!on; },
+    ufoAt(lane) { const U = course.lane(lane).ufo; return U ? { x: ufoX(U, run.t), y: ufoY(U, run.t) / FP, id: U.id, y0: U.y0 } : null; },
+    flight(from = 0) { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (L.type === 'flight' && L.pulse.band === i) return { lane: i, period: L.pulse.period, phase: L.pulse.phase, tell: L.pulse.tell, pass: L.pulse.pass, dir: L.pulse.dir }; } return null; },
     /** (a look check) hold the kid still the moment a hop is `k` ticks in (null = let go) — the world stops with him */
     hold(k) { holdAt = k; },
     gate: gateName,

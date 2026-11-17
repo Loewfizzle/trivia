@@ -10,13 +10,15 @@ import { ACH, GAME_ACHIEVEMENTS } from '../js/core/achievements.js';
 import { ITEM } from '../js/core/items.js';
 import { LAB, verOf } from '../js/vault/catalog.js';
 import { LAB_TEXT, LAB_CHANGES } from '../api/_lib/lab-text.js';
-import { JW_SPECS, PLATES, jwMap, ringAt, hopAt, RING_EVERY, RING_DUR, HOP_EVERY, HOP_DRAW } from '../js/fx/jw-specs.js';
+import { JW_SPECS, PLATES, jwMap, ringAt, hopAt, liftAt, RING_EVERY, RING_DUR, HOP_EVERY, HOP_DRAW, LIFT_EVERY } from '../js/fx/jw-specs.js';
 import { HERO, heroMisses, HERO_BAND } from '../js/vault/hero.js';
 import { CREDITS } from '../js/ui/credits.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url));
 const CARDS = ['card-sonicboom', 'card-closeencounter', 'card-rightofway'];
-const MAT = { 'card-sonicboom': 'sonicboom', 'card-closeencounter': 'closeencounter', 'card-rightofway': 'rightofway' };
+// (H6A — the fourth: BEAM ME UP, THE MOTHERSHIP's card; RIGHT OF WAY's picture redone — v2 in the lab)
+const ALL = [...CARDS, 'card-beammeup'];
+const MAT = { 'card-sonicboom': 'sonicboom', 'card-closeencounter': 'closeencounter', 'card-rightofway': 'rightofway', 'card-beammeup': 'beammeup' };
 /** a WebP's pixel size (VP8 / VP8L / VP8X) */
 function webpSize(buf) {
   const kind = buf.toString('ascii', 12, 16);
@@ -32,11 +34,16 @@ test('the lab: three strips + three full cards, numbered 217 → 222 after the h
     assert.equal(x.n, 217 + i, `${id}: n`);
     assert.equal(x.tier, id.endsWith('rightofway') ? 'legendary' : 'rare', `${id}: tier`);
     assert.ok(LAB_TEXT[id] && LAB_TEXT[id].motion.length > 60, `${id}: its lab text`);
-    assert.equal(verOf(id), 1, `${id}: v1 — NEW in the lab`); assert.ok(!LAB_CHANGES[id], `${id}: no CHANGED line`);
+    const redone = id.endsWith('rightofway');   // (H6A: Grok's redone picture — CHANGED in the lab, its line written)
+    assert.equal(verOf(id), redone ? 2 : 1, `${id}: its version`); assert.ok(redone ? LAB_CHANGES[id] && LAB_CHANGES[id][0].v === 2 : !LAB_CHANGES[id], `${id}: its CHANGED line`);
+  });
+  ['card-beammeup', 'full-card-beammeup'].forEach((id, i) => {
+    const x = LAB.find(r => r.id === id); assert.ok(x, id);
+    assert.deepEqual([x.n, x.tier, verOf(id)], [223 + i, 'epic', 1], `${id}: n, tier, NEW`); assert.ok(LAB_TEXT[id] && LAB_TEXT[id].motion.length > 60, `${id}: its lab text`);
   });
   assert.equal(new Set(LAB.map(r => r.n)).size, LAB.length, 'every lab number once');
   const strip = read('js/vault/strip.js').toString(), fx = read('js/fx/index.js').toString(), lay = read('js/vault/layout.js').toString();
-  for (const c of CARDS) {
+  for (const c of ALL) {
     assert.ok(ITEM[c] && ITEM[c].kind === 'card', `${c}: a server catalog row`);
     const m = new RegExp(`'${c}': \\{ mat: 'jw-${MAT[c]}', fx: '(jw\\w+)' \\}`).exec(strip);
     assert.ok(m, `${c}: its look`); assert.match(fx, new RegExp(`\\b${m[1]},`), `${c}: its effect registered`);
@@ -59,11 +66,11 @@ test('the CSS crop = the effect\'s (the strip zoomed out + set right, the full c
     assert.deepEqual(webpSize(read(f)), [Math.round(bw / 2), Math.round(bh / 2)], `${f} = half its crop box`);
   }
   // (the masters' copies — never the -b backups)
-  for (const f of ['sonic-boom', 'close-encounter', 'right-of-way', 'fx-afterburner', 'fx-shockring', 'fx-beam', 'fx-trails', 'fx-hop']) assert.ok(existsSync(new URL(`../art/jaywalk-cards/src/${f}.png`, import.meta.url)), f);
+  for (const f of ['sonic-boom', 'close-encounter', 'right-of-way', 'right-of-way-old', 'mothership', 'fx-afterburner', 'fx-shockring', 'fx-beam', 'fx-trails', 'fx-hop']) assert.ok(existsSync(new URL(`../art/jaywalk-cards/src/${f}.png`, import.meta.url)), f);
 });
 
 test('THE HERO-SPOT RULE: each strip\'s hero ≈ 0.78 across (THE SLIM-CARD LONG-NAME STANDARD 0.75–0.85), clear of the gem; the full card\'s hero right of a 12-letter plate', () => {
-  for (const id of CARDS) {
+  for (const id of ALL) {
     const b = HERO[id][0], cx = b[0] + b[2] / 2;
     assert.ok(cx >= 0.75 && cx <= 0.85 && cx >= HERO_BAND[0], `${id}: centre ${cx.toFixed(3)}`);
     const S = JW_SPECS[id], F = jwMap(358, 226, S.full), fx0 = (F.ox + S.heroFull[0] * F.k) / 358; assert.ok(fx0 > 0.55, `${id}: the full card's hero starts right of the plate (${fx0.toFixed(2)})`);
@@ -92,15 +99,26 @@ test('the motion\'s timing (PURE): SONIC BOOM\'s ring bursts 0.6 → 1.15, brigh
   const st = hopAt(0, true); assert.ok(st.draw === 1 && st.puff > 0, 'reduced motion = the arc full + the puff');
 });
 
-test('NOTHING GRANTS THEM: no achievement names a JAYWALK card, no jaywalk achievements yet — pass 6\'s marked place is there', () => {
-  for (const a of Object.values(ACH)) assert.ok(!CARDS.includes(a.item), `${a.id} grants ${a.item}`);
-  assert.ok(!GAME_ACHIEVEMENTS.jaywalk || !GAME_ACHIEVEMENTS.jaywalk.length, 'no jaywalk achievements');
-  const cat = read('api/_lib/catalog.js').toString();
-  assert.match(cat, /\/\/ JAYWALK pass 6 — the three feat flags from the server's replay → these cards/);
-  for (const c of CARDS) assert.ok(!new RegExp(`A\\([^\\n]*'${c}'`).test(cat), `${c}: no A(…) row`);
+test('H6A — EACH CARD IS GRANTED BY ITS OWN ACHIEVEMENT (game jaywalk), from its feat flag alone; BEAM ME UP\'s motion is pure + loops', () => {
+  const want = { 'sonic-boom': ['card-sonicboom', 'jaywalk-boom'], 'close-encounter': ['card-closeencounter', 'jaywalk-ufo'], 'right-of-way': ['card-rightofway', 'jaywalk-airfield'], 'beam-me-up': ['card-beammeup', 'jaywalk-mothership'] };
+  assert.deepEqual(GAME_ACHIEVEMENTS.jaywalk, Object.keys(want));
+  for (const [id, [item, flag]] of Object.entries(want)) {
+    const a = ACH[id];
+    assert.ok(a && a.item === item && a.game === 'jaywalk', `${id} → ${item}`);
+    assert.equal(a.check({}, { gf: { [flag]: 1 } }), true, `${id}: its flag earns it`);
+    assert.equal(a.check({ g: { jaywalk: { p: 999, w: 999 } } }, { gf: {} }), false, `${id}: nothing else does`);
+    for (const other of Object.values(want)) if (other[1] !== flag) assert.equal(a.check({}, { gf: { [other[1]]: 1 } }), false, `${id}: not from ${other[1]}`);
+  }
+  assert.equal(Object.values(ACH).filter(a => ALL.includes(a.item)).length, 4, 'one achievement a card');
+  const L0 = liftAt(0.4, false), L1 = liftAt(0.4 + LIFT_EVERY, false);
+  assert.ok(Math.abs(L0.p - L1.p) < 1e-9 && L0.p >= 0 && L0.p <= 1, 'the beam breathes every LIFT_EVERY s');
+  assert.ok(L0.motes.length === 7 && L0.motes.every(m => m.u >= 0 && m.u < 1 && Math.abs(m.x) <= 1 && m.a >= 0 && m.a <= 1), 'seven motes inside the beam');
+  assert.ok(liftAt(0, true).p === 0.7 && liftAt(5, true).chase === liftAt(9, true).chase, 'reduced motion = a still frame');
 });
 
-test('the credit: ONE row for JAYWALK — card art + billboard art, "created with Grok"', () => {
-  const rows = CREDITS.filter(c => /JAYWALK/.test(c.title));
+test('the credits: JAYWALK\'s card art + billboard art ("created with Grok") + H6A — its 3D models (the flyers are CC BY: their credit is REQUIRED)', () => {
+  const all = CREDITS.filter(c => /JAYWALK/.test(c.title)), rows = all.filter(c => /card art/.test(c.title)), mods = all.filter(c => /3D models/.test(c.title));
+  assert.equal(all.length, 2); assert.equal(mods.length, 1);
+  assert.match(mods[0].by, /Sr-71 by Kiiba \(CC BY 4\.0/); assert.match(mods[0].by, /Poly by Google \(CC BY 3\.0/);
   assert.equal(rows.length, 1); assert.equal(rows[0].title, 'JAYWALK — card art + billboard art'); assert.match(rows[0].by, /Card art created with Grok \(Grok Imagine, xAI\)/);
 });

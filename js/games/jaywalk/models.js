@@ -216,7 +216,3 @@ export function buildBarricade() {
   parts.push({ g: ball(0.055, 8, 6), color: 0xffb030, at: [0.38, 0.63, 0] });
   return build(parts);
 }
-/** THE BLACKBIRD's placeholder (H6 draws the real one): a dark dart, 1 long along x */
-export function buildDart() {
-  return build([{ g: new THREE.ConeGeometry(0.5, 1, 4), color: 0x1b1d2c, rot: [0, Math.PI / 4, -Math.PI / 2], scale: [1, 0.16, 1] }]);
-}

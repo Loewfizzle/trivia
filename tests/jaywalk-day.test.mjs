@@ -41,7 +41,7 @@ test('THE FOG BANK\'s WORDS: by day the wall\'s line is LOST IN THE FOG (by nigh
   assert.equal(causeLine({ cause: 'wall', look: 'day' }), 'LOST IN THE FOG');
   assert.deepEqual(Object.keys(DAY_LINES), ['wall'], 'only the wall has a day line');
   for (const k of Object.keys(CAUSE_LINES)) if (k !== 'wall') { const [cause, vehicle = ''] = k.split(':'); assert.equal(causeLine({ cause, vehicle, look: 'day' }), CAUSE_LINES[k], `${k}: the same by day`); }
-  assert.equal(causeLine({ cause: 'wall', taken: true, lanes: 7, look: 'day' }), 'TAKEN AT LANE 7');
+  assert.equal(causeLine({ cause: 'wall', taken: true, lanes: 7, look: 'day' }), 'MADE IT TO THE MOTHERSHIP');
   const course = createCourse('day1');
   assert.equal(runLine(course, { cause: 'wall', y: 3, x: 4500, end: 400, lanes: 3 }, 'day'), 'LOST IN THE FOG'); assert.equal(runLine(course, { cause: 'wall', y: 3, x: 4500, end: 400, lanes: 3 }), 'THE LIGHTS WENT OUT');
   assert.equal(runLine(course, { cause: 'water', y: 3, x: 4500, end: 400, lanes: 3 }, 'day'), 'SWEPT AWAY');

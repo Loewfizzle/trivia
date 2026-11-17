@@ -64,7 +64,7 @@ test('THE VIEW: two layers cross-faded (opacity only), the pictures fetched thro
   assert.match(css, /\.jw-seawall \{ position: absolute; left: 0; right: 0; bottom: 0;/); assert.match(css, /\.jw-skyline\[data-look='day'\] \.jw-seawall b \{ display: none; \}/, 'the wall\'s lamps are the night\'s');
   assert.match(n, /const FOOT_AT = 0\.25, HAZE_LANES = 4\.4;/); assert.match(n, /if \(P\.y < -0\.05\) footAt = cam\.position\.y \/ -P\.y;/, 'the fog is FULL where the ground meets the sea wall\'s foot — measured off the camera');
   assert.match(n, /f = 24\.5 \* k \+ \(footAt - 24\.5 \* k\) \* reveal;/);
-  assert.match(n, /q\.d\.visible = hz > 0\.02; q\.d\.material\.opacity = hz \* 0\.5;/, 'THE UFO\'s disc fades by where it stands over the ground: never a pale disc on the backdrop');
+  assert.match(read('js/games/jaywalk/flyers.js'), /hz = 1 - C\.hazeAt\(bx, 0, bz\)[\s\S]{0,1800}if \(hz < 0\.02\) return;[\s\S]{0,1200}q\.m\.visible = show > 0\.02;/, 'THE UFO\'s saucer (H6A — flyers.js) fades by where it stands over the ground: never a pale disc on the backdrop');
   // (the review: "the ground fades out before the things standing on it") — every lit material's fog follows the GROUND under the thing
   const fx = read('js/games/jaywalk/night-fx.js');
   assert.match(fx, /vFogDepth = -mvPosition\.z \+ uFogUp \* \(modelMatrix \* jwW\)\.y;/); assert.match(fx, /mat\.onBeforeCompile = sh => \{\s+fogPatch\(sh\);/, 'the painted materials too');

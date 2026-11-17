@@ -165,7 +165,8 @@ test('THE SERVER\'S OWN MATCH (jaywalkMatch): every run replayed from the proof 
   // → the report's rows: a (the farthest) wins; the silent-but-present player is in the match (a GO = they were there)
   const ex = extractMatch(J.game);
   assert.deepEqual([ex.rows.a.rank, ex.rows.a.win, ex.rows.b.rank, ex.rows.c.rank, ex.solo], [1, true, 2, 3, false]);
-  assert.deepEqual(ex.rows.a.rec, {}, 'a match earns no solo record');
+  assert.deepEqual(Object.keys(ex.rows.a.rec), ['jaywalk-solo'], 'H6A — YOUR BEST ANYWHERE: a counted match run raises the same best');
+  assert.equal(ex.rows.a.rec['jaywalk-solo'], J.game.results.a.l);
   // a forged claim in a node's `e`, a forged log
   const lied = { ...nodes, b: { ...nodes.b, e: { l: 99999, t: 1 } } };
   assert.deepEqual(jaywalkMatch({ code: CODE, matchId: 'm0', uids: ['a', 'b', 'c'], nodes: lied }).game.results, host, 'a claim changes nothing');

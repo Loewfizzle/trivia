@@ -1,0 +1,43 @@
+JAYWALK flyers — licenses
+
+ufo.glb
+  Source: https://poly.pizza/m/b0N_HeT_Ttb
+  Author: Poly by Google
+  Title: Flying saucer
+  License: Creative Commons Attribution 3.0 (CC BY 3.0)
+  License URL: https://creativecommons.org/licenses/by/3.0/
+  The model's Poly Pizza page lists the license as "Creative Commons Attribution"
+  and "CC-BY 3.0", linking to the CC BY 3.0 deed above.
+  Credit line: Flying saucer: Poly by Google — https://poly.pizza/m/b0N_HeT_Ttb (CC BY 3.0)
+
+mothership.glb
+  Source: https://poly.pizza/m/6hu2h8v78mO
+  Author: Poly by Google
+  Title: Flying saucer
+  License: Creative Commons Attribution 3.0 (CC BY 3.0)
+  License URL: https://creativecommons.org/licenses/by/3.0/
+  The model's Poly Pizza page lists the license as "Creative Commons Attribution"
+  and "CC-BY 3.0", linking to the CC BY 3.0 deed above.
+  Credit line: Flying saucer: Poly by Google — https://poly.pizza/m/6hu2h8v78mO (CC BY 3.0)
+
+blackbird.glb
+  Source: https://sketchfab.com/3d-models/sr-71-79e6c14217ab417abe524a99ffbb472e
+  Author: Kiiba (https://sketchfab.com/Kiiba)
+  Title: Sr-71
+  License: Creative Commons Attribution 4.0 (CC BY 4.0)
+  License URL: http://creativecommons.org/licenses/by/4.0/
+  The Sketchfab page and the download's license.txt both list CC-BY-4.0.
+  Requirements (from the download dialog and license.txt):
+    "Author must be credited. Commercial use is allowed."
+  Official credit block from the zip's license.txt:
+    This work is based on "Sr-71"
+    (https://sketchfab.com/3d-models/sr-71-79e6c14217ab417abe524a99ffbb472e)
+    by Kiiba (https://sketchfab.com/Kiiba)
+    licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+  Credit line: Sr-71 by Kiiba — https://sketchfab.com/3d-models/sr-71-79e6c14217ab417abe524a99ffbb472e (CC BY 4.0)
+
+No CC0 classic saucer in this style was good enough, so the two saucers
+are CC BY 3.0 and must credit Poly by Google.
+
+No CC0 toy-style SR-71 existed, so the Blackbird is CC BY 4.0 and must
+credit Kiiba.

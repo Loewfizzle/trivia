@@ -23,6 +23,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { CAUSE_LINES, VEHICLES } from '../../js/games/jaywalk/causes.js';
+import { looksH6A } from './kit/jaywalk-h6a.mjs';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), PERF = argv.includes('--perf'), WK = argv.includes('--webkit'), LOOK = argv.includes('--look'), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
@@ -582,6 +583,8 @@ async function looksNums(p) {
 
 try {
   if (argv.includes('--nums')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksNums(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
+  // (H6A — THE BIG MOMENTS: `--h6a[=blackbird|ufo|ship]` — kit/jaywalk-h6a.mjs; the shots → h6a/<group>/)
+  { const h6a = argv.find(x => x === '--h6a' || x.startsWith('--h6a=')); if (h6a) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH6A(o.p, { ok, shot, sleep, waitFor, what: h6a.slice(6), reqs: o.reqs }); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   { const h5c = argv.find(x => x === '--h5c' || x.startsWith('--h5c=')); if (h5c) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5C(o.p, h5c.slice(6), o.reqs); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   { const h5b = argv.find(x => x === '--h5b' || x.startsWith('--h5b=')); if (h5b) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); if (h5b.slice(6) === 'tail') await looksTail(o.p); else if (h5b.slice(6) === 'addons') { await looksAddons(o.p); await looksTail(o.p); } else await looksH5B(o.p, h5b.slice(6), o.reqs); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); console.log(fails.length ? `\nFAILED: ${fails.length}` : '\nH5B OK'); await b.close(); process.exit(fails.length ? 1 : 0); } }
   { const h5 = argv.find(x => x === '--h5' || x.startsWith('--h5=')); if (h5) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5(o.p, h5.slice(5)); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
