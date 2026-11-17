@@ -40,7 +40,7 @@ const open = async (w, h, dpr, q = '') => {
   const ctx = await b.createBrowserContext(), p = await ctx.newPage(), errs = [], reqs = [];
   try { await ctx.overridePermissions(BASE, ['clipboard-read', 'clipboard-write']); } catch { /* fine */ }
   p.on('pageerror', e => errs.push(String(e.message || e)));
-  p.on('request', r => reqs.push(r.url()));
+  p.on('request', r => { if (!r.url().startsWith('data:')) reqs.push(r.url()); });   // (a data: URI — the sea wall's inline tile — is no request: nothing leaves the page)
   await p.setViewport({ width: w, height: h, deviceScaleFactor: dpr, isMobile: w < 700, hasTouch: w < 700 });
   await p.goto(guardUrl(`${BASE}/jaywalk-lab?emu${q}`, 'jaywalk-lab'), { waitUntil: 'load' });
   return { p, errs, reqs, close: () => ctx.close() };

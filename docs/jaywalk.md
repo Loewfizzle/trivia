@@ -1067,10 +1067,61 @@ The rail yard's water tower (floodlit, rim-lit, a ring of lamps; the gantry's la
 lit, rim lights, the beacon white-hot) were relit by Grok in place before the review's code lift was built — re-encoded through
 `scripts/build-jaywalk-assets.py --only=skyline` (the other 16 pictures byte-identical; the masked lights the same as `SKY_OFF`).
 
+### THE RECORDER AND THE JUDGE ARE ONE BOUND (the audit's BLOCKER + its HIGH — `engine.js#inputProblem` · `tests/jaywalk-recorder.test.mjs`)
+The phone's recorder (`canLog`) knew only the 2-tick gap; the judge (`replay.js#logProblem`) also refuses 21 inputs in one second and
+anything at or past a mode's cap. So an honest phone could write a log the judge refused WHOLE — the run scored as a kid who never
+hopped: **a tap in the Mothership's own tick** (logged at `t = cap`, where the engine lifts the kid and plays nothing: about 8 % of
+finishers — the best player in the room at 0 lanes, no BEAM ME UP, no best) and **a one-second multi-finger mash** (> 20 taps a second).
+- **ONE function** now answers both: `inputProblem(log, i, t, d, mode)` → null or the judge's own word. `canLog(log, tick, d, mode)`
+  = it is null for the next entry; `logProblem` loops it. The views pass `run.mode` (the game AND the lab).
+- **An input the recorder does not log is not played** (it waits in the queue of two, or is dropped when that is full) — so the run on
+  the phone IS the run the judge replays: at most 20 inputs in any second, nothing at or past the cap.
+- **The judge is exactly as strict as it was** (not made tolerant: with one function the two can not differ).
+- The tests: the bound BOTH ways across every mode's cap · 60 mash runs at 16–60 taps a second (accepted; the judge's run = the
+  phone's) · a REAL 2,043-lane run to the Mothership (`tests/fixtures/jaywalk-ship-run.mjs` — the audit's breadth search found it)
+  played through the phone's own loop with a thumb coming down in her tick → judged TAKEN at the phone's lanes.
+
+### THE LOST CONTEXT (the audit — `view.js#watchGL`; `e2e-jaywalk.mjs` step 7c)
+iOS can take the WebGL context away (an app switch under memory pressure). The run is on the server's clock: a blank playfield is a
+kid run down unseen. On `webglcontextlost` /admin is told once (`errlog.js#reportError`); the scene is **REBUILT** — destroyed and
+created again in the same look, tier, zoom, colour + reveal, resting again if it was — the moment the context is restored, or after
+1.5 s without it. The solo E2E loses the context on purpose mid-run (`WEBGL_lose_context`): a new scene within 1.5 s, it draws, the
+run never stopped. Proven in Chromium; WebKit on Windows offers no way to lose a context on purpose.
+
+### THE END SCREEN, AFTER THE AUDIT (`flyers.js#rest` · `view.js`)
+- **The Mothership's hum + rumble + the music's duck no longer stay on through the podium:** behind an end screen nothing is drawn, so
+  nothing turned them down — they FADE as the scene rests (2.4 s when she is up, 0.6 s otherwise) and the duck lets go.
+- **A WATCHER sees her arrive:** when someone was still standing at 6:00, a player already out waits the lift out (4.2 s past the cap —
+  `SHIP_SEEN`) before the podium covers it, as the lifted kid's own phone does.
+- **The tier is sampled only while the scene is drawn** (8 easy seconds behind an end screen stepped it up for the next run).
+- **Leaving the game** (not PLAY AGAIN) lets go of the decoded sounds (`sfx.js#release` + the moments' buffers: ≈ 15 MB) and the run's
+  picture. The rumble's noise is normalised (−7 dBFS peak at the bus at most).
+
+### THE LIVE MATCH's PROOF TREE (the audit — `database.rules.json` `jw` + `jw/{match}`; `rules.test.mjs`) — A RULES CHANGE
+The host could delete `jw` / `jw/{match}` at any time: on a modified client, mid-match, then a new GO → a new course, the honest
+phones' nodes without a GO scored "no go", the host the winner of a counted match (solo: the course re-rolled after seeing it). The
+delete is now refused while that match is LIVE (count / play) after the write. An older match's prune, the end, a new start, another
+game's start still clear it — `host.js#pruneProofs` + `kit/again.js` already make those in writes of their own. Nothing honest ever
+deleted a live tree: no client change, no fallback needed on the old rules.
+
+### NEVER A CAR IN YOUR KID's COLOUR (`night.js#carTint` — a VIEW) · HOW TO PLAY
+A cyan kid vanished against two cyan vans. A car's tint walks the palette past any colour near the viewer's kid's (each phone its
+own: the rules know no colour). HOW TO PLAY (`help.js`) is true by day ("the lights go out behind you (fog by day)"), names the
+runway + the UFO's green ring + the logs' edge, and says a match is won by the farthest — nine lines, nine drawings.
+
+### AFTER THE SECOND REVIEW (`skyline.js#SKY_OPEN_DAY` · `night.js` the pool's `put`)
+- **THE OPENING BY DAY rests 6.5 % right of centre** and never slides back past 5.5 % (`skyPlan` → `min`; `skyShift(…, max, min)`):
+  the plain day picture's small lighthouse (at 43 %) stood right under a 1- / 2-digit count. By night the plain picture has none.
+- **What THE FOG BANK takes fades INTO the fog's colour** (by day a pool's `k` over 1 is the fog: the thing's colour is blended to the
+  fog's, never scaled up — trees + vans were bright pastel cut-outs, brighter than the fog).
+- The night downtown's slide stops at 5.5 % · a day signal lamp stands ON the tarmac (not sunk to its middle).
+- Two of the reviewer's top items were TEST-SHOT artefacts (the console's XP moment fading in over the end screen; a shot in the
+  first instant of a look switch): `e2e-jaywalk.mjs` waits both out before its pictures.
+
 ### THE SIZE BUDGET — kept, never raised (`tests/integration/game-budget.json`: jaywalk 2,450 KB)
 The fixes added 5.6 KB to JAYWALK's eager graph (it stood 1 KB under its line). **14 KB of pass-history comments were cut from
 `night.js`** — full-line comments only, every code line identical (checked line by line against the commit before); the history is in
-this doc + the pass logs. After: **2,442 of 2,450 KB** (the game alone 384 KB, 32 modules). A JAYWALK pass that adds code trims
+this doc + the pass logs. After Group 2: 2,442 KB; after the audit's fixes: **2,447 of 2,450 KB** (the game alone 389 KB, 32 modules). A JAYWALK pass that adds code trims
 comments the same way before it thinks of the line.
 
 ## THE CAMERA (H2B — `js/games/jaywalk/camera.js`: ONE pure module, the night look AND the graybox use it)

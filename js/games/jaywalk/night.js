@@ -99,8 +99,10 @@ export function createNight(host, o = {}) {
         P.set(x, y, z); S.set(sx, sy, sz);
         if (rx || rz) Q.setFromEuler(E.set(rx, ry, rz, 'YXZ')); else if (ry) Q.setFromAxisAngle(UP, ry); else Q.identity();
         M.compose(P, Q, S); m.setMatrixAt(i, M);
-        if (raw) { col[i * 3] = ((hex >> 16) & 255) / 255 * k; col[i * 3 + 1] = ((hex >> 8) & 255) / 255 * k; col[i * 3 + 2] = (hex & 255) / 255 * k; }
-        else { C.setHex(hex); col[i * 3] = C.r * k; col[i * 3 + 1] = C.g * k; col[i * 3 + 2] = C.b * k; }
+        // (BY DAY a `k` over 1 is THE FOG BANK taking the thing — it fades INTO the fog's own colour, never brighter than it)
+        const f = day && k > 1 ? Math.min(1, (k - 1) / 2.4) : 0, kk = f ? 1 - f : k;
+        if (raw) { col[i * 3] = ((hex >> 16) & 255) / 255 * kk + 0.875 * f; col[i * 3 + 1] = ((hex >> 8) & 255) / 255 * kk + 0.906 * f; col[i * 3 + 2] = (hex & 255) / 255 * kk + 0.933 * f; }
+        else { C.setHex(hex); col[i * 3] = C.r * kk + 0.72 * f; col[i * 3 + 1] = C.g * kk + 0.79 * f; col[i * 3 + 2] = C.b * kk + 0.85 * f; }
         if (ax) { const q = i * aux[1]; ax.array[q] = a0; if (aux[1] > 1) ax.array[q + 1] = a1; if (aux[1] > 2) { ax.array[q + 2] = a2; ax.array[q + 3] = a3; } }
         i++;
       },
@@ -302,7 +304,7 @@ export function createNight(host, o = {}) {
   for (const x of [8, 29, 50, 71, 92]) { const l = document.createElement('b'); l.style.left = `${x}%`; seaWall.append(l); }
   sky.append(skyImg, seaWall); host.append(sky, farHaze);
   // (THE LANDMARKS ARE PAINTED IN BOTH LOOKS)
-  let skyAt = 9e9, skyLane = -1e9, skyRoomPc = 0, skyBias = 0, skyBiasT = 0, skyFresh = true, skyPicW = 0, skyMax = 99, skyMatch = false;
+  let skyAt = 9e9, skyLane = -1e9, skyRoomPc = 0, skyBias = 0, skyBiasT = 0, skyFresh = true, skyPicW = 0, skyMax = 99, skyMin = -99, skyMatch = false;
   // the pictures held (file → { img, ok }): the one on screen + the next area's
   const skyHold = new Map();
   const skyS = { now: '', over: false, want: '', fades: 0, until: 0, ms: 0 };   // (over: the picture on screen sits on the OVER layer · until: its cross-fade's end)
@@ -341,7 +343,7 @@ export function createNight(host, o = {}) {
     for (const f of keep) skyGet(f);
     for (const f of [...skyHold.keys()]) if (!keep.includes(f) && f !== skyS.now) skyHold.delete(f);   // (ONLY the current + the next are held — + the one still on screen through a look's cross-fade)
     skyShow(plan.now, fresh === true ? 0 : fresh === 'look' ? SKY_LOOK_MS : SKY_FADE_MS);
-    skyBiasT = plan.bias; skyMax = plan.max;   // (the go-live review: the count stays clear of the landmark · a match's left landmarks stay clear of the chips)
+    skyBiasT = plan.bias; skyMax = plan.max; skyMin = plan.min;   // (the go-live review: the count stays clear of the landmark · a match's left landmarks stay clear of the chips)
     if (fresh === true) skyBias = skyBiasT;
   }
 
@@ -610,7 +612,7 @@ export function createNight(host, o = {}) {
     posed = true; fwd.set(0, 0, -1).applyQuaternion(cam.quaternion); FOG_UP.value = -fwd.y; depth();   // (the fog follows the lens: full at the sea wall's foot)
     // the skyline slides against the follow + RESTS where its area's landmark is (skyline.js#SKY_BIAS); the sea wall's stones slide a touch more
     skyBias += (skyBiasT - skyBias) * (reduce ? 1 : 1 - Math.exp(-dt / 650)); if (Math.abs(skyBiasT - skyBias) < 0.02) skyBias = skyBiasT;
-    const sl = Math.round(skyShift(skyBias, rig.x() * 2.2 - rig.yaw() * 28, skyRoomPc, skyMax) * 20) / 20;
+    const sl = Math.round(skyShift(skyBias, rig.x() * 2.2 - rig.yaw() * 28, skyRoomPc, skyMax, skyMin) * 20) / 20;
     if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; wallStone.style.transform = wallDay.style.transform = `translate3d(${(-sl * skyPicW * 0.0115).toFixed(1)}px,0,0)`; }
 
     // ---- the lanes
@@ -758,7 +760,7 @@ export function createNight(host, o = {}) {
                 const s = hot ? 1.3 : 0.86, hex = hot ? 0xfff0a0 : (c + (e > 0 ? 1 : 0) + wig) & 1 ? 0xff2412 : 0xffa400;
                 if (hot && on) K.flat.put(X(c + 0.5), 0.04, z + e, 2.4, 1, 1.7, 0, 0xffa820, 1, 0, 0.7 * far);
                 K.flat.put(X(c + 0.5), 0.046, z + e, s * 1.5, 1, s * 1.25, 0, 0x07070e, 1, 5, 0.92 * far);   // its dark backing
-                K.bill.put(X(c + 0.5), 0.07, z + e, s, s, 1, 0, hex, 1, 5, far);
+                K.bill.put(X(c + 0.5), 0.07 + s * 0.26, z + e, s, s, 1, 0, hex, 1, 5, far);   // (standing ON the tarmac: sunk to its middle, a lamp had a flat-cut bottom)
               }
               continue;
             }

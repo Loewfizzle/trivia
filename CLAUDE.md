@@ -187,6 +187,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 
 - JAYWALK's FINISH (H6B): the band's pictures are PAINTED in BOTH looks (`skyline.js` — no light blinks on a landmark: `SKY_OFF`; a look switch cross-fades); THE GATE SIGN only on the approach (gone 3 lanes out); a cue's level only in `sounds.js` / `flyers.js#MIX`, measured (`jaywalk-mix.mjs`) → docs/jaywalk.md "THE FINAL POLISH".
 - JAYWALK's END SCREEN RESTS THE SCENE (H6B): behind an end screen the 3D scene is a small still — nothing drawn, no bloom targets (`night.js#rest`); the run's picture = ONE cropped canvas; THE FINAL SCREEN's BUDGET (`kit/jaywalk-mem.mjs#JW_FINAL_BUDGET_MB` — raising it = a named decision) → docs/jaywalk.md "THE END SCREEN's MEMORY".
+- JAYWALK's RECORDER + JUDGE = ONE BOUND (`engine.js#inputProblem`); the count's sizes + `skyline.js#SKY_MAX` change together → docs/jaywalk.md "THE GO-LIVE REVIEW".
 
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
 - NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).

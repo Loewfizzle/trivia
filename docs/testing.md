@@ -1123,3 +1123,23 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   the final screen: 0 refused, the header JAYWALK · MATCH, the winner's line in the chat, **the host reloads on the final screen → 0
   refused**; step 8b — **the host's phone goes away on the rematch's final screen → a guest claims the room → 0 refused**, the owner
   comes back, MAKE HOST in the room. (Proof it bites: the same run with the old `js/chat/chat.js` → `[rules] refused: set chats/*/m/*`.)
+
+## JAYWALK — THE GO-LIVE REVIEW (Nov 17 2026 — docs/games/passes/jaywalk-review.md)
+- Unit: **`tests/jaywalk-recorder.test.mjs`** (THE RECORDER AND THE JUDGE ARE ONE BOUND: the bound both ways across every mode's cap ·
+  60 mash runs at 16–60 taps a second · a REAL run to the Mothership — `tests/fixtures/jaywalk-ship-run.mjs`, 2,437 hops — through the
+  phone's own loop with taps in her tick) · `jaywalk-skyline` (`SKY_MAX`: the slide stops where the count would meet the landmark; a
+  match's pin; the count's sizes pinned with it) · `jaywalk-day` (the Blackbird's day tell: its contrast computed; the fog's shape 10,
+  its lip) · `jaywalk-h6b` (the scene rests → the ship's loops fade; the lost context; the release) · `jaywalk-night` (`carTint`: all 8
+  player colours × 5 slots) · `jaywalk-solo` (HOW TO PLAY: nine lines, nine drawings, true by day).
+- Rules: `rules.test.mjs` "JAYWALK — THE GO-LIVE REVIEW: the host never deletes the LIVE match's proof tree".
+- **`node tests/integration/wk-jaywalk-mem.mjs [outDir] [--runs=10] [--no-match]`** — THE MEMORY ON WEBKIT (Playwright's WebKit, ~/wk;
+  "SKIPPED" + exit 0 where it is not installed: the cloud): 390 × 844 @3, the owner's phone plays TEN solo runs in a row, then FOUR
+  WebKit phones play a match; every FINAL screen's held pixels (`kit/jaywalk-mem.mjs` — the same sum as the Chromium checks) under
+  `JW_FINAL_BUDGET_MB` (20), the scene resting; + the tab's own process (Windows working set — printed; it may not climb > 80 MB from
+  run 2 to the last). A tap on a sheet that is still sliding in is repeated until it lands (`tapUntil`).
+- `e2e-jaywalk.mjs` step 7c — THE LOST CONTEXT: the WebGL context is lost on purpose mid-run (`WEBGL_lose_context`) → a new scene
+  within 1.5 s, it draws, the run never stopped.
+- The lab's perf kit (`jaywalk-lab.mjs --h6b=perf`): a look switch FAILS on any frame over 70 ms (the first of a session included —
+  it was 130–150 ms). `--h6b=chips` shoots a MATCH run (the band's pin).
+- The size budget: `tests/integration/game-budget.json` jaywalk 2,450 KB — after the review 2,447. A JAYWALK pass that adds code cuts
+  comments first (full-line comments only; `git show <rev>:file` against the file, every code line identical) — never the line.

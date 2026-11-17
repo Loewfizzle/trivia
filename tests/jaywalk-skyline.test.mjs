@@ -18,7 +18,7 @@ test('THE PICKER: an area → its picture; the opening keeps skyline-day; the lo
   assert.equal(skyPlan(450, 'day').now, 'skyline-day-docks.webp', 'the loop\'s first gate: THE DOCKS again'); assert.equal(skyPlan(455, 'day').now, 'skyline-day-docks.webp');
   assert.equal(skyPlan(849, 'day').now, 'skyline-day-airfield.webp'); assert.equal(skyPlan(850, 'day').now, 'skyline-day-docks.webp', 'lap 3');
   // BY NIGHT (H6B): the same picker — the opening keeps skyline-night, each area its painted night picture, the loop repeats
-  for (const l of [0, 25, 35]) assert.deepEqual(skyPlan(l, 'night'), { now: 'skyline-night.webp', next: null, bias: 0, max: 99 });
+  for (const l of [0, 25, 35]) assert.deepEqual(skyPlan(l, 'night'), { now: 'skyline-night.webp', next: null, bias: 0, max: 99, min: -99 });
   SKY_IDS.forEach((id, k) => { for (const l of [STRETCH * (k + 1), STRETCH * (k + 1) + 24, 450 + STRETCH * k + 3]) assert.equal(skyPlan(l, 'night').now, `skyline-night-${id}.webp`, `lane ${l} by night`); });
   assert.equal(skyPlan(40, 'night').next, 'skyline-night-docks.webp', 'the next night picture is fetched ahead of its gate');
   assert.equal(skyFile('day', ''), 'skyline-day.webp'); assert.equal(skyFile('night', 'docks'), 'skyline-night-docks.webp'); assert.equal(skyFile('night', ''), 'skyline-night.webp');
@@ -48,7 +48,12 @@ test('WHERE THE BAND RESTS: the landmark is on a phone\'s screen; the rest + the
   for (const id of SKY_IDS) for (const slide of [-7.5, 0, 7.5]) assert.ok(Math.abs(skyShift(SKY_BIAS[id], slide, room)) <= room, `${id}: inside the room`);
   assert.equal(skyRoom(1440, 900), 0, 'a wide stage: no room — the picture stays centred'); assert.equal(skyShift(13, 5, 0), 0);
   assert.equal(skyRoom(0, 0), 0); assert.equal(skyShift(13, 7, 17), 17); assert.equal(skyShift(-13.5, -7, 17), -17);
-  assert.equal(skyPlan(60, 'day').bias, SKY_BIAS.docks); assert.equal(skyPlan(10, 'day').bias, 0);
+  assert.equal(skyPlan(60, 'day').bias, SKY_BIAS.docks); assert.equal(skyPlan(10, 'night').bias, 0);
+  // (the second review: THE OPENING BY DAY rests right of centre — the plain day picture's small lighthouse (43 %) stood under a 1- /
+  //  2-digit count — and never slides back past its `min`: on a 390 pt phone the lighthouse stays ≥ 10 pt left of the count's left edge)
+  { const p = skyPlan(10, 'day'), r = skyRoom(390, 844); assert.deepEqual([p.bias, p.min, p.max], [6.5, 5.5, 99]);
+    for (const slide of [-9, -4, 0, 4, 9]) { const sl = skyShift(p.bias, slide, r, p.max, p.min), x = 6 * (44.1 - 17.5 - sl); assert.ok(sl >= 5.5 && x <= 131, `slide ${slide}: the lighthouse's right edge at x ${x.toFixed(0)} — left of a 2-digit count (141)`); }
+    assert.equal(skyShift(0, -9, r, 99, -99), -9, 'no limit: as before'); assert.equal(skyShift(0, -9, 0, 99, 5.5), 0, 'a wide stage: centred'); }
 });
 
 test('THE VIEW: two layers cross-faded (opacity only), the pictures fetched through skyline.js alone, the drawn day landmarks RETIRED, THE FAR EDGE', () => {

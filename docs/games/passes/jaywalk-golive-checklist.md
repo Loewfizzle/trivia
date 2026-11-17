@@ -15,14 +15,14 @@ game changes in it (a look / rules / server change belongs to a pass of its own,
    | --- | --- | --- |
    | `js/games/jaywalk/meta.js` (its thin meta — registry META at boot, like every playable game) | 2,092 | +1 |
    | `js/games/registry.js` — the import line + its META entry | ≈ 130 | — |
-   | `js/ui/help.js` — `RULES.jaywalk` + `TAB.jaywalk` (the content of `js/games/jaywalk/help.js` from `export const RULES` on: 2,774 B; HOLD'EM's block is 1,794, PRISM's 923) | ≈ 2,800 | — |
+   | `js/ui/help.js` — `RULES.jaywalk` + `TAB.jaywalk` (the content of `js/games/jaywalk/help.js` from `export const RULES` on — nine lines + nine drawings: 3,297 B; HOLD'EM's block is 1,794, PRISM's 923) | ≈ 3,300 | — |
    | `js/ui/game-art.js` — its tile (the neon SIGNAL mark is already in the boot: `core/marks.js#MARKS.jaywalk`; HOLD'EM's tile function is 436 B) | ≈ 700 | — |
    | `js/config.js` — the row loses `preview: true` | − 15 | — |
-   | **the measured need** | **≈ 5,700 B** | **+1** |
+   | **the measured need** | **≈ 6,200 B** | **+1** |
 
-   **THE BOOT MUST FREE AT LEAST 8,192 B (8 KB — the need + a 40 % margin) AND 2 MODULES (1 + one spare)** before the go-live pass
+   **THE BOOT MUST FREE AT LEAST 9,216 B (9 KB — the need + a 45 % margin) AND 2 MODULES (1 + one spare)** before the go-live pass
    starts — never by raising `tests/integration/boot-budget.json` (the owner, Nov 16). The go-live prompt names the trim's log + its
-   own measured room; the go-live pass re-measures FIRST and stops (OPEN FOR BEN) if the room is under 6 KB / 1 module.
+   own measured room; the go-live pass re-measures FIRST and stops (OPEN FOR BEN) if the room is under 6.5 KB / 1 module. (THE BOARD's tab + the pinned camera, below, are not boot files' growth worth counting: < 200 B.)
 2. **END-SCREEN STANDARD A** (the owner's pick "A — the hero bar": a big solid PLAY AGAIN / REMATCH bar in the game's accent + quiet
    SHARE · CITY links — `docs/games/plan.md` "JAYWALK … DECIDED, H5B"; the picture: `Downloads\NEON\endscreen-standard-A.jpg`) built in
    the console's frame (`js/ui/final.js`) for every game. JAYWALK builds none of its own: its end screen (`victory.js#finalScene`)
@@ -38,6 +38,28 @@ game changes in it (a look / rules / server change belongs to a pass of its own,
    beat. JAYWALK is the first game whose match can earn four cards at once (SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY · BEAM ME UP).
 6. The two older inbox entries "TO THE DAILIES / THE CITY — NEXT PASS — from JAYWALK H4B / H5A" (the SAVE-YOUR-KEY pop-up over a
    running daily; the dailies' evening red) are NOT JAYWALK's go-live blockers — named here so the go-live prompt does not lose them.
+
+### THE DATABASE RULES are the review's (RE-PUBLISHED)
+The review tightened `rooms/{CODE}/jw` + `jw/{matchId}` (the host can no longer delete the LIVE match's proof tree). The go-live pass
+starts only once the owner has re-published `database.rules.json` (Firebase console → Realtime Database → Rules → paste the whole
+file → Publish) — then it copies `database.rules.json` over `tests/fixtures/rules-live.json` and deletes
+`tests/fixtures/rules-live.ack.json` (docs/testing.md "THE RULES-LAG"). On the OLD rules nothing breaks (the game never deleted a
+live tree) — but the hole the audit found stays open until the publish.
+
+### WHAT THE AUDIT LEFT FOR GO-LIVE (`jaywalk-review.md` "… what was done with each finding")
+- **THE BOARD's JAYWALK tab** (`js/board/view.js` — five tabs today; `core/boards.js` has its rows since H3) + a line in
+  `tests/registration.test.mjs` that checks for it. A playable game with no tab on THE BOARD is a go-live gap nothing tests yet.
+- **PIN THE CAMERA** (the audit's #14 — the owner's call, the review's recommendation): the game reads ZOOM · ANGLE (`view.js` —
+  `jw:lab:*`, `lab-prefs.js`) and the A / B sound takes (`sfx.js`) from the OPEN lab page's settings: at go-live the game uses
+  ZOOM 8 · STRAIGHT + the A takes for everyone (the lab keeps its switches for itself), or ZOOM becomes a real setting.
+- **AN 8-PHONE MATCH, MEASURED** (the audit's #6 — an estimate, never measured): every hop re-exports the whole `jw/{match}` tree on
+  every phone (`js/room.js` — the console's live listener, a BOOT file). Before the flip: an 8-bot match to minute 5 with the frame
+  times + the JS heap printed (`e2e-jaywalk-match.mjs` takes `--four`; it needs an `--eight`). If it slips: the listener per player
+  (child-added on `c`), with boot bytes the city's trim has freed.
+- **THE RUN CARD's STORAGE** (the audit's #5 — the owner's cost call, see the review's OPEN FOR BEN): decided before the flip.
+- **A QUEUED REPORT's PROOF** (the audit's #8): PLAY AGAIN prunes proofs older than four runs (`kit/again.js#KEEP_RUNS`) and BACK TO
+  THE CITY deletes the solo room — a best run whose report is still queued (`/api` down) can become unverifiable. The console's
+  report queue is boot code: with the trim's bytes, never prune a proof whose report is still queued.
 
 ### THE OWNER has done
 - Played the review's build on his phone, DAY + NIGHT, solo + a match: his EAR on THE MIX (never heard on a phone's speaker — the
@@ -55,8 +77,9 @@ game changes in it (a look / rules / server change belongs to a pass of its own,
 3. **HOW TO PLAY** — move `RULES` + `TAB` from `js/games/jaywalk/help.js` into `js/ui/help.js` (`RULES.jaywalk = …`, `TAB.jaywalk = 'JW'`),
    in the shared help's own shape (it was written in it). Delete `js/games/jaywalk/help.js` + the cartridge's registration with the
    help hub (`globalThis.__nsHelp.jaywalk` — `index.js` / `view.js`); `ui/help.js#hub` stays for the next game being built. The text
-   stays as the owner read it: one line + HOW TO MOVE · WATCH OUT, seven short lines a kid can read, one small drawing each — check
-   it against the rules ONE more time (ONE LIFE; the Mothership = a finish line at 6:00 in a match, never in solo).
+   is the review's (true by day; + the runway, + the UFO's ring): one line + HOW TO MOVE · WATCH OUT, NINE short lines a kid can
+   read, one small drawing each (≈ 3.3 KB with its drawings — the table above counted the seven-line version: re-measure) — check
+   it against the rules ONE more time (ONE LIFE; the Mothership = a finish line at 6:00 in a match, never in solo; the keys on desktop).
 4. **THE TILE** — `js/ui/game-art.js`: `ART.jaywalk` (the tile on the shelf, the room's game list, THE BOARD, the profile's stats).
    Built on its neon mark THE SIGNAL (`core/marks.js#MARKS.jaywalk` — the walk signal's kid); baked if it needs more than an SVG
    frame (HOLD'EM's way: `assets/holdem/tile.webp` + `scripts/build-holdem-tile.mjs`). Phone first: it must read at 72 pt.

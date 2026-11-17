@@ -146,6 +146,7 @@ try {
   // (H5B — BOTH looks: the phone's GAME LOOK decides (AUTO = the real sun — so the check picks one: NIGHT first, DAY below))
   await P.ev("import('/js/games/kit/look.js').then(m => m.saveLook('night'))");
   ok(await P.waitFor(`document.body.dataset.look === 'night' && ${G}.state().info.look === 'night' && document.querySelector('.jw-game').dataset.look === 'night'`, 6000) && await P.ev("!!document.querySelector('.menu-btn') && !!document.querySelector('.music-btn')"), 'inside the console\'s game frame: the corner menu + music; GAME LOOK NIGHT → the night look (the scene, the stage, the console)');
+  await P.waitFor(`(() => { const s = ${G}.state().info.sky; return !!s && /night/.test(s.now) && !s.fading; })()`, 8000);   // (the shot waits the look switch's cross-fade out — a day band over a night world read as broken)
   await P.shot('run-start.png');
   // ---- 3b. THE LINES — a first-ever run: NO gold line; THE NEXT FRIEND'S LINE from the server's table (asked once)
   ok(await P.waitFor(`${G}.state().lines.friends.length === 1`, 10000), 'the table landed (ONE call at the run\'s start): a friend with a best');
@@ -190,6 +191,7 @@ try {
     ok(end.res.w !== 'car' || (!!veh && end.cause === CAUSE_LINES[`car:${veh}`]), end.res.w === 'car' ? `… it names the vehicle that hit (${veh}) — never "HIT BY A CAR"` : `… (this run ended by "${end.res.w}": no vehicle to name)`); }
   ok(end.n === String(end.res.l) && /^LANES?$/.test(end.unit) && end.res.l >= 3, `the lanes: ${end.n} ${end.unit} (the host's replay of the log)`);
   ok(await P.ev("document.querySelector('.jw-final .sheet-kicker').textContent") === 'JAYWALK · SOLO' && parseFloat(await P.ev("getComputedStyle(document.querySelector('.jw-final .sheet-kicker')).fontSize")) >= 17, 'THE HEADER: JAYWALK · SOLO — big + bold (H5B)');
+  await pastMoment(P);   // (the console's XP moment fades in over the end screen a beat after it: the shot is of the end screen itself)
   await P.shot('end-day.png');
   await P.ev("import('/js/games/kit/look.js').then(m => m.saveLook('night'))");
   ok(await P.waitFor("document.body.dataset.look === 'night'", 6000) && await P.ev("import('/js/games/jaywalk/index.js').then(m => m.musicFor()[0])") === 'mood:evening', '… back to NIGHT for the rest: the evening deck');

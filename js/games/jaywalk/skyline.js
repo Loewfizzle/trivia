@@ -18,7 +18,7 @@ export const SKY_BAND = 0.24, SKY_ASPECT = 1280 / 432;
  * slide with the kid's column rides on top. NIGHT HAS ITS OWN (H6B — measured off the night pictures).
  */
 export const SKY_BIAS = Object.freeze({ docks: 14.5, fish: 11, yard: 17, bridge: -17, downtown: 4.25, canal: 7, lighthouse: -16.5, airfield: 13 });   // (H6B's review: the cranes, the fish hall, the rail yard + downtown's towers were cut by the screen's right edge; the lighthouse stood under the match's chips)
-export const SKY_BIAS_NIGHT = Object.freeze({ docks: 7.5, fish: 15, yard: 15, bridge: -14, downtown: 6.5, canal: 12, lighthouse: -17, airfield: 10.5 });
+export const SKY_BIAS_NIGHT = Object.freeze({ docks: 7.5, fish: 15, yard: 15, bridge: -14, downtown: 5.25, canal: 12, lighthouse: -17, airfield: 10.5 });
 /**
  * THE LANE COUNT NEVER TOUCHES A LANDMARK (the go-live review — measured off the pictures on a 390 pt phone, the tightest: the columns
  * each landmark fills in the count's rows against a 3- / 4-digit count's width — x 128 … 262 of 390, css `.jw-lanes[data-dg]`): the HIGHEST shift at which
@@ -27,8 +27,14 @@ export const SKY_BIAS_NIGHT = Object.freeze({ docks: 7.5, fish: 15, yard: 15, br
  */
 export const SKY_MAX = Object.freeze({
   day: Object.freeze({ docks: 14.75, downtown: 5, airfield: 13.5 }),
-  night: Object.freeze({ docks: 7.5, downtown: 6.75, airfield: 10.75 }),
+  night: Object.freeze({ docks: 7.5, downtown: 5.5, airfield: 10.75 }),
 });
+/**
+ * THE OPENING BY DAY (the second review): the plain day picture has a small lighthouse at 43 % — right under a 1- / 2-digit count
+ * when the band rests centred. The opening rests a little to the right (the lighthouse left of the count) and never slides back
+ * past `min`. By night the plain picture has no lighthouse: centred, as before.
+ */
+export const SKY_OPEN_DAY = Object.freeze({ bias: 6.5, min: 5.5 });
 /**
  * IN A MATCH the players' chips stand on the band's LEFT edge (css `.jw-order`: 86 pt wide, down to 164 pt with 8 players). The two
  * landmarks painted on the LEFT rest as far RIGHT as the picture goes and do not slide back under them: the lighthouse (both looks)
@@ -54,17 +60,17 @@ export const skyId = lane => { const a = area(Math.max(0, Math.floor(lane))); re
 export const skyFile = (look, id) => { const l = look === 'day' ? 'day' : 'night'; return id ? `skyline-${l}-${id}.webp` : `skyline-${l}.webp`; };
 /**
  * what the band needs with the kid at `lane` in `look` → { now: the picture on the band, next: the one to fetch ahead (null = none),
- * bias: where the band rests (% of the picture's width), max: the highest shift the slide may reach (99 = the room alone) }. `match`:
+ * bias: where the band rests (% of the picture's width), max / min: the highest / lowest shift the slide may reach (99 / −99 = the room alone) }. `match`:
  * the chips are up — the left landmarks are pinned (SKY_MATCH_PIN).
  */
 export function skyPlan(lane, look, match = false) {
   const id = skyId(lane), now = skyFile(look, id), nx = skyFile(look, skyId(lane + SKY_AHEAD)), day = look === 'day';
-  const pin = match && SKY_MATCH_PIN.includes(id), max = pin ? SKY_PIN : (day ? SKY_MAX.day : SKY_MAX.night)[id];
-  return { now, next: nx === now ? null : nx, bias: pin ? SKY_PIN : (day ? SKY_BIAS : SKY_BIAS_NIGHT)[id] || 0, max: max == null ? 99 : max };
+  const pin = match && SKY_MATCH_PIN.includes(id), max = pin ? SKY_PIN : (day ? SKY_MAX.day : SKY_MAX.night)[id], open = !id && day;
+  return { now, next: nx === now ? null : nx, bias: pin ? SKY_PIN : open ? SKY_OPEN_DAY.bias : (day ? SKY_BIAS : SKY_BIAS_NIGHT)[id] || 0, max: max == null ? 99 : max, min: open ? SKY_OPEN_DAY.min : -99 };
 }
 /** the pictures to HOLD for a plan (the current + the next — never more than two) */
 export const skyHeld = plan => (plan.next ? [plan.now, plan.next] : [plan.now]);
 /** how far the picture may move off its centre (% of its own width) before the band's edge would show, on a w × h stage */
 export const skyRoom = (w, h) => (w > 0 && h > 0 ? Math.max(0, (1 - w / (h * SKY_BAND * SKY_ASPECT)) * 50 - 0.25) : 0);
 /** the band's offset: the rest + the slide, kept inside the room — and never past `max` (the plan's: the count stays clear, a match's pin) */
-export const skyShift = (bias, slide, room, max = 99) => { const v = bias + slide, hi = Math.max(-room, Math.min(room, max)); return v > hi ? hi : v < -room ? -room : v; };
+export const skyShift = (bias, slide, room, max = 99, min = -99) => { const v = bias + slide, hi = Math.max(-room, Math.min(room, max)), lo = Math.min(hi, Math.max(-room, min)); return v > hi ? hi : v < lo ? lo : v; };

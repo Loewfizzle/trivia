@@ -49,7 +49,7 @@ async function phone(slot, name, qs = '') {
   await ctx.addInitScript(s => { try { localStorage.setItem('nd:entered', '1'); if (s[1]) localStorage.setItem(`na:${s[0]}:profile`, JSON.stringify({ name: s[1], color: 'cyan', avatar: 'bolt' })); } catch { /* fine */ } }, [slot, name]);
   const p = await ctx.newPage();
   const errs = [];
-  p.on('pageerror', e => errs.push(String(e.message || e)));
+  p.on('pageerror', e => { const m = String(e.message || e); if (!/ResizeObserver loop/.test(m)) errs.push(m); });   // (WebKit's benign "ResizeObserver loop completed with undelivered notifications": no error — the site's own errlog drops it too)
   const ev = js => p.evaluate(js);
   const waitFor = async (js, ms = 20000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await p.evaluate(js)) return true; } catch { /* navigating */ } await sleep(60); } return false; };
   const open = async () => { await p.goto(guardUrl(`${BASE}/?emu&slot=${slot}&city=2&when=2026-11-10T20:30${qs}`, 'wk-jaywalk-mem.mjs'), { waitUntil: 'domcontentloaded' }); if (!await waitFor(UP, 90000)) throw new Error(`${name}: the city never came up`); };
