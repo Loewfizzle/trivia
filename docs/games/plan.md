@@ -530,3 +530,9 @@
 ## JAYWALK (the owner, Nov 17 — DECIDED, THE GO-LIVE REVIEW)
 - JAYWALK is FEATURE-COMPLETE after H6B. The owner's calls on H6B's OPEN list: the look switch KEEPS its 1.5 s cross-fade · Downtown's edge shops partly off screen = fine (edge scenery) · the opening stretch has no landmark = fine (home) · the Blackbird's DAY tell = MUST be clearly readable (fairness) · the bridge behind the match chips, the first look switch's hitch, the fog's banding, the 3-digit count near the landmarks = fix.
 - THE TWO DARK NIGHT TOWERS (Grok unavailable): the go-live review LIFTS them in our own copies (the rail yard's water tower + gantry, the airfield's control tower) — Grok's touch-ups may replace them later.
+
+## JAYWALK (the owner, Nov 17 — DECIDED, BEFORE THE FLIP)
+- THE AREA ARRIVAL: the approach sign readable in BOTH looks; + THE ARRIVAL BANNER at the crossing (the area's name big at the top of the screen + "LANE 50", ~2.5 s, timed with the arrival sound, never over the lanes).
+- THE CAMERA + THE SOUNDS ARE PINNED for everyone at go-live: ZOOM 8 · STRAIGHT (the owner, Nov 17); the takes as picked (all A, except NEW BEST = B; the train = set B; the area arrival = the sparkle). The lab keeps its switches for itself; the game never reads the lab's settings.
+- THE RUN CARD UPLOADS ONLY ON SHARE (the owner, Nov 17 — the review's storage finding): nothing is uploaded unless the player taps SHARE; kept 7 days as now.
+- THE "WEBGL CONTEXT LOST" reports in the CITY were JAYWALK's own teardown (most likely) — fixed + proven here.
