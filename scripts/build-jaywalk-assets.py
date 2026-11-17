@@ -516,6 +516,7 @@ def sounds():
         if f.startswith('respawn'): continue   # (H4 — ONE LIFE EVERYWHERE: no respawn, so no respawn sound)
         if f.startswith('car-pass'): continue   # (H5B — the owner: the car-pass near-miss whoosh is REMOVED from the game)
         if f.startswith('train-bell') or f.startswith('landmark'): continue   # (H5C — the owner: the old bells + the landmark ping are REPLACED: sfx3 + sfx4, below)
+        if f.startswith('new-best'): continue   # (H6B — the owner: NEW BEST = its B take — copied in as new-best.mp3, below; take A (the sparkle) is THE AREA ARRIVAL's alone)
         if f.endswith('.mp3') and not f.startswith('train-bell'):
             shutil.copyfile(s, os.path.join(OUT_A, f)); total += os.path.getsize(s)
         elif f.endswith('.wav'):
@@ -529,7 +530,9 @@ def sounds():
             w = wave.open(s, 'rb'); assert (w.getnchannels(), w.getsampwidth()) == (1, 2), f; n, sr = w.getnframes(), w.getframerate(); w.close()
             print(f'  {f}: 16-bit mono, {n} samples @ {sr} Hz (the loop = the whole file)')
         shutil.copyfile(s, os.path.join(OUT_A, f)); total += os.path.getsize(s)
-    for gone in ('train-bell-b.wav', 'landmark.mp3'):   # (… and what they replace leaves the folder)
+    # H6B — NEW BEST = take B ("Fantasy Achievement Unlock Magical Stinger" — TommasoMotteran, CC BY 4.0): ONE take, named new-best.mp3
+    shutil.copyfile(os.path.join(SRC, 'sfx', 'new-best-b.mp3'), os.path.join(OUT_A, 'new-best.mp3')); total += os.path.getsize(os.path.join(SRC, 'sfx', 'new-best-b.mp3'))
+    for gone in ('train-bell-b.wav', 'landmark.mp3', 'new-best-b.mp3'):   # (… and what they replace leaves the folder)
         if os.path.exists(os.path.join(OUT_A, gone)): os.remove(os.path.join(OUT_A, gone))
     # CREDITS.md: every file's source lines from notes.txt (the DELIVERED FILES block) + the CC BY block
     notes = open(os.path.join(SRC, 'sfx', 'notes.txt'), encoding='utf-8').read()
@@ -539,9 +542,10 @@ def sounds():
         files, dur, lic, rest = m.group(1), m.group(2), m.group(3).strip(), m.group(4)
         get = lambda k: (re.search(r'^\s+' + k + r':\s+(.*)$', rest, re.M) or [None, ''])[1].strip()
         if 'train-bell' in files: files = files.split(' / ')[0]   # (only the WAV ships: the loop)
-        if files.startswith(('car-pass', 'respawn', 'train-bell', 'landmark')): continue   # (not shipped: H4 — respawn, H5B — car-pass, H5C — the old bells + the landmark ping)
+        if files.startswith(('car-pass', 'respawn', 'train-bell', 'landmark', 'new-best')): continue   # (not shipped: H4 — respawn, H5B — car-pass, H5C — the old bells + the landmark ping; H6B — new-best: its own row below)
         rows.append(f'| {files} | {get("Title")} | {get("Author")} | {lic.replace("  -- credit required", " — CREDIT REQUIRED")} | {get("Source")} |')
-    by = notes.split('CREDITS BLOCK')[1].split('=' * 20)[1].strip() if 'CREDITS BLOCK' in notes else ''
+    blk = notes.split('CREDITS BLOCK')[1] if 'CREDITS BLOCK' in notes else ''
+    by = blk[blk.index('\n', blk.index('====')) + 1:].split('All other delivered files')[0].strip() if '====' in blk else ''   # (the delivery's own CC BY block: the exact lines)
     md = ['# JAYWALK — the sounds\' credits', '',
           'Copied from the owner\'s delivery (Downloads\\grok\\jaywalk\\sfx\\notes.txt, Nov 12 2026) by `scripts/build-jaywalk-assets.py`. Every pick +',
           'every `-b` backup is here for THE SOUND AUDITION (/jaywalk-lab → SOUNDS); the unpicked ones leave once the owner has chosen (their',
@@ -549,10 +553,13 @@ def sounds():
           'H5B (the owner, Nov 16): the two CAR-PASS takes are GONE (the near-miss whoosh was removed from the game) — never copied in again.', '',
           'H5C (the owner, Nov 16): THE TRAIN SOUNDS = set B (the delivery\'s sfx3 folder) — the old bells (both takes) are GONE, the train HORN',
           'is new; THE AREA ARRIVAL (the sfx4 folder) replaces the landmark ping (gone). The bell + the horn are CC BY: their credit is REQUIRED.', '',
+          'H6B (the owner, Nov 17): NEW BEST = its B take, shipped as `new-best.mp3` (ONE take: the sparkle — take A — is THE AREA ARRIVAL\'s alone).',
+          'It is CC BY 4.0: its credit is REQUIRED. The game\'s credits (☰ → Credits) carry every line below — `js/ui/credits.js`.', '',
           '| file | title | author | licence | source |', '| --- | --- | --- | --- | --- |', *rows,
           '| train-bell.wav | Railroad Crossing Bell | Brylon Terry (SoundBible.com) | CC BY 3.0 — CREDIT REQUIRED | https://soundbible.com/2070-Railroad-Crossing-Bell.html |',
           '| train-horn.mp3 | Train Diesel Double Horn from Class 142 with Reverb | AMBIOSIS | CC BY 4.0 — CREDIT REQUIRED | https://freesound.org/s/316689/ |',
-          '| area-arrive.mp3 | achievement-sparkle | SkySpeira | CC0 1.0 | https://freesound.org/s/715067/ |', '',
+          '| area-arrive.mp3 | achievement-sparkle | SkySpeira | CC0 1.0 | https://freesound.org/s/715067/ |',
+          '| new-best.mp3 | Fantasy Achievement Unlock Magical Stinger | TommasoMotteran | CC BY 4.0 — CREDIT REQUIRED | https://freesound.org/people/TommasoMotteran/sounds/859080/ |', '',
           '## CC BY — these need their credit in the game\'s credits (☰ → CREDITS) when they ship in play', '', '```', by, '',
           '"Railroad Crossing Bell" by Brylon Terry (SoundBible.com), CC BY 3.0. https://soundbible.com/2070-Railroad-Crossing-Bell.html',
           '"Train Diesel Double Horn from Class 142 with Reverb" by AMBIOSIS (Freesound), CC BY 4.0. https://freesound.org/s/316689/', '```', '',

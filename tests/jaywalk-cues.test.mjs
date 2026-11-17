@@ -143,7 +143,7 @@ test('THE PLAYER + THE VIEWS: a sound\'s own cap, the pan, the bell = ONE loop f
   assert.match(s, /for \(const id of ids\) for \(const k of both \? keysOf\(BY\[id\]\) : \[`\$\{id\}:\$\{pick\(id\)\}`\]\)/, 'the game fetches the take it plays (the owner\'s pick) — the backups only for the audition');
   assert.match(v, /if \(sndOn && !isOver\(run\)\) \{ try \{ for \(const q of cuesAt\(cues, run, course\)\) \{ SFX\.onCue\(q\); duck\(q\.cue\); \} \}/, 'the cues come from THIS phone\'s own run — a ghost makes no sound, an ended run none');
   assert.doesNotMatch(v, /cuesAt\([^)]*G\.run|onCue\([^)]*ghost/, 'never a ghost\'s cues');
-  assert.match(v, /if \(ducked == null\) \{ ducked = musicDuckLevel\(\); duckMusic\(Math\.min\(ducked, D\.level\), D\.inS\); \}/); assert.match(v, /function unduck\(\) \{ clearTimeout\(duckT\); if \(ducked != null\) \{ duckMusic\(ducked, SFX\.TRAIN_DUCK\.outS\); ducked = null; \} \}/, 'the music comes back to the level it had');
+  assert.match(v, /const k = Math\.min\(trainOn \? SFX\.TRAIN_DUCK\.level : 1, momK\);\s*if \(k < 1\) \{ if \(ducked == null\) ducked = musicDuckLevel\(\); duckMusic\(Math\.min\(ducked, k\), sec\); \} else if \(ducked != null\) \{ duckMusic\(ducked, sec\); ducked = null; \}/, 'ONE duck (H6B): the deeper of the train\'s + the big moment\'s; the music comes back to the level it had'); assert.match(v, /function unduck\(\) \{ clearTimeout\(duckT\); trainOn = false; momK = 1; applyDuck\(SFX\.TRAIN_DUCK\.outS\); \}/);
   assert.match(v, /function quiet\(\)/); assert.ok((v.match(/quiet\(\);/g) || []).length >= 3, 'the bell stops + the music returns at the run\'s end, a new run, the unmount');
   assert.match(lab, /for \(const q of cuesAt\(cues, run, course\)\) snd\.onCue\(q\);/, 'the lab hears the same cues');
   // PURE: cues.js knows no audio, no DOM, no clock, no randomness
@@ -175,7 +175,7 @@ test('H5C — THE TRAIN HORN: ONE blast a train, when its warning STARTS (with t
   for (const f of ['train-bell.wav', 'train-horn.mp3', 'area-arrive.mp3']) assert.ok(existsSync(new URL(`../audio/jaywalk/${f}`, import.meta.url)), `${f} ships`);
   const all = code('sfx.js') + code('cues.js') + code('view.js') + code('lab.js') + code('audition.js') + code('sounds.js');
   assert.doesNotMatch(all, /play\('landmark'|id: 'landmark'/, 'no code plays the old landmark cue');
-  assert.match(code('sfx.js'), /if \(q\.cue === 'train-horn'\) return play\('train-horn', \{ pan: q\.pan \}\);/); assert.match(code('sfx.js'), /export const JW_SFX_REV = 2;/, 'the bell\'s file was replaced: the rev is bumped');
+  assert.match(code('sfx.js'), /if \(q\.cue === 'train-horn'\) return play\('train-horn', \{ pan: q\.pan \}\);/); assert.match(code('sfx.js'), /export const JW_SFX_REV = 3;/, 'a file was replaced: the rev is bumped (2: the bell · 3: H6B\'s NEW BEST = take B)');
   assert.match(code('view.js'), /SFX\.play\('area-arrive'\)/); assert.match(code('lab.js'), /snd\.play\('area-arrive'\)/);
   const cr = readFileSync(new URL('../audio/jaywalk/CREDITS.md', import.meta.url), 'utf8');
   for (const line of ['"Railroad Crossing Bell" by Brylon Terry (SoundBible.com), CC BY 3.0. https://soundbible.com/2070-Railroad-Crossing-Bell.html', '"Train Diesel Double Horn from Class 142 with Reverb" by AMBIOSIS (Freesound), CC BY 4.0. https://freesound.org/s/316689/', '"achievement-sparkle" by SkySpeira (Freesound), CC0 1.0. https://freesound.org/s/715067/']) assert.ok(cr.includes(line), `the credits carry: ${line}`);

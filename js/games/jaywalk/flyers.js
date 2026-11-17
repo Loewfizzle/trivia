@@ -41,6 +41,27 @@ export const FLY = Object.freeze({
   abductMs: 2000,                                // (THE ABDUCTION, start to end)
   warn: 10 * TICK_HZ, liftMs: 2600,              // (THE MOTHERSHIP's warning: the cap − 10 s · how long a kid takes to rise into it)
 });
+/**
+ * THE MIX (H6B — docs/jaywalk.md "THE MIX"; measured by tests/integration/jaywalk-mix.mjs): every city sound the moments play — its
+ * gain into the SFX bus (the files are levelled: one-shots ≈ −20 LUFS, the hum −24), its rate, where in the file it starts. A `@ship`
+ * row is the same file as THE MOTHERSHIP plays it (pitched down). The loops' gains are their LOUDEST (they follow the moment).
+ */
+export const MIX = Object.freeze({
+  'radio-static_1': { gain: 0.34, what: 'THE BLACKBIRD — the radio crackle as its tell starts' },
+  'jet-scream': { gain: 0.62, at: 0.4, what: '… its scream, started so its peak lands on the pass' },
+  'sonic-boom': { gain: 0.8, what: '… the boom on the pass' },
+  'ufo-hum': { gain: 0.3, loop: true, what: 'THE UFO — its hum, nearer = louder (this is its loudest)' },
+  'ufo-beam-on': { gain: 0.6, at: 3.0, what: 'THE ABDUCTION — the beam slams down' },
+  'ufo-lift': { gain: 0.5, at: 3.4, what: '… the kid goes up' },
+  'ufo-depart': { gain: 0.6, at: 1.5, what: '… it zips off' },
+  'ufo-beam-off': { gain: 0.46, at: 1.1, what: '… the beam snaps out' },
+  'ufo-hum@ship': { gain: 0.75, rate: 0.5, loop: true, what: 'THE MOTHERSHIP — the deep hum, building through the warning (its loudest)' },
+  'ufo-beam-on@ship': { gain: 0.72, rate: 0.62, at: 2.6, what: '… its beam as it arrives' },
+  'ufo-lift@ship': { gain: 0.6, rate: 0.75, at: 2.6, what: '… every kid goes up' },
+});
+/** THE MUSIC DUCKS under the big moments (the share of its level it keeps; the view applies it — view.js#applyDuck): THE BLACKBIRD's
+ *  pass (its last second → the boom's tail) · THE ABDUCTION · THE MOTHERSHIP's warning → its arrival */
+export const DUCK = Object.freeze({ jet: 0.45, ufo: 0.4, warn: 0.62, ship: 0.3, rumble: 0.5 });
 /** how long the scene is held on a run's end before the end screen may cover it (ms): the abduction + the lift are SEEN */
 export const holdMs = run => (run.st === 'taken' ? 4200 : run.cause === 'ufo' ? FLY.abductMs + 250 : run.cause === 'blackbird' ? 1100 : 0);
 
@@ -135,7 +156,9 @@ export function createFlyers(C) {
     const done = () => { for (const m of ms) if (m.position.y === -60) m.visible = false; };
     try { const q = C.renderer.compileAsync(scene, cam); if (q && q.then) q.then(done, done); else { done(); C.rewarm(); } } catch { done(); C.rewarm(); }
   }
-  let nj = 0, nu = 0, nk = 0, shakeNow = 0, humD = 99, dimNow = 0;
+  let nj = 0, nu = 0, nk = 0, shakeNow = 0, humD = 99, dimNow = 0, duckK = 1, duckJ = 1;
+  /** play one of THE MIX's rows (`o` adds to it: a pan, a start that follows the moment) */
+  const mix = (id, o) => play(id.replace(/@.*/, ''), { ...MIX[id], ...o });
   // (the kid's own moments are asked for BEFORE night.js resets its instanced kinds for the frame: what they lay waits here)
   const pend = [], flush = () => { for (const f of pend) f(); pend.length = 0; };
   const snd = { bands: new Map(), hum: null, abd: 0, ship: null, rum: null, shipAt: -1 };
@@ -172,8 +195,10 @@ export function createFlyers(C) {
       const k = Math.floor((F.t - p.phase) / p.period) + (tell ? 1 : 0), key = p.band, S = snd.bands.get(key) || { k: -1, s: 0 };
       if (S.k !== k) { S.k = k; S.s = 0; snd.bands.set(key, S); if (snd.bands.size > 6) snd.bands.delete(snd.bands.keys().next().value); }
       const pan = -dir * 0.6;
-      if (tell && !(S.s & 1) && left0 > p.tell - 20) { S.s |= 1; play('radio-static_1', { gain: 0.5 }); play('jet-scream', { gain: 0.75, at: Math.max(0, 2.4 - left0 / TICK_HZ), pan }); }
-      if (!(S.s & 2) && ((tell && left0 <= 14) || (!tell && u < 20))) { S.s |= 2; play('sonic-boom', { gain: 1, pan: pan * 0.5 }); }
+      if (tell && !(S.s & 1) && left0 > p.tell - 20) { S.s |= 1; mix('radio-static_1'); mix('jet-scream', { at: Math.max(0, 2.4 - left0 / TICK_HZ), pan }); }
+      if (!(S.s & 2) && ((tell && left0 <= 14) || (!tell && u < 20))) { S.s |= 2; mix('sonic-boom', { pan: pan * 0.5 }); }
+      // (the music ducks under it: from the tell's last second — the scream's peak — to the boom's tail)
+      if ((tell && left0 <= TICK_HZ) || (!tell && u < 100)) duckJ = DUCK.jet;
     }
     // THE GLINT (the tell's last 0.5 s): AT THE SCREEN EDGE IT COMES FROM (the camera's own edge on the band's row) — a big four-point
     // star + the afterburners' flare (a blue-white heart in an orange rim), on a dark halo by day; it grows as the jet nears
@@ -256,7 +281,7 @@ export function createFlyers(C) {
   const abd = { on: false, id: -1, t0: 0, x: 0, z: 0, sx: 0, sz: 0 };
   // (H6B — on the abducted player's OWN phone the world dims round the beam for its ≈ 2 s: one soft shade over the scene, its clear
   //  heart set on the beam once, as it starts — after that its opacity alone moves)
-  const dimAt = [50, 50]; let dimEl = null, dimO = '0';
+  const dimAt = [50, 50]; let dimEl = null, dimO = '0', duckNow = 1;
   function dimSet() {
     const o = dimNow < 0.01 ? '0' : (0.8 * dimNow).toFixed(2);
     if (o === dimO) return;
@@ -343,7 +368,7 @@ export function createFlyers(C) {
     if (!U) return null;
     if (!abd.on || abd.id !== U.id || e < F.dt * 1.5) {
       abd.on = true; abd.id = U.id; abd.t0 = F.clock - e; abd.x = x; abd.z = z; abd.sx = X(ufoX(U, t) / FP); abd.sz = Z(ufoY(U, t) / FP);
-      if (F.own && e < 400 && snd.abd !== abd.t0) { snd.abd = abd.t0; play('ufo-beam-on', { gain: 0.7, at: 3.0 }); play('ufo-lift', { gain: 0.6, at: 3.4 }); setTimeout(() => { if (!dead) { play('ufo-depart', { gain: 0.7, at: 1.5 }); play('ufo-beam-off', { gain: 0.6, at: 1.1 }); } }, 1350); }
+      if (F.own && e < 400 && snd.abd !== abd.t0) { snd.abd = abd.t0; mix('ufo-beam-on'); mix('ufo-lift'); setTimeout(() => { if (!dead) { mix('ufo-depart'); mix('ufo-beam-off'); } }, 1350); }
     }
     // (he rises INTO the saucer — H6B: it is solid, so its hull hides him as he goes in through the hatch; never left under its rim)
     const A = abductAt(e), top = A.top - 0.1, by = top * A.rise;
@@ -504,11 +529,12 @@ export function createFlyers(C) {
       if (!reduce) for (let i = 0; i < 18; i++) { const m = (F.clock / 1300 + i * 0.618) % 1, a = i * 2.39; K.bill.put(F.camX + Math.cos(a) * (0.8 + (i % 5) * 0.75) * (1 - 0.6 * m), m * 10, cz + Math.sin(a) * (0.8 + (i % 4) * 0.8), 0.2, 0.2, 1, 0, 0xfff6dc, 1, 5, Math.sin(m * Math.PI) * b); }
     }
     // THE SOUNDS: the UFO's hum pitched down + the rumble, both building through the warning; the beam + the lift as it arrives
-    if (!snd.ship) { snd.ship = play('ufo-hum', { gain: 0.02, rate: 0.5, loop: true }); snd.rum = rumble(); }
+    if (!snd.ship) { snd.ship = mix('ufo-hum@ship', { gain: 0.02 }); snd.rum = rumble(); }
     if (arr < 0) snd.shipAt = -1;
     const lv = arr >= 0 ? Math.max(0, 1 - Math.max(0, arr - 2600) / 1500) : 0.12 + 0.88 * w * w;
-    snd.ship.gain(0.5 * lv, 0.3); if (snd.rum) snd.rum.gain(0.55 * lv);
-    if (arr >= 0 && arr < 900 && snd.shipAt < 0) { snd.shipAt = F.clock; play('ufo-beam-on', { gain: 0.8, rate: 0.62, at: 2.6 }); setTimeout(() => { if (!dead && ship.on) play('ufo-lift', { gain: 0.7, rate: 0.75, at: 2.6 }); }, 600); }
+    snd.ship.gain(MIX['ufo-hum@ship'].gain * lv, 0.3); if (snd.rum) snd.rum.gain(DUCK.rumble * lv);
+    duckK = Math.min(duckK, arr >= 0 ? DUCK.ship + (1 - DUCK.ship) * clamp01((arr - 3000) / 1500) : DUCK.warn + (1 - DUCK.warn) * (1 - Math.min(1, w * 4)));
+    if (arr >= 0 && arr < 900 && snd.shipAt < 0) { snd.shipAt = F.clock; mix('ufo-beam-on@ship'); setTimeout(() => { if (!dead && ship.on) mix('ufo-lift@ship'); }, 600); }
   }
   function shipOff() {
     ship.on = false; ship.sec = -1;
@@ -526,14 +552,18 @@ export function createFlyers(C) {
     for (let i = nu; i < ufos.length; i++) { ufos[i].m.visible = false; ufos[i].id = -1; }
     // (the kid's own moments are asked for BEFORE begin(): what they counted is closed here, at the frame's end)
     for (let i = nk; i < sparks.length; i++) if (sparks[i].style.opacity !== '0') sparks[i].style.opacity = '0';
+    // THE MUSIC's DUCK this frame: the deepest of what is on — THE ABDUCTION (his own) · THE BLACKBIRD's pass · THE MOTHERSHIP
+    duckNow = Math.min(duckK, duckJ, dimNow > 0.02 ? DUCK.ufo : 1); duckK = 1; duckJ = 1;
     dimSet(); nk = 0; dimNow = 0;
     if (abd.on && F.clock - abd.t0 > FLY.abductMs + 900) abd.on = false;
-    const want = F.own && F.alive && humD < 8 ? 0.34 * Math.pow(1 - humD / 8, 1.5) : 0;
-    if (want > 0.004 && !snd.hum) snd.hum = play('ufo-hum', { gain: want, loop: true });
+    const want = F.own && F.alive && humD < 8 ? MIX['ufo-hum'].gain * Math.pow(1 - humD / 8, 1.5) : 0;
+    if (want > 0.004 && !snd.hum) snd.hum = mix('ufo-hum', { gain: want });
     else if (snd.hum) { if (want <= 0.004 && humD > 12) { snd.hum.stop(0.6); snd.hum = null; } else snd.hum.gain(want, 0.25); }
   }
   return {
     begin, jet, blast, ufo, abduct, lift, lifted, ship: shipAt, end, holdMs,
+    /** how much of its level the music keeps under the moment on screen (1 = no moment — DUCK) */
+    duck: () => duckNow,
     /** the camera's small shake this frame (cells — THE BLACKBIRD's pass; 0 with reduce motion) */
     shake: () => shakeNow,
     /** the meshes night.js's warm frame must have seen (their programs + buffers made before the moment, never in it) */

@@ -7,19 +7,22 @@
  *  H5B (the owner, playing H5A): THE HORN AT HALF its level (1.0 → 0.5) · the CAR-PASS near-miss whoosh is GONE ("it's terrible" — its
  *  row, its cue, its fetch, its two files) · the train sounds FADE OUT (`FADE_S`)
  *  H5C (the owner): THE TRAIN SOUNDS = set B — a North American crossing bell (ONE take: the old bells, A + B, are gone) + THE TRAIN
- *  HORN (one blast a train, when its warning starts) · THE AREA ARRIVAL ("area-arrive") replaces the landmark ping (its row + file gone) */
+ *  HORN (one blast a train, when its warning starts) · THE AREA ARRIVAL ("area-arrive") replaces the landmark ping (its row + file gone)
+ *  H6B (the owner): NEW BEST = its B take, ONE take (the sparkle is THE AREA ARRIVAL's alone) · THE MIX — every gain set against the
+ *  others, MEASURED (tests/integration/jaywalk-mix.mjs — docs/jaywalk.md "THE MIX"): the train's bell + horn + the arrival chime came
+ *  in 10–17 dB hotter than the rest; the hop + the landing a touch softer (heard hundreds of times a run) */
 export const SOUNDS = Object.freeze([
-  { id: 'hop', label: 'HOP', b: true, gain: 1.5, pri: 1, play: true },
-  { id: 'land-wood', label: 'LAND ON A LOG', b: true, gain: 1.7, pri: 1, play: true },
+  { id: 'hop', label: 'HOP', b: true, gain: 1.25, pri: 1, play: true },
+  { id: 'land-wood', label: 'LAND ON A LOG', b: true, gain: 1.4, pri: 1, play: true },
   { id: 'hit', label: 'HIT', b: false, gain: 2.1, pri: 4, play: true },
   { id: 'splash', label: 'SPLASH', b: false, gain: 2.2, pri: 4, play: true },
   { id: 'horn', label: 'HORN', b: false, gain: 0.5, pri: 2, play: true, max: 1 },
-  { id: 'train-bell', label: 'TRAIN BELL (LOOP)', b: false, gain: 1.0, pri: 3, loop: true, ext: 'wav', play: true, max: 1, fade: 0.5 },
-  { id: 'train-horn', label: 'TRAIN HORN', b: false, gain: 0.8, pri: 3, play: true, max: 1, fade: 0.5 },
-  { id: 'train-pass', label: 'TRAIN PASSING', b: true, gain: 1.6, pri: 3, play: true, max: 1, fade: 0.5 },
+  { id: 'train-bell', label: 'TRAIN BELL (LOOP)', b: false, gain: 0.29, pri: 3, loop: true, ext: 'wav', play: true, max: 1, fade: 0.5 },
+  { id: 'train-horn', label: 'TRAIN HORN', b: false, gain: 0.23, pri: 3, play: true, max: 1, fade: 0.5 },
+  { id: 'train-pass', label: 'TRAIN PASSING', b: true, gain: 1.2, pri: 3, play: true, max: 1, fade: 0.5 },
   { id: 'lights-die', label: 'THE LIGHTS DIE', b: false, gain: 1.6, pri: 3, play: true, max: 1 },
-  { id: 'area-arrive', label: 'AREA ARRIVAL', b: false, gain: 1.4, pri: 3, play: true },
-  { id: 'new-best', label: 'NEW BEST', b: true, gain: 1.6, pri: 3, play: true },
+  { id: 'area-arrive', label: 'AREA ARRIVAL', b: false, gain: 0.36, pri: 3, play: true },
+  { id: 'new-best', label: 'NEW BEST', b: false, gain: 1.45, pri: 3, play: true },
 ]);
 /** the music ducks a little under the train (the bell + the pass): to this much of its level, in / out over these seconds */
 export const TRAIN_DUCK = Object.freeze({ level: 0.72, inS: 0.25, outS: 0.9, holdMs: 1700 });

@@ -118,7 +118,7 @@ test('H6A — EACH CARD IS GRANTED BY ITS OWN ACHIEVEMENT (game jaywalk), from i
 
 test('the credits: JAYWALK\'s card art + billboard art ("created with Grok") + H6A — its 3D models (the flyers are CC BY: their credit is REQUIRED)', () => {
   const all = CREDITS.filter(c => /JAYWALK/.test(c.title)), rows = all.filter(c => /card art/.test(c.title)), mods = all.filter(c => /3D models/.test(c.title));
-  assert.equal(all.length, 2); assert.equal(mods.length, 1);
+  assert.equal(all.length, 2); assert.equal(mods.length, 1); assert.ok(all.every(c => c.group === 'JAYWALK'), 'H6B: in the game\'s own credits group');
   assert.match(mods[0].by, /Sr-71 by Kiiba \(CC BY 4\.0/); assert.match(mods[0].by, /Poly by Google \(CC BY 3\.0/);
   assert.equal(rows.length, 1); assert.equal(rows[0].title, 'JAYWALK — card art + billboard art'); assert.match(rows[0].by, /Card art created with Grok \(Grok Imagine, xAI\)/);
 });

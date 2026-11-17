@@ -88,7 +88,7 @@ export function createView() {
   const ghosts = new Map();   // uid → ghosts.js#createGhost (conf · run · log · done · held · vis · behind) + { uid, n (chunks read), lastT, hex, name, tagEl, dir, outAt }
   let look = 'night';   // (H5B — the look this screen is drawn in now)
   let rosterEl = null, rosterKey = '';   // (H5B's add-on — THE NAMES AT THE START: who is playing, lined up through the 3 · 2 · 1)
-  let cues = createCues(), ducked = null, duckT = 0;   // (H5A — THE WORLD's SOUNDS: cues.js; the music's level before the train ducked it)
+  let cues = createCues(), ducked = null, duckT = 0, trainOn = false, momK = 1;   // (H5A — THE WORLD's SOUNDS: cues.js; the music's level before the train ducked it)
   let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;   // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, orderKey = '', countKey = '', watchKey = '';
   const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
@@ -255,16 +255,22 @@ export function createView() {
     // own kid's only (a ghost makes no sound), only while he is in
     if (sndOn && !isOver(run)) { try { for (const q of cuesAt(cues, run, course)) { SFX.onCue(q); duck(q.cue); } } catch { /* silent */ } }
   }
-  /** the music ducks a little under the train: down with the bell, back up a moment after the pass / the bell's end */
+  /** THE MUSIC DUCKS (H5A: a little under the train — down with the bell, back up a moment after the pass / the bell's end · H6B: under
+   *  the big moments — flyers.js#DUCK, asked a frame): ONE level, the deeper of the two; the level it found is put back after */
+  function applyDuck(sec) {
+    const k = Math.min(trainOn ? SFX.TRAIN_DUCK.level : 1, momK);
+    if (k < 1) { if (ducked == null) ducked = musicDuckLevel(); duckMusic(Math.min(ducked, k), sec); } else if (ducked != null) { duckMusic(ducked, sec); ducked = null; }
+  }
   function duck(cue) {
     if (cue !== 'bell-on' && cue !== 'bell-off' && cue !== 'train-pass') return;
     clearTimeout(duckT);
-    const D = SFX.TRAIN_DUCK;
-    if (cue === 'bell-off') { duckT = setTimeout(unduck, 250); return; }
-    if (ducked == null) { ducked = musicDuckLevel(); duckMusic(Math.min(ducked, D.level), D.inS); }
-    if (cue === 'train-pass') duckT = setTimeout(unduck, D.holdMs);
+    const D = SFX.TRAIN_DUCK, up = () => { trainOn = false; applyDuck(D.outS); };
+    if (cue === 'bell-off') { duckT = setTimeout(up, 250); return; }
+    trainOn = true; applyDuck(D.inS);
+    if (cue === 'train-pass') duckT = setTimeout(up, D.holdMs);
   }
-  function unduck() { clearTimeout(duckT); if (ducked != null) { duckMusic(ducked, SFX.TRAIN_DUCK.outS); ducked = null; } }
+  function duckMoment() { const k = night && sndOn ? night.duck() : 1; if (k !== momK) { const down = k < momK; momK = k; applyDuck(down ? 0.3 : 1.1); } }
+  function unduck() { clearTimeout(duckT); trainOn = false; momK = 1; applyDuck(SFX.TRAIN_DUCK.outS); }
   /** the world goes quiet (the run ended, a new run, the view left): the bell stops, the music comes back up */
   function quiet() { try { SFX.onCue({ cue: 'bell-off' }); if (night) night.quiet(); } catch { /* silent */ } unduck(); }
   /** a lane farther than ever this run: YOUR BEST LINE crossed = the run is a NEW RECORD from here (a burst along the line, the new-best
@@ -498,7 +504,7 @@ export function createView() {
     }
     if (isMatch) drawCount(g);
     drawLines(mine(g) && drawRun === run);
-    night.draw(drawRun, course, a, dt, extra);
+    night.draw(drawRun, course, a, dt, extra); duckMoment();
     if (shotAt && performance.now() >= shotAt) takeShot();
     // the ghosts' name tags: each over its kid; two that would sit on each other (everyone on the start cell) stack upward
     // (H5B's add-on — THE GHOSTS STOP BLOCKING YOU: no tag through the count (the names are lined up — the roster); a ghost NEAR YOU

@@ -14,7 +14,7 @@ import { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S } from './sounds.js
 export { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S };
 
 const DIR = new URL('../../../audio/jaywalk/', import.meta.url);
-export const JW_SFX_REV = 2;   // (bump when a sound file is replaced — 2: H5C's train bell)
+export const JW_SFX_REV = 3;   // (bump when a sound file is replaced — 2: H5C's train bell · 3: H6B's NEW BEST = take B)
 const BY = Object.fromEntries(SOUNDS.map(s => [s.id, s]));
 export const LIMITER = Object.freeze({ threshold: -8, knee: 6, ratio: 8, attack: 0.002, release: 0.16 });
 export const TRIM = 0.8;       // (takes the compressor's own make-up gain back out: a lone sound plays at its level)

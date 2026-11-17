@@ -176,4 +176,29 @@ export async function looksH6B(p, { ok, shot, sleep, waitFor, what = '', reqs = 
     await fresh('night'); await sleep(300); await stand(262, 4); await sleep(1500); await shot(p, 'taillights/night-a-busy-road.png');
     await L("window.__jwLab.setLook('day')"); await sleep(1900); await shot(p, 'taillights/day-a-busy-road.png'); await L("window.__jwLab.setLook('night')");
   }
+
+  // ---- THE CREDITS: JAYWALK's own group in the site's Credits sheet (☰ → Credits) — every sound + model + the art created with Grok
+  if (all || what === 'credits') {
+    const o = await open(390, 844, 3, '&seed=look3');
+    await o.p.goto(`${new URL(o.p.url()).origin}/?emu`, { waitUntil: 'load' });
+    await waitFor(o.p, "!!document.querySelector('#app') && !document.querySelector('#boot:not([hidden])') || document.readyState === 'complete'", 20000); await sleep(2500);
+    const r = await o.p.evaluate(async () => {
+      const m = await import('/js/ui/credits.js'); m.openCredits();
+      await new Promise(q => setTimeout(q, 600));
+      const g = [...document.querySelectorAll('.cr-group')].find(x => x.querySelector('.cr-head').textContent === 'JAYWALK');
+      if (!g) return null;
+      g.scrollIntoView({ block: 'start' });
+      const rows = m.CREDITS.filter(c => c.group === 'JAYWALK');
+      return { n: g.querySelectorAll('.cr-item').length, rows: rows.length, by: rows.map(c => c.by).join(' ¦ '), h: g.getBoundingClientRect().height };
+    });
+    ok(r && r.n === r.rows && r.n >= 12, `the Credits sheet has JAYWALK's own group (${r && r.n} lines)`);
+    for (const need of ['"Fantasy Achievement Unlock Magical Stinger" by TommasoMotteran', 'Licensed under CC BY 4.0', '"Neon ON OFF" by SkyernAklea', '"Railroad Crossing Bell" by Brylon Terry (SoundBible.com), CC BY 3.0', '"Train Diesel Double Horn from Class 142 with Reverb" by AMBIOSIS (Freesound), CC BY 4.0', '"Train Passing A" by InspectorJ', 'by Kiiba (https://sketchfab.com/Kiiba), licensed under CC-BY-4.0', 'Poly by Google', 'Skyline art created with Grok', 'Card art created with Grok', 'City Kit (Commercial)'])
+      ok(r && r.by.includes(need), `… with: ${need}`);
+    await sleep(400); await shot(o.p, 'credits/credits-jaywalk-1.png');
+    await o.p.evaluate(() => { const g = [...document.querySelectorAll('.cr-group')].find(x => x.querySelector('.cr-head').textContent === 'JAYWALK'), it = g.querySelectorAll('.cr-item'); it[Math.min(it.length - 1, 6)].scrollIntoView({ block: 'start' }); });
+    await sleep(400); await shot(o.p, 'credits/credits-jaywalk-2.png');
+    await o.p.evaluate(() => { const g = [...document.querySelectorAll('.cr-group')].find(x => x.querySelector('.cr-head').textContent === 'JAYWALK'), it = g.querySelectorAll('.cr-item'); it[it.length - 1].scrollIntoView({ block: 'end' }); });
+    await sleep(400); await shot(o.p, 'credits/credits-jaywalk-3.png');
+    await o.close();
+  }
 }
