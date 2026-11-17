@@ -106,7 +106,7 @@ function matchScene(el, game, state) {
   const E = endOf(game, uid, code), place = (standings(game).find(r => r.uid === uid) || {}).rank || 0;
   // (compact: the frame's WINNER line leads and the list follows — the words, then ONE line: the lanes + the place)
   const lanesTxt = `${num(E.lanes)} ${E.lanes === 1 ? 'LANE' : 'LANES'}`;
-  buildEnd(el, { line: E.ship ? `YOU ${E.line}` : E.line, lanes: E.lanes, note: game.unproven ? `${lanesTxt} · NOT COUNTED — NO LINE TO THE BOARD` : place ? `${lanesTxt} · YOU FINISHED ${place}${['', 'ST', 'ND', 'RD'][place] || 'TH'}` : lanesTxt });
+  buildEnd(el, { line: E.ship ? `YOU ${E.line}` : E.line, lanes: E.lanes, note: game.unproven ? `${lanesTxt} · NOT COUNTED — NO LINE TO THE BOARD` : place ? `${E.ship ? '' : `${lanesTxt} · `}YOU FINISHED ${place}${['', 'ST', 'ND', 'RD'][place] || 'TH'}` : lanesTxt });
   // H6A — THE MOTHERSHIP = A FINISH LINE: gold words, the lanes big, a crown + a gold burst (the css — transform + opacity only)
   if (E.ship) { el.classList.add('is-ship'); el.prepend(h('div.jw-fin-crown', { 'aria-hidden': 'true' }, h('i'), h('b'))); }
   // H6A — YOUR BEST ANYWHERE: a counted match run past your best = NEW BEST here too (the server's own answer for this match)

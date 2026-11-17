@@ -12,7 +12,7 @@ The passes: `docs/harbor/passes/progression-a.md` · `docs/harbor/passes/progres
 | `js/core/levels.js` | PURE — the curve (`XP_AT`, `levelOf`, `levelInfo`), the BANDS, THE LEVEL REWARDS table, the vague tease (`nextRewardLevel`) |
 | `js/core/streak.js` | PURE — the 4 am day, `streakPlay` (freezes, the break, WIN IT BACK, the outage, the milestones), `streakView` (what the screens show) |
 | `js/core/items.js` | PURE — every collectible (cards · emblem shapes · tube styles · name glows · flame · favor): id, name, tier, placeholder palette |
-| `js/core/achievements.js` | PURE — THE 32 ACHIEVEMENTS (checks + their item), the counters (`noteMatch`, `noteEvent`), THE AWARD ENGINE (`awardAll` + FOUNDER) |
+| `js/core/achievements.js` | PURE — THE ACHIEVEMENTS (45 — the 32 + each game's own) (checks + their item), the counters (`noteMatch`, `noteEvent`), THE AWARD ENGINE (`awardAll` + FOUNDER) |
 | `js/core/daily.js` | PURE — THE DAILY CONTRACT: a cartridge's shape, `registerDaily`, the standing (percentile + bands), YOUR TABLE's TODAY |
 | `js/core/progress.js` | PURE — the steps the server runs inside ONE transaction: `matchStep` (a counted match), `dailyStep`, `eventStep`, `carryOver` |
 | `api/_lib/stats.js` | a verified match → `matchStep` per player (+ the facts only the server knows: the host, the room, the hour, the holiday, the friends) |
@@ -86,7 +86,7 @@ with a counted match / daily) + `pcount/i/{item}` + `pcount/a/{ach}` (`ServerVal
 `{action:'style', card?, glow?, tube?, shape?}` — only what you own (the server checks `pstats/it`; GILDED is everyone's) →
 `profiles/{pid}/cd · g · tb · es`. **COLLECTIONS SHOW ONLY WHAT YOU OWN** — no ???, no silhouettes, no locked slots, no totals, no list of what's left.
 
-## THE ACHIEVEMENTS (41 since PD-5B — shown only once earned + X%)
+## THE ACHIEVEMENTS (45 since JAYWALK H6A; 41 since PD-5B — shown only once earned + X%)
 | group | achievement — how | unlocks |
 | --- | --- | --- |
 | PLAYING | FIRST ROUND — your first match | glow EMBER |
@@ -112,6 +112,12 @@ with a counted match / daily) + `pcount/i/{item}` + `pcount/a/{ach}` (`ServerVal
 CLEAR (`perfect-clear` — a perfect clear, any mode; a SOLO run counts: the solo lane hands its row's flags to the award engine) → card PERFECT CLEAR
 (rare) · COMEBACK (`comeback` — won a BATTLE after the stack reached the danger zone, PD-2's `dz`) → card COMEBACK (epic). Flags `prism-firstko` ·
 `prism-pc` · `prism-comeback`; COMEBACK KID's generic `comeback` flag is OVERCLOCK's only (`achievements.js#noteMatch` skips PRISM).
+
+**JAYWALK's four (H6A — docs/jaywalk.md "THE CARDS"):** SONIC BOOM (`sonic-boom` — `jaywalk-boom`) → card SONIC BOOM (rare) · CLOSE ENCOUNTER
+(`close-encounter` — `jaywalk-ufo`) → card CLOSE ENCOUNTER (rare) · RIGHT OF WAY (`right-of-way` — `jaywalk-airfield`: lane 400 in one counted run,
+solo or match) → card RIGHT OF WAY (legendary) · BEAM ME UP (`beam-me-up` — `jaywalk-mothership`: still in when THE MOTHERSHIP arrives, a counted
+match / daily) → card BEAM ME UP (epic). The flags ride each result row (`f`) from the SERVER's own replay of the proof nodes — never a room's own
+results; a counted MATCH run also raises the JAYWALK best (the board `jaywalk-solo` — YOUR BEST ANYWHERE).
 
 **THE GAME CONTRACT:** a game's rework adds its 2–3 achievements to `ACHIEVEMENTS` (`game: '<id>'`) + sets the flags in its match report
 (`core/match-report.js` → a row's `f: { flag: 1 }`, read from the room's own copy) — the counters key them `<game>-<flag>` (a DASH — a dot in a database key fails the whole transaction: OVERCLOCK CARDS found every flagged match uncounted).

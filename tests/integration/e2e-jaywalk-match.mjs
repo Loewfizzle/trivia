@@ -18,6 +18,8 @@ const { CAUSE_LINES, DAY_LINES } = await import('../../js/games/jaywalk/causes.j
 
 const { installLag, setLag } = await import('./kit/lag.mjs');
 const { matchStart } = await import('../../js/games/jaywalk/logic.js');
+// (H6A — step 8c: a scripted finished match whose owner is still in at THE MOTHERSHIP's tick — the pure engine, in Node)
+const JW = { ...(await import('../../js/games/jaywalk/logic.js')), ...(await import('../../js/games/jaywalk/course.js')), ...(await import('../../js/games/jaywalk/engine.js')), ...(await import('../../js/games/jaywalk/bot.js')), packLog: (await import('../../js/games/jaywalk/replay.js')).packLog, T: await import('../../js/games/jaywalk/tuning.js') };
 
 const PERF = process.argv.includes('--perf');
 // H4B — `--lag[=ms]`: ONE phone on a slow line (every database frame held that long, each way): CHARLIE through the first match — his GO
@@ -326,6 +328,87 @@ try {
   ok(await until(() => pages[nh || 1].evaluate(u => import('/js/room.js').then(r => r.makeHost(u)).then(v => v === true), uids[0]), 20000, 800), 'MAKE HOST (in the room): the owner hosts again');
   await waitFor(host, s => s.meta && s.meta.hostId === s.uid, 'the owner hosts again', 20000);
   ok(refused.length === 0, `… and nothing refused on the way back (${refused.join(' | ') || 'none'})`);
+
+  // ---- 8c. H6A — THE MOTHERSHIP's FINISH + THE CARDS + YOUR BEST ANYWHERE, on the real screens: a 6-minute match can't be played here, so
+  // a FINISHED one is scripted as the phones would leave it (e2e-profiles' pattern): every player's proof node — the owner's a real PACED
+  // bot log on the course this room's first GO picked, still in at the cap — the game (final; its rows = THE JUDGE's, as the host's step
+  // writes them) + the night record. The server replays the nodes itself: the feats → the cards, revealed on the podium; the match run =
+  // the owner's NEW BEST; her end screen = the gold finish; the others read her line in the list.
+  {
+    await H.backToLobby(host).catch(() => {});
+    await waitFor(host, s => s.meta && s.meta.status === 'lobby', 'in the room (before the scripted match)', 30000);
+    const g0 = Date.now() - 420_000, { T } = JW;
+    let pick = null;
+    for (let k = 0; k < 2500 && !(pick && pick.n === 4) && !(pick && k > 600); k++) for (const K of [2, 3, 4]) {
+      const matchId = `h6a${k.toString(36)}${(g0 % 1e5).toString(36)}`.slice(0, 12), S = JW.matchStart(code, matchId, { a: { go: g0 } }), course = JW.createCourse(S.seed), run = JW.createRun({ seed: S.seed, mode: 'match' }), bot = JW.greedyBot({ seed: `ship${k}` }), lg = [];
+      let last = -9;
+      while (!JW.isOver(run) && run.t <= T.MODES.match.cap + 5) {
+        const L = course.lane(run.y);
+        let d = run.st === 'idle' && L.type === 'grass' && !L.ufo && run.y - run.wall / T.FP > K ? '' : bot(run, course);
+        if (d && run.t - last < T.MIN_INPUT_GAP) d = '';
+        if (d) { lg.push({ t: run.t, d }); last = run.t; }
+        JW.step(run, course, d);
+      }
+      if (run.st !== 'taken') continue;
+      const live = JW.resultOf(run), n = Object.values(live.feats).filter(Boolean).length;
+      if (!pick || n > pick.n) pick = { matchId, S, log: lg, live, n };
+    }
+    ok(!!pick, `a paced run still in at THE MOTHERSHIP's tick on this room's course (${pick ? `lane ${pick.live.lanes}, feats "${JW.featsOf(pick.live)}"` : 'none found'})`);
+    const { matchId: sm, S } = pick, chunks = lg => { const c = {}; let from = 0, k = 0; while (from < lg.length) { const edge = (Math.floor(lg[from].t / 30) + 1) * 30; let to = from; while (to < lg.length && lg[to].t < edge) to++; c[k++] = { s: JW.packLog(lg.slice(0, to), from), at: S.playAt + Math.ceil(edge * 1000 / 60) + 140 }; from = to; } return c; };
+    const snodes = { [uids[0]]: { go: g0, c: chunks(pick.log), e: { l: pick.live.lanes, t: pick.live.tick, w: 'taken' } } };
+    for (let i = 1; i < N; i++) {
+      const course = JW.createCourse(S.seed), run = JW.createRun({ seed: S.seed, mode: 'match' }), lg = JW.playBot(run, course, JW.greedyBot({ seed: S.seed + i }), 300 + i * 500);
+      while (!JW.isOver(run)) JW.step(run, course, '');
+      snodes[uids[i]] = { go: g0 + i * 29, ...(lg.length ? { c: chunks(lg) } : {}), e: { l: run.best, t: run.bestT, w: run.cause } };
+    }
+    const results = Object.fromEntries(uids.slice(0, N).map(u => [u, JW.scoreNode({ seed: S.seed, mode: 'match', node: snodes[u], t0: S.playAt, from: S.g0 })]));
+    ok(results[uids[0]].x === 1 && /mothership/.test(results[uids[0]].f) && !results[uids[0]].bad, `THE JUDGE on the scripted log: ${results[uids[0]].l} lanes, still in at the cap, feats "${results[uids[0]].f}"`);
+    const pidsS = await Promise.all(uids.slice(0, N).map(pidFor));
+    const before = (await dbGet(`pstats/${pidsS[0]}/b/jaywalk-solo`)) || {};
+    for (const pid of pidsS) await dbPut(`pstats/${pid}/last`, null);   // (the server's 45-s gap between counted matches)
+    await dbPut(`rooms/${code}/jw/${sm}`, snodes);
+    const sgame = { id: 'jaywalk', matchId: sm, phase: 'final', mode: 'match', seed: S.seed, playAt: S.playAt, g0: S.g0, participants: Object.fromEntries(uids.slice(0, N).map(u => [u, true])), settings: {}, phaseStartAt: Date.now(), results };
+    await host.evaluate(async (c, gm, us) => { const fb = await import('/js/firebase.js'); await fb.update(fb.dbRef(`rooms/${c}`), { game: gm, 'meta/status': 'playing', [`night/${gm.matchId}`]: { g: 'jaywalk', at: fb.serverTimestamp(), p: Object.fromEntries(us.map((u, i) => [u, Math.max(0, 3 - i)])), n: Object.fromEntries(us.map(u => [u, 'N'])) } }); }, code, sgame, uids.slice(0, N));
+    await all(N, (p, i) => waitFor(p, s => s.game && s.game.phase === 'final' && !!document.querySelector('.jw-final .final'), `${NAMES[i]}: the scripted match's podium`, 40000));
+    // the server's own count: the feats → the four cards' achievements, the match run = the owner's best
+    const sres = await until(async () => { const r = await dbGet(`results/${code}_${sm}`); return r && r.st === 'done' ? r : null; }, 40000);
+    const oa = sres && sres.o && sres.o[pidsS[0]], ACHS = { boom: 'sonic-boom', ufo: 'close-encounter', airfield: 'right-of-way', mothership: 'beam-me-up' }, want = Object.keys(ACHS).filter(k => pick.live.feats[k]).map(k => ACHS[k]).sort();
+    ok(!!oa && want.every(x => (oa.ach || []).includes(x)) && (oa.items || []).includes('card-beammeup'), `THE SERVER's replay grants the cards: ${oa ? (oa.ach || []).filter(x => Object.values(ACHS).includes(x)).join(' · ') : 'no outcome'} (the run's feats: ${want.join(' · ')})`);
+    const after = (await dbGet(`pstats/${pidsS[0]}/b/jaywalk-solo`)) || {};
+    ok(after.a === pick.live.lanes && (before.a || 0) < after.a, `YOUR BEST ANYWHERE: the MATCH run raised ALICE's best ${before.a || 0} → ${after.a}`);
+    // the podium's end-of-round moment reveals them (the console's CARD REVEAL — the real cards' tiles)
+    await host.waitForSelector('.pg-moment', { timeout: 30000 });
+    await sleep(700); await H.shot(host, 'h6a-reveal-1-the-moment');
+    const tapM = () => host.evaluate(() => document.querySelector('.pg-moment').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+    await tapM(); await sleep(1200);
+    for (let i = 0; i < 4 && await host.$('.pg-up.is-on'); i++) { await H.shot(host, `h6a-reveal-2-step-${i + 1}`); await tapM(); await sleep(900); }
+    await host.waitForSelector('.pg-moment.is-end', { timeout: 8000 }).catch(() => {});
+    await host.evaluate(() => { const m = document.querySelector('.pg-more'); if (m) m.click(); });
+    await sleep(1600);
+    const rv = await host.evaluate(() => [...document.querySelectorAll('.pg-ach')].map(r => ({ id: r.dataset.id, name: (r.querySelector('div > b') || {}).textContent, card: !!r.querySelector('.pg-sw .pg-sw-card') || /is-card/.test((r.querySelector('.pg-sw') || {}).className || '') })));
+    // (the console's moment lists at most THREE achievements a match — a run that earned all four shows three here + the fourth's card among its UNLOCKED rows)
+    ok(want.filter(x => rv.some(r => r.id === x && r.card)).length >= Math.min(3, want.length), `THE CARD REVEAL on the podium: ${rv.filter(r => Object.values(ACHS).includes(r.id)).map(r => r.name).join(' · ')} — each with its card's tile`);
+    await H.shot(host, 'h6a-reveal-3-the-cards');
+    await host.evaluate(() => { const b = document.querySelector('.pg-moment .pg-btn'); if (b) b.click(); });
+    await host.waitForFunction(() => !document.querySelector('.pg-moment'), { timeout: 6000 }).catch(() => {});
+    await sleep(900);
+    // (a first counted match offers SAVE YOUR KEY over the podium: LATER — the shots are the end screen's)
+    for (const pg of [host, pages[1]]) await pg.evaluate(() => { const b = document.querySelector('.kp-later'); if (b) b.click(); });
+    await sleep(700);
+    // her end screen: the gold finish (never "TAKEN") + NEW BEST; a guest's podium reads her line in the list
+    const gold = await host.evaluate(() => { const f = document.querySelector('.jw-final .jw-fin'); return { ship: !!f && f.classList.contains('is-ship'), crown: !!document.querySelector('.jw-final .jw-fin-crown'), cause: (document.querySelector('.jw-final .jw-fin-cause') || {}).textContent, big: (document.querySelector('.jw-final .jw-fin-n b') || {}).textContent, best: [...document.querySelectorAll('.jw-final .jw-fin-best')].map(e => e.textContent), text: document.querySelector('.jw-final').innerText }; });
+    ok(gold.ship && gold.crown && gold.cause === 'YOU MADE IT TO THE MOTHERSHIP' && Number(String(gold.big).replace(/\D/g, '')) === pick.live.lanes, `THE GOLD FINISH: "${gold.cause}" · ${gold.big} LANES + the crown`);
+    ok(gold.best.some(t => /^NEW BEST/.test(t)), `NEW BEST on a MATCH end screen: ${gold.best.join(' | ')}`);
+    ok(!/TAKEN/.test(gold.text), 'nothing on the end screen says TAKEN');
+    await H.shot(host, 'h6a-ship-gold-finish');
+    // (the guest's own end-of-round moment — a level-up, an unlock — is tapped away: the shot is their podium)
+    for (let i = 0; i < 6 && await pages[1].$('.pg-moment'); i++) { await pages[1].evaluate(() => { const m = document.querySelector('.pg-moment'), b = m && m.querySelector('.pg-btn'); if (b && m.classList.contains('is-end')) b.click(); else if (m) m.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); }); await sleep(900); }
+    const guest = await pages[1].evaluate(() => ({ notes: [...document.querySelectorAll('.jw-final .lb-note, .jw-final .leaderboard .note')].map(e => e.textContent), text: document.querySelector('.jw-final').innerText, ship: !!document.querySelector('.jw-final .jw-fin.is-ship') }));
+    ok(/MADE IT TO THE MOTHERSHIP/.test(guest.text) && !guest.ship && !/TAKEN/.test(guest.text), 'a guest who went out earlier keeps their own cause line; the list reads MADE IT TO THE MOTHERSHIP beside the owner');
+    await H.shot(pages[1], 'h6a-ship-podium-guest');
+    await H.backToLobby(host);
+    await waitFor(host, s => s.meta && s.meta.status === 'lobby', 'back in the room (after the scripted match)', 30000);
+  }
 
   // ---- 9. PERFORMANCE: a 4-player match (3 ghosts), 390 × 844 @3, 4× CPU — the host's phone
   if (PERF) {

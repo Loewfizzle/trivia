@@ -1,6 +1,6 @@
 # JAYWALK (id `jaywalk`) — the hop-through-lanes game
 
-**BEING BUILT** (H1 + H2 + H2B + H3 + H4 + H4B + H5A, Nov 16 2026): `config.js` GAMES row `playable: false` + `preview: true` — never offered (docs/cartridge.md "A game
+**BEING BUILT** (H1 + H2 + H2B + H3 + H4 + H4B + H5A + H5B + H5C, Nov 16 · H6A, Nov 17 2026): `config.js` GAMES row `playable: false` + `preview: true` — never offered (docs/cartridge.md "A game
 BEING BUILT"). The owner's decisions: `docs/games/plan.md` "JAYWALK (the owner, Nov 12–16 — DECIDED)" + "H2's DECISIONS" + "JAYWALK (the
 owner, Nov 16 — DECIDED, after H2 on his phone)" + "… after H2B on his phone)" + "… after H3 on his phone)" (H4: ONE LIFE EVERYWHERE) + "JAYWALK (the owner, Nov 16 — DECIDED, H5A)" (the new kid, THE AREAS, the sounds). This page = the rules, the modes table, the engine's contract, the replay + the proof,
 THE NIGHT LOOK + THE CAMERA + its assets + the sounds, the lab page, what each later pass adds. Read it before a JAYWALK pass.
@@ -20,13 +20,13 @@ import map); the RULES are a pure engine that never knows about it.
 | H5A | Nov 16 2026 | `docs/games/passes/jaywalk-h5a.md` | THE NEW KID (Kenney's skate boy — his cap + shirt in the player's colour, his poses), THE 8 AREAS (a RULES change: each area leans the lane mix; its night look; THE ARRIVAL GATEWAY), THE SOUNDS all in play (`cues.js`), THE LIGHT TRAILS gone, THE POSTER re-shot |
 | H5B | Nov 16 2026 | `docs/games/passes/jaywalk-h5b.md` | THE DAY LOOK (every screen: the sun, the day ground, light vs paint, THE FOG BANK, the painted gates, the day skyline; the GAME LOOK setting back — per phone) · THE LANDMARKS SEEN (each area's landmark in the skyline band + its hero pieces beside its gate) · the fixes (the horn at half, the car-pass gone, the train sounds fade; the header; the refused chat write) · the add-ons: BLUE ON THE GROUND = WATER (arcade water by night too, the pink friend TAPE), the rail signals flash only before the train, THE GHOSTS STOP BLOCKING YOU |
 | H5C | Nov 16 2026 | `docs/games/passes/jaywalk-h5c.md` | NO WEAK POINTS (a VIEW pass): THE PAINTED SKYLINES (8 painted day pictures, cross-faded at the gates — `skyline.js`) · THE FAR EDGE (the sea wall; the far lanes fully in the haze before it) · THE FOG BANK rebuilt (rolling layers, a soft ragged edge) · the day's shadows + ground textures · the drums · THE GATE'S NAME ON ITS ARCH · YOUR BEST = a gold tape, the lines' words always readable · the tail lights' finish · THE TRAIN SOUNDS set B + the train horn + THE AREA ARRIVAL · THE FRESH-EYES REVIEW (every pass from now on) |
-| H6 | — | — | THE BLACKBIRD / UFO / mothership moments, the feat flags (jaywalk-boom / -ufo / -airfield), the mix, the credits |
+| H6A | Nov 17 2026 | `docs/games/passes/jaywalk-h6a.md` | THE BIG MOMENTS (`flyers.js`, fetched ON DEMAND): THE BLACKBIRD (the real SR-71 — the glint, the afterburners, the shockwave), THE UFO (the real saucer, its green ring, THE ABDUCTION), THE MOTHERSHIP = A FINISH LINE (the 10 s warning, the baked ship, the white-gold beam, the gold end screen — never "TAKEN") · THE FOUR CARDS (the feat flags from the server's replay → SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY — solo or match · BEAM ME UP, new) · YOUR BEST ANYWHERE (a counted match run raises the same best) |
+| H6B | — | — | the painted night skylines, the gate sign only on the approach, compact match chips, NEW BEST's B take, DOWNTOWN's shops, the sound mix, the credits screen |
 | the review → the fix pass | — | — | flips `playable` (empties `tests/registration.test.mjs#JAYWALK_WAITS`; the meta + its tile join the boot — after the city's CHROMEBOOK pass trims THE BOOT BUDGET: the owner, Nov 16) |
 | DAILY A · DAILY B | — | — | its daily (`MODES.daily`) |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
-this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO) are decided before H6 —
-H2 draws PLACEHOLDERS for them.
+this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
 
 ## THE RULES (js/games/jaywalk/ — `tuning.js` holds EVERY number)
 - **THE FIXED STEP:** the rules count TICKS, 60 a second (`TICK_HZ`); a hop = `HOP_TICKS` 8 = 133 ms. The rules NEVER read Math.random /
@@ -58,8 +58,8 @@ H2 draws PLACEHOLDERS for them.
   the kid's centre behind its edge = a hit.
 - **ONE LIFE EVERYWHERE (H4 — the owner, Nov 16):** one hit = OUT, in every mode (solo, match, daily). **No lives option, no respawn, no
   blink, no one-up, no lives HUD** — all removed from the rules, the views, the tests (`tests/jaywalk-engine.test.mjs` greps the rules
-  files for them). **HITS NAME THEIR CAUSE:** `car · water · train · edge · blackbird · ufo · wall`. **TAKEN** = THE MOTHERSHIP's tick
-  (a win: "TAKEN AT LANE 212" — in a match it takes whoever is still in at ~6 min: rare, a reward).
+  files for them). **HITS NAME THEIR CAUSE:** `car · water · train · edge · blackbird · ufo · wall`. **`taken`** (the internal key — never a word a player reads) = THE MOTHERSHIP's tick:
+  **A FINISH LINE, not a death (H6A)** — "MADE IT TO THE MOTHERSHIP"; in a match it lifts whoever is still in at 6:00: rare, a reward.
 - **RANKING** = lanes reached (the farthest lane LANDED on), the EARLIER tick wins a tie.
 - **EVENTS** (for the view + the sounds — `step(…, ev)`): hop · bump · land (`ground | wood | water`) · best · landmark · near (a car within a
   cell) · beam (THE UFO's beside the kid) · boom · out · taken. The WORLD's own moments (a train's tell, THE BLACKBIRD's
@@ -125,7 +125,7 @@ area, no lean — the calm start every course has). `course.js#area(lane)` → `
 | mode | the wall | THE MOTHERSHIP (`cap`) |
 | --- | --- | --- |
 | `solo` — SOLO ENDLESS | 0.6 lanes / s, never faster | never |
-| `match` | 0.6 → 1.8 lanes / s from 4:00 to 6:00 | tick 21,600 (6:00) — it takes whoever is still in |
+| `match` | 0.6 → 1.8 lanes / s from 4:00 to 6:00 | tick 21,600 (6:00) — it LIFTS whoever is still in: the finish line (H6A) |
 | `daily` (built later — DAILY A / B) | 0.6 → 1.8 from 3:00 to 5:00 | tick 18,000 (5:00) |
 
 ONE LIFE in all three.
@@ -140,7 +140,7 @@ its zone holds no water / rail. A greedy bot + a random bot play whole runs thro
 ## THE REPLAY + THE PROOF
 - **THE HOP LOG** = `[{ t: tick, d: 'u' | 'l' | 'r' | 'd' }]` — the ONLY input. A hop logged at tick t is applied IN tick t.
 - **`replay.js#replay({ seed, mode, log, until? })`** → `{ lanes, tick, end, over, y, x (where the kid went out — H3), cause,
-  taken, hits, feats: { boom, ufo, airfield }, used }` — PURE, the SAME `step` the phone runs. THE LAB shows it after every run (a red line if it ever differs from the live run).
+  taken, hits, feats: { boom, ufo, airfield, mothership }, used }` — PURE, the SAME `step` the phone runs. THE LAB shows it after every run (a red line if it ever differs from the live run).
 - **THE LOG's BOUNDS** (`replay.js#logProblem` — the server refuses, the phone's recorder `engine.js#canLog` never makes one): ticks strictly
   rising · inputs ≥ 2 ticks apart, ≤ 20 a second · no hop at / past the cap · ≤ 60,000 hops (a capped mode: cap / 2).
 - **THE PACKED LOG** (`packLog` / `unpackLog` / `logFromChunks`): a hop = its direction's CAPITAL + the ticks since the hop before, base 36 —
@@ -153,7 +153,8 @@ its zone holds no water / rail. A greedy bot + a random bot play whole runs thro
 - **THE CARD MOMENTS** (detected by the replay; the flags ship in H6): **jaywalk-boom** — STANDING ON a flight-path lane at the tick its tell
   BEGINS, off the band for the whole pass, not hit before it (stepping on during the tell, or staying / blinking through the pass, never counts)
   · **jaywalk-ufo** — the beam came within a cell of the kid (not blinking) and THAT UFO never took them (the mothership never counts) ·
-  **jaywalk-airfield** — lane 400 in ONE SOLO run.
+  **jaywalk-airfield** — lane 400 in ONE run, **SOLO OR MATCH (H6A — no longer solo-only)** · **jaywalk-mothership (H6A)** — still in when THE
+  MOTHERSHIP arrives (`taken`: a capped run — a match / the daily; a solo run has no mothership). **THE FLAGS SHIP (H6A): "THE CARDS", below.**
 - **THE PROOF NODE** — `rooms/{CODE}/jw/{matchId}/{uid}` = `{ go (the server time, written ONCE at GO — present = proven; a solo
   course's seed comes from it, a match's from THE FIRST one), c/{i} = { s, at } (H3 — the packed log's chunks, each with the SERVER's
   timestamp — the moment it ARRIVED: written once, ≤ 400 chars, i 0–9999), e { l, t, w? } (the run's end, once — a signal only: never read
@@ -709,6 +710,118 @@ reviewer with a fresh context (read-only; it built nothing) is given THE QUALITY
 lists every weak point, ranked, with the file name. Its report is kept verbatim in the pass log; every real one is fixed or listed
 under OPEN FOR BEN with why it waits.
 
+## THE BIG MOMENTS (H6A — the owner, Nov 16–17: the game's three showpieces; `js/games/jaywalk/flyers.js` — a VIEW + its sounds; the rules, the course, `pulseAt` · `ufoX / ufoY` · `MODES.cap` + the proof untouched)
+**ONE module, fetched ON DEMAND** (`night.js#flyGet` → `lazyImport(import('./flyers.js'))` — out of the cartridge's eager graph: THE PER-GAME
+BUDGET had 4 KB spare; the placeholders it replaces — the dart, the discs, the green lift — left `night.js` + `models.js`): the module when
+a flight path / a UFO's zone first comes into the scene's window (≥ 15 lanes before the kid reaches it) or a CAPPED run starts; each
+MODEL when its own moment nears (`need()`), its programs + buffers made in the scene's warm frame (`rewarm` — never in the moment); each
+SOUND's bytes with it. Until the module has landed the scene draws the fair minimum (the jet's shadow; the UFO's ring — the rules'
+warning). `night.js` calls it a frame: `begin` → `jet` (once a band) · `ufo` (once a UFO) → `abduct` / `lifted` + `lift` (the kids) →
+`ship` → `end`; what the kid's own moment lays is queued (`pend`) until the scene has reset its instanced kinds for the frame.
+**ITS NUMBERS = `FLY`** (the tests read them). Night + day are ONE code path (the look only picks colours; by day the lights are paint).
+
+**THE FRESH-EYES FIX ROUND (the same pass — where a line below differs, THIS is how it shipped; the pass log has the reviewer's report +
+each item):** THE GLINT sits at the camera's own edge on the band's row (`edgeX`), a 7-cell star + a blue heart in an orange rim, on a
+dark halo by day, growing from 45 % · THE PASS: the runway's own lights no longer blaze through it and the band's flash is short + capped
+(8 ticks — the jet stays a dark silhouette), the burners are flame CONES with a white-hot dart, ONE thick shock ring (a dark trailing
+edge by day), the contrails a soft widening trail (34 ticks), the jet's shadow by day a hard dark shape on the band · THE HIT is SEEN
+(`blast`: a flash, a thick ring bursting from the kid, a streak along his throw, sparks) · THE UFO's ring is a thick yellow-green
+(`GREEN` — never the mint of a kid's own ring; opaque paint with a white inner edge by day), it dims while its saucer is away and
+comes back with it; the saucer's rim lights are bigger, by day it is full metal with a sun star · THE ABDUCTION's beam is SEE-THROUGH
+in its heart (its light is in its edge, its foot, its ring), the saucer CLIMBS as it locks on (a long beam), a shock ring as the beam
+lands, the kid lit in a thick halo of his colour with a trail · THE MOTHERSHIP's WARNING: a hard-edged shadow that comes in from the
+far side and crosses the road lane after lane, the skyline dark from its first seconds, the timer on a dark band · THE ARRIVAL: the
+ship baked ONCE A LOOK (panel seams + spokes, six rings of lights, a lit rim, a bigger lens; a sunlit rim by day), the lane count
+kept over it, the beam = a cone + its pool + ring with **everything OUTSIDE it dark** (`.jw-ship-shade` — no whitening wash), every
+kid BRIGHT in a thick halo of their own colour + a trail, drawn to the beam's middle · the scene is held 4.2 s on the lift
+(`holdMs`); the gold finish says its lanes once, under a jewelled crown · NO HITCH: a model's program is compiled off the frame
+(`compileAsync`), the ship's sprite is painted once, unseen, right after its bake.
+
+### THE BLACKBIRD (every number a pure function of `u`, the ticks into the flight path's lap — a held / replayed tick draws the same frame)
+- **THE TELL stays** (the runway lights racing + the lane's chevrons — H2 / H5B) **+ a radio crackle** as it starts. **THE GLINT — its LAST
+  0.5 s** (`FLY.glint` 30 ticks, INSIDE the tell: the ≥ 1.5 s warning is the rules', never shortened — `tests/jaywalk-h6a.test.mjs`): at
+  the screen edge it comes from (the camera's own edge, on the band's row) a four-point star that grows + a blue afterburner flare, its
+  white-hot core; by day on a dark halo (it reads in sunlight).
+- **THE PASS:** the real SR-71 (`blackbird.glb`, 3.7 cells long — the rules' body is 3 —, 1.15 high, rolled a little toward the lens so
+  its planform reads; drawn 16 ticks before + after its pass: it crosses the 9 columns in 0.15 s) · **two blue-white AFTERBURNERS** (a
+  tapered flame from each nozzle, white-hot inside, three shock diamonds, the nozzle's ring) · **the vapor ring** it punches through ·
+  **THE SHOCKWAVE RING** on the ground (born 6 ticks in — as it crosses the middle —, two rings spreading for 40 ticks) · **a white flash
+  on the band** (10 ticks) · **two contrails** fading along the band (46 ticks) · **a tiny shake** (`FLY.shake` 0.075 cells ≈ 3.7 px at
+  ZOOM 8 on a 390 pt phone, 12 ticks = 200 ms; none with reduce motion). NIGHT: a dark silhouette over the lit runway, its burners +
+  rings blazing (they are on the bloom's layer). DAY: a black jet, its shadow sweeping the lanes, **heat shimmer** behind the burners.
+- **THE SOUNDS** (this phone's own living kid, the band within 10 lanes): `radio-static_1` + `jet-scream` at the tell's start (the
+  scream started so its peak lands on the pass), `sonic-boom` on the pass.
+- **A HIT = THE SHOCKWAVE BLASTS HIM** (`night.js`): thrown up + along + toward the lens, tumbling on two axes, a white ring where he
+  stood ("BUZZED BY THE BLACKBIRD"); a ghost the same (smaller); the scene is held ≈ 1.1 s before the end screen (`holdMs`).
+
+### THE UFO
+- **THE SAUCER** (`ufo.glb`, 3 cells across) drifts on the rules' path, **HIGH** (`FLY.ufoY` 4.7) — it spins, bobs, its ten rim lights
+  chase — and goes **SEE-THROUGH while it would cover the kid on the screen** (it never hides him); chrome in the sun by day, cool steel
+  by night; it fades into the far haze by where its ring stands (never a pale disc on the backdrop — H5C's rule).
+- **ITS BEAM CIRCLE ON THE GROUND = a bright GREEN ring (never blue — blue on the ground = water), pulsing, ALWAYS where the rules
+  have it** (+ a second ring closing in on its middle, a soft green pool); by day green paint on a dark ring. A faint beam joins the
+  saucer to it (thin by night; a pale-green column + drifting motes by day). **A soft hum rises as it nears** (`ufo-hum`, a loop whose
+  level follows the distance — a BED: it stops at once when the page is left).
+- **THE ABDUCTION** (`FLY.abductMs` 2000 — the rules' hit tick unchanged; `abductAt(e)` is its own clock): the kid **freezes mid-step**
+  (0–380 ms) → **the circle flares** (150 ms) → **a bright beam slams down** (160–270 ms) while the saucer LOCKS ON over him → he
+  **floats up spinning + shrinking** into it, a halo of his colour round him (380–1530 ms) → **its lights pulse** (1250–1700) → **it
+  zips off** (1650–1910) → **the beam snaps out** (1850–1980) → **ABDUCTED**. `ufo-beam-on` + `ufo-lift` as it locks on, `ufo-depart` +
+  `ufo-beam-off` as it goes (no hit thud — `sfx.js`). The rules' ring stays where the rules have it (dimmed) through it; the saucer
+  comes back over it afterwards. A ghost taken = the same, smaller (`lift`). The end screen waits ≈ 2.25 s (`holdMs`).
+
+### THE MOTHERSHIP = A FINISH LINE, NOT A DEATH (a capped run: a MATCH at 6:00 · the daily at 5:00, built later · solo: never)
+- **THE WARNING (the cap − 10 s, `FLY.warn`):** a red, pulsing **"THE MOTHERSHIP · 0:10"** under the lane count (`.jw-ship-t` — it
+  counts down; still with reduce motion) · **a giant soft shadow slides down the road** toward him · **the skyline darkens**
+  (`.jw-ship-dim`) · **the deep hum + a rumble build** (the UFO's hum at half speed + two seconds of brown noise under an 85 Hz
+  low-pass, made once — both BEDS) · in its last 3 s the ship's lit rim peeks over the top of the screen.
+- **THE ARRIVAL (the cap):** the colossal ship comes down over the top third in 0.7 s — **the model BAKED ONCE into a sprite**
+  (`bakeShip`: `mothership.glb` rendered through the scene's own renderer into a render target → a 1408 × 768 2D canvas, at the run's
+  START — the count — never at the warning; the skyline band is DOM over the 3D canvas, so the ship must stand over it: `.jw-ship`,
+  172 % of the screen's width) — its underside's three rings of warm lights + its white-gold lens are drawn on the bake (projected
+  through the bake's own camera), a half-size canvas of the brightest shimmers over it (opacity only). **ONE huge white-gold beam**
+  over the whole road (a cone from the ship, its pool + ring on the lanes, motes rising, a short white-gold wash — `.jw-ship-wash`).
+  **Every kid still in lifts** — yours opaque, the ghosts as ghosts — **each in a halo of their own colour**, rising into the ship
+  (`lifted`: 2.6 s). `ufo-beam-on` + `ufo-lift`, pitched down.
+- **THE FINISH:** over the scene a gold card — THE FINISH LINE · **YOU MADE IT TO THE MOTHERSHIP** · n LANES (`.jw-outcard.is-ship`,
+  once the arrival has been seen); the end screen (the console's podium, 3.4 s after the cap at the earliest — the host's step ends
+  the match 4 s after it) = **gold "YOU MADE IT TO THE MOTHERSHIP" + the lanes big + a crown and its gold burst** (`.jw-fin.is-ship` —
+  transform + opacity) + the place + NEW BEST; **the farthest still wins the match**; the list reads **MADE IT TO THE MOTHERSHIP**
+  beside a lifted player; players out earlier keep their own cause line. **Never "TAKEN" in anything a player reads**
+  (`causes.js#SHIP_LINE`; the internal cause key stays `taken`).
+- **THE MODEL, JUDGED LIT AT PHONE SIZE:** Poly by Google's saucer holds up as the ship (a dark steel disc, its rings + lens lit from
+  below) — the fallback (the UFO scaled huge) was not needed.
+
+### THE CARDS (H6A — the four achievements, game `jaywalk`; `api/_lib/catalog.js` + docs/progression.md)
+| achievement → card | the flag | how |
+| --- | --- | --- |
+| SONIC BOOM → `card-sonicboom` (rare) | `jaywalk-boom` | standing ON a flight-path lane the tick its tell begins, off the band for the whole pass, never hit by it |
+| CLOSE ENCOUNTER → `card-closeencounter` (rare) | `jaywalk-ufo` | a UFO's beam swept the cell beside you and THAT UFO never took you |
+| RIGHT OF WAY → `card-rightofway` (legendary) | `jaywalk-airfield` | lane 400 in ONE counted run — **solo OR match** |
+| BEAM ME UP → `card-beammeup` (epic — NEW) | `jaywalk-mothership` | still in when THE MOTHERSHIP arrives — a counted match / daily; never solo (it has none) |
+- **THE FLAGS COME FROM THE SERVER's OWN REPLAY ALONE:** `engine.js#resultOf().feats` → THE JUDGE → the result row's `f`
+  (`logic.js#featsOf` — "boom ufo airfield mothership"; the host's row and the server's are the same row) →
+  `core/match-report.js#jaywalkExtra` reads `f` **only from a match the server built itself (`sv`)** — never a room's own results, never
+  an UNPROVEN match (no GO = no match at all), never a refused log; `mothership` is dropped from a solo row. → the award engine
+  (idempotent: each once). Revealed by the console's CARD REVEAL on the podium (three achievements a match at most — a run that earns
+  all four shows the fourth's card among its UNLOCKED rows; **a card's tile shows its PALETTE until the owner APPROVES its art in THE
+  LAB** — the site's rule).
+- **THE ART:** `card-beammeup` = Grok's `mothership.png` (the beam breathes, gold motes rise past the kid, a bead chases round the
+  belly's lights — `js/fx/jw-cards.js#beamMeUp`, `jw-specs.js#liftAt`); **RIGHT OF WAY's picture REDONE** (Grok, Nov 16 — the game's
+  real kid: the forward cap, the pink T-shirt; its hop, its runway lights + its crop re-measured; v2 in the lab; the hoodie picture
+  kept as `art/jaywalk-cards/src/right-of-way-old.png`). H6B re-copies both if Grok re-delivers (`scripts/build-jaywalk-cards.mjs`).
+
+### YOUR BEST = YOUR FARTHEST COUNTED RUN ANYWHERE (H6A — the owner: his 212-lane match counted for XP but not for his best)
+- A counted **MATCH** run's lanes raise the SAME best a solo run raises — the board keeps its id (**`jaywalk-solo`**: no data moved;
+  everything a player reads calls it YOUR BEST): `jaywalkExtra` puts the lanes on the match row's `rec`. The solo end screen, THE
+  LINES (the gold tape — in a match too) and YOUR TABLE all read that board, as before. **NEW BEST shows on a MATCH end screen too**
+  (`victory.js#matchScene` — the server's own answer for that match; + the console's PERSONAL BEST row + its XP). The daily keeps its
+  own day board. Unproven runs never count.
+- **THE CATCH-UP — NOT POSSIBLE, AND NOT BUILT:** the server never kept a counted match's per-player lanes — `results/{CODE}_{matchId}`
+  holds each player's XP outcome only (`o/{pid}`: rank, win, xp, pbs …), `pstats/{pid}/m/{key}` a timestamp, and the lanes themselves
+  lived in the room's proof nodes (`rooms/{CODE}/jw/…`), which leave with the room when it closes. So a match played before H6A (the
+  owner's 212) cannot be credited from data — no number is invented (OPEN FOR BEN, the pass log). From H6A on nothing needs healing:
+  the report itself raises the best.
+
 ## THE CAMERA (H2B — `js/games/jaywalk/camera.js`: ONE pure module, the night look AND the graybox use it)
 The owner played H2 on his iPhone: "the game feels good", but it had to be ZOOMED IN — a closer camera that FOLLOWS the kid sideways, turned
 a little so the lanes run on a gentle diagonal (the genre's framing; nothing else of anyone's). PURE MATH: no three.js, no DOM, no clock of
@@ -795,8 +908,8 @@ match" (that would need its own night records + report path) and not the console
 ### THE END SCREEN (`victory.js` — `finalScene`, inside the console's podium frame)
 - **HOW YOU WENT OUT, in big neon words** — one line per cause + vehicle (`causes.js#CAUSE_LINES`): FLATTENED BY A SEDAN · CLIPPED BY A
   HATCHBACK · FLATTENED BY A TAXI · RUN DOWN BY A VAN · FLATTENED BY A BOX TRUCK · SWEPT AWAY (the water) · CARRIED OFF BY A LOG (the
-  edge) · HIT BY THE 6:15 (the train) · THE LIGHTS WENT OUT (the blackout) · BUZZED BY THE BLACKBIRD · BEAMED UP (placeholders until H6)
-  · TAKEN AT LANE n.
+  edge) · HIT BY THE 6:15 (the train) · THE LIGHTS WENT OUT (the blackout) · BUZZED BY THE BLACKBIRD · **ABDUCTED** (THE UFO — H6A; it was
+  BEAMED UP) · **MADE IT TO THE MOTHERSHIP** (H6A — a finish line: on your own screen "YOU MADE IT TO THE MOTHERSHIP", gold; it was TAKEN AT LANE n — **nothing a player reads says TAKEN**).
 - **THE CAUSE LINE NAMES THE VEHICLE THAT HIT YOU (H4 add-on — the owner was hit by a truck and read "HIT BY A CAR"; it was the LAB's
   own table):** **ONE SOURCE OF TRUTH for which vehicle a car is — `causes.js#vehicleAt(course, lane, j)`**, from the course's seed
   (a 1-cell mover = a sedan / a hatchback / a taxi, 2 cells = the van, 3 = THE BOX TRUCK). **THE DRAWING reads it** (`night.js`: the
@@ -848,7 +961,8 @@ owner's card shows its neon mark — H4: THE SIGNAL). `smoke` is DONE (H4). `boa
   Kenney's Watercraft Kit 2.1: 25 KB → 8 KB. + `LICENSE-kid.txt` · `LICENSE-lighthouse.txt` · `LICENSE-kenney-watercraft.txt` ·
   **`CREDITS.md`** (the credit lines for the game's CREDITS — H6: "3D models: Kenney — kenney.nl (CC0)" · "Light House: MaverickFX —
   https://poly.pizza/m/KRebJXIRb8 (CC0 1.0)"). The 12 older models are byte-for-byte unchanged. `MODEL_REV` 2. The flyers
-  (`models\flyers\`) wait for H6.
+  (`models\flyers\`): H6A — below.
+- **H6A — THE FLYERS (`--only=flyers`; CC BY — their credit is REQUIRED: `CREDITS.md` + `LICENSE-flyers.txt` + `ui/credits.js` "JAYWALK — 3D models"):** `blackbird.glb` — Kiiba's "Sr-71" (Sketchfab, CC BY 4.0; Grok's delivery recoloured it near-black): 271 KB → **119 KB** (4,993 triangles; its ten parts as ONE mesh, each its material's own near-black in vertex colours — lifted a little off pure black so the scene's lights can shape it; its normal map does not ship; nose at +z, 1 long) · `ufo.glb` — Poly by Google's "Flying saucer" (poly.pizza/m/b0N_HeT_Ttb, CC BY 3.0): 67 KB → **61 KB** (its palette texture → vertex colours; the file has NO normals — computed, smooth under a 42° crease; its three landing legs left out: it flies; 1 across) · `mothership.glb` — Poly by Google's "Flying saucer" (poly.pizza/m/6hu2h8v78mO, CC BY 3.0): 366 KB → **108 KB** (the same treatment). **Fetched ON DEMAND by `flyers.js` alone** — never by `models.js#SCENE_MODELS` / `warmModels`, never at a run's start (the mothership: at a CAPPED run's start). `MODEL_REV` unchanged (no existing file was replaced).
 - A model / a sound replaced: bump `models.js#MODEL_REV` / `sfx.js#JW_SFX_REV`. After any change: `node scripts/build-file-hashes.mjs`.
 
 ## THE SOUNDS + THE AUDITION (H2 — `sounds.js` (the PURE table) + `sfx.js` + `audition.js`)
@@ -893,6 +1007,7 @@ no database writes of any kind**. Everything on it stays (SOLO · MATCH · DAILY
 footnotes: the shared audio engine reports a cut only from the owner's phone inside the app or on a `&debug=1` link — the lab drops that
 flag from its own address; and THE SKEW WRAPPER (every dynamic import's rule) asks the deploy's id ONCE if a module ever fails to link. A
 browser with no WebGL gets the stage + one line saying so. (H1 + H2 had the owner's door: POST /api/admin whoami.)
+- **H6A:** the lab shows THE BIG MOMENTS as the game does (the end's words wait for the abduction / the lift — `view.holdMs`); its hooks `setT(t)` · `freeze(on)` · `ufoAt(lane)` · `flight(from)`; the checks' `--h6a[=blackbird|ufo|ship|perf]` (`kit/jaywalk-h6a.mjs`: each moment driven by day + night → `h6a/<group>/`; `perf` = the three moments + the on-demand load under a 4× CPU throttle).
 - **H5C:** the checks' `--h5c[=basics|sky|fog|ground|gates|lines|tail]` (the review's shots, day + night → `h5c/<group>/`; the skyline's picker on the page — only the current + the next picture held, the cross-fade; the gate sign's foot above his cap on every gate).
 - **H5B:** **LOOK: DAY · NIGHT** (neon-underline tabs, the row above ZOOM; remembered — `jw:lab:look`; `?look=day|night`); the checks' `--h5b[=day|gates|addons]` (the day shots + every gate + the add-ons' shots) and `--perf` by night AND by day.
 - **H5A:** the lab draws the new kid + THE AREAS and plays the world's cues (`cues.js`); its checks' `--h5[=kid|areas]` shoots the kid's states (a `hold(k)` hook holds him mid-hop) + every area and gateway.
@@ -926,7 +1041,8 @@ browser with no WebGL gets the stage + one line saying so. (H1 + H2 had the owne
 - **Measured (H1, 390 × 844 @3, 4× CPU, the bot playing):** 59.9 fps · 16.7 ms a frame (p95 16.8, worst 17.0) · 1.2 ms of work a frame (p95
   1.8) · 8 draw calls, ~1,200 triangles.
 
-## REAL vs PLACEHOLDER after H5C
+## REAL vs PLACEHOLDER after H6A
+*(H6A made REAL: THE BLACKBIRD, THE UFO + THE ABDUCTION, THE MOTHERSHIP + its finish, their cause words, the four cards' flags + BEAM ME UP's card, YOUR BEST ANYWHERE. Still PLACEHOLDER / first-pass: the three moments' SOUND LEVELS (nobody has heard them — the mix is H6B's), DOWNTOWN's code-built edge shops, the daily. The lists below are H5C's + H5B's, still true otherwise.)*
 *(H5C made REAL: the painted day skylines, the far edge, the fog bank's look, the day shadows + ground, the gate signs, the gold tape, the train sounds set B + the horn + the area arrival. Still PLACEHOLDER: the three flyers + their cause lines (H6), DOWNTOWN's code-built edge shops, the mix. The list below is H5B's, still true otherwise.)*
 REAL: the rules (ONE LIFE), the course, the modes, the wall, the replay + its bounds, THE JUDGE, the server's verify + THE SPEED CHECK +
 THE DROPPED SIGNAL, the moments' detection, the cartridge's frame + director + ranks, the proof node + its rules, the controls; the night

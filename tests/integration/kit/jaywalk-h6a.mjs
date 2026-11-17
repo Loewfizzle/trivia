@@ -11,7 +11,7 @@ export async function looksH6A(p, { ok, shot, sleep, waitFor, what = '', reqs = 
   const below = (l, x = 4500) => p.evaluate((ln, xx) => { const J = window.__jwLab; for (let d = 2; d < 9; d++) if (J.find('grass', ln - d) === ln - d) { J.warp(ln - d, { x: xx }); return ln - d; } J.warp(ln - 2, { x: xx }); return ln - 2; }, l, x);
   /** the lab's tick put `u` ticks into the band's lap (the next lap from now), the world held there */
   const lapTo = (F, u) => p.evaluate((f, uu) => { const J = window.__jwLab, t = J.state().t, k = Math.floor((t - f.phase) / f.period) + 2; J.setT(f.phase + k * f.period + uu); J.freeze(true); }, F, u);
-  if (all) ok(!reqs.some(u => /flyers\.js|blackbird\.glb|ufo\.glb|mothership\.glb/.test(u)), 'ON DEMAND: the moments\' module + the three models are not fetched at the lab\'s start');
+  if (all || what === 'perf') ok(!reqs.some(u => /flyers\.js|blackbird\.glb|ufo\.glb|mothership\.glb/.test(u)), 'ON DEMAND: the moments\' module + the three models are not fetched at the lab\'s start');
 
   if (all || what === 'blackbird') for (const look of ['night', 'day']) {
     await fresh(look); await sleep(400);
@@ -74,6 +74,55 @@ export async function looksH6A(p, { ok, shot, sleep, waitFor, what = '', reqs = 
     ok((await L('window.__jwLab.state().line')) === 'ABDUCTED', 'its word: ABDUCTED');
   }
 
+  // THE MEASURE (`--h6a=perf`): the three moments at 390 × 844 @3 under a 4× CPU throttle, day + night, tier 2 + tier 1 — the Blackbird's
+  // whole pass (the glint → the jet → the ring + the trails), an abduction, THE MOTHERSHIP's arrival with 8 kids; + the on-demand load:
+  // the frames while the module + the model arrive as the flight path nears (a cold page)
+  if (what === 'perf') {
+    const cdp = await p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    const measure = async (name, ms, floor = 58) => {
+      await L('window.__jwLab.clearFrames()'); await sleep(ms);
+      const f = (await L('window.__jwLab.frames()')).slice(2).sort((a, b) => a - b), avg = f.reduce((a, b) => a + b, 0) / f.length, p95 = f[Math.floor(f.length * 0.95)], worst = f[f.length - 1];
+      console.log('PERF', JSON.stringify({ moment: name, frames: f.length, fps: +(1000 / avg).toFixed(1), p95Ms: +p95.toFixed(1), worstMs: +worst.toFixed(1) }));
+      ok(1000 / avg >= floor && p95 < 21, `${name}, 4× CPU: ${(1000 / avg).toFixed(1)} fps (p95 ${p95.toFixed(1)} ms, worst ${worst.toFixed(1)})`);
+      return worst;
+    };
+    // THE ON-DEMAND LOAD (first: the page is cold — nothing of the moments fetched yet): the bot plays up to the flight path
+    await fresh('night'); await L('window.__jwLab.setTier(2)'); await sleep(500);
+    const F0 = await L('window.__jwLab.flight(150)');
+    await p.evaluate(l => { const J = window.__jwLab; J.warp(J.find('grass', l - 44), { x: 4500 }); }, F0.lane); await sleep(1200);
+    ok(!(await fly()), 'the moments\' module is not there yet, 40 + lanes before the flight path');
+    await L('window.__jwLab.clearFrames(); window.__jwLab.bot(true)');
+    const got = await waitFor(p, "(window.__jwLab.view.info().fly || { models: [] }).models.includes('blackbird')", 30000);
+    await sleep(600);
+    const lf = (await L('window.__jwLab.frames()')).slice(2), lw = Math.max(...lf), over = lf.filter(x => x > 34).length;
+    console.log('PERF', JSON.stringify({ moment: 'the on-demand load (flyers.js + blackbird.glb) as the flight path nears', frames: lf.length, worstMs: +lw.toFixed(1), framesOver34: over }));
+    ok(got && lw < 60 && over <= 2, `THE ON-DEMAND LOAD causes no hitch: the module + the model arrived while the bot played on (${lf.length} frames, worst ${lw.toFixed(1)} ms, ${over} over 34 ms)`);
+    await L('window.__jwLab.bot(false)');
+    for (const look of ['night', 'day']) for (const tier of [2, 1]) {
+      const tag = `${look}, tier ${tier}`;
+      await fresh(look); await L(`window.__jwLab.setTier(${tier})`); await sleep(500);
+      const F = await L('window.__jwLab.flight(150)'); await below(F.lane); await sleep(1200);
+      await p.evaluate(f => { const J = window.__jwLab, t = J.state().t, k = Math.floor((t - f.phase) / f.period) + 2; J.setT(f.phase + k * f.period - 50); }, F);
+      await measure(`THE BLACKBIRD's pass (${tag})`, 2000);
+      const y0 = await L("window.__jwLab.find('ufo', 100)");
+      let took = false;
+      for (let i = 0; i < 6 && !took; i++) {
+        await fresh(look); await L(`window.__jwLab.setTier(${tier})`); await sleep(400 + i * 600);
+        const U = await p.evaluate(l => window.__jwLab.ufoAt(l), y0);
+        await p.evaluate(u => { const J = window.__jwLab; J.warp(Math.floor(u.y) - 2, { x: Math.max(1500, Math.min(7500, u.x)) }); }, U); await sleep(1300);
+        const U2 = await p.evaluate(l => window.__jwLab.ufoAt(l), y0);
+        await p.evaluate(u => { const J = window.__jwLab; J.warp(Math.floor(u.y), { x: Math.max(600, Math.min(8400, u.x)) }); }, U2);
+        took = await waitFor(p, "window.__jwLab.state().over && window.__jwLab.state().cause === 'ufo'", 1200);
+      }
+      if (took) await measure(`THE ABDUCTION (${tag})`, 1900); else ok(false, `an abduction to measure (${tag})`);
+      await fresh(look, 'match'); await L(`window.__jwLab.setTier(${tier}); window.__jwLab.warp(3, { x: 4500 }); window.__jwLab.ghosts(7)`); await sleep(1500);
+      await L('window.__jwLab.setT(6 * 60 * 60 - 130)'); await sleep(300);
+      await measure(`THE MOTHERSHIP's arrival + the lift, 8 kids (${tag})`, 5200);
+    }
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 }); await cdp.detach();
+    return;
+  }
+
   if (all || what === 'ship') for (const look of ['night', 'day']) {
     await fresh(look, 'match'); await sleep(500);
     await L('window.__jwLab.warp(3, { x: 4500 }); window.__jwLab.ghosts(3)');
@@ -89,10 +138,12 @@ export async function looksH6A(p, { ok, shot, sleep, waitFor, what = '', reqs = 
     await shot(p, `h6a/ship/${look}-2-the-warning-last-seconds.png`);
     const taken = await waitFor(p, "window.__jwLab.state().st === 'taken'", 8000);
     ok(taken, 'at the cap every kid still in is lifted (the run\'s state: taken — the internal key)');
-    await sleep(750); await shot(p, `h6a/ship/${look}-3-the-arrival.png`);
-    await sleep(900); await shot(p, `h6a/ship/${look}-4-the-lift.png`);
-    await sleep(900); await shot(p, `h6a/ship/${look}-5-the-lift-higher.png`);
-    await waitFor(p, 'window.__jwLab.state().shown', 6000);
+    const t1 = Date.now(), at = async ms => { const d = ms - (Date.now() - t1); if (d > 0) await sleep(d); };
+    await at(520); await shot(p, `h6a/ship/${look}-3-the-arrival.png`);
+    await at(1350); await shot(p, `h6a/ship/${look}-4-the-lift.png`);
+    await at(2250); await shot(p, `h6a/ship/${look}-5-the-lift-higher.png`);
+    ok(!(await L('window.__jwLab.state().shown')), 'the end\'s words wait for the lift (the scene is held ≈ 4 s)');
+    await waitFor(p, 'window.__jwLab.state().shown', 8000);
     const line = await L('window.__jwLab.state().line');
     ok(line === 'MADE IT TO THE MOTHERSHIP', `its words: ${line}`);
     ok(!/TAKEN/.test(await L('document.body.innerText')), 'nothing a player reads says TAKEN');

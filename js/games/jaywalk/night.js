@@ -557,7 +557,6 @@ export function createNight(host, o = {}) {
       fx.hit = { cause: run.cause, t0: clock, x: kx, y: run.y + 0.5, dir, ground: L.type === 'water' ? -0.02 : 0 };
       fx.shake = reduce ? 0 : clock + 240;
       if (run.cause === 'water') splash(X(kx), Z(run.y + 0.5));
-      if (run.cause === 'blackbird') splash(X(kx), Z(run.y + 0.5), 0xeaf6ff);
     }
     if (run.st !== 'out') { if (fx.hit && run.st !== 'taken') fx.hit = null; }
     fx.t = run.t; fx.st = run.st; fx.hits = run.hits; fx.fy = run.fy; fx.fx = run.fx;
@@ -609,20 +608,20 @@ export function createNight(host, o = {}) {
       } else if (H.cause === 'train' || H.cause === 'blackbird') {   // knocked away, spinning — THE BLACKBIRD's SHOCKWAVE blasts him higher, tumbling, toward the lens
         const bb = H.cause === 'blackbird', v = clamp01(e / (bb ? 1000 : 700));
         px += H.dir * v * (bb ? 3 : 9); py = 0.2 + (bb ? 3.6 : 2.4) * Math.sin(v * Math.PI * 0.85); rz = -H.dir * e * 0.016; ry = fx.yaw + e * 0.01; fallPose(e);
-        if (bb) { pz += v * 1.5; rx = e * 0.013; }
+        if (bb) { pz += v * 1.5; rx = e * 0.013; if (FL) FL.blast(X(H.x), Z(H.y), e, H.dir); }
         if (v >= 1) show = false;
       } else if (H.cause === 'wall') {                           // swallowed by the dark
         const v = clamp01(e / 420); lit = day ? 1 + v * 2.4 : 1 - v; py = -v * 0.5; s3 = [1 - v * 0.35, 1 - v * 0.6, 1 - v * 0.35];
         if (v >= 1) show = false;
       } else {                                                   // THE UFO's ABDUCTION (H6A — flyers.js): frozen mid-step, then up the beam, spinning + shrinking
         const A = FL && FL.abduct(e, px, pz, course.lane(Math.floor(H.y)).ufo, t, kidHex), v = clamp01((e - 380) / 1150);
-        py = A ? A.y : v * 6; ry = fx.yaw + (A ? A.spin : e * 0.012); const k = A ? A.s : 1 - v * 0.6; s3 = [k, k, k]; if (e > 380) fallPose(e - 380);
+        lit = 1.6; py = A ? A.y : v * 6; ry = fx.yaw + (A ? A.spin : e * 0.012); const k = A ? A.s : 1 - v * 0.6; s3 = [k, k, k]; if (e > 380) fallPose(e - 380);
         if (A ? !A.show : v >= 1) show = false;
       }
     } else if (run.st === 'taken') {                             // THE MOTHERSHIP (H6A — a finish line): he rises into it, glowing in his colour
       fx.out += dt; taken = 1;
-      const A = FL ? FL.lifted(fx.out) : { y: Math.min(15, fx.out * 0.006), spin: fx.out * 0.002, glow: 1, q: 0 };
-      py = A.y; ry = fx.yaw + A.spin; if (A.q >= 1) show = false; else if (FL) FL.lift(px, py, pz, A.q, kidHex, 1);
+      const A = FL ? FL.lifted(fx.out) : { y: Math.min(13, fx.out * 0.005), spin: fx.out * 0.002, q: 0 };
+      py = A.y; ry = fx.yaw + A.spin; lit = 1.7; px += (rig.x() - px) * A.q; if (A.q >= 1) show = false; else if (FL) FL.lift(px, py, pz, A.q, kidHex, 1);
       if (POSE) { poseB = POSE.jump[0] + 0.5 * POSE.jump[1]; poseK = clamp01(fx.out / 400); }
     }
     // the blackout on him
@@ -797,7 +796,7 @@ export function createNight(host, o = {}) {
           // THE FLIGHT PATH: blue runway lights in the ground; the tell = the lights RACING toward the crossing (bold, unmissable)
           const head = st.st === 'tell' ? (tellF * tellF * 7 + tellF * 2) % 1 * 14 - 2.5 : -99;
           for (let c = -1; c <= COLS; c++) {
-            const at = p.dir > 0 ? c : COLS - 1 - c, hot = st.st === 'pass' || (head > -50 && at <= head && at > head - 3.2), far = c < 0 || c >= COLS ? 0.6 : 1;
+            const at = p.dir > 0 ? c : COLS - 1 - c, hot = head > -50 && at <= head && at > head - 3.2, far = c < 0 || c >= COLS ? 0.6 : 1;
             // (BY DAY — H5B: the runway lights are DIM lenses in the tarmac until the tell — then they RACE, white-hot in a blue ring,
             //  over the lane's own racing chevrons (the ground shader): the Blackbird's tell is unmistakable in sunlight)
             for (const e of [-0.42, 0.42]) {
@@ -903,10 +902,10 @@ export function createNight(host, o = {}) {
       if (gv) { gx += gv.x; gy += gv.y; gl = gl * gv.u + air; }
       if (gy < base - 1 || gy > top + 1) continue;
       const onLog = r.st === 'hop' ? (course.lane(r.fy).type === 'water' ? LOG_FEET * (1 - gf) : 0) + (course.lane(r.ty).type === 'water' ? LOG_FEET * gf : 0) : GL.type === 'water' ? LOG_FEET : 0;
-      const yawG = g.dir === 'l' ? Math.PI / 2 : g.dir === 'r' ? -Math.PI / 2 : g.dir === 'd' ? Math.PI : 0, gs = KID_S * 0.94 * (1 - gone * 0.6), glit = litOf(Math.floor(gy)) * (1 - gone);
+      const yawG = g.dir === 'l' ? Math.PI / 2 : g.dir === 'r' ? -Math.PI / 2 : g.dir === 'd' ? Math.PI : 0, gs = KID_S * 0.94 * (1 - gone * 0.6), glit = litOf(Math.floor(gy)) * (up ? 1.8 : 1 - gone);
       const bb = r.cause === 'blackbird' && gone > 0 ? (GL.pulse ? GL.pulse.dir : 1) : 0;
-      const gpx = X(gx) + bb * gone * 5, gpy = onLog + gl + (up ? gone * gone * 5 * up : bb ? 4 * Math.sin(gone * Math.PI * 0.85) : 0), gpz = Z(gy) + (bb ? gone * 2.4 : 0);
-      if (up && gone > 0 && FL) FL.lift(X(gx), gpy, gpz, gone, g.hex, up === 2);
+      const gpx = X(gx) + bb * gone * 5 + (up > 1 ? (rig.x() - X(gx)) * gone : 0), gpy = onLog + gl + (up ? gone * gone * 5 * up : bb ? 4 * Math.sin(gone * Math.PI * 0.85) : 0), gpz = Z(gy) + (bb ? gone * 2.4 : 0);
+      if (up && gone > 0 && FL) FL.lift(gpx, gpy, gpz, gone, g.hex, up === 2);
       // H5B's add-on (the owner — the start's pile-up: every kid on one square, the first road hidden) — NEAR YOU = FAINT: a ghost within
       // ≈ 1.5 cells of the kid on screen fades to a faint see-through outline (≈ 15 %) and its name tag hides (view.js); it eases
       // back as it moves away (≈ 150 ms — never a pop)

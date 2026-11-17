@@ -877,6 +877,10 @@ test('JAYWALK H3 — THE SOLO RUN: the best from the SERVER\'s replay (never the
   assert.deepEqual(ra.outcome.pbs.map(p => [p.b, p.v, p.first]), [['jaywalk-solo', A.live.lanes, true]], `the best = the SERVER's replay (${A.live.lanes} lanes) — never the room's claim of 99,999`);
   assert.equal(await best(), A.live.lanes);
   assert.equal((await val(`results/${code}_${A.matchId}`)).src, 'room');
+  // H6A — THE CARDS from a SOLO report: exactly the feats the server's own replay found (never BEAM ME UP — a solo run has no mothership)
+  { const JW = { boom: 'sonic-boom', ufo: 'close-encounter', airfield: 'right-of-way', mothership: 'beam-me-up' };
+    assert.deepEqual((ra.outcome.ach || []).filter(x => Object.values(JW).includes(x)).sort(), Object.keys(JW).filter(k => A.live.feats[k]).map(k => JW[k]).sort(), 'a solo report: its JAYWALK cards = its replay\'s feats');
+    assert.equal(A.live.feats.mothership, false); }
   // HOP AGAIN: the next run ended SECONDS later, and its room has already moved on to the run after it — still counted, from the proof
   tick(9000);
   const B = await seedRun(m => runOf(m, 2600), { moved: true });
@@ -2189,6 +2193,79 @@ test('THE HOLD\'EM BILLBOARD switch: the default until set; OFF / NOW OPEN reach
     assert.ok(au.length >= 2, 'every switch audited');
     await assert.rejects(adminAction('u-hold-x', { action: 'billboardSet', on: false }), 'a non-admin is refused');
   } finally { process.env.ADMIN_PIDS = ''; await ref('city2/billboard').remove(); }
+});
+
+// JAYWALK H6A — THE FOUR CARDS + YOUR BEST ANYWHERE, through /api/report: a MATCH whose owner is still in at THE MOTHERSHIP's tick (a real
+// paced bot log on the course the room's first GO picked, in server-stamped chunks) → the server's own replay finds the feats → their
+// achievements + cards, once; the match run's lanes raise the SAME best a solo run raises (jaywalk-solo), told as a NEW BEST; the guest's
+// too; a second report changes nothing. (The catch-up: the server never kept a counted match's lanes — results/{key} holds XP outcomes
+// only, the proof nodes leave with the room — so there is nothing to heal from: docs/jaywalk.md "YOUR BEST".)
+test('JAYWALK H6A — a match report: the feats from the SERVER\'s replay → the cards (BEAM ME UP), the match run raises YOUR BEST, once', async () => {
+  const { seedOf, GO_LEAD_MS, featsOf } = await import('../../js/games/jaywalk/logic.js');
+  const { createCourse } = await import('../../js/games/jaywalk/course.js');
+  const { createRun, step, isOver, resultOf } = await import('../../js/games/jaywalk/engine.js');
+  const { packLog } = await import('../../js/games/jaywalk/replay.js');
+  const { greedyBot, playBot } = await import('../../js/games/jaywalk/bot.js');
+  const TU = await import('../../js/games/jaywalk/tuning.js');
+  const U = ['u-h6a1', 'u-h6a2'], NAME = ['SHIPOWNER', 'SHIPGUEST'];
+  for (let i = 0; i < 2; i++) await ensure(U[i], NAME[i]);
+  const P = await Promise.all(U.map(u => val(`uids/${u}`)));
+  await ref('testReportAll').set(null);
+  await ref(`testAdmins/${P[0]}`).set(true);
+  tick(120_000);
+  const code = nextCode(), g0 = clock - 420_000, playAt = g0 + GO_LEAD_MS;
+  // the owner's run: a PACED bot (it rests on plain grass while the wall is K lanes behind) still in at the cap — tried on the courses of
+  // a few match ids until one lasts the 6 minutes (≈ 1 in 60)
+  let matchId = '', seed = '', own = null;
+  for (let k = 0; k < 900 && !own; k++) for (const K of [2, 3, 4]) {
+    matchId = `h${k.toString(36)}a${Math.floor(clock % 1e6).toString(36)}`.slice(0, 12); seed = seedOf(code, matchId, g0);
+    const course = createCourse(seed), run = createRun({ seed, mode: 'match' }), bot = greedyBot({ seed: `ship${k}` }), log = [];
+    let last = -9;
+    while (!isOver(run) && run.t <= TU.MODES.match.cap + 5) {
+      const L = course.lane(run.y);
+      let d = run.st === 'idle' && L.type === 'grass' && !L.ufo && run.y - run.wall / TU.FP > K ? '' : bot(run, course);
+      if (d && run.t - last < TU.MIN_INPUT_GAP) d = '';
+      if (d) { log.push({ t: run.t, d }); last = run.t; }
+      step(run, course, d);
+    }
+    if (run.st === 'taken') { own = { log, live: resultOf(run) }; break; }
+  }
+  assert.ok(own, 'a paced run that is still in at THE MOTHERSHIP\'s tick');
+  const course = createCourse(seed), grun = createRun({ seed, mode: 'match' }), glog = playBot(grun, course, greedyBot({ seed: seed + 'g' }), 300);
+  while (!isOver(grun)) step(grun, course, '');
+  const chunks = log => { const c = {}; let from = 0, k = 0; while (from < log.length) { const edge = (Math.floor(log[from].t / 30) + 1) * 30; let to = from; while (to < log.length && log[to].t < edge) to++; c[k++] = { s: packLog(log.slice(0, to), from), at: playAt + Math.ceil(edge * 1000 / 60) + 140 }; from = to; } return c; };
+  const nodes = { [U[0]]: { go: g0, c: chunks(own.log), e: { l: own.live.lanes, t: own.live.tick, w: 'taken' } }, [U[1]]: { go: g0 + 31, ...(glog.length ? { c: chunks(glog) } : {}), e: { l: grun.best, t: grun.bestT, w: grun.cause } } };
+  const participants = { [U[0]]: true, [U[1]]: true };
+  await ref(`rooms/${code}`).update({
+    meta: { hostId: U[0], status: 'playing', createdAt: clock - 900_000, activeAt: clock },
+    players: Object.fromEntries(U.map((u, i) => [u, { name: NAME[i], color: 'cyan', avatar: 'bolt', joinedAt: i + 1, pid: P[i] }])),
+    // (the host's own values — WRONG on purpose: the server never reads them; a forged feat string too)
+    game: { id: 'jaywalk', matchId, phase: 'final', mode: 'match', seed: 'forged', playAt: 12345, g0: 1, participants, phaseStartAt: clock, results: { [U[0]]: { l: 1, t: 5, w: 'car', e: 9 }, [U[1]]: { l: 99999, t: 5, w: 'taken', e: 9, x: 1, f: 'boom ufo airfield mothership' } } },
+    [`night/${matchId}`]: { g: 'jaywalk', at: clock, p: { [U[0]]: 3, [U[1]]: 1 }, n: { [U[0]]: 'N', [U[1]]: 'N' } },
+    [`jw/${matchId}`]: nodes,
+  });
+  const JW = { boom: 'sonic-boom', ufo: 'close-encounter', airfield: 'right-of-way', mothership: 'beam-me-up' }, mine = Object.keys(JW).filter(k => own.live.feats[k]).map(k => JW[k]).sort();
+  assert.ok(mine.includes('beam-me-up'), `the owner's run: lane ${own.live.lanes}, feats "${featsOf(own.live)}"`);
+  const r = await report(U[0], { code, matchId });
+  assert.equal(r.status, 'counted');
+  assert.equal(!!r.outcome.win, true, 'the farthest still wins the match — the mothership takes nothing from it');
+  assert.deepEqual((r.outcome.ach || []).filter(x => Object.values(JW).includes(x)).sort(), mine, 'the cards = the feats the SERVER\'s replay found — BEAM ME UP among them');
+  assert.ok(r.outcome.items.includes('card-beammeup'), 'its card: BEAM ME UP');
+  assert.deepEqual(r.outcome.pbs.filter(p => p.b === 'jaywalk-solo').map(p => [p.v, p.first]), [[own.live.lanes, true]], `YOUR BEST ANYWHERE: the MATCH run's ${own.live.lanes} lanes are the owner's best`);
+  assert.equal((await stats(U[0])).b['jaywalk-solo'].a, own.live.lanes);
+  // the guest: credited from their own replay — never the host's forged row (99,999 lanes + all four feats)
+  const done = await val(`results/${code}_${matchId}`), og = done.o[P[1]];
+  assert.ok(og, 'the guest is credited');
+  assert.deepEqual((og.ach || []).filter(x => Object.values(JW).includes(x)), [], 'the forged feats in the room\'s own results earn nothing');
+  const gb = (await stats(U[1])).b || {};
+  assert.equal(gb['jaywalk-solo'] ? gb['jaywalk-solo'].a : 0, grun.best, `the guest's best = their own ${grun.best} lanes`);
+  // once: the same match again changes nothing; YOUR TABLE reads the same best
+  assert.equal((await report(U[1], { code, matchId }, clock + 4000)).status, 'done');
+  assert.equal((await stats(U[0])).b['jaywalk-solo'].a, own.live.lanes);
+  const held = Object.keys((await stats(U[0])).ac || {}).filter(x => Object.values(JW).includes(x)).sort();
+  assert.deepEqual(held, mine, 'each held once');
+  const tb = await profileAction(U[0], { action: 'table', b: 'jaywalk-solo' }, '', clock);
+  assert.equal((tb.rows.find(x => x.me) || {}).v, own.live.lanes, 'YOUR TABLE: the best a match run set');
 });
 
 // THE TRI-VISION — JAYWALK's switch (/admin → THE BILLBOARD): the default until set; ON / OFF · NOW OPEN · an OPEN DAY reach the public feed beside
