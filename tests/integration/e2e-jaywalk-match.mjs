@@ -386,16 +386,27 @@ try {
     ok(after.a === pick.live.lanes && (before.a || 0) < after.a, `YOUR BEST ANYWHERE: the MATCH run raised ALICE's best ${before.a || 0} → ${after.a}`);
     // the podium's end-of-round moment reveals them (the console's CARD REVEAL — the real cards' tiles)
     await host.waitForSelector('.pg-moment', { timeout: 30000 });
+    { const v = await host.evaluate(() => { const cs = getComputedStyle(document.querySelector('.pg-veil')), rows = [...document.querySelectorAll('.pg-moment .pg-line')].map(r => getComputedStyle(r).opacity); return { op: cs.opacity, bg: cs.backgroundImage, tr: cs.transitionDuration, rows }; });
+      ok(v.op === '1' && !/rgba\(/.test(v.bg) && /^0s/.test(v.tr), `THE PODIUM's MOMENT (d): the veil is dark + up AT ONCE — no half-way wash over the end screen (opacity ${v.op}, ${v.bg.slice(0, 60)}…)`);
+      ok(v.rows.length > 0 && v.rows.every(o => o === '1'), `THE PODIUM's MOMENT (a): the sheet builds WITH its rows — ${v.rows.length} lines there from the first frame (never "TOTAL" alone)`); }
     await sleep(700); await H.shot(host, 'h6a-reveal-1-the-moment');
     const tapM = () => host.evaluate(() => document.querySelector('.pg-moment').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
     await tapM(); await sleep(1200);
-    for (let i = 0; i < 4 && await host.$('.pg-up.is-on'); i++) { await H.shot(host, `h6a-reveal-2-step-${i + 1}`); await tapM(); await sleep(900); }
+    // (CITY F — THE PODIUM's MOMENT: the level-up, then an EPIC / LEGENDARY card's OWN BEAT — each held until a tap after its first second)
+    const beats = [];
+    for (let i = 0; i < 6 && await host.$('.pg-up.is-on'); i++) {
+      const b = await host.evaluate(() => { const u = document.querySelector('.pg-up.is-on'), r = document.querySelector('.pg-moment .pg-btn').getBoundingClientRect(), cs = getComputedStyle(u); return { item: u.dataset.item || 'level-up', bg: cs.backgroundImage, z: Number(cs.zIndex), btnZ: Number(getComputedStyle(document.querySelector('.pg-moment .pg-btn')).zIndex), panel: Number(getComputedStyle(document.querySelector('.pg-moment .pg-panel')).opacity), btn: r.height }; });
+      if (!beats.length || beats[beats.length - 1].item !== b.item) { beats.push(b); await H.shot(host, `cityf-moment-2-beat-${beats.length}-${b.item}`); }
+      await tapM(); await sleep(1150);
+    }
+    ok(beats.length > 0 && beats.every(b => !/rgba\(/.test(b.bg) && b.z > b.btnZ), `THE PODIUM's MOMENT (b): every takeover's backdrop OPAQUE + above CONTINUE (${beats.map(b => `${b.item} z ${b.z} > ${b.btnZ}`).join(' · ')})`);
+    if (want.includes('beam-me-up')) ok(beats.some(b => b.item === 'card-beammeup'), `THE PODIUM's MOMENT (c): BEAM ME UP (EPIC) gets ITS OWN BEAT — the beats: ${beats.map(b => b.item).join(' → ')}`);
     await host.waitForSelector('.pg-moment.is-end', { timeout: 8000 }).catch(() => {});
     await host.evaluate(() => { const m = document.querySelector('.pg-more'); if (m) m.click(); });
     await sleep(1600);
     const rv = await host.evaluate(() => [...document.querySelectorAll('.pg-ach')].map(r => ({ id: r.dataset.id, name: (r.querySelector('div > b') || {}).textContent, card: !!r.querySelector('.pg-sw .pg-sw-card') || /is-card/.test((r.querySelector('.pg-sw') || {}).className || '') })));
-    // (the console's moment lists at most THREE achievements a match — a run that earned all four shows three here + the fourth's card among its UNLOCKED rows)
-    ok(want.filter(x => rv.some(r => r.id === x && r.card)).length >= Math.min(3, want.length), `THE CARD REVEAL on the podium: ${rv.filter(r => Object.values(ACHS).includes(r.id)).map(r => r.name).join(' · ')} — each with its card's tile`);
+    // (CITY F — THE PODIUM's MOMENT (c): EVERY achievement shows its card — never cut at three)
+    ok(want.length >= 1 && want.every(x => rv.some(r => r.id === x && r.card)), `THE CARD REVEAL on the podium: ALL ${want.length} — ${rv.filter(r => Object.values(ACHS).includes(r.id)).map(r => r.name).join(' · ')} — each with its card's tile`);
     await H.shot(host, 'h6a-reveal-3-the-cards');
     await host.evaluate(() => { const b = document.querySelector('.pg-moment .pg-btn'); if (b) b.click(); });
     await host.waitForFunction(() => !document.querySelector('.pg-moment'), { timeout: 6000 }).catch(() => {});

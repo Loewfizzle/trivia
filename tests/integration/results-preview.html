@@ -32,9 +32,17 @@
     gold: { gid: 'jaywalk', xp: xp(1200, 1250), rk: { from: 1, to: 1 }, pbs: [{ b: 'jaywalk-solo', v: 174, prev: 172 }], ranks: [{ b: 'jaywalk-solo', all: { rank: 1, prev: 2 }, week: { rank: 1, prev: 1 } }] },
     kinds: { gid: 'jaywalk', xp: xp(1200, 1250), rk: { from: 1, to: 1 }, pbs: [{ b: 'jaywalk-solo', v: 96, prev: 80 }], ranks: [{ b: 'jaywalk-solo', all: { rank: 7, prev: 14 }, week: { rank: 2, prev: 4 } }, { b: 'slip-dist', all: { rank: 214, prev: 400 }, week: { rank: 9, prev: 12 } }] },
     week: { gid: 'jaywalk', xp: xp(1200, 1250), rk: { from: 1, to: 1 }, pbs: [], ranks: [{ b: 'jaywalk-solo', all: { rank: 4, prev: 4 }, week: { rank: 1, prev: 3 } }, { b: 'slip-dist', all: { rank: 52, prev: 60 }, week: { rank: 5, prev: 8 } }] },
+    // (CITY F — THE PODIUM's MOMENT: a JAYWALK match that earned FOUR achievements, one card EPIC — every card shows + the EPIC's own beat;
+    //  the display rows are placeholders registered below — never the real names, which only reach their owners)
+    four: { gid: 'jaywalk', xp: xp(1270, 1420, [{ k: 'played', label: 'MATCH PLAYED', v: 30 }, { k: 'win', label: 'VICTORY', v: 52 }, { k: 'ach', label: 'ACHIEVEMENTS', v: 68 }]), rk: { from: 1, to: 1 }, pbs: [], ranks: [], st: null, ach: ['pv-a1', 'pv-a2', 'pv-a3', 'pv-a4'], items: ['pv-c1', 'pv-c2', 'pv-c3', 'pv-c4'] },
     legend: { gid: 'slip', xp: xp(24950, 25040), rk: { from: 3, to: 4 }, pbs: [], ranks: [] },
   };
   installEmblems();
+  if (kind === 'four') {
+    const [{ registerItems }, { registerAchievements }] = await Promise.all([import('/js/core/items.js'), import('/js/core/achievements.js')]);
+    registerItems([1, 2, 3, 4].map(i => ({ id: `pv-c${i}`, kind: 'card', name: `CARD ${i}`, tier: i === 4 ? 'epic' : i === 3 ? 'uncommon' : 'rare', look: { lac: '#0a0a14', foil: '#ffe9c0', ink: '#ffe9c0', acc: '#ff4fc4' }, line: 'A preview card.' })));
+    registerAchievements([1, 2, 3, 4].map(i => ({ id: `pv-a${i}`, name: `ACHIEVEMENT ${i}`, line: 'A preview line.', item: `pv-c${i}`, game: 'jaywalk' })));
+  }
   const players = { me: { name: 'BENNY', color: 'magenta', avatar: 'crown', pid: 'pmeeeeeeeeee' }, u2: { name: 'DEX', color: 'cyan', avatar: 'bolt' }, u3: { name: 'LUNA', color: 'yellow', avatar: 'moon' } };
   // (FRIENDS B — &n=5: a bigger room — B4's list starts at 4th; the rows carry a game's note, like PRISM DROP's "KO · SENT · BADGES")
   const N = Math.max(3, Math.min(8, Number(q.get('n')) || 3));

@@ -83,7 +83,9 @@ export async function openMoment(o, ctx = {}) {
   // (THE VAULT 1B: WHICH level gave an item comes with its display row from the server — `lv` — never a table in the site's code)
   const lvlItems = (o.items || []).filter(id => { const lv = ITEM[id] && ITEM[id].lv; return !!lv && lv > L0.lvl && lv <= L1.lvl; });
   const sv = o.st ? streakView(o.st, streakDay(now)) : null;
-  const ach = (o.ach || []).map(id => ACH[id]).filter(Boolean).slice(0, 3);
+  // (CITY F — THE PODIUM's MOMENT (c): EVERY achievement a match earned — JAYWALK's match can earn four at once; the first shows, the rest
+  //  fold into "+N MORE" — never cut at three)
+  const ach = (o.ach || []).map(id => ACH[id]).filter(Boolean);
   // (THE SPEED PASS: the server's `nx` — the next level with a reward this player doesn't own yet (after THE PROGRESS RESET they re-climb
   //  levels whose rewards they keep); an old result without it: the level table's next)
   const tease = o.nx !== undefined ? o.nx : nextRewardLevel(L1.lvl);
@@ -120,7 +122,7 @@ export async function openMoment(o, ctx = {}) {
   const folded = [...unlockRows, ...achRows].slice(1);
   folded.forEach(r => r.classList.add('is-fold'));
   const moreRow = folded.length ? h('button.pg-box.pg-more', { type: 'button', onclick: e => { e.stopPropagation(); moreRow.remove(); folded.forEach(r => { r.classList.remove('is-fold'); r.classList.add('is-in'); }); } }, h('b', `+${folded.length} MORE`)) : null;
-  const cont = h('button.btn.btn-primary.btn-block.pg-btn', { type: 'button', onclick: e => { e.stopPropagation(); if (upShown && !upAck) { ackUp(); return; } close(); } }, 'CONTINUE');
+  const cont = h('button.btn.btn-primary.btn-block.pg-btn', { type: 'button', onclick: e => { e.stopPropagation(); if (upShown && !upAck) { ackUp(); return; } if (bigHeld()) { ackBig(); return; } close(); } }, 'CONTINUE');
   const panel = h('div.pg-panel', { role: 'dialog', 'aria-label': `${pl.place} — your progress` },
     fanCrown(),
     h('div.pg-kick', [game, ctx.match ? `MATCH ${ctx.match}` : null].filter(Boolean).join(' · ') || 'MATCH COMPLETE'),
@@ -149,11 +151,37 @@ export async function openMoment(o, ctx = {}) {
     if (!upShown || upAck) return false;
     if (performance.now() - upAt < UP_HOLD_MS) return true;
     upAck = true;
-    lvUp.el.classList.remove('is-on', 'is-held', 'is-tap');
+    lvUp.el.classList.remove('is-on', 'is-held', 'is-tap'); el.classList.remove('is-up');
     if (phaseB) { const f = phaseB; phaseB = null; f(); }
+    else if (done) startBigs();   // (a skip landed on the level-up: the big cards come after it)
     return true;
   }
-  const el = h('div.pg-moment', { class: R ? 'is-still' : '', onpointerup: () => { if (upShown && !upAck) { ackUp(); return; } skip(); } }, h('div.pg-veil'), panel, burst, lvUp ? lvUp.el : null);
+  // CITY F — THE PODIUM's MOMENT (c): an EPIC / LEGENDARY item this match earned (an achievement's card, an unlock — not the level-up's own,
+  // shown big there) gets ITS OWN BEAT: a takeover like the level-up — its tier, the real tile, its name — held until a tap (taps in its
+  // first second ignored), one after another, once the sheet has finished (or a skip landed)
+  const BIG = new Set(['epic', 'legendary']);
+  const bigIds = [...new Set([...ach.map(a => a.item), ...(o.items || [])])].filter(id => ITEM[id] && BIG.has(ITEM[id].tier) && !lvlItems.includes(id));
+  const bigs = bigIds.map(id => bigCard(id, ctx.name, ctx, ach.find(a => a.item === id)));
+  let bigAt = -1, bigShownAt = 0, bigsStarted = false;
+  const bigHeld = () => bigAt >= 0;
+  function showBig(i) {
+    if (i >= bigs.length) { el.classList.remove('is-up'); return false; }
+    bigAt = i; bigShownAt = performance.now();
+    bigs[i].classList.add('is-on', 'is-held'); el.classList.add('is-up');
+    if (!R) { pgSfx('achievement', { gain: 1 }); el.classList.remove('is-burst'); requestAnimationFrame(() => el.classList.add('is-burst')); vibrate([20, 40, 20]); }
+    setTimeout(() => { if (el.isConnected && bigAt === i) bigs[i].classList.add('is-tap'); }, UP_HOLD_MS);
+    return true;
+  }
+  function ackBig() {
+    if (bigAt < 0) return false;
+    if (performance.now() - bigShownAt < UP_HOLD_MS) return true;
+    bigs[bigAt].classList.remove('is-on', 'is-held', 'is-tap');
+    const n = bigAt + 1; bigAt = -1;
+    showBig(n);
+    return true;
+  }
+  function startBigs() { if (bigsStarted || !bigs.length) return; bigsStarted = true; showBig(0); }
+  const el = h('div.pg-moment', { class: R ? 'is-still' : '', onpointerup: () => { if (upShown && !upAck) { ackUp(); return; } if (bigHeld()) { ackBig(); return; } skip(); } }, h('div.pg-veil'), panel, burst, lvUp ? lvUp.el : null, ...bigs);
   document.body.append(el);
   try { document.activeElement && document.activeElement.blur && document.activeElement.blur(); } catch { /* fine */ }
 
@@ -175,8 +203,9 @@ export async function openMoment(o, ctx = {}) {
     band.replaceChildren(h('b', bandOf(L1.lvl).name), h('em', ` · ${bandOf(L1.lvl).line}`));
     if (streakRow) { streakRow.querySelector('.pg-flame').className = `pg-flame is-lit`; streakRow.classList.add('is-on'); }
     el.querySelectorAll('.pg-box').forEach(b => b.classList.add('is-in'));
-    // (a skip lands on the level-up, held — it is never skipped unread)
+    // (a skip lands on the level-up, held — it is never skipped unread; then the big cards, each held the same way)
     if (lvUp && !upAck) showUp();
+    else startBigs();
   }
   function setBar(frac, hadFrac) {
     had.style.transform = `scaleX(${Math.max(0, Math.min(1, hadFrac))})`;
@@ -197,7 +226,7 @@ export async function openMoment(o, ctx = {}) {
     setTimeout(() => el.remove(), 320);
     if (ctx.onClose) ctx.onClose();
   }
-  open = { el, close, skip, upHeld: () => upShown && !upAck };
+  open = { el, close, skip, upHeld: () => (upShown && !upAck) || bigHeld() };
   setBar(L0.frac, L0.frac);
   if (R) { skip(); return open; }
 
@@ -245,7 +274,7 @@ export async function openMoment(o, ctx = {}) {
     const shown = [...unlockRows, ...achRows].filter(r => !r.classList.contains('is-fold'));
     shown.forEach(r => { later(() => { r.classList.add('is-in'); pgSfx(achRows.includes(r) ? 'achievement' : 'achievement', { gain: achRows.includes(r) ? 1 : 0.8 }); }, t); t += 450; });
     if (moreRow) { later(() => moreRow.classList.add('is-in'), t); t += 200; }
-    later(() => { done = true; el.classList.add('is-end'); }, t + 100);
+    later(() => { done = true; el.classList.add('is-end'); startBigs(); }, t + 100);
   };
   if (up) {
     later(() => {
@@ -259,6 +288,19 @@ export async function openMoment(o, ctx = {}) {
   }
   rest(t);
   return open;
+}
+
+/** CITY F — AN EPIC / LEGENDARY item's own beat: its tier + kind, the real tile big, its name, the achievement that gave it, its X%. */
+function bigCard(id, name, who, a) {
+  const it = ITEM[id];
+  return h('div.pg-up.pg-big', { class: `is-${it.tier}`, 'aria-live': 'polite', dataset: { item: id } },
+    h('span.pg-up-rays', { 'aria-hidden': 'true' }),
+    h('small', `${TIER_NAMES[it.tier]} ${KINDS[it.kind] || ''}`.trim()),
+    h('div.pg-big-sw', itemSwatch(id, name, who)),
+    h('b.pg-up-n', it.name),
+    a ? h('em', `for ${a.name}`) : null,
+    h('em.pg-pct', { dataset: { i: id } }),
+    h('div.pg-up-tap', { 'aria-hidden': 'true' }, 'TAP TO CONTINUE'));
 }
 
 /** THE LEVEL-UP (mockup 2): the big medal flips to the new number with a burst; its unlocks with their tier + X%. */

@@ -63,3 +63,17 @@ test('CITY F — THE RESULTS PLAQUES: a thin neon frame in the game\'s accent + 
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.rc-sparks, \.rc-sweep \{ display: none; \} \}/, 'reduced motion = the still');
   assert.doesNotMatch(css.slice(css.indexOf('.rc-sparks i {'), css.indexOf('@media (prefers-reduced-motion: reduce) { .rc-sparks')), /box-shadow[^;]*;[^}]*animation|@keyframes rc-spark \{[^}]*box-shadow/, 'the sparks move on transform + opacity only');
 });
+
+test('CITY F — THE PODIUM\'s MOMENT: rows from the first frame, an opaque takeover above CONTINUE, every achievement + an EPIC / LEGENDARY beat, no wash, no pills', () => {
+  const m = read('js/progress/moment.js'), css = read('css/progress.css');
+  assert.doesNotMatch(m, /\.filter\(Boolean\)\.slice\(0, 3\)/, '(c) never cut at three');
+  assert.match(m, /const BIG = new Set\(\['epic', 'legendary'\]\);/, '(c) an EPIC / LEGENDARY item gets its own beat');
+  assert.match(m, /if \(bigHeld\(\)\) \{ ackBig\(\); return; \}/, '(c) held until a tap, like the level-up');
+  assert.match(css, /\.pg-veil \{[^}]*opacity: 1; \}/, '(d) the veil is up at once (no half-way wash)');
+  assert.doesNotMatch(css.slice(css.indexOf('.pg-veil {'), css.indexOf('.pg-veil {') + 300), /rgba\(60, 26, 92|transition/, '(d) no purple, no fade-in');
+  assert.match(css, /\.pg-up \{ position: fixed; inset: 0; z-index: 5;[^}]*background: radial-gradient\(70% 50% at 50% 42%, rgb\(30, 22, 10\), rgb\(8, 6, 10\)\)/, '(b) the takeover opaque, above CONTINUE (z 2)');
+  assert.doesNotMatch(css, /\.pg-line \{[^}]*opacity: 0/, '(a) the lines are there from the first frame');
+  assert.match(css, /\.pg-moment:not\(\.is-still\) \.pg-extras \.pg-box:not\(\.is-in\) \{ display: none; \}/, '(a) no empty space waiting for a row');
+  assert.match(css, /\.pg-moment \.pg-btn, \.pg-moment \.pg-btn::before, \.pg-moment \.pg-btn::after \{ border-radius: 10px; \}/, '(e) CONTINUE: the non-pill tube');
+  assert.match(css, /\.pg-bar \{ position: relative; height: 11px; margin: 9px 0 8px; border-radius: 2px;/, '(e) the level bar: squared');
+});
