@@ -525,8 +525,8 @@ try {
     await ob.waitForSelector('.oc-vic .oc-sign', { timeout: 20000 });
     await sleep(3200);
     await shotBoth(ob, 'o-18-victory');
-    const v = await ob.evaluate(() => ({ sign: document.querySelectorAll('.oc-vic .oc-sign-ch').length, podium: document.querySelectorAll('.oc-vic-step').length, chips: document.querySelectorAll('.oc-vic-chip').length, back: !!document.querySelector('.final-back'), rematch: [...document.querySelectorAll('.final button')].filter(b => /REMATCH|LOBBY/i.test(b.textContent)).length, title: (document.querySelector('.oc-vic-title') || {}).textContent }));
-    ok(v.title === 'OVERCLOCKED' && v.sign > 0 && v.podium === Math.min(3, N) && v.back && !v.rematch, `THE VICTORY: OVERCLOCKED, the neon sign (${v.sign} tubes), the podium on the slim cards (${v.podium}), the console's BACK TO THE ROOM, no rematch / lobby buttons`);
+    const v = await ob.evaluate(() => ({ sign: document.querySelectorAll('.oc-vic .oc-sign-ch').length, podium: document.querySelectorAll('.oc-vic-step').length, chips: document.querySelectorAll('.oc-vic-chip').length, back: !!document.querySelector('.final-back'), rematch: [...document.querySelectorAll('.final button')].filter(b => /REMATCH|LOBBY/i.test(b.textContent)).length, bar: (() => { const b = document.querySelector('.final .final-bar.final-rematch'); return b ? getComputedStyle(b).backgroundColor : null; })(), title: (document.querySelector('.oc-vic-title') || {}).textContent }));
+    ok(v.title === 'OVERCLOCKED' && v.sign > 0 && v.podium === Math.min(3, N) && v.back && v.rematch === 1 && v.bar === 'rgb(255, 106, 26)', `THE VICTORY: OVERCLOCKED, the neon sign (${v.sign} tubes), the podium on the slim cards (${v.podium}) — CITY F's END-SCREEN STANDARD A: ONE REMATCH bar in OVERCLOCK's orange (${v.bar}) + the quiet BACK TO THE ROOM`);
     ok(v.chips >= 1, `THE VICTORY: the award chips (${v.chips})`);
     await waitFor(ob, (s, old) => s.meta.hostId !== old, 'host migrated at the end', 45000, oldHost);
     ok(true, 'host migrated during the end of the match');

@@ -260,6 +260,10 @@ Every daily still OFF — the owner's switch (/admin → THE DAILIES) turns them
   `lesson`, the admin RESEED) · `e2e-daily.mjs` (36 checks — the dock, TODAY → PLAY → DONE + the table rank, THE PRACTICE HARBOR once, THE ROOM WINS' loop, THE SWEEP).
 
 ## THE SCREENS (the owner's mockups, THE ORIGINAL GILDED — black lacquer, brass foil, the fan crown, one hot-pink neon accent)
+- **THE MOMENT — CITY F (Nov 17):** the sheet BUILDS WITH ITS ROWS (every XP line + the level from the first frame; a row not arrived yet takes no
+  space — the sheet hangs from the top and grows down); the veil is a neutral dark, up AT ONCE (no purple fade washing the end screen); THE LEVEL UP
+  + an EPIC / LEGENDARY item's OWN BEAT are opaque takeovers above CONTINUE, each held until a tap (its first second ignored); EVERY achievement a
+  match earns shows its card (never cut at three — JAYWALK's match can earn four); CONTINUE = the non-pill tube, the level bar squared.
 - **THE END-OF-ROUND MOMENT** (`progress/moment.js`) — right after the podium (the crown + the board's plaques), once THIS phone's outcome is
   back: the placement → the XP lines one by one (xp-tick) → the total (xp-total) → the level bar (had = gold, earned = hot pink) → a LEVEL-UP
   (a takeover: the coin flips to the new number + a burst, "NEW BAND · …" / "Still …", its unlocks with tier + X%; medal-flip + level-up) → the

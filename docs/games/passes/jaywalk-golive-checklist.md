@@ -7,7 +7,8 @@ game changes in it (a look / rules / server change belongs to a pass of its own,
 ## 0. BEFORE THE PASS STARTS — what must already be true
 
 ### THE CITY CHAT has done (each in its own city pass, its log named in the go-live prompt)
-1. **THE CHROMEBOOK TRIM — the boot has room.** Measured today (`node --test tests/boot-budget.test.mjs`; the list =
+1. ✓ CITY F (ce1f12c2 — docs/harbor/passes/city-f.md Group 1): the boot now has **26,419 B / 4 modules** of room (re-measure first, as below).
+   **THE CHROMEBOOK TRIM — the boot has room.** Measured today (`node --test tests/boot-budget.test.mjs`; the list =
    `js/app.js` + `scripts/build-boot-preload.mjs#preloadList()`): **310 of 310 modules · 6,655,933 of 6,656,000 B (6,499.93 of 6,500 KB)
    — room: 0 modules, 67 bytes.** JAYWALK's go-live adds to the boot (measured off the files as they are today):
 
@@ -23,17 +24,21 @@ game changes in it (a look / rules / server change belongs to a pass of its own,
    **THE BOOT MUST FREE AT LEAST 9,216 B (9 KB — the need + a 45 % margin) AND 2 MODULES (1 + one spare)** before the go-live pass
    starts — never by raising `tests/integration/boot-budget.json` (the owner, Nov 16). The go-live prompt names the trim's log + its
    own measured room; the go-live pass re-measures FIRST and stops (OPEN FOR BEN) if the room is under 6.5 KB / 1 module. (THE BOARD's tab + the pinned camera, below, are not boot files' growth worth counting: < 200 B.)
-2. **END-SCREEN STANDARD A** (the owner's pick "A — the hero bar": a big solid PLAY AGAIN / REMATCH bar in the game's accent + quiet
+2. ✓ CITY F (2d3747b5 — city-f.md Group 3; e2e-jaywalk + e2e-jaywalk-match's foot lines updated to the standard's).
+   **END-SCREEN STANDARD A** (the owner's pick "A — the hero bar": a big solid PLAY AGAIN / REMATCH bar in the game's accent + quiet
    SHARE · CITY links — `docs/games/plan.md` "JAYWALK … DECIDED, H5B"; the picture: `Downloads\NEON\endscreen-standard-A.jpg`) built in
    the console's frame (`js/ui/final.js`) for every game. JAYWALK builds none of its own: its end screen (`victory.js#finalScene`)
    sits inside that frame. After the city pass: re-run `e2e-jaywalk` + `e2e-jaywalk-match` (both assert the foot's three buttons +
    their order + the 10 px corners — update those lines to the standard's) and THE FINAL SCREEN's BUDGET (`JW_FINAL_BUDGET_MB` 20).
-3. **THE OPEN NOW BILLBOARD** — the owner's real-game poster (`Downloads\NEON\jaywalk-billboard-open-now.png`) installed as the
+3. ✓ CITY F (ca12b48a — city-f.md Group 6: the face says NOW OPEN with the owner's poster from his OPEN DAY switch).
+   **THE OPEN NOW BILLBOARD** — the owner's real-game poster (`Downloads\NEON\jaywalk-billboard-open-now.png`) installed as the
    TRI-VISION's JAYWALK face (`js/screens/harbor/jaywalk-art.js`, `core/harbor-trivision.js`): today the face says COMING SOON.
    The switch to NOW OPEN is the owner's OPEN DAY (`/admin` → the radio's `jaywalk` — `harbor-trivision.js#jaywalkShow`): set on the
    go-live day, not by the go-live pass's code.
-4. **THE RESULTS PLAQUES** (the city chat's item — the podium's plaques in the console's frame) built + JAYWALK's podium re-shot on them.
-5. **THE CARD-REVEAL ITEMS in the inbox** — "Nov 17 — TO THE CITY — NEXT PASS — from JAYWALK H6A" (`js/progress/moment.js`): the beat
+4. ✓ CITY F (f20c5550 — city-f.md Group 4).
+   **THE RESULTS PLAQUES** (the city chat's item — the podium's plaques in the console's frame) built + JAYWALK's podium re-shot on them.
+5. ✓ CITY F (dd19b7b9 — city-f.md Group 5: all four cards + BEAM ME UP's own beat).
+   **THE CARD-REVEAL ITEMS in the inbox** — "Nov 17 — TO THE CITY — NEXT PASS — from JAYWALK H6A" (`js/progress/moment.js`): the beat
    where the sheet shows only TOTAL, the LEVEL UP overlay's backdrop, a 4th achievement in a match + an EPIC / LEGENDARY card's own
    beat. JAYWALK is the first game whose match can earn four cards at once (SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY · BEAM ME UP).
 6. The two older inbox entries "TO THE DAILIES / THE CITY — NEXT PASS — from JAYWALK H4B / H5A" (the SAVE-YOUR-KEY pop-up over a

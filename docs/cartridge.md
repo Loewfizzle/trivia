@@ -281,6 +281,20 @@ reads the look LIVE (a change mid-game re-themes the screen at once). Right / cl
 | unlock numbers | the result's FEATS | the SERVER replays + awards |
 | its daily | `daily = { on: false, create, resumeKey }` | THE DAILY MODULE feeds it a server-picked day set (later) |
 
+## END-SCREEN STANDARD A — THE FOOT IS THE CONSOLE's (CITY F, Nov 17 — the owner's pick; `Downloads\NEON\endscreen-standard-A.jpg`)
+- **ONE foot for every game's end screen, built in `ui/final.js`** — a game builds NO button of its own under its `finalScene` (no PLAY AGAIN, no
+  SHARE MY RUN — `tests/endscreen.test.mjs`). THE BAR: the screen's MAIN — solid, full width, ~66 pt, 12 px corners (never a pill), in the
+  cartridge's `ACCENT` (the console's pink without one), its words dark where they read ≥ 4.5 : 1 on it, white otherwise (`core/fin-ink.js` — today
+  all four accents take dark words). Under it the QUIET LINKS: an icon + a word, no box, a thin divider, ≥ 44 pt each (`data-press`; SHARE
+  `data-gesture`). On a light podium (PRISM's paper) the frame's `--fin-cue` / `--fin-ico` give the links their ink.
+- **SOLO** (PLAY NOW's solo room · a room of one): PLAY AGAIN (THE INSTANT AGAIN when the cartridge has `soloAgain`) · SHARE · CITY (a room of
+  one: BACK TO THE ROOM). **A MATCH:** REMATCH — the host's tap = `host.js#rematch` (the same game + settings, everyone in); a guest's tap = THEIR
+  VOTE (`rv/{uid}` = this match — the rules take it on the podium since CITY F; on older rules it waits on the phone and goes in once the room's
+  ring is up) → the bar says WAITING FOR THE HOST + the votes, a second tap takes it back · BACK TO THE ROOM · SHARE (a game with `shareRun` — a
+  match's run card too). The walk back KEEPS the votes (a vote counts only for `meta/back/m`). THE SHELL's ONE named exception to THE NEON TUBE.
+- **THE RESULTS PLAQUES** (`profile/callouts.js`): a thin neon frame in the game's accent + an icon with meaning (a rising arrow · a globe · a
+  laurel · a calendar); #1 WORLDWIDE alone is gold (a crown, a foil sweep + sparks once).
+
 ## THE PODIUM FRAME's rules for a body (FRIENDS B, Nov 8)
 - **The list from 4th (B4):** the frame's results list starts at 4th — the body (a `finalScene` or the console's own podium) already shows 1st–3rd. A
   body that shows NO podium says so with `el.dataset.podium = 'none'` (OVERCLOCK's NOBODY SCORED) → the whole list; a body that shows EVERY place
