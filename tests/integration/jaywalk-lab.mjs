@@ -590,7 +590,7 @@ try {
   const tA = (await st(p)).t; await sleep(500);
   ok((await st(p)).t === tA, '… and the run holds still under it');
   const rows = await p.evaluate(() => [...document.querySelectorAll('.jw-au-row')].map(x => ({ id: x.dataset.id, plays: x.querySelectorAll('.jw-au-play').length, picks: x.querySelectorAll('.jw-au-pick').length })));
-  ok(rows.length === 11 && rows.filter(x => x.plays === 2 && x.picks === 2).length === 6 && rows.filter(x => x.plays === 1 && x.picks === 0).length === 5, `EVERY JAYWALK sound: ${rows.length} rows — 6 with a pick + its backup side by side (PLAY A · PLAY B · USE A / B), 5 with one take`);
+  ok(rows.length === 10 && rows.filter(x => x.plays === 2 && x.picks === 2).length === 5 && rows.filter(x => x.plays === 1 && x.picks === 0).length === 5 && !rows.some(x => x.id === 'car-pass'), `EVERY JAYWALK sound: ${rows.length} rows (H5B: the car-pass is gone) — 5 with a pick + its backup side by side (PLAY A · PLAY B · USE A / B), 5 with one take`);
   const n0 = await p.evaluate(() => ({ w: window.__jwLab.sfx.totals().asked, p: window.__jwLab.sfx.totals().started }));   // (the totals: the two lists keep only their last 200)
   await tapEl(p, '[data-snd="hop:a"]'); await tapEl(p, '[data-snd="hop:b"]'); await tapEl(p, '[data-snd="new-best:b"]'); await sleep(500);
   const n1 = await p.evaluate(() => ({ w: window.__jwLab.sfx.wanted().slice(-3).map(x => `${x.id}:${x.ab}`), p: window.__jwLab.sfx.totals().started, last: window.__jwLab.sfx.played().slice(-3).map(x => `${x.id}:${x.ab}`) }));

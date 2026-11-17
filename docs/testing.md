@@ -1094,3 +1094,29 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - **wk-press + e2e-daily after 7 pm ET (Nov 16):** both went red on the DAILY screen / button with fresh emulators — the same on
   the code from before the pass (`wk-press.mjs --base http://localhost:5174` against a worktree). Before blaming a pass for a
   dailies red in the evening, run that A / B.
+
+## JAYWALK H5B (Nov 16 2026 — docs/games/passes/jaywalk-h5b.md)
+- Unit: **`tests/jaywalk-day.test.mjs`** (new — THE SWITCH: both looks, the views read `body[data-look]` live, per phone, the lab's
+  LOOK tabs, the music follows the look · THE FOG BANK's words · A VIEW ONLY: no rule / replay / server file knows the look · THE SCENE
+  BY DAY: `DN(night, day)` on every lane kind, the tells in sunlight, the fog bank = the blackout's own darkness, light vs paint, the
+  painted gate, only the look on screen fetched · THE LANDMARKS IN THE SKYLINE · THE HEADER + the day words · THE REFUSED CHAT WRITE ·
+  the add-ons: BLUE ON THE GROUND = WATER — no area's neon / paint / lamp, no line, no runway light, no lane marking is blue-led, ONE
+  blue ground in the shader; the friend line a tape between posts · THE RAIL SIGNALS flash only in the tell); `tests/jaywalk-cues.test.mjs`
+  (no car-pass anywhere — cue, row, file, code; the horn's gain 0.5; the train sounds' fade: the take's own end, a stop, a dropped voice,
+  stopAll); `tests/jaywalk-areas.test.mjs` (the gates' HERO pieces: on the gate lane's edge columns, one a side, the area's own; every
+  ground has its day colour); `tests/jaywalk-night.test.mjs` (the day band ≤ 150 KB; the water's new palette, its flow, its bold foam);
+  `tests/jaywalk-lines.test.mjs` (the friend line is neon pink).
+- **The lab check — `node tests/integration/jaywalk-lab.mjs "<chromium>" <outDir> --h5b[=day|gates|addons]`** (shots + checks at 390 ×
+  844 @3): `day` = LOOK: DAY (the scene, the stage, the band; the day picture fetched; no bloom), the start, a run, the road, water +
+  a log, a train coming + passing, the flight path quiet + in its tell, THE FOG BANK coming → LOST IN THE FOG (and THE LIGHTS WENT OUT
+  back by night), every area + its gate by day (`day/`); `gates` = every gate by night — coming up to it in the middle column (both
+  hero pieces on the screen ahead), on the gate lane two columns from each edge (that side's piece beside him), its landmark in the
+  band (`gates/`); `addons` = the water, the friend line on grass / a road / water, the rail signals in the tell · mid-pass · just
+  after the tail, night + day (`water/`, `rail/`). **`--perf` now measures the heaviest areas BY NIGHT AND BY DAY** (tier 2 + tier 1, 4× CPU).
+- **`e2e-jaywalk.mjs`** (the emulators): the GAME LOOK set explicitly (AUTO = the real sun: a check must pick) — NIGHT, then DAY mid-run
+  (the scene + the stage + the band re-theme at once; the same course + clock; no bloom; the day deck), the end screen's header
+  JAYWALK · SOLO, back to NIGHT. **`e2e-jaywalk-match.mjs`**: every refused write on any of the three phones is collected from the first
+  join; the host + BOB on DAY, CHARLIE on NIGHT (each phone its own look, the same match), CHARLIE switches mid-match; step 7b — on
+  the final screen: 0 refused, the header JAYWALK · MATCH, the winner's line in the chat, **the host reloads on the final screen → 0
+  refused**; step 8b — **the host's phone goes away on the rematch's final screen → a guest claims the room → 0 refused**, the owner
+  comes back, MAKE HOST in the room. (Proof it bites: the same run with the old `js/chat/chat.js` → `[rules] refused: set chats/*/m/*`.)

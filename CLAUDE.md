@@ -180,6 +180,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - JAYWALK's LOOK (H2) is a VIEW (`night.js` — draws from (run, course), never writes; instanced, no point light, no bloom below the top
   tier); THE CAMERA = ONE pure module every view shares (`camera.js` — ZOOM columns across on every screen, the sideways follow, the turn; 9
   played, swipes screen-relative); its files only through `scripts/build-jaywalk-assets.py` → docs/jaywalk.md "THE NIGHT LOOK" + "THE CAMERA".
+- JAYWALK's LOOKS (H5B): DAY + NIGHT are ONE scene (`night.js#setLook` — a VIEW: no rule / replay / server file knows the look; the phone's GAME LOOK read live; THE FOG BANK = the blackout by day); BLUE ON THE GROUND = WATER, NOTHING ELSE (the friend line = a pink tape between posts); the rail signals flash ONLY in the tell → docs/jaywalk.md "THE DAY LOOK" + "BLUE ON THE GROUND".
 - JAYWALK's AREAS (H5A): the lean = RULES (`tuning.js#AREAS` — the heat's curve stays underneath; the sims green in all 8 + the loop); the look = a VIEW (`areas.js`): an obstacle drawn ONLY where the rules have one, everything else in the edge columns of ground lanes (or straddling on the lane lines) — nothing covers a play column; the world's sounds only through PURE `cues.js` → docs/jaywalk.md "THE AREAS" + "THE SOUNDS".
 
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
