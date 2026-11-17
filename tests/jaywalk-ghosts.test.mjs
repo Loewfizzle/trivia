@@ -177,7 +177,7 @@ test('PURE + bounded: ghosts.js imports the engine only; no DOM, no clock of its
   const v = read('js/games/jaywalk/view.js'), n = read('js/games/jaywalk/night.js');
   assert.match(v, /const alive = mode === 'run' && !isOver\(run\), wt = alive \? run\.t : Math\.max\(0, c\.t\)/, 'THE WORLD\'s tick: the kid\'s own while he runs, the clock\'s once he is out');
   assert.match(v, /extra = \{ ghosts: list, t: wt \+ wa, a: wa, off: F \? F\.vis : null, own: drawRun === run \};/, 'the scene gets the world\'s tick + the watched ghost\'s catch-up');
-  assert.match(n, /const t = o && o\.t != null \? o\.t : run\.t \+ a \+ fx\.after/, 'the scene draws every car + log at the world\'s tick');
+  assert.match(n, /tr = o && o\.t != null \? o\.t : run\.t \+ a \+ fx\.after, t = capT && tr > capT \? capT \+ 40 \* \(1 - Math\.exp\(\(capT - tr\) \/ 40\)\) : tr,/, 'the scene draws every car + log at the world\'s tick (H6B: past THE MOTHERSHIP\'s cap the traffic eases to a stop — a view; the run is over)');
   assert.match(v, /if \(node && node\.e\) feedGhost\(G, null, true\);/, 'a ghost\'s death is confirmed by the player\'s own end');
   assert.ok(FP > 0);
 });

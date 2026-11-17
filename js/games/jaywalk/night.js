@@ -110,6 +110,12 @@ export function createNight(host, o = {}) {
     };
   }
   const UP = new THREE.Vector3(0, 1, 0);
+  /** THE TAIL LIGHT BAR (H6B): a thin red bar across the full width `vw` of a vehicle's rear at (x, y, z) — evenly lit end to end;
+   *  by night it glows (a hot core in it, a soft halo round it: it catches the bloom), by day it is just red on the body */
+  function tailBar(x, y, z, vw, a) {
+    K.flat.put(x, y, z, vw, 1, day ? 0.09 : 0.15, Math.PI / 2, day ? 0xd81828 : 0xff2030, 1, 4, (day ? 1 : 1.3) * a);
+    if (!day) { K.flat.put(x, y + 0.002, z, vw * 0.92, 1, 0.05, Math.PI / 2, 0xffd6cc, 1, 4, 0.9 * a); K.flat.put(x, y - 0.002, z, vw * 1.25, 1, 0.5, Math.PI / 2, 0xff2030, 1, 4, 0.3 * a); }
+  }
   const lambert = () => fogUp(new THREE.MeshLambertMaterial({ vertexColors: true }));   // (fogUp — H5C: a thing fades into the far haze as the ground under it does)
   const glossy = (rough, envI) => new THREE.MeshStandardMaterial({ roughness: rough, metalness: 0, envMapIntensity: envI });
 
@@ -274,6 +280,9 @@ export function createNight(host, o = {}) {
   tintOf(o.kidColor || '#ff3fb4');
   // THE BIG MOMENTS (H6A — flyers.js: THE BLACKBIRD · THE UFO · THE MOTHERSHIP): fetched ON DEMAND — out of the cartridge's eager graph
   let FL = null, flyAsk = null;
+  // DOWNTOWN's EDGE SHOPS (H6B — shops.js: Kenney's storefronts): fetched ON DEMAND too, when a shop first comes into the window
+  let SH = null, shopAsk = null;
+  const shopGet = () => { if (!shopAsk) shopAsk = lazyImport(import('./shops.js'), './shops.js').then(M => { if (!dead) SH = M.createShops({ kind, K, rewarm() { needWarm = true; } }); }).catch(NOP); };
   const flyGet = () => { if (!flyAsk) flyAsk = lazyImport(import('./flyers.js'), './flyers.js').then(M => { if (!dead) FL = M.createFlyers({ renderer, scene, cam, host, K, hazeAt, reduce, rewarm() { needWarm = true; } }); }).catch(NOP); };
   // THE BLACKOUT's curtain: everything a lane and more behind its edge is simply black
   const curtain = new THREE.Mesh(unit, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.93, depthWrite: false, fog: false }));
@@ -518,8 +527,10 @@ export function createNight(host, o = {}) {
     if (reveal !== revealT) { reveal = reduce ? revealT : reveal + (revealT - reveal) * Math.min(1, dt / 130); if (Math.abs(revealT - reveal) < 0.004) reveal = revealT; }
     if (course !== courseRef) { courseRef = course; vseed = strSeed(course.seed); decor.clear(); plots.clear(); }
     // (H4: THE WORLD GOES ON after a hit — the run's own tick stops at the hit, the cars + logs drive on: the car rolls OFF the flat kid)
-    if (run.st === 'out') { if (fx.endT !== run.end) { fx.endT = run.end; fx.after = 0; } fx.after += dt * 0.06; } else { fx.endT = -1; fx.after = 0; }
-    const t = o && o.t != null ? o.t : run.t + a + fx.after, lane = course.lane(run.y);
+    if (run.st === 'out' || run.st === 'taken') { if (fx.endT !== run.end) { fx.endT = run.end; fx.after = 0; } fx.after += dt * 0.06; } else { fx.endT = -1; fx.after = 0; }
+    // (H6B — THE MOTHERSHIP HAS ARRIVED: the traffic under it SLOWS TO A STOP — the scene's own tick eases out past the cap; a VIEW:
+    //  the run is over, the rules never see it)
+    const capT = MODES[run.mode].cap, tr = o && o.t != null ? o.t : run.t + a + fx.after, t = capT && tr > capT ? capT + 40 * (1 - Math.exp((capT - tr) / 40)) : tr, lane = course.lane(run.y);
     if (run.t < fx.t || (run.t === 0 && fx.t !== 0)) { fx.hits = 0; fx.hit = null; fx.parts.length = 0; fx.yaw = Math.PI; fx.landAt = -1e9; fx.wob = null; fx.seen = false; fx.st = 'idle'; fx.out = 0; }
     // ---- the kid between ticks
     let kx = run.x / FP, ky = run.y + 0.5, lift = 0, f = 0, hopDir = '';
@@ -640,9 +651,8 @@ export function createNight(host, o = {}) {
     // ---- the lanes
     for (const q of Object.values(K)) q.reset();
     for (const q of Object.values(KM)) q.reset();
-    const capT = MODES[run.mode].cap;
     if (capT) flyGet();
-    if (FL) FL.begin({ t, clock, dt, day, camX: rig.x(), kx: px, kz: pz, ky, own: !o || o.own !== false, alive: run.st === 'idle' || run.st === 'hop' });
+    if (FL) FL.begin({ t, clock, dt, day, w, h, camX: rig.x(), kx: px, kz: pz, ky, own: !o || o.own !== false, alive: run.st === 'idle' || run.st === 'hop' });
     if (kidDraw && KM.kid) KM.kid.put(...kidDraw);
     const kindOf = L => (L.mark ? KIND.mark : KIND[L.type]);
     let beam = null, sign = null, gateSeen = false;
@@ -656,7 +666,7 @@ export function createNight(host, o = {}) {
         for (const q of D.obs) {
           if (q.edge && (q.c < 0 ? sgL : sgR)) continue;   // (a signature piece stands on this side of the lane)
           const x = X(q.c + 0.5) + q.dx, zz = z + q.dz, dim = lt * (q.c < 0 || q.c >= COLS ? EK : 1);
-          if (q.big) drawBig(q, X(q.c + 0.5), z, { K, A: AK, lt, on: on && !day, day, ek: EK });
+          if (q.big) { if (q.k === 'shop' && !SH) shopGet(); drawBig(q, X(q.c + 0.5), z, { K, A: AK, lt, on: on && !day, day, ek: EK, SH: SH && SH.put }); }
           else if (AK[q.k]) { const [ps, sh] = PIECE[q.k]; AK[q.k].put(x, 0, zz, ps, ps, ps, q.ry, q.k === 'drum' ? DRUM_HEX[Math.floor(q.s * 2.999)] : 0xffffff, dim * 1.25); K.shadow.put(x, 0.03, zz + 0.06, sh[0], 1, sh[1], 0, 0, 1, 0, 0.45 * lt); }
           else if (q.k === 'tree' || (q.k !== 'barricade' && !KM[q.k])) { const s = 0.72 + q.s * 0.3; K.trees.put(x, 0, zz, s, s, s, q.ry * 3, 0xffffff, dim); K.shadow.put(x, 0.03, zz + 0.1, 1.15 * s, 1.6, 1.0 * s, 0, 0, 1, 0, 0.5 * lt); }
           else if (q.k === 'barricade') { K.barricades.put(x, 0, zz, 1.04, 1.04, 1.04, q.ry * 0.22, 0xffffff, dim * 1.3); K.shadow.put(x, 0.03, zz + 0.06, 1.1, 1, 0.6, 0, 0, 1, 0, 0.45 * lt); if (on) K.bill.put(x + 0.4, 0.68, zz, 0.3, 0.3, 1, 0, 0xffa530, 1, 0, 0.95 * dim); }
@@ -700,14 +710,17 @@ export function createNight(host, o = {}) {
                 // H5C — the finish (the owner): the pool starts AT the lamps (it begins under the bumper: no gap behind any vehicle,
                 // either way it drives), a short OVAL stretching backward (the glow's shape −1: hot + warm at the lamps, fading out
                 // behind), a small warmer core right at the lamps; the lamps a hair bigger
-                LF(X(rearX - L.dir * (TAIL_LEN / 2 - 0.2)), 0.04, z, TAIL_LEN, 1, 0.82, L.dir > 0 ? Math.PI : 0, 0xff2a22, 1, -1, 0.34 * a1);
-                LF(X(rearX - L.dir * 0.1), 0.041, z, 0.62, 1, 0.66, 0, 0xff5a34, 1, 0, 0.3 * a1);
+                // H6B (the owner: "more uniform instead of one light" — from this camera only the near lamp showed: a lopsided puff):
+                // A LIGHT BAR across the FULL WIDTH of the rear, evenly lit end to end (tailBar) + ONE oval pool on the road CENTRED
+                // behind it, as wide as the vehicle, starting at the bar — the same for every vehicle, either way it drives
+                const vw = truck ? 0.9 : len < 1.5 ? 0.7 : 0.78;
+                LF(X(rearX - L.dir * (TAIL_LEN / 2 - 0.2)), 0.04, z, TAIL_LEN, 1, vw * 1.15, L.dir > 0 ? Math.PI : 0, 0xff2a22, 1, -1, 0.34 * a1);
+                LF(X(rearX - L.dir * 0.1), 0.041, z, 0.6, 1, vw * 0.9, 0, 0xff5a34, 1, 0, 0.3 * a1);
+                tailBar(X(rearX - L.dir * 0.03), hy + 0.06, z, vw, a1);
                 for (const e of [-hw, hw]) {   // BOTH headlights + BOTH tail lamps, each at its own place on the model
                   // (BY DAY — H5B: the headlights' beams are OFF; a pale lens in front, a small red on the body behind)
                   LF(X(nose + L.dir * HEAD_REACH / 2), 0.04, z + e, HEAD_REACH, 1, 0.8, back, 0xfff0c8, 1, 6, 0.5 * a1);   // a short soft beam on the road ahead
                   K.bill.put(X(nose), hy, z + e, day ? 0.13 : 0.2, day ? 0.13 : 0.2, 1, 0, 0xfff0c0, 1, 5, (day ? 0.7 : 0.8) * a1);
-                  K.bill.put(X(rearX + L.dir * 0.03), hy + 0.02, z + e, day ? 0.14 : 0.34, day ? 0.14 : 0.34, 1, 0, day ? 0xd81828 : 0xff2030, 1, 5, (day ? 1 : 1.25) * a1);
-                  LB(X(rearX + L.dir * 0.03), hy + 0.02, z + e, 0.13, 0.13, 1, 0, 0xffd0c8, 1, 0, a1);
                 }
               }
             } else {
@@ -769,10 +782,9 @@ export function createNight(host, o = {}) {
               for (const e of [-tw, tw]) {   // the train's front: BOTH headlights cast a soft beam (a little longer than a car's); BOTH tail lights a red glow
                 LF(X(nose + p.dir * HEAD_REACH * 0.8), 0.05, z + e, HEAD_REACH * 1.6, 1, 0.95, p.dir > 0 ? 0 : Math.PI, 0xfff2d0, 1, 6, 0.6 * lt);
                 K.bill.put(X(nose), ty, z + e, day ? 0.24 : 0.36, day ? 0.24 : 0.36, 1, 0, 0xfff6d8, 1, 5, lt);
-                K.bill.put(X(rear + p.dir * 0.03), ty, z + e, day ? 0.18 : 0.38, day ? 0.18 : 0.38, 1, 0, day ? 0xd81828 : 0xff2030, 1, 5, (day ? 0.9 : 1.2) * lt);   // the tail lamps ON THE BODY (the glow's source)
-                LB(X(rear + p.dir * 0.03), ty, z + e, 0.14, 0.14, 1, 0, 0xffd0c8, 1, 0, lt);
               }
-              LF(X(rear - p.dir * (TAIL_LEN * 0.65 - 0.2)), 0.05, z, TAIL_LEN * 1.3, 1, 0.9, p.dir > 0 ? Math.PI : 0, 0xff2a22, 1, -1, 0.3 * lt);   // … and ONE oval red pool starting at its tail lamps (the cars' rule)
+              tailBar(X(rear - p.dir * 0.03), ty + 0.04, z, 0.86, lt);   // (H6B — the cars' rule: a light bar across its tail …)
+              LF(X(rear - p.dir * (TAIL_LEN * 0.65 - 0.2)), 0.05, z, TAIL_LEN * 1.3, 1, 1.0, p.dir > 0 ? Math.PI : 0, 0xff2a22, 1, -1, 0.3 * lt);   // … and ONE oval red pool starting at it, centred, as wide as the train
               LF(X(left + len / 2), 0.045, z + 0.55, len, 1, 0.9, 0, 0xffe2b8, 1, 4, 0.3 * lt);   // (its windows' light on the ground: warm — never blue)
             }
           }
@@ -937,7 +949,7 @@ export function createNight(host, o = {}) {
       if (q.lane >= base && q.lane < top) K.flat.put(0, 0.36, Z(q.lane + 0.93), 9.06, 1, 0.55 + (1 - u) * 0.25, 0, LINE_HEX[q.k], 1, 4, (1 - u) * litOf(q.lane));
     }
     // THE MOTHERSHIP (H6A — a capped run alone: a match / the daily): its warning from the cap − 10 s, its arrival at the cap
-    if (FL) { if (capT) FL.ship(t, capT, taken ? fx.out : -1, 1); FL.end(); }
+    if (FL) { if (capT) FL.ship(tr, capT, taken ? fx.out : -1, 1); FL.end(); }
     // the small moments: a dust ring, a ripple, a splash
     for (let j = fx.parts.length - 1; j >= 0; j--) {
       const q = fx.parts[j], u = (clock - q.t0) / q.life;
@@ -1036,7 +1048,7 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px (= pt) — the wider view's readability number */
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ warmed, kid: !!kidGeo, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', fly: FL ? FL.info() : null, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ warmed, kid: !!kidGeo, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** H6A — how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); },
     /** H5B — THE LOOK: 'day' | 'night' (at once; the same scene) */
@@ -1055,7 +1067,7 @@ export function createNight(host, o = {}) {
       if (bloom) bloom.dispose();
       if (env) env.dispose();
       if (envDay) envDay.dispose();
-      clearTimeout(skyLifeT);
+      clearTimeout(skyLifeT); if (SH) SH.destroy();
       renderer.dispose();
       try { renderer.forceContextLoss(); } catch { /* fine */ }
       el.remove(); sky.remove(); farHaze.remove(); skyHold.clear();

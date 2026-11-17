@@ -312,12 +312,35 @@ def landmarks():
 
 
 
+def shops():
+    """H6B — DOWNTOWN's EDGE SHOPS: four of Kenney's small commercial buildings (City Kit (Commercial) 2.1 — CC0; the owner's delivery
+    folder models/city/, downloaded from kenney.nl by H6B) → shop-a … shop-d.glb: one mesh each, the colormap in its vertex colours,
+    standing on y = 0, centred, 1 unit wide; its WINDOW GLASS marked (the paint mask — the scene lights it by night). Fetched ON DEMAND
+    (js/games/jaywalk/shops.js) — never in the eager set."""
+    D = os.path.join(SRC, 'models', 'city', 'Models', 'GLB format')
+    img = Image.open(os.path.join(D, 'Textures', 'colormap.png')).convert('RGBA')
+    for src_n, name in (('building-a', 'shop-a'), ('building-c', 'shop-b'), ('building-d', 'shop-c'), ('building-h', 'shop-d')):
+        j, bn = read_glb(os.path.join(D, src_n + '.glb'))
+        pos, nor, col, idx = flatten(j, bn, img)
+        lo = [min(q[k] for q in pos) for k in range(3)]; hi = [max(q[k] for q in pos) for k in range(3)]
+        d = max(hi[0] - lo[0], hi[2] - lo[2]); cx, cz = (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2
+        pos = [((q[0] - cx) / d, (q[1] - lo[1]) / d, (q[2] - cz) / d) for q in pos]
+        # the glass: the colormap's blues (hue 190° … 250°, saturated) — the windows + the shop front's panes
+        hs = [colorsys.rgb_to_hsv(c[0] / 255, c[1] / 255, c[2] / 255) for c in col]
+        glass = [1 if (0.53 < h < 0.70 and sv > 0.25 and v > 0.3) else 0 for h, sv, v in hs]
+        v, t, size = write_glb(os.path.join(OUT_M, name + '.glb'), name, pos, nor, col, glass, idx)
+        hues = sorted(set(round(h * 360 / 20) * 20 for h, sv, vv in hs if sv > 0.3))
+        print(f'  {name:8s} ← {src_n}: {os.path.getsize(os.path.join(D, src_n + ".glb")):7d} → {size:6d} B · {v} verts · {t} tris · 1 wide × {round((hi[1] - lo[1]) / d, 2)} tall × {round((hi[2] - lo[2]) / d, 2)} deep · glass on {sum(glass)} verts · hues {hues}')
+    shutil.copyfile(os.path.join(SRC, 'models', 'city', 'License.txt'), os.path.join(OUT_M, 'LICENSE-kenney-city-kit-commercial.txt'))
+    credits_md()
+
+
 def credits_md():
     """assets/jaywalk/models/CREDITS.md — every model's credit line (the landmarks' step and the flyers' step both write the whole file)"""
     md = ['# JAYWALK — the models\' credits', '',
           'Copied from the owner\'s delivery (Downloads\\grok\\jaywalk\\models\\) by `scripts/build-jaywalk-assets.py`. The Kenney models, the kid,',
           'the lighthouse + the boat are CC0 1.0 — no credit is required; the game\'s CREDITS (☰ → CREDITS) carry these lines anyway.', '',
-          '- 3D models: Kenney — kenney.nl (CC0) — the cars, the train, the props (`LICENSE.txt`), THE KID (Mini Skate 2.0 "character-skate-boy" — `LICENSE-kid.txt`), the fishing boat (Watercraft Kit 2.1 — `LICENSE-kenney-watercraft.txt`)',
+          '- 3D models: Kenney — kenney.nl (CC0) — the cars, the train, the props (`LICENSE.txt`), THE KID (Mini Skate 2.0 "character-skate-boy" — `LICENSE-kid.txt`), the fishing boat (Watercraft Kit 2.1 — `LICENSE-kenney-watercraft.txt`), DOWNTOWN\'s storefronts (City Kit (Commercial) 2.1 — `LICENSE-kenney-city-kit-commercial.txt`; H6B)',
           '- Light House: MaverickFX — https://poly.pizza/m/KRebJXIRb8 (CC0 1.0) — `LICENSE-lighthouse.txt`', '',
           '## CC BY — THE FLYERS (H6A): these credits are REQUIRED wherever the models ship (`LICENSE-flyers.txt`)', '',
           '- `blackbird.glb` — Sr-71 by Kiiba — https://sketchfab.com/3d-models/sr-71-79e6c14217ab417abe524a99ffbb472e (CC BY 4.0). This work is based on "Sr-71" by Kiiba (https://sketchfab.com/Kiiba), licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/). Changes: recoloured near-black (Grok\'s delivery), flattened into one mesh with vertex colours, its normal map dropped, scaled.',
@@ -543,5 +566,5 @@ if __name__ == '__main__':
     try: sys.stdout.reconfigure(encoding='utf-8')
     except Exception: pass
     print('JAYWALK — THE FILES IN, from', SRC)
-    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('flyers', flyers), ('skyline', skyline), ('sounds', sounds)):
+    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('flyers', flyers), ('shops', shops), ('skyline', skyline), ('sounds', sounds)):
         if not ONLY or name in ONLY: fn()

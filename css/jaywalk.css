@@ -311,6 +311,13 @@
 /* (the beam is what is LIT: everything outside it goes dark — a clear column down the middle, from the ship's port to the lanes at his feet) */
 .jw-ship-shade { position: absolute; z-index: 1; inset: 0; opacity: 0; pointer-events: none; background: radial-gradient(64% 58% at 50% 46%, rgba(3, 2, 12, 0) 0, rgba(3, 2, 12, 0) 44%, rgba(3, 2, 12, 0.5) 74%, rgba(3, 2, 12, 0.82) 100%); }
 .jw-stage[data-look='day'] .jw-ship-shade { background: radial-gradient(64% 58% at 50% 46%, rgba(8, 14, 40, 0) 0, rgba(8, 14, 40, 0) 44%, rgba(8, 14, 40, 0.42) 74%, rgba(8, 14, 40, 0.68) 100%); }
+/* H6B — THE MOTHERSHIP's KIDS GO INTO ITS PORT: from its rim on each kid is a small light of their own colour over the ship's sprite
+   (flyers.js#spark — transform + opacity only) · THE UFO's ABDUCTION on your own phone: the world dims round the beam (opacity only) */
+.jw-ship-kid { position: absolute; z-index: 3; left: -10px; top: -10px; width: 20px; height: 20px; border-radius: 50%; opacity: 0; pointer-events: none; will-change: transform, opacity;
+  background: radial-gradient(circle, #fff 0, #fff 24%, var(--c, #fff) 50%, rgba(255, 255, 255, 0) 72%); box-shadow: 0 0 12px 3px var(--c, #fff); }
+.jw-ufo-shade { position: absolute; z-index: 1; inset: 0; opacity: 0; pointer-events: none;
+  background: radial-gradient(46% 38% at var(--x, 50%) var(--y, 50%), rgba(3, 2, 12, 0) 0, rgba(3, 2, 12, 0) 36%, rgba(3, 2, 12, 0.55) 72%, rgba(3, 2, 12, 0.85) 100%); }
+.jw-stage[data-look='day'] .jw-ufo-shade { background: radial-gradient(46% 38% at var(--x, 50%) var(--y, 50%), rgba(8, 14, 40, 0) 0, rgba(8, 14, 40, 0) 36%, rgba(8, 14, 40, 0.46) 72%, rgba(8, 14, 40, 0.72) 100%); }
 .jw-ship-t { position: absolute; z-index: 3; left: 0; right: 0; top: calc(env(safe-area-inset-top) + 122px); padding: 9px 0 8px; text-align: center; opacity: 0; pointer-events: none;
   background: linear-gradient(90deg, rgba(6, 3, 12, 0) 0, rgba(6, 3, 12, 0.78) 16%, rgba(6, 3, 12, 0.78) 84%, rgba(6, 3, 12, 0) 100%);
   font: 900 19px/1 var(--font-display); letter-spacing: 0.12em; color: #ff5a4a; text-shadow: 0 0 3px #fff, 0 0 12px #ff2a1c, 0 0 26px rgba(255, 42, 28, 0.85), 0 2px 0 rgba(0, 0, 0, 0.9); animation: jw-ship-t 0.5s ease-in-out infinite alternate; }

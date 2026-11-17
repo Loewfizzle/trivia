@@ -139,4 +139,41 @@ export async function looksH6B(p, { ok, shot, sleep, waitFor, what = '', reqs = 
     ok(/^MATCH · \d:\d\d$/.test(sub), `the lab's small line is the mode's quiet clock (${sub}) — never a second MOTHERSHIP countdown`);
     await o2.close();
   }
+
+  // ---- DOWNTOWN's EDGE SHOPS: Kenney's storefronts, fetched ON DEMAND (never at the lab's start), lit by night
+  if (all || what === 'shops') {
+    ok(!reqs.some(u => /shops\.js|shop-[a-d]\.glb/.test(u)) || what !== 'shops', 'ON DEMAND: the shops\' module + models are not fetched at the lab\'s start');
+    for (const look of ['night', 'day']) {
+      await fresh(look); await sleep(400);
+      let n = 0;
+      for (const [lane, col] of [[252, 0], [262, 8], [272, 0], [284, 8]]) {
+        const y = await stand(lane, col); await sleep(1500);
+        await waitFor(p, 'window.__jwLab.state().info.shops === 4', 15000);
+        await sleep(500); await shot(p, `shops/${look}-downtown-lane-${y}-${col ? 'right' : 'left'}-edge.png`); n++;
+      }
+      const i = await p.evaluate(() => window.__jwLab.state().info);
+      ok(i.shops === 4 && reqs.filter(u => /shop-[a-d]\.glb/.test(u)).length >= 4, `DOWNTOWN (${look}): the four storefront models are in (${i.shops}), fetched as the area came up`);
+    }
+  }
+
+  // ---- THE TAIL LIGHTS (the 6:32 am add-on — "more uniform instead of one light"): a light bar across each vehicle's rear + ONE centred
+  // glow — a car, a van, a truck going EACH way + a busy road (night), the busy road by day (no glow) → taillights/
+  if (all || what === 'tail') {
+    for (const [veh, name] of [['sedan', 'a-car'], ['van', 'a-van'], ['truck', 'a-truck']]) for (const dir of [1, -1]) {
+      let from = 12, done = false;
+      for (let tries = 0; tries < 6 && !done; tries++) {
+        await fresh('night'); await sleep(300);   // (each its own fresh run: nothing catches a standing kid mid-shot)
+        const at = await p.evaluate((w, d, f) => { const J = window.__jwLab; for (let i = f; i < f + 320; i++) if (J.find('road', i) === i && J.find('grass', i - 1) === i - 1 && !J.ufoAt(i - 1) && J.lane(i).dir === d && J.items(i).items.some(q => q.what === w)) return i; return -1; }, veh, dir, from);
+        if (at < 0) break;
+        from = at + 1;
+        await p.evaluate(l => window.__jwLab.warp(l - 1, { x: 4500 }), at);
+        await waitFor(p, `window.__jwLab.state().over || window.__jwLab.items(${at}).items.some(q => q.what === '${veh}' && q.left > 2.2 && q.left + q.len < 6.8)`, 30000);
+        if (await p.evaluate(() => window.__jwLab.state().over)) continue;
+        await sleep(120); await shot(p, `taillights/night-${name}-going-${dir > 0 ? 'right' : 'left'}.png`); done = true;
+      }
+      ok(done, `THE TAIL LIGHTS: ${name.slice(2)} going ${dir > 0 ? 'right' : 'left'} — shot`);
+    }
+    await fresh('night'); await sleep(300); await stand(262, 4); await sleep(1500); await shot(p, 'taillights/night-a-busy-road.png');
+    await L("window.__jwLab.setLook('day')"); await sleep(1900); await shot(p, 'taillights/day-a-busy-road.png'); await L("window.__jwLab.setLook('night')");
+  }
 }

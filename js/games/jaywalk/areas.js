@@ -242,6 +242,7 @@ export function drawBig(q, x0, z, c) {
   }
   // a STOREFRONT (DOWNTOWN: its neon sign + the light it throws) / a CANAL HOUSE (warm windows) — its awning toward the play
   const shop = q.k === 'shop', tall = shop ? 0.6 + q.r * 0.24 : 0.74 + q.r * 0.3, x = x0 + out * 0.68, hx = HOUSE_HEX[Math.floor(q.s * 6) % 6], sg = SIGN_HEX[Math.floor(q.r * 6) % 6];
+  if (shop && c.SH && c.SH(q, x, z, dim, lt, on, c.day, sg)) return;   // (H6B — shops.js, on demand: Kenney's storefronts; this box until they land)
   A.house.put(x, 0, z, 1, tall, 0.9, face, hx, dim * (shop ? 0.9 : 1.1));
   K.shadow.put(x, 0.03, z + 0.1, 2.1, 1, 1.1, 0, 0, 1, 0, 0.5 * lt);
   if (c.day) {   // (BY DAY: dark glass, a shop's sign a PAINTED board — no light thrown)

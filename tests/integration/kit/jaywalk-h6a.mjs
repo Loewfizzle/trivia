@@ -28,6 +28,7 @@ export async function looksH6A(p, { ok, shot, sleep, waitFor, what = '', reqs = 
     await lapTo(F, 5); await sleep(250); f = await fly();
     ok(f.jets === 1, `mid-pass: the real SR-71 is over the band (${f.jets})`);
     await shot(p, `h6a/blackbird/${look}-3-mid-pass.png`);
+    await lapTo(F, 8); await sleep(250); await shot(p, `h6a/blackbird/${look}-3a-the-burners.png`);   // (H6B: the jet mid-screen, both afterburners in the frame)
     await lapTo(F, 10); await sleep(250); await shot(p, `h6a/blackbird/${look}-3b-the-shockwave.png`);
     await lapTo(F, 22); await sleep(250); await shot(p, `h6a/blackbird/${look}-3c-after-it.png`);
     // a hit: standing on the band as it passes

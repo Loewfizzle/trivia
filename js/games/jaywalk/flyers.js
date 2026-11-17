@@ -33,11 +33,11 @@ const X = c => c - COLS / 2, Z = l => -l;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v), ease = t => t * t * (3 - 2 * t), easeOut = t => 1 - (1 - t) * (1 - t) * (1 - t);
 /** THE NUMBERS (view only — the tests read them) */
 export const FLY = Object.freeze({
-  jetLen: 3.7, jetY: 1.15, jetLead: 16,          // (the SR-71: cells long — the rules' body is 3 —, how low it flies, the ticks it is drawn before + after its pass)
+  jetLen: 4.8, jetY: 1.3, jetLead: 16,           // (the SR-71: cells long — H6B: ≈ 1.3× H6A's 3.7; the rules' body is 3 —, how low it flies, the ticks it is drawn before + after its pass)
   glint: 30,                                     // (the tell's LAST 30 ticks = 0.5 s: the glint + the flare at the edge it comes from)
   shake: 0.075, shakeFrom: 5, shakeTicks: 12,    // (cells — ≈ 3.7 px at ZOOM 8 on a 390 pt phone; 12 ticks = 200 ms)
   ring: [6, 40], flash: [6, 8], trail: 34,      // (the shock ring: born 6 ticks into the pass, 40 ticks long · the band's white flash · the contrails' life)
-  ufoY: 4.7, ufoD: 3.0,                          // (the saucer: how high, how wide — its beam circle is 2.5 cells across)
+  ufoY: 5.0, ufoD: 2.3,                          // (the saucer: how high, how wide — H6B: SMALLER + HIGHER (was 3.0 across at 4.7; any higher and the skyline band hides it): it stands over the lanes ≈ 5 ahead of its ring, never on a car / a log / a train he must read now; its beam circle is 2.5 cells across)
   abductMs: 2000,                                // (THE ABDUCTION, start to end)
   warn: 10 * TICK_HZ, liftMs: 2600,              // (THE MOTHERSHIP's warning: the cap − 10 s · how long a kid takes to rise into it)
 });
@@ -118,13 +118,15 @@ export function createFlyers(C) {
   // THE BLACKBIRD: two of them at the very most in view (THE AIRFIELD has two bands) — one geometry, one material
   const jetMat = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0xffffff, roughness: 0.36, metalness: 0.6, envMapIntensity: 1.5, side: THREE.DoubleSide });
   const jets = [];
-  // THE UFO: chrome by day, cool steel by night — two in view at the most
-  const ufoMat = () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.2, metalness: 0.85, envMapIntensity: 1.6, transparent: true });
+  // THE UFO: a SOLID saucer (H6B — never see-through: no transparency anywhere) — chrome catching the sun by day, dark metal by
+  // night; two in view at the most. It takes the far haze's own colour as its ring nears the wall (solid to the last)
+  const ufoMat = () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.2, metalness: 0.85, envMapIntensity: 1.6 });
+  const UFO_HEX = [0x7e88b0, 0xa9bad6], UFO_ENV = [1.5, 2.3], cA = new THREE.Color();
   const ufos = [];
   const mk = (g, m) => { const o = new THREE.Mesh(g, m); o.visible = false; o.frustumCulled = false; scene.add(o); return o; };
   function built(n) {
     if (n === 'blackbird') for (let i = 0; i < 2; i++) { const m = mk(geo[n], jetMat); m.scale.setScalar(FLY.jetLen); m.rotation.order = 'YXZ'; jets.push(m); }
-    if (n === 'ufo') for (let i = 0; i < 2; i++) { const m = mk(geo[n], ufoMat()); m.scale.setScalar(FLY.ufoD); m.rotation.order = 'YXZ'; ufos.push({ m, id: -1 }); }
+    if (n === 'ufo') for (let i = 0; i < 2; i++) { const m = mk(geo[n], ufoMat()); m.scale.setScalar(FLY.ufoD); m.rotation.order = 'XYZ'; ufos.push({ m, id: -1 }); }
     if (n === 'mothership') { bakeAsk = true; return; }
     // NO HITCH WHEN IT LANDS: the new material's program is compiled OFF the frame (three's compileAsync — the browser's parallel shader
     // compile), the meshes shown far under the ground for that one call; a browser without it falls back to the scene's own warm frame
@@ -133,7 +135,7 @@ export function createFlyers(C) {
     const done = () => { for (const m of ms) if (m.position.y === -60) m.visible = false; };
     try { const q = C.renderer.compileAsync(scene, cam); if (q && q.then) q.then(done, done); else { done(); C.rewarm(); } } catch { done(); C.rewarm(); }
   }
-  let nj = 0, nu = 0, shakeNow = 0, humD = 99;
+  let nj = 0, nu = 0, nk = 0, shakeNow = 0, humD = 99, dimNow = 0;
   // (the kid's own moments are asked for BEFORE night.js resets its instanced kinds for the frame: what they lay waits here)
   const pend = [], flush = () => { for (const f of pend) f(); pend.length = 0; };
   const snd = { bands: new Map(), hum: null, abd: 0, ship: null, rum: null, shipAt: -1 };
@@ -146,7 +148,7 @@ export function createFlyers(C) {
     if (o.day !== day) {
       day = o.day; jetMat.metalness = day ? 0.35 : 0.6; jetMat.roughness = day ? 0.42 : 0.36; jetMat.envMapIntensity = day ? 0.9 : 1.5;
       // THE UFO: CHROME in the sun (a cool tint, a hard gloss) · bright cool steel by night
-      for (const q of ufos) { const m = q.m.material; m.metalness = day ? 1 : 0.85; m.roughness = day ? 0.07 : 0.2; m.envMapIntensity = day ? 2.8 : 2.4; m.color.setHex(day ? 0xdcebff : 0xd4dcff); }
+      for (const q of ufos) { const m = q.m.material; m.metalness = day ? 1 : 0.92; m.roughness = day ? 0.14 : 0.26; }
       if (ship.el) bakeAsk = true;   // (THE MOTHERSHIP's sprite is baked for the look: sunlit rim by day)
     }
     nj = 0; nu = 0; shakeNow = 0; humD = 99;
@@ -187,34 +189,43 @@ export function createFlyers(C) {
     }
     // THE PASS: the jet (drawn a little before + after it too — it is seen coming through the edge column)
     const s = u < p.pass + FLY.jetLead ? u : u > p.period - FLY.jetLead ? u - p.period : null;
+    let burn = null;
     if (s !== null) {
       const len = p.len / FP, cx = X(pulseLeft(p, s) / FP + len / 2), M = jets[nj++], nx = cx - dir * 0.4 * FLY.jetLen, y = FLY.jetY;
       if (M) { M.visible = true; M.position.set(cx, y, zc); M.rotation.set(0, dir * Math.PI / 2, dir * 0.24); }
       // ITS SHADOW sweeps the band's two lanes right under it: a hard jet-sized heart in a soft edge (by day it is laid as dark paint,
       // over the band's own lights + flash — the day's signature)
-      if (day) K.flat.put(cx + 0.35, 0.083, zc + 0.2, 9.4, 1, 3.6, 0, 0x04060c, 1, 5, 0.82 * Math.min(1, lt));
-      else K.shadow.put(cx, 0.03, zc, FLY.jetLen * 1.05, 1.4, 2.1, 0, 0, 1, 0, 0.85 * Math.min(1, lt));
+      if (day) K.flat.put(cx + 0.35, 0.083, zc + 0.2, 12.2, 1, 4.6, 0, 0x04060c, 1, 5, 0.82 * Math.min(1, lt));
+      else K.shadow.put(cx, 0.03, zc, FLY.jetLen * 1.05, 1.4, 2.7, 0, 0, 1, 0, 0.85 * Math.min(1, lt));
       LF(cx, 0.045, zc, 5.4, 1, 2.6, 0, 0xffd9a0, 1, 0, 0.14 * lt);                                    // (a thin warm rim: the runway's lights on its belly)
       const fl = reduce ? 1 : 0.84 + 0.16 * Math.sin(F.clock / 17), ry = dir > 0 ? Math.PI : 0, rz = dir > 0 ? 0 : Math.PI;
-      for (const e of [-0.43, 0.43]) {
-        // THE AFTERBURNERS — the brightest thing in the pass: a blue flame CONE from each nozzle (it widens as it fades), a white-hot
-        // dart inside it, three shock diamonds, the nozzle's ring
-        K.flat.put(nx - dir * 2.3, y, zc + e, 4.6, 1, 1.5, ry, day ? 0x1f7fff : 0x2f8cff, 1, 2, (day ? 1 : 1.25) * fl * lt);
-        K.flat.put(nx - dir * 1.4, y + 0.01, zc + e, 2.8, 1, 0.62, rz, 0xf4fbff, 1, 1, fl * lt);
-        for (let d = 0; d < 3; d++) K.bill.put(nx - dir * (0.6 + d * 0.7), y, zc + e, 0.46 - d * 0.09, 0.46 - d * 0.09, 1, 0, 0xffffff, 1, 5, (1 - d * 0.2) * fl * lt);
-        K.bill.put(nx, y, zc + e, 0.9, 0.9, 1, 0, 0xaedcff, 1, 5, lt); LB(nx - dir * 1.0, y, zc + e, 3.0, 1.6, 1, 0, 0x3d9cff, 1, 0, 0.3 * fl * lt);
-        // (BY DAY: heat shimmer behind the burners — pale wavering ribbons, further back)
-        if (day && !reduce) K.flat.put(nx - dir * (4.4 + 0.3 * Math.sin(F.clock / 23 + e * 9)), y, zc + e * (1.2 + 0.3 * Math.sin(F.clock / 31)), 3.4, 1, 1.0, rz, 0xffffff, 1, 1, 0.2);
-      }
+      // THE AFTERBURNERS — BLAZING (H6B): from each nozzle a long orange-pink TAIL, over it a blue-white flame CONE, a white-hot dart
+      // at its heart, four shock diamonds, the nozzle's ring. Laid LAST (burn — after the contrails + the band's flash: nothing
+      // washes them white) — the brightest, most coloured thing in the pass in both looks
+      burn = () => {
+        for (const e of [-0.56, 0.56]) {
+          // (each flame = the glow's TAPERED RIBBON turned so its wide, bright end sits on the nozzle and it narrows to a point behind)
+          // (BY DAY they are paint, laid one over the other: each inner flame is shorter + narrower, each outer one solid well past it —
+          //  a blue-white heart in an orange flame, a long pink tail; BY NIGHT they add up to a white-hot heart in the same colours)
+          K.flat.put(nx - dir * 4.9, y - 0.01, zc + e, 9.6, 1, 1.45, rz, 0xff4f9a, 1, 1, (day ? 2.4 : 0.5) * fl * lt);
+          K.flat.put(nx - dir * 3.4, y, zc + e, 6.6, 1, 1.55, rz, 0xff7a1a, 1, 1, (day ? 2.6 : 0.55) * fl * lt);
+          K.flat.put(nx - dir * 1.95, y + 0.01, zc + e, 3.7, 1, 1.05, rz, day ? 0x1f7fff : 0x3f96ff, 1, 1, (day ? 2.2 : 0.7) * fl * lt);
+          K.flat.put(nx - dir * 1.25, y + 0.02, zc + e, 2.3, 1, 0.6, rz, 0xf4fbff, 1, 1, (day ? 1.8 : 0.6) * fl * lt);
+          for (let d = 0; d < 4; d++) K.bill.put(nx - dir * (0.7 + d * 0.8), y, zc + e, 0.6 - d * 0.1, 0.6 - d * 0.1, 1, 0, 0xffffff, 1, 5, (1 - d * 0.17) * fl * lt);
+          K.bill.put(nx, y, zc + e, 1.2, 1.2, 1, 0, 0xcfe8ff, 1, 5, lt); LB(nx - dir * 1.6, y, zc + e, 4.6, 1.6, 1, 0, 0x3f96ff, 1, 0, 0.2 * fl * lt); LB(nx - dir * 4.8, y, zc + e, 5.6, 1.5, 1, 0, 0xff5a2a, 1, 0, 0.16 * fl * lt);
+          // (BY DAY: heat shimmer behind the burners — pale wavering ribbons, further back)
+          if (day && !reduce) for (let h = 0; h < 2; h++) K.flat.put(nx - dir * (9.4 + h * 2.4 + 0.4 * Math.sin(F.clock / 23 + e * 9 + h)), y, zc + e * (1.15 + 0.3 * Math.sin(F.clock / 31 + h * 2)), 3.8, 1, 1.2, rz, 0xffffff, 1, 1, 0.2 - h * 0.07);
+        }
+      };
       // the vapor ring it punches through (it rides the jet's shoulders for the first ticks, swelling)
       if (s > 2 && s < 16) { const q = (s - 2) / 14, d = 1.7 + 3.6 * q; for (let i = 0; i < 2; i++) K.bill.put(cx - dir * 0.2, y, zc, d * (1 - i * 0.07), d * (1 - i * 0.07), 1, 0, 0xeaf6ff, 1, 3, (1 - q) * lt); }
     }
-    if (tell) return;
+    if (tell) { if (burn) burn(); return; }
     // AFTER IT: the contrails (a soft trail that widens as it fades — never a hairline), THE SHOCKWAVE RING on the ground (ONE thick ring,
     // a dark trailing edge by day), a short flash on the band (capped: the runway's lights still read), the shake
     if (u < FLY.trail) {
-      const q = u / FLY.trail, a = (1 - q) * (1 - q) * lt, end = X(pulseLeft(p, Math.min(u, p.pass + FLY.jetLead)) / FP + (dir > 0 ? 0 : p.len / FP)), start = X(dir > 0 ? -3.5 : COLS + 3.5), mid = (start + end) / 2, w = Math.abs(end - start);
-      for (const e of [-0.43, 0.43]) K.flat.put(mid, FLY.jetY - 0.02, zc + e, w, 1, 0.5 + 1.3 * q, 0, day ? 0xffffff : 0x9fd0ff, 1, 4, (day ? 0.6 : 0.5) * a);
+      const q = u / FLY.trail, a = (1 - q) * (1 - q) * lt, end = X(pulseLeft(p, Math.min(u, p.pass + FLY.jetLead)) / FP + (dir > 0 ? 0 : p.len / FP)) - dir * 8.5, start = X(dir > 0 ? -3.5 : COLS + 3.5), mid = (start + end) / 2, w = Math.abs(end - start);
+      if ((end - start) * dir > 0.5) for (const e of [-0.56, 0.56]) K.flat.put(mid, FLY.jetY - 0.02, zc + e, w, 1, 0.5 + 1.3 * q, 0, day ? 0xffffff : 0x9fd0ff, 1, 4, (day ? 0.6 : 0.5) * a);
     }
     if (u >= FLY.ring[0] && u < FLY.ring[0] + FLY.ring[1]) {
       const q = (u - FLY.ring[0]) / FLY.ring[1], d = (0.9 + 6.6 * easeOut(q)) * 2.5, a = Math.pow(1 - q, 1.3) * lt;
@@ -226,6 +237,7 @@ export function createFlyers(C) {
       K.flat.put(F.camX, 0.08, zc, 12.5, 1, 2.0, 0, 0xffffff, 1, 4, (day ? 0.45 : 0.24) * a * lt);
     }
     if (!reduce && near && u >= FLY.shakeFrom && u < FLY.shakeFrom + FLY.shakeTicks) shakeNow = FLY.shake * (1 - (u - FLY.shakeFrom) / FLY.shakeTicks);
+    if (burn) burn();
   }
   /** THE BLACKBIRD's HIT (night.js — the kid it blasted): `e` ms since it, where he stood, the way the jet flew — THE SHOCKWAVE is
    *  SEEN: a white flash where he stood, a thick ring bursting out from him, a bright streak along his throw, sparks */
@@ -242,12 +254,23 @@ export function createFlyers(C) {
 
   // ------------------------------------------------------------------------------------------------ THE UFO
   const abd = { on: false, id: -1, t0: 0, x: 0, z: 0, sx: 0, sz: 0 };
+  // (H6B — on the abducted player's OWN phone the world dims round the beam for its ≈ 2 s: one soft shade over the scene, its clear
+  //  heart set on the beam once, as it starts — after that its opacity alone moves)
+  const dimAt = [50, 50]; let dimEl = null, dimO = '0';
+  function dimSet() {
+    const o = dimNow < 0.01 ? '0' : (0.8 * dimNow).toFixed(2);
+    if (o === dimO) return;
+    if (!dimEl) { dimEl = document.createElement('div'); dimEl.className = 'jw-ufo-shade'; dimEl.setAttribute('aria-hidden', 'true'); C.host.append(dimEl); }
+    if (dimO === '0') { dimEl.style.setProperty('--x', `${dimAt[0].toFixed(1)}%`); dimEl.style.setProperty('--y', `${dimAt[1].toFixed(1)}%`); }
+    dimO = o; dimEl.style.opacity = o;
+  }
   const GREEN = 0x4dff5a, GREEN_D = 0x12d83c;   // (the ring: a clear YELLOW-GREEN — never blue, never the mint of a kid's own ring)
-  /** a UFO over its zone this frame (once a UFO — night.js's lane loop): the saucer, its ring on the ground, the faint beam, the hum */
+  /** a UFO over its zone this frame (once a UFO — night.js's lane loop): the saucer, its ring on the ground, its beam, the hum */
   function ufo(U, t, lt) {
     need('ufo'); sfetch('ufo-hum'); sfetch('ufo-beam-on'); sfetch('ufo-lift'); sfetch('ufo-depart'); sfetch('ufo-beam-off');
     const bx = X(ufoX(U, t) / FP), bz = Z(ufoY(U, t) / FP), r = U.r / FP, hz = 1 - C.hazeAt(bx, 0, bz), T = F.clock / 1000;
-    const pu = reduce ? 0.9 : 0.8 + 0.2 * Math.sin(T * 5.2), taking = abd.on && abd.id === U.id, A = taking ? abductAt(F.clock - abd.t0) : null;
+    const bob = reduce ? 0 : Math.sin(T * 1.7 + U.id) * 0.12;
+    const pu = reduce ? 0.9 : 0.8 + 0.2 * Math.sin(T * 5.2), taking = abd.on && abd.id === U.id, A = taking ? abductAt(F.clock - abd.t0, bx, FLY.ufoY + bob, bz) : null;
     // THE RING ON THE GROUND — the rules' warning, ALWAYS where the rules have it: a bright GREEN ring, pulsing (thick: three laid a hair
     // apart; a white inner edge; by day opaque green paint on a dark ring); a second ring closing in on its middle; a soft green pool.
     // While its saucer is away with a kid the ring is dim (it comes back with the saucer)
@@ -258,44 +281,58 @@ export function createFlyers(C) {
     if (!reduce) { const q = (T * 0.9) % 1; K.flat.put(bx, 0.051, bz, d * (1 - 0.72 * q), 1, d * (1 - 0.72 * q), 0, day ? GREEN_D : 0x9dff8a, 1, 3, 0.8 * (1 - q) * dim); }
     K.flat.put(bx, 0.045, bz, r * 2.2, 1, r * 2.2, 0, day ? 0x35e060 : 0x3dff6a, 1, 0, (day ? 0.4 : 0.42) * dim);
     if (hz < 0.02) return;
-    // THE SAUCER, high over its ring: it spins + bobs; SEE-THROUGH while it would cover the kid on the screen
-    const q = ufos[nu++], bob = reduce ? 0 : Math.sin(T * 1.7 + U.id) * 0.12;
-    let sx = bx, sy = FLY.ufoY + bob, sz = bz, sc = 1, show = hz, pulse = 0;
-    if (A) { sx = A.sx; sy = A.sy; sz = A.sz; sc = A.sc; show *= A.sa; pulse = A.pulse; }
+    // THE SAUCER, high over its ring: SOLID — it spins + bobs; by day chrome in the sun, by night dark metal under bright rim lights
+    const q = ufos[nu++];
+    let sx = bx, sy = FLY.ufoY + bob, sz = bz, sc = 1, pulse = 0, tip = 0, hatch = 0;
+    if (A) { sx = A.sx; sy = A.sy; sz = A.sz; sc = A.sc; pulse = A.pulse; tip = A.tip; hatch = A.hatch; }
     if (q) {
-      v3.set(sx, sy, sz).project(cam); const ux = v3.x, uy = v3.y; v3.set(F.kx, 0.6, F.kz).project(cam);
-      const over = A ? 0 : clamp01(1.5 - Math.hypot((ux - v3.x) * 2.2, uy - v3.y) / 0.2);
-      q.id = U.id; q.m.visible = show > 0.02; q.m.position.set(sx, sy, sz); q.m.rotation.set(reduce ? 0.08 : 0.1 * Math.sin(T * 1.3), reduce ? 0 : T * 0.9, reduce ? 0 : 0.07 * Math.cos(T * 1.1));
-      q.m.scale.set(FLY.ufoD * sc, FLY.ufoD * (A ? 1 / Math.sqrt(Math.max(0.3, sc)) : 1), FLY.ufoD * sc); q.m.material.opacity = show * (1 - 0.72 * over);
+      const m = q.m.material, fogC = scene.fog ? scene.fog.color : cA.setHex(0);
+      q.id = U.id; q.m.visible = sc > 0.03; q.m.position.set(sx, sy, sz);
+      // (its near rim LIFTS a little as it locks on: the glowing hatch under its belly is seen — the kid goes up INTO it, the solid hull closing over him)
+      q.m.rotation.set((reduce ? 0.08 : 0.1 * Math.sin(T * 1.3)) + tip, reduce ? 0 : T * 0.9, reduce ? 0 : 0.07 * Math.cos(T * 1.1) * (1 - Math.min(1, tip * 3)));
+      q.m.scale.set(FLY.ufoD * sc, FLY.ufoD * sc, FLY.ufoD * sc);
+      // (never a pale disc on the backdrop — H5C: SOLID, it takes the haze's own colour as its ring nears the wall)
+      m.color.setHex(UFO_HEX[day ? 1 : 0]).lerp(fogC, 1 - hz); m.emissive.copy(fogC).multiplyScalar((1 - hz) * 0.8); m.envMapIntensity = UFO_ENV[day ? 1 : 0] * hz;
       // its rim lights (BRIGHT — a chase round the rim), the glow under its belly, by day a hard SUN STAR on its shoulder
-      const a0 = reduce ? 0 : T * 0.9, R = FLY.ufoD * 0.47 * sc, la = show * (1 - 0.7 * over);
+      const a0 = reduce ? 0 : T * 0.9, R = FLY.ufoD * 0.47 * sc, la = hz * Math.min(1, sc * 1.4), ct = Math.cos(tip), st = Math.sin(tip);
       for (let i = 0; i < 10; i++) {
-        const a = a0 + i * Math.PI / 5, hot = pulse > 0 ? pulse : reduce ? 0.8 : 0.5 + 0.5 * Math.max(0, Math.sin(T * 6 - i * 1.26));
-        K.bill.put(sx + Math.cos(a) * R, sy + 0.2 * sc, sz - Math.sin(a) * R * 0.92, 0.34 + 0.3 * hot, 0.34 + 0.3 * hot, 1, 0, i % 2 ? 0xffffff : 0x8dff9a, 1, 5, (0.6 + 0.4 * hot) * la);
+        const a = a0 + i * Math.PI / 5, hot = pulse > 0 ? pulse : reduce ? 0.8 : 0.5 + 0.5 * Math.max(0, Math.sin(T * 6 - i * 1.26)), lz = -Math.sin(a) * R * 0.92, ly = 0.16 * sc;
+        K.bill.put(sx + Math.cos(a) * R, sy + ly * ct - lz * st, sz + lz * ct + ly * st, (0.3 + 0.28 * hot) * (day ? 1 : 1.25), (0.3 + 0.28 * hot) * (day ? 1 : 1.25), 1, 0, i % 2 ? 0xffffff : 0x8dff9a, 1, 5, (0.65 + 0.35 * hot) * la);
       }
-      K.bill.put(sx, sy - 0.05, sz, 2.6 * sc, 1.0, 1, 0, day ? 0xc8ffd8 : 0x7dffa0, 1, 0, (day ? 0.5 : 0.8) * (0.7 + 0.3 * pu + pulse) * la * (A ? A.sa : 1));
-      if (day) { const gx = sx - 0.62 * sc, gy = sy + 0.5, tw = reduce ? 1 : 0.8 + 0.2 * Math.sin(T * 3.1); K.bill.put(gx, gy, sz, 1.7 * tw, 0.12, 1, 0, 0xffffff, 1, 0, la); K.bill.put(gx, gy, sz, 0.12, 1.5 * tw, 1, 0, 0xffffff, 1, 0, la); K.bill.put(gx, gy, sz, 0.42, 0.42, 1, 0, 0xffffff, 1, 5, la); }
-      K.shadow.put(bx, 0.03, bz, 2.4, 1, 1.8, 0, 0, 1, 0, day ? 0.3 * hz * dim : 0);
+      K.bill.put(sx, sy - 0.05, sz, 2.2 * sc, 0.8 * sc, 1, 0, day ? 0xc8ffd8 : 0x7dffa0, 1, 0, (day ? 0.35 : 0.7) * (0.7 + 0.3 * pu + pulse) * la);
+      if (day) { const gx = sx - 0.5 * sc, gy = sy + 0.4 * sc, tw = reduce ? 1 : 0.8 + 0.2 * Math.sin(T * 3.1); K.bill.put(gx, gy, sz, 1.5 * tw * sc, 0.11, 1, 0, 0xffffff, 1, 0, la); K.bill.put(gx, gy, sz, 0.11, 1.3 * tw * sc, 1, 0, 0xffffff, 1, 0, la); K.bill.put(gx, gy, sz, 0.38, 0.38, 1, 0, 0xffffff, 1, 5, la); }
+      // ITS HATCH: a glowing port under its belly, on the side the lens sees — it opens wide as it takes him
+      { const hy = sy - 0.24 * sc * ct + 0.3 * sc * st, hzz = sz + 0.3 * sc * ct + 0.3 * sc * st, hk = 0.55 + 0.45 * pu + hatch * 1.4; K.bill.put(sx, hy, hzz, (0.8 + 0.9 * hatch) * sc, (0.3 + 0.5 * hatch) * sc, 1, 0, day ? 0xd6ffe0 : 0x9dffb4, 1, 0, Math.min(1, (day ? 0.5 : 0.75) * hk) * la); if (hatch > 0.05) K.bill.put(sx, hy, hzz, 0.5 * hatch * sc, 0.26 * hatch * sc, 1, 0, 0xffffff, 1, 5, hatch * la); }
+      K.shadow.put(bx, 0.03, bz, 2.0, 1, 1.5, 0, 0, 1, 0, day ? 0.3 * hz * dim : 0);
     }
-    // the thin beam from its belly to its ring (a green shaft: clear by night, a saturated green column + drifting motes by day)
+    // ITS BEAM, from its belly to its ring — STRONG (H6B): by night a glowing green column, by day bright pale green between two
+    // darker edge lines, motes drifting up it in both; and it LIGHTS what drives through it (a green wash laid over the cars in the ring)
     if (!A) {
-      K.bill.put(bx, FLY.ufoY / 2, bz, r * 2.1, FLY.ufoY, 1, 0, day ? 0x3fe06a : 0x4dff7a, 1, 9, (day ? 0.46 : 0.36) * (0.8 + 0.2 * pu) * hz);
-      if (day && !reduce) for (let i = 0; i < 5; i++) { const m = (T * 0.35 + i / 5) % 1; K.bill.put(bx + Math.sin(i * 2.4 + T) * r * 0.5 * (1 - m * 0.5), 0.2 + m * (FLY.ufoY - 0.6), bz, 0.16, 0.16, 1, 0, 0xffffff, 1, 5, Math.sin(m * Math.PI) * hz); }
+      const h = FLY.ufoY + bob, k = (0.85 + 0.15 * pu) * hz;
+      K.bill.put(bx, h / 2, bz, r * 2.3, h, 1, 0, day ? 0x8dffb0 : 0x4dff7a, 1, 9, (day ? 0.74 : 0.62) * k);
+      K.bill.put(bx, h / 2, bz, r * 1.0, h, 1, 0, day ? 0xeafff0 : 0xc8ffd6, 1, 9, (day ? 0.4 : 0.3) * k);
+      if (day) for (const sd of [-1, 1]) K.bill.put(bx + sd * r * 0.98, h / 2, bz, 0.13, h, 1, 0, 0x0c8a34, 1, 0, 0.42 * k);
+      if (!reduce) for (let i = 0; i < 6; i++) { const m = (T * 0.35 + i / 6) % 1; K.bill.put(bx + Math.sin(i * 2.4 + T) * r * 0.5 * (1 - m * 0.5), 0.2 + m * (h - 0.8), bz, 0.17, 0.17, 1, 0, 0xffffff, 1, 5, Math.sin(m * Math.PI) * hz); }
+      K.bill.put(bx, 0.6, bz + r * 0.95, r * 2.5, 1.5, 1, 0, day ? 0x6dffa0 : 0x4dff7a, 1, 0, (day ? 0.3 : 0.34) * k);
     }
     humD = Math.min(humD, Math.hypot(bx - F.kx, bz - F.kz));
   }
-  /** THE ABDUCTION's own clock (ms since the hit) → where the saucer is (it locks on over him and CLIMBS — a long beam —, pulses, zips
-   *  off, comes back over its ring), the beam, the kid */
-  function abductAt(e) {
-    const lock = ease(clamp01(e / 240)), go = clamp01((e - 1650) / 260), back = ease(clamp01((e - FLY.abductMs - 150) / 450));
-    const sx = abd.sx + (abd.x - abd.sx) * lock, sz = abd.sz + (abd.z - abd.sz) * lock, top = FLY.ufoY + 1.5 * lock;
+  /** THE ABDUCTION's own clock (ms since the hit) → where the saucer is (it locks on over him and CLIMBS — a long beam —, TIPS its
+   *  hatch toward the lens, pulses, zips off — small + far, never see-through — and comes back down over its ring: bx / by / bz), the
+   *  beam, the kid */
+  function abductAt(e, bx = abd.sx, by = FLY.ufoY, bz = abd.sz) {
+    const lock = ease(clamp01(e / 240)), go = clamp01((e - 1650) / 260), back = ease(clamp01((e - FLY.abductMs - 150) / 450)), away = go * go * (1 - back);
+    const top = FLY.ufoY + 0.6 * lock, lx = abd.sx + (abd.x - abd.sx) * lock, lz = abd.sz + (abd.z - abd.sz) * lock;
     return {
-      sx: sx + go * go * 5, sy: top + go * go * 16, sz: sz - go * go * 11, sc: 1 + 0.25 * go, sa: back > 0 ? back : 1 - go, top, back,
+      sx: lx + (bx - lx) * back + away * 5, sy: top + (by - top) * back + away * 15, sz: lz + (bz - lz) * back - away * 11, sc: 1 - 0.95 * away, top, back,
+      tip: -0.2 * lock * (1 - clamp01((e - 1600) / 200)),                                // its near rim lifts a little: the glowing hatch under it is seen
+      hatch: clamp01((e - 200) / 300) * (1 - clamp01((e - 1560) / 140)),                // the hatch opens wide · shuts as he is in
       pulse: e > 1250 && e < 1700 ? 0.6 + 0.4 * Math.sin((e - 1250) / 24) : 0,
       beam: clamp01((e - 170) / 90) * (1 - clamp01((e - 1850) / 130)),                  // slams down · snaps out
       flare: 1 - clamp01(Math.abs(e - 150) / 170),                                      // the circle flares as it locks on
       hit: clamp01((e - 170) / 420),                                                    // the ground's shock ring as the beam lands
-      rise: ease(clamp01((e - 380) / 1150)),                                            // the kid: up, spinning, shrinking
+      rise: ease(clamp01((e - 380) / 1150)),                                            // the kid: up, spinning, shrinking — INTO the hatch
+      dim: clamp01((e - 120) / 260) * (1 - clamp01((e - 1800) / 220)),                  // the world dims round the beam (his own phone)
     };
   }
   /**
@@ -308,26 +345,29 @@ export function createFlyers(C) {
       abd.on = true; abd.id = U.id; abd.t0 = F.clock - e; abd.x = x; abd.z = z; abd.sx = X(ufoX(U, t) / FP); abd.sz = Z(ufoY(U, t) / FP);
       if (F.own && e < 400 && snd.abd !== abd.t0) { snd.abd = abd.t0; play('ufo-beam-on', { gain: 0.7, at: 3.0 }); play('ufo-lift', { gain: 0.6, at: 3.4 }); setTimeout(() => { if (!dead) { play('ufo-depart', { gain: 0.7, at: 1.5 }); play('ufo-beam-off', { gain: 0.6, at: 1.1 }); } }, 1350); }
     }
-    const A = abductAt(e), top = A.top - 0.3, by = top * A.rise;
+    // (he rises INTO the saucer — H6B: it is solid, so its hull hides him as he goes in through the hatch; never left under its rim)
+    const A = abductAt(e), top = A.top - 0.1, by = top * A.rise;
+    if (F.own) dimNow = Math.max(dimNow, A.dim);
+    if (F.own && A.dim > 0) { v3.set(x, top * 0.55, z).project(cam); dimAt[0] = (1 + v3.x) * 50; dimAt[1] = (1 - v3.y) * 50; }
     pend.push(() => {
-      beam(x, z, top, A.beam, A.flare, day ? 0x35e868 : 0x4dff7a, 1.25);
+      beam(x, z, top, A.beam, A.flare, day ? 0x8dffb0 : 0x4dff7a, 1.25);
       if (A.hit > 0 && A.hit < 1) ring(x, 0.058, z, 2.6 + 5.5 * easeOut(A.hit), 0.9, day ? GREEN_D : 0xbfffc8, (1 - A.hit) * (1 - A.hit));
       // (he is SEEN all the way up: a thick halo of his own colour round him, a white heart, a short trail under him)
       if (A.rise < 1 && A.beam > 0) {
-        const k = 1 - 0.55 * A.rise;
+        const k = 1 - 0.6 * A.rise;
         K.bill.put(x, by + 0.55, z, 2.4 * k, 2.6 * k, 1, 0, hex, 1, 0, (day ? 0.85 : 0.9) * A.beam);
         K.bill.put(x, by + 0.55, z, 1.1 * k, 1.2 * k, 1, 0, 0xffffff, 1, 0, 0.45 * A.beam);
         for (let i = 1; i <= 3; i++) K.bill.put(x, by + 0.4 - i * 0.5 * A.rise, z, 0.7 * k, 0.5 * k, 1, 0, hex, 1, 0, (0.5 - i * 0.13) * A.rise * A.beam);
       }
     });
-    return { y: by, spin: reduce ? 0 : e * 0.011 * (0.4 + A.rise), s: 1 - 0.72 * A.rise * A.rise, show: A.rise < 0.995 && e < 1800 };
+    return { y: by, spin: reduce ? 0 : e * 0.011 * (0.4 + A.rise), s: 1 - 0.7 * A.rise * A.rise, show: A.rise < 0.992 && e < 1800 };
   }
   /** a beam standing on the ground at (x, z) up to `top`: `k` 0 … 1 = how far it has come down / how open it is; `fl` = the ground's
    *  flare. SEE-THROUGH in its heart (what it lifts is seen): its light is in its edge, its foot and its ring */
   function beam(x, z, top, k, fl, hex, r) {
     if (k > 0.004) {
       const h = top * Math.min(1, k * 1.15), y = top - h / 2;
-      K.bill.put(x, y, z, r * 2.7 * (0.35 + 0.65 * k), h, 1, 0, hex, 1, 9, (day ? 0.62 : 0.42) * k);
+      K.bill.put(x, y, z, r * 2.7 * (0.35 + 0.65 * k), h, 1, 0, hex, 1, 9, (day ? 0.74 : 0.6) * k);
       if (day) { K.bill.put(x - r * 0.98, y, z, 0.16, h, 1, 0, 0x0c8a34, 1, 0, 0.5 * k); K.bill.put(x + r * 0.98, y, z, 0.16, h, 1, 0, 0x0c8a34, 1, 0, 0.5 * k); }
       K.flat.put(x, 0.055, z, r * 2.9, 1, r * 2.9, 0, hex, 1, 0, (day ? 0.55 : 0.4) * k); ring(x, 0.056, z, r * 2.5, 1, day ? GREEN_D : 0xcfffd8, k);
       if (!reduce) for (let i = 0; i < 7; i++) { const m = (F.clock / 700 + i / 7) % 1; K.bill.put(x + Math.sin(i * 2.4) * r * 0.75 * (1 - m * 0.5), m * top, z, 0.15, 0.15, 1, 0, 0xffffff, 1, 5, Math.sin(m * Math.PI) * k); }
@@ -337,21 +377,40 @@ export function createFlyers(C) {
   /** a kid going up (night.js — a GHOST the UFO took; every kid THE MOTHERSHIP lifts): a thick halo of their OWN colour, a white heart,
    *  a short trail under them — the brightest things in the beam; under a UFO's ghost its own smaller beam */
   function lift(x, y, z, q, hex, ship) {
+    const k = ship ? spark(x, y, z, q, hex) : 0;
     pend.push(() => {
-      if (!ship) beam(x, z, FLY.ufoY, Math.sin(Math.min(1, q * 1.3) * Math.PI) * 0.9, 0, day ? 0x35e868 : 0x4dff7a, 0.8);
-      const a = (1 - 0.35 * q) * (ship ? Math.min(1, 0.35 + q * 5) : 1);
+      if (!ship) beam(x, z, FLY.ufoY, Math.sin(Math.min(1, q * 1.3) * Math.PI) * 0.9, 0, day ? 0x8dffb0 : 0x4dff7a, 0.8);
+      const a = (1 - 0.35 * q) * (ship ? Math.min(1, 0.35 + q * 5) * (1 - k) : 1);
       K.bill.put(x, y + 0.55, z, 2.5, 2.7, 1, 0, hex, 1, 0, (day ? 0.9 : 0.85) * a);
       K.bill.put(x, y + 0.55, z, 1.0, 1.1, 1, 0, 0xffffff, 1, 0, 0.3 * a);
       for (let i = 1; i <= 4; i++) K.bill.put(x, y + 0.5 - i * 0.55, z, 0.9 - i * 0.12, 0.7, 1, 0, hex, 1, 0, (0.6 - i * 0.12) * a * Math.min(1, q * 6));
       if (ship) K.flat.put(x, 0.06, z, 2.4 + 1.2 * q, 1, 1.9 + q, 0, hex, 1, 3, 0.8 * (1 - q));
     });
   }
+  // THE MOTHERSHIP's KIDS GO INTO ITS PORT (H6B): the ship is a sprite OVER the canvas — a kid rising behind it would only slip under
+  // its rim. From the rim on each kid is carried on as a small light of their own colour (a spark over the sprite: transform + opacity
+  // only) that flies to the port's lens and goes in
+  const sparks = [];
+  function spark(x, y, z, q, hex) {
+    const k = ease(clamp01((q - 0.4) / 0.52));
+    if (k <= 0 || !ship.el || !ship.port || !F.w) return 0;
+    let e = sparks[nk];
+    if (!e) { e = document.createElement('i'); e.className = 'jw-ship-kid'; e.setAttribute('aria-hidden', 'true'); C.host.append(e); sparks[nk] = e; }
+    nk++;
+    v3.set(x, y + 0.6, z).project(cam);
+    const sx = (1 + v3.x) / 2 * F.w, sy = (1 - v3.y) / 2 * F.h, tx = F.w / 2 + (ship.port[0] - 0.5) * 1.72 * F.w, ty = (ship.y / 100 + ship.port[1]) * 1.72 * F.w * SHIP_H / SHIP_W;
+    const c = `#${hex.toString(16).padStart(6, '0')}`;
+    if (e.dataset.c !== c) { e.dataset.c = c; e.style.setProperty('--c', c); }
+    e.style.transform = `translate3d(${(sx + (tx - sx) * k).toFixed(1)}px,${(sy + (ty - sy) * k).toFixed(1)}px,0) scale(${(1.3 - k).toFixed(3)})`;
+    e.style.opacity = (Math.min(1, k * 5) * (q > 0.95 ? Math.max(0, (1 - q) / 0.05) : 1)).toFixed(2);
+    return k;
+  }
 
   // ------------------------------------------------------------------------------------------------ THE MOTHERSHIP
   // THE SHIP = the model BAKED into a sprite (the scene's own renderer → a render target → a 2D canvas; once a look): the skyline band is
   // DOM over the 3D canvas, and the ship must stand over it. Its panel lines, its rings of lights, its lit rim and its lens are drawn on
   // the bake (projected through the bake's own camera); a second small canvas of the brightest lights shimmers over it (opacity only).
-  const ship = { el: null, cv: null, glow: null, dim: null, wash: null, shade: null, txt: null, sec: -1, on: false, prime: 0 };
+  const ship = { el: null, cv: null, glow: null, dim: null, wash: null, shade: null, txt: null, sec: -1, on: false, prime: 0, y: -100, port: null };
   let bakeAsk = false;
   const SHIP_W = 1408, SHIP_H = 768;
   function bakeShip() {
@@ -429,6 +488,7 @@ export function createFlyers(C) {
     // THE SHIP: its lit rim peeks over the top in the warning's last seconds, then it comes down over the top third
     if (ship.el && !ship.prime) {
       const y = -100 + 32 * peek + 60 * down;   // (% of its own height: −100 = wholly above the screen)
+      ship.y = y;
       set(ship.el, 't', `translate3d(-50%,${y.toFixed(1)}%,0)`); set(ship.el, 'o', peek > 0 || down > 0 ? '1' : '0');
       if (ship.glow) set(ship.glow, 'o', (reduce ? 0.7 : 0.45 + 0.4 * Math.sin(F.clock / 190) + 0.15 * down).toFixed(2));
     }
@@ -464,6 +524,9 @@ export function createFlyers(C) {
     flush();
     for (let i = nj; i < jets.length; i++) jets[i].visible = false;
     for (let i = nu; i < ufos.length; i++) { ufos[i].m.visible = false; ufos[i].id = -1; }
+    // (the kid's own moments are asked for BEFORE begin(): what they counted is closed here, at the frame's end)
+    for (let i = nk; i < sparks.length; i++) if (sparks[i].style.opacity !== '0') sparks[i].style.opacity = '0';
+    dimSet(); nk = 0; dimNow = 0;
     if (abd.on && F.clock - abd.t0 > FLY.abductMs + 900) abd.on = false;
     const want = F.own && F.alive && humD < 8 ? 0.34 * Math.pow(1 - humD / 8, 1.5) : 0;
     if (want > 0.004 && !snd.hum) snd.hum = play('ufo-hum', { gain: want, loop: true });
@@ -475,7 +538,7 @@ export function createFlyers(C) {
     shake: () => shakeNow,
     /** the meshes night.js's warm frame must have seen (their programs + buffers made before the moment, never in it) */
     meshes: () => [...jets, ...ufos.map(q => q.m)],
-    info: () => ({ models: Object.keys(geo), jets: jets.filter(m => m.visible && Math.abs(m.position.x) < 6.5).length, ufos: ufos.filter(q => q.m.visible).length, ship: !!ship.cv, shipOn: ship.on, shipText: ship.txt ? ship.txt.textContent : '', abducting: abd.on, sounds: played.slice() }),
+    info: () => ({ models: Object.keys(geo), jets: jets.filter(m => m.visible && Math.abs(m.position.x) < 6.5).length, ufos: ufos.filter(q => q.m.visible).length, ship: !!ship.cv, shipOn: ship.on, shipText: ship.txt ? ship.txt.textContent : '', abducting: abd.on, dim: dimO, sparks: sparks.filter(e => e.style.opacity !== '0').length, sounds: played.slice() }),
     /** the world goes quiet (a run's end / a new run / the view leaves): the loops fade */
     quiet() { if (snd.hum) { snd.hum.stop(0.4); snd.hum = null; } if (snd.ship && !ship.on) { snd.ship.stop(0.4); if (snd.rum) snd.rum.stop(0.4); snd.ship = snd.rum = null; } },
     destroy() {
@@ -483,7 +546,7 @@ export function createFlyers(C) {
       if (snd.hum) snd.hum.stop(0.2); if (snd.ship) snd.ship.stop(0.2); if (snd.rum) snd.rum.stop(0.2);
       for (const m of jets) scene.remove(m); for (const q of ufos) { scene.remove(q.m); q.m.material.dispose(); }
       jetMat.dispose(); for (const g of Object.values(geo)) g.dispose();
-      for (const e of [ship.el, ship.dim, ship.shade, ship.wash, ship.txt]) if (e) e.remove();
+      for (const e of [ship.el, ship.dim, ship.shade, ship.wash, ship.txt, dimEl, ...sparks]) if (e) e.remove();
       for (const cv of [ship.cv, ship.glow]) if (cv) { cv.width = 0; cv.height = 0; }
     },
   };
