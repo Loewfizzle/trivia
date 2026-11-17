@@ -37,7 +37,7 @@
    from 100 lanes the count steps down a size, from 1,000 again — about as WIDE as two digits were — and the band's rest keeps every
    landmark out of that width (skyline.js#SKY_MAX, measured for these sizes: change them together) */
 .jw-stage:not(.is-gray) .jw-lanes[data-dg='3'] { font-size: 60px; }
-.jw-stage:not(.is-gray) .jw-lanes[data-dg='4'], .jw-stage:not(.is-gray) .jw-lanes[data-dg='5'] { font-size: 48px; }
+.jw-stage:not(.is-gray) .jw-lanes[data-dg='4'], .jw-stage:not(.is-gray) .jw-lanes[data-dg='5'] { font-size: 44px; }
 /* H5A's add-on — THE BIG NUMERALS (js/games/jaywalk/numerals.js): each digit its own box — more room between two (a "17" never
    reads as an N) — and a "1" stands on a BASE FOOT, placed by the numbers measured off the font's own 1 (--jw-1l · w · r · h · b, em) */
 .jw-dg { display: inline-block; position: relative; margin: 0 0.045em; line-height: 1; }

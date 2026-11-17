@@ -238,7 +238,7 @@ export function createView() {
   }
   function tick() {
     let d = '';
-    if (queue.length && canLog(log, run.t, queue[0])) { d = queue.shift(); log.push({ t: run.t, d }); }
+    if (queue.length && canLog(log, run.t, queue[0], run.mode)) { d = queue.shift(); log.push({ t: run.t, d }); }
     const ev = [];
     step(run, course, d, ev);
     for (const e of ev) {

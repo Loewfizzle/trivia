@@ -21,7 +21,7 @@ export const SKY_BIAS = Object.freeze({ docks: 14.5, fish: 11, yard: 17, bridge:
 export const SKY_BIAS_NIGHT = Object.freeze({ docks: 7.5, fish: 15, yard: 15, bridge: -14, downtown: 6.5, canal: 12, lighthouse: -17, airfield: 10.5 });
 /**
  * THE LANE COUNT NEVER TOUCHES A LANDMARK (the go-live review — measured off the pictures on a 390 pt phone, the tightest: the columns
- * each landmark fills in the count's rows against a 3- / 4-digit count's width, css `.jw-lanes[data-dg]`): the HIGHEST shift at which
+ * each landmark fills in the count's rows against a 3- / 4-digit count's width — x 128 … 262 of 390, css `.jw-lanes[data-dg]`): the HIGHEST shift at which
  * the area's landmark still stands clear of the count. The rest offsets above sit under it; the SLIDE never carries the band past it
  * (the kid at the right edge: the band simply stops). An area not named has no limit but the room.
  */

@@ -3,7 +3,7 @@
 // respawn, no blink, no one-up); every hazard is a pure function of
 // (lane, tick) (course.js). THE ONLY INPUT is THE HOP LOG: [{ t: tick, d: 'u' | 'l' | 'r' | 'd' }]. The phone's live run and the server's
 // replay run THIS code. PURE: no DOM, no three.js, never Math.random / Date.now / performance.now / a frame clock; integers + Math.floor only.
-import { FP, COLS, WIDTH, MID_COL, HOP_TICKS, MODES, WALL, wallPace, KID_HALF, LOOP_LANES, MIN_INPUT_GAP, DIRS } from './tuning.js';
+import { FP, COLS, WIDTH, MID_COL, HOP_TICKS, MODES, WALL, wallPace, KID_HALF, LOOP_LANES, MIN_INPUT_GAP, DIRS, MAX_INPUTS_PER_SEC, MAX_LOG, TICK_HZ } from './tuning.js';
 import { laneHit, logUnder, carNear, ufoX, ufoY, mod } from './course.js';
 
 const colOf = x => { const c = Math.floor(x / FP); return c < 0 ? 0 : c >= COLS ? COLS - 1 : c; };
@@ -166,5 +166,21 @@ export function resultOf(run) {
   };
 }
 
-/** THE HOP LOG's recorder (the phone): may this input be logged at this tick? (the same bounds the server checks — tuning.js) */
-export const canLog = (log, tick, d) => DIRS.includes(d) && (!log.length || tick - log[log.length - 1].t >= MIN_INPUT_GAP);
+/**
+ * THE HOP LOG's BOUNDS — ONE FUNCTION for the phone's recorder AND the judge (replay.js#logProblem): may entry `i` of `log` (tick `t`,
+ * way `d`) stand? → null, or why not. (The go-live review: the recorder knew only the 2-tick gap — a tap in the Mothership's own tick,
+ * or 21 taps in a second, wrote a log the judge refused WHOLE. An input the recorder does not log is not played either.)
+ */
+export function inputProblem(log, i, t, d, mode = 'solo') {
+  const M = MODES[mode];
+  if (!M) return 'mode';
+  if (!Number.isInteger(t) || t < 0 || !DIRS.includes(d)) return 'entry';
+  if (i >= (M.cap ? Math.min(MAX_LOG, Math.floor(M.cap / MIN_INPUT_GAP)) : MAX_LOG)) return 'too long';
+  if (i && t <= log[i - 1].t) return 'ticks not rising';
+  if (i && t - log[i - 1].t < MIN_INPUT_GAP) return 'too fast';
+  if (M.cap && t >= M.cap) return 'past the cap';
+  if (i >= MAX_INPUTS_PER_SEC && t - log[i - MAX_INPUTS_PER_SEC].t < TICK_HZ) return 'too fast';
+  return null;
+}
+/** the phone's recorder: may this input be logged (and so played) at this tick of a `mode` run? */
+export const canLog = (log, tick, d, mode = 'solo') => inputProblem(log, log.length, tick, d, mode) === null;

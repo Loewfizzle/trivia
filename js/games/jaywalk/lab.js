@@ -120,7 +120,7 @@ async function mount() {
   function tick() {
     let d = '';
     if (bot && !queue.length) { const b = bot(run, course); if (b) queue.push(b); }
-    if (queue.length && canLog(log, run.t, queue[0])) { d = queue.shift(); log.push({ t: run.t, d }); }
+    if (queue.length && canLog(log, run.t, queue[0], run.mode)) { d = queue.shift(); log.push({ t: run.t, d }); }
     const ev = [];
     if (safe && run.wall > (run.y - 5) * FP) run.wall = (run.y - 5) * FP;
     step(run, course, d, ev);

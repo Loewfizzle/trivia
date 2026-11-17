@@ -4,7 +4,7 @@
 // (H4 — judgeRun: the ONE function the host's podium and the server's count both run).
 import { MODES, DIRS, MIN_INPUT_GAP, MAX_INPUTS_PER_SEC, MAX_LOG, SEED_MAX, TICK_HZ, CLOCK } from './tuning.js';
 import { createCourse } from './course.js';
-import { createRun, step, isOver, resultOf } from './engine.js';
+import { createRun, step, isOver, resultOf, inputProblem } from './engine.js';
 
 /** the hard stop of a replay past the log's last hop: an idle kid is always caught (the wall, the water, the edge) within seconds */
 const IDLE_TICKS = 5 * 60 * TICK_HZ;
@@ -35,15 +35,11 @@ export function logProblem(log, mode = 'solo') {
   if (!Array.isArray(log)) return 'log';
   const cap = M.cap ? Math.min(MAX_LOG, Math.floor(M.cap / MIN_INPUT_GAP)) : MAX_LOG;
   if (log.length > cap) return 'too long';
-  let last = -MIN_INPUT_GAP;
   for (let i = 0; i < log.length; i++) {
     const h = log[i];
-    if (!h || typeof h !== 'object' || !Number.isInteger(h.t) || h.t < 0 || !DIRS.includes(h.d)) return 'entry';
-    if (h.t <= last && i) return 'ticks not rising';
-    if (h.t - last < MIN_INPUT_GAP) return 'too fast';
-    if (M.cap && h.t >= M.cap) return 'past the cap';
-    if (i >= MAX_INPUTS_PER_SEC && h.t - log[i - MAX_INPUTS_PER_SEC].t < TICK_HZ) return 'too fast';
-    last = h.t;
+    if (!h || typeof h !== 'object') return 'entry';
+    const why = inputProblem(log, i, h && h.t, h && h.d, mode);   // (engine.js — the recorder's own function: the two can not differ)
+    if (why) return why;
   }
   return null;
 }

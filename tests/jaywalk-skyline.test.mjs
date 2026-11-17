@@ -139,7 +139,7 @@ test('THE GO-LIVE REVIEW — the band never carries a landmark under the lane co
   for (const look of ['day', 'night']) for (const id of SKY_IDS) if (!SKY_MATCH_PIN.includes(id)) { const lane = STRETCH * (SKY_IDS.indexOf(id) + 1) + 9; assert.deepEqual(skyPlan(lane, look, true), skyPlan(lane, look)); }
   // the count's sizes the limits were measured for are in the css — change them together
   const { readFileSync } = await import('node:fs'), css = readFileSync(new URL('../css/jaywalk.css', import.meta.url), 'utf8');
-  assert.match(css, /\.jw-lanes\[data-dg='3'\] \{ font-size: 60px; \}/); assert.match(css, /\.jw-lanes\[data-dg='4'\][^{]*\{ font-size: 48px; \}/);
+  assert.match(css, /\.jw-lanes\[data-dg='3'\] \{ font-size: 60px; \}/); assert.match(css, /\.jw-lanes\[data-dg='4'\][^{]*\{ font-size: 44px; \}/);
   const num = readFileSync(new URL('../js/games/jaywalk/numerals.js', import.meta.url), 'utf8');
   assert.match(num, /el\.dataset\.dg = String\(t\.length\)/, 'setNum names the digit count');
 });
