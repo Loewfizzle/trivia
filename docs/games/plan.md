@@ -516,3 +516,13 @@
 - YOUR BEST = your FARTHEST COUNTED RUN ANYWHERE, solo or match (the owner: his 212-lane match counted for XP but not for his best). The daily keeps its own day board. Unproven runs never count. A one-time catch-up credits past counted match runs.
 - THE SOUNDS for these moments = the city's existing, already-credited set (audio/city: jet-scream, sonic-boom, radio-static_*, ufo-hum*, ufo-beam-on / -idle / -off, ufo-lift, ufo-depart); THE MOTHERSHIP = the UFO hum pitched down + a low rumble.
 - NEXT: H6B (Opus) — the painted night skylines (Grok), the gate sign only on the approach, compact match chips, NEW BEST = its B take, Downtown's shops, the sound mix, the credits screen.
+
+## JAYWALK (the owner, Nov 17 — DECIDED, H6B)
+- THE NIGHT LANDMARKS = 8 PAINTED NIGHT SKYLINES (Grok — skyline-night with each area's landmark painted in, lit; pixel-identical outside the landmark), cross-faded at the gates like the day set. The drawn night landmarks (skymarks.js) are RETIRED.
+- THE GATE SIGN shows ONLY ON THE APPROACH — fully gone by the time the kid is 3 lanes from the gate; it never covers a lane he's about to cross.
+- THE UFO = a SOLID chrome saucer (never see-through), smaller + higher so it never hides a hazard, bright rim lights, a strong beam; the kid goes INTO its hatch. Traffic never drives through a beam unnoticed.
+- THE BLACKBIRD a little bigger with BLAZING afterburners. ONE Mothership countdown on screen (the big red one).
+- NEW BEST = its B take ("Fantasy Achievement Unlock Magical Stinger" — TommasoMotteran, Freesound 859080, CC BY 4.0); the sparkle stays THE AREA ARRIVAL only.
+- The owner's 212 is NOT restored (the server never kept match lanes) — the owner lets it go; no admin tool.
+- BEAM ME UP = EPIC (accepted).
+- The lab gets ?lane=N (a look check: start at lane N, WARPED, never counts).
