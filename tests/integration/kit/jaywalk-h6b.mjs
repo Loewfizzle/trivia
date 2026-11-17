@@ -210,11 +210,11 @@ export async function looksH6B(p, { ok, shot, sleep, waitFor, what = '', reqs = 
   // `--h6a=perf`, re-run on this pass's code)
   if (what === 'perf') {
     const cdp = await p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-    const measure = async (name, ms, floor = 58) => {
+    const measure = async (name, ms, floor = 58, worstMax = 0) => {
       await L('window.__jwLab.clearFrames()'); await sleep(ms);
       const f = (await L('window.__jwLab.frames()')).slice(2).sort((a, b) => a - b), avg = f.reduce((a, b) => a + b, 0) / f.length, p95 = f[Math.floor(f.length * 0.95)], worst = f[f.length - 1];
       console.log('PERF', JSON.stringify({ moment: name, frames: f.length, fps: +(1000 / avg).toFixed(1), p95Ms: +p95.toFixed(1), worstMs: +worst.toFixed(1) }));
-      ok(1000 / avg >= floor && p95 < 21, `${name}, 4× CPU: ${(1000 / avg).toFixed(1)} fps (p95 ${p95.toFixed(1)} ms, worst ${worst.toFixed(1)})`);
+      ok(1000 / avg >= floor && p95 < 21 && (!worstMax || worst <= worstMax), `${name}, 4× CPU: ${(1000 / avg).toFixed(1)} fps (p95 ${p95.toFixed(1)} ms, worst ${worst.toFixed(1)}${worstMax ? ' — no frame over ' + worstMax : ''})`);
     };
     for (const tier of [2, 1]) for (const look of ['night', 'day']) {
       await fresh(look); await L(`window.__jwLab.setTier(${tier})`); await sleep(500);
@@ -222,12 +222,12 @@ export async function looksH6B(p, { ok, shot, sleep, waitFor, what = '', reqs = 
       await stand(44, 4); await sleep(1500); await L('window.__jwLab.bot(true)');
       await waitFor(p, 'window.__jwLab.state().info.sky.fading || window.__jwLab.state().over', 20000);
       await measure(`a gate's cross-fade (${look}, tier ${tier})`, 2200);
-      // THE LOOK SWITCH mid-run: the whole band cross-fades. (The scene itself switches at once — H5B: the FIRST switch of a page shows
-      //  ONE long frame, GPU-side (≈ 130 ms on the build machine; the script's own work in it is 7 ms) — every later switch is clean;
-      //  the floor here is the average + the p95, the worst is printed)
+      // THE LOOK SWITCH mid-run: the whole band cross-fades. (THE GO-LIVE REVIEW: the FIRST switch of a page was ONE ≈ 130–150 ms
+      //  frame — found: the sea wall's DAY stone (two sized repeating gradients) painted for the first time; it is ONE small tile now +
+      //  the other look's sky map + programs are warmed at the start: 33 ms. NO frame of a switch may pass 70 ms, the first included.)
       await L('window.__jwLab.bot(false)'); await fresh(look); await L(`window.__jwLab.setTier(${tier})`); await stand(359, 4); await sleep(900); await settled(); await L('window.__jwLab.bot(true)'); await sleep(500);
       await L('window.__jwLab.clearFrames()'); await L(`window.__jwLab.setLook('${look === 'day' ? 'night' : 'day'}')`);
-      await measure(`THE LOOK SWITCH ${look} → ${look === 'day' ? 'night' : 'day'} (tier ${tier})`, 2000, 55);
+      await measure(`THE LOOK SWITCH ${look} → ${look === 'day' ? 'night' : 'day'} (tier ${tier})`, 2000, 57, 70);
       await L(`window.__jwLab.setLook('${look}')`); await sleep(1800);
       // DOWNTOWN, its storefronts in
       await L('window.__jwLab.bot(false)'); await fresh(look); await L(`window.__jwLab.setTier(${tier})`); await stand(252, 0); await sleep(1200);

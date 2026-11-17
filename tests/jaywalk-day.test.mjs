@@ -68,7 +68,20 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   assert.match(main, /DN\(vec3\(1\.0, 0\.62, 0\.9\), vec3\(1\.0, 0\.84, 0\.20\)\) : DN\(vec3\(0\.93, 0\.86, 1\.0\), vec3\(0\.97, 0\.97, 0\.95\)\)/, 'yellow + white lane paint');
   // THE TELLS in sunlight
   assert.match(main, /vec3\(0\.98, 0\.10, 0\.08\), vState\.y \* \(0\.2 \+ 0\.7 \* r\) \* uDay\);/, 'a rail lane in its tell FLASHES red by day');
-  assert.match(main, /c = mix\(c, mix\(vec3\(1\.0, 0\.86, 0\.10\), vec3\(1\.0\), chev \* 0\.75\), clamp\(band \* 1\.25, 0\.0, 1\.0\) \* uDay\);/, 'THE BLACKBIRD\'s tell: a hot yellow-white chevron band races to the crossing');
+  // (THE GO-LIVE REVIEW — the day tell MUST read: the WHOLE lane turns to amber-on-dark hazard chevrons inside the tell's first sixth,
+  //  the racing band is the same chevrons at full contrast; the lamps are red / amber signal lamps on dark backings, wig-wagging
+  //  off the rules' tick — 3 a second, steady under reduce motion; the edge flare is solid paint on a dark disc)
+  assert.match(main, /float tl = clamp\(fx \* 6\.0, 0\.0, 1\.0\);/, 'the hazard lane is fully on a sixth into the tell');
+  assert.match(main, /c = mix\(c, mix\(vec3\(0\.075, 0\.07, 0\.10\), vec3\(1\.0, 0\.64, 0\.04\), chd\), 0\.66 \* tl \* uDay\);/, 'THE BLACKBIRD\'s day tell: the whole lane = amber chevrons on dark');
+  assert.match(main, /c = mix\(c, mix\(vec3\(0\.04, 0\.035, 0\.05\), vec3\(1\.0, 0\.94, 0\.38\), chd\), clamp\(band \* 1\.4, 0\.0, 1\.0\) \* uDay\);/, '… and the racing band at full contrast (near-black + yellow-white)');
+  { const lin = v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4), lum = c => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]), cr = (a, b) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+    assert.ok(cr([1.0, 0.94, 0.38], [0.04, 0.035, 0.05]) > 12, 'the racing chevrons: > 12 : 1 against their own dark'); assert.ok(cr([1.0, 0.64, 0.04], [0.075, 0.07, 0.10]) > 7, 'the lane\'s chevrons: > 7 : 1'); }
+  assert.match(n, /const warn = day && tellF > 0, wig = warn && !reduce \? Math\.floor\(\(st\.left \|\| 0\) \/ 10\) & 1 : 0;/, 'the day lamps wig-wag off the rules\' own tick: 10 ticks a side = 3 a second (never faster), steady under reduce motion');
+  assert.match(n, /hex = hot \? 0xfff0a0 : \(c \+ \(e > 0 \? 1 : 0\) \+ wig\) & 1 \? 0xff2412 : 0xffa400;/, '… red / amber signal lamps, the racing head white-hot');
+  assert.match(n, /0x07070e, 1, 5, 0\.92 \* far\);/, '… each on a DARK backing');
+  { const fl = readFileSync(new URL('../js/games/jaywalk/flyers.js', import.meta.url), 'utf8');
+    assert.match(fl, /K\.bill\.put\(ex, 0\.7, zc, 8\.4 \* g, 5\.8 \* g, 1, 0, 0x060a18, 1, 5, 0\.82 \* A\);/, 'the edge flare by day stands on a solid dark disc');
+    assert.match(fl, /glint: 30,/, 'the glint stays the tell\'s LAST 0.5 s — inside the tell, never shortening it'); }
   assert.match(n, /hot \? \(day \? 0\.9 : 0\.74\) : \(day \? 0\.22 : 0\.3\)/, 'the runway lights: dim lenses by day, BIGGER than at night when they race');
   assert.match(n, /blink \? \(day \? 0\.7 : 0\.62\) : 0\.24/, 'the rail signals\' red lens is a touch bigger by day (H5C: in a dark signal head — a lamp, never a lollipop)'); assert.match(n, /K\.posts\.put\(x, 0\.66, z - 0\.46, 0\.3, 0\.34, 0\.12, 0, 0x1c1c24, lt\);/, 'the signal head\'s housing');
   // THE FOG BANK = the blackout's own darkness (vState.x), whitened — the same lanes, the same timing
@@ -76,7 +89,17 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   //  lane seen through its first metre, a cool shadow in front; night.js lays FOG_LAYERS — billows rolling at their own speeds)
   assert.match(fx, /float ly = vLane \+ z, d = uWall - ly;/, 'the bank\'s edge per pixel, off the wall itself'); assert.match(fx, /float thin = smoothstep\(-1\.5, 0\.7, d \+ \(bn - 0\.5\) \* 1\.9\);/, 'soft + ragged (two drifting noise fields)'); assert.match(fx, /if \(d > 3\.4\) c = vec3\(0\.875, 0\.906, 0\.933\) \* 0\.98;\s+else if \(d > -3\.4\) \{/, 'only the pixels near the wall pay for the noise');
   assert.match(fx, /float fogA = thin \* mix\(0\.5, 1\.0, smoothstep\(0\.1, 2\.1, d\)\);/, 'the lane is seen THROUGH its first metre, solid two lanes in');
-  assert.match(fx, /c = mix\(c, vec3\(0\.875, 0\.906, 0\.933\) \* \(0\.93 \+ 0\.1 \* bn\), clamp\(fogA, 0\.0, 1\.0\)\);/, 'the lane whitens under the bank');
+  // (THE GO-LIVE REVIEW — the fog's banding: the mottle fades out BEFORE the plain fog begins (d = 3.4: no step there); a puff is
+  //  the glow's shape 10 — it fades INTO the ground (it was cut by it: a hard line across every puff) + is dithered; the bank's
+  //  body ends under a soft LIP, never in a ruler-straight edge)
+  assert.match(fx, /c = mix\(c, vec3\(0\.875, 0\.906, 0\.933\) \* \(0\.98 \+ 0\.1 \* \(bn - 0\.5\) \* \(1\.0 - smoothstep\(1\.8, 3\.3, d\)\)\), clamp\(fogA, 0\.0, 1\.0\)\);/, 'the lane whitens under the bank — its mottle gone before the plain fog (0.98) begins');
+  assert.match(fx, /if \(d > 3\.4\) c = vec3\(0\.875, 0\.906, 0\.933\) \* 0\.98;/, '… the same 0.98 on both sides of d = 3.4');
+  assert.match(fx, /else if \(s > 9\.5\) \{ a = smoothstep\(1\.0, 0\.0, d\); a \*= a \* smoothstep\(0\.03, 1\.15, vY\);/, 'shape 10: a fog puff fades into the ground over its last metre');
+  assert.match(fx, /vY = dot\(viewMatrix\[1\]\.xyz, mv\.xyz\) \+ cameraPosition\.y;/, '… by its own height over the ground');
+  assert.equal((n.match(/, 1, 10, al( \* 0\.92)?\);/g) || []).length, 2, 'both halves of every puff (the lit top, the cool underside) are shape 10');
+  assert.match(n, /lip\.renderOrder = 6\.1; lip\.visible = false;/, 'the lip stands over the curtain\'s edge'); assert.match(n, /lip\.visible = day;/, '… by day only');
+  assert.match(n, /if \(day\) \{ lip\.position\.set\(0, 2\.5 \+ 0\.9, Z\(wallE - 3\.1\)\); lip\.scale\.set\(60, 1\.8, 1\); \}/, '… on the body\'s own front edge (y 2.5, 3.1 lanes behind the wall)');
+  assert.match(n, /lip\.geometry\.dispose\(\); lip\.material\.dispose\(\); lipTex\.dispose\(\);/, '… and freed with the scene');
   assert.match(n, /ground\.uniforms\.uWall\.value = wallE;/, '… the SAME wall (the run\'s own)');
   { const lay = /const FOG_LAYERS = Object\.freeze\(\[([\s\S]*?)\]\);/.exec(n)[1].split('\n').filter(l => l.trim().startsWith('[')).map(l => JSON.parse(l.trim().replace(/,$/, '').replace(/0x[0-9a-f]+/g, m => String(parseInt(m, 16))))); assert.equal(lay.length, 6, 'six layers: three mottle the body (never a flat fill), three roll on its face'); assert.ok(new Set(lay.map(l => l[5])).size === 6 && lay.some(l => l[5] < 0) && lay.some(l => l[5] > 0), 'each layer its own speed, both ways'); assert.ok(lay[5][4] < 0.7, 'the front layer is thin: the lanes show through'); assert.ok(lay.slice(0, 3).every(l => l[4] >= 0.8 && l[6] !== l[7]), 'the billows of the body are solid + two-toned'); }
   assert.match(n, /K\.shadow\.raw\(0, 0\.06, Z\(wallE \+ 1\.25\), 34, 1, 3\.2, 0, 0, 1, 4, 0\.2\);/, 'a cool shadow on the ground in front of it');
@@ -99,7 +122,7 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   assert.match(n, /if \(day\) \{[\s\S]{0,400}const pc = LOOKS\[AR\]\.paint/); assert.match(n, /for \(let k = 0; k < 10; k\+\+\) K\.flat\.put\(xl \+ \(xr - xl\) \* \(k \+ 0\.5\) \/ 10, 0\.05, zf \+ 0\.06, \(xr - xl\) \/ 10 \+ 0\.02, 1, 0\.38, 0, k % 2 \? wh : pc, 1, 4, 1\);/, 'a striped PAINTED line on the ground between the two posts (H6B: the raised crossbar is gone — nothing stands over a lane)');
   assert.match(n, /if \(day\) \{[^}]*c\.strokeText\(text, 0, 0\); c\.fillStyle = '#ffffff'; c\.fillText\(text, 0, 0\);/, 'the name: white paint, a dark edge');
   // only the look on screen is fetched
-  assert.match(n, /const plan = skyPlan\(lane, day \? 'day' : 'night'\), keep = skyHeld\(plan\);/, 'the band asks skyline.js: the look on screen, the kid\'s area');
+  assert.match(n, /const plan = skyPlan\(lane, day \? 'day' : 'night', skyMatch\), keep = skyHeld\(plan\);/, 'the band asks skyline.js: the look on screen, the kid\'s area (+ whether the chips are up — a match)');
   assert.ok(existsSync(new URL('../assets/jaywalk/skyline-day.webp', import.meta.url)));
 });
 
