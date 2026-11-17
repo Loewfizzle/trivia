@@ -628,16 +628,41 @@ body.bd-on .help-btn, body.help-open .help-btn { display: none; }
 .winner-title.is-tied { font-size: clamp(30px, 10.5vw, 54px); letter-spacing: 0.08em; }
 .winner { flex: none; overflow-x: clip; overflow-y: visible; }   /* (SHELL 2.0 A: the winner line wraps whole — never cut at the bottom) */
 .winner-name { line-height: 1.5; text-wrap: balance; }
-.final-back { flex: none; }
-/* PLAY NOW — a SOLO room's foot: PLAY AGAIN (the pink MAIN) over BACK TO THE CITY (the secondary tube), both full width, ≥ 48 pt */
-.final-solo { display: flex; flex-direction: column; gap: 10px; flex: none; }
-.final-solo .btn { min-height: 48px; }
-/* (the owner's add-on: SHARE beside the way out — two equal tubes under PLAY AGAIN) */
-.final-row { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 10px; }
-.final-row .btn { padding-left: 8px; padding-right: 8px; font-size: 13px; letter-spacing: 0.14em; }
-/* FRIENDS B — THE END SCREEN TAKES THE GAME'S COLOUR: a cartridge's ACCENT (--fin, set by ui/final.js) re-lights the frame's main tube in the
-   game's colour (OVERCLOCK = molten orange); without one it stays THE NEON TUBE's pink */
-.final.has-accent .final-back { --tc: var(--fin); --tcore: color-mix(in srgb, var(--fin) 16%, #fff); --tg: color-mix(in srgb, var(--fin) 55%, transparent); --tg2: color-mix(in srgb, var(--fin) 30%, transparent); text-shadow: 0 0 10px color-mix(in srgb, var(--fin) 55%, transparent); }
+/* CITY F — END-SCREEN STANDARD A (the owner's pick, Nov 17 — docs/harbor/passes/city-f.md; ui/final.js): ONE foot for EVERY game's end
+   screen — the BAR (the screen's MAIN: solid, in the GAME's accent --fin, its text --fin-ink — dark where it reads ≥ 4.5 : 1, white
+   otherwise; THE SHELL's ONE named exception to THE NEON TUBE's pink) + under it the QUIET LINKS (an icon + a word, no box, a thin divider).
+   Rounded rect, never a pill (12 px corners); ~66 pt tall, full width inside the 16 pt gutters; the glow static (60 fps: never animated). */
+.final-foot { display: flex; flex-direction: column; align-items: stretch; gap: 10px; flex: none; }
+.final-bar {
+  position: relative; display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; column-gap: 14px; row-gap: 4px;
+  width: 100%; min-height: 66px; padding: 10px 18px; border: 0; border-radius: 12px; cursor: pointer;
+  background: var(--fin, var(--magenta)); color: var(--fin-ink, #0b0a14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 0 24px color-mix(in srgb, var(--fin, var(--magenta)) 42%, transparent), 0 8px 30px color-mix(in srgb, var(--fin, var(--magenta)) 26%, transparent);
+  font: 900 clamp(19px, 5.7vw, 24px)/1 var(--font-display); letter-spacing: 0.17em; text-transform: uppercase;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: transform 0.12s ease, opacity 0.2s ease;
+}
+.final-bar .final-ico svg { width: 27px; height: 27px; stroke-width: 2.9; }
+.final-bar-t { padding-left: 0.17em; white-space: nowrap; }   /* (the letter-spacing's trailing gap evened, so the word sits centred) */
+.final-bar-s { grid-column: 1 / -1; font: 800 11.5px/1.2 var(--font-ui); letter-spacing: 0.18em; text-align: center; }
+.final-bar-s:empty { display: none; }
+.final-bar:active { transform: scale(0.985); }
+.final-bar.is-busy { opacity: 0.72; }
+.final-bar.is-voted .final-bar-t { font-size: 0.78em; letter-spacing: 0.12em; }   /* (WAITING FOR THE HOST: longer — one line at 375) */
+.final-ico { display: inline-flex; flex: none; }
+.final-ico svg { display: block; width: 22px; height: 22px; }
+.final-links { display: flex; justify-content: center; align-items: center; min-height: 48px; }
+.final-link {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; flex: 1 1 0; max-width: 230px; min-width: 44px; min-height: 48px;
+  padding: 0 14px; background: none; border: 0; border-radius: 10px; color: var(--fin-cue, var(--text)); cursor: pointer;
+  font: 800 clamp(13px, 3.9vw, 15px)/1 var(--font-ui); letter-spacing: 0.2em; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: opacity 0.2s ease;
+}
+.final-link .final-ico { color: var(--fin-ico, var(--cyan)); }   /* (a light podium — PRISM's paper — sets --fin-cue + --fin-ico: its own ink) */
+.final-link:active { opacity: 0.6; }
+.final-link.is-busy { opacity: 0.55; }
+.final-div { flex: none; width: 1px; height: 30px; background: var(--fin-cue, rgb(232, 246, 255)); opacity: 0.24; }
+@media (hover: hover) { .final-link:hover { opacity: 0.8; } .final-bar:hover { filter: brightness(1.06); } }
+@media (prefers-reduced-motion: reduce) { .final-bar, .final-link { transition: none; } .final-bar:active { transform: none; } }
 
 /* ---- how to play ---- */
 .sheet.help { max-height: 92dvh; gap: 14px; }
@@ -817,7 +842,7 @@ body.nd-glass .gc-name { color: #fff; }
 .sheet-text { color: var(--gl-dim); }
 .sheet.settings > .set-head { background: rgba(14, 15, 36, 0.96); border-radius: 26px 26px 0 0; }
 /* EVERY BOTTOM SHEET FLOATS (THE VAULT 1B — the owner's iPhone: BRING YOUR CARD's bottom border was cut off under Safari's bottom
-   toolbar): a sheet ends ABOVE the safe area + whatever the visual viewport doesn't show (--vv-ob, ui/vv.js), its whole rounded border
+   toolbar): a sheet ends ABOVE the safe area + whatever the visual viewport doesn't show (--vv-ob, app.js#installVV), its whole rounded border
    visible, a 8-px gutter each side; it scrolls inside when the screen is short. */
 .modal > .sheet { width: calc(100% - 16px); margin: 0 auto calc(var(--safe-b) + var(--vv-ob, 0px) + 10px); border-radius: 26px; border: 1px solid rgba(255, 255, 255, 0.22); padding-bottom: 18px; }
 .modal > .sheet:not(.chat-sheet):not(.help) { max-height: calc(100dvh - var(--safe-t) - var(--safe-b) - var(--vv-ob, 0px) - 22px); }
@@ -1142,7 +1167,7 @@ body.pf-on .bar { padding-left: 0; }
 .sh-scrim { position: absolute; inset: 0; background: rgba(3, 3, 12, 0.64); opacity: 0; transition: opacity 0.26s ease; }
 .sh-panel {
   /* (EVERY BOTTOM SHEET FLOATS — THE VAULT 1B, the owner's iPhone: a sheet ends ABOVE the safe area + whatever the visual viewport hides
-     (--vv-ob, ui/vv.js), its whole rounded border in view, 8 pt each side) */
+     (--vv-ob, app.js#installVV), its whole rounded border in view, 8 pt each side) */
   position: relative; width: calc(100% - 16px); max-width: 520px; margin: 0 auto calc(var(--safe-b) + var(--vv-ob, 0px) + 8px);
   max-height: calc(100dvh - var(--safe-t) - var(--safe-b) - var(--vv-ob, 0px) - 22px);
   display: flex; flex-direction: column;

@@ -245,6 +245,24 @@ test('LOBBY 2.0 B — THE REMATCH VOTE: your own vote for the match just played,
   await assertFails(set(ref(db('p2'), `${R}/rv/p2`), 'm1'), 'no vote while a game runs');
 });
 
+test('CITY F — THE PODIUM VOTE (END-SCREEN STANDARD A): a guest votes REMATCH on the podium — your own, for the match on it, only once it is FINAL', async () => {
+  const r = lobbyRoom();
+  r.rooms[CODE].meta.status = 'playing';
+  r.rooms[CODE].game = { id: 'overclock', matchId: 'm2', phase: 'play', participants: { host: true, p2: true } };
+  await seed(r);
+  await assertFails(set(ref(db('p2'), `${R}/rv/p2`), 'm2'), 'never while the match is still being played');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'final'));
+  await assertSucceeds(set(ref(db('p2'), `${R}/rv/p2`), 'm2'), 'on the podium: a vote for the match on it');
+  await assertSucceeds(remove(ref(db('p2'), `${R}/rv/p2`)), 'taken back');
+  await assertFails(set(ref(db('p2'), `${R}/rv/p2`), 'm1'), 'never for another match');
+  await assertFails(set(ref(db('p2'), `${R}/rv/host`), 'm2'), 'never someone else\'s vote');
+  await assertFails(set(ref(db('outsider'), `${R}/rv/outsider`), 'm2'), 'only a player in the room');
+  await assertSucceeds(set(ref(db('p2'), `${R}/rv/p2`), 'm2'));
+  // (the walk back keeps it: meta/back/m = the same match → still a valid vote in the room's ring)
+  await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), R), { game: null, 'meta/status': 'lobby', 'meta/back': { at: now(), m: 'm2', g: 'overclock', rm: true } }));
+  await assertSucceeds(set(ref(db('p2'), `${R}/rv/p2`), 'm2'), 'the same vote in the room, after the walk back');
+});
+
 test('LOCK THE DOOR: host only; new players are refused, players already in rejoin; kicked stay kicked', async () => {
   await seed(lobbyRoom({ kicked: { k1: true } }));
   await assertFails(update(ref(db('p2'), `${R}/meta`), { locked: true }), 'only the host locks');

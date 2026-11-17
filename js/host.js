@@ -393,7 +393,9 @@ export async function backToLobby() {
   // (SPEED PASS B — A2 (2): the stamp + the room's return in ONE update — one round trip, and every phone sees meta/back WITH status 'lobby'.
   //  The RULES-LAG fallback stays: a refusal (rules without meta/back) → the old two writes, the second alone always gets the room back)
   const code = state.code;
-  const stamp = { 'meta/go': null, 'meta/back': g && g.matchId ? { at: serverTimestamp(), m: g.matchId, g: g.id, rm: isPlayable(g.id) } : null, rv: null };
+  // (CITY F — END-SCREEN STANDARD A: the votes are KEPT through the walk back — a guest's REMATCH vote on the podium is for this match, and
+  //  the room's ring counts only votes for meta/back/m (core/room-show.js#voteState); the next start clears them all)
+  const stamp = { 'meta/go': null, 'meta/back': g && g.matchId ? { at: serverTimestamp(), m: g.matchId, g: g.id, rm: isPlayable(g.id) } : null };
   const back = { game: null, ...clearPlayerNodes(true), 'meta/status': 'lobby', 'meta/activeAt': serverTimestamp() };
   backWrites.n++;
   clearNewNodes(code, true);

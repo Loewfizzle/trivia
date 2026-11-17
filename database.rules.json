@@ -181,8 +181,8 @@
         "rv": {
           ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && root.child('rooms/' + $code + '/meta/status').val() === 'lobby' && root.child('rooms/' + $code + '/meta/back/rm').val() === true",
-            ".validate": "newData.isString() && newData.val() === root.child('rooms/' + $code + '/meta/back/m').val()"
+            ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && ((root.child('rooms/' + $code + '/meta/status').val() === 'lobby' && root.child('rooms/' + $code + '/meta/back/rm').val() === true) || (root.child('rooms/' + $code + '/meta/status').val() === 'playing' && root.child('rooms/' + $code + '/game/phase').val() === 'final'))",
+            ".validate": "newData.isString() && (newData.val() === root.child('rooms/' + $code + '/meta/back/m').val() || (root.child('rooms/' + $code + '/meta/status').val() === 'playing' && root.child('rooms/' + $code + '/game/phase').val() === 'final' && newData.val() === root.child('rooms/' + $code + '/game/matchId').val()))"
           }
         },
         "game": {

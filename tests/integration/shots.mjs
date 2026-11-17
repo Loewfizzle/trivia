@@ -423,7 +423,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       await p.waitForFunction(() => { const s = window.__arcade.state; return s.game && s.game.phase === 'play' && window.__prism && window.__prism.engine && window.__prism.engine() && window.__prism.engine().cur; }, { timeout: 40000 });
       await p.evaluate(() => window.__prism.bot({ skill: 0.85, every: 90, seed: 71 })); await sleep(14000);
       await p.evaluate(async () => { const s = window.__arcade.state, f = await import('/js/firebase.js'), g = s.game, n = f.serverNow(), sh = (g.endAt || n + 1) - n + 2000; const patch = {}; for (const k of ['songStartAt', 'playStartAt', 'endAt', 'startAt', 'at']) if (typeof g[k] === 'number') patch[k] = g[k] - sh; await f.update(f.dbRef('rooms/' + s.code + '/game'), patch); }).catch(() => {});
-      await p.waitForSelector('.final .final-solo', { timeout: 90000 }); await sleep(1500);
+      await p.waitForSelector('.final .final-foot', { timeout: 90000 }); await sleep(1500);
     }
     await p.evaluate(async ([game, forced]) => {
       const S = window.__arcade.state, look = game === 'prism' ? (document.body.dataset.look === 'day' ? 'day' : 'night') : forced, K = await import('/js/games/kit/share-run.js');
@@ -454,7 +454,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     }
     if (o.game === 'prism' && o.mode !== 'survival') await p.evaluate(async () => { const s = window.__arcade.state, f = await import('/js/firebase.js'), g = s.game, n = f.serverNow(), sh = (g.endAt || n) - n + 2000; const patch = {}; for (const k of ['songStartAt', 'playStartAt', 'endAt', 'startAt', 'at']) if (typeof g[k] === 'number') patch[k] = g[k] - sh; await f.update(f.dbRef('rooms/' + s.code + '/game'), patch); });
     else await p.evaluate(async () => { const s = window.__arcade.state, f = await import('/js/firebase.js'); await f.update(f.dbRef('rooms/' + s.code + '/game'), { phase: 'final', ci: s.game.ci || 0, phaseStartAt: f.serverNow() - 120000 }); });   // (OVERCLOCK: straight to its podium — no answers = its NOBODY SCORED / a 0 run)
-    await p.waitForSelector('.final .final-solo', { timeout: 60000 }); await sleep(3200);
+    await p.waitForSelector('.final .final-foot', { timeout: 60000 }); await sleep(3200);
     if (!o.top) { await p.evaluate(() => { const f = document.querySelector('.final'); if (f) f.scrollTop = f.scrollHeight; }); await sleep(400); }
     console.log(`  ${name} ${w}x${h}:`, JSON.stringify(await p.evaluate(() => { const f = document.querySelector('.final'); const a = f && f.querySelector('.final-actions'); const r = el => el && el.getBoundingClientRect(); return f && { more: f.classList.contains('has-more'), over: Math.round(f.scrollHeight - f.clientHeight), actTop: Math.round(r(a).top), vh: innerHeight }; })));
   }

@@ -67,7 +67,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   NOT built (bigger, bolder, a clear silhouette + one bright accent, or drop it) → docs/harbor.md (moved).
 - **DESKTOP COMES FREE:** built + judged for the PHONE only; desktop / iPad / sideways get it through THE DESKTOP CAMERA
   (`core/harbor-layout.js#DESK`) — never a desktop-only piece; every pass checks 1440×900 (`--sizes pass`) → docs/harbor.md (moved).
-- **Class names:** prefix new CSS classes per feature (`nd-`, `pd-`, `gl-`…) — a bare `.nl-hi` once collided across features.
+- **Class names:** prefix new CSS classes per feature (`nd-`, `pd-`, `gl-`…).
 - **Presentation tech:** Canvas 2D (+ a WebGL shader for a sky/world) unless 3D *is* the game; a three.js backdrop keeps every button DOM
   over it (GRIDLOCK's 3D board failed its play-test) → docs/match-kit.md (moved).
 - **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view through an import map that swaps
@@ -267,7 +267,7 @@ Rules of thumb: a player writes only under their own uid; anything secret lives 
 - Tokens in `css/base.css :root` (`--bg-0..3`, `--text/-dim/-faint`, the neons, per-game `--accent*`); fonts `--font-display` (Orbitron),
   `--font-ui` (Chakra Petch), `--font-mono`, `--font-num` (use for all numbers). `body[data-theme=<id>]` re-maps the accents in a game.
 - **THE SHELL — ONE builder each, a screen never keeps its own copy (`tests/shell.test.mjs`):** THE NEON TUBE = every button (`tubeButton()`,
-  ONE pink MAIN a screen) · THE SHEET = every pop-up (`ui/sheet.js#openSheet`, the ONE Esc in `ui/layers.js`) · THE ROW (`row()` + `ICONS`) ·
+  ONE pink MAIN a screen — EXCEPT an end screen's BAR: its game's ACCENT, END-SCREEN STANDARD A, `ui/final.js`) · THE SHEET = every pop-up (`ui/sheet.js#openSheet`, the ONE Esc in `ui/layers.js`) · THE ROW (`row()` + `ICONS`) ·
   THE MESSAGE (`toast()`). Gold is a vault / card accent only — never a button.
 - **NO PILLS, EVER (the owner, Nov 14):** no rounded-capsule shape anywhere NEW — labels, chips, badges, frames, footers; the ones that still
   exist are listed, not fixed (docs/games/passes/skins-2a.md "THE OTHER PILLS") → docs/title.md "THE SHELL".

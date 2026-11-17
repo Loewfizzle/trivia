@@ -1,6 +1,6 @@
 // JAYWALK — THE END SCREEN (H3 — docs/jaywalk.md "THE END SCREEN"): the BODY inside the console's podium frame (ui/final.js owns the frame:
-// the XP box, PLAY AGAIN · SHARE · BACK TO THE CITY). H4 — A MATCH: the frame's own WINNER line, this body = HOW YOU WENT OUT + your lanes +
-// SHARE MY RUN, and the console's results list under it = everyone in order as slim cards, each with their lanes + their own cause line
+// the XP box, THE FOOT — END-SCREEN STANDARD A since CITY F: PLAY AGAIN / REMATCH + SHARE · CITY / BACK TO THE ROOM). H4 — A MATCH: the
+// frame's own WINNER line, this body = HOW YOU WENT OUT + your lanes, and the console's results list under it = everyone in order as slim cards, each with their lanes + their own cause line
 // (finalRows' `note`). It names HOW YOU WENT OUT in big neon words (one line per cause + vehicle —
 // causes.js), the lanes, then YOUR BEST — or NEW BEST (a moment + the new-best sound), only from the SERVER's own answer (the server
 // replays the run: profile/queue.js's outcome — /api down = just the lanes). No pills, no emoji, no dev text.
@@ -98,7 +98,7 @@ export function finalRows(game, code) {
   return standings(game).map(r => ({ ...r, ...(solo ? {} : { note: endOf(game, r.uid, code, courses).line }) }));
 }
 
-/** a MATCH's body: how YOU went out + your lanes (a watcher: nothing of their own) + SHARE MY RUN; the list under it is the console's */
+/** a MATCH's body: how YOU went out + your lanes (a watcher: nothing of their own); SHARE + the list under it are the console's */
 function matchScene(el, game, state) {
   const uid = state && state.uid, code = state && state.code, mine = !!(game.participants && game.participants[uid]);
   el.dataset.mode = 'match'; el.dataset.podium = 'none';   // (the console lists EVERY place under this body — slim cards, the lanes, the cause lines)
@@ -119,16 +119,7 @@ function matchScene(el, game, state) {
   }).catch(() => {});
   const calls = game.calls || {}, c = calls[uid];
   if (c) el.append(h('div.jw-fin-call', c.ok ? `YOUR CALL WAS RIGHT · +${c.bonus} POINTS` : 'YOUR CALL MISSED'));
-  // SHARE MY RUN (the console's foot has ONE button in a room: BACK TO THE ROOM) — the share image of THIS player's run
-  const share = h('button.btn.btn-ghost.jw-fin-share', { type: 'button', 'data-gesture': true, onclick: () => {
-    if (share.classList.contains('is-busy')) return;
-    share.classList.add('is-busy');
-    lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state)).then(how => {
-      if (how === 'failed') lazyImport(import('../../ui/toast.js'), '../../ui/toast.js').then(T => T.toast('Couldn’t draw the image', 'warn')).catch(() => {});
-      else if (how === 'saved' || how === 'copied') lazyImport(import('../../ui/toast.js'), '../../ui/toast.js').then(T => T.toast(how === 'saved' ? 'Your run is saved' : 'Link copied', 'ok')).catch(() => {});
-    }).catch(() => {}).finally(() => share.classList.remove('is-busy'));
-  } }, h('span', 'SHARE MY RUN'));
-  el.append(share);
+  // (SHARE MY RUN moved to the console's foot — CITY F, END-SCREEN STANDARD A: ui/final.js's SHARE link calls index.js#shareRun for a match too)
   // (the winner's moment: the console's own sting is off for this game's solo end — a match plays it here, once the crown lands)
   const first = standings(game).filter(r => r.rank === 1);
   if (first.length === 1) setTimeout(() => { if (el.isConnected) lazyImport(import('../../audio/progress-sfx.js'), '../../audio/progress-sfx.js').then(m => m.pgSfx('victory')).catch(() => {}); }, 2500);

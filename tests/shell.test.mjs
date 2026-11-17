@@ -132,8 +132,15 @@ test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the
   assert.match(f, /el\.style\.setProperty\('--fin', mod\.ACCENT\)/);
   const oc = read('js/games/overclock/meta.js');
   assert.match(oc, /export const ACCENT = '#ff6a1a';/); assert.match(oc, /export const OWN_VICTORY_SOUND = true;/);
-  assert.match(f, /h\('button\.btn\.btn-primary\.btn-block\.final-back'/);
-  assert.doesNotMatch(f, /'REMATCH'|rematch\(\)/, 'no rematch on the podium (the room dock has the vote)');
+  // (CITY F — END-SCREEN STANDARD A: ONE foot for every game — THE BAR (the screen's MAIN, solid, in the GAME's accent: THE SHELL's ONE named
+  //  exception to THE NEON TUBE) + the quiet links; a MATCH's bar = REMATCH (the host's tap = host.js#rematch, a guest's = their vote))
+  assert.match(f, /h\('button\.final-link\.final-back', \{ type: 'button', 'data-press': true, onclick: backTap \}/);
+  assert.match(f, /h\('button\.final-bar\.final-rematch', \{ type: 'button', 'data-press': true/);
+  assert.match(f, /h\('button\.final-bar\.final-again', \{ type: 'button', 'data-press': true/);
+  assert.match(f, /import\('\.\.\/host\.js'\), '\.\.\/host\.js'\)\.then\(m => m\.rematch\(\)\)/, "the host's REMATCH");
+  assert.match(f, /dbUpdate\(dbRef\(`rooms\/\$\{state\.code\}`\), \{ \[`rv\/\$\{state\.uid\}`\]: mine \? null : m \}\)/, "a guest's vote: rv/{uid} = this match");
+  assert.match(read('css/components.css'), /\.final-bar \{[\s\S]{0,400}border-radius: 12px;[\s\S]{0,200}background: var\(--fin, var\(--magenta\)\); color: var\(--fin-ink, #0b0a14\);/, "the bar: a rounded rect in the game's accent, never a pill");
+  assert.ok(!/\.final-solo|\.final-row/.test(read('css/components.css')), 'the old three outlined boxes are gone');
   assert.match(f, /mod\.finalScene\(body, g, state\)/);
   assert.match(read('js/games/contract.js'), /finalScene: 'function'/);
   assert.match(read('css/components.css'), /\.winner \{ flex: none; overflow-x: clip; overflow-y: visible; \}/, 'the winner line never cut');

@@ -255,12 +255,12 @@ try {
   ok(!!SV.game && uids.slice(0, N).every(u => SV.game.results[u].l === fin.results[u].l && SV.game.results[u].t === fin.results[u].t && !SV.game.results[u].bad && !SV.game.results[u].cut), 'THE SERVER\'s OWN replay of the proof nodes = the host\'s results, lane for lane (nothing the host wrote is read)');
   const pod = await pages[1].evaluate(() => ({ word: (document.querySelector('.jw-final .winner-title') || {}).textContent, shown: !!document.querySelector('.jw-final .winner') && getComputedStyle(document.querySelector('.jw-final .winner')).display !== 'none', name: (document.querySelector('.jw-final .winner-name') || {}).textContent,
     cause: (document.querySelector('.jw-final .jw-fin-cause') || {}).textContent, n: (document.querySelector('.jw-final .jw-fin-best') || {}).textContent, rows: [...document.querySelectorAll('.jw-final .leaderboard > li, .jw-final .lb-row')].length, notes: [...document.querySelectorAll('.jw-final .lb-note')].map(e => e.textContent),
-    foot: [...document.querySelectorAll('.jw-final .final-actions button')].map(b => b.textContent.trim()), share: !!document.querySelector('.jw-final .jw-fin-share'), radius: getComputedStyle(document.querySelector('.jw-final .final-actions .btn')).borderRadius, callLine: (document.querySelector('.jw-fin-call') || {}).textContent || '' }));
+    foot: [...document.querySelectorAll('.jw-final .final-actions button')].map(b => (b.querySelector('.final-bar-t') || b).textContent.trim()), share: !!document.querySelector('.jw-final .final-share'), radius: getComputedStyle(document.querySelector('.jw-final .final-bar')).borderRadius, callLine: (document.querySelector('.jw-fin-call') || {}).textContent || '' }));
   const tie = fin.results[rank[0]].l === fin.results[rank[1]].l && fin.results[rank[0]].t === fin.results[rank[1]].t;
   ok(pod.shown && (tie || (pod.word === 'WINNER' && /WENT THE FARTHEST/.test(pod.name))), `THE PODIUM: ${pod.word} — ${pod.name}`);
   ok(isCause(pod.cause) && new RegExp(`^${fin.results[uids[1]].l} LANES? · YOU FINISHED [0-9](ST|ND|RD|TH)$`).test(pod.n), `… BOB's own end on his podium: "${pod.cause}" · ${pod.n}`);
   ok(pod.notes.length === N && pod.notes.every(isCause), `… everyone in order with their cause line: ${pod.notes.join(' · ')}`);
-  ok(pod.foot.length === 1 && /BACK TO THE ROOM/.test(pod.foot[0]) && pod.share && parseFloat(pod.radius) <= 12, `… the foot: ${pod.foot.join(' · ')} + SHARE MY RUN; the buttons are the non-pill tube (radius ${pod.radius})`);
+  ok(JSON.stringify(pod.foot) === JSON.stringify(['REMATCH', 'BACK TO THE ROOM', 'SHARE']) && pod.share && parseFloat(pod.radius) >= 10 && parseFloat(pod.radius) <= 14, `END-SCREEN STANDARD A (CITY F) — the foot: ${pod.foot.join(' · ')} (THE BAR = REMATCH, then the quiet links); a rounded rect, never a pill (radius ${pod.radius})`);
   // (a right call = the player called finished first — alone or level for first: logic.js#scoreCalls)
   const right = fin.results[uids[0]].l === fin.results[rank[0]].l && fin.results[uids[0]].t === fin.results[rank[0]].t;
   ok(!!fin.calls && fin.calls[uids[1]] && fin.calls[uids[1]].w === uids[0] && fin.calls[uids[1]].ok === right, `BOB's call: ${fin.calls && fin.calls[uids[1]] ? (fin.calls[uids[1]].ok ? `RIGHT (+${fin.calls[uids[1]].bonus})` : 'missed') : 'none'} — "${pod.callLine}"`);
@@ -283,7 +283,7 @@ try {
   });
   ok(card.shot && card.w === 1080 && card.h === 1350 && isCause(card.line) && card.result === '', `THE SHARE IMAGE: BOB's real frame + "${card.line}" — ONCE (no result line) (${card.w} × ${card.h})`);
   // H4B's add-on — THE SHARE = THE PICTURE ONLY: SHARE MY RUN sends ONLY THE LINK; its preview IS BOB's card; a guest of the owner's match has one too
-  const LK = await shareLink(pages[1], '.jw-final .jw-fin-share');
+  const LK = await shareLink(pages[1], '.jw-final .final-share');   // (CITY F: SHARE is the console's foot's)
   ok(JSON.stringify(LK.keys) === '["url"]' && /\/api\/daily\?s=[A-Za-z0-9_-]{12}$/.test(LK.url), `H4B — SHARE MY RUN sends ONLY THE LINK (${JSON.stringify(LK.keys)} — no text, no file): ${LK.url}`);
   ok(/BOB · JAYWALK · /.test(LK.title) && LK.go === '/' && !!LK.png && LK.png.w === 540 && LK.png.h === 675 && LK.png.bytes <= 300 * 1024, `… the link's preview IS the card (og:image ${LK.png ? `${LK.png.w} × ${LK.png.h}, ${Math.round(LK.png.bytes / 1024)} KB` : 'none'}; "${LK.title}") and a tap opens the site`);
   if (LK.png) { const { writeFileSync } = await import('node:fs'); writeFileSync(`${OUTDIR.replace(/\/?$/, '/')}share-link-match-540.png`, LK.buf); }

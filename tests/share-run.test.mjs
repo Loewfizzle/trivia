@@ -40,7 +40,7 @@ test('the two cartridges build their cards from the match\'s public fields (mode
 test('the solo foot: PLAY AGAIN in PLAY NOW\'s room AND a room of one; SHARE when the cartridge draws one', () => {
   const fin = readFileSync('js/ui/final.js', 'utf8');
   assert.match(fin, /const oneRoom = !soloRoom && !!PN && solo && isHost\(\) && Object\.keys\(players \|\| \{\}\)\.length === 1;/);
-  assert.match(fin, /leave = soloRoom \? h\('button\.btn\.btn-ghost\.btn-block\.final-city'[\s\S]{0,400}: back;/, 'a room of one keeps BACK TO THE ROOM');
+  assert.match(fin, /leave = soloRoom \? h\('button\.final-link\.final-city'[\s\S]{0,400}: back;/, 'a room of one keeps BACK TO THE ROOM (CITY F: a quiet link)');
   assert.match(fin, /const canShare = !!\(mod && typeof mod\.shareRun === 'function'/);
   for (const g of ['prism', 'overclock']) assert.match(readFileSync(`js/games/${g}/index.js`, 'utf8'), /export const shareRun = \(game, state\) => lazyImport\(import\('\.\/share\.js'\)/);
   assert.ok(!/shareRun/.test(readFileSync('js/games/holdem/index.js', 'utf8')), 'HOLD\'EM has no solo run to share');

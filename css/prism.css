@@ -702,7 +702,7 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 .pd[data-look='crayon'] .pd-spec-p.is-ko i { color: #b8253d; }
 /* THE PODIUM's body (the console's frame keeps its own look — slim cards are cards): the winning board on a paper card */
 .pd[data-look='crayon'] .pd-final { background: color-mix(in srgb, var(--pd-paper) 72%, transparent); }
-.pd[data-look='crayon'] .pd-final .panel-full { --fin-bg: var(--pd-paper); --fin-cue: var(--pd-ink); }   /* (B3: by day the paper + its ink for MORE BELOW) */
+.pd[data-look='crayon'] .pd-final .panel-full { --fin-bg: var(--pd-paper); --fin-cue: var(--pd-ink); --fin-ico: var(--pd-ink); }   /* (B3: by day the paper + its ink for MORE BELOW) */
 .pd[data-look='crayon'] .pd-fs-moment { border-left: 4px solid var(--c); border-radius: 8px; }
 .pd[data-look='crayon'] .pd-fs-frame { background: var(--pd-paper); box-shadow: inset 0 0 0 1.5px var(--pd-pencil); }
 .pd[data-look='crayon'] .pd-fs-line small { color: var(--pd-ink); opacity: 0.85; }
@@ -813,7 +813,7 @@ body.pd-on[data-theme] .music-btn, body.pd-on[data-theme]:not(.chat-fab-on) .mus
 .pd[data-skin='paper'] .pd-final { background: none; }
 .pd[data-skin='paper'] .pd-final :is(.winner-title, .winner-name, .sheet-kicker, .rc-solo) { color: #33230f; }
 .pd[data-skin='paper'] .pd-final .winner-title { text-shadow: 2px 3px 0 rgba(60, 36, 8, 0.16); }
-.pd[data-skin='paper'] .pd-final .panel-full { --fin-bg: #c6a576; --fin-cue: #33230f; }
+.pd[data-skin='paper'] .pd-final .panel-full { --fin-bg: #c6a576; --fin-cue: #33230f; --fin-ico: #33230f; }
 .pd[data-skin='paper'] .pd-final .lb-row { background: var(--pd-paper); border: 0; border-left: 4px solid var(--c); border-radius: 1.5px; box-shadow: 1px 2px 5px rgba(60, 36, 8, 0.28); }
 .pd[data-skin='paper'] .pd-final .lb-row.lb-strip { background: none; box-shadow: none; }
 .pd[data-skin='paper'] :is(.pd-spec-frame, .pd-fs-frame) { border-radius: 0; box-shadow: inset 0 0 0 1px rgba(58, 42, 24, 0.22); }

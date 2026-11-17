@@ -195,8 +195,10 @@ try {
   await P.shot('end-day.png');
   await P.ev("import('/js/games/kit/look.js').then(m => m.saveLook('night'))");
   ok(await P.waitFor("document.body.dataset.look === 'night'", 6000) && await P.ev("import('/js/games/jaywalk/index.js').then(m => m.musicFor()[0])") === 'mood:evening', '… back to NIGHT for the rest: the evening deck');
-  ok(JSON.stringify(end.foot) === JSON.stringify(['PLAY AGAIN', 'SHARE', 'BACK TO THE CITY']), `the foot: ${end.foot.join(' · ')} (PLAY AGAIN first — never "HOP AGAIN")`);
-  ok(parseFloat(await P.ev("getComputedStyle(document.querySelector('.jw-final .final-again')).borderRadius")) <= 12, 'the end screen\'s buttons: the site\'s non-pill tube (10 px corners)');
+  ok(JSON.stringify(end.foot) === JSON.stringify(['PLAY AGAIN', 'SHARE', 'CITY']), `END-SCREEN STANDARD A (CITY F) — the foot: ${end.foot.join(' · ')} (THE BAR first — never "HOP AGAIN"; then the quiet SHARE · CITY)`);
+  { const bar = await P.ev("(() => { const b = document.querySelector('.jw-final .final-bar.final-again'), cs = getComputedStyle(b), r = b.getBoundingClientRect(), l = [...document.querySelectorAll('.jw-final .final-link')].map(x => { const q = x.getBoundingClientRect(); return [q.width, q.height, getComputedStyle(x).backgroundColor, getComputedStyle(x).borderTopWidth]; }); return { rad: parseFloat(cs.borderRadius), h: r.height, w: r.width, vw: innerWidth, bg: cs.backgroundColor, ink: cs.color, l }; })()");
+    ok(bar.rad >= 10 && bar.rad <= 14 && bar.h >= 60 && bar.w >= bar.vw - 40 && bar.bg === 'rgb(255, 79, 196)' && bar.ink === 'rgb(11, 10, 20)', `… THE BAR: solid JAYWALK pink (${bar.bg}), dark words (${bar.ink}), ${Math.round(bar.w)} × ${Math.round(bar.h)} of ${bar.vw}, ${bar.rad} px corners (never a pill)`);
+    ok(bar.l.length === 2 && bar.l.every(([w, h, bg, bw]) => w >= 44 && h >= 44 && /rgba\(0, 0, 0, 0\)|transparent/.test(bg) && bw === '0px'), `… the quiet links: no box, each ≥ 44 pt (${bar.l.map(([w, h]) => `${Math.round(w)} × ${Math.round(h)}`).join(' · ')})`); }
   // THE SHARE IMAGE (H4B's add-on — THE FRAME IS THE HERO, the cause ONCE): the run's own frame on the share kit's card (drawn on the phone)
   const card = await P.p.evaluate(async () => {
     const s = window.__arcade.state, [Sh, T] = await Promise.all([import('/js/games/jaywalk/share.js'), import('/js/games/jaywalk/shot.js')]);
