@@ -54,7 +54,7 @@ test('the foot\'s order + its rules: SOLO = PLAY AGAIN · SHARE · CITY; a MATCH
 
 test('CITY F — THE RESULTS PLAQUES: a thin neon frame in the game\'s accent + an icon with meaning; #1 WORLDWIDE the ONE gold; no brown box, no compass', () => {
   const c = read('js/profile/callouts.js'), css = read('css/board.css');
-  for (const k of ['crown', 'rise', 'globe', 'laurel', 'calendar']) assert.match(c, new RegExp(`\b${k}: '<`), `the ${k} icon`);
+  for (const k of ['crown', 'rise', 'globe', 'laurel', 'calendar']) assert.ok(c.includes(`  ${k}: '<`), `the ${k} icon`);
   assert.match(c, /title: '#1 WORLDWIDE', sub: label\(def\), rank: 1, sound: 'first', icon: 'crown', gold: true \}/, '#1 WORLDWIDE = the crown, gold');
   assert.match(c, /title: '#1 THIS WEEK', [^}]*icon: 'calendar' \}/, '#1 THIS WEEK = the calendar, not gold');
   assert.equal((c.match(/gold: true/g) || []).length, 1, 'gold ONLY on #1 WORLDWIDE');
