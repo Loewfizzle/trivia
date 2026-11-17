@@ -169,6 +169,19 @@ export async function clearChat() {
 let watch = null;         // host's view of the room last tick: { code, host, players, online, lost }
 let lastPrune = 0;
 const announcedWins = new Set();
+// A KEYED LINE IS WRITTEN ONCE A ROOM (JAYWALK H5B — the refused "set chats/*/m/*" ×2 on game:jaywalk/final, Nov 16): the winner's line +
+// the start's line carry a deterministic key so a new host never repeats them — and the rules REFUSE a second write of a key (a system
+// line needs !data.exists()). A host who came BACK to the final screen with a fresh page (SHARE → the share sheet → iOS reloads the tab)
+// or a guest who became the host there has an empty `announcedWins`: it wrote the key again → refused → reported. So it ASKS FIRST: the
+// line already in this phone's chat, or already in the database = nothing to write. Host-only, as before; no rules change.
+export async function systemOnce(kind, text, key) {
+  const code = state.code;
+  if (!code || !key || !isHost() || !mayWrite(code, true)) return;
+  if (chat.code === code && chat.msgs.some(m => m.k === key)) return;
+  try { if ((await get(dbRef(`${C(code)}/m/${key}`))).exists()) return; } catch { return; }   // (unread = unknown: never a blind write)
+  if (state.code === code) return system(kind, text, key);
+}
+
 const nameOf = (players, uid) => (players[uid] && players[uid].name) || 'A player';
 
 /** Called by host.js on every tick (every client; only the host writes). */
@@ -210,7 +223,7 @@ export function hostTick() {
     const line = winners.length === 1 ? `${winners[0]} won ${name}`
       : winners.length === 2 ? `${winners[0]} & ${winners[1]} tied for the win in ${name}`
         : `${winners.length}-way tie for the win in ${name}`;
-    if (winners.length) system('win', line, `s-win-${g.matchId}`);
+    if (winners.length) systemOnce('win', line, `s-win-${g.matchId}`);
   }
   // keep the newest 100
   if (chat.code === state.code && chat.full && now - lastPrune > 20_000 && chat.msgs.length) {
@@ -231,7 +244,7 @@ async function prune(oldestKeptAt) {
 /** Host: announce a new match (called from host.js#startGame). */
 export const announceStart = (gameId, matchId) => {
   const name = (GAMES.find(x => x.id === gameId) || {}).name || gameId;
-  return system('start', `${name} started`, `s-start-${matchId}`);
+  return systemOnce('start', `${name} started`, `s-start-${matchId}`);
 };
 
 // test hooks (emulator runs only)

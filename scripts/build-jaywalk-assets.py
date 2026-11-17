@@ -321,6 +321,17 @@ def skyline():
         band.save(out, 'WEBP', quality=q, method=6)
         if os.path.getsize(out) <= 150 * 1024: break
     print(f'  skyline-night.webp: {W}×{H} → {band.width}×{band.height}, q{q}, {os.path.getsize(out)} B')
+    # H5B — THE DAY LOOK's band: the same shape (the band is 1280 : 432), cut so the city stands in its middle — the sky + its clouds
+    # over it, the harbour's water at its foot (the foot fades into the lanes' haze). The original is only read.
+    im = Image.open(os.path.join(SRC, 'backdrop', 'skyline-day.png')).convert('RGB')
+    W, H = im.size
+    band = im.crop((0, round(H * 0.22), W, round(H * 0.82)))
+    if band.width > 1600: band = band.resize((1600, round(band.height * 1600 / band.width)), Image.LANCZOS)
+    out = os.path.join(ROOT, 'assets', 'jaywalk', 'skyline-day.webp')
+    for q in (95, 92, 88, 84, 78, 70):
+        band.save(out, 'WEBP', quality=q, method=6)
+        if os.path.getsize(out) <= 150 * 1024: break
+    print(f'  skyline-day.webp: {W}×{H} → {band.width}×{band.height}, q{q}, {os.path.getsize(out)} B')
 
 
 def wav16(src, dst):
@@ -340,6 +351,7 @@ def sounds():
     for f in sorted(os.listdir(os.path.join(SRC, 'sfx'))):
         s = os.path.join(SRC, 'sfx', f)
         if f.startswith('respawn'): continue   # (H4 — ONE LIFE EVERYWHERE: no respawn, so no respawn sound)
+        if f.startswith('car-pass'): continue   # (H5B — the owner: the car-pass near-miss whoosh is REMOVED from the game)
         if f.endswith('.mp3') and not f.startswith('train-bell'):
             shutil.copyfile(s, os.path.join(OUT_A, f)); total += os.path.getsize(s)
         elif f.endswith('.wav'):
@@ -353,12 +365,14 @@ def sounds():
         files, dur, lic, rest = m.group(1), m.group(2), m.group(3).strip(), m.group(4)
         get = lambda k: (re.search(r'^\s+' + k + r':\s+(.*)$', rest, re.M) or [None, ''])[1].strip()
         if 'train-bell' in files: files = files.split(' / ')[0]   # (only the WAV ships: the loop)
+        if files.startswith('car-pass') or files.startswith('respawn'): continue   # (not shipped: H4 — respawn, H5B — car-pass)
         rows.append(f'| {files} | {get("Title")} | {get("Author")} | {lic.replace("  -- credit required", " — CREDIT REQUIRED")} | {get("Source")} |')
     by = notes.split('CREDITS BLOCK')[1].split('=' * 20)[1].strip() if 'CREDITS BLOCK' in notes else ''
     md = ['# JAYWALK — the sounds\' credits', '',
           'Copied from the owner\'s delivery (Downloads\\grok\\jaywalk\\sfx\\notes.txt, Nov 12 2026) by `scripts/build-jaywalk-assets.py`. Every pick +',
           'every `-b` backup is here for THE SOUND AUDITION (/jaywalk-lab → SOUNDS); the unpicked ones leave once the owner has chosen (their',
-          'credit lines with them). The train bells ship as 16-bit mono WAV — the whole file is the loop (MP3 / AAC padding would click).', '',
+          'credit lines with them). The train bells ship as 16-bit mono WAV — the whole file is the loop (MP3 / AAC padding would click).',
+          'H5B (the owner, Nov 16): the two CAR-PASS takes are GONE (the near-miss whoosh was removed from the game) — never copied in again.', '',
           '| file | title | author | licence | source |', '| --- | --- | --- | --- | --- |', *rows, '',
           '## CC BY 4.0 — these three need their credit in the game\'s credits (☰ → CREDITS) when they ship in play', '', '```', by, '```', '',
           '3D models: Kenney — kenney.nl (CC0) — `assets/jaywalk/models/LICENSE.txt`.', '']

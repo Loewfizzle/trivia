@@ -16,6 +16,10 @@ import { registerHelp } from './help.js';
 
 registerHelp();   // (HOW TO PLAY: its rules through the shared help's hub until the go-live pass moves them into ui/help.js)
 
+/** H5B — THE MUSIC FOLLOWS THE LOOK (the existing mood stations): the day deck by day, the evening deck by night — `meta.MUSIC` stays
+ *  the podium's + the fallback */
+export const musicFor = () => [typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];
+
 export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('jaywalk'));
 
 // THE PROOF NODE (rooms/{CODE}/jw/{matchId}/{uid}): written by the player AT GO (present = proven) + their hop log in chunks as they hop —

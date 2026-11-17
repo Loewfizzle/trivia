@@ -88,7 +88,8 @@ export function endOf(game, uid, code, courses = null) {
   }
   // (causes.js#runLine — THE ONE path: a car hit is named by the vehicle the scene drew on that lane at that tick)
   const vehicle = course ? hitVehicle(course, { y: r.y, x: r.px, end: r.e }) : '';
-  const line = course ? runLine(course, { cause: r.w, y: r.y, x: r.px, end: r.e, lanes: r.l || 0, taken: !!r.x }) : causeLine({ cause: r.w, lanes: r.l || 0, taken: !!r.x });
+  const look = typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'day' : 'night';   // (H5B: by day the wall is THE FOG BANK)
+  const line = course ? runLine(course, { cause: r.w, y: r.y, x: r.px, end: r.e, lanes: r.l || 0, taken: !!r.x }, look) : causeLine({ cause: r.w, lanes: r.l || 0, taken: !!r.x, look });
   return { line, lanes: r.l || 0, vehicle };
 }
 /** H4 — the podium's rows (the console's results list — slim cards): the order + each player's lanes + their own cause line */

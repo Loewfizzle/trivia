@@ -14,7 +14,7 @@ process.env.GPU = process.env.GPU || '1';   // (three.js: the real GPU path, as 
 const { createHarness } = await import('./kit/harness.mjs');
 const { jaywalkMatch } = await import('../../api/_lib/jaywalk.js');
 const { seedOf, firstGo, GO_LEAD_MS } = await import('../../js/games/jaywalk/logic.js');
-const { CAUSE_LINES } = await import('../../js/games/jaywalk/causes.js');
+const { CAUSE_LINES, DAY_LINES } = await import('../../js/games/jaywalk/causes.js');
 
 const { installLag, setLag } = await import('./kit/lag.mjs');
 const { matchStart } = await import('../../js/games/jaywalk/logic.js');
@@ -55,7 +55,7 @@ async function dropRunCards(pids) {
   for (const [code, c] of Object.entries(all)) if (c && pids.includes(c.p) && c.k === 'run') { await dbPut(`shr/${code}`, null); if (c.d) await dbPut(`shrx/${c.d}/${code}`, null); }
   for (const pid of pids) await dbPut(`shrp/${pid}:jaywalk`, null);
 }
-const CAUSES = new Set(Object.values(CAUSE_LINES));
+const CAUSES = new Set([...Object.values(CAUSE_LINES), ...Object.values(DAY_LINES)]);   // (H5B: by day the wall's line is the fog's)
 const isCause = t => CAUSES.has(t) || /^TAKEN AT LANE \d+$/.test(t) || t === 'OUT';
 
 /** start a JAYWALK match from the host's phone and wait for every phone's game screen */
@@ -71,6 +71,9 @@ try {
   const host = await H.joinAll(N);
   const code = await evalIn(host, s => s.code);
   for (let i = 0; i < N; i++) await pages[i].setViewport({ ...H.VIEW, deviceScaleFactor: 2 });   // (the shots at @2)
+  // H5B — THE REFUSED CHAT WRITE ("set chats/*/m/*" ×2 on game:jaywalk/final): every write the rules refuse on any phone, from here on
+  const refused = [];
+  pages.slice(0, N).forEach((p, i) => p.on('console', m => { const t = m.text(); if (/\[rules\] refused|permission_denied/i.test(t)) refused.push(`${NAMES[i]}: ${t.slice(0, 120)}`); }));
   // ---- 1. THE OWNER'S LIVE TEST: only the owner's phone may start it; the guests' phones never offer it
   const pids = await Promise.all(uids.slice(0, N).map(pidFor));
   ok(pids.every(Boolean), 'every phone has its profile');
@@ -81,6 +84,9 @@ try {
   await waitFor(host, s => s.ready && !!s.code && !!s.players && Object.keys(s.players).length === 3, 'the host is back in the room', 40000);
   ok(await until(() => host.evaluate(() => import('/js/config.js').then(c => c.isOwnerTest('jaywalk'))), 25000), 'THE OWNER\'s phone: the server\'s yes → JAYWALK is his to host');
   ok(!(await pages[1].evaluate(() => import('/js/config.js').then(c => c.isOwnerTest('jaywalk') || c.isPlayable('jaywalk')))), '… a guest\'s phone: nothing changes (no JAYWALK anywhere)');
+  // H5B — THE DAY LOOK in a match: the site's GAME LOOK is PER PHONE (☰ → Settings: AUTO · DAY · NIGHT — no lock): the host + BOB
+  // play by DAY, CHARLIE by NIGHT — the same course, the same clock, the same rules; CHARLIE switches mid-match (below)
+  await all(N, (p, i) => p.evaluate(l => import('/js/games/kit/look.js').then(m => m.saveLook(l)), i < 2 ? 'day' : 'night'));
   // ---- 2. THE START: 3 · 2 · 1 · GO — THE FIRST GO picks the course + tick 0
   if (LAG) { await setLag(pages[2], LAG, LAG); log(`CHARLIE's line is slow from here: ${LAG} ms each way`); }
   let cdpB = null;
@@ -139,6 +145,14 @@ try {
   ok(s0.order.length === 3 && s0.order.some(r => /ALICE/.test(r)) && s0.order.some(r => /BOB/.test(r)) && s0.order.some(r => /CHARLIE/.test(r)) && s0.outs === 0, `THE LIVE ORDER: ${s0.order.join(' | ')}`);
   ok(!(await pages[0].evaluate(() => /LIVES/i.test(document.querySelector('.jw-game').textContent))), 'no lives HUD anywhere (ONE LIFE)');
   await H.shot(pages[0], 'match-ghosts');
+  // H5B — each phone's own look: the scene, the stage's words, the console's body all agree; the ghosts + the order as by night
+  const lookOf = p => p.evaluate(() => ({ body: document.body.dataset.look, stage: document.querySelector('.jw-game').dataset.look, scene: window.__jwGame.state().info.look, band: document.querySelector('.jw-skyline').dataset.look }));
+  const lk = await all(N, lookOf);
+  ok(lk.every((q, i) => q.scene === (i < 2 ? 'day' : 'night') && q.body === q.scene && q.stage === q.scene && q.band === q.scene), `THE DAY LOOK in a match: ALICE (host) ${lk[0].scene} · BOB ${lk[1].scene} · CHARLIE ${lk[2].scene} — each phone its own GAME LOOK`);
+  await pages[2].evaluate(() => import('/js/games/kit/look.js').then(m => m.saveLook('day')));
+  ok(await until(async () => { const q = await lookOf(pages[2]); return q.scene === 'day' && q.stage === 'day' && q.band === 'day'; }, 6000), '… CHARLIE switches to DAY mid-match: his screen re-themes at once (read live)');
+  ok((await all(N, p => state(p))).every(s => s.ghosts.length === 2 && s.seed === game.seed), '… the same match on all three: the look is a view');
+  await H.shot(pages[2], 'match-day-ghosts');
   // ---- 4. BOB out first (two still in) → the cause words → Call the Winner → WATCHING the leader
   await G(pages[1], 'window.__jwGame.bot(false)');
   ok(await until(async () => (await state(pages[1])).over, 40000), 'BOB stops hopping → ONE LIFE: out');
@@ -227,6 +241,17 @@ try {
   ok(/BOB · JAYWALK · /.test(LK.title) && LK.go === '/' && !!LK.png && LK.png.w === 540 && LK.png.h === 675 && LK.png.bytes <= 300 * 1024, `… the link's preview IS the card (og:image ${LK.png ? `${LK.png.w} × ${LK.png.h}, ${Math.round(LK.png.bytes / 1024)} KB` : 'none'}; "${LK.title}") and a tap opens the site`);
   if (LK.png) { const { writeFileSync } = await import('node:fs'); writeFileSync(`${OUTDIR.replace(/\/?$/, '/')}share-link-match-540.png`, LK.buf); }
   if (card.url) { const { writeFileSync } = await import('node:fs'); writeFileSync(`${OUTDIR.replace(/\/?$/, '/')}share-card-match.png`, Buffer.from(card.url.split(',')[1], 'base64')); }
+  // ---- 7b. H5B — THE REFUSED CHAT WRITE: nothing was refused on the way to the final screen (the host + both guests) — and the two
+  // ways the winner's keyed line used to be written a SECOND time ("set chats/*/m/*" refused): the host back on the final screen with a
+  // fresh page (SHARE → the share sheet → iOS reloads the tab), and a guest who becomes the host there
+  ok((await all(N, p => p.evaluate(() => !!document.querySelector('.jw-final .final')))).every(Boolean), 'the host + both guests are on JAYWALK\'s final screen');
+  ok((await pages[0].evaluate(() => document.querySelector('.jw-final .sheet-kicker').textContent)) === 'JAYWALK · MATCH', 'THE HEADER: JAYWALK · MATCH');
+  ok(!!(await dbGet(`chats/${code}/m/s-win-${m}`)), 'the winner\'s line is in the chat (written once, by the host)');
+  ok(refused.length === 0, `0 refused writes on the way to the final screen (${refused.join(' | ') || 'none'})`);
+  await host.reload({ waitUntil: 'load' });
+  await waitFor(host, s => s.game && s.game.phase === 'final' && s.meta && s.meta.hostId === s.uid && !!window.__chat && !!document.querySelector('.jw-final .final'), 'the host is back on the final screen with a fresh page (still the host)', 40000);
+  await sleep(3500);   // (the host's tick: 250 ms — the winner's line would have been asked for many times over)
+  ok(refused.length === 0, `the HOST back with a fresh page: 0 refused writes (${refused.join(' | ') || 'none'})`);
   // ---- 8. A REMATCH: a new match, a new course — the finished match's proof nodes stay
   await H.backToLobby(host);
   await waitFor(host, s => s.meta && s.meta.status === 'lobby', 'back in the room', 30000);
@@ -245,6 +270,25 @@ try {
   await all(N, (p, i) => waitFor(p, s => s.game && s.game.phase === 'final', `${NAMES[i]}: the rematch ends (nobody hops: the blackout takes all three)`, 60000));
   const fin2 = await evalIn(host, s => s.game);
   ok(Object.values(fin2.results).every(r => r.l === 0 && r.w === 'wall'), 'three silent-but-present players: each has a run (the blackout\'s), 0 lanes');
+
+  // ---- 8b. H5B — THE REFUSED CHAT WRITE, the guest's side: the host's phone GOES AWAY on the final screen (the share sheet, a locked
+  // phone) → a guest claims the room there (MAKE HOST is not for a match) → its own first look at this match's winner line: never a
+  // second write of the key
+  ok(refused.length === 0, `the rematch to its final screen: 0 refused writes (${refused.join(' | ') || 'none'})`);
+  const hostUrl = host.url(), m2win = await dbGet(`chats/${code}/m/s-win-${m2}`);
+  await host.goto('about:blank');
+  const nh = await until(async () => { for (const i of [1, 2]) if (await evalIn(pages[i], s => !!s.meta && s.meta.hostId === s.uid)) return i; return 0; }, 45000);
+  ok(!!nh, `the host's phone went away on the final screen → ${NAMES[nh || 1]} (a guest) is the host`);
+  await sleep(3500);
+  ok(refused.length === 0, `a GUEST who became the host on JAYWALK's final screen: 0 refused writes (${refused.join(' | ') || 'none'})${m2win ? ' — the winner\'s line was already there' : ''}`);
+  await host.goto(hostUrl, { waitUntil: 'load' });
+  await waitFor(host, s => s.game && s.game.phase === 'final' && !!document.querySelector('.jw-final'), 'the owner is back on the final screen', 40000);
+  await H.backToLobby(pages[nh || 1]);
+  await waitFor(pages[nh || 1], s => s.meta && s.meta.status === 'lobby', 'the room again', 30000);
+  await waitFor(host, s => s.meta && s.meta.status === 'lobby', 'the owner sees the room', 30000);
+  ok(await until(() => pages[nh || 1].evaluate(u => import('/js/room.js').then(r => r.makeHost(u)).then(v => v === true), uids[0]), 20000, 800), 'MAKE HOST (in the room): the owner hosts again');
+  await waitFor(host, s => s.meta && s.meta.hostId === s.uid, 'the owner hosts again', 20000);
+  ok(refused.length === 0, `… and nothing refused on the way back (${refused.join(' | ') || 'none'})`);
 
   // ---- 9. PERFORMANCE: a 4-player match (3 ghosts), 390 × 844 @3, 4× CPU — the host's phone
   if (PERF) {

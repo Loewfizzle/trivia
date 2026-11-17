@@ -61,11 +61,15 @@ export const CAUSE_LINES = Object.freeze({
   ufo: 'BEAMED UP',
 });
 /** → the end screen's line: { cause, vehicle?, lanes?, taken? } */
-export function causeLine({ cause = '', vehicle = '', lanes = 0, taken = false } = {}) {
+/** H5B — THE DAY LOOK's own words: by day the wall is A FOG BANK, never "the lights" (the same cause, the same rules) */
+export const DAY_LINES = Object.freeze({ wall: 'LOST IN THE FOG' });
+export function causeLine({ cause = '', vehicle = '', lanes = 0, taken = false, look = 'night' } = {}) {
   if (taken || cause === 'taken') return `TAKEN AT LANE ${lanes}`;
+  if (look === 'day' && DAY_LINES[cause]) return DAY_LINES[cause];
   return CAUSE_LINES[`${cause}:${vehicle}`] || CAUSE_LINES[cause] || 'OUT';
 }
-/** the line of a finished run on its course (the game's views + the lab + the podium all come through here): { cause, y, x, end, lanes, taken } */
-export function runLine(course, { cause = '', y = 0, x = 0, end = -1, lanes = 0, taken = false } = {}) {
-  return causeLine({ cause, vehicle: cause === 'car' ? hitVehicle(course, { y, x, end }) : '', lanes, taken });
+/** the line of a finished run on its course (the game's views + the lab + the podium all come through here): { cause, y, x, end, lanes, taken }
+ *  + `look` (H5B — the look on this screen: 'day' | 'night') */
+export function runLine(course, { cause = '', y = 0, x = 0, end = -1, lanes = 0, taken = false } = {}, look = 'night') {
+  return causeLine({ cause, vehicle: cause === 'car' ? hitVehicle(course, { y, x, end }) : '', lanes, taken, look });
 }

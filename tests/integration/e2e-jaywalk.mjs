@@ -23,7 +23,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { verifyNode } from '../../api/_lib/jaywalk.js';
 import { chunkTimes } from '../../js/games/jaywalk/replay.js';
-import { CAUSE_LINES, hitVehicle } from '../../js/games/jaywalk/causes.js';
+import { CAUSE_LINES, DAY_LINES, hitVehicle } from '../../js/games/jaywalk/causes.js';
 import { createCourse } from '../../js/games/jaywalk/course.js';
 import { seedOf } from '../../js/games/jaywalk/logic.js';
 
@@ -156,7 +156,7 @@ try {
   ok(await toEnd(P), 'the kid stands still → out → the match ends on the proof\'s `e` → THE END SCREEN');
   await sleep(600);
   let end = await P.ev(`({ cause: document.querySelector('.jw-fin-cause').textContent, n: document.querySelector('.jw-fin-n b').textContent, unit: document.querySelector('.jw-fin-n > span').textContent, foot: [...document.querySelectorAll('.final-actions button')].map(x => x.textContent.trim()), res: ${S}.game.results[${S}.uid], hud: getComputedStyle(document.querySelector('.jw-hud')).visibility, confetti: !!document.querySelector('.jw-final .burst') && getComputedStyle(document.querySelector('.jw-final .burst')).display !== 'none' })`);
-  ok(Object.values(CAUSE_LINES).includes(end.cause), `HOW YOU WENT OUT, in big neon words: "${end.cause}"`);
+  ok([...Object.values(CAUSE_LINES), ...Object.values(DAY_LINES)].includes(end.cause), `HOW YOU WENT OUT, in big neon words: "${end.cause}"`);
   // (H4 add-on: a car hit is named by THE VEHICLE on that lane at that tick — worked out here from the course alone; never a generic line)
   { const veh = end.res.w === 'car' ? hitVehicle(createCourse(seedOf(g.code, g.m, node.go)), { y: end.res.y, x: end.res.px, end: end.res.e }) : '';
     ok(end.res.w !== 'car' || (!!veh && end.cause === CAUSE_LINES[`car:${veh}`]), end.res.w === 'car' ? `… it names the vehicle that hit (${veh}) — never "HIT BY A CAR"` : `… (this run ended by "${end.res.w}": no vehicle to name)`); }

@@ -3,7 +3,7 @@
 // hit · splash) stay the engine's events (sfx.js#onEvent). Every cue is about THIS phone's own kid — in a match a ghost makes no sound.
 //   · bell-on / bell-off — THE TRAIN BELL loops while a rail lane's signals flash NEAR the kid (its tell) and stops as the train passes
 //   · train-pass        — the moment a near train's pass begins (panned to the side it comes from)
-//   · car-pass          — a REAL near miss only (the engine's own `near`: a car within a cell of him on his lane), ≤ 2 at once, panned
+//   (H5B — the owner: the CAR-PASS near-miss whoosh is GONE — no cue, no sound)
 //   · horn              — a car closing on the kid standing in its lane, ≤ 1 every 3 s
 //   · lights-die        — THE BLACKOUT takes a lane within 3 of him (never the far-off wall he is outrunning)
 // The world's own moments are read straight off the course (pulseAt, moverLeft — pure functions of the tick): nothing here is a rule.
@@ -12,7 +12,6 @@ import { pulseAt, moverLeft } from './course.js';
 
 export const CUE = Object.freeze({
   bellBehind: 2, bellAhead: 6,          // (a rail lane this near the kid — on his screen — rings the bell)
-  passMax: 2, passTicks: 54,            // (≤ 2 car passes at once: a pass counts as sounding for 0.9 s)
   hornEvery: 3 * TICK_HZ,               // (≤ 1 horn every 3 s)
   hornReach: 2600,                      // (… when a car's nose is within 2.6 cells of him and closing — past the near miss's 1 cell)
   lightsNear: 3, lightsEvery: 90,       // (the blackout's lane within 3 of the kid; ≥ 1.5 s between two)
@@ -20,7 +19,7 @@ export const CUE = Object.freeze({
 });
 
 /** a run's cue state (the view makes one a run) */
-export const createCues = () => ({ bell: false, passK: {}, passes: [], hornAt: -1e9, wallLane: null, lightsAt: -1e9 });
+export const createCues = () => ({ bell: false, passK: {}, hornAt: -1e9, wallLane: null, lightsAt: -1e9 });
 
 /** the car on a ROAD lane nearest ahead of the kid's box that is driving AT him: → { gap (FP from its nose to his box), side (−1 it
  *  comes from the left | 1 from the right) } or null */
@@ -32,18 +31,13 @@ export function carClosing(lane, tick, x) {
   }
   return best;
 }
-/** which side of the kid the car that just missed him is on (−1 left | 1 right) */
-export function carSide(lane, tick, x) {
-  let best = 1e9, side = 0;
-  for (const it of lane.items) { const c = moverLeft(lane, it, tick) + it.len / 2, d = Math.abs(c - x); if (d < best) { best = d; side = c < x ? -1 : 1; } }
-  return side;
-}
 
 /**
- * ONE TICK: the run after its step (alive), the course, that tick's engine events → the cues to play now: [{ cue, pan? }].
+ * ONE TICK: the run after its step (alive), the course → the cues to play now: [{ cue, pan? }] (the engine's events are no longer read:
+ * the near miss made the car-pass, gone with H5B).
  * S = createCues(). Deterministic: the same run + course give the same cues.
  */
-export function cuesAt(S, run, course, ev) {
+export function cuesAt(S, run, course) {
   const out = [], T = run.t, y = run.y;
   // THE TRAIN: the bell while a near rail lane is in its tell; the pass (once a pass) the tick it begins — the bell stops with it
   let tell = false;
@@ -55,16 +49,7 @@ export function cuesAt(S, run, course, ev) {
     else if (st.st === 'pass' && S.passK[i] !== st.k) { S.passK[i] = st.k; if (st.s <= 2) out.push({ cue: 'train-pass', pan: -L.pulse.dir * CUE.pan }); }
   }
   if (tell !== S.bell) { S.bell = tell; out.push({ cue: tell ? 'bell-on' : 'bell-off' }); }
-  // A CAR PASSING: the engine's own near miss — never more than two at once
   const lane = course.lane(y);
-  if (ev) for (const e of ev) {
-    if (e.e !== 'near') continue;
-    S.passes = S.passes.filter(t => T - t < CUE.passTicks);
-    if (S.passes.length >= CUE.passMax) continue;
-    S.passes.push(T);
-    const L = course.lane(e.lane);
-    out.push({ cue: 'car-pass', pan: (L.type === 'road' ? carSide(L, T, run.x) : 0) * CUE.pan });
-  }
   // THE HORN: he stands in a road lane, a car is closing on him
   if (run.st === 'idle' && lane.type === 'road' && T - S.hornAt >= CUE.hornEvery) {
     const c = carClosing(lane, T, run.x);

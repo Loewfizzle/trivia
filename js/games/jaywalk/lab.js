@@ -65,6 +65,11 @@ async function mount() {
   let zoom = Number(pick('zoom', ZOOMS, ZOOM)), angle = pick('angle', ANGLES, ANGLE);
   const zooms = ZOOMS.map(n => press(h('button.jw-tab.jw-w', { type: 'button', 'data-zoom': String(n), 'aria-label': `Zoom: ${n} columns across` }, String(n)), () => setCamera(n, angle)));
   const angles = ANGLES.map(a => press(h('button.jw-tab.jw-ang', { type: 'button', 'data-angle': a, 'aria-label': `Angle: ${a}` }, a.toUpperCase()), () => setCamera(zoom, a)));
+  // H5B — LOOK: DAY · NIGHT (the lab's own switch — the game follows the phone's GAME LOOK setting; `?look=day|night` for a link)
+  let look = pick('look', ['night', 'day'], 'night');
+  const looks = ['day', 'night'].map(l => press(h('button.jw-tab.jw-lk', { type: 'button', 'data-look': l, 'aria-label': `Look: ${l}` }, l.toUpperCase()), () => pickLook(l)));
+  const pickLook = l => { setLook(l); if (shown) endT.textContent = runLine(course, resultOf(run), look); };   // (… and an end on screen says the look's own words)
+  function setLook(l) { look = l === 'day' ? 'day' : 'night'; setPref('look', look); if (view && view.setLook) view.setLook(look); const st = app.querySelector('.jw-stage'); if (st) st.dataset.look = look; for (const b of looks) b.classList.toggle('is-on', b.dataset.look === look); }
   const markCamera = () => { for (const b of zooms) b.classList.toggle('is-on', b.dataset.zoom === String(zoom)); for (const b of angles) b.classList.toggle('is-on', b.dataset.angle === angle); };
   function setCamera(z, a, snap) { zoom = z; angle = a; setPref('zoom', z); setPref('angle', a); view.setCamera(z, a, snap); markCamera(); }
   const end = h('div.jw-end', { hidden: true }), endT = h('div.jw-end-t'), endL = h('div.jw-end-l'), endGo = h('div.jw-end-go', 'TAP — PLAY AGAIN'), check = h('div.jw-check');
@@ -80,13 +85,14 @@ async function mount() {
   if (!GRAY) Promise.all([lazyImport(import('../../audio/engine.js'), '../../audio/engine.js'), lazyImport(import('./sfx.js'), './sfx.js')]).then(([E, S]) => { E.installAudio(); S.fetchSounds(); snd = S; lab.sfx = S; }).catch(() => { /* silent: audio is polish */ });
   // (the tools' row: ZOOM + ANGLE — the graybox follows the same camera; SOUNDS sits in the top left corner, off the play)
   const tools = h('div.jw-bar.jw-bar2', h('div.jw-tabs', h('span.jw-bar-k', 'ZOOM'), ...zooms), h('div.jw-tabs', ...angles));
+  const lookBar = GRAY ? null : h('div.jw-bar.jw-bar3', h('div.jw-tabs', h('span.jw-bar-k', 'LOOK'), ...looks));
   app.replaceChildren(h(`div.jw-stage${GRAY ? '.is-gray' : ''}`, play, GRAY ? h('div.jw-sky') : null, h('div.jw-blackout'),
-    h('div.jw-hud', lanes, sub, mark), GRAY ? null : soundsBtn, tools, h('div.jw-bar', h('div.jw-tabs', ...tabs), seedBtn), end, seedLine, fps));
+    h('div.jw-hud', lanes, sub, mark), GRAY ? null : soundsBtn, lookBar, tools, h('div.jw-bar', h('div.jw-tabs', ...tabs), seedBtn), end, seedLine, fps));
   const pin = /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null;   // (`?tier=0|1|2` pins a quality tier — the pass's measure)
   let view;
-  try { view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin }); }
+  try { view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin, look }); }
   catch { app.querySelector('.jw-stage').append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); return; }   // (the page still loaded: its stage is up)
-  markCamera();
+  markCamera(); setLook(look);
   // AUTOMATIC quality steps (the match kit's tiers 2 / 1 / 0): the frame time slips → a step down; headroom → back up
   const tierPath = [pin == null ? 2 : pin];   // (every tier the automatic steps went through — the pass's measure + ?fps=1 read it)
   const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });
@@ -114,7 +120,7 @@ async function mount() {
     if (safe && run.wall > (run.y - 5) * FP) run.wall = (run.y - 5) * FP;
     step(run, course, d, ev);
     for (const e of ev) { if (e.e === 'landmark') { mark.textContent = gateName(e.lane); markUntil = performance.now() + 2600; if (snd) snd.play('landmark'); } if (snd) snd.onEvent(e); }
-    if (snd && !isOver(run)) for (const q of cuesAt(cues, run, course, ev)) snd.onCue(q);   // (H5A — THE WORLD's SOUNDS: cues.js)
+    if (snd && !isOver(run)) for (const q of cuesAt(cues, run, course)) snd.onCue(q);   // (H5A — THE WORLD's SOUNDS: cues.js)
     if (snd && isOver(run)) snd.onCue({ cue: 'bell-off' });   // (H5A: the area's name as its gateway shows it — THE DOCKS · LAP 2)
     steps++;
   }
@@ -122,7 +128,7 @@ async function mount() {
     shown = true; overAt = performance.now();
     const live = resultOf(run);
     // (the game's own words — causes.js#runLine: the SAME table + the SAME vehicle function the night look draws by; never a generic line)
-    endT.textContent = runLine(course, live);
+    endT.textContent = runLine(course, live, look);
     endL.textContent = live.taken ? 'THE MOTHERSHIP CAME — THAT IS A WIN' : `LANE ${live.lanes}`;
     // THE DETERMINISM CHECK: the run replayed from its seed + hop log — the SAME code the server runs
     const { used, ...r } = replay({ seed, mode, log });
@@ -173,7 +179,7 @@ async function mount() {
     state: () => ({ mode, seed, t: run.t, st: run.st, y: run.y, x: run.x / FP, best: run.best, cause: run.cause, line: endT.textContent, hitBy: run.cause === 'car' ? hitVehicle(course, { y: run.y, x: run.x, end: run.end }) : '', wall: run.wall / FP, hops: log.length, asked: log.length + queue.length, over: isOver(run), shown, started, steps, slow, kidY: view.kidScreenY(), kidX: view.kidScreenX(), kidPx: view.kidHeightPx ? view.kidHeightPx() : 0, zoom, angle, gray: GRAY, tier: tiers.get(), tierPath: tierPath.slice(), capped: tiers.capped(), info: view.info() }),
     bot(on) { bot = on ? greedyBot({ seed }) : null; },
     restart: (m, s) => restart(m || mode, s),
-    setCamera, setTier: t => tiers.set(t), ready: view.ready || Promise.resolve(true),
+    setCamera, setLook: pickLook, look: () => look, setTier: t => tiers.set(t), ready: view.ready || Promise.resolve(true),
     /** (the framing's checks) a ground point (column cells, lane) → [x, y] on the screen, 0 … 1 from the top left */
     project: (cells, lane) => view.project(cells, lane),
     lane: i => { const L = course.lane(i); return { type: L.type, dir: L.dir || (L.pulse && L.pulse.dir) || 0, mark: L.mark || '' }; },

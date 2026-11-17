@@ -82,11 +82,12 @@ test('H5A — THE KID\'s FILE + THE AREAS\' TWO MODELS: Kenney\'s skate boy re-p
 test('THE SKYLINE + THE SOUNDS: the night band ≤ 150 KB; every pick + every -b backup; the bells as 16-bit mono WAV (the whole file is the loop); the credits', () => {
   const sky = statSync(new URL('assets/jaywalk/skyline-night.webp', root)).size;
   assert.ok(sky > 20 * 1024 && sky <= 150 * 1024, `skyline-night.webp: ${sky} B`);
-  assert.ok(!existsSync(new URL('assets/jaywalk/skyline-day.webp', root)), 'the day picture comes with the day look (H5)');
+  const dayBand = statSync(new URL('assets/jaywalk/skyline-day.webp', root)).size;   // (H5B — THE DAY LOOK's band)
+  assert.ok(dayBand > 40 * 1024 && dayBand <= 150 * 1024, `skyline-day.webp: ${dayBand} B`);
   const have = readdirSync(new URL('audio/jaywalk/', root)).sort();
   const want = SOUNDS.flatMap(s => [`${s.id}.${s.ext || 'mp3'}`, ...(s.b ? [`${s.id}-b.${s.ext || 'mp3'}`] : [])]);
   assert.deepEqual(have, [...want, 'CREDITS.md'].sort(), 'audio/jaywalk = the table\'s files + CREDITS.md');
-  assert.equal(SOUNDS.length, 11); assert.equal(SOUNDS.filter(s => s.b).length, 6);   // (H4: ONE LIFE — the RESPAWN sound left with respawn)
+  assert.equal(SOUNDS.length, 10); assert.equal(SOUNDS.filter(s => s.b).length, 5);   // (H4: ONE LIFE — the RESPAWN sound left with respawn · H5B: the CAR-PASS is gone)
   for (const [f, frames] of [['train-bell.wav', 84405], ['train-bell-b.wav', 78572]]) {
     const w = bytes(`audio/jaywalk/${f}`);
     assert.equal(w.toString('ascii', 0, 4), 'RIFF'); assert.equal(w.readUInt16LE(22), 1, 'mono'); assert.equal(w.readUInt32LE(24), 44100); assert.equal(w.readUInt16LE(34), 16, '16-bit');
@@ -148,7 +149,7 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   // THE WATER (H4 — the owner, Nov 16: CALM, real-looking night water — no electric zigzags): a deep night blue, navy → teal (never near-black,
   // never electric), soft uneven ripples from drifting noise fields (never a sine stripe), gentle reflections + small glints, a thin soft foam line
   const water = fxs.slice(fxs.indexOf('} else if (type < 2.5) {'), fxs.indexOf('} else if (type < 3.5) {'));
-  const base = /c = mix\(vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), w \* w[^;]*\);/.exec(water);
+  const base = /c = mix\(DN\(vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), vec3\([^)]*\)\), DN\(vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), vec3\([^)]*\)\), w \* w[^;]*\);/.exec(water);   // (H5B: DN(night, day) — the NIGHT pair is read here)
   assert.ok(base, 'the water\'s two colours');
   const [r0, g0, b0, r1, g1, b1] = base.slice(1).map(Number);
   assert.ok(b0 >= 0.12 && b0 > g0 * 2 && b0 > r0 * 6, `the troughs: a deep navy, not black (${base.slice(1, 4).join(' ')})`);
@@ -157,9 +158,9 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   assert.doesNotMatch(water.replace(/\/\/[^\n]*/g, ''), /float crest =|sin\(z \* 1[0-9]|float wob =|float streak =/, 'NO zigzags: no sine crests, no wobbling streaks');
   assert.match(water, /float rip = /, 'the ripples: thin pale contour lines'); assert.match(water, /float gl = step\(/, 'small moving glints of the neon');
   assert.match(water, /abs\(dn - 2\.0\)\), shU = step\(0\.5, abs\(up - 2\.0\)\)/, 'the banks only where the neighbour is not water');
-  const foam = /float foam = max\(smoothstep\(([\d.]+) \+ lap, ([\d.]+) \+ lap, z\)/.exec(water), fmix = /c = mix\(c, vec3\([\d., ]+\), foam \* \(?([\d.]+)/.exec(water);
+  const foam = /float foam = max\(smoothstep\(([\d.]+) \+ lap, ([\d.]+) \+ lap, z\)/.exec(water), fmix = /c = mix\(c, DN\(vec3\([\d., ]+\), vec3\([\d., ]+\)\), min\(1\.0, foam \* \(?([\d.]+)/.exec(water);
   assert.ok(foam && +foam[1] <= 0.1 && fmix && +fmix[1] <= 0.8, `a THINNER, SOFT foam line at the banks (edge ${foam && foam[1]}, strength ${fmix && fmix[1]})`);
-  assert.match(n, /K\.flat\.put\(X\(tailX - L\.dir \* [\d.]+\), [^;]*0x[0-9a-f]{6}, 1, 1, 0\.\d+ \* dim\);/, 'a soft wake behind each log');
+  assert.match(n, /K\.flat\.put\(X\(tailX - L\.dir \* [\d.]+\), [^;]*0x[0-9a-f]{6}, 1, 1, \(day \? 0\.\d+ : 0\.\d+\) \* dim\);/, 'a soft wake behind each log');
   // THE LOGS (H3 — the owner, Nov 16): all the SAME thickness, each its OWN length (1–4 cells — one geometry a length, nothing stretched), round +
   // half-sunk (lit on top, dark down the sides), bark grain along the length, pale ringed ends; NO moss, NO branch stub, NO dot
   assert.match(m, /export function buildLog\(len\)/); assert.match(n, /log1: buildLog\(1\), log2: buildLog\(2\), log3: buildLog\(3\), log4: buildLog\(4\), truck/, 'one geometry a length — nothing stretched');
@@ -177,8 +178,8 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   assert.match(n, /const LOG_FEET = 0\.33;/, 'half-sunk: the kid stands on its round back');
   assert.match(n, /roughness: 0\.82, metalness: 0, envMapIntensity: 0\.25/, 'rough wood: the bark is seen, never a glow');
   const logLights = n.slice(n.indexOf('K[`log${n}`].put('), n.indexOf('} else {\n        const p = L.pulse'));
-  assert.match(logLights, /0xffa23a, 1, 0, 0\.\d+ \* dim\);/, 'a soft light on the water round it'); assert.match(logLights, /0xffb060, 1, asp, 0\.\d+ \* dim\);/, 'THE WATERLINE: a thin amber ring hugging the log (the glow shader\'s stadium ring)');
-  assert.match(logLights, /0x[0-9a-f]{6}, 1, 7 \+ [^;]*0\.\d+ \* \(1 - rp\) \* dim\);/, '… + a small ripple ring swelling off it');
+  assert.match(logLights, /0xffa23a, 1, 0, 0\.\d+ \* dim\);/, 'a soft light on the water round it'); assert.match(logLights, /0xffb060, 1, asp, \(day \? 0\.\d+ : 0\.\d+\) \* dim\);/, 'THE WATERLINE: a thin amber ring hugging the log (the glow shader\'s stadium ring)');
+  assert.match(logLights, /0x[0-9a-f]{6}, 1, 7 \+ [^;]*0\.\d+\) \* \(1 - rp\) \* dim\);/, '… + a small ripple ring swelling off it');
   assert.match(fxs, /a thin STADIUM ring \(the waterline round a log/, 'shape 7');
   assert.doesNotMatch(logLights, /K\.bill\.put/, 'no glowing end caps (they made the pills)');
   assert.match(n, /rock = reduce \? 0 : Math\.sin\(clock \/ 880/, 'the logs rock gently — never with reduce motion');

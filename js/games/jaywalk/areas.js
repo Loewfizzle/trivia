@@ -8,7 +8,9 @@
 // column. Nothing of an area ever stands on a play cell the rules call free, nothing covers a play column, and a road / water / rail
 // lane's edge column stays open: what comes down it is seen coming, as before.
 // Everything is built in code in the smooth toy style (models.js#build) except the lighthouse (MaverickFX, CC0) + the fishing boat
-// (Kenney, CC0). H5A = the night look; the day look is H5B's.
+// (Kenney, CC0). H5A = the night look. H5B = THE DAY LOOK (the same pieces sunlit — their lamps off, a shop's neon a painted board;
+// `c.day` + `c.ek`, the edge columns' dim, come from the scene) + THE LANDMARK MOMENT AT THE GATE (`sigOf`: the area's hero piece(s)
+// stand in the gate lane's own edge columns — the owner: the landmarks must be SEEN).
 import * as THREE from 'three';
 import { COLS, STRETCH } from './tuning.js';
 import { area } from './course.js';
@@ -20,26 +22,26 @@ const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
 const by = k => y => k[0] + y * k[1];
 
 /**
- * THE LOOK of each area (index = course.js#area(lane).index): `accent` (its gateway's neon + its signs), `sky` (the skyline band's
+ * THE LOOK of each area (index = course.js#area(lane).index): `accent` (its gateway's neon + its signs), `paint` (H5B — its gateway BY DAY), `hero` (H5B — the pieces beside its gate), `sky` (the skyline band's
  * tint), `lamp` (its street lamps' light) + `lampEvery` (a lamp every n-th ground lane), `obs` (what an obstacle on a PLAY cell is —
  * every one stands knee-high or taller and reads as solid), `edge` + `edgeP` (the dressing in the edge columns of a ground lane and how
  * often), `tufts` (grass tufts on its ground), `sig` — its SIGNATURE PIECES ([what, the lane of the stretch it stands nearest to]):
  * the dock crane, the neon fish, the bridge's towers, THE LIGHTHOUSE, the control tower, the hangars, the moored boats.
  */
 export const LOOKS = Object.freeze([
-  { id: 'docks', accent: 0x35e3ff, sky: '#19b8e6', lamp: 0xffc27a, lampEvery: 4, obs: ['bollard', 'crate', 'crate', 'drum'], edge: ['crate', 'container', 'bollard', 'crate', 'drum'], edgeP: 0.85,
+  { id: 'docks', accent: 0x35e3ff, paint: 0x1479a8, hero: ['crane', 'boat'], sky: '#19b8e6', lamp: 0xffc27a, lampEvery: 4, obs: ['bollard', 'crate', 'crate', 'drum'], edge: ['crate', 'container', 'bollard', 'crate', 'drum'], edgeP: 0.85,
     sig: [['crane', 8], ['boat', 17], ['boat', 28], ['crane', 37], ['boat', 45]] },
-  { id: 'fish', accent: 0xff7a4a, sky: '#ff8a4a', lamp: 0xffd9a0, lampEvery: 4, obs: ['icecrate', 'icecrate', 'crate', 'drum'], edge: ['stall', 'icecrate', 'stall', 'crate'], edgeP: 0.9,
+  { id: 'fish', accent: 0xff7a4a, paint: 0xd9542b, hero: ['fish', 'boat'], sky: '#ff8a4a', lamp: 0xffd9a0, lampEvery: 4, obs: ['icecrate', 'icecrate', 'crate', 'drum'], edge: ['stall', 'icecrate', 'stall', 'crate'], edgeP: 0.9,
     sig: [['fish', 6], ['boat', 14], ['fish', 22], ['boat', 31], ['fish', 39], ['boat', 46]] },
-  { id: 'yard', accent: 0xffb020, sky: '#ffb020', lamp: 0xffb060, lampEvery: 5, obs: ['drum', 'crate', 'barricade', 'drum'], edge: ['container', 'container', 'drum', 'container'], edgeP: 0.9, gantry: true, sig: [] },
-  { id: 'bridge', accent: 0xff4a5a, sky: '#ff4a5a', lamp: 0xfff0c8, lampEvery: 2, obs: ['barricade', 'traffic-cone', 'barricade', 'drum'], edge: ['rail', 'rail'], edgeP: 1,
+  { id: 'yard', accent: 0xffb020, paint: 0xb9770c, hero: ['stack', 'stack'], sky: '#ffb020', lamp: 0xffb060, lampEvery: 5, obs: ['drum', 'crate', 'barricade', 'drum'], edge: ['container', 'container', 'drum', 'container'], edgeP: 0.9, gantry: true, sig: [] },
+  { id: 'bridge', accent: 0xff4a5a, paint: 0xc93a3a, hero: ['pylons'], sky: '#ff4a5a', lamp: 0xfff0c8, lampEvery: 2, obs: ['barricade', 'traffic-cone', 'barricade', 'drum'], edge: ['rail', 'rail'], edgeP: 1,
     sig: [['pylons', 6], ['pylons', 15], ['pylons', 24], ['pylons', 33], ['pylons', 42]] },
-  { id: 'downtown', accent: 0xff3fb4, sky: '#ff3fb4', lamp: 0xffe0b0, lampEvery: 3, obs: ['hydrant', 'bush-planter', 'trash-dumpster', 'traffic-cone'], edge: ['shop', 'shop', 'shop', 'hydrant'], edgeP: 1, sig: [] },
-  { id: 'canal', accent: 0x7dffb0, sky: '#3fd9a0', lamp: 0xffc890, lampEvery: 4, obs: ['bollard', 'bush-planter', 'tree', 'bollard'], edge: ['house', 'tree', 'house', 'bollard'], edgeP: 0.85, tufts: true, footbridge: true,
+  { id: 'downtown', accent: 0xff3fb4, paint: 0xc02a86, hero: ['block', 'block'], sky: '#ff3fb4', lamp: 0xffe0b0, lampEvery: 3, obs: ['hydrant', 'bush-planter', 'trash-dumpster', 'traffic-cone'], edge: ['shop', 'shop', 'shop', 'hydrant'], edgeP: 1, sig: [] },
+  { id: 'canal', accent: 0x7dffb0, paint: 0x23875a, hero: ['row', 'boat'], sky: '#3fd9a0', lamp: 0xffc890, lampEvery: 4, obs: ['bollard', 'bush-planter', 'tree', 'bollard'], edge: ['house', 'tree', 'house', 'bollard'], edgeP: 0.85, tufts: true, footbridge: true,
     sig: [['boat', 9], ['boat', 21], ['boat', 33], ['boat', 44]] },
-  { id: 'lighthouse', accent: 0xfff0a0, sky: '#ffe9a0', lamp: 0xffe9b0, lampEvery: 7, obs: ['rock', 'rock', 'rock', 'tree'], edge: ['rock', 'rock', 'tree'], edgeP: 0.8, tufts: true,
+  { id: 'lighthouse', accent: 0xfff0a0, paint: 0xb58a12, hero: ['lighthouse', 'boat'], sky: '#ffe9a0', lamp: 0xffe9b0, lampEvery: 7, obs: ['rock', 'rock', 'rock', 'tree'], edge: ['rock', 'rock', 'tree'], edgeP: 0.8, tufts: true,
     sig: [['boat', 8], ['lighthouse', 22], ['boat', 37]] },
-  { id: 'airfield', accent: 0x4d9dff, sky: '#4d9dff', lamp: 0xcfe4ff, lampEvery: 5, obs: ['traffic-cone', 'barricade', 'drum', 'traffic-cone'], edge: ['traffic-cone', 'drum'], edgeP: 0.35,
+  { id: 'airfield', accent: 0x4d9dff, paint: 0x2a66c4, hero: ['tower', 'hangar'], sky: '#4d9dff', lamp: 0xcfe4ff, lampEvery: 5, obs: ['traffic-cone', 'barricade', 'drum', 'traffic-cone'], edge: ['traffic-cone', 'drum'], edgeP: 0.35,
     sig: [['tower', 9], ['hangar', 19], ['hangar', 29], ['tower', 38], ['hangar', 45]] },
 ]);
 export const lookAt = lane => { const a = area(lane); return a.index < 0 ? null : LOOKS[a.index]; };
@@ -188,6 +190,9 @@ export function sigOf(course, s, pick) {
   const base = s * STRETCH, T = lookAt(base), out = [], used = new Set();
   if (!T) return out;
   let side = pick(s, 3) < 0.5 ? -1 : 1;
+  // H5B — THE LANDMARK MOMENT AT THE GATE: the area's hero piece(s) in the GATE LANE's own two edge columns (a ground lane: nothing
+  // else is dressed there) — seen beside the arch as the kid comes up to it. THE CRANE + the towers straddle, as everywhere.
+  { const hero = T.hero || [], hs = pick(s, 5) < 0.5 ? -1 : 1; hero.forEach((w0, n) => { const what = w0 === 'crane' && course.lane(base + 1).type === 'flight' ? 'boat' : w0; if (what === 'pylons') out.push({ y0: base, side: -1, what, n: 90, hero: true }, { y0: base, side: 1, what, n: 90, hero: true }); else out.push({ y0: base, side: n ? -hs : hs, what, n: 90 + n, hero: true }); }); }
   const free = y => { const L = course.lane(y); return y > base + 1 && y < base + STRETCH - 2 && L.type !== 'flight' && !L.mark && !used.has(y); };
   const ground = y => free(y) && course.lane(y).type === 'grass';
   const wet = y => ground(y) && (course.lane(y - 1).type === 'water' || course.lane(y + 1).type === 'water');
@@ -212,7 +217,7 @@ export function sigOf(course, s, pick) {
 
 /** a BIG edge piece (it takes the whole edge column of its ground lane): q = dressLane's entry, x0 = its cell's centre, z = the lane's */
 export function drawBig(q, x0, z, c) {
-  const { K, A, lt, on } = c, out = q.c < 0 ? -1 : 1, dim = lt * 0.5 * 1.35, face = out < 0 ? 0 : Math.PI;
+  const { K, A, lt, on } = c, out = q.c < 0 ? -1 : 1, dim = lt * (c.ek || 0.5) * 1.35, face = out < 0 ? 0 : Math.PI;
   if (q.k === 'rail') { A.rail.put(x0 + out * 0.42, 0, z, 1, 1, 1, 0, 0xffffff, dim); return; }
   if (q.k === 'container') {
     // freight containers along the lane's edge — one, or two stacked: each its own colour
@@ -232,6 +237,11 @@ export function drawBig(q, x0, z, c) {
   const shop = q.k === 'shop', tall = shop ? 0.6 + q.r * 0.24 : 0.74 + q.r * 0.3, x = x0 + out * 0.68, hx = HOUSE_HEX[Math.floor(q.s * 6) % 6], sg = SIGN_HEX[Math.floor(q.r * 6) % 6];
   A.house.put(x, 0, z, 1, tall, 0.9, face, hx, dim * (shop ? 0.9 : 1.1));
   K.shadow.put(x, 0.03, z + 0.1, 2.1, 1, 1.1, 0, 0, 1, 0, 0.5 * lt);
+  if (c.day) {   // (BY DAY: dark glass, a shop's sign a PAINTED board — no light thrown)
+    for (const dx of [-0.5, 0.05, 0.6]) K.bill.put(x + dx * 0.9, 1.42 * tall, z + 0.47, 0.2, 0.24, 1, 0, 0x2c4468, 1, 4, 0.85);
+    if (shop) { K.bill.put(x, 2.0 * tall + 0.16, z + 0.3, 1.3, 0.3, 1, 0, 0xfbf6ea, 1, 4, 1); K.bill.put(x, 2.0 * tall + 0.16, z + 0.3, 1.1, 0.16, 1, 0, sg, 1, 4, 1); }
+    return;
+  }
   if (!on) return;
   for (const dx of [-0.5, 0.05, 0.6]) K.bill.put(x + dx * 0.9, 1.42 * tall, z + 0.47, 0.2, 0.24, 1, 0, (dx + q.s * 3) % 1 < 0.72 ? 0xffe6a8 : 0x7fe6ff, 1, 4, 0.85 * lt * 0.7);
   if (shop) {
@@ -243,13 +253,15 @@ export function drawBig(q, x0, z, c) {
 /** ONE signature piece (its lane is being laid). → { beam: [x, y, z] } where THE LIGHTHOUSE's lamp is (the scene sweeps its beam
  *  over the lanes) · { sign: [x, y, z] } where THE NEON FISH hangs */
 export function drawSig(P, c) {
-  const { K, A, KM, BOX, X, Z, lt, on, h } = c, s = P.side, z = Z(P.y0 + 0.5), x0 = X(s < 0 ? -0.5 : COLS + 0.5), dim = lt * 0.5 * 1.4;
+  const { K, A, KM, BOX, X, Z, lt, on, h } = c, s = P.side, z = Z(P.y0 + 0.5), x0 = X(s < 0 ? -0.5 : COLS + 0.5), dim = lt * (c.ek || 0.5) * 1.4;
+  const hot = k => (c.day ? lt * Math.min(1.12, (c.ek || 0.5) * 1.4 * k) : dim * k);   // (by day the sun lights a pale piece: never blown out)
   const lamp = (x, y, zz, hex, sz = 0.3, a = 0.9) => { if (on) K.bill.put(x, y, zz, sz, sz, 1, 0, hex, 1, 5, a * lt); };
   if (P.what === 'crane') {
     // THE DOCK CRANE straddles two lanes: its four thin legs on the lane lines (whatever runs there runs between them), its boom
     // reaching OUT over the harbour — nothing of it hangs over a play column
     const zc = Z(P.y0 + 1), x = x0 + s * 0.19;
-    A.crane.put(x, 0, zc, 0.75, 0.82, 1.1, s < 0 ? Math.PI : 0, 0xffffff, dim * 1.3);
+    A.crane.put(x, 0, zc, 0.75, 0.82, 1.1, s < 0 ? Math.PI : 0, 0xffffff, hot(1.3));
+    if (c.day) K.shadow.put(x, 0.03, zc, 2.2, 1, 2.4, 0, 0, 1, 0, 0.3 * Math.min(1, lt));
     lamp(x - s * 0.1, 3.75, zc, 0xff3030, 0.3); lamp(x, 2.5, zc, 0xfff0c8, 0.28, 0.7);
     if (on) K.flat.put(x, 0.04, zc, 3.2, 1, 3.0, 0, 0xffc27a, 1, 0, 0.2 * lt);
     return null;
@@ -257,22 +269,23 @@ export function drawSig(P, c) {
   if (P.what === 'pylons') {
     // a BRIDGE TOWER straddles its lane (its legs on the lane lines); two lit cables fall away along the bridge, both ways
     const x = x0 - s * 0.05;
-    A.pylon.put(x, 0, z, 0.9, 0.95, 1.47, 0, 0xffffff, dim * 1.35);
+    A.pylon.put(x, 0, z, 0.9, 0.95, 1.47, 0, 0xffffff, hot(1.35));
     lamp(x, 4.3, z, 0xff3030, 0.36); lamp(x, 2.55, z, 0xfff0c8, 0.24, 0.6);
-    for (const dz of [-1, 1]) K.posts.put(x, 2.6, z + dz * 2.55, 0.05, 0.05, 5.6, 0, 0xffd0a0, dim * 1.6, 1, 1, dz * 0.6, 0);
+    for (const dz of [-1, 1]) K.posts.put(x, 2.6, z + dz * 2.55, 0.05, 0.05, 5.6, 0, c.day ? 0xd8452f : 0xffd0a0, hot(1.6), 1, 1, dz * 0.6, 0);
     return null;
   }
   if (P.what === 'lighthouse') {
     // THE LIGHTHOUSE on its rocks, on a ground lane's edge column — its lamp lit; the scene sweeps its beam across the lanes
-    const B = BOX.lighthouse, sc = B ? 3.9 / B.h : 0.3, x = x0 + s * 0.66;
-    for (const [dx, dz, r] of [[0.75, 0.2, 1.25], [-0.5, 0.36, 0.8], [0.2, -0.38, 0.9], [1.5, -0.1, 1.5]]) A.rock.put(x + s * dx, -0.04, z + dz, r, r, r, dx * 5, 0xffffff, dim);
-    if (KM.lighthouse) KM.lighthouse.put(x, 0.1, z, sc, sc, sc, 0, 0xffffff, dim * 1.7);
+    // (H5B — the gate's hero stands as near the play as its edge column lets it: the lighthouse IS the moment)
+    const B = BOX.lighthouse, sc = B ? 3.9 / B.h : 0.3, x = x0 + s * (P.hero ? 0.1 : 0.66);
+    for (const [dx, dz, r] of [[0.75, 0.2, 1.25], [-0.5, 0.36, 0.8], [0.2, -0.38, 0.9], [1.5, -0.1, 1.5]]) { if (P.hero && dx < 0) continue; A.rock.put(x + s * dx, -0.04, z + dz, r, r, r, dx * 5, 0xffffff, hot(1)); }
+    if (KM.lighthouse) KM.lighthouse.put(x, 0.1, z, sc, sc, sc, 0, 0xffffff, hot(1.7));
     K.shadow.put(x, 0.03, z + 0.1, 2.4, 1, 1.5, 0, 0, 1, 0, 0.5 * lt);
     return { beam: [x, 0.1 + 3.9 * 0.86, z] };
   }
   if (P.what === 'tower') {
     const x = x0 + s * 0.3;
-    A.tower.put(x, 0, z, 0.8, 0.8, 0.8, 0.4, 0xffffff, dim * 1.5);
+    A.tower.put(x, 0, z, 0.8, 0.8, 0.8, 0.4, 0xffffff, hot(1.5));
     for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; lamp(x + Math.cos(a) * 0.62, 2.28, z + Math.sin(a) * 0.62, 0x9fffd0, 0.2, 0.8); }
     lamp(x + 0.16, 3.4, z, 0xff3030, 0.3); K.shadow.put(x, 0.03, z + 0.1, 1.3, 1, 1.0, 0, 0, 1, 0, 0.5 * lt);
     if (on) K.flat.put(x, 0.04, z, 3.0, 1, 2.4, 0, 0xcfe4ff, 1, 0, 0.2 * lt);
@@ -280,7 +293,7 @@ export function drawSig(P, c) {
   }
   if (P.what === 'hangar') {
     const x = x0 + s * 0.55;
-    A.hangar.put(x, 0, z, 1, 1, 1, 0, 0xffffff, dim * 1.25);
+    A.hangar.put(x, 0, z, 1, 1, 1, 0, 0xffffff, hot(1.25));
     K.shadow.put(x, 0.03, z + 0.12, 2.3, 1, 1.2, 0, 0, 1, 0, 0.5 * lt);
     lamp(x - 0.8, 0.3, z + 0.5, 0x4d9dff, 0.2); lamp(x + 0.8, 0.3, z + 0.5, 0x4d9dff, 0.2);
     if (on) K.flat.put(x, 0.04, z + 0.6, 2.2, 1, 1.2, 0, 0xffd27a, 1, 0, 0.34 * lt);
@@ -288,26 +301,51 @@ export function drawSig(P, c) {
   }
   if (P.what === 'fish') {
     // a market stall under THE NEON FISH (the scene's sign plane — light only: it covers nothing)
-    const x = x0 + s * 0.42;
-    A.stall.put(x, 0, z, 0.9, 0.9, 0.86, 0, 0xffffff, dim * 1.15);
+    const x = x0 + s * (P.hero ? 0.25 : 0.42);
+    A.stall.put(x, 0, z, 0.9, 0.9, 0.86, 0, 0xffffff, hot(1.15));
     K.shadow.put(x, 0.03, z + 0.08, 1.7, 1, 0.9, 0, 0, 1, 0, 0.45 * lt);
     if (on) K.flat.put(x - s * 0.2, 0.04, z + 0.2, 2.8, 1, 1.8, 0, 0xff8a5a, 1, 0, 0.3 * lt);
     return { sign: [x, 1.75, z] };
   }
+  if (P.what === 'stack') {
+    // (H5B — THE RAIL YARD's gate: freight containers stacked three high, a signal lamp on their corner)
+    const x = x0 + s * 0.45, n = Math.floor(h(P.y0, 61 + s) * 6);
+    for (let k = 0; k < 3; k++) A.container.put(x + (k === 1 ? s * 0.12 : 0), k * 0.75, z, 0.8, 0.8, 0.86, 0, CONTAINER_HEX[(n + k * 2) % 6], hot(1.1));
+    K.shadow.put(x, 0.03, z + 0.08, 2.2, 1, 1.0, 0, 0, 1, 0, 0.5 * lt);
+    lamp(x - s * 0.9, 2.4, z + 0.3, 0x40ff80, 0.26);
+    return null;
+  }
+  if (P.what === 'block' || P.what === 'row') {
+    // (H5B — DOWNTOWN's gate: a TOWER BLOCK, three storeys of lit windows + its sign · THE CANAL's: a tall canal house)
+    const tall = P.what === 'block' ? 1.9 : 1.25, x = x0 + s * 0.47, hx = HOUSE_HEX[Math.floor(h(P.y0, 63 + s) * 6) % 6], sg = SIGN_HEX[Math.floor(h(P.y0, 65 + s) * 6) % 6];
+    A.house.put(x, 0, z, 1, tall, 0.9, s < 0 ? 0 : Math.PI, P.what === 'block' ? 0xc8d2e6 : hx, hot(P.what === 'block' ? 0.95 : 1.1));
+    K.shadow.put(x, 0.03, z + 0.1, 2.1, 1, 1.1, 0, 0, 1, 0, 0.5 * lt);
+    for (let r = 0; r < (P.what === 'block' ? 3 : 2); r++) for (const dx of [-0.5, 0.05, 0.6]) {
+      if (c.day) K.bill.put(x + dx * 0.9, (0.9 + r * 0.85) * tall * 0.62 + 0.5, z + 0.47, 0.2, 0.26, 1, 0, 0x2c4468, 1, 4, 0.85);
+      else if (on) K.bill.put(x + dx * 0.9, (0.9 + r * 0.85) * tall * 0.62 + 0.5, z + 0.47, 0.2, 0.26, 1, 0, (r + dx * 3 + 9) % 2 < 1.3 ? 0xffe6a8 : 0x7fe6ff, 1, 4, 0.8 * lt);
+    }
+    if (P.what === 'block') {
+      if (c.day) { K.bill.put(x, 2.0 * tall + 0.2, z + 0.3, 1.3, 0.3, 1, 0, 0xfbf6ea, 1, 4, 1); K.bill.put(x, 2.0 * tall + 0.2, z + 0.3, 1.1, 0.16, 1, 0, sg, 1, 4, 1); }
+      else if (on) { K.bill.put(x, 2.0 * tall + 0.2, z + 0.3, 1.3, 0.24, 1, 0, sg, 1, 4, lt); K.bill.put(x, 2.0 * tall + 0.2, z + 0.3, 2.0, 0.8, 1, 0, sg, 1, 0, 0.4 * lt); lamp(x, 2.0 * tall + 0.7, z, 0xff3030, 0.3); K.flat.put(x0 - s * 0.3, 0.045, z, 2.4, 1, 1.4, 0, sg, 1, 0, 0.3 * lt); }
+    } else if (on) K.flat.put(x0 - s * 0.2, 0.045, z + 0.2, 2.0, 1, 1.3, 0, 0xffc890, 1, 0, 0.22 * lt);
+    return null;
+  }
   // A MOORED FISHING BOAT, alongside the pier on a ground lane's edge column — a lamp on its mast, its light on the water side
   const B = BOX['fishing-boat'], sc = B ? 1.86 / B.l : 0.48, x = x0 + s * 0.62, wetUp = c.course.lane(P.y0 + 1).type === 'water', dz = c.course.lane(P.y0 - 1).type === 'water' || wetUp ? (wetUp ? -0.08 : 0.08) : 0;
-  if (KM['fishing-boat']) KM['fishing-boat'].put(x, -0.05, z + dz, sc, sc, sc, s < 0 ? Math.PI / 2 : -Math.PI / 2, 0xffffff, dim * 1.6, 1, 1, 0, (h(P.y0, 51) - 0.5) * 0.12);
+  if (KM['fishing-boat']) KM['fishing-boat'].put(x, -0.05, z + dz, sc, sc, sc, s < 0 ? Math.PI / 2 : -Math.PI / 2, 0xffffff, hot(1.6), 1, 1, 0, (h(P.y0, 51) - 0.5) * 0.12);
   K.shadow.put(x, 0.03, z + dz + 0.08, 2.1, 1, 1.05, 0, 0, 1, 0, 0.5 * lt);
   lamp(x, 1.0, z + dz, 0xffe9b0, 0.22);
   if (on) K.flat.put(x, 0.04, z + dz, 2.6, 1, 1.6, 0, 0x7fd0ff, 1, 0, 0.22 * lt);
   return null;
 }
 
-/** THE NEON FISH (the fish market's sign) on a canvas: a fish in neon tubes + its eye — drawn once */
-export function drawFishSign(c, w, hgt) {
+/** THE NEON FISH (the fish market's sign) on a canvas: a fish in neon tubes + its eye — drawn once a look (H5B — by DAY a painted
+ *  board: an orange fish, a white edge) */
+export function drawFishSign(c, w, hgt, day = false) {
   c.clearRect(0, 0, w, hgt);
-  c.lineCap = 'round'; c.lineJoin = 'round';
+  c.lineCap = 'round'; c.lineJoin = 'round'; c.shadowBlur = 0; c.globalAlpha = 1;
   const body = () => { c.beginPath(); c.moveTo(w * 0.1, hgt * 0.5); c.bezierCurveTo(w * 0.3, hgt * 0.08, w * 0.62, hgt * 0.1, w * 0.74, hgt * 0.5); c.bezierCurveTo(w * 0.62, hgt * 0.9, w * 0.3, hgt * 0.92, w * 0.1, hgt * 0.5); c.moveTo(w * 0.74, hgt * 0.5); c.lineTo(w * 0.92, hgt * 0.2); c.lineTo(w * 0.92, hgt * 0.8); c.closePath(); };
+  if (day) { body(); c.fillStyle = '#ff7a3a'; c.fill(); c.lineWidth = hgt * 0.07; c.strokeStyle = '#fff6e8'; c.stroke(); c.lineWidth = hgt * 0.02; c.strokeStyle = 'rgba(20, 40, 70, 0.7)'; c.stroke(); c.fillStyle = '#ffffff'; c.beginPath(); c.arc(w * 0.27, hgt * 0.42, hgt * 0.06, 0, Math.PI * 2); c.fill(); return; }
   for (const [lw, a, col, blur] of [[hgt * 0.16, 0.55, '#ff7a4a', hgt * 0.2], [hgt * 0.07, 1, '#ffb090', 0], [hgt * 0.025, 1, '#ffffff', 0]]) { c.globalAlpha = a; c.strokeStyle = col; c.lineWidth = lw; c.shadowColor = '#ff7a4a'; c.shadowBlur = blur; body(); c.stroke(); }
   c.globalAlpha = 1; c.shadowBlur = hgt * 0.1; c.shadowColor = '#22e0ff'; c.fillStyle = '#bff4ff'; c.beginPath(); c.arc(w * 0.27, hgt * 0.42, hgt * 0.05, 0, Math.PI * 2); c.fill();
 }

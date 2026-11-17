@@ -87,7 +87,9 @@ export const TIER_MEM_DAYS = 14;
 const tierMem = () => { const m = /^([012]):(\d+)$/.exec(getPref('tier', '')); return m && serverNow() - Number(m[2]) < TIER_MEM_DAYS * 864e5 ? Number(m[1]) : 2; };
 const pick = (k, list, d) => { const m = getPref(k, String(d)); return list.map(String).includes(m) ? m : String(d); };
 /** HOW A RUN ENDED, in the game's words (causes.js#runLine — the vehicle named is the one the scene drew) */
-const lineOf = (r, course) => runLine(course, { cause: r.cause, y: r.y, x: r.x, end: r.end, lanes: r.best, taken: r.st === 'taken' });
+/** H5B — THE LOOK on this phone now: the console's GAME LOOK (body[data-look] — AUTO · DAY · NIGHT, per phone, live) */
+const lookNow = () => (document.body.dataset.look === 'day' ? 'day' : 'night');
+const lineOf = (r, course) => runLine(course, { cause: r.cause, y: r.y, x: r.x, end: r.end, lanes: r.best, taken: r.st === 'taken' }, lookNow());
 const hexNum = c => parseInt(String(colorHex(c) || '#00f0ff').slice(1), 16) || 0x00f0ff;
 
 export function createView() {
@@ -101,6 +103,7 @@ export function createView() {
   let t0srv = 0, t0perf = 0, last = 0, markUntil = 0, lanesShown = -1, sndOn = false, bot = null, pinned = false, revealed = false;
   // the match
   const ghosts = new Map();   // uid → ghosts.js#createGhost (conf · run · log · done · held · vis · behind) + { uid, n (chunks read), lastT, hex, name, tagEl, dir, outAt }
+  let look = 'night';   // (H5B — the look this screen is drawn in now)
   let cues = createCues(), ducked = null, duckT = 0;   // (H5A — THE WORLD's SOUNDS: cues.js; the music's level before the train ducked it)
   let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;   // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, orderKey = '', countKey = '', watchKey = '';
@@ -125,8 +128,9 @@ export function createView() {
     const me = (st.players && st.players[uid]) || {};
     try {
       if (!had) scenesMade++;
-      night = had ? had.night : createNight(play, { kidColor: colorHex(me.color), zoom: Number(pick('zoom', ZOOMS, ZOOM)), angle: pick('angle', ANGLES, ANGLE), tier: tierMem() });
+      night = had ? had.night : createNight(play, { kidColor: colorHex(me.color), zoom: Number(pick('zoom', ZOOMS, ZOOM)), angle: pick('angle', ANGLES, ANGLE), tier: tierMem(), look: lookNow() });
       if (had) { night.setKidColor(colorHex(me.color)); night.resize(); }
+      look = lookNow(); night.setLook(look); root.dataset.look = look;   // (H5B — THE DAY LOOK: the scene + this screen's own words follow the phone's GAME LOOK)
     } catch { root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); night = null; return; }
     night.setReveal(0, true);
     // (H4B — THE TIER IS REMEMBERED: a phone that had to step down starts there next time — never the first seconds of every match at a tier it can't hold)
@@ -262,7 +266,7 @@ export function createView() {
     }
     // THE WORLD's SOUNDS (H5A — cues.js, PURE): the train's bell + its pass, a car passing, the horn, the lights dying — this phone's
     // own kid's only (a ghost makes no sound), only while he is in
-    if (sndOn && !isOver(run)) { try { for (const q of cuesAt(cues, run, course, ev)) { SFX.onCue(q); duck(q.cue); } } catch { /* silent */ } }
+    if (sndOn && !isOver(run)) { try { for (const q of cuesAt(cues, run, course)) { SFX.onCue(q); duck(q.cue); } } catch { /* silent */ } }
   }
   /** the music ducks a little under the train: down with the bell, back up a moment after the pass / the bell's end */
   function duck(cue) {
@@ -457,6 +461,8 @@ export function createView() {
   function frame(now) {
     if (gone) return;
     raf = requestAnimationFrame(frame);
+    // (H5B — the GAME LOOK is read LIVE: ☰ → Settings mid-run, or the sun going down on AUTO, re-themes this screen at once)
+    if (night && root) { const lk = lookNow(); if (lk !== look) { look = lk; night.setLook(lk); root.dataset.look = lk; } }
     const dt = last ? Math.min(250, now - last) : 16.7;
     last = now;
     if (!night || document.visibilityState === 'hidden') return;
@@ -538,7 +544,7 @@ export function createView() {
     const solo = soloGame(g);
     if (callEl) { callEl.remove(); callEl = null; }
     if (outCard) { outCard.remove(); outCard = null; }
-    final = createFinal({ rows: finalRows(g, code), players: st.players, me: uid, presence: st.presence, kicker: solo ? 'JAYWALK · SOLO' : 'JAYWALK', winnerLine: nm => `${nm} WENT THE FARTHEST` });
+    final = createFinal({ rows: finalRows(g, code), players: st.players, me: uid, presence: st.presence, kicker: solo ? 'JAYWALK · SOLO' : 'JAYWALK · MATCH', winnerLine: nm => `${nm} WENT THE FARTHEST` });
     finalWrap = h('div.jw-final', final.el);
     root.classList.add('is-over'); root.append(finalWrap);
   }

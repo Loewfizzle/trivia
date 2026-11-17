@@ -7,9 +7,9 @@ export const SOLO = true;
 // the EVENING station (MUSIC BY MOOD: every phone the same song on the server clock) — its own mix: H6
 export const MUSIC = 'mood:evening';
 export const BANNER_NAME = 'JAYWALK';
-// (H3: ONE look until the day look is built — H5 adds 'day' back and the GAME LOOK setting returns by itself; the console paints NIGHT + says
-//  NIGHT · LOCKED in Settings while a run is on: docs/cartridge.md LOOKS)
-export const LOOKS = ['night'];
+// (H5B — THE DAY LOOK is built: BOTH looks. The console's GAME LOOK setting (☰ → Settings: AUTO · DAY · NIGHT — per phone, AUTO = the
+//  real sun) paints `body[data-look]`; the views read it LIVE. H3's night-only lock is lifted: docs/cartridge.md LOOKS)
+export const LOOKS = ['day', 'night'];
 // (H4 — the owner: PLAY AGAIN everywhere — the console's own word; H3's AGAIN_LABEL 'HOP AGAIN' is gone)
 // H3 — its end screen names how you went OUT: never the console's winner sting over it (its own sound = NEW BEST's, victory.js)
 export const OWN_VICTORY_SOUND = true;

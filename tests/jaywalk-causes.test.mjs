@@ -129,12 +129,12 @@ test('THE SOURCES: the drawing, the game\'s views, the podium + THE LAB all read
   assert.match(night, /const name = what === 'truck' \? 'car-van' : `car-\$\{what\}`/, 'the model drawn IS the kind (car-sedan · car-hatchback · car-taxi · car-van; the truck its own mesh)');
   // THE LAB: the same table, the same function — its own CAUSE words are gone
   assert.match(lab, /import \{ runLine, hitVehicle, vehicleAt \} from '\.\/causes\.js';/);
-  assert.match(lab, /endT\.textContent = runLine\(course, live\);/, 'the lab\'s end line = causes.js#runLine on the live result');
+  assert.match(lab, /endT\.textContent = runLine\(course, live, look\);/, 'the lab\'s end line = causes.js#runLine on the live result');
   assert.doesNotMatch(lab, /const CAUSE\b|IN THE WATER|HIT BY THE TRAIN/, 'no table of the lab\'s own');
   // THE GAME: every line through runLine
-  assert.match(view, /const lineOf = \(r, course\) => runLine\(course, \{ cause: r\.cause, y: r\.y, x: r\.x, end: r\.end, lanes: r\.best, taken: r\.st === 'taken' \}\);/);
+  assert.match(view, /const lineOf = \(r, course\) => runLine\(course, \{ cause: r\.cause, y: r\.y, x: r\.x, end: r\.end, lanes: r\.best, taken: r\.st === 'taken' \}, lookNow\(\)\);/);
   assert.doesNotMatch(view, /causeLine\(|hitVehicle\(/, 'the view never builds a line by hand');
-  assert.match(vic, /runLine\(course, \{ cause: r\.w, y: r\.y, x: r\.px, end: r\.e, lanes: r\.l \|\| 0, taken: !!r\.x \}\)/);
+  assert.match(vic, /runLine\(course, \{ cause: r\.w, y: r\.y, x: r\.px, end: r\.e, lanes: r\.l \|\| 0, taken: !!r\.x \}, look\)/);
   // no generic line in ANY shipped JAYWALK file
   for (const f of readdirSync(new URL('../js/games/jaywalk/', import.meta.url)).filter(n => n.endsWith('.js'))) assert.doesNotMatch(code(`js/games/jaywalk/${f}`), /HIT BY A CAR/, `${f}: no generic "HIT BY A CAR"`);
   assert.doesNotMatch(code('api/_lib/jaywalk.js') + code('css/jaywalk.css'), /HIT BY A CAR/);

@@ -33,7 +33,7 @@ test('THE META (H4): NO OPTIONS — ONE LIFE everywhere; a few minutes (THE MOTH
   assert.ok(META.estimateMinutes() >= 2 && META.estimateMinutes() <= MODES.match.cap / TICK_HZ / 60, 'the minutes: a match ends when the last player is out — never past THE MOTHERSHIP');
   assert.equal(MODES.match.cap / TICK_HZ / 60, 6);
   assert.deepEqual([META.MUSIC, META.SOLO, META.BANNER_NAME], ['mood:evening', true, 'JAYWALK']);
-  assert.deepEqual(META.LOOKS, ['night'], 'H3: ONE look until H5 builds the day — the console paints NIGHT + shows it LOCKED');
+  assert.deepEqual(META.LOOKS, ['day', 'night'], 'H5B: THE DAY LOOK is built — both looks: the GAME LOOK setting is back (never LOCKED)');
   assert.deepEqual([META.OWN_VICTORY_SOUND, META.ACCENT], [true, '#ff4fc4']);
   const idx = read('js/games/jaywalk/index.js');
   const mod = { ...META, start() {}, prepare() {}, step() {}, livePaths() {}, createView() {}, finalRanks() {}, nightBonus() {} };

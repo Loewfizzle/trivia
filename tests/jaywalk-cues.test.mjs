@@ -1,7 +1,8 @@
 // JAYWALK H5A — THE SOUND CUES (docs/jaywalk.md "THE SOUNDS"): WHEN the world's sounds play — cues.js is PURE, so its limits are
 // proven here on real runs through the real engine: the bell only while a near rail lane's signals flash + off by the pass, ONE
-// train-pass a pass, a car passing only on a real near miss + never more than two at once, the horn at most once every 3 s, the lights
-// dying only when the blackout takes a lane near the kid; the table's PRIORITY; the player's caps + the pan + the music's duck.
+// train-pass a pass, the horn at most once every 3 s, the lights dying only when the blackout takes a lane near the kid; the table's
+// PRIORITY; the player's caps + the pan + the music's duck. H5B (the owner, playing H5A): NO CAR-PASS anywhere (no cue, no sound, no
+// file), THE HORN AT HALF its level, the train sounds FADE OUT (0.5 s — never a dead stop).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -9,8 +10,10 @@ import * as T from '../js/games/jaywalk/tuning.js';
 import { createCourse, pulseAt } from '../js/games/jaywalk/course.js';
 import { createRun, step, isOver } from '../js/games/jaywalk/engine.js';
 import { greedyBot } from '../js/games/jaywalk/bot.js';
-import { CUE, createCues, cuesAt, carClosing, carSide } from '../js/games/jaywalk/cues.js';
-import { SOUNDS, VOICES, admit, TRAIN_DUCK } from '../js/games/jaywalk/sounds.js';
+import { existsSync } from 'node:fs';
+import * as CUES from '../js/games/jaywalk/cues.js';
+import { CUE, createCues, cuesAt, carClosing } from '../js/games/jaywalk/cues.js';
+import { SOUNDS, VOICES, admit, TRAIN_DUCK, FADE_S } from '../js/games/jaywalk/sounds.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const code = f => read(`js/games/jaywalk/${f}`).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1');
@@ -27,7 +30,7 @@ function listen(seed, { from = 0, ticks = 5400, lazy = false, stand = null } = {
     const ev = [];
     step(run, course, d, ev);
     if (isOver(run)) break;
-    for (const q of cuesAt(S, run, course, ev)) out.push({ t: run.t, y: run.y, wl: Math.floor(run.wall / T.FP), ...q, near: ev.some(e => e.e === 'near') });
+    for (const q of cuesAt(S, run, course)) out.push({ t: run.t, y: run.y, wl: Math.floor(run.wall / T.FP), ...q, near: ev.some(e => e.e === 'near') });
   }
   return { out, run, course };
 }
@@ -45,7 +48,7 @@ test('THE TRAIN: the bell is ON exactly while a rail lane near the kid is in its
       let d = bot(run, course); if (d && run.t - last < 2) d = ''; if (d) last = run.t;
       const ev = []; step(run, course, d, ev);
       if (isOver(run)) break;
-      for (const q of cuesAt(S, run, course, ev)) {
+      for (const q of cuesAt(S, run, course)) {
         if (q.cue === 'bell-on') { assert.equal(bell, false, 'never two bells'); bell = true; on++; }
         if (q.cue === 'bell-off') { assert.equal(bell, true); bell = false; }
         if (q.cue === 'train-pass') {
@@ -64,25 +67,26 @@ test('THE TRAIN: the bell is ON exactly while a rail lane near the kid is in its
   assert.ok(on > 60 && passes > 60, `${on} bells, ${passes} passes heard over 30 runs through the rail yard`);
 });
 
-test('A CAR PASSING: only on the engine\'s own near miss, never more than TWO at once, panned by its side; THE HORN: a car closing on a kid standing in its lane — at most ONE every 3 s', () => {
-  let pass = 0, horn = 0, lefts = 0, rights = 0;
+test('NO CAR-PASS (H5B — the owner: "it\'s terrible"): a near miss makes no cue; THE HORN: a car closing on a kid standing in its lane — at most ONE every 3 s, from its side', () => {
+  let near = 0, horn = 0, lefts = 0, rights = 0;
   for (let s = 0; s < 40; s++) {
     // (DOWNTOWN, lanes 250–299: heavy traffic. The kid dawdles on the road now and then — a horn's moment)
     const { out } = listen(`car${s}`, { from: 250, ticks: 3000, stand: (run, course) => course.lane(run.y).type === 'road' && run.t % 400 < 60 });
-    const P = out.filter(q => q.cue === 'car-pass'), H = out.filter(q => q.cue === 'horn');
-    for (const q of P) { assert.ok(q.near, 'a car-pass only on a real near miss'); assert.ok(Math.abs(q.pan) === CUE.pan || q.pan === 0); if (q.pan < 0) lefts++; if (q.pan > 0) rights++; }
-    for (let i = 0; i < P.length; i++) assert.ok(P.filter(q => q.t <= P[i].t && P[i].t - q.t < CUE.passTicks).length <= CUE.passMax, `≤ ${CUE.passMax} car passes at once (tick ${P[i].t})`);
+    const H = out.filter(q => q.cue === 'horn');
+    assert.equal(out.filter(q => q.cue === 'car-pass').length, 0, 'never a car-pass cue');
+    for (const q of out) assert.ok(['bell-on', 'bell-off', 'train-pass', 'horn', 'lights-die'].includes(q.cue), `an unknown cue: ${q.cue}`);
+    near += out.filter(q => q.near).length;
     for (let i = 1; i < H.length; i++) assert.ok(H[i].t - H[i - 1].t >= 3 * T.TICK_HZ, `two horns ${H[i].t - H[i - 1].t} ticks apart`);
-    for (const q of H) assert.ok(Math.abs(q.pan) === CUE.pan, 'the horn comes from the car\'s side');
-    pass += P.length; horn += H.length;
+    for (const q of H) { assert.ok(Math.abs(q.pan) === CUE.pan, 'the horn comes from the car\'s side'); if (q.pan < 0) lefts++; else rights++; }
+    horn += H.length;
   }
-  assert.ok(pass > 100 && horn > 20 && lefts > 10 && rights > 10, `${pass} car passes (${lefts} left, ${rights} right), ${horn} horns over 40 runs downtown`);
-  assert.equal(CUE.passMax, 2); assert.equal(CUE.hornEvery, 180);
+  assert.ok(horn > 20 && lefts > 5 && rights > 5, `${horn} horns (${lefts} left, ${rights} right) over 40 runs downtown — the near misses (${near} ticks with one) made no sound`);
+  assert.equal(CUE.passMax, undefined); assert.equal(CUE.passTicks, undefined); assert.equal(CUES.carSide, undefined, 'the car-pass\'s own helpers are gone');
+  assert.equal(CUE.hornEvery, 180);
   // the horn's car: in front of its travel, closing — never one that has already passed
   const lane = { type: 'road', dir: 1, v: 40, period: 20000, pad: 3000, items: [{ off: 3000 + 1000, len: 1000 }] };   // (its left edge at 1.0 at tick 0, driving right)
   assert.deepEqual(carClosing(lane, 0, 4500), { gap: 4500 - T.KID_HALF - 2000, side: -1 }, 'a car to his left driving right: closing, from the left');
   assert.equal(carClosing(lane, 0, 500), null, 'a car already past him never honks');
-  assert.equal(carSide(lane, 0, 4500), -1); assert.equal(carSide(lane, 0, 500), 1);
 });
 
 test('THE LIGHTS DIE: only when THE BLACKOUT takes a lane within 3 of the kid — never the far wall he is outrunning; at least 1.5 s apart', () => {
@@ -105,32 +109,43 @@ test('THE LIGHTS DIE: only when THE BLACKOUT takes a lane within 3 of the kid �
   assert.equal(CUE.lightsNear, 3);
 });
 
-test('THE TABLE: every sound in play; THE PRIORITY — your own hit / splash > the train > a car passing + the horn > a hop + a landing; the caps; ≈ 8 voices', () => {
+test('THE TABLE: every sound in play; THE PRIORITY — your own hit / splash > the train > the horn > a hop + a landing; the caps; ≈ 8 voices; H5B — no car-pass row / file, THE HORN AT HALF, the train sounds\' fade', () => {
   const pri = id => SOUNDS.find(s => s.id === id).pri, max = id => SOUNDS.find(s => s.id === id).max;
-  assert.ok(SOUNDS.every(s => s.play), 'all 11 in play');
+  assert.ok(SOUNDS.every(s => s.play), 'all in play'); assert.equal(SOUNDS.length, 10);
+  assert.equal(SOUNDS.find(s => s.id === 'car-pass'), undefined, 'the car-pass is GONE from the table (the game never fetches it, the audition never lists it)');
+  for (const f of ['car-pass.mp3', 'car-pass-b.mp3']) assert.equal(existsSync(new URL(`../audio/jaywalk/${f}`, import.meta.url)), false, `${f} no longer ships`);
+  assert.doesNotMatch(code('sfx.js') + code('cues.js') + code('view.js') + code('lab.js') + code('audition.js'), /car-pass/, 'no code names it');
+  assert.equal(SOUNDS.find(s => s.id === 'horn').gain, 0.5, 'THE HORN AT HALF its level (H5A: 1.0)');
+  assert.equal(FADE_S, 0.5); for (const id of ['train-bell', 'train-pass']) assert.equal(SOUNDS.find(s => s.id === id).fade, FADE_S, `${id} fades out over 0.5 s`);
+  for (const s of SOUNDS) if (!s.id.startsWith('train-')) assert.equal(s.fade, undefined, `${s.id} keeps its own end`);
   for (const own of ['hit', 'splash']) for (const train of ['train-bell', 'train-pass']) assert.ok(pri(own) > pri(train));
-  for (const train of ['train-bell', 'train-pass']) for (const car of ['car-pass', 'horn']) assert.ok(pri(train) > pri(car));
-  for (const car of ['car-pass', 'horn']) for (const kid of ['hop', 'land-wood']) assert.ok(pri(car) > pri(kid));
-  assert.equal(max('car-pass'), 2); assert.equal(max('horn'), 1); assert.equal(max('train-bell'), 1);
+  for (const train of ['train-bell', 'train-pass']) assert.ok(pri(train) > pri('horn'));
+  for (const kid of ['hop', 'land-wood']) assert.ok(pri('horn') > pri(kid));
+  assert.equal(max('horn'), 1); assert.equal(max('train-bell'), 1);
   assert.equal(VOICES, 8);
   // a full house of hops: a car pass takes the oldest hop's voice; a hop never takes a car's
   const hops = Array.from({ length: 8 }, (_, i) => ({ pri: pri('hop'), at: i }));
-  assert.deepEqual(admit(hops, pri('car-pass')), { ok: true, drop: 0 }); assert.deepEqual(admit(hops.map(v => ({ ...v, pri: pri('car-pass') })), pri('hop')), { ok: false, drop: -1 });
+  assert.deepEqual(admit(hops, pri('horn')), { ok: true, drop: 0 }); assert.deepEqual(admit(hops.map(v => ({ ...v, pri: pri('horn') })), pri('hop')), { ok: false, drop: -1 });
   assert.ok(TRAIN_DUCK.level >= 0.6 && TRAIN_DUCK.level < 0.9, `the music ducks a LITTLE under the train (to ${TRAIN_DUCK.level})`);
 });
 
 test('THE PLAYER + THE VIEWS: a sound\'s own cap, the pan, the bell = ONE loop faded out; cues only for this phone\'s own living kid; the music ducks under the train and comes back; muted = nothing plays, every tell stays drawn; PURE cues', () => {
   const s = code('sfx.js'), v = code('view.js'), c = code('cues.js'), lab = code('lab.js');
-  assert.match(s, /if \(s\.max && voices\.filter\(q => q\.id === id\)\.length >= s\.max\) return null;/, 'a sound\'s own cap (≤ 2 car passes, one horn, one bell)');
+  assert.match(s, /if \(s\.max && voices\.filter\(q => q\.id === id\)\.length >= s\.max\) return null;/, 'a sound\'s own cap (one horn, one bell)');
   assert.match(s, /if \(o\.pan && ctx\.createStereoPanner\)/, 'panned where the browser can'); assert.match(s, /pn\.pan\.value = Math\.max\(-1, Math\.min\(1, o\.pan\)\);/);
-  assert.match(s, /if \(q\.cue === 'bell-on'\) \{ bellWant = true; if \(!bell\) bell = play\('train-bell', \{ loop: true,/, 'ONE bell loop'); assert.match(s, /if \(q\.cue === 'bell-off'\) \{ bellWant = false; if \(bell\) \{ bell\.stop\(0\.18\); bell = null; \}/, '… faded out, never cut dead');
+  assert.match(s, /if \(q\.cue === 'bell-on'\) \{ bellWant = true; if \(!bell\) bell = play\('train-bell', \{ loop: true,/, 'ONE bell loop'); assert.match(s, /if \(q\.cue === 'bell-off'\) \{ bellWant = false; if \(bell\) \{ bell\.stop\(FADE_S\); bell = null; \}/, '… FADED OUT over 0.5 s, never cut dead');
+  // H5B — THE TRAIN SOUNDS NEVER STOP DEAD: the take's own end ramps out over its last `fade` s; a stop / a dropped voice / stopAll ramp the same way
+  assert.match(s, /if \(s\.fade && !src\.loop\) \{ const dur = src\.buffer\.duration \/ src\.playbackRate\.value, t = ctx\.currentTime; if \(dur > s\.fade \* 2\) \{ g\.gain\.setValueAtTime\(g\.gain\.value, t \+ dur - s\.fade\); g\.gain\.linearRampToValueAtTime\(0, t \+ dur\); \} \}/, 'the train-pass ramps out at its own end');
+  assert.match(s, /v\.end = \(fade = v\.fade\) => \{/); assert.match(s, /g\.gain\.linearRampToValueAtTime\(0, t \+ fade\); src\.stop\(t \+ fade \+ 0\.02\);/, 'a stop = the shared engine\'s gain ramp, then the source');
+  assert.match(s, /if \(a\.drop >= 0\) voices\[a\.drop\]\.end\(\);/, 'a voice a louder sound takes fades too'); assert.match(s, /export function stopAll\(\) \{ bellWant = false; bell = null; for \(const v of \[\.\.\.live\]\) v\.end\(\); live\.clear\(\); \}/, 'the unmount / the lab closing: the train sounds ramp out');
+  assert.doesNotMatch(s, /voices\[a\.drop\]\.src\.stop\(\)|v\.src\.stop\(\)/, 'no source is stopped dead from outside its own end()');
   assert.match(s, /trim\.connect\(getSfxBus\(\) \|\| ctx\.destination\)/, 'the soft limiter → the console\'s SFX bus: the Effects slider, THE ONE MUTE, THE CUT');
   assert.match(s, /for \(const id of ids\) for \(const k of both \? keysOf\(BY\[id\]\) : \[`\$\{id\}:\$\{pick\(id\)\}`\]\)/, 'the game fetches the take it plays (the owner\'s pick) — the backups only for the audition');
-  assert.match(v, /if \(sndOn && !isOver\(run\)\) \{ try \{ for \(const q of cuesAt\(cues, run, course, ev\)\) \{ SFX\.onCue\(q\); duck\(q\.cue\); \} \}/, 'the cues come from THIS phone\'s own run — a ghost makes no sound, an ended run none');
+  assert.match(v, /if \(sndOn && !isOver\(run\)\) \{ try \{ for \(const q of cuesAt\(cues, run, course\)\) \{ SFX\.onCue\(q\); duck\(q\.cue\); \} \}/, 'the cues come from THIS phone\'s own run — a ghost makes no sound, an ended run none');
   assert.doesNotMatch(v, /cuesAt\([^)]*G\.run|onCue\([^)]*ghost/, 'never a ghost\'s cues');
   assert.match(v, /if \(ducked == null\) \{ ducked = musicDuckLevel\(\); duckMusic\(Math\.min\(ducked, D\.level\), D\.inS\); \}/); assert.match(v, /function unduck\(\) \{ clearTimeout\(duckT\); if \(ducked != null\) \{ duckMusic\(ducked, SFX\.TRAIN_DUCK\.outS\); ducked = null; \} \}/, 'the music comes back to the level it had');
   assert.match(v, /function quiet\(\)/); assert.ok((v.match(/quiet\(\);/g) || []).length >= 3, 'the bell stops + the music returns at the run\'s end, a new run, the unmount');
-  assert.match(lab, /for \(const q of cuesAt\(cues, run, course, ev\)\) snd\.onCue\(q\);/, 'the lab hears the same cues');
+  assert.match(lab, /for \(const q of cuesAt\(cues, run, course\)\) snd\.onCue\(q\);/, 'the lab hears the same cues');
   // PURE: cues.js knows no audio, no DOM, no clock, no randomness
   for (const bad of [/audio\//, /sfx\.js/, /document|window/, /Date\.now|performance\.now/, /Math\.random/, /from 'three'/]) assert.doesNotMatch(c, bad, `cues.js: ${bad}`);
   // the visual tells do not depend on any sound: the scene draws from (run, course) alone
