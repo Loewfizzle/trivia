@@ -177,12 +177,17 @@ try {
   await H.shot(pages[2], 'match-day-ghosts');
   // ---- 4. BOB out first (two still in) → the cause words → Call the Winner → WATCHING the leader
   await H.shot(pages[0], 'ghosts-3-two-seconds-in');
+  // (H5C — the step's own race: BOB's bot was switched off wherever he stood — on a ROAD lane a car flattened him before ALICE was two
+  //  lanes ahead, and Call the Winner's window had passed by the time the script looked. He now stops on a GROUND lane: he stands
+  //  until the wall takes him, as the step means)
+  await until(() => pages[1].evaluate(async () => { const J = window.__jwGame, s = J.state(), C = await import('/js/games/jaywalk/course.js'); if (s.st === 'idle' && C.createCourse(s.seed).lane(s.y).type === 'grass') { J.bot(false); return true; } return false; }), 20000, 40);
   await G(pages[1], 'window.__jwGame.bot(false)');
   // H5B's add-on, in the real match: BOB stands still — on ALICE's phone his ghost falls behind her: AWAY from her, itself again, its
   // own tag "BOB"; on BOB's phone ALICE + CHARLIE hop on ahead on the same squares: ONE tag — the leader's name + "+1"
   { const [away, mg] = await Promise.all([   // (both at once: ALICE + CHARLIE are off BOB's screen within a few seconds)
       until(async () => { const s = await state(pages[0]), q = s.ghosts.find(x => x.name === 'BOB'); return q && q.shown && q.text === 'BOB' && q.fade < 0.2 ? q : null; }, 12000, 60),
       until(async () => { const on = (await state(pages[1])).ghosts.filter(x => x.shown); const mg = on.find(x => /^(ALICE|CHARLIE|DANA) \+\d$/.test(x.text)); return mg && (N > 3 || on.length === 1) ? mg.text : null; }, 12000, 60)]);
+    if (!away || !mg) { const [a, b] = await Promise.all([state(pages[0]), state(pages[1])]); log('  (the tags, as the two phones have them) ALICE y ' + a.y + ': ' + JSON.stringify(a.ghosts.map(q => [q.name, q.y, q.tag, q.shown, q.fade, q.text, q.st])) + ' · BOB y ' + b.y + ': ' + JSON.stringify(b.ghosts.map(q => [q.name, q.y, q.tag, q.shown, q.fade, q.text, q.st]))); }
     ok(!!away, 'a ghost AWAY from you is itself again and carries its own name (BOB, behind ALICE)');
     ok(!!mg, `STACKED TAGS MERGE: two ghosts on the same / touching squares share ONE tag on BOB's phone — "${mg || 'none seen'}"`);
     await H.shot(pages[1], 'ghosts-4-merged-tag'); }
@@ -196,7 +201,7 @@ try {
   const call = await until(async () => { const n = await dbGet(`rooms/${code}/jw/${m}/${uids[1]}/k`); return n && n.w ? n : null; }, 6000);
   ok(call && call.w === uids[0] && typeof call.at === 'number', 'the call is on BOB\'s own proof node (k = { w, at: the server\'s time })');
   let sb = await state(pages[1]);
-  ok(sb.watching && !!sb.follow && /WATCHING (ALICE|CHARLIE)/.test(sb.watch), `OUT = SPECTATE: the camera follows the leader — "${sb.watch}"`);
+  ok(sb.watching && !!sb.follow && /WATCHING (ALICE|CHARLIE|DANA)/.test(sb.watch), `OUT = SPECTATE: the camera follows the leader — "${sb.watch}"`);
   const f0 = sb.follow;
   await until(() => pages[1].evaluate(() => !document.querySelector('.mk-call')), 4000);   // (the call card is gone: the play takes the touch again)
   await pages[1].touchscreen.tap(195, 560);
@@ -215,7 +220,7 @@ try {
   if (N > 3) { await G(pages[3], 'window.__jwGame.bot(false)'); ok(await until(async () => (await state(pages[3])).over, 40000), 'DANA (the 4th phone) out'); }
   await G(pages[2], 'window.__jwGame.bot(false)');
   ok(await until(async () => (await state(pages[2])).over, 40000), 'CHARLIE out');
-  ok(await until(async () => { const s = await state(pages[2]); return s.watching && s.follow === uids[0] && !s.call; }, 8000), '… CHARLIE watches ALICE (one player in: no call to make)');
+  ok(await until(async () => { const s = await state(pages[2]); return s.watching && (s.follow === uids[0] || (N > 3 && (await state(pages[0])).over)) && !s.call; }, 8000), '… CHARLIE watches ALICE (one player in: no call to make)');
   // (no bot is sure to outlive the others: if ALICE's went out right behind CHARLIE, the last player out has already ended it)
   const stillOn = await evalIn(host, s => s.game.phase) === 'play';
   ok(stillOn || (await state(pages[0])).over, stillOn ? 'the match goes on while one player is in' : 'ALICE went out right behind CHARLIE this run: the last player out ended the match');

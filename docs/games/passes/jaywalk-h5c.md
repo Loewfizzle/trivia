@@ -238,7 +238,47 @@ STILL WEAK
 - **Re-shot** after the fixes: the whole lab set (`h5c\`) — the `review-sheets\` are the set the reviewer saw (before the fixes).
 
 ## Group 5 — THE CHECKS
-@@CHECKS@@
+- **Unit (new):** `tests/jaywalk-skyline.test.mjs` — the picker (an area → its picture, the opening, the loop, the night's one
+  picture), ONLY the current + the next held on every lane to 1,300, the rest offset inside the picture's room on any screen, the
+  view's half (two layers, opacity only; a picture set only on the hidden layer; no file name in the view), THE FAR EDGE (no mask,
+  the wall, the fog full at its foot, the fog by the ground, ONE day haze). `tests/jaywalk-cues.test.mjs` — the train horn on real
+  rail-yard runs (one blast, only at a warning's start, from its side), no old bell / landmark row, file or cue, the exact credit
+  lines. `tests/jaywalk-lines.test.mjs` — one form for both lines, the buoys, the words on top (no depth test, the kid's stencil),
+  centred, haloed. The pinned look tests follow the new code.
+- **PERF (the mini PC, 390 × 844 @3, 4× CPU, the bot playing — `jaywalk-lab.mjs --perf` + `--h5c=perf`), on the final code:**
+
+  | where | NIGHT tier 2 (the bloom) · tier 1 | DAY tier 2 · tier 1 | draw calls (night · day, tier 2) |
+  | --- | --- | --- | --- |
+  | DOWNTOWN | 59.9 · 59.9 fps | 59.9 · 59.9 fps | ≤ 32 · ≤ 27 |
+  | THE LIGHTHOUSE | 59.9 · 59.9 | 59.9 · 59.9 | ≤ 32 · ≤ 26 |
+  | THE RAIL YARD | 59.9 · 59.9 | 59.9 · 59.9 | ≤ 28 · ≤ 25 |
+  | the opening (every tier, 1× + 4×) | 59.8–59.9 | — | 26 · 21 · 21 |
+  | 8 KIDS, DOWNTOWN | 59.8 · 59.9 | — | 34 · 29 |
+  | **THE CROSS-FADE at a gate** (day, tier 2) | — | **59.9** (p95 16.8 ms, worst 16.9) | |
+  | **THE FOG BANK close** (day) · **THE BLACKOUT close** (night), tier 2 | **59.9** (worst 17.0) | **59.9** (worst 16.9) | |
+
+  p95 16.8 ms everywhere (a single 33 ms frame now and then in the opening + the 8-kid run, as in H5B). The real views: the solo
+  run 59.9 fps at tier 2 / 1 / 0; a 4-kid match (3 ghosts) 59.9 at every tier. A desktop GPU's numbers — the owner's phone is the
+  judge; the new work is fill (the fog's billboards, the per-pixel edge — only the pixels near the wall pay for its noise).
+- **Through every area:** the lab stood in every area by DAY and by NIGHT, on to the loop's first gate (lane 450 → 459: THE DOCKS'
+  picture again) — by warp (`--h5c`: 39 / 39); the real solo game was played by the bot through three gateways (lane 156 +). A
+  bot-played run to lane 455 was not done (the bot does not live that long).
+- **THE FINAL LOCAL RUN (my own fresh emulators + `serve.mjs --emu`, one suite after the other):** unit **2165 / 2165** · rules **83 /
+  83** · /api server **65 / 65** + share-card **2 / 2** · smoke **21 / 21** (THE PAGES LOAD — Chromium + WebKit) · harbor `cartridge`
+  **3 / 3** · the lab check **139 / 139** with `--perf --webkit` + `--h5c` **39 / 39** + `--h5c=perf` **4 / 4** · `e2e-jaywalk`
+  **75 / 75** with `--perf` · `e2e-jaywalk-match` **74 / 74** with `--perf` · **a 4-PHONE match** (`--four`) **71 / 71**.
+  registration + cartridge are in the unit suite. `wk-press` / `e2e-daily` (the dailies' known evening red, another area) were not run.
+- **Honestly, on the way to that:** the match check went red three times in this pass's final runs before it was green, each time
+  in the step where BOB stands still. Its own log line (added here) showed why: BOB's bot was switched off wherever he stood — on
+  a ROAD lane a car flattened him before ALICE was two lanes ahead (no "ghost behind you" window; Call the Winner's window gone
+  by the time the script looked), or the three other bots — one brain, one course — were clipped by the same car. A race in the
+  script, on a course that is random each run, not in the game: BOB now stops on a ground lane. The bots act once a frame and the
+  E2E renders in software, so this pass also made its new shader work cheap where it is not seen (the wall-edge noise only near
+  the wall; the grass a third of the work).
+- **Test-side things on the way:** `e2e-jaywalk-match.mjs` follows `N` everywhere (`--four`); the solo check + the lab's audition
+  name the new sounds (11 rows: 4 with a backup); the lab's `--h5b=day` check reads the painted skyline, not a drawn landmark.
+- **THE PER-GAME BUDGET held** (2,450 KB — not raised): the new code first put JAYWALK 8 KB over; `skymarks.js` (the night's alone
+  now) left the cartridge's eager graph — 32 modules, 388 KB.
 
 ## What is real, what is a placeholder
 REAL (new in H5C): the painted day skylines + their cross-fade, the sea wall + the far haze, the fog bank's look + the blackout's

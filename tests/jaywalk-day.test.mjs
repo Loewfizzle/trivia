@@ -74,7 +74,7 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   // THE FOG BANK = the blackout's own darkness (vState.x), whitened — the same lanes, the same timing
   // (H5C — never a flat slab, never a hard line: the bank's edge is measured PER PIXEL off the wall itself (uWall), soft + ragged, the
   //  lane seen through its first metre, a cool shadow in front; night.js lays FOG_LAYERS — billows rolling at their own speeds)
-  assert.match(fx, /float ly = vLane \+ z, d = uWall - ly;/, 'the bank\'s edge per pixel, off the wall itself'); assert.match(fx, /float thin = smoothstep\(-1\.5, 0\.7, d \+ \(bn - 0\.5\) \* 1\.9\);/, 'soft + ragged (two drifting noise fields)');
+  assert.match(fx, /float ly = vLane \+ z, d = uWall - ly;/, 'the bank\'s edge per pixel, off the wall itself'); assert.match(fx, /float thin = smoothstep\(-1\.5, 0\.7, d \+ \(bn - 0\.5\) \* 1\.9\);/, 'soft + ragged (two drifting noise fields)'); assert.match(fx, /if \(d > 3\.4\) c = vec3\(0\.875, 0\.906, 0\.933\) \* 0\.98;\s+else if \(d > -3\.4\) \{/, 'only the pixels near the wall pay for the noise');
   assert.match(fx, /float fogA = thin \* mix\(0\.5, 1\.0, smoothstep\(0\.1, 2\.1, d\)\);/, 'the lane is seen THROUGH its first metre, solid two lanes in');
   assert.match(fx, /c = mix\(c, vec3\(0\.875, 0\.906, 0\.933\) \* \(0\.93 \+ 0\.1 \* bn\), clamp\(fogA, 0\.0, 1\.0\)\);/, 'the lane whitens under the bank');
   assert.match(n, /ground\.uniforms\.uWall\.value = wallE;/, '… the SAME wall (the run\'s own)');

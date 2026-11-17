@@ -98,12 +98,12 @@ void main() {
     // THE GRASS (H5C — the owner: never a pixel checkerboard): soft NATURAL variation — larger light / dark patches that run on across
     // the lanes, faint MOWN STRIPES a column wide (they also show the columns), a soft blade grain, small tufts' flecks. Night + day.
     float lw = mod(vLane, 64.0) + z;
-    float pat = 0.62 * vnoise(vec2(x * 0.34, lw * 0.34) + 3.0) + 0.38 * vnoise(vec2(x * 0.95 + 13.0, lw * 0.95));
-    c = mix(DN(vec3(0.064, 0.192, 0.092), vec3(0.285, 0.59, 0.195)), DN(vec3(0.088, 0.242, 0.112), vec3(0.385, 0.705, 0.25)), smoothstep(0.2, 0.8, pat));
+    float pat = vnoise(vec2(x * 0.42, lw * 0.42) + 3.0);
+    c = mix(DN(vec3(0.064, 0.192, 0.092), vec3(0.285, 0.59, 0.195)), DN(vec3(0.088, 0.242, 0.112), vec3(0.385, 0.705, 0.25)), smoothstep(0.15, 0.85, pat));
     c *= 1.0 + (smoothstep(0.44, 0.56, abs(fract(x * 0.5) - 0.5) * 2.0) - 0.5) * mix(0.06, 0.075, uDay);
-    c *= 0.965 + 0.07 * vnoise(vec2(x * 7.0, lw * 7.0));
-    vec2 tq = vec2(x * 3.0, lw * 3.0), ti = floor(tq);
-    c *= 1.0 - 0.2 * step(0.87, hash(ti + 3.7)) * smoothstep(0.17, 0.05, length(fract(tq) - 0.5 - (vec2(hash(ti + 1.1), hash(ti + 2.3)) - 0.5) * 0.5));
+    c *= 0.975 + 0.05 * hash(floor(vec2(x * 19.0, lw * 19.0)));
+    vec2 tq = vec2(x * 3.0, lw * 3.0); float th = hash(floor(tq) + 3.7);
+    c *= 1.0 - 0.2 * step(0.87, th) * smoothstep(0.17, 0.05, length(fract(tq) - 0.5 - (vec2(fract(th * 37.0), fract(th * 91.0)) - 0.5) * 0.5));
     if (ar > 0.5) c = areaGround(ar, x, z, seed, vLane);
     if (type > 4.5) {                                             // a LANDMARK's lane: dark paving, a neon trim on both edges
       c = DN(vec3(0.105, 0.10, 0.15), vec3(0.80, 0.78, 0.72)) * (0.95 + 0.08 * hash(floor(vec2(x * 2.0, z * 2.0)) + seed)) * (joint(fract(vec2(x * 2.0, z * 2.0)), 0.03) * 0.22 + 0.78);   // (H5C: paving slabs + their joints — never a checker)
@@ -205,20 +205,29 @@ void main() {
     // H5C (the owner: never a flat slab, never a hard line): the bank's edge is measured PER PIXEL off the wall itself (uWall — not
     // lane by lane): soft + ragged (two drifting noise fields), the lane still seen THROUGH its first metre, solid two lanes in —
     // and a cool shadow lies on the ground in front of it
+    // (only the pixels NEAR the wall pay for the noise: ahead of its shadow nothing is done, deep inside it is simply fog)
     float ly = vLane + z, d = uWall - ly;
-    float bn = 0.62 * vnoise(vec2(x * 0.42 + uTime * 0.21, ly * 0.8 - uTime * 0.05)) + 0.38 * vnoise(vec2(x * 1.25 - uTime * 0.33, ly * 1.9 + 7.0));
-    float thin = smoothstep(-1.5, 0.7, d + (bn - 0.5) * 1.9);
-    float fogA = thin * mix(0.5, 1.0, smoothstep(0.1, 2.1, d));
-    c *= 1.0 - 0.2 * smoothstep(-3.2, -0.3, d) * (1.0 - thin);
-    c = mix(c, vec3(0.875, 0.906, 0.933) * (0.93 + 0.1 * bn), clamp(fogA, 0.0, 1.0));
+    if (d > 3.4) c = vec3(0.875, 0.906, 0.933) * 0.98;
+    else if (d > -3.4) {
+      float bn = 0.62 * vnoise(vec2(x * 0.42 + uTime * 0.21, ly * 0.8 - uTime * 0.05)) + 0.38 * vnoise(vec2(x * 1.25 - uTime * 0.33, ly * 1.9 + 7.0));
+      float thin = smoothstep(-1.5, 0.7, d + (bn - 0.5) * 1.9);
+      float fogA = thin * mix(0.5, 1.0, smoothstep(0.1, 2.1, d));
+      c *= 1.0 - 0.2 * smoothstep(-3.2, -0.3, d) * (1.0 - thin);
+      c = mix(c, vec3(0.875, 0.906, 0.933) * (0.93 + 0.1 * bn), clamp(fogA, 0.0, 1.0));
+    }
   } else {
     // THE BLACKOUT's edge (H5C — the review: "a ruler-straight cut to black"): per pixel off the wall itself, soft + ragged (two drifting
     // noise fields) — the lights still die lane by lane (the flicker), but the dark's edge is never a straight line; the cold violet
     // glow rides its ragged lip
-    float ly = vLane + z, e = uWall - ly + (0.6 * vnoise(vec2(x * 0.5 + uTime * 0.12, ly * 0.9 + uTime * 0.07)) + 0.4 * vnoise(vec2(x * 1.4 - uTime * 0.2, ly * 2.1 + 5.0)) - 0.5) * 1.7;
-    float dkp = smoothstep(-0.75, 0.55, e);
-    c = mix(c, vec3(0.012, 0.016, 0.03) + c * 0.05, clamp(dkp + fl * 0.35, 0.0, 1.0));
-    c += vec3(0.42, 0.28, 0.80) * smoothstep(0.5, 0.0, abs(e + 0.25)) * 0.36 * (1.0 - dkp * 0.6);
+    // (only the pixels NEAR the wall pay for the noise: ahead of it nothing is done, behind it the lane is simply dark)
+    float ly = vLane + z, d = uWall - ly;
+    if (d > 1.5) c = vec3(0.012, 0.016, 0.03) + c * 0.05;
+    else if (d > -1.7) {
+      float e = d + (0.6 * vnoise(vec2(x * 0.5 + uTime * 0.12, ly * 0.9 + uTime * 0.07)) + 0.4 * vnoise(vec2(x * 1.4 - uTime * 0.2, ly * 2.1 + 5.0)) - 0.5) * 1.7;
+      float dkp = smoothstep(-0.75, 0.55, e);
+      c = mix(c, vec3(0.012, 0.016, 0.03) + c * 0.05, clamp(dkp + fl * 0.35, 0.0, 1.0));
+      c += vec3(0.42, 0.28, 0.80) * smoothstep(0.5, 0.0, abs(e + 0.25)) * 0.36 * (1.0 - dkp * 0.6);
+    }
   }
   c = mix(c, uFogCol, vFog);
   gl_FragColor = vec4(c, 1.0);
