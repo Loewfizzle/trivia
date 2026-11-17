@@ -67,7 +67,7 @@
 .jw-skyline[data-look='day'] .jw-seawall { box-shadow: 0 -1px 0 rgba(20, 60, 110, 0.55), 0 -4px 6px rgba(16, 70, 130, 0.35); }
 /* (H6B — THE LOOK SWITCH: the wall carries BOTH looks' stone — the day's lies over the night's and its opacity alone moves, with the
    band's own cross-fade (night.js#skyShow, SKY_LOOK_MS); the lamps + the night's life fade the same way: never a jump) */
-.jw-seawall i.is-day { opacity: 0; transition: opacity 1.5s ease-in-out; }
+.jw-seawall i.is-day { opacity: 0; transition: opacity 1.5s ease-in-out; will-change: opacity; }
 .jw-seawall b { transition: opacity 1.5s ease-in-out; }
 .jw-skyline[data-look='day'] .jw-seawall i.is-day { opacity: 1; }
 .jw-seawall i.is-day { background:
@@ -271,7 +271,7 @@
    fades to black — and every word over the bright scene keeps a dark edge (the lane count, the area's name, the count, the hint) */
 .jw-skyline[data-look='day'] { background: #c6e6f7; }
 /* (THE NIGHT's LIFE — the blinking lights + the flickering windows: one layer, faded with the look; a light on a painted landmark is `hidden`) */
-.jw-sky-life { position: absolute; inset: 0; transition: opacity 1.5s ease-in-out, visibility 0s; }
+.jw-sky-life { position: absolute; inset: 0; will-change: opacity; transition: opacity 1.5s ease-in-out, visibility 0s; }
 .jw-skyline[data-look='day'] .jw-sky-life { opacity: 0; visibility: hidden; transition: opacity 1.5s ease-in-out, visibility 0s 1.5s; }
 .jw-sky-life [hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) { .jw-sky-life, .jw-skyline[data-look='day'] .jw-sky-life, .jw-seawall i.is-day, .jw-seawall b { transition: none; } }
@@ -311,10 +311,8 @@
 /* (the beam is what is LIT: everything outside it goes dark — a clear column down the middle, from the ship's port to the lanes at his feet) */
 .jw-ship-shade { position: absolute; z-index: 1; inset: 0; opacity: 0; pointer-events: none; background: radial-gradient(64% 58% at 50% 46%, rgba(3, 2, 12, 0) 0, rgba(3, 2, 12, 0) 44%, rgba(3, 2, 12, 0.5) 74%, rgba(3, 2, 12, 0.82) 100%); }
 .jw-stage[data-look='day'] .jw-ship-shade { background: radial-gradient(64% 58% at 50% 46%, rgba(8, 14, 40, 0) 0, rgba(8, 14, 40, 0) 44%, rgba(8, 14, 40, 0.42) 74%, rgba(8, 14, 40, 0.68) 100%); }
-/* H6B — THE MOTHERSHIP's KIDS GO INTO ITS PORT: from its rim on each kid is a small light of their own colour over the ship's sprite
-   (flyers.js#spark — transform + opacity only) · THE UFO's ABDUCTION on your own phone: the world dims round the beam (opacity only) */
-.jw-ship-kid { position: absolute; z-index: 3; left: -10px; top: -10px; width: 20px; height: 20px; border-radius: 50%; opacity: 0; pointer-events: none; will-change: transform, opacity;
-  background: radial-gradient(circle, #fff 0, #fff 24%, var(--c, #fff) 50%, rgba(255, 255, 255, 0) 72%); box-shadow: 0 0 12px 3px var(--c, #fff); }
+/* H6B — THE UFO's ABDUCTION on your own phone: the world dims round the beam (opacity only). (THE MOTHERSHIP's kids fly into its port
+   as lights drawn on a canvas inside the ship's own sprite — flyers.js#spark: no element of their own.) */
 .jw-ufo-shade { position: absolute; z-index: 1; inset: 0; opacity: 0; pointer-events: none;
   background: radial-gradient(46% 38% at var(--x, 50%) var(--y, 50%), rgba(3, 2, 12, 0) 0, rgba(3, 2, 12, 0) 36%, rgba(3, 2, 12, 0.55) 72%, rgba(3, 2, 12, 0.85) 100%); }
 .jw-stage[data-look='day'] .jw-ufo-shade { background: radial-gradient(46% 38% at var(--x, 50%) var(--y, 50%), rgba(8, 14, 40, 0) 0, rgba(8, 14, 40, 0) 36%, rgba(8, 14, 40, 0.46) 72%, rgba(8, 14, 40, 0.72) 100%); }

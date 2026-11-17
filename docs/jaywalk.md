@@ -21,7 +21,7 @@ import map); the RULES are a pure engine that never knows about it.
 | H5B | Nov 16 2026 | `docs/games/passes/jaywalk-h5b.md` | THE DAY LOOK (every screen: the sun, the day ground, light vs paint, THE FOG BANK, the painted gates, the day skyline; the GAME LOOK setting back — per phone) · THE LANDMARKS SEEN (each area's landmark in the skyline band + its hero pieces beside its gate) · the fixes (the horn at half, the car-pass gone, the train sounds fade; the header; the refused chat write) · the add-ons: BLUE ON THE GROUND = WATER (arcade water by night too, the pink friend TAPE), the rail signals flash only before the train, THE GHOSTS STOP BLOCKING YOU |
 | H5C | Nov 16 2026 | `docs/games/passes/jaywalk-h5c.md` | NO WEAK POINTS (a VIEW pass): THE PAINTED SKYLINES (8 painted day pictures, cross-faded at the gates — `skyline.js`) · THE FAR EDGE (the sea wall; the far lanes fully in the haze before it) · THE FOG BANK rebuilt (rolling layers, a soft ragged edge) · the day's shadows + ground textures · the drums · THE GATE'S NAME ON ITS ARCH · YOUR BEST = a gold tape, the lines' words always readable · the tail lights' finish · THE TRAIN SOUNDS set B + the train horn + THE AREA ARRIVAL · THE FRESH-EYES REVIEW (every pass from now on) |
 | H6A | Nov 17 2026 | `docs/games/passes/jaywalk-h6a.md` | THE BIG MOMENTS (`flyers.js`, fetched ON DEMAND): THE BLACKBIRD (the real SR-71 — the glint, the afterburners, the shockwave), THE UFO (the real saucer, its green ring, THE ABDUCTION), THE MOTHERSHIP = A FINISH LINE (the 10 s warning, the baked ship, the white-gold beam, the gold end screen — never "TAKEN") · THE FOUR CARDS (the feat flags from the server's replay → SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY — solo or match · BEAM ME UP, new) · YOUR BEST ANYWHERE (a counted match run raises the same best) |
-| H6B | — | — | the painted night skylines, the gate sign only on the approach, compact match chips, NEW BEST's B take, DOWNTOWN's shops, the sound mix, the credits screen |
+| H6B | Nov 17 2026 | `docs/games/passes/jaywalk-h6b.md` | THE FINAL POLISH (a VIEW + SOUND pass): THE PAINTED NIGHT SKYLINES (8, cross-faded at the gates — `skymarks.js` retired) + THE LOOK SWITCH's cross-fade · THE GATE SIGN only on the approach · the compact match chips · the lab's `?lane=N` · THE MOMENTS' FINISH (the solid UFO, the bigger Blackbird's blazing burners, the kids into the Mothership's port, the traffic stopping under it) · DOWNTOWN's storefronts (Kenney, on demand) · the tail light bar · THE MIX (measured) + NEW BEST's B take · THE CREDITS · two fresh-eyes reviews |
 | the review → the fix pass | — | — | flips `playable` (empties `tests/registration.test.mjs#JAYWALK_WAITS`; the meta + its tile join the boot — after the city's CHROMEBOOK pass trims THE BOOT BUDGET: the owner, Nov 16) |
 | DAILY A · DAILY B | — | — | its daily (`MODES.daily`) |
 
@@ -669,7 +669,7 @@ at real size (390 × 844), by DAY and by NIGHT; 60 fps measured. Where an older 
   dark stone by night (no cold sheen: never water) · **THE DOCKS' planks** differ a little, never a patchwork.
 - **THE DRUMS:** 75 % of their size; red · orange · yellow from the seed (`night.js#DRUM_HEX` on a white-built drum), hoops, a dark lid
   + its bung, a little wear (a rust bloom, a scuff). **BLUE ON THE GROUND = WATER holds for props too.**
-- *DOWNTOWN's edge shops: NOT rebuilt (the prompt's lowest priority) — see the pass log's OPEN FOR BEN.*
+- *DOWNTOWN's edge shops: H6B — Kenney's storefronts ("THE FINAL POLISH").*
 
 ### THE GATE'S NAME ON ITS ARCH
 The name lay on the gate's lane — under the kid the moment he stood there. Now **a sign stands up on the gate's crossbar** (`GATE` planes:
@@ -821,6 +821,136 @@ kid BRIGHT in a thick halo of their own colour + a trail, drawn to the beam's mi
   lived in the room's proof nodes (`rooms/{CODE}/jw/…`), which leave with the room when it closes. So a match played before H6A (the
   owner's 212) cannot be credited from data — no number is invented (OPEN FOR BEN, the pass log). From H6A on nothing needs healing:
   the report itself raises the best.
+
+## THE FINAL POLISH (H6B — the owner, Nov 17: the last pass before the go-live review; every change a VIEW or a SOUND — the rules, the course, the proof, the feats untouched: REPLAY = LIVE)
+Where an older section above describes what H6B replaced (the drawn night landmarks, the sign on the gate's crossbar, the see-through
+saucer, the two tail lamps, new-best's two takes), THIS section wins. The decisions: `docs/games/plan.md` "JAYWALK … DECIDED, H6B".
+
+### THE PAINTED NIGHT SKYLINES + THE LOOK SWITCH (`skyline.js` · `night.js#skyShow` / `skyLife` · `tests/jaywalk-skyline.test.mjs`)
+- **BY NIGHT the band shows a PAINTED picture per area too** (Grok — `assets/jaywalk/skyline-night-<id>.webp`, 65–79 KB each: skyline-night
+  with that area's landmark painted in, lit; pixel-identical outside the landmark). **The same machinery as the day set:** the opening
+  (lanes 0–49) keeps `skyline-night.webp`, only the current + the next are ever held, the next is fetched 14 lanes before its gate, a
+  2 s cross-fade at the gate, the loop repeats. **The drawn night landmarks are RETIRED** — `skymarks.js`, its canvas, its css and the
+  band's colour wash (`.jw-sky-tint`) are gone.
+- **THE NIGHT CROP IS 84 ROWS HIGHER** (rows 204–636 of the 720: `scripts/build-jaywalk-assets.py#NIGHT_TOP`; H2's crop — the lower
+  60 % — cut the lighthouse's lamp, downtown's spires and the control tower off). The band is now: the stars, the lane count in the
+  sky, the city low, a strip of water, the sea wall. *Named call: the prompt said "the same treatment as the day set"; the day crop's
+  rows would have beheaded five landmarks.* The poster keeps the rows it had (`poster.js`).
+- **NIGHT'S OWN REST OFFSET** (`SKY_BIAS_NIGHT`, % of the picture's width, measured off the night pictures: docks + 8 · fish + 15 ·
+  yard + 14 · bridge − 14 · downtown + 3.5 · canal + 12 · lighthouse − 17 · airfield + 9): every landmark's tall part is on a 390 pt
+  screen (the test holds Grok's own columns against the phone's window) and beside the lane count — the docks' two cranes are wider
+  than the room either side of a 3-digit count (the left crane's boom stands behind its last digit in the loop's laps).
+- **NOTHING BLINKS OR FLICKERS ON A LANDMARK** (`SKY_OFF`): the 8 red aviation lights + the 5 flickering windows are one layer
+  (`.jw-sky-life`); the ones a landmark stands on / in front of are `hidden` while its picture is on the band — measured by the
+  builder (a light whose 19 × 19 px surround the landmark changed; a window any of whose pixels it changed): docks lights 1 · 3 · 4 · 5,
+  yard 1 · 3 · 4 · 6, downtown 1–4, canal 1–6, airfield 1; the right-side landmarks windows 2 · 4, the bridge 0 · 1 · 3, the lighthouse
+  0 · 3. Through a gate's cross-fade BOTH pictures' are off.
+- **THE LOOK SWITCH** (AUTO at sunrise / sunset, or the owner's toggle): the day + night pictures have different horizons, so **the
+  whole band CROSS-FADES over 1.5 s** (`SKY_LOOK_MS`: the picture — the same two layers; the sea wall's stone — the day's stone lies
+  over the night's, its opacity alone moves; the wall's lamps + the night's life fade with it; the rest offset eases). Never a jump;
+  the sea wall stays at the band's foot in both. A cross-fade still running is waited out (a visible layer's picture never changes);
+  at once with reduce motion. (The 3D scene itself still switches at once — H5B.)
+
+### THE GATE SIGN — ONLY ON THE APPROACH (`night.js` `GATE_GONE` 3 · `GATE_FADE` 1.5 · `GATE_SEEN` 10; css `.jw-gate`)
+The sign stood on the gate's crossbar and hung over the lanes he was about to play. Now **the area's arched name board hangs under
+the sea wall** — its own canvas over the scene (the same painted board: neon tubes on a solid dark board by night, a painted board by
+day), crisp over the far haze, where only the fogged far lanes are — **up from 10 lanes out, whole to 4.5, fading, FULLY GONE 3 lanes
+from the gate** (and at it, and through it); the gate's own posts + crossbar come out of the haze under it. *Why not on the gate
+itself: 8–10 lanes out the gate is behind the skyline band and in the full haze — a sign there cannot be read; nearer, it covered the
+lanes ahead.* The plane in the scene (its mesh, its texture) is gone. The area's name still flashes once in the HUD as he crosses.
+
+### THE MATCH CHIPS — COMPACT (css `.jw-order`)
+The live order (top left, under ☰): **a 6 px colour dot + the name short (≈ 6 letters seen — the whole name stays in the row) + the
+lanes, 13 px a row** (8 players = 111 px tall, ≤ 92 px wide; they were 21 px rows in boxes, 46 vw wide) **on a soft veil** that thins
+out to the right — no box, no corners: the bridge + the lighthouse painted on the band's left read through and past it. You = a bar
+of your colour down the row's edge; the one you watch = a white bar; OUT = a cross + the name struck through (never colour alone).
+
+### THE LAB LINK — `jaywalk-lab.html?lane=N` (+ the look / zoom prefs)
+**A LOOK CHECK from lane N** (the owner opens any area on his phone): the kid stands on the grass lane nearest N (the one before it
+first — `?lane=395` = 5 lanes before THE AIRFIELD's gate), the blackout held behind him, the page says LOOK CHECK · LANE n. **WARPED
+from its first frame: it never counts, is never replayed (its end says WARPED — never REPLAY = LIVE), nothing is sent** (the lab makes
+zero server calls). ONE COUNTDOWN: the lab's small line is the mode's quiet clock (MATCH · 5:42) and is gone for the warning — the
+big red THE MOTHERSHIP · 0:10 is the only one.
+
+### THE MOMENTS' FINISH (`flyers.js` — still on demand; where "THE BIG MOMENTS" above differs, this wins)
+- **THE UFO = A SOLID SAUCER** — no transparency anywhere (it no longer goes see-through over the kid): **chrome catching the sun by
+  day, dark metal under bright rim lights by night**, a glowing hatch under its belly; **SMALLER + a little HIGHER** (2.3 cells across
+  at 5.0 — was 3.0 at 4.7; any higher and the skyline band hides it: it stands over the lanes ≈ 5 ahead of its ring, never on a car /
+  a log / a train he must read now); far off it takes the haze's own colour (solid to the last — H5C's rule). **ITS BEAM IS STRONG**
+  (a glowing green column by night; bright pale green between two darker edge lines by day; motes in both) **and LIGHTS what drives
+  through it** (a green wash laid over the cars in the ring). **THE ABDUCTION: the kid goes up INTO it** — its near rim lifts, the
+  hatch opens wide, he rises into the hull (solid: it closes over him — never left under its rim), the hatch shuts, it zips off SMALL
+  + far and comes back down over its ring. **On the abducted player's OWN phone the world dims round the beam** for the ≈ 2 s
+  (`.jw-ufo-shade`: its clear heart set once on the beam, then opacity only).
+- **THE BLACKBIRD ≈ 1.3× bigger** (4.8 cells — the rules' body stays 3) **with BLAZING AFTERBURNERS**: from each nozzle a blue-white
+  heart in an orange flame and a long pink tail (the glow's tapered ribbon, wide + bright at the nozzle), four shock diamonds, heat
+  shimmer by day — **laid LAST** (after the contrails, which now start behind them, and the band's flash: nothing washes them white).
+- **THE MOTHERSHIP:** once it arrives **the traffic under it SLOWS TO A STOP** (the scene's own tick eases out past the cap —
+  `night.js`: a view; the run is over) · **every kid flies INTO its port** (the ship is a sprite over the canvas: from its rim on each
+  kid is a small light of their colour over the sprite — `.jw-ship-kid`, transform + opacity — that flies to the lens and goes in) ·
+  ONE countdown.
+- **DOWNTOWN's EDGE SHOPS = Kenney's storefronts** (`shops.js` — fetched ON DEMAND when a shop first comes into the window; City Kit
+  (Commercial) 2.1, CC0: building-a · c · d · h → `shop-a … d.glb`, 28–38 KB each, re-packed by `build-jaywalk-assets.py --only=shops`
+  — one mesh, the colormap in vertex colours, the window glass marked): fronts toward the camera, 1.6 wide × 0.9 deep (inside their
+  lane), **lit windows + a neon sign + its colour on the pavement by night**, glass + a painted board by day; the code-built box
+  until they land. The delivery: `Downloads\grok\jaywalk\models\city\`.
+- **THE TAIL LIGHTS (the owner's add-on, Nov 17 6:32 am — "more uniform instead of one light"):** from this camera only the near
+  corner lamp showed. Now **ONE thin red LIGHT BAR across the full width of every vehicle's rear** (`night.js#tailBar`: the car, the
+  van, the box truck, the train's tail — evenly lit end to end; a hot core + a soft halo by night: it catches the bloom) **+ ONE oval
+  glow on the road CENTRED behind it, as wide as the vehicle**, starting at the bar. The same either way it drives. By day the bar
+  is just red on the body, no glow.
+
+### THE MIX (measured — `tests/integration/jaywalk-mix.mjs "<chromium>" [--md]`; `sounds.js` gains · `flyers.js#MIX` · `flyers.js#DUCK`)
+Every JAYWALK cue + the city's flyer sounds, MEASURED in Chromium's own audio engine (an OfflineAudioContext: each file decoded as the
+game decodes it, through its gain → THE SOFT LIMITER (the JAYWALK set) → the trim; ITU-R BS.1770 integrated LUFS + the loudest 0.4 s
++ the sample peak at the SFX bus's door; "out" = at the default Effects slider, − 6.2 dB; the music at its default sits at ≈ − 34
+LUFS out). **What it found:** the train's bell + horn + the arrival chime (H5C's files, never levelled) came in **10–17 dB hotter**
+than everything else — brought down to the rest; the hop + the landing a touch softer (heard hundreds of times a run); the boom a
+little under. **No cue clips** (every peak under − 0.3 dBFS; the hottest is the splash at − 3).
+
+| cue | file's own (LUFS · peak dBFS) | gain | into the SFX bus (LUFS · loudest 0.4 s · peak dBFS) | out at the default slider (LUFS) |
+| --- | --- | --- | --- | --- |
+| hop | -13.5 · -3.3 | 1.25 | -30 · -30 · -14.7 | -36.2 |
+| land-wood | -16.8 · -2.6 | 1.4 | -29.3 · -29.3 · -13.2 | -35.5 |
+| hit | -18.2 · -2 | 2.1 | -26 · -26 · -10 | -32.2 |
+| splash | -24.1 · -2.1 | 2.2 | -22.3 · -22.3 · -3 | -28.5 |
+| horn | -23.4 · -13.8 | 0.5 | -27.1 · -25.1 · -18.9 | -33.3 |
+| train-bell | -14.3 · -1 | 0.29 | -21 · -20.9 · -10.7 | -27.2 |
+| train-horn | -7.3 · -1.3 | 0.23 | -19 · -16.6 · -13 | -25.2 |
+| train-pass | -23.4 · -8.5 | 1.2 | -17.9 · -16.2 · -5.9 | -24.1 |
+| lights-die | -25.8 · -2.7 | 1.6 | -22.4 · -20.5 · -8.7 | -28.6 |
+| area-arrive | -11.2 · -1.2 | 0.36 | -19 · -16.4 · -9 | -25.2 |
+| new-best | -23.2 · -4.4 | 1.45 | -17 · -14.4 · -6.7 | -23.2 |
+| city · radio-static_1 | -20.3 · -1.9 | 0.34 | -26.7 · -22.3 · -11.3 | -32.9 |
+| city · jet-scream | -20.2 · -3.5 | 0.62 | -21.3 · -16.6 · -7.7 | -27.5 |
+| city · sonic-boom | -22.1 · -1.5 | 0.8 | -21.1 · -14.6 · -3.4 | -27.3 |
+| city · ufo-hum | -24.5 · -9.1 | 0.3 | -33.4 · -31.6 · -23.6 | -39.6 |
+| city · ufo-beam-on | -20.3 · -5.1 | 0.6 | -21 · -19.1 · -13 | -27.2 |
+| city · ufo-lift | -20.4 · -5.8 | 0.5 | -21.3 · -18.7 · -11.8 | -27.5 |
+| city · ufo-depart | -20.3 · -5.1 | 0.6 | -21.2 · -18.7 · -9.6 | -27.4 |
+| city · ufo-beam-off | -20.2 · -7 | 0.46 | -25.6 · -20.9 · -13.7 | -31.8 |
+| city · ufo-hum@ship (rate 0.5) | -24.5 · -9.1 | 0.75 | -27 · -25.6 · -17.1 | -33.2 |
+| city · ufo-beam-on@ship (rate 0.62) | -20.3 · -5.1 | 0.72 | -20.8 · -16.6 · -11.5 | -27.0 |
+| city · ufo-lift@ship (rate 0.75) | -20.4 · -5.8 | 0.6 | -21.2 · -17 · -10.2 | -27.4 |
+
+- **NEW BEST = its B take** ("Fantasy Achievement Unlock Magical Stinger" — TommasoMotteran, Freesound 859080, **CC BY 4.0**): ONE
+  take, shipped as `new-best.mp3` (`JW_SFX_REV` 3); the sparkle is THE AREA ARRIVAL's alone (they were the same recording).
+- **THE MUSIC DUCKS UNDER THE BIG MOMENTS** (`DUCK` — the share of its level it keeps; `view.js#applyDuck`: ONE duck, the deeper of
+  this and the train's 0.72): THE BLACKBIRD's pass 0.45 (from the tell's last second — the scream's peak — to the boom's tail) · THE
+  ABDUCTION 0.4 · THE MOTHERSHIP 0.62 through its warning → 0.3 as it arrives, back up 3–4.5 s after. The station follows the look
+  (the day deck by day, the evening deck by night — H5B). THE MOTHERSHIP's rumble (generated) peaks at 0.5.
+- *Still true: nobody has HEARD the mix on a phone's speaker — the numbers are the engine's; the owner's ear is the last check.*
+
+### THE CREDITS (`js/ui/credits.js` — ☰ → Credits, the site's one Credits sheet: the group **JAYWALK**, 13 lines)
+Every line of `audio/jaywalk/CREDITS.md` + `assets/jaywalk/models/CREDITS.md` + the city's sounds its moments play + the art: the five
+**CC BY** sound lines exactly as required (new best · the lights die · the crossing bell · the train horn · the train passing's
+second take), the CC0 sounds as a courtesy, the Sonniss sounds of the three moments, **the Blackbird (Kiiba, CC BY 4.0) + the two
+saucers (Poly by Google, CC BY 3.0)** with their changes, Kenney's + MaverickFX's models, **"Skyline art created with Grok"**, **"Card
+art created with Grok"**. A long source address now wraps (`.cr-by` / `.cr-lic` — a required credit was cut off at the sheet's edge).
+
+### THE CARDS — nothing to re-approve
+Grok's re-delivered `right-of-way.png` + `mothership.png` (Nov 17 1:58 am) are **byte-identical** to the copies H6A built from (the
+same SHA-256); the builder re-run changes no file, no lab version was bumped, and the owner approved both on Nov 17.
 
 ## THE CAMERA (H2B — `js/games/jaywalk/camera.js`: ONE pure module, the night look AND the graybox use it)
 The owner played H2 on his iPhone: "the game feels good", but it had to be ZOOMED IN — a closer camera that FOLLOWS the kid sideways, turned
@@ -997,7 +1127,7 @@ owner's card shows its neon mark — H4: THE SIGNAL). `smoke` is DONE (H4). `boa
   choice), **COPY MY PICKS** → one line ("JAYWALK SOUNDS: hop A · land-wood B · …") for the owner to paste into chat (a refused clipboard
   shows the line to hold). The run holds still under the sheet. Every button on its own press + lift.
 
-## THE LAB — https://neonspeakeasy.com/jaywalk-lab.html (+ `?fps=1` · `?gray=1` · `?poster=1` — THE POSTER)
+## THE LAB — https://neonspeakeasy.com/jaywalk-lab.html (+ `?fps=1` · `?gray=1` · `?poster=1` — THE POSTER · `?lane=N` — a look check from lane N, H6B)
 The owner tests on his phone on CELLULAR: every JAYWALK pass ships its preview on the LIVE site. `jaywalk-lab.html` at the site ROOT
 (deployed — never under tests/), noindex nofollow, its own import map for three.js 0.160.
 **OPEN SINCE H2B (the owner, Nov 16 — his brother tests it on his own phone from a shared link): NO owner gate, no sign-in, ZERO server
@@ -1041,7 +1171,8 @@ browser with no WebGL gets the stage + one line saying so. (H1 + H2 had the owne
 - **Measured (H1, 390 × 844 @3, 4× CPU, the bot playing):** 59.9 fps · 16.7 ms a frame (p95 16.8, worst 17.0) · 1.2 ms of work a frame (p95
   1.8) · 8 draw calls, ~1,200 triangles.
 
-## REAL vs PLACEHOLDER after H6A
+## REAL vs PLACEHOLDER after H6B
+*(H6B made REAL: the painted night skylines, the look switch's cross-fade, the gate sign's approach, the chips, the solid UFO + the kid into its hatch, the Blackbird's burners, the kids into the Mothership's port, DOWNTOWN's storefronts, the tail light bar, THE MIX (measured), NEW BEST's B take, THE CREDITS. **No placeholder is left in the game.** What still waits: the owner's EAR on the mix (measured, never heard on a phone), the `-b` backups of the hop / the landing / the train pass in the audition (the owner picked all A), every number in `tuning.js` + `CLOCK` (first-pass feel — tune from real phones), the daily (DAILY A / B), the go-live flip (the review → the fix pass).)*
 *(H6A made REAL: THE BLACKBIRD, THE UFO + THE ABDUCTION, THE MOTHERSHIP + its finish, their cause words, the four cards' flags + BEAM ME UP's card, YOUR BEST ANYWHERE. Still PLACEHOLDER / first-pass: the three moments' SOUND LEVELS (nobody has heard them — the mix is H6B's), DOWNTOWN's code-built edge shops, the daily. The lists below are H5C's + H5B's, still true otherwise.)*
 *(H5C made REAL: the painted day skylines, the far edge, the fog bank's look, the day shadows + ground, the gate signs, the gold tape, the train sounds set B + the horn + the area arrival. Still PLACEHOLDER: the three flyers + their cause lines (H6), DOWNTOWN's code-built edge shops, the mix. The list below is H5B's, still true otherwise.)*
 REAL: the rules (ONE LIFE), the course, the modes, the wall, the replay + its bounds, THE JUDGE, the server's verify + THE SPEED CHECK +

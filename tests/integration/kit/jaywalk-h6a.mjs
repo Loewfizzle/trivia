@@ -117,6 +117,9 @@ export async function looksH6A(p, { ok, shot, sleep, waitFor, what = '', reqs = 
       }
       if (took) await measure(`THE ABDUCTION (${tag})`, 1900); else ok(false, `an abduction to measure (${tag})`);
       await fresh(look, 'match'); await L(`window.__jwLab.setTier(${tier}); window.__jwLab.warp(3, { x: 4500 }); window.__jwLab.ghosts(7)`); await sleep(1500);
+      // (H6B: as in a real match — the ship's bake + its sprite's + sparks' first paint happen in the count, long before the cap: the
+      //  measure waits for them, then jumps to 2 s before the cap)
+      await waitFor(p, '(window.__jwLab.view.info().fly || {}).ship === true', 15000); await sleep(800);
       await L('window.__jwLab.setT(6 * 60 * 60 - 130)'); await sleep(300);
       await measure(`THE MOTHERSHIP's arrival + the lift, 8 kids (${tag})`, 5200);
     }

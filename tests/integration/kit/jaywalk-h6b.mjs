@@ -201,4 +201,37 @@ export async function looksH6B(p, { ok, shot, sleep, waitFor, what = '', reqs = 
     await sleep(400); await shot(o.p, 'credits/credits-jaywalk-3.png');
     await o.close();
   }
+
+  // ---- THE NEW MOMENTS' MEASURE (`--h6b=perf`): 390 × 844 @3 under a 4× CPU throttle, tier 2 + tier 1, night + day — a NIGHT gate's
+  // cross-fade, THE LOOK SWITCH, DOWNTOWN with its storefronts in (the abduction · the Blackbird's pass · the Mothership with 8 kids:
+  // `--h6a=perf`, re-run on this pass's code)
+  if (what === 'perf') {
+    const cdp = await p.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    const measure = async (name, ms, floor = 58) => {
+      await L('window.__jwLab.clearFrames()'); await sleep(ms);
+      const f = (await L('window.__jwLab.frames()')).slice(2).sort((a, b) => a - b), avg = f.reduce((a, b) => a + b, 0) / f.length, p95 = f[Math.floor(f.length * 0.95)], worst = f[f.length - 1];
+      console.log('PERF', JSON.stringify({ moment: name, frames: f.length, fps: +(1000 / avg).toFixed(1), p95Ms: +p95.toFixed(1), worstMs: +worst.toFixed(1) }));
+      ok(1000 / avg >= floor && p95 < 21, `${name}, 4× CPU: ${(1000 / avg).toFixed(1)} fps (p95 ${p95.toFixed(1)} ms, worst ${worst.toFixed(1)})`);
+    };
+    for (const tier of [2, 1]) for (const look of ['night', 'day']) {
+      await fresh(look); await L(`window.__jwLab.setTier(${tier})`); await sleep(500);
+      // a gate's cross-fade: the bot hops through THE DOCKS' gate — the band fades to the area's picture while the scene plays on
+      await stand(44, 4); await sleep(1500); await L('window.__jwLab.bot(true)');
+      await waitFor(p, 'window.__jwLab.state().info.sky.fading || window.__jwLab.state().over', 20000);
+      await measure(`a gate's cross-fade (${look}, tier ${tier})`, 2200);
+      // THE LOOK SWITCH mid-run: the whole band cross-fades. (The scene itself switches at once — H5B: the FIRST switch of a page shows
+      //  ONE long frame, GPU-side (≈ 130 ms on the build machine; the script's own work in it is 7 ms) — every later switch is clean;
+      //  the floor here is the average + the p95, the worst is printed)
+      await L('window.__jwLab.bot(false)'); await fresh(look); await L(`window.__jwLab.setTier(${tier})`); await stand(359, 4); await sleep(900); await settled(); await L('window.__jwLab.bot(true)'); await sleep(500);
+      await L('window.__jwLab.clearFrames()'); await L(`window.__jwLab.setLook('${look === 'day' ? 'night' : 'day'}')`);
+      await measure(`THE LOOK SWITCH ${look} → ${look === 'day' ? 'night' : 'day'} (tier ${tier})`, 2000, 55);
+      await L(`window.__jwLab.setLook('${look}')`); await sleep(1800);
+      // DOWNTOWN, its storefronts in
+      await L('window.__jwLab.bot(false)'); await fresh(look); await L(`window.__jwLab.setTier(${tier})`); await stand(252, 0); await sleep(1200);
+      await waitFor(p, 'window.__jwLab.state().info.shops === 4', 15000); await sleep(600); await L('window.__jwLab.bot(true)');
+      await measure(`DOWNTOWN with its storefronts (${look}, tier ${tier})`, 3000);
+      await L('window.__jwLab.bot(false)');
+    }
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 }); await cdp.detach();
+  }
 }

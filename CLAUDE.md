@@ -185,6 +185,8 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - JAYWALK's AREAS (H5A): the lean = RULES (`tuning.js#AREAS` — the heat's curve stays underneath; the sims green in all 8 + the loop); the look = a VIEW (`areas.js`): an obstacle drawn ONLY where the rules have one, everything else in the edge columns of ground lanes (or straddling on the lane lines) — nothing covers a play column; the world's sounds only through PURE `cues.js` → docs/jaywalk.md "THE AREAS" + "THE SOUNDS".
 - JAYWALK's BIG MOMENTS (H6A): THE BLACKBIRD · THE UFO · THE MOTHERSHIP = ONE view module fetched ON DEMAND (`flyers.js` — never in the eager graph; a moment = f(the rules' tick)); THE MOTHERSHIP is A FINISH LINE (never "TAKEN" on a screen); the four cards' flags + YOUR BEST (solo OR match) only from the server's replay → docs/jaywalk.md "THE BIG MOMENTS" + "THE CARDS".
 
+- JAYWALK's FINISH (H6B): the band's pictures are PAINTED in BOTH looks (`skyline.js` — no light blinks on a landmark: `SKY_OFF`; a look switch cross-fades); THE GATE SIGN only on the approach (gone 3 lanes out); a cue's level only in `sounds.js` / `flyers.js#MIX`, measured (`jaywalk-mix.mjs`) → docs/jaywalk.md "THE FINAL POLISH".
+
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
 - NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).
 - THE QUIET COUNTS (CITY A): expected noise is COUNTED, never a row — `errlog.js#countQuiet` → `/api/log` → `logstats/{kind}` (old · gone · ext), one line in /admin's errors. A page iOS killed reports itself at the next load (`errlog.js#markScreen` → kind `killed`).

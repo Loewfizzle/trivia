@@ -402,10 +402,10 @@ export function createFlyers(C) {
   /** a kid going up (night.js — a GHOST the UFO took; every kid THE MOTHERSHIP lifts): a thick halo of their OWN colour, a white heart,
    *  a short trail under them — the brightest things in the beam; under a UFO's ghost its own smaller beam */
   function lift(x, y, z, q, hex, ship) {
-    const k = ship ? spark(x, y, z, q, hex) : 0;
+    if (ship) spark(x, y, z, q, hex);
     pend.push(() => {
       if (!ship) beam(x, z, FLY.ufoY, Math.sin(Math.min(1, q * 1.3) * Math.PI) * 0.9, 0, day ? 0x8dffb0 : 0x4dff7a, 0.8);
-      const a = (1 - 0.35 * q) * (ship ? Math.min(1, 0.35 + q * 5) * (1 - k) : 1);
+      const a = (1 - 0.35 * q) * (ship ? Math.min(1, 0.35 + q * 5) : 1);
       K.bill.put(x, y + 0.55, z, 2.5, 2.7, 1, 0, hex, 1, 0, (day ? 0.9 : 0.85) * a);
       K.bill.put(x, y + 0.55, z, 1.0, 1.1, 1, 0, 0xffffff, 1, 0, 0.3 * a);
       for (let i = 1; i <= 4; i++) K.bill.put(x, y + 0.5 - i * 0.55, z, 0.9 - i * 0.12, 0.7, 1, 0, hex, 1, 0, (0.6 - i * 0.12) * a * Math.min(1, q * 6));
@@ -413,21 +413,24 @@ export function createFlyers(C) {
     });
   }
   // THE MOTHERSHIP's KIDS GO INTO ITS PORT (H6B): the ship is a sprite OVER the canvas — a kid rising behind it would only slip under
-  // its rim. From the rim on each kid is carried on as a small light of their own colour (a spark over the sprite: transform + opacity
-  // only) that flies to the port's lens and goes in
+  // its rim. From the rim on each kid is carried on as a small light of their own colour that flies to the port's lens and goes in —
+  // drawn on ONE small canvas inside the ship's own sprite (made at the bake; a few dots a frame, only while a kid is on it)
   const sparks = [];
+  let fxUsed = false, fxHad = false;
   function spark(x, y, z, q, hex) {
-    const k = ease(clamp01((q - 0.4) / 0.52));
-    if (k <= 0 || !ship.el || !ship.port || !F.w) return 0;
-    let e = sparks[nk];
-    if (!e) { e = document.createElement('i'); e.className = 'jw-ship-kid'; e.setAttribute('aria-hidden', 'true'); C.host.append(e); sparks[nk] = e; }
-    nk++;
+    const S = sparks[nk] || (sparks[nk] = { q0: -1 }); nk++;
+    if (!ship.fx || !ship.port || !F.w) return 0;
+    const W = 1.72 * F.w, H = W * SHIP_H / SHIP_W;
     v3.set(x, y + 0.6, z).project(cam);
-    const sx = (1 + v3.x) / 2 * F.w, sy = (1 - v3.y) / 2 * F.h, tx = F.w / 2 + (ship.port[0] - 0.5) * 1.72 * F.w, ty = (ship.y / 100 + ship.port[1]) * 1.72 * F.w * SHIP_H / SHIP_W;
-    const c = `#${hex.toString(16).padStart(6, '0')}`;
-    if (e.dataset.c !== c) { e.dataset.c = c; e.style.setProperty('--c', c); }
-    e.style.transform = `translate3d(${(sx + (tx - sx) * k).toFixed(1)}px,${(sy + (ty - sy) * k).toFixed(1)}px,0) scale(${(1.3 - k).toFixed(3)})`;
-    e.style.opacity = (Math.min(1, k * 5) * (q > 0.95 ? Math.max(0, (1 - q) / 0.05) : 1)).toFixed(2);
+    const sx = ((1 + v3.x) / 2 * F.w - (F.w - W) / 2) / W, sy = ((1 - v3.y) / 2 * F.h - ship.y / 100 * H) / H;   // (where he is, in the sprite's own 0 … 1)
+    if (sy > 0.96 || q <= 0 || q >= 1) { S.q0 = -1; return 0; }
+    if (S.q0 < 0 || q < S.q0) S.q0 = q;   // (the moment he went behind its rim: from here on he is its light)
+    const c = ship.fxc, k = ease(clamp01((q - S.q0) / Math.max(0.05, 0.94 - S.q0))), cw = ship.fx.width, ch = ship.fx.height;
+    if (!fxUsed) { fxUsed = true; c.clearRect(0, 0, cw, ch); }
+    const px = (sx + (ship.port[0] - sx) * k) * cw, py = (sy + (ship.port[1] - sy) * k) * ch, r = (15 - 10 * k) * cw / W, col = `#${hex.toString(16).padStart(6, '0')}`;
+    const g = c.createRadialGradient(px, py, 0, px, py, r);
+    g.addColorStop(0, '#fff'); g.addColorStop(0.3, '#fff'); g.addColorStop(0.55, col); g.addColorStop(1, 'rgba(255,255,255,0)');
+    c.globalAlpha = q > 0.94 ? Math.max(0, (1 - q) / 0.06) : 1; c.fillStyle = g; c.beginPath(); c.arc(px, py, r, 0, 7); c.fill();
     return k;
   }
 
@@ -435,7 +438,7 @@ export function createFlyers(C) {
   // THE SHIP = the model BAKED into a sprite (the scene's own renderer → a render target → a 2D canvas; once a look): the skyline band is
   // DOM over the 3D canvas, and the ship must stand over it. Its panel lines, its rings of lights, its lit rim and its lens are drawn on
   // the bake (projected through the bake's own camera); a second small canvas of the brightest lights shimmers over it (opacity only).
-  const ship = { el: null, cv: null, glow: null, dim: null, wash: null, shade: null, txt: null, sec: -1, on: false, prime: 0, y: -100, port: null };
+  const ship = { el: null, cv: null, glow: null, fx: null, fxc: null, dim: null, wash: null, shade: null, txt: null, sec: -1, on: false, prime: 0, y: -100, port: null };
   let bakeAsk = false;
   const SHIP_W = 1408, SHIP_H = 768;
   function bakeShip() {
@@ -476,10 +479,18 @@ export function createFlyers(C) {
     const lights = (r, n, len, w, rgb, al) => { const y = yAt(r); for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + 0.1 + r * 9, [x, yy] = P(r, y, a), [x2, y2] = P(r, y, a + 0.02), ang = Math.atan2(y2 - yy, x2 - x), near = 0.55 + 0.45 * Math.sin(a); blob(c, x, yy, len * near, w * near, ang, rgb, al * 0.85); blob(c, x, yy, len * 0.5 * near, w * 0.5 * near, ang, '255,255,255', al); if (g && i % 2) blob(g, x, yy, len * 1.9 * near, w * 2.4 * near, ang, rgb, al); } };
     lights(0.462, 44, 17, 6, '255,208,130', 1); lights(0.412, 40, 13, 5, '255,220,160', 0.9); lights(0.352, 34, 14, 5.5, '255,214,140', 0.95); lights(0.29, 28, 12, 5, '255,226,170', 0.9); lights(0.23, 22, 11, 4.6, '255,232,190', 0.9); lights(0.175, 16, 9, 4.2, '255,238,206', 0.9);
     { const [x, y] = P(0, 0, 0), [x1] = P(0.105, 0.005, 0), [, y1] = P(0.105, 0.005, Math.PI / 2), rx = Math.abs(x1 - x), ry = Math.max(8, Math.abs(y1 - y)); ship.port = [x / SHIP_W, y / SHIP_H]; blob(c, x, y, rx * 2.0, ry * 2.0, 0, '255,232,180', 0.9); blob(c, x, y, rx * 1.25, ry * 1.25, 0, '255,246,220', 1); blob(c, x, y, rx * 0.8, ry * 0.8, 0, '255,255,255', 1); if (g) blob(g, x, y, rx * 3.6, ry * 4.4, 0, '255,232,180', 0.9); }
-    if (!ship.el) { const el = document.createElement('div'); el.className = 'jw-ship'; el.setAttribute('aria-hidden', 'true'); el.append(cv); if (g) el.append(gv); C.host.append(el); ship.el = el; }
+    if (!ship.el) {
+      const el = document.createElement('div'); el.className = 'jw-ship'; el.setAttribute('aria-hidden', 'true'); el.append(cv); if (g) el.append(gv);
+      // (the kids' sparks: one small canvas over the hull, in the sprite's own box — spark())
+      const fv = document.createElement('canvas'); fv.width = SHIP_W / 2; fv.height = SHIP_H / 2; fv.className = 'jw-ship-fx'; ship.fxc = ctx2d(fv, { willReadFrequently: true });   // (a plain BITMAP canvas — measured: a default one is moved to the GPU at its first real draws, one 150 ms frame as the first kid reached the rim)
+      if (ship.fxc) { el.append(fv); ship.fx = fv; }
+      C.host.append(el); ship.el = el;
+    }
     ship.cv = cv; ship.glow = g ? gv : null;
     // (its first paint happens NOW, unseen — on screen at 1 % for a few frames — never as it arrives)
-    if (!ship.on) { ship.el.style.transform = 'translate3d(-50%,-38%,0)'; ship.el.style.opacity = '0.01'; ship.el.dataset.o = ship.el.dataset.t = ''; ship.prime = 8; }
+    if (!ship.on) {
+      ship.el.style.transform = 'translate3d(-50%,-38%,0)'; ship.el.style.opacity = '0.01'; ship.el.dataset.o = ship.el.dataset.t = ''; ship.prime = 8;
+    }
   }
   function shipDom() {
     if (ship.dim) return;
@@ -551,7 +562,9 @@ export function createFlyers(C) {
     for (let i = nj; i < jets.length; i++) jets[i].visible = false;
     for (let i = nu; i < ufos.length; i++) { ufos[i].m.visible = false; ufos[i].id = -1; }
     // (the kid's own moments are asked for BEFORE begin(): what they counted is closed here, at the frame's end)
-    for (let i = nk; i < sparks.length; i++) if (sparks[i].style.opacity !== '0') sparks[i].style.opacity = '0';
+    for (let i = nk; i < sparks.length; i++) sparks[i].q0 = -1;
+    if (!fxUsed && fxHad && ship.fxc) ship.fxc.clearRect(0, 0, ship.fx.width, ship.fx.height);
+    fxHad = fxUsed; fxUsed = false;
     // THE MUSIC's DUCK this frame: the deepest of what is on — THE ABDUCTION (his own) · THE BLACKBIRD's pass · THE MOTHERSHIP
     duckNow = Math.min(duckK, duckJ, dimNow > 0.02 ? DUCK.ufo : 1); duckK = 1; duckJ = 1;
     dimSet(); nk = 0; dimNow = 0;
@@ -568,7 +581,7 @@ export function createFlyers(C) {
     shake: () => shakeNow,
     /** the meshes night.js's warm frame must have seen (their programs + buffers made before the moment, never in it) */
     meshes: () => [...jets, ...ufos.map(q => q.m)],
-    info: () => ({ models: Object.keys(geo), jets: jets.filter(m => m.visible && Math.abs(m.position.x) < 6.5).length, ufos: ufos.filter(q => q.m.visible).length, ship: !!ship.cv, shipOn: ship.on, shipText: ship.txt ? ship.txt.textContent : '', abducting: abd.on, dim: dimO, sparks: sparks.filter(e => e.style.opacity !== '0').length, sounds: played.slice() }),
+    info: () => ({ models: Object.keys(geo), jets: jets.filter(m => m.visible && Math.abs(m.position.x) < 6.5).length, ufos: ufos.filter(q => q.m.visible).length, ship: !!ship.cv, shipOn: ship.on, shipText: ship.txt ? ship.txt.textContent : '', abducting: abd.on, dim: dimO, sparks: sparks.filter(q => q.q0 >= 0).length, sounds: played.slice() }),
     /** the world goes quiet (a run's end / a new run / the view leaves): the loops fade */
     quiet() { if (snd.hum) { snd.hum.stop(0.4); snd.hum = null; } if (snd.ship && !ship.on) { snd.ship.stop(0.4); if (snd.rum) snd.rum.stop(0.4); snd.ship = snd.rum = null; } },
     destroy() {
@@ -576,8 +589,8 @@ export function createFlyers(C) {
       if (snd.hum) snd.hum.stop(0.2); if (snd.ship) snd.ship.stop(0.2); if (snd.rum) snd.rum.stop(0.2);
       for (const m of jets) scene.remove(m); for (const q of ufos) { scene.remove(q.m); q.m.material.dispose(); }
       jetMat.dispose(); for (const g of Object.values(geo)) g.dispose();
-      for (const e of [ship.el, ship.dim, ship.shade, ship.wash, ship.txt, dimEl, ...sparks]) if (e) e.remove();
-      for (const cv of [ship.cv, ship.glow]) if (cv) { cv.width = 0; cv.height = 0; }
+      for (const e of [ship.el, ship.dim, ship.shade, ship.wash, ship.txt, dimEl]) if (e) e.remove();
+      for (const cv of [ship.cv, ship.glow, ship.fx]) if (cv) { cv.width = 0; cv.height = 0; }
     },
   };
 }

@@ -733,9 +733,9 @@ try {
   r = await tapEl(p, '.jw-tab[data-mode="match"]'); s = await st(p);
   ok(s.mode === 'match' && s.lives === undefined && s.hops === 0, 'MATCH: a new run, ONE LIFE (no lives anywhere) — the tap on the tab is no hop');
   ok(r[2] >= 44 && r[3] >= 44, `the tabs' tap area ≥ 44 pt (${r[2].toFixed(0)} × ${r[3].toFixed(0)})`);
-  ok(/THE MOTHERSHIP 5:5\d|THE MOTHERSHIP 6:00/.test(await p.evaluate(() => document.querySelector('.jw-sub').textContent)), 'MATCH shows THE MOTHERSHIP\'s countdown (6:00) — and no lives HUD');
+  ok(/^MATCH · (5:5\d|6:00)$/.test(await p.evaluate(() => document.querySelector('.jw-sub').textContent)), 'MATCH shows its clock to THE MOTHERSHIP (6:00 — the mode\'s quiet line; H6B: the big red countdown is the only one that names her) — and no lives HUD');
   await tapEl(p, '.jw-tab[data-mode="daily"]'); s = await st(p);
-  ok(s.mode === 'daily' && /THE MOTHERSHIP 4:5\d|THE MOTHERSHIP 5:00/.test(await p.evaluate(() => document.querySelector('.jw-sub').textContent)), 'DAILY: THE MOTHERSHIP at 5:00');
+  ok(s.mode === 'daily' && /^DAILY · (4:5\d|5:00)$/.test(await p.evaluate(() => document.querySelector('.jw-sub').textContent)), 'DAILY: THE MOTHERSHIP at 5:00');
   const seedA = s.seed;
   await tapEl(p, '.jw-new:not(.jw-snd)'); s = await st(p);
   ok(s.seed !== seedA && s.mode === 'daily', 'NEW SEED: a new course, the same mode');
@@ -750,12 +750,12 @@ try {
   const tA = (await st(p)).t; await sleep(500);
   ok((await st(p)).t === tA, '… and the run holds still under it');
   const rows = await p.evaluate(() => [...document.querySelectorAll('.jw-au-row')].map(x => ({ id: x.dataset.id, plays: x.querySelectorAll('.jw-au-play').length, picks: x.querySelectorAll('.jw-au-pick').length })));
-  ok(rows.length === 11 && rows.filter(x => x.plays === 2 && x.picks === 2).length === 4 && rows.filter(x => x.plays === 1 && x.picks === 0).length === 7 && !rows.some(x => x.id === 'car-pass' || x.id === 'landmark') && rows.some(x => x.id === 'train-horn') && rows.some(x => x.id === 'area-arrive'), `EVERY JAYWALK sound: ${rows.length} rows (H5B: the car-pass is gone · H5C: the bell = one take, + the train horn, the landmark ping → the area arrival) — 4 with a pick + its backup side by side (PLAY A · PLAY B · USE A / B), 7 with one take`);
+  ok(rows.length === 11 && rows.filter(x => x.plays === 2 && x.picks === 2).length === 3 && rows.filter(x => x.plays === 1 && x.picks === 0).length === 8 && !rows.some(x => x.id === 'car-pass' || x.id === 'landmark') && rows.some(x => x.id === 'train-horn') && rows.some(x => x.id === 'area-arrive'), `EVERY JAYWALK sound: ${rows.length} rows (H5B: the car-pass is gone · H5C: the bell = one take, + the train horn, the landmark ping → the area arrival) — 3 with a pick + its backup side by side (PLAY A · PLAY B · USE A / B), 8 with one take (H6B: NEW BEST = ONE take)`);
   const n0 = await p.evaluate(() => ({ w: window.__jwLab.sfx.totals().asked, p: window.__jwLab.sfx.totals().started }));   // (the totals: the two lists keep only their last 200)
-  await tapEl(p, '[data-snd="hop:a"]'); await tapEl(p, '[data-snd="hop:b"]'); await tapEl(p, '[data-snd="new-best:b"]'); await sleep(500);
+  await tapEl(p, '[data-snd="hop:a"]'); await tapEl(p, '[data-snd="hop:b"]'); await tapEl(p, '[data-snd="land-wood:b"]'); await sleep(500);   // (H6B: NEW BEST has ONE take — the third tap is the landing's backup)
   const n1 = await p.evaluate(() => ({ w: window.__jwLab.sfx.wanted().slice(-3).map(x => `${x.id}:${x.ab}`), p: window.__jwLab.sfx.totals().started, last: window.__jwLab.sfx.played().slice(-3).map(x => `${x.id}:${x.ab}`) }));
-  ok(n1.w.join() === 'hop:a,hop:b,new-best:b', `EVERY TAP ACTS: PLAY A, PLAY B (${n1.w.join(' · ')})`);
-  ok(n1.p - n0.p === 3 && n1.last.join() === 'hop:a,hop:b,new-best:b', `… each one SOUNDS, the first time it is asked for (${n1.p - n0.p} started — a backup is fetched + decoded on its first tap)`);
+  ok(n1.w.join() === 'hop:a,hop:b,land-wood:b', `EVERY TAP ACTS: PLAY A, PLAY B (${n1.w.join(' · ')})`);
+  ok(n1.p - n0.p === 3 && n1.last.join() === 'hop:a,hop:b,land-wood:b', `… each one SOUNDS, the first time it is asked for (${n1.p - n0.p} started — a backup is fetched + decoded on its first tap)`);
   await tapEl(p, '[data-snd="train-bell:a"]'); await sleep(700);
   let bell = await p.evaluate(() => ({ on: document.querySelector('[data-snd="train-bell:a"]').classList.contains('is-on'), n: window.__jwLab.sfx.sounding(), last: window.__jwLab.sfx.played().slice(-1)[0] }));
   ok(bell.on && bell.n >= 1 && bell.last.id === 'train-bell' && bell.last.loop === true, 'the train bell plays as a LOOP (the whole 16-bit WAV — no MP3 padding)');
@@ -962,11 +962,11 @@ try {
     ok(await wwait("!!document.querySelector('.sh.jw-au-sheet.is-in')", 6000), 'WebKit: SOUNDS → the audition sheet opens');
     await sleep(450);
     const b0 = await wp.evaluate(() => window.__jwLab.sfx.totals().asked);
-    await wtap('[data-snd="hop:a"]'); await wtap('[data-snd="splash:a"]'); await wtap('[data-snd="new-best:b"]');
+    await wtap('[data-snd="hop:a"]'); await wtap('[data-snd="splash:a"]'); await wtap('[data-snd="land-wood:b"]');
     const ww = await wp.evaluate(n => { const S = window.__jwLab.sfx, d = S.totals().asked - n; return { w: (d > 0 ? S.wanted().slice(-d) : []).map(x => `${x.id}:${x.ab}`), p: S.totals().started }; }, b0);
-    ok(ww.w.join() === 'hop:a,splash:a,new-best:b', `WebKit: every PLAY tap acts (${ww.w.join(' · ')}; ${ww.p} started on its audio context — Playwright's WebKit on Windows may have no audio device)`);
-    await wtap('[data-pick="new-best:b"]');
-    ok(/new-best B$/.test(await wp.evaluate(() => document.querySelector('.jw-au-line').textContent)), 'WebKit: a pick is taken');
+    ok(ww.w.join() === 'hop:a,splash:a,land-wood:b', `WebKit: every PLAY tap acts (${ww.w.join(' · ')}; ${ww.p} started on its audio context — Playwright's WebKit on Windows may have no audio device)`);
+    await wtap('[data-pick="land-wood:b"]');
+    ok(/land-wood B /.test(await wp.evaluate(() => document.querySelector('.jw-au-line').textContent)), 'WebKit: a pick is taken');
     if (OUT) await wp.screenshot({ path: join(OUT, 'webkit-audition-390x844.png') });
     ok(!werr.length, `WebKit: no page error${werr.length ? `: ${werr[0]}` : ''}`);
     await wb.close();
