@@ -4,7 +4,7 @@
 // ~60 % of JAYWALK, on the art's black left), the remote panel rows.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { setHoldem, setHoldemForce } from '../js/core/harbor-holdem.js';
 import { setJaywalk, setJaywalkForce, jaywalkShow, jaywalkState, triFaces, triKeeps, triClock, turnsBetween, chapterTurns, chapterHash, triKnobs, slatU, slatLook, cleanJaywalk, jaywalkRev } from '../js/core/harbor-trivision.js';
 import { workDay } from '../js/core/harbor-workers.js';
@@ -88,7 +88,10 @@ test('THE RIPPLE: the slats turn left → right inside the turn; each a prism go
 test('the scene: the tri-vision\'s pieces (the warm after the reveal, the swap under the slats, the crisp z 4, reduced motion = a cut, the click quiet)', () => {
   const sc = readFileSync(new URL('../js/screens/harbor/scene.js', import.meta.url), 'utf8');
   // (CITY B: only when a JAYWALK face is up — needJw; THE DROP's painter the same way — needDr)
-  assert.match(sc, /if \(needJw && !tri\.warmed && shownAt >= 0 && performance\.now\(\) >= tri\.retryAt\) \{ tri\.warmed = true; lazyImport\(import\('\.\/jaywalk-art\.js'\)/, 'the poster module + its art load only after the reveal (never the boot graph)');
+  assert.match(sc, /if \(needSoon && !tri\.warmed && shownAt >= 0 && performance\.now\(\) >= tri\.retryAt\) \{ tri\.warmed = true; lazyImport\(import\('\.\/jaywalk-art\.js'\)/, 'the poster module + its art load only after the reveal (never the boot graph)');
+  // (CITY F — THE OPEN NOW BILLBOARD: from the OPEN DAY the owner's poster warms instead — after the reveal, a face only once ITS picture decoded)
+  assert.match(sc, /if \(needOpen && !tri\.openWarmed && shownAt >= 0 && performance\.now\(\) >= tri\.retryAt\) \{ tri\.openWarmed = true; lazyImport\(import\('\.\/jaywalk-art\.js'\)/);
+  assert.match(sc, /const G = F\.filter\(f => \(f !== 'jaywalk' \|\| tri\.jw\) && \(f !== 'jaywalk-open' \|\| tri\.jwOpen\)/);
   assert.match(sc, /if \(needDr && !tri\.drWarm && shownAt >= 0 && performance\.now\(\) >= tri\.drRetry\) \{ tri\.drWarm = true; lazyImport\(import\('\.\/drop-art\.js'\)/);
   // (PLAY NOW 0c — THE ROOF BOARD STOPPED TURNING: a failed art / painter is asked again on a backoff + reported, never left for good)
   assert.match(sc, /tri\.retryAt = performance\.now\(\) \+ \[3e3, 15e3, 60e3, 300e3\]\[Math\.min\(tri\.fails - 1, 3\)\]/);
@@ -153,4 +156,15 @@ test('CITY A — the turn works for N faces: the turns\' TIMES never change, onl
   }
   assert.equal(triClock2(1794364216, K, 8).face, triClock2(1794364216, K, 8, 2).face, 'two faces = as before');
   assert.match(readFileSync(new URL('../js/screens/harbor/scene.js', import.meta.url), 'utf8'), /triClock\(clock\.now\(\) \/ 1000, K, triForce\(\), F\.length\)/);
+});
+
+test('CITY F — THE OPEN NOW BILLBOARD: the owner\'s poster on the NOW OPEN face only — whole, its words baked in (no lettering drawn), a small lazy WebP', () => {
+  const art = readFileSync('js/screens/harbor/jaywalk-art.js', 'utf8');
+  assert.match(art, /const OPEN_SRC = new URL\('\.\.\/\.\.\/\.\.\/assets\/city\/jaywalk\/open-now\.webp', import\.meta\.url\)\.href;/);
+  const i = art.indexOf("if (bar === 'open' && openReady && openImg) {"), seg = art.slice(i, art.indexOf('x.restore(); return;', i));
+  assert.ok(i > 0 && /drawImage\(openImg/.test(seg) && !/word\(|fillText/.test(seg), 'the open face: the picture alone, no lettering over it');
+  const size = statSync('assets/city/jaywalk/open-now.webp').size;
+  assert.ok(size > 5000 && size <= 200 * 1024, `the poster ${size} B (≤ 200 KB)`);
+  // (never in the boot graph: only the lazy jaywalk-art.js names it)
+  assert.doesNotMatch(readFileSync('js/screens/harbor/scene.js', 'utf8') + readFileSync('js/screens/harbor/signs.js', 'utf8'), /open-now\.webp/);
 });

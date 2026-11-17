@@ -1131,7 +1131,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (THE TRI-VISION's state — its functions below workBoard; declared up here: boardSync reads it)
   let jaywalkForced = false, dropForced = false;
   const benchK = new Map(), BENCH_XF_S = 0.25;   // (THE BENCH OVER THE TAXI: each bench overlay's own fade, 1 = shown)
-  const tri = { shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null, fails: 0, retryAt: 0, dr: null, drWarm: false, drRetry: 0 };
+  const tri = { shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null, jwOpen: false, openWarmed: false, fails: 0, retryAt: 0, dr: null, drWarm: false, drRetry: 0 };
   const triWarmFailed = what => {
     tri.warmed = false; tri.fails++;
     tri.retryAt = performance.now() + [3e3, 15e3, 60e3, 300e3][Math.min(tri.fails - 1, 3)];
@@ -1262,10 +1262,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!jaywalkForced && (clock.force.has('billboard-jaywalk') || clock.force.has('trivision')) && LK.local) { jaywalkForced = true; setJaywalkForce({ since: workDayOf(clock.now() / 1000 - 86400, LK.local.off || 0).key, bar: qp.get('jaywalk') === 'open' ? 'open' : 'soon' }); }
     if (!dropForced && clock.force.has('billboard-drop') && LK.local) { dropForced = true; setDropForce({ since: workDayOf(clock.now() / 1000 - 86400, LK.local.off || 0).key }); }
     const F = key ? triFaces(key, clock.now()) : null, needJw = !!F && F.some(isJaywalkId), needDr = !!F && F.includes('drop');
-    if (needJw && !tri.warmed && shownAt >= 0 && performance.now() >= tri.retryAt) { tri.warmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jw = m; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (!destroyed) triWarmFailed(`poster art (${why})`); }); }).catch(e => { if (!destroyed) triWarmFailed(`painter (${(e && e.message) || e})`); }); }   // (the poster's module + its art: AFTER the reveal — never the boot graph)
+    // (CITY F — THE OPEN NOW BILLBOARD: the face the board turns to decides WHICH picture warms — COMING SOON's art, or from the OPEN DAY the
+    //  owner's poster (jaywalk-art.js#warmJaywalk(…, open)); a face shows only once ITS picture has decoded)
+    const needOpen = !!F && F.includes('jaywalk-open'), needSoon = !!F && F.includes('jaywalk');
+    if (needSoon && !tri.warmed && shownAt >= 0 && performance.now() >= tri.retryAt) { tri.warmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jw = m; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (!destroyed) triWarmFailed(`poster art (${why})`); }); }).catch(e => { if (!destroyed) triWarmFailed(`painter (${(e && e.message) || e})`); }); }   // (the poster's module + its art: AFTER the reveal — never the boot graph)
+    if (needOpen && !tri.openWarmed && shownAt >= 0 && performance.now() >= tri.retryAt) { tri.openWarmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jwOpen = true; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (destroyed) return; tri.openWarmed = false; triWarmFailed(`the open-now poster (${why})`); }, true); }).catch(e => { if (destroyed) return; tri.openWarmed = false; triWarmFailed(`painter (${(e && e.message) || e})`); }); }
     if (needDr && !tri.drWarm && shownAt >= 0 && performance.now() >= tri.drRetry) { tri.drWarm = true; lazyImport(import('./drop-art.js'), './drop-art.js').then(m => { if (!destroyed) m.warmDrop(() => { if (destroyed) return; tri.dr = m; setDropPainter(m.paintDrop); boardCheck = 0; }); }).catch(e => { if (destroyed) return; tri.drWarm = false; tri.drRetry = performance.now() + 15e3; reportError(new Error(`THE TRI-VISION: THE DROP's painter failed to load (${(e && e.message) || e})`), 'trivision art'); }); }
     if (!F) return null;
-    const G = F.filter(f => (!isJaywalkId(f) || tri.jw) && (f !== 'drop' || tri.dr));
+    const G = F.filter(f => (f !== 'jaywalk' || tri.jw) && (f !== 'jaywalk-open' || tri.jwOpen) && (f !== 'drop' || tri.dr));
     return G.length >= 2 ? G : null;
   }
   /** every frame (boardSync): the clock's turn → a turn from the face on show to the clock's (never a pop-in) → the faces [A, B], or null */

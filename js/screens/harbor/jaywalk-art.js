@@ -18,13 +18,21 @@
 import { JW_GLYPHS } from './jaywalk-glyphs.js';
 
 const SRC = new URL('../../../assets/city/jaywalk/billboard.webp', import.meta.url).href;
+// CITY F — THE OPEN NOW BILLBOARD (the owner's pick, Nov 17 — Downloads\NEON\jaywalk-billboard-open-now.png, built by
+// scripts/build-jaywalk-opennow.py → 848 × 448, 24 KB): from JAYWALK's OPEN DAY (the 'jaywalk-open' face — core/harbor-trivision.js#jaywalkShow)
+// the board shows THIS poster whole, its words baked in (nothing lettered over it); until then the COMING SOON face as before. Fetched
+// lazily like the old art — after the reveal, only once the open face is wanted; never in the boot graph.
+const OPEN_SRC = new URL('../../../assets/city/jaywalk/open-now.webp', import.meta.url).href;
+let openImg = null, openReady = false;
 const PINK = '#ff4fc4', PINK_HI = '#ffb3e6', CORE = '#fff4fb', EDGE = '#14030f', PLUM = '#3a0428';
 /** how far the art moves down (a share of the panel's height): the kid's cap just under the panel's rule */
 const ART_DROP = 0.08;
 let img = null, ready = false, paths = null;
 const P = () => paths || (paths = Object.fromEntries(Object.entries(JW_GLYPHS).map(([k, g]) => [k, { ...g, p: typeof Path2D === 'function' ? new Path2D(g.d) : null }])));
-/** load the poster (once; after the reveal — the scene calls it when the tri-vision is wanted); `onReady` when it has decoded */
-export function warmJaywalk(onReady, onFail) {
+/** load the poster (once; after the reveal — the scene calls it when the tri-vision is wanted); `onReady` when it has decoded. open = the
+ *  NOW OPEN face is wanted (CITY F: the owner's poster) — that picture alone */
+export function warmJaywalk(onReady, onFail, open = false) {
+  if (open) { warmOpen(onReady, onFail); return; }
   if (ready) { if (onReady) onReady(); return; }
   if (img || typeof Image === 'undefined') return;
   const me = img = new Image(); img.decoding = 'async';
@@ -34,6 +42,15 @@ export function warmJaywalk(onReady, onFail) {
   img.src = SRC;
 }
 export const jaywalkReady = () => ready;
+function warmOpen(onReady, onFail) {
+  if (openReady) { if (onReady) onReady(); return; }
+  if (openImg || typeof Image === 'undefined') return;
+  const me = openImg = new Image(); openImg.decoding = 'async';
+  openImg.onload = () => { const done = () => { openReady = true; if (onReady) onReady(); }; if (me.decode) me.decode().then(done, done); else done(); };
+  openImg.onerror = () => { if (openImg === me) openImg = null; if (onFail) onFail('the open-now image failed'); };
+  openImg.src = OPEN_SRC;
+}
+export const jaywalkOpenReady = () => openReady;
 
 /** the poster's own shape — HOLD'EM's (holdem-art.js#POSTER_ASPECT): both faces lay out in the same box */
 export const JW_ASPECT = 848 / 448;
@@ -60,6 +77,13 @@ function word(x, g, cx, by, cap, paint) { const s = cap / g.cap; x.save(); x.tra
 
 /** the poster face into R; bar: 'soon' | 'open'; sd: the sun's side (the shadows fall away from it; 0 at night) */
 export function paintJaywalk(x, R, bar = 'soon', sd = 0) {
+  // (CITY F — THE OPEN NOW BILLBOARD: from the OPEN DAY, the owner's poster WHOLE — COVER in the poster box, its words baked in: no lettering)
+  if (bar === 'open' && openReady && openImg) {
+    x.save(); x.beginPath(); x.rect(R.x, R.y, R.w, R.h); x.clip();
+    x.fillStyle = '#05030a'; x.fillRect(R.x, R.y, R.w, R.h);
+    const C = coverOf(R, openImg.naturalWidth || 848, openImg.naturalHeight || 448); x.drawImage(openImg, C.dx, C.dy, C.dw, C.dh);
+    x.restore(); return;
+  }
   const G = P();
   x.save();
   x.beginPath(); x.rect(R.x, R.y, R.w, R.h); x.clip();
