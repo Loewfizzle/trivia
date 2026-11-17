@@ -3,6 +3,7 @@
 // hit · splash) stay the engine's events (sfx.js#onEvent). Every cue is about THIS phone's own kid — in a match a ghost makes no sound.
 //   · bell-on / bell-off — THE TRAIN BELL loops while a rail lane's signals flash NEAR the kid (its tell) and stops as the train passes
 //   · train-pass        — the moment a near train's pass begins (panned to the side it comes from)
+//   · train-horn        — H5C: ONE blast a train, the moment its WARNING STARTS (a near rail lane's tell begins), from its side
 //   (H5B — the owner: the CAR-PASS near-miss whoosh is GONE — no cue, no sound)
 //   · horn              — a car closing on the kid standing in its lane, ≤ 1 every 3 s
 //   · lights-die        — THE BLACKOUT takes a lane within 3 of him (never the far-off wall he is outrunning)
@@ -19,7 +20,7 @@ export const CUE = Object.freeze({
 });
 
 /** a run's cue state (the view makes one a run) */
-export const createCues = () => ({ bell: false, passK: {}, hornAt: -1e9, wallLane: null, lightsAt: -1e9 });
+export const createCues = () => ({ bell: false, passK: {}, tellK: {}, hornAt: -1e9, wallLane: null, lightsAt: -1e9 });
 
 /** the car on a ROAD lane nearest ahead of the kid's box that is driving AT him: → { gap (FP from its nose to his box), side (−1 it
  *  comes from the left | 1 from the right) } or null */
@@ -45,8 +46,11 @@ export function cuesAt(S, run, course) {
     const L = course.lane(i);
     if (L.type !== 'rail') continue;
     const st = pulseAt(L.pulse, T);
-    if (st.st === 'tell') tell = true;
-    else if (st.st === 'pass' && S.passK[i] !== st.k) { S.passK[i] = st.k; if (st.s <= 2) out.push({ cue: 'train-pass', pan: -L.pulse.dir * CUE.pan }); }
+    if (st.st === 'tell') {
+      tell = true;
+      // THE TRAIN HORN (H5C): one blast a train, when its warning STARTS — a tell he walks into half-way through is not a start
+      if (S.tellK[i] !== st.k) { S.tellK[i] = st.k; if (st.left >= L.pulse.tell - 3) out.push({ cue: 'train-horn', pan: -L.pulse.dir * CUE.pan }); }
+    } else if (st.st === 'pass' && S.passK[i] !== st.k) { S.passK[i] = st.k; if (st.s <= 2) out.push({ cue: 'train-pass', pan: -L.pulse.dir * CUE.pan }); }
   }
   if (tell !== S.bell) { S.bell = tell; out.push({ cue: tell ? 'bell-on' : 'bell-off' }); }
   const lane = course.lane(y);

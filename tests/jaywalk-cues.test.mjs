@@ -74,7 +74,7 @@ test('NO CAR-PASS (H5B — the owner: "it\'s terrible"): a near miss makes no cu
     const { out } = listen(`car${s}`, { from: 250, ticks: 3000, stand: (run, course) => course.lane(run.y).type === 'road' && run.t % 400 < 60 });
     const H = out.filter(q => q.cue === 'horn');
     assert.equal(out.filter(q => q.cue === 'car-pass').length, 0, 'never a car-pass cue');
-    for (const q of out) assert.ok(['bell-on', 'bell-off', 'train-pass', 'horn', 'lights-die'].includes(q.cue), `an unknown cue: ${q.cue}`);
+    for (const q of out) assert.ok(['bell-on', 'bell-off', 'train-pass', 'train-horn', 'horn', 'lights-die'].includes(q.cue), `an unknown cue: ${q.cue}`);
     near += out.filter(q => q.near).length;
     for (let i = 1; i < H.length; i++) assert.ok(H[i].t - H[i - 1].t >= 3 * T.TICK_HZ, `two horns ${H[i].t - H[i - 1].t} ticks apart`);
     for (const q of H) { assert.ok(Math.abs(q.pan) === CUE.pan, 'the horn comes from the car\'s side'); if (q.pan < 0) lefts++; else rights++; }
@@ -111,7 +111,7 @@ test('THE LIGHTS DIE: only when THE BLACKOUT takes a lane within 3 of the kid �
 
 test('THE TABLE: every sound in play; THE PRIORITY — your own hit / splash > the train > the horn > a hop + a landing; the caps; ≈ 8 voices; H5B — no car-pass row / file, THE HORN AT HALF, the train sounds\' fade', () => {
   const pri = id => SOUNDS.find(s => s.id === id).pri, max = id => SOUNDS.find(s => s.id === id).max;
-  assert.ok(SOUNDS.every(s => s.play), 'all in play'); assert.equal(SOUNDS.length, 10);
+  assert.ok(SOUNDS.every(s => s.play), 'all in play'); assert.equal(SOUNDS.length, 11);
   assert.equal(SOUNDS.find(s => s.id === 'car-pass'), undefined, 'the car-pass is GONE from the table (the game never fetches it, the audition never lists it)');
   for (const f of ['car-pass.mp3', 'car-pass-b.mp3']) assert.equal(existsSync(new URL(`../audio/jaywalk/${f}`, import.meta.url)), false, `${f} no longer ships`);
   assert.doesNotMatch(code('sfx.js') + code('cues.js') + code('view.js') + code('lab.js') + code('audition.js'), /car-pass/, 'no code names it');
@@ -150,4 +150,33 @@ test('THE PLAYER + THE VIEWS: a sound\'s own cap, the pan, the bell = ONE loop f
   for (const bad of [/audio\//, /sfx\.js/, /document|window/, /Date\.now|performance\.now/, /Math\.random/, /from 'three'/]) assert.doesNotMatch(c, bad, `cues.js: ${bad}`);
   // the visual tells do not depend on any sound: the scene draws from (run, course) alone
   assert.doesNotMatch(code('night.js'), /sfx\.js|cues\.js/, 'the scene never asks the sounds: muted, every hazard keeps its tell');
+});
+
+test('H5C — THE TRAIN HORN: ONE blast a train, when its warning STARTS (with the bell), from its side; THE AREA ARRIVAL replaced the landmark ping; the old bells + cues are gone', () => {
+  let horns = 0, bells = 0;
+  for (let s = 0; s < 12; s++) {
+    const { out, course } = listen(`horn${s}`, { from: 150, ticks: 4000, lazy: true });   // (THE RAIL YARD: the most trains)
+    const H = out.filter(q => q.cue === 'train-horn'), seen = new Set();
+    for (const q of H) {
+      assert.ok(Math.abs(q.pan) === CUE.pan, 'it comes from the train\'s side');
+      // the blast is the START of a near rail lane's tell: some rail lane within the bell's reach began its tell within 3 ticks
+      let lane = -1;
+      for (let i = Math.max(0, q.y - CUE.bellBehind); i <= q.y + CUE.bellAhead; i++) { const L = course.lane(i); if (L.type !== 'rail') continue; const st = pulseAt(L.pulse, q.t); if (st.st === 'tell' && st.left >= L.pulse.tell - 3 && !seen.has(`${i}:${st.k}`)) { lane = i; seen.add(`${i}:${st.k}`); break; } }
+      assert.ok(lane >= 0, `a horn at tick ${q.t} without a warning just starting`);
+    }
+    horns += H.length; bells += out.filter(q => q.cue === 'bell-on').length;
+  }
+  assert.ok(horns > 10, `the horn sounds on real runs (${horns})`); assert.ok(bells > 0);
+  const row = id => SOUNDS.find(q => q.id === id);
+  assert.deepEqual([row('train-horn').max, row('train-horn').fade, row('train-horn').b, row('train-horn').pri], [1, FADE_S, false, 3], 'one at once, it fades, one take, the train\'s priority');
+  assert.equal(row('train-bell').b, false, 'the bell = ONE take (set B): the old A + B are gone');
+  assert.equal(row('landmark'), undefined, 'no landmark row'); assert.ok(row('area-arrive') && row('area-arrive').pri === 3, 'THE AREA ARRIVAL in its place');
+  for (const f of ['landmark.mp3', 'train-bell-b.wav']) assert.equal(existsSync(new URL(`../audio/jaywalk/${f}`, import.meta.url)), false, `${f} no longer ships`);
+  for (const f of ['train-bell.wav', 'train-horn.mp3', 'area-arrive.mp3']) assert.ok(existsSync(new URL(`../audio/jaywalk/${f}`, import.meta.url)), `${f} ships`);
+  const all = code('sfx.js') + code('cues.js') + code('view.js') + code('lab.js') + code('audition.js') + code('sounds.js');
+  assert.doesNotMatch(all, /play\('landmark'|id: 'landmark'/, 'no code plays the old landmark cue');
+  assert.match(code('sfx.js'), /if \(q\.cue === 'train-horn'\) return play\('train-horn', \{ pan: q\.pan \}\);/); assert.match(code('sfx.js'), /export const JW_SFX_REV = 2;/, 'the bell\'s file was replaced: the rev is bumped');
+  assert.match(code('view.js'), /SFX\.play\('area-arrive'\)/); assert.match(code('lab.js'), /snd\.play\('area-arrive'\)/);
+  const cr = readFileSync(new URL('../audio/jaywalk/CREDITS.md', import.meta.url), 'utf8');
+  for (const line of ['"Railroad Crossing Bell" by Brylon Terry (SoundBible.com), CC BY 3.0. https://soundbible.com/2070-Railroad-Crossing-Bell.html', '"Train Diesel Double Horn from Class 142 with Reverb" by AMBIOSIS (Freesound), CC BY 4.0. https://freesound.org/s/316689/', '"achievement-sparkle" by SkySpeira (Freesound), CC0 1.0. https://freesound.org/s/715067/']) assert.ok(cr.includes(line), `the credits carry: ${line}`);
 });

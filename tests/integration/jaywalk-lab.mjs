@@ -371,6 +371,110 @@ async function looksAddons(p) {
   ok(await L("window.__jwLab.state().info.look === 'night'"), 'the add-ons\' shots: the water, the friend line, the rail signals, the ghosts — night + day');
 }
 
+// ---- H5C — NO WEAK POINTS (`--h5c[=sky|fog|ground|gates|lines|tail]`): THE PAINTED SKYLINES + THE FAR EDGE (the top third in 4 areas by
+// day + 2 by night, the cross-fade at a gate, only the current + the next picture held) · THE FOG BANK / THE BLACKOUT · the day ground +
+// the props · every gate (approaching + standing in it, day + night: the name on its arch) · both lines on grass / road / water / rails ·
+// the tail lights. The shots → h5c/<group>/.
+async function looksH5C(p, what, reqs) {
+  const L = js => p.evaluate(js), all = !what;
+  const IDS = ['docks', 'fish-market', 'rail-yard', 'bridge', 'downtown', 'canal', 'lighthouse', 'airfield'], SKY = ['docks', 'fish', 'yard', 'bridge', 'downtown', 'canal', 'lighthouse', 'airfield'];
+  const fresh = look => L(`window.__jwLab.bot(false); window.__jwLab.restart('solo', 'look3'); window.__jwLab.setCamera(8, 'straight', true); window.__jwLab.setLook('${look}'); window.__jwLab.hop('u')`);
+  const stand = (lane, col) => p.evaluate((l, c) => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'look3'); J.hop('u'); } const y = J.find('grass', l); J.warp(y, c == null ? {} : { x: c * 1000 + 500 }); return y; }, lane, col);
+  const below = (l, x) => p.evaluate((ln, xx) => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'look3'); J.hop('u'); } for (let d = 2; d < 9; d++) if (J.find('grass', ln - d) === ln - d) { J.warp(ln - d, { x: xx }); return ln - d; } J.warp(ln - 2); return ln - 2; }, l, x);
+  const top = async name => { if (OUT) { mkdirSync(join(OUT, name.slice(0, name.lastIndexOf('/'))), { recursive: true }); await p.screenshot({ path: join(OUT, name), clip: { x: 0, y: 0, width: 390, height: 300 } }); } };
+  const sky = () => p.evaluate(() => window.__jwLab.state().info.sky);
+  if (all || what === 'sky') {
+    await fresh('day'); await sleep(900);
+    let s = await sky();
+    ok(s.now === 'skyline-day.webp' && s.held.length <= 2, `the opening keeps skyline-day (${s.now}; held ${s.held.join(' + ')})`);
+    ok(!reqs.some(u => /skyline-day-[a-z]+\.webp/.test(u)), 'no area\'s picture is fetched at the start');
+    await top('h5c/sky/day-0-the-opening-top.png'); await shot(p, 'h5c/sky/day-0-the-opening.png');
+    // nearing the docks' gate: the NEXT picture is fetched quietly; at the gate the band cross-fades
+    await stand(38); await sleep(700); s = await sky();
+    ok(s.now === 'skyline-day.webp' && s.held.includes('skyline-day-docks.webp') && reqs.some(u => /skyline-day-docks\.webp/.test(u)), `12 lanes before THE DOCKS' gate its picture is fetched ahead (held ${s.held.join(' + ')})`);
+    const f0 = s.fades;
+    await stand(50); await sleep(700); await top('h5c/sky/day-1-docks-cross-fade-mid.png');
+    await sleep(1900); s = await sky();
+    ok(s.now === 'skyline-day-docks.webp' && s.fades === f0 + 1 && s.held.length <= 2, `at the gate the band CROSS-FADES to the docks' picture (${s.now}, fades ${s.fades}, held ${s.held.join(' + ')})`);
+    for (let k = 0; k < 8; k++) {
+      await stand(50 * (k + 1) + 9, 4); await sleep(2700); s = await sky();
+      ok(s.now === `skyline-day-${SKY[k]}.webp` && s.held.length <= 2, `${IDS[k]}: the band shows its painted skyline; ≤ 2 pictures held (${s.held.join(' + ')})`);
+      await top(`h5c/sky/day-${k + 1}-${IDS[k]}-top.png`); await shot(p, `h5c/sky/day-${k + 1}-${IDS[k]}.png`);
+    }
+    ok(await L("!document.querySelector('.jw-sky-mark.is-a, .jw-sky-mark.is-b')"), 'by day skymarks.js draws NOTHING (the painted picture carries the landmark)');
+    await stand(459, 4); await sleep(2700); s = await sky();
+    ok(s.now === 'skyline-day-docks.webp', `the loop (lane 450 +) repeats the pictures (${s.now})`);
+    const n = reqs.filter(u => /skyline-day-[a-z]+\.webp/.test(u)).length;
+    ok(n >= 8, `the pictures were fetched one by one along the way (${n} fetches for 9 gates — never all 8 at once)`);
+    await L("window.__jwLab.setLook('night')"); await sleep(900); s = await sky();
+    ok(s.now === 'skyline-night.webp' && s.held.length === 1, `by night: the ONE night picture (${s.held.join(' + ')})`);
+    for (const [k, lane] of [[0, 59], [6, 359]]) { await fresh('night'); await sleep(300); await stand(lane, 4); await sleep(1500); await top(`h5c/sky/night-${k + 1}-${IDS[k]}-top.png`); await shot(p, `h5c/sky/night-${k + 1}-${IDS[k]}.png`); ok((await st(p)).info.mark === `${k}:night`, `${IDS[k]} by night: its neon-outline landmark stands in the band, as before`); }
+  }
+  if (all || what === 'fog') {
+    for (const look of ['day', 'night']) {
+      await fresh(look); await sleep(5200); await shot(p, `h5c/fog/${look}-1-coming.png`);
+      await sleep(1800); await shot(p, `h5c/fog/${look}-2-near.png`);
+      await sleep(1300); await shot(p, `h5c/fog/${look}-3-close.png`);
+      await waitFor(p, "window.__jwLab.state().over && window.__jwLab.state().cause === 'wall'", 30000); await sleep(350); await shot(p, `h5c/fog/${look}-4-taken.png`);
+    }
+    ok(true, 'THE FOG BANK (day) + THE BLACKOUT (night): coming · near · close · taken');
+  }
+  if (all || what === 'ground') {
+    await fresh('day'); await sleep(400);
+    for (const [name, lane, col] of [['the-opening-grass', 18, 4], ['the-road', 0, 4], ['the-docks-drums', 57, 4], ['the-fish-market-cobbles', 108, 4], ['the-rail-yard-gravel', 158, 4], ['the-bridge', 207, 4], ['downtown-shops', 262, 4], ['the-canal', 312, 4], ['the-lighthouse-sand', 362, 4], ['the-airfield', 412, 4]]) {
+      if (name === 'the-road') { const i = await p.evaluate(() => window.__jwLab.find('road', 20)); await stand(i - 1, 4); } else await stand(lane, col);
+      await sleep(1100); await shot(p, `h5c/ground/day-${name}.png`);
+    }
+    await L("window.__jwLab.setLook('night')"); await sleep(600);
+    for (const [name, lane] of [['the-opening-grass', 18], ['the-fish-market-cobbles', 108], ['the-docks-drums', 57], ['downtown-shops', 262]]) { await stand(lane, 4); await sleep(1100); await shot(p, `h5c/ground/night-${name}.png`); }
+    ok(true, 'the ground + the props: the day grass / road / every area\'s ground + the night checks');
+  }
+  if (all || what === 'gates') {
+    for (const look of ['day', 'night']) {
+      await fresh(look); await sleep(400);
+      for (let k = 0; k < 8; k++) {
+        const g = 50 * (k + 1);
+        await stand(g - 5); await sleep(1000); await shot(p, `h5c/gates/${look}-${k + 1}-${IDS[k]}-approaching.png`);
+        await stand(g); await sleep(1000); await shot(p, `h5c/gates/${look}-${k + 1}-${IDS[k]}-in-it.png`);
+        // the name stands on the arch ABOVE him: the sign's foot is well over his cap on the screen
+        const q = await p.evaluate(() => { const J = window.__jwLab, s = J.state(), i = s.info.gate; return i ? { sign: i.y, kid: s.kidY, px: s.kidPx / innerHeight, text: i.text, on: i.on } : null; });
+        ok(!!q && q.on && q.sign < q.kid - q.px - 0.02, `${IDS[k]} (${look}): standing in the gate lane the name "${q && q.text}" stands on the arch above him (the sign's foot ${q ? q.sign.toFixed(3) : '—'} · his cap ${q ? (q.kid - q.px).toFixed(3) : '—'} down the screen)`);
+      }
+    }
+  }
+  if (all || what === 'lines') {
+    const lines = (best, friend) => p.evaluate((b, f) => window.__jwLab.view.setLines({ best: b ? { lane: b, text: `YOUR BEST · ${b}` } : null, friend: f ? { lane: f, text: `LIAM · ${f}` } : null }), best, friend);
+    for (const look of ['day', 'night']) {
+      for (const kind of ['grass', 'road', 'water', 'rail']) {
+        await fresh(look); await sleep(300);
+        const i = await p.evaluate(k => window.__jwLab.find(k, k === 'rail' ? 150 : 24), kind);
+        await lines(i, 0); await below(i, 4500); await sleep(1300); await shot(p, `h5c/lines/${look}-your-best-on-${kind}.png`);
+        await lines(0, i); await sleep(500); await shot(p, `h5c/lines/${look}-friend-on-${kind}.png`);
+      }
+      // the words stay readable with a log / a car right on them: both lines on a water lane, then a road lane, the kid standing below
+      await fresh(look); await sleep(300);
+      const w = await p.evaluate(() => window.__jwLab.find('water', 24)); await lines(w + 1, w - 1); await below(w - 1, 4500); await sleep(1400); await shot(p, `h5c/lines/${look}-both-by-the-water.png`);
+      await lines(0, 0);
+    }
+    ok(await p.evaluate(() => { const i = window.__jwLab.state().info; return i.words === 'top'; }), 'the lines\' words draw ABOVE logs / cars / water (never depth-tested), never over your own kid');
+  }
+  if (all || what === 'tail') {
+    await fresh('night'); await sleep(400);
+    for (const [veh, name] of [['sedan', 'a-car'], ['van', 'a-van'], ['truck', 'a-truck']]) {
+      for (const dir of [1, -1]) {
+        const at = await p.evaluate((w, d) => { const J = window.__jwLab; for (let i = 12; i < 300; i++) if (J.find('road', i) === i && J.find('grass', i - 1) === i - 1 && J.lane(i).dir === d && J.items(i).items.some(q => q.what === w)) return i; return -1; }, veh, dir);
+        if (at < 0) continue;
+        await p.evaluate(l => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'look3'); J.hop('u'); } J.warp(l - 1, { x: 4500 }); }, at);
+        await waitFor(p, `window.__jwLab.items(${at}).items.some(q => q.what === '${veh}' && q.left > 2.2 && q.left + q.len < 6.8)`, 30000);
+        await sleep(120); await shot(p, `h5c/tail/night-${name}-${dir > 0 ? 'going-right' : 'going-left'}.png`);
+      }
+    }
+    await p.evaluate(() => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'look3'); J.hop('u'); } J.warp(J.find('grass', 262), { x: 4500 }); }); await sleep(1500); await shot(p, 'h5c/tail/night-a-busy-road.png');
+    ok(true, 'THE TAIL LIGHTS: a car, a van, a truck (both directions) + a busy road');
+  }
+  await L("window.__jwLab.setLook('night')");
+}
+
 // ---- THE TAIL LIGHTS (`--h5b=tail` — H5B's add-on): night — a car, a van, a truck seen from behind their travel + a busy road → taillights/
 async function looksTail(p) {
   const L = js => p.evaluate(js);
@@ -434,6 +538,7 @@ async function looksNums(p) {
 
 try {
   if (argv.includes('--nums')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksNums(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
+  { const h5c = argv.find(x => x === '--h5c' || x.startsWith('--h5c=')); if (h5c) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5C(o.p, h5c.slice(6), o.reqs); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   { const h5b = argv.find(x => x === '--h5b' || x.startsWith('--h5b=')); if (h5b) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); if (h5b.slice(6) === 'tail') await looksTail(o.p); else if (h5b.slice(6) === 'addons') { await looksAddons(o.p); await looksTail(o.p); } else await looksH5B(o.p, h5b.slice(6), o.reqs); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); console.log(fails.length ? `\nFAILED: ${fails.length}` : '\nH5B OK'); await b.close(); process.exit(fails.length ? 1 : 0); } }
   { const h5 = argv.find(x => x === '--h5' || x.startsWith('--h5=')); if (h5) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5(o.p, h5.slice(5)); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   if (argv.includes('--h4')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH4(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }

@@ -46,9 +46,31 @@
 @media (prefers-reduced-motion: reduce) { .jw-lanes.is-pop { animation: none; } }
 /* THE SKYLINE BAND (night.js): the top ≈ 24 % — the picture covers the band's height, slides ≈ 10 % with the kid's column (transform only);
    its foot fades into the lanes' fog. NIGHT LIFE: the aviation lights blink, a few neon blocks flicker (opacity only). */
-.jw-skyline { position: absolute; left: 0; right: 0; top: 0; height: 24%; overflow: hidden; pointer-events: none; background: #0b0716;
-  -webkit-mask-image: linear-gradient(#000 0, #000 60%, rgba(0, 0, 0, 0) 100%); mask-image: linear-gradient(#000 0, #000 60%, rgba(0, 0, 0, 0) 100%); }
-.jw-skyline-img { position: absolute; left: 50%; top: 0; height: 100%; aspect-ratio: 1280 / 432; background-size: 100% 100%; transform: translate3d(-50%, 0, 0); will-change: transform; }
+.jw-skyline { position: absolute; left: 0; right: 0; top: 0; height: 24%; overflow: hidden; pointer-events: none; background: #0b0716; }
+.jw-skyline-img { position: absolute; left: 50%; top: 0; height: 100%; aspect-ratio: 1280 / 432; transform: translate3d(-50%, 0, 0); will-change: transform; }
+/* THE PAINTED SKYLINES (H5C — skyline.js): two picture layers — the one on screen + the one a gate cross-fades to (opacity only) */
+.jw-sky-pic { position: absolute; inset: 0; background-size: 100% 100%; background-repeat: no-repeat; will-change: opacity; }
+/* THE FAR EDGE (H5C — the owner: "a real far edge"): the band is SOLID down to its foot (no fade: nothing half-see-through ever floats
+   over the backdrop) and the course ends at a SEA WALL against the skyline's sea — stone blocks under a cap; by DAY the cap is lit by
+   the sun, by NIGHT a few dim lamps stand on it. Under it the far lanes are fully in the haze (night.js#depth) — .jw-farhaze seals the join. */
+.jw-seawall { position: absolute; left: 0; right: 0; bottom: 0; height: clamp(13px, 1.9vh, 18px); overflow: hidden;
+  box-shadow: 0 -1px 0 rgba(2, 1, 10, 0.85), 0 -5px 7px rgba(2, 1, 12, 0.55); }
+.jw-seawall i { position: absolute; left: -40%; width: 180%; top: 0; bottom: 0; will-change: transform;
+  background:
+    linear-gradient(rgba(126, 104, 190, 0.9) 0, rgba(126, 104, 190, 0.9) 1.5px, rgba(0, 0, 0, 0) 1.5px),
+    repeating-linear-gradient(90deg, rgba(4, 2, 12, 0.7) 0, rgba(4, 2, 12, 0.7) 1.5px, rgba(0, 0, 0, 0) 1.5px, rgba(0, 0, 0, 0) 27px),
+    linear-gradient(#3a3060 0, #2b2349 24%, #1c1634 26%, #151027 60%, #0c0818 100%); }
+.jw-seawall b { position: absolute; top: 0; width: 3px; height: 3px; margin-left: -1.5px; border-radius: 50%; background: #ffe2a0;
+  box-shadow: 0 0 5px 2px rgba(255, 196, 110, 0.75), 0 5px 9px 3px rgba(255, 180, 90, 0.22); }
+.jw-farhaze { position: absolute; left: 0; right: 0; top: 24%; height: 4.2%; pointer-events: none;
+  background: linear-gradient(#0b0716 0, rgba(11, 7, 22, 0.86) 22%, rgba(11, 7, 22, 0) 100%); }
+.jw-skyline[data-look='day'] .jw-seawall { box-shadow: 0 -1px 0 rgba(20, 60, 110, 0.55), 0 -4px 6px rgba(16, 70, 130, 0.35); }
+.jw-skyline[data-look='day'] .jw-seawall i { background:
+    linear-gradient(#fffaf0 0, #fffaf0 1.5px, rgba(0, 0, 0, 0) 1.5px),
+    repeating-linear-gradient(90deg, rgba(96, 76, 50, 0.5) 0, rgba(96, 76, 50, 0.5) 1.5px, rgba(0, 0, 0, 0) 1.5px, rgba(0, 0, 0, 0) 27px),
+    linear-gradient(#f3e7cd 0, #e9dabb 24%, #b9a685 26%, #c9b895 58%, #a8977a 100%); }
+.jw-skyline[data-look='day'] .jw-seawall b { display: none; }
+.jw-farhaze[data-look='day'] { background: linear-gradient(#9fd6f6 0, rgba(159, 214, 246, 0.86) 22%, rgba(159, 214, 246, 0) 100%); }
 .jw-sky-l { position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #ff4034; box-shadow: 0 0 6px 2px rgba(255, 64, 52, 0.85); animation: jw-blink 2.6s steps(1) infinite; }
 .jw-sky-n { position: absolute; background: rgba(9, 6, 20, 0.86); opacity: 0; animation: jw-flick 6.5s steps(1) infinite; }
 /* H5A — THE AREAS: the band takes a wash of the area's own colour (set by night.js when the kid crosses a gateway — opacity only) */
@@ -248,9 +270,9 @@
 /* THE DAY LOOK (night.js#setLook — the stage carries data-look: the game from the phone's GAME LOOK, the lab from its own switch):
    the band's day picture (no night life), a haze where the night band is dark, THE FOG BANK at the screen's foot where the blackout
    fades to black — and every word over the bright scene keeps a dark edge (the lane count, the area's name, the count, the hint) */
-.jw-skyline[data-look='day'] { background: #8fcaf2; }
+.jw-skyline[data-look='day'] { background: #9fd6f6; }
 .jw-skyline[data-look='day'] .jw-sky-l, .jw-skyline[data-look='day'] .jw-sky-n { display: none; }
-.jw-stage[data-look='day'] { background: #8fcaf2; --jw-ink: 0 0 2px #120818, 0 2px 0 rgba(18, 8, 24, 0.92), 0 0 9px rgba(18, 8, 24, 0.8), 0 0 22px rgba(18, 8, 24, 0.5); }
+.jw-stage[data-look='day'] { background: #9fd6f6; --jw-ink: 0 0 2px #120818, 0 2px 0 rgba(18, 8, 24, 0.92), 0 0 9px rgba(18, 8, 24, 0.8), 0 0 22px rgba(18, 8, 24, 0.5); }
 .jw-stage[data-look='day'] .jw-blackout { background: linear-gradient(rgba(214, 222, 230, 0) 0, rgba(214, 222, 230, 0.86) 70%, #d6dee6 100%); }
 .jw-stage[data-look='day']:not(.is-gray) .jw-lanes { color: #fff; -webkit-text-stroke: 2px #c4168a; text-shadow: 0 3px 0 rgba(30, 0, 22, 0.95), 0 0 4px #a01270, 0 0 14px rgba(30, 0, 40, 0.75), 0 0 30px rgba(30, 0, 40, 0.45); --jw-ns: #c4168a; }
 .jw-stage[data-look='day']:not(.is-gray) .jw-lanes.is-record { -webkit-text-stroke-color: #b87a00; --jw-ns: #b87a00; }

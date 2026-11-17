@@ -8,7 +8,7 @@ import * as THREE from 'three';
 
 export const FOG_HEX = 0x0b0716;
 /** H5B — THE DAY LOOK's haze (the far lanes fade into it; the day skyline's water meets it) */
-export const DAY_FOG_HEX = 0x8fcaf2;
+export const DAY_FOG_HEX = 0x9fd6f6;   // (H5C — THE FAR EDGE: the day picture's own haze where its sea meets the sky (#87cef4 → #b8e8fb): the far lanes fade into the same air)
 export const rgb = hex => [((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255];
 /** lane kinds as the ground shader counts them */
 export const KIND = Object.freeze({ grass: 0, road: 1, water: 2, rail: 3, flight: 4, mark: 5 });
@@ -27,7 +27,7 @@ void main() {
 }`;
 const GROUND_F = `
 precision highp float;
-uniform float uTime; uniform vec3 uFogCol; uniform float uQ; uniform float uDay;
+uniform float uTime; uniform vec3 uFogCol; uniform float uQ; uniform float uDay; uniform float uWall;
 // (H5B — THE DAY LOOK: every colour below is NIGHT, DAY — uDay 0 | 1; the shapes, the tells, the areas are the same picture in sunlight)
 #define DN(n, d) mix(n, d, uDay)
 varying vec2 vP; varying vec4 vKind; varying vec3 vState; varying float vFog; varying float vLane;
@@ -41,18 +41,22 @@ vec3 areaGround(float ar, float x, float z, float seed, float lane) {
   vec3 c;
   if (ar < 1.5) {
     float b = floor(x * 2.5), f = fract(x * 2.5);
-    c = DN(vec3(0.170, 0.108, 0.062), vec3(0.74, 0.55, 0.34)) * (0.74 + 0.5 * hash(vec2(b, lane)));
+    c = DN(vec3(0.170, 0.108, 0.062), vec3(0.76, 0.57, 0.36)) * (mix(0.74, 0.86, uDay) + mix(0.5, 0.24, uDay) * hash(vec2(b, lane)));   // (H5C — by day the boards differ a little, never a patchwork)
     c *= smoothstep(0.0, 0.07, f) * smoothstep(1.0, 0.93, f) * 0.6 + 0.4;
     c *= 0.92 + 0.16 * hash(floor(vec2(x * 40.0, z * 5.0)) + seed);
     c = mix(c, DN(vec3(0.34, 0.33, 0.36), vec3(0.40, 0.33, 0.27)), smoothstep(0.05, 0.02, length(vec2((f - 0.5) * 0.4, abs(z - 0.5) - 0.38))) * 0.8);
   } else if (ar < 2.5) {
     vec2 q = vec2(x * 3.0 + step(0.5, fract(z * 1.5)) * 0.5, z * 3.0), f = fract(q) - 0.5;
-    c = DN(vec3(0.112, 0.108, 0.112), vec3(0.68, 0.66, 0.63)) * (0.7 + 0.6 * hash(floor(q) + seed));
-    c *= smoothstep(0.5, 0.34, max(abs(f.x), abs(f.y))) * 0.75 + 0.25;
-    c += DN(vec3(0.10, 0.10, 0.105), vec3(0.16, 0.16, 0.15)) * smoothstep(0.24, 0.0, length(f - vec2(-0.12, 0.14)));
+    // (H5C — the owner: by DAY warm SANDSTONE cobbles, never a cyan-blue check; by night warm dark stone under the market's lamps —
+    //  no cold wet sheen: it must never read as water)
+    c = DN(vec3(0.132, 0.108, 0.086), vec3(0.84, 0.72, 0.53)) * (mix(0.74, 0.86, uDay) + mix(0.5, 0.26, uDay) * hash(floor(q) + seed));
+    c *= smoothstep(0.5, 0.36, max(abs(f.x), abs(f.y))) * mix(0.7, 0.42, uDay) + mix(0.3, 0.58, uDay);
+    c += DN(vec3(0.075, 0.056, 0.036), vec3(0.10, 0.085, 0.05)) * smoothstep(0.26, 0.0, length(f - vec2(-0.12, 0.14)));
   } else if (ar < 3.5) {
-    c = DN(vec3(0.120, 0.100, 0.086), vec3(0.64, 0.58, 0.51)) * (mix(0.62, 0.86, uDay) + mix(0.76, 0.26, uDay) * hash(floor(vec2(x * 13.0, z * 13.0)) + seed));   // (by day the gravel's grain is soft: no static)
-    c *= 0.8 + 0.4 * vnoise(vec2(x * 1.3, z * 1.3 + lane));
+    // (H5C — by day the gravel is FINER + CALMER: a small soft grain, a gentle unevenness — never TV static)
+    float gs = mix(13.0, 30.0, uDay);
+    c = DN(vec3(0.120, 0.100, 0.086), vec3(0.66, 0.60, 0.53)) * (mix(0.62, 0.935, uDay) + mix(0.76, 0.12, uDay) * hash(floor(vec2(x * gs, z * gs)) + seed));
+    c *= mix(0.8, 0.93, uDay) + mix(0.4, 0.14, uDay) * vnoise(vec2(x * 1.3, z * 1.3 + lane));
   } else if (ar < 4.5) {
     vec2 q = vec2(x / 1.5, z * 2.0);
     c = DN(vec3(0.105, 0.070, 0.078), vec3(0.66, 0.37, 0.33)) * (0.88 + 0.24 * hash(floor(q) + lane));
@@ -67,10 +71,18 @@ vec3 areaGround(float ar, float x, float z, float seed, float lane) {
     c = DN(vec3(0.150, 0.135, 0.112), vec3(0.76, 0.70, 0.58)) * (0.8 + 0.4 * hash(floor(q) + seed));
     c = mix(DN(vec3(0.045, 0.115, 0.060), vec3(0.33, 0.52, 0.27)), c, joint(fract(q), 0.035));
   } else if (ar < 7.5) {
-    float n = vnoise(vec2(x * 0.9, z * 0.9 + lane));
-    c = mix(DN(vec3(0.200, 0.170, 0.108), vec3(0.93, 0.83, 0.58)), DN(vec3(0.070, 0.170, 0.092), vec3(0.45, 0.67, 0.32)), smoothstep(0.55, 0.75, n));
-    c *= 0.86 + 0.28 * hash(floor(vec2(x * 9.0, z * 9.0)) + seed);
-    c = mix(c, DN(vec3(0.085, 0.09, 0.105), vec3(0.56, 0.57, 0.60)), step(0.962, hash(floor(vec2(x * 5.0, z * 5.0)) + seed * 3.0)));
+    // (H5C — SMOOTH sand: soft dunes, faint wind ripples, a fine grain; SCRUB = small soft tufts, a few to a lane (never blotches);
+    //  a pebble here and there)
+    float lw = mod(lane, 64.0) + z, dune = vnoise(vec2(x * 0.38, lw * 0.5));
+    c = DN(vec3(0.200, 0.170, 0.108), vec3(0.95, 0.86, 0.63)) * (0.93 + 0.12 * dune);
+    c *= 0.985 + 0.035 * smoothstep(0.35, 0.65, vnoise(vec2(x * 1.6 + dune * 2.0, lw * 9.0)));
+    c *= 0.975 + 0.05 * hash(floor(vec2(x * 24.0, z * 24.0)) + seed);
+    vec2 sq = vec2(x * 1.6, lw * 1.6), si = floor(sq), sf = fract(sq) - 0.5;
+    vec2 so = (vec2(hash(si + 1.7), hash(si + 9.1)) - 0.5) * 0.5;
+    float scr = step(0.74, hash(si + 5.3)) * smoothstep(0.25, 0.08, length((sf - so) * vec2(1.0, 1.35)));
+    c = mix(c, DN(vec3(0.060, 0.150, 0.082), vec3(0.43, 0.63, 0.30)) * (0.88 + 0.24 * hash(si)), scr * 0.92);
+    vec2 pq = vec2(x * 4.0, lw * 4.0);
+    c = mix(c, DN(vec3(0.085, 0.09, 0.105), vec3(0.64, 0.61, 0.58)), step(0.95, hash(floor(pq) + 2.2)) * smoothstep(0.2, 0.09, length(fract(pq) - 0.5)) * 0.85);
   } else {
     vec2 q = vec2(x / 3.0, z);
     c = DN(vec3(0.138, 0.136, 0.150), vec3(0.72, 0.72, 0.73)) * (0.9 + 0.2 * hash(floor(q) + lane));
@@ -83,9 +95,15 @@ void main() {
   float type = vKind.x, dn = vKind.y, up = vKind.z, seed = vKind.w, x = vP.x, z = vP.y, ar = vState.z;
   vec3 c;
   if (type < 0.5 || type > 4.5) {
-    float chk = mod(floor(x) + vLane, 2.0);
-    c = mix(DN(vec3(0.070, 0.205, 0.098), vec3(0.31, 0.62, 0.21)), DN(vec3(0.082, 0.232, 0.108), vec3(0.36, 0.68, 0.24)), chk);
-    c *= 0.9 + 0.2 * hash(floor(vec2(x * 2.5, z * 2.5)) + seed * 7.0);
+    // THE GRASS (H5C — the owner: never a pixel checkerboard): soft NATURAL variation — larger light / dark patches that run on across
+    // the lanes, faint MOWN STRIPES a column wide (they also show the columns), a soft blade grain, small tufts' flecks. Night + day.
+    float lw = mod(vLane, 64.0) + z;
+    float pat = 0.62 * vnoise(vec2(x * 0.34, lw * 0.34) + 3.0) + 0.38 * vnoise(vec2(x * 0.95 + 13.0, lw * 0.95));
+    c = mix(DN(vec3(0.064, 0.192, 0.092), vec3(0.285, 0.59, 0.195)), DN(vec3(0.088, 0.242, 0.112), vec3(0.385, 0.705, 0.25)), smoothstep(0.2, 0.8, pat));
+    c *= 1.0 + (smoothstep(0.44, 0.56, abs(fract(x * 0.5) - 0.5) * 2.0) - 0.5) * mix(0.06, 0.075, uDay);
+    c *= 0.965 + 0.07 * vnoise(vec2(x * 7.0, lw * 7.0));
+    vec2 tq = vec2(x * 3.0, lw * 3.0), ti = floor(tq);
+    c *= 1.0 - 0.2 * step(0.87, hash(ti + 3.7)) * smoothstep(0.17, 0.05, length(fract(tq) - 0.5 - (vec2(hash(ti + 1.1), hash(ti + 2.3)) - 0.5) * 0.5));
     if (ar > 0.5) c = areaGround(ar, x, z, seed, vLane);
     if (type > 4.5) {                                             // a LANDMARK's lane: dark paving, a neon trim on both edges
       c = DN(vec3(0.105, 0.10, 0.15), vec3(0.80, 0.78, 0.72)) * (0.9 + 0.2 * mod(floor(x * 2.0) + floor(z * 2.0), 2.0));
@@ -96,7 +114,10 @@ void main() {
     float sk = mix(0.45, 0.16, uDay);
     c *= 1.0 - sk * (1.0 - smoothstep(0.0, 0.22, z)) * soft - sk * (1.0 - smoothstep(0.0, 0.22, 1.0 - z)) * softU;
   } else if (type < 1.5) {
-    c = DN(vec3(0.062, 0.062, 0.086), vec3(0.36, 0.37, 0.40)) * (0.92 + 0.16 * hash(floor(vec2(x * 16.0, z * 16.0))));   // (by day: CLEAN GREY asphalt, white + yellow paint)
+    // (by day: CLEAN GREY asphalt, white + yellow paint — H5C: a FINE grain + a faint wear, never blocky)
+    float ag = mix(16.0, 42.0, uDay);
+    c = DN(vec3(0.062, 0.062, 0.086), vec3(0.36, 0.37, 0.40)) * (mix(0.92, 0.966, uDay) + mix(0.16, 0.068, uDay) * hash(floor(vec2(x * ag, z * ag))));
+    c *= 1.0 + uDay * 0.06 * (vnoise(vec2(x * 0.8, (mod(vLane, 64.0) + z) * 2.2)) - 0.5);
     float curbD = step(0.5, abs(dn - 1.0)), curbU = step(0.5, abs(up - 1.0));
     float cd = (1.0 - smoothstep(0.075, 0.095, z)) * curbD, cu = (1.0 - smoothstep(0.075, 0.095, 1.0 - z)) * curbU;
     c *= 1.0 - 0.35 * (smoothstep(0.26, 0.09, z) * curbD + smoothstep(0.26, 0.09, 1.0 - z) * curbU);
@@ -145,7 +166,8 @@ void main() {
     c += vec3(0.10, 0.16, 0.10) * (smoothstep(0.30, 0.0, z) * shD + smoothstep(0.30, 0.0, 1.0 - z) * shU);
     c = mix(c, vec3(1.0), min(1.0, foam * (0.78 + 0.22 * n3)));
   } else if (type < 3.5) {
-    c = DN(vec3(0.088, 0.078, 0.09), vec3(0.58, 0.53, 0.47)) * (0.85 + 0.3 * hash(floor(vec2(x * 18.0, z * 18.0))));
+    float bs = mix(18.0, 30.0, uDay);   // (H5C — by day the ballast's grain is finer + calmer)
+    c = DN(vec3(0.088, 0.078, 0.09), vec3(0.58, 0.53, 0.47)) * (mix(0.85, 0.93, uDay) + mix(0.3, 0.13, uDay) * hash(floor(vec2(x * bs, z * bs))));
     float sl = step(fract(x * 2.0), 0.3) * step(0.17, z) * step(z, 0.83);
     c = mix(c, DN(vec3(0.21, 0.135, 0.085), vec3(0.43, 0.29, 0.18)), sl);
     float r = max(smoothstep(0.04, 0.016, abs(z - 0.33)), smoothstep(0.04, 0.016, abs(z - 0.67)));
@@ -180,8 +202,15 @@ void main() {
   float fl = dk > 0.02 && dk < 0.98 ? step(hash(vec2(floor(uTime * 14.0), vLane)), 0.35 + dk * 0.5) : 0.0;
   if (uDay > 0.5) {
     // THE FOG BANK (the blackout by day — the same lanes, the same timing): the lane whitens under a rolling bank, soft wisps at its edge
-    float wisp = vnoise(vec2(x * 0.55 + uTime * 0.30, vLane * 1.7 + z * 1.6)) * smoothstep(0.0, 0.25, dk);
-    c = mix(c, vec3(0.86, 0.89, 0.92), clamp(dk * 1.2 + wisp * 0.35 * step(dk, 0.98), 0.0, 1.0));
+    // H5C (the owner: never a flat slab, never a hard line): the bank's edge is measured PER PIXEL off the wall itself (uWall — not
+    // lane by lane): soft + ragged (two drifting noise fields), the lane still seen THROUGH its first metre, solid two lanes in —
+    // and a cool shadow lies on the ground in front of it
+    float ly = vLane + z, d = uWall - ly;
+    float bn = 0.62 * vnoise(vec2(x * 0.42 + uTime * 0.21, ly * 0.8 - uTime * 0.05)) + 0.38 * vnoise(vec2(x * 1.25 - uTime * 0.33, ly * 1.9 + 7.0));
+    float thin = smoothstep(-1.5, 0.7, d + (bn - 0.5) * 1.9);
+    float fogA = thin * mix(0.5, 1.0, smoothstep(0.1, 2.1, d));
+    c *= 1.0 - 0.2 * smoothstep(-3.2, -0.3, d) * (1.0 - thin);
+    c = mix(c, vec3(0.83, 0.87, 0.905) * (0.95 + 0.1 * bn), clamp(fogA, 0.0, 1.0));
   } else c = mix(c, vec3(0.012, 0.016, 0.03) + c * 0.05, clamp(dk + fl * 0.35, 0.0, 1.0));
   c = mix(c, uFogCol, vFog);
   gl_FragColor = vec4(c, 1.0);
@@ -195,7 +224,7 @@ export function createGround(n, fog) {
   const aL = new THREE.InstancedBufferAttribute(lane, 1), aK = new THREE.InstancedBufferAttribute(kind, 4), aS = new THREE.InstancedBufferAttribute(state, 3);
   for (const a of [aL, aK, aS]) a.setUsage(THREE.DynamicDrawUsage);
   g.setAttribute('aLane', aL); g.setAttribute('aKind', aK); g.setAttribute('aState', aS);
-  const uniforms = { uTime: { value: 0 }, uFog: { value: fog }, uFogCol: { value: new THREE.Vector3(...rgb(FOG_HEX)) }, uQ: { value: 1 }, uDay: { value: 0 } };
+  const uniforms = { uTime: { value: 0 }, uFog: { value: fog }, uFogCol: { value: new THREE.Vector3(...rgb(FOG_HEX)) }, uQ: { value: 1 }, uDay: { value: 0 }, uWall: { value: -99 } };
   const mesh = new THREE.Mesh(g, new THREE.ShaderMaterial({ vertexShader: GROUND_V, fragmentShader: GROUND_F, uniforms }));
   mesh.frustumCulled = false; mesh.renderOrder = -1;
   return {
@@ -233,7 +262,11 @@ varying vec2 vUv; varying vec3 vCol; varying vec2 vFx; varying float vFog;
 void main() {
   vec2 p = vUv * 2.0 - 1.0;
   float s = vFx.x, a, d = length(p);
-  if (s < 0.5) { a = smoothstep(1.0, 0.0, d); a *= a; }                                                          // 0 a soft round glow
+  if (s < -0.5) {                                                                                                // −1 THE TAIL POOL (H5C): an oval that STARTS at u = 0 (the lamps — hot there), stretching + fading away behind
+    float u = vUv.x; vec2 q = vec2(u < 0.3 ? (0.3 - u) / 0.3 * 0.72 : (u - 0.3) / 0.7, p.y);
+    a = smoothstep(1.0, 0.0, length(q)); a = a * sqrt(a) * (1.0 + 1.2 * smoothstep(0.5, 0.0, u)) * (1.0 - 0.45 * u);
+  }
+  else if (s < 0.5) { a = smoothstep(1.0, 0.0, d); a *= a; }                                                     // 0 a soft round glow
   else if (s < 1.5) { float u = vUv.x, w = mix(0.06, 1.0, u); a = smoothstep(w, w * 0.15, abs(p.y)) * u * u; }    // 1 a tapered ribbon (bright at u = 1)
   else if (s < 2.5) { float u = vUv.x, w = mix(0.22, 1.0, u); a = smoothstep(w, 0.0, abs(p.y)) * (1.0 - u) * (1.0 - u * 0.4); }   // 2 a beam (from u = 0)
   else if (s < 3.5) { a = smoothstep(0.16, 0.0, abs(d - 0.8)); }                                                  // 3 a ring
@@ -242,7 +275,7 @@ void main() {
   else if (s < 6.5) { float u = vUv.x, w = mix(0.4, 1.0, u), e = smoothstep(w, 0.0, abs(p.y)); a = e * e * (1.0 - u) * (1.0 - u * u) * smoothstep(0.0, 0.07, u); }   // 6 a SHORT SOFT beam (a headlight's glow on the road: a quick falloff, soft edges)
   else { float asp = max(1.0, (s - 7.0) * 10.0); vec2 q = vec2(abs(p.x) * asp - (asp - 1.0), p.y); a = smoothstep(0.2, 0.0, abs(length(vec2(max(q.x, 0.0), q.y)) - 0.78)); }   // 7 + aspect / 10: a thin STADIUM ring (the waterline round a log — its quad is that many times longer than wide)
   #ifdef JW_SHADOW
-    gl_FragColor = vec4(0.0, 0.0, 0.0, a * vFx.y * (1.0 - vFog));
+    gl_FragColor = vec4(vec3(0.03, 0.07, 0.17) * uDay, a * vFx.y * (1.0 - vFog));   // (H5C — by day a shadow is COOL, never plain black: the sky fills it)
   #else
     // (H5B — BY DAY a light is PAINT: the same shapes, alpha-blended in their own colour (the material's blending is switched with
     //  uDay — night.js#setLook): a red signal stays red on a sunlit lane instead of washing out to white)

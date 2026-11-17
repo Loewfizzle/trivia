@@ -128,14 +128,18 @@ test('THE SIGNATURE PIECES: never on a flight path, and on a gateway ONLY its ow
 
 test('THE ARRIVAL GATEWAY: a neon arch on every area\'s first lane — posts in the edge columns, a see-through tube, the area\'s NAME big on the lane (the loop\'s laps named); crossing it = the landmark sound + the name flashing once', () => {
   assert.match(N, /if \(L\.mark && AR >= 0\) \{/); assert.match(N, /const hex = LOOKS\[AR\]\.accent, xl = X\(-0\.55\), xr = X\(COLS \+ 0\.55\)/, 'its posts stand in the two edge columns');
-  assert.match(N, /writeGate\(G, gateName\(i\), hex\);/, 'the name = the rules\' own (course.js#gateName), in the area\'s neon');
-  assert.match(N, /new THREE\.PlaneGeometry\(7\.3, 0\.74\)/, 'BIG: 7.3 cells wide — all of it on screen at ZOOM 8');
+  assert.match(N, /writeGate\(G, gateName\(i\), hex, LOOKS\[AR\]\.paint\);/, 'the name = the rules\' own (course.js#gateName), in the area\'s neon (night) / on its painted board (day)');
+  // H5C — THE NAME STANDS ON THE GATE's ARCH (never on the lane, under the kid): an upright sign on the crossbar, facing the camera
+  assert.match(N, /const GATE_W = 5\.9, GATE_H = 1\.014, GATE_Y = 3\.14;/); assert.match(N, /const gateGeo = new THREE\.PlaneGeometry\(GATE_W, GATE_H\);/, 'an UPRIGHT plane (not laid on the lane): all of it on screen at ZOOM 8');
+  assert.match(N, /G\.m\.position\.set\(0, gy, zf\); G\.m\.quaternion\.copy\(cam\.quaternion\);/, 'it stands on the crossbar, facing the camera');
+  assert.match(N, /thru = clamp01\(\(i \+ 1\.3 - ky\) \/ 0\.5\)/, 'gone once he has hopped on through the gate (it never hangs over the lanes he plays next)');
+  assert.doesNotMatch(N, /G\.m\.position\.set\(0, 0\.07, z\)/, 'the name no longer lies on the gate\'s lane');
   const arch = N.slice(N.indexOf('if (L.mark && AR >= 0) {'), N.indexOf('const PL = AR >= 0'));
   assert.doesNotMatch(arch, /AK\.|KM\[|K\.trees|K\.barricades/, 'no solid thing is laid across the lane: the posts + light only');
-  assert.match(arch, /for \(let k = 0; k <= 56; k\+\+\)/, 'a continuous tube of light');
+  assert.match(arch, /K\.bill\.put\(0, 3\.04, zf, \(xr - xl\) \* 1\.04, 0\.34, 1, 0, hex, 1, 4,/, 'the crossbar\'s neon tube');
   assert.equal(gateName(450), 'THE DOCKS · LAP 2');
   assert.match(V, /markEl\.textContent = gateName\(e\.lane\); markUntil = performance\.now\(\) \+ 2600;/); assert.match(V, /markEl\.classList\.add\('is-flash'\);/);
-  assert.match(V, /if \(sndOn\) \{ try \{ SFX\.play\('landmark'\); \}/, 'the landmark sound');
+  assert.match(V, /if \(sndOn\) \{ try \{ SFX\.play\('area-arrive'\); \}/, 'THE AREA ARRIVAL (H5C — it replaced the landmark ping)');
   const css = read('css/jaywalk.css'), kf = css.slice(css.indexOf('@keyframes jw-gate')).split('\n')[0];
   assert.match(css, /\.jw-mark\.is-flash \{ animation: jw-gate 0\.62s ease-out 1; \}/, 'ONCE'); assert.doesNotMatch(kf, /box-shadow|filter|width|height|left|top|color/, 'transform + opacity only');
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.jw-mark\.is-flash \{ animation: none; \} \}/);

@@ -29,7 +29,8 @@ import { FP, COLS, HOP_TICKS } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod, area, gateName } from './course.js';
 import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade, buildDart } from './models.js';
 import { FOG_HEX, DAY_FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, dayEnv, createBloom } from './night-fx.js';
-import { createSkyMark } from './skymarks.js';
+import { lazyImport } from '../../ui/lazy-import.js';
+import { skyPlan, skyHeld, skyRoom, skyShift, SKY_FADE_MS, SKY_BAND, SKY_ASPECT } from './skyline.js';
 import { CAM, createCamera } from './camera.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
 import { LINE_HEX } from './lines.js';
@@ -45,7 +46,7 @@ const DPR_AT = [1.5, 2, 3];
 // their height] on the model as the scene draws it. BOTH cast: a SHORT SOFT beam ahead (gone within HEAD_REACH cells) + a small red glow
 // behind (within TAIL_REACH) — a glow on the road, never a spotlight. All instanced quads: no real light.
 const LAMPS = Object.freeze({ 'car-sedan': [0.225, 0.2], 'car-hatchback': [0.225, 0.2], 'car-taxi': [0.225, 0.2], 'car-van': [0.26, 0.24], truck: [0.25, 0.3], train: [0.2, 0.45] });
-const HEAD_REACH = 1.35, TAIL_REACH = 0.75;
+const HEAD_REACH = 1.35, TAIL_LEN = 1.2;   // (TAIL_LEN — H5C: the tail pool, from under the bumper to where it has faded out)
 const LOG_FEET = 0.33;   // (H3 — where the kid's feet stand on a log: its round back, the log HALF-SUNK — its centre a hair under the waterline)
 const KID_S = 1.62;   // (THE KID's size on the lane — H5A, Kenney's skate boy, 0.78 tall: ≈ 1.26 of a lane tall — he must read at real phone size; the rules' box stays 0.6 of a cell)
 /** his poses (models.js#loadKid — a row of the pose texture a frame): the idle loop (ms), how fast the fall flails */
@@ -59,8 +60,23 @@ const X = c => c - COLS / 2, Z = l => -l;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const NOP = () => {};
 const RING8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
-/** the two bands' pictures (only the look on screen is ever fetched) */
-const SKY_URL = { night: new URL('../../../assets/jaywalk/skyline-night.webp', import.meta.url).href, day: new URL('../../../assets/jaywalk/skyline-day.webp', import.meta.url).href };
+/** the band's pictures (skyline.js picks the file: only the picture on screen + the next area's are ever fetched) */
+const SKY_DIR = new URL('../../../assets/jaywalk/', import.meta.url);
+/** THE DRUMS (H5C — the owner: never blue — blue on the ground = water): red · orange · yellow, from the seed */
+const DRUM_HEX = [0xd8402c, 0xee8a1e, 0xf2c21c];
+/** THE SUN (H5C — the day's shadows): which way a shadow is thrown on the ground (x, z — the sun is high on the front-left) + how long a
+ *  shadow is per unit of height */
+const SUN = Object.freeze({ x: 0.97, z: -0.24, len: 0.7 });
+/** THE FOG BANK's layers (H5C — back → front): [lanes behind the bank's edge, height, a puff's width, its height, alpha, drift (cells
+ *  a second — each layer its own speed + way), its sunlit top, its cool underside, the spacing]. Two mottle the body, three roll on
+ *  its face — the front one thin enough to see the lanes through. */
+const FOG_LAYERS = Object.freeze([
+  [-8.0, 3.0, 8.4, 5.6, 0.5, 0.05, 0xeef3f7, 0xc6d2dd, 3.1],
+  [-5.2, 2.9, 7.2, 4.8, 0.55, -0.08, 0xe9eff4, 0xcbd6e0, 2.7],
+  [-2.7, 1.3, 6.2, 4.0, 1.0, 0.11, 0xf2f6f9, 0xd0dbe5, 2.2],
+  [-1.3, 0.95, 4.6, 3.0, 0.9, -0.18, 0xfbfdfe, 0xdde6ee, 1.7],
+  [-0.1, 0.6, 3.3, 2.1, 0.55, 0.28, 0xffffff, 0xecf2f6, 1.35],
+]);
 const ease = t => t * t * (3 - 2 * t);
 
 export function createNight(host, o = {}) {
@@ -126,7 +142,7 @@ export function createNight(host, o = {}) {
   const flatGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), billGeo = new THREE.PlaneGeometry(1, 1), unit = new THREE.BoxGeometry(1, 1, 1);
   const GEO = { tree: buildTree(), tuft: buildTuft(), log1: buildLog(1), log2: buildLog(2), log3: buildLog(3), log4: buildLog(4), truck: buildTruck(), barricade: buildBarricade(), dart: buildDart() };
   const K = {
-    shadow: kind(flatGeo, glowMaterial(fogV, { shadow: true }), 160, { aux: ['aFx', 2], raw: true, order: 1 }),
+    shadow: kind(flatGeo, glowMaterial(fogV, { shadow: true }), 420, { aux: ['aFx', 2], raw: true, order: 1 }),
     flat: kind(flatGeo, glowMaterial(fogV), 720, { aux: ['aFx', 2], raw: true, order: 2, bloom: true }),          // pools · trails · beams · rings · edge lines
     bill: kind(billGeo, glowMaterial(fogV, { bill: true }), 600, { aux: ['aFx', 2], raw: true, order: 3, bloom: true }),   // lamps · light quads · sparks
     trees: kind(GEO.tree, lambert(), 150),
@@ -141,7 +157,16 @@ export function createNight(host, o = {}) {
   // THE SUN's SHADOWS (H5B — the day look): the same blob shadows, thrown a little to one side + up the lanes (the sun is high on the
   // front-left), a touch softer. `raw` = straight under the thing (the kid's shadow-ring, the dark strip under a line's words)
   let day = false;
-  { const put0 = K.shadow.put; K.shadow.raw = put0; K.shadow.put = (x, y, z, sx, sy, sz, ry, hex, k, a0, a1, ...r) => (day ? put0(x + 0.17 * Math.min(1.5, sz), y, z - 0.09, sx * 1.05, sy, sz * 1.05, ry, hex, k, a0, (a1 == null ? 1 : a1) * 0.82, ...r) : put0(x, y, z, sx, sy, sz, ry, hex, k, a0, a1, ...r)); }
+  // H5C (the owner: by day things must SIT on the ground): every shadow is TWO by day — a soft CONTACT shadow straight under the thing
+  // (tight, the darker one) + THE SUN's shadow thrown to one side (SUN: the same shape carried along the sun's way by the thing's
+  // height — a tree's reaches further than a car's — a touch bigger + softer). A shadow's `sy` (a flat quad has no height of its own)
+  // = HOW TALL THE THING IS (1 = an ordinary low thing).
+  { const put0 = K.shadow.put; K.shadow.raw = put0; K.shadow.put = (x, y, z, sx, sy, sz, ry, hex, k, a0, a1, ...r) => {
+    if (!day) { put0(x, y, z, sx, 1, sz, ry, hex, k, a0, a1, ...r); return; }
+    const a = a1 == null ? 1 : a1, off = Math.min(SUN.len * (sy === 1 ? 0.55 : sy), 0.5 * Math.min(sx, sz) + 0.34);
+    put0(x + SUN.x * off, y - 0.003, z + SUN.z * off, sx * 1.05, 1, sz * 1.05, ry, hex, k, a0, a * 0.62, ...r);
+    put0(x + SUN.x * 0.05, y, z + SUN.z * 0.05, sx * 0.9, 1, sz * 0.9, ry, hex, k, a0, a * 0.9, ...r);
+  }; }
   // THE AREAS' PIECES (areas.js — built in code): the obstacles + the edge dressing + the plots' big pieces, one kind each
   const AGEO = buildAreaGeo(), AK = {};
   for (const [name, g] of Object.entries(AGEO)) AK[name] = K[`a_${name}`] = kind(g, lambert(), { bollard: 60, crate: 90, icecrate: 60, drum: 70, rock: 90, hydrant: 40, container: 60, stall: 30, rail: 60, house: 24 }[name] || 6);
@@ -182,37 +207,60 @@ export function createNight(host, o = {}) {
   for (const k of ['best', 'friend']) {
     const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 128;
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
-    const m = new THREE.Mesh(labelGeo, new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-    m.renderOrder = 2; m.visible = false; m.frustumCulled = false; m.layers.enable(1); scene.add(m);
+    // H5C (the owner: "LIAI · 24" — a log lay over the words): A LINE's WORDS ARE ALWAYS READABLE — drawn ABOVE the logs, the cars + the
+    // water (no depth test, after everything else) — but NEVER over your own kid (he marks his pixels in the stencil: the ghosts' rule)
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending });
+    mat.stencilWrite = true; mat.stencilWriteMask = 0; mat.stencilRef = 1; mat.stencilFunc = THREE.NotEqualStencilFunc;
+    const m = new THREE.Mesh(labelGeo, mat);
+    m.renderOrder = 5; m.visible = false; m.frustumCulled = false; m.layers.enable(1); scene.add(m);
     LBL[k] = { m, cv, tex, text: null };
   }
   const css = hex => `#${hex.toString(16).padStart(6, '0')}`;
   // THE ARRIVAL GATEWAY's NAME (H5A): the area's name written BIG on its gateway lane (two planes: this gateway + the next one in
   // view), in the area's own neon — drawn when its text changes, never per frame. THE NEON FISH: the fish market's sign (one plane)
-  const gateGeo = new THREE.PlaneGeometry(7.3, 0.74).rotateX(-Math.PI / 2);   // (7.3 cells: the whole name is on screen at ZOOM 8 — the letters ≈ half a lane tall)
+  // H5C (the owner: the name lay on the gate's lane — under the kid the moment he stood there): THE NAME STANDS ON THE GATE's ARCH —
+  // a sign standing up on the gate's crossbar, above the lane, facing the camera: its board has an ARCHED top (the arch IS the sign);
+  // neon tubes by night (no panel: the lanes are seen through it), a painted board by day. Read as he comes up to the gate AND while
+  // he stands in its lane (it is three lanes up the screen from him — never under his body); it fades as he hops on through.
+  const GATE_W = 5.9, GATE_H = 1.014, GATE_Y = 3.14;   // (5.9 cells: up on the arch it is nearer the lens — ≈ 7.3 of the 8 columns across on the screen, the letters ≈ 0.6 of a lane tall)
+  const gateGeo = new THREE.PlaneGeometry(GATE_W, GATE_H);
   const fishGeo = new THREE.PlaneGeometry(2.4, 1.2);
   const GATE = [0, 1].map(() => {
-    const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 104;
-    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
-    const m = new THREE.Mesh(gateGeo, new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-    m.renderOrder = 2; m.visible = false; m.frustumCulled = false; m.layers.enable(1); scene.add(m);
+    const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 176;
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    const m = new THREE.Mesh(gateGeo, new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));   // (alpha-blended in both looks: by night its smoked panel keeps the neon letters readable over bright water)
+    m.renderOrder = 3; m.visible = false; m.frustumCulled = false; scene.add(m);
     return { m, cv, tex, text: null };
   });
-  function writeGate(G, text, hex) {
-    if (G.text === text) return;
-    G.text = text;
+  const gateInfo = { on: false, text: '', y: 0 };
+  function writeGate(G, text, hex, paint) {
+    const key = `${text}|${day ? 'd' : 'n'}`;
+    if (G.text === key) return;
+    G.text = key;
     const c = ctx2d(G.cv);
     if (!c) return;
-    c.clearRect(0, 0, 1024, 104);
-    c.font = '900 84px "Orbitron", "Chakra Petch", system-ui, sans-serif'; c.textBaseline = 'middle'; c.textAlign = 'center';
+    c.clearRect(0, 0, 1024, 176);
+    // the board: straight sides, an ARCHED top (`in` = inset — the trim / the tube runs inside the edge)
+    const board = q => { c.beginPath(); c.moveTo(q, 176 - q); c.lineTo(q, 66 + q * 0.4); c.quadraticCurveTo(512, -30 + q * 2.2, 1024 - q, 66 + q * 0.4); c.lineTo(1024 - q, 176 - q); c.closePath(); };
+    c.lineJoin = 'round';
+    if (day) {   // (BY DAY: a PAINTED sign — the area's colour, a white trim, the name in white paint with a dark edge)
+      board(3); c.fillStyle = css(paint); c.fill();
+      c.save(); board(3); c.clip(); const sh = c.createLinearGradient(0, 0, 0, 176); sh.addColorStop(0, 'rgba(255, 255, 255, 0.2)'); sh.addColorStop(0.55, 'rgba(255, 255, 255, 0)'); sh.addColorStop(1, 'rgba(0, 0, 20, 0.22)'); c.fillStyle = sh; c.fillRect(0, 0, 1024, 176); c.restore();
+      board(3); c.lineWidth = 5; c.strokeStyle = 'rgba(14, 18, 40, 0.85)'; c.stroke();
+      board(13); c.lineWidth = 6; c.strokeStyle = '#fffaf0'; c.stroke();
+    } else {     // (BY NIGHT: a neon sign — a smoked see-through panel, a tube round the arch in the area's colour, its white-hot core)
+      board(8); c.fillStyle = 'rgba(9, 6, 24, 0.62)'; c.fill();
+      board(12); c.shadowColor = css(hex); c.shadowBlur = 14; c.lineWidth = 7; c.strokeStyle = css(hex); c.stroke();
+      c.shadowBlur = 0; c.lineWidth = 2.5; c.strokeStyle = 'rgba(255, 255, 255, 0.8)'; c.stroke();
+    }
+    c.font = '900 88px "Orbitron", "Chakra Petch", system-ui, sans-serif'; c.textBaseline = 'middle'; c.textAlign = 'center';
     try { c.letterSpacing = '8px'; } catch { /* an old browser: no tracking */ }
-    const tw = c.measureText(text).width, sx = Math.min(1, 980 / Math.max(1, tw));
-    c.save(); c.translate(512, 56); c.scale(sx, 1);
-    if (day) {   // (BY DAY: white paint, a dark edge — on the painted band the scene lays under it)
-      c.lineJoin = 'round'; c.lineWidth = 12; c.strokeStyle = 'rgba(10, 20, 44, 0.9)'; c.strokeText(text, 0, 0); c.fillStyle = '#ffffff'; c.fillText(text, 0, 0);
-    } else {
-      c.shadowColor = css(hex); c.shadowBlur = 20; c.fillStyle = css(hex); c.fillText(text, 0, 0);
-      c.shadowBlur = 0; c.globalAlpha = 0.62; c.fillStyle = '#ffffff'; c.fillText(text, 0, 0);
+    const tw = c.measureText(text).width, sx = Math.min(1, 930 / Math.max(1, tw));
+    c.save(); c.translate(512, 112); c.scale(sx, 1);
+    if (day) { c.lineWidth = 13; c.strokeStyle = 'rgba(10, 16, 40, 0.92)'; c.strokeText(text, 0, 0); c.fillStyle = '#ffffff'; c.fillText(text, 0, 0); }
+    else {
+      c.shadowColor = css(hex); c.shadowBlur = 18; c.fillStyle = css(hex); c.fillText(text, 0, 0);
+      c.shadowBlur = 0; c.globalAlpha = 0.55; c.fillStyle = '#ffffff'; c.fillText(text, 0, 0);
     }
     c.restore();
     G.tex.needsUpdate = true;
@@ -254,7 +302,7 @@ export function createNight(host, o = {}) {
   tintOf(o.kidColor || '#ff3fb4');
   // THE UFO's placeholder (H6 draws the real one): a disc + its beam circle on the ground
   const discGeo = new THREE.CylinderGeometry(0.95, 1.25, 0.28, 20);
-  const ufos = [0, 1].map(() => { const d = new THREE.Mesh(discGeo, new THREE.MeshStandardMaterial({ color: 0x9fb0c8, roughness: 0.25, envMapIntensity: 1.2 })); d.visible = false; scene.add(d); return { d, id: -1 }; });
+  const ufos = [0, 1].map(() => { const d = new THREE.Mesh(discGeo, new THREE.MeshStandardMaterial({ color: 0x9fb0c8, roughness: 0.25, envMapIntensity: 1.2, transparent: true })); d.visible = false; scene.add(d); return { d, id: -1 }; });
   // THE BLACKOUT's curtain: everything a lane and more behind its edge is simply black
   const curtain = new THREE.Mesh(unit, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.93, depthWrite: false, fog: false }));
   curtain.renderOrder = 6; scene.add(curtain);
@@ -266,9 +314,62 @@ export function createNight(host, o = {}) {
   for (const [x, y, d] of SKY_LIGHTS) { const i = document.createElement('i'); i.className = 'jw-sky-l'; i.style.cssText = `left:${x}%;top:${y}%;animation-delay:${-d}s`; skyImg.append(i); }
   for (const [x, y, bw, bh, d] of SKY_NEON) { const i = document.createElement('i'); i.className = 'jw-sky-n'; i.style.cssText = `left:${x}%;top:${y}%;width:${bw}%;height:${bh}%;animation-delay:${-d}s`; skyImg.append(i); }
   const skyTint = document.createElement('i'); skyTint.className = 'jw-sky-tint';   // (H5A — the band takes a wash of the area's colour: opacity only)
-  sky.append(skyImg, skyTint); host.append(sky);
-  const skyMark = createSkyMark(sky);   // (H5B — THE LANDMARKS IN THE SKYLINE: the area's landmark, drawn when the kid crosses a gateway)
-  let skyAt = 9, skyArea = -2;
+  // THE PAINTED SKYLINES (H5C — skyline.js): TWO picture layers under the night life — the picture on screen + the one a gate
+  // CROSS-FADES to (≈ 2 s, opacity only). A layer's picture is only ever changed while that layer is hidden.
+  const skyUnder = document.createElement('div'), skyOver = document.createElement('div');   // (UNDER is always solid; only OVER's opacity ever moves)
+  skyUnder.className = skyOver.className = 'jw-sky-pic'; skyOver.style.opacity = '0'; skyImg.prepend(skyUnder, skyOver);
+  // THE FAR EDGE (H5C — the owner: "a real far edge"): the course ENDS at a SEA WALL against the skyline's sea — stone, its cap lit by
+  // the sun by day, a few dim lamps by night — and the far lanes are FULLY in the haze before they reach it (the fog: depth()); the
+  // band is solid down to the wall: nothing half-see-through ever floats over the backdrop.
+  const seaWall = document.createElement('div'), wallStone = document.createElement('i'), farHaze = document.createElement('div');
+  seaWall.className = 'jw-seawall'; farHaze.className = 'jw-farhaze'; seaWall.append(wallStone);
+  for (const x of [8, 29, 50, 71, 92]) { const l = document.createElement('b'); l.style.left = `${x}%`; seaWall.append(l); }
+  sky.append(skyImg, skyTint); host.append(sky, farHaze);
+  sky.append(seaWall);
+  // THE LANDMARKS IN THE SKYLINE (H5B — skymarks.js: the area's neon-outline landmark, drawn when the kid crosses a gateway) are the
+  // NIGHT's alone since H5C (by day the painted picture carries it): the module is fetched when a night band first needs it — never
+  // by day, and out of the cartridge's eager graph. It stands behind the sea wall.
+  let skyMark = null, skyMarkAsk = null;
+  const skyMarkGet = () => { if (!skyMarkAsk) skyMarkAsk = lazyImport(import('./skymarks.js'), './skymarks.js').then(M => { if (dead) return; skyMark = M.createSkyMark(sky); sky.append(seaWall); skyArea = -2; }).catch(NOP); };
+  let skyAt = 9e9, skyArea = -2, skyLane = -1e9, skyRoomPc = 0, skyBias = 0, skyBiasT = 0, skyFresh = true, skyPicW = 0;
+  // the pictures held (file → { img, ok: a promise }): the one on screen + the next area's — never more
+  const skyHold = new Map();
+  const skyS = { now: '', over: false, want: '', fades: 0 };   // (over: the picture on screen sits on the OVER layer)
+  const skyUrl = f => new URL(f, SKY_DIR).href;
+  function skyGet(f) {
+    let q = skyHold.get(f);
+    if (!q) {
+      const img = new Image(); img.decoding = 'async'; img.src = skyUrl(f);
+      q = { img, ok: (img.decode ? img.decode() : new Promise(r => { img.onload = img.onerror = r; })).then(() => true, () => false) };
+      skyHold.set(f, q);
+    }
+    return q;
+  }
+  /** show `f` on the band: at once (the first picture, a look change, reduce motion) or CROSS-FADED (a gate) — once it has arrived */
+  function skyShow(f, fade) {
+    if (f === skyS.want) return;
+    skyS.want = f;
+    skyGet(f).ok.then(() => {
+      if (dead || skyS.want !== f || skyS.now === f) return;
+      const slow = !!(fade && !reduce && skyS.now);
+      // (the new picture goes on the layer that is HIDDEN now — OVER while it is clear, UNDER while OVER covers it — then OVER fades
+      //  in / out: the band is never see-through, a visible layer's picture never changes)
+      (skyS.over ? skyUnder : skyOver).style.backgroundImage = `url("${skyUrl(f)}")`;
+      skyOver.style.transition = slow ? `opacity ${SKY_FADE_MS}ms ease-in-out` : 'none';
+      skyS.over = !skyS.over; skyOver.style.opacity = skyS.over ? '1' : '0';
+      skyS.now = f;
+      if (slow) skyS.fades++;
+    }).catch(NOP);
+  }
+  /** the band follows the kid: the picture of his area (cross-faded at its gate), the next one fetched ahead, the rest offset */
+  function skyFollow(lane, fresh) {
+    const plan = skyPlan(lane, day ? 'day' : 'night'), keep = skyHeld(plan);
+    for (const f of keep) skyGet(f);
+    for (const f of [...skyHold.keys()]) if (!keep.includes(f)) skyHold.delete(f);   // (ONLY the current + the next are held)
+    skyShow(plan.now, !fresh);
+    skyBiasT = plan.bias;
+    if (fresh) skyBias = skyBiasT;
+  }
 
   /**
    * THE LOOK (H5B): 'night' = neon · 'day' = a sunny harbor. ONE scene, switched at once (the game's views re-read the console's
@@ -283,41 +384,56 @@ export function createNight(host, o = {}) {
     scene.background.setHex(fogHex); scene.fog.color.setHex(fogHex);
     ground.uniforms.uFogCol.value.set(...rgb(fogHex)); ground.uniforms.uDay.value = day ? 1 : 0;
     // the light: a warm SUN high on the front-left + a clear sky's fill (the pink rim is the night's) — the day's own sky in the gloss
-    hemi.color.setHex(day ? 0xe6f3ff : 0x8fa0ff); hemi.groundColor.setHex(day ? 0xb5a688 : 0x1a1030); hemi.intensity = day ? 2.25 : 1.5;
-    key.color.setHex(day ? 0xfff0d4 : 0xdfe4ff); key.intensity = day ? 2.4 : 1.55; key.position.set(day ? -7 : -5, day ? 13 : 12, day ? 6 : 9);
+    hemi.color.setHex(day ? 0xd6e9ff : 0x8fa0ff); hemi.groundColor.setHex(day ? 0xc2ab84 : 0x1a1030); hemi.intensity = day ? 2.1 : 1.5;   // (H5C: a soft SKY fill — cooler from above, warm bounce from the ground)
+    key.color.setHex(day ? 0xffe6b4 : 0xdfe4ff); key.intensity = day ? 2.7 : 1.55;   // (… under a WARMER sun key) key.position.set(day ? -9 : -5, 12, day ? 3.4 : 9);
     rim.color.setHex(day ? 0xffffff : 0xff6ad0); rim.intensity = day ? 0.3 : 1.25;
     if (day && !envDay) { try { envDay = dayEnv(renderer); } catch { envDay = null; } }
     scene.environment = day ? envDay || env : env;
     // the lights that stay become PAINT (alpha-blended in their own colour — night-fx.js GLOW_F); the words on the ground too
     for (const q of [K.flat, K.bill]) { const m = q.mesh.material; m.blending = day ? THREE.NormalBlending : THREE.AdditiveBlending; m.uniforms.uDay.value = day ? 1 : 0; m.needsUpdate = true; }
-    for (const m of [...Object.values(LBL).map(L => L.m), ...GATE.map(G => G.m), fish]) { m.material.blending = day ? THREE.NormalBlending : THREE.AdditiveBlending; m.material.needsUpdate = true; }
+    K.shadow.mesh.material.uniforms.uDay.value = day ? 1 : 0;   // (H5C — a day shadow is COOL: the sky fills it)
+    for (const m of [...Object.values(LBL).map(L => L.m), fish]) { m.material.blending = day ? THREE.NormalBlending : THREE.AdditiveBlending; m.material.needsUpdate = true; }
     for (const k of ['best', 'friend']) { const t = LBL[k].text; LBL[k].text = null; if (t != null) writeLabel(k, t); }
     for (const G of GATE) G.text = null;
     { const c = ctx2d(fishCv); if (c) { drawFishSign(c, 256, 128, day); fishTex.needsUpdate = true; } }
     // THE BLACKOUT's curtain = THE FOG BANK's body by day
-    curtain.material.color.setHex(day ? 0xd6dee6 : 0x000000); curtain.material.opacity = day ? 0.97 : 0.93;
-    sky.dataset.look = day ? 'day' : 'night'; skyImg.style.backgroundImage = `url("${SKY_URL[day ? 'day' : 'night']}")`;
-    skyArea = -2; needWarm = true;
+    curtain.material.color.setHex(day ? 0xd3dde6 : 0x000000); curtain.material.opacity = day ? 1 : 0.93;
+    sky.dataset.look = day ? 'day' : 'night'; farHaze.dataset.look = sky.dataset.look;
+    if (!day) skyMarkGet();
+    skyArea = -2; skyLane = -1e9; skyFresh = true; needWarm = true;   // (the band's picture: draw() asks skyline.js for the kid's lane — at once after a look change)
   }
   setLook(o.look === 'day' ? 'day' : 'night');
 
   let bloom = null, tier = 2, w = 0, h = 0, dpr = devDpr, kAt = 0, reveal = 1, revealT = 1;   // (reveal — H3: 0 = only the start's few lanes out of the dark · 1 = the whole view)
   /** the rig's scale moved (a ZOOM change easing in): the far plane + the fog follow it */
+  // THE FAR EDGE (H5C): the fog is FULL exactly where the ground meets the sea wall's foot (the band's foot: FOOT_AT down the screen) —
+  // every car, prop, log + light is fully in the haze before it reaches the band; the last ≈ 5 lanes fade, the play ahead stays clear.
+  // footAt = that ground point's depth from the lens, measured off the camera itself (any zoom, any screen shape).
+  const FOOT_AT = 0.25, HAZE_LANES = 5.6;
+  let footAt = 0, footDirty = true, posed = false;
+  const fwd = new THREE.Vector3(0, 0, -1);
   function depth() {
     const k = rig.k(), key = k + reveal * 7;
-    if (key === kAt) return;
+    if (key === kAt && !footDirty) return;
     kAt = key; cam.far = 90 * k; cam.updateProjectionMatrix();
-    const n = (22 + 4 * reveal) * k, f = (24.5 + 10.5 * reveal) * k;   // (the fog's near / far — the kid stands ≈ 20 k from the lens: the start shows ≈ 3–5 lanes ahead of him, the rest in the dark)
+    footAt = 35 * k;
+    if (posed && !heroCam) { P.set(0, (1 - 2 * FOOT_AT) * Math.tan(cam.fov * Math.PI / 360), -1).applyQuaternion(cam.quaternion); if (P.y < -0.05) footAt = cam.position.y / -P.y; footDirty = false; }
+    else if (heroCam) footDirty = false;
+    // (the fog's near / far — the kid stands ≈ 20 k from the lens: the start (reveal 0) shows ≈ 3–5 lanes ahead of him, the rest in the dark)
+    const n = 22 * k + (footAt - HAZE_LANES * k - 22 * k) * reveal, f = 24.5 * k + (footAt - 24.5 * k) * reveal;
     scene.fog.near = n; scene.fog.far = f; fogV.set(n, f);
   }
+  /** how deep in the far haze a point is (0 = clear · 1 = gone) — for the few things three's own fog cannot fade (THE UFO's disc) */
+  const hazeAt = (x, y, z) => { const d = (x - cam.position.x) * fwd.x + (y - cam.position.y) * fwd.y + (z - cam.position.z) * fwd.z, u = clamp01((d - scene.fog.near) / Math.max(0.001, scene.fog.far - scene.fog.near)); return u * u * (3 - 2 * u); };
   function fit(force) {
     const nw = host.clientWidth, nh = host.clientHeight, nd = Math.min(devDpr, DPR_AT[tier]);
     if (!nw || !nh || (!force && nw === w && nh === h && nd === dpr)) return;
     w = nw; h = nh; dpr = nd;
     renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
     cam.fov = rig.fit(w / h);   // (ZOOM columns across on every screen shape — camera.js#lensFor)
-    cam.aspect = w / h; kAt = 0; depth();
+    cam.aspect = w / h; kAt = 0; footDirty = true; depth();
     if (bloom) bloom.size(Math.round(w * dpr), Math.round(h * dpr));
+    skyRoomPc = skyRoom(w, h); skyPicW = h * SKY_BAND * SKY_ASPECT; skyAt = 9e9; footDirty = true;
   }
   const ro = new ResizeObserver(() => fit());
   ro.observe(host);
@@ -513,21 +629,24 @@ export function createNight(host, o = {}) {
     // area's edges; a log ride is followed) — the slight turn, a short shake on a hit (never with reduce motion)
     const down = run.st === 'out';
     rig.follow(run.st === 'hop' ? run.tx / FP : down && H ? H.x : kx, run.st === 'hop' ? run.ty + 0.5 : down ? (H ? H.y : ky) : ky, dt);
-    depth();
     const camY = rig.y();
     let shx = 0, shy = 0;
     if (clock < fx.shake) { const q = (fx.shake - clock) / 240; shx = Math.sin(clock * 0.09) * 0.16 * q; shy = Math.cos(clock * 0.113) * 0.12 * q; }
     rig.apply(cam, shx, shy, heroCam ? [px, pz] : null);
+    posed = true; fwd.set(0, 0, -1).applyQuaternion(cam.quaternion); depth();   // (the fog follows the lens: full at the sea wall's foot)
     // the skyline slides against the follow (a far thing barely moves) + sits a step over in the turned view
-    const sl = Math.round((rig.x() * 2.2 - rig.yaw() * 28) * 20) / 20;
-    if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; }
+    // (H5C — it RESTS where its area's painted landmark is on the screen (skyline.js#SKY_BIAS, eased in with the gate's cross-fade),
+    //  kept inside the picture's own room; the sea wall's stones slide a touch more: they are nearer)
+    skyBias += (skyBiasT - skyBias) * (reduce ? 1 : 1 - Math.exp(-dt / 650)); if (Math.abs(skyBiasT - skyBias) < 0.02) skyBias = skyBiasT;
+    const sl = Math.round(skyShift(skyBias, rig.x() * 2.2 - rig.yaw() * 28, skyRoomPc) * 20) / 20;
+    if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; wallStone.style.transform = `translate3d(${(-sl * skyPicW * 0.0115).toFixed(1)}px,0,0)`; }
 
     // ---- the lanes
     for (const q of Object.values(K)) q.reset();
     for (const q of Object.values(KM)) q.reset();
     if (kidDraw && KM.kid) KM.kid.put(...kidDraw);
     const kindOf = L => (L.mark ? KIND.mark : KIND[L.type]);
-    let beam = null, sign = null, gates = 0;
+    let beam = null, sign = null, gates = 0, gateSeen = false;
     for (const G of GATE) G.m.visible = false;
     const base = Math.floor(camY) - BACK, top = base + BACK + Math.min(AHEAD, Math.ceil(24 * rig.k()) + 2);
     let nu = 0, gi = 0;
@@ -540,8 +659,8 @@ export function createNight(host, o = {}) {
           if (q.edge && (q.c < 0 ? sgL : sgR)) continue;   // (a signature piece stands on this side of the lane)
           const x = X(q.c + 0.5) + q.dx, zz = z + q.dz, dim = lt * (q.c < 0 || q.c >= COLS ? EK : 1);
           if (q.big) drawBig(q, X(q.c + 0.5), z, { K, A: AK, lt, on: on && !day, day, ek: EK });
-          else if (AK[q.k]) { const [ps, sh] = PIECE[q.k]; AK[q.k].put(x, 0, zz, ps, ps, ps, q.ry, 0xffffff, dim * 1.25); K.shadow.put(x, 0.03, zz + 0.06, sh[0], 1, sh[1], 0, 0, 1, 0, 0.45 * lt); }
-          else if (q.k === 'tree' || (q.k !== 'barricade' && !KM[q.k])) { const s = 0.72 + q.s * 0.3; K.trees.put(x, 0, zz, s, s, s, q.ry * 3, 0xffffff, dim); K.shadow.put(x, 0.03, zz + 0.1, 1.15 * s, 1, 1.0 * s, 0, 0, 1, 0, 0.5 * lt); }
+          else if (AK[q.k]) { const [ps, sh] = PIECE[q.k]; AK[q.k].put(x, 0, zz, ps, ps, ps, q.ry, q.k === 'drum' ? DRUM_HEX[Math.floor(q.s * 2.999)] : 0xffffff, dim * 1.25); K.shadow.put(x, 0.03, zz + 0.06, sh[0], 1, sh[1], 0, 0, 1, 0, 0.45 * lt); }
+          else if (q.k === 'tree' || (q.k !== 'barricade' && !KM[q.k])) { const s = 0.72 + q.s * 0.3; K.trees.put(x, 0, zz, s, s, s, q.ry * 3, 0xffffff, dim); K.shadow.put(x, 0.03, zz + 0.1, 1.15 * s, 1.6, 1.0 * s, 0, 0, 1, 0, 0.5 * lt); }
           else if (q.k === 'barricade') { K.barricades.put(x, 0, zz, 1.04, 1.04, 1.04, q.ry * 0.22, 0xffffff, dim * 1.3); K.shadow.put(x, 0.03, zz + 0.06, 1.1, 1, 0.6, 0, 0, 1, 0, 0.45 * lt); if (on) K.bill.put(x + 0.4, 0.68, zz, 0.3, 0.3, 1, 0, 0xffa530, 1, 0, 0.95 * dim); }
           else { const s = PROP_S[q.k]; KM[q.k].put(x, 0, zz, s, s, s, Math.round(q.ry) * Math.PI / 2 + (q.k === 'traffic-cone' ? q.ry : 0), 0xffffff, dim * 1.35); K.shadow.put(x, 0.03, zz + 0.06, 0.95, 1, 0.8, 0, 0, 1, 0, 0.45 * lt); }
         }
@@ -571,26 +690,26 @@ export function createNight(host, o = {}) {
               const truck = what === 'truck', tz = (len - 0.1) / TRUCK.len;   // (3 cells = THE BOX TRUCK, built in code — models.js#buildTruck)
               if (truck) K.trucks.put(cx, 0, z, 0.94, 0.9, tz, ry, tint, 1, dim);
               else if (q) q.put(bx - L.dir * B.cz * sz, 0, z, sx, sy, sz, ry, tint, 1, dim);
-              K.shadow.put(cx, 0.03, z, len * 1.12, 1, 1.05, 0, 0, 1, 0, 0.6 * lt);
+              K.shadow.put(cx, 0.03, z, len * 1.12, truck ? 1.05 : len > 1.5 ? 0.7 : 0.55, 1.05, 0, 0, 1, 0, 0.6 * lt);
               if (on) {
                 const [hw, hy] = LAMPS[truck ? 'truck' : name], a1 = dim, back = L.dir > 0 ? 0 : Math.PI;
                 // the truck's amber markers along the foot of the box's side (the side the camera sees)
                 if (truck) for (const m of [0, 0.34, 0.67, 1]) K.bill.put(cx + L.dir * (TRUCK.box[0] + (TRUCK.box[1] - TRUCK.box[0]) * m) * tz, 0.29, z + 0.4, 0.24, 0.24, 1, 0, 0xff9a1c, 1, 0, a1);
                 if (taxi) { K.bill.put(bx, 0.5, z, 0.3, 0.2, 1, 0, 0xfff3b0, 1, 5, a1); LB(bx, 0.5, z, 0.62, 0.42, 1, 0, 0xffc21e, 1, 0, 0.55 * a1); }   // its ROOF LIGHT: a small lit box + its warm halo
                 // (H5A — the owner: NO LIGHT TRAILS on any vehicle — from above they read as jet exhaust; afterburners are THE BLACKBIRD's alone, H6)
-                // THE TAIL LIGHTS (H5B's add-on — the owner, Nov 16 9:45 pm: two hard red dashes set BEHIND the car, the lamps on the
-                // body barely showing, read as red marks floating on the asphalt): the GLOW is ONE soft merged red pool a vehicle,
-                // PINNED UNDER its rear — it starts at the bumper (it runs on under the body: never a gap) and fades backward,
-                // short, soft-edged, half the old strength, inside its own lane; its visible SOURCE = two bright red lamps on the
-                // body (a white-hot core each — they catch the bloom). BY DAY: no glow — the lamps are just red on the body.
+                // THE TAIL LIGHTS (H5B's add-on): ONE soft red pool a vehicle under its rear + two bright red lamps on the body; none by day
                 const rearX = truck ? tail : nose - L.dir * bodyL;
-                LF(X(rearX - L.dir * TAIL_REACH * 0.36), 0.04, z, TAIL_REACH * 1.5, 1, 0.84, 0, 0xff2030, 1, 0, 0.25 * a1);
+                // H5C — the finish (the owner): the pool starts AT the lamps (it begins under the bumper: no gap behind any vehicle,
+                // either way it drives), a short OVAL stretching backward (the glow's shape −1: hot + warm at the lamps, fading out
+                // behind), a small warmer core right at the lamps; the lamps a hair bigger
+                LF(X(rearX - L.dir * (TAIL_LEN / 2 - 0.2)), 0.04, z, TAIL_LEN, 1, 0.82, L.dir > 0 ? Math.PI : 0, 0xff2a22, 1, -1, 0.34 * a1);
+                LF(X(rearX - L.dir * 0.1), 0.041, z, 0.62, 1, 0.66, 0, 0xff5a34, 1, 0, 0.3 * a1);
                 for (const e of [-hw, hw]) {   // BOTH headlights + BOTH tail lamps, each at its own place on the model
                   // (BY DAY — H5B: the headlights' beams are OFF; a pale lens in front, a small red on the body behind)
                   LF(X(nose + L.dir * HEAD_REACH / 2), 0.04, z + e, HEAD_REACH, 1, 0.8, back, 0xfff0c8, 1, 6, 0.5 * a1);   // a short soft beam on the road ahead
                   K.bill.put(X(nose), hy, z + e, day ? 0.13 : 0.2, day ? 0.13 : 0.2, 1, 0, 0xfff0c0, 1, 5, (day ? 0.7 : 0.8) * a1);
-                  K.bill.put(X(rearX + L.dir * 0.03), hy + 0.02, z + e, day ? 0.14 : 0.3, day ? 0.14 : 0.3, 1, 0, day ? 0xd81828 : 0xff2030, 1, 5, (day ? 1 : 1.25) * a1);
-                  LB(X(rearX + L.dir * 0.03), hy + 0.02, z + e, 0.11, 0.11, 1, 0, 0xffd0c8, 1, 0, a1);
+                  K.bill.put(X(rearX + L.dir * 0.03), hy + 0.02, z + e, day ? 0.14 : 0.34, day ? 0.14 : 0.34, 1, 0, day ? 0xd81828 : 0xff2030, 1, 5, (day ? 1 : 1.25) * a1);
+                  LB(X(rearX + L.dir * 0.03), hy + 0.02, z + e, 0.13, 0.13, 1, 0, 0xffd0c8, 1, 0, a1);
                 }
               }
             } else {
@@ -599,7 +718,7 @@ export function createNight(host, o = {}) {
               const by = bobOf(i, j) + LOG_FEET - LOG.top - wv * 0.07, rock = reduce ? 0 : Math.sin(clock / 880 + i * 1.3 + j * 2.1) * 0.04 + wv * 0.16;
               const n = Math.max(1, Math.min(4, Math.round(len))), tailX = L.dir > 0 ? left : left + len;
               K[`log${n}`].put(cx, by, z, 1, 1, 1, 0, 0xffffff, dim * 1.12, 1, 1, rock);
-              K.shadow.put(cx, 0.047, z + 0.06, len * 1.06 + 0.25, 1, 1.25, 0, 0, 1, 0, 0.5 * Math.min(1, lt));   // (H5B's add-on: a soft darker shadow under each log — it sits ON bright water)
+              K.shadow.put(cx, 0.047, z + 0.06, len * 1.06 + 0.25, 0.35, 1.25, 0, 0, 1, 0, 0.5 * Math.min(1, lt));   // (H5B's add-on: a soft darker shadow under each log — it sits ON bright water)
               if (on) {
                 // THE WATERLINE: a thin ring hugging the log where it sits in the water + a small ripple ring swelling off it. At night the
                 // amber is ONLY that thin underglow + a soft light on the water round it — the wood stays visible
@@ -646,16 +765,16 @@ export function createNight(host, o = {}) {
               KM['train-carriage'].put(cx, 0, z, sc, sc, cl / Cg.l, ry, 0xffffff, lt);
               if (on) for (const wx of [-0.62, 0, 0.62]) LB(cx + wx, 0.98, z + 0.3, 0.4, 0.26, 1, 0, c % 2 ? 0x7fe6ff : 0xffe6a8, 1, 0, 0.9 * lt);   // lit windows
             }
-            K.shadow.put(X(left + len / 2), 0.03, z, len * 1.03, 1, 1.25, 0, 0, 1, 0, 0.65 * lt);
+            K.shadow.put(X(left + len / 2), 0.03, z, len * 1.03, 1.2, 1.25, 0, 0, 1, 0, 0.65 * lt);
             if (on) {
               const [tw, ty] = LAMPS.train, rear = nose - p.dir * len;
               for (const e of [-tw, tw]) {   // the train's front: BOTH headlights cast a soft beam (a little longer than a car's); BOTH tail lights a red glow
                 LF(X(nose + p.dir * HEAD_REACH * 0.8), 0.05, z + e, HEAD_REACH * 1.6, 1, 0.95, p.dir > 0 ? 0 : Math.PI, 0xfff2d0, 1, 6, 0.6 * lt);
                 K.bill.put(X(nose), ty, z + e, day ? 0.24 : 0.36, day ? 0.24 : 0.36, 1, 0, 0xfff6d8, 1, 5, lt);
-                K.bill.put(X(rear + p.dir * 0.03), ty, z + e, day ? 0.18 : 0.34, day ? 0.18 : 0.34, 1, 0, day ? 0xd81828 : 0xff2030, 1, 5, (day ? 0.9 : 1.2) * lt);   // the tail lamps ON THE BODY (the glow's source)
-                LB(X(rear + p.dir * 0.03), ty, z + e, 0.12, 0.12, 1, 0, 0xffd0c8, 1, 0, lt);
+                K.bill.put(X(rear + p.dir * 0.03), ty, z + e, day ? 0.18 : 0.38, day ? 0.18 : 0.38, 1, 0, day ? 0xd81828 : 0xff2030, 1, 5, (day ? 0.9 : 1.2) * lt);   // the tail lamps ON THE BODY (the glow's source)
+                LB(X(rear + p.dir * 0.03), ty, z + e, 0.14, 0.14, 1, 0, 0xffd0c8, 1, 0, lt);
               }
-              LF(X(rear - p.dir * TAIL_REACH * 0.4), 0.05, z, TAIL_REACH * 1.9, 1, 0.9, 0, 0xff2030, 1, 0, 0.2 * lt);   // … and ONE soft red pool pinned under its tail (the cars' rule)
+              LF(X(rear - p.dir * (TAIL_LEN * 0.65 - 0.2)), 0.05, z, TAIL_LEN * 1.3, 1, 0.9, p.dir > 0 ? Math.PI : 0, 0xff2a22, 1, -1, 0.3 * lt);   // … and ONE oval red pool starting at its tail lamps (the cars' rule)
               LF(X(left + len / 2), 0.045, z + 0.55, len, 1, 0.9, 0, 0xffe2b8, 1, 4, 0.3 * lt);   // (its windows' light on the ground: warm — never blue)
             }
           }
@@ -683,9 +802,12 @@ export function createNight(host, o = {}) {
       }
       if (L.ufo && nu < 2 && !ufos.slice(0, nu).some(q => q.id === L.ufo.id)) {   // THE UFO's placeholder (H6): a disc + its beam circle on the ground
         const q = ufos[nu++], bx = ufoX(L.ufo, t) / FP, by = ufoY(L.ufo, t) / FP, r = L.ufo.r / FP;
-        q.id = L.ufo.id; q.d.position.set(X(bx), 4.2, Z(by)); q.d.visible = true;
+        // (H5C — THE FAR EDGE: the disc flies ABOVE the haze, so three's fog never takes it — it fades by where its beam stands on the
+        //  ground: fully gone before the sea wall, never a pale disc on the backdrop)
+        const hz = 1 - hazeAt(X(bx), 0, Z(by));
+        q.id = L.ufo.id; q.d.position.set(X(bx), 4.2, Z(by)); q.d.visible = hz > 0.02; q.d.material.opacity = hz;
         K.flat.put(X(bx), 0.05, Z(by), r * 2.5, 1, r * 2.5, 0, 0x6dffb0, 1, 3, 0.95); K.flat.put(X(bx), 0.045, Z(by), r * 2.1, 1, r * 2.1, 0, 0x3dff9a, 1, 0, 0.42);
-        K.bill.put(X(bx), 4.0, Z(by), 2.6, 1.2, 1, 0, 0x7dffc0, 1, 0, 0.7);
+        K.bill.put(X(bx), 4.0, Z(by), 2.6, 1.2, 1, 0, 0x7dffc0, 1, 0, 0.7 * hz);
       }
       const AR = area(i).index;
       if (L.mark && AR >= 0) {
@@ -696,18 +818,23 @@ export function createNight(host, o = {}) {
           // BY DAY (H5B): a PAINTED arch — white posts banded in the area's colour, the arch in stripes of it, the name in white paint
           // on a band of the area's colour laid across the lane
           const pc = LOOKS[AR].paint, wh = 0xf6f2e8, li = Math.min(1.6, lt);
-          for (const x of [xl, xr]) { K.posts.put(x, 1.5, zf, 0.22, 3.0, 0.22, 0, wh, li); K.posts.put(x, 2.86, zf, 0.3, 0.4, 0.3, 0, pc, li); K.posts.put(x, 0.4, zf, 0.3, 0.8, 0.3, 0, pc, li); }
-          for (let k = 0; k < 20; k++) {
-            const u0 = k / 20, u1 = (k + 1) / 20, ax0 = xl + (xr - xl) * u0, ax1 = xl + (xr - xl) * u1, ay0 = 3.1 + Math.sin(Math.PI * u0) * 1.05, ay1 = 3.1 + Math.sin(Math.PI * u1) * 1.05;
-            K.posts.put((ax0 + ax1) / 2, (ay0 + ay1) / 2, zf, Math.hypot(ax1 - ax0, ay1 - ay0) + 0.03, 0.24, 0.16, 0, k % 2 ? wh : pc, li, 1, 1, 0, Math.atan2(ay1 - ay0, ax1 - ax0));
-          }
-          K.flat.put(0, 0.045, z, 9.6, 1, 1.0, 0, pc, 1, 4, 0.9);
+          // (H5C: two posts, a striped CROSSBAR between them — the name's arched board stands on it (the GATE plane); the lane's own
+          //  painted trim marks the threshold)
+          for (const x of [xl, xr]) { K.posts.put(x, 1.5, zf, 0.22, 3.0, 0.22, 0, wh, li); K.posts.put(x, 2.86, zf, 0.3, 0.4, 0.3, 0, pc, li); K.posts.put(x, 0.4, zf, 0.3, 0.8, 0.3, 0, pc, li); K.posts.put(x, 3.16, zf, 0.34, 0.2, 0.34, 0, wh, li); K.shadow.put(x, 0.03, zf, 0.9, 3.0, 0.7, 0, 0, 1, 0, 0.5 * Math.min(1, lt)); }
+          for (let k = 0; k < 10; k++) K.posts.put(xl + (xr - xl) * (k + 0.5) / 10, 3.04, zf, (xr - xl) / 10 + 0.01, 0.2, 0.16, 0, k % 2 ? wh : pc, li);
         } else {
-        for (const x of [xl, xr]) { K.posts.put(x, 1.5, zf, 0.2, 3.0, 0.2, 0, 0x2b2b3c, lt); K.bill.put(x, 3.1, zf, 0.5, 0.5, 1, 0, hex, 1, 5, lt); for (let k = 0; k < 5; k++) K.bill.put(x, 0.4 + k * 0.55, zf, 0.3, 0.42, 1, 0, hex, 1, 4, 0.85 * lt); if (on) K.flat.put(x, 0.05, zf, 2.6, 1, 2.0, 0, hex, 1, 0, 0.4 * lt); }
-        for (let k = 0; k <= 56; k++) { const u = k / 56, ax = xl + (xr - xl) * u, ay = 3.1 + Math.sin(Math.PI * u) * 1.05; K.bill.put(ax, ay, zf, 0.4, 0.4, 1, 0, hex, 1, 0, 0.55 * lt); K.bill.put(ax, ay, zf, 0.2, 0.2, 1, 0, 0xffffff, 1, 0, 0.6 * lt); }   // (a continuous neon TUBE: the glow + its hot core)
-        if (on) K.flat.put(0, 0.045, z, 11, 1, 1.5, 0, hex, 1, 4, 0.2 * lt);
+          for (const x of [xl, xr]) { K.posts.put(x, 1.5, zf, 0.2, 3.0, 0.2, 0, 0x2b2b3c, lt); K.bill.put(x, 3.1, zf, 0.5, 0.5, 1, 0, hex, 1, 5, lt); for (let k = 0; k < 5; k++) K.bill.put(x, 0.4 + k * 0.55, zf, 0.3, 0.42, 1, 0, hex, 1, 4, 0.85 * lt); if (on) K.flat.put(x, 0.05, zf, 2.6, 1, 2.0, 0, hex, 1, 0, 0.4 * lt); }
+          K.posts.put(0, 3.04, zf, xr - xl, 0.12, 0.12, 0, 0x2b2b3c, lt);   // (the crossbar + the neon tube lying along it: the glow + its hot core)
+          K.bill.put(0, 3.04, zf, (xr - xl) * 1.04, 0.34, 1, 0, hex, 1, 4, 0.9 * lt); K.bill.put(0, 3.04, zf, (xr - xl) * 1.02, 0.1, 1, 0, 0xffffff, 1, 4, 0.7 * lt);
+          if (on) K.flat.put(0, 0.045, z, 11, 1, 1.2, 0, hex, 1, 4, 0.16 * lt);
         }
-        if (gates < 2) { const G = GATE[gates++]; writeGate(G, gateName(i), hex); G.m.visible = lt > 0.2 && dk < 0.8; G.m.position.set(0, 0.07, z); G.m.material.opacity = Math.min(1, lt); }
+        if (gates < 2) {
+          // THE NAME ON THE ARCH: its board stands on the crossbar, facing the camera; gone once he has hopped on through the gate
+          const G = GATE[gates++], thru = clamp01((i + 1.3 - ky) / 0.5), gy = GATE_Y + GATE_H / 2;
+          writeGate(G, gateName(i), hex, LOOKS[AR].paint);
+          G.m.visible = lt > 0.2 && dk < 0.8 && thru > 0.01; G.m.position.set(0, gy, zf); G.m.quaternion.copy(cam.quaternion); G.m.material.opacity = Math.min(1, lt) * thru;
+          if (G.m.visible && Math.abs(i + 0.5 - ky) < 0.6) { gateSeen = true; P.set(0, GATE_Y, zf).project(cam); gateInfo.on = true; gateInfo.text = gateName(i); gateInfo.y = (1 - P.y) / 2; }
+        }
       }
       const PL = AR >= 0 ? sigAt(i) : null;
       if (PL) for (const P of PL) { const r = drawSig(P, { K, A: AK, KM, BOX, X, Z, lt, on: on && !day, day, ek: EK, T: LOOKS[AR], h: (a, b) => hsh(vseed ^ (a * 2659), b), course }); if (r && r.beam && on) beam = { at: r.beam, side: P.side, lt: Math.min(1, lt) }; if (r && r.sign && on && !sign) sign = { at: r.sign, lt: Math.min(1, lt) }; }
@@ -722,6 +849,7 @@ export function createNight(host, o = {}) {
       ground.lay(gi++, i, kindOf(L), kindOf(course.lane(i - 1)), kindOf(course.lane(i + 1)), hsh(vseed, i) * 10, dk, fxv, AR + 1);
     }
     ground.done(gi);
+    if (!gateSeen) gateInfo.on = false;
     for (let j = nu; j < 2; j++) { ufos[j].d.visible = false; ufos[j].id = -1; }
     // THE LIGHTHOUSE's BEAM (H5A): its lamp lit + a long soft beam lying over the lanes, SWEEPING across them (still with reduce motion)
     if (beam) {
@@ -734,13 +862,16 @@ export function createNight(host, o = {}) {
     fish.visible = !!sign;
     if (sign) { fish.position.set(sign.at[0], sign.at[1], sign.at[2]); fish.quaternion.copy(cam.quaternion); fish.material.opacity = sign.lt * (reduce || day ? 1 : 0.88 + 0.12 * Math.sin(clock / 190)); }
     // the skyline band's tint: the colour of the area the kid is in (a change only when he crosses a gateway)
-    const ka = area(Math.max(0, Math.floor(ky))).index;
+    const kl = Math.max(0, Math.floor(ky)), ka = area(kl).index;
+    // THE PAINTED SKYLINES (H5C): the band's picture follows his lane — his area's (cross-faded at its gate), the next one fetched ahead
+    if (kl !== skyLane) { skyLane = kl; skyFollow(kl, skyFresh); skyFresh = false; }
     if (ka !== skyArea) {
-      skyArea = ka; skyTint.style.background = ka < 0 ? 'none' : `linear-gradient(to top, ${LOOKS[ka].sky}, transparent 85%)`; skyTint.style.opacity = ka < 0 ? '0' : day ? '0.1' : '0.2';
-      skyMark.set(ka, day ? 'day' : 'night', ka < 0 ? 0 : LOOKS[ka].accent);   // (H5B — THE LANDMARKS IN THE SKYLINE: this area's, while the kid is in it)
+      // (BY DAY — H5C: the painted picture itself carries the landmark: no wash over it, no drawn landmark (skymarks.js is the night's))
+      skyArea = ka; skyTint.style.background = ka < 0 ? 'none' : `linear-gradient(to top, ${LOOKS[ka].sky}, transparent 85%)`; skyTint.style.opacity = ka < 0 || day ? '0' : '0.2';
+      if (skyMark) skyMark.set(day ? -1 : ka, 'night', ka < 0 ? 0 : LOOKS[ka].accent);   // (H5B — THE LANDMARKS IN THE SKYLINE: this area's, while the kid is in it — the NIGHT's neon outlines)
     }
     // his blob shadow: smaller + fainter as he rises
-    if (show && py > -0.2) K.shadow.put(px, feet + 0.035, pz + 0.05, 0.98 * (1 - lift * 0.55) * s3[0], 1, 0.78 * (1 - lift * 0.55) * s3[2], 0, 0, 1, 0, 0.66 * (1 - lift * 0.9) * lit);
+    if (show && py > -0.2) K.shadow.put(px, feet + 0.035, pz + 0.05, 0.98 * (1 - lift * 0.55) * s3[0], 1.15 + lift * 1.4, 0.78 * (1 - lift * 0.55) * s3[2], 0, 0, 1, 0, 0.66 * (1 - lift * 0.9) * lit);
     // HE ALWAYS STANDS OUT: a soft pool of his colour on the ground under him + a ring round his feet (it breathes — never with reduce motion)
     if (show && py > -0.2 && lit > 0.25 && !(H && down)) {
       const br = reduce ? 1 : 0.94 + 0.06 * Math.sin(clock / 260);
@@ -789,27 +920,25 @@ export function createNight(host, o = {}) {
       if (!Ln || Ln.lane < base || Ln.lane >= top) { lab.m.visible = false; continue; }
       const L = course.lane(Ln.lane), ll = litOf(Ln.lane), hex = LINE_HEX[k], both = k === 'friend' && LINES.best && LINES.best.lane === Ln.lane;
       const z = Z(Ln.lane + (both ? 0.8 : 0.93)), hit = crossed.find(q => q.k === k && q.lane === Ln.lane), fl = hit ? Math.max(0, 1 - (clock - hit.t0) / 700) : 0;
-      if (k === 'friend') {
-        // H5B's add-on (the owner): THE FRIEND LINE reads as a line you CROSS, never a surface — a short glowing post at each edge of
-        // the play (on its boundary lines), the band a TAPE between them a little above the ground (its thin shadow under it); NEON
-        // PINK (LINE_HEX.friend). Its words, its burst, its glints + drops follow the colour. On water the posts stand in it.
-        const la = Math.min(1.4, ll);
-        for (const px0 of [X(-0.03), X(COLS + 0.03)]) { K.posts.put(px0, 0.31, z, 0.12, 0.62, 0.12, 0, 0xffe4f6, la); K.bill.put(px0, 0.68, z, 0.36 + fl * 0.2, 0.36 + fl * 0.2, 1, 0, hex, 1, 5, ll); if (!day) K.flat.put(px0, 0.05, z, 1.3, 1, 1.0, 0, hex, 1, 0, 0.3 * ll); }
+      {
+        // ONE FORM FOR BOTH (H5B's add-on: the friend's · H5C — the owner: YOUR BEST the same): a line you CROSS, never a surface — a
+        // short glowing post at each edge of the play (on its boundary lines), the band a TAPE between them a little above the ground,
+        // its thin shadow under it: GOLD = YOUR BEST · NEON PINK = the next friend's. ON WATER THE POSTS ARE BUOYS (red + white, they
+        // bob, a ripple round each). Its burst, its glints + drops follow its colour.
+        const la = Math.min(1.4, ll), wet = L.type === 'water', cap = k === 'best' ? 0xfff0c0 : 0xffe4f6;
+        for (const px0 of [X(-0.03), X(COLS + 0.03)]) {
+          const bob = wet && !reduce ? Math.sin(clock / 480 + px0 * 1.9) * 0.035 : 0;
+          if (wet) {
+            K.posts.put(px0, 0.1 + bob, z, 0.34, 0.24, 0.34, 0, 0xe8432e, la); K.posts.put(px0, 0.27 + bob, z, 0.26, 0.1, 0.26, 0, 0xffffff, la); K.posts.put(px0, 0.5 + bob, z, 0.08, 0.36, 0.08, 0, cap, la);
+            K.flat.put(px0, 0.05, z, 1.1, 1, 0.8, 0, 0xffffff, 1, 3, (day ? 0.55 : 0.24) * Math.min(1, ll));
+          } else K.posts.put(px0, 0.31, z, 0.12, 0.62, 0.12, 0, cap, la);
+          K.bill.put(px0, 0.68 + bob, z, 0.36 + fl * 0.2, 0.36 + fl * 0.2, 1, 0, hex, 1, 5, ll); if (!day) K.flat.put(px0, 0.05, z, 1.3, 1, 1.0, 0, hex, 1, 0, 0.3 * ll);
+        }
         K.shadow.raw(0, 0.052, z + 0.07, 9.0, 1, 0.26, 0, 0, 1, 4, 0.5 * Math.min(1, ll));
         K.flat.put(0, 0.36, z, 9.06, 1, 0.5 + fl * 0.4, 0, hex, 1, 4, (0.95 + fl) * ll);
         K.flat.put(0, 0.362, z, 9.06, 1, 0.13, 0, 0xffffff, 1, 4, (0.85 + fl * 0.6) * ll);
         if (!reduce) for (let g = 0; g < 3; g++) K.bill.put(((clock / 1500 + g / 3) % 1) * 9 - 4.5, 0.4, z, 0.8, 0.3, 1, 0, hex, 1, 0, 0.7 * ll);
-      } else if (L.type === 'water') {
-        K.flat.put(0, 0.06, z, 13, 1, 1.0, 0, hex, 1, 4, (0.14 + fl * 0.5) * ll);
-        K.flat.put(0, 0.062, z, 13, 1, 0.22, 0, hex, 1, 4, (0.6 + fl) * ll);
-        for (let c = -1.5; c <= COLS + 1.5; c += 0.75) { const bob = reduce ? 0 : Math.sin(clock / 480 + c * 1.9) * 0.03; K.bill.put(X(c), 0.15 + bob, z, 0.32 + fl * 0.2, 0.32 + fl * 0.2, 1, 0, hex, 1, 5, ll); K.flat.put(X(c), 0.055, z, 0.8, 1, 0.55, 0, hex, 1, 0, 0.32 * ll); }
-      } else {
-        // (BOLD — it never reads as a road marking: a wide soft halo, the glowing band, its white-hot core)
-        K.flat.put(0, 0.064, z, 13, 1, 1.0, 0, hex, 1, 4, (0.14 + fl * 0.5) * ll);
-        K.flat.put(0, 0.066, z, 13, 1, 0.6 + fl * 0.5, 0, hex, 1, 4, (0.95 + fl) * ll);
-        K.flat.put(0, 0.068, z, 13, 1, 0.15, 0, 0xffffff, 1, 4, (0.8 + fl * 0.6) * ll);
       }
-      if (!reduce && k !== 'friend') for (let g = 0; g < 3; g++) K.bill.put(((clock / 1500 + g / 3) % 1) * 13 - 6.5, 0.1, z, 0.8, 0.3, 1, 0, hex, 1, 0, 0.7 * ll);
       lab.m.visible = ll > 0.2;
       // (the words read on ANY ground: a soft dark strip under them — grass, asphalt, water, the rails)
       const wz = Z(Ln.lane + (both ? 1.42 : 0.42) - (L.mark ? 1 : 0));   // (H5A — a gateway lane carries its area's name: the line's words lie a lane lower)
@@ -822,7 +951,7 @@ export function createNight(host, o = {}) {
       const q = crossed[j], u = (clock - q.t0) / 700;
       if (u >= 1) { crossed.splice(j, 1); continue; }
       if (LINES[q.k] && LINES[q.k].lane === q.lane) continue;
-      if (q.lane >= base && q.lane < top) K.flat.put(0, 0.066, Z(q.lane + 0.93), 13, 1, 0.8 + (1 - u) * 0.5, 0, LINE_HEX[q.k], 1, 4, 1.5 * (1 - u) * litOf(q.lane));
+      if (q.lane >= base && q.lane < top) K.flat.put(0, 0.36, Z(q.lane + 0.93), 9.06, 1, 0.8 + (1 - u) * 0.5, 0, LINE_HEX[q.k], 1, 4, 1.5 * (1 - u) * litOf(q.lane));
     }
     if (taken) { K.flat.put(px, 0.06, pz, 3.4, 1, 3.0, 0, 0x6dffb0, 1, 3, 0.9 * taken); K.flat.put(px, 0.055, pz, 3.0, 1, 2.6, 0, 0x3dff9a, 1, 0, 0.5 * taken); K.bill.put(px, 5.5, pz, 3.2, 11, 1, 0, 0x7dffc0, 1, 4, 0.5 * taken); }
     // the small moments: a dust ring, a ripple, a splash
@@ -836,13 +965,38 @@ export function createNight(host, o = {}) {
     if (day) {
       // THE FOG BANK (H5B — the blackout by day: the SAME wall, the same timing, the same rules): a rolling white-grey bank creeping up
       // from the bottom — a soft white edge where it takes a lane, puffs rolling along its face, the bank's body behind (the curtain)
-      K.flat.put(0, 0.08, Z(wallE - 0.1), 30, 1, 1.5, 0, 0xffffff, 1, 4, 0.85); K.flat.put(0, 0.07, Z(wallE + 0.8), 30, 1, 3.2, 0, 0xf2f6f8, 1, 4, 0.34);
-      for (let r = 0; r < 4; r++) for (let c = -3; c <= COLS + 3; c += 1.5) {
-        const ph = c * 1.7 + r * 2.3, dr = reduce ? 0 : Math.sin(clock / 2100 + ph) * 0.6, up = reduce ? 0 : Math.sin(clock / 1300 + ph * 1.3) * 0.12;
-        K.bill.put(X(c + 0.75 * (r % 2)) + dr, 0.5 + r * 0.16 + up, Z(wallE + 0.45 - r * 0.8), 3.6, 2.4, 1, 0, r === 0 ? 0xffffff : (Math.round(c / 1.5) + r) % 2 ? 0xf6f8fa : 0xdfe6ec, 1, 0, r ? 0.95 : 0.6);
+      // H5C (the owner: "never a flat slab"): ROLLING, LAYERED, MOVING fog — the lanes show THROUGH its first metre (the ground
+      // shader's own soft, ragged edge + thin wisps drifting ahead of it), then three billow layers rolling at their own speeds, each
+      // puff lit on top + cool underneath (a ragged top edge: every puff its own size + height), the bank's body behind them mottled
+      // with slow big billows — and a cool shadow on the ground in front of it. Never a hard line, never a flat rectangle.
+      const T = reduce ? 0 : clock / 1000, wrap = v => ((v % 19) + 19) % 19 - 9.5;
+      K.shadow.raw(0, 0.06, Z(wallE + 1.25), 34, 1, 3.2, 0, 0, 1, 4, 0.2);
+      for (let li = 0; li < FOG_LAYERS.length; li++) {
+        const [dz, y0, sw, sh, al, sp, top, under, stp] = FOG_LAYERS[li];
+        if (tier === 0 && li === 1) continue;   // (the lowest tier: one body layer less)
+        for (let c = -9.5, id = 0; c < 9.5; c += stp, id++) {
+          const r1 = hsh(977 + li * 31, id), r2 = hsh(1543 + li * 17, id), sz = 0.74 + 0.52 * r1;
+          const x = wrap(c + T * sp), up = reduce ? 0 : Math.sin(T * (0.5 + r2 * 0.5) + id * 1.9) * 0.1, y = y0 * (0.78 + 0.5 * r2) + up, z = Z(wallE + dz + (r1 - 0.5) * 0.7);
+          K.bill.put(x + 0.25 * sw * sz * 0.2, y - sh * sz * 0.2, z, sw * sz * 1.08, sh * sz, 1, 0, under, 1, 0, al);
+          K.bill.put(x, y, z - 0.02, sw * sz, sh * sz * 0.86, 1, 0, top, 1, 0, al * 0.92);
+        }
       }
-    } else { K.flat.put(0, 0.08, Z(wallE), 30, 1, 0.5, 0, 0xdccbff, 1, 4, 0.5); K.flat.put(0, 0.07, Z(wallE + 0.5), 30, 1, 2.2, 0, 0x5a3a9a, 1, 4, 0.16); }   // (a cold VIOLET edge — never blue: blue on the ground = water)
-    curtain.position.set(0, 1.2, Z(wallE - 1.1 - 20)); curtain.scale.set(60, 2.6, 40);
+      // the wisps: thin streaks drifting ahead of the bank — what first reaches a lane
+      for (let j = 0; j < 9; j++) { const r = hsh(2203, j), x = wrap(j * 2.1 + T * (0.42 + r * 0.4)); K.bill.put(x, 0.24 + r * 0.3, Z(wallE + 0.35 + r * 1.3), 3.0 + r * 1.6, 0.42 + r * 0.25, 1, 0, 0xffffff, 1, 0, 0.3 + 0.16 * Math.sin(T * 0.7 + j)); }
+    } else {
+      K.flat.put(0, 0.07, Z(wallE + 0.5), 30, 1, 2.6, 0, 0x5a3a9a, 1, 4, 0.15);   // (a cold VIOLET edge — never blue: blue on the ground = water)
+      // (H5C — never a hard line: the dark creeps AHEAD of its edge in soft ragged tongues that drift; the cold violet glow rides
+      //  each tongue's own lip — a ragged, breathing edge, never a straight bar)
+      const T = reduce ? 0 : clock / 1000;
+      for (let c = -9, id = 0; c <= 9; c += 1.15, id++) {
+        const r = hsh(3301, id), x = c + Math.sin(T * (0.25 + r * 0.3) + id * 2.1) * 0.7, lip = wallE + 0.1 + r * 0.75;
+        K.shadow.raw(x, 0.085, Z(lip), 2.6 + r * 1.6, 1, 1.5 + r * 1.3, 0, 0, 1, 0, 0.62 + 0.3 * r);
+        K.flat.put(x, 0.09, Z(lip + 0.62 + r * 0.4), 2.2 + r, 1, 0.55, 0, 0xdccbff, 1, 0, 0.3 + 0.14 * Math.sin(T * 1.3 + id * 1.7));
+      }
+    }
+    // (the body behind: by day it starts under the back billows — its own edge is never seen)
+    curtain.position.set(0, 1.2, Z(wallE - (day ? 3.1 : 1.1) - 20)); curtain.scale.set(60, 2.6, 40);
+    ground.uniforms.uWall.value = wallE;
     for (const q of Object.values(K)) q.done();
     for (const q of Object.values(KM)) q.done();
     ground.uniforms.uTime.value = reduce ? 0 : clock / 1000;
@@ -899,7 +1053,7 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px (= pt) — the wider view's readability number */
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ warmed, kid: !!kidGeo, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', mark: skyMark.shown() }),
+    info: () => ({ warmed, kid: !!kidGeo, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', mark: skyMark ? skyMark.shown() : '', words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** H5B — THE LOOK: 'day' | 'night' (at once; the same scene) */
     setLook, look: () => (day ? 'day' : 'night'),
     destroy() {
@@ -916,10 +1070,10 @@ export function createNight(host, o = {}) {
       if (bloom) bloom.dispose();
       if (env) env.dispose();
       if (envDay) envDay.dispose();
-      skyMark.destroy();
+      if (skyMark) skyMark.destroy();
       renderer.dispose();
       try { renderer.forceContextLoss(); } catch { /* fine */ }
-      el.remove(); sky.remove();
+      el.remove(); sky.remove(); farHaze.remove(); skyHold.clear();
     },
   };
 }

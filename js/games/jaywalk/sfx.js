@@ -5,7 +5,8 @@
 // Audio is POLISH: locked, muted, a missing file — nothing plays, nothing throws; every hazard keeps its visual tell.
 //   IN PLAY: hop (pitch ± 6 %, gain ± 2 dB a hop) · land-wood (a landing on a log) · hit · splash (H2 — the engine's events: onEvent) +
 //   H5A — THE WORLD's (cues.js → onCue): the train bell (a seamless loop while the signals flash) + the train passing, a car passing (a
-//   whoosh — GONE with H5B, the owner), the horn (≤ 1 per 3 s, at half its level — H5B), the lights dying, a gateway (landmark), new-best. The mix is H6's.
+//   whoosh — GONE with H5B, the owner), the horn (≤ 1 per 3 s, at half its level — H5B), the lights dying, a gateway (area-arrive — H5C), new-best,
+//   H5C — the TRAIN HORN (one blast a train, when its warning starts). The mix is H6's.
 //   EVERY sound has its pick (A) and, where one was delivered, a `-b` backup (B): pick(id) is the owner's choice on this phone.
 import { getContext, getSfxBus, isUnlocked, onUnlock } from '../../audio/engine.js';
 import { getPref, setPref } from './lab-prefs.js';
@@ -13,7 +14,7 @@ import { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S } from './sounds.js
 export { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S };
 
 const DIR = new URL('../../../audio/jaywalk/', import.meta.url);
-export const JW_SFX_REV = 1;   // (bump when a sound file is replaced)
+export const JW_SFX_REV = 2;   // (bump when a sound file is replaced — 2: H5C's train bell)
 const BY = Object.fromEntries(SOUNDS.map(s => [s.id, s]));
 export const LIMITER = Object.freeze({ threshold: -8, knee: 6, ratio: 8, attack: 0.002, release: 0.16 });
 export const TRIM = 0.8;       // (takes the compressor's own make-up gain back out: a lone sound plays at its level)
@@ -115,6 +116,7 @@ export function onCue(q) {
   if (q.cue === 'bell-on') { bellWant = true; if (!bell) bell = play('train-bell', { loop: true, onLate: h => { if (bellWant && !bell) bell = h; else h.stop(); } }); return bell; }
   if (q.cue === 'bell-off') { bellWant = false; if (bell) { bell.stop(FADE_S); bell = null; } return null; }
   if (q.cue === 'train-pass') return play('train-pass', { pan: q.pan });
+  if (q.cue === 'train-horn') return play('train-horn', { pan: q.pan });   // (H5C — one blast a train, when its warning starts)
   if (q.cue === 'horn') return play('horn', { pan: q.pan });
   if (q.cue === 'lights-die') return play('lights-die');
   return null;

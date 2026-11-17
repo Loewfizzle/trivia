@@ -262,7 +262,7 @@ export function createView() {
       if (e.e === 'landmark' && markEl) {
         markEl.textContent = gateName(e.lane); markUntil = performance.now() + 2600;
         markEl.classList.remove('is-flash'); void markEl.offsetWidth; markEl.classList.add('is-flash');
-        if (sndOn) { try { SFX.play('landmark'); } catch { /* silent */ } }
+        if (sndOn) { try { SFX.play('area-arrive'); } catch { /* silent */ } }
       }
       if (sndOn) { try { SFX.onEvent(e); } catch { /* silent */ } }
     }
@@ -295,7 +295,7 @@ export function createView() {
     }
     if (!isMatch) for (const f of crossedFriends(lines.friends, lane - 1, lane)) {
       night.flashLine('friend', f.v);
-      if (sndOn) { try { SFX.play('landmark', { vol: 0.4, rate: 1.3 }); } catch { /* silent */ } }
+      if (sndOn) { try { SFX.play('area-arrive', { vol: 0.4, rate: 1.3 }); } catch { /* silent */ } }
     }
   }
   /** what the scene draws of them now (set only when it changes): your own lines on your own run — never over a player you watch */

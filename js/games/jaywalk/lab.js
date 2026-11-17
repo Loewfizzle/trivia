@@ -119,7 +119,7 @@ async function mount() {
     const ev = [];
     if (safe && run.wall > (run.y - 5) * FP) run.wall = (run.y - 5) * FP;
     step(run, course, d, ev);
-    for (const e of ev) { if (e.e === 'landmark') { mark.textContent = gateName(e.lane); markUntil = performance.now() + 2600; if (snd) snd.play('landmark'); } if (snd) snd.onEvent(e); }
+    for (const e of ev) { if (e.e === 'landmark') { mark.textContent = gateName(e.lane); markUntil = performance.now() + 2600; if (snd) snd.play('area-arrive'); } if (snd) snd.onEvent(e); }
     if (snd && !isOver(run)) for (const q of cuesAt(cues, run, course)) snd.onCue(q);   // (H5A — THE WORLD's SOUNDS: cues.js)
     if (snd && isOver(run)) snd.onCue({ cue: 'bell-off' });   // (H5A: the area's name as its gateway shows it — THE DOCKS · LAP 2)
     steps++;

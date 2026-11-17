@@ -332,6 +332,19 @@ def skyline():
         band.save(out, 'WEBP', quality=q, method=6)
         if os.path.getsize(out) <= 150 * 1024: break
     print(f'  skyline-day.webp: {W}×{H} → {band.width}×{band.height}, q{q}, {os.path.getsize(out)} B')
+    # H5C — THE PAINTED SKYLINES (the owner, Nov 16): 8 day pictures — the SAME picture as skyline-day with that area's landmark painted
+    # in (Grok: backdrop/areas/skyline-day-<n>-<name>.png; horizon row 444 / 720 in all, the middle top clear) — the SAME crop as
+    # skyline-day.webp, so the band can cross-fade them at a gate. Named by the area's id (areas.js#LOOKS). The originals are only read.
+    for n, src_id, aid in ((1, 'docks', 'docks'), (2, 'fish-market', 'fish'), (3, 'rail-yard', 'yard'), (4, 'bridge', 'bridge'), (5, 'downtown', 'downtown'), (6, 'canal', 'canal'), (7, 'lighthouse', 'lighthouse'), (8, 'airfield', 'airfield')):
+        im = Image.open(os.path.join(SRC, 'backdrop', 'areas', f'skyline-day-{n}-{src_id}.png')).convert('RGB')
+        W, H = im.size
+        assert (W, H) == (1280, 720), (W, H)
+        band = im.crop((0, round(H * 0.22), W, round(H * 0.82)))
+        out = os.path.join(ROOT, 'assets', 'jaywalk', f'skyline-day-{aid}.webp')
+        for q in (95, 92, 88, 84, 78, 70):
+            band.save(out, 'WEBP', quality=q, method=6)
+            if os.path.getsize(out) <= 150 * 1024: break
+        print(f'  skyline-day-{aid}.webp: {band.width}×{band.height}, q{q}, {os.path.getsize(out)} B')
 
 
 def wav16(src, dst):
@@ -352,11 +365,22 @@ def sounds():
         s = os.path.join(SRC, 'sfx', f)
         if f.startswith('respawn'): continue   # (H4 — ONE LIFE EVERYWHERE: no respawn, so no respawn sound)
         if f.startswith('car-pass'): continue   # (H5B — the owner: the car-pass near-miss whoosh is REMOVED from the game)
+        if f.startswith('train-bell') or f.startswith('landmark'): continue   # (H5C — the owner: the old bells + the landmark ping are REPLACED: sfx3 + sfx4, below)
         if f.endswith('.mp3') and not f.startswith('train-bell'):
             shutil.copyfile(s, os.path.join(OUT_A, f)); total += os.path.getsize(s)
         elif f.endswith('.wav'):
             n, sr = wav16(s, os.path.join(OUT_A, f)); total += os.path.getsize(os.path.join(OUT_A, f))
             print(f'  {f}: 24-bit → 16-bit mono, {n} samples @ {sr} Hz (the loop = the whole file), {os.path.getsize(os.path.join(OUT_A, f))} B')
+    # H5C — THE TRAIN SOUNDS = set B (sfx3: the bell — already a 16-bit mono WAV, the whole file is the loop: copied byte for byte — +
+    # the horn) and THE AREA ARRIVAL (sfx4). The originals are only read.
+    for folder, f in (('sfx3', 'train-bell.wav'), ('sfx3', 'train-horn.mp3'), ('sfx4', 'area-arrive.mp3')):
+        s = os.path.join(SRC, folder, f)
+        if f.endswith('.wav'):
+            w = wave.open(s, 'rb'); assert (w.getnchannels(), w.getsampwidth()) == (1, 2), f; n, sr = w.getnframes(), w.getframerate(); w.close()
+            print(f'  {f}: 16-bit mono, {n} samples @ {sr} Hz (the loop = the whole file)')
+        shutil.copyfile(s, os.path.join(OUT_A, f)); total += os.path.getsize(s)
+    for gone in ('train-bell-b.wav', 'landmark.mp3'):   # (… and what they replace leaves the folder)
+        if os.path.exists(os.path.join(OUT_A, gone)): os.remove(os.path.join(OUT_A, gone))
     # CREDITS.md: every file's source lines from notes.txt (the DELIVERED FILES block) + the CC BY block
     notes = open(os.path.join(SRC, 'sfx', 'notes.txt'), encoding='utf-8').read()
     body = notes.split('DELIVERED FILES')[1].split('CREDITS BLOCK')[0]
@@ -365,7 +389,7 @@ def sounds():
         files, dur, lic, rest = m.group(1), m.group(2), m.group(3).strip(), m.group(4)
         get = lambda k: (re.search(r'^\s+' + k + r':\s+(.*)$', rest, re.M) or [None, ''])[1].strip()
         if 'train-bell' in files: files = files.split(' / ')[0]   # (only the WAV ships: the loop)
-        if files.startswith('car-pass') or files.startswith('respawn'): continue   # (not shipped: H4 — respawn, H5B — car-pass)
+        if files.startswith(('car-pass', 'respawn', 'train-bell', 'landmark')): continue   # (not shipped: H4 — respawn, H5B — car-pass, H5C — the old bells + the landmark ping)
         rows.append(f'| {files} | {get("Title")} | {get("Author")} | {lic.replace("  -- credit required", " — CREDIT REQUIRED")} | {get("Source")} |')
     by = notes.split('CREDITS BLOCK')[1].split('=' * 20)[1].strip() if 'CREDITS BLOCK' in notes else ''
     md = ['# JAYWALK — the sounds\' credits', '',
@@ -373,8 +397,16 @@ def sounds():
           'every `-b` backup is here for THE SOUND AUDITION (/jaywalk-lab → SOUNDS); the unpicked ones leave once the owner has chosen (their',
           'credit lines with them). The train bells ship as 16-bit mono WAV — the whole file is the loop (MP3 / AAC padding would click).',
           'H5B (the owner, Nov 16): the two CAR-PASS takes are GONE (the near-miss whoosh was removed from the game) — never copied in again.', '',
-          '| file | title | author | licence | source |', '| --- | --- | --- | --- | --- |', *rows, '',
-          '## CC BY 4.0 — these three need their credit in the game\'s credits (☰ → CREDITS) when they ship in play', '', '```', by, '```', '',
+          'H5C (the owner, Nov 16): THE TRAIN SOUNDS = set B (the delivery\'s sfx3 folder) — the old bells (both takes) are GONE, the train HORN',
+          'is new; THE AREA ARRIVAL (the sfx4 folder) replaces the landmark ping (gone). The bell + the horn are CC BY: their credit is REQUIRED.', '',
+          '| file | title | author | licence | source |', '| --- | --- | --- | --- | --- |', *rows,
+          '| train-bell.wav | Railroad Crossing Bell | Brylon Terry (SoundBible.com) | CC BY 3.0 — CREDIT REQUIRED | https://soundbible.com/2070-Railroad-Crossing-Bell.html |',
+          '| train-horn.mp3 | Train Diesel Double Horn from Class 142 with Reverb | AMBIOSIS | CC BY 4.0 — CREDIT REQUIRED | https://freesound.org/s/316689/ |',
+          '| area-arrive.mp3 | achievement-sparkle | SkySpeira | CC0 1.0 | https://freesound.org/s/715067/ |', '',
+          '## CC BY — these need their credit in the game\'s credits (☰ → CREDITS) when they ship in play', '', '```', by, '',
+          '"Railroad Crossing Bell" by Brylon Terry (SoundBible.com), CC BY 3.0. https://soundbible.com/2070-Railroad-Crossing-Bell.html',
+          '"Train Diesel Double Horn from Class 142 with Reverb" by AMBIOSIS (Freesound), CC BY 4.0. https://freesound.org/s/316689/', '```', '',
+          'Credit appreciated, not required: "achievement-sparkle" by SkySpeira (Freesound), CC0 1.0. https://freesound.org/s/715067/', '',
           '3D models: Kenney — kenney.nl (CC0) — `assets/jaywalk/models/LICENSE.txt`.', '']
     open(os.path.join(OUT_A, 'CREDITS.md'), 'w', encoding='utf-8', newline='\n').write('\n'.join(md))
     print(f'  sounds: {total} B in {len([f for f in os.listdir(OUT_A) if not f.endswith(".md")])} files + CREDITS.md ({len(rows)} rows)')

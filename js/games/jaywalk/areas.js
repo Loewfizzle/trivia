@@ -72,12 +72,19 @@ export function buildAreaGeo() {
     { g: ball(0.16), color: 0xff8a5a, at: [-0.13, 0.56, 0.03], scale: [1.5, 0.35, 0.6], rot: [0, 0.5, 0] },
     { g: ball(0.14), color: 0x7fc8ff, at: [0.17, 0.56, -0.06], scale: [1.5, 0.35, 0.6], rot: [0, -0.4, 0] },
   ]);
-  // an oil DRUM: banded, a dark lid
+  // an oil DRUM (H5C — the owner: NEVER BLUE (blue on the ground = water) + smaller): built WHITE — an instance's colour paints it red /
+  // orange / yellow (night.js#DRUM_HEX) — two rolled hoops a shade darker, a dark lid with its bung, a little WEAR: a rust bloom low
+  // on its side, a scuffed pale patch, a dent's shadow
   G.drum = build([
-    { g: cyl(0.27, 0.27, 0.66, 14), color: 0x2f86c0, at: [0, 0.33, 0], shade: by([0.7, 0.75]) },
-    { g: cyl(0.285, 0.285, 0.05, 14), color: 0x1d5a86, at: [0, 0.2, 0] },
-    { g: cyl(0.285, 0.285, 0.05, 14), color: 0x1d5a86, at: [0, 0.46, 0] },
-    { g: cyl(0.22, 0.22, 0.03, 12), color: 0x16324a, at: [0, 0.665, 0] },
+    { g: cyl(0.27, 0.27, 0.66, 16), color: 0xffffff, at: [0, 0.33, 0], shade: by([0.66, 0.6]) },
+    { g: cyl(0.287, 0.287, 0.05, 16), color: 0xb9b2aa, at: [0, 0.2, 0] },
+    { g: cyl(0.287, 0.287, 0.05, 16), color: 0xb9b2aa, at: [0, 0.46, 0] },
+    { g: cyl(0.283, 0.283, 0.035, 16), color: 0xd8d2ca, at: [0, 0.645, 0] },
+    { g: cyl(0.235, 0.235, 0.03, 14), color: 0x4a4440, at: [0, 0.668, 0] },
+    { g: cyl(0.045, 0.045, 0.04, 8), color: 0x8a8480, at: [0.12, 0.69, 0.05] },
+    { g: roundBox(0.2, 0.15, 0.03, 0.012, 1), color: 0x8a5a44, at: [0.09, 0.1, 0.262], rot: [0, 0.34, 0] },
+    { g: roundBox(0.13, 0.09, 0.03, 0.012, 1), color: 0x9a6a50, at: [-0.2, 0.31, 0.19], rot: [0, -0.82, 0] },
+    { g: roundBox(0.11, 0.2, 0.03, 0.012, 1), color: 0xfff6ea, at: [-0.06, 0.36, 0.268], rot: [0, -0.2, 0.15] },
   ]);
   // a ROCK: two soft boulders
   G.rock = build([
@@ -156,7 +163,7 @@ export function buildAreaGeo() {
 }
 /** each small built piece (an obstacle on a play cell / the edge dressing): its size on the lane (× the model) + its blob shadow [wide, deep] */
 export const PIECE = Object.freeze({
-  bollard: [1.25, [0.85, 0.7]], crate: [1.02, [1.0, 0.9]], icecrate: [0.98, [1.05, 0.8]], drum: [1.12, [0.8, 0.7]], rock: [1.12, [1.2, 0.95]], hydrant: [1.35, [0.7, 0.6]],
+  bollard: [1.25, [0.85, 0.7]], crate: [1.02, [1.0, 0.9]], icecrate: [0.98, [1.05, 0.8]], drum: [0.84, [0.62, 0.54]], rock: [1.12, [1.2, 0.95]], hydrant: [1.35, [0.7, 0.6]],
 });
 const CONTAINER_HEX = [0xd8472f, 0x2f7fd8, 0x3ea86a, 0xe8a02a, 0x8a5fd0, 0xd8d8e0];
 const HOUSE_HEX = [0xd87a9a, 0x6fa8e0, 0xe0b46a, 0x8fd0a8, 0xb08ae0, 0xe08a6a];

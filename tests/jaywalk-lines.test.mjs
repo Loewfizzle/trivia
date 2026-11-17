@@ -79,13 +79,18 @@ test('THE SOURCES: the lines come from the server\'s table, asked ONCE a run; dr
   assert.match(view, /if \(!record && isRecord\(lines\.best, lane\)\) \{\s*record = true;\s*night\.flashLine\('best', lines\.best\);/);
   assert.match(view, /lanesEl\.classList\.add\('is-record'\);/); assert.match(view, /SFX\.play\('new-best'\)/, 'the new-best sound at the crossing');
   assert.match(view, /if \(!isMatch\) for \(const f of crossedFriends\(lines\.friends, lane - 1, lane\)\) \{\s*night\.flashLine\('friend', f\.v\);/, 'a friend\'s line: solo runs only');
-  assert.match(view, /SFX\.play\('landmark', \{ vol: 0\.4, rate: 1\.3 \}\)/, 'a quiet chime');
+  assert.match(view, /SFX\.play\('area-arrive', \{ vol: 0\.4, rate: 1\.3 \}\)/, 'a quiet chime');
   assert.match(view, /linesFor\(\{ best: lines\.best, friends: lines\.friends, reached: run\.best, solo: !isMatch \}\)/);
   assert.match(view, /drawLines\(mine\(g\) && drawRun === run\);/, 'your lines on YOUR run — never over a player you watch');
   // the drawing: across the whole lane on any kind — buoys on water — + the words on the ground + the burst
   assert.match(night, /import \{ LINE_HEX \} from '\.\/lines\.js';/);
-  assert.match(night, /if \(L\.type === 'water'\) \{/); assert.match(night, /for \(let c = -1\.5; c <= COLS \+ 1\.5; c \+= 0\.75\)/, 'a row of glowing buoys on water');
-  assert.match(night, /K\.flat\.put\(0, 0\.066, z, 13, 1,/, 'a band across the whole lane (13 cells: past both edges of the view)');
+  // H5C — ONE FORM FOR BOTH: a TAPE between two posts at the play's edges (GOLD = YOUR BEST · PINK = the friend's); on water the posts are BUOYS
+  assert.match(night, /wet = L\.type === 'water', cap = k === 'best' \? 0xfff0c0 : 0xffe4f6;/); assert.match(night, /if \(wet\) \{\s+K\.posts\.put\(px0, 0\.1 \+ bob, z, 0\.34, 0\.24, 0\.34, 0, 0xe8432e, la\);/, 'on water the posts become buoys (they bob)');
+  assert.match(night, /K\.flat\.put\(0, 0\.36, z, 9\.06, 1, 0\.5 \+ fl \* 0\.4, 0, hex, 1, 4,/, 'the tape: across the play, a little above the ground, in the line\'s own colour');
+  assert.doesNotMatch(night, /K\.flat\.put\(0, 0\.066, z, 13, 1,/, 'YOUR BEST is no longer a band lying on the lane');
+  // H5C — THE WORDS ARE ALWAYS READABLE: drawn above the logs / cars / water (no depth test, last) — never over your own kid (the stencil)
+  assert.match(night, /new THREE\.MeshBasicMaterial\(\{ map: tex, transparent: true, depthWrite: false, depthTest: false, blending: THREE\.AdditiveBlending \}\);\s+mat\.stencilWrite = true; mat\.stencilWriteMask = 0; mat\.stencilRef = 1; mat\.stencilFunc = THREE\.NotEqualStencilFunc;/, 'the words: no depth test; the kid\'s pixels are never drawn on');
+  assert.match(night, /m\.renderOrder = 5; m\.visible = false; m\.frustumCulled = false; m\.layers\.enable\(1\); scene\.add\(m\);\s+LBL\[k\]/, '… drawn after the logs, the cars, the lights');
   assert.match(night, /setLines\(v\) \{/); assert.match(night, /flashLine\(k, lane\) \{/);
   assert.match(night, /new THREE\.PlaneGeometry\(7\.6, 0\.95\)\.rotateX\(-Math\.PI \/ 2\)/, 'the words: BIG on the ground — 7.6 cells wide, the letters over half a lane tall');
   assert.match(night, /L\.tex\.dispose\(\); L\.cv\.width = 0;/, 'freed with the scene');
