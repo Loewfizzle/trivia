@@ -152,14 +152,19 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   const base = /c = mix\(DN\(vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), vec3\([^)]*\)\), DN\(vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), vec3\([^)]*\)\), w \* w[^;]*\);/.exec(water);   // (H5B: DN(night, day) — the NIGHT pair is read here)
   assert.ok(base, 'the water\'s two colours');
   const [r0, g0, b0, r1, g1, b1] = base.slice(1).map(Number);
-  assert.ok(b0 >= 0.12 && b0 > g0 * 2 && b0 > r0 * 6, `the troughs: a deep navy, not black (${base.slice(1, 4).join(' ')})`);
-  assert.ok(b1 >= 0.25 && b1 > g1 && g1 > r1 * 4 && b1 <= 0.6, `the swell: teal — still blue, never the electric blue (${base.slice(4).join(' ')})`);
+  // (H5B's add-on — the owner, Nov 16 9:10 pm: VIDEO-GAME WATER by night too — readability beats realism: a clear saturated mid-blue
+  //  ≈ #1a6fe0 → #3fb0ff on the swells, the brightest + bluest ground in view; H4's navy read as a dark glass strip)
+  assert.ok(b0 >= 0.8 && b0 > g0 * 1.8 && r0 <= 0.15, `the troughs: a clear saturated mid-blue (${base.slice(1, 4).join(' ')})`);
+  assert.ok(b1 >= 0.95 && g1 > r1 * 2 && g1 < b1, `the swells: a brighter blue (${base.slice(4).join(' ')})`);
+  assert.match(water, /float t = uTime, flow = vState\.y, xf = x - flow \* t;/, 'the surface drifts WITH THE CURRENT (the lane\'s own flow)');
+  assert.match(n, /if \(!car\) fxv = L\.dir \* L\.v \* 0\.06;/, '… the way its logs go, at their speed (cells a second)');
+  assert.match(n, /K\.shadow\.put\(cx, 0\.047, z \+ 0\.06, len \* 1\.06 \+ 0\.25, 1, 1\.25, 0, 0, 1, 0, 0\.5 \* Math\.min\(1, lt\)\);/, 'a soft darker shadow under each log');
   assert.ok((water.match(/vnoise\(/g) || []).length >= 3, 'soft UNEVEN ripples: drifting generated noise — no texture file');
   assert.doesNotMatch(water.replace(/\/\/[^\n]*/g, ''), /float crest =|sin\(z \* 1[0-9]|float wob =|float streak =/, 'NO zigzags: no sine crests, no wobbling streaks');
-  assert.match(water, /float rip = /, 'the ripples: thin pale contour lines'); assert.match(water, /float gl = step\(/, 'small moving glints of the neon');
+  assert.match(water, /float rip = /, 'the ripple caps: thin white-ish contour lines'); assert.match(water, /float gl = step\(/, 'white specks carried by the current');
   assert.match(water, /abs\(dn - 2\.0\)\), shU = step\(0\.5, abs\(up - 2\.0\)\)/, 'the banks only where the neighbour is not water');
-  const foam = /float foam = max\(smoothstep\(([\d.]+) \+ lap, ([\d.]+) \+ lap, z\)/.exec(water), fmix = /c = mix\(c, DN\(vec3\([\d., ]+\), vec3\([\d., ]+\)\), min\(1\.0, foam \* \(?([\d.]+)/.exec(water);
-  assert.ok(foam && +foam[1] <= 0.1 && fmix && +fmix[1] <= 0.8, `a THINNER, SOFT foam line at the banks (edge ${foam && foam[1]}, strength ${fmix && fmix[1]})`);
+  const foam = /float foam = max\(smoothstep\(([\d.]+) \+ lap, ([\d.]+) \+ lap, z\)/.exec(water), fmix = /c = mix\(c, vec3\(1\.0\), min\(1\.0, foam \* \(?([\d.]+)/.exec(water);
+  assert.ok(foam && +foam[1] >= 0.1 && +foam[1] <= 0.14 && fmix && +fmix[1] >= 0.7, `a BOLD bright foam line at both banks (edge ${foam && foam[1]}, strength ${fmix && fmix[1]})`);
   assert.match(n, /K\.flat\.put\(X\(tailX - L\.dir \* [\d.]+\), [^;]*0x[0-9a-f]{6}, 1, 1, \(day \? 0\.\d+ : 0\.\d+\) \* dim\);/, 'a soft wake behind each log');
   // THE LOGS (H3 — the owner, Nov 16): all the SAME thickness, each its OWN length (1–4 cells — one geometry a length, nothing stretched), round +
   // half-sunk (lit on top, dark down the sides), bark grain along the length, pale ringed ends; NO moss, NO branch stub, NO dot

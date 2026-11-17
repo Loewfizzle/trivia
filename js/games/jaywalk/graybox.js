@@ -135,8 +135,8 @@ export function createGraybox(host, o = {}) {
           if (rail) K.trains.put(X(left + len / 2), 0.6, z, len, 1.1, 0.84, 0xc9c9d2);
           else K.jets.put(X(left + len / 2), 0.9, z, len, 0.3, 0.92, 0x9aa3c4);
         }
-        if (rail) {   // the signal lights: red, blinking, from the tell to the train's tail
-          const on = st.st !== 'idle' && (Math.floor(t / 8) % 2 === 0), col = on ? 0xff3b3b : 0x4a1c1c;
+        if (rail) {   // the signal lights: red, blinking ONLY in the tell (H5B's add-on: flashing = a train is COMING — dark once it is here)
+          const on = st.st === 'tell' && (Math.floor(t / 8) % 2 === 0), col = on ? 0xff3b3b : 0x4a1c1c;
           K.signals.put(X(-0.35), 0.6, z, 0.26, 1.2, 0.26, col); K.signals.put(X(COLS + 0.35), 0.6, z, 0.26, 1.2, 0.26, col);
         } else {      // the runway lights: dim amber; in the tell they RACE to the crossing, faster and faster
           const f = st.st === 'tell' ? 1 - st.left / p.tell : -1, head = f < 0 ? -9 : ((f * f * 7 + f * 2) % 1) * (COLS + 2) - 1;

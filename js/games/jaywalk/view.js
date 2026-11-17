@@ -28,12 +28,12 @@ import { createFinal } from '../../ui/final.js';
 import { backToLobby } from '../../host.js';
 import { createTiers } from '../kit/tiers.js';
 import { showCall } from '../kit/call.js';
-import { TICK_HZ, CLOCK } from './tuning.js';
+import { TICK_HZ, CLOCK, FP } from './tuning.js';
 import { createCourse, laneHit, logUnder, gateName } from './course.js';
 import { createRun, step, isOver, canLog, kidAt } from './engine.js';
 import { packLog, unpackLog, logFromChunks } from './replay.js';
 import { seedOf, startOf } from './logic.js';
-import { createGhost, resetGhost, feedGhost, stepGhost } from './ghosts.js';
+import { createGhost, resetGhost, feedGhost, stepGhost, tagGroups } from './ghosts.js';
 import { wireControls } from './controls.js';
 import { createNight } from './night.js';
 import { getPref, setPref } from './lab-prefs.js';
@@ -104,6 +104,7 @@ export function createView() {
   // the match
   const ghosts = new Map();   // uid → ghosts.js#createGhost (conf · run · log · done · held · vis · behind) + { uid, n (chunks read), lastT, hex, name, tagEl, dir, outAt }
   let look = 'night';   // (H5B — the look this screen is drawn in now)
+  let rosterEl = null, rosterKey = '';   // (H5B's add-on — THE NAMES AT THE START: who is playing, lined up through the 3 · 2 · 1)
   let cues = createCues(), ducked = null, duckT = 0;   // (H5A — THE WORLD's SOUNDS: cues.js; the music's level before the train ducked it)
   let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;   // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, orderKey = '', countKey = '', watchKey = '';
@@ -121,9 +122,10 @@ export function createView() {
     hintEl = getPref('hint', '') ? null : h('div.jw-hint', 'TAP TO HOP · SWIPE TO STEP');
     orderEl = h('ol.jw-order', { 'aria-label': 'The order' }); tagsEl = h('div.jw-tags', { 'aria-hidden': 'true' });
     countEl = h('div.jw-count', { 'aria-live': 'polite' }); watchEl = h('div.jw-watch'); overEl = h('div.jw-over.mk-theme');
+    rosterEl = h('div.jw-roster', { 'aria-label': 'Who is playing' }); rosterKey = '';
     const had = unpark();
     play = had ? had.play : h('div.jw-play', { role: 'application', 'aria-label': 'Jaywalk — tap to hop, swipe to move' });
-    root = h('div.jw-stage.jw-game', play, h('div.jw-blackout'), tagsEl, h('div.jw-hud', lanesEl, markEl), orderEl, countEl, watchEl, hintEl, overEl);
+    root = h('div.jw-stage.jw-game', play, h('div.jw-blackout'), tagsEl, h('div.jw-hud', lanesEl, markEl), orderEl, rosterEl, countEl, watchEl, hintEl, overEl);
     el.replaceChildren(root);
     const me = (st.players && st.players[uid]) || {};
     try {
@@ -399,6 +401,14 @@ export function createView() {
     const txt = g.phase === 'final' || left < -700 ? '' : left <= 0 ? 'GO' : left > 3000 ? '' : String(Math.ceil(left / 1000));
     const key = course === START && left <= 0 ? 'GET READY' : txt;
     if (key === countKey) return;
+    // H5B's add-on — THE NAMES AT THE START: through the 3 · 2 · 1 every player's name shows ONCE, lined up (who is playing) — never a
+    // pile of tags over the one start square; gone at GO (from there a ghost's own tag shows once it is away from you)
+    const counting = /^[123]$/.test(key) || key === 'GET READY';
+    if (counting) {
+      const us = Object.keys(g.participants || {}).sort((a, b) => (a === uid ? -1 : b === uid ? 1 : a < b ? -1 : 1)), rk = us.join('|');
+      if (rk !== rosterKey) { rosterKey = rk; rosterEl.replaceChildren(...us.map(u => h('span', { class: u === uid ? 'is-me' : null, style: { '--c': colorHex(((st.players && st.players[u]) || {}).color) } }, nameOf(u)))); }
+    }
+    rosterEl.classList.toggle('is-on', counting);
     countKey = key; countEl.textContent = key; countEl.className = `jw-count${key === 'GO' ? ' is-go' : key.length > 2 ? ' is-wait' : ''}`;
     if (key && key.length <= 2) { countEl.classList.remove('is-pop'); void countEl.offsetWidth; countEl.classList.add('is-pop'); }
   }
@@ -505,12 +515,18 @@ export function createView() {
     night.draw(drawRun, course, a, dt, extra);
     if (shotAt && performance.now() >= shotAt) takeShot();
     // the ghosts' name tags: each over its kid; two that would sit on each other (everyone on the start cell) stack upward
-    const placed = [];
-    if (extra) for (const G of ghosts.values()) {
-      const tg = extra.ghosts.includes(G) ? G.tag : null;
-      if (tg) { while (placed.some(q => Math.abs(q[0] - tg[0]) < 84 && Math.abs(q[1] - tg[1]) < 19)) tg[1] -= 20; placed.push(tg); }
-      const key = tg ? `${Math.round(tg[0])},${Math.round(tg[1])}` : '';
-      if (key !== G.tagKey) { G.tagKey = key; if (tg) { G.tagEl.style.transform = `translate3d(${Math.round(tg[0])}px,${Math.round(tg[1])}px,0) translate(-50%,-100%)`; G.tagEl.style.opacity = '1'; } else G.tagEl.style.opacity = '0'; }
+    // (H5B's add-on — THE GHOSTS STOP BLOCKING YOU: no tag through the count (the names are lined up — the roster); a ghost NEAR YOU
+    //  is faint and has no tag (night.js: `tag` = null); ghosts on the same / touching squares share ONE tag — the leader's name + "+N")
+    const placed = [], counting = !!rosterEl && rosterEl.classList.contains('is-on');
+    if (extra) {
+      const shown = counting ? [] : extra.ghosts.filter(G => G.tag), lead = new Map();
+      for (const q of tagGroups(shown.map(G => ({ id: G.uid, x: G.run.x / FP, y: G.run.y, best: G.run.best, name: G.name })))) lead.set(q.lead, q.text);
+      for (const G of ghosts.values()) {
+        const text = lead.get(G.uid), tg = text ? G.tag : null;
+        if (tg) { while (placed.some(q => Math.abs(q[0] - tg[0]) < 84 && Math.abs(q[1] - tg[1]) < 19)) tg[1] -= 20; placed.push(tg); if (text !== G.tagText) { G.tagText = text; G.tagEl.textContent = text; } }
+        const key = tg ? `${Math.round(tg[0])},${Math.round(tg[1])}` : '';
+        if (key !== G.tagKey) { G.tagKey = key; if (tg) { G.tagEl.style.transform = `translate3d(${Math.round(tg[0])}px,${Math.round(tg[1])}px,0) translate(-50%,-100%)`; G.tagEl.style.opacity = '1'; } else G.tagEl.style.opacity = '0'; }
+      }
     }
     tiers.sample(now, performance.now() - t0); if (!pinned) tiers.tick(now);
     if (TEST && frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); stamps.push(now); }
@@ -603,7 +619,8 @@ export function createView() {
         state: () => ({ mode, proven, haveGo, matchId, go, seed: course.seed, t: run.t, st: run.st, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent, chunks: chunkN, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
           lines: { best: lines.best, friends: lines.friends.map(f => `${f.n} ${f.v}`), record, shown: lineKey, flash: lanesEl.classList.contains('is-flash'), gold: lanesEl.classList.contains('is-record') },
           isMatch, watching, follow: followUid, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
-          ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag, held: G.held, done: G.done, behind: G.behind })),
+          ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag, held: G.held, done: G.done, behind: G.behind, fade: +(G.fade || 0).toFixed(2), x: G.run.x / FP, name: G.name, shown: !!G.tagKey, text: G.tagEl.textContent })),
+          roster: rosterEl && rosterEl.classList.contains('is-on') ? [...rosterEl.children].map(e => e.textContent) : [],
           adopts: adopts.slice(), seen: { ...watch }, g0: st.game ? st.game.g0 || 0 : 0,
           snd: { cues: SFX.cues(), wanted: SFX.wanted().map(q => q.id), by: SFX.totals().by, ducked: ducked != null },
           tier: night ? night.tier() : -1, info: night ? night.info() : null, kidPx: night ? night.kidHeightPx() : 0 }),

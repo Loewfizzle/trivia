@@ -54,11 +54,12 @@ test('THE NEXT FRIEND\'S LINE: ONE at a time — the lowest friend best not yet 
   assert.deepEqual(linesFor({ best: 100, friends: F, reached: 0, solo: false }), { best: { lane: 100, text: 'YOUR BEST · 100' }, friend: null });
 });
 
-test('THE LOOKS: gold is YOUR BEST alone; a friend is white / cyan — never gold', () => {
+test('THE LOOKS: gold is YOUR BEST alone; a friend is NEON PINK — never gold, never blue / cyan / teal (H5B\'s add-on: blue on the ground = water)', () => {
   const rgb = h => [(h >> 16) & 255, (h >> 8) & 255, h & 255];
   const [r, g, b] = rgb(LINE_HEX.best), [fr, fg, fb] = rgb(LINE_HEX.friend);
   assert.ok(r > 230 && g > 150 && g < 225 && b < 110, `gold (${LINE_HEX.best.toString(16)})`);
-  assert.ok(fb > 230 && fg > 220 && fr < 190, `white / cyan (${LINE_HEX.friend.toString(16)}) — never gold`);
+  assert.equal(LINE_HEX.friend, 0xff4fd8);
+  assert.ok(fr > 240 && fg < 120 && fb > 180 && fb < fr, `neon pink (${LINE_HEX.friend.toString(16)}) — red-led, never blue-led, never gold`);
 });
 
 test('THE SOURCES: the lines come from the server\'s table, asked ONCE a run; drawn on any lane kind; the crossing\'s burst + sound + the counter; PURE', () => {

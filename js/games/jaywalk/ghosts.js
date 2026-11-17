@@ -83,3 +83,21 @@ export function stepGhost(G, course, target, now) {
   G.behind = G.held ? now - G.heldAt > HELD_SHOW_MS : !isOver(r) && r.t < target - BEHIND_TICKS;
   return G;
 }
+
+/**
+ * H5B's add-on — STACKED TAGS MERGE (the owner: never a pile of name tags): ghosts standing on the same / touching squares share ONE
+ * tag — the leader's name + "+N" ("MIKIE +2"). PURE: items = [{ id, x (cells), y (lane), best, name }] (the ghosts whose tag may show)
+ * → [{ lead (its id), text, ids }] — a group = everything joined by touching squares (a chain counts); its leader = the farthest
+ * along (best, then the lane it stands on, then the id — the same on every phone).
+ */
+export function tagGroups(items) {
+  const list = items.map(q => ({ ...q, cx: Math.floor(q.x), cy: Math.round(q.y) })), seen = new Set(), out = [];
+  for (const a of list) {
+    if (seen.has(a.id)) continue;
+    const grp = [a]; seen.add(a.id);
+    for (let i = 0; i < grp.length; i++) for (const b of list) if (!seen.has(b.id) && Math.abs(b.cx - grp[i].cx) <= 1 && Math.abs(b.cy - grp[i].cy) <= 1) { seen.add(b.id); grp.push(b); }
+    grp.sort((p, q) => (q.best || 0) - (p.best || 0) || q.cy - p.cy || (p.id < q.id ? -1 : 1));
+    out.push({ lead: grp[0].id, text: grp.length > 1 ? `${grp[0].name} +${grp.length - 1}` : grp[0].name, ids: grp.map(q => q.id) });
+  }
+  return out;
+}

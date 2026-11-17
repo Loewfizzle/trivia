@@ -29,7 +29,7 @@ const by = k => y => k[0] + y * k[1];
  * the dock crane, the neon fish, the bridge's towers, THE LIGHTHOUSE, the control tower, the hangars, the moored boats.
  */
 export const LOOKS = Object.freeze([
-  { id: 'docks', accent: 0x35e3ff, paint: 0x1479a8, hero: ['crane', 'boat'], sky: '#19b8e6', lamp: 0xffc27a, lampEvery: 4, obs: ['bollard', 'crate', 'crate', 'drum'], edge: ['crate', 'container', 'bollard', 'crate', 'drum'], edgeP: 0.85,
+  { id: 'docks', accent: 0xfff1dc, paint: 0x8a5a2b, hero: ['crane', 'boat'], sky: '#e6cfa8', lamp: 0xffc27a, lampEvery: 4, obs: ['bollard', 'crate', 'crate', 'drum'], edge: ['crate', 'container', 'bollard', 'crate', 'drum'], edgeP: 0.85,
     sig: [['crane', 8], ['boat', 17], ['boat', 28], ['crane', 37], ['boat', 45]] },
   { id: 'fish', accent: 0xff7a4a, paint: 0xd9542b, hero: ['fish', 'boat'], sky: '#ff8a4a', lamp: 0xffd9a0, lampEvery: 4, obs: ['icecrate', 'icecrate', 'crate', 'drum'], edge: ['stall', 'icecrate', 'stall', 'crate'], edgeP: 0.9,
     sig: [['fish', 6], ['boat', 14], ['fish', 22], ['boat', 31], ['fish', 39], ['boat', 46]] },
@@ -41,7 +41,7 @@ export const LOOKS = Object.freeze([
     sig: [['boat', 9], ['boat', 21], ['boat', 33], ['boat', 44]] },
   { id: 'lighthouse', accent: 0xfff0a0, paint: 0xb58a12, hero: ['lighthouse', 'boat'], sky: '#ffe9a0', lamp: 0xffe9b0, lampEvery: 7, obs: ['rock', 'rock', 'rock', 'tree'], edge: ['rock', 'rock', 'tree'], edgeP: 0.8, tufts: true,
     sig: [['boat', 8], ['lighthouse', 22], ['boat', 37]] },
-  { id: 'airfield', accent: 0x4d9dff, paint: 0x2a66c4, hero: ['tower', 'hangar'], sky: '#4d9dff', lamp: 0xcfe4ff, lampEvery: 5, obs: ['traffic-cone', 'barricade', 'drum', 'traffic-cone'], edge: ['traffic-cone', 'drum'], edgeP: 0.35,
+  { id: 'airfield', accent: 0xc8ff4a, paint: 0x5c8a12, hero: ['tower', 'hangar'], sky: '#a8e03a', lamp: 0xfff0d8, lampEvery: 5, obs: ['traffic-cone', 'barricade', 'drum', 'traffic-cone'], edge: ['traffic-cone', 'drum'], edgeP: 0.35,
     sig: [['tower', 9], ['hangar', 19], ['hangar', 29], ['tower', 38], ['hangar', 45]] },
 ]);
 export const lookAt = lane => { const a = area(lane); return a.index < 0 ? null : LOOKS[a.index]; };
@@ -288,14 +288,14 @@ export function drawSig(P, c) {
     A.tower.put(x, 0, z, 0.8, 0.8, 0.8, 0.4, 0xffffff, hot(1.5));
     for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; lamp(x + Math.cos(a) * 0.62, 2.28, z + Math.sin(a) * 0.62, 0x9fffd0, 0.2, 0.8); }
     lamp(x + 0.16, 3.4, z, 0xff3030, 0.3); K.shadow.put(x, 0.03, z + 0.1, 1.3, 1, 1.0, 0, 0, 1, 0, 0.5 * lt);
-    if (on) K.flat.put(x, 0.04, z, 3.0, 1, 2.4, 0, 0xcfe4ff, 1, 0, 0.2 * lt);
+    if (on) K.flat.put(x, 0.04, z, 3.0, 1, 2.4, 0, 0xfff0d8, 1, 0, 0.2 * lt);
     return null;
   }
   if (P.what === 'hangar') {
     const x = x0 + s * 0.55;
     A.hangar.put(x, 0, z, 1, 1, 1, 0, 0xffffff, hot(1.25));
     K.shadow.put(x, 0.03, z + 0.12, 2.3, 1, 1.2, 0, 0, 1, 0, 0.5 * lt);
-    lamp(x - 0.8, 0.3, z + 0.5, 0x4d9dff, 0.2); lamp(x + 0.8, 0.3, z + 0.5, 0x4d9dff, 0.2);
+    lamp(x - 0.8, 0.3, z + 0.5, 0xffc060, 0.2); lamp(x + 0.8, 0.3, z + 0.5, 0xffc060, 0.2);
     if (on) K.flat.put(x, 0.04, z + 0.6, 2.2, 1, 1.2, 0, 0xffd27a, 1, 0, 0.34 * lt);
     return null;
   }
@@ -335,7 +335,7 @@ export function drawSig(P, c) {
   if (KM['fishing-boat']) KM['fishing-boat'].put(x, -0.05, z + dz, sc, sc, sc, s < 0 ? Math.PI / 2 : -Math.PI / 2, 0xffffff, hot(1.6), 1, 1, 0, (h(P.y0, 51) - 0.5) * 0.12);
   K.shadow.put(x, 0.03, z + dz + 0.08, 2.1, 1, 1.05, 0, 0, 1, 0, 0.5 * lt);
   lamp(x, 1.0, z + dz, 0xffe9b0, 0.22);
-  if (on) K.flat.put(x, 0.04, z + dz, 2.6, 1, 1.6, 0, 0x7fd0ff, 1, 0, 0.22 * lt);
+  if (on) K.flat.put(x, 0.04, z + dz, 2.6, 1, 1.6, 0, 0xffe9b0, 1, 0, 0.22 * lt);
   return null;
 }
 

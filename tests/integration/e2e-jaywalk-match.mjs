@@ -105,6 +105,12 @@ try {
   ok(g0.mode === 'match' && g0.n === 3, `a room of three = THE MATCH (${g0.m}); the course is not known at the start (seed "${g0.seed || ''}")`);
   ok(await until(async () => /^[123]$|^GO$/.test((await state(pages[1])).count), 8000), `the count is on a guest's screen ("${(await state(pages[1])).count}")`);
   await H.shot(pages[1], 'match-count');
+  // H5B's add-on — THE NAMES AT THE START: through the count every player's name is lined up ONCE (yours first); no ghost carries a tag
+  { const ros = await until(async () => { const s = await state(pages[1]); return s.roster.length === 3 ? s : null; }, 6000);
+    ok(!!ros && ros.roster[0] === 'BOB' && ['ALICE', 'CHARLIE'].every(n => ros.roster.includes(n)), `THE NAMES AT THE START: lined up through the count (${ros ? ros.roster.join(' · ') : 'none'})`);
+    ok(!!ros && ros.ghosts.every(q => !q.shown), '… and no name tag sits on the start square');
+    await H.shot(pages[1], 'ghosts-1-the-count');
+    if (await until(async () => (await state(pages[1])).count === 'GO', 8000)) await H.shot(pages[1], 'ghosts-2-go'); }
   await all(N, (p, i) => waitFor(p, s => s.game.phase === 'play' && window.__jwGame.state().mode === 'run' && window.__jwGame.state().t >= 0, `${NAMES[i]}: GO`, 20000));
   const m = g0.m, game = await evalIn(host, s => s.game), nodes0 = await dbGet(`rooms/${code}/jw/${m}`);
   const first = firstGo(nodes0);
@@ -139,8 +145,24 @@ try {
   }
   ok(await until(async () => (await all(N, p => state(p))).every(s => s.ghosts.length === 2 && s.ghosts.every(q => q.hops > 0 && q.best > 0)), 25000), 'each phone sees TWO GHOSTS — the others\' hop logs through the same engine (they hop)');
   await sleep(1500);
+  // H5B's add-on — THE GHOSTS STOP BLOCKING YOU, sampled on every phone for 3 s of play: the roster is gone after GO · a ghost NEAR you
+  // is faint and carries no tag · the tags on screen are exactly the groups' leaders (ghosts on the same / touching squares share ONE
+  // tag: the leader's name + "+N") — ghosts.js#tagGroups, the same function
+  { const { tagGroups } = await import('../../js/games/jaywalk/ghosts.js');
+    let n = 0, bad = [], faint = 0, merged = 0, lone = 0, roster = 0;
+    for (let k = 0; k < 20; k++) {
+      for (const s of await all(N, p => state(p))) {
+        n++; if (s.roster.length) roster++;
+        for (const q of s.ghosts) { if (q.fade > 0.5) { faint++; if (q.shown) bad.push(`a faint ghost with a tag (${q.name}, ${q.fade})`); } }
+        const want = new Map(tagGroups(s.ghosts.filter(q => q.tag).map(q => ({ id: q.uid, x: q.x, y: q.y, best: q.best, name: q.name }))).map(g => [g.lead, g]));
+        for (const q of s.ghosts) { const g = want.get(q.uid); if (!!g !== q.shown) bad.push(`${q.name}: tag ${q.shown ? 'shown' : 'hidden'}, wanted ${g ? 'shown' : 'hidden'}`); else if (g) { if (q.text !== g.text) bad.push(`${q.name}: "${q.text}" for "${g.text}"`); if (g.ids.length > 1) merged++; else lone++; } }
+      }
+      await sleep(150);
+    }
+    ok(roster === 0, 'the names\' line-up is gone after GO');
+    ok(bad.length === 0 && n === 60, `THE GHOSTS STOP BLOCKING YOU — ${n} samples on the three phones: a ghost near you is faint + has no tag (${faint} faint ghost-samples), the tags = the groups' leaders (${lone} single, ${merged} merged "NAME +N")${bad.length ? ` — ${bad.slice(0, 3).join(' | ')}` : ''}`); }
   const tags = await pages[0].evaluate(() => [...document.querySelectorAll('.jw-tag')].map(e => ({ t: e.textContent, on: getComputedStyle(e).opacity !== '0' })));
-  ok(tags.length === 2 && tags.every(t => /^(BOB|CHARLIE)$/.test(t.t)), `the ghosts carry their names (${tags.map(t => t.t).join(' · ')})`);
+  ok(tags.length === 2 && tags.every(t => /^(BOB|CHARLIE)( \+1)?$/.test(t.t)), `the ghosts carry their names (${tags.map(t => t.t).join(' · ')})`);
   let s0 = await state(pages[0]);
   ok(s0.order.length === 3 && s0.order.some(r => /ALICE/.test(r)) && s0.order.some(r => /BOB/.test(r)) && s0.order.some(r => /CHARLIE/.test(r)) && s0.outs === 0, `THE LIVE ORDER: ${s0.order.join(' | ')}`);
   ok(!(await pages[0].evaluate(() => /LIVES/i.test(document.querySelector('.jw-game').textContent))), 'no lives HUD anywhere (ONE LIFE)');
@@ -154,7 +176,16 @@ try {
   ok((await all(N, p => state(p))).every(s => s.ghosts.length === 2 && s.seed === game.seed), '… the same match on all three: the look is a view');
   await H.shot(pages[2], 'match-day-ghosts');
   // ---- 4. BOB out first (two still in) → the cause words → Call the Winner → WATCHING the leader
+  await H.shot(pages[0], 'ghosts-3-two-seconds-in');
   await G(pages[1], 'window.__jwGame.bot(false)');
+  // H5B's add-on, in the real match: BOB stands still — on ALICE's phone his ghost falls behind her: AWAY from her, itself again, its
+  // own tag "BOB"; on BOB's phone ALICE + CHARLIE hop on ahead on the same squares: ONE tag — the leader's name + "+1"
+  { const [away, mg] = await Promise.all([   // (both at once: ALICE + CHARLIE are off BOB's screen within a few seconds)
+      until(async () => { const s = await state(pages[0]), q = s.ghosts.find(x => x.name === 'BOB'); return q && q.shown && q.text === 'BOB' && q.fade < 0.2 ? q : null; }, 12000, 60),
+      until(async () => { const on = (await state(pages[1])).ghosts.filter(x => x.shown); return on.length === 1 && /^(ALICE|CHARLIE) \+1$/.test(on[0].text) ? on[0].text : null; }, 12000, 60)]);
+    ok(!!away, 'a ghost AWAY from you is itself again and carries its own name (BOB, behind ALICE)');
+    ok(!!mg, `STACKED TAGS MERGE: two ghosts on the same / touching squares share ONE tag on BOB's phone — "${mg || 'none seen'}"`);
+    await H.shot(pages[1], 'ghosts-4-merged-tag'); }
   ok(await until(async () => (await state(pages[1])).over, 40000), 'BOB stops hopping → ONE LIFE: out');
   const bobEnd = await state(pages[1]);
   ok(await until(() => pages[1].evaluate(() => { const c = document.querySelector('.jw-outcard .jw-fin-cause'); return c ? c.textContent : null; }), 6000).then(t => !!t && isCause(t)), 'the cause in neon words over the scene');

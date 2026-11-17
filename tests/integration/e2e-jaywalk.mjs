@@ -127,7 +127,9 @@ try {
   ok(st.proven && st.seed === want && st.seed !== g.hostSeed, `THE COURSE IS PICKED AFTER GO: seed = hash(code + matchId + GO) = ${st.seed} — never the host's own (${g.hostSeed})`);
   ok(await P.ev(`import('/js/firebase.js').then(f => f.set(f.dbRef('rooms/' + ${S}.code + '/jw/' + ${S}.game.matchId + '/' + ${S}.uid + '/go'), f.serverTimestamp()).then(() => false, () => true))`), '… GO is written once (a second one is refused)');
   ok(await P.ev("!!document.querySelector('.jw-hint') && /TAP TO HOP · SWIPE TO STEP/.test(document.querySelector('.jw-hint').textContent)"), 'the first-run hint: TAP TO HOP · SWIPE TO STEP');
-  ok(await P.ev("document.body.dataset.look === 'night' && !!document.querySelector('.menu-btn') && !!document.querySelector('.music-btn')"), 'inside the console\'s game frame: the corner menu + music, the NIGHT look');
+  // (H5B — BOTH looks: the phone's GAME LOOK decides (AUTO = the real sun — so the check picks one: NIGHT first, DAY below))
+  await P.ev("import('/js/games/kit/look.js').then(m => m.saveLook('night'))");
+  ok(await P.waitFor(`document.body.dataset.look === 'night' && ${G}.state().info.look === 'night' && document.querySelector('.jw-game').dataset.look === 'night'`, 6000) && await P.ev("!!document.querySelector('.menu-btn') && !!document.querySelector('.music-btn')"), 'inside the console\'s game frame: the corner menu + music; GAME LOOK NIGHT → the night look (the scene, the stage, the console)');
   await P.shot('run-start.png');
   // ---- 3b. THE LINES — a first-ever run: NO gold line; THE NEXT FRIEND'S LINE from the server's table (asked once)
   ok(await P.waitFor(`${G}.state().lines.friends.length === 1`, 10000), 'the table landed (ONE call at the run\'s start): a friend with a best');
@@ -152,6 +154,13 @@ try {
   ok(await P.ev(`import('/js/firebase.js').then(f => f.set(f.dbRef('rooms/' + ${S}.code + '/jw/' + ${S}.game.matchId + '/' + ${S}.uid + '/c/777'), { s: 'U1', at: Date.now() - 30000 }).then(() => false, () => true))`), '… a chunk with a time of the phone\'s own choosing is refused by the rules');
   ok(await P.ev("document.querySelector('.jw-lanes').textContent") === String(st.best), 'the lane count on the HUD');
   await P.shot('run-hops.png');
+  // H5B — THE DAY LOOK in a solo run: ☰ → Settings → GAME LOOK: DAY re-themes the run at once (read live); the run goes on
+  const before = await P.ev(`${G}.state()`);
+  await P.ev("import('/js/games/kit/look.js').then(m => m.saveLook('day'))");
+  ok(await P.waitFor(`document.body.dataset.look === 'day' && ${G}.state().info.look === 'day' && document.querySelector('.jw-game').dataset.look === 'day' && document.querySelector('.jw-skyline').dataset.look === 'day'`, 6000), 'GAME LOOK: DAY mid-run → the day look at once (the scene, the stage, the band)');
+  { const now = await P.ev(`${G}.state()`); ok(now.seed === before.seed && now.best >= before.best && now.go === before.go && now.info.bloom === false, `the same run (the look is a view): the same course + clock, its lanes kept (${now.best}); no bloom by day`); }
+  ok(await P.ev("import('/js/games/jaywalk/index.js').then(m => m.musicFor()[0])") === 'mood:day', 'the music follows the look: the day deck');
+  await sleep(500); await P.shot('run-day.png');
   // ---- 5. out → the end screen → the report counted from the replay
   ok(await toEnd(P), 'the kid stands still → out → the match ends on the proof\'s `e` → THE END SCREEN');
   await sleep(600);
@@ -161,6 +170,10 @@ try {
   { const veh = end.res.w === 'car' ? hitVehicle(createCourse(seedOf(g.code, g.m, node.go)), { y: end.res.y, x: end.res.px, end: end.res.e }) : '';
     ok(end.res.w !== 'car' || (!!veh && end.cause === CAUSE_LINES[`car:${veh}`]), end.res.w === 'car' ? `… it names the vehicle that hit (${veh}) — never "HIT BY A CAR"` : `… (this run ended by "${end.res.w}": no vehicle to name)`); }
   ok(end.n === String(end.res.l) && /^LANES?$/.test(end.unit) && end.res.l >= 3, `the lanes: ${end.n} ${end.unit} (the host's replay of the log)`);
+  ok(await P.ev("document.querySelector('.jw-final .sheet-kicker').textContent") === 'JAYWALK · SOLO' && parseFloat(await P.ev("getComputedStyle(document.querySelector('.jw-final .sheet-kicker')).fontSize")) >= 17, 'THE HEADER: JAYWALK · SOLO — big + bold (H5B)');
+  await P.shot('end-day.png');
+  await P.ev("import('/js/games/kit/look.js').then(m => m.saveLook('night'))");
+  ok(await P.waitFor("document.body.dataset.look === 'night'", 6000) && await P.ev("import('/js/games/jaywalk/index.js').then(m => m.musicFor()[0])") === 'mood:evening', '… back to NIGHT for the rest: the evening deck');
   ok(JSON.stringify(end.foot) === JSON.stringify(['PLAY AGAIN', 'SHARE', 'BACK TO THE CITY']), `the foot: ${end.foot.join(' · ')} (PLAY AGAIN first — never "HOP AGAIN")`);
   ok(parseFloat(await P.ev("getComputedStyle(document.querySelector('.jw-final .final-again')).borderRadius")) <= 12, 'the end screen\'s buttons: the site\'s non-pill tube (10 px corners)');
   // THE SHARE IMAGE (H4B's add-on — THE FRAME IS THE HERO, the cause ONCE): the run's own frame on the share kit's card (drawn on the phone)

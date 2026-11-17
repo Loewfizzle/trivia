@@ -12,7 +12,7 @@ export const BOARD = 'jaywalk-solo';
 /** the table's answer is kept this long on the phone: PLAY AGAIN restarts in a second — a friend's best has not moved since */
 export const TABLE_KEEP_MS = 90_000;
 /** the two looks: GOLD = YOUR BEST, never anything else · white / cyan = a friend (never gold) */
-export const LINE_HEX = Object.freeze({ best: 0xffc53a, friend: 0x9af4ff });
+export const LINE_HEX = Object.freeze({ best: 0xffc53a, friend: 0xff4fd8 });   // (H5B's add-on — the owner: the friend line is NEON PINK, never blue / cyan — a pale cyan band across a lane read as a strip of water)
 
 const lanesOf = v => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n > 0 ? n : 0; };
 const nameOf = n => String(n == null ? '' : n).replace(/[\u0000-\u001f]/g, '').trim().toUpperCase().slice(0, 12) || 'A FRIEND';

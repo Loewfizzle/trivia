@@ -328,6 +328,49 @@ async function looksH5B(p, what, reqs) {
   }
 }
 
+// ---- H5B's ADD-ONS (`--h5b=addons`): THE WATER (night + day: a water stretch with logs), THE FRIEND LINE (the pink tape — on grass, on a
+// road, on water), THE RAIL SIGNALS (the tell · mid-pass · just after the tail) → water/ + rail/
+async function looksAddons(p) {
+  const L = js => p.evaluate(js);
+  const fresh = () => L("window.__jwLab.bot(false); window.__jwLab.restart('solo', 'look3'); window.__jwLab.setCamera(8, 'straight', true)");
+  const lineAt = lane => p.evaluate(l => window.__jwLab.view.setLines({ best: null, friend: { lane: l, text: `LIAM · ${l}` } }), lane);
+  const below = (l, x) => p.evaluate((ln, xx) => { const J = window.__jwLab; for (let d = 2; d < 9; d++) if (J.find('grass', ln - d) === ln - d) { J.warp(ln - d, { x: xx }); return ln - d; } J.warp(ln - 2); return ln - 2; }, l, x);
+  for (const look of ['night', 'day']) {
+    await fresh(); await L(`window.__jwLab.setLook('${look}')`); await L("window.__jwLab.hop('u')"); await sleep(400);
+    // a water stretch with logs (THE CANAL: the most water)
+    await p.evaluate(() => { const J = window.__jwLab; J.warp(J.find('grass', 318), { x: 4500 }); }); await sleep(1300); await shot(p, `water/${look}-a-water-stretch.png`);
+    await p.evaluate(() => { const J = window.__jwLab; J.warp(J.find('grass', 62), { x: 4500 }); }); await sleep(1300); await shot(p, `water/${look}-the-docks-water.png`);
+    // THE FRIEND LINE on grass · on a road · on water (the kid a few lanes under it)
+    await fresh(); await L("window.__jwLab.hop('u')"); await sleep(300);   // (a new run: the wall follows the BEST lane — a warp back down would be behind it)
+    for (const kind of ['grass', 'road', 'water']) {
+      await fresh(); await L("window.__jwLab.hop('u')"); await sleep(300);   // (each its own fresh run: the wall never catches a standing kid mid-shot)
+      const i = await p.evaluate(k => window.__jwLab.find(k, 24), kind);
+      await lineAt(i); await below(i, 4500); await sleep(1200); await shot(p, `water/${look}-friend-line-on-${kind}.png`);
+    }
+    await p.evaluate(() => window.__jwLab.view.setLines({ best: null, friend: null }));
+    // THE RAIL SIGNALS: the tell (flashing) · mid-pass (dark) · just after the tail (dark)
+    await fresh(); await L(`window.__jwLab.setLook('${look}')`); await L("window.__jwLab.hop('u')"); await sleep(300);
+    const r = await p.evaluate(() => window.__jwLab.find('rail', 150)); await below(r, 4500);
+    await waitFor(p, `(window.__jwLab.pulse(${r}) || {}).st === 'idle'`, 60000); await sleep(200);
+    await waitFor(p, `(window.__jwLab.pulse(${r}) || {}).st === 'tell' && window.__jwLab.state().t % 16 < 5`, 60000); await sleep(40); await shot(p, `rail/${look}-1-the-tell.png`);
+    await waitFor(p, `(window.__jwLab.pulse(${r}) || {}).st === 'pass'`, 30000); await sleep(330); await shot(p, `rail/${look}-2-mid-pass.png`);
+    await waitFor(p, `(window.__jwLab.pulse(${r}) || {}).st === 'idle'`, 30000); await sleep(60); await shot(p, `rail/${look}-3-just-after-the-tail.png`);
+  }
+  // THE GHOSTS STOP BLOCKING YOU (the scene's half — the tags are the match view's: e2e-jaywalk-match): a ghost beside you = FAINT;
+  // three on one square ahead = themselves; one right on you = faint, your own kid on top
+  for (const look of ['night', 'day']) {
+    await fresh(); await L(`window.__jwLab.setLook('${look}')`); await L("window.__jwLab.hop('u')"); await sleep(400);
+    await p.evaluate(() => { const J = window.__jwLab; J.warp(J.find('grass', 4), { x: 4500 }); }); await sleep(500);
+    await L('window.__jwLab.ghostsAt([[1, 0]])'); await sleep(700); await shot(p, `ghosts/${look}-a-ghost-beside-you.png`);
+    await L('window.__jwLab.ghostsAt([[0, 0], [0.15, 0], [-0.15, 0]])'); await sleep(700); await shot(p, `ghosts/${look}-three-ghosts-on-your-square.png`);
+    await L('window.__jwLab.ghostsAt([[0, 3], [0.1, 3], [-0.1, 3]])'); await sleep(700); await shot(p, `ghosts/${look}-three-ghosts-on-one-square-ahead.png`);
+    await L('window.__jwLab.ghostsAt([[3, 0]])'); await sleep(700); await shot(p, `ghosts/${look}-a-ghost-away-from-you.png`);
+    await L('window.__jwLab.ghostsAt(null)');
+  }
+  await L("window.__jwLab.setLook('night')");
+  ok(await L("window.__jwLab.state().info.look === 'night'"), 'the add-ons\' shots: the water, the friend line, the rail signals, the ghosts — night + day');
+}
+
 // ---- H5A's add-on — THE BIG NUMERALS (`--nums`): 17 · 71 · 111 · 117 · 172 · 711 as the game draws them — the in-game lane counter +
 // the end screen's number (the real DOM, the real CSS), the share card at its own size (1080 × 1350, one PNG a number) and as the small
 // link preview (two a row on a 390 pt phone). The modules are the game's own (numerals.js · share.js · kit/share-run.js).
@@ -374,7 +417,7 @@ async function looksNums(p) {
 
 try {
   if (argv.includes('--nums')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksNums(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
-  { const h5b = argv.find(x => x === '--h5b' || x.startsWith('--h5b=')); if (h5b) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5B(o.p, h5b.slice(6), o.reqs); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); console.log(fails.length ? `\nFAILED: ${fails.length}` : '\nH5B OK'); await b.close(); process.exit(fails.length ? 1 : 0); } }
+  { const h5b = argv.find(x => x === '--h5b' || x.startsWith('--h5b=')); if (h5b) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); if (h5b.slice(6) === 'addons') await looksAddons(o.p); else await looksH5B(o.p, h5b.slice(6), o.reqs); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); console.log(fails.length ? `\nFAILED: ${fails.length}` : '\nH5B OK'); await b.close(); process.exit(fails.length ? 1 : 0); } }
   { const h5 = argv.find(x => x === '--h5' || x.startsWith('--h5=')); if (h5) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5(o.p, h5.slice(5)); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   if (argv.includes('--h4')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH4(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   if (argv.includes('--h3')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH3(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
@@ -613,8 +656,9 @@ try {
     }
     // H5A — THE HEAVIEST AREAS at 4× CPU: DOWNTOWN (heavy traffic + the storefronts' neon), THE LIGHTHOUSE (its beam + the water), THE
     // RAIL YARD (the trains + the gantries + the containers) — the bot plays three slices of each stretch; tier 2 (the bloom) + tier 1
-    for (const [name, g] of [['DOWNTOWN', 250], ['THE LIGHTHOUSE', 350], ['THE RAIL YARD', 150]]) for (const tier of [2, 1]) {
-      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight`);
+    // (H5B — BY NIGHT and BY DAY: the day look is the same scene — no bloom, the fog bank's puffs, the paint)
+    for (const [name, g] of [['DOWNTOWN', 250], ['THE LIGHTHOUSE', 350], ['THE RAIL YARD', 150]]) for (const tier of [2, 1]) for (const look of ['night', 'day']) {
+      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight&look=${look}`);
       await up(o.p); await o.p.emulateCPUThrottling(4);
       await o.p.evaluate(() => { window.__jwLab.restart('solo', 'perfseed7'); window.__jwLab.bot(true); });
       await sleep(1500);
@@ -628,9 +672,9 @@ try {
       await o.p.emulateCPUThrottling(1);
       fr.sort((a, c) => a - c);
       const avg = fr.reduce((a, c) => a + c, 0) / fr.length;
-      const row = { area: name, tier, cpu: '4×', frames: fr.length, fps: +(1000 / avg).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), calls: Math.max(...calls), tris: Math.max(...tris) };
-      console.log('PERF', JSON.stringify(row)); rows2.push({ ...row, cpu: `4× ${name}` });
-      ok(row.fps >= 57 && !o.errs.length, `${name} at tier ${tier}, 4× CPU: ${row.fps} fps · ${row.avgMs} ms (p95 ${row.p95Ms}, worst ${row.worstMs}) · ≤ ${row.calls} calls · ≤ ${row.tris} tris`);
+      const row = { area: name, look, tier, cpu: '4×', frames: fr.length, fps: +(1000 / avg).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), calls: Math.max(...calls), tris: Math.max(...tris) };
+      console.log('PERF', JSON.stringify(row)); rows2.push({ ...row, cpu: `4× ${name} ${look}` });
+      ok(row.fps >= 57 && !o.errs.length, `${name} BY ${look.toUpperCase()} at tier ${tier}, 4× CPU: ${row.fps} fps · ${row.avgMs} ms (p95 ${row.p95Ms}, worst ${row.worstMs}) · ≤ ${row.calls} calls · ≤ ${row.tris} tris`);
       await o.close();
     }
     // H5A — 8 KIDS: the kid + 7 ghosts (the instanced, skinned kid — one draw call for him, one for all the ghosts), DOWNTOWN, 4× CPU
