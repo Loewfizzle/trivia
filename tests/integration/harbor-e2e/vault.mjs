@@ -46,7 +46,7 @@ G('vault', async () => {
   { const { ctx, p } = await page('view=strips');
     await sleep(1200);
     const s = await ev(p, `(() => ({ items: document.querySelectorAll('.vl-item').length, strips: document.querySelectorAll('.vl-strip').length, canvases: document.querySelectorAll('canvas.fx-canvas').length, slots: window.__lab.stats.slots, names: [...document.querySelectorAll('.vl-item-h b')].map(b => b.textContent) }))()`);
-    ok(s.items === 61 && s.strips === 61 && s.canvases === 1 && /^116 · /.test(s.names[0]) && /^92 · /.test(s.names[2]), `THE CARD LAB: 55 cards (2B's 2 DEV cards FIRST, 2A's 3 held cards, 1C's 8 sighting cards, 1A's 8, 1B's 8, 1C's held-back 21, OVERCLOCK CARDS' 2, the dailies' SAFECRACKER + GHOST RUN + DM2's PERFECT WEEK, PD-5B's PRISM DROP 3, JAYWALK's 3 — ${s.strips} strips on the page; the emblems in their own tab) on ONE shared effect canvas (${s.canvases}) — first: ${s.names[0]}`);
+    ok(s.items === 62 && s.strips === 62 && s.canvases === 1 && /^116 · /.test(s.names[0]) && /^92 · /.test(s.names[2]), `THE CARD LAB: 62 cards (2B's 2 DEV cards FIRST, 2A's 3 held cards, 1C's 8 sighting cards, 1A's 8, 1B's 8, 1C's held-back 21, OVERCLOCK CARDS' 2, the dailies' SAFECRACKER + GHOST RUN + DM2's PERFECT WEEK, PD-5B's PRISM DROP 3, JAYWALK's 4 — ${s.strips} strips on the page; the emblems in their own tab) on ONE shared effect canvas (${s.canvases}) — first: ${s.names[0]}`);
     await ev(p, `document.querySelector('.vl-item[data-id="card-smoke"] .vl-mark[data-m="approve"]').click()`);
     await ev(p, `document.querySelector('.vl-item[data-id="card-prism"] .vl-mark[data-m="fix"]').click()`);
     await sleep(200);
@@ -71,6 +71,7 @@ G('vault', async () => {
   // (CITY C — THE SIGHTINGS' STANDARD LAYOUT: + six sighting full cards CHANGED (v2) → 23 rows, 35 NEED YOU)
   // (CITY E — THE LAB FEEDS EVERY PASS: MOSTARAC (GIFTS — its strip + full card v2) + THE HORSESHOE (EMBLEMS — v2) CHANGED → the CARDS view's 23 rows, 37 NEED YOU)
   // (FIXES R2 — THE SOURCE's full card (v7) + CANDLELIGHT (v2) CHANGED → still 23 CARDS rows, 38 NEED YOU)
+  // (JAYWALK H6A: + BEAM ME UP (approved at v1 like every item) + RIGHT OF WAY's new picture (v2 — CHANGED) → 24 rows, 39 NEED YOU, 62 in all)
   // the counts; one row per item + the FULL toggle flipping in place (its own mark); a re-mark leaves NEEDS YOU; ALL CAUGHT UP; NEW since his
   // last visit (vl:seen); the top bar's ← THE CITY
   { const { ctx, p } = await page('marks=old');
@@ -79,8 +80,8 @@ G('vault', async () => {
       chg: [...document.querySelectorAll('.vl-item .vl-chg:not([hidden]) b')].length, was: document.querySelectorAll('.vl-mark.is-was').length,
       counts: Object.fromEntries([...document.querySelectorAll('.vl-filter')].map(b => [b.dataset.f, +b.querySelector('.vl-filter-n').textContent])),
       back: (document.querySelector('.vl-back') || {}).getAttribute && document.querySelector('.vl-back').getAttribute('href'), house: ((document.querySelector('.vl-item[data-id="card-house"]') || {}).dataset || {}).face || '' }))()`);
-    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 23 && L.rows.includes('card-perfect-week') && L.rows.includes('card-sg-btc') && L.rows.includes('card-penthouse') && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.rows.includes('card-camo') && L.rows.includes('card-safecracker') && L.chg === 23 && L.was >= 11 && /^38 NEEDS? YOU$/.test(L.need)
-      && L.counts.needs === 23 && L.counts.changed === 23 && L.counts.all === 61 && L.back === '/' && L.house === 'full',
+    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 24 && L.rows.includes('card-rightofway') && L.rows.includes('card-perfect-week') && L.rows.includes('card-sg-btc') && L.rows.includes('card-penthouse') && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.rows.includes('card-camo') && L.rows.includes('card-safecracker') && L.chg === 24 && L.was >= 11 && /^39 NEEDS? YOU$/.test(L.need)
+      && L.counts.needs === 24 && L.counts.changed === 24 && L.counts.all === 62 && L.back === '/' && L.house === 'full',
       `THE LAB 2.0: NEEDS YOU by default — ${L.rows.length} CHANGED rows (${L.rows.join(', ')}), each with its CHANGED line (${L.chg}) beside the old mark (${L.was} lit as "was"); the bar "${L.need}"; counts ${JSON.stringify(L.counts)}; THE HOUSE opens on its FULL face (only it changed); ← THE CITY → ${L.back}`);
     // the FULL toggle flips in place (the strip's surface slot swapped), its own mark; a re-mark drops the row's CHANGED count
     await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-face').click()`); await sleep(400);
@@ -91,7 +92,7 @@ G('vault', async () => {
     await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-mark[data-m="approve"]').click()`);
     await sleep(400);
     const A = await ev(p, `({ need: document.querySelector('.vl-need').textContent, m: window.__lab.marks['full-card-founder'], rows: document.querySelectorAll('.vl-item').length })`);
-    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^37 NEEDS? YOU$/.test(A.need) && A.rows === 23,
+    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^38 NEEDS? YOU$/.test(A.need) && A.rows === 24,
       `THE LAB 2.0: FULL CARD › flips the row in place (${F.face}, one canvas) with the full card's own marks (${F.mk}); a re-mark stores the version seen (v${A.m.v}) — "${A.need}" (the rows stay put until the filter changes: ${A.rows})`);
     await ctx.close(); }
   { const { ctx, p } = await page('marks=none&filter=needs&view=glows');
@@ -343,7 +344,7 @@ G('vault', async () => {
     const f1 = await ev(p, 'window.__lab.stats.frames'); await sleep(500); const f2 = await ev(p, 'window.__lab.stats.frames');
     ok(d.n === 8 && d.off.sort().join() === 'glow,laser' && d.glow && held.during <= 2 && held.scrolling && f2 - f1 >= 3, `DIAGNOSTICS + SCROLL-PAUSE: 8 switches (2C: + TIER GEMS) (${d.off.join(' + ')} off from &diag=, the page's glows off: ${d.glow}); a scroll held the effects (${held.during} frames in 600 ms) — they resumed (${f2 - f1} frames in 500 ms)`);
     await ctx.close(); }
-  // THE FULL CARDS (THE LAB 2.0: every card row flipped to its FULL face — &face=full): 60 full cards on ONE canvas (OVERCLOCK CARDS: + 2; PD-5B: + 3; JAYWALK CARDS: + 3); a mark on the full face
+  // THE FULL CARDS (THE LAB 2.0: every card row flipped to its FULL face — &face=full): 60 full cards on ONE canvas (OVERCLOCK CARDS: + 2; PD-5B: + 3; JAYWALK CARDS: + 3; H6A: + BEAM ME UP); a mark on the full face
   // is the full card's own (full-<card>) + flashes SAVED ✓
   { const { ctx, p } = await page('view=cards&filter=all&face=full');
     await sleep(900);
@@ -352,7 +353,7 @@ G('vault', async () => {
     const saved = await waitFor(p, `!!document.querySelector('.vl-item[data-id="card-inferno"] .vl-saved')`, 'SAVED', 3000).then(() => true).catch(() => false);
     const txt = saved ? await ev(p, `document.querySelector('.vl-item[data-id="card-inferno"] .vl-saved').textContent`) : '';
     const fm = await ev(p, `({ full: (window.__lab.marks['full-card-inferno'] || {}).m || null, strip: (window.__lab.marks['card-inferno'] || {}).m || null })`);
-    ok(f.cards === 60 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt) && fm.full === 'approve' && !fm.strip, `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sightings in the standard layout: ${f.sight}); a mark on the FULL face is the full card's own (full ${fm.full}, strip ${fm.strip}) + flashes "${txt}"`);
+    ok(f.cards === 61 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt) && fm.full === 'approve' && !fm.strip, `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sightings in the standard layout: ${f.sight}); a mark on the FULL face is the full card's own (full ${fm.full}, strip ${fm.strip}) + flashes "${txt}"`);
     await ctx.close(); }
   // THE VAULT 1C — THE SIGHTING'S SCENE (the reveal's pair + the album's no-photo tile): once its full card is APPROVED the placeholder becomes
   // the card's real scene (js/vault/full.js#upgradeScene) — all 9 sightings, each its own canvas drawn; unapproved → the placeholder stays
