@@ -324,7 +324,8 @@ def shops():
         pos, nor, col, idx = flatten(j, bn, img)
         lo = [min(q[k] for q in pos) for k in range(3)]; hi = [max(q[k] for q in pos) for k in range(3)]
         d = max(hi[0] - lo[0], hi[2] - lo[2]); cx, cz = (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2
-        pos = [((q[0] - cx) / d, (q[1] - lo[1]) / d, (q[2] - cz) / d) for q in pos]
+        # (the kit's fronts — the door, the awning, the shop window — face −z: turned half round, they face the camera (+z) on the lane)
+        pos = [(-(q[0] - cx) / d, (q[1] - lo[1]) / d, -(q[2] - cz) / d) for q in pos]; nor = [(-q[0], q[1], -q[2]) for q in nor]
         # the glass: the colormap's blues (hue 190° … 250°, saturated) — the windows + the shop front's panes
         hs = [colorsys.rgb_to_hsv(c[0] / 255, c[1] / 255, c[2] / 255) for c in col]
         glass = [1 if (0.53 < h < 0.70 and sv > 0.25 and v > 0.3) else 0 for h, sv, v in hs]

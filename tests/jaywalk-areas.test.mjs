@@ -135,7 +135,7 @@ test('THE ARRIVAL GATEWAY: a neon arch on every area\'s first lane — posts in 
   assert.match(N, /if \(!gateSeen\) \{ gateInfo\.on = false; gateShow\(0\); \}/, 'no gate ahead: no sign');
   const arch = N.slice(N.indexOf('if (L.mark && AR >= 0) {'), N.indexOf('const PL = AR >= 0'));
   assert.doesNotMatch(arch, /AK\.|KM\[|K\.trees|K\.barricades/, 'no solid thing is laid across the lane: the posts + light only');
-  assert.match(arch, /K\.bill\.put\(0, 3\.04, zf, \(xr - xl\) \* 1\.04, 0\.34, 1, 0, hex, 1, 4,/, 'the crossbar\'s neon tube');
+  assert.match(arch, /K\.flat\.put\(0, 0\.05, zf \+ 0\.06, \(xr - xl\) \* 1\.02, 1, 0\.3, 0, hex, 1, 4, 0\.9 \* lt\);/, 'a neon line ON THE GROUND between the posts'); assert.doesNotMatch(arch, /3\.04/, 'H6B\'s review: NO crossbar over the road (it hid the traffic in the lane behind it)');
   assert.equal(gateName(450), 'THE DOCKS · LAP 2');
   assert.match(V, /markEl\.textContent = gateName\(e\.lane\); markUntil = performance\.now\(\) \+ 2600;/); assert.match(V, /markEl\.classList\.add\('is-flash'\);/);
   assert.match(V, /if \(sndOn\) \{ try \{ SFX\.play\('area-arrive'\); \}/, 'THE AREA ARRIVAL (H5C — it replaced the landmark ping)');

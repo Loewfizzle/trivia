@@ -41,7 +41,7 @@ test('ONLY THE CURRENT + THE NEXT: the next area\'s picture is asked for as the 
 });
 
 test('WHERE THE BAND RESTS: the landmark is on a phone\'s screen; the rest + the slide never show the band\'s edge on any screen', () => {
-  for (const id of SKY_IDS) assert.ok(Number.isFinite(SKY_BIAS[id]) && Math.abs(SKY_BIAS[id]) <= 14, `${id}: ${SKY_BIAS[id]}`);
+  for (const id of SKY_IDS) assert.ok(Number.isFinite(SKY_BIAS[id]) && Math.abs(SKY_BIAS[id]) <= 17.25, `${id}: ${SKY_BIAS[id]}`);
   assert.ok(SKY_BIAS.bridge < 0 && SKY_BIAS.lighthouse < 0, 'painted on the LEFT: the bridge, the lighthouse'); for (const id of ['docks', 'fish', 'yard', 'canal', 'airfield']) assert.ok(SKY_BIAS[id] > 0, `${id}: painted on the right`);
   const room = skyRoom(390, 844);
   assert.ok(room > 16 && room < 18.5, `a 390 × 844 phone: ± ${room.toFixed(1)} % of room`);

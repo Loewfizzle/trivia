@@ -845,17 +845,23 @@ saucer, the two tail lamps, new-best's two takes), THIS section wins. The decisi
   builder (a light whose 19 × 19 px surround the landmark changed; a window any of whose pixels it changed): docks lights 1 · 3 · 4 · 5,
   yard 1 · 3 · 4 · 6, downtown 1–4, canal 1–6, airfield 1; the right-side landmarks windows 2 · 4, the bridge 0 · 1 · 3, the lighthouse
   0 · 3. Through a gate's cross-fade BOTH pictures' are off.
+- **THE DAY BAND's REST, re-tuned** (`SKY_BIAS` — the first review: the cranes, the fish hall, the rail yard + downtown's towers
+  were cut by the screen's right edge): docks + 16 · fish + 11 · yard + 17 · downtown + 5 · lighthouse − 15.5 (the rest as H5C left them).
 - **THE LOOK SWITCH** (AUTO at sunrise / sunset, or the owner's toggle): the day + night pictures have different horizons, so **the
   whole band CROSS-FADES over 1.5 s** (`SKY_LOOK_MS`: the picture — the same two layers; the sea wall's stone — the day's stone lies
   over the night's, its opacity alone moves; the wall's lamps + the night's life fade with it; the rest offset eases). Never a jump;
   the sea wall stays at the band's foot in both. A cross-fade still running is waited out (a visible layer's picture never changes);
-  at once with reduce motion. (The 3D scene itself still switches at once — H5B.)
+  at once with reduce motion. (The 3D scene itself still switches at once — H5B. *Measured: the FIRST look switch of a session shows
+  ONE long frame — ≈ 130 ms on the build machine, GPU-side (the script's own work in it is 7 ms); H6A's code shows the same; every
+  later switch is 59.9 fps. Not found — OPEN in the pass log.*)
 
 ### THE GATE SIGN — ONLY ON THE APPROACH (`night.js` `GATE_GONE` 3 · `GATE_FADE` 1.5 · `GATE_SEEN` 10; css `.jw-gate`)
 The sign stood on the gate's crossbar and hung over the lanes he was about to play. Now **the area's arched name board hangs under
 the sea wall** — its own canvas over the scene (the same painted board: neon tubes on a solid dark board by night, a painted board by
 day), crisp over the far haze, where only the fogged far lanes are — **up from 10 lanes out, whole to 4.5, fading, FULLY GONE 3 lanes
-from the gate** (and at it, and through it); the gate's own posts + crossbar come out of the haze under it. *Why not on the gate
+from the gate** (and at it, and through it); the gate's own posts come out of the haze under it. **THE GATE HAS NO CROSSBAR
+any more** (the first review: the raised bar hid the traffic in the lane behind it — a red van behind a red stripe): two posts in
+the edge columns + a line ON THE GROUND between them (a striped painted line by day, a neon line by night) — nothing stands over a lane. *Why not on the gate
 itself: 8–10 lanes out the gate is behind the skyline band and in the full haze — a sign there cannot be read; nearer, it covered the
 lanes ahead.* The plane in the scene (its mesh, its texture) is gone. The area's name still flashes once in the HUD as he crosses.
 
@@ -864,6 +870,8 @@ The live order (top left, under ☰): **a 6 px colour dot + the name short (≈ 
 lanes, 13 px a row** (8 players = 111 px tall, ≤ 92 px wide; they were 21 px rows in boxes, 46 vw wide) **on a soft veil** that thins
 out to the right — no box, no corners: the bridge + the lighthouse painted on the band's left read through and past it. You = a bar
 of your colour down the row's edge; the one you watch = a white bar; OUT = a cross + the name struck through (never colour alone).
+BY DAY the veil is faint (the first review: it sat dark on the painted bridge / lighthouse) and the letters carry the day's own ink;
+the day lighthouse rests a touch further right (`SKY_BIAS.lighthouse` − 15.5) — its tower stands clear of the chips.
 
 ### THE LAB LINK — `jaywalk-lab.html?lane=N` (+ the look / zoom prefs)
 **A LOOK CHECK from lane N** (the owner opens any area on his phone): the kid stands on the grass lane nearest N (the one before it
@@ -876,23 +884,30 @@ big red THE MOTHERSHIP · 0:10 is the only one.
 - **THE UFO = A SOLID SAUCER** — no transparency anywhere (it no longer goes see-through over the kid): **chrome catching the sun by
   day, dark metal under bright rim lights by night**, a glowing hatch under its belly; **SMALLER + a little HIGHER** (2.3 cells across
   at 5.0 — was 3.0 at 4.7; any higher and the skyline band hides it: it stands over the lanes ≈ 5 ahead of its ring, never on a car /
-  a log / a train he must read now); far off it takes the haze's own colour (solid to the last — H5C's rule). **ITS BEAM IS STRONG**
+  a log / a train he must read now); far off it takes the haze's own colour (solid to the last — H5C's rule), and **while its ring is
+  far up the screen it hovers LOWER** (its top never above 31 % of the screen, never under 2.6 high — the first review: its top half
+  sat in the haze under the wall, a dull smudge); by day its rim lights are bigger + saturated (green / warm white) and its beam a
+  saturated green (pale green vanished over tan paving). Its ground ring fades with the far haze. **ITS BEAM IS STRONG**
   (a glowing green column by night; bright pale green between two darker edge lines by day; motes in both) **and LIGHTS what drives
   through it** (a green wash laid over the cars in the ring). **THE ABDUCTION: the kid goes up INTO it** — its near rim lifts, the
   hatch opens wide, he rises into the hull (solid: it closes over him — never left under its rim), the hatch shuts, it zips off SMALL
   + far and comes back down over its ring. **On the abducted player's OWN phone the world dims round the beam** for the ≈ 2 s
   (`.jw-ufo-shade`: its clear heart set once on the beam, then opacity only).
 - **THE BLACKBIRD ≈ 1.3× bigger** (4.8 cells — the rules' body stays 3) **with BLAZING AFTERBURNERS**: from each nozzle a blue-white
-  heart in an orange flame and a long pink tail (the glow's tapered ribbon, wide + bright at the nozzle), four shock diamonds, heat
-  shimmer by day — **laid LAST** (after the contrails, which now start behind them, and the band's flash: nothing washes them white).
+  heart in an orange flame and a long pink tail (the glow's tapered ribbon, wide + bright at the nozzle; a soft warm aura round it by
+  day — never a hard wedge; ONE hot core a nozzle — the first review: the row of shock diamonds read as beads on a string; by night
+  narrower, so the two read as two), heat shimmer by day, ONE thin brief vapor ring (half strength by night), a cool light of its
+  own on the airframe by night (it was lost against the dark road) — **laid LAST** (after the contrails, which now start behind them, and the band's flash: nothing washes them white).
 - **THE MOTHERSHIP:** once it arrives **the traffic under it SLOWS TO A STOP** (the scene's own tick eases out past the cap —
   `night.js`: a view; the run is over) · **every kid flies INTO its port** (the ship is a sprite over the canvas: from its rim on each
-  kid is a small light of their colour over the sprite — `.jw-ship-kid`, transform + opacity — that flies to the lens and goes in) ·
-  ONE countdown.
+  kid is a small light of their colour that flies to the lens and goes in — drawn on ONE small BITMAP canvas inside the ship's own
+  sprite: measured, eight elements of their own — and then a default canvas, which the browser moves to the GPU at its first real
+  draws — cost one 150 ms frame as the first kid reached the rim) · ONE countdown (its dark band a touch more solid).
 - **DOWNTOWN's EDGE SHOPS = Kenney's storefronts** (`shops.js` — fetched ON DEMAND when a shop first comes into the window; City Kit
   (Commercial) 2.1, CC0: building-a · c · d · h → `shop-a … d.glb`, 28–38 KB each, re-packed by `build-jaywalk-assets.py --only=shops`
   — one mesh, the colormap in vertex colours, the window glass marked): fronts toward the camera, 1.6 wide × 0.9 deep (inside their
-  lane), **lit windows + a neon sign + its colour on the pavement by night**, glass + a painted board by day; the code-built box
+  lane; **turned half round in the builder: the kit's fronts — the door, the awning, the shop window — face −z, on the lane they
+  face the camera**), **lit windows + a neon sign + its colour on the pavement by night**, glass + a painted board by day; the code-built box
   until they land. The delivery: `Downloads\grok\jaywalk\models\city\`.
 - **THE TAIL LIGHTS (the owner's add-on, Nov 17 6:32 am — "more uniform instead of one light"):** from this camera only the near
   corner lamp showed. Now **ONE thin red LIGHT BAR across the full width of every vehicle's rear** (`night.js#tailBar`: the car, the

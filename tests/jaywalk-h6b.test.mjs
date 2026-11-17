@@ -72,6 +72,8 @@ test('THE MOMENTS\' FINISH: THE UFO solid (no transparency), smaller + a little 
   // THE BLACKBIRD's burners: laid LAST (after the contrails + the flash), the contrails start behind them
   assert.match(FL, /if \(tell\) \{ if \(burn\) burn\(\); return; \}/); assert.match(FL, /shakeNow = FLY\.shake \* \(1 - \(u - FLY\.shakeFrom\) \/ FLY\.shakeTicks\);\s*if \(burn\) burn\(\);/);
   for (const hex of ['0xff4f9a', '0xff7a1a', '0x1f7fff', '0xf4fbff']) assert.ok(FL.includes(hex), `a flame layer ${hex}: a blue-white heart in an orange flame, a pink tail`);
+  assert.doesNotMatch(FL, /for \(let d = 0; d < 4; d\+\+\) K\.bill\.put\(nx/, 'no row of shock diamonds (the review: beads on a string) — ONE hot core a nozzle'); assert.match(FL, /jetMat\.emissive\.setHex\(day \? 0 : 0x1a2440\);/, 'by night the airframe carries a cool light of its own');
+  assert.match(FL, /if \(yf < 0\.31\) \{[^}]*sy = Math\.max\(2\.6, sy - \(0\.31 - yf\) \/ per\); \}/, 'THE UFO hovers lower while its ring is far up the screen: never half in the haze under the wall');
   // THE MOTHERSHIP
   assert.match(N, /t = capT && tr > capT \? capT \+ 40 \* \(1 - Math\.exp\(\(capT - tr\) \/ 40\)\) : tr,/, 'past the cap the scene\'s tick eases to a stop: the traffic under the ship slows to a halt (a view — the run is over)');
   { const cap = 21600, t = tr => (tr > cap ? cap + 40 * (1 - Math.exp((cap - tr) / 40)) : tr); assert.equal(t(cap - 5), cap - 5); assert.ok(t(cap + 6) - cap > 5 && t(cap + 6) - cap < 6, 'no jump at the cap'); assert.ok(t(cap + 600) - t(cap + 300) < 0.05, 'stopped'); for (let k = 0; k < 400; k++) assert.ok(t(cap + k + 1) >= t(cap + k), 'never backwards'); }
@@ -91,7 +93,7 @@ test('DOWNTOWN\'s EDGE SHOPS: Kenney\'s storefronts (CC0), fetched ON DEMAND; li
   assert.match(S, /export const SHOPS = Object\.freeze\(\['shop-a', 'shop-b', 'shop-c', 'shop-d'\]\);/);
   for (const n of ['shop-a', 'shop-b', 'shop-c', 'shop-d']) { const f = new URL(`../assets/jaywalk/models/${n}.glb`, import.meta.url); assert.ok(existsSync(f)); const b = readFileSync(f); assert.ok(b.length > 8000 && b.length < 60 * 1024, `${n}.glb: ${b.length} B`); assert.equal(b.toString('ascii', 0, 4), 'glTF'); assert.ok(!b.includes(Buffer.from('image/png')), 'no texture: the colormap is in its vertex colours'); }
   assert.ok(existsSync(new URL('../assets/jaywalk/models/LICENSE-kenney-city-kit-commercial.txt', import.meta.url)));
-  assert.match(S, /SHOP = Object\.freeze\(\{ w: 1\.6, d: 0\.9,/, 'a shop stays inside its own lane (0.9 deep)'); assert.match(S, /totalEmissiveRadiance \+= vWin \* uWin \*/, 'the window glass glows by night'); assert.match(S, /U\.value = day \? 0 : 1;/);
+  assert.match(S, /SHOP = Object\.freeze\(\{ w: 1\.8, d: 0\.9,/, 'a shop stays inside its own lane (0.9 deep)'); assert.match(S, /totalEmissiveRadiance \+= vWin \* uWin \*/, 'the window glass glows by night'); assert.match(S, /U\.value = day \? 0 : 1;/);
   assert.doesNotMatch(S, /PointLight|SpotLight|requestAnimationFrame|getBoundingClientRect/);
 });
 

@@ -176,6 +176,8 @@ try {
   await pages[2].evaluate(() => import('/js/games/kit/look.js').then(m => m.saveLook('day')));
   ok(await until(async () => { const q = await lookOf(pages[2]); return q.scene === 'day' && q.stage === 'day' && q.band === 'day'; }, 6000), '… CHARLIE switches to DAY mid-match: his screen re-themes at once (read live)');
   ok((await all(N, p => state(p))).every(s => s.ghosts.length === N - 1 && s.seed === game.seed), '… the same match on all three: the look is a view');
+  // (H6B — THE LOOK SWITCH: the band CROSS-FADES to the day picture (≈ 1.5 s — never a jump): the shot waits for it)
+  ok(await until(() => pages[2].evaluate(`(() => { const q = document.querySelectorAll('.jw-sky-pic'), op = +getComputedStyle(q[1]).opacity, on = op === 1 ? q[1] : op === 0 ? q[0] : null; return !!on && on.style.backgroundImage.includes('skyline-day'); })()`), 9000), '… his band cross-fades to the DAY picture (the look switch is never a jump)');
   await H.shot(pages[2], 'match-day-ghosts');
   // ---- 4. BOB out first (two still in) → the cause words → Call the Winner → WATCHING the leader
   await H.shot(pages[0], 'ghosts-3-two-seconds-in');

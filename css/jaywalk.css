@@ -67,7 +67,7 @@
 .jw-skyline[data-look='day'] .jw-seawall { box-shadow: 0 -1px 0 rgba(20, 60, 110, 0.55), 0 -4px 6px rgba(16, 70, 130, 0.35); }
 /* (H6B — THE LOOK SWITCH: the wall carries BOTH looks' stone — the day's lies over the night's and its opacity alone moves, with the
    band's own cross-fade (night.js#skyShow, SKY_LOOK_MS); the lamps + the night's life fade the same way: never a jump) */
-.jw-seawall i.is-day { opacity: 0; transition: opacity 1.5s ease-in-out; will-change: opacity; }
+.jw-seawall i.is-day { opacity: 0; transition: opacity 1.5s ease-in-out; }
 .jw-seawall b { transition: opacity 1.5s ease-in-out; }
 .jw-skyline[data-look='day'] .jw-seawall i.is-day { opacity: 1; }
 .jw-seawall i.is-day { background:
@@ -212,6 +212,8 @@
 .jw-order li { position: relative; display: grid; grid-template-columns: 6px minmax(0, 42px) auto; align-items: center; gap: 4px; padding: 0 9px 0 6px; height: 13px;
   background: linear-gradient(90deg, rgba(7, 6, 11, 0.66) 0, rgba(7, 6, 11, 0.5) 62%, rgba(7, 6, 11, 0) 100%);
   font: 700 10px/13px var(--font-ui); letter-spacing: 0.05em; color: #fff; text-shadow: 0 1px 0 rgba(7, 6, 11, 0.95), 0 0 3px rgba(7, 6, 11, 0.9); }
+/* (H6B's review — BY DAY the dark veil sat on the painted bridge / lighthouse: a faint veil there, the letters carry the day's own ink) */
+.jw-stage[data-look='day'] .jw-order li { background: linear-gradient(90deg, rgba(12, 22, 48, 0.3) 0, rgba(12, 22, 48, 0.16) 60%, rgba(12, 22, 48, 0) 100%); text-shadow: 0 0 2px #0a1020, 0 1px 0 rgba(10, 16, 32, 0.95), 0 0 4px rgba(10, 16, 32, 0.9), 0 0 9px rgba(10, 16, 32, 0.6); }
 .jw-order-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c); box-shadow: 0 0 4px var(--c); }
 .jw-order-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .jw-order b { font: 700 11px/13px var(--font-num, var(--font-ui)); letter-spacing: 0; min-width: 1.5em; text-align: right; }
@@ -271,7 +273,7 @@
    fades to black — and every word over the bright scene keeps a dark edge (the lane count, the area's name, the count, the hint) */
 .jw-skyline[data-look='day'] { background: #c6e6f7; }
 /* (THE NIGHT's LIFE — the blinking lights + the flickering windows: one layer, faded with the look; a light on a painted landmark is `hidden`) */
-.jw-sky-life { position: absolute; inset: 0; will-change: opacity; transition: opacity 1.5s ease-in-out, visibility 0s; }
+.jw-sky-life { position: absolute; inset: 0; transition: opacity 1.5s ease-in-out, visibility 0s; }
 .jw-skyline[data-look='day'] .jw-sky-life { opacity: 0; visibility: hidden; transition: opacity 1.5s ease-in-out, visibility 0s 1.5s; }
 .jw-sky-life [hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) { .jw-sky-life, .jw-skyline[data-look='day'] .jw-sky-life, .jw-seawall i.is-day, .jw-seawall b { transition: none; } }
@@ -317,7 +319,7 @@
   background: radial-gradient(46% 38% at var(--x, 50%) var(--y, 50%), rgba(3, 2, 12, 0) 0, rgba(3, 2, 12, 0) 36%, rgba(3, 2, 12, 0.55) 72%, rgba(3, 2, 12, 0.85) 100%); }
 .jw-stage[data-look='day'] .jw-ufo-shade { background: radial-gradient(46% 38% at var(--x, 50%) var(--y, 50%), rgba(8, 14, 40, 0) 0, rgba(8, 14, 40, 0) 36%, rgba(8, 14, 40, 0.46) 72%, rgba(8, 14, 40, 0.72) 100%); }
 .jw-ship-t { position: absolute; z-index: 3; left: 0; right: 0; top: calc(env(safe-area-inset-top) + 122px); padding: 9px 0 8px; text-align: center; opacity: 0; pointer-events: none;
-  background: linear-gradient(90deg, rgba(6, 3, 12, 0) 0, rgba(6, 3, 12, 0.78) 16%, rgba(6, 3, 12, 0.78) 84%, rgba(6, 3, 12, 0) 100%);
+  background: linear-gradient(90deg, rgba(6, 3, 12, 0) 0, rgba(6, 3, 12, 0.92) 14%, rgba(6, 3, 12, 0.92) 86%, rgba(6, 3, 12, 0) 100%);
   font: 900 19px/1 var(--font-display); letter-spacing: 0.12em; color: #ff5a4a; text-shadow: 0 0 3px #fff, 0 0 12px #ff2a1c, 0 0 26px rgba(255, 42, 28, 0.85), 0 2px 0 rgba(0, 0, 0, 0.9); animation: jw-ship-t 0.5s ease-in-out infinite alternate; }
 .jw-ship-t.is-still { animation: none; }
 @keyframes jw-ship-t { from { transform: scale(1); } to { transform: scale(1.06); } }

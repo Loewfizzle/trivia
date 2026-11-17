@@ -5,7 +5,9 @@
 // kid — and nothing a player reads says "TAKEN".
 export async function looksH6A(p, { ok, shot, sleep, waitFor, what = '', reqs = [] }) {
   const L = js => p.evaluate(js), all = !what;
-  const fresh = (look, mode = 'solo') => L(`window.__jwLab.freeze(false); window.__jwLab.ghosts(0); window.__jwLab.bot(false); window.__jwLab.restart('${mode}', 'look3'); window.__jwLab.setCamera(8, 'straight', true); window.__jwLab.setLook('${look}'); window.__jwLab.hop('u')`);
+  let lookNow = '';
+  const fresh = async (look, mode = 'solo') => { await fresh0(look, mode); if (look !== lookNow) { lookNow = look; await sleep(2100); } };   // (H6B: a look change CROSS-FADES the band — a shot waits it out)
+  const fresh0 = (look, mode = 'solo') => L(`window.__jwLab.freeze(false); window.__jwLab.ghosts(0); window.__jwLab.bot(false); window.__jwLab.restart('${mode}', 'look3'); window.__jwLab.setCamera(8, 'straight', true); window.__jwLab.setLook('${look}'); window.__jwLab.hop('u')`);
   const fly = () => p.evaluate(() => window.__jwLab.view.info().fly);
   /** stand on a grass lane 2–8 below `lane` (the centre column) */
   const below = (l, x = 4500) => p.evaluate((ln, xx) => { const J = window.__jwLab; for (let d = 2; d < 9; d++) if (J.find('grass', ln - d) === ln - d) { J.warp(ln - d, { x: xx }); return ln - d; } J.warp(ln - 2, { x: xx }); return ln - 2; }, l, x);

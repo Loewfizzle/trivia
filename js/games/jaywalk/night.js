@@ -819,15 +819,14 @@ export function createNight(host, o = {}) {
           // BY DAY (H5B): a PAINTED arch — white posts banded in the area's colour, the arch in stripes of it, the name in white paint
           // on a band of the area's colour laid across the lane
           const pc = LOOKS[AR].paint, wh = 0xf6f2e8, li = Math.min(1.6, lt);
-          // (H5C: two posts, a striped CROSSBAR between them — the lane's own
-          //  painted trim marks the threshold)
           for (const x of [xl, xr]) { K.posts.put(x, 1.5, zf, 0.22, 3.0, 0.22, 0, wh, li); K.posts.put(x, 2.86, zf, 0.3, 0.4, 0.3, 0, pc, li); K.posts.put(x, 0.4, zf, 0.3, 0.8, 0.3, 0, pc, li); K.posts.put(x, 3.16, zf, 0.34, 0.2, 0.34, 0, wh, li); K.shadow.put(x, 0.03, zf, 0.9, 3.0, 0.7, 0, 0, 1, 0, 0.5 * Math.min(1, lt)); }
-          for (let k = 0; k < 10; k++) K.posts.put(xl + (xr - xl) * (k + 0.5) / 10, 3.04, zf, (xr - xl) / 10 + 0.01, 0.34, 0.2, 0, k % 2 ? wh : pc, li);
-          K.shadow.raw(0, 0.05, zf + 0.5, 10.4, 1, 0.5, 0, 0, 1, 4, 0.34 * Math.min(1, lt));   // (the beam's own shadow across the lane: the gate stands on this ground)
+          // (H6B's review: the raised crossbar hid the traffic in the lane behind it — the gate is its two posts in the edge columns +
+          //  a striped PAINTED line across the ground between them: nothing stands over a lane)
+          for (let k = 0; k < 10; k++) K.flat.put(xl + (xr - xl) * (k + 0.5) / 10, 0.05, zf + 0.06, (xr - xl) / 10 + 0.02, 1, 0.2, 0, k % 2 ? wh : pc, 1, 4, 1);
         } else {
           for (const x of [xl, xr]) { K.posts.put(x, 1.5, zf, 0.2, 3.0, 0.2, 0, 0x2b2b3c, lt); K.bill.put(x, 3.1, zf, 0.5, 0.5, 1, 0, hex, 1, 5, lt); for (let k = 0; k < 5; k++) K.bill.put(x, 0.4 + k * 0.55, zf, 0.3, 0.42, 1, 0, hex, 1, 4, 0.85 * lt); if (on) K.flat.put(x, 0.05, zf, 2.6, 1, 2.0, 0, hex, 1, 0, 0.4 * lt); }
-          K.posts.put(0, 3.04, zf, xr - xl, 0.3, 0.18, 0, 0x34344a, lt);   // (the crossbar — a real beam — + the neon tube lying along it: the glow + its hot core)
-          K.bill.put(0, 3.04, zf, (xr - xl) * 1.04, 0.34, 1, 0, hex, 1, 4, 0.9 * lt); K.bill.put(0, 3.04, zf, (xr - xl) * 1.02, 0.1, 1, 0, 0xffffff, 1, 4, 0.7 * lt);
+          // (H6B: no crossbar — a NEON LINE lies on the ground between the posts: the tube's glow + its hot core)
+          K.flat.put(0, 0.05, zf + 0.06, (xr - xl) * 1.02, 1, 0.3, 0, hex, 1, 4, 0.9 * lt); K.flat.put(0, 0.052, zf + 0.06, xr - xl, 1, 0.08, 0, 0xffffff, 1, 4, 0.7 * lt);
           if (on) K.flat.put(0, 0.045, z, 11, 1, 1.2, 0, hex, 1, 4, 0.16 * lt);
         }
         // THE NAME: the gate's sign under the sea wall — ONLY ON THE APPROACH (H6B)

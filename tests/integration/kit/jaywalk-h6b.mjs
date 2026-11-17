@@ -6,7 +6,9 @@
 const IDS = ['docks', 'fish-market', 'rail-yard', 'bridge', 'downtown', 'canal', 'lighthouse', 'airfield'], SKY = ['docks', 'fish', 'yard', 'bridge', 'downtown', 'canal', 'lighthouse', 'airfield'];
 export async function looksH6B(p, { ok, shot, sleep, waitFor, what = '', reqs = [], top, open, up }) {
   const L = js => p.evaluate(js), all = !what;
-  const fresh = (look, mode = 'solo') => L(`window.__jwLab.freeze(false); window.__jwLab.ghosts(0); window.__jwLab.ghostsAt(null); window.__jwLab.bot(false); window.__jwLab.restart('${mode}', 'look3'); window.__jwLab.setCamera(8, 'straight', true); window.__jwLab.setLook('${look}'); window.__jwLab.hop('u')`);
+  let lookNow = '';
+  const fresh = async (look, mode = 'solo') => { await fresh0(look, mode); if (look !== lookNow) { lookNow = look; await sleep(2100); } };   // (a look change CROSS-FADES the band: a shot waits it out)
+  const fresh0 = (look, mode = 'solo') => L(`window.__jwLab.freeze(false); window.__jwLab.ghosts(0); window.__jwLab.ghostsAt(null); window.__jwLab.bot(false); window.__jwLab.restart('${mode}', 'look3'); window.__jwLab.setCamera(8, 'straight', true); window.__jwLab.setLook('${look}'); window.__jwLab.hop('u')`);
   const stand = (lane, col) => p.evaluate((l, c) => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'look3'); J.hop('u'); } const y = J.find('grass', l); J.warp(y, c == null ? {} : { x: c * 1000 + 500 }); return y; }, lane, col);
   const sky = () => p.evaluate(() => window.__jwLab.state().info.sky);
   const settled = () => waitFor(p, '!window.__jwLab.state().info.sky.fading', 6000);

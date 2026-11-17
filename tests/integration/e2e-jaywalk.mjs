@@ -160,7 +160,8 @@ try {
   ok(await P.waitFor(`document.body.dataset.look === 'day' && ${G}.state().info.look === 'day' && document.querySelector('.jw-game').dataset.look === 'day' && document.querySelector('.jw-skyline').dataset.look === 'day'`, 6000), 'GAME LOOK: DAY mid-run → the day look at once (the scene, the stage, the band)');
   { const now = await P.ev(`${G}.state()`); ok(now.seed === before.seed && now.best >= before.best && now.go === before.go && now.info.bloom === false, `the same run (the look is a view): the same course + clock, its lanes kept (${now.best}); no bloom by day`); }
   ok(await P.ev("import('/js/games/jaywalk/index.js').then(m => m.musicFor()[0])") === 'mood:day', 'the music follows the look: the day deck');
-  await sleep(500); await P.shot('run-day.png');
+  ok(await P.waitFor(`(() => { const q = document.querySelectorAll('.jw-sky-pic'), op = +getComputedStyle(q[1]).opacity, on = op === 1 ? q[1] : op === 0 ? q[0] : null; return !!on && on.style.backgroundImage.includes('skyline-day'); })()`, 9000), 'THE LOOK SWITCH (H6B): the band cross-fades to the DAY picture — never a jump');
+  await P.shot('run-day.png');
   // ---- 5. out → the end screen → the report counted from the replay
   ok(await toEnd(P), 'the kid stands still → out → the match ends on the proof\'s `e` → THE END SCREEN');
   await sleep(600);

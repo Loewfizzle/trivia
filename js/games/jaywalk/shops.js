@@ -13,7 +13,7 @@ import { fogUp } from './night-fx.js';
 const DIR = new URL('../../../assets/jaywalk/models/', import.meta.url);
 export const SHOPS = Object.freeze(['shop-a', 'shop-b', 'shop-c', 'shop-d']);
 /** a shop's size on the lane (cells): its front's width + height scale · its depth (it stays inside its own lane) */
-export const SHOP = Object.freeze({ w: 1.6, d: 0.9, front: 0.46, sign: [0.62, 0.86, 0.6, 0.74] });   // (sign: where each model's sign hangs — a share of its front's width up from the pavement)
+export const SHOP = Object.freeze({ w: 1.8, d: 0.9, front: 0.46, sign: [0.62, 0.86, 0.6, 0.74] });   // (sign: where each model's sign hangs — a share of its front's width up from the pavement)
 
 /** C = night.js's own: { kind (its instanced-kind maker), K (its kinds — every one is reset + laid each frame), rewarm() } */
 export function createShops({ kind, K, rewarm }) {
