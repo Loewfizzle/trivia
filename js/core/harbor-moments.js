@@ -88,7 +88,7 @@ const retiredFor = (ctx, id) => !!(ctx && ctx.retire) && RETIRED.includes(id);
 export const STARTERS = Object.freeze(MOMENTS.filter(m => m.starter !== false).map(m => m.id));
 export const windowsOf = m => (m.windows === 'all' ? TANGO_PATH : m.windows);
 
-// ------------------------------------------------------------------ time helpers
+// ---- time helpers
 const DAY = 86400;
 /** h in [from, to) on a 24 h clock, wrapping past midnight */
 export function inHours(h, w) {
@@ -119,7 +119,7 @@ export function routineAt(id, key) {
   return Math.round(m.at * 3600 + r() * (m.jitter || 0) * 60);
 }
 
-// ------------------------------------------------------------------ THE LEGENDARY CALENDAR
+// ---- THE LEGENDARY CALENDAR
 /** the legendary nights of a year: `nights` dates a year (one a season, never the same two years running), each with `plays`
  *  starts through its hours (seconds after local midnight) — { 'YYYY-MM-DD': [s, s, s] } */
 export function legendNights(y, id = 'tango') {
@@ -134,7 +134,7 @@ export function legendNights(y, id = 'tango') {
   return out;
 }
 
-// ------------------------------------------------------------------ WIN2 — THE EDGE WINDOWS' MOOD LIGHTS (the owner: light + shadow only)
+// ---- WIN2 — THE EDGE WINDOWS' MOOD LIGHTS (the owner: light + shadow only)
 /** the moods: TV blue flicker · an eerie RED darkroom bulb · a wavering CANDLE · a green BANKER's lamp + a shadow passing · HEADLIGHT sweeps
  *  through slatted blinds · a CEILING FAN's turning shadow · LIGHTS OUT at ~midnight · a PARTY colour cycle (party nights only) */
 export const EDGE_MOODS = Object.freeze(['tv', 'red', 'candle', 'banker', 'headlights', 'fan', 'out']);
@@ -161,7 +161,7 @@ export function edgeShades(key, ctx = {}) {
 }
 export const redMoodNight = (key, ctx = {}) => { const m = edgeMoods(key, ctx); return m.edge2 === 'red' || m.edge3 === 'red'; };
 
-// ------------------------------------------------------------------ WIN2 — THE EYES' CALENDAR
+// ---- WIN2 — THE EYES' CALENDAR
 const ymdOf = key => String(key).split('-').map(Number);
 const shiftKey = (key, days) => { const [y, m, d] = ymdOf(key), t = new Date(Date.UTC(y, m - 1, d + days)); return dayKey(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()); };
 /**
@@ -191,7 +191,7 @@ export function eyesPlaysOn(key, ctx = {}) {
   return out;
 }
 
-// ------------------------------------------------------------------ THE DAY'S SCHEDULE (in HOUR BLOCKS)
+// ---- THE DAY'S SCHEDULE (in HOUR BLOCKS)
 /** the day's fixed starts: the routines (their seeded minutes) + the legendary night's plays → [{ id, win, t0, len, n }] */
 export function fixedPlan(key, only = null, ctx = {}) {
   const out = [], y = Number(String(key).slice(0, 4));
@@ -351,7 +351,7 @@ export const STAGE_ROOM = 1.22;
 /** the next start after `sec` (the readout + the e2e): { id, win, in: seconds } or null */
 function nextMoment(plan, sec) { const e = plan.find(o => o.t0 > sec); return e ? { id: e.id, win: e.win, in: Math.round(e.t0 - sec) } : null; }
 
-// ------------------------------------------------------------------ THE ROOMS' STATES BY THE HOUR
+// ---- THE ROOMS' STATES BY THE HOUR
 /**
  * What a room is doing at hour h (local, 0–24) — the routines move them (routines: { wake, shop-open, bartender, lights-out } →
  * their starts today, seconds; their ends = start + len). NEVER FULLY DARK: from the bar's close at 3 am until the upstairs wakes
@@ -389,7 +389,7 @@ export function roomState(id, h, routines = {}) {
   return 'still';
 }
 
-// ------------------------------------------------------------------ THE TV GLOW (an owner favourite)
+// ---- THE TV GLOW (an owner favourite)
 /**
  * The TV's light at time t (s) — IRREGULAR like real TV: SCENES of 0.4–3.5 s (cuts on a 0.35 s grid, about two in five), each its own
  * level (0.38–1) + tint (cool blue ↔ a whiter blue, now and then a warm scene), a slow drift inside a scene and a fine flicker.
@@ -476,7 +476,7 @@ export function tvHolidayTint(holId) {
   return null;
 }
 
-// ------------------------------------------------------------------ SP5 — THE BOSS's ROOM BY DAY, THE TELL, THE WATCH (PURE)
+// ---- SP5 — THE BOSS's ROOM BY DAY, THE TELL, THE WATCH (PURE)
 /** THE BOSS's ROOM BY DAY (the owner): the SHADE DRAWN all day — the one window that never opens to the daylight; a few rare, seeded
  *  events a day, never two at once: 'peek' (the shade lifts an inch and drops — someone peeking out; 3.2 s), 'smoke' (a thin curl of
  *  cigar smoke out of the sash cracked open at the top; 50 s), 'shadow' (on OVERCAST days only — ctx.overcast: a shadow crossing behind
@@ -556,7 +556,7 @@ export function bossWatchAt(plan, s, seed = 11) {
 /** (SP5's old name, kept for callers: the plan's stand at `s` for the default plan) */
 export function bossWatch(s, seed = 11, demo = false) { return bossWatchAt(bossWatchPlan(seed, { demo }), s, seed); }
 
-// ------------------------------------------------------------------ NIGHT-C — THE QUIET BUILDING (the owner, Oct 29 5:52–5:54 pm — DECIDED)
+// ---- NIGHT-C — THE QUIET BUILDING (the owner, Oct 29 5:52–5:54 pm — DECIDED)
 // At NIGHT (not a party night) only these windows stay LIVE: the BOSS's TV room, the two CUT-OFF side rooms on the left edge (the top floor
 // + the floor below: their candle / flicker / ambience moods — always on at night) and the UPPER MIDDLE — the shadowboxer's room, live only
 // while he trains (SKY builds him; until then it is parked like its neighbours). Every other window is PARKED, not deleted: a drawn blind,
@@ -585,7 +585,7 @@ export function parkedLevel(PN, id, s) {
   return e < 0.12 ? 0.3 : e < 0.2 ? 0.85 : e < 0.3 ? 0.12 : 0;
 }
 
-// ------------------------------------------------------------------ WIN3 — THE QUIET NIGHTS (the boss's glow the only light on)
+// ---- WIN3 — THE QUIET NIGHTS (the boss's glow the only light on)
 const dowOfKey = key => { const [y, m, d] = key.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
 /** THE QUIET NIGHTS (the owner: "some nights it's the only one on" — variety, never stale): ~1 night in 6, mostly Sun–Wed (a few Thursdays),
  *  never Friday / Saturday (the party nights) nor a party night by ctx.party. key = the EVENING's date (the night runs into the next day) */
@@ -625,7 +625,7 @@ export function lateTvK(h) {
   return e(T[0], T[1], x) * (1 - e(T[2], T[3], x));
 }
 
-// ------------------------------------------------------------------ WIN3 — THE PARTY IN THE WINDOWS (PURE)
+// ---- WIN3 — THE PARTY IN THE WINDOWS (PURE)
 // The owner (Oct 26): on PARTY NIGHTS, during the party's PEAK, the blinds go up in every window ONE ROOM AT A TIME (~every 10 s, the
 // whole building within ~60 s, a seeded order each night), every room ONE BIG DANCE PARTY in its OWN neon colour (never two alike),
 // winding down the same way at the end; the boss's TV room never joins; the edge windows join with their party cycle.

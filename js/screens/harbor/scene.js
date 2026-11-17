@@ -23,7 +23,7 @@ import { partyTimeline, danceBreaks, partyNight, eveningOf as spEveningOf } from
 import { breakFlight, patrolInSlot } from '../../core/harbor-heli.js';
 import { knob } from '../../core/harbor-schedule.js';
 import { rngFrom, hashString } from '../../core/rng.js';
-import { tierVal, budgetDpr } from '../../core/harbor-tiers.js';
+import { tierVal, budgetDpr, weakDevice, weakDpr } from '../../core/harbor-tiers.js';
 import { LIVE_ROOMS } from '../../core/harbor-moments.js';
 import { SLOT_MS } from '../../core/harbor-events.js';
 import { paletteFor } from '../../core/palette.js';
@@ -199,8 +199,18 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const stallOn = (() => { try { return !navigator.webdriver || new URLSearchParams(location.search).has('stallstep'); } catch { return true; } })();
   const tierMem = (() => { if (!tierMemOn) return null; try { const m = JSON.parse(localStorage.getItem(TIER_MEM) || 'null'); return m && Number.isInteger(m.t) && Date.now() - m.at < TIER_MEM_DAYS * 864e5 ? m : null; } catch { return null; } })();
   if (tierMem && tierMem.t < tier0) tier0 = Math.max(0, tierMem.t);
+  // CITY F — THE WEAK DEVICE (core/harbor-tiers.js#weakDevice — ≤ 2 cores or ≤ 4 GB, never an iPhone): the LOWEST tier before the first
+  //  bake; at that tier no bake crossfades (a straight swap) and a big screen's backing store is capped (weakDpr). Under automation only with
+  //  &weakdev=1 (a test keeps the tier it was given); a tier a test sets by hand (setTier) still wins
+  const weak = (() => { try { return (!navigator.webdriver || new URLSearchParams(location.search).has('weakdev')) && weakDevice(navigator); } catch { return false; } })();
+  if (weak) tier0 = 0;
+  // (CITY F: before the reveal nothing is on screen — a weak device's bake takes bigger slices of a frame then, so the first full picture
+  //  is ready sooner on one core; after the reveal the tier's own slices, as everywhere)
+  const WEAK_PRE_SLICE = 90;
   let tier = tier0, W = 0, H = 0, dpr = 1, HZ = 0;
   let dprTier = tier0;   // (WIN2 — THE QUALITY STEP: the canvas RESOLUTION's own tier — after the reveal a step takes the EFFECTS (tier) first, the resolution last)
+  const weakLow = () => weak && dprTier === 0 && tier === 0;   // (CITY F: the weak device at its lowest tier — no crossfade, the capped store)
+  const dprFor = (w, h) => { const want = Math.min(window.devicePixelRatio || 1, TIERS[dprTier].dpr); return weakLow() ? weakDpr(w, h, want) : budgetDpr(w, h, want, dprTier); };
   let cam = null, L = null, skyline = null, nearRoof = null, vignette = null, glow = null, camSig = '';
   const skyCv = document.createElement('canvas');
   const skyMix = { cv: document.createElement('canvas'), sky: null, ver: -1, v: -1 };     // (the sky + the stars: FILL)
@@ -276,6 +286,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // holidays > party > legendary > rare > routine; previews bypass it
   const director = createDirector();
   const sky = createSkyFx({ games, clock, qp, dim: (id, o) => signDim.set(id, o), allow: (id, kind) => director.may(id, kind) });   // (6b: sky messages dim the sign — the hook below)
+  const skyAfterReveal = () => sky.afterReveal();   // (CITY F: tryReveal's own `sky` is the clouds' gate — this reaches the manager)
   sky.setTier(tier);
   // PART 6b — THE LEGENDARY SKY (screens/harbor/legends.js: the UFO abduction, the TR-3B + its jet chase) — LAZILY loaded: only on a
   // legendary night (core/harbor-legend.js#legendNight, a minute ahead), a preview (&force=ufo / tr3b) or the API (harbor().legend)
@@ -712,7 +723,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     log: w => LOADLOG.add('radio', w),
   });
 
-  // ------------------------------------------------------------------ the camera + the layout + the bake plan
+  // ---- the camera + the layout + the bake plan
   function rects() {
     const tr = S.textRects || null;
     const tag = tr && tr.tag && tr.tag.h > 0 ? tr.tag : null;
@@ -730,7 +741,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     unpinResize();   // (DESKTOP: a held resize frame lets go here, the same frame the new layout draws)
     const r = canvas.getBoundingClientRect(), was = W ? `${Math.round(W)}×${Math.round(H)}@${dpr}` : '';
     W = Math.max(320, r.width); H = Math.max(320, r.height);
-    dpr = budgetDpr(W, H, Math.min(window.devicePixelRatio || 1, TIERS[dprTier].dpr), dprTier);   // (DESKTOP: under THE PIXEL BUDGET — a phone never reaches it)
+    dpr = dprFor(W, H);   // (DESKTOP: under THE PIXEL BUDGET — a phone never reaches it; CITY F: a weak device's lowest tier, weakDpr)
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     { const now = `${Math.round(W)}×${Math.round(H)}@${dpr}`; if (now !== was) LOADLOG.add('canvas', `${was || 'none'} → ${now} (${why})`); }
     layout(why);
@@ -1399,7 +1410,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     crowdMemo = { key, v };
     return v;
   }
-  // ---------------------------------------------------------------- SKY-A — THE BLACKBIRD's TRIGGERS + HEIGHTS (core/harbor-blackbird.js)
+  // ---- SKY-A — THE BLACKBIRD's TRIGGERS + HEIGHTS (core/harbor-blackbird.js)
   // the strip ABOVE the lit sign, under the corner buttons (≥ 28 pt — else, a short screen, the open sky under the tagline); in the
   // TR-3B's chase ACROSS the dark sign (its middle) while the drain holds it
   let bbSoloAt = 0, bbChaseKey = '', bbPreKey = '', bbSoloKey = '', bbWatchAt = 0, bbWatchPend = 0, bbForcedAt = -1e9, bbForcedN = 0, bbCbKey = '', bbCb = 0;
@@ -1460,7 +1471,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (S.onFlash) S.onFlash({ near: 0.12, boom: true });
     } })) fastUntil = Math.max(fastUntil, performance.now() + 300);
   }
-  // ---------------------------------------------------------------- THE MODELS PASS — THE MOTHMAN (core/harbor-mothman.js: his nights, the
+  // ---- THE MODELS PASS — THE MOTHMAN (core/harbor-mothman.js: his nights, the
   // swap's timing; screens/harbor/mothman.js: the two baked models + the eyes). The previews: &force=mothman (perched now), mothman-arrive
   // (the glide in → the stutter → perched), mothman-leave (the stutter → the glide away); &force=no-mothman keeps him away. Never with a
   // legendary running; in rain / snow / fog / a storm he fades (the weather passes in front of him); reduced motion: perched or not, no glide.
@@ -1499,7 +1510,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     });
     if (on && st && st.model === 'glide') fastUntil = Math.max(fastUntil, performance.now() + 300);
   }
-  // ---------------------------------------------------------------- THE TR-3B CASTS NO LIGHT ON THE CITY (ATM-A — the owner's MODELS review,
+  // ---- THE TR-3B CASTS NO LIGHT ON THE CITY (ATM-A — the owner's MODELS review,
   // Oct 31: "no reflected light on the city at all" — SUPERSEDES SKY-A's "its lights light the world" + SKY-B's "keep the white + red on the
   // tower tops"). The glow on the drained rooftops + its pools on the harbor are gone; the craft's OWN lights (the corners, the hub, the red
   // orb — glowing + blinking on the craft, legends.js) stay; the drained city stays dark.
@@ -1747,7 +1758,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
 
   let lastDt = 16.7, pulseQ, roPk = 0, roPulse = 0, roPkAt = 0;
 
-  // ------------------------------------------------------------------ the frame
+  // ---- the frame
   let showcaseQ;   // (SCHED: the dial's last value applied — undefined → the first frame applies it)
   let snapWant = null;   // (PROGRESSION B: the polaroid's capture, run after the next drawn frame)
   let devDpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
@@ -1946,8 +1957,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the first bake: nothing but the sky draws yet, so it may take a bigger slice of the frame — the city and its windows are
     // ready early in the title's power-on wave)
     mk9('bakes');
-    if (baker.pump(shownAt < 0 ? Math.max(22, TIERS[tier].bakeMs * 3 + 2) : holdOn ? TIERS[tier].bakeMs * 3 + 2 : TIERS[tier].bakeMs)) {
-      if (shownAt < 0 || holdOn) baker.settle(); else fadeFrom = now;   // (before the reveal nothing shows: a bake swaps in at once, no crossfade; THE LOAD FIX: nor under a held picture)
+    if (baker.pump(shownAt < 0 ? Math.max(weak ? WEAK_PRE_SLICE : 22, TIERS[tier].bakeMs * 3 + 2) : holdOn ? TIERS[tier].bakeMs * 3 + 2 : TIERS[tier].bakeMs)) {
+      if (shownAt < 0 || holdOn || weakLow()) baker.settle(); else fadeFrom = now;   // (before the reveal nothing shows: a bake swaps in at once, no crossfade; THE LOAD FIX: nor under a held picture; CITY F: nor on a weak device's lowest tier)
       bakeCamPrev = bakeCamShown; bakeCamShown = camOfBake.get(baker.key) || null;   // (THE LOAD FIX: the camera on screen — the probe)
       liveTones = bakeTones; liveTW = bakeTW; shownKey = baker.key;
       if (DEBUG) console.info('[harbor] baked', baker.key, `${baker.busyMs.toFixed(1)} ms in total`, baker.mem());
@@ -1955,8 +1966,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the lit windows bake behind it (never in the same frame as a facade step: the frame's budget is shared); a new light key
     // (the timeline's next step, a re-layout) starts at once, never during the lit layer's own crossfade
     if (L && !litBaker.pending && litFadeFrom < 0 && lightKey() !== litBaker.key && !waitRects()) rebakeLights();
-    if ((!baker.pending || litBaker.bakes === 0) && litBaker.pump(shownAt < 0 ? Math.max(12, TIERS[tier].bakeMs * 2) : TIERS[tier].bakeMs * (litBaker.bakes === 0 || holdOn ? 2 : 1))) {
-      if (litBaker.bakes > 1 && shownAt >= 0 && !holdOn) litFadeFrom = now; else litBaker.settle();
+    if ((!baker.pending || litBaker.bakes === 0) && litBaker.pump(shownAt < 0 ? Math.max(weak ? WEAK_PRE_SLICE / 2 : 12, TIERS[tier].bakeMs * 2) : TIERS[tier].bakeMs * (litBaker.bakes === 0 || holdOn ? 2 : 1))) {
+      if (litBaker.bakes > 1 && shownAt >= 0 && !holdOn && !weakLow()) litFadeFrom = now; else litBaker.settle();
       lights.swap(litMeta.far, litMeta.near);
     }
     darkPump(TIERS[tier].bakeMs);
@@ -2937,7 +2948,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       resizeT = 0;
       if (destroyed) return;
       const hostE = canvas.parentElement, r = hostE && canvas.style.width ? { width: hostE.clientWidth, height: hostE.clientHeight } : canvas.getBoundingClientRect();
-      if (Math.abs(Math.max(320, r.width) - W) < 0.5 && Math.abs(Math.max(320, r.height) - H) < 0.5 && budgetDpr(Math.max(320, r.width), Math.max(320, r.height), Math.min(window.devicePixelRatio || 1, TIERS[dprTier].dpr), dprTier) === dpr) { LOADLOG.add('note', 'the resize changed nothing the city uses: kept'); return; }
+      if (Math.abs(Math.max(320, r.width) - W) < 0.5 && Math.abs(Math.max(320, r.height) - H) < 0.5 && dprFor(Math.max(320, r.width), Math.max(320, r.height)) === dpr) { LOADLOG.add('note', 'the resize changed nothing the city uses: kept'); return; }
       fastUntil = Math.max(fastUntil, performance.now() + 1500);
       if (running) wantBuild = 'a resize'; else { measure(); build('a resize'); }
     }, inLoad(now) && !big ? 400 : 180);
@@ -2998,6 +3009,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     LOADLOG.reveal(revealWhy, `t${tier} dpr ${dpr} · ${Math.round(W)}×${Math.round(H)} · wx ${LK.wxKind || 'seeded'} (${wxSourceNow()})${waits.length ? ` · still waiting for ${waits.join(', ')}` : ''}`, now);
     LOADLOG.add('note', `the gates opened (ms): ${Object.entries(gateAt).map(([k, v]) => `${k} ${v}`).join(' · ')}${Object.keys(heldBy).length ? ` · then held by ${Object.entries(heldBy).map(([k, v]) => `${k} ${v[0]}–${v[1]} (${v[2]}×)`).join(', ')}` : ''}`, null, now);
     if (S.onReveal) { try { S.onReveal({ why: revealWhy, ms: Math.round(now - t0) }); } catch { /* the title's */ } }
+    skyAfterReveal();   // (CITY F — THE BOOT TRIM: the sky's pieces left out of the boot load now)
   }
   // POLISH 5 — THE FONTS (the owner's jumping load): the title's fonts come from Google's stylesheet, loaded late (a preload swapped
   // to a stylesheet) — until it lands document.fonts holds NO face of theirs and reads 'loaded', so the old check let the reveal
@@ -3043,7 +3055,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', onFonts);
   vpLast = vpSize();
   let failedN = 0;   // (FIXES R3: every failed frame)
-  function start() { if (running || destroyed) return; running = true; last = lastRaf = startAt = performance.now(); if (!seenAt) seenAt = startAt; fastUntil = last + 1500; raf = requestAnimationFrame(frame); }
+  // (CITY F — THE WEAK DEVICE: the city's FIRST frame waits one task — its construction + its first frame ran back to back on one core, no
+  //  paint between them (a 2 s freeze on the Chromebook); a paint lands between them now)
+  let firstStart = true;
+  function start() {
+    if (running || destroyed) return; running = true; last = lastRaf = startAt = performance.now(); if (!seenAt) seenAt = startAt; fastUntil = last + 1500;
+    if (weak && firstStart) { firstStart = false; setTimeout(() => { if (running && !destroyed && !raf) { last = lastRaf = performance.now(); raf = requestAnimationFrame(frame); } }, 0); return; }
+    firstStart = false; raf = requestAnimationFrame(frame);
+  }
   function stop() { running = false; cancelAnimationFrame(raf); }
   // the title reports the sign's and the dock's real rects a frame after mount (and every 500 ms): a moved rect re-lays the city
   function maybeRelayout() {
@@ -3213,7 +3232,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     tri: () => { const C = triClock(clock.now() / 1000, triKnobs(), triForce()); return { key: tri.key || null, faces: tri.faces ? tri.faces.slice() : null, drop: !!tri.dr, rect: triRect(), now: clock.now() / 1000, dur: triKnobs().turn, heldOut: triHeldOut, log: triLog.slice(), shown: tri.shown, clock: C.face, n: C.n, at: C.at, lastN: tri.lastN, ready: !!tri.jw, warmed: tri.warmed, fails: tri.fails, turn: tri.turn ? { id: tri.turn.id, game: tri.turn.game, u: triU() } : null, board: neon.boardGame(BOARD_ID), turns: triTurns }; },
     boardCrisp: () => { const fr = neon.fresh(), rb = (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak'); return { rev: fr ? fr.rev : 0, freshDone, started: String(baker.key || '').slice(-24), shown: String(shownKey || '').slice(-24), revStarted: revOfBake.get(baker.key) ?? null, revShown: revOfBake.get(shownKey) ?? null, pending: baker.pending, fading: fadeFrom >= 0, content: rb && rb.content ? `${rb.content.title || ''}|${rb.content.sub || ''}|${rb.content.lines ? rb.content.lines.join('/') : ''}` : null, game: neon.boardGame(BOARD_ID), crisp: crisp.debug().items.filter(i => /^roofboard/.test(i.id)).map(i => `${i.id}:${i.op}`) }; },
     boardXf: () => ({ n: bxf.n, a: +boardXfA().toFixed(3), ms: bxf.ms, layer: crisp.on ? 'crisp' : 'city', rev: (neon.fresh() || {}).rev || 0, show: bxf.shown }),   // (CITY FIXES: + the board's rebuild count — one swap per real change)   // (LOBBY 2.0 A: the billboard's cross-fade — swaps faded, the old copy's alpha now)
-    tiering: () => ({ tier, dprTier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), why: stepWhy.slice(), wantStep, manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())), grace: TIER_GRACE, heavy: heavyNow(performance.now()), judge: lastJudge, slowN, sinceReveal: shownAt < 0 ? null : +((performance.now() - shownAt) / 1000).toFixed(1) }),
+    tiering: () => ({ tier, dprTier, weak, dpr, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), why: stepWhy.slice(), wantStep, manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())), grace: TIER_GRACE, heavy: heavyNow(performance.now()), judge: lastJudge, slowN, sinceReveal: shownAt < 0 ? null : +((performance.now() - shownAt) / 1000).toFixed(1) }),
     cost: () => costs.slice(),
     streetParty: () => { const sp = people && people.party ? people.party() : null; return sp ? { brk: sp.brk ? { id: sp.brk.id, kind: sp.brk.kind, s0: sp.brk.s0, s1: sp.brk.s1, song: sp.brk.song || null } : null, k: sp.k || 0, crowd: sp.crowd || 0 } : null; },
     party: () => ({ on: PT.on, ramp: PT.ramp, energy: PT.energy, name: PT.name, phase: PT.phase, breath: PT.breath, punch: PT.punch || 0, safe: PT.safe || null, safeK: PT.safeK == null ? null : +PT.safeK.toFixed(3), pulse: PT.pulse || pulseGain(null), pulsePeak: +roPulse.toFixed(3),beatU: PT.beatU, beatT: PT.beatT, bpm: hbeat.bpm, rate: PT.rate, locked: +hbeat.locked.toFixed(2), src: hbeat.src, bar: PT.bar, beatIdx: PT.beatIdx, beatsF: +hbeat.beats.toFixed(3), songPos: PT.songPos == null ? null : +PT.songPos.toFixed(4), level: +hbeat.level.toFixed(2), live: hbeat.live, hits: { ...hbeat.hits }, swell: PT.swell, wave: PT.wave, plan: PT.plan ? { ...PT.plan } : null, finale: fw.busy(), sparks: fw.count(), bursts: PT.bursts, beams: +beamK.toFixed(3), show: { ...neon.show() } }),

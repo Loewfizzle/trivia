@@ -16,7 +16,7 @@ import { ghostAdGame } from './harbor-speakeasy.js';
 
 export { flattenPath, tubeLight } from './tube-path.js';
 
-// ------------------------------------------------------------------ THE PALETTE + SCHEMES
+// ---- THE PALETTE + SCHEMES
 /** the neon colours (sRGB) */
 export const NEON = {
   blue: [46, 123, 255], cyan: [46, 230, 255], ice: [214, 240, 255],          // BASE ~60 %
@@ -56,7 +56,7 @@ export const roleFamily = r => (r[0] === 'b' || r[0] === 't' || r[0] === 'w' ? '
 /** the WARM roles (pink, magenta, amber, red, gold): the near city leans warm, the far city cool (depth) */
 export const WARM_ROLES = new Set(['h0', 'm0', 'a0', 'a1', 'a3']);
 
-// ------------------------------------------------------------------ THE OUTLINES
+// ---- THE OUTLINES
 // Each building gets at most two roles: its main colour and an accent (the crown); neighbours share a family (colour by
 // cluster), the heroes carry the heat, the far bands only a few faint threads.
 const ROLES = {
@@ -585,7 +585,7 @@ function crownPath(t, tr) {
   return { path: path && dedupe(path), extras };
 }
 
-// ------------------------------------------------------------------ FP2 — NEON BY DEPTH
+// ---- FP2 — NEON BY DEPTH
 // The owner (party night, the right side): "overlapping buildings share the same pink outline, so the BLUFF / DOUBLE AGENT towers
 // and the buildings in front read as one blob". THE RULE: where a building's tubes meet the tubes of a building at another depth
 // (a front roofline under a back tower's edge, a back ledge ending at a front building's side, two edges running side by side),
@@ -735,7 +735,7 @@ export function depthClashes(contacts, scheme = 'city') {
   return contacts.filter(c => roleClash(c.fl.role, c.bl.role, scheme)).map(c => ({ ...c, fr: c.fl.role, br: c.bl.role }));
 }
 
-// ------------------------------------------------------------------ THE SIGNS' SPOTS
+// ---- THE SIGNS' SPOTS
 // Designed on the reference phone (402×874, pt: x across, y down the screen) at a depth z — each spot is in front of the
 // building it hangs on (its host). Converted to world units once with the reference camera, so every upright phone shows the
 // same signs scaled to its width (like the skyline) and a wide screen keeps them in its centre group. Checked against the
@@ -920,7 +920,7 @@ export function fitsSpot(name, sp) {
 }
 const dayNo = key => { const m = /^(\d+)-(\d+)-(\d+)$/.exec(key || ''); return m ? Math.round(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000) : null; };
 
-// ------------------------------------------------------------------ CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY (the owner, Nov 14)
+// ---- CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY (the owner, Nov 14)
 /** JAYWALK's sign row until its own GAMES row exists (the owner, Nov 15: JAYWALK on the signs NOW, as if released — the billboard says COMING SOON) */
 export const JAYWALK_SIGN = Object.freeze({ id: 'jaywalk', name: 'JAYWALK', playable: true, signPreview: true });
 /** the games a city sign may name: the playable ones (config.js GAMES[].playable — never a frozen game, never a daily) + JAYWALK; a game whose

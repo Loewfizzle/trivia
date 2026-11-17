@@ -58,7 +58,7 @@ export function createSceneParty(C) {
     return { levels, off, dim: dim && ramp > 0.02, ramp };
   }
 
-  // ------------------------------------------------------------------ RAINBOWS + PARTY NIGHTS (the rules: core/; Part 11 builds the party's look)
+  // ---- RAINBOWS + PARTY NIGHTS (the rules: core/; Part 11 builds the party's look)
   const BOW0 = { day: 0, moon: 0, neon: 0, secondary: false, strength: 1 };
   function bowTarget(t) {
     const f = C.clock.force, now = C.clock.now();

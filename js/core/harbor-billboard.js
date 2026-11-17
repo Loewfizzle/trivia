@@ -46,7 +46,7 @@ export function hintsAt(lc, o = {}) {
   }
   return out.sort((a, b) => b.prio - a.prio);
 }
-// ------------------------------------------------------------------ CITY CONTROLS A — THE OWNER's MESSAGES (the BILLBOARD jack)
+// ---- CITY CONTROLS A — THE OWNER's MESSAGES (the BILLBOARD jack)
 // radio/board on the server → GET /api/admin?live=1 → setOwnerMessages: { id, lines: [a, b], local: { h, mi } | null, repeat: { dows } | null,
 // at, until (a NOW message: abs ms), made } — a message takes the whole board for `show` s every `every` s inside its window (`len` min from
 // its start; AT A TIME / a REPEAT: in each viewer's OWN local time); the owner's words win over the automatic hints

@@ -115,7 +115,7 @@ export function bannerAt(meta, players, night = null) {
   return b.at + walkOutMs(Object.keys(players || {}).length) + BANNER_GAP_MS;
 }
 
-// ------------------------------------------------------------------ THE WINNER's BANNER PLANE — its words (the owner, Nov 4 7:56 am)
+// ---- THE WINNER's BANNER PLANE — its words (the owner, Nov 4 7:56 am)
 // SHORT so it reads as it passes (each panel ≤ 24 letters — the banner's own limit, core/harbor-sky.js#bannerPanels — never a cut name: a
 // template that would cut one falls back to a form that puts the name on its own panel). Ten forms for one winner, taken IN TURN by the
 // night's game count (the room's own night/ — the same on every phone): ten games a night never repeat a line. TIES: "SPLIT THE POT" /
@@ -167,7 +167,7 @@ export function champLines(names, kind = 'last-call') {
   return pick([["LAST NIGHT'S CHAMPION:", N], ["LAST NIGHT'S", 'CHAMPION:', N]], ["LAST NIGHT'S", 'CHAMPION:', ns[0]]);
 }
 
-// ------------------------------------------------------------------ THE REMATCH VOTE (the owner's approved mock, Nov 4 8:05 am)
+// ---- THE REMATCH VOTE (the owner's approved mock, Nov 4 8:05 am)
 /** the ring's state after a match → { on (the REMATCH ring is up), m (the match it would replay), g, voters: [uid] (guests who voted, in the
  *  room's order), guests: [uid] (everyone but the host, in the room's order), total (everyone in the room) }. Up once the banner flies
  *  (everyone back), while meta/back says rm (the host hasn't picked another game) and the room is in the lobby; a vote counts only for THIS

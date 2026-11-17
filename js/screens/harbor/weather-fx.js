@@ -20,7 +20,7 @@ const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 const rgb = (c, a = 1) => `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${a})`;
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
-// ---------------------------------------------------------------- value noise + fbm (seeded; optionally periodic in x)
+// ---- value noise + fbm (seeded; optionally periodic in x)
 function makeNoise(seed) {
   const R = rng(seed), P = new Uint8Array(512), G = new Float32Array(256);
   for (let i = 0; i < 256; i++) { P[i] = i; G[i] = R(); }
@@ -53,7 +53,7 @@ export function createWeatherFx({ onFlash = null } = {}) {
   const glowCache = new Map();
   const glow = (col) => { const k = col.join(','); let g = glowCache.get(k); if (!g) { g = mk(64, 64); const x = safeCtx(g); const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, rgb(col, 1)); gr.addColorStop(0.4, rgb(col, 0.35)); gr.addColorStop(1, rgb(col, 0)); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); glowCache.set(k, g); } return g; };
 
-  // ---------------------------------------------------------------- shapes: density + light marched from above and below
+  // ---- shapes: density + light marched from above and below
   function* computeShape(kind, w, h, seed) {
     const RES = 0.55;                                    // pixels per css px: soft is right for clouds, and cheap
     const cw = Math.max(8, Math.round(w * RES)), ch = Math.max(8, Math.round(h * RES));
@@ -182,7 +182,7 @@ export function createWeatherFx({ onFlash = null } = {}) {
     deck.sort((a, b) => a.z - b.z);
   }
 
-  // ---------------------------------------------------------------- lightning
+  // ---- lightning
   function newStrike() {
     const near = Math.random() < 0.38;
     const pulses = [];
@@ -236,7 +236,7 @@ export function createWeatherFx({ onFlash = null } = {}) {
     return f;
   }
 
-  // ---------------------------------------------------------------- fog: a tileable bank (noise, soft top and bottom)
+  // ---- fog: a tileable bank (noise, soft top and bottom)
   function computeFog() {
     const cw = 256, ch = 64, a = new Float32Array(cw * ch);
     for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {

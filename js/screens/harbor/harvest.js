@@ -153,7 +153,7 @@ export function mum(x, sx, sy, d, cols, Lt, r) {
     x.fillStyle = rgb(lit(Lt, mix(cols[1], cols[0], clamp01(up + (r() - 0.5) * 0.3)), [0, 0.7, -0.7], 0.05)); x.beginPath(); x.arc(fx, fy, Math.max(0.45, R * 0.12), 0, TAU); x.fill(); }
 }
 
-// ------------------------------------------------------------------ C4c — THE 3D MODEL TEST (the owner's Oct 28 note; `&prop=model`)
+// ---- C4c — THE 3D MODEL TEST (the owner's Oct 28 note; `&prop=model`)
 // Grok's test model (a Grok Imagine reference → Tencent Hunyuan3D 2.1, AI-generated — art/models/harvest/credits.txt) baked OFFLINE by
 // scripts/bake-model.mjs harvest at the city camera's real view of the compass into assets/city/harvest/{day,night}.webp (+ harvest.json:
 // its foot in the sprite, its pt per unit at the bake's depth). LAZY: fetched only once the switch is on (&prop=model or the HOLIDAYS row
@@ -282,7 +282,7 @@ export function createHarvest(deps) {
   return { draw, lastSprite: () => last, debug: () => ({ ...stat, sprites: cache.size, modelAsked: harvestModelAsked(), modelIn: !!mModel, modelState: harvestModelState() }), destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); if (mCv) mCv.width = mCv.height = 0; mCv = null; last = null; } };
 }
 
-// ------------------------------------------------------------------ 11a-2 — THE NOVEMBER SPOT DRESSINGS (core/harbor-spots.js's spots)
+// ---- 11a-2 — THE NOVEMBER SPOT DRESSINGS (core/harbor-spots.js's spots)
 /** a corn-stalk bundle tied round a post (x, z its foot; h tall; the twine at 0.42 h) — the stalks flaring above the tie to their tassels,
  *  leaf blades arching out; drawn round the post (the back half darker) */
 function bundle(x, P, Lt, r, h, s, rad = 0.36) {

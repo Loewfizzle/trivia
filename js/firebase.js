@@ -266,7 +266,7 @@ if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (!timeSyncAt || Date.now() - timeSyncAt > TIME_BACK_MS)) syncTimeNoSocket('back on screen'); });
 }
 
-// ---------------------------------------------------------------- CONN — want / release (the parked database)
+// ---- CONN — want / release (the parked database)
 const q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
 // (?emu only: the E2E shortens the waits — tests/integration/e2e-conn.mjs)
 // (kept for the tab like ?emu: a room's URL rewrite + a refresh drop the query)

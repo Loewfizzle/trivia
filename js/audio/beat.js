@@ -179,7 +179,7 @@ export function songInfo() {
   return { id: np.id, at: np.at, dur: s ? s.dur : 0, bpm: g ? g.bpm : null, grid: !g ? 'none' : g.trusted === false ? 'NOT TRUSTED' : 'trusted', lock: g && g.lock != null ? g.lock : null };
 }
 
-// ---------------------------------------------------------------- THE SOUND: the low end, off the music bus
+// ---- THE SOUND: the low end, off the music bus
 // music bus → a low-pass (150 Hz: the kick + the bass) → an AnalyserNode → a silent gain → the destination (WebKit only runs
 // nodes that reach the destination). Built the first time a party asks; the RMS of the analyser's last window a frame.
 let an = null;

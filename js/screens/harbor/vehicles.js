@@ -185,7 +185,7 @@ function drawFarDoorTop(c, M, K, sp, k01, bob) {
   c.restore();
 }
 
-// ------------------------------------------------------------------ THE BODY (baked)
+// ---- THE BODY (baked)
 /** SP6 — THE LETTERING, BIG ENOUGH TO READ ON AN iPHONE (the owner: "POLICE, TAXI, BAKERY — big enough to read"): the word as big as
  *  its panel allows — box (cx, cy, w, h in px), two-word names stacked on two lines when that reads bigger, letters squeezed to 72 % at
  *  most before the size drops, a dark OUTLINE round them (o.ol) so they hold by night; o.mir: drawn mirrored (draw() flips the sprite) */
@@ -549,7 +549,7 @@ function fender(x, X, Y, s, K, u, R, front, M) {
   x.fillStyle = sg; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, ri, -3.0, -0.14, false); x.closePath(); x.fill();
 }
 
-// ------------------------------------------------------------------ THE WHEELS (baked: the still tyre + the turning part)
+// ---- THE WHEELS (baked: the still tyre + the turning part)
 /** a wheel at s px a unit: kind 'wood' (12 artillery spokes) | 'wire' (laced chrome spokes, a big hub cap) → { tyre, spin, N } */
 function wheelSprite(id, s, K) {
   const M = MODELS[id] || MODELS.modelA, R = M.r * s, N = Math.ceil(R * 2 + 4);
@@ -585,7 +585,7 @@ function wheelSprite(id, s, K) {
   return { tyre, spin, N };
 }
 
-// ------------------------------------------------------------------ THE KIT (a cache of sprites + one call that draws a vehicle)
+// ---- THE KIT (a cache of sprites + one call that draws a vehicle)
 let glowW = null, glowR = null, glowAny = new Map();
 // (C4a: one scratch canvas for a lamp-lit body's gradient — grown, never shrunk; the cars are drawn one at a time)
 let litSc = null;

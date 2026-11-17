@@ -34,7 +34,7 @@ export function createRainbow({ harbor = false } = {}) {
   const pw = { on: false, at: 0, offAt: -99, level: 0, tubes: [0, 0, 0, 0, 0, 0], seed: 1 };
   let last = null, edges = null, neonAlpha = 0;
 
-  // ---------------------------------------------------------------- geometry (from the sign's text and the skyline)
+  // ---- geometry (from the sign's text and the skyline)
   function layout(fs) {
     const tr = fs.textRects;
     if (!tr || !fs.skyline) return false;
@@ -58,7 +58,7 @@ export function createRainbow({ harbor = false } = {}) {
   }
   const bakeScale = () => Math.min(dpr, 1.25);
 
-  // ---------------------------------------------------------------- the soft bows (day + moon)
+  // ---- the soft bows (day + moon)
   function ring(x, g, rIn, rOut, stops) {
     const gr = x.createRadialGradient(g.cx, g.cy, Math.max(0, rIn), g.cx, g.cy, rOut);
     for (const [u, col, a] of stops) gr.addColorStop(clamp01(u), rgba(col, a));
@@ -114,7 +114,7 @@ export function createRainbow({ harbor = false } = {}) {
     return cv;
   }
 
-  // ---------------------------------------------------------------- the neon bow
+  // ---- the neon bow
   function bakeNeon(withTubes) {
     const g = ngeo, s = Math.min(dpr, 2);
     const n = TUBES.length, sp = g.band / n, tw = Math.max(2.2, sp * 0.5);
@@ -177,7 +177,7 @@ export function createRainbow({ harbor = false } = {}) {
     return 1;
   }
 
-  // ---------------------------------------------------------------- per frame
+  // ---- per frame
   /** target: { day, moon, neon, secondary, strength } (0..1 each, the envelope included). o: { t (s), dt (ms), motion, breath } */
   function update(fs, target, o) {
     if (!layout(fs)) { last = null; return; }

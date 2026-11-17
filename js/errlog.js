@@ -73,7 +73,7 @@ export function normalizeError(input, origin) {
 /** PURE: the key two reports of the same error share (one report per page load). */
 export const errorKey = e => `${e.m}|${e.s}|${e.l}`;
 
-// ---------------------------------------------------------------- the page side
+// ---- the page side
 let where = () => '';
 let page = 'app';
 const seen = new Set();

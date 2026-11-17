@@ -169,7 +169,7 @@ export function areaOf(lat, lon) {
   return { lat: r(la), lon: r(lo), key: `a${r(la).toFixed(1)}_${r(lo).toFixed(1)}`.replace(/\./g, 'p').replace(/-/g, 'm') };
 }
 
-// ------------------------------------------------------------------ SPACE WEATHER (CITY 2.0, Part 6a: the aurora's storm night)
+// ---- SPACE WEATHER (CITY 2.0, Part 6a: the aurora's storm night)
 /** NOAA SWPC's planetary K-index forecast (products/noaa-planetary-k-index-forecast.json — objects { time_tag, kp, observed },
  *  or the older rows [time_tag, kp, observed, scale] under a header) → [[ms (the 3-hour block's start, UTC), kp], …] from 12 h
  *  ago to 36 h ahead. [] when it can't be read. */

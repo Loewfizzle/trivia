@@ -23,7 +23,7 @@ const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t
 const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const rad = d => d * Math.PI / 180;
 
-// ------------------------------------------------------------------ THE KINDS (the real weather)
+// ---- THE KINDS (the real weather)
 /**
  * The sky's recipe now: { cover, cumulus, strato, alto, cirrus, veil (cirrostratus), deck, scud (shares 0..1), tall (0 humilis …
  * 1 congestus),
@@ -58,7 +58,7 @@ export function cloudMix(L, seed = '') {
   return { cover: c, cumulus, strato, alto, cirrus, veil, deck, scud, tall, layers: !!lay };
 }
 
-// ------------------------------------------------------------------ M3 — THE SMALL CLOUDS
+// ---- M3 — THE SMALL CLOUDS
 /** below this a cumulus isn't drawn at all (pt wide: the old "little puff" class) */
 export const SMALL_DROP = 50;
 /** at most this many small ones in a sky (a phone's width; more on a wider screen): fewer and better */
@@ -80,7 +80,7 @@ function smallForm(d, R, room = Infinity) {
   return d.form;
 }
 
-// ------------------------------------------------------------------ THE LAYOUT (perspective on a cloud field)
+// ---- THE LAYOUT (perspective on a cloud field)
 /** how near a screen height is on the cloud field: 1 overhead (the top of the sky) … → 0 at the horizon */
 export const nearAt = (y, box) => clamp((box.hz - y) / Math.max(1, box.hz - box.top), 0.03, 1);
 const lognorm = (R, s) => { const u = Math.max(1e-6, R()), v = R(); return Math.exp(s * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)); };
@@ -230,7 +230,7 @@ export function cloudDrift() {
   return { dist: (tSec, wind, windX) => ph.at(tSec, driftSpeed(wind) * windX), reset: () => ph.reset() };
 }
 
-// ------------------------------------------------------------------ THE LIGHT FOR THE HOUR
+// ---- THE LIGHT FOR THE HOUR
 // sunlight on the clouds by the sun's elevation (they are high: they keep its light a little after the street loses it) —
 // white at midday, gold → orange low, coral + pink just after sunset, a dusky mauve as it goes
 const SUNC = [[-9, [96, 74, 146]], [-6.5, [196, 104, 168]], [-4, [255, 112, 128]], [-1.8, [255, 128, 96]], [0.8, [255, 156, 92]],

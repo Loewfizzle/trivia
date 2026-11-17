@@ -35,7 +35,7 @@ export function registerAchievements(rows) {
 /** Achievements the player HOLDS, newest first (the profile): ac = pstats.ac { id: at }. */
 export const heldOf = ac => Object.keys(ac || {}).filter(id => ACH[id]).sort((a, b) => ac[b] - ac[a]).map(id => ACH[id]);
 
-// ------------------------------------------------------------------ the counters
+// ---- the counters
 const MAX_FRIENDS = 30;
 /**
  * A counted match into the counters. x = { gid, rank, win, n, night (the streak day), hosted, roomKey, party (a party night), hourET,
@@ -92,7 +92,7 @@ export function noteEvent(pa0, ev) {
   }
 }
 
-// ------------------------------------------------------------------ THE AWARD ENGINE
+// ---- THE AWARD ENGINE
 /**
  * Every achievement the stats now satisfy that the player doesn't hold yet → held (ac) + its item granted (it). FOUNDER: while the window
  * is open, any player with a counted match (or daily) gets FOUNDING MEMBER. Mutates `next`; → { ach: [ids], items: [ids] } (only new ones).

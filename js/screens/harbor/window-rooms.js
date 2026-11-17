@@ -23,7 +23,7 @@ export function glassOf(w) {
   return { a, b, r0, r1, g0, g1, h0, h1, mid: h0 + (h1 - h0) * 0.46, cw: g1 - g0, ch: h1 - h0, cx: (g0 + g1) / 2 };
 }
 
-// ------------------------------------------------------------------ WIN — 2.5D ROOMS (core/harbor-rooms.js: the box, PURE)
+// ---- WIN — 2.5D ROOMS (core/harbor-rooms.js: the box, PURE)
 // (the owner: "rooms felt a little flat, let's try 2.5D") Every room is a BOX IN PERSPECTIVE behind its glass: the back wall shrunk toward
 // the room's vanishing point (the scene's, pulled toward the pane), a FLOOR + a LEFT-WALL sliver (the camera is right of the building, its
 // eye over the roof — the right wall + the ceiling never show), the lamp's light FALLING OFF (a pool on the floor, a hot spot on the back
@@ -90,7 +90,7 @@ export function solveArm(side, dx, dy, L1, L2) {
 /** a figure's contact shadow on the floor (drawn inside its depth frame: y = the floor line there) */
 export function floorShadow(c, x, y, s, a = 0.3) { c.save(); c.fillStyle = `rgba(10,6,12,${a.toFixed(3)})`; c.beginPath(); c.ellipse(x, y, 0.24 * s, 0.055 * s, 0, 0, TAU); c.fill(); c.restore(); }
 
-// ------------------------------------------------------------------ THE ROOMS' STILL LOOKS (cached in the lit canvas)
+// ---- THE ROOMS' STILL LOOKS (cached in the lit canvas)
 /** a room's still look at night. SP2 — LESS INSIDE (the owner: the rooms read as busy fragments at ~25 pt): each room is a warm wall,
  *  ONE light source and one or two strong shapes; furniture dim + simple; curtains only framing the edges. (7b: the people are live.) */
 export function paintRoom(x, w, o = {}) {
@@ -221,7 +221,7 @@ export function paintLampRoom(x, G, lamp = 1, B = null) {
 }
 
 
-// ------------------------------------------------------------------ C4a — THE BARBERSHOP AS A ROOM (review-4 §C1 1a)
+// ---- C4a — THE BARBERSHOP AS A ROOM (review-4 §C1 1a)
 // (the owner, Oct 28: "that light has always been off — like you're not using real light": a flat back wall, a veil, a pale oval blob +
 // an additive halo + the awning's dodge band over the glass.) Now the shop is a BOX like the rooms upstairs: the MIRROR WALL across the
 // back (one panel of it the hidden door to the bar), the black + white tiles on its floor, ONE barber chair mid-room as a bold

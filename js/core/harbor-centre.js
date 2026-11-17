@@ -62,7 +62,7 @@ export function wearAt(dx, dz, R) {
   return clamp((0.75 * across + 0.45 * back) * (0.55 + 0.45 * edge), 0, 1);
 }
 
-// ------------------------------------------------------------------ THE RIG (the event lighting)
+// ---- THE RIG (the event lighting)
 /** the floor spots: on the diagonals (between the star's points), in the soldier course's middle; their brass ring + dark lens
  *  (world units); the default warm white; how strong a spot's paving spot + halo are at k 1 */
 export const RIG = Object.freeze({

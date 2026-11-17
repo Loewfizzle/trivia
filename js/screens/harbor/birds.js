@@ -41,7 +41,7 @@ export function createBirds() {
   let roofSrc = null, roofS = null;                       // the smoothed roofline (re-made when the layout's changes)
   const GP = { along: 0, across: 0, flap: 0 }, BP = { x: 0, y: 0, ax: 0, flap: 0 };   // scratch (no allocation per bird)
 
-  // ---------------------------------------------------------------- the hour's inks
+  // ---- the hour's inks
   function inks(L) {
     const dark = clamp01(L.w.night + L.w.late), day = clamp01(L.w.day + L.w.dawn * 0.6 + L.w.golden * 0.6), gold = clamp01(L.w.golden + L.w.dawn * 0.7);
     return {
@@ -56,7 +56,7 @@ export function createBirds() {
     };
   }
 
-  // ---------------------------------------------------------------- the silhouettes (facing +x; s = wingspan, pt)
+  // ---- the silhouettes (facing +x; s = wingspan, pt)
   // a gull: bent wings (the wrist up, the hand swept back + down), lift −1..1 (the beat), bank 0..1 (its back toward us: the mantle)
   function gull(c, x, y, s, lift, dir, bank, ink) {
     c.save(); c.translate(x, y); c.rotate(dir * bank * 0.35); c.scale(dir, 1);
@@ -170,7 +170,7 @@ export function createBirds() {
     c.restore();
   }
 
-  // ---------------------------------------------------------------- the flocks
+  // ---- the flocks
   function makeGulls(n, area) {
     const out = [];
     for (let i = 0; i < n; i++) {

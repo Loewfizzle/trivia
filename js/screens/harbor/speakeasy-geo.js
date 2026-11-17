@@ -34,7 +34,7 @@ export const VAL = 0.34;
 export const awningBulbs = aw => AWNING_LAMP.us.map(u => ({ u, y: aw.y1 - VAL - AWNING_LAMP.drop, z: aw.z + 0.05 }));
 export const SHOP_GLOW = Object.freeze({ lamp: 0.2, sconce: 0.34, landR: 1.3 });   // (SP2: tighter — a few pt; POL4: the door lamps brighter — a bigger halo + landing)
 
-// ------------------------------------------------------------------ geometry
+// ---- geometry
 /** the building on screen: the front's affine map, the side wall's perspective, the inverse for the strips */
 export function speakGeo(L) {
   const cam = L.cam, s = L.speakeasy;
@@ -46,7 +46,7 @@ export function speakGeo(L) {
   return { cam, s, K, front, side, len, dx, dz, wAt, zAt: w => s.z0 + w * dz, turned: !!s.turned };
 }
 
-// ------------------------------------------------------------------ the materials for a look
+// ---- the materials for a look
 export function mats(T) {
   const br = faces(T, 'brick', 44), gr = faces(T, 'granite', 44);
   // (FP3b — THE STONE TRIM, the owner's 8P note 8: a warm cream LIMESTONE / terracotta, never flat white — the cream faces warmed)
@@ -71,7 +71,7 @@ export function mats(T) {
   };
 }
 
-// ------------------------------------------------------------------ painting helpers (in wall units, v up)
+// ---- painting helpers (in wall units, v up)
 export function wallMap(x, ox, oy, k) { x.transform(k, 0, 0, -k, ox, oy); }
 export const R = (x, u0, v0, u1, v1, col, a = 1) => { if (col != null) x.fillStyle = typeof col === 'string' ? col : rgb(col, a); x.fillRect(u0, v0, u1 - u0, v1 - v0); };
 export function devRect(x, u0, v0, u1, v1) {

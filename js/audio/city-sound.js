@@ -32,7 +32,7 @@ function setP(p, v, c, ramp) {
   } catch { try { p.value = v; } catch { /* gone */ } }
 }
 
-// ---------------------------------------------------------------- the chain (per context)
+// ---- the chain (per context)
 let chain = null;
 function out(c) {
   if (chain && chain.c === c) return chain.in;
@@ -66,7 +66,7 @@ function panner(c, pan, into) {
   return { node: into, set() {} };
 }
 
-// ---------------------------------------------------------------- the buffers
+// ---- the buffers
 const bufs = new Map();               // file → { p: Promise<AudioBuffer|null>, mb, used, pins }
 // OfflineAudioContexts that decode at a take's rate (32 kHz; a hum with nothing above ~6 kHz says r: 16000 — half the memory);
 // false = not available here: decode on the live context (its own rate)
@@ -113,7 +113,7 @@ function trim() {
   for (const [f, e] of free) { if (mb <= ONESHOT_MB) break; bufs.delete(f); mb -= e.mb; }
 }
 
-// ---------------------------------------------------------------- one-shots
+// ---- one-shots
 const lastTake = new Map();
 /** what the city played lately (newest last; tests + the panel): { slot, f, gain, at } */
 export const cityLog = [];
@@ -208,7 +208,7 @@ export function cityReady(slot, i = 0) {
   return !!(e && e.mb > 0);
 }
 
-// ---------------------------------------------------------------- loops
+// ---- loops
 const loops = new Set();
 let pumpT = 0;
 // (FIXES R3: the leave record's 'city' + mode A's rest — through engine.js's hubs)
@@ -339,7 +339,7 @@ function fadeOut(v, at, xf) {
 // a new context (audio/engine.js rebuilt it inside a tap): every loop starts again on it, faded in
 onRebuild(() => { for (const L of loops) drop(L); setTimeout(pump, 50); });
 
-// ---------------------------------------------------------------- THE PREVIEW PANEL
+// ---- THE PREVIEW PANEL
 let preview = null;
 /** ▶ in the panel's SOUNDS: a one-shot plays once; a loop ~8 s (1 s in, 1.5 s out) — at twice its city level so it's heard
  *  over the music (the city's own level is the slot's gain). → { ok, why } */

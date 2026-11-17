@@ -20,7 +20,7 @@ import { knob } from './harbor-schedule.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const lerp = (a, b, t) => a + (b - a) * t;
 
-// ------------------------------------------------------------------ HALLOWEEN: THE PUMPKINS
+// ---- HALLOWEEN: THE PUMPKINS
 /** the pumpkins' kinds: their shape (w : h), the skin, the ribs, the stem — a real patch, not one stamp */
 export const PUMPKIN_KINDS = Object.freeze({
   classic: { w: 1, h: 0.82, skin: [232, 118, 26], dark: [150, 58, 10], ribs: 8, stem: [92, 96, 46] },
@@ -55,7 +55,7 @@ export function pumpkinSlots(L) {
   });
 }
 
-// ------------------------------------------------------------------ HALLOWEEN: THE BIG JACK-O'-LANTERNS ON THE PROMENADE (WIN add-on)
+// ---- HALLOWEEN: THE BIG JACK-O'-LANTERNS ON THE PROMENADE (WIN add-on)
 /** the straw bale a set piece may stand on (world units): w across, h tall, d deep */
 export const BALE = Object.freeze({ w: 1.8, h: 0.74, d: 1.0 });
 /** the farm delivery's three BIG jack-o'-lanterns (the owner: "readable at a glance: a big one next to the BENCH, another by a LAMP POST or
@@ -79,7 +79,7 @@ export function bigPumpkins(L) {
   return out;
 }
 
-// ------------------------------------------------------------------ 11a-2 — THE GIANT JACK-O'-LANTERN on the centre circle (the owner, Oct 26)
+// ---- 11a-2 — THE GIANT JACK-O'-LANTERN on the centre circle (the owner, Oct 26)
 /** its size (world units — a person is 2.1 tall): the body (R its radius across the ribs, Hh its half-height, yc its centre over the bed,
  *  the ribs, how deep a crease cuts, the rind's thickness), the straw bed under it (`plinth`: an ellipse w × d, h its thickness), the
  *  sprite's box (x: half its width; top + bottom on screen, in units up), e: the depth exaggeration (the props' frame). The owner (Oct 26:
@@ -109,7 +109,7 @@ export function giantDecor(L) {
   });
 }
 
-// ------------------------------------------------------------------ 11a-2 — THANKSGIVING: THE NOVEMBER SPOT DRESSINGS
+// ---- 11a-2 — THANKSGIVING: THE NOVEMBER SPOT DRESSINGS
 /** what stands on the DRESSING SPOTS through the November build-up (P: core/harbor-holiday.js#thanksgivingPieces — mums 0..4, bales, spots
  *  0..3, stalks) → [{ id, x, z (its foot), pass ('near' | 'top'), parts (screens/harbor/harvest.js#paintSpotPiece), seed, ext, shadow }]:
  *  the bench's far end a straw bale with pumpkins + gourds + a pot of mums beside it, the hydrant's mums + a squat pumpkin, CORN-STALK
@@ -146,7 +146,7 @@ export function thanksgivingSpots(L, P) {
   return out;
 }
 
-// ------------------------------------------------------------------ DAY OF THE DEAD
+// ---- DAY OF THE DEAD
 /** the marigold spots: { x, z, y, w (spread, world units), n (blooms), kind: 'pot' | 'ring' | 'clump' | 'planter', front (drawn after
  *  the front row) , half?: 'back' | 'front' (a ring round a tree: its back half behind the trunk) } */
 export function marigoldSpots(L) {
@@ -218,7 +218,7 @@ export function papelRuns(L) {
   return out;
 }
 
-// ------------------------------------------------------------------ MONARCHS (rare, by day)
+// ---- MONARCHS (rare, by day)
 /** a monarch now: by day ~3 of every 4 ten-minute slots carry one (seeded, ~22 s across: about one every 13 minutes); forced: one every 25 s from the flag */
 export const MONARCH = Object.freeze({ ...knob('holidays').dotd.monarch });
 export function monarchSlot(ms, o = {}) {
@@ -244,7 +244,7 @@ export function monarchAt(n, u, L) {
   return { x, y: Math.max(0.6, y), z: z + dz, hd: dir > 0 ? 0 : Math.PI, dir, glide };
 }
 
-// ------------------------------------------------------------------ NIGHT-A2 — THE STANDING PROPS ARE SOLID (the owner, Oct 29 7:12 pm)
+// ---- NIGHT-A2 — THE STANDING PROPS ARE SOLID (the owner, Oct 29 7:12 pm)
 // "people walk AROUND it, never through it" — the harvest display (+ every standing set piece the holidays put on the floor): their
 // GROUND FOOTPRINTS (world rects, a person's half-width + a step of margin included) for core/harbor-people.js#aroundSolids, which bends
 // every walk leg that would cross one round its corners (whoever planned it — the crowd, the cart, the dog walker, the line, a stargazer)

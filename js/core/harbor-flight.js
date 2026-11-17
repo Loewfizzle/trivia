@@ -26,7 +26,7 @@ const ss = u => u * u * u * (u * (u * 6 - 15) + 10);
 const ss1 = u => 30 * u * u * (u - 1) * (u - 1);
 const ss2 = u => 60 * u * (2 * u - 1) * (u - 1);
 
-// ---------------------------------------------------------------- the roofline, smoothed
+// ---- the roofline, smoothed
 /** sky: the roofline per 4 pt (scene.js#skyline). A box average over ±r cells, `passes` times (≈ a gaussian) */
 export function smoothRoof(sky, r = 12, passes = 2) {
   const n = sky.length;
@@ -47,7 +47,7 @@ export function roofAt(arr, x) {
   return arr.length < 2 ? arr[0] : arr[i] + (arr[i + 1] - arr[i]) * u;
 }
 
-// ---------------------------------------------------------------- a bat
+// ---- a bat
 /** one bat's flight (amplitudes in pt at K = 1) */
 export function batPlan(seed) {
   const r = rngFrom(seed >>> 0), R = (a, b) => a + r() * (b - a), sg = () => (r() < 0.5 ? -1 : 1);
@@ -97,7 +97,7 @@ export function batAt(p, t, out) {
   return out;
 }
 
-// ---------------------------------------------------------------- the geese
+// ---- the geese
 /** the wingbeat (rad/s) — the V's base; each bird a few % off it, a straggler 30–45 % faster */
 const GOOSE_BEAT = 5.2;
 

@@ -128,7 +128,7 @@ function bitcoinMark(x, R, col, light, lit) {
   }
   x.restore();
 }
-// ---------------------------------------------------------------- 9a — THE STYLES (the owner, Oct 25: the festival's line-up + new designs)
+// ---- 9a — THE STYLES (the owner, Oct 25: the festival's line-up + new designs)
 // Every design is painted ON the sphere: a point at longitude φ / latitude λ (the dome's centre at 0,0) shows at
 // (R·sin φ·cos λ, −R·sin λ) — gores narrow toward the edges, rings + the face wrap round the curve; the puffed gores + the sphere's
 // light are laid over afterwards (the seams read only as shading).
@@ -282,7 +282,7 @@ function fabric(x, R, kind, scheme, lit, light) {
     x.strokeStyle = 'rgba(40,70,30,0.5)'; x.lineWidth = Math.max(0.3, R * 0.02); x.beginPath(); x.moveTo(-0.14 * R, 0.86 * R); x.quadraticCurveTo(0, 0.92 * R, 0.14 * R, 0.86 * R); x.stroke();
   }
 }
-// ---------------------------------------------------------------- PERF-B — THE DISCO BALL's TILES
+// ---- PERF-B — THE DISCO BALL's TILES
 // The envelope's front half as rows of mirror tiles: on the dome a row per 7.5° of latitude (shorter toward the crown: the sphere turning
 // away), on the taper a row per the same arc down to the mouth; each row's tiles spread round its circle (fewer where it's smaller), every
 // other row staggered half a tile; each tile's NORMAL (the sphere's + a small seeded tilt: real tiles never sit quite flat) reflects the
@@ -463,7 +463,7 @@ export function balloonArt(R, scheme, light, dpr, kind = 'pinstripes') {   // (e
   return { cv, glow, w: W, h: Hh, oy: R * 1.08, mouth: mouthY, burner: mouthY + 0.31 * R, kind, glints };
 }
 
-// ---------------------------------------------------------------- 9a — THE BALLOONS STAY UP (the owner, Oct 25 — DECIDED)
+// ---- 9a — THE BALLOONS STAY UP (the owner, Oct 25 — DECIDED)
 /** the preview's FAST crossing: the whole flight this many times faster (a 45-min crossing in ~4 min) */
 export const FAST = 12;
 /** the burner: one short burn every 45–120 s on a cruise (seeded, never a rhythm); every 3–7 s while climbing at the launch */

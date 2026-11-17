@@ -116,7 +116,7 @@ export function neonBuzz({ on = true, dur = 0.4, level = 1 } = {}) {
   n.connect(nb).connect(ng).connect(out); n.start(t, Math.random(), d + 0.1);
 }
 
-// ---------------------------------------------------------------- CITY 2.0 — THE RECORDED NEON (NEON PASS 2, Oct 2026)
+// ---- CITY 2.0 — THE RECORDED NEON (NEON PASS 2, Oct 2026)
 // Real neon from Freesound (all CC0; scripts/build-neon-sfx.py cuts + levels them: the hum −24 LUFS, the rest −20 LUFS) in
 // audio/sfx/. City 2.0 only (the classic district keeps the synthesized sign). Nothing is fetched until the first call; a file that
 // can't load falls back to the synthesized sound, and none of it is ever relied on (the picture is the moment).
@@ -266,7 +266,7 @@ export function neonRaceCrackle({ span = 1, n = 5, level = 1 } = {}) {
   for (let i = 0; i < n; i++) { const u = n > 1 ? i / (n - 1) : 0; crackle(ctx, t0 + u * span + (Math.random() - 0.5) * 0.04, 0.006 * level * (1 - 0.55 * u)); }
 }
 
-// ---------------------------------------------------------------- weather: the rain and the thunder (LIVE WEATHER)
+// ---- weather: the rain and the thunder (LIVE WEATHER)
 // The rain follows the real rain (level 0..1): a soft bed of filtered noise that breathes, a low roar that only heavy rain
 // brings, and fine droplet ticks on the glass and the street. startRain(level) -> stop(fade); stop.level(l) changes it live.
 let brownBuf = null, irBuf = null;

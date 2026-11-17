@@ -83,7 +83,7 @@ export function cleanText(t) {
     .slice(0, MAX_LEN);
 }
 
-// ---------------------------------------------------------------- profanity (whole words only)
+// ---- profanity (whole words only)
 // Roots with the endings they commonly take. Matching is whole-word, so "Scunthorpe", "assassin",
 // "class", "cocktail", "Dickens" and "therapist" are never touched.
 const WORDS = [
@@ -111,7 +111,7 @@ export function maskProfanity(text) {
   return String(text).replace(RE, (m, edge, w) => edge + w[0] + w.slice(1).replace(/[^\s]/g, '*'));
 }
 
-// ---------------------------------------------------------------- presentation helpers
+// ---- presentation helpers
 export function relTime(ms) {
   const s = Math.max(0, ms / 1000);
   if (s < 45) return 'now';

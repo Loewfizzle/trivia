@@ -94,7 +94,7 @@ export function shareTodayLine(today, lineOf, site = 'neonspeakeasy.com') {
   return ['NEON SPEAKEASY DAILIES', ...parts, sw.swept ? 'SWEPT' : `${sw.done} of ${sw.of}`, site].join(' · ');
 }
 
-// ---------------------------------------------------------------- DFIX2 — THE DAILIES FIX PASS (FABLE REVIEW #2)
+// ---- DFIX2 — THE DAILIES FIX PASS (FABLE REVIEW #2)
 /** the 4 am turn (finding 4): a `today` answer from another day is stale — the dock + the screen re-read it, never a reload */
 export const dayTurned = (today, dayNow) => !!(today && today.day && dayNow && today.day !== dayNow);
 

@@ -82,7 +82,7 @@ function capCrowd(ms, cap) {
   return ms.filter(m => keep.has(m.vid));
 }
 
-// ------------------------------------------------------------------ WHO'S OUT WHEN (data — tune here)
+// ---- WHO'S OUT WHEN (data — tune here)
 /** periods of the day (local hours [from, to)): n = the people out on average [weekday, weekend] (~¾ of them on screen: the rest are
  *  walking in / out past the edges or round behind the speakeasy); mix = the kinds' weights
  *  (KINDS below). Weekends: busier (n) and LATER (lateShift moves the evening's hours on by an hour). */
@@ -124,7 +124,7 @@ export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, r
   return { id: p.id, n: Math.min(FOLK.cap, n), mix, weekend, party: !!party, sunday };
 }
 
-// ------------------------------------------------------------------ THE WALKABLE MAP (world x, z on the ground)
+// ---- THE WALKABLE MAP (world x, z on the ground)
 /**
  * The map for a layout: nodes (where goals are), obstacles (rects + circles the routes go round), exits. Built from the promenade's
  * real pieces (core/harbor-promenade.js): the bench, the cart, the inlay, the crossing, the speakeasy's doors, the bus stop.
@@ -250,7 +250,7 @@ export function route(map, a, b, depth = 0) {
 }
 export const pathLen = pts => { let s = 0; for (let i = 1; i < pts.length; i++) s += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z); return s; };
 
-// ------------------------------------------------------------------ THE CROSSING: wait for WALK (core/harbor-promenade.js#signalAt)
+// ---- THE CROSSING: wait for WALK (core/harbor-promenade.js#signalAt)
 /** the next moment (s, absolute) at or after t when a walker may start across: in the WALK phase, early enough to be over before the
  *  blinking WAIT ends (`cross` s to cross — a walker may finish during the blink, never start in it) */
 function walkStart(t, cross = 8) {
@@ -265,7 +265,7 @@ function walkStart(t, cross = 8) {
 /** a crosser's pace: at least a brisk walk (FOLK.speed.brisk × 0.85) — the crossing is never strolled */
 const crossV = v => Math.max(v, FOLK.speed.brisk * 0.85);
 
-// ------------------------------------------------------------------ THE BUS (a 1920s bus on the back road: arrive, stop, pull away)
+// ---- THE BUS (a 1920s bus on the back road: arrive, stop, pull away)
 /** the bus's numbers: its length (units), cruising speed, braking + pulling-away (units / s²), the riders' timing at the stop (s) */
 // (FP3a, the owner's 8P note 12 — "the door stays open far too long": the stop is the riders' — off first (offAt, offGap), then the
 // boarders' window (board s, when someone boards), the door folds SHUT a beat after the LAST rider is through (folkAt#doorShut, from the
@@ -318,7 +318,7 @@ export function busesOf(L, key, hour, t0, { force = false } = {}) {
   return out;
 }
 
-// ------------------------------------------------------------------ THE KINDS (each a builder of goals)
+// ---- THE KINDS (each a builder of goals)
 /** a goal list: { at: node | {x,z}, gait? } walk there · { pose, dur, face? } stay · { cross: 'out' | 'in' } · { door: 'shop' | 'side' }
  *  (go in) · { exit: 'left' | 'right' | 'farLeft' | 'farRight' | 'any' } · { from: … } where it appears (an exit, a door, the bus) */
 const pickW = (r, w) => { let s = 0; for (const k in w) s += w[k]; let u = r() * s; for (const k in w) { u -= w[k]; if (u <= 0) return k; } return Object.keys(w)[0]; };
@@ -358,7 +358,7 @@ export const KINDS = {
   nightworker: (r) => ({ look: 'worker', gait: 'walk', goals: [{ from: anySide(r) }, { exit: 'any' }] }),
 };
 
-// ------------------------------------------------------------------ REAL DOORS (FP3b item 8 — the owner's 8P note 13)
+// ---- REAL DOORS (FP3b item 8 — the owner's 8P note 13)
 /** Nobody fades in or out at a door: the door SWINGS OPEN (open s), they STEP THROUGH at their gait × pace, it starts to CLOSE once
  *  they're `clear` units past the threshold and is shut `close` s later. Going in, they walk on into the dark while it shuts behind
  *  them (inside: drawn between the doorway + the leaf — screens/harbor/doors.js); coming out, it opens on them standing `inside`
@@ -401,7 +401,7 @@ export function closerLeft(u) {
 /** how open a door leg holds its door at t (0..1, PURE): swinging open from tOpen (eased), shutting from tClose on the closer's curve */
 export const doorOpenK = (lg, t) => (t < lg.tOpen || t > lg.tClose + DOOR.close ? 0 : smooth01((t - lg.tOpen) / DOOR.open) * (t <= lg.tClose ? 1 : closerLeft((t - lg.tClose) / DOOR.close)));
 
-// ------------------------------------------------------------------ PLANNING A VISIT → legs on the clock
+// ---- PLANNING A VISIT → legs on the clock
 /**
  * A visit's itinerary from its goals, starting at t (s abs) → { legs: [{ k: 'walk', pts, t0, t1, v } | { k: 'pose', pose, x, z, t0,
  * t1, face } | { k: 'fade', x, z, t0, t1, out: bool }], t0, t1 } or null when it can't be laid out (a closed shop, no bus).
@@ -489,7 +489,7 @@ export function planVisit(spec, t, M, ctx = {}) {
   return legs.length ? { legs, t0: t, t1: now, end: cur, v } : null;
 }
 
-// ------------------------------------------------------------------ THE HEADING (FP3b — the owner's 8P notes 1 + 2)
+// ---- THE HEADING (FP3b — the owner's 8P notes 1 + 2)
 // A person FACES WHERE THEY'RE GOING: `hd` = the heading on the ground (radians: 0 → right, π/2 → away from us toward the water,
 // π → left, −π/2 → toward the camera). folk.js draws one 2.5-D rig from it: side-on only crossing the screen, 3/4 on diagonals, the
 // front walking toward us, the back walking away. Turns are never a snap: at a route's corner the heading blends over ~0.55 units
@@ -530,7 +530,7 @@ function alongLeg(pts, d, len = pathLen(pts)) {
 }
 const endHd = pts => { for (let i = pts.length - 1; i > 0; i--) if (Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z) > 1e-3) return segHd(pts[i - 1], pts[i]); return null; };
 
-// ------------------------------------------------------------------ A MEMBER'S STATE at t (PURE)
+// ---- A MEMBER'S STATE at t (PURE)
 /**
  * Where a visit's lead is at t → { x, z, pose ('walk' | a pose), hd (the heading — above), dir (the 4-way facing from hd), dist (along
  * its walk — the stride's phase: never sliding), v, a (0..1 — fading onto the bus's far side only), since / left (a pose: s into it /
@@ -583,7 +583,7 @@ export function visitAt(vis, t) {
   return null;
 }
 
-// ------------------------------------------------------------------ POLISH 4 — THE SPEAKEASY STAYS SECRET (the owner)
+// ---- POLISH 4 — THE SPEAKEASY STAYS SECRET (the owner)
 /** THE SIDE DOOR's own schedule (never the random mix): evenings a trickle — a pair going in every few minutes (`inGap` s, from
  *  `inHours`), leavers later (`outGap`, from `outHours`); party nights only the leavers here (the guests queue in THE LINE); by day
  *  nobody. `gap`: two arrivals on the promenade at least this far apart (never a burst). Hours on the evening's clock (25 = 1 am). */
@@ -686,7 +686,7 @@ function lineNight(day0, key, M, L, ctx = {}) {
   return { visits, admits, T0, T1 };
 }
 
-// ------------------------------------------------------------------ THE BLOCKS (the promenade over time)
+// ---- THE BLOCKS (the promenade over time)
 const localOf = (t, off) => { const lt = t + (off || 0) * 60, d = new Date(lt * 1000); return { key: `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`, dow: d.getUTCDay(), h: ((lt / 3600) % 24 + 24) % 24, month: d.getUTCMonth() + 1 }; };
 /** members of a visit (the lead, a partner, a group, a dog): offsets behind / beside the lead (world units) + their own looks */
 /** 8b2 — THE BENCH's SEATS (the owner: "a person walks to the bench where someone already sits, sits ON TOP of them and disappears"):
@@ -1254,7 +1254,7 @@ export function folkAt(t, world, cache = new Map()) {
   return { visits: all, members, doors, dance, party: sp ? { crowd: sp.crowd, brk: sp.brk, k: sp.k, hold: sp.hold, pockets: sp.pockets.length, list: sp.pockets } : null, cart, cars, line, crew, witness: inWin ? { kind: LG.kind, t0: LG.t0, n: reacted.length } : null, buses: buses.map(b => { const sh = b.shut, d = busDoorAt(t, b, sh); return { ...b, shut: sh, xNow: b.x(t), door: d.k > 0.001 ? d.k : 0, doorPhase: d.phase }; }) };
 }
 
-// ------------------------------------------------------------------ 11a-1 — THE PEOPLE OF THE HOLIDAYS: the visits (PURE)
+// ---- 11a-1 — THE PEOPLE OF THE HOLIDAYS: the visits (PURE)
 /** a trick-or-treat group (core/harbor-holidayfolk.js#totGroups) → a visit: in from an edge, to the door (the treat), on to the other
  *  side; the first kid leads, the others beside + behind it, the grown-up a step behind them all */
 function totVisit(g, M) {
@@ -1306,7 +1306,7 @@ function crowdVisit(s, M, L) {
   return { id: `pc.${s.k}.${Math.round(s.t0)}`, kind: 'spectator', routine: 'parade', look: kid ? 'kid' : 'stroll', gait: kid ? 'kid' : 'stroll', legs: [...legs, ...b.legs], t0: a.t0, t1: b.t1, tEnd: b.t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: s.seed }] };
 }
 
-// ------------------------------------------------------------------ THE DANCE CIRCLE's people (FP3b item 9 — core/harbor-routines.js)
+// ---- THE DANCE CIRCLE's people (FP3b item 9 — core/harbor-routines.js)
 /** a circle's visits (PURE): the dancers out of the side door (real doors) to their spots round the compass, dancing (pose 'wands')
  *  until it ends, then back in one by one; the watchers in from the edges to spots behind + beside it, clapping / bobbing / watching,
  *  then away. Each visit: { routine: 'dance', idx } (people.js#wands reads the index: the moves, the colour, the race) */
@@ -1382,7 +1382,7 @@ function planRing(sess, M, L) {
   return [...out, ...base];
 }
 
-// ------------------------------------------------------------------ THE LOBBY LINE (Lobby 2.0's hook — the owner's "LINE AT THE SPEAKEASY")
+// ---- THE LOBBY LINE (Lobby 2.0's hook — the owner's "LINE AT THE SPEAKEASY")
 /**
  * Where n guests stand in the line (PURE): from beside the side door going LEFT along the shopfront, then bending down toward the
  * bottom-left corner (two-deep once it runs out of room); guests past `queue` wait on the open floor beside it. Never cut by the
@@ -1423,7 +1423,7 @@ export function lineRect(L, n) {
   return { x0: Math.min(...P.map(p => p.x)) - 0.6, x1: Math.max(...P.map(p => p.x)) + 0.6, z0: Math.min(...P.map(p => p.z)) - 0.5, z1: FOLK.doorZ + 0.2 };
 }
 
-// ------------------------------------------------------------------ THE ROOFTOP (its own small zone: the hatch, the railing, the bar cart)
+// ---- THE ROOFTOP (its own small zone: the hatch, the railing, the bar cart)
 /** the roof's numbers: who's up there by the clock — party nights + summer weekend nights a crowd (cap), otherwise 0–1 */
 export function roofCrowd({ h = 12, dow = 3, month = 10, party = false, rain = 0 } = {}) {
   if (rain > 0.3) return { n: 0, kinds: {} };

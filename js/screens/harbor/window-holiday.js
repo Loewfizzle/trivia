@@ -6,7 +6,7 @@ import { figure, whoW, whoM, SHADOW, LEGS_SH, COSTUME_PALS, SIL, figures } from 
 import { tvLight } from '../../core/harbor-moments.js';
 
 export function createHoliday({ glow, litP }) {
-  // ---------------------------------------------------------------- 11a-1 — THE HOLIDAYS IN THE ROOMS
+  // ---- 11a-1 — THE HOLIDAYS IN THE ROOMS
   /** which holiday dressing a window wears tonight: 'ofrenda' (Day of the Dead's altars: the edge windows + the back room) ·
    *  'pumpkin' (Halloween's last week: a jack-o'-lantern on the edge windows' sills) · null */
   function holDress(hol, id) {
@@ -94,7 +94,7 @@ export function createHoliday({ glow, litP }) {
     c.globalCompositeOperation = 'lighter'; glow(c, [255, 150, 50], x, y + ry, 0.5, 0.45 * k * fl); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
   }
 
-  // ---------------------------------------------------------------- 11a-2 — THANKSGIVING's ROOM LIFE (core#holidayPlays)
+  // ---- 11a-2 — THANKSGIVING's ROOM LIFE (core#holidayPlays)
   // (the owner: "candlelit family tables in windows on the lit 3D kit + ACT BIG — NEVER in the boss's room; a football game on a TV in
   // another room"). Both are the rooms' own steady life all afternoon / evening on the day: the people ARRIVE through the room's depth in
   // the first chunk + LEAVE the same way in the last (tgSeat), everything between seamless; small natural motion on a seeded loop.
@@ -270,7 +270,7 @@ export function createHoliday({ glow, litP }) {
   }
 
 
-  // ---------------------------------------------------------------- the holidays' moments (merged into windows.js's PAINT)
+  // ---- the holidays' moments (merged into windows.js's PAINT)
   const PAINT = {
     // 11a-2 — THANKSGIVING's ROOM LIFE (tgTable / tgFootball above)
     table: (E, el, len, inst) => tgTable(E, el, len, inst),

@@ -61,7 +61,7 @@ export function cabEvents(k, ctx = {}) {
   }
   return out;
 }
-// ------------------------------------------------------------------ PROM — THE CAB STAND (the owner, Oct 28: "people walk up + wait there,
+// ---- PROM — THE CAB STAND (the owner, Oct 28: "people walk up + wait there,
 // and a TAXI pulls up on the FRONT STREET … another way to leave")
 // The planned part (every phone the same): a waiter walks up to the cab-stand bench at the front curb (L.cabStand, facing the street) and
 // SITS, waiting a while (`sit` s — their patience). The TAXI that comes for them on the FRONT STREET is the device's own (screens/harbor/
@@ -108,7 +108,7 @@ export function standPlan(e, L, M) {
   if (!off) return null;
   return { id: e.id, rider: mk([...vis.legs, ...off.legs], off.t1), cab: null };
 }
-// ------------------------------------------------------------------ THE CAB STAND's PICKUP (PURE — the timeline + the fare's path; the
+// ---- THE CAB STAND's PICKUP (PURE — the timeline + the fare's path; the
 // taxi + its drawing: screens/harbor/cabstand.js; tested in tests/harbor-cabs.test.mjs)
 // PART 10 Group 0 — THE MIDDLE (the owner, Oct 31 8:22 pm: when the cab pulled up he VANISHED from the bench, REAPPEARED behind it, WALKED
 // THROUGH it, then got in): he now STANDS UP off the seat where he sat (an eased rise, `rise` s — the rig blends sit → stand over it),

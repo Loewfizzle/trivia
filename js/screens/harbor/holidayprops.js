@@ -35,7 +35,7 @@ const LEAF = [44, 92, 40];
 // the papel picado's tissue: hot pink, orange, purple, turquoise, yellow, green, red
 const TISSUE = [[255, 46, 140], [255, 132, 24], [146, 64, 255], [24, 200, 196], [255, 214, 34], [56, 204, 92], [236, 40, 64]];
 
-// ------------------------------------------------------------------ THE PUMPKINS (one sprite per slot per light; a glow sprite per face)
+// ---- THE PUMPKINS (one sprite per slot per light; a glow sprite per face)
 /** the carved face as paths in the pumpkin's own unit box (radius 1, y down), at its front */
 function facePath(x, face, w) {
   const tri = (pts) => { x.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) x.lineTo(pts[i][0], pts[i][1]); x.closePath(); };
@@ -168,7 +168,7 @@ function glowSprite() {
   x.fillStyle = g; x.fillRect(0, 0, S, S); return (glowCache = cv);
 }
 
-// ------------------------------------------------------------------ THE MARIGOLDS (a bloom painter + the spots + the garlands)
+// ---- THE MARIGOLDS (a bloom painter + the spots + the garlands)
 /** one cempasúchil bloom at (bx, by), radius br px: a ruffled pompom — layers of frilled petals, the gold edges, a deeper heart */
 function bloom(x, bx, by, br, c0, col, r) {
   const deep = col(mix(c0, [150, 40, 0], 0.45)), base = col(c0), edge = col(mix(c0, [255, 230, 120], 0.45));
@@ -190,7 +190,7 @@ function leafy(x, lx, ly, len, ang, col) {
   for (let i = 1; i < 5; i++) { const u = i / 5, px = lerp(lx, ex, u), py = lerp(ly, ey, u); for (const s of [-1, 1]) { x.beginPath(); x.ellipse(px + Math.cos(ang + s * 1.1) * len * 0.12, py + Math.sin(ang + s * 1.1) * len * 0.12, len * 0.11, len * 0.045, ang + s * 1.1, 0, TAU); x.fill(); } }
 }
 
-// ------------------------------------------------------------------ THE PAPEL PICADO (one sprite per colour × pattern × light)
+// ---- THE PAPEL PICADO (one sprite per colour × pattern × light)
 const PAT = ['calavera', 'flores', 'corazon', 'paloma'];
 function paintFlag(ci, pi, col, lit) {
   const Wd = 54, Hd = 66, cv = mk(Wd, Hd), x = safeCtx(cv);
@@ -236,7 +236,7 @@ function paintFlag(ci, pi, col, lit) {
   return cv;
 }
 
-// ------------------------------------------------------------------ THE LIVE MANAGER
+// ---- THE LIVE MANAGER
 export function createHolidayProps() {
   const stat = { rects: [] };
   let L = null, lay = '', slots = [], spots = [], posts = [], path = null, runs = [], bigs = [], giantG = null, decor = [];
@@ -280,7 +280,7 @@ export function createHolidayProps() {
     return [Math.min(255, v[0]), Math.min(255, v[1]), Math.min(255, v[2])];
   };
 
-  // ---------------------------------------------------------------- the pumpkins
+  // ---- the pumpkins
   function pumpkinSprite(sl, E, carved, dpr) {
     const k = `pk|${sl.i}|${carved ? 1 : 0}|${lightKey}`;
     let sp = cache.get(k); if (sp) return sp;
@@ -320,7 +320,7 @@ export function createHolidayProps() {
     }
   }
 
-  // ---------------------------------------------------------------- WIN — THE BIG JACK-O'-LANTERNS on the DRESSING SPOTS (+ their straw bales)
+  // ---- WIN — THE BIG JACK-O'-LANTERNS on the DRESSING SPOTS (+ their straw bales)
   // (the owner: "BIG jack-o'-lanterns on the promenade, readable at a glance: a big one next to the BENCH, another by a LAMP POST or the FIRE
   // HYDRANT, carved faces glowing at night, some on a straw bale" — core/harbor-holidayprops.js#BIG_PIECES on core/harbor-spots.js's spots;
   // each a sprite per light key like the steps' ones; z-sorted with the walkers through people.js's extras (items('near')), the front
@@ -416,7 +416,7 @@ export function createHolidayProps() {
     return out;
   }
 
-  // ---------------------------------------------------------------- 11a-2 — THANKSGIVING: the harvest display + the spot pieces
+  // ---- 11a-2 — THANKSGIVING: the harvest display + the spot pieces
   function tgPieces(HP) { const key = `${lay}|${HP.mums}|${HP.bales ? 1 : 0}|${HP.spots}|${HP.stalks ? 1 : 0}`; if (key !== tgKey) { tgKey = key; tgList = thanksgivingSpots(L, HP); } return tgList; }
   function tgSprite(pc, E, dpr) {
     const k = `tg|${pc.id}|${tgKey}|${lightKey}`; let sp = cache.get(k); if (sp) return sp;
@@ -436,7 +436,7 @@ export function createHolidayProps() {
     return out;
   }
 
-  // ---------------------------------------------------------------- the marigolds (a sprite per spot / per post)
+  // ---- the marigolds (a sprite per spot / per post)
   function spotSprite(sp, E, dpr) {
     const k = `mg|${spots.indexOf(sp)}|${lightKey}`;
     let o = cache.get(k); if (o) return o;
@@ -506,7 +506,7 @@ export function createHolidayProps() {
       c.drawImage(o.cv, 0, o.h - hh, o.w, hh, sx - o.cx / dpr, sy - hh / dpr, o.w / dpr, hh / dpr);
     }
   }
-  // ---------------------------------------------------------------- the petal path (one sprite, the path's box)
+  // ---- the petal path (one sprite, the path's box)
   function pathSprite(E, dpr) {
     const k = `pp|${lightKey}`;
     let o = cache.get(k); if (o) return o;
@@ -523,7 +523,7 @@ export function createHolidayProps() {
     return put(k, { cv, x0, y0, w: x1 - x0, h: y1 - y0 });
   }
 
-  // ---------------------------------------------------------------- the votives along the path (glass cups, a candle each)
+  // ---- the votives along the path (glass cups, a candle each)
   const GLASS = [[214, 40, 48], [236, 226, 210], [232, 150, 40]];
   function drawVotives(c, env, E, k) {
     if (k <= 0.01 || !path || !path.candles) return;
@@ -544,7 +544,7 @@ export function createHolidayProps() {
     if (glows.length) { const g = glowSprite(); c.save(); c.globalCompositeOperation = 'lighter'; for (const o of glows) { c.globalAlpha = 0.3 * o.k; c.drawImage(g, o.sx - o.r, o.sy - o.r * 0.6, o.r * 2, o.r * 1.2); c.globalAlpha = 0.5 * o.k; c.drawImage(g, o.sx - o.r * 0.25, o.sy - o.r * 0.3, o.r * 0.5, o.r * 0.5); } c.restore(); c.globalAlpha = 1; }
   }
 
-  // ---------------------------------------------------------------- the papel picado
+  // ---- the papel picado
   function flagSprite(ci, pi, E, litK) {
     const q = Math.round(E.dark * 4) / 4, k = `pf|${ci}|${pi}|${q}|${litK}|${Math.round(((E.T && E.T.gold) || 0) * 4)}`;
     let o = cache.get(k); if (o) return o;
@@ -586,7 +586,7 @@ export function createHolidayProps() {
     });
   }
 
-  // ---------------------------------------------------------------- the monarchs
+  // ---- the monarchs
   function drawMonarch(c, env, E, m) {
     const p = monarchAt(m.n, m.u, L), s = L.cam.F / p.z, [sx, sy] = project(L.cam, p.x, p.y, p.z), t = env.t || 0;
     const span = 0.62 * s, flap = p.glide ? 0.35 + 0.1 * Math.sin(t * 3) : Math.abs(Math.sin(t * 22 + m.n));   // (the wings' open width 0..1)
@@ -610,7 +610,7 @@ export function createHolidayProps() {
     c.restore(); c.globalAlpha = 1;
   }
 
-  // ---------------------------------------------------------------- the passes
+  // ---- the passes
   /**
    * draw(c, pass, env): pass 'ground' | 'air' | 'top'. env = { L, HS, HP, T, dark (the lamps 0..1), t, ms, motion, tier, dpr, wind
    * (m/s, signed along the screen), gust, fade, power (the legendaries' cut 0..1), monarchAt (forced: the clock ms the flag came on) }

@@ -2,7 +2,6 @@
 import { setErrorContext, markScreen } from './errlog.js';   // first: errors from phones (it also sees errors while the app boots)
 import { installTapWatch } from './ui/tapwatch.js';   // (CITY FIXES: THE TAP WATCH — a lost first tap → /admin, + THE RESCUE)
 import { h, $ } from './ui/dom.js';
-import './ui/vv.js';   // (THE VAULT 1B: --vv-ob — every bottom sheet above Safari's toolbar)
 import { watchLayers, layersOpen } from './ui/layers.js';
 import { toast } from './ui/toast.js';
 import { APP_NAME, GAMES, gameRow } from './config.js';
@@ -26,7 +25,6 @@ import { lobbyMusicTick, lobbyMusicDebug } from './audio/lobby-music.js';
 import { beatSource } from './audio/beat.js';
 import { sfx } from './audio/sfx.js';
 import { installSettingsPanel } from './ui/settings-panel.js';
-import { installColorBlind } from './ui/colorblind.js';   // (SHELL 2.0 B1 — body[data-cb]: the answer tokens swapped)
 import { showBackdrop } from './screens/backdrop.js';
 import { settings, onSettings, PAGE_SILENT, setPageQuiet } from './audio/settings.js';
 import { lazyView } from './games/lazy-view.js';
@@ -426,7 +424,9 @@ async function boot() {
   watchLayers();   // (LOBBY 2.0 B — ONE SHEET STACK: every pop-up opens on top of whatever opened it — ui/layers.js)
   installAudio();
   installSettingsPanel();
-  installColorBlind();
+  // (SHELL 2.0 B1 — body[data-cb]: the answer tokens swapped — CITY F THE BOOT TRIM: loaded, not in the boot; no game is on screen before it)
+  lazyImport(import('./ui/colorblind.js'), './ui/colorblind.js').then(m => m.installColorBlind()).catch(() => {});
+  installVV();
   // &debug=1: THE AUDIO DIAGNOSTIC (docs/audio.md#m3) — what the music is doing, on any screen; FP: or switched on from THE PREVIEW
   // PANEL → TOOLS → AUDIO PANEL on this device (ui/debug-tools.js: remembered, live on / off)
   const syncDiag = () => { if (PAGE_SILENT) return; const on = debugTool('audio'); if (on || diagLoaded) lazyImport(import('./audio/diag.js'), './audio/diag.js').then(m => { diagLoaded = true; if (debugTool('audio')) m.mountAudioDiag(); else m.unmountAudioDiag(); }).catch(() => {}); };
@@ -532,3 +532,20 @@ async function boot() {
 
 boot();
 harborReady.then(() => render(state));
+
+// EVERY BOTTOM SHEET ABOVE SAFARI's TOOLBAR (THE VAULT 1B — was ui/vv.js; CITY F THE BOOT TRIM folded it in here): --vv-ob on <html> = how
+// much of the layout viewport's bottom the VISUAL viewport doesn't show right now (Safari's bars), so a sheet rides above whatever covers
+// the bottom (components.css "EVERY BOTTOM SHEET FLOATS"). Over 140 px = a keyboard (the chat's own --kb), left out. visualViewport events only.
+function installVV() {
+  const vv = window.visualViewport;
+  if (!vv || installVV.done) return;
+  installVV.done = true;
+  let last = -1;
+  const set = () => {
+    const ob = Math.max(0, Math.round(window.innerHeight - (vv.offsetTop + vv.height)));
+    const v = ob > 140 ? 0 : ob;
+    if (v !== last) { last = v; document.documentElement.style.setProperty('--vv-ob', `${v}px`); }
+  };
+  vv.addEventListener('resize', set); vv.addEventListener('scroll', set); window.addEventListener('resize', set);
+  set();
+}

@@ -6,7 +6,7 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 function hash(str) { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
 
-// ---------------------------------------------------------------- pure helpers
+// ---- pure helpers
 /** PURE: how busy the sky is at a local hour, 0..1: busiest in the evening, steady by day, quieter late, very rare 2–5 am. */
 export function trafficRate(hr) {
   const g = (c, w) => Math.exp(-Math.pow((hr - c) / w, 2));

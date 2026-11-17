@@ -9,7 +9,7 @@ import { settings } from '../audio/settings.js';
 /** createNeon(T) — moved out of title.js#createTitle by scripts/split-closure.mjs (no behaviour change): T carries the names it shares
  *  with that closure, live (getters + setters); what it returns, the closure reads as neon.<name>. */
 export function createNeon(T) {
-  // ------------------------------------------------------------------ THE NEON COMES ALIVE (core/neon-ramp.js, docs/title.md)
+  // ---- THE NEON COMES ALIVE (core/neon-ramp.js, docs/title.md)
   // The sign follows the day's plan: silent sputters that grow through the golden hour, letters sticking, THE CATCH — the crackle +
   // hum, the only sound — when the sun's disc goes behind the rooftops; the city's signs answer one at a time. At dawn the city
   // signs go first, then the logo falters and dies letter by letter. The sun's computed place only — never the weather.
@@ -188,7 +188,7 @@ export function createNeon(T) {
     if (hk !== partyEls.hk) { partyEls.hk = hk; for (const g of partyEls.glows) g.el.style.opacity = g.ring.classList.contains('is-lit') ? String(Math.round(hk * g.k * 250) / 250) : ''; }
   }
   let partyEls = null, bloomDim = 1, bloomDimAt = 0;
-  // ---------------------------------------------------------------- THE RACE (NEON PASS 6, City 2.0 — the owner)
+  // ---- THE RACE (NEON PASS 6, City 2.0 — the owner)
   // A bright surge races through the NEON letters in turn — N → E → O → N, through the blacked-out connectors between them (dim
   // there: it runs behind the painted tube) — each letter BLAZING fully on as it passes (its own blaze layer, opacity only), then a
   // quick sweep across SPEAKEASY. At the catch, when a tap re-ignites a letter, and now and then on party nights. Smooth: the head +
@@ -251,7 +251,7 @@ export function createNeon(T) {
   function raceBusy() { if (race && performance.now() - race.seen > 1000) race.end(); return !!race; }
   if (/[?&]force=([^&]*,)?race(,|&|$)/.test(location.search)) { const iv = setInterval(() => { if (T.destroyed) { clearInterval(iv); return; } raceLogo('party'); }, 6000); }
 
-  // ---------------------------------------------------------------- THE MUSIC STARTING (7a section 0 → FP3a, City 2.0 — the owner)
+  // ---- THE MUSIC STARTING (7a section 0 → FP3a, City 2.0 — the owner)
   // No "tap for music" hint: whenever the MUSIC STARTS — the visit's first tap, the music button back ON, a rescue after the
   // background — the NEON sign answers it, from its REAL state on screen (core/neon-ramp.js#firstTapAnswer, tested): the sign NOT
   // lit (the morning goodbye, the day, golden hour's early sputters; the DOM's is-day) → a bright surge races through the glass

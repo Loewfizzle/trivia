@@ -40,7 +40,7 @@ function airLook(L) {
   return { dark: clamp01(L.w.night + L.w.late), golden: L.w.golden, dawn: L.w.dawn, day: L.w.day, wet: (L.rain || 0) > 0.1, fog: L.fog || 0, overcast: (L.cloud || 0) > 0.78 };
 }
 
-// ------------------------------------------------------------------ the airliner sprite
+// ---- the airliner sprite
 /** an airliner (nose toward +x before the flip), len pt long, in the hour's light → { cv, ox, oy, w, h, pts } (pts: its light
  *  positions in the sprite's frame: wing tips, tail, beacons, landing lights — screen offsets from its centre) */
 function airliner(len, look, dir, slope, lv, dpr, big) {
@@ -100,7 +100,7 @@ function airliner(len, look, dir, slope, lv, dpr, big) {
   return { cv, w: W, h: H, pts: { near: P(-0.2, 0.262), far: P(-0.205, -0.208), tail: P(-0.53, -0.025), top: P(-0.02, -0.048), belly: P(0.05, 0.04), land: P(0.06, 0.045), land2: P(0.3, 0.035), nose: P(0.5, 0) } };
 }
 
-// ------------------------------------------------------------------ the helicopter sprite (no rotor: that is drawn live)
+// ---- the helicopter sprite (no rotor: that is drawn live)
 function chopper(len, look, dir, dpr, rim = false) {
   const W = len * 1.2, H = len * 0.75, d = Math.min(3, dpr * 1.25);
   const cv = mk(W * d, H * d), x = safeCtx(cv);
@@ -141,7 +141,7 @@ function chopper(len, look, dir, dpr, rim = false) {
   return { cv, w: W, h: H, oy: H * 0.55 };
 }
 
-// ------------------------------------------------------------------ SKY-A — THE BEAM, DIFFUSED (the owner, Oct 30 8:19 am: NIGHT-C's
+// ---- SKY-A — THE BEAM, DIFFUSED (the owner, Oct 30 8:19 am: NIGHT-C's
 // break beam read "fragmented / too concentrated"): ONE soft cone + ONE soft pool sprite per colour — a gaussian feather across the cone
 // (no hard edge), brightest at the lamp, steady down to a wide end; the pool a smooth falloff. Baked BEFORE the flight (no first-swing
 // hitch) and only for the palette's own colours: a cross-fade between two is the two sprites ADDED (the beam is additive, so the pair IS
@@ -172,7 +172,7 @@ function softPool(col) {
   return cv;
 }
 
-// ------------------------------------------------------------------ THE MODELS PASS — THE HELICOPTER AS A BAKED MODEL ("2D looks cheap when
+// ---- THE MODELS PASS — THE HELICOPTER AS A BAKED MODEL ("2D looks cheap when
 // it TURNS" — the owner, Oct 30): "Utility helicopter" by 3D Assets (CC0, made with AI tools — ☰ → CREDITS) baked by scripts/bake/heli.mjs
 // at 24 headings (0° = the nose right, 90° = toward the viewer, 180° = left, 270° = away) in a DAY + a NIGHT light (a lighter paint + the
 // city's rim at night); its rotors hidden in the bake and drawn here live, at their hubs (heli.json, per heading) — as the nav lights, the
@@ -200,7 +200,7 @@ function loadBlackModel() {
 }
 function dropBlackModel() { if (blackModel) { blackModel.sheets.black.src = ''; blackModel.rotor.src = ''; } blackModel = null; blackLoad = null; }
 
-// ------------------------------------------------------------------ the module
+// ---- the module
 export function createAir() {
   let W = 1, H = 1, HZ = 1, K = 1, dpr = 2, tier = 2;
   // SCHED — the medium tier's plane passes of the local day(s) round now (memoized per day; a pass is due once, as its moment goes by)

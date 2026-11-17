@@ -22,7 +22,7 @@ import { castShadow } from '../../core/harbor-light.js';
 import { FONT, FRONT, TOP, fillPts, frame, hull2, lightFor, line, lit, norm, pbox, rimCol, seedOf, soft } from './props-light.js';
 // (FP3a: the light model + frame → props-light.js; the dormant planters + mailbox → props-garden.js; the test obelisk → props-test.js)
 
-// ------------------------------------------------------------------ THE BENCH
+// ---- THE BENCH
 // A 1920s park bench facing us (its back toward the road): painted cast-iron Deco ends (a scrolled foot turned out, a stepped knee,
 // the armrest ending in a curl, the back post's stepped finial), a centre support, oak slats (the seat seen from above, three back
 // slats leaning back with gaps that show the street behind), grain + a lit top edge on every slat, a small brass plaque.
@@ -180,7 +180,7 @@ function grain(x, P, Lt, c, n, x0, x1, at, r, nl = 3) {
   if (r() < 0.6) { const p = at(x0 + (x1 - x0) * (0.15 + r() * 0.7), 0.5); x.fillStyle = rgb(dk, 0.7); x.beginPath(); x.ellipse(p[0], p[1], P.s * 0.04, P.s * 0.018, 0, 0, Math.PI * 2); x.fill(); }
 }
 
-// ------------------------------------------------------------------ THE VENDOR CART
+// ---- THE VENDOR CART
 // A 1920s vendor's wagon: a painted wooden body on four big spoked wheels (the near pair in front of the body, the far pair peeking
 // out behind), turned-wood push handles at its left end, panelled sides with gilt pinstriping + the trade in gilt letters, a
 // striped canvas umbrella (gores in perspective, a scalloped valance with little bulbs that glow at night) and a brass lantern on
@@ -460,7 +460,7 @@ function lantern(x, P, Lt, u, y, d, glow) {
   x.fillStyle = rgb(br); x.fillRect(cx - w * 1.05, top + h, w * 2.1, 0.04 * s);
 }
 
-// ------------------------------------------------------------------ THE CART'S FLOWERS (FP3a: the urn's planting helpers the cart's
+// ---- THE CART'S FLOWERS (FP3a: the urn's planting helpers the cart's
 // spring flowers use — kept here, live; the dormant urn in props-garden.js imports them)
 /** the bed's dome height at (u, d): the flowers mound up in the middle */
 export const dome = (B, u, d, H) => { const fu = u / ((B.u1 - B.u0) / 2), fd = (d - (B.d0 + B.d1) / 2) / ((B.d1 - B.d0) / 2); return B.y + H * Math.max(0.15, 1 - 0.5 * fu * fu - 0.35 * fd * fd); };
@@ -508,7 +508,7 @@ export function tulips(x, P, Lt, B, r) {
   }
 }
 
-// ------------------------------------------------------------------ THE INLAY (PF — the centrepiece spot: a BRICK COMPASS ROSE)
+// ---- THE INLAY (PF — the centrepiece spot: a BRICK COMPASS ROSE)
 // The owner (PF): no raised ring, no medallion object — PAVING people walk over: an old-school compass rose laid in brick within
 // the setts (core/harbor-centre.js#inlayPlan: a soldier-course border of bricks on end, a buff header course, the red field in
 // concentric stretcher courses, an 8-point star in buff + a dark brown-red — each point split light / dark down its axis — round a
@@ -616,7 +616,7 @@ export function drawInlay(x, cam, m, T, ctx = {}) {
 /** (the old name: stage.js + the tests call the centrepiece spot's ground piece by it) */
 export const drawMedallion = drawInlay;
 
-// ------------------------------------------------------------------ THE SHADOWS
+// ---- THE SHADOWS
 // The boxes a prop's shadow is made of (in its own frame's numbers): { x0, x1, y0, y1, d0, d1 } relative to the prop's x (u) and z
 // (d); the cart's umbrella a disc. Every box's shadow on the ground = the hull of its foot + its top, each pushed along the sun by
 // its height (core/harbor-light.js#sunShadow): ONE soft fill for the whole prop (the overlaps union), then a contact shadow under it always.
@@ -666,7 +666,7 @@ export function propShadow(x, cam, item, kind, T, ctx = {}) {
   }
 }
 
-// ------------------------------------------------------------------ THE BOXES (FP2 — tested: the cart's umbrella never hides the bench)
+// ---- THE BOXES (FP2 — tested: the cart's umbrella never hides the bench)
 export const boxOf = pts => { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), x0 = Math.min(...xs), y0 = Math.min(...ys); return { x: x0, y: y0, w: Math.max(...xs) - x0, h: Math.max(...ys) - y0 }; };
 /** the bench on screen (pt): its two ends, from the paving up to the back posts' finials (drawBench's frame) */
 export function benchBox(cam, b) {

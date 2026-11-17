@@ -30,7 +30,7 @@ export function createFx() {
   let W = 1, H = 1, HZ = 1;
   let lights = null, lightsKey = '';
 
-  // ---------------------------------------------------------------- the moon at its real phase
+  // ---- the moon at its real phase
   function moonSprite(phase) {
     const q = Math.round(phase * 48) / 48;
     return sprite(`moon|${q}`, 128, 128, (x) => {
@@ -93,7 +93,7 @@ export function createFx() {
     return ecCv;
   }
 
-  // ---------------------------------------------------------------- the neon pumpkin / shamrock signs
+  // ---- the neon pumpkin / shamrock signs
   const pumpkinSign = () => sprite('pumpkin', 120, 110, (x) => {
     x.lineCap = 'round'; x.lineJoin = 'round';
     const draw = (lw, col, blur) => {
@@ -135,7 +135,7 @@ export function createFx() {
     }
   });
 
-  // ---------------------------------------------------------------- per-frame
+  // ---- per-frame
   const api = {
     resize(w, h, hz) { W = w; H = h; HZ = hz; lightsKey = ''; moonPos = null; },
     /** the notch / status bar height (css px): the moon stays below it */
@@ -410,7 +410,7 @@ export function createFx() {
     destroy() { for (const c of sprites.values()) { c.width = 0; c.height = 0; } sprites.clear(); try { fwx.destroy(); } catch { /* fine */ } },   // (THE LONG NIGHT: + the holiday fireworks' GPU context)
   };
 
-  // ---------------------------------------------------------------- Christmas lights, baked
+  // ---- Christmas lights, baked
   function bakeLights(g, count) {
     const R = rng(1225);
     const roofs = g.roofs.filter(r => g.top + r.y > HZ * 0.34 && g.top + r.y < HZ - 14 && r.w >= 22 && r.x - g.margin > -10 && r.x - g.margin < W + 10)
@@ -450,7 +450,7 @@ export function createFx() {
     return { c: cv, x0, y0, w: x1 - x0, h: y1 - y0, tw, length: bulbs.length };
   }
 
-  // ---------------------------------------------------------------- the cat
+  // ---- the cat
   // Some nights (about one in three, the same for everyone) a cat sits on a rooftop, tail swishing, eyes catching the neon.
   // Tap it and it springs away over the roofs; it comes back a few minutes later.
   function catNight(L) { const p = L.local || {}; const n = ((p.y * 372 + p.m * 31 + p.d) * 2654435761) >>> 0; return n % 3 === 0; }
@@ -516,7 +516,7 @@ export function createFx() {
     c.restore();
   }
 
-  // ---------------------------------------------------------------- the UFO
+  // ---- the UFO
   // On clear nights, every 8–18 minutes: a polished saucer glides in, hovers over a rooftop, lowers a soft beam (things
   // drift up it), then zips away with afterimages. Tap it and it leaves at once.
   const saucer = () => sprite('ufo', 360, 180, (x) => {
@@ -631,7 +631,7 @@ export function createFx() {
     c.restore();
   }
 
-  // ---------------------------------------------------------------- where the moon sits
+  // ---- where the moon sits
   // Its real path, framed for the screen: how far along its arc it is comes from how far it is between tonight's real moonrise
   // and moonset (rising at the left edge, setting at the right, mirrored in the south), how high comes from its true
   // elevation, mapped into the open sky above the rooftops. It only reaches the skyline at real moonrise / moonset and

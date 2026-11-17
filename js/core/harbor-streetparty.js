@@ -55,7 +55,7 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const u = clamp01((v - a) / (b - a)); return u * u * (3 - 2 * u); };
 const pathLen = pts => { let s = 0; for (let i = 1; i < pts.length; i++) s += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z); return s; };
 
-// ------------------------------------------------------------------ THE EVENING + THE CROWD's CURVE
+// ---- THE EVENING + THE CROWD's CURVE
 /** the evening t belongs to (a local hour before noon = the night before): { day0 (abs s of that day's local midnight), key, h (the hour
  *  of the evening: 25 = 1 am) } */
 export function eveningOf(t, off = 0) {
@@ -71,7 +71,7 @@ export function crowdK(h) {
 /** is the evening at day0 a party night? (ctx.party(t) when the scene says so — the preview — else the calendar: core/harbor-moments.js) */
 export const partyNight = (day0, ctx = {}) => { const at = day0 + knob('party.night').probe * 3600; return !!(ctx.party ? ctx.party(at) : partyAtT(at, ctx.off)); };
 
-// ------------------------------------------------------------------ THE PARTY's SONG CLOCK + THE DANCE BREAKS
+// ---- THE PARTY's SONG CLOCK + THE DANCE BREAKS
 /** the party's songs from `from` to `to` (abs s), seeded: [{ i, id?, t0, t1, fast }] — back to back. NIGHT-C: with the deck (ctx.deck —
  *  core/party-deck.js#deckSpec of the City 2.0 PARTY songs) THE REAL SONGS the music plays on the server clock, from `from` (its anchor):
  *  t1 = the next song's start (a crossfade before its end), fast = its tempo ≥ fastBpm; without one (the songs not loaded — the tests,
@@ -159,7 +159,7 @@ export function breakLevel(brk, t) {
 /** the front street's HOLD for a break (THE CITY TIMETABLE's party.spill lead / trail) → [t0, t1] */
 export function streetHold(brk) { const S = knob('party.spill'); return brk ? [brk.s0 - S.lead, brk.s1 + S.trail] : null; }
 
-// ------------------------------------------------------------------ THE NIGHT's POCKETS
+// ---- THE NIGHT's POCKETS
 const inRect = (p, r, pad = 0) => p.x > r.x0 - pad && p.x < r.x1 + pad && p.z > r.z0 - pad && p.z < r.z1 + pad;
 /** where the pockets may NEVER stand (world): the side door's landing + the doorman's swing + the guests' approach, THE LINE, the
  *  crossing's landing, the cab stand's bench + its front, the speakeasy's face, every SOLID (+ a body), a centrepiece on the compass */
@@ -211,7 +211,7 @@ export function pocketsOf(key, W, ctx = {}) {
 /** a pocket's solid footprint (core/harbor-solids.js): the walkers go round it while it stands; its own people (pid) are inside it */
 export const pocketSolid = (p, t0, t1) => ({ id: p.id, x0: p.x - p.R - 0.15, x1: p.x + p.R + 0.15, z0: p.z - p.R - 0.1, z1: p.z + p.R + 0.1, t0, t1, pid: p.id });
 
-// ------------------------------------------------------------------ THE OCCUPANTS (a pocket's slot, tenure by tenure)
+// ---- THE OCCUPANTS (a pocket's slot, tenure by tenure)
 /** the times slot j of pocket p is ON on the evening at day0 (the crowd's curve past its threshold) → [up, down] (abs s) or null;
  *  forced (the panel's party preview) → always on */
 export function slotWindow(p, j, day0, forced = false) {
@@ -283,7 +283,7 @@ export function occupant(p, j, n, A, win, brks, W, routeOf, ctx = {}) {
     legs, t0, t1, tEnd: t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(rn() * 1e6) }] };
 }
 
-// ------------------------------------------------------------------ THE BREAKS' OWN PEOPLE: THE BIG CONGA, THE SPILL, THE BENCH
+// ---- THE BREAKS' OWN PEOPLE: THE BIG CONGA, THE SPILL, THE BENCH
 /** THE BIG CONGA's path for a break: in off the right edge on the back lane, a U-turn down to the middle lane going right, another down to
  *  the front lane, off the left edge — each lane routed round the pockets standing then (circles) + the solids + the map's furniture */
 export function congaPath(W, pockets) {
@@ -350,7 +350,7 @@ export function benchPlan(brk, W) {
   return out;
 }
 
-// ------------------------------------------------------------------ THE STREET PARTY NOW (folkAt calls it every frame — cached)
+// ---- THE STREET PARTY NOW (folkAt calls it every frame — cached)
 /**
  * everything the street party has near t (PURE given the cache `get`): { visits (near t), solids (the pockets standing — time windows),
  * brk (the break covering t | null), k (its level), crowd (0..1), hold ([t0, t1] the front street's hold | null), busy(a, b) (a break

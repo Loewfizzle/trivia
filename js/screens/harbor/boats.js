@@ -54,7 +54,7 @@ export function createBoats() {
   function freeRec(s) { for (const k of ['body', 'back', 'lights', 'comp']) if (s[k]) { s[k].width = 0; s[k].height = 0; } }
   function freePool(p) { for (const s of p.recs) freeRec(s); for (const q of ['mix', 'mixB']) if (p[q]) p[q].width = 0; }
 
-  // ---------------------------------------------------------------- THE LOOK (the tones → each boat's palette)
+  // ---- THE LOOK (the tones → each boat's palette)
   let look = null;
   function lookOf(T, heel) {
     const hb = Math.round(heel * 40) / 40;
@@ -81,7 +81,7 @@ export function createBoats() {
     return look;
   }
 
-  // ---------------------------------------------------------------- THE SPRITES (a boat's model rendered at its pose)
+  // ---- THE SPRITES (a boat's model rendered at its pose)
   // THE SLOOP's sails swing to leeward of the wind (a fixed breeze off the camera's side + the real wind's side): close-hauled →
   // reaching → running; head to wind (the tack) the sails go slack and the boom crosses over
   function sailTrim(st, f) {
@@ -215,7 +215,7 @@ export function createBoats() {
   const area = cv => (cv ? cv.width * cv.height * 4 : 0);
   const memMB = () => [...spr.values()].reduce((a, p) => a + area(p.mix) + area(p.mixB) + p.recs.reduce((b, o) => b + ['body', 'back', 'lights', 'comp'].reduce((c, k) => c + area(o[k]), 0), 0), 0) / 1e6;
 
-  // ---------------------------------------------------------------- ROSIE'S WHEEL (live: its boards turning, in 3-D)
+  // ---- ROSIE'S WHEEL (live: its boards turning, in 3-D)
   // (P: a pose — a sprite's, or the TRUE one while she moves (C2: the wheel glides with her); M her model; z her depth)
   function drawWheel(c, P, M, z, ang, lk) {
     const Wh = M.wheel, n = Wh.n;
@@ -248,7 +248,7 @@ export function createBoats() {
     const [hx, hy] = pt(0, 0, near * Wh.hw); c.fillStyle = lk.wheel.rim; c.beginPath(); c.arc(hx, hy, Math.max(0.5, 0.18 * u0), 0, TAU); c.fill();
   }
 
-  // ---------------------------------------------------------------- per frame
+  // ---- per frame
   /** the boats' places now (once a frame): ms = the clock, nightAt(ms) → bool (a day / night boat, per cycle) */
   // THE THINNING (the owner's call): while the water lane is QUIET (a big show: the party peak + the searchlights + a word; a
   // heavy event; tier 1's party night) the extra boats wait — the taxi skips its next crossing, the tug its next visit — decided

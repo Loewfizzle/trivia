@@ -372,7 +372,7 @@ export function checkSlots() {
   return bad;
 }
 
-// ---------------------------------------------------------------- FP — THE BED'S MIX + THE GULLS (the owner listened on her iPhone)
+// ---- FP — THE BED'S MIX + THE GULLS (the owner listened on her iPhone)
 // The bed (the water + the city hum) sits UNDER the music: while the music is ON (wanted: not off, not muted, its slider up) the
 // whole bed is ducked by BED_DUCK; with the music OFF it is the main sound, at its own (calm) level. It never comes in before the
 // music: with the music on, the bed waits for the song to really sound (at most BED_WAIT_MS after audio unlocks — a song that
@@ -407,7 +407,7 @@ export function gullGap(g = 1, rnd = Math.random, calls = 1) {
   return Math.round((14000 + 52000 * Math.pow(rnd(), 1.4)) / k + (calls >= 3 ? 8000 : 0));
 }
 
-// ---------------------------------------------------------------- FP3 — A PASS IN SYNC: the motorcar + its sound (the owner's iPhone:
+// ---- FP3 — A PASS IN SYNC: the motorcar + its sound (the owner's iPhone:
 // "the sound came 5–6 s after the car had passed"). The car is drawn on the city's clock (nearest at the pass's centre); its sound
 // used to start whenever its file had been fetched + decoded after the pass began — every ms of that wait (a fresh fetch each new
 // take, iOS's decode) put the sound behind the car. Now the sound is placed ON THE CLOCK when its buffer is ready: its take's
@@ -452,12 +452,12 @@ export function syncStart(take, peakIn, { pre = Infinity, fade = 0.8, late = 1 }
 /** the pan of a sound at x (world) where the visible street is ±half wide at its depth: gentle, smooth, ±max (CAR_PAN) */
 export const panOf = (x, half, max = CAR_PAN) => +(max * Math.tanh(x / Math.max(1e-6, half))).toFixed(4);
 
-// ---------------------------------------------------------------- THE SKY's flybys (harbor/sounds.js#run)
+// ---- THE SKY's flybys (harbor/sounds.js#run)
 /** a flyby chained while its thing is up: the next take starts when the one playing has `xf` s left (its baked fade-out overlaps
  *  the next one's fade-in) — elapsed / dur in s (dur: the take's length ÷ its rate) */
 export const chainDue = (elapsed, dur, xf = 2.5) => elapsed >= Math.max(0.5, dur - xf);
 
-// ---------------------------------------------------------------- 8P — THE JETS' DUCK (the owner: the F-16s REALLY loud, the music
+// ---- 8P — THE JETS' DUCK (the owner: the F-16s REALLY loud, the music
 // never overpowered): a slot with `duck` (its level, linear) dips the MUSIC round its take's peak, like a real flyover — eased down
 // DUCK_IN s before the peak (over DUCK_ATTACK s), held DUCK_HOLD s past it, eased back over DUCK_RELEASE s (≈ 3 s in all). The jets'
 // own peak stays under the player's cap (audio/city-sound.js#CAP): loud, never a startle.
@@ -484,7 +484,7 @@ export function sweepPan(el, take, w = 0.55, dir = -1) {
   return +(-dir * w + dir * 2 * w * k).toFixed(3);
 }
 
-// ---------------------------------------------------------------- 8P — THE SPEAKEASY'S MOMENTS, HEARD (core/harbor-moments.js#MOMENTS)
+// ---- 8P — THE SPEAKEASY'S MOMENTS, HEARD (core/harbor-moments.js#MOMENTS)
 // Each window moment's sounds, placed where its painter (screens/harbor/windows.js#PAINT) shows them: `p` = the moment's progress
 // (el / len); hit: true = the take's `hit` (its latch, its thud, the sash's stop — measured by the importer) lands on `p`, else
 // the take STARTS at `p`. The moment's first sound (the mirror door's opening, the cat's meow) is windows.js#sound's, at its start.

@@ -117,7 +117,7 @@ export function createWater() {
     texKey = ''; ready = true; updAt = -1e9; built = composed = false;
   }
 
-  // ---------------------------------------------------------------- the wavelets: two perspective dash textures
+  // ---- the wavelets: two perspective dash textures
   function bakeTex(T, rough) {
     const skyC = T.day > 0 && T.skyHi ? mix(T.skyHi, [255, 255, 255], 0.38) : null;
     const key = `${Math.round(T.day * 6)}${Math.round(T.gold * 6)}${Math.round(T.night * 6)}|${Math.round(rough * 4)}|${W}|${dpr}${skyC ? '|' + skyC.map(v => v >> 4).join('.') : ''}`;
@@ -141,7 +141,7 @@ export function createWater() {
     });
   }
 
-  // ---------------------------------------------------------------- a light's column sprite (per colour, white-hot core)
+  // ---- a light's column sprite (per colour, white-hot core)
   function column(col) {
     const key = col.map(v => v >> 3).join(',');
     if (cols.has(key)) return cols.get(key);

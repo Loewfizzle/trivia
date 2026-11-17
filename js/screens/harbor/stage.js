@@ -31,7 +31,7 @@ const mulc = (c, m) => [c[0] * m, c[1] * m, c[2] * m];
 
 // (FP3a: pieceCtx, the pools' LIGHT / REACH, lightSources, lightField + sunShadow live in core/harbor-light.js — one light model)
 
-// ------------------------------------------------------------------ THE GROUND (baked into 'stage')
+// ---- THE GROUND (baked into 'stage')
 // the granite setts (warm grey by day, rosy at golden hour, a deep violet-grey at night), the joints (sand + grime); the street
 // under the dock: street.js (FP2)
 const SETT = { d: [154, 148, 140], g: [176, 130, 112], n: [64, 59, 86] };

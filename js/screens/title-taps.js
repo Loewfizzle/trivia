@@ -23,7 +23,7 @@ import { lazyImport } from '../ui/lazy-import.js';
  *  with that closure, live (getters + setters); what it returns, the closure reads as tap.<name>. */
 export function createTaps(T) {
 
-  // ------------------------------------------------------------------ the living city: taps, and the screen at rest
+  // ---- the living city: taps, and the screen at rest
   // a tap on the city: a sign opens that game's HOW TO PLAY; the moon, the UFO, the cat answer (fx.js); a tap on the
   // main sign makes that tube buzz
   let down = null, introTap = null;

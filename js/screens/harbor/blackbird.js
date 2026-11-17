@@ -23,7 +23,7 @@ const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const rgb = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 
-// ------------------------------------------------------------------ THE DRAWN SR-71 (nose → +x, the tail at 0, length 1; y down)
+// ---- THE DRAWN SR-71 (nose → +x, the tail at 0, length 1; y down)
 // The silhouette is everything at 60–75 pt: a needle nose, a flat body with its chine, the big nacelle hung low along it with a spike in
 // front, two short fins standing on the nacelles at the back. Near-black with a blue cast; the light is two lines: the chine's lit edge
 // (the sky) + the city's rim under it at night.
@@ -85,7 +85,7 @@ function drawnSprite(len, look, d) {
   return { cv, w: W, h: H, ox, oy };
 }
 
-// ------------------------------------------------------------------ THE MODEL (THE MODELS PASS): "SR-71 blackbird (FREE) downloadable" by
+// ---- THE MODEL (THE MODELS PASS): "SR-71 blackbird (FREE) downloadable" by
 // pablogcg05 (CC BY 4.0, ☰ → CREDITS) baked by scripts/bake/sr71.mjs → assets/city/sr71/: level, seen a little from below, nose → +x, in the
 // three lights (blended by the hour). LAZY: fetched when the art switch asks for it; until it's in (or if it fails) the drawing stands in.
 export const BB_ART_DEFAULT = 'model';
@@ -112,7 +112,7 @@ function sr71Sprite(len, look, d) {
   return { cv, w: W, h: H, ox: m.tail[0] * k, oy: m.tail[1] * k, rot: Math.atan2(m.nose[1] - m.tail[1], m.nose[0] - m.tail[0]), model: true };
 }
 
-// ------------------------------------------------------------------ the module
+// ---- the module
 export function createBlackbird() {
   // (MODELS: THE ART SWITCH's default is the baked SR-71 — it reads as the real aircraft at 96 pt (the delta, the nacelles, the chines)
   // where the drawing is a stylised profile; `&bbart=drawn` / TOOLS → THE BLACKBIRD DRAWN for the A/B)

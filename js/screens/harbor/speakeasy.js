@@ -59,7 +59,7 @@ export function basementLight(t, { night = 0, beat = 0 } = {}) {
   const a = (B.day + B.night * Math.max(0, Math.min(1, night))) * (1 - dim) * (1 + B.beat * beat) * (1 - flick);
   return { a, shadows, flick };
 }
-// ------------------------------------------------------------------ LIVE: the lit rooms, the glows, the pole, the ad's lamps
+// ---- LIVE: the lit rooms, the glows, the pole, the ad's lamps
 /** THE BARBER POLE's turn (FP, PURE): the stripes' phase (0..1 of a period) after dt s — the shop's pace by day, the slow night turn
  *  when lit; continuous (never rounded to a pixel or a frame: the strip slides at a fractional offset) */
 export const POLE_DAY = 0.42, POLE_NIGHT = 0.16;        // (periods a second)

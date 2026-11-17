@@ -149,7 +149,7 @@ export function dotAt(P, p, kind, data = {}) { P.dots.push({ p, kind, ...data })
 /** her name (or any word) painted on a face: o the centre of its baseline, ax the text's direction, ay its up (local unit vectors) */
 export function text(P, F, str, o, ax, ay, size, c, font = '700 62px "Chakra Petch", system-ui, sans-serif') { P.texts.push({ F, str, o, ax, ay, size, c, font }); }
 
-// ------------------------------------------------------------------ posing (world transform + projection + culling + the sort)
+// ---- posing (world transform + projection + culling + the sort)
 /**
  * Pose a mesh (an array of parts): V = { cam, X, Z (her centre's world place), hd, roll, pitch, c0 (the a of her centre), sun
  * ([x,y,z] toward the light, world), shK (the sun's shading strength), topK (the sky's light on the tops), pal (role → rgb),

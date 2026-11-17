@@ -40,7 +40,7 @@ export function strikeLevel(i, dt) {
 /** going dark when the lobby closes (PURE): dt = s since → 0..1 — a last flicker, then out (gone after ~0.5 s) */
 export const darkLevel = dt => (dt < 0 ? 1 : dt < 0.08 ? 0.35 : dt < 0.16 ? 0.9 : dt < 0.5 ? 0.9 * (1 - (dt - 0.16) / 0.34) : 0);
 
-// ------------------------------------------------------------------ WIN — THE HUSH WORD ON THE WALL (the owner, Oct 26: DECIDED)
+// ---- WIN — THE HUSH WORD ON THE WALL (the owner, Oct 26: DECIDED)
 /**
  * THE DOOR'S PASSWORD SIGN: a vertical neon sign mounted FLAT on the brick PIER right of the right window column (core/harbor-speakeasy.js
  * SPEAK_PIERS[3] — the corner pier the blade hangs beside), the letters STACKED top to bottom, in a thin dark door-plate mount —

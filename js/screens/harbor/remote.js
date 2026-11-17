@@ -148,7 +148,7 @@ export function createRemote({ scene, api = apiCall }) {
   const openSecs = loadOpen();
   const saveMine = () => ss.set(ME_KEY, R.isEmpty(mine.state) ? null : { state: mine.state, ui: mine.ui });
 
-  // ---------------------------------------------------------------- what this phone shows
+  // ---- what this phone shows
   const liveOn = () => !!(live && live.until > serverNow());
   function promote() {
     clearTimeout(nextT);
@@ -231,7 +231,7 @@ export function createRemote({ scene, api = apiCall }) {
     try { unsub = onValue(dbRef('city2/live'), snap => onLiveNode(snap && snap.val ? snap.val() : null, Infinity), () => {}); } catch (e) { console.warn('city2/live', e); }
   }
 
-  // ---------------------------------------------------------------- CITY CONTROLS A — THE RADIO's feed (every phone)
+  // ---- CITY CONTROLS A — THE RADIO's feed (every phone)
   // the city's fired moments + the billboard's messages + the dial (the cached GET); the owner's desk adds its own at once (deskMoments)
   let radioCity = [], radioDesk = [], radioLocal = [], radioRoom = [], radioStopped = new Set(), radioSeen = -Infinity;   // (LOBBY 2.0 B: radioRoom — the room's own LOBBY ONLY moments, from rooms/{CODE}/radio)   // (PROGRESSION B: radioLocal — this phone's own: the birthday skywrite, a favor's JUST ME preview)
   function feedRadio() {
@@ -278,7 +278,7 @@ export function createRemote({ scene, api = apiCall }) {
   document.addEventListener('visibilitychange', helloBack);
   window.addEventListener('focus', helloBack);
 
-  // ---------------------------------------------------------------- the owner's pill (admins only)
+  // ---- the owner's pill (admins only)
   // (PERF-A — FR5 E2 + Grok: a "no" was pinned 6 h in the tab — asked before this login was linked to its profile, it stayed after a key
   //  restore. Now ONLY a yes with a real profile id is kept; a whoami with no profile yet waits for this device's profile sync + asks
   //  once more; every profile change (me.js 'nd:me': a restore, a first link) asks again)
@@ -355,7 +355,7 @@ export function createRemote({ scene, api = apiCall }) {
     setMenuCue(effective() || null);
   }
 
-  // ---------------------------------------------------------------- THE COUNTDOWN (C2): a 3-2-1 chip under the pill, then it starts
+  // ---- THE COUNTDOWN (C2): a 3-2-1 chip under the pill, then it starts
   function countdown(m, at, what) {
     stopCd();
     cd = { mode: m, at, what, n: -1, iv: setInterval(cdTick, 100) };
@@ -387,7 +387,7 @@ export function createRemote({ scene, api = apiCall }) {
   }
   const goFlash = m => paintCd(m);
 
-  // ---------------------------------------------------------------- WIN — PLAY ALL: the sequencer (this phone, at once)
+  // ---- WIN — PLAY ALL: the sequencer (this phone, at once)
   // (the owner: one button that cycles through EVERY window moment in turn, each its full length, in its own window, a small chip saying
   // which one + n / N — tap it to skip, pause, ✕ to stop — looping until stopped, the right time of day for each without a reload;
   // reusable for the holiday moments, the wildlife, the workers: core/harbor-remote.js#PLAY_ALL / playlistOf)
@@ -447,7 +447,7 @@ export function createRemote({ scene, api = apiCall }) {
     paintChip();
   }
 
-  // ---------------------------------------------------------------- editing: JUST ME queues (pend), EVERYONE drafts (draft)
+  // ---- editing: JUST ME queues (pend), EVERYONE drafts (draft)
   const ensurePend = () => pend || (pend = { state: clone(mine.state), ui: clone(mine.ui) });
   const cur = () => (mode === 'me' ? ensurePend() : draft);
   const dirtyMe = () => !!pend && (!same(R.cleanRemote(pend.state).state, mine.state) || restart.size > 0);
@@ -604,7 +604,7 @@ export function createRemote({ scene, api = apiCall }) {
     if (sheet) close(); else fire();
   }
 
-  // ---------------------------------------------------------------- the sheet
+  // ---- the sheet
   let hrRelease = null;
   function open() {
     if (sheet) return;

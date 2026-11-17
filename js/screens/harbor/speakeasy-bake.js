@@ -14,7 +14,7 @@ import { createHushSign } from './hushsign.js';
 import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
 import { BLADE, BLADE_GLOW, bladeGeo, bladeOutline, MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, LETTER, BLADE_SPLIT, BLADE_ONE, bladeWords, bladeLetters, paintLetters, paintBlade } from './speakeasy-blade.js';
 
-// ------------------------------------------------------------------ THE WALLS (flat paintings)
+// ---- THE WALLS (flat paintings)
 /** FP3b — THE STONE's texture: a fine speckle of lighter + darker flecks over a trim band (limestone's grain, a terracotta's firing) */
 function stoneTex(x, u0, v0, u1, v1, col, r) {
   const n = Math.round((u1 - u0) * (v1 - v0) * 70);
@@ -327,7 +327,7 @@ export function paintGround(x, M, s, vp = null) {
 // (C4b — THE GOLD LEAF OFF THE GLASS, the owner, Oct 28 10:41 pm — DECIDED: "HARBOR BARBERS" removed in every state; the barber pole says
 // barbershop. paintGilt + GILT gone; the glass keeps only its faint reflection: speakeasy.js#glassOver)
 
-// ------------------------------------------------------------------ 7b — THE WALL-WASHERS (the owner: "something's missing" at night)
+// ---- 7b — THE WALL-WASHERS (the owner: "something's missing" at night)
 /** small warm lamps under the capitals, aimed DOWN, GRAZING the brick PIERS between the windows (never the windows): from dusk all
  *  night. SP2 (the owner: the lit piers read as more ARCHED WINDOWS — tall, evenly bright, a hard rounded top): ACCENTS, not panels —
  *  a hot spot just under each VISIBLE fixture, fanning DOWN in a soft V and gone within the top third of the pier (drop units); no
@@ -401,7 +401,7 @@ export function paintLight(x, M, u0, u1, side, seed) {
   for (let i = 0; i < 10; i++) { const u = u0 + r() * (u1 - u0), v = r() < 0.5 ? V.ground + 0.05 + r() * 0.35 : V.cornice[0] + r() * 0.6, w = 0.04 + r() * 0.07; x.fillStyle = rgb(shade(mix(side ? M.trimS : M.trim, side ? M.brickS : M.brick, 0.45), -0.12), 0.7); x.beginPath(); x.ellipse(u, v, w, w * (0.5 + r() * 0.4), r() * 3, 0, Math.PI * 2); x.fill(); }
 }
 
-// ------------------------------------------------------------------ THE BAKE
+// ---- THE BAKE
 /**
  * The speakeasy's baked steps (into 'stage'), far → near: the rooftop's pieces behind the parapet (the stair bulkhead, the
  * chimney, the string lights' pole), the side wall (painted flat, projected in strips), the front (the structure, the Deco, the

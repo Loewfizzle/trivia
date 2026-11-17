@@ -11,7 +11,7 @@ export const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 export const FRONT = [0, 0, -1], TOP = [0, 1, 0], LEFT = [-1, 0, 0], RIGHT = [1, 0, 0];
 export const VIEW = norm([0, 0.3, -1]);
 
-// ------------------------------------------------------------------ THE LIGHT
+// ---- THE LIGHT
 // (the lamps' light on a face — the nearest one, its colour + reach + height: core/harbor-light.js#lampOn, FACE)
 /** the light on a prop standing at (wx, wz) for this look */
 export function lightFor(T, ctx, wx, wz) {
@@ -51,7 +51,7 @@ export function lit(Lt, c, n, gloss = 0) {
 /** a light glint colour for thin edges (a lit rim / top line): the sun's by day, the lamp's at night */
 export function rimCol(Lt, c, n) { return lit(Lt, mix(c, [255, 255, 255], 0.35), n, 0.4); }
 
-// ------------------------------------------------------------------ THE FRAME (a prop's own little world)
+// ---- THE FRAME (a prop's own little world)
 /** the camera linearised at depth oz, depth exaggerated by e: P(x, y, d) → screen pt (x world, y up, d behind oz) */
 export function frame(cam, oz, e) {
   const s = cam.F / oz;

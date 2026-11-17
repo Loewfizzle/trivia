@@ -18,7 +18,7 @@ export { parseKp, kpAt } from './weather.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 
-// ------------------------------------------------------------------ THE AURORA (the owner's call, Oct 21 2026)
+// ---- THE AURORA (the owner's call, Oct 21 2026)
 // Not limited by where the player is: a RARE TIMED EVENT for everyone — about 2 nights a month, the same nights for all players
 // (seeded by the evening's date), never two nights in a row — PLUS a bonus night whenever the real planetary Kp index (NOAA,
 // through /api/sky) shows a strong geomagnetic storm (Kp ≥ 7), wherever the player is. Only at night, under clear-enough skies.
@@ -51,7 +51,7 @@ export function auroraTonight(ev, kp) {
 }
 // (NOAA's Kp parsing lives in core/weather.js — the server's /api/sky shares it: parseKp, kpAt)
 
-// ------------------------------------------------------------------ THE MOON
+// ---- THE MOON
 /** the harvest moon: the full moon nearest the autumn equinox (Sep 23 north / Mar 20 south), within a day and a half of full */
 export function harvestMoon(local, phase, south) {
   if (!local || phase == null) return false;
@@ -88,7 +88,7 @@ export function moonLook(m, o = {}) {
   return { size, amber, harvest, supermoon: sup, halo, haze, corona, earthshine: crescent };
 }
 
-// ------------------------------------------------------------------ THE WEATHER — what may fly
+// ---- THE WEATHER — what may fly
 const calm = (L, max) => (L.wind == null ? 3 : L.wind) <= max;
 /** hot air balloons: calm (≤ 4 m/s), clear, dry, no fog, little cloud */
 export const balloonWeather = L => !!L && calm(L, 4) && !(L.rain > 0.02) && !(L.snow > 0.05) && !(L.fog > 0.2) && !(L.storm) && (L.cloud || 0) < 0.55;
@@ -107,7 +107,7 @@ export function balloonTime(el, az, month, south) {
   return null;
 }
 
-// ------------------------------------------------------------------ MESSAGES
+// ---- MESSAGES
 /** words into lines of ≤ max characters (a word longer than a line is cut), at most `lines` lines; extra words are dropped */
 export function wrapLines(text, max = 16, lines = 2) {
   const words = String(text || '').trim().split(/\s+/).filter(Boolean).map(w => w.slice(0, max));
@@ -206,7 +206,7 @@ export function eventMessage(kind, seed, games = [], holiday = null) {
   return BANNER_POOL[s % BANNER_POOL.length];
 }
 
-// ------------------------------------------------------------------ THE BIRDS
+// ---- THE BIRDS
 /**
  * Who is up in the sky now (0..1 each). L: the look (core/sky.js) — { sun: { el, az }, local: { m, h }, south, rain, storm, fog }.
  *   gulls  by day over the harbor (fewer in rain; none at night) · swifts  summer evenings round the rooftops (May–Aug, the sun
@@ -226,7 +226,7 @@ export function birdsNow(L) {
   return { gulls, swifts, geese, bats };
 }
 
-// ------------------------------------------------------------------ THE HOLIDAY SKY (the owner's call, Oct 21 2026)
+// ---- THE HOLIDAY SKY (the owner's call, Oct 21 2026)
 // Holidays get an automatic sky message ON THE CLOCK (never the scheduler's dice): by day a SKYWRITING / SKYTYPING message at a
 // local hour (only on a clear, low-wind day — no smoke in cloud), at night a DRONE SHOW at a local hour chosen to stay clear of
 // that holiday's own moments (NYE: the evening, long before the countdown, the ball drop and the fireworks; July 4th: before
@@ -271,7 +271,7 @@ export function skyHolidayOn(y, m, d) {
 /** a show's texts with their placeholders filled ({next}: the coming year; {year}: this one) */
 export const fillText = (t, y) => String(t).replace('{next}', String(y + 1)).replace('{year}', String(y));
 
-// ------------------------------------------------------------------ THE DRONE SHOW'S SHAPES
+// ---- THE DRONE SHOW'S SHAPES
 // Each shape is points in a box (its own units; w × h) with a colour per point. Outlined shapes are sampled evenly along their
 // paths (they read like neon in the night sky); LETTERS are the skytyping font's dots (one drone per lit cell — they read on a
 // phone the way the skytyped words do); the FLAG is a filled grid (its stripes + the canton).

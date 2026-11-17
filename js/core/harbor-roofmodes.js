@@ -80,7 +80,7 @@ export function raceAt(u) {
   return { p: e, k: Math.min(1, u * 8, (1 - u) * 6) };
 }
 
-// ------------------------------------------------------------------ SP6 — the three new modes' levels (each part of the sign 0..1)
+// ---- SP6 — the three new modes' levels (each part of the sign 0..1)
 // A part's STRIKE: off before `at`, lit — a brief stutter just after (a tube catching), then held
 const strike = (u, at) => (u < at ? 0 : u < at + 0.025 ? 1 : u < at + 0.045 ? 0.25 : 1);
 /** WORD FLASH at u (0..1 of RM.wordflash), n words (a stacked two-word name: 2; one word: 1) → { words: [levels], mark, border } —

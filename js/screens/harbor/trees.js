@@ -34,7 +34,7 @@ function planOf(t, ctx) {
   return p;
 }
 
-// ------------------------------------------------------------------ THE LIGHT
+// ---- THE LIGHT
 /** the look's light rig for one tree: the sun (side, height, colour, strength), the sky's fill, the lamps near it (local coords:
  *  u right, v up, w toward the viewer) */
 function rigOf(T, ctx, t) {
@@ -127,7 +127,7 @@ function groups() {
   };
 }
 
-// ------------------------------------------------------------------ THE PIECES
+// ---- THE PIECES
 /** THE TREE GRATE: a square cast-iron grate set in the cobbles — a Deco sunburst of bars round the trunk's opening, its frame +
  *  the bars' tops catching the light (the sun by day, the lamps at night); the mulch in the opening */
 function drawGrate(x, cam, t, rig, ctx) {
@@ -442,7 +442,7 @@ export function treeShadow(x, cam, t, T, ctx = {}) {
   x.lineCap = 'butt';
 }
 
-// ------------------------------------------------------------------ THE FALLING LEAVES (live)
+// ---- THE FALLING LEAVES (live)
 /**
  * THE FALLING LEAVES (autumn; a few at late summer's end, the crabapple's petals in its blossom, none in winter): live, a handful
  * of leaves detaching from the crowns and tumbling down in the real wind, landing by the tree and fading. layout(L) once per

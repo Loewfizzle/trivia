@@ -196,7 +196,7 @@ export function segmented(options, value, onChange) {
   return el;
 }
 
-// ---------------------------------------------------------------- THE SHELL's parts (SHELL 2.0 A — components.css "THE SHELL")
+// ---- THE SHELL's parts (SHELL 2.0 A — components.css "THE SHELL")
 // THE NEON TUBE: tubeButton(label, { kind: 'main'|'secondary'|'danger', size: 'sm', block, onClick, confirm, busy, disabled, cls, attrs })
 //   kind main = the pink tube (ONE per screen), secondary = the quiet cool-white tube, danger = the red tube. confirm: 'TAP AGAIN TO …' →
 //   the first tap turns the button itself red-filled with those words; the second within 2.5 s runs onClick (confirmTap).

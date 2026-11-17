@@ -18,7 +18,7 @@ EFFECT LIBRARY); the passes: `docs/harbor/passes/vault-1a.md` (THE STYLE TEST �
 | `js/fx/gl.js` | THE GL PAINTER (1B): a 2D-context look-alike over WebGL2 — every surface draws through it (the 2D canvas the fallback) |
 | `js/fx/hearts.js` · `sheen.js` · `tube.js` | 1B's effects: hearts drifting up · the foil's shine pass + a glint · a neon tube inside the edge |
 | `js/vault/picker.js` · `js/vault/full.js` | THE VAULT PICKER (the profile's real strips) · THE FULL CARD (+ its sheet, the profile's own card) |
-| `js/ui/fit.js` · `js/ui/vv.js` | THE NAME NEVER CUTS OFF (fitName) · every bottom sheet above Safari's toolbar (--vv-ob) |
+| `js/ui/fit.js` · `js/app.js#installVV` (was ui/vv.js) | THE NAME NEVER CUTS OFF (fitName) · every bottom sheet above Safari's toolbar (--vv-ob) |
 | `api/_lib/catalog.js` · `api/_lib/lab-text.js` | NAMES ONLY TO OWNERS: the server-only catalog (+ withShow) · the lab's names + descriptions |
 | `tests/integration/vault-bench.mjs` | THE VAULT BENCH (A FULL LOBBY at a CPU slowdown, each cost off in turn) |
 | `js/fx/kit.js` | the shared kit: a seeded RNG, eases, PRE-BAKED SPRITES (glow, sparkle, heart, smoke puff, flame tongue) |

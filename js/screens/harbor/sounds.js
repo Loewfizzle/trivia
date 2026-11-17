@@ -324,7 +324,7 @@ export function createCitySounds() {
     if (L && (L.fog || 0) > 0.45 && L.wxKind !== 'mist' && t > next.fog) { citySound('foghorn', { pan: 0.35, gain: rnd(0.8, 1) }); next.fog = t + rnd(40000, 80000); }
   }
 
-  // ---------------------------------------------------------------- 8P — THE SPEAKEASY's LIFE
+  // ---- 8P — THE SPEAKEASY's LIFE
   // b.fr = the windows' frame (windows.js#frame: { on: [{ id, el, len, n }], states, sec, key }); a moment seen for the first time
   // queues its cues (core/city-sounds.js#MOMENT_CUES) on the clock; each is handed to the player ~2.5 s ahead, placed by its mark
   // (sync: its hit / its start lands on time whatever the wait for the file; too late = silent)
@@ -376,7 +376,7 @@ export function createCitySounds() {
   }
   const play = (slot, o) => citySound(slot, o);
 
-  // ---------------------------------------------------------------- 8P — THE JETS' DUCK
+  // ---- 8P — THE JETS' DUCK
   /** the jets' pass: jet-flyby panned right → left over its swell (dir 1 = left → right); the music ducked round its peak (the
    *  slot's `duck`) → the handle or null */
   // (POLISH 4 — IN SYNC: with `peakIn` (s from now until the jets cross the screen's centre) the take is placed on the clock — its peak
@@ -406,7 +406,7 @@ export function createCitySounds() {
     if (Math.abs(lv - duckNow) > 0.015 || (lv === 1 && duckNow !== 1)) { duckNow = lv; duckMusic(lv, 0.3); }
   }
 
-  // ---------------------------------------------------------------- PART 6b — THE LEGENDARY SKY, heard
+  // ---- PART 6b — THE LEGENDARY SKY, heard
   // THE ABDUCTION: the saucer's low hum while it's here (panned with it), the beam's riser (its peak as he leaves the ground); the
   // music DIPPED + MUFFLED (a low-pass) while it's here. THE TR-3B: its deep drone (louder overhead), the POWER-DOWN thump as the city
   // dies, electrical crackles while it drains, then the CHASE's roar (jets(): panned along their pass, the music ducked round its peak);
@@ -494,7 +494,7 @@ export function createCitySounds() {
     if (st.music.catchUp && !lgRun.caught) { lgRun.caught = true; musicCatchUp(); }
   }
 
-  // ---------------------------------------------------------------- 8P — THE BUS (its takes: the 1945 truck's — core/city-sounds.js)
+  // ---- 8P — THE BUS (its takes: the 1945 truck's — core/city-sounds.js)
   /**
    * bus(event, { pan, gain, stopIn }):
    *   'arrive'  its approach + stop (bus-arrive): stopIn = s from now until it halts at the curb — the take's `hit` (its engine

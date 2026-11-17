@@ -14,7 +14,7 @@ import { LETTERS, hexRgb } from '../../core/marks.js';
 import { flattenPath } from '../../core/tube-path.js';
 import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
 
-// ------------------------------------------------------------------ THE BLADE SIGN (the weekly ghost ad's home — the owner's pick, 8a)
+// ---- THE BLADE SIGN (the weekly ghost ad's home — the owner's pick, 8a)
 /** the BLADE: a board on iron brackets out from the side wall near the corner, facing us (parallel to the front), the same weekly game
  *  as the ghost ad. Board units: b 0 … bw across (from the brackets), v up (wall units).
  *  SP2 — THE CLASSIC 1920s THEATRE BLADE (the owner: "you just can't read it well at all" — thin dark letters on a dim board, the bulbs

@@ -25,7 +25,7 @@ import { harborSky } from './tones.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 
-// ------------------------------------------------------------------ NOISE (value noise, seeded; 2D + 3D)
+// ---- NOISE (value noise, seeded; 2D + 3D)
 function noiseOf(seed) {
   const R = rngFrom(`nz|${seed}`), p = new Uint8Array(512), v = new Float32Array(256);
   for (let i = 0; i < 256; i++) { p[i] = i; v[i] = R(); }
@@ -49,7 +49,7 @@ function noiseOf(seed) {
   return { n2, n3, fbm2, fbm3 };
 }
 
-// ------------------------------------------------------------------ THE FIELDS (one cloud's shape, cached)
+// ---- THE FIELDS (one cloud's shape, cached)
 /** the shape's arrays at `res` px per pt: normals (Int8 ×3), thickness (t: the silhouette's alpha), depth below its top (oc),
  *  texture (det); a heap also has m — its thickness for the SELF-SHADOW, smooth through the lobes' edges inside the mass (SP: the
  *  silhouette's own profile drew a crease down the body wherever one lobe ended inside another) */
@@ -367,7 +367,7 @@ function* shadeField(d, F, G, Lt, img) {
   }
 }
 
-// ------------------------------------------------------------------ CIRRUS (SP — the owner: "awesome idea, not there yet")
+// ---- CIRRUS (SP — the owner: "awesome idea, not there yet")
 // High ice cloud, DRAWN (fine fibres read crisp at phone size; a noise field was blurry): each patch is a small GROUP of wisps —
 //   FIBRATUS  a long bundle of fine fibres combed along a gently curved backbone, clumped into sub-bundles that wander, frayed +
 //             fanning at both ends
@@ -527,7 +527,7 @@ export function bakeCloud(d, G, box, res = 2, seed = 'pv', flip = false) {
   return cv;
 }
 
-// ------------------------------------------------------------------ THE SKY'S CLOUDS
+// ---- THE SKY'S CLOUDS
 export function createClouds() {
   let W = 1, top = 0, roof = 200, HZ = 300, box = null, list = [], old = null, oldK = 0, planKey = '', jobs = [], born = 0, G = null, gKey = '';
   let extra = { grey: 0, dark: 0, base: 0 };              // (the weather's set() — 9a)
@@ -617,7 +617,7 @@ export function createClouds() {
       else draw(d.cv, k);
     }
   }
-  // ---------------------------------------------------------------- WSP — THE MOON BEHIND THE CLOUDS (the owner, Nov 1 8:29 am)
+  // ---- WSP — THE MOON BEHIND THE CLOUDS (the owner, Nov 1 8:29 am)
   // "the clouds should block it": at night the heaps + the layer clouds are softer + see-through in places (their slow thinning cycle,
   // the far ones' haze), and the moon's glow was ADDED over the whole cloud — a bright blob in its body, the moon "through" it. Now, in a
   // small box round the moon only (a few drawImages on small canvases, re-drawn only when the moon or a cloud moves ~1/2 pt):

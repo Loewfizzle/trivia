@@ -18,7 +18,7 @@ export function createFrost(opts = {}) {
   const BOLD = !!opts.bold, HZ = BOLD ? 1.7 : 1, LW = BOLD ? 2.1 : 1, LN = BOLD ? 1.4 : 1;
   let W = 1, H = 1, cv = null, key = '', grown = 0, wasCold = false, lastA = 0, lastOp = '', joinFade = 1, layerA = -1;
 
-  // ---------------------------------------------------------------- the frozen pane
+  // ---- the frozen pane
   let clearRects = null;   // (9c — City 2.0: [{ x, y, w, h, f (feather pt) }] kept clear: the sign, the hush word, the dock's labels, the corner buttons)
   // PERF-B — THE FROST's LOAD (FR5 H18; the owner, Nov 1: "the blizzard is a little choppy at the very beginning"): the pane's bake was
   // ~70 ms on a phone INSIDE the reveal's frame (4× CPU: 280–320 ms of the blizzard's 1.4-s first frame). It now bakes in STEPS — one a

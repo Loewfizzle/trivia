@@ -52,7 +52,7 @@ const SLACK = knob('workers').slack;
 /** THE REGULARS (may overlap a show): kind → { days, at | win, len } — evening ones in the evening's hours (25 = 1 am) */
 export const REGULARS = withKnobs(knob('workers.regulars'), {});
 
-// ------------------------------------------------------------------ CAUSE AND EFFECT (seeded nights)
+// ---- CAUSE AND EFFECT (seeded nights)
 /** THE BLADE BULB: one night a week (seeded) a marquee bulb dies at a seeded moment (21:30 → 00:30) — dark until the repairman. → {
  *  t (abs s), bulb (an index into the marquee) } | null. dayKey: the EVENING's local date; ev0: its local midnight (abs s) */
 export function bulbOut(dayKey, ev0, ctx = {}) {
@@ -83,7 +83,7 @@ export function bootlegNight(dayKey, ctx = {}) {
   return rngFrom(hashString(`bootleg|${ctx.seed || 1924}|${dayKey}`))() < SHOWS.bootleg.rare;
 }
 
-// ------------------------------------------------------------------ dates
+// ---- dates
 const dowOf = key => { const [y, m, d] = key.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
 const dayNum = key => { const [y, m, d] = key.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 864e5); };
 const weekOf = key => Math.floor((dayNum(key) + 3) / 7);
@@ -99,7 +99,7 @@ export const holidayOff = key => { const [y, m, d] = key.split('-').map(Number);
 /** dusk on a day (local hours) when the scene doesn't hand the real one: Grand Rapids' sunset by the month + ~25 min */
 export const duskOf = month => 19.6 + 1.85 * Math.cos(((month - 6.6) / 12) * 2 * Math.PI) + 0.42;
 
-// ------------------------------------------------------------------ THE DAY'S PLAN
+// ---- THE DAY'S PLAN
 /**
  * The workers of local day `key` (PURE — the same on every phone): → [{ id, kind, show (bool), t0, t1 (abs s), truck?, … }] in start
  * order, no two SHOWS overlapping. ctx: { seed, day0 (its local midnight, abs s), dusk(key) → local hour, party(t) → bool, lamps,
@@ -195,7 +195,7 @@ export function forcedWork(kind, t, ctx = {}) {
 }
 
 
-// ------------------------------------------------------------------ THE PROPS' STATES (PURE, on the clock)
+// ---- THE PROPS' STATES (PURE, on the clock)
 /** THE MILK BOTTLES on the barbershop's step: set down by the milkman at `drop`, taken in by the barber at `take` (abs s) → 0 | 1 */
 export const MILK = Object.freeze({ drop: 2.05 * 60, n: 4 });           // (s after the milk truck's start the carrier touches the step)
 /** the bundles at the vendor spot: from the van's drop until the newsboy unties them (s after his start) */

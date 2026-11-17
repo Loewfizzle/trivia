@@ -36,7 +36,7 @@ export function snowTones(T, SN) {
 /** how much the stage lays on the tops (0..1): the caps' thickness + the props' hooks */
 export const topsOf = SN => (!SN || SN.stage === 'none' ? 0 : { fresh: 1, older: 0.8, banks: 0.62, thaw: 0.38, spring: 0.08 }[SN.stage] * clamp01(0.35 + SN.cover));
 
-// ------------------------------------------------------------------ THE CAPS
+// ---- THE CAPS
 let scratch = null;
 /** free the caps' scratch canvas (the scene calls it when the snow is gone) */
 export const releaseSnow = () => { if (scratch) { scratch.width = scratch.height = 0; scratch = null; } };
@@ -73,7 +73,7 @@ export function capFor(group, T, SN) {
   return capStep({ pt: pt * (0.55 + 0.45 * k), col, a: Math.min(1, 0.45 + 0.6 * k), up: group === 'far' ? 0.3 : 0.5 });
 }
 
-// ------------------------------------------------------------------ the noise (seeded, smooth: patches + drifts)
+// ---- the noise (seeded, smooth: patches + drifts)
 const h2 = (i, j) => { let n = (i * 374761393 + j * 668265263) | 0; n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n ^ (n >>> 16)) >>> 0) / 4294967296; };
 function vnoise(x, y) {
   const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
@@ -111,7 +111,7 @@ function pathsOf(L) {
   };
 }
 
-// ------------------------------------------------------------------ THE GROUND
+// ---- THE GROUND
 export function groundSteps(L, T, SN) {
   if (!SN || SN.stage === 'none') return [];
   const cam = L.cam, e = L.edge, ir = L.impliedRoad, on = L.impliedOn !== false;
@@ -263,7 +263,7 @@ function bankRow(x, cam, z, H, k, tn, T, seed, gaps = [], st = 'banks') {
   sp.forEach((p, i) => { if (pts[i][1] < 0.12) { on = false; return; } if (on) x.lineTo(p[0], p[1] + lw * 0.1); else { x.moveTo(p[0], p[1] + lw * 0.1); on = true; } }); x.stroke();
 }
 
-// ------------------------------------------------------------------ THE WATERSIDE ROAD
+// ---- THE WATERSIDE ROAD
 /** mode: 'white' (before the plow: the road white, tyre tracks) | 'plowed' (a clear dark wet lane, white kerb strips) */
 export function roadStep(L, T, SN, mode = 'plowed') {
   if (!SN || SN.stage === 'none' || !L.road) return null;
@@ -302,7 +302,7 @@ export function plowedStrip(c, L, T, SN, x0, x1) {
   c.fillStyle = rgb(mix(tn.wet, [255, 255, 255], 0.12), 0.28); c.fillRect(a, Y((r.z0 + r.lane) / 2 + 0.4), w, Math.max(0.8, (yb - ya) * 0.12));
 }
 
-// ------------------------------------------------------------------ THE SPEAKEASY
+// ---- THE SPEAKEASY
 /** the awning's snow as world points (the scene's slab slides off its front edge): { u0, u1, yW (at the wall), yF (the front edge), zF } */
 export const awningSnow = s => ({ u0: s.awning.u0, u1: s.awning.u1, yW: s.awning.y0, yF: s.awning.y1, zF: s.awning.z });
 

@@ -31,7 +31,7 @@ function crown(P, a, s, r, u0, u1, c) {
   }
 }
 
-// ------------------------------------------------------------------ ROSIE (len 24): the riverboat
+// ---- ROSIE (len 24): the riverboat
 const ROSIE_STACKS = [[16.4, 0.95], [17.6, -0.95]];            // [a, s] — staggered abreast: two stacks from the side AND head-on
 const ROSIE_WHEEL = Object.freeze({ a: -0.45, u: 1.3, r: 1.55, hw: 1.95, n: 10 });
 export function rosieModel() {
@@ -136,7 +136,7 @@ export function rosieModel() {
   return { parts, c0: 12, dots, wheel: ROSIE_WHEEL, smoke: ROSIE_STACKS.map(([a, s]) => [a, 11.75, s]), steam: [17.0, 11.8, 0] };
 }
 
-// ------------------------------------------------------------------ THE WATER TAXI (len 6): yellow, its checker band, bow up
+// ---- THE WATER TAXI (len 6): yellow, its checker band, bow up
 export function taxiModel() {
   const parts = [];
   const H = newPart('hull'); parts.push(H);
@@ -172,7 +172,7 @@ export function taxiModel() {
   return { parts, c0: 3, dots };
 }
 
-// ------------------------------------------------------------------ THE TUG (len 9.5) + THE FISHING TUG (len 8: the same build, its colours)
+// ---- THE TUG (len 9.5) + THE FISHING TUG (len 8: the same build, its colours)
 export function tugModel(len = 9.5, h = 5.2, fish = false) {
   const parts = [], k = len / 9.5;
   const A = a => a * k;
@@ -211,7 +211,7 @@ export function tugModel(len = 9.5, h = 5.2, fish = false) {
   return { parts, c0: len / 2, dots, smoke: fish ? [[A(3.15), 5.25, 0]] : null };
 }
 
-// ------------------------------------------------------------------ THE SLOOP (len 6.5, mast h 10): main + jib on the leeward side
+// ---- THE SLOOP (len 6.5, mast h 10): main + jib on the leeward side
 /** o: { boom: radians off the centreline, side: +1 (the sails to starboard) | −1, luff: 0..1 (head to wind: the sails slack) } */
 export function sailModel(len = 6.5, h = 10, o = {}) {
   const parts = [], side = o.side || 1, beta = o.boom ?? 0.35, m = 3.1;

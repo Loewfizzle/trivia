@@ -24,7 +24,7 @@ export const signName = g => SIGN_NAMES[g.id] || (MARKS[g.id] ? bladeWord(g) : t
 const accOf = g => hexRgb(SIGN_ACC[g.id] || (markFor(g).tubes[0] || {}).col || '#9fd8ff');
 const ICE = [214, 240, 255];
 
-// ------------------------------------------------------------------ THE DAY FACES (THE DAY PASS)
+// ---- THE DAY FACES (THE DAY PASS)
 // Real neon is nearly invisible in sunlight, so a real sign is built to read UNLIT: an enamelled / hand-painted board with bold
 // solid letters, the glass tubes riding on top. VINTAGE 1920s (the owner's call): theatre-sign enamel, warm and a little
 // sun-faded, the letters edged in GOLD LEAF (or a dark keyline on a light board) with a drop shadow. Each game its own scheme
@@ -263,7 +263,7 @@ export function buildSign(spot, game, ctx) {
   return sign;
 }
 
-// ------------------------------------------------------------------ SOLID CABINETS vs THE LIT WINDOWS (NEON PASS 4)
+// ---- SOLID CABINETS vs THE LIT WINDOWS (NEON PASS 4)
 /**
  * The lit windows are their own baked layers, drawn OVER the facades + the signs' baked housings — so a lit window behind a sign
  * shone through its cabinet (the owner: "the blade is partly hidden behind the building in front of it": the hotel's windows
@@ -288,7 +288,7 @@ export function cabinetCut(L, group, meta = null, hung = null) {
   };
 }
 
-// ------------------------------------------------------------------ the housing (per look)
+// ---- the housing (per look)
 /**
  * A ROOF SIGN'S STEEL (DT1 — the owner: "visible steel lattice frames + a catwalk with a thin railing underneath, so their size reads
  * as deliberate"): the frame's members as strokes (screen pt) — the girder under the cabinet, two LATTICE LEGS (two rails + zigzag
@@ -411,7 +411,7 @@ export function drawHousing(x, sg, T, ctx) {
   }
 }
 
-// ------------------------------------------------------------------ the lit parts (once per sign: power draws them)
+// ---- the lit parts (once per sign: power draws them)
 /** (SP6 — swap: TWO-TONE's set — the border tube in the letters' colour, the letters in the border's; the same sprites in the same order) */
 function litSprites(sg, dpr, swap = false) {
   const out = [], bCol = sg.border ? (swap ? sg.col : sg.border.col) : null, tCol = c0 => (swap && sg.border ? mix(sg.col, ICE, 0.82) : c0);   // (the traded letters toward white-ice: the swap must read at phone size)
@@ -439,7 +439,7 @@ function litSprites(sg, dpr, swap = false) {
   return out;
 }
 
-// ------------------------------------------------------------------ BILLBOARDS (painted, 1920s; gooseneck lamps)
+// ---- BILLBOARDS (painted, 1920s; gooseneck lamps)
 /** what a billboard shows: { game } → its name, its tag line, its mark, its colours; or { title, sub, col: [bg, ink] } (CITY CONTROL) */
 export function billboardContent(show, games) {
   // (SCHED Group 4: a hint — two short lines, or the Sunday postcard's silhouette + its name: a cream handbill, black + red ink)

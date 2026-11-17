@@ -1096,6 +1096,61 @@ G('bootfloor', async () => {
     void again;
     await ctx.close(); }
 });
+// ---- CITY F — THE CHROMEBOOK (the owner's nephew's school Chromebook — /admin STALL Nov 17 2:14 pm: 1 core, 4 GB, 1600 × 1200 @ 1, a 1650 ms
+// frame before the reveal, a 2033 ms gap in the bake's crossfade, the reveal at 5.5 s): a WEAK DEVICE (core/harbor-tiers.js#weakDevice)
+// starts on the lowest tier before the first bake — no frame over 1.5 s from the start to 15 s after the reveal, the reveal under 4 s,
+// the backing store capped (≈ 0.72 ×), no crossfade. + THE IPHONE PROFILE (2 cores reported, an iPhone's UA) keeps its tier 2.
+G('weakstart', async () => {
+  const br = await launch();
+  const profile = async ({ ua = null, hc, dm, vw, vh, dsf, mobile = false, cpu = 4, label }) => {
+    const ctx = await br.createBrowserContext(), p = await ctx.newPage();
+    if (ua) await p.setUserAgent(ua);
+    await p.setViewport({ width: vw, height: vh, deviceScaleFactor: dsf, isMobile: mobile, hasTouch: mobile });
+    await p.evaluateOnNewDocument((hc, dm) => {
+      try { Object.defineProperty(Navigator.prototype, 'hardwareConcurrency', { get: () => hc, configurable: true }); } catch { /* fine */ }
+      try { if (dm == null) delete Navigator.prototype.deviceMemory; else Object.defineProperty(Navigator.prototype, 'deviceMemory', { get: () => dm, configurable: true }); } catch { /* fine */ }
+      // (every frame's gap from the first frame on — the page's own rAF, wrapped before any script runs)
+      const W = window.__wk = { gaps: [], last: 0, reveal: null };
+      const raf = window.requestAnimationFrame.bind(window);
+      const tick = t => { if (W.last) W.gaps.push([t, t - W.last]); W.last = t; raf(tick); };
+      raf(tick);
+    }, hc, dm);
+    if (cpu > 1) await p.emulateCPUThrottling(cpu);
+    await p.goto(`${BASE}/?emu&slot=wk${label}&city=2&weakdev=1&${NIGHT}`);
+    await waitFor(p, '!!window.__district && !!window.__district.harbor() && window.__district.harbor().shown', `${label}: the reveal`, 30000);
+    const at = await ev(p, 'performance.now()');
+    return { ctx, p, at };
+  };
+  // (a) the Chromebook: 1 core, 4 GB, 1600 × 1200 @ 1, the CPU 4× throttled (≈ the real one: its own report was a 5.5 s reveal + a 1.65 s frame)
+  { const { ctx, p } = await profile({ hc: 1, dm: 4, vw: 1600, vh: 1200, dsf: 1, cpu: 4, label: 'cb' });
+    const hb = await ev(p, 'window.__district.harbor()'), tr0 = await ev(p, 'window.__district.tiering()');
+    const revealAt = hb.shownAtMs != null ? Math.round(hb.shownAtMs) : null;   // (performance.now() at the reveal — from the page's start)
+    await sleep(15000);
+    const W = await ev(p, '({ gaps: window.__wk.gaps })'), hb2 = await ev(p, 'window.__district.harbor()');
+    const upTo = (revealAt || 0) + 15000, worst = W.gaps.filter(([t]) => t <= upTo).reduce((m, [, g]) => Math.max(m, g), 0);
+    const fades = (hb2.loadLog ? hb2.loadLog.rows : []).filter(r => /crossfade/.test(r.msg || '') && (r.kind === 'bake' || r.kind === 'lit'));
+    log(`THE CHROMEBOOK at 4×: the reveal at ${revealAt} ms, the worst frame ${Math.round(worst)} ms to 15 s after it, tier ${tr0.tier}, dpr ${tr0.dpr}`);
+    ok(tr0.weak === true && tr0.tier === 0 && tr0.dprTier === 0, `THE CHROMEBOOK — a WEAK DEVICE: the lowest tier from the start (weak ${tr0.weak}, tier ${tr0.tier}, the resolution's tier ${tr0.dprTier}; the steps ${JSON.stringify(tr0.hist || []).slice(0, 120)})`);
+    ok(tr0.dpr >= 0.6 && tr0.dpr <= 0.75, `THE CHROMEBOOK — the backing store capped on its big screen: the city drawn at ${tr0.dpr.toFixed(2)} × (0.6–0.75), scaled up`);
+    okT(worst <= 1500, `THE CHROMEBOOK at 4× — no frame over 1.5 s from the start to 15 s after the reveal (the worst ${Math.round(worst)} ms; before CITY F: 2,117)`);
+    ok(!fades.length, `THE CHROMEBOOK — no bake crossfade at its lowest tier (a straight swap): ${fades.map(r => r.msg).join(' | ') || 'none'}`);
+    if (SHOTS) await p.screenshot({ path: `${OUT}weakstart-chromebook-1600x1200.png` });
+    await ctx.close(); }
+  // (a2) the same profile at 2× — THE REVEAL under 4 s (at 4× it is still ≈ 5.5 s: the first layout's re-bake once the title's rects land —
+  //  docs/harbor/passes/city-f.md "THE CHROMEBOOK", the next step named there)
+  { const { ctx, p } = await profile({ hc: 1, dm: 4, vw: 1600, vh: 1200, dsf: 1, cpu: 2, label: 'cb2' });
+    const hb = await ev(p, 'window.__district.harbor()'), revealAt = hb.shownAtMs != null ? Math.round(hb.shownAtMs) : null;
+    await sleep(6000);
+    const W = await ev(p, '({ gaps: window.__wk.gaps })'), worst = W.gaps.reduce((m, [, g]) => Math.max(m, g), 0);
+    okT(revealAt != null && revealAt < 4000 && worst <= 1500, `THE CHROMEBOOK at 2× — the reveal under 4 s (${revealAt} ms after the page began; before CITY F: 3,092) and no frame over 1.5 s (the worst ${Math.round(worst)} ms)`);
+    await ctx.close(); }
+  // (b) THE IPHONE PROFILE — an iPhone's UA reporting 2 cores (+ no deviceMemory): never a weak device — tier 2 at its 3×, as before
+  { const IPH = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.7 Mobile/15E148 Safari/604.1';
+    const { ctx, p } = await profile({ ua: IPH, hc: 2, dm: null, vw: 402, vh: 874, dsf: 3, mobile: true, cpu: 1, label: 'ip' });
+    const tr = await ev(p, 'window.__district.tiering()');
+    ok(tr.weak === false && tr.tier === 2 && tr.dprTier === 2, `THE IPHONE PROFILE — untouched: weak ${tr.weak}, tier ${tr.tier} / ${tr.dprTier}, dpr ${tr.dpr}`);
+    await ctx.close(); }
+});
 // ---- PART 8a: THE PROMENADE — the layout the owner approved, the season by the real date (+ forced), the lamps' pools baked into
 // the setts at night, the implied road (a car's headlights; off by the owner's flag)
 G('promenade', async () => {

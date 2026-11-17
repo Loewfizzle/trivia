@@ -55,7 +55,7 @@ export function matchXp({ rank, win, n, pbs = 0, firstToday = false, gamesToday 
 }
 
 
-// ================================================================ progression (Oct 2026): tiers, nightly streak, weekly goal, mastery
+// ==== progression (Oct 2026): tiers, nightly streak, weekly goal, mastery
 // TIERS: each rank below LEGEND splits into three equal steps (INSIDER I → II → III), so a step comes every evening or
 // two instead of a rank every few weeks. The rank index (profiles.r, the emblems) is unchanged.
 const ROMAN = ['I', 'II', 'III'];

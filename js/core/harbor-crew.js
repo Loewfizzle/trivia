@@ -98,7 +98,7 @@ export function crewSpots(L, M) {
   };
 }
 
-// ------------------------------------------------------------------ THE TRUCKS (the vehicle kit's vans + the new trucks)
+// ---- THE TRUCKS (the vehicle kit's vans + the new trucks)
 /** a truck at the stop (PURE): enters from behind the speakeasy at tE, brakes to the stop (its front at the car's stop line, left of
  *  the crossing: the bus's stop — the clearest view), waits until tReady, pulls away on GREEN with time to clear the crossing */
 export function truckPlan(L, P, id, spec, tE, tReady) {
@@ -139,7 +139,7 @@ export const raiseK = uP => sm(cl01((uP - 0.28) / 0.5));
 const cl01 = v => (v < 0 ? 0 : v > 1 ? 1 : v), sm = u => u * u * (3 - 2 * u);
 /** a haul on the rope: n pulls of LADDER.pull s each (a pull eased over 3/4 of it, a beat to re-grip) → 0..1 */
 const pullsK = (s, dur) => { const n = Math.max(1, Math.round(dur / LADDER.pull)), w = cl01(s / dur) * n, k = Math.min(n - 1, Math.floor(w)), q = w - k; return (k + sm(cl01(q / 0.75))) / n; };
-// ------------------------------------------------------------------ A WORKER's ITINERARY (a small builder over the people's legs)
+// ---- A WORKER's ITINERARY (a small builder over the people's legs)
 /** 8b2 — WEIGHT + TIMING (the owner): a heavy load slows the walk (ice, a crate, the can, a ladder, a bucket of paste) */
 export const HEAVY = Object.freeze({ ice: 0.78, crate: 0.84, can: 0.84, ladder: 0.86, ladderA: 0.86, ladderB: 0.86, steps: 0.9, bucket: 0.92, paste: 0.92, bundle: 0.9 });
 function crewOf(M, P, r, gait, t, start, vFix = null) {
@@ -198,7 +198,7 @@ function crewOf(M, P, r, gait, t, start, vFix = null) {
   return B;
 }
 
-// ------------------------------------------------------------------ THE PLANS (one per kind) → { visits, roof, trucks, props, marks }
+// ---- THE PLANS (one per kind) → { visits, roof, trucks, props, marks }
 // props: what workers.js draws ({ kind, t0, t1, … } — its state at t from its own fields); marks: moments other systems read (the milk
 // on the step, the board's sheets, the blade's repaint, the bulb + lamp fixes, the can held)
 const PLAN = {

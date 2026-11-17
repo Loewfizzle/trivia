@@ -21,7 +21,7 @@ const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[
 const rgb = (c, a = 1) => (a >= 1 ? `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})` : `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a.toFixed(3)})`);
 const pick = (r, a) => a[Math.floor(r() * a.length)];
 
-// ------------------------------------------------------------------ THE WARDROBE (1920s, muted, one accent each)
+// ---- THE WARDROBE (1920s, muted, one accent each)
 // FP3a (the owner's 8P note 3 — "never flat black silhouettes by day"): real muted period cloth that reads at ~27 pt in daylight —
 // camel, tweed brown, navy serge, bottle green, burgundy, grey herringbone, dove grey, a cream mac — trousers in flannel greys +
 // browns, felt hats in browns + greys. At night the same cloth goes to a lamp-lit silhouette (drawFolk's NIGHT mix).
@@ -168,7 +168,7 @@ export function lookOf(name, seed, o = {}) {
   return L;
 }
 
-// ------------------------------------------------------------------ THE BODY — ONE 2.5-D RIG (FP3b, the owner's 8P notes 1 + 2)
+// ---- THE BODY — ONE 2.5-D RIG (FP3b, the owner's 8P notes 1 + 2)
 // Every joint lives in the figure's own frame — a (FORWARD along its heading), b (LATERAL: +b is the side deeper at hd 0), y (UP) —
 // in body heights, and ONE projection draws every facing: screen x = a·cos hd − b·sin hd; depth = a·sin hd + b·cos hd. So walking
 // across the screen is side-on, a diagonal a 3/4 view, toward us the front, away the back, and a turn (core/harbor-people.js#lerpHd)
@@ -586,7 +586,7 @@ function blendJ(A, B, k) {
   return { ...B, feet: L2(A.feet, B.feet), knees: L2(A.knees, B.knees), hips: L2(A.hips, B.hips), hip: lerp2(A.hip, B.hip, k), shs: L2(A.shs, B.shs), sh: lerp2(A.sh, B.sh, k), elbows: L2(A.elbows, B.elbows), hands: L2(A.hands, B.hands), head: lerp2(A.head, B.head, k) };
 }
 
-// ------------------------------------------------------------------ DRAWING ONE FIGURE
+// ---- DRAWING ONE FIGURE
 /**
  * drawFolk(c, cam, it, env): it = { s (the state: x, z, pose, hd / dir, dist, v, a, link), L (the look) }, env = { t, mo, T (day / gold /
  * night, sunDir, sunEl, ovc), dark (the lamps' ramp 0..1), lightAt(x, z) → [r, g, b] | null (the lamps' light on the ground there),
@@ -1010,7 +1010,7 @@ export function drawLeash(c, a, b, env, taut = false) {
   c.beginPath(); c.moveTo(a[0], a[1]); c.quadraticCurveTo((a[0] + b[0]) / 2, taut ? (a[1] + b[1]) / 2 : Math.max(a[1], b[1]) + 2, b[0], b[1]); c.stroke();
 }
 
-// ================================================================== 11a-1 — THE PEOPLE OF THE HOLIDAYS (the owner's bar: premium, playful,
+// ==== 11a-1 — THE PEOPLE OF THE HOLIDAYS (the owner's bar: premium, playful,
 // never gory, never clip-art — each reads at ~20 pt by SILHOUETTE + COLOUR + LIGHT: the sheet ghost's white, the witch's hat, the bones
 // under a lamp, the zombie's arms out, a river of candles, the Catrina's wide flowered hat, the sombreros)
 /** a trick-or-treater's costume (the kids) or the grown-up with them */

@@ -18,7 +18,7 @@ export const BOSS_COVER = day => 0.9 + 0.1 * Math.max(0, Math.min(1, (+day || 0)
 
 export function createPaint(life) {
   const { taps, glow, litP } = life;
-  // ---------------------------------------------------------------- THE ROOMS' STATES
+  // ---- THE ROOMS' STATES
   function apartmentState(E, st, list) {
     const { k, t } = E, bs = life.last.boss || {};
     if (list.find(e => e.id === 'lights-out')) return false;   // (the routine's painter draws the whole room: the shade's lamp off, the set on)
@@ -357,7 +357,7 @@ export function createPaint(life) {
     c.restore(); c.globalAlpha = 1;
   }
 
-  // ---------------------------------------------------------------- WIN2 — THE EDGE WINDOWS' MOOD LIGHTS
+  // ---- WIN2 — THE EDGE WINDOWS' MOOD LIGHTS
   /** the edge window's night: a dark room box behind cream curtains, ONE mood's light + shadow in it (seeded per night, the two never
    *  alike), occasional soft flickers (never a strobe), the blackout through k, a lightning flash in it, the holidays' tints, the
    *  "never fully dark" floor */
@@ -402,7 +402,7 @@ export function createPaint(life) {
     c.globalAlpha = 1; c.restore();
   }
 
-  // ---------------------------------------------------------------- THE APARTMENT AT NIGHT: the TV, the night lamp
+  // ---- THE APARTMENT AT NIGHT: the TV, the night lamp
   /** WIN — THE BLUE TV ROOM REBUILT (the owner: the set must NOT be visible, the room LIT BY THE UNSEEN TV; the couch's back + the heads
    *  SHADED 3D forms, never flat cut-outs; REAL TV FLICKER; the smoke caught in it). The set sits below the sill at the window's right,
    *  facing the couch: its light comes from the FRONT-RIGHT + BELOW — the back wall + the left wall washed brightest low-right, the
@@ -608,7 +608,7 @@ export function createPaint(life) {
     if (up > 0.01) R(c, G.g0, bv - 0.03, G.g1, bv + 0.02, rgb([90, 50, 30], a));
   }
 
-  // ---------------------------------------------------------------- THE SHOP (the barbershop's big window)
+  // ---- THE SHOP (the barbershop's big window)
   function shop(c, env, fr, list, o) {
     const sw = env.shopWin; if (!sw) return;
     const [w0, w1, v0, v1] = sw, { k, day, t, mo } = o, open = fr.states.shop === 'open';
@@ -743,7 +743,7 @@ export function createPaint(life) {
     c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
   }
 
-  // ---------------------------------------------------------------- THE TAPS
+  // ---- THE TAPS
   function tapPaint(E, tap) {
     const { c, G, t, k } = E, el = t - tap.at, p = clamp01(el / 3.2);
     if (tap.kind === 'twitch') {
@@ -787,7 +787,7 @@ export function createPaint(life) {
     c.fillStyle = lk.pal ? lk.pal.skin : lk.col; c.beginPath(); c.arc(xe + open * 0.02, G.h0 + G.ch * 0.52, 0.065, 0, TAU); c.fill();
   }
 
-  // ---------------------------------------------------------------- THE MOMENTS' PAINTERS (PAINT[id](E, el, len, inst); the holidays' in window-holiday.js)
+  // ---- THE MOMENTS' PAINTERS (PAINT[id](E, el, len, inst); the holidays' in window-holiday.js)
   const PAINT = {
     // 9a — A FAN ON A HOT DAY: a little desk fan on the sill (its round cage, the stand, the blades a soft blur turning), the curtain's hem
     // stirring in its breeze; the room's own light behind it (a silhouette at night, a dark shape on the daylit glass)

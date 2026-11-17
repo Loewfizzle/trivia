@@ -2,7 +2,7 @@
 // silhouette or lit — SP4's litPal), the rim, the cast + the trace (the e2e's motion probe), the props, the sax, the cat, the palettes.
 import { CUR_DEPTH, rgb, TAU, clamp01 } from './window-rooms.js';
 
-// ------------------------------------------------------------------ THE FIGURE KIT (wall units, v up)
+// ---- THE FIGURE KIT (wall units, v up)
 /**
  * figure(c, P): a person from the WAIST up (+ the legs with P.legs) — (P.x, P.y) the waist; P.s the scale (1: ~1.02 units from the
  * waist to the crown ≈ 14 pt at 402); lean (rad, + = the top to the right), tilt (the head), face (-1 left … 0 front / back … 1 right —
@@ -374,7 +374,7 @@ export function cat(c, x, y, s, { pose = 0, flick = 0, dir = 1, look = 0, col = 
   c.restore();
 }
 
-// ------------------------------------------------------------------ the palettes
+// ---- the palettes
 export const SIL = 'rgb(24,11,10)', SIL_BACK = 'rgb(84,42,24)', SIL_TV = 'rgb(6,8,22)', SHADOW = 'rgba(78,24,8,0.84)', LEGS_SH = 'rgba(34,10,4,0.95)';
 export const DAY_PALS = [
   { body: 'rgb(74,84,104)', skin: 'rgb(214,168,136)', hair: 'rgb(60,40,30)', hat: 'rgb(54,50,58)', legs: 'rgb(50,48,56)', prop: 'rgb(200,206,214)' },
@@ -412,4 +412,4 @@ export const COSTUME_PALS = {
 export const RIM_COL = { bar: [255, 190, 116], jazz: [255, 214, 160], apartment: [255, 206, 190], back: [255, 222, 170], edge2: [255, 230, 196], edge3: [255, 230, 196] };
 export const RIM_SIDE = { apartment: -1, bar: 0, jazz: 0, back: 0, edge2: 0, edge3: 0 };
 
-// ------------------------------------------------------------------ THE LIVE LAYER
+// ---- THE LIVE LAYER

@@ -121,7 +121,7 @@ export function squeeze(cam, yMax) {
   return sq;
 }
 
-// ================================================================== THE SKYLINE (Part 2)
+// ==== THE SKYLINE (Part 2)
 // The composition is designed on the reference phone in SCREEN FRACTIONS (f: 0 = the left edge, 1 = the right edge) and put
 // in the world at x = (f − 0.5)·(REF.W / REF.F)·z — so every upright phone shows exactly the same skyline (F follows the
 // width), and a wide screen keeps it as its centre group with a panorama generated around it.

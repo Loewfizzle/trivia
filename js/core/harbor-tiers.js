@@ -81,6 +81,25 @@ export const TIERS = Object.freeze({
   stallStepMs: Object.freeze([1000, 1000, 1000]),
 });
 
+/** CITY F — THE WEAK DEVICE (the owner's nephew's school Chromebook, Nov 17 /admin STALL: Linux aarch64 Chrome, 1 core, 4 GB, 1600 × 1200 @ 1 —
+ *  a 1650 ms frame before the reveal, a 2033 ms gap in the bake's crossfade, the reveal at 5.5 s): ≤ 2 cores OR ≤ 4 GB (deviceMemory —
+ *  Chrome only; ≤ 4 also covers a 6 GB phone, which climbs back by the guard's step up after 20 s of steady 60 fps) → the LOWEST tier
+ *  from the start, before the first bake, no stall needed. NEVER an iPhone / iPad (WebKit on iOS: their tier choice is untouched). nav =
+ *  { hardwareConcurrency, deviceMemory, userAgent, platform, maxTouchPoints } (navigator) → true / false. PURE. */
+export function weakDevice(nav) {
+  if (!nav) return false;
+  const ua = String(nav.userAgent || ''), ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && (nav.maxTouchPoints || 0) > 1);
+  if (ios) return false;
+  const hc = Number(nav.hardwareConcurrency) || 0, dm = Number(nav.deviceMemory) || 0;
+  return (hc > 0 && hc <= 2) || (dm > 0 && dm <= 4);
+}
+/** CITY F — the weak device's backing store at the lowest tier: the city drawn at ≤ WEAK_MP megapixels (never under WEAK_FLOOR ×) and
+ *  scaled up by the browser — a 1600 × 1200 screen draws at ≈ 0.72 ×, a 1366 × 768 one at ≈ 0.98 ×, a phone at its tier's own 1 × */
+export const WEAK_MP = 1.0, WEAK_FLOOR = 0.6;
+export function weakDpr(W, H, want) {
+  const cap = Math.sqrt(WEAK_MP * 1e6 / Math.max(1, W * H));
+  return Math.max(WEAK_FLOOR, Math.min(want, cap));
+}
 /** DESKTOP — a full-screen canvas's pixel ratio under THE PIXEL BUDGET: the wanted ratio, capped so W × H × r² ≤ sceneMp megapixels */
 export function budgetDpr(W, H, want, tier = 2) {
   const mp = tierVal('sceneMp', tier) / 10 * 1e6, cap = Math.sqrt(mp / Math.max(1, W * H));

@@ -47,7 +47,7 @@ export function xmasPrelude(lc, o = {}) {
   return { bf, rush, tree, crew, lights: up, lit: small ? litNight : up === 1 && hr >= dusk - XMAS.early, banner: bf && hr >= XMAS.banner[0] && hr < XMAS.banner[1] };
 }
 
-// ------------------------------------------------------------------ THE STRINGS ON THE SPEAKEASY (hung by the crew)
+// ---- THE STRINGS ON THE SPEAKEASY (hung by the crew)
 /** the windows' sills + the cornice + the awning's edge, in the front wall's units (u along from its left end, v up) — the window
  *  u ranges + rows come from core/harbor-speakeasy.js (SPEAK_WIN / SPEAK_V); `bay` = the rig's bay that hangs it (0 = the middle
  *  window + the far-left one it reaches, 1 = the right window) */

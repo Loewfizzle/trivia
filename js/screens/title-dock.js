@@ -196,13 +196,13 @@ export function createDock(on) {
   };
 }
 
-// ------------------------------------------------------------------ THE DOCK's WORK (CITY 1.0 OUT: out of title.js — JOIN, HOST, the notes,
+// ---- THE DOCK's WORK (CITY 1.0 OUT: out of title.js — JOIN, HOST, the notes,
 // the rings' light, no streak on the dock — SHELL 2.0 B1). title.js calls createDockWork(T) where this code sat and reads dk.<name>.
 /** createDockWork(T) — moved out of title.js#createTitle by scripts/split-closure.mjs (no behaviour change): T carries the names it shares
  *  with that closure, live (getters + setters); what it returns, the closure reads as dk.<name>. */
 export function createDockWork(T) {
 
-  // ------------------------------------------------------------------ the dock: THE NEON RING (docs/title.md)
+  // ---- the dock: THE NEON RING (docs/title.md)
   // One floating bar of smoked glass: JOIN · BOARD · [HOST] · GAMES · YOU. HOST is a raised disc with a neon tube ring that
   // wears the sign's colours (read from the sign's own tubes: ringColors) and never switches off. JOIN opens a glass panel
   // above the bar (the four code boxes); REJOIN and notes float above it too, so the bar itself never moves.

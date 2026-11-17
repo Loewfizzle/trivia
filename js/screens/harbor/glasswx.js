@@ -100,7 +100,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
   function dropLayers() { for (const L of layers.values()) L.cv.remove(); layers.clear(); }
   const sprite = (col, lit = false, amb = 1) => { const aq = Math.round(amb * 4) / 4, k = col.map(v => Math.round(v / 24) * 24).join(',') + (lit ? 'L' : '') + aq; let s = sprites.get(k); if (!s) { s = lensSprite(col.map(v => Math.round(v / 24) * 24), lit, aq); sprites.set(k, s); if (sprites.size > 24) sprites.delete(sprites.keys().next().value); } return s; };
 
-  // ---------------------------------------------------------------- THE SIGN's beads (on its tubes)
+  // ---- THE SIGN's beads (on its tubes)
   const tubeAt = b => geo.tubes[b.t].pts[Math.max(0, Math.min(geo.tubes[b.t].pts.length - 1, b.i))];
   function underside(p, side) {
     // the normal pointing DOWN (a horizontal tube: under it; a vertical one: its side — the bead's own)
@@ -153,7 +153,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     drips = drips.filter(d => d.y < d.y1);
   }
   let icicleTips = [];
-  // ---------------------------------------------------------------- 9e — SNOW LANDS ON THE SIGN (the owner: "the snowflakes have to land on it
+  // ---- 9e — SNOW LANDS ON THE SIGN (the owner: "the snowflakes have to land on it
   // and stop falling … I don't think any of them land on it. Small detail, but it matters"). While snow falls, flakes AT THE SIGN's DEPTH
   // (the mid layer's size + speed, a touch bigger to read when still) drift down onto a level stretch of a tube and STOP on its top edge
   // (on the snow already there), sit a moment — a still white dot among the falling ones — then soften into the cap: on a DARK tube each
@@ -247,7 +247,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     }
     x.restore();
   }
-  // ---------------------------------------------------------------- 9b — SNOW ON THE NEON, FLUFFY + MELTING FOR REAL (the owner: "realistic and
+  // ---- 9b — SNOW ON THE NEON, FLUFFY + MELTING FOR REAL (the owner: "realistic and
   // fluffy, super realistic … melt very realistically too"). THE SHAPE: snow lies only where a tube runs level enough to hold it, as a
   // lumpy, pillowy mound built from overlapping PUFFS (big slow lumps + small bumps, seeded per tube), overhanging the tube's sides like
   // real snow on a rail; a rounded cap on a tube's upper end; a little on each mounting clip. THE LIGHT: volumetric — a cool blue-grey
@@ -467,7 +467,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     x.restore();
   }
 
-  // ---------------------------------------------------------------- THE GLASS UI (the dock + the corner buttons)
+  // ---- THE GLASS UI (the dock + the corner buttons)
   // the rim band each shape keeps its weather in: a circle's outer ring; the pill's top + bottom edges and its ends
   function bandPath(x, g, inset = 0) {
     x.beginPath();

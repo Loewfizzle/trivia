@@ -96,7 +96,7 @@ export function createWheel() {
     lookKey = ''; bulbKey = '';
   }
 
-  // ---------------------------------------------------------------- the sprites (per look; the bulbs per scheme)
+  // ---- the sprites (per look; the bulbs per scheme)
   function build(T) {
     const key = `${Math.round(T.day * 6)}${Math.round(T.gold * 6)}${Math.round(T.night * 6)}|${r.toFixed(1)}|${dpr}`;
     if (key === lookKey) return;
@@ -217,7 +217,7 @@ export function createWheel() {
   }
 
   const BR = () => Math.max(2.1, r * 0.058);                        // (NEON PASS 5: a little bigger bulbs)
-  // ---------------------------------------------------------------- THE BULBS, one by one (NEON PASS 5): a level + a colour each
+  // ---- THE BULBS, one by one (NEON PASS 5): a level + a colour each
   const TINTS = [[255, 206, 120], [255, 150, 190], [170, 214, 255]];  // a normal night's wave: gold, rose, ice in turn
   const q6 = (a, b, k) => mix(a, b, Math.round(clamp01(k) * 6) / 6).map(Math.round);     // (colours on 1/6 steps: few glow sprites)
   const hsh = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
@@ -304,7 +304,7 @@ export function createWheel() {
     if (!base) { for (let i = 0; i < HUB_BULBS; i++) { const an = (i / HUB_BULBS) * Math.PI * 2; bulb(c, Math.cos(an) * r * 0.13, Math.sin(an) * r * 0.13, br * 0.8, hc, hk); } bulb(c, 0, 0, br * 1.5, hc, hk); }
     c.globalAlpha = 1;
   }
-  // ---------------------------------------------------------------- the show: each bulb set's brightness at t (s)
+  // ---- the show: each bulb set's brightness at t (s)
   function show(t, f) {
     const k = new Array(3 + NR + 1).fill(1);
     k.steady = true;

@@ -109,7 +109,7 @@ export function sunLook(LK, P) {
   return { sunDir: ovc >= 0.5 ? 0 : sunDir, sunEl, skyHi: col(st && st[1]), skyLo: col(st && st[3]), skyTop: col(st && st[0]), cloud: LK ? LK.cloud || 0 : 0, ovc };
 }
 
-// ------------------------------------------------------------------ THE DAY SKY (THE DAY PASS)
+// ---- THE DAY SKY (THE DAY PASS)
 // The shared palette's day sky (core/palette.js — City 1.0's, untouched) is a soft grey-blue. The Harbor paints its own by day:
 // a deep azure overhead fading through clean blues to a pale, luminous horizon — a travel poster's sky — blended in by the day's
 // share (so dawn, golden hour and the night keep the palette's exactly) and greyed by the real cloud cover.

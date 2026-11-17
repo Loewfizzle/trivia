@@ -29,7 +29,7 @@ const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Mat
 /** the hour's light on a jet (from the look): day / golden / dark (0..1) */
 export function jetLook(L) { return { day: clamp01(L.w.day + L.w.dawn * 0.7), golden: L.w.golden || 0, dark: clamp01(L.w.night + L.w.late) }; }
 
-// ------------------------------------------------------------------ the airframe (nose → +x, in jet lengths; y down; the nozzle at 0)
+// ---- the airframe (nose → +x, in jet lengths; y down; the nozzle at 0)
 // THE F-22 (Oct 25). Every edge is a straight facet or a long flat curve — nothing bulbous. The forebody is a wedge with a CHINE (the
 // sharp edge running from the nose along the side to the intake's top corner): above it the upper facet catches the sky and the sun,
 // below it the lower facet sits in shade — that one hard tone break is what makes it read as a stealth jet at 90 pt. The intakes are
@@ -209,7 +209,7 @@ function jetSprite(len, look, dpr) {
   return { cv, w: W, h: H, ox, oy };
 }
 
-// ------------------------------------------------------------------ the afterburner + MACH DIAMONDS (live)
+// ---- the afterburner + MACH DIAMONDS (live)
 const DIAMOND = [[255, 255, 248], [214, 228, 255], [178, 160, 255], [255, 168, 104], [255, 120, 80]];
 let glowCache = null;
 function glowSprite() {
@@ -350,7 +350,7 @@ export function createJets() {
   };
 }
 
-// ------------------------------------------------------------------ THE AIR SHOW + THE MISSING MAN (POLISH 4 — plan.md 6b note 8)
+// ---- THE AIR SHOW + THE MISSING MAN (POLISH 4 — plan.md 6b note 8)
 // The owner after 6b: "comically bad" (flat jets, jerky smoke, an abrupt pull-up into a perfect circle) → DECIDED: no loops; only
 // what can look great. Flights are a function of the seconds since they began (every phone the same sky, a late arrival mid-show):
 //   'airshow'   THE FORMATION FLYBY: a tight DIAMOND of four, straight across the sky, smooth + fast, smoke on by day — a pass left →

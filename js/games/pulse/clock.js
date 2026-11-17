@@ -51,7 +51,7 @@ export function resetClock() { offs = []; offset = null; lastSample = 0; }
 // (APP FIXES — Grok 3.3: the samples from before a suspension map the wrong time — start the map again whenever the context runs again)
 onResume(resetClock);
 
-// ---------------------------------------------------------------- calibration (per device)
+// ---- calibration (per device)
 export function loadCalibration() {
   try { const c = JSON.parse(localStorage.getItem(CAL_KEY) || 'null'); return c && typeof c.ms === 'number' ? c : null; } catch { return null; }
 }
@@ -76,7 +76,7 @@ export function outputChanged() {
   return Math.abs(now - c.lat) > 25;
 }
 
-// ---------------------------------------------------------------- playback
+// ---- playback
 /**
  * Plays a decoded song through the music bus (so it follows the Music slider) with position 0
  * heard at server time startAtMs. Joining late (rejoin / back from background) starts mid-song.

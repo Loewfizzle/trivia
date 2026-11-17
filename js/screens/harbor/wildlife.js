@@ -66,7 +66,7 @@ export function createWildlife() {
   /** a bird's place on spot sp (its k-th slot), world */
   const placeOf = (id, k, seed) => { const sp = byId.get(id); return sp ? spotPoint(sp, k, seed) : null; };
 
-  // ---------------------------------------------------------------- the frame: the plan + the reactions
+  // ---- the frame: the plan + the reactions
   /**
    * frame(f): once a frame. f = { ms (the city clock), off (minutes from UTC), tz, lat, lon, season, month, rain, snow, wind, moon (illum
    * 0..1), force (Set), tier, motion, people: [{ x, z, v, kind, vid, role }] (people.js#positions), dark (the lamps' ramp), catInside?
@@ -103,7 +103,7 @@ export function createWildlife() {
     scareQ = [];
   }
 
-  // ---------------------------------------------------------------- THE PIGEONS
+  // ---- THE PIGEONS
   const peopleNear = (x, z, r) => { let best = null, bd = r; for (const p of people) { if (p.role === 'dog') continue; const d = Math.hypot(p.x - x, (p.z - z) * 1.1); if (d < bd) { bd = d; best = p; } } return best ? { p: best, d: bd } : null; };
   const dogsNear = (x, z, r) => people.filter(p => p.role === 'dog' && Math.hypot(p.x - x, p.z - z) < r);
   /** the spot occupancy (live): ids → count */
@@ -236,7 +236,7 @@ export function createWildlife() {
   }
   const pigeonNight = () => { const h = localOf(t, ctx.off).h; return h < sun.rise - 0.3 || h > sun.set + 0.6; };
 
-  // ---------------------------------------------------------------- THE GULLS (landing on the billboard + the railing)
+  // ---- THE GULLS (landing on the billboard + the railing)
   function gullsNow() {
     const S = gullSlotLen(force), F = force.has('gulls-land'), fb = F ? fbase('gulls-land', S) : null, j = F ? fb.n : Math.floor(t / S), out = [];
     for (const jj of [j - 1, j]) for (const g of get(`gl|${jj}|${F ? 1 : 0}|${(ctx.wind > 8) ? 1 : 0}|${ctx.rain > 0.3 ? 1 : 0}`, () => (F ? shiftPlan(gullSlot(jj, ctx), fb.s0) : gullSlot(jj, ctx)))) {
@@ -271,7 +271,7 @@ export function createWildlife() {
     return out;
   }
 
-  // ---------------------------------------------------------------- THE SNOWY OWL
+  // ---- THE SNOWY OWL
   function owlDayAt(tt) { const lc = localOf(tt, ctx.off); return get(`owl|${lc.key}|${force.has('snowy-owl') ? 1 : 0}`, () => owlDay(lc.key, lc.day0, ctx)); }
   function owlNow() {
     const o = owlAt(owlDayAt(t), t); if (!o) return null;
@@ -291,7 +291,7 @@ export function createWildlife() {
     return { ...p, state: 'glide', fly: 1 - land * 0.6, flap: o.u > 0.8 ? frameT * 6 : 0.2, hd: Math.atan2(Bq.z - A.z, Bq.x - A.x), eyes: dusk };
   }
 
-  // ---------------------------------------------------------------- THE SQUIRREL (the big framing maple)
+  // ---- THE SQUIRREL (the big framing maple)
   function squirrelNow() {
     if (!maple) return null;
     const S = squirrelSlotLen(force), F = force.has('squirrel'), fb = F ? fbase('squirrel', S) : null, j = F ? fb.n : Math.floor(t / S);
@@ -330,7 +330,7 @@ export function createWildlife() {
     return climb(clamp01((t - s.back - SQUIRREL.hop * 1.2) / SQUIRREL.climb), false);
   }
 
-  // ---------------------------------------------------------------- THE COYOTE + THE CAN
+  // ---- THE COYOTE + THE CAN
   const nightKeyOf = tt => { const lc = localOf(tt, ctx.off); return lc.h < 12 ? localOf(tt - 43200, ctx.off) : lc; };
   function coyotePlan() {
     if (force.has('coyote')) { const { n, base } = fbase('coyote', 70); return get(`coyF|${n}`, () => ({ ...coyotePath(L, base + 1, rngFrom(n + 3)), howl: n % 3 === 1 })); }
@@ -368,7 +368,7 @@ export function createWildlife() {
     return { ...hyd, spray: tr ? tr.spray : 0, wet: tr ? tr.wet : 0, open: tr ? Math.min(1, Math.max(0, tr.u + 3) / 3) * (tr.spray > 0 ? 1 : 0) : 0 };
   }
 
-  // ---------------------------------------------------------------- THE SPEAKEASY CAT, OUTSIDE
+  // ---- THE SPEAKEASY CAT, OUTSIDE
   function catInsideFn(a, b, f) {
     // the window moment "THE CAT ON THE SILL" (core/harbor-moments.js) in any hour block that touches [a, b]: the same plan the
     // speakeasy's window life builds (its dusk / dawn from f.windowDark), so the two cats are never out at once
@@ -443,7 +443,7 @@ export function createWildlife() {
     return { kind: 'cat', x: sp.x, y: sp.y, z: sp.z, hd: sp.hd + 0.25 * Math.sin(t * 0.05), eyes: plan.black ? 0.4 * darkK : 0, black: !!plan.black, pose: lick ? 'lick' : 'sit', turn: lick ? 0.3 : 0.9 * Math.sin(t * 0.27 + plan.t0) * (Math.sin(t * 0.08) > 0 ? 1 : 0.2), tailFlick: Math.sin(t * 2.1) * 0.5 };
   }
 
-  // ---------------------------------------------------------------- THE FISH · THE HERON · THE FIREFLIES
+  // ---- THE FISH · THE HERON · THE FIREFLIES
   function fishNow() {
     const S = fishSlotLen(force), j = Math.floor(t / S), out = [];
     for (const jj of [j - 1, j]) { const f = get(`fish|${jj}|${force.has('fish') ? 1 : 0}`, () => fishSlot(jj, L, ctx)); if (f && t >= f.t0 && t < f.t0 + 4.2) out.push({ ...f, t: t - f.t0, water: -1.2 }); }
@@ -478,7 +478,7 @@ export function createWildlife() {
     return out;
   }
 
-  // ---------------------------------------------------------------- DRAWING
+  // ---- DRAWING
   let lightKey = '', lightFn = null, srcs = null, pileKey = '', pileCv = null, pileBox = null;
   function envOf(env) {
     const dark = clamp01(env.dark || 0), k = Math.round(dark * 20) / 20, key = `${k}|${lightMode()}`;   // (NIGHT-A: the light's mode in the key)
@@ -558,7 +558,7 @@ export function createWildlife() {
     c.strokeStyle = E.dark > 0.5 ? 'rgba(60,48,40,0.6)' : 'rgba(120,96,70,0.7)'; c.lineWidth = Math.max(0.4, 0.025 * s); c.beginPath(); c.ellipse(x, y, 0.11 * s, 0.15 * s, 0, 0, TAU); c.stroke();
   }
 
-  // ---------------------------------------------------------------- THE SOUNDS (through their slots — silent while empty)
+  // ---- THE SOUNDS (through their slots — silent while empty)
   function tick(env) {
     const snd = env && env.snd; const q = sounds; sounds = [];
     if (!snd || !snd.play || !motion || !L) return;

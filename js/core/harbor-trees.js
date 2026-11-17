@@ -9,7 +9,7 @@ import { rngFrom } from './rng.js';
 
 const TAU = Math.PI * 2;
 
-// ------------------------------------------------------------------ THE COLOURS
+// ---- THE COLOURS
 // (each list: [rgb, weight]; base colours before the light — trees.js multiplies them by the sun / the sky / the lamps)
 const MAPLE_AUTUMN = [
   // 0 — SCARLET-CRIMSON (the curb maple on a phone)
@@ -65,7 +65,7 @@ export function densityOf(kind, season, phase = 0.5) {
   return phase <= 0.7 ? 1 : Math.max(0.22, 1 - (phase - 0.7) / 0.3 * 0.78);
 }
 
-// ------------------------------------------------------------------ THE SHAPE
+// ---- THE SHAPE
 /** the crown's envelope: centre height cv, half-width a, half-height b (+ the shape test) */
 export function envelopeOf(t) {
   const crab = t.kind === 'crab';

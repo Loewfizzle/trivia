@@ -7,7 +7,7 @@ import { rngFrom } from '../../core/rng.js';
 import { dome, blob, foliage, tulips, boxOf, BRASS } from './props.js';
 import { FONT, FRONT, LEFT, RIGHT, TOP, dot, fillPts, frame, lightFor, line, lit, norm, pbox, rimCol, seedOf, soft } from './props-light.js';
 
-// ------------------------------------------------------------------ THE PLANTER — ONE CRAFTED URN (FP, the owner: "much higher quality
+// ---- THE PLANTER — ONE CRAFTED URN (FP, the owner: "much higher quality
 // or replaced"; fewer planters, better ones)
 // A 1920s Deco garden URN in the speakeasy's own cream terracotta, tucked against its corner: a square two-step plinth with a recessed
 // panel, a turned foot + stem + knop, a GADROONED bowl (lobes that catch the light one by one), a fillet, a carved CHEVRON frieze, a
@@ -258,7 +258,7 @@ function evergreens(x, P, Lt, B, r, snow) {
   }
 }
 
-// ------------------------------------------------------------------ THE MAILBOX (PF — a street-furniture accent)
+// ---- THE MAILBOX (PF — a street-furniture accent)
 // A 1920s U.S. collection box in its period OLIVE GREEN (the Post Office's colour until the 1950s): a cast-iron pillar on a short
 // pedestal (a stepped foot, a tapering neck, a collar), the box's square body with chamfered corners, a flanged DOMED cap + a knob;
 // on its face the hinged SLOT FLAP under a little hood, the raised "U.S. MAIL" band, the collection door (inset, its lock) with the

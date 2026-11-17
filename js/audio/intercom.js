@@ -101,7 +101,7 @@ function markPlayed(id) {
   try { sessionStorage.setItem(PLAYED_KEY, JSON.stringify([...played])); } catch { /* fine */ }
 }
 
-// ---------------------------------------------------------------- the sound
+// ---- the sound
 let chimeBuf = null, chimeP = null;
 const decode = (c, ab) => new Promise((res, rej) => { const p = c.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); });
 function chime(c) {

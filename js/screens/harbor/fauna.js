@@ -19,7 +19,7 @@ const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[
 const rgb = (c, a = 1) => (a >= 1 ? `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})` : `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${Math.max(0, a).toFixed(3)})`);
 const NIGHT = [16, 15, 26];
 
-// ------------------------------------------------------------------ THE LIGHT (one model for every animal)
+// ---- THE LIGHT (one model for every animal)
 /** the scene's light on a colour at (x, z): by day itself (gold warmer, overcast flatter); at night mostly a silhouette lifted by the
  *  lamps' light there (env.lightAt) — k: how much this surface takes the lamp (a white gull more than a grey pigeon) */
 export function litCol(col, env, x, z, k = 1) {
@@ -49,7 +49,7 @@ function rimOf(env, x, z) {
   return { col: mix(lt.map(v => Math.min(255, 60 + v / n * 195)), [255, 220, 170], 0.4), a: clamp01(0.3 + lk * 0.8) * lampK, side: env.rimSide ? env.rimSide(x, z) : 1 };
 }
 
-// ------------------------------------------------------------------ THE GEOMETRY
+// ---- THE GEOMETRY
 /** a frame at o (world) facing hd (0 → +x, π/2 → away): (a forward, b lateral, y up) → world */
 export const frameOf = (o, hd, pitch = 0) => { const c = Math.cos(hd), s = Math.sin(hd), cp = Math.cos(pitch), sp = Math.sin(pitch);
   return (a, b, y) => { const a2 = a * cp - y * sp, y2 = a * sp + y * cp; return { x: o.x + a2 * c - b * s, y: (o.y || 0) + y2, z: o.z + a2 * s + b * c }; }; };
@@ -99,7 +99,7 @@ function cast(c, cam, x, y, z, h, w, env) {
 const line = (c, a, b, col, w) => { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); };
 const poly = (c, pts, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.closePath(); c.fill(); };
 
-// ------------------------------------------------------------------ BIRDS: one rig (pigeon, gull) — the wings, the body, the head
+// ---- BIRDS: one rig (pigeon, gull) — the wings, the body, the head
 /** the birds' looks (true colours; the light does the rest) */
 const PIGEON_MORPHS = [
   { body: [132, 140, 158], wing: [150, 156, 170], head: [104, 110, 128], bar: [40, 40, 48], tail: [96, 100, 116], neck: [[96, 150, 120], [148, 96, 150]] },   // blue bar (the common one)
@@ -212,7 +212,7 @@ export function drawBird(c, cam, b, env) {
   c.restore();
 }
 
-// ------------------------------------------------------------------ THE SNOWY OWL
+// ---- THE SNOWY OWL
 /** o = { x, y, z, hd (the body: toward us), turn (the head's yaw), blink (0..1 eyes shut), eyes (0..1 the yellow at dusk), fly (0..1 —
  *  a glide: the wings out), flap, a } — big, white, a few dark flecks; round head, no ear tufts */
 export function drawOwl(c, cam, ow, env) {
@@ -259,7 +259,7 @@ export function drawOwl(c, cam, ow, env) {
   c.restore();
 }
 
-// ------------------------------------------------------------------ THE GREAT BLUE HERON (on its piling at dawn)
+// ---- THE GREAT BLUE HERON (on its piling at dawn)
 /** h = { x, y, z, hd, pose ('stand' | 'strike' | 'fly'), strike (0..1 the neck shooting down), flap, spread, a } — a tall S-necked
  *  grey-blue shape with a dagger bill + the black crown stripe, long legs; flying: the neck folded, the legs trailing, slow broad beats */
 export function drawHeron(c, cam, h, env) {
@@ -306,7 +306,7 @@ export function drawHeron(c, cam, h, env) {
   c.restore();
 }
 
-// ------------------------------------------------------------------ THE QUADRUPEDS (coyote, cat, squirrel): one rig
+// ---- THE QUADRUPEDS (coyote, cat, squirrel): one rig
 const QUAD = {
   coyote: { L: SIZE.coyote.len, H: SIZE.coyote.h * 1.22, coat: [150, 128, 100], belly: [214, 196, 168], dark: [74, 62, 54], ear: 'big', tail: 'brush', legW: 0.042, head: 0.13, snout: 0.15, bodyH: 0.13, tailW: 0.075 },
   cat: { L: SIZE.cat.len, H: SIZE.cat.h * 1.6, coat: [26, 24, 30], belly: [36, 34, 40], dark: [12, 12, 16], ear: 'cat', tail: 'cat', legW: 0.05, head: 0.13, snout: 0.05, bodyH: 0.18 },
@@ -401,7 +401,7 @@ export function drawQuad(c, cam, q, env) {
   c.restore();
 }
 
-// ------------------------------------------------------------------ THE FIRE HYDRANT (POLISH 5 — the trash can's old spot)
+// ---- THE FIRE HYDRANT (POLISH 5 — the trash can's old spot)
 /** a classic RED 1920s cast-iron fire hydrant (the owner, Oct 25: instantly readable at 402 — bold red, a domed bonnet, two side nozzles
  *  + their caps, a chain, a crisp highlight): h = { x, z, h, r, post }; o = { spray (0..1: the cap off the right nozzle, the stream on),
  *  open (the stem's turn: the operating nut a quarter round), t (s), motion } */
@@ -504,7 +504,7 @@ export function drawHydrantWet(c, cam, h, env, o = {}) {
   c.restore();
 }
 
-// ------------------------------------------------------------------ THE MOORING PILING (the heron's) + a FISH's jump + ripple rings
+// ---- THE MOORING PILING (the heron's) + a FISH's jump + ripple rings
 /** three weathered timbers bound with an iron band, a rope round them; their reflection in the water (p = pilingSpot + the light) */
 export function drawPiling(c, cam, p, env) {
   const s = cam.F / p.z, [cx, wy] = project(cam, p.x, p.water, p.z), [, ty] = project(cam, p.x, p.y, p.z), r = p.r * s;

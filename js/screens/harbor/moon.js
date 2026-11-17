@@ -27,7 +27,7 @@ const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Mat
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const S = 256, MR = 120, MC = 128;                     // the texture: 256 px, the disc's radius 120
 
-// ------------------------------------------------------------------ THE PHOTOGRAPH (lazy, shared, fails silently)
+// ---- THE PHOTOGRAPH (lazy, shared, fails silently)
 const PHOTO_URL = new URL('../../../assets/moon-near.jpg', import.meta.url).href;
 let photo = null, photoState = 'idle';                 // photo: { n, lum: Float32Array 0..1 } — the disc fills the n² square
 function loadPhoto() {
@@ -49,7 +49,7 @@ function loadPhoto() {
   } catch { photoState = 'fail'; }
 }
 
-// ------------------------------------------------------------------ THE MOON IN THE PLAYER'S SKY (pure)
+// ---- THE MOON IN THE PLAYER'S SKY (pure)
 const RADg = Math.PI / 180;
 const enu = (az, el) => [Math.cos(el * RADg) * Math.sin(az * RADg), Math.cos(el * RADg) * Math.cos(az * RADg), Math.sin(el * RADg)];
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];

@@ -41,7 +41,7 @@ export function buildingDice(seed, rank) {
 /** is a window lit at the hour's share (P.win)? the light timeline in one line */
 export const isLit = (traits, share) => !!traits && traits.order <= share;
 
-// ------------------------------------------------------------------ the pixel font (5 rows; letters 3–5 columns wide)
+// ---- the pixel font (5 rows; letters 3–5 columns wide)
 // '#' = a lit window. Digits and most letters are 3 wide; M, N, W, Q and the symbols wider. A heart, a star, a flag.
 const G = {
   A: ['.#.', '#.#', '###', '#.#', '#.#'], B: ['##.', '#.#', '##.', '#.#', '##.'], C: ['.##', '#..', '#..', '#..', '.##'],
@@ -62,7 +62,7 @@ const G = {
   '⚑': ['#.#.#.#', '.#.####', '#.#.#.#', '#######', '.......'],   // the flag: the canton top-left, the stripes (Part 10 colours it)
   ' ': ['..', '..', '..', '..', '..'],
 };
-// ------------------------------------------------------------------ POLISH 4 — THE BIGGER FONTS (the owner: "BUY BTC" read as a jumble)
+// ---- POLISH 4 — THE BIGGER FONTS (the owner: "BUY BTC" read as a jumble)
 // Three more sizes for the word towers — a tower picks the BIGGEST that fits its face AND keeps a letter's natural shape once the
 // window's own aspect is applied (fontsFor): wordA + wordB's windows are ~1.75× taller than their pitch is wide, so a 5×7 letter there
 // would read as a skinny 0.4 — the 5 × 5 is the corrected 5 × 7 there (it reads as ~5 : 8.8); wordV's windows are square, so it takes
@@ -248,7 +248,7 @@ export function scrollColumns(text, f) {
   return { text: t, cols, h: fontOf(f).h };
 }
 
-// ------------------------------------------------------------------ PART 7a §0 — THE WORD TOWERS from the panel: capacity + the fit
+// ---- PART 7a §0 — THE WORD TOWERS from the panel: capacity + the fit
 /** the word towers' faces on every phone + desktop today (harbor.test.mjs checks them against the layout): the panel's fallback
  *  when the live faces (harbor().windows.faces) aren't there */
 export const WORD_FACES = { wordA: { cols: 19, rows: 11, word: 'h', ar: 1.75 }, wordB: { cols: 15, rows: 9, word: 'h', ar: 1.75 }, wordV: { cols: 5, rows: 18, word: 'v', ar: 0.97 } };

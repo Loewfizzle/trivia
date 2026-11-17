@@ -141,7 +141,7 @@ export function centrepieceCap(cam, m, limits, pad = CENTRE_PAD) {
  *  box's foot, w × bh the box (≈ 22 × 25 pt at 402; its letters ≈ 6.7 pt tall) */
 export const LANTERN = Object.freeze({ at: 0.5, z: 63.4, h: 2.6, w: 2.3, bh: 2.4 });
 
-// ------------------------------------------------------------------ THE CROSSING'S CYCLE (FP — PURE, on the shared clock)
+// ---- THE CROSSING'S CYCLE (FP — PURE, on the shared clock)
 // One cycle for the whole road (both stop lights show the same — it's one road, both directions) and the WALK / WAIT lantern, in
 // step: the road GREEN (the lantern WAIT, steady) → AMBER → a moment ALL RED → WALK (steady) → WAIT BLINKING (the clearance: "don't
 // start now" — it blinks before the road turns green again) → a moment all red (WAIT steady) → green. On the city's clock (ms since
@@ -276,7 +276,7 @@ export function hydrantSpot(cam, f = null) {
   return { x: xOfF(cam, f, z), z, h: HYDRANT.h, r: HYDRANT.r, post: null };
 }
 
-// ------------------------------------------------------------------ THE SEASON (the trees, the planters)
+// ---- THE SEASON (the trees, the planters)
 export const SEASONS = Object.freeze(['spring', 'summer', 'autumn', 'winter']);
 /**
  * The trees' season by the real local date (Michigan): SPRING Apr 10 → May 31 (the crabapples blossom ~ late Apr → mid May, fresh
@@ -306,7 +306,7 @@ export function seasonPhase(month, day = 15, { south = false } = {}) {
   return Math.max(0, Math.min(1, (doy - a) / (b - a)));
 }
 
-// ------------------------------------------------------------------ THE IMPLIED ROAD'S CARS (on the clock: every phone the same)
+// ---- THE IMPLIED ROAD'S CARS (on the clock: every phone the same)
 /** a slot of the near road: at most one car a slot; its window from t0; the car is nearest at its CENTRE, t0 + peak — the same on
  *  every phone, whatever its take (FP3: the sound's take is placed so its own loudest moment lands there — core/city-sounds.js#syncStart) */
 export const ROAD_PASS = Object.freeze({ slot: 40e3, lead: 12e3, dur: 22e3, peak: 9e3 });
@@ -334,7 +334,7 @@ export function roadPassAt(ms, hourAt = () => 12, { seed = 1924, force = false }
   return null;
 }
 
-// ------------------------------------------------------------------ FP2 — THE STREET UNDER THE DOCK (full-bleed; PURE)
+// ---- FP2 — THE STREET UNDER THE DOCK (full-bleed; PURE)
 // The band under the dock is a FINISHED STREET (the implied road made real — the owner, Oct 23): the near granite curb (its top at
 // the dock's top edge), a granite gutter, the street's own setts, ONE streetcar track (two steel rails, inset), a manhole, a storm
 // drain at the curb, a wet hook (Part 9). While the dock rests (hidden), the implied road's passes are SEEN: a 1920s motorcar rolls

@@ -60,14 +60,14 @@ export function roomLight(id, hour) {
   return id === 'edge2' ? EDGE_NIGHT : 0;
 }
 
-// ------------------------------------------------------------------ THE GHOST AD (weekly)
+// ---- THE GHOST AD (weekly)
 const WEEK = 7 * 864e5;
 /** the swap: Monday ~4 am Eastern (09:00 UTC — 4 am in winter, 5 am in summer: nobody watching) */
 export const AD_EPOCH = Date.UTC(2026, 0, 5, 9, 0);
 /** the rotation: one ad per game, each about every 12 weeks, neighbours in different colours */
 export const AD_ORDER = Object.freeze(['rum', 'golf', 'stakes', 'pulse', 'cipher', 'overclock', 'agent', 'slip', 'holdem', 'bluff', 'prism', 'signal', 'gridlock']);   // (HOLD'EM IN THE CITY: HOLD'EM in GRIDLOCK's slot — the five's weeks unchanged)
 export const adWeek = ms => Math.floor((ms - AD_EPOCH) / WEEK);
-// ------------------------------------------------------------------ THE BLADE'S WEEKLY LOOK (SP5; CITY B — BOLD, the owner Nov 14)
+// ---- THE BLADE'S WEEKLY LOOK (SP5; CITY B — BOLD, the owner Nov 14)
 /** Each Monday's repaint (the painters, 1–4 pm) changes the game + the look, clearly different week to week on the phone, never at the cost of
  *  the name: a sign KIND (ENAMEL — a saturated painted board, floodlit at night · NEON — a dark board, the letters glowing tubes · BULB — the
  *  letters made of bulbs), a SATURATED panel, a letter colour that holds ≥ 4.5 : 1 on it (cream / gold / black / the game's neon), the font
@@ -146,7 +146,7 @@ export function ghostAdGame(ms, ids, avoid = null) {
   return order[i] === avoid && n > 1 ? order[(i + 1) % n] : order[i];
 }
 
-// ------------------------------------------------------------------ PROM — THE BARBERSHOP AWNING, LIT FROM UNDERNEATH (the owner, Oct 28 — "B")
+// ---- PROM — THE BARBERSHOP AWNING, LIT FROM UNDERNEATH (the owner, Oct 28 — "B")
 // The three little lamps over the awning are gone: a row of warm bulbs tucked UNDER the awning's front edge lights the canvas from
 // beneath (its stripes glow through), washes the shop window + the HARBOR BARBERS lettering below and lays a warm pool on the pavement.
 // HOURS (the owner asked Claude to pick): ON AT DUSK by the PHOTOCELL (the darkness input — earlier on a dark overcast evening), OFF at

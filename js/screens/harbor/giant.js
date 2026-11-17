@@ -29,7 +29,7 @@ const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[
 const rgb = (c, a = 1) => `rgba(${Math.round(Math.max(0, Math.min(255, c[0])))},${Math.round(Math.max(0, Math.min(255, c[1])))},${Math.round(Math.max(0, Math.min(255, c[2])))},${+a.toFixed(3)})`;
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 
-// ------------------------------------------------------------------ THE SHAPE (object units = world units: y up from the straw bed,
+// ---- THE SHAPE (object units = world units: y up from the straw bed,
 // z away from us, x right; the carving toward us — θ = 0)
 const S = GIANT.body;   // { R, Hh, yc, ribs, rib, rind }
 const DS = S.R / 1.25;  // (the shape's details were drawn for a 1.25-radius pumpkin: they scale with it)
@@ -267,7 +267,7 @@ function shadeStep(J, budget = 4) {
   return true;
 }
 
-// ------------------------------------------------------------------ THE STRAW BED (straw spread round its foot, in the camera's perspective)
+// ---- THE STRAW BED (straw spread round its foot, in the camera's perspective)
 const STRAW = [214, 172, 72], STRAW_HI = [242, 212, 120], STRAW_LO = [140, 100, 36];
 function paintBed(cam, g, Lt, dpr, seed) {
   const P = GIANT.plinth, rx = P.w / 2, rz = P.d / 2, r = rngFrom(seed + 11), N = 64;
@@ -292,7 +292,7 @@ function paintBed(cam, g, Lt, dpr, seed) {
   return { cv, x: bx0, y: by0, w: bx1 - bx0, h: by1 - by0 };
 }
 
-// ------------------------------------------------------------------ THE PIECE
+// ---- THE PIECE
 export function createGiant() {
   const cache = new Map();
   const free = o => { for (const c of [o.body, o.flood, ...(o.glows || []), o.bed && o.bed.cv]) if (c) c.width = c.height = 0; };

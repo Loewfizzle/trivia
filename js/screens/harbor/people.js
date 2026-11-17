@@ -281,7 +281,7 @@ export function createPeople() {
   // (NIGHT-A, the new light: the wash comes from the FRONT — no side to rim from; a rim only near a source you can see (the shopfront, the
   // cab stand, the cart): 0 = no rim)
   const rimSide = (x, z) => { let best = 0, side = 1; for (const s of srcs) { const d = Math.hypot(x - s.x, (z - s.z) * 1.15); const w = s.k / (0.6 + d * d); if (w > best) { best = w; side = s.x >= x ? 1 : -1; } } return lightMode() === 'new' && best < 0.02 ? 0 : side; };
-  // ---------------------------------------------------------------- LOBBY 2.0 A — THE ROOM IN THE CITY (core/harbor-room.js)
+  // ---- LOBBY 2.0 A — THE ROOM IN THE CITY (core/harbor-room.js)
   // The room's players as the city's OWN people at the city's scale (folk.js — a guest's look seeded by their uid), each marked: a soft
   // RING under the feet in their player colour (drawn here, under the figure) + their emblem over the head (a DOM tag — screens/harbor/
   // room-tags.js — from roomBoxes()). Who stands where: the roster (scene → room()); how they get there is THIS phone's own animation on

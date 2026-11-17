@@ -46,7 +46,7 @@ export const roleAudience = (role, aud) => !!ROLES[role] && ROLES[role].audience
 /** a role's other powers: 'dial' | 'queue' | 'stats' | 'stopAny' | 'clearAll' */
 export const rolePower = (role, what) => !!(ROLES[role] && ROLES[role][what]);
 
-// ------------------------------------------------------------------ THE DARK (the city's time ALWAYS follows the real clock)
+// ---- THE DARK (the city's time ALWAYS follows the real clock)
 const HOME = () => knob('radio').home;
 /** is it after dark at `ms` (the sun's elevation ≤ the row's darkEl) at a place (default: the owner's city) */
 export function darkAt(ms, place = HOME()) { return sunPosition(ms, place.lat, place.lon).el <= knob('radio').darkEl; }
@@ -68,7 +68,7 @@ export function canRun(jackId, now, place = HOME()) {
   return { ok: true };
 }
 
-// ------------------------------------------------------------------ THE WORDS (SKYWRITE, BANNER, the BILLBOARD's lines)
+// ---- THE WORDS (SKYWRITE, BANNER, the BILLBOARD's lines)
 const ALLOWED = /^[A-Z0-9 .,!?'&+#:\-♥★]*$/;
 /** the letters a message may use, upper-case, single spaces, ≤ max → { text, bad } (bad: 'empty' · 'long' · 'chars' · 'words' · 'name') */
 export function cleanWords(raw, o = {}) {
@@ -90,7 +90,7 @@ export const WORDS_WHY = Object.freeze({ empty: 'TYPE SOMETHING FIRST', long: 'T
 export const COLOURS = Object.freeze(['ff2e97', '2ee6ff', 'ffd25a', '7dff6a', 'b36bff', 'ffffff', 'rainbow']);
 export const DANCES = Object.freeze(['mix', 'conga', 'bounce', 'wands', 'swing']);
 
-// ------------------------------------------------------------------ A FIRE REQUEST (the server's whitelist; the phone shows the same)
+// ---- A FIRE REQUEST (the server's whitelist; the phone shows the same)
 /** body → { req: { jack, aud, room, text, colour, show ('short'|'full'), dance, local: { h, mi } | null, lines }, bad } */
 export function cleanFire(body = {}, o = {}) {
   const j = jackDef(String(body.jack || ''));
@@ -132,7 +132,7 @@ export function cleanBoard(body = {}, o = {}) {
   return { msg: { lines, local, repeat }, bad: null };
 }
 
-// ------------------------------------------------------------------ THE QUEUE (one at a time per lane, per scope)
+// ---- THE QUEUE (one at a time per lane, per scope)
 /** a moment's scope: 'city' (everyone + city share the city's sky) · 'room:<CODE>' · 'me:<pid>' (a preview — never queued with anyone) */
 export const scopeOf = m => (m.aud === 'room' ? `room:${m.room}` : m.aud === 'me' ? `me:${m.by}` : 'city');
 /** does a lane block another? (the same lane; a legendary + a show never together) */
@@ -174,7 +174,7 @@ export function lampOf(jackId, moments, now, place) {
 /** a moment's phase at now: 'q' (before its start) · 'run' · 'done' (or its stored state when stopped) */
 export function phaseOf(m, now) { if (m.state === 'stopped' || m.state === 'done') return m.state; return now < m.at ? 'q' : now < m.until ? 'run' : 'done'; }
 
-// ------------------------------------------------------------------ THE CREW's LIMITS (loose: per room per night)
+// ---- THE CREW's LIMITS (loose: per room per night)
 /** the night a moment counts in (the local date from `nightFrom` to the next day's) — 'YYYY-MM-DD' */
 export function nightKey(ms, tz = HOME().tz) {
   const K = knob('radio').crew;
@@ -195,7 +195,7 @@ export function crewCheck(jackId, log, now) {
   return { ok: true };
 }
 
-// ------------------------------------------------------------------ WHAT THE CITY PLAYS (scene-radio.js reads it)
+// ---- WHAT THE CITY PLAYS (scene-radio.js reads it)
 /** a moment → how the city plays it ONCE: { kind ('legend' · 'flyby' · 'blackbird' · 'fireworks' · 'words' · 'banner' · 'balloons' ·
  *  'lightning' · 'hold' · 'billboard'), arg (the legend's kind / the held force id), text, colour, show, dance } */
 export function startOf(m) {
@@ -216,7 +216,7 @@ export function localStart(local, made, tzOffMin) {
   return t;
 }
 
-// ------------------------------------------------------------------ CC-B — THE CREW: ONE RADIO PER LOBBY
+// ---- CC-B — THE CREW: ONE RADIO PER LOBBY
 /**
  * who holds the lobby's radio: the HOST if a crew member, else the crew member who joined FIRST; it FOLLOWS THE HOST (host migration);
  * a HAND-OVER (`hand`: { uid, host } — granted while `host` hosted) holds until the host changes or that crew member leaves.

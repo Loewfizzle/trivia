@@ -20,7 +20,7 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 function hash(str) { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
 
-// ---------------------------------------------------------------- time zones → a representative place
+// ---- time zones → a representative place
 // [lat, lon] for the zones most players will have; anything else falls back on the UTC offset (lon = offset × 15°) at a
 // sensible latitude for its region.
 const ZONES = {
@@ -101,7 +101,7 @@ export function cleanZone(raw, fallback = deviceZone) {
   return { tz: fallback(), raw, bad: 'invalid', shown: zoneShown(raw) };
 }
 
-// ---------------------------------------------------------------- the sun (NOAA's solar position algorithm)
+// ---- the sun (NOAA's solar position algorithm)
 const julian = ms => ms / 86_400_000 + 2440587.5;
 export function sunPosition(ms, lat, lon) {
   const jc = (julian(ms) - 2451545) / 36525;
@@ -179,7 +179,7 @@ export function sunArc(ms, tz, lat, lon) {
   return { u: (ms - day.rise) / (day.set - day.rise), noonEl: day.noonEl, season, prof: day.prof, rise: day.rise, set: day.set };
 }
 
-// ---------------------------------------------------------------- solar eclipses, from the geometry itself
+// ---- solar eclipses, from the geometry itself
 // The moon to ~0.02° (Meeus' principal periodic terms) seen from the viewer's place (topocentric: the moon's parallax is
 // nearly 1°, larger than the sun), against the sun (NOAA, above). An eclipse is simply the two discs overlapping — no
 // table of dates needed: on a real eclipse date and time, at the viewer's estimated location, the moon covers the sun by the
@@ -287,7 +287,7 @@ export function solarEclipse(ms, lat, lon) {
   return { mag: Math.min(1, (rs + rm - sep) / (2 * rs)), obsc: Math.min(1, obsc), total: sr <= k - 1, annular: k < 1 && sr <= 1 - k, dx: (dzd * Math.cos(a1)) / rs, dy: (m.el - s.el) / rs, k };
 }
 
-// ---------------------------------------------------------------- the moon (low precision: phase, position)
+// ---- the moon (low precision: phase, position)
 const SYNODIC = 29.530588853;
 const NEW_MOON_JD = 2451550.1;   // 2000-01-06 18:14 UTC
 export function moonPhase(ms) {
@@ -337,7 +337,7 @@ export function moonPosition(ms, lat, lon) {
   return { el, az };
 }
 
-// ---------------------------------------------------------------- the calendar: seasons, holidays, showers
+// ---- the calendar: seasons, holidays, showers
 const dayNum = (y, m, d) => Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
 /** Western Easter (Anonymous Gregorian algorithm). */
 export function easter(y) {
@@ -409,7 +409,7 @@ export function auroraNight(y, m, d, south) {
   return hash(`aurora:${y}-${m}-${d}`) % 5 === 0;
 }
 
-// ---------------------------------------------------------------- the planets (Venus, Mars, Jupiter, Saturn)
+// ---- the planets (Venus, Mars, Jupiter, Saturn)
 // JPL's approximate Keplerian elements (Standish, J2000, valid 1800–2050): a (AU), e, I, L, long. perihelion, long. node (°)
 // and their rates per century. Good to a fraction of a degree — far finer than a phone screen needs.
 const ELEMENTS = {
@@ -450,7 +450,7 @@ export function planetsAt(ms) {
   });
 }
 
-// ---------------------------------------------------------------- lunar eclipses
+// ---- lunar eclipses
 // Total and deep partial eclipses of the moon (NASA's five-millennium catalog: greatest eclipse in UTC, umbral magnitude).
 // The shadow takes ~1¾ hours to cross for a total, a little less for a partial; it is only drawn while the moon is up.
 export const ECLIPSES = [
@@ -472,7 +472,7 @@ export function eclipseAt(ms) {
   return null;
 }
 
-// ---------------------------------------------------------------- the look
+// ---- the look
 export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
   const lp = localParts(ms, tz);
   // LIVE WEATHER (core/weather.js): the visitor's real area when /api/sky knew it — the sun, moon and stars from there too
@@ -548,7 +548,7 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
   };
 }
 
-// ---------------------------------------------------------------- the clock (a preview switch for screenshots)
+// ---- the clock (a preview switch for screenshots)
 /** ?when=2026-10-31T19:30&tz=America/New_York freezes the start of the clock (it still runs from there);
  *  ?force=bats,meteor,aurora,sleigh,fireworks,searchlights,party,finale makes the rare moments happen now; ?wx=storm|rain|snow|fog|clouds|
  *  overcast|drizzle|sleet|clear (CITY 2.0: + cirrus|veil — high cloud by its height; FP3a: + mist|stratus|highovercast) sets the weather (instead of the live weather); &at=42.96,-85.67 puts the sun, moon and stars

@@ -272,7 +272,7 @@ export function createWindowLife() {
     return last;
   }
 
-  // ---------------------------------------------------------------- drawing
+  // ---- drawing
   /**
    * draw(c, env): after the lit rooms. env = { map(c) (the front wall's transform), wins (+ u, v), shopWin [w0, w1, v0, v1], door
    * { card: [u, v] }, k (the night 0..1 × fade), levels (each window's lit level), f (the frame: t, motion, tw { day, gold, night },
@@ -397,7 +397,7 @@ export function createWindowLife() {
     spills(c, env, fr, t);
   }
 
-  // ---------------------------------------------------------------- SLOW LIFE (SP3; WIN: one passer at a time)
+  // ---- SLOW LIFE (SP3; WIN: one passer at a time)
   const PASS_WINS = ['bar', 'jazz', 'back'], PASS_PER = 64, PASS_LEN = 8;   // (WIN2: the edge windows are light + shadow only)
   /** the building's one passer-by now: every PASS_PER s one slot picks ONE window (seeded on the slot: every phone the same) and someone
    *  crosses deep in it for PASS_LEN s → { id, u (0..1), dir, seed } or null */
@@ -459,7 +459,7 @@ export function createWindowLife() {
   const wd = createDanceClock(); let wdT = null;   // (SP5: the building's dance clock)
   let partyT0 = null, partyDead = null, partyCutT = null, partyKeep = null;   // (WIN3: the window party — forced from t0; dead after a raid's cut)
 
-  // ---------------------------------------------------------------- the TV's blue LANDING outside the glass (SP2: crisp — the sill's
+  // ---- the TV's blue LANDING outside the glass (SP2: crisp — the sill's
   // lit top + the reveal + a short fall, flickering with the set; the soft blob over the brick is gone)
   function spills(c, env, fr, t) {
     const w = env.wins.find(o => o.id === 'apartment');
@@ -472,7 +472,7 @@ export function createWindowLife() {
     c.restore();
   }
 
-  // ---------------------------------------------------------------- the sounds (each calls its slot; an empty slot is silent)
+  // ---- the sounds (each calls its slot; an empty slot is silent)
   // (FP3a, FREV H3: the mirror's door + the cat's meow are MOMENT_CUES now — core/city-sounds.js; sounds.js#life plays them on the clock)
   /** the beds' levels (sounds.js#speakeasy keeps them, ducked under the music like the city's bed): the club's murmur through the
    *  wall while the bar is open at night (louder on a party night), the TV's murmur upstairs late */
@@ -499,7 +499,7 @@ export function createWindowLife() {
   }
 
 
-  // ---------------------------------------------------------------- the painters (C4a: window-paint.js + window-holiday.js)
+  // ---- the painters (C4a: window-paint.js + window-holiday.js)
   // S: what the painters share with the life — its taps, the dance clock, the glow sprite, the lit look; the life's state read live
   // (getters) + the two traces the painters write (lastTv, cashTrace: the readout + the e2e)
   const S = { taps, wd, glow, litP, get last() { return last; }, get routines() { return routines; }, get smokeForced() { return smokeForced; }, get catTap() { return catTap; }, lastTv: null, cashTrace: { flicks: 0 } };

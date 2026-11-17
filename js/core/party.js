@@ -76,7 +76,7 @@ export function finaleDue(prevHour, hour) {
   return prevHour != null && hour != null && prevHour < 24 && hour >= 24 && hour < 24.1;
 }
 
-// ---------------------------------------------------------------- the beat clock
+// ---- the beat clock
 // A breath is a swell of light that peaks on the beat and relaxes until the next: it rises over the last ~14 % of a beat and
 // eases down over the first ~75 %. The clock keeps its own phase and rate; a song pulls both toward it gently (no jump),
 // and without one (before the first tap, music off, a song loading) it breathes once every 3.5 s.
@@ -130,7 +130,7 @@ export function advanceBeat(bc, dt, song) {
   return bc;
 }
 
-// ---------------------------------------------------------------- colours
+// ---- colours
 // the city's own neon: pink, cyan, violet, gold (+ white for the fireworks); a holiday brings its own
 export const PARTY_PALETTES = {
   default: [[255, 63, 176], [63, 224, 255], [166, 91, 255], [255, 204, 90]],
@@ -145,7 +145,7 @@ export const PARTY_PALETTES = {
 };
 export const partyPalette = holidayId => PARTY_PALETTES[holidayId] || PARTY_PALETTES.default;
 
-// ---------------------------------------------------------------- which windows join in
+// ---- which windows join in
 
 /** The seed for tonight's party set: the evening's date (the small hours belong to the night before). */
 export function partySeed(local) {

@@ -40,6 +40,7 @@ import { beatMode } from '../core/harbor-beat.js';
 import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../audio/mood.js';
 import { cityClock } from '../core/city.js';
 import { tiredLetters, tiredForced } from '../core/harbor-show.js';
+import { weakDevice } from '../core/harbor-tiers.js';   // (CITY F — THE WEAK DEVICE: the city's graph after a painted frame)
 import { isUnlocked } from '../audio/engine.js';
 import { musicClock } from '../audio/music.js';
 import { captureBackdrop } from './backdrop.js';
@@ -56,7 +57,11 @@ import { afterTap } from '../ui/tapwatch.js';
 // (cityDown — it was City 1.0 until CITY 1.0 OUT). A unit test keeps await out of module tops.
 let createHarbor = null, harborSettled = false;
 let visitAnswered = false;   // (ATM-A: the sign has answered a song this visit — the first-tap detector is FRESH until then)
-const loadHarbor = () => import('./harbor/scene.js').then(m => { createHarbor = m.createHarbor; if (window.__boot) window.__boot.stage('the city’s module in'); });   // (LOAD FIX 3: the watchdog's stage)
+// (CITY F — THE WEAK DEVICE (core/harbor-tiers.js#weakDevice — the owner's nephew's Chromebook): the city's module graph waits for ONE
+//  painted frame after the boot's own — on one core the two long evaluations ran back to back, a 2 s frame; never an iPhone (a 120 ms cap)
+const weakStart = (() => { try { return (!navigator.webdriver || new URLSearchParams(location.search).has('weakdev')) && weakDevice(navigator); } catch { return false; } })();
+const afterAFrame = () => (weakStart ? new Promise(r => { const t = setTimeout(r, 120); requestAnimationFrame(() => setTimeout(() => { clearTimeout(t); r(); }, 0)); }) : Promise.resolve());
+const loadHarbor = () => afterAFrame().then(() => import('./harbor/scene.js')).then(m => { createHarbor = m.createHarbor; if (window.__boot) window.__boot.stage('the city’s module in'); });   // (LOAD FIX 3: the watchdog's stage)
 // (LOAD FIX 3 — THE BOOT SAFETY NET: three tries (1.5 s, then 3 s apart — the browser asks again only for the files that failed), then
 //  index.html's watchdog's ONE reload; THE CITY COULDN'T LOAD only once that reload was used — a flaky line used to end a load here)
 // (LOAD FIX 4 — Grok's boot audit #7: a LINK / parse error (a SyntaxError — two deploys' files met in the city's graph) is CACHED in the
@@ -518,7 +523,7 @@ export function createTitle() {
     update(state);
   }
 
-  // ------------------------------------------------------------------ the sequence
+  // ---- the sequence
   function enter() {
     if (tl) return;
     store(localStorage, SEEN, '1');
@@ -1134,7 +1139,7 @@ export function createTitle() {
     }, 20000 + Math.random() * 20000);
   }
 
-  // ------------------------------------------------------------------ the games: PLAY NOW — THE GAMES SHELF (the dock's PLAY; title-taps.js#shelf:
+  // ---- the games: PLAY NOW — THE GAMES SHELF (the dock's PLAY; title-taps.js#shelf:
   // one row a game → its GAME CARD with PLAY NOW / PLAY WITH FRIENDS)
   function openGames() { tap.shelf(); }
   // (title-taps.js: moved out by scripts/split-closure.mjs — T carries the names it shares with this closure, live)
@@ -1214,7 +1219,7 @@ export function createTitle() {
     get openGames() { return openGames; },
   });
 
-  // ------------------------------------------------------------------ test hook + unmount
+  // ---- test hook + unmount
   function setupHook() {
     window.__district = {
       scene: () => scene && scene.debug(),

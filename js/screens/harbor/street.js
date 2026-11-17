@@ -17,7 +17,7 @@ const cl = v => (v < 0 ? 0 : v > 255 ? 255 : v);
 const addc = (c, l, k = 1) => [cl(c[0] + l[0] * k), cl(c[1] + l[1] * k), cl(c[2] + l[2] * k)];
 const mulc = (c, m) => [c[0] * m, c[1] * m, c[2] * m];
 
-// ------------------------------------------------------------------ THE STONE PAINTER (the promenade's setts + the street's)
+// ---- THE STONE PAINTER (the promenade's setts + the street's)
 /**
  * One granite sett on screen (ax, ay = its far top-left, ww × hh pt), rounded: its body (c — its light already in it), its TOP (the
  * half facing the sky: lighter, the lamps' sheen on it), a small bright LIP, a soft fall-off toward its near edge. By day crisp (a
@@ -79,7 +79,7 @@ export function paintFlat(x, ax, ay, ww, hh, c, o) {
   if (o.b != null && o.b < 0.08) { x.fillStyle = `rgba(0,0,0,${(0.1 - 0.04 * night).toFixed(3)})`; x.fillRect(ax, ay, ww, hh); }
 }
 
-// ------------------------------------------------------------------ THE STREET's colours
+// ---- THE STREET's colours
 // PF (the owner's iPhone review: "the street must read as a different SURFACE from the promenade"): TARRED setts — the granite
 // darkened + cooled by decades of tar, oil + tyre grime (an asphalt tone, blue-grey, never the promenade's warm sand-grey), TAR in the
 // joints (a dark pitch line, lifted where the lamps reach so the night never goes black), the gutter a step darker than the curb

@@ -21,7 +21,7 @@ import { createBalloons } from './balloons.js';
 import { createDrones } from './drones.js';
 import { createCelestial } from './moon.js';
 import { createAirShow, SHOW_LEN } from './jets.js';
-import { createMeteors } from './meteors.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 import { createAurora } from './aurora.js';
 import { flybyDay } from '../../core/harbor-legend.js';
 import { sunTimes } from '../../core/sky.js';
@@ -34,7 +34,10 @@ const hexRgb = h => { const n = parseInt(String(h).replace('#', ''), 16); return
 
 export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } = {}) {
   const may = (id, kind) => !allow || allow(id, kind);
-  const aur = createAurora(), met = createMeteors(), show = createAirShow(), air = createAir(), banner = createBanner(), smoke = createSmoke(), birds = createBirds(), balloons = createBalloons(), drones = createDrones(), cel = createCelestial();
+  // (CITY F — THE BOOT TRIM: the meteors + THE FIREBALL (meteors.js + core/harbor-fireball.js) are no boot module — the piece loads at the
+  //  city's reveal (afterReveal, or at once for &force=meteor / fireball); until then it draws nothing — a streak is never on screen at a reveal)
+  const met = lazyMeteors(clock && clock.force);
+  const aur = createAurora(), show = createAirShow(), air = createAir(), banner = createBanner(), smoke = createSmoke(), birds = createBirds(), balloons = createBalloons(), drones = createDrones(), cel = createCelestial();
   let W = 1, H = 1, HZ = 1, L = null, lanes = null, waterTop = 0, waterY1 = 0, barge = null;
   const handled = new Set();                 // the scheduler's events already turned into pieces (id|start)
   let duskOf = null;                         // (POLISH 4: tonight's sunset hour for the surprise flyby, per date)
@@ -415,6 +418,24 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       stop: () => { banner.stop(); smoke.stop(); drones.stop(); balloons.stop(); show.stop(); },
     },
     debug: () => ({ meteors: met.debug(), show: show.debug(), cel: cel.debug(), air: air.debug(), banner: banner.debug(), smoke: smoke.debug(), birds: birds.debug(), balloons: balloons.debug(), drones: drones.debug(), barge, aurora, used: [...used()], heavy: heavy() }),
+    /** CITY F: the city is on screen — the pieces left out of the boot load now (scene.js, at the reveal) */
+    afterReveal: () => met.load(),
     destroy() { for (const m of [air, banner, smoke, balloons, drones, cel, show, met, aur]) m.destroy(); },
+  };
+}
+// (CITY F — THE BOOT TRIM: the meteors' piece, loaded on demand through the skew wrapper; it keeps the last size so the real piece starts sized)
+function lazyMeteors(force) {
+  let real = null, size = null, gone = false, asked = false;
+  const load = () => {
+    if (asked || gone) return; asked = true;
+    lazyImport(import('./meteors.js'), './meteors.js').then(m => { if (gone) return; real = m.createMeteors(); if (size) real.resize(...size); }).catch(() => { asked = false; });
+  };
+  if (force && (force.has('meteor') || force.has('fireball'))) load();
+  return {
+    load,
+    resize(...a) { size = a; if (real) real.resize(...a); },
+    draw(c, s) { if (real) real.draw(c, s); },
+    debug: () => (real ? real.debug() : { loaded: false }),
+    destroy() { gone = true; if (real) real.destroy(); real = null; },
   };
 }

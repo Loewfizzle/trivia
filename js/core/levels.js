@@ -56,7 +56,7 @@ export function levelInfo(xp) {
 /** "INSIDER · LEVEL 23" */
 export const levelLabel = xp => { const i = levelInfo(xp); return `${i.band.name} · LEVEL ${i.lvl}`; };
 
-// ------------------------------------------------------------------ THE LEVEL REWARDS (item ids — core/items.js; THE VAULT replaces the art,
+// ---- THE LEVEL REWARDS (item ids — core/items.js; THE VAULT replaces the art,
 // never the ids). Every member owns the ORIGINAL GILDED card from level 1. The Gilded family at 10 / 25 / 40 / 60, NEON GLASS + VELVET
 // ROOM between, today's VAULT (the old card finishes + name glows) folded in at the levels their old rank steps were worth, emblem shapes +
 // tube styles filling the rest, THE HOUSE at 100.

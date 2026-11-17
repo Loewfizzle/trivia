@@ -71,7 +71,7 @@ export function nextFromBag(bag, ids, rnd = Math.random, last = null) {
   return { id, bag: { order: b.order, i: b.i + 1 } };
 }
 
-// ---------------------------------------------------------------- the song list (loaded once)
+// ---- the song list (loaded once)
 let data = null, loading = null;
 export function loadMoodMusic() {
   if (data) return Promise.resolve(data);
@@ -95,7 +95,7 @@ export const HALVES_FROM = 30;
 export const deckForNow = ids => ids;
 export const durOf = id => (data && data.songs[id] ? data.songs[id].dur : 180);
 
-// ---------------------------------------------------------------- this device's bags (outside a room)
+// ---- this device's bags (outside a room)
 // (City 2.0's bags kept their own keys — :c2: — when City 1.0 went: a device's bag carries on)
 const KEY = m => `nd:moodbag:c2:${m}`;
 export function nextForDevice(mood, last = null) {

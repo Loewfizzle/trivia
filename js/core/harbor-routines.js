@@ -93,7 +93,7 @@ export function danceLevel(sess, t) {
   return Math.max(0, Math.min(1, up, down));
 }
 
-// ------------------------------------------------------------------ THE VENDOR SPOT (FP3b item 11b — the owner + Claude, Oct 24)
+// ---- THE VENDOR SPOT (FP3b item 11b — the owner + Claude, Oct 24)
 // The front curb in the middle, just in front of the compass inlay (right of it on screen, so it never covers the inlay — FP3b's
 // numbers: a cart centred in front of the compass would cover its front half at every phone size), SHARED BY TIME: the NEWSBOY's
 // small stand in the morning + for the evening edition (the hook — the morning paper is core/harbor-workers.js's), the CHESTNUT CART from ~6:30 to

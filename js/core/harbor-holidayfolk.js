@@ -19,7 +19,7 @@ export function localAt(t, off = 0) {
 }
 const pickW = (r, w) => { let s = 0; for (const k in w) s += w[k]; let u = r() * s; for (const k in w) { u -= w[k]; if (u <= 0) return k; } return Object.keys(w)[0]; };
 
-// ------------------------------------------------------------------ HALLOWEEN NIGHT
+// ---- HALLOWEEN NIGHT
 /** the kids' costumes (each reads at ~20 pt by SILHOUETTE + COLOUR: folk.js#COSTUME) */
 export const COSTUMES = Object.freeze(['ghost', 'witch', 'skeleton', 'pumpkin', 'vampire', 'hero', 'cat', 'pirate']);
 /** trick-or-treaters: a group every `gap` s (a new block every BLOCK s), 2–4 kids + a grown-up (now and then in a witch hat),
@@ -67,7 +67,7 @@ export function zombieGroups(k, ctx = {}) {
   return out;
 }
 
-// ------------------------------------------------------------------ DAY OF THE DEAD: THE PROCESSION
+// ---- DAY OF THE DEAD: THE PROCESSION
 /** the procession: its pace (units / s — a slow walk), the near lane's two files (z), the gaps between walkers (units), the length
  *  of the chunks it is planned in (s), the walkers' kinds (weights), how often the trio + the ofrenda pass; its traffic hold */
 export const PROC = Object.freeze({ v: 0.62, files: [55.55, 56.85], gap: [1.25, 2.3], chunk: 60, len: 70 * 60, lead: 40, roles: { candle: 5, catrina: 2.4, marigolds: 1.5, photo: 1.1, child: 0.9 }, trio: 210, ofrenda: 280 });

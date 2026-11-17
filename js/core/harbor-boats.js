@@ -168,7 +168,7 @@ export function boatRoutes(L, { taxi = false } = {}) {
   return out;
 }
 
-// ------------------------------------------------------------------ 8b1 — THE HARBOR'S TIMETABLE (plan.md "THE HARBOR" under the workers)
+// ---- 8b1 — THE HARBOR'S TIMETABLE (plan.md "THE HARBOR" under the workers)
 /** ROSIE ON THE MOVE (SP3 — the owner, Oct 26, replacing 8b1's long stays): OFF SCREEN most of the time; EVERY HOUR ON THE HOUR
  *  through her service day (7 am → 11 pm, none in the small hours) she comes in — from off screen ~4 min before, gliding in bow-first
  *  + turning to her pier (her 3D swing) — DOCKS AT :00 (the ship's bell), boards for ~3 min, casts off (her horn; the 7 pm one = the

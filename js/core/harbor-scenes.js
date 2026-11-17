@@ -129,7 +129,7 @@ export function scenePreview(id, at, min = 0, o = {}) {
   return { id, win: o.win || S.win, start, end: start + len, glow: K.glow, sway: !!K.sway, forced: true };
 }
 
-// ------------------------------------------------------------------ AFTER HOURS — THE PATCHWORK + THE LIGHTS GOING OUT
+// ---- AFTER HOURS — THE PATCHWORK + THE LIGHTS GOING OUT
 /** tonight's LIGHTS OUT in the scene rooms: one window at a time between outFrom → outTo (seeded order + times, ≥ gap apart) → { bar, jazz,
  *  back: s after the evening's midnight } */
 export function shadesNight(key, o = {}) {

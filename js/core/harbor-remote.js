@@ -643,7 +643,7 @@ export function timeAt(id, day, tz, lat, lon) {
   return `${day}T${pad(Math.floor(v / 60))}:${pad(v % 60)}`;
 }
 
-// ------------------------------------------------------------------ validation (the client before sending, the server always)
+// ---- validation (the client before sending, the server always)
 const WHEN_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
 const HEX_RE = /^[0-9a-f]{6}$/;
 // the letters every piece can draw (the pixel font of the windows, the smoke, the banner, the drones): A–Z 0–9, a few marks

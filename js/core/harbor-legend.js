@@ -72,7 +72,7 @@ export function flybyDay(y, m, d, duskH = 19) {
   return { h: L.h, dir: r() < 0.5 ? 1 : -1, n: 3 + Math.floor(r() * 2), night: L.h >= Math.min(F.darkCap, duskH + F.darkAfterDusk) };   // (plan.md: 3–4 in tight formation)
 }
 
-// ------------------------------------------------------------------ THE UFO ABDUCTION (a short film, ~30 s)
+// ---- THE UFO ABDUCTION (a short film, ~30 s)
 /**
  * The abduction s seconds in → {
  *   phase   'approach' | 'beam' | 'lift' | 'vanish' | 'close' | 'leave' | 'gone'
@@ -103,7 +103,7 @@ export function ufoAt(s) {
   };
 }
 
-// ------------------------------------------------------------------ THE TR-3B + THE JET CHASE (~50 s)
+// ---- THE TR-3B + THE JET CHASE (~50 s)
 /** where the TR-3B is: x across the screen (fraction: −0.45 → 1.45 over its crossing), its direction (seeded) */
 const TR3B_CROSS = 30;
 /**
@@ -221,7 +221,7 @@ export function blackAll(s, depth = 'city') {
   return { k, dead: allDead };
 }
 
-// ------------------------------------------------------------------ NO TRAFFIC DURING THE LEGENDARIES (Oct 25; plan.md)
+// ---- NO TRAFFIC DURING THE LEGENDARIES (Oct 25; plan.md)
 /**
  * The owner: "no vehicle drives by (the street under the dock, the back road, the bus, cabs, trucks, the raid) while the TR-3B makes
  * its pass or during the UFO abduction — it's distracting. Vehicles already on screen finish quickly / stop; none start until the event
@@ -266,7 +266,7 @@ export function drainAt(x, cx, drain, band = 'city', dir = 1, lag = 0, flick = 0
   return clamp01(lerp(1, B.floor, k) + edge);
 }
 
-// ------------------------------------------------------------------ THE JETS (shared: the TR-3B's chase, the air show, the missing man)
+// ---- THE JETS (shared: the TR-3B's chase, the air show, the missing man)
 /**
  * A formation's slots (in jet lengths, x back along the flight, y down on the screen) — 'chase' (SKY-A, the owner Oct 28: a TIGHT VIC —
  * the lead + two wingmen tucked behind either side: the far one a touch higher on the screen, the near one lower), 'diamond'

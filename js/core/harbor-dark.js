@@ -81,7 +81,7 @@ export const windowsNight = k => k > 0.2;
 /** dark enough to call it night (the sign "caught" at power-on, tier 0's calm) */
 export const isNight = k => k > 0.5;
 
-// ------------------------------------------------------------------ 9d — THE BEACONS' PHOTOCELL
+// ---- 9d — THE BEACONS' PHOTOCELL
 /**
  * The owner (Oct 27): real obstruction lights switch on by a LIGHT SENSOR as the daylight drops — around sunset — so the red beacons
  * blink through the last of golden hour into dusk (they followed the city's ramp before, landing in the blue hour); on a dark overcast
@@ -99,7 +99,7 @@ export function beaconStep(level, on, dt) {
   return on ? Math.min(1, level + d) : Math.max(0, level - d);
 }
 
-// ------------------------------------------------------------------ THE POWER-UP (DT1)
+// ---- THE POWER-UP (DT1)
 /** the blue hour in darkness: the power-up runs from sunset (0.2) to the end of the blue hour (0.9) */
 export const POWER = Object.freeze([0.2, 0.9]);
 /** the power-up's progress 0 (sunset / before) .. 1 (the city fully lit) */

@@ -16,7 +16,7 @@ import { PIECE } from './harbor-promenade.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const norm = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
 
-// ------------------------------------------------------------------ NIGHT-A — THE NIGHT LIGHT, NEW (`&light=new|old` + the panel's row)
+// ---- NIGHT-A — THE NIGHT LIGHT, NEW (`&light=new|old` + the panel's row)
 // The owner, Oct 29 ("THE NIGHT LIGHTING REWORK — DECIDED"): (1) an even BASE night level over the whole promenade + the street under
 // the dock — dim, cool, the city's glow: the cobbles + every walker always readable; (2) the implied lamps behind the viewer are a
 // DIRECTION, not lamp positions — ONE broad, soft, warm WASH across the full width, warmest at the screen's foot, fading toward the
@@ -48,7 +48,7 @@ export function washAt(z) {
   const d = z - NIGHT_LIGHT.z0, w = NIGHT_LIGHT.washK * (d <= 0 ? 1 : 1 / (1 + (d / NIGHT_LIGHT.fall) ** 2));
   return STAGE_ON && z < STAGE.curb[1] ? stageWash(z) : w;
 }
-// ------------------------------------------------------------------ NIGHT-B — THE STAGE LIGHT (`&stage=1|0` + the panel's row — OFF by default
+// ---- NIGHT-B — THE STAGE LIGHT (`&stage=1|0` + the panel's row — OFF by default
 // until the owner picks; the owner, Oct 29 9:38–9:43 pm — "THE DARKER STREET + THE PARTY DIM", DECIDED): the implied lamps light the PROMENADE
 // (aimed at the walkway) — it stays lit like a stage; the FOREGROUND STREET (below the curb, under the dock) falls softly into shadow: ~⅓
 // darker than the promenade's front at the curb's foot (base + wash), a little more toward the screen's foot — NEVER black (the base stays:
@@ -109,7 +109,7 @@ export function cabLamp(L) {
   return c ? { x: c.x + CAB_LAMP.dx, z: c.z + CAB_LAMP.dz, h: CAB_LAMP.h, kind: 'hidden', cab: true, k: CAB_LAMP.k, pool: CAB_LAMP.pool } : null;
 }
 
-// ------------------------------------------------------------------ THE POOLS (the ground at night)
+// ---- THE POOLS (the ground at night)
 // the lamps' light per unit of T.lamps: the tall street lamps a clean cool white, the globes warm, the speakeasy's spill amber
 // FP — THE NIGHT LIGHT PLAN (the re-layout): cool pools under the two tall curb lamps (the back row, the road's edge, the bench), warm
 // pools from the two corner globes across the front of the open floor, the speakeasy's warm spill in front of it, the cart's
@@ -167,7 +167,7 @@ export function lightField(L, T) {
   };
 }
 
-// ------------------------------------------------------------------ THE SUN'S SHADOW
+// ---- THE SUN'S SHADOW
 /** the sun's shadow on the ground for something h units tall: { dx, dz, a } (world units; a = its darkness) or null (night,
  *  overcast). The camera looks north across the harbor: a morning sun on the left throws shadows right, and away from us. */
 export function sunShadow(T, h) {
@@ -206,7 +206,7 @@ export function castShadow(T, h, x, z, lamps, k = null) {
   return sun.a >= lmp.a ? sun : lmp;
 }
 
-// ------------------------------------------------------------------ THE FACES (a prop's side turned toward a lamp)
+// ---- THE FACES (a prop's side turned toward a lamp)
 // the lamps' colours on a face (LIGHT, brighter: on a face, not a pool) + how far their light carries onto a prop + the light's height
 export const FACE = Object.freeze({ col: { tall: [196, 212, 236], globe: [255, 190, 118], hidden: [255, 184, 108], implied: [255, 194, 128] }, reach: { tall: 14, globe: 12, hidden: 9, implied: 36 }, y: { tall: 5.8, globe: 3.9, hidden: 4.0, implied: 5.6 } });
 /** the NEAREST lamp's light on a face at (wx, wz): { lk (strength × lampK), lcol, ld (the unit direction toward it) } */
@@ -241,7 +241,7 @@ export function lampOn(lights, wx, wz, lampK) {
   return { lk, lcol, ld };
 }
 
-// ------------------------------------------------------------------ THE TREES (lamps as local lights round a crown)
+// ---- THE TREES (lamps as local lights round a crown)
 // (PF: a tall lamp 0.8 → 0.58 — the crabapple stands right beside the left flanking lamp: its crown's side went one flat orange)
 export const TREE_LAMP = Object.freeze({ tall: { col: [0.84, 0.95, 1.2], k: 0.58 }, globe: { col: [1.35, 0.86, 0.46], k: 1.15 }, hidden: { col: [1.38, 0.9, 0.48], k: 0.85 }, cab: { col: [1.42, 0.94, 0.5], k: 0.95, fall: 2.1, wK: 0.4, y: -0.6 }, implied: { col: [1.32, 0.9, 0.52], k: 0.28, fall: 16 } });
 /** the lamps within reach of tree t, in its local frame: [{ x, y, w (toward us), col, k }] (a tall lamp = its two heads) */
@@ -263,7 +263,7 @@ export function treeLamps(ctx, t) {
   return out;
 }
 
-// ------------------------------------------------------------------ THE ROAD (a passing car under the front walk's lamps)
+// ---- THE ROAD (a passing car under the front walk's lamps)
 const ROAD_LAMP = Object.freeze({ reach: 7, zMax: 40 });
 /** the front walk's lamps on a car at world x (0..1) */
 export function roadLampAt(lamps, x) {

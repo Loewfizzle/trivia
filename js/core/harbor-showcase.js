@@ -35,7 +35,7 @@ export function primeWeight(h, dow) {
   return P.offW;
 }
 
-// ------------------------------------------------------------------ THE LEGENDARIES
+// ---- THE LEGENDARIES
 /** the legendaries' pool: every live timetable row with knobs.pool (a new legendary joins by its row alone) */
 export const legendPool = () => SCHEDULE.filter(r => r.status === 'live' && r.knobs && r.knobs.pool).map(r => ({ id: r.id, ...r.knobs }));
 const dateKey = (y, m, d) => `${y}-${m}-${d}`;
@@ -120,7 +120,7 @@ function plan(y, m, d, lv) {
 /** the evening's minutes a legendary holds (evening hours) — [[h0, h1]…]: the traffic, the patrol, a raid, the fireworks keep clear */
 export function legendWindows(y, m, d, lv) { return legendsTonight(y, m, d, lv).map(L => [L.h, L.h + L.len / 3600]); }
 
-// ------------------------------------------------------------------ THE MEDIUM TIER
+// ---- THE MEDIUM TIER
 /**
  * THE MEDIUM MOMENTS of a local day (key 'y-m-d', day0 its local midnight abs s, dow) → [{ kind, t (abs s), seed }] — a seeded process
  * whose rate is the level's `perHour` × primeWeight(h): prime time every ~3–5 min at HIGH, off-peak ~⅓, the dead hours none; each a kind

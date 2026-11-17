@@ -58,7 +58,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   let schemeX = null, partyLook = false;
   let palBase = null;
 
-  // ---------------------------------------------------------------- the layout
+  // ---- the layout
   function layout(l, o) {
     L = l; cam = l.cam; W = cam.W; dpr = Math.min(BAKE_CAP, o.dpr || 1); tier = o.tier ?? 2;
     // A re-layout never blanks the neon: the current set keeps drawing (and keeps its power) until the new one is built, then
@@ -135,7 +135,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     return y === Infinity ? R.y + R.h + 8 : y;
   }
 
-  // ---------------------------------------------------------------- the outlines: project + cut
+  // ---- the outlines: project + cut
   // a tower's roof sign (Part 5): its steel frame on screen — the legs on the roof's edges, the beacon's post on top
   function frameOf(sp) {
     if (sp.mount !== 'tower') return null;
@@ -236,7 +236,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     }
   }
 
-  // ---------------------------------------------------------------- building the sprites (queued: a few a frame)
+  // ---- building the sprites (queued: a few a frame)
   function dropStubs() {
     const K = cam.F / 600, minLen = 5 * K;
     const lenOf = r => { let d = 0; for (let i = 1; i < r.pts.length; i++) d += Math.hypot(r.pts[i][0] - r.pts[i - 1][0], r.pts[i][1] - r.pts[i - 1][1]); return d; };
@@ -479,7 +479,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     return true;
   }
 
-  // ---------------------------------------------------------------- the outlines' unlit glass (in the facade bake)
+  // ---- the outlines' unlit glass (in the facade bake)
   /** after a building is drawn in the facade bake: its outline's glass (day: clear glass catching the sun; night: dark) */
   function glass(x, it, T) {
     if (!L || T.night > 0.9) return;
@@ -503,7 +503,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     }
   }
 
-  // ---------------------------------------------------------------- power (DT1: THE BLUE-HOUR POWER-UP on the one darkness input)
+  // ---- power (DT1: THE BLUE-HOUR POWER-UP on the one darkness input)
   // Tonight's order (core/harbor-dark.js#powerOrder, seeded by the night's date): an item is on once the power-up passes its place —
   // the evening one by one through the blue hour, the morning in reverse; ALWAYS NIGHT / a deep night: all on. The title's own
   // boot (S.bill: the city switching on behind the tap) still cascades them on in a few seconds. The billboard is lamp-lit: on
@@ -541,7 +541,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     return clamp01(a);
   }
 
-  // ---------------------------------------------------------------- per frame
+  // ---- per frame
   let dot = null;
   const warmDot = () => { if (dot) return dot; const c = document.createElement('canvas'); c.width = c.height = 32; const x = safeCtx(c), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,244,214,1)'); g.addColorStop(0.25, 'rgba(255,214,150,0.7)'); g.addColorStop(1, 'rgba(255,190,110,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return (dot = c); };
   /**
@@ -816,7 +816,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     c.fillStyle = rgba([200, 236, 255], 0.06 * k); for (let y = gf.y0 + 2; y < gf.y1; y += Math.max(1.4, h / 40)) c.fillRect(gf.x0, y, gf.x1 - gf.x0, 0.35);
     c.restore();
   }
-  // ---------------------------------------------------------------- THE PARTY SHOW + the everyday motion: per frame
+  // ---- THE PARTY SHOW + the everyday motion: per frame
   function planShow(f, partyK) {
     const P = f.party, forced = moment.party > 0.05 && !(P && P.ramp > 0.05);
     showOn = !!(tier > 0 && partyK > 0.05 && (P || forced));

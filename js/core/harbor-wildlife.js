@@ -24,7 +24,7 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const localOf = (t, off) => { const lt = t + (off || 0) * 60, d = new Date(lt * 1000), h = ((lt / 3600) % 24 + 24) % 24; return { key: `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`, dow: d.getUTCDay(), h, month: d.getUTCMonth() + 1, day: d.getUTCDate(), day0: t - h * 3600 }; };
 const R = (...k) => rngFrom(hashString(k.join('|')));
 
-// ------------------------------------------------------------------ THE SIZES (world units; 1 ≈ 0.85 m) — the phone cheats
+// ---- THE SIZES (world units; 1 ≈ 0.85 m) — the phone cheats
 /** each animal's size in world units WITH the phone's cheat (the true size × k): at ~13 pt a unit on the promenade a true pigeon is
  *  ~5 pt, a squirrel ~4 — they read only by motion + silhouette, so every small one is drawn bigger (the owner's squirrel note: ~1.5×) */
 /** SP3 (the owner): the animals scale with the promenade's people (+9 %, screens/harbor/folk.js#FOLK_SCALE) — a dog on a lead, the cat
@@ -41,7 +41,7 @@ export const SIZE = grow({
   heron: { h: 2.6, k: 2.0 },             // (a big readable shape on its piling out at z 100 — 1.1 m true, ~16 pt)
 });
 
-// ------------------------------------------------------------------ THE PLACES (world x, y, z — from the layout)
+// ---- THE PLACES (world x, y, z — from the layout)
 /** the café-light canopy's posts (screens/harbor/strings.js#CANOPY: back 1.2, top 13.0, the posts' wall units) and the blade's top
  *  (screens/harbor/speakeasy-blade.js#BLADE: out 0.22, bw 1.86, v1 11.0, set back w 0.42 along the side wall) — kept in step by hand */
 const CANOPY = { back: 1.2, top: 13.0, posts: [2.55, 9.75] };
@@ -98,7 +98,7 @@ export function offPoint(L, dir, near) {
   return { x: s * (cam.hw(z) + 3), y: Math.max(6, (near ? near.y : 0) + 4), z };
 }
 
-// ------------------------------------------------------------------ THE PIGEONS (perches + the flock by the clock)
+// ---- THE PIGEONS (perches + the flock by the clock)
 /** the flock: up to `max` birds (the same eight for the day), planned per `slot` s — how many are out + where each sits; between two
  *  slots each bird flies from its old spot to its new one at its own moment in the first `move` s (never all together) */
 export const PIGEON = Object.freeze({ ...knob('wild.pigeons'), max: 8, move: 70, fly: 2.6, tier: [4, 6, 8], awayP: 0.3, away: [90, 360], highStay: [60, 240] });
@@ -198,7 +198,7 @@ export function groundLife(t, seed) {
   return { dx: B.x, dz: B.z, hd, act: k, step: 0, peck };
 }
 
-// ------------------------------------------------------------------ THE GULLS (landing on the billboard + the railing, by day)
+// ---- THE GULLS (landing on the billboard + the railing, by day)
 /** per slot: 0–3 landings (more on windy days; none at night), each on a free gull spot, staying `stay` s (preening, looking round,
  *  the odd call); in rain they sit huddled (puffed, the head drawn in) */
 export const GULL = Object.freeze({ ...knob('wild.gulls'), landS: 2.6, offS: 2.2 });
@@ -220,7 +220,7 @@ export function gullSlot(j, ctx = {}) {
   return out;
 }
 
-// ------------------------------------------------------------------ THE SNOWY OWL (winter days, Dec–Mar, uncommon)
+// ---- THE SNOWY OWL (winter days, Dec–Mar, uncommon)
 export const OWL = Object.freeze({ ...knob('wild.owl'), glide: 6 });
 /** the owl's day (PURE): { day0, t0 (glides in), t1 (glides off at dusk), stops: [{ spot, ta, tb }] } or null. Perches: the billboard's
  *  corners, the date stone's top (the speakeasy's crest), a tall lamp's top — big, white, ~10–13 pt; it relocates now and then */
@@ -254,7 +254,7 @@ export function owlAt(plan, t) {
   return { state: 'at', spot: st[st.length - 1].spot, since: 0 };
 }
 
-// ------------------------------------------------------------------ THE SQUIRREL (the big framing maple, by day)
+// ---- THE SQUIRREL (the big framing maple, by day)
 /** per slot: comes DOWN the trunk (a spiral), hops out across the cobbles to a few spots, forages (sits up, the tail flicking), then
  *  back UP (into the leaves; in winter into its hollow). Autumn: busy dashing to and fro; winter: rare, short (a mild day). */
 export const SQUIRREL = Object.freeze({ ...knob('wild.squirrel'), climb: 3.4, hop: 2.2 });
@@ -279,7 +279,7 @@ export function squirrelSlot(j, ctx = {}) {
   return { id: `sq.${j}`, t0, hops, back, t1, winter: season === 'winter', seed: Math.floor(r() * 1e6) };
 }
 
-// ------------------------------------------------------------------ THE COYOTE (rare quiet nights)
+// ---- THE COYOTE (rare quiet nights)
 /** a night's coyote (PURE): rare (any quiet night from ~10 pm, likeliest 1–4 am); only when the promenade is nearly empty (the
  *  people's own count by the clock). It trots in, stops under a lamp, turns its head to us (the eye-flash), slips off. On full-moon
  *  nights a distant howl (+ the visit's own, head up). → { t0, legs: [{ k: 'trot' | 'stop', ... }], t1, howl?, distant? } | null */
@@ -345,7 +345,7 @@ export function coyoteTracks(plan, t, fade = 1500) {
   return out.filter(p => p.a > 0.02);
 }
 
-// ------------------------------------------------------------------ THE SPEAKEASY CAT, OUTSIDE (some evenings)
+// ---- THE SPEAKEASY CAT, OUTSIDE (some evenings)
 /** an evening's outing (PURE): ~35 % of warm evenings (winter ~12 %) between dusk and 11 pm, 6–16 minutes on the barbershop's outside
  *  window SILL or the side door's step; never while the window moment shows the cat inside (ctx.catInside(a, b)); now + then it stalks
  *  a pigeon on the cobbles (stalk: a moment it may go, if one is near — the live manager decides). → { t0, ta, tb, t1, spot, stalk } */
@@ -380,7 +380,7 @@ export function catPath(L, t0, len, spot) {
   return { t0, ta, tb, t1, spot, legs: [{ k: 'walk', pts: [edge, below], t0, t1: t0 + d, v: CAT.walk }, { k: 'stop', x: sp.x, z: sp.z, t0: t0 + d, t1: tb + 1.2, hd: sp.hd }, { k: 'walk', pts: [below, edge], t0: tb + 1.2, t1, v: CAT.walk }] };
 }
 
-// ------------------------------------------------------------------ FIREFLIES (summer nights)
+// ---- FIREFLIES (summer nights)
 export const FIREFLY = Object.freeze({ ...knob('wild.fireflies'), n: 24, tier: [10, 16, 24] });
 /** how many fireflies now (PURE): Jun 10 – Aug 31, after dark (21:15 → 00:35), no rain, a light wind; 0 otherwise */
 export function fireflyCount({ h = 22, month = 7, day = 15, rain = 0, wind = 2, dark = 1, force = false } = {}) {
@@ -400,7 +400,7 @@ export function fireflyAt(q, t, homes) {
   return { x, y, z, k: flash };
 }
 
-// ------------------------------------------------------------------ THE HERON (on its piling at dawn)
+// ---- THE HERON (on its piling at dawn)
 /** a morning's heron (PURE): April–October on ~45 % of mornings — it glides in round the sunrise, stands on its piling 25–70 min (a
  *  big still shape against the bright water, the neck shifting, a strike at the water now + then), then flies off low over the water */
 export const HERON = Object.freeze({ ...knob('wild.heron'), glide: 7 });
@@ -415,7 +415,7 @@ export function heronMorning(key, day0, ctx = {}) {
 /** the preview: a heron every 80 s — in (7 s), standing ~60 s with a strike at 34 s, off (7 s) */
 export function heronForced(t) { const n = Math.floor(t / 80), t0 = n * 80; return { ta: t0 + HERON.glide, tb: t0 + 70, t0, t1: t0 + 70 + HERON.glide, from: n % 2 ? 1 : -1, to: n % 2 ? -1 : 1, strikes: [t0 + 41] }; }
 
-// ------------------------------------------------------------------ FISH JUMPING (ripple rings in the near water)
+// ---- FISH JUMPING (ripple rings in the near water)
 export const FISH = Object.freeze({ ...knob('wild.fish'), band: [66, 104], f: [0.4, 0.8] });
 /** the jump in slot j (PURE): { t0, x, z, big } | null — likeliest at dawn + dusk, a few by day, rare at night */
 /** the slot (s): the preview jumps every 9 s */

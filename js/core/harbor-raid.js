@@ -52,7 +52,7 @@ export const RAID = Object.freeze({ ...knob('raid'),
   front: { v: 6.4, brake: 2.8, acc: 1.4, lead: 3.2, screen: 0.19, on: 1.0, off: 1.2 },
 });
 
-// ------------------------------------------------------------------ WHEN
+// ---- WHEN
 const ymd = key => key.split('-').map(Number);
 const dowOf = key => { const [y, m, d] = ymd(key); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
 /**
@@ -96,7 +96,7 @@ export function forcedRaid(t, since = 0, party = false) {
   return { key: `forced-${n}`, t0: since + n * RAID.forced + 3, party, why: 'forced' };   // (POLISH 5: the siren at once, the convoy ~7 s in)
 }
 
-// ------------------------------------------------------------------ WHAT (the convoy simulated once)
+// ---- WHAT (the convoy simulated once)
 /**
  * The raid's plan for a layout (PURE): → { t0, cars: [{ id, n, ts, xs (Float32Array: x every dt), len, z, dir, stopper }], tAppear,
  * tStop, tReady, tDepart, tPast (the last car beyond the crossing), tBack (the lights start coming back), tEnd, officer (a people visit),
@@ -271,7 +271,7 @@ export function raidHold(P) {
   return { id: `${P.key}.hold`, tE: P.t0 - 2, tX: P.tEnd, hold: true, len: P.len, x: t => { const s = raidCarAt(last, t); return s ? s.x : -99; }, riders: { off: 0, on: 0 } };
 }
 
-// ------------------------------------------------------------------ THE FRONT CAR's SPOTLIGHT TOUR (C2)
+// ---- THE FRONT CAR's SPOTLIGHT TOUR (C2)
 /**
  * The owner (8b2 review): "the SPOTLIGHT must land on the WINDOWS (and the door), never the building's corners / blank brick, and sweep
  * FLUIDLY with randomness (lingering on a window, darting to another, a different eased path every raid — no fixed back-and-forth)".

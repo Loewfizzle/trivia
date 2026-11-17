@@ -348,7 +348,7 @@ function platform(c, cam, s, p, env, t, part) {
   c.restore();
 }
 
-// ------------------------------------------------------------------ THE OVERLAYS
+// ---- THE OVERLAYS
 /**
  * THE BILLPOSTER's SHEETS: the new poster pasted over the old one SHEET BY SHEET (SHEETS.cols × rows, the top row first, left → right),
  * each sheet unrolled DOWNWARD as he brushes it on (a damp sheen on the fresh paper fading), the seams between the sheets showing a

@@ -215,7 +215,7 @@ function mutedHint() {
 }
 function hideHint() { if (!hint) return; const el = hint; hint = null; el.classList.remove('is-in'); el.classList.add('is-out'); setTimeout(() => el.remove(), 300); }
 
-// ---------------------------------------------------------------- the in-game menu
+// ---- the in-game menu
 // In a game the corner holds two buttons: ☰ (this menu) and the music on/off. The menu drops down a glass panel with
 // CHAT (unread count; locked during play in some games), HOW TO PLAY, SETTINGS and THIS GAME (QUIT TO LOBBY, and for
 // the host END GAME FOR EVERYONE). Outside games the title, lobby and THE BOARD keep the gear + music pair.
