@@ -28,7 +28,7 @@
               + CREDITS.md from notes.txt.
 """
 import sys, os, io, json, struct, shutil, wave, colorsys, re, math
-from PIL import Image
+from PIL import Image, ImageChops
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
@@ -411,10 +411,18 @@ def flyers():
     credits_md()
 
 
+NIGHT_TOP = 204
+# (the night picture's small lights, in ITS pixels — Grok's notes + H2's table: the red aviation lights · the windows that flicker [x, y, w, h])
+NIGHT_LIGHTS = [(406, 426), (801, 484), (822, 485), (850, 446), (867, 447), (1136, 434), (1200, 481), (140, 448)]
+NIGHT_NEON = [(307, 515, 32, 25), (430, 493, 23, 36), (1027, 532, 33, 15), (109, 537, 29, 13), (964, 516, 23, 20)]
+
+
 def skyline():
     im = Image.open(os.path.join(SRC, 'backdrop', 'skyline-night.png')).convert('RGB')
     W, H = im.size
-    band = im.crop((0, round(H * 0.40), W, H))            # (the stars just over the roofs, the city, its water: the band's picture)
+    # (H6B — THE NIGHT CROP: rows 204 … 636 of 720 — the stars, the city, its waterline at the band's foot (the sea wall stands on it).
+    #  H2's crop (the lower 60 %) cut the painted night landmarks' tops: the lighthouse's lamp, downtown's spires, the control tower)
+    band = im.crop((0, NIGHT_TOP, W, NIGHT_TOP + 432))
     if band.width > 1600: band = band.resize((1600, round(band.height * 1600 / band.width)), Image.LANCZOS)
     out = os.path.join(ROOT, 'assets', 'jaywalk', 'skyline-night.webp')
     for q in (95, 92, 88, 84, 78, 70):
@@ -445,6 +453,25 @@ def skyline():
             band.save(out, 'WEBP', quality=q, method=6)
             if os.path.getsize(out) <= 150 * 1024: break
         print(f'  skyline-day-{aid}.webp: {band.width}×{band.height}, q{q}, {os.path.getsize(out)} B')
+    # H6B — THE PAINTED NIGHT SKYLINES (the owner, Nov 17): 8 night pictures — skyline-night with that area's landmark painted in, lit
+    # (Grok: backdrop/areas/skyline-night-<n>-<name>.png; pixel-identical outside the landmark) — the SAME crop as skyline-night.webp
+    # (rows 204 … 636), so the band cross-fades them at a gate exactly as the day set. The originals are only read.
+    base_night = Image.open(os.path.join(SRC, 'backdrop', 'skyline-night.png')).convert('RGB')
+    for n, src_id, aid in ((1, 'docks', 'docks'), (2, 'fish-market', 'fish'), (3, 'rail-yard', 'yard'), (4, 'bridge', 'bridge'), (5, 'downtown', 'downtown'), (6, 'canal', 'canal'), (7, 'lighthouse', 'lighthouse'), (8, 'airfield', 'airfield')):
+        im = Image.open(os.path.join(SRC, 'backdrop', 'areas', f'skyline-night-{n}-{src_id}.png')).convert('RGB')
+        W, H = im.size
+        assert (W, H) == (1280, 720), (W, H)
+        band = im.crop((0, NIGHT_TOP, W, NIGHT_TOP + 432))
+        # (THE NIGHT's LIFE the landmark covers — skyline.js#SKY_OFF: a blinking light / a flickering window whose surround the landmark changed)
+        d = ImageChops.difference(im, base_night).convert('L').point(lambda v: 255 if v > 10 else 0); px = d.load()
+        off_l = [i for i, (x, y) in enumerate(NIGHT_LIGHTS) if sum(1 for yy in range(y - 9, y + 10) for xx in range(x - 9, x + 10) if px[xx, yy]) > 12]
+        off_n = [i for i, (x, y, w, h) in enumerate(NIGHT_NEON) if sum(1 for yy in range(y - 2, y + h + 2) for xx in range(x - 2, x + w + 2) if px[xx, yy]) > 6]
+        print(f'    {aid}: the landmark covers lights {off_l} · windows {off_n}')
+        out = os.path.join(ROOT, 'assets', 'jaywalk', f'skyline-night-{aid}.webp')
+        for q in (95, 92, 88, 84, 78, 70):
+            band.save(out, 'WEBP', quality=q, method=6)
+            if os.path.getsize(out) <= 150 * 1024: break
+        print(f'  skyline-night-{aid}.webp: {band.width}×{band.height}, q{q}, {os.path.getsize(out)} B')
 
 
 def wav16(src, dst):

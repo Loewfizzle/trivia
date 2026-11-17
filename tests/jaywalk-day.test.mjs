@@ -103,23 +103,12 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   assert.ok(existsSync(new URL('../assets/jaywalk/skyline-day.webp', import.meta.url)));
 });
 
-test('THE LANDMARKS IN THE SKYLINE: one landmark an area, in the band while the kid is in it — ONE small canvas through canvas-safe, drawn on a change (never per frame); night = the area\'s neon on a silhouette, day = sunlit; THE LIGHTHOUSE\'s beam sweeps (transform only)', () => {
-  const s = code('skymarks.js'), n = code('night.js'), css = read('css/jaywalk.css');
-  assert.match(s, /export const MARK_IDS = Object\.freeze\(\['docks', 'fish', 'yard', 'bridge', 'downtown', 'canal', 'lighthouse', 'airfield'\]\);/);
-  const marks = s.slice(s.indexOf('const MARKS = ['), s.indexOf('export function drawSkyMark'));
-  assert.equal((marks.match(/\n  t => \{/g) || []).length, 8, 'eight drawings, in the areas\' order');
-  assert.match(s, /import \{ ctx2d \} from '\.\.\/\.\.\/ui\/canvas-safe\.js';/); assert.match(s, /const c = ctx2d\(cv\);\s*if \(!c\) return;/, 'every canvas through ctx2d');
-  assert.doesNotMatch(s, /requestAnimationFrame|setInterval|getBoundingClientRect|offsetWidth|clientWidth/, 'no loop of its own, no layout read');
-  assert.match(s, /if \(k === key\) return;/, 'drawn only when the area or the look changes');
-  assert.match(s, /fill\.?Style = day \? dayCol : o\.deep \? deep : body/, 'day: its own sunlit colour · night: the silhouette');
-  assert.match(s, /c\.strokeStyle = day \? 'rgba\(16, 36, 70, 0\.55\)' : A;/, '… edged in the area\'s neon by night');
-  assert.match(n, /skyMark\.set\(day \? -1 : ka, 'night', ka < 0 \? 0 : LOOKS\[ka\]\.accent\);/, 'set where the band\'s tint is set: on a gateway (+ a look change) — H5C: BY NIGHT only (by day the painted skyline carries the landmark: skyline.js)');
-  assert.match(n, /skyMark\.destroy\(\);/);
-  assert.match(css, /\.jw-sky-mark\[data-area='lighthouse'\] \.jw-sky-beam \{ display: block; \}/);
-  const beam = /@keyframes jw-beam \{([^@]*)\}\s/.exec(css)[1], rise = /@keyframes jw-mark-a \{([^@]*)\}\s/.exec(css)[1];
-  assert.doesNotMatch(beam + rise, /box-shadow|filter|width|height|left|top|background/, 'transform + opacity only');
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.jw-sky-mark\.is-a, \.jw-sky-mark\.is-b \{ animation: none; opacity: 1; \} \.jw-sky-beam::before \{ animation: none;/);
-  assert.match(css, /\.jw-skyline\[data-look='day'\] \.jw-sky-l, \.jw-skyline\[data-look='day'\] \.jw-sky-n \{ display: none; \}/, 'the night life is the night\'s');
+test('THE LANDMARKS IN THE SKYLINE (H6B): PAINTED in the band\'s pictures in BOTH looks — the drawn landmarks (skymarks.js), their canvas, their css + the band\'s colour wash are RETIRED; the night\'s life is its own layer, faded with the look', () => {
+  const n = code('night.js'), css = read('css/jaywalk.css');
+  assert.ok(!existsSync(new URL('../js/games/jaywalk/skymarks.js', import.meta.url)), 'skymarks.js is gone');
+  assert.doesNotMatch(n, /skymarks|skyMark|skyTint/); assert.doesNotMatch(css, /jw-sky-mark|jw-sky-beam|jw-sky-tint|jw-mark-a|jw-beam/);
+  assert.match(css, /\.jw-skyline\[data-look='day'\] \.jw-sky-life \{ opacity: 0; visibility: hidden; transition: opacity 1\.5s ease-in-out, visibility 0s 1\.5s; \}/, 'the night life is the night\'s — it FADES with the look (opacity only), then is not painted');
+  assert.match(css, /\.jw-sky-life \[hidden\] \{ display: none; \}/, 'a light a painted landmark covers is simply not there');
 });
 
 test('THE HEADER + THE DAY WORDS: "JAYWALK · SOLO" / "JAYWALK · MATCH" is a big, bold header (no pill); every word over the bright scene keeps a dark edge', () => {

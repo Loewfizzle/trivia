@@ -63,7 +63,7 @@ function compose(frame, sky, w) {
     const b = ctx2d(band);
     if (b) {
       const sw = sky.naturalWidth, sh = sky.naturalHeight, k = w / sw, srcH = bh / k;
-      b.drawImage(sky, 0, Math.max(0, sh * 0.5 - srcH * 0.62), sw, srcH, 0, 0, w, bh);
+      b.drawImage(sky, 0, Math.max(0, Math.min(sh - srcH, sh * 0.694 - srcH * 0.62)), sw, srcH, 0, 0, w, bh);   // (H6B: the night picture is cut 84 rows higher — the same rows as before)
       const g = b.createLinearGradient(0, 0, 0, bh); g.addColorStop(0, '#000'); g.addColorStop(0.6, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
       b.globalCompositeOperation = 'destination-in'; b.fillStyle = g; b.fillRect(0, 0, w, bh);
       c.drawImage(band, 0, 0);

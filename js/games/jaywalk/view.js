@@ -1,24 +1,7 @@
-// JAYWALK — THE GAME's SCREEN (H3 — THE SOLO RUN · H4 — THE MATCH; docs/jaywalk.md "THE SOLO GAME" + "THE MATCH"). The night look
-// (night.js — the same scene the lab draws), the kid, the controls + the sounds, inside the console's game frame (THE CITY PAUSE, the
-// corner menu, the station's music). Renders from the room's state; the RUN itself is this phone's own pure engine, played ON THE SERVER's
-// CLOCK — ONE LIFE: the first hit ends it.
-//   · GO (a SOLO run): the moment the run is on screen the phone writes its proof node's `go` (rooms/{CODE}/jw/{matchId}/{uid}/go — the
-//     rules: the SERVER's time, once) and reads it back → THE COURSE IS PICKED AFTER GO (logic.js#seedOf). Until it lands the screen shows
-//     THE START (the kid on the calm opening lanes, the rest still in the dark — never a blank frame).
-//   · GO (a MATCH): 3 · 2 · 1 — every phone writes its own `go` in the count's last 2 s; THE FIRST GO to land picks the course and sets
-//     tick 0 (that time + 2 s) for everyone (logic.js#startOf) — the same course, the same clock, on every phone. H4B: the GO is a
-//     TRANSACTION never applied locally — a phone's own estimate of the server's time is never in its mirror, so it can never pick a course.
-//   · tick 0 = GO; the engine is stepped to the server clock's tick every frame (a stall / a hidden page is caught up — the rules never
-//     skip a tick, and a run never pauses: a pause would be a slow-motion hole)
-//   · THE PROOF: the hop log goes up in chunks (a second apart solo, AT ONCE in a match — H4B: ≤ CLOCK.flushMatchMs), each stamped by the SERVER on arrival
-//     (c/{i} = { s, at }); at the end the last chunk + `e` (a signal). The score is THE JUDGE's replay of that node — never this phone's
-//     claim. Offline, the chunks queue and land together when the signal is back: THE DROPPED SIGNAL never costs the run.
-//   · THE GHOSTS (a match — H4B, ghosts.js): the other players' kids — their hop logs (the same proof nodes, mirrored) stepped through the
-//     same engine TO THE WORLD's OWN TICK (no new hop assumed: they stand / ride their log with it); a late hop catches up in a quick hop;
-//     a death only once their own end confirms it. See-through, their colour, their name over them; never colliding.
-//   · OUT (a match) = SPECTATE: the hit is seen, then Call the Winner (the match kit's), and the camera follows the LEADER's ghost (a tap
-//     = the next player); the live order (top corner) shows everyone's lanes. The host's step ends the match; the podium = the console's.
-//   · a refused GO (no signal, rules not yet published) = an UNPROVEN run: it still plays, on a seed of its own, and is never counted.
+// JAYWALK — THE GAME's SCREEN (H3 — THE SOLO RUN · H4 — THE MATCH): the night / day scene (night.js — the same the lab draws), the kid,
+// the controls + the sounds, inside the console's game frame. It renders from the room's state; the RUN is this phone's own pure
+// engine on the SERVER's clock — ONE LIFE. GO, the course picked after it, the proof's chunks, the ghosts, OUT = spectate, the dropped
+// signal, an unproven run → docs/jaywalk.md "THE SOLO GAME" · "THE MATCH" · "THE START" · "THE GHOSTS" · "THE DROPPED SIGNAL".
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { dbRef, set as dbSet, get as dbGet, update as dbUpdate, runTransaction, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';

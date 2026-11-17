@@ -143,7 +143,7 @@ test('THE ARRIVAL GATEWAY: a neon arch on every area\'s first lane — posts in 
   const css = read('css/jaywalk.css'), kf = css.slice(css.indexOf('@keyframes jw-gate')).split('\n')[0];
   assert.match(css, /\.jw-mark\.is-flash \{ animation: jw-gate 0\.62s ease-out 1; \}/, 'ONCE'); assert.doesNotMatch(kf, /box-shadow|filter|width|height|left|top|color/, 'transform + opacity only');
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.jw-mark\.is-flash \{ animation: none; \} \}/);
-  assert.match(css, /\.jw-sky-tint \{[^}]*opacity: 0; transition: opacity/, 'the skyline band\'s tint: opacity only');
+  assert.doesNotMatch(css, /jw-sky-tint/, 'H6B: the band\'s colour wash is RETIRED — the painted picture carries the area (both looks)');
   assert.match(code('lab.js'), /mark\.textContent = gateName\(e\.lane\);/, 'the lab shows the same name');
   // a line's words step off a gateway lane (its own name is written there)
   assert.match(N, /const wz = Z\(Ln\.lane \+ \(both \? 1\.42 : 0\.42\) - \(L\.mark \? 1 : 0\)\);/);

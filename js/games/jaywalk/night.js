@@ -1,36 +1,16 @@
-// JAYWALK — THE NIGHT LOOK (H2 — docs/jaywalk.md "THE NIGHT LOOK"): the pure engine drawn in the SMOOTH STYLIZED 3D style on three.js
-// 0.160 — the same interface as the graybox (graybox.js: `?gray=1` on the lab keeps it for comparison): draw(run, course, a, dt).
-//   · THE GROUND: one instanced plane a lane, drawn in a shader (night-fx.js) · CARS: the Kenney models, a neon body tint per car from the
-//     seed, both tail lights lit + a soft red glow on the road behind, a soft headlight glow in front (H5A — the light trails are GONE: they read as jet exhaust from above) (decals — no real point light), our own light quads
-//   · LOGS built in code (H3: each its own length, half-sunk, a waterline ring; the amber only a thin underglow + a soft light on the water) · TRAINS: Kenney's front + carriages, lit windows, a headlight
-//     beam, the red signals + a warning glow on the side it comes from · TREES built in code, Kenney's props, the lamps' warm pools
-//   · THE AREAS (H5A — areas.js): a whole stretch looks like the place — its ground, its obstacles, its edge dressing, its signature
-//     pieces in the edge columns (THE DOCK CRANE, THE LIGHTHOUSE + its sweeping beam, THE CONTROL TOWER …), THE ARRIVAL GATEWAY (a neon arch +
-//     the area's name on its lane), the skyline band's tint
-//   · THE BLACKOUT (the wall): the lights die lane by lane from below, a cold edge where it bites
-//   · THE GHOSTS (H4 — a match): the other players' kids, SEE-THROUGH in their own colours — each one's run is their hop log through
-//     the same engine (the view steps it; this file only draws it), never colliding; `ghost.tag` = where its name tag goes on screen
-//   · THE LINES (H4 add-on — lines.js): YOUR BEST (gold) + THE NEXT FRIEND's (white / cyan) — a glowing line across the whole lane at
-//     the far edge of that lane (a row of glowing buoys on water), its words on the ground beside it, a burst when it is crossed
-//   · THE KID (H5A — Kenney's skate boy: models.js#loadKid; his cap + shirt in the player's colour; a pose a frame — idle · the jump ·
-//     the fall · the splay) + THE HOP's feel + the hits, one per cause — ALL DERIVED FROM THE RUN's STATE between ticks
-//     (the rules never read the frame clock; a refresh / a replay draws the same kid)
-//   · THE CAMERA (H2B — camera.js, shared with the graybox): ZOOM 7 · 8 · 9 columns across, the sideways follow, the slight TURN; the
-//     dimmer edge column each side stays the cue for the play area's edge. View only: the rules stay 9 columns.
-//   · THE DAY LOOK (H5B — docs/jaywalk.md "THE DAY LOOK"): setLook('day' | 'night') — the SAME scene in sunlight: a warm sun + a clear
-//     sky's light, the ground shader's day colours (night-fx.js `uDay`), the lights that only GLOW at night switched off (LF / LB) and
-//     the ones that must READ kept as PAINT (the glow kinds alpha-blended: the rail signals, the runway lights, the lines, the kid's
-//     ring), sun shadows (the blob shadows thrown to one side), the painted gateway, THE FOG BANK where the blackout is, the day
-//     skyline + THE LANDMARKS IN THE SKYLINE (skymarks.js). View only: nothing the rules read.
-// Everything that repeats is INSTANCED; a window of lanes round the kid is alive (re-laid every frame — a few hundred matrices); no
-// post-processing below the top tier (THE HALF-RES BLOOM: tier 2 only). setTier(2 | 1 | 0): the match kit's tiers (games/kit/tiers.js).
+// JAYWALK — THE SCENE (H2 … H6B; three.js 0.160): the pure engine drawn in the smooth stylized 3D style — NIGHT + DAY are ONE scene
+// (setLook). The same interface as the graybox: draw(run, course, a, dt). A VIEW: it draws from (run, course) and writes nothing; no
+// rule, replay or server file imports it. What each part is + why → docs/jaywalk.md "THE NIGHT LOOK" · "THE DAY LOOK" · "THE AREAS" ·
+// "NO WEAK POINTS" · "THE BIG MOMENTS" (flyers.js — on demand) · "THE CAMERA" · "THE LINES" · "THE GHOSTS" · "THE FINAL POLISH".
+// Everything that repeats is INSTANCED; a window of lanes round the kid is alive (re-laid every frame); no post-processing below the
+// top tier (THE HALF-RES BLOOM: tier 2 only). setTier(2 | 1 | 0): the match kit's tiers (games/kit/tiers.js).
 import * as THREE from 'three';
 import { FP, COLS, HOP_TICKS, MODES } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod, area, gateName } from './course.js';
 import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade } from './models.js';
 import { FOG_HEX, DAY_FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, dayEnv, createBloom, fogUp, FOG_UP } from './night-fx.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { skyPlan, skyHeld, skyRoom, skyShift, SKY_FADE_MS, SKY_BAND, SKY_ASPECT } from './skyline.js';
+import { skyPlan, skyHeld, skyRoom, skyShift, skyOff, SKY_FADE_MS, SKY_LOOK_MS, SKY_BAND, SKY_ASPECT, SKY_LIGHTS, SKY_NEON } from './skyline.js';
 import { CAM, createCamera } from './camera.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
 import { LINE_HEX } from './lines.js';
@@ -52,10 +32,6 @@ const KID_S = 1.62;   // (THE KID's size on the lane — H5A, Kenney's skate boy
 /** his poses (models.js#loadKid — a row of the pose texture a frame): the idle loop (ms), how fast the fall flails */
 const IDLE_MS = 1333, FALL_MS = 333;
 const KID_YAW = Math.PI;   // (Kenney's kid faces +z, as his cars do; the scene's "up the course" is −z)
-// the skyline's night life, in % of the band's picture (assets/jaywalk/skyline-night.webp): [x, y, delay s] the red aviation lights ·
-// [x, y, w, h, delay s] the neon blocks that flicker
-const SKY_LIGHTS = [[31.7, 31.8, 0], [66.3, 36.4, 0.9], [67.9, 36.4, 0.9], [62.6, 45.6, 1.7], [64.2, 45.6, 1.7], [88.7, 34.2, 0.4], [93.8, 44.6, 1.3], [10.9, 37, 2.1]];
-const SKY_NEON = [[24, 52.6, 2.5, 5.8, 0], [33.6, 47.4, 1.8, 8.4, 2.2], [80.2, 56.4, 2.6, 3.4, 3.7], [8.5, 57.6, 2.3, 3, 1.1], [75.3, 52.8, 1.8, 4.6, 4.4]];
 const X = c => c - COLS / 2, Z = l => -l;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const NOP = () => {};
@@ -312,9 +288,20 @@ export function createNight(host, o = {}) {
   // kid's column; its foot fades into the lanes' fog. NIGHT LIFE: the aviation lights blink, a few neon blocks flicker (small overlays).
   const sky = document.createElement('div'), skyImg = document.createElement('div');
   sky.className = 'jw-skyline'; skyImg.className = 'jw-skyline-img';
-  for (const [x, y, d] of SKY_LIGHTS) { const i = document.createElement('i'); i.className = 'jw-sky-l'; i.style.cssText = `left:${x}%;top:${y}%;animation-delay:${-d}s`; skyImg.append(i); }
-  for (const [x, y, bw, bh, d] of SKY_NEON) { const i = document.createElement('i'); i.className = 'jw-sky-n'; i.style.cssText = `left:${x}%;top:${y}%;width:${bw}%;height:${bh}%;animation-delay:${-d}s`; skyImg.append(i); }
-  const skyTint = document.createElement('i'); skyTint.className = 'jw-sky-tint';   // (H5A — the band takes a wash of the area's colour: opacity only)
+  // (THE NIGHT's LIFE — skyline.js#SKY_LIGHTS / SKY_NEON: its own layer, faded with the look (opacity only); H6B: a light / a window a
+  //  painted landmark stands on is OFF while that picture is on the band — skyLife)
+  const skyLifeEl = document.createElement('div'), skyL = [], skyN = []; skyLifeEl.className = 'jw-sky-life';
+  for (const [x, y, d] of SKY_LIGHTS) { const i = document.createElement('i'); i.className = 'jw-sky-l'; i.style.cssText = `left:${x}%;top:${y}%;animation-delay:${-d}s`; skyLifeEl.append(i); skyL.push(i); }
+  for (const [x, y, bw, bh, d] of SKY_NEON) { const i = document.createElement('i'); i.className = 'jw-sky-n'; i.style.cssText = `left:${x}%;top:${y}%;width:${bw}%;height:${bh}%;animation-delay:${-d}s`; skyLifeEl.append(i); skyN.push(i); }
+  skyImg.append(skyLifeEl);
+  let skyLifeKey = '', skyLifeT = 0;
+  /** the lights + windows OFF for these pictures (a cross-fade: BOTH pictures' — nothing blinks on a landmark coming in or going out) */
+  function skyLife(...files) {
+    const off = files.map(skyOff), key = files.join('|');
+    if (key === skyLifeKey) return;
+    skyLifeKey = key;
+    skyL.forEach((e, i) => { e.hidden = off.some(o => o.l.includes(i)); }); skyN.forEach((e, i) => { e.hidden = off.some(o => o.n.includes(i)); });
+  }
   // THE PAINTED SKYLINES (H5C — skyline.js): TWO picture layers under the night life — the picture on screen + the one a gate
   // CROSS-FADES to (≈ 2 s, opacity only). A layer's picture is only ever changed while that layer is hidden.
   const skyUnder = document.createElement('div'), skyOver = document.createElement('div');   // (UNDER is always solid; only OVER's opacity ever moves)
@@ -322,20 +309,16 @@ export function createNight(host, o = {}) {
   // THE FAR EDGE (H5C — the owner: "a real far edge"): the course ENDS at a SEA WALL against the skyline's sea — stone, its cap lit by
   // the sun by day, a few dim lamps by night — and the far lanes are FULLY in the haze before they reach it (the fog: depth()); the
   // band is solid down to the wall: nothing half-see-through ever floats over the backdrop.
-  const seaWall = document.createElement('div'), wallStone = document.createElement('i'), farHaze = document.createElement('div');
-  seaWall.className = 'jw-seawall'; farHaze.className = 'jw-farhaze'; seaWall.append(wallStone);
+  // (H6B — THE LOOK SWITCH: the wall has BOTH looks' stone, the day's laid over the night's: its opacity alone moves with the band)
+  const seaWall = document.createElement('div'), wallStone = document.createElement('i'), wallDay = document.createElement('i'), farHaze = document.createElement('div');
+  seaWall.className = 'jw-seawall'; farHaze.className = 'jw-farhaze'; wallDay.className = 'is-day'; seaWall.append(wallStone, wallDay);
   for (const x of [8, 29, 50, 71, 92]) { const l = document.createElement('b'); l.style.left = `${x}%`; seaWall.append(l); }
-  sky.append(skyImg, skyTint); host.append(sky, farHaze);
-  sky.append(seaWall);
-  // THE LANDMARKS IN THE SKYLINE (H5B — skymarks.js: the area's neon-outline landmark, drawn when the kid crosses a gateway) are the
-  // NIGHT's alone since H5C (by day the painted picture carries it): the module is fetched when a night band first needs it — never
-  // by day, and out of the cartridge's eager graph. It stands behind the sea wall.
-  let skyMark = null, skyMarkAsk = null;
-  const skyMarkGet = () => { if (!skyMarkAsk) skyMarkAsk = lazyImport(import('./skymarks.js'), './skymarks.js').then(M => { if (dead) return; skyMark = M.createSkyMark(sky); sky.append(seaWall); skyArea = -2; }).catch(NOP); };
-  let skyAt = 9e9, skyArea = -2, skyLane = -1e9, skyRoomPc = 0, skyBias = 0, skyBiasT = 0, skyFresh = true, skyPicW = 0;
+  sky.append(skyImg, seaWall); host.append(sky, farHaze);
+  // (H6B — THE LANDMARKS ARE PAINTED IN BOTH LOOKS: the drawn neon-outline landmarks (skymarks.js) + the band's colour wash are RETIRED)
+  let skyAt = 9e9, skyLane = -1e9, skyRoomPc = 0, skyBias = 0, skyBiasT = 0, skyFresh = true, skyPicW = 0;
   // the pictures held (file → { img, ok: a promise }): the one on screen + the next area's — never more
   const skyHold = new Map();
-  const skyS = { now: '', over: false, want: '', fades: 0 };   // (over: the picture on screen sits on the OVER layer)
+  const skyS = { now: '', over: false, want: '', fades: 0, until: 0, ms: 0 };   // (over: the picture on screen sits on the OVER layer · until: its cross-fade's end)
   const skyUrl = f => new URL(f, SKY_DIR).href;
   function skyGet(f) {
     let q = skyHold.get(f);
@@ -346,30 +329,37 @@ export function createNight(host, o = {}) {
     }
     return q;
   }
-  /** show `f` on the band: at once (the first picture, a look change, reduce motion) or CROSS-FADED (a gate) — once it has arrived */
-  function skyShow(f, fade) {
+  /** show `f` on the band: at once (`ms` 0: the first picture, reduce motion) or CROSS-FADED over `ms` (a gate: SKY_FADE_MS · THE LOOK
+   *  SWITCH: SKY_LOOK_MS — H6B: never a jump) — once it has arrived, and once a cross-fade still running has ended */
+  function skyShow(f, ms) {
     if (f === skyS.want) return;
-    skyS.want = f;
-    skyGet(f).ok.then(() => {
+    skyS.want = f; skyS.ms = ms;
+    const go = () => {
       if (dead || skyS.want !== f || skyS.now === f) return;
-      const slow = !!(fade && !reduce && skyS.now);
+      const wait = skyS.until - performance.now();
+      if (wait > 0) { setTimeout(go, wait + 30); return; }   // (a visible layer's picture never changes: wait the running fade out)
+      const slow = !!(skyS.ms && !reduce && skyS.now);
       // (the new picture goes on the layer that is HIDDEN now — OVER while it is clear, UNDER while OVER covers it — then OVER fades
       //  in / out: the band is never see-through, a visible layer's picture never changes)
       (skyS.over ? skyUnder : skyOver).style.backgroundImage = `url("${skyUrl(f)}")`;
-      skyOver.style.transition = slow ? `opacity ${SKY_FADE_MS}ms ease-in-out` : 'none';
+      skyOver.style.transition = slow ? `opacity ${skyS.ms}ms ease-in-out` : 'none';
       skyS.over = !skyS.over; skyOver.style.opacity = skyS.over ? '1' : '0';
-      skyS.now = f;
+      // (THE NIGHT's LIFE: through the fade nothing blinks on EITHER picture's landmark; after it, the new picture's alone)
+      clearTimeout(skyLifeT); skyLife(skyS.now, f); if (slow) skyLifeT = setTimeout(() => { if (!dead) skyLife(skyS.now); }, skyS.ms + 60); else skyLife(f);
+      skyS.now = f; skyS.until = slow ? performance.now() + skyS.ms : 0;
       if (slow) skyS.fades++;
-    }).catch(NOP);
+    };
+    skyGet(f).ok.then(go).catch(NOP);
   }
-  /** the band follows the kid: the picture of his area (cross-faded at its gate), the next one fetched ahead, the rest offset */
+  /** the band follows the kid: the picture of his area (cross-faded at its gate), the next one fetched ahead, the rest offset.
+   *  `fresh`: true = the first picture (at once) · 'look' = THE LOOK SWITCH (the whole band cross-fades, the rest offset eases) */
   function skyFollow(lane, fresh) {
     const plan = skyPlan(lane, day ? 'day' : 'night'), keep = skyHeld(plan);
     for (const f of keep) skyGet(f);
-    for (const f of [...skyHold.keys()]) if (!keep.includes(f)) skyHold.delete(f);   // (ONLY the current + the next are held)
-    skyShow(plan.now, !fresh);
+    for (const f of [...skyHold.keys()]) if (!keep.includes(f) && f !== skyS.now) skyHold.delete(f);   // (ONLY the current + the next are held — + the one still on screen through a look's cross-fade)
+    skyShow(plan.now, fresh === true ? 0 : fresh === 'look' ? SKY_LOOK_MS : SKY_FADE_MS);
     skyBiasT = plan.bias;
-    if (fresh) skyBias = skyBiasT;
+    if (fresh === true) skyBias = skyBiasT;
   }
 
   /**
@@ -380,6 +370,7 @@ export function createNight(host, o = {}) {
   function setLook(l) {
     const d = l === 'day';
     if (lookSet && d === day) return;
+    const first = !lookSet;
     lookSet = true; day = d;
     const fogHex = day ? DAY_FOG_HEX : FOG_HEX;
     scene.background.setHex(fogHex); scene.fog.color.setHex(fogHex);
@@ -400,8 +391,9 @@ export function createNight(host, o = {}) {
     // THE BLACKOUT's curtain = THE FOG BANK's body by day
     curtain.material.color.setHex(day ? 0xdfe7ee : 0x000000); curtain.material.opacity = day ? 1 : 0.93;
     sky.dataset.look = day ? 'day' : 'night'; farHaze.dataset.look = sky.dataset.look;
-    if (!day) skyMarkGet();
-    skyArea = -2; skyLane = -1e9; skyFresh = true; needWarm = true;   // (the band's picture: draw() asks skyline.js for the kid's lane — at once after a look change)
+    // (the band's picture: draw() asks skyline.js for the kid's lane — H6B, THE LOOK SWITCH: the day + night pictures have different
+    //  horizons, so the whole band CROSS-FADES (SKY_LOOK_MS, the css fades the night's life + the wall's stone with it) — never a jump)
+    skyLane = -1e9; skyFresh = first ? true : 'look'; needWarm = true;
   }
   setLook(o.look === 'day' ? 'day' : 'night');
 
@@ -648,7 +640,7 @@ export function createNight(host, o = {}) {
     //  kept inside the picture's own room; the sea wall's stones slide a touch more: they are nearer)
     skyBias += (skyBiasT - skyBias) * (reduce ? 1 : 1 - Math.exp(-dt / 650)); if (Math.abs(skyBiasT - skyBias) < 0.02) skyBias = skyBiasT;
     const sl = Math.round(skyShift(skyBias, rig.x() * 2.2 - rig.yaw() * 28, skyRoomPc) * 20) / 20;
-    if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; wallStone.style.transform = `translate3d(${(-sl * skyPicW * 0.0115).toFixed(1)}px,0,0)`; }
+    if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; wallStone.style.transform = wallDay.style.transform = `translate3d(${(-sl * skyPicW * 0.0115).toFixed(1)}px,0,0)`; }
 
     // ---- the lanes
     for (const q of Object.values(K)) q.reset();
@@ -864,15 +856,10 @@ export function createNight(host, o = {}) {
     }
     fish.visible = !!sign;
     if (sign) { fish.position.set(sign.at[0], sign.at[1], sign.at[2]); fish.quaternion.copy(cam.quaternion); fish.material.opacity = sign.lt * (reduce || day ? 1 : 0.88 + 0.12 * Math.sin(clock / 190)); }
-    // the skyline band's tint: the colour of the area the kid is in (a change only when he crosses a gateway)
-    const kl = Math.max(0, Math.floor(ky)), ka = area(kl).index;
-    // THE PAINTED SKYLINES (H5C): the band's picture follows his lane — his area's (cross-faded at its gate), the next one fetched ahead
+    // THE PAINTED SKYLINES (H5C · H6B — both looks): the band's picture follows his lane — his area's (cross-faded at its gate), the next
+    // one fetched ahead; the painted picture itself carries the landmark (no wash over it, nothing drawn on it)
+    const kl = Math.max(0, Math.floor(ky));
     if (kl !== skyLane) { skyLane = kl; skyFollow(kl, skyFresh); skyFresh = false; }
-    if (ka !== skyArea) {
-      // (BY DAY — H5C: the painted picture itself carries the landmark: no wash over it, no drawn landmark (skymarks.js is the night's))
-      skyArea = ka; skyTint.style.background = ka < 0 ? 'none' : `linear-gradient(to top, ${LOOKS[ka].sky}, transparent 85%)`; skyTint.style.opacity = ka < 0 || day ? '0' : '0.2';
-      if (skyMark) skyMark.set(day ? -1 : ka, 'night', ka < 0 ? 0 : LOOKS[ka].accent);   // (H5B — THE LANDMARKS IN THE SKYLINE: this area's, while the kid is in it — the NIGHT's neon outlines)
-    }
     // his blob shadow: smaller + fainter as he rises
     if (show && py > -0.2) K.shadow.put(px, feet + 0.035, pz + 0.05, 0.98 * (1 - lift * 0.55) * s3[0], 1.15 + lift * 1.4, 0.78 * (1 - lift * 0.55) * s3[2], 0, 0, 1, 0, 0.66 * (1 - lift * 0.9) * lit);
     // HE ALWAYS STANDS OUT: a soft pool of his colour on the ground under him + a ring round his feet (it breathes — never with reduce motion)
@@ -1059,7 +1046,7 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px (= pt) — the wider view's readability number */
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ warmed, kid: !!kidGeo, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', fly: FL ? FL.info() : null, mark: skyMark ? skyMark.shown() : '', words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ warmed, kid: !!kidGeo, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', fly: FL ? FL.info() : null, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** H6A — how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); },
     /** H5B — THE LOOK: 'day' | 'night' (at once; the same scene) */
@@ -1078,7 +1065,7 @@ export function createNight(host, o = {}) {
       if (bloom) bloom.dispose();
       if (env) env.dispose();
       if (envDay) envDay.dispose();
-      if (skyMark) skyMark.destroy();
+      clearTimeout(skyLifeT);
       renderer.dispose();
       try { renderer.forceContextLoss(); } catch { /* fine */ }
       el.remove(); sky.remove(); farHaze.remove(); skyHold.clear();

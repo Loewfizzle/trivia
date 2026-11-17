@@ -24,6 +24,7 @@ import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { CAUSE_LINES, VEHICLES } from '../../js/games/jaywalk/causes.js';
 import { looksH6A } from './kit/jaywalk-h6a.mjs';
+import { looksH6B } from './kit/jaywalk-h6b.mjs';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), PERF = argv.includes('--perf'), WK = argv.includes('--webkit'), LOOK = argv.includes('--look'), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
@@ -321,11 +322,11 @@ async function looksH5B(p, what, reqs) {
         await shot(p, `gates/${k + 1}-${IDS[k]}-beside-${tag}.png`);
       }
       await stand(g); await sleep(1100); await shot(p, `gates/${k + 1}-${IDS[k]}-gate.png`);
-      const m = await p.evaluate(() => { const e = document.querySelector('.jw-sky-mark'); return { mark: window.__jwLab.state().info.mark, area: e && e.dataset.area, on: !!e && (e.classList.contains('is-a') || e.classList.contains('is-b')) }; });
-      ok(m.mark === `${k}:night` && m.on, `${IDS[k]}: its landmark stands in the skyline band (${m.area})`);
+      const m = await p.evaluate(() => window.__jwLab.state().info.sky);   // (H6B: the landmark is PAINTED in the band's own picture, both looks)
+      ok(/^skyline-night-[a-z]+\.webp$/.test(m.now) || m.held.some(f => /^skyline-night-[a-z]+\.webp$/.test(f)), `${IDS[k]}: its landmark stands in the skyline band — painted (${m.now})`);
     }
     await stand(20); await sleep(700);
-    ok(await L("!document.querySelector('.jw-sky-mark.is-a, .jw-sky-mark.is-b')"), 'the opening (lanes 0–49) has no landmark in the band');
+    ok((await p.evaluate(() => window.__jwLab.state().info.sky)).held.includes('skyline-night.webp'), 'the opening (lanes 0–49) has no landmark in the band');
   }
 }
 
@@ -402,14 +403,14 @@ async function looksH5C(p, what, reqs) {
       ok(s.now === `skyline-day-${SKY[k]}.webp` && s.held.length <= 2, `${IDS[k]}: the band shows its painted skyline; ≤ 2 pictures held (${s.held.join(' + ')})`);
       await top(`h5c/sky/day-${k + 1}-${IDS[k]}-top.png`); await shot(p, `h5c/sky/day-${k + 1}-${IDS[k]}.png`);
     }
-    ok(await L("!document.querySelector('.jw-sky-mark.is-a, .jw-sky-mark.is-b')"), 'by day skymarks.js draws NOTHING (the painted picture carries the landmark)');
+    ok(await L("!document.querySelector('.jw-sky-mark')"), 'nothing is drawn over the band (the painted picture carries the landmark)');
     await stand(459, 4); await sleep(2700); s = await sky();
     ok(s.now === 'skyline-day-docks.webp', `the loop (lane 450 +) repeats the pictures (${s.now})`);
     const n = reqs.filter(u => /skyline-day-[a-z]+\.webp/.test(u)).length;
     ok(n >= 8, `the pictures were fetched one by one along the way (${n} fetches for 9 gates — never all 8 at once)`);
     await L("window.__jwLab.setLook('night')"); await sleep(900); s = await sky();
-    ok(s.now === 'skyline-night.webp' && s.held.length === 1, `by night: the ONE night picture (${s.held.join(' + ')})`);
-    for (const [k, lane] of [[0, 59], [6, 359]]) { await fresh('night'); await sleep(300); await stand(lane, 4); await sleep(1500); await top(`h5c/sky/night-${k + 1}-${IDS[k]}-top.png`); await shot(p, `h5c/sky/night-${k + 1}-${IDS[k]}.png`); ok((await st(p)).info.mark === `${k}:night`, `${IDS[k]} by night: its neon-outline landmark stands in the band, as before`); }
+    await sleep(1800); s = await sky(); ok(s.now === 'skyline-night-docks.webp' && s.held.length <= 2, `by night: the area's painted night picture (H6B — ${s.held.join(' + ')})`);
+    for (const [k, lane] of [[0, 59], [6, 359]]) { await fresh('night'); await sleep(300); await stand(lane, 4); await sleep(1500); await top(`h5c/sky/night-${k + 1}-${IDS[k]}-top.png`); await shot(p, `h5c/sky/night-${k + 1}-${IDS[k]}.png`); ok((await sky()).now === `skyline-night-${SKY[k]}.webp`, `${IDS[k]} by night: its painted night skyline (H6B)`); }
   }
   if (what === 'perf') {
     // THE NEW HEAVY MOMENTS at 390 × 844 @3, tier 2, 4× CPU: the band's CROSS-FADE at a gate (day) · THE FOG BANK close (day) · THE
@@ -583,6 +584,10 @@ async function looksNums(p) {
 
 try {
   if (argv.includes('--nums')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksNums(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
+  // (H6B — THE FINAL POLISH: `--h6b[=sky|gates|ufo|jet|ship|shops|lane|perf]` — kit/jaywalk-h6b.mjs; the shots → <group>/)
+  { const h6b = argv.find(x => x === '--h6b' || x.startsWith('--h6b=')); if (h6b) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600);
+    const top = async name => { if (OUT) { mkdirSync(join(OUT, name.slice(0, name.lastIndexOf('/'))), { recursive: true }); await o.p.screenshot({ path: join(OUT, name), clip: { x: 0, y: 0, width: 390, height: 300 } }); } };
+    await looksH6B(o.p, { ok, shot, sleep, waitFor, what: h6b.slice(6), reqs: o.reqs, top, open, up }); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   // (H6A — THE BIG MOMENTS: `--h6a[=blackbird|ufo|ship]` — kit/jaywalk-h6a.mjs; the shots → h6a/<group>/)
   { const h6a = argv.find(x => x === '--h6a' || x.startsWith('--h6a=')); if (h6a) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH6A(o.p, { ok, shot, sleep, waitFor, what: h6a.slice(6), reqs: o.reqs }); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   { const h5c = argv.find(x => x === '--h5c' || x.startsWith('--h5c=')); if (h5c) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5C(o.p, h5c.slice(6), o.reqs); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }

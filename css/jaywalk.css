@@ -65,22 +65,24 @@
 .jw-farhaze { position: absolute; left: 0; right: 0; top: 24%; height: 4.2%; pointer-events: none;
   background: linear-gradient(#0b0716 0, rgba(11, 7, 22, 0.86) 22%, rgba(11, 7, 22, 0) 100%); }
 .jw-skyline[data-look='day'] .jw-seawall { box-shadow: 0 -1px 0 rgba(20, 60, 110, 0.55), 0 -4px 6px rgba(16, 70, 130, 0.35); }
-.jw-skyline[data-look='day'] .jw-seawall i { background:
+/* (H6B — THE LOOK SWITCH: the wall carries BOTH looks' stone — the day's lies over the night's and its opacity alone moves, with the
+   band's own cross-fade (night.js#skyShow, SKY_LOOK_MS); the lamps + the night's life fade the same way: never a jump) */
+.jw-seawall i.is-day { opacity: 0; transition: opacity 1.5s ease-in-out; }
+.jw-seawall b { transition: opacity 1.5s ease-in-out; }
+.jw-skyline[data-look='day'] .jw-seawall i.is-day { opacity: 1; }
+.jw-seawall i.is-day { background:
     linear-gradient(#fffaf0 0, #fffaf0 1.5px, rgba(0, 0, 0, 0) 1.5px),
     linear-gradient(rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 62%, rgba(86, 68, 44, 0.45) 62%, rgba(86, 68, 44, 0.45) calc(62% + 1.5px), rgba(0, 0, 0, 0) calc(62% + 1.5px)),
     repeating-linear-gradient(90deg, rgba(96, 76, 50, 0.5) 0, rgba(96, 76, 50, 0.5) 1.5px, rgba(0, 0, 0, 0) 1.5px, rgba(0, 0, 0, 0) 31px) 0 0 / 100% 62% no-repeat,
     repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 15px, rgba(96, 76, 50, 0.5) 15px, rgba(96, 76, 50, 0.5) 16.5px, rgba(0, 0, 0, 0) 16.5px, rgba(0, 0, 0, 0) 31px) 0 100% / 100% 38% no-repeat,
     linear-gradient(#f3e7cd 0, #e9dabb 24%, #c2af8c 26%, #cfbe9a 60%, #a39274 100%); }
-.jw-skyline[data-look='day'] .jw-seawall b { display: none; }
+.jw-skyline[data-look='day'] .jw-seawall b { opacity: 0; }
 .jw-farhaze[data-look='day'] { background: linear-gradient(#c6e6f7 0, rgba(198, 230, 247, 0.86) 22%, rgba(198, 230, 247, 0) 100%); }
 /* (the review: the day wall was a flat strip that hovered — TWO courses of blocks, their joints staggered, and its own shadow on the
    ground at its foot: the course reaches it) */
 .jw-farhaze[data-look='day']::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 7px; background: linear-gradient(rgba(64, 84, 112, 0.5), rgba(64, 84, 112, 0)); }
 .jw-sky-l { position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #ff4034; box-shadow: 0 0 6px 2px rgba(255, 64, 52, 0.85); animation: jw-blink 2.6s steps(1) infinite; }
 .jw-sky-n { position: absolute; background: rgba(9, 6, 20, 0.86); opacity: 0; animation: jw-flick 6.5s steps(1) infinite; }
-/* H5A — THE AREAS: the band takes a wash of the area's own colour (set by night.js when the kid crosses a gateway — opacity only) */
-.jw-sky-tint { position: absolute; inset: 0; opacity: 0; transition: opacity 0.9s ease; pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .jw-sky-tint { transition: none; } }
 @keyframes jw-blink { 0%, 52% { opacity: 1; } 53%, 100% { opacity: 0.12; } }
 @keyframes jw-flick { 0%, 100% { opacity: 0; } 2% { opacity: 1; } 4% { opacity: 0; } 7% { opacity: 0.8; } 8.5% { opacity: 0; } 46% { opacity: 0.9; } 47.5% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .jw-sky-l, .jw-sky-n { animation: none; } }
@@ -255,28 +257,16 @@
 .jw-final .final > .sheet-kicker { padding-top: 6px; font: 900 clamp(17px, 5.1vw, 22px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; color: #fff3fb;
   text-shadow: 0 0 3px #fff, 0 0 12px #ff4fc4, 0 0 28px rgba(255, 79, 196, 0.8), 0 2px 0 rgba(20, 0, 14, 0.9); }
 
-/* THE LANDMARKS IN THE SKYLINE (js/games/jaywalk/skymarks.js): the area's landmark stands in the band while the kid is in it — one
-   small canvas, drawn on a gateway; it rises in (transform + opacity only). THE LIGHTHOUSE's beam: a soft cone that sweeps. */
-.jw-sky-mark { position: absolute; left: 0; right: 0; top: 18%; height: 52%; opacity: 0; pointer-events: none; }
-.jw-sky-mark canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.jw-sky-mark.is-a { animation: jw-mark-a 0.9s ease-out both; }
-.jw-sky-mark.is-b { animation: jw-mark-b 0.9s ease-out both; }
-@keyframes jw-mark-a { from { opacity: 0; transform: translate3d(0, 10%, 0); } to { opacity: 1; transform: none; } }
-@keyframes jw-mark-b { from { opacity: 0; transform: translate3d(0, 10%, 0); } to { opacity: 1; transform: none; } }
-.jw-sky-beam { display: none; position: absolute; left: 85.1%; top: 17.5%; width: 0; height: 0; }
-.jw-sky-mark[data-area='lighthouse'] .jw-sky-beam { display: block; }
-.jw-sky-beam::before { content: ''; position: absolute; right: 0; top: -24px; width: 250px; height: 48px; transform-origin: 100% 50%; opacity: 0.85;
-  background: linear-gradient(to left, rgba(255, 242, 176, 0.85), rgba(255, 242, 176, 0.22) 55%, rgba(255, 242, 176, 0)); clip-path: polygon(100% 44%, 100% 56%, 0 100%, 0 0);
-  animation: jw-beam 5.4s ease-in-out infinite alternate; }
-.jw-sky-mark[data-look='day'] .jw-sky-beam::before { opacity: 0.34; background: linear-gradient(to left, rgba(255, 255, 240, 0.95), rgba(255, 255, 240, 0.3) 55%, rgba(255, 255, 240, 0)); }
-@keyframes jw-beam { from { transform: rotate(-17deg); } to { transform: rotate(13deg); } }
-@media (prefers-reduced-motion: reduce) { .jw-sky-mark.is-a, .jw-sky-mark.is-b { animation: none; opacity: 1; } .jw-sky-beam::before { animation: none; transform: rotate(-6deg); } }
 
 /* THE DAY LOOK (night.js#setLook — the stage carries data-look: the game from the phone's GAME LOOK, the lab from its own switch):
    the band's day picture (no night life), a haze where the night band is dark, THE FOG BANK at the screen's foot where the blackout
    fades to black — and every word over the bright scene keeps a dark edge (the lane count, the area's name, the count, the hint) */
 .jw-skyline[data-look='day'] { background: #c6e6f7; }
-.jw-skyline[data-look='day'] .jw-sky-l, .jw-skyline[data-look='day'] .jw-sky-n { display: none; }
+/* (THE NIGHT's LIFE — the blinking lights + the flickering windows: one layer, faded with the look; a light on a painted landmark is `hidden`) */
+.jw-sky-life { position: absolute; inset: 0; transition: opacity 1.5s ease-in-out, visibility 0s; }
+.jw-skyline[data-look='day'] .jw-sky-life { opacity: 0; visibility: hidden; transition: opacity 1.5s ease-in-out, visibility 0s 1.5s; }
+.jw-sky-life [hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .jw-sky-life, .jw-skyline[data-look='day'] .jw-sky-life, .jw-seawall i.is-day, .jw-seawall b { transition: none; } }
 .jw-stage[data-look='day'] { background: #c6e6f7; --jw-ink: 0 0 2px #120818, 0 2px 0 rgba(18, 8, 24, 0.92), 0 0 9px rgba(18, 8, 24, 0.8), 0 0 22px rgba(18, 8, 24, 0.5); }
 .jw-stage[data-look='day'] .jw-blackout { background: linear-gradient(rgba(223, 231, 238, 0) 0, rgba(223, 231, 238, 0.5) 70%, rgba(223, 231, 238, 0.82) 100%); }   /* (H5C: lighter — the bank's own billows show through it) */
 .jw-stage[data-look='day']:not(.is-gray) .jw-lanes { color: #fff; -webkit-text-stroke: 2px #c4168a; text-shadow: 0 3px 0 rgba(30, 0, 22, 0.95), 0 0 4px #a01270, 0 0 14px rgba(30, 0, 40, 0.75), 0 0 30px rgba(30, 0, 40, 0.45); --jw-ns: #c4168a; }
