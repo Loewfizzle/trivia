@@ -22,6 +22,7 @@ import { MARKS } from '../../core/marks.js';
 import { ACCENT } from './meta.js';
 import { shotFor } from './shot.js';
 import { endOf } from './victory.js';
+import { drawNum, numWidth } from './numerals.js';
 
 /** PURE: the card's inputs — this player's lanes + their display name. No result line: the cause is said ONCE, by the frame's own words */
 export function jwRunCard(game, { uid, name }) {
@@ -63,6 +64,8 @@ export function shotCrop(src, box, kidX = 0.5, kidY = 0.62, zoom = SHOT_ZOOM, up
   const cx = (kidX == null ? 0.5 : kidX) * src.width, cy = (kidY == null ? 0.62 : kidY) * src.height - sh * up;
   return { sx: Math.max(0, Math.min(src.width - sw, cx - sw / 2)), sy: Math.max(0, Math.min(src.height - sh, cy - sh / 2)), sw, sh };
 }
+/** the big lanes' size on the card (px of its 1080) */
+export const BIG_PX = 236;
 /** the middle: THE RUN's FRAME (zoomed on the kid, lifted) under the words, the lanes + the icon over it — or, with no frame, the dark */
 export function drawRunMiddle(c, box, card, shot) {
   const { x, y, w, h } = box, r = 30;
@@ -92,11 +95,12 @@ export function drawRunMiddle(c, box, card, shot) {
   // THE SIGNAL in the corner
   drawSignal(c, x + w - 168, y + 24, 144);
   // the lanes: the game's big neon numerals at the foot
-  c.save(); c.textAlign = 'left'; c.font = `900 236px ${DISPLAY}`;
+  // (H5A's add-on — THE BIG NUMERALS: numerals.js — room between the digits + a 1 with a base foot: "172" never reads "N2")
+  c.save(); c.textAlign = 'left'; c.font = `900 ${BIG_PX}px ${DISPLAY}`;
   const big = card.big || '0';
-  c.shadowColor = card.accent; c.shadowBlur = 46; c.fillStyle = '#fff3fb'; c.fillText(big, x + 32, y + h - 42);
-  c.shadowBlur = 12; c.fillText(big, x + 32, y + h - 42);
-  const bw = c.measureText(big).width;
+  c.shadowColor = card.accent; c.shadowBlur = 46; c.fillStyle = '#fff3fb'; drawNum(c, big, x + 32, y + h - 42, BIG_PX, DISPLAY, 900);
+  c.shadowBlur = 12; drawNum(c, big, x + 32, y + h - 42, BIG_PX, DISPLAY, 900);
+  const bw = numWidth(c, big, BIG_PX, DISPLAY, 900);
   c.shadowBlur = 0; c.font = `800 52px ${DISPLAY}`; c.fillStyle = '#ffd6f0'; spacedText(c, card.bigUnit || 'LANES', x + 32 + bw + 28, y + h - 52, 12);
   c.restore();
 }

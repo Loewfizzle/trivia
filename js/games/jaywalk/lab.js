@@ -15,6 +15,7 @@ import { getPref, setPref } from './lab-prefs.js';
 import { ZOOMS, ZOOM, ANGLES, ANGLE } from './camera.js';
 import { runLine, hitVehicle, vehicleAt } from './causes.js';
 import { createCues, cuesAt } from './cues.js';
+import { setNum, prepNums } from './numerals.js';
 
 const app = document.getElementById('app');
 const Q = new URLSearchParams(location.search);
@@ -132,7 +133,7 @@ async function mount() {
     end.hidden = false;
     lab.ends.push({ seed, mode, same, live, replay: r, hops: log.length });
   }
-  let raf = 0, hudKey = '', holdAt = null;
+  let raf = 0, hudKey = '', holdAt = null, fakes = null;
   function frame(now) {
     raf = requestAnimationFrame(frame);
     const dt = last ? Math.min(250, now - last) : TICK_MS;
@@ -147,12 +148,14 @@ async function mount() {
     while (acc >= TICK_MS && n < 6) { if (!isOver(run) && !held()) tick(); acc -= TICK_MS; n++; }
     if (acc > TICK_MS) { acc = 0; slow++; }   // (a long stall: the run simply waits — it never skips rules)
     if (isOver(run) && !shown) showEnd();
-    view.draw(run, course, isOver(run) || held() ? 0 : acc / TICK_MS, dt);
+    // (a measure only — lab.ghosts(n): n see-through kids hop beside him, each a copy of his own run a column over: an 8-KID scene)
+    if (fakes) for (let k = 0; k < fakes.length; k++) { const dx = ((k + 1) % 2 ? 1 : -1) * Math.ceil((k + 1) / 2) * FP, r = fakes[k].run; Object.assign(r, run); r.x = Math.max(FP / 2, Math.min(8.5 * FP, run.x + dx)); r.fx = run.fx + (r.x - run.x); r.tx = run.tx + (r.x - run.x); }
+    view.draw(run, course, isOver(run) || held() ? 0 : acc / TICK_MS, dt, fakes ? { ghosts: fakes } : null);
     tiers.sample(now, performance.now() - t0); if (pin == null && !GRAY) tiers.tick(now);
     const M = MODES[mode];
     const key = `${run.best}|${M.cap ? Math.ceil((M.cap - run.t) / TICK_HZ) : ''}`;
     if (key !== hudKey) {
-      if (lanes.textContent !== String(run.best)) { lanes.textContent = String(run.best); lanes.classList.remove('is-pop'); void lanes.offsetWidth; lanes.classList.add('is-pop'); }
+      if (lanes.dataset.num !== String(run.best)) { setNum(lanes, run.best); lanes.classList.remove('is-pop'); void lanes.offsetWidth; lanes.classList.add('is-pop'); }
       hudKey = key;
       sub.textContent = M.cap ? `THE MOTHERSHIP ${clock(M.cap - run.t)}` : 'ENDLESS';
     }
@@ -190,6 +193,8 @@ async function mount() {
     /** (a look check) hold the kid still the moment a hop is `k` ticks in (null = let go) — the world stops with him */
     hold(k) { holdAt = k; },
     gate: gateName,
+    /** (a measure) n ghosts beside the kid — the night look's instanced, skinned kids: 7 = an 8-kid match's scene (0 = none) */
+    ghosts(n) { fakes = n > 0 ? Array.from({ length: Math.min(8, n) }, (_, k) => ({ run: { ...run }, hex: [0x22e0ff, 0xffe04a, 0x7dffb0, 0xff7a4a, 0xa05bff, 0xff5a7a, 0x4d7dff, 0xffffff][k] })) : null; },
   };
 }
 

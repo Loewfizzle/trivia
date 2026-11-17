@@ -44,6 +44,7 @@ import { duckMusic, musicDuckLevel } from '../../audio/music.js';
 import { runLine } from './causes.js';
 import { buildEnd, finalRows } from './victory.js';
 import { keepShot } from './shot.js';
+import { setNum, prepNums } from './numerals.js';
 import { BOARD, TABLE_KEEP_MS, parseTable, linesFor, isRecord, crossedFriends } from './lines.js';
 
 /** how long the hit is seen before the end screen / the spectator's view covers it (ms) */
@@ -113,7 +114,7 @@ export function createView() {
   const nameOf = u => String(((st.players && st.players[u]) || {}).name || 'GHOST').toUpperCase();
 
   function build(el) {
-    lanesEl = h('div.jw-lanes', '0'); markEl = h('div.jw-mark', '');
+    lanesEl = h('div.jw-lanes'); setNum(lanesEl, 0); prepNums(lanesEl); markEl = h('div.jw-mark', '');   // (THE BIG NUMERALS — numerals.js: room between the digits, a 1 with a foot)
     hintEl = getPref('hint', '') ? null : h('div.jw-hint', 'TAP TO HOP · SWIPE TO STEP');
     orderEl = h('ol.jw-order', { 'aria-label': 'The order' }); tagsEl = h('div.jw-tags', { 'aria-hidden': 'true' });
     countEl = h('div.jw-count', { 'aria-live': 'polite' }); watchEl = h('div.jw-watch'); overEl = h('div.jw-over.mk-theme');
@@ -509,7 +510,7 @@ export function createView() {
     if (TEST && frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); stamps.push(now); }
     const shownBest = watching && drawRun !== run ? drawRun.best : run.best;
     if (shownBest !== lanesShown) {
-      lanesShown = shownBest; lanesEl.textContent = String(shownBest);
+      lanesShown = shownBest; setNum(lanesEl, shownBest);
       if (shownBest > 0) { lanesEl.classList.remove('is-pop'); void lanesEl.offsetWidth; lanesEl.classList.add('is-pop'); }
     }
     if (markUntil && now > markUntil) { markEl.textContent = ''; markUntil = 0; }

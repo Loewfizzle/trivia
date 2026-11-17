@@ -10,6 +10,7 @@ import { createCourse } from './course.js';
 import { seedOf, standings } from './logic.js';
 import { causeLine, runLine, hitVehicle } from './causes.js';
 import { getPref, setPref } from './lab-prefs.js';
+import { setNum, prepNums } from './numerals.js';
 
 const BOARD = 'jaywalk-solo';
 // the phone remembers the best the SERVER last told it (a run counted after its end screen was left — HOP AGAIN — still lands here)
@@ -25,9 +26,12 @@ const num = n => Math.round(Number(n) || 0).toLocaleString('en-US');
 export function buildEnd(el, { line, lanes, note = '' }) {
   const best = h('div.jw-fin-best', note || '');
   el.classList.add('jw-fin');
+  // (H5A's add-on — THE BIG NUMERALS: numerals.js — room between the digits, a 1 with a base foot)
+  const big = h('b');
+  setNum(big, num(lanes)); prepNums(el);
   el.replaceChildren(
     h('div.jw-fin-cause', { 'data-text': line }, line),
-    h('div.jw-fin-n', h('b', num(lanes)), h('span', Number(lanes) === 1 ? 'LANE' : 'LANES')),
+    h('div.jw-fin-n', big, h('span', Number(lanes) === 1 ? 'LANE' : 'LANES')),
     best);
   return {
     best(text, isNew) {

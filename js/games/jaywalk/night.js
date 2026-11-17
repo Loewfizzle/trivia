@@ -27,6 +27,7 @@ import { FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv,
 import { CAM, createCamera } from './camera.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
 import { LINE_HEX } from './lines.js';
+import { drawNum, numWidth } from './numerals.js';
 import { LOOKS, PIECE, buildAreaGeo, dressLane, sigOf, drawBig, drawSig, drawFishSign } from './areas.js';
 import { hsh, strSeed, vehicleAt } from './causes.js';   // (THE ONE SOURCE OF TRUTH for which vehicle a car IS — the end screen's cause line reads the same function)
 
@@ -207,11 +208,14 @@ export function createNight(host, o = {}) {
     const c = ctx2d(L.cv);
     if (!c) return;
     c.clearRect(0, 0, 1024, 128);
-    c.font = '900 104px "Orbitron", "Chakra Petch", system-ui, sans-serif'; c.textBaseline = 'middle'; c.textAlign = k === 'best' ? 'left' : 'right';
-    const w = c.measureText(text).width, sx = Math.min(1, 984 / Math.max(1, w)), x = k === 'best' ? 20 : 1004;
-    c.save(); c.translate(x, 70); c.scale(sx, 1);
-    c.shadowColor = css(LINE_HEX[k]); c.shadowBlur = 22; c.fillStyle = css(LINE_HEX[k]); c.fillText(text, 0, 0);
-    c.shadowBlur = 0; c.globalAlpha = 0.5; c.fillStyle = '#ffffff'; c.fillText(text, 0, 0);
+    // (H5A's add-on — THE BIG NUMERALS: numerals.js — "YOUR BEST · 172": room between the digits, a 1 with a base foot)
+    const FAM = '"Orbitron", "Chakra Petch", system-ui, sans-serif';
+    c.font = `900 104px ${FAM}`; c.textBaseline = 'alphabetic'; c.textAlign = 'left';
+    const w = numWidth(c, text, 104, FAM, 900), sx = Math.min(1, 984 / Math.max(1, w)), x = k === 'best' ? 20 : 1004;
+    c.save(); c.translate(x, 106); c.scale(sx, 1);
+    const x0 = k === 'best' ? 0 : -w;
+    c.shadowColor = css(LINE_HEX[k]); c.shadowBlur = 22; c.fillStyle = css(LINE_HEX[k]); drawNum(c, text, x0, 0, 104, FAM, 900);
+    c.shadowBlur = 0; c.globalAlpha = 0.5; c.fillStyle = '#ffffff'; drawNum(c, text, x0, 0, 104, FAM, 900);
     c.restore();
     L.tex.needsUpdate = true;
   }
