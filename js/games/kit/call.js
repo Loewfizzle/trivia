@@ -45,7 +45,7 @@ export function showCall({ overlay, prefix = 'mk', game, st, me, player, candida
     picked = uid;
     if (sfx) sfx();
     vibrate(12);
-    dbUpdate(dbRef(path), { w: uid, at: serverTimestamp() }).catch(e => toast(String(e.message || e).toUpperCase(), 'err'));
+    dbUpdate(dbRef(path), { w: uid, at: serverTimestamp() }).catch(() => toast('YOUR CALL DID NOT GO THROUGH', 'err'));
     close(`YOUR CALL · ${player(uid).name}`);
   }
   function close(msg) {

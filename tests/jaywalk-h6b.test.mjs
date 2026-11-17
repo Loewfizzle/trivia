@@ -171,7 +171,19 @@ test('H6B — THE END SCREEN\'s MEMORY: the scene rests behind the end screen, t
   // (the flag is declared before setLook reads it — a first cut put it below and the scene never built)
   assert.ok(n.indexOf('let lookSet = false, resting = 0, otherWarm = false;') > 0 && n.indexOf('let lookSet = false, resting = 0, otherWarm = false;') < n.indexOf('  setLook(o.look'), 'the flag exists before the first setLook');
   // the view: rests on BOTH end screens, wakes on a new run; ONE picture a run, only the rows round the kid
-  assert.equal((v.match(/night\.rest\(true\)/g) || []).length, 2, 'the podium + the local end both rest the scene');
+  assert.equal((v.match(/night\.rest\(true\)/g) || []).length, 3, 'the podium + the local end both rest the scene (+ a scene rebuilt after a lost context rests again if it was resting)');
+  // THE GO-LIVE REVIEW (the audit): behind an end screen nothing is drawn — the Mothership's hum + rumble fade as the scene rests and the
+  // music comes back up (they stayed at their last frame's level through the whole podium); a WATCHER's podium waits her lift out;
+  // the rumble has a known peak; leaving the game lets go of the decoded sounds + the run's picture; the tier is sampled only while drawn
+  assert.match(FL, /if \(on\) \{ const f = ship\.on \? 2\.4 : 0\.6; if \(snd\.ship\) snd\.ship\.stop\(f\); if \(snd\.rum\) snd\.rum\.stop\(f\); snd\.ship = snd\.rum = null; duckNow = 1; \}/, 'the scene rests → the ship\'s loops fade, the duck lets go');
+  assert.match(FL, /for \(let i = 0; i < n; i\+\+\) d\[i\] \*= 0\.9 \/ pk;/, 'the rumble is normalised: 0.9 × DUCK.rumble at the bus at most');
+  assert.match(FL, /dead = true; offBed\(\); bufs\.clear\(\); bufCtx = null;/, 'the moments\' decoded sounds go with the scene');
+  assert.match(v, /const ship = mode === 'over' && Object\.values\(g && g\.results \|\| \{\}\)\.some\(r => r && r\.x\) && tickNow\(\)\.t < MODES\.match\.cap \+ SHIP_SEEN;/, 'a watcher sees the Mothership\'s lift before the podium');
+  assert.match(v, /if \(!final && !localEnd\) \{ tiers\.sample\(now, performance\.now\(\) - t0\); if \(!pinned\) tiers\.tick\(now\); \}/, 'the tier is measured only while the scene is drawn');
+  assert.match(v, /cv\.addEventListener\('webglcontextlost', e => \{ e\.preventDefault\(\);/, 'THE LOST CONTEXT is noticed'); assert.match(v, /cv\.addEventListener\('webglcontextrestored', remake\);/, '… and the scene rebuilt');
+  { const sx = readFileSync(new URL('../js/games/jaywalk/sfx.js', import.meta.url), 'utf8');
+    assert.match(sx, /export function release\(\) \{ stopAll\(\); bufs\.clear\(\); bufCtx = null; \}/, 'sfx.release: the decoded buffers let go (the bytes stay)');
+    assert.match(sx, /else if \(!lockWait\) \{ lockWait = true; onUnlock\(\(\) => \{ lockWait = false; go\(\); \}\); \}/, 'a locked / muted phone: ONE sound waits for the unlock — never a listener a call'); }
   assert.match(v, /if \(night\) night\.rest\(false\)/, 'a new run wakes it');
   assert.match(v, /\}, 1080, 1080\);/, 'the run\'s picture: 1080 wide, the 1080 rows round the kid (≤ 1080 × 1350)');
   assert.match(n, /cv\.width = width; cv\.height = hh; cv\.top = top; cv\.full = H;/, 'the cut knows where it began');

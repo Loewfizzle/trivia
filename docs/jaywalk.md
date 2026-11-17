@@ -22,7 +22,8 @@ import map); the RULES are a pure engine that never knows about it.
 | H5C | Nov 16 2026 | `docs/games/passes/jaywalk-h5c.md` | NO WEAK POINTS (a VIEW pass): THE PAINTED SKYLINES (8 painted day pictures, cross-faded at the gates — `skyline.js`) · THE FAR EDGE (the sea wall; the far lanes fully in the haze before it) · THE FOG BANK rebuilt (rolling layers, a soft ragged edge) · the day's shadows + ground textures · the drums · THE GATE'S NAME ON ITS ARCH · YOUR BEST = a gold tape, the lines' words always readable · the tail lights' finish · THE TRAIN SOUNDS set B + the train horn + THE AREA ARRIVAL · THE FRESH-EYES REVIEW (every pass from now on) |
 | H6A | Nov 17 2026 | `docs/games/passes/jaywalk-h6a.md` | THE BIG MOMENTS (`flyers.js`, fetched ON DEMAND): THE BLACKBIRD (the real SR-71 — the glint, the afterburners, the shockwave), THE UFO (the real saucer, its green ring, THE ABDUCTION), THE MOTHERSHIP = A FINISH LINE (the 10 s warning, the baked ship, the white-gold beam, the gold end screen — never "TAKEN") · THE FOUR CARDS (the feat flags from the server's replay → SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY — solo or match · BEAM ME UP, new) · YOUR BEST ANYWHERE (a counted match run raises the same best) |
 | H6B | Nov 17 2026 | `docs/games/passes/jaywalk-h6b.md` | THE FINAL POLISH (a VIEW + SOUND pass): THE PAINTED NIGHT SKYLINES (8, cross-faded at the gates — `skymarks.js` retired) + THE LOOK SWITCH's cross-fade · THE GATE SIGN only on the approach · the compact match chips · the lab's `?lane=N` · THE MOMENTS' FINISH (the solid UFO, the bigger Blackbird's blazing burners, the kids into the Mothership's port, the traffic stopping under it) · DOWNTOWN's storefronts (Kenney, on demand) · the tail light bar · THE MIX (measured) + NEW BEST's B take · THE CREDITS · two fresh-eyes reviews |
-| the review → the fix pass | — | — | flips `playable` (empties `tests/registration.test.mjs#JAYWALK_WAITS`; the meta + its tile join the boot — after the city's CHROMEBOOK pass trims THE BOOT BUDGET: the owner, Nov 16) |
+| THE GO-LIVE REVIEW | Nov 17 2026 | `docs/games/passes/jaywalk-review.md` | the audit (a fresh auditor + a second reviewer — both reports verbatim) + its fixes · THE BLACKBIRD's DAY TELL · the fog's banding · the first look switch's long frame · the lane count clear of every landmark + a match's chips · Grok's two night touch-ups · THE MEMORY ON WEBKIT (`wk-jaywalk-mem.mjs`) · the go-live checklist (`jaywalk-golive-checklist.md`) — it does NOT flip `playable` |
+| the go-live pass | — | `docs/games/passes/jaywalk-golive-checklist.md` | flips `playable` (empties `tests/registration.test.mjs#JAYWALK_WAITS`; the meta + its tile join the boot — after the city's CHROMEBOOK pass trims THE BOOT BUDGET: the owner, Nov 16) |
 | DAILY A · DAILY B | — | — | its daily (`MODES.daily`) |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
@@ -171,7 +172,7 @@ through THE OWNER'S LIVE TEST** (HE8's gate): the owner HOSTS (his room's GAMES 
 they can't start it, and **they are counted** (`api/report.js#reportableGame(id, uid, at)`: a match THE OWNER PLAYED IN — his own proof
 node of that match — counts for everyone in it, whoever reports first).
 - `meta.js` (pure): **no options** (`DEFAULT_SETTINGS {}`, `OPTIONS []` — the lives option is gone), ~3 minutes, `MUSIC 'mood:evening'`,
-  `LOOKS ['night']` (until H5), `OWN_VICTORY_SOUND`, `ACCENT`, `SOLO: true`, the chat's lock (shut while you hop — open once your run has
+  `LOOKS ['day', 'night']` (H5B — it was `['night']` until then), `OWN_VICTORY_SOUND`, `ACCENT`, `SOLO: true`, the chat's lock (shut while you hop — open once your run has
   ended: a spectator chats). No `AGAIN_LABEL` any more: **PLAY AGAIN** is the console's own word.
 - **GO — THE COURSE IS PICKED AFTER GO, for a match too** (`logic.js#firstGo` / `matchStart`): `count` (3 · 2 · 1); in its last 2 s (the
   rules' window) EVERY phone writes its own proof node's `go` (the SERVER's time, once). **THE FIRST GO** — the earliest of them — picks
@@ -344,7 +345,7 @@ body). No frame on this phone (a refresh on the podium) → the same card on the
   **No line on a first-ever run** (no best yet).
 - **THE NEXT FRIEND'S LINE** (SOLO runs only — a match already has the real players as ghosts): ONE **NEON PINK TAPE** between two posts, a little above the ground (H5B's add-on — it was a pale cyan band lying on the lane: it read as a strip of water; "BLUE ON THE GROUND = WATER, NOTHING ELSE" below) (never gold —
   gold = YOUR BEST) at the LOWEST friend best you have not passed, with **"LIAM · 212"** on the ground (at the right, yours at the left).
-  Crossing it: a small burst + a quiet chime (`landmark` at 0.4), then the next friend above appears. **Never more than ONE friend line
+  Crossing it: a small burst + a quiet chime (`area-arrive` at 0.4 — it replaced `landmark` in H5C), then the next friend above appears. **Never more than ONE friend line
   on screen; a friend behind you never shows; no friend bests = no friend lines.** (Level with a friend — standing on their lane — the
   line is still right ahead of you: one lane more beats them.)
 - **THE DATA = the SERVER-counted solo bests** (the board `jaywalk-solo`) — never a local guess: `/api/profile { action: 'table' }`,
@@ -851,9 +852,9 @@ saucer, the two tail lamps, new-best's two takes), THIS section wins. The decisi
   whole band CROSS-FADES over 1.5 s** (`SKY_LOOK_MS`: the picture — the same two layers; the sea wall's stone — the day's stone lies
   over the night's, its opacity alone moves; the wall's lamps + the night's life fade with it; the rest offset eases). Never a jump;
   the sea wall stays at the band's foot in both. A cross-fade still running is waited out (a visible layer's picture never changes);
-  at once with reduce motion. (The 3D scene itself still switches at once — H5B. *Measured: the FIRST look switch of a session shows
-  ONE long frame — ≈ 130 ms on the build machine, GPU-side (the script's own work in it is 7 ms); H6A's code shows the same; every
-  later switch is 59.9 fps. Not found — OPEN in the pass log.*)
+  at once with reduce motion. (The 3D scene itself still switches at once — H5B. *The FIRST look switch of a session was ONE
+  ≈ 130 ms frame — FOUND + fixed by the go-live review: the sea wall's day stone, painted for the first time ("THE FIRST LOOK
+  SWITCH", below): 33 ms now.*)
 
 ### THE GATE SIGN — ONLY ON THE APPROACH (`night.js` `GATE_GONE` 3 · `GATE_FADE` 1.5 · `GATE_SEEN` 10; css `.jw-gate`)
 The sign stood on the gate's crossbar and hung over the lanes he was about to play. Now **the area's arched name board hangs under
@@ -964,7 +965,7 @@ little under. **No cue clips** (every peak under − 0.3 dBFS; the hottest is th
   (the day deck by day, the evening deck by night — H5B). THE MOTHERSHIP's rumble (generated) peaks at 0.5.
 - *Still true: nobody has HEARD the mix on a phone's speaker — the numbers are the engine's; the owner's ear is the last check.*
 
-### THE CREDITS (`js/ui/credits.js` — ☰ → Credits, the site's one Credits sheet: the group **JAYWALK**, 13 lines)
+### THE CREDITS (`js/ui/credits.js` — ☰ → Credits, the site's one Credits sheet: the group **JAYWALK**, 12 lines)
 Every line of `audio/jaywalk/CREDITS.md` + `assets/jaywalk/models/CREDITS.md` + the city's sounds its moments play + the art: the five
 **CC BY** sound lines exactly as required (new best · the lights die · the crossing bell · the train horn · the train passing's
 second take), the CC0 sounds as a courtesy, the Sonniss sounds of the three moments, **the Blackbird (Kiiba, CC BY 4.0) + the two
@@ -1009,6 +1010,69 @@ loaded while it rests (PLAY AGAIN must be instant: THE INSTANT AGAIN). **The pro
 `game:jaywalk/final` after this build is the go-live review's to chase** (the next step then: free the kept picture after the upload,
 drop the scene's textures while it rests).
 
+## THE GO-LIVE REVIEW (Nov 17 2026 — `docs/games/passes/jaywalk-review.md`; the owner: JAYWALK is FEATURE-COMPLETE after H6B — this pass proves it ready, fixes what isn't, and writes `docs/games/passes/jaywalk-golive-checklist.md`; it does NOT flip `playable`)
+Where a section above describes what the review changed (the Blackbird's day tell, the fog's puffs, the count's size, the band's rest
+offsets, the first look switch's long frame), THIS section wins. The decisions: `docs/games/plan.md` "JAYWALK … DECIDED, THE GO-LIVE REVIEW".
+
+### THE BLACKBIRD's DAY TELL (`night.js` the runway's lamps · `night-fx.js` the runway's ground · `flyers.js` the edge flare — a VIEW; `tests/jaywalk-day.test.mjs`)
+The owner: by day the tell "MUST be clearly readable (fairness)". It was white-hot lamps + a yellow band on a light-grey runway.
+- **THE LAMPS:** from the tell's FIRST tick to the pass's end every runway lamp is a **signal lamp on a DARK backing** — red / amber,
+  **wig-wagging** off the rules' own tick (`st.left / 10`: 10 ticks a side = 3 a second, never faster; steady under reduce motion);
+  the racing head = white-hot amber, bigger, on a bigger backing. Before the tell: the dim lenses in the tarmac, as H5B.
+- **THE LANE:** inside the tell's first sixth the WHOLE lane turns to **amber-on-dark hazard chevrons** that march slowly to the
+  crossing (`chd`, by `fx`); the racing band is the same chevrons at full contrast (near-black + yellow-white, > 12 : 1). Amber, never
+  the rail lane's red; never blue.
+- **THE EDGE FLARE** (the tell's last 0.5 s — `FLY.glint` 30, unchanged): a solid dark disc, a solid orange flare, a yellow-hot heart,
+  fat white arms — paint that reads in full sun (it was a pale star on a pale lane).
+- **The tell's LENGTH is untouched** (the rules' `p.tell`; `tests/jaywalk-sim.test.mjs` "the Blackbird's tell"). The night look is unchanged.
+
+### THE FOG BANK's BANDING — found (`night-fx.js` GLOW shape 10 + the ground · `night.js` the lip)
+The "banded streaks" were three hard edges, none of them a gradient's steps:
+1. **Every puff was CUT by the ground.** A puff is a camera-facing quad; it leans into the ground plane and the depth test cut it
+   along a straight horizontal line, where its glow was still 5–15 % bright. → the glow kinds carry the corner's height over the
+   ground (`vY`) and a puff is **shape 10**: the soft round glow FADING OUT into the ground over its last metre, + a ± 0.6 % dither
+   (a wide near-white gradient in 8 bits).
+2. **The bank's body (the curtain) ended in ONE ruler-straight edge** across the screen, under the billows. → **a LIP** stands on
+   that edge: the body's own colour fading up to nothing over 1.8 cells (a 1 × 32 ramp texture — no canvas), by day only.
+3. **The ground's mottle met the plain fog in a line** (d = 3.4: 0.93–1.03 × against 0.98 ×). → the mottle fades out before it.
+The blackout by night is unchanged. The same wall, timing, rules.
+
+### THE FIRST LOOK SWITCH — 150 ms → 33 ms (found: not the 3D scene)
+H6B: "ONE ≈ 130 ms frame, GPU-side". Bisected in the lab under a 4× CPU throttle (hiding one piece at a time): **the sea wall's DAY
+stone** — a hard-stop line + two sized `repeating-linear-gradient`s — cost ≈ 120 ms to paint the first time it showed. It is ONE
+31 px SVG tile repeated along the wall now (the same two staggered courses + their line). + **THE OTHER LOOK's PREWARM**
+(`night.js#warm` → `lookGL`): in the start's hidden warm frame the look the phone is NOT in is set, compiled + drawn once and put
+back — the day's sky map (a 64 × 32 picture's PMREM: ≈ 0.2 MB) is built then instead of at the switch (one frame: 50 → 33 ms).
+Measured after: the first night → day switch **33 ms** worst (was 150), every other frame 16.8. The perf kit
+(`jaywalk-lab.mjs --h6b=perf`) now FAILS a look switch with any frame over 70 ms. No memory spike: nothing is kept but that sky map.
+
+### THE LANE COUNT NEVER TOUCHES A LANDMARK · A MATCH's CHIPS (`skyline.js#SKY_MAX` / `SKY_MATCH_PIN` · css `.jw-lanes[data-dg]` · `tests/jaywalk-skyline.test.mjs`)
+Measured off the 16 pictures (the columns each landmark fills in the count's rows / the chips' rows) on a 390 pt phone — the tightest:
+- **A 3-digit count was simply too wide** (76 px: 166 pt across — the docks' cranes, the rail yard, downtown's towers, the lighthouse's
+  lamp, the control tower all stood in it; no offset clears them without cutting the landmark in half). → **the count steps down a
+  size: 60 px from 100 lanes, 44 px from 1,000** (measured: the widest 3 digits, 888, stand at x 129–261 of 390; 8888 at 44 px the same) (`numerals.js#setNum` names the digit count: `data-dg`) — about as wide as two
+  digits were.
+- **`SKY_MAX`** (per look + area): the highest shift at which the landmark still stands clear of that count. The rest offsets
+  (`SKY_BIAS` / `SKY_BIAS_NIGHT`, re-measured) sit under it, and **the slide stops there** (the kid at the right edge: the band no
+  longer carries the towers under the count). `skyPlan` returns it as `max`; `skyShift(bias, slide, room, max)`.
+- **IN A MATCH** (`run.mode === 'match'` — the chips' column is up: 86 pt wide, down to 164 pt with 8 players) the two landmarks
+  painted on the LEFT are **pinned** as far right as the picture goes (`SKY_PIN` −17.25) and do not slide back: the lighthouse (both
+  looks) + the night bridge stand clear of the chips. **THE DAY BRIDGE cannot** — it is painted over the picture's left 38 % and the
+  band has ± 17 % of room: its right tower + span stand clear, its left tower is behind the column (OPEN FOR BEN: a day bridge
+  painted in the right third like six of the eight, or accept).
+- Change the count's sizes and `SKY_MAX` together (the unit test pins both).
+
+### THE TWO NIGHT TOWERS = GROK's OWN TOUCH-UPS (the inbox, Nov 17 12:10 pm)
+The rail yard's water tower (floodlit, rim-lit, a ring of lamps; the gantry's lamps glowing) + the airfield's control tower (its cab
+lit, rim lights, the beacon white-hot) were relit by Grok in place before the review's code lift was built — re-encoded through
+`scripts/build-jaywalk-assets.py --only=skyline` (the other 16 pictures byte-identical; the masked lights the same as `SKY_OFF`).
+
+### THE SIZE BUDGET — kept, never raised (`tests/integration/game-budget.json`: jaywalk 2,450 KB)
+The fixes added 5.6 KB to JAYWALK's eager graph (it stood 1 KB under its line). **14 KB of pass-history comments were cut from
+`night.js`** — full-line comments only, every code line identical (checked line by line against the commit before); the history is in
+this doc + the pass logs. After: **2,442 of 2,450 KB** (the game alone 384 KB, 32 modules). A JAYWALK pass that adds code trims
+comments the same way before it thinks of the line.
+
 ## THE CAMERA (H2B — `js/games/jaywalk/camera.js`: ONE pure module, the night look AND the graybox use it)
 The owner played H2 on his iPhone: "the game feels good", but it had to be ZOOMED IN — a closer camera that FOLLOWS the kid sideways, turned
 a little so the lanes run on a gentle diagonal (the genre's framing; nothing else of anyone's). PURE MATH: no three.js, no DOM, no clock of
@@ -1043,7 +1107,7 @@ shelf's list + the sign's tap — nobody else's shelf, sign or card changes; `te
 too (HOST a room → PICK A GAME → JAYWALK · TEST — a room of one). The server counts a game being built for the owner alone
 (`api/report.js#reportableGame(id, uid)` — the reporter's profile in `ADMIN_PIDS`; a stranger's report: `not_reportable`).
 - **The screen** = the lab's night scene (`createNight`), the kid, `controls.js`, `sfx.js`, inside the console's game frame: THE CITY PAUSE,
-  the corner menu (☰ top-left) + music (top-right) over it, the station's music (`MUSIC 'mood:evening'`), `LOOKS ['night']` (ONE look until
+  the corner menu (☰ top-left) + music (top-right) over it, the station's music (`MUSIC 'mood:evening'`), `LOOKS ['day', 'night']` since H5B (it was ONE look until
   H5 — the console paints NIGHT and Settings shows it LOCKED). The lab's ZOOM / ANGLE choice on that phone is the game's too
   (`lab-prefs.js`). A room of 2+ = THE MATCH (the same view — above). **FIRST-RUN HINT** "TAP TO HOP · SWIPE TO STEP": once per phone,
   gone on the first hop (`jw:lab:hint`).

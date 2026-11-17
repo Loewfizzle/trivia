@@ -29,7 +29,7 @@ const keysOf = s => (s.b ? [`${s.id}:a`, `${s.id}:b`] : [`${s.id}:a`]);
 
 const bytes = new Map();               // 'id:a' → Promise<ArrayBuffer | null>
 const bufs = new Map();                // 'id:a' → AudioBuffer (for bufCtx)
-let bufCtx = null, bus = null, busCtx = null, hooked = false;
+let bufCtx = null, bus = null, busCtx = null, hooked = false, lockWait = false;
 const live = new Set();                // the voices sounding: { src, pri, at }
 const log = [];                        // the test hook: what started
 const asked = [];                      // the test hook: what was asked for (locked / headless included)
@@ -77,7 +77,7 @@ export function play(id, o = {}) {
     const ctx = getContext();
     if (!isUnlocked() || !ctx || ctx.state !== 'running' || !bufs.get(key) || bufCtx !== ctx) {
       // (not ready: the first tap's own sound, or the first play of a sound just fetched — wait for the decode, play if still fresh)
-      if (!o.late) { const go = () => decode().then(() => { if (performance.now() - t0 < (s.loop ? 1500 : 220)) { const h = play(id, { ...o, ab, late: true }); if (h && o.onLate) o.onLate(h); } }); if (isUnlocked()) go(); else { let once = false; onUnlock(() => { if (!once) { once = true; go(); } }); } }
+      if (!o.late) { const go = () => decode().then(() => { if (performance.now() - t0 < (s.loop ? 1500 : 220)) { const h = play(id, { ...o, ab, late: true }); if (h && o.onLate) o.onLate(h); } }); if (isUnlocked()) go(); else if (!lockWait) { lockWait = true; onUnlock(() => { lockWait = false; go(); }); } }   // (locked / muted: ONE sound waits for the unlock — every call used to leave a listener there for good)
       return null;
     }
     const voices = [...live], a = admit(voices, s.pri);
@@ -104,6 +104,8 @@ export function play(id, o = {}) {
     return { stop: v.end };
   } catch { return null; }
 }
+/** the game is LEFT (not PLAY AGAIN): the decoded sounds are let go — the fetched bytes stay, the next visit decodes them again */
+export function release() { stopAll(); bufs.clear(); bufCtx = null; }
 /** silence everything still sounding (the unmount, the lab closing) — a sound with a `fade` (the train's) ramps out, the rest stop */
 export function stopAll() { bellWant = false; bell = null; for (const v of [...live]) v.end(); live.clear(); }
 

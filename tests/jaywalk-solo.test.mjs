@@ -230,7 +230,7 @@ test('THE PHONE\'s SIDE OF THE PROOF (view.js): GO = the server\'s time, read ba
   assert.doesNotMatch(v, /Date\.now\(|localStorage|soloPause/, 'never the phone\'s own clock; its memory = lab-prefs.js; a run never pauses');
   assert.match(v, /e: \{ l: run\.best, t: run\.bestT, w: String\(run\.cause \|\| ''\)\.slice\(0, 12\) \}/, 'the end: a signal only');
   assert.match(v, /TAP TO HOP · SWIPE TO STEP/); assert.match(v, /setPref\('hint', '1'\)/, 'the first-run hint: once per phone, gone on the first hop');
-  assert.match(v, /if \(performance\.now\(\) - \(globalThis\.__nsAgainAt \|\| -1e9\) < 3000\) park\(play, night\); else night\.destroy\(\);/, 'the scene stays warm over PLAY AGAIN\'s instant remount only');
+  assert.match(v, /if \(performance\.now\(\) - \(globalThis\.__nsAgainAt \|\| -1e9\) < 3000\) park\(play, night\); else \{ night\.destroy\(\); keepShot\(null\); try \{ SFX\.release\(\); \} catch \{ \/\* silent \*\/ \} \}/, 'the scene stays warm over PLAY AGAIN\'s instant remount only — leaving frees it, the run\'s picture + the decoded sounds (the go-live review)');
   // the console's side
   const a = read('js/games/kit/again.js'), f = read('js/ui/final.js'), idx = read('js/games/jaywalk/index.js');
   assert.match(a, /const matchId = newMatchId\('solo'\);/); assert.match(a, /const patch = \{ game: next, 'meta\/go': null, 'meta\/back': null,/, 'ONE update: the next run, no start stamp → no walk inside');
@@ -268,10 +268,11 @@ test('HOW TO PLAY + YOUR TABLE (Group 3): the rules built OUT of the boot, ready
     for (const [title, items] of RULES.sections) { assert.match(title, /^[A-Z ]{6,16}$/); for (const t of items) assert.ok(t.length <= 52 && /^[A-Z]/.test(t), `a kid's line: ${t}`); }
     assert.equal(TAB, 'JW');
     const lines = RULES.sections.flatMap(s => s[1]).join(' ');
-    for (const w of ['TAP', 'SWIPE', 'ROADS', 'WATER', 'logs', 'RAILS', 'LIGHTS']) assert.ok(lines.includes(w), `the rules say ${w}`);
+    for (const w of ['TAP', 'SWIPE', 'ROADS', 'WATER', 'logs', 'RAILS', 'LIGHTS', 'RUNWAY', 'UFO', 'fog by day']) assert.ok(lines.includes(w), `the rules say ${w}`);
+    assert.doesNotMatch(RULES.goal + lines, /night harbor/, 'true by DAY too (the go-live review)'); assert.match(RULES.goal, /In a match, the farthest wins\./);
   }
   assert.match(src, /const PICS = \[/, 'one small drawing a line (picture-led)');
-  assert.equal((src.match(/svg\('/g) || []).length, 7, 'seven lines, seven drawings');
+  assert.equal((src.match(/svg\('/g) || []).length, 9, 'nine lines, nine drawings (the go-live review: + the runway, + the UFO\'s ring)');
   assert.match(src, /export function registerHelp\(\) \{ \(globalThis\.__nsHelp \|\|= \{\}\)\.jaywalk = helpBody; \}/);
   assert.match(read('js/games/jaywalk/index.js'), /registerHelp\(\);/, 'the cartridge registers it');
   const help = read('js/ui/help.js');

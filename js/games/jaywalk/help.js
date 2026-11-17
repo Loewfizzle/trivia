@@ -8,7 +8,7 @@ import { preloadSheets } from '../lazy-view.js';
 
 /** the shared help's shape (ui/help.js RULES[id]): a one-line goal, then short sections */
 export const RULES = Object.freeze({
-  goal: 'Hop across the night harbor. One life. How far can you get?',
+  goal: 'Hop across the harbor. One life. In a match, the farthest wins.',
   sections: [
     ['HOW TO MOVE', [
       'TAP to hop forward.',
@@ -17,9 +17,11 @@ export const RULES = Object.freeze({
     ]],
     ['WATCH OUT', [
       'ROADS: wait for a gap in the cars.',
-      'WATER: ride the logs. Never touch the water.',
+      'WATER: only the logs. Hop off before the edge.',
       'RAILS: the red lights flash, then the train comes.',
-      'THE LIGHTS go out behind you. Keep moving.',
+      'RUNWAY: the lights race, then the jet flies by.',
+      'A GREEN RING: a UFO is landing. Step out of it.',
+      'THE LIGHTS go out behind you (fog by day). Move!',
     ]],
   ],
 });
@@ -35,6 +37,8 @@ const PICS = [
   [svg('<path d="M3 15h18M5 15l1.6-4.5h8.2L17.6 15M19 15v-2.5l-1.4-2"/><circle cx="7.5" cy="16.5" r="1.7"/><circle cx="16" cy="16.5" r="1.7"/>', '#ffd36a'),   // a car
     svg('<rect x="4" y="8" width="16" height="6" rx="3"/><path d="M2 18c2-1.6 3.5-1.6 5 0s3 1.6 5 0 3-1.6 5 0 3 1.6 5 0"/>', '#7fb8ff'),                      // a log on the water
     svg('<path d="M12 21V11"/><circle cx="8" cy="7" r="3"/><circle cx="16" cy="7" r="3"/><path d="M5 21h14"/>', '#ff5a5a'),                                    // the signal's two red lights
+    svg('<path d="M3 13l18-6-6 6 6 6z"/><path d="M3 18h6M3 8h6" opacity=".6"/>', '#ffb347'),                                                                   // the runway: the jet's dart + the racing lights
+    svg('<ellipse cx="12" cy="18" rx="8" ry="3"/><path d="M6 9h12M9 9a3 3 0 0 1 6 0"/><path d="M12 11v4" opacity=".6"/>', '#7dffa0'),                        // the UFO over its green ring
     svg('<path d="M3 20h18M3 15h18"/><path d="M5 10h14" opacity=".55"/><path d="M8 5h8" opacity=".25"/>', '#b8a6ff')],                                         // the lights going out
 ];
 

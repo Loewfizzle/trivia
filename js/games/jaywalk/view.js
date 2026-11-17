@@ -11,7 +11,8 @@ import { createFinal } from '../../ui/final.js';
 import { backToLobby } from '../../host.js';
 import { createTiers } from '../kit/tiers.js';
 import { showCall } from '../kit/call.js';
-import { TICK_HZ, CLOCK, FP } from './tuning.js';
+import { TICK_HZ, CLOCK, FP, MODES } from './tuning.js';
+const SHIP_SEEN = 252;   // (ticks: the 4.2 s the Mothership's lift is seen — flyers.js#holdMs)
 import { createCourse, laneHit, logUnder, gateName } from './course.js';
 import { createRun, step, isOver, canLog, kidAt } from './engine.js';
 import { packLog, unpackLog, logFromChunks } from './replay.js';
@@ -52,7 +53,7 @@ const park = (play, night) => { if (parked) { clearTimeout(parked.t); parked.nig
 
 // (the pass's own checks — tests/integration/e2e-jaywalk.mjs — on a LOCAL emulator page only: never on the live site)
 const TEST = typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]emu(?:&|=|$)/.test(location.search || '');
-let scenesMade = 0;
+let scenesMade = 0, popN = 0;
 
 // THE LINES' DATA (H4 add-on — lines.js): the SERVER-counted solo bests (yours + your friends' — YOUR TABLE's own read), asked ONCE at
 // a run's start and kept a short while (PLAY AGAIN restarts in a second); nothing is asked during a run. /api down = no answer: the
@@ -119,13 +120,32 @@ export function createView() {
       if (had) { night.setKidColor(colorHex(me.color)); night.resize(); }
       look = lookNow(); night.setLook(look); root.dataset.look = look;   // (H5B — THE DAY LOOK: the scene + this screen's own words follow the phone's GAME LOOK)
     } catch { root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); night = null; return; }
-    night.setReveal(0, true);
+    night.setReveal(0, true); watchGL();
     // (H4B — THE TIER IS REMEMBERED: a phone that had to step down starts there next time — never the first seconds of every match at a tier it can't hold)
     tiers = createTiers({ apply: t => { if (night) night.setTier(t); if (!pinned) setPref('tier', `${t}:${Math.round(serverNow())}`); }, initial: night.tier() });
     offControls = wireControls(play, { onHop: hop, onAny: nextFollow });
     // the sounds: the SHARED engine's SFX bus (the console unlocked it on a tap long ago); silent if anything fails — audio is polish
     // (H4B — DECODED AHEAD, during the count / the wait for GO: the first hop's sound is ready — never a decode on the first tap)
     try { SFX.fetchSounds(); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }
+  }
+
+  // THE LOST CONTEXT (the go-live review): iOS can take the WebGL context away (an app switch under memory pressure). The run goes on
+  // — it is on the server's clock — so a blank playfield is a kid run down unseen. The scene is REBUILT the moment the context is
+  // back (or after 1.5 s without it): a new scene in the same look, tier, colour + reveal; /admin hears of it once.
+  function watchGL() {
+    const cv = play && play.querySelector('canvas.jw-canvas');
+    if (!cv) return;
+    let t = 0, told = false;
+    const remake = () => {
+      clearTimeout(t);
+      if (gone || !night || !play || !cv.isConnected) return;
+      const me = (st.players && st.players[followUid || uid]) || {}, o = { kidColor: colorHex(me.color), zoom: night.zoom(), angle: night.angle(), tier: night.tier(), look: lookNow() }, rest = night.resting();
+      try { night.destroy(); } catch { /* its context is gone */ }
+      try { scenesMade++; night = createNight(play, o); night.setReveal(revealed ? 1 : 0, true); lineKey = ''; if (rest) night.rest(true); watchGL(); }
+      catch { night = null; if (root) root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); }
+    };
+    cv.addEventListener('webglcontextlost', e => { e.preventDefault(); if (!told) { told = true; lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => m.reportError(new Error('JAYWALK: the WebGL context was lost — the scene is rebuilt'), 'jaywalk')).catch(() => {}); } t = setTimeout(remake, 1500); });
+    cv.addEventListener('webglcontextrestored', remake);
   }
 
   // ---- THE RUN
@@ -454,7 +474,7 @@ export function createView() {
       const path = `${nodePath()}/k`;
       expectRefusal(path, 'jaywalk call: the window closed, or the rules are not published yet');
       callEl = showCall({ overlay: overEl, game: g, st: { live: { calls: made ? { [uid]: made } : {} } }, me: uid, player: u => st.players[u] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' }, candidates: cands, path,
-        line: u => { const G = ghosts.get(u); return `${G ? G.run.best : 0} LANES`; }, intro: n => `${n} still hopping — who goes the farthest? A right call earns game-night points.`,
+        line: u => { const G = ghosts.get(u), n = G ? G.run.best : 0; return `${n} ${n === 1 ? 'LANE' : 'LANES'}`; }, intro: n => `${n} still hopping — who goes the farthest? A right call earns game-night points.`,
         ended: () => !st.game || st.game.phase !== 'play' || st.game.matchId !== matchId, onState: msg => { callLine = msg === 'NO CALL' ? '' : msg; callEl = null; }, isDestroyed: () => gone });
     }
   }
@@ -520,12 +540,12 @@ export function createView() {
         if (key !== G.tagKey) { G.tagKey = key; if (tg) { G.tagEl.style.transform = `translate3d(${Math.round(tg[0])}px,${Math.round(tg[1])}px,0) translate(-50%,-100%)`; G.tagEl.style.opacity = '1'; } else G.tagEl.style.opacity = '0'; }
       }
     }
-    tiers.sample(now, performance.now() - t0); if (!pinned) tiers.tick(now);
+    if (!final && !localEnd) { tiers.sample(now, performance.now() - t0); if (!pinned) tiers.tick(now); }   // (only while the scene is DRAWN: behind an end screen it rests — 8 easy seconds there stepped the tier up for the next run)
     if (TEST && frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); stamps.push(now); }
     const shownBest = watching && drawRun !== run ? drawRun.best : run.best;
     if (shownBest !== lanesShown) {
       lanesShown = shownBest; setNum(lanesEl, shownBest);
-      if (shownBest > 0) { lanesEl.classList.remove('is-pop'); void lanesEl.offsetWidth; lanesEl.classList.add('is-pop'); }
+      if (shownBest > 0) { popN ^= 1; lanesEl.classList.remove('is-pop', 'is-pop2'); lanesEl.classList.add(popN ? 'is-pop2' : 'is-pop'); }   // (two names, one animation: it restarts with no layout read in the frame)
     }
     if (markUntil && now > markUntil) { markEl.textContent = ''; markUntil = 0; }
     if (mode === 'over' || (isMatch && g && g.phase === 'final')) endScreen();
@@ -536,7 +556,9 @@ export function createView() {
     const g = st.game;
     if (isMatch) {
       // (the match is over — the host's step: the podium for everyone, a kid still hopping included — THE MOTHERSHIP took them the same tick)
-      if (g && g.phase === 'final' && !final && (mode !== 'over' || performance.now() - overAt >= hold())) showFinal(g);
+      // (someone was still standing at 6:00: a WATCHER sees her arrive + lift them — the podium waits the lift out, as the lifted kid's own does)
+      const ship = mode === 'over' && Object.values(g && g.results || {}).some(r => r && r.x) && tickNow().t < MODES.match.cap + SHIP_SEEN;
+      if (g && g.phase === 'final' && !final && !ship && (mode !== 'over' || performance.now() - overAt >= hold())) showFinal(g);
       return;
     }
     if (performance.now() - overAt < hold()) return;
@@ -638,7 +660,7 @@ export function createView() {
       try { SFX.stopAll(); } catch { /* silent */ }
       if (night) {
         // (PLAY AGAIN's remount — the console's INSTANT AGAIN marks it: the scene is kept warm for the next run; anything else frees it at once)
-        if (performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000) park(play, night); else night.destroy();
+        if (performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000) park(play, night); else { night.destroy(); keepShot(null); try { SFX.release(); } catch { /* silent */ } }   // (leaving: the run's picture + ≈ 15 MB of decoded sounds are let go)
       }
       if (root) root.remove();
       root = null; night = null;

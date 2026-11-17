@@ -112,6 +112,7 @@ function rumble() {
     const n = Math.floor(ctx.sampleRate * 2), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
     let v = 0;
     for (let i = 0; i < n; i++) { v = (v + (Math.random() * 2 - 1) * 0.06) / 1.006; d[i] = v * 3.2; }
+    { let pk = 1e-6; for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(d[i])); for (let i = 0; i < n; i++) d[i] *= 0.9 / pk; }   // (a KNOWN peak: 0.9 × DUCK.rumble = −7 dBFS at the bus at most — raw, it ran several dB over full scale)
     for (let i = 0; i < 2000; i++) { const k = i / 2000; d[i] *= k; d[n - 1 - i] *= k; }   // (the loop's seam: both ends eased to nothing)
     const src = ctx.createBufferSource(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
     src.buffer = b; src.loop = true; lp.type = 'lowpass'; lp.frequency.value = 85; g.gain.value = 0;
@@ -612,6 +613,9 @@ export function createFlyers(C) {
      *  arrival costs no frame — is LET GO while the end screen covers the scene, unless she is up on it (the gold finish: the top of
      *  the end screen is see-through); baked again as the scene wakes (the next match's count) */
     rest(on) {
+      // (the go-live review: behind an end screen nothing is drawn — the Mothership's hum + rumble stayed at the level of their last
+      //  frame and the music stayed ducked through the whole podium. They fade out as the scene rests; the music comes back up.)
+      if (on) { const f = ship.on ? 2.4 : 0.6; if (snd.ship) snd.ship.stop(f); if (snd.rum) snd.rum.stop(f); snd.ship = snd.rum = null; duckNow = 1; }
       if (!ship.el || !ship.cv) return;
       if (!on) { if (!ship.cv.width) bakeAsk = true; return; }
       if (ship.on) return;
@@ -620,7 +624,7 @@ export function createFlyers(C) {
     /** the world goes quiet (a run's end / a new run / the view leaves): the loops fade */
     quiet() { if (snd.hum) { snd.hum.stop(0.4); snd.hum = null; } if (snd.ship && !ship.on) { snd.ship.stop(0.4); if (snd.rum) snd.rum.stop(0.4); snd.ship = snd.rum = null; } },
     destroy() {
-      dead = true; offBed();
+      dead = true; offBed(); bufs.clear(); bufCtx = null;   // (the decoded moments' sounds — the hum alone is ≈ 6 MB — go with the scene; the fetched bytes stay)
       if (snd.hum) snd.hum.stop(0.2); if (snd.ship) snd.ship.stop(0.2); if (snd.rum) snd.rum.stop(0.2);
       for (const m of [...jets, ...flames]) scene.remove(m); for (const q of ufos) { scene.remove(q.m); q.m.material.dispose(); }
       jetMat.dispose(); flameMat.dispose(); for (const g of Object.values(geo)) g.dispose();

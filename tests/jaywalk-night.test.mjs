@@ -252,7 +252,14 @@ test('H4 — THE LOOK: ONE LIFE (no blink, no respawn, no one-up in any view), T
   assert.ok(taxi, 'TAXI_HEX');
   const [tr, tg, tb] = [0, 2, 4].map(i => parseInt(taxi[1].slice(i, i + 2), 16));
   assert.ok(tr > 220 && tg > 160 && tg < tr && tb < 90, `cab yellow (#${taxi[1]})`);
-  assert.match(n, /taxi = what === 'taxi', tint = taxi \? TAXI_HEX : NEON\[/, 'the taxi keeps its yellow; every other car its neon tint');
+  assert.match(n, /taxi = what === 'taxi', nk = Math\.floor\(hsh\(vseed \^ \(i \* 104729\), j \* 31 \+ 7\) \* NEON\.length\), tint = taxi \? TAXI_HEX : carTint\(nk, kidHex\);/, 'the taxi keeps its yellow; every other car its neon tint — never YOUR kid\'s colour (the go-live review)');
+  { // (the rule itself, as night.js writes it — every player colour the site offers, every car slot)
+    const NEON = [0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff]; assert.match(n, /const NEON = \[0xff3fb4, 0x22e0ff, 0xa05bff, 0xff5a7a, 0x4d7dff\];/);
+    const nearHex = (a, b) => Math.abs((a >> 16) - (b >> 16)) + Math.abs(((a >> 8) & 255) - ((b >> 8) & 255)) + Math.abs((a & 255) - (b & 255)) < 150;
+    const carTint = (k, kid) => { for (let q = 0; q < NEON.length; q++) { const t = NEON[(k + q) % NEON.length]; if (!nearHex(t, kid)) return t; } return NEON[k]; };
+    assert.match(n, /export const carTint = \(k, kid\) => \{ for \(let q = 0; q < NEON\.length; q\+\+\) \{ const t = NEON\[\(k \+ q\) % NEON\.length\]; if \(!nearHex\(t, kid\)\) return t; \} return NEON\[k\]; \};/);
+    for (const kid of [0x00f0ff, 0xff2bd6, 0xf3ff3a, 0x3dff8b, 0xff8c1a, 0xa66bff, 0xff3355, 0x3d7bff]) for (let k = 0; k < NEON.length; k++) assert.ok(!nearHex(carTint(k, kid), kid), `a 0x${kid.toString(16)} kid never meets a car in its colour (slot ${k})`);
+    assert.equal(carTint(1, 0xff2bd6), 0x22e0ff, 'a colour that is not the kid\'s stays as it was'); }
   assert.match(n, /if \(taxi\) \{ K\.bill\.put\(/, 'its roof light');
   assert.equal(causeLineOf('taxi'), 'FLATTENED BY A TAXI');
   // THE FLATTENED KID (H5A — the new kid, HIS CAP ON TOP): squashed straight down under his cap in THE SPLAY (arms out, sneakers kicked

@@ -317,6 +317,24 @@ try {
   const vf = verifyNode({ code: g.code, matchId: g.m, node: await nodeOf(g.code, g.m, uid) });
   ok(!!rf && vf.ok === false && vf.why === 'ahead of the clock', `… and the server REFUSES it (${vf.why})`);
   ok(await board(pid) === bestNow, `… the best is untouched (${bestNow})`);
+  // ---- 7c. THE LOST CONTEXT (THE GO-LIVE REVIEW — the audit): iOS can take the WebGL context mid-run; the run goes on (the server's
+  //          clock) — the scene must come back by itself, never a blank playfield under a live run
+  {
+    const N = await again(); ok(N.up, 'PLAY AGAIN (for the lost-context check)'); await hopUp(P, 2);
+    const s0 = await P.ev(`${G}.state()`);
+    const lost = await P.ev("(() => { const cv = document.querySelector('canvas.jw-canvas'); cv.__old = 1; const gl = cv.getContext('webgl2') || cv.getContext('webgl'), x = gl && gl.getExtension('WEBGL_lose_context'); if (!x) return false; x.loseContext(); return true; })()");
+    if (!lost) ok(true, '(this browser has no WEBGL_lose_context: the lost-context check is skipped)');
+    else {
+      ok(await P.waitFor("(() => { const cv = document.querySelector('canvas.jw-canvas'); return !!cv && !cv.__old; })()", 4000), 'the WebGL context is LOST mid-run → a NEW scene is up within 1.5 s (+ its build)');
+      await sleep(900);
+      const s1 = await P.ev(`(() => { const s = ${G}.state(); return { scenes: s.scenes, calls: s.info && s.info.calls, look: s.info && s.info.look, t: s.t, mode: s.mode, canvases: document.querySelectorAll('canvas.jw-canvas').length }; })()`);
+      ok(s1.scenes === s0.scenes + 1 && s1.canvases === 1 && s1.calls > 0, `… it DRAWS again (${s1.calls} draw calls a frame; ONE canvas; scene ${s0.scenes} → ${s1.scenes})`);
+      ok(s1.mode === 'run' && s1.t > s0.t, `… and the run never stopped (tick ${s0.t} → ${s1.t})`);
+      ok(P.errs.length === 0, `… no page error (${P.errs.slice(0, 2).join(' | ')})`);
+      await P.shot('lost-context-rebuilt.png');
+    }
+    ok(await toEnd(P), '… that run ends (the kid stood still)');
+  }
   // ---- 8. BACK TO THE CITY
   await pastMoment(P);
   await P.tap('.final-city');

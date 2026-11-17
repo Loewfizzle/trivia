@@ -100,7 +100,7 @@ game changes in it (a look / rules / server change belongs to a pass of its own,
     `node scripts/build-file-hashes.mjs` · `node scripts/claude-md-coverage.mjs`.
 13. **THE DOCS** — `CLAUDE.md` (the header: FOUR PLAYABLE; the JAYWALK lines lose "BEING BUILT" / "owner-only until go-live"),
     `ROADMAP.md` (one line), `docs/jaywalk.md` (the header + "WHAT WAITS FOR GO-LIVE" → gone), `docs/cartridge.md` (JAYWALK went
-    playable — the second game through the whole road), `docs/testing.md`, `docs/games/passes/jaywalk-golive.md` (its log).
+    playable — the second game through the whole road), `docs/testing.md`, and its own pass log beside this file (named jaywalk-golive).
 14. **THE CHECKS** (fresh emulators, NEVER THE LIVE SITE): unit · rules · `/api` · smoke (THE PAGES LOAD) · registration · cartridge +
     the harbor `cartridge` group + the harbor groups the signs / the shelf touch · achievements · `e2e-jaywalk` · `e2e-jaywalk-match`
     (3 + 4 phones) · the lab check (+ `--perf`) · `jaywalk-mix.mjs` · **`wk-jaywalk-mem.mjs`** (WebKit: 10 solo runs + a 4-phone

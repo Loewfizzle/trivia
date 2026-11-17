@@ -1560,6 +1560,41 @@ test('JAYWALK H1 + H3 + H4 — the jw proof node: GO once, write-once chunks eac
 
 // FR7 FIXES B — A RE-START KEEPS THE LAST MATCH's PROOF: the host may delete ONE match's proof node (prism / oc / ocm / {m}) — a new start keeps
 // the previous match's for a late report; nobody else may; a write that isn't a delete is refused
+// JAYWALK — THE GO-LIVE REVIEW (the audit): the host could delete `jw` / `jw/{match}` at ANY time — a host on a modified client deletes
+// the LIVE match's tree, writes a new GO (a new course for everyone), the honest phones' nodes have no GO → scored "no go", the host
+// wins a counted match (solo: the course re-rolled after seeing it). The delete is refused while that match is LIVE (count / play) AFTER
+// the write: pruning an older match, ending the match, a new start — all in their own write, as host.js + kit/again.js make them — pass.
+test('JAYWALK — THE GO-LIVE REVIEW: the host never deletes the LIVE match\'s proof tree (count / play); older matches, the end, a new start still clear it', async () => {
+  for (const phase of ['play', 'count']) {
+    const room = playingRoom(phase);
+    room.rooms[CODE].game = { id: 'jaywalk', matchId: 'm1', phase, participants: { host: true, p2: true }, playAt: now() - 5000, seed: 's', mode: 'match' };
+    room.rooms[CODE].jw = { m0: { p2: { go: 1 } }, m1: { p2: { go: 2 }, host: { go: 3 } } };
+    await seed(room);
+    await assertFails(remove(ref(db('host'), `${R}/jw/m1`)), `${phase}: never the live match's tree`);
+    await assertFails(update(ref(db('host'), R), { 'jw/m1': null }), `${phase}: … in an update either`);
+    await assertFails(remove(ref(db('host'), `${R}/jw`)), `${phase}: never the whole jw node while its live match is in it`);
+    await assertFails(update(ref(db('host'), R), { jw: null }), `${phase}: … in an update either`);
+    await assertFails(remove(ref(db('host'), `${R}/jw/m1/p2`)), `${phase}: never one player's node`);
+    await assertFails(remove(ref(db('p2'), `${R}/jw/m1`)), 'a guest never');
+    await assertSucceeds(update(ref(db('host'), R), { 'jw/m0': null }), `${phase}: an OLDER match is pruned as before`);
+    assert.deepEqual(Object.keys((await get(ref(db('host'), `${R}/jw`))).val()), ['m1'], 'the live match\'s tree is whole');
+  }
+  // the match is over (final): its tree may go — the next start, BACK TO THE LOBBY
+  await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { phase: 'final' }));
+  await assertSucceeds(remove(ref(db('host'), `${R}/jw/m1`)), 'after the end the host clears it');
+  // … and a LIVE match of ANOTHER game never locks jw (an old tree left behind)
+  const other = playingRoom('play'); other.rooms[CODE].jw = { m9: { p2: { go: 1 } } };
+  await seed(other);
+  await assertSucceeds(remove(ref(db('host'), `${R}/jw`)), 'another game is on: the old jw tree is cleared');
+  // a NEW START while a match is live (the host's start writes the new game; the old tree goes in a write of its own): the new match's
+  // tree does not exist yet → the clear passes
+  const again = playingRoom('play');
+  again.rooms[CODE].game = { id: 'jaywalk', matchId: 'm2', phase: 'count', participants: { host: true, p2: true }, playAt: now() + 3000, seed: 's', mode: 'match' };
+  again.rooms[CODE].jw = { m1: { p2: { go: 2 } } };
+  await seed(again);
+  await assertSucceeds(update(ref(db('host'), R), { 'jw/m1': null }), 'the match before the live one is pruned');
+});
+
 test('FR7 FIXES B — the host deletes ONE match\'s proof node (prism / oc / ocm), keeping the others; a guest never', async () => {
   const proof = { prism: { mA: { p2: { st: 'out', at: 1 } }, mZ: { p2: { st: 'out', at: 1 } } }, oc: { mA: { 0: { p2: { done: true } } }, mZ: { 0: { p2: { done: true } } } }, ocm: { mZ: { 0: { p2: '1' } } } };
   await seed(lobbyRoom(proof));
