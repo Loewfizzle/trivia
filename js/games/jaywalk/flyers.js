@@ -500,6 +500,7 @@ export function createFlyers(C) {
       C.host.append(el); ship.el = el;
     }
     ship.cv = cv; ship.glow = g ? gv : null;
+    if (ship.fx && !ship.fx.width) { ship.fx.width = SHIP_W / 2; ship.fx.height = SHIP_H / 2; }   // (let go while the scene rested — rest())
     // (its first paint happens NOW, unseen — on screen at 1 % for a few frames — never as it arrives)
     if (!ship.on) {
       ship.el.style.transform = 'translate3d(-50%,-38%,0)'; ship.el.style.opacity = '0.01'; ship.el.dataset.o = ship.el.dataset.t = ''; ship.prime = 8;
@@ -595,7 +596,16 @@ export function createFlyers(C) {
     shake: () => shakeNow,
     /** the meshes night.js's warm frame must have seen (their programs + buffers made before the moment, never in it) */
     meshes: () => [...jets, ...flames, ...ufos.map(q => q.m)],
-    info: () => ({ models: Object.keys(geo), jets: jets.filter(m => m.visible && Math.abs(m.position.x) < 6.5).length, ufos: ufos.filter(q => q.m.visible).length, ship: !!ship.cv, shipOn: ship.on, shipText: ship.txt ? ship.txt.textContent : '', abducting: abd.on, dim: dimO, sparks: sparks.filter(q => q.q0 >= 0).length, sounds: played.slice() }),
+    info: () => ({ models: Object.keys(geo), jets: jets.filter(m => m.visible && Math.abs(m.position.x) < 6.5).length, ufos: ufos.filter(q => q.m.visible).length, ship: !!(ship.cv && ship.cv.width), shipOn: ship.on, shipText: ship.txt ? ship.txt.textContent : '', abducting: abd.on, dim: dimO, sparks: sparks.filter(q => q.q0 >= 0).length, sounds: played.slice() }),
+    /** H6B — THE END SCREEN's MEMORY (night.js#rest): THE MOTHERSHIP's sprite — 6.5 MB of canvases, baked at a match's start so her
+     *  arrival costs no frame — is LET GO while the end screen covers the scene, unless she is up on it (the gold finish: the top of
+     *  the end screen is see-through); baked again as the scene wakes (the next match's count) */
+    rest(on) {
+      if (!ship.el || !ship.cv) return;
+      if (!on) { if (!ship.cv.width) bakeAsk = true; return; }
+      if (ship.on) return;
+      for (const cv of [ship.cv, ship.glow, ship.fx]) if (cv) { cv.width = 0; cv.height = 0; }
+    },
     /** the world goes quiet (a run's end / a new run / the view leaves): the loops fade */
     quiet() { if (snd.hum) { snd.hum.stop(0.4); snd.hum = null; } if (snd.ship && !ship.on) { snd.ship.stop(0.4); if (snd.rum) snd.rum.stop(0.4); snd.ship = snd.rum = null; } },
     destroy() {

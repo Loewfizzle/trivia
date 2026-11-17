@@ -62,7 +62,7 @@ export async function createHarness({ name, slot = 'e', hook = null, sizes = REV
     if (!SHOTS) return;
     for (const [w, h] of which) {
       // isMobile stays on: toggling it makes puppeteer reload the page
-      await page.setViewport({ width: w, height: h, deviceScaleFactor: w >= 1200 ? 1 : 2, isMobile: true, hasTouch: true });
+      await page.setViewport({ width: w, height: h, deviceScaleFactor: w >= 1200 ? 1 : Number(process.env.E2E_DPR) || 2, isMobile: true, hasTouch: true });   // (E2E_DPR=3 — kit/jaywalk-mem.mjs's measure)
       await sleep(650);
       await page.screenshot({ path: `${OUT}${shotName}-${w}x${h}.png` });
     }

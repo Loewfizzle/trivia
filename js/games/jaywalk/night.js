@@ -370,12 +370,12 @@ export function createNight(host, o = {}) {
    * THE LOOK (H5B): 'night' = neon · 'day' = a sunny harbor. ONE scene, switched at once (the game's views re-read the console's
    * `body[data-look]` — per phone, live; the lab has its own switch). A VIEW: the rules, the course, the replay never see it.
    */
-  let lookSet = false;
+  let lookSet = false, resting = 0;
   function setLook(l) {
     const d = l === 'day';
     if (lookSet && d === day) return;
     const first = !lookSet;
-    lookSet = true; day = d;
+    lookSet = true; day = d; if (resting) resting = 3;
     const fogHex = day ? DAY_FOG_HEX : FOG_HEX;
     scene.background.setHex(fogHex); scene.fog.color.setHex(fogHex);
     ground.uniforms.uFogCol.value.set(...rgb(fogHex)); ground.uniforms.uDay.value = day ? 1 : 0;
@@ -423,9 +423,9 @@ export function createNight(host, o = {}) {
   /** how deep in the far haze a point is (0 = clear · 1 = gone) — for the few things three's own fog cannot fade (THE UFO's disc) */
   const hazeAt = (x, y, z) => { const d = (x - cam.position.x) * fwd.x + (y - cam.position.y) * fwd.y + (z - cam.position.z) * fwd.z, u = clamp01((d - scene.fog.near) / Math.max(0.001, scene.fog.far - scene.fog.near)); return u * u * (3 - 2 * u); };
   function fit(force) {
-    const nw = host.clientWidth, nh = host.clientHeight, nd = Math.min(devDpr, DPR_AT[tier]);
+    const nw = host.clientWidth, nh = host.clientHeight, nd = resting ? 1 : Math.min(devDpr, DPR_AT[tier]);
     if (!nw || !nh || (!force && nw === w && nh === h && nd === dpr)) return;
-    w = nw; h = nh; dpr = nd;
+    w = nw; h = nh; dpr = nd; if (resting) resting = 3;
     renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
     cam.fov = rig.fit(w / h);   // (ZOOM columns across on every screen shape — camera.js#lensFor)
     cam.aspect = w / h; kAt = 0; footDirty = true; depth();
@@ -437,7 +437,7 @@ export function createNight(host, o = {}) {
   function setTier(t) {
     tier = t < 0 ? 0 : t > 2 ? 2 : t | 0;
     ground.uniforms.uQ.value = tier > 0 ? 1 : 0;
-    if (tier === 2 && !bloom) { try { bloom = createBloom(renderer); } catch { bloom = null; } }
+    if (tier === 2 && !bloom && !resting) { try { bloom = createBloom(renderer); } catch { bloom = null; } }
     if (tier < 2 && bloom) { bloom.dispose(); bloom = null; }
     fit(true);
   }
@@ -519,6 +519,8 @@ export function createNight(host, o = {}) {
    *  CATCH-UP ({ x, y: cells still to close, u: 0 … 1, d }) — the kid is drawn that far back, in the air: a quick hop, never a teleport;
    *  `g.held` = standing still, unconfirmed (no ride, no bob). */
   function draw(run, course, a, dt, o = null) {
+    if (resting === 1) return;   // (rest(): its still is up)
+    if (resting) resting--;
     clock += dt;
     // (H5B — THE LOOK this frame: LF / LB = a light that only GLOWS (a pool, a beam, a halo) — nothing by day; EK = the edge columns'
     //  dim; fogK = what the wall does to a lane's things: the blackout darkens them, THE FOG BANK whitens them out)
@@ -998,7 +1000,7 @@ export function createNight(host, o = {}) {
     renderer.render(scene, cam);
     if (bloom && !day) bloom.render(scene, cam);   // (the bloom is the night's: by day the lights are paint)
     // (H4) THE SHARE IMAGE's frame: asked for → copied off the canvas in THIS frame (a WebGL canvas keeps no picture between frames)
-    if (snapAsk) { const ask = snapAsk; snapAsk = null; try { ask(grab(snapW)); } catch { ask(null); } }
+    if (snapAsk) { const ask = snapAsk; snapAsk = null; try { ask(grab(snapW, snapR)); } catch { ask(null); } }
     // where each ghost's name tag goes (CSS px from the top left; null = off the screen)
     if (ghosts) for (const g of ghosts) {
       if (!g.tag) continue;
@@ -1007,21 +1009,33 @@ export function createNight(host, o = {}) {
       g.tag = v3.z < 1 && sx > 0.04 && sx < 0.96 && sy > 0.2 && sy < 0.9 ? [sx * w, sy * h] : null;
     }
   }
-  let snapAsk = null, snapW = 1080;
+  let snapAsk = null, snapW = 1080, snapR = 0;
   /** the picture on the canvas right now → a 2D canvas `width` px wide (the whole frame; null if this phone can't) */
-  function grab(width = 1080) {
-    const cv = document.createElement('canvas'), k = width / el.width;
-    cv.width = width; cv.height = Math.max(1, Math.round(el.height * k));
+  function grab(width = 1080, rows = 0) {
+    const cv = document.createElement('canvas'), k = width / el.width, H = Math.max(1, Math.round(el.height * k));
+    // (H6B: `rows` = keep only that many round the kid — the card uses ≈ 780 of 2,337; cv.top = where the cut begins)
+    v3.copy(kidPos).project(cam);
+    const hh = rows && rows < H ? rows : H, top = hh < H ? Math.max(0, Math.min(H - hh, Math.round((1 - v3.y) / 2 * H - hh * 0.65))) : 0;
+    cv.width = width; cv.height = hh; cv.top = top; cv.full = H;
     const c = ctx2d(cv);
     if (!c) return null;
-    c.drawImage(el, 0, 0, cv.width, cv.height);
+    c.drawImage(el, 0, -top, width, H);
     return cv;
   }
 
   const v3 = new THREE.Vector3();
   return {
     /** (H4) the NEXT frame as a 2D canvas → fn(canvas | null): the share image's frame, the poster */
-    snap(fn, width = 1080) { snapAsk = fn; snapW = width; },
+    snap(fn, width = 1080, rows = 0) { snapAsk = fn; snapW = width; snapR = rows; },
+    /** H6B — the end screen covers the scene: it RESTS — a small still (dpr 1), no bloom targets, then nothing is drawn (docs: "THE END SCREEN's MEMORY") */
+    rest(on) {
+      if (!!resting === !!on) return;
+      resting = on ? 3 : 0;
+      if (on) { if (bloom) { bloom.dispose(); bloom = null; } for (const f of [...skyHold.keys()]) if (f !== skyS.now) skyHold.delete(f); }
+      if (FL) FL.rest(on);
+      fit(true); if (!on) setTier(tier);
+    },
+    resting: () => resting,
     /** (H4 add-on — lines.js#linesFor) the lines to draw: { best: { lane, text } | null, friend: { lane, text } | null } */
     setLines(v) { for (const k of ['best', 'friend']) { LINES[k] = (v && v[k]) || null; if (LINES[k]) writeLabel(k, LINES[k].text); else LBL[k].m.visible = false; } },
     /** … a line was CROSSED: a short light burst along it (never with reduce motion: the flare alone) */
@@ -1047,7 +1061,7 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px (= pt) — the wider view's readability number */
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ warmed, kid: !!kidGeo, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ warmed, kid: !!kidGeo, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** H6A — how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); }, duck: () => (FL ? FL.duck() : 1),
     /** H5B — THE LOOK: 'day' | 'night' (at once; the same scene) */

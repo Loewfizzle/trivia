@@ -26,6 +26,7 @@ import { chunkTimes } from '../../js/games/jaywalk/replay.js';
 import { CAUSE_LINES, DAY_LINES, hitVehicle } from '../../js/games/jaywalk/causes.js';
 import { createCourse } from '../../js/games/jaywalk/course.js';
 import { seedOf } from '../../js/games/jaywalk/logic.js';
+import { memAt, memLine, browserMb, JW_FINAL_BUDGET_MB } from './kit/jaywalk-mem.mjs';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), PERF = argv.includes('--perf'), DROP = argv.includes('--drop'), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
@@ -41,7 +42,7 @@ const b = await puppeteer.launch({ executablePath: argv[0], headless: true, args
 const UP = '!!(window.__district && window.__district.harbor() && window.__district.harbor().shown) && !!window.__arcade && window.__arcade.state.ready && !!window.__arcade.state.uid';
 const S = 'window.__arcade.state', G = 'window.__jwGame';
 
-async function phone(slot, dpr = 2, name = 'HOPPER') {
+async function phone(slot, dpr = Number(process.env.E2E_DPR) || 2, name = 'HOPPER') {   // (E2E_DPR=3: THE END SCREEN's MEMORY measured at a phone's own pixel ratio)
   const ctx = await b.createBrowserContext();
   const p = await ctx.newPage();
   const errs = [];
@@ -61,6 +62,10 @@ const hopUp = async (P, k) => { for (let i = 0; i < k; i++) { await P.p.touchscr
 const pidOf = async P => { const uid = await P.ev(`${S}.uid`); for (let i = 0; i < 60; i++) { const pid = await dbGet(`uids/${uid}`); if (pid) return { uid, pid }; await sleep(250); } return { uid, pid: null }; };
 const nodeOf = async (code, m, uid) => dbGet(`rooms/${code}/jw/${m}/${uid}`);
 /** the run on screen to its end: the kid stands still — the blackout (or the traffic) takes them */
+// H6B — THE END SCREEN's MEMORY (kit/jaywalk-mem.mjs): what the page holds on each run's FINAL screen (a beat after it is up: the scene
+// resting, the share card built) + once mid-run for scale
+const mems = [], bpid = b.process() && b.process().pid;
+const memFinal = async (P, tag) => { await sleep(1500); const m = await memAt(P.p); mems.push({ tag, ...m }); console.log(memLine(tag, m, browserMb(bpid))); return m; };
 const toEnd = async (P, ms = 45000) => P.waitFor(`${S}.game && ${S}.game.phase === 'final' && !!document.querySelector('.jw-final .jw-fin-cause')`, ms);
 const board = async pid => { const s = await dbGet(`pstats/${pid}`); return s && s.b && s.b['jaywalk-solo'] ? s.b['jaywalk-solo'].a : null; };
 /** H4B's add-on — THE SHARE = THE PICTURE ONLY: tap `sel` with the share sheet stubbed → what was shared + the link's page + its picture */
@@ -154,6 +159,7 @@ try {
   ok(await P.ev(`import('/js/firebase.js').then(f => f.set(f.dbRef('rooms/' + ${S}.code + '/jw/' + ${S}.game.matchId + '/' + ${S}.uid + '/c/777'), { s: 'U1', at: Date.now() - 30000 }).then(() => false, () => true))`), '… a chunk with a time of the phone\'s own choosing is refused by the rules');
   ok(await P.ev("document.querySelector('.jw-lanes').textContent") === String(st.best), 'the lane count on the HUD');
   await P.shot('run-hops.png');
+  console.log(memLine('mid-run (for scale)', await memAt(P.p), browserMb(bpid)));
   // H5B — THE DAY LOOK in a solo run: ☰ → Settings → GAME LOOK: DAY re-themes the run at once (read live); the run goes on
   const before = await P.ev(`${G}.state()`);
   await P.ev("import('/js/games/kit/look.js').then(m => m.saveLook('day'))");
@@ -165,6 +171,7 @@ try {
   // ---- 5. out → the end screen → the report counted from the replay
   ok(await toEnd(P), 'the kid stands still → out → the match ends on the proof\'s `e` → THE END SCREEN');
   await sleep(600);
+  await memFinal(P, 'run 1 — the final screen');
   let end = await P.ev(`({ cause: document.querySelector('.jw-fin-cause').textContent, n: document.querySelector('.jw-fin-n b').textContent, unit: document.querySelector('.jw-fin-n > span').textContent, foot: [...document.querySelectorAll('.final-actions button')].map(x => x.textContent.trim()), res: ${S}.game.results[${S}.uid], hud: getComputedStyle(document.querySelector('.jw-hud')).visibility, confetti: !!document.querySelector('.jw-final .burst') && getComputedStyle(document.querySelector('.jw-final .burst')).display !== 'none' })`);
   ok([...Object.values(CAUSE_LINES), ...Object.values(DAY_LINES)].includes(end.cause), `HOW YOU WENT OUT, in big neon words: "${end.cause}"`);
   // (H4 add-on: a car hit is named by THE VEHICLE on that lane at that tick — worked out here from the course alone; never a generic line)
@@ -238,13 +245,13 @@ try {
   const nb1 = await P.ev("import('/js/games/jaywalk/sfx.js').then(S => S.wanted().filter(x => x.id === 'new-best').length)");
   ok(crossedB && ln.record && ln.gold && (await P.ev(`${G}.state()`)).best > B1, `… CROSSED at lane ${(await P.ev(`${G}.state()`)).best}: the run is a NEW RECORD — the lane counter flashes and stays gold`);
   ok(nb1 === nb0 + 1, '… the new-best sound, once');
-  ok(await toEnd(P), 'run 2 ends');
+  ok(await toEnd(P), 'run 2 ends'); await memFinal(P, 'run 2 — the final screen');
   const r2 = await counted(g.code, g.m);
   ok(!!r2, 'run 2 — seconds after run 1 — is counted too (its own report; THE 45 s GAP never holds a quick solo run)');
   ok(await P.waitFor("/YOUR BEST|NEW BEST/.test(document.querySelector('.jw-fin-best').textContent)", 10000), `… its end screen: "${await P.ev("document.querySelector('.jw-fin-best').textContent")}"`);
   let bestNow = await board(pid);
   // a few more, for the measure
-  for (let i = 0; i < 3; i++) { A = await again(); if (A.up) times.push(A.ms); await hopUp(P, 1); if (i < 2) await toEnd(P); }
+  for (let i = 0; i < 3; i++) { A = await again(); if (A.up) times.push(A.ms); await hopUp(P, 1); if (i < 2) { await toEnd(P); await memFinal(P, `run ${i + 3} — the final screen`); } }
   times.sort((x, y) => x - y);
   console.log('PLAY_AGAIN_MS', JSON.stringify(times.map(t => Math.round(t))));
   ok(times.length >= 4 && times[Math.floor(times.length / 2)] < 1000, `PLAY AGAIN, ${times.length} taps: median ${times[Math.floor(times.length / 2)].toFixed(0)} ms, worst ${times[times.length - 1].toFixed(0)} ms (the target ≤ ~1 s)`);
@@ -287,6 +294,13 @@ try {
   ok(await P.ev(`import('/js/firebase.js').then(f => f.set(f.dbRef('rooms/' + ${S}.code + '/jw/' + ${S}.game.matchId + '/' + ${S}.uid + '/c/900'), { s: 'U3uwU8U8U8U8U8U8U8U8', at: f.serverTimestamp() }).then(() => true, () => false))`), 'a forged chunk (well-formed, stamped by the server) can be written …');
   await dbPut(`rooms/${g.code}/jw/${g.m}/${uid}/c`, { 0: { s: 'U3uwU8U8U8U8U8U8U8U8U8U8U8U8', at: (await nodeOf(g.code, g.m, uid)).go + 1500 } });
   ok(await toEnd(P), '… the run ends');
+  {
+    // THE END SCREEN's MEMORY, five solo runs in a row: each final screen holds a small RESTING scene — under the budget, never growing
+    const m5 = await memFinal(P, 'run 5 — the final screen'), peak = Math.max(...mems.map(m => m.pix));
+    ok(mems.length >= 5 && mems.every(m => m.rest), `on every run's final screen the scene RESTS (a small still, nothing drawn): ${mems.map(m => m.buf).join(' · ')}`);
+    ok(peak <= JW_FINAL_BUDGET_MB, `THE END SCREEN's MEMORY: the most held on a final screen in ${mems.length} solo runs = ${peak} MB of pixels (the budget ${JW_FINAL_BUDGET_MB}; before H6B's fix: 40 at @3)`);
+    ok(m5.pix <= mems[0].pix + 3, `… and it does not grow run over run (${mems.map(m => m.pix).join(' → ')} MB)`);
+  }
   const rf = await counted(g.code, g.m);
   const vf = verifyNode({ code: g.code, matchId: g.m, node: await nodeOf(g.code, g.m, uid) });
   ok(!!rf && vf.ok === false && vf.why === 'ahead of the clock', `… and the server REFUSES it (${vf.why})`);

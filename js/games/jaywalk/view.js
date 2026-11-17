@@ -133,7 +133,7 @@ export function createView() {
     mode = 'wait'; course = START; run = createRun({ seed: 'start', mode: 'solo' }); log = []; queue = []; go = 0; proven = false; asked = false; goTries = 0; haveGo = false;
     sent = 0; chunkN = 0; lastFlush = 0; wroteE = false; overAt = 0; lanesShown = -1; markUntil = 0; shotAt = 0; revealed = false;
     watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; orderKey = ''; countKey = ''; watchKey = '';
-    cues = createCues(); quiet();
+    cues = createCues(); quiet(); if (night) night.rest(false);
     for (const G of ghosts.values()) if (G.tagEl) G.tagEl.remove();
     ghosts.clear();
     // THE LINES: the best the server last told this phone at once; the table (the server's own, ONE call a run at most) right behind it
@@ -324,8 +324,8 @@ export function createView() {
     const m = matchId, r = run, c = course;
     night.snap(cv => {
       if (!cv || gone || m !== matchId) return;
-      keepShot({ matchId: m, canvas: cv, lanes: r.best, line: lineOf(r, c), kidY: night.kidScreenY(), kidX: night.kidScreenX() });
-    });
+      keepShot({ matchId: m, canvas: cv, lanes: r.best, line: lineOf(r, c), kidY: (night.kidScreenY() * cv.full - cv.top) / cv.height, kidX: night.kidScreenX() });
+    }, 1080, 1080);
   }
 
   // ---- THE MATCH: the ghosts, the order, the count, out → Call the Winner → watching
@@ -554,7 +554,7 @@ export function createView() {
     if (outCard) { outCard.remove(); outCard = null; }
     final = createFinal({ rows: finalRows(g, code), players: st.players, me: uid, presence: st.presence, kicker: solo ? 'JAYWALK · SOLO' : 'JAYWALK · MATCH', winnerLine: nm => `${nm} WENT THE FARTHEST` });
     finalWrap = h('div.jw-final', final.el);
-    root.classList.add('is-over'); root.append(finalWrap);
+    root.classList.add('is-over'); root.append(finalWrap); night.rest(true);   // (H6B: the scene rests behind the end screen)
   }
   /** a SOLO run's own end: UNPROVEN (no proof → the match can't reach the console's podium) — or proven but the signal is gone (`waiting`:
    *  the run is in the phone's queue and counts when it lands; the podium takes this screen's place by itself) */
@@ -566,7 +566,7 @@ export function createView() {
     const PN = globalThis.__nsPlayNow, soloRoom = !!(PN && PN.isSolo && PN.isSolo());
     const leave = h(`button.btn.${waiting ? 'btn-primary' : 'btn-ghost'}.btn-block`, { type: 'button', onclick: () => { leave.classList.add('is-busy'); Promise.resolve(soloRoom ? PN.leave() : backToLobby()).catch(() => leave.classList.remove('is-busy')); } }, h('span', soloRoom ? 'BACK TO THE CITY' : 'BACK TO THE ROOM'));
     localEnd = h('div.jw-final.jw-local', h('div.jw-local-in', body, h('div.jw-local-foot', again, leave)));
-    root.classList.add('is-over'); root.append(localEnd);
+    root.classList.add('is-over'); root.append(localEnd); night.rest(true);
   }
   function hideLocalEnd() { if (localEnd) { localEnd.remove(); localEnd = null; root.classList.remove('is-over'); } }
 

@@ -975,6 +975,40 @@ art created with Grok"**. A long source address now wraps (`.cr-by` / `.cr-lic` 
 Grok's re-delivered `right-of-way.png` + `mothership.png` (Nov 17 1:58 am) are **byte-identical** to the copies H6A built from (the
 same SHA-256); the builder re-run changes no file, no lab version was bumped, and the owner approved both on Nov 17.
 
+### THE END SCREEN's MEMORY (the inbox's 8:50 am add-on — /admin: "PAGE KILLED (likely memory) · game:jaywalk/final · iPhone")
+iOS ends a tab that runs out of memory. JAYWALK's end screen was the one moment that held the live 3D scene at the phone's full pixel
+ratio + its bloom targets + the run's whole-frame PICTURE at once — and kept drawing 60 frames a second behind a screen that covers it.
+**What the page HOLDS is now a measured number with a budget** (`tests/integration/kit/jaywalk-mem.mjs#JW_FINAL_BUDGET_MB` = **20 MB of
+pixels**; both end-to-end checks fail past it; `tests/jaywalk-h6b.test.mjs` pins the pieces).
+
+- **THE SCENE RESTS behind the end screen** (`night.js#rest(on)` — the podium AND the local end call `rest(true)`; a new run
+  (`view.js#reset`) calls `rest(false)`): two last frames are drawn as a SMALL STILL (pixel ratio 1 — it sits under the end screen's
+  veil), then NOTHING is drawn; the bloom's three render targets are disposed (made again by `setTier` on waking — the top tier only);
+  only the skyline picture ON SCREEN stays held (never two); the big moments' module lets THE MOTHERSHIP's sprite go (`flyers.js#rest`
+  — 6.5 MB of canvases baked at a match's start; kept only while she is up behind the gold finish, baked again at the next count).
+  A re-fit or a look switch while resting re-draws the still (two frames) and rests again.
+- **THE RUN's PICTURE is ONE canvas of the rows the card uses** (`night.js#grab(width, rows)` → `snap(fn, 1080, 1080)`): 1080 × 1080
+  round the kid (the card's frame uses ≈ 780 of the 2,337 rows a phone's frame has at that width) — 4.5 MB, was 9.6. `cv.top` /
+  `cv.full` say where the cut began, `view.js#takeShot` re-maps the kid's place into it; the share card is pixel-for-pixel the card
+  it was. ONE picture at a time: the next run's replaces it (`shot.js#keepShot` frees the old one). It is KEPT while the end screen
+  is up — a second SHARE tap + the no-link fallback draw the card from it (not released after the upload: named in the pass log).
+- **What was measured** (`memAt(page)` — counted IN THE PAGE, the same sum in any engine): the 3D canvas's drawing buffer (colour +
+  depth) + the bloom's targets + every 2D canvas alive in the document + the kept picture.
+
+| the final screen (390 × 844) | before | after |
+| --- | --- | --- |
+| a SOLO run's, @3 — runs 1 → 5 in a row | 40 · 40 · 40 · 40 · 40 MB (the 3D buffer 22.6 + bloom 7.1 + the picture 9.6 + the gate sign 0.7) | **7.6 · 7.6 · 7.6 · 7.6 · 7.6 MB** (the still 2.5 + the picture 4.5 + the gate sign 0.7) |
+| a 4-phone MATCH's, each phone (the check's phones are @2) | 29.7 – 32 MB (the buffer 10 + bloom 3.1 + the picture 9.6 + the Mothership's sprite 6.5 + the city's backdrop 2.2) | **7.6 – 10 MB** |
+| the same at @3 (the buffer + bloom from the solo row) | ≈ 46 – 48 MB | **7.6 – 10 MB** (a resting scene is the same at any pixel ratio) |
+| mid-run, for scale (@3) | 30.4 MB | 30.4 MB (the game itself is unchanged) |
+
+**What the number is NOT:** a phone's real memory. No browser reports it; there is no WebKit-on-iOS figure from this machine, and
+Chromium's whole-browser working set on Windows (1.7 GB with the city + two phones) did not move visibly either way. Decoded images
+(the skyline picture, the card art) and the GPU's textures (the models, the atlas) are not in the sum — the scene's own textures stay
+loaded while it rests (PLAY AGAIN must be instant: THE INSTANT AGAIN). **The proof is the owner's /admin: a `killed` row on
+`game:jaywalk/final` after this build is the go-live review's to chase** (the next step then: free the kept picture after the upload,
+drop the scene's textures while it rests).
+
 ## THE CAMERA (H2B — `js/games/jaywalk/camera.js`: ONE pure module, the night look AND the graybox use it)
 The owner played H2 on his iPhone: "the game feels good", but it had to be ZOOMED IN — a closer camera that FOLLOWS the kid sideways, turned
 a little so the lanes run on a gentle diagonal (the genre's framing; nothing else of anyone's). PURE MATH: no three.js, no DOM, no clock of

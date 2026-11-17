@@ -66,5 +66,5 @@ test('THE SHARE SENDS ONLY THE LINK: the dailies\' sender (the link alone when t
   assert.match(s, /kept\.pid === pid && kept\.h === h/, 'the same picture again shares the remembered link — nothing uploaded');
   // the kit: a cartridge's own middle box + no result line when the card has none (PRISM DROP + OVERCLOCK unchanged)
   assert.match(k, /export function drawRunCard\(card, drawMiddle = null, o = \{\}\)/); assert.match(k, /const box = o\.box \|\| \{ x: 140, y: 360, w: W - 280, h: 690 \};/); assert.match(k, /if \(card\.result\) \{/);
-  assert.match(code('js/games/jaywalk/view.js'), /kidY: night\.kidScreenY\(\), kidX: night\.kidScreenX\(\)/, 'the frame knows where the kid is');
+  assert.match(code('js/games/jaywalk/view.js'), /kidY: \(night\.kidScreenY\(\) \* cv\.full - cv\.top\) \/ cv\.height, kidX: night\.kidScreenX\(\)/, 'the frame knows where the kid is (H6B: in the rows it kept — only the 1,080 round him)');
 });

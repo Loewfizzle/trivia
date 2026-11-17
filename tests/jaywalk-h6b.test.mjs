@@ -152,3 +152,36 @@ test('REPLAY = LIVE across many seeds, every mode (this pass changed no rule: th
   }
   assert.ok(runs >= 80, `${runs} runs ended + were replayed (${taken} reached THE MOTHERSHIP)`);
 });
+
+// THE END SCREEN's MEMORY (the 8:50 am add-on — "PAGE KILLED … game:jaywalk/final · iPhone"; docs/jaywalk.md "THE END SCREEN's MEMORY"):
+// behind the end screen the scene RESTS — a small still, no bloom targets, ONE skyline picture, the Mothership's sprite let go, nothing
+// drawn; the run's picture is ONE canvas of the rows the card uses. The measured budget = tests/integration/kit/jaywalk-mem.mjs.
+test('H6B — THE END SCREEN\'s MEMORY: the scene rests behind the end screen, the run\'s picture is cropped, the budget is pinned', () => {
+  const n = readFileSync(new URL('../js/games/jaywalk/night.js', import.meta.url), 'utf8'), v = readFileSync(new URL('../js/games/jaywalk/view.js', import.meta.url), 'utf8');
+  const f = readFileSync(new URL('../js/games/jaywalk/flyers.js', import.meta.url), 'utf8'), m = readFileSync(new URL('./integration/kit/jaywalk-mem.mjs', import.meta.url), 'utf8');
+  // the scene: dpr 1 while it rests, no bloom made, nothing drawn once its still is up
+  assert.match(n, /nd = resting \? 1 : Math\.min\(devDpr, DPR_AT\[tier\]\)/, 'a resting scene is a dpr-1 still');
+  assert.match(n, /if \(tier === 2 && !bloom && !resting\)/, 'no bloom targets while it rests');
+  assert.match(n, /if \(resting === 1\) return;/, 'nothing is drawn once the still is up');
+  const rest = n.slice(n.indexOf('    rest(on) {'), n.indexOf('    resting: () => resting'));
+  assert.match(rest, /bloom\.dispose\(\); bloom = null;/, 'the bloom\'s targets are freed');
+  assert.match(rest, /if \(f !== skyS\.now\) skyHold\.delete\(f\)/, 'only the skyline picture on screen is held');
+  assert.match(rest, /if \(FL\) FL\.rest\(on\);/, 'the big moments\' module lets its sprite go');
+  assert.match(rest, /if \(!on\) setTier\(tier\)/, 'waking = the tier\'s own setup again (the bloom back at the top tier)');
+  // (the flag is declared before setLook reads it — a first cut put it below and the scene never built)
+  assert.ok(n.indexOf('let lookSet = false, resting = 0;') > 0 && n.indexOf('let lookSet = false, resting = 0;') < n.indexOf('  setLook(o.look'), 'the flag exists before the first setLook');
+  // the view: rests on BOTH end screens, wakes on a new run; ONE picture a run, only the rows round the kid
+  assert.equal((v.match(/night\.rest\(true\)/g) || []).length, 2, 'the podium + the local end both rest the scene');
+  assert.match(v, /if \(night\) night\.rest\(false\)/, 'a new run wakes it');
+  assert.match(v, /\}, 1080, 1080\);/, 'the run\'s picture: 1080 wide, the 1080 rows round the kid (≤ 1080 × 1350)');
+  assert.match(n, /cv\.width = width; cv\.height = hh; cv\.top = top; cv\.full = H;/, 'the cut knows where it began');
+  // THE MOTHERSHIP's sprite: let go unless she is up; baked again on waking
+  const fr = f.slice(f.indexOf('    rest(on) {'), f.indexOf('    /** the world goes quiet'));
+  assert.match(fr, /if \(ship\.on\) return;/, 'never while she is on screen');
+  assert.match(fr, /cv\.width = 0; cv\.height = 0;/, 'her canvases are freed');
+  assert.match(fr, /if \(!ship\.cv\.width\) bakeAsk = true;/, 'baked again as the scene wakes');
+  // the budget: a number, never raised quietly; both end-to-end checks hold their final screens to it
+  const b = Number((/export const JW_FINAL_BUDGET_MB = (\d+);/.exec(m) || [])[1]);
+  assert.ok(b > 0 && b <= 20, `the final screen's budget is ${b} MB of pixels (measured: 7.6 solo · ≤ 9.6 a match · before the fix 40 – 48) — raising it is a decision`);
+  for (const t of ['e2e-jaywalk.mjs', 'e2e-jaywalk-match.mjs']) assert.match(readFileSync(new URL(`./integration/${t}`, import.meta.url), 'utf8'), /pix <= JW_FINAL_BUDGET_MB|peak <= JW_FINAL_BUDGET_MB/, `${t} fails past the budget`);
+});
