@@ -100,6 +100,7 @@ async function mount() {
   // ---- the run: the pure engine, stepped at 60 ticks a second from the frame clock (the RULES never read it)
   let mode = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo', seed, course, run, log, queue = [], acc = 0, last = 0, overAt = 0, shown = false, bot = null, markUntil = 0;
   const frames = [], cost = [];   // (the frame times + the work in each frame, for &fps=1 + the pass's measure)
+  const LANE0 = /^\d{1,5}$/.test(Q.get('lane') || '') ? Math.min(20000, Number(Q.get('lane'))) : 0;   // (`?lane=N` — a look check from lane N: WARPED, never counts)
   let steps = 0, slow = 0, warped = false, started = false, safe = false;   // (safe — a LOOK CHECK's warp only: the blackout holds still behind the kid; never in a real run)   // (started: the run's tick 0 is the FIRST touch — the page never runs the wall at a kid nobody is playing)
   function restart(m = mode, s = Q.get('seed') && !seed ? Q.get('seed') : newSeed()) {
     mode = m; seed = s; course = createCourse(seed); run = createRun({ seed, mode }); log = []; queue = []; acc = 0; shown = false; overAt = 0; warped = false; started = false; safe = false;
@@ -108,7 +109,11 @@ async function mount() {
     for (const t of tabs) t.classList.toggle('is-on', t.dataset.mode === mode);
     seedLine.textContent = `seed ${seed}`;
     if (bot) bot = greedyBot({ seed });
+    // H6B — `?lane=N` (the owner opens any area on his phone): A LOOK CHECK — the kid stands on the grass lane nearest N (the one before it first), the blackout
+    // held behind him. WARPED: the run is no longer its log's — it never counts, is never replayed (the end says so), nothing is sent.
+    if (LANE0) { let y = LANE0; for (let d = 0; d < 40; d++) { if (LANE0 - d > 0 && course.lane(LANE0 - d).type === 'grass') { y = LANE0 - d; break; } if (course.lane(LANE0 + d).type === 'grass') { y = LANE0 + d; break; } } warped = true; safe = true; run.y = y; run.best = y; run.wall = (y - 5) * FP; mark.textContent = `LOOK CHECK · LANE ${y} · TAP TO HOP`; }
   }
+  const findLane = (kind, from = 0) => { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (kind === 'ufo' ? L.ufo && L.ufo.y0 === i : kind === 'mark' ? !!L.mark : L.type === kind) return i; } return -1; };
   const hop = d => { if (!isOver(run) && queue.length < 2) queue.push(d); };
   wireControls(play, { onHop: hop, onAny: () => { if (isOver(run) && shown && performance.now() - overAt > 300) restart(); } });
 
@@ -164,7 +169,8 @@ async function mount() {
     if (key !== hudKey) {
       if (lanes.dataset.num !== String(run.best)) { setNum(lanes, run.best); lanes.classList.remove('is-pop'); void lanes.offsetWidth; lanes.classList.add('is-pop'); }
       hudKey = key;
-      sub.textContent = M.cap ? `THE MOTHERSHIP ${clock(M.cap - run.t)}` : 'ENDLESS';
+      // (H6B — ONE COUNTDOWN: the big red one (flyers.js) is THE MOTHERSHIP's; this line is the mode's quiet clock, gone for the warning)
+      sub.textContent = M.cap ? (M.cap - run.t > 10 * TICK_HZ ? `${mode.toUpperCase()} · ${clock(M.cap - run.t)}` : '') : 'ENDLESS';
     }
     if (markUntil && now > markUntil) { mark.textContent = ''; markUntil = 0; }
     if (frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); }
@@ -195,7 +201,7 @@ async function mount() {
     logAt(lane) { const L = course.lane(lane); if (L.type !== 'water') return -1; for (const it of L.items) { const l = moverLeft(L, it, run.t); if (l > 1500 && l + it.len < 7500) return l + it.len / 2; } return -1; },
     /** (a look check) a road / water lane's movers right now, in cells: [{ left, len }] + the lane's dir + v */
     items(lane) { const L = course.lane(lane); return { dir: L.dir || 0, v: L.v || 0, items: (L.items || []).map((it, j) => ({ left: moverLeft(L, it, run.t) / FP, len: it.len / FP, what: L.type === 'road' ? vehicleAt(course, lane, j) : 'log' })) }; },
-    find(kind, from = 0) { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (kind === 'ufo' ? L.ufo && L.ufo.y0 === i : kind === 'mark' ? !!L.mark : L.type === kind) return i; } return -1; },
+    find: findLane, lane0: () => LANE0, warped: () => warped,
     pulse(lane) { const L = course.lane(lane); return L.pulse ? pulseAt(L.pulse, run.t) : null; },
     /** (H6A's look checks) the run's tick put somewhere (WARPED) · the world held still (the scene still draws) · a UFO's ring right now ·
      *  the first flight band from a lane: { lane, period, phase, tell, pass, dir } */

@@ -128,12 +128,11 @@ test('THE SIGNATURE PIECES: never on a flight path, and on a gateway ONLY its ow
 
 test('THE ARRIVAL GATEWAY: a neon arch on every area\'s first lane — posts in the edge columns, a see-through tube, the area\'s NAME big on the lane (the loop\'s laps named); crossing it = the landmark sound + the name flashing once', () => {
   assert.match(N, /if \(L\.mark && AR >= 0\) \{/); assert.match(N, /const hex = LOOKS\[AR\]\.accent, xl = X\(-0\.55\), xr = X\(COLS \+ 0\.55\)/, 'its posts stand in the two edge columns');
-  assert.match(N, /writeGate\(G, gateName\(i\), hex, LOOKS\[AR\]\.paint\);/, 'the name = the rules\' own (course.js#gateName), in the area\'s neon (night) / on its painted board (day)');
-  // H5C — THE NAME STANDS ON THE GATE's ARCH (never on the lane, under the kid): an upright sign on the crossbar, facing the camera
-  assert.match(N, /const GATE_W = 5\.9, GATE_H = 1\.014, GATE_Y = 3\.42;/); assert.match(N, /const gateGeo = new THREE\.PlaneGeometry\(GATE_W, GATE_H\);/, 'an UPRIGHT plane (not laid on the lane): all of it on screen at ZOOM 8');
-  assert.match(N, /G\.m\.position\.set\(0, gy, zf\); G\.m\.quaternion\.copy\(cam\.quaternion\);/, 'it stands on the crossbar, facing the camera');
-  assert.match(N, /thru = clamp01\(\(i \+ 1\.3 - ky\) \/ 0\.5\)/, 'gone once he has hopped on through the gate (it never hangs over the lanes he plays next)');
-  assert.doesNotMatch(N, /G\.m\.position\.set\(0, 0\.07, z\)/, 'the name no longer lies on the gate\'s lane');
+  assert.match(N, /writeGate\(gateName\(i\), hex, LOOKS\[AR\]\.paint\);/, 'the name = the rules\' own (course.js#gateName), in the area\'s neon (night) / on its painted board (day)');
+  // H6B — THE GATE SIGN SHOWS ONLY ON THE APPROACH: its board hangs under the sea wall (its own canvas over the scene), never on a lane
+  assert.match(N, /const GATE_GONE = 3, GATE_FADE = 1\.5, GATE_SEEN = 10;/); assert.doesNotMatch(N, /gateGeo|GATE_Y|GATE\[/, 'no plane in the scene any more');
+  assert.match(N, /const dg = i - ky, near = clamp01\(\(dg - GATE_GONE\) \/ GATE_FADE\) \* clamp01\(GATE_SEEN \+ 0\.5 - dg\);/, 'up from 10 lanes out, fading from 4.5, FULLY GONE 3 lanes from the gate — and at it, and through it');
+  assert.match(N, /if \(!gateSeen\) \{ gateInfo\.on = false; gateShow\(0\); \}/, 'no gate ahead: no sign');
   const arch = N.slice(N.indexOf('if (L.mark && AR >= 0) {'), N.indexOf('const PL = AR >= 0'));
   assert.doesNotMatch(arch, /AK\.|KM\[|K\.trees|K\.barricades/, 'no solid thing is laid across the lane: the posts + light only');
   assert.match(arch, /K\.bill\.put\(0, 3\.04, zf, \(xr - xl\) \* 1\.04, 0\.34, 1, 0, hex, 1, 4,/, 'the crossbar\'s neon tube');

@@ -194,22 +194,18 @@ export function createNight(host, o = {}) {
   const css = hex => `#${hex.toString(16).padStart(6, '0')}`;
   // THE ARRIVAL GATEWAY's NAME (H5A): the area's name written BIG on its gateway lane (two planes: this gateway + the next one in
   // view), in the area's own neon — drawn when its text changes, never per frame. THE NEON FISH: the fish market's sign (one plane)
-  // H5C (the owner: the name lay on the gate's lane — under the kid the moment he stood there): THE NAME STANDS ON THE GATE's ARCH —
-  // a sign standing up on the gate's crossbar, above the lane, facing the camera: its board has an ARCHED top (the arch IS the sign);
-  // neon tubes by night (no panel: the lanes are seen through it), a painted board by day. Read as he comes up to the gate AND while
-  // he stands in its lane (it is three lanes up the screen from him — never under his body); it fades as he hops on through.
-  const GATE_W = 5.9, GATE_H = 1.014, GATE_Y = 3.42;   // (5.9 cells: up on the arch it is nearer the lens — ≈ 7.3 of the 8 columns across on the screen, the letters ≈ 0.6 of a lane tall)
-  const gateGeo = new THREE.PlaneGeometry(GATE_W, GATE_H);
+  // THE GATE SIGN (H5C: an arched board with the area's name — neon tubes on a solid dark board by night, a painted board by day).
+  // H6B — IT SHOWS ONLY ON THE APPROACH: the board hangs UNDER THE SEA WALL (its own canvas over the scene — css .jw-gate: crisp, over
+  // the far haze, where only the fogged far lanes are), up from GATE_SEEN lanes out, fading from GATE_GONE + GATE_FADE, FULLY GONE
+  // GATE_GONE lanes from the gate — the gate's own posts + crossbar come out of the haze under it. Never over a lane he is about to
+  // cross. Drawn when its text changes, never per frame; its opacity alone moves.
+  const GATE_GONE = 3, GATE_FADE = 1.5, GATE_SEEN = 10;
   const fishGeo = new THREE.PlaneGeometry(2.4, 1.2);
-  const GATE = [0, 1].map(() => {
-    const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 176;
-    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
-    const m = new THREE.Mesh(gateGeo, new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));   // (alpha-blended in both looks: by night its smoked panel keeps the neon letters readable over bright water)
-    m.renderOrder = 3; m.visible = false; m.frustumCulled = false; scene.add(m);
-    return { m, cv, tex, text: null };
-  });
-  const gateInfo = { on: false, text: '', y: 0 };
-  function writeGate(G, text, hex, paint) {
+  const G = { cv: document.createElement('canvas'), text: null, o: '' };
+  G.cv.width = 1024; G.cv.height = 176; G.cv.className = 'jw-gate'; G.cv.setAttribute('aria-hidden', 'true'); host.append(G.cv);
+  const gateShow = v => { const o = v < 0.01 ? '0' : v.toFixed(2); if (o !== G.o) { G.o = o; G.cv.style.opacity = o; } };
+  const gateInfo = { on: false, text: '', y: 0, d: 0, a: 0 };
+  function writeGate(text, hex, paint) {
     const key = `${text}|${day ? 'd' : 'n'}`;
     if (G.text === key) return;
     G.text = key;
@@ -239,7 +235,6 @@ export function createNight(host, o = {}) {
       c.shadowBlur = 0; c.globalAlpha = 0.7; c.fillStyle = '#ffffff'; c.fillText(text, 0, 0);
     }
     c.restore();
-    G.tex.needsUpdate = true;
   }
   const fishCv = document.createElement('canvas'); fishCv.width = 256; fishCv.height = 128;
   const fishTex = new THREE.CanvasTexture(fishCv); fishTex.colorSpace = THREE.SRGBColorSpace;
@@ -386,7 +381,7 @@ export function createNight(host, o = {}) {
     K.shadow.mesh.material.uniforms.uDay.value = day ? 1 : 0;   // (H5C — a day shadow is COOL: the sky fills it)
     fish.material.blending = day ? THREE.NormalBlending : THREE.AdditiveBlending; fish.material.needsUpdate = true;
     for (const k of ['best', 'friend']) { const t = LBL[k].text; LBL[k].text = null; if (t != null) writeLabel(k, t); }
-    for (const G of GATE) G.text = null;
+    G.text = null;
     { const c = ctx2d(fishCv); if (c) { drawFishSign(c, 256, 128, day); fishTex.needsUpdate = true; } }
     // THE BLACKOUT's curtain = THE FOG BANK's body by day
     curtain.material.color.setHex(day ? 0xdfe7ee : 0x000000); curtain.material.opacity = day ? 1 : 0.93;
@@ -501,7 +496,7 @@ export function createNight(host, o = {}) {
   function warm() {
     const put = [];
     for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.put(0, -60, 0, 0.01, 0.01, 0.01, 0, 0xffffff, 1); q.done(); }
-    for (const m of [...(FL ? FL.meshes() : []), ...Object.values(LBL).map(L => L.m), ...GATE.map(G => G.m), fish]) { put.push([m, m.visible, m.position.y]); m.visible = true; m.position.y = -60; }
+    for (const m of [...(FL ? FL.meshes() : []), ...Object.values(LBL).map(L => L.m), fish]) { put.push([m, m.visible, m.position.y]); m.visible = true; m.position.y = -60; }
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam); } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
     for (const [m, v, y] of put) { m.visible = v; m.position.y = y; }
     for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.done(); }
@@ -650,8 +645,7 @@ export function createNight(host, o = {}) {
     if (FL) FL.begin({ t, clock, dt, day, camX: rig.x(), kx: px, kz: pz, ky, own: !o || o.own !== false, alive: run.st === 'idle' || run.st === 'hop' });
     if (kidDraw && KM.kid) KM.kid.put(...kidDraw);
     const kindOf = L => (L.mark ? KIND.mark : KIND[L.type]);
-    let beam = null, sign = null, gates = 0, gateSeen = false;
-    for (const G of GATE) G.m.visible = false;
+    let beam = null, sign = null, gateSeen = false;
     const base = Math.floor(camY) - BACK, top = base + BACK + Math.min(AHEAD, Math.ceil(24 * rig.k()) + 2);
     let nu = 0, gi = 0, ufoSeen = -1;
     for (let i = base; i < top; i++) {
@@ -813,7 +807,7 @@ export function createNight(host, o = {}) {
           // BY DAY (H5B): a PAINTED arch — white posts banded in the area's colour, the arch in stripes of it, the name in white paint
           // on a band of the area's colour laid across the lane
           const pc = LOOKS[AR].paint, wh = 0xf6f2e8, li = Math.min(1.6, lt);
-          // (H5C: two posts, a striped CROSSBAR between them — the name's arched board stands on it (the GATE plane); the lane's own
+          // (H5C: two posts, a striped CROSSBAR between them — the lane's own
           //  painted trim marks the threshold)
           for (const x of [xl, xr]) { K.posts.put(x, 1.5, zf, 0.22, 3.0, 0.22, 0, wh, li); K.posts.put(x, 2.86, zf, 0.3, 0.4, 0.3, 0, pc, li); K.posts.put(x, 0.4, zf, 0.3, 0.8, 0.3, 0, pc, li); K.posts.put(x, 3.16, zf, 0.34, 0.2, 0.34, 0, wh, li); K.shadow.put(x, 0.03, zf, 0.9, 3.0, 0.7, 0, 0, 1, 0, 0.5 * Math.min(1, lt)); }
           for (let k = 0; k < 10; k++) K.posts.put(xl + (xr - xl) * (k + 0.5) / 10, 3.04, zf, (xr - xl) / 10 + 0.01, 0.34, 0.2, 0, k % 2 ? wh : pc, li);
@@ -824,13 +818,9 @@ export function createNight(host, o = {}) {
           K.bill.put(0, 3.04, zf, (xr - xl) * 1.04, 0.34, 1, 0, hex, 1, 4, 0.9 * lt); K.bill.put(0, 3.04, zf, (xr - xl) * 1.02, 0.1, 1, 0, 0xffffff, 1, 4, 0.7 * lt);
           if (on) K.flat.put(0, 0.045, z, 11, 1, 1.2, 0, hex, 1, 4, 0.16 * lt);
         }
-        if (gates < 2) {
-          // THE NAME ON THE ARCH: its board stands on the crossbar, facing the camera; gone once he has hopped on through the gate
-          const G = GATE[gates++], thru = clamp01((i + 1.3 - ky) / 0.5), gy = GATE_Y + GATE_H / 2;
-          writeGate(G, gateName(i), hex, LOOKS[AR].paint);
-          G.m.visible = lt > 0.2 && dk < 0.8 && thru > 0.01; G.m.position.set(0, gy, zf); G.m.quaternion.copy(cam.quaternion); G.m.material.opacity = Math.min(1, lt) * thru;
-          if (G.m.visible && Math.abs(i + 0.5 - ky) < 0.6) { gateSeen = true; P.set(0, GATE_Y, zf).project(cam); gateInfo.on = true; gateInfo.text = gateName(i); gateInfo.y = (1 - P.y) / 2; }
-        }
+        // THE NAME: the gate's sign under the sea wall — ONLY ON THE APPROACH (H6B)
+        const dg = i - ky, near = clamp01((dg - GATE_GONE) / GATE_FADE) * clamp01(GATE_SEEN + 0.5 - dg);
+        if (!gateSeen && near > 0.01 && dk < 0.8) { writeGate(gateName(i), hex, LOOKS[AR].paint); gateShow(near); gateSeen = true; gateInfo.on = true; gateInfo.text = gateName(i); gateInfo.y = 0.24 + 0.74 * w * 176 / 1024 / h; gateInfo.d = dg; gateInfo.a = near; }
       }
       const PL = AR >= 0 ? sigAt(i) : null;
       if (PL) for (const P of PL) { const r = drawSig(P, { K, A: AK, KM, BOX, X, Z, lt, on: on && !day, day, ek: EK, T: LOOKS[AR], h: (a, b) => hsh(vseed ^ (a * 2659), b), course }); if (r && r.beam && on) beam = { at: r.beam, side: P.side, lt: Math.min(1, lt) }; if (r && r.sign && on && !sign) sign = { at: r.sign, lt: Math.min(1, lt) }; }
@@ -845,7 +835,7 @@ export function createNight(host, o = {}) {
       ground.lay(gi++, i, kindOf(L), kindOf(course.lane(i - 1)), kindOf(course.lane(i + 1)), hsh(vseed, i) * 10, dk, fxv, AR + 1);
     }
     ground.done(gi);
-    if (!gateSeen) gateInfo.on = false;
+    if (!gateSeen) { gateInfo.on = false; gateShow(0); }
     // THE LIGHTHOUSE's BEAM (H5A): its lamp lit + a long soft beam lying over the lanes, SWEEPING across them (still with reduce motion)
     if (beam) {
       const [bx, bh, bz] = beam.at, sw = reduce ? 0.25 : Math.sin(clock / 2300) * 0.95, ang = beam.side < 0 ? sw : Math.PI - sw, len = 15;
@@ -1058,8 +1048,8 @@ export function createNight(host, o = {}) {
       curtain.material.dispose(); if (FL) FL.destroy();
       if (kidGeo) { kidGeo.userData.poses.tex.dispose(); kidGeo.dispose(); }
       for (const L of Object.values(LBL)) { scene.remove(L.m); L.m.material.dispose(); L.tex.dispose(); L.cv.width = 0; L.cv.height = 0; }
-      labelGeo.dispose(); gateGeo.dispose(); fishGeo.dispose(); fishTex.dispose(); fish.material.dispose(); scene.remove(fish); fishCv.width = 0;
-      for (const G of GATE) { scene.remove(G.m); G.m.material.dispose(); G.tex.dispose(); G.cv.width = 0; G.cv.height = 0; }
+      labelGeo.dispose(); fishGeo.dispose(); fishTex.dispose(); fish.material.dispose(); scene.remove(fish); fishCv.width = 0;
+      G.cv.remove(); G.cv.width = 0; G.cv.height = 0;
       for (const g of Object.values(AGEO)) g.dispose();
       flatGeo.dispose(); billGeo.dispose(); unit.dispose(); ground.dispose();
       if (bloom) bloom.dispose();

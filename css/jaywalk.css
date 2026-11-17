@@ -81,6 +81,9 @@
 /* (the review: the day wall was a flat strip that hovered — TWO courses of blocks, their joints staggered, and its own shadow on the
    ground at its foot: the course reaches it) */
 .jw-farhaze[data-look='day']::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 7px; background: linear-gradient(rgba(64, 84, 112, 0.5), rgba(64, 84, 112, 0)); }
+/* THE GATE SIGN (night.js — H6B: ONLY ON THE APPROACH): the area's arched name board hangs under the sea wall, over the far haze (the
+   fogged far lanes — never a lane he is about to cross); one canvas, drawn on a change; its opacity alone moves */
+.jw-gate { position: absolute; z-index: 1; left: 13%; width: 74%; top: 24%; aspect-ratio: 1024 / 176; opacity: 0; pointer-events: none; }
 .jw-sky-l { position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #ff4034; box-shadow: 0 0 6px 2px rgba(255, 64, 52, 0.85); animation: jw-blink 2.6s steps(1) infinite; }
 .jw-sky-n { position: absolute; background: rgba(9, 6, 20, 0.86); opacity: 0; animation: jw-flick 6.5s steps(1) infinite; }
 @keyframes jw-blink { 0%, 52% { opacity: 1; } 53%, 100% { opacity: 0.12; } }
@@ -199,20 +202,25 @@
 .jw-tags { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
 .jw-tag { position: absolute; left: 0; top: 0; opacity: 0; padding: 2px 6px 1px; border-radius: 4px; background: rgba(7, 6, 11, 0.66); border-bottom: 2px solid var(--c, #fff);
   font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.1em; color: #fff; white-space: nowrap; transition: opacity 0.15s; }
-/* THE LIVE ORDER — the top-left corner, under the menu: name + lanes, best first. OUT = a cross where the colour dot was + the name struck through (never colour alone) */
-.jw-order { position: absolute; z-index: 3; left: 8px; top: calc(env(safe-area-inset-top) + 64px); margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; width: max-content; max-width: 46vw; pointer-events: none; }
+/* THE LIVE ORDER — the top-left corner, right under the menu: best first. OUT = a cross where the colour dot was + the name struck
+   through (never colour alone). H6B — THE CHIPS ARE COMPACT (the owner: they covered the landmark painted on the band's left — the
+   bridge, the lighthouse): a small colour dot + the name SHORT (≤ 6 letters seen — the whole name stays in the row) + the lanes, 13 px
+   a row (8 players = 111 px tall, ≤ 92 px wide), on a SOFT backing — a dark veil that thins out to the right, no box, no corners:
+   the picture reads through and past it. You = a bar of your colour down the row's left edge; the one you watch = a white bar. */
+.jw-order { position: absolute; z-index: 3; left: 0; top: calc(env(safe-area-inset-top) + 52px); margin: 0; padding: 0; list-style: none; display: grid; gap: 1px; width: max-content; max-width: 92px; pointer-events: none; }
 .jw-order:empty { display: none; }
-.jw-order li { position: relative; display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 4px 8px 4px 6px; border-radius: 6px; background: rgba(7, 6, 11, 0.66);
-  font: 700 12px/1.1 var(--font-ui); letter-spacing: 0.08em; color: #fff; }
-.jw-order-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 6px var(--c); }
+.jw-order li { position: relative; display: grid; grid-template-columns: 6px minmax(0, 42px) auto; align-items: center; gap: 4px; padding: 0 9px 0 6px; height: 13px;
+  background: linear-gradient(90deg, rgba(7, 6, 11, 0.66) 0, rgba(7, 6, 11, 0.5) 62%, rgba(7, 6, 11, 0) 100%);
+  font: 700 10px/13px var(--font-ui); letter-spacing: 0.05em; color: #fff; text-shadow: 0 1px 0 rgba(7, 6, 11, 0.95), 0 0 3px rgba(7, 6, 11, 0.9); }
+.jw-order-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c); box-shadow: 0 0 4px var(--c); }
 .jw-order-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.jw-order b { font: 700 13px/1 var(--font-num, var(--font-ui)); min-width: 1.6em; text-align: right; }
-.jw-order li.is-me { box-shadow: inset 0 0 0 1.5px var(--c); }
-.jw-order li.is-watched { box-shadow: inset 0 0 0 1.5px #fff; }
+.jw-order b { font: 700 11px/13px var(--font-num, var(--font-ui)); letter-spacing: 0; min-width: 1.5em; text-align: right; }
+.jw-order li.is-me { box-shadow: inset 2px 0 0 var(--c); }
+.jw-order li.is-watched { box-shadow: inset 2px 0 0 #fff; }
 .jw-order li.is-out { color: #c4c9dc; }
 .jw-order li.is-out .jw-order-n { text-decoration: line-through; }
 .jw-order li.is-out .jw-order-dot { position: relative; background: none; box-shadow: none; }
-.jw-order li.is-out .jw-order-dot::before, .jw-order li.is-out .jw-order-dot::after { content: ''; position: absolute; left: 4px; top: -1px; width: 2px; height: 12px; border-radius: 1px; background: #c4c9dc; transform: rotate(45deg); }
+.jw-order li.is-out .jw-order-dot::before, .jw-order li.is-out .jw-order-dot::after { content: ''; position: absolute; left: 2.25px; top: -1px; width: 1.5px; height: 8px; border-radius: 1px; background: #c4c9dc; transform: rotate(45deg); }
 .jw-order li.is-out .jw-order-dot::after { transform: rotate(-45deg); }
 .jw-order-out { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 /* the watcher's line (the foot): who the camera follows · your call · what the room waits for */

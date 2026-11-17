@@ -4,7 +4,7 @@
 // cross-fade, never a jump), THE GATE SIGN (only on the approach — gone 3 lanes out), THE UFO (solid, high, into the hatch), THE
 // BLACKBIRD (bigger), ONE Mothership countdown, the lab's ?lane=N.
 const IDS = ['docks', 'fish-market', 'rail-yard', 'bridge', 'downtown', 'canal', 'lighthouse', 'airfield'], SKY = ['docks', 'fish', 'yard', 'bridge', 'downtown', 'canal', 'lighthouse', 'airfield'];
-export async function looksH6B(p, { ok, shot, sleep, waitFor, what = '', reqs = [], top }) {
+export async function looksH6B(p, { ok, shot, sleep, waitFor, what = '', reqs = [], top, open, up }) {
   const L = js => p.evaluate(js), all = !what;
   const fresh = (look, mode = 'solo') => L(`window.__jwLab.freeze(false); window.__jwLab.ghosts(0); window.__jwLab.ghostsAt(null); window.__jwLab.bot(false); window.__jwLab.restart('${mode}', 'look3'); window.__jwLab.setCamera(8, 'straight', true); window.__jwLab.setLook('${look}'); window.__jwLab.hop('u')`);
   const stand = (lane, col) => p.evaluate((l, c) => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'look3'); J.hop('u'); } const y = J.find('grass', l); J.warp(y, c == null ? {} : { x: c * 1000 + 500 }); return y; }, lane, col);
@@ -56,5 +56,87 @@ export async function looksH6B(p, { ok, shot, sleep, waitFor, what = '', reqs = 
     // the day set, as before (the whole band, for the review)
     await fresh('day'); await sleep(600);
     for (let k = 0; k < 8; k++) { await stand(50 * (k + 1) + 9, 4); await sleep(600); await settled(); await sleep(500); await top(`sky/day-${k + 1}-${IDS[k]}-top.png`); await shot(p, `sky/day-${k + 1}-${IDS[k]}.png`); }
+  }
+
+  // ---- THE GATE SIGN: only on the approach — full ≥ 4.5 lanes out, FULLY GONE 3 lanes from the gate (and at it, and through it)
+  if (all || what === 'gates') for (const look of ['night', 'day']) {
+    await fresh(look); await sleep(500);
+    for (let k = 0; k < 8; k++) {
+      const G = 50 * (k + 1);
+      const at = async d => { await p.evaluate((l) => { const J = window.__jwLab; J.freeze(false); J.warp(l, { x: 4500 }); J.freeze(true); }, G - d); await sleep(d === 11 ? 1500 : 420); return p.evaluate(() => { const s = window.__jwLab.state(); return { g: s.info.gate, kid: s.kidY, y: s.y }; }); };
+      let q = await at(11); ok(!q.g, `${IDS[k]} (${look}): 11 lanes out: no sign yet`);
+      q = await at(9); ok(q.g && q.g.a > 0.9 && q.g.y > 0.24, `${IDS[k]} (${look}): 9 lanes out the gate's sign is UP — whole, crisp, under the band (${q.g ? `opacity ${q.g.a.toFixed(2)}, its foot ${q.g.y.toFixed(2)} down the screen` : 'no sign'})`);
+      await shot(p, `gates/${look}-${k + 1}-${IDS[k]}-a-9-lanes-out.png`);
+      q = await at(7);
+      ok(q.g && q.g.on && q.g.a > 0.9 && q.g.y > 0.24 && q.g.y < q.kid - 0.2, `${IDS[k]} (${look}): 7 lanes out the gate's sign is up, whole, under the band + well above him (${q.g ? `opacity ${q.g.a.toFixed(2)}, its foot ${q.g.y.toFixed(2)} down the screen` : 'no sign'} · the kid ${q.kid.toFixed(2)})`);
+      await shot(p, `gates/${look}-${k + 1}-${IDS[k]}-b-7-lanes-out.png`);
+      q = await at(5); ok(q.g && q.g.a > 0.9, `${IDS[k]} (${look}): 5 lanes out it still reads (${q.g ? q.g.a.toFixed(2) : '—'})`);
+      if (k === 0 || k === 4 || k === 6) await shot(p, `gates/${look}-${k + 1}-${IDS[k]}-c-5-lanes-out.png`);
+      q = await at(4); ok(q.g && q.g.a > 0.3 && q.g.a < 0.9, `${IDS[k]} (${look}): 4 lanes out it is FADING (${q.g ? q.g.a.toFixed(2) : '—'})`);
+      q = await at(3); ok(!q.g, `${IDS[k]} (${look}): 3 lanes from the gate the sign is FULLY GONE`);
+      await shot(p, `gates/${look}-${k + 1}-${IDS[k]}-d-3-lanes-out.png`);
+      q = await at(1); ok(!q.g, `${IDS[k]} (${look}): … and stays gone as he comes up to it`);
+      q = await at(0); ok(!q.g, `${IDS[k]} (${look}): in the gate: no sign over the lanes ahead`);
+      await shot(p, `gates/${look}-${k + 1}-${IDS[k]}-e-in-the-gate.png`);
+      q = await at(-2); ok(!q.g, `${IDS[k]} (${look}): through it: nothing`);
+    }
+    await L('window.__jwLab.freeze(false)');
+  }
+
+  // ---- THE MATCH CHIPS (the look only: the game's own markup + css over the lab's scene — the real view's are shot by e2e-jaywalk-match):
+  // 4 + 8 players in THE BRIDGE, THE LIGHTHOUSE (the landmark painted on the band's LEFT) + THE DOCKS, day + night
+  if (all || what === 'chips') {
+    const NAMES = ['BEN', 'CHARLOTTE', 'MAX', 'ALEXANDER', 'ZOE', 'GRANDPA JOE', 'SAM', 'OLIVIA'], HEX = ['#00f0ff', '#ff2bd6', '#f3ff3a', '#3dff8b', '#ff8c1a', '#a66bff', '#ff3355', '#3d7bff'];
+    const chips = (n, base) => p.evaluate((n, base, NAMES, HEX) => {
+      document.querySelector('.jw-order')?.remove();
+      if (!n) return null;
+      const ol = document.createElement('ol'); ol.className = 'jw-order';
+      for (let i = 0; i < n; i++) { const li = document.createElement('li'); li.className = [i === 1 ? 'is-me' : '', i >= n - (n > 4 ? 3 : 1) ? 'is-out' : ''].filter(Boolean).join(' '); li.style.setProperty('--c', HEX[i]); li.innerHTML = `<i class="jw-order-dot" aria-hidden="true"></i><span class="jw-order-n"></span><b></b>${li.className.includes('is-out') ? '<span class="jw-order-out">OUT</span>' : ''}`; li.children[1].textContent = NAMES[i]; li.children[2].textContent = String(base - i * 7 - (i > 4 ? 40 : 0)); ol.append(li); }
+      document.querySelector('.jw-stage').append(ol);
+      const r = ol.getBoundingClientRect(); return { w: r.width, h: r.height, x: r.left - document.querySelector('.jw-stage').getBoundingClientRect().left, y: r.top, row: ol.firstChild.getBoundingClientRect().height, font: parseFloat(getComputedStyle(ol.firstChild).fontSize) };
+    }, n, base, NAMES, HEX);
+    for (const look of ['night', 'day']) {
+      await fresh(look); await sleep(400);
+      await L("document.querySelector('.jw-snd')?.style.setProperty('visibility', 'hidden'); document.querySelector('.jw-seed')?.style.setProperty('visibility', 'hidden')");
+      for (const [k, lane] of [[3, 222], [6, 372], [0, 72]]) {
+        await stand(lane, 4); await sleep(700); await settled(); await sleep(400);
+        for (const n of [4, 8]) {
+          const r = await chips(n, lane + 2);
+          ok(r.w <= 92 && r.row <= 13.5 && r.h <= n * 14 && r.x <= 1, `${IDS[k]} (${look}), ${n} players: the chips are COMPACT (${r.w.toFixed(0)} × ${r.h.toFixed(0)} px — a row ${r.row.toFixed(1)} px, ${r.font} px letters)`);
+          await top(`chips/${look}-${IDS[k]}-${n}-players-top.png`);
+        }
+      }
+      await chips(0);
+      await L("document.querySelector('.jw-snd')?.style.removeProperty('visibility'); document.querySelector('.jw-seed')?.style.removeProperty('visibility')");
+    }
+  }
+
+  // ---- THE LAB LINK: /jaywalk-lab?lane=N — a look check from lane N: WARPED, never counts, never a replay; ZERO server calls
+  if (all || what === 'lane') {
+    const o = await open(390, 844, 3, '&seed=look3&lane=395&look=night'); await up(o.p); await sleep(900);
+    const J = js => o.p.evaluate(js);
+    let s0 = await J('({ ...window.__jwLab.state(), warped: window.__jwLab.warped(), lane0: window.__jwLab.lane0(), type: window.__jwLab.lane(window.__jwLab.state().y).type, mark: document.querySelector(".jw-mark").textContent })');
+    ok(s0.lane0 === 395 && s0.y > 385 && s0.y <= 395 && s0.type === 'grass' && s0.best === s0.y, `?lane=395: the kid stands on the grass lane nearest 395 (lane ${s0.y}), the count says ${s0.best}`);
+    ok(s0.warped && !s0.started && s0.t === 0, 'it is a LOOK CHECK: WARPED from its first frame; the world waits for the first touch');
+    ok(/^LOOK CHECK · LANE \d+ · TAP TO HOP$/.test(s0.mark), `the page says so (${s0.mark})`);
+    await sleep(700); await shot(o.p, 'lane/lane-395-night.png');
+    const g = await J('window.__jwLab.state().info.gate');
+    ok(g && g.text === 'THE AIRFIELD' && g.a > 0.9, `a few lanes before THE AIRFIELD's gate: its sign is up (${g && g.text})`);
+    await J('window.__jwLab.bot(true)');
+    await waitFor(o.p, 'window.__jwLab.ends.length > 0', 240000);
+    const e = await J('({ e: window.__jwLab.ends[0], check: document.querySelector(".jw-check").textContent, cls: document.querySelector(".jw-check").className })');
+    ok(/^WARPED \(a look check\) — no replay$/.test(e.check) && !/is-ok|is-bad/.test(e.cls), `its end says WARPED — never REPLAY = LIVE (${e.check}; lane ${e.e && e.e.live.lanes})`);
+    await J('window.__jwLab.bot(false)'); await sleep(900);
+    s0 = await J('({ ...window.__jwLab.state(), warped: window.__jwLab.warped() })');
+    ok(o.reqs.every(u => !/\/api\/|firebaseio|googleapis\.com\/identitytoolkit|:9000|:9099/.test(u)), 'ZERO server calls: nothing is sent, nothing counts');
+    await o.close();
+    const o2 = await open(390, 844, 3, '&seed=look3&lane=abc'); await up(o2.p); await sleep(500);
+    const s2 = await o2.p.evaluate(() => ({ y: window.__jwLab.state().y, lane0: window.__jwLab.lane0(), warped: window.__jwLab.warped() }));
+    ok(s2.lane0 === 0 && s2.y === 0 && !s2.warped, 'a link without a real number is the ordinary lab (lane 0, a real run)');
+    // ONE COUNTDOWN: the lab's quiet mode clock never says THE MOTHERSHIP
+    await o2.p.evaluate(() => { window.__jwLab.restart('match', 'look3'); window.__jwLab.hop('u'); }); await sleep(500);
+    const sub = await o2.p.evaluate(() => document.querySelector('.jw-sub').textContent);
+    ok(/^MATCH · \d:\d\d$/.test(sub), `the lab's small line is the mode's quiet clock (${sub}) — never a second MOTHERSHIP countdown`);
+    await o2.close();
   }
 }
