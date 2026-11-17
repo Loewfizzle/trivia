@@ -13,8 +13,8 @@ The decisions: `docs/games/plan.md` "JAYWALK (the owner, Nov 17 — DECIDED, THE
 | 0 — THE START | (no change) | `node scripts/lab-export.mjs <live>`: 224 marks, **no open FIX**. The cloud result of `a6f885e2`: `tests` green, `harbor` skipped (a ci tag) — nothing red |
 | 1 — THE AUDIT | — | ONE fresh read-only auditor (it built nothing): its report VERBATIM below |
 | 2 — THE KNOWN FIXES | `421ff9a3` + `ec1ae793` | the Blackbird's day tell · the fog's banding · the first look switch's long frame · the lane count + the chips against the landmarks · Grok's two night touch-ups · the size budget kept |
-| 3 — FIX THE AUDIT | see "… and what was done with each finding" | every real finding fixed; the second fresh reviewer's report VERBATIM below |
-| 4 — THE CHECKLIST | `ec1ae793` (+ the close) | `docs/games/passes/jaywalk-golive-checklist.md` |
+| 3 — FIX THE AUDIT | `2ae3583d` (the two rules findings, tests first) · `23bd8209` (the rest) · `9c94dadd` (after the second reviewer) | every real finding fixed or named; the second fresh reviewer's report VERBATIM below |
+| 4 — THE CHECKLIST | `ec1ae793` · `9c94dadd` | `docs/games/passes/jaywalk-golive-checklist.md` — **the boot must free ≥ 9,216 B + 2 modules** (measured need ≈ 6,200 B + 1; today's room: 67 B, 0 modules) |
 | 5 — THE CHECKS + THE CLOSE | the tagged push | below |
 
 ## GROUP 2 — THE KNOWN FIXES (the detail: `docs/jaywalk.md` "THE GO-LIVE REVIEW")
@@ -332,3 +332,68 @@ The decisions: `docs/games/plan.md` "JAYWALK (the owner, Nov 17 — DECIDED, THE
 
 **A THIRD reviewer was not spawned** (the prompt asked for two); the fixes after the second report were shot again and looked at by the pass itself.
 
+## THE NAMED CALLS (obvious / established-pattern — done, not asked)
+1. **Grok's own touch-ups, no code lift** (the two night towers): the relit files were in the folder before the lift was started; the inbox's 12:10 pm entry then said the same.
+2. **The lane count steps down a size** at 3 + 4 digits (the prompt: "offset / size"): measured, no offset alone clears a 76 px 3-digit count.
+3. **THE SIZE BUDGET kept by cutting comments** (14 KB of pass-history from `night.js`, by a subagent, every code line checked identical) — never the line.
+4. **The judge was NOT made tolerant** (the auditor's suggestion): the recorder and the judge are ONE function instead — the bound stays as tight as it was.
+5. **A RULES change** (the live match's proof tree) — the prompt allowed a real rules bug's fix; RE-PUBLISH leads the summary.
+6. **The Blackbird's day lamps wig-wag 3 times a second** (never faster; steady under reduce motion) — a flashing warning stays under the 3-a-second line.
+7. **HOW TO PLAY grew from seven lines to nine** (the runway, the UFO's ring) — the owner read the seven-line version: his to re-read.
+8. **The auditor read the commit while Group 2 was being built** (it was told the six known items + to read `git show 02641ab0:`).
+9. **The WebKit memory check SKIPS (exit 0) where `~/wk` is not installed** (the cloud), as `page-loads.mjs` does; the tab's process is asserted loosely (≤ 80 MB of climb over nine runs).
+10. **Two test pictures now wait** (the look switch's cross-fade; the console's XP moment) — the second reviewer read both as broken screens.
+11. **No third reviewer** (the prompt asked for two): the fixes after the second report were re-shot and looked at by the pass.
+
+## THE MEMORY ON WEBKIT (`tests/integration/wk-jaywalk-mem.mjs` — Playwright's WebKit, 390 × 844 @3, the final code)
+| | pixels held on the FINAL screen (`kit/jaywalk-mem.mjs` — the budget 20 MB) | the tab's own process (Windows working set) |
+| --- | --- | --- |
+| SOLO, 10 runs in a row | **7.6 MB on every one of the ten** (the 3D buffer 2.5 — resting at pixel ratio 1 — + the gate sign 0.7 + the run's picture 4.5) | the city before the game ≈ 500 MB · mid-run ≈ 600 · the final screens: **553 MB on run 2 → 583 MB on run 10** (three full runs of the check: + 38 · + 31 · + 30 MB over nine runs) |
+| A 4-PHONE MATCH's final (four WebKit phones) | **7.6 MB (the host) · 10 · 10 · 10 MB** (the guests hold the city's 2.2 MB backdrop too) | ≈ 600–620 MB a phone on the podium (mid-match the same) |
+- Mid-run, for scale: 30.4 MB of pixels (the 3D buffer 22.6 @3 + the bloom 7.1 + the gate sign).
+- **HONESTLY:** the pixel sum is the same in every engine and is under the budget everywhere. The process number is a DESKTOP WebKit's
+  (Windows): the nearest thing to a phone's a desktop can give, not an iPhone's. It creeps ≈ 3–4 MB a run in WebKit; Chromium's JS
+  heap over the same runs is FLAT (62–94 MB, no trend) — so it is not a script leak the heap can see; WebKit's allocator or its
+  decoded-image cache are the likely holders. Not found; not a pixel the page holds. An iPhone is still the only proof: `/admin`'s
+  `killed` rows on `game:jaywalk/final`.
+
+## THE FPS (4× CPU throttle, 390 × 844, the final code)
+- The REAL game, solo (`e2e-jaywalk --perf`): **59.9 fps at tier 2 (@3) · tier 1 (@2) · tier 0 (@1.5)** — p95 16.8 ms, worst 16.9, 5–6 ms of work a frame, 19–24 draw calls.
+- A MATCH, 4 players = 3 ghosts (`e2e-jaywalk-match --perf`): **59.9 fps at tiers 2 · 1 · 0**, worst 16.9 ms.
+- The lab's moments (`--h6b=perf`: a gate's cross-fade · THE LOOK SWITCH · Downtown with its shops; day + night; tiers 2 + 1): **59.9 fps in all twelve; the worst frame of ANY look switch 16.9 ms** (it was 133–150 ms on the first of a session).
+- Tier 1 + 2 both hold 60; nothing in this pass costs a frame.
+
+## THE CHECKS (the mini PC; my own fresh emulators + `serve.mjs --emu`, restarted fresh before the final runs — NEVER THE LIVE SITE)
+| the check | the result on the final code |
+| --- | --- |
+| unit — `node --test tests/*.test.mjs` | **2187 / 2187** (JAYWALK's own 154; registration · cartridge · achievements · the boot budget · the per-game budget in it) |
+| `rules.test.mjs` · `server.test.mjs` (`/api`) · `share-card.test.mjs` | **84 / 84 · 66 / 66 · 2 / 2** |
+| `e2e-smoke.mjs` (THE PAGES LOAD — Chromium + WebKit) | **21 / 21** |
+| `e2e-jaywalk.mjs --perf` (solo) | **85 / 85** — incl. step 7c THE LOST CONTEXT; the final screens 7.6 MB ×5 |
+| `e2e-jaywalk-match.mjs --perf` (3 phones) · `--four` (4 phones) | **86 / 86 · 83 / 83** |
+| the lab — `jaywalk-lab.mjs --perf --webkit` | **139 / 139** (one red on the way: the zero-server-calls list counted the sea wall's inline `data:` tile — the check corrected) |
+| the lab's sets — `--h6b` sky 35 · gates 144 · chips 18 · jet 12 · ufo 12 · ship 14 · perf 12 · `--h6a` 39 · `--h5c=fog` 1 | **all green** |
+| the harbor `cartridge` group (`ONLY=cartridge e2e-harbor.mjs`) | **3 / 3** |
+| the mix — `jaywalk-mix.mjs` | 22 cues, none clips (every peak under −0.3 dBFS at the bus) |
+| **THE MEMORY ON WEBKIT — `wk-jaywalk-mem.mjs`** (new) | **40 / 40** — 7.6 MB solo ×10 · 10 MB a 4-phone match's final |
+| `wk-press.mjs` · `e2e-daily.mjs` | **THE KNOWN DAILIES RED** (not JAYWALK's — the inbox, Nov 16 8:05 pm): wk-press's same three ("the DAILY screen opened" ×2, "SCORES → TODAY: the EVERYONE row"), e2e-daily FATAL "the DAILY button" after 5 green. NEW FACT: it showed at **2:34 pm ET** on fresh emulators — it is NOT only an evening (past 00:00 UTC) red |
+| the cloud | the tagged push: the ci tag (the `tests` workflow; no harbor run) |
+- No leftover server: the emulators + `serve.mjs` this pass started are stopped by their PIDs at the end; Ben's `:5190` was not running when the pass began and is left that way.
+
+## OPEN FOR BEN
+1. **RE-PUBLISH `database.rules.json`** (Firebase console → Realtime Database → Rules → paste the whole file → Publish): the host can no longer delete the LIVE JAYWALK match's proof tree. Nothing breaks on the old rules — the hole stays open until you publish. (The ack's line also still names H1–H4's `jw` node + FR7 FIXES B's: if those are live already, say so and the next pass refreshes the fixture.)
+2. **THE DAY BRIDGE's left tower stands behind the match chips** — it can not be cleared by the band's offset (the bridge is painted over the picture's left 38 %; the band has ± 17 % of room). Its right tower + span are clear; the lighthouse (both looks) + the night bridge are clear. *Recommended:* a Grok day bridge painted in the right third, like six of the eight — or accept it.
+3. **THE RUN's SHARE CARD is uploaded 1.5 s after every counted end screen** (≈ 350 KB a player a day, kept 7 days: about 400 daily players fill Spark's 1 GB — the audit's arithmetic). *Recommended:* keep run cards 2 days + shrink the link picture to ≈ 60 KB; or upload at the first SHARE press (it gives up THE CARD IS BUILT BEFORE THE TAP for runs).
+4. **THE GAME READS ZOOM · ANGLE · the A / B takes from the open lab page's settings** — a wider view on a ranked board for whoever finds it. *Recommended:* pin ZOOM 8 · STRAIGHT + the A takes in the game at go-live (in the checklist).
+5. **NOT PROVEN ON YOUR iPHONE:** the memory (WebKit on the mini PC: 7.6–10 MB of pixels on every final screen; the tab's process creeps ≈ 3–4 MB a run, cause not found) — a `killed` row on `game:jaywalk/final` after this build decides it · the mix (measured, never heard — now also the Mothership's hum fading off the podium + its rumble's new level) · the lost context on iOS (proven in Chromium only).
+6. **NOT MEASURED: an 8-phone match** (every hop re-exports the whole proof tree on every phone — the console's listener, a boot file with no room) + **a queued report's proof** (pruned after four more runs) — both in the checklist, for after the city's trim.
+7. **HOW TO PLAY is nine lines now** (+ the runway, + the UFO's ring, "fog by day", the match's "farthest wins") — yours to re-read before it moves into the boot.
+8. **The look's small leftovers** (the second reviewer — none blocks): a faint straight tone step above the fog's lip + the blackout's lane-by-lane bands (H5C's design) · the watch line's wrap + the out banner's last line on the sea wall · the night lighthouse 1–3 pt from the chips' numbers (the band is at its limit) · the area's title on a tall landmark for 0.6 s · the idle day runway looks like a road (a permanent cue?) · the night kid on bright water · THE TAXI stays yellow beside a yellow kid · the chips' 10 px names + 7-letter names cut (your COMPACT) · the rail yard's gantry is still the dimmest of the eight (Grok).
+9. **Shipped and unused:** `crate-box.glb`, `traffic-barrier.glb`, the three `-b` sound takes (the audition still offers them); the 33 s UFO hum could be a short loop (≈ 6 MB decoded).
+
+## THE VERDICT
+**READY TO GO LIVE — once the checklist's "before the pass starts" is true** (the rules re-published, the city's trim + its four items). As
+it stood this morning it was NOT: an honest finisher at the Mothership, or a fast drummer, could be scored 0 lanes by the judge.
+Both are fixed with tests first; every HIGH finding is fixed (the lost context proven in the browser); no BLOCKER or HIGH finding is
+open. What could still change the verdict: an iPhone's own memory (item 5) and an 8-phone match (item 6) — neither has been seen
+to fail, neither has been proven.
