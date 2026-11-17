@@ -56,6 +56,8 @@ function done(k) {
   d.push(k);
   saveDone(d.slice(-60));
   saveQueue(loadQueue().filter(x => x.k !== k));
+  // (CITY F — A QUEUED REPORT's PROOF: a room kept for this report (room.js — its last one out left while it was queued) closes now)
+  if (globalThis.__nsSweepKept) globalThis.__nsSweepKept();
 }
 
 const backoff = n => Math.min(5 * 60_000, 2500 * 2 ** n);

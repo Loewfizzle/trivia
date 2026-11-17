@@ -802,7 +802,7 @@ async function loadFix3Checks() {
     { name: 'a core sheet failed TWICE (css/title.css + its ?again= — LOAD FIX 4)', re: /\/css\/title\.css(\?again=\d+)?$/, act: 'abort', n: 2, reload: true },
     { name: '/api/sky + /api/time dead (every call)', re: /\/api\/(sky|time)/, act: 'abort', every: true, reload: false },
     { name: 'the fonts never load (Google’s fonts never answer)', re: /fonts\.(googleapis|gstatic)\.com/, act: 'stall', every: true, reload: false },
-    { name: 'a city module never answers once (harbor/meteors.js)', re: /\/js\/screens\/harbor\/meteors\.js$/, act: 'stall', reload: true, report: true },
+    { name: 'a city module never answers once (harbor/aurora.js — CITY F: the meteors left the boot, loaded at the reveal)', re: /\/js\/screens\/harbor\/aurora\.js$/, act: 'stall', reload: true, report: true },
   ];
   const { readFileSync } = await import('node:fs');
   const cfg = readFileSync(new URL('../../../js/config.js', import.meta.url), 'utf8').replace('export const APP_NAME', 'export const APP_TITLE');

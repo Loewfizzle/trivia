@@ -3,7 +3,7 @@ import {
   dbRef, get, set, update, remove, onValue, onDisconnect, serverTimestamp, serverNow,
   query, orderByChild, endAt, limitToFirst, runTransaction, want, release, expectRefusal, setRoomGone } from './firebase.js';
 import { state, setState } from './store.js';
-import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe, testMode } from './identity.js';
+import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe, testMode, loadQueue } from './identity.js';
 import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence, isOnline, isSoloMeta, soloCode } from './core/room-logic.js';
 import { MAX_PLAYERS, ROOM_TTL_MS, NAME_MAX } from './config.js';
 import { pickLine } from './core/room-lines.js';
@@ -174,6 +174,20 @@ function cleanupHush(hush, now) {
 
 // Closes a room: rooms/{code} goes, and hush/{code} remembers when (that word rests for 24 h). The rules only accept the
 // hush entry together with the room's own deletion. If they refuse it (rules not yet published), the room still closes.
+// CITY F — the rooms kept for a queued report (this device's, localStorage): each is closed — the room + its side nodes — once no report of it
+// is left in the queue (profile/queue.js calls the hub after every answer; a lazy chunk never imports this boot module for it)
+const KEPT_KEY = 'ns:kept-rooms';
+let KEPT = (() => { try { return JSON.parse(localStorage.getItem(KEPT_KEY) || '[]').filter(c => typeof c === 'string').slice(-8); } catch { return []; } })();
+function keptRooms(list) { KEPT = [...new Set(list)].slice(-8); try { localStorage.setItem(KEPT_KEY, JSON.stringify(KEPT)); } catch { /* private mode */ } }
+export async function sweepKeptRooms() {
+  if (!KEPT.length) return;
+  const q = loadQueue();
+  for (const code of KEPT.filter(c => !q.some(x => x.code === c) && c !== state.code)) {
+    try { await closeRoom(code, true); } catch { /* refused / gone: dropped from the list anyway */ }
+    keptRooms(KEPT.filter(c => c !== code));
+  }
+}
+if (typeof globalThis !== 'undefined') globalThis.__nsSweepKept = () => sweepKeptRooms().catch(() => {});
 async function closeRoom(code, solo = false) {
   // (PLAY NOW: a solo room rests no word — its code was never a hush word, and the pool stays untouched)
   if (solo) await remove(dbRef(R(code)));
@@ -489,6 +503,9 @@ export async function leaveRoom({ keepSeat = false, reason = null, heir: given =
           try { await update(dbRef(`${R(code)}/meta`), { hostId: heir, hostBeat: serverTimestamp() }); } catch (e) { console.info('hand-off refused: the heir is offline', e && e.message); }
         }
       } else {
+        // (CITY F — A QUEUED REPORT's PROOF: a report of this room still in the queue (/api down) — the room + its proof nodes are the server's
+        //  only evidence: it is KEPT (this phone just leaves) and closed once the queue has answered — sweepKeptRooms, from profile/queue.js)
+        if (loadQueue().some(x => x.code === code)) { keptRooms(KEPT.concat(code)); await update(dbRef(`${R(code)}/presence`), { [uid]: null }).catch(() => {}); exitRoom(reason, 'info', { keepSeat, how: 'leave' }); return; }
         await closeRoom(code, isSoloMeta(state.meta)); // last one out turns off the lights
         exitRoom(reason, 'info', { keepSeat, how: 'leave' });
         return;

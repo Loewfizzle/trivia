@@ -121,7 +121,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
       if (busy(bar) || busy(leave)) return;
       bar.classList.add('is-busy');
       Promise.resolve(instant ? instant.then(A => (A ? A.instantAgain() : false)) : false).then(ok => ok || PN.again()).then(ok => { if (!ok) bar.classList.remove('is-busy'); }, () => bar.classList.remove('is-busy'));
-    } }, finIcon('again'), h('span.final-bar-t', 'PLAY AGAIN'));
+    } }, finIcon('again'), h('span.final-bar-t', (mod && typeof mod.AGAIN_LABEL === 'string' && mod.AGAIN_LABEL) || 'PLAY AGAIN'));
     leave = soloRoom ? h('button.final-link.final-city', { type: 'button', 'data-press': true, onclick: () => {
       if (busy(bar) || busy(leave)) return;
       leave.classList.add('is-busy');

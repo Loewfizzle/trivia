@@ -28,6 +28,10 @@ const PERF = process.argv.includes('--perf');
 const LAGARG = process.argv.find(a => /^--lag(=\d+)?$/.test(a)), LAG = LAGARG ? Number(LAGARG.split('=')[1] || 900) : 0;
 // H4B — `--start`: THE START's measure — BOB's phone at 390 × 844 @3 under a 4× CPU throttle from the count to 3 s after GO (a cold scene)
 const START = process.argv.includes('--start');
+// CITY F — `--eight` (the go-live review's audit #6): EIGHT phones, a bot on each, to MINUTE 5 — every 30 s each phone's frame times (p50 /
+// p95 / worst) + its JS heap + the size of the match's live tree it mirrors (room.js's live listener re-exports it on every hop); at the
+// end the host under a 4× CPU throttle at its tiers, the 4-phone run's standard (59.9 fps). A run of its own (the 3-phone flow is skipped).
+const EIGHT = process.argv.includes('--eight');
 const OUTDIR = process.argv[3] && !process.argv[3].startsWith('--') ? process.argv[3] : './shots-jaywalk-match';
 const H = await createHarness({ name: 'jaywalk-match', slot: `jm${Date.now() % 10000}x`, hook: '__jwGame', sizes: [[390, 844]], out: OUTDIR, extraArgs: ['--enable-webgl', '--ignore-gpu-blocklist'], beforeLoad: installLag });
 const { pages, log, ok, sleep, waitFor, evalIn, G, uids, NAMES } = H;
@@ -68,8 +72,62 @@ async function start(host, n) {
 }
 const all = (n, fn) => Promise.all(Array.from({ length: n }, (_, i) => fn(pages[i], i)));
 
+async function eightMatch() {
+  const N8 = 8, host = await H.joinAll(N8);
+  const pids = await Promise.all(uids.slice(0, N8).map(pidFor));
+  await dbPut(`testAdmins/${pids[0]}`, true);
+  await host.evaluate(() => sessionStorage.clear());
+  await host.reload();
+  await waitFor(host, (st, k) => st.ready && !!st.code && !!st.players && Object.keys(st.players).length === k, 'the host is back in the room', 40000, N8);
+  ok(await until(() => host.evaluate(() => import('/js/config.js').then(c => c.isOwnerTest('jaywalk'))), 25000), '--eight: the owner hosts');
+  // (eight WebGL pages on one machine: each at @1 — what is measured is the match's own load, not eight 3× fills fighting for one GPU)
+  for (let i = 0; i < N8; i++) await pages[i].setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  await start(host, N8);
+  await all(N8, (p, i) => waitFor(p, st => st.game.phase === 'play' && window.__jwGame.state().mode === 'run', `${NAMES[i]}: GO`, 40000));
+  await all(N8, p => G(p, 'window.__jwGame.bot(true, { lazy: true, look: 48 })'));   // (the wall-pacing bots — the greedy ones were all out by 1.5 min)
+  const t0 = Date.now(), rows = [];
+  // (a page that does not answer within 12 s reads '?' — one busy phone never freezes the whole measure)
+  const T = (pr, ms = 12000) => Promise.race([pr.catch(() => null), new Promise(r => setTimeout(() => r(null), ms))]);
+  const sample = () => all(N8, p => T(p.evaluate(() => {
+    const J = window.__jwGame, f = J.frames().slice().sort((a, b) => a - b), q = x => f[Math.min(f.length - 1, Math.floor(f.length * x))] || 0, st = window.__arcade.state, s2 = J.state();
+    let tree = 0, cl = 0; try { const r = (st.live && st.live.runs) || {}; tree = JSON.stringify(r).length; const a = performance.now(); for (let i = 0; i < 10; i++) structuredClone(r); cl = (performance.now() - a) / 10; } catch { /* fine */ }
+    return { n: f.length, p50: +q(0.5).toFixed(1), p95: +q(0.95).toFixed(1), worst: +(f[f.length - 1] || 0).toFixed(1), heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null, mode: s2.mode, phase: st.game && st.game.phase, tree, cl: +cl.toFixed(2) };
+  })));
+  // (the 4-phone standard: the host under a 4× CPU throttle at each tier — at the first sample from 1 min with all eight still in (the wall speeds up from ~3 min; a course can take them all sooner)
+  let perfDone = false;
+  const hostPerf = async lastMin => {
+    perfDone = true;
+    const cdp = await host.target().createCDPSession();
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    for (const tier of [2, 1, 0]) {
+      await G(host, `window.__jwGame.setTier(${tier})`); await sleep(1500); await G(host, 'window.__jwGame.clearFrames()'); await sleep(6000);
+      const r = await host.evaluate(() => { const J = window.__jwGame, f = J.frames().slice().sort((a, b) => a - b), q = (a, p) => a[Math.min(a.length - 1, Math.floor(a.length * p))], avg = f.reduce((a, b) => a + b, 0) / Math.max(1, f.length); return { n: f.length, fps: 1000 / Math.max(1, avg), p95: q(f, 0.95) || 0, worst: f[f.length - 1] || 0, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null }; });
+      log('EIGHT PERF', JSON.stringify({ tier, fps: +r.fps.toFixed(1), p95: +(+r.p95).toFixed(1), worst: +(+r.worst).toFixed(1), heap: r.heap }));
+      ok(r.n > 100 && r.fps > 50, `--eight: the host at ${lastMin} min, 4× CPU, tier ${tier}: ${r.fps.toFixed(1)} fps (p95 ${(+r.p95).toFixed(1)}, worst ${(+r.worst).toFixed(1)}) — the 4-phone standard 59.9`);
+    }
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    await G(host, 'window.__jwGame.setTier(2)');
+  };
+  let last = null;
+  for (let k = 1; Date.now() - t0 < 5 * 60000 + 2000; k++) {
+    await all(N8, p => T(G(p, 'window.__jwGame.clearFrames()')));
+    await sleep(30000);
+    const snap = await sample(), min = ((Date.now() - t0) / 60000).toFixed(1);
+    rows.push({ min, snap }); last = snap;
+    log(`EIGHT @ ${min} min — ${snap.map((r, i) => (r ? `${NAMES[i]} ${r.mode === 'run' ? 'IN' : r.mode} p50 ${r.p50} p95 ${r.p95} worst ${r.worst} heap ${r.heap} MB` : `${NAMES[i]} ?`)).join(' · ')} · the live tree ${last[0] ? Math.round(last[0].tree / 1024) : '?'} KB, a copy of it ${last[0] ? last[0].cl : '?'} ms (what the listener pays on every hop)`);
+    if (snap.every(r => !r || r.phase === 'final')) { log(`EIGHT: the match ended at ${min} min (the last bot out)`); break; }
+    if (!perfDone && +min >= 1 && snap.filter(r => r && r.mode === 'run').length === N8) await hostPerf(min);
+  }
+  const lastMin = rows.length ? rows[rows.length - 1].min : '0';
+  const ok5 = last && last.filter(Boolean).every(r => r.n > 30);
+  const worstP95 = last ? Math.max(...last.filter(Boolean).map(r => r.p95)) : 0, heaps = last ? last.filter(Boolean).map(r => r.heap).filter(x => x != null) : [];
+  ok(!!ok5, `--eight: every phone still drawing at ${lastMin} min — the worst p95 ${worstP95} ms; the heaps ${heaps.join(' / ')} MB; the live tree ${last && last[0] ? Math.round(last[0].tree / 1024) : '?'} KB`);
+  if (!perfDone) log('EIGHT PERF: not reached — the match ended before all eight were sampled in at 1 min');
+}
+
 let failed = false;
 try {
+  if (EIGHT) await eightMatch(); else {
   const N = process.argv.includes('--four') ? 4 : 3;   // (H5C — `--four`: a 4-PHONE match (DANA joins, by night); the cloud's run stays three)
   const host = await H.joinAll(N);
   const code = await evalIn(host, s => s.code);
@@ -453,6 +511,7 @@ try {
     }
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
   }
+  }   // (the 3-phone flow — not with --eight)
 } catch (e) { failed = true; log('THREW', e && e.stack || e); }
 const errs = H.errors || [];
 await H.browser.close().catch(() => {});

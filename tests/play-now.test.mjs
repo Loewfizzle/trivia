@@ -96,7 +96,8 @@ test('PLAY NOW → playSolo: the room, this phone its host + online, the default
   const fin = read('js/ui/final.js');
   assert.match(fin, /const PN = globalThis\.__nsPlayNow;/);
   assert.ok(!/isSoloMeta|playSolo/.test(fin.replace(/\/\/.*$/gm, '')), 'final.js imports no PLAY NOW export');
-  assert.match(fin, /h\('span', \(mod && typeof mod\.AGAIN_LABEL === 'string' && mod\.AGAIN_LABEL\) \|\| 'PLAY AGAIN'\)/); assert.match(fin, /h\('span', 'BACK TO THE CITY'\)/);
+  // (CITY F — END-SCREEN STANDARD A: PLAY AGAIN is THE BAR's word; BACK TO THE CITY the quiet CITY link)
+  assert.match(fin, /h\('span\.final-bar-t', \(mod && typeof mod\.AGAIN_LABEL === 'string' && mod\.AGAIN_LABEL\) \|\| 'PLAY AGAIN'\)/); assert.match(fin, /h\('button\.final-link\.final-city'[\s\S]{0,300}h\('span', 'CITY'\)/);
 });
 
 test('the dock\'s GAMES → PLAY (same spot, 4 icons the max); the signs + the blade open the card; the sign\'s own gestures untouched', () => {

@@ -40,7 +40,7 @@ test('ONE foot: no game builds a PLAY AGAIN / REMATCH / BACK TO THE CITY button 
 test('the foot\'s order + its rules: SOLO = PLAY AGAIN · SHARE · CITY; a MATCH = REMATCH · BACK TO THE ROOM · SHARE; every control presses', () => {
   const f = read('js/ui/final.js');
   assert.match(f, /const linkList = soloRoom \|\| oneRoom \? \[share, out\] : \[out, share\];/);
-  assert.match(f, /h\('span\.final-bar-t', 'PLAY AGAIN'\)/);
+  assert.match(f, /h\('span\.final-bar-t', \(mod && typeof mod\.AGAIN_LABEL === 'string' && mod\.AGAIN_LABEL\) \|\| 'PLAY AGAIN'\)/);
   assert.match(f, /h\('span\.final-bar-t', 'REMATCH'\)/);
   assert.match(f, /'WAITING FOR THE HOST'/, 'a guest\'s vote: the bar says so — never dead');
   assert.match(f, /final-share', \{ type: 'button', 'data-gesture': true/, 'SHARE in Safari\'s own gesture');

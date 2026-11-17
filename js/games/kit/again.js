@@ -11,11 +11,24 @@ import { state, isHost } from '../../store.js';
 import { newMatchId } from '../../core/room-show.js';
 import { frameProblems } from '../cartridge.js';
 import { GAME_MODULES, ALL_PLAYER_NODES, NEW_PLAYER_NODES, PROOF_NODE_LIST } from '../registry.js';
+import { pending, matchKey } from '../../profile/queue.js';
 
 /** the finished runs whose PROOF NODES stay in the room (a queued report may land after the next run began — api/report.js reads them) */
 export const KEEP_RUNS = 4;
 const recent = [];
 let busy = null;
+/** CITY F — A QUEUED REPORT's PROOF (PURE): the runs past the last KEEP_RUNS whose proof may go — NEVER one whose report is still in the
+ *  console's queue (/api down: its proof is the server's only evidence; it is tried again at the next run). Mutates `list` (the kept stay).
+ *  → the match ids to prune */
+export function pruneRuns(code, list, queued, keep = KEEP_RUNS) {
+  const out = [];
+  let i = 0;
+  while (list.length > keep && i < list.length - keep) {
+    if (queued(list[i])) { i++; continue; }   // (still queued: kept, the next oldest is looked at)
+    out.push(list.splice(i, 1)[0]);
+  }
+  return out;
+}
 
 /** may the match on screen start its next run at once? */
 export function canInstant() {
@@ -46,6 +59,6 @@ async function run() {
   const extra = Object.fromEntries(NEW_PLAYER_NODES.filter(n => !proof.has(n)).map(n => [n, null]));
   if (Object.keys(extra).length) update(dbRef(`rooms/${code}`), extra).catch(() => {});
   recent.push(g.matchId);
-  while (recent.length > KEEP_RUNS) { const old = recent.shift(); for (const n of PROOF_NODE_LIST) remove(dbRef(`rooms/${code}/${n}/${old}`)).catch(() => {}); }
+  pruneRuns(code, recent, m => pending(matchKey(code, m))).forEach(old => { for (const n of PROOF_NODE_LIST) remove(dbRef(`rooms/${code}/${n}/${old}`)).catch(() => {}); });
   return true;
 }
