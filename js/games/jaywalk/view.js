@@ -49,11 +49,17 @@ const START = Object.freeze({ seed: 'start', lane: i => ({ i, type: 'grass', hea
 // context, its models — is parked for a moment and the next mount takes it back. Any other unmount destroys it at once.
 let parked = null;
 const unpark = () => { if (!parked) return null; clearTimeout(parked.t); const p = parked; parked = null; return p; };
+// (BEFORE THE FLIP: a parked scene has NO view's listener on it — unmount took them off first — so its timeout's destroy() is never
+// heard as a lost context; its canvases are freed by destroy())
 const park = (play, night) => { if (parked) { clearTimeout(parked.t); parked.night.destroy(); } parked = { play, night, t: setTimeout(() => { if (parked && parked.night === night) { parked = null; night.destroy(); play.remove(); } }, 2500) }; };
 
 // (the pass's own checks — tests/integration/e2e-jaywalk.mjs — on a LOCAL emulator page only: never on the live site)
 const TEST = typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]emu(?:&|=|$)/.test(location.search || '');
 let scenesMade = 0, popN = 0;
+// (BEFORE THE FLIP — the leave check, a LOCAL emulator page only: how many views are still alive (a WeakRef on each one's frame list — a
+// view a listener still holds stays alive) + the scenes made, read after the game has gone — wk-jaywalk-mem.mjs)
+const VIEWS = TEST ? [] : null;
+if (TEST) { globalThis.__jwViews = () => VIEWS.filter(r => r.deref()).length; globalThis.__jwViewIds = () => VIEWS.map((r, i) => (r.deref() ? i : -1)).filter(i => i >= 0); globalThis.__jwScenes = () => scenesMade; }
 
 // THE LINES' DATA (H4 add-on — lines.js): the SERVER-counted solo bests (yours + your friends' — YOUR TABLE's own read), asked ONCE at
 // a run's start and kept a short while (PLAY AGAIN restarts in a second); nothing is asked during a run. /api down = no answer: the
@@ -77,7 +83,7 @@ const lineOf = (r, course) => runLine(course, { cause: r.cause, y: r.y, x: r.x, 
 const hexNum = c => parseInt(String(colorHex(c) || '#00f0ff').slice(1), 16) || 0x00f0ff;
 
 export function createView() {
-  let root = null, play = null, night = null, tiers = null, offControls = null, raf = 0, st = null, gone = false;
+  let root = null, play = null, night = null, tiers = null, offControls = null, offGL = null, raf = 0, st = null, gone = false;
   let lanesEl = null, markEl = null, hintEl = null, finalWrap = null, final = null, localEnd = null;
   let orderEl = null, tagsEl = null, countEl = null, watchEl = null, overEl = null, outCard = null;
   // the run
@@ -93,6 +99,7 @@ export function createView() {
   let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;   // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, orderKey = '', countKey = '', watchKey = '';
   const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
+  if (VIEWS) VIEWS.push(new WeakRef(frames));
   /** how long a run's end is seen before the end screen / the spectator's view covers it: THE ABDUCTION + THE MOTHERSHIP's lift are longer (H6A) */
   const hold = () => Math.max(END_HOLD_MS, night ? night.holdMs(run) : 0);
   const srvNow = () => t0srv + (performance.now() - t0perf);
@@ -132,20 +139,33 @@ export function createView() {
   // THE LOST CONTEXT (the go-live review): iOS can take the WebGL context away (an app switch under memory pressure). The run goes on
   // — it is on the server's clock — so a blank playfield is a kid run down unseen. The scene is REBUILT the moment the context is
   // back (or after 1.5 s without it): a new scene in the same look, tier, colour + reveal; /admin hears of it once.
+  // BEFORE THE FLIP (the inbox's Nov 17 5:55 pm entry — PROVEN in WebKit, wk-jaywalk-mem.mjs "THE LEAVE"): night.destroy() ends with
+  // forceContextLoss(), which fires this canvas's own 'webglcontextlost' — so EVERY leave was reported to /admin as a lost context (screen
+  // = title), and the listeners on the canvas PLAY AGAIN keeps held every old view alive. A DELIBERATE teardown is never heard: the
+  // listeners come OFF (offGL) before any destroy(), and the handler itself ignores a view that has gone / a scene that is not its own.
   function watchGL() {
-    const cv = play && play.querySelector('canvas.jw-canvas');
+    if (offGL) offGL();
+    const cv = play && play.querySelector('canvas.jw-canvas'), mine = night;
     if (!cv) return;
     let t = 0, told = false;
     const remake = () => {
       clearTimeout(t);
-      if (gone || !night || !play || !cv.isConnected) return;
+      if (gone || !night || night !== mine || !play || !cv.isConnected) return;
       const me = (st.players && st.players[followUid || uid]) || {}, o = { kidColor: colorHex(me.color), zoom: night.zoom(), angle: night.angle(), tier: night.tier(), look: lookNow() }, rest = night.resting();
+      if (offGL) offGL();   // (the dead scene's destroy() is not a second loss)
       try { night.destroy(); } catch { /* its context is gone */ }
       try { scenesMade++; night = createNight(play, o); night.setReveal(revealed ? 1 : 0, true); lineKey = ''; if (rest) night.rest(true); watchGL(); }
       catch { night = null; if (root) root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); }
     };
-    cv.addEventListener('webglcontextlost', e => { e.preventDefault(); if (!told) { told = true; lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => m.reportError(new Error('JAYWALK: the WebGL context was lost — the scene is rebuilt'), 'jaywalk')).catch(() => {}); } t = setTimeout(remake, 1500); });
+    const lost = e => {
+      e.preventDefault();
+      if (gone || night !== mine) return;   // (our own teardown — never a report, never a rebuild)
+      if (!told) { told = true; lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => m.reportError(new Error('JAYWALK: the WebGL context was lost — the scene is rebuilt'), 'jaywalk')).catch(() => {}); }
+      clearTimeout(t); t = setTimeout(remake, 1500);
+    };
+    cv.addEventListener('webglcontextlost', lost);
     cv.addEventListener('webglcontextrestored', remake);
+    offGL = () => { offGL = null; clearTimeout(t); cv.removeEventListener('webglcontextlost', lost); cv.removeEventListener('webglcontextrestored', remake); };
   }
 
   // ---- THE RUN
@@ -652,6 +672,7 @@ export function createView() {
     update(state) { st = state; if (night) sync(); },
     unmount() {
       gone = true; cancelAnimationFrame(raf); clearTimeout(goTimer);
+      if (offGL) offGL();   // (BEFORE THE FLIP: off BEFORE any destroy() — a deliberate teardown is never a lost context)
       document.removeEventListener('visibilitychange', onVis);
       if (mode === 'run' && run && !isOver(run)) flush(true);   // (a QUIT mid-run: what was hopped is in the proof)
       if (offControls) offControls();

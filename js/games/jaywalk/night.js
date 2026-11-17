@@ -1033,6 +1033,7 @@ export function createNight(host, o = {}) {
       clearTimeout(skyLifeT); if (SH) SH.destroy();
       renderer.dispose();
       try { renderer.forceContextLoss(); } catch { /* fine */ }
+      el.width = 0; el.height = 0;   // (BEFORE THE FLIP: the canvas freed at once — CLAUDE.md "THE LONG NIGHT's RULE")
       el.remove(); sky.remove(); farHaze.remove(); skyHold.clear();
     },
   };

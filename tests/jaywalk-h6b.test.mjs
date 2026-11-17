@@ -180,7 +180,7 @@ test('H6B — THE END SCREEN\'s MEMORY: the scene rests behind the end screen, t
   assert.match(FL, /dead = true; offBed\(\); bufs\.clear\(\); bufCtx = null;/, 'the moments\' decoded sounds go with the scene');
   assert.match(v, /const ship = mode === 'over' && Object\.values\(g && g\.results \|\| \{\}\)\.some\(r => r && r\.x\) && tickNow\(\)\.t < MODES\.match\.cap \+ SHIP_SEEN;/, 'a watcher sees the Mothership\'s lift before the podium');
   assert.match(v, /if \(!final && !localEnd\) \{ tiers\.sample\(now, performance\.now\(\) - t0\); if \(!pinned\) tiers\.tick\(now\); \}/, 'the tier is measured only while the scene is drawn');
-  assert.match(v, /cv\.addEventListener\('webglcontextlost', e => \{ e\.preventDefault\(\);/, 'THE LOST CONTEXT is noticed'); assert.match(v, /cv\.addEventListener\('webglcontextrestored', remake\);/, '… and the scene rebuilt');
+  assert.match(v, /cv\.addEventListener\('webglcontextlost', lost\);/, 'THE LOST CONTEXT is noticed'); assert.match(v, /if \(gone \|\| night !== mine\) return;   \/\/ \(our own teardown/, '… but never our own teardown (BEFORE THE FLIP)'); assert.match(v, /cv\.addEventListener\('webglcontextrestored', remake\);/, '… and the scene rebuilt');
   { const sx = readFileSync(new URL('../js/games/jaywalk/sfx.js', import.meta.url), 'utf8');
     assert.match(sx, /export function release\(\) \{ stopAll\(\); bufs\.clear\(\); bufCtx = null; \}/, 'sfx.release: the decoded buffers let go (the bytes stay)');
     assert.match(sx, /else if \(!lockWait\) \{ lockWait = true; onUnlock\(\(\) => \{ lockWait = false; go\(\); \}\); \}/, 'a locked / muted phone: ONE sound waits for the unlock — never a listener a call'); }

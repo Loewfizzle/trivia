@@ -6,7 +6,11 @@
 //     stay under THE FINAL SCREEN's BUDGET (JW_FINAL_BUDGET_MB) — and the WEB PROCESS's own working set (Windows: the real memory of the
 //     tab's process — the nearest thing to a phone's number a desktop can give) must not climb run over run (a leak)
 //   · A 4-PHONE MATCH (four WebKit phones in one room, the owner hosts): everyone's FINAL screen (the podium) under the same budget
-//   node tests/integration/wk-jaywalk-mem.mjs [outDir] [--runs=10] [--no-match]     (exit 0 + "SKIPPED" where ~/wk is not installed: the cloud)
+//   · THE LEAVE (BEFORE THE FLIP — the inbox's Nov 17 5:55 pm entry: /admin's "the WebGL context was lost" with screen = title): the runs
+//     in a row keep no old view alive (a listener on the kept canvas held each one); BACK TO THE CITY → NO REPORT, NO REBUILD, no live
+//     JAYWALK GL context / canvas left; 5 × (a run + leave) → back to the city's baseline (+ the web process printed); PLAY AGAIN's
+//     parked scene let go by its timeout the same; a REAL loss mid-run still rebuilds + reports once
+//   node tests/integration/wk-jaywalk-mem.mjs [outDir] [--runs=10] [--no-match] [--no-leave] [--leave-only]     (exit 0 + "SKIPPED" where ~/wk is not installed: the cloud)
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
@@ -16,7 +20,7 @@ import { guardUrl } from './kit/live-guard.mjs';
 import { memAt, memLine, JW_FINAL_BUDGET_MB } from './kit/jaywalk-mem.mjs';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
-const argv = process.argv.slice(2), OUT = argv.find(a => !a.startsWith('--')) || null, RUNS = Number((argv.find(a => a.startsWith('--runs=')) || '').slice(7)) || 10, MATCH = !argv.includes('--no-match');
+const argv = process.argv.slice(2), OUT = argv.find(a => !a.startsWith('--')) || null, RUNS = Number((argv.find(a => a.startsWith('--runs=')) || '').slice(7)) || 10, MATCH = !argv.includes('--no-match') && !argv.includes('--leave-only'), LEAVE = !argv.includes('--no-leave'), LEAVES = Number((argv.find(a => a.startsWith('--leaves=')) || '').slice(9)) || 5;
 const at = process.env.WK_PLAYWRIGHT || join(homedir(), 'wk', 'node_modules', 'playwright', 'index.mjs');
 if (!existsSync(at)) { console.log('SKIPPED — Playwright\'s WebKit is not installed here (~/wk)'); process.exit(0); }
 if (OUT) mkdirSync(OUT, { recursive: true });
@@ -46,6 +50,20 @@ function wkMb() {
 const b = await webkit.launch();
 async function phone(slot, name, qs = '') {
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+  // (THE LEAVE's counters: every WebGL context + every canvas the page makes, held WEAKLY — "alive" = still reachable after a GC)
+  await ctx.addInitScript(() => {
+    const gls = [], cvs = [], gc0 = HTMLCanvasElement.prototype.getContext, ce = Document.prototype.createElement;
+    HTMLCanvasElement.prototype.getContext = function (t, o) { const c = gc0.call(this, t, o); if (c && /webgl/.test(t) && !gls.some(r => r.deref() === c)) gls.push(new WeakRef(c)); return c; };
+    Document.prototype.createElement = function (n, o) { const e = ce.call(this, n, o); if (String(n).toLowerCase() === 'canvas') { cvs.push(new WeakRef(e)); if (window.__cvStack) window.__cvStack.set(e, (new Error().stack || '').split('\n').slice(1, 5).map(l => l.replace(/^.*\/(js|assets)\//, '').replace(/\?[^:]*/, '')).join(' < ')); } return e; };
+    window.__cvStack = new WeakMap(); window.__cvMark = () => { window.__cvBase = new WeakSet(cvs.map(r => r.deref()).filter(Boolean)); };
+    window.__cvNew = () => { const out = {}; for (const r of cvs) { const x = r.deref(); if (!x || x.width * x.height === 0 || (window.__cvBase && window.__cvBase.has(x))) continue; const k = window.__cvStack.get(x) || '?'; out[k] = (out[k] || 0) + 1; } return out; };
+    window.__leak = () => {
+      const g = gls.map(r => r.deref()).filter(Boolean), c = cvs.map(r => r.deref()).filter(Boolean);
+      const jw = x => typeof x.className === 'string' && /^jw-/.test(x.className);
+      return { glLive: g.filter(x => !x.isContextLost()).length, glJw: g.filter(x => !x.isContextLost() && jw(x.canvas)).length, glHeld: g.filter(x => jw(x.canvas)).length,
+        cvPix: c.filter(x => x.width * x.height > 0).length, cvKinds: (() => { const m = {}; for (const x of c) if (x.width * x.height > 0) { let e = x, t = ''; for (let k = 0; e && k < 4 && !t; k++, e = e.parentElement) t = typeof e.className === 'string' && e.className ? e.className.split(' ')[0] : ''; t = (x.isConnected ? '' : '(detached) ') + (t || 'canvas'); m[t] = (m[t] || 0) + 1; } return m; })(), cvJw: c.filter(x => jw(x) && x.width * x.height > 0).length, jwInDom: !!document.querySelector('canvas.jw-canvas') };
+    };
+  });
   await ctx.addInitScript(s => { try { localStorage.setItem('nd:entered', '1'); if (s[1]) localStorage.setItem(`na:${s[0]}:profile`, JSON.stringify({ name: s[1], color: 'cyan', avatar: 'bolt' })); } catch { /* fine */ } }, [slot, name]);
   const p = await ctx.newPage();
   const errs = [];
@@ -84,6 +102,76 @@ async function dropRunCards(pids) {
   const all = (await dbGet('shr')) || {};
   for (const [code, c] of Object.entries(all)) if (c && pids.includes(c.p) && c.k === 'run') { await dbPut(`shr/${code}`, null); if (c.d) await dbPut(`shrx/${c.d}/${code}`, null); }
   for (const pid of pids) await dbPut(`shrp/${pid}:jaywalk`, null);
+}
+/** WebKit gives no gc(): a burst of short-lived garbage makes it collect (WeakRefs clear only after a GC + the job's end) */
+async function churn(P) { for (let k = 0; k < 6; k++) { await P.ev('(() => { let n = 0; for (let i = 0; i < 60; i++) { const a = []; for (let j = 0; j < 40000; j++) a.push({ j, s: "x" + j }); n += a.length; } return n; })()'); await sleep(150); } }
+const WEBGL_LOST = "(window.__errlog ? window.__errlog.seen() : []).filter(k => /WebGL context was lost/.test(k)).length";
+const CITY_BACK = `!${S}.game && !document.querySelector('.jw-game') && !!(window.__district && window.__district.harbor() && window.__district.harbor().shown)`;
+async function toGame(P) {
+  if (!await P.tapUntil('.nd-tab-play', "!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"jaywalk\"]')")) return false;
+  if (!await P.tapUntil('.nd-shelf-row[data-game="jaywalk"]', "!!document.querySelector('.nd-card-sheet.is-in .nd-card[data-game=\"jaywalk\"] .nd-card-solo')")) return false;
+  if (!await P.tapUntil('.nd-card-solo', `${S}.game && ${S}.game.id === 'jaywalk' && !!document.querySelector('.jw-game canvas.jw-canvas') && !!${G}`, 45000)) return false;
+  return P.waitFor(`${G}.state().mode === 'run'`, 12000);
+}
+async function oneRun(P) { await P.ev(`${G}.bot(true)`); await sleep(2500); await P.ev(`${G}.bot(false)`); const up = await P.waitFor(FINAL, 70000); if (up) await pastMoment(P, Date.now()); return up; }
+async function toCity(P, parkIt = false) {
+  if (parkIt) await P.ev('globalThis.__nsAgainAt = performance.now()');   // (as if PLAY AGAIN had just been tapped: the scene is PARKED, then let go by park()'s 2.5 s timeout)
+  await P.tap('.final-city');
+  const back = await P.waitFor(CITY_BACK, 20000);
+  await sleep(3400);   // (past park()'s 2.5 s + the lost event's own task)
+  return back;
+}
+async function leaveChecks(P) {
+  // (1) the runs in a row: no old view kept alive (a GC can lag one beat behind: asked up to three times)
+  let alive = -1;
+  for (let k = 0; k < 3 && (alive < 0 || alive > 2); k++) { await churn(P); alive = await P.ev('globalThis.__jwViews ? globalThis.__jwViews() : -1'); }
+  ok(alive >= 1 && alive <= 2, `THE LEAVE — ${RUNS} runs in a row (PLAY AGAIN): ${alive} JAYWALK views still alive after a GC (the one on screen + at most the one before — a listener on the kept canvas that held each old view would make it ${RUNS})`);
+  const scenes0 = await P.ev('globalThis.__jwScenes()'), lost0 = await P.ev(WEBGL_LOST);
+  // (2) BACK TO THE CITY
+  ok(await toCity(P), 'THE LEAVE: BACK TO THE CITY → the city');
+  await churn(P);
+  let L = await P.ev('window.__leak()');
+  const lost1 = await P.ev(WEBGL_LOST), scenes1 = await P.ev('globalThis.__jwScenes()');
+  console.log('   after the leave:', JSON.stringify(L), '· WebGL-lost reports', lost1, '· scenes', scenes0, '→', scenes1);
+  ok(lost1 === lost0 && lost1 === 0, `THE LEAVE: our own teardown is NOT reported as a lost context (${lost1} "WebGL context was lost" reports on this page)`);
+  ok(scenes1 === scenes0, `THE LEAVE: nothing is rebuilt after the game has gone (scenes made ${scenes0} → ${scenes1})`);
+  ok(L.glJw === 0 && !L.jwInDom && L.cvJw === 0, `THE LEAVE: no live JAYWALK GL context (${L.glJw}), no JAYWALK canvas holding pixels (${L.cvJw}), none in the page (${L.jwInDom})`);
+  await P.ev('window.__cvMark()');
+  const base = { ...L, mb: wkMb() };
+  console.log('MEM the city after the first leave (the baseline):', JSON.stringify(base));
+  // (3) LEAVES (5) × (a run + leave) — the 3rd one through PLAY AGAIN's parked scene + its timeout
+  const per = [];
+  for (let k = 1; k <= LEAVES; k++) {
+    if (!await toGame(P)) { ok(false, `THE LEAVE ${k}/5: back into the game`); return; }
+    if (!await oneRun(P)) { ok(false, `THE LEAVE ${k}/5: the run's end`); return; }
+    if (!await toCity(P, k === 3)) { ok(false, `THE LEAVE ${k}/5: back to the city`); return; }
+    await churn(P); const wm = wkMb(); per.push(wm ? wm.web : null);
+  }
+  console.log('MEM the web process after each leave:', per.join(' → '), 'MB');
+  let views = 9;
+  for (let k = 0; k < 3 && views > 1; k++) { await churn(P); views = await P.ev('globalThis.__jwViews()'); }
+  L = await P.ev('window.__leak()');
+  const w = wkMb(), lost2 = await P.ev(WEBGL_LOST);
+  console.log(`MEM after ${LEAVES} × (a run + leave):`, JSON.stringify({ ...L, mb: w, views }));
+  ok(lost2 === 0 && await P.ev('globalThis.__jwScenes()') === scenes1 + LEAVES, `THE LEAVE × ${LEAVES} (one through the PARKED scene's timeout): no lost-context report (${lost2}), exactly one scene a run (no rebuild)`);
+  // (the canvases made since the baseline, by who made them: the city re-bakes its own on every return — its count moves both ways)
+  const made = await P.ev('window.__cvNew()'), ours = Object.entries(made).filter(([k]) => /games\/jaywalk\//.test(k));
+  console.log('   the views alive:', JSON.stringify(await P.ev('globalThis.__jwViewIds ? globalThis.__jwViewIds() : null')), '· canvases made since the baseline (by who):', Object.keys(made).length, 'kinds');
+  ok(L.glJw === 0 && L.cvJw === 0 && L.glLive <= base.glLive && ours.length === 0, `THE LEAVE × ${LEAVES}: back to the city's baseline — live GL contexts ${base.glLive} → ${L.glLive} (JAYWALK's ${L.glJw}, held at all ${L.glHeld}), no canvas made by JAYWALK still holding pixels (${ours.map(([k, n]) => n + ' × ' + k).join(' | ') || 'none'}) — the city's own ${base.cvPix} → ${L.cvPix}`);
+  ok(views <= 1, `THE LEAVE × ${LEAVES}: ${views} JAYWALK views alive after a GC (the test hook's last one at most)`);
+  // (the web process is PRINTED, never asserted: WebKit's GPU + allocator swing it ± 350 MB between two leaves with no trend — measured
+  // 927 → 777 → 1005 → 1132 → 795; the counts above are the proof)
+  if (w && base.mb) console.log(`MEM the tab's own process: ${base.mb.web} MB at the baseline → ${w.web} MB after ${LEAVES} leaves`);
+  // (4) A REAL loss mid-run: rebuilt + reported once
+  if (!await toGame(P)) { ok(false, 'THE REAL LOSS: back into the game'); return; }
+  const s0 = await P.ev('globalThis.__jwScenes()');
+  await P.ev("(() => { const c = document.querySelector('canvas.jw-canvas'), g = c && (c.getContext('webgl2') || c.getContext('webgl')), x = g && g.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); return !!x; })()");
+  const re = await P.waitFor(`globalThis.__jwScenes() === ${s0 + 1} && !!document.querySelector('.jw-game canvas.jw-canvas')`, 8000);
+  await sleep(1200);
+  const lost3 = await P.ev(WEBGL_LOST), cvN = await P.ev("document.querySelectorAll('.jw-game canvas.jw-canvas').length");
+  ok(re && lost3 === 1 && cvN === 1, `THE REAL LOSS mid-run: the scene is rebuilt (scenes ${s0} → ${await P.ev('globalThis.__jwScenes()')}, one 3D canvas: ${cvN}) + /admin hears of it ONCE (${lost3})`);
+  await P.ev(`${G}.bot(true)`); await sleep(1500); await P.ev(`${G}.bot(false)`); await P.waitFor(FINAL, 70000);
+  await pastMoment(P, Date.now()); await toCity(P);
 }
 const pids = [];
 let soloPeak = 0, matchPeak = 0, webFirst = null, webLast = null, webPeak = 0;
@@ -125,7 +213,8 @@ try {
   ok(soloPeak <= JW_FINAL_BUDGET_MB, `WEBKIT, ${RUNS} SOLO RUNS IN A ROW: the most held on a final screen = ${soloPeak} MB of pixels (the budget ${JW_FINAL_BUDGET_MB})`);
   if (webFirst != null) ok(webLast - webFirst <= 80, `… and the tab's own process does not climb: ${webFirst} MB on run 2's final screen → ${webLast} MB on run ${RUNS}'s (peak ${webPeak}; a leak would add up)`);
   ok(P.errs.length === 0, `no page error in ${RUNS} runs (${P.errs.slice(0, 2).join(' | ')})`);
-  await P.tap('.final-city'); await sleep(800);
+  if (LEAVE) await leaveChecks(P);
+  else { await P.tap('.final-city'); await sleep(800); }
   await P.close();
 
   // ------------------------------------------------------------------------------------------------ A 4-PHONE MATCH's FINAL
