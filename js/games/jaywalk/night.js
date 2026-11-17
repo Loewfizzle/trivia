@@ -287,6 +287,11 @@ export function createNight(host, o = {}) {
   // THE BLACKOUT's curtain: everything a lane and more behind its edge is simply black
   const curtain = new THREE.Mesh(unit, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.93, depthWrite: false, fog: false }));
   curtain.renderOrder = 6; scene.add(curtain);
+  // (THE GO-LIVE REVIEW — the fog's banding: by day the bank's body (the curtain) ended in ONE ruler-straight edge across the screen,
+  //  under the billows. A LIP stands on that edge: the body's own colour, fading up to nothing over 1.8 cells — a 1 × 32 ramp, no canvas)
+  const lipTex = (() => { const n = 32, d = new Uint8Array(n * 4); for (let i = 0; i < n; i++) { const u = 1 - i / (n - 1), a = u * u * (3 - 2 * u); d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = 255; d[i * 4 + 3] = Math.round(a * 255); } const t = new THREE.DataTexture(d, 1, n, THREE.RGBAFormat); t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true; return t; })();
+  const lip = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xdfe7ee, map: lipTex, transparent: true, depthWrite: false, fog: false, side: THREE.DoubleSide }));
+  lip.renderOrder = 6.1; lip.visible = false; scene.add(lip);
 
   // THE SKYLINE BAND (the top ≈ 24 % — css/jaywalk.css .jw-skyline): the night picture covers the band's height and slides ≈ 10 % with the
   // kid's column; its foot fades into the lanes' fog. NIGHT LIFE: the aviation lights blink, a few neon blocks flicker (small overlays).
@@ -319,7 +324,7 @@ export function createNight(host, o = {}) {
   for (const x of [8, 29, 50, 71, 92]) { const l = document.createElement('b'); l.style.left = `${x}%`; seaWall.append(l); }
   sky.append(skyImg, seaWall); host.append(sky, farHaze);
   // (H6B — THE LANDMARKS ARE PAINTED IN BOTH LOOKS: the drawn neon-outline landmarks (skymarks.js) + the band's colour wash are RETIRED)
-  let skyAt = 9e9, skyLane = -1e9, skyRoomPc = 0, skyBias = 0, skyBiasT = 0, skyFresh = true, skyPicW = 0;
+  let skyAt = 9e9, skyLane = -1e9, skyRoomPc = 0, skyBias = 0, skyBiasT = 0, skyFresh = true, skyPicW = 0, skyMax = 99, skyMatch = false;
   // the pictures held (file → { img, ok: a promise }): the one on screen + the next area's — never more
   const skyHold = new Map();
   const skyS = { now: '', over: false, want: '', fades: 0, until: 0, ms: 0 };   // (over: the picture on screen sits on the OVER layer · until: its cross-fade's end)
@@ -358,11 +363,11 @@ export function createNight(host, o = {}) {
   /** the band follows the kid: the picture of his area (cross-faded at its gate), the next one fetched ahead, the rest offset.
    *  `fresh`: true = the first picture (at once) · 'look' = THE LOOK SWITCH (the whole band cross-fades, the rest offset eases) */
   function skyFollow(lane, fresh) {
-    const plan = skyPlan(lane, day ? 'day' : 'night'), keep = skyHeld(plan);
+    const plan = skyPlan(lane, day ? 'day' : 'night', skyMatch), keep = skyHeld(plan);
     for (const f of keep) skyGet(f);
     for (const f of [...skyHold.keys()]) if (!keep.includes(f) && f !== skyS.now) skyHold.delete(f);   // (ONLY the current + the next are held — + the one still on screen through a look's cross-fade)
     skyShow(plan.now, fresh === true ? 0 : fresh === 'look' ? SKY_LOOK_MS : SKY_FADE_MS);
-    skyBiasT = plan.bias;
+    skyBiasT = plan.bias; skyMax = plan.max;   // (the go-live review: the count stays clear of the landmark · a match's left landmarks stay clear of the chips)
     if (fresh === true) skyBias = skyBiasT;
   }
 
@@ -370,12 +375,11 @@ export function createNight(host, o = {}) {
    * THE LOOK (H5B): 'night' = neon · 'day' = a sunny harbor. ONE scene, switched at once (the game's views re-read the console's
    * `body[data-look]` — per phone, live; the lab has its own switch). A VIEW: the rules, the course, the replay never see it.
    */
-  let lookSet = false, resting = 0;
-  function setLook(l) {
-    const d = l === 'day';
-    if (lookSet && d === day) return;
-    const first = !lookSet;
-    lookSet = true; day = d; if (resting) resting = 3;
+  let lookSet = false, resting = 0, otherWarm = false;
+  /** the look's GPU half (the colours, the lights, the sky in the gloss, light vs paint, the wall's body) for `day` as it is set —
+   *  setLook's own, and THE OTHER LOOK's PREWARM (warm(): one hidden frame in the look the phone is NOT in, so the first switch of a
+   *  session finds its sky map built + its programs run — the go-live review; it was ONE ≈ 130 ms frame mid-run) */
+  function lookGL() {
     const fogHex = day ? DAY_FOG_HEX : FOG_HEX;
     scene.background.setHex(fogHex); scene.fog.color.setHex(fogHex);
     ground.uniforms.uFogCol.value.set(...rgb(fogHex)); ground.uniforms.uDay.value = day ? 1 : 0;
@@ -389,11 +393,18 @@ export function createNight(host, o = {}) {
     for (const q of [K.flat, K.bill]) { const m = q.mesh.material; m.blending = day ? THREE.NormalBlending : THREE.AdditiveBlending; m.uniforms.uDay.value = day ? 1 : 0; m.needsUpdate = true; }
     K.shadow.mesh.material.uniforms.uDay.value = day ? 1 : 0;   // (H5C — a day shadow is COOL: the sky fills it)
     fish.material.blending = day ? THREE.NormalBlending : THREE.AdditiveBlending; fish.material.needsUpdate = true;
+    // THE BLACKOUT's curtain = THE FOG BANK's body by day
+    curtain.material.color.setHex(day ? 0xdfe7ee : 0x000000); curtain.material.opacity = day ? 1 : 0.93; lip.visible = day;
+  }
+  function setLook(l) {
+    const d = l === 'day';
+    if (lookSet && d === day) return;
+    const first = !lookSet;
+    lookSet = true; day = d; if (resting) resting = 3;
+    lookGL();
     for (const k of ['best', 'friend']) { const t = LBL[k].text; LBL[k].text = null; if (t != null) writeLabel(k, t); }
     G.text = null;
     { const c = ctx2d(fishCv); if (c) { drawFishSign(c, 256, 128, day); fishTex.needsUpdate = true; } }
-    // THE BLACKOUT's curtain = THE FOG BANK's body by day
-    curtain.material.color.setHex(day ? 0xdfe7ee : 0x000000); curtain.material.opacity = day ? 1 : 0.93;
     sky.dataset.look = day ? 'day' : 'night'; farHaze.dataset.look = sky.dataset.look;
     // (the band's picture: draw() asks skyline.js for the kid's lane — H6B, THE LOOK SWITCH: the day + night pictures have different
     //  horizons, so the whole band CROSS-FADES (SKY_LOOK_MS, the css fades the night's life + the wall's stone with it) — never a jump)
@@ -507,6 +518,13 @@ export function createNight(host, o = {}) {
     for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.put(0, -60, 0, 0.01, 0.01, 0.01, 0, 0xffffff, 1); q.done(); }
     for (const m of [...(FL ? FL.meshes() : []), ...Object.values(LBL).map(L => L.m), fish]) { put.push([m, m.visible, m.position.y]); m.visible = true; m.position.y = -60; }
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam); } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
+    // THE OTHER LOOK's PREWARM — ONCE a view, in this same hidden frame (the kinds are all standing): the look this phone is NOT in is
+    // set, compiled + drawn once, and put back. Nothing is kept but the day's small sky map (built now instead of at the first switch).
+    if (!otherWarm && lookSet) {
+      otherWarm = true; day = !day;
+      try { lookGL(); renderer.compile(scene, cam); renderer.render(scene, cam); } catch { /* as above */ }
+      day = !day; lookGL();
+    }
     for (const [m, v, y] of put) { m.visible = v; m.position.y = y; }
     for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.done(); }
     warmed++;
@@ -647,7 +665,7 @@ export function createNight(host, o = {}) {
     // (H5C — it RESTS where its area's painted landmark is on the screen (skyline.js#SKY_BIAS, eased in with the gate's cross-fade),
     //  kept inside the picture's own room; the sea wall's stones slide a touch more: they are nearer)
     skyBias += (skyBiasT - skyBias) * (reduce ? 1 : 1 - Math.exp(-dt / 650)); if (Math.abs(skyBiasT - skyBias) < 0.02) skyBias = skyBiasT;
-    const sl = Math.round(skyShift(skyBias, rig.x() * 2.2 - rig.yaw() * 28, skyRoomPc) * 20) / 20;
+    const sl = Math.round(skyShift(skyBias, rig.x() * 2.2 - rig.yaw() * 28, skyRoomPc, skyMax) * 20) / 20;
     if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; wallStone.style.transform = wallDay.style.transform = `translate3d(${(-sl * skyPicW * 0.0115).toFixed(1)}px,0,0)`; }
 
     // ---- the lanes
@@ -795,10 +813,22 @@ export function createNight(host, o = {}) {
           fxv = tellF * p.dir;
           // THE FLIGHT PATH: blue runway lights in the ground; the tell = the lights RACING toward the crossing (bold, unmissable)
           const head = st.st === 'tell' ? (tellF * tellF * 7 + tellF * 2) % 1 * 14 - 2.5 : -99;
+          // (BY DAY — THE GO-LIVE REVIEW, the owner: "MUST be clearly readable (fairness)": from the tell's FIRST tick to the pass's end
+          //  every runway lamp is a BOLD SIGNAL LAMP on a DARK BACKING — red / amber, wig-wagging 3 times a second off the rules' own
+          //  tick (steady under reduce motion) — and the racing head is white-hot amber, bigger, on a bigger backing; the lane under
+          //  them turns to amber-on-dark hazard chevrons (the ground shader). Before the tell: dim lenses in the tarmac, as H5B.)
+          const warn = day && tellF > 0, wig = warn && !reduce ? Math.floor((st.left || 0) / 10) & 1 : 0;
           for (let c = -1; c <= COLS; c++) {
             const at = p.dir > 0 ? c : COLS - 1 - c, hot = head > -50 && at <= head && at > head - 3.2, far = c < 0 || c >= COLS ? 0.6 : 1;
-            // (BY DAY — H5B: the runway lights are DIM lenses in the tarmac until the tell — then they RACE, white-hot in a blue ring,
-            //  over the lane's own racing chevrons (the ground shader): the Blackbird's tell is unmistakable in sunlight)
+            if (warn) {
+              for (const e of [-0.42, 0.42]) {
+                const s = hot ? 1.3 : 0.86, hex = hot ? 0xfff0a0 : (c + (e > 0 ? 1 : 0) + wig) & 1 ? 0xff2412 : 0xffa400;
+                if (hot && on) K.flat.put(X(c + 0.5), 0.04, z + e, 2.4, 1, 1.7, 0, 0xffa820, 1, 0, 0.7 * far);
+                K.flat.put(X(c + 0.5), 0.046, z + e, s * 1.5, 1, s * 1.25, 0, 0x07070e, 1, 5, 0.92 * far);   // its dark backing
+                K.bill.put(X(c + 0.5), 0.07, z + e, s, s, 1, 0, hex, 1, 5, far);
+              }
+              continue;
+            }
             for (const e of [-0.42, 0.42]) {
               K.bill.put(X(c + 0.5), 0.07, z + e, hot ? (day ? 0.9 : 0.74) : (day ? 0.22 : 0.3), hot ? (day ? 0.9 : 0.74) : (day ? 0.22 : 0.3), 1, 0, hot ? (day ? 0xffffff : 0xfff6dc) : (day ? 0xb9bec8 : 0xffcf8a), 1, 5, (hot ? 1 : 0.85) * lt * far);
               if (on) K.flat.put(X(c + 0.5), 0.04, z + e, hot ? 1.7 : 0.8, 1, hot ? 1.2 : 0.6, 0, 0xffa820, 1, 0, (hot ? (day ? 0.6 : 0.75) : (day ? 0 : 0.35)) * lt * far);
@@ -862,6 +892,7 @@ export function createNight(host, o = {}) {
     // THE PAINTED SKYLINES (H5C · H6B — both looks): the band's picture follows his lane — his area's (cross-faded at its gate), the next
     // one fetched ahead; the painted picture itself carries the landmark (no wash over it, nothing drawn on it)
     const kl = Math.max(0, Math.floor(ky));
+    if (skyMatch !== (run.mode === 'match')) { skyMatch = !skyMatch; skyLane = -1e9; }
     if (kl !== skyLane) { skyLane = kl; skyFollow(kl, skyFresh); skyFresh = false; }
     // his blob shadow: smaller + fainter as he rises
     if (show && py > -0.2) K.shadow.put(px, feet + 0.035, pz + 0.05, 0.98 * (1 - lift * 0.55) * s3[0], 1.15 + lift * 1.4, 0.78 * (1 - lift * 0.55) * s3[2], 0, 0, 1, 0, 0.66 * (1 - lift * 0.9) * lit);
@@ -974,8 +1005,8 @@ export function createNight(host, o = {}) {
         for (let c = -9.5, id = 0; c < 9.5; c += stp, id++) {
           const r1 = hsh(977 + li * 31, id), r2 = hsh(1543 + li * 17, id), sz = 0.74 + 0.52 * r1;
           const x = wrap(c + T * sp), up = reduce ? 0 : Math.sin(T * (0.5 + r2 * 0.5) + id * 1.9) * 0.1, y = y0 * (0.78 + 0.5 * r2) + up, z = Z(wallE + dz + (r1 - 0.5) * 0.7);
-          K.bill.put(x + 0.25 * sw * sz * 0.2, y - sh * sz * 0.2, z, sw * sz * 1.08, sh * sz, 1, 0, under, 1, 0, al);
-          K.bill.put(x, y, z - 0.02, sw * sz, sh * sz * 0.86, 1, 0, top, 1, 0, al * 0.92);
+          K.bill.put(x + 0.25 * sw * sz * 0.2, y - sh * sz * 0.2, z, sw * sz * 1.08, sh * sz, 1, 0, under, 1, 10, al);   // (shape 10: a puff fades INTO the ground — never cut by it)
+          K.bill.put(x, y, z - 0.02, sw * sz, sh * sz * 0.86, 1, 0, top, 1, 10, al * 0.92);
         }
       }
       // the wisps: thin streaks drifting ahead of the bank — what first reaches a lane
@@ -991,6 +1022,7 @@ export function createNight(host, o = {}) {
       }
     }
     // (the body behind: by day it starts under the back billows — its own edge is never seen)
+    if (day) { lip.position.set(0, 2.5 + 0.9, Z(wallE - 3.1)); lip.scale.set(60, 1.8, 1); }
     curtain.position.set(0, 1.2, Z(wallE - (day ? 3.1 : 2.3) - 20)); curtain.scale.set(60, 2.6, 40);   // (by night it starts where the ground is already fully dark: its straight front is never seen)
     ground.uniforms.uWall.value = wallE;
     for (const q of Object.values(K)) q.done();
@@ -1070,7 +1102,7 @@ export function createNight(host, o = {}) {
       dead = true; ro.disconnect();
       for (const { m, g } of made) { scene.remove(m); m.material.dispose(); if (g) g.dispose(); m.dispose(); }
       for (const g of Object.values(GEO)) g.dispose();
-      curtain.material.dispose(); if (FL) FL.destroy();
+      curtain.material.dispose(); lip.geometry.dispose(); lip.material.dispose(); lipTex.dispose(); if (FL) FL.destroy();
       if (kidGeo) { kidGeo.userData.poses.tex.dispose(); kidGeo.dispose(); }
       for (const L of Object.values(LBL)) { scene.remove(L.m); L.m.material.dispose(); L.tex.dispose(); L.cv.width = 0; L.cv.height = 0; }
       labelGeo.dispose(); fishGeo.dispose(); fishTex.dispose(); fish.material.dispose(); scene.remove(fish); fishCv.width = 0;

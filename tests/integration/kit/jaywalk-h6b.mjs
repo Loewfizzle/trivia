@@ -98,10 +98,11 @@ export async function looksH6B(p, { ok, shot, sleep, waitFor, what = '', reqs = 
       const r = ol.getBoundingClientRect(); return { w: r.width, h: r.height, x: r.left - document.querySelector('.jw-stage').getBoundingClientRect().left, y: r.top, row: ol.firstChild.getBoundingClientRect().height, font: parseFloat(getComputedStyle(ol.firstChild).fontSize) };
     }, n, base, NAMES, HEX);
     for (const look of ['night', 'day']) {
-      await fresh(look); await sleep(400);
+      await fresh(look, 'match'); await sleep(400);   // (THE GO-LIVE REVIEW: a MATCH run — the band pins its left landmarks clear of the chips)
       await L("document.querySelector('.jw-snd')?.style.setProperty('visibility', 'hidden'); document.querySelector('.jw-seed')?.style.setProperty('visibility', 'hidden')");
       for (const [k, lane] of [[3, 222], [6, 372], [0, 72]]) {
-        await stand(lane, 4); await sleep(700); await settled(); await sleep(400);
+        await stand(lane, 4); await sleep(700); await settled(); await sleep(1600);
+        { const s = await sky(), pin = k !== 0; ok(pin ? s.bias <= -17.2 : s.bias > 0, `${IDS[k]} (${look}) in a MATCH: the band ${pin ? 'is PINNED right — its landmark off the chips column' : 'rests as in a solo run'} (${s.bias})`); }
         for (const n of [4, 8]) {
           const r = await chips(n, lane + 2);
           ok(r.w <= 92 && r.row <= 13.5 && r.h <= n * 14 && r.x <= 1, `${IDS[k]} (${look}), ${n} players: the chips are COMPACT (${r.w.toFixed(0)} × ${r.h.toFixed(0)} px — a row ${r.row.toFixed(1)} px, ${r.font} px letters)`);

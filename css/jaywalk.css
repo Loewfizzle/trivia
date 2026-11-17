@@ -33,6 +33,11 @@
 /* THE LANE COUNT in the game's own big neon numerals (the night look): a white-hot tube, its pink glow (static), a small pop on every new lane */
 .jw-stage:not(.is-gray) .jw-lanes { font: 700 76px/1 var(--font-num, var(--font-ui)); letter-spacing: 0.03em; color: #fff3fb; -webkit-text-stroke: 2px #ff62c8;
   text-shadow: 0 0 3px #fff, 0 0 12px #ff4fc4, 0 0 26px #ff4fc4, 0 0 52px rgba(255, 79, 196, 0.75), 0 3px 0 rgba(20, 0, 14, 0.9); transform-origin: 50% 60%; }
+/* (THE GO-LIVE REVIEW — a 3-digit count touched three painted landmarks (the lighthouse's lamp, downtown's towers, the control tower):
+   from 100 lanes the count steps down a size, from 1,000 again — about as WIDE as two digits were — and the band's rest keeps every
+   landmark out of that width (skyline.js#SKY_MAX, measured for these sizes: change them together) */
+.jw-stage:not(.is-gray) .jw-lanes[data-dg='3'] { font-size: 60px; }
+.jw-stage:not(.is-gray) .jw-lanes[data-dg='4'], .jw-stage:not(.is-gray) .jw-lanes[data-dg='5'] { font-size: 48px; }
 /* H5A's add-on — THE BIG NUMERALS (js/games/jaywalk/numerals.js): each digit its own box — more room between two (a "17" never
    reads as an N) — and a "1" stands on a BASE FOOT, placed by the numbers measured off the font's own 1 (--jw-1l · w · r · h · b, em) */
 .jw-dg { display: inline-block; position: relative; margin: 0 0.045em; line-height: 1; }
@@ -70,11 +75,12 @@
 .jw-seawall i.is-day { opacity: 0; transition: opacity 1.5s ease-in-out; }
 .jw-seawall b { transition: opacity 1.5s ease-in-out; }
 .jw-skyline[data-look='day'] .jw-seawall i.is-day { opacity: 1; }
+/* (THE GO-LIVE REVIEW — the first look switch's hitch: the day stone's joints were a hard-stop line + two sized repeating gradients —
+   ≈ 120 ms to paint the first time it showed (measured: the session's first night → day switch, ONE 150 ms frame, the 3D scene's share
+   16 ms). The same two staggered courses + their line are ONE 31 px tile, repeated along the wall: painted once, 17 ms.) */
 .jw-seawall i.is-day { background:
     linear-gradient(#fffaf0 0, #fffaf0 1.5px, rgba(0, 0, 0, 0) 1.5px),
-    linear-gradient(rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 62%, rgba(86, 68, 44, 0.45) 62%, rgba(86, 68, 44, 0.45) calc(62% + 1.5px), rgba(0, 0, 0, 0) calc(62% + 1.5px)),
-    repeating-linear-gradient(90deg, rgba(96, 76, 50, 0.5) 0, rgba(96, 76, 50, 0.5) 1.5px, rgba(0, 0, 0, 0) 1.5px, rgba(0, 0, 0, 0) 31px) 0 0 / 100% 62% no-repeat,
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 15px, rgba(96, 76, 50, 0.5) 15px, rgba(96, 76, 50, 0.5) 16.5px, rgba(0, 0, 0, 0) 16.5px, rgba(0, 0, 0, 0) 31px) 0 100% / 100% 38% no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='31' height='18' viewBox='0 0 31 18' preserveAspectRatio='none'%3E%3Cg fill='rgb(96,76,50)' fill-opacity='.5'%3E%3Crect width='1.5' height='11.2'/%3E%3Crect x='15' y='11.2' width='1.5' height='6.8'/%3E%3C/g%3E%3Crect y='11.2' width='31' height='1.5' fill='rgb(86,68,44)' fill-opacity='.45'/%3E%3C/svg%3E") 0 0 / 31px 100% repeat-x,
     linear-gradient(#f3e7cd 0, #e9dabb 24%, #c2af8c 26%, #cfbe9a 60%, #a39274 100%); }
 .jw-skyline[data-look='day'] .jw-seawall b { opacity: 0; }
 .jw-farhaze[data-look='day'] { background: linear-gradient(#c6e6f7 0, rgba(198, 230, 247, 0.86) 22%, rgba(198, 230, 247, 0) 100%); }

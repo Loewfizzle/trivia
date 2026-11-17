@@ -54,7 +54,7 @@ export function prepNums(root, family = NUM_FAMILY, weight = 700) {
 export function setNum(el, text) {
   const t = String(text);
   if (el.dataset.num === t) return;
-  el.dataset.num = t; el.setAttribute('aria-label', t);
+  el.dataset.num = t; el.dataset.dg = String(t.length); el.setAttribute('aria-label', t);   // (data-dg: the lane count steps down a size at 3 + 4 digits — css .jw-lanes[data-dg])
   el.replaceChildren(...t.split('').map(ch => { const s = document.createElement('span'); s.className = ch === '1' ? 'jw-dg jw-d1' : ch >= '0' && ch <= '9' ? 'jw-dg' : 'jw-dgx'; s.textContent = ch; s.setAttribute('aria-hidden', 'true'); return s; }));
 }
 

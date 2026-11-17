@@ -18,7 +18,7 @@ test('THE PICKER: an area → its picture; the opening keeps skyline-day; the lo
   assert.equal(skyPlan(450, 'day').now, 'skyline-day-docks.webp', 'the loop\'s first gate: THE DOCKS again'); assert.equal(skyPlan(455, 'day').now, 'skyline-day-docks.webp');
   assert.equal(skyPlan(849, 'day').now, 'skyline-day-airfield.webp'); assert.equal(skyPlan(850, 'day').now, 'skyline-day-docks.webp', 'lap 3');
   // BY NIGHT (H6B): the same picker — the opening keeps skyline-night, each area its painted night picture, the loop repeats
-  for (const l of [0, 25, 35]) assert.deepEqual(skyPlan(l, 'night'), { now: 'skyline-night.webp', next: null, bias: 0 });
+  for (const l of [0, 25, 35]) assert.deepEqual(skyPlan(l, 'night'), { now: 'skyline-night.webp', next: null, bias: 0, max: 99 });
   SKY_IDS.forEach((id, k) => { for (const l of [STRETCH * (k + 1), STRETCH * (k + 1) + 24, 450 + STRETCH * k + 3]) assert.equal(skyPlan(l, 'night').now, `skyline-night-${id}.webp`, `lane ${l} by night`); });
   assert.equal(skyPlan(40, 'night').next, 'skyline-night-docks.webp', 'the next night picture is fetched ahead of its gate');
   assert.equal(skyFile('day', ''), 'skyline-day.webp'); assert.equal(skyFile('night', 'docks'), 'skyline-night-docks.webp'); assert.equal(skyFile('night', ''), 'skyline-night.webp');
@@ -108,4 +108,38 @@ test('H6B — THE LOOK SWITCH: the whole band CROSS-FADES (≈ 1.5 s, opacity on
   assert.match(n, /if \(wait > 0\) \{ setTimeout\(go, wait \+ 30\); return; \}/, 'a cross-fade still running is waited out: a visible layer\'s picture never changes');
   assert.match(css, /\.jw-seawall i\.is-day \{ opacity: 0; transition: opacity 1\.5s ease-in-out; \}/); assert.match(css, /\.jw-skyline\[data-look='day'\] \.jw-seawall i\.is-day \{ opacity: 1; \}/, 'the sea wall stays at the band\'s foot in both: the day\'s stone over the night\'s, opacity only');
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.jw-sky-life, \.jw-skyline\[data-look='day'\] \.jw-sky-life, \.jw-seawall i\.is-day, \.jw-seawall b \{ transition: none; \} \}/);
+});
+
+// THE GO-LIVE REVIEW — the lane count never touches a landmark; a match's chips stay off the left landmarks
+test('THE GO-LIVE REVIEW — the band never carries a landmark under the lane count; in a match the left landmarks are pinned clear of the chips', async () => {
+  const M = await import('../js/games/jaywalk/skyline.js'), { SKY_MAX, SKY_PIN, SKY_MATCH_PIN } = M;
+  const room = skyRoom(390, 844), STRETCH = 50;
+  // the rest offsets sit at or under the count's limit, both looks; the slide stops there (the kid at the right edge)
+  for (const [look, B] of [['day', SKY_BIAS], ['night', SKY_BIAS_NIGHT]]) for (const [id, max] of Object.entries(SKY_MAX[look])) {
+    assert.ok(B[id] <= max, `${look} ${id}: rests (${B[id]}) at or under the count's limit (${max})`);
+    const lane = STRETCH * (SKY_IDS.indexOf(id) + 1) + 9, p = skyPlan(lane, look);
+    assert.equal(p.max, max); assert.equal(p.bias, B[id]);
+    for (const slide of [-9, -3, 0, 3, 9]) assert.ok(skyShift(p.bias, slide, room, p.max) <= max + 1e-9, `${look} ${id}: slide ${slide} never passes ${max}`);
+    assert.equal(skyShift(p.bias, 9, room, p.max), max, 'the kid at the right edge: the band stops at the limit');
+    assert.ok(skyShift(p.bias, -9, room, p.max) < p.bias, '… and still slides the other way');
+  }
+  // an area with no limit: the room alone, as before
+  assert.equal(skyPlan(109, 'day').max, 99); assert.equal(skyShift(11, 9, room, 99), room); assert.equal(skyShift(11, 9, room), room);
+  // the limit never opens the band's edge
+  assert.equal(skyShift(-17, -9, room, 5), -room); assert.equal(skyShift(0, 0, 0, -17.25), 0, 'a wide stage: no room — centred, whatever the limit');
+  // A MATCH: the bridge + the lighthouse rest as far right as the picture goes and never slide back under the chips
+  assert.deepEqual([...SKY_MATCH_PIN], ['bridge', 'lighthouse']);
+  for (const look of ['day', 'night']) for (const id of SKY_MATCH_PIN) {
+    const lane = STRETCH * (SKY_IDS.indexOf(id) + 1) + 9, solo = skyPlan(lane, look), m = skyPlan(lane, look, true);
+    assert.equal(m.bias, SKY_PIN); assert.equal(m.max, SKY_PIN); assert.equal(m.now, solo.now, 'the same picture');
+    for (const slide of [-9, 0, 9]) { const v = skyShift(m.bias, slide, room, m.max); assert.ok(v <= SKY_PIN + 1e-9 && v >= -room, `${look} ${id}: pinned at the room's edge (slide ${slide}: ${v})`); }
+    assert.equal(solo.max, 99); assert.ok(solo.bias < 0);
+  }
+  // … every other area is the same in a match
+  for (const look of ['day', 'night']) for (const id of SKY_IDS) if (!SKY_MATCH_PIN.includes(id)) { const lane = STRETCH * (SKY_IDS.indexOf(id) + 1) + 9; assert.deepEqual(skyPlan(lane, look, true), skyPlan(lane, look)); }
+  // the count's sizes the limits were measured for are in the css — change them together
+  const { readFileSync } = await import('node:fs'), css = readFileSync(new URL('../css/jaywalk.css', import.meta.url), 'utf8');
+  assert.match(css, /\.jw-lanes\[data-dg='3'\] \{ font-size: 60px; \}/); assert.match(css, /\.jw-lanes\[data-dg='4'\][^{]*\{ font-size: 48px; \}/);
+  const num = readFileSync(new URL('../js/games/jaywalk/numerals.js', import.meta.url), 'utf8');
+  assert.match(num, /el\.dataset\.dg = String\(t\.length\)/, 'setNum names the digit count');
 });

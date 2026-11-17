@@ -188,9 +188,13 @@ void main() {
       float chev = step(fract(xx * 1.2 + abs(z - 0.5) * 1.4), 0.5);
       // (H5B's add-on: the runway's tell is AMBER by night too — a blue lane read as water)
       c += (vec3(1.0, 0.66, 0.14) * band * (0.35 + 0.5 * chev) + vec3(0.30, 0.15, 0.02) * fx) * (1.0 - uDay);
-      // (by day — THE TELL MUST READ IN SUNLIGHT: the whole lane warms, a HOT yellow-white chevron band races to the crossing)
-      c = mix(c, vec3(1.0, 0.74, 0.08), 0.16 * fx * uDay);
-      c = mix(c, mix(vec3(1.0, 0.86, 0.10), vec3(1.0), chev * 0.75), clamp(band * 1.25, 0.0, 1.0) * uDay);
+      // (by day — THE TELL MUST READ IN SUNLIGHT (the go-live review: yellow on the light runway was low-contrast): within the
+      //  tell's first sixth the WHOLE lane turns to AMBER-ON-DARK hazard chevrons that march slowly to the crossing, and the racing
+      //  band is the same chevrons at full contrast — near-black + yellow-white. Never the red of the rail lane's tell.)
+      float tl = clamp(fx * 6.0, 0.0, 1.0);
+      float chd = step(fract(xx * 1.2 + abs(z - 0.5) * 1.4 - fx * 3.0), 0.5);
+      c = mix(c, mix(vec3(0.075, 0.07, 0.10), vec3(1.0, 0.64, 0.04), chd), 0.66 * tl * uDay);
+      c = mix(c, mix(vec3(0.04, 0.035, 0.05), vec3(1.0, 0.94, 0.38), chd), clamp(band * 1.4, 0.0, 1.0) * uDay);
     }
   }
   // THE WIDER VIEW: the edge columns a step dimmer, the ground beyond them dimmer still
@@ -213,7 +217,9 @@ void main() {
       float thin = smoothstep(-1.5, 0.7, d + (bn - 0.5) * 1.9);
       float fogA = thin * mix(0.5, 1.0, smoothstep(0.1, 2.1, d));
       c *= 1.0 - 0.2 * smoothstep(-3.2, -0.3, d) * (1.0 - thin);
-      c = mix(c, vec3(0.875, 0.906, 0.933) * (0.93 + 0.1 * bn), clamp(fogA, 0.0, 1.0));
+      // (the go-live review — the fog's banding: the mottle fades OUT before d = 3.4, where the plain fog begins — the two met in a
+      //  straight line of up to 5 % brightness)
+      c = mix(c, vec3(0.875, 0.906, 0.933) * (0.98 + 0.1 * (bn - 0.5) * (1.0 - smoothstep(1.8, 3.3, d))), clamp(fogA, 0.0, 1.0));
     }
   } else {
     // THE BLACKOUT's edge (H5C — the review: "a ruler-straight cut to black"): per pixel off the wall itself, soft + ragged (two drifting
@@ -272,9 +278,9 @@ export function fogUp(mat) { mat.onBeforeCompile = fogPatch; mat.customProgramCa
 const GLOW_V = `
 attribute vec2 aFx;
 uniform vec2 uFog; uniform float uBill; uniform float uFogUp;
-varying vec2 vUv; varying vec3 vCol; varying vec2 vFx; varying float vFog;
+varying vec2 vUv; varying vec3 vCol; varying vec2 vFx; varying float vFog; varying float vY;
 void main() {
-  vUv = uv; vFx = aFx;
+  vUv = uv; vFx = aFx; vY = 1.0;
   #ifdef USE_INSTANCING_COLOR
     vCol = instanceColor;
   #else
@@ -284,6 +290,7 @@ void main() {
   if (uBill > 0.5) {
     mv = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
     mv.xy += position.xy * vec2(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz));
+    vY = dot(viewMatrix[1].xyz, mv.xyz) + cameraPosition.y;   // (this corner's height over the ground — shape 10 fades into it)
   } else mv = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
   vFog = smoothstep(uFog.x, uFog.y, -mv.z + uFogUp * (modelMatrix * instanceMatrix * vec4(uBill > 0.5 ? vec3(0.0) : position, 1.0)).y);
   gl_Position = projectionMatrix * mv;
@@ -291,7 +298,7 @@ void main() {
 const GLOW_F = `
 precision highp float;
 uniform float uDay;
-varying vec2 vUv; varying vec3 vCol; varying vec2 vFx; varying float vFog;
+varying vec2 vUv; varying vec3 vCol; varying vec2 vFx; varying float vFog; varying float vY;
 void main() {
   vec2 p = vUv * 2.0 - 1.0;
   float s = vFx.x, a, d = length(p);
@@ -306,6 +313,10 @@ void main() {
   else if (s < 4.5) { a = smoothstep(1.0, 0.15, abs(p.y)) * smoothstep(1.0, 0.8, abs(p.x)); }                     // 4 a soft line along x
   else if (s < 5.5) { a = smoothstep(0.42, 0.3, d) + 0.6 * smoothstep(1.0, 0.0, d) * smoothstep(1.0, 0.0, d); }   // 5 a lamp: a hot core + its halo
   else if (s < 6.5) { float u = vUv.x, w = mix(0.4, 1.0, u), e = smoothstep(w, 0.0, abs(p.y)); a = e * e * (1.0 - u) * (1.0 - u * u) * smoothstep(0.0, 0.07, u); }   // 6 a SHORT SOFT beam (a headlight's glow on the road: a quick falloff, soft edges)
+  // 10 A FOG PUFF (the go-live review — the fog bank's banded streaks: a camera-facing puff was CUT by the ground where it leaned
+  //    into it — a hard horizontal line across every puff): the soft round glow, FADING OUT into the ground over its last metre,
+  //    dithered (a wide near-white gradient steps in 8 bits)
+  else if (s > 9.5) { a = smoothstep(1.0, 0.0, d); a *= a * smoothstep(0.03, 1.15, vY); a += (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.012 * step(0.004, a); }
   else if (s > 8.5) { float w = mix(1.0, 0.3, vUv.y); a = smoothstep(w, w * 0.3, abs(p.x)) * (0.5 + 0.5 * vUv.y) * smoothstep(0.0, 0.07, vUv.y) * smoothstep(1.0, 0.93, vUv.y); }   // 9 a BEAM standing up (H6A — a bill: narrow at its top, wide at its foot)
   else { float asp = max(1.0, (s - 7.0) * 10.0); vec2 q = vec2(abs(p.x) * asp - (asp - 1.0), p.y); a = smoothstep(0.2, 0.0, abs(length(vec2(max(q.x, 0.0), q.y)) - 0.78)); }   // 7 + aspect / 10: a thin STADIUM ring (the waterline round a log — its quad is that many times longer than wide)
   #ifdef JW_SHADOW

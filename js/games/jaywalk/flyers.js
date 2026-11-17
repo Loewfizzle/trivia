@@ -219,12 +219,23 @@ export function createFlyers(C) {
     // star + the afterburners' flare (a blue-white heart in an orange rim), on a dark halo by day; it grows as the jet nears
     if (tell && left0 <= FLY.glint) {
       const g = 0.45 + 0.55 * (1 - left0 / FLY.glint), ex = edgeX(-dir * 0.84, 0.7, zc), tw = reduce ? 1 : 0.78 + 0.22 * Math.sin(F.clock / 34), a = Math.min(1, lt) * tw;
-      if (day) K.bill.put(ex, 0.7, zc, 7.5 * g, 5.0 * g, 1, 0, 0x08142c, 1, 0, 0.7 * a);
-      K.bill.put(ex, 0.7, zc, 6.4 * g, 4.4 * g, 1, 0, 0xff8a2a, 1, 0, (day ? 0.55 : 0.5) * a);        // the flare's orange rim
-      K.bill.put(ex, 0.7, zc, 4.0 * g, 2.9 * g, 1, 0, day ? 0x2f8fff : 0x58b4ff, 1, 0, (day ? 0.85 : 0.9) * a);   // … its blue heart
+      if (day) {
+        // (BY DAY — the go-live review: a pale star on a pale lane was quiet. A SOLID dark disc behind it, a solid orange flare on
+        //  that, a yellow-hot heart, fat white arms — paint, edge to edge readable in full sun)
+        const A = Math.min(1, lt);
+        K.bill.put(ex, 0.7, zc, 8.4 * g, 5.8 * g, 1, 0, 0x060a18, 1, 5, 0.82 * A);
+        K.bill.put(ex, 0.7, zc, 6.2 * g, 4.4 * g, 1, 0, 0xff6a14, 1, 5, 0.95 * a);
+        K.bill.put(ex, 0.7, zc, 3.6 * g, 2.6 * g, 1, 0, 0xffe45a, 1, 5, a);
+        K.bill.put(ex, 0.7, zc, 9.0 * g, 0.62 * g, 1, 0, 0xffffff, 1, 4, a);
+        K.bill.put(ex, 0.7, zc, 0.5 * g, 5.6 * g, 1, 0, 0xffffff, 1, 0, a);
+        K.bill.put(ex, 0.7, zc, 2.0 * g, 2.0 * g, 1, 0, 0xffffff, 1, 5, a);
+      } else {
+      K.bill.put(ex, 0.7, zc, 6.4 * g, 4.4 * g, 1, 0, 0xff8a2a, 1, 0, 0.5 * a);                        // the flare's orange rim
+      K.bill.put(ex, 0.7, zc, 4.0 * g, 2.9 * g, 1, 0, 0x58b4ff, 1, 0, 0.9 * a);                        // … its blue heart
       K.bill.put(ex, 0.7, zc, 7.6 * g, 0.34 * g, 1, 0, 0xffffff, 1, 0, a);                             // the star's long arm
       K.bill.put(ex, 0.7, zc, 0.3 * g, 4.6 * g, 1, 0, 0xffffff, 1, 0, a);                              // … its tall arm
       K.bill.put(ex, 0.7, zc, 1.5 * g, 1.5 * g, 1, 0, 0xffffff, 1, 5, a);                              // … its white-hot core
+      }
       LF(ex, 0.05, zc, 6, 1, 3.4, 0, 0x6ab8ff, 1, 0, 0.5 * a);
     }
     // THE PASS: the jet (drawn a little before + after it too — it is seen coming through the edge column)
