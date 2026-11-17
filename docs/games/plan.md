@@ -526,3 +526,7 @@
 - The owner's 212 is NOT restored (the server never kept match lanes) — the owner lets it go; no admin tool.
 - BEAM ME UP = EPIC (accepted).
 - The lab gets ?lane=N (a look check: start at lane N, WARPED, never counts).
+
+## JAYWALK (the owner, Nov 17 — DECIDED, THE GO-LIVE REVIEW)
+- JAYWALK is FEATURE-COMPLETE after H6B. The owner's calls on H6B's OPEN list: the look switch KEEPS its 1.5 s cross-fade · Downtown's edge shops partly off screen = fine (edge scenery) · the opening stretch has no landmark = fine (home) · the Blackbird's DAY tell = MUST be clearly readable (fairness) · the bridge behind the match chips, the first look switch's hitch, the fog's banding, the 3-digit count near the landmarks = fix.
+- THE TWO DARK NIGHT TOWERS (Grok unavailable): the go-live review LIFTS them in our own copies (the rail yard's water tower + gantry, the airfield's control tower) — Grok's touch-ups may replace them later.
