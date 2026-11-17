@@ -578,12 +578,19 @@ export function createNight(host, o = {}) {
                 if (truck) for (const m of [0, 0.34, 0.67, 1]) K.bill.put(cx + L.dir * (TRUCK.box[0] + (TRUCK.box[1] - TRUCK.box[0]) * m) * tz, 0.29, z + 0.4, 0.24, 0.24, 1, 0, 0xff9a1c, 1, 0, a1);
                 if (taxi) { K.bill.put(bx, 0.5, z, 0.3, 0.2, 1, 0, 0xfff3b0, 1, 5, a1); LB(bx, 0.5, z, 0.62, 0.42, 1, 0, 0xffc21e, 1, 0, 0.55 * a1); }   // its ROOF LIGHT: a small lit box + its warm halo
                 // (H5A — the owner: NO LIGHT TRAILS on any vehicle — from above they read as jet exhaust; afterburners are THE BLACKBIRD's alone, H6)
-                for (const e of [-hw, hw]) {   // BOTH headlights + BOTH tail lights, each at its own place on the model
-                  // (BY DAY — H5B: the headlights' beams + the tail glows are OFF; a pale lens in front, a small red on the body behind)
+                // THE TAIL LIGHTS (H5B's add-on — the owner, Nov 16 9:45 pm: two hard red dashes set BEHIND the car, the lamps on the
+                // body barely showing, read as red marks floating on the asphalt): the GLOW is ONE soft merged red pool a vehicle,
+                // PINNED UNDER its rear — it starts at the bumper (it runs on under the body: never a gap) and fades backward,
+                // short, soft-edged, half the old strength, inside its own lane; its visible SOURCE = two bright red lamps on the
+                // body (a white-hot core each — they catch the bloom). BY DAY: no glow — the lamps are just red on the body.
+                const rearX = truck ? tail : nose - L.dir * bodyL;
+                LF(X(rearX - L.dir * TAIL_REACH * 0.36), 0.04, z, TAIL_REACH * 1.5, 1, 0.84, 0, 0xff2030, 1, 0, 0.25 * a1);
+                for (const e of [-hw, hw]) {   // BOTH headlights + BOTH tail lamps, each at its own place on the model
+                  // (BY DAY — H5B: the headlights' beams are OFF; a pale lens in front, a small red on the body behind)
                   LF(X(nose + L.dir * HEAD_REACH / 2), 0.04, z + e, HEAD_REACH, 1, 0.8, back, 0xfff0c8, 1, 6, 0.5 * a1);   // a short soft beam on the road ahead
-                  LF(X(tail - L.dir * TAIL_REACH * 0.3), 0.04, z + e, TAIL_REACH * 1.05, 1, 0.44, 0, 0xff2030, 1, 0, 0.5 * a1);   // a small red glow behind — one a tail light: two are seen
                   K.bill.put(X(nose), hy, z + e, day ? 0.13 : 0.2, day ? 0.13 : 0.2, 1, 0, 0xfff0c0, 1, 5, (day ? 0.7 : 0.8) * a1);
-                  K.bill.put(X(tail), hy + 0.02, z + e, day ? 0.14 : 0.2, day ? 0.14 : 0.2, 1, 0, day ? 0xd81828 : 0xff2840, 1, 5, a1);
+                  K.bill.put(X(rearX + L.dir * 0.03), hy + 0.02, z + e, day ? 0.14 : 0.3, day ? 0.14 : 0.3, 1, 0, day ? 0xd81828 : 0xff2030, 1, 5, (day ? 1 : 1.25) * a1);
+                  LB(X(rearX + L.dir * 0.03), hy + 0.02, z + e, 0.11, 0.11, 1, 0, 0xffd0c8, 1, 0, a1);
                 }
               }
             } else {
@@ -645,9 +652,10 @@ export function createNight(host, o = {}) {
               for (const e of [-tw, tw]) {   // the train's front: BOTH headlights cast a soft beam (a little longer than a car's); BOTH tail lights a red glow
                 LF(X(nose + p.dir * HEAD_REACH * 0.8), 0.05, z + e, HEAD_REACH * 1.6, 1, 0.95, p.dir > 0 ? 0 : Math.PI, 0xfff2d0, 1, 6, 0.6 * lt);
                 K.bill.put(X(nose), ty, z + e, day ? 0.24 : 0.36, day ? 0.24 : 0.36, 1, 0, 0xfff6d8, 1, 5, lt);
-                LF(X(rear - p.dir * TAIL_REACH * 0.36), 0.05, z + e, TAIL_REACH * 1.3, 1, 0.56, 0, 0xff2030, 1, 0, 0.4 * lt);
-                K.bill.put(X(rear), ty, z + e, day ? 0.18 : 0.24, day ? 0.18 : 0.24, 1, 0, day ? 0xd81828 : 0xff2840, 1, 5, 0.9 * lt);
+                K.bill.put(X(rear + p.dir * 0.03), ty, z + e, day ? 0.18 : 0.34, day ? 0.18 : 0.34, 1, 0, day ? 0xd81828 : 0xff2030, 1, 5, (day ? 0.9 : 1.2) * lt);   // the tail lamps ON THE BODY (the glow's source)
+                LB(X(rear + p.dir * 0.03), ty, z + e, 0.12, 0.12, 1, 0, 0xffd0c8, 1, 0, lt);
               }
+              LF(X(rear - p.dir * TAIL_REACH * 0.4), 0.05, z, TAIL_REACH * 1.9, 1, 0.9, 0, 0xff2030, 1, 0, 0.2 * lt);   // … and ONE soft red pool pinned under its tail (the cars' rule)
               LF(X(left + len / 2), 0.045, z + 0.55, len, 1, 0.9, 0, 0xffe2b8, 1, 4, 0.3 * lt);   // (its windows' light on the ground: warm — never blue)
             }
           }

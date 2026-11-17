@@ -371,6 +371,23 @@ async function looksAddons(p) {
   ok(await L("window.__jwLab.state().info.look === 'night'"), 'the add-ons\' shots: the water, the friend line, the rail signals, the ghosts — night + day');
 }
 
+// ---- THE TAIL LIGHTS (`--h5b=tail` — H5B's add-on): night — a car, a van, a truck seen from behind their travel + a busy road → taillights/
+async function looksTail(p) {
+  const L = js => p.evaluate(js);
+  await L("window.__jwLab.bot(false); window.__jwLab.restart('solo', 'look3'); window.__jwLab.setCamera(8, 'straight', true); window.__jwLab.setLook('night'); window.__jwLab.hop('u')"); await sleep(400);
+  for (const [what, name] of [['sedan', 'a-car'], ['van', 'a-van'], ['truck', 'a-truck']]) {
+    // the first road lane (from lane 12) that carries one, a ground lane right under it; wait until it is in the middle of the play
+    const at = await p.evaluate(w => { const J = window.__jwLab; for (let i = 12; i < 240; i++) if (J.find('road', i) === i && J.find('grass', i - 1) === i - 1 && J.items(i).items.some(q => q.what === w)) return i; return -1; }, what);
+    if (at < 0) { ok(false, `a road lane with a ${what} under a ground lane`); continue; }
+    await p.evaluate(l => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'look3'); J.hop('u'); } J.warp(l - 1, { x: 4500 }); }, at);
+    await waitFor(p, `window.__jwLab.items(${at}).items.some(q => q.what === '${what}' && q.left > 2.2 && q.left + q.len < 6.8)`, 30000);
+    await sleep(120); await shot(p, `taillights/night-${name}.png`);
+  }
+  await p.evaluate(() => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'look3'); J.hop('u'); } J.warp(J.find('grass', 262), { x: 4500 }); }); await sleep(1500); await shot(p, 'taillights/night-a-busy-road.png');
+  await L("window.__jwLab.setLook('day')"); await sleep(900); await shot(p, 'taillights/day-a-busy-road.png'); await L("window.__jwLab.setLook('night')");
+  ok(true, 'THE TAIL LIGHTS\' shots: a car, a van, a truck, a busy road (night) + the busy road by day (no glow)');
+}
+
 // ---- H5A's add-on — THE BIG NUMERALS (`--nums`): 17 · 71 · 111 · 117 · 172 · 711 as the game draws them — the in-game lane counter +
 // the end screen's number (the real DOM, the real CSS), the share card at its own size (1080 × 1350, one PNG a number) and as the small
 // link preview (two a row on a 390 pt phone). The modules are the game's own (numerals.js · share.js · kit/share-run.js).
@@ -417,7 +434,7 @@ async function looksNums(p) {
 
 try {
   if (argv.includes('--nums')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksNums(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
-  { const h5b = argv.find(x => x === '--h5b' || x.startsWith('--h5b=')); if (h5b) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); if (h5b.slice(6) === 'addons') await looksAddons(o.p); else await looksH5B(o.p, h5b.slice(6), o.reqs); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); console.log(fails.length ? `\nFAILED: ${fails.length}` : '\nH5B OK'); await b.close(); process.exit(fails.length ? 1 : 0); } }
+  { const h5b = argv.find(x => x === '--h5b' || x.startsWith('--h5b=')); if (h5b) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); if (h5b.slice(6) === 'tail') await looksTail(o.p); else if (h5b.slice(6) === 'addons') { await looksAddons(o.p); await looksTail(o.p); } else await looksH5B(o.p, h5b.slice(6), o.reqs); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); console.log(fails.length ? `\nFAILED: ${fails.length}` : '\nH5B OK'); await b.close(); process.exit(fails.length ? 1 : 0); } }
   { const h5 = argv.find(x => x === '--h5' || x.startsWith('--h5=')); if (h5) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5(o.p, h5.slice(5)); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   if (argv.includes('--h4')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH4(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   if (argv.includes('--h3')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH3(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }

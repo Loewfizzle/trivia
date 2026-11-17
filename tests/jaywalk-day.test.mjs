@@ -78,7 +78,7 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   assert.match(n, /const wallE = run\.wall \/ FP, darkOf = i => clamp01\(wallE - i\)/, 'ONE wall: the run\'s own (the rules\')');
   // light vs paint
   assert.match(n, /const LF = day \? NOP : K\.flat\.put, LB = day \? NOP : K\.bill\.put,/);
-  for (const [what, re] of [['the headlights\' beams', /LF\(X\(nose \+ L\.dir \* HEAD_REACH \/ 2\)/], ['the tail glows', /LF\(X\(tail - L\.dir \* TAIL_REACH \* 0\.3\)/], ['a street lamp\'s pool', /LF\(x - side \* 0\.75, 0\.035, z, 3\.6/], ['the kid\'s glow pool', /LF\(px, feet \+ 0\.04, pz \+ 0\.04, 2\.3/], ['the logs\' amber underglow', /LF\(cx, 0\.045, z, len \+ 1\.1/]]) assert.match(n, re, `${what}: off by day`);
+  for (const [what, re] of [['the headlights\' beams', /LF\(X\(nose \+ L\.dir \* HEAD_REACH \/ 2\)/], ['the tail glow', /LF\(X\(rearX - L\.dir \* TAIL_REACH \* 0\.36\)/], ['a street lamp\'s pool', /LF\(x - side \* 0\.75, 0\.035, z, 3\.6/], ['the kid\'s glow pool', /LF\(px, feet \+ 0\.04, pz \+ 0\.04, 2\.3/], ['the logs\' amber underglow', /LF\(cx, 0\.045, z, len \+ 1\.1/]]) assert.match(n, re, `${what}: off by day`);
   assert.match(n, /m\.blending = day \? THREE\.NormalBlending : THREE\.AdditiveBlending; m\.uniforms\.uDay\.value = day \? 1 : 0;/, 'the lights that stay are PAINT by day');
   assert.match(fx, /if \(uDay > 0\.5\) gl_FragColor = vec4\(vCol, clamp\(k, 0\.0, 1\.0\)\); else gl_FragColor = vec4\(vCol \* k, 1\.0\);/);
   assert.match(n, /if \(day\) K\.shadow\.raw\(px, feet \+ 0\.043, pz \+ 0\.04, 1\.72 \* br, 1, 1\.42 \* br, 0, 0, 1, 3,/, 'THE KID by day: a soft shadow-ring + his colour inside it');

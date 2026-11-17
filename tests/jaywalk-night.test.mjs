@@ -192,12 +192,17 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   assert.match(n, /const LAMPS = Object\.freeze\(\{ 'car-sedan': \[[\d.]+, [\d.]+\], 'car-hatchback': \[[\d.]+, [\d.]+\], 'car-taxi': \[[\d.]+, [\d.]+\], 'car-van': \[[\d.]+, [\d.]+\], truck: \[[\d.]+, [\d.]+\], train: \[[\d.]+, [\d.]+\] \}\);/);
   const reach = /const HEAD_REACH = ([\d.]+), TAIL_REACH = ([\d.]+);/.exec(n);
   assert.ok(reach && +reach[1] >= 1 && +reach[1] <= 1.5 && +reach[2] >= 0.5 && +reach[2] <= 1, `a headlight's glow is gone within ${reach && reach[1]} cells, a tail light's within ${reach && reach[2]}`);
-  assert.match(n, /for \(const e of \[-hw, hw\]\) \{[^}]*0xfff0c8, 1, 6, 0\.5 \* a1\);[^}]*0xff2030, 1, 0, 0\.5 \* a1\);[^}]*0xfff0c0, 1, 5,[^}]*0xff2840, 1, 5,[^}]*\}/, 'a car: two beams, two red glows, two + two lamps');
+  assert.match(n, /for \(const e of \[-hw, hw\]\) \{[^}]*0xfff0c8, 1, 6, 0\.5 \* a1\);[^}]*0xfff0c0, 1, 5,[^}]*0xff2030, 1, 5,[^}]*0xffd0c8, 1, 0, a1\);[^}]*\}/, 'a car: two beams, two + two lamps (each tail lamp a bright red lens + its white-hot core)');
+  // THE TAIL LIGHTS (H5B's add-on — the owner, 9:45 pm): ONE soft merged red pool a vehicle, pinned under its rear (never two streaks, never a gap), half the old strength, inside its lane; none by day
+  assert.match(n, /const rearX = truck \? tail : nose - L\.dir \* bodyL;\s*LF\(X\(rearX - L\.dir \* TAIL_REACH \* 0\.36\), 0\.04, z, TAIL_REACH \* 1\.5, 1, 0\.84, 0, 0xff2030, 1, 0, 0\.25 \* a1\);/, 'ONE pool at the lane\'s middle: it starts under the bumper, fades backward');
+  { const half = 0.75 * 1.5 / 2, c = 0.75 * 0.36; assert.ok(c - half < 0 && c + half < 1.0 && 0.84 / 2 < 0.5, 'it runs on under the body (no gap), ends within a cell, stays inside its lane'); }
+  assert.doesNotMatch(n, /z \+ e, TAIL_REACH/, 'never a glow a lamp (two streaks)');
+  assert.match(n, /K\.bill\.put\(X\(rearX \+ L\.dir \* 0\.03\), hy \+ 0\.02, z \+ e, day \? 0\.14 : 0\.3, day \? 0\.14 : 0\.3, 1, 0, day \? 0xd81828 : 0xff2030, 1, 5, \(day \? 1 : 1\.25\) \* a1\);/, 'the lamps ON THE BODY: bigger + brighter than H5A\'s (0.2) — the glow\'s visible source; by day just red');
   // (H5A — the owner: THE LIGHT TRAILS ARE GONE on every vehicle — from above they read as jet exhaust; afterburners are THE BLACKBIRD's alone)
   assert.doesNotMatch(n, /streak/, 'no streak is drawn behind a car, the truck or the train');
   assert.doesNotMatch(n, /back, tint, 1, 1,|0xff3a5a, 1, 1,/, 'no tapered ribbon (the glow shader\'s shape 1) in a vehicle\'s colour');
   assert.doesNotMatch(n, /2\.0 \+ L\.v \* 0\.045, 1, 0\.62, back, tint/, 'the one long trail is gone');
-  assert.match(n, /for \(const e of \[-tw, tw\]\) \{[^}]*0xfff2d0, 1, 6,[^}]*0xff2030, 1, 0,[^}]*\}/, 'the train\'s front: two beams; its rear: two red glows');
+  assert.match(n, /for \(const e of \[-tw, tw\]\) \{[^}]*0xfff2d0, 1, 6,[^}]*0xff2030, 1, 5,[^}]*\}\s*LF\(X\(rear - p\.dir \* TAIL_REACH \* 0\.4\), 0\.05, z, TAIL_REACH \* 1\.9, 1, 0\.9, 0, 0xff2030, 1, 0, 0\.2 \* lt\);/, 'the train\'s front: two beams; its tail: two lamps on the body + ONE red pool under it');
   assert.doesNotMatch(n, /2\.6, 1, 1\.15|6\.6, 1, 2\.3|, 1, 2, 0\.\d+ \* (a1|lt)\)/, 'no single long spotlight is left');
   assert.match(fxs, /e \* e \* \(1\.0 - u\) \* \(1\.0 - u \* u\) \* smoothstep\(0\.0, 0\.07, u\); \}/, 'shape 6: a short soft beam — a quick falloff, soft edges');
   assert.doesNotMatch(n + fxs, /PointLight|SpotLight/, 'still no real light');
