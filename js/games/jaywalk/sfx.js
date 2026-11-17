@@ -7,7 +7,7 @@
 //   H5A — THE WORLD's (cues.js → onCue): the train bell (a seamless loop while the signals flash) + the train passing, a car passing (a
 //   whoosh — GONE with H5B, the owner), the horn (≤ 1 per 3 s, at half its level — H5B), the lights dying, a gateway (area-arrive — H5C), new-best,
 //   H5C — the TRAIN HORN (one blast a train, when its warning starts). The mix is H6's.
-//   EVERY sound has its pick (A) and, where one was delivered, a `-b` backup (B): pick(id) is the owner's choice on this phone.
+//   EVERY sound has its pick (A) and, where one was delivered, a `-b` backup (B): the GAME plays A (the owner's pinned takes — BEFORE THE FLIP); the LAB plays this phone's audition pick (useLabPicks).
 import { getContext, getSfxBus, isUnlocked, onUnlock } from '../../audio/engine.js';
 import { getPref, setPref } from './lab-prefs.js';
 import { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S } from './sounds.js';
@@ -19,8 +19,13 @@ const BY = Object.fromEntries(SOUNDS.map(s => [s.id, s]));
 export const LIMITER = Object.freeze({ threshold: -8, knee: 6, ratio: 8, attack: 0.002, release: 0.16 });
 export const TRIM = 0.8;       // (takes the compressor's own make-up gain back out: a lone sound plays at its level)
 
-/** the owner's pick for a sound on this phone: 'a' | 'b' */
-export const pick = id => (BY[id] && BY[id].b && getPref(`snd:${id}`, 'a') === 'b' ? 'b' : 'a');
+/** THE TAKES ARE PINNED (BEFORE THE FLIP — the owner, Nov 17): the GAME plays the owner's picks for everyone — every A / B sound its
+ *  take A (NEW BEST = its B recording is that sound's only file since H6B; the train = set B; the area arrival = the sparkle). Only the
+ *  LAB page (lab.js → useLabPicks) plays + remembers this phone's own A / B choice from THE SOUND AUDITION. */
+let labPicks = false;
+export function useLabPicks(on = true) { labPicks = !!on; }
+/** the take a sound plays: 'a' | 'b' — the owner's (A) in the game; this phone's audition pick in the lab */
+export const pick = id => (labPicks && BY[id] && BY[id].b && getPref(`snd:${id}`, 'a') === 'b' ? 'b' : 'a');
 export function setPick(id, ab) { if (BY[id]) setPref(`snd:${id}`, ab === 'b' && BY[id].b ? 'b' : 'a'); }
 /** the one line the owner pastes into chat */
 export const picksLine = () => `JAYWALK SOUNDS: ${SOUNDS.map(s => `${s.id} ${pick(s.id).toUpperCase()}`).join(' · ')}`;

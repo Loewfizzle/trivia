@@ -1,13 +1,14 @@
 // JAYWALK — THE SOUND AUDITION (H2 — docs/jaywalk.md "THE AUDITION"): the lab's SOUNDS sheet (THE SHEET — ui/sheet.js). EVERY JAYWALK sound,
 // its pick + its `-b` backup side by side (PLAY · PLAY B), the train bell as a seamless LOOP (STOP), a choice a sound (A or B — remembered
-// on this phone: sfx.js#setPick; the game plays the choice) and COPY MY PICKS — one short line for the owner to paste into chat.
+// on this phone: sfx.js#setPick; the LAB plays the choice — the game plays the owner's pinned takes, BEFORE THE FLIP) and COPY MY PICKS — one short line for the owner to paste into chat.
 // EVERY TAP ACTS: each button on its own press + lift (never a click — the page's rule); the copy runs INSIDE the lift (a user gesture).
 // Audio unlocks on the first tap anywhere (the shared engine's rule — the tap that opened this sheet).
 import { h } from '../../ui/dom.js';
 import { openSheet } from '../../ui/sheet.js';
-import { SOUNDS, fetchSounds, play, pick, setPick, picksLine, stopAll } from './sfx.js';
+import { SOUNDS, fetchSounds, play, pick, setPick, picksLine, stopAll, useLabPicks } from './sfx.js';
 
 export function openAudition({ press, onClose = null } = {}) {
+  useLabPicks(true);   // (the audition is the lab's: its picks play here — never in the game, BEFORE THE FLIP)
   fetchSounds(SOUNDS.map(s => s.id), true);   // (the audition hears a sound's pick AND its backup)
   const loops = new Map();   // 'id:a' → its handle (the bell)
   const stopLoops = () => { for (const l of loops.values()) l.stop(); loops.clear(); for (const b of body.querySelectorAll('.jw-au-play.is-on')) b.classList.remove('is-on'); };

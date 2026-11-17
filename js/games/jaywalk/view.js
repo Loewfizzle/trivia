@@ -21,7 +21,7 @@ import { createGhost, resetGhost, feedGhost, stepGhost, tagGroups } from './ghos
 import { wireControls } from './controls.js';
 import { createNight } from './night.js';
 import { getPref, setPref } from './lab-prefs.js';
-import { ZOOMS, ZOOM, ANGLES, ANGLE } from './camera.js';
+import { ZOOM, ANGLE } from './camera.js';
 import * as SFX from './sfx.js';
 import { createCues, cuesAt } from './cues.js';
 import { duckMusic, musicDuckLevel } from '../../audio/music.js';
@@ -75,7 +75,9 @@ function loadTable(uid) {
 /** H4B — the quality tier this phone last settled at (the city's rule — `na:tier`: remembered 14 days; the kit steps back up by itself after 8 good seconds) */
 export const TIER_MEM_DAYS = 14;
 const tierMem = () => { const m = /^([012]):(\d+)$/.exec(getPref('tier', '')); return m && serverNow() - Number(m[2]) < TIER_MEM_DAYS * 864e5 ? Number(m[1]) : 2; };
-const pick = (k, list, d) => { const m = getPref(k, String(d)); return list.map(String).includes(m) ? m : String(d); };
+// THE CAMERA IS PINNED (BEFORE THE FLIP — the owner, Nov 17): the game draws ZOOM 8 · STRAIGHT for everyone (camera.js#ZOOM / ANGLE);
+// the lab's ZOOM / ANGLE switches (jw:lab:zoom / angle) are the lab's alone — never read here. (The jw:lab: keys this screen keeps are
+// its OWN memory: the tier it settled at, the hint seen, the best the server last told it.)
 /** HOW A RUN ENDED, in the game's words (causes.js#runLine — the vehicle named is the one the scene drew) */
 /** H5B — THE LOOK on this phone now: the console's GAME LOOK (body[data-look] — AUTO · DAY · NIGHT, per phone, live) */
 const lookNow = () => (document.body.dataset.look === 'day' ? 'day' : 'night');
@@ -123,7 +125,7 @@ export function createView() {
     const me = (st.players && st.players[uid]) || {};
     try {
       if (!had) scenesMade++;
-      night = had ? had.night : createNight(play, { kidColor: colorHex(me.color), zoom: Number(pick('zoom', ZOOMS, ZOOM)), angle: pick('angle', ANGLES, ANGLE), tier: tierMem(), look: lookNow() });
+      night = had ? had.night : createNight(play, { kidColor: colorHex(me.color), zoom: ZOOM, angle: ANGLE, tier: tierMem(), look: lookNow() });
       if (had) { night.setKidColor(colorHex(me.color)); night.resize(); }
       look = lookNow(); night.setLook(look); root.dataset.look = look;   // (H5B — THE DAY LOOK: the scene + this screen's own words follow the phone's GAME LOOK)
     } catch { root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); night = null; return; }

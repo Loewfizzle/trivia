@@ -50,6 +50,8 @@ async function phone(slot, dpr = Number(process.env.E2E_DPR) || 2, name = 'HOPPE
   if (process.env.JW_DEBUG) p.on('console', m => console.log(`   [${m.type()}] ${m.text().slice(0, 240)}`));
   await p.setViewport({ width: 390, height: 844, deviceScaleFactor: dpr, isMobile: true, hasTouch: true });
   await p.evaluateOnNewDocument(s => { try { localStorage.setItem('nd:entered', '1'); localStorage.setItem(`na:${s[0]}:profile`, JSON.stringify({ name: s[1], color: 'cyan', avatar: 'bolt' })); } catch { /* fine */ } }, [slot, name]);
+  // (BEFORE THE FLIP — THE CAMERA + THE TAKES ARE PINNED: this phone has the LAB's odd picks saved — ZOOM 7, TURNED, every B take; the game ignores them)
+  await p.evaluateOnNewDocument(() => { try { for (const [k, v] of [['zoom', '7'], ['angle', 'turned'], ['snd:hop', 'b'], ['snd:land-wood', 'b'], ['snd:train-pass', 'b']]) localStorage.setItem(`jw:lab:${k}`, v); } catch { /* fine */ } });
   const waitFor = async (js, ms = 20000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await p.evaluate(js)) return true; } catch { /* navigating */ } await sleep(50); } return false; };
   const open = async () => { await p.goto(guardUrl(`${BASE}/?emu&slot=${slot}&city=2&when=2026-11-10T20:30`, 'e2e-jaywalk.mjs'), { waitUntil: 'domcontentloaded' }); if (!await waitFor(UP, 60000)) throw new Error('the city never came up'); };
   await open();
@@ -134,6 +136,7 @@ try {
   ok(await P.waitFor(`${S}.game && ${S}.game.id === 'jaywalk' && !!document.querySelector('.jw-game canvas.jw-canvas') && !!${G}`, 25000), `PLAY NOW → the game's own screen (${Date.now() - tPlay} ms from the tap — THE SOLO START's walk inside)`);
   // ---- 3. GO with the server's time → the course
   ok(await P.waitFor(`${G}.state().mode === 'run'`, 8000), 'GO landed: the run is on');
+  { const i = await P.ev(`${G}.state().info`); ok(i.zoom === 8 && i.angle === 'straight', `THE CAMERA IS PINNED: the lab's ZOOM 7 · TURNED saved on this phone — the game draws ZOOM ${i.zoom} · ${String(i.angle).toUpperCase()}`); }
   let g = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId, mode: ${S}.game.mode, phase: ${S}.game.phase, hostSeed: ${S}.game.seed, solo: !!(${S}.meta.settings && ${S}.meta.settings.solo && ${S}.meta.settings.solo.on) })`);
   ok(g.mode === 'solo' && g.phase === 'play' && g.solo && g.m[0] === 's', `PLAY NOW's solo room, SOLO ENDLESS, playing (match ${g.m})`);
   let node = await nodeOf(g.code, g.m, uid), st = await P.ev(`${G}.state()`);
@@ -162,6 +165,8 @@ try {
   await P.ev(`${G}.bot(false)`);
   ln = (await P.ev(`${G}.state()`)).lines;
   const chime = await P.ev("import('/js/games/jaywalk/sfx.js').then(S => S.wanted().filter(x => x.id === 'area-arrive').map(x => x.vol))");
+  { const tk = await P.ev("import('/js/games/jaywalk/sfx.js').then(S => S.wanted().filter(x => x.id === 'hop' || x.id === 'land-wood' || x.id === 'train-pass').map(x => x.ab))");
+    ok(tk.length > 0 && tk.every(x => x === 'a'), `THE TAKES ARE PINNED: the lab's B takes saved on this phone — the game played take A (${tk.length} hops / landings, ${[...new Set(tk)].join(' ')})`); }
   ok(crossedF && ln.shown === '0|' && chime.length === 1 && chime[0] < 0.6, `LIAM's line crossed (lane ${(await P.ev(`${G}.state()`)).best}): a quiet chime (vol ${chime.join()}), and no friend ahead = no line ("${ln.shown}")`);
   await sleep(1400);
   st = await P.ev(`${G}.state()`); node = await nodeOf(g.code, g.m, uid);

@@ -82,7 +82,7 @@ async function mount() {
     sheetOpen = true;
     lazyImport(import('./audition.js'), './audition.js').then(A => A.openAudition({ press, onClose: () => { sheetOpen = false; last = 0; } })).catch(() => { sheetOpen = false; });
   });
-  if (!GRAY) Promise.all([lazyImport(import('../../audio/engine.js'), '../../audio/engine.js'), lazyImport(import('./sfx.js'), './sfx.js')]).then(([E, S]) => { E.installAudio(); S.fetchSounds(); snd = S; lab.sfx = S; }).catch(() => { /* silent: audio is polish */ });
+  if (!GRAY) Promise.all([lazyImport(import('../../audio/engine.js'), '../../audio/engine.js'), lazyImport(import('./sfx.js'), './sfx.js')]).then(([E, S]) => { E.installAudio(); S.useLabPicks(true); S.fetchSounds(); snd = S; lab.sfx = S; }).catch(() => { /* silent: audio is polish */ });
   // (the tools' row: ZOOM + ANGLE — the graybox follows the same camera; SOUNDS sits in the top left corner, off the play)
   const tools = h('div.jw-bar.jw-bar2', h('div.jw-tabs', h('span.jw-bar-k', 'ZOOM'), ...zooms), h('div.jw-tabs', ...angles));
   const lookBar = GRAY ? null : h('div.jw-bar.jw-bar3', h('div.jw-tabs', h('span.jw-bar-k', 'LOOK'), ...looks));
