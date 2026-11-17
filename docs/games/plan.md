@@ -495,3 +495,15 @@
 - NOT DECIDED (OPEN FOR BEN — H5B): a MATCH on the HOST's look, locked. The site's GAME LOOK has been per phone with no lock since SHELL 2.0 B2; H5B built JAYWALK on that rule (each phone its own look, a match too).
 - THE ADD-ON (THE ADD-ON INBOX, Nov 16 9:20 pm — the owner: "your fix to the ghost problem is perfect"): THE GHOSTS STOP BLOCKING YOU — keep the ghosts; near you = faint (≈ 15 %, no tag), your own kid always on top; the names lined up once through the 3 · 2 · 1; stacked tags merge (the leader + "+N"). View only.
 - THE ADD-ON (THE ADD-ON INBOX, Nov 16 9:45 pm — the owner: "make sure it's done"): THE TAIL LIGHTS (night) — the red glow has a visible SOURCE (two bright red lamps on the body) and is ONE soft merged pool pinned under the rear, inside its lane; never two streaks set behind the car, never a gap. The headlights stay as they are. Day: no glow.
+
+## JAYWALK (the owner, Nov 16 — DECIDED, H5C)
+- THE QUALITY BAR (the owner, playing H5B: "I don't want any weak points"): extremely premium, top tier; nothing flat, cheap, clip-art or placeholder-looking; everything readable on an iPhone held upright at real size (390 × 844), by DAY and by NIGHT; 60 fps measured. Every change a VIEW.
+- THE MATCH LOOK: each phone plays a match in its OWN GAME LOOK (the site's per-phone setting; same course, clock, rules). Accepted by the owner. A site-wide host lock = a possible city-chat item later; JAYWALK builds none.
+- THE DAY LANDMARKS = 8 PAINTED DAY SKYLINES (Grok — the same picture as skyline-day with that area's landmark painted in; horizon row 444 / 720 in all; the middle top clear), CROSS-FADED at each area's gate. The drawn day landmarks (skymarks.js by day) are RETIRED; the NIGHT neon-outline landmarks stay as they are.
+- A REAL FAR EDGE: the course ends at a SEA WALL against the skyline's sea; nothing half-see-through ever floats over the backdrop.
+- THE FOG BANK = rolling, layered, moving fog (never a flat slab).
+- BLUE ON THE GROUND = WATER (H5B's rule) holds for props too where they read as ground-level colour (the drums → warm colours).
+- THE LINES: YOUR BEST = a GOLD TAPE between two posts (the same form as the friend's PINK tape); a line's words are ALWAYS readable (never hidden under a log / car).
+- THE GATE'S NAME stands ON THE GATE'S ARCH, above the kid — never covered by him.
+- THE TRAIN SOUNDS = set B (Downloads\grok\jaywalk\sfx3\: the North American crossing bell — Brylon Terry, SoundBible, CC BY 3.0 · the commuter horn — AMBIOSIS, Freesound 316689, CC BY 4.0). THE AREA ARRIVAL = "achievement-sparkle" by SkySpeira (Freesound, CC0; Downloads\grok\jaywalk\sfx4\).
+- EVERY PASS from now on ends with A FRESH-EYES REVIEW (a reviewer with a fresh context looks at the full shot set against THE QUALITY BAR; its report kept verbatim in the pass log) before its final run.
