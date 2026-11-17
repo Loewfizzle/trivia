@@ -139,6 +139,20 @@ export function createFlyers(C) {
   // THE BLACKBIRD: two of them at the very most in view (THE AIRFIELD has two bands) — one geometry, one material
   const jetMat = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0xffffff, roughness: 0.36, metalness: 0.6, envMapIntensity: 1.5, side: THREE.DoubleSide });
   const jets = [];
+  // ITS AFTERBURNERS = SOLID FLAME CONES (H6B's second review: the additive ribbons washed to a white smear over the lit runway + the
+  // ring by night, and read as see-through motion stripes by day): one opaque tapered cone a nozzle, unlit — white-hot at the nozzle,
+  // blue, then orange, a pink tip — the same fire in both looks, drawn in front of everything on the ground; it glows by night (the
+  // bloom's layer). Four at the most in view (two jets).
+  const flameMat = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, toneMapped: false }), flames = [];
+  function flameGeo() {
+    const pos = [], col = [], idx = [], c = new THREE.Color(), SEG = 12;
+    const rings = [[0, 0.62, 0xffffff], [0.07, 1, 0xf2f8ff], [0.2, 0.96, 0x7fc0ff], [0.34, 0.86, 0x3f8cff], [0.5, 0.72, 0xff8a1e], [0.72, 0.46, 0xff5a2a], [0.9, 0.2, 0xff4f9a], [1, 0.02, 0xff8ac8]];
+    for (const [t, r, hex] of rings) { c.setHex(hex); for (let k = 0; k < SEG; k++) { const a = k / SEG * Math.PI * 2; pos.push(t, Math.cos(a) * r, Math.sin(a) * r); col.push(c.r, c.g, c.b); } }
+    for (let i = 0; i < rings.length - 1; i++) for (let k = 0; k < SEG; k++) { const a = i * SEG + k, b = i * SEG + (k + 1) % SEG; idx.push(a, a + SEG, b, b, a + SEG, b + SEG); }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx);
+    return g;
+  }
   // THE UFO: a SOLID saucer (H6B — never see-through: no transparency anywhere) — chrome catching the sun by day, dark metal by
   // night; two in view at the most. It takes the far haze's own colour as its ring nears the wall (solid to the last)
   const ufoMat = () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.2, metalness: 0.85, envMapIntensity: 1.6 });
@@ -146,17 +160,17 @@ export function createFlyers(C) {
   const ufos = [];
   const mk = (g, m) => { const o = new THREE.Mesh(g, m); o.visible = false; o.frustumCulled = false; scene.add(o); return o; };
   function built(n) {
-    if (n === 'blackbird') for (let i = 0; i < 2; i++) { const m = mk(geo[n], jetMat); m.scale.setScalar(FLY.jetLen); m.rotation.order = 'YXZ'; jets.push(m); }
+    if (n === 'blackbird') { for (let i = 0; i < 2; i++) { const m = mk(geo[n], jetMat); m.scale.setScalar(FLY.jetLen); m.rotation.order = 'YXZ'; jets.push(m); } geo.flame = flameGeo(); for (let i = 0; i < 4; i++) { const m = mk(geo.flame, flameMat); m.layers.enable(1); flames.push(m); } }
     if (n === 'ufo') for (let i = 0; i < 2; i++) { const m = mk(geo[n], ufoMat()); m.scale.setScalar(FLY.ufoD); m.rotation.order = 'XYZ'; ufos.push({ m, id: -1 }); }
     if (n === 'mothership') { bakeAsk = true; return; }
     // NO HITCH WHEN IT LANDS: the new material's program is compiled OFF the frame (three's compileAsync — the browser's parallel shader
     // compile), the meshes shown far under the ground for that one call; a browser without it falls back to the scene's own warm frame
-    const ms = n === 'blackbird' ? jets : ufos.map(q => q.m);
+    const ms = n === 'blackbird' ? [...jets, ...flames] : ufos.map(q => q.m);
     for (const m of ms) { m.visible = true; m.position.set(0, -60, 0); }
     const done = () => { for (const m of ms) if (m.position.y === -60) m.visible = false; };
     try { const q = C.renderer.compileAsync(scene, cam); if (q && q.then) q.then(done, done); else { done(); C.rewarm(); } } catch { done(); C.rewarm(); }
   }
-  let nj = 0, nu = 0, nk = 0, shakeNow = 0, humD = 99, dimNow = 0, duckK = 1, duckJ = 1;
+  let nj = 0, nf = 0, nu = 0, nk = 0, shakeNow = 0, humD = 99, dimNow = 0, duckK = 1, duckJ = 1;
   /** play one of THE MIX's rows (`o` adds to it: a pan, a start that follows the moment) */
   const mix = (id, o) => play(id.replace(/@.*/, ''), { ...MIX[id], ...o });
   // (the kid's own moments are asked for BEFORE night.js resets its instanced kinds for the frame: what they lay waits here)
@@ -175,7 +189,7 @@ export function createFlyers(C) {
       for (const q of ufos) { const m = q.m.material; m.metalness = day ? 1 : 0.92; m.roughness = day ? 0.14 : 0.26; }
       if (ship.el) bakeAsk = true;   // (THE MOTHERSHIP's sprite is baked for the look: sunlit rim by day)
     }
-    nj = 0; nu = 0; shakeNow = 0; humD = 99;
+    nj = 0; nf = 0; nu = 0; shakeNow = 0; humD = 99;
     if (bakeAsk && C.renderer && geo.mothership) { bakeAsk = false; try { bakeShip(); } catch { ship.cv = null; } }
     flush();
   }
@@ -221,32 +235,24 @@ export function createFlyers(C) {
       if (M) { M.visible = true; M.position.set(cx, y, zc); M.rotation.set(0, dir * Math.PI / 2, dir * 0.24); }
       // ITS SHADOW sweeps the band's two lanes right under it: a hard jet-sized heart in a soft edge (by day it is laid as dark paint,
       // over the band's own lights + flash — the day's signature)
-      if (day) K.flat.put(cx + 0.35, 0.083, zc + 0.2, 12.2, 1, 4.6, 0, 0x04060c, 1, 5, 0.82 * Math.min(1, lt));
+      if (day) K.flat.put(cx + 0.35, 0.083, zc + 0.2, 13.5, 1, 5.4, 0, 0x0a1430, 1, 0, 0.62 * Math.min(1, lt));   // (soft + cool: the second review — a hard black oval looked pasted on)
       else K.shadow.put(cx, 0.03, zc, FLY.jetLen * 1.05, 1.4, 2.7, 0, 0, 1, 0, 0.85 * Math.min(1, lt));
       LF(cx, 0.045, zc, 5.4, 1, 2.6, 0, 0xffd9a0, 1, 0, 0.14 * lt);                                    // (a thin warm rim: the runway's lights on its belly)
       const fl = reduce ? 1 : 0.84 + 0.16 * Math.sin(F.clock / 17), ry = dir > 0 ? Math.PI : 0, rz = dir > 0 ? 0 : Math.PI;
-      // THE AFTERBURNERS — BLAZING (H6B): from each nozzle a long orange-pink TAIL, over it a blue-white flame CONE, a white-hot dart
-      // at its heart, four shock diamonds, the nozzle's ring. Laid LAST (burn — after the contrails + the band's flash: nothing
-      // washes them white) — the brightest, most coloured thing in the pass in both looks
+      // THE AFTERBURNERS — BLAZING (H6B): from each nozzle a SOLID flame cone (white-hot → blue → orange → a pink tip; it flickers in
+      // length), ONE hot core at the nozzle, a faint long pink tail behind it, a soft warm glow round it — laid LAST (burn): nothing
+      // washes it out, in either look
+      const fy = dir > 0 ? Math.PI : 0;
+      for (const e of [-0.56, 0.56]) { const m = flames[nf++]; if (m) { m.visible = lt > 0.15; m.position.set(nx, y, zc + e); m.rotation.set(0, fy, 0); const k = reduce ? 1 : 0.9 + 0.2 * Math.sin(F.clock / 19 + e * 7); m.scale.set(3.3 * k, 0.3, 0.3); } }
       burn = () => {
         for (const e of [-0.56, 0.56]) {
-          // (each flame = the glow's TAPERED RIBBON turned so its wide, bright end sits on the nozzle and it narrows to a point behind)
-          // (BY DAY they are paint, laid one over the other: each inner flame is shorter + narrower, each outer one solid well past it —
-          //  a blue-white heart in an orange flame, a long pink tail; BY NIGHT they add up to a white-hot heart in the same colours)
-          if (day) K.flat.put(nx - dir * 3.6, y - 0.02, zc + e, 8.4, 1, 2.3, 0, 0xff8a3a, 1, 0, 0.42 * fl * lt);   // (a soft warm aura: the flame's edge is never a hard wedge)
-          K.flat.put(nx - dir * 4.9, y - 0.01, zc + e, 9.6, 1, day ? 1.45 : 0.95, rz, 0xff4f9a, 1, 1, (day ? 1.25 : 0.45) * fl * lt);
-          K.flat.put(nx - dir * 3.4, y, zc + e, 6.6, 1, day ? 1.5 : 1.0, rz, 0xff7a1a, 1, 1, (day ? 1.4 : 0.5) * fl * lt);
-          K.flat.put(nx - dir * 1.95, y + 0.01, zc + e, 3.7, 1, day ? 1.0 : 0.78, rz, day ? 0x1f7fff : 0x3f96ff, 1, 1, (day ? 1.35 : 0.65) * fl * lt);
-          K.flat.put(nx - dir * 1.25, y + 0.02, zc + e, 2.3, 1, day ? 0.55 : 0.42, rz, 0xf4fbff, 1, 1, (day ? 1.3 : 0.6) * fl * lt);
-          // (ONE hot core a nozzle — the review: the row of shock diamonds read as beads on a string)
-          K.bill.put(nx - dir * 0.15, y, zc + e, 0.95, 0.95, 1, 0, 0xdff0ff, 1, 5, lt); LB(nx - dir * 4.4, y, zc + e, 5.0, 1.1, 1, 0, 0xff5a2a, 1, 0, 0.12 * fl * lt);
+          K.flat.put(nx - dir * 5.4, y - 0.02, zc + e, 7.4, 1, 0.8, rz, 0xff4f9a, 1, 1, (day ? 0.5 : 0.3) * fl * lt);                 // the faint long tail
+          K.flat.put(nx - dir * 1.9, y - 0.03, zc + e, 5.2, 1, 1.5, 0, 0xff7a2a, 1, 0, (day ? 0.3 : 0.22) * fl * lt);               // a soft warm glow round the flame
+          K.bill.put(nx - dir * 0.1, y, zc + e, 0.8, 0.8, 1, 0, 0xeaf4ff, 1, 5, lt);                                                 // ONE hot core a nozzle
           // (BY DAY: heat shimmer behind the burners — pale wavering ribbons, further back)
           if (day && !reduce) for (let h = 0; h < 2; h++) K.flat.put(nx - dir * (9.4 + h * 2.4 + 0.4 * Math.sin(F.clock / 23 + e * 9 + h)), y, zc + e * (1.15 + 0.3 * Math.sin(F.clock / 31 + h * 2)), 3.8, 1, 1.2, rz, 0xffffff, 1, 1, 0.2 - h * 0.07);
         }
       };
-      // the vapor ring it punches through (it rides the jet's shoulders for the first ticks, swelling)
-      // (ONE thin ring, brief — by night at half strength: the review — two bright rings stood in front of the dark airframe)
-      if (s > 2 && s < 13) { const q = (s - 2) / 11, d = 1.7 + 3.4 * q; K.bill.put(cx - dir * 0.2, y, zc, d, d, 1, 0, 0xeaf6ff, 1, 3, (day ? 0.9 : 0.45) * (1 - q) * lt); }
     }
     if (tell) { if (burn) burn(); return; }
     // AFTER IT: the contrails (a soft trail that widens as it fades — never a hairline), THE SHOCKWAVE RING on the ground (ONE thick ring,
@@ -325,12 +331,13 @@ export function createFlyers(C) {
       // (never a pale disc on the backdrop — H5C: SOLID, it takes the haze's own colour as its ring nears the wall)
       m.color.setHex(UFO_HEX[day ? 1 : 0]).lerp(fogC, 1 - hz); m.emissive.copy(fogC).multiplyScalar((1 - hz) * 0.8); m.envMapIntensity = UFO_ENV[day ? 1 : 0] * hz;
       // its rim lights (BRIGHT — a chase round the rim), the glow under its belly, by day a hard SUN STAR on its shoulder
-      const a0 = reduce ? 0 : T * 0.9, R = FLY.ufoD * 0.47 * sc, la = hz * Math.min(1, sc * 1.4), ct = Math.cos(tip), st = Math.sin(tip);
+      const a0 = reduce ? 0 : T * 0.9, R = FLY.ufoD * (day ? 0.5 : 0.47) * sc, la = hz * Math.min(1, sc * 1.4), ct = Math.cos(tip), st = Math.sin(tip);
       for (let i = 0; i < 10; i++) {
-        const a = a0 + i * Math.PI / 5, hot = pulse > 0 ? pulse : reduce ? 0.8 : 0.5 + 0.5 * Math.max(0, Math.sin(T * 6 - i * 1.26)), lz = -Math.sin(a) * R * 0.92, ly = 0.16 * sc;
-        K.bill.put(sx + Math.cos(a) * R, sy + ly * ct - lz * st, sz + lz * ct + ly * st, (0.3 + 0.28 * hot) * (day ? 1.4 : 1.25), (0.3 + 0.28 * hot) * (day ? 1.4 : 1.25), 1, 0, day ? (i % 2 ? 0xfff6a0 : 0x10d848) : i % 2 ? 0xffffff : 0x8dff9a, 1, 5, (day ? 1 : 0.65 + 0.35 * hot) * la);   // (by day: bigger, saturated green + warm white — they read on the chrome)
+        const a = a0 + i * Math.PI / 5, hot = pulse > 0 ? pulse : reduce ? 0.8 : 0.5 + 0.5 * Math.max(0, Math.sin(T * 6 - i * 1.26)), lz = -Math.sin(a) * R * 0.92, ly = (day ? 0.24 : 0.16) * sc;   // (by day they sit ON its upper rim — the second review: tucked under it)
+        K.bill.put(sx + Math.cos(a) * R, sy + ly * ct - lz * st, sz + lz * ct + ly * st, (0.3 + 0.28 * hot) * (day ? 1.7 : 1.25), (0.3 + 0.28 * hot) * (day ? 1.7 : 1.25), 1, 0, day ? (i % 2 ? 0xfff6a0 : 0x10d848) : i % 2 ? 0xffffff : 0x8dff9a, 1, 5, (day ? 1 : 0.65 + 0.35 * hot) * la);   // (by day: bigger, saturated green + warm white — they read on the chrome)
       }
       K.bill.put(sx, sy - 0.05, sz, 2.2 * sc, 0.8 * sc, 1, 0, day ? 0xc8ffd8 : 0x7dffa0, 1, 0, (day ? 0.35 : 0.7) * (0.7 + 0.3 * pu + pulse) * la);
+      if (day) K.bill.put(sx, sy + 0.2 * sc, sz + 0.36 * sc, 1.5 * sc, 0.13 * sc, 1, 0, 0xffffff, 1, 4, 0.85 * la);   // (a hard highlight band along its near rim: chrome, not a pot lid)
       if (day) { const gx = sx - 0.5 * sc, gy = sy + 0.4 * sc, tw = reduce ? 1 : 0.8 + 0.2 * Math.sin(T * 3.1); K.bill.put(gx, gy, sz, 1.5 * tw * sc, 0.11, 1, 0, 0xffffff, 1, 0, la); K.bill.put(gx, gy, sz, 0.11, 1.3 * tw * sc, 1, 0, 0xffffff, 1, 0, la); K.bill.put(gx, gy, sz, 0.38, 0.38, 1, 0, 0xffffff, 1, 5, la); }
       // ITS HATCH: a glowing port under its belly, on the side the lens sees — it opens wide as it takes him
       { const hy = sy - 0.24 * sc * ct + 0.3 * sc * st, hzz = sz + 0.3 * sc * ct + 0.3 * sc * st, hk = 0.55 + 0.45 * pu + hatch * 1.4; K.bill.put(sx, hy, hzz, (0.8 + 0.9 * hatch) * sc, (0.3 + 0.5 * hatch) * sc, 1, 0, day ? 0xd6ffe0 : 0x9dffb4, 1, 0, Math.min(1, (day ? 0.5 : 0.75) * hk) * la); if (hatch > 0.05) K.bill.put(sx, hy, hzz, 0.5 * hatch * sc, 0.26 * hatch * sc, 1, 0, 0xffffff, 1, 5, hatch * la); }
@@ -340,9 +347,8 @@ export function createFlyers(C) {
     // darker edge lines, motes drifting up it in both; and it LIGHTS what drives through it (a green wash laid over the cars in the ring)
     if (!A) {
       const h = sy, k = (0.85 + 0.15 * pu) * hz;
-      K.bill.put(bx, h / 2, bz, r * 2.3, h, 1, 0, day ? 0x52e884 : 0x4dff7a, 1, 9, (day ? 0.82 : 0.62) * k);   // (by day a SATURATED green: pale green vanished over the tan paving)
-      K.bill.put(bx, h / 2, bz, r * 1.0, h, 1, 0, day ? 0xeafff0 : 0xc8ffd6, 1, 9, (day ? 0.5 : 0.3) * k);
-      if (day) for (const sd of [-1, 1]) K.bill.put(bx + sd * r * 0.98, h / 2, bz, 0.14, h, 1, 0, 0x0c8a34, 1, 0, 0.5 * k);
+      K.bill.put(bx, h / 2, bz, r * 2.3, h, 1, 0, day ? 0x30d868 : 0x4dff7a, 1, 9, (day ? 1.5 : 0.62) * k);   // (by day a DENSE saturated green: pale green vanished over the tan paving)
+      K.bill.put(bx, h / 2, bz, r * 1.0, h, 1, 0, day ? 0xd8ffe4 : 0xc8ffd6, 1, 9, (day ? 0.6 : 0.3) * k);
       if (!reduce) for (let i = 0; i < 6; i++) { const m = (T * 0.35 + i / 6) % 1; K.bill.put(bx + Math.sin(i * 2.4 + T) * r * 0.5 * (1 - m * 0.5), 0.2 + m * Math.max(0.5, h - 0.8), bz, 0.17, 0.17, 1, 0, 0xffffff, 1, 5, Math.sin(m * Math.PI) * hz); }
       K.bill.put(bx, 0.6, bz + r * 0.95, r * 2.5, 1.5, 1, 0, day ? 0x6dffa0 : 0x4dff7a, 1, 0, (day ? 0.3 : 0.34) * k);
     }
@@ -399,7 +405,6 @@ export function createFlyers(C) {
     if (k > 0.004) {
       const h = top * Math.min(1, k * 1.15), y = top - h / 2;
       K.bill.put(x, y, z, r * 2.7 * (0.35 + 0.65 * k), h, 1, 0, hex, 1, 9, (day ? 0.74 : 0.6) * k);
-      if (day) { K.bill.put(x - r * 0.98, y, z, 0.16, h, 1, 0, 0x0c8a34, 1, 0, 0.5 * k); K.bill.put(x + r * 0.98, y, z, 0.16, h, 1, 0, 0x0c8a34, 1, 0, 0.5 * k); }
       K.flat.put(x, 0.055, z, r * 2.9, 1, r * 2.9, 0, hex, 1, 0, (day ? 0.55 : 0.4) * k); ring(x, 0.056, z, r * 2.5, 1, day ? GREEN_D : 0xcfffd8, k);
       if (!reduce) for (let i = 0; i < 7; i++) { const m = (F.clock / 700 + i / 7) % 1; K.bill.put(x + Math.sin(i * 2.4) * r * 0.75 * (1 - m * 0.5), m * top, z, 0.15, 0.15, 1, 0, 0xffffff, 1, 5, Math.sin(m * Math.PI) * k); }
     }
@@ -412,6 +417,7 @@ export function createFlyers(C) {
     pend.push(() => {
       if (!ship) beam(x, z, FLY.ufoY, Math.sin(Math.min(1, q * 1.3) * Math.PI) * 0.9, 0, day ? 0x8dffb0 : 0x4dff7a, 0.8);
       const a = (1 - 0.35 * q) * (ship ? Math.min(1, 0.35 + q * 5) : 1);
+      if (day && ship) K.bill.put(x, y + 0.55, z, 2.9, 3.1, 1, 0, 0x0c1430, 1, 0, 0.55 * a);   // (by day a dark heart behind the colour: it was washed out in the cream beam)
       K.bill.put(x, y + 0.55, z, 2.5, 2.7, 1, 0, hex, 1, 0, (day ? 0.9 : 0.85) * a);
       K.bill.put(x, y + 0.55, z, 1.0, 1.1, 1, 0, 0xffffff, 1, 0, 0.3 * a);
       for (let i = 1; i <= 4; i++) K.bill.put(x, y + 0.5 - i * 0.55, z, 0.9 - i * 0.12, 0.7, 1, 0, hex, 1, 0, (0.6 - i * 0.12) * a * Math.min(1, q * 6));
@@ -424,18 +430,19 @@ export function createFlyers(C) {
   const sparks = [];
   let fxUsed = false, fxHad = false;
   function spark(x, y, z, q, hex) {
-    const S = sparks[nk] || (sparks[nk] = { q0: -1 }); nk++;
+    const S = sparks[nk] || (sparks[nk] = { q0: -1, x: 0, y: 0 }); nk++;
     if (!ship.fx || !ship.port || !F.w) return 0;
     const W = 1.72 * F.w, H = W * SHIP_H / SHIP_W;
     v3.set(x, y + 0.6, z).project(cam);
     const sx = ((1 + v3.x) / 2 * F.w - (F.w - W) / 2) / W, sy = ((1 - v3.y) / 2 * F.h - ship.y / 100 * H) / H;   // (where he is, in the sprite's own 0 … 1)
     if (sy > 0.96 || q <= 0 || q >= 1) { S.q0 = -1; return 0; }
-    if (S.q0 < 0 || q < S.q0) S.q0 = q;   // (the moment he went behind its rim: from here on he is its light)
+    if (S.q0 < 0 || q < S.q0) { S.q0 = q; S.x = sx; S.y = Math.min(0.96, sy); }   // (the moment + the place he went behind its rim: from here he is its light — STRAIGHT to the port)
     const c = ship.fxc, k = ease(clamp01((q - S.q0) / Math.max(0.05, 0.94 - S.q0))), cw = ship.fx.width, ch = ship.fx.height;
     if (!fxUsed) { fxUsed = true; c.clearRect(0, 0, cw, ch); }
-    const px = (sx + (ship.port[0] - sx) * k) * cw, py = (sy + (ship.port[1] - sy) * k) * ch, r = (15 - 10 * k) * cw / W, col = `#${hex.toString(16).padStart(6, '0')}`;
+    const px = (S.x + (ship.port[0] - S.x) * k) * cw, py = (S.y + (ship.port[1] - S.y) * k) * ch, r = (16 - 9 * k) * cw / W, col = `#${hex.toString(16).padStart(6, '0')}`;
     const g = c.createRadialGradient(px, py, 0, px, py, r);
-    g.addColorStop(0, '#fff'); g.addColorStop(0.3, '#fff'); g.addColorStop(0.55, col); g.addColorStop(1, 'rgba(255,255,255,0)');
+    c.globalAlpha = (q > 0.94 ? Math.max(0, (1 - q) / 0.06) : 1) * 0.55; c.fillStyle = '#0a1024'; c.beginPath(); c.arc(px, py, r * 0.78, 0, 7); c.fill();   // (a dark ring behind it: it reads on the bright hull + the cream beam by day)
+    g.addColorStop(0, '#fff'); g.addColorStop(0.28, '#fff'); g.addColorStop(0.42, col); g.addColorStop(0.7, col); g.addColorStop(1, 'rgba(255,255,255,0)');
     c.globalAlpha = q > 0.94 ? Math.max(0, (1 - q) / 0.06) : 1; c.fillStyle = g; c.beginPath(); c.arc(px, py, r, 0, 7); c.fill();
     return k;
   }
@@ -566,6 +573,7 @@ export function createFlyers(C) {
   function end() {
     flush();
     for (let i = nj; i < jets.length; i++) jets[i].visible = false;
+    for (let i = nf; i < flames.length; i++) flames[i].visible = false;
     for (let i = nu; i < ufos.length; i++) { ufos[i].m.visible = false; ufos[i].id = -1; }
     // (the kid's own moments are asked for BEFORE begin(): what they counted is closed here, at the frame's end)
     for (let i = nk; i < sparks.length; i++) sparks[i].q0 = -1;
@@ -586,15 +594,15 @@ export function createFlyers(C) {
     /** the camera's small shake this frame (cells — THE BLACKBIRD's pass; 0 with reduce motion) */
     shake: () => shakeNow,
     /** the meshes night.js's warm frame must have seen (their programs + buffers made before the moment, never in it) */
-    meshes: () => [...jets, ...ufos.map(q => q.m)],
+    meshes: () => [...jets, ...flames, ...ufos.map(q => q.m)],
     info: () => ({ models: Object.keys(geo), jets: jets.filter(m => m.visible && Math.abs(m.position.x) < 6.5).length, ufos: ufos.filter(q => q.m.visible).length, ship: !!ship.cv, shipOn: ship.on, shipText: ship.txt ? ship.txt.textContent : '', abducting: abd.on, dim: dimO, sparks: sparks.filter(q => q.q0 >= 0).length, sounds: played.slice() }),
     /** the world goes quiet (a run's end / a new run / the view leaves): the loops fade */
     quiet() { if (snd.hum) { snd.hum.stop(0.4); snd.hum = null; } if (snd.ship && !ship.on) { snd.ship.stop(0.4); if (snd.rum) snd.rum.stop(0.4); snd.ship = snd.rum = null; } },
     destroy() {
       dead = true; offBed();
       if (snd.hum) snd.hum.stop(0.2); if (snd.ship) snd.ship.stop(0.2); if (snd.rum) snd.rum.stop(0.2);
-      for (const m of jets) scene.remove(m); for (const q of ufos) { scene.remove(q.m); q.m.material.dispose(); }
-      jetMat.dispose(); for (const g of Object.values(geo)) g.dispose();
+      for (const m of [...jets, ...flames]) scene.remove(m); for (const q of ufos) { scene.remove(q.m); q.m.material.dispose(); }
+      jetMat.dispose(); flameMat.dispose(); for (const g of Object.values(geo)) g.dispose();
       for (const e of [ship.el, ship.dim, ship.shade, ship.wash, ship.txt, dimEl]) if (e) e.remove();
       for (const cv of [ship.cv, ship.glow, ship.fx]) if (cv) { cv.width = 0; cv.height = 0; }
     },

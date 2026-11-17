@@ -205,13 +205,13 @@
 /* THE LIVE ORDER — the top-left corner, right under the menu: best first. OUT = a cross where the colour dot was + the name struck
    through (never colour alone). H6B — THE CHIPS ARE COMPACT (the owner: they covered the landmark painted on the band's left — the
    bridge, the lighthouse): a small colour dot + the name SHORT (≤ 6 letters seen — the whole name stays in the row) + the lanes, 13 px
-   a row (8 players = 111 px tall, ≤ 92 px wide), on a SOFT backing — a dark veil that thins out to the right, no box, no corners:
+   a row (8 players = 111 px tall, ≤ 86 px wide — a 7-letter name whole), on a SOFT backing — a dark veil that thins out to the right, no box, no corners:
    the picture reads through and past it. You = a bar of your colour down the row's left edge; the one you watch = a white bar. */
-.jw-order { position: absolute; z-index: 3; left: 0; top: calc(env(safe-area-inset-top) + 52px); margin: 0; padding: 0; list-style: none; display: grid; gap: 1px; width: max-content; max-width: 92px; pointer-events: none; }
+.jw-order { position: absolute; z-index: 3; left: 0; top: calc(env(safe-area-inset-top) + 52px); margin: 0; padding: 0; list-style: none; display: grid; gap: 1px; width: max-content; max-width: 86px; pointer-events: none; }
 .jw-order:empty { display: none; }
-.jw-order li { position: relative; display: grid; grid-template-columns: 6px minmax(0, 42px) auto; align-items: center; gap: 4px; padding: 0 9px 0 6px; height: 13px;
+.jw-order li { position: relative; display: grid; grid-template-columns: 6px minmax(0, 46px) auto; align-items: center; gap: 3px; padding: 0 3px 0 5px; height: 13px;
   background: linear-gradient(90deg, rgba(7, 6, 11, 0.66) 0, rgba(7, 6, 11, 0.5) 62%, rgba(7, 6, 11, 0) 100%);
-  font: 700 10px/13px var(--font-ui); letter-spacing: 0.05em; color: #fff; text-shadow: 0 1px 0 rgba(7, 6, 11, 0.95), 0 0 3px rgba(7, 6, 11, 0.9); }
+  font: 700 10px/13px var(--font-ui); letter-spacing: 0; color: #fff; text-shadow: 0 1px 0 rgba(7, 6, 11, 0.95), 0 0 3px rgba(7, 6, 11, 0.9); }
 /* (H6B's review — BY DAY the dark veil sat on the painted bridge / lighthouse: a faint veil there, the letters carry the day's own ink) */
 .jw-stage[data-look='day'] .jw-order li { background: linear-gradient(90deg, rgba(12, 22, 48, 0.3) 0, rgba(12, 22, 48, 0.16) 60%, rgba(12, 22, 48, 0) 100%); text-shadow: 0 0 2px #0a1020, 0 1px 0 rgba(10, 16, 32, 0.95), 0 0 4px rgba(10, 16, 32, 0.9), 0 0 9px rgba(10, 16, 32, 0.6); }
 .jw-order-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c); box-shadow: 0 0 4px var(--c); }

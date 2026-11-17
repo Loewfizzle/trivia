@@ -176,8 +176,6 @@ try {
   await pages[2].evaluate(() => import('/js/games/kit/look.js').then(m => m.saveLook('day')));
   ok(await until(async () => { const q = await lookOf(pages[2]); return q.scene === 'day' && q.stage === 'day' && q.band === 'day'; }, 6000), '… CHARLIE switches to DAY mid-match: his screen re-themes at once (read live)');
   ok((await all(N, p => state(p))).every(s => s.ghosts.length === N - 1 && s.seed === game.seed), '… the same match on all three: the look is a view');
-  // (H6B — THE LOOK SWITCH: the band CROSS-FADES to the day picture (≈ 1.5 s — never a jump): the shot waits for it)
-  ok(await until(() => pages[2].evaluate(`(() => { const q = document.querySelectorAll('.jw-sky-pic'), op = +getComputedStyle(q[1]).opacity, on = op === 1 ? q[1] : op === 0 ? q[0] : null; return !!on && on.style.backgroundImage.includes('skyline-day'); })()`), 9000), '… his band cross-fades to the DAY picture (the look switch is never a jump)');
   await H.shot(pages[2], 'match-day-ghosts');
   // ---- 4. BOB out first (two still in) → the cause words → Call the Winner → WATCHING the leader
   await H.shot(pages[0], 'ghosts-3-two-seconds-in');
@@ -204,6 +202,10 @@ try {
   ok(await until(async () => /YOUR CALL · ALICE/.test((await state(pages[1])).watch), 6000), `… the watcher's line: "${(await state(pages[1])).watch}"`);
   const call = await until(async () => { const n = await dbGet(`rooms/${code}/jw/${m}/${uids[1]}/k`); return n && n.w ? n : null; }, 6000);
   ok(call && call.w === uids[0] && typeof call.at === 'number', 'the call is on BOB\'s own proof node (k = { w, at: the server\'s time })');
+  // (H6B — THE LOOK SWITCH: CHARLIE's band CROSS-FADED to the day picture (≈ 1.5 s — never a jump). Asserted HERE, long after his
+  //  switch: waiting for it at the switch held the scripted players still and the blackout reached them)
+  ok(await until(() => pages[2].evaluate(`(() => { const q = document.querySelectorAll('.jw-sky-pic'), op = +getComputedStyle(q[1]).opacity, on = op === 1 ? q[1] : op === 0 ? q[0] : null; return !!on && on.style.backgroundImage.includes('skyline-day'); })()`), 9000), '… his band cross-fades to the DAY picture (the look switch is never a jump)');
+  await H.shot(pages[2], 'match-day-band');
   let sb = await state(pages[1]);
   ok(sb.watching && !!sb.follow && /WATCHING (ALICE|CHARLIE|DANA)/.test(sb.watch), `OUT = SPECTATE: the camera follows the leader — "${sb.watch}"`);
   const f0 = sb.follow;

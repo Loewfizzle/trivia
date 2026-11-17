@@ -38,9 +38,9 @@ test('THE GATE SIGN shows ONLY ON THE APPROACH: up 10 lanes out, whole to 4.5, F
 
 test('THE MATCH CHIPS are COMPACT: a small dot + the name short + the lanes, 13 px a row on a soft veil — never a box over the painted landmark', () => {
   const row = /\.jw-order li \{([^}]*)\}/.exec(CSS)[1], ol = /\.jw-order \{([^}]*)\}/.exec(CSS)[1];
-  assert.match(row, /height: 13px;/); assert.match(row, /grid-template-columns: 6px minmax\(0, 42px\) auto;/, 'the name is cut short (the whole name stays in the row)');
+  assert.match(row, /height: 13px;/); assert.match(row, /grid-template-columns: 6px minmax\(0, 46px\) auto;/, 'the name is cut short (the whole name stays in the row)');
   assert.match(row, /background: linear-gradient\(90deg, rgba\(7, 6, 11, 0\.66\) 0, rgba\(7, 6, 11, 0\.5\) 62%, rgba\(7, 6, 11, 0\) 100%\);/, 'a soft backing that thins out — no box');
-  assert.doesNotMatch(row, /border-radius/, 'no pill, no box'); assert.match(ol, /max-width: 92px;/); assert.match(ol, /gap: 1px;/);
+  assert.doesNotMatch(row, /border-radius/, 'no pill, no box'); assert.match(ol, /max-width: 86px;/); assert.match(ol, /gap: 1px;/);
   assert.ok(8 * 13 + 7 * 1 <= 112, '8 players = 111 px tall');
   assert.match(CSS, /\.jw-order li\.is-out \.jw-order-n \{ text-decoration: line-through; \}/, 'OUT is never colour alone: the name struck through + a cross for the dot');
   assert.match(V, /h\('i\.jw-order-dot', \{ 'aria-hidden': 'true' \}\), h\('span\.jw-order-n', r\.name\), h\('b', String\(r\.lanes\)\)/, 'the same row: the dot, the WHOLE name (the css shortens it), the lanes');
@@ -71,14 +71,16 @@ test('THE MOMENTS\' FINISH: THE UFO solid (no transparency), smaller + a little 
   assert.match(FL, /K\.bill\.put\(bx, 0\.6, bz \+ r \* 0\.95, r \* 2\.5, 1\.5, 1, 0, day \? 0x6dffa0 : 0x4dff7a, 1, 0,/, 'its beam LIGHTS what drives through it: a green wash over the cars in the ring');
   // THE BLACKBIRD's burners: laid LAST (after the contrails + the flash), the contrails start behind them
   assert.match(FL, /if \(tell\) \{ if \(burn\) burn\(\); return; \}/); assert.match(FL, /shakeNow = FLY\.shake \* \(1 - \(u - FLY\.shakeFrom\) \/ FLY\.shakeTicks\);\s*if \(burn\) burn\(\);/);
-  for (const hex of ['0xff4f9a', '0xff7a1a', '0x1f7fff', '0xf4fbff']) assert.ok(FL.includes(hex), `a flame layer ${hex}: a blue-white heart in an orange flame, a pink tail`);
+  assert.match(FL, /const flameMat = new THREE\.MeshBasicMaterial\(\{ vertexColors: true, fog: false, toneMapped: false \}\), flames = \[\];/, 'the flames are SOLID cones (the second review: additive ribbons washed to a white smear by night) — unlit, opaque, the same fire in both looks'); for (const hex of ['0xffffff', '0x3f8cff', '0xff8a1e', '0xff4f9a']) assert.ok(/const rings = \[[^\n]*\];/.exec(FL)[0].includes(hex), `the cone's colours: ${hex} (white-hot → blue → orange → a pink tip)`);
+  assert.doesNotMatch(FL, /0xeaf6ff, 1, 3, \(day \? 0\.9 : 0\.45\)/, 'no vapor ring across the fuselage (the airframe looked see-through)');
   assert.doesNotMatch(FL, /for \(let d = 0; d < 4; d\+\+\) K\.bill\.put\(nx/, 'no row of shock diamonds (the review: beads on a string) — ONE hot core a nozzle'); assert.match(FL, /jetMat\.emissive\.setHex\(day \? 0 : 0x1a2440\);/, 'by night the airframe carries a cool light of its own');
+  assert.match(FL, /if \(S\.q0 < 0 \|\| q < S\.q0\) \{ S\.q0 = q; S\.x = sx; S\.y = Math\.min\(0\.96, sy\); \}/, 'a kid\'s light flies STRAIGHT from where he went behind the rim to the port (the second review: it flew on past it)');
   assert.match(FL, /if \(yf < 0\.31\) \{[^}]*sy = Math\.max\(2\.6, sy - \(0\.31 - yf\) \/ per\); \}/, 'THE UFO hovers lower while its ring is far up the screen: never half in the haze under the wall');
   // THE MOTHERSHIP
   assert.match(N, /t = capT && tr > capT \? capT \+ 40 \* \(1 - Math\.exp\(\(capT - tr\) \/ 40\)\) : tr,/, 'past the cap the scene\'s tick eases to a stop: the traffic under the ship slows to a halt (a view — the run is over)');
   { const cap = 21600, t = tr => (tr > cap ? cap + 40 * (1 - Math.exp((cap - tr) / 40)) : tr); assert.equal(t(cap - 5), cap - 5); assert.ok(t(cap + 6) - cap > 5 && t(cap + 6) - cap < 6, 'no jump at the cap'); assert.ok(t(cap + 600) - t(cap + 300) < 0.05, 'stopped'); for (let k = 0; k < 400; k++) assert.ok(t(cap + k + 1) >= t(cap + k), 'never backwards'); }
   assert.match(N, /if \(capT\) FL\.ship\(tr, capT, taken \? fx\.out : -1, 1\);/, 'the ship itself runs on the real clock');
-  assert.match(FL, /if \(ship\) spark\(x, y, z, q, hex\);/); assert.match(FL, /const px = \(sx \+ \(ship\.port\[0\] - sx\) \* k\) \* cw, py = \(sy \+ \(ship\.port\[1\] - sy\) \* k\) \* ch,/, 'every kid flies INTO the port: a light of their colour on ONE canvas inside the ship\'s own sprite'); assert.doesNotMatch(FL + CSS, /jw-ship-kid/, 'never an element a kid'); assert.match(FL, /ship\.fxc = ctx2d\(fv, \{ willReadFrequently: true \}\);/, 'a plain bitmap canvas (measured: a default one cost a 150 ms frame as the first kid reached the rim)');
+  assert.match(FL, /if \(ship\) spark\(x, y, z, q, hex\);/); assert.match(FL, /const px = \(S\.x \+ \(ship\.port\[0\] - S\.x\) \* k\) \* cw, py = \(S\.y \+ \(ship\.port\[1\] - S\.y\) \* k\) \* ch,/, 'every kid flies INTO the port: a light of their colour on ONE canvas inside the ship\'s own sprite'); assert.doesNotMatch(FL + CSS, /jw-ship-kid/, 'never an element a kid'); assert.match(FL, /ship\.fxc = ctx2d\(fv, \{ willReadFrequently: true \}\);/, 'a plain bitmap canvas (measured: a default one cost a 150 ms frame as the first kid reached the rim)');
   assert.match(FL, /if \(!fxUsed && fxHad && ship\.fxc\) ship\.fxc\.clearRect\(0, 0, ship\.fx\.width, ship\.fx\.height\);/, 'cleared once the last kid is in — nothing is drawn on it otherwise');
   // every big moment's module + model stays ON DEMAND; the rules never import a view
   for (const f of ['flyers.js', 'shops.js', 'skymarks.js']) assert.ok(!PRELOAD.jaywalk.includes(`js/games/jaywalk/${f}`), `${f}: not in the cartridge's eager graph`);

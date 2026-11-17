@@ -15,6 +15,9 @@ export const SHOPS = Object.freeze(['shop-a', 'shop-b', 'shop-c', 'shop-d']);
 /** a shop's size on the lane (cells): its front's width + height scale · its depth (it stays inside its own lane) */
 export const SHOP = Object.freeze({ w: 1.8, d: 0.9, front: 0.46, sign: [0.62, 0.86, 0.6, 0.74] });   // (sign: where each model's sign hangs — a share of its front's width up from the pavement)
 
+/** a pastel of a colour (55 % toward white): a shop's walls by day */
+const pastel = hex => (((hex >> 16 & 255) * 0.45 + 140 | 0) << 16) | (((hex >> 8 & 255) * 0.45 + 140 | 0) << 8) | ((hex & 255) * 0.45 + 140 | 0);
+
 /** C = night.js's own: { kind (its instanced-kind maker), K (its kinds — every one is reset + laid each frame), rewarm() } */
 export function createShops({ kind, K, rewarm }) {
   let dead = false;
@@ -41,13 +44,16 @@ export function createShops({ kind, K, rewarm }) {
       const i = Math.floor(q.s * 3.999), k = KS[i];
       if (!k) return false;
       U.value = day ? 0 : 1;
-      k.put(x, 0, z + 0.02, SHOP.w, SHOP.w, SHOP.d, 0, 0xffffff, dim * (day ? 1.15 : 1.5));
+      // (the second review: grey blocks — BY DAY its walls take a pastel of its sign's colour; its AWNING = a fat saturated block over
+      //  the shop front, toward the camera: the one bright accent that says "shop" at phone size)
+      k.put(x, 0, z + 0.02, SHOP.w, SHOP.w, SHOP.d, 0, day ? pastel(sg) : 0xffffff, dim * (day ? 1.5 : 1.5));
+      K.posts.put(x, 0.5, z + SHOP.front + 0.13, SHOP.w * 0.8, 0.1, 0.34, 0, sg, dim * (day ? 1.5 : 1.9)); K.posts.put(x, 0.44, z + SHOP.front + 0.3, SHOP.w * 0.8, 0.07, 0.05, 0, 0xfbf6ea, dim * (day ? 1.5 : 1.6));
       K.shadow.put(x, 0.03, z + 0.12, 2.1, 1, 1.15, 0, 0, 1, 0, 0.5 * lt);
       const sy = SHOP.sign[i] * SHOP.w, fz = z + SHOP.front;
       if (day) {   // (a PAINTED board over the shop front: white trim, the sign's colour)
         K.bill.put(x, sy, fz, 1.06, 0.26, 1, 0, 0xfbf6ea, 1, 4, 1); K.bill.put(x, sy, fz, 0.92, 0.15, 1, 0, sg, 1, 4, 1);
       } else if (on) {   // (its NEON sign — the tube, its glow — + its colour thrown on the pavement in front)
-        K.bill.put(x, sy, fz, 1.0, 0.17, 1, 0, sg, 1, 4, lt); K.bill.put(x, sy, fz, 0.9, 0.06, 1, 0, 0xffffff, 1, 4, 0.75 * lt); K.bill.put(x, sy, fz, 1.7, 0.6, 1, 0, sg, 1, 0, 0.42 * lt);
+        K.bill.put(x, sy, fz, 1.25, 0.32, 1, 0, sg, 1, 4, lt); K.bill.put(x, sy, fz, 1.1, 0.1, 1, 0, 0xffffff, 1, 4, 0.8 * lt); K.bill.put(x, sy, fz, 2.0, 0.8, 1, 0, sg, 1, 0, 0.45 * lt);   // (a fat tube: a shape, never a hairline)
         K.flat.put(x, 0.045, z + 0.55, 2.0, 1, 0.9, 0, sg, 1, 0, 0.3 * lt); K.flat.put(x, 0.046, z + 0.5, 1.5, 1, 0.6, 0, 0xffd9a0, 1, 0, 0.26 * lt);
       }
       return true;

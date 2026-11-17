@@ -96,7 +96,7 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   assert.match(fx, /gl_FragColor = vec4\(vec3\(0\.03, 0\.07, 0\.17\) \* uDay, a \* vFx\.y \* \(1\.0 - vFog\)\);/, 'a day shadow is cool, never plain black');
   assert.match(n, /if \(bloom && !day\) bloom\.render\(scene, cam\);/);
   // the gate by day: painted — never neon
-  assert.match(n, /if \(day\) \{[\s\S]{0,400}const pc = LOOKS\[AR\]\.paint/); assert.match(n, /for \(let k = 0; k < 10; k\+\+\) K\.flat\.put\(xl \+ \(xr - xl\) \* \(k \+ 0\.5\) \/ 10, 0\.05, zf \+ 0\.06, \(xr - xl\) \/ 10 \+ 0\.02, 1, 0\.2, 0, k % 2 \? wh : pc, 1, 4, 1\);/, 'a striped PAINTED line on the ground between the two posts (H6B: the raised crossbar is gone — nothing stands over a lane)');
+  assert.match(n, /if \(day\) \{[\s\S]{0,400}const pc = LOOKS\[AR\]\.paint/); assert.match(n, /for \(let k = 0; k < 10; k\+\+\) K\.flat\.put\(xl \+ \(xr - xl\) \* \(k \+ 0\.5\) \/ 10, 0\.05, zf \+ 0\.06, \(xr - xl\) \/ 10 \+ 0\.02, 1, 0\.38, 0, k % 2 \? wh : pc, 1, 4, 1\);/, 'a striped PAINTED line on the ground between the two posts (H6B: the raised crossbar is gone — nothing stands over a lane)');
   assert.match(n, /if \(day\) \{[^}]*c\.strokeText\(text, 0, 0\); c\.fillStyle = '#ffffff'; c\.fillText\(text, 0, 0\);/, 'the name: white paint, a dark edge');
   // only the look on screen is fetched
   assert.match(n, /const plan = skyPlan\(lane, day \? 'day' : 'night'\), keep = skyHeld\(plan\);/, 'the band asks skyline.js: the look on screen, the kid\'s area');

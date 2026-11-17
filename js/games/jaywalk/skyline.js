@@ -17,7 +17,7 @@ export const SKY_BAND = 0.24, SKY_ASPECT = 1280 / 432;
  * its centre while the kid is in the area (+ = its RIGHT side comes in): the landmark on the screen, clear of the lane count; the
  * slide with the kid's column rides on top. NIGHT HAS ITS OWN (H6B — measured off the night pictures).
  */
-export const SKY_BIAS = Object.freeze({ docks: 16, fish: 11, yard: 17, bridge: -13, downtown: 5, canal: 7, lighthouse: -15.5, airfield: 11 });   // (H6B's review: the cranes, the fish hall, the rail yard + downtown's towers were cut by the screen's right edge; the lighthouse stood under the match's chips)
+export const SKY_BIAS = Object.freeze({ docks: 16, fish: 11, yard: 17, bridge: -13, downtown: 5, canal: 7, lighthouse: -16.5, airfield: 11 });   // (H6B's review: the cranes, the fish hall, the rail yard + downtown's towers were cut by the screen's right edge; the lighthouse stood under the match's chips)
 export const SKY_BIAS_NIGHT = Object.freeze({ docks: 8, fish: 15, yard: 14, bridge: -14, downtown: 3.5, canal: 12, lighthouse: -17, airfield: 9 });
 /** THE NIGHT's LIFE, in % of the picture: [x, y, delay s] the red aviation lights · [x, y, w, h, delay s] the windows that flicker —
  *  and, per area, the ones its painted landmark stands on (measured by scripts/build-jaywalk-assets.py): OFF there. */

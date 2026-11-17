@@ -5,7 +5,7 @@
 // kid — and nothing a player reads says "TAKEN".
 export async function looksH6A(p, { ok, shot, sleep, waitFor, what = '', reqs = [] }) {
   const L = js => p.evaluate(js), all = !what;
-  let lookNow = '';
+  let lookNow = await p.evaluate(() => window.__jwLab.look());   // (the look the page is in: only a CHANGE cross-fades)
   const fresh = async (look, mode = 'solo') => { await fresh0(look, mode); if (look !== lookNow) { lookNow = look; await sleep(2100); } };   // (H6B: a look change CROSS-FADES the band — a shot waits it out)
   const fresh0 = (look, mode = 'solo') => L(`window.__jwLab.freeze(false); window.__jwLab.ghosts(0); window.__jwLab.bot(false); window.__jwLab.restart('${mode}', 'look3'); window.__jwLab.setCamera(8, 'straight', true); window.__jwLab.setLook('${look}'); window.__jwLab.hop('u')`);
   const fly = () => p.evaluate(() => window.__jwLab.view.info().fly);
@@ -148,6 +148,7 @@ export async function looksH6A(p, { ok, shot, sleep, waitFor, what = '', reqs = 
     await at(520); await shot(p, `h6a/ship/${look}-3-the-arrival.png`);
     await at(1350); await shot(p, `h6a/ship/${look}-4-the-lift.png`);
     await at(2250); await shot(p, `h6a/ship/${look}-5-the-lift-higher.png`);
+    await at(2800); await shot(p, `h6a/ship/${look}-5b-into-the-port.png`);   // (H6B: the kids' lights reaching the port)
     ok(!(await L('window.__jwLab.state().shown')), 'the end\'s words wait for the lift (the scene is held ≈ 4 s)');
     await waitFor(p, 'window.__jwLab.state().shown', 8000);
     const line = await L('window.__jwLab.state().line');

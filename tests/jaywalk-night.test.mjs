@@ -216,7 +216,7 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   assert.match(n, /const br = reduce \? 1 :/, '… it breathes — never with reduce motion');
   // THE BOX TRUCK: built in code (a cab + a box), its amber markers + lit tail lights; never the van + a bare box
   assert.match(m, /export function buildTruck\(\)/); assert.match(m, /roundBox\(0\.74, 0\.6, 0\.76, 0\.13\), color: 0xa6a6a6, paint: 1/, 'a cab in its own colour'); assert.match(m, /roundBox\(0\.8, 0\.8, 1\.9, 0\.1\), color: white/, 'a long white box'); assert.doesNotMatch(m + n, /buildTrailer|K\.trailers/);
-  assert.match(n, /if \(truck\) K\.trucks\.put\(cx, 0, z, 0\.94, 0\.9, tz, ry, tint, 1, dim\);\s*else if \(q\) q\.put\(/, 'a 3-cell vehicle = the truck alone, as long as its rules length');
+  assert.match(n, /if \(truck\) K\.trucks\.put\(cx, 0, z, 0\.94, 0\.9, tz, ry, tint, 1, day \? dim \* 0\.8 : dim\);\s*else if \(q\) q\.put\(/, 'a 3-cell vehicle = the truck alone, as long as its rules length');
   assert.match(n, /if \(truck\) for \(const m of \[0, 0\.34, 0\.67, 1\]\) K\.bill\.put\([^;]*0xff9a1c/, 'amber marker lights along its side');
   // THE PROPS: no crate, no pale jersey barrier (THE BARRICADE is built in code); the files stay in the folder
   assert.match(m, /export const SCENE_MODELS = Object\.freeze\(\[\.\.\.KENNEY\.filter\(n => n !== 'crate-box' && n !== 'traffic-barrier'\), \.\.\.LANDMARK_MODELS\]\);/);
