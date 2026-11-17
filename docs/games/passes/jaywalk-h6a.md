@@ -157,7 +157,12 @@ THE MOTHERSHIP: of its designed parts (sliding shadow, darkening skyline, coloss
 | 15 | the cards: a strip on RIGHT OF WAY's edge | CHECKED: the legendary's border laser caught mid-frame (it runs round the edge) — as on every legendary |
 
 ## THE CHECKS (the mini PC, my own fresh emulators + `serve.mjs --emu`)
-*(the final numbers: the close's commit message)*
+- **The final local run, one suite after the other:** unit 2171 / 2171 · rules 83 / 83 (no rules change) · `/api` server 66 / 66
+  (+ "JAYWALK H6A") + share-card 2 / 2 · smoke 21 / 21 (THE PAGES LOAD, Chromium + WebKit) · harbor `cartridge` 3 / 3 ·
+  `e2e-jaywalk` 75 / 75 with its perf measure · `e2e-jaywalk-match` 83 / 83 (3 phones, with its perf measure — + step 8c) and
+  80 / 80 (4 phones) · the lab's `--h6a` 39 / 39 + `--h6a=perf` 15 / 15 · the lab check 139 / 139 with `--perf --webkit` (59.9 fps at every tier at
+  1× and 4× CPU; DOWNTOWN · THE LIGHTHOUSE · THE RAIL YARD by night + day as before). (The match check's first run of the pass showed 9 reds that never came back in five further runs — its log was not
+  kept; named, not explained.) `wk-press` / `e2e-daily` (the dailies' known evening red, another area) were not run.
 - **Perf — 390 × 844 @3, 4× CPU, `--h6a=perf`:** THE BLACKBIRD's pass 59.9 fps · THE ABDUCTION 59.9 · THE MOTHERSHIP's arrival + the lift
   with 8 kids 59.9 — by night AND by day, at tier 2 AND tier 1 (p95 16.8 ms). **THE ON-DEMAND LOAD: no hitch** — the module + the
   model arrive while the bot plays on: worst frame 33.3 ms, none over 34 (the first try compiled the new program in the scene's warm
