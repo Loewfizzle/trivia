@@ -66,7 +66,18 @@ const nodeOf = async (code, m, uid) => dbGet(`rooms/${code}/jw/${m}/${uid}`);
 // resting, the share card built) + once mid-run for scale
 const mems = [], bpid = b.process() && b.process().pid;
 const memFinal = async (P, tag) => { await sleep(1500); const m = await memAt(P.p); mems.push({ tag, ...m }); console.log(memLine(tag, m, browserMb(bpid))); return m; };
-const toEnd = async (P, ms = 45000) => P.waitFor(`${S}.game && ${S}.game.phase === 'final' && !!document.querySelector('.jw-final .jw-fin-cause')`, ms);
+let endAt = 0;   // (when the last end screen came up)
+const toEnd = async (P, ms = 45000) => { const up = await P.waitFor(`${S}.game && ${S}.game.phase === 'final' && !!document.querySelector('.jw-final .jw-fin-cause')`, ms); endAt = Date.now(); return up; };
+// (H6B — a run that PAID XP opens the console's END-OF-ROUND MOMENT ≈ 4.5 s after the end screen, OVER its buttons: a kid run down early
+//  got it here (the course is picked after GO: about 1 run in 3), the usual first run — lost standing in the fog — never showed one. Its window is
+//  waited out; CONTINUE if it came — as the match check does.)
+const pastMoment = async P => {
+  while (Date.now() - endAt < 6500 && !(await P.ev("!!document.querySelector('.pg-moment')"))) await sleep(200);
+  for (let i = 0; i < 10 && await P.ev("!!document.querySelector('.pg-moment')"); i++) {
+    await P.ev("(() => { const m = document.querySelector('.pg-moment'), b = m && m.querySelector('.pg-btn'); if (b && m.classList.contains('is-end')) b.click(); else if (m) m.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); })()");
+    await sleep(700);
+  }
+};
 const board = async pid => { const s = await dbGet(`pstats/${pid}`); return s && s.b && s.b['jaywalk-solo'] ? s.b['jaywalk-solo'].a : null; };
 /** H4B's add-on — THE SHARE = THE PICTURE ONLY: tap `sel` with the share sheet stubbed → what was shared + the link's page + its picture */
 async function shareLink(page, sel) {
@@ -212,6 +223,7 @@ try {
   // ---- 6. PLAY AGAIN — measured: the tap → the next run's course is up (ready to hop)
   const times = [];
   const again = async () => {
+    await pastMoment(P);
     const m0 = await P.ev(`${S}.game.matchId`);
     await P.ev("window.__t0 = 0; document.querySelector('.final-again').addEventListener('click', () => { window.__t0 = performance.now(); }, { capture: true, once: true })");
     await P.tap('.final-again');
@@ -306,6 +318,7 @@ try {
   ok(!!rf && vf.ok === false && vf.why === 'ahead of the clock', `… and the server REFUSES it (${vf.why})`);
   ok(await board(pid) === bestNow, `… the best is untouched (${bestNow})`);
   // ---- 8. BACK TO THE CITY
+  await pastMoment(P);
   await P.tap('.final-city');
   ok(await P.waitFor(`!${S}.code && !!document.querySelector('.nd-tab-play')`, 20000), 'BACK TO THE CITY → the city');
   await sleep(1200);
@@ -356,6 +369,7 @@ try {
         if (!done) { await Q.ev(`${G}.bot(false)`); await toEnd(Q, 60000); }
         // the next run (PLAY AGAIN)
         await Q.waitFor("!!document.querySelector('.final-again')", 15000);
+        await pastMoment(Q);
         const m0 = await Q.ev(`${S}.game.matchId`);
         await Q.tap('.final-again');
         await Q.waitFor(`${S}.game && ${S}.game.matchId !== '${m0}'`, 15000);
@@ -383,9 +397,9 @@ try {
       await Q.ev(`${G}.setTier(${tier}); ${G}.bot(true)`);
       await sleep(1200);
       await Q.ev(`${G}.clearFrames()`);
-      const end = Date.now() + 7000;
-      while (Date.now() < end) {   // (the bot plays on: a run that ends is hopped again at once)
-        if (await Q.ev(`${S}.game && ${S}.game.phase === 'final' && !!document.querySelector('.final-again')`)) { await Q.ev("document.querySelector('.final-again').click()"); await Q.waitFor(`!!${G} && ${G}.state().mode === 'run'`, 8000); await Q.ev(`${G}.setTier(${tier}); ${G}.bot(true)`); }
+      let end = Date.now() + 7000, redo = 0;
+      while (Date.now() < end) {   // (the bot plays on: a run that ends is hopped again at once — and the 7 s are measured again: the next run is a fresh view, its frame list starts over)
+        if (await Q.ev(`${S}.game && ${S}.game.phase === 'final' && !!document.querySelector('.final-again')`)) { await Q.ev("document.querySelector('.final-again').click()"); await Q.waitFor(`!!${G} && ${G}.state().mode === 'run'`, 8000); await Q.ev(`${G}.setTier(${tier}); ${G}.bot(true)`); if (redo++ < 4) { await sleep(1200); await Q.ev(`${G}.clearFrames()`); end = Date.now() + 7000; } }
         await sleep(200);
       }
       const m = await Q.ev(`(() => { const f = ${G}.frames().slice().sort((a, b) => a - b), c = ${G}.cost().slice().sort((a, b) => a - b), q = (a, p) => a[Math.min(a.length - 1, Math.floor(a.length * p))], avg = f.reduce((a, b) => a + b, 0) / f.length, i = ${G}.state().info; return { n: f.length, fps: 1000 / avg, avg, p95: q(f, 0.95), worst: f[f.length - 1], work: c.reduce((a, b) => a + b, 0) / c.length, work95: q(c, 0.95), calls: i.calls, tris: i.tris, dpr: i.dpr, tier: i.tier, bloom: i.bloom }; })()`);

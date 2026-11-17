@@ -352,7 +352,37 @@ finish. **Not proven on an iPhone** — the caveat in `docs/jaywalk.md`; one bug
 the first `setLook` (the scene never built — the lab + the solo check caught it at once; pinned in the unit test).
 
 ## THE CHECKS (the mini PC, my own fresh emulators + `serve.mjs --emu`)
-CHECKS
+THE FINAL LOCAL RUN (Nov 17, after the last code change; the browser checks FIRST on fresh emulators, the rules + `/api` tests last;
+nothing else busy). **No database rules change — nothing to re-publish.**
+
+| the check | the result |
+| --- | --- |
+| unit — `node --test tests/*.test.mjs` (registration, cartridge, achievements, the budgets in it) | **2182 / 2182** |
+| `e2e-jaywalk.mjs --perf` (the solo game, five runs) | **79 / 79** — tier 2 (@3) 59.9 fps · tier 1 (@2) 59.9 · tier 0 59.5, 4× CPU; PLAY AGAIN 55 – 70 ms; every final screen 7.6 MB |
+| `e2e-jaywalk-match.mjs --perf` (3 phones) | **86 / 86** — 3 ghosts: 59.9 fps at tiers 2 · 1 · 0, 4× CPU (worst frame 17.1 ms); the final screens 7.6 · 10 · 10 MB |
+| `e2e-jaywalk-match.mjs --four` (4 phones, by night) | **83 / 83** — the final screens 7.6 · 10 · 10 · 10 MB |
+| the smoke test (THE PAGES LOAD, Chromium + WebKit) | **21 / 21**, no errors |
+| harbor `ONLY=cartridge` | **3 / 3** |
+| the lab check `jaywalk-lab.mjs --perf --webkit` | **139 / 139** |
+| the lab `--h6b` (the full shot set, re-shot on the final code → `Downloads\NEON\jaywalk-h6b\`) | **258 / 258** |
+| the lab `--h6b=perf` — a gate's cross-fade · THE LOOK SWITCH · DOWNTOWN with its shops; day + night; tiers 2 + 1; 4× CPU | **12 / 12** — 59.9 fps everywhere (p95 16.8 ms) except the session's FIRST look switch: 55.9 fps, ONE 133 ms frame |
+| the lab `--h6a=perf` — the Blackbird's pass · the abduction · the Mothership + 8 kids | **15 / 15** — 59.9 fps; the Mothership's first arrival 59.0 (one 67 ms frame — H6A's level) |
+| THE MIX — `jaywalk-mix.mjs` | 22 cues, none clips |
+| `rules.test.mjs` · `server.test.mjs` (`/api`) · `share-card.test.mjs` | **83 / 83 · 66 / 66 · 2 / 2** |
+
+**NOT RUN:** the full harbor suite (the cloud's, on the tagged push — a game pass: skipped there too) · the dailies' checks
+(`wk-press` / `e2e-daily` — their known evening red is not this pass's) · the other games' E2Es (no file of theirs changed).
+
+**Two races in the SOLO CHECK were found by this run and fixed in the check (not in the game):**
+1. *A kid run down in the first seconds* (the course is picked after GO — about 1 first run in 3 stops on a road) earns XP, so the
+   console's END-OF-ROUND MOMENT opens ≈ 4.5 s after the end screen, over PLAY AGAIN — and the check tapped under it (13 checks red
+   in a row: the first run of this final suite, and one earlier). The check now waits out that window and taps CONTINUE first
+   (`pastMoment` — as the match check always did).
+2. *The bot's kid dying inside a 7 s perf window* starts a fresh view, so the frame list held 19 frames ("57 fps", one red check).
+   The window is measured again on the new run.
+Both exist on the code before this pass; neither is a frame-rate or a memory finding.
+After the fix the solo check was run three more times: 79 / 79 (`--perf`), 76 / 76, and 76 / 76 on a first run that ended "RUN DOWN BY A
+VAN" — the early-death path itself.
 
 ## REAL vs PLACEHOLDER
 **No placeholder is left in the game.** What still waits is not H6B's: the owner's ear on the mix; the audition's `-b` backups of
@@ -362,4 +392,14 @@ the hop / the landing / the train pass (he picked all A); `tuning.js` + `CLOCK` 
 **None.** (Named call 5: the two pictures are the ones already built + approved.)
 
 ## OPEN FOR BEN
-OPEN
+1. THE END SCREEN's MEMORY is fixed by the numbers, NOT proven on your iPhone — a `killed` row on game:jaywalk/final after this build = the go-live review's (the next steps are named in docs/jaywalk.md).
+2. NOBODY HAS HEARD THE MIX on a phone's speaker — the table is the engine's; your ear on the train's bell + horn, the area chime, NEW BEST (take B), the ducks.
+3. The DAY BRIDGE stands behind the match chips' column (it spans the band's whole left half) — move the chips, or a Grok bridge that sits right?
+4. Grok's NIGHT paintings: the rail yard's water tower + the airfield's tower are dark on dark; the opening has no landmark (by decision) — a touch-up?
+5. THE LOOK SWITCH half-way is two paintings at once for 1.5 s (two lighthouses) — keep the cross-fade, or dip through dark?
+6. The first look switch of a session costs ONE ≈ 130 ms frame (GPU-side; the same on H6A's code) — left.
+7. THE BLACKBIRD's tell by day is low-contrast (decided: the tell stays) — the second reviewer still found it quiet.
+8. DOWNTOWN's edge shops are partly off the screen at ZOOM 8 (the edge column is) — fine, or pull them a column in (they would cover a play column: not done).
+9. H5C's fog bank shows banded streaks in match frames (not this pass's file) · the lane count sits close to three landmarks at 3 digits.
+
+(The same list is in the inbox — `Downloads\NEON\ADDONS.md`, this pass's OPEN FOR BEN entry. The city-chat item was left for the city chat.)

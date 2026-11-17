@@ -186,6 +186,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - JAYWALK's BIG MOMENTS (H6A): THE BLACKBIRD · THE UFO · THE MOTHERSHIP = ONE view module fetched ON DEMAND (`flyers.js` — never in the eager graph; a moment = f(the rules' tick)); THE MOTHERSHIP is A FINISH LINE (never "TAKEN" on a screen); the four cards' flags + YOUR BEST (solo OR match) only from the server's replay → docs/jaywalk.md "THE BIG MOMENTS" + "THE CARDS".
 
 - JAYWALK's FINISH (H6B): the band's pictures are PAINTED in BOTH looks (`skyline.js` — no light blinks on a landmark: `SKY_OFF`; a look switch cross-fades); THE GATE SIGN only on the approach (gone 3 lanes out); a cue's level only in `sounds.js` / `flyers.js#MIX`, measured (`jaywalk-mix.mjs`) → docs/jaywalk.md "THE FINAL POLISH".
+- JAYWALK's END SCREEN RESTS THE SCENE (H6B): behind an end screen the 3D scene is a small still — nothing drawn, no bloom targets (`night.js#rest`); the run's picture = ONE cropped canvas; THE FINAL SCREEN's BUDGET (`kit/jaywalk-mem.mjs#JW_FINAL_BUDGET_MB` — raising it = a named decision) → docs/jaywalk.md "THE END SCREEN's MEMORY".
 
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
 - NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).
