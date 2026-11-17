@@ -1069,3 +1069,28 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   moved the bot's arrival and `jaywalk-boom`'s kid was caught by the blackout — `atFlightPath` now picks a course whose tell is 40–200
   ticks away.
 - An edit script's regex / escaped quotes through a Bash heredoc loses a backslash layer: write the script with the Write tool, then run it.
+
+## JAYWALK H5A (Nov 16 2026 — docs/games/passes/jaywalk-h5a.md)
+- Unit: `tests/jaywalk-sim.test.mjs` gained THE AREAS (the table · each area's lean in both laps · 192,000 lanes of all 8 areas + the
+  loop crossable on 2,000 seeds, ≤ 3 water / rail lanes in a row, a lane the same whatever the build order · the greedy bot DROPPED AT
+  EVERY AREA's GATEWAY, 2,000 seeds a mode · runs through 3 + areas = their replay) — the whole file ≈ 9 s; `tests/jaywalk-areas.test.mjs`
+  (the view: an obstacle drawn only where the rules have one, every other piece in the edge columns, the signature pieces' lanes,
+  the gateway — `areas.js#dressLane` + `sigOf` run in node, cut out of the source: they need no three.js); `tests/jaywalk-cues.test.mjs`
+  (the sounds' limits on real runs through the engine: the bell = the near rails' tell tick for tick, one train-pass a pass, ≤ 2 car
+  passes, ≤ 1 horn per 3 s, the lights dying only near the kid; the table's priority; the player's caps); `tests/jaywalk-night.test.mjs`
+  (the kid's file: his bones + poses, no texture, the paint; the two landmark models; no light trail on any vehicle).
+- The lab check: **`--h5`** (`--h5=kid` · `--h5=areas`) — the look only: the kid's states (start · mid-hop each way, held by the
+  lab's `hold(k)` hook · on a log · every hit) + EVERY AREA (its gateway + three ground-lane views — the kid stood on a ground lane
+  at a free column) + the loop's second-lap gateway → `<outDir>/` + `<outDir>/areas/`. **`--perf`** gained THE HEAVIEST AREAS at 4×
+  CPU: DOWNTOWN · THE LIGHTHOUSE · THE RAIL YARD, tier 2 + tier 1, the bot playing four slices of each stretch (≥ 57 fps each).
+- `e2e-jaywalk.mjs` gained **THROUGH THE AREAS** (step 6c): the bot's solo run past lane 155 (PLAY AGAIN until one gets there —
+  ≤ 10 tries, ≈ 45 s a try): each gateway's name flashed, the landmark sound asked, the world's cues, the new kid drawn, the
+  server's replay = the phone's lanes. It adds 1–4 minutes to the suite.
+- A hand edit through a shell heredoc lost its `\'` twice in this pass (the memory note "generated edits eat backslashes" again):
+  every test / source edit with a backslash went through a script FILE in the scratchpad.
+- **`--nums`** (the lab check — H5A's add-on, THE BIG NUMERALS): 17 · 71 · 111 · 117 · 172 · 711 on the share card at its own size
+  (one PNG a number) + as the small link preview + on the lane counter / the end screen / the record's gold →
+  `<outDir>/nums-*.png`; `tests/jaywalk-numerals.test.mjs` (the room + the foot on a stub canvas; every place wired).
+- **wk-press + e2e-daily after 7 pm ET (Nov 16):** both went red on the DAILY screen / button with fresh emulators — the same on
+  the code from before the pass (`wk-press.mjs --base http://localhost:5174` against a worktree). Before blaming a pass for a
+  dailies red in the evening, run that A / B.

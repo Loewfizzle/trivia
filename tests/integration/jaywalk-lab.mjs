@@ -238,7 +238,52 @@ async function looksH5(p, what) {
   }
 }
 
+// ---- H5A's add-on — THE BIG NUMERALS (`--nums`): 17 · 71 · 111 · 117 · 172 · 711 as the game draws them — the in-game lane counter +
+// the end screen's number (the real DOM, the real CSS), the share card at its own size (1080 × 1350, one PNG a number) and as the small
+// link preview (two a row on a 390 pt phone). The modules are the game's own (numerals.js · share.js · kit/share-run.js).
+async function looksNums(p) {
+  if (!OUT) return;
+  const NUMS = [17, 71, 111, 117, 172, 711];
+  const cards = await p.evaluate(async nums => {
+    const [N, S, K] = await Promise.all([import('/js/games/jaywalk/numerals.js'), import('/js/games/jaywalk/share.js'), import('/js/games/kit/share-run.js')]);
+    await Promise.all(['900 64px Orbitron', '700 64px "Chakra Petch"'].map(f => document.fonts.load(f)));
+    window.__cards = nums.map(n => K.drawRunCard({ ...S.jwRunCard({ mode: 'solo', results: { u: { l: n } } }, { uid: 'u', name: 'BEN' }), line: 'FLATTENED BY A TAXI' }, (c, box, k) => S.drawRunMiddle(c, box, k, null), S.JW_CARD));
+    window.__N = N;
+    return window.__cards.map(cv => cv.toDataURL('image/png'));
+  }, NUMS);
+  cards.forEach((u, i) => writeFileSync(join(OUT, `nums-card-${NUMS[i]}-1080x1350.png`), Buffer.from(u.split(',')[1], 'base64')));
+  // the small link preview: the six cards, two a row
+  await p.evaluate(() => {
+    const o = document.createElement('div'); o.id = 'nums';
+    o.style.cssText = 'position:fixed;inset:0;z-index:99;background:#0b0716;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;align-content:start;justify-items:center';
+    for (const cv of window.__cards) { cv.style.cssText = 'width:176px;height:220px;border-radius:12px'; o.append(cv); }
+    document.body.append(o);
+  });
+  await sleep(300); await shot(p, 'nums-cards-small-390x844.png');
+  // the game's own counter + the end screen's number
+  await p.evaluate(nums => {
+    const o = document.getElementById('nums'); o.replaceChildren(); o.style.gridTemplateColumns = '1fr 1fr'; o.style.gap = '0'; o.style.padding = '6px';
+    for (const kind of ['count', 'end', 'gold']) for (const n of nums) {
+      const st = document.createElement('div'); st.className = 'jw-stage'; st.style.cssText = 'position:relative;inset:auto;width:186px;height:92px;background:#0b0716;display:grid;place-items:center';
+      let el;
+      if (kind === 'end') { const f = document.createElement('div'); f.className = 'jw-fin'; const w = document.createElement('div'); w.className = 'jw-fin-n'; el = document.createElement('b'); w.append(el); f.append(w); st.append(f); }
+      else { el = document.createElement('div'); el.className = `jw-lanes${kind === 'gold' ? ' is-record' : ''}`; el.style.position = 'static'; st.append(el); }
+      window.__N.setNum(el, n); window.__N.prepNums(st);
+      o.append(st);
+    }
+  }, NUMS.slice(0, 6));
+  await sleep(500); await shot(p, 'nums-counter-end-390x844.png');
+  const foot = await p.evaluate(() => ({ chakra: window.__N.footOf(window.__N.NUM_FAMILY, 700), orb: window.__N.footOf('"Orbitron", "Chakra Petch", system-ui, sans-serif', 900), ones: document.querySelectorAll('#nums .jw-d1').length,
+    w: [...document.querySelectorAll('#nums .jw-lanes')].slice(0, 6).map(e => Math.round(e.getBoundingClientRect().width)) }));
+  ok(foot.chakra.w > 0.2 && foot.chakra.h > 0.03 && foot.orb.w > 0.2 && foot.orb.h > 0.03, `a "1" stands on a BASE FOOT in both fonts (Chakra Petch: ${(foot.chakra.w).toFixed(2)} em wide · Orbitron: ${(foot.orb.w).toFixed(2)} em)`);
+  const end = await p.evaluate(() => { const b = document.querySelector('#nums .jw-fin-n b'), d = b.querySelector('.jw-dg'), c = getComputedStyle(d); return { px: parseFloat(c.fontSize), lines: Math.round(b.getBoundingClientRect().height / parseFloat(c.fontSize)) }; });
+  ok(foot.ones === 3 * 10 && foot.w.every(x => x <= 186), `every 1 is marked for its foot (${foot.ones}); the counter's widest numeral: ${Math.max(...foot.w)} px on one line (${foot.w.join(' · ')})`);
+  ok(end.px >= 80 && end.lines === 1, `the end screen's digits keep the number's own size (${end.px} px — never the small LANES label's) on one line`);
+  await p.evaluate(() => document.getElementById('nums').remove());
+}
+
 try {
+  if (argv.includes('--nums')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksNums(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   { const h5 = argv.find(x => x === '--h5' || x.startsWith('--h5=')); if (h5) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5(o.p, h5.slice(5)); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   if (argv.includes('--h4')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH4(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   if (argv.includes('--h3')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH3(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
@@ -270,7 +315,7 @@ try {
   let s = await st(p);
   ok(s.mode === 'solo' && s.seed === 'labseed1' && s.y === 0, `a solo run on its seed, the kid on lane 0 (${JSON.stringify({ mode: s.mode, seed: s.seed })})`);
   ok(s.gray === false && s.info.look === 'night' && !reqs.some(u => /graybox\.js/.test(u)), 'the night look — no graybox (its file never fetched)');
-  ok(reqs.filter(u => /assets\/jaywalk\/models\/[\w-]+\.glb/.test(u)).length === 10 && !reqs.some(u => /crate-box|traffic-barrier/.test(u)) && reqs.some(u => /assets\/jaywalk\/skyline-night\.webp/.test(u)), 'the 10 Kenney models the scene draws (no crate, no jersey barrier — H2B) + the night skyline loaded (only the current look\'s picture)');
+  ok(reqs.filter(u => /assets\/jaywalk\/models\/[\w-]+\.glb/.test(u)).length === 13 && !reqs.some(u => /crate-box|traffic-barrier/.test(u)) && ['kid', 'lighthouse', 'fishing-boat'].every(m => reqs.some(u => u.includes(`/models/${m}.glb`))) && reqs.some(u => /assets\/jaywalk\/skyline-night\.webp/.test(u)), 'the 13 models the scene draws — Kenney\'s 10 (no crate, no jersey barrier — H2B) + H5A\'s three (THE KID, the lighthouse, the fishing boat) — + the night skyline loaded (only the current look\'s picture)');
   ok(s.info.calls >= 14 && s.info.calls <= 48 && s.info.tris > 4000, `the scene draws: ${s.info.calls} draw calls, ${s.info.tris} triangles (everything that repeats is instanced)`);
   ok(s.kidY >= 0.6 && s.kidY <= 0.65, `THE CAMERA: the kid sits ${(s.kidY * 100).toFixed(1)} % down the screen (60–65 %)`);
   ok(Math.abs(s.info.fov - 54.4) < 0.6, `fov ${s.info.fov.toFixed(1)} at 390 × 844`);
@@ -395,9 +440,9 @@ try {
   ok((await st(p)).t === tA, '… and the run holds still under it');
   const rows = await p.evaluate(() => [...document.querySelectorAll('.jw-au-row')].map(x => ({ id: x.dataset.id, plays: x.querySelectorAll('.jw-au-play').length, picks: x.querySelectorAll('.jw-au-pick').length })));
   ok(rows.length === 11 && rows.filter(x => x.plays === 2 && x.picks === 2).length === 6 && rows.filter(x => x.plays === 1 && x.picks === 0).length === 5, `EVERY JAYWALK sound: ${rows.length} rows — 6 with a pick + its backup side by side (PLAY A · PLAY B · USE A / B), 5 with one take`);
-  const n0 = await p.evaluate(() => ({ w: window.__jwLab.sfx.wanted().length, p: window.__jwLab.sfx.played().length }));
+  const n0 = await p.evaluate(() => ({ w: window.__jwLab.sfx.totals().asked, p: window.__jwLab.sfx.totals().started }));   // (the totals: the two lists keep only their last 200)
   await tapEl(p, '[data-snd="hop:a"]'); await tapEl(p, '[data-snd="hop:b"]'); await tapEl(p, '[data-snd="new-best:b"]'); await sleep(500);
-  const n1 = await p.evaluate(() => ({ w: window.__jwLab.sfx.wanted().slice(-3).map(x => `${x.id}:${x.ab}`), p: window.__jwLab.sfx.played().length, last: window.__jwLab.sfx.played().slice(-3).map(x => `${x.id}:${x.ab}`) }));
+  const n1 = await p.evaluate(() => ({ w: window.__jwLab.sfx.wanted().slice(-3).map(x => `${x.id}:${x.ab}`), p: window.__jwLab.sfx.totals().started, last: window.__jwLab.sfx.played().slice(-3).map(x => `${x.id}:${x.ab}`) }));
   ok(n1.w.join() === 'hop:a,hop:b,new-best:b', `EVERY TAP ACTS: PLAY A, PLAY B (${n1.w.join(' · ')})`);
   ok(n1.p - n0.p === 3 && n1.last.join() === 'hop:a,hop:b,new-best:b', `… each one SOUNDS, the first time it is asked for (${n1.p - n0.p} started — a backup is fetched + decoded on its first tap)`);
   await tapEl(p, '[data-snd="train-bell:a"]'); await sleep(700);
@@ -422,9 +467,10 @@ try {
   await shot(p, 'audition-390x844.png');
   await p.evaluate(() => document.querySelector('.sh-x').click()); await sleep(450);
   ok(await p.evaluate(() => !document.querySelector('.sh.jw-au-sheet.is-in')), 'the × closes it');
-  const hb = await p.evaluate(() => window.__jwLab.sfx.wanted().length);
+  const hb = await p.evaluate(() => window.__jwLab.sfx.totals().asked);
   await touch(p, [[195, 500]]); await sleep(300);
-  w = await p.evaluate(n => window.__jwLab.sfx.wanted().slice(n), hb);
+  // (the sounds asked since — the hop's own; H5A: the world's cues may sound with it)
+  w = await p.evaluate(n => { const S = window.__jwLab.sfx, d = S.totals().asked - n; return d > 0 ? S.wanted().slice(-d).filter(x => x.id === 'hop') : []; }, hb);
   ok(w.length === 1 && w[0].id === 'hop' && w[0].ab === 'b', 'the game plays the owner\'s choice (hop B) — and the run goes on');
   await p.evaluate(() => { localStorage.removeItem('jw:lab:snd:hop'); localStorage.removeItem('jw:lab:snd:land-wood'); });
   ok(!errs.length, `no page error in the lab${errs.length ? `: ${errs.slice(0, 2).join(' · ')}` : ''}`);
@@ -474,9 +520,45 @@ try {
       ok(f.s.info.tier === tier && !o.errs.length, `tier ${tier} pinned (CPU ${rate}×): ${row.fps} fps · ${row.avgMs} ms (p95 ${row.p95Ms}, worst ${row.worstMs}) · ${row.calls} calls · ${row.tris} tris · ${row.canvas}${row.bloom ? ' · bloom' : ''}`);
       await o.close();
     }
+    // H5A — THE HEAVIEST AREAS at 4× CPU: DOWNTOWN (heavy traffic + the storefronts' neon), THE LIGHTHOUSE (its beam + the water), THE
+    // RAIL YARD (the trains + the gantries + the containers) — the bot plays three slices of each stretch; tier 2 (the bloom) + tier 1
+    for (const [name, g] of [['DOWNTOWN', 250], ['THE LIGHTHOUSE', 350], ['THE RAIL YARD', 150]]) for (const tier of [2, 1]) {
+      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight`);
+      await up(o.p); await o.p.emulateCPUThrottling(4);
+      await o.p.evaluate(() => { window.__jwLab.restart('solo', 'perfseed7'); window.__jwLab.bot(true); });
+      await sleep(1500);
+      const fr = [], calls = [], tris = [];
+      for (const off of [2, 14, 26, 38]) {
+        await o.p.evaluate(l => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'perfseed7'); J.bot(true); } J.warp(J.find('grass', l)); }, g + off);
+        await sleep(700); await o.p.evaluate(() => window.__jwLab.clearFrames()); await sleep(3600);
+        const f = await o.p.evaluate(() => ({ fr: window.__jwLab.frames(), i: window.__jwLab.state().info, y: window.__jwLab.state().y }));
+        fr.push(...f.fr); calls.push(f.i.calls); tris.push(f.i.tris);
+      }
+      await o.p.emulateCPUThrottling(1);
+      fr.sort((a, c) => a - c);
+      const avg = fr.reduce((a, c) => a + c, 0) / fr.length;
+      const row = { area: name, tier, cpu: '4×', frames: fr.length, fps: +(1000 / avg).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), calls: Math.max(...calls), tris: Math.max(...tris) };
+      console.log('PERF', JSON.stringify(row)); rows2.push({ ...row, cpu: `4× ${name}` });
+      ok(row.fps >= 57 && !o.errs.length, `${name} at tier ${tier}, 4× CPU: ${row.fps} fps · ${row.avgMs} ms (p95 ${row.p95Ms}, worst ${row.worstMs}) · ≤ ${row.calls} calls · ≤ ${row.tris} tris`);
+      await o.close();
+    }
+    // H5A — 8 KIDS: the kid + 7 ghosts (the instanced, skinned kid — one draw call for him, one for all the ghosts), DOWNTOWN, 4× CPU
+    for (const tier of [2, 1]) {
+      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight`);
+      await up(o.p); await o.p.emulateCPUThrottling(4);
+      await o.p.evaluate(() => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.bot(true); J.ghosts(7); J.warp(J.find('grass', 252)); });
+      await sleep(1500); await o.p.evaluate(() => window.__jwLab.clearFrames()); await sleep(9000);
+      const f = await o.p.evaluate(() => ({ fr: window.__jwLab.frames(), i: window.__jwLab.state().info }));
+      await o.p.emulateCPUThrottling(1);
+      const fr = f.fr.slice().sort((a, c) => a - c), avg = fr.reduce((a, c) => a + c, 0) / fr.length;
+      const row = { kids: 8, tier, cpu: '4×', frames: fr.length, fps: +(1000 / avg).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), calls: f.i.calls, tris: f.i.tris };
+      console.log('PERF', JSON.stringify(row)); rows2.push({ ...row, cpu: '4× 8 kids' });
+      ok(row.fps >= 57 && !o.errs.length, `8 KIDS (the kid + 7 ghosts — skinned, instanced) at tier ${tier}, 4× CPU: ${row.fps} fps · ${row.avgMs} ms (p95 ${row.p95Ms}, worst ${row.worstMs}) · ${row.calls} calls · ${row.tris} tris`);
+      await o.close();
+    }
     const at4 = rows2.filter(x => x.cpu === '4×');
     ok(at4.some(x => x.fps >= 55), `4× CPU: a tier holds 60 (${at4.map(x => `tier ${x.tier} ${x.fps}`).join(' · ')}) — the automatic steps find it`);
-    ok(rows2.every(x => x.calls <= 48), `≤ 48 draw calls a frame at every tier (${rows2.map(x => x.calls).join(' · ')})`);
+    ok(rows2.every(x => x.calls <= 64), `≤ 64 draw calls a frame at every tier, in every area (${rows2.map(x => x.calls).join(' · ')})`);   // (H5A: the areas' own kinds — one call a kind in view)
     // THE SHOT's OWN HITCH (H2's shots read "49–54 fps · worst 217–250" at tier 2): a quiet run has no such frame — a screenshot makes one
     {
       const o = await open(390, 844, 3, '&preview=1&seed=perfseed7&tier=2&zoom=8&angle=turned');
@@ -567,9 +649,9 @@ try {
     await wtap('.jw-snd');
     ok(await wwait("!!document.querySelector('.sh.jw-au-sheet.is-in')", 6000), 'WebKit: SOUNDS → the audition sheet opens');
     await sleep(450);
-    const b0 = await wp.evaluate(() => window.__jwLab.sfx.wanted().length);
+    const b0 = await wp.evaluate(() => window.__jwLab.sfx.totals().asked);
     await wtap('[data-snd="hop:a"]'); await wtap('[data-snd="splash:a"]'); await wtap('[data-snd="new-best:b"]');
-    const ww = await wp.evaluate(n => ({ w: window.__jwLab.sfx.wanted().slice(n).map(x => `${x.id}:${x.ab}`), p: window.__jwLab.sfx.played().length }), b0);
+    const ww = await wp.evaluate(n => { const S = window.__jwLab.sfx, d = S.totals().asked - n; return { w: (d > 0 ? S.wanted().slice(-d) : []).map(x => `${x.id}:${x.ab}`), p: S.totals().started }; }, b0);
     ok(ww.w.join() === 'hop:a,splash:a,new-best:b', `WebKit: every PLAY tap acts (${ww.w.join(' · ')}; ${ww.p} started on its audio context — Playwright's WebKit on Windows may have no audio device)`);
     await wtap('[data-pick="new-best:b"]');
     ok(/new-best B$/.test(await wp.evaluate(() => document.querySelector('.jw-au-line').textContent)), 'WebKit: a pick is taken');

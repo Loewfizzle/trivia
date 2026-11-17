@@ -1,8 +1,8 @@
 # JAYWALK (id `jaywalk`) — the hop-through-lanes game
 
-**BEING BUILT** (H1 + H2 + H2B + H3 + H4, Nov 16 2026): `config.js` GAMES row `playable: false` + `preview: true` — never offered (docs/cartridge.md "A game
+**BEING BUILT** (H1 + H2 + H2B + H3 + H4 + H4B + H5A, Nov 16 2026): `config.js` GAMES row `playable: false` + `preview: true` — never offered (docs/cartridge.md "A game
 BEING BUILT"). The owner's decisions: `docs/games/plan.md` "JAYWALK (the owner, Nov 12–16 — DECIDED)" + "H2's DECISIONS" + "JAYWALK (the
-owner, Nov 16 — DECIDED, after H2 on his phone)" + "… after H2B on his phone)" + "… after H3 on his phone)" (H4: ONE LIFE EVERYWHERE). This page = the rules, the modes table, the engine's contract, the replay + the proof,
+owner, Nov 16 — DECIDED, after H2 on his phone)" + "… after H2B on his phone)" + "… after H3 on his phone)" (H4: ONE LIFE EVERYWHERE) + "JAYWALK (the owner, Nov 16 — DECIDED, H5A)" (the new kid, THE AREAS, the sounds). This page = the rules, the modes table, the engine's contract, the replay + the proof,
 THE NIGHT LOOK + THE CAMERA + its assets + the sounds, the lab page, what each later pass adds. Read it before a JAYWALK pass.
 
 Tap = hop forward · swipe = sideways · swipe down = back. 9 columns. No coins, no pickups — just distance. Rendered on three.js 0.160 (the
@@ -17,7 +17,8 @@ import map); the RULES are a pure engine that never knows about it.
 | H3 | Nov 16 2026 | `docs/games/passes/jaywalk-h3.md` | THE SOLO GAME: the real view, THE COURSE PICKED AFTER GO, the timestamped proof + THE SPEED CHECK both ways, the solo best from the server's replay (`jaywalk-solo`), THE END SCREEN's cause words, HOP AGAIN (THE INSTANT AGAIN), YOUR TABLE, HOW TO PLAY (out of the boot) + the look fixes (the logs' own lengths — a small rules change —, the brighter water, two tail-light streaks; ZOOM 8 + STRAIGHT) |
 | H4 | Nov 16 2026 | `docs/games/passes/jaywalk-h4.md` | THE MATCH (ONE LIFE EVERYWHERE — the lives option, respawn + blink, THE ONE-UP removed): the course + tick 0 from THE FIRST GO, THE GHOSTS, THE LIVE ORDER, out = SPECTATE + Call the Winner, the host's replayed end + the podium, the server's replay of every player (`jaywalkMatch`), the owner's guests counted; THE DROPPED SIGNAL; THE SHARE IMAGE; THE ICON (THE SIGNAL); THE POSTER (`?poster=1`); the look (calm water, plain log ends, the yellow taxi, the flat kid), PLAY AGAIN, the smoke START |
 | H4B | Nov 16 2026 | `docs/games/passes/jaywalk-h4b.md` | THE GHOST FIX (the owner's first live match): THE GHOSTS IN STEP WITH THE WORLD (`ghosts.js` — the engine's state at the world's tick, a late hop catches up, a death only once confirmed; hops go up at once), THE FIRST GO's PROOF (the GO = a transaction never applied locally; `startOf` — the nodes are the truth), THE START (the warm frame, the sounds decoded ahead, the tier remembered) |
-| H5 | — | — | the day look (the FOG BANK) + the landmarks' looks |
+| H5A | Nov 16 2026 | `docs/games/passes/jaywalk-h5a.md` | THE NEW KID (Kenney's skate boy — his cap + shirt in the player's colour, his poses), THE 8 AREAS (a RULES change: each area leans the lane mix; its night look; THE ARRIVAL GATEWAY), THE SOUNDS all in play (`cues.js`), THE LIGHT TRAILS gone, THE POSTER re-shot |
+| H5B | — | — | the day look for everything (the FOG BANK, every area by day) |
 | H6 | — | — | THE BLACKBIRD / UFO / mothership moments, the feat flags (jaywalk-boom / -ufo / -airfield), the mix, the credits |
 | the review → the fix pass | — | — | flips `playable` (empties `tests/registration.test.mjs#JAYWALK_WAITS`; the meta + its tile join the boot — after the city's CHROMEBOOK pass trims THE BOOT BUDGET: the owner, Nov 16) |
 | DAILY A · DAILY B | — | — | its daily (`MODES.daily`) |
@@ -36,7 +37,7 @@ H2 draws PLACEHOLDERS for them.
   **grass** (+ obstacles — never on the centre column, never beside water) · **road** (cars) · **water** (H3: every log its OWN length, 1–4
   cells, from the seed — long ones more common early, short ones later: `WATER.lenW` — + UNEVEN gaps: short 0.9–1.5 cells or long 1.4 + by
   heat; a 1-cell log only on a slow lane, `WATER.oneV`, with no water lane beside it; the water kills; two
-  water lanes side by side always run opposite ways; never more than 3 in a row; a log carrying you off the screen edge = a hit) · **rail** (a
+  water lanes side by side always run opposite ways; never more than 3 in a row (H5A: a long run goes on after its break — every 4th lane of it is ground; the same for the rails, `RAIL_RUN_MAX` 3); a log carrying you off the screen edge = a hit) · **rail** (a
   train: the signal lights 1 s first, then a long fast body) · **THE FLIGHT PATH** (`flight` — a band of 2 lanes sharing ONE pulse: THE
   BLACKBIRD's tell 1.8 s (never under 1.5 s — `MIN_TELL_TICKS`), then a 0.2 s pass) · **THE UFO** (not a lane: a zone of 8 grass / road lanes
   it drifts over on a slow diagonal; its beam circle, radius 1.25 cells, on the ground = the warning; stepping in = abducted).
@@ -51,6 +52,7 @@ H2 draws PLACEHOLDERS for them.
   from lane 100, **THE BLACKBIRD** from 150 — rare, from the seed, **never both in one stretch** (a stretch = the 50 lanes after a landmark —
   `course.js#specials`). **THE FIXED LANDMARKS** every 50 lanes (a plain marked lane, named — `LANDMARKS`): 50 THE DOCKS · 100 THE FISH MARKET ·
   150 THE RAIL YARD · 200 THE BRIDGE · 250 DOWNTOWN · 300 THE CANAL · 350 THE LIGHTHOUSE · 400 THE AIRFIELD → the loop again, harder.
+  **H5A: each landmark's lane is THE GATEWAY into its AREA — the 50 lanes that follow lean their mix: THE AREAS, below.**
 - **THE WALL** (night: THE BLACKOUT · day: a FOG BANK): a steady pace, never more than 5 lanes behind the kid's BEST (no banking distance);
   the kid's centre behind its edge = a hit.
 - **ONE LIFE EVERYWHERE (H4 — the owner, Nov 16):** one hit = OUT, in every mode (solo, match, daily). **No lives option, no respawn, no
@@ -61,6 +63,62 @@ H2 draws PLACEHOLDERS for them.
 - **EVENTS** (for the view + the sounds — `step(…, ev)`): hop · bump · land (`ground | wood | water`) · best · landmark · near (a car within a
   cell) · beam (THE UFO's beside the kid) · boom · out · taken. The WORLD's own moments (a train's tell, THE BLACKBIRD's
   tell + pass) are `pulseAt(lane.pulse, tick)`.
+
+### THE AREAS (H5A — the owner, Nov 16; `tuning.js#AREAS` + `course.js#area` — a RULES change: every course changed)
+**A new area every 50 lanes, in the fixed order** — the stretch that BEGINS at a landmark's lane IS that place: 50–99 THE DOCKS ·
+100–149 THE FISH MARKET · 150–199 THE RAIL YARD · 200–249 THE BRIDGE · 250–299 DOWNTOWN · 300–349 THE CANAL · 350–399 THE
+LIGHTHOUSE · 400–449 THE AIRFIELD · 450 on: the loop again, harder (THE DOCKS · LAP 2 …). Lanes 0–49 = the plain opening (no
+area, no lean — the calm start every course has). `course.js#area(lane)` → `{ name, index (−1 = the opening · 0 … 7), loop }`;
+`gateName(lane)` = the name as its gateway shows it (the loop's laps named).
+- **EACH AREA LEANS THE LANE MIX** — `AREAS[i].mix` [grass, road, water, rail], a PERCENTAGE on the heat's own weights (`MIX`);
+  **the difficulty curve keeps climbing underneath**: the speeds, the gaps, the logs' lengths, the trains' laps stay the heat's alone.
+
+  | area | mix % (grass · road · water · rail) | what it is |
+  | --- | --- | --- |
+  | THE DOCKS | 120 · 70 · 170 · 60 | water + the piers |
+  | THE FISH MARKET | 135 · 90 · 130 · 50 | the market's ground + water |
+  | THE RAIL YARD | 90 · 60 · 40 · 420 | more trains (≈ 25 % rails the first lap, ≈ 50 % the second — never more than 3 in a row) |
+  | THE BRIDGE | 35 · 130 · 190 · 30 | water with roads (≈ 83 % of its lanes) |
+  | DOWNTOWN | 80 · 190 · 25 · 60 | roads (≈ 70 %) + **HEAVIER TRAFFIC**: one more car a lap, 65 % of the spare room (`cars`, `gap`) — the crossable gap itself (`ROAD.gapMin` + `gapVTicks`) is never touched |
+  | THE CANAL | 80 · 60 · 230 · 40 | more water (the most) |
+  | THE LIGHTHOUSE | 150 · 60 · 170 · 40 | water + the rocks |
+  | THE AIRFIELD | 110 · 120 · 30 · 50 | **its flight paths FOR SURE** (`flight`): two bands, 16–18 lanes apart, each its own pulse; never a UFO in the stretch |
+
+  THE UFO / THE BLACKBIRD's rules are otherwise unchanged (the UFO from lane 100, the Blackbird from 150, rare, never both in one stretch).
+- **FAIR + DETERMINISTIC** (`tests/jaywalk-sim.test.mjs` — H5A's five tests): the table; each lean seen in both laps; 192,000 lanes of
+  all 8 areas + the loop on 2,000 seeds — every one has its crossable window, never more than 3 water / 3 rail lanes in a row; the
+  greedy bot DROPPED AT EVERY AREA's GATEWAY in every mode (2,000 seeds a mode): the wall caught it ≤ 1.5 % of the drops (a stuck
+  bot, never a wall of lanes); a lane is the same whatever the order it is built in; runs through 3 + areas = their own replay; the
+  server's judge (`api/_lib/jaywalk.js`) reads the same `course.js`. **EVERY COURSE CHANGED** with this pass: a solo best already on
+  the board stands; a run in flight over the deploy would not replay (JAYWALK is still the owner's alone — ONE DEPLOY AT A TIME).
+- **THE ARRIVAL GATEWAY** (the area's first lane — the rules' calm, plain marked lane): a NEON ARCH — two posts in the edge
+  columns, a see-through tube of light arching between them (nothing in the play columns is covered) — + **the area's NAME written
+  big on the lane** in the area's own neon (7.3 cells wide: all of it on screen at ZOOM 8; the letters ≈ half a lane tall).
+  Crossing it: **the landmark sound + the name flashing ONCE under the lane count** (`view.js`, `.jw-mark.is-flash` — transform +
+  opacity only). The loop's second lap is named as such: **THE DOCKS · LAP 2**. A line's words (YOUR BEST …) lie a lane lower when
+  their line sits on a gateway lane.
+- **THE LOOK PER AREA (night — H5A; the day: H5B)** — `js/games/jaywalk/areas.js` (a VIEW: it reads `course.js#area`, never the other
+  way) + `night-fx.js#areaGround`:
+
+  | area | its ground ("grass" lanes) | obstacles on play cells (only where the rules have one) | the edge columns of its ground lanes + its signature pieces |
+  | --- | --- | --- | --- |
+  | THE DOCKS | wooden pier planks | bollards + rope, wooden crates, drums | crates, stacked freight containers, bollards · **THE DOCK CRANE** (built in code — it STRADDLES two lanes on thin legs, its boom reaching out) · moored fishing boats (Kenney, CC0) |
+  | THE FISH MARKET | wet cobbles | ice crates (ice + two fish), crates, drums | market stalls under striped awnings, ice crates · **THE NEON FISH** over a stall (a light-only sign) · boats |
+  | THE RAIL YARD | gravel | drums, crates, barricades | freight containers (one, or two stacked) · a signal gantry over each rail lane's edge columns (green — red in the tell) |
+  | THE BRIDGE | the steel deck's plates | barricades, cones, drums | railings on both edges · **THE BRIDGE's TOWERS** in pairs (they straddle their lane) + their lit cables · a lamp every 2nd ground lane |
+  | DOWNTOWN | sidewalk slabs | hydrants, planters, dumpsters, cones | **storefronts** with lit windows + their neon sign + the light it throws · more street lamps |
+  | THE CANAL | stone blocks, moss in the joints | bollards, planters, trees | canal houses (warm windows), trees · arched stone footbridges over water lanes (the logs drift under) · boats |
+  | THE LIGHTHOUSE | sand + scrub + pebbles | rocks, trees | rocks · **THE LIGHTHOUSE** (MaverickFX, CC0) on its rocks, its lamp lit, **its beam SWEEPING across the lanes** (light on the ground only; still with reduce motion) · boats |
+  | THE AIRFIELD | the apron's slabs + a taxi line | cones, barricades, drums | **THE CONTROL TOWER** + the hangars (built in code), the flight paths' runway lights |
+
+  + each area's lamps (their light + how often), its gateway's neon, **the skyline band's tint** (`.jw-sky-tint` — a wash of the
+  area's colour, opacity only).
+  **WHAT STANDS WHERE (the rule — `tests/jaywalk-areas.test.mjs`):** an obstacle is drawn ONLY where the rules have one (and every
+  one of them is drawn — all solid, knee-high or taller); everything else stands in the two dim edge columns of GROUND lanes; the
+  crane + the bridge's towers stand on the lane LINES (what runs on those lanes runs between their legs); nothing covers a play
+  column; a road / water / rail lane's edge column stays open — what comes down it is seen coming, as before. A signature piece is
+  never on a flight path or a gateway. (H5A's first try put the big pieces on raised decks 1.5 columns past the edge: at ZOOM 8 a
+  phone never shows that far — they were simply off-screen; the rule now is "in the edge column, or not built".)
 
 ### THE MODES (`tuning.js#MODES` — all tunable in one place)
 | mode | the wall | THE MOTHERSHIP (`cap`) |
@@ -298,6 +356,25 @@ body). No frame on this phone (a refresh on the podium) → the same card on the
   none in the frame loop) + `e2e-jaywalk.mjs` (a first-ever run: no gold line, a seeded friend's line seen coming + crossed with its
   chime; the next run: the gold line at the server's best, crossed → the burst, the sound once, the counter gold).
 
+## THE BIG NUMERALS (H5A's add-on — the owner, Nov 16 7:03 pm; `js/games/jaywalk/numerals.js`)
+On the owner's iMessage share card **"172" read like "N2"** — the 1's top flag ran into the 7's top bar, the digits sat too tight.
+ONE helper now draws JAYWALK's big neon numerals EVERYWHERE — the share card's lanes + the lines' words on the ground ("YOUR BEST ·
+172") on a canvas (`drawNum` / `numWidth`), the in-game lane counter (the game + the lab) + the end screen's number in the DOM
+(`setNum` + `prepNums`):
+- **MORE ROOM between two digits** — `NUM_GAP` 0.09 em on a canvas, 0.09 em of margin a digit pair in the DOM (each digit its own
+  box, `.jw-dg`); words beside a number keep the font's own spacing.
+- **A "1" THAT CAN'T MERGE: a 1 on a BASE FOOT.** The fonts' own 1 (Chakra Petch in the DOM, Orbitron on the card) is a bare stem
+  with a flag, so the foot is DRAWN: the 1 is rasterised once a font (`footOf` — its stem read off the pixels at 200 px), and a bar
+  0.8 stem-widths past it each side is laid on the baseline — a rectangle on a canvas, `.jw-d1::after` in the DOM placed by the
+  measured numbers (`--jw-1l · w · r · h · b`, em; its outline follows the counter's — pink, gold on a record). A font whose 1
+  already stands on a foot gets none; a measure taken before the web font landed is never kept.
+- The number stays ONE line (`white-space: nowrap`) and reads as its number to a screen reader (`aria-label`; the digit boxes are
+  hidden from it). **A trap this fixed on the way:** `.jw-fin-n span` (the small LANES label) matched the new digit spans — the end
+  screen's number would have shrunk to the label's 15 px; the label's rule is now its own child's only (`.jw-fin-n > span`).
+- Checked at 390 × 844 for **17 · 71 · 111 · 117 · 172 · 711**: the share card at its own size (1080 × 1350) and as the small link
+  preview, the counter, the end screen, the record's gold — `tests/integration/jaywalk-lab.mjs --nums` →
+  `Downloads/NEON/jaywalk-h5a/nums/`; `tests/jaywalk-numerals.test.mjs` (the room + the foot on a stub canvas, every place wired).
+
 ## THE ICON — THE SIGNAL (H4 — `core/marks.js#MARKS.jaywalk`)
 The owner's pick (`Downloads\grok\jaywalk\icon\icon-2-signal.png`): **a pedestrian crossing-light box, upright, CYAN** (`#35e3ff`),
 **its walking figure lit HOT PINK** (`#ff3fa4` — lit when it shouldn't be: the jaywalking joke). Built in the game's own tube system —
@@ -307,10 +384,12 @@ list, the JAY / WALK sign, the share image. `marks.js` is a boot file: trimmed t
 still waits for the go-live pass.
 
 ## THE POSTER (H4 — `poster.js`; the lab's `?poster=1`)
-For THE TRI-VISION board's JAYWALK COMING SOON face — **rendered from the game itself**: the real night scene, a staged moment (`findStage`
-— pure: the same picture every time): the kid MID-HOP toward the camera, big in frame, off a road with a car just past him (both tail
-lights + its two neon streaks), a log on the water behind, the traffic + the far lanes going into the night, the skyline over them;
-**the LEFT PART dark + calm** for the board's words. A low hero camera (`POSTER.hero` → `camera.js`'s `hero` option — THE CAMERA stays ONE module; the game never
+For THE TRI-VISION board's JAYWALK COMING SOON face — **rendered from the game itself** (H5A: RE-SHOT with the new kid, in THE
+DOCKS): the real night scene, a staged moment (`findStage` — pure: the same picture every time; lanes 53–95, a clear foreground):
+Kenney's kid MID-JUMP toward the camera, big in frame (his face, his cap + shirt in the player's colour), off a road with a car
+just past him (both tail lights + its red glow — no light trails), a log on the water behind, the pier's planks + bollards +
+crates + a moored fishing boat, the fish market's neon arch + its neon fish up the course (THE DOCK CRANE when a course has one
+in the frame), the skyline over them; **the LEFT PART dark + calm** for the board's words. A low hero camera (`POSTER.hero` → `camera.js`'s `hero` option — THE CAMERA stays ONE module; the game never
 passes it). 848 × 448 (the board's size) at 2× (1696 × 896) + 1×; the page shows it + SAVE links. ZERO server calls (the lab's rule).
 `node tests/integration/jaywalk-poster.mjs "<chromium>" <outDir>` saves both PNGs. **The city's billboard is NOT changed** — the city
 chat swaps the art in.
@@ -331,8 +410,10 @@ only (no add-on: the GLB reader + the bloom are ours).
   built in code, `models.js#buildTruck`: a rounded cab in the truck's colour with dark glass, a long white box with its stripe, a dark
   chassis, six wheels, a bumper; four amber marker lights along the foot of its side + lit tail lights — the scene's light quads; its drawn
   length = its rules length); a NEON BODY TINT per car from the seed (pink · cyan · violet · coral · blue) — only the model's PAINT takes it (`paintMaterial`
-  — the windows, wheels, bumpers keep Kenney's colours). Each car: **THE LIGHT TRAIL = two THIN, SHORT, fast-fading streaks, one from EACH
-  tail light** (H3 — its neon tint; 0.8–1.6 cells by its speed; never one long lopsided beam; the train too) + a blob shadow +
+  — the windows, wheels, bumpers keep Kenney's colours). Each car: a blob shadow +
+  **NO LIGHT TRAIL (H5A — the owner, Nov 16: from above the streaks read as jet exhaust; afterburners are THE BLACKBIRD's alone, H6)** — on every
+  vehicle (the cars, the taxi, the van, the box truck, the train) only: both tail lights lit on the body, the soft red glow on the road
+  behind, the soft headlight glow in front —
   **ITS LAMPS (H2B add-on): BOTH headlights and BOTH tail lights cast** — `night.js#LAMPS` holds each vehicle's lamps ([half their
   spacing, their height]: the 4 Kenney cars, the truck, the train's front); each headlight = a lamp quad + a SHORT SOFT beam on the road
   (`HEAD_REACH` 1.35 cells — the glow shader's shape 6: a quick falloff, soft edges, low intensity), each tail light = a lamp quad + a
@@ -347,7 +428,7 @@ only (no add-on: the GLB reader + the bloom are ours).
   **THE WATERLINE**: a thin amber ring hugging the log (the glow shader's shape 7, a stadium ring) + a small pale ripple ring swelling off
   it; **at night the amber is ONLY that thin underglow + a soft light on the water round it** — the wood stays visible. They bob + rock
   gently (and dip + roll when the kid lands on one); a soft pale wake trails each. Water = danger, a log = safe, in one look.
-- **TRAINS** — Kenney's front + 5 carriages + a front turned round; lit windows, BOTH headlights casting a soft beam ahead + BOTH tail lights a red glow behind (the lamps, as the cars'), FOUR RED SIGNALS along the
+- **TRAINS** — Kenney's front + 5 carriages + a front turned round; lit windows, BOTH headlights casting a soft beam ahead + BOTH tail lights a red glow behind (the lamps, as the cars'), (no streak behind it — H5A), FOUR RED SIGNALS along the
   lane that flash from the tell to the tail (the tell is the visual), a red warning glow on the side it comes from. The body is drawn ~10
   ticks before + after its pass (it is SEEN coming through the edge column — the rules' pass is unchanged).
 - **MOVERS NEVER POP** — a road / water lane is one lap long: the view draws a mover's NEXT lap too (always outside the 9 played columns),
@@ -356,7 +437,7 @@ only (no add-on: the GLB reader + the bloom are ours).
   nothing may look like a placeholder) = Kenney's planter / dumpster / cone + **THE BARRICADE** built in code (`models.js#buildBarricade`:
   two orange / white striped boards on dark legs + an amber lamp — Kenney's jersey barrier read as a pale cube from above) as obstacles
   (the docks' clutter round a landmark) + the STREET LAMP on an edge column every 4th grass lane (a warm pool on the ground + its bulb);
-  tufts. **The crates are OUT** (crate-box only on THE DOCKS later, if at all — `models.js#SCENE_MODELS`). What stands where is view-only, from the seed + the lane (`decorOf`) — the same on every phone.
+  tufts — **all of this is THE OPENING's (lanes 0–49); an AREA's lanes are dressed by `areas.js` (THE AREAS, above)**. **Kenney's crate-box is OUT** (THE DOCKS' crates are built in code — `models.js#SCENE_MODELS`). What stands where is view-only, from the seed + the lane (`decorOf`) — the same on every phone.
 - **THE SKYLINE BAND** (`.jw-skyline`, DOM over the canvas): the top 24 %, the picture covers the band's height and slides ≈ 10 % with the
   kid's column (transform); its foot fades into the lanes' fog. NIGHT LIFE: 8 aviation lights blink, 5 neon blocks flicker (opacity only;
   none with reduce motion). Only the current look's picture loads (the day's: H5).
@@ -368,6 +449,16 @@ only (no add-on: the GLB reader + the bloom are ours).
 - **THE CAMERA** — `camera.js` (H2B — the section below): ZOOM 8 columns across, the sideways follow, the slight turn (H3: STRAIGHT by default). The dimmer edge
   column each side of the 9 played stays the cue for the play area's edge (the ground, everything standing or moving there at ~0.5). The
   rules stay 9 columns. THE WIDER VIEW (H2's WIDTH 9 · 11) is retired.
+- **PERFORMANCE — H5A (the mini PC, 390 × 844 @3, the bot playing; the lab check's `--perf`):** the opening: 59.9 fps at every tier at
+  1× and 4× CPU (26 calls, ≈ 94 k triangles at tier 2). **THE HEAVIEST AREAS at 4× CPU, tier 2 (the bloom) and tier 1: DOWNTOWN
+  59.9 fps (≤ 32 calls, 172–183 k triangles) · THE LIGHTHOUSE 59.9 (≤ 31, 165–189 k) · THE RAIL YARD 59.9 (≤ 32, 176–179 k)** — p95
+  16.8 ms, no frame over 33.4 ms. **8 KIDS** (the kid + 7 ghosts — the skinned, instanced kid: one draw call for him, one for all
+  the ghosts) in DOWNTOWN at 4× CPU: **59.8 fps at tier 2, 59.9 at tier 1** (35 / 29 calls). The real views: the solo run 59.9 fps
+  at every tier (8.7 ms of work a frame at tier 2 under the 4× throttle), a 4-kid match 59.9 at every tier. An area in view costs
+  ≈ + 6 draw calls and ≈ + 80 k triangles over the opening (the pieces are code-built boxes + cylinders; a kind with nothing in
+  view costs no call). **Left for a real phone:** these are a desktop GPU's numbers — the tiers lower the sharpness + the bloom,
+  not the triangle count; if the owner's phone drops frames in an area, the first cut is the pieces' own detail (the containers'
+  ribs, the crates' bands).
 - **PERFORMANCE** (H2B, ZOOM 8 TURNED): ≈ 19–28 draw calls (one a kind — everything that repeats is instanced), ~125–140 k triangles
   (Kenney's wheels are most of it; the logs ≈ 20 k); a window of ≤ 36 lanes re-laid every frame (a closer zoom lays fewer). **59.9 fps at
   every tier at 1× and 4× CPU** on the mini PC (390 × 844 @3 — the pass log's table); THE AUTOMATIC STEP is proven both ways
@@ -376,22 +467,32 @@ only (no add-on: the GLB reader + the bloom are ours).
   device's sharpness (DPR ≤ 3) + THE HALF-RES BLOOM (the lights alone, layer 1 → a half-res target → blurred at a quarter → added back) ·
   **1** = DPR ≤ 2, no bloom · **0** = DPR ≤ 1.5, no tufts, no water reflections. No post-processing below the top tier.
 
-### THE KID + THE HOP's FEEL (H2 — all derived from the run's state between frames: a replay draws the same kid)
-- **THE JAYWALKER** (`models.js#buildKid`, code-built): the head ≈ 45 % of him, a hoodie + a BACKWARDS cap in the player's colour (a white
-  brim to his back — it reads as a cap from the camera), brown hair under it, navy legs, big white sneakers, two big eyes. He faces the
-  camera until the first hop (the eyes), then the way he last hopped.
-- **HE ALWAYS STANDS OUT** (H2B): a soft pool of HIS COLOUR on the ground under him + a ring round his feet (it breathes — never with
-  reduce motion; on a log it rides the log) + a RIM LIGHT of his own (his colour pulled half-way to white, on every edge that turns away
-  from the camera — `paintMaterial(…, { rim: true })`). A cyan kid beside cyan cars at lane 200+ is still found at once.
-- **THE HOP** (inside the engine's `HOP_TICKS`): a squash at the push, a stretch on the arc, a squash on landing (150 ms), a small turn the
-  way he hops, the blob shadow shrinking + fading as he rises; an idle bob; a dust ring on grass; a ripple + the log's wobble on a log.
+### THE KID + THE HOP's FEEL (H5A — the new kid; all derived from the run's state between frames: a replay draws the same kid)
+- **THE KID = Kenney's "Mini Skate" skate boy** (CC0 — `assets/jaywalk/models/kid.glb`, `models.js#loadKid`; the owner, Nov 16): a
+  T-shirt + a FORWARD cap built into his head. **THE CAP + THE SHIRT take the player's colour** (the whole cap — its white front
+  panel a lighter shade: from above the cap is what you see); his face, arms, shorts + white sneakers stay Kenney's. The code-built
+  kid is gone everywhere (the game, the ghosts, the lab, the share frame, the poster). He faces the camera until the first hop (his
+  face), then the way he last hopped (Kenney's models face +z — `KID_YAW`).
+- **ONE SKINNED GEOMETRY, INSTANCED:** the rig is rigid (every vertex on ONE of 7 bones), so the build writes THE POSES — the skin
+  matrices of the clips the game uses (idle 16 frames · jump 12 · fall 8 + a hand-made SPLAY) — into the GLB; the scene keeps them
+  in a float texture (a row a frame) and each instance blends two rows in the vertex shader (`night-fx.js#paintMaterial` `skin` —
+  `aKid` = lit, row A, row B, how far to B). **One draw call for the kid, one for every ghost in the match** — no per-kid bone
+  update, no animation mixer. **≈ 38.5 pt tall at ZOOM 8 on a 390 pt phone** (`KID_S` 1.62 — measured, `kidHeightPx()`; H2B's: 39–40).
+  The file never came (three tries) → his glow ring + shadow alone are drawn, nothing throws.
+- **HE ALWAYS STANDS OUT** (H2B): a soft pool of HIS COLOUR on the ground under him (H5A: softer — his own colours read through it) +
+  a ring round his feet (it breathes — never with reduce motion; on a log it rides the log) + a RIM LIGHT of his own.
+- **THE HOP** (inside the engine's `HOP_TICKS`): **Kenney's JUMP clip timed to the hop** (blended in on the push, out on the landing —
+  his legs kick, his arms lift) + our squash at the push / stretch on the arc / squash on landing (150 ms), the turn the way he
+  hops, a lean into it, the blob shadow shrinking + fading as he rises; **his idle between hops** (Kenney's — still with reduce
+  motion); a dust ring on grass; a ripple + the log's wobble on a log.
 - **THE WORLD GOES ON after a hit** (H4): the run's own tick stops at the hit; the cars + logs drive on (the car rolls OFF the kid).
-- **THE HITS, one per cause**: car (any vehicle) = **THE FLATTENED KID (H4 — a funny cartoon flat kid, never a smear): flat on his back
-  like a paper doll, a PANCAKE half as wide again — face up, his two big eyes to the sky, arms + legs + sneakers splayed, a quick squash
-  + one small bounce; HIS CAP pops up, spins and lands back ON TOP of him** · water = a splash + the sink · train (+ the Blackbird's placeholder) =
-  knocked away, spinning · edge = carried off on the log, then the splash · the blackout = swallowed by the dark · the UFO (placeholder) =
-  beamed up · THE MOTHERSHIP (a PLACEHOLDER until H6) = a green beam takes the kid up. **THE CAMERA** (camera.js): a smooth follow that leads a hop to where it lands — up the lanes AND sideways —
-  a short shake on a hit (never with reduce motion).
+- **THE HITS, one per cause**: car (any vehicle) = **THE FLATTENED KID (H4's rule — a funny cartoon flat kid, never a smear; H5A —
+  his cap ON TOP): squashed STRAIGHT DOWN under his cap, a seventh as tall, half as wide again, in THE SPLAY — from above his cap
+  sits on a flat kid, his arms out left + right, his two sneakers kicked out below it; a quick squash + one small bounce** · water =
+  a splash + the sink (flailing — Kenney's fall) · train (+ the Blackbird's placeholder) = knocked away, spinning · edge = carried
+  off on the log, then the splash · the blackout = swallowed by the dark · the UFO (placeholder) = beamed up · THE MOTHERSHIP (a
+  PLACEHOLDER until H6) = a green beam takes the kid up. **THE CAMERA** (camera.js): a smooth follow that leads a hop to where it
+  lands — up the lanes AND sideways — a short shake on a hit (never with reduce motion).
 - The lane count: big neon numerals (`.jw-lanes` — the numbers' font: Orbitron's heavy 0 reads as a block), a small pop a lane.
 
 ## THE CAMERA (H2B — `js/games/jaywalk/camera.js`: ONE pure module, the night look AND the graybox use it)
@@ -523,6 +624,16 @@ owner's card shows its neon mark — H4: THE SIGNAL). `smoke` is DONE (H4). `boa
 - `audio/jaywalk/` — every pick + every `-b` backup (15 MP3s — H4: the two RESPAWN takes left with respawn) + the two train bells as **16-bit mono WAV** (the delivery's exact sample
   counts: the whole file is the loop — MP3 / AAC padding would click) + `CREDITS.md` (every file's source; three are CC BY 4.0 — credit
   required when they ship in play): **594 KB**. The unpicked takes leave once the owner has chosen.
+- **H5A — three more models (all CC0, COPIED by the same script: `--only=kid,landmarks`; the originals only read):** `kid.glb` —
+  Kenney's Mini Skate 2.0 "character-skate-boy": 325 KB → **33 KB** (825 vertices, 722 triangles; ONE mesh, the colormap in vertex
+  colours, the PAINT = the shirt (the delivery's material "top") + the whole cap (the head's faces on the colormap's right-hand
+  column), each vertex's bone in the normal's 4th byte (`_BONE`), THE POSES in the file's own buffer (`extras.poses`: 41 frames ×
+  7 bones × 3 rows of 4 floats); the other 33 clips, the texture, the UVs, the weights do not ship) · `lighthouse.glb` — MaverickFX
+  "Light House" (poly.pizza/m/KRebJXIRb8): 279 KB → 103 KB (its texture is a palette: vertex colours) · `fishing-boat.glb` —
+  Kenney's Watercraft Kit 2.1: 25 KB → 8 KB. + `LICENSE-kid.txt` · `LICENSE-lighthouse.txt` · `LICENSE-kenney-watercraft.txt` ·
+  **`CREDITS.md`** (the credit lines for the game's CREDITS — H6: "3D models: Kenney — kenney.nl (CC0)" · "Light House: MaverickFX —
+  https://poly.pizza/m/KRebJXIRb8 (CC0 1.0)"). The 12 older models are byte-for-byte unchanged. `MODEL_REV` 2. The flyers
+  (`models\flyers\`) wait for H6.
 - A model / a sound replaced: bump `models.js#MODEL_REV` / `sfx.js#JW_SFX_REV`. After any change: `node scripts/build-file-hashes.mjs`.
 
 ## THE SOUNDS + THE AUDITION (H2 — `sounds.js` (the PURE table) + `sfx.js` + `audition.js`)
@@ -530,9 +641,27 @@ owner's card shows its neon mark — H4: THE SIGNAL). `smoke` is DONE (H4). `boa
   the unlock, each sound a buffer source → its gain → a soft limiter (−8 dB, 8 : 1) + a trim → the console's SFX bus (the Effects slider,
   the toggle, THE ONE MUTE, THE CUT). **8 VOICES by PRIORITY** (`sounds.js#admit`): a full house drops a new hop; a hit / a splash takes
   the oldest hop's voice. Muted = every hazard keeps its visual tell.
-- **IN PLAY (H2):** `hop` (pitch ± 6 %, gain ± 2 dB a hop) · `land-wood` (a landing on a log) · `hit` · `splash` (the water / the edge) —
-  from the engine's events (`sfx.js#onEvent`). The rest (car-pass, horn, train-bell, train-pass, lights-die, landmark, new-best)
-  are in the audition only until their passes wire them; **the mix is H6's** (the gains here are a first level).
+- **THE KID's OWN (H2 — the engine's events, `sfx.js#onEvent`):** `hop` (pitch ± 6 %, gain ± 2 dB a hop) · `land-wood` (a landing on
+  a log) · `hit` · `splash` (the water / the edge).
+- **THE WORLD's (H5A — the owner picked ALL A; `cues.js` (PURE — no audio, no clock: the view hands it the run after each tick +
+  that tick's events) → `sfx.js#onCue`):**
+  · **train-bell** — ONE seamless loop (the 16-bit WAV) exactly while a rail lane NEAR the kid (2 behind … 6 ahead) is in its tell
+    (its signals flash); it fades out (0.18 s) as the train passes · **train-pass** — once a pass, the tick it begins, panned to
+    the side it comes from
+  · **car-pass** — a REAL near miss only (the engine's own `near`: a car within a cell of him on his lane), **≤ 2 at once**, panned
+    by the car's side
+  · **horn** — a car closing on a kid STANDING in its lane (its nose within 2.6 cells), **≤ 1 every 3 s**, from its side
+  · **lights-die** — THE BLACKOUT takes a lane within 3 of him, ≥ 1.5 s apart (the wall 5 lanes back, the one he is outrunning, is silent)
+  · **landmark** — an area's gateway (`view.js`, with the name's flash) · **new-best** — YOUR BEST LINE crossed (H4)
+  · `respawn` is unused (ONE LIFE). No traffic ambience bed.
+- **THE PRIORITY** (`sounds.js` — `pri`): your own hit / splash (4) > the train · the lights dying · a gateway · a new best (3) > a
+  car passing · the horn (2) > a hop · a landing (1); a sound's own cap (`max`: 2 car passes, 1 horn, 1 bell); 8 voices; the soft
+  limiter. **The music ducks a little under the train** (`TRAIN_DUCK`: to 0.72 with the bell, back to the level it had 1.7 s after
+  the pass / when the bell ends — `audio/music.js#duckMusic`, in the game; the lab has no music). **Only this phone's own LIVING
+  kid makes cues** — in a match a ghost makes no sound; a run's end / a new run / the unmount stop the bell + bring the music back.
+  **Muted = nothing plays, every hazard keeps its visual tell** (the scene never asks the sounds). The game fetches the take it
+  plays (the owner's pick); the `-b` backups still ship for the audition (they leave with H6's mix). The levels are a first mix (H6).
+  Tests: `tests/jaywalk-cues.test.mjs` (the limits on real runs: the rail yard, downtown, the blackout).
 - **THE SOUND AUDITION** (the lab's SOUNDS button → THE SHEET): every sound, its pick + its backup side by side (PLAY A · PLAY B), the train
   bell as a seamless loop (tap again / STOP THE BELL), USE A · B per sound (remembered on the phone — `jw:lab:snd:<id>`; the game plays the
   choice), **COPY MY PICKS** → one line ("JAYWALK SOUNDS: hop A · land-wood B · …") for the owner to paste into chat (a refused clipboard
@@ -548,6 +677,7 @@ no database writes of any kind**. Everything on it stays (SOLO · MATCH · DAILY
 footnotes: the shared audio engine reports a cut only from the owner's phone inside the app or on a `&debug=1` link — the lab drops that
 flag from its own address; and THE SKEW WRAPPER (every dynamic import's rule) asks the deploy's id ONCE if a module ever fails to link. A
 browser with no WebGL gets the stage + one line saying so. (H1 + H2 had the owner's door: POST /api/admin whoami.)
+- **H5A:** the lab draws the new kid + THE AREAS and plays the world's cues (`cues.js`); its checks' `--h5[=kid|areas]` shoots the kid's states (a `hold(k)` hook holds him mid-hop) + every area and gateway.
 - `lab.js`: the run loop (the frame clock → ticks; the rules never read it; **tick 0 = the first touch**), the lane count (big, top), SOLO ·
   MATCH · DAILY (neon-underline tabs), NEW SEED, on an end ONE tap = PLAY AGAIN (a new seed; the end's words are the game's own cause lines), **the run REPLAYED after each end** (✓ REPLAY =
   LIVE, or a RED line — the owner's determinism check on a real iPhone), the seed (top right), the fps readout only with `?fps=1`.
@@ -578,15 +708,14 @@ browser with no WebGL gets the stage + one line saying so. (H1 + H2 had the owne
 - **Measured (H1, 390 × 844 @3, 4× CPU, the bot playing):** 59.9 fps · 16.7 ms a frame (p95 16.8, worst 17.0) · 1.2 ms of work a frame (p95
   1.8) · 8 draw calls, ~1,200 triangles.
 
-## REAL vs PLACEHOLDER after H4
+## REAL vs PLACEHOLDER after H5A
 REAL: the rules (ONE LIFE), the course, the modes, the wall, the replay + its bounds, THE JUDGE, the server's verify + THE SPEED CHECK +
 THE DROPPED SIGNAL, the moments' detection, the cartridge's frame + director + ranks, the proof node + its rules, the controls; the night
 look (the ground + THE WATER, the cars + THE TAXI + THE BOX TRUCK, the logs, the trains, the trees + props, the skyline, THE BLACKOUT),
-THE CAMERA, the kid + the hop + the hits (THE FLATTENED KID), hop / land-wood / hit / splash in play, new-best on the end screen, the
+THE CAMERA, **THE KID (Kenney's skate boy — H5A)** + the hop + the hits (THE FLATTENED KID), **THE 8 AREAS (their mixes + their night look + the gateways — H5A)**, **EVERY SOUND IN PLAY (H5A)**, the
 audition; **THE SOLO GAME** and **THE MATCH** (GO from the first GO, the ghosts, the live order, out = Call the Winner + watching, the
 end, the podium, the server's replay of everyone, the guests counted) — on the owner's phone / in the owner's room only; THE SHARE
 IMAGE; THE SIGNAL; THE POSTER's render. PLACEHOLDER: THE BLACKBIRD (a dark dart) + THE UFO (a disc + its beam ring) + THE MOTHERSHIP
 (a green beam + "TAKEN AT LANE n") + their cause lines — H6; the daily; every number in `tuning.js` (first-pass feel) + `CLOCK` (2 s
-ahead / 8 s behind / 75 s drop / 15 s catch-up — tune from real phones); the ghosts' `CATCH_MS` / `HELD_SHOW_MS`; the sounds' levels (the mix: H6) + the seven
-sounds not yet in play (the RESPAWN sound left the audition with respawn); the day look (H5); no tile; the train's name ("THE 6:15");
+ahead / 8 s behind / 75 s drop / 15 s catch-up — tune from real phones); the ghosts' `CATCH_MS` / `HELD_SHOW_MS`; the sounds' levels (the mix: H6 — with it the `-b` takes leave) ; the day look (H5B — every area by day); each area's lean (`AREAS` — first-pass feel); no tile; the train's name ("THE 6:15");
 the poster's hero camera (`POSTER.hero` — the owner judges the frame).

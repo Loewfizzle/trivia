@@ -155,7 +155,7 @@ try {
   // ---- 5. out → the end screen → the report counted from the replay
   ok(await toEnd(P), 'the kid stands still → out → the match ends on the proof\'s `e` → THE END SCREEN');
   await sleep(600);
-  let end = await P.ev(`({ cause: document.querySelector('.jw-fin-cause').textContent, n: document.querySelector('.jw-fin-n b').textContent, unit: document.querySelector('.jw-fin-n span').textContent, foot: [...document.querySelectorAll('.final-actions button')].map(x => x.textContent.trim()), res: ${S}.game.results[${S}.uid], hud: getComputedStyle(document.querySelector('.jw-hud')).visibility, confetti: !!document.querySelector('.jw-final .burst') && getComputedStyle(document.querySelector('.jw-final .burst')).display !== 'none' })`);
+  let end = await P.ev(`({ cause: document.querySelector('.jw-fin-cause').textContent, n: document.querySelector('.jw-fin-n b').textContent, unit: document.querySelector('.jw-fin-n > span').textContent, foot: [...document.querySelectorAll('.final-actions button')].map(x => x.textContent.trim()), res: ${S}.game.results[${S}.uid], hud: getComputedStyle(document.querySelector('.jw-hud')).visibility, confetti: !!document.querySelector('.jw-final .burst') && getComputedStyle(document.querySelector('.jw-final .burst')).display !== 'none' })`);
   ok(Object.values(CAUSE_LINES).includes(end.cause), `HOW YOU WENT OUT, in big neon words: "${end.cause}"`);
   // (H4 add-on: a car hit is named by THE VEHICLE on that lane at that tick — worked out here from the course alone; never a generic line)
   { const veh = end.res.w === 'car' ? hitVehicle(createCourse(seedOf(g.code, g.m, node.go)), { y: end.res.y, x: end.res.px, end: end.res.e }) : '';
@@ -228,12 +228,46 @@ try {
   const r2 = await counted(g.code, g.m);
   ok(!!r2, 'run 2 — seconds after run 1 — is counted too (its own report; THE 45 s GAP never holds a quick solo run)');
   ok(await P.waitFor("/YOUR BEST|NEW BEST/.test(document.querySelector('.jw-fin-best').textContent)", 10000), `… its end screen: "${await P.ev("document.querySelector('.jw-fin-best').textContent")}"`);
-  const bestNow = await board(pid);
+  let bestNow = await board(pid);
   // a few more, for the measure
   for (let i = 0; i < 3; i++) { A = await again(); if (A.up) times.push(A.ms); await hopUp(P, 1); if (i < 2) await toEnd(P); }
   times.sort((x, y) => x - y);
   console.log('PLAY_AGAIN_MS', JSON.stringify(times.map(t => Math.round(t))));
   ok(times.length >= 4 && times[Math.floor(times.length / 2)] < 1000, `PLAY AGAIN, ${times.length} taps: median ${times[Math.floor(times.length / 2)].toFixed(0)} ms, worst ${times[times.length - 1].toFixed(0)} ms (the target ≤ ~1 s)`);
+  // ---- 6c. H5A — THROUGH THE AREAS: the bot plays a solo run past lane 155 (THE DOCKS → THE FISH MARKET → THE RAIL YARD + the
+  // opening = 4 stretches): each gateway's name flashes under the lane count + the landmark sound; the world's cues play (this kid's
+  // own); THE NEW KID is the one drawn; the SERVER's replay counts the same lanes — the same course on the phone + the server
+  {
+    await P.ev("window.__marks = new Set(); window.__markT = setInterval(() => { const m = document.querySelector('.jw-mark'); if (m && m.textContent) window.__marks.add(m.textContent); }, 120)");
+    let far = null, tries = 0, lm0 = 0;
+    for (; tries < 10 && !far; tries++) {
+      if (tries) { if (!(await toEnd(P, 60000))) break; const N = await again(); if (!N.up) break; }
+      lm0 = (await P.ev(`${G}.state().snd.by.landmark`)) || 0;   // (the totals: the lists keep only their last 200 — a long run's first gateways scroll out)
+      await P.ev(`window.__marks.clear(); ${G}.bot(true)`);
+      await P.waitFor(`${G}.state().best >= 156 || ${G}.state().over`, 150000);
+      const st = await P.ev(`${G}.state()`);
+      if (st.best >= 156) { far = st; await P.shot('areas-rail-yard-run.png'); }
+      await P.ev(`${G}.bot(false)`);
+    }
+    ok(!!far, `a bot's solo run got THROUGH 3 AREAS in ${tries} ${tries === 1 ? 'try' : 'tries'} (lane ${far ? far.best : '—'}: the opening → THE DOCKS → THE FISH MARKET → THE RAIL YARD)`);
+    if (far) {
+      const marks = await P.ev('[...window.__marks]'), snd = far.snd, lm = (snd.by.landmark || 0) - lm0;
+      ok(['THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD'].every(n => marks.includes(n)), `each ARRIVAL GATEWAY's name flashed under the lane count: ${marks.join(' · ')}`);
+      ok(lm >= 3, `… with the landmark sound (${lm} asked)`);
+      ok(snd.cues.includes('car-pass') || snd.cues.includes('horn') || snd.cues.includes('bell-on'), `THE WORLD's SOUNDS were cued for this kid (${[...new Set(snd.cues)].join(' · ')})`);
+      ok(far.info.kid === true && far.kidPx >= 30 && far.kidPx <= 58, `THE NEW KID is the one drawn — ${far.kidPx.toFixed(1)} pt tall on this 390 pt phone at that moment (mid-hop he stretches; standing: ≈ 38.5 pt — the lab check)`);
+      const gA = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
+      ok(await toEnd(P, 60000), '… the run ends');
+      const rA = await counted(gA.code, gA.m, 30000), seen = await P.ev(`${G}.state().best`);
+      const vA = verifyNode({ code: gA.code, matchId: gA.m, node: await nodeOf(gA.code, gA.m, uid) });
+      ok(!!rA && vA.ok && !vA.cut && vA.result.lanes === seen && seen >= 156, `the report is COUNTED — the SERVER's own replay of the proof = ${vA.ok ? vA.result.lanes : vA.why} lanes = the phone's ${seen}: the same course on both, areas and all`);
+      ok(await board(pid) === seen, `… and it is the solo best now (${await board(pid)})`);
+      bestNow = await board(pid);
+    }
+    await P.ev('clearInterval(window.__markT)');
+    // (the next step wants a run in play)
+    if (await P.ev(`${S}.game && ${S}.game.phase === 'final'`)) { const N = await again(); ok(N.up, 'PLAY AGAIN after the long run'); await hopUp(P, 1); }
+  }
   // ---- 7. a FORGED log: hops the clock never saw (tick 5000 at second 2) — written honestly stamped; the server counts it as NOTHING
   g = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
   ok(await P.ev(`import('/js/firebase.js').then(f => f.set(f.dbRef('rooms/' + ${S}.code + '/jw/' + ${S}.game.matchId + '/' + ${S}.uid + '/c/900'), { s: 'U3uwU8U8U8U8U8U8U8U8', at: f.serverTimestamp() }).then(() => true, () => false))`), 'a forged chunk (well-formed, stamped by the server) can be written …');

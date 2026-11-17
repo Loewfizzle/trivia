@@ -599,7 +599,7 @@ export function createView() {
           isMatch, watching, follow: followUid, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
           ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag, held: G.held, done: G.done, behind: G.behind })),
           adopts: adopts.slice(), seen: { ...watch }, g0: st.game ? st.game.g0 || 0 : 0,
-          snd: { cues: SFX.cues(), wanted: SFX.wanted().map(q => q.id), ducked: ducked != null },
+          snd: { cues: SFX.cues(), wanted: SFX.wanted().map(q => q.id), by: SFX.totals().by, ducked: ducked != null },
           tier: night ? night.tier() : -1, info: night ? night.info() : null, kidPx: night ? night.kidHeightPx() : 0 }),
         hop, frames: () => frames.slice(), cost: () => cost.slice(), clearFrames() { frames.length = 0; cost.length = 0; stamps.length = 0; },
         /** every frame so far: [ms after tick 0, the frame's length, its own work] — THE START's measure */

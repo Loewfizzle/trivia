@@ -32,6 +32,7 @@ let bufCtx = null, bus = null, busCtx = null, hooked = false;
 const live = new Set();                // the voices sounding: { src, pri, at }
 const log = [];                        // the test hook: what started
 const asked = [];                      // the test hook: what was asked for (locked / headless included)
+const total = { asked: 0, started: 0, by: {} };   // (… and how many EVER — the two lists keep their last 200: H5A's cues fill them fast)
 
 /** fetch the bytes now (no AudioContext needed). `ids`: which sounds (default: every sound in play); `both` = a sound's pick AND its
  *  backup (the audition's — the game fetches the take it plays: the owner's pick, A unless this phone chose B) */
@@ -69,7 +70,7 @@ export function play(id, o = {}) {
   const s = BY[id];
   if (!s) return null;
   const ab = o.ab === 'a' || o.ab === 'b' ? o.ab : pick(id), key = `${id}:${s.b ? ab : 'a'}`, t0 = performance.now();
-  if (!o.late) { asked.push({ id, ab: key.slice(-1), rate: +(o.rate || 1).toFixed(3), vol: +(o.vol == null ? 1 : o.vol).toFixed(3), loop: !!(o.loop || s.loop) }); if (asked.length > 200) asked.shift(); }
+  if (!o.late) { total.asked++; total.by[id] = (total.by[id] || 0) + 1; asked.push({ id, ab: key.slice(-1), rate: +(o.rate || 1).toFixed(3), vol: +(o.vol == null ? 1 : o.vol).toFixed(3), loop: !!(o.loop || s.loop) }); if (asked.length > 200) asked.shift(); }
   try {
     if (!bytes.has(key)) fetchSounds([id], true);
     const ctx = getContext();
@@ -90,7 +91,7 @@ export function play(id, o = {}) {
     if (o.pan && ctx.createStereoPanner) { try { const pn = ctx.createStereoPanner(); pn.pan.value = Math.max(-1, Math.min(1, o.pan)); g.connect(pn); tail = pn; } catch { tail = g; } }
     src.connect(g); tail.connect(out(ctx));
     src.start(); live.add(v); src.onended = () => live.delete(v);
-    log.push({ id, ab: key.slice(-1), rate: +src.playbackRate.value.toFixed(3), gain: +g.gain.value.toFixed(3), loop: src.loop, pan: +(o.pan || 0).toFixed(2) }); if (log.length > 200) log.shift();
+    total.started++; log.push({ id, ab: key.slice(-1), rate: +src.playbackRate.value.toFixed(3), gain: +g.gain.value.toFixed(3), loop: src.loop, pan: +(o.pan || 0).toFixed(2) }); if (log.length > 200) log.shift();
     /** stop it — `fade` s: a short ramp first (a loop cut dead clicks) */
     return { stop(fade = 0) {
       live.delete(v);
@@ -128,3 +129,4 @@ export function onEvent(e, rnd = Math.random) {
 export const played = () => log.slice();
 export const wanted = () => asked.slice();
 export const sounding = () => live.size;
+export const totals = () => ({ ...total, by: { ...total.by } });   // (by: how often each sound was ever asked for)
