@@ -51,3 +51,15 @@ test('the foot\'s order + its rules: SOLO = PLAY AGAIN · SHARE · CITY; a MATCH
   const rules = read('database.rules.json');
   assert.match(rules, /meta\/status'\)\.val\(\) === 'playing' && root\.child\('rooms\/' \+ \$code \+ '\/game\/phase'\)\.val\(\) === 'final'\)\)"/);
 });
+
+test('CITY F — THE RESULTS PLAQUES: a thin neon frame in the game\'s accent + an icon with meaning; #1 WORLDWIDE the ONE gold; no brown box, no compass', () => {
+  const c = read('js/profile/callouts.js'), css = read('css/board.css');
+  for (const k of ['crown', 'rise', 'globe', 'laurel', 'calendar']) assert.match(c, new RegExp(`\b${k}: '<`), `the ${k} icon`);
+  assert.match(c, /title: '#1 WORLDWIDE', sub: label\(def\), rank: 1, sound: 'first', icon: 'crown', gold: true \}/, '#1 WORLDWIDE = the crown, gold');
+  assert.match(c, /title: '#1 THIS WEEK', [^}]*icon: 'calendar' \}/, '#1 THIS WEEK = the calendar, not gold');
+  assert.equal((c.match(/gold: true/g) || []).length, 1, 'gold ONLY on #1 WORLDWIDE');
+  assert.match(css, /\.rc-plaque \{\n  --pk: var\(--fin, var\(--magenta\)\);/, 'the frame in the game\'s accent');
+  assert.doesNotMatch(css, /\.rc-mark|rgba\(44, 28, 18/, 'the compass + the brown box are gone');
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.rc-sparks, \.rc-sweep \{ display: none; \} \}/, 'reduced motion = the still');
+  assert.doesNotMatch(css.slice(css.indexOf('.rc-sparks i {'), css.indexOf('@media (prefers-reduced-motion: reduce) { .rc-sparks')), /box-shadow[^;]*;[^}]*animation|@keyframes rc-spark \{[^}]*box-shadow/, 'the sparks move on transform + opacity only');
+});

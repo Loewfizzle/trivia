@@ -1,5 +1,5 @@
 // The results moments, on every game's podium (ui/final.js): what this match did for you on the global boards.
-// Elegant plaques with a light sweep and a counting rank — NEW PERSONAL BEST, #14 WORLDWIDE, ENTERED THE TOP 10,
+// Sleek plaques (CITY F: a thin neon frame in the game's accent + an icon; #1 WORLDWIDE the one gold) — NEW PERSONAL BEST, #14 WORLDWIDE, ENTERED THE TOP 10,
 // #1 THIS WEEK — then the XP you earned filling your bar, then THE END-OF-ROUND MOMENT (PROGRESSION A — js/progress/moment.js: the
 // XP lines, the level + its level-up, the streak, the achievements; it replaced the old RANK UP overlay).
 // The server's answer can arrive late (a phone offline at the podium): the plaques appear whenever it does.
@@ -26,6 +26,19 @@ function turnOn(el, cls) {
   setTimeout(go, 120);
 }
 const num = n => Math.round(n).toLocaleString('en-US');
+// (CITY F — THE RESULTS PLAQUES' icons: drawn lines, currentColor — the frame's accent (gold on #1 WORLDWIDE))
+const PLAQUE_ICONS = {
+  crown: '<path d="M4 18h16"/><path d="M4.6 15 3.4 7.5l4.8 3.6L12 4.6l3.8 6.5 4.8-3.6-1.2 7.5z"/>',
+  rise: '<path d="M3.5 17 9.5 11l4 4 7-7.5"/><path d="M15 7.5h5.5V13"/>',
+  globe: '<circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2"/><path d="M12 3.4c-3.4 3.6-3.4 13.6 0 17.2"/><path d="M12 3.4c3.4 3.6 3.4 13.6 0 17.2"/>',
+  laurel: '<path d="M8.4 20.5C4 17.2 3.2 10.4 6.6 4.6"/><path d="M15.6 20.5c4.4-3.3 5.2-10.1 1.8-15.9"/><path d="M5.2 8.6 7.6 9.4M4.6 12.6l2.6.2M5.8 16.6l2.2-1"/><path d="M18.8 8.6l-2.4.8M19.4 12.6l-2.6.2M18.2 16.6l-2.2-1"/>',
+  calendar: '<rect x="3.6" y="5.4" width="16.8" height="15" rx="2.2"/><path d="M3.6 10h16.8M8.2 3.4v4M15.8 3.4v4"/>',
+};
+function plaqueIcon(id) {
+  const i = h('span.rc-ico', { 'aria-hidden': 'true' });
+  i.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${PLAQUE_ICONS[id] || PLAQUE_ICONS.rise}</svg>`;
+  return i;
+}
 const gameName = id => (GAMES.find(g => g.id === id) || { name: '' }).name;
 const label = def => (def.game === 'pulse' && def.song ? `${def.label} · ${def.diff.toUpperCase()}` : def.kind === 'career' ? `${gameName(def.game)} · ${def.label}` : def.label);
 
@@ -40,16 +53,18 @@ export function plaquesFor(o) {
     const a = r.all || {}, w = r.week || {};
     const career = def.kind === 'career';
     // career boards only make a moment near the top; records whenever they're on the board
-    if (a.rank === 1 && (!career || a.prev !== 1)) out.push({ k: 'first', pri: 0, title: '#1 WORLDWIDE', sub: label(def), rank: 1, sound: 'first' });
-    else if (w.rank === 1 && (!career || w.prev !== 1)) out.push({ k: 'first', pri: 1, title: '#1 THIS WEEK', sub: label(def), rank: 1, sound: 'first' });
-    else if (a.rank && a.rank <= 10 && (a.prev == null || a.prev > 10)) out.push({ k: 'top10', pri: 2, title: 'ENTERED THE TOP 10', sub: `${label(def)} · #${a.rank} WORLDWIDE`, rank: a.rank, sound: 'top10' });
-    else if (a.rank && (pbBoards.has(r.b) || (career && a.rank <= 100 && a.prev !== a.rank)) && a.rank <= (career ? 100 : 1e9)) out.push({ k: 'world', pri: 4, title: `#${num(a.rank)} WORLDWIDE`, sub: label(def), rank: a.rank, count: true, sound: 'top10' });
-    else if (w.rank && w.rank <= 10 && (w.prev == null || w.prev > w.rank)) out.push({ k: 'week', pri: 5, title: `#${w.rank} THIS WEEK`, sub: label(def), rank: w.rank, count: true, sound: 'top10' });
+    // (CITY F — THE RESULTS PLAQUES: each plaque's ICON says what it is — #1 WORLDWIDE = the gold CROWN (the ONE gold moment), a worldwide
+    //  rank = the GLOBE, the top 10 = the LAUREL, this week's = the CALENDAR, a personal best = the RISING ARROW)
+    if (a.rank === 1 && (!career || a.prev !== 1)) out.push({ k: 'first', pri: 0, title: '#1 WORLDWIDE', sub: label(def), rank: 1, sound: 'first', icon: 'crown', gold: true });
+    else if (w.rank === 1 && (!career || w.prev !== 1)) out.push({ k: 'first', pri: 1, title: '#1 THIS WEEK', sub: label(def), rank: 1, sound: 'first', icon: 'calendar' });
+    else if (a.rank && a.rank <= 10 && (a.prev == null || a.prev > 10)) out.push({ k: 'top10', pri: 2, title: 'ENTERED THE TOP 10', sub: `${label(def)} · #${a.rank} WORLDWIDE`, rank: a.rank, sound: 'top10', icon: 'laurel' });
+    else if (a.rank && (pbBoards.has(r.b) || (career && a.rank <= 100 && a.prev !== a.rank)) && a.rank <= (career ? 100 : 1e9)) out.push({ k: 'world', pri: 4, title: `#${num(a.rank)} WORLDWIDE`, sub: label(def), rank: a.rank, count: true, sound: 'top10', icon: 'globe' });
+    else if (w.rank && w.rank <= 10 && (w.prev == null || w.prev > w.rank)) out.push({ k: 'week', pri: 5, title: `#${w.rank} THIS WEEK`, sub: label(def), rank: w.rank, count: true, sound: 'top10', icon: 'calendar' });
   }
   for (const p of o.pbs || []) {
     const def = boardDef(p.b);
     if (!def) continue;
-    out.push({ k: 'pb', pri: 3, title: p.first ? 'PERSONAL BEST SET' : 'NEW PERSONAL BEST', sub: label(def), value: fmtValue(def, p.v), was: p.prev != null ? fmtValue(def, p.prev) : null, sound: 'pb' });
+    out.push({ k: 'pb', pri: 3, title: p.first ? 'PERSONAL BEST SET' : 'NEW PERSONAL BEST', sub: label(def), value: fmtValue(def, p.v), was: p.prev != null ? fmtValue(def, p.prev) : null, sound: 'pb', icon: 'rise' });
   }
   // the same moment on several boards reads as one plaque: "#1 WORLDWIDE — BEST MATCH · FASTEST 5-LETTER SOLVE"
   const merged = [];
@@ -117,9 +132,12 @@ export function attachCallouts(code, game) {
     const title = p.count
       ? h('b.rc-n', '#', counter = h('span', num(Math.max(p.rank * 4, 50))), ` ${p.title.replace(/^#[\d,]+ /, '')}`)
       : h('b.rc-n', p.title);
-    const item = h('div.rc-plaque', { class: `is-${p.k}` },
-      h('span.rc-sweep', { 'aria-hidden': 'true' }),
-      h('span.rc-mark', { 'aria-hidden': 'true' }),
+    // (CITY F — THE RESULTS PLAQUES: a thin neon line frame in the GAME's accent + its icon; #1 WORLDWIDE alone is GOLD — the crown, a gold
+    //  frame, a foil sweep + a few sparks on arrival (once, transform + opacity only; reduced motion = the still). Never a box, never a pill)
+    const item = h('div.rc-plaque', { class: `is-${p.k}${p.gold ? ' is-gold' : ''}` },
+      p.gold ? h('span.rc-sweep', { 'aria-hidden': 'true' }) : null,
+      p.gold ? h('span.rc-sparks', { 'aria-hidden': 'true' }, ...[0, 1, 2, 3, 4, 5].map(i => h('i', { style: { '--i': String(i) } }))) : null,
+      plaqueIcon(p.icon),
       h('div.rc-body', title, h('span.rc-sub', p.sub)),
       p.value ? h('div.rc-val', h('b', p.value), p.was ? h('small', `was ${p.was}`) : null) : null);
     el.append(item);

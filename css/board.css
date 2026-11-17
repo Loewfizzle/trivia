@@ -332,31 +332,42 @@ body.reduced-fx .bd-sk-card::after, body.reduced-fx .bd-card.is-cascade .bd-rows
    ========================================================================== */
 .rc-slot:empty, .rc:empty { display: none; }
 .rc { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 12px; }
+/* CITY F — THE RESULTS PLAQUES (the owner's mockup, endscreen-standard-A.jpg): a sleek THIN NEON LINE FRAME in the GAME's accent (--fin —
+   ui/final.js sets it; the console's pink without one) over a dark glass, an ICON on the left with meaning (profile/callouts.js#PLAQUE_ICONS),
+   the words white, the value big on the right. #1 WORLDWIDE is the ONE gold moment: the crown, a thin gold neon frame, a foil sweep + a
+   few sparks on arrival (once — transform + opacity only; reduced motion = the still). Never the brown box, never the compass, no pills. */
 .rc-plaque {
-  position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 10px 14px 10px 12px; border-radius: 16px;
-  background: linear-gradient(180deg, rgba(44, 28, 18, 0.92), rgba(16, 10, 12, 0.94));
-  border: 1px solid rgba(242, 200, 105, 0.42);
-  box-shadow: inset 0 1px 0 rgba(255, 236, 200, 0.26), 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 26px rgba(242, 200, 105, 0.16);
-  opacity: 0; transform: translate3d(0, 12px, 0) scale(0.96);
+  --pk: var(--fin, var(--magenta));
+  position: relative; overflow: hidden; display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 11px 16px 11px 14px; border-radius: 12px;
+  background: rgba(6, 7, 16, 0.88);
+  border: 1px solid color-mix(in srgb, var(--pk) 72%, transparent);
+  box-shadow: inset 0 0 14px color-mix(in srgb, var(--pk) 10%, transparent), 0 0 14px color-mix(in srgb, var(--pk) 22%, transparent);
+  opacity: 0; transform: translate3d(0, 12px, 0) scale(0.97);
   transition: opacity 0.5s var(--ease), transform 0.7s var(--ease-back);
 }
 .rc-plaque.is-in { opacity: 1; transform: none; }
-.rc-sweep { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255, 240, 200, 0.28) 50%, transparent 65%); transform: translateX(-110%); }
-.rc-plaque.is-in .rc-sweep { animation: rc-sweep 1.1s ease 0.25s both; }
-@keyframes rc-sweep { to { transform: translateX(110%); } }
-.rc-mark { flex: none; width: 30px; height: 30px; background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath d='M15 2l5 13-5 13-5-13z' fill='%23f2c869'/%3E%3Cpath d='M15 2l5 13h-5z' fill='%23fff2c8'/%3E%3Cpath d='M2 15h7M21 15h7' stroke='%23f2c869' stroke-width='1.6' stroke-linecap='round'/%3E%3Ccircle cx='15' cy='15' r='12.5' fill='none' stroke='%23f2c869' stroke-opacity='.45'/%3E%3C/svg%3E"); filter: drop-shadow(0 0 6px rgba(242, 200, 105, 0.6)); }
-.rc-plaque.is-top10 .rc-mark, .rc-plaque.is-world .rc-mark, .rc-plaque.is-week .rc-mark { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Ccircle cx='15' cy='15' r='12.5' fill='none' stroke='%23a6e9ff' stroke-opacity='.6'/%3E%3Cpath d='M3 15h24M15 3c-5 6-5 18 0 24M15 3c5 6 5 18 0 24' fill='none' stroke='%23a6e9ff' stroke-width='1.2'/%3E%3Ccircle cx='15' cy='15' r='3' fill='%23e8fbff'/%3E%3C/svg%3E"); filter: drop-shadow(0 0 6px rgba(140, 220, 255, 0.6)); }
-.rc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.rc-n { font: 900 13px/1.15 var(--font-display); letter-spacing: 0.14em; color: #fff4dc; text-shadow: 0 0 12px rgba(242, 200, 105, 0.6); font-variant-numeric: tabular-nums; }
-.rc-n span { font-family: var(--font-num); font-weight: 700; font-size: 15px; letter-spacing: 0.02em; }
-.rc-sub { font: 700 9.5px/1.4 var(--font-mono); letter-spacing: 0.12em; color: rgba(246, 230, 205, 0.74); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.rc-val { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.rc-val b { font: 700 18px/1 var(--font-num); color: #fff; }
-.rc-val small { font: 600 10px/1 var(--font-mono); color: rgba(246, 230, 205, 0.66); }
-.rc-plaque.is-first { border-color: rgba(255, 220, 140, 0.8); background: radial-gradient(120% 140% at 0% 50%, rgba(242, 200, 105, 0.28), transparent 60%), linear-gradient(180deg, rgba(54, 36, 16, 0.95), rgba(20, 12, 10, 0.96)); box-shadow: inset 0 1px 0 rgba(255, 245, 220, 0.4), 0 12px 34px rgba(0, 0, 0, 0.45), 0 0 34px rgba(242, 200, 105, 0.35); }
-.rc-plaque.is-first .rc-n { font-size: 15px; }
-.rc-plaque.is-top10, .rc-plaque.is-world, .rc-plaque.is-week { border-color: rgba(160, 230, 255, 0.5); background: linear-gradient(180deg, rgba(16, 26, 40, 0.92), rgba(8, 10, 18, 0.94)); box-shadow: inset 0 1px 0 rgba(220, 245, 255, 0.26), 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 26px rgba(120, 210, 255, 0.18); }
-.rc-plaque.is-top10 .rc-n, .rc-plaque.is-world .rc-n, .rc-plaque.is-week .rc-n { text-shadow: 0 0 12px rgba(140, 220, 255, 0.7); }
+.rc-ico { flex: none; display: inline-flex; width: 30px; height: 30px; color: var(--pk); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--pk) 55%, transparent)); }
+.rc-ico svg { width: 100%; height: 100%; display: block; }
+.rc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.rc-n { font: 900 14px/1.15 var(--font-display); letter-spacing: 0.13em; color: #fff; font-variant-numeric: tabular-nums; }
+.rc-n span { font-family: var(--font-num); font-weight: 700; font-size: 16px; letter-spacing: 0.02em; }
+.rc-sub { font: 700 10px/1.4 var(--font-ui); letter-spacing: 0.22em; color: var(--text-dim); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.rc-val { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.rc-val b { font: 700 21px/1 var(--font-num); color: #fff; }
+.rc-val small { font: 600 11px/1 var(--font-ui); letter-spacing: 0.06em; color: var(--text-dim); }
+/* #1 WORLDWIDE — THE ONE GOLD MOMENT */
+.rc-plaque.is-gold { --pk: #ffcf5c; border-color: rgba(255, 207, 92, 0.85); box-shadow: inset 0 0 18px rgba(255, 207, 92, 0.1), 0 0 18px rgba(255, 207, 92, 0.3); }
+.rc-plaque.is-gold .rc-n { font-size: 16px; color: #ffe39a; text-shadow: 0 0 12px rgba(255, 207, 92, 0.55); }
+.rc-sweep { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 32%, rgba(255, 236, 170, 0.34) 48%, rgba(255, 255, 240, 0.5) 50%, rgba(255, 236, 170, 0.34) 52%, transparent 68%); transform: translateX(-115%); }
+.rc-plaque.is-gold.is-in .rc-sweep { animation: rc-sweep 1.2s ease 0.3s both; }
+@keyframes rc-sweep { to { transform: translateX(115%); } }
+.rc-sparks { position: absolute; left: 29px; top: 50%; width: 0; height: 0; pointer-events: none; }
+.rc-sparks i { position: absolute; left: -2px; top: -2px; width: 4px; height: 4px; border-radius: 50%; background: #fff3c4; box-shadow: 0 0 6px #ffcf5c; opacity: 0;
+  --a: calc(var(--i) * 60deg - 90deg); transform: rotate(var(--a)) translateX(4px) scale(0.6); }
+.rc-plaque.is-gold.is-in .rc-sparks i { animation: rc-spark 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) calc(0.35s + var(--i) * 0.04s) both; }
+@keyframes rc-spark { 0% { opacity: 0; transform: rotate(var(--a)) translateX(4px) scale(0.6); } 25% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--a)) translateX(30px) scale(0.2); } }
+@media (prefers-reduced-motion: reduce) { .rc-sparks, .rc-sweep { display: none; } }
+body.reduced-fx .rc-sparks, body.reduced-fx .rc-sweep { display: none; }
 .rc-xp { width: 100%; font: inherit; color: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: rgba(12, 10, 24, 0.72); border: 1px solid color-mix(in srgb, var(--rk) 35%, transparent); opacity: 0; transform: translateY(8px); transition: opacity 0.5s var(--ease), transform 0.6s var(--ease); }
 .rc-xp.is-in { opacity: 1; transform: none; }
 /* PD-6 ADD-ON — THE SOLO PODIUM SAYS WHAT IT PAID (profile/callouts.js#soloLine, the server's count): ONE plain line under the score — no pill,
