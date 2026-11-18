@@ -30,7 +30,15 @@ on the frame the run ends (a 100 ms poll had made the early frames late). The sh
 | a vehicle | 460 | 460 if it has passed him by then, else 70 (the impact) | a van / truck covers him for up to a second |
 
 ## THE CHECKS (fresh emulators + `serve.mjs --emu`; NEVER THE LIVE SITE)
-(filled in at the close — see the commit message of the ci-tagged push)
+One after another, nothing else busy: smoke (THE PAGES LOAD) 21/21 · e2e-jaywalk 98/98 (+ YOUR ROW GLOWS 4th / 1st / 3rd × night + day, the
+day title's fade) · e2e-jaywalk-match 88/88 (3 phones — its FIRST run went 79/88, failures not captured; the re-run on the same emulators
+green) + 89/89 (`--four`) · the lab check 103/103 + `--perf` 127/127 · the lab's `--touchup` (kid 16/16 + words 4/4) · rules 85/85 · /api
+66/66 · share-card 2/2 · unit 2,209/2,209 (THE BOOT BUDGET · THE PER-GAME BUDGET · CLAUDE.md size · the docs' links · file hashes).
+**wk-jaywalk-mem 47/48** — THE LEAVE "10 runs in a row (PLAY AGAIN)": 4, then 7 JAYWALK views alive after a full GC (≤ 3). NOT this
+pass's: the SAME check on c3632cc1 (THE POLISH PASS's own close, 48/48 then) from a worktree on :5174, the same emulators, today: 7 too.
+The leave case alone (`--leave-only`): 1 alive, 28/28. → OPEN FOR BEN / the next JAYWALK pass.
+THE BOOT: no boot file changed (budget green, untouched) · JAYWALK's size: 2,449 of its 2,450 KB (budget untouched — view.js's comments
+condensed to make room for shot.js). Rules unchanged — nothing to re-publish.
 
 ## THE FRESH-EYES REVIEW (a reviewer with a fresh context, read-only; the shots: `Downloads\NEON\jaywalk-touchup\`) — its report, verbatim
 > FRESH-EYES REVIEW: THE JAYWALK TOUCH-UP SHOTS
@@ -90,3 +98,6 @@ on the frame the run ends (a 100 ms poll had made the early frames late). The sh
 3. The share card's foot by night (the blackout: a flat black slab) + by day (the fog greys under the number) — lighter = the old "31 LANES on
    white fog"; keep, or a different foot for the wall?
 4. CLAUDE.md is full (3 bytes of room): THE SHARE PICTURE's standing rule lives in docs/jaywalk.md "THE TOUCH-UP PASS" only.
+5. wk-jaywalk-mem's "10 runs in a row" leave count reads 4–7 views alive on this machine today — the polish pass's own code too (above);
+   the next JAYWALK pass looks at what keeps a PLAY AGAIN view alive (the leave case alone is clean).
+6. JAYWALK's size budget has ~1 KB left (2,449 of 2,450 KB): the next pass trims comments again or names a raise.
