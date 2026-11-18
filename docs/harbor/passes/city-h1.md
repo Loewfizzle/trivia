@@ -51,8 +51,29 @@ CITY H1's code cost ~7 KB of boot bytes (the doze, the board's pick, the leave w
 moved word for word into the docs (`harbor-promenade.js` 4.3 KB, `remote.js` 4.2 KB → docs/harbor.md "THE BOOT TRIM (CITY H1)"; `tapwatch.js`
 3.6 KB → docs/title.md "THE TAP WATCH — the header"). JAYWALK's per-game budget (the city + the game) back under its 2,450 KB.
 
+**Found in the final run (audio-leave):** while HIDDEN an asleep context still said 'running', so a timer-driven sound in the background could
+have woken it — now it pretends only while on screen and is never woken off screen (`engine.js#sleepy` getter + `wake`). audio-leave's music-off
+case moved to the new truth: no bed starts, a 3-s effect is sounding when the leave lands, back on screen it may already be asleep.
+
 ## FINAL
-(filled at the end)
+Fresh emulators + `serve.mjs --emu` (:5173) + a `DAILY_TEST=1` server (:5174). **Unit 2,241 / 2,241** · prism **67 / 67** · OVERCLOCK `e2e-oc-new`
+**75 / 75** · HOLD'EM **22 / 22** · jaywalk **99 / 99** (+ THE FADE NEVER SLICES A BOX — its first shot still showed the plaque cut by the solid foot (the rule watched only the fade line; a sliding-in transform fooled the measure): now any box the foot cuts, at its laid-out place; e2e-rematch 25 / 25 again after it) · jaywalk-match `--four` **89 / 89** · e2e-rematch **25 / 25** ·
+e2e-daily **122 / 122** · smoke **21 / 21** · e2e-presence **13 / 13** (the df294b6d cloud FATAL didn't reproduce) · e2e-friends **15 / 15** ·
+the harbor groups `room, leaveroom, hostcard, newstart, trivision, trivision-rebuild, keypop, thanks, sheetstack, neon, mediacut, music, sounds,
+dock, roomnote` **277 / 277** (+ `mediacut, music` again after the last engine fix 118 / 118; `perf` + `matchreturn` 17 / 17 earlier) · audio-hush
+**9 / 9** · audio-leave **22 / 22** (19 / 22 first — the stale music-off case + the wake-while-hidden gap, both fixed). THE DOCK's LABELS: the
+tightest gap 6.1 pt (GUESTS | GAMES) at 390 + 375 in every state. **THE BOOT BUDGET**: 307 / 310 modules, **room 14,882 B + 3 modules** (10,085 at
+the start — NEON PAR's ~6 KB + 1 file fit); JAYWALK's per-game budget 2,449.4 of 2,450 KB (591 B left — not raised). No rules change. The FULL e2e-harbor runs in the cloud on
+the tagged push. Shots: `Downloads/NEON/city-h1/` — `room/` (pass 1, 390), `room-pass/` (pass 2: the phones + 1440, night + day), `leaves/`
+(the reveal's screencast, night + day, + the contact sheets), `jaywalk/` (the end screen).
 
 ## OPEN FOR BEN
-(filled at the end)
+- **Your phone test (the squeal):** a podcast on → the site → the music button ONCE (the note slashed) → play → leave the app: the podcast keeps
+  going, no squeal; the AUDIO LEAVE row reads "ctx asleep" or m 0.000 right after the cut.
+- **Named calls (yours to overrule):** with the music off the city's OWN ambience one-shots (gulls, gusts, traffic, its moments) are off too, not
+  just the loops — they kept the context awake every second; a tapped city sound (the knock, a radio jack) still plays · ☰'s DAILIES row is gone
+  outside a room but KEPT in a room — the room's dock has no DAILIES, so it's the only way in from a room.
+- **Found, not fixed (pre-existing, HEAD's engine too):** the music started, then OFF → ALL OFF → ON inside about a second, did not come back
+  within 15 s (harbor `neon` reproduced it; the test now uses the music's own switch). A next pass can look at the station's re-join after a hush.
+- `perf`'s cloud MEMORY red never reproduced here — this push's cloud run names what grew if it's red again.
+- RE-PUBLISH: nothing (no rules change).

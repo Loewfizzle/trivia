@@ -50,7 +50,7 @@ moves nothing, only the setter does (`tests/audio-session.test.mjs` "THE SQUEAL,
   `DOZE_MS` (300) after the last one ends (the 250-ms clock watch asks), the master ramps to 0 in LEAVE_S, ZERO_HOLD_MS of zeros, then the context
   is SUSPENDED — "asleep": it still SAYS 'running' (an instance `state` getter), so every player makes + starts its effect as ever; that start
   WAKES it (the master's value back to 1 while nothing sounds, then `resume()`). A wake whose resume never runs stops pretending after 1 s (the
-  usual recovery takes over). No tap, return or kick resumes an asleep context; the clock watch never calls it frozen. `audioHealth().state` =
+  usual recovery takes over). Off screen it never pretends and is never woken (a background timer's sound can't resume it). No tap, return or kick resumes an asleep context; the clock watch never calls it frozen. `audioHealth().state` =
   'asleep', `.voices`; the AUDIO LEAVE row says "ctx asleep".
 - A leave while asleep finds nothing live; a leave during an effect = the hard cut, now real. Music ON keeps C2 ('playback') + the full ambience
   exactly as before; ALL OFF (the hush) is untouched.

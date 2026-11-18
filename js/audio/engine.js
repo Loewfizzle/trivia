@@ -169,10 +169,8 @@ let sfxCutAt = 0;   // performance.now() the effects went to 0 (0 = they're on)
 export const sfxSilent = () => !!sfxCutAt && performance.now() - sfxCutAt >= CUT_S * 1000 + 30;
 onSettings(() => { applyVolumes(false); setSession('settings'); hushCheck('settings'); if (effectsOnly()) pauseBeds('effects only'); else { wake(); if (visibleNow && !blurred) resumeBeds(); } });
 
-// ---- CITY H1 — MUSIC OFF = EFFECTS ONLY ('ambient' — the owner's pick, Nov 18; docs/audio.md "CITY H1"): no bed plays, and the context SLEEPS
-// whenever no effect sounds — every source made on it is COUNTED (start +1, 'ended' −1); DOZE_MS after the last one the master goes to 0 and the
-// context is suspended ("asleep": it still SAYS 'running', so an effect is made + started as ever); a source started WAKES it (the master back to
-// 1 while nothing sounds, then the resume). A leave almost never finds live sound.
+// ---- CITY H1 — MUSIC OFF = EFFECTS ONLY ('ambient'): no bed; the context SLEEPS while no effect sounds (sources COUNTED; "asleep" still SAYS
+// 'running' on screen) and a source's start WAKES it — docs/audio.md "CITY H1".
 const DOZE_MS = 300, REAL = new WeakMap();
 let voices = 0, voiceAt = 0, asleep = false, dozeT = 0, wakeAt = 0;
 const effectsOnly = () => sessionWant() === 'ambient' && !hushed;
@@ -184,7 +182,7 @@ function sleepy(c) {
   let own = d && 'value' in d ? d.value : null, get = null;
   for (let p = d ? null : Object.getPrototypeOf(c); p && !get; p = Object.getPrototypeOf(p)) { const q = Object.getOwnPropertyDescriptor(p, 'state'); if (q && q.get) get = q.get; }
   const real = () => (get ? get.call(c) : own);
-  try { Object.defineProperty(c, 'state', { configurable: true, get: () => { const s = real(); return asleep && !hushed && c === ctx && s === 'suspended' ? 'running' : s; }, set: v => { own = v; } }); REAL.set(c, real); } catch { /* fine */ }
+  try { Object.defineProperty(c, 'state', { configurable: true, get: () => { const s = real(); return asleep && !hushed && visibleNow && c === ctx && s === 'suspended' ? 'running' : s; }, set: v => { own = v; } }); REAL.set(c, real); } catch { /* fine */ }
   for (const k of ['createBufferSource', 'createOscillator']) {
     const mk = c[k];
     if (typeof mk === 'function') c[k] = function () {
@@ -208,7 +206,7 @@ function doze() {
 function wake() {
   const c = ctx;
   if (dozeT) { clearTimeout(dozeT); dozeT = 0; if (c) silence(c, 1); }
-  if (!asleep || !c || hushed) return;
+  if (!asleep || !c || hushed || !visibleNow) return;   // (never woken off screen — the return wakes nothing either: the next effect does)
   silence(c, 1);
   audioLog('awake for an effect');
   if (!wakeAt) wakeAt = performance.now();
