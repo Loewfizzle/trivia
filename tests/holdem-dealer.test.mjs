@@ -219,3 +219,29 @@ test('THE TOURNAMENT to the end on the dealer: places → result rows (1st = the
   rec.rep = 'done';
   assert.equal(dueOf(rec), rec.m.endAt + CLEAN_AFTER_MS, 'HE10 (A16): the result sent → the clean-up moment');
 });
+
+// CITY G — A TIMEOUT IS NOT NO SIGNAL: the view sends a timed-out move ONCE more (js/games/holdem/view.js#RETRY_OPS). Safe only because a
+// repeat is a no-op: an act whose first try LANDED is refused stale (its seq moved); one that never landed applies once; a pre toggle set
+// twice is the same toggle. A rebuy / sit / leave is never retried (not idempotent).
+test('CITY G — THE RETRY is a no-op when the first try landed, the move itself when it did not; pre twice = once; never a rebuy', async () => {
+  const { rec, rng } = start(3);
+  const who = turnOf(rec);
+  const body = { hand: rec.m.table.hand, seq: rec.seq, action: 'call' };
+  // the first try timed out ON THE WAY THERE (never landed): the retry is the move
+  const seq0 = rec.seq;
+  applyOp(rec, 'act', who, body, { now: T0 + 1, rng });
+  rec.seq += 1;
+  assert.notEqual(turnOf(rec), who, 'the retry acted once');
+  // the first try LANDED (its answer lost on the way back): the retry of the same body is refused stale — never a second call
+  refused(() => applyOp(rec, 'act', who, body, { now: T0 + 2, rng }), 'stale');
+  assert.equal(rec.seq, seq0 + 1);
+  // a pre toggle sent twice: the same toggle
+  const other = rec.m.table.seats.find(x => x.id !== turnOf(rec) && x.status === 'in').id;
+  applyOp(rec, 'pre', other, { hand: rec.m.table.hand, pre: 'checkfold' }, { now: T0 + 3, rng });
+  const once = JSON.stringify(rec.pre[other]);
+  applyOp(rec, 'pre', other, { hand: rec.m.table.hand, pre: 'checkfold' }, { now: T0 + 4, rng });
+  assert.equal(JSON.stringify(rec.pre[other]), once);
+  const v = (await import('node:fs')).readFileSync(new URL('../js/games/holdem/view.js', import.meta.url), 'utf8');
+  assert.match(v, /const RETRY_OPS = new Set\(\['act', 'pre', 'show', 'poke'\]\);/, 'only the no-op-when-repeated ops are retried');
+  assert.match(v, /if \(offline\(\)\) toastNoSignal\(\); else toastSlow\(\);/, 'NO SIGNAL only when offline — else THE DEALER IS SLOW');
+});

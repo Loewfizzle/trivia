@@ -86,6 +86,8 @@ export function createView() {
   const current = () => !!(pub && st && st.game && pub.id === st.game.matchId);
 
   // ------------------------------------------------------------------ the dealer's ops (a refusal just waits for the redraw)
+  // (CITY G: the ops a timed-out call sends again once — each a no-op when repeated: act (its seq), pre (the same toggle), show, poke)
+  const RETRY_OPS = new Set(['act', 'pre', 'show', 'poke']);
   async function send(op, body = {}) {
     if (busy) return null;   // (one move at a time: a double tap never sends twice)
     if (offline()) { toastNoSignal(); return null; }
@@ -106,7 +108,17 @@ export function createView() {
     } catch (e) {
       // (409 stale / illegal, 429: the table moved on — the listener redraws; never a scary message. No signal: said only while the table
       //  hasn't moved — a move whose answer was lost on the way back may still have landed)
-      if (e && e.status === 0 && (!pub || pub.seq === b.seq)) toastNoSignal();
+      // CITY G — A TIMEOUT IS NOT NO SIGNAL (the owner, good wifi, the CHECK button): status 0 with the browser ONLINE → the move is sent again
+      // ONCE (safe: an act carries its seq + hand — a repeat of one that landed is a 409 stale, a no-op; pre / show set the same thing again);
+      // only a failed retry says THE DEALER IS SLOW, and NO SIGNAL only when this phone is really offline
+      if (e && e.status === 0 && (!pub || pub.seq === b.seq)) {
+        if (!offline() && RETRY_OPS.has(op) && !destroyed) {
+          try { r = await dealer({ holdem: op, room: code(), ...(t ? { hand: t.hand } : {}), ...body }); return r; } catch (e2) {
+            if (!(e2 && e2.status === 0) || (pub && pub.seq !== b.seq)) return null;
+          }
+        }
+        if (offline()) toastNoSignal(); else toastSlow();
+      }
       return null;
     } finally {
       // THE CATCH-UP: a move that changed the table holds the pressed look until this phone's table reaches the answer's seq (the listener —
@@ -127,6 +139,7 @@ export function createView() {
   const onNet = () => { if (!destroyed && root) { lastSig = ''; render(); if (!offline()) { fetchSounds(); decodeAll(); } } };   // (HE10 — A37: a sound that failed to load retries)
   const offline = () => !!(st && (st.net === 'lost' || (typeof navigator !== 'undefined' && navigator.onLine === false)));
   const toastNoSignal = () => lazyImport(import('../../ui/toast.js'), '../../ui/toast.js').then(m => m.toast('NO SIGNAL — TRY AGAIN', 'warn', 2200)).catch(() => {});
+  const toastSlow = () => lazyImport(import('../../ui/toast.js'), '../../ui/toast.js').then(m => m.toast('THE DEALER IS SLOW — TRY AGAIN', 'warn', 2400)).catch(() => {});
   // (the pressed look at the finger's touch-down — before any click, any network; iOS's :active needs a touch listener, so it's ours)
   function onPress(e) {
     const btn = e.target && e.target.closest ? e.target.closest('button') : null;
