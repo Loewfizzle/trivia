@@ -57,7 +57,7 @@ export const SCHEDULE = Object.freeze([
   // CITY FIXES + HOLD'EM (the owner, Nov 8 — DECIDED): the roof board's BASE POSTER — TEXAS HOLD'EM · COMING SOON (design B · THE CHIP) in place
   // of the day's game until the owner changes it (no end date; /admin → THE BILLBOARD: off · COMING SOON · NOW OPEN). The messages above still
   // interrupt it; THE BILLPOSTER pastes it once (the first evening) then skips his daily change. These knobs are the DEFAULT (no switch set)
-  { id: 'billboard.holdem', trigger: 'calendar', status: 'live', src: 'core/harbor-holdem.js#holdemShow', what: 'THE HOLD’EM BILLBOARD: the speakeasy roof board’s base poster from `since` — COMING SOON, NOW OPEN from `open` (HOLD’EM IN THE CITY) — until the owner switches it off; the billposter pastes it once', knobs: { kind: 'base', poster: 'holdem', on: true, bar: 'open', since: '2026-11-08', open: '2026-11-11' } },
+  { id: 'billboard.holdem', trigger: 'calendar', status: 'live', src: 'core/harbor-holdem.js#holdemShow', what: 'THE HOLD’EM BILLBOARD: the speakeasy roof board’s base poster from `since` — COMING SOON, NOW OPEN from `open` (HOLD’EM IN THE CITY) — until the owner switches it off; the billposter pastes it once', knobs: { kind: 'base', poster: 'holdem', on: true, bar: 'open', since: '2026-11-08', open: '2026-11-08' } },
   // THE TRI-VISION (Nov 12 night — core/harbor-trivision.js): JAYWALK's poster = the roof board's second face (ON from `since`, COMING SOON — `open`
   // null until the owner sets a day in /admin → THE BILLBOARD); the board TURNS between HOLD'EM + JAYWALK: a turn every `every` s (a seeded gap in
   // that range — two turns a chapter of every[0] + every[1] s, every phone the same face), `turn` s of slats rippling left → right, `slats` across

@@ -127,6 +127,10 @@ const SCENE = {
   // (7a §0: the title's ☰ menu open — the split corners: it drops from the top-left)
   'menu-open': ['2026-10-22T22:00', { act: 'menu' }],
   // PLAY NOW (Nov 13): the dock's PLAY → THE GAMES SHELF; each game's CARD; a solo run's podium foot (PLAY AGAIN + BACK TO THE CITY)
+  // (CITY G — THE ROOF BOARD turns all three faces: HOLD'EM · JAYWALK · THE DROP on the forced 8 s clock — --crop bill --every 8000 --count 4
+  //  --until "__district.tri().faces && __district.tri().faces.length === 3"; -open = JAYWALK's OPEN DAY forced: the OPEN NOW poster)
+  'tri-night': ['2026-11-18T21:30', { qs: 'wx=clear&force=trivision,billboard-jaywalk,billboard-drop,no-hints' }], 'tri-day': ['2026-11-18T13:30', { qs: 'wx=clear&force=trivision,billboard-jaywalk,billboard-drop,no-hints' }],
+  'tri-open-night': ['2026-11-18T21:30', { qs: 'wx=clear&force=trivision,billboard-jaywalk,billboard-drop,no-hints&jaywalk=open' }], 'tri-open-day': ['2026-11-18T13:30', { qs: 'wx=clear&force=trivision,billboard-jaywalk,billboard-drop,no-hints&jaywalk=open' }],
   'pn-shelf': ['2026-11-10T20:30', { act: 'shelf' }], 'pn-prism': ['2026-11-10T20:30', { act: 'card', game: 'prism' }],
   'pn-overclock': ['2026-11-10T20:30', { act: 'card', game: 'overclock' }], 'pn-holdem': ['2026-11-10T20:30', { act: 'card', game: 'holdem' }],
   'pn-podium': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism' }],

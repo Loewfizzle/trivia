@@ -16,25 +16,25 @@ test('the default (no switch set): ON from the row\'s `since`, COMING SOON, NOW 
   const D = knob('billboard.holdem');
   assert.equal(D.since, '2026-11-08');
   assert.equal(D.bar, 'open');
-  assert.equal(D.open, '2026-11-11');
+  // (CITY G: was 11-11 — a shot on Nov 10 read "HOLD'EM COMING SOON", a state the owner's switch never shows (NOW OPEN since 11-08):
+  //  the default now reads exactly as his switch — NOW OPEN from its since)
+  assert.equal(D.open, '2026-11-08');
   assert.equal(holdemState().src, 'default');
   assert.equal(holdemShow('2026-11-07'), null, 'the day before: the game');
-  assert.equal(holdemShow('2026-11-08'), 'holdem');
-  assert.equal(holdemShow('2026-11-10'), 'holdem', 'COMING SOON up to the day before it opened');
-  assert.equal(holdemShow('2026-11-11'), 'holdem-open', 'NOW OPEN from the day HOLD\'EM went playable');
+  assert.equal(holdemShow('2026-11-08'), 'holdem-open');
+  assert.equal(holdemShow('2026-11-10'), 'holdem-open', 'NOW OPEN from its since — never COMING SOON (the owner\'s switch)');
   assert.equal(holdemShow('2026-12-01'), 'holdem-open', 'no end date — until the owner changes it');
   // (the city's own keys are NOT zero-padded — '2026-11-8': the same day; a text compare said "before" — the WebKit shot caught it)
-  assert.equal(holdemShow('2026-11-8'), 'holdem');
+  assert.equal(holdemShow('2026-11-8'), 'holdem-open');
   assert.equal(holdemShow('2026-11-7'), null);
 });
 
-test('HOLD\'EM IN THE CITY: THE BILLPOSTER pastes NOW OPEN once (Nov 11 — the paste is the change), then stays home again', () => {
+test('THE BILLPOSTER pastes NOW OPEN once (its first day, Nov 8 — the paste is the change), then stays home', () => {
   reset();
   const kinds = key => workDay(key, { seed: 1924, day0: day0Of(key), off: -300 }).map(w => w.kind);
-  assert.equal(holdemKeeps('2026-11-10'), true, 'COMING SOON over COMING SOON: home');
-  assert.equal(holdemKeeps('2026-11-11'), false, 'COMING SOON → NOW OPEN: he comes');
-  assert.ok(kinds('2026-11-11').includes('billposter'));
-  for (const k of ['2026-11-12', '2026-11-20']) { assert.equal(holdemKeeps(k), true); assert.ok(!kinds(k).includes('billposter'), `${k}: no billposter`); }
+  assert.equal(holdemKeeps('2026-11-08'), false, 'the game → NOW OPEN: he comes');
+  assert.ok(kinds('2026-11-08').includes('billposter'));
+  for (const k of ['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-20']) { assert.equal(holdemKeeps(k), true); assert.ok(!kinds(k).includes('billposter'), `${k}: no billposter`); }
   // the owner's switch still overrides the default (and can turn it off)
   setHoldem({ on: true, bar: 'soon', since: '2026-11-08' });
   assert.equal(holdemShow('2026-11-20'), 'holdem');

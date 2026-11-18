@@ -104,7 +104,8 @@ export async function open({ slot = 'h', qs = '', city = true, view = [390, 844]
   if (cpu > 1) { const cd = await p.target().createCDPSession(); await cd.send('Emulation.setCPUThrottlingRate', { rate: cpu }); }
   // (FR7 FIXES C2: `intercept(url)` → a response ({ status, contentType, body }) to answer a request with instead of the server — a stale
   //  module from an older deploy, a failed fetch — or null: the server, as always)
-  if (intercept) { await p.setRequestInterception(true); p.on('request', r => { let m = null; try { m = intercept(r.url()); } catch { /* the server */ } if (m) r.respond(m).catch(() => {}); else r.continue().catch(() => {}); }); }
+  //  (CITY G: { delay: ms } = the server's answer, held back that long — a picture still loading while the city is rebuilt)
+  if (intercept) { await p.setRequestInterception(true); p.on('request', r => { let m = null; try { m = intercept(r.url()); } catch { /* the server */ } if (m && m.delay) setTimeout(() => r.continue().catch(() => {}), m.delay); else if (m) r.respond(m).catch(() => {}); else r.continue().catch(() => {}); }); }
   await p.goto(`${BASE}/?emu&slot=${slot}&${qs}${city ? '&city=2' : ''}`);
   await waitFor(p, wait ? '!!window.__district && window.__district.phase().done' : '!!window.__district', `title ${slot}`, 25000);
   return { ctx, page: p, files };

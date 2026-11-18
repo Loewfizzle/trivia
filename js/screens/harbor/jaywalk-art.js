@@ -23,34 +23,37 @@ const SRC = new URL('../../../assets/city/jaywalk/billboard.webp', import.meta.u
 // the board shows THIS poster whole, its words baked in (nothing lettered over it); until then the COMING SOON face as before. Fetched
 // lazily like the old art — after the reveal, only once the open face is wanted; never in the boot graph.
 const OPEN_SRC = new URL('../../../assets/city/jaywalk/open-now.webp', import.meta.url).href;
-let openImg = null, openReady = false;
 const PINK = '#ff4fc4', PINK_HI = '#ffb3e6', CORE = '#fff4fb', EDGE = '#14030f', PLUM = '#3a0428';
 /** how far the art moves down (a share of the panel's height): the kid's cap just under the panel's rule */
 const ART_DROP = 0.08;
-let img = null, ready = false, paths = null;
+let paths = null;
 const P = () => paths || (paths = Object.fromEntries(Object.entries(JW_GLYPHS).map(([k, g]) => [k, { ...g, p: typeof Path2D === 'function' ? new Path2D(g.d) : null }])));
-/** load the poster (once; after the reveal — the scene calls it when the tri-vision is wanted); `onReady` when it has decoded. open = the
- *  NOW OPEN face is wanted (CITY F: the owner's poster) — that picture alone */
-export function warmJaywalk(onReady, onFail, open = false) {
-  if (open) { warmOpen(onReady, onFail); return; }
-  if (ready) { if (onReady) onReady(); return; }
-  if (img || typeof Image === 'undefined') return;
-  const me = img = new Image(); img.decoding = 'async';
-  img.onload = () => { const done = () => { ready = true; if (onReady) onReady(); }; if (me.decode) me.decode().then(done, done); else done(); };
-  // (a missing file / a blip: the board stays on HOLD'EM — PLAY NOW 0c: the scene asks again on a backoff + reports it; never left for good)
-  img.onerror = () => { if (img === me) img = null; if (onFail) onFail('the image failed'); };
-  img.src = SRC;
+// CITY G — THE ROOF BOARD's LOADER (the owner's /admin, Nov 17: JAYWALK ON yet the board turned only HOLD'EM → THE DROP): the city is destroyed +
+// rebuilt on every game start / return, but the picture lives here at MODULE level — the old loader kept ONE onReady (the scene that asked first)
+// and returned silently to any later caller while the picture was still loading, so a scene destroyed mid-load took the answer with it and the
+// NEW scene never heard: the face stayed off until a full reload. Now ONE loader per picture answers EVERY waiting caller (a destroyed scene's
+// callback just returns); a failed load answers every waiter's onFail (the live scene retries on its backoff) and the next call starts afresh.
+export function artLoader(src, what = 'the image') {
+  const L = { img: null, ready: false, wait: [] };
+  const flush = (ok, why) => { for (const w of L.wait.splice(0)) { try { if (ok) { if (w.onReady) w.onReady(); } else if (w.onFail) w.onFail(why); } catch { /* one caller's slip never stops the others */ } } };
+  L.warm = (onReady, onFail) => {
+    if (L.ready) { if (onReady) onReady(); return; }
+    L.wait.push({ onReady, onFail });
+    if (L.img || typeof Image === 'undefined') return;   // (already loading: this caller is answered with the others)
+    const me = L.img = new Image(); me.decoding = 'async';
+    me.onload = () => { const done = () => { if (L.img !== me) return; L.ready = true; flush(true); }; if (me.decode) me.decode().then(done, done); else done(); };
+    // (a missing file / a blip: the board stays on HOLD'EM — PLAY NOW 0c: the scene asks again on a backoff + reports it; never left for good)
+    me.onerror = () => { if (L.img === me) L.img = null; flush(false, `${what} failed`); };
+    me.src = src;
+  };
+  return L;
 }
-export const jaywalkReady = () => ready;
-function warmOpen(onReady, onFail) {
-  if (openReady) { if (onReady) onReady(); return; }
-  if (openImg || typeof Image === 'undefined') return;
-  const me = openImg = new Image(); openImg.decoding = 'async';
-  openImg.onload = () => { const done = () => { openReady = true; if (onReady) onReady(); }; if (me.decode) me.decode().then(done, done); else done(); };
-  openImg.onerror = () => { if (openImg === me) openImg = null; if (onFail) onFail('the open-now image failed'); };
-  openImg.src = OPEN_SRC;
-}
-export const jaywalkOpenReady = () => openReady;
+const SOON = artLoader(SRC, 'the image'), OPEN = artLoader(OPEN_SRC, 'the open-now image');
+/** load the poster (once; after the reveal — the scene calls it when the tri-vision is wanted); `onReady` when it has decoded — EVERY caller
+ *  is answered (CITY G). open = the NOW OPEN face is wanted (CITY F: the owner's poster) — that picture alone */
+export function warmJaywalk(onReady, onFail, open = false) { (open ? OPEN : SOON).warm(onReady, onFail); }
+export const jaywalkReady = () => SOON.ready;
+export const jaywalkOpenReady = () => OPEN.ready;
 
 /** the poster's own shape — HOLD'EM's (holdem-art.js#POSTER_ASPECT): both faces lay out in the same box */
 export const JW_ASPECT = 848 / 448;
@@ -78,7 +81,7 @@ function word(x, g, cx, by, cap, paint) { const s = cap / g.cap; x.save(); x.tra
 /** the poster face into R; bar: 'soon' | 'open'; sd: the sun's side (the shadows fall away from it; 0 at night) */
 export function paintJaywalk(x, R, bar = 'soon', sd = 0) {
   // (CITY F — THE OPEN NOW BILLBOARD: from the OPEN DAY, the owner's poster WHOLE — COVER in the poster box, its words baked in: no lettering)
-  if (bar === 'open' && openReady && openImg) {
+  if (bar === 'open' && OPEN.ready && OPEN.img) { const openImg = OPEN.img;
     x.save(); x.beginPath(); x.rect(R.x, R.y, R.w, R.h); x.clip();
     x.fillStyle = '#05030a'; x.fillRect(R.x, R.y, R.w, R.h);
     const C = coverOf(R, openImg.naturalWidth || 848, openImg.naturalHeight || 448); x.drawImage(openImg, C.dx, C.dy, C.dw, C.dh);
@@ -90,7 +93,7 @@ export function paintJaywalk(x, R, bar = 'soon', sd = 0) {
   x.fillStyle = '#08040e'; x.fillRect(R.x, R.y, R.w, R.h);
   const W = wordsOf(R, bar), sh = (sd > 0 ? -1 : 1) * W.jc * 0.06;
   // THE ART below the panel: COVER as before, moved DOWN so the kid's cap + the headlights sit just under the panel (never under the word)
-  if (ready && img) { const C = coverOf(R, img.naturalWidth || 848, img.naturalHeight || 448), dy = (W.panelY - R.y) * ART_DROP; x.drawImage(img, C.dx, C.dy + dy, C.dw, C.dh); }
+  if (SOON.ready && SOON.img) { const img = SOON.img, C = coverOf(R, img.naturalWidth || 848, img.naturalHeight || 448), dy = (W.panelY - R.y) * ART_DROP; x.drawImage(img, C.dx, C.dy + dy, C.dw, C.dh); }
   // THE CALM PANEL: a solid dark band (a touch of plum at its foot), a fine hot-pink rule under it — nothing busy under the letters
   { const y1 = W.panelY, g = x.createLinearGradient(0, R.y, 0, y1);
     g.addColorStop(0, '#07020c'); g.addColorStop(0.8, '#0d0414'); g.addColorStop(1, '#16061f');

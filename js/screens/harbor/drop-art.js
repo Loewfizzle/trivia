@@ -13,11 +13,15 @@ const INK = { night: { field: '#08061a', field2: '#140c34', beam: '#ffffff', gla
   day: { field: '#6a3fd0', field2: '#5730b4', beam: '#ffffff', glass: '#ffffff', word: '#ffffff', glow: null, sub: '#fff3c4', small: '#e4dcff', key: '#2a1260' } };
 const FACE = px => `900 ${px}px Orbitron, "Chakra Petch", sans-serif`;
 const UI = px => `700 ${px}px "Chakra Petch", Orbitron, sans-serif`;
-let ready = false;
-/** wait for the poster's fonts (Orbitron 900 · Chakra Petch 700 — the page's own), then onReady; never blocks the city (a 2.5 s cap) */
+let ready = false, waiting = null;
+/** wait for the poster's fonts (Orbitron 900 · Chakra Petch 700 — the page's own), then onReady; never blocks the city (a 2.5 s cap).
+ *  CITY G — EVERY caller is answered: the city is rebuilt on every game start / return, and the old wait called only the FIRST scene's
+ *  onReady (a scene destroyed mid-wait took the answer with it — the face stayed off until a reload) */
 export function warmDrop(onReady) {
   if (ready) { if (onReady) onReady(); return; }
-  const fin = () => { if (ready) return; ready = true; if (onReady) onReady(); };
+  if (waiting) { if (onReady) waiting.push(onReady); return; }
+  waiting = onReady ? [onReady] : [];
+  const fin = () => { if (ready) return; ready = true; const W = waiting || []; waiting = null; for (const f of W) { try { f(); } catch { /* one caller's slip never stops the others */ } } };
   try {
     const f = typeof document !== 'undefined' && document.fonts;
     if (!f || !f.load) { fin(); return; }

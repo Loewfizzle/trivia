@@ -88,6 +88,40 @@ G('trivision', async () => {
   log('trivision', 'done');
 });
 
+// ---- CITY G — THE ROOF BOARD's LOADER (the owner's /admin, Nov 17 7:26 pm: HOLD'EM ON · JAYWALK ON · THE DROP KEEP ON, yet the board turned only
+// HOLD'EM → THE DROP): the city is destroyed + rebuilt on every game start / return, the posters live at module level — a scene destroyed while its
+// picture was still loading took the answer with it and the REBUILT scene never showed the face. Here: the JAYWALK picture held back 5 s, the city
+// destroyed + rebuilt mid-load (the title → a menu → the title: the same teardown a game start takes) → all THREE faces turn within a cycle; the same
+// with the OPEN DAY forced (the OPEN NOW poster).
+G('trivision-rebuild', async () => {
+  for (const open_ of [false, true]) {
+    const qs = `wx=clear&force=trivision,billboard-jaywalk,billboard-drop,no-hints${open_ ? '&jaywalk=open' : ''}`;
+    const Q = await open({ slot: open_ ? 'trbo' : 'trb', qs, view: [390, 844], intercept: u => (/assets\/city\/jaywalk\/(billboard|open-now)\.webp/.test(u) ? { delay: 5000 } : null) }), p = Q.page;
+    await harborUp(p);
+    const warmKey = open_ ? 'openWarmed' : 'warmed';
+    await waitFor(p, `(() => { const t = window.__district.tri(); return t && t.${warmKey}; })()`, 'the poster warming', 20000).catch(() => {});
+    // (the picture's request must be IN FLIGHT when the city goes — the old loader's silent return needs a load already started)
+    const pic = open_ ? /open-now\.webp/ : /jaywalk\/billboard\.webp/;
+    for (let i = 0; i < 100 && !Q.files.some(u => pic.test(u)); i++) await sleep(100);
+    const w0 = await ev(p, 'window.__district.tri()'), inFlight = Q.files.some(u => pic.test(u));
+    await ev(p, "import('/js/store.js').then(m => m.setState({ view: 'profile' }))");
+    await waitFor(p, "!document.querySelector('.nd-scene')", 'the city destroyed', 15000);
+    await sleep(600);
+    await ev(p, "import('/js/store.js').then(m => m.setState({ view: 'title' }))");
+    await waitFor(p, "!!(window.__district && window.__district.harbor && window.__district.harbor() && document.querySelector('.nd-scene'))", 'the city rebuilt', 25000);
+    await harborUp(p);
+    const want = open_ ? 'jaywalk-open' : 'jaywalk';
+    // the forced clock turns every 8 s: three faces = one 24 s cycle once the picture lands (5 s after the first ask)
+    await waitFor(p, `(() => { const t = window.__district.tri(); const seen = new Set([t.board, ...t.turns.map(x => x.to)]); return seen.has('${want}') && seen.has('drop') && [...seen].some(f => /^holdem/.test(f)); })()`, 'all three faces', 45000).catch(() => {});
+    const t = await ev(p, 'window.__district.tri()');
+    const seen = [...new Set([t.board, ...t.turns.map(x => x.to)])];
+    ok(w0[warmKey] && inFlight && (t.faces || []).length === 3 && seen.includes(want) && seen.includes('drop') && seen.some(f => /^holdem/.test(f)),
+      `THE ROOF BOARD after a rebuild mid-load${open_ ? ' (OPEN DAY — the OPEN NOW poster)' : ''}: the faces ${(t.faces || []).join(' · ') || 'none'} — turned to ${t.turns.map(x => x.to).join(' → ') || 'nothing'} (the first scene's picture request in flight at the teardown: ${inFlight})`);
+    await Q.ctx.close();
+  }
+  log('trivision-rebuild', 'done');
+});
+
 // ---- LOBBY 2.0 A — THE ROOM IN THE CITY (room-city.js · people.js · core/harbor-room.js + room-lines.js): HOST → the live city stays, the
 // players in TWO LINES OF 4 at the door (the host first), walking in from the edge, the same on two phones, a refresh = in place, lost
 // signal = down + up again, a leave waves off, a kick walks off, the lines are SOLIDS, the room dock (INVITE for all, PLAY host-only +

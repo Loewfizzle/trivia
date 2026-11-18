@@ -97,7 +97,7 @@ test('the scene: the tri-vision\'s pieces (the warm after the reveal, the swap u
   assert.match(sc, /tri\.retryAt = performance\.now\(\) \+ \[3e3, 15e3, 60e3, 300e3\]\[Math\.min\(tri\.fails - 1, 3\)\]/);
   assert.match(sc, /m\.warmJaywalk\(\(\) => \{[^}]*\}, why => \{ if \(!destroyed\) triWarmFailed\(/);
   assert.match(sc, /reportError\(new Error\(`THE TRI-VISION: JAYWALK's \$\{what\} failed to load/);
-  assert.match(readFileSync('js/screens/harbor/jaywalk-art.js', 'utf8'), /img\.onerror = \(\) => \{ if \(img === me\) img = null; if \(onFail\) onFail\('the image failed'\); \};/);
+  assert.match(readFileSync('js/screens/harbor/jaywalk-art.js', 'utf8'), /me\.onerror = \(\) => \{ if \(L\.img === me\) L\.img = null; flush\(false, `\$\{what\} failed`\); \};/);
   const signs = readFileSync(new URL('../js/screens/harbor/signs.js', import.meta.url), 'utf8');
   assert.doesNotMatch(signs + sc, /^import [^\n]*jaywalk-art\.js/m, 'no static import of the poster');
   assert.match(sc, /if \(tri\.lastN == null\) \{ tri\.lastN = C\.n; return F; \}/, 'the first frame it is up starts no turn (THE WINDOW RULE)');
@@ -161,10 +161,46 @@ test('CITY A — the turn works for N faces: the turns\' TIMES never change, onl
 test('CITY F — THE OPEN NOW BILLBOARD: the owner\'s poster on the NOW OPEN face only — whole, its words baked in (no lettering drawn), a small lazy WebP', () => {
   const art = readFileSync('js/screens/harbor/jaywalk-art.js', 'utf8');
   assert.match(art, /const OPEN_SRC = new URL\('\.\.\/\.\.\/\.\.\/assets\/city\/jaywalk\/open-now\.webp', import\.meta\.url\)\.href;/);
-  const i = art.indexOf("if (bar === 'open' && openReady && openImg) {"), seg = art.slice(i, art.indexOf('x.restore(); return;', i));
+  const i = art.indexOf("if (bar === 'open' && OPEN.ready && OPEN.img) {"), seg = art.slice(i, art.indexOf('x.restore(); return;', i));
   assert.ok(i > 0 && /drawImage\(openImg/.test(seg) && !/word\(|fillText/.test(seg), 'the open face: the picture alone, no lettering over it');
   const size = statSync('assets/city/jaywalk/open-now.webp').size;
   assert.ok(size > 5000 && size <= 200 * 1024, `the poster ${size} B (≤ 200 KB)`);
   // (never in the boot graph: only the lazy jaywalk-art.js names it)
   assert.doesNotMatch(readFileSync('js/screens/harbor/scene.js', 'utf8') + readFileSync('js/screens/harbor/signs.js', 'utf8'), /open-now\.webp/);
+});
+
+// CITY G — THE ROOF BOARD's LOADER (the owner's /admin, Nov 17: JAYWALK ON, yet the board turned only HOLD'EM → THE DROP): the city is rebuilt on every
+// game start / return while the picture lives at module level — EVERY caller must be answered, the scene that asked first may be gone
+test('CITY G — the poster loader answers EVERY waiting caller (a scene destroyed mid-load never takes the answer with it); a failure answers all + the next call starts afresh', async () => {
+  const made = [];
+  globalThis.Image = class { constructor() { made.push(this); } set src(v) { this._src = v; } };
+  const { artLoader } = await import('../js/screens/harbor/jaywalk-art.js');
+  const L = artLoader('x.webp');
+  const got = [];
+  L.warm(() => got.push('old scene'));            // the first scene asks …
+  L.warm(() => got.push('new scene'));            // … is destroyed; the rebuilt scene asks while the picture still loads
+  assert.equal(made.length, 1, 'one picture, one request');
+  made[0].onload(); await new Promise(r => setTimeout(r, 0));
+  assert.deepEqual(got, ['old scene', 'new scene'], 'both answered — the rebuilt scene shows the face');
+  L.warm(() => got.push('later'));
+  assert.equal(got.at(-1), 'later', 'once ready: answered at once');
+  const F = artLoader('y.webp'), fails = [];
+  F.warm(null, w => fails.push(`a ${w}`)); F.warm(null, w => fails.push(`b ${w}`));
+  made.at(-1).onerror();
+  assert.deepEqual(fails, ['a the image failed', 'b the image failed'], 'a failure answers every waiter (the live scene retries on its backoff)');
+  F.warm(() => fails.push('retry ok'));
+  assert.equal(made.length, 3, 'the next call starts a fresh load');
+  made.at(-1).onload(); await new Promise(r => setTimeout(r, 0));
+  assert.equal(fails.at(-1), 'retry ok');
+  delete globalThis.Image;
+});
+
+test('CITY G — THE DROP\'s font wait answers EVERY waiting caller too', async () => {
+  let res; const gate = new Promise(r => { res = r; }); globalThis.document = { fonts: { load: () => gate } };
+  const { warmDrop } = await import('../js/screens/harbor/drop-art.js');
+  const got = [];
+  warmDrop(() => got.push('old')); warmDrop(() => got.push('new'));
+  res(); await new Promise(r => setTimeout(r, 0));
+  assert.deepEqual(got, ['old', 'new']);
+  delete globalThis.document;
 });
