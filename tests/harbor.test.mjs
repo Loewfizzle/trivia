@@ -3329,10 +3329,10 @@ test('9c — THE CENTREPIECE SHOW LIGHTING: the floods come on with the lamps (n
 });
 
 // ================================================================ WINDOWS — Group 0: ONLY TWO GAMES PLAYABLE + THE FIVE SIGNS (the owner, Nov 1)
-test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM); the five sign games; every start path refuses a hidden game', async () => {
+test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM · THE GO-LIVE PASS: + JAYWALK); the sign games; every start path refuses a hidden game', async () => {
   const { readFileSync } = await import('node:fs');
   const { isPlayable } = await import('../js/config.js');
-  const ON = ['holdem', 'overclock', 'prism'];
+  const ON = ['holdem', 'jaywalk', 'overclock', 'prism'];
   assert.deepEqual(GAMES.filter(g => g.playable).map(g => g.id).sort(), ON);
   // (FIXES R2 — Part C: the `sign` flag is gone — nothing read it; the city's signs = core/harbor-neon.js#signRoster: the playable games + JAYWALK)
   assert.ok(GAMES.every(g => !('sign' in g)), 'no GAMES row carries the old sign flag');

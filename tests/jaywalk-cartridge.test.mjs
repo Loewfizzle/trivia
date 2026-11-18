@@ -16,14 +16,14 @@ import { MODES, TICK_HZ } from '../js/games/jaywalk/tuning.js';
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const T0 = 1_800_000_000_000;
 
-test('HIDDEN: its GAMES row is playable: false + preview (THE ONE SWITCH stays off) — not frozen, never offered, never startable on a plain page', () => {
+test('PLAYABLE (THE GO-LIVE PASS, Nov 17): its GAMES row is playable: true, no preview — not frozen, offered + startable on every phone; its meta at boot', () => {
   const g = GAMES.find(x => x.id === 'jaywalk');
-  assert.deepEqual([g.name, g.theme, g.playable, g.preview], ['JAYWALK', 'jaywalk', false, true]);
+  assert.deepEqual([g.name, g.theme, g.playable, g.preview], ['JAYWALK', 'jaywalk', true, undefined]);
   assert.ok(g.tag && g.blurb);
-  assert.ok(!FROZEN_IDS.includes('jaywalk'), 'being built — not a frozen game');
-  assert.equal(isPlayable('jaywalk'), false, 'no start (Node has no local emulator page / owner phone)');
-  assert.deepEqual(GAMES.filter(x => x.playable).map(x => x.id).sort(), ['holdem', 'overclock', 'prism'], 'the playable three, unchanged');
-  assert.doesNotMatch(read('js/games/registry.js'), /jaywalk\/meta\.js/, 'no meta at boot until its go-live (THE BOOT BUDGET)');
+  assert.ok(!FROZEN_IDS.includes('jaywalk'), 'a playable game — never frozen');
+  assert.equal(isPlayable('jaywalk'), true, 'THE ONE SWITCH is on: any phone starts it (no owner phone, no local page)');
+  assert.deepEqual(GAMES.filter(x => x.playable).map(x => x.id).sort(), ['holdem', 'jaywalk', 'overclock', 'prism'], 'the playable four');
+  assert.match(read('js/games/registry.js'), /import \* as jaywalkMeta from '\.\/jaywalk\/meta\.js';/, 'its thin meta at boot, like every playable game');
 });
 
 test('THE META (H4): NO OPTIONS — ONE LIFE everywhere; a few minutes (THE MOTHERSHIP at 6 is the rare end), the EVENING station, NIGHT (the day look: H5), SOLO; the contract', () => {
@@ -119,7 +119,7 @@ test('REGISTERED: the mark (the signs\' pink), the theme, SOLO_OK + the report +
   assert.match(read('api/report.js'), /jaywalk: m => \(\{ room: \[`jw\/\$\{m\}`\], seal: \[\] \}\)/);
   assert.match(read('api/report.js'), /const FLAT_PROOF = new Set\(\['prism', 'jaywalk'\]\);/, 'its tree is { uid: node } — GO alone proves a player');
   assert.ok(reg.PROOF_NODE_LIST.includes('jw') && reg.NEW_PLAYER_NODES.includes('jw') && !reg.ALL_PLAYER_NODES.includes('jw'), 'jw: kept as proof, out of the atomic clear (new in the rules)');
-  assert.ok(reg.GAME_IDS.includes('jaywalk') && !reg.META.jaywalk);
+  assert.ok(reg.GAME_IDS.includes('jaywalk') && reg.META.jaywalk && reg.META.jaywalk.BANNER_NAME === 'JAYWALK', 'its thin meta at boot (THE GO-LIVE PASS)');
   const { staleProofPaths } = await import('../js/core/room-logic.js');
   assert.deepEqual(staleProofPaths({ jw: { m0: {}, m1: {}, m2: {} } }, ['m1', 'm2']), { 'jw/m0': null }, 'a rematch keeps the just-finished match\'s node (by matchId)');
   assert.match(read('js/games/lazy-view.js'), /'coastclear', 'jaywalk', 'slip'/);

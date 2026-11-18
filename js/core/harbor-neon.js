@@ -921,14 +921,10 @@ export function fitsSpot(name, sp) {
 const dayNo = key => { const m = /^(\d+)-(\d+)-(\d+)$/.exec(key || ''); return m ? Math.round(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000) : null; };
 
 // ---- CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY (the owner, Nov 14)
-/** JAYWALK's sign row until its own GAMES row exists (the owner, Nov 15: JAYWALK on the signs NOW, as if released — the billboard says COMING SOON) */
-export const JAYWALK_SIGN = Object.freeze({ id: 'jaywalk', name: 'JAYWALK', playable: true, signPreview: true });
-/** the games a city sign may name: the playable ones (config.js GAMES[].playable — never a frozen game, never a daily) + JAYWALK; a game whose
- *  row turns playable joins every sign with no code change. The playable list alone still rules menus, rooms + the shelf */
-export function signRoster(games, { jaywalk = true } = {}) {
-  const out = (games || []).filter(g => g && g.playable && !g.daily);
-  if (jaywalk && !out.some(g => g.id === 'jaywalk')) { const row = (games || []).find(g => g && g.id === 'jaywalk'); out.push(row ? { ...row, playable: true, signPreview: true } : JAYWALK_SIGN); }
-  return out;
+/** the games a city sign may name: the playable ones (config.js GAMES[].playable — never a frozen game, never a daily); a game whose row
+ *  turns playable joins every sign with no code change (JAYWALK's stand-in row went at its go-live, Nov 17 — its own row is playable) */
+export function signRoster(games) {
+  return (games || []).filter(g => g && g.playable && !g.daily);
 }
 /** the owner's call (Nov 15): these names are ALWAYS two stacked words on every neon sign — never one line — where the spot takes two (a roof
  *  sign) or allows a split (`split` — the vertical blades) */

@@ -29,12 +29,13 @@ const IDS = ROSTER.map(g => g.id);
 const FROZEN = new Set(GAMES.filter(g => !g.playable).map(g => g.id));
 const PHONE = ['n-blade', 'n-roofA', 'n-roofB'];
 
-test('the roster: the PLAYABLE games + JAYWALK (as if released) — never a frozen game or a daily; a row turning playable joins with no code change', () => {
-  assert.deepEqual(IDS.slice().sort(), [...GAMES.filter(g => g.playable).map(g => g.id), 'jaywalk'].sort());
-  assert.ok(ROSTER.every(g => g.id === 'jaywalk' || (!FROZEN.has(g.id) && !g.daily)));
-  const later = [...GAMES, { id: 'jaywalk', name: 'JAYWALK', playable: true }];
-  assert.equal(signRoster(later).filter(g => g.id === 'jaywalk').length, 1, 'its own row, never twice');
-  assert.ok(!signRoster(GAMES, { jaywalk: false }).some(g => g.id === 'jaywalk'));
+test('the roster: the PLAYABLE games (JAYWALK by its own row since its go-live) — never a frozen game or a daily; a row turning playable joins with no code change', () => {
+  assert.deepEqual(IDS.slice().sort(), GAMES.filter(g => g.playable && !g.daily).map(g => g.id).sort());
+  assert.ok(IDS.includes('jaywalk'), 'JAYWALK — its own GAMES row, playable (THE GO-LIVE PASS)');
+  assert.ok(ROSTER.every(g => !FROZEN.has(g.id) && !g.daily));
+  assert.equal(signRoster(GAMES).filter(g => g.id === 'jaywalk').length, 1, 'its own row, never twice');
+  assert.equal(signRoster([...GAMES, { id: 'nextgame', name: 'NEXT', playable: true }]).filter(g => g.id === 'nextgame').length, 1, 'a row turning playable joins — no code change');
+  assert.ok(!signRoster(GAMES.map(g => (g.id === 'jaywalk' ? { ...g, playable: false } : g))).some(g => g.id === 'jaywalk'), 'off its row = off the signs (the stand-in is gone)');
 });
 
 test('a year of nights at 390 / 402 / 430 + 1440: NO NAMED SIGN EVER DARK, no frozen name anywhere (the signs, the billboard, the speakeasy blade)', () => {

@@ -31,11 +31,11 @@ export const EXEMPT = FROZEN_IDS;   // (FIXES R2 — B1: config.js#FROZEN_IDS, t
 export const DAILY_ONLY = Object.freeze(['password', 'coastclear', 'drop']);   // (THE DROP A: + THE DROP)
 /** HE3 — BEING BUILT: a GAMES row with playable: false + `preview: true` (no sign, never offered; a local emulator page may start it), NOT
  *  exempt: it meets the whole contract like a playable game. It leaves this list in the pass that makes it playable (HOLD'EM: HE10). */
-export const BUILDING = Object.freeze(['jaywalk']);   // (JAYWALK H1 — until the fix pass after its review flips `playable`)
+export const BUILDING = Object.freeze([]);   // (THE GO-LIVE PASS, Nov 17: JAYWALK went playable — the second game through the whole road)
 const CHECKED = [...PLAYABLE, ...DAILY_ONLY, ...BUILDING];
 
 test('every registered game is PLAYABLE (and checked), DAILY-ONLY (checked, never in a room) or EXEMPT (hidden, frozen) — never neither', () => {
-  assert.deepEqual([...PLAYABLE].sort(), ['holdem', 'overclock', 'prism']);   // (HE10: + HOLD'EM)
+  assert.deepEqual([...PLAYABLE].sort(), ['holdem', 'jaywalk', 'overclock', 'prism']);   // (HE10: + HOLD'EM · THE GO-LIVE PASS: + JAYWALK)
   for (const id of registered) assert.equal([PLAYABLE, DAILY_ONLY, EXEMPT, BUILDING].filter(l => l.includes(id)).length, 1, `${id}: exactly one of playable / daily-only / exempt / being built`);
   for (const id of BUILDING) { const g = GAMES.find(x => x.id === id); assert.ok(g && g.playable === false && g.preview === true && !g.sign, `${id}: a GAMES row, playable false, preview, NO sign (never offered)`); }
   for (const id of EXEMPT) assert.ok(!PLAYABLE.includes(id), `${id} is exempt — it isn't playable`);

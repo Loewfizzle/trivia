@@ -81,7 +81,7 @@ export const GAMES = [ // lobby order
   // HOLD'EM (docs/holdem.md): HE10 (Nov 11 2026 — Ben, after the Fable review's fix pass) — ON FOR EVERYONE; its city sign + day face + THE
   // BOARD's tab since HOLD'EM IN THE CITY (Nov 11); the HE8 owner gate stays in the code for the next game being built
   { id: 'holdem', name: "HOLD'EM", theme: 'holdem', tag: 'TEXAS HOLD’EM · 2–8', blurb: 'Two cards each, five on the table. Bet, bluff or fold. Play chips only.', playable: true },
-  { id: 'jaywalk', name: 'JAYWALK', theme: 'jaywalk', tag: 'HOP THE HARBOR', blurb: 'Hop the lanes. Farthest wins.', playable: false, preview: true },   // (BEING BUILT — docs/jaywalk.md)
+  { id: 'jaywalk', name: 'JAYWALK', theme: 'jaywalk', tag: 'HOP THE HARBOR', blurb: 'Hop the lanes. Farthest wins.', playable: true },   // (PLAYABLE since THE GO-LIVE PASS, Nov 17 — docs/jaywalk.md)
 ];
 /** FIXES R2 — THE REVIEW B1, option (b) "KEEP COMPATIBLE" (the owner, Nov 15): the FROZEN games — not playable, not being built (`preview`). ONE
  *  list: games/registry.js#loadGame refuses them (never loaded — an emulator-only `&frozen=1` for tests), the whole-tree tests read it for
