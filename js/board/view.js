@@ -36,7 +36,7 @@ import { boardDef, recordBoards, careerBoards, tabBoards, fmtValue, MIN_WR_GAMES
 import { POINT_DAILIES } from '../core/daily-points.js';
 import { weekEndsAt } from '../core/week.js';
 import { board as fetchBoard, reportRow } from '../profile/api.js';
-import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
+import { stripKit, stripFor, stripFx, markMine } from '../ui/strip-board.js';
 import { boardSfx } from './audio.js';
 import { lazyImport } from '../ui/lazy-import.js';
 import { afterTap } from '../ui/tapwatch.js';
@@ -230,9 +230,10 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       ? h('button.bd-open', { type: 'button', 'data-press': true, 'aria-label': `${name} — their card`, onclick: () => onPlayer({ b: def.id, bid: r.id, row: { ...r, n: name }, report: mine ? null : () => openReport(r, def) }) }, strip.el)
       : pub && r.id && !mine ? h('button.bd-open', { type: 'button', 'data-press': true, 'aria-label': `${name} — report`, onclick: () => openReport(r, def) }, strip.el)
         : h('div.bd-open', strip.el);
+    markMine(strip.el, mine);   // (THE YOU ROW — ui/strip-board.js: the breathing glow round your card)
     const [v, v2] = colValue(def, r.v);
     const li = h('li.bd-row', {
-      class: [top ? `is-top is-${r.rank}` : '', mine ? 'is-me sb-me' : ''].join(' '),
+      class: [top ? `is-top is-${r.rank}` : '', mine ? 'is-me' : ''].join(' '),
       dataset: { id: r.id || '', n: name || '' },
     },
     h('div.bd-rk', h('span.bd-rank', (top && rankMedal(r.rank, { size: 30 })) || String(r.rank)), h('span.bd-v', v), v2 ? h('span.bd-v2', v2) : null),

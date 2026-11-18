@@ -269,19 +269,18 @@ try {
     await P.shot(`table-${w}.png`);
   }
   await P.p.setViewport({ width: 390, height: 844, deviceScaleFactor: Number(process.env.E2E_DPR) || 2, isMobile: true, hasTouch: true });
-  // THE TOUCH-UP PASS — YOUR ROW GLOWS: a ring + a soft glow in YOUR colour round your row (a layer of its own: the grid never moves) — your
-  // row in 4th / 1st / 3rd place (the friends' bests re-seeded, the table asked again), each by night + by day
+  // CITY H2 — THE YOU ROW (was THE TOUCH-UP PASS's ring in your colour): the SHARED glow — YOUR strip .sb-me, its ::after a pink glow whose
+  // opacity breathes (never a box round the row, never a tint) + your rank pink — your row in 4th / 1st / 3rd place (the friends' bests re-seeded, the table asked again), each by night + by day
   for (const [place, bests] of [[4, null], [1, [8, 5, 3]], [3, [212, 98, 3]]]) {
     if (bests) {
       for (let i = 0; i < TBL.length; i++) await dbPut(`pstats/${TBL[i][0]}/b/jaywalk-solo`, { a: bests[i] });
-      await P.ev(`(() => { const t = document.querySelector('.jw-table'), el = t.parentElement; t.remove(); return import('/js/games/jaywalk/victory.js').then(V => V.yourTable(el, '${await P.ev("getComputedStyle(document.querySelector('.jw-table-list li.is-me')).getPropertyValue('--me').trim()")}')); })()`);
+      await P.ev(`(() => { const t = document.querySelector('.jw-table'), el = t.parentElement; t.remove(); return import('/js/games/jaywalk/victory.js').then(V => V.yourTable(el)); })()`);
       await P.waitFor("document.querySelectorAll('.jw-table-list li').length === 4", 10000);
     }
-    const g = await P.ev(`(() => { const li = [...document.querySelectorAll('.jw-table-list li')], me = li.findIndex(x => x.classList.contains('is-me')), b = getComputedStyle(li[me], '::before'), r = li.map(x => x.getBoundingClientRect()), c = li.map(x => x.querySelector('.jw-table-card').getBoundingClientRect());
-      return { me: me + 1, col: getComputedStyle(li[me]).getPropertyValue('--me').trim(), bc: b.borderTopColor, sh: b.boxShadow, op: +b.opacity, rad: parseFloat(b.borderTopLeftRadius), pos: b.position, h: [...new Set(r.map(x => Math.round(x.height)))], cl: [...new Set(c.map(x => Math.round(x.left)))] }; })()`);
-    const hex = g.col.replace('#', ''), rgb = hex.length === 6 ? `rgb(${parseInt(hex.slice(0, 2), 16)}, ${parseInt(hex.slice(2, 4), 16)}, ${parseInt(hex.slice(4, 6), 16)})` : '';
-    ok(g.me === place && !!rgb && g.bc === rgb && g.sh.includes(rgb) && g.op > 0.5 && g.pos === 'absolute' && g.rad < 14 && g.h.length === 1 && g.cl.length === 1,
-      `YOUR ROW GLOWS in ${place === 1 ? '1st' : place === 3 ? '3rd' : '4th'}: a ring + a glow in your colour (${g.col} → ${g.bc}; radius ${g.rad} px — never a pill) on its own layer; every row one height (${g.h.join('/')}), every card one left edge (${g.cl.join('/')})`);
+    const g = await P.ev(`(() => { const li = [...document.querySelectorAll('.jw-table-list li')], me = li.findIndex(x => x.classList.contains('is-me')), st = li[me] && li[me].querySelector('.vl-strip'), b = st ? getComputedStyle(st, '::after') : null, box = getComputedStyle(li[me], '::before'), r = li.map(x => x.getBoundingClientRect()), c = li.map(x => x.querySelector('.jw-table-card').getBoundingClientRect());
+      return { me: me + 1, sb: !!(st && st.classList.contains('sb-me')), sbN: document.querySelectorAll('.jw-table-list .sb-me').length, sh: b ? b.boxShadow : '', anim: b ? b.animationName : '', pos: b ? b.position : '', box: box.content, rank: getComputedStyle(li[me].querySelector('.jw-table-n')).color, h: [...new Set(r.map(x => Math.round(x.height)))], cl: [...new Set(c.map(x => Math.round(x.left)))] }; })()`);
+    ok(g.me === place && g.sb && g.sbN === 1 && /255, 79, 200|255, 128, 214/.test(g.sh) && g.anim === 'sb-breathe' && g.pos === 'absolute' && (g.box === 'none' || g.box === 'normal') && g.rank === 'rgb(255, 143, 224)' && g.h.length === 1 && g.cl.length === 1,
+      `THE YOU ROW in ${place === 1 ? '1st' : place === 3 ? '3rd' : '4th'}: the shared breathing pink glow on YOUR card only (${g.sbN} marked, ${g.anim}), no box round the row (${g.box}), your rank pink (${g.rank}); every row one height (${g.h.join('/')}), every card one left edge (${g.cl.join('/')})`);
     for (const look of ['night', 'day']) {
       await P.ev(`import('/js/games/kit/look.js').then(m => m.saveLook('${look}'))`);
       await P.waitFor(`document.querySelector('.jw-game').dataset.look === '${look}'`, 6000); await sleep(400);

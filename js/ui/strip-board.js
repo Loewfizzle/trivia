@@ -15,6 +15,13 @@ import { ITEM } from '../core/items.js';
 import { memberLabel } from '../core/member.js';
 import { lazyImport } from './lazy-import.js';
 
+/** CITY H2 — THE YOU ROW (the owner's pick B, THE GLOW — docs/vault.md "THE YOU ROW"): ONE standard for EVERY slim-card list (THE BOARD, SCORES,
+ *  STATS, JAYWALK's YOUR TABLE, the results rows): no box, no edge line, no tint — a soft pink glow round YOUR card, breathing slowly (a
+ *  pseudo-element's OPACITY only — css/vault.css .vl-strip.sb-me::after; reduced motion = a steady glow) + your rank number pink (each list's
+ *  own rank cell, the house pink). `el` = YOUR strip's element (stripFor(…).el). THE LIVE LANE holds: the glow is CSS round a still. */
+export const YOU_CLS = 'sb-me';
+export function markMine(el, on = true) { if (el && el.classList.contains(YOU_CLS) !== !!on) el.classList.toggle(YOU_CLS, !!on); return el; }
+
 let kitP = null;
 /** everything a slim-card list needs, loaded once a page: the vault's strips + looks, the effects, the plain palettes, the APPROVED set, the surface */
 export function stripKit() {
@@ -72,6 +79,7 @@ export async function upgradeBoard(list, rows, players) {
     const score = keep('.lb-score'), note = keep('.lb-note'), lost = keep('.lb-lost');
     const pts = h('span.lb-pts', keep('.lb-move'), keep('.lb-delta'), score);
     const slot = h('div.lb-card', s.el, h('div.lb-sub', lost, note, pts));
+    markMine(s.el, row.classList.contains('is-me'));   // (CITY H2 — THE YOU ROW: the glow round YOUR card, not the row)
     for (const k of [...row.children]) if (!k.classList.contains('lb-rank')) k.remove();
     row.append(slot);
     row.classList.add('lb-strip');

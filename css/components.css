@@ -1273,6 +1273,8 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .lb-row.lb-strip { display: grid; grid-template-columns: 2.6ch minmax(0, 1fr); align-items: center; gap: 8px; min-height: 0; padding: 0; background: none; border: 0; box-shadow: none; animation: none; }
 .lb-row.lb-strip .lb-rank { font: 800 15px/1 var(--font-num); color: var(--text-dim); text-align: right; }
 .lb-row.lb-strip.is-first .lb-rank { color: var(--yellow); }
+.lb-row.lb-strip.is-me { background: none; border: 0; }   /* (CITY H2 — THE YOU ROW: no tint on a slim-card row — the glow round the card) */
+.lb-row.lb-strip.is-me .lb-rank { color: #ff8fe0; }
 .lb-card { position: relative; min-width: 0; }
 .lb-card .vl-strip { width: 100%; }
 /* (FRIENDS B: the score OFF the card — the stats line under it: the game's note on the left, the SCORE at the right end, big + bright) */

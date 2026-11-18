@@ -27,7 +27,7 @@ import { loadToday, todayNow, onToday, markFinished, markStarted, markLesson, he
 import { sweepState, tableFor, everyoneLine, ordinal, tableCut, cardRows, stillToPlay, allTimeRows, allTimeLine, ticketState, tryEndedLine, COUNTS_FROM_TOMORROW, ROOM_BANNER } from '../daily/today-logic.js';
 import { MIN_DAYS } from '../core/daily-points.js';
 import { syncMidFlag, wantFlag } from '../daily/room-flag.js';
-import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
+import { stripKit, stripFor, stripFx, markMine } from '../ui/strip-board.js';
 import { TOP_SHOW } from '../core/every.js';
 
 // ------------------------------------------------------------------------------------------------ the sheet + each daily's thin meta
@@ -389,7 +389,7 @@ function openScreen(tab0) {
       if (!slot) return;
       const pub = r.me && !r.id ? (pidMod && pidMod.myPublic && pidMod.myPublic()) || { n: me().name } : r;
       const strip = stripFor(K, pub, { friend: !!r.f });
-      slot.prepend(strip.el);
+      slot.prepend(markMine(strip.el, !!r.me));   // (CITY H2 — THE YOU ROW)
       stripFx(K, surface, strip, i + 1);
     });
     list.dataset.strips = String(rows.length);
@@ -456,7 +456,7 @@ function openScreen(tab0) {
       if (gone || !ev.isConnected) return;
       const surface = K.liveList(ev, { label: `every:${d.id}` }); surfaces.push(surface);
       const slots = [...ev.querySelectorAll('.dy-crow .dy-card')];
-      all.forEach((r, i) => { const slot = slots[i]; if (!slot) return; const pub = r.mine ? (pidMod && pidMod.myPublic && pidMod.myPublic()) || { n: me().name } : r; const st = stripFor(K, pub, { friend: !!r.f && !r.me }); slot.prepend(st.el); stripFx(K, surface, st, i + 1); });
+      all.forEach((r, i) => { const slot = slots[i]; if (!slot) return; const pub = r.mine ? (pidMod && pidMod.myPublic && pidMod.myPublic()) || { n: me().name } : r; const st = stripFor(K, pub, { friend: !!r.f && !r.me }); slot.prepend(markMine(st.el, !!(r.me || r.mine))); stripFx(K, surface, st, i + 1); });
       ev.dataset.strips = String(all.length);
     }).catch(() => {});
   }
@@ -471,7 +471,7 @@ function openScreen(tab0) {
       if (!slot) return;
       const pub = r.me ? (pidMod && pidMod.myPublic && pidMod.myPublic()) || { n: r.name } : friendCard(r.pid) || { n: r.name };
       const strip = stripFor(K, pub, { name: r.name });
-      slot.prepend(strip.el);
+      slot.prepend(markMine(strip.el, !!r.me));
       stripFx(K, surface, strip, i + 1);
     });
     list.dataset.strips = String(rows.length);

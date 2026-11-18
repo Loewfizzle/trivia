@@ -73,6 +73,7 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 .bd-pick { flex: 0 1 auto; min-width: 0; margin-left: auto; min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-radius: 4px; border: 1px solid rgba(220, 225, 255, 0.26);
   background: rgba(10, 7, 20, 0.6); color: #f4f0ff; font: 700 10.5px/1 var(--font-ui); letter-spacing: 0.14em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .bd-pick[hidden] { display: none; }
+.bd-ctrl:has(.bd-pick[hidden]) .bd-period { max-width: none; }   /* (one board on the tab — XP, HOLD'EM: the switch spans the row) */
 .bd-pick-l { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .bd-pick-c { flex: none; width: 0; height: 0; border-left: 4.5px solid transparent; border-right: 4.5px solid transparent; border-top: 5.5px solid #ff8fe0; }
 .bd-pick:active { transform: scale(0.97); }

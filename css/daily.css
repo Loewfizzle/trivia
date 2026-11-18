@@ -258,15 +258,13 @@ body[data-look="day"] .dy-run > .dy-back { color: #14284a; }
 .dy-cards .lb-row.lb-strip { grid-template-columns: 4.3ch minmax(0, 1fr); gap: 6px; }
 .dy-cards .lb-row.lb-strip .lb-rank { font: 800 13px/1 var(--font-num); letter-spacing: 0.02em; color: var(--dy-dim); white-space: nowrap; }
 .dy-cards .lb-row.lb-strip.is-first .lb-rank { color: var(--dy-seg-on); }
-.dy-cards .lb-row.lb-strip.is-me .lb-rank { color: var(--dy-ink); }
+.dy-cards .lb-row.lb-strip.is-me .lb-rank { color: #ff6fc8; }
 .dy-card { position: relative; border-radius: 12px; }
 .dy-card .vl-strip { width: 100%; }
 .dy-card .lb-sub { justify-content: flex-end; margin: 4px 2px 0; }
 .dy-cards .lb-pts .lb-score.dy-cscore { font: 800 15px/1 var(--font-num); letter-spacing: 0.06em; color: var(--dy-ink); text-shadow: 0 0 10px var(--dy-seg-glow); }
 .dy-cnote { margin-right: auto; font: 700 10.5px/1 var(--font-ui); letter-spacing: 0.16em; color: var(--dy-faint); }
-/* YOU: a lit frame drawn ON the strip's own box (DFIX3 — the owner: it sat larger than the card and stuck out top-left; now the strip's exact box +
-   radius, no offset, no double edge — both looks through the tokens) */
-.dy-cards .is-me .dy-card .vl-strip { box-shadow: 0 0 0 1.5px var(--dy-seg-on), 0 0 12px var(--dy-seg-glow); }
+/* YOU: THE YOU ROW (CITY H2 — ui/strip-board.js#markMine, css/vault.css .vl-strip.sb-me): the shared breathing glow round your card; your rank pink */
 /* DFIX3 — a table of ONE (just you): no rank column — the card alone; the ranks appear with a second finisher */
 .dy-cards.is-solo .lb-row.lb-strip { grid-template-columns: minmax(0, 1fr); }
 .dy-cards.is-solo .lb-row.lb-strip .lb-rank { display: none; }

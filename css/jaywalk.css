@@ -188,12 +188,9 @@
 .jw-table-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; --jw-side: max(26px, calc(var(--jw-d, 2) * 0.8rem + 2px)); }   /* (rem, never ch: the cards inherit nothing new; a digit of the 20 px numerals ≤ 12.8 px) */
 .jw-table-list li { display: grid; grid-template-columns: var(--jw-side) minmax(0, 1fr) var(--jw-side); align-items: center; column-gap: 8px; }
 .jw-table-n { font: 700 15px/1 var(--font-num, var(--font-ui)); color: var(--text-dim); text-align: center; }
-.jw-table-list li.is-me .jw-table-n { color: #ff8fd8; }
-/* THE TOUCH-UP PASS — YOUR ROW GLOWS (the owner): a light ring + a soft glow in YOUR colour round your whole row, on a layer of its own —
-   the grid never moves (no padding, no border); a plain rounded box, never a pill; static (no animated shadow) */
+.jw-table-list li.is-me .jw-table-n { color: #ff8fe0; }
+/* (CITY H2 — YOUR ROW = THE YOU ROW: the shared breathing glow round YOUR card (ui/strip-board.js#markMine) — this table's own box is gone) */
 .jw-table-list li { position: relative; }
-.jw-table-list li.is-me::before { content: ''; position: absolute; inset: -3px -6px; border-radius: 9px; pointer-events: none;
-  border: 1.5px solid var(--me, #ff8fd8); box-shadow: 0 0 12px -1px var(--me, #ff8fd8); opacity: 0.85; }
 .jw-table-card { min-width: 0; text-align: left; }   /* (the card's own alignment — .jw-fin's centred text never reaches its plate; its insides are the shared component's) */
 .jw-table-list li > b { text-align: right; white-space: nowrap; font: 700 20px/1 var(--font-num, var(--font-ui)); color: #fff; }
 

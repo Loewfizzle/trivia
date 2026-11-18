@@ -55,7 +55,7 @@ export function tableRows(rows, max = TABLE_ROWS) {
   if (me && !top.includes(me)) top[top.length - 1] = me;
   return top;
 }
-/** YOUR TABLE under the end screen's numbers (`me` = your colour: your row glows in it) — exported for e2e-jaywalk's re-ask */
+/** YOUR TABLE under the end screen's numbers (`me` = your colour — CITY H2: unused, YOUR card wears THE YOU ROW's house pink) — exported for e2e-jaywalk's re-ask */
 export function yourTable(el, me) {
   const slot = h('div.jw-table');
   el.append(slot);
@@ -67,7 +67,7 @@ export function yourTable(el, me) {
     if (!rows.length || !slot.isConnected) { slot.remove(); return; }
     const strips = [], list = h('ol.jw-table-list', ...rows.map(r => {
       const st = SB.m.stripFor(SB.K, r, { friend: !r.me }); strips.push(st);
-      return h('li', { class: r.me ? 'is-me' : null, style: r.me && me ? { '--me': me } : null }, h('span.jw-table-n', String(r.place)), h('div.jw-table-card', st.el), h('b', num(r.v)));
+      return h('li', { class: r.me ? 'is-me' : null }, h('span.jw-table-n', String(r.place)), h('div.jw-table-card', SB.m.markMine(st.el, !!r.me)), h('b', num(r.v)));   // (CITY H2 — THE YOU ROW: the shared glow, never this table's own box)
     }));
     list.style.setProperty('--jw-d', String(Math.max(...rows.map(r => num(r.v).length))));   // (the widest score's digits → the rank + score columns' ONE width — css .jw-table-list)
     slot.replaceChildren(h('div.jw-table-k', 'YOUR TABLE'), list);
