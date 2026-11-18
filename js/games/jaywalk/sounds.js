@@ -13,7 +13,7 @@
  *  in 10–17 dB hotter than the rest; the hop + the landing a touch softer (heard hundreds of times a run)
  *  BEFORE THE FLIP (the owner, Nov 17 — the delivery's sfx5, all CC0): THE STOPWATCH (a seamless WAV loop — cues.js#tickOf: silent until
  *  the dark is within 3.5 lanes (it waits at 5), a calm tick-tock fading in + speeding up as it closes; it REPLACES the lights dying — row + file gone) ·
- *  THE TRUCK HORN (a deeper air horn: ~1 in 4 of the horn's moments when a box truck is the one closing — the horn's 3-s limit shared) ·
+ *  THE TRUCK HORN (the owner, 7:21 pm: the SAME horn moments alternate car · truck — no horn added; at the car horn's measured loudness) ·
  *  THE AREA ARRIVAL replaced ("Success" — a warm synth chord; the sparkle is gone). Their levels measured against the rest (jaywalk-mix). */
 export const SOUNDS = Object.freeze([
   { id: 'hop', label: 'HOP', b: true, gain: 1.25, pri: 1, play: true },
@@ -24,7 +24,7 @@ export const SOUNDS = Object.freeze([
   { id: 'train-bell', label: 'TRAIN BELL (LOOP)', b: false, gain: 0.29, pri: 3, loop: true, ext: 'wav', play: true, max: 1, fade: 0.5 },
   { id: 'train-horn', label: 'TRAIN HORN', b: false, gain: 0.23, pri: 3, play: true, max: 1, fade: 0.5 },
   { id: 'train-pass', label: 'TRAIN PASSING', b: true, gain: 1.2, pri: 3, play: true, max: 1, fade: 0.5 },
-  { id: 'truck-horn', label: 'TRUCK HORN', b: false, gain: 0.19, pri: 2, play: true, max: 1 },
+  { id: 'truck-horn', label: 'TRUCK HORN', b: false, gain: 0.145, pri: 2, play: true, max: 1 },
   { id: 'stopwatch-tick', label: 'THE STOPWATCH (LOOP)', b: false, gain: 0.9, pri: 3, loop: true, ext: 'wav', play: true, max: 1 },
   { id: 'area-arrive', label: 'AREA ARRIVAL', b: false, gain: 1.25, pri: 3, play: true },
   { id: 'new-best', label: 'NEW BEST', b: false, gain: 1.45, pri: 3, play: true },

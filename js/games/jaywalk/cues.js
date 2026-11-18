@@ -6,24 +6,22 @@
 //   · train-horn        — H5C: ONE blast a train, the moment its WARNING STARTS (a near rail lane's tell begins), from its side
 //   (H5B — the owner: the CAR-PASS near-miss whoosh is GONE — no cue, no sound)
 //   · horn              — a car closing on the kid standing in its lane, ≤ 1 every 3 s
-//   · truck-horn        — BEFORE THE FLIP: ~1 in 4 of those moments when the one closing is a BOX TRUCK (its deeper air horn; the same 3-s limit)
+//   · truck-horn        — BEFORE THE FLIP (the owner, Nov 17 7:21 pm): the SAME horn moments ALTERNATE car horn · truck horn (no horn added)
 //   · tick / tick-off   — BEFORE THE FLIP (the owner — it REPLACES "lights-die"): THE STOPWATCH — one loop, silent while the dark waits at its
 //                         5 lanes behind, fading in + speeding up as THE BLACKOUT / THE FOG BANK closes on him (tickOf: { level, rate })
 // The world's own moments are read straight off the course (pulseAt, moverLeft — pure functions of the tick): nothing here is a rule.
 import { FP, KID_HALF, TICK_HZ } from './tuning.js';
 import { pulseAt, moverLeft } from './course.js';
-import { vehicleAt } from './causes.js';
 
 export const CUE = Object.freeze({
   bellBehind: 2, bellAhead: 6,          // (a rail lane this near the kid — on his screen — rings the bell)
   hornEvery: 3 * TICK_HZ,               // (≤ 1 horn every 3 s)
   hornReach: 2600,                      // (… when a car's nose is within 2.6 cells of him and closing — past the near miss's 1 cell)
-  truckEvery: 4,                        // (~1 in 4 of the horn's moments with a box truck closing: its own air horn)
   pan: 0.7,
 });
 
 /** a run's cue state (the view makes one a run) */
-export const createCues = () => ({ bell: false, passK: {}, tellK: {}, hornAt: -1e9, tick: '' });
+export const createCues = () => ({ bell: false, passK: {}, tellK: {}, hornAt: -1e9, hornN: 0, tick: '' });
 
 /** THE STOPWATCH (BEFORE THE FLIP): the dark's gap behind the kid (lanes) → silent at `far` and beyond (the wall waits 5 lanes back;
  *  3.5 = just outside the old lights-dying's 3 — measured: ≈ 8 % of a moving bot's run, heard in half the runs; at 4.5 it was 24 %, every
@@ -73,9 +71,8 @@ export function cuesAt(S, run, course) {
     const c = carClosing(lane, T, run.x);
     if (c && c.gap > FP && c.gap <= CUE.hornReach) {
       S.hornAt = T;
-      // (BEFORE THE FLIP — a BOX TRUCK closing: ~1 in 4 of its horn moments are its own deeper air horn — picked by the lane, the truck + the second)
-      const truck = vehicleAt(course, y, c.j) === 'truck' && (y * 31 + c.j * 7 + Math.floor(T / TICK_HZ)) % CUE.truckEvery === 0;
-      out.push({ cue: truck ? 'truck-horn' : 'horn', pan: c.side * CUE.pan });
+      // (BEFORE THE FLIP — the owner: the same horn moments, ALTERNATING car horn · truck horn for variety — never a horn more)
+      out.push({ cue: S.hornN++ % 2 ? 'truck-horn' : 'horn', pan: c.side * CUE.pan });
     }
   }
   // THE STOPWATCH (BEFORE THE FLIP — replaces the lights dying): its level + speed follow the dark's gap; a cue only when they change

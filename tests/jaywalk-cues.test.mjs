@@ -81,7 +81,7 @@ test('NO CAR-PASS (H5B — the owner: "it\'s terrible"): a near miss makes no cu
     for (const q of H) { assert.ok(Math.abs(q.pan) === CUE.pan, 'the horn comes from the car\'s side'); if (q.pan < 0) lefts++; else rights++; }
     horn += H.length;
   }
-  assert.ok(truckN > 0 && truckN < horn / 3, `BEFORE THE FLIP — THE TRUCK HORN: ${truckN} of the ${horn} horn moments were a box truck's own air horn (rare: ~1 in 4 of a TRUCK's)`);
+  assert.ok(Math.abs(truckN - horn / 2) <= 40, `BEFORE THE FLIP (the owner, 7:21 pm) — the horn moments ALTERNATE car · truck: ${truckN} truck horns of ${horn} (no horn added — the 3-s limit holds for both)`);
   assert.ok(horn > 20 && lefts > 5 && rights > 5, `${horn} horns (${lefts} left, ${rights} right) over 40 runs downtown — the near misses (${near} ticks with one) made no sound`);
   assert.equal(CUE.passMax, undefined); assert.equal(CUE.passTicks, undefined); assert.equal(CUES.carSide, undefined, 'the car-pass\'s own helpers are gone');
   assert.equal(CUE.hornEvery, 180);
