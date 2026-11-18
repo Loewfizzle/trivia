@@ -657,18 +657,23 @@ G('music', async () => {
 G('mediacut', async () => {
   const P = await open({ slot: 'mc', qs: `${NIGHT}&debug=1`, view: [402, 874] }), p = P.page;
   await harborUp(p); await tapAt(p, 30, 300);
+  await waitFor(p, "import('/js/audio/engine.js').then(E => E.audioUnlocked())", 'the audio unlocked by the tap', 8000).catch(() => {}); await sleep(1500);
+  // (the city's own music may be re-driven by a render (app.js) right after the forced podium song: the song in the element that PLAYS is what
+  //  the cut must pause — victory3 when it holds, else the city's song: the same kind of element)
   await ev(p, "import('/js/audio/music.js').then(m => { window.__mcDiag = m.musicDiag; m.playMusic('victory3'); })");
-  const playing = await waitFor(p, "(() => { const d = window.__mcDiag(); return d.playing === 'victory3' && d.el && !d.el.paused && d.el.t > 0.2; })()", 'the podium song playing', 20000).then(() => true, async () => { log('mediacut', 'not playing:', JSON.stringify(await ev(p, 'window.__mcDiag && window.__mcDiag()'))); return false; });
+  let playing = await waitFor(p, "(() => { const d = window.__mcDiag(); return d.playing === 'victory3' && d.el && !d.el.paused && d.el.t > 0.2; })()", 'the podium song playing', 8000).then(() => true, () => false);
+  if (!playing) { await tapAt(p, 30, 300); playing = await waitFor(p, "(() => { const d = window.__mcDiag(); return d.el && !d.el.paused && d.el.t > 0.2; })()", 'a song playing', 25000).then(() => true, () => false); }
+  const song = await ev(p, 'window.__mcDiag().playing');
   const r = await ev(p, `(async () => {
     const E = await import('/js/audio/engine.js'), M = await import('/js/audio/music.js');
-    const before = M.musicDiag().el.paused;
+    const d0 = M.musicDiag(), before = d0.el ? d0.el.paused : null;
     window.dispatchEvent(new Event('blur'));                       // (the leave's first signal on a touch phone)
     const els = [...document.querySelectorAll('audio, video')].filter(e => !e.paused).length, d = M.musicDiag();
     const st = E.mediaCutState(), rec = JSON.parse(localStorage.getItem('ns:audioleave') || 'null');
     return { before, after: d.el ? d.el.paused : null, els, st, media: rec && rec.sig.find(x => /^media after/.test(x.s)) };
   })()`);
   ok(playing && r.before === false && r.after === true && r.els === 0 && r.st.on && r.st.after === 'all paused' && r.media && r.media.s === 'media after: all paused',
-    `THE MEDIA CUT: the podium song (victory3) playing → the blur → paused IN the cut's own step (${r.before} → ${r.after}; DOM elements still playing ${r.els}); the record: "${r.media && r.media.s}"`);
+    `THE MEDIA CUT: a song playing (${song}) → the blur → paused IN the cut's own step (${r.before} → ${r.after}; DOM elements still playing ${r.els}); the record: "${r.media && r.media.s}"`);
   // hidden after it: still all paused; back on screen + a focus → the song is told it may go on
   await ev(p, "Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))");
   await sleep(300);

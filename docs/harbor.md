@@ -429,6 +429,16 @@ panel, never behind the word). Live at 390: JAYWALK 10.4 ≥ HOLD'EM 10.3 pt, CO
 
 ## Performance
 
+**THE RETURN FROM A MATCH (CITY G, Nov 18 — passes/city-g.md "Group 4"):** the city is still destroyed ~420 ms into a game and rebuilt on the
+return, but it comes back UNDER THE HOLD: `scene.js#keep()` takes the city's last picture (half size) at the title's `halt()` (module level —
+`kept`), the next scene holds it at once (`held()` — the title shows the wrap, no dark) and lets go only after its reveal; the first build moves to
+the first frame after the title's rects (ONE layout, also THE CHROMEBOOK's), primed in steps (the crew's day plan `WORK` + the neon outlines /
+party plan `neon.js#neonGeo` — both cached per geometry, shared by every scene), bake-only frames before the reveal, two warm frames (each
+module's art built before the reveal, not in the first frame after it). HIDDEN (`awayFree`) also frees the stars, the wheel, the water, the sign
+halo + the sign dressing (`signdress.js#free`; its overlay leaked 3.1 MB a trip — `detach` zeroes it). Kept on purpose: the neon sprites + the
+clouds (a re-layout draws from the old set; clouds would pop) and the tri-vision's pictures (THE ROOF BOARD's loader answers every scene).
+Numbers + the module-level cache list: passes/city-g.md. Harbor `matchreturn` (perf job).
+
 **THE WEAK DEVICE (CITY F, Nov 17 — passes/city-f.md "THE CHROMEBOOK"):** a device that reports ≤ 2 cores OR ≤ 4 GB (`core/harbor-tiers.js#weakDevice`
 — Chrome's deviceMemory; NEVER an iPhone / iPad, whatever it reports: their tier choice is untouched) starts the city on the LOWEST tier BEFORE the
 first bake (no stall needed to find out — THE ONE-STALL RULE still stands for everything else). At that tier on such a device: no bake / lit-window

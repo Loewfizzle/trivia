@@ -1137,7 +1137,9 @@ G('weakstart', async () => {
     //  three frames), the first bake ~1.5 s of slices, the warm frames ~1 s — pinned here as never later than before CITY F (5.5 s + 1.5 s of
     //  this machine's noise); at 2× it is 2.4 s, below)
     okT(worst <= 1500, `THE CHROMEBOOK at 4× — no frame over 1.5 s from the start to 15 s after the reveal (the worst ${Math.round(worst)} ms; before CITY G 1,367–2,117)`);
-    okT(revealAt != null && revealAt < 7000, `THE CHROMEBOOK at 4× — the reveal at ${revealAt} ms: never later than before (the 4 s target is met at 2× only)`);
+    // (CITY G — the trade, named for the owner: the warm frames hold the reveal ~1 s longer so that NO frame after it passes 1.5 s; measured 7.6 s
+    //  on the mini PC (before: 5.4–6.7 s + a 1.5–2.1 s freeze after it). The 4 s target is NOT met at 4× — met at 2×.)
+    okT(revealAt != null && revealAt < 8500, `THE CHROMEBOOK at 4× — the reveal at ${revealAt} ms (the trade: no frame over 1.5 s; 4 s NOT met at 4× — met at 2×)`);
     ok(!fades.length, `THE CHROMEBOOK — no bake crossfade at its lowest tier (a straight swap): ${fades.map(r => r.msg).join(' | ') || 'none'}`);
     if (SHOTS) await p.screenshot({ path: `${OUT}weakstart-chromebook-1600x1200.png` });
     await ctx.close(); }
