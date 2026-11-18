@@ -125,8 +125,38 @@ ONE reviewer subagent, a fresh context, read-only, given THE QUALITY BAR, STEP 0
 - **9 — CHECKED at full resolution**: no seam (the light marks are the specks + the logs' rims). ONE BODY OF WATER passes.
 - Taste: left for the owner.
 
-## GROUP 6 — THE CHECKS
-(below)
+## GROUP 6 — THE CHECKS (my own emulators + `scripts/serve.mjs --emu`, NEVER THE LIVE SITE; one at a time, nothing else busy)
+| check | result |
+| --- | --- |
+| unit (`node --test tests/*.test.mjs`) | **2,205 / 0** |
+| rules (`rules.test.mjs`) · `/api` (`server.test.mjs`) | **85 / 0 · 66 / 0** (run after the browser E2Es — the known false-red order) |
+| smoke (`e2e-smoke.mjs` — THE PAGES LOAD) | **errors none** |
+| e2e-jaywalk (@3 — the review's game shots) | **90 / 90** — the arrival banner at every crossing, the day sign sampled, the pinned camera + takes, the run card only on SHARE |
+| e2e-jaywalk-match · `--four` | **87 / 87 · 88 / 88** — four podiums, one SHARE → one run card |
+| the lab check · `--perf` | **108 / 108** · 60 fps at every tier, 1× + 4× CPU (tier 2 @3 4×: 59.9, p95 16.8 ms); THE AUTOMATIC STEP 2 → 1 → 2 → 1 → 0 at 12× |
+| `--preflip` · `--preflip=water` · `--preflip=flash` | **26 / 26 · 1 / 1 · 2 / 2** (0 flashes in 32 tier steps) |
+| `jaywalk-mix.mjs` | **23 cues, none clips** |
+| `wk-jaywalk-mem.mjs` (WebKit: 10 runs + THE LEAVE + a 4-phone match) | **49 / 49** — solo final 7.6 MB, match 10 MB (budget 20); the tab's process 488 → 494 MB over 10 runs |
+| harbor `cartridge` + `trivision` | green · `vault`: the card counts green (Group 0's fix); **2 reds: the 4×-CPU frame time of the city's 8-legendary lobby page** (p95 33.3 ms) — reproduced alone on this machine, a page this pass does not touch; green in the cloud's run of 14cb411f |
+| registration · cartridge · achievements | in the unit suite — green |
+| `wk-press` / `e2e-daily` | not run (the dailies' known red is in the inbox since the go-live review; nothing here touches the dailies' screens) |
 
 ## OPEN FOR BEN
-(below)
+1. **NOT proven on your iPhone**: the day sign (the likeliest phone-side cause is closed — a refused / wiped 2D canvas; in the game on the
+   emulators it was always up), the white flashes (proven by firing tier steps the way a slipping phone does — your phone's own steps
+   are the test), the memory (WebKit flat; no desktop gives a phone's number). Play by DAY through two gates and a few minutes.
+2. **YOUR EAR**: nobody here listened — THE STOPWATCH (it starts when the dark is within 3.5 lanes — my call: 8 % of a moving run; 4.5
+   would be 24 %), the truck horn alternating with the car horn, "Success" at the crossing.
+3. **THE SHARE CARD's headline** (the reviewer's #3, H4B's design): pale cause words over the bright river at link-preview size — a dark
+   band behind the line?
+4. For the NEXT JAYWALK pass / the go-live (pre-existing, the reviewer's #1 + #2): after a REAL lost context the rebuilt scene's far lanes
+   stay dark in the e2e's frame; the lines' words still lose to a vehicle in places (the H5C rule).
+5. For the city chat: the reviewer's #4 (YOUR TABLE's two slim cards align their names differently — the card layout rule, or a bug?);
+   CITY G: the cloud's `dock` red "THE ROOM IN THE URL" on 14cb411f; the `vault` 4×-CPU lobby frame time on the Beelink.
+6. **RE-PUBLISH**: nothing new from this pass — `database.rules.json` is unchanged; the go-live review's re-publish is still owed.
+
+## CAN THE GO-LIVE PASS START? (the checklist's section 0)
+Ticked now: the city's 1–5 (CITY F), PIN THE CAMERA, THE RUN CARD's STORAGE, the 8-phone measure + the queued proof (CITY F), THE LOST
+CONTEXT + THE CREEP (this pass). Still open — all the owner's: re-publish `database.rules.json` (the review's rule), play this build by
+day + night (the ear, the sign, /admin with no `killed` row on game:jaywalk/final), answer the review's + this pass's OPEN FOR BEN.
+THE BOARD's JAYWALK tab is a step of the go-live pass itself. Once those are done, yes.
