@@ -60,7 +60,7 @@ export async function sweepRuns({ games, now = Date.now(), settle }) {
       try {
         const [starts, scores] = await Promise.all([val(`dly/${game}/${day}/s`), val(`dly/${game}/${day}/r`)]);
         for (const pid of Object.keys(starts || {})) {
-          if (scores && scores[pid] != null) continue;
+          if (scores && scores[pid] != null && !cart.tries) continue;   // (DAILY A: a `tries` cartridge's later try may still be open)
           // (yesterday: settleRun scores only a run that can't come back; the day before: its window is over — the next run can't resume it)
           const r = await settle({ pid, cart, day, now, today, force: back === 2 }).catch(() => null);
           if (r) out.push({ game, day, pid, score: r.score });

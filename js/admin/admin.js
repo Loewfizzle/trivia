@@ -145,6 +145,11 @@ function shell() {
       // THE DROP B — THE SCHEDULED GO-LIVE: one row per daily — LIVE / LIVE FROM <date> 4 AM (+ CANCEL) / OFF (+ GO LIVE AT THE NEXT 4 AM)
       h('p.ad-dim', 'GO LIVE AT THE NEXT 4 AM (per daily, any time): the daily turns on by itself at the next 4 am Eastern turn — never mid-day. CANCEL works until then. From that day THE SWEEP and PERFECT WEEK need it too. (Only while the switch above is ON.)'),
       h('div.ad-dly-golive', { id: 'ad-dly-golive' }),
+      // DAILY A — THE DAILY BEST BACKFILL (api/_lib/daily-best-fill.js): every player's best per daily from the kept days — PREVIEW first, then a
+      // second tap; safe to run twice (a better stored best stays)
+      h('p.ad-dim', 'DAILY BEST — every player’s best result per daily, built from the kept days (once, after the deploy; safe to run again).'),
+      h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: bestPreview }, 'DAILY BEST · PREVIEW')),
+      h('div.ad-dly-best', { id: 'ad-dly-best' }),
       // CITY E — THE TAPPABLE SHARE CARD: the cards shared links show (7 days each); the owner deletes ONE (a second tap)
       h('p.ad-dim', 'SHARE CARDS — the day’s scorecard a shared link previews (kept 7 days). Delete one by its row, or paste its link / code.'),
       h('div.ad-dly-shares', { id: 'ad-dly-shares' }, h('span.ad-dim', 'Loading…')),
@@ -346,6 +351,19 @@ async function boardsPreview() {
       const { backfill: r } = await call('boardsBackfill', { confirm: true });
       out.replaceChildren(h('p', h('b', 'Done. '), `${fillLine(r.preview)} — ${r.rows} board row${r.rows === 1 ? '' : 's'} written.`));
       toast('Boards back-filled'); audit();
+    }))));
+}
+
+// ---------------------------------------------------------------- DAILY A — THE DAILY BEST BACKFILL
+const bestLine = p => `${p.players} player${p.players === 1 ? '' : 's'} · ${p.days} days read (${dayLabel(p.from)} → ${dayLabel(p.to)}) · ${Object.entries(p.games).map(([g, x]) => `${g.toUpperCase()}: ${x.days} day${x.days === 1 ? '' : 's'}, ${x.scores} score${x.scores === 1 ? '' : 's'}${x.missing.length ? ` (nothing kept on ${x.missing.length})` : ''}`).join(' · ')}${p.before ? ` · ${p.before}` : ''}`;
+async function bestPreview() {
+  const out = document.getElementById('ad-dly-best');
+  const { preview } = await call('dailyBestBackfill');
+  out.replaceChildren(h('div.ad-tp-dry', h('b', bestLine(preview)), h('p.ad-dim', 'Nothing written yet. Tap twice to build DAILY BEST.'),
+    h('div.ad-row', confirmBtn('Build DAILY BEST now', async () => {
+      const r = await call('dailyBestBackfill', { confirm: true });
+      out.replaceChildren(h('p', h('b', 'Done. '), `${bestLine(r.preview)} — ${r.written} player${r.written === 1 ? '' : 's'} updated${r.gone ? ` · ${r.gone} removed profile${r.gone === 1 ? '' : 's'} skipped` : ''}.`));
+      toast('DAILY BEST built'); audit();
     }))));
 }
 

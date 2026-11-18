@@ -65,11 +65,22 @@ function dropPoints(score) {
   return Math.min(POINTS_MAX - 1, Math.floor(POINTS_FLOOR + (POINTS_MAX - POINTS_FLOOR) * Math.pow(tenths / DROP_END_TENTHS, 0.6)));
 }
 
+// ---- JAYWALK (DAILY A — score = lanes × 100000 + (99999 − tick)): FLOOR + 90 × (lanes / JW_TOP)^0.6, 300+ lanes = 100 — docs/jaywalk.md "THE DAILY"
+export const JW_TOP = 300;
+function jaywalkPoints(score) {
+  const s = Number(score);
+  if (!Number.isFinite(s) || s < 0) return null;
+  const lanes = Math.floor(s / 100000);
+  if (lanes >= JW_TOP) return POINTS_MAX;
+  return Math.min(POINTS_MAX - 1, Math.floor(POINTS_FLOOR + (POINTS_MAX - POINTS_FLOOR) * Math.pow(lanes / JW_TOP, 0.6)));
+}
+
 /** THE TABLE — a row per daily: its score → points (+ the row's own best / worst / lost, for the docs + the tests) */
 export const POINTS = Object.freeze({
   password: { of: passwordPoints, best: 2, worstWin: 12, lost: 206, label: 'both doors in 2 · both in 12 · locked out at the first door' },
   coastclear: { of: coastPoints, best: 30, worstWin: 3600, lost: 10090, label: 'cleared in 0:30 · cleared in 1:00:00 · caught with nothing opened' },
   drop: { of: dropPoints, best: DROP_END_TENTHS * 1000 + 120, worstWin: 600 * 1000, lost: 0, label: 'THE END (8:00) · 1:00 survived · topped out at once', high: true },
+  jaywalk: { of: jaywalkPoints, best: 30099999 - 17000, worstWin: 5099999 - 3000, lost: 99999, label: '300 lanes · 50 · none', high: true },
 });
 /** the dailies with a points row (the boards' list — DAILIES' order) */
 export const POINT_DAILIES = DAILIES.map(d => d.id).filter(id => POINTS[id]);

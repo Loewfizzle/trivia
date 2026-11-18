@@ -20,6 +20,7 @@ export const TICKET_INK = {
   password: { night: '#ff5ec4', day: '#2f86ff' },
   coastclear: { night: '#5fe1ff', day: '#0f86b0' },
   drop: { night: '#eef1ff', day: '#6a3fd0', stamp: '#d9ccff' },
+  jaywalk: { night: '#ffa53a', day: '#e0661c' },   // (DAILY A — the owner's orange; its ticket is DAILY B's)
 };
 export const inkOf = (key, look = 'night') => { const k = TICKET_INK[key]; return k ? (look === 'day' ? k.day : k.night) : look === 'day' ? '#2f86ff' : '#ff6fc8'; };
 export const stampInkOf = (key, look = 'night') => { const k = TICKET_INK[key]; return k && k.stamp && look !== 'day' ? k.stamp : inkOf(key, look); };

@@ -1153,3 +1153,12 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   it was 130–150 ms). `--h6b=chips` shoots a MATCH run (the band's pin).
 - The size budget: `tests/integration/game-budget.json` jaywalk 2,450 KB — after the review 2,447. A JAYWALK pass that adds code cuts
   comments first (full-line comments only; `git show <rev>:file` against the file, every code line identical) — never the line.
+
+## DAILY A (Nov 18 2026 — docs/games/passes/daily-a.md)
+- `kit/cc-touch.mjs` (run by `e2e-daily.mjs` section 0, or alone: `node tests/integration/kit/cc-touch.mjs "<browser>" [--base …]`): COAST
+  CLEAR's CC_DIG_ON — both settings on the real view's preview page (`&dig=up|down`) + THE TOUCH GUARD + THE FITTED BOARD at 375 / 390 / 402 /
+  430, night + day, with and without the hint.
+- `/api`: `node --test daily-jaywalk.test.mjs` in tests/integration — its OWN file (`DAILY_TEST_OFF=jaywalk` opens the OFF row; the other
+  suites' lists stay as they are). Unit: `tests/jaywalk-daily.test.mjs`, `tests/daily-best.test.mjs`. Rules: `rules.test.mjs` "DAILY A".
+- `e2e-jaywalk-daily.mjs "<browser>" [--base …] [--shots …]` — on a `DAILY_TEST=1 … --emu` server; it opens the row through THE SCHEDULED
+  GO-LIVE (`progress/dlive/jaywalk` — removed at its end; the server caches it ~30 s, so run e2e-daily BEFORE it, never right after).

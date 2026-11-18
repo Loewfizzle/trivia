@@ -1395,6 +1395,37 @@
         }
       }
     },
+    "dly": {
+      "jaywalk": {
+        "$day": {
+          "w": {
+            "$uid": {
+              "$try": {
+                "c": {
+                  "$i": {
+                    ".write": "auth != null && auth.uid === $uid && $try.matches(/^[0-2]$/) && data.parent().parent().child('go').isNumber() && data.parent().parent().child('z').isNumber() && !data.parent().parent().child('e').exists() && now >= data.parent().parent().child('go').val() && now <= data.parent().parent().child('z').val() && !data.exists() && newData.exists()",
+                    ".validate": "$i.matches(/^(0|[1-9][0-9]{0,3})$/) && newData.hasChildren(['s', 'at'])",
+                    "s": {
+                      ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 400 && newData.val().matches(/^([UDLR][0-9a-z]+)+$/)"
+                    },
+                    "at": {
+                      ".validate": "newData.isNumber() && newData.val() === now"
+                    },
+                    "$other": {
+                      ".validate": false
+                    }
+                  }
+                },
+                "e": {
+                  ".write": "auth != null && auth.uid === $uid && $try.matches(/^[0-2]$/) && data.parent().child('go').isNumber() && data.parent().child('z').isNumber() && now >= data.parent().child('go').val() && now <= data.parent().child('z').val() && !data.exists() && newData.exists()",
+                  ".validate": "newData.isNumber() && newData.val() === now"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "pstats": {
       "$pid": {
         ".read": "auth != null && root.child('uids/' + auth.uid).val() === $pid"

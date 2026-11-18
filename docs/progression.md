@@ -726,6 +726,25 @@ SHARE TODAY sends a **LINK** (+ the same line) whose link-preview picture IS the
   never a pid. `today` gains `place` + `extra` (your spots) + a friend's `e` once you've played. Works for 1–6 dailies.
 - **BEFORE PUBLIC:** the everyone lists are a cheater target (a throwaway can see the day's results) — harden or limit them before the site goes public.
 
+## DAILY BEST (DAILY A, Nov 18 2026 — docs/games/passes/daily-a.md; the owner: "DAILY BEST for all four dailies, kept on the server, backfilled")
+A player's best result EVER per daily — `pstats/{pid}/db/{game}` = `{ s, day, at, p? (the best from an EARLIER day it beat), bf? (backfilled) }`
+— written ONLY by the server, inside THE DAILY's own stats transaction (api/daily.js#finishRun — the same one that pays the streak + the XP;
+a JAYWALK better try: #raiseRun's), read by its owner with the rest of pstats. ONE pure table (`js/core/daily-best.js#BEST_RULES` — a new
+daily = its row; `tests/daily-best.test.mjs` checks every DAILIES row has one):
+- THE PASSWORD = fewest guesses — a LOCKOUT never counts (a score ≥ 100) · COAST CLEAR = the fastest CLEAR — CAUGHT never counts (≥ 10000) ·
+  THE DROP = the longest time (the lines break a tie) · JAYWALK = the most lanes, the earlier tick on a tie.
+- A non-counting result (THE THROWAWAY GATE) still sets the player's OWN best (it is theirs — not a reward); a run before THE PROGRESS RESET
+  never does (no stats step runs for it).
+- **The phone gets** `{ best: { s, day }, newBest, first }` — on every finish (for its daily) and in `today.best[game]` for every live daily.
+  `newBest` = today's result beat a best from an EARLIER day (beating your own first JAYWALK try the same day is not new); `first` = the first
+  best ever was set today. DAILY B draws "DAILY BEST · …" + the gold NEW DAILY BEST. `today` already carried the place + the day's players
+  (`place: { game: { p, n } }` — "2ND OF 5 PLAYERS").
+- **THE BACKFILL** (`/admin` → THE DAILIES → DAILY BEST · PREVIEW, then a second tap; `api/_lib/daily-best-fill.js`, audited
+  `dailyBestBackfill`): every kept day's scores (`dly/{game}/{day}/r` — kept for good) from `d20261101` (the first daily day) or THE PROGRESS
+  RESET's day, whichever is later (THE ONE DAY LINE) → each player's best merged by the rule in ONE transaction (a better stored best stays —
+  SAFE TWICE; a removed profile is skipped). The preview names, per daily, the days with NOTHING kept (no plays, or `dailyFresh` wiped them).
+- Proven: `tests/daily-best.test.mjs` · `tests/integration/daily-jaywalk.test.mjs` "DAILY BEST".
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

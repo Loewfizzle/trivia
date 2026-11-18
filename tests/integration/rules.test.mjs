@@ -1624,3 +1624,37 @@ test('FR7 FIXES B — the host deletes ONE match\'s proof node (prism / oc / ocm
   const left = (await get(ref(db('host'), `${R}/prism`))).val();
   assert.ok(left.mA && !left.mZ, 'the previous match kept, the older one gone');
 });
+
+// DAILY A — JAYWALK's DAILY PROOF NODE: dly/jaywalk/{day}/w/{uid}/{try} = { go, z (server-written at START), c/{i} = { s, at: the SERVER's
+// time } (append-only), e (the phone's end — a server time) }. Own uid only · append-only chunks · server timestamps · nothing before go /
+// after z (the try's window — its day) / once e is set · try index 0 … 2 only · the phone never opens a try (go / z) and never reads.
+test('DAILY A — JAYWALK daily proof node: own uid, append-only server-stamped chunks, nothing once e is set or past z, no 4th try, never opened by a phone', async () => {
+  const D = 'dly/jaywalk/d20261118/w', t0 = now() - 5000;
+  await seed({ dly: { jaywalk: { d20261118: { w: {
+    u1: { 0: { go: t0, z: t0 + 395000 }, 1: { go: t0 - 900000, z: t0 - 500000 }, 2: { go: t0 + 60000, z: t0 + 455000 } },
+    u2: { 0: { go: t0, z: t0 + 395000 } },
+  } } } } });
+  const chunk = s => ({ s, at: serverTimestamp() });
+  await assertSucceeds(set(ref(db('u1'), `${D}/u1/0/c/0`), chunk('U0R3')), 'a chunk on its own open try');
+  await assertSucceeds(set(ref(db('u1'), `${D}/u1/0/c/1`), chunk('U9')), 'the next chunk');
+  await assertFails(set(ref(db('u1'), `${D}/u1/0/c/1`), chunk('U9L2')), 'append-only: a chunk is never rewritten');
+  await assertFails(remove(ref(db('u1'), `${D}/u1/0/c/0`)), 'a chunk is never deleted');
+  await assertFails(set(ref(db('u1'), `${D}/u1/0/c/2`), { s: 'U4', at: now() }), 'a CLIENT timestamp is refused (the server\'s only)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/0/c/2`), { s: 'X4', at: serverTimestamp() }), 'not a packed hop string');
+  await assertFails(set(ref(db('u1'), `${D}/u1/0/c/2`), { s: 'U4', at: serverTimestamp(), l: 99 }), 'no other field (a phone never claims lanes)');
+  await assertFails(set(ref(db('u1'), `${D}/u2/0/c/0`), chunk('U0')), 'never another player\'s node');
+  await assertFails(set(ref(db('u1'), `${D}/u1/1/c/0`), chunk('U0')), 'past z (the try\'s window — its day — is over)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/2/c/0`), chunk('U0')), 'before go');
+  await assertFails(set(ref(db('u1'), `${D}/u1/3/c/0`), chunk('U0')), 'no 4th try (index 0 … 2)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/5/go`), serverTimestamp()), 'a phone never opens a try');
+  await assertFails(set(ref(db('u1'), `${D}/u1/0/go`), serverTimestamp()), 'a phone never moves its GO');
+  await assertFails(set(ref(db('u1'), `${D}/u1/0/z`), t0 + 999999), 'nor its z');
+  await assertFails(set(ref(db('u1'), `${D}/u1/0/e`), now()), 'the end = a SERVER time');
+  await assertSucceeds(set(ref(db('u1'), `${D}/u1/0/e`), serverTimestamp()), 'the phone ends its try (FINISH, hidden, refreshed)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/0/e`), serverTimestamp()), 'once');
+  await assertFails(set(ref(db('u1'), `${D}/u1/0/c/2`), chunk('U3')), 'nothing after the try\'s end (FINISH)');
+  await assertFails(get(ref(db('u1'), `${D}/u1/0`)), 'never read by a phone (server-only — the rules\' default deny)');
+  await assertFails(get(ref(db('u1'), 'dly/jaywalk/d20261118/p')), 'the records: server-only');
+  await assertFails(set(ref(db('u1'), 'dly/jaywalk/d20261118/r/pAAAAAAAAAAA'), 999), 'the day\'s score: server-only');
+  await assertFails(set(ref(db(null), `${D}/u1/0/c/2`), chunk('U3')), 'signed out: nothing');
+});

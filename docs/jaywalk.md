@@ -25,7 +25,8 @@ import map); the RULES are a pure engine that never knows about it.
 | THE GO-LIVE REVIEW | Nov 17 2026 | `docs/games/passes/jaywalk-review.md` | the audit (a fresh auditor + a second reviewer — both reports verbatim) + its fixes · THE BLACKBIRD's DAY TELL · the fog's banding · the first look switch's long frame · the lane count clear of every landmark + a match's chips · Grok's two night touch-ups · THE MEMORY ON WEBKIT (`wk-jaywalk-mem.mjs`) · the go-live checklist (`jaywalk-golive-checklist.md`) — it does NOT flip `playable` |
 | THE GO-LIVE PASS | Nov 17 2026 | `docs/games/passes/jaywalk-golive.md` (the plan: `jaywalk-golive-checklist.md`) | ✓ DONE — flipped `playable` (empties `tests/registration.test.mjs#JAYWALK_WAITS`; the meta + its tile join the boot — after the city's CHROMEBOOK pass trims THE BOOT BUDGET: the owner, Nov 16) |
 | THE POLISH PASS | Nov 18 2026 | `docs/games/passes/jaywalk-polish.md` | ✓ DONE — YOUR TABLE's grid + the slim cards' one-line names · the share card's dark band · HOW TO PLAY's Mothership line · the late k write · the far lanes after a lost context ("THE POLISH PASS", below) |
-| DAILY A · DAILY B | — | — | its daily (`MODES.daily`) |
+| DAILY A | Nov 18 2026 | `docs/games/passes/daily-a.md` | ✓ THE DAILY's SERVER HALF (3 tries, the proof node, the 4 conditions, the points curve) + its test page — ships OFF ("THE DAILY", below) |
+| DAILY B | — | — | THE DAILY's screens (its ticket in orange, TRY ENDED · N TRIES LEFT, DAILY BEST on the ticket) |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
 this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
@@ -1262,6 +1263,58 @@ table (`yourTable` is exported for it): your row 4th / 1st / 3rd, each by night 
 By day the veil's top is darker (0.84 → 0.76 at 16 % → the night's own 0.9 by a third of the screen): JAYWALK · SOLO + the cause words read on
 the bright sky; the night unchanged. (The night's near-black far grass: LEFT AS IS — the owner.)
 
+## THE DAILY (DAILY A — Nov 18 2026; the owner's decisions: docs/games/plan.md "DAILY A / B"; ships OFF — its screens are DAILY B's)
+THE SERVER HALF + an owner-facing TEST PAGE. The row: `config.js#DAILIES` `{ id: 'jaywalk', …, measure: 'lanes', ticket: 'jaywalk', ownMusic, on: false,
+tries: 3 }` (the daily shares the game's id — `app.js` + `daily/share.js#measureOf` read a DAILIES row FIRST); the ticket's ink
+`TICKET_INK.jaywalk` = night `#ffa53a` · day `#e0661c` (used by DAILY B).
+- **THE DAY**: the course = `dailySeed('jaywalk', day)` (THE DAILY SECRET — `api/_lib/jaywalk-daily.js#jwDay`, `d<seed>`; the same for everyone;
+  practice / solo / a match never use it), `MODES.daily` (the wall 0.6 → 1.8 lanes / s from 3:00, THE MOTHERSHIP at 5:00). **THE SCORE** =
+  lanes, then the EARLIER tick — `core/daily-best.js#jwScore` = lanes × 100000 + (99999 − tick), `better: 'high'`; 5-lane buckets (121).
+- **THREE TRIES, THE BEST COUNTS** (a `tries` cartridge — api/daily.js branches on `cart.tries`): **START** = a NEW try every time (never a
+  resume, never a pause): an open try is CLOSED first (condition 1), a 4th → `409 no_tries` (+ the day's score + the tries in the error's
+  extra). **The FIRST closed try counts the day** (api/daily.js#finishRun: the claim of `r/{pid}`, the histogram, the top, THE THROWAWAY GATE,
+  the streak, the XP ONCE, THE SWEEP, PERFECT WEEK); **a BETTER later try RAISES it** (#raiseRun: the claim's own transaction raises `r/`, the
+  histogram moves the bucket, the top re-sorts, the points rise by the difference — `daily-best.js#pointsRaise` — the points boards are
+  re-written, a closed day re-ranks: PENTHOUSE reads the best). EVERYONE's scores unlock after the FIRST closed try (`r/` exists). Unused tries
+  expire at 4 am (START is always today's).
+- **THE RUN PATH**: START answers `{ run: { seed, try, go, z, path, left, tries } }` — `go` = the server's time + `LEAD_MS` 3 s (the count-in),
+  `z` = go + 5:00 + `GRACE_MS` 90 s (THE DROPPED SIGNAL's burst) — and the SERVER writes the proof node `{ go, z }`; the phone plays ON THE
+  SERVER's CLOCK (tick = (server time − go) × 60 / 1000) and appends its hops every second as chunks `c/{k} = { s: packed hops, at: the
+  DATABASE's server timestamp }`; **FINISH** closes the try: the server reads the node and REPLAYS it (`api/_lib/jaywalk.js#verifyRun`, mode
+  `'daily'`, tick 0 = the RECORD's go — never the node's; THE SPEED CHECK both ways + THE DROPPED SIGNAL; a log ahead of the clock → the try
+  = 0 lanes `bad`; a slowed log CUT; chunks stamped past z never read). Nothing a phone claims about lanes is read. **As it stands**: a try
+  ended mid-run is replayed to its end — the kid idles until the wall takes him, so his lanes = what he REACHED (a hop in the air lands).
+- **THE RECORD** `dly/jaywalk/{day}/p/{pid}` = `{ st, n, e (the last close), t: { i: { u (the uid), go, z, e, l, k, s, w, cut?, bad?, why } } }`
+  (`why`: fin · start · room · quiet · close) — THE DROP's bookkeeping shape (begin / record / close). **THE PROOF NODE**
+  `dly/jaywalk/{day}/w/{uid}/{try}` — the only phone-writable spot under `dly/`.
+- **THE 4 CONDITIONS** — (1) an unfinished try is scored on the next START (always), on `today` once it can't be in play (its `e`, past z, or
+  no chunk for `QUIET_MS` 20 s — a phone that's playing uploads every second; an offline phone can't call `today`), and at THE DAY'S CLOSE
+  (`daily-close.js#sweepRuns` — a `tries` cartridge's pids are swept even with a score; two days on = forced) · (2) **THE ROOM WINS**: the
+  `roomWins { game, room }` action — the player in that room with 2+ players (`daily-room.js#roomJoined`, no game needed) → the open try ends
+  as it stands (`why: 'room'`); the room's `players/{uid}/dy` flag stays the phone's (DAILY B's banner: "TRY ENDED · N TRIES LEFT", no RESUME);
+  `pause` is refused for JAYWALK (no `moves`) · (3) **THE RULES** (`database.rules.json` `dly/jaywalk/$day/w/$uid/$try`): own uid only; `$try`
+  0 … 2; chunks append-only, `{ s (the packed-hop pattern, ≤ 400), at === now }` and nothing else, only between go and z and before `e`; `e`
+  once, `=== now`, inside the window; a phone never writes `go` / `z` / a new try and never reads — `rules.test.mjs` "DAILY A" · (4) **THE
+  PRUNE**: `JAYWALK_DAILY.prune` deletes the day's proof nodes past `PROOF_DAYS` 7 (once — `pr`); the tries' results + the scores stay.
+- **THE POINTS** (`core/daily-points.js#POINTS.jaywalk` — a CAPPED lanes curve): FLOOR 10 + 90 × (lanes / 300)^0.6, **300+ lanes = 100**:
+  0 → 10 · 50 → 40 · 100 → 56 · 150 → 69 · 200 → 80 · 250 → 90. The cap from MODES.daily's tuning: the greedy bot over 120 daily courses —
+  p10 37 · median 207 · p90 282 lanes; the wall alone is at ~242 lanes by 5:00 (reaching THE MOTHERSHIP ≈ 89+). The tick never counts here.
+  ALL TIME = the shared average rule; THE SWEEP + PERFECT WEEK need all four once the row is live (`tests/daily.test.mjs` "DAILY A"); XP
+  unchanged.
+- **DAILY BEST** — docs/progression.md "DAILY BEST" (JAYWALK = the most lanes, the earlier tick on a tie; beating your own first try the
+  same day is NO new best).
+- **THE TEST PAGE** `tests/integration/jaywalk-daily.html` (owner-facing, plain): START → the run on the graybox (three.js; no WebGL = the
+  count only) → FINISH / TRY AGAIN, the server's lanes per try, TODAY'S BEST, DAILY BEST; `?emu` = the real /api + the proof node on the
+  emulators (the row opened by THE SCHEDULED GO-LIVE or `DAILY_TEST_OFF=jaywalk`); without it = THE LOCAL JUDGE — the same pure server code in
+  the page (`/__dev/api-lib/jaywalk-tries.js`), a fixed test course (the owner's phone link on a plain `serve.mjs`); `&auto=1` = the bot;
+  hiding the page ends the try.
+- **Proven**: `tests/jaywalk-daily.test.mjs` (the pure tries + THE JUDGE on a proof node: ahead / slowed / dropped / a hole) ·
+  `tests/daily-best.test.mjs` · `tests/integration/daily-jaywalk.test.mjs` (/api, its OWN file — `DAILY_TEST_OFF=jaywalk`: 3 tries + a 4th
+  refused, the raise, condition 1 on START / `today` / THE DAY'S CLOSE, THE ROOM WINS, forged chunks, DAILY BEST + THE BACKFILL, THE PRUNE) ·
+  `rules.test.mjs` "DAILY A" · `e2e-jaywalk-daily.mjs` (a real phone, 3 tries on the emulators, the server = the phone's own replay).
+- **Not yet (DAILY B)**: the ticket, the run screen on the real view (night / day looks, the sounds, ownMusic), TRY ENDED · N TRIES LEFT,
+  the end screen + SHARE TODAY's card (`measure: 'lanes'` is in `share.js#MEASURES`, no card drawn yet), the dock's count, HOW TO PLAY.
+
 ## THE CAMERA (H2B — `js/games/jaywalk/camera.js`: ONE pure module, the night look AND the graybox use it)
 The owner played H2 on his iPhone: "the game feels good", but it had to be ZOOMED IN — a closer camera that FOLLOWS the kid sideways, turned
 a little so the lanes run on a gentle diagonal (the genre's framing; nothing else of anyone's). PURE MATH: no three.js, no DOM, no clock of
@@ -1497,3 +1550,9 @@ IMAGE; THE SIGNAL; THE POSTER's render. PLACEHOLDER: THE BLACKBIRD (a dark dart)
 (a green beam + "TAKEN AT LANE n") + their cause lines — H6; the daily; every number in `tuning.js` (first-pass feel) + `CLOCK` (2 s
 ahead / 8 s behind / 75 s drop / 15 s catch-up — tune from real phones); the ghosts' `CATCH_MS` / `HELD_SHOW_MS`; the sounds' levels (the mix: H6 — with it the `-b` takes leave); Grok's new train bell + train horn (not delivered when H5B ran); the day look's palette + the landmarks' drawings (first-pass — the owner judges them on his phone); each area's lean (`AREAS` — first-pass feel); no tile; the train's name ("THE 6:15");
 the poster's hero camera (`POSTER.hero` — the owner judges the frame).
+
+## THE RULES FROM CLAUDE.md (moved Nov 18)
+DAILY A made room in CLAUDE.md (its 40 KB cap) for DAILY BEST's line: these two lines moved here VERBATIM; CLAUDE.md keeps a short pointer each.
+
+- JAYWALK's SOLO RUN (H3): THE COURSE IS PICKED AFTER GO (`logic.js#seedOf` — hash(code + matchId + the server's GO time)); played on the SERVER's clock, never paused; the proof = server-stamped chunks; counted ONLY from the server's replay (`api/_lib/jaywalk.js#verifyNode` — a log AHEAD of the clock refused, one BEHIND cut); PLAY AGAIN = THE INSTANT AGAIN (`kit/again.js`); THE LINES (YOUR BEST gold · the next friend's — `lines.js`) from the server's table, asked ONCE a run → docs/jaywalk.md "THE SOLO GAME" + "THE LINES".
+- JAYWALK's MATCH (H4): ONE LIFE EVERYWHERE (no lives / respawn / blink / one-up); the course + tick 0 from THE FIRST GO (`logic.js#matchStart`); the ghosts = the others' hop logs through the same engine; counted ONLY from the server's replay of every proof node (`jaywalkMatch`) — ONE judge (`replay.js#judgeRun`); THE DROPPED SIGNAL (a silence + a catch-up burst never costs a run, a growing lag is slow motion); THE CAUSE LINE NAMES THE VEHICLE (ONE source: `causes.js#vehicleAt` → `runLine`, no generic line) → docs/jaywalk.md "THE MATCH".

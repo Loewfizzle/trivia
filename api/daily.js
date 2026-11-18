@@ -28,6 +28,12 @@
 //                                 ONE-TIME HINT reads the same flag — `hint` rows)
 //   room   { room }            → { mid: [uid…] }   DM1 — which players of YOUR room have a daily in flight (uids only — nothing about a run; DM2's host line)
 //   today  { share: true }     → + share: { [game]: its share card's spoiler-free inputs } (BOARD 2.0 B — SHARE TODAY's tap only; your finished runs)
+//   DAILY A — A `tries` CARTRIDGE (JAYWALK — _lib/jaywalk-daily.js): start → a NEW try { run: { seed, try, go, z, path, left, tries } } (an open
+//                                 try closed first, scored as it stands; a 4th → 409 no_tries) · finish → the open try closed + replayed, the day's
+//                                 score = the best closed try (the FIRST counts the day; a better one RAISES it) · roomWins { game, room } → THE
+//                                 ROOM WINS ends the open try (the room checked: this player in it, 2+ players) · no pause, ever
+//   DAILY A — DAILY BEST: a finish answers { best, newBest, first } for its daily; `today` carries best: { game: { best, newBest, first } }
+//                                 (pstats/{pid}/db — js/core/daily-best.js: each daily's own rule)
 //   points { pids? }           → { mine, friends: { pid: … }, table }   BOARD 2.0 A — DAILY POINTS for YOU + YOUR TABLE (the same friends `today` reads):
 //                                 per board (daily · daily-<game>) { week, all, avg, days } — the values THE DAILIES' BOARDS hold (core/overall.js)
 //
@@ -61,6 +67,8 @@ import { ensureTop, addTop, extraOf } from './_lib/every.js';
 import { everyView, placeIn, TOP_KEEP, TOP_SHOW } from '../js/core/every.js';
 import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE } from './_lib/share-card.js';   // (CITY E — THE TAPPABLE SHARE CARD)
 import { compactResults } from './_lib/results-sweep.js';   // (CITY G — results/ compacted past 14 days)
+import { bestStep, bestView, pointsRaise, isBetter } from '../js/core/daily-best.js';   // (DAILY A — DAILY BEST + a better try's points)
+import { roomJoined } from './_lib/daily-room.js';
 
 /** DM1 — THE CALL BUDGET: generous for real play (both dailies, retries, refreshes), a flood refused */
 export const CALLS = { max: 400, windowMs: 10 * 60_000 };
@@ -172,7 +180,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       // never a second try: with no start there, or its score already in, the start is today's
       let day = today, startedAt = null;
       const asked = body.day;
-      if (typeof asked === 'string' && DAY_KEY.test(asked) && asked === prevDay(today)) {
+      if (!cart.tries && typeof asked === 'string' && DAY_KEY.test(asked) && asked === prevDay(today)) {   // (DAILY A: a try is never resumed — tries are today's)
         const [s0, r0] = await Promise.all([val(`dly/${cart.id}/${asked}/s/${pid}`), val(`dly/${cart.id}/${asked}/r/${pid}`)]);
         if (s0 && r0 == null) { day = asked; startedAt = s0; }
       }
@@ -188,6 +196,16 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       }
       const done = await val(`${base}/r/${pid}`);
       await Promise.all([picked, closed]);
+      // DAILY A — A `tries` CARTRIDGE (JAYWALK): a NEW try every start (the open one closed first — condition 1 — and the day's score settled
+      // from it); a 4th refused. Never a resume, never a pause.
+      if (cart.tries) {
+        const r = await cart.startTry({ pid, uid, day, now, startedAt });
+        const fin = r.prior ? await finishRun({ pid, cart, day, now, today }).catch(e => { console.warn('try settle', e && e.code); return null; }) : null;
+        const score = fin ? fin.score : done;
+        if (r.refused === 'no_tries') throw new ApiError(409, 'no_tries', 'No tries left today.', { day, done: score ?? null, run: r.run });
+        if (r.refused) throw new ApiError(409, 'refused', 'Try that again.');
+        return { day, startedAt, done: score ?? null, run: r.run, now, ...(fin ? { prior: { score: fin.score, counted: fin.counted, ...bestBits(fin) } } : {}) };
+      }
       // (DFIX2 — OPTIONAL: the day's first start while the database hiccups — the picker's failure was swallowed above; the second load's →
       //  503 `busy`, which the phone retries, never a 500)
       const loadDay = () => (cart.load ? cart.load(day, now).catch(e => { throw new ApiError(503, 'busy', 'The dailies are waking up — try again in a moment.', { cause: String(e && e.message || e) }); }) : null);
@@ -321,14 +339,24 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
     case 'finish': {
       const day = dayOfCall(body, now);
       const pid = await mine(uid), cart = cartOf(body.game);
+      if (cart.tries) return finishTry({ pid, cart, day, now, today, why: 'fin', T });
       return finishRun({ pid, cart, day, now, today, result: body.result, T });
+    }
+    // DAILY A — THE ROOM WINS for a `tries` cartridge (JAYWALK): joining a room (2+ players, this player in it) ENDS the open try — scored as it
+    // stands; the room's dy flag stays the phone's. Refused (403 not_in_room) when the room isn't real — the try runs on.
+    case 'roomWins': {
+      const pid = await mine(uid), cart = cartOf(body.game);
+      if (!cart.tries) throw new ApiError(400, 'bad_action', 'This daily has no such move.');
+      if (!(await roomJoined({ uid, pid, code: body.room }))) throw new ApiError(403, 'not_in_room', 'Only a room you are in, with someone else in it.');
+      const day = dayOfCall(body, now);
+      return finishTry({ pid, cart, day, now, today, why: 'room', T });
     }
     case 'today': {
       const day = today;
       const games = todaysDailies();
       // the list for the DAILY screen (DM2 — TODAY's rows, the SCORES sections, the dock badge): the LIVE dailies, in order — answered WITHOUT a
       // profile too (a new phone still sees the dock button; THE GO-LIVE SWITCH off → an empty list → no button)
-      const dailies = games.map(id => { const r = dailyRow(id) || {}, c = dailyOf(id) || {}; return { id, name: r.name || c.name, order: r.order ?? 99, ticket: r.ticket || id, lesson: !!r.lesson, better: c.better || 'high', hook: r.hook || r.tag || '' }; });
+      const dailies = games.map(id => { const r = dailyRow(id) || {}, c = dailyOf(id) || {}; return { id, name: r.name || c.name, order: r.order ?? 99, ticket: r.ticket || id, lesson: !!r.lesson, better: c.better || 'high', hook: r.hook || r.tag || '', ...(c.tries ? { tries: c.tries } : {}) }; });
       const pid = await pidOf(uid);
       // DFIX2 — THE DAY'S CLOSE runs from `today` too (the title's first call of the day): a memo per warm function
       const closing = closeDays({ games, now }).then(() => sweepRuns({ games, now, settle: settleRun })).catch(() => null);
@@ -337,17 +365,25 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       if (!pid) { await closing; return { day, dailies, mine: {}, gated: {}, started: {}, stand: {}, lessons: {}, friends: {}, table: [], noProfile: true }; }
       const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {}, shareOf = {}, rfOf = {}, placeOf = {}, extraMine = {};
       // (CITY D — SCORES SHOWS INSTANTLY: the profile's own reads + YOUR TABLE's friends list start NOW, beside the dailies' reads — never after)
-      const lsP = Promise.all([val(`pstats/${pid}/ls`), createdAtOf(pid)]), pfrP = val(`pfr/${pid}`);
+      const lsP = Promise.all([val(`pstats/${pid}/ls`), createdAtOf(pid)]), pfrP = val(`pfr/${pid}`), dbP = val(`pstats/${pid}/db`);
+      const triesOut = {};
       const yday = prevDay(day);
       await Promise.all(games.map(async g => {
         const base = `dly/${g}/${day}`;
         // (CITY D: the result, the start + the NOT COUNTED mark in ONE trip)
         let [v, s0, xg] = await Promise.all([val(`${base}/r/${pid}`), val(`${base}/s/${pid}`), val(`${base}/x/${pid}`)]);
         // (THE DROP A: a run in flight that can never come back — or ended with no finish — is scored now, at its last checkpoint)
-        if (s0 && v == null && dailyOf(g) && dailyOf(g).abandon) { const f = await settleRun({ pid, cart: dailyOf(g), day, now, today }).catch(() => null); if (f && f.score != null) { v = f.score; xg = await val(`${base}/x/${pid}`); } }
-        if (s0 && v == null) started[g] = true;                   // (IN PROGRESS → RESUME)
+        if (s0 && dailyOf(g) && dailyOf(g).tries) {
+          // (DAILY A — condition 1: an open try that can't be in play any more is closed + counted here; the tries' state for the ticket)
+          const f = await settleRun({ pid, cart: dailyOf(g), day, now, today }).catch(() => null);
+          if (f && f.score != null) { v = f.score; xg = await val(`${base}/x/${pid}`); }
+          const rec = await val(`${base}/p/${pid}`), C = dailyOf(g), view = C.resume({ record: rec, data: null });
+          triesOut[g] = { used: view.used, left: view.left, tries: view.tries, open: view.tries.some(x => x.open) };
+          if (triesOut[g].open) started[g] = true;
+        } else if (s0 && v == null && dailyOf(g) && dailyOf(g).abandon) { const f = await settleRun({ pid, cart: dailyOf(g), day, now, today }).catch(() => null); if (f && f.score != null) { v = f.score; xg = await val(`${base}/x/${pid}`); } }
+        if (s0 && v == null && !(dailyOf(g) && dailyOf(g).tries)) started[g] = true;   // (IN PROGRESS → RESUME)
         // DFIX2 (FABLE REVIEW #2, finding 7): YESTERDAY's run still in flight (DFIX1's yesterday-key rule — a tap resumes it) reads RESUME too
-        if (!s0 && v == null) {
+        if (!s0 && v == null && !(dailyOf(g) && dailyOf(g).tries)) {   // (DAILY A: a try never resumes — yesterday's is closed by THE DAY'S CLOSE)
           const [s1, r1] = await Promise.all([val(`dly/${g}/${yday}/s/${pid}`), val(`dly/${g}/${yday}/r/${pid}`)]);
           const gone = s1 && r1 == null && dailyOf(g) && dailyOf(g).abandon ? await settleRun({ pid, cart: dailyOf(g), day: yday, now, today }).catch(() => null) : null;
           if (s1 && r1 == null && !(gone && gone.score != null)) { started[g] = true; startedDay[g] = yday; }
@@ -394,8 +430,11 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         friends[p] = tv;
       }));
       const [ls, createdAt] = await lsP;
+      // DAILY A — DAILY BEST per live daily (one read — pstats/{pid}/db): { best: { s, day }, newBest, first } (DAILY B draws it)
+      const db = (await dbP.catch(() => null)) || {}, best = {};
+      for (const g of games) { const b = bestView(db[g], day); if (b.best) best[g] = b; }
       await closing;
-      return { day, dailies, mine: mineScores, gated, started, startedDay, stand, place: placeOf, ...(Object.keys(extraMine).length ? { extra: extraMine } : {}), ...(Object.keys(rfOf).length ? { rf: rfOf } : {}), lessons: ls || {}, friends, table: pids, ...(body.share ? { share: shareOf } : {}),
+      return { day, dailies, best, ...(Object.keys(triesOut).length ? { tries: triesOut } : {}), mine: mineScores, gated, started, startedDay, stand, place: placeOf, ...(Object.keys(extraMine).length ? { extra: extraMine } : {}), ...(Object.keys(rfOf).length ? { rf: rfOf } : {}), lessons: ls || {}, friends, table: pids, ...(body.share ? { share: shareOf } : {}),
         ...(countsOn(createdAt, day) ? {} : { countsFrom: dayStartAt(dayOf(dayNum(day) + 1)) }) };
     }
     case 'every': {
@@ -475,6 +514,11 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
  */
 export async function settleRun({ pid, cart, day, now, today = streakDay(now), force = false }) {
   if (!cart || !cart.abandon) return null;
+  // DAILY A — a `tries` cartridge: its open try closed when it can't be in play (force: THE DAY'S CLOSE — whatever its state), then the day's score
+  if (cart.tries) {
+    const closed = await cart.settle({ pid, day, now, force }).catch(e => { console.warn('settle try', e && e.message); return null; });
+    return closed ? finishRun({ pid, cart, day, now, today }).catch(e => { console.warn('settle', cart.id, day, e && e.code); return null; }) : null;
+  }
   const base = `dly/${cart.id}/${day}`;
   const [rec, r] = await Promise.all([val(`${base}/p/${pid}`), val(`${base}/r/${pid}`)]);
   if (!rec || r != null) return null;
@@ -487,6 +531,64 @@ export async function settleRun({ pid, cart, day, now, today = streakDay(now), f
     if (!tx.committed && !(tx.snapshot.val() && tx.snapshot.val().e)) return null;
   }
   return finishRun({ pid, cart, day, now, today }).catch(e => { console.warn('settle', cart.id, day, e && e.code); return null; });
+}
+
+/** DAILY A — a finish's DAILY BEST bits (bestView's) */
+const bestBits = f => (f && f.best ? { best: f.best, newBest: !!f.newBest, first: !!f.first } : {});
+
+/**
+ * DAILY A — FINISH for a `tries` cartridge (JAYWALK — the `finish` action + THE ROOM WINS): the open try CLOSED (its proof node replayed — as it
+ * stands), then the day's score from the best closed try (finishRun: the first claims the day, a better one raises it). No open try and none
+ * closed → 409 not_done; no open try but one closed → the day's answer again (idempotent).
+ */
+async function finishTry({ pid, cart, day, now, today, why, T = noTiming }) {
+  const closed = await cart.closeOpen({ pid, day, now, why });
+  T.mark('close');
+  const out = await finishRun({ pid, cart, day, now, today, T });
+  const rec = await val(`dly/${cart.id}/${day}/p/${pid}`);
+  const view = cart.resume({ record: rec, data: null });
+  return { ...out, try: closed, left: view.left, tries: view.tries };
+}
+
+/**
+ * DAILY A — A BETTER TRY (a `tries` cartridge — the claim's transaction already raised dly/{g}/{day}/r/{pid} from `was` to `kept`): the
+ * histogram moves the player's bucket, the day's top re-sorts, the points + DAILY BEST rise (ONE pstats transaction — pointsRaise adds only the
+ * difference: the day was already counted), the points boards re-written; a day already closed re-ranks (PENTHOUSE can only be ADDED). The
+ * streak, the XP, THE SWEEP: never again (the FIRST closed try counted them).
+ */
+async function raiseRun({ pid, cart, day, now, today, base, kept, was, counts, createdAt, preReset }) {
+  const { ServerValue } = await import('firebase-admin/database');
+  if (counts) {
+    const b0 = bucketOf(cart, was), b1 = bucketOf(cart, kept);
+    if (b0 !== b1) await ref('/').update({ [`${base}/h/${b0}`]: ServerValue.increment(-1), [`${base}/h/${b1}`]: ServerValue.increment(1) });
+    await addTop(cart, base, { pid, score: kept, at: now, day, now }).catch(e => console.warn('every', cart.id, e && e.message));
+  }
+  let next = null;
+  if (!preReset) {
+    const pts = counts ? dailyPoints(cart.id, kept) : null;
+    await ref(`pstats/${pid}`).transaction(cur => {
+      if (cur == null) return null;
+      let nx = cur, changed = false;
+      const dp = pts != null ? pointsRaise(cur.dp, { game: cart.id, day, pts }) : null;
+      if (dp) { nx = { ...nx, dp }; changed = true; }
+      const db = bestStep(cur.db, { game: cart.id, score: kept, day, now });
+      if (db) { nx = { ...nx, db }; changed = true; }
+      next = nx;
+      return changed ? nx : undefined;
+    });
+    if (next && counts) {
+      const [{ overallPaths, hiddenOf }, prof] = await Promise.all([import('./_lib/lb.js'), val(`profiles/${pid}`)]);
+      await ref('/').update(overallPaths(pid, next, { hidden: hiddenOf(prof, next), now })).catch(e => console.warn('raise boards', e && e.message));
+    }
+  }
+  if (counts && day !== today) await recloseDay({ game: cart.id, day, now }).catch(e => console.warn('reclose', e && e.message));
+  const [hist, n] = await Promise.all([val(`${base}/h`), val(`${base}/n`)]);
+  const h = { ...(hist || {}) };
+  if (!counts) h[bucketOf(cart, kept)] = (h[bucketOf(cart, kept)] || 0) + 1;
+  const stand = standing(cart, h, (n || 0) + (counts ? 0 : 1) || 1, kept);
+  void createdAt;
+  return { day, score: kept, again: false, raised: true, from: was, counted: counts, ...bestView(((next && next.db) || {})[cart.id], day), ...(preReset ? { pre: true } : {}),
+    stand: { n: stand.n, pct: stand.pct, top: Math.round(stand.top * 10) / 10, band: counts && stand.band ? stand.band.name : null }, outcome: null };
 }
 
 /**
@@ -518,8 +620,11 @@ async function finishRun({ pid, cart, day, now, today = streakDay(now), result =
   // DM1 — THE THROWAWAY GATE: does this profile's result COUNT on this day?
   const counts = countsOn(createdAt, day) && !preReset;
   // ONE official try: the first finish is the score (a retry gets the stored one back)
-  const claim = await ref(`${base}/r/${pid}`).transaction(cur => (cur != null ? undefined : score));
+  // (DAILY A — a `tries` cartridge: a BETTER later try RAISES the day's score — the same transaction; `was` = the score it replaced)
+  let was = null;
+  const claim = await ref(`${base}/r/${pid}`).transaction(cur => { was = cur; return cur != null ? (cart.tries && isBetter(cart.id, score, cur) && score > Number(cur) ? score : undefined) : score; });
   const kept = claim.snapshot.val();
+  if (claim.committed && was != null) return raiseRun({ pid, cart, day, now, today, base, kept, was, counts, createdAt, preReset });
   if (rescued && claim.committed) {
     await ref(`${base}/p/${pid}`).update(rescued.mark || { rf: 'refused' }).catch(() => {});
     // (no id, no name — the reason + the run's shape; one entry per reason, counted: api/log.js#logServer)
@@ -558,7 +663,17 @@ async function finishRun({ pid, cart, day, now, today = streakDay(now), result =
   // BOARD 2.0 A — DAILY POINTS from the KEPT score (the server's own — never the phone's claim), a COUNTED result only
   const points = counts ? dailyPoints(cart.id, kept) : null;
   let cur0 = null;
-  if (!preReset) await ref(`pstats/${pid}`).transaction(cur => { cur0 = cur; res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, rank: stand.better + 1, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags, today: live, counts, points }); return res.skip ? undefined : res.next; });
+  let db = null;
+  if (!preReset) await ref(`pstats/${pid}`).transaction(cur => {
+    cur0 = cur; res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, rank: stand.better + 1, n: stand.n, hourET: easternParts(day === today ? now : startedAt).h, outage, founderOpen: fOpen, flags, today: live, counts, points });
+    // DAILY A — DAILY BEST in the SAME transaction (the player's own result, counted or not — each daily's own rule: core/daily-best.js)
+    db = (cur && cur.db) || null;
+    if (res.skip) return undefined;
+    const nb = bestStep(res.next.db, { game: cart.id, score: kept, day, now });
+    if (nb) res.next.db = nb;
+    db = res.next.db || null;
+    return res.next;
+  });
   if (res && !res.skip) {
     const st = res.next.st, xp = res.next.xp || 0;
     // (BOARD 2.0 A — THE OVERALL BOARD in the SAME update as the XP: listed like every board — the 3-match floor, the opt-out, the admin's hide)
@@ -573,7 +688,7 @@ async function finishRun({ pid, cart, day, now, today = streakDay(now), result =
   }
   // THE ONE DAY LINE (S2): a counting finish on a day already CLOSED (the run crossed 4 am) re-ranks it once more — it can only ADD a PENTHOUSE
   if (counts && claim.committed && day !== today) await recloseDay({ game: cart.id, day, now }).catch(e => console.warn('reclose', e && e.message));
-  return { day, score: kept, again: !claim.committed, counted: counts, ...(rf ? { rf: true } : {}), ...(preReset ? { pre: true } : {}), ...(counts || preReset ? {} : { countsFrom: dayStartAt(dayOf(dayNum(streakDay(Number(createdAt) || now)) + 1)) }),
+  return { day, score: kept, again: !claim.committed, counted: counts, ...bestView((db || {})[cart.id], day), ...(rf ? { rf: true } : {}), ...(preReset ? { pre: true } : {}), ...(counts || preReset ? {} : { countsFrom: dayStartAt(dayOf(dayNum(streakDay(Number(createdAt) || now)) + 1)) }),
     stand: { n: stand.n, pct: stand.pct, top: Math.round(stand.top * 10) / 10, band: stand.band ? stand.band.name : null },
     outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach, xp: res.xp, lv: res.lv, swept: res.swept, run: res.swept && res.dl.sr ? res.dl.sr.n : 0, points: res.points } : null };
 }

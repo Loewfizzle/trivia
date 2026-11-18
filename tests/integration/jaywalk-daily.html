@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>JAYWALK daily — test page</title>
+<!-- DAILY A — THE JAYWALK DAILY's TEST PAGE (owner-facing, plain — DAILY B builds the real screens; docs/jaywalk.md "THE DAILY"):
+     START → a run on the daily course (MODES.daily — THE MOTHERSHIP at 5:00) drawn by the graybox, its hops chunked to the try's proof node
+     every second → FINISH (or the run's end) → the server's lanes for every try, the day's best, DAILY BEST → TRY AGAIN (3 tries; the 4th refused).
+       ?emu&slot=…   THE REAL PATH (the emulators + `DAILY_TEST=1 node scripts/serve.mjs <port> \-\-emu`, the JAYWALK row opened): the real /api/daily
+                     start / finish / today, the chunks written to dly/jaywalk/{day}/w/{uid}/{try} with the database's SERVER timestamps
+       (no ?emu)     THE LOCAL JUDGE (any static server — the owner's phone link): the SAME pure server code in the page (api/_lib/jaywalk-tries.js
+                     through the dev server's /__dev/api-lib/ door + core/daily-best.js) on a fixed test course — never the real day's seed
+       &auto=1       the greedy bot plays every try (the E2E)      hiding the page ENDS the try (no pause, no resume — the owner's rule)
+       window.__jwd = the hook (state, start, finish, hide, auto) -->
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/jaywalk.css">
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }</script>
+<style>
+  html, body { margin: 0; height: 100%; background: #07060b; color: #eef; font: 600 15px/1.35 var(--font-ui, system-ui); }
+  body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; touch-action: pan-x pan-y; }
+  .jd-top { flex: none; padding: calc(env(safe-area-inset-top) + 8px) 16px 6px; display: grid; gap: 4px; }
+  .jd-top h1 { margin: 0; font: 900 17px/1.1 var(--font-display, sans-serif); letter-spacing: 0.12em; color: #ffa53a; }
+  .jd-line { margin: 0; color: #c9cbe0; font-size: 14px; }
+  .jd-line b { color: #fff; }
+  .jd-tries { display: flex; gap: 8px; margin: 2px 0 0; padding: 0; list-style: none; }
+  .jd-tries li { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid rgba(255, 165, 58, 0.35); border-radius: 8px; font-size: 13px; color: #c9cbe0; }
+  .jd-tries li b { display: block; color: #fff; font: 700 18px/1.2 var(--font-num, monospace); }
+  .jd-tries li.is-best { border-color: #ffa53a; box-shadow: 0 0 0 1px #ffa53a inset; }
+  .jd-play { position: relative; flex: 1; min-height: 0; }
+  .jd-play canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .jd-hud { position: absolute; z-index: 2; left: 0; right: 0; top: 10px; text-align: center; pointer-events: none; font: 900 34px/1 var(--font-num, monospace); text-shadow: 0 2px 6px #000; }
+  .jd-hud small { display: block; font: 700 13px/1.4 var(--font-ui, sans-serif); letter-spacing: 0.1em; color: #ffd9ad; }
+  .jd-foot { flex: none; display: flex; gap: 10px; padding: 10px 16px calc(env(safe-area-inset-bottom) + 12px); }
+  .jd-foot button { flex: 1; min-height: 48px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.25); background: #1a1726; color: #fff; font: 800 15px/1 var(--font-display, sans-serif); letter-spacing: 0.1em; }
+  .jd-foot button.is-main { background: #ffa53a; color: #1a0d00; border-color: #ffa53a; }
+  .jd-foot button:disabled { opacity: 0.4; }
+  .jd-msg { margin: 0; min-height: 18px; color: #ffd9ad; font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="jd-top">
+  <h1>JAYWALK DAILY · TEST PAGE</h1>
+  <p class="jd-line" id="jd-mode">…</p>
+  <ul class="jd-tries" id="jd-tries"></ul>
+  <p class="jd-line" id="jd-best">TODAY’S BEST: — · DAILY BEST: —</p>
+  <p class="jd-msg" id="jd-msg" role="status"></p>
+</header>
+<main class="jd-play" id="jd-play"><div class="jd-hud" id="jd-hud">0<small>LANES</small></div></main>
+<footer class="jd-foot">
+  <button type="button" class="is-main" id="jd-start">START</button>
+  <button type="button" id="jd-finish" disabled>FINISH</button>
+  <button type="button" id="jd-auto">AUTO: OFF</button>
+</footer>
+<script type="module">
+import { createRun, step, isOver, resultOf, canLog } from '/js/games/jaywalk/engine.js';
+import { createCourse } from '/js/games/jaywalk/course.js';
+import { packLog, replay } from '/js/games/jaywalk/replay.js';
+import { TICK_HZ } from '/js/games/jaywalk/tuning.js';
+import { greedyBot } from '/js/games/jaywalk/bot.js';
+import { wireControls } from '/js/games/jaywalk/controls.js';
+import { jwLanes, bestStep, bestView } from '/js/core/daily-best.js';
+
+const q = new URLSearchParams(location.search), EMU = q.has('emu'), $ = id => document.getElementById(id);
+const TICK_MS = 1000 / TICK_HZ;
+let judge = null, offset = 0, view = null, auto = q.get('auto') === '1';
+let T = null;   // the try in play: { seed, go, path, try, run, course, log, sent, k, bot, done }
+const S = { tries: [], left: 3, day: null, dayBest: null, best: null, newBest: false, ends: [], mode: EMU ? 'emu' : 'local', err: '' };
+const msg = t => { $('jd-msg').textContent = t || ''; };
+const fmtTry = x => (x.open ? 'PLAYING' : `${x.l} ${x.l === 1 ? 'LANE' : 'LANES'}${x.cut ? ' · CUT' : ''}${x.bad ? ' · REFUSED' : ''}${x.room ? ' · ROOM' : ''}`);
+function paint() {
+  const best = S.tries.filter(x => !x.open).reduce((b, x) => (!b || x.l > b.l || (x.l === b.l && x.k < b.k) ? x : b), null);
+  $('jd-tries').replaceChildren(...[0, 1, 2].map(i => { const x = S.tries.find(t => t.i === i), li = document.createElement('li'); li.innerHTML = `TRY ${i + 1}<b>${x ? fmtTry(x) : '—'}</b>`; if (best && x && x.i === best.i) li.classList.add('is-best'); return li; }));
+  $('jd-best').textContent = `TODAY’S BEST: ${S.dayBest != null ? `${jwLanes(S.dayBest)} LANES` : '—'} · DAILY BEST: ${S.best ? `${jwLanes(S.best.s)} LANES` : '—'}${S.newBest ? ' · NEW DAILY BEST' : ''}`;
+  $('jd-start').textContent = S.tries.length ? 'TRY AGAIN' : 'START';
+  $('jd-start').disabled = !!(T && !T.done) || S.left <= 0;
+  $('jd-finish').disabled = !(T && !T.done);
+  $('jd-auto').textContent = `AUTO: ${auto ? 'ON' : 'OFF'}`;
+}
+
+// ---- THE JUDGE: the real /api (emu) or the same pure server code in the page (local)
+async function apiJudge() {
+  const { initFirebase, dbRef, set, serverTimestamp, want } = await import('/js/firebase.js');
+  const { api } = await import('/js/profile/api.js');
+  await initFirebase(() => {});
+  await api('profile', { action: 'ensure', name: q.get('name') || 'TESTER', avatar: 'bolt', color: 'cyan' });
+  want('jaywalk-daily');   // (THE PARKED DATABASE: the chunks need the socket)
+  return {
+    call: body => api('daily', { game: 'jaywalk', ...body }),
+    today: () => api('daily', { action: 'today' }),
+    chunk: (path, k, s) => set(dbRef(`${path}/c/${k}`), { s, at: serverTimestamp() }),
+    end: path => set(dbRef(`${path}/e`), serverTimestamp()).catch(() => {}),
+  };
+}
+async function localJudge() {
+  const P = await import('/__dev/api-lib/jaywalk-tries.js');
+  const seed = 'd' + (q.get('seed') || '1118');   // (a fixed TEST course — never the day's)
+  let rec = null, r = null, db = null;
+  const nodes = {}, day = 'dlocal';
+  const close = (why, now) => { const t = P.openOf(rec); if (!t) return null; const res = P.scoreTry({ seed, go: t.go, z: t.z, node: nodes[t.i] }); rec = P.closeTry(rec, t.i, res, { now, why }); const ds = P.dayScore(rec); if (r == null || ds > r) { r = ds; } const nb = bestStep(db, { game: 'jaywalk', score: r, day, now }); if (nb) db = nb; return { i: t.i, ...res }; };
+  const answer = extra => ({ day, done: r, left: P.leftOf(rec), tries: P.triesView(rec), ...bestView(db && db.jaywalk, day), now: Date.now(), ...extra });
+  return {
+    async call(body) {
+      const now = Date.now();
+      if (body.action === 'start') {
+        const prior = close('start', now);
+        const o = P.openTry(rec, { uid: 'me', now, startedAt: now });
+        if (o.refused) throw Object.assign(new Error('No tries left today.'), { code: o.refused === 'no_tries' ? 'no_tries' : o.refused, status: 409 });
+        rec = o.record; nodes[o.i] = { go: o.go, z: o.z, c: {} };
+        return { day, done: r, now, ...(prior ? { prior } : {}), run: { seed, try: o.i, go: o.go, z: o.z, path: `local/${o.i}`, left: P.leftOf(rec), tries: P.triesView(rec) } };
+      }
+      if (body.action === 'finish') { const t = close('fin', now); if (r == null) throw Object.assign(new Error('not done'), { code: 'not_done', status: 409 }); return answer({ score: r, try: t }); }
+      throw new Error('bad_action');
+    },
+    today: async () => ({ mine: r != null ? { jaywalk: r } : {}, tries: { jaywalk: { left: P.leftOf(rec), tries: P.triesView(rec) } }, best: db && db.jaywalk ? { jaywalk: bestView(db.jaywalk, day) } : {} }),
+    chunk: async (path, k, s) => { const i = Number(path.split('/')[1]); const n = nodes[i]; if (n && !n.e && Date.now() <= n.z) n.c[k] = { s, at: Date.now() }; },
+    end: async path => { const n = nodes[Number(path.split('/')[1])]; if (n && !n.e) n.e = Date.now(); },
+  };
+}
+const serverNow = () => Date.now() + offset;
+function sample(resp, d0, d1) { if (resp && typeof resp.now === 'number') offset = resp.now - (d0 + d1) / 2; }
+function take(resp) {
+  if (!resp) return;
+  if (resp.run && resp.run.tries) S.tries = resp.run.tries;
+  if (resp.tries) S.tries = resp.tries;
+  if (resp.run && resp.run.left != null) S.left = resp.run.left;
+  if (resp.left != null) S.left = resp.left;
+  if (resp.done !== undefined && resp.done != null) S.dayBest = resp.done;
+  if (resp.score != null) S.dayBest = resp.score;
+  if (resp.best) { S.best = resp.best; S.newBest = !!resp.newBest; }
+  if (resp.day) S.day = resp.day;
+}
+
+// ---- a TRY: START → the count-in → played on the SERVER's clock (tick = (server time − GO) × 60 / 1000) → the chunks every second → the end
+async function start() {
+  if (T && !T.done) return;
+  msg('');
+  const d0 = Date.now();
+  let r;
+  try { r = await judge.call({ action: 'start' }); } catch (e) { S.err = e.code || e.message; msg(e.code === 'no_tries' ? 'NO TRIES LEFT TODAY — they come back at 4 am.' : `START failed (${e.code || e.message})`); if (e.extra) take(e.extra); paint(); return; }
+  sample(r, d0, Date.now()); take(r);
+  const { seed, go, path } = r.run;
+  T = { seed, go, path, i: r.run.try, run: createRun({ seed, mode: 'daily' }), course: createCourse(seed), log: [], queue: [], sent: 0, k: 0, done: false, bot: auto ? greedyBot({ seed: q.get('bot') || 'auto' }) : null, upT: 0 };
+  view.draw(T.run, T.course, 0, 16);
+  T.upT = setInterval(upload, 1000);
+  paint();
+}
+async function upload() {
+  if (!T || T.sent >= T.log.length) return;
+  const from = T.sent, to = T.log.length, s = packLog(T.log.slice(0, to), from), k = T.k++;
+  T.sent = to;
+  await judge.chunk(T.path, k, s).catch(e => { msg(`a chunk failed (${e.code || e.message})`); });
+}
+async function finish(why = 'fin') {
+  if (!T || T.done) return;
+  const t = T; t.done = true; clearInterval(t.upT);
+  const live = resultOf(t.run);
+  await upload();
+  await judge.end(t.path);
+  const d0 = Date.now();
+  let r;
+  try { r = await judge.call({ action: 'finish', day: S.day }); } catch (e) { msg(`FINISH failed (${e.code || e.message})`); paint(); return; }
+  sample(r, d0, Date.now()); take(r);
+  const server = r.try ? r.try.l : null;
+  // (as it stands: a hop in the air at the end still LANDS in the replay — the phone's own replay of its log is what the server must match)
+  const mine = replay({ seed: t.seed, mode: 'daily', log: t.log }).lanes;
+  S.ends.push({ i: t.i, live: live.lanes, replay: mine, tick: live.tick, server, why, hops: t.log.length });
+  msg(`TRY ${t.i + 1}: ${server} LANES on the server · ${mine} replayed on this phone${server === mine ? ' — REPLAY = SERVER' : ''}${r.raised ? ' · A BETTER TRY' : ''}`);
+  paint();
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && T && !T.done) finish('hidden'); });   // (hiding ENDS the try)
+
+// ---- the frame: the run on the server's clock (never ahead of it), the graybox draws it
+let last = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = last ? Math.min(250, now - last) : 16; last = now;
+  if (T && !T.done) {
+    const target = Math.floor((serverNow() - T.go) / TICK_MS);
+    let n = 0;
+    while (T.run.t < target && !isOver(T.run) && n < 30) {
+      let d = '';
+      if (T.bot && !T.queue.length) { const b = T.bot(T.run, T.course); if (b) T.queue.push(b); }
+      if (T.queue.length && canLog(T.log, T.run.t, T.queue[0], 'daily')) { d = T.queue.shift(); T.log.push({ t: T.run.t, d }); }
+      step(T.run, T.course, d); n++;
+    }
+    $('jd-hud').firstChild.textContent = target < 0 ? String(Math.ceil(-target / TICK_HZ)) : String(T.run.best);
+    $('jd-hud').lastChild.textContent = target < 0 ? 'GET READY' : 'LANES';
+    if (isOver(T.run)) finish('over');
+  }
+  if (T) view.draw(T.run, T.course, 0, dt);
+}
+
+// ---- boot
+$('jd-mode').textContent = EMU ? 'THE REAL PATH — /api/daily + the proof node on the emulators' : 'THE LOCAL JUDGE — the server’s own code in this page, a fixed test course';
+try { judge = EMU ? await apiJudge() : await localJudge(); } catch (e) { msg(`couldn’t start (${e.message})`); }
+const { createGraybox } = await import('/js/games/jaywalk/graybox.js');
+// (a browser with no WebGL: the run still plays + is judged — only the lane count shows)
+try { view = createGraybox($('jd-play'), { kidColor: '#ffa53a' }); } catch { view = { draw() {} }; msg('This browser can’t draw the course (no WebGL) — the run still plays: the lane count only.'); }
+wireControls($('jd-play'), { onHop: d => { if (T && !T.done && T.queue.length < 2) T.queue.push(d); } });
+$('jd-start').onclick = start;
+$('jd-finish').onclick = () => finish('fin');
+$('jd-auto').onclick = () => { auto = !auto; if (T && !T.done) T.bot = auto ? greedyBot({ seed: 'auto' }) : null; paint(); };
+if (judge) { try { const t = await judge.today(); take({ tries: t.tries && t.tries.jaywalk ? t.tries.jaywalk.tries : [], left: t.tries && t.tries.jaywalk ? t.tries.jaywalk.left : 3, done: t.mine && t.mine.jaywalk, ...(t.best && t.best.jaywalk ? t.best.jaywalk : {}) }); } catch { /* fine */ } }
+paint();
+requestAnimationFrame(frame);
+window.__jwd = { state: () => ({ ...S, playing: !!(T && !T.done), t: T ? T.run.t : 0, lanes: T ? T.run.best : 0, hops: T ? T.log.length : 0, sent: T ? T.sent : 0, path: T ? T.path : null }), start, finish, hide: () => finish('hidden'), auto: on => { auto = !!on; if (T && !T.done) T.bot = auto ? greedyBot({ seed: 'auto' }) : null; paint(); } };
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

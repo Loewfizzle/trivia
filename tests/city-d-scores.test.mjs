@@ -23,5 +23,5 @@ test('the server: THE DAY\'S CLOSE + the sweep side by side; `today` + `every` r
   const A = read('api/daily.js');
   assert.match(A, /const early = body\.action === 'every' \? \{ pid: mine\(uid\), lb: import\('\.\/_lib\/lb\.js'\) \} : null;/);
   assert.match(A, /let \[v, s0, xg\] = await Promise\.all\(\[val\(`\$\{base\}\/r\/\$\{pid\}`\), val\(`\$\{base\}\/s\/\$\{pid\}`\), val\(`\$\{base\}\/x\/\$\{pid\}`\)\]\);/);
-  assert.match(A, /const lsP = Promise\.all\(\[val\(`pstats\/\$\{pid\}\/ls`\), createdAtOf\(pid\)\]\), pfrP = val\(`pfr\/\$\{pid\}`\);/);
+  assert.match(A, /const lsP = Promise\.all\(\[val\(`pstats\/\$\{pid\}\/ls`\), createdAtOf\(pid\)\]\), pfrP = val\(`pfr\/\$\{pid\}`\)(, dbP = val\(`pstats\/\$\{pid\}\/db`\))?;/);   // (DAILY A: + DAILY BEST in the same trip)
 });

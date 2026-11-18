@@ -30,3 +30,5 @@ export function chatLocked(game, uid, live) {
   const r = live && live.runs ? live.runs[uid] : undefined;
   return !(r && r.e);
 }
+/** DAILY A — the daily's score (lanes × 100000 + the tick's tie-break — core/daily-best.js#jwScore) as a line */
+export const scoreLine = s => `${Math.floor(Math.max(0, Number(s) || 0) / 1e5)} LANES`;

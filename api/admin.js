@@ -90,6 +90,7 @@ import { liveRoomsRead } from './_lib/rooms-live.js';
 import { listTestPlayers, removeTestPlayers } from './_lib/testplayers.js';
 import { progressReset, progressBackups, progressRestore } from './_lib/reset.js';
 import { boardsBackfill } from './_lib/board-fill.js';
+import { bestBackfill } from './_lib/daily-best-fill.js';   // (DAILY A — THE DAILY BEST BACKFILL)
 import { giftList, giftGive } from './_lib/gifts.js';
 
 async function audit(by, act, pid, detail = {}) {
@@ -522,6 +523,12 @@ export async function adminAction(uid, body, now = Date.now()) {
       const r = await boardsBackfill({ confirm: body.confirm === true, now });
       if (r.done) await audit(me, 'boardsBackfill', null, { b: `${r.preview.wk} · ${r.preview.weekPlayers} players · ${r.preview.weekXp} XP this week · ${r.rows} rows` });
       return { backfill: r };
+    }
+    // DAILY A — THE DAILY BEST BACKFILL (/admin → THE DAILIES): the PREVIEW (confirm false), the run on a second tap — idempotent, audited
+    case 'dailyBestBackfill': {
+      const r = await bestBackfill({ confirm: body.confirm === true, now });
+      if (r.done) await audit(me, 'dailyBestBackfill', null, { b: `${r.written} players · ${r.preview.days} days from ${r.preview.from} · ${Object.entries(r.preview.games).map(([g, x]) => `${g} ${x.days}d/${x.scores}`).join(' ')}`.slice(0, 300) });
+      return r;
     }
     case 'progressReset': {
       const r = await progressReset({ confirm: body.confirm === true, typed: String(body.typed || ''), me, now });

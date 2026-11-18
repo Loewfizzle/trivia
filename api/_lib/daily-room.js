@@ -27,6 +27,18 @@ export async function roomStarted({ uid, pid, code, now = Date.now() }) {
   return inIt && started && party ? c : null;
 }
 
+/** DAILY A — THE ROOM WINS for JAYWALK's tries: has this player JOINED `code`'s room with someone else in it (2+ players)? → the code | null
+ *  (no game needed — joining a party ends the try; the room = the call's code, else the profile's seat) */
+export async function roomJoined({ uid, pid, code }) {
+  let c = typeof code === 'string' && CODE.test(code) ? code : null;
+  if (!c && pid) { const seat = await val(`seats/${pid}`).catch(() => null); if (seat && CODE.test(String(seat.code || ''))) c = seat.code; }
+  if (!c) return null;
+  const players = await val(`rooms/${c}/players`);
+  if (!players) return null;
+  const inIt = !!players[uid] || (!!pid && Object.values(players).some(p => p && p.pid === pid));
+  return inIt && Object.keys(players).filter(u => players[u]).length >= MIN_PARTY ? c : null;
+}
+
 /** the players of `code` with a daily in flight (today's start without a result, or yesterday's when today has none — the run a phone resumes) */
 export async function midDaily({ uid, code, games, now = Date.now() }) {
   if (typeof code !== 'string' || !CODE.test(code)) return null;

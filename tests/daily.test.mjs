@@ -57,7 +57,8 @@ test('the daily\'s step: the streak + DAILY BREAD / THE SWEEP / EARLY BIRD / PEN
 // ---------------------------------------------------------------- DM1 — PLUG-AND-PLAY (no fixed count anywhere)
 test('DM1 — PLUG-AND-PLAY: a FAKE 3rd + 4th daily appear in the list, the live set, THE SWEEP and the XP cap with no other change; one fewer → the sweep needs one fewer', () => {
   const ids = () => todaysDailies();
-  assert.deepEqual(dailyRows().filter(r => !r.test).map(r => r.id), ['password', 'coastclear', 'drop'], 'config.js#DAILIES, in order');
+  assert.deepEqual(dailyRows().filter(r => !r.test).map(r => r.id), ['password', 'coastclear', 'drop', 'jaywalk'], 'config.js#DAILIES, in order');
+  assert.equal(dailyRow('jaywalk').on, false, 'DAILY A: JAYWALK row ships OFF'); assert.equal(dailyRow('jaywalk').tries, 3, 'DAILY A: three tries');
   assert.equal(dailyRow('drop').on, false, 'THE DROP A: its row ships OFF (never live in this pass)');
   assert.ok(dailyRows().every(r => r.ticket && typeof r.lesson === 'boolean' && Number.isFinite(r.order)), 'every row: order · ticket · lesson');
   assert.equal(dailyRow('coastclear').lesson, true, 'COAST CLEAR has a first-time lesson (DFIX3: THE ONE-TIME HINT under the board)');
@@ -221,4 +222,26 @@ test('PFIX-3 — N4 (FABLE REVIEW 2): a run settled TWO DAYS LATE keeps its own 
   // the next normal finish trims back to the two newest (+ its own)
   const t = dailyStep(r.next, { game: 'fakelow', day: 'd20261112', now: now + 120e3, hourET: 12 }).next;
   assert.deepEqual(Object.keys(t.dl.days).sort(), ['d20261111', 'd20261112']);
+});
+
+// ---------------------------------------------------------------- DAILY A — JAYWALK's row switched on: THE SWEEP + PERFECT WEEK need all FOUR
+test('DAILY A — the JAYWALK row switched on (all four live dailies): THE SWEEP + PERFECT WEEK\'s run need all four; the XP cap = 4', async () => {
+  const { rowOpenOn } = await import('../js/core/daily.js');
+  const day = 'd20261118', now = Date.UTC(2026, 10, 18, 20);
+  // (the server opens an OFF row only from its scheduled day — or DAILY_TEST_OFF on the emulators: rowOpenOn is the rule both read)
+  assert.equal(rowOpenOn(dailyRow('jaywalk'), null, day), false, 'OFF: closed with no schedule');
+  assert.equal(rowOpenOn(dailyRow('jaywalk'), { from: day }, day), true, 'scheduled from today: open');
+  const cart = id => ({ id, name: id, buckets: 10, bucket: s => s, verify: () => 1 });
+  const four = ['password', 'coastclear', 'drop', 'jaywalk'];
+  for (const id of four) registerDaily(cart(id));
+  try {
+    assert.deepEqual(todaysDailies(), four, 'the live set = the four rows, in order');
+    let s = null, r = null;
+    for (const g of four) { r = dailyStep(s, { game: g, day, now, today: todaysDailies() }); s = r.next; assert.equal(r.swept, g === 'jaywalk', `${g}: the sweep only on the 4th`); }
+    assert.equal(r.xp.cap, 4); assert.equal(s.dl.sr.n, 1, 'PERFECT WEEK\'s run counts the swept day');
+    // three of four played → no sweep, no run
+    let t = null;
+    for (const g of four.slice(0, 3)) { r = dailyStep(t, { game: g, day, now, today: todaysDailies() }); t = r.next; }
+    assert.equal(r.swept, false); assert.ok(!t.dl.sr, 'no PERFECT WEEK day without JAYWALK');
+  } finally { for (const id of four) unregisterDaily(id); }
 });

@@ -8,7 +8,7 @@
 // opens, so the tap calls the share sheet AT ONCE; a phone that can't share a file — or refuses — is SHOWN the card in a sheet, PRESS AND HOLD
 // TO SAVE: never a silent download).
 import { lazyImport } from '../ui/lazy-import.js';
-import { gameRow } from '../config.js';
+import { gameRow, DAILIES } from '../config.js';
 export const SHARE_W = 1080, SHARE_H = 1350;
 export const SITE = 'neonspeakeasy.com';
 
@@ -66,8 +66,9 @@ export function shareFrame(L, look) {
  * (grown for a tall grid). The name, the big time and the stat line stay the SAME sizes in every section.
  */
 /** FIXES R3 — THE ONE RULE's big score: a daily's MAIN MEASURE ('guesses' | 'time') from its DAILIES row (config.js) — 'time' when it names none */
-export const MEASURES = Object.freeze(['time', 'guesses']);
-export const measureOf = id => { const m = gameRow(id) && gameRow(id).measure; return MEASURES.includes(m) ? m : 'time'; };
+export const MEASURES = Object.freeze(['time', 'guesses', 'lanes']);   // (DAILY A: JAYWALK's lanes — its card is DAILY B's)
+export const measureOf = id => { const row = DAILIES.find(d => d.id === id) || gameRow(id), m = row && row.measure;   // (DAILY A: a DAILIES row first — JAYWALK's daily shares the game's id)
+  return MEASURES.includes(m) ? m : 'time'; };
 export const RHYTHM = Object.freeze({ H: 312, COL: 150, nameY: 18, namePx: 40, bigY: 87, bigPx: 84, statY: 141, statPx: 32, artY: 167, artH: 145 });
 /** the same rule on a daily's OWN card (1080 × 1350): the name · the big time · the stat line · the art (its box: artY → artBot) · the foot */
 export const OWN = Object.freeze({ nameY: 150, namePx: 72, bigY: 378, bigPx: 150, statY: 506, statPx: 46, artY: 590, artBot: 1150 });
