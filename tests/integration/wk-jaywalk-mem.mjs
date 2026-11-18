@@ -10,7 +10,12 @@
 //     in a row keep no old view alive (a listener on the kept canvas held each one); BACK TO THE CITY → NO REPORT, NO REBUILD, no live
 //     JAYWALK GL context / canvas left; 5 × (a run + leave) → back to the city's baseline (+ the web process printed); PLAY AGAIN's
 //     parked scene let go by its timeout the same; a REAL loss mid-run still rebuilds + reports once
-//   node tests/integration/wk-jaywalk-mem.mjs [outDir] [--runs=10] [--no-match] [--no-leave] [--leave-only]     (exit 0 + "SKIPPED" where ~/wk is not installed: the cloud)
+//   · DAILY FIX (the inbox's Nov 18 12:30 pm entry): THE SETTLED GC — WebKit's collector is LAZY: after 10 PLAY AGAINs it still held 4–7
+//     old views through three churns, then freed them by itself ~12 s later (probed: [0,1,3,5,7,8,9] → [8,9] at t+12 s, flat to t+90 s;
+//     Chromium's forced GC keeps only the current view — nothing in the code holds them). Every view count waits for a SETTLED GC (churn
+//     until ≤ 3, up to SETTLE_MS) — the limit stays 3. --daily: JAYWALK's DAILY, 3 tries in a row (TRY AGAIN) — the same count (needs
+//     `DAILY_TEST=1 node scripts/serve.mjs` — the row is opened from today on the emulators, then closed again)
+//   node tests/integration/wk-jaywalk-mem.mjs [outDir] [--runs=10] [--no-match] [--no-leave] [--leave-only] [--daily] [--daily-only]     (exit 0 + "SKIPPED" where ~/wk is not installed: the cloud)
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
@@ -21,6 +26,7 @@ import { memAt, memLine, JW_FINAL_BUDGET_MB } from './kit/jaywalk-mem.mjs';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), OUT = argv.find(a => !a.startsWith('--')) || null, RUNS = Number((argv.find(a => a.startsWith('--runs=')) || '').slice(7)) || 10, MATCH = !argv.includes('--no-match') && !argv.includes('--leave-only'), LEAVE = !argv.includes('--no-leave'), LEAVES = Number((argv.find(a => a.startsWith('--leaves=')) || '').slice(9)) || 5;
+const DAILY = argv.includes('--daily') || argv.includes('--daily-only'), DAILY_ONLY = argv.includes('--daily-only');
 const at = process.env.WK_PLAYWRIGHT || join(homedir(), 'wk', 'node_modules', 'playwright', 'index.mjs');
 if (!existsSync(at)) { console.log('SKIPPED — Playwright\'s WebKit is not installed here (~/wk)'); process.exit(0); }
 if (OUT) mkdirSync(OUT, { recursive: true });
@@ -106,6 +112,20 @@ async function dropRunCards(pids) {
 /** WebKit gives no gc(): a burst of short-lived garbage makes it collect (WeakRefs clear only after a GC + the job's end) */
 // (+ big buffers: an old-generation object's WeakRef clears only after a FULL collection — a burst of small objects alone may be young-only)
 async function churn(P) { for (let k = 0; k < 6; k++) { await P.ev('(() => { let n = 0; for (let i = 0; i < 60; i++) { const a = []; for (let j = 0; j < 40000; j++) a.push({ j, s: "x" + j }); n += a.length; } for (let i = 0; i < 12; i++) { const b = new Float64Array(4e6); b[i] = i; n += b.length; } return n; })()'); await sleep(250); } }
+/** DAILY FIX — THE SETTLED GC: churn until the old views are gone (≤ limit) or SETTLE_MS passed — WebKit frees them by itself, lazily
+ *  (a probe: still 7 alive after three churns, 2 by t+12 s, flat after) → { views, s: the seconds it took } */
+const SETTLE_MS = 45000;
+async function settledViews(P, limit = 3) {
+  const t0 = Date.now();
+  let v = -1;
+  for (;;) {
+    await churn(P);
+    v = await P.ev('globalThis.__jwViews ? globalThis.__jwViews() : -1');
+    if ((v >= 0 && v <= limit) || Date.now() - t0 > SETTLE_MS) break;
+    await sleep(2000);
+  }
+  return { views: v, s: Math.round((Date.now() - t0) / 1000) };
+}
 const WEBGL_LOST = "(window.__errlog ? window.__errlog.seen() : []).filter(k => /WebGL context was lost/.test(k)).length";
 const CITY_BACK = `!${S}.game && !document.querySelector('.jw-game') && !!(window.__district && window.__district.harbor() && window.__district.harbor().shown)`;
 async function toGame(P) {
@@ -125,11 +145,10 @@ async function toCity(P, parkIt = false) {
 }
 async function leaveChecks(P) {
   // (1) the runs in a row: no old view kept alive (a GC can lag one beat behind: asked up to three times)
-  let alive = -1;
-  // (WebKit's GC scans the stack conservatively: the last 2–3 views can stay reachable a while — measured 2 · 3 · 7 (small churn); the BUG
-  //  held every one: 10 after 10 runs, 8 after 5 leaves — the line is 3)
-  for (let k = 0; k < 3 && (alive < 0 || alive > 3); k++) { await churn(P); alive = await P.ev('globalThis.__jwViews ? globalThis.__jwViews() : -1'); }
-  ok(alive >= 1 && alive <= 3, `THE LEAVE — ${RUNS} runs in a row (PLAY AGAIN): ${alive} JAYWALK views still alive after a full GC (≤ 3 — the last few a conservative GC may keep; the listener on the kept canvas that held each old view made it ${RUNS})`);
+  // (WebKit's GC scans the stack conservatively: the last 2–3 views can stay reachable a while; the BUG held every one: 10 after 10 runs, 8
+  //  after 5 leaves — the line is 3. DAILY FIX: counted after a SETTLED GC — WebKit frees the rest lazily, seconds later)
+  const { views: alive, s: took } = await settledViews(P);
+  ok(alive >= 1 && alive <= 3, `THE LEAVE — ${RUNS} runs in a row (PLAY AGAIN): ${alive} JAYWALK views still alive after a SETTLED GC (${took} s; ≤ 3 — the last few a conservative GC may keep; the listener on the kept canvas that held each old view made it ${RUNS})`);
   const scenes0 = await P.ev('globalThis.__jwScenes()'), lost0 = await P.ev(WEBGL_LOST);
   // (2) BACK TO THE CITY
   ok(await toCity(P), 'THE LEAVE: BACK TO THE CITY → the city');
@@ -152,8 +171,7 @@ async function leaveChecks(P) {
     await churn(P); const wm = wkMb(); per.push(wm ? wm.web : null);
   }
   console.log('MEM the web process after each leave:', per.join(' → '), 'MB');
-  let views = 99;
-  for (let k = 0; k < 3 && views > 3; k++) { await churn(P); views = await P.ev('globalThis.__jwViews()'); }
+  const { views } = await settledViews(P);   // (DAILY FIX — a SETTLED GC)
   L = await P.ev('window.__leak()');
   const w = wkMb(), lost2 = await P.ev(WEBGL_LOST);
   console.log(`MEM after ${LEAVES} × (a run + leave):`, JSON.stringify({ ...L, mb: w, views }));
@@ -178,9 +196,45 @@ async function leaveChecks(P) {
   await pastMoment(P, Date.now()); await toCity(P);
 }
 const pids = [];
+/** DAILY FIX — JAYWALK's DAILY, 3 TRIES IN A ROW (TRY AGAIN on the end card): the old views freed like PLAY AGAIN's (a SETTLED GC, ≤ 3) */
+async function dailyTries() {
+  const { streakDay } = await import('../../js/core/streak.js');
+  const day = streakDay(Date.now());
+  await dbPut('progress/dlive/jaywalk', { from: day, at: Date.now(), by: 'wk-jaywalk-mem' });
+  try {
+    const P = await phone(`wkd${Date.now() % 100000}`, 'DAYHOP');
+    const { pid } = await pidOf(P);
+    ok(!!pid, 'THE DAILY: the WebKit phone has its profile'); pids.push(pid);
+    await dbPut(`ppriv/${pid}/at`, Date.now() - 8 * 864e5);   // (an old member: its tries COUNT — THE THROWAWAY GATE)
+    const T = "document.querySelector('.dy-ticket[data-id=jaywalk] .dy-play')";
+    let open = false;
+    for (let i = 0; i < 45 && !open; i++) {
+      await P.ev("import('/js/daily/today.js').then(m => m.loadToday({ fresh: true })).then(() => import('/js/store.js')).then(m => m.setState({ daily: { v: 'screen', tab: 'today' } }))");
+      open = await P.waitFor(`!!${T}`, 1500);
+    }
+    ok(open, 'THE DAILY: JAYWALK’s ticket is up (the row opened from today on the emulators)');
+    if (!open) return;
+    ok(await P.tapUntil('.dy-ticket[data-id="jaywalk"] .dy-play', "!!document.querySelector('.dy-run')", 20000), 'THE DAILY: PLAY → the run');
+    for (let t = 1; t <= 3; t++) {
+      if (!await P.waitFor(`!!${G} && ${G}.state().mode === 'run' && ${G}.state().proven`, 30000)) { console.log('   the try:', JSON.stringify(await P.ev(`({ g: !!${G} && ${G}.state && (({ mode, proven, seed }) => ({ mode, proven, seed }))(${G}.state()), run: (document.querySelector('.dy-run') || {}).innerText || null, screen: !!document.querySelector('.dy-screen'), daily: ${S}.daily })`))); ok(false, `THE DAILY: try ${t} never started`); return; }
+      await P.ev(`${G}.bot(true)`); await sleep(2500); await P.ev(`${G}.bot(false)`);
+      if (!await P.waitFor("!!document.querySelector('.dy-jw-end[data-lanes]')", 90000)) { ok(false, `THE DAILY: try ${t}'s end card never came`); return; }
+      await sleep(1200);
+      if (t < 3) { await P.tap('.dy-jw-again'); await P.waitFor("!document.querySelector('.dy-jw-end')", 10000); }
+    }
+    const { views, s: took } = await settledViews(P);
+    ok(views >= 1 && views <= 3, `THE DAILY — 3 tries in a row (TRY AGAIN): ${views} JAYWALK views alive after a SETTLED GC (${took} s; ≤ 3)`);
+    const m = await memAt(P.p);
+    console.log(memLine('THE DAILY — the 3rd try’s end card', m, null));
+    ok(P.errs.length === 0, `THE DAILY: no page error in 3 tries (${P.errs.slice(0, 2).join(' | ')})`);
+    await P.close();
+  } finally { await dbPut('progress/dlive/jaywalk', null); }
+}
 let soloPeak = 0, matchPeak = 0, webFirst = null, webLast = null, webPeak = 0;
 
 try {
+  if (DAILY) await dailyTries();
+  if (DAILY_ONLY) throw new Error('DAILY-ONLY');
   // ------------------------------------------------------------------------------------------------ SOLO × RUNS
   const P = await phone(`wkm${Date.now() % 100000}`, 'HOPPER');
   const { pid } = await pidOf(P);
@@ -260,7 +314,7 @@ try {
     ok(Q.every(J => J.errs.length === 0), `no page error on the four phones (${Q.flatMap(J => J.errs).slice(0, 2).join(' | ')})`);
     for (const J of Q) await J.close();
   }
-} catch (e) { ok(false, `the check itself failed: ${e && e.stack ? e.stack.split('\n').slice(0, 3).join(' / ') : e}`); }
+} catch (e) { if (String(e && e.message) !== 'DAILY-ONLY') ok(false, `the check itself failed: ${e && e.stack ? e.stack.split('\n').slice(0, 3).join(' / ') : e}`); }
 finally { try { await dropRunCards(pids.filter(Boolean)); } catch { /* the emulator is gone */ } await b.close().catch(() => {}); }
 console.log(`\nWK-MEM solo peak ${soloPeak} MB · match peak ${matchPeak} MB (pixels held, the budget ${JW_FINAL_BUDGET_MB}) · the tab's process: run 2 ${webFirst} → run ${RUNS} ${webLast} MB (peak ${webPeak})`);
 console.log(`${n - fails.length}/${n} checks${fails.length ? ' — FAILED:\n  ' + fails.join('\n  ') : ' — all green'}`);

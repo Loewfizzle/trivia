@@ -1142,11 +1142,14 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   its lip) · `jaywalk-h6b` (the scene rests → the ship's loops fade; the lost context; the release) · `jaywalk-night` (`carTint`: all 8
   player colours × 5 slots) · `jaywalk-solo` (HOW TO PLAY: nine lines, nine drawings, true by day).
 - Rules: `rules.test.mjs` "JAYWALK — THE GO-LIVE REVIEW: the host never deletes the LIVE match's proof tree".
-- **`node tests/integration/wk-jaywalk-mem.mjs [outDir] [--runs=10] [--no-match]`** — THE MEMORY ON WEBKIT (Playwright's WebKit, ~/wk;
+- **`node tests/integration/wk-jaywalk-mem.mjs [outDir] [--runs=10] [--no-match] [--daily] [--daily-only]`** — THE MEMORY ON WEBKIT (Playwright's WebKit, ~/wk;
   "SKIPPED" + exit 0 where it is not installed: the cloud): 390 × 844 @3, the owner's phone plays TEN solo runs in a row, then FOUR
   WebKit phones play a match; every FINAL screen's held pixels (`kit/jaywalk-mem.mjs` — the same sum as the Chromium checks) under
   `JW_FINAL_BUDGET_MB` (20), the scene resting; + the tab's own process (Windows working set — printed; it may not climb > 80 MB from
-  run 2 to the last). A tap on a sheet that is still sliding in is repeated until it lands (`tapUntil`).
+  run 2 to the last). A tap on a sheet that is still sliding in is repeated until it lands (`tapUntil`). DAILY FIX: every JAYWALK view
+  count waits for a SETTLED GC (`settledViews` — churn until ≤ 3, up to 45 s; WebKit's collector frees old views LAZILY, ~12 s late — the
+  limit is never loosened); `--daily` adds JAYWALK's DAILY, 3 tries in a row (needs `DAILY_TEST=1 node scripts/serve.mjs`: the row is
+  opened from today on the emulators, then closed).
 - `e2e-jaywalk.mjs` step 7c — THE LOST CONTEXT: the WebGL context is lost on purpose mid-run (`WEBGL_lose_context`) → a new scene
   within 1.5 s, it draws, the run never stopped.
 - The lab's perf kit (`jaywalk-lab.mjs --h6b=perf`): a look switch FAILS on any frame over 70 ms (the first of a session included —

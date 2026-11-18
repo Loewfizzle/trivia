@@ -1166,6 +1166,11 @@ canvas is zeroed. After: 0 reports, no rebuild, JAYWALK's live GL contexts + can
 scans the stack conservatively: the last few may linger a while — the bug held every one: 10 after 10 runs, 8 after 5 leaves);
 a REAL loss mid-run still rebuilds + reports once. The WebKit process's own number swings ± 350 MB between leaves with no trend (printed,
 never asserted).
+**DAILY FIX (the inbox, Nov 18 12:30 pm — "4–7 views alive after 10 runs, limit 3"): WEBKIT's LAZY GC, PROVEN — not a holder.** After 10
+PLAY AGAINs a probe counted the views over time: `[0,1,3,5,7,8,9]` through three churns (t+2 → t+9 s), then `[8,9]` at t+12 s and flat to
+t+90 s — runs finished minutes earlier freed in the same beat, so no timer / listener of theirs held them; Chromium (a forced
+`HeapProfiler.collectGarbage`) keeps only the CURRENT view after 6 runs. The check now counts after a SETTLED GC (`settledViews`), the
+limit stays 3; `--daily` proves a daily's 3 tries the same way.
 
 ### NO WHITE FLASH AT A TIER STEP (the inbox, Nov 17 6:58 pm — `night.js#fit` / `fitNow`)
 A quality-tier step (`tiers.tick` runs AFTER the frame's draw — automatic whenever a phone's frames slip or have room) or a

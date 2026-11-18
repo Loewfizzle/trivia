@@ -766,6 +766,25 @@ ONE pure rule per ticket — `js/daily/today-logic.js#ticketState(today, row, { 
 - Proven: `tests/daily-b.test.mjs` · `tests/integration/e2e-jaywalk-daily-run.mjs` · the preview page `daily-preview.html` (`&jw=` · `&best=1`
   · `&gold=<id>` · `&first=<id>`).
 
+
+## DAILY FIX — THE TICKET + SHARE POLISH (Nov 18 2026 — docs/games/passes/daily-fix.md; the owner's decisions: docs/games/plan.md "DAILY FIX")
+- **LAST TRY ·** — JAYWALK between tries: the big line is `today-logic.js#ticketState`'s "LAST TRY · 143 LANES" (`LAST_TRY`) — ONE line
+  (`.dy-result.is-last`: the label 10 px quiet, the lanes 15 px; "LAST TRY · 888 LANES" fits at 375 with 7 px to spare — the FIT checks
+  in `e2e-jaywalk-daily-run.mjs` include it: `daily-preview.html?…&jw=between&jwlast=888&jwbest=888`). DAILY BEST under it, TRY AGAIN +
+  "N TRIES LEFT" on the right; ADMITTED keeps the BEST try as its result.
+- **SAVE YOUR KEY waits off THE DAILIES screen** — `keypop.js#KEYPOP_COVERED` names `.dy-overlay:not(.screen-out)` (the screen AND a run);
+  asked while it's up → it waits (the 2.5 s re-ask) and shows once the player has left it — still ONCE (e2e-daily's SAVE YOUR KEY case).
+- **PLAY IN ITS TICKET's INK** — every ticket's PLAY / RESUME / TRY AGAIN is a tube of `--tk` (the ticket's `TICKET_INK`, night ink at night,
+  day ink by day — css/daily.css "PLAY IN ITS TICKET's INK"): white letters on the dark tube at night; by day the letters = the ink 55 %
+  toward #0b1630 (≥ 4.5:1 on the light tube for every ink — `tests/daily-fix.test.mjs`). No pink MAIN on TODAY any more (the reviewer's #10).
+- **THE SERIAL** reads: 10 px, night rgba(232,228,250,.84) · day #3a4f75 (≥ 4.5:1 on its paper). **THE PASSWORD's DAY STAMP**: its own
+  deeper ink `TICKET_INK.password.stampDay` (#1450c0 — `stampInkOf`, the `--tksd` var) at full ink + a heavier outer edge; night unchanged.
+- **THE SHARE CARD AT 360** — THE 360 FLOOR (`share.js#SMALL_MIN` = 30 card px ≈ 10 px at a 360-px downscale): `paintName` + `paintStat`
+  never draw below it whatever a section's scale (`floorPx` — a 4-section card's ×0.63 lifted the stat lines from ≈ 6.7 px to 10 px at 360);
+  a 1- or 2-section card / a daily's own card keeps its sizes exactly. The section rules: 4 px in a firmer ink (night 34 %, day 40 %) —
+  visible at 360. The reviewer's "vertical hairlines at x≈280 / 800" were the preview page's desktop column frame drawn over the card
+  (`#stage::before / ::after`) — never in the PNG; the preview hides it now.
+- **A ticket result wraps only between its parts** (`daily.js#resultEl` — "2:38.9 ·" / "101 LINES", never "101" / "LINES").
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area
