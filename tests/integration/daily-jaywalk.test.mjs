@@ -139,6 +139,16 @@ test('THREE TRIES: the FIRST closed try counts the day (streak, XP once); a BETT
   assert.equal(t.mine.jaywalk, strong); assert.equal(t.tries.jaywalk.left, 0); assert.equal(t.tries.jaywalk.open, false);
   assert.equal(t.best.jaywalk.best.s, strong); assert.equal(t.best.jaywalk.first, true);
   assert.equal(t.dailies.find(d => d.id === 'jaywalk').tries, 3);
+  // DAILY B — the tries' CARDS + YOUR BEST, from the SERVER's replay of each try: the jaywalk-solo record = the best try's lanes; every feat
+  // a try earned (the record's `f`) is the cards' flag
+  assert.equal((await val(`pstats/${pid}/b/jaywalk-solo`)).a, jwLanes(strong), 'YOUR BEST raised by the daily');
+  const feats = Object.values((await val(`dly/jaywalk/${s.day}/p/${pid}/t`)) || {}).map(x => x.f || '').join(' ').split(' ').filter(Boolean);
+  const gf = (await val(`pstats/${pid}/pa/gf`)) || {};
+  assert.ok(feats.every(k => gf[`jaywalk-${k}`]), `every feat is a card flag (${feats.join(' ') || 'none'})`);
+  // SHARE TODAY's JAYWALK inputs — spoiler-free: the tries' lanes + the best, never the course
+  const sh = await D(uid, { action: 'today', share: true }, p.end + 40e3);
+  assert.deepEqual(Object.keys(sh.share.jaywalk).sort(), ['b', 'day', 'nb', 't']);
+  assert.equal(sh.share.jaywalk.t.length, 3); assert.equal(sh.share.jaywalk.t[sh.share.jaywalk.b], jwLanes(strong));
 });
 
 test('condition 1 — AN UNFINISHED TRY is scored: on the next START (as it stands), by `today` only once it can\'t be in play, at THE DAY\'S CLOSE', async () => {

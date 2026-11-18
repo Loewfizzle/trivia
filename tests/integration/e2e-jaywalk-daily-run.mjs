@@ -5,7 +5,7 @@
 // ROOM WINS on the 3rd (a host starts a game: the banner "TRY ENDED", the server's try `why: room`) → ADMITTED only now (the place line), never
 // while tries remained → YOUR BEST raised from the daily (pstats b['jaywalk-solo']) → SHARE TODAY's `today { share }` inputs for JAYWALK
 // (spoiler-free) → the share card on the preview page with 4 sections (night + day, full + a 360-px downscale).
-//   DAILY_TEST=1 node scripts/serve.mjs <port> --emu   then   node tests/integration/e2e-jaywalk-daily-run.mjs "<browser>" [./shots-dir]
+//   DAILY_TEST=1 node scripts/serve.mjs <port> --emu   then   node tests/integration/e2e-jaywalk-daily-run.mjs "<browser>" [./shots-dir]   (LOOK=night | day: THE GAME LOOK)
 // The two schedules are removed at the end (the server's 30 s cache: run e2e-daily BEFORE this, never right after).
 process.env.FIREBASE_DATABASE_EMULATOR_HOST ||= '127.0.0.1:9000';
 process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
@@ -32,7 +32,7 @@ async function openApp(slot, name) {
   page.on('console', m => { if (m.type() === 'error' && !/favicon|ERR_|net::|permission|Failed to load resource|WebGL|GPU stall/i.test(m.text())) H.errors.push(`${name}: ${m.text()}`); });
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   await page.goto(guardUrl(`${BASE}/?emu&slot=${slot}`, 'e2e-jaywalk-daily-run'));
-  await page.evaluate((s, n) => { localStorage.setItem(`na:${s}:profile`, JSON.stringify({ name: n, color: 'orange', avatar: 'bolt' })); localStorage.setItem('nd:entered', '1'); }, slot, name);
+  await page.evaluate((s, n, lk) => { localStorage.setItem(`na:${s}:profile`, JSON.stringify({ name: n, color: 'orange', avatar: 'bolt' })); localStorage.setItem('nd:entered', '1'); if (lk) localStorage.setItem('ns:look', lk); }, slot, name, process.env.LOOK || '');
   await page.reload();
   await waitFor(page, `!document.getElementById('boot') && !!window.__arcade && !!(JSON.parse(localStorage.getItem('na:${slot}:me') || 'null') || {}).pid`, `${name}: the title + a profile`, 40000);
   const pid = await page.evaluate(s => JSON.parse(localStorage.getItem(`na:${s}:me`)).pid, slot);

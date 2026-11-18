@@ -352,3 +352,5 @@ body[data-look="day"] .dy-overlay { --dy-box-line: #16305c; --dy-box-on: #2f86ff
 body[data-look="day"] .dy-overlay .dy-jw-end .btn { --tube-in: rgba(9, 7, 20, 0.94); color: #fff; text-shadow: 0 0 10px rgba(255, 120, 225, 0.4); }
 body[data-look="day"] .dy-overlay .dy-jw-end .btn-primary { --tc: var(--tube-pink); --tcore: var(--tube-pink-core); --tg: var(--tube-pink-glow); --tg2: rgba(255, 79, 216, 0.3); }
 body[data-look="day"] .dy-overlay .dy-jw-end .btn-ghost { --tc: var(--tube-white); --tcore: var(--tube-white-core); --tg: var(--tube-white-glow); --tg2: transparent; }
+/* (the fresh-eyes review: by day the run's ‹ is navy — over the dark END CARD it vanished; there it is the card's white) */
+body[data-look="day"] .dy-run:has(.dy-jw-end) > .dy-back { color: #fff; }
