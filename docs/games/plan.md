@@ -548,3 +548,11 @@
 - THE SHARE CARD's cause line sits on a dark band (readable over the bright river at link-preview size) — the owner: yes.
 - HOW TO PLAY gains ONE line: the Mothership ends a MATCH at 6:00 (everyone still in is lifted; farthest wins) — never in solo.
 - THE DAILY (built later by the dailies chat): its personal best is labelled "DAILY BEST · 168 LANES" / "NEW DAILY BEST" (the games chat's suggestion; not the solo / match YOUR BEST).
+
+## JAYWALK (the owner, Nov 18 — DECIDED, THE TOUCH-UP PASS)
+- The owner's calls on THE POLISH PASS's OPEN FOR BEN: slim-card names = ONE line, shrink to fit, an ellipsis only as a last resort (accepted).
+- THE SHARE PICTURE ALWAYS SHOWS THE KID: the frame is taken per cause at the moment the kid is still clearly SEEN (a vehicle / the Blackbird as now when he shows · WATER mid-splash, head + arms above · THE BLACKOUT / THE FOG as the wall reaches him · THE UFO mid-lift · THE MOTHERSHIP rising in the beam) — both looks.
+- Words in the game's PINK over the play get a dark outline (the friend line's words, the ghosts' tags, any pink HUD word over the scene); the gold YOUR BEST words too where they need it.
+- The player's OWN ROW in YOUR TABLE glows (a soft light in his own colour around his row + the pink rank) — never a pill, never shifting the grid.
+- THE DAY END SCREEN's title sits on a soft dark fade at the top (readable on the bright day sky).
+- The near-black far grass by night = LEFT AS IS.
