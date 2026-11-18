@@ -18,7 +18,7 @@ import { musicNeedsRescue } from '../audio/music.js';
 import { metaOf, loadGame } from '../games/registry.js';
 import { lookLockOf } from '../games/cartridge.js';
 import { lazyImport } from './lazy-import.js';
-import { wireSoundButton } from './sound-btn.js';
+import { wireSoundButton } from '../audio/sound-state.js';
 
 const GEAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 
@@ -172,7 +172,7 @@ export function installSettingsPanel() {
   gear = h('button.gear', { type: 'button', 'aria-label': 'Settings', onclick: open, html: GEAR });
   document.body.append(gear);
   // one-tap music on/off: next to the gear on the title, setup and lobby; under the chat button in a game (components.css)
-  // CITY G — THE THREE-WAY CORNER BUTTON (ui/sound-btn.js — the ONE builder): on → MUSIC OFF · EFFECTS ON → ALL SOUND OFF → SOUND ON, a short
+  // CITY G — THE THREE-WAY CORNER BUTTON (audio/sound-state.js — the ONE builder): on → MUSIC OFF · EFFECTS ON → ALL SOUND OFF → SOUND ON, a short
   // toast each tap (the owner's call, Nov 16–17 — POLISH 5's no-toast rule ends here); the music meant on but gone quiet (iOS after leaving
   // Safari, a call, the lock screen): the tap brings it back (audio/music.js#musicNeedsRescue, inside the tap) instead of switching it off
   musicBtn = h('button.music-btn', { type: 'button' });

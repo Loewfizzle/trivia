@@ -39,7 +39,7 @@ const setI = globalThis.setInterval;
 globalThis.setInterval = (fn, ms, ...a) => { const t = setI(fn, ms, ...a); if (t && t.unref) t.unref(); return t; };
 
 const E = await import('../js/audio/engine.js');
-const R = { ...(await import('../js/audio/leave-report.js')), ...(await import('../js/audio/leave-text.js')) };
+const R = { ...(await import('../js/audio/sound-state.js')), ...(await import('../js/audio/leave-text.js')) };
 const { updateSettings } = await import('../js/audio/settings.js');
 E.installAudio();
 const sleep = ms => new Promise(r => setTimeout(r, ms));

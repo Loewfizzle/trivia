@@ -4,7 +4,7 @@
 // (FIXES R3: moved out of the boot bytes — THE BOOT BUDGET). CITY G: the leave modes' test bench is gone — ONE path: THE SESSION BY STATE + THE
 // HARD CUT while 'ambient' + every media element paused in the cut (docs/audio.md "CITY G — THE THREE-WAY BUTTON + THE SESSION BY STATE").
 import { settings, onSettings } from './settings.js';
-import { LEAVE_REC_KEY, isLeftSignal, sessionFor } from './leave-report.js';
+import { LEAVE_REC_KEY, isLeftSignal, sessionFor } from './sound-state.js';
 import { lazyImport } from '../ui/lazy-import.js';
 
 let ctx = null;
@@ -63,7 +63,7 @@ export const graphDead = () => !!ctx && (ctx.state === 'closed' || ctx.state ===
 /** The graph can be trusted: running, not frozen, its clock seen moving for ≥ 2 s (music.js moves a direct song back onto it then). */
 export const graphOk = () => !!ctx && ctx.state === 'running' && !frozen && clock.t > 0 && clock.moving > 0 && performance.now() - clock.moving > 2000;
 
-// ---- THE AUDIO SESSION BY STATE (iOS 17+ — CITY G, the owner's decisions Nov 16–17; PURE: leave-report.js#sessionFor): the music ON → 'playback'
+// ---- THE AUDIO SESSION BY STATE (iOS 17+ — CITY G, the owner's decisions Nov 16–17; PURE: sound-state.js#sessionFor): the music ON → 'playback'
 // (C2 — the no-squeal path he tested); the music OFF + the effects ON → 'ambient' (the phone's own podcast / Spotify KEEPS PLAYING, the effects
 // mix on top; the silent switch obeyed); everything OFF → iOS left alone ('auto' — set back only if we had set it). 'play-and-record' while
 // THE INTERCOM holds the mic (CC-B: a 'playback' session can't capture). Switching the state switches the type at once (onSettings below).

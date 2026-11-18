@@ -11,7 +11,7 @@ import { installAudio } from '../audio/engine.js';
 import { playMusic, registerTracks, setListProvider, musicDebug, musicNeedsRescue } from '../audio/music.js';
 import { loadMoodMusic, moodNow, nextForDevice } from '../audio/mood.js';
 import { settings } from '../audio/settings.js';
-import { wireSoundButton } from '../ui/sound-btn.js';
+import { wireSoundButton } from '../audio/sound-state.js';
 import { lazyImport } from '../ui/lazy-import.js';
 
 const q = new URLSearchParams(location.search);
@@ -34,7 +34,7 @@ loadMoodMusic().then(d => {
   playMusic(settings.menuMusic === 'classic' ? 'menu3' : 'mood', 'menu3');
 });
 {
-  // (CITY G — THE THREE-WAY CORNER BUTTON: the same builder as the app's corner — ui/sound-btn.js; no toast module on this page)
+  // (CITY G — THE THREE-WAY CORNER BUTTON: the same builder as the app's corner — audio/sound-state.js; no toast module on this page)
   const b = document.createElement('button');
   b.type = 'button'; b.className = 'music-btn bd-music';
   b.addEventListener('click', wireSoundButton(b, { rescue: musicNeedsRescue }));
