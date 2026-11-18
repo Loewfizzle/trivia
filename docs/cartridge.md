@@ -145,7 +145,7 @@ A cartridge between its first screen and its go-live: a `config.js` GAMES row wi
 (the lobby's picker, the signs, HOW TO PLAY's tabs, THE BOARD all skip it), and `host.js#startGame` refuses it everywhere EXCEPT a LOCAL emulator page
 that asks (`localhost` / `127.0.0.1` + `?emu` + `&preview=1`, or the E2E's `window.__nsPreview` — `config.js#isPlayable`) — and (HE8 — THE OWNER'S
 LIVE TEST) the owner's own phone (`config.js#setOwnerPhone`, from the radio gate's server-checked `owner` yes; the server's start checks again): the smoke
-test still proves it can't start on a plain one. (HOLD'EM went playable in HE10 — the first game through this whole road.) It meets the WHOLE contract like a playable game (`tests/cartridge.test.mjs#BUILDING`, the harbor `cartridge` group);
+test still proves it can't start on a plain one. (HOLD'EM went playable in HE10 — the first game through this whole road; JAYWALK the second, THE GO-LIVE PASS, Nov 17.) It meets the WHOLE contract like a playable game (`tests/cartridge.test.mjs#BUILDING`, the harbor `cartridge` group);
 the tests that walk every GAMES row for the city / THE BOARD / the reports skip it until the pass that makes it playable gives it those.
 A server-dealt game (HOLD'EM): `start` asks the server and returns only the console's frame (`id`, `matchId`, `settings`, `participants`, `phase`); its
 `step` moves to `final` only once the server's own result is in, so the podium's usual report finds `results/{CODE}_{matchId}` already counted. HE10: such
@@ -425,3 +425,13 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - **A server-replayed solo result**: a cartridge whose solo run has a proof the server can replay (JAYWALK's `jw` node) is counted from
   THAT on both report paths — the room's `game.results` are never read (`api/report.js` — `jwSolo`); `core/match-report.js#QUICK_SOLO`
   lists the games whose solo runs THE 45 s GAP never holds back.
+
+## JAYWALK — THE GO-LIVE PASS (Nov 17 2026 — docs/games/passes/jaywalk-golive.md): the second game through the whole road
+- **THE ONE SWITCH**: the GAMES row `playable: true`, `preview` removed — everything keyed on `g.playable` followed by itself (the shelf without
+  `· TEST`, the room's game list, PLAY NOW, the sign's tap → its card, `api/report.js#reportableGame` counting everyone, THE BOARD's catalog, the
+  weekly goal's featured-game pool — this week's goal "Win 3 matches" unchanged).
+- **WHAT A PLAYABLE GAME OWES THE BOOT** (`tests/registration.test.mjs` — `JAYWALK_WAITS` empty): its thin meta in `registry.js#META`, its
+  `ui/help.js` RULES + TAB (a game's help may carry `pics` — one small drawing a line, `.help-pics` in components.css), its `ui/game-art.js` tile;
+  + its tab on THE BOARD (`board/view.js#TABS` — a new `boardtab` place in the cross-check). THE BOOT BUDGET never raised.
+- **Kept for the NEXT game being built**: `config.js#isPlayable`'s preview branch + `isOwnerTest`, `api/report.js`'s owner's-test branch (pinned
+  generically in server.test — the row flipped back in-process), `ui/help.js#hub`, `registration.test.mjs`'s BUILDING check + waits list.

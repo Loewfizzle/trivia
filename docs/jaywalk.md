@@ -1,7 +1,7 @@
 # JAYWALK (id `jaywalk`) — the hop-through-lanes game
 
-**BEING BUILT** (H1 + H2 + H2B + H3 + H4 + H4B + H5A + H5B + H5C, Nov 16 · H6A, Nov 17 2026): `config.js` GAMES row `playable: false` + `preview: true` — never offered (docs/cartridge.md "A game
-BEING BUILT"). The owner's decisions: `docs/games/plan.md` "JAYWALK (the owner, Nov 12–16 — DECIDED)" + "H2's DECISIONS" + "JAYWALK (the
+**PLAYABLE FOR EVERYONE since THE GO-LIVE PASS (Nov 17 2026 — `docs/games/passes/jaywalk-golive.md`)**: `config.js` GAMES row `playable: true` (built H1 → H6B,
+Nov 16–17; reviewed, BEFORE THE FLIP, then flipped — docs/cartridge.md "A game BEING BUILT" is the road it took). The owner's decisions: `docs/games/plan.md` "JAYWALK (the owner, Nov 12–16 — DECIDED)" + "H2's DECISIONS" + "JAYWALK (the
 owner, Nov 16 — DECIDED, after H2 on his phone)" + "… after H2B on his phone)" + "… after H3 on his phone)" (H4: ONE LIFE EVERYWHERE) + "JAYWALK (the owner, Nov 16 — DECIDED, H5A)" (the new kid, THE AREAS, the sounds). This page = the rules, the modes table, the engine's contract, the replay + the proof,
 THE NIGHT LOOK + THE CAMERA + its assets + the sounds, the lab page, what each later pass adds. Read it before a JAYWALK pass.
 
@@ -23,7 +23,7 @@ import map); the RULES are a pure engine that never knows about it.
 | H6A | Nov 17 2026 | `docs/games/passes/jaywalk-h6a.md` | THE BIG MOMENTS (`flyers.js`, fetched ON DEMAND): THE BLACKBIRD (the real SR-71 — the glint, the afterburners, the shockwave), THE UFO (the real saucer, its green ring, THE ABDUCTION), THE MOTHERSHIP = A FINISH LINE (the 10 s warning, the baked ship, the white-gold beam, the gold end screen — never "TAKEN") · THE FOUR CARDS (the feat flags from the server's replay → SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY — solo or match · BEAM ME UP, new) · YOUR BEST ANYWHERE (a counted match run raises the same best) |
 | H6B | Nov 17 2026 | `docs/games/passes/jaywalk-h6b.md` | THE FINAL POLISH (a VIEW + SOUND pass): THE PAINTED NIGHT SKYLINES (8, cross-faded at the gates — `skymarks.js` retired) + THE LOOK SWITCH's cross-fade · THE GATE SIGN only on the approach · the compact match chips · the lab's `?lane=N` · THE MOMENTS' FINISH (the solid UFO, the bigger Blackbird's blazing burners, the kids into the Mothership's port, the traffic stopping under it) · DOWNTOWN's storefronts (Kenney, on demand) · the tail light bar · THE MIX (measured) + NEW BEST's B take · THE CREDITS · two fresh-eyes reviews |
 | THE GO-LIVE REVIEW | Nov 17 2026 | `docs/games/passes/jaywalk-review.md` | the audit (a fresh auditor + a second reviewer — both reports verbatim) + its fixes · THE BLACKBIRD's DAY TELL · the fog's banding · the first look switch's long frame · the lane count clear of every landmark + a match's chips · Grok's two night touch-ups · THE MEMORY ON WEBKIT (`wk-jaywalk-mem.mjs`) · the go-live checklist (`jaywalk-golive-checklist.md`) — it does NOT flip `playable` |
-| the go-live pass | — | `docs/games/passes/jaywalk-golive-checklist.md` | flips `playable` (empties `tests/registration.test.mjs#JAYWALK_WAITS`; the meta + its tile join the boot — after the city's CHROMEBOOK pass trims THE BOOT BUDGET: the owner, Nov 16) |
+| THE GO-LIVE PASS | Nov 17 2026 | `docs/games/passes/jaywalk-golive.md` (the plan: `jaywalk-golive-checklist.md`) | ✓ DONE — flipped `playable` (empties `tests/registration.test.mjs#JAYWALK_WAITS`; the meta + its tile join the boot — after the city's CHROMEBOOK pass trims THE BOOT BUDGET: the owner, Nov 16) |
 | DAILY A · DAILY B | — | — | its daily (`MODES.daily`) |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
@@ -1299,15 +1299,17 @@ match" (that would need its own night records + report path) and not the console
   THE LIVE LANE), best first, ≤ 4 rows (you always among them), only when a friend has a best — `/api/profile { action: 'table', b }`
   (`api/_lib/friends.js#boardTable`: the friends YOUR OWN list names, ≤ 12, the board ids — never a pid).
 
-### HOW TO PLAY (`js/games/jaywalk/help.js` — built OUT of the boot)
-`RULES` (one line + HOW TO MOVE · WATCH OUT — seven short lines a kid can read, one small drawing each) + `TAB 'JW'`, in the shared help's
-own shape, **ready to move into `ui/help.js`** at go-live. Until then the cartridge registers its body with the help's hub
-(`globalThis.__nsHelp.jaywalk` — `ui/help.js#hub`): ☰ → HOW TO PLAY in a run, and the card's HOW TO PLAY, show it.
+### HOW TO PLAY (`ui/help.js#RULES.jaywalk` — moved in at THE GO-LIVE PASS; H3 built it in the cartridge, out of the full boot)
+`RULES.jaywalk` (one line + HOW TO MOVE · WATCH OUT — TEN short lines a kid can read: the review's nine + the go-live's KEYBOARD line
+(the arrow keys or WASD, SPACE hops — `controls.js#KEYS`), one small drawing each through the shared help's `pics` list + `.help-pics` in
+`css/components.css` — the help opens before the cartridge loads) + `TAB.jaywalk 'JW'`. `js/games/jaywalk/help.js` + the cartridge's hub
+registration are deleted; `ui/help.js#hub` stays for the next game being built.
 
-### WHAT WAITS FOR GO-LIVE (`tests/registration.test.mjs#JAYWALK_WAITS` — THE BOOT BUDGET is full, never raised)
-`meta` (registry META at boot) · `help` (ui/help.js RULES + TAB — the content is in `help.js`) · `art` (ui/game-art.js — its tile; the
-owner's card shows its neon mark — H4: THE SIGNAL). `smoke` is DONE (H4). `boards` is DONE (H3: `core/boards.js` — a boot file, trimmed to fit: the boot is
-6,499.94 of 6,500 KB). Every boot file this pass touched (`boards.js`, `help.js`, `title-taps.js`) was trimmed so the boot did not grow.
+### WHAT WAITED FOR GO-LIVE — ALL DONE (THE GO-LIVE PASS, Nov 17: `tests/registration.test.mjs#JAYWALK_WAITS` is EMPTY)
+`meta` (registry META at boot) · `help` (ui/help.js RULES + TAB) · `art` (ui/game-art.js `ART.jaywalk` — THE SIGNAL's two paths lit on a night
+crossing, an SVG — it reads at 72 pt) all landed in the boot within THE BOOT BUDGET (CITY F's trim freed the room; the budget never raised —
+307 / 310 modules, 19.7 KB of room after). + THE BOARD's sixth tab (`board/view.js#TABS` — the registration cross-check now names a missing
+tab). The signs' stand-in row (`harbor-neon.js#JAYWALK_SIGN`) is gone: `signRoster` = the playable games.
 
 ## THE ASSETS (H2 — `scripts/build-jaywalk-assets.py` COPIES the owner's delivery; the originals in Downloads are only read)
 - `assets/jaywalk/models/` — **Kenney's 12 models (CC0)**: car-sedan · car-hatchback · car-taxi · car-van · train-front · train-carriage ·

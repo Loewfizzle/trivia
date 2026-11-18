@@ -1033,7 +1033,7 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   credited from the server's replay; the silent player; a report after the rematch; the gates) · the smoke test's JAYWALK start (a
   page that asks: `window.__nsPreview`, for that row alone).
 - **THE MATCH's own E2E:** `node tests/integration/e2e-jaywalk-match.mjs "<chromium>" [outDir] [--perf]` (~1.5 min, ~2 with `--perf`;
-  three phones on the kit's harness, the GPU path): the owner hosts → GO → the same course + clock → ghosts → the live order → out →
+  three phones on the kit's harness, the GPU path): a PLAIN host (THE GO-LIVE PASS — the room's game list shot, no TEST mark) → GO → the same course + clock → ghosts → the live order → out →
   Call the Winner → watching → the end → the podium → the server's replay → the report for all three → the share image → a rematch;
   `--perf` = a 4-player match (3 ghosts) at 390 × 844 @3 under 4× CPU, every tier.
 - **The solo E2E** gained the share image, the non-pill tubes, the named vehicle — and **`--drop`** (THE DROPPED SIGNAL with a REAL
@@ -1054,8 +1054,7 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   (the owner-only gate, the best from the replay — never the claim —, the moved-on room, runs 9 s apart, a forged + a slowed log, no
   proof = 403, YOUR TABLE).
 - **The solo game's own E2E:** `node tests/integration/e2e-jaywalk.mjs "<chromium>" [outDir] [--perf]` (the emulators + `serve.mjs
-  --emu`; ~1.5 min, ~3 with `--perf`): a stranger never sees JAYWALK → the OWNER (it sets `testAdmins/{pid}` + clears the tab's
-  remembered radio-gate NO — a tab that was a stranger a moment ago) → PLAY → JAYWALK · TEST → PLAY NOW → GO with the server's time → the
+  --emu`; ~1.5 min, ~3 with `--perf`): A STRANGER (THE GO-LIVE PASS — no owner set-up) → PLAY → the shelf's four rows, JAYWALK unmarked → PLAY NOW → GO with the server's time → the
   seed → taps → the stamped chunks → out → the end screen → the report counted from the replay (it runs `verifyNode` on the emulator's
   own node) → NEW BEST → HOP AGAIN ×4 (**`HOP_AGAIN_MS`** = the tap → a course ready to hop) → a forged log refused → BACK TO THE CITY.
   `--perf` = the REAL view at 390 × 844 @3 under a 4× CPU throttle, the bot playing (it hops again when a run ends), 7 s a tier: `PERF`

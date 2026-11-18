@@ -1,8 +1,8 @@
 # NEON SPEAKEASY — developer guide
 
-Mobile-first multiplayer party games (2–8 players, one phone each). Thirteen games, **THREE PLAYABLE**: PRISM DROP, OVERCLOCK, HOLD'EM
+Mobile-first multiplayer party games (2–8 players, one phone each). Fourteen games, **FOUR PLAYABLE**: PRISM DROP, OVERCLOCK, HOLD'EM, JAYWALK
 (`js/config.js` GAMES[].playable is the one switch — the other ten are FROZEN (`config.js#FROZEN_IDS`, never loaded — docs/cartridge.md "THE FROZEN
-CONTRACT"), code + data + rules kept; + JAYWALK BEING BUILT — `preview`, never offered (its solo run: the owner's phone only; its matches: a room he hosts): docs/jaywalk.md). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
+CONTRACT"), code + data + rules kept; JAYWALK live since Nov 17: docs/jaywalk.md). Three DAILY-ONLY games (THE PASSWORD, COAST CLEAR + THE DROP — PRISM DROP's, its row OFF) live in `config.js#DAILIES`, never GAMES.
 **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (City 1.0 deleted Nov 5; its code at the tag `city-1.0-final`). Static site on Vercel
 (**neonspeakeasy.com**) + Firebase Realtime Database + Anonymous Auth + eight Vercel functions in `/api` (profiles, server-checked results +
 HOLD'EM's dealer, THE BOARD, admin, errors, the dailies, the weather, the clock). In code the city is still "the district" (`nd-` prefix,
@@ -30,7 +30,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 | `docs/profiles.md` | profiles, keys, FRIENDS, passkeys, `/api`, result reporting, THE BOARD, `/board`, `/admin`, the Vercel setup |
 | `docs/chat.md` · `docs/content.md` | room chat · adding questions / puzzles / words to any bank |
 | `docs/overclock.md` · `docs/prism.md` · `docs/holdem.md` | the three playable games (read before a pass on one) |
-| `docs/jaywalk.md` | **JAYWALK** (BEING BUILT): the engine, the replay + the proof node, THE SOLO GAME + its anti-cheat, THE LAB (/jaywalk-lab) — read before a JAYWALK pass |
+| `docs/jaywalk.md` | **JAYWALK**: the engine, the replay + the proof node, THE SOLO GAME + its anti-cheat, THE LAB (/jaywalk-lab) — read before a JAYWALK pass |
 | `docs/password.md` · `docs/coastclear.md` · `docs/prism.md` "THE DROP" | the three dailies (`docs/games/plan.md` = the owner's game decisions) |
 | `docs/pulse.md` `docs/golf.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that frozen game |
 
@@ -107,7 +107,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - Debug + preview flags: `&debug=1`, `&dpr=3`, `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary waits for the reveal + a tap; `&lgnow=1` at once).
 - A holiday SIGN FORCE (`&force=sign-*`) shows the FULL look any day, in season too; THANKSGIVING = the maple leaves BEHIND the letters + THE GOLD WEEK (`leafbank.js`) → docs/harbor.md.
 - THE TRI-VISION: the roof board turns HOLD'EM → JAYWALK → THE DROP (from its go-live) by ONE pure clock (`core/harbor-trivision.js`) → docs/harbor.md (moved).
-- THE SIGNS: ONE roster (`core/harbor-neon.js#signRoster` — the playable games + JAYWALK); NO NAMED SIGN EVER DARK; OVER / CLOCK + JAY / WALK always stacked; THE DROP's face only from its go-live, via the cached feed → docs/harbor.md "CITY B".
+- THE SIGNS: ONE roster (`core/harbor-neon.js#signRoster` — the playable games); NO NAMED SIGN EVER DARK; OVER / CLOCK + JAY / WALK always stacked; THE DROP's face only from its go-live, via the cached feed → docs/harbor.md "CITY B".
 
 **The console + the room** (→ docs/harbor.md (moved), docs/cartridge.md, docs/title.md)
 - THE ROOM IN THE CITY: the old lobby screen is RETIRED — the room lives in the city from the join to the podium (`screens/room-city.js`,
@@ -171,10 +171,10 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - PRISM's SKINS: ONE definition each in `prism/skins.js` + its art — no skin-specific path; `prism-skin-snap.mjs` IDENTICAL after a refactor → docs/prism.md "THE SKINS".
 - HOLD'EM: the engine PURE + DETERMINISTIC; THE SERVER IS THE DEALER (the deck only in `hrec/{CODE}`); PLAY CHIPS ONLY — no money words;
   ANIMATIONS COME FROM THE STATE; THE PORTRAIT IS UNTOUCHED by sideways CSS → docs/holdem.md (moved).
-- JAYWALK (BEING BUILT): the rules PURE + CROSS-ENGINE SAFE (integers + Math.floor — no sin / cos / pow / sqrt, never Math.random / Date.now / a
+- JAYWALK: the rules PURE + CROSS-ENGINE SAFE (integers + Math.floor — no sin / cos / pow / sqrt, never Math.random / Date.now / a
   frame clock); a lane = f(seed, index), a hazard = f(lane, tick); a result = THE REPLAY of the hop log; every pass ships its preview at
   /jaywalk-lab (OPEN since H2B: no gate, ZERO server calls, no writes, noindex + unlisted) — never a 192.168 / tests/ link in a summary → docs/jaywalk.md.
-- JAYWALK's SOLO RUN (H3): THE COURSE IS PICKED AFTER GO (`logic.js#seedOf` — hash(code + matchId + the server's GO time)); played on the SERVER's clock, never paused; the proof = server-stamped chunks; counted ONLY from the server's replay (`api/_lib/jaywalk.js#verifyNode` — a log AHEAD of the clock refused, one BEHIND cut); owner-only until go-live; PLAY AGAIN = THE INSTANT AGAIN (`kit/again.js`); THE LINES (YOUR BEST gold · the next friend's — `lines.js`) from the server's table, asked ONCE a run → docs/jaywalk.md "THE SOLO GAME" + "THE LINES".
+- JAYWALK's SOLO RUN (H3): THE COURSE IS PICKED AFTER GO (`logic.js#seedOf` — hash(code + matchId + the server's GO time)); played on the SERVER's clock, never paused; the proof = server-stamped chunks; counted ONLY from the server's replay (`api/_lib/jaywalk.js#verifyNode` — a log AHEAD of the clock refused, one BEHIND cut); PLAY AGAIN = THE INSTANT AGAIN (`kit/again.js`); THE LINES (YOUR BEST gold · the next friend's — `lines.js`) from the server's table, asked ONCE a run → docs/jaywalk.md "THE SOLO GAME" + "THE LINES".
 - JAYWALK's MATCH (H4): ONE LIFE EVERYWHERE (no lives / respawn / blink / one-up); the course + tick 0 from THE FIRST GO (`logic.js#matchStart`); the ghosts = the others' hop logs through the same engine; counted ONLY from the server's replay of every proof node (`jaywalkMatch`) — ONE judge (`replay.js#judgeRun`); THE DROPPED SIGNAL (a silence + a catch-up burst never costs a run, a growing lag is slow motion); THE CAUSE LINE NAMES THE VEHICLE (ONE source: `causes.js#vehicleAt` → `runLine`, no generic line) → docs/jaywalk.md "THE MATCH".
 - JAYWALK's GHOSTS (H4B): a ghost is ALWAYS drawn consistent with the world on screen — the engine's state AT THE WORLD's TICK (`ghosts.js`: no new hop assumed, a late hop catches up, a death only once their `e` confirms it); a match's GO = a transaction never applied locally + THE NODES ARE THE TRUTH (`logic.js#startOf`) → docs/jaywalk.md "THE GHOSTS" + "THE FIRST GO's PROOF".
 - JAYWALK's LOOK (H2) is a VIEW (`night.js` — draws from (run, course), never writes; instanced, no point light, no bloom below the top

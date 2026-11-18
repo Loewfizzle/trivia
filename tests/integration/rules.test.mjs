@@ -1495,10 +1495,10 @@ test('FR7 FIXES A — OC2 + HOST-GRADED: `doneAt` only together with `done`; the
   await assertFails(get(ref(db('host'), O)), 'the host reads them only after the unseal');
 });
 
-// (FR7 FIXES A's fallbacks were proved on the rules before its re-publish; those rules are published now — tests/fixtures/rules-live.json —
-//  so THE RULES-LAG case is FR7 FIXES B's: on the rules as published the per-match prune is refused — nothing deleted, the fallback — and
-//  everything else this pass writes already lands: OVERCLOCK's present board at a challenge's open)
-test('FR7 FIXES B — THE RULES-LAG: on THE RULES AS PUBLISHED the per-match prune is refused (nothing deleted); the present board lands', async () => {
+// (FR7 FIXES A's fallbacks were proved on the rules before its re-publish; FR7 FIXES B's per-match prune was REFUSED on the rules as published
+//  until THE JAYWALK GO-LIVE PASS (Nov 17): the owner re-published (the review's + CITY F's) and tests/fixtures/rules-live.json = the rules
+//  today — so on THE RULES AS PUBLISHED the per-match prune now LANDS (the old match goes, the others stay) and the present board lands)
+test('FR7 FIXES B — THE RULES AS PUBLISHED (re-published Nov 17): the per-match prune lands (one match deleted, the other kept); the present board lands', async () => {
   const old = await initializeTestEnvironment({ projectId: 'demo-oldrules-fr7b', database: { rules: readFileSync(fileURLToPath(new URL('../fixtures/rules-live.json', import.meta.url)), 'utf8'), host: '127.0.0.1', port: 9000 } });
   try {
     const odb = uid => old.authenticatedContext(uid).database();
@@ -1507,9 +1507,9 @@ test('FR7 FIXES B — THE RULES-LAG: on THE RULES AS PUBLISHED the per-match pru
     r.rooms[CODE].meta.status = 'playing';
     r.rooms[CODE].game = { id: 'overclock', matchId: 'm3', ci: 2, ck: '2', phase: 'play', participants: { host: true, p2: true } };
     await oseed(r);
-    await assertFails(update(ref(odb('host'), R), { 'prism/mZ': null }), 'the per-match prune: refused on the published rules (host.js#pruneProofs is best effort)');
+    await assertSucceeds(update(ref(odb('host'), R), { 'prism/mZ': null }), 'the per-match prune: lands on the published rules (host.js#pruneProofs)');
     const left = (await get(ref(odb('host'), `${R}/prism`))).val();
-    assert.ok(left.mA && left.mZ, 'nothing deleted — the old match stays until the room goes (the fallback)');
+    assert.ok(left.mA && !left.mZ, 'ONE match deleted — the other kept');
     await assertSucceeds(update(ref(odb('p2'), `${R}/oc/m3/2/p2`), { p: 0, ok: 0, n: 3, done: false, at: serverTimestamp() }), "PRESENT = PROVEN: the board at the challenge's open lands on the published rules");
   } finally { await old.cleanup(); }
 });

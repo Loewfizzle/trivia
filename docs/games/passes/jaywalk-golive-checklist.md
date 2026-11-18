@@ -1,4 +1,4 @@
-# JAYWALK — THE GO-LIVE CHECKLIST (written by THE GO-LIVE REVIEW, Nov 17 2026 — nothing here is done yet)
+# JAYWALK — THE GO-LIVE CHECKLIST (written by THE GO-LIVE REVIEW, Nov 17 2026 — ✓ TAKEN by THE GO-LIVE PASS, Nov 17: section 1 step by step in `jaywalk-golive.md`)
 
 **THE GO-LIVE PASS** takes these steps, in this order, in ONE pass with ONE tagged push. It flips `playable` — nothing else about the
 game changes in it (a look / rules / server change belongs to a pass of its own, before). The review that wrote this:
