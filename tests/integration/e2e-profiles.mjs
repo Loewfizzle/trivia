@@ -441,25 +441,30 @@ await H.run(async () => {
   // the board's GET is browser-cached (max-age 10 s + stale-while-revalidate 60 s): look at ALL TIME, a list this browser hasn't fetched
   await openBoard('all');
   ok(await p3.$('.bd-me.is-ranked'), 'your pinned row shows your exact rank');
-  const rows = await p3.$$eval('.bd-rows .bd-row:not(.is-skel)', els => els.map(el => ({ n: el.dataset.n || '', me: el.classList.contains('is-me'), you: !!el.querySelector('.bd-you'), more: !!el.querySelector('.bd-more'), strip: !!el.querySelector('.vl-strip'), id: el.dataset.id })));
+  const rows = await p3.$$eval('.bd-rows .bd-row:not(.is-skel)', els => els.map(el => ({ n: el.dataset.n || '', me: el.classList.contains('is-me'), you: el.classList.contains('sb-me'), more: !!el.querySelector('button.bd-open'), strip: !!el.querySelector('.vl-strip'), id: el.dataset.id })));
   ok(rows.length > 0 && rows.every(r => r.strip), `SLIM CARDS EVERYWHERE: every board row is its player's slim card (${rows.length})`);
   const mine = rows.find(r => r.me);
   const bid3 = await p3.evaluate(() => { for (const k of Object.keys(localStorage)) if (/:me$/.test(k)) { const v = JSON.parse(localStorage.getItem(k)); return `${k}=${v && v.profile && v.profile.bid}`; } return 'none'; });
-  ok(mine && (mine.n.toUpperCase().startsWith(String(me0.profile.n).toUpperCase()) || mine.n.toUpperCase().startsWith('KATIEJO')) && mine.you && !mine.more, `your own row: your real name + YOU, no REPORT (${mine && mine.n}; ${bid3}; rows ${rows.map(r => r.id).join(',')})`);
+  ok(mine && (mine.n.toUpperCase().startsWith(String(me0.profile.n).toUpperCase()) || mine.n.toUpperCase().startsWith('KATIEJO')) && mine.you, `your own row: your real name + THE YOU ROW's glow (CITY H2 — no YOU line) (${mine && mine.n}; ${bid3}; rows ${rows.map(r => r.id).join(',')})`);
   const others = rows.filter(r => !r.me);
-  ok(others.length > 0 && others.every(r => r.more), `every other row: its player's username + ⋯ (${others.map(r => r.n).join(', ')})`);
+  ok(others.length > 0 && others.every(r => r.more), `every other row: its player's username, its card a tap to THE PLAYER PAGE (CITY H2 — no ⋯ line) (${others.map(r => r.n).join(', ')})`);
   ok(!others.some(r => /^[A-Z][a-z]+ [A-Z][a-z]+$/.test(r.n)), `no house nicknames on the board — the players' usernames (${others.map(r => r.n).join(', ')})`);
   await shotAll(p3, 'pf-07-board');
-  // REPORT: ⋯ → the sheet → SUSPICIOUS SCORE → thanks, stored for /admin
+  // REPORT (CITY H2: the card → THE PLAYER PAGE → MORE → REPORT) → the sheet → SUSPICIOUS SCORE → thanks, stored for /admin
   const target = others[0];
   const flagged0 = (await val(`flags/${target.id}/why/score`)) || 0;
-  await p3.click(`.bd-row[data-id="${target.id}"] .bd-more`);
+  await p3.click(`.bd-row[data-id="${target.id}"] .bd-open`);
+  await p3.waitForFunction(() => { const e = document.querySelector('.vl-full.pp'); return e && e.dataset.state === 'card' && !!e.querySelector('.pp-more'); }, { timeout: 15000 });
+  await p3.evaluate(() => document.querySelector('.vl-full.pp .pp-more').click());
+  await p3.waitForSelector('.pp-more-sheet .pp-report');
+  await p3.evaluate(() => document.querySelector('.pp-more-sheet .pp-report').click());
   await p3.waitForSelector('.bd-rep .bd-rep-b');
   await shotAll(p3, 'pf-07b-report');
   await p3.evaluate(() => [...document.querySelectorAll('.bd-rep-b')].find(b => /SCORE/.test(b.textContent)).click());
   await p3.waitForFunction(() => /THANKS/.test((document.querySelector('.bd-rep-msg') || {}).textContent || ''), { timeout: 10000 });
   ok((await val(`flags/${target.id}/why/score`)) === flagged0 + 1, 'REPORT: stored under flags/ for /admin');
   await p3.waitForFunction(() => !document.querySelector('.bd-rep'), { timeout: 5000 });
+  await p3.evaluate(() => { const b = document.querySelector('.vl-full.pp .vl-full-x'); if (b) b.click(); });
   await p0.evaluate(() => import('/js/profile/me.js').then(m => m.setShown(false)));
   ok((await val(`lb/xp/all/${me0.pid}`)) == null, 'opted out: off the boards');
   ok((await val(`pstats/${me0.pid}/g/cipher/p`)) === 1, '…and the stats are still there');

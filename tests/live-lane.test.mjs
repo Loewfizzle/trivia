@@ -16,7 +16,8 @@ test('THE LIVE LANE: the cap, the 2D canvas of its own, one start a frame, reduc
 });
 
 test('THE LIVE LANE: every slim-card LIST goes through it — no surface over a list', () => {
-  const lists = { 'js/screens/daily.js': 3, 'js/board/view.js': 2, 'js/profile/friends-ui.js': 3, 'js/screens/title-taps.js': 1, 'js/ui/strip-board.js': 1 };
+  const lists = { 'js/screens/daily.js': 3, 'js/board/view.js': 1,   // (CITY H2: THE BOARD's foot is ONE slim line now — no card, no second lane)
+    'js/profile/friends-ui.js': 3, 'js/screens/title-taps.js': 1, 'js/ui/strip-board.js': 1 };
   for (const [f, n] of Object.entries(lists)) {
     const s = read(f);
     assert.equal((s.match(/\.liveList\(/g) || []).length, n, `${f}: its lists through liveList`);

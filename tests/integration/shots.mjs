@@ -191,7 +191,9 @@ const SCENE = {
   'ufo-pumpkin': ['2026-10-29T22:00', { qs: 'force=ufo&lgs=14' }],
   // CITY E — THE BOARD's BACKGROUND (assets/board-sky.webp): a plain clear Tuesday night in June (no holiday dressing, no party, no show), the
   // promenade + the roof empty, no legendary; act 'bare' hides every page layer but the city's canvases (no logo, no dock, no corners).
-  //   node shots.mjs "<browser>" --preview --city 2 --sizes 430x932 --dsf 3 --idle --scenes board-sky --crop boardsky --webp 70 --out <dir>
+  //   CITY H2 — LAYOUT B's SHORT STRIP: the city at 760 × 520 (JAY / WALK, OVER / CLOCK, HOLDEM + PRISM in ONE line — no named sign under the
+  //   title, none cut at a desk; the signs ALL LIT — a moment the JAY / WALK sign isn't mid-flicker: check it):
+  //   node shots.mjs "<browser>" --preview --city 2 --sizes 760x520 --dsf 2 --idle --wait 4200 --scenes board-sky --crop skyline --webp 74 --out <dir>
   'board-sky': ['2026-06-09T23:20', { qs: 'wx=clear&wind=1&force=no-people,no-legend', act: 'bare' }],
   drones: ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 26000 }], 'drones-launch': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 9000 }], 'drones-text': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 40000 }],
 };

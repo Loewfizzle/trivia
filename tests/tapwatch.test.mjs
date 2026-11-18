@@ -117,7 +117,8 @@ test('CITY A — the owner\'s list carries data-press: THE BOARD\'s tabs, the ra
   const B = rd('js/board/view.js'), R = rd('js/screens/harbor/radio.js'), D = rd('js/screens/daily.js');
   assert.match(B, /h\('button\.bd-open', \{\s*type: 'button', 'data-press': true/, 'bd-open');
   // (CITY E: the tabs, the switches + the picks through THE NEON TABS — ONE builder, its every button data-press)
-  for (const c of ['bd-tab', 'bd-seg-b', 'bd-chip']) assert.match(B, new RegExp(`btnCls: '${c}'`), c);
+  for (const c of ['bd-tab', 'bd-period-b']) assert.match(B, new RegExp(`btnCls: '${c}'`), c);
+  assert.match(B, /h\('button\.bd-pick', \{ type: 'button', 'data-press': true,/, 'CITY H2: the board picker acts on its press + lift');
   assert.match(rd('js/ui/neon-tabs.js'), /h\(`button\.nt-tab\$\{dots\(btnCls\)\}`, \{\s*type: 'button', 'data-press': true/);
   for (const c of ['rd-x', 'rd-bb', 'rd-jack']) assert.match(R, new RegExp(`h\\('button\\.${c}', \\{ type: 'button', 'data-press': true`), c);
   assert.match(R, /'aria-label': 'The radio', dataset: \{ born:/, 'the desk settles before its jacks take taps');

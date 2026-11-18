@@ -17,13 +17,19 @@
 // built ONCE — a tab / period / board change paints their state IN PLACE (classes, aria, hidden), never a new node under a finger; the rows
 // list (it holds controls) is swapped only when no finger is down (swapRows → ui/tapwatch.js#afterTap). tests/integration/wk-board-taps.mjs.
 //
+// CITY H2 — LAYOUT B (the owner's pick, Nov 18 — docs/harbor/passes/city-h2.md): a SHORT real skyline strip (assets/board-sky.webp, the city
+// framed at 760 × 520 so JAY / WALK, OVER / CLOCK, HOLDEM + PRISM all show, never under the title) + THE BOARD · HALL OF FAME; the game tabs;
+// ONE row = THIS WEEK | ALL TIME (a squared two-part switch) + the board picker (a drop-down → a standard sheet: ALL DAILIES + every live daily;
+// a game's RECORDS + CAREER boards); the rank medal with the points UNDER it + FULL-SIZE slim cards; no heading, no YOU / ⋯ line (REPORT lives
+// in the player page's MORE; on the public page a tap on a card reports); THE LIST SCROLLS WITH THE PAGE (no fixed box); YOUR rank, when your
+// card isn't on screen, is ONE slim line pinned at the foot. YOUR card = THE YOU ROW (ui/strip-board.js — the breathing pink glow).
 //   createBoardView({ mode: 'app' | 'public', me: () => ({ pid, profile }) | null, ranks: (boards) => Promise<{…}>,
 //                     onBack, onProfile, onPlay, onPlayer({ b, bid, row }), initial: { game | tab, cat, period, board } })
 //   → { el, start(), destroy() }
 import { openSheet } from '../ui/sheet.js';
 import { rankMedal } from '../ui/medal.js';   // (CITY B: THE DECO MEDALS — one component)
 import { h } from '../ui/dom.js';
-import { avatar, tubeButton } from '../ui/components.js';
+import { avatar, tubeButton, row as shellRow } from '../ui/components.js';
 import { emblem } from '../ui/emblems.js';
 import { GAMES, DAILIES } from '../config.js';
 import { boardDef, recordBoards, careerBoards, tabBoards, fmtValue, MIN_WR_GAMES } from '../core/boards.js';
@@ -54,7 +60,6 @@ const tabName = id => TAB_NAMES[id] || gameName(id);
 /** a deep link's / the title preview's game → its tab (a game without a tab → XP) */
 export const tabOf = g => (TABS.includes(g) ? g : g && String(g).startsWith('daily') ? 'dailies' : 'xp');
 const PAGE = 25, TOP = 10, MAX = 100;
-const DOTS = '<svg viewBox="0 0 16 4" aria-hidden="true"><circle cx="2" cy="2" r="1.8"/><circle cx="8" cy="2" r="1.8"/><circle cx="14" cy="2" r="1.8"/></svg>';
 
 /** the unit under a score: XP · PTS · AVG (a game's record keeps its own format: km, s, %) */
 export function unitOf(def, period) {
@@ -89,107 +94,95 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   const pub = mode === 'public';
   const S = {
     tab: tabOf(initial.tab || initial.game || (initial.board && boardDef(initial.board) && (boardDef(initial.board).game || initial.board)) || 'xp'),
-    cat: initial.cat || null,
     period: initial.period === 'all' ? 'all' : 'week',     // (the owner: it opens on THIS WEEK)
     board: initial.board || null,
     rows: [], more: false, all: false, ends: null,
     loading: false, token: 0,
   };
-  let destroyed = false, cascadeSound = false, io = null, surface = null, meSurface = null, K = null, seeMine = null;
+  let destroyed = false, cascadeSound = false, io = null, surface = null, K = null, seeMine = null;
   const els = {};
   const myRankCache = new Map();
 
   // ------------------------------------------------------------------ skeleton
-  // (CITY E — THE BACKGROUND: a darkened, faded still of the REAL night harbor skyline baked from the city — assets/board-sky.webp, made by
-  //  shots.mjs --scenes board-sky --crop boardsky --webp; css/board.css .bd-bg-sky — nothing animates)
-  els.scene = h('div.bd-scene', { 'aria-hidden': 'true' },
-    h('div.bd-bg', h('i.bd-bg-base'), h('i.bd-bg-sky'), h('i.bd-bg-shade')));
-  // (CITY E — THE NEON TABS: the games, RECORDS · CAREER, THIS WEEK · ALL TIME — js/ui/neon-tabs.js, the STATS sheet's builder; no pill, no gold)
+  els.scene = h('div.bd-scene', { 'aria-hidden': 'true' }, h('div.bd-bg', h('i.bd-bg-base')));
+  // (CITY E — THE NEON TABS: the games + THIS WEEK · ALL TIME — js/ui/neon-tabs.js, the STATS sheet's builder; no pill, no gold)
   const gameTabs = neonTabs(TABS.map(id => ({ v: id, l: tabName(id), id })), { tag: 'nav', cls: 'bd-tabs', btnCls: 'bd-tab', even: true, label: 'Boards', onPick: id => pickTab(id) });
-  const catSeg = neonTabs([{ v: 'records', l: 'RECORDS' }, { v: 'career', l: 'CAREER' }], { cls: 'bd-seg', btnCls: 'bd-seg-b', even: true, label: 'Records or career', onPick: v => { S.cat = v; S.board = null; boardSfx('tab'); refresh(); } });
-  const periodSeg = neonTabs([{ v: 'week', l: 'THIS WEEK' }, { v: 'all', l: 'ALL TIME' }], { cls: 'bd-seg bd-period', btnCls: 'bd-seg-b', even: true, label: 'This week or all time', onPick: v => { S.period = v; boardSfx('tab'); refresh(); } });
+  const periodSeg = neonTabs([{ v: 'week', l: 'THIS WEEK' }, { v: 'all', l: 'ALL TIME' }], { cls: 'bd-period', btnCls: 'bd-period-b', even: true, label: 'This week or all time', onPick: v => { S.period = v; boardSfx('tab'); refresh(); } });
   els.tabs = gameTabs.el;
-  els.cat = catSeg.el;
   els.period = periodSeg.el;
-  els.ctrl = h('div.bd-ctrl', els.cat, els.period);
-  els.picks = h('div.bd-picks');
-  els.label = h('h2.bd-label');
-  els.when = h('span.bd-when');
-  els.note = h('span.bd-note');   // (HOLD'EM IN THE CITY: a board's one-line explainer — HOLD'EM's TOURNAMENTS ONLY …)
+  // (CITY H2: the board picker — ONE button, its words set in place; a tap opens the standard sheet)
+  els.pickL = h('span.bd-pick-l');
+  els.pick = h('button.bd-pick', { type: 'button', 'data-press': true, 'aria-haspopup': 'dialog', onclick: () => openPicker() }, els.pickL, h('i.bd-pick-c', { 'aria-hidden': 'true' }));
+  els.ctrl = h('div.bd-ctrl', els.period, els.pick);
+  els.label = h('h2.bd-label.sr-only');   // (the board's name — read aloud, not shown: layout B has no heading)
+  els.note = h('p.bd-note');   // (a board's one-line explainer — HOLD'EM's TOURNAMENTS ONLY …; a dailies board's ALL TIME floor)
   els.scroll = h('div.bd-scroll');
   els.rows = h('ol.bd-rows');
   els.scroll.append(els.rows);
   els.sentinel = h('li.bd-sentinel', { 'aria-hidden': 'true' });
   els.me = h('div.bd-me');
-  els.card = h('article.bd-card',
-    h('header.bd-card-head', h('div.bd-plate', els.label, els.when, els.note)),
-    els.scroll,
-    els.me);
+  els.card = h('article.bd-card', els.label, els.note, els.scroll);
   const head = h('header.bd-head',
     pub ? h('a.bd-back', { href: '/', 'aria-label': 'Neon Speakeasy' }, '‹') : h('button.bd-back', { type: 'button', 'aria-label': 'Back', onclick: () => onBack && onBack() }, '‹'),
     h('div.bd-title',
-      h('span.bd-kicker', 'NEON SPEAKEASY'),
       h('h1.bd-name', { 'data-text': 'THE BOARD' }, 'THE BOARD'),
       h('span.bd-sub', 'HALL OF FAME')),
-    // (PD-1 GROUP 0 — the owner, Nov 9: the gold emblem button beside ‹ is GONE — the bar = ☰ · ‹ · the music, nothing else)
-    h('span.bd-head-pad'));
-  els.el = h('section.bd', { class: pub ? 'is-public' : '' },
-    els.scene,
-    h('div.bd-wrap',
-      head,
-      els.tabs,
-      els.ctrl,
-      els.picks,
-      els.card,
-      pub ? h('div.bd-cta',
-        // (CITY E: THE NEON TUBE — the page's ONE pink MAIN; no gold, no drawn pill)
-        tubeButton('PLAY NOW', { kind: 'main', block: true, cls: 'bd-play', attrs: { 'data-press': true }, onClick: () => { if (onPlay) onPlay(); else location.href = '/'; } }),
-        h('span.bd-cta-line', 'Party games · one phone each · no signup')) : null));
+    h('i.bd-sky', { 'aria-hidden': 'true' }));
+  els.wrap = h('div.bd-wrap',
+    head,
+    els.tabs,
+    els.ctrl,
+    els.card,
+    pub ? h('div.bd-cta',
+      // (CITY E: THE NEON TUBE — the page's ONE pink MAIN; no gold, no drawn pill)
+      tubeButton('PLAY NOW', { kind: 'main', block: true, cls: 'bd-play', attrs: { 'data-press': true }, onClick: () => { if (onPlay) onPlay(); else location.href = '/'; } }),
+      h('span.bd-cta-line', 'Party games · one phone each · no signup')) : null,
+    els.me);
+  els.el = h('section.bd', { class: pub ? 'is-public' : '' }, els.scene, els.wrap);
 
   // ------------------------------------------------------------------ controls — BUILT ONCE, their state painted IN PLACE (THE TAP WATCH — the
   // owner's LOST TAP, Nov 13: a tab switch landing while a finger was down on another tab REBUILT every tab button, so the one under the finger
   // was a new node at the lift and iOS sent no click). The tabs, the two switches and every set of picks keep their nodes for the page's life;
   // a change only flips classes / aria / disabled / hidden. tests/integration/wk-board-taps.mjs.
-  let ctrlSig = '';
-  /** the picks: ONE row of chips per list of boards (a tab, a game's RECORDS / CAREER), built the first time it shows, then only shown / hidden */
-  const chipRows = new Map();   // key → { row, chips: Map(boardId → button) }
-  function chipRow(key, list) {
-    let r = chipRows.get(key);
-    if (!r) {
-      const t = neonTabs(list.map(b => ({ v: b.id, l: b.chip || b.short || b.label })), { cls: 'bd-chips', btnCls: 'bd-chip', scroll: true, label: 'Boards on this tab', onPick: id => { if (id !== S.board) { S.board = id; boardSfx('tab'); refresh(); } } });
-      t.el.hidden = true;
-      r = { row: t.el, tabs: t };
-      chipRows.set(key, r);
-      els.picks.append(r.row);   // (an append — never a node under a finger replaced)
-    }
-    return r;
-  }
+  let ctrlSig = '', picker = null;
   const isGame = () => S.tab !== 'xp' && S.tab !== 'dailies';
+  /** the boards a tab offers (a game: RECORDS first, then CAREER — each tagged `sec` for the picker's sheet) */
   function boardsNow() {
     if (S.tab === 'xp') return [boardDef('xp')];
     if (S.tab === 'dailies') return [{ ...boardDef('daily'), chip: 'ALL DAILIES' }, ...POINT_DAILIES.filter(g => (DAILIES.find(d => d.id === g) || {}).on !== false || (S.live || []).includes(g)).map(g => ({ ...boardDef(`daily-${g}`), chip: gameName(g) }))];   // (THE DROP A: a row that ships OFF gets no chip — THE DROP B: until its scheduled go-live day: the daily board's `live`)
-    const own = tabBoards(S.tab);   // (HOLD'EM: its one board — no RECORDS / CAREER switch)
+    const own = tabBoards(S.tab);   // (HOLD'EM: its one board — no RECORDS / CAREER)
     if (own) return own.filter(Boolean).map(b => ({ ...b, game: S.tab }));
-    return S.cat === 'career' ? careerBoards(S.tab).map(b => ({ ...b, game: S.tab })) : recordBoards(S.tab).map(b => ({ ...b, game: S.tab }));
+    return [...recordBoards(S.tab).map(b => ({ ...b, game: S.tab, sec: 'RECORDS' })), ...careerBoards(S.tab).map(b => ({ ...b, game: S.tab, sec: 'CAREER' }))];
   }
+  const pickName = b => String((b && (b.chip || b.short || b.label)) || '').toUpperCase();
   function renderTabs() { gameTabs.set(S.tab); }
   function renderControls() {
-    if (isGame()) { const rec = recordBoards(S.tab).length > 0; if (!S.cat || (S.cat === 'records' && !rec)) S.cat = rec ? 'records' : 'career'; }
     const list = boardsNow();
     if (!S.board || !list.some(b => b.id === S.board)) S.board = list[0] ? list[0].id : null;
-    const sig = JSON.stringify([S.tab, S.cat, S.period, S.board]);
+    const sig = JSON.stringify([S.tab, S.period, S.board, list.length]);
     if (sig === ctrlSig) return;
     ctrlSig = sig;
-    els.cat.hidden = !isGame() || !!tabBoards(S.tab);
-    if (isGame() && !tabBoards(S.tab)) catSeg.set(S.cat, { records: !recordBoards(S.tab).length });
     periodSeg.set(S.period);
-    const want = list.length > 1 ? chipRow(`${S.tab}|${isGame() && !tabBoards(S.tab) ? S.cat : ''}|${S.tab === 'dailies' ? (S.live || []).join(',') : ''}`, list) : null;
-    for (const r of chipRows.values()) {
-      const show = r === want;
-      if (r.row.hidden === show) r.row.hidden = !show;
-      if (show) r.tabs.set(S.board);
+    const cur = list.find(b => b.id === S.board);
+    els.pick.hidden = list.length < 2;
+    if (els.pickL.textContent !== pickName(cur)) els.pickL.textContent = pickName(cur);
+    els.pick.setAttribute('aria-label', `Board: ${pickName(cur)} — pick another`);
+  }
+  /** THE PICKER (CITY H2): a standard sheet — every board of this tab as a row (a game's under RECORDS / CAREER), the one on show marked */
+  function openPicker() {
+    if (picker) return;
+    const list = boardsNow();
+    if (list.length < 2) return;
+    boardSfx('tab');
+    const body = [];
+    let sec = null;
+    for (const b of list) {
+      if (b.sec && b.sec !== sec) { sec = b.sec; body.push(h('h4.bd-pick-h', sec)); }
+      const on = b.id === S.board;
+      body.push(shellRow({ label: pickName(b), value: on ? 'SHOWING' : null, chevron: !on, cls: `bd-pick-row${on ? ' is-on' : ''}`, attrs: { 'data-press': true, 'data-board': b.id, 'aria-current': on ? 'true' : null },
+        onClick: () => { const s2 = picker; picker = null; if (s2) s2.close(); if (b.id !== S.board) { S.board = b.id; boardSfx('tab'); refresh(); } } }));
     }
-    els.picks.hidden = !want;
+    picker = openSheet({ title: S.tab === 'dailies' ? 'THE DAILIES' : tabName(S.tab), kicker: 'PICK A BOARD', cls: 'bd-pick-sheet', label: 'Pick a board', onClose: () => { picker = null; }, body: h('div.sh-row-list', ...body) });
   }
   function relight() {
     const [a1, a2] = GAME_LIGHT[S.tab] || ['#f2c869', '#ff7ccb'];
@@ -199,7 +192,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   }
   function pickTab(id) {
     if (id === S.tab) return;
-    S.tab = id; S.cat = null; S.board = null;
+    S.tab = id; S.board = null;
     boardSfx('tab');
     renderTabs();
     relight();
@@ -219,6 +212,12 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   }
   function dropSurface() { if (surface) { try { surface.destroy(); } catch { /* fine */ } surface = null; } if (seeMine) { seeMine.disconnect(); seeMine = null; } setInList(false); }
 
+  /** the points under the rank: [the number, a small second line] (HOLD'EM's wins · KOs on two lines) */
+  function colValue(def, v) {
+    const d = { ...def, fmt: S.period === 'all' && def.allFmt ? def.allFmt : def.fmt };
+    if (d.fmt === 'twko') { const [w, k] = fmtValue(d, v).split(' · '); return [w.replace(/ WINS?$/, 'W'), k]; }
+    return [fmtValue(d, v), null];
+  }
   function row(r, i, def) {
     const bid = myBid();
     const mine = !!(bid && r.id === bid);
@@ -226,17 +225,18 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     const pubFace = mine ? { ...myPub(), l: r.l } : r;
     const strip = stripFor(K, pubFace);
     const name = mine ? myPub().n || r.n : r.n;
-    const card = onPlayer && !pub && r.id
-      ? h('button.bd-open', { type: 'button', 'data-press': true, 'aria-label': `${name} — their card`, onclick: () => onPlayer({ b: def.id, bid: r.id, row: { ...r, n: name } }) }, strip.el)
-      : h('div.bd-open', strip.el);
+    // (CITY H2: no ⋯ line — the app's tap = THE PLAYER PAGE (its MORE holds REPORT); the public page's tap = REPORT)
+    const card = !pub && onPlayer && r.id
+      ? h('button.bd-open', { type: 'button', 'data-press': true, 'aria-label': `${name} — their card`, onclick: () => onPlayer({ b: def.id, bid: r.id, row: { ...r, n: name }, report: mine ? null : () => openReport(r, def) }) }, strip.el)
+      : pub && r.id && !mine ? h('button.bd-open', { type: 'button', 'data-press': true, 'aria-label': `${name} — report`, onclick: () => openReport(r, def) }, strip.el)
+        : h('div.bd-open', strip.el);
+    const [v, v2] = colValue(def, r.v);
     const li = h('li.bd-row', {
-      class: [top ? `is-top is-${r.rank}` : '', mine ? 'is-me' : ''].join(' '),
+      class: [top ? `is-top is-${r.rank}` : '', mine ? 'is-me sb-me' : ''].join(' '),
       dataset: { id: r.id || '', n: name || '' },
     },
-    h('span.bd-rank', (top && rankMedal(r.rank, { size: 32 })) || String(r.rank)),
-    h('div.bd-scard', card, h('div.bd-ssub',
-      mine ? h('span.bd-you', 'YOU') : r.id ? h('button.bd-more', { type: 'button', 'aria-label': pub ? `Report ${r.n}` : `${r.n} — add friend or report`, html: DOTS, onclick: e => { e.stopPropagation(); openReport(r, def); } }) : null,
-      h('span.bd-v', fmtValue({ ...def, fmt: S.period === 'all' && def.allFmt ? def.allFmt : def.fmt }, r.v), unitOf(def, S.period) ? h('small', unitOf(def, S.period)) : null))));
+    h('div.bd-rk', h('span.bd-rank', (top && rankMedal(r.rank, { size: 30 })) || String(r.rank)), h('span.bd-v', v), v2 ? h('span.bd-v2', v2) : null),
+    h('div.bd-scard', card));
     if (surface) stripFx(K, surface, strip, (i % 40) + 1);
     return li;
   }
@@ -289,9 +289,9 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   const setText = (el, t) => { if (el.textContent !== t) el.textContent = t; };
   function paintPlate(def) {
     const p = plateOf(def, S.period, Date.now(), S.ends);
-    setText(els.label, p.label);
-    setText(els.when, p.when);
-    setText(els.note, (def && def.note) || '');
+    setText(els.label, `${p.label} · ${p.when}`);
+    // (CITY H2: no heading — only a line a board NEEDS: its explainer, or a dailies board's ALL TIME floor)
+    setText(els.note, (def && def.note) || (S.period === 'all' && def && def.minDays ? p.when : ''));
   }
   /** THE ROWS hold controls (a card → THE PLAYER PAGE, the ⋯, SHOW ALL, TRY AGAIN): the list is swapped only when no finger is down
    *  (ui/tapwatch.js#afterTap — right after that tap's click), and only if this refresh is still the latest */
@@ -347,7 +347,8 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       els.rows = h('ol.bd-rows');
       els.scroll.replaceChildren(els.rows);
       surface = K.liveList(els.rows, { label: 'board' });
-      els.scroll.scrollTop = 0;
+      // (CITY H2 — the list scrolls WITH THE PAGE: a new board brings the controls back to the top of the screen if the page was further down)
+      const top = els.tabs.offsetTop - 6; if (els.wrap.scrollTop > top) els.wrap.scrollTop = top;
     }
     const built = els.rows.querySelectorAll('.bd-row').length;
     const upto = S.all ? S.rows.length : Math.min(TOP, S.rows.length);
@@ -386,7 +387,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     if (seeMine) { seeMine.disconnect(); seeMine = null; }
     const mine = els.rows.querySelector('.bd-row.is-me');
     if (!mine || typeof IntersectionObserver !== 'function') { setInList(false); return; }
-    seeMine = new IntersectionObserver(es => { const e = es[es.length - 1]; setInList(!!(e && e.isIntersecting && e.intersectionRatio >= 0.6)); }, { root: els.scroll, threshold: [0, 0.6, 1] });
+    seeMine = new IntersectionObserver(es => { const e = es[es.length - 1]; setInList(!!(e && e.isIntersecting && e.intersectionRatio >= 0.6)); }, { root: els.wrap, threshold: [0, 0.6, 1] });
     seeMine.observe(mine);
   }
   function setInList(on) {
@@ -397,7 +398,6 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   // ------------------------------------------------------------------ your row (pinned at the foot)
   function paintMe(def, state, info) {
     const m = me();
-    if (meSurface) { try { meSurface.destroy(); } catch { /* fine */ } meSurface = null; }
     if (pub) {
       // the public page: your row only when this browser has a profile on the board
       const r = m && m.profile && m.profile.bid && S.rows.find(x => x.id === m.profile.bid);
@@ -431,19 +431,16 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     return [null, def && def.min ? `${MIN_WR_GAMES}+ GAMES` : def && def.kind === 'record' ? 'NO RECORD YET' : 'NOT RANKED YET'];
   }
 
+  /** CITY H2 — YOUR RANK at the foot: ONE slim line (no card — the list's cards are the page), shown only while your card isn't on screen */
   function fillMe(def, info, m) {
     const p = m.profile;
     const rank = info && info !== 'loading' && info.rank;
     const [val, ...caps] = meNote(def, info, p);
-    if (!K) { stripKit().then(k => { K = k; if (!destroyed) fillMe(def, info, m); }).catch(() => {}); }
-    const strip = K ? stripFor(K, myPub()) : null;
     const unit = unitOf(def, S.period);
-    els.me.replaceChildren(h('div.bd-row.is-me',
-      h('span.bd-rank', { class: rank && String(rank).length > 3 ? 'is-long' : '' }, rank ? `#${rank.toLocaleString('en-US')}` : '—'),
-      h('div.bd-scard', strip ? h('div.bd-open', strip.el) : h('div.bd-sk-card'), h('div.bd-ssub',
-        h('span.bd-you', p.h ? 'YOU · HIDDEN' : 'YOU'),
-        h('span.bd-me-note2', val != null ? h('b', val, unit ? h('small', unit) : null) : null, ...caps.filter(Boolean).map(c => h('span', c)))))));
-    if (strip) { meSurface = K.liveList(els.me, { label: 'board-me' }); stripFx(K, meSurface, strip, 99); }
+    els.me.replaceChildren(h('div.bd-me-line',
+      h('span.bd-me-rank', rank ? `#${rank.toLocaleString('en-US')}` : '—'),
+      h('b.bd-me-you', p.h ? 'YOU · HIDDEN' : 'YOU'),
+      h('span.bd-me-note2', val != null ? h('b', val, unit ? h('small', unit) : null) : null, ...caps.filter(Boolean).map(c => h('span', c)))));
     els.me.classList.toggle('is-ranked', !!rank);
     els.me.classList.toggle('is-hidden-me', !!p.h);
   }
@@ -472,7 +469,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
 
   // ------------------------------------------------------------------ life
   function start() {
-    io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) more(); }, { root: els.scroll, rootMargin: '300px' });
+    io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) more(); }, { root: els.wrap, rootMargin: '300px' });
     io.observe(els.sentinel);
     renderTabs();
     relight();
@@ -486,14 +483,14 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     /** the player's profile changed (rename, rank-up, opt-out) */
     meChanged() { myRankCache.clear(); const def = boardDef(S.board); if (def) loadMe(def, S.token); },
     state: () => ({ ...S, rows: S.rows.length, built: els.rows.querySelectorAll('.bd-row').length, pinned: !els.me.hidden && els.me.dataset.inlist !== '1' }),
-    pick: (tab, cat, period) => { if (period) S.period = period; if (cat) S.cat = cat; const t = tab && tabOf(tab); if (t && t !== S.tab) pickTab(t); else refresh(); },
+    pick: (tab, cat, period) => { if (period) S.period = period; const t = tab && tabOf(tab); if (t && t !== S.tab) pickTab(t); else refresh(); },
     destroy() {
       destroyed = true;
       closeReport();
+      if (picker) { const s2 = picker; picker = null; s2.close(); }
       io && io.disconnect();
       if (seeMine) seeMine.disconnect();
       dropSurface();
-      if (meSurface) { try { meSurface.destroy(); } catch { /* fine */ } }
     },
   };
 }

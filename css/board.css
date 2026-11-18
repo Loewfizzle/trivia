@@ -18,43 +18,24 @@
 body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: none; }
 /* the corner pair (☰ + music) comes from components.css */
 .bd { position: relative; width: 100%; height: 100%; color: var(--bd-ink); font-family: var(--font-ui); }
-
-/* ---- CITY E — THE BACKGROUND (the owner, Nov 15): a darkened, faded still of the REAL night harbor skyline, baked from the city
-   (assets/board-sky.webp — tests/integration/shots.mjs --scenes board-sky --crop boardsky --webp 72; no people, no legendary, no holiday): its
-   foot fades into the night under the tabs, so the list sits on dark glass; a phone shows it full width, a wide screen a skyline the column's
-   width (its sides faded). Nothing moves. ---- */
 .bd-scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: #07050f; pointer-events: none; }
 .bd-bg, .bd-bg > i { position: absolute; inset: 0; }
-.bd-bg-base { background: linear-gradient(180deg, #0f0b29 0, #0b0820 calc(var(--safe-t) + 200px), #07050f calc(var(--safe-t) + 420px)); }
-.bd-bg > i.bd-bg-sky {
-  --sky-h: calc(var(--safe-t) + 280px);
-  --sky-fade: linear-gradient(180deg, transparent 0, #000 16%, #000 38%, rgba(0, 0, 0, 0.3) 50%, transparent 60%);
-  inset: auto; top: 0; left: 50%; width: min(100%, calc(var(--sky-h) * 1.62)); height: var(--sky-h); transform: translateX(-50%);
-  background: url("../assets/board-sky.webp") center bottom / cover no-repeat; opacity: 0.56;
-  -webkit-mask-image: var(--sky-fade); mask-image: var(--sky-fade);
-}
-/* the title's air: the very top kept dark (the corner buttons + the title over sky) */
-.bd-bg-shade { background: linear-gradient(180deg, rgba(7, 5, 15, 0.55) 0, rgba(7, 5, 15, 0) calc(var(--safe-t) + 120px)); }
-@media (min-width: 700px) {
-  /* (a wide screen: the skyline the column's width — its tower tops + signs behind the title, faded out ABOVE the tabs: the words always on the dark) */
-  .bd-bg > i.bd-bg-sky { --sky-h: calc(var(--safe-t) + 470px);
-    --sky-fade: linear-gradient(180deg, transparent 0, #000 calc(var(--safe-t) + 34px), #000 calc(var(--safe-t) + 92px), rgba(0, 0, 0, 0.3) calc(var(--safe-t) + 116px), transparent calc(var(--safe-t) + 134px));
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent), var(--sky-fade);
-    -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent), var(--sky-fade); mask-composite: intersect; }
-}
+.bd-bg-base { background: linear-gradient(180deg, #120c2c 0, #0b0820 calc(var(--safe-t) + 160px), #07050f calc(var(--safe-t) + 380px)); }
 
-/* ---- the column ---- */
+/* ---- CITY H2 — LAYOUT B (the owner's pick, Nov 18): THE LIST SCROLLS WITH THE PAGE — the column itself scrolls (no fixed box, no dead space
+   at the foot); the header = THE BOARD · HALL OF FAME over a SHORT real skyline strip; the tabs; ONE row (THIS WEEK | ALL TIME + the picker);
+   the medal with the points under it + FULL-SIZE slim cards. ---- */
 .bd-wrap {
   position: relative; z-index: 1; box-sizing: border-box; height: 100dvh; max-width: 820px; margin: 0 auto;
-  display: flex; flex-direction: column; gap: 10px;
-  padding: calc(var(--safe-t) + 10px) calc(var(--safe-r) + 16px) calc(var(--safe-b) + 14px) calc(var(--safe-l) + 16px);
+  display: flex; flex-direction: column; gap: 10px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  padding: 0 calc(var(--safe-r) + 16px) 0 calc(var(--safe-l) + 16px);
 }
+.bd-wrap::-webkit-scrollbar { display: none; }
 
-/* ---- the header: back, the title in neon over Art Deco rules (PD-1 GROUP 0: the emblem button is gone — the bar = ☰ · ‹ · the music) ---- */
-/* (THE BOARD's TOP REDONE — the owner's iPhone at 390, Nov 12: "the whole top is messed up": NO ☰ on THE BOARD (THE PROFILE's rule) — ‹ BACK alone in
-   the TOP-LEFT corner, the corner button's size + inset + its 44 pt tap area, the music TOP-RIGHT as before; the title ALWAYS on its own row under the
-   corner row (a phone's Safari is ~660 pt tall with its bars: the old max-height rule squeezed that row to 6 px and the title spilled over the tabs)) */
-.bd-head { position: relative; display: grid; grid-template-columns: 1fr; grid-template-rows: 44px auto; align-items: center; padding-right: 0; }
+/* ---- the header: ‹ BACK fixed in the top-left corner (the corner button's size + its 44 pt tap area), the music top-right (components.css);
+   THE BOARD between them, HALL OF FAME under it, then THE SKYLINE STRIP (assets/board-sky.webp — the city at 760 × 520: JAY / WALK, OVER / CLOCK,
+   HOLDEM + PRISM in ONE line, so no named sign ever sits under the title — the GO-LIVE reviewer's find) ---- */
+.bd-head { position: relative; flex: none; margin: 0 calc(-16px - var(--safe-r)) 0 calc(-16px - var(--safe-l)); padding-top: var(--safe-t); display: flex; flex-direction: column; align-items: center; }
 .bd-back {
   position: fixed; z-index: 70; top: calc(var(--safe-t) + 10px); left: calc(var(--safe-l) + 12px); margin: 0; width: var(--cb, 36px); height: var(--cb, 36px); display: grid; place-items: center; border-radius: 50%;
   color: rgba(255, 240, 220, 0.9); font: 400 25px/1 var(--font-ui); text-decoration: none; padding-bottom: 3px; box-sizing: border-box;
@@ -62,94 +43,71 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
   border: 1px solid rgba(255, 230, 200, 0.18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 .bd-back:active { transform: scale(0.94); }
-.bd-back::after { content: ''; position: absolute; inset: calc((var(--cb, 36px) - 44px) / 2 - 1px); }   /* (B2: − the 1 pt border — the padding box is 34) */
-/* (7a §0: the corner buttons' size — 36 pt — with a 44 pt tap area; was 4 pt round = 42 × 42 until B2) */
-.bd-title { grid-row: 1 / span 2; grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: none; padding-top: 4px; }
-.bd-kicker { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.5em; padding-left: 0.5em; color: rgba(255, 176, 232, 0.86); margin-top: 6px; }
+.bd-back::after { content: ''; position: absolute; inset: calc((var(--cb, 36px) - 44px) / 2 - 1px); }
+.bd-title { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; padding-top: 14px; }
 .bd-name {
-  margin: 8px 0 0; font: 900 clamp(28px, 8.4vw, 46px)/1 var(--font-display); letter-spacing: 0.16em; padding-left: 0.16em;
-  color: #fff4fc;
-  text-shadow: 0 0 2px #fff, 0 0 10px rgba(255, 120, 220, 0.75), 0 0 28px rgba(255, 79, 200, 0.45), 0 0 60px rgba(120, 140, 255, 0.3);
+  margin: 0; font: 900 clamp(22px, 6.6vw, 30px)/1 var(--font-display); letter-spacing: 0.16em; padding-left: 0.16em; color: #fff4fc; white-space: nowrap;
+  text-shadow: 0 0 2px #fff, 0 0 10px rgba(255, 120, 220, 0.75), 0 0 26px rgba(255, 79, 200, 0.45);
 }
-.bd-sub { display: flex; align-items: center; gap: 10px; font: 700 10px/1 var(--font-ui); letter-spacing: 0.42em; padding-left: 0.42em; color: var(--bd-dim); margin-top: 4px; }
-.bd-sub::before, .bd-sub::after { content: ''; width: 46px; height: 8px; background: no-repeat center / 100% 100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 8'%3E%3Cpath d='M0 4h36' stroke='%23ff7ccb' stroke-opacity='.7'/%3E%3Cpath d='M38 4l3-3 3 3-3 3z' fill='%23ff7ccb' fill-opacity='.85'/%3E%3C/svg%3E"); }
+.bd-sub { display: flex; align-items: center; gap: 10px; font: 700 9.5px/1 var(--font-ui); letter-spacing: 0.42em; padding-left: 0.42em; color: var(--bd-dim); }
+.bd-sub::before, .bd-sub::after { content: ''; width: 40px; height: 8px; background: no-repeat center / 100% 100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 8'%3E%3Cpath d='M0 4h36' stroke='%23ff7ccb' stroke-opacity='.7'/%3E%3Cpath d='M38 4l3-3 3 3-3 3z' fill='%23ff7ccb' fill-opacity='.85'/%3E%3C/svg%3E"); }
 .bd-sub::after { transform: scaleX(-1); }
-.bd-head-pad { display: none; }
+/* (the strip: the picture's own shape at the column's width — its sky top tucked under HALL OF FAME (only spires there — every sign sits lower),
+   its foot faded into the night above the tabs; nothing moves) */
+.bd-sky {
+  display: block; width: 100%; aspect-ratio: 1520 / 408; max-height: 132px; margin-top: -8px; opacity: 0.8;
+  background: url("../assets/board-sky.webp") center 42% / cover no-repeat;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22%, #000 74%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0, #000 22%, #000 74%, transparent 100%);
+}
 
-/* ---- CITY E — THE TABS: THE NEON TABS (js/ui/neon-tabs.js + css/components.css "THE NEON TABS" — the STATS sheet's, ONE builder): the games
-   (XP · DAILIES · OVERCLOCK · PRISM · HOLD'EM — five on one row at 390, no sideways scroll), RECORDS · CAREER + THIS WEEK · ALL TIME side by
-   side, a tab's boards one sideways row; the words on the night, the chosen one lit pink over its glowing line. NO PILL, NO GOLD. ---- */
+/* ---- the tabs: THE NEON TABS (ONE builder with STATS) — six games on one row at 390, no sideways scroll ---- */
 .bd-tabs { flex: none; }
 .bd-tabs .nt-tab { padding: 0 2px; font-size: 10.5px; letter-spacing: clamp(0.02em, calc((100vw - 360px) * 0.004), 0.08em); }
-/* (THE JAYWALK GO-LIVE PASS: SIX game tabs — each starts at its words' width and the row's spare room is shared; equal sixths clipped OVERCLOCK at 390) */
 .bd-tabs.is-even .nt-tab { flex: 1 1 auto; min-width: 44px; }
-.bd-ctrl { display: flex; gap: 14px; flex: none; }
-.bd-seg { flex: 1; min-width: 0; }
-.bd-seg .nt-tab { min-height: 40px; font-size: 10.5px; letter-spacing: 0.14em; }
-.bd-seg[hidden] { display: none; }
-.bd-picks { display: flex; flex-direction: column; gap: 8px; flex: none; }
-.bd-picks[hidden] { display: none; }
-.bd-diff { flex: none; }
-.bd-chips { margin: 0 -16px; padding: 0 16px; box-shadow: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); }
-.bd-chips::-webkit-scrollbar { display: none; }
-.bd-chips[hidden] { display: none; }   /* (THE TAP WATCH: every list of picks is built once and only shown / hidden — board/view.js#chipRow) */
-.bd-chips .nt-tab { min-height: 40px; padding: 0 11px; font-size: 10px; letter-spacing: 0.14em; }
+/* ---- ONE row: THIS WEEK | ALL TIME — a SQUARED two-part switch (the chosen half lit pink, its words dark; NO PILL) — + THE PICKER ---- */
+.bd-ctrl { display: flex; gap: 10px; flex: none; align-items: stretch; }
+.bd-period { flex: 1 1 0; max-width: 260px; gap: 0; padding: 2px; border-radius: 4px; box-shadow: none; border: 1px solid rgba(255, 124, 203, 0.42); background: rgba(10, 7, 20, 0.6); }
+.bd-period .nt-tab { min-height: 38px; border-radius: 2px; font: 700 10.5px/1 var(--font-ui); letter-spacing: 0.14em; color: var(--bd-dim); }
+.bd-period .nt-tab.is-on { background: #ff4fc8; color: #1c0716; text-shadow: none; box-shadow: 0 0 14px rgba(255, 79, 200, 0.45); }
+.bd-period .nt-tab.is-on::after { display: none; }
+.bd-pick { flex: 0 1 auto; min-width: 0; margin-left: auto; min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-radius: 4px; border: 1px solid rgba(220, 225, 255, 0.26);
+  background: rgba(10, 7, 20, 0.6); color: #f4f0ff; font: 700 10.5px/1 var(--font-ui); letter-spacing: 0.14em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.bd-pick[hidden] { display: none; }
+.bd-pick-l { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.bd-pick-c { flex: none; width: 0; height: 0; border-left: 4.5px solid transparent; border-right: 4.5px solid transparent; border-top: 5.5px solid #ff8fe0; }
+.bd-pick:active { transform: scale(0.97); }
+@media (hover: hover) { .bd-pick:hover { border-color: rgba(255, 124, 203, 0.6); } }
+.bd-pick-h { margin: 12px 4px 4px; font: 800 10px/1 var(--font-display); letter-spacing: 0.24em; color: var(--bd-dim); }
+.bd-pick-h:first-child { margin-top: 0; }
+.bd-pick-row.is-on .sh-row-v { color: #ff8fe0; }
+.bd-pick-row.is-on { box-shadow: inset 3px 0 0 #ff4fc8; }
 
-/* ---- the scoreboard ---- */
-.bd-card {
-  position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 22px;
-  background:
-    radial-gradient(120% 50% at 50% 0%, rgba(255, 79, 200, 0.06), transparent 60%),
-    linear-gradient(180deg, rgba(12, 9, 26, 0.84), rgba(7, 5, 14, 0.95));
-  border: 1px solid rgba(200, 210, 255, 0.16);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 30px 80px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(0, 0, 0, 0.55);
-}
-.bd-card::before { content: ''; position: absolute; inset: 5px; border-radius: 18px; border: 1px solid rgba(220, 225, 255, 0.06); pointer-events: none; z-index: 2; }
-.bd-card::after { content: ''; position: absolute; top: 0; left: 12%; right: 12%; height: 1px; background: linear-gradient(90deg, transparent, #ff4fc8, transparent); opacity: 0.7; pointer-events: none; z-index: 2; }
-.bd-card-head { flex: none; padding: 16px 16px 2px; }
-.bd-plate { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-bottom: 10px; text-align: center; border-bottom: 1px solid rgba(220, 225, 255, 0.1); }
-.bd-label { margin: 0; font: 900 14.5px/1.2 var(--font-display); letter-spacing: 0.18em; padding-left: 0.18em; color: #fff4fc; text-shadow: 0 0 14px rgba(255, 79, 200, 0.45); }
-.bd-when { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.24em; color: var(--bd-faint); }
-/* HOLD'EM IN THE CITY: a board's one-line explainer (HOLD'EM: TOURNAMENTS ONLY · KNOCKOUTS BREAK A TIE · CASH DOESN'T COUNT) */
-.bd-note { max-width: 32em; font: 600 10px/1.35 var(--font-ui); letter-spacing: 0.08em; color: var(--bd-faint); }
+/* ---- the scoreboard: no box — the cards on the night ---- */
+.bd-card { position: relative; flex: none; display: flex; flex-direction: column; }
+.bd-note { margin: 0 0 6px; text-align: center; font: 600 10px/1.35 var(--font-ui); letter-spacing: 0.08em; color: var(--bd-faint); }
 .bd-note:empty { display: none; }
-.bd-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: rgba(220, 225, 255, 0.2) transparent; }
-.bd-rows { position: relative; list-style: none; margin: 0; padding: 10px 12px 12px 6px; display: grid; gap: 12px; }
-
-/* BOARD 2.0 B — SLIM CARDS: the rank at the left, the card, the line UNDER it (⋯ REPORT at its left · the score at its right end) */
-.bd-row { position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: start; column-gap: 6px; }
-.bd-rank { height: 58px; display: grid; place-items: center; font: 800 14px/1 var(--font-num); font-variant-numeric: tabular-nums; color: rgba(228, 232, 255, 0.8); white-space: nowrap; letter-spacing: -0.02em; }
-.bd-rank.is-long { font-size: 10.5px; }
+.bd-scroll { position: relative; }
+.bd-rows { position: relative; list-style: none; margin: 0; padding: 2px 0 14px; display: grid; gap: 10px; }
+/* the rank: THE DECO MEDAL (1 / 2 / 3 — ui/medal.js) or its number, the points UNDER it (CITY H2) — then the card at its full size */
+.bd-row { position: relative; display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; column-gap: 8px; }
+.bd-rk { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; }
+.bd-rank { min-height: 30px; display: grid; place-items: center; font: 800 15px/1 var(--font-num); font-variant-numeric: tabular-nums; color: rgba(228, 232, 255, 0.8); white-space: nowrap; letter-spacing: -0.02em; }
+.bd-v { max-width: 52px; overflow: hidden; text-overflow: ellipsis; font: 800 12.5px/1 var(--font-num); color: #fff; letter-spacing: 0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bd-v2 { font: 700 8.5px/1 var(--font-mono); letter-spacing: 0.08em; color: var(--bd-dim); white-space: nowrap; }
 .bd-scard { position: relative; min-width: 0; }
 .bd-open { display: block; width: 100%; padding: 0; margin: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; border-radius: 12px; }
 div.bd-open { cursor: default; }
 .bd-open .vl-strip { width: 100%; }
 button.bd-open:active { transform: scale(0.985); }
 button.bd-open:focus-visible { outline: 2px solid #ff4fc8; outline-offset: 3px; }
-.bd-ssub { display: flex; align-items: center; gap: 8px; margin: 4px 2px 0; min-height: 22px; }
-/* (CITY E: ••• = a BARE icon — no plate, no frame; its tap area 44 × 44) */
-.bd-more { position: relative; flex: none; width: 30px; height: 22px; display: grid; place-items: center; border: 0; border-radius: 0; background: none; color: var(--bd-dim); padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.bd-more::after { content: ''; position: absolute; inset: -11px -7px; }   /* (a 44 × 44 tap area) */
-.bd-more svg { width: 16px; height: 4px; fill: currentColor; }
-@media (hover: hover) { .bd-more:hover { color: #fff; } }   /* (CITY FIXES: the hover rule) */
-.bd-more:active { transform: scale(0.92); }
-/* (CITY E: YOU = the neon word, no badge, no gold) */
-.bd-you { flex: none; font: 800 10px/1 var(--font-mono); letter-spacing: 0.24em; color: #ff8fe0; text-shadow: 0 0 8px rgba(255, 79, 200, 0.6); }
-.bd-v { margin-left: auto; font: 800 17px/1 var(--font-num); color: #fff; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; text-shadow: 0 0 12px rgba(150, 170, 255, 0.4); white-space: nowrap; }
-.bd-v small, .bd-me-note2 b small { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.18em; color: var(--bd-dim); margin-left: 5px; text-shadow: none; }
-/* CITY E — YOU: your row marked by a GLOWING LEFT EDGE (a static neon line + a faint pink wash from the left — never an animated shadow, never a
-   gold frame) */
-.bd-row.is-me { background: linear-gradient(90deg, rgba(255, 79, 200, 0.12), rgba(255, 79, 200, 0) 55%); border-radius: 0 12px 12px 0; }
-.bd-row.is-me::before { content: ''; position: absolute; left: -5px; top: 2px; bottom: 2px; width: 3px; border-radius: 2px; background: #ff6fd6; box-shadow: 0 0 6px rgba(255, 79, 200, 0.95), 0 0 16px rgba(255, 79, 200, 0.5); pointer-events: none; }
-.bd-row.is-me .bd-rank { color: #ffc4ee; }
+/* YOUR row: THE YOU ROW (ui/strip-board.js — .sb-me: the breathing pink glow round your card, css/vault.css) + your rank + points pink */
+.bd-row.is-me .bd-rank, .bd-row.is-me .bd-v { color: #ff8fe0; text-shadow: 0 0 8px rgba(255, 79, 200, 0.5); }
 .bd-end { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 12px 16px 6px; font: 700 9px/1 var(--font-mono); letter-spacing: 0.3em; color: rgba(225, 230, 255, 0.62); }
 .bd-end::before, .bd-end::after { content: ''; width: 40px; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 124, 203, 0.5)); }
 .bd-end::after { transform: scaleX(-1); }
-/* (CITY E: SHOW ALL + TRY AGAIN = THE NEON TUBE, small — tubeButton) */
 .bd-showall { margin: 4px auto 0; }
 .bd-showall-li { display: flex; justify-content: center; }
 .bd-sentinel { height: 1px; }
-/* (CITY B: the top three are THE DECO MEDALS — js/ui/medal.js, css/components.css .rk-medal) */
 
 /* the list fades in (the cards + their effect layer together: opacity on the list) */
 .bd-card.is-cascade .bd-rows { animation: bd-rows-in 0.38s var(--ease) both; }
@@ -158,7 +116,7 @@ button.bd-open:focus-visible { outline: 2px solid #ff4fc8; outline-offset: 3px; 
 
 /* loading: a short skeleton of card shapes (no spinner wall) */
 .bd-row.is-skel { pointer-events: none; }
-.bd-sk-card { display: block; height: 58px; border-radius: 12px; background: rgba(255, 220, 180, 0.05); box-shadow: inset 0 0 0 1px rgba(255, 220, 180, 0.07); position: relative; overflow: hidden; }
+.bd-sk-card { display: block; height: 62px; border-radius: 12px; background: rgba(255, 220, 180, 0.05); box-shadow: inset 0 0 0 1px rgba(255, 220, 180, 0.07); position: relative; overflow: hidden; }
 .bd-sk-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255, 230, 190, 0.06) 50%, transparent 70%); transform: translateX(-100%); animation: bd-sweep 1.6s ease-in-out infinite; animation-delay: calc(var(--i, 0) * 60ms); }
 @keyframes bd-sweep { 0% { transform: translateX(-100%); } 22%, 100% { transform: translateX(100%); } }
 
@@ -170,14 +128,18 @@ button.bd-open:focus-visible { outline: 2px solid #ff4fc8; outline-offset: 3px; 
 .bd-empty.is-error b { color: #ffc2cf; text-shadow: none; }
 .bd-retry { margin-top: 6px; }
 
-/* your pinned card: always there at the foot */
-.bd-me { position: relative; z-index: 3; flex: none; padding: 10px 12px 12px 6px; border-top: 1px solid rgba(255, 124, 203, 0.35); background: linear-gradient(180deg, rgba(16, 11, 30, 0.97), rgba(8, 6, 16, 0.99)); box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.5); }
+/* YOUR RANK at the foot (CITY H2): ONE slim line pinned to the bottom of the page, only while your card isn't on screen */
+.bd-me { position: sticky; bottom: 0; z-index: 3; flex: none; margin: auto calc(-16px - var(--safe-r)) 0 calc(-16px - var(--safe-l)); padding: 0 calc(var(--safe-r) + 16px) var(--safe-b) calc(var(--safe-l) + 16px);
+  border-top: 1px solid rgba(255, 124, 203, 0.35); background: linear-gradient(180deg, rgba(16, 11, 30, 0.97), rgba(8, 6, 16, 0.99)); }
 .bd-me[hidden], .bd-me[data-inlist='1'] { display: none; }   /* (PD-1 GROUP 0 — NO DOUBLE "YOU": hidden while your card is on screen in the list) */
-.bd-me .bd-rank { font-size: 13px; color: #ffc4ee; }
-.bd-me .bd-rank.is-long { font-size: 10.5px; }
+.bd-me-line { display: flex; align-items: center; gap: 12px; min-height: 48px; }
+.bd-me-rank { min-width: 44px; text-align: center; font: 800 15px/1 var(--font-num); color: #ff8fe0; text-shadow: 0 0 8px rgba(255, 79, 200, 0.5); }
+.bd-me-you { font: 800 10px/1 var(--font-mono); letter-spacing: 0.24em; color: #ff8fe0; }
 .bd-me-note2 { margin-left: auto; display: grid; justify-items: end; gap: 3px; font: 700 9.5px/1.25 var(--font-mono); letter-spacing: 0.12em; color: var(--bd-dim); text-align: right; }
-.bd-me-note2 b { font: 800 17px/1 var(--font-num); color: #fff; letter-spacing: 0.02em; text-shadow: 0 0 12px rgba(255, 79, 200, 0.45); }
-.bd-me-note { display: block; text-align: center; font-size: 13px; color: var(--bd-dim); padding: 8px 10px; }
+.bd-me-note2 b { font: 800 17px/1 var(--font-num); color: #fff; letter-spacing: 0.02em; }
+.bd-me-note2 b small { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.18em; color: var(--bd-dim); margin-left: 5px; }
+.bd-me-note { display: block; text-align: center; font-size: 13px; color: var(--bd-dim); padding: 12px 10px; }
+.bd-wrap > .bd-card:last-child, .bd-wrap > .bd-cta:last-child { padding-bottom: calc(var(--safe-b) + 14px); }
 .bd-rep-who { display: flex; align-items: center; justify-content: center; gap: 9px; font: 600 17px/1.1 var(--font-ui); color: #fff7ea; }
 .bd-rep-who span { font: 600 12px/1 var(--font-num); color: var(--bd-faint); }
 .bd-rep-h { margin: 8px 0 0; text-align: center; font: 800 10.5px/1 var(--font-display); letter-spacing: 0.24em; color: var(--bd-dim); }   /* (FRIENDS A: the ⋯ sheet = the player — ADD FRIEND, then REPORT) */
@@ -187,35 +149,26 @@ button.bd-open:focus-visible { outline: 2px solid #ff4fc8; outline-offset: 3px; 
 .bd-rep-msg.is-err { color: #ffc2cf; }
 
 /* ---- the public page: PLAY NOW ---- */
-.bd-cta { flex: none; display: flex; flex-direction: column; align-items: center; gap: 7px; }
-/* (CITY E: PLAY NOW = THE NEON TUBE — the page's ONE pink MAIN, tubeButton) */
+.bd-cta { flex: none; display: flex; flex-direction: column; align-items: center; gap: 7px; padding-bottom: 14px; }
 .bd-play { width: min(100%, 420px); }
 .bd-cta-line { font: 700 9px/1.4 var(--font-mono); letter-spacing: 0.2em; text-transform: uppercase; text-align: center; color: var(--bd-faint); }
 
-/* ---- wide screens: the scoreboard on its own, the windows and the back bar either side ---- */
+/* ---- wide screens: the column 600 wide, the skyline strip the column's width (every sign in it — never cut at a desk) ---- */
 @media (min-width: 900px) {
-  .bd-wrap { max-width: 600px; gap: 12px; padding-top: calc(var(--safe-t) + 18px); padding-bottom: 22px; }
-  .bd-name { font-size: 52px; }
+  .bd-wrap { max-width: 600px; gap: 12px; }
+  .bd-head { margin: 0; }
+  .bd-name { font-size: 34px; }
+  .bd-sky { -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22%, #000 74%, transparent 100%), linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(180deg, transparent 0, #000 22%, #000 74%, transparent 100%), linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-composite: intersect; }
   .bd-tabs .nt-tab { font-size: 11px; letter-spacing: 0.12em; }
-  .bd-picks { align-items: center; }
-  .bd-chips { justify-content: center; flex-wrap: wrap; margin: 0; padding: 0; -webkit-mask-image: none; mask-image: none; overflow: visible; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.14); }
-  .bd-label { font-size: 17px; }
 }
-/* phones: the corner buttons (music, settings) own the top row, the title sits under it */
-@media (max-width: 899px) {
-  /* (THE BOARD's TOP REDONE: ‹ BACK owns the top-left corner — fixed — the corner row stays clear for it + the music) */
-  .bd-head { grid-template-rows: 44px auto; }
-  /* (PD-1 GROUP 0: THE BOARD's title on its OWN row, clear air under the corner row — never touching ☰ · ‹ · the music) */
-  .bd-title { grid-row: 2; padding-top: 0; margin-top: 12px; }
-  .bd-kicker { position: absolute; top: 0; left: 50%; transform: translateX(-50%); height: 44px; display: flex; align-items: center; margin: 0; font-size: 8.5px; letter-spacing: 0.42em; white-space: nowrap; opacity: 0; }
-  .bd-name { margin-top: 2px; }
-}
+/* a short phone (Safari's bars up, 375 × 667): the strip shorter — the signs' band kept (its sky + the quay trimmed) */
 @media (max-height: 700px) and (max-width: 899px) {
-  .bd-kicker { display: none; }
-  .bd-name { margin-top: 2px; font-size: 26px; }
-  .bd-sub { display: none; }
-  .bd-title { padding-top: 0; margin-top: 2px; }
-  .bd-head { grid-template-rows: 40px auto; }   /* (THE BOARD's TOP REDONE: the title's row is AUTO here too — never the 6-px squeeze that spilled it over the tabs) */
+  .bd-title { padding-top: 12px; gap: 3px; }
+  .bd-name { font-size: 22px; }
+  .bd-sky { max-height: 76px; margin-top: -6px; background-position: center 40%; }
+  .bd-wrap { gap: 8px; }
+  .bd-rows { gap: 8px; }
 }
 
 /* ---- reduced effects ---- */

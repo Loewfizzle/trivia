@@ -95,10 +95,10 @@ try {
       await p.evaluate("window.__wpTab = (document.querySelector('.bd-tab.is-on') || {}).dataset?.id || ''; const b = document.querySelector('.bd-tab:not(.is-on)'); if (b) b.dataset.wpB = '1'");
       await press(`${tag} THE BOARD's game tab`, '.bd-tab[data-wp-b]', "((document.querySelector('.bd-tab.is-on') || {}).dataset || {}).id !== window.__wpTab");
       // (the period switch on a game that has one: the first VISIBLE unselected segment — HOLD'EM's one board has none)
-      const VIS = "[...document.querySelectorAll('.bd-seg-b')].filter(b => b.getBoundingClientRect().width > 0)";
+      const VIS = "[...document.querySelectorAll('.bd-period-b')].filter(b => b.getBoundingClientRect().width > 0)";
       if (await waitFor(`${VIS}.some(b => b.getAttribute('aria-selected') === 'false')`, 4000)) {
         await p.evaluate(`window.__wpSeg = (${VIS}.find(b => b.getAttribute('aria-selected') === 'false') || {}).textContent || ''`);
-        await press(`${tag} THE BOARD's period tab`, { js: `${VIS}.find(b => b.textContent === window.__wpSeg)` }, "[...document.querySelectorAll('.bd-seg-b')].some(b => b.textContent === window.__wpSeg && b.getAttribute('aria-selected') === 'true')");
+        await press(`${tag} THE BOARD's period tab`, { js: `${VIS}.find(b => b.textContent === window.__wpSeg)` }, "[...document.querySelectorAll('.bd-period-b')].some(b => b.textContent === window.__wpSeg && b.getAttribute('aria-selected') === 'true')");
       }
     } else ok(false, `${tag} THE BOARD opened`);
     await home();

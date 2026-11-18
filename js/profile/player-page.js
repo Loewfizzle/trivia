@@ -39,7 +39,7 @@ onCloseAll(() => { if (open) open.close(); });
 const queryOf = t => (t.pid ? { pid: t.pid } : t.b && t.bid ? { b: t.b, bid: t.bid } : t.id ? { id: t.id, ...(t.dg ? { dg: t.dg } : {}) } : null);   // (FIXES R2: dg = the daily whose TODAY list the row came from)
 
 export async function openPlayer(target = {}, o = {}) {
-  const row = target.row || o.row || {}, extra = (o.extra || target.extra || []).filter(Boolean);
+  const row = target.row || o.row || {}, extra = (o.extra || target.extra || []).filter(Boolean), report = o.report || target.report || null;   // (CITY H2: THE BOARD's REPORT — in MORE)
   if (isSelf(target)) { lazyImport(import('../screens/profile.js'), '../screens/profile.js').then(m => m.openCard()).catch(() => {}); return null; }
   const q = queryOf(target);
   if (!q) return null;
@@ -144,6 +144,8 @@ export async function openPlayer(target = {}, o = {}) {
     if (rel === 'friend') rows.push(shellRow({ icon: ICONS.leave, label: 'Remove friend', sub: 'Quietly — they aren’t told', danger: true, chevron: false, confirm: 'TAP AGAIN TO REMOVE', cls: 'pp-remove', onClick: run('remove', `${n} removed`) }));
     if (rel === 'blocked') rows.push(shellRow({ icon: ICONS.block, label: 'Unblock', chevron: false, cls: 'pp-unblock', onClick: run('unblock', `${n} unblocked`) }));
     else rows.push(shellRow({ icon: ICONS.block, label: 'Block', sub: 'No more requests or invites from them', danger: true, chevron: false, confirm: 'TAP AGAIN TO BLOCK', cls: 'pp-block', onClick: run('block', `${n} blocked`) }));
+    // (CITY H2 — opened from THE BOARD: its row's REPORT lives here now (the board's ⋯ line is gone) — the report sheet opens on top)
+    if (report) rows.push(shellRow({ icon: ICONS.board, label: 'Report', sub: 'A suspicious score or a bad name', chevron: false, cls: 'pp-report', onClick: () => { if (s) s.close(); report(); } }));
     s = openPfSheet({ kicker: 'THEIR CARD', title: String(n || '').toUpperCase(), cls: 'pp-more-sheet', body: [h('div.sh-row-list', ...rows)] });
   }
 }

@@ -26,6 +26,8 @@ const { webkit } = await import(pathToFileURL(process.env.WK_PLAYWRIGHT || join(
 const results = [];
 const ok = (c, what) => { results.push({ ok: !!c, what }); console.log(c ? 'OK  ' : 'FAIL', what); };
 const TABS = ['xp', 'dailies', 'overclock', 'prism', 'holdem'];
+// (CITY H2 — LAYOUT B: THIS WEEK | ALL TIME (.bd-period) + ONE picker button (.bd-pick → a sheet) — no RECORDS / CAREER switch, no chips; a
+//  row's control = its CARD (on /board a tap reports — no ⋯ line))
 const VERDICT_MS = 550;   // (the watch judges a tap RESCUE_MS = 350 ms after the lift — its verdict window, then the count is final)
 
 const browser = await webkit.launch();
@@ -53,11 +55,11 @@ await p.evaluate('window.__tapwatch.rescue(false)');   // (THE RESCUE OFF: only 
 // the controls marked at the load — the same nodes at the end
 await p.evaluate(() => {
   const q = s => document.querySelector(s);
-  window.__bdMark = { tabs: q('.bd-tabs'), tabBtns: [...document.querySelectorAll('.bd-tabs .bd-tab')], period: q('.bd-seg.bd-period'), periodBtns: [...document.querySelectorAll('.bd-period .bd-seg-b')], cat: q('.bd-ctrl .bd-seg:not(.bd-period)'), picks: q('.bd-picks') };
+  window.__bdMark = { tabs: q('.bd-tabs'), tabBtns: [...document.querySelectorAll('.bd-tabs .bd-tab')], period: q('.bd-period'), periodBtns: [...document.querySelectorAll('.bd-period .bd-period-b')], pick: q('.bd-pick') };
   // what is REPLACED under the controls (a removal anywhere under the tabs / the switches / the picks) — counted per press
   window.__bdCut = 0;
   const mo = new MutationObserver(l => { for (const m of l) if (m.removedNodes.length) window.__bdCut += m.removedNodes.length; });
-  for (const el of [q('.bd-tabs'), q('.bd-ctrl'), q('.bd-picks')]) mo.observe(el, { childList: true, subtree: true });
+  for (const el of [q('.bd-tabs'), q('.bd-period')]) mo.observe(el, { childList: true, subtree: true });
 });
 const settled = () => waitFor("!window.__tapwatch.pressing() && !document.querySelector('.bd-rows.is-skel')", 10000).then(frames);
 const centre = sel => p.evaluate(s => { const el = document.querySelector(s); if (!el) return null; const r = el.getBoundingClientRect(); return r.width && r.height ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null; }, sel);
@@ -107,17 +109,17 @@ for (const kind of ['mouse', 'touch']) {
   }
 }
 
-// a ROW control: the row's ⋯ (REPORT on the public page) — a refresh lands while the finger is on it
+// a ROW control: the row's CARD (REPORT on the public page) — a refresh lands while the finger is on it
 {
   await p.evaluate(() => window.__board.pick('xp', null, 'week'));
   await settled();
-  const has = await waitFor("!!document.querySelector('.bd-rows .bd-row .bd-more')", 5000);
-  if (!has) console.log('note ROW: no row with a ⋯ on XP · THIS WEEK on these emulators — the row case skipped (play a match to put a name up)');
+  const has = await waitFor("!!document.querySelector('.bd-rows .bd-row button.bd-open')", 5000);
+  if (!has) console.log('note ROW: no row card to tap on XP · THIS WEEK on these emulators — the row case skipped (play a match to put a name up)');
   else {
     await fresh();
-    const c = await centre('.bd-rows .bd-row .bd-more');
+    const c = await centre('.bd-rows .bd-row button.bd-open');
     const s0 = await st();
-    const row0 = await p.evaluateHandle(() => document.querySelector('.bd-rows .bd-row .bd-more'));
+    const row0 = await p.evaluateHandle(() => document.querySelector('.bd-rows .bd-row button.bd-open'));
     await p.mouse.move(c.x, c.y);
     await p.mouse.down();
     await p.evaluate(() => window.__board.pick(null, null, 'all'));
@@ -129,47 +131,45 @@ for (const kind of ['mouse', 'touch']) {
     await sleep(VERDICT_MS);
     const s1 = await st();
     const swapped = await waitFor("window.__board.state().period === 'all' && !document.querySelector('.bd-rows.is-skel')", 6000);
-    ok(opened && kept && s1.lost === s0.lost, `ROW ⋯: a refresh + its answer landed while the finger was on it → the row kept under the finger (${kept}) · its REPORT sheet opened (${opened}) · lost taps ${s1.lost - s0.lost}`);
-    ok(swapped, `ROW ⋯: the rows swapped to ALL TIME after the tap (${swapped})`);
+    ok(opened && kept && s1.lost === s0.lost, `ROW CARD: a refresh + its answer landed while the finger was on it → the row kept under the finger (${kept}) · its REPORT sheet opened (${opened}) · lost taps ${s1.lost - s0.lost}`);
+    ok(swapped, `ROW CARD: the rows swapped to ALL TIME after the tap (${swapped})`);
     await p.evaluate(() => import('/js/ui/sheet.js').then(m => m.closeAllSheets())).catch(() => {});
     await waitFor("!document.querySelector('.sh.bd-rep')", 4000);
   }
 }
 
-// the switches + picks still work in place: OVERCLOCK → CAREER (touch) → a chip (touch); ONE row of picks showing, the right chip lit
+// THE PICKER in place (CITY H2): OVERCLOCK → the picker (touch) → its sheet (RECORDS + CAREER rows) → a CAREER board (touch) → the board moved,
+// the picker's words follow, the sheet closed
 {
-  await p.evaluate(() => window.__board.pick('overclock', 'records', 'week'));
+  await p.evaluate(() => window.__board.pick('overclock', null, 'week'));
   await settled();
   const tap = async sel => { const c = await centre(sel); if (c) await p.touchscreen.tap(c.x, c.y); return !!c; };
-  const tc = await tap('.bd-ctrl .bd-seg:not(.bd-period) .bd-seg-b:not(.is-on)');
-  const career = await waitFor("window.__board.state().cat === 'career'", 4000);
+  const b0 = await p.evaluate('window.__board.state().board'), w0 = await p.evaluate("document.querySelector('.bd-pick-l').textContent");
+  const tp = await tap('.bd-pick');
+  const sheet = await waitFor("!!document.querySelector('.sh.bd-pick-sheet.is-in .bd-pick-row:not(.is-on)')", 4000);
+  const secs = await p.evaluate("[...document.querySelectorAll('.sh.bd-pick-sheet .bd-pick-h')].map(x => x.textContent).join(' / ')");
+  if (sheet) { await sleep(450); await tap('.sh.bd-pick-sheet.is-in .bd-pick-row:not(.is-on)'); }   // (the sheet's own slide-in over first)
+  const moved = await waitFor(`window.__board.state().board !== ${JSON.stringify(b0)} && !document.querySelector('.sh.bd-pick-sheet.is-in')`, 4000);
   await settled();
-  const chipOff = '.bd-picks .bd-chips:not([hidden]) .bd-chip:not(.is-on)';
-  const hasChip = await p.evaluate(s => !!document.querySelector(s), chipOff);
-  const b0 = await p.evaluate('window.__board.state().board');
-  if (hasChip) await tap(chipOff);
-  const moved = !hasChip || await waitFor(`window.__board.state().board !== ${JSON.stringify(b0)}`, 4000);
-  await settled();
-  const look = await p.evaluate(() => { const rows = [...document.querySelectorAll('.bd-picks .bd-chips')].filter(r => !r.hidden && getComputedStyle(r).display !== 'none'); const on = document.querySelector('.bd-picks .bd-chips:not([hidden]) .bd-chip.is-on'); return { shown: rows.length, onCount: rows[0] ? rows[0].querySelectorAll('.bd-chip.is-on').length : 0, onIsBoard: !!on, catOn: document.querySelector('.bd-ctrl .bd-seg:not(.bd-period) .bd-seg-b.is-on').textContent }; });
-  ok(tc && career && moved && look.catOn === 'CAREER' && (!hasChip || (look.shown === 1 && look.onCount === 1)), `in place: RECORDS → CAREER by a tap (${career}, lit ${look.catOn}) · a chip tap moved the board (${hasChip ? moved : 'no second chip'}) · ${look.shown} row of picks showing, ${look.onCount} chip lit`);
+  const w1 = await p.evaluate("document.querySelector('.bd-pick-l').textContent");
+  ok(tp && sheet && moved && w1 && w1 !== w0, `THE PICKER: a tap opened its sheet (${secs || 'one list'}), a row moved the board (${b0} → ${await p.evaluate('window.__board.state().board')}), the sheet closed, the picker reads ${w0} → ${w1}`);
 }
 
 // the controls are the SAME nodes they were at the load
 const same = await p.evaluate(() => {
   const M = window.__bdMark, q = s => document.querySelector(s);
-  const tabBtns = [...document.querySelectorAll('.bd-tabs .bd-tab')], periodBtns = [...document.querySelectorAll('.bd-period .bd-seg-b')];
+  const tabBtns = [...document.querySelectorAll('.bd-tabs .bd-tab')], periodBtns = [...document.querySelectorAll('.bd-period .bd-period-b')];
   return {
     tabs: q('.bd-tabs') === M.tabs,
     tabBtns: tabBtns.length === M.tabBtns.length && tabBtns.every((b, i) => b === M.tabBtns[i]),
-    period: q('.bd-seg.bd-period') === M.period,
+    period: q('.bd-period') === M.period,
     periodBtns: periodBtns.length === M.periodBtns.length && periodBtns.every((b, i) => b === M.periodBtns[i]),
-    cat: q('.bd-ctrl .bd-seg:not(.bd-period)') === M.cat,
-    picks: q('.bd-picks') === M.picks,
+    pick: q('.bd-pick') === M.pick,
   };
 });
 ok(Object.values(same).every(Boolean), `the SAME nodes at the end as at the load: ${Object.entries(same).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
 // the selected state painted in place: one tab on (aria-pressed), one period on (aria-selected)
-const sel = await p.evaluate(() => ({ tabsOn: document.querySelectorAll('.bd-tab.is-on').length, pressed: document.querySelectorAll('.bd-tab[aria-selected="true"]').length, onIsState: document.querySelector('.bd-tab.is-on').dataset.id === window.__board.state().tab, periodOn: document.querySelectorAll('.bd-period .bd-seg-b.is-on[aria-selected="true"]').length }));
+const sel = await p.evaluate(() => ({ tabsOn: document.querySelectorAll('.bd-tab.is-on').length, pressed: document.querySelectorAll('.bd-tab[aria-selected="true"]').length, onIsState: document.querySelector('.bd-tab.is-on').dataset.id === window.__board.state().tab, periodOn: document.querySelectorAll('.bd-period .bd-period-b.is-on[aria-selected="true"]').length }));
 ok(sel.tabsOn === 1 && sel.pressed === 1 && sel.onIsState && sel.periodOn === 1, `the selected state in place: ${sel.tabsOn} tab lit (${sel.pressed} aria-selected, the state's tab: ${sel.onIsState}) · ${sel.periodOn} period lit`);
 ok(errs.length === 0, `no page error (${errs.slice(0, 2).join(' | ') || 'none'})`);
 console.log(`THE TAP TABLE: mouse ${summary.mouse[0]} landed / ${summary.mouse[1]} failed · touch ${summary.touch[0]} landed / ${summary.touch[1]} failed · lost taps (the watch, rescue off) ${summary.lost}`);
