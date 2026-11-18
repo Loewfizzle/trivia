@@ -10,7 +10,8 @@ import { installEmblems } from '../ui/emblems.js';
 import { installAudio } from '../audio/engine.js';
 import { playMusic, registerTracks, setListProvider, musicDebug, musicNeedsRescue } from '../audio/music.js';
 import { loadMoodMusic, moodNow, nextForDevice } from '../audio/mood.js';
-import { settings, updateSettings, onSettings } from '../audio/settings.js';
+import { settings } from '../audio/settings.js';
+import { wireSoundButton } from '../ui/sound-btn.js';
 import { lazyImport } from '../ui/lazy-import.js';
 
 const q = new URLSearchParams(location.search);
@@ -33,12 +34,10 @@ loadMoodMusic().then(d => {
   playMusic(settings.menuMusic === 'classic' ? 'menu3' : 'mood', 'menu3');
 });
 {
-  const NOTE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="slash" d="M3 3l18 18"/></svg>';
+  // (CITY G — THE THREE-WAY CORNER BUTTON: the same builder as the app's corner — ui/sound-btn.js; no toast module on this page)
   const b = document.createElement('button');
-  b.type = 'button'; b.className = 'music-btn bd-music'; b.innerHTML = NOTE;
-  b.addEventListener('click', () => { if (musicNeedsRescue()) return; updateSettings({ musicOff: !settings.musicOff }); if (!settings.musicOff) musicNeedsRescue(); });
-  const paint = () => { b.classList.toggle('is-off', !!(settings.musicOff || settings.muted)); b.setAttribute('aria-label', settings.musicOff ? 'Music off — tap to turn it on' : 'Music on — tap to turn it off'); };
-  onSettings(paint); paint();
+  b.type = 'button'; b.className = 'music-btn bd-music';
+  b.addEventListener('click', wireSoundButton(b, { rescue: musicNeedsRescue }));
   document.body.append(b);
 }
 const view = createBoardView({

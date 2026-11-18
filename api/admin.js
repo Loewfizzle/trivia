@@ -253,7 +253,7 @@ function logIds(list, re) {
 // CITY A — THE QUIET COUNTS beside the errors (api/log.js#QUIET_KINDS): never a row each — one number + when it last happened
 async function quietCounts() {
   const all = (await val('logstats').catch(() => null)) || {};
-  return Object.fromEntries(['gone', 'ext', 'old'].map(k => [k, { n: (all[k] && all[k].n) || 0, last: (all[k] && all[k].last) || null }]));
+  return Object.fromEntries(['gone', 'ext', 'old', 'snd', 'slow'].map(k => [k, { n: (all[k] && all[k].n) || 0, last: (all[k] && all[k].last) || null }]));
 }
 async function errorList(now) {
   const all = (await val('errlog')) || {};

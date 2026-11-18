@@ -48,7 +48,7 @@ test('ONLY the master reaches ctx.destination — every analyser / probe / blip 
 // on screen the master ramps up from 0 and the beds ramp back in. The browser proofs: tests/integration/audio-leave.mjs + audio-cut.mjs.
 test('leaving: the master ramps to 0 (LEAVE_S), the beds after it, the suspend after the zeros; a touch phone\'s blur is the first signal', () => {
   const E = readFileSync('js/audio/engine.js', 'utf8');
-  assert.match(E, /function fadeOut\(why\) \{[\s\S]{0,700}quiet\(c, LEAVE_S\);[\s\S]{0,200}setTimeout\(\(\) => \{ if \(!visibleNow\) pauseBeds\(why\); \}, Math\.round\(LEAVE_S \* 1000\) \+ 10\);[\s\S]{0,200}c\.suspend\(\)[\s\S]{0,150}Math\.round\(LEAVE_S \* 1000\) \+ ZERO_HOLD_MS\);/, 'the ramp, the beds, the zeros, then the suspend');
+  assert.match(E, /function fadeOut\(why\) \{[\s\S]{0,1200}quiet\(c, LEAVE_S\);[\s\S]{0,200}setTimeout\(\(\) => \{ if \(!visibleNow\) pauseBeds\(why\); \}, Math\.round\(LEAVE_S \* 1000\) \+ 10\);[\s\S]{0,200}c\.suspend\(\)[\s\S]{0,150}Math\.round\(LEAVE_S \* 1000\) \+ ZERO_HOLD_MS\);/, 'the ramp, the beds, the zeros, then the suspend');
   assert.match(E, /function quiet\(c, s\) \{ try \{ const t = c\.currentTime, g = master\.gain; const v = g\.value; g\.cancelScheduledValues\(t\); g\.setValueAtTime\(v, t\); g\.linearRampToValueAtTime\(0, t \+ s\); \}/, 'a ramp from where it is');
   assert.match(E, /const CUT_S = 0\.08, LEAVE_S = 0\.025, ZERO_HOLD_MS = 100;/);
   assert.match(E, /window\.addEventListener\('blur', \(\) => \{ audioLog\('blur'\); if \(coarse\(\)\) leaveNote\('blur', true\); onBlur\(\); \}\);/);   // (FIXES R3: the blur recorded first)

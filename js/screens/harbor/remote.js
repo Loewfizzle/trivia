@@ -322,13 +322,6 @@ export function createRemote({ scene, api = apiCall }) {
     //  preview-panel row below reads CITY PREVIEW so the two never share a name)
     // (CITY C — STATS: an owner-only row → THE SHEET over the city (js/admin/stats-view.js — the same builder as /admin); the page never changes)
     setMenuExtra('stats', ({ close: closeMenu }) => (destroyed || !admin ? null : row({ icon: 'admin', ic: '#7dd8ff', label: 'Stats', sub: 'The history · the owner only', cls: 'gm-stats', onClick: () => { Promise.all([lazyImport(import('../../admin/stats-view.js'), '../../admin/stats-view.js'), lazyImport(import('../../ui/sheet.js'), '../../ui/sheet.js')]).then(([m, Sh]) => m.openStatsSheet({ api: apiCall, openSheet: Sh.openSheet })).catch(() => {}); } })));
-    // (FIXES R3 — THE LEAVE MODE: the owner's test bench, this phone only (engine.js's hub); each tap = the next mode)
-    setMenuExtra('leavemode', ({ close: closeMenu }) => {
-      const L = globalThis.__nsLeaveMode;
-      if (destroyed || !admin || !L) return null;
-      const m = L.get(), M = L.modes[m];
-      return row({ icon: 'sound', ic: '#ff4fd8', label: 'Leave mode', value: `${m} · ${M.name}`, sub: `${M.sub} · this phone`, cls: 'gm-leave', attrs: { 'aria-label': `Leave mode ${m}: ${M.name} — tap for the next` }, onClick: () => { const n = L.set(L.next(L.get())); closeMenu(); toast(`LEAVE MODE ${n} — ${L.modes[n].name}. ${L.modes[n].sub}.`); } });
-    });
     setMenuExtra('adminpage', ({ close: closeMenu }) => (destroyed || !admin ? null : row({ icon: 'admin', ic: '#ffc23d', label: 'Admin', cls: 'gm-admpage', attrs: { 'aria-label': 'Admin — players, reports, test players' }, onClick: () => { closeMenu(); location.href = '/admin'; } })));
     setMenuExtra('admin', adminRow);
     if (liveNext && !cd) countdown('all', liveNext.startAt, R.describe(liveNext.state));
@@ -1054,7 +1047,7 @@ export function createRemote({ scene, api = apiCall }) {
       clearTimeout(pollT); pollOn = false; document.removeEventListener('visibilitychange', onVis); document.removeEventListener('visibilitychange', helloBack); window.removeEventListener('focus', onVis); window.removeEventListener('focus', helloBack); window.removeEventListener('nd:me', onMe);
       if (bar) bar.remove();
       if (sheet) sheet.remove(); if (hrRelease) { hrRelease(); hrRelease = null; }
-      setMenuExtra('admin', null); setMenuExtra('adminpage', null); setMenuExtra('lab', null); setMenuExtra('stats', null); setMenuExtra('leavemode', null); setMenuCue(null);
+      setMenuExtra('admin', null); setMenuExtra('adminpage', null); setMenuExtra('lab', null); setMenuExtra('stats', null); setMenuCue(null);
       sheet = bar = cdEl = null;
     },
   };

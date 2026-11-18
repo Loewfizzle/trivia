@@ -47,7 +47,7 @@ export function createDailySfx({ dir, sounds }) {
     const [file, g0, , offset = 0, dur = 0] = sounds[name];
     const ctx = getContext(), bus = getSfxBus();
     const play = b => {
-      if (!b || !ctx || !(globalThis.__nsAudioLive ? globalThis.__nsAudioLive(ctx) : ctx.state === 'running')) return;   // (FIXES R3: a context asleep between effects (mode A) is woken by the hub — engine.js#audioLive)
+      if (!b || !ctx || ctx.state !== 'running') return;   // (CITY G: FIXES R3's mode A sleep is gone — a running context, as ever)
       const s = ctx.createBufferSource(), g = ctx.createGain();
       s.buffer = b;
       g.gain.value = g0 * gain;

@@ -1,7 +1,7 @@
 // CITY 2.0 — THE HARBOR end to end: the `audio` cloud job's groups (music, flags, harbor, dock, tape) — tests/integration/harbor-jobs.mjs#CI_JOBS.
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=audio, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
-import { OUT, BASE, SHOTS, t0, sleep, errors, ok, okT, GR, NIGHT, open, ev, waitFor, tapAt, tap, harborUp, G, skipNoDisplay } from './kit.mjs';
+import { OUT, BASE, SHOTS, t0, sleep, errors, ok, okT, log, GR, NIGHT, open, ev, waitFor, tapAt, tap, harborUp, G, skipNoDisplay } from './kit.mjs';
 import { displayAttached } from '../kit/puppeteer.mjs';
 
 G('flags', async () => {
@@ -270,8 +270,11 @@ G('music', async () => {
     await sleep(1700);        // (a second tap within 1.5 s of a rescue is part of the same "play")
     await tapAt(p, mb[0], mb[1]); await sleep(300);
     ok(await ev(p, `JSON.parse(localStorage.getItem('na:settings') || '{}').musicOff === true`), 'MUSIC BUTTON: with the music playing, a tap switches it off as before');
+    // (CITY G — THE THREE-WAY BUTTON: from MUSIC OFF the next tap = ALL SOUND OFF, the one after = SOUND ON)
+    await tapAt(p, mb[0], mb[1]); await sleep(300);
+    ok(await ev(p, `document.querySelector('.music-btn').dataset.sound === 'all'`), 'MUSIC BUTTON: the next tap = ALL SOUND OFF (the speaker ✕)');
     await tapAt(p, mb[0], mb[1]);
-    ok(await playingOn('music on again') && await ev(p, `!JSON.parse(localStorage.getItem('na:settings')).musicOff`), 'MUSIC BUTTON: and on again — playing');
+    ok(await playingOn('music on again') && await ev(p, `!JSON.parse(localStorage.getItem('na:settings')).musicOff`), 'MUSIC BUTTON: and SOUND ON again — playing');
     // d) the connection dropped while the phone slept (the element errors): reloaded from its place, never marked "missing"
     const d0 = await cur();
     await ev(p, `(() => { const d = window.__arcade.musicDebug(); const f = String(d.playing).replace(/^m:/, ''); const el = [...window.__els].find(a => a.src.includes(f)); el.dispatchEvent(new Event('error')); })()`);
@@ -433,10 +436,13 @@ G('music', async () => {
     const mb = await ev(p, `(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
     await sleep(1600);        // (a tap within 1.5 s of a rescue is part of the same "play")
     await tapAt(p, mb[0], mb[1]); await sleep(500);
-    // (FIXES R3 — LEAVE MODE A, the default: the music OFF RESTS the elements — released like THE HUSH (no element left, nothing playing) —
-    //  else the element stays, muted)
-    const off = await ev(p, `Promise.all([import('/js/audio/music.js'), import('/js/audio/engine.js')]).then(([m, E]) => { const d = m.musicDiag(); return { off: JSON.parse(localStorage.getItem('na:settings') || '{}').musicOff, gain: d.el ? d.el.gain : null, rest: E.musicResting(), playing: d.playing, session: navigator.audioSession.type }; })`);
-    ok(off.off === true && (off.rest ? off.playing == null && off.gain == null : off.gain === 0) && off.session === 'ambient', `MUSIC BUTTON on the direct path: OFF (${off.off}, ${off.rest ? 'rested — no element left (mode A)' : `the element muted: gain ${off.gain}`}) — the session back to 'ambient' (${off.session})`);
+    // (CITY G — THE THREE-WAY BUTTON: tap 1 = MUSIC OFF, the effects on → the element muted, the session 'ambient'; tap 2 = ALL SOUND OFF (the
+    //  speaker ✕); tap 3 = SOUND ON → 'playback')
+    const off = await ev(p, `Promise.all([import('/js/audio/music.js')]).then(([m]) => { const d = m.musicDiag(); const st = JSON.parse(localStorage.getItem('na:settings') || '{}'); return { off: st.musicOff, sfx: !st.sfxOff, gain: d.el ? d.el.gain : null, playing: d.playing, session: navigator.audioSession.type, btn: document.querySelector('.music-btn').dataset.sound }; })`);
+    ok(off.off === true && off.sfx && (off.gain === 0 || off.gain == null) && off.session === 'ambient' && off.btn === 'music', `MUSIC BUTTON on the direct path — tap 1: MUSIC OFF · EFFECTS ON (${off.off}/${off.sfx}, the element muted: gain ${off.gain}, the button ${off.btn}) — the session 'ambient' (${off.session})`);
+    await tapAt(p, mb[0], mb[1]); await sleep(400);
+    const all = await ev(p, `({ btn: document.querySelector('.music-btn').dataset.sound, st: JSON.parse(localStorage.getItem('na:settings') || '{}') })`);
+    ok(all.btn === 'all' && all.st.musicOff && all.st.sfxOff, `MUSIC BUTTON — tap 2: ALL SOUND OFF (the speaker ✕: ${all.btn})`);
     await tapAt(p, mb[0], mb[1]);
     ok(await waitFor(p, `${SOUND} && !JSON.parse(localStorage.getItem('na:settings')).musicOff && navigator.audioSession.type === 'playback'`, 'music on again', 4000).catch(() => false), `MUSIC BUTTON on the direct path: ON again — sounding, 'playback' (${JSON.stringify(await D())})`);
     // the session comes back (the direct element's playback re-activated it): the rebuilt context's clock starts moving → back onto a voice at a tap
@@ -645,6 +651,34 @@ G('music', async () => {
 // moving at the bent speed, the element paused on purpose, the AUDIO panel saying so; after the jets the element is back at the tape's
 // time with its clock moving; a stalled element (its play() swallowed once, as iOS does) is loaded again by the watchdog; a second run
 // back to back bends again and comes back; the panel's loop never leaves the music dead.
+// ---- CITY G — THE MEDIA CUT (the 5:44 pm entry: /admin AUDIO LEAVE "media: voice victory3 PLAYING" at the first signal — the podium's victory
+// song is an HTML element, not the Web Audio master): a podium song PLAYING → the leave's first signal (a touch phone's blur) → EVERY media
+// element paused IN that step (read synchronously, inside the same task) → the AUDIO LEAVE record says "media after: all paused"; then hidden.
+G('mediacut', async () => {
+  const P = await open({ slot: 'mc', qs: `${NIGHT}&debug=1`, view: [402, 874] }), p = P.page;
+  await harborUp(p); await tapAt(p, 30, 300);
+  await ev(p, "import('/js/audio/music.js').then(m => { window.__mcDiag = m.musicDiag; m.playMusic('victory3'); })");
+  const playing = await waitFor(p, "(() => { const d = window.__mcDiag(); return d.playing === 'victory3' && d.el && !d.el.paused && d.el.t > 0.2; })()", 'the podium song playing', 20000).then(() => true, async () => { log('mediacut', 'not playing:', JSON.stringify(await ev(p, 'window.__mcDiag && window.__mcDiag()'))); return false; });
+  const r = await ev(p, `(async () => {
+    const E = await import('/js/audio/engine.js'), M = await import('/js/audio/music.js');
+    const before = M.musicDiag().el.paused;
+    window.dispatchEvent(new Event('blur'));                       // (the leave's first signal on a touch phone)
+    const els = [...document.querySelectorAll('audio, video')].filter(e => !e.paused).length, d = M.musicDiag();
+    const st = E.mediaCutState(), rec = JSON.parse(localStorage.getItem('ns:audioleave') || 'null');
+    return { before, after: d.el ? d.el.paused : null, els, st, media: rec && rec.sig.find(x => /^media after/.test(x.s)) };
+  })()`);
+  ok(playing && r.before === false && r.after === true && r.els === 0 && r.st.on && r.st.after === 'all paused' && r.media && r.media.s === 'media after: all paused',
+    `THE MEDIA CUT: the podium song (victory3) playing → the blur → paused IN the cut's own step (${r.before} → ${r.after}; DOM elements still playing ${r.els}); the record: "${r.media && r.media.s}"`);
+  // hidden after it: still all paused; back on screen + a focus → the song is told it may go on
+  await ev(p, "Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))");
+  await sleep(300);
+  const h = await ev(p, "import('/js/audio/engine.js').then(E => E.mediaCutState())");
+  ok(h.after === 'all paused', `… hidden after it: every element still paused (${h.after})`);
+  await ev(p, "Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('focus'))");
+  await P.ctx.close();
+  log('mediacut', 'done');
+});
+
 G('tape', async () => {
   const P = 'window.__district.harbor()';
   const trap = { fn: () => {

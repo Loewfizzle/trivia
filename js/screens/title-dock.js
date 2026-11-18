@@ -27,7 +27,8 @@ export const ICON = {
   // the title's corner buttons, as white tubes of the same sign: ☰ (three bars; an X while the menu is open) and the music note
   // (a slash through it while the music is off)
   menu: tube('<g class="bars"><path d="M5.5 7.5h13M5.5 12h13M5.5 16.5h13"/></g><g class="x"><path d="M7 7l10 10M17 7L7 17"/></g>'),
-  music: tube('<path d="M9.2 17.6V6.3l9.3-2v11.2"/><circle cx="6.8" cy="17.6" r="2.45"/><circle cx="16.1" cy="15.5" r="2.45"/><path class="sl" d="M4.2 4.2l15.6 15.6"/>'),
+  // (CITY G — THE THREE-WAY BUTTON: + the SPEAKER ✕ (.sp) for ALL SOUND OFF — the note (.mn) + its slash step away; css/title.css)
+  music: tube('<g class="mn"><path d="M9.2 17.6V6.3l9.3-2v11.2"/><circle cx="6.8" cy="17.6" r="2.45"/><circle cx="16.1" cy="15.5" r="2.45"/></g><path class="sl" d="M4.2 4.2l15.6 15.6"/><g class="sp"><path d="M3.8 9.3h3.5l4.5-4v13.4l-4.5-4H3.8z"/><path d="M15.2 8.9l5.9 5.9M21.1 8.9l-5.9 5.9"/></g>'),
 };
 
 /** The neon tube ring (HOST and JOIN): four quarter tubes (N · E · O · N clockwise from the top left, so a multi-colour holiday

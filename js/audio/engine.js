@@ -1,9 +1,10 @@
 // Web Audio core: one AudioContext, a music bus and an SFX bus into a soft limiter.
 // THE HEADER (every rule this engine keeps, M2 → FIXES R3 — the gesture, the stuck / frozen context, the session, the rebuild loop, THE FADE ON
-// LEAVING, the home-screen app, THE CUT IN ONE ORDER, THE LEAVE RECORD + THE LEAVE MODES) lives in docs/audio.md "engine.js — THE HEADER
-// (moved Nov 16)", verbatim (FIXES R3: moved out of the boot bytes — THE BOOT BUDGET).
+// LEAVING, the home-screen app, THE CUT IN ONE ORDER, THE LEAVE RECORD) lives in docs/audio.md "engine.js — THE HEADER (moved Nov 16)", verbatim
+// (FIXES R3: moved out of the boot bytes — THE BOOT BUDGET). CITY G: the leave modes' test bench is gone — ONE path: THE SESSION BY STATE + THE
+// HARD CUT while 'ambient' + every media element paused in the cut (docs/audio.md "CITY G — THE THREE-WAY BUTTON + THE SESSION BY STATE").
 import { settings, onSettings } from './settings.js';
-import { LEAVE_KEY, LEAVE_REC_KEY, LEAVE_MODES, leaveModeOf, nextLeaveMode, isLeftSignal } from './leave-report.js';
+import { LEAVE_REC_KEY, isLeftSignal, sessionFor } from './leave-report.js';
 import { lazyImport } from '../ui/lazy-import.js';
 
 let ctx = null;
@@ -25,12 +26,6 @@ let rebuilds = 0, lastWhy = '', lastRebuildAt = -1e9, bornOfRebuild = false, fro
 let made = 0, closed = 0; // contexts made / whose close() resolved (the panel: alive = made − closed)
 let gestureAt = -1e9;     // performance.now() of the gesture being handled (touchend / click / keydown / a mouse's pointerdown)
 const STUCK_MS = 1500, FROZEN_MS = 1500, NEVER_STARTED_MS = 700, REBUILD_GAP = 20000;
-// FIXES R3 — THE LEAVE MODE
-let leaveMode = (() => { try { return leaveModeOf(localStorage.getItem(LEAVE_KEY)); } catch { return leaveModeOf(null); } })();
-let idleSusp = false;     // mode A: asleep between effects
-let lastSoundAt = 0;
-let fresh = false;        // mode B: closed — the return builds a fresh one
-let resting = false;      // mode A: the music off — nothing of it plays
 const unlockListeners = new Set();
 const visibilityListeners = new Set();
 const resumeListeners = new Set();
@@ -50,7 +45,7 @@ export const getMaster = () => master;
 /** the fade's timings (the tests + the docs): the ramp out, the ramp back, the suspend's wait after the ramp is scheduled */
 export const FADE = Object.freeze({ outS: FADE_OUT_S, inS: FADE_IN_S, suspendMs: SUSPEND_AFTER_MS, cutS: CUT_S, leaveS: LEAVE_S, zeroHoldMs: ZERO_HOLD_MS,
   hushSuspendMs: Math.round(FADE_OUT_S * 1000) + ZERO_HOLD_MS, leaveSuspendMs: Math.round(LEAVE_S * 1000) + ZERO_HOLD_MS });
-export const isUnlocked = () => unlocked && !!ctx && (ctx.state === 'running' || idleSusp);
+export const isUnlocked = () => unlocked && !!ctx && ctx.state === 'running';
 /** Inside a gesture's handling right now (iOS lets a media element / a context start only here)? */
 export const inGesture = () => performance.now() - gestureAt < 60;
 /** May the music start now? Running, or inside a gesture that just asked the context to run (it will). */
@@ -68,12 +63,13 @@ export const graphDead = () => !!ctx && (ctx.state === 'closed' || ctx.state ===
 /** The graph can be trusted: running, not frozen, its clock seen moving for ≥ 2 s (music.js moves a direct song back onto it then). */
 export const graphOk = () => !!ctx && ctx.state === 'running' && !frozen && clock.t > 0 && clock.moving > 0 && performance.now() - clock.moving > 2000;
 
-// ---- THE AUDIO SESSION (iOS 17+): 'playback' while the music is on, 'ambient' (effects only) while it is off / muted — and
-// 'play-and-record' while THE INTERCOM holds the mic (CC-B review, the owner's iPhone: a 'playback' session can't capture, so
-// getUserMedia failed and the desk said "no mic on this device")
+// ---- THE AUDIO SESSION BY STATE (iOS 17+ — CITY G, the owner's decisions Nov 16–17; PURE: leave-report.js#sessionFor): the music ON → 'playback'
+// (C2 — the no-squeal path he tested); the music OFF + the effects ON → 'ambient' (the phone's own podcast / Spotify KEEPS PLAYING, the effects
+// mix on top; the silent switch obeyed); everything OFF → iOS left alone ('auto' — set back only if we had set it). 'play-and-record' while
+// THE INTERCOM holds the mic (CC-B: a 'playback' session can't capture). Switching the state switches the type at once (onSettings below).
 let sessionSet = { type: '', at: 0, why: '' };
 let micHeld = 0;
-const sessionWant = () => (micHeld ? 'play-and-record' : leaveMode === 'C1' ? 'ambient' : leaveMode === 'C2' ? 'playback' : settings.muted || settings.musicOff ? 'ambient' : 'playback');
+const sessionWant = () => sessionFor(settings, micHeld);
 /** THE INTERCOM: the mic is wanted (on) / let go (off) — sets the session synchronously (call it inside the hold's own gesture). */
 export function micSession(on) { micHeld = Math.max(0, micHeld + (on ? 1 : -1)); setSession(on ? 'mic on' : 'mic off'); }
 export const sessionType = () => { try { return (navigator.audioSession && navigator.audioSession.type) || ''; } catch { return ''; } };
@@ -82,6 +78,8 @@ function setSession(why) {
   try { a = navigator.audioSession; } catch { a = null; }
   if (!a) return;
   const want = sessionWant();
+  // (everything off: leave iOS alone — back to 'auto' only if this page set a type before)
+  if (want === 'auto' && (!sessionSet.type || sessionSet.type === 'auto')) return;
   try {
     if (a.type !== want) { a.type = want; audioLog(`session → ${want} (${why})`); }
     if (sessionSet.type !== want) sessionSet = { type: want, at: Date.now(), why };
@@ -96,8 +94,6 @@ function createContext() {
   try { c = ctx = new AC({ latencyHint: 'interactive' }); }
   catch (e) { audioLog(`new context ✗ ${(e && e.name) || 'error'} (alive ${made - closed})`); ctx = null; return null; }
   made++;
-  // (FIXES R3 — mode A: making a source wakes a sleeping context)
-  for (const k of ['createBufferSource', 'createOscillator', 'createConstantSource']) { const f = c[k]; if (typeof f === 'function') c[k] = (...a) => { if (!blipping) noteSound(k); return f.apply(c, a); }; }
   c.onstatechange = () => {
     if (c !== ctx) return;
     audioLog(`ctx → ${c.state}`);
@@ -108,20 +104,18 @@ function createContext() {
       if (!visibleNow || document.visibilityState === 'hidden') { if (master) silence(c); pendingFadeIn = false; setTimeout(() => { if (ctx === c && c.state === 'running' && (!visibleNow || document.visibilityState === 'hidden')) c.suspend().catch(() => {}); }, ZERO_HOLD_MS); audioLog('running off screen — silenced + suspended'); return; }
       // (FIXES R1 — THE REVIEW A15: a context that started itself while hushed — NOTHING RUNS)
       if (hushed) { hushNow('running while hushed'); return; }
-      if (idleSusp) wakeIdle('running');
       if (pendingFadeIn) fadeIn('running again');
       resumeListeners.forEach(fn => { try { fn(); } catch (e) { console.warn(e); } });
-    } else if (c.state === 'interrupted' && visibleNow && unlocked && !hushed && leaveMode === 'B') { closeOnLeave('interrupted'); }
-    else if (c.state === 'interrupted' && visibleNow && unlocked && !hushed) {
+    } else if (c.state === 'interrupted' && visibleNow && unlocked && !hushed) {
       // (FIXES R1: the OS interrupting the context IS a leave signal — the home-screen app often gets it before any blur / hidden: silent at
       //  once + the beds stopped; the fade back waits for 'running'; a resume is asked only if the page is still on screen a moment later)
       if (master) silence(c);
-      pauseBeds('interrupted'); pendingFadeIn = true;
+      pauseBeds('interrupted'); mediaCut(true, 'interrupted'); pendingFadeIn = true;
       clearTimeout(intT);
       intT = setTimeout(() => { intT = 0; if (ctx === c && visibleNow && unlocked && !hushed && document.visibilityState === 'visible' && c.state !== 'running') ask('os took it'); }, BLUR_BACK_MS);
     }
     // the OS took it away while we're on screen (a call, Siri, another app's audio, the route changed): ask for it back
-    else if (visibleNow && unlocked && !hushed && !idleSusp && document.visibilityState === 'visible') ask('os took it');
+    else if (visibleNow && unlocked && !hushed && document.visibilityState === 'visible') ask('os took it');
   };
   const limiter = ctx.createDynamicsCompressor();
   limiter.threshold.value = -12;
@@ -133,8 +127,6 @@ function createContext() {
   master.gain.value = pendingFadeIn ? 0 : 1;   // (made while coming back on screen: it ramps up once it runs — never a pop)
   limiter.connect(master);
   master.connect(ctx.destination);
-  // (FIXES R3 — mode A's ear: an analyser off the master, never to the destination)
-  try { ear = ctx.createAnalyser(); ear.fftSize = 256; earBuf = new Float32Array(ear.fftSize); master.connect(ear); } catch { ear = null; }
   musicBus = ctx.createGain();
   sfxBus = ctx.createGain();
   musicBus.connect(limiter);
@@ -171,7 +163,7 @@ function busTo(p, v, t, tau, ramp) {
 let sfxCutAt = 0;   // performance.now() the effects went to 0 (0 = they're on)
 /** FIXES R2: the effects are OFF and their bus has reached 0 — a loop may be stopped now (city-sound.js: never mid-sound) */
 export const sfxSilent = () => !!sfxCutAt && performance.now() - sfxCutAt >= CUT_S * 1000 + 30;
-onSettings(() => { applyVolumes(false); setSession('settings'); restCheck('settings'); hushCheck('settings'); });   // (FIXES R3: the rest first)
+onSettings(() => { applyVolumes(false); setSession('settings'); hushCheck('settings'); });
 
 // ---- CITY A — item 29, THE LEAVING SQUEAL (the owner's iPhone, SOUND MUTED, no music: a short high-pitched noise switching from Safari to another
 // app). Muted = every voice at 0, so it was the audio MACHINERY still live — the context running for THE PROBE / the beat analysers, the
@@ -189,7 +181,6 @@ function hushCheck(why) {
   if (want) { audioLog(`hush (${why}) — the master to 0, then the context suspended`); hushNow(why); return; }
   clearTimeout(hushT); hushT = 0;
   audioLog(`unhush (${why}${inGesture() ? ' · in tap' : ''})`);
-  if (!ctx && fresh && unlocked && inGesture()) freshBack('mode B — unmuted');
   if (!ctx || !unlocked) return;
   pendingFadeIn = true;
   try { if (master) { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(0, ctx.currentTime); } } catch { /* closed */ }
@@ -219,16 +210,13 @@ const hushListeners = new Set();
 export function onHush(fn) { hushListeners.add(fn); return () => hushListeners.delete(fn); }
 
 // A 1-sample silent buffer started inside the gesture fully unlocks iOS.
-let blipping = false;
 function blip() {
-  blipping = true;
   try {
     const s = ctx.createBufferSource();
     s.buffer = ctx.createBuffer(1, 1, 22050);
     s.connect(master || ctx.destination);   // (CITY A — item 29: ONLY the master reaches the destination — a silent buffer too)
     s.start(0);
   } catch { /* closed */ }
-  blipping = false;
 }
 
 // Ask the context to run (logging what came of it), and check STUCK_MS later whether it did.
@@ -290,7 +278,6 @@ function unlock(e) {
   if (document.visibilityState !== 'visible') return;
   gestureAt = performance.now();
   setSession('tap');
-  if (!ctx && fresh && !hushed && !hushWanted()) freshBack('mode B — a tap');
   if (!ctx && !createContext()) return;
   // (CITY A — item 29: HUSHED — the tap unlocks (the listeners learn it) but nothing is resumed, blipped or rebuilt: the context stays asleep)
   if (hushed || hushWanted()) {
@@ -343,7 +330,7 @@ export function onGesture(fn) { gestureListeners.add(fn); return () => gestureLi
 export function onFrozen(fn) { frozenListeners.add(fn); return () => frozenListeners.delete(fn); }
 
 /** The engine's state for tests + the readout. */
-export const audioHealth = () => ({ state: ctx ? ctx.state : 'none', hushed, mode: leaveMode, idle: idleSusp, resting, fresh, quietMs: Math.round(performance.now() - lastSoundAt), soundWhy, earPeak: +earPeak.toExponential(2), bedsOn: bedsPaused ? 0 : beds.size, pendingFadeIn, stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
+export const audioHealth = () => ({ state: ctx ? ctx.state : 'none', hushed, session: sessionWant(), bedsOn: bedsPaused ? 0 : beds.size, pendingFadeIn, stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
   time: ctx ? +ctx.currentTime.toFixed(2) : 0, session: sessionInfo(), sessionSet: { ...sessionSet }, made, closed, alive: made - closed,
   movingFor: clock.moving > 0 && !frozen ? Math.round(performance.now() - clock.moving) : 0, ok: graphOk() });
 function sessionInfo() { try { const a = navigator.audioSession; return a ? `${a.type || '?'}/${'state' in a ? a.state || '?' : 'n/a'}` : ''; } catch { return ''; } }
@@ -368,7 +355,7 @@ export function simulateFrozen() {
 
 // Retry a resume (no-op when already running or not yet unlocked by a gesture).
 function kick() {
-  if (!ctx || !unlocked || hushed || idleSusp || document.visibilityState !== 'visible') return;
+  if (!ctx || !unlocked || hushed || document.visibilityState !== 'visible') return;
   if (ctx.state !== 'running') ask('retry');
 }
 
@@ -403,9 +390,10 @@ function resumeBeds() { if (!bedsPaused) return; bedsPaused = false; for (const 
 // ---- THE FADE ON LEAVING (DFIX3 ADD-ON → CITY D): the master to 0 AT ONCE on the audio clock + the beds stopped, the suspend follows; back = 0 → up once running
 function fadeOut(why) {
   clearTimeout(fadeT); clearTimeout(blurT); blurT = 0;
-  if (leaveMode === 'B' && !hushed && closeOnLeave(why)) return;
   const c = ctx;
+  mediaCut(true, why);   // (CITY G — the 5:44 pm entry: EVERY media element paused in the cut's own step — the podium's victory song too)
   if (!c || !master || c.state !== 'running') { pauseBeds(why); if (c && c.state === 'running') c.suspend().catch(() => {}); return; }
+  if (sessionWant() === 'ambient') { hardCut(c, why, () => !visibleNow); return; }
   // (FIXES R2: the master RAMPS to 0 over LEAVE_S (it stepped — and the beds were cut in that same instant); the beds stop once it's 0; the
   //  suspend after THE ZEROS FIRST. A blur already ramped it: then the ramp is already 0 and this only keeps it there.)
   const already = master.gain.value < 1e-5 && blurred === false && bedsPaused;
@@ -438,10 +426,15 @@ const coarse = () => { try { return matchMedia('(pointer: coarse)').matches; } c
 function onBlur() {
   if (!coarse() || !visibleNow || !ctx || hushed) return;
   blurred = true;
-  if (leaveMode === 'B' && closeOnLeave('blur')) { clearTimeout(blurT); blurT = setTimeout(blurBack, BLUR_BACK_MS); return; }
-  // (FIXES R2: a short ramp, then the beds — never a loop cut while it sounds)
-  if (master && ctx.state === 'running') { quiet(ctx, LEAVE_S); cutStart('leave'); audioLog('blur — the master 0 at once'); }
-  setTimeout(() => { if (blurred || !visibleNow) pauseBeds('blur'); }, Math.round(LEAVE_S * 1000) + 10);
+  mediaCut(true, 'blur');
+  // (CITY G — THE ANTI-SQUEAL GUARD: in 'ambient' iOS does not interrupt the session first (C1 squealed on leave) — the FIRST leave signal cuts
+  //  the effects + the city's loops in ONE step: the master 0 at once, the beds stopped, THE ZEROS FIRST, then the suspend)
+  if (sessionWant() === 'ambient' && master && ctx.state === 'running') hardCut(ctx, 'blur', () => blurred || !visibleNow);
+  else {
+    // (FIXES R2: a short ramp, then the beds — never a loop cut while it sounds)
+    if (master && ctx.state === 'running') { quiet(ctx, LEAVE_S); cutStart('leave'); audioLog('blur — the master 0 at once'); }
+    setTimeout(() => { if (blurred || !visibleNow) pauseBeds('blur'); }, Math.round(LEAVE_S * 1000) + 10);
+  }
   clearTimeout(blurT);
   blurT = setTimeout(blurBack, BLUR_BACK_MS);
 }
@@ -449,7 +442,7 @@ function blurBack() {
   blurT = 0;
   if (!blurred || !visibleNow || document.visibilityState === 'hidden') return;
   blurred = false;
-  if (fresh && !hushed) { freshBack('mode B — still on screen after a blur'); return; }
+  mediaCut(false, 'still on screen after a blur');
   if (ctx && master && !hushed && ctx.state === 'running') fadeIn('still on screen after a blur');
   // (FIXES R1 — THE REVIEW A7: the OS took the context meanwhile (interrupted — Siri, a call, a prompt): ask for it back and leave the fade
   //  PENDING — it runs with 'running' (onstatechange), the beds with it; resumeBeds() alone left the master at 0 for good)
@@ -461,10 +454,8 @@ function setVisible(visible, why = '') {
   if (visible === visibleNow) { if (visible) kick(); return; }
   visibleNow = visible;
   blurred = false; clearTimeout(blurT); blurT = 0;
-  if (visible) { visibleAt = performance.now(); setSession('back on screen'); }
-  if (visible && fresh && unlocked && !hushed) freshBack('mode B — back on screen');
-  if (visible && idleSusp && ctx && unlocked && !hushed) { /* (mode A: the next sound wakes it) */ }
-  else if (ctx) {
+  if (visible) { visibleAt = performance.now(); setSession('back on screen'); mediaCutOn = false; }   // (CITY G: the media's own return = onVisibility)
+  if (ctx) {
     if (visible && unlocked && hushed) { /* (CITY A: hushed — back on screen wakes nothing) */ }
     else if (visible && unlocked) {
       clearTimeout(fadeT);
@@ -478,102 +469,61 @@ function setVisible(visible, why = '') {
 /** Test hook: the page leaves / comes back (the fade → the suspend → the resume → the ramp up, in the log). */
 export function simulateVisible(v) { setVisible(!!v, v ? 'test show' : 'test hide'); }
 
-// ---- FIXES R3 — mode A, IDLE SILENCE: with the music off nothing runs between effects
-const IDLE_MS = 1500, EAR_FLOOR = 1e-4;   // (−80 dBFS)
-let ear = null, earBuf = null;
-const restWanted = () => leaveMode === 'A' && !hushWanted() && !!(settings.musicOff || !(settings.music > 0));
-const restListeners = new Set();
-/** mode A + the music off: no element, no song, no bed plays (as in THE HUSH) */
-export const musicResting = () => resting;
-export function onMusicRest(fn) { restListeners.add(fn); return () => restListeners.delete(fn); }
-globalThis.__nsAudioRest = musicResting;
-function restCheck(why) {
-  const w = restWanted();
-  if (w === resting) return;
-  resting = w;
-  audioLog(`music ${w ? 'resting' : 'awake'} (${why})`);
-  restListeners.forEach(fn => { try { fn(w); } catch (e) { console.warn(e); } });
-  if (!w && idleSusp) wakeIdle('the music on');
+// ---- CITY G — THE HARD CUT ('ambient' — the music off, the effects on): the master to 0 AT ONCE + the beds stopped in the SAME step, the
+// zeros held ZERO_HOLD_MS, then the suspend (THE CUT IN ONE ORDER, docs/audio.md); `still()` = is the page still away (a blur that came back
+// keeps the context: blurBack fades it in)
+function hardCut(c, why, still) {
+  silence(c); pauseBeds(why); cutStart('leave');
+  leaveNote('cut: hard (ambient) — the master 0 + the beds stopped');
+  audioLog(`hard cut (${why}) — ambient: the master 0 + the beds in one step`);
+  clearTimeout(fadeT);
+  fadeT = setTimeout(() => { if (ctx === c && still() && c.state === 'running') { cutSuspend(c); leaveNote('cut: suspend asked'); c.suspend().then(() => { if (ctx === c) audioLog('suspended after the hard cut'); }, () => {}); } }, ZERO_HOLD_MS);
 }
-let soundWhy = '';
-function noteSound(why) { lastSoundAt = performance.now(); soundWhy = why; if (idleSusp) wakeIdle(why); }
-function wakeIdle(why) {
-  if (!idleSusp) return;
-  idleSusp = false;
-  const c = ctx;
-  if (!c || !master) return;
-  try { const t = c.currentTime, g = master.gain; g.cancelScheduledValues(t); g.setValueAtTime(1, t); } catch { /* closed */ }
-  audioLog(`idle → awake (${why})`);
-  if (c.state !== 'running' && visibleNow && document.visibilityState === 'visible') ask(`a sound (${why})`);
+// ---- CITY G — THE MEDIA CUT (the 5:44 pm entry: "media: voice victory3 PLAYING" at the first signal — an HTML element, not the Web Audio
+// master, and iOS may keep one playing behind a 'playback' session): every owner of a media element (music.js — the songs, the podium's
+// victory song, a direct path; any game's DOM audio through the hub) pauses EVERY playing element in the cut's own step: onLeaveCut(fn(left,
+// why)) — left = true at the cut, false when a blur came back on screen (the hidden → visible return is THE FADE's usual onVisibility).
+const leaveCutListeners = new Set();
+export function onLeaveCut(fn) { leaveCutListeners.add(fn); return () => leaveCutListeners.delete(fn); }
+globalThis.__nsLeaveCut = onLeaveCut;
+// (the music off → no synced song on through a 0 bus — synced-songs.js reads it through this hub; CITY G: the music's own switch, no mode)
+globalThis.__nsAudioRest = () => !!(settings.musicOff || !(settings.music > 0));
+let mediaCutOn = false;
+function mediaCut(left, why) {
+  if (left === mediaCutOn) return;
+  mediaCutOn = left;
+  leaveCutListeners.forEach(fn => { try { fn(left, why); } catch (e) { console.warn(e); } });
+  // (belt and braces: a page's own <audio> / <video> nobody registered)
+  if (left && typeof document !== 'undefined' && typeof document.querySelectorAll === 'function') for (const el of document.querySelectorAll('audio, video')) { try { if (!el.paused) el.pause(); } catch { /* fine */ } }
+  if (left) leaveNote(`media after: ${mediaAfter()}`);
 }
-let earPeak = 0;
-const hearing = () => { if (!ear) return false; let pk = 0; try { ear.getFloatTimeDomainData(earBuf); for (let i = 0; i < earBuf.length; i++) pk = Math.max(pk, Math.abs(earBuf[i])); } catch { /* closed */ } earPeak = pk; return pk > EAR_FLOOR; };
-function idleTick() {
-  const c = ctx;
-  if (!c || !master || !unlocked || hushed || !resting || !visibleNow || document.visibilityState !== 'visible' || idleSusp || c.state !== 'running' || frozen || pendingFadeIn) return;
-  if (beds.size && !bedsPaused) return;
-  if (hearing()) { lastSoundAt = performance.now(); soundWhy = 'heard on the master'; return; }
-  if (performance.now() - lastSoundAt < IDLE_MS) return;
-  idleSusp = true;
-  quiet(c, CUT_S); cutStart('idle');                         // (R2's order)
-  setTimeout(() => { if (ctx !== c || !idleSusp || c.state !== 'running') return; cutSuspend(c); c.suspend().then(() => { if (ctx === c) audioLog('idle — asleep (mode A)'); }, () => {}); }, Math.round(CUT_S * 1000) + ZERO_HOLD_MS);
+/** what media still plays right after the cut → 'all paused' | the list (the AUDIO LEAVE row's "media after") */
+function mediaAfter() {
+  const parts = [];
+  // (the ELEMENTS only — music.js's hub; the synced stations are Web Audio voices, silent with the master + suspended with the context)
+  const f = soundingHubs.get('media'); if (f) { let v = '—'; try { v = f(); } catch { v = '?'; } if (v && v !== '—' && !/^none/.test(v)) parts.push(v); }
+  try { for (const el of document.querySelectorAll('audio, video')) if (!el.paused) parts.push('a DOM element'); } catch { /* fine */ }
+  return parts.length ? parts.join(' · ') : 'all paused';
 }
-/** a lazy chunk's sound about to play on `c` (through the hub) — live, or asleep + woken now */
-export function audioLive(c) { if (c && c === ctx && idleSusp) { wakeIdle('a sound asked'); return true; } return !!c && c.state === 'running'; }
-globalThis.__nsAudioLive = audioLive;
-
-// ---- FIXES R3 — mode B, CLOSE AT ONCE: the first leave signal — the master 0 + the context CLOSED; the return builds a fresh one
-function closeOnLeave(why) {
-  const c = ctx;
-  if (!c || c.state === 'closed') return false;
-  if (master) silence(c);
-  pauseBeds(why);
-  closeContext(c);
-  ctx = null; musicBus = null; sfxBus = null; master = null; ear = null; idleSusp = false;
-  fresh = true; pendingFadeIn = true;
-  leaveNote('closed (mode B)', true);
-  audioLog(`closed at once (mode B: ${why})`);
-  return true;
-}
-
-/** mode B's return: a fresh context; one that runs at once fades in now */
-function freshBack(why) {
-  fresh = false;
-  rebuild(why);
-  if (ctx && master && ctx.state === 'running' && !frozen && pendingFadeIn && visibleNow) fadeIn(why);
-}
-
-// ---- FIXES R3 — THE LEAVE MODE's switch (☰ → LEAVE MODE): this phone only; the lazy panel through the hub
-export const getLeaveMode = () => leaveMode;
-export function setLeaveMode(m) {
-  const v = leaveModeOf(m);
-  try { localStorage.setItem(LEAVE_KEY, v); } catch { /* private mode */ }
-  if (v === leaveMode) return v;
-  leaveMode = v;
-  audioLog(`leave mode → ${v} (${LEAVE_MODES[v].name})`);
-  setSession('leave mode');
-  restCheck('leave mode');
-  if (v !== 'A' && idleSusp) wakeIdle('leave mode');
-  return v;
-}
-globalThis.__nsLeaveMode = { get: () => leaveMode, set: setLeaveMode, modes: LEAVE_MODES, next: nextLeaveMode };
+/** test hook: the page's media-cut state (left / back) */
+export const mediaCutState = () => ({ on: mediaCutOn, after: mediaAfter() });
 
 // ---- FIXES R3 — THE LEAVE RECORD: each signal written SYNCHRONOUSLY → an AUDIO LEAVE row at the next return / load; soundingHub(name, fn)
 const soundingHubs = new Map();
 export function soundingHub(name, fn) { soundingHubs.set(name, fn); return () => soundingHubs.delete(name); }
 globalThis.__nsSounding = soundingHub;
 export function soundingNow() {
-  const o = { ctx: ctx ? ctx.state : fresh ? 'closed (fresh on return)' : 'none', master: master ? +master.gain.value.toFixed(3) : null, fx: sfxBus ? +sfxBus.gain.value.toFixed(3) : null,
-    music: musicBus ? +musicBus.gain.value.toFixed(3) : null, beds: bedsPaused ? `${beds.size} stopped` : beds.size, idle: idleSusp, rest: resting, hushed };
+  const o = { ctx: ctx ? ctx.state : 'none', master: master ? +master.gain.value.toFixed(3) : null, fx: sfxBus ? +sfxBus.gain.value.toFixed(3) : null,
+    music: musicBus ? +musicBus.gain.value.toFixed(3) : null, beds: bedsPaused ? `${beds.size} stopped` : beds.size, hushed };
   for (const [k, fn] of soundingHubs) { try { o[k] = fn(); } catch { o[k] = '?'; } }
   return o;
 }
 let episode = null, lastLeave = null;
 function leaveNote(sig, start = false) {
-  if (!reportable()) return;   // (only a phone that reports leaves records one — the owner's or &debug=1; nobody else gets a write)
+  if (!reportable()) { if (start) quietAudio(); return; }   // (CITY G: only an ADMIN phone records a leave — every other phone is COUNTED)
   try {
     const now = Date.now();
-    if (!episode) { if (!start) return; episode = { mode: leaveMode, at: now, dev: deviceLine(), session: sessionInfo() || 'n/a', vis: document.visibilityState, first: soundingNow(), sig: [], left: false }; }
+    if (!episode) { if (!start) return; episode = { sess: sessionWant(), at: now, dev: deviceLine(), session: sessionInfo() || 'n/a', vis: document.visibilityState, first: soundingNow(), sig: [], left: false }; }
     if (episode.sig.length < 16) episode.sig.push({ s: sig, ms: now - episode.at, st: ctx ? ctx.state : 'none', m: master ? +master.gain.value.toFixed(3) : null });
     if (isLeftSignal(sig)) episode.left = true;
     localStorage.setItem(LEAVE_REC_KEY, JSON.stringify(episode));
@@ -624,8 +574,13 @@ export function cutReportText(t) {
   const head = `AUDIO CUT · ${t.why} · ctx ${t.from} → suspended after ${t.ms} ms · master ${t.mAt == null ? '?' : (+t.mAt).toFixed(3)} at the suspend · ${t.held} ms of zeros before it`;
   return `${head}\nat the cut: master ${t.master} · effects bus ${t.sfx} · ${t.beds} bed(s) · session ${t.session} · ${t.visible} · ${t.ua || ''}\nlog: ${(t.log || []).join(' · ')}`.slice(0, 1500);
 }
+// (CITY G: AUDIO LEAVE / AUDIO CUT rows only from an ADMIN phone — body.rd-owner = the radio loaded on the server's yes (ADMIN_PIDS) — or
+//  &debug=1; every other phone's leave / cut is COUNTED (errlog.js#countQuiet 'snd' — one number in /admin's errors, never a row))
 const reportable = () => { try { return document.body.classList.contains('rd-owner') || /[?&]debug=1(?:&|$)/.test(location.search); } catch { return false; } };
+let quietSaid = false;
+function quietAudio() { if (quietSaid) return; quietSaid = true; lazyImport(import('../errlog.js'), '../errlog.js').then(m => { if (typeof m.countQuiet === 'function') m.countQuiet('snd'); }).catch(() => {}); }
 function report(row, kind = 'audio') {
+  if (row && !reportable()) { quietAudio(); return; }
   if (!row || cutSent.has(row.why) || !reportable()) return;
   if (row.why === 'leave' && document.visibilityState !== 'visible') { try { localStorage.setItem(CUT_KEY, JSON.stringify(row)); } catch { /* fine */ } return; }
   cutSent.add(row.why);
@@ -655,10 +610,9 @@ export function installAudio() {
   document.addEventListener('resume', () => { audioLog('resume (lifecycle)'); setVisible(document.visibilityState === 'visible'); });
   // iOS 17+: the audio session comes back after a call / Siri / another app's audio
   try { if (navigator.audioSession && navigator.audioSession.addEventListener) navigator.audioSession.addEventListener('statechange', () => { leaveNote(`session ${sessionInfo()}`); audioLog(`session ${sessionInfo()}`); setSession('session change'); kick(); }); } catch { /* unsupported */ }
-  setInterval(() => { watchClock(); idleTick(); }, 250);
+  setInterval(watchClock, 250);
   setTimeout(sendKept, 4000);
   for (const ms of [4000, 15000]) setTimeout(sendLeave, ms);   // (FIXES R3: a leave never come back from)
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(sendKept, 1500); });
-  if (leaveMode === 'C1' || leaveMode === 'C2') setSession('boot');
-  restCheck('boot');
+  setSession('boot');   // (CITY G — THE SESSION BY STATE from the first moment: the music on = 'playback' (C2's tested path), off = 'ambient')
 }

@@ -92,7 +92,8 @@ try {
     const sus = at.s[at.s.length - 1];
     console.log(`  · ${name}: before the leave — the context ${before.state}, ${before.beds} bed(s), master ${before.master}; the log: ${at.log.join(' · ')}`);
     ok(before.state === 'running' && (prefs.sfxOff ? true : before.beds >= 1) && before.peak > 0, `${name}: the audio running + SOUNDING before the leave (${before.state}, ${before.beds} bed, the output's peak ${before.peak})`);
-    ok(at.log.some(m => /the master 0 at once/.test(m)), `${name}: the AUDIO log — "the master 0 at once" on the earliest signal (${at.log.filter(m => /blur|fade out|suspended/.test(m)).join(' · ')})`);
+    // (CITY G: with the music off — the 'ambient' session — the earliest signal is THE HARD CUT: "the master 0 + the beds in one step")
+    ok(at.log.some(m => /the master 0 at once|the master 0 \+ the beds in one step/.test(m)), `${name}: the AUDIO log — "the master 0 at once" (ambient: the hard cut) on the earliest signal (${at.log.filter(m => /blur|fade out|suspended/.test(m)).join(' · ')})`);
     ok(!!sus && at.state === 'suspended', `${name}: suspended after the leave (${at.state})`);
     ok(!!sus && sus.master === 0, `${name}: the master is 0 AT the suspend (${sus ? sus.master : '?'})`);
     ok(!!sus && sus.loops.length === 0 && sus.playing === 0, `${name}: NO bed / loop and no <audio> element running at the suspend (${sus ? `${sus.loops.length} loops${sus.loops.length ? `: ${sus.loops.join(', ')}` : ''} · ${sus.playing} elements playing` : 'no suspend seen'})`);
