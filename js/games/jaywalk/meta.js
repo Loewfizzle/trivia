@@ -1,5 +1,5 @@
 // JAYWALK — THE THIN META (H1 — docs/jaywalk.md; docs/cartridge.md D1): what the console reads before a match. PURE + tiny, no imports.
-// BEING BUILT: config.js GAMES row `playable: false` + `preview: true` — never offered (THE ONE SWITCH stays off until the fix pass).
+// PLAYABLE since THE GO-LIVE PASS (Nov 17): config.js GAMES row `playable: true` — this meta joins the boot (registry.js#META).
 // ONE LIFE EVERYWHERE (H4 — the owner, Nov 16): one hit = out, in every mode — the lives option is GONE; the game has no options
 export const DEFAULT_SETTINGS = {};
 // (one player may start it: SOLO ENDLESS — no speed-up, no end; PLAY NOW comes by this flag alone once it is playable)

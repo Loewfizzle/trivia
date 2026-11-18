@@ -321,7 +321,27 @@ const holdem = () => `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
 <image href="${HOLDEM_TILE}" x="0" y="0" width="120" height="120" preserveAspectRatio="xMidYMid slice"/>
 <rect width="120" height="120" fill="url(#hd-shade)"/></svg>`;
 
-const ART = { holdem, rum: () => RUM, stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
+// JAYWALK (THE GO-LIVE PASS): its neon mark THE SIGNAL (core/marks.js#MARKS.jaywalk — the same two paths) lit on a night street — the
+// crossing light's CYAN box over a zebra crossing, its walking kid HOT PINK with a white-hot core; bold strokes + one glow (reads at 72 pt)
+const JW_BOX = 'M32 8 H68 Q75 8 75 15 V85 Q75 92 68 92 H32 Q25 92 25 85 V15 Q25 8 32 8 Z';
+const JW_KID = 'M52 20.5 A3.5 3.5 0 1 0 52.1 20.5 M51 36 L48 55 L57 66 L56 80 M48 55 L41 67 L37 79 M51 39 L60 47 M50 39 L41 48';
+const JAYWALK = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
+<radialGradient id="jw-bg" cx="0.5" cy="0.35" r="0.85"><stop offset="0" stop-color="#1a2150"/><stop offset="0.6" stop-color="#0a0d24"/><stop offset="1" stop-color="#04050c"/></radialGradient>
+${glow('jw-glow', 2.6)}</defs>
+<rect width="120" height="120" fill="url(#jw-bg)"/>
+<rect y="98" width="120" height="22" fill="#0b0e18"/>
+<path d="M4 104h12M24 104h12M44 104h12M64 104h12M84 104h12M104 104h12" stroke="#e9eefb" stroke-opacity="0.5" stroke-width="7"/>
+<g transform="translate(7.6 0.5) scale(1.06)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="${JW_BOX}" fill="#050913" fill-opacity="0.85"/>
+<path d="${JW_BOX}" stroke="#35e3ff" stroke-width="7" opacity="0.55" filter="url(#jw-glow)"/>
+<path d="${JW_BOX}" stroke="#35e3ff" stroke-width="3.6"/>
+<path d="${JW_BOX}" stroke="#e6fdff" stroke-width="1.1"/>
+<path d="${JW_KID}" stroke="#ff3fa4" stroke-width="8" opacity="0.6" filter="url(#jw-glow)"/>
+<path d="${JW_KID}" stroke="#ff3fa4" stroke-width="4.6"/>
+<path d="${JW_KID}" stroke="#ffe3f3" stroke-width="1.5"/>
+</g></svg>`;
+
+const ART = { jaywalk: () => JAYWALK, holdem, rum: () => RUM, stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
 
 /** Just the SVG (e.g. the How to Play tabs). */
 export const gameArtSvg = id => (ART[id] ? svgEl(ART[id]()) : null);

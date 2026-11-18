@@ -1,5 +1,5 @@
-// JAYWALK — THE CARTRIDGE (H1 — docs/jaywalk.md; the contract: js/games/contract.js, docs/cartridge.md). BEING BUILT: config.js GAMES
-// `playable: false` + `preview: true` — the console never offers it; a local emulator page (`?emu&preview=1`) or the owner's phone may start it.
+// JAYWALK — THE CARTRIDGE (H1 — docs/jaywalk.md; the contract: js/games/contract.js, docs/cartridge.md). PLAYABLE since THE GO-LIVE
+// PASS (Nov 17): config.js GAMES `playable: true` — offered everywhere; its thin meta at boot (registry.js#META), HOW TO PLAY in ui/help.js.
 // H4 = THE MATCH (ONE LIFE): the course from THE FIRST GO, the ghosts (everyone's hop logs through the same engine), the live order, out =
 // SPECTATE + Call the Winner, the podium (the winner, the order, each player's cause line); the server replays every player's log.
 // H3 = THE SOLO GAME: the real view (view.js — the night look, the proof written as you hop), the end screen (victory.js), PLAY AGAIN.
@@ -12,9 +12,6 @@ import { standings } from './logic.js';
 export * from './meta.js';
 import { lazyView, gameSheets } from '../lazy-view.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { registerHelp } from './help.js';
-
-registerHelp();   // (HOW TO PLAY: its rules through the shared help's hub until the go-live pass moves them into ui/help.js)
 
 /** H5B — THE MUSIC FOLLOWS THE LOOK (the existing mood stations): the day deck by day, the evening deck by night — `meta.MUSIC` stays
  *  the podium's + the fallback */

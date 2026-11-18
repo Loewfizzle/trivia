@@ -691,6 +691,11 @@ body.bd-on .help-btn, body.help-open .help-btn { display: none; }
 .help-list { display: flex; flex-direction: column; gap: 6px; }
 .help-list li { position: relative; padding-left: 18px; font-size: 15px; line-height: 1.4; color: var(--text-dim); }
 .help-list li::before { content: '▸'; position: absolute; left: 0; color: var(--accent); }
+/* one small drawing a line (JAYWALK's — RULES[id].pics; moved from css/jaywalk.css at its go-live: the help opens before the cartridge loads) */
+.help-pics { gap: 10px; }
+.help-pics li { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 12px; padding-left: 0; font-size: 16px; line-height: 1.3; }
+.help-pics li::before { content: none; }
+.help-pic { display: grid; place-items: center; width: 44px; height: 44px; }
 .help-legend { display: flex; flex-direction: column; gap: 8px; }
 .help-legend li { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--text-dim); }
 .help-tile { display: grid; place-items: center; width: 34px; height: 34px; font-family: var(--font-display); font-weight: 900; font-size: 16px; }

@@ -17,12 +17,8 @@ const PLAYABLE = GAMES.filter(g => g.playable && !g.daily);
 /** JAYWALK H1 — A GAME BEING BUILT (`preview: true`, not playable) is checked in the SAME places, minus the ones that honestly wait for a later pass */
 const BUILDING = GAMES.filter(g => !g.playable && g.preview && !g.daily);
 /** THE ONE LIST of the places JAYWALK does not have YET — each with the pass that gives it. A place that is there is REMOVED from this list
- *  (a test below fails on a stale entry); the go-live pass (the fix pass that flips `playable`) must leave it EMPTY (a test says so). */
-export const JAYWALK_WAITS = Object.freeze({
-  meta: 'the go-live pass — its thin meta in registry META at boot (THE BOOT BUDGET is at its limit: 310 / 310 modules — a named raise then, as HOLD’EM’s was)',
-  help: 'the go-live pass — ui/help.js RULES + its tab (HOW TO PLAY): a BOOT file — H3 built the content in js/games/jaywalk/help.js (shown in a JAYWALK run through the help hub), ready to move in',
-  art: 'the go-live pass — ui/game-art.js ART (its tile): a BOOT file, and the boot’s bytes are at their limit (the owner, Nov 16: JAYWALK stays out of the boot until the city’s CHROMEBOOK pass trims it)',
-});
+ *  (a test below fails on a stale entry); the go-live pass (the fix pass that flips `playable`) must leave it EMPTY (a test says so) — it did. */
+export const JAYWALK_WAITS = Object.freeze({});   // (THE GO-LIVE PASS, Nov 17: EMPTY — meta, help, art all landed; JAYWALK is playable)
 const WAITS = Object.freeze({ jaywalk: JAYWALK_WAITS });
 /** a live node only the SERVER writes (rules: .write false) — not a player node, never in the wipe list (its dealer clears it) */
 const SERVER_LIVE = Object.freeze({ holdem: "HOLD'EM's public table — rooms/{CODE}/holdem, written by THE DEALER (api/_lib/holdem-store.js) only" });
@@ -30,7 +26,7 @@ const SERVER_LIVE = Object.freeze({ holdem: "HOLD'EM's public table — rooms/{C
 /** every place ONE game must be registered in → [[key, what is missing]] */
 async function gaps(g) {
   const reg = read('js/games/registry.js'), help = read('js/ui/help.js'), art = read('js/ui/game-art.js'), base = read('css/base.css');
-  const boards = read('js/core/boards.js'), smoke = read('tests/integration/e2e-smoke.mjs'), report = read('api/report.js');
+  const boardView = read('js/board/view.js'), boards = read('js/core/boards.js'), smoke = read('tests/integration/e2e-smoke.mjs'), report = read('api/report.js');
   const budget = JSON.parse(read('tests/integration/game-budget.json')), graph = read('js/games/preload-graph.js');
   const proofs = Object.fromEntries([...report.matchAll(/^\s{2}([a-z]+): m => \(\{ room: \[([^\]]*)\]/gm)].map(x => [x[1], [...x[2].matchAll(/`([a-z]+)\//g)].map(y => y[1])]));
   const id = g.id, idx = (() => { try { return read(`js/games/${id}/index.js`); } catch { return ''; } })();
@@ -46,6 +42,9 @@ async function gaps(g) {
   if (!new RegExp(`const ART = \\{[^}]*\\b${id}\\b`).test(art)) miss('art', 'ui/game-art.js ART (its tile)');
   if (!base.includes(`[data-theme='${g.theme}']`)) miss('theme', `css/base.css [data-theme='${g.theme}'] (its theme)`);
   if (!new RegExp(`\\n\\s+${id}: \\{ records:`).test(boards)) miss('boards', 'core/boards.js (its boards)');
+  // (THE GO-LIVE PASS — the review's gap: a playable game with no tab on THE BOARD — its tab in board/view.js#TABS)
+  const tabs = /export const TABS = Object\.freeze\(\[([^\]]*)\]\)/.exec(boardView);
+  if (!tabs || !tabs[1].includes(`'${id}'`)) miss('boardtab', 'board/view.js TABS — its tab on THE BOARD');
   if (!REPORT_GAMES.includes(id) && !DEALER_GAMES.includes(id)) miss('report', 'core/match-report.js — STANDINGS (the shared report) or DEALER_GAMES (its own dealer)');
   if (meta && meta.SOLO === true && !SOLO_OK[id]) miss('solo', 'match-report.js SOLO_OK — a SOLO meta without it: PLAY NOW works, then the server refuses the run');
   if (REPORT_GAMES.includes(id) && !proofs[id]) miss('proof', 'api/report.js PROOF_TREES — a reported game\'s proof of play (else the seat rule silently)');
@@ -69,7 +68,7 @@ test('T1 — every playable game is registered in EVERY place the console, the s
 });
 
 test('JAYWALK H1 — a game BEING BUILT (a `preview` row) is registered in the same places — minus its ONE named list of waits, each with its pass; none of them stale', async () => {
-  assert.deepEqual(BUILDING.map(g => g.id), ['jaywalk'], 'the game being built');
+  assert.deepEqual(BUILDING.map(g => g.id), [], 'no game is being built — JAYWALK went playable (THE GO-LIVE PASS); the next one joins here');
   for (const g of BUILDING) {
     const waits = WAITS[g.id] || {}, found = await gaps(g), keys = new Set(found.map(x => x[0]));
     assert.deepEqual(found.filter(([k]) => !(k in waits)).map(([, what]) => `${g.id}: ${what}`), [], `${g.id}: every place that does not wait`);
@@ -78,16 +77,17 @@ test('JAYWALK H1 — a game BEING BUILT (a `preview` row) is registered in the s
   }
 });
 
-test('JAYWALK H1 — THE GO-LIVE PASS MUST EMPTY THE WAITS: a playable game has no waits list left; a wait for a game that is not being built is stale', () => {
+test('JAYWALK is playable, no waits (THE GO-LIVE PASS): a playable game has no waits list left; a wait for a game that is not being built is stale', () => {
   for (const [id, waits] of Object.entries(WAITS)) {
     const g = GAMES.find(x => x.id === id);
     assert.ok(g, `${id} is a GAMES row`);
     if (g.playable) assert.deepEqual(Object.keys(waits), [], `${id} is PLAYABLE — its waits list must be empty (and it then passes the playable games' check above in full)`);
     else assert.ok(g.preview === true, `${id}: waits are only for a game being built`);
   }
-  // (the rule bites: a playable row with a wait left fails — the same check on a copy)
-  const live = { ...GAMES.find(x => x.id === 'jaywalk'), playable: true };
-  assert.ok(live.playable && Object.keys(JAYWALK_WAITS).length > 0, 'today: being built, with waits — flipping the switch without emptying them is red');
+  assert.ok(GAMES.find(x => x.id === 'jaywalk').playable && Object.keys(JAYWALK_WAITS).length === 0, 'JAYWALK is playable, no waits');
+  // (the rule still bites — the same check on a copy: a playable row with a wait left is red)
+  const ok = (g, w) => !g.playable || Object.keys(w).length === 0;
+  assert.equal(ok({ playable: true }, { meta: 'the go-live pass — x' }), false, 'a playable row with a wait left is red');
 });
 
 test('T1 — the cross-check bites: a SOLO meta without SOLO_OK, a proof node outside the list, a livePaths node never wiped are named', () => {

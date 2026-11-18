@@ -246,6 +246,41 @@ RULES.holdem = {
   ],
 };
 
+// THE GO-LIVE PASS — JAYWALK (moved in from its cartridge, where H3 built it out of the full boot): one line, then short lines a kid can
+// read, one small drawing each (`pics` — the shared help's picture list, .help-pics). True by day (fog by day); the keys on a keyboard.
+RULES.jaywalk = {
+  goal: 'Hop across the harbor. One life. In a match, the farthest wins.',
+  sections: [
+    ['HOW TO MOVE', [
+      'TAP to hop forward.',
+      'SWIPE left or right to step sideways.',
+      'SWIPE down to step back.',
+      'KEYBOARD: the arrow keys or W A S D. SPACE hops too.',
+    ]],
+    ['WATCH OUT', [
+      'ROADS: wait for a gap in the cars.',
+      'WATER: only the logs. Hop off before the edge.',
+      'RAILS: the red lights flash, then the train comes.',
+      'RUNWAY: the lights race, then the jet flies by.',
+      'A GREEN RING: a UFO is landing. Step out of it.',
+      'THE LIGHTS go out behind you (fog by day). Move!',
+    ]],
+  ],
+};
+const svg = (d, c) => `<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+RULES.jaywalk.pics = [
+  [svg('<circle cx="12" cy="17" r="3"/><path d="M12 12V3M8 7l4-4 4 4"/>', '#ff7fd6'),                                             // tap: a finger's dot + an arrow up
+    svg('<path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4"/>', '#8ff0ff'),                                                               // swipe sideways
+    svg('<path d="M12 4v15M8 15l4 4 4-4"/>', '#8ff0ff'),                                                                            // swipe down
+    svg('<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/>', '#8ff0ff')],                        // a keyboard
+  [svg('<path d="M3 15h18M5 15l1.6-4.5h8.2L17.6 15M19 15v-2.5l-1.4-2"/><circle cx="7.5" cy="16.5" r="1.7"/><circle cx="16" cy="16.5" r="1.7"/>', '#ffd36a'),   // a car
+    svg('<rect x="4" y="8" width="16" height="6" rx="3"/><path d="M2 18c2-1.6 3.5-1.6 5 0s3 1.6 5 0 3-1.6 5 0 3 1.6 5 0"/>', '#7fb8ff'),                      // a log on the water
+    svg('<path d="M12 21V11"/><circle cx="8" cy="7" r="3"/><circle cx="16" cy="7" r="3"/><path d="M5 21h14"/>', '#ff5a5a'),                                    // the signal's two red lights
+    svg('<path d="M3 13l18-6-6 6 6 6z"/><path d="M3 18h6M3 8h6" opacity=".6"/>', '#ffb347'),                                                                   // the runway: the jet's dart + the racing lights
+    svg('<ellipse cx="12" cy="18" rx="8" ry="3"/><path d="M6 9h12M9 9a3 3 0 0 1 6 0"/><path d="M12 11v4" opacity=".6"/>', '#7dffa0'),                        // the UFO over its green ring
+    svg('<path d="M3 20h18M3 15h18"/><path d="M5 10h14" opacity=".55"/><path d="M8 5h8" opacity=".25"/>', '#b8a6ff')],                                         // the lights going out
+];
+
 RULES.gridlock = {
   goal: 'A fleet battle on a holographic war table. Hide your ships, call your shots, sink everyone else. The last fleet standing wins. 2–8 players.',
   sections: [
@@ -371,7 +406,7 @@ const LEGEND = [
   ['0', 'C', 'Not in the word'],
 ];
 
-const TAB = { holdem: 'HE', rum: 'RR', stakes: 'HS', gridlock: 'GL', slip: 'SS', prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
+const TAB = { jaywalk: 'JW', holdem: 'HE', rum: 'RR', stakes: 'HS', gridlock: 'GL', slip: 'SS', prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
 
 let sheet = null;
 
@@ -380,14 +415,16 @@ function body(id) {
   const r = RULES[id];
   return [
     h('p.help-goal', r.goal),
-    ...r.sections.map(([title, items]) => h('section.help-section',
+    ...r.sections.map(([title, items], s) => h('section.help-section',
       h('h3.help-h', title),
       items === 'legend'
         ? h('ul.help-legend', LEGEND.map(([s, ch, label]) => h('li', h('span.help-tile', { dataset: { s } }, ch), h('span', label))))
         : items === 'holdem-rankings'
           // (HE3 — the 10 hands best → worst, each with a tiny example: the cartridge's own sheet, loaded on the tap)
           ? h('button.btn.btn-ghost.btn-sm.help-more', { type: 'button', onclick: () => lazyImport(import('../games/holdem/rankings.js'), '../games/holdem/rankings.js').then(m => m.openRankings()).catch(() => {}) }, 'SEE THE HAND RANKINGS')
-          : h('ul.help-list', items.map(t => h('li', t))))),
+          : r.pics
+            ? h('ul.help-list.help-pics', items.map((t, i) => h('li', h('span.help-pic', { html: r.pics[s][i] }), h('span', t))))   // (one small drawing a line — JAYWALK)
+            : h('ul.help-list', items.map(t => h('li', t))))),
   ];
 }
 

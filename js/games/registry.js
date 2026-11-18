@@ -12,6 +12,7 @@
 import * as overclockMeta from './overclock/meta.js';
 import * as prismMeta from './prism/meta.js';
 import * as holdemMeta from './holdem/meta.js';   // (HE10: HOLD'EM playable — its thin meta at boot, like every playable game)
+import * as jaywalkMeta from './jaywalk/meta.js';   // (THE GO-LIVE PASS: JAYWALK playable — its thin meta at boot, the same)
 import { state } from '../store.js';
 import { FROZEN_IDS } from '../config.js';   // (FIXES R2 — B1: the frozen games are never loaded)
 import { unsealed } from './kit/seal.js';
@@ -29,7 +30,7 @@ const LOADERS = {
   jaywalk: () => import('./jaywalk/index.js'),
 };
 export const GAME_IDS = Object.freeze(Object.keys(LOADERS));
-export const META = Object.freeze({ overclock: overclockMeta, prism: prismMeta, holdem: holdemMeta });
+export const META = Object.freeze({ overclock: overclockMeta, prism: prismMeta, holdem: holdemMeta, jaywalk: jaywalkMeta });
 export const GAME_MODULES = {};
 const pending = {}, loadedFns = new Set();
 // (FIXES R2 — B1: a FROZEN game is never loaded — config.js#FROZEN_IDS; the emulators' `&frozen=1` lets a test load one on purpose)

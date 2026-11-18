@@ -181,7 +181,7 @@ test('THE SOLO DIRECTOR: no count (`play` at once, PLAY NOW\'s walk inside is th
   const stub = { DEFAULT_SETTINGS: {}, OPTIONS: [], estimateMinutes() {}, MUSIC: null, start() {}, prepare() {}, step() {}, livePaths() {}, createView() {}, finalRanks() {} };
   assert.deepEqual(checkCartridge('x', { ...stub, AGAIN_LABEL: 'ONE MORE' }), []);
   assert.doesNotMatch(read('js/games/jaywalk/meta.js').replace(/\/\/[^\n]*/g, ''), /AGAIN_LABEL|HOP AGAIN/, 'H4 — the owner: PLAY AGAIN everywhere (the console\'s own word): JAYWALK sets no label');
-  for (const f of ['view.js', 'lab.js', 'victory.js', 'help.js']) assert.doesNotMatch(read(`js/games/jaywalk/${f}`).replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, ''), /HOP AGAIN/, `${f}: never HOP AGAIN on screen`);
+  for (const f of ['view.js', 'lab.js', 'victory.js']) assert.doesNotMatch(read(`js/games/jaywalk/${f}`).replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, ''), /HOP AGAIN/, `${f}: never HOP AGAIN on screen`);
   assert.equal(checkCartridge('x', { ...stub, AGAIN_LABEL: 'go' }).length, 1);
 });
 
@@ -239,9 +239,10 @@ test('THE PHONE\'s SIDE OF THE PROOF (view.js): GO = the server\'s time, read ba
   assert.match(f, /mod\.AGAIN_LABEL/); assert.match(f, /A\.instantAgain\(\) : false\)\) : false\)\.then\(ok => ok \|\| PN\.again\(\)\)/, 'no instant path → the console\'s PLAY AGAIN');
   assert.match(idx, /export const soloAgain = \(game, \{ matchId, now \}\) => nextRun\(game, \{ matchId, now \}\);/);
   assert.match(idx, /export \{ finalScene \} from '\.\/victory\.js';/); assert.match(idx, /export const shareRun =/); assert.match(idx, /export function preload\(\)/);
-  // the server: the owner's test only, the proof on both paths
+  // the server: the proof on both paths; the owner's-test branch is GENERIC now — kept for the next game being built (JAYWALK is playable
+  // since THE GO-LIVE PASS: its GAMES row has no `preview`, so the branch never matches it — everyone's reports are counted)
   const r = read('api/report.js');
-  assert.match(r, /if \(uid && GAMES\.some\(g => g\.id === id && g\.preview && !g\.playable\)\) \{\s*const owner = async u => \{ const pid = await pidOf\(u\); return !!pid && \(adminPids\(\)\.includes\(pid\) \|\|/, 'a game being built: THE OWNER\'s test');
+  assert.match(r, /if \(uid && GAMES\.some\(g => g\.id === id && g\.preview && !g\.playable\)\) \{\s*const owner = async u => \{ const pid = await pidOf\(u\); return !!pid && \(adminPids\(\)\.includes\(pid\) \|\|/, 'a game being built (none today — the branch waits for the next one): THE OWNER\'s test');
   assert.match(r, /if \(await owner\(uid\)\) return true;/);
   // (H4 — HIS GUESTS: a match THE OWNER PLAYED IN — his own proof node of that match in that room — counts for everyone in it)
   assert.match(r, /for \(const u of provenUids\(id, trees\)\) if \(u !== uid && \(await owner\(u\)\)\) return true;/, 'the owner\'s guests are counted — only in a match he played himself');
@@ -260,25 +261,29 @@ test('THE PHONE\'s SIDE OF THE PROOF (view.js): GO = the server\'s time, read ba
   assert.match(v, /night\.snap\(cv => \{/, 'the frame of the moment you went out'); assert.doesNotMatch(v, /jw-stub|BEING BUILT/, 'the match screen is real: the stub is gone');
 });
 
-test('HOW TO PLAY + YOUR TABLE (Group 3): the rules built OUT of the boot, ready to move in — shown through the help\'s hub; the table = you + your friends\' bests', async () => {
-  const { RULES, TAB } = await import('../js/games/jaywalk/help.js').catch(() => ({}));   // (pure data at the top; its DOM builder needs a page)
-  const src = read('js/games/jaywalk/help.js');
-  if (RULES) {
-    assert.ok(RULES.goal.length <= 70 && RULES.sections.length === 2, 'one line + two short sections');
-    for (const [title, items] of RULES.sections) { assert.match(title, /^[A-Z ]{6,16}$/); for (const t of items) assert.ok(t.length <= 52 && /^[A-Z]/.test(t), `a kid's line: ${t}`); }
-    assert.equal(TAB, 'JW');
-    const lines = RULES.sections.flatMap(s => s[1]).join(' ');
-    for (const w of ['TAP', 'SWIPE', 'ROADS', 'WATER', 'logs', 'RAILS', 'LIGHTS', 'RUNWAY', 'UFO', 'fog by day']) assert.ok(lines.includes(w), `the rules say ${w}`);
-    assert.doesNotMatch(RULES.goal + lines, /night harbor/, 'true by DAY too (the go-live review)'); assert.match(RULES.goal, /In a match, the farthest wins\./);
-  }
-  assert.match(src, /const PICS = \[/, 'one small drawing a line (picture-led)');
-  assert.equal((src.match(/svg\('/g) || []).length, 9, 'nine lines, nine drawings (the go-live review: + the runway, + the UFO\'s ring)');
-  assert.match(src, /export function registerHelp\(\) \{ \(globalThis\.__nsHelp \|\|= \{\}\)\.jaywalk = helpBody; \}/);
-  assert.match(read('js/games/jaywalk/index.js'), /registerHelp\(\);/, 'the cartridge registers it');
+test('HOW TO PLAY + YOUR TABLE: the rules IN ui/help.js since THE GO-LIVE PASS (moved from the cartridge, the hub kept for the next game); the table = you + your friends\' bests', async () => {
   const help = read('js/ui/help.js');
-  assert.match(help, /const hub = id => \(globalThis\.__nsHelp \|\| \{\}\)\[id\];/); assert.match(help, /if \(hub\(id\)\) return hub\(id\)\(\);/, 'the shared help shows a hub body');
-  assert.doesNotMatch(help, /jaywalk/i, 'ui/help.js (a boot file) still names no JAYWALK — its RULES + tab move in at go-live');
-  // the boot never grew: every boot file this pass touched got smaller or was trimmed to fit (THE BOOT BUDGET is full — never raised)
+  const blk = help.slice(help.indexOf('RULES.jaywalk = {'), help.indexOf('RULES.gridlock = {'));
+  assert.ok(blk.length > 200, 'RULES.jaywalk lives in ui/help.js');
+  const goal = /goal: '([^']+)'/.exec(blk)[1];
+  const titles = [...blk.matchAll(/^ {4}\['([A-Z ]+)', \[$/gm)].map(x => x[1]);
+  const lines = [...blk.matchAll(/^ {6}'([^']+)',$/gm)].map(x => x[1]);
+  assert.ok(goal.length <= 70 && titles.length === 2, 'one line + two short sections');
+  for (const t of titles) assert.match(t, /^[A-Z ]{6,16}$/);
+  for (const t of lines) assert.ok(t.length <= 52 && /^[A-Z]/.test(t), `a kid's line: ${t}`);
+  assert.equal(lines.length, 10, 'ten short lines (the review\'s nine + THE GO-LIVE PASS\'s keyboard line)');
+  const all = lines.join(' ');
+  for (const w of ['TAP', 'SWIPE', 'KEYBOARD', 'arrow keys', 'W A S D', 'SPACE', 'ROADS', 'WATER', 'logs', 'RAILS', 'LIGHTS', 'RUNWAY', 'UFO', 'fog by day']) assert.ok(all.includes(w), `the rules say ${w}`);
+  assert.doesNotMatch(goal + all, /night harbor/, 'true by DAY too (the go-live review)'); assert.match(goal, /One life\. In a match, the farthest wins\./);
+  assert.equal((blk.match(/svg\('/g) || []).length, 10, 'one small drawing a line (picture-led)');
+  assert.match(help, /const TAB = \{ jaywalk: 'JW',/);
+  assert.match(help, /\? h\('ul\.help-list\.help-pics', items\.map\(\(t, i\) => h\('li', h\('span\.help-pic', \{ html: r\.pics\[s\]\[i\] \}\), h\('span', t\)\)\)\)/, 'the shared help draws one picture a line');
+  assert.match(read('css/components.css'), /\.help-pics li \{/, 'its CSS in the boot stylesheet — the help opens before the cartridge loads');
+  assert.doesNotMatch(read('css/jaywalk.css'), /jw-help/, 'the cartridge\'s copy is gone');
+  assert.throws(() => read('js/games/jaywalk/help.js'), 'js/games/jaywalk/help.js is deleted');
+  assert.doesNotMatch(read('js/games/jaywalk/index.js'), /registerHelp|__nsHelp/, 'the cartridge registers no hub body any more');
+  assert.match(help, /const hub = id => \(globalThis\.__nsHelp \|\| \{\}\)\[id\];/); assert.match(help, /if \(hub\(id\)\) return hub\(id\)\(\);/, 'the hub stays for the next game being built');
+  // THE BOOT BUDGET is never raised (CITY F freed the room JAYWALK's meta + help + tile took)
   assert.equal(JSON.parse(read('tests/integration/boot-budget.json')).moduleKB, 6500);
   // YOUR TABLE: a table of one is nothing; you are always on it; best first; at most 4 rows
   const { tableRows, TABLE_ROWS } = await import('../js/games/jaywalk/victory.js').catch(() => ({}));
