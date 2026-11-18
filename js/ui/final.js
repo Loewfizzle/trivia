@@ -30,7 +30,8 @@ const FIN_ICONS = {
   again: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M20 3.5v4.8h-4.8"/>',
   share: '<path d="M12 15V3.8"/><path d="M7.6 8 12 3.6 16.4 8"/><path d="M5 12.5v6.5h14v-6.5"/>',
   city: '<path d="M3.8 11.2 12 4l8.2 7.2"/><path d="M6.3 9.4V20h11.4V9.4"/><path d="M10 20v-5.2h4V20"/>',
-  room: '<path d="M14.5 5.5 8 12l6.5 6.5"/><path d="M8.6 12H20"/>',
+  // (CITY G — the reviewer's item (1): "← BACK TO THE ROOM" ran through the centre divider at 390 — now ROOM with a DOOR, solo CITY's shape)
+  room: '<path d="M6 20V4h12v16"/><path d="M3.5 20h17"/><path d="M14.6 12.4h.01"/>',
 };
 function finIcon(id) {
   const i = h('i.final-ico', { 'aria-hidden': 'true' });
@@ -110,7 +111,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     if (isHost()) { back.classList.add('is-busy'); Promise.resolve(backToLobby()).catch(err => { back.classList.remove('is-busy'); toast('Couldn’t go back', 'err', { sub: String((err && err.message) || err) }); }); return; }
     if (state.game && state.game.matchId) setState({ quit: state.game.matchId });
   };
-  const back = h('button.final-link.final-back', { type: 'button', 'data-press': true, onclick: backTap }, finIcon('room'), h('span', 'BACK TO THE ROOM'));
+  const back = h('button.final-link.final-back', { type: 'button', 'data-press': true, 'aria-label': 'Back to the room', onclick: backTap }, finIcon('room'), h('span', 'ROOM'));
   // (PLAY NOW — PLAY AGAIN = the same game + options, THE SOLO START (JAYWALK H3 — THE INSTANT AGAIN: a cartridge with `soloAgain` starts its
   //  next run with NO walk inside — games/kit/again.js, loaded with the podium); BACK TO THE CITY = the solo room closed like a QUIT. Read
   //  through host.js's hub (__nsPlayNow) — this lazy chunk imports no new export)
@@ -148,7 +149,8 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
       if (busy(bar) || busy(back)) return;
       if (isHost()) {
         bar.classList.add('is-busy');
-        lazyImport(import('../host.js'), '../host.js').then(m => m.rematch()).then(ok => { if (!ok) bar.classList.remove('is-busy'); }, () => bar.classList.remove('is-busy'));
+        // (CITY G — REMATCH IN PLACE: straight into the same game's count on every phone — no city, no room screen in between)
+        lazyImport(import('../host.js'), '../host.js').then(m => m.rematch({ inPlace: true })).then(ok => { if (!ok) bar.classList.remove('is-busy'); }, () => bar.classList.remove('is-busy'));
         return;
       }
       const m = g && g.matchId;
@@ -156,11 +158,13 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
       voting = true;
       const mine = votes().mine;
       pendingVote = mine ? null : m; paint();
-      // (THE RULES-LAG: on rules before CITY F's re-publish a podium vote is refused → it WAITS on this phone (sessionStorage) and goes in
-      //  once the room is back with its REMATCH ring — screens/room-city.js reads it)
-      dbUpdate(dbRef(`rooms/${state.code}`), { [`rv/${state.uid}`]: mine ? null : m }).then(() => { try { sessionStorage.removeItem('ns:rv-wait'); } catch { /* fine */ } }, () => {
-        try { if (mine) sessionStorage.removeItem('ns:rv-wait'); else sessionStorage.setItem('ns:rv-wait', `${state.code}|${m}`); } catch { /* fine */ }
-      }).finally(() => { voting = false; paint(); });
+      // (CITY G — A LATE VOTE NEVER GOES IN (/admin RULES REFUSED rooms/*{rv/*}, Nov 17 10:27 pm): CITY F queued a refused vote on the phone and
+      //  wrote it once the room was back — after the end screen was gone. Now a refused vote is DROPPED (the bar shows it is not in); nothing
+      //  is ever written off the podium. The vote is written only while THIS match's end screen is up)
+      const live = () => !gone && state.code && state.game && state.game.matchId === m && state.game.phase === 'final';
+      if (!live()) { voting = false; pendingVote = null; paint(); return; }
+      dbUpdate(dbRef(`rooms/${state.code}`), { [`rv/${state.uid}`]: mine ? null : m }).catch(() => { if (pendingVote === m) pendingVote = null; })
+        .finally(() => { voting = false; paint(); });
     };
     paint();
     refreshers.push(paint);

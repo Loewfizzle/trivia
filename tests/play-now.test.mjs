@@ -88,7 +88,7 @@ test('PLAY NOW → playSolo: the room, this phone its host + online, the default
   assert.match(fn, /await createSoloRoom\(prof, gameId\)/);
   assert.match(fn, /startGame\(gameId, soloSettings\(meta, settings\), \{ solo: true \}\)/);
   assert.match(fn, /if \(!ok\) \{ await leaveRoom\(\)/);
-  assert.match(host, /const kind = solo \|\| isSoloMeta\(state\.meta\) \? 'solo' : quick;/, 'every start in a solo room is THE SOLO START (PLAY AGAIN too)');
+  assert.match(host, /const kind = solo \|\| isSoloMeta\(state\.meta\) \? 'solo' : inPlace \? 'inplace' : quick;/, 'every start in a solo room is THE SOLO START (PLAY AGAIN too)');
   assert.match(host, /globalThis\.__nsPlayNow = Object\.freeze\(\{ isSolo: \(\) => isSoloMeta\(state\.meta\), again: \(\) => rematch\(\), leave: \(\) => soloLeave\(\) \}\)/);
   // (THE DROP A Group 0 (c) — THE LOST RUN: BACK TO THE CITY settles this match's report (≤ 3 s, the queue lazy) BEFORE the room is closed)
   assert.match(host, /async function soloLeave\(\) \{[\s\S]{0,400}q\.settle\(q\.matchKey\(code, m\), 3000\)[\s\S]{0,200}return leaveRoom\(\);/);

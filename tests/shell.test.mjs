@@ -47,7 +47,7 @@ test('ONE Esc: ui/layers.js owns the only Escape listener (a pop-up never listen
   assert.match(read('js/progress/album-view.js'), /takeLayer\(el, \{ close, min: 9200 \}\)/);
   assert.match(read('js/progress/preview.js'), /takeLayer\(shell, \{ min: 9000, close: pvClose \}\)/);   // (CITY A — C2: ✕ + Esc give it back)
   assert.match(read('js/screens/harbor/radio.js'), /rdRelease = takeLayer\(modal, \{ close:/);
-  assert.match(read('js/profile/keypop.js'), /\.sg-fly, \.pg-sc, \.pg-pv, \.sg-big'/, 'H1: the key pop-up never lands on a card');
+  assert.match(read('js/profile/keypop.js'), /\.sg-fly, \.pg-sc, \.pg-pv, \.sg-big, \.dy-run'/, 'H1: the key pop-up never lands on a card (CITY G: nor on a running daily)');
 });
 
 test('THE NEON TUBE: one .btn block in components.css (MAIN pink · SECONDARY cool white · DANGER red · SMALL 44 · disabled unlit · the confirm red); no screen styles its own action buttons', () => {
@@ -134,10 +134,10 @@ test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the
   assert.match(oc, /export const ACCENT = '#ff6a1a';/); assert.match(oc, /export const OWN_VICTORY_SOUND = true;/);
   // (CITY F — END-SCREEN STANDARD A: ONE foot for every game — THE BAR (the screen's MAIN, solid, in the GAME's accent: THE SHELL's ONE named
   //  exception to THE NEON TUBE) + the quiet links; a MATCH's bar = REMATCH (the host's tap = host.js#rematch, a guest's = their vote))
-  assert.match(f, /h\('button\.final-link\.final-back', \{ type: 'button', 'data-press': true, onclick: backTap \}/);
+  assert.match(f, /h\('button\.final-link\.final-back', \{ type: 'button', 'data-press': true, 'aria-label': 'Back to the room', onclick: backTap \}/);
   assert.match(f, /h\('button\.final-bar\.final-rematch', \{ type: 'button', 'data-press': true/);
   assert.match(f, /h\('button\.final-bar\.final-again', \{ type: 'button', 'data-press': true/);
-  assert.match(f, /import\('\.\.\/host\.js'\), '\.\.\/host\.js'\)\.then\(m => m\.rematch\(\)\)/, "the host's REMATCH");
+  assert.match(f, /import\('\.\.\/host\.js'\), '\.\.\/host\.js'\)\.then\(m => m\.rematch\(\{ inPlace: true \}\)\)/, "the host's REMATCH — in place (CITY G)");
   assert.match(f, /dbUpdate\(dbRef\(`rooms\/\$\{state\.code\}`\), \{ \[`rv\/\$\{state\.uid\}`\]: mine \? null : m \}\)/, "a guest's vote: rv/{uid} = this match");
   assert.match(read('css/components.css'), /\.final-bar \{[\s\S]{0,400}border-radius: 12px;[\s\S]{0,200}background: var\(--fin, var\(--magenta\)\); color: var\(--fin-ink, #0b0a14\);/, "the bar: a rounded rect in the game's accent, never a pill");
   assert.ok(!/\.final-solo|\.final-row/.test(read('css/components.css')), 'the old three outlined boxes are gone');

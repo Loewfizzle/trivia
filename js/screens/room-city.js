@@ -357,9 +357,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     if (!seen) seen = loadSeen() || new Set(ids);
     const unread = chatMod ? chatMod.chat.unread || 0 : 0;
     const vs = voteNow();
-    // (CITY F — THE PODIUM VOTE on rules before CITY F's re-publish: refused on the podium, it waited on this phone (ui/final.js) — now the
-    //  ring is up for that match, it goes in; once)
-    if (vs.on && !isHost()) { let w = null; try { w = sessionStorage.getItem('ns:rv-wait'); } catch { /* fine */ } if (w && w === `${code()}|${vs.m}`) { try { sessionStorage.removeItem('ns:rv-wait'); } catch { /* fine */ } if (!(st.rv && st.rv[st.uid] === vs.m)) dbUpdate(dbRef(`rooms/${code()}`), { [`rv/${st.uid}`]: vs.m }).catch(() => {}); } }
+    // (CITY G — A LATE VOTE NEVER GOES IN: CITY F's queued podium vote (ns:rv-wait) went in here, after its end screen was gone — refused by
+    //  the rules, /admin Nov 17 10:27 pm. Nothing is queued any more; a key an older build left is simply dropped)
+    if (vs.on) { try { sessionStorage.removeItem('ns:rv-wait'); } catch { /* fine */ } }
     const rm = vs.on ? { on: true, voted: !!(st.rv && st.rv[st.uid] === vs.m), n: vs.voters.length, total: vs.total, pips: vs.guests.map(u => ({ col: colorHex((P[u] || {}).color), on: vs.voters.includes(u) })) } : null;
     dock.set({ host: isHost(), hostName: hostName(), invitePulse: isHost() && ids.length === 1 && !invited(), newGame: isHost() && vs.on ? (ngSeen() ? 'calm' : 'breathe') : null, guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
       you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm,

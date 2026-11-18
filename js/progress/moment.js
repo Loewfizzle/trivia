@@ -92,7 +92,9 @@ export async function openMoment(o, ctx = {}) {
 
   // ---- the panel
   const lines = (o.xp.parts || []).map(p => {
-    const v = h('b.pg-v', '+0');
+    // (CITY G — the reviewer's item (2): a still of the first beat read "MATCH PLAYED +0 · NEW GAME TONIGHT +0" — a crediting bug to the eye. Every
+    //  row carries its REAL number from its first frame; the row's arrival + its tick are the beat, the number never counts up from 0)
+    const v = h('b.pg-v', `+${num(p.v)}`);
     const row = h('div.pg-line', h('span', p.label), v);
     return { row, v, to: p.v };
   });
@@ -238,9 +240,6 @@ export async function openMoment(o, ctx = {}) {
   lines.forEach((l, i) => {
     later(() => {
       l.row.classList.add('is-in');
-      const t0 = performance.now(), dur = 260;
-      const step = () => { const k = Math.min(1, (performance.now() - t0) / dur); l.v.textContent = `+${num(l.to * k)}`; if (k < 1 && !done) requestAnimationFrame(step); };
-      requestAnimationFrame(step);
       pgSfx('xp-tick', { rate: 1 + i * 0.04 });
     }, t + i * 280);
   });

@@ -443,7 +443,7 @@ async function boot() {
     if (b && !b.closest('[data-sfx="none"]') && !b.disabled) sfx('tap');
   }, { capture: true, passive: true });
   // Music is lazy: tracks download only after the first tap unlocks audio (see audio/music.js).
-  window.__arcade = { musicDebug, musicSeek, lobbyMusicDebug, partyMusicDebug, beat: beatSource, mood: () => moodNow(), state, serverNow, line: lineInfo };
+  window.__arcade = { musicDebug, musicSeek, lobbyMusicDebug, partyMusicDebug, beat: beatSource, mood: () => moodNow(), state, serverNow, line: lineInfo, route: () => (current ? current.key : '') };
   // (SHELL 2.0 A — ONE Esc: ui/layers.js owns the only Escape listener — it closes the top layer)
   // iOS: block pinch-zoom gestures (viewport meta alone is ignored by Safari).
   document.addEventListener('gesturestart', e => e.preventDefault());

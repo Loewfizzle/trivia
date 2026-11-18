@@ -228,13 +228,14 @@ export function onlineCount() {
 // ring, INITIATE, the podium's REMATCH) gets the SAME promise while a start is in flight, and through the walk inside after it (START_MS):
 // a second tap during the show is the same start, never a second match.
 let starting = null;
-export function startGame(gameId, settings, { quick = false, solo = false } = {}) {
+export function startGame(gameId, settings, { quick = false, solo = false, inPlace = false } = {}) {
   if (starting) return starting;
   // (PLAY NOW: a SOLO room's every start is THE SOLO START — the match id's leading 's', ~2 s — core/room-show.js#START.solo)
-  const kind = solo || isSoloMeta(state.meta) ? 'solo' : quick;
+  // (CITY G — REMATCH IN PLACE: the end screen's bar → the match id's leading 'r', no show — core/room-show.js#START.inplace)
+  const kind = solo || isSoloMeta(state.meta) ? 'solo' : inPlace ? 'inplace' : quick;
   const p = startGameNow(gameId, settings, kind);
   starting = p;
-  p.then(ok => setTimeout(() => { if (starting === p) starting = null; }, ok ? startOf(kind === 'solo' ? 's' : kind ? 'q' : '').len : 0), () => { if (starting === p) starting = null; });
+  p.then(ok => setTimeout(() => { if (starting === p) starting = null; }, ok ? startOf(kind === 'solo' ? 's' : kind === 'inplace' ? 'r' : kind ? 'q' : '').len : 0), () => { if (starting === p) starting = null; });
   return p;
 }
 async function startGameNow(gameId, settings, quick = false) {
@@ -340,14 +341,16 @@ if (typeof globalThis !== 'undefined') globalThis.__nsPlayNow = Object.freeze({ 
 
 // Same game, same settings, everyone currently connected (late joiners included).
 // (LOBBY 2.0 B — THE REMATCH RING: back in the room the match is gone (game: null) — the game it replays is meta/back's)
-export function rematch() {
+/** a same-game REMATCH. inPlace (CITY G — the end screen's bar, ui/final.js): straight from the podium into the next match's own count on every
+ *  phone — no city, no room, no walk (the 'r' start); without it (the room's REMATCH ring) the QUICK start's walk-in as before */
+export function rematch({ inPlace = false } = {}) {
   const back = state.meta && state.meta.back;
   if (!isHost() || !(state.game || (back && back.g))) return Promise.resolve(false);
   const id = state.game ? state.game.id : back.g;
   const game = state.game;
   return loadGame(id).catch(() => null).then(mod => {   // (SHELL 2.0 B1: the cartridge's rematchSettings — loaded, it's in the tab already)
     const settings = (state.meta.settings && state.meta.settings[id]) || (game && game.settings) || (mod && mod.DEFAULT_SETTINGS) || (metaOf(id) || {}).DEFAULT_SETTINGS || {};
-    return startGame(id, rematchSettingsOf(mod, settings, game), { quick: true });
+    return startGame(id, rematchSettingsOf(mod, settings, game), { quick: true, inPlace: inPlace && !!(state.game && state.game.phase === 'final') });
   });   // (THE CARTRIDGE PLUG: a game may adjust its rematch)   // (LOBBY FIXES: the QUICK start)
 }
 

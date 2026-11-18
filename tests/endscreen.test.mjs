@@ -45,6 +45,8 @@ test('the foot\'s order + its rules: SOLO = PLAY AGAIN · SHARE · CITY; a MATCH
   assert.match(f, /'WAITING FOR THE HOST'/, 'a guest\'s vote: the bar says so — never dead');
   assert.match(f, /final-share', \{ type: 'button', 'data-gesture': true/, 'SHARE in Safari\'s own gesture');
   assert.match(f, /h\('button\.final-link\.final-city', \{ type: 'button', 'data-press': true/);
+  // (CITY G: the room link = ROOM + a door — it fits its half at 375; the screen reader still hears "Back to the room")
+  assert.match(f, /'aria-label': 'Back to the room', onclick: backTap \}, finIcon\('room'\), h\('span', 'ROOM'\)\)/);
   // (the walk back KEEPS the votes — a podium vote counts in the room's ring for the same match)
   assert.doesNotMatch(read('js/host.js'), /'meta\/back': g && g\.matchId \? \{[^}]*\} : null, rv: null \}/);
   // (the rules: a guest's podium vote only once the match is final, and only for it)

@@ -324,7 +324,7 @@ try {
   ok(pod.shown && (tie || (pod.word === 'WINNER' && /WENT THE FARTHEST/.test(pod.name))), `THE PODIUM: ${pod.word} — ${pod.name}`);
   ok(isCause(pod.cause) && new RegExp(`^${fin.results[uids[1]].l} LANES? · YOU FINISHED [0-9](ST|ND|RD|TH)$`).test(pod.n), `… BOB's own end on his podium: "${pod.cause}" · ${pod.n}`);
   ok(pod.notes.length === N && pod.notes.every(isCause), `… everyone in order with their cause line: ${pod.notes.join(' · ')}`);
-  ok(JSON.stringify(pod.foot) === JSON.stringify(['REMATCH', 'BACK TO THE ROOM', 'SHARE']) && pod.share && parseFloat(pod.radius) >= 10 && parseFloat(pod.radius) <= 14, `END-SCREEN STANDARD A (CITY F) — the foot: ${pod.foot.join(' · ')} (THE BAR = REMATCH, then the quiet links); a rounded rect, never a pill (radius ${pod.radius})`);
+  ok(JSON.stringify(pod.foot) === JSON.stringify(['REMATCH', 'ROOM', 'SHARE']) && pod.share && parseFloat(pod.radius) >= 10 && parseFloat(pod.radius) <= 14, `END-SCREEN STANDARD A (CITY F) — the foot: ${pod.foot.join(' · ')} (THE BAR = REMATCH, then the quiet links); a rounded rect, never a pill (radius ${pod.radius})`);
   // (a right call = the player called finished first — alone or level for first: logic.js#scoreCalls)
   const right = fin.results[uids[0]].l === fin.results[rank[0]].l && fin.results[uids[0]].t === fin.results[rank[0]].t;
   ok(!!fin.calls && fin.calls[uids[1]] && fin.calls[uids[1]].w === uids[0] && fin.calls[uids[1]].ok === right, `BOB's call: ${fin.calls && fin.calls[uids[1]] ? (fin.calls[uids[1]].ok ? `RIGHT (+${fin.calls[uids[1]].bonus})` : 'missed') : 'none'} — "${pod.callLine}"`);

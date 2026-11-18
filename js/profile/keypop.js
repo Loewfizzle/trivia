@@ -24,25 +24,31 @@ const emit = () => { for (const f of subs) { try { f(keyPopState()); } catch { /
 if (typeof window !== 'undefined') window.addEventListener('ns:notes', () => emit());
 
 /** every pop-up the save-your-key sheet must never open over (tests/keypop + the harbor keypop group read it) */
-export const KEYPOP_COVERED = '.pg-moment, .modal:not(.out), .sh:not(.is-out), .final, .vl-dress, .vl-full, .pf-overlay, .gm, .sg-modal, .sg-fly, .pg-sc, .pg-pv, .sg-big';
+//  (CITY G — the Nov 16 5:55 pm entry: + a running DAILY's run (.dy-run) — never over a game, a daily included)
+export const KEYPOP_COVERED = '.pg-moment, .modal:not(.out), .sh:not(.is-out), .final, .vl-dress, .vl-full, .pf-overlay, .gm, .sg-modal, .sg-fly, .pg-sc, .pg-pv, .sg-big, .dy-run';
 let open = null, waitT = 0;
 /** busy() → true while something must not be covered (the title passes its scene's legendary) */
 export function maybeKeyPop({ why = '', busy = null } = {}) {
   clearTimeout(waitT);
   if (open || keyPopState() !== 'show') return false;
-  const playing = !!(state.code && state.meta && state.meta.status === 'playing' && state.game && state.quit !== state.game.matchId);
-  // (FR6 FIXES A — B5 / H1: never over a card the player is looking at — `.sg-shot` + `.vl-full-open` never existed; now CUSTOMIZE, the
-  //  full card, the room's profile overlay, the ☰ menu, the sighting moment, the streak card + the album too; SHELL 2.0 A — H1: + the
-  //  sighting's flying photo + the streak preview, and THE SHEET's own class)
-  const covered = document.querySelector(KEYPOP_COVERED);
-  if (playing || covered || (busy && busy())) { waitT = setTimeout(() => maybeKeyPop({ why, busy }), 2500); return false; }
-  show(why);
+  if (blocked(busy)) { waitT = setTimeout(() => maybeKeyPop({ why, busy }), 2500); return false; }
+  show(why, busy);
   return true;
 }
+// (FR6 FIXES A — B5 / H1: never over a card the player is looking at — `.sg-shot` + `.vl-full-open` never existed; now CUSTOMIZE, the
+//  full card, the room's profile overlay, the ☰ menu, the sighting moment, the streak card + the album too; SHELL 2.0 A — H1: + the
+//  sighting's flying photo + the streak preview, and THE SHEET's own class)
+function blocked(busy) {
+  const playing = !!(state.code && state.meta && state.meta.status === 'playing' && state.game && state.quit !== state.game.matchId);
+  return playing || !!document.querySelector(KEYPOP_COVERED) || !!(busy && busy());
+}
 
-async function show(why) {
+async function show(why, busy = null) {
   const [{ openPfSheet }, { memberCard }, B, { h }] = await Promise.all([lazyImport(import('./sheets.js'), './sheets.js'), lazyImport(import('../screens/profile.js'), '../screens/profile.js'), lazyImport(import('./bring.js'), './bring.js'), lazyImport(import('../ui/dom.js'), '../ui/dom.js')]);
   if (open || keyPopState() !== 'show') return;
+  // (CITY G — the e2e-rematch find: the check ran BEFORE these lazy imports — a game started in the gap (the host's next game a second after the
+  //  room came back) got the sheet over its end screen, on the REMATCH bar. Asked again now; still blocked → wait as ever)
+  if (blocked(busy)) { clearTimeout(waitT); waitT = setTimeout(() => maybeKeyPop({ why, busy }), 2500); return; }
   B.bringCss();
   setNotes({ kp: 'shown' });   // (once: from here on, closing it any way = the dot until it's saved)
   const m = loadMe(), pub = m && m.uid === state.uid ? m.profile : null;

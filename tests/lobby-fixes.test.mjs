@@ -57,7 +57,13 @@ test('THE NEW GAME START: the FULL start (~5 s — the sign ignites, holds, the 
   // the old rules' fallback (game.go): the same kind from the same id
   assert.equal(startShow({ status: 'playing' }, { matchId: 'qbc123', go: 1000, id: 'overclock' }, 2000).kind, 'quick');
   const host = src('js/host.js');
-  assert.ok(/newMatchId\(quick\)/.test(host) && /\{ quick: true \}\);/.test(host), 'host.js: a REMATCH starts quick, every other start full');
+  assert.ok(/newMatchId\(quick\)/.test(host) && /\{ quick: true, inPlace: inPlace && /.test(host), 'host.js: a REMATCH starts quick (in place from the end screen — CITY G), every other start full');
+  // CITY G — REMATCH IN PLACE: the 'r' id never shows a start (no city, no room, no walk) — the end screen gives way to the game itself
+  assert.equal(startKind(newMatchId('inplace')), 'inplace');
+  assert.equal(newMatchId('inplace')[0], 'r');
+  for (let i = 0; i < 300; i++) assert.ok(!/^[qsr]/.test(newMatchId(false)), 'a full start\'s id never leads with q / s / r');
+  assert.deepEqual(startShow({ status: 'playing', go: { at: 1000, m: 'rbc123', g: 'prism' } }, { matchId: 'rbc123', id: 'prism' }, 1100), { on: false, done: false, inplace: true });
+  assert.equal(startShow({ status: 'playing', go: { at: 1000, m: 'qbc123', g: 'prism' } }, { matchId: 'qbc123', id: 'prism' }, 1100).on, true, 'the ring\'s quick start keeps its walk-in');
   const city = src('js/screens/room-city.js'), css = src('css/title.css');
   assert.ok(!/rc-pushing|getBoundingClientRect\(\); el\.style\.transformOrigin/.test(city) && !/rc-pushb|@keyframes rc-push/.test(css), 'no camera push any more');
   assert.ok(/tint: T\.NEON_PINK/.test(city) && /@keyframes rc-tube-on/.test(css), 'the game’s sign in the NEON pink, tube by tube');

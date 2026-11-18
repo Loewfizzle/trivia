@@ -368,6 +368,27 @@ G('keypop', async () => {
     ok(!before && after, `A NEW PLAYER: nothing before a counted match (${!before}); right after the FIRST one, back in the room → the pop-up (${after})`);
     if (SHOTS) await p.screenshot({ path: `${OUT}lobby-keypop-room.png` });
     await Q.ctx.close(); }
+  // CITY G — never over a RUNNING DAILY (the Nov 16 5:55 pm entry: .dy-run joins KEYPOP_COVERED) + never over what began DURING its lazy imports
+  // (the e2e-rematch find: a game started in that gap got the sheet over its end screen): the pop-up waits, then shows once it's clear
+  { const Q = await kpOpen('kp5', { games: 2 }), p = Q.page;
+    await ev(p, "document.querySelectorAll('.kp-sheet').forEach(e => e.remove())");
+    const run = await ev(p, "(async () => { const d = document.createElement('section'); d.className = 'screen dy-overlay dy-run kp-test'; document.body.append(d); const m = await import('/js/profile/keypop.js'); return { sel: m.KEYPOP_COVERED.includes('.dy-run'), asked: m.maybeKeyPop({ why: 'test' }) }; })()");
+    await sleep(1200);
+    const overRun = await ev(p, "!!document.querySelector('.kp-sheet:not(.is-out)')");
+    await ev(p, "document.querySelector('.kp-test').remove()");
+    const afterRun = await waitFor(p, "!!document.querySelector('.kp-sheet:not(.is-out)')", 'the pop-up once the run is gone', 9000).then(() => true, () => false);
+    ok(run.sel && run.asked === false && !overRun && afterRun, `SAVE YOUR KEY never over a RUNNING DAILY (.dy-run): held while the run is up (${!overRun}), shown once it's gone (${afterRun})`);
+    await Q.ctx.close(); }
+  { const Q = await kpOpen('kp6', { games: 2 }), p = Q.page;
+    await ev(p, "document.querySelectorAll('.kp-sheet').forEach(e => e.remove())");
+    // (its check passes, then a game's end screen arrives in the same moment — before the sheet's lazy imports land)
+    const asked = await ev(p, "(async () => { const m = await import('/js/profile/keypop.js'); const r = m.maybeKeyPop({ why: 'test' }); const d = document.createElement('div'); d.className = 'final kp-test'; document.body.append(d); return r; })()");
+    await sleep(1500);
+    const over = await ev(p, "!!document.querySelector('.kp-sheet:not(.is-out)')");
+    await ev(p, "document.querySelector('.kp-test').remove()");
+    const later = await waitFor(p, "!!document.querySelector('.kp-sheet:not(.is-out)')", 'the pop-up once clear', 9000).then(() => true, () => false);
+    ok(asked === true && !over && later, `SAVE YOUR KEY re-checks after its lazy imports: a game's end screen that arrived in the gap holds it (${!over}), shown once clear (${later})`);
+    await Q.ctx.close(); }
 });
 
 // ================================================================ HOLD'EM IN THE CITY — B2: THE CORNER BUTTONS' 44 PT (HE9's Fable review)
