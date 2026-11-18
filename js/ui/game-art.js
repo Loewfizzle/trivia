@@ -329,16 +329,17 @@ const JAYWALK = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
 <radialGradient id="jw-bg" cx="0.5" cy="0.35" r="0.85"><stop offset="0" stop-color="#1a2150"/><stop offset="0.6" stop-color="#0a0d24"/><stop offset="1" stop-color="#04050c"/></radialGradient>
 ${glow('jw-glow', 2.6)}</defs>
 <rect width="120" height="120" fill="url(#jw-bg)"/>
-<rect y="98" width="120" height="22" fill="#0b0e18"/>
-<path d="M4 104h12M24 104h12M44 104h12M64 104h12M84 104h12M104 104h12" stroke="#e9eefb" stroke-opacity="0.5" stroke-width="7"/>
-<g transform="translate(7.6 0.5) scale(1.06)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<rect y="99" width="120" height="21" fill="#0b0e18"/>
+<path d="M4.5 101H13.5L-5 120H-19ZM21.5 101H30.5L19 120H5ZM38.5 101H47.5L43 120H29ZM55.5 101H64.5L67 120H53ZM72.5 101H81.5L91 120H77ZM89.5 101H98.5L115 120H101ZM106.5 101H115.5L139 120H125Z" fill="#e9eefb" fill-opacity="0.26"/>
+<path d="M0 99.5H120" stroke="#35e3ff" stroke-opacity="0.35" stroke-width="1"/>
+<g transform="translate(10.5 -1) scale(1)" fill="none" stroke-linecap="round" stroke-linejoin="round">
 <path d="${JW_BOX}" fill="#050913" fill-opacity="0.85"/>
 <path d="${JW_BOX}" stroke="#35e3ff" stroke-width="7" opacity="0.55" filter="url(#jw-glow)"/>
-<path d="${JW_BOX}" stroke="#35e3ff" stroke-width="3.6"/>
+<path d="${JW_BOX}" stroke="#35e3ff" stroke-width="4.2"/>
 <path d="${JW_BOX}" stroke="#e6fdff" stroke-width="1.1"/>
-<path d="${JW_KID}" stroke="#ff3fa4" stroke-width="8" opacity="0.6" filter="url(#jw-glow)"/>
-<path d="${JW_KID}" stroke="#ff3fa4" stroke-width="4.6"/>
-<path d="${JW_KID}" stroke="#ffe3f3" stroke-width="1.5"/>
+<path d="${JW_KID}" stroke="#ff3fa4" stroke-width="9" opacity="0.6" filter="url(#jw-glow)"/>
+<path d="${JW_KID}" stroke="#ff3fa4" stroke-width="5.4"/>
+<path d="${JW_KID}" stroke="#ffe3f3" stroke-width="1.7"/>
 </g></svg>`;
 
 const ART = { jaywalk: () => JAYWALK, holdem, rum: () => RUM, stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };

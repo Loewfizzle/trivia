@@ -1,6 +1,6 @@
 // JAYWALK H4 — THE MATCH end to end, on the emulators + scripts/serve.mjs --emu (NEVER THE LIVE SITE): three phones, ONE LIFE each.
-//   · THE OWNER'S LIVE TEST: the owner hosts (the server's own yes — on the emulators testAdmins/{pid}); his guests play normally — they
-//     can't start it, and they ARE counted
+//   · A PLAIN HOST (THE GO-LIVE PASS — JAYWALK is playable): the room's game list offers it (no TEST mark), every phone may start it, every
+//     player's run is counted
 //   · 3 · 2 · 1 · GO: every phone writes its own GO; THE FIRST GO picks the course + tick 0 — the same seed + clock on all three
 //   · THE GHOSTS: each phone steps the others' hop logs through the same engine — see-through kids, name tags; a ghost's run = that player's
 //   · THE LIVE ORDER (the top corner) · two out early → the cause words → Call the Winner → WATCHING the leader (a tap = the next player)
@@ -76,19 +76,13 @@ const isCause = t => CAUSES.has(t) || /^(YOU )?MADE IT TO THE MOTHERSHIP$/.test(
 
 /** start a JAYWALK match from the host's phone and wait for every phone's game screen */
 async function start(host, n) {
-  ok(await H.startGame(host, 'jaywalk', {}), 'the OWNER (host) starts JAYWALK');
+  ok(await H.startGame(host, 'jaywalk', {}), 'the host starts JAYWALK');
   for (let i = 0; i < n; i++) await waitFor(pages[i], s => s.game && s.game.id === 'jaywalk' && !!window.__jwGame && !!document.querySelector('.jw-game canvas.jw-canvas'), `${NAMES[i]}: the match screen`, 40000);
 }
 const all = (n, fn) => Promise.all(Array.from({ length: n }, (_, i) => fn(pages[i], i)));
 
 async function eightMatch() {
-  const N8 = 8, host = await H.joinAll(N8);
-  const pids = await Promise.all(uids.slice(0, N8).map(pidFor));
-  await dbPut(`testAdmins/${pids[0]}`, true);
-  await host.evaluate(() => sessionStorage.clear());
-  await host.reload();
-  await waitFor(host, (st, k) => st.ready && !!st.code && !!st.players && Object.keys(st.players).length === k, 'the host is back in the room', 40000, N8);
-  ok(await until(() => host.evaluate(() => import('/js/config.js').then(c => c.isOwnerTest('jaywalk'))), 25000), '--eight: the owner hosts');
+  const N8 = 8, host = await H.joinAll(N8);   // (THE GO-LIVE PASS: a plain host — no owner set-up)
   // (eight WebGL pages on one machine: each at @1 — what is measured is the match's own load, not eight 3× fills fighting for one GPU)
   for (let i = 0; i < N8; i++) await pages[i].setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   await start(host, N8);
@@ -144,16 +138,19 @@ try {
   // H5B — THE REFUSED CHAT WRITE ("set chats/*/m/*" ×2 on game:jaywalk/final): every write the rules refuse on any phone, from here on
   const refused = [];
   pages.slice(0, N).forEach((p, i) => p.on('console', m => { const t = m.text(); if (/\[rules\] refused|permission_denied/i.test(t)) refused.push(`${NAMES[i]}: ${t.slice(0, 120)}`); }));
-  // ---- 1. THE OWNER'S LIVE TEST: only the owner's phone may start it; the guests' phones never offer it
+  // ---- 1. A PLAIN HOST (THE GO-LIVE PASS — JAYWALK is playable for everyone): the room's game list offers it, no TEST mark, no owner set-up
   const pids = await Promise.all(uids.slice(0, N).map(pidFor));
   ok(pids.every(Boolean), 'every phone has its profile');
-  ok(await host.evaluate(() => import('/js/host.js').then(m => m.startGame('jaywalk', {})).then(v => !v, () => true)) && !(await evalIn(host, s => s.game)), 'a plain host can NOT start JAYWALK (being built: never offered)');
-  await dbPut(`testAdmins/${pids[0]}`, true);
-  await host.evaluate(() => sessionStorage.clear());
-  await host.reload();
-  await waitFor(host, (s, k) => s.ready && !!s.code && !!s.players && Object.keys(s.players).length === k, 'the host is back in the room', 40000, N);
-  ok(await until(() => host.evaluate(() => import('/js/config.js').then(c => c.isOwnerTest('jaywalk'))), 25000), 'THE OWNER\'s phone: the server\'s yes → JAYWALK is his to host');
-  ok(!(await pages[1].evaluate(() => import('/js/config.js').then(c => c.isOwnerTest('jaywalk') || c.isPlayable('jaywalk')))), '… a guest\'s phone: nothing changes (no JAYWALK anywhere)');
+  ok((await all(N, p => p.evaluate(() => import('/js/config.js').then(c => c.isPlayable('jaywalk') && !c.isOwnerTest('jaywalk'))))).every(Boolean), 'every phone: JAYWALK is playable — never a TEST');
+  for (const [p, who] of [[host, 'the host'], [pages[1], 'a guest']]) {
+    await p.waitForSelector('.rdk-games', { timeout: 20000 });
+    await p.evaluate(() => document.querySelector('.rdk-games').click());
+    await p.waitForSelector('.rc-games-sheet .rc-game[data-game="jaywalk"]', { timeout: 8000 });
+    ok(await p.evaluate(() => !document.querySelector('.rc-games-sheet .rc-game[data-game="jaywalk"] .rc-game-test')), `THE ROOM's GAME LIST (${who}): JAYWALK, no TEST mark`);
+    if (p === host) { await sleep(500); await H.shot(host, 'room-games'); }
+    await p.keyboard.press('Escape');
+    await p.waitForFunction(() => !document.querySelector('.rc-games-sheet.is-in'), { timeout: 8000 }).catch(() => {});
+  }
   // H5B — THE DAY LOOK in a match: the site's GAME LOOK is PER PHONE (☰ → Settings: AUTO · DAY · NIGHT — no lock): the host + BOB
   // play by DAY, CHARLIE by NIGHT — the same course, the same clock, the same rules; CHARLIE switches mid-match (below)
   await all(N, (p, i) => p.evaluate(l => import('/js/games/kit/look.js').then(m => m.saveLook(l)), i < 2 ? 'day' : 'night'));
@@ -165,7 +162,7 @@ try {
     cdpB = await pages[1].target().createCDPSession();
     await cdpB.send('Emulation.setCPUThrottlingRate', { rate: 4 });
   }
-  ok(await H.startGame(host, 'jaywalk', {}), 'the OWNER (host) starts JAYWALK');
+  ok(await H.startGame(host, 'jaywalk', {}), 'the host starts JAYWALK — a plain host (THE GO-LIVE PASS)');
   if (START && process.argv.includes('--profile')) {   // (from the moment the match is in the room's state: the walk inside + the count + 1 s)
     await waitFor(pages[1], st => st.game && st.game.id === 'jaywalk', 'BOB: the match is in the state', 20000);
     await cdpB.send('Profiler.enable'); await cdpB.send('Profiler.setSamplingInterval', { interval: 500 }); await cdpB.send('Profiler.start');
@@ -338,9 +335,9 @@ try {
     ok(ms.every(q => q.rest && q.pix <= JW_FINAL_BUDGET_MB), `THE END SCREEN's MEMORY in a match: every phone's scene RESTS, ${ms.map(q => q.pix).join(' · ')} MB of pixels held (the budget ${JW_FINAL_BUDGET_MB})`); }
   await H.shot(pages[1], 'match-podium');
   await H.shot(pages[0], 'match-podium-winner');
-  // ---- 6. the report: counted for ALL THREE — the guests in the owner's room included
+  // ---- 6. the report: counted for ALL THREE — a plain room's match (THE GO-LIVE PASS: no owner in it)
   const res = await until(async () => { const r = await dbGet(`results/${code}_${m}`); return r && r.st === 'done' ? r : null; }, 30000);
-  ok(!!res && pids.every(pid => res.o && res.o[pid]), `the report is COUNTED for all three (${res ? Object.keys(res.o || {}).length : 0} outcomes — the owner + his two guests)`);
+  ok(!!res && pids.every(pid => res.o && res.o[pid]), `the report is COUNTED for all three (${res ? Object.keys(res.o || {}).length : 0} outcomes — a plain host + two guests)`);
   // ---- 7. the share image: the frame of the moment BOB went out (H4B's add-on: THE FRAME IS THE HERO, the cause ONCE)
   const card = await pages[1].evaluate(async () => {
     const s = window.__arcade.state, [S, T] = await Promise.all([import('/js/games/jaywalk/share.js'), import('/js/games/jaywalk/shot.js')]);

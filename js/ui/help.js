@@ -255,7 +255,7 @@ RULES.jaywalk = {
       'TAP to hop forward.',
       'SWIPE left or right to step sideways.',
       'SWIPE down to step back.',
-      'KEYBOARD: the arrow keys or W A S D. SPACE hops too.',
+      'KEYBOARD: the arrow keys or WASD. SPACE hops too.',
     ]],
     ['WATCH OUT', [
       'ROADS: wait for a gap in the cars.',

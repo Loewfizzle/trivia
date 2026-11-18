@@ -83,7 +83,7 @@ G('neon', async () => {
     // game with no sign tonight, the nightly shuffle rotates the rest)
     // (NEON PASS 6, the owner: the tiny floating icons are gone — 4 named signs + the billboard a fifth game)
     // (DT1: the left roof slot is gone — 3 named signs: the blade + the two roof signs; the billboard a fourth game)
-    // (CITY B — the playable games + JAYWALK, never a frozen one; NO NAMED SIGN EVER DARK — the blade + both roof signs; the billboard a fourth)
+    // (CITY B — the playable games (JAYWALK's own row since its go-live), never a frozen one; NO NAMED SIGN EVER DARK — the blade + both roof signs; the billboard a fourth)
     const PLAY = ['prism', 'holdem', 'overclock', 'jaywalk'];
     ok(new Set(games).size === 3 && games.every(g => PLAY.includes(g)) && h.neon.signs.filter(s => s.kind === 'named').length === 3 && !h.neon.signs.some(s => s.kind === 'icon') && h.neon.signs.every(s => s.on) && bb && !games.includes(h.neon.boards[0].game),
       `SIGNS: the playable games named in the skyline tonight (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')}; stacked roof signs + the blade), no icons, the billboard a fourth (${bb}), every sign lit at night`);

@@ -26,7 +26,7 @@ const ALL_GAMES = [
   ['overclock', { mode: 'quick' }],
   ['prism', { mode: 'battle' }],
   ['holdem', { mode: 'tournament', speed: 'turbo' }],   // (HE10: ON for everyone — started here by a REGULAR host, no owner gate)
-  ['jaywalk', {}],   // (JAYWALK H4 — BEING BUILT: its smoke START = a local emulator page that ASKS (window.__nsPreview, set for this row alone) — the plain page above proved it can't start)
+  ['jaywalk', {}],   // (THE GO-LIVE PASS: ON for everyone — started here by a REGULAR host, like the three)
 ];
 const GAMES = ONLY_GAMES.length ? ALL_GAMES.filter(([id]) => ONLY_GAMES.includes(id)) : ALL_GAMES;
 // (FR7 FIXES B — FR7-A F: `GAMES=cipher` — the docs' old example — started NOTHING and passed. A filter that names no playable game is a
@@ -185,18 +185,16 @@ try {
     for (const id of ids) res.push(await host.evaluate(g => import('/js/host.js').then(m => m.startGame(g, {})), id));
     await sleep(600);
     const g = await evalIn(host, s => s.game ? s.game.id : null);
-    // (HE10: HOLD'EM is playable now — the ten frozen games stay hidden; JAYWALK H1: + JAYWALK, BEING BUILT — a plain emulator page can't start it)
-    ok(ids.length === 11 && ids.includes('jaywalk') && !ids.includes('holdem') && res.every(r => r === false) && g === null, `HIDDEN GAMES: none of the ${ids.length} hidden games starts (${res.filter(r => r !== false).length} started; game ${g})`);
+    // (HE10: HOLD'EM is playable now — the ten frozen games stay hidden; THE GO-LIVE PASS: JAYWALK playable too)
+    ok(ids.length === 10 && !ids.includes('jaywalk') && !ids.includes('holdem') && res.every(r => r === false) && g === null, `HIDDEN GAMES: none of the ${ids.length} hidden games starts (${res.filter(r => r !== false).length} started; game ${g})`);
     // (LOBBY 2.0 A: in City 2.0 the room is the live city — its GAMES sheet lists the games; City 1.0's lobby keeps its cards)
     let cards = await host.$$eval('.lobby-screen .game-card', els => els.map(e => e.dataset.theme));
     if (!cards.length && await host.$('.rdk-games')) { await host.evaluate(() => document.querySelector('.rdk-games').click()); await host.waitForSelector('.rc-games-sheet .rc-game', { timeout: 8000 }); await sleep(600); await host.evaluate(() => document.querySelectorAll('.sh-msgs, [class*="toast"]').forEach(e => e.remove())); await host.screenshot({ path: `${OUT}smoke-games${SFX}.png` }); /* (HE10 add-on: the three tiles — the hidden games' COMING SOON message cleared first) */ cards =await host.$$eval('.rc-games-sheet .rc-game', els => els.map(e => e.dataset.game)); await host.evaluate(() => document.querySelector('.rc-games-sheet .sh-back').click()); await sleep(400); }
-    ok(cards.length === 3 && cards.includes('prism') && cards.includes('overclock') && cards.includes('holdem'), `THE LOBBY: only the three playable games (${cards.join(', ')}) — HOLD'EM with no TEST tag`);
+    ok(cards.length === 4 && ['prism', 'overclock', 'holdem', 'jaywalk'].every(x => cards.includes(x)), `THE LOBBY: only the four playable games (${cards.join(', ')}) — HOLD'EM + JAYWALK with no TEST tag`);
     ok(!(await host.evaluate(() => [...document.querySelectorAll('.rc-game')].some(e => /\bTEST\b/.test(e.textContent)))), 'no TEST tag anywhere'); }
 
   // ---- each game: start, watch its opening screens on both phones, back to the lobby
   for (const [id, settings] of GAMES) {
-    const building = id === 'jaywalk';   // (a game being built starts only where asked: config.js#isPlayable)
-    if (building) for (const p of [host, guest]) await p.evaluate(() => { window.__nsPreview = true; });
     await (await hostNow(`${id} start`)).evaluate(([g, s]) => import('/js/host.js').then(m => m.startGame(g, s)), [id, settings]);
     await waitFor(host, (s, g) => s.game && s.game.id === g, `${id} started`, 20000, id);
     await waitFor(guest, (s, g) => s.game && s.game.id === g, `${id} on the guest`, 20000, id);
@@ -209,7 +207,6 @@ try {
     await guest.waitForSelector('.lobby-screen, .title-screen.is-room', { timeout: 15000 });
     await sleep(800);
     await check(`lobby after ${id}`);
-    if (building) for (const p of [host, guest]) await p.evaluate(() => { delete window.__nsPreview; });
   }
 
   log('checks', `${checks.filter(c => c.ok).length}/${checks.length} passed`);

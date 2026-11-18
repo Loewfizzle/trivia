@@ -185,9 +185,7 @@ try {
   const P = await phone(`wkm${Date.now() % 100000}`, 'HOPPER');
   const { pid } = await pidOf(P);
   ok(!!pid, 'WebKit, 390 × 844 @3: the phone has its profile'); pids.push(pid);
-  await dbPut(`testAdmins/${pid}`, true);
-  await P.ev('sessionStorage.clear()'); await P.open();
-  ok(await P.waitFor("import('/js/config.js').then(c => c.isOwnerTest('jaywalk'))", 25000), 'the owner\'s phone: JAYWALK is his to test');
+  ok(await P.waitFor("import('/js/config.js').then(c => c.isPlayable('jaywalk'))", 25000), 'a plain phone: JAYWALK is playable (THE GO-LIVE PASS — no owner set-up)');
   ok(await P.tapUntil('.nd-tab-play', "!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"jaywalk\"]')"), 'PLAY → the shelf lists JAYWALK');
   ok(await P.tapUntil('.nd-shelf-row[data-game="jaywalk"]', "!!document.querySelector('.nd-card-sheet.is-in .nd-card[data-game=\"jaywalk\"] .nd-card-solo')"), 'its card');
   console.log('MEM the city, before the game:', JSON.stringify(wkMb()));
@@ -240,11 +238,7 @@ try {
     ok(await H.waitFor(`Object.keys(${S}.players || {}).length === 4`, 30000), 'four WebKit phones in the room');
     const hp = await pidOf(H); pids.push(hp.pid);
     for (const J of Q.slice(1)) { const q = await pidOf(J); if (q.pid) pids.push(q.pid); }
-    await dbPut(`testAdmins/${hp.pid}`, true);
-    await H.ev('sessionStorage.clear()'); await H.p.reload();
-    await H.waitFor(`${S}.ready && !!${S}.code && Object.keys(${S}.players || {}).length === 4`, 40000);
-    ok(await H.waitFor("import('/js/config.js').then(c => c.isOwnerTest('jaywalk'))", 25000), 'the owner hosts');
-    ok(await H.p.evaluate(() => import('/js/host.js').then(m => m.startGame('jaywalk', {}))), 'the owner starts JAYWALK');
+    ok(await H.p.evaluate(() => import('/js/host.js').then(m => m.startGame('jaywalk', {}))), 'a plain host starts JAYWALK (THE GO-LIVE PASS)');
     for (const J of Q) ok(await J.waitFor(`${S}.game && ${S}.game.id === 'jaywalk' && !!${G} && !!document.querySelector('.jw-game canvas.jw-canvas')`, 45000), `${J.name || 'ALICE'}: the match screen`);
     for (const J of Q) await J.waitFor(`${G}.state().mode === 'run'`, 20000);
     for (const J of Q) await J.ev(`${G}.bot(true, { lazy: true })`);

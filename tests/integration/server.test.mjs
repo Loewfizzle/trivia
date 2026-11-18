@@ -31,6 +31,7 @@ import { houseNick, NICK_ADJ, NICK_NOUN } from '../../js/core/nicknames.js';
 import { isOffensive } from '../../js/core/names.js';
 import { finalGame, cipherSigned } from '../fixtures/finals.mjs';
 import { weekKey } from '../../js/core/week.js';
+import { GAMES } from '../../js/config.js';   // (THE JAYWALK GO-LIVE PASS: the owner's-test branch pinned by flipping a row back in-process — holdem-server's pattern)
 import { RANKS } from '../../js/core/ranks.js';
 import { softAuthenticator } from './kit/soft-authenticator.mjs';
 import { rpOf, deviceLabel } from '../../api/_lib/passkeys.js';
@@ -865,14 +866,18 @@ test('JAYWALK H3 — THE SOLO RUN: the best from the SERVER\'s replay (never the
   };
   const best = async () => { const s = await stats(uid); return s && s.b && s.b['jaywalk-solo'] ? s.b['jaywalk-solo'].a : null; };
 
-  // THE OWNER'S LIVE TEST: the game is being built — a stranger's run is never counted; the owner's is
+  // THE GO-LIVE PASS: JAYWALK is playable — a stranger's run IS counted. The owner's-test branch (api/report.js — kept for the next game
+  // being built) stays pinned: the same row flipped back to "being built" in-process → the stranger's run refused, nothing counted
   await ref('testReportAll').set(null);
+  const jrow = GAMES.find(g => g.id === 'jaywalk');
   const A = await seedRun(m => runOf(m, 1500));
-  await rejects(report(uid, A), 409, 'not_reportable');
-  assert.equal(await best(), null, 'nothing counted for a player who is not the owner');
-  await ref(`testAdmins/${pid}`).set(true);
+  jrow.playable = false; jrow.preview = true;
+  try {
+    await rejects(report(uid, A), 409, 'not_reportable');
+    assert.equal(await best(), null, 'being built: nothing counted for a player who is not the owner');
+  } finally { jrow.playable = true; delete jrow.preview; }
   const ra = await report(uid, A);
-  assert.equal(ra.status, 'counted');
+  assert.equal(ra.status, 'counted', 'playable: the same stranger\'s run is counted — no owner anywhere');
   assert.equal(ra.outcome.win, false, 'a solo run: never a win'); assert.equal(ra.outcome.xp.gain, SOLO_XP, 'THE SOLO LANE\'s small XP');
   assert.deepEqual(ra.outcome.pbs.map(p => [p.b, p.v, p.first]), [['jaywalk-solo', A.live.lanes, true]], `the best = the SERVER's replay (${A.live.lanes} lanes) — never the room's claim of 99,999`);
   assert.equal(await best(), A.live.lanes);
@@ -1007,11 +1012,14 @@ test('JAYWALK H4 — THE MATCH: every run from the SERVER\'s replay, the owner\'
   const doneB = await val(`results/${code}_${B.matchId}`);
   assert.equal(doneB.src, 'proof', 'from the proof nodes');
   assert.deepEqual(Object.keys(doneB.o || {}).sort(), [...P].sort(), 'everyone the night record names (with their own proof) is credited');
-  // ---- THE OWNER'S LIVE TEST: a match the owner did NOT play is never counted (the game is being built)
+  // ---- THE OWNER'S LIVE TEST (generic — kept for the next game being built): while a game is being built, a match the owner did NOT play
+  // is never counted (the row flipped back in-process); playable (THE GO-LIVE PASS), the same match IS counted
   tick(60_000);
   await ensure('u-jm4', 'STRANGER');
   const C = await seedMatch({ players: [U[1], U[2]], ticks: [900, 600] });
-  await rejects(report(U[1], C), 409, 'not_reportable');
+  { const jrow = GAMES.find(g => g.id === 'jaywalk'); jrow.playable = false; jrow.preview = true;
+    try { await rejects(report(U[1], C), 409, 'not_reportable'); } finally { jrow.playable = true; delete jrow.preview; } }
+  assert.equal((await report(U[1], C)).status, 'counted', 'JAYWALK is playable: a plain room\'s match is counted');
   // ---- an UNPROVEN match (no line to the board when it was played) · a match with no proof at all: never counted
   tick(60_000);
   const D = await seedMatch({ unproven: true });

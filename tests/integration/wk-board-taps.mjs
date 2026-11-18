@@ -45,8 +45,8 @@ const waitFor = async (js, ms = 10000) => { const end = Date.now() + ms; while (
 const frames = () => p.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 
 await p.goto(guardUrl(`${BASE}/board`, 'wk-board-taps.mjs'));
-const up = await waitFor("!!(window.__board && window.__tapwatch && document.querySelectorAll('.bd-tabs .bd-tab').length === 5 && !document.querySelector('.bd-rows.is-skel'))", 30000);
-ok(up, 'THE BOARD is up (/board, the public page): five tabs, the first rows painted');
+const up = await waitFor("!!(window.__board && window.__tapwatch && document.querySelectorAll('.bd-tabs .bd-tab').length === 6 && !document.querySelector('.bd-rows.is-skel'))", 30000);
+ok(up, 'THE BOARD is up (/board, the public page): six tabs (THE GO-LIVE PASS: + JAYWALK), the first rows painted');
 if (!up) { await browser.close(); process.exit(1); }
 await p.evaluate('window.__tapwatch.rescue(false)');   // (THE RESCUE OFF: only the page's own click may land the tap)
 

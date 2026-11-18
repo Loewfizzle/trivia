@@ -1,6 +1,6 @@
 // JAYWALK H3 — THE SOLO RUN end to end, on the emulators + scripts/serve.mjs --emu (NEVER THE LIVE SITE), Chromium as a phone (390 × 844):
-//   · THE OWNER'S LIVE TEST: a stranger's PLAY shelf has no JAYWALK and PLAY NOW refuses it; the OWNER's phone (the server's own yes — the
-//     radio gate; on the emulators testAdmins/{pid}) gets JAYWALK · TEST → its card → PLAY NOW
+//   · A STRANGER PLAYS IT (THE GO-LIVE PASS — JAYWALK is playable): their PLAY shelf lists JAYWALK (no · TEST) → its card → PLAY NOW; the
+//     stranger's run is COUNTED (no owner set-up anywhere)
 //   · GO with the server's time: the proof node's `go` ≈ the server clock, written once; the course = seedOf(code, matchId, go)
 //   · hops → the chunks, each { s, at: the server's time }; a forged chunk time is refused by the rules
 //   · out → the end screen (the cause in big words, the lanes, PLAY AGAIN · SHARE · BACK TO THE CITY — the non-pill tubes); the report COUNTED FROM THE REPLAY →
@@ -116,24 +116,16 @@ async function dropRunCards(pids) {
 const counted = async (code, m, ms = 20000) => { const end = Date.now() + ms; while (Date.now() < end) { const r = await dbGet(`results/${code}_${m}`); if (r && r.st === 'done') return r; await sleep(150); } return null; };
 
 try {
-  // ---- 1. nobody but the owner ever sees it
+  // ---- 1. A STRANGER (THE GO-LIVE PASS — JAYWALK is playable for everyone): the PLAY shelf lists it, no · TEST, no owner set-up
   const P = await phone(`jw${Date.now() % 100000}`);
   const { uid, pid } = await pidOf(P);
   ok(!!pid, 'the phone has its profile');
+  ok(await P.ev("import('/js/config.js').then(c => c.isPlayable('jaywalk') && !c.isOwnerTest('jaywalk'))"), 'a stranger: JAYWALK is playable — never a TEST');
   await P.tap('.nd-tab-play');
-  ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row')", 6000), 'a stranger: the dock\'s PLAY opens THE GAMES SHELF');
-  ok(await P.ev("!document.querySelector('.nd-shelf-row[data-game=\"jaywalk\"]') && document.querySelectorAll('.nd-shelf-row').length === 3"), '… the three playable games — NO JAYWALK');
-  ok(await P.ev("import('/js/host.js').then(m => m.playSolo('jaywalk'))") === false && !(await P.ev(`${S}.code`)), '… and PLAY NOW refuses it (COMING SOON): nobody else can start it');
-  // ---- 2. THE OWNER'S LIVE TEST: the server's own yes → JAYWALK · TEST on the shelf → its card → PLAY NOW
-  await dbPut(`testAdmins/${pid}`, true);
-  await P.ev('sessionStorage.clear()');   // (the gate remembers a NO for the tab: this tab was a stranger a moment ago — a real owner is the owner from his first load)
-  await P.open();
-  ok(await P.waitFor("import('/js/config.js').then(c => c.isOwnerTest('jaywalk'))", 20000), 'THE OWNER\'s phone: the server\'s yes arrives (the radio gate) → JAYWALK is his to test');
-  await P.tap('.nd-tab-play');
-  ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"jaywalk\"]')", 6000), 'PLAY → the shelf lists JAYWALK');
-  ok(/JAYWALK · TEST/.test(await P.ev("document.querySelector('.nd-shelf-row[data-game=\"jaywalk\"]').textContent")), '… marked · TEST');
-  await P.shot('owner-shelf.png');
-  // (THE LINES: a FRIEND with a server-counted JAYWALK best of 7 lanes — a real profile of their own, on the owner's friends list)
+  ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"jaywalk\"]')", 6000), 'a stranger: the dock\'s PLAY → THE GAMES SHELF lists JAYWALK');
+  ok(await P.ev("document.querySelectorAll('.nd-shelf-row').length === 4 && !/TEST/.test(document.querySelector('.nd-shelf-row[data-game=\"jaywalk\"]').textContent)"), '… the four playable games — JAYWALK unmarked (no · TEST)');
+  await P.shot('stranger-shelf.png');
+  // (THE LINES: a FRIEND with a server-counted JAYWALK best of 7 lanes — a real profile of their own, on the stranger's friends list)
   const FR = await phone(`jwf${Date.now() % 100000}`, 1, 'LIAM');
   const friend = await pidOf(FR);
   await FR.close();
@@ -141,7 +133,7 @@ try {
   await dbPut(`pfr/${pid}/f/${friend.pid}`, Date.now());
   await P.tap('.nd-shelf-row[data-game="jaywalk"]');
   ok(await P.waitFor("!!document.querySelector('.nd-card-sheet.is-in .nd-card[data-game=\"jaywalk\"] .nd-card-solo')", 8000), 'its row → THE GAME CARD with PLAY NOW');
-  await P.shot('owner-card.png');
+  await P.shot('stranger-card.png');
   const tPlay = Date.now();
   await P.tap('.nd-card-solo');
   ok(await P.waitFor(`${S}.game && ${S}.game.id === 'jaywalk' && !!document.querySelector('.jw-game canvas.jw-canvas') && !!${G}`, 25000), `PLAY NOW → the game's own screen (${Date.now() - tPlay} ms from the tap — THE SOLO START's walk inside)`);
@@ -390,11 +382,7 @@ try {
   // queued chunks landing together when it is back → the server's own replay counts the FULL honest run (never cut, never refused)
   if (DROP) {
     const Q = await phone(`jwd${Date.now() % 100000}`);
-    const who = await pidOf(Q);
-    await dbPut(`testAdmins/${who.pid}`, true);
-    await Q.ev('sessionStorage.clear()');
-    await Q.open();
-    await Q.waitFor("import('/js/config.js').then(c => c.isOwnerTest('jaywalk'))", 20000);
+    await pidOf(Q);   // (THE GO-LIVE PASS: a plain phone — no owner set-up)
     await Q.ev("import('/js/host.js').then(m => m.playSolo('jaywalk'))");
     for (const secs of [30, 60]) {
       let done = false;
@@ -442,11 +430,7 @@ try {
   // ---- 9. PERFORMANCE: the real view, 390 × 844 @3, 4× CPU, the bot playing — per tier
   if (PERF) {
     const Q = await phone(`jwp${Date.now() % 100000}`, 3);
-    const who = await pidOf(Q);
-    await dbPut(`testAdmins/${who.pid}`, true);
-    await Q.ev('sessionStorage.clear()');
-    await Q.open();
-    await Q.waitFor("import('/js/config.js').then(c => c.isOwnerTest('jaywalk'))", 20000);
+    await pidOf(Q);   // (THE GO-LIVE PASS: a plain phone — no owner set-up)
     await Q.ev("import('/js/host.js').then(m => m.playSolo('jaywalk'))");
     await Q.waitFor(`!!${G} && ${G}.state().mode === 'run'`, 30000);
     const cdp = await Q.p.createCDPSession();

@@ -81,6 +81,8 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
    side, a tab's boards one sideways row; the words on the night, the chosen one lit pink over its glowing line. NO PILL, NO GOLD. ---- */
 .bd-tabs { flex: none; }
 .bd-tabs .nt-tab { padding: 0 2px; font-size: 10.5px; letter-spacing: clamp(0.02em, calc((100vw - 360px) * 0.004), 0.08em); }
+/* (THE JAYWALK GO-LIVE PASS: SIX game tabs — each starts at its words' width and the row's spare room is shared; equal sixths clipped OVERCLOCK at 390) */
+.bd-tabs.is-even .nt-tab { flex: 1 1 auto; min-width: 44px; }
 .bd-ctrl { display: flex; gap: 14px; flex: none; }
 .bd-seg { flex: 1; min-width: 0; }
 .bd-seg .nt-tab { min-height: 40px; font-size: 10.5px; letter-spacing: 0.14em; }
