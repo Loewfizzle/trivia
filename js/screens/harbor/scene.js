@@ -748,7 +748,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     towerFx.layout(L);
     archFor();
     lights.layout(L);
-    { const bt = workTraceNow(); neon.layout(L, { dpr, tier, night: nightKey(LK.local), board: bt ? bt.board.key : null, boardGame: bt ? boardWant(bt.board.key, L) : null, boardDead: bt ? bt.boardLampDead : null }); } neon.setTier(tier);
+    { const bt = workTraceNow(); neon.layout(L, { dpr, tier, night: nightKey(LK.local), board: bt ? bt.board.key : null, boardGame: bt ? (tri.faces && tri.faces[tri.shown]) || boardWant(bt.board.key, L) : null, boardDead: bt ? bt.boardLampDead : null }); } neon.setTier(tier);
     water.layout(L, { dpr, tier });
     waterfront.layout(L, { dpr });
     wheel.layout(L, { dpr, tier }); beam.layout(L); boats.layout(L, { dpr, tier, taxi: clock.force.has('taxi'), turn: clock.force.has('rosie-turn') });
@@ -1116,7 +1116,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (THE TRI-VISION's state — its functions below workBoard; declared up here: boardSync reads it)
   let jaywalkForced = false, dropForced = false;
   const benchK = new Map(), BENCH_XF_S = 0.25;   // (THE BENCH OVER THE TAXI: each bench overlay's own fade, 1 = shown)
-  const tri = { shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null, jwOpen: false, openWarmed: false, fails: 0, retryAt: 0, dr: null, drWarm: false, drRetry: 0 };
+  const tri = { pick: null, shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null, jwOpen: false, openWarmed: false, fails: 0, retryAt: 0, dr: null, drWarm: false, drRetry: 0 };
   const triWarmFailed = what => {
     tri.warmed = false; tri.fails++;
     tri.retryAt = performance.now() + [3e3, 15e3, 60e3, 300e3][Math.min(tri.fails - 1, 3)];
@@ -1185,7 +1185,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (shownAt < 0) boardInSig = inSig; else if (inSig !== boardInSig) boardInSig = null;
     const loadQuiet = shownAt >= 0 && now - shownAt < LOAD_LOG_MS && boardInSig != null;   // (synced every frame BEFORE the reveal — tryReveal syncs it too)
     const TF = triFrame(tr);   // (THE TRI-VISION: the turn clock, every frame — its face is the board's want)
-    if ((shownAt < 0 || now - boardCheck > 500) && now > boardHeld && (!loadQuiet || tri.swap)) {
+    if ((shownAt < 0 || now - boardCheck > 500) && now > boardHeld && (!loadQuiet || tri.swap || (TF && !boardHintKey && neon.boardGame(BOARD_ID) !== TF[tri.shown]))) {
       boardCheck = now;
       const want = (TF ? TF[tri.shown] : null) || boardWant(tr.board.key), dead = tr.boardLampDead == null ? null : tr.boardLampDead;
       // SCHED Group 4 — THE BOARD's HINTS (core/harbor-billboard.js — the timetable's billboard.* queue): a hint takes the WHOLE board for its
@@ -1250,9 +1250,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (CITY F — THE OPEN NOW BILLBOARD: the face the board turns to decides WHICH picture warms — COMING SOON's art, or from the OPEN DAY the
     //  owner's poster (jaywalk-art.js#warmJaywalk(…, open)); a face shows only once ITS picture has decoded)
     const needOpen = !!F && F.includes('jaywalk-open'), needSoon = !!F && F.includes('jaywalk');
-    if (needSoon && !tri.warmed && shownAt >= 0 && performance.now() >= tri.retryAt) { tri.warmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jw = m; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (!destroyed) triWarmFailed(`poster art (${why})`); }); }).catch(e => { if (!destroyed) triWarmFailed(`painter (${(e && e.message) || e})`); }); }   // (the poster's module + its art: AFTER the reveal — never the boot graph)
-    if (needOpen && !tri.openWarmed && shownAt >= 0 && performance.now() >= tri.retryAt) { tri.openWarmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jwOpen = true; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (destroyed) return; tri.openWarmed = false; triWarmFailed(`the open-now poster (${why})`); }, true); }).catch(e => { if (destroyed) return; tri.openWarmed = false; triWarmFailed(`painter (${(e && e.message) || e})`); }); }
-    if (needDr && !tri.drWarm && shownAt >= 0 && performance.now() >= tri.drRetry) { tri.drWarm = true; lazyImport(import('./drop-art.js'), './drop-art.js').then(m => { if (!destroyed) m.warmDrop(() => { if (destroyed) return; tri.dr = m; setDropPainter(m.paintDrop); boardCheck = 0; }); }).catch(e => { if (destroyed) return; tri.drWarm = false; tri.drRetry = performance.now() + 15e3; reportError(new Error(`THE TRI-VISION: THE DROP's painter failed to load (${(e && e.message) || e})`), 'trivision art'); }); }
+    // (CITY H2 — ONE FACE FROM THE FIRST FRAME (the 4:03 pm entry): the face the board OPENS on is picked from ALL of today's faces by their
+    //  switch dates (newestFace) — and that ONE face's picture warms at once, before the reveal; the others after it, as ever)
+    if (F && tri.lastN == null) tri.pick = F[newestFace(F, faceDates())];   // (until it opens the pick follows the feed — COMING SOON → NOW OPEN)
+    const early = f => shownAt >= 0 || tri.pick === f;
+    if (needSoon && !tri.warmed && early('jaywalk') && performance.now() >= tri.retryAt) { tri.warmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jw = m; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (!destroyed) triWarmFailed(`poster art (${why})`); }); }).catch(e => { if (!destroyed) triWarmFailed(`painter (${(e && e.message) || e})`); }); }   // (the poster's module + its art: AFTER the reveal — never the boot graph)
+    if (needOpen && !tri.openWarmed && early('jaywalk-open') && performance.now() >= tri.retryAt) { tri.openWarmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jwOpen = true; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (destroyed) return; tri.openWarmed = false; triWarmFailed(`the open-now poster (${why})`); }, true); }).catch(e => { if (destroyed) return; tri.openWarmed = false; triWarmFailed(`painter (${(e && e.message) || e})`); }); }
+    if (needDr && !tri.drWarm && early('drop') && performance.now() >= tri.drRetry) { tri.drWarm = true; lazyImport(import('./drop-art.js'), './drop-art.js').then(m => { if (!destroyed) m.warmDrop(() => { if (destroyed) return; tri.dr = m; setDropPainter(m.paintDrop); boardCheck = 0; }); }).catch(e => { if (destroyed) return; tri.drWarm = false; tri.drRetry = performance.now() + 15e3; reportError(new Error(`THE TRI-VISION: THE DROP's painter failed to load (${(e && e.message) || e})`), 'trivision art'); }); }
     if (!F) return null;
     const G = F.filter(f => (f !== 'jaywalk' || tri.jw) && (f !== 'jaywalk-open' || tri.jwOpen) && (f !== 'drop' || tri.dr));
     return G.length >= 2 ? G : null;
@@ -1262,12 +1266,20 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     tri.key = tr.board.key;
     const F = triFacesNow(tr.board.key);
     if (!F) { tri.lastN = null; tri.shown = 0; tri.turn = null; tri.faces = null; return null; }
-    if (tri.faces && tri.faces.join() !== F.join()) { const was = tri.faces[tri.shown]; tri.shown = Math.max(0, F.indexOf(was)); }
+    if (tri.faces && tri.faces.join() !== F.join()) { const was = tri.faces[tri.shown]; tri.shown = Math.max(0, F.findIndex(f => f === was || (isJaywalkId(f) && isJaywalkId(was)))); }   // (CITY H2: COMING SOON → NOW OPEN stays JAYWALK — never a fall back to face A)
     tri.faces = F;
     const K = triKnobs(), C = triClock(clock.now() / 1000, K, triForce(), F.length);
     // (the first frame it's up — CITY H1, THE BOARD OPENS ON THE NEWEST GAME: it turns at once to the face switched on most recently
     //  (core/harbor-trivision.js#newestFace), then the shared clock's turns as ever; was: it kept HOLD'EM until the next turn)
-    if (tri.lastN == null) { tri.lastN = C.n; const o = newestFace(F, faceDates()); if (o !== tri.shown && !tr.board.pasting && boardHintKey === '') triTurnTo(F, o, { id: `o${C.n}`, at: clock.now() / 1000 }, K); else tri.shown = o; tri.opened = F[o]; return F; }
+    // (CITY H2: the PICK, never a face that merely warmed first — until the pick's picture is in (≤ 4 s after the reveal: then the newest of what
+    //  is in) the board waits on its base face; before the reveal the opening is a plain CUT — the first painted frame is already the pick)
+    if (tri.lastN == null) {
+      let o = F.indexOf(tri.pick);
+      if (o < 0) { if (shownAt < 0 || performance.now() - shownAt < 4000) { tri.faces = null; return null; } o = newestFace(F, faceDates()); }
+      tri.lastN = C.n; tri.opened = F[o];
+      if (o !== tri.shown && shownAt >= 0 && !tr.board.pasting && boardHintKey === '') triTurnTo(F, o, { id: `o${C.n}`, at: clock.now() / 1000 }, K); else { tri.shown = o; tri.swap = true; }
+      return F;
+    }
     if (C.n === tri.lastN) {
       if (tri.turn && !tri.turn.click2 && C.u != null && C.u > 0.62) { tri.turn.click2 = true; triClick(0.12); }
       return F;
@@ -2962,6 +2974,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   /** THE REVEAL: the first full frame is ready → the city fades in (900 ms) and the title lets the canvas show */
   function tryReveal(now) {
     const on = up();   // (LOAD FIX 4: the gates in time ON SCREEN)
+    if (!tri.pick && LK.local) triFacesNow(workDayOf(clock.now() / 1000, LK.local.off || 0).key);   // (CITY H2: the roof board's ONE face + its warm, from the first look)
     if (wantStep && tier > 0 && on < REVEAL_MAX) { const w = wantStep; wantStep = null; stepWhy.push(w); LOADLOG.add('tier', `${tier} → ${tier - 1} before the reveal (${w})`); stepTier(tier - 1); return; }
     const box = !boxOff(); if (!box) { boxCheck('at the reveal'); heldAt('the box'); }
     const ready = box && baker.bakes >= 1 && litBaker.bakes >= 1 && !baker.pending && !litBaker.pending && !wantBake && !wantBuild && !resizeT && now - lastResizeAt > 400 && (!L || lightKey() === litBaker.key);   // (SP4: + no lit re-bake wanted)
@@ -2972,8 +2985,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const songs = !!partyDeckNow() || on > REVEAL_MAX - 500;
     const late = on > REVEAL_MAX && !(((baker.bakes >= 1 && bakeCamShown !== camSig) || !box || !!resizeT || !!wantBuild || (!fonts && fontsAsked) || (people.ready && !people.ready())) && on < REVEAL_MAX + 2000);   // (CITY C 0c: + the title's faces already on their way + the people's staged first plan — the Chromebook's swap 0.8 s after a late reveal re-laid the dock + an 870 ms frame)
     const folk = (clock.force && clock.force.has && clock.force.has('no-people')) || !people.ready || people.ready() || on > REVEAL_MAX - 500;
-    { const g = { bake: ready, fonts, wx, sky, panel, songs, folk }; for (const k in g) if (g[k] && gateAt[k] == null) gateAt[k] = Math.round(now - t0); }
-    if (!(ready && fonts && wx && sky && panel && songs && folk) && !late) return;
+    // (CITY H2 — ONE FACE FROM THE FIRST FRAME: the reveal waits for the roof board's PICKED poster (≤ REVEAL_MAX − 0.5 s; a failed load lets go))
+    const bp = tri.pick, board = !bp || /^holdem/.test(bp) || (bp === 'jaywalk' ? !!tri.jw : bp === 'jaywalk-open' ? tri.jwOpen : bp === 'drop' ? !!tri.dr : true) || tri.fails > 0 || on > REVEAL_MAX - 500;
+    { const g = { bake: ready, fonts, wx, sky, panel, songs, folk, board }; for (const k in g) if (g[k] && gateAt[k] == null) gateAt[k] = Math.round(now - t0); }
+    if (!(ready && fonts && wx && sky && panel && songs && folk && board) && !late) return;
     // (the look the weather brought must be IN the bake that shows: an answer that landed since the last look (read every 2.5 s) is
     // read now, and a changed look re-bakes once more, still dark)
     { const w = wxNow(), sig = w ? `${w.kind}|${w.at}` : 'none'; if (!late && sig !== wxSig) { lookAt = 0; heldAt('the weather look'); return; } }
@@ -2996,6 +3011,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     //  reveal now waits for that re-fit, in the dark, like every other re-measure before it.)
     if ((!late || on < REVEAL_MAX + 2000) && (resizeT || wantBuild)) { heldAt('a re-fit on its way'); return; }
     if ((!late || on < REVEAL_MAX + 2000) && boxLook('at the reveal')) { heldAt('the box'); return; }
+    // (CITY H2: the roof board's pick CUT in under the boot screen — a late reveal skips the traces' sync above; one more frame for its repaint)
+    if (tri.lastN == null && tri.pick && !/^holdem/.test(tri.pick)) { const tr0 = (people.crew && people.crew() || {}).traces || workTraceNow(); if (tr0) { boardSync(tr0); if (tri.lastN != null && on < REVEAL_MAX + 2000) { heldAt('the roof board'); return; } } }
     shownAt = now; shownClock = clock.now() / 1000; revealWhy = ready && fonts && wx && sky && panel ? 'ready' : 'late';
     { let inst = false; try { inst = heldStart || !!(S.revealInstant && S.revealInstant()); } catch { /* the title's */ } fadeT0 = inst ? now - 900 : now; if (inst) LOADLOG.add('note', 'revealed under the boot screen: at once (its fade is the one fade)'); }
     clouds.settle();                              // (the clouds baked in the dark show at once with the city — no fade of their own)

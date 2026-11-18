@@ -10,7 +10,7 @@
 //   pause    THE DROP B add-on: a solo SURVIVAL hidden 60 s → its clock + engine stand still, the 3-2-1 back, the result = time PLAYED, the
 //            podium's board; a SCORE RUSH hidden 20 s mid-song → the song + the clock stand where they stopped
 //   (PD-6: the solo case also checks BOTH solo tubes, PLAY AGAIN keeping the mode, and the podium's XP line — runs 1, 3, 4 pay; the 5th says DONE)
-//   node tests/integration/e2e-playnow.mjs [--browser webkit|chromium] [--base http://localhost:5173] [--only solo,lost,one,friends,holdem,pause,sign] [--shots DIR]
+//   node tests/integration/e2e-playnow.mjs [--browser webkit|chromium] [--base http://localhost:5173] [--only solo,lost,one,friends,holdem,pause,sign,quit] [--shots DIR]
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -37,7 +37,7 @@ async function phone(name) {
   await ctx.addInitScript(([s, n]) => { try { localStorage.setItem('nd:entered', '1'); localStorage.setItem(`na:${s}:profile`, JSON.stringify({ name: n, color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ } }, [slot, name.toUpperCase().slice(0, 8)]);
   const p = await ctx.newPage();
   const errs = [];
-  p.on('pageerror', e => errs.push(e.message));
+  p.on('pageerror', e => { if (!/ResizeObserver loop/i.test(e.message)) errs.push(e.message); });   // (the browser's own benign notice — errlog.js ignores it too)
   if (process.env.PN_DEBUG) p.on('console', m => console.log(`   [${name} ${m.type()}] ${m.text().slice(0, 240)}`));
   const ev = js => p.evaluate(js);
   const waitFor = async (js, ms = 20000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await p.evaluate(js)) return true; } catch { /* navigating */ } await sleep(80); } return false; };
@@ -310,6 +310,41 @@ try {
     const pl = await P.ev('(() => { const b = window.__prism.beat && window.__prism.beat(); return b ? b.pos - (b.cue || 0) : null; })()');
     ok(pl == null || Math.abs(pl - (after.pos + 500) / 1000) < 1.5, `the song plays on from there (heard at ${pl == null ? 'n/a (no audio in the test)' : pl.toFixed(2) + ' s'})`);
     await P.ctx.close();
+  }
+  // CITY H2 (the 3:52 pm entry) — NEVER A DEAD SCREEN: each SOLO game (PRISM DROP, OVERCLOCK, JAYWALK) mid-run → ☰ → QUIT — BACK TO THE CITY →
+  // LEAVE → the city on screen + INTERACTIVE (the dock's PLAY opens the shelf) within 3 s of the tap; never a black screen
+  if (!ONLY.length || ONLY.includes('quit')) {
+    for (const game of ['prism', 'overclock', 'jaywalk']) {
+      const P = await phone(`quit${game.slice(0, 2)}`);
+      await openCard(P, game);
+      await P.ev("document.querySelector('.nd-card-sheet.is-in .nd-card-solo').click()");
+      const live = await P.waitFor(`(() => { const s = ${S}; return !!(s.game && s.game.id === '${game}' && window.__arcade.route().startsWith('game:${game}')); })()`, 15000);
+      await sleep(1200);
+      await P.ev("document.querySelector('.menu-btn').click()");
+      const row = await P.waitFor("!!document.querySelector('.sh.is-in .gm-solo-quit')", 4000);
+      const rooms = await P.ev("[...document.querySelectorAll('.sh.is-in .gm-quit, .sh.is-in .gm-end, .sh.is-in .gm-leave')].length");
+      await P.ev("document.querySelector('.sh.is-in .gm-solo-quit').click()");
+      await P.waitFor("!!document.querySelector('.lv-sheet.is-in .lv-go')", 4000);
+      const t0 = Date.now();
+      await P.ev("document.querySelector('.lv-sheet.is-in .lv-go').click()");
+      const back = await P.waitFor(`!${S}.code && window.__arcade.route() === 'title' && !!(window.__district && window.__district.harbor() && window.__district.harbor().shown) && !!document.querySelector('.nd-tab-play')`, 3000);
+      const ms = Date.now() - t0;
+      await P.ev("document.querySelector('.nd-tab-play').click()");
+      const shelf = await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row')", 3000);
+      await P.shot(`quit-${game}`);
+      ok(live && row && rooms === 0 && back && shelf && !P.errs.length, `${game.toUpperCase()} SOLO: ☰ → QUIT (the only way out — ${rooms} room rows) → LEAVE → the city back in ${ms} ms + interactive (the shelf ${shelf ? 'opened' : 'NOT opened'})${P.errs.length ? ` · errors: ${P.errs.join(' | ')}` : ''}`);
+      await P.ctx.close();
+    }
+    // … and THE NET under it: a room route with nothing to render (a room code whose meta never comes — a closed room) → the city within THE
+    // REJOIN LIMIT (8 s) + COUNTED (quiet kind 'dead'), never a dead screen
+    { const P = await phone('deadroom');
+      await P.ev("import('/js/store.js').then(m => m.setState({ code: 'ZQXW', meta: null }))");
+      const boot = await P.waitFor(`${S}.code === 'ZQXW'`, 2000);
+      const t0 = Date.now();
+      const back = await P.waitFor(`!${S}.code && window.__arcade.route() === 'title'`, 11000);
+      const ms = Date.now() - t0;
+      ok(boot && back && ms <= 9500, `NEVER A DEAD SCREEN: a room code whose meta never comes (${boot ? 'set' : 'NOT set'}) → the city in ${ms} ms`);
+      await P.ctx.close(); }
   }
   if (!ONLY.length || ONLY.includes('sign')) {
     const P = await phone('signer');

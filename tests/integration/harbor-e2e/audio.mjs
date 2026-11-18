@@ -682,27 +682,37 @@ G('mediacut', async () => {
   ok(h.after === 'all paused', `… hidden after it: every element still paused (${h.after})`);
   await ev(p, "Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('focus'))");
   await P.ctx.close();
-  // ---- CITY H1 — MUSIC OFF = EFFECTS ONLY (the owner's pick): the city's loops stop, the context SLEEPS with no effect sounding (still saying
-  //  'running'), an effect wakes it + it sleeps again; a leave while asleep finds the master's VALUE at 0
+  // ---- CITY H2 — MUSIC OFF = ONLY THE MUSIC OFF (the owner overrules H1): the city's loops + its one-offs play on, the context never sleeps,
+  //  the session 'ambient'; a leave still finds the master's VALUE at 0 on the first signal
   { const Q = await open({ slot: 'mc2', qs: `${NIGHT}&debug=1`, view: [402, 874] }), q = Q.page;
     await harborUp(q); await tapAt(q, 30, 300);
     await waitFor(q, "import('/js/audio/engine.js').then(E => E.audioUnlocked() && E.audioHealth().state === 'running')", 'the audio running', 8000).catch(() => {});
     await sleep(2500);
-    const on = await ev(q, "import('/js/audio/engine.js').then(E => E.audioHealth())");
     await ev(q, "import('/js/audio/settings.js').then(m => m.updateSettings({ musicOff: true, sfxOff: false, muted: false }))");
-    const slept = await waitFor(q, "import('/js/audio/engine.js').then(E => E.audioHealth().state === 'asleep')", 'asleep with the music off', 6000).then(() => true, () => false);
-    const a = await ev(q, "import('/js/audio/engine.js').then(E => ({ h: E.audioHealth(), says: E.getContext().state, beds: E.bedCount() }))");
-    ok(slept && a.h.voices === 0 && a.h.master === 0 && a.says === 'running',
-      `MUSIC OFF = EFFECTS ONLY: the loops stop + the context ASLEEP (${a.h.state}; ${on.voices} voices with the music on → ${a.h.voices}; master ${a.h.master}; it says '${a.says}')`);
-    const w = await ev(q, `(async () => { const E = await import('/js/audio/engine.js'), S = await import('/js/audio/sfx.js'); const t0 = performance.now(); S.sfx('select');
-      const m = E.audioHealth().master; while (E.audioHealth().state !== 'running' && performance.now() - t0 < 2000) await new Promise(r => setTimeout(r, 10));
-      return { m, ms: Math.round(performance.now() - t0), st: E.audioHealth().state }; })()`);
-    ok(w.m === 1 && w.st === 'running' && w.ms < 600, `… an effect WAKES it (the master ${w.m} at once, running in ${w.ms} ms)`);
-    const again = await waitFor(q, "import('/js/audio/engine.js').then(E => E.audioHealth().state === 'asleep')", 'asleep again', 4000).then(() => true, () => false);
-    ok(again, '… and it sleeps again after the effect');
+    await sleep(2500);
+    const a = await ev(q, "Promise.all([import('/js/audio/engine.js'), import('/js/audio/city-sound.js')]).then(([E, C]) => ({ h: E.audioHealth(), loops: C.citySoundsDebug().loops.filter(L => L.voices > 0).length }))");
+    ok(a.h.state === 'running' && a.h.master === 1 && a.loops > 0,
+      `MUSIC OFF = ONLY THE MUSIC: the city's loops play on (${a.loops} sounding), the context ${a.h.state}, master ${a.h.master}`);
     await ev(q, "window.dispatchEvent(new Event('blur')); Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))");
     const lv = await ev(q, "import('/js/audio/engine.js').then(E => E.audioHealth())");
-    ok(lv.master === 0 && lv.state === 'asleep', `… a leave while asleep: nothing live (master ${lv.master}, ${lv.state})`);
+    ok(lv.master === 0, `… a leave with the beds sounding: the master ${lv.master} on the line right after the cut`);
+    await Q.ctx.close(); }
+  // ---- CITY H2 (the 3:52 pm entry) — THE FAST CYCLE: the music sounding, the corner button OFF → ALL OFF → ON inside about a second → the
+  //  music back at once. (CITY H1 read music.js's own clock — -1 while the city's SYNCED STATION holds the song: the music was back, the
+  //  check didn't hear it.) Now: the song sounding on either player + the OUTPUT's peak, from the cycle's last tap
+  { const Q = await open({ slot: 'mc3', qs: `${NIGHT}&debug=1`, view: [402, 874] }), q = Q.page;
+    await harborUp(q); await tapAt(q, 30, 300);
+    const SONG = "(() => { const p = window.__arcade.partyMusicDebug && window.__arcade.partyMusicDebug(); const sl = p && p.synced && p.player && p.player.slots && p.player.slots.find(x => !x.paused && x.gain > 0.5); return import('/js/audio/music.js').then(m => m.musicClock() >= 0 || !!sl); })()";
+    const PEAK = "(() => { const d = new Float32Array(window.__an.fftSize); window.__an.getFloatTimeDomainData(d); let pk = 0; for (const v of d) pk = Math.max(pk, Math.abs(v)); return pk; })()";
+    const sounding = await waitFor(q, SONG, 'the music sounding', 25000).then(() => true, () => false);
+    await ev(q, "import('/js/audio/engine.js').then(E => { const an = E.getContext().createAnalyser(); an.fftSize = 2048; E.getMaster().connect(an); window.__an = an; })");
+    await sleep(1500);
+    for (let k = 0; k < 3; k++) { await tap(q, '.music-btn'); await sleep(300); }
+    const st = await ev(q, "document.querySelector('.music-btn').dataset.sound");
+    const t0 = Date.now();
+    const back = await waitFor(q, `${SONG}.then(on => on && ${PEAK} > 0.01)`, 'the music back + heard', 6000).then(() => true, () => false);
+    const ms = Date.now() - t0;
+    ok(sounding && st === 'on' && back && ms < 3000, `THE FAST CYCLE: OFF → ALL OFF → ON in ~1 s → the music back + heard at the output in ${ms} ms (the button '${st}'${back ? '' : `; ${await ev(q, "import('/js/audio/engine.js').then(E => E.audioEvents().slice(-10).map(x => x.m).join(' · '))")}`})`);
     await Q.ctx.close(); }
   log('mediacut', 'done');
 });

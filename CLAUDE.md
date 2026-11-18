@@ -266,7 +266,7 @@ Rules of thumb: a player writes only under their own uid; anything secret lives 
 - MOOD MUSIC (`audio/mood.js`); City 2.0's stations play on the server clock — every phone the same song (`audio/party-music.js#stationOf`).
 - `playMusic(id, fallback)` driven by `app.js` from state; `sfx(name)` for the shared effects; a game's own palette in its `createSfx()`.
 - THE IDLE CUTOFF (`audio/idle.js`); LEAVING + MUTED: THE CUT IN ONE ORDER (ramp to 0 → the loops → THE ZEROS FIRST → the suspend); MUTED = NOTHING RUNS, ONLY the master reaches `ctx.destination`; THE THREE-WAY BUTTON (music off → all off → on) + THE SESSION BY STATE ('playback' · 'ambient' + THE HARD CUT · iOS alone) — ONE module `audio/sound-state.js`; every media element paused in the cut (CITY G) → docs/audio.md.
-- MUSIC OFF = EFFECTS ONLY (CITY H1): no bed, no city ambience; the context SLEEPS while no effect sounds (`engine.js#sleepy` — a source wakes it); a cut sets the master's VALUE → docs/audio.md.
+- MUSIC OFF = ONLY THE MUSIC OFF (CITY H2 — H1's effects-only undone): the beds + the city's sounds play on, 'ambient' session; every tap resumes a suspended context; a cut sets the master's VALUE → docs/audio.md.
 - New songs: `scripts/add-city2-music.py` (City 2.0) — bump `music.js#REV` when replacing a file; never change a song element's playbackRate.
 
 ## Design system (the full text: docs/title.md (moved) + "THE SHELL")

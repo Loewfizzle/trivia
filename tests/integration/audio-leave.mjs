@@ -74,7 +74,7 @@ try {
     const before = await p.evaluate(async () => {
       const [E, A, X] = await Promise.all([import('/js/audio/engine.js'), import('/js/audio/ambience.js'), import('/js/audio/sfx.js')]);
       A.neonHumFade({ hold: 30, fade: 30 }); X.sfx('select');
-      // (CITY H1 — MUSIC OFF = EFFECTS ONLY: no bed starts, the context sleeps between effects — the leave is taken WHILE the effect sounds)
+      // (CITY H2 — MUSIC OFF = ONLY THE MUSIC OFF: the beds run as with the music on; + a 3-s one-off effect — the leave lands mid-sound)
       const EOn = (await import('/js/audio/settings.js')).settings.musicOff;
       if (EOn) { const c = E.getContext(), b = c.createBuffer(1, c.sampleRate * 3, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.sin(i / 9) * 0.05; const o = c.createBufferSource(), g = c.createGain(); o.buffer = b; o.connect(g).connect(E.getSfxBus()); o.start(); }   // (a 3-s one-shot effect: the leave lands mid-sound)
       await new Promise(r => setTimeout(r, EOn ? 400 : 900));
@@ -94,8 +94,7 @@ try {
     const at = await p.evaluate(() => import('/js/audio/engine.js').then(E => ({ s: window.__atSuspend.slice(), state: E.getContext() && E.getContext().state, log: E.audioEvents().slice(-8).map(x => x.m) })));
     const sus = at.s[at.s.length - 1];
     console.log(`  · ${name}: before the leave — the context ${before.state}, ${before.beds} bed(s), master ${before.master}; the log: ${at.log.join(' · ')}`);
-    const EO = !!prefs.musicOff && !prefs.sfxOff;   // (CITY H1: effects only — no bed may start)
-    ok(before.state === 'running' && (prefs.sfxOff ? true : EO ? before.beds === 0 || before.bedsOn === 0 : before.beds >= 1) && before.peak > 0, `${name}: the audio running + SOUNDING before the leave (${before.state}, ${before.beds} bed${EO ? ' — EFFECTS ONLY: none started' : ''}, the output's peak ${before.peak})`);
+    ok(before.state === 'running' && (prefs.sfxOff ? true : before.beds >= 1 && before.bedsOn >= 1) && before.peak > 0, `${name}: the audio running + SOUNDING before the leave (${before.state}, ${before.beds} bed(s), ${before.bedsOn} on, the output's peak ${before.peak})`);
     // (CITY G: with the music off — the 'ambient' session — the earliest signal is THE HARD CUT: "the master 0 + the beds in one step")
     ok(at.log.some(m => /the master 0 at once|the master 0 \+ the beds in one step/.test(m)), `${name}: the AUDIO log — "the master 0 at once" (ambient: the hard cut) on the earliest signal (${at.log.filter(m => /blur|fade out|suspended/.test(m)).join(' · ')})`);
     ok(!!sus && at.state === 'suspended', `${name}: suspended after the leave (${at.state})`);
@@ -112,8 +111,29 @@ try {
     await p.touchscreen.tap(195, 600);
     await sleep(1200);
     const back = await p.evaluate(() => import('/js/audio/engine.js').then(E => ({ state: E.getContext() && E.getContext().state, h: E.audioHealth().state, master: window.__master(), log: E.audioEvents().slice(-4).map(x => x.m) })));
-    // (CITY H1 — effects only: back on screen it may already be ASLEEP again — nothing sounding, nothing to wake for)
-    ok((back.state === 'running' && back.master > 0.9) || (EO && back.h === 'asleep'), `${name}: back on screen — the context ${back.h}, the master ${back.master && back.master.toFixed(2)} (${back.log.join(' · ')})`);
+    ok(back.state === 'running' && back.master > 0.9, `${name}: back on screen — the context ${back.h}, the master ${back.master && back.master.toFixed(2)} (${back.log.join(' · ')})`);
+    await ctx.close();
+  }
+  // CITY H2 (the 4:03 pm entry) — MUSIC OFF AT LOAD: the FIRST tap on the city unlocks + resumes the audio; an effect then SOUNDS (the effects
+  // bus live, the context running) — H1's sleeping engine left the effects dead until the button was cycled
+  {
+    const ctx = await browser.createBrowserContext();
+    const p = await ctx.newPage();
+    await p.evaluateOnNewDocument(INIT, 'wam', { musicOff: true });
+    await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await p.goto(guardUrl(`${BASE}/?emu&slot=wam&city=2&idle=1&debug=1`, 'wk-audio-leave.mjs'));
+    await p.waitForFunction('!!(window.__district && window.__district.harbor() && window.__district.harbor().shown)', { timeout: 60000 });
+    await p.touchscreen.tap(195, 560);
+    await sleep(900);
+    const r = await p.evaluate(async () => {
+      const [E, X] = await Promise.all([import('/js/audio/engine.js'), import('/js/audio/sfx.js')]);
+      const c = E.getContext(), m = E.getMaster(), an = c.createAnalyser(); an.fftSize = 2048; m.connect(an);
+      X.sfx('select');
+      let peak = 0; const d = new Float32Array(an.fftSize);
+      for (let k = 0; k < 12; k++) { await new Promise(r => setTimeout(r, 25)); an.getFloatTimeDomainData(d); for (const v of d) peak = Math.max(peak, Math.abs(v)); }
+      return { state: c.state, fx: E.getSfxBus().gain.value, master: m.gain.value, peak: +peak.toFixed(4), bedsOn: E.audioHealth().bedsOn, session: E.audioHealth().session };
+    });
+    ok(r.state === 'running' && r.fx > 0.05 && r.master > 0.9 && r.peak > 0.001, `MUSIC OFF AT LOAD → one tap → an effect SOUNDS (ctx ${r.state}, the effects bus ${r.fx.toFixed(2)}, master ${r.master.toFixed(2)}, the output's peak ${r.peak}, session ${r.session})`);
     await ctx.close();
   }
   // A BLUR THAT COMES BACK (the share sheet — still on screen): silent for a moment, then everything back, never suspended

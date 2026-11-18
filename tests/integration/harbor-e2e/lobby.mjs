@@ -1,7 +1,7 @@
 // CITY 2.0 — THE HARBOR end to end: LOBBY 2.0 A (Nov 3 — docs/harbor/passes/lobby-2a.md). `billboard`: THE ANNOUNCEMENT BILLBOARD's
 // cross-fade (the owner: his message "snaps on"). More groups of this pass join here (the room in the city, the dock, the guest list…).
 // ADDING A GROUP: G('name', …) in its job's file + the name in ../harbor-jobs.mjs (CI_JOBS).
-import { log, sleep, ok, okT, NIGHT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI, skipCI, skipNoDisplay } from './kit.mjs';
+import { BASE, log, sleep, ok, okT, NIGHT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI, skipCI, skipNoDisplay } from './kit.mjs';
 import { displayAttached } from '../kit/puppeteer.mjs';
 
 const RM = { fn: () => { const mm = window.matchMedia.bind(window); window.matchMedia = q => (/prefers-reduced-motion/.test(q) ? { matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} } : mm(q)); }, arg: null };
@@ -48,13 +48,12 @@ G('trivision', async () => {
   await Promise.all([harborUp(A.page), harborUp(B.page)]);
   const tri = p => ev(p, 'window.__district.tri()');
   const t0 = await tri(A.page);
-  // (CITY H1: once JAYWALK's art has decoded the board OPENS on it — a warm cache can do that before this first look; else HOLD'EM, face A)
-  ok(t0 && ((t0.shown === 0 && (t0.board === 'holdem-open' || t0.board === 'holdem')) || /^jaywalk/.test(t0.opened || '')), `THE TRI-VISION — at the reveal the board shows HOLD'EM (face A) or has already OPENED on the newest (${t0 && t0.board}; opened ${t0 && t0.opened}), JAYWALK's art warming after the reveal (warmed ${t0 && t0.warmed})`);
+  // (CITY H2 — ONE FACE FROM THE FIRST FRAME: the board is ON the newest game (JAYWALK) at the reveal — its picture warmed under the boot screen,
+  //  a CUT before any frame was painted, never an opening turn after it; then the shared clock's turns)
+  ok(t0 && /^jaywalk/.test(t0.board || '') && /^jaywalk/.test(t0.opened || '') && !(t0.turns || []).some(x => /^o/.test(x.id)), `THE TRI-VISION — at the reveal the board is ALREADY on the newest game (${t0 && t0.board}; opened ${t0 && t0.opened}; the picture warmed: ${t0 && t0.warmed})`);
   await waitFor(A.page, '(() => { const t = window.__district.tri(); return t && t.turns.length >= 1; })()', 'a turn', 30000).catch(() => {});
   const t1 = await tri(A.page), first = t1.turns[0];
-  ok(first && /^holdem/.test(first.from) && /^jaywalk/.test(first.to), `the first JAYWALK face arrives BY A TURN (${first ? `${first.from} → ${first.to}` : 'no turn'}; JAYWALK's art ready: ${t1.ready})`);
-  // (CITY H1 — THE BOARD OPENS ON THE NEWEST GAME: that first turn is the OPENING one (id 'o…') — at once, to the face switched on most recently)
-  ok(first && /^o/.test(first.id) && /^jaywalk/.test(t1.opened || ''), `… it OPENS on the newest game: the opening turn ${first && first.id} → ${t1.opened} (then the shared clock)`);
+  ok(first && /^c|^f/.test(first.id) && /^jaywalk/.test(first.from), `the first turn is the CLOCK's, from JAYWALK (${first ? `${first.id}: ${first.from} → ${first.to}` : 'no turn'})`);
   // mid-turn: the slats on the crisp layer (an iPhone's 3×), then the board holds the new face
   await waitFor(A.page, '(() => { const t = window.__district.tri(); return t && t.turn && t.turn.u > 0.1 && t.turn.u < 0.9; })()', 'mid-turn', 20000).catch(() => {});
   const mid = await ev(A.page, "(() => { const t = window.__district.tri(); const cv = [...document.querySelectorAll('canvas.hc-crisp')].length; return { u: t.turn && t.turn.u, cv }; })()");
@@ -96,6 +95,28 @@ G('trivision', async () => {
 // picture was still loading took the answer with it and the REBUILT scene never showed the face. Here: the JAYWALK picture held back 5 s, the city
 // destroyed + rebuilt mid-load (the title → a menu → the title: the same teardown a game start takes) → all THREE faces turn within a cycle; the same
 // with the OPEN DAY forced (the OPEN NOW poster).
+// CITY H2 — the 4:03 pm entry, THE ROOF BOARD FLICKERS (the owner's iPhone: THE DROP → a flash of HOLD'EM → THE DROP): ONE face from the first
+// painted frame until the next real turn. The live feed as the owner's site has it (JAYWALK NOW OPEN with no OPEN DAY stored — switched Nov 17 —
+// THE DROP live since 11-15); every frame from the reveal for 10 s records what the board shows: exactly ONE face, JAYWALK's, no opening turn
+G('trionce', async () => {
+  const live = await (await fetch(`${BASE}/api/admin?live=1`)).json().catch(() => ({}));
+  const rd = live.radio || {}, feed = JSON.stringify({ ...live, at: Date.now(), radio: { ...rd, base: { ...(rd.base || {}), jaywalk: { on: true, bar: 'open', open: null, since: '2026-11-12' } }, drop: { live: '2026-11-15', mode: 'on' } } });
+  // (390: a FIRST visit — the timetable's default until the feed; 402 at 4× CPU: a RETURNING phone — the last feed kept in its localStorage)
+  for (const [w, h, cpu, back] of [[390, 844, 1, false], [402, 874, 4, true]]) {
+    const Q = await open({ slot: `tro${w}`, qs: 'wx=clear&when=2026-11-18T20:30&force=no-hints', view: [w, h], cpu, wait: false,
+      init: { fn: ([back, feed]) => { const f0 = window.fetch; window.fetch = function (u, o) { return /\/api\/admin\?live=1/.test(String(u)) ? Promise.resolve(new Response(feed, { status: 200, headers: { 'Content-Type': 'application/json' } })) : f0.call(this, u, o); };   // (the page's own fetch: the service worker would pass an intercept by)
+        if (back) { try { localStorage.setItem('nd:jaywalk', JSON.stringify({ on: true, bar: 'open', open: null, since: '2026-11-12' })); localStorage.setItem('nd:drop', JSON.stringify({ live: '2026-11-15', mode: 'on' })); } catch { /* fine */ } } const rec = window.__triRec = []; let last = ''; const tick = () => { try { const d = window.__district, sh = !!(d && d.harbor() && d.harbor().shown), t = d && d.tri ? d.tri() : null;
+        if (t) { const k = `${sh ? '' : '(pre) '}${t.board || '—'}${t.turn ? ` turning ${t.turn.id}` : ''}${t.warmed ? ' w' : ''}${t.ready ? ' r' : ''}`; if (k !== last) { last = k; rec.push({ k, at: Math.round(performance.now()), board: t.board, turn: t.turn && t.turn.id, sh }); } } } catch { /* the city not up yet */ } requestAnimationFrame(tick); }; requestAnimationFrame(tick); }, arg: [back, feed] } }), p = Q.page;
+    await harborUp(p);
+    await sleep(10000);
+    const r = await ev(p, '({ rec: window.__triRec.slice(), t: window.__district.tri() })'), js = await ev(p, "import('/js/core/harbor-trivision.js').then(m => JSON.stringify({ s: m.jaywalkState(), d: m.dropState(), ls: localStorage.getItem('nd:jaywalk') }))");
+    const shown = r.rec.filter(x => x.sh), until = shown.findIndex(x => x.turn && !/^o/.test(x.turn)), seen = (until < 0 ? shown : shown.slice(0, until));
+    const faces = [...new Set(seen.map(x => x.board))], opening = seen.some(x => x.turn && /^o/.test(x.turn));
+    ok(faces.length === 1 && (back ? faces[0] === 'jaywalk-open' : /^jaywalk/.test(faces[0] || '')) && !opening, `THE ROOF BOARD at ${w}${cpu > 1 ? ` (${cpu}× CPU)` : ''}${back ? ', a returning phone' : ', a first visit'}: ONE face from the reveal for 10 s — ${faces.join(' → ') || 'nothing'}${opening ? ' (an OPENING TURN after the reveal)' : ''} (the pick ${r.t.opened}; ${js}; ${r.rec.map(x => `${x.at} ${x.k}`).join(' · ')})`);
+    await Q.ctx.close();
+  }
+  log('trionce', 'done');
+});
 G('trivision-rebuild', async () => {
   for (const open_ of [false, true]) {
     const qs = `wx=clear&force=trivision,billboard-jaywalk,billboard-drop,no-hints${open_ ? '&jaywalk=open' : ''}`;

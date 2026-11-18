@@ -1,5 +1,5 @@
 // Entry point: boot Firebase, restore session, route state -> screen.
-import { setErrorContext, markScreen } from './errlog.js';   // first: errors from phones (it also sees errors while the app boots)
+import { setErrorContext, markScreen, countQuiet } from './errlog.js';   // first: errors from phones (it also sees errors while the app boots)
 import { installTapWatch } from './ui/tapwatch.js';   // (CITY FIXES: THE TAP WATCH — a lost first tap → /admin, + THE RESCUE)
 import { h, $ } from './ui/dom.js';
 import { watchLayers, layersOpen } from './ui/layers.js';
@@ -8,7 +8,7 @@ import { APP_NAME, GAMES, DAILIES, gameRow } from './config.js';
 import { state, setState, subscribe } from './store.js';
 import { initFirebase, isConfigured, serverNow, lineInfo } from './firebase.js';
 import { inviteCode, watchDuplicateTabs, slot, loadSession } from './identity.js';
-import { resumeSession, armPresence, roomExists, soloRejoin } from './room.js';
+import { resumeSession, armPresence, roomExists, soloRejoin, leaveRoom, exitRoom } from './room.js';
 import { startHostLoop } from './host.js';
 import { keepAwake } from './wakelock.js';
 import { GAME_MODULES, GAME_IDS, loadGame, metaOf } from './games/registry.js';
@@ -265,6 +265,7 @@ function musicFor(st) {
 
 function render(st) {
   const key = routeKey(st);
+  if (!(st.ready && st.code && !st.meta)) { clearTimeout(deadT); deadT = 0; } else if (!deadT) deadT = setTimeout(() => { deadT = 0; if (state.ready && state.code && !state.meta) dead(); }, UPLINK_WAIT_MS);
   if (st.ready || !st.code) { const [track, fallback] = musicFor(st); playMusic(track, fallback); }
   // theme follows the active game
   const theme = st.game && st.meta && st.meta.status === 'playing' && st.quit !== st.game.matchId ? (GAMES.find(g => g.id === st.game.id) || {}).theme : '';
@@ -281,10 +282,10 @@ function render(st) {
   if (current && current.key === key) { current.screen.update && current.screen.update(st); return; }
   const old = current;
   const el = h('section.screen');
-  const screen = makeScreen(key);
+  let screen = makeScreen(key);
   current = { key, screen, el };
   stage.append(el);
-  screen.mount(el, st);
+  try { screen.mount(el, st); } catch (e) { if (key === 'title') throw e; console.warn('mount', key, e); screen = current.screen = makeScreen('boot'); screen.mount(el, st); dead(); }
   if (old) {
     old.screen.unmount && old.screen.unmount();
     old.el.classList.add('screen-out');
@@ -296,6 +297,15 @@ function render(st) {
   requestAnimationFrame(() => el.classList.add('screen-in'));
 }
 
+// CITY H2 — NEVER A DEAD SCREEN (the 3:52 pm entry): a route with nothing to render — a screen whose mount threw, a room's wait for its meta past
+// THE REJOIN LIMIT on any route (a closed room, a solo room after its QUIT) — goes to the city at once + is COUNTED (quiet kind 'dead' → /admin's errors)
+let deadT = 0;
+function dead() {
+  countQuiet('dead');
+  const p = globalThis.__nsPlayNow;
+  if (state.code) Promise.resolve(p && p.isSolo() ? p.leave() : leaveRoom()).catch(() => {}).then(() => { if (state.code) exitRoom(null); });
+  else setState({ view: 'title' });
+}
 subscribe(render);
 // error reports say which screen was up — never the room code or match id
 const whereNow = () => {

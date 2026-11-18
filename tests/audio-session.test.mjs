@@ -149,10 +149,10 @@ test('a blur that stays on screen (a share sheet, an alert) is no leave: nothing
 test('THE SQUEAL, FOR REAL (CITY H1): on a phone whose audio thread never runs, the master VALUE is 0 within one task of the first leave signal — the beds stopped in the SAME step, the zeros held, then the suspend', async () => {
   updateSettings({ musicOff: true, sfxOff: false, muted: false });
   if (ctx().state !== 'running') ctx().set('running');
-  const fx = ctx().createBufferSource(); fx.start();   // (an effect sounding: the context awake)
+  const fx = ctx().createBufferSource(); fx.start();   // (an effect sounding)
   await sleep(450);
   if (H().master !== 1) { win.fire('focus'); await sleep(450); }
-  assert.equal(H().state, 'running'); assert.equal(H().voices, 1);
+  assert.equal(H().state, 'running');
   Param.spec = true;
   bedPaused = false;
   const c = ctx(), s0 = c.suspends;
@@ -171,37 +171,24 @@ test('THE SQUEAL, FOR REAL (CITY H1): on a phone whose audio thread never runs, 
   updateSettings({ musicOff: false }); c.set('running');
 });
 
-test('MUSIC OFF = EFFECTS ONLY (CITY H1): no bed plays; the context SLEEPS ~300 ms after the last effect (it still says running), an effect wakes it, it sleeps again; the music back on wakes it + the beds', async () => {
+test('MUSIC OFF = ONLY THE MUSIC OFF (CITY H2 — the owner overrules H1): the beds keep playing, the context never sleeps; a suspended context at a tap is resumed IN the tap', async () => {
   updateSettings({ musicOff: false, sfxOff: false, muted: false });
   ctx().set('running');
   await sleep(300);
   bedPaused = false;
   updateSettings({ musicOff: true });
-  assert.equal(bedPaused, true, 'the music off: the beds stop at once');
-  const c = ctx(), s0 = c.suspends, r0 = c.resumes;
+  assert.equal(bedPaused, false, 'the music off: the beds play on');
+  const c = ctx(), s0 = c.suspends;
   await sleep(300 + E.FADE.zeroHoldMs + 400);
-  assert.equal(H().state, 'asleep', 'no effect sounding: asleep'); assert.equal(c.suspends, s0 + 1, 'suspended once'); assert.equal(H().master, 0, 'the master 0');
-  assert.equal(c.state, 'running', 'it still SAYS running — an effect is made + started as ever');
-  assert.equal(E.isUnlocked(), true);
+  assert.equal(H().state, 'running', 'nothing sounding: still running (no doze)'); assert.equal(c.suspends, s0, 'never suspended on screen');
+  assert.equal(H().master, 1, 'the master up');
+  // (the 4:03 pm entry: a context that came up suspended in music-off — the first tap resumes it inside the gesture)
+  c.set('suspended'); const r0 = c.resumes;
   doc.fire('touchend');
-  assert.equal(c.resumes, r0, 'a tap alone wakes nothing');
-  const fx = c.createOscillator(); fx.start();
-  assert.equal(H().master, 1, 'an effect: the master back up while nothing sounds'); assert.equal(c.resumes, r0 + 1, '… and the resume asked');
+  assert.ok(c.resumes > r0, 'a tap on a suspended context asks it to run, in the tap');
   c.set('running');
-  assert.equal(H().state, 'running');
-  await sleep(700);
-  assert.equal(H().state, 'running', 'awake while the effect sounds');
-  fx.stop();
-  await sleep(300 + E.FADE.zeroHoldMs + 400);
-  assert.equal(H().state, 'asleep', 'asleep again after the last effect');
-  vis(false); await sleep(20); vis(true);
-  assert.equal(H().state, 'asleep', 'a leave + the return: still asleep (nothing to wake for)');
   updateSettings({ musicOff: false });
-  assert.equal(H().master, 1); assert.ok(c.resumes > r0 + 1, 'the music back on: woken');
-  c.set('running');
-  assert.equal(bedPaused, false, '… and the beds back');
-  await sleep(700);
-  assert.equal(H().state, 'running', 'the music on: never asleep');
+  assert.equal(bedPaused, false);
 });
 
 test('MUTED = NOTHING RUNS: suspended after the ramp; a tap resumes nothing; leaving + coming back wakes nothing', async () => {

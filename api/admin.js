@@ -457,8 +457,11 @@ export async function adminAction(uid, body, now = Date.now()) {
     // NOW OPEN, the days before stay COMING SOON; '' clears it) → city2/billboard.jaywalk (every phone through the cached feed); off = HOLD'EM alone
     case 'billboardJaywalk': {
       const cur = jaywalkPublic(await val('city2/billboard')), on = body.on !== false, bar = body.bar === 'open' ? 'open' : body.bar === 'soon' ? 'soon' : cur.bar;
-      const open = body.open === '' || body.open === null ? null : /^\d{4}-\d{2}-\d{2}$/.test(String(body.open || '')) ? String(body.open) : cur.open;
-      const since = on && cur.on && cur.since ? cur.since : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(now));
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(now));
+      // (CITY H2: a switch to NOW OPEN with no OPEN DAY typed STAMPS today — the roof board opens on the game switched on most recently)
+      let open = body.open === '' || body.open === null ? null : /^\d{4}-\d{2}-\d{2}$/.test(String(body.open || '')) ? String(body.open) : cur.open;
+      if (bar === 'open' && cur.bar !== 'open' && !open && body.open !== '' && body.open !== null) open = today;
+      const since = on && cur.on && cur.since ? cur.since : today;
       await ref('city2/billboard').update({ jaywalk: { on, bar, open, since }, at: now });
       await audit(me, 'billboardJaywalk', null, { b: `${on ? 'on' : 'off'} · ${bar}${open ? ` · open ${open}` : ''}` });
       return { jaywalk: jaywalkPublic({ jaywalk: { on, bar, open, since } }) };

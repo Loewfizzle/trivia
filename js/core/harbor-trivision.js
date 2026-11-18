@@ -106,8 +106,11 @@ export function newestFace(F, dates = {}) {
   return best;
 }
 /** each face's switch dates now (holdem / jaywalk: since + OPEN DAY; drop: its go-live day) — for newestFace */
+// (CITY H2 — the 4:03 pm entry: JAYWALK's NOW OPEN was switched on Nov 17 but /admin then kept no OPEN DAY — a switch to NOW OPEN without one
+//  counts from that day; /admin stamps the day from now on — api/admin.js billboardJaywalk)
+export const JAYWALK_OPENED = '2026-11-17';
 export function faceDates() {
-  const H = holdemState(), J = jaywalkState(), D = dropState(), h = [H.since, H.open], j = [J.since, J.open];
+  const H = holdemState(), J = jaywalkState(), D = dropState(), h = [H.since, H.open], j = [J.since, J.open || (J.bar === 'open' ? JAYWALK_OPENED : null)];
   return { holdem: h, 'holdem-open': h, jaywalk: j, 'jaywalk-open': j, drop: [D.live] };
 }
 /** THE BILLPOSTER stays home while the tri-vision is up (the turning board is the motion — no paste) */

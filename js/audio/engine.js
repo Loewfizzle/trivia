@@ -94,12 +94,8 @@ function createContext() {
   try { c = ctx = new AC({ latencyHint: 'interactive' }); }
   catch (e) { audioLog(`new context ✗ ${(e && e.name) || 'error'} (alive ${made - closed})`); ctx = null; return null; }
   made++;
-  sleepy(c);
   c.onstatechange = () => {
     if (c !== ctx) return;
-    const rs = realOf(c);
-    if (rs === 'running') asleep = false, wakeAt = 0;
-    else if (asleep && rs === 'suspended') return audioLog('ctx → asleep');
     audioLog(`ctx → ${c.state}`);
     leaveNote(`ctx ${c.state}`, c.state === 'interrupted');
     if (c.state === 'running') {
@@ -167,51 +163,11 @@ function busTo(p, v, t, tau, ramp) {
 let sfxCutAt = 0;   // performance.now() the effects went to 0 (0 = they're on)
 /** FIXES R2: the effects are OFF and their bus has reached 0 — a loop may be stopped now (city-sound.js: never mid-sound) */
 export const sfxSilent = () => !!sfxCutAt && performance.now() - sfxCutAt >= CUT_S * 1000 + 30;
-onSettings(() => { applyVolumes(false); setSession('settings'); hushCheck('settings'); if (effectsOnly()) pauseBeds('effects only'); else { wake(); if (visibleNow && !blurred) resumeBeds(); } });
+onSettings(() => { applyVolumes(false); setSession('settings'); hushCheck('settings'); });
 
-// ---- CITY H1 — MUSIC OFF = EFFECTS ONLY ('ambient'): no bed; the context SLEEPS while no effect sounds (sources COUNTED; "asleep" still SAYS
-// 'running' on screen) and a source's start WAKES it — docs/audio.md "CITY H1".
-const DOZE_MS = 300, REAL = new WeakMap();
-let voices = 0, voiceAt = 0, asleep = false, dozeT = 0, wakeAt = 0;
-const effectsOnly = () => sessionWant() === 'ambient' && !hushed;
-globalThis.__nsBedsOff = effectsOnly;   // (the city's loops: city-sound.js + ambience.js read it through the hub)
-const realOf = c => (REAL.get(c) || (() => c.state))();
-const stNow = () => (!ctx ? 'none' : asleep && realOf(ctx) === 'suspended' ? 'asleep' : realOf(ctx));
-function sleepy(c) {
-  const d = Object.getOwnPropertyDescriptor(c, 'state');
-  let own = d && 'value' in d ? d.value : null, get = null;
-  for (let p = d ? null : Object.getPrototypeOf(c); p && !get; p = Object.getPrototypeOf(p)) { const q = Object.getOwnPropertyDescriptor(p, 'state'); if (q && q.get) get = q.get; }
-  const real = () => (get ? get.call(c) : own);
-  try { Object.defineProperty(c, 'state', { configurable: true, get: () => { const s = real(); return asleep && !hushed && visibleNow && c === ctx && s === 'suspended' ? 'running' : s; }, set: v => { own = v; } }); REAL.set(c, real); } catch { /* fine */ }
-  for (const k of ['createBufferSource', 'createOscillator']) {
-    const mk = c[k];
-    if (typeof mk === 'function') c[k] = function () {
-      const s = mk.apply(c, arguments), st = s.start;
-      s.start = function () {
-        let on = c === ctx;
-        const end = () => { if (on) { on = false; voices = Math.max(0, voices - 1); voiceAt = performance.now(); } };
-        if (on) { voices++; try { s.addEventListener('ended', end); } catch { /* fine */ } wake(); }
-        try { return st.apply(s, arguments); } catch (e) { end(); throw e; }
-      };
-      return s;
-    };
-  }
-}
-function doze() {
-  const c = ctx;
-  if (!c || asleep || dozeT || voices || !effectsOnly() || !unlocked || !visibleNow || blurred || frozen || realOf(c) !== 'running' || performance.now() - voiceAt < DOZE_MS) return;
-  quiet(c, LEAVE_S);   // (a short ramp — an effect's reverb tail may still ring; a leave in it steps to 0 at once)
-  dozeT = setTimeout(() => { dozeT = 0; if (ctx === c && !voices && effectsOnly() && visibleNow && realOf(c) === 'running') { asleep = true; wakeAt = askedAt = gestureAskAt = 0; silence(c); c.suspend().catch(() => {}); } else silence(c, 1); }, Math.round(LEAVE_S * 1000) + ZERO_HOLD_MS);
-}
-function wake() {
-  const c = ctx;
-  if (dozeT) { clearTimeout(dozeT); dozeT = 0; if (c) silence(c, 1); }
-  if (!asleep || !c || hushed || !visibleNow) return;   // (never woken off screen — the return wakes nothing either: the next effect does)
-  silence(c, 1);
-  audioLog('awake for an effect');
-  if (!wakeAt) wakeAt = performance.now();
-  c.resume().catch(() => {});
-}
+// CITY H2 (the owner, Nov 18): MUSIC OFF = ONLY THE MUSIC OFF — the beds + the city's sounds play as with the music on; the session stays
+// 'ambient'. CITY H1's doze (the context asleep between effects, still saying 'running') is gone: it left a load in music-off with dead effects.
+const stNow = () => (ctx ? ctx.state : 'none');
 
 // ---- CITY A — item 29, THE LEAVING SQUEAL (the owner's iPhone, SOUND MUTED, no music: a short high-pitched noise switching from Safari to another
 // app). Muted = every voice at 0, so it was the audio MACHINERY still live — the context running for THE PROBE / the beat analysers, the
@@ -226,7 +182,7 @@ function hushCheck(why) {
   const want = hushWanted();
   if (want === hushed) { if (want && ctx && ctx.state === 'running' && !hushT) hushNow(why); return; }
   hushed = want;
-  if (want) { asleep = false; audioLog(`hush (${why}) — the master to 0, then the context suspended`); hushNow(why); return; }
+  if (want) { audioLog(`hush (${why}) — the master to 0, then the context suspended`); hushNow(why); return; }
   clearTimeout(hushT); hushT = 0;
   audioLog(`unhush (${why}${inGesture() ? ' · in tap' : ''})`);
   if (!ctx || !unlocked) return;
@@ -293,7 +249,7 @@ function closeContext(c) {
 function rebuild(why) {
   const old = ctx;
   closeContext(old);
-  ctx = null; musicBus = null; sfxBus = null; master = null; voices = 0; asleep = false;
+  ctx = null; musicBus = null; sfxBus = null; master = null;
   if (!createContext()) { ctx = old; return; }
   stuck = false; rebuilds++; lastWhy = why; askedAt = 0; gestureAskAt = 0; lastRebuildAt = performance.now(); bornOfRebuild = true; frozenAfterRebuild = false;
   audioLog(`rebuild #${rebuilds} (${why}) · alive ${made - closed}`);
@@ -378,7 +334,7 @@ export function onGesture(fn) { gestureListeners.add(fn); return () => gestureLi
 export function onFrozen(fn) { frozenListeners.add(fn); return () => frozenListeners.delete(fn); }
 
 /** The engine's state for tests + the readout. */
-export const audioHealth = () => ({ state: stNow(), voices, hushed, session: sessionWant(), bedsOn: bedsPaused ? 0 : beds.size, pendingFadeIn, stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
+export const audioHealth = () => ({ state: stNow(), hushed, session: sessionWant(), bedsOn: bedsPaused ? 0 : beds.size, pendingFadeIn, stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
   time: ctx ? +ctx.currentTime.toFixed(2) : 0, session: sessionInfo(), sessionSet: { ...sessionSet }, made, closed, alive: made - closed,
   movingFor: clock.moving > 0 && !frozen ? Math.round(performance.now() - clock.moving) : 0, ok: graphOk() });
 function sessionInfo() { try { const a = navigator.audioSession; return a ? `${a.type || '?'}/${'state' in a ? a.state || '?' : 'n/a'}` : ''; } catch { return ''; } }
@@ -411,10 +367,7 @@ function kick() {
 // path plays); one that NEVER started (still 0.00 after NEVER_STARTED_MS) counts at once
 let clock = { t: -1, since: 0, moving: 0 };   // moving: performance.now() since when the clock has been seen moving (0 = not yet)
 function watchClock() {
-  // (a wake whose resume never ran (iOS refused it): after 1 s the context stops pretending — the usual recovery takes over)
-  if (asleep && wakeAt && performance.now() - wakeAt > 1000) { asleep = false; wakeAt = 0; audioLog('the wake never ran'); kick(); }
-  doze();
-  if (!ctx || asleep || !unlocked || !visibleNow || document.visibilityState !== 'visible' || ctx.state !== 'running') { clock = { t: -1, since: performance.now(), moving: 0 }; if (frozen && ctx && ctx.state !== 'running') frozen = false; return; }
+  if (!ctx || !unlocked || !visibleNow || document.visibilityState !== 'visible' || ctx.state !== 'running') { clock = { t: -1, since: performance.now(), moving: 0 }; if (frozen && ctx && ctx.state !== 'running') frozen = false; return; }
   const now = performance.now(), t = ctx.currentTime;
   if (t !== clock.t) { if (frozen) audioLog('clock moving again'); clock = { t, since: now, moving: frozen || !clock.moving ? now : clock.moving }; frozen = false; return; }
   const limit = t === 0 ? NEVER_STARTED_MS : FROZEN_MS;
@@ -437,7 +390,7 @@ export function holdBed(bed) { beds.add(bed); if (bedsPaused) { try { bed.pause(
 globalThis.__nsAudioBeds = holdBed;
 export const bedCount = () => beds.size;
 function pauseBeds(why) { bedsPaused = true; for (const b of [...beds]) { try { b.pause(why); } catch { /* gone */ } } }
-function resumeBeds() { if (!bedsPaused || effectsOnly()) return; bedsPaused = false; for (const b of [...beds]) { try { b.resume(); } catch { /* gone */ } } }
+function resumeBeds() { if (!bedsPaused) return; bedsPaused = false; for (const b of [...beds]) { try { b.resume(); } catch { /* gone */ } } }
 // ---- THE FADE ON LEAVING (DFIX3 ADD-ON → CITY D): the master to 0 AT ONCE on the audio clock + the beds stopped, the suspend follows; back = 0 → up once running
 function fadeOut(why) {
   clearTimeout(fadeT); clearTimeout(blurT); blurT = 0;

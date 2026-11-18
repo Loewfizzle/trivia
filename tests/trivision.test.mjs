@@ -88,11 +88,13 @@ test('THE RIPPLE: the slats turn left → right inside the turn; each a prism go
 test('the scene: the tri-vision\'s pieces (the warm after the reveal, the swap under the slats, the crisp z 4, reduced motion = a cut, the click quiet)', () => {
   const sc = readFileSync(new URL('../js/screens/harbor/scene.js', import.meta.url), 'utf8');
   // (CITY B: only when a JAYWALK face is up — needJw; THE DROP's painter the same way — needDr)
-  assert.match(sc, /if \(needSoon && !tri\.warmed && shownAt >= 0 && performance\.now\(\) >= tri\.retryAt\) \{ tri\.warmed = true; lazyImport\(import\('\.\/jaywalk-art\.js'\)/, 'the poster module + its art load only after the reveal (never the boot graph)');
+  // (CITY H2: after the reveal — except the ONE face the board opens on (early(f): the pick), never the boot graph either way)
+  assert.match(sc, /const early = f => shownAt >= 0 \|\| tri\.pick === f;/);
+  assert.match(sc, /if \(needSoon && !tri\.warmed && early\('jaywalk'\) && performance\.now\(\) >= tri\.retryAt\) \{ tri\.warmed = true; lazyImport\(import\('\.\/jaywalk-art\.js'\)/, 'the poster module + its art: lazy, after the reveal unless it is the pick');
   // (CITY F — THE OPEN NOW BILLBOARD: from the OPEN DAY the owner's poster warms instead — after the reveal, a face only once ITS picture decoded)
-  assert.match(sc, /if \(needOpen && !tri\.openWarmed && shownAt >= 0 && performance\.now\(\) >= tri\.retryAt\) \{ tri\.openWarmed = true; lazyImport\(import\('\.\/jaywalk-art\.js'\)/);
+  assert.match(sc, /if \(needOpen && !tri\.openWarmed && early\('jaywalk-open'\) && performance\.now\(\) >= tri\.retryAt\) \{ tri\.openWarmed = true; lazyImport\(import\('\.\/jaywalk-art\.js'\)/);
   assert.match(sc, /const G = F\.filter\(f => \(f !== 'jaywalk' \|\| tri\.jw\) && \(f !== 'jaywalk-open' \|\| tri\.jwOpen\)/);
-  assert.match(sc, /if \(needDr && !tri\.drWarm && shownAt >= 0 && performance\.now\(\) >= tri\.drRetry\) \{ tri\.drWarm = true; lazyImport\(import\('\.\/drop-art\.js'\)/);
+  assert.match(sc, /if \(needDr && !tri\.drWarm && early\('drop'\) && performance\.now\(\) >= tri\.drRetry\) \{ tri\.drWarm = true; lazyImport\(import\('\.\/drop-art\.js'\)/);
   // (PLAY NOW 0c — THE ROOF BOARD STOPPED TURNING: a failed art / painter is asked again on a backoff + reported, never left for good)
   assert.match(sc, /tri\.retryAt = performance\.now\(\) \+ \[3e3, 15e3, 60e3, 300e3\]\[Math\.min\(tri\.fails - 1, 3\)\]/);
   assert.match(sc, /m\.warmJaywalk\(\(\) => \{[^}]*\}, why => \{ if \(!destroyed\) triWarmFailed\(/);
@@ -100,8 +102,12 @@ test('the scene: the tri-vision\'s pieces (the warm after the reveal, the swap u
   assert.match(readFileSync('js/screens/harbor/jaywalk-art.js', 'utf8'), /me\.onerror = \(\) => \{ if \(L\.img === me\) L\.img = null; flush\(false, `\$\{what\} failed`\); \};/);
   const signs = readFileSync(new URL('../js/screens/harbor/signs.js', import.meta.url), 'utf8');
   assert.doesNotMatch(signs + sc, /^import [^\n]*jaywalk-art\.js/m, 'no static import of the poster');
-  // (CITY H1 — THE BOARD OPENS ON THE NEWEST GAME: the first frame it is up TURNS to the newest face — its own motion (THE WINDOW RULE), never a cut)
-  assert.match(sc, /if \(tri\.lastN == null\) \{ tri\.lastN = C\.n; const o = newestFace\(F, faceDates\(\)\); if \(o !== tri\.shown [^\n]*triTurnTo\(F, o,/, 'the first frame it is up turns to the newest face (THE WINDOW RULE: by its own motion)');
+  // (CITY H2 — ONE FACE FROM THE FIRST FRAME: the PICK from all of today's faces (never the face that warmed first); before the reveal a CUT (no
+  //  painted frame shows another face), after it (the pick's picture late) a TURN — its own motion (THE WINDOW RULE)
+  assert.match(sc, /if \(F && tri\.lastN == null\) tri\.pick = F\[newestFace\(F, faceDates\(\)\)\];/);
+  assert.match(sc, /let o = F\.indexOf\(tri\.pick\);/);
+  assert.match(sc, /if \(o !== tri\.shown && shownAt >= 0 && [^\n]*triTurnTo\(F, o,/, 'after the reveal the opening TURNS (THE WINDOW RULE)');
+  assert.match(sc, /boardGame: bt \? \(tri\.faces && tri\.faces\[tri\.shown\]\) \|\| boardWant\(/, 'a neon re-layout keeps the tri-vision face (the 4:03 pm flash)');
   assert.match(sc, /id: 'roofboard-tri', z: 4/, 'the slats over every poster copy');
   assert.match(sc, /if \(!S\.motion \|\| document\.visibilityState !== 'visible'\) \{ tri\.turn = null; return; \}/, 'reduced motion: a cut');
   assert.match(sc, /snd\.play\('radio-tick', \{ gain,/, 'the click on the city\'s SFX bus');
@@ -222,5 +228,8 @@ test('CITY H1 — newestFace: the face whose switch went on most recently (today
   setJaywalk({ on: true, bar: 'soon', open: '2026-11-17', since: '2026-11-12' });
   const d = faceDates();
   assert.equal(newestFace(['holdem-open', 'jaywalk-open'], d), 1, `today's switches open on JAYWALK (${JSON.stringify(d)})`);
-  setHoldem(null); setJaywalk(null);
+  // (CITY H2 — the 4:03 pm entry: the LIVE state — JAYWALK NOW OPEN with no OPEN DAY stored (switched Nov 17), THE DROP live 11-15 → JAYWALK)
+  setJaywalk({ on: true, bar: 'open', open: null, since: '2026-11-12' }); setDrop({ live: '2026-11-15', mode: 'on' });
+  assert.equal(newestFace(['holdem-open', 'jaywalk-open', 'drop'], faceDates()), 1, `NOW OPEN without a day = from 11-17: newer than THE DROP's 11-15 (${JSON.stringify(faceDates())})`);
+  setDrop(null); setHoldem(null); setJaywalk(null);
 });

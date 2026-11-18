@@ -635,7 +635,7 @@ function paintQuiet(q) {
   const el = document.getElementById('ad-quiet');
   if (!el || !q) return;
   const when = t => (t ? ` · last ${new Date(t).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : '');
-  el.textContent = `counted, not listed — room writes refused after leaving: ${(q.gone && q.gone.n) || 0}${when(q.gone && q.gone.last)} · browser-extension errors: ${(q.ext && q.ext.n) || 0}${when(q.ext && q.ext.last)} · audio leaves on non-admin phones: ${(q.snd && q.snd.n) || 0}${when(q.snd && q.snd.last)} · slow HOLD'EM dealer calls: ${(q.slow && q.slow.n) || 0}${when(q.slow && q.slow.last)}`;
+  el.textContent = `counted, not listed — room writes refused after leaving: ${(q.gone && q.gone.n) || 0}${when(q.gone && q.gone.last)} · browser-extension errors: ${(q.ext && q.ext.n) || 0}${when(q.ext && q.ext.last)} · audio leaves on non-admin phones: ${(q.snd && q.snd.n) || 0}${when(q.snd && q.snd.last)} · slow HOLD'EM dealer calls: ${(q.slow && q.slow.n) || 0}${when(q.slow && q.slow.last)} · dead screens sent to the city: ${(q.dead && q.dead.n) || 0}${when(q.dead && q.dead.last)}`;
 }
 const counts = o => Object.entries(o || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(' · ');
 function renderErrors(list) { logs.err = list || []; paintErrors(); }

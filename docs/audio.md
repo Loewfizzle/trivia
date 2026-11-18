@@ -31,6 +31,24 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
   unmasking); a track change resets it.
 
 
+## CITY H2 — MUSIC OFF = ONLY THE MUSIC OFF (Nov 18 2026 — the owner OVERRULES H1's call; the inbox's 4:00 + 4:03 pm entries; docs/harbor/passes/city-h2.md)
+The owner: "I want the music off just to kill the music … tap it twice, all sounds off". With the music off the city's beds (water, hum, wind,
+club, boat…) AND its one-offs (gulls, gusts, traffic…) play exactly as with the music on; only the music stops. CITY H1's EFFECTS ONLY is UNDONE:
+no `effectsOnly` / `__nsBedsOff` hub, no doze (`sleepy` / `doze` / `wake` — the context asleep between effects while SAYING 'running'), no `tap`
+option on `citySound`. That doze was ALSO the 4:03 pm regression "MUSIC MUTED AT LOAD = THE EFFECTS DEAD TOO": a context asleep pretended
+'running', so the first tap's `unlock` saw nothing to resume, and the wake outside a gesture was refused on iOS — the effects stayed dead until the
+button was cycled. Now every tap in every sound state resumes a suspended context IN the gesture (the same path music-on uses). KEPT from H1: the
+session 'ambient' while the music is off (a podcast keeps playing under the city's sounds), THE SQUEAL's instant cut (`silence(c, v)` sets the
+master's VALUE at the first leave signal — never a scheduled ramp), THE ZEROS FIRST, nothing woken while hidden. ALL SOUND OFF (tap 2) stays the
+way to hear only your own podcast. Proof (Chromium — Playwright's WebKit on Windows has no Web Audio, so Safari's engine can't play here):
+`audio-leave.mjs` "effects on + music off" — a bed + a 3-s one-off sounding at the leave → the hard cut, master 0 at the suspend, the output silent
+(23 / 23 with the new MUSIC OFF AT LOAD → one tap → an effect SOUNDS case) · `audio-session.test.mjs` "MUSIC OFF = ONLY THE MUSIC OFF" · harbor
+`mediacut`: the city's loops sounding with the music off, a leave reads master 0 on the next line.
+**THE FAST CYCLE (the 3:52 pm entry — H1's "OFF → ALL OFF → ON in a second, silent 15 s"):** NOT a stuck engine — the city's song plays on the
+SYNCED STATION player (`party-music.js`), and music.js's own clock (`musicClock()`, what H1's check watched) reads -1 whenever the station holds
+the song. Harbor `mediacut` "THE FAST CYCLE": the corner button tapped three times 300 ms apart from a sounding song → the station's slot playing
++ the output's peak > 0.01 in ~240 ms.
+
 ## CITY H1 — THE SQUEAL, FOR REAL + MUSIC OFF = EFFECTS ONLY (Nov 18 2026 — the owner's /admin, 11+ AUDIO LEAVE reports; docs/harbor/passes/city-h1.md)
 **THE BUG (every report MUSIC OFF + EFFECTS ON = 'ambient'):** "cut: hard (ambient) — the master 0 + the beds stopped +0", then EVERY later line
 still m 1.000 until iOS took the app at +345–532 ms with live sound in the buffer → the squeal. CITY G's hard cut (`engine.js#hardCut → silence`)
