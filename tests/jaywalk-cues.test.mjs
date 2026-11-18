@@ -12,7 +12,7 @@ import { createRun, step, isOver } from '../js/games/jaywalk/engine.js';
 import { greedyBot } from '../js/games/jaywalk/bot.js';
 import { existsSync } from 'node:fs';
 import * as CUES from '../js/games/jaywalk/cues.js';
-import { CUE, createCues, cuesAt, carClosing } from '../js/games/jaywalk/cues.js';
+import { CUE, createCues, cuesAt, carClosing, tickOf, TICK } from '../js/games/jaywalk/cues.js';
 import { SOUNDS, VOICES, admit, TRAIN_DUCK, FADE_S } from '../js/games/jaywalk/sounds.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
@@ -68,50 +68,64 @@ test('THE TRAIN: the bell is ON exactly while a rail lane near the kid is in its
 });
 
 test('NO CAR-PASS (H5B — the owner: "it\'s terrible"): a near miss makes no cue; THE HORN: a car closing on a kid standing in its lane — at most ONE every 3 s, from its side', () => {
-  let near = 0, horn = 0, lefts = 0, rights = 0;
+  let near = 0, horn = 0, lefts = 0, rights = 0, truckN = 0;
   for (let s = 0; s < 40; s++) {
     // (DOWNTOWN, lanes 250–299: heavy traffic. The kid dawdles on the road now and then — a horn's moment)
     const { out } = listen(`car${s}`, { from: 250, ticks: 3000, stand: (run, course) => course.lane(run.y).type === 'road' && run.t % 400 < 60 });
-    const H = out.filter(q => q.cue === 'horn');
+    const H = out.filter(q => q.cue === 'horn' || q.cue === 'truck-horn');   // (BEFORE THE FLIP: a box truck's own air horn shares the horn's 3-s limit)
+    truckN += out.filter(q => q.cue === 'truck-horn').length;
     assert.equal(out.filter(q => q.cue === 'car-pass').length, 0, 'never a car-pass cue');
-    for (const q of out) assert.ok(['bell-on', 'bell-off', 'train-pass', 'train-horn', 'horn', 'lights-die'].includes(q.cue), `an unknown cue: ${q.cue}`);
+    for (const q of out) assert.ok(['bell-on', 'bell-off', 'train-pass', 'train-horn', 'horn', 'truck-horn', 'tick', 'tick-off'].includes(q.cue), `an unknown cue: ${q.cue}`);
     near += out.filter(q => q.near).length;
     for (let i = 1; i < H.length; i++) assert.ok(H[i].t - H[i - 1].t >= 3 * T.TICK_HZ, `two horns ${H[i].t - H[i - 1].t} ticks apart`);
     for (const q of H) { assert.ok(Math.abs(q.pan) === CUE.pan, 'the horn comes from the car\'s side'); if (q.pan < 0) lefts++; else rights++; }
     horn += H.length;
   }
+  assert.ok(truckN > 0 && truckN < horn / 3, `BEFORE THE FLIP — THE TRUCK HORN: ${truckN} of the ${horn} horn moments were a box truck's own air horn (rare: ~1 in 4 of a TRUCK's)`);
   assert.ok(horn > 20 && lefts > 5 && rights > 5, `${horn} horns (${lefts} left, ${rights} right) over 40 runs downtown — the near misses (${near} ticks with one) made no sound`);
   assert.equal(CUE.passMax, undefined); assert.equal(CUE.passTicks, undefined); assert.equal(CUES.carSide, undefined, 'the car-pass\'s own helpers are gone');
   assert.equal(CUE.hornEvery, 180);
   // the horn's car: in front of its travel, closing — never one that has already passed
   const lane = { type: 'road', dir: 1, v: 40, period: 20000, pad: 3000, items: [{ off: 3000 + 1000, len: 1000 }] };   // (its left edge at 1.0 at tick 0, driving right)
-  assert.deepEqual(carClosing(lane, 0, 4500), { gap: 4500 - T.KID_HALF - 2000, side: -1 }, 'a car to his left driving right: closing, from the left');
+  assert.deepEqual(carClosing(lane, 0, 4500), { gap: 4500 - T.KID_HALF - 2000, side: -1, j: 0 }, 'a car to his left driving right: closing, from the left (j: its place — causes.js#vehicleAt names it)');
   assert.equal(carClosing(lane, 0, 500), null, 'a car already past him never honks');
 });
 
-test('THE LIGHTS DIE: only when THE BLACKOUT takes a lane within 3 of the kid — never the far wall he is outrunning; at least 1.5 s apart', () => {
-  // a kid who stands still: the wall comes up on him — the lights die lane by lane near him, then it takes him
-  const still = listen('lights', { ticks: 4000, stand: () => true });
-  const L = still.out.filter(q => q.cue === 'lights-die');
-  assert.ok(L.length >= 2 && L.length <= 4, `a standing kid hears the lights die as the dark closes in (${L.length} times)`);
-  for (let i = 1; i < L.length; i++) assert.ok(L[i].t - L[i - 1].t >= CUE.lightsEvery);
+test('BEFORE THE FLIP — THE STOPWATCH (it replaced the lights dying): silent while the dark waits 5 lanes back; a calm tick-tock fading in + speeding up as it closes; gone with the run', () => {
+  assert.deepEqual(tickOf({ y: 20, wall: 15 * T.FP }), { level: 0, rate: TICK.rateFar }, 'the wall at its resting 5 lanes: silent');
+  assert.equal(tickOf({ y: 20, wall: 15.4 * T.FP }).level, 0, '4.6 lanes back: still silent (the edge is 4.5)');
+  assert.equal(tickOf({ y: 20, wall: 16.4 * T.FP }).level, 0, '3.6 lanes back: silent');
+  const far = tickOf({ y: 20, wall: 16.8 * T.FP }), mid = tickOf({ y: 20, wall: 17.75 * T.FP }), near = tickOf({ y: 20, wall: 19 * T.FP }), in0 = tickOf({ y: 20, wall: 19.8 * T.FP });
+  assert.ok(far.level > 0 && far.level < mid.level && mid.level < near.level && near.level === 1 && in0.level === 1, `louder as it closes: ${far.level.toFixed(2)} → ${mid.level.toFixed(2)} → ${near.level}`);
+  assert.ok(far.rate < mid.rate && mid.rate < near.rate && near.rate === TICK.rateNear && TICK.rateNear <= 1.8, 'faster as it closes — never a frantic rattle');
+  assert.ok(TICK.levelFar <= 0.2, 'quiet when it first comes in');
+  // a kid who stands still: the stopwatch comes in, climbs, and the dark takes him
+  const still = listen('lights', { ticks: 4000, stand: () => true }), K = still.out.filter(q => q.cue === 'tick');
   assert.equal(still.run.cause, 'wall');
-  // a kid who keeps moving: the wall trails 5 lanes behind his best — never "near": no lights-die at all
-  let n = 0, hops = 0;
+  assert.ok(K.length >= 5 && K[0].level <= 0.3 && Math.max(...K.map(q => q.level)) >= 0.9, `a standing kid hears it come in quietly and climb (${K.length} steps, ${K[0] && K[0].level} → ${Math.max(...K.map(q => q.level))})`);
+  for (let i = 1; i < K.length; i++) assert.ok(K[i].rate >= K[i - 1].rate - 1e-9, 'it only speeds up as the dark closes on a standing kid');
+  // a kid who keeps moving: the wall trails at its 5 lanes — the stopwatch only in the moments he lets it close (a SHARE of the run)
+  let on = 0, all = 0;
   for (let s = 0; s < 20; s++) {
-    const r = listen(`run${s}`, { ticks: 1500 }), D = r.out.filter(q => q.cue === 'lights-die');
-    for (const q of D) assert.ok(q.y - q.wl >= 0 && q.y - q.wl <= CUE.lightsNear, `tick ${q.t}: the dark took lane ${q.wl - 1}, the kid on ${q.y} — near him`);
-    for (let i = 1; i < D.length; i++) assert.ok(D[i].t - D[i - 1].t >= CUE.lightsEvery);
-    n += D.length; hops += r.run.best;
+    const r = listen(`run${s}`, { ticks: 1500 });
+    for (const q of r.out) assert.notEqual(q.cue, 'lights-die');
+    let lv = 0, t0 = 0;
+    for (const q of r.out) { if (q.cue === 'tick' || q.cue === 'tick-off') { if (lv > 0) on += q.t - t0; lv = q.cue === 'tick' ? q.level : 0; t0 = q.t; } }
+    if (lv > 0) on += r.run.t - t0;
+    all += r.run.t;
   }
-  assert.ok(hops > 600 && n < hops / 40, `${n} lights-die over 20 runs of a kid who keeps moving (${hops} lanes): only when he lets the dark come close — the wall 5 lanes back is silent`);
-  for (const q of still.out.filter(x => x.cue === 'lights-die')) assert.ok(q.y - q.wl <= CUE.lightsNear);
-  assert.equal(CUE.lightsNear, 3);
+  assert.ok(on / all < 0.15, `the stopwatch sounds ${(100 * on / all).toFixed(1)} % of 20 moving runs — only while the dark is close`);
+  assert.equal(SOUNDS.find(q => q.id === 'lights-die'), undefined, 'the lights dying: row gone');
+  assert.equal(existsSync(new URL('../audio/jaywalk/lights-die.mp3', import.meta.url)), false, '… file gone');
+  const sw = SOUNDS.find(q => q.id === 'stopwatch-tick');
+  assert.ok(sw && sw.loop && sw.ext === 'wav' && sw.max === 1, 'ONE seamless WAV loop (MP3 padding would click)');
+  assert.match(code('view.js'), /SFX\.onCue\(\{ cue: 'tick-off' \}\);/, 'the run\'s end / a new run / leaving: it fades out (quiet())');
+  assert.match(code('sfx.js'), /if \(q\.cue === 'tick-off'\) \{ tickWant = null; if \(tick\) \{ tick\.stop\(0\.4\); tick = null; \} return null; \}/);
 });
 
 test('THE TABLE: every sound in play; THE PRIORITY — your own hit / splash > the train > the horn > a hop + a landing; the caps; ≈ 8 voices; H5B — no car-pass row / file, THE HORN AT HALF, the train sounds\' fade', () => {
   const pri = id => SOUNDS.find(s => s.id === id).pri, max = id => SOUNDS.find(s => s.id === id).max;
-  assert.ok(SOUNDS.every(s => s.play), 'all in play'); assert.equal(SOUNDS.length, 11);
+  assert.ok(SOUNDS.every(s => s.play), 'all in play'); assert.equal(SOUNDS.length, 12);   // (BEFORE THE FLIP: − the lights dying, + THE STOPWATCH + THE TRUCK HORN)
   assert.equal(SOUNDS.find(s => s.id === 'car-pass'), undefined, 'the car-pass is GONE from the table (the game never fetches it, the audition never lists it)');
   for (const f of ['car-pass.mp3', 'car-pass-b.mp3']) assert.equal(existsSync(new URL(`../audio/jaywalk/${f}`, import.meta.url)), false, `${f} no longer ships`);
   assert.doesNotMatch(code('sfx.js') + code('cues.js') + code('view.js') + code('lab.js') + code('audition.js'), /car-pass/, 'no code names it');
@@ -137,7 +151,7 @@ test('THE PLAYER + THE VIEWS: a sound\'s own cap, the pan, the bell = ONE loop f
   // H5B — THE TRAIN SOUNDS NEVER STOP DEAD: the take's own end ramps out over its last `fade` s; a stop / a dropped voice / stopAll ramp the same way
   assert.match(s, /if \(s\.fade && !src\.loop\) \{ const dur = src\.buffer\.duration \/ src\.playbackRate\.value, t = ctx\.currentTime; if \(dur > s\.fade \* 2\) \{ g\.gain\.setValueAtTime\(g\.gain\.value, t \+ dur - s\.fade\); g\.gain\.linearRampToValueAtTime\(0, t \+ dur\); \} \}/, 'the train-pass ramps out at its own end');
   assert.match(s, /v\.end = \(fade = v\.fade\) => \{/); assert.match(s, /g\.gain\.linearRampToValueAtTime\(0, t \+ fade\); src\.stop\(t \+ fade \+ 0\.02\);/, 'a stop = the shared engine\'s gain ramp, then the source');
-  assert.match(s, /if \(a\.drop >= 0\) voices\[a\.drop\]\.end\(\);/, 'a voice a louder sound takes fades too'); assert.match(s, /export function stopAll\(\) \{ bellWant = false; bell = null; for \(const v of \[\.\.\.live\]\) v\.end\(\); live\.clear\(\); \}/, 'the unmount / the lab closing: the train sounds ramp out');
+  assert.match(s, /if \(a\.drop >= 0\) voices\[a\.drop\]\.end\(\);/, 'a voice a louder sound takes fades too'); assert.match(s, /export function stopAll\(\) \{ bellWant = false; bell = null; tickWant = null; tick = null; for \(const v of \[\.\.\.live\]\) v\.end\(\); live\.clear\(\); \}/, 'the unmount / the lab closing: the train sounds + the stopwatch ramp out');
   assert.doesNotMatch(s, /voices\[a\.drop\]\.src\.stop\(\)|v\.src\.stop\(\)/, 'no source is stopped dead from outside its own end()');
   assert.match(s, /trim\.connect\(getSfxBus\(\) \|\| ctx\.destination\)/, 'the soft limiter → the console\'s SFX bus: the Effects slider, THE ONE MUTE, THE CUT');
   assert.match(s, /for \(const id of ids\) for \(const k of both \? keysOf\(BY\[id\]\) : \[`\$\{id\}:\$\{pick\(id\)\}`\]\)/, 'the game fetches the take it plays (the owner\'s pick) — the backups only for the audition');
@@ -175,8 +189,8 @@ test('H5C — THE TRAIN HORN: ONE blast a train, when its warning STARTS (with t
   for (const f of ['train-bell.wav', 'train-horn.mp3', 'area-arrive.mp3']) assert.ok(existsSync(new URL(`../audio/jaywalk/${f}`, import.meta.url)), `${f} ships`);
   const all = code('sfx.js') + code('cues.js') + code('view.js') + code('lab.js') + code('audition.js') + code('sounds.js');
   assert.doesNotMatch(all, /play\('landmark'|id: 'landmark'/, 'no code plays the old landmark cue');
-  assert.match(code('sfx.js'), /if \(q\.cue === 'train-horn'\) return play\('train-horn', \{ pan: q\.pan \}\);/); assert.match(code('sfx.js'), /export const JW_SFX_REV = 3;/, 'a file was replaced: the rev is bumped (2: the bell · 3: H6B\'s NEW BEST = take B)');
+  assert.match(code('sfx.js'), /if \(q\.cue === 'train-horn'\) return play\('train-horn', \{ pan: q\.pan \}\);/); assert.match(code('sfx.js'), /export const JW_SFX_REV = 4;/, 'a file was replaced: the rev is bumped (2: the bell · 3: H6B\'s NEW BEST = take B · 4: BEFORE THE FLIP\'s area arrival)');
   assert.match(code('view.js'), /SFX\.play\('area-arrive'\)/); assert.match(code('lab.js'), /snd\.play\('area-arrive'\)/);
   const cr = readFileSync(new URL('../audio/jaywalk/CREDITS.md', import.meta.url), 'utf8');
-  for (const line of ['"Railroad Crossing Bell" by Brylon Terry (SoundBible.com), CC BY 3.0. https://soundbible.com/2070-Railroad-Crossing-Bell.html', '"Train Diesel Double Horn from Class 142 with Reverb" by AMBIOSIS (Freesound), CC BY 4.0. https://freesound.org/s/316689/', '"achievement-sparkle" by SkySpeira (Freesound), CC0 1.0. https://freesound.org/s/715067/']) assert.ok(cr.includes(line), `the credits carry: ${line}`);
+  for (const line of ['"Railroad Crossing Bell" by Brylon Terry (SoundBible.com), CC BY 3.0. https://soundbible.com/2070-Railroad-Crossing-Bell.html', '"Train Diesel Double Horn from Class 142 with Reverb" by AMBIOSIS (Freesound), CC BY 4.0. https://freesound.org/s/316689/', '"Success" by Sjonas88 (Freesound), CC0 1.0. https://freesound.org/s/538554/']) assert.ok(cr.includes(line), `the credits carry: ${line}`);
 });

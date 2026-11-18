@@ -10,7 +10,11 @@
  *  HORN (one blast a train, when its warning starts) · THE AREA ARRIVAL ("area-arrive") replaces the landmark ping (its row + file gone)
  *  H6B (the owner): NEW BEST = its B take, ONE take (the sparkle is THE AREA ARRIVAL's alone) · THE MIX — every gain set against the
  *  others, MEASURED (tests/integration/jaywalk-mix.mjs — docs/jaywalk.md "THE MIX"): the train's bell + horn + the arrival chime came
- *  in 10–17 dB hotter than the rest; the hop + the landing a touch softer (heard hundreds of times a run) */
+ *  in 10–17 dB hotter than the rest; the hop + the landing a touch softer (heard hundreds of times a run)
+ *  BEFORE THE FLIP (the owner, Nov 17 — the delivery's sfx5, all CC0): THE STOPWATCH (a seamless WAV loop — cues.js#tickOf: silent until
+ *  the dark is within 3.5 lanes (it waits at 5), a calm tick-tock fading in + speeding up as it closes; it REPLACES the lights dying — row + file gone) ·
+ *  THE TRUCK HORN (a deeper air horn: ~1 in 4 of the horn's moments when a box truck is the one closing — the horn's 3-s limit shared) ·
+ *  THE AREA ARRIVAL replaced ("Success" — a warm synth chord; the sparkle is gone). Their levels measured against the rest (jaywalk-mix). */
 export const SOUNDS = Object.freeze([
   { id: 'hop', label: 'HOP', b: true, gain: 1.25, pri: 1, play: true },
   { id: 'land-wood', label: 'LAND ON A LOG', b: true, gain: 1.4, pri: 1, play: true },
@@ -20,8 +24,9 @@ export const SOUNDS = Object.freeze([
   { id: 'train-bell', label: 'TRAIN BELL (LOOP)', b: false, gain: 0.29, pri: 3, loop: true, ext: 'wav', play: true, max: 1, fade: 0.5 },
   { id: 'train-horn', label: 'TRAIN HORN', b: false, gain: 0.23, pri: 3, play: true, max: 1, fade: 0.5 },
   { id: 'train-pass', label: 'TRAIN PASSING', b: true, gain: 1.2, pri: 3, play: true, max: 1, fade: 0.5 },
-  { id: 'lights-die', label: 'THE LIGHTS DIE', b: false, gain: 1.6, pri: 3, play: true, max: 1 },
-  { id: 'area-arrive', label: 'AREA ARRIVAL', b: false, gain: 0.36, pri: 3, play: true },
+  { id: 'truck-horn', label: 'TRUCK HORN', b: false, gain: 0.19, pri: 2, play: true, max: 1 },
+  { id: 'stopwatch-tick', label: 'THE STOPWATCH (LOOP)', b: false, gain: 0.9, pri: 3, loop: true, ext: 'wav', play: true, max: 1 },
+  { id: 'area-arrive', label: 'AREA ARRIVAL', b: false, gain: 1.25, pri: 3, play: true },
   { id: 'new-best', label: 'NEW BEST', b: false, gain: 1.45, pri: 3, play: true },
 ]);
 /** the music ducks a little under the train (the bell + the pass): to this much of its level, in / out over these seconds */

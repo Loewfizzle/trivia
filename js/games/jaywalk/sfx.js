@@ -14,7 +14,7 @@ import { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S } from './sounds.js
 export { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S };
 
 const DIR = new URL('../../../audio/jaywalk/', import.meta.url);
-export const JW_SFX_REV = 3;   // (bump when a sound file is replaced — 2: H5C's train bell · 3: H6B's NEW BEST = take B)
+export const JW_SFX_REV = 4;   // (bump when a sound file is replaced — 2: H5C's train bell · 3: H6B's NEW BEST = take B · 4: BEFORE THE FLIP's area arrival)
 const BY = Object.fromEntries(SOUNDS.map(s => [s.id, s]));
 export const LIMITER = Object.freeze({ threshold: -8, knee: 6, ratio: 8, attack: 0.002, release: 0.16 });
 export const TRIM = 0.8;       // (takes the compressor's own make-up gain back out: a lone sound plays at its level)
@@ -105,18 +105,22 @@ export function play(id, o = {}) {
       try { if (fade > 0) { const t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + fade); src.stop(t + fade + 0.02); } else src.stop(); } catch { /* ended */ }
     };
     total.started++; log.push({ id, ab: key.slice(-1), rate: +src.playbackRate.value.toFixed(3), gain: +g.gain.value.toFixed(3), loop: src.loop, pan: +(o.pan || 0).toFixed(2) }); if (log.length > 200) log.shift();
-    /** stop it — `fade` s (default: the sound's own — the train sounds' 0.5 s): a ramp first, never a dead cut */
-    return { stop: v.end };
+    /** stop it — `fade` s (default: the sound's own — the train sounds' 0.5 s): a ramp first, never a dead cut · set(vol, rate): a loop
+     *  glides to a new level + speed (THE STOPWATCH — never a jump) */
+    const set = (vol, rate) => { try { const t = ctx.currentTime; g.gain.setTargetAtTime(s.gain * vol, t, 0.15); if (rate) src.playbackRate.setTargetAtTime(rate, t, 0.25); } catch { /* ended */ } };
+    return { stop: v.end, set };
   } catch { return null; }
 }
 /** the game is LEFT (not PLAY AGAIN): the decoded sounds are let go — the fetched bytes stay, the next visit decodes them again */
 export function release() { stopAll(); bufs.clear(); bufCtx = null; }
 /** silence everything still sounding (the unmount, the lab closing) — a sound with a `fade` (the train's) ramps out, the rest stop */
-export function stopAll() { bellWant = false; bell = null; for (const v of [...live]) v.end(); live.clear(); }
+export function stopAll() { bellWant = false; bell = null; tickWant = null; tick = null; for (const v of [...live]) v.end(); live.clear(); }
 
 // H5A — THE WORLD's CUES (cues.js#cuesAt → here): the bell is ONE seamless loop held while the signals flash — started on `bell-on`
 // (a start that lands late, the first sound after an unlock, is still wanted or let go), FADED OUT on `bell-off` (H5B: 0.5 s — `FADE_S`)
 let bell = null, bellWant = false;
+// BEFORE THE FLIP — THE STOPWATCH: ONE loop, held while the dark is close; `tick` cues glide its level + speed, `tick-off` fades it out
+let tick = null, tickWant = null;   // (tickWant: the { level, rate } wanted now — null = silent)
 const cued = [];   // the test hook: every cue asked
 export function onCue(q) {
   cued.push(q.cue); if (cued.length > 200) cued.shift();
@@ -125,7 +129,14 @@ export function onCue(q) {
   if (q.cue === 'train-pass') return play('train-pass', { pan: q.pan });
   if (q.cue === 'train-horn') return play('train-horn', { pan: q.pan });   // (H5C — one blast a train, when its warning starts)
   if (q.cue === 'horn') return play('horn', { pan: q.pan });
-  if (q.cue === 'lights-die') return play('lights-die');
+  if (q.cue === 'truck-horn') return play('truck-horn', { pan: q.pan });   // (BEFORE THE FLIP — a box truck's own air horn, now and then)
+  if (q.cue === 'tick') {
+    tickWant = { level: q.level, rate: q.rate };
+    if (tick) tick.set(q.level, q.rate);
+    else tick = play('stopwatch-tick', { loop: true, vol: q.level, rate: q.rate, onLate: h => { if (tickWant && !tick) { tick = h; h.set(tickWant.level, tickWant.rate); } else h.stop(0); } });
+    return tick;
+  }
+  if (q.cue === 'tick-off') { tickWant = null; if (tick) { tick.stop(0.4); tick = null; } return null; }
   return null;
 }
 export const cues = () => cued.slice();

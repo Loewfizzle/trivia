@@ -105,10 +105,10 @@ test('THE MIX: NEW BEST = its B take (ONE take — the sparkle is THE AREA ARRIV
   const nb = readFileSync(new URL('../audio/jaywalk/new-best.mp3', import.meta.url)), ar = readFileSync(new URL('../audio/jaywalk/area-arrive.mp3', import.meta.url));
   assert.ok(Math.abs(nb.length - 30868) < 64, `new-best.mp3 is the B take's bytes (${nb.length} B — "Fantasy Achievement Unlock Magical Stinger")`); assert.notEqual(nb.length, 26688, 'never the old take (the sparkle)'); assert.ok(!nb.equals(ar));
   const by = Object.fromEntries(SOUNDS.map(s => [s.id, s]));
-  assert.equal(by['new-best'].b, false, 'no second take to pick'); assert.match(code('sfx.js'), /export const JW_SFX_REV = 3;/);
+  assert.equal(by['new-best'].b, false, 'no second take to pick'); assert.match(code('sfx.js'), /export const JW_SFX_REV = 4;/);
   // the levels (measured — tests/integration/jaywalk-mix.mjs): the hop / the landing never tiring, the horn half, the train's bell + horn + the arrival chime no longer 10–17 dB hot
   assert.ok(by.hop.gain <= 1.3 && by['land-wood'].gain <= 1.45, 'the hop + the landing: a touch softer (heard hundreds of times a run)'); assert.equal(by.horn.gain, 0.5, 'the horn: half, as set');
-  assert.ok(by['train-bell'].gain <= 0.35 && by['train-horn'].gain <= 0.3 && by['area-arrive'].gain <= 0.45, 'the three hot files are brought down to the others');
+  assert.ok(by['train-bell'].gain <= 0.35 && by['train-horn'].gain <= 0.3 && by['area-arrive'].gain <= 1.3, 'the three hot files are brought down to the others (BEFORE THE FLIP: the new area arrival — "Success" — is 7 dB quieter as a file: × 1.25 puts its loudest moment where the sparkle\'s was, −16.7 LUFS)');
   assert.ok(by.hit.gain >= 2 && by.splash.gain >= 2, 'your own hit / splash stay the loudest small sounds'); assert.ok(by['new-best'].gain > by['area-arrive'].gain);
   for (const s of SOUNDS) assert.ok(s.gain > 0.1 && s.gain <= 2.5, `${s.id}: ${s.gain}`);
   // the city's flyer sounds: ONE table, every play through it
@@ -125,9 +125,9 @@ test('THE MIX: NEW BEST = its B take (ONE take — the sparkle is THE AREA ARRIV
 
 test('THE CREDITS: JAYWALK\'s own group in the site\'s Credits sheet — every sound + model line, the CC BY ones exactly, the art created with Grok', () => {
   const rows = CREDITS.filter(c => c.group === 'JAYWALK'), all = rows.map(c => `${c.title} ¦ ${c.by} ¦ ${c.licence}`).join('\n');
-  assert.ok(rows.length >= 12);
+  assert.ok(rows.length >= 11);   // (BEFORE THE FLIP: the lights dying's own CC BY row left with its sound)
   for (const need of ['"Fantasy Achievement Unlock Magical Stinger" by TommasoMotteran (https://freesound.org/people/TommasoMotteran/sounds/859080/) - Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)',
-    '"Neon ON OFF" by SkyernAklea (https://freesound.org/people/SkyernAklea/sounds/539909/) - Licensed under CC BY 4.0', '"Train Passing A" by InspectorJ (https://freesound.org/people/InspectorJ/sounds/328114/) - Licensed under CC BY 4.0',
+    '"Success" by Sjonas88', '"Chronograph #2" by Joseph SARDIN', '"Truck Horn" by Pierre SIBANARCO', '"Train Passing A" by InspectorJ (https://freesound.org/people/InspectorJ/sounds/328114/) - Licensed under CC BY 4.0',
     '"Railroad Crossing Bell" by Brylon Terry (SoundBible.com), CC BY 3.0. https://soundbible.com/2070-Railroad-Crossing-Bell.html', '"Train Diesel Double Horn from Class 142 with Reverb" by AMBIOSIS (Freesound), CC BY 4.0. https://freesound.org/s/316689/',
     'This work is based on "Sr-71" (https://sketchfab.com/3d-models/sr-71-79e6c14217ab417abe524a99ffbb472e) by Kiiba (https://sketchfab.com/Kiiba), licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)',
     'Flying saucer: Poly by Google — https://poly.pizza/m/b0N_HeT_Ttb (CC BY 3.0)', 'Flying saucer: Poly by Google — https://poly.pizza/m/6hu2h8v78mO (CC BY 3.0)', 'Skyline art created with Grok', 'Card art created with Grok', 'City Kit (Commercial) 2.1', 'the Sonniss GDC Game Audio Bundles'])

@@ -517,6 +517,7 @@ def sounds():
         if f.startswith('respawn'): continue   # (H4 — ONE LIFE EVERYWHERE: no respawn, so no respawn sound)
         if f.startswith('car-pass'): continue   # (H5B — the owner: the car-pass near-miss whoosh is REMOVED from the game)
         if f.startswith('train-bell') or f.startswith('landmark'): continue   # (H5C — the owner: the old bells + the landmark ping are REPLACED: sfx3 + sfx4, below)
+        if f.startswith('lights-die'): continue   # (BEFORE THE FLIP — the owner: THE STOPWATCH (sfx5) replaces the lights dying)
         if f.startswith('new-best'): continue   # (H6B — the owner: NEW BEST = its B take — copied in as new-best.mp3, below; take A (the sparkle) is THE AREA ARRIVAL's alone)
         if f.endswith('.mp3') and not f.startswith('train-bell'):
             shutil.copyfile(s, os.path.join(OUT_A, f)); total += os.path.getsize(s)
@@ -525,7 +526,9 @@ def sounds():
             print(f'  {f}: 24-bit → 16-bit mono, {n} samples @ {sr} Hz (the loop = the whole file), {os.path.getsize(os.path.join(OUT_A, f))} B')
     # H5C — THE TRAIN SOUNDS = set B (sfx3: the bell — already a 16-bit mono WAV, the whole file is the loop: copied byte for byte — +
     # the horn) and THE AREA ARRIVAL (sfx4). The originals are only read.
-    for folder, f in (('sfx3', 'train-bell.wav'), ('sfx3', 'train-horn.mp3'), ('sfx4', 'area-arrive.mp3')):
+    # BEFORE THE FLIP (the owner, Nov 17 — sfx5): THE STOPWATCH (a 16-bit mono WAV — the whole file is the loop, like the bell), THE TRUCK
+    # HORN, + THE AREA ARRIVAL replaced (sfx5's area-arrive — "Success", the delivery's BEST; the sparkle of sfx4 is retired)
+    for folder, f in (('sfx3', 'train-bell.wav'), ('sfx3', 'train-horn.mp3'), ('sfx5', 'area-arrive.mp3'), ('sfx5', 'stopwatch-tick.wav'), ('sfx5', 'truck-horn.mp3')):
         s = os.path.join(SRC, folder, f)
         if f.endswith('.wav'):
             w = wave.open(s, 'rb'); assert (w.getnchannels(), w.getsampwidth()) == (1, 2), f; n, sr = w.getnframes(), w.getframerate(); w.close()
@@ -533,7 +536,7 @@ def sounds():
         shutil.copyfile(s, os.path.join(OUT_A, f)); total += os.path.getsize(s)
     # H6B — NEW BEST = take B ("Fantasy Achievement Unlock Magical Stinger" — TommasoMotteran, CC BY 4.0): ONE take, named new-best.mp3
     shutil.copyfile(os.path.join(SRC, 'sfx', 'new-best-b.mp3'), os.path.join(OUT_A, 'new-best.mp3')); total += os.path.getsize(os.path.join(SRC, 'sfx', 'new-best-b.mp3'))
-    for gone in ('train-bell-b.wav', 'landmark.mp3', 'new-best-b.mp3'):   # (… and what they replace leaves the folder)
+    for gone in ('train-bell-b.wav', 'landmark.mp3', 'new-best-b.mp3', 'lights-die.mp3'):   # (… and what they replace leaves the folder)
         if os.path.exists(os.path.join(OUT_A, gone)): os.remove(os.path.join(OUT_A, gone))
     # CREDITS.md: every file's source lines from notes.txt (the DELIVERED FILES block) + the CC BY block
     notes = open(os.path.join(SRC, 'sfx', 'notes.txt'), encoding='utf-8').read()
@@ -543,7 +546,7 @@ def sounds():
         files, dur, lic, rest = m.group(1), m.group(2), m.group(3).strip(), m.group(4)
         get = lambda k: (re.search(r'^\s+' + k + r':\s+(.*)$', rest, re.M) or [None, ''])[1].strip()
         if 'train-bell' in files: files = files.split(' / ')[0]   # (only the WAV ships: the loop)
-        if files.startswith(('car-pass', 'respawn', 'train-bell', 'landmark', 'new-best')): continue   # (not shipped: H4 — respawn, H5B — car-pass, H5C — the old bells + the landmark ping; H6B — new-best: its own row below)
+        if files.startswith(('car-pass', 'respawn', 'train-bell', 'landmark', 'new-best', 'lights-die')): continue   # (not shipped: H4 — respawn, H5B — car-pass, H5C — the old bells + the landmark ping; H6B — new-best: its own row below)
         rows.append(f'| {files} | {get("Title")} | {get("Author")} | {lic.replace("  -- credit required", " — CREDIT REQUIRED")} | {get("Source")} |')
     blk = notes.split('CREDITS BLOCK')[1] if 'CREDITS BLOCK' in notes else ''
     by = blk[blk.index('\n', blk.index('====')) + 1:].split('All other delivered files')[0].strip() if '====' in blk else ''   # (the delivery's own CC BY block: the exact lines)
@@ -556,15 +559,21 @@ def sounds():
           'is new; THE AREA ARRIVAL (the sfx4 folder) replaces the landmark ping (gone). The bell + the horn are CC BY: their credit is REQUIRED.', '',
           'H6B (the owner, Nov 17): NEW BEST = its B take, shipped as `new-best.mp3` (ONE take: the sparkle — take A — is THE AREA ARRIVAL\'s alone).',
           'It is CC BY 4.0: its credit is REQUIRED. The game\'s credits (☰ → Credits) carry every line below — `js/ui/credits.js`.', '',
+          'BEFORE THE FLIP (the owner, Nov 17 — the delivery\'s sfx5 folder): THE STOPWATCH (a WAV loop) REPLACES the lights dying (gone), THE TRUCK',
+          'HORN is new, THE AREA ARRIVAL is replaced ("Success" — the sparkle is gone). All three CC0.', '',
           '| file | title | author | licence | source |', '| --- | --- | --- | --- | --- |', *rows,
           '| train-bell.wav | Railroad Crossing Bell | Brylon Terry (SoundBible.com) | CC BY 3.0 — CREDIT REQUIRED | https://soundbible.com/2070-Railroad-Crossing-Bell.html |',
           '| train-horn.mp3 | Train Diesel Double Horn from Class 142 with Reverb | AMBIOSIS | CC BY 4.0 — CREDIT REQUIRED | https://freesound.org/s/316689/ |',
-          '| area-arrive.mp3 | achievement-sparkle | SkySpeira | CC0 1.0 | https://freesound.org/s/715067/ |',
+          '| area-arrive.mp3 | Success | Sjonas88 | CC0 1.0 | https://freesound.org/s/538554/ |',
+          '| stopwatch-tick.wav | Chronograph #2 | Joseph SARDIN (BigSoundBank) | CC0 1.0 | https://bigsoundbank.com/stopwatch-2-s2138.html |',
+          '| truck-horn.mp3 | Truck Horn | Pierre SIBANARCO (BigSoundBank) | CC0 1.0 | https://bigsoundbank.com/truck-horn-s2721.html |',
           '| new-best.mp3 | Fantasy Achievement Unlock Magical Stinger | TommasoMotteran | CC BY 4.0 — CREDIT REQUIRED | https://freesound.org/people/TommasoMotteran/sounds/859080/ |', '',
           '## CC BY — these need their credit in the game\'s credits (☰ → CREDITS) when they ship in play', '', '```', by, '',
           '"Railroad Crossing Bell" by Brylon Terry (SoundBible.com), CC BY 3.0. https://soundbible.com/2070-Railroad-Crossing-Bell.html',
           '"Train Diesel Double Horn from Class 142 with Reverb" by AMBIOSIS (Freesound), CC BY 4.0. https://freesound.org/s/316689/', '```', '',
-          'Credit appreciated, not required: "achievement-sparkle" by SkySpeira (Freesound), CC0 1.0. https://freesound.org/s/715067/', '',
+          'Credit appreciated, not required: "Success" by Sjonas88 (Freesound), CC0 1.0. https://freesound.org/s/538554/ · "Chronograph #2" by Joseph SARDIN',
+          '(BigSoundBank), CC0 1.0. https://bigsoundbank.com/stopwatch-2-s2138.html · "Truck Horn" by Pierre SIBANARCO (BigSoundBank), CC0 1.0.',
+          'https://bigsoundbank.com/truck-horn-s2721.html', '',
           '3D models: Kenney — kenney.nl (CC0) — `assets/jaywalk/models/LICENSE.txt`.', '']
     open(os.path.join(OUT_A, 'CREDITS.md'), 'w', encoding='utf-8', newline='\n').write('\n'.join(md))
     print(f'  sounds: {total} B in {len([f for f in os.listdir(OUT_A) if not f.endswith(".md")])} files + CREDITS.md ({len(rows)} rows)')

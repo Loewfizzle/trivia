@@ -323,7 +323,7 @@ export function createView() {
   function duckMoment() { const k = night && sndOn ? night.duck() : 1; if (k !== momK) { const down = k < momK; momK = k; applyDuck(down ? 0.3 : 1.1); } }
   function unduck() { clearTimeout(duckT); trainOn = false; momK = 1; applyDuck(SFX.TRAIN_DUCK.outS); }
   /** the world goes quiet (the run ended, a new run, the view left): the bell stops, the music comes back up */
-  function quiet() { try { SFX.onCue({ cue: 'bell-off' }); if (night) night.quiet(); } catch { /* silent */ } unduck(); }
+  function quiet() { try { SFX.onCue({ cue: 'bell-off' }); SFX.onCue({ cue: 'tick-off' }); if (night) night.quiet(); } catch { /* silent */ } unduck(); }
   /** a lane farther than ever this run: YOUR BEST LINE crossed = the run is a NEW RECORD from here (a burst along the line, the new-best
    *  sound, the lane counter flashes gold and stays gold); a FRIEND's line crossed (a solo run) = a small burst + a quiet chime */
   function onBest(lane) {

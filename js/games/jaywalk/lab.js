@@ -107,7 +107,7 @@ async function mount() {
   let steps = 0, slow = 0, warped = false, started = false, safe = false;   // (safe — a LOOK CHECK's warp only: the blackout holds still behind the kid; never in a real run)   // (started: the run's tick 0 is the FIRST touch — the page never runs the wall at a kid nobody is playing)
   function restart(m = mode, s = Q.get('seed') && !seed ? Q.get('seed') : newSeed()) {
     mode = m; seed = s; course = createCourse(seed); run = createRun({ seed, mode }); log = []; queue = []; acc = 0; shown = false; overAt = 0; warped = false; started = false; safe = false;
-    cues = createCues(); if (snd) snd.onCue({ cue: 'bell-off' });
+    cues = createCues(); if (snd) { snd.onCue({ cue: 'bell-off' }); snd.onCue({ cue: 'tick-off' }); }
     end.hidden = true; mark.textContent = 'TAP TO HOP · SWIPE TO MOVE'; markUntil = 0;
     for (const t of tabs) t.classList.toggle('is-on', t.dataset.mode === mode);
     seedLine.textContent = `seed ${seed}`;
@@ -129,7 +129,7 @@ async function mount() {
     step(run, course, d, ev);
     for (const e of ev) { if (e.e === 'landmark') { arrive.show(e.lane, look); if (snd) snd.play('area-arrive'); } if (snd) snd.onEvent(e); }
     if (snd && !isOver(run)) for (const q of cuesAt(cues, run, course)) snd.onCue(q);   // (H5A — THE WORLD's SOUNDS: cues.js)
-    if (snd && isOver(run)) snd.onCue({ cue: 'bell-off' });   // (H5A: the area's name as its gateway shows it — THE DOCKS · LAP 2)
+    if (snd && isOver(run)) { snd.onCue({ cue: 'bell-off' }); snd.onCue({ cue: 'tick-off' }); }   // (H5A: the area's name as its gateway shows it — THE DOCKS · LAP 2)
     steps++;
   }
   function showEnd() {

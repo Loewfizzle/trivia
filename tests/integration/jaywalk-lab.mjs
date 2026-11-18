@@ -768,7 +768,7 @@ try {
   ok(await p.evaluate(() => window.__jwLab.sfx.sounding() === 0 && !document.querySelector('.jw-au-play.is-on')), 'STOP ends it');
   await tapEl(p, '[data-pick="hop:b"]'); await tapEl(p, '[data-pick="land-wood:b"]');
   const line = await p.evaluate(() => ({ t: document.querySelector('.jw-au-line').textContent, ls: [localStorage.getItem('jw:lab:snd:hop'), localStorage.getItem('jw:lab:snd:land-wood')], on: document.querySelector('[data-pick="hop:b"]').classList.contains('is-on') }));
-  ok(line.on && line.ls.join() === 'b,b' && /^JAYWALK SOUNDS: hop B · land-wood B · hit A · splash A · horn A · train-bell A · train-horn A · train-pass A · lights-die A · area-arrive A · new-best A$/.test(line.t), `a choice a sound, remembered on this phone ("${line.t}")`);
+  ok(line.on && line.ls.join() === 'b,b' && /^JAYWALK SOUNDS: hop B · land-wood B · hit A · splash A · horn A · train-bell A · train-horn A · train-pass A · truck-horn A · stopwatch-tick A · area-arrive A · new-best A$/.test(line.t), `a choice a sound, remembered on this phone ("${line.t}")`);
   // COPY MY PICKS: inside the tap's own lift. A browser that REFUSES the clipboard (this headless one does) → the line itself is there to hold;
   // one that takes it → COPIED (the clipboard's write stood in for, so the text it was handed is read back)
   await tapEl(p, '.jw-au-copy'); await sleep(400);

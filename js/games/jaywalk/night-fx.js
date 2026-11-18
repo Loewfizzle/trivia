@@ -28,14 +28,10 @@ void main() {
 const GROUND_F = `
 precision highp float;
 uniform float uTime; uniform vec3 uFogCol; uniform float uQ; uniform float uDay; uniform float uWall;
-// (H5B — THE DAY LOOK: every colour below is NIGHT, DAY — uDay 0 | 1; the shapes, the tells, the areas are the same picture in sunlight)
 #define DN(n, d) mix(n, d, uDay)
 varying vec2 vP; varying vec4 vKind; varying vec3 vState; varying float vFog; varying float vLane;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
-// THE AREAS' GROUND (H5A — areas.js: a WHOLE STRETCH looks like the place): what a "grass" lane is there — 1 THE DOCKS' pier planks ·
-// 2 THE FISH MARKET's wet cobbles · 3 THE RAIL YARD's gravel · 4 THE BRIDGE's steel deck · 5 DOWNTOWN's sidewalk · 6 THE CANAL's stone
-// embankment · 7 THE LIGHTHOUSE's sand + scrub · 8 THE AIRFIELD's apron. Each its own hue — never the asphalt's, never the water's.
 float joint(vec2 f, float w) { return smoothstep(0.0, w, f.x) * smoothstep(1.0, 1.0 - w, f.x) * smoothstep(0.0, w * 2.0, f.y) * smoothstep(1.0, 1.0 - w * 2.0, f.y); }
 vec3 areaGround(float ar, float x, float z, float seed, float lane) {
   vec3 c;
@@ -47,13 +43,10 @@ vec3 areaGround(float ar, float x, float z, float seed, float lane) {
     c = mix(c, DN(vec3(0.34, 0.33, 0.36), vec3(0.40, 0.33, 0.27)), smoothstep(0.05, 0.02, length(vec2((f - 0.5) * 0.4, abs(z - 0.5) - 0.38))) * 0.8);
   } else if (ar < 2.5) {
     vec2 q = vec2(x * 3.0 + step(0.5, fract(z * 1.5)) * 0.5, z * 3.0), f = fract(q) - 0.5;
-    // (H5C — the owner: by DAY warm SANDSTONE cobbles, never a cyan-blue check; by night warm dark stone under the market's lamps —
-    //  no cold wet sheen: it must never read as water)
     c = DN(vec3(0.132, 0.108, 0.086), vec3(0.84, 0.72, 0.53)) * (mix(0.74, 0.86, uDay) + mix(0.5, 0.26, uDay) * hash(floor(q) + seed));
     c *= smoothstep(0.5, 0.36, max(abs(f.x), abs(f.y))) * mix(0.7, 0.42, uDay) + mix(0.3, 0.58, uDay);
     c += DN(vec3(0.075, 0.056, 0.036), vec3(0.10, 0.085, 0.05)) * smoothstep(0.26, 0.0, length(f - vec2(-0.12, 0.14)));
   } else if (ar < 3.5) {
-    // (H5C — by day the gravel is FINER + CALMER: a small soft grain, a gentle unevenness — never TV static)
     float gs = mix(26.0, 30.0, uDay);   // (the review: the night gravel was still blocky — finer + calmer there too)
     c = DN(vec3(0.120, 0.100, 0.086), vec3(0.66, 0.60, 0.53)) * (mix(0.84, 0.935, uDay) + mix(0.30, 0.12, uDay) * hash(floor(vec2(x * gs, z * gs)) + seed));
     c *= mix(0.86, 0.93, uDay) + mix(0.26, 0.14, uDay) * vnoise(vec2(x * 1.3, z * 1.3 + lane));
@@ -71,8 +64,6 @@ vec3 areaGround(float ar, float x, float z, float seed, float lane) {
     c = DN(vec3(0.150, 0.135, 0.112), vec3(0.76, 0.70, 0.58)) * (0.8 + 0.4 * hash(floor(q) + seed));
     c = mix(DN(vec3(0.045, 0.115, 0.060), vec3(0.33, 0.52, 0.27)), c, joint(fract(q), 0.035));
   } else if (ar < 7.5) {
-    // (H5C — SMOOTH sand: soft dunes, faint wind ripples, a fine grain; SCRUB = small soft tufts, a few to a lane (never blotches);
-    //  a pebble here and there)
     float lw = mod(lane, 64.0) + z, dune = vnoise(vec2(x * 0.38, lw * 0.5));
     c = DN(vec3(0.200, 0.170, 0.108), vec3(0.95, 0.86, 0.63)) * (0.93 + 0.12 * dune);
     c *= 0.985 + 0.035 * smoothstep(0.35, 0.65, vnoise(vec2(x * 1.6 + dune * 2.0, lw * 9.0)));
@@ -95,8 +86,6 @@ void main() {
   float type = vKind.x, dn = vKind.y, up = vKind.z, seed = vKind.w, x = vP.x, z = vP.y, ar = vState.z;
   vec3 c;
   if (type < 0.5 || type > 4.5) {
-    // THE GRASS (H5C — the owner: never a pixel checkerboard): soft NATURAL variation — larger light / dark patches that run on across
-    // the lanes, faint MOWN STRIPES a column wide (they also show the columns), a soft blade grain, small tufts' flecks. Night + day.
     float lw = mod(vLane, 64.0) + z;
     float pat = vnoise(vec2(x * 0.42, lw * 0.42) + 3.0);
     c = mix(DN(vec3(0.064, 0.192, 0.092), vec3(0.285, 0.59, 0.195)), DN(vec3(0.088, 0.242, 0.112), vec3(0.385, 0.705, 0.25)), smoothstep(0.15, 0.85, pat));
@@ -114,7 +103,6 @@ void main() {
     float sk = mix(0.45, 0.16, uDay);
     c *= 1.0 - sk * (1.0 - smoothstep(0.0, 0.22, z)) * soft - sk * (1.0 - smoothstep(0.0, 0.22, 1.0 - z)) * softU;
   } else if (type < 1.5) {
-    // (by day: CLEAN GREY asphalt, white + yellow paint — H5C: a FINE grain + a faint wear, never blocky)
     float ag = mix(16.0, 42.0, uDay);
     c = DN(vec3(0.062, 0.062, 0.086), vec3(0.36, 0.37, 0.40)) * (mix(0.92, 0.966, uDay) + mix(0.16, 0.068, uDay) * hash(floor(vec2(x * ag, z * ag))));
     c *= 1.0 + uDay * 0.06 * (vnoise(vec2(x * 0.8, (mod(vLane, 64.0) + z) * 2.2)) - 0.5);
@@ -128,19 +116,6 @@ void main() {
     vec3 neon = mod(b, 2.0) < 0.5 ? DN(vec3(1.0, 0.62, 0.9), vec3(1.0, 0.84, 0.20)) : DN(vec3(0.93, 0.86, 1.0), vec3(0.97, 0.97, 0.95));   // (H5B's add-on: the second line pale lilac — never cyan: blue on the ground = water)
     c = mix(c, neon * mix(0.62, 1.0, uDay), dash * ln);
   } else if (type < 2.5) {
-    // THE WATER (H4 — the owner, Nov 16: CALM, real-looking night water — no electric zigzags): a deep night blue, navy in the troughs →
-    // teal on the swell; soft UNEVEN ripples (the contour lines of two slow drifting noise fields — never a sine stripe); gentle broken
-    // reflections of the skyline's neon + a few small moving glints of it; a thin soft foam line at the banks. Still unmistakably water
-    // beside the grass + the road: the only blue ground, the only one that moves.
-    // H5B's add-on (the owner, Nov 16 9:10 pm — after a 4-player match with family): BLUE ON THE GROUND = WATER, NOTHING ELSE, and the
-    // water is VIDEO-GAME WATER by night too (readability beats realism: H4's navy read as a dark glass strip) — a clear saturated
-    // blue, the brightest + bluest ground in view (night #1a6fe0 → #3fb0ff on the swells · day #2f9cff → #6cc8ff: the same identity,
-    // brighter); white-ish ripple caps + specks DRIFTING WITH THE CURRENT (vState.y = the lane's own flow in cells a second — the way
-    // its logs go: the flow reads); a BOLD bright foam line at both banks; the neon's reflections kept, small.
-    // BEFORE THE FLIP (the inbox, Nov 17 6:58 pm — the owner: two water lanes side by side read as two strips): ONE BODY OF WATER — the
-    // surface's colour + ripple fields run on the WORLD's z (the lane + its z, as the grass does) with ONE slow drift, never a lane's own
-    // seed or current: no seam, no colour step between neighbouring water lanes; the foam + the shallows only where the water meets
-    // something that is not water (shD / shU). Each lane's SPECKS still ride its own current (xf) — the flow reads, the logs keep theirs.
     float t = uTime, flow = vState.y, xf = x - flow * t;          // (xf: carried by this lane's current — the specks)
     float zw = mod(vLane, 256.0) + z, xc = x - 0.12 * t;          // (the whole river's surface: the world's z, one slow drift)
     vec2 q = vec2(xc * 0.85, zw * 2.4);
@@ -149,22 +124,18 @@ void main() {
     float n3 = vnoise(q * 4.6 + vec2(0.0, t * 0.09) + 41.0);
     float w = clamp(0.58 * n1 + 0.42 * n2, 0.0, 1.0);
     c = mix(DN(vec3(0.102, 0.435, 0.878), vec3(0.184, 0.612, 1.0)), DN(vec3(0.247, 0.690, 1.0), vec3(0.424, 0.784, 1.0)), w * w * 1.25);
-    // the ripple caps: thin white-ish lines along the swell's contours, broken up by a finer field — uneven; they ride the current
     float rip = smoothstep(0.075, 0.0, abs(n2 - 0.52)) * smoothstep(0.34, 0.66, n3) + 0.5 * smoothstep(0.06, 0.0, abs(n1 - 0.46)) * smoothstep(0.45, 0.72, n2);
     c += vec3(0.62, 0.74, 0.78) * rip * mix(0.44, 0.34, uDay);
-    // the specks: small white flecks carried along by the current, each coming + going to its own slow beat (every tier: the flow must read)
     vec2 sp = vec2(xf * 4.0, z * 4.0), sid = floor(sp);   // (lane-local: a speck never straddles two currents)
     float sh = hash(sid + seed * 13.0);
     float gl = step(0.80, sh) * smoothstep(0.1, 1.0, sin(t * (0.9 + sh * 1.5) + sh * 40.0)) * smoothstep(0.30, 0.04, length((fract(sp) - 0.5) * vec2(0.55, 1.0)));
     c += vec3(0.86, 0.95, 1.0) * gl * mix(0.78, 0.95, uDay);
     if (uQ > 0.5) {
-      // the neon's reflections, kept SMALL: short soft columns of the skyline's pink + violet lying on the water, broken by the swell (night)
       float sx = xc * 0.7 + (n1 - 0.5) * 0.5, id = floor(sx), f = fract(sx) - 0.5;   // (one body of water: the reflections run on across the lanes)
       float colm = smoothstep(0.30, 0.04, abs(f)) * step(0.55, hash(vec2(id, 7.0))) * smoothstep(0.35, 0.8, n2);
       vec3 neon = hash(vec2(id + 3.0, 7.0)) < 0.5 ? vec3(1.0, 0.30, 0.75) : vec3(0.62, 0.40, 1.0);
       c += neon * colm * 0.10 * (1.0 - uDay);
     }
-    // THE BANKS: a BOLD bright foam line + a paler shallow where the water meets anything that is not water
     float shD = step(0.5, abs(dn - 2.0)), shU = step(0.5, abs(up - 2.0));
     float lap = 0.014 * (n3 - 0.5) + 0.006 * sin(xc * 3.1 + seed);
     float foam = max(smoothstep(0.115 + lap, 0.070 + lap, z) * shD, smoothstep(0.115 + lap, 0.070 + lap, 1.0 - z) * shU);
@@ -177,13 +148,11 @@ void main() {
     c = mix(c, DN(vec3(0.21, 0.135, 0.085), vec3(0.43, 0.29, 0.18)), sl);
     float r = max(smoothstep(0.04, 0.016, abs(z - 0.33)), smoothstep(0.04, 0.016, abs(z - 0.67)));
     c = mix(c, DN(vec3(0.50, 0.53, 0.64), vec3(0.84, 0.86, 0.90)), r);
-    // the tell: the rails catch the red signals (by day: the lane itself FLASHES red — still bold in sunlight)
     c = mix(c + vec3(0.85, 0.05, 0.07) * vState.y * (0.16 + 0.6 * r) * (1.0 - uDay), vec3(0.98, 0.10, 0.08), vState.y * (0.2 + 0.7 * r) * uDay);
   } else {
     c = DN(vec3(0.088, 0.086, 0.104), vec3(0.46, 0.47, 0.50)) * (0.97 + 0.06 * hash(floor(vec2(x * 36.0, z * 36.0))));   // (by day: the PAINTED runway — a fine grain)
     float cl = step(fract(x * 0.5 + 0.25), 0.5) * smoothstep(0.035, 0.015, abs(z - 0.5));
     c = mix(c, DN(vec3(0.66, 0.63, 0.58), vec3(0.97, 0.97, 0.94)), cl * mix(0.55, 0.92, uDay));
-    // (by day: white piano keys at both edges — a runway, never a road)
     c = mix(c, vec3(0.97, 0.97, 0.94), uDay * 0.9 * step(fract(x * 2.0), 0.5) * (smoothstep(0.11, 0.09, z) + smoothstep(0.11, 0.09, 1.0 - z)) * step(0.03, z) * step(z, 0.97));
     float fx = abs(vState.y);
     if (fx > 0.001) {                                             // the tell: a bright band RACES to the crossing, faster and faster
@@ -191,30 +160,19 @@ void main() {
       float head = fract(fx * fx * 7.0 + fx * 2.0) * 14.0 - 2.5;
       float band = smoothstep(4.0, 0.0, head - xx) * step(xx, head);
       float chev = step(fract(xx * 1.2 + abs(z - 0.5) * 1.4), 0.5);
-      // (H5B's add-on: the runway's tell is AMBER by night too — a blue lane read as water)
       c += (vec3(1.0, 0.66, 0.14) * band * (0.35 + 0.5 * chev) + vec3(0.30, 0.15, 0.02) * fx) * (1.0 - uDay);
-      // (by day — THE TELL MUST READ IN SUNLIGHT (the go-live review: yellow on the light runway was low-contrast): within the
-      //  tell's first sixth the WHOLE lane turns to AMBER-ON-DARK hazard chevrons that march slowly to the crossing, and the racing
-      //  band is the same chevrons at full contrast — near-black + yellow-white. Never the red of the rail lane's tell.)
       float tl = clamp(fx * 6.0, 0.0, 1.0);
       float chd = step(fract(xx * 1.2 + abs(z - 0.5) * 1.4 - fx * 3.0), 0.5);
       c = mix(c, mix(vec3(0.075, 0.07, 0.10), vec3(1.0, 0.64, 0.04), chd), 0.66 * tl * uDay);
       c = mix(c, mix(vec3(0.04, 0.035, 0.05), vec3(1.0, 0.94, 0.38), chd), clamp(band * 1.4, 0.0, 1.0) * uDay);
     }
   }
-  // THE WIDER VIEW: the edge columns a step dimmer, the ground beyond them dimmer still
   float inner = smoothstep(-0.14, 0.1, x) * smoothstep(9.14, 8.9, x);
   float outer = smoothstep(-2.6, -1.0, x) * smoothstep(11.6, 10.0, x);
   c *= mix(mix(mix(0.30, 0.60, uDay), mix(0.52, 0.80, uDay), outer), 1.0, inner);
-  // THE BLACKOUT: this lane's lights dying (a cold flicker as it goes), then dead
   float dk = vState.x;
   float fl = dk > 0.02 && dk < 0.98 ? step(hash(vec2(floor(uTime * 14.0), vLane)), 0.35 + dk * 0.5) : 0.0;
   if (uDay > 0.5) {
-    // THE FOG BANK (the blackout by day — the same lanes, the same timing): the lane whitens under a rolling bank, soft wisps at its edge
-    // H5C (the owner: never a flat slab, never a hard line): the bank's edge is measured PER PIXEL off the wall itself (uWall — not
-    // lane by lane): soft + ragged (two drifting noise fields), the lane still seen THROUGH its first metre, solid two lanes in —
-    // and a cool shadow lies on the ground in front of it
-    // (only the pixels NEAR the wall pay for the noise: ahead of its shadow nothing is done, deep inside it is simply fog)
     float ly = vLane + z, d = uWall - ly;
     if (d > 3.4) c = vec3(0.875, 0.906, 0.933) * 0.98;
     else if (d > -3.4) {
@@ -222,15 +180,9 @@ void main() {
       float thin = smoothstep(-1.5, 0.7, d + (bn - 0.5) * 1.9);
       float fogA = thin * mix(0.5, 1.0, smoothstep(0.1, 2.1, d));
       c *= 1.0 - 0.2 * smoothstep(-3.2, -0.3, d) * (1.0 - thin);
-      // (the go-live review — the fog's banding: the mottle fades OUT before d = 3.4, where the plain fog begins — the two met in a
-      //  straight line of up to 5 % brightness)
       c = mix(c, vec3(0.875, 0.906, 0.933) * (0.98 + 0.1 * (bn - 0.5) * (1.0 - smoothstep(1.8, 3.3, d))), clamp(fogA, 0.0, 1.0));
     }
   } else {
-    // THE BLACKOUT's edge (H5C — the review: "a ruler-straight cut to black"): per pixel off the wall itself, soft + ragged (two drifting
-    // noise fields) — the lights still die lane by lane (the flicker), but the dark's edge is never a straight line; the cold violet
-    // glow rides its ragged lip
-    // (only the pixels NEAR the wall pay for the noise: ahead of it nothing is done, behind it the lane is simply dark)
     float ly = vLane + z, d = uWall - ly;
     if (d > 1.5) c = vec3(0.012, 0.016, 0.03) + c * 0.05;
     else if (d > -1.7) {
@@ -263,10 +215,6 @@ export function createGround(n, fog) {
   };
 }
 
-// THE FAR HAZE BY THE GROUND (H5C — the review: "the ground fades out before the things standing on it — trucks, trees, containers
-// hang as pale ghosts"): three's fog reads a fragment's own depth, and from this camera a thing's top is NEARER than the ground it stands
-// on. So every lit material adds its height back (uFogUp = how much nearer a unit of height is: −the camera's forward y) — a thing fades
-// exactly as the ground under it does.
 export const FOG_UP = { value: 0.72 };
 const FOG_UP_V = `#ifdef USE_FOG
   vec4 jwW = vec4(transformed, 1.0);
@@ -279,7 +227,6 @@ const fogPatch = sh => { sh.uniforms.uFogUp = FOG_UP; sh.vertexShader = sh.verte
 /** a plain lit material whose fog follows the ground under the thing */
 export function fogUp(mat) { mat.onBeforeCompile = fogPatch; mat.customProgramCacheKey = () => 'jw-fogup'; return mat; }
 
-// ---- THE LIGHTS: additive quads (flat on the ground, or facing the camera) + the blob shadows — ONE material each, the shape picked per instance
 const GLOW_V = `
 attribute vec2 aFx;
 uniform vec2 uFog; uniform float uBill; uniform float uFogUp;
@@ -318,17 +265,12 @@ void main() {
   else if (s < 4.5) { a = smoothstep(1.0, 0.15, abs(p.y)) * smoothstep(1.0, 0.8, abs(p.x)); }                     // 4 a soft line along x
   else if (s < 5.5) { a = smoothstep(0.42, 0.3, d) + 0.6 * smoothstep(1.0, 0.0, d) * smoothstep(1.0, 0.0, d); }   // 5 a lamp: a hot core + its halo
   else if (s < 6.5) { float u = vUv.x, w = mix(0.4, 1.0, u), e = smoothstep(w, 0.0, abs(p.y)); a = e * e * (1.0 - u) * (1.0 - u * u) * smoothstep(0.0, 0.07, u); }   // 6 a SHORT SOFT beam (a headlight's glow on the road: a quick falloff, soft edges)
-  // 10 A FOG PUFF (the go-live review — the fog bank's banded streaks: a camera-facing puff was CUT by the ground where it leaned
-  //    into it — a hard horizontal line across every puff): the soft round glow, FADING OUT into the ground over its last metre,
-  //    dithered (a wide near-white gradient steps in 8 bits)
   else if (s > 9.5) { a = smoothstep(1.0, 0.0, d); a *= a * smoothstep(0.03, 1.15, vY); a += (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.012 * step(0.004, a); }
   else if (s > 8.5) { float w = mix(1.0, 0.3, vUv.y); a = smoothstep(w, w * 0.3, abs(p.x)) * (0.5 + 0.5 * vUv.y) * smoothstep(0.0, 0.07, vUv.y) * smoothstep(1.0, 0.93, vUv.y); }   // 9 a BEAM standing up (H6A — a bill: narrow at its top, wide at its foot)
   else { float asp = max(1.0, (s - 7.0) * 10.0); vec2 q = vec2(abs(p.x) * asp - (asp - 1.0), p.y); a = smoothstep(0.2, 0.0, abs(length(vec2(max(q.x, 0.0), q.y)) - 0.78)); }   // 7 + aspect / 10: a thin STADIUM ring (the waterline round a log — its quad is that many times longer than wide)
   #ifdef JW_SHADOW
     gl_FragColor = vec4(vec3(0.03, 0.07, 0.17) * uDay, a * vFx.y * (1.0 - vFog));   // (H5C — by day a shadow is COOL, never plain black: the sky fills it)
   #else
-    // (H5B — BY DAY a light is PAINT: the same shapes, alpha-blended in their own colour (the material's blending is switched with
-    //  uDay — night.js#setLook): a red signal stays red on a sunlit lane instead of washing out to white)
     float k = a * vFx.y * (1.0 - vFog);
     if (uDay > 0.5) gl_FragColor = vec4(vCol, clamp(k, 0.0, 1.0)); else gl_FragColor = vec4(vCol * k, 1.0);
   #endif
@@ -362,21 +304,16 @@ export function paintMaterial(mat, { instanced = false, rim = false, skin = null
       .replace('#include <color_vertex>', instanced
         ? `vColor = mix(color, instanceColor * (0.22 + 1.6 * dot(color, vec3(0.299, 0.587, 0.114))), paint) * ${skin ? 'mod(aKid.x, 8.0)' : 'aLit'};${fade ? ' vJwA = 1.0 - 0.68 * floor(aKid.x / 8.0) / 15.0;' : ''}`
         : 'vColor = mix(color, uTint * (0.22 + 1.6 * dot(color, vec3(0.299, 0.587, 0.114))), paint) * uLit;');
-    // THE KID's SKIN (H5A): every vertex follows ONE bone; a pose = a row of the pose texture (models.js#loadKid). An instance blends
-    // two poses — aKid = (lit, row A, row B, how far to B), each row a frame + a fraction to the next: idle → the jump → the splay
     if (skin) {
       sh.uniforms.uPose = u.uPose;
       sh.vertexShader = sh.vertexShader
         .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nmat4 jwM = jwPose(aKid.y) * (1.0 - aKid.w) + jwPose(aKid.z) * aKid.w;\nobjectNormal = mat3(jwM) * objectNormal;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed = (jwM * vec4(transformed, 1.0)).xyz;');
     }
-    // A GHOST's OWN FADE (H5B's add-on — NEAR YOU = FAINT): an instance's alpha, packed with its light — aKid.x = lit (< 8) + 8 × the
-    // fade in 16 steps: 0 = the ghost as it is · 15 = a faint see-through outline (≈ 15 %)
     if (fade) {
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vJwA;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vJwA;').replace('#include <opaque_fragment>', 'diffuseColor.a *= vJwA;\n#include <opaque_fragment>');
     }
-    // THE RIM (the kid — H2B: he always stands out): a light of his own on every edge that turns away from the camera
     if (rim) {
       sh.uniforms.uRim = u.uRim;
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uRim;')
@@ -427,7 +364,6 @@ export function dayEnv(renderer) {
   return env;
 }
 
-// ---- THE HALF-RES BLOOM (top tier only): the LIGHTS alone (layer 1) drawn into a half-res target, blurred at a quarter, added back on top
 const BLUR_F = `
 precision highp float;
 uniform sampler2D tMap; uniform vec2 uStep; varying vec2 vUv;

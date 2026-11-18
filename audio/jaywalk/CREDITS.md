@@ -11,6 +11,9 @@ is new; THE AREA ARRIVAL (the sfx4 folder) replaces the landmark ping (gone). Th
 H6B (the owner, Nov 17): NEW BEST = its B take, shipped as `new-best.mp3` (ONE take: the sparkle — take A — is THE AREA ARRIVAL's alone).
 It is CC BY 4.0: its credit is REQUIRED. The game's credits (☰ → Credits) carry every line below — `js/ui/credits.js`.
 
+BEFORE THE FLIP (the owner, Nov 17 — the delivery's sfx5 folder): THE STOPWATCH (a WAV loop) REPLACES the lights dying (gone), THE TRUCK
+HORN is new, THE AREA ARRIVAL is replaced ("Success" — the sparkle is gone). All three CC0.
+
 | file | title | author | licence | source |
 | --- | --- | --- | --- | --- |
 | hop.mp3 | Bubble_4 | BenParamoreAudio | CC0 | https://freesound.org/people/BenParamoreAudio/sounds/868712/ |
@@ -22,10 +25,11 @@ It is CC BY 4.0: its credit is REQUIRED. The game's credits (☰ → Credits) ca
 | horn.mp3 | JM_TRANSPORT_EXT_Horn-01A-Car_Short_Mini-Countryman | Julien_Matthey | CC0 | https://freesound.org/people/Julien_Matthey/sounds/436589/ |
 | train-pass.mp3 | Train Pass By | DjangoAltona | CC0 | https://freesound.org/people/DjangoAltona/sounds/103025/ |
 | train-pass-b.mp3 | Train Passing A | InspectorJ | CC BY 4.0 — CREDIT REQUIRED | https://freesound.org/people/InspectorJ/sounds/328114/ |
-| lights-die.mp3 | Neon ON OFF | SkyernAklea | CC BY 4.0 — CREDIT REQUIRED | https://freesound.org/people/SkyernAklea/sounds/539909/ |
 | train-bell.wav | Railroad Crossing Bell | Brylon Terry (SoundBible.com) | CC BY 3.0 — CREDIT REQUIRED | https://soundbible.com/2070-Railroad-Crossing-Bell.html |
 | train-horn.mp3 | Train Diesel Double Horn from Class 142 with Reverb | AMBIOSIS | CC BY 4.0 — CREDIT REQUIRED | https://freesound.org/s/316689/ |
-| area-arrive.mp3 | achievement-sparkle | SkySpeira | CC0 1.0 | https://freesound.org/s/715067/ |
+| area-arrive.mp3 | Success | Sjonas88 | CC0 1.0 | https://freesound.org/s/538554/ |
+| stopwatch-tick.wav | Chronograph #2 | Joseph SARDIN (BigSoundBank) | CC0 1.0 | https://bigsoundbank.com/stopwatch-2-s2138.html |
+| truck-horn.mp3 | Truck Horn | Pierre SIBANARCO (BigSoundBank) | CC0 1.0 | https://bigsoundbank.com/truck-horn-s2721.html |
 | new-best.mp3 | Fantasy Achievement Unlock Magical Stinger | TommasoMotteran | CC BY 4.0 — CREDIT REQUIRED | https://freesound.org/people/TommasoMotteran/sounds/859080/ |
 
 ## CC BY — these need their credit in the game's credits (☰ → CREDITS) when they ship in play
@@ -52,6 +56,8 @@ https://creativecommons.org/licenses/by/4.0/
 "Train Diesel Double Horn from Class 142 with Reverb" by AMBIOSIS (Freesound), CC BY 4.0. https://freesound.org/s/316689/
 ```
 
-Credit appreciated, not required: "achievement-sparkle" by SkySpeira (Freesound), CC0 1.0. https://freesound.org/s/715067/
+Credit appreciated, not required: "Success" by Sjonas88 (Freesound), CC0 1.0. https://freesound.org/s/538554/ · "Chronograph #2" by Joseph SARDIN
+(BigSoundBank), CC0 1.0. https://bigsoundbank.com/stopwatch-2-s2138.html · "Truck Horn" by Pierre SIBANARCO (BigSoundBank), CC0 1.0.
+https://bigsoundbank.com/truck-horn-s2721.html
 
 3D models: Kenney — kenney.nl (CC0) — `assets/jaywalk/models/LICENSE.txt`.
