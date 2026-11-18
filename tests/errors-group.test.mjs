@@ -23,7 +23,7 @@ test('THE BLACK HELICOPTER: drawHeli names no variable of drawModel\'s (black ·
 
 test('STALE-HOST WRITES: a room / chat write refused while this phone has JUST lost the host = "no longer the host" (quiet), never the alarm; the host writes check again first', () => {
   const fb = read('js/firebase.js'), host = read('js/host.js'), lm = read('js/audio/lobby-music.js');
-  assert.match(fb, /if \(\/\^\\\/\?\(rooms\|chats\)\\\/\/\.test\(refPath\(r\)\)\) \{ setTimeout\(\(\) => \{ const quiet = quietRoomRefusal\(refPath\(r\), \{ hostGone: safeGone, roomGone \}\); if \(quiet\) \{/, 'a room write waits HOST_SETTLE_MS, then asks');
+  assert.match(fb, /if \(\/\^\\\/\?\(rooms\|chats\)\\\/\/\.test\(rp\)\) \{ setTimeout\(\(\) => \{ const quiet = quietRoomRefusal\(rp, \{ hostGone: safeGone, roomGone \}\); if \(quiet\) \{/, 'a room write waits HOST_SETTLE_MS, then asks');
   assert.match(fb, /console\.info\(`\[rules\] \$\{quiet\} — a write refused after/);
   assert.match(host, /setHostGone\(lostHostRecently\);/);
   assert.match(host, /if \(isHost\(\)\) \{\n    wasHostAt = Date\.now\(\); wasHostCode = state\.code;/);

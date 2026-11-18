@@ -14,10 +14,11 @@ const DAY_MS = 86_400_000;
 /** one player's outcome → what the long-term readers use (never empty — an empty object is no node in the database) */
 export function compactOutcome(o) {
   if (!o || typeof o !== 'object') return { k: 1 };
-  const out = {};
-  for (const f of ['gid', 'rank', 'win', 'n', 'skip', 'cap']) if (o[f] != null && o[f] !== false) out[f] = o[f];
-  if (o.xp && Number(o.xp.gain)) out.xp = { gain: Number(o.xp.gain) };
-  return Object.keys(out).length ? out : { k: 1 };
+  const keep = {};
+  for (const f of ['gid', 'rank', 'win', 'n', 'skip', 'cap']) if (o[f] != null && o[f] !== false) keep[f] = o[f];
+  // (the XP line kept as it was paid — a copy, never a payment: core/progress.js#payXp is the only writer of a player's XP)
+  const c = o.xp && Number(o.xp.gain) ? { ...keep, xp: { gain: Number(o.xp.gain) } } : keep;
+  return Object.keys(c).length ? c : { k: 1 };
 }
 /** a record → its compact form (marked c: 1) */
 export function compactRecord(r) {

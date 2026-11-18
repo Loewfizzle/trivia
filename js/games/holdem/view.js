@@ -27,7 +27,7 @@ import { wideLayout, stageOf } from './layout-wide.js';
 import { freshEvents, schedule, drawnSeats, awardLine, winLine, winningCards } from './motion-plan.js';
 import { createMotion } from './motion.js';
 import { faceSvg, cardName } from './card-art.js';
-import { dealer } from './index.js';
+import { dealer, SLOW_MS } from './index.js';
 import { gameAwake } from '../../wakelock.js';
 import { SHOT_MS } from './structure.js';
 import { lazyImport } from '../../ui/lazy-import.js';
@@ -88,6 +88,9 @@ export function createView() {
   // ------------------------------------------------------------------ the dealer's ops (a refusal just waits for the redraw)
   // (CITY G: the ops a timed-out call sends again once — each a no-op when repeated: act (its seq), pre (the same toggle), show, poke)
   const RETRY_OPS = new Set(['act', 'pre', 'show', 'poke']);
+  // (CITY G — the owner's "NO SIGNAL" on good wifi, Nov 17 2:13 pm, was an 8 s timeout: a dealer call ≥ SLOW_MS (a cold function, a slow line) or
+  //  timed out is COUNTED — errlog.js#countQuiet 'slow', one line in /admin's errors, never a row; the screen reads the clock, never index.js)
+  const timed = async b => { const t0 = performance.now(); try { return await dealer(b); } finally { if (performance.now() - t0 >= SLOW_MS) lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => m.countQuiet && m.countQuiet('slow')).catch(() => {}); } };
   async function send(op, body = {}) {
     if (busy) return null;   // (one move at a time: a double tap never sends twice)
     if (offline()) { toastNoSignal(); return null; }
@@ -103,7 +106,7 @@ export function createView() {
     els.leave.classList.toggle('is-busy', op === 'leave');
     let r = null;
     try {
-      r = await dealer({ holdem: op, room: code(), ...(t ? { hand: t.hand } : {}), ...body });
+      r = await timed({ holdem: op, room: code(), ...(t ? { hand: t.hand } : {}), ...body });
       return r;
     } catch (e) {
       // (409 stale / illegal, 429: the table moved on — the listener redraws; never a scary message. No signal: said only while the table
@@ -113,7 +116,7 @@ export function createView() {
       // only a failed retry says THE DEALER IS SLOW, and NO SIGNAL only when this phone is really offline
       if (e && e.status === 0 && (!pub || pub.seq === b.seq)) {
         if (!offline() && RETRY_OPS.has(op) && !destroyed) {
-          try { r = await dealer({ holdem: op, room: code(), ...(t ? { hand: t.hand } : {}), ...body }); return r; } catch (e2) {
+          try { r = await timed({ holdem: op, room: code(), ...(t ? { hand: t.hand } : {}), ...body }); return r; } catch (e2) {
             if (!(e2 && e2.status === 0) || (pub && pub.seq !== b.seq)) return null;
           }
         }

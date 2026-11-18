@@ -20,14 +20,11 @@ export const createView = lazyView(() => lazyImport(import('./view.js'), './view
 export const livePaths = () => ({ table: 'holdem' });
 
 /** THE DEALER's ops ride /api/report (still 8 functions) — the phone side (`api` = profile/api.js: the ID token, ApiFail on a refusal) */
-// (CITY G — the owner's "NO SIGNAL" on good wifi, Nov 17 2:13 pm: an 8 s timeout read as no signal. A call slower than SLOW_MS (a cold function,
-//  a slow line) or timed out is COUNTED — errlog.js#countQuiet 'slow', one line in /admin's errors — never a row; the view retries a move once)
+// (CITY G: the screen times each call — view.js#send: a call ≥ SLOW_MS or timed out is COUNTED, 'slow'; a timed-out move is sent again once)
 export const DEALER_TIMEOUT_MS = 8000, SLOW_MS = 3000;
 export async function dealer(body) {
   const { api } = await lazyImport(import('../../profile/api.js'), '../../profile/api.js');
-  const t0 = Date.now();
-  const slow = () => { if (Date.now() - t0 >= SLOW_MS) lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => m.countQuiet && m.countQuiet('slow')).catch(() => {}); };
-  try { const r = await api('report', body, { timeout: DEALER_TIMEOUT_MS }); slow(); return r; } catch (e) { slow(); throw e; }
+  return api('report', body, { timeout: DEALER_TIMEOUT_MS });
 }
 
 /**
