@@ -13,6 +13,7 @@
 //   Tick 0 = go (the START's time + LEAD_MS — the count-in); the rules take no chunk before go, after z (the try's last moment — the cap +
 //   GRACE_MS for THE DROPPED SIGNAL's burst), or once `e` is set; no try index past 2.
 import { verifyRun } from './jaywalk.js';
+import { featsOf } from '../../js/games/jaywalk/logic.js';
 import { logFromChunks, chunkTimes } from '../../js/games/jaywalk/replay.js';
 import { MODES, TICK_HZ } from '../../js/games/jaywalk/tuning.js';
 import { jwScore } from '../../js/core/daily-best.js';
@@ -73,7 +74,7 @@ export function liveTry(t, node, now) {
  * THE TRY's SCORE from its proof node — THE JUDGE (api/_lib/jaywalk.js#verifyRun: the log's bounds, THE SPEED CHECK both ways, THE DROPPED
  * SIGNAL, the replay) on the day's seed, mode 'daily', tick 0 = the try's GO (the SERVER's, from the record — never the node's). As it stands:
  * an abandoned try's kid idles in the replay until the wall takes him (his lanes stay what he reached). A refused log = 0 lanes (`bad`).
- * → { l, k, s, w, cut?, bad? }
+ * → { l, k, s, w, f? (the feats — 'boom ufo airfield mothership'), cut?, bad? }
  */
 export function scoreTry({ seed, go, z = null, node }) {
   // (the rules refuse a chunk past z — the server never reads one either: the log = the chunks up to the first one stamped after the window)
@@ -85,7 +86,9 @@ export function scoreTry({ seed, go, z = null, node }) {
   const v = verifyRun({ seed: String(seed), mode: 'daily', log, go, times });
   if (!v.ok) return bad(v.why);
   const r = v.result;
-  return { l: r.lanes, k: r.tick, s: jwScore(r.lanes, r.tick), w: r.cause || '', ...(v.cut ? { cut: 1 } : {}) };
+  // (DAILY B: + the try's FEATS from the replay — `f`, the match's own word list: its four cards + YOUR BEST are credited from THIS — jaywalk-credit.js)
+  const f = featsOf(r);
+  return { l: r.lanes, k: r.tick, s: jwScore(r.lanes, r.tick), w: r.cause || '', ...(f ? { f } : {}), ...(v.cut ? { cut: 1 } : {}) };
 }
 
 /** CLOSE a try (inside the record's transaction): its result + `e` (server time) — a try already closed is left alone → the record | null */
@@ -97,3 +100,14 @@ export function closeTry(rec, i, result, { now, why = 'fin' } = {}) {
 
 /** the score THE DAY counts (the best closed try) — api/daily.js#finishRun claims / raises dly/jaywalk/{day}/r/{pid} with it */
 export const dayScore = rec => { const b = bestTry(rec); return b ? b.s : null; };
+
+/**
+ * DAILY B — SHARE TODAY's JAYWALK inputs (SPOILER-FREE: never the course, the seed or a hop): { t: [lanes | null — one per try, null =
+ * unplayed / still open], b: the best try's index (-1 none), nb: 1 = a NEW DAILY BEST today, day } — js/games/jaywalk/daily-share.js draws them.
+ */
+export function shareOf(rec, { day = null, nb = false } = {}) {
+  const t = [null, null, null];
+  for (const x of triesOf(rec)) if (isNum(x.e)) t[x.i] = Math.max(0, Math.floor(Number(x.l) || 0));
+  const b = bestTry(rec);
+  return { t, b: b ? b.i : -1, nb: nb ? 1 : 0, day: /^d\d{8}$/.test(String(day || '')) ? String(day) : null };
+}

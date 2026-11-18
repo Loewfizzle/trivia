@@ -8,6 +8,8 @@
 //   ordinal(n)               → '1ST' · '2ND' · '3RD' · '4TH' · '11TH' …
 //   everyoneLine(stand)      → 'TOP 12% OF EVERYONE' | ''                      only from BAND_MIN counting finishers (the server sends none below)
 //   midLine(n)               → '2 PLAYERS ARE MID-DAILY' | ''                  the host's line in the room (THE ROOM WINS)
+//   ticketState(today, d, …) → DAILY B: what ONE ticket shows — before / in progress / between tries / ADMITTED, DAILY BEST, the place, gold
+//   bestLine(id, s, lineOf)  → DAILY B: a DAILY BEST in its daily's own measure ('4 GUESSES' · '1:12' · '3:41' · '168 LANES')
 
 import { dayNum, dayOf } from '../core/streak.js';
 
@@ -89,7 +91,8 @@ export const midLine = n => (n > 0 ? `${n} ${n === 1 ? 'PLAYER IS' : 'PLAYERS AR
 /** SHARE TODAY's plain line: "NEON SPEAKEASY · DAILIES · THE PASSWORD 7 guesses · COAST CLEAR 2:41 · SWEPT · neonspeakeasy.com" */
 export function shareTodayLine(today, lineOf, site = 'neonspeakeasy.com') {
   const ds = list(today), parts = [];
-  for (const d of ds) parts.push(`${d.name} ${has(today.mine, d.id) ? lineOf(d.id, today.mine[d.id]) : '—'}`);
+  // (DAILY B: a `tries` daily says so — "JAYWALK · BEST OF 3 · 143 lanes")
+  for (const d of ds) parts.push(`${d.name}${d.tries && has(today.mine, d.id) ? ` · BEST OF ${d.tries} ·` : ''} ${has(today.mine, d.id) ? lineOf(d.id, today.mine[d.id]) : '—'}`);
   const sw = sweepState(today);
   return ['NEON SPEAKEASY DAILIES', ...parts, sw.swept ? 'SWEPT' : `${sw.done} of ${sw.of}`, site].join(' · ');
 }
@@ -156,3 +159,56 @@ export function allTimeLine(r, need = 10) {
   const left = Math.max(1, need - r.days);
   return r.me ? { note: `${left} MORE DAY${left === 1 ? '' : 'S'} TO BE RANKED · YOUR AVERAGE ${avg}` } : { note: `${r.days} OF ${need} DAYS · ${avg} AVG` };
 }
+
+// ---- DAILY B — THE TICKETS (the owner, Nov 18 — docs/games/plan.md "DAILY A / B"; docs/progression.md "DAILY B — THE TICKETS")
+export const NEW_BEST = 'NEW DAILY BEST';
+/** the DROP's best = its TIME alone (its score packs the lines in — drop/meta.js#scoreLine); every other daily = its own result line */
+export function bestLine(id, s, lineOf) {
+  if (id === 'drop') { const d = Math.floor(Math.max(0, Number(s) || 0) / 1000), sec = Math.floor(d / 10); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; }
+  return String(lineOf(id, s));
+}
+/** the ticket's place line: "2ND OF 5 PLAYERS" (one finisher: "1ST OF 1 PLAYER") */
+export const placeLine = (p, n) => `${ordinal(p)} OF ${n} ${n === 1 ? 'PLAYER' : 'PLAYERS'}`;
+const lanesOf = l => `${l} ${l === 1 ? 'LANE' : 'LANES'}`;
+/** the DONE tap (a `tries` daily ended early on this phone — its tries left unused): the day it was tapped (per phone — js/daily/today.js) */
+export const DONE_KEY = 'dy:done';
+
+/**
+ * ONE TICKET (PURE): { st: 'waiting' | 'progress' | 'between' | 'done', result?, line: { text, best?, gold? } | null, act: 'PLAY' | 'RESUME' |
+ * 'TRY AGAIN' | null (null = the ADMITTED stamp), under?: '2 TRIES LEFT' }.
+ *   BEFORE: the hook — or "DAILY BEST · <value>" (in the ticket's ink) once the player has a best from an EARLIER day.
+ *   DONE: the result + the place ("2ND OF 5 PLAYERS") — a NEW DAILY BEST (beat an EARLIER day's best: `newBest`) = the gold line in its place;
+ *   the very FIRST best (`first`) is never gold. COUNTS FROM TOMORROW · THIS RUN COULDN'T BE CHECKED win over both.
+ *   A `tries` daily (JAYWALK): between tries = the LAST try big ("143 LANES") + "DAILY BEST · 168 LANES" + TRY AGAIN with "2 TRIES LEFT";
+ *   ADMITTED only once no try is left or the player tapped DONE (`done` — this phone's) — never while tries remain and one wasn't ended by DONE.
+ */
+export function ticketState(today, d, { lineOf = (id, v) => String(v), done = false } = {}) {
+  const t = today || {}, id = d.id, B = (t.best && t.best[id]) || null, mine = has(t.mine, id) ? t.mine[id] : null;
+  const earlier = B && B.best && B.best.day !== t.day ? B.best : null;
+  const bestText = s => `DAILY BEST · ${bestLine(id, s, lineOf)}`;
+  const before = st => ({ st, line: earlier ? { text: bestText(earlier.s), best: true } : { text: d.hook || '' }, act: st === 'progress' ? 'RESUME' : 'PLAY' });
+  const doneLine = () => {
+    if (t.gated && t.gated[id]) return { text: COUNTS_FROM_TOMORROW };
+    if (t.rf && t.rf[id]) return { text: UNCHECKED };
+    if (B && B.newBest && B.best && B.best.day === t.day) return { text: NEW_BEST, gold: true };
+    const pl = t.place && t.place[id];
+    if (pl && pl.p) return { text: placeLine(pl.p, Math.max(pl.n || 0, pl.p)) };
+    return { text: everyoneLine(t.stand && t.stand[id]) || 'DONE FOR TODAY' };
+  };
+  if (d.tries) {
+    const T = (t.tries && t.tries[id]) || { left: d.tries, tries: [] };
+    const closed = (T.tries || []).filter(x => !x.open), left = Math.max(0, Number(T.left ?? d.tries) || 0);
+    if (!closed.length && !(T.tries || []).some(x => x.open)) return before('waiting');
+    const open = (T.tries || []).some(x => x.open);
+    if (closed.length && mine != null && !open && (left === 0 || done)) return { st: 'done', result: lineOf(id, mine), line: doneLine(), act: null };
+    const last = closed.length ? closed[closed.length - 1] : null;
+    const bs = B && B.best ? B.best.s : mine;
+    return { st: 'between', result: last ? lanesOf(Math.floor(Number(last.l) || 0)) : 'TRY ENDED', line: bs != null ? { text: bestText(bs), best: true } : null,
+      act: left > 0 ? 'TRY AGAIN' : null, under: left > 0 ? `${left} ${left === 1 ? 'TRY' : 'TRIES'} LEFT` : '' };
+  }
+  const st = rowState(t, id);
+  if (st === 'done') return { st, result: lineOf(id, mine), line: doneLine(), act: null };
+  return before(st);
+}
+/** THE ROOM WINS on a `tries` daily: the try ended, no RESUME — "TRY ENDED · 2 TRIES LEFT" (none left: "TRY ENDED") */
+export const tryEndedLine = left => (left > 0 ? `TRY ENDED · ${left} ${left === 1 ? 'TRY' : 'TRIES'} LEFT` : 'TRY ENDED');

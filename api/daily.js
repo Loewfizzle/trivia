@@ -69,6 +69,7 @@ import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE } from './_li
 import { compactResults } from './_lib/results-sweep.js';   // (CITY G — results/ compacted past 14 days)
 import { bestStep, bestView, pointsRaise, isBetter } from '../js/core/daily-best.js';   // (DAILY A — DAILY BEST + a better try's points)
 import { roomJoined } from './_lib/daily-room.js';
+import { creditTry as jwCredit } from './_lib/jaywalk-credit.js';   // (DAILY B — a try's cards + YOUR BEST)
 
 /** DM1 — THE CALL BUDGET: generous for real play (both dailies, retries, refreshes), a flood refused */
 export const CALLS = { max: 400, windowMs: 10 * 60_000 };
@@ -201,6 +202,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       if (cart.tries) {
         const r = await cart.startTry({ pid, uid, day, now, startedAt });
         const fin = r.prior ? await finishRun({ pid, cart, day, now, today }).catch(e => { console.warn('try settle', e && e.code); return null; }) : null;
+        if (r.prior) await creditQuiet({ pid, cart, day, now, closed: r.prior });
         const score = fin ? fin.score : done;
         if (r.refused === 'no_tries') throw new ApiError(409, 'no_tries', 'No tries left today.', { day, done: score ?? null, run: r.run });
         if (r.refused) throw new ApiError(409, 'refused', 'Try that again.');
@@ -517,7 +519,10 @@ export async function settleRun({ pid, cart, day, now, today = streakDay(now), f
   // DAILY A — a `tries` cartridge: its open try closed when it can't be in play (force: THE DAY'S CLOSE — whatever its state), then the day's score
   if (cart.tries) {
     const closed = await cart.settle({ pid, day, now, force }).catch(e => { console.warn('settle try', e && e.message); return null; });
-    return closed ? finishRun({ pid, cart, day, now, today }).catch(e => { console.warn('settle', cart.id, day, e && e.code); return null; }) : null;
+    if (!closed) return null;
+    const fin = await finishRun({ pid, cart, day, now, today }).catch(e => { console.warn('settle', cart.id, day, e && e.code); return null; });
+    await creditQuiet({ pid, cart, day, now, closed });
+    return fin;
   }
   const base = `dly/${cart.id}/${day}`;
   const [rec, r] = await Promise.all([val(`${base}/p/${pid}`), val(`${base}/r/${pid}`)]);
@@ -537,6 +542,30 @@ export async function settleRun({ pid, cart, day, now, today = streakDay(now), f
 const bestBits = f => (f && f.best ? { best: f.best, newBest: !!f.newBest, first: !!f.first } : {});
 
 /**
+ * DAILY B — A CLOSED TRY's CARDS + YOUR BEST (the owner, Nov 18 — docs/games/plan.md "DAILY B"): EVERY try the server closes (FINISH, the next
+ * START, THE ROOM WINS, `today`, THE DAY'S CLOSE) credits its REPLAYED result like a counted match — JAYWALK's four cards' flags + YOUR BEST
+ * (the `jaywalk-solo` record + its board rows) — in ONE pstats transaction (api/_lib/jaywalk-credit.js, PURE). A COUNTED result only (THE
+ * THROWAWAY GATE; nothing before THE PROGRESS RESET); a refused try (`bad`) credits nothing. Never fails the caller.
+ */
+async function creditTry({ pid, cart, day, now, closed }) {
+  if (!closed || closed.bad || cart.id !== 'jaywalk') return null;
+  const base = `dly/${cart.id}/${day}`;
+  const [startedAt, createdAt, resetAt] = await Promise.all([val(`${base}/s/${pid}`), createdAtOf(pid), val('progress/resetAt')]);
+  if ((Number(resetAt) > 0 && Number(startedAt) < Number(resetAt)) || !countsOn(createdAt, day)) return null;
+  const { founderOpen } = await import('./_lib/founder.js');
+  const fOpen = await founderOpen(now).catch(() => false);
+  let res = null;
+  await ref(`pstats/${pid}`).transaction(cur => { if (cur == null) return null; res = jwCredit(cur, { lanes: closed.l, feats: closed.f, now, founderOpen: fOpen }); return res ? res.next : undefined; });
+  if (!res) return null;
+  const [{ boardPaths, playCount, minMatches }, prof] = await Promise.all([import('./_lib/lb.js'), val(`profiles/${pid}`)]);
+  const listed = !(prof && prof.h) && playCount(res.next) >= minMatches();
+  if (res.pbs.length) await ref('/').update(boardPaths(pid, res.next, { hidden: !listed, now, only: 'jaywalk' })).catch(e => console.warn('try boards', e && e.message));
+  if (res.items.length || res.ach.length) await bumpOwners(res.items, false, res.ach).catch(() => {});
+  return { pbs: res.pbs, items: res.items, ach: res.ach };
+}
+const creditQuiet = o => creditTry(o).catch(e => { console.warn('try credit', e && e.message); return null; });
+
+/**
  * DAILY A — FINISH for a `tries` cartridge (JAYWALK — the `finish` action + THE ROOM WINS): the open try CLOSED (its proof node replayed — as it
  * stands), then the day's score from the best closed try (finishRun: the first claims the day, a better one raises it). No open try and none
  * closed → 409 not_done; no open try but one closed → the day's answer again (idempotent).
@@ -545,9 +574,10 @@ async function finishTry({ pid, cart, day, now, today, why, T = noTiming }) {
   const closed = await cart.closeOpen({ pid, day, now, why });
   T.mark('close');
   const out = await finishRun({ pid, cart, day, now, today, T });
+  const credit = await creditQuiet({ pid, cart, day, now, closed });
   const rec = await val(`dly/${cart.id}/${day}/p/${pid}`);
   const view = cart.resume({ record: rec, data: null });
-  return { ...out, try: closed, left: view.left, tries: view.tries };
+  return { ...out, try: closed, left: view.left, tries: view.tries, ...(credit ? { credit } : {}) };
 }
 
 /**

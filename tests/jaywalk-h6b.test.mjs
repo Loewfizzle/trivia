@@ -171,7 +171,7 @@ test('H6B — THE END SCREEN\'s MEMORY: the scene rests behind the end screen, t
   // (the flag is declared before setLook reads it — a first cut put it below and the scene never built)
   assert.ok(n.indexOf('let lookSet = false, resting = 0, otherWarm = false;') > 0 && n.indexOf('let lookSet = false, resting = 0, otherWarm = false;') < n.indexOf('  setLook(o.look'), 'the flag exists before the first setLook');
   // the view: rests on BOTH end screens, wakes on a new run; ONE picture a run, only the rows round the kid
-  assert.equal((v.match(/night\.rest\(true\)/g) || []).length, 3, 'the podium + the local end both rest the scene (+ a scene rebuilt after a lost context rests again if it was resting)');
+  assert.equal((v.match(/night\.rest\(true\)/g) || []).length, 4, 'the podium + the local end + THE DAILY end card (DAILY B) rest the scene (+ a scene rebuilt after a lost context rests again if it was resting)');
   // THE GO-LIVE REVIEW (the audit): behind an end screen nothing is drawn — the Mothership's hum + rumble fade as the scene rests and the
   // music comes back up (they stayed at their last frame's level through the whole podium); a WATCHER's podium waits her lift out;
   // the rumble has a known peak; leaving the game lets go of the decoded sounds + the run's picture; the tier is sampled only while drawn

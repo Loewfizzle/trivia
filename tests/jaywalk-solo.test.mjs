@@ -222,7 +222,7 @@ test('THE END SCREEN\'s WORDS: one line per cause + vehicle — big neon words, 
 test('THE PHONE\'s SIDE OF THE PROOF (view.js): GO = the server\'s time, read back before the course is built; the chunks stamped by the server; the run on the server\'s clock; never a phone\'s clock or a claim', () => {
   const v = read('js/games/jaywalk/view.js').replace(/^\s*\/\/[^\n]*$/gm, '');
   assert.match(v, /dbSet\(dbRef\(path\), serverTimestamp\(\)\)\.then\(\(\) => dbGet\(dbRef\(path\)\)\)/, 'GO written as the server\'s time, then READ BACK');
-  assert.match(v, /const seed = isProof \? seedOf\(code, matchId, go\) :/, 'the course from GO');
+  assert.match(v, /const seed = ds \|\| isProof \? ds \|\| seedOf\(code, matchId, go\) :/, 'the course from GO (THE DAILY: the day\'s seed from its START — DAILY B)');
   assert.match(v, /course = START;/, 'THE START stands until it lands'); assert.match(v, /night\.setReveal\(0, true\)/); assert.match(v, /night\.setReveal\(1\)/);
   assert.match(v, /dbSet\(dbRef\(`\$\{nodePath\(\)\}\/c\/\$\{chunkN\}`\), \{ s, at: serverTimestamp\(\) \}\)/, 'every chunk: its hops + the server\'s time');
   assert.match(v, /const tickNow = \(\) => \{ const x = \(srvNow\(\) - go\) \* TICK_HZ \/ 1000/, 'tick 0 = GO, on the server\'s clock');

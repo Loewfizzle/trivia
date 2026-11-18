@@ -7,7 +7,7 @@ import { api } from '../profile/api.js';
 import { serverNow } from '../firebase.js';
 import { streakDay } from '../core/streak.js';
 import { msToTurn } from './clock.js';
-import { dayTurned } from './today-logic.js';
+import { dayTurned, DONE_KEY } from './today-logic.js';
 
 const TTL = 20_000;
 let cache = null, at = 0, inflight = null;
@@ -74,3 +74,7 @@ export function heldRun() {
 }
 export function holdRun(id, day) { try { localStorage.setItem(HKEY, JSON.stringify({ id, day: day || null, at: Date.now() })); } catch { /* fine */ } tell(); }
 export function dropHeld() { try { localStorage.removeItem(HKEY); } catch { /* fine */ } tell(); }
+
+// ---- DAILY B — DONE (a `tries` daily — JAYWALK — ended early on this phone: its ticket is ADMITTED with tries unused; per phone, per day)
+export function triesDone(id, day) { try { return !!day && localStorage.getItem(`${DONE_KEY}:${id}`) === day; } catch { return false; } }
+export function markTriesDone(id, day) { try { localStorage.setItem(`${DONE_KEY}:${id}`, String(day || '')); } catch { /* private mode: the ticket waits for the last try */ } tell(); }

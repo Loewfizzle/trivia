@@ -1,4 +1,4 @@
-// JAYWALK — THE GAME's SCREEN (H3 solo · H4 match): the scene (night.js), the kid, the controls + the sounds in the console's frame;
+// JAYWALK — THE GAME's SCREEN (H3 solo · H4 match · DAILY B: THE DAILY — `state.jwDaily`, js/games/jaywalk/daily-run.js): the scene (night.js), the kid, the controls + the sounds in the console's frame;
 // the RUN = this phone's pure engine on the SERVER's clock, ONE LIFE → docs/jaywalk.md "THE SOLO GAME" · "THE MATCH" · "THE GHOSTS".
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
@@ -82,7 +82,7 @@ export function createView() {
   let lanesEl = null, markEl = null, hintEl = null, finalWrap = null, final = null, localEnd = null, arriveEl = null;
   let orderEl = null, tagsEl = null, countEl = null, watchEl = null, overEl = null, outCard = null;
   // the run
-  let code = '', uid = '', matchId = '', mode = 'wait';   // 'wait' (the course is on its way) · 'run' · 'over' (out / taken / watching)
+  let code = '', uid = '', matchId = '', mode = 'wait', D = null;   // 'wait' (the course is on its way) · 'run' · 'over' (out / taken / watching)
   let run = null, course = START, log = [], queue = [], go = 0, proven = false, asked = false, goTries = 0, haveGo = false;
   let sent = 0, chunkN = 0, lastFlush = 0, wroteE = false, overAt = 0, goTimer = 0, shotAt = 0, lastPump = 0;
   let t0srv = 0, t0perf = 0, last = 0, markUntil = 0, lanesShown = -1, sndOn = false, bot = null, pinned = false, revealed = false;
@@ -101,7 +101,7 @@ export function createView() {
   const anchor = () => { t0srv = serverNow(); t0perf = performance.now(); };
   const soloGame = g => !!g && g.mode === 'solo' && Object.keys(g.participants || {}).length === 1;
   const mine = g => !!(g && g.participants && g.participants[uid]);
-  const nodePath = () => `rooms/${code}/jw/${matchId}/${uid}`;
+  const nodePath = () => (D ? D.path : `rooms/${code}/jw/${matchId}/${uid}`);
   const runsNow = () => (st && st.game && st.liveKey === liveKeyFor(st.game) && st.live && st.live.runs) || null;
   const nameOf = u => String(((st.players && st.players[u]) || {}).name || 'GHOST').toUpperCase();
 
@@ -124,11 +124,11 @@ export function createView() {
       look = lookNow(); night.setLook(look); root.dataset.look = look;   // (H5B — THE DAY LOOK: the scene + this screen's own words follow the phone's GAME LOOK)
     } catch { root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); night = null; return; }
     night.setReveal(0, true); watchGL();
-    // (H4B — THE TIER IS REMEMBERED: a phone that had to step down starts there next time — never the first seconds of every match at a tier it can't hold)
+    // (H4B — THE TIER IS REMEMBERED: a phone that stepped down starts there next time)
     tiers = createTiers({ apply: t => { if (night) night.setTier(t); if (!pinned) setPref('tier', `${t}:${Math.round(serverNow())}`); }, initial: night.tier() });
     offControls = wireControls(play, { onHop: hop, onAny: nextFollow });
-    // the sounds: the SHARED engine's SFX bus (the console unlocked it on a tap long ago); silent if anything fails — audio is polish
-    // (H4B — DECODED AHEAD, during the count / the wait for GO: the first hop's sound is ready — never a decode on the first tap)
+    // the sounds: the SHARED SFX bus; silent if anything fails — audio is polish
+    // (H4B — DECODED AHEAD: never a decode on the first tap)
     try { SFX.fetchSounds(); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }
   }
 
@@ -198,7 +198,7 @@ export function createView() {
       const v = snap.val();
       if (typeof v === 'number' && v > 0) adopt(v, null, true); else unproven('no go');
     }).catch(() => {
-      // refused: this run's GO is already there (a rejoin) — take the node as it is; nothing there = the proof can't be written here
+      // refused: this run's GO is already there (a rejoin) — take the node; nothing there = unproven
       dbGet(dbRef(nodePath())).then(snap => {
         if (gone || m !== matchId || mode !== 'wait') return;
         const n = snap.val();
@@ -215,7 +215,7 @@ export function createView() {
     if (node && node.go > 0) { haveGo = true; return; }
     expectRefusal(path, 'jaywalk GO: already written (a rejoin), a touch early, or the rules are not published yet');
     const again = () => { if (gone || m !== matchId) return; if (goTries++ < 7) setTimeout(() => { asked = false; }, 420); else refused(); };
-    // (a TRANSACTION, never applied locally: a `set` would show this phone's ESTIMATE of the server's time — THE NODES ARE THE TRUTH)
+    // (a TRANSACTION, never applied locally — THE NODES ARE THE TRUTH)
     runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }).then(() => { if (m === matchId) haveGo = true; }).catch(() => {
       dbGet(dbRef(path)).then(snap => { if (gone || m !== matchId) return; if (typeof snap.val() === 'number') haveGo = true; else again(); }).catch(again);
     });
@@ -228,11 +228,11 @@ export function createView() {
     while (!isOver(run) && run.t < target) { let d = ''; if (i < log.length && log[i].t === run.t) d = log[i++].d; step(run, course, d); }
   }
   /** a SOLO course lands: seed = hash(code + matchId + GO) — the run's tick 0 is GO; a node's chunks (a rejoin) are replayed to now */
-  function adopt(goAt, chunks, isProof) {
+  function adopt(goAt, chunks, isProof, ds) {
     clearTimeout(goTimer);
     go = goAt; proven = !!isProof;
-    const seed = isProof ? seedOf(code, matchId, go) : `u${Math.floor(go).toString(36)}${Math.floor(Math.random() * 1e9).toString(36)}`;
-    course = createCourse(seed); run = createRun({ seed, mode: 'solo' });
+    const seed = ds || isProof ? ds || seedOf(code, matchId, go) : `u${Math.floor(go).toString(36)}${Math.floor(Math.random() * 1e9).toString(36)}`;
+    course = createCourse(seed); run = createRun({ seed, mode: ds ? 'daily' : 'solo' });
     const old = chunks ? logFromChunks(chunks) : null;
     log = old || []; sent = log.length; chunkN = chunks ? Object.keys(chunks).length : 0;
     anchor();
@@ -269,7 +269,7 @@ export function createView() {
     if (hintEl) { hintEl.remove(); hintEl = null; setPref('hint', '1'); }
   }
   /** THE ARRIVAL BANNER may show now: a run on, nothing bigger on the top of the screen (the Mothership's warning in a match, the OUT card, the end, the console's moment) */
-  const shipWarn = () => isMatch && !!run && run.t >= MODES.match.cap - SHIP_WARN;
+  const shipWarn = () => !!run && !!MODES[run.mode].cap && run.t >= MODES[run.mode].cap - SHIP_WARN;
   const arriveNow = () => !!arriveEl && mode === 'run' && !watching && !outCard && !final && !localEnd && !shipWarn() && !isOver(run);
   function tick() {
     let d = '';
@@ -346,7 +346,7 @@ export function createView() {
     mode = 'over'; overAt = performance.now(); shotAt = overAt + shotMs(run, course); queue = [];
     quiet();
     flush(true);
-    if (proven && !wroteE) { wroteE = true; dbUpdate(dbRef(nodePath()), { e: { l: run.best, t: run.bestT, w: String(run.cause || '').slice(0, 12) } }).catch(() => {}); }
+    if (proven && !wroteE && !D) { wroteE = true; dbUpdate(dbRef(nodePath()), { e: { l: run.best, t: run.bestT, w: String(run.cause || '').slice(0, 12) } }).catch(() => {}); }   // (THE DAILY: daily-run.js writes `e`)
   }
   /** THE SHARE IMAGE's frame: the kid still clearly SEEN + what got him (shot.js#shotMs — per cause) — kept on this phone until the next run */
   function takeShot() {
@@ -456,7 +456,7 @@ export function createView() {
       const live = [...ghosts.values()].filter(G => inPlay(G, runs)), F = ghosts.get(followUid);
       if (live.length && F) txt = `WATCHING ${F.name}${live.length > 1 ? ' · TAP FOR THE NEXT' : ''}`;
       else {
-        // (everyone this phone can see is out: the room waits for an end that has not arrived — a dropped signal gets its time)
+        // (everyone seen is out: the room waits for an end not yet arrived — a dropped signal gets its time)
         const wait = Object.keys(g.participants || {}).filter(u => !(runs && runs[u] && runs[u].e) && !(u === uid && wroteE));
         txt = g.unproven ? 'WAITING FOR THE END' : wait.length ? `WAITING FOR ${nameOf(wait[0])}${wait.length > 1 ? ` + ${wait.length - 1}` : ''} · NO SIGNAL` : 'THE END';
       }
@@ -492,7 +492,7 @@ export function createView() {
   function frame(now) {
     if (gone) return;
     raf = requestAnimationFrame(frame);
-    // (H5B — the GAME LOOK is read LIVE: ☰ → Settings mid-run, or the sun going down on AUTO, re-themes this screen at once)
+    // (H5B — the GAME LOOK is read LIVE: it re-themes this screen at once)
     if (night && root) { const lk = lookNow(); if (lk !== look) { look = lk; night.setLook(lk); root.dataset.look = lk; } }
     const dt = last ? Math.min(250, now - last) : 16.7;
     last = now;
@@ -531,7 +531,7 @@ export function createView() {
       if (TEST) probe(list, F, wt);
       drawOrder(g, runs); drawWatch(g, runs);
     }
-    if (isMatch) drawCount(g);
+    if (isMatch || D) drawCount(g);
     drawLines(mine(g) && drawRun === run);
     night.draw(drawRun, course, a, dt, extra); duckMoment();
     if (shotAt && performance.now() >= shotAt) takeShot();
@@ -565,13 +565,14 @@ export function createView() {
   function endScreen() {
     const g = st.game;
     if (isMatch) {
-      // (the match is over — the host's step: the podium for everyone, a kid still hopping included — THE MOTHERSHIP took them the same tick)
-      // (someone was still standing at 6:00: a WATCHER sees her arrive + lift them — the podium waits the lift out, as the lifted kid's own does)
+      // (the match is over — the host's step: the podium for everyone)
+      // (someone still standing at 6:00: the podium waits THE MOTHERSHIP's lift out)
       const ship = mode === 'over' && Object.values(g && g.results || {}).some(r => r && r.x) && tickNow().t < MODES.match.cap + SHIP_SEEN;
       if (g && g.phase === 'final' && !final && !ship && (mode !== 'over' || performance.now() - overAt >= hold())) showFinal(g);
       return;
     }
     if (performance.now() - overAt < hold()) return;
+    if (D) { if (!localEnd) { localEnd = D.end(isOver(run), lineOf(run, course)); root.classList.add('is-over'); root.append(localEnd); night.rest(true); } return; }
     if (proven) {
       if (g && g.phase === 'final') { if (!final) { hideLocalEnd(); showFinal(g); } }
       else if (!final && !localEnd && performance.now() - overAt > 6000) showLocalEnd(true);   // (the end has not reached the room — no signal: never a frozen screen)
@@ -593,7 +594,7 @@ export function createView() {
   function showLocalEnd(waiting) {
     const body = h('div.final-body.jw-fin-local');
     buildEnd(body, { line: lineOf(run, course), lanes: run.best, note: waiting ? 'NO SIGNAL — YOUR RUN COUNTS WHEN IT IS BACK' : 'NOT COUNTED — NO LINE TO THE BOARD' });
-    // (PLAY AGAIN here = another UNPROVEN run in the same match: this match's one GO is spent or was refused — PLAY NOW again gets a proven one)
+    // (PLAY AGAIN here = another UNPROVEN run: this match's one GO is spent or refused)
     const again = waiting ? null : h('button.btn.btn-primary.btn-block', { type: 'button', onclick: () => { hideLocalEnd(); reset(); asked = true; unproven('again'); } }, h('span', 'PLAY AGAIN'));
     const PN = globalThis.__nsPlayNow, soloRoom = !!(PN && PN.isSolo && PN.isSolo());
     const leave = h(`button.btn.${waiting ? 'btn-primary' : 'btn-ghost'}.btn-block`, { type: 'button', onclick: () => { leave.classList.add('is-busy'); Promise.resolve(soloRoom ? PN.leave() : backToLobby()).catch(() => leave.classList.remove('is-busy')); } }, h('span', soloRoom ? 'BACK TO THE CITY' : 'BACK TO THE ROOM'));
@@ -618,6 +619,7 @@ export function createView() {
     const g = st.game;
     if (!g || !night) return;
     if (isMatch) { syncMatch(g); if (final) final.refresh(); return; }
+    if (D) { if (!asked) { asked = true; D.start().then(r => { if (!gone && r) adopt(r.go, null, true, r.seed); }, () => {}); } return; }
     if (g.phase === 'play' && mine(g) && soloGame(g)) askGo();
     // (a refresh on the podium: the run in the node, replayed to its end, stands behind the frame)
     if (g.phase === 'final' && mode === 'wait' && mine(g) && soloGame(g) && st.liveKey === liveKeyFor(g)) {
@@ -634,7 +636,8 @@ export function createView() {
     mount(el, state) {
       st = state; code = state.code; uid = state.uid; matchId = state.game ? state.game.matchId : '';
       const g = state.game;
-      isMatch = !!g && !soloGame(g);
+      D = state.jwDaily || null; isMatch = !D && !!g && !soloGame(g);
+      if (D) D.stop = () => { if (mode === 'run' && !isOver(run)) onOver(); };
       build(el);
       if (!night) return;
       reset();
@@ -670,7 +673,7 @@ export function createView() {
       quiet();
       try { SFX.stopAll(); } catch { /* silent */ }
       if (night) {
-        // (PLAY AGAIN's remount — the console's INSTANT AGAIN marks it: the scene is kept warm for the next run; anything else frees it at once)
+        // (PLAY AGAIN's remount (INSTANT AGAIN): the scene kept warm; anything else frees it at once)
         if (performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000) park(play, night); else { night.destroy(); keepShot(null); try { SFX.release(); } catch { /* silent */ } }   // (leaving: the run's picture + ≈ 15 MB of decoded sounds are let go)
       }
       if (arriveEl) { arriveEl.destroy(); arriveEl = null; }

@@ -74,7 +74,10 @@ body[data-look="day"] .dy-sign { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); 
 .dy-sweep { position: relative; margin: 2px auto 16px; padding: 0 6px; }
 .dy-sweep-bar { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 7px; height: 12px; }
 .dy-seg { position: relative; border-radius: 4px; background: var(--dy-seg); overflow: hidden; }
-.dy-seg::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--dy-seg-on); box-shadow: 0 0 10px var(--dy-seg-glow); transform-origin: left; transform: scaleX(0); }
+.dy-seg { --sk: var(--tk0, var(--dy-seg-on)); }
+body[data-look="day"] .dy-seg { --sk: var(--tkd, var(--dy-seg-on)); }
+/* (DAILY B — each segment lights in ITS daily's ticket ink — js/daily/ticket-art.js#TICKET_INK, both looks) */
+.dy-seg::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--sk); box-shadow: 0 0 10px color-mix(in srgb, var(--sk) 60%, transparent); transform-origin: left; transform: scaleX(0); }
 .dy-seg.is-done::after { transform: none; }
 .dy-sweep-l { margin-top: 9px; text-align: center; font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.18em; color: var(--dy-dim); }
 .dy-sweep-l b { color: var(--dy-ink); font-family: var(--font-num); }
@@ -153,6 +156,29 @@ body:not([data-look="day"]) .dy-stamp-svg { filter: drop-shadow(0 0 5px color-mi
 @keyframes dy-ink { 0%, 45% { opacity: 0; } 60% { opacity: 0.55; } 100% { opacity: 0; } }
 .dy-result { font: 800 17px/1 var(--font-num); letter-spacing: 0.06em; color: var(--dy-ink); }
 .dy-rank { font: 700 10.5px/1.25 var(--font-ui); letter-spacing: 0.1em; color: var(--dy-dim); }
+/* ---- DAILY B — THE TICKETS: DAILY BEST in the ticket's own ink · the gold NEW DAILY BEST (foil TEXT — never a pill) · TRY AGAIN + its tries left */
+.dy-hook.dy-best, .dy-rank.dy-best { font: 800 12px/1.2 var(--font-ui); letter-spacing: 0.12em; color: color-mix(in srgb, var(--tk) 82%, #fff); }
+body[data-look="day"] .dy-hook.dy-best, body[data-look="day"] .dy-rank.dy-best { color: color-mix(in srgb, var(--tk) 70%, #14284a); }
+.dy-rank.dy-gold { font: 900 12px/1.2 var(--font-ui); letter-spacing: 0.16em; color: #ffd36a;
+  background: linear-gradient(100deg, #fff3c4 0%, #ffd36a 30%, #e7a92a 55%, #fff1b8 75%, #f2bd46 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 4px rgba(255, 196, 80, 0.45)); }
+body[data-look="day"] .dy-rank.dy-gold { color: #7a4f00; background-image: linear-gradient(100deg, #8a5c00 0%, #b07a12 40%, #6e4600 70%, #9c6a08 100%); filter: none; }
+.dy-act-col { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.dy-left { font: 700 10px/1 var(--font-ui); letter-spacing: 0.14em; color: var(--dy-dim); white-space: nowrap; }
+.dy-ticket .btn.dy-play.is-long { min-width: 0; padding: 0 11px; font-size: 11px; letter-spacing: 0.1em; }
+.dy-nw { white-space: nowrap; }
+/* DAILY B — 4 TICKETS FIT (the SHARED ticket, every daily): a phone under 400 pt wide gets a tighter rhythm — a slimmer stub, a slimmer PLAY,
+   less air — so a name + its DAILY BEST keep one line each; from 4 rows the rows sit closer + the meter tighter (375 × 667: all four on screen) */
+@media (max-width: 400px) {
+  .dy-ticket { grid-template-columns: 60px 1fr auto; }
+  .dy-info { padding-left: 11px; padding-right: 4px; }
+  .dy-ticket .btn.dy-play { min-width: 78px; padding: 0 12px; }
+  .dy-act { padding-right: 10px; }
+}
+.dy-rows.is-many { gap: 11px; }
+.dy-rows.is-many .dy-ticket { min-height: 86px; }
+.dy-rows.is-many .dy-info { padding-top: 10px; padding-bottom: 10px; gap: 5px; }
+.dy-today:has(.dy-rows.is-many) .dy-sweep { margin-bottom: 12px; }
 /* THE FOIL (night): a soft light band drifting across the paper every few seconds — one layer, transform only; still while scrolling / covered / reduced motion */
 .dy-foil { display: none; position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 body:not([data-look="day"]) .dy-foil { display: block; }
@@ -160,6 +186,7 @@ body:not([data-look="day"]) .dy-foil { display: block; }
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--tk) 70%, #fff) 45%, #fff 52%, transparent); animation: dy-foil 7.5s linear infinite; }
 .dy-tkw:nth-child(2) .dy-foil::before { animation-delay: -3.2s; }
 .dy-tkw:nth-child(3) .dy-foil::before { animation-delay: -5.4s; }
+.dy-tkw:nth-child(4) .dy-foil::before { animation-delay: -1.6s; }
 @keyframes dy-foil { 0% { transform: translateX(-130%) skewX(-18deg); } 100% { transform: translateX(330%) skewX(-18deg); } }
 .dy-overlay.is-scrolling .dy-foil::before, body.vl-covered .dy-foil::before { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .dy-foil::before { animation: none; display: none; } .dy-stamp.is-down, .dy-stamp.is-down::after { animation: none; } }
@@ -301,3 +328,28 @@ body[data-look="day"] .dy-overlay { --dy-box-line: #16305c; --dy-box-on: #2f86ff
 .dy-end-body .dy-endscr * { animation: none !important; }
 .dy-end-body .cc-end.dy-endscr { --cc-mini: clamp(15px, calc((min(100vw, 460px) - 72px) / 9), 24px); }
 .dy-end-drop { display: block; width: min(100%, 420px); height: auto; margin: 0 auto; border-radius: 14px; }
+
+/* ---- DAILY B — JAYWALK's DAILY RUN (js/games/jaywalk/daily-run.js): the real game's view + STOP + the END CARD over the resting scene (the
+   game's own dark end-screen ground in both looks — css/jaywalk.css .jw-final). The ticket's orange (#ffa53a) is its accent. No pills. ---- */
+.dy-jw, .dy-jw-stage { position: absolute; inset: 0; }
+/* STOP: under the music corner, at the game column's right edge (the column is ≤ 0.62 × the height — css/jaywalk.css .jw-stage) */
+.dy-run .btn.dy-jw-stop { position: fixed; z-index: 8; top: calc(var(--safe-t) + 62px); right: calc(50vw - min(50vw, 31dvh) + 12px); min-height: 44px; min-width: 84px;
+  padding: 0 14px; border-radius: 10px; font-size: 12px; letter-spacing: 0.18em; }
+.dy-run .btn.dy-jw-stop::before, .dy-run .btn.dy-jw-stop::after { border-radius: 10px; }
+.dy-jw-end { --tk: #ffa53a; }
+.dy-jw-in { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center;
+  padding: calc(var(--safe-t) + 72px) 22px calc(var(--safe-b) + 22px); }
+.dy-jw-kick { font: 800 13px/1.2 var(--font-ui); letter-spacing: 0.22em; text-indent: 0.22em; color: #ffb766; }
+.dy-jw-cause { max-width: 320px; font: 700 16px/1.3 var(--font-ui); letter-spacing: 0.05em; color: #fff3fb; text-wrap: balance; }
+.dy-jw-big { font: 700 64px/1 var(--font-num); letter-spacing: 0.04em; color: #fff6ea; text-shadow: 0 0 10px rgba(255, 165, 58, 0.85), 0 0 28px rgba(255, 165, 58, 0.5); }
+.dy-jw-best { font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.16em; color: rgba(255, 246, 234, 0.82); }
+.dy-jw-note { font: 800 13px/1.3 var(--font-ui); letter-spacing: 0.16em; color: #ffc98a; }
+.dy-jw-note.dy-gold { font-weight: 900; color: #ffd36a; background: linear-gradient(100deg, #fff3c4 0%, #ffd36a 30%, #e7a92a 55%, #fff1b8 75%, #f2bd46 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 5px rgba(255, 196, 80, 0.5)); }
+.dy-jw-foot { width: 100%; max-width: 340px; display: grid; gap: 10px; margin-top: 14px; }
+.dy-jw-left { margin-top: -4px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.16em; color: rgba(255, 246, 234, 0.72); }
+.dy-jw-end .dy-jw-stamp { align-self: center; width: 150px; height: 56px; margin: calc(var(--safe-t) + 64px) auto -40px; color: #ffa53a; }
+/* the END CARD is the game's dark end-screen ground in BOTH looks: its tubes stay the night's (the dailies' day retoken is for the paper screens) */
+body[data-look="day"] .dy-overlay .dy-jw-end .btn { --tube-in: rgba(9, 7, 20, 0.94); color: #fff; text-shadow: 0 0 10px rgba(255, 120, 225, 0.4); }
+body[data-look="day"] .dy-overlay .dy-jw-end .btn-primary { --tc: var(--tube-pink); --tcore: var(--tube-pink-core); --tg: var(--tube-pink-glow); --tg2: rgba(255, 79, 216, 0.3); }
+body[data-look="day"] .dy-overlay .dy-jw-end .btn-ghost { --tc: var(--tube-white); --tcore: var(--tube-white-core); --tg: var(--tube-white-glow); --tg2: transparent; }

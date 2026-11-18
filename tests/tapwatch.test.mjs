@@ -126,7 +126,7 @@ test('CITY A — the owner\'s list carries data-press: THE BOARD\'s tabs, the ra
   assert.match(rd('js/screens/title-taps.js'), /cls: 'nd-shelf-row', attrs: \{ 'data-press': true/);
   const dy = D.match(/h\((['`])button\.dy-[^,]*?\1, \{ [^}]*/g) || [];
   assert.ok(dy.length >= 9 && dy.every(x => x.includes("'data-press': true")), `every dy- button (${dy.length})`);
-  assert.match(D, /cls: 'dy-play', attrs: \{ 'data-press': true \}/);
+  assert.match(D, /cls: [^,]*'dy-play'[^,]*, attrs: \{ 'data-press': true \}/);   // (DAILY B: TRY AGAIN = 'dy-play is-long')
   assert.doesNotMatch(D, /cls: 'dy-share', attrs: \{ 'data-press'/, 'SHARE keeps Safari\'s own gesture (navigator.share)');
   assert.match(rd('js/ui/sheet.js'), /el\.dataset\.born = String\(performance\.now\(\)\)/);
   // NOW PLAYING's 1-s tick changes TEXT only; the push paper is never re-rendered on a timer

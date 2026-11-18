@@ -31,6 +31,8 @@ const SECTIONS = {
   // api/_lib/drop.js#share) + PRISM DROP's board module (its mini — the tubes by night, the crayon by day)
   drop: { load: () => Promise.all([lazyImport(import('../games/drop/share.js'), '../games/drop/share.js'), lazyImport(import('../games/prism/board.js'), '../games/prism/board.js')])
     .then(([S, B]) => ({ S, input: s => ({ inputs: s, P: B }), ok: s => !!s && Number.isFinite(Number(s.t)) })) },
+  // DAILY B — JAYWALK: its tries as three bars (js/games/jaywalk/daily-share.js — the server's spoiler-free inputs: never the course)
+  jaywalk: { load: () => lazyImport(import('../games/jaywalk/daily-share.js'), '../games/jaywalk/daily-share.js').then(S => ({ S, input: s => ({ inputs: s }), ok: s => !!s && Array.isArray(s.t) })) },
 };
 
 /** the streak flame (js/progress/flame-art.js — the one flame everywhere) as a bitmap */

@@ -15,6 +15,10 @@
        &solo=1                                                           DFIX3 — a table of ONE (you alone on SCORES: no rank, the card alone)
        &scope=all (&days=7 | 12) (&pts=down) (&every=empty)                  BOARD 2.0 B — SCORES → ALL TIME
        &look=day | night                                                  the look (THE GAME LOOK — Settings in the app)
+       DAILY B — &jw=play | before | between | done | gold    JAYWALK's ticket as the 4th (needs &drop=1): before (no best / DAILY BEST from an
+                                                          earlier day) · between tries (TRY AGAIN, 2 TRIES LEFT) · ADMITTED (the place) · ADMITTED + NEW DAILY BEST
+       &best=1                                            a DAILY BEST from an earlier day on every daily (the before tickets read it) · &gold=<id> = that
+                                                          finished daily's NEW DAILY BEST (the gold line) · &first=<id> = its very first best (no gold)
        &tab=scores (&state=swept)                                         DFIX5 — EVERYONE ON SCORES: 14 players (3 friends — BEN · KIM · MAXIMILIANOS), you
                                                                           2ND; COAST CLEAR with 0 / 1 / 2 spots + one CAUGHT · &friends=1 = the FRIENDS box
                                                                           checked · &rank=23 = you below the top 10 (the YOU row) · &evday=empty = nobody yet
@@ -111,6 +115,25 @@ if (DROP3) {
   if (ds === 'done') { pick.mine.drop = DROP_RUN ? DROP_RUN.score : 3124017; for (const [p, v] of [['P_ben', 3610022], ['P_kim', 2202009]]) if (pick.friends[p]) pick.friends[p].drop = { score: v }; }
   if (ds === 'progress') pick.started = { ...(pick.started || {}), drop: true };
 }
+// DAILY B — JAYWALK's row as the 4th ticket (&jw=…) + DAILY BEST (&best=1 · &gold=<id> · &first=<id>) — the server's `today` shapes (api/daily.js)
+const JW = q.get('jw');
+const bestOf = {};
+if (JW) {
+  D.push({ id: 'jaywalk', name: 'JAYWALK', order: 4, ticket: 'jaywalk', lesson: false, better: 'high', hook: 'Three tries.', tries: 3 });
+  const lanes = (l, k = 4000) => l * 1e5 + (99999 - k);
+  const tr = (i, l, w = 'car') => ({ i, l, k: 4000, w });
+  pick.tries = { jaywalk: JW === 'between' ? { used: 1, left: 2, tries: [tr(0, 143)] } : JW === 'done' || JW === 'gold' ? { used: 3, left: 0, tries: [tr(0, 143), tr(1, 168), tr(2, 97)] } : { used: 0, left: 3, tries: [] } };
+  if (JW === 'between') pick.mine.jaywalk = lanes(143);
+  if (JW === 'done' || JW === 'gold') { pick.mine.jaywalk = lanes(168); pick.place = { ...(pick.place || {}), jaywalk: { p: 2, n: 5 } }; }
+  if (JW === 'before' || JW === 'between' || JW === 'done') bestOf.jaywalk = { best: { s: lanes(JW === 'before' ? 212 : 231), day: 'd20261105' }, newBest: false, first: false };
+  if (JW === 'gold') bestOf.jaywalk = { best: { s: lanes(168), day: 'd20261108' }, newBest: true, first: false };
+}
+if (q.get('best') === '1') {
+  const B = { password: 3, coastclear: 74, drop: 2210017 };
+  for (const [id, sc] of Object.entries(B)) if (!bestOf[id]) bestOf[id] = { best: { s: sc, day: 'd20261104' }, newBest: false, first: false };
+}
+for (const id of (q.get('gold') || '').split(',').filter(Boolean)) if (pick.mine[id] != null) bestOf[id] = { best: { s: pick.mine[id], day: 'd20261108' }, newBest: true, first: false };
+for (const id of (q.get('first') || '').split(',').filter(Boolean)) if (pick.mine[id] != null) bestOf[id] = { best: { s: pick.mine[id], day: 'd20261108' }, newBest: false, first: true };
 if (q.get('solo') === '1') { window.__dyFriends = []; pick.friends = {}; }   // (DFIX3 — a table of one: you alone)
 const dailies = pick.extra ? [...D, { id: 'nightcap', name: 'THE NIGHTCAP', order: 3, ticket: 'star', lesson: false, better: 'high', hook: 'A third daily, plugged in by one row.' }] : D;
 const table2 = q.get('solo') === '1' ? [] : table;
@@ -149,7 +172,7 @@ const table2 = q.get('solo') === '1' ? [] : table;
     return { n: below ? 30 : N, full: rows, played, rows: rows.slice(0, all ? N : 10), ...(below && played ? { me: { ...ME, rank: 23, v: scoreOf(9)[0] + 2, e: { sp: 1 }, me: 1 } } : {}), more: below ? 30 : N };
   };
   window.__dyEvery = { password: mk('password', i => [pwS[i], null]), coastclear: mk('coastclear', i => ccS[i]) };
-  if (pick.mine.password != null) pick.place = { password: below ? { p: 23, n: 30 } : { p: 2, n: 14 }, ...(pick.mine.coastclear != null ? { coastclear: below ? { p: 23, n: 30 } : { p: 2, n: 14 } } : {}) };
+  if (pick.mine.password != null) pick.place = { ...(pick.place || {}), password: below ? { p: 23, n: 30 } : { p: 2, n: 14 }, ...(pick.mine.coastclear != null ? { coastclear: below ? { p: 23, n: 30 } : { p: 2, n: 14 } } : {}) };
   if (pick.mine.coastclear != null) pick.extraMine = { coastclear: { sp: 1 } };
   // YOUR TABLE's spots (the FRIENDS box): BEN clean, RAY two spots, KIM caught
   for (const [p, sp] of [['P_ben', 0], ['P_ray', 2]]) if (pick.friends[p] && pick.friends[p].coastclear && pick.friends[p].coastclear.score != null) pick.friends[p].coastclear.e = { sp };
@@ -162,7 +185,7 @@ const table2 = q.get('solo') === '1' ? [] : table;
     window.__dyBoard = { 'daily-password': brd(0), 'daily-coastclear': brd(2) };
   }
 }
-window.__dyToday = { day: 'd20261108', dailies, mine: pick.mine, ...(pick.place ? { place: pick.place } : {}), ...(pick.extraMine ? { extra: pick.extraMine } : {}), gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table: table2, ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
+window.__dyToday = { day: 'd20261108', dailies, best: bestOf, ...(pick.tries ? { tries: pick.tries } : {}), mine: pick.mine, ...(pick.place ? { place: pick.place } : {}), ...(pick.extraMine ? { extra: pick.extraMine } : {}), gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table: table2, ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
 
 const { state, setState, subscribe } = await import('/js/store.js');
 state.uid = 'pv';
@@ -180,7 +203,9 @@ async function scriptedShare() {
   // (SKINS 2B's add-on: &pw=front = THE FRONT DOOR failed after 6 — the back room never opened: one tall grid, the other room its door alone)
   if (q.get('pw') === 'front') { pwRun.door = 0; pwRun.doors = [{ state: 'failed', marks: Array.from({ length: 6 }, (_, i) => [M, i % 2 ? N : M, N, M, i > 2 ? H : M]), n: 6 }, { state: 'open', marks: [], n: 0 }]; }
   const ccIn = q.get('cc') === 'caught' ? { head: 'CAUGHT', caught: true, time: null, line: '3 SPOTTED · 1:58', spots: 3, dayNo: 9, site: 'neonspeakeasy.com' } : { head: 'COAST CLEAR', caught: false, time: '2:12', line: '1 SPOTTED · +30 s', spots: 1, dayNo: 9, site: 'neonspeakeasy.com' };
-  return { password: pwRun, coastclear: ccIn, ...(DROP_RUN ? { drop: DROP_RUN.inputs } : {}) };
+  // (DAILY B — JAYWALK's spoiler-free inputs, the server's shape: api/_lib/jaywalk-tries.js#shareOf — &jw=between: one try played)
+  const jwIn = JW === 'between' ? { t: [143, null, null], b: 0, nb: 0, day: 'd20261108' } : { t: [143, 168, 97], b: 1, nb: JW === 'gold' ? 1 : 0, day: 'd20261108' };
+  return { password: pwRun, coastclear: ccIn, ...(DROP_RUN ? { drop: DROP_RUN.inputs } : {}), ...(JW ? { jaywalk: jwIn } : {}) };
 }
 const view = q.get('view') || 'screen';
 window.__dyShare = await scriptedShare();

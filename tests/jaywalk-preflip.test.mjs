@@ -68,7 +68,7 @@ test('THE AREA ARRIVAL: the banner\'s words, its colours (white letters ≥ 4.5 
   const v = src('view.js');
   assert.match(v, /if \(e\.e === 'landmark'\) \{\n        if \(arriveNow\(\)\) arriveEl\.show\(e\.lane, look\);\n        if \(sndOn\)/, 'the crossing (this phone\'s own kid\'s tick) shows it, with the area-arrival sound');
   assert.match(v, /const arriveNow = \(\) => !!arriveEl && mode === 'run' && !watching && !outCard && !final && !localEnd && !shipWarn\(\) && !isOver\(run\);/, 'never over the Mothership\'s warning, the OUT card or the end');
-  assert.match(v, /const shipWarn = \(\) => isMatch && !!run && run\.t >= MODES\.match\.cap - SHIP_WARN;/);
+  assert.match(v, /const shipWarn = \(\) => !!run && !!MODES\[run\.mode\]\.cap && run\.t >= MODES\[run\.mode\]\.cap - SHIP_WARN;/, 'a CAPPED run (a match, THE DAILY — DAILY B) only');
   assert.match(v, /if \(arriveEl && arriveEl\.on\(\) && !arriveNow\(\)\) arriveEl\.hide\(\);/, '… and goes at once when one of them starts');
   assert.match(src('lab.js'), /arrive\.show\(e\.lane, look\)/, 'the lab shows the same banner');
 });

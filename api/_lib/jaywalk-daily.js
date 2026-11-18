@@ -6,8 +6,8 @@
 // better later try RAISES the score, the lists, the points, PENTHOUSE's input + DAILY BEST).
 import { ref, val } from './fb.js';
 import { dailySeed } from './dailies.js';   // (a cycle — dailies.js lists this cartridge; the seed is only read inside a call)
-import { TRIES, PROOF_DAYS, openTry, openOf, liveTry, scoreTry, closeTry, triesOf, triesView, leftOf, usedOf, dayScore, bestTry } from './jaywalk-tries.js';
-import { jwLanes } from '../../js/core/daily-best.js';
+import { TRIES, PROOF_DAYS, openTry, openOf, liveTry, scoreTry, closeTry, triesOf, triesView, leftOf, usedOf, dayScore, bestTry, shareOf } from './jaywalk-tries.js';
+import { jwLanes, bestView } from '../../js/core/daily-best.js';
 
 const SEEDS = new Map();
 /** THE DAY: its seed (an HMAC of THE DAILY SECRET — the same for everyone, memoised per warm function) */
@@ -84,6 +84,8 @@ export const JAYWALK_DAILY = {
   verify: async (seed, result, { record } = {}) => dayScore(record),
   /** what a resumed screen gets: the tries so far (a try is never resumed — an open one is closed by the next START) */
   resume: ({ record, data }) => ({ seed: data && data.seed, left: leftOf(record), tries: triesView(record), used: usedOf(record) }),
+  /** DAILY B — SHARE TODAY's section inputs (spoiler-free — jaywalk-tries.js#shareOf) + NEW DAILY BEST from the player's own DAILY BEST */
+  share: async ({ record, day, pid }) => shareOf(record, { day, nb: pid ? bestView(await val(`pstats/${pid}/db/jaywalk`), day).newBest : false }),
   endView: ({ record }) => { const b = bestTry(record); return { tries: triesView(record), left: leftOf(record), best: b ? { i: b.i, l: b.l, k: b.k, w: b.w } : null }; },
   /** THE DAY'S CLOSE + the next `today`: an open try that can't come back is closed (force: the day is over — whatever its state) */
   abandon: () => null,

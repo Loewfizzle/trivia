@@ -23,12 +23,12 @@ import { toast } from '../ui/toast.js';
 import { streakDay } from '../core/streak.js';
 import { dailyRow } from '../core/daily.js';
 import { msToTurn, fmtCountdown } from '../daily/clock.js';
-import { loadToday, todayNow, onToday, markFinished, markStarted, markLesson, heldRun, holdRun, dropHeld, turnNow, staleToday } from '../daily/today.js';
-import { rowState, sweepState, tableFor, everyoneLine, ordinal, tableCut, cardRows, stillToPlay, allTimeRows, allTimeLine, COUNTS_FROM_TOMORROW, UNCHECKED, ROOM_BANNER } from '../daily/today-logic.js';
+import { loadToday, todayNow, onToday, markFinished, markStarted, markLesson, heldRun, holdRun, dropHeld, turnNow, staleToday, triesDone, markTriesDone } from '../daily/today.js';
+import { sweepState, tableFor, everyoneLine, ordinal, tableCut, cardRows, stillToPlay, allTimeRows, allTimeLine, ticketState, tryEndedLine, COUNTS_FROM_TOMORROW, ROOM_BANNER } from '../daily/today-logic.js';
 import { MIN_DAYS } from '../core/daily-points.js';
 import { syncMidFlag, wantFlag } from '../daily/room-flag.js';
 import { stripKit, stripFor, stripFx } from '../ui/strip-board.js';
-import { everyPlaceLine, TOP_SHOW } from '../core/every.js';
+import { TOP_SHOW } from '../core/every.js';
 
 // ------------------------------------------------------------------------------------------------ the sheet + each daily's thin meta
 let css = null, cssReady = false;
@@ -94,8 +94,9 @@ onToday(() => syncMidFlag(wantFlag()));   // (a hold dropped — resumed, the da
 function roomWins(st) {
   const r = run;
   if (r && !r.isDone()) {
-    holdRun(r.id, r.day());
-    banner();
+    // (DAILY B — a `tries` daily (JAYWALK): the try ENDS — no hold, no RESUME — "TRY ENDED · 2 TRIES LEFT"; the server scores it as it stands)
+    if (r.tries) banner(tryEndedLine(r.left()));
+    else { holdRun(r.id, r.day()); banner(); }
     r.pause(st.code);
   }
   if (run) { run.close(); run = null; }
@@ -106,10 +107,10 @@ function roomWins(st) {
   queueMicrotask(() => setState({ daily: null }));   // (not inside the render that called us)
 }
 /** THE ROOM WINS' banner: its own strip over the walk inside (~3.6 s) — never THE MESSAGE (the game start's own messages would replace it) */
-export function banner() {
+export function banner(line = ROOM_BANNER) {
   dailySheet();   // (FR7 FIXES A — DY1: the banner can be the first daily thing a fresh page shows)
   const old = document.querySelector('.dy-banner'); if (old) old.remove();
-  const el = h('div.dy-banner', { role: 'status', 'aria-live': 'assertive' }, h('span.dy-banner-ic', { html: TICKET_SVG, 'aria-hidden': 'true' }), h('b', ROOM_BANNER));
+  const el = h('div.dy-banner', { role: 'status', 'aria-live': 'assertive' }, h('span.dy-banner-ic', { html: TICKET_SVG, 'aria-hidden': 'true' }), h('b', line));
   document.body.append(el);
   requestAnimationFrame(() => el.classList.add('is-in'));
   setTimeout(() => { el.classList.remove('is-in'); setTimeout(() => el.remove(), 400); }, 3600);
@@ -204,9 +205,11 @@ function openScreen(tab0) {
 
   function paintToday(t) {
     const sw = sweepState(t);
+    // DAILY B — THE SWEEP METER: one segment per LIVE daily, each lit in ITS ticket's ink as it is done (both looks) — the meter IS the count
+    // (the "1 OF 3" words are gone; THE SWEEP · SWEPT stays its name)
     els.meter = h('div.dy-sweep', { role: 'img', 'aria-label': sw.swept ? 'The sweep: every daily done' : `The sweep: ${sw.done} of ${sw.of}` },
-      h('div.dy-sweep-bar', { style: { '--n': sw.of } }, ...sw.segs.map((s, i) => h(`span.dy-seg${s.done ? '.is-done' : ''}`, { style: { '--i': i } }))),
-      h('div.dy-sweep-l', sw.swept ? h('b', 'SWEPT') : h('span', h('b', `${sw.done} OF ${sw.of}`), ' · THE SWEEP')));
+      h('div.dy-sweep-bar', { style: { '--n': sw.of } }, ...sw.segs.map((s, i) => h(`span.dy-seg${s.done ? '.is-done' : ''}`, { style: { '--i': i, ...inkVars(s.id) }, dataset: { id: s.id } }))),
+      h('div.dy-sweep-l', sw.swept ? h('b', 'SWEPT') : 'THE SWEEP'));
     const rows = t.dailies.map(d => ticketRow(t, d));
     // (CITY A — EVERY TAP ACTS: every dy- button acts on its press + lift (data-press, ui/tapwatch.js) — but SHARE TODAY keeps the browser's own
     //  click: navigator.share needs Safari's real gesture, never a click dispatched by code)
@@ -215,7 +218,8 @@ function openScreen(tab0) {
     els.next = h('div.dy-next', { 'aria-live': 'off' });
     // DFIX3 — TODAY CENTRED: one box (the meter → the tickets → SHARE → the countdown) sits mid-way between the tabs and the bottom safe area; taller
     // than the space (a third daily, the gated line) → it simply scrolls from the top (an auto margin, never a flex centre that clips)
-    els.body.append(h('div.dy-today', ...[els.meter, h('div.dy-rows', ...rows), share, els.next].filter(Boolean)));
+    // (DAILY B — 4 TICKETS FIT: from 4 rows the SHARED ticket goes compact — the same parts, a tighter rhythm — on a short screen: css/daily.css)
+    els.body.append(h('div.dy-today', ...[els.meter, h(`div.dy-rows${rows.length >= 4 ? '.is-many' : ''}`, { style: { '--rows': rows.length } }, ...rows), share, els.next].filter(Boolean)));
     tickNext();
     if (stampNext.size) { for (const id of stampNext) { const s = els.body.querySelector(`.dy-ticket[data-id="${id}"] .dy-stamp`); if (s) stampDown(s); } stampNext.clear(); }
     if (sweepNext && sw.swept) { sweepNext = false; playSweep(); }
@@ -225,26 +229,33 @@ function openScreen(tab0) {
    *  / the result, and on the right PLAY · RESUME · the ADMITTED stamp (drawn, tilted — never the green check circle); a lift shadow under it, at
    *  night a neon edge + a foil sheen that drifts (transform only; held while scrolling / reduced motion) */
   function ticketRow(t, d) {
-    const st = rowState(t, d.id), row = dailyRow(d.id) || {};
+    // DAILY B — THE TICKET's STATES (today-logic.js#ticketState — PURE): BEFORE (the hook or DAILY BEST in the ticket's ink) · IN PROGRESS
+    // (RESUME) · BETWEEN TRIES (a `tries` daily: the last try big, DAILY BEST, TRY AGAIN + its tries left) · ADMITTED (the result + the place —
+    // "2ND OF 5 PLAYERS" — or the gold NEW DAILY BEST)
+    const row = dailyRow(d.id) || {}, S = ticketState(t, { ...d, tries: d.tries || row.tries, hook: d.hook || row.hook || row.tag || '' }, { lineOf, done: triesDone(d.id, t.day) });
+    const st = S.st;
     const art = h('span.dy-art', { html: TICKET_ART[d.ticket] || TICKET_ART[row.ticket] || TICKET_ART.star });
     const serial = h('span.dy-serial', { 'aria-hidden': 'true' }, serialOf(t.day));
+    // (a DAILY BEST line wraps only BEFORE its value — "DAILY BEST ·" / "231 LANES" — never inside it, never before the dot)
+    const bits = S.line && S.line.best ? S.line.text.split(' · ') : null;
+    const ln = S.line ? h(`${S.result != null ? 'small.dy-rank' : 'span.dy-hook'}${S.line.best ? '.dy-best' : ''}${S.line.gold ? '.dy-gold' : ''}`, ...(bits && bits.length === 2 ? [`${bits[0]} · `, h('span.dy-nw', bits[1])] : [S.line.text])) : null;
     let info, act;
-    if (st === 'done') {
-      // DONE: the result where the hook was (DFIX5: the score + COAST CLEAR's spot icons · the EVERYONE place — "4TH OF 12 TODAY" — or the
-      // everyone line), the ADMITTED stamp on the right
-      const gated = !!(t.gated && t.gated[d.id]), pl = t.place && t.place[d.id];
-      const sub = gated ? COUNTS_FROM_TOMORROW : t.rf && t.rf[d.id] ? UNCHECKED : (pl ? everyPlaceLine(pl.p, pl.n, ordinal) : '') || everyoneLine(t.stand && t.stand[d.id]) || 'DONE FOR TODAY';
-      info = h('div.dy-info', h('b.dy-name', d.name), resultEl(d.id, t.mine[d.id], t.extra && t.extra[d.id], 'dy-result'), h('small.dy-rank', sub));
-      act = h('span.dy-stamp', { html: stampSvg(), role: 'img', 'aria-label': 'admitted — done for today' });
-    } else info = h('div.dy-info', h('b.dy-name', d.name), h('span.dy-hook', d.hook || row.hook || row.tag || ''));
-    if (st !== 'done') act = tubeButton(st === 'progress' ? 'RESUME' : 'PLAY', { kind: st === 'progress' ? 'secondary' : 'main', cls: 'dy-play', attrs: { 'data-press': true }, onClick: () => play(d.id) });
+    if (S.result != null) {
+      // a result where the hook was: DONE (DFIX5: COAST CLEAR's spot icons) · BETWEEN TRIES (the last try)
+      info = h('div.dy-info', h('b.dy-name', d.name), st === 'done' ? resultEl(d.id, t.mine[d.id], t.extra && t.extra[d.id], 'dy-result') : h('span.dy-result', S.result), ln);
+    } else info = h('div.dy-info', h('b.dy-name', d.name), ln);
+    if (st === 'done') act = h('span.dy-stamp', { html: stampSvg(), role: 'img', 'aria-label': 'admitted — done for today' });
+    else if (S.act) {
+      const b = tubeButton(S.act, { kind: st === 'progress' || st === 'between' ? 'secondary' : 'main', cls: S.act.length > 6 ? 'dy-play is-long' : 'dy-play', attrs: { 'data-press': true }, onClick: () => play(d.id) });
+      act = S.under ? h('div.dy-act-col', b, h('small.dy-left', S.under)) : b;
+    }
     // (FIXES R2 — TAP A TICKET: a FINISHED ticket (made or failed) opens its END SCREEN in a sheet — js/daily/end-sheet.js, the server's own
     //  read-back of YOUR run; an unfinished ticket isn't tappable)
     const endTap = st === 'done' ? { role: 'button', tabindex: '0', 'data-press': true, 'aria-label': `${d.name} — how your run ended`,
       onclick: () => { sfx('select'); lazyImport(import('../daily/end-sheet.js'), '../daily/end-sheet.js').then(m => m.openEndSheet(d, { uid: state.uid || '' })).catch(() => {}); },
       onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } } } : {};
     const ticket = h(`div.dy-ticket.is-${st}`, { dataset: { id: d.id }, style: inkVars(d.id), ...endTap },
-      h('div.dy-stub', art, serial), info, h('div.dy-act', act), h('i.dy-foil', { 'aria-hidden': 'true' }));
+      h('div.dy-stub', art, serial), info, act ? h('div.dy-act', act) : h('div.dy-act'), h('i.dy-foil', { 'aria-hidden': 'true' }));
     return h('div.dy-tkw', ticket);
   }
   /** the stamp comes DOWN (the daily just finished on this phone): scale-in + a settle + a tiny ink spread — transform + opacity only; reduced
@@ -555,6 +566,8 @@ async function shareToday(t) {
 }
 
 // ------------------------------------------------------------------------------------------------ A RUN (+ its one-time hint)
+/** DAILY B — the dailies whose RUN is its own module (not the room cartridge): JAYWALK's tries (js/games/jaywalk/daily-run.js) */
+const DAILY_RUNS = { jaywalk: () => lazyImport(import('../games/jaywalk/daily-run.js'), '../games/jaywalk/daily-run.js') };
 function openRun(id) {
   const O = overlay('dy-run', () => goScreen());
   const row = dailyRow(id) || {};
@@ -564,8 +577,10 @@ function openRun(id) {
   O.el.append(stage, back);
   document.body.dataset.theme = row.theme || id;
   (async () => {
-    const reg = await lazyImport(import('../games/registry.js'), '../games/registry.js');
-    mod = await reg.loadGame(id);
+    // (DAILY B — a daily with its OWN run module (DAILY_RUNS — JAYWALK's tries) loads it, never the room cartridge: nothing of the daily
+    //  lands in that game's preload graph / its budget)
+    if (DAILY_RUNS[id]) mod = await DAILY_RUNS[id]();
+    else { const reg = await lazyImport(import('../games/registry.js'), '../games/registry.js'); mod = await reg.loadGame(id); }
     if (gone) return;
     const t = todayNow() || (await loadToday());
     if (gone) return;
@@ -591,7 +606,8 @@ function openRun(id) {
     const game = mod.daily.create({ date: dk, uid, now, daySet: { v: 1, day: dk } });
     const players = { [uid]: { name: (loadProfile() || {}).name || 'YOU', color: (loadProfile() || {}).color || 'cyan', avatar: (loadProfile() || {}).avatar || 'bolt' } };
     view = mod.createView();
-    view.mount(stage, { uid, game, players, meta: { status: 'playing' }, ...(judge ? { judge } : {}), ...(hint ? { hint, onHint: hintSeen } : {}) });
+    view.mount(stage, { uid, game, players, meta: { status: 'playing' }, ...(judge ? { judge } : {}), ...(hint ? { hint, onHint: hintSeen } : {}),
+      onBack: stamp => { if (stamp) stampNext.add(id); goScreen(); } });   // (DAILY B — JAYWALK's end card: BACK TO THE DAILIES · DONE (the stamp comes down))
   }
   /** the cartridge's API judge, heard: the start (IN PROGRESS), the finish (the score in at once, THE SWEEP moment, counts-from-tomorrow) */
   function wrapJudge(j) {
@@ -619,12 +635,16 @@ function openRun(id) {
   return {
     id,
     day: () => day,
-    isDone: () => done,
+    // (DAILY B — a `tries` daily: "done" = no try in play on this phone; its banner names the tries left)
+    tries: !!row.tries,
+    left: () => (view && view.left ? view.left() : 0),
+    isDone: () => (view && view.playing ? !view.playing() : done),
     /** THE ROOM WINS: COAST CLEAR's clock stops on the server (the room really started a game — checked there); THE PASSWORD has no clock */
     // (FR7 FIXES A — DY5: sent ONCE, a failed pause was silent — the banner said SAVED while COAST CLEAR's clock ran through the match. Now
     // retried with a back-off for as long as THAT room is still playing — js/daily/retry.js#retryWhile; the run's close doesn't stop it)
     pause(code) {
       if (!inner || typeof inner.pause !== 'function') return;
+      if (view && view.roomWon) view.roomWon();   // (DAILY B: the try ends on this phone at once — the server's end comes with the call)
       const j = inner;
       // (the first try always goes — THE GAME START's closeAll comes at the go stamp, BEFORE the room says 'playing'; the retries while that
       // room is starting or playing)
