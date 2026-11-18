@@ -542,3 +542,9 @@
 - The database rules are RE-PUBLISHED by the owner (the review's + CITY F's) — the rules-live fixture follows.
 - The owner's phone check moves to RIGHT AFTER this deploy, before his OPEN DAY switch (the site has no traffic yet; he has told no one).
 - AFTER LAUNCH (not this pass): a small JAYWALK polish pass — a dark band behind the share card's cause line (the owner: yes), the far lanes dark after a real lost context, a car covering the lines' words in places. THE TRI-VISION never shows JAYWALK's face (a CITY bug, sent to the city chat) — not this pass's.
+
+## JAYWALK (the owner, Nov 18 — DECIDED, THE POLISH PASS)
+- YOUR TABLE = one centred grid (RANK | CARD | SCORE), equal side margins, every card the same size + left edge (the owner: "has to be centered or aligned better").
+- THE SHARE CARD's cause line sits on a dark band (readable over the bright river at link-preview size) — the owner: yes.
+- HOW TO PLAY gains ONE line: the Mothership ends a MATCH at 6:00 (everyone still in is lifted; farthest wins) — never in solo.
+- THE DAILY (built later by the dailies chat): its personal best is labelled "DAILY BEST · 168 LANES" / "NEW DAILY BEST" (the games chat's suggestion; not the solo / match YOUR BEST).
