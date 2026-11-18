@@ -311,17 +311,15 @@
 .pg-pv .pg-x { z-index: 5; background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.5); }
 .pg-pv-in { padding-top: calc(env(safe-area-inset-top) + 70px); }
 
-/* ------------------------------------------------------------------ THE BIG FLAME (PROGRESSION B's add-on — the owner's streak card redesign)
-   flame-art.js: three nested neon tubes; the licks flicker, the core breathes (transform + opacity only); reduced motion = lit, still */
+/* ------------------------------------------------------------------ THE STREAK FLAME — CITY H2: THE PINK TUBE (flame-art.js: TWO tubes — the
+   pink outer + the white-hot tongue). LIT: the tongue breathes (transform + opacity); NOT PLAYED YET: the same shape dimmed + a SLOW FLICKER
+   (opacity only); reduced motion = still */
 .pg-flame { height: calc(var(--f) * 1.14); }
 .pg-flame .pg-fl-svg { width: 100%; height: 100%; overflow: visible; }
-.pg-flame.is-lit .pg-fl-l { animation: pg-lick 1.9s ease-in-out infinite; transform-origin: 30px 80px; transform-box: view-box; }
-.pg-flame.is-lit .pg-fl-r { animation: pg-lick 2.3s ease-in-out infinite reverse; transform-origin: 90px 80px; transform-box: view-box; }
-.pg-flame.is-lit .pg-fl-core { animation: pg-breathe 2.8s ease-in-out infinite; transform-origin: 60px 123px; transform-box: view-box; }
-.pg-flame.is-lit .pg-fl-halo { animation: pg-halo 3.4s ease-in-out infinite; }
-@keyframes pg-lick { 0%, 100% { opacity: 1; transform: none; } 30% { opacity: 0.55; transform: translateY(2px) scaleY(0.94); } 55% { opacity: 0.95; transform: translateY(-1.5px) scaleY(1.04); } 78% { opacity: 0.7; } }
-@keyframes pg-breathe { 0%, 100% { opacity: 0.92; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1.04); } }
-@keyframes pg-halo { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+.pg-flame.is-lit .pg-fl-core { animation: pg-breathe 2.8s ease-in-out infinite; transform-origin: 60px 130px; transform-box: view-box; }
+.pg-flame.is-waiting .pg-fl-svg { animation: pg-wait 3.4s ease-in-out infinite; }
+@keyframes pg-breathe { 0%, 100% { opacity: 0.9; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.04); } }
+@keyframes pg-wait { 0%, 100% { opacity: 0.62; } 40% { opacity: 0.9; } 48% { opacity: 0.7; } 56% { opacity: 0.95; } }
 @media (prefers-reduced-motion: reduce) { .pg-flame * { animation: none !important; } }
 body.reduced-fx .pg-flame * { animation: none !important; }
 .pg-moment.is-still .pg-flame * { animation: none !important; }
