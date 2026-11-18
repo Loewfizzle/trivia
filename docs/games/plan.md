@@ -556,3 +556,13 @@
 - The player's OWN ROW in YOUR TABLE glows (a soft light in his own colour around his row + the pink rank) — never a pill, never shifting the grid.
 - THE DAY END SCREEN's title sits on a soft dark fade at the top (readable on the bright day sky).
 - The near-black far grass by night = LEFT AS IS.
+
+## DAILY A / B — approved Nov 18
+- COAST CLEAR: config CC_DIG_ON: 'down' | 'up' (default 'down'). 'down' = DIG mode digs on touch-down; buoys from the BUOY switch only (no press-and-hold). 'up' = exactly today's behaviour (dig on lift, press-and-hold = buoy). Both: the tile reacts the instant a finger touches it (presses in + a pulse), then shows a digging state until the server answers. The ping + surfacing stay.
+- COAST CLEAR: the board sizes to the space actually left (header, owner readout line, DIG / BUOY); no row ever cut off at 375 / 390 / 402 / 430 wide, both looks.
+- DAILY BEST for all four dailies, kept on the server, backfilled from past days: PASSWORD = fewest guesses (a lockout doesn't count) · COAST CLEAR = fastest clear (caught doesn't count) · THE DROP = longest time · JAYWALK = most lanes. Server in A, ticket in B.
+- JAYWALK daily: dailySeed('jaywalk', day); MODES.daily (ends at THE MOTHERSHIP, ~5:00); score = lanes, then the earlier tick ('high'). 3 tries, best counts. Counts at the FIRST finished try (streak, XP once, THE SWEEP, PERFECT WEEK, THE THROWAWAY GATE). Best try = score / lists / PENTHOUSE / points. Everyone's scores unlock after the first try. Unused tries expire at 4 am. Practice never uses the day's seed.
+- JAYWALK run path: hops go to a Firebase proof node as server-timestamped chunks (THE DROPPED SIGNAL rules); START + FINISH; the server replays the hops. No pauses, no resume: a refresh, hiding the app or THE ROOM WINS ends the try. Reuses THE DROP's bookkeeping only.
+- The 4 conditions: (1) the server scores an unfinished try on the next start / today call or at the day's close; (2) THE ROOM WINS ends a try (banner text is B's: "TRY ENDED · N TRIES LEFT", no RESUME), the dy flag still set; (3) proof-node rules: append-only, server timestamps, nothing after FINISH or after the day ends, no 4th try, with rules tests; (4) prune proof nodes after ~7 days.
+- JAYWALK points: a capped lanes curve in core/daily-points.js. ALL TIME = the shared average rule. THE SWEEP + PERFECT WEEK need all four live dailies. XP unchanged.
+- JAYWALK ticket colour orange: night #ffa53a, day #e0661c (TICKET_INK; used in B).
