@@ -566,3 +566,9 @@
 - The 4 conditions: (1) the server scores an unfinished try on the next start / today call or at the day's close; (2) THE ROOM WINS ends a try (banner text is B's: "TRY ENDED · N TRIES LEFT", no RESUME), the dy flag still set; (3) proof-node rules: append-only, server timestamps, nothing after FINISH or after the day ends, no 4th try, with rules tests; (4) prune proof nodes after ~7 days.
 - JAYWALK points: a capped lanes curve in core/daily-points.js. ALL TIME = the shared average rule. THE SWEEP + PERFECT WEEK need all four live dailies. XP unchanged.
 - JAYWALK ticket colour orange: night #ffa53a, day #e0661c (TICKET_INK; used in B).
+
+## DAILY B — approved Nov 18
+- JAYWALK's daily tries count for JAYWALK's four cards (as THE CARDS already says: "a counted match / daily") and raise YOUR BEST — server-judged results only.
+- COAST CLEAR's dig timing stays a code switch only (`CC_DIG_ON`), never a player setting.
+- JAYWALK's points cap stays at 300 lanes; Ben looks again after a week of real tries.
+- THE SWEEP meter has one segment per LIVE daily (3 until JAYWALK goes live, then 4).
