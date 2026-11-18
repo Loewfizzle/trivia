@@ -536,3 +536,9 @@
 - THE CAMERA + THE SOUNDS ARE PINNED for everyone at go-live: ZOOM 8 · STRAIGHT (the owner, Nov 17); the takes as picked (all A, except NEW BEST = B; the train = set B; the area arrival = the sparkle). The lab keeps its switches for itself; the game never reads the lab's settings.
 - THE RUN CARD UPLOADS ONLY ON SHARE (the owner, Nov 17 — the review's storage finding): nothing is uploaded unless the player taps SHARE; kept 7 days as now.
 - THE "WEBGL CONTEXT LOST" reports in the CITY were JAYWALK's own teardown (most likely) — fixed + proven here.
+
+## JAYWALK (the owner, Nov 17 — DECIDED, THE GO-LIVE PASS)
+- JAYWALK GOES LIVE: playable for everyone (config.js GAMES row), its meta + HOW TO PLAY + tile in the boot, its tab on THE BOARD.
+- The database rules are RE-PUBLISHED by the owner (the review's + CITY F's) — the rules-live fixture follows.
+- The owner's phone check moves to RIGHT AFTER this deploy, before his OPEN DAY switch (the site has no traffic yet; he has told no one).
+- AFTER LAUNCH (not this pass): a small JAYWALK polish pass — a dark band behind the share card's cause line (the owner: yes), the far lanes dark after a real lost context, a car covering the lines' words in places. THE TRI-VISION never shows JAYWALK's face (a CITY bug, sent to the city chat) — not this pass's.
