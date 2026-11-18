@@ -572,3 +572,10 @@
 - COAST CLEAR's dig timing stays a code switch only (`CC_DIG_ON`), never a player setting.
 - JAYWALK's points cap stays at 300 lanes; Ben looks again after a week of real tries.
 - THE SWEEP meter has one segment per LIVE daily (3 until JAYWALK goes live, then 4).
+
+## DAILY FIX — approved Nov 18
+- JAYWALK between tries: the big line reads "LAST TRY · 143 LANES" (today's score is the best try, not the last).
+- SAVE YOUR KEY never pops over THE DAILIES screen; it waits until the player leaves it.
+- JAYWALK's daily keeps the mood station (no own song set).
+- Every PLAY button takes its own ticket's colour (TICKET_INK), both looks.
+- The ticket number, THE PASSWORD's day stamp and the share card's thin lines get enough contrast to read on the phone.
