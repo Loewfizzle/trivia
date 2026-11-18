@@ -888,3 +888,23 @@ never its log or seed). Proof: password.test + coastclear.test + daily-drop.test
   SHARE TODAY section: the NAME in its result's colour (green made · red failed · white) · ONE big TIME · ONE grey stat line · the art strip,
   through the kit's `paintName` / `paintBig` / `paintStat` — never a win word; `tests/share-rhythm.test.mjs`); tracked lettering only through
   `spacedText`; THE CARD IS BUILT BEFORE THE TAP (`prepShare` — never a share drawn at the tap, never a download) → docs/progression.md.
+
+## THE GAMES LIST ORDER (CITY H2, Nov 18 — the owner)
+The PLAY sheet (outside a room — screens/title-taps.js) + GAMES / PICK A GAME (in a room — screens/room-city.js) order the playable games by
+the number of DIFFERENT PLAYERS who played each in the last 14 days (ties: the matches; a full tie: the config's order) — `js/core/game-order.js`
+(PURE: `popularity` · `popularOrder` · `isNew` · `shelfOrder`). A game in its first 14 days after its go-live (`config.js` GAMES[].`live` —
+JAYWALK 2026-11-17, HOLD'EM 2026-11-08) sits ON TOP (the newest first) with a NEW foil text line over its name (`.gm-new` — a static holo sweep
+in the letters; no pill, no badge, no gold). THE SERVER works the order out ONCE a streak day — the first read after the 4 am turn
+(`api/_lib/activity.js#gameOrder` → `progress/gameOrder { day, order, at }`, from the counted matches in `results/` — JAYWALK's solo runs are
+reported there too) — and serves ONLY the ORDER (never the counts) inside the cached GET `/api/admin?live=1` the city already reads
+(`{ …, order }` — THE CITY'S IDLE POLLS: no new poll); the phone keeps it (`localStorage nd:gorder`, harbor/remote.js); the same for everyone;
+the config's order is the fallback when it can't be read. The module loads lazily on the sheet's tap (never the boot graph).
+`tests/game-order.test.mjs`.
+
+## THE STREAK FLAME — THE PINK TUBE (CITY H2, Nov 18 — the owner's pick A — Downloads/NEON/city-h2/refs/streak-flame-options.png)
+`js/progress/flame-art.js` is TWO tube strokes only: the OUTER flame in the house pink (#ff6fc8) + ONE INNER TONGUE warm white-hot (#fff0b0). NIGHT
+= neon tubes (a glow stack + the coloured tube + a white core line); DAY (`flameSvg(…, { glow: false })` — SHARE TODAY's day card) = the same
+two strokes, no glow, no fill, deeper colours (`FLAME_DAY` — #d4147f + #c99410). NOT PLAYED YET (`waiting`) = the same shape dimmed + a SLOW
+FLICKER (opacity only — css/progress.css `pg-wait`); FROZEN stays blue; OUT a dark outline; the lit tongue breathes; reduced motion = still.
+PROGRESSION B's three nested tubes (the licks, the amber middle, the fill, the halo) are gone. ONE file: SHARE TODAY (still reads at the 360-px
+downscale, night + day), the profile, THE PLAYER PAGE, the streak card + its week, the end-of-match moment (`look.js#flameIcon`).

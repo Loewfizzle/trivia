@@ -855,3 +855,13 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   reproduced (LOEWFIZZLE's plate reaching ~74 % of a full card is the name's own size at LV 23). The right padding made EVEN with the left (slim
   16 → 11 px, full 5 → 3.6 cqi — css/vault.css, the ONE place) and GUARDED: `tests/integration/plate-hug.mjs` (24 checks — the glass ≤ 4.5 % of
   the card past its text on a full card, ≤ 13 px on a slim, three names × two materials × a glow). Shots: `Downloads\NEON\fixes-r2\plates-*\`.
+
+## THE YOU ROW (CITY H2, Nov 18 — the owner's pick B, THE GLOW — Downloads/NEON/city-h2/refs/you-row-options.png)
+ONE standard for YOUR card in EVERY slim-card list — THE BOARD, SCORES (friends + everyone, today + all time), JAYWALK's YOUR TABLE, every
+game's results rows (`ui/strip-board.js#upgradeBoard`): `markMine(strip.el, mine)` (`YOU_CLS = 'sb-me'`) puts the class on YOUR strip; the look is
+ONE rule in css/vault.css — `.vl-strip.sb-me::after`: no box, no edge line, no tint strip — a 1.5-px pink hairline + a soft pink glow hugging the
+card (the house pink), BREATHING slowly (`sb-breathe`, 3.6 s — the pseudo-element's OPACITY alone, never an animated shadow); reduced motion /
+reduced effects = the glow held steady at 0.85. Your rank number pink (each list's own rank cell: `.bd-row.is-me .bd-rank`, `.jw-table-list
+li.is-me .jw-table-n`, `.lb-row.lb-strip.is-me .lb-rank`). REMOVED: THE BOARD's pink left edge + wash (CITY E), JAYWALK's ring in your colour
+(THE TOUCH-UP PASS — `.jw-table-list li.is-me::before`), SCORES' lit frame (DFIX3), the results rows' tint on a slim-card row. THE LIVE LANE holds:
+the glow is CSS round a still (no surface, no lane). `tests/you-row.test.mjs`; e2e-jaywalk's YOUR TABLE check.

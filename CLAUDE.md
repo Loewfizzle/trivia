@@ -113,6 +113,8 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE ROOM IN THE CITY: the old lobby screen is RETIRED — the room lives in the city from the join to the podium (`screens/room-city.js`,
   `core/harbor-room.js`, `core/room-show.js`); ONE SHEET STACK (`ui/layers.js` — every pop-up opens on top).
 - LEAVE ON THE DOCK (CITY H1): the room dock's left ring + ☰'s top row; EVERY way out = ONE sheet (`ui/leave-sheet.js`, never TAP AGAIN); INVITE tops GUESTS → docs/title.md.
+- NEVER A DEAD SCREEN (CITY H2): a route with nothing to render → the city at once + COUNTED (`app.js#dead`, quiet kind 'dead').
+- THE GAMES LIST ORDER (CITY H2): most DIFFERENT players in 14 days first, a game's first 14 days on top + NEW (`core/game-order.js`); worked once a streak day, the ORDER only in the cached ?live=1 → docs/progression.md.
 - MAKE HOST (`room.js#makeHost` — to an ONLINE player); ONE ACCOUNT, ONE ROOM (`seats/{pid}` — `js/seat.js`); NAME + COLOUR edited only at the top of CUSTOMIZE YOUR CARD.
 - REMATCH IN PLACE (CITY G): the end screen's REMATCH = the 'r' start (`host.js#rematch({ inPlace })`) — no city / room / walk on any phone; a podium vote only while its end screen is up → docs/cartridge.md.
 - THE FROZEN CONTRACT: `config.js#FROZEN_IDS` — never loaded, logic + sims kept, views not maintained (docs/cartridge.md); a start's frame checked (host.js).
@@ -142,6 +144,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE ADD-ME LINK + STATS (CITY C): a friend link = a server-made `flink/` code, never a pid; STATS = ONE builder (`js/admin/stats-view.js`) + ONE cached snapshot (`progress/statsSnap`) → docs/profiles.md.
 - FRIENDS: `pfr/{pid}` server-written, its owner reads it (`core/friends.js#friendStep`); PASSKEYS (`api/_lib/passkeys.js`, the RESTORE KEY stays the fallback) → docs/profiles.md (moved).
 - SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS — only through `ui/strip-board.js` (never a second strip system); every place 1 / 2 / 3 = THE DECO MEDALS (`ui/medal.js`).
+- THE YOU ROW (CITY H2): YOUR card in EVERY slim-card list = ONE breathing pink glow (`ui/strip-board.js#markMine`); no list keeps its own "me" box / edge / tint → docs/vault.md.
 - THE LIVE LANE (CITY D): every slim-card LIST = baked STILLS; ≤ 3 on-screen strips live page-wide, each its own small 2D canvas (`K.liveList` — never a surface over a list); CUSTOMIZE's grid = stills → docs/vault.md.
 
 **THE VAULT** (→ docs/vault.md (moved))
@@ -185,11 +188,10 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   tier); THE CAMERA = ONE pure module every view shares (`camera.js` — ZOOM columns, the follow, the turn; swipes screen-relative); its files
   only through `scripts/build-jaywalk-assets.py` → docs/jaywalk.md "THE CAMERA".
 - JAYWALK's LOOKS (H5B): DAY + NIGHT are ONE scene (`night.js#setLook` — a VIEW: no rule / replay / server file knows the look; the phone's GAME LOOK read live; THE FOG BANK = the blackout by day); BLUE ON THE GROUND = WATER, NOTHING ELSE (the friend line = a pink tape between posts); the rail signals flash ONLY in the tell → docs/jaywalk.md "THE DAY LOOK" + "BLUE ON THE GROUND".
-- JAYWALK's FAR EDGE + THE FRESH-EYES REVIEW (H5C): the day band = a PAINTED skyline per area (`skyline.js`), solid down to THE SEA WALL (nothing half-see-through over the backdrop); a line's words draw above everything but your own kid; EVERY JAYWALK pass ends with a fresh-context reviewer over the full day + night shot set, its report verbatim in the pass log → docs/jaywalk.md "NO WEAK POINTS".
+- JAYWALK's FAR EDGE + THE FRESH-EYES REVIEW (H5C) · FINISH (H6B) → docs/jaywalk.md "THE RULES FROM CLAUDE.md (moved Nov 18)" (moved for CITY H2).
 - JAYWALK's AREAS (H5A): the lean = RULES (`tuning.js#AREAS`; the sims green in all 8); the look = a VIEW (`areas.js`): an obstacle drawn ONLY where the rules have one — nothing covers a play column; sounds only through PURE `cues.js` → docs/jaywalk.md.
 - JAYWALK's BIG MOMENTS (H6A): THE BLACKBIRD · THE UFO · THE MOTHERSHIP = ONE view module ON DEMAND (`flyers.js`; a moment = f(the rules' tick)); THE MOTHERSHIP is A FINISH LINE (never "TAKEN"); the cards' flags + YOUR BEST only from the server's replay → docs/jaywalk.md "THE BIG MOMENTS".
 
-- JAYWALK's FINISH (H6B): the band's pictures are PAINTED in BOTH looks (no light blinks on a landmark: `SKY_OFF`); THE GATE SIGN only on the approach (gone 3 lanes out); a cue's level only in `sounds.js` / `flyers.js#MIX`, measured (`jaywalk-mix.mjs`) → docs/jaywalk.md "THE FINAL POLISH".
 - JAYWALK's END SCREEN RESTS THE SCENE (H6B): behind an end screen the 3D scene is a small still (`night.js#rest`); the run's picture = ONE cropped canvas; THE FINAL SCREEN's BUDGET (`kit/jaywalk-mem.mjs#JW_FINAL_BUDGET_MB` — raising it = a named decision) → docs/jaywalk.md "THE END SCREEN's MEMORY".
 - JAYWALK BEFORE THE FLIP: the game never reads the lab's prefs; a teardown never reports a lost context (listeners off first); a resize only ASKS, draw() resizes → docs/jaywalk.md.
 - JAYWALK's RECORDER + JUDGE = ONE BOUND (`engine.js#inputProblem`); the count's sizes + `skyline.js#SKY_MAX` change together → docs/jaywalk.md "THE GO-LIVE REVIEW".

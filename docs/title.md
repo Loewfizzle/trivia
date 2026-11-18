@@ -1057,3 +1057,14 @@ within `DRAG_MS` (3 s — a pointer the browser cancelled for a scroll, or one p
 //      STALE-MODULE RULE). The mouse + the keyboard keep the plain click.
 // Polish like the error log: anything failing here never touches the app.
 ```
+
+## NEVER A DEAD SCREEN (CITY H2, Nov 18 — the inbox's 3:52 pm entry; the SOLO-QUIT HOTFIX's other half)
+`js/app.js#dead`: a route with nothing to render — a screen whose `mount()` throws (any but the title), or a room code whose meta never comes
+past THE REJOIN LIMIT (`UPLINK_WAIT_MS`, 8 s — a closed room, a solo room after its QUIT; checked on ANY route: the title keeps the city up while
+a meta loads) — goes to the city AT ONCE (a solo room through `__nsPlayNow.leave()`, else `room.js#leaveRoom`, then `exitRoom` if a code is
+still held) and is COUNTED: quiet kind `dead` (errlog.js#countQuiet → api/log.js QUIET_KINDS → /admin's errors line "dead screens sent to the
+city"). e2e-playnow `--only quit` (WebKit + Chromium): PRISM DROP / OVERCLOCK / JAYWALK solo mid-run → ☰ → QUIT — BACK TO THE CITY (the only
+way out — no room rows) → LEAVE → the city on screen + its PLAY shelf opening in ≤ 1.1 s; a room code with no meta → the city in ~8 s.
+**JAYWALK's MARK = THE SNEAKER (the inbox's 4:48 pm entry):** core/marks.js — three tubes (the upper pink, the sole + three laces white, two cyan
+speed lines); ONE definition for the PLAY sheet, PICK A GAME, the city's signs, its card art (ui/game-art.js), its daily ticket (daily/ticket-art.js
+— the tubes × 0.24) and its share image. `tests/integration/marks-preview.html` = the four marks side by side, night + day.

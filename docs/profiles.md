@@ -712,3 +712,28 @@ the full card's width (it reads as a card, not a placeholder). Shots: `Downloads
 - **`/api/profile { action: 'table', b }`** (`api/_lib/friends.js#boardTable`) — YOUR TABLE for ONE record board: you + the ≤ 12 friends
   YOUR OWN list names (`tablePids` — never ids from the phone) who have a value on it, best first → `{ b, rows: [{ the slim card's public
   face (the board id — never a pid), v, me? }] }`; a friend hidden from the boards is not listed. JAYWALK's end screen shows it.
+
+## CITY H2 — THE BOARD LAYOUT B + THE STATS SHEET (Nov 18 — docs/harbor/passes/city-h2.md)
+**THE BOARD (the owner's pick B — Downloads/NEON/city-h2/refs/board-layouts.png; js/board/view.js + css/board.css):** the header = THE BOARD ·
+HALL OF FAME over a SHORT real skyline strip (assets/board-sky.webp — RE-BAKED: the city framed at 760 × 520, so JAY / WALK, OVER / CLOCK,
+HOLDEM + PRISM sit in ONE line under the title — never behind its letters at 375–430, never cut at 1440, where the strip is the 600-pt
+column's width; the bake's recipe in shots.mjs "board-sky"); the game tabs (THE NEON TABS); ONE row = THIS WEEK | ALL TIME (a squared two-part
+switch, the chosen half lit pink — `.bd-period`) + THE PICKER (`.bd-pick` — one button with the board's name + ▾ → a standard sheet: ALL
+DAILIES + every live daily, JAYWALK's included; a game's RECORDS + CAREER boards under their two headings; one-board tabs (XP, HOLD'EM) show no
+picker, the switch spans the row) — the RECORDS / CAREER switch and the chip rows are gone; the rank medal (or number) with the points UNDER it
+(HOLD'EM's wins · KOs on two short lines) + FULL-SIZE slim cards; NO heading (the board's name is read aloud only — `.bd-label.sr-only`; a line
+shows only when a board NEEDS it: its explainer, a dailies board's ALL TIME floor), NO YOU / ⋯ line: REPORT lives in THE PLAYER PAGE's MORE when
+it was opened from a board row (`openPlayer(…, { report })`), and on the public /board a tap on a card reports. THE LIST SCROLLS WITH THE PAGE
+(`.bd-wrap` scrolls — no fixed box, no dead space at the foot; the observers' root is the column); YOUR rank while your card isn't on screen =
+ONE slim line pinned at the foot (`.bd-me-line` — no card). 7 full cards at 390 × 844 (the foot up too), 6 at 375 × 667. THE BOARD's SHOW ALL
++ TRY AGAIN = the shell's squared tube (9 px). Tests: wk-board-taps (THE PICKER in place, the same nodes), e2e-profiles (REPORT through MORE).
+**THE STATS SHEET (☰ STATS — js/admin/stats-view.js; /admin shares the builders):** THE TILES, three in one row at 390 — PLAYERS = who has
+PLAYED (big) + "N signed up, never played" · NEW THIS WEEK = a tap → its own sheet on top: the week's new members as slim cards (stills),
+newest first, "JOINED WED NOV 18" (`core/insights.js#summarize` → `players.newWeek` — the faces + `at`, no pid, ≤ 40) · MATCHES TODAY;
+FOUNDING MEMBERS gone. THE ORDER: the tiles → matches per day → THE DAILIES → games played → busiest times · most active players · the week.
+MATCHES PER DAY: a TAP on a bar → a small box above it ("NOV 17 · 84 MATCHES"); another bar moves it, a tap outside closes it — ONE hit zone
+over the chart (`.st-hit`, data-press; pointerdown + up, a moved finger = a scroll), the chart 150 pt tall = every bar's target ≥ 44 pt. THE
+WEEK: a bar INSIDE a bar (the tall dim cyan = visits, the hot-pink inside = games — the dailies chart's way). NO GOLD IN STATS: every bar +
+heading cyan (#5fe3ff); a two-tone bar = a dim cyan outer + a hot-pink inner; /admin's matching charts follow (the same builders + admin.css).
+THE FOLD: every slim-card list (each daily's WHO, most active players) shows 3 cards + SHOW ALL (N); SHOW LESS folds it back (`foldBtn` — the
+shell's squared 9-px tube).

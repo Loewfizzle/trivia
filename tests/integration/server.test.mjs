@@ -1549,6 +1549,9 @@ test('CONN: GET /api/admin?live=1 — city2/live for any visitor, edge-cached, o
   await ref('city2').remove();
   { const r = await call('/api/admin?live=1');
     assert.equal(r.code, 200); assert.equal(r.body.live, null); assert.ok(Math.abs(r.body.at - Date.now()) < 5000, 'the server time it was read');
+    // (CITY H2 — THE GAMES LIST ORDER: the playable games' ORDER only — every playable id once, no counts; worked once a streak day)
+    assert.deepEqual([...r.body.order].sort(), ['holdem', 'jaywalk', 'overclock', 'prism'], `the order (${JSON.stringify(r.body.order)})`);
+    const stored = await val('progress/gameOrder'); assert.deepEqual(stored.order, r.body.order); assert.match(stored.day, /^d\d{8}$/);
     assert.equal(r.h['cache-control'], LIVE_CACHE); assert.match(LIVE_CACHE, /s-maxage=\d+/); assert.match(LIVE_CACHE, /public/); }
   const now = Date.now();
   await ref('city2/live').set({ v: 1, kind: 'preview', state: { force: ['banner'], text: 'HI ALL' }, params: { force: 'banner' }, label: 'secret label', startAt: now, until: now + 60_000, by: 'ptest00000000' });
@@ -2296,7 +2299,11 @@ test('THE TRI-VISION: JAYWALK\'s switch — the default, an open day, OFF; HOLD\
     assert.deepEqual([st.on, st.open], [false, null], 'OFF + the open day cleared');
     assert.equal((await cityLiveNow()).radio.base.holdem.on, false, 'and JAYWALK\'s never wipes HOLD\'EM\'s');
     st = (await adminAction('u-jw-own', { action: 'billboardJaywalk', on: true, bar: 'open', open: 'not-a-day' })).jaywalk;
-    assert.deepEqual([st.on, st.bar, st.open], [true, 'open', null], 'NOW OPEN; a bad day ignored');
+    // (CITY H2 — the 4:03 pm entry: NOW OPEN switched with no (good) day typed STAMPS today — the roof board opens on the game switched on most recently)
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
+    assert.deepEqual([st.on, st.bar, st.open], [true, 'open', today], 'NOW OPEN; a bad day ignored — today stamped');
+    st = (await adminAction('u-jw-own', { action: 'billboardJaywalk', bar: 'open', open: '' })).jaywalk;
+    assert.equal(st.open, null, 'a day cleared on purpose (an empty open) stays cleared');
     assert.ok(Object.values((await val('audit')) || {}).filter(a => a.act === 'billboardJaywalk').length >= 3, 'every switch audited');
     await assert.rejects(adminAction('u-jw-x', { action: 'billboardJaywalk', on: false }), 'a non-admin is refused');
   } finally { process.env.ADMIN_PIDS = ''; await ref('city2/billboard').remove(); }

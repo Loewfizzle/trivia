@@ -209,12 +209,12 @@ await H.run(async () => {
     // (CITY B: places 1–3 are THE DECO MEDALS — their label says the place: "1st place" → 1ST)
     const place = r => { const m = r.querySelector('.lb-rank .rk-medal'); return m ? m.getAttribute('aria-label').split(' ')[0].toUpperCase() : r.querySelector('.lb-rank').textContent; };
     return { rows: rows.map(r => `${place(r)}|${r.querySelector('.vl-name').textContent}|${r.querySelector('.dy-cscore').textContent}`),
-      under: sc.top >= sr.bottom - 1, rightEnd: Math.abs(sc.right - sr.right) < 8, rankLeft: rk.right <= sr.left, frame: getComputedStyle(me.querySelector('.dy-card .vl-strip')).boxShadow !== 'none' && getComputedStyle(me.querySelector('.dy-card'), '::after').boxShadow === 'none', still: !!document.querySelector('.dy-sec[data-id="password"] .dy-still') };
+      under: sc.top >= sr.bottom - 1, rightEnd: Math.abs(sc.right - sr.right) < 8, rankLeft: rk.right <= sr.left, frame: me.querySelector('.dy-card .vl-strip').classList.contains('sb-me') && getComputedStyle(me.querySelector('.dy-card .vl-strip'), '::after').animationName === 'sb-breathe' && getComputedStyle(me.querySelector('.dy-card'), '::after').boxShadow === 'none', still: !!document.querySelector('.dy-sec[data-id="password"] .dy-still') };
   });
   ok(sc2.rows[0] === '1ST|ALICE|2 GUESSES' && sc2.rows[1] === '2ND|BOBBY|3 GUESSES', `SCORES · EVERYONE as slim cards: ${sc2.rows.join(' · ')}`);
   { const fr = await A.page.evaluate(() => [...document.querySelectorAll('.dy-sec[data-id="password"] .dy-crow')].map(r => !!r.querySelector('.vl-friend')));
     ok(fr.join() === 'false,true', `a FRIEND in the everyone list: BOBBY's card says FRIEND, YOU's doesn't (${fr.join()})`); }
-  ok(sc2.under && sc2.rightEnd && sc2.rankLeft && sc2.frame && !sc2.still, `the rank LEFT of the card, the score UNDER it at its right end, YOU framed, nobody still to play (${JSON.stringify({ under: sc2.under, rightEnd: sc2.rightEnd, rankLeft: sc2.rankLeft, frame: sc2.frame })})`);
+  ok(sc2.under && sc2.rightEnd && sc2.rankLeft && sc2.frame && !sc2.still, `the rank LEFT of the card, the score UNDER it at its right end, YOU framed, nobody still to play (CITY H2: YOU = THE YOU ROW's glow) (${JSON.stringify({ under: sc2.under, rightEnd: sc2.rightEnd, rankLeft: sc2.rankLeft, frame: sc2.frame })})`);
   if (H.SHOTS) await H.shotAll(A.page, 'dy-08-scores');
   // ================================================================ 3b. NO TAP EVER GOES THROUGH THE DAILY SCREEN TO THE CITY
   // (the owner's live bug, Nov 14: on SCORES a tap on a slim card opened PRISM DROP's game card — the city behind answered it. title-taps.js

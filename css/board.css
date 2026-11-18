@@ -152,6 +152,9 @@ button.bd-open:focus-visible { outline: 2px solid #ff4fc8; outline-offset: 3px; 
 
 /* ---- the public page: PLAY NOW ---- */
 .bd-cta { flex: none; display: flex; flex-direction: column; align-items: center; gap: 7px; padding-bottom: 14px; }
+/* (CITY H2 — the list scrolls with the page: the public page's PLAY NOW stays on screen, pinned at the foot over a fade) */
+.bd.is-public .bd-cta { position: sticky; bottom: 0; z-index: 3; margin: auto calc(-16px - var(--safe-r)) 0 calc(-16px - var(--safe-l)); padding: 22px calc(var(--safe-r) + 16px) calc(var(--safe-b) + 12px) calc(var(--safe-l) + 16px);
+  background: linear-gradient(180deg, rgba(7, 5, 15, 0), rgba(7, 5, 15, 0.94) 34%, #07050f); }
 .bd-play { width: min(100%, 420px); }
 .bd-cta-line { font: 700 9px/1.4 var(--font-mono); letter-spacing: 0.2em; text-transform: uppercase; text-align: center; color: var(--bd-faint); }
 
@@ -166,11 +169,13 @@ button.bd-open:focus-visible { outline: 2px solid #ff4fc8; outline-offset: 3px; 
 }
 /* a short phone (Safari's bars up, 375 × 667): the strip shorter — the signs' band kept (its sky + the quay trimmed) */
 @media (max-height: 700px) and (max-width: 899px) {
-  .bd-title { padding-top: 12px; gap: 3px; }
+  .bd-title { padding-top: 10px; gap: 3px; }
   .bd-name { font-size: 22px; }
-  .bd-sky { max-height: 76px; margin-top: -6px; background-position: center 40%; }
-  .bd-wrap { gap: 8px; }
-  .bd-rows { gap: 8px; }
+  .bd-sub { display: none; }   /* (the strip says HALL OF FAME's job; 6 full cards even with YOUR foot up) */
+  .bd-sky { max-height: 62px; margin-top: 2px; background-position: center 36%; }
+  .bd-wrap { gap: 7px; }
+  .bd-rows { gap: 6px; }
+  .bd-me-line { min-height: 44px; }
 }
 
 /* ---- reduced effects ---- */
