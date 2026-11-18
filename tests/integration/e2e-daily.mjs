@@ -16,6 +16,7 @@ process.env.GCLOUD_PROJECT ||= 'demo-arcade';
 process.env.DAILY_TEST ||= '1';   // (this process calls /api/daily directly for BOBBY — the dailies open as on the test server)
 import { createHarness } from './kit/harness.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
+import { dailyTestMode, DAILY_MODE_FIX } from './kit/daily-mode.mjs';
 import { ref, val } from '../../api/_lib/fb.js';
 import { pwDay, pwLists } from '../../api/_lib/pw.js';
 import { ccBoard } from '../../api/_lib/cc.js';
@@ -108,6 +109,7 @@ await H.run(async () => {
     for (let i = 0; i < bd.w * bd.h && !r.done; i++) if (!LB.has(i)) r = await dailyAction('e2e-dy-bob', { action: 'dig', game: 'coastclear', cell: i });
     const cf = await dailyAction('e2e-dy-bob', { action: 'finish', game: 'coastclear' });
     log(`BOBBY's COAST CLEAR: ${cf.score} (1 spot)`); }
+  if (!(await dailyTestMode(A.page))) H.fail(DAILY_MODE_FIX);   // (CITY G: the evening "red" — a server without DAILY_TEST=1)
   await today(A.page);
   await waitFor(A.page, `(() => { const t = document.querySelector('.nd-tab-daily'); return t && !t.hidden; })()`, 'the DAILY button', 20000);
   let d = await dock(A.page);

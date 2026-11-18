@@ -60,6 +60,7 @@ import { timing, noTiming } from './_lib/timing.js';
 import { ensureTop, addTop, extraOf } from './_lib/every.js';
 import { everyView, placeIn, TOP_KEEP, TOP_SHOW } from '../js/core/every.js';
 import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE } from './_lib/share-card.js';   // (CITY E — THE TAPPABLE SHARE CARD)
+import { compactResults } from './_lib/results-sweep.js';   // (CITY G — results/ compacted past 14 days)
 
 /** DM1 — THE CALL BUDGET: generous for real play (both dailies, retries, refreshes), a flood refused */
 export const CALLS = { max: 400, windowMs: 10 * 60_000 };
@@ -332,6 +333,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       // DFIX2 — THE DAY'S CLOSE runs from `today` too (the title's first call of the day): a memo per warm function
       const closing = closeDays({ games, now }).then(() => sweepRuns({ games, now, settle: settleRun })).catch(() => null);
       sweepShares({ now }).catch(() => null);   // (CITY E: the share cards past 7 days — THE DAY'S CLOSE's sweep, no idle poll)
+      compactResults({ now }).catch(() => null);   // (CITY G: results/ past 14 days compacted — js/core/results-compact.js — once a day, never waited on)
       if (!pid) { await closing; return { day, dailies, mine: {}, gated: {}, started: {}, stand: {}, lessons: {}, friends: {}, table: [], noProfile: true }; }
       const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {}, shareOf = {}, rfOf = {}, placeOf = {}, extraMine = {};
       // (CITY D — SCORES SHOWS INSTANTLY: the profile's own reads + YOUR TABLE's friends list start NOW, beside the dailies' reads — never after)

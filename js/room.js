@@ -192,8 +192,16 @@ async function closeRoom(code, solo = false) {
   // (PLAY NOW: a solo room rests no word — its code was never a hush word, and the pool stays untouched)
   if (solo) await remove(dbRef(R(code)));
   else {
-    try { await update(dbRef(), { [R(code)]: null, [`hush/${code}`]: { closedAt: serverTimestamp() } }); }
-    catch { await remove(dbRef(R(code))); }
+    // (CITY G — THE CHROMEBOOK's DOUBLE CLOSE: /admin RULES REFUSED "update {rooms/*, hush/*}" — the rules rest the word only WITH the room's own
+    //  deletion; this room had closed a moment earlier (another close). Asked first: already gone = done (its side nodes still cleared) + a
+    //  quiet count (errlog.js#countQuiet 'gone'), never an error row)
+    let there = true;
+    try { there = (await get(dbRef(`${R(code)}/meta`))).exists(); } catch { /* unknown: try the close */ }
+    if (!there) lazyImport(import('./errlog.js'), './errlog.js').then(m => m.countQuiet && m.countQuiet('gone')).catch(() => {});
+    else {
+      try { await update(dbRef(), { [R(code)]: null, [`hush/${code}`]: { closedAt: serverTimestamp() } }); }
+      catch { await remove(dbRef(R(code))).catch(() => {}); }
+    }
   }
   await clearSideNodes(code);
 }

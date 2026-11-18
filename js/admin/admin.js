@@ -16,7 +16,7 @@ import { GAMES } from '../config.js';
 import { GAME_LIGHT } from '../board/view.js';
 import { groupErrors, groupReports, filterGroups, countLine } from './groups.js';
 import { lazyImport } from '../ui/lazy-import.js';
-import { big, statsBlocks } from './stats-view.js';   // (CITY C — ONE stats builder: /admin + the ☰ STATS sheet)
+import { big, statsBlocks, dailyChart } from './stats-view.js';   // (CITY C — ONE stats builder: /admin + the ☰ STATS sheet)
 
 const app = document.getElementById('app');
 const gameName = id => (GAMES.find(g => g.id === id) || { name: id }).name;
@@ -462,16 +462,9 @@ async function dailyStats() {
     const S = (await call('dailyStats')).stats;
     const metas = Object.fromEntries(await Promise.all(S.dailies.map(async d => [d.id, await dyMeta(d.id)])));
     const line = (id, score) => { const m = metas[id]; return m && typeof m.scoreLine === 'function' ? m.scoreLine(score) : String(score); };
-    const dl = k => `${+k.slice(5, 7)}/${+k.slice(7, 9)}`;
     const { friendButton } = await lazyImport(import('../profile/friends-ui.js'), '../profile/friends-ui.js');
-    const blocks = S.dailies.map(d => {
-      const max = Math.max(1, ...d.days.map(x => x.started));
-      return h('div.ad-block.ad-dly-g',
-        h('div.ad-row.ad-between', h('h3', d.name), h('b.ad-dly-today', `STARTED ${d.today.started} · FINISHED ${d.today.finished}`)),
-        h('div.ad-cols.is-weeks.ad-dly-cols', ...d.days.map(x => h('div.ad-col', { title: `${dl(x.day)}: ${x.started} started · ${x.finished} finished`, style: { '--h': `${(x.started / max) * 100}%`, '--f': `${(x.finished / max) * 100}%` } },
-          h('i'), h('i.ad-col-f'), h('em', `${x.finished}/${x.started}`), h('small', x.day === S.day ? 'TODAY' : dl(x.day))))),
-        h('p.ad-note', 'Each column is a day: the tall bar = started, the bright one = finished (finished/started).'));
-    });
+    // (CITY G — THE DAILIES CHART: ONE builder, js/admin/stats-view.js#dailyChart — the ☰ STATS sheet draws the same)
+    const blocks = S.dailies.map(d => h('div.ad-block.ad-dly-g', ...dailyChart(d.name, d.days, S.day)));
     const rows = S.players.map(p => h('li.ad-dly-p',
       avatar(p.a, p.c, 26),
       h('button.ad-linkbtn', { type: 'button', onclick: () => open(p.pid) }, p.n, h('small', p.t ? fmtTag(p.t) : '')),

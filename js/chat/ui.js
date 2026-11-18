@@ -173,7 +173,13 @@ export function openChat({ focus = false } = {}) {
   // ---- THE CHAT KEYBOARD (LOBBY 2.0 A — docs/chat.md): the sheet keeps ONE size and SLIDES UP as one piece onto the keyboard — a
   // transform by the keyboard's height (the visual viewport), never a resize: nothing behind it squeezes or jumps, the list stays on the
   // newest message. (Only a keyboard taller than the room above it — an iPad's, the emoji pane on a small phone — caps the height to fit.)
+  // CITY G — THE CHAT CURSOR (the owner's iPhone, the keyboard up: the BLINKING CARET below the box, the text landing inside it): iOS draws the
+  // caret at the box's place when an ANCESTOR moves by a transform after focus. Once the keyboard + the slide settle (no new viewport size for
+  // SETTLE_MS): the same lift by `bottom` (layout — .is-settled, css/chat.css), no transform left on the box's ancestors, the caret re-seated.
   const vv = () => window.__fakeVV || window.visualViewport;
+  const SETTLE_MS = 320;
+  let settleT = 0, lastKb = -1;
+  const settle = () => { settleT = 0; if (!open || !sheet.isConnected) return; sheet.classList.toggle('is-settled', lastKb > 40); if (lastKb > 40 && globalThis.__nsReseat) globalThis.__nsReseat(sheet); };
   function layout() {
     const v = vv();
     if (!v) return;
@@ -181,6 +187,9 @@ export function openChat({ focus = false } = {}) {
     sheet.style.setProperty('--kb', `${kb}px`);
     sheet.style.setProperty('--vh', `${Math.round(v.height)}px`);
     sheet.classList.toggle('has-kb', kb > 40);
+    // (the keyboard gone: back to the transform at once — a later keyboard slides in again; a changed height while settled moves by bottom)
+    if (kb <= 40) sheet.classList.remove('is-settled');
+    if (kb !== lastKb) { lastKb = kb; clearTimeout(settleT); settleT = setTimeout(settle, SETTLE_MS); }
     scrollEnd(true);
   }
   const v0 = window.visualViewport;

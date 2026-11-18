@@ -7,7 +7,7 @@
 //
 // THE GO-LIVE SWITCH (DM1): progress/dailies = { on: true, at, by } (server-only — the rules' default deny), flipped by the owner only
 // (/api/admin dailySwitch — audited). OFF (no node — the default, until THE SWITCH-OVER) → production registers NOTHING: every daily answers
-// 404 no_daily. ON → the list's switched-on rows. DAILY_TEST=1 (the tests + `serve.mjs --emu`) opens them whatever the switch says, + THE FAKE
+// 404 no_daily. ON → the list's switched-on rows. DAILY_TEST=1 (the tests — `DAILY_TEST=1 node scripts/serve.mjs <port> --emu`; `--emu` alone does NOT set it, CITY G) opens them whatever the switch says, + THE FAKE
 // DAILY (guess a number 0–999, the score = 1000 − how far off) + any test-registered daily (registerTestDaily) — never on the live site
 // (Vercel has no DAILY_TEST).
 //

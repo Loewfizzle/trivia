@@ -9,6 +9,7 @@ import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { guardUrl } from './kit/live-guard.mjs';
+import { dailyTestMode, DAILY_MODE_FIX } from './kit/daily-mode.mjs';
 
 const argv = process.argv.slice(2);
 const BASE = (i => (i < 0 ? 'http://localhost:5173' : argv[i + 1]))(argv.indexOf('--base'));
@@ -142,7 +143,15 @@ try {
       }
     } else ok(false, `${tag} the profile's CUSTOMIZE YOUR CARD on screen (${await p.evaluate("(() => { const o = document.querySelector('.pf-screen'); return o ? [...o.querySelectorAll('.btn')].map(b => b.className + ' ' + b.textContent.trim().slice(0, 20)).join(' | ') + ' :: ' + o.textContent.replace(/\s+/g, ' ').slice(0, 160) : 'no .pf-screen; view ' + window.__arcade.state.view; })()")})`);
     await home();
+    // ---- CITY G — A CONFIRM CONTROL (☰ → LEAVE ROOM's "TAP AGAIN TO LEAVE" — 2 lost taps on the owner's phone, both rescued): the first tap
+    //  ARMS it (the label swapped, .is-confirm), the SECOND acts — each on its OWN press + lift (ui/components.js#confirmTap → data-press)
+    await p.evaluate(() => import('/js/ui/components.js').then(m => { window.__cfN = 0; const r = m.row({ icon: 'leave', label: 'Leave room', danger: true, cls: 'gm-leave wp-cf', confirm: 'TAP AGAIN TO LEAVE', onClick: () => { window.__cfN++; } }); r.style.cssText = 'position:fixed;left:20px;right:20px;top:320px;z-index:99999'; document.body.append(r); }));
+    await press(`${tag} a CONFIRM row's first tap (arms it: TAP AGAIN TO LEAVE)`, '.wp-cf', "document.querySelector('.wp-cf').classList.contains('is-confirm') && window.__cfN === 0");
+    await press(`${tag} the CONFIRM row's SECOND tap (acts once)`, '.wp-cf', 'window.__cfN === 1');
+    await p.evaluate(() => { const r = document.querySelector('.wp-cf'); if (r) r.remove(); });
     // ---- THE DAILY SCREEN: SCORES → ALL TIME ↔ TODAY, the FRIENDS box, the TODAY tab, BACK
+    // (CITY G: its evening "red" was a server without DAILY_TEST=1 — the dailies switched off on fresh emulators: said, never a timeout)
+    if (!(await dailyTestMode(p))) { console.log(`FATAL ${DAILY_MODE_FIX}`); process.exit(1); }
     await p.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'scores' } })));
     if (await waitFor("!!document.querySelector('.dy-scope-b')", 15000)) {
       await p.evaluate("window.__wpSc = (document.querySelector('.dy-scope-b.is-on') || {}).textContent || ''");

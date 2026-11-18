@@ -54,6 +54,9 @@ body.chat-fab-on .timer { padding-right: 48px; margin-bottom: 10px; } /* and cle
   max-height: calc(var(--vh, 100dvh) - var(--safe-t, 0px) - 16px);
 }
 .sh.chat-sheet.is-in .sh-panel { transform: translateY(calc(0px - var(--lift))); transition: transform 0.24s cubic-bezier(.2, .8, .2, 1); }
+/* CITY G — THE CHAT CURSOR: once the keyboard + the slide settle (chat/ui.js — .is-settled) the SAME lift by `bottom` (layout, never a transform
+   left on the text box's ancestors — iOS drew the caret at the box's pre-transform place, below it) */
+.sh.chat-sheet.is-in .sh-panel.is-settled { transform: none; bottom: var(--lift); transition: none; }
 .sh.chat-sheet .sh-body { padding: 0 0 8px; gap: 0; overflow: hidden; display: flex; flex-direction: column; }
 .sh.chat-sheet .sh-panel.has-kb .sh-body { padding-bottom: 0; }
 .sh-panel.has-kb .chat-form { padding-bottom: 8px; }

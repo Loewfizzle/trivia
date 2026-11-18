@@ -305,6 +305,11 @@ G('roomchat', async () => {
   const kb = await ev(q, "(() => { const s = document.querySelector('.chat-sheet .sh-panel').getBoundingClientRect(), f = document.querySelector('.chat-form').getBoundingClientRect(), c = document.querySelector('.chat-chips').getBoundingClientRect(); return { h: s.height, top: s.top, form: f.bottom, chips: c.bottom <= f.top + 1 && c.height > 30 }; })()");
   ok(Math.abs(kb.h - h0) < 1 && kb.form <= 844 - 336 + 1 && kb.top >= 0 && kb.chips, `THE CHAT KEYBOARD: ONE size (${Math.round(h0)} → ${Math.round(kb.h)} pt) slid up as one piece — the field above the keyboard (bottom ${Math.round(kb.form)} ≤ 508), the top on screen (${Math.round(kb.top)}), the quick replies just above the field`);
   if (SHOTS) await q.screenshot({ path: `${OUT}lobby-chat-kb-390.png` });
+  // CITY G — THE CHAT CURSOR: settled (no new keyboard size for 320 ms) → NO transform left on the text box's ancestors (the same lift by
+  // `bottom`), the box in the same place, still focused (the keyboard stays up)
+  await sleep(500);
+  const cur = await ev(q, "(() => { const i = document.querySelector('.chat-sheet .chat-input'); const tr = []; for (let e = i; e && e !== document.body; e = e.parentElement) { const t = getComputedStyle(e).transform; if (t && t !== 'none') tr.push(e.className); } const f = document.querySelector('.chat-form').getBoundingClientRect(); return { tr, form: f.bottom, focus: document.activeElement === i, settled: document.querySelector('.chat-sheet .sh-panel').classList.contains('is-settled') }; })()");
+  ok(cur.settled && !cur.tr.length && Math.abs(cur.form - kb.form) < 1.5 && cur.focus, `THE CHAT CURSOR: settled — no transform on the box's ancestors (${cur.tr.join(', ') || 'none'}), the field where it was (${Math.round(kb.form)} → ${Math.round(cur.form)}), still focused (${cur.focus})`);
   await ev(q, '(() => { delete window.__fakeVV; window.__chatLayout(); })()');
   // send → the bubble goes; a chip sends its words
   await q.keyboard.press('Enter');

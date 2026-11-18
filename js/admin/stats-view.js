@@ -150,18 +150,33 @@ function whoBlock(g, W, view, rerender) {
   }));
   if (rows.length) fillWhenSized(list, faces);
   const more = L.n - rows.length;
-  res.append(rows.length ? list : h('p.ad-dim', scope === 'today' ? 'Nobody has played it today yet.' : 'Nobody played it this week.'),
-    more > 0 ? (open ? h('p.ad-note', `+${more} more not kept in this copy`) : h('button.st-more', { type: 'button', 'data-press': true, onclick: () => { view[`${k}:all`] = true; rerender(); } }, `+${more} MORE`)) : null);
+  // (CITY G — STATS "null": DOM append(null) PRINTS the word "null" — only real nodes go in)
+  res.append(rows.length ? list : h('p.ad-dim', scope === 'today' ? 'Nobody has played it today yet.' : 'Nobody played it this week.'));
+  if (more > 0) res.append(open ? h('p.ad-note', `+${more} more not kept in this copy`) : h('button.st-more', { type: 'button', 'data-press': true, onclick: () => { view[`${k}:all`] = true; rerender(); } }, `+${more} MORE`));
   return h('div.st-who', h('div.ad-row.ad-between', h('small.ad-dim', `${L.n} ${L.n === 1 ? 'player' : 'players'}`), t), res);
+}
+/** CITY G — THE DAILIES CHART (the 5:42 pm entry — ONE builder: /admin's THE DAILIES + the ☰ STATS sheet): each column a day — the TALL bar =
+ *  started with the BRIGHT bar INSIDE it = finished, "finished/started" on top, the day under (TODAY for today); "STARTED n · FINISHED n" (today)
+ *  in the header; the note under it. days: [{ day, started, finished }] · today: the day key that reads TODAY → [the head row, the columns, the note] */
+export function dailyChart(name, days, today, { head = 'h3' } = {}) {
+  const D = days || [], max = Math.max(1, ...D.map(x => x.started || 0)), t = D.find(x => x.day === today) || { started: 0, finished: 0 };
+  return [
+    h('div.ad-row.ad-between', h(head, name), h('b.ad-dly-today', `STARTED ${t.started || 0} · FINISHED ${t.finished || 0}`)),
+    h('div.ad-cols.is-weeks.ad-dly-cols', ...D.map(x => h('div.ad-col', { title: `${dayLabel(x.day)}: ${x.started || 0} started · ${x.finished || 0} finished`, style: { '--h': `${((x.started || 0) / max) * 100}%`, '--f': `${((x.finished || 0) / max) * 100}%` } },
+      h('i'), h('i.ad-col-f'), h('em', `${x.finished || 0}/${x.started || 0}`), h('small', x.day === today ? 'TODAY' : dayLabel(x.day))))),
+    h('p.ad-note', 'Each column is a day: the tall bar = started, the bright one = finished (finished/started).'),
+  ];
 }
 function dailiesBlock(D, W, view = {}, rerender = () => {}) {
   const rows = (D && D.dailies) || [];
   const whoOf = id => (W && Array.isArray(W.dailies) ? W.dailies.find(x => x.id === id) : null);
+  const today = (D && D.day) || (W && W.day) || null;
   return h('div.ad-block', h('h3', 'The dailies · plays a day · finish rate · who'),
     rows.length ? h('div.st-dly', ...rows.map(g => {
-      const days = g.days || [], max = Math.max(1, ...days.map(x => x.started || 0)), st = days.reduce((a, x) => a + (x.started || 0), 0), fi = days.reduce((a, x) => a + (x.finished || 0), 0);
-      return h('div.st-dly-g', h('div.ad-row.ad-between', h('b', g.name || g.id), h('small.ad-dim', st ? `${Math.round(100 * fi / st)}% finish · ${st} plays / ${days.length} days` : 'no plays yet')),
-        h('div.ad-cols.st-dly-cols', ...days.map(x => h('div.ad-col', { title: `${dayLabel(x.day)}: ${x.started || 0} plays · ${x.finished || 0} finished`, style: { '--h': `${((x.started || 0) / max) * 100}%` } }, h('i'), h('small', dayLabel(x.day))))),
+      const days = g.days || [], st = days.reduce((a, x) => a + (x.started || 0), 0), fi = days.reduce((a, x) => a + (x.finished || 0), 0);
+      // (the chart = /admin's, the sheet's own extras kept: the finish rate + the WHO list)
+      return h('div.st-dly-g', ...dailyChart(g.name || g.id, days, today, { head: 'b' }),
+        h('small.ad-dim.st-dly-rate', st ? `${Math.round(100 * fi / st)}% finish · ${st} plays / ${days.length} days` : 'no plays yet'),
         whoOf(g.id) ? whoBlock(whoOf(g.id), W, view, rerender) : null);
     })) : h('p.ad-dim', 'No daily is live.'));
 }
