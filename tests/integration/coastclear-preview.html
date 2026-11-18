@@ -23,6 +23,8 @@
        &share=1               the rendered share image (NO BOARD) over the screen, once the run has ended (with &end=…)
        &ping=1                DFIX5 — THE SONAR PING: a 300 ms line (unless &lat is given) + a scripted press every 2.2 s on the next safe cell
                               (real pointer events: the rings on the DOWN, the number SURFACING when it lands) — a real touch stops the script
+       &dig=up|down           DAILY A — when a dig fires (logic.js#CC_DIG_ON — the default 'down': DIG digs on the touch-down, buoys from the
+                              BUOY switch only · 'up' = the dig on the lift, press-and-hold = a buoy)
        &diag=1                DFIX5 — THE OWNER'S DIG READOUT under the board (the fake's `start` says owner, as the server does for ADMIN_PIDS)
        the audio: the console's unlock-on-tap is installed here (audio/engine.js#installAudio) — tap once and the sounds play (an iPhone too)
        window.__coastclear = the view's hook · window.__preview = { judge, board, counts, play } -->
@@ -144,7 +146,7 @@ try { localStorage.setItem(`cc:buoys:${DAY}:${UID}`, [...buoys].join(',')); } ca
 
 // mount the real view, as the console would (state.game = the daily's run shell, state.judge = the fake)
 const game = create({ date: DAY, uid: UID, now: T0, daySet: { v: 1, day: DAY } });
-const state = { uid: UID, game, judge, players: { [UID]: { name: 'YOU', color: 'cyan', avatar: 'bolt' } }, meta: { status: 'playing' },
+const state = { uid: UID, game, judge, players: { [UID]: { name: 'YOU', color: 'cyan', avatar: 'bolt' } }, meta: { status: 'playing' }, ...(q.get('dig') ? { digOn: q.get('dig') } : {}),   // (DAILY A — &dig=up|down)
   ...(q.get('hint') === '1' ? { hint: (await import('/js/games/coastclear/index.js')).HINT, onHint: () => { document.body.dataset.hintSeen = '1'; } } : {}) };   // (DFIX3 — THE ONE-TIME HINT under the board)
 const view = createView();
 view.mount(document.getElementById('screen'), state);

@@ -25,6 +25,7 @@ import { dailyAction } from '../../api/daily.js';
 import { pausesOf } from '../../js/games/coastclear/logic.js';
 import { streakDay } from '../../js/core/streak.js';
 import { SWEEP_XP, DAILY_XP } from '../../js/core/daily.js';
+import { ccTouchChecks } from './kit/cc-touch.mjs';
 
 const H = await createHarness({ name: 'daily', slot: 'dy', sizes: [[390, 844], [402, 874], [430, 932]] });
 const { log, sleep, ok, BASE, browser } = H;
@@ -62,6 +63,10 @@ const click = (p, sel) => p.evaluate(s => { const e = document.querySelector(s);
 const up = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); if (!e) throw new Error(`no ${s}`); e.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); }, sel);
 
 await H.run(async () => {
+  // ================================================================ 0. DAILY A — COAST CLEAR's TOUCH-DOWN (both CC_DIG_ON settings) + THE FITTED BOARD
+  //   (the real view on its preview page — kit/cc-touch.mjs: 375 / 390 / 402 / 430, night + day)
+  await ccTouchChecks({ browser, base: BASE, ok, log });
+
   // (nothing of the day's own data is wiped — the stored pair + board stay the server's; every phone here is a fresh profile; BOBBY's old try goes)
 
   // ================================================================ 1. THE DOCK BUTTON's states (the title preview — the switch off / on)

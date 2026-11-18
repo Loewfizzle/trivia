@@ -14,7 +14,7 @@
 //   createView() → { mount(el, state), update(state), unmount() }   state.game = the run shell (daily.create / start) · state.judge = a judge
 //   (the preview's fake; default THE API JUDGE — judge.js) · window.__coastclear = the test hook (the preview + the E2E)
 import { h, clear, reducedMotion } from '../../ui/dom.js';
-import { PING_MS, SURF_MS, DIAG_N, diagLine } from './logic.js';
+import { PING_MS, SURF_MS, DIAG_N, diagLine, digOnOf, downAct } from './logic.js';
 import { LAMP_SVG } from './meta.js';   // (DFIX5 — the ping's timings + the owner's readout line: pure)
 import { foldAnswer, emptyView, clockMs, fmtClock, buoysLeft, chordTargets, nbOf, headline, endLineNb, finalMs, endMap, shareLine, shareInputs, MAX_SPOTS, W, H, LIGHTS, SPOT_S } from './logic.js';
 import { retryable, recordFinish, tickTurn, endActions, endShare, NOT_RECORDED } from '../../daily/end.js';
@@ -24,7 +24,8 @@ import { ccSfx, ccSfxBytes } from './sfx.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { ccEndResult } from './end-card.js';   // (FIXES R2: THE END SCREEN's result — ONE builder, shared with TAP A TICKET's sheet)
 
-export const LONG_MS = 380;           // a long-press = a buoy (in DIG mode)
+export const LONG_MS = 380;           // a long-press = a buoy (in DIG mode — CC_DIG_ON 'up' only)
+export const TOUCH_MS = 260;          // DAILY A — the touched tile's pulse (the ticket's colour)
 export const RIPPLE_MS = 30;          // the flood: one ring outward every 30 ms
 export const SLOW_MS = 2000;          // an answer this late → the quiet RECONNECTING line
 // CC2 — GETTING SPOTTED's beats: the beam's sweep in (it lands on the cell), its hold on the cell, its fade; CAUGHT's converge + pulse
@@ -53,7 +54,7 @@ export function createView() {
   let buoys = new Set(), pending = new Set(), inflight = new Map(), seq = 0, offset = 0, bestRtt = Infinity, net = false;
   let queue = [], flying = false, calls = 0;   // DFIX3 — the taps waiting for the next call; one coalesced call in flight at a time; the calls made
   const taps = [];                             // the dev-only timing: { cell, ms: the tap → its number on screen, server: Server-Timing's phases }
-  let owner = false, pings = 0;                // DFIX5 — the owner's readout on (the server's `start` says so — never the phone); the rings sent
+  let owner = false, pings = 0, downs = 0, touches = 0, touched = 0;   // (DAILY A — the moves fired on a DOWN; the touches THE TOUCH GUARD let go; the pulses)                // DFIX5 — the owner's readout on (the server's `start` says so — never the phone); the rings sent
   const digMs = [];                            // DFIX5 — the owner's readout: the last DIAG_N digs (release → the number painted)
   let timers = [], tickT = 0, netT = 0, clockT = 0, press = null;
   const landing = new Set();      // CC2: lights the server has named whose beam is still on its way (painted lit when it lands)
@@ -105,6 +106,7 @@ export function createView() {
     els.diag = h('p.cc-diag', { hidden: true, 'aria-hidden': 'true' });
     els.play.append(els.diag);
     root.append(els.head, els.play, els.note, els.mode, els.end, els.fx);
+    watchFit();
     els.board.addEventListener('pointerdown', onDown);
     els.board.addEventListener('pointermove', onMove);
     els.board.addEventListener('pointerup', onUp);
@@ -113,13 +115,44 @@ export function createView() {
     setMode(mode);
   }
 
+  // ---- DAILY A — THE FITTED BOARD (the owner, Nov 18: "no row ever cut off"): the cell's size from the height ACTUALLY left — the play
+  // area's own box (what the header, the quiet line + DIG / BUOY leave it: a flex child, so its height IS the leftover) minus the status row,
+  // the one-time hint + the owner's readout when shown — MEASURED by ONE ResizeObserver (a resize, a turn, the safe areas, the hint going),
+  // never read in a frame loop. → --cc-fit on the screen; css/coastclear.css's --cc-cell takes the smaller of it and the width's cell.
+  let fitRO = null, fitK = null;
+  const fitBox = new Map();
+  function watchFit() {
+    if (typeof ResizeObserver !== 'function' || !els.play) return;
+    const cs = getComputedStyle(els.play), gap = parseFloat(cs.rowGap) || 10, cg = parseFloat(getComputedStyle(root).getPropertyValue('--cc-gap')) || 2;
+    const mOf = el => { const c = getComputedStyle(el); return (parseFloat(c.marginTop) || 0) + (parseFloat(c.marginBottom) || 0); };
+    fitK = { gap, cg, m: new Map([els.hint, els.diag].map(el => [el, mOf(el)])) };
+    fitRO = new ResizeObserver(entries => {
+      for (const en of entries) { const b = en.borderBoxSize && en.borderBoxSize[0]; fitBox.set(en.target, b ? b.blockSize : en.contentRect.height); }
+      fitBoard();
+    });
+    for (const el of [els.play, els.status, els.hint, els.diag]) fitRO.observe(el);
+  }
+  function fitBoard() {
+    if (!root || !fitK) return;
+    const playH = fitBox.get(els.play) || 0;
+    if (!(playH > 0)) return;
+    let avail = playH - (fitBox.get(els.status) || 0) - fitK.gap;
+    for (const el of [els.hint, els.diag]) { const hh = el && !el.hidden ? fitBox.get(el) || 0 : 0; if (hh > 0) avail -= hh + fitK.gap + (fitK.m.get(el) || 0); }
+    const rows = view.h || H, cell = Math.floor((avail - 1 - (rows - 1) * fitK.cg) / rows);
+    const v = `${Math.max(16, cell)}px`;
+    if (root.style.getPropertyValue('--cc-fit') !== v) root.style.setProperty('--cc-fit', v);
+    fitted = { playH: Math.round(playH), avail: Math.round(avail), cell: Math.max(16, cell) };
+  }
+  let fitted = null;
+
   // ---- painting ----------------------------------------------------------------------------------------------------------------------
   /** one cell from the view (opts.delay: the ripple's wait before it pops; opts.pop: animate it in) */
   function paintCell(i, { pop = false, delay = 0, burst = false, surf = false } = {}) {
     const c = cells[i];
     if (!c) return;
     const n = om.get(i), coming = landing.has(i), lit = ls.has(i) && !coming, b = buoys.has(i) && n == null && !ls.has(i);
-    const waiting = (pending.has(i) && n == null && !ls.has(i)) || coming;
+    // (DAILY A — THE DIGGING STATE: a cell the server is answering, or — 'up' — a finger still down on it that will dig on the lift)
+    const waiting = (pending.has(i) && n == null && !ls.has(i)) || coming || (press?.i === i && press.dig && n == null && !ls.has(i));
     c.classList.toggle('is-open', n != null);
     c.classList.toggle('is-lit', lit);
     c.classList.toggle('is-buoy', b);
@@ -385,25 +418,50 @@ export function createView() {
     later(() => c.classList.remove('is-nudge'), 400);
   }
 
-  // ---- the finger: press at once; a long press = a buoy; a slide = nothing --------------------------------------------------------
+  // ---- the finger (DAILY A — CC_DIG_ON, logic.js): the tile reacts AT ONCE on the down (presses in + a pulse in the ticket's colour + its
+  // digging state). 'down' = the move fires on the down (DIG mode digs, BUOY mode lays its buoy, an open number chords) — no long-press;
+  // 'up' = DFIX5's path (the dig on the lift; a long press = a buoy, which lets the digging state go cleanly; a slide = nothing).
+  // THE TOUCH GUARD: one finger at a time — a second finger (not the primary pointer, or any pointer while a press is held) never digs.
+  const digOn = () => digOnOf(st && st.digOn);
   const cellAt = e => { const c = e.target && e.target.closest ? e.target.closest('.cc-cell') : null; return c ? Number(c.dataset.i) : null; };
   function onDown(e) {
     if (e.button > 0) return;
+    if ((e.isTrusted && e.isPrimary === false) || (press && press.id !== e.pointerId)) { touches++; return; }   // (THE TOUCH GUARD)
     const i = cellAt(e);
-    if (i == null || !ready || view.done) return;
+    if (i == null || !ready || view.done || ended) return;
     cancelPress();
     const c = cells[i];
-    const diggable = !om.has(i) && !ls.has(i);
-    if (diggable && !pending.has(i)) c.classList.add('is-press');
-    // DFIX5 — THE SONAR PING: at once, on the DOWN (the dig itself still goes on the lift — a long-press must stay a buoy)
-    const pingEl = diggable && !pending.has(i) && mode === 'dig' && !buoys.has(i) && !view.done && !ended ? ping(i) : null;
-    press = { i, x: e.clientX, y: e.clientY, id: e.pointerId, done: false, t: setTimeout(() => {
+    const diggable = !om.has(i) && !ls.has(i), fresh = diggable && !pending.has(i);
+    const digs = fresh && mode === 'dig' && !buoys.has(i);
+    if (fresh) { c.classList.add('is-press'); touch(i); }
+    // DFIX5 — THE SONAR PING: at once, on the DOWN
+    const pingEl = digs ? ping(i) : null;
+    if (digOn() === 'down') {
+      // the move fires NOW (tap() is the one rule for what a touch on that cell does); the lift only lets the press go
+      const act = downAct('down', { mode, open: om.has(i), lit: ls.has(i), pending: pending.has(i), buoyed: buoys.has(i) });
+      press = { i, x: e.clientX, y: e.clientY, id: e.pointerId, done: true, dig: false, t: 0 };
+      if (act) { downs++; tap(i); }
+      return;
+    }
+    press = { i, x: e.clientX, y: e.clientY, id: e.pointerId, done: false, dig: digs, t: setTimeout(() => {
       if (!press || press.i !== i) return;
-      press.done = true;
+      press.done = true; press.dig = false;
       if (pingEl) pingEl.remove();   // (DFIX5 — the long-press is a BUOY: the ping gives way to the buoy's own drop — no dig)
       if (diggable && !pending.has(i)) { toggleBuoy(i); try { navigator.vibrate && navigator.vibrate(12); } catch { /* fine */ } }
       c.classList.remove('is-press');
+      paintCell(i);                  // (the digging state goes with it — cleanly into the buoy)
     }, LONG_MS) };
+    if (digs) paintCell(i);          // ('up': the digging state from the down)
+  }
+  /** DAILY A — THE TOUCH PULSE: one soft glow out of the touched tile in the ticket's colour (css .cc-touch — transform + opacity; reduced motion
+   *  = a still flash). Gone after TOUCH_MS. */
+  function touch(i) {
+    const c = cells[i];
+    if (!c) return;
+    const el = h(`i.cc-touch${reducedMotion() ? '.is-still' : ''}`, { 'aria-hidden': 'true' });
+    c.append(el);
+    touched++;
+    later(() => el.remove(), TOUCH_MS + 40);
   }
   /** DFIX5 — two quick sonar rings out of the cell (one element, its two rings in CSS — transform + opacity on the compositor); reduced
    *  motion = one soft flash. Gone after PING_MS. Never waits for anything, never holds the number back. */
@@ -417,7 +475,7 @@ export function createView() {
     return el;
   }
   function onMove(e) {
-    if (!press || e.pointerId !== press.id) return;
+    if (!press || e.pointerId !== press.id || press.done) return;
     if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > MOVE_PX) cancelPress();
   }
   function onUp(e) {
@@ -426,13 +484,15 @@ export function createView() {
     clearTimeout(p.t);
     if (!p.done) tap(p.i);
     if (!pending.has(p.i)) cells[p.i].classList.remove('is-press');
+    paintCell(p.i);
   }
-  function onCancel() { cancelPress(); }
+  function onCancel(e) { if (!press || !e || e.pointerId === press.id) cancelPress(); }
   function cancelPress() {
     if (!press) return;
     clearTimeout(press.t);
     const i = press.i; press = null;
     if (!pending.has(i)) cells[i].classList.remove('is-press');
+    paintCell(i);
   }
 
   // ---- buoys: the phone's own, kept per device for the day -------------------------------------------------------------------------
@@ -561,6 +621,8 @@ export function createView() {
         view: () => view, buoys: () => [...buoys], pending: () => [...pending], mode: () => mode, ready: () => ready, finished: () => finished, score: () => doneScore,
         setMode, tap, long: i => toggleBuoy(i), resync, share, rtts: () => rtts.slice(), offset: () => offset, inflight: () => inflight.size, beams: () => beams,
         queued: () => queue.length, calls: () => calls, taps: () => taps.slice(),   // (DFIX3 — the coalescing + the timing)
+        fit: () => fitted,
+        digOn: () => digOn(), downs: () => downs, guarded: () => touches, touched: () => touched,   // (DAILY A)
         pings: () => pings, diag: () => (els.diag && !els.diag.hidden ? els.diag.textContent : ''), owner: () => owner,   // (DFIX5)
         // (CITY A — item 32: the end line for a made-up result (spots / pauses), painted + fitted as the end screen does — the e2e's wrap check)
         endLineFor: (v) => new Promise(res => { const el = els.end && els.end.querySelector('.cc-end-line'); if (!el) { res(null); return; } el.style.letterSpacing = ''; el.textContent = endLineNb({ ...view, ...v }); fitEndLine(el); requestAnimationFrame(() => requestAnimationFrame(() => res({ text: el.textContent, ls: el.dataset.ls }))); }),
@@ -574,11 +636,12 @@ export function createView() {
       for (const t of timers) clearTimeout(t);
       timers = [];
       clearInterval(tickT); clearInterval(netT); clearInterval(clockT);
+      if (fitRO) { fitRO.disconnect(); fitRO = null; } fitBox.clear(); fitK = null; fitted = null;
       if (press) clearTimeout(press.t);
       if (root) { clear(root); root.classList.remove('cc-screen', 'is-end', 'is-leaving'); delete root.dataset.ready; delete root.dataset.mode; delete root.dataset.out; }
       delete window.__coastclear;
       root = null; cells.length = 0; press = null; pending = new Set(); inflight = new Map(); landing.clear(); beams = 0; queue = []; flying = false; taps.length = 0;
-      digMs.length = 0; owner = false; pings = 0;
+      digMs.length = 0; owner = false; pings = 0; downs = 0; touches = 0; touched = 0;
     },
   };
   return api;

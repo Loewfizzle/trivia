@@ -253,3 +253,23 @@ test('THE PHONE: answers fold in out of order (pipelined taps); the clock (serve
   assert.equal(chordTargets(v, 7, new Set()), null);
   assert.equal(chordTargets(v, 0, new Set()), null);
 });
+
+// ---- DAILY A — WHEN A DIG FIRES (CC_DIG_ON: the owner, Nov 18 — docs/games/plan.md "DAILY A / B")
+test('CC_DIG_ON: DOWN by default — a dig / a buoy / a chord on the touch-down; UP fires nothing on the down (the lift digs, a long press = a buoy)', async () => {
+  const { CC_DIG_ON, digOnOf, downAct } = await import('../js/games/coastclear/logic.js');
+  assert.equal(CC_DIG_ON, 'down');
+  assert.equal(digOnOf(undefined), 'down'); assert.equal(digOnOf('up'), 'up'); assert.equal(digOnOf('sideways'), 'down');
+  // DOWN
+  assert.equal(downAct('down', { mode: 'dig' }), 'dig', 'a shut cell in DIG mode digs on the down');
+  assert.equal(downAct('down', { mode: 'buoy' }), 'buoy', 'BUOY mode lays its buoy on the down');
+  assert.equal(downAct('down', { mode: 'dig', open: true }), 'chord', 'an open number chords on the down');
+  assert.equal(downAct('down', { mode: 'dig', buoyed: true }), null, 'a buoyed cell in DIG mode does nothing');
+  assert.equal(downAct('down', { mode: 'dig', pending: true }), null, 'a cell already digging is left alone');
+  assert.equal(downAct('down', { mode: 'dig', lit: true }), null, 'a spotted light is left alone');
+  // UP — nothing on the down, whatever the cell
+  for (const c of [{ mode: 'dig' }, { mode: 'buoy' }, { mode: 'dig', open: true }]) assert.equal(downAct('up', c), null);
+  // the view: the press-and-hold buoy only under UP
+  const src = (await import('node:fs')).readFileSync(new URL('../js/games/coastclear/view.js', import.meta.url), 'utf8');
+  assert.match(src, /if \(digOn\(\) === 'down'\) \{[\s\S]*?return;\s*\}\s*press = \{ i, x: e\.clientX, y: e\.clientY, id: e\.pointerId, done: false, dig: digs, t: setTimeout/, 'the LONG_MS timer is armed only on the UP path');
+  assert.match(src, /e\.isPrimary === false\) \|\| \(press && press\.id !== e\.pointerId\)/, 'THE TOUCH GUARD: one finger at a time');
+});

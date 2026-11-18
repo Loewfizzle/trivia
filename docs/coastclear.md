@@ -295,6 +295,29 @@ press itself was part of the wait.
 - Tests: `tests/dfix5.test.mjs` (the line, the timings, transform + opacity only, the icons) · `coastclear.test.mjs` 16 · `e2e-coastclear` 41 (+ the
   ping in the same event, a long-press pinged then a buoy and no dig, a number never held for the ping, the readout + a player sees none).
 
+## DAILY A — THE TOUCH-DOWN DIG + THE FITTED BOARD (Nov 18 2026 — docs/games/passes/daily-a.md; the owner's decisions: docs/games/plan.md "DAILY A / B")
+- **CC_DIG_ON** (`js/games/coastclear/logic.js` — `'down'` | `'up'`, default **`'down'`**; pure `digOnOf` + `downAct`): **'down'** = DIG mode digs
+  on the TOUCH-DOWN (the call goes before the lift); BUOY mode lays its buoy on the down; an open number chords on the down; **no
+  press-and-hold buoy** — buoys come from the BUOY switch only. **'up'** = DFIX5's path exactly (the dig on the lift, a LONG_MS 380 ms
+  press-and-hold = a buoy). The previews take `&dig=up|down` (`coastclear-preview.html`, `coastclear-daily.html` → `state.digOn`).
+- **BOTH settings — THE INSTANT TILE** (`view.js#onDown` / `#touch`): the touched tile presses in (`.is-press`) + **one pulse in the TICKET's
+  colour** (`.cc-touch` — `--cc-touch`: night `#5fe1ff` · day `#0f86b0`, ticket-art.js#TICKET_INK; transform + opacity, 260 ms; reduced
+  motion = a still flash) and shows its **DIGGING STATE** (`.is-wait`'s shimmer) until the server's answer SURFACES its number. Under 'up'
+  the digging state starts on the down; a long-press turns it cleanly into the buoy (the state + the press gone, no call), a slide lets it go.
+  The ping (DFIX5's rings), THE NUMBER SURFACES and the coalesced taps are untouched.
+- **THE TOUCH GUARD**: one finger at a time — a trusted non-primary pointer, or any second pointer while a press is held, never digs
+  (`__coastclear.guarded()` counts them).
+- **THE FITTED BOARD** (`view.js#watchFit` / `#fitBoard`): the cell is sized from the height ACTUALLY left — `.cc-play`'s own box (a flex
+  child: its height IS what the header, the quiet line + DIG / BUOY leave) minus the status row, the one-time hint + the owner's readout when
+  shown — MEASURED by ONE ResizeObserver (a resize, a turn, the safe areas, the hint going; never a read in a frame loop) → `--cc-fit` on the
+  screen; `css/coastclear.css` `--cc-cell` = the smaller of the width's cell and it (the old `100dvh − 236px` estimate only until it lands;
+  the floor 16 px, was 28 — a row is never cut).
+- **Proven** (`tests/integration/kit/cc-touch.mjs`, run by `e2e-daily.mjs` section 0 — or alone): DOWN (the dig in flight before the lift;
+  a long press still ONE dig; BUOY mode's buoy on the down, no call; the second finger) · UP (the down sends nothing but shows the digging
+  state; the lift digs; a long press → the buoy, no dig) · THE FITTED BOARD at 375×667 · 390×844 · 402×874 · 430×932, night + day, with and
+  without the hint: the last row's bottom inside the viewport and above DIG / BUOY. `tests/coastclear.test.mjs` (the rule) ·
+  `e2e-coastclear.mjs` (buoys now by the BUOY switch).
+
 ## FR7 FIXES A (Nov 12 2026 — docs/harbor/passes/fr7-fixes-a.md)
 - **THE ROOM'S PAUSE DOESN'T COUNT** (the owner's decision 4): a pause the server verified as THE ROOM WINS is a ROOM pause (`p.r` in the record) —
   outside the player caps (`MAX_PAUSES` 3, `PAUSE_CAP_MS` 20 min), under its own bound (`ROOM_MAX_PAUSES` 12, `ROOM_PAUSE_CAP_MS` 3 h); the phone's

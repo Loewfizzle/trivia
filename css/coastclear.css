@@ -44,7 +44,8 @@
   --cc-end-ink: var(--cc-sign-core); --cc-end-dim: var(--text-dim);
   /* the cell: ~38 pt on a 390 phone (9 across, 2 pt gaps, the 16 pt gutters), up to 44; the height keeps the switch in reach */
   --cc-gap: 2px;
-  --cc-cell: clamp(28px, min(calc((min(100vw, var(--maxw)) - 2 * var(--gutter) - 8 * var(--cc-gap)) / 9), calc((100dvh - var(--safe-t) - var(--safe-b) - 236px) / 12)), 46px);
+  /* DAILY A — THE FITTED BOARD: --cc-fit = the height's cell MEASURED by view.js#fitBoard (the space actually left); the old estimate only until it lands */
+  --cc-cell: clamp(16px, min(calc((min(100vw, var(--maxw)) - 2 * var(--gutter) - 8 * var(--cc-gap)) / 9), var(--cc-fit, calc((100dvh - var(--safe-t) - var(--safe-b) - 236px) / 12))), 46px);
   gap: 8px;
   align-items: center;
   padding-top: calc(var(--safe-t) + 8px);
@@ -375,3 +376,15 @@ body[data-look="day"] .screen.cc-screen { --cc-ping: #1f5fe0; --cc-ping-glow: rg
 .cc-diag { flex: none; margin: 4px 0 0; padding: 0 4px; max-width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: clip;
   font: 700 clamp(9px, 2.5vw, 11px) / 1.3 var(--font-mono); letter-spacing: 0.04em; color: var(--cc-ink); }
 .cc-diag[hidden] { display: none; }
+
+/* ---- DAILY A — THE TOUCH PULSE (js/games/coastclear/view.js#touch; CC_DIG_ON — logic.js): the instant a finger lands on a tile, one soft glow
+   out of it in the TICKET's colour (js/daily/ticket-art.js#TICKET_INK coastclear — night #5fe1ff · day #0f86b0) while the tile presses in;
+   then its digging state (.is-wait's shimmer) until the answer surfaces the number. transform + opacity only; reduced motion = a still flash. */
+.cc-screen { --cc-touch: #5fe1ff; }
+body[data-look="day"] .screen.cc-screen { --cc-touch: #0f86b0; }
+.cc-touch { position: absolute; inset: -2px; z-index: 1; border-radius: 7px; pointer-events: none;
+  box-shadow: 0 0 0 2px var(--cc-touch), 0 0 10px var(--cc-touch); opacity: 0;
+  animation: cc-touch 260ms cubic-bezier(0.2, 0.7, 0.3, 1) both; will-change: transform, opacity; }
+@keyframes cc-touch { 0% { opacity: 0.95; transform: scale(0.9); } 100% { opacity: 0; transform: scale(1.14); } }
+.cc-touch.is-still { animation: cc-flash 200ms ease-out both; }
+@media (prefers-reduced-motion: reduce) { .cc-touch { animation: cc-flash 200ms ease-out both; } }

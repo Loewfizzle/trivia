@@ -391,3 +391,20 @@ export function diagLine(ms, server, last = [ms]) {
   bits.push(`MEDIAN ${med} MS`);
   return bits.join(' · ');
 }
+
+// ---- DAILY A — WHEN A DIG FIRES (the owner, Nov 18 — docs/games/plan.md "DAILY A / B"; pure — view.js reads it; tests/coastclear.test.mjs) ------
+// 'down' = DIG mode digs on the TOUCH-DOWN (no wait for the lift); buoys come from the BUOY switch only (no press-and-hold) — and a tap in BUOY
+//          mode lays its buoy on the down too · 'up' = DFIX5's path exactly (the dig on the lift, a LONG_MS press-and-hold = a buoy).
+// BOTH: the touched tile reacts the instant a finger lands (it presses in + a pulse in the ticket's colour — .cc-touch) and shows its DIGGING
+// state until the server's answer surfaces its number ('up': from the down; a long-press turns it cleanly into the buoy, a slide lets it go).
+// One finger at a time: a second finger never digs (THE TOUCH GUARD — view.js#onDown).
+export const CC_DIG_ON = 'down';
+/** a setting as asked (the preview's &dig=, a state's digOn) → 'down' | 'up' (anything else = CC_DIG_ON) */
+export const digOnOf = v => (v === 'up' || v === 'down' ? v : CC_DIG_ON);
+/** what a touch-DOWN does at once under a setting: 'dig' | 'buoy' | 'chord' | null (wait for the lift / nothing) — pure, the view's rule */
+export function downAct(setting, { mode = 'dig', open = false, lit = false, pending = false, buoyed = false } = {}) {
+  if (digOnOf(setting) !== 'down' || lit || pending) return null;
+  if (open) return 'chord';
+  if (mode === 'buoy') return 'buoy';
+  return buoyed ? null : 'dig';
+}

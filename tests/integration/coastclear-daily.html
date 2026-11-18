@@ -9,7 +9,8 @@
      ensured, then the view mounts as THE DAILY MODULE will mount it (state.game = daily.create's run shell, the default judge = judge.js).
      Not a look preview (coastclear-preview.html is — no Firebase there). Never the live site (kit/live-guard.mjs).
        window.__suspend() / window.__resume()   tear the screen down mid-run and build it again (the room starting a game, an app switch)
-       window.__api(body)                      a raw /api/daily call (the E2E's pause — THE DAILY MODULE's job later) -->
+       window.__api(body)                      a raw /api/daily call (the E2E's pause — THE DAILY MODULE's job later)
+       &dig=up|down                            DAILY A — when a dig fires (logic.js#CC_DIG_ON — the default 'down') -->
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/screens.css">
@@ -31,7 +32,7 @@ const q = new URLSearchParams(location.search);
 const uid = await initFirebase(() => {});
 const me = await api('profile', { action: 'ensure', name: q.get('name') || 'ALICE', avatar: 'bolt', color: 'cyan' });
 const d = new Date(), day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const state = { uid, game: create({ date: day, uid, now: Date.now(), daySet: { v: 1, day } }), players: { [uid]: { name: me.profile ? me.profile.n : 'ALICE', color: 'cyan', avatar: 'bolt' } }, meta: { status: 'playing' } };
+const state = { uid, game: create({ date: day, uid, now: Date.now(), daySet: { v: 1, day } }), players: { [uid]: { name: me.profile ? me.profile.n : 'ALICE', color: 'cyan', avatar: 'bolt' } }, meta: { status: 'playing' }, ...(q.get('dig') ? { digOn: q.get('dig') } : {}) };   // (DAILY A — &dig=up|down: CC_DIG_ON for this page)
 let view = createView();
 const screen = document.getElementById('screen');
 view.mount(screen, state);

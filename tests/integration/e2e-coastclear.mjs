@@ -1,7 +1,7 @@
 // COAST CLEAR — the daily end to end (CC1 — docs/coastclear.md; the emulators + `DAILY_TEST=1 node scripts/serve.mjs <port> --emu`):
 //   E2E_BASE=http://localhost:<port> node e2e-coastclear.mjs "<browser>" ./shots-coastclear      (env SHOTS=0; FAST=1 = the same path)
 // The REAL view (coastclear-daily.html) with THE API JUDGE against the REAL /api/daily: start (the opening, no pills, no glyphs) → a dig (the
-// number from the server) → a flood (the whole calm area in one answer) → buoys by long-press + a CHORD → a SPOT (+30 s, the lamp lit, play goes
+// number from the server) → a flood (the whole calm area in one answer) → buoys (the BUOY switch — DAILY A) + a CHORD → a SPOT (+30 s, the lamp lit, play goes
 // on) → a REFRESH mid-run resumes (the cells, the light, the buoys) → a PAUSE (THE DAILY MODULE's call) + the screen torn down + rebuilt (the
 // view resumes the clock) → every safe cell → COAST CLEAR + the server's score (= its replay) → ONE TRY (a reload lands on the end). A second
 // phone on a 150 ms line: the tap's press still instant, the answers pipelined → three lights → CAUGHT. Every /api answer checked: no cell named
@@ -49,7 +49,6 @@ const S = page => page.evaluate(() => window.__coastclear.state());
 const V = page => page.evaluate(() => window.__coastclear.view());
 const cellSel = i => `.cc-cell[data-i="${i}"]`;
 const tap = (page, i) => page.click(cellSel(i));
-const longPress = async (page, i) => { const b = await (await page.$(cellSel(i))).boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await sleep(520); await page.mouse.up(); };
 const idle = page => page.waitForFunction(() => window.__coastclear.state().pending === 0 && window.__coastclear.state().inflight === 0, { timeout: 20000 });
 /** CC2 — every beam landed + gone (a spot's sweep is ~0.7 s + its hold / fade) */
 const calm = page => page.waitForFunction(() => window.__coastclear.state().landing === 0 && window.__coastclear.state().beams === 0, { timeout: 10000 });
@@ -163,10 +162,14 @@ await H.run(async () => {
     const lights = unk.filter(j => L.has(j)), safe = unk.filter(j => !L.has(j));
     if (!lights.length || !safe.length || lights.length !== n) continue;
     const pg0 = await p.evaluate(() => window.__coastclear.pings()), n00 = answers.length;
-    for (const j of lights) await longPress(p, j);
+    // (DAILY A — CC_DIG_ON 'down', the default: buoys come from the BUOY switch only — a tap in BUOY mode lays it on the touch-down; the 'up'
+    //  setting's long-press buoy is proven in kit/cc-touch.mjs)
+    await p.click('.cc-mode-b[data-m="buoy"]');
+    for (const j of lights) await tap(p, j);
+    await p.click('.cc-mode-b[data-m="dig"]');
     const bu = await p.evaluate(() => window.__coastclear.buoys());
     const pg1 = await p.evaluate(() => window.__coastclear.pings());
-    ok(lights.every(j => bu.includes(j)) && (await S(p)).pending === 0 && answers.length === n00 && pg1 - pg0 === lights.length, `BUOYS by long-press: ${lights.length} placed on the phone (no server call) — each press pinged on the DOWN, then became the buoy, never a dig (DFIX5)`);
+    ok(lights.every(j => bu.includes(j)) && (await S(p)).pending === 0 && answers.length === n00 && pg1 === pg0, `BUOYS by the BUOY switch: ${lights.length} placed on the phone on the touch-down (no server call, no ping — never a dig)`);
     const n0 = answers.length;
     await tap(p, c); await idle(p);
     v = await V(p);
@@ -237,7 +240,7 @@ await H.run(async () => {
     const left = [...Array(108).keys()].filter(i => !L.has(i) && !openSet(v).has(i));
     if (!left.length) break;
     const bu = new Set(await p.evaluate(() => window.__coastclear.buoys()));
-    for (const i of left) { if (bu.has(i)) await longPress(p, i); await tap(p, i); }
+    for (const i of left) { if (bu.has(i)) await p.evaluate(k => window.__coastclear.long(k), i); await tap(p, i); }   // (a stray buoy lifted first — DAILY A: no long-press buoy by default)
     await idle(p);
   }
   await p.waitForFunction(() => window.__coastclear.state().end, { timeout: 15000 });
