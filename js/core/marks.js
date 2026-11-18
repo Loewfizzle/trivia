@@ -62,8 +62,13 @@ export const MARKS = {
     { d: 'M24 24 L60 14 L74 70 L38 80 Z', col: '#f2c14e' },
     { d: 'M48 34 C40 44 30 50 30 58 C30 65 37 68 43 65 Q46 63 47 60 L44 76 H54 L51 60 Q52 63 55 65 C61 68 68 65 68 58 C68 50 58 44 48 34 Z', col: '#f6efd9' },
   ] },
-  // JAYWALK — THE SIGNAL (H4): an upright crossing-light box, CYAN, its walking figure lit HOT PINK
-  jaywalk: { blade: 'JAYWALK', tubes: [{ d: 'M32 8 H68 Q75 8 75 15 V85 Q75 92 68 92 H32 Q25 92 25 85 V15 Q25 8 32 8 Z', col: '#35e3ff' }, { d: 'M52 20.5 A3.5 3.5 0 1 0 52.1 20.5 M51 36 L48 55 L57 66 L56 80 M48 55 L41 67 L37 79 M51 39 L60 47 M50 39 L41 48', col: '#ff3fa4' }] },
+  // JAYWALK — THE SNEAKER (CITY H2 — the owner's pick, Grok's prototype icon-1-sneaker.png, Nov 18): a running sneaker in tubes — its upper the
+  // house pink (the heel's curve + one side stripe), the SOLE + three LACES white, two CYAN speed lines behind it (was THE SIGNAL's crossing box)
+  jaywalk: { blade: 'JAYWALK', tubes: [
+    { d: 'M20.1 36.2 C24.5 29 31.4 20.7 35.6 16.9 C39.7 13.8 41.3 20.7 42.4 24.2 C44.1 27.6 48.6 29.3 54.1 29.7 V24.2 Q54.1 22.9 55.7 22.9 H65 Q66.7 22.9 67 24.9 L75.5 57.9 C81.7 63.4 90.9 66.4 91.3 75.8 M23.9 30.6 C31.2 34.8 35.6 40.3 34.2 46.1 M44.1 52.7 L53.5 49.6', col: '#ff4fc4' },
+    { d: 'M17.9 40.3 C31.4 47.2 43.8 60.9 56.2 72 C64.7 79.1 75.5 79.4 90.1 78.8 M56.5 37.5 L67.9 35.9 M59.8 47.2 L71.1 44.7 M63.2 56.8 L74.4 53.5', col: '#fff4fa' },
+    { d: 'M9.1 68.4 H32.1 M20.4 77.5 H43.3', col: '#35e3ff' },
+  ] },
   // THE PASSWORD (PW1): a keyhole — the round eye and the slot below it, a key's tip at the door
   password: { blade: 'PASSWORD', tubes: [
     { d: 'M50 18 A17 17 0 1 1 49.9 18 Z', col: '#ff5ec4' },

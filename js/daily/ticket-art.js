@@ -2,6 +2,9 @@
 // rows (js/screens/daily.js) and SHARE TODAY's image (js/daily/share-today.js) so the two draw the SAME ticket: a daily's neon art by its
 // `ticket` key, the ADMITTED rubber stamp (drawn — a rounded double border + the word, an uneven ink edge from a displacement filter; never a
 // glyph, never an emoji), the serial "Nº MMDD" (today's date — the ticket's own number, never a profile number). No pills anywhere.
+import { MARKS } from '../core/marks.js';
+/** an absolute path's numbers × k (a 100-box mark into the 24-box ticket art) */
+const scaleD = (d, k) => d.replace(/-?\d+(\.\d+)?/g, n => String(Math.round(Number(n) * k * 100) / 100));
 const tube = (d, vb = '0 0 24 24') => `<svg viewBox="${vb}" aria-hidden="true"><g class="t">${d}</g><g class="c">${d}</g></svg>`;
 /** a ticket's art by its key (config.js#DAILIES `ticket`): THE PASSWORD's door + keyhole · COAST CLEAR's lighthouse + beam · THE DROP's prism · JAYWALK's walk signal · a star */
 export const TICKET_ART = {
@@ -12,8 +15,8 @@ export const TICKET_ART = {
   // spectral tubes (red · green · blue — PRISM's mark colours; the `sp` strokes keep their own colours by day too)
   drop: `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="t"><path d="M12 3.2l7.8 15.2H4.2z"/><path d="M0.4 14.8l7-2.4"/></g><g class="c"><path d="M12 3.2l7.8 15.2H4.2z"/><path d="M0.4 14.8l7-2.4"/></g>`
     + `<g class="sp"><path d="M15.6 10.2l8-2.6" stroke="#ff5a6a"/><path d="M16.3 11.6h7.5" stroke="#4fe08a"/><path d="M17 13l6.8 2.8" stroke="#6aa8ff"/></g></svg>`,
-  // DAILY B — JAYWALK: the walk signal (core/marks.js — the game's mark): its rounded box + the walking figure, drawn in the ticket's ink
-  jaywalk: tube('<rect x="5.6" y="1.8" width="12.8" height="20.4" rx="2.4"/><circle cx="12.5" cy="5.6" r="1.25"/><path d="M12.2 8.6l-.8 4.6 2.2 2.7-.1 3.4M11.4 13.2l-1.7 2.9-1 2.9M12.2 9.4l2.2 1.9M12 9.4l-2.2 2.2"/>'),
+  // JAYWALK (CITY H2): THE SNEAKER (core/marks.js — the game's ONE mark: its tubes scaled into the 24 box), drawn in the ticket's ink
+  jaywalk: tube(MARKS.jaywalk.tubes.map(t => `<path d="${scaleD(t.d, 0.24)}"/>`).join('')),
 };
 /** THE DROP B — each ticket's INK by its key (the edge, the punched holes, the stub's art, the ADMITTED stamp) — night · day; a key not here = the
  *  house pink. THE DROP = PRISM DROP's WHITE LIGHT (its theme accent — its ice blue would twin COAST CLEAR's cyan) + a spectral violet by day,

@@ -82,10 +82,10 @@ test('DAILY B — THE SWEEP meter: one segment per LIVE daily (3 until JAYWALK g
   assert.doesNotMatch(D, /`\$\{sw\.done\} OF \$\{sw\.of\}`\), ' · THE SWEEP'/);
 });
 
-test('DAILY B — JAYWALK\'s ticket art + ink: the walk signal in a rounded box (core/marks.js), the owner\'s orange both looks; the share card draws the same paths', () => {
+test('DAILY B — JAYWALK\'s ticket art + ink: its mark (core/marks.js — CITY H2: THE SNEAKER, its tubes scaled into the 24 box), the owner\'s orange both looks; the share card draws the same paths', () => {
   assert.deepEqual(TICKET_INK.jaywalk, { night: '#ffa53a', day: '#e0661c' });
-  assert.match(TICKET_ART.jaywalk, /<rect [^>]*rx=/); assert.match(TICKET_ART.jaywalk, /<circle /);
-  assert.ok(TICKET_PATHS.jaywalk && TICKET_PATHS.jaywalk.includes('<rect'));
+  assert.equal((TICKET_PATHS.jaywalk.match(/<path /g) || []).length, 3, 'the mark\'s three tubes');
+  assert.ok(TICKET_PATHS.jaywalk.includes('<path d="M4.82 8.69'), 'MARKS.jaywalk × 0.24');
   const row = DAILIES.find(d => d.id === 'jaywalk');
   assert.equal(row.on, false, 'JAYWALK\'s row still ships OFF'); assert.equal(row.tries, 3); assert.equal(row.ticket, 'jaywalk');
   assert.ok(!row.ownMusic, 'its music = JAYWALK\'s own (the look\'s mood station — index.js#musicFor) through the console: no ownMusic (its view plays no songs of its own)');

@@ -1,6 +1,7 @@
 // Lobby card artwork: one small SVG scene per game, in its identity colours (no images, no text).
 // Gradient/filter ids are prefixed per game so the five SVGs can share one page.
 import { h, svgEl } from './dom.js';
+import { MARKS } from '../core/marks.js';   // (CITY H2: JAYWALK's art draws its ONE mark)
 
 const glow = (id, sd = 1.6) => `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${sd}"/></filter>`;
 
@@ -321,10 +322,9 @@ const holdem = () => `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
 <image href="${HOLDEM_TILE}" x="0" y="0" width="120" height="120" preserveAspectRatio="xMidYMid slice"/>
 <rect width="120" height="120" fill="url(#hd-shade)"/></svg>`;
 
-// JAYWALK (THE GO-LIVE PASS): its neon mark THE SIGNAL (core/marks.js#MARKS.jaywalk — the same two paths) lit on a night street — the
-// crossing light's CYAN box over a zebra crossing, its walking kid HOT PINK with a white-hot core; bold strokes + one glow (reads at 72 pt)
-const JW_BOX = 'M32 8 H68 Q75 8 75 15 V85 Q75 92 68 92 H32 Q25 92 25 85 V15 Q25 8 32 8 Z';
-const JW_KID = 'M52 20.5 A3.5 3.5 0 1 0 52.1 20.5 M51 36 L48 55 L57 66 L56 80 M48 55 L41 67 L37 79 M51 39 L60 47 M50 39 L41 48';
+// JAYWALK (CITY H2): its neon mark THE SNEAKER (core/marks.js#MARKS.jaywalk — ONE definition: the pink upper, the white sole + laces, the cyan
+// speed lines) lit on a night street over a zebra crossing; bold strokes + one glow + a white-hot core (reads at 72 pt)
+const JW_TUBES = MARKS.jaywalk.tubes.map(t => `<path d="${t.d}" stroke="${t.col}" stroke-width="10" opacity="0.55" filter="url(#jw-glow)"/><path d="${t.d}" stroke="${t.col}" stroke-width="6"/><path d="${t.d}" stroke="#fff6fb" stroke-width="1.6" opacity="0.85"/>`).join('');
 const JAYWALK = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
 <radialGradient id="jw-bg" cx="0.5" cy="0.35" r="0.85"><stop offset="0" stop-color="#1a2150"/><stop offset="0.6" stop-color="#0a0d24"/><stop offset="1" stop-color="#04050c"/></radialGradient>
 ${glow('jw-glow', 2.6)}</defs>
@@ -332,15 +332,7 @@ ${glow('jw-glow', 2.6)}</defs>
 <rect y="99" width="120" height="21" fill="#0b0e18"/>
 <path d="M4.5 101H13.5L-5 120H-19ZM21.5 101H30.5L19 120H5ZM38.5 101H47.5L43 120H29ZM55.5 101H64.5L67 120H53ZM72.5 101H81.5L91 120H77ZM89.5 101H98.5L115 120H101ZM106.5 101H115.5L139 120H125Z" fill="#e9eefb" fill-opacity="0.26"/>
 <path d="M0 99.5H120" stroke="#35e3ff" stroke-opacity="0.35" stroke-width="1"/>
-<g transform="translate(10.5 -1) scale(1)" fill="none" stroke-linecap="round" stroke-linejoin="round">
-<path d="${JW_BOX}" fill="#050913" fill-opacity="0.85"/>
-<path d="${JW_BOX}" stroke="#35e3ff" stroke-width="7" opacity="0.55" filter="url(#jw-glow)"/>
-<path d="${JW_BOX}" stroke="#35e3ff" stroke-width="4.2"/>
-<path d="${JW_BOX}" stroke="#e6fdff" stroke-width="1.1"/>
-<path d="${JW_KID}" stroke="#ff3fa4" stroke-width="9" opacity="0.6" filter="url(#jw-glow)"/>
-<path d="${JW_KID}" stroke="#ff3fa4" stroke-width="5.4"/>
-<path d="${JW_KID}" stroke="#ffe3f3" stroke-width="1.7"/>
-</g></svg>`;
+<g transform="translate(9 8)" fill="none" stroke-linecap="round" stroke-linejoin="round">${JW_TUBES}</g></svg>`;
 
 const ART = { jaywalk: () => JAYWALK, holdem, rum: () => RUM, stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
 

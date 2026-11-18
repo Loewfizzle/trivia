@@ -101,16 +101,14 @@ test('THE 3 S RULE + THE RANKING: every patch of the step moves the phase; lanes
 });
 
 test('REGISTERED: the mark (the signs\' pink), the theme, SOLO_OK + the report + the proof tree (jw) + the wipe lists, the stylesheet at its place', async () => {
-  // THE ICON = THE SIGNAL (H4 — the owner's pick): a pedestrian crossing-light box, UPRIGHT, CYAN, its walking figure lit HOT PINK — two tubes
-  // in the game's own tube system (the same stroke + glow as PRISM DROP / OVERCLOCK / HOLD'EM); upright + cyan keeps it apart from HOLD'EM's tilted gold card
-  assert.equal(MARKS.jaywalk.blade, 'JAYWALK'); assert.equal(MARKS.jaywalk.tubes.length, 2);
-  const rgbOf = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)), [box, fig] = MARKS.jaywalk.tubes;
-  const [br, bg, bb] = rgbOf(box.col), [fr, fg, fb] = rgbOf(fig.col);
-  assert.ok(bb > 220 && bg > 180 && br < 120, `the box: cyan (${box.col})`); assert.ok(fr > 230 && fb > fg && fg < 120, `the figure: hot pink (${fig.col})`);
-  assert.match(box.d, /^M[\d. ]+ H[\d. ]+ Q.* V[\d. ]+ .*Z$/, 'the box: a closed rounded rectangle on the axes — UPRIGHT (HOLD\'EM\'s card is tilted)');
-  const nums = box.d.match(/-?\d+(\.\d+)?/g).map(Number), span = c => { const v = [...box.d.matchAll(new RegExp(`${c}([\\d.]+)`, 'g'))].map(x => +x[1]); return Math.max(...v) - Math.min(...v); };
-  assert.ok(Math.max(...nums) <= 100 && Math.min(...nums) >= 0 && span('V') > span('H') * 1.3, 'inside the 0–100 box, clearly taller than wide');
-  assert.match(fig.d, /A[\d. ]+/, 'the walking figure: a head …'); assert.ok((fig.d.match(/M/g) || []).length >= 4, '… a body, two legs, two arms');
+  // THE ICON = THE SNEAKER (CITY H2 — the owner's pick; was THE SIGNAL): the upper HOT PINK, the sole + laces WHITE, two CYAN speed lines — three
+  // tubes in the house mark system (the same stroke + glow as PRISM DROP / OVERCLOCK / HOLD'EM), inside the 0–100 box
+  assert.equal(MARKS.jaywalk.blade, 'JAYWALK'); assert.equal(MARKS.jaywalk.tubes.length, 3);
+  const rgbOf = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)), [box, sole, speed] = MARKS.jaywalk.tubes;
+  const [fr, fg, fb] = rgbOf(box.col), [sr, sg, sb] = rgbOf(sole.col), [cr, cg, cb] = rgbOf(speed.col);
+  assert.ok(fr > 230 && fb > fg && fg < 120, `the upper: hot pink (${box.col})`); assert.ok(sr > 240 && sg > 230 && sb > 230, `the sole + laces: white (${sole.col})`); assert.ok(cb > 220 && cg > 180 && cr < 120, `the speed lines: cyan (${speed.col})`);
+  for (const t of MARKS.jaywalk.tubes) { const nums = t.d.match(/-?\d+(\.\d+)?/g).map(Number); assert.ok(Math.max(...nums) <= 100 && Math.min(...nums) >= 0, 'inside the 0–100 box'); }
+  assert.ok((sole.d.match(/M/g) || []).length === 4, 'the sole + three laces'); assert.ok((speed.d.match(/M/g) || []).length === 2, 'two speed lines');
   assert.notEqual(box.col, MARKS.holdem.tubes[0].col);
   assert.match(read('js/screens/harbor/signs.js'), /jaywalk: '#ff4fc4'/);
   assert.match(read('css/base.css'), /\[data-theme='jaywalk'\] \{[^}]*--accent: #ff4fc4/);
