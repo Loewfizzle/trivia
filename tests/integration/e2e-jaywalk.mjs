@@ -84,7 +84,7 @@ const pastMoment = async P => {
 };
 const board = async pid => { const s = await dbGet(`pstats/${pid}`); return s && s.b && s.b['jaywalk-solo'] ? s.b['jaywalk-solo'].a : null; };
 /** H4B's add-on — THE SHARE = THE PICTURE ONLY: tap `sel` with the share sheet stubbed → what was shared + the link's page + its picture */
-async function shareLink(page, sel, spent = false) {
+async function shareLink(page, sel, spent = false, onReady = null) {
   // (`spent`: the tap's user activation is gone by the time the upload answers — an iPhone's case: navigator.userActivation says so)
   await page.evaluate(sp => { window.__shared = []; navigator.share = async d => { window.__shared.push(d); }; navigator.canShare = () => true; try { if (sp) Object.defineProperty(navigator, 'userActivation', { configurable: true, get: () => ({ isActive: false, hasBeenActive: true }) }); else delete navigator.userActivation; } catch { /* fine */ } }, spent);
   await page.evaluate(q => document.querySelector(q).click(), sel);
@@ -94,7 +94,7 @@ async function shareLink(page, sel, spent = false) {
   for (let i = 0; i < 100 && !(out && out.length); i++) {
     out = await page.evaluate(() => window.__shared);
     if (!(out && out.length)) {
-      if (!again && await page.evaluate(q => { const b = document.querySelector(q); return !!b && b.classList.contains('is-ready') && !b.classList.contains('is-busy'); }, sel)) { again = true; await page.evaluate(q => document.querySelector(q).click(), sel); }
+      if (!again && await page.evaluate(q => { const b = document.querySelector(q); return !!b && b.classList.contains('is-ready') && !b.classList.contains('is-busy'); }, sel)) { again = true; if (onReady) await onReady(); await page.evaluate(q => document.querySelector(q).click(), sel); }
       await new Promise(r => setTimeout(r, 150));
     }
   }
@@ -234,7 +234,8 @@ try {
   // BEFORE THE FLIP — THE RUN CARD UPLOADS ONLY ON SHARE: the end screen has been up (the card drawn behind it) — NOTHING has gone up
   await sleep(4500);
   ok(P.uploads() === 0 && !(await dbGet(`shrp/${pid}:jaywalk`)), `THE RUN CARD ONLY ON SHARE: the end screen read for 4.5 s, no SHARE tap → ${P.uploads()} uploads, no run card on the server`);
-  const L1 = await shareLink(P.p, '.jw-final .final-share', true);
+  await P.shot('end-before-share.png');
+  const L1 = await shareLink(P.p, '.jw-final .final-share', true, async () => { await sleep(520); await P.shot('end-share-ready.png'); });
   ok(P.uploads() === 1 && L1.again, `… SHARE → ONE upload + the link (${P.uploads()}); a tap whose activation the upload spent reads SHARE again (lit) — one more tap shares it (${L1.again})`);
   const L1b = await shareLink(P.p, '.jw-final .final-share');
   ok(P.uploads() === 1 && L1b.url === L1.url && !L1b.again, `… a SECOND SHARE the same run → the same link at once, no second upload (${P.uploads()})`);

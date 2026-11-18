@@ -1371,6 +1371,7 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .st-dly { display: grid; gap: 14px; }
 .st-dly-cols { height: 90px; }
 /* (JAYWALK BEFORE THE FLIP — a card that uploads at the tap: its link made, the tap spent → SHARE lit + one small pulse: tap it again) */
-.final-link.is-ready { opacity: 1; color: var(--text); animation: final-ready 0.5s ease-out 1; }
+.final-link.is-ready, .final-link.is-ready .final-ico { opacity: 1; color: var(--fin, var(--magenta)); }
+.final-link.is-ready { animation: final-ready 0.5s ease-out 1; }   /* (lit in the game's accent — the bar's own colour — until it is tapped) */
 @keyframes final-ready { 0% { transform: scale(1); } 40% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .final-link.is-ready { animation: none; } }
