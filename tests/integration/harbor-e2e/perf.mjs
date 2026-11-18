@@ -2,7 +2,7 @@
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=perf, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
-import { OUT, SHOTS, CPU, BUDGET_MS, log, sleep, ok, okT, ON_CI, skipCI, warnings, GR, GUARD_SCENES, NIGHT, open, ev, waitFor, tapAt, harborUp, settled, heapNoCode, G, launchReal, closeReal, displayFps } from './kit.mjs';
+import { OUT, SHOTS, CPU, BUDGET_MS, log, sleep, ok, okT, ON_CI, skipCI, warnings, GR, GUARD_SCENES, NIGHT, open, ev, waitFor, tapAt, harborUp, settled, heapNoCode, heapGrowth, G, launchReal, closeReal, displayFps } from './kit.mjs';
 
 G('perf', async () => {
   // ---- WIN2 — THE QUALITY STEP: a CALM LOAD on a mid phone profile (2x CPU) — 30 s after the reveal, NO tier step: nothing is judged in
@@ -128,7 +128,7 @@ G('perf', async () => {
   const scenes = await ev(Q.page, `document.querySelectorAll('.nd-scene').length`);
   const lay = h => h.mem.layers.map(l => `${l.name.split(' ')[0]}:${l.mb}`).join(' ');
   const hq0 = memH0, hq1 = await ev(Q.page, 'window.__district.harbor()');
-  ok(scenes === 1 && q1.rest - q0.rest < 6e6 && Math.abs(mem1 - mem0) < 0.05, `MEMORY: 20 title↔setup cycles leave one city, heap ${Math.round((q1.rest - q0.rest) / 1e5) / 10} MB (+ V8's compiled code ${Math.round((q1.code - q0.code) / 1e5) / 10} MB, not counted), offscreen ${mem0} → ${mem1} MB${Math.abs(mem1 - mem0) >= 0.05 ? ` (tier ${hq0.mem.tier} → ${hq1.mem.tier}; ${lay(hq0)} → ${lay(hq1)})` : ''}`);
+  ok(scenes === 1 && q1.rest - q0.rest < 6e6 && Math.abs(mem1 - mem0) < 0.05, `MEMORY: 20 title↔setup cycles leave one city, heap ${Math.round((q1.rest - q0.rest) / 1e5) / 10} MB${q1.rest - q0.rest >= 6e6 ? ` [grew: ${heapGrowth(q0, q1)}]` : ''} (+ V8's compiled code ${Math.round((q1.code - q0.code) / 1e5) / 10} MB, not counted), offscreen ${mem0} → ${mem1} MB${Math.abs(mem1 - mem0) >= 0.05 ? ` (tier ${hq0.mem.tier} → ${hq1.mem.tier}; ${lay(hq0)} → ${lay(hq1)})` : ''}`);
   await Q.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
   await sleep(300);
   ok((await ev(Q.page, 'window.__district.scene()')).running === false, 'HIDDEN TAB (city 2): the Harbor stops rendering');

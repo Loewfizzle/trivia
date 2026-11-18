@@ -94,8 +94,12 @@ function createContext() {
   try { c = ctx = new AC({ latencyHint: 'interactive' }); }
   catch (e) { audioLog(`new context ✗ ${(e && e.name) || 'error'} (alive ${made - closed})`); ctx = null; return null; }
   made++;
+  sleepy(c);
   c.onstatechange = () => {
     if (c !== ctx) return;
+    const rs = realOf(c);
+    if (rs === 'running') asleep = false, wakeAt = 0;
+    else if (asleep && rs === 'suspended') return audioLog('ctx → asleep');
     audioLog(`ctx → ${c.state}`);
     leaveNote(`ctx ${c.state}`, c.state === 'interrupted');
     if (c.state === 'running') {
@@ -163,7 +167,53 @@ function busTo(p, v, t, tau, ramp) {
 let sfxCutAt = 0;   // performance.now() the effects went to 0 (0 = they're on)
 /** FIXES R2: the effects are OFF and their bus has reached 0 — a loop may be stopped now (city-sound.js: never mid-sound) */
 export const sfxSilent = () => !!sfxCutAt && performance.now() - sfxCutAt >= CUT_S * 1000 + 30;
-onSettings(() => { applyVolumes(false); setSession('settings'); hushCheck('settings'); });
+onSettings(() => { applyVolumes(false); setSession('settings'); hushCheck('settings'); if (effectsOnly()) pauseBeds('effects only'); else { wake(); if (visibleNow && !blurred) resumeBeds(); } });
+
+// ---- CITY H1 — MUSIC OFF = EFFECTS ONLY ('ambient' — the owner's pick, Nov 18; docs/audio.md "CITY H1"): no bed plays, and the context SLEEPS
+// whenever no effect sounds — every source made on it is COUNTED (start +1, 'ended' −1); DOZE_MS after the last one the master goes to 0 and the
+// context is suspended ("asleep": it still SAYS 'running', so an effect is made + started as ever); a source started WAKES it (the master back to
+// 1 while nothing sounds, then the resume). A leave almost never finds live sound.
+const DOZE_MS = 300, REAL = new WeakMap();
+let voices = 0, voiceAt = 0, asleep = false, dozeT = 0, wakeAt = 0;
+const effectsOnly = () => sessionWant() === 'ambient' && !hushed;
+globalThis.__nsBedsOff = effectsOnly;   // (the city's loops: city-sound.js + ambience.js read it through the hub)
+const realOf = c => (REAL.get(c) || (() => c.state))();
+const stNow = () => (!ctx ? 'none' : asleep && realOf(ctx) === 'suspended' ? 'asleep' : realOf(ctx));
+function sleepy(c) {
+  const d = Object.getOwnPropertyDescriptor(c, 'state');
+  let own = d && 'value' in d ? d.value : null, get = null;
+  for (let p = d ? null : Object.getPrototypeOf(c); p && !get; p = Object.getPrototypeOf(p)) { const q = Object.getOwnPropertyDescriptor(p, 'state'); if (q && q.get) get = q.get; }
+  const real = () => (get ? get.call(c) : own);
+  try { Object.defineProperty(c, 'state', { configurable: true, get: () => { const s = real(); return asleep && !hushed && c === ctx && s === 'suspended' ? 'running' : s; }, set: v => { own = v; } }); REAL.set(c, real); } catch { /* fine */ }
+  for (const k of ['createBufferSource', 'createOscillator']) {
+    const mk = c[k];
+    if (typeof mk === 'function') c[k] = function () {
+      const s = mk.apply(c, arguments), st = s.start;
+      s.start = function () {
+        let on = c === ctx;
+        const end = () => { if (on) { on = false; voices = Math.max(0, voices - 1); voiceAt = performance.now(); } };
+        if (on) { voices++; try { s.addEventListener('ended', end); } catch { /* fine */ } wake(); }
+        try { return st.apply(s, arguments); } catch (e) { end(); throw e; }
+      };
+      return s;
+    };
+  }
+}
+function doze() {
+  const c = ctx;
+  if (!c || asleep || dozeT || voices || !effectsOnly() || !unlocked || !visibleNow || blurred || frozen || realOf(c) !== 'running' || performance.now() - voiceAt < DOZE_MS) return;
+  quiet(c, LEAVE_S);   // (a short ramp — an effect's reverb tail may still ring; a leave in it steps to 0 at once)
+  dozeT = setTimeout(() => { dozeT = 0; if (ctx === c && !voices && effectsOnly() && visibleNow && realOf(c) === 'running') { asleep = true; wakeAt = askedAt = gestureAskAt = 0; silence(c); c.suspend().catch(() => {}); } else silence(c, 1); }, Math.round(LEAVE_S * 1000) + ZERO_HOLD_MS);
+}
+function wake() {
+  const c = ctx;
+  if (dozeT) { clearTimeout(dozeT); dozeT = 0; if (c) silence(c, 1); }
+  if (!asleep || !c || hushed) return;
+  silence(c, 1);
+  audioLog('awake for an effect');
+  if (!wakeAt) wakeAt = performance.now();
+  c.resume().catch(() => {});
+}
 
 // ---- CITY A — item 29, THE LEAVING SQUEAL (the owner's iPhone, SOUND MUTED, no music: a short high-pitched noise switching from Safari to another
 // app). Muted = every voice at 0, so it was the audio MACHINERY still live — the context running for THE PROBE / the beat analysers, the
@@ -178,7 +228,7 @@ function hushCheck(why) {
   const want = hushWanted();
   if (want === hushed) { if (want && ctx && ctx.state === 'running' && !hushT) hushNow(why); return; }
   hushed = want;
-  if (want) { audioLog(`hush (${why}) — the master to 0, then the context suspended`); hushNow(why); return; }
+  if (want) { asleep = false; audioLog(`hush (${why}) — the master to 0, then the context suspended`); hushNow(why); return; }
   clearTimeout(hushT); hushT = 0;
   audioLog(`unhush (${why}${inGesture() ? ' · in tap' : ''})`);
   if (!ctx || !unlocked) return;
@@ -245,7 +295,7 @@ function closeContext(c) {
 function rebuild(why) {
   const old = ctx;
   closeContext(old);
-  ctx = null; musicBus = null; sfxBus = null; master = null;
+  ctx = null; musicBus = null; sfxBus = null; master = null; voices = 0; asleep = false;
   if (!createContext()) { ctx = old; return; }
   stuck = false; rebuilds++; lastWhy = why; askedAt = 0; gestureAskAt = 0; lastRebuildAt = performance.now(); bornOfRebuild = true; frozenAfterRebuild = false;
   audioLog(`rebuild #${rebuilds} (${why}) · alive ${made - closed}`);
@@ -330,7 +380,7 @@ export function onGesture(fn) { gestureListeners.add(fn); return () => gestureLi
 export function onFrozen(fn) { frozenListeners.add(fn); return () => frozenListeners.delete(fn); }
 
 /** The engine's state for tests + the readout. */
-export const audioHealth = () => ({ state: ctx ? ctx.state : 'none', hushed, session: sessionWant(), bedsOn: bedsPaused ? 0 : beds.size, pendingFadeIn, stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
+export const audioHealth = () => ({ state: stNow(), voices, hushed, session: sessionWant(), bedsOn: bedsPaused ? 0 : beds.size, pendingFadeIn, stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
   time: ctx ? +ctx.currentTime.toFixed(2) : 0, session: sessionInfo(), sessionSet: { ...sessionSet }, made, closed, alive: made - closed,
   movingFor: clock.moving > 0 && !frozen ? Math.round(performance.now() - clock.moving) : 0, ok: graphOk() });
 function sessionInfo() { try { const a = navigator.audioSession; return a ? `${a.type || '?'}/${'state' in a ? a.state || '?' : 'n/a'}` : ''; } catch { return ''; } }
@@ -363,7 +413,10 @@ function kick() {
 // path plays); one that NEVER started (still 0.00 after NEVER_STARTED_MS) counts at once
 let clock = { t: -1, since: 0, moving: 0 };   // moving: performance.now() since when the clock has been seen moving (0 = not yet)
 function watchClock() {
-  if (!ctx || !unlocked || !visibleNow || document.visibilityState !== 'visible' || ctx.state !== 'running') { clock = { t: -1, since: performance.now(), moving: 0 }; if (frozen && ctx && ctx.state !== 'running') frozen = false; return; }
+  // (a wake whose resume never ran (iOS refused it): after 1 s the context stops pretending — the usual recovery takes over)
+  if (asleep && wakeAt && performance.now() - wakeAt > 1000) { asleep = false; wakeAt = 0; audioLog('the wake never ran'); kick(); }
+  doze();
+  if (!ctx || asleep || !unlocked || !visibleNow || document.visibilityState !== 'visible' || ctx.state !== 'running') { clock = { t: -1, since: performance.now(), moving: 0 }; if (frozen && ctx && ctx.state !== 'running') frozen = false; return; }
   const now = performance.now(), t = ctx.currentTime;
   if (t !== clock.t) { if (frozen) audioLog('clock moving again'); clock = { t, since: now, moving: frozen || !clock.moving ? now : clock.moving }; frozen = false; return; }
   const limit = t === 0 ? NEVER_STARTED_MS : FROZEN_MS;
@@ -386,7 +439,7 @@ export function holdBed(bed) { beds.add(bed); if (bedsPaused) { try { bed.pause(
 globalThis.__nsAudioBeds = holdBed;
 export const bedCount = () => beds.size;
 function pauseBeds(why) { bedsPaused = true; for (const b of [...beds]) { try { b.pause(why); } catch { /* gone */ } } }
-function resumeBeds() { if (!bedsPaused) return; bedsPaused = false; for (const b of [...beds]) { try { b.resume(); } catch { /* gone */ } } }
+function resumeBeds() { if (!bedsPaused || effectsOnly()) return; bedsPaused = false; for (const b of [...beds]) { try { b.resume(); } catch { /* gone */ } } }
 // ---- THE FADE ON LEAVING (DFIX3 ADD-ON → CITY D): the master to 0 AT ONCE on the audio clock + the beds stopped, the suspend follows; back = 0 → up once running
 function fadeOut(why) {
   clearTimeout(fadeT); clearTimeout(blurT); blurT = 0;
@@ -404,8 +457,9 @@ function fadeOut(why) {
   setTimeout(() => { if (!visibleNow) pauseBeds(why); }, Math.round(LEAVE_S * 1000) + 10);
   fadeT = setTimeout(() => { if (ctx === c && !visibleNow && c.state === 'running') { cutSuspend(c); leaveNote('cut: suspend asked'); c.suspend().then(() => { if (ctx === c) audioLog('suspended after the fade'); }, () => {}); } }, Math.round(LEAVE_S * 1000) + ZERO_HOLD_MS);
 }
-/** the master to 0 now — no ramp (an INTERRUPTED context renders nothing: a ramp there never runs) */
-function silence(c) { try { const t = c.currentTime, g = master.gain; g.cancelScheduledValues(t); g.setValueAtTime(0, t); } catch { /* closed */ } }
+/** the master to 0 NOW — no ramp. CITY H1 — THE SQUEAL's cause: setValueAtTime alone is only an event on the audio timeline (the page's
+ *  value stayed 1.000 until the render thread ran a quantum — on iOS leaving 'ambient' it never did); the VALUE itself is set (v = 1: back up) */
+function silence(c, v = 0) { try { const g = master.gain; g.cancelScheduledValues(c.currentTime); g.value = v; } catch { /* closed */ } }
 /** FIXES R2 — the master to 0 on a ramp of `s` seconds from wherever it is (a step is a click; CITY D's 90 ms was too long for a leave) */
 function quiet(c, s) { try { const t = c.currentTime, g = master.gain; const v = g.value; g.cancelScheduledValues(t); g.setValueAtTime(v, t); g.linearRampToValueAtTime(0, t + s); } catch { /* closed */ } }
 function fadeIn(why) {
@@ -513,7 +567,7 @@ const soundingHubs = new Map();
 export function soundingHub(name, fn) { soundingHubs.set(name, fn); return () => soundingHubs.delete(name); }
 globalThis.__nsSounding = soundingHub;
 export function soundingNow() {
-  const o = { ctx: ctx ? ctx.state : 'none', master: master ? +master.gain.value.toFixed(3) : null, fx: sfxBus ? +sfxBus.gain.value.toFixed(3) : null,
+  const o = { ctx: stNow(), master: master ? +master.gain.value.toFixed(3) : null, fx: sfxBus ? +sfxBus.gain.value.toFixed(3) : null,
     music: musicBus ? +musicBus.gain.value.toFixed(3) : null, beds: bedsPaused ? `${beds.size} stopped` : beds.size, hushed };
   for (const [k, fn] of soundingHubs) { try { o[k] = fn(); } catch { o[k] = '?'; } }
   return o;
@@ -524,7 +578,7 @@ function leaveNote(sig, start = false) {
   try {
     const now = Date.now();
     if (!episode) { if (!start) return; episode = { sess: sessionWant(), at: now, dev: deviceLine(), session: sessionInfo() || 'n/a', vis: document.visibilityState, first: soundingNow(), sig: [], left: false }; }
-    if (episode.sig.length < 16) episode.sig.push({ s: sig, ms: now - episode.at, st: ctx ? ctx.state : 'none', m: master ? +master.gain.value.toFixed(3) : null });
+    if (episode.sig.length < 16) episode.sig.push({ s: sig, ms: now - episode.at, st: stNow(), m: master ? +master.gain.value.toFixed(3) : null });
     if (isLeftSignal(sig)) episode.left = true;
     localStorage.setItem(LEAVE_REC_KEY, JSON.stringify(episode));
   } catch { /* storage full / private mode */ }
@@ -533,7 +587,7 @@ function leaveBack(why) {
   if (!episode) return;
   const e = episode; episode = null;
   if (!e.left) { try { localStorage.removeItem(LEAVE_REC_KEY); } catch { /* fine */ } return; }   // (a blur that stayed on screen: no leave)
-  e.back = { why, ms: Date.now() - e.at, st: ctx ? ctx.state : 'none' };
+  e.back = { why, ms: Date.now() - e.at, st: stNow() };
   try { localStorage.setItem(LEAVE_REC_KEY, JSON.stringify(e)); } catch { /* fine */ }
   setTimeout(sendLeave, 1500);
 }
@@ -559,7 +613,7 @@ const cutSent = new Set();
 const CUT_KEY = 'ns:audiocut';
 function cutStart(why) {
   if (!ctx || (cut && cut.why === why && performance.now() - cut.at < 1500)) return;
-  cut = { why, at: performance.now(), from: ctx.state, session: sessionInfo() || 'n/a', master: master ? +master.gain.value.toFixed(3) : null, sfx: sfxBus ? +sfxBus.gain.value.toFixed(3) : null, beds: beds.size, visible: document.visibilityState };
+  cut = { why, at: performance.now(), from: stNow(), session: sessionInfo() || 'n/a', master: master ? +master.gain.value.toFixed(3) : null, sfx: sfxBus ? +sfxBus.gain.value.toFixed(3) : null, beds: beds.size, visible: document.visibilityState };
 }
 function cutSuspend(c) {
   if (!cut || c !== ctx) return;

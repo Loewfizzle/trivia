@@ -36,7 +36,7 @@ import { createSceneRadio } from './scene-radio.js';
 import { setShowcase } from '../../core/harbor-showcase.js';
 import { hintAt, ownerMessages, intercomHead } from '../../core/harbor-billboard.js';
 import { holdemShow, setHoldemForce, holdemRev } from '../../core/harbor-holdem.js';
-import { triFaces, triClock, triKnobs, triProgress, slatU, slatLook, setJaywalkForce, jaywalkRev, setDropForce, isJaywalkId } from '../../core/harbor-trivision.js';
+import { triFaces, triClock, triKnobs, triProgress, slatU, slatLook, setJaywalkForce, jaywalkRev, setDropForce, isJaywalkId, newestFace, faceDates } from '../../core/harbor-trivision.js';
 import { roomRects } from '../../core/harbor-room.js';
 import { createScenePanel } from './scene-panel.js';
 import { createScenePerf } from './scene-perf.js';
@@ -1265,7 +1265,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (tri.faces && tri.faces.join() !== F.join()) { const was = tri.faces[tri.shown]; tri.shown = Math.max(0, F.indexOf(was)); }
     tri.faces = F;
     const K = triKnobs(), C = triClock(clock.now() / 1000, K, triForce(), F.length);
-    if (tri.lastN == null) { tri.lastN = C.n; return F; }   // (the first frame it's up: the board keeps what it shows — the next turn brings the clock's face)
+    // (the first frame it's up — CITY H1, THE BOARD OPENS ON THE NEWEST GAME: it turns at once to the face switched on most recently
+    //  (core/harbor-trivision.js#newestFace), then the shared clock's turns as ever; was: it kept HOLD'EM until the next turn)
+    if (tri.lastN == null) { tri.lastN = C.n; const o = newestFace(F, faceDates()); if (o !== tri.shown && !tr.board.pasting && boardHintKey === '') triTurnTo(F, o, { id: `o${C.n}`, at: clock.now() / 1000 }, K); else tri.shown = o; tri.opened = F[o]; return F; }
     if (C.n === tri.lastN) {
       if (tri.turn && !tri.turn.click2 && C.u != null && C.u > 0.62) { tri.turn.click2 = true; triClick(0.12); }
       return F;
@@ -1274,16 +1276,20 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const hint = tr.board.pasting || boardHintKey !== '';
     if (hint) { tri.shown = C.face; return F; }   // (a message holds the whole board: the face moves on under it — after it, the clock's face is back)
     if (C.u == null || C.face === tri.shown) return F;   // (a return from the background mid-cycle: the next turn sets it right)
-    const from = tri.shown; tri.shown = C.face; tri.swap = true; boardCheck = 0;
-    if (!S.motion || document.visibilityState !== 'visible') { tri.turn = null; return F; }   // (reduced motion: a cut at the turn)
-    const R = triRect(), dead = tr.boardLampDead == null ? null : tr.boardLampDead;
-    if (!R || !bakeTones) { tri.turn = null; return F; }
+    triTurnTo(F, C.face, C, K, tr);
+    return F;
+  }
+  /** a turn from the face on show to F[to] (C: { id, at } — the clock's turn, or the opening one) */
+  function triTurnTo(F, to, C, K, tr = null) {
+    const from = tri.shown; tri.shown = to; tri.swap = true; boardCheck = 0;
+    if (!S.motion || document.visibilityState !== 'visible') { tri.turn = null; return; }   // (reduced motion: a cut at the turn)
+    const R = triRect(), dead = tr && tr.boardLampDead != null ? tr.boardLampDead : null;
+    if (!R || !bakeTones) { tri.turn = null; return; }
     const d = crisp.on ? crisp.dpr : dpr;
-    tri.turn = { id: C.id, at: C.at, dur: K.turn, game: F[C.face], R, d, art: [triArt(F[from], dead, d), triArt(F[C.face], dead, d)], click2: false };
-    triTurns.push({ id: C.id, from: F[from], to: F[C.face], at: C.at }); triNote('turn', `${F[from]} → ${F[C.face]}`);   // (the test hook's log — the last few)
+    tri.turn = { id: C.id, at: C.at, dur: K.turn, game: F[to], R, d, art: [triArt(F[from], dead, d), triArt(F[to], dead, d)], click2: false };
+    triTurns.push({ id: C.id, from: F[from], to: F[to], at: C.at }); triNote('turn', `${F[from]} → ${F[to]}`);   // (the test hook's log — the last few)
     if (triTurns.length > 8) triTurns.shift();
     triClick(0.18);
-    return F;
   }
   /** the slats' click: a dial's detent (the radio desk's — the city's SFX bus: quiet, "felt not heard"; silent when the effects are off) */
   function triClick(gain) { const R = triRect(); try { snd.play('radio-tick', { gain, pan: R && W ? Math.max(-0.6, Math.min(0.6, ((R.x + R.w / 2) / W - 0.5) * 1.2)) : 0 }); } catch { /* polish */ } }
@@ -3223,7 +3229,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** NEON PASS 5: the tiering's state (capped: the phone's frame-rate cap it found, Hz; probe: a step down being tried) */
     speakCtx: () => { const v = speakCtx(); return { key: v.key, hushLit: !!v.hushLit }; },   // (WIN2: the facade's bake context — the washer swap)
     // (THE TRI-VISION's state for the tests: the face on show, the clock's, the turn now, what the board holds)
-    tri: () => { const C = triClock(clock.now() / 1000, triKnobs(), triForce()); return { key: tri.key || null, faces: tri.faces ? tri.faces.slice() : null, drop: !!tri.dr, rect: triRect(), now: clock.now() / 1000, dur: triKnobs().turn, heldOut: triHeldOut, log: triLog.slice(), shown: tri.shown, clock: C.face, n: C.n, at: C.at, lastN: tri.lastN, ready: !!tri.jw, warmed: tri.warmed, open: tri.jwOpen, openWarmed: tri.openWarmed, fails: tri.fails, turn: tri.turn ? { id: tri.turn.id, game: tri.turn.game, u: triU() } : null, board: neon.boardGame(BOARD_ID), turns: triTurns }; },
+    tri: () => { const C = triClock(clock.now() / 1000, triKnobs(), triForce()); return { key: tri.key || null, opened: tri.opened || null, faces: tri.faces ? tri.faces.slice() : null, drop: !!tri.dr, rect: triRect(), now: clock.now() / 1000, dur: triKnobs().turn, heldOut: triHeldOut, log: triLog.slice(), shown: tri.shown, clock: C.face, n: C.n, at: C.at, lastN: tri.lastN, ready: !!tri.jw, warmed: tri.warmed, open: tri.jwOpen, openWarmed: tri.openWarmed, fails: tri.fails, turn: tri.turn ? { id: tri.turn.id, game: tri.turn.game, u: triU() } : null, board: neon.boardGame(BOARD_ID), turns: triTurns }; },
     boardCrisp: () => { const fr = neon.fresh(), rb = (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak'); return { rev: fr ? fr.rev : 0, freshDone, started: String(baker.key || '').slice(-24), shown: String(shownKey || '').slice(-24), revStarted: revOfBake.get(baker.key) ?? null, revShown: revOfBake.get(shownKey) ?? null, pending: baker.pending, fading: fadeFrom >= 0, content: rb && rb.content ? `${rb.content.title || ''}|${rb.content.sub || ''}|${rb.content.lines ? rb.content.lines.join('/') : ''}` : null, game: neon.boardGame(BOARD_ID), crisp: crisp.debug().items.filter(i => /^roofboard/.test(i.id)).map(i => `${i.id}:${i.op}`) }; },
     boardXf: () => ({ n: bxf.n, a: +boardXfA().toFixed(3), ms: bxf.ms, layer: crisp.on ? 'crisp' : 'city', rev: (neon.fresh() || {}).rev || 0, show: bxf.shown }),   // (CITY FIXES: + the board's rebuild count — one swap per real change)   // (LOBBY 2.0 A: the billboard's cross-fade — swaps faded, the old copy's alpha now)
     tiering: () => ({ tier, dprTier, weak, dpr, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), why: stepWhy.slice(), wantStep, manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())), grace: TIER_GRACE, heavy: heavyNow(performance.now()), judge: lastJudge, slowN, sinceReveal: shownAt < 0 ? null : +((performance.now() - shownAt) / 1000).toFixed(1) }),

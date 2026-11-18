@@ -155,8 +155,16 @@ export async function heapNoCode(cdp) {
   const s = JSON.parse(chunks.join('')); chunks.length = 0;
   const m = s.snapshot.meta, nf = m.node_fields.length, types = m.node_types[0], iT = m.node_fields.indexOf('type'), iS = m.node_fields.indexOf('self_size');
   let total = 0, code = 0;
-  for (let i = 0; i < s.nodes.length; i += nf) { const sz = s.nodes[i + iS]; total += sz; if (types[s.nodes[i + iT]] === 'code') code += sz; }
-  return { total, code, rest: total - code };
+  // (CITY H1: by constructor too — a red MEMORY check names what grew (heapGrowth); the cloud's +38.7 MB on CITY G never reproduced here)
+  const iN = m.node_fields.indexOf('name'), by = new Map();
+  for (let i = 0; i < s.nodes.length; i += nf) { const sz = s.nodes[i + iS], ty = types[s.nodes[i + iT]]; total += sz; if (ty === 'code') code += sz; else { const k = `${ty}:${String(s.strings[s.nodes[i + iN]] || '').slice(0, 40)}`; by.set(k, (by.get(k) || 0) + sz); } }
+  return { total, code, rest: total - code, by };
+}
+/** CITY H1: the top growths between two heapNoCode() readings → 'name +MB · …' */
+export function heapGrowth(a, b, n = 8) {
+  const d = [];
+  for (const [k, v] of b.by || []) { const g = v - ((a.by && a.by.get(k)) || 0); if (g > 1e5) d.push([k, g]); }
+  return d.sort((x, y) => y[1] - x[1]).slice(0, n).map(([k, g]) => `${k} +${(g / 1e6).toFixed(2)}`).join(' · ') || 'nothing over 0.1 MB';
 }
 export const settled = (p, what = 'settled', ms = 15000) => waitFor(p, '!window.__district.harbor().pending && !window.__district.harbor().fading', what, ms);
 export const GROUPS = new Map();

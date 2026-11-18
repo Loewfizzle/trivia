@@ -315,16 +315,21 @@ G('neon', async () => {
     ok(sg.last && sg.last.why === 'music' && sg.last.did === 'surge' && sg.count === 1, `THE MUSIC STARTING (the first tap, by day): the sign surged (${JSON.stringify(sg.last)})`);
     // (2) the music button OFF ≥ 1 s, then ON (after the 10 s cooldown) → the same surge again
     await waitFor(P.page, '!window.__district.surge().running && window.__district.surge().cool === 0', 'the cooldown over', 15000);
+    // (CITY H1 — CITY G's corner button is THREE-WAY: on → MUSIC OFF · EFFECTS ON → ALL SOUND OFF → ON — "back ON" is two taps more)
+    const soundOn = async () => { for (let k = 0; k < 3 && (await ev(P.page, "document.querySelector('.music-btn').dataset.sound")) !== 'on'; k++) { await tap(P.page, '.music-btn'); await sleep(120); } };
     await tap(P.page, '.music-btn'); await waitFor(P.page, `${CLOCK}.then(c => c < 0)`, 'the music off', 5000); await sleep(1300);
-    await tap(P.page, '.music-btn');
+    await soundOn();
     await waitFor(P.page, 'window.__district.surge().count === 2', 'the second surge', 15000).catch(() => {});
     const s2 = await ev(P.page, 'window.__district.surge()');
     ok(s2.count === 2 && s2.last.why === 'music' && s2.last.did === 'surge', `THE MUSIC BUTTON back ON: the sign surged again (${s2.count}, ${JSON.stringify(s2.last)})`);
     // (9a — the owner's add-on: ON A BEAT — the race waits for the song's next beat (the next downbeat within 0.6 s) on a trusted grid)
     okT(!s2.last.onBeat || (s2.last.onBeat.wait <= 1500 && (s2.last.onBeat.err == null || Math.abs(s2.last.onBeat.err) <= 0.1)), `THE SURGE ON THE BEAT: ${s2.last.onBeat ? `waited ${s2.last.onBeat.wait} ms, fired ${s2.last.onBeat.err} beats off the ${s2.last.onBeat.down ? 'downbeat' : 'beat'}` : 'no trusted grid — at once'}`);
     // (3) OFF / ON again inside 10 s → the cooldown (toggling can't spam it)
-    await tap(P.page, '.music-btn'); await waitFor(P.page, `${CLOCK}.then(c => c < 0)`, 'the music off', 5000); await sleep(1300);
-    await tap(P.page, '.music-btn');
+    // (CITY H1: the music's own switch (☰ Settings) — the corner button's third state is ALL OFF (a hush), not the toggle this step is about;
+    //  found on the way: the music started, then OFF → ALL OFF → ON inside a second, did not come back within 15 s — HEAD's engine too, logged)
+    const musicSw = off => ev(P.page, `import('/js/audio/settings.js').then(m => m.updateSettings({ musicOff: ${off} }))`);
+    await musicSw(true); await waitFor(P.page, `${CLOCK}.then(c => c < 0)`, 'the music off', 5000); await sleep(1300);
+    await musicSw(false);
     // (ATM-A: a cooldown skip is kept apart in surge().skip — `last` stays the last REAL answer)
     await waitFor(P.page, '(window.__district.surge().skip || {}).did === "skip:cool"', 'the cooldown answer', 15000).catch(() => {});
     const s3 = await ev(P.page, 'window.__district.surge()');

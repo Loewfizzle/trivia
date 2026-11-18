@@ -10,7 +10,7 @@
 //   the owner's switch (/admin → THE BILLBOARD: api/admin.js billboardJaywalk → city2/billboard.jaywalk → the cached GET ?live=1 → setJaywalk)
 //   overrides it on every phone. &force=billboard-jaywalk (+ &jaywalk=open) = the JAYWALK face from TODAY on this phone.
 import { knob } from './harbor-schedule.js';
-import { holdemShow } from './harbor-holdem.js';
+import { holdemShow, holdemState } from './harbor-holdem.js';
 import { streakDay } from './streak.js';
 
 const KEY_RE = /^\d{4}-\d{1,2}-\d{1,2}$/;
@@ -98,6 +98,18 @@ export function dropKey(dayKey, nowMs = null) {
 /** the faces a day key turns between, in order (HOLD'EM → JAYWALK → THE DROP) — null when fewer than two are up (one face alone = no turning);
  *  nowMs (the city's clock): THE DROP judged on the streak day (dropKey) */
 export function triFaces(dayKey, nowMs = null) { const F = [holdemShow(dayKey), jaywalkShow(dayKey), dropShow(dropKey(dayKey, nowMs))].filter(Boolean); return F.length >= 2 ? F : null; }
+/** CITY H1 — THE BOARD OPENS ON THE NEWEST GAME (the owner): PURE — the index in F of the face whose switch went on MOST RECENTLY (the latest of
+ *  each face's `since` / OPEN DAY — /admin stamps them when a switch is flipped, never typed); a tie → the later face; no dates → 0 */
+export function newestFace(F, dates = {}) {
+  let best = 0, bd = -Infinity;
+  (F || []).forEach((f, i) => { const ds = [].concat(dates[f] || []).filter(d => KEY_RE.test(String(d))); const n = ds.length ? Math.max(...ds.map(dayNum)) : -Infinity; if (n > -Infinity && n >= bd) { bd = n; best = i; } });
+  return best;
+}
+/** each face's switch dates now (holdem / jaywalk: since + OPEN DAY; drop: its go-live day) — for newestFace */
+export function faceDates() {
+  const H = holdemState(), J = jaywalkState(), D = dropState(), h = [H.since, H.open], j = [J.since, J.open];
+  return { holdem: h, 'holdem-open': h, jaywalk: j, 'jaywalk-open': j, drop: [D.live] };
+}
 /** THE BILLPOSTER stays home while the tri-vision is up (the turning board is the motion — no paste) */
 export const triKeeps = dayKey => !!triFaces(dayKey);
 export const isJaywalkId = id => id === 'jaywalk' || id === 'jaywalk-open';

@@ -59,40 +59,7 @@ export const PIECE = Object.freeze({
 export const PHONE = Object.freeze({
   signals: [{ id: 'west', f: 0.6, dir: 1, arm: 0 }, { id: 'east', f: 0.735, dir: -1, arm: 0 }],   // (pole-top heads, 1920s)
   crosswalk: [0.613, 0.722],
-  // FP — THE RE-LAYOUT (the owner approved the sketch, Oct 23): FURNITURE ON THE EDGES, AN OPEN FLOOR IN THE MIDDLE, THE FRONT EDGE
-  // CLEAR. THE BACK ROW along the curb, a steady street rhythm: maple (beside the blade) · tall lamp · [the crosswalk's landing, open]
-  // · maple with the BENCH under it · a planter · tall lamp. THE OPEN FLOOR: clear cobbles from the shopfront to the right edge, the
-  // MEDALLION at its centre (roughly under the wheel), the CART on its open right side. ONE big framing maple at the far right edge.
-  // THE FRONT EDGE: only two short warm globes, one at each corner (the speakeasy's corner + the right edge). ONE crafted planter
-  // tucked against the speakeasy's corner, beside the side wall (never in front of the door or the shop window).
-  // (at phone size the strip is ~70 pt deep, so depth stacks on screen: no curb tree may stand in front of the two stop lights or
-  // the crossing (f ~0.58–0.76), and the framing maple's crown covers the right quarter — so the back row's trees + bench sit LEFT
-  // of the crossing, beside the blade + under the wheel's deck, its second tall lamp right of it; the sketch's curb planter would
-  // stand hidden behind the framing maple — the ONE crafted planter is the speakeasy's corner one)
-  // FP2 — THE OWNER'S TWEAKS (Oct 24): the red curb maple beside / behind the DOUBLE AGENT blade is GONE (the corner clean, the wheel's
-  // left leg shows again); the corner URN is gone (the promenade has no planter now — the speakeasy has its window boxes + ivy;
-  // props.js#drawPlanter stays for later); THE MEDALLION moves to the middle of the open floor, in front of the crossing (~265 pt at
-  // 402); THE CART rests LEFT of it (~200 pt); THE BENCH + its tree shift LEFT (~160 pt: the cart's umbrella never hides the bench —
-  // tested) and that tree is a FLOWERING CRABAPPLE (pink-white blossom in spring — spring reads again; golden autumn + red fruit).
-  // So the back row is: crabapple with the bench · tall lamp · [the crossing's landing] · tall lamp. The framing maple keeps its
-  // own colour (v: the BLAZING ORANGE mix — core/harbor-trees.js#MAPLE_AUTUMN 1, "the big one on the front walk").
-  // PF — THE FINAL LAYOUT (the owner, Oct 24; the cart is back since FP3b — the vendor spot): THE BENCH +
-  // ITS CRABAPPLE move to where the cart's umbrella stood — just LEFT of the crossing, a little FORWARD, the tree bigger (the DOUBLE
-  // AGENT blade free, the tree shows); THE TALL LAMPS a matched PAIR FLANKING THE CROSSING (symmetric about its centre, 0.6675 — just
-  // outside the two stop lights: the crossing framed + lit, the bench in the left one's light); the two short globes stay at the
-  // front corners; nothing in front of the shopfront or the blade. THE CENTREPIECE is a brick PAVING INLAY now (props.js) on the
-  // crossing's axis, a little further back (z 43.4 → 44.8) — inside both flanking lamps' pools. THE MAILBOX by the front curb, right.
-  // PROM — THE PROMENADE, FINAL (the owner, Oct 28 — LOCKED): NO LAMPPOSTS (the tall pair + the two front globes gone: the implied lamps
-  // behind the viewer light it); THE FRAMING MAPLE moved BACK (f 0.888 z 38.2 → f 0.875 z 42.0 — its whole crown shows); THE CAB STAND
-  // bench at the FRONT CURB in front of it, facing the street (`cabStand`); THE WATER BENCH back at the crabapple, turned to face the
-  // harbor (`bench`, face 'water'); THE COMPASS bigger + forward (z 44.8 → 42.6); THE VENDOR CART to the front-middle LEFT of the compass
-  // (f 0.805 → 0.5); THE HYDRANT to the LEFT CURB (f 0.035), framing the corner
-  // C4b — THE LAYOUT (the owner, Oct 28 — review-4 §C3 option C, the giant off): THE COMPASS LEFT to f 0.515 (the crosswalk clear of
-  // every remaining centrepiece: its ring's right edge 250 pt vs the crossing's near edge 251 at 402), THE WATER BENCH back in front of
-  // the crabapple (f 0.42 — no centrepiece hides it), THE FRAMING MAPLE + THE CAB STAND to the RIGHT EDGE (f 0.875 → 0.9, its leaves 1–4
-  // pt inside the screen's edge at 390 / 402 / 430; the bench the same 0.70 u: f 0.9025; the maple keeps its crown — `seedF`, the plan's
-  // seed from its old spot), THE CART in the middle (f 0.69 — between the compass + the cab bench), wheeled up from BELOW THE DOCK
-  // (`from: 'below'`: across the front street + over the curb at its spot)
+  // (the promenade's layout history FP → C4b — the owner's approvals, Oct 23–28: docs/harbor.md "THE BOOT TRIM (CITY H1)", verbatim)
   maples: [{ f: 0.888, z: 42.0, big: true, v: 1, seedF: 0.875 }],   // (C4c: 0.9 → 0.888 — the owner saw its crown cut at the edge: its leaves ended 1 pt inside + the wind's sway leaned it out; now ~6 pt in, every season)
   crabs: [{ f: 0.42, z: 50.9, k: 1.4 }],    // (POLISH 5: 0.45 / k 1.45 → 0.42 / 1.4 — the cab at its stop no longer half behind it at 402; PF: 0.405 / z 52.9 / k 1.25 → its crown 153–209 pt at 402: right of the blade, left of the lamp's arm)
   medallion: { f: 0.515, z: 42.6 },         // (PROM: forward from 44.8 — on the crossing's axis; C4b: LEFT, 0.6675 → 0.515 — the crossing clear)

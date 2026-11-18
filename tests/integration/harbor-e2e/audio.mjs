@@ -60,7 +60,8 @@ G('dock', async () => {
   // FIXES R3 — the ?city=2 pass-through was removed on purpose (FIXES R2 F6: nothing read it — City 2.0 is the only city); the room's address keeps its room
   ok(/room=/.test(await ev(H.page, 'location.search')), `THE ROOM IN THE URL: the room's address names it (${await ev(H.page, 'location.search')})`);
   await H.page.reload();
-  await waitFor(H.page, '!!window.__arcade && window.__arcade.state.code === ' + JSON.stringify(code), 'rejoin after a refresh', 20000);
+  // (CITY H1 — the cloud red: the room came back before the city had mounted on the slow runner — wait for BOTH, never read one at once)
+  await waitFor(H.page, '!!window.__arcade && window.__arcade.state.code === ' + JSON.stringify(code) + ' && !!window.__district', 'rejoin after a refresh, in the city', 30000).catch(() => {});
   ok((await ev(H.page, 'window.__arcade.state.code')) === code && !!(await ev(H.page, 'window.__district')), 'THE ROOM IN THE URL: a refresh in the lobby rejoins the room, in the city');
   const B = await open({ slot: 'hb', qs: NIGHT, view: [402, 874] });
   await harborUp(B.page);
@@ -681,6 +682,28 @@ G('mediacut', async () => {
   ok(h.after === 'all paused', `… hidden after it: every element still paused (${h.after})`);
   await ev(p, "Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('focus'))");
   await P.ctx.close();
+  // ---- CITY H1 — MUSIC OFF = EFFECTS ONLY (the owner's pick): the city's loops stop, the context SLEEPS with no effect sounding (still saying
+  //  'running'), an effect wakes it + it sleeps again; a leave while asleep finds the master's VALUE at 0
+  { const Q = await open({ slot: 'mc2', qs: `${NIGHT}&debug=1`, view: [402, 874] }), q = Q.page;
+    await harborUp(q); await tapAt(q, 30, 300);
+    await waitFor(q, "import('/js/audio/engine.js').then(E => E.audioUnlocked() && E.audioHealth().state === 'running')", 'the audio running', 8000).catch(() => {});
+    await sleep(2500);
+    const on = await ev(q, "import('/js/audio/engine.js').then(E => E.audioHealth())");
+    await ev(q, "import('/js/audio/settings.js').then(m => m.updateSettings({ musicOff: true, sfxOff: false, muted: false }))");
+    const slept = await waitFor(q, "import('/js/audio/engine.js').then(E => E.audioHealth().state === 'asleep')", 'asleep with the music off', 6000).then(() => true, () => false);
+    const a = await ev(q, "import('/js/audio/engine.js').then(E => ({ h: E.audioHealth(), says: E.getContext().state, beds: E.bedCount() }))");
+    ok(slept && a.h.voices === 0 && a.h.master === 0 && a.says === 'running',
+      `MUSIC OFF = EFFECTS ONLY: the loops stop + the context ASLEEP (${a.h.state}; ${on.voices} voices with the music on → ${a.h.voices}; master ${a.h.master}; it says '${a.says}')`);
+    const w = await ev(q, `(async () => { const E = await import('/js/audio/engine.js'), S = await import('/js/audio/sfx.js'); const t0 = performance.now(); S.sfx('select');
+      const m = E.audioHealth().master; while (E.audioHealth().state !== 'running' && performance.now() - t0 < 2000) await new Promise(r => setTimeout(r, 10));
+      return { m, ms: Math.round(performance.now() - t0), st: E.audioHealth().state }; })()`);
+    ok(w.m === 1 && w.st === 'running' && w.ms < 600, `… an effect WAKES it (the master ${w.m} at once, running in ${w.ms} ms)`);
+    const again = await waitFor(q, "import('/js/audio/engine.js').then(E => E.audioHealth().state === 'asleep')", 'asleep again', 4000).then(() => true, () => false);
+    ok(again, '… and it sleeps again after the effect');
+    await ev(q, "window.dispatchEvent(new Event('blur')); Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))");
+    const lv = await ev(q, "import('/js/audio/engine.js').then(E => E.audioHealth())");
+    ok(lv.master === 0 && lv.state === 'asleep', `… a leave while asleep: nothing live (master ${lv.master}, ${lv.state})`);
+    await Q.ctx.close(); }
   log('mediacut', 'done');
 });
 

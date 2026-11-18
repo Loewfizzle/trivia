@@ -145,7 +145,7 @@ export function createLeafBank() {
   let host = null, box = null, ro = null, wpx = 0, atlas = null, loading = false, failed = 0;
   // the canvases up: [{ cv, look: 'night' | 'day', key, born }] (the newest last); a fade = a new pair over the old one
   let layers = [];
-  let curKey = '', want = null, dayOp = -1, litOp = -1, bakes = 0, lastBakeMs = 0;
+  let curKey = '', want = null, dayOp = -1, litOp = -1, bakes = 0, lastBakeMs = 0, litOnce = false;
   const LF = { cols: '', f: null };
 
   function setHost(el) {
@@ -264,10 +264,14 @@ export function createLeafBank() {
   }
   function setOps(day, lit, fadeMs) {
     const d = Math.round(day * 50) / 50, l = Math.round(clamp01(lit == null ? 1 : lit) * 20) / 20;
+    if (l >= 0.98) litOnce = true;
     if (d === dayOp && l === litOp) return;
     dayOp = d; litOp = l;
     for (const L of layers) {
-      const op = L.look === 'day' ? (layers.some(o => o.look === 'night') ? d : 1) : (0.72 + 0.28 * l);   // (C2: a dimmer sign still shows the leaves' colours — never a faint ghost)
+      // (C2: a dimmer sign still shows the leaves' colours — never a faint ghost. CITY H1 — THE LEAVES BEFORE THE LETTERS, the owner: at the sign's
+      //  FIRST power-up the 0.72 floor showed the leaves before any letter — until it has lit fully once the night layer follows the letters
+      //  (l² × the floor's curve: the sign leads), then the floor stays for a dim / a blackout)
+      const op = L.look === 'day' ? (layers.some(o => o.look === 'night') ? d : 1) : (0.72 + 0.28 * l) * (litOnce ? 1 : l * l);
       L.cv.style.transition = fadeMs ? `opacity ${fadeMs}ms ease-in-out` : 'none';
       if (fadeMs) { void L.cv.offsetWidth; }                                   // (the fade starts from 0: one style flush, only at a bake)
       L.cv.style.opacity = op.toFixed(3);
@@ -276,7 +280,7 @@ export function createLeafBank() {
 
   return {
     setHost, frame, destroy: detach,
-    debug: () => ({ on: layers.length > 0, layers: layers.map(l => ({ look: l.look, k: l.k / 1000, w: l.cv.width, h: l.cv.height, op: l.cv.style.opacity })), atlas: !!atlas, failed, bakes, lastBakeMs, leaves: LAYOUT ? LAYOUT.length : 0 }),
+    debug: () => ({ on: layers.length > 0, litOnce, layers: layers.map(l => ({ look: l.look, k: l.k / 1000, w: l.cv.width, h: l.cv.height, op: l.cv.style.opacity })), atlas: !!atlas, failed, bakes, lastBakeMs, leaves: LAYOUT ? LAYOUT.length : 0 }),
   };
 }
 

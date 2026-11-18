@@ -109,7 +109,7 @@ export function lightField(cols) {
 export function createSignDress() {
   let host = null, cv = null, x = null, ro = null, wpx = 0, dpr = 1, sc = 1, PW = 0, PH = 0;
   const cache = { silk: null, glow: null };
-  let slowTask = { ms: 0 }, colsRef = null, colRef = null, job = null, staticKey = '', glowA = -1, lastDyn = 0, wasDyn = false, draws = 0, bakes = 0, lastMs = 0, lfKey = '', LF = null, on = false;
+  let litOnce = false, dressOp = -1, slowTask = { ms: 0 }, colsRef = null, colRef = null, job = null, staticKey = '', glowA = -1, lastDyn = 0, wasDyn = false, draws = 0, bakes = 0, lastMs = 0, lfKey = '', LF = null, on = false;
   const webs = WEB_SPECS.map(buildWeb);
   let spiders = [null, null], dotd = null, shimmer = null, lastEnv = null, prevBox = null, prevShim = [];   // (WIN2: two spiders — the main web's + the corner web's on the last N)
   const live = () => spiders.filter(Boolean);
@@ -223,6 +223,11 @@ export function createSignDress() {
     if (shimmer) shimmer.step(t, { motion: motion && env.tier !== 0, growth: webs.map(w => webGrowth(w, P.web)) });
     const dyn = live().some(sp => sp.moving()) || (shimmer && shimmer.moving()) || (dotd && dotd.moving({ motion, wind: env.wind, tier: env.tier }));
     const lit = clamp01(env.signLit == null ? 1 : env.signLit), gA = Math.round(lit * 48) / 48;
+    // (CITY H1 — THE LEAVES BEFORE THE LETTERS, the owner: until the sign has lit fully ONCE the dressing fades in WITH the letters by night — the
+    //  sign leads; after that it stays (a dim / a blackout only dims the glow); by day the sign is glass: no hold)
+    if (lit >= 0.98) litOnce = true;
+    const dop = litOnce ? 1 : Math.round(Math.max(1 - clamp01(env.dark == null ? 1 : env.dark), lit * lit) * 20) / 20;
+    if (cv && dop !== dressOp) { dressOp = dop; cv.style.opacity = String(dop); }
     const now = performance.now(), fps = env.tier === 0 ? 15 : 30;
     const due = rebaked || gA !== glowA || (dyn && now - lastDyn >= 1000 / fps - 2) || (!dyn && wasDyn);
     if (!due) return;

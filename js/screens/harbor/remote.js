@@ -1,38 +1,5 @@
-// CITY 2.0 — THE PREVIEW PANEL: the owner's test remote (docs/harbor.md#the-preview-panel). ?city=2 only: title.js imports this
-// module after the city's first paint, never on the default city.
-//   everyone on ?city=2   reads city2/live (server-written: /api/admin cityLive / cityClear) — CONN (Oct 28): through the cached
-//                         GET /api/admin?live=1 every ~5 min while the city is visible + focused (no database socket; ≲ 5 min to arrive —
-//                         THE CDN HOTFIX, Nov 12: each poll is one of Vercel's free million edge requests);
-//                         admins keep the live listener (firebase.js#want('admin')) — and plays
-//                         its state in sync from its startAt (the scene's remote(): the clock runs from there, a sky piece's
-//                         first flight starts there) until CLEAR or `until`; then the real city again. A node whose startAt is
-//                         still ahead (C2: the panel's DELAY) waits for it — every phone starts on the same beat
-//   the owner (admin)     9d: the ☰ menu's ADMIN row (its bottom) opens the sheet — the TEST pill is gone from the screen; while a
-//                         preview is on, a small dot on ☰ (JUST ME green, EVERYONE pink) + the row says what ("JUST ME · 10/27 22:30")
-//                         with a CLEAR beside it. JUST ME (this phone, kept for the tab) or EVERYONE ON CITY 2 (a draft, sent with
-//                         SEND TO EVERYONE); every row comes from core/harbor-remote.js
-// 9d — THE ADMIN PANEL (the owner, DECIDED): a pinned NOW bar at the very top, always open — TIME first (the date + time, the quick
-//                         chips, the date's holiday chips, MORE TIME), the WEATHER's chips, JUST ME / EVERYONE + CLEAR ALL; RECENT; the
-//                         sections by use (core/harbor-remote.js#SECTIONS); every row's hint on a line under its label
-// The state on this phone: JUST ME (if any) wins over EVERYONE's; nothing at all = the real city.
-// NEON PASS 5 — A LINK'S OWN SETTINGS WIN: opening a link that carries its own preview flags (&when, &force, &speed, &wx, &scene…)
-// drops a stored JUST ME state (a refresh of the same page keeps it); while JUST ME is on the pill says so + a one-tap ✕ beside it.
-// CITY 2.0 MUSIC: force a mood (part of the state, so EVERYONE's phones follow too), SKIP TO THE NEXT SONG (this phone), the song now.
-// C2 — THE PANEL REWORK (the owner, Oct 25: "very busy and unorganized"):
-//   FULL SCREEN       a full-screen glass sheet on a phone (the safe areas kept), a large centred one on a desktop
-//   THE DELAY         nothing changes while the sheet is open: JUST ME's taps QUEUE (the status says so); closing the sheet starts a
-//                     3-2-1 chip beside the pill (NOW / 3 S / 5 S, remembered on this device) and then the whole queued state
-//                     starts at once — its time jump, its sky pieces' first flights, its weather, its toggles, all from that moment.
-//                     Reopening during the countdown CANCELS it (what was queued stays queued — close again to start it).
-//                     EVERYONE: SEND pushes the server's startAt by the delay; every phone (the owner's shows the chip) starts then.
-//   SEARCH            one box over every row (label, hint, keywords, group, section); the sections with hits open, the rest hide
-//   RECENT            the last rows fired (6, remembered on this device); one tap fires it again (the sheet closes, the countdown runs)
-//   NINE SECTIONS     SKY · LEGENDARY · PEOPLE + WORKERS · WILDLIFE · HARBOR · WEATHER · TIME · LIGHTS + MUSIC · TOOLS (R.SECTIONS),
-//                     collapsible, the open ones remembered; inside, blocks: the panel's own controls + one per event group
-//   THE MODE          JUST ME = green, EVERYONE = pink: the sheet's top edge + the chips + the pill's dot + the countdown chip
-// The DOM keeps the old hooks: every section AND every block is a `.hr-sec` whose first `.hr-h` is its name (MUSIC, …); the
-// blocks carry the old category ids in data-cat (sounds, music, lights = PULSE, tools, party, time, weather, holidays + each
-// event block its area); openCats() takes a section id or an old category id.
+// CITY 2.0 — THE PREVIEW PANEL: the owner's test remote — its header (9d, NEON PASS 5, C2's rework, the DOM's hooks) lives in docs/harbor.md
+// "THE BOOT TRIM (CITY H1)", verbatim (moved out of the boot bytes).
 import { takeLayer } from '../../ui/layers.js';
 import { row, tubeButton } from '../../ui/components.js';
 import { h } from '../../ui/dom.js';

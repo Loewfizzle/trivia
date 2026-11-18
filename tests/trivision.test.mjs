@@ -100,9 +100,10 @@ test('the scene: the tri-vision\'s pieces (the warm after the reveal, the swap u
   assert.match(readFileSync('js/screens/harbor/jaywalk-art.js', 'utf8'), /me\.onerror = \(\) => \{ if \(L\.img === me\) L\.img = null; flush\(false, `\$\{what\} failed`\); \};/);
   const signs = readFileSync(new URL('../js/screens/harbor/signs.js', import.meta.url), 'utf8');
   assert.doesNotMatch(signs + sc, /^import [^\n]*jaywalk-art\.js/m, 'no static import of the poster');
-  assert.match(sc, /if \(tri\.lastN == null\) \{ tri\.lastN = C\.n; return F; \}/, 'the first frame it is up starts no turn (THE WINDOW RULE)');
+  // (CITY H1 — THE BOARD OPENS ON THE NEWEST GAME: the first frame it is up TURNS to the newest face — its own motion (THE WINDOW RULE), never a cut)
+  assert.match(sc, /if \(tri\.lastN == null\) \{ tri\.lastN = C\.n; const o = newestFace\(F, faceDates\(\)\); if \(o !== tri\.shown [^\n]*triTurnTo\(F, o,/, 'the first frame it is up turns to the newest face (THE WINDOW RULE: by its own motion)');
   assert.match(sc, /id: 'roofboard-tri', z: 4/, 'the slats over every poster copy');
-  assert.match(sc, /if \(!S\.motion \|\| document\.visibilityState !== 'visible'\) \{ tri\.turn = null; return F; \}/, 'reduced motion: a cut');
+  assert.match(sc, /if \(!S\.motion \|\| document\.visibilityState !== 'visible'\) \{ tri\.turn = null; return; \}/, 'reduced motion: a cut');
   assert.match(sc, /snd\.play\('radio-tick', \{ gain,/, 'the click on the city\'s SFX bus');
   const art = readFileSync(new URL('../js/screens/harbor/jaywalk-art.js', import.meta.url), 'utf8');
   assert.doesNotMatch(art, /FontFace|@font-face|fonts\.googleapis/, 'no font load — the lettering is path data');
@@ -203,4 +204,23 @@ test('CITY G — THE DROP\'s font wait answers EVERY waiting caller too', async 
   res(); await new Promise(r => setTimeout(r, 0));
   assert.deepEqual(got, ['old', 'new']);
   delete globalThis.document;
+});
+
+// CITY H1 — THE BOARD OPENS ON THE NEWEST GAME (the owner): on load the board turns to the face switched on most recently (the latest of its
+// since / OPEN DAY — /admin stamps them), then the shared rotation
+import { newestFace, faceDates, setDrop } from '../js/core/harbor-trivision.js';
+test('CITY H1 — newestFace: the face whose switch went on most recently (today JAYWALK, OPEN DAY 11-17), ties to the later face, no dates = face 0', () => {
+  const F = ['holdem-open', 'jaywalk-open', 'drop'];
+  assert.equal(newestFace(F, { 'holdem-open': ['2026-11-08', null], 'jaywalk-open': ['2026-11-12', '2026-11-17'], drop: [null] }), 1, 'JAYWALK — its OPEN DAY 11-17 is the latest');
+  assert.equal(newestFace(F, { 'holdem-open': ['2026-11-08'], 'jaywalk-open': ['2026-11-12', '2026-11-17'], drop: ['2026-11-20'] }), 2, 'THE DROP live 11-20: the newest');
+  assert.equal(newestFace(F, { 'holdem-open': ['2026-11-17'], 'jaywalk-open': ['2026-11-17'] }), 1, 'a tie → the later face');
+  assert.equal(newestFace(F, {}), 0, 'no dates → the first face');
+  assert.equal(newestFace(['holdem', 'jaywalk'], { holdem: ['bad'], jaywalk: ['2026-11-12'] }), 1);
+  // the live state: the owner's switches as /admin writes them
+  setHoldemForce(null); setJaywalkForce(null); setDrop(null);
+  setHoldem({ on: true, bar: 'open', since: '2026-11-08' });
+  setJaywalk({ on: true, bar: 'soon', open: '2026-11-17', since: '2026-11-12' });
+  const d = faceDates();
+  assert.equal(newestFace(['holdem-open', 'jaywalk-open'], d), 1, `today's switches open on JAYWALK (${JSON.stringify(d)})`);
+  setHoldem(null); setJaywalk(null);
 });

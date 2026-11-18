@@ -22,13 +22,15 @@ const session = { type: '' };
 try { Object.defineProperty(globalThis, 'navigator', { value: { audioSession: session, userAgent: 'iPhone OS 18_7', standalone: true, sendBeacon: (u, b) => { sent.push({ u, b }); return true; } }, configurable: true }); } catch { /* fine */ }
 globalThis.Blob = class { constructor(parts) { this.text = parts.join(''); } };
 
-class Param { constructor(v = 1) { this.value = v; } cancelScheduledValues() {} setValueAtTime(v) { this.value = v; } linearRampToValueAtTime(v) { this.value = v; } setTargetAtTime(v) { this.value = v; } }
-class Node_ { constructor() { this.gain = new Param(1); this.threshold = new Param(); this.knee = new Param(); this.ratio = new Param(); this.attack = new Param(); this.release = new Param(); } connect(x) { return x; } disconnect() {} start() {} stop() {} }
+// (CITY H1 — Param.spec: a phone whose audio thread never runs a quantum — the timeline's events move NOTHING; only the value setter does.
+//  The old fake applied setValueAtTime at once, so THE SQUEAL's hard cut passed here while the phone's master stayed 1.000)
+class Param { constructor(v = 1) { this._v = v; } get value() { return this._v; } set value(v) { this._v = v; } cancelScheduledValues() {} setValueAtTime(v) { if (!Param.spec) this._v = v; } linearRampToValueAtTime(v) { if (!Param.spec) this._v = v; } setTargetAtTime(v) { if (!Param.spec) this._v = v; } setValueCurveAtTime() {} }
+class Node_ { constructor() { this.gain = new Param(1); this.threshold = new Param(); this.knee = new Param(); this.ratio = new Param(); this.attack = new Param(); this.release = new Param(); } connect(x) { return x; } disconnect() {} start() { if (this.buffer && this.buffer.blip) setTimeout(() => this.stop(), 1); } stop() { const f = this._end; this._end = null; if (f) f(); } addEventListener(t, fn) { if (t === 'ended') this._end = fn; } }
 let made = 0;
 class FakeAC {
   get currentTime() { const n = performance.now(); if (this.state === 'running') this._t += (n - this._at) / 1000; this._at = n; return this._t; }   // (a clock that MOVES while running — the engine's freeze watch reads it)
   constructor() { made++; this.state = 'running'; this._t = 1; this._at = performance.now(); this.destination = new Node_(); this.onstatechange = null; this.resumes = 0; this.suspends = 0; this.closed = false; }
-  createGain() { return new Node_(); } createDynamicsCompressor() { return new Node_(); } createBufferSource() { return new Node_(); } createBuffer() { return {}; }
+  createGain() { return new Node_(); } createDynamicsCompressor() { return new Node_(); } createBufferSource() { return new Node_(); } createOscillator() { return new Node_(); } createBuffer() { return { blip: true }; }
   set(s) { this.state = s; if (this.onstatechange) this.onstatechange(); }
   resume() { this.resumes++; return new Promise(() => {}); }   // the OS decides: the test says when it runs (set('running'))
   suspend() { this.suspends++; this.set('suspended'); return Promise.resolve(); }
@@ -144,21 +146,62 @@ test('a blur that stays on screen (a share sheet, an alert) is no leave: nothing
   assert.deepEqual(cuts.map(c => c.left), [true, false], 'the media cut, then back (music.js heals the song)');
 });
 
-test('THE ANTI-SQUEAL GUARD (ambient — the music off, the effects on): the FIRST leave signal = the master 0 + the beds stopped in ONE step, the zeros held, then the suspend', async () => {
+test('THE SQUEAL, FOR REAL (CITY H1): on a phone whose audio thread never runs, the master VALUE is 0 within one task of the first leave signal — the beds stopped in the SAME step, the zeros held, then the suspend', async () => {
   updateSettings({ musicOff: true, sfxOff: false, muted: false });
   if (ctx().state !== 'running') ctx().set('running');
-  await sleep(500);
+  const fx = ctx().createBufferSource(); fx.start();   // (an effect sounding: the context awake)
+  await sleep(450);
   if (H().master !== 1) { win.fire('focus'); await sleep(450); }
+  assert.equal(H().state, 'running'); assert.equal(H().voices, 1);
+  Param.spec = true;
   bedPaused = false;
   const c = ctx(), s0 = c.suspends;
+  delete store[R.LEAVE_REC_KEY];
   win.fire('blur');
-  assert.equal(H().master, 0, 'the master 0 AT ONCE (no ramp left to run)');
+  assert.equal(H().master, 0, 'the master\'s VALUE 0 in the blur\'s own task (the old cut only scheduled it: 1.000 on the phone)');
   assert.equal(bedPaused, true, 'the beds stopped in the SAME step');
+  const cutLine = rec().sig.find(x => /^cut: hard/.test(x.s));
+  assert.ok(cutLine && cutLine.m === 0, `the AUDIO LEAVE row's cut line reads m 0.000 (${cutLine && cutLine.m})`);
   assert.equal(c.suspends, s0, 'never suspended before the zeros are held');
   await sleep(E.FADE.zeroHoldMs + 40);
   assert.equal(c.suspends, s0 + 1, 'suspended after the zeros');
+  Param.spec = false;
+  fx.stop();
   win.fire('focus'); c.set('running'); await sleep(500);
+  updateSettings({ musicOff: false }); c.set('running');
+});
+
+test('MUSIC OFF = EFFECTS ONLY (CITY H1): no bed plays; the context SLEEPS ~300 ms after the last effect (it still says running), an effect wakes it, it sleeps again; the music back on wakes it + the beds', async () => {
+  updateSettings({ musicOff: false, sfxOff: false, muted: false });
+  ctx().set('running');
+  await sleep(300);
+  bedPaused = false;
+  updateSettings({ musicOff: true });
+  assert.equal(bedPaused, true, 'the music off: the beds stop at once');
+  const c = ctx(), s0 = c.suspends, r0 = c.resumes;
+  await sleep(300 + E.FADE.zeroHoldMs + 400);
+  assert.equal(H().state, 'asleep', 'no effect sounding: asleep'); assert.equal(c.suspends, s0 + 1, 'suspended once'); assert.equal(H().master, 0, 'the master 0');
+  assert.equal(c.state, 'running', 'it still SAYS running — an effect is made + started as ever');
+  assert.equal(E.isUnlocked(), true);
+  doc.fire('touchend');
+  assert.equal(c.resumes, r0, 'a tap alone wakes nothing');
+  const fx = c.createOscillator(); fx.start();
+  assert.equal(H().master, 1, 'an effect: the master back up while nothing sounds'); assert.equal(c.resumes, r0 + 1, '… and the resume asked');
+  c.set('running');
+  assert.equal(H().state, 'running');
+  await sleep(700);
+  assert.equal(H().state, 'running', 'awake while the effect sounds');
+  fx.stop();
+  await sleep(300 + E.FADE.zeroHoldMs + 400);
+  assert.equal(H().state, 'asleep', 'asleep again after the last effect');
+  vis(false); await sleep(20); vis(true);
+  assert.equal(H().state, 'asleep', 'a leave + the return: still asleep (nothing to wake for)');
   updateSettings({ musicOff: false });
+  assert.equal(H().master, 1); assert.ok(c.resumes > r0 + 1, 'the music back on: woken');
+  c.set('running');
+  assert.equal(bedPaused, false, '… and the beds back');
+  await sleep(700);
+  assert.equal(H().state, 'running', 'the music on: never asleep');
 });
 
 test('MUTED = NOTHING RUNS: suspended after the ramp; a tap resumes nothing; leaving + coming back wakes nothing', async () => {
