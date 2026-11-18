@@ -49,8 +49,19 @@ open FIX.
   kept to one line (the detail lives in the docs). CLAUDE.md: two JAYWALK lines moved VERBATIM to docs/jaywalk.md "THE RULES FROM CLAUDE.md
   (moved Nov 18)" to make room for DAILY BEST's one line (40,709 of 40,960 bytes).
 
-## THE FINAL RUN (fresh emulators + `DAILY_TEST=1 node scripts/serve.mjs 5173 --emu`, nothing else busy)
-(filled in below by the final run)
+## THE FINAL RUN (the Beelink; fresh emulators + `DAILY_TEST=1 node scripts/serve.mjs 5173 --emu`, nothing else busy)
+- unit 2,225 / 2,225 · rules 86 / 86 · /api: daily-jaywalk 7 · daily-drop 15 · daily-module 22 · coastclear 17 · password 11 · progression 10 ·
+  server 66 (then the emulators restarted fresh for the browsers)
+- e2e-daily 121 / 121 (section 0 = kit/cc-touch.mjs: both CC_DIG_ON settings + THE FITTED BOARD at 4 sizes × 2 looks × hint) · wk-press 47 / 47 ·
+  e2e-jaywalk-daily 17 / 17 · e2e-coastclear (FAST) 42 / 42 · smoke 21 / 21
+- Not run: the harbor groups (no city file touched — `app.js` gained one DAILIES lookup) · the JAYWALK fresh-eyes review (no JAYWALK view
+  changed: only `meta.js#scoreLine`).
 
 ## OPEN FOR BEN
-(see the summary — copied below at the end of the pass)
+1. **RE-PUBLISH THE RULES** — `database.rules.json` → Firebase console → Realtime Database → Rules (the new `dly/jaywalk/$day/w/$uid/$try`).
+2. **DAILY BEST · BACKFILL** — once deployed: /admin → THE DAILIES → DAILY BEST · PREVIEW (it names the days with nothing kept), then the
+   second tap. Not run by this pass (the live site).
+3. Do JAYWALK daily runs earn JAYWALK's four cards (SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY · BEAM ME UP) or raise YOUR BEST (the
+   `jaywalk-solo` board)? Not wired — a daily try earns only the daily's rewards today.
+4. CC_DIG_ON is a code switch (default 'down') — a per-player setting instead? (Not built.)
+5. The points cap (300 lanes = 100) is from the bot — re-tune after a week of real tries?
