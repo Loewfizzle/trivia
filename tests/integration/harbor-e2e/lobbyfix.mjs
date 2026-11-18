@@ -409,7 +409,8 @@ G('cardfit', async () => {
 // THE CARD PASS — THE SLIM-CARD LONG-NAME STANDARD (the owner, Nov 7 2:44 pm + the 9:15 pm ADD-ON: "get in the habit"): on EVERY slim card the
 // hero (the face / the subject — js/vault/hero.js) sits far right and the left holds the plate with the LONGEST name — NAME_MAX letters
 // (js/config.js — the check reads it, so it follows the rule if the limit ever changes): the widest twelve (W × NAME_MAX) + MAXIMILIANOS at 390,
-// LV 100 (the widest level line): the name + the level line never past the plate (never truncated — two lines at most), the plate's real
+// LV 100 (the widest level line): the name + the level line never past the plate — JAYWALK THE POLISH PASS (the owner, Nov 18): ONE LINE,
+// never split mid-word: shrunk to 12 px, then an ellipsis as the last resort (counted + printed), the plate's real
 // stepped shape never over ANY of the card's hero box, the tier gem never under the plate
 G('stripfit', async () => {
   const Q = await open({ slot: 'sf390', view: [390, 900], wait: false, city: false }), p = Q.page;
@@ -424,7 +425,8 @@ G('stripfit', async () => {
       for (const s of document.querySelectorAll('.vl-strip')) {
         const card = s.dataset.card, S = s.getBoundingClientRect(), pl = s.querySelector('.vl-plate'), P = pl.getBoundingClientRect();
         const rg = document.createRange(), ext = n => { rg.selectNodeContents(n); return rg.getBoundingClientRect(); };
-        const nm = s.querySelector('.vl-name'), lv = s.querySelector('.vl-lv'), N = ext(nm), V = ext(lv);
+        const nm = s.querySelector('.vl-name'), lv = s.querySelector('.vl-lv'), cut = nm.classList.contains('fit-cut'), N = cut ? nm.getBoundingClientRect() : ext(nm), V = ext(lv);
+        if (nm.classList.contains('fit-2') || nm.querySelector('br') || (cut && parseFloat(getComputedStyle(nm).fontSize) > 12.5)) bad.push(card + ': the name split / cut above the minimum');
         if (N.right > P.right - 1 || V.right > P.right - 1 || nm.textContent.replace(/\\s/g, '') !== ${JSON.stringify(name)}) bad.push(card + ': the name / level past its plate');
         const fr = (x, y, w, h) => [(x - S.left) / S.width, (y - S.top) / S.height, w / S.width, h / S.height];
         const x2 = P.left + +pl.dataset.x2, yy = P.top + +pl.dataset.y1, st = pl.dataset.step;
@@ -432,10 +434,10 @@ G('stripfit', async () => {
         // (the name row's real right edge — the plate's padding past the words is glass, not the name)
         plate[0][2] = Math.min(plate[0][2], (N.right + 4 - P.left) / S.width + 0.0001);
         for (const b of M.HERO[card] || []) if (plate.some(q => M.overlaps(b, q))) bad.push(card + ': the plate over its hero');
-        fits.push(card + ' ' + (nm.classList.contains('fit-2') ? '2 lines' : Math.round(parseFloat(getComputedStyle(nm).fontSize)) + 'px'));
+        fits.push(card + ' ' + (cut ? 'CUT' : Math.round(parseFloat(getComputedStyle(nm).fontSize)) + 'px'));
       }
       return { n: document.querySelectorAll('.vl-strip').length, bad: [...new Set(bad)], heroed: Object.keys(M.HERO).length, fits }; })()`);
-    ok(r.n >= 60 && !r.bad.length, `THE SLIM-CARD LONG-NAME STANDARD at 390 — "${name}" (NAME_MAX ${max}, LV 100): ${r.n} strips, every name whole inside its plate, the plate off every hero (${r.heroed} cards declare one)${r.bad.length ? ` — ${r.bad.slice(0, 10).join(' | ')}` : ''}`);
+    ok(r.n >= 60 && !r.bad.length, `THE SLIM-CARD LONG-NAME STANDARD at 390 — "${name}" (NAME_MAX ${max}, LV 100): ${r.n} strips, every name on ONE line inside its plate (${r.fits.filter(f => f.endsWith('CUT')).length} at the minimum with an ellipsis), the plate off every hero (${r.heroed} cards declare one)${r.bad.length ? ` — ${r.bad.slice(0, 10).join(' | ')}` : ''}`);
   }
   if (SHOTS) { await p.goto(`${BASE}/tests/integration/plate-preview.html?only=strip&fx=1&lv=100&name=MAXIMILIANOS&cards=card-gift-dispatcher,card-gift-outoforder,card-gift-notguilty,card-gift-wastelander,card-gift-survivor,card-gift-zadomovinu`); await waitFor(p, 'window.__ready', 'p', 15000); await sleep(1500); await p.screenshot({ path: `${OUT}stripfit-390.png`, fullPage: true }); }
   await Q.ctx.close();

@@ -140,7 +140,7 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
   if (tier === 'legendary') nameEl.classList.add('vg-still');
   const plate = h('div.vl-plate',
     h('span.vl-emb', emb),
-    h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', host ? `LV ${lv} · HOST` : friend ? [`LV ${lv} · `, h('span.vl-friend', 'FRIEND')] : `LV ${lv}`)));   // (DFIX5 — a FRIEND in an everyone list: the word in gold foil after the level)
+    h('span.vl-who', fitName(nameEl, { min: 12, one: true }), h('small.vl-lv', host ? `LV ${lv} · HOST` : friend ? [`LV ${lv} · `, h('span.vl-friend', 'FRIEND')] : `LV ${lv}`)));   // (THE POLISH PASS: ONE line — shrunk, then an ellipsis; never split mid-word — ui/fit.js o.one) (DFIX5 — a FRIEND in an everyone list: the word in gold foil after the level)
   const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}${one ? ' vl-dev1' : ''}${one && !dev ? ' vl-gift' : ''}${friend && !host ? ' vl-has-friend' : ''}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     plate,

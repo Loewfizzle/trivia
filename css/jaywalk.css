@@ -178,10 +178,10 @@
 .jw-local-foot { display: grid; gap: 10px; }
 /* YOUR TABLE (the end screen) — THE POLISH PASS: ONE grid, RANK | CARD | SCORE. The block = the end screen's own column (the bar's edges:
    .jw-fin's 12 px given back), centred, ≤ 440 at a desk; the rank + score columns are ONE width (--jw-side: the widest score's digits —
-   victory.js sets --jw-d) so every card is the same box, dead centre; scores right-aligned, the same gap on every row; the label on the
-   block's left edge */
+   victory.js sets --jw-d) so every card is the same box, dead centre; scores right-aligned, the same gap on every row; the label centred on the
+   screen over the cards (the owner's correction, Nov 18 6:55 am) */
 .jw-table { justify-self: center; width: min(calc(100% + 24px), 440px); margin-top: 6px; }
-.jw-table-k { margin: 0 0 6px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.28em; color: var(--text-dim); text-align: left; }
+.jw-table-k { margin: 0 0 6px; padding-left: 0.28em; font: 700 12px/1 var(--font-ui); letter-spacing: 0.28em; color: var(--text-dim); text-align: center; }   /* (the owner, Nov 18 6:55 am: CENTRED like everything above it — the letter-spacing's tail given back) */
 .jw-table-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; --jw-side: max(26px, calc(var(--jw-d, 2) * 0.8rem + 2px)); }   /* (rem, never ch: the cards inherit nothing new; a digit of the 20 px numerals ≤ 12.8 px) */
 .jw-table-list li { display: grid; grid-template-columns: var(--jw-side) minmax(0, 1fr) var(--jw-side); align-items: center; column-gap: 8px; }
 .jw-table-n { font: 700 15px/1 var(--font-num, var(--font-ui)); color: var(--text-dim); text-align: center; }

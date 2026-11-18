@@ -33,7 +33,10 @@ export function onFontsLoaded(fit, el = null) {
 /** (tests) how many fits the late-font list still names */
 export const lateFits = () => live.size;
 
-/** fit one element's text; o.min = the smallest one-line font size (px), o.two = the largest two-line size (px; default 80 % of the CSS size) */
+// JAYWALK THE POLISH PASS (the owner, Nov 18 6:55 am — "a name must never wrap mid-word on a slim card"): o.one = ONE LINE ONLY (the slim
+// cards — vault/strip.js): the CSS size, then shrunk to fit down to o.min, then — only if it still can't fit at the minimum — an ELLIPSIS
+// (`fit-cut`). Never the two-line split. (The full card, the podium, the dress keep the rule above: whole, two lines.)
+/** fit one element's text; o.min = the smallest one-line font size (px), o.two = the largest two-line size (px; default 80 % of the CSS size); o.one = one line, then an ellipsis */
 export function fitName(el, o = {}) {
   if (!el || typeof window === 'undefined') return el;
   const first = el.firstChild && el.firstChild.nodeType === 3 ? el.firstChild : null;
@@ -50,7 +53,7 @@ export function fitName(el, o = {}) {
   };
   const fitNow = () => {
     unsplit();
-    el.classList.remove('fit-2');
+    el.classList.remove('fit-2', 'fit-cut');
     el.style.fontSize = '';
     const base = parseFloat(getComputedStyle(el).fontSize) || 16, min = Math.min(o.min || 13, base);
     el.style.whiteSpace = 'nowrap';
@@ -58,6 +61,7 @@ export function fitName(el, o = {}) {
     if (!avail || need <= avail + 0.5) { el.style.whiteSpace = ''; return; }
     let size = Math.max(min, Math.floor(base * (avail / need) * 100) / 100 - 0.2);
     el.style.fontSize = `${size}px`;
+    if (el.scrollWidth > el.clientWidth + 0.5 && o.one) { el.classList.add('fit-cut'); el.style.whiteSpace = ''; return; }
     if (el.scrollWidth > el.clientWidth + 0.5) {
       // two balanced lines: the name split at its middle (a line break only there), the longer half sized to fit (up to the CSS size)
       if (first && text.length >= 2) {
