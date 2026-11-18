@@ -301,14 +301,14 @@ chunks arrive (`replay.js#clockProblem` + `tuning.js#CLOCK`):
   very good player to the server (H3's).
 
 ## THE SHARE IMAGE (H4 + H4B's add-on — `share.js` + `shot.js`; on the share kit + the dailies' link machinery)
-**The player's real run — every share is a different picture.** `SHOT_MS` 460 ms after the hit the view asks the scene for that frame
+**The player's real run — every share is a different picture.** At `shot.js#shotMs` after the hit — per cause, while the kid is still SEEN (THE TOUCH-UP PASS, below; was one 460 ms) — the view asks the scene for that frame
 (`night.js#snap` — copied off the WebGL canvas in the same frame; kept on the phone until the next run, with where the kid stood:
 `shot.js`). 1080 × 1350, drawn ON THE PHONE from the result's PUBLIC fields. Solo (the podium's SHARE) + a match (SHARE MY RUN in the
 body). No frame on this phone (a refresh on the podium) → the same card on the night's dark.
 - **THE CARD (H4B's add-on, the owner Nov 16 4:33 pm — THE FRAME IS THE HERO):** the frame is the kit's middle at its own size
   (`JW_CARD.box` 984 × 792 — was 800 × 690: `kit/share-run.js#drawRunCard`'s `o.box`), zoomed on the kid + what got him
-  (`shotCrop` — `SHOT_ZOOM` 1.12, centred a little above him; THE BLACKOUT's frame far above him: the lit lanes fill it, the dark is
-  only its foot) and BRIGHTER (the picture screened over itself — `SHOT_LIFT`; no canvas filter). **The cause line is on the card
+  (`shotCrop` — `SHOT_ZOOM` 1.12; since THE TOUCH-UP PASS his point at the picture's middle for EVERY cause — `SHOT_UP` 0, THE
+  BLACKOUT's own far-above framing dropped: he is in the picture now) and BRIGHTER (the picture screened over itself — `SHOT_LIFT`; no canvas filter). **The cause line is on the card
   ONCE** — the big neon words at the frame's head (the result line under the name is gone: `jwRunCard` has no `result`). The lanes in
   the game's big neon numerals, THE SIGNAL, the name and NEONSPEAKEASY.COM stay. Reads as a small iMessage preview (the 540 × 675
   picture is what a link shows).
@@ -1231,6 +1231,36 @@ the rest dark). `e2e-jaywalk.mjs` 7c measures the far half's brightness fresh vs
 The words: no depth test, render order 5 over every instanced kind, masked only by the kid's stencil; only THE BLACKOUT's curtain + the fog's
 lip draw after them. The old frames' "cover" was the reveal's dark edge (above) + a vehicle seen through the letters' gaps. The lab's
 `--polish=lines`: a truck + a car across the words, both looks.
+
+## THE TOUCH-UP PASS (Nov 18 2026 — `docs/games/passes/jaywalk-touchup.md`; the owner's calls on THE POLISH PASS's OPEN FOR BEN: `docs/games/plan.md` "JAYWALK … THE TOUCH-UP PASS") — views only; no rules change, REPLAY = LIVE untouched
+
+### THE SHARE PICTURE SHOWS THE KID (`shot.js#SHOT_AT` · `shotMs` · `carClearMs`; `view.js#onOver`; `tests/jaywalk-shot.test.mjs`)
+- The run's frame is taken PER CAUSE at the moment night.js still draws him clearly — chosen frame by frame from the lab's contact sheets
+  (`jaywalk-lab.mjs --touchup=probe` → `probe/<look>-<cause>.png`, the grab armed IN the page on the frame the run ends): **water 140 ms**
+  (mid-splash, head + arms up — the sink ends at 380) · **the edge 400** (carried 260, then the same) · **the blackout / the fog 40** (the wall
+  at him) · **the train 200** (flung clear of the locomotive, his face seen — by 260 he leaves the frame) · **the Blackbird 60** (the jet, its afterburners + him in ONE
+  frame — at 460 he was a tumbling clump, the jet gone) · **the UFO 1000** (high in the beam, under the saucer's rim) · **the Mothership 1500**
+  (rising in its beam). (The train / Blackbird / UFO moments were re-picked after the fresh-eyes review: 130 · 460 · 720 read poorly.)
+- **A VEHICLE:** 460 ms as before when it has passed him by then (he lies flat behind it) — `carClearMs` reads the rules' own movers (its rear
+  650 FP past his centre); else (a van, a box truck, a slow lane — it covers him for up to a second) **THE IMPACT, 70 ms**: the pancake at its
+  nose, his head + feet out from under it. No end waits longer: the end screen's timing is unchanged (`hold()`).
+- **The card frames every cause alike** (`share.js` `SHOT_UP` 0): his point at the picture's middle — under the cause line, over the big lanes;
+  a tumbling kid (a train, the Blackbird) spins round that point. `jaywalk-lab.mjs --touchup=kid`: 8 causes (a far lane's box truck included)
+  × 2 looks, the kid inside every picture; the cards at 1080 × 1350 + 540 × 675 + the link-preview sheets.
+
+### THE PINK WORDS READ OVER A TAXI (`night.js#writeLabel` · css `.jw-tag` / `.jw-mark`)
+The lines' words (the friend's pink, YOUR BEST's gold) carry a THICK dark edge — two rings (10 + 5 px of the label's canvas) + a soft shadow —
+in both looks; the ghosts' name tags + the pink mark under the count gain a dark text edge. The lab's `--touchup=words`: a yellow taxi under
+LIAM · 7 + two tags, both looks (the kit draws the tags as view.js does — the lab has none of its own).
+
+### YOUR ROW GLOWS (`victory.js#yourTable(el, me)` · css `.jw-table-list li.is-me::before`; `e2e-jaywalk.mjs` "YOUR ROW GLOWS")
+A light ring (1.5 px) + a soft glow in YOUR colour (the room's `players[uid].color`) round your whole row, on a layer of its own (`::before`,
+inset −3 / −6 px — no padding, the grid never moves; a 9 px corner, never a pill; static). The E2E re-seeds the friends' bests and re-asks the
+table (`yourTable` is exported for it): your row 4th / 1st / 3rd, each by night + by day.
+
+### THE DAY END SCREEN's TITLE ON A SOFT DARK FADE (css `.jw-stage[data-look='day'] .jw-final`)
+By day the veil's top is darker (0.84 → 0.76 at 16 % → the night's own 0.9 by a third of the screen): JAYWALK · SOLO + the cause words read on
+the bright sky; the night unchanged. (The night's near-black far grass: LEFT AS IS — the owner.)
 
 ## THE CAMERA (H2B — `js/games/jaywalk/camera.js`: ONE pure module, the night look AND the graybox use it)
 The owner played H2 on his iPhone: "the game feels good", but it had to be ZOOMED IN — a closer camera that FOLLOWS the kid sideways, turned

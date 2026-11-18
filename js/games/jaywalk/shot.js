@@ -8,7 +8,7 @@ export function keepShot(s) { if (held && held.canvas && held.canvas !== (s && s
 /** the frame of this match's run on this phone (null = none: a refresh, another phone) */
 export const shotFor = matchId => (held && held.matchId === matchId ? held : null);
 /** THE SHARE PICTURE SHOWS THE KID: ms after the hit, per cause, while night.js still draws him clearly (`jaywalk-lab.mjs --touchup=probe`) */
-export const SHOT_AT = Object.freeze({ car: 460, train: 130, water: 140, edge: 400, wall: 40, blackbird: 460, ufo: 720, taken: 1500 });
+export const SHOT_AT = Object.freeze({ car: 460, train: 200, water: 140, edge: 400, wall: 40, blackbird: 60, ufo: 1000, taken: 1500 });
 /** a vehicle still over him at 460 ms (a van, a truck, a slow lane) → THE IMPACT: the pancake at its nose */
 export const CAR_SHOT_HIT = 70;
 /** ms until the vehicle on him has passed him (its rear 650 FP beyond his centre — the pancake's half) — the rules' movers; Infinity = none */
