@@ -584,6 +584,12 @@ async function looksNums(p) {
 }
 
 try {
+  // (THE TOUCH-UP PASS: `--touchup[=probe|kid|words][:car,water,…]` — kit/jaywalk-touchup.mjs; the shots → probe/ · kid/ · words/)
+  { const tu = argv.find(x => x === '--touchup' || x.startsWith('--touchup=')); if (tu) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); const K = await import('./kit/jaywalk-touchup.mjs'); const [w, c] = tu.slice(10).split(':'), only = c ? c.split(',') : null;
+    if (w === 'probe') await K.looksProbe(o.p, { ok, sleep, waitFor, OUT, only });
+    if (!w || w === 'kid') await K.looksKid(o.p, { ok, sleep, waitFor, OUT, only });
+    if ((!w || w === 'words') && K.looksWords) await K.looksWords(o.p, { ok, sleep, waitFor, OUT, shot });
+    if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   // (THE POLISH PASS: `--polish[=share|lines]` — kit/jaywalk-polish.mjs; the shots → share/ · lines/)
   { const pol = argv.find(x => x === '--polish' || x.startsWith('--polish=')); if (pol) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); const K = await import('./kit/jaywalk-polish.mjs'); const w = pol.slice(9);
     if (!w || w === 'share') await K.looksShare(o.p, { ok, sleep, waitFor, OUT });

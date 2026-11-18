@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { jwRunCard, JW_CARD, shotCrop, quant, SHOT_ZOOM, SHOT_UP, SHOT_UP_WALL, LINK_MAX, LINK_HARD, LINK_TRIES } from '../js/games/jaywalk/share.js';
+import { jwRunCard, JW_CARD, shotCrop, quant, SHOT_ZOOM, SHOT_UP, LINK_MAX, LINK_HARD, LINK_TRIES } from '../js/games/jaywalk/share.js';
 import { RUN_W, RUN_H } from '../js/games/kit/share-run.js';
 import { FOOT } from '../js/daily/share.js';
 
@@ -35,11 +35,12 @@ test('THE FRAME IS THE HERO: larger than the kit\'s middle (800 × 690), inside 
     assert.ok(Math.abs(q.sw / q.sh - b.w / b.h) < 1e-9, 'never stretched');
     assert.ok(Math.abs(q.sw - src.width / SHOT_ZOOM) < 1e-6, 'zoomed in on the kid');
   }
-  const mid = shotCrop(src, b, 0.5, 0.62);
-  assert.ok(mid.sy + mid.sh / 2 < 0.62 * src.height, 'a little above him: what got him is up the lane');
-  // THE BLACKOUT's frame: centred far above the kid — the lit lanes fill it, the dark is only its foot (under the big lanes number)
-  const wall = shotCrop(src, b, 0.5, 0.62, SHOT_ZOOM, SHOT_UP_WALL);
-  assert.ok(wall.sy < mid.sy && (0.62 * src.height - wall.sy) / wall.sh > 0.8 && SHOT_UP_WALL > SHOT_UP, 'the row the kid stood on sits in the last fifth of the frame');
+  // THE TOUCH-UP PASS: the kid's point in the picture's middle band — under the cause line (≤ 2 rows: the top quarter), over the big lanes
+  // (the foot's last 0.28) — every cause framed alike (the frame is taken while he is SEEN: shot.js#shotMs); a 1080-row frame as view.js takes it
+  for (const H of [2337, 1080]) {
+    const q = shotCrop({ width: 1080, height: H }, b, 0.5, H === 1080 ? 0.65 : 0.62), at = ((H === 1080 ? 0.65 : 0.62) * H - q.sy) / q.sh;
+    assert.ok(at > 0.44 && at < 0.56 && SHOT_UP === 0, `his point at ${at.toFixed(3)} of the picture (a ${H}-row frame)`);
+  }
   const wide = shotCrop({ width: 1080, height: 600 }, b, 0.5, 0.5);
   assert.ok(wide.sh <= 600 && Math.abs(wide.sw / wide.sh - b.w / b.h) < 1e-9, 'a short frame (a sideways phone): its whole height, the box\'s shape');
   assert.ok(SHOT_ZOOM > 1 && SHOT_ZOOM <= 1.3);

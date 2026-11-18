@@ -56,7 +56,10 @@ function wrap2(c, text, max) {
 }
 /** how far above the kid the picture is centred (of its height): what got him is up the lane · THE BLACKOUT: far more — everything
  *  behind him is black, the lit lanes are the picture */
-export const SHOT_UP = 0.1, SHOT_UP_WALL = 0.34;
+// (THE TOUCH-UP PASS: the frame is taken while the kid is still SEEN — shot.js#shotMs — so every cause, THE BLACKOUT's too, is framed the same:
+//  his point at the picture's middle, clear of the cause line above + the big lanes below; a tumbling kid (a train, the Blackbird) spins
+//  round that point, so it is never lower)
+export const SHOT_UP = 0;
 /** PURE: the part of the frame the card shows — zoomed on the kid (`up` of its height above him), never past an edge
  *  → { sx, sy, sw, sh } in the frame's own pixels */
 export function shotCrop(src, box, kidX = 0.5, kidY = 0.62, zoom = SHOT_ZOOM, up = SHOT_UP) {
@@ -117,8 +120,7 @@ export function drawRunMiddle(c, box, card, shot) {
 /** the whole card for this player's run on this phone → a canvas (null: this phone can't) */
 export function drawJwCard(game, { uid, name, code }) {
   const held0 = shotFor(game && game.matchId), E = endOf(game, uid, code);
-  const wall = ((((game && game.results) || {})[uid]) || {}).w === 'wall';   // (THE LIGHTS WENT OUT: the lit lanes are the picture, the dark only its foot)
-  const shot = held0 && wall ? { ...held0, up: SHOT_UP_WALL } : held0;
+  const shot = held0;
   const card = { ...jwRunCard(game, { uid, name }), line: (shot && shot.line) || E.line };
   return drawRunCard(card, (c, box, k) => drawRunMiddle(c, box, k, shot), JW_CARD);
 }

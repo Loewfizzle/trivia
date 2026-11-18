@@ -205,6 +205,8 @@ async function mount() {
     /** (a look check) a road / water lane's movers right now, in cells: [{ left, len }] + the lane's dir + v */
     items(lane) { const L = course.lane(lane); return { dir: L.dir || 0, v: L.v || 0, items: (L.items || []).map((it, j) => ({ left: moverLeft(L, it, run.t) / FP, len: it.len / FP, what: L.type === 'road' ? vehicleAt(course, lane, j) : 'log' })) }; },
     find: findLane, lane0: () => LANE0, warped: () => warped,
+    /** (THE TOUCH-UP PASS's check) the run + its course as they are — the share frame's moment (shot.js#shotMs) reads both */
+    raw: () => ({ run: { ...run }, course }),
     pulse(lane) { const L = course.lane(lane); return L.pulse ? pulseAt(L.pulse, run.t) : null; },
     /** (H6A's look checks) the run's tick put somewhere (WARPED) · the world held still (the scene still draws) · a UFO's ring right now ·
      *  the first flight band from a lane: { lane, period, phase, tell, pass, dir } */

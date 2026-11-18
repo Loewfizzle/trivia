@@ -1,7 +1,5 @@
-// JAYWALK — THE GAME's SCREEN (H3 — THE SOLO RUN · H4 — THE MATCH): the night / day scene (night.js — the same the lab draws), the kid,
-// the controls + the sounds, inside the console's game frame. It renders from the room's state; the RUN is this phone's own pure
-// engine on the SERVER's clock — ONE LIFE. GO, the course picked after it, the proof's chunks, the ghosts, OUT = spectate, the dropped
-// signal, an unproven run → docs/jaywalk.md "THE SOLO GAME" · "THE MATCH" · "THE START" · "THE GHOSTS" · "THE DROPPED SIGNAL".
+// JAYWALK — THE GAME's SCREEN (H3 solo · H4 match): the scene (night.js), the kid, the controls + the sounds in the console's frame;
+// the RUN = this phone's pure engine on the SERVER's clock, ONE LIFE → docs/jaywalk.md "THE SOLO GAME" · "THE MATCH" · "THE GHOSTS".
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { dbRef, set as dbSet, get as dbGet, update as dbUpdate, runTransaction, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
@@ -30,7 +28,7 @@ import { createCues, cuesAt } from './cues.js';
 import { duckMusic, musicDuckLevel } from '../../audio/music.js';
 import { runLine } from './causes.js';
 import { buildEnd, finalRows } from './victory.js';
-import { keepShot } from './shot.js';
+import { keepShot, shotMs } from './shot.js';
 import { setNum, prepNums } from './numerals.js';
 import { BOARD, TABLE_KEEP_MS, parseTable, linesFor, isRecord, crossedFriends } from './lines.js';
 
@@ -40,33 +38,27 @@ export const END_HOLD_MS = 850;
 export const GO_WAIT_MS = 4000;
 /** a MATCH: this phone writes its GO this long before the count's end (the rules open the window 2 s before it) */
 export const GO_EARLY_MS = 1800;
-/** the frame of the moment you went out (THE SHARE IMAGE) is taken this long after the hit */
-const SHOT_MS = 460;
 /** the most ticks one frame catches up (a long stall is spread over a few frames; the rules never skip one) */
 const CATCH_UP = 900;
 const ZERO = Object.freeze([0, 0, 0, 0, 0, 0, 0, 0, 0]);
 /** THE START (before the course is known): plain calm ground — what lanes 0–3 are on EVERY course */
 const START = Object.freeze({ seed: 'start', lane: i => ({ i, type: 'grass', heat: 0, mark: null, ufo: null, obs: ZERO }) });
 
-// THE SCENE STAYS WARM over PLAY AGAIN (the console's INSTANT AGAIN remounts the view for the next solo run): the night scene — its WebGL
-// context, its models — is parked for a moment and the next mount takes it back. Any other unmount destroys it at once.
+// THE SCENE STAYS WARM over PLAY AGAIN (INSTANT AGAIN remounts the view): parked a moment, the next mount takes it back
 let parked = null;
 const unpark = () => { if (!parked) return null; clearTimeout(parked.t); const p = parked; parked = null; return p; };
-// (BEFORE THE FLIP: a parked scene has NO view's listener on it — unmount took them off first — so its timeout's destroy() is never
-// heard as a lost context; its canvases are freed by destroy())
+// (a parked scene has no view's listener — its destroy() is never heard as a lost context)
 const park = (play, night) => { if (parked) { clearTimeout(parked.t); parked.night.destroy(); } parked = { play, night, t: setTimeout(() => { if (parked && parked.night === night) { parked = null; night.destroy(); play.remove(); } }, 2500) }; };
 
 // (the pass's own checks — tests/integration/e2e-jaywalk.mjs — on a LOCAL emulator page only: never on the live site)
 const TEST = typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]emu(?:&|=|$)/.test(location.search || '');
 let scenesMade = 0, popN = 0;
-// (BEFORE THE FLIP — the leave check, a LOCAL emulator page only: how many views are still alive (a WeakRef on each one's frame list — a
-// view a listener still holds stays alive) + the scenes made, read after the game has gone — wk-jaywalk-mem.mjs)
+// (the leave check, a LOCAL emulator page only — wk-jaywalk-mem.mjs: the views still alive + the scenes made)
 const VIEWS = TEST ? [] : null;
 if (TEST) { globalThis.__jwViews = () => VIEWS.filter(r => r.deref()).length; globalThis.__jwViewIds = () => VIEWS.map((r, i) => (r.deref() ? i : -1)).filter(i => i >= 0); globalThis.__jwScenes = () => scenesMade; }
 
-// THE LINES' DATA (H4 add-on — lines.js): the SERVER-counted solo bests (yours + your friends' — YOUR TABLE's own read), asked ONCE at
-// a run's start and kept a short while (PLAY AGAIN restarts in a second); nothing is asked during a run. /api down = no answer: the
-// best the server last told this phone still draws YOUR BEST LINE, and there are no friend lines.
+// THE LINES' DATA (lines.js): the SERVER-counted bests (yours + friends'), asked ONCE at a run's start, kept a short while;
+// /api down = the best last told still draws YOUR BEST, no friend lines
 let table = null;   // { uid, at, p: Promise<{ best, friends } | null> }
 function loadTable(uid) {
   if (table && table.uid === uid && performance.now() - table.at < TABLE_KEEP_MS) return table.p;
@@ -78,9 +70,7 @@ function loadTable(uid) {
 /** H4B — the quality tier this phone last settled at (the city's rule — `na:tier`: remembered 14 days; the kit steps back up by itself after 8 good seconds) */
 export const TIER_MEM_DAYS = 14;
 const tierMem = () => { const m = /^([012]):(\d+)$/.exec(getPref('tier', '')); return m && serverNow() - Number(m[2]) < TIER_MEM_DAYS * 864e5 ? Number(m[1]) : 2; };
-// THE CAMERA IS PINNED (BEFORE THE FLIP — the owner, Nov 17): the game draws ZOOM 8 · STRAIGHT for everyone (camera.js#ZOOM / ANGLE);
-// the lab's ZOOM / ANGLE switches (jw:lab:zoom / angle) are the lab's alone — never read here. (The jw:lab: keys this screen keeps are
-// its OWN memory: the tier it settled at, the hint seen, the best the server last told it.)
+// THE CAMERA IS PINNED: ZOOM 8 · STRAIGHT (camera.js) — the lab's switches are never read here (jw:lab: keys = this screen's own memory)
 /** HOW A RUN ENDED, in the game's words (causes.js#runLine — the vehicle named is the one the scene drew) */
 /** H5B — THE LOOK on this phone now: the console's GAME LOOK (body[data-look] — AUTO · DAY · NIGHT, per phone, live) */
 const lookNow = () => (document.body.dataset.look === 'day' ? 'day' : 'night');
@@ -142,13 +132,9 @@ export function createView() {
     try { SFX.fetchSounds(); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }
   }
 
-  // THE LOST CONTEXT (the go-live review): iOS can take the WebGL context away (an app switch under memory pressure). The run goes on
-  // — it is on the server's clock — so a blank playfield is a kid run down unseen. The scene is REBUILT the moment the context is
-  // back (or after 1.5 s without it): a new scene in the same look, tier, colour + reveal; /admin hears of it once.
-  // BEFORE THE FLIP (the inbox's Nov 17 5:55 pm entry — PROVEN in WebKit, wk-jaywalk-mem.mjs "THE LEAVE"): night.destroy() ends with
-  // forceContextLoss(), which fires this canvas's own 'webglcontextlost' — so EVERY leave was reported to /admin as a lost context (screen
-  // = title), and the listeners on the canvas PLAY AGAIN keeps held every old view alive. A DELIBERATE teardown is never heard: the
-  // listeners come OFF (offGL) before any destroy(), and the handler itself ignores a view that has gone / a scene that is not its own.
+// THE LOST CONTEXT: iOS can take the WebGL context away — the run goes on (the server's clock), so the scene is REBUILT the moment
+// it is back (or after 1.5 s); /admin hears once. A DELIBERATE teardown is never heard: the listeners come OFF (offGL) before
+// any destroy() (its forceContextLoss fires 'webglcontextlost') → docs/jaywalk.md "THE TEARDOWN"
   function watchGL() {
     if (offGL) offGL();
     const cv = play && play.querySelector('canvas.jw-canvas'), mine = night;
@@ -229,8 +215,7 @@ export function createView() {
     if (node && node.go > 0) { haveGo = true; return; }
     expectRefusal(path, 'jaywalk GO: already written (a rejoin), a touch early, or the rules are not published yet');
     const again = () => { if (gone || m !== matchId) return; if (goTries++ < 7) setTimeout(() => { asked = false; }, 420); else refused(); };
-    // (H4B — a TRANSACTION, never applied locally: until the SERVER's own value comes back this phone's mirror holds no GO of its own —
-    //  a `set` shows the phone's ESTIMATE of the server's time at once, and a slow phone would pick the course from it)
+    // (a TRANSACTION, never applied locally: a `set` would show this phone's ESTIMATE of the server's time — THE NODES ARE THE TRUTH)
     runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }).then(() => { if (m === matchId) haveGo = true; }).catch(() => {
       dbGet(dbRef(path)).then(snap => { if (gone || m !== matchId) return; if (typeof snap.val() === 'number') haveGo = true; else again(); }).catch(again);
     });
@@ -293,21 +278,17 @@ export function createView() {
     step(run, course, d, ev);
     for (const e of ev) {
       if (e.e === 'best') onBest(e.lane);
-      // THE ARRIVAL GATEWAY (H5A → BEFORE THE FLIP): THE ARRIVAL BANNER — the area's name big at the top + its LANE (the loop's laps: LAP 2
-      // · LANE 450), with the area-arrival sound. This phone's own kid only (a ghost's crossing never shows); never over the Mothership's
-      // warning or the OUT card / the end — those win (arriveNow)
+      // THE ARRIVAL BANNER: the area's name + its LANE with its sound — this phone's own kid only; the Mothership's warning / OUT / the end win
       if (e.e === 'landmark') {
         if (arriveNow()) arriveEl.show(e.lane, look);
         if (sndOn) { try { SFX.play('area-arrive'); } catch { /* silent */ } }
       }
       if (sndOn) { try { SFX.onEvent(e); } catch { /* silent */ } }
     }
-    // THE WORLD's SOUNDS (H5A — cues.js, PURE): the train's bell + its pass, a car passing, the horn, the lights dying — this phone's
-    // own kid's only (a ghost makes no sound), only while he is in
+    // THE WORLD's SOUNDS (cues.js, PURE): this phone's own kid only, while he is in
     if (sndOn && !isOver(run)) { try { for (const q of cuesAt(cues, run, course)) { SFX.onCue(q); duck(q.cue); } } catch { /* silent */ } }
   }
-  /** THE MUSIC DUCKS (H5A: a little under the train — down with the bell, back up a moment after the pass / the bell's end · H6B: under
-   *  the big moments — flyers.js#DUCK, asked a frame): ONE level, the deeper of the two; the level it found is put back after */
+  /** THE MUSIC DUCKS under the train + the big moments (flyers.js#DUCK): ONE level, the deeper; the level found is put back after */
   function applyDuck(sec) {
     const k = Math.min(trainOn ? SFX.TRAIN_DUCK.level : 1, momK);
     if (k < 1) { if (ducked == null) ducked = musicDuckLevel(); duckMusic(Math.min(ducked, k), sec); } else if (ducked != null) { duckMusic(ducked, sec); ducked = null; }
@@ -324,8 +305,7 @@ export function createView() {
   function unduck() { clearTimeout(duckT); trainOn = false; momK = 1; applyDuck(SFX.TRAIN_DUCK.outS); }
   /** the world goes quiet (the run ended, a new run, the view left): the bell stops, the music comes back up */
   function quiet() { try { SFX.onCue({ cue: 'bell-off' }); SFX.onCue({ cue: 'tick-off' }); if (night) night.quiet(); } catch { /* silent */ } unduck(); }
-  /** a lane farther than ever this run: YOUR BEST LINE crossed = the run is a NEW RECORD from here (a burst along the line, the new-best
-   *  sound, the lane counter flashes gold and stays gold); a FRIEND's line crossed (a solo run) = a small burst + a quiet chime */
+  /** a lane farther than ever: YOUR BEST crossed = a NEW RECORD from here (a burst, the sound, the counter gold); a friend's = a small burst + a chime */
   function onBest(lane) {
     if (!record && isRecord(lines.best, lane)) {
       record = true;
@@ -348,8 +328,7 @@ export function createView() {
     if (key === lineKey) return;
     lineKey = key; night.setLines(want);
   }
-  /** THE PROOF: the new hops go up in chunks — each stamped by the server when it ARRIVES (the rules: at === now). Offline they queue
-   *  in the database's own client and land together when the signal is back (THE DROPPED SIGNAL — the judge knows a burst from a slowed game) */
+  /** THE PROOF: the new hops go up in chunks, each server-stamped on ARRIVAL; offline they queue + land together (THE DROPPED SIGNAL) */
   function flush(force) {
     if (!proven || sent >= log.length) return;
     const now = performance.now();
@@ -364,12 +343,12 @@ export function createView() {
   }
   /** the run is over: the last chunk, then `e` — the host's step ends the match on it (a signal: never read as a score) */
   function onOver() {
-    mode = 'over'; overAt = performance.now(); shotAt = overAt + Math.max(SHOT_MS, hold() * 0.42 - 200); queue = [];
+    mode = 'over'; overAt = performance.now(); shotAt = overAt + shotMs(run, course); queue = [];
     quiet();
     flush(true);
     if (proven && !wroteE) { wroteE = true; dbUpdate(dbRef(nodePath()), { e: { l: run.best, t: run.bestT, w: String(run.cause || '').slice(0, 12) } }).catch(() => {}); }
   }
-  /** THE SHARE IMAGE's frame: the picture a beat after the hit — the kid + what got him — kept on this phone until the next run */
+  /** THE SHARE IMAGE's frame: the kid still clearly SEEN + what got him (shot.js#shotMs — per cause) — kept on this phone until the next run */
   function takeShot() {
     shotAt = 0;
     const m = matchId, r = run, c = course;
@@ -406,8 +385,7 @@ export function createView() {
     const now = performance.now();
     for (const G of ghosts.values()) stepGhost(G, course, target, now);
   }
-  /** (the pass's own check, a local emulator page only) every DRAWN ghost against the world it is drawn in: its state must be the engine's
-   *  at the world's tick — never in a car's box, never idle on open water. `air` = mid catch-up (drawn in the air), `held` = standing, unconfirmed */
+  /** (the pass's own check, a local emulator page only) every DRAWN ghost = the engine's state at the world's tick (`air` / `held` counted) */
   function probe(list, F, wt) {
     for (const G of F ? [...list, F] : list) {
       const r = G.run;
@@ -443,8 +421,7 @@ export function createView() {
     const txt = g.phase === 'final' || left < -700 ? '' : left <= 0 ? 'GO' : left > 3000 ? '' : String(Math.ceil(left / 1000));
     const key = course === START && left <= 0 ? 'GET READY' : txt;
     if (key === countKey) return;
-    // H5B's add-on — THE NAMES AT THE START: through the 3 · 2 · 1 every player's name shows ONCE, lined up (who is playing) — never a
-    // pile of tags over the one start square; gone at GO (from there a ghost's own tag shows once it is away from you)
+    // THE NAMES AT THE START: through the 3 · 2 · 1 every name shows ONCE, lined up; gone at GO
     const counting = /^[123]$/.test(key) || key === 'GET READY';
     if (counting) {
       const us = Object.keys(g.participants || {}).sort((a, b) => (a === uid ? -1 : b === uid ? 1 : a < b ? -1 : 1)), rk = us.join('|');
