@@ -86,7 +86,7 @@
 .jw-farhaze[data-look='day']::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 7px; background: linear-gradient(rgba(64, 84, 112, 0.5), rgba(64, 84, 112, 0)); }
 /* THE GATE SIGN (night.js — H6B: ONLY ON THE APPROACH): the area's arched name board hangs under the sea wall, over the far haze (the
    fogged far lanes — never a lane he is about to cross); one canvas, drawn on a change; its opacity alone moves */
-.jw-gate { position: absolute; z-index: 1; left: 13%; width: 74%; top: 24%; aspect-ratio: 1024 / 176; opacity: 0; pointer-events: none; }
+.jw-gate { position: absolute; z-index: 1; left: 9%; width: 82%; top: 24%; aspect-ratio: 1024 / 176; opacity: 0; pointer-events: none; }
 .jw-sky-l { position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #ff4034; box-shadow: 0 0 6px 2px rgba(255, 64, 52, 0.85); animation: jw-blink 2.6s steps(1) infinite; }
 .jw-sky-n { position: absolute; background: rgba(9, 6, 20, 0.86); opacity: 0; animation: jw-flick 6.5s steps(1) infinite; }
 @keyframes jw-blink { 0%, 52% { opacity: 1; } 53%, 100% { opacity: 0.12; } }
@@ -354,3 +354,24 @@
 @keyframes jw-crown { from { transform: translate3d(0, -26px, 0) scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes jw-burst { 0% { transform: scale(0.3) rotate(0deg); opacity: 0; } 22% { opacity: 1; } 100% { transform: scale(1.25) rotate(24deg); opacity: 0.6; } }
 @media (prefers-reduced-motion: reduce) { .jw-fin-crown, .jw-fin-crown i { animation: none; } .jw-fin-crown i { opacity: 0.6; } }
+/* ---- BEFORE THE FLIP — THE ARRIVAL BANNER (js/games/jaywalk/arrival.js — the owner, Nov 17): the area's name big at the top as the kid
+   crosses its gate — under the lane count, over the skyline band (its foot ≤ 28 %: above the far haze's foot, never over a lane), ≈ 2.5 s.
+   NIGHT a neon sign (a dark board, a tube in the area's colour --c, a flicker on) · DAY a painted sign (the area's paint --p, darkened
+   for the white letters; a white trim; a drop-in swing) · reduced motion: a plain fade. transform + opacity only; the glow is static */
+.jw-arrive { position: absolute; z-index: 4; left: 0; right: 0; top: min(calc(env(safe-area-inset-top) + 86px), calc(28% - 60px)); display: flex; justify-content: center; pointer-events: none; opacity: 0; visibility: hidden; }
+.jw-arrive.is-on { visibility: visible; animation: jw-arr-neon 2.5s linear both; }
+.jw-arrive[data-look='day'].is-on { animation-name: jw-arr-sign; }
+.jw-arrive-board { display: flex; flex-direction: column; align-items: center; gap: 5px; max-width: calc(100% - 32px); padding: 8px 20px 7px; border-radius: 6px;
+  background: rgba(9, 6, 24, 0.9); border: 2px solid var(--c, #ff4fc4); box-shadow: 0 0 12px var(--c, #ff4fc4), inset 0 0 10px rgba(255, 255, 255, 0.08); }
+.jw-arrive-n { font: 900 25px/1 var(--font-display); letter-spacing: 0.08em; color: #fff; white-space: nowrap; text-shadow: 0 0 2px var(--c, #ff4fc4), 0 0 12px var(--c, #ff4fc4); }
+.jw-arrive-s { font: 800 12px/1 var(--font-num, var(--font-display)); letter-spacing: 0.26em; color: var(--c, #ff4fc4); white-space: nowrap; }
+.jw-arrive[data-look='day'] .jw-arrive-board { background: linear-gradient(rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%), var(--p, #6a4420);
+  border: 2px solid rgba(14, 18, 40, 0.85); box-shadow: inset 0 0 0 3px #fffaf0, 0 3px 0 rgba(14, 18, 40, 0.35); }
+.jw-arrive[data-look='day'] .jw-arrive-n { text-shadow: 0 2px 0 rgba(10, 16, 40, 0.9), 0 0 3px rgba(10, 16, 40, 0.9); }
+.jw-arrive[data-look='day'] .jw-arrive-s { color: #fffaf0; text-shadow: 0 1px 0 rgba(10, 16, 40, 0.9); }
+@keyframes jw-arr-neon { 0% { opacity: 0; transform: scale(1.1); } 4% { opacity: 0.95; } 7% { opacity: 0.2; } 10% { opacity: 1; } 13% { opacity: 0.45; } 17% { opacity: 1; transform: scale(1); } 82% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.97); } }
+@keyframes jw-arr-sign { 0% { opacity: 0; transform: translateY(-34px) rotate(-4deg); } 11% { opacity: 1; transform: translateY(4px) rotate(1.2deg); } 17% { transform: translateY(-1px) rotate(-0.4deg); } 22% { transform: none; } 82% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-8px); } }
+@keyframes jw-arr-fade { 0% { opacity: 0; } 10% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .jw-arrive.is-on, .jw-arrive[data-look='day'].is-on { animation-name: jw-arr-fade; } }
+.jw-game.is-over .jw-arrive { visibility: hidden; }
+.jw-stage:not(.jw-game) .jw-arrive { top: min(calc(env(safe-area-inset-top) + 108px), calc(28% - 60px)); }   /* (the lab's HUD carries its mode line under the count) */

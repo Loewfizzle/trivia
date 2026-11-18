@@ -30,10 +30,10 @@ test('THE GATE SIGN shows ONLY ON THE APPROACH: up 10 lanes out, whole to 4.5, F
   assert.ok(near(4) > 0.5 && near(4) < 0.8 && near(3.2) < 0.2, 'it fades between 4.5 and 3'); assert.equal(near(10.5), 0); assert.equal(near(12), 0, 'not before its gate is near');
   for (let d = 12; d > -2; d -= 0.05) assert.ok(near(d) >= 0 && near(d) <= 1);
   // ONE canvas over the scene, under the sea wall: drawn on a change, its opacity alone moves — nothing stands on a lane any more
-  assert.match(N, /G\.cv\.className = 'jw-gate';/); assert.match(N, /const gateShow = v => \{ const o = v < 0\.01 \? '0' : v\.toFixed\(2\); if \(o !== G\.o\) \{ G\.o = o; G\.cv\.style\.opacity = o; \} \};/);
+  assert.match(N, /G\.cv\.className = 'jw-gate';/); assert.match(N, /G\.o = o; G\.cv\.style\.opacity = o; G\.cv\.style\.transform = o === '0' \? '' : /);   // (BEFORE THE FLIP: + a small pop-in scale)
   assert.match(N, /if \(G\.text === key\) return;/, 'painted only when its words or the look change'); assert.match(N, /const c = ctx2d\(G\.cv\);/, 'through canvas-safe');
   assert.doesNotMatch(N, /gateGeo|GATE\[|G\.m\b/, 'the plane on the crossbar is gone');
-  assert.match(CSS, /\.jw-gate \{ position: absolute; z-index: 1; left: 13%; width: 74%; top: 24%; aspect-ratio: 1024 \/ 176; opacity: 0; pointer-events: none; \}/, 'it hangs at the band\'s foot (24 %): over the far haze — the fogged far lanes, never one he is about to cross');
+  assert.match(CSS, /\.jw-gate \{ position: absolute; z-index: 1; left: 9%; width: 82%; top: 24%; aspect-ratio: 1024 \/ 176; opacity: 0; pointer-events: none; \}/, 'it hangs at the band\'s foot (24 %): over the far haze — the fogged far lanes, never one he is about to cross');
 });
 
 test('THE MATCH CHIPS are COMPACT: a small dot + the name short + the lanes, 13 px a row on a soft veil — never a box over the painted landmark', () => {

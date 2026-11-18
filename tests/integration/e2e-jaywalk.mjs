@@ -281,21 +281,35 @@ try {
   // own); THE NEW KID is the one drawn; the SERVER's replay counts the same lanes — the same course on the phone + the server
   {
     await P.ev("window.__marks = new Set(); window.__markT = setInterval(() => { const m = document.querySelector('.jw-mark'); if (m && m.textContent) window.__marks.add(m.textContent); }, 120)");
+    // (BEFORE THE FLIP — THE AREA ARRIVAL, the owner's DAY run: this run is played BY DAY; the GATE SIGN is sampled on the real game's
+    // screen as the kid comes up to each gate (its canvas's own opacity + box), THE ARRIVAL BANNER at each crossing)
+    await P.ev("import('/js/games/kit/look.js').then(m => m.saveLook('day'))");
+    await P.waitFor(`${G}.state().info.look === 'day'`, 6000);
+    await P.ev(`window.__gates = {}; window.__banners = []; window.__gateT = setInterval(() => { const i = (${G}.state().info || {}), cv = document.querySelector('.jw-game .jw-gate'), b = document.querySelector('.jw-game .jw-arrive');
+      if (i.gate && cv) { const r = cv.getBoundingClientRect(), o = +getComputedStyle(cv).opacity, k = i.gate.text, g = window.__gates[k] || (window.__gates[k] = { a: 0, d: [], top: r.top, h: r.height, look: i.look }); g.a = Math.max(g.a, o); if (o > 0.9 && !g.d.includes(i.gate.d)) g.d.push(i.gate.d); }
+      if (b && b.classList.contains('is-on')) { const t = b.textContent; if (!window.__banners.some(x => x.t === t)) { const r = b.getBoundingClientRect(); window.__banners.push({ t, top: r.top, bottom: r.bottom, look: document.querySelector('.jw-game').dataset.look }); } } }, 90)`);
     let far = null, tries = 0, lm0 = 0;
     for (; tries < 10 && !far; tries++) {
       if (tries) { if (!(await toEnd(P, 60000))) break; const N = await again(); if (!N.up) break; }
       lm0 = (await P.ev(`${G}.state().snd.by['area-arrive']`)) || 0;   // (the totals: the lists keep only their last 200 — a long run's first gateways scroll out)
-      await P.ev(`window.__marks.clear(); ${G}.bot(true)`);
+      await P.ev(`window.__marks.clear(); window.__gates = {}; window.__banners = []; ${G}.bot(true)`);
       await P.waitFor(`${G}.state().best >= 156 || ${G}.state().over`, 150000);
       const st = await P.ev(`${G}.state()`);
       if (st.best >= 156) { far = st; await P.shot('areas-rail-yard-run.png'); }
+      if (far) await P.ev("clearInterval(window.__gateT); import('/js/games/kit/look.js').then(m => m.saveLook('night'))");
       await P.ev(`${G}.bot(false)`);
     }
     ok(!!far, `a bot's solo run got THROUGH 3 AREAS in ${tries} ${tries === 1 ? 'try' : 'tries'} (lane ${far ? far.best : '—'}: the opening → THE DOCKS → THE FISH MARKET → THE RAIL YARD)`);
     if (far) {
       const marks = await P.ev('[...window.__marks]'), snd = far.snd, lm = (snd.by['area-arrive'] || 0) - lm0;
-      ok(['THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD'].every(n => marks.includes(n)), `each ARRIVAL GATEWAY's name flashed under the lane count: ${marks.join(' · ')}`);
+      ok(marks.length === 0, `the old small name under the lane count is RETIRED — THE ARRIVAL BANNER says it (${marks.join(' · ') || 'nothing under the count'})`);
       ok(lm >= 3, `… with THE AREA ARRIVAL sound (${lm} asked)`);
+      const gates = await P.ev('window.__gates'), banners = await P.ev('window.__banners'), vh = await P.ev('innerHeight');
+      console.log('   the gate signs seen (by day):', JSON.stringify(gates), '· the banners:', JSON.stringify(banners));
+      ok(['THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD'].every(n => gates[n] && gates[n].a > 0.9 && gates[n].look === 'day' && gates[n].top > vh * 0.2 && gates[n].top < vh * 0.4),
+        `THE APPROACH SIGN in the REAL GAME, BY DAY: each gate's sign up whole (opacity > 0.9) on the approach, under the band (${Object.entries(gates).map(([k, g]) => `${k} ${g.a.toFixed(2)} at ${g.d.join('/')} lanes, top ${Math.round(g.top)} pt`).join(' · ')})`);
+      ok(['THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD'].every(n => banners.some(b => b.t.startsWith(n) && /LANE d+/.test(b.t) && b.bottom < vh * 0.27)),
+        `THE ARRIVAL BANNER at each crossing — the name + its LANE, at the top over the skyline band, never over the lanes (${banners.map(b => `${b.t} ${Math.round(b.top)}–${Math.round(b.bottom)} pt`).join(' · ')})`);
       ok(snd.cues.includes('car-pass') || snd.cues.includes('horn') || snd.cues.includes('bell-on'), `THE WORLD's SOUNDS were cued for this kid (${[...new Set(snd.cues)].join(' · ')})`);
       ok(far.info.kid === true && far.kidPx >= 30 && far.kidPx <= 58, `THE NEW KID is the one drawn — ${far.kidPx.toFixed(1)} pt tall on this 390 pt phone at that moment (mid-hop he stretches; standing: ≈ 38.5 pt — the lab check)`);
       const gA = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);

@@ -7,6 +7,8 @@ import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { TICK_MS, TICK_HZ, MODES, MODE_IDS, FP } from './tuning.js';
 import { createCourse, pulseAt, moverLeft, gateName, ufoX, ufoY } from './course.js';
+import { createArrival } from './arrival.js';
+import { LOOKS as AREA_LOOKS } from './areas.js';
 import { createRun, step, isOver, resultOf, canLog } from './engine.js';
 import { replay } from './replay.js';
 import { wireControls } from './controls.js';
@@ -88,6 +90,7 @@ async function mount() {
   const lookBar = GRAY ? null : h('div.jw-bar.jw-bar3', h('div.jw-tabs', h('span.jw-bar-k', 'LOOK'), ...looks));
   app.replaceChildren(h(`div.jw-stage${GRAY ? '.is-gray' : ''}`, play, GRAY ? h('div.jw-sky') : null, h('div.jw-blackout'),
     h('div.jw-hud', lanes, sub, mark), GRAY ? null : soundsBtn, lookBar, tools, h('div.jw-bar', h('div.jw-tabs', ...tabs), seedBtn), end, seedLine, fps));
+  const arrive = createArrival(app.querySelector('.jw-stage'), AREA_LOOKS);   // (BEFORE THE FLIP — THE ARRIVAL BANNER: the game's own, arrival.js)
   const pin = /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null;   // (`?tier=0|1|2` pins a quality tier — the pass's measure)
   let view;
   try { view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin, look }); }
@@ -124,7 +127,7 @@ async function mount() {
     const ev = [];
     if (safe && run.wall > (run.y - 5) * FP) run.wall = (run.y - 5) * FP;
     step(run, course, d, ev);
-    for (const e of ev) { if (e.e === 'landmark') { mark.textContent = gateName(e.lane); markUntil = performance.now() + 2600; if (snd) snd.play('area-arrive'); } if (snd) snd.onEvent(e); }
+    for (const e of ev) { if (e.e === 'landmark') { arrive.show(e.lane, look); if (snd) snd.play('area-arrive'); } if (snd) snd.onEvent(e); }
     if (snd && !isOver(run)) for (const q of cuesAt(cues, run, course)) snd.onCue(q);   // (H5A — THE WORLD's SOUNDS: cues.js)
     if (snd && isOver(run)) snd.onCue({ cue: 'bell-off' });   // (H5A: the area's name as its gateway shows it — THE DOCKS · LAP 2)
     steps++;
@@ -211,7 +214,7 @@ async function mount() {
     flight(from = 0) { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (L.type === 'flight' && L.pulse.band === i) return { lane: i, period: L.pulse.period, phase: L.pulse.phase, tell: L.pulse.tell, pass: L.pulse.pass, dir: L.pulse.dir }; } return null; },
     /** (a look check) hold the kid still the moment a hop is `k` ticks in (null = let go) — the world stops with him */
     hold(k) { holdAt = k; },
-    gate: gateName,
+    gate: gateName, arrive: () => arrive.text(), arriveAt: (l, lk) => arrive.show(l, lk || look),
     /** (a look check — H5B's add-on) ghosts standing at these offsets from the kid: [[columns, lanes], …] (null = none) */
     ghostsAt(offs) { fakes = offs && offs.length ? offs.map(([dx, dy], k) => ({ still: true, run: { ...run, x: run.x + dx * FP, y: run.y + dy, st: 'idle' }, hex: [0x22e0ff, 0xffe04a, 0x7dffb0, 0xff7a4a, 0xa05bff, 0xff5a7a, 0x4d7dff, 0xffffff][k % 8] })) : null; },
     /** (a measure) n ghosts beside the kid — the night look's instanced, skinned kids: 7 = an 8-kid match's scene (0 = none) */

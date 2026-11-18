@@ -25,6 +25,7 @@ import { homedir } from 'node:os';
 import { CAUSE_LINES, VEHICLES } from '../../js/games/jaywalk/causes.js';
 import { looksH6A } from './kit/jaywalk-h6a.mjs';
 import { looksH6B } from './kit/jaywalk-h6b.mjs';
+import { looksPreflip } from './kit/jaywalk-preflip.mjs';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), PERF = argv.includes('--perf'), WK = argv.includes('--webkit'), LOOK = argv.includes('--look'), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
@@ -584,6 +585,8 @@ async function looksNums(p) {
 
 try {
   if (argv.includes('--nums')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksNums(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
+  // (BEFORE THE FLIP — THE AREA ARRIVAL: `--preflip` — kit/jaywalk-preflip.mjs; the shots → arrival/)
+  if (argv.includes('--preflip')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksPreflip(o.p, { ok, shot, sleep, waitFor }); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   // (H6B — THE FINAL POLISH: `--h6b[=sky|gates|ufo|jet|ship|shops|lane|perf]` — kit/jaywalk-h6b.mjs; the shots → <group>/)
   { const h6b = argv.find(x => x === '--h6b' || x.startsWith('--h6b=')); if (h6b) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600);
     const top = async name => { if (OUT) { mkdirSync(join(OUT, name.slice(0, name.lastIndexOf('/'))), { recursive: true }); await o.p.screenshot({ path: join(OUT, name), clip: { x: 0, y: 0, width: 390, height: 300 } }); } };

@@ -137,13 +137,13 @@ test('THE ARRIVAL GATEWAY: a neon arch on every area\'s first lane — posts in 
   assert.doesNotMatch(arch, /AK\.|KM\[|K\.trees|K\.barricades/, 'no solid thing is laid across the lane: the posts + light only');
   assert.match(arch, /K\.flat\.put\(0, 0\.05, zf \+ 0\.06, \(xr - xl\) \* 1\.02, 1, 0\.3, 0, hex, 1, 4, 0\.9 \* lt\);/, 'a neon line ON THE GROUND between the posts'); assert.doesNotMatch(arch, /3\.04/, 'H6B\'s review: NO crossbar over the road (it hid the traffic in the lane behind it)');
   assert.equal(gateName(450), 'THE DOCKS · LAP 2');
-  assert.match(V, /markEl\.textContent = gateName\(e\.lane\); markUntil = performance\.now\(\) \+ 2600;/); assert.match(V, /markEl\.classList\.add\('is-flash'\);/);
+  assert.match(V, /if \(arriveNow\(\)\) arriveEl\.show\(e\.lane, look\);/, 'BEFORE THE FLIP: the name flash under the count became THE ARRIVAL BANNER (tests/jaywalk-preflip.test.mjs)');
   assert.match(V, /if \(sndOn\) \{ try \{ SFX\.play\('area-arrive'\); \}/, 'THE AREA ARRIVAL (H5C — it replaced the landmark ping)');
   const css = read('css/jaywalk.css'), kf = css.slice(css.indexOf('@keyframes jw-gate')).split('\n')[0];
   assert.match(css, /\.jw-mark\.is-flash \{ animation: jw-gate 0\.62s ease-out 1; \}/, 'ONCE'); assert.doesNotMatch(kf, /box-shadow|filter|width|height|left|top|color/, 'transform + opacity only');
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.jw-mark\.is-flash \{ animation: none; \} \}/);
   assert.doesNotMatch(css, /jw-sky-tint/, 'H6B: the band\'s colour wash is RETIRED — the painted picture carries the area (both looks)');
-  assert.match(code('lab.js'), /mark\.textContent = gateName\(e\.lane\);/, 'the lab shows the same name');
+  assert.match(code('lab.js'), /arrive\.show\(e\.lane, look\);/, 'the lab shows the same banner (BEFORE THE FLIP)');
   // a line's words step off a gateway lane (its own name is written there)
   assert.match(N, /const wz = Z\(Ln\.lane \+ \(both \? 1\.42 : 0\.42\) - \(L\.mark \? 1 : 0\)\);/);
 });

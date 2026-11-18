@@ -13,7 +13,10 @@ import { createTiers } from '../kit/tiers.js';
 import { showCall } from '../kit/call.js';
 import { TICK_HZ, CLOCK, FP, MODES } from './tuning.js';
 const SHIP_SEEN = 252;   // (ticks: the 4.2 s the Mothership's lift is seen — flyers.js#holdMs)
-import { createCourse, laneHit, logUnder, gateName } from './course.js';
+const SHIP_WARN = 600;   // (ticks: the Mothership's 10-s warning before the cap — flyers.js#FLY.warn: THE ARRIVAL BANNER never shows over it)
+import { createCourse, laneHit, logUnder } from './course.js';
+import { createArrival } from './arrival.js';
+import { LOOKS as AREA_LOOKS } from './areas.js';
 import { createRun, step, isOver, canLog, kidAt } from './engine.js';
 import { packLog, unpackLog, logFromChunks } from './replay.js';
 import { seedOf, startOf } from './logic.js';
@@ -86,7 +89,7 @@ const hexNum = c => parseInt(String(colorHex(c) || '#00f0ff').slice(1), 16) || 0
 
 export function createView() {
   let root = null, play = null, night = null, tiers = null, offControls = null, offGL = null, raf = 0, st = null, gone = false;
-  let lanesEl = null, markEl = null, hintEl = null, finalWrap = null, final = null, localEnd = null;
+  let lanesEl = null, markEl = null, hintEl = null, finalWrap = null, final = null, localEnd = null, arriveEl = null;
   let orderEl = null, tagsEl = null, countEl = null, watchEl = null, overEl = null, outCard = null;
   // the run
   let code = '', uid = '', matchId = '', mode = 'wait';   // 'wait' (the course is on its way) · 'run' · 'over' (out / taken / watching)
@@ -122,6 +125,7 @@ export function createView() {
     play = had ? had.play : h('div.jw-play', { role: 'application', 'aria-label': 'Jaywalk — tap to hop, swipe to move' });
     root = h('div.jw-stage.jw-game', play, h('div.jw-blackout'), tagsEl, h('div.jw-hud', lanesEl, markEl), orderEl, rosterEl, countEl, watchEl, hintEl, overEl);
     el.replaceChildren(root);
+    arriveEl = createArrival(root, AREA_LOOKS);   // (BEFORE THE FLIP — THE ARRIVAL BANNER: arrival.js)
     const me = (st.players && st.players[uid]) || {};
     try {
       if (!had) scenesMade++;
@@ -189,6 +193,7 @@ export function createView() {
       if (T.best > 0 && T.best >= lines.best) setPref('best', T.best);
     });
     if (markEl) markEl.textContent = '';
+    if (arriveEl) arriveEl.hide();
     if (night) night.setReveal(0, true);
     anchor();
   }
@@ -278,6 +283,9 @@ export function createView() {
     queue.push(d);
     if (hintEl) { hintEl.remove(); hintEl = null; setPref('hint', '1'); }
   }
+  /** THE ARRIVAL BANNER may show now: a run on, nothing bigger on the top of the screen (the Mothership's warning in a match, the OUT card, the end, the console's moment) */
+  const shipWarn = () => isMatch && !!run && run.t >= MODES.match.cap - SHIP_WARN;
+  const arriveNow = () => !!arriveEl && mode === 'run' && !watching && !outCard && !final && !localEnd && !shipWarn() && !isOver(run);
   function tick() {
     let d = '';
     if (queue.length && canLog(log, run.t, queue[0], run.mode)) { d = queue.shift(); log.push({ t: run.t, d }); }
@@ -285,10 +293,11 @@ export function createView() {
     step(run, course, d, ev);
     for (const e of ev) {
       if (e.e === 'best') onBest(e.lane);
-      // THE ARRIVAL GATEWAY (H5A): the area's name flashes ONCE under the lane count (the loop's laps named: THE DOCKS · LAP 2) + the landmark sound
-      if (e.e === 'landmark' && markEl) {
-        markEl.textContent = gateName(e.lane); markUntil = performance.now() + 2600;
-        markEl.classList.remove('is-flash'); void markEl.offsetWidth; markEl.classList.add('is-flash');
+      // THE ARRIVAL GATEWAY (H5A → BEFORE THE FLIP): THE ARRIVAL BANNER — the area's name big at the top + its LANE (the loop's laps: LAP 2
+      // · LANE 450), with the area-arrival sound. This phone's own kid only (a ghost's crossing never shows); never over the Mothership's
+      // warning or the OUT card / the end — those win (arriveNow)
+      if (e.e === 'landmark') {
+        if (arriveNow()) arriveEl.show(e.lane, look);
         if (sndOn) { try { SFX.play('area-arrive'); } catch { /* silent */ } }
       }
       if (sndOn) { try { SFX.onEvent(e); } catch { /* silent */ } }
@@ -570,6 +579,7 @@ export function createView() {
       if (shownBest > 0) { popN ^= 1; lanesEl.classList.remove('is-pop', 'is-pop2'); lanesEl.classList.add(popN ? 'is-pop2' : 'is-pop'); }   // (two names, one animation: it restarts with no layout read in the frame)
     }
     if (markUntil && now > markUntil) { markEl.textContent = ''; markUntil = 0; }
+    if (arriveEl && arriveEl.on() && !arriveNow()) arriveEl.hide();   // (the Mothership's warning / the run's end takes the top: the banner goes at once — never stacked)
     if (mode === 'over' || (isMatch && g && g.phase === 'final')) endScreen();
   }
 
@@ -659,7 +669,7 @@ export function createView() {
           roster: rosterEl && rosterEl.classList.contains('is-on') ? [...rosterEl.children].map(e => e.textContent) : [],
           adopts: adopts.slice(), seen: { ...watch }, g0: st.game ? st.game.g0 || 0 : 0,
           snd: { cues: SFX.cues(), wanted: SFX.wanted().map(q => q.id), by: SFX.totals().by, ducked: ducked != null },
-          tier: night ? night.tier() : -1, info: night ? night.info() : null, kidPx: night ? night.kidHeightPx() : 0 }),
+          arrive: arriveEl ? arriveEl.text() : '', tier: night ? night.tier() : -1, info: night ? night.info() : null, kidPx: night ? night.kidHeightPx() : 0 }),
         hop, frames: () => frames.slice(), cost: () => cost.slice(), clearFrames() { frames.length = 0; cost.length = 0; stamps.length = 0; },
         /** every frame so far: [ms after tick 0, the frame's length, its own work] — THE START's measure */
         timeline: () => { const z = t0perf + (go - t0srv); return frames.map((d, i) => [Math.round(stamps[i] - z), +d.toFixed(1), +cost[i].toFixed(1)]); },
@@ -685,6 +695,7 @@ export function createView() {
         // (PLAY AGAIN's remount — the console's INSTANT AGAIN marks it: the scene is kept warm for the next run; anything else frees it at once)
         if (performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000) park(play, night); else { night.destroy(); keepShot(null); try { SFX.release(); } catch { /* silent */ } }   // (leaving: the run's picture + ≈ 15 MB of decoded sounds are let go)
       }
+      if (arriveEl) { arriveEl.destroy(); arriveEl = null; }
       if (root) root.remove();
       root = null; night = null;
     },

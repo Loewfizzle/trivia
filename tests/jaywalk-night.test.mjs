@@ -229,7 +229,7 @@ test('THE LAB\'s TOOLS: ?gray=1 keeps the graybox, ZOOM + ANGLE (remembered — 
   assert.match(lab, /const GRAY = Q\.get\('gray'\) === '1';/);
   assert.match(lab, /GRAY \? lazyImport\(import\('\.\/graybox\.js'\), '\.\/graybox\.js'\) : lazyImport\(import\('\.\/night\.js'\), '\.\/night\.js'\)/, 'only the look asked for is fetched');
   assert.match(lab, /let zoom = Number\(pick\('zoom', ZOOMS, ZOOM\)\), angle = pick\('angle', ANGLES, ANGLE\);/, 'a link\'s ?zoom / ?angle, else what the phone remembers, else 8 + turned');
-  assert.match(lab, /E\.installAudio\(\); S\.fetchSounds\(\);/, 'the SHARED engine: unlocked by the first tap, the bytes at preload');
+  assert.match(lab, /E\.installAudio\(\); S\.useLabPicks\(true\); S\.fetchSounds\(\);/, 'the SHARED engine: unlocked by the first tap, the bytes at preload (the lab plays its own picks — BEFORE THE FLIP)');
   assert.match(lab, /if \(snd\) snd\.onEvent\(e\);/);
   assert.match(lab, /createTiers\(\{ apply: t => \{ if \(view\.setTier\) view\.setTier\(t\); if \(tierPath\.length < 40\) tierPath\.push\(t\); \}/, 'AUTOMATIC quality steps (the match kit\'s tiers) — their path kept for the measure');
   assert.match(au, /openSheet\(\{ title: 'SOUNDS'/); assert.doesNotMatch(au, /addEventListener\('click'/, 'never a click');
@@ -275,5 +275,5 @@ test('H4 — THE LOOK: ONE LIFE (no blink, no respawn, no one-up in any view), T
   assert.match(n, /function draw\(run, course, a, dt, o = null\)/); assert.match(n, /KM\.ghosts\.put\(gpx, gpy, gpz,[^;]*g\.hex,/, 'in their colour');
   assert.match(n, /g\.tag = v3\.z < 1 &&/, 'the name tag\'s place on the screen');
   // THE SHARE IMAGE's frame: copied off the canvas in the SAME frame it was drawn
-  assert.match(n, /if \(snapAsk\) \{ const ask = snapAsk; snapAsk = null;/); assert.match(n, /import \{ ctx2d \} from '\.\.\/\.\.\/ui\/canvas-safe\.js';/, 'every canvas through ctx2d');
+  assert.match(n, /if \(snapAsk\) \{ const ask = snapAsk; snapAsk = null;/); assert.match(n, /import \{ ctx2d, onCanvasLost \} from '\.\.\/\.\.\/ui\/canvas-safe\.js';/, 'every canvas through ctx2d');
 });

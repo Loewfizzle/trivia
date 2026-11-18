@@ -11,7 +11,8 @@ import { FOG_HEX, DAY_FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMater
 import { lazyImport } from '../../ui/lazy-import.js';
 import { skyPlan, skyHeld, skyRoom, skyShift, skyOff, SKY_FADE_MS, SKY_LOOK_MS, SKY_BAND, SKY_ASPECT, SKY_LIGHTS, SKY_NEON } from './skyline.js';
 import { CAM, createCamera } from './camera.js';
-import { ctx2d } from '../../ui/canvas-safe.js';
+import { ctx2d, onCanvasLost } from '../../ui/canvas-safe.js';
+import { shade } from './arrival.js';
 import { LINE_HEX } from './lines.js';
 import { drawNum, numWidth } from './numerals.js';
 import { LOOKS, PIECE, buildAreaGeo, dressLane, sigOf, drawBig, drawSig, drawFishSign } from './areas.js';
@@ -196,22 +197,40 @@ export function createNight(host, o = {}) {
   const fishGeo = new THREE.PlaneGeometry(2.4, 1.2);
   const G = { cv: document.createElement('canvas'), text: null, o: '' };
   G.cv.width = 1024; G.cv.height = 176; G.cv.className = 'jw-gate'; G.cv.setAttribute('aria-hidden', 'true'); host.append(G.cv);
-  const gateShow = v => { const o = v < 0.01 ? '0' : v.toFixed(2); if (o !== G.o) { G.o = o; G.cv.style.opacity = o; } };
+  // BEFORE THE FLIP (the owner never saw it BY DAY on his phone — in the game on the emulators it was up whole 9.5 → 4.5 lanes out at every
+  // gate, so the phone's own failure modes are closed): the board is marked drawn only once it WAS drawn (an iPhone over its canvas memory
+  // refuses the 2D context — the old code then kept a BLANK sign for good) · a canvas the browser wiped (onCanvasLost) or a blank one
+  // found as the sign comes up (its board's pixel) is drawn again · re-drawn once the display font has loaded · it POPS in (a small
+  // scale with its fade — transform + opacity only)
+  const gateShow = v => {
+    const o = v < 0.01 ? '0' : v.toFixed(2);
+    if (o === G.o) return;
+    if (G.o === '0' || G.o === '') gateCheck();
+    G.o = o; G.cv.style.opacity = o; G.cv.style.transform = o === '0' ? '' : `scale(${(0.9 + 0.1 * Math.min(1, v)).toFixed(3)})`;
+  };
+  function gateCheck() {
+    if (!G.text) return;
+    try { const c = ctx2d(G.cv); if (!c || c.getImageData(512, 150, 1, 1).data[3] === 0) G.text = null; } catch { G.text = null; }
+  }
+  const offLost = onCanvasLost(() => { G.text = null; });
+  try { if (document.fonts && document.fonts.load) document.fonts.load('900 88px "Orbitron"').then(() => { if (!dead) G.text = null; }, NOP); } catch { /* no font API: the fallback face */ }
   const gateInfo = { on: false, text: '', y: 0, d: 0, a: 0 };
   function writeGate(text, hex, paint) {
     const key = `${text}|${day ? 'd' : 'n'}`;
     if (G.text === key) return;
-    G.text = key;
     const c = ctx2d(G.cv);
-    if (!c) return;
+    if (!c) return;   // (refused — asked again next frame)
+    G.text = key;
     c.clearRect(0, 0, 1024, 176);
     // the board: straight sides, an ARCHED top (q = its inset)
     const board = q => { c.beginPath(); c.moveTo(q, 176 - q); c.lineTo(q, 66 + q * 0.4); c.quadraticCurveTo(512, -30 + q * 2.2, 1024 - q, 66 + q * 0.4); c.lineTo(1024 - q, 176 - q); c.closePath(); };
     c.lineJoin = 'round';
-    if (day) {   // (BY DAY: a PAINTED sign — the area's colour, a white trim, the name in white paint with a dark edge)
-      board(3); c.fillStyle = css(paint); c.fill();
+    if (day) {   // (BY DAY: a PAINTED sign — the area's colour, a white trim, the name in white paint with a dark edge. BEFORE THE FLIP: the
+      // paint DARKENED (the white letters ≥ 4.5 : 1 on every area's — the docks' brown board read as part of the brown planks) + a dark
+      // keyline round it: it stands off the bright ground)
+      board(3); c.fillStyle = css(shade(paint, 0.72)); c.fill();
       c.save(); board(3); c.clip(); const sh = c.createLinearGradient(0, 0, 0, 176); sh.addColorStop(0, 'rgba(255, 255, 255, 0.2)'); sh.addColorStop(0.55, 'rgba(255, 255, 255, 0)'); sh.addColorStop(1, 'rgba(0, 0, 20, 0.22)'); c.fillStyle = sh; c.fillRect(0, 0, 1024, 176); c.restore();
-      board(3); c.lineWidth = 5; c.strokeStyle = 'rgba(14, 18, 40, 0.85)'; c.stroke();
+      board(3); c.lineWidth = 7; c.strokeStyle = 'rgba(14, 18, 40, 0.92)'; c.stroke();
       board(13); c.lineWidth = 6; c.strokeStyle = '#fffaf0'; c.stroke();
     } else {     // (BY NIGHT: a neon sign — a smoked see-through panel, a tube round the arch in the area's colour, its white-hot core)
       board(8); c.fillStyle = 'rgba(9, 6, 24, 0.9)'; c.fill();   // (a SOLID dark board, as the day's is solid: the letters are never cluttered by what is behind)
@@ -794,7 +813,7 @@ export function createNight(host, o = {}) {
         }
         // THE NAME: the gate's sign — ONLY ON THE APPROACH
         const dg = i - ky, near = clamp01((dg - GATE_GONE) / GATE_FADE) * clamp01(GATE_SEEN + 0.5 - dg);
-        if (!gateSeen && near > 0.01 && dk < 0.8) { writeGate(gateName(i), hex, LOOKS[AR].paint); gateShow(near); gateSeen = true; gateInfo.on = true; gateInfo.text = gateName(i); gateInfo.y = 0.24 + 0.74 * w * 176 / 1024 / h; gateInfo.d = dg; gateInfo.a = near; }
+        if (!gateSeen && near > 0.01 && dk < 0.8) { writeGate(gateName(i), hex, LOOKS[AR].paint); gateShow(near); gateSeen = true; gateInfo.on = true; gateInfo.text = gateName(i); gateInfo.y = 0.24 + 0.82 * w * 176 / 1024 / h; gateInfo.d = dg; gateInfo.a = near; }
       }
       const PL = AR >= 0 ? sigAt(i) : null;
       if (PL) for (const P of PL) { const r = drawSig(P, { K, A: AK, KM, BOX, X, Z, lt, on: on && !day, day, ek: EK, T: LOOKS[AR], h: (a, b) => hsh(vseed ^ (a * 2659), b), course }); if (r && r.beam && on) beam = { at: r.beam, side: P.side, lt: Math.min(1, lt) }; if (r && r.sign && on && !sign) sign = { at: r.sign, lt: Math.min(1, lt) }; }
@@ -1024,7 +1043,7 @@ export function createNight(host, o = {}) {
       if (kidGeo) { kidGeo.userData.poses.tex.dispose(); kidGeo.dispose(); }
       for (const L of Object.values(LBL)) { scene.remove(L.m); L.m.material.dispose(); L.tex.dispose(); L.cv.width = 0; L.cv.height = 0; }
       labelGeo.dispose(); fishGeo.dispose(); fishTex.dispose(); fish.material.dispose(); scene.remove(fish); fishCv.width = 0;
-      G.cv.remove(); G.cv.width = 0; G.cv.height = 0;
+      G.cv.remove(); G.cv.width = 0; G.cv.height = 0; offLost();
       for (const g of Object.values(AGEO)) g.dispose();
       flatGeo.dispose(); billGeo.dispose(); unit.dispose(); ground.dispose();
       if (bloom) bloom.dispose();

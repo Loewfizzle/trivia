@@ -47,3 +47,38 @@ test('THE LOST CONTEXT: a deliberate teardown is never reported or rebuilt (the 
   assert.match(v, /offGL = \(\) => \{ offGL = null; clearTimeout\(t\); cv\.removeEventListener\('webglcontextlost', lost\); cv\.removeEventListener\('webglcontextrestored', remake\); \};/);
   assert.match(src('night.js'), /renderer\.forceContextLoss\(\); \} catch \{ \/\* fine \*\/ \}\n      el\.width = 0; el\.height = 0;/, 'destroy(): the 3D canvas freed at once');
 });
+
+test('THE AREA ARRIVAL: the banner\'s words, its colours (white letters ≥ 4.5 : 1 on every area\'s day board), where it shows + what wins', async () => {
+  const A = await import('../js/games/jaywalk/arrival.js');
+  // (the areas' colours, read from areas.js's own table — it imports three.js, so it is read, not loaded)
+  const LOOKS = [...readFileSync(new URL('../js/games/jaywalk/areas.js', import.meta.url), 'utf8').matchAll(/{ id: '([a-z]+)', accent: (0x[0-9a-f]{6}), paint: (0x[0-9a-f]{6})/g)].map(m => ({ id: m[1], accent: Number(m[2]), paint: Number(m[3]) }));
+  assert.equal(LOOKS.length, 8);
+  assert.deepEqual(A.arrivalWords(50), { name: 'THE DOCKS', sub: 'LANE 50', index: 0 });
+  assert.equal(A.arrivalWords(400).name, 'THE AIRFIELD');
+  assert.deepEqual(A.arrivalWords(450), { name: 'THE DOCKS', sub: 'LAP 2 · LANE 450', index: 0 }, 'a lap: LAP 2 in the small line, the name stays big');
+  assert.equal(A.arrivalWords(10), null, 'the opening has no gate');
+  const lum = n => { const f = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f((n >> 16) & 255) + 0.7152 * f((n >> 8) & 255) + 0.0722 * f(n & 255); };
+  for (const L of LOOKS) { const r = 1.05 / (lum(A.shade(L.paint, 0.72)) + 0.05); assert.ok(r >= 4.5, `${L.id}: white on its day board ${r.toFixed(2)} : 1`); }
+  assert.equal(A.ARRIVE_MS, 2500);
+  const css = readFileSync(new URL('../css/jaywalk.css', import.meta.url), 'utf8');
+  assert.match(css, /\.jw-arrive \{[^}]*top: min\(calc\(env\(safe-area-inset-top\) \+ 86px\), calc\(28% - 60px\)\)/, 'under the lane count, its foot above the far haze (never over a lane) on any phone');
+  assert.match(css, /\.jw-arrive\.is-on \{ visibility: visible; animation: jw-arr-neon 2\.5s linear both; \}/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.jw-arrive\.is-on, \.jw-arrive\[data-look='day'\]\.is-on \{ animation-name: jw-arr-fade; \} \}/, 'reduced motion: a plain fade');
+  for (const k of ['jw-arr-neon', 'jw-arr-sign', 'jw-arr-fade']) { const m = css.match(new RegExp(`@keyframes ${k} \{(.*)\}`)); assert.ok(m && !/box-shadow|filter|top:|left:|width|height/.test(m[1]), `${k}: transform + opacity only`); }
+  const v = src('view.js');
+  assert.match(v, /if \(e\.e === 'landmark'\) \{\n        if \(arriveNow\(\)\) arriveEl\.show\(e\.lane, look\);\n        if \(sndOn\)/, 'the crossing (this phone\'s own kid\'s tick) shows it, with the area-arrival sound');
+  assert.match(v, /const arriveNow = \(\) => !!arriveEl && mode === 'run' && !watching && !outCard && !final && !localEnd && !shipWarn\(\) && !isOver\(run\);/, 'never over the Mothership\'s warning, the OUT card or the end');
+  assert.match(v, /const shipWarn = \(\) => isMatch && !!run && run\.t >= MODES\.match\.cap - SHIP_WARN;/);
+  assert.match(v, /if \(arriveEl && arriveEl\.on\(\) && !arriveNow\(\)\) arriveEl\.hide\(\);/, '… and goes at once when one of them starts');
+  assert.match(src('lab.js'), /arrive\.show\(e\.lane, look\)/, 'the lab shows the same banner');
+});
+
+test('THE APPROACH SIGN: drawn again whenever it might be blank (a refused / wiped canvas, the font arriving) + darker day paint', () => {
+  const n = src('night.js');
+  assert.match(n, /const c = ctx2d\(G\.cv\);\n    if \(!c\) return;   \/\/ \(refused — asked again next frame\)\n    G\.text = key;/, 'marked drawn only once it was drawn');
+  assert.match(n, /const offLost = onCanvasLost\(\(\) => \{ G\.text = null; \}\);/, 'a wiped canvas is drawn again');
+  assert.match(n, /c\.getImageData\(512, 150, 1, 1\)\.data\[3\] === 0\) G\.text = null;/, 'a blank board found as it comes up is drawn again');
+  assert.match(n, /document\.fonts\.load\('900 88px "Orbitron"'\)/);
+  assert.match(n, /c\.fillStyle = css\(shade\(paint, 0\.72\)\);/, 'the day board: the area\'s paint darkened');
+  assert.match(n, /offLost\(\);/, 'the subscription goes with the scene');
+});
