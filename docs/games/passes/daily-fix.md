@@ -39,8 +39,17 @@ after Groups 1–7's commit → built as the LAST group, before the final run.
 - The LAST TRY label is quieter than the lanes inside the ONE line (the lanes stay the big number).
 - The CLAUDE.md line: folded into the existing THE TICKET line (the file was 30 bytes under its cap).
 
-## THE FINAL RUN
-(filled in below)
+## THE FINAL RUN (the Beelink; fresh emulators + `DAILY_TEST=1 node scripts/serve.mjs 5173 --emu`, nothing else busy)
+- unit 2,239 / 2,239 (+ `tests/daily-fix.test.mjs` 5; the `city-g` + `shell` pins follow the new KEYPOP_COVERED)
+- e2e-daily 122 / 122 (FIRST; + the SAVE YOUR KEY case) · wk-press 47 / 47 · e2e-jaywalk-daily (DAILY A's) ALL GREEN · e2e-jaywalk-daily-run
+  57 / 57 (30 FIT checks: + "LAST TRY · 888 LANES" at 375 / 390 / 430 × night / day) · e2e-coastclear (FAST) 42 / 42 · smoke 21 / 21 ·
+  harbor `ONLY=keypop` 7 / 7 (it reads KEYPOP_COVERED)
+- wk-jaywalk-mem (WebKit 390 × 844 @3, `--no-match`): 10 runs + `--daily` 33 / 33 · 20 runs 38 / 38 (logs: `Downloads/NEON/daily-fix/wk/`)
+- Not run: the full harbor suite (the cloud's — THE LOCAL TESTING RULE); /api + rules tests (no server or rules file touched).
+- Shots: `Downloads/NEON/daily-fix/` (r1 = the first look · final = 3 sizes × 2 looks · share0 before / share1 after · e2e-jr = the real app).
+- No rules change. The servers this pass started are stopped; Ben's :5190 left running.
 
 ## OPEN FOR BEN
-(filled in below)
+Nothing genuinely new. Still standing from DAILY B: JAYWALK's daily ships OFF (/admin → GO LIVE AT THE NEXT 4 AM) · DONE is per phone ·
+the reviewer's taste points left as they are (TODAY's centred block, COAST CLEAR's searchlight mark after its time, the numberless JAYWALK
+bars on the share card).
