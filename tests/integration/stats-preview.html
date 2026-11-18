@@ -23,7 +23,7 @@ const people = ['AMBER', 'DIME TIME', 'MAXIMILIANOS', 'BEN', 'KATIE', 'LIAM', 'R
 const S = {
   games: { today: { prism: 4, overclock: 6, holdem: 2 }, week: { prism: 31, overclock: 40, holdem: 12 }, last30: { prism: 120, overclock: 150, holdem: 44 }, all: { prism: 300, overclock: 410, holdem: 90 }, avgPlayers: { prism: 3.1, overclock: 4.2, holdem: 4.8 },
     daily: Array.from({ length: 30 }, (_, i) => ({ k: day(29 - i), n: Math.round(6 + 8 * Math.abs(Math.sin(i * 0.7)) + i / 3) })) },
-  players: { topToday: people.slice(0, 4), topWeek: people, topAll: people, topXp: people, activeWeek: 23, returningWeek: 11, newByWeek: Array.from({ length: 8 }, (_, i) => ({ wk: day(7 * (7 - i)), n: 3 + (i * 5) % 9 })) },
+  players: { newWeek: people.slice(0, 6).map((p, i) => ({ ...p, at: Date.UTC(2026, 10, 15 - i, 18) })), topToday: people.slice(0, 4), topWeek: people, topAll: people, topXp: people, activeWeek: 23, returningWeek: 11, newByWeek: Array.from({ length: 8 }, (_, i) => ({ wk: day(7 * (7 - i)), n: 3 + (i * 5) % 9 })) },
   totals: { players: 148, played: 97, multiNight: 52, matches: 800 },
   times: { days: 30, max: 9, grid: Array.from({ length: 7 }, (_, d) => Array.from({ length: 24 }, (_, h) => (h >= 18 && h <= 23 ? (h + d) % 9 : h >= 12 ? (h * d) % 4 : 0))) },
   today: { players: 12, matches: 12 },

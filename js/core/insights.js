@@ -48,6 +48,7 @@ export function liveRooms(rooms, now) {
 }
 
 /** PURE: the whole STATS panel. */
+const NEW_KEEP = 40;   // (CITY H2: NEW THIS WEEK's list — the sheet's copy keeps at most this many faces)
 export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {}, now = Date.now(), topN = 10 } = {}) {
   const done = Object.values(results || {}).filter(r => r && r.st === 'done' && r.g && r.at);
   const wk = weekKey(now);
@@ -94,6 +95,9 @@ export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {},
   const newByWeek = weeks8.map(k => ({ wk: k, n: 0 }));
   const wIdx = Object.fromEntries(weeks8.map((k, i) => [k, i]));
   for (const p of Object.values(profiles || {})) if (p && p.at && wIdx[weekKey(p.at)] != null) newByWeek[wIdx[weekKey(p.at)]].n++;
+  // (CITY H2 — STATS' NEW THIS WEEK: the week's new members, newest first — the face a slim card wears + when each joined; no pid)
+  const newWeek = Object.entries(profiles || {}).filter(([, p]) => p && p.at && weekKey(p.at) === wk).sort((a, b) => b[1].at - a[1].at).slice(0, NEW_KEEP)
+    .map(([pid, p]) => { const { pid: _drop, ...f } = who(pid); return { ...f, at: p.at }; });
   const activeWeek = Object.keys(weekCount).length, activeToday = Object.keys(dayCount).length;
   const matchesToday = daily[today] || 0;
   // (CITY CONTROLS A — THE LEDGER: the profiles made today, Eastern)
@@ -110,7 +114,7 @@ export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {},
     today: { matches: matchesToday, players: activeToday, newPlayers: newToday },
     totals: { matches: done.length, players: Object.keys(profiles || {}).length, played: Object.keys(allCount).length, multiNight },
     games: { today: todayGames, week: (gplay && gplay.week) || {}, all: (gplay && gplay.all) || {}, last30, avgPlayers, daily: days30.map(k => ({ k, n: daily[k] })) },
-    players: { activeToday, activeWeek, returningWeek, newByWeek, topToday, topWeek, topAll, topXp },
+    players: { activeToday, activeWeek, returningWeek, newByWeek, newWeek, topToday, topWeek, topAll, topXp },
     times: { grid, max: Math.max(0, ...grid.flat()), days: 90 },
   };
 }

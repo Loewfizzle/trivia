@@ -107,6 +107,7 @@ button.bd-open:focus-visible { outline: 2px solid #ff4fc8; outline-offset: 3px; 
 .bd-end::before, .bd-end::after { content: ''; width: 40px; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 124, 203, 0.5)); }
 .bd-end::after { transform: scaleX(-1); }
 .bd-showall { margin: 4px auto 0; }
+.bd-showall.btn, .bd-retry.btn { border-radius: 9px; }   /* (CITY H2 — NO PILLS on THE BOARD: the shell's squared button) */
 .bd-showall-li { display: flex; justify-content: center; }
 .bd-sentinel { height: 1px; }
 

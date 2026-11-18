@@ -55,7 +55,7 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-bigs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 6px 0 14px; }
 .ad-big { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 12px; background: rgba(255, 240, 220, 0.04); border: 1px solid rgba(255, 220, 180, 0.08); }
 .ad-big b { font: 700 30px/1 var(--font-num); color: #fff3dc; }
-.ad-big span { font: 700 10px/1.2 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(242, 200, 105, 0.85); }
+.ad-big span { font: 700 10px/1.2 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(95, 227, 255, 0.9); }   /* (CITY H2 — NO GOLD IN STATS) */
 .ad-big small { font-size: 12px; color: var(--bd-dim); }
 .ad-bigs.is-small .ad-big b { font-size: 24px; }
 .ad-bigs.is-small { grid-template-columns: repeat(2, minmax(0, 1fr)); }   /* the Players box: today, this week, have played, profiles */
@@ -87,7 +87,7 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-top li > b { margin-left: auto; font-size: 13px; white-space: nowrap; }
 .ad-cols { display: flex; align-items: flex-end; gap: 3px; height: 150px; padding-bottom: 18px; }
 .ad-col { position: relative; flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
-.ad-col i { display: block; height: var(--h); min-height: 2px; border-radius: 4px 4px 1px 1px; background: linear-gradient(180deg, #f2c869, rgba(242, 200, 105, 0.35)); }
+.ad-col i { display: block; height: var(--h); min-height: 2px; border-radius: 4px 4px 1px 1px; background: linear-gradient(180deg, #5fe3ff, rgba(95, 227, 255, 0.35)); }   /* (CITY H2 — NO GOLD IN STATS: every bar cyan, /admin's charts too) */
 .ad-col small { position: absolute; left: 50%; bottom: -18px; transform: translateX(-50%); font: 600 10px/1 var(--font-num); color: var(--bd-faint); white-space: nowrap; }
 .ad-cols.is-weeks { height: 126px; gap: 8px; padding-top: 16px; }
 .ad-col em { position: absolute; left: 0; right: 0; bottom: calc(var(--h) + 4px); text-align: center; font: 700 11px/1 var(--font-num); font-style: normal; color: #fff3dc; }
@@ -166,9 +166,11 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 /* DFIX3 — BACK TO THE CITY + THE DAILIES' STATS + TODAY'S PLAYERS (js/admin/admin.js#dailyStats) */
 .ad-back { display: inline-block; margin: 0 0 14px; min-height: 32px; line-height: 32px; }
 .ad-dly-stats { margin-top: 14px; display: grid; gap: 14px; }
-.ad-dly-today { font: 700 11px/1 var(--font-num); letter-spacing: 0.08em; color: #f2c869; }
+.ad-dly-today { font: 700 11px/1 var(--font-num); letter-spacing: 0.08em; color: #5fe3ff; }
 .ad-dly-cols .ad-col { position: relative; }
-.ad-dly-cols .ad-col i.ad-col-f { position: absolute; left: 25%; right: 25%; bottom: 0; height: var(--f, 0%); background: #f2c869; border-radius: 3px 3px 0 0; opacity: 0.95; }
+/* (CITY H2 — a TWO-TONE bar = a dim cyan outer + a hot-pink inner: THE DAILIES (started / finished) + THE WEEK (visits / games)) */
+.ad-dly-cols .ad-col i:not(.ad-col-f) { background: rgba(95, 227, 255, 0.28); box-shadow: inset 0 0 0 1px rgba(95, 227, 255, 0.35); }
+.ad-dly-cols .ad-col i.ad-col-f { position: absolute; left: 25%; right: 25%; bottom: 0; height: var(--f, 0%); background: #ff4fc8; border-radius: 3px 3px 0 0; opacity: 0.95; box-shadow: 0 0 8px rgba(255, 79, 200, 0.5); }
 .ad-dly-players li.ad-dly-p { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 8px; row-gap: 4px; align-items: center; padding: 6px 0; border-top: 1px solid rgba(255, 255, 255, 0.06); }
 .ad-dly-players li.ad-dly-p:first-child { border-top: 0; }
 .ad-dly-p .ad-dly-lv { font: 700 11px/1 var(--font-num); color: var(--bd-faint); letter-spacing: 0.06em; justify-self: end; }

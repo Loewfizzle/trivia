@@ -104,3 +104,19 @@ test('empty data is a valid (empty) panel', () => {
   assert.equal(S.times.max, 0);
   assert.equal(S.games.daily.every(d => d.n === 0), true);
 });
+
+test('CITY H2 — STATS\' NEW THIS WEEK: the week\'s new members, newest first, their faces + when each joined — never a pid', () => {
+  const NOW = Date.UTC(2026, 10, 18, 20);   // (a Wednesday)
+  const profiles = {
+    pa: { n: 'AVA', at: Date.UTC(2026, 10, 17, 3), a: 'bolt', c: 'cyan', x: 40, cd: 'card-inferno' },
+    pb: { n: 'BO', at: Date.UTC(2026, 10, 18, 15), a: 'star', c: 'pink' },
+    pc: { n: 'OLD', at: Date.UTC(2026, 10, 2, 15) },
+  };
+  const S = summarize({ profiles, now: NOW });
+  const L = S.players.newWeek;
+  assert.deepEqual(L.map(p => p.n), ['BO', 'AVA'], 'this week only, newest first');
+  assert.equal(L[1].at, profiles.pa.at);
+  assert.equal(L[1].cd, 'card-inferno', 'the card a slim card wears');
+  assert.ok(L.every(p => !('pid' in p)), 'no pid in the sheet\'s copy');
+  assert.equal(S.players.newByWeek.at(-1).n, 2, 'the tile\'s count agrees');
+});
