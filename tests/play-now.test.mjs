@@ -105,7 +105,7 @@ test('the dock\'s GAMES → PLAY (same spot, 4 icons the max); the signs + the b
   assert.match(dock, /tab\('nd-tab-play\.nd-tab-games\.nd-link-games', 'Play a game', ICON\.play, 'PLAY', on\.games\)/);
   const taps = read('js/screens/title-taps.js');
   // (THE GO-LIVE PASS: JAYWALK's sign finds its own GAMES row, PLAYABLE — the sign's tap opens its card for everyone; COMING SOON only for a hidden game)
-  assert.match(read('js/config.js'), /\{ id: 'jaywalk', name: 'JAYWALK'.*playable: true \}/, 'JAYWALK has its row — playable');
+  assert.match(read('js/config.js'), /\{ id: 'jaywalk', name: 'JAYWALK'.*playable: true(, live: '\d{4}-\d{2}-\d{2}')? \}/, 'JAYWALK has its row — playable');
   assert.match(taps, /if \(hit\.kind === 'sign'\) \{ const g = GAMES\.find\(x => x\.id === hit\.id\); if \(g && !g\.playable && !isOwnerTest\(g\.id\)\) \{ toast\(`\$\{g\.name\} — coming soon`, 'info'\); return; \} if \(g\) gameCard\(g\); \}/);
   // the letters' tap / race / surge are answered BEFORE any city hit (logoRect) — a card never steals them
   const tapFn = taps.slice(taps.indexOf('function onCityTap'), taps.indexOf('function buzz'));

@@ -1408,3 +1408,9 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .lv-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .lv-row .btn { min-height: 52px; }
 .final-gap { flex: none; pointer-events: none; }   /* (CITY H1: the gap that moves a box whole under the foot — ui/final.js#unslice) */
+
+/* CITY H2 — THE GAMES LIST ORDER (core/game-order.js): a game in its first 14 days sits on top of the PLAY sheet / PICK A GAME with a NEW foil
+   line over its name — FOIL TEXT (a static holo sweep in the text itself), no pill, no badge, no gold */
+.gm-new { display: block; margin: 0 0 3px; font: 900 9.5px/1 var(--font-display); font-style: normal; letter-spacing: 0.34em;
+  background: linear-gradient(100deg, #ff8fe0 0%, #fff4fc 34%, #7ff0ff 58%, #ff8fe0 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 5px rgba(255, 79, 200, 0.45)); }

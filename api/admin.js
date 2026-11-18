@@ -80,7 +80,7 @@ import { nameKey } from '../js/core/names.js';
 import { houseNick, isBoardId } from '../js/core/nicknames.js';
 import { weekKey } from '../js/core/week.js';
 import { summarize } from '../js/core/insights.js';
-import { activity } from './_lib/activity.js';
+import { activity, gameOrder } from './_lib/activity.js';
 import { cleanRemote, isEmpty, toParams, describe, cleanDelay, DEFAULT_MINS, MAX_MINS } from '../js/core/harbor-remote.js';
 import { streakDay, dayNum, dayOf } from '../js/core/streak.js';
 import { dailyOf as dailyOfCart } from '../js/core/daily.js';
@@ -562,9 +562,11 @@ export async function cityLiveNow(now = Date.now()) {
   const ok = v && typeof v === 'object' && Number.isFinite(v.startAt) && Number.isFinite(v.until) && v.until > now;
   // (CITY CONTROLS A: + THE RADIO's public part — the city's fired moments, the billboard's messages, the dial; never who fired them)
   let radio = null; try { radio = await radioPublic(now); } catch (e) { console.warn('radioPublic', e && e.message); }
+  // (CITY H2 — THE GAMES LIST ORDER: the playable games most played (different players, 14 days) first — the order only, once a streak day)
+  let order = null; try { order = await gameOrder(now); } catch (e) { console.warn('gameOrder', e && e.message); }
   // (FR6 FIXES A — C5: `by` was the ADMIN's PROFILE ID, served to anyone + edge-cached — and profiles/{pid} is readable one at a time: his
   //  name, tag, Nº 0001. The public read says only that the owner sent it, like THE RADIO's publicMoment; the admins' own socket keeps the pid)
-  return { live: ok ? { state: v.state || {}, startAt: v.startAt, until: v.until, by: v.by ? 'owner' : null } : null, radio, at: now };
+  return { live: ok ? { state: v.state || {}, startAt: v.startAt, until: v.until, by: v.by ? 'owner' : null } : null, radio, order, at: now };
 }
 export const LIVE_CACHE = 'public, max-age=0, s-maxage=15';
 export const CLIP_CACHE = 'public, max-age=0, s-maxage=60';

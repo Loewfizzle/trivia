@@ -230,11 +230,21 @@ export function createTaps(T) {
 
   // PLAY NOW — THE GAMES SHELF (the dock's PLAY): the playable games, ONE ROW each → a tap opens that game's CARD on top (H3: + a game
   // BEING BUILT on the owner's phone — THE OWNER'S LIVE TEST)
+  // (CITY H2 — THE GAMES LIST ORDER: most played first (different players, 14 days — the server's order, core/game-order.js), a game's first 14
+  //  days ON TOP with a NEW foil line; the module lazy — never the boot graph; the config's order if it can't load)
+  let shelfOpening = false;
   function shelf() {
+    if (shelfOpening) return;
     sfx('select');
-    const games = GAMES.filter(g => g.playable || isOwnerTest(g.id));
+    shelfOpening = true;
+    const base = GAMES.filter(g => g.playable || isOwnerTest(g.id));
+    lazyImport(import('../core/game-order.js'), '../core/game-order.js').then(O => O.shelfOrder(base, O.storedOrder()), () => base).then(games => { shelfOpening = false; shelfSheet(games); });
+  }
+  function shelfSheet(games) {
     openSheet({ title: 'PLAY', kicker: 'PICK A GAME', cls: 'nd-shelf-sheet', label: 'Play a game', body: [
-      h('div.nd-shelf', ...games.map(g => { const m = meta(g); return row({ icon: markSvg(g), label: isOwnerTest(g.id) ? `${g.name} · TEST` : g.name, sub: [m.players.replace(' PLAYERS', ''), m.mins].filter(Boolean).join(' · ').toLowerCase(), ic: T.ACC[g.id] || '#d6f0ff', cls: 'nd-shelf-row', attrs: { 'data-press': true, dataset: { game: g.id } }, onClick: () => gameCard(g) }); })),
+      h('div.nd-shelf', ...games.map(g => { const m = meta(g); const r = row({ icon: markSvg(g), label: isOwnerTest(g.id) ? `${g.name} · TEST` : g.name, sub: [m.players.replace(' PLAYERS', ''), m.mins].filter(Boolean).join(' · ').toLowerCase(), ic: T.ACC[g.id] || '#d6f0ff', cls: 'nd-shelf-row', attrs: { 'data-press': true, dataset: { game: g.id } }, onClick: () => gameCard(g) });
+        if (g.isNew) { const l = r.querySelector('.sh-row-l'); if (l) l.prepend(h('em.gm-new', 'NEW')); }
+        return r; })),
       h('p.sh-note.is-small', 'One phone each. Solo games play right now — or bring friends.')] });
   }
 

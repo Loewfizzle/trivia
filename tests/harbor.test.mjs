@@ -3346,7 +3346,7 @@ test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM · THE
   assert.ok(/return startGame\(id, (?:settings|rematchSettingsOf\(mod, settings, (?:state\.)?game\))(?:, \{ quick: true(?:, inPlace: [^}]+)? \})?\)/.test(host.slice(host.indexOf('export function rematch'))), 'a rematch goes through startGame');   // (LOBBY 2.0 B: + the cartridge's rematch settings)   // (LOBBY FIXES: + the quick start)
   assert.ok(/GAMES\.filter\(x => x\.playable \|\| x\.id === current\)/.test(readFileSync(new URL('../js/ui/help.js', import.meta.url), 'utf8')), 'HOW TO PLAY: the playable tabs (+ the match on screen)');
   const title = ['title', 'title-taps', 'title-neon', 'title-dock'].map(f => readFileSync(new URL(`../js/screens/${f}.js`, import.meta.url), 'utf8')).join(String.fromCharCode(10));   // (CITY 1.0 OUT: the title in four files)
-  assert.ok(/const games = GAMES\.filter\(g => g\.playable \|\| isOwnerTest\(g\.id\)\);/.test(title) && /!g\.playable && !isOwnerTest\(g\.id\)\) \{ toast\(`\$\{g\.name\} — coming soon`/.test(title), 'the games sheet + the sign tap');
+  assert.ok(/const base = GAMES\.filter\(g => g\.playable \|\| isOwnerTest\(g\.id\)\);/.test(title) && /!g\.playable && !isOwnerTest\(g\.id\)\) \{ toast\(`\$\{g\.name\} — coming soon`/.test(title), 'the games sheet + the sign tap');
   // CITY B: the signs name the playable games + JAYWALK (signRoster) — over two weeks every one hangs (a named sign or the billboard), nothing else
   const five = signRoster(GAMES).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
   const { L } = setup('402x874'), spots = signSpots(L), seen = new Set();

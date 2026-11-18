@@ -3,6 +3,9 @@
 // it once from results/ (the matches counted before the counter existed).
 import { ref, val } from './fb.js';
 import { weekKey } from '../../js/core/week.js';
+import { streakDay } from '../../js/core/streak.js';
+import { popularity, popularOrder } from '../../js/core/game-order.js';
+import { GAMES } from '../../js/config.js';
 
 export async function bumpPlayed(game, now = Date.now()) {
   const inc = p => ref(`gplay/${p}/${game}`).transaction(n => (n || 0) + 1);
@@ -32,4 +35,20 @@ export async function activity(now = Date.now()) {
   const data = { week, all, order };
   cache = { at: now, data };
   return data;
+}
+
+// CITY H2 — THE GAMES LIST BY POPULARITY (js/core/game-order.js): the playable games' ORDER, worked out ONCE a streak day (the first read after the
+// 4 am turn — progress/gameOrder { day, order, at }; every warm function + every phone the same copy), served in the cached GET ?live=1 — the
+// order only, never the counts. Unreadable → null (the phones keep their last copy / the config's order).
+let orderCache = null;
+export async function gameOrder(now = Date.now()) {
+  const day = streakDay(now);
+  if (orderCache && orderCache.day === day) return orderCache.order;
+  const cur = await val('progress/gameOrder').catch(() => null);
+  if (cur && cur.day === day && Array.isArray(cur.order)) { orderCache = { day, order: cur.order }; return cur.order; }
+  const ids = GAMES.filter(g => g.playable).map(g => g.id);
+  const order = popularOrder(ids, popularity((await val('results')) || {}, now), ids);
+  await ref('progress/gameOrder').set({ day, order, at: now }).catch(() => {});
+  orderCache = { day, order };
+  return order;
 }

@@ -180,7 +180,7 @@ export function createRemote({ scene, api = apiCall }) {
       polledAt = Date.now();
       try {
         const r = await fetch('/api/admin?live=1', { headers: { Accept: 'application/json' } });
-        if (r.ok) { const j = await r.json(); if (j && Number.isFinite(j.at)) { onLiveNode(j.live || null, j.at); onRadio(j.radio || null, j.at); } }
+        if (r.ok) { const j = await r.json(); if (j && Number.isFinite(j.at)) { onLiveNode(j.live || null, j.at); onRadio(j.radio || null, j.at); if (Array.isArray(j.order)) try { localStorage.setItem('nd:gorder', JSON.stringify(j.order)); } catch { /* fine */ } } }   // (CITY H2: THE GAMES LIST ORDER — core/game-order.js)
       } catch { /* offline / no /api here: keep what's on */ }
     }
     if (!destroyed && pollOn && !pollT) pollT = setTimeout(poll, POLL_MS * (0.9 + Math.random() * 0.2));
