@@ -1216,10 +1216,10 @@ body.nd-rest .rd-btn { pointer-events: none; }
 .nd-pv-mark { display: grid; place-items: center; width: 100%; height: 100%; background: #0d0a1c; }
 .nd-pv-mark svg { width: 72%; height: 72%; }
 /* CITY H1 — LEAVE ON THE DOCK (the owner): the left ring = LEAVE in a room (JOIN outside one) — a door-out icon over the word, the same ring */
-.rdk-leave .nd-host-label { display: flex; flex-direction: column; align-items: center; gap: 3px; padding-left: 0; }
-.rdk-lv-ic { display: block; width: 17px; height: 17px; }
+.rdk-leave .nd-host-label { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-left: 0; margin-top: -3px; }
+.rdk-lv-ic { display: block; width: 14px; height: 14px; }
 .rdk-lv-ic svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.45)); }
-.rdk-lv-w { padding-left: 0.16em; }
+.rdk-lv-w { padding-left: 0.08em; letter-spacing: 0.08em; font-size: 0.92em; }   /* (inside the ring's chord at 375 — the shots' review) */
 /* … and the GUESTS tab glows + its dot while you're alone (the old INVITE ring's breathe — until you invite someone or a guest arrives) */
 .rdk-guests.rdk-alone { position: relative; }
 .rdk-guests.rdk-alone .nd-tab-ic { filter: drop-shadow(0 0 6px rgba(255, 216, 74, 0.85)); }

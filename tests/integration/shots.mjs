@@ -148,7 +148,15 @@ const SCENE = {
   //  host's room 8 minutes from its idle close (the pill, no ×) — needs serve.mjs --emu + the emulators; the room built through the emulator's REST)
   'rn-watch': ['2026-11-10T20:30', { act: 'room-note', kind: 'live' }], 'rn-watch-day': ['2026-11-10T13:30', { act: 'room-note', kind: 'live' }],
   'rn-idle': ['2026-11-10T20:30', { act: 'room-note', kind: 'idle' }], 'rn-idle-day': ['2026-11-10T13:30', { act: 'room-note', kind: 'idle' }],
-  'rn-idle-mid': ['2026-11-10T20:30', { act: 'room-note', kind: 'idle', mid: 1 }],   // (+ a guest mid-daily: the PLAY ring's MID-DAILY line — the pill lifts over it)
+  'rn-idle-mid': ['2026-11-10T20:30', { act: 'room-note', kind: 'idle', mid: 1 }],
+  // CITY H1 — LEAVE ON THE DOCK: the host's dock (the LEAVE ring + GUESTS glowing alone) · THE LEAVE SHEET · GUESTS with INVITE on top · ☰ in a room
+  //  (LEAVE first) · the REMATCH ring (RE / MATCH) + GAMES breathing · the chat's squared quick replies — night + day
+  'h1-dock': ['2026-11-10T20:30', { act: 'room-h1', kind: 'dock' }], 'h1-dock-day': ['2026-11-10T13:30', { act: 'room-h1', kind: 'dock' }],
+  'h1-leave': ['2026-11-10T20:30', { act: 'room-h1', kind: 'leave' }], 'h1-leave-day': ['2026-11-10T13:30', { act: 'room-h1', kind: 'leave' }],
+  'h1-guests': ['2026-11-10T20:30', { act: 'room-h1', kind: 'guests' }], 'h1-guests-day': ['2026-11-10T13:30', { act: 'room-h1', kind: 'guests' }],
+  'h1-menu': ['2026-11-10T20:30', { act: 'room-h1', kind: 'menu' }], 'h1-menu-day': ['2026-11-10T13:30', { act: 'room-h1', kind: 'menu' }],
+  'h1-rematch': ['2026-11-10T20:30', { act: 'room-h1', kind: 'rematch' }], 'h1-rematch-day': ['2026-11-10T13:30', { act: 'room-h1', kind: 'rematch' }],
+  'h1-chat': ['2026-11-10T20:30', { act: 'room-h1', kind: 'chat' }], 'h1-chat-day': ['2026-11-10T13:30', { act: 'room-h1', kind: 'chat' }],   // (+ a guest mid-daily: the PLAY ring's MID-DAILY line — the pill lifts over it)
   'pn-shelf-day': ['2026-11-10T13:30', { act: 'shelf' }], 'pn-overclock-day': ['2026-11-10T13:30', { act: 'card', game: 'overclock' }],   // (THE POOL FIXES 0a: OVERCLOCK's icon by day)
   // (the owner's add-on: SHARE YOUR RUN — the card drawn on the phone, shown at Messages size + full; a real PRISM DROP run by the test bot, night + day)
   'pn-share-night': ['2026-11-10T20:30', { act: 'share-card', game: 'prism', look: 'night' }], 'pn-share-day': ['2026-11-10T13:30', { act: 'share-card', game: 'prism', look: 'day' }],
@@ -394,6 +402,23 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   }
   // (THE ROOM NOTE: live = this phone a GUEST of a room whose match it stepped out of (quit = the match, set BEFORE the match lands — never the
   //  game screen); idle = this phone HOSTS, the room's activeAt pushed back 52 min (ROOM CLOSES IN 8 MIN). The pill read from the room's debug)
+  if (o.act === 'room-h1') {
+    const DBH = 'http://127.0.0.1:9000/', NS = '?ns=demo-arcade-default-rtdb';
+    const rest = (method, path, v) => fetch(`${DBH}${path}.json${NS}`, { method, headers: { Authorization: 'Bearer owner', 'content-type': 'application/json' }, body: JSON.stringify(v) });
+    await p.evaluate(() => document.querySelector('.nd-hostbtn').click());
+    await p.waitForFunction(() => window.__arcade.state.code && window.__district.room && window.__district.room() && document.querySelector('.rdk-dock'), { timeout: 20000 });
+    const code = await p.evaluate(() => window.__arcade.state.code), now = Date.now();
+    await sleep(400);
+    await p.evaluate(() => { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); return 1; });   // (the host card: a press away closes it)
+    if (o.kind !== 'dock') await rest('PATCH', `rooms/${code}`, { 'players/shg1': { name: 'KIM', color: 'yellow', avatar: 'star', joinedAt: now - 30000, ln: 'R' }, 'presence/shg1': { online: true, lastSeen: now, v: 2, c: { k1: true } } });
+    if (o.kind === 'rematch') await rest('PATCH', `rooms/${code}/meta`, { back: { m: 'shm1', g: 'overclock', rm: true, at: now - 60000 } });
+    await sleep(1800);
+    if (o.kind === 'leave') { await p.evaluate(() => document.querySelector('.rdk-dock .rdk-leave').click()); await p.waitForSelector('.lv-sheet .lv-go'); }
+    if (o.kind === 'guests') { await p.evaluate(() => document.querySelector('.rdk-guests').click()); await p.waitForSelector('.rg-sheet .rg-invite-btn'); }
+    if (o.kind === 'menu') { await p.click('.menu-btn'); await p.waitForSelector('.gm .gm-leave'); }
+    if (o.kind === 'chat') { await p.evaluate(() => document.querySelector('.rdk-chat').click()); await p.waitForSelector('.chat-chip'); }
+    await sleep(900);
+  }
   if (o.act === 'room-note') {
     const DBH = 'http://127.0.0.1:9000/', NS = '?ns=demo-arcade-default-rtdb';
     const rest = (method, path, v) => fetch(`${DBH}${path}.json${NS}`, { method, headers: { Authorization: 'Bearer owner', 'content-type': 'application/json' }, body: JSON.stringify(v) });

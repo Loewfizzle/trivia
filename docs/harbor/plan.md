@@ -6802,3 +6802,15 @@ OWNER'S NOTES — NOV 15 (the CITY E prompt, from the city chat)
 * HOLD'EM: a timeout is not NO SIGNAL — retry once, then THE DEALER IS SLOW.
 * The STATS sheet's dailies chart = /admin's two-bar chart (ONE builder).
 
+
+## OWNER'S NOTES — NOV 18 (CITY H1's prompt)
+- THE SQUEAL (his /admin, 11+ AUDIO LEAVE reports, every one MUSIC OFF + EFFECTS ON): after "cut: hard (ambient)" every line still m 1.000 until
+  iOS interrupts with live sound. His pick: MUSIC-OFF MODE = EFFECTS ONLY — no background loops at all, the context asleep whenever no effect is
+  sounding (wakes for one, sleeps ~300 ms after the last); music ON keeps the full ambience on 'playback'; all off untouched.
+- THE LEAVES BEFORE THE LETTERS: "the leaves load on top of the neon sign first, then the neon sign pops up over it" — the sign leads.
+- THE BOARD OPENS ON THE NEWEST GAME (the latest switch-on date; he never sets dates by hand — flipping a switch stamps it).
+- LEAVING: in a room the dock's left ring = LEAVE (door-out icon) → LEAVE <WORD>? · LEAVE · STAY (+ HOST GOES TO <NAME>); INVITE to the top of
+  GUESTS; the GUESTS tab glows while alone; in a game LEAVE at the very top of ☰; a solo game keeps ONE QUIT — BACK TO THE CITY; ☰'s DAILIES row
+  removed outside a game.
+- The small looks: the chat's quick replies squared; the dock's labels with clear air (NEW GAME → GAMES); RE / MATCH on two lines; the blade sign
+  crisp (no wide halo); the radio's lost tap; the fade never slices a box.
