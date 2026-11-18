@@ -67,6 +67,7 @@ function yourTable(el) {
       const st = SB.m.stripFor(SB.K, r, { friend: !r.me }); strips.push(st);
       return h('li', { class: r.me ? 'is-me' : null }, h('span.jw-table-n', String(r.place)), h('div.jw-table-card', st.el), h('b', num(r.v)));
     }));
+    list.style.setProperty('--jw-d', String(Math.max(...rows.map(r => num(r.v).length))));   // (the widest score's digits → the rank + score columns' ONE width — css .jw-table-list)
     slot.replaceChildren(h('div.jw-table-k', 'YOUR TABLE'), list);
     const surface = SB.K.liveList(list, { label: 'jaywalk-table' });
     strips.forEach((st, i) => SB.m.stripFx(SB.K, surface, st, i + 1));

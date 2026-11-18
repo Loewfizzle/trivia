@@ -189,7 +189,11 @@ try {
   ok(await P.waitFor(`(() => { const q = document.querySelectorAll('.jw-sky-pic'), op = +getComputedStyle(q[1]).opacity, on = op === 1 ? q[1] : op === 0 ? q[0] : null; return !!on && on.style.backgroundImage.includes('skyline-day'); })()`, 9000), 'THE LOOK SWITCH (H6B): the band cross-fades to the DAY picture — never a jump');
   await P.shot('run-day.png');
   // ---- 5. out → the end screen → the report counted from the replay
-  ok(await toEnd(P), 'the kid stands still → out → the match ends on the proof\'s `e` → THE END SCREEN');
+  // (THE POLISH PASS — YOUR TABLE's grid: two more friends, a 3-digit + a 2-digit best, so the table has 4 rows of uneven scores — the
+  //  owner's own case. Seeded only now: this run's lines were read at its start; removed again after the table's shots)
+  const TBL = [['pjwtblmaxim2', 'MAXIMILIANO', 212], ['pjwtblzozozo', 'ZO', 98]]   // (pid-like: p + 11 — core/friends.js#isPidLike);
+  for (const [fp, n, v] of TBL) { await dbPut(`profiles/${fp}`, { n, x: 4200, a: 'bolt', c: 'pink', m: 9 }); await dbPut(`pstats/${fp}/b/jaywalk-solo`, { a: v }); await dbPut(`pfr/${pid}/f/${fp}`, Date.now()); }
+  ok(await toEnd(P),'the kid stands still → out → the match ends on the proof\'s `e` → THE END SCREEN');
   await sleep(600);
   await memFinal(P, 'run 1 — the final screen');
   let end = await P.ev(`({ cause: document.querySelector('.jw-fin-cause').textContent, n: document.querySelector('.jw-fin-n b').textContent, unit: document.querySelector('.jw-fin-n > span').textContent, foot: [...document.querySelectorAll('.final-actions button')].map(x => x.textContent.trim()), res: ${S}.game.results[${S}.uid], hud: getComputedStyle(document.querySelector('.jw-hud')).visibility, confetti: !!document.querySelector('.jw-final .burst') && getComputedStyle(document.querySelector('.jw-final .burst')).display !== 'none' })`);
@@ -239,6 +243,22 @@ try {
   ok(await board(pid) === v1.result.lanes, `the solo board (jaywalk-solo): best ${await board(pid)} — from the replay`);
   ok(await P.waitFor("!!document.querySelector('.jw-fin-best.is-new') && /NEW BEST/.test(document.querySelector('.jw-fin-best').textContent)", 10000), 'NEW BEST on the end screen — from the server\'s own answer');
   await P.shot('end-new-best.png');
+  // THE POLISH PASS — YOUR TABLE = ONE centred grid (RANK | CARD | SCORE): equal side margins, every card the same box, the label on the
+  // block's left edge, the ranks' centres in one column, the scores' right edges in one column — at 360 / 390 / 430 / 1440
+  ok(await P.waitFor("document.querySelectorAll('.jw-table-list li').length === 4", 10000), 'YOUR TABLE: 4 rows (you + 3 friends — a 3-digit, a 2-digit and a 1-digit best)');
+  for (const [w, hgt] of [[360, 780], [390, 844], [430, 932], [1440, 900]]) {
+    await P.p.setViewport({ width: w, height: hgt, deviceScaleFactor: w > 500 ? 1 : 2, isMobile: w < 500, hasTouch: true });
+    await sleep(500);
+    const t = await P.ev(`(() => { const q = s => [...document.querySelectorAll(s)].map(x => x.getBoundingClientRect()), L = document.querySelector('.jw-table').getBoundingClientRect(), k = document.querySelector('.jw-table-k').getBoundingClientRect(), lab = document.createRange(); lab.selectNodeContents(document.querySelector('.jw-table-k')); const lr = lab.getBoundingClientRect(), fin = document.querySelector('.jw-final .final').getBoundingClientRect(), num = [...document.querySelectorAll('.jw-table-list li > b')].map(b => { const r = document.createRange(); r.selectNodeContents(b); return r.getBoundingClientRect(); }), n = [...document.querySelectorAll('.jw-table-n')].map(x => { const r = document.createRange(); r.selectNodeContents(x); const q = r.getBoundingClientRect(); return q.left + q.width / 2; }), c = q('.jw-table-card > *'), li = q('.jw-table-list li'), bar = document.querySelector('.jw-final .final-again').getBoundingClientRect(), fit = [...document.querySelectorAll('.jw-table-list li > b')].every(x => x.scrollWidth <= x.clientWidth + 0.5); return { vw: innerWidth, bl: bar.left, br: bar.right, fit, fl: fin.left, fr: fin.right, l: L.left, r: L.right, lab: lr.left, li: li.map(x => x.left), cl: c.map(x => x.left), cw: c.map(x => x.width), ch: c.map(x => x.height), cr: c.map(x => x.right), n, s: num.map(x => x.right), sl: num.map(x => x.left), w: L.width }; })()`);
+    const same = a => Math.max(...a) - Math.min(...a) <= 1, ml = t.l - t.fl, mr = t.fr - t.r;
+    const gaps = t.sl.map((x, i) => x - t.cr[i]);
+    ok(Math.abs(ml - mr) <= 1 && same(t.cl) && same(t.cw) && same(t.ch) && same(t.cr) && same(t.n) && same(t.s) && Math.abs(t.lab - t.li[0]) <= 1 && Math.min(...gaps) >= 8 && t.fit && Math.abs((t.cl[0] + t.cr[0]) / 2 - (t.fl + t.fr) / 2) <= 1 && (w > 500 ? t.w <= 440.5 : Math.abs(t.l - t.bl) <= 1 && Math.abs(t.r - t.br) <= 1),
+      `YOUR TABLE at ${w}: centred (margins ${ml.toFixed(1)} | ${mr.toFixed(1)}, ${Math.round(t.w)} wide; the bar's edges ${Math.round(t.bl)} | ${Math.round(t.br)}; the cards' centre ${((t.cl[0] + t.cr[0]) / 2).toFixed(1)} of ${((t.fl + t.fr) / 2).toFixed(1)}; every score fits: ${t.fit}) · the cards one box (left ${t.cl.map(Math.round).join('/')}, ${t.cw.map(Math.round).join('/')} × ${t.ch.map(Math.round).join('/')}) · the label on the block's edge (${t.lab.toFixed(1)} | ${t.li[0].toFixed(1)}) · the ranks' centres ${t.n.map(Math.round).join('/')} · the scores' right edges ${t.s.map(Math.round).join('/')} (≥ ${Math.round(Math.min(...gaps))} px from the card)`);
+    await P.shot(`table-${w}.png`);
+  }
+  await P.p.setViewport({ width: 390, height: 844, deviceScaleFactor: Number(process.env.E2E_DPR) || 2, isMobile: true, hasTouch: true });
+  for (const [fp] of TBL) { await dbPut(`pfr/${pid}/f/${fp}`, null); await dbPut(`pstats/${fp}`, null); await dbPut(`profiles/${fp}`, null); }
+  if (process.env.JW_UNTIL === 'table') { await b.close(); console.log(`\n${n - fails.length}/${n} checks (JW_UNTIL=table) — ${fails.length ? `FAILED:\n  ${fails.join('\n  ')}` : 'all green'}`); process.exit(fails.length ? 1 : 0); }
   // ---- 6. PLAY AGAIN — measured: the tap → the next run's course is up (ready to hop)
   const times = [];
   const again = async () => {

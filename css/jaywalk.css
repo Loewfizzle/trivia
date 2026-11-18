@@ -176,15 +176,18 @@
 /* an UNPROVEN run's own end (no line to the board): the same body, two tubes at the foot */
 .jw-local-in { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: calc(env(safe-area-inset-top) + 72px) 18px calc(env(safe-area-inset-bottom) + 18px); }
 .jw-local-foot { display: grid; gap: 10px; }
-/* YOUR TABLE (the end screen): you + your friends' bests — slim cards (stills), the place at the left, the lanes at the right */
-.jw-table { width: min(100%, 360px); margin-top: 6px; }
-.jw-table-k { margin: 0 0 6px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.28em; color: var(--text-dim); text-align: left; padding-left: 2px; }
-.jw-table-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.jw-table-list li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+/* YOUR TABLE (the end screen) — THE POLISH PASS: ONE grid, RANK | CARD | SCORE. The block = the end screen's own column (the bar's edges:
+   .jw-fin's 12 px given back), centred, ≤ 440 at a desk; the rank + score columns are ONE width (--jw-side: the widest score's digits —
+   victory.js sets --jw-d) so every card is the same box, dead centre; scores right-aligned, the same gap on every row; the label on the
+   block's left edge */
+.jw-table { justify-self: center; width: min(calc(100% + 24px), 440px); margin-top: 6px; }
+.jw-table-k { margin: 0 0 6px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.28em; color: var(--text-dim); text-align: left; }
+.jw-table-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; --jw-side: max(26px, calc(var(--jw-d, 2) * 0.8rem + 2px)); }   /* (rem, never ch: the cards inherit nothing new; a digit of the 20 px numerals ≤ 12.8 px) */
+.jw-table-list li { display: grid; grid-template-columns: var(--jw-side) minmax(0, 1fr) var(--jw-side); align-items: center; column-gap: 8px; }
 .jw-table-n { font: 700 15px/1 var(--font-num, var(--font-ui)); color: var(--text-dim); text-align: center; }
 .jw-table-list li.is-me .jw-table-n { color: #ff8fd8; }
-.jw-table-card { min-width: 0; }
-.jw-table-list b { min-width: 44px; text-align: right; font: 700 20px/1 var(--font-num, var(--font-ui)); color: #fff; }
+.jw-table-card { min-width: 0; text-align: left; }   /* (the card's own alignment — .jw-fin's centred text never reaches its plate; its insides are the shared component's) */
+.jw-table-list li > b { text-align: right; white-space: nowrap; font: 700 20px/1 var(--font-num, var(--font-ui)); color: #fff; }
 
 /* ---------------------------------------------------------------- H4 — THE MATCH (view.js): the count, the ghosts' name tags, the live
    order, out → the cause words → Call the Winner → watching. transform / opacity only; nothing here covers the play. */
