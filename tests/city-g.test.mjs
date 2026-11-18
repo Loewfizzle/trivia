@@ -53,6 +53,6 @@ test('CITY G — the small bugs\' pins: STATS never appends null · ONE dailies 
   assert.match(read('js/firebase.js'), /refPath\(r\) === '\/' && keys\.length \? \(Object\.keys\(patch\)\.find/);
   const kp = read('js/profile/keypop.js');
   assert.match(kp, /if \(blocked\(busy\)\) \{ clearTimeout\(waitT\); waitT = setTimeout/, 're-checked after the lazy imports');
-  assert.match(kp, /\.sg-big, \.dy-run';/);
+  assert.match(kp, /\.sg-big, \.dy-run, \.dy-overlay:not\(\.screen-out\)';/);
   assert.match(read('css/chat.css'), /\.sh\.chat-sheet\.is-in \.sh-panel\.is-settled \{ transform: none; bottom: var\(--lift\); transition: none; \}/, 'the settled chat: no transform');
 });

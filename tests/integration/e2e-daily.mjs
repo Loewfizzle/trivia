@@ -624,4 +624,27 @@ await H.run(async () => {
       await ctx.close();
     }
   }
+
+  // ================================================================ DAILY FIX — SAVE YOUR KEY never over THE DAILIES screen (the owner): it waits
+  //   while the screen is up, shows once the player has left it — and still only ONCE (LATER → never again, the dot)
+  { const K = await openApp('dk', 'KEYPOP');
+    const p = K.page;
+    await p.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'today' } })));
+    await waitFor(p, `!!document.querySelector('.dy-overlay.dy-screen')`, 'KEYPOP: the DAILY screen', 15000);
+    // (now the player's key could be lost: a key on this phone, not saved, a counted play — what a first counted daily leaves)
+    await p.evaluate(() => { if (!localStorage.getItem('na:dk:pkey')) localStorage.setItem('na:dk:pkey', JSON.stringify('NEON-7K2Q-PX4M-9WDA')); return import('/js/profile/me.js').then(m => m.setNotes({ games: 1, kp: null, saved: false })); });
+    const asked = await p.evaluate(() => import('/js/profile/keypop.js').then(m => ({ st: m.keyPopState(), asked: m.maybeKeyPop({ why: 'daily' }) })));
+    await sleep(3200);   // (past one 2.5 s wait round)
+    const over = await ev(p, "!!document.querySelector('.kp-sheet:not(.is-out)')");
+    await p.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: null })));
+    await waitFor(p, `!document.querySelector('.dy-overlay')`, 'KEYPOP: the DAILY screen closed', 8000);
+    const after = await waitFor(p, "!!document.querySelector('.kp-sheet:not(.is-out)')", 'KEYPOP: the pop-up once the screen is gone', 9000).then(() => true, () => false);
+    if (after) await ev(p, "document.querySelector('.kp-sheet .kp-later').click()");
+    await waitFor(p, "!document.querySelector('.kp-sheet:not(.is-out)')", 'KEYPOP: LATER closed it', 6000).catch(() => {});
+    const again = await p.evaluate(() => import('/js/profile/keypop.js').then(m => ({ st: m.keyPopState(), asked: m.maybeKeyPop({ why: 'daily' }) })));
+    await sleep(1500);
+    const twice = await ev(p, "!!document.querySelector('.kp-sheet:not(.is-out)')");
+    ok(asked.st === 'show' && asked.asked === false && !over && after && again.st === 'dot' && again.asked === false && !twice,
+      `SAVE YOUR KEY never over THE DAILIES screen: asked while it was up → held (${!over}); the screen left → it shows (${after}); LATER → ${again.st}, never again (${!twice})`);
+    await K.ctx.close(); }
 });

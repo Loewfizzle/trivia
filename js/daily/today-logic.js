@@ -172,6 +172,8 @@ export const placeLine = (p, n) => `${ordinal(p)} OF ${n} ${n === 1 ? 'PLAYER' :
 const lanesOf = l => `${l} ${l === 1 ? 'LANE' : 'LANES'}`;
 /** the DONE tap (a `tries` daily ended early on this phone — its tries left unused): the day it was tapped (per phone — js/daily/today.js) */
 export const DONE_KEY = 'dy:done';
+/** DAILY FIX — the between-tries ticket's big line: "LAST TRY · 143 LANES" */
+export const LAST_TRY = 'LAST TRY';
 
 /**
  * ONE TICKET (PURE): { st: 'waiting' | 'progress' | 'between' | 'done', result?, line: { text, best?, gold? } | null, act: 'PLAY' | 'RESUME' |
@@ -179,7 +181,7 @@ export const DONE_KEY = 'dy:done';
  *   BEFORE: the hook — or "DAILY BEST · <value>" (in the ticket's ink) once the player has a best from an EARLIER day.
  *   DONE: the result + the place ("2ND OF 5 PLAYERS") — a NEW DAILY BEST (beat an EARLIER day's best: `newBest`) = the gold line in its place;
  *   the very FIRST best (`first`) is never gold. COUNTS FROM TOMORROW · THIS RUN COULDN'T BE CHECKED win over both.
- *   A `tries` daily (JAYWALK): between tries = the LAST try big ("143 LANES") + "DAILY BEST · 168 LANES" + TRY AGAIN with "2 TRIES LEFT";
+ *   A `tries` daily (JAYWALK): between tries = the LAST try big ("LAST TRY · 143 LANES") + "DAILY BEST · 168 LANES" + TRY AGAIN with "2 TRIES LEFT";
  *   ADMITTED only once no try is left or the player tapped DONE (`done` — this phone's) — never while tries remain and one wasn't ended by DONE.
  */
 export function ticketState(today, d, { lineOf = (id, v) => String(v), done = false } = {}) {
@@ -203,7 +205,8 @@ export function ticketState(today, d, { lineOf = (id, v) => String(v), done = fa
     if (closed.length && mine != null && !open && (left === 0 || done)) return { st: 'done', result: lineOf(id, mine), line: doneLine(), act: null };
     const last = closed.length ? closed[closed.length - 1] : null;
     const bs = B && B.best ? B.best.s : mine;
-    return { st: 'between', result: last ? lanesOf(Math.floor(Number(last.l) || 0)) : 'TRY ENDED', line: bs != null ? { text: bestText(bs), best: true } : null,
+    // (DAILY FIX — the owner: the big line names it — "LAST TRY · 143 LANES" — today's score is the BEST try, never the last)
+    return { st: 'between', result: last ? `${LAST_TRY} · ${lanesOf(Math.floor(Number(last.l) || 0))}` : 'TRY ENDED', line: bs != null ? { text: bestText(bs), best: true } : null,
       act: left > 0 ? 'TRY AGAIN' : null, under: left > 0 ? `${left} ${left === 1 ? 'TRY' : 'TRIES'} LEFT` : '' };
   }
   const st = rowState(t, id);

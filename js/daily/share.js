@@ -79,6 +79,13 @@ export const INK = Object.freeze({
   day: Object.freeze({ name: '#16305c', made: '#17703d', failed: '#b02040', ink: '#14284a', stat: '#3a5582' }),
 });
 export const MADE = 'made', FAILED = 'failed';
+/** DAILY FIX — THE 360 FLOOR (the owner: the card's small lines must read in a text thread): no NAME and no STAT LINE is drawn smaller than
+ *  SMALL_MIN px ON THE CARD (≈ 10 px at a 360-px-wide downscale), whatever a section's scale — the painters keep their RHYTHM sizes, the floor
+ *  lifts only what a many-section card shrank below it (4 sections: ×0.63 → a 32-px stat line was ≈ 6.7 px at 360) */
+export const SMALL_MIN = 30;
+const scaleOf = c => { try { const m = c.getTransform(); return Math.hypot(m.a, m.b) || 1; } catch { return 1; } };
+/** a text size in the painter's own units, lifted so it lands ≥ SMALL_MIN px on the card */
+export const floorPx = (c, px) => Math.max(px, SMALL_MIN / scaleOf(c));
 const FONT_NAME = '"Orbitron", "Chakra Petch", system-ui, sans-serif', FONT_TEXT = '"Chakra Petch", system-ui, sans-serif';
 const inkOf = look => INK[look === 'day' ? 'day' : 'night'];
 const toward = (hex, k) => `rgb(${[1, 3, 5].map(i => { const v = parseInt(hex.slice(i, i + 2), 16); return Math.round(v + (255 - v) * k); }).join(',')})`;
@@ -95,10 +102,11 @@ export function nameInk(look, result = null) {
 export function paintName(c, look, name, cx, y, px, fitW = 0, result = null) {
   const col = nameInk(look, result), t = String(name || '').toUpperCase();
   c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
-  let p = px;
+  const lo = Math.max(20, SMALL_MIN / scaleOf(c));   // (DAILY FIX — THE 360 FLOOR)
+  let p = floorPx(c, px);
   const set = () => { c.font = `900 ${p}px ${FONT_NAME}`; };
   set();
-  while (fitW && p > 20 && spacedWidth(c, t, p * 0.22) > fitW) { p -= 2; set(); }
+  while (fitW && p > lo && spacedWidth(c, t, p * 0.22) > fitW) { p -= 2; set(); }
   const x = cx + p * 0.11, ls = p * 0.22;
   if (look !== 'day') {
     // (a MODEST glow: one soft pass in the colour, then the core — the colour lifted toward white so the letters stay crisp)
@@ -123,10 +131,11 @@ export function paintBig(c, look, text, cx, y, px, fitW = 0) {
 export function paintStat(c, look, text, cx, y, px, fitW = 0) {
   const t = String(text == null ? '' : text);
   c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
-  let p = px;
+  const lo = Math.max(16, SMALL_MIN / scaleOf(c));   // (DAILY FIX — THE 360 FLOOR)
+  let p = floorPx(c, px);
   const set = () => { c.font = `700 ${p}px ${FONT_TEXT}`; };
   set();
-  while (fitW && p > 16 && spacedWidth(c, t, p * 0.125) > fitW) { p -= 1; set(); }
+  while (fitW && p > lo && spacedWidth(c, t, p * 0.125) > fitW) { p -= 1; set(); }
   c.fillStyle = inkOf(look).stat; spacedText(c, t, cx + p * 0.0625, y, p * 0.125);
   c.restore();
 }

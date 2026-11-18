@@ -55,6 +55,8 @@ export const lineOf = (id, score) => { const m = META[id]; return m && typeof m.
 export function resultEl(id, score, extra, cls = 'lb-score.dy-cscore') {
   const m = META[id] || {}, text = lineOf(id, score);
   const n = typeof m.resultMarks === 'function' && m.RESULT_MARK ? m.resultMarks(score, extra) : 0;
+  // (DAILY FIX — the reviewer's #3: on a ticket a result wraps only BETWEEN its parts — "2:38.9 ·" / "101 LINES" — never "101" / "LINES")
+  if (!n && cls === 'dy-result') { const parts = String(text).split(' · '); return h(`span.${cls}`, ...parts.flatMap((p, i) => (i ? [' · ', h('span.dy-nw', p)] : [h('span.dy-nw', p)]))); }
   if (!n) return h(`span.${cls}`, text);
   return h(`span.${cls}.dy-marked`, { 'aria-label': `${text}, ${m.RESULT_MARK.label(n)}` }, h('span', { 'aria-hidden': 'true' }, text),
     h('span.dy-marks', { 'aria-hidden': 'true' }, ...Array.from({ length: n }, () => h('i.dy-mark', { html: `<svg viewBox="${m.RESULT_MARK.box}">${m.RESULT_MARK.svg}</svg>` }))));
@@ -242,7 +244,10 @@ function openScreen(tab0) {
     let info, act;
     if (S.result != null) {
       // a result where the hook was: DONE (DFIX5: COAST CLEAR's spot icons) · BETWEEN TRIES (the last try)
-      info = h('div.dy-info', h('b.dy-name', d.name), st === 'done' ? resultEl(d.id, t.mine[d.id], t.extra && t.extra[d.id], 'dy-result') : h('span.dy-result', S.result), ln);
+      // (DAILY FIX — "LAST TRY · 143 LANES": ONE line, the label quieter than the lanes — css/daily.css .dy-result.is-last)
+      const lt = st === 'between' ? String(S.result).split(' · ') : null;
+      info = h('div.dy-info', h('b.dy-name', d.name), st === 'done' ? resultEl(d.id, t.mine[d.id], t.extra && t.extra[d.id], 'dy-result')
+        : lt && lt.length === 2 ? h('span.dy-result.is-last', h('span.dy-lt', `${lt[0]} · `), lt[1]) : h('span.dy-result', S.result), ln);
     } else info = h('div.dy-info', h('b.dy-name', d.name), ln);
     if (st === 'done') act = h('span.dy-stamp', { html: stampSvg(), role: 'img', 'aria-label': 'admitted — done for today' });
     else if (S.act) {
@@ -526,7 +531,7 @@ export const FOOT_HINT = 'ADD FRIENDS BY THEIR NAME TAG — THEIR SCORES LAND HE
  *  CLEAR cyan, THE DROP PRISM's white light, else the house pink; the day inks + the stamp's own ink ride as CSS vars (css/daily.css) */
 const inkRow = id => TICKET_INK[(dailyRow(id) || {}).ticket || id] || TICKET_INK[id] || null;
 const themeInk = id => (inkRow(id) || {}).night || '#ff6fc8';
-const inkVars = id => { const k = inkRow(id) || {}; return { '--tk0': themeInk(id), ...(k.day ? { '--tkd': k.day } : {}), ...(k.stamp ? { '--tks': k.stamp } : {}) }; };
+const inkVars = id => { const k = inkRow(id) || {}; return { '--tk0': themeInk(id), ...(k.day ? { '--tkd': k.day } : {}), ...(k.stamp ? { '--tks': k.stamp } : {}), ...(k.stampDay ? { '--tksd': k.stampDay } : {}) }; };
 
 /** PLAY / RESUME: a profile first (the dailies are official — /api counts them), then the run */
 async function play(id) {

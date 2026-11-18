@@ -50,13 +50,13 @@ test('DAILY B — JAYWALK\'s ticket: before · BETWEEN TRIES (the last try big, 
   assert.equal(before.st, 'waiting'); assert.equal(before.act, 'PLAY');
   const one = { day: DAY, mine: { jaywalk: lanes(143) }, tries: { jaywalk: { used: 1, left: 2, tries: [tr(0, 143)] } }, best: { jaywalk: { best: { s: lanes(168), day: OLD } } } };
   const b1 = ticketState(one, JW, { lineOf });
-  assert.deepEqual({ st: b1.st, result: b1.result, line: b1.line.text, act: b1.act, under: b1.under }, { st: 'between', result: '143 LANES', line: 'DAILY BEST · 168 LANES', act: 'TRY AGAIN', under: '2 TRIES LEFT' });
+  assert.deepEqual({ st: b1.st, result: b1.result, line: b1.line.text, act: b1.act, under: b1.under }, { st: 'between', result: 'LAST TRY · 143 LANES', line: 'DAILY BEST · 168 LANES', act: 'TRY AGAIN', under: '2 TRIES LEFT' });
   // (no earlier best: today's best)
   assert.equal(ticketState({ ...one, best: {} }, JW, { lineOf }).line.text, 'DAILY BEST · 143 LANES');
   // two tries: the LAST one big (not the best), 1 TRY LEFT
   const two = { ...one, mine: { jaywalk: lanes(143) }, tries: { jaywalk: { used: 2, left: 1, tries: [tr(0, 143), tr(1, 98)] } } };
   const b2 = ticketState(two, JW, { lineOf });
-  assert.equal(b2.result, '98 LANES'); assert.equal(b2.under, '1 TRY LEFT'); assert.equal(b2.st, 'between');
+  assert.equal(b2.result, 'LAST TRY · 98 LANES'); assert.equal(b2.under, '1 TRY LEFT'); assert.equal(b2.st, 'between');
   // ADMITTED never shows while tries remain — only DONE (this phone) or none left
   assert.equal(ticketState(two, JW, { lineOf, done: true }).st, 'done');
   const three = { ...two, place: { jaywalk: { p: 3, n: 7 } }, tries: { jaywalk: { used: 3, left: 0, tries: [tr(0, 143), tr(1, 98), tr(2, 120)] } } };

@@ -47,7 +47,7 @@ test('ONE Esc: ui/layers.js owns the only Escape listener (a pop-up never listen
   assert.match(read('js/progress/album-view.js'), /takeLayer\(el, \{ close, min: 9200 \}\)/);
   assert.match(read('js/progress/preview.js'), /takeLayer\(shell, \{ min: 9000, close: pvClose \}\)/);   // (CITY A — C2: ✕ + Esc give it back)
   assert.match(read('js/screens/harbor/radio.js'), /rdRelease = takeLayer\(modal, \{ close:/);
-  assert.match(read('js/profile/keypop.js'), /\.sg-fly, \.pg-sc, \.pg-pv, \.sg-big, \.dy-run'/, 'H1: the key pop-up never lands on a card (CITY G: nor on a running daily)');
+  assert.match(read('js/profile/keypop.js'), /\.sg-fly, \.pg-sc, \.pg-pv, \.sg-big, \.dy-run, \.dy-overlay:not\(\.screen-out\)'/, 'H1: the key pop-up never lands on a card (CITY G: nor on a running daily; DAILY FIX: nor on THE DAILIES screen)');
 });
 
 test('THE NEON TUBE: one .btn block in components.css (MAIN pink · SECONDARY cool white · DANGER red · SMALL 44 · disabled unlit · the confirm red); no screen styles its own action buttons', () => {

@@ -96,8 +96,8 @@ body[data-look="day"] .dy-seg { --sk: var(--tkd, var(--dy-seg-on)); }
    STUB (the daily's art + the serial "Nº MMDD") cut off by a row of PUNCHED HOLES, a lift shadow under it; DONE = the ADMITTED rubber stamp
    (drawn, tilted −8°, the daily's ink, an uneven edge) — never the check circle; NIGHT adds a faint neon edge + a foil sheen that drifts slowly
    (transform only — held while scrolling (SCROLL-PAUSE), under a full card, and with reduced motion). No pills, no emoji. ---- */
-.dy-overlay { --dy-paper: #1b1331; --dy-paper-hi: rgba(255, 255, 255, 0.07); --dy-hole: #09061a; --dy-grain: soft-light; --dy-lift: rgba(0, 0, 0, 0.55); --dy-serial: rgba(226, 222, 246, 0.62); }
-body[data-look="day"] .dy-overlay { --dy-paper: #f4ecda; --dy-paper-hi: #fffdf7; --dy-hole: #cfe0f6; --dy-grain: overlay; --dy-lift: rgba(20, 40, 74, 0.28); --dy-serial: #5a6f93; }
+.dy-overlay { --dy-paper: #1b1331; --dy-paper-hi: rgba(255, 255, 255, 0.07); --dy-hole: #09061a; --dy-grain: soft-light; --dy-lift: rgba(0, 0, 0, 0.55); --dy-serial: rgba(232, 228, 250, 0.84); }
+body[data-look="day"] .dy-overlay { --dy-paper: #f4ecda; --dy-paper-hi: #fffdf7; --dy-hole: #cfe0f6; --dy-grain: overlay; --dy-lift: rgba(20, 40, 74, 0.28); --dy-serial: #3a4f75; }
 .dy-rows { display: flex; flex-direction: column; gap: 14px; }
 .dy-tkw { position: relative; }
 /* the lift: a shadow of the ticket's own box (inset past the notches), behind it — no filter (the foil moves inside: a filter would re-render it every frame) */
@@ -130,7 +130,8 @@ body[data-look="day"] .dy-ticket, body[data-look="day"] .dy-sec, body[data-look=
 .dy-art .c, .dy-sec-art .c { stroke: color-mix(in srgb, var(--tk) 20%, #fff); stroke-width: 0.6; }
 body[data-look="day"] .dy-art svg, body[data-look="day"] .dy-sec-art svg { filter: none; }
 body[data-look="day"] .dy-art .c, body[data-look="day"] .dy-sec-art .c { display: none; }
-.dy-serial { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.08em; color: var(--dy-serial); white-space: nowrap; }
+/* (DAILY FIX — the serial reads at real size: 10 px, ≥ 4.5:1 on its paper in both looks — still the stub's quiet line, never a headline) */
+.dy-serial { font: 700 10px/1 var(--font-mono); letter-spacing: 0.08em; color: var(--dy-serial); white-space: nowrap; }
 .dy-info { min-width: 0; padding: 12px 6px 12px 14px; display: flex; flex-direction: column; gap: 6px; }
 .dy-name { font: 900 15px/1.1 var(--font-display); letter-spacing: 0.06em; color: var(--dy-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dy-hook { font: 600 13px/1.25 var(--font-ui); color: var(--dy-dim); text-wrap: balance; }   /* (THE DROP B: a two-line hook never leaves one word alone) */
@@ -142,7 +143,10 @@ body[data-look="day"] .dy-overlay .btn-primary { --tc: #2f86ff; --tcore: #2f86ff
 body[data-look="day"] .dy-overlay .btn-ghost { --tc: #5a7aa8; --tcore: #5a7aa8; --tg: rgba(90, 122, 168, 0.3); --tg2: transparent; }
 /* THE STAMP: ADMITTED — a drawn rubber stamp in the daily's ink, tilted; its ink a touch translucent like a real one */
 .dy-stamp { position: relative; display: block; width: 86px; height: 32px; margin-right: 0; color: var(--tks, var(--tk)); transform: rotate(-8deg); transform-origin: 50% 50%; opacity: 0.96; }
-body[data-look="day"] .dy-stamp { color: color-mix(in srgb, var(--tk) 82%, #14284a); }
+body[data-look="day"] .dy-stamp { color: var(--tksd, color-mix(in srgb, var(--tk) 82%, #14284a)); }
+/* (DAILY FIX — a ticket with its own DAY stamp ink (THE PASSWORD) stamps FIRM: full ink + a heavier outer edge, like the darker inks of the set) */
+body[data-look="day"] .dy-ticket[style*="--tksd"] .dy-stamp { opacity: 1; }
+body[data-look="day"] .dy-ticket[style*="--tksd"] .dy-stamp-svg rect:first-of-type { stroke-width: 3.6; }
 /* THE DROP B — the prism's split light: three spectral tubes that keep their own colours (the art's glow round them at night) */
 .dy-art .sp, .dy-sec-art .sp { stroke-width: 1.5; }
 .dy-stamp-svg { display: block; width: 100%; height: 100%; overflow: visible; }
@@ -165,8 +169,20 @@ body[data-look="day"] .dy-hook.dy-best, body[data-look="day"] .dy-rank.dy-best {
 body[data-look="day"] .dy-rank.dy-gold { color: #7a4f00; background-image: linear-gradient(100deg, #8a5c00 0%, #b07a12 40%, #6e4600 70%, #9c6a08 100%); filter: none; }
 .dy-act-col { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .dy-left { font: 700 10px/1 var(--font-ui); letter-spacing: 0.14em; color: var(--dy-dim); white-space: nowrap; }
+/* DAILY FIX — PLAY IN ITS TICKET's INK (the owner): every ticket's PLAY / RESUME / TRY AGAIN is a tube of THAT ticket's TICKET_INK (--tk = the night
+   ink at night, the day ink by day) — never the house pink; the letters white on the dark tube at night, the ink deepened to ≥ 4.5:1 on the light
+   tube by day (tests/daily-fix.test.mjs). RESUME + TRY AGAIN (the secondary kind) the same ink, a quieter outer glow */
+.dy-ticket .btn.dy-play { --tc: var(--tk); --tcore: color-mix(in srgb, var(--tk) 22%, #fff); --tg: color-mix(in srgb, var(--tk) 55%, transparent);
+  --tg2: color-mix(in srgb, var(--tk) 26%, transparent); color: #fff; text-shadow: 0 0 10px color-mix(in srgb, var(--tk) 55%, transparent); }
+.dy-ticket .btn.dy-play.btn-ghost { --tg: color-mix(in srgb, var(--tk) 38%, transparent); --tg2: transparent; }
+body[data-look="day"] .dy-overlay .dy-ticket .btn.dy-play { --tc: var(--tk); --tcore: var(--tk); --tg: color-mix(in srgb, var(--tk) 42%, transparent);
+  --tg2: color-mix(in srgb, var(--tk) 18%, transparent); color: color-mix(in srgb, var(--tk) 55%, #0b1630); text-shadow: none; }
+body[data-look="day"] .dy-overlay .dy-ticket .btn.dy-play.btn-ghost { --tg2: transparent; }
 .dy-ticket .btn.dy-play.is-long { min-width: 0; padding: 0 11px; font-size: 11px; letter-spacing: 0.1em; }
 .dy-nw { white-space: nowrap; }
+/* DAILY FIX — BETWEEN TRIES: "LAST TRY · 143 LANES" — ONE line (never wraps, never cut: 888 LANES fits at 375), the label quieter than the lanes */
+.dy-result.is-last { white-space: nowrap; font-size: 15px; letter-spacing: 0.03em; }
+.dy-lt { font: 700 10px/1 var(--font-ui); letter-spacing: 0.08em; color: var(--dy-dim); }
 /* DAILY B — 4 TICKETS FIT (the SHARED ticket, every daily): a phone under 381 pt wide (375) gets a tighter rhythm — a slimmer stub, a slimmer PLAY,
    less air — so a name + its DAILY BEST keep one line each; from 4 rows the rows sit closer + the meter tighter (375 × 667: all four on screen) */
 @media (max-width: 380px) {

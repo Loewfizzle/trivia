@@ -10,15 +10,15 @@
 // "NOT YET: <name>" line. ONE daily finished = that daily's OWN card, exactly as it is. A daily with no section painter (a new one plugged in) or
 // no share data → its name + its result line (its meta's scoreLine). Up to 6 sections, scaled evenly. Both looks (the day sky / the night neon).
 // THE BAR: shown 360 px wide in a text thread, THE PASSWORD's grid colours, the time and the address still read (the pass log's shots).
-import { shareFrame, prepShare, shareAddress, paintName, spacedText, spacedWidth, RHYTHM, FOOT, base64Of, blobHash, keptLink, keepLink, rememberedLink } from './share.js';
+import { shareFrame, prepShare, shareAddress, paintName, spacedText, spacedWidth, RHYTHM, FOOT, SMALL_MIN, base64Of, blobHash, keptLink, keepLink, rememberedLink } from './share.js';
 import { shareTodayLine, MAX_ROWS } from './today-logic.js';
 import { dateLineOf } from './ticket-art.js';
 import { lazyImport } from '../ui/lazy-import.js';
 const list = t => (t && Array.isArray(t.dailies) ? t.dailies.slice(0, MAX_ROWS) : []);
 
 const LOOKS = {
-  night: { bg0: '#05040c', bg1: '#140a24', ink: '#f6f2ff', dim: 'rgba(226,222,246,0.72)', sign: '#ff6fc8', glow: 'rgba(255,111,200,0.75)', rule: 'rgba(255,255,255,0.12)' },
-  day: { bg0: '#9fcdff', bg1: '#f2f8ff', ink: '#14284a', dim: '#3a5582', sign: '#16305c', glow: 'transparent', rule: 'rgba(22,48,92,0.16)' },
+  night: { bg0: '#05040c', bg1: '#140a24', ink: '#f6f2ff', dim: 'rgba(226,222,246,0.72)', sign: '#ff6fc8', glow: 'rgba(255,111,200,0.75)', rule: 'rgba(226,222,246,0.34)' },
+  day: { bg0: '#9fcdff', bg1: '#f2f8ff', ink: '#14284a', dim: '#3a5582', sign: '#16305c', glow: 'transparent', rule: 'rgba(22,48,92,0.4)' },
 };
 const FONT_U = '"Chakra Petch", system-ui, sans-serif';
 /** where the sections start: under the date alone · under the streak line (PFIX-3 — N6: the mockup's breath; it was 136 / 222) */
@@ -96,7 +96,8 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
   cv.sections = [];   // (where each section's rhythm box sits on the card — the look checks read it: tests/integration/share-same.html)
   plan.sections.forEach((sec, i) => {
     const box = hs[i] * s + spare;
-    if (i) { c.save(); c.strokeStyle = L.rule; c.lineWidth = 2; c.beginPath(); c.moveTo(RHYTHM.COL, y - gap / 2); c.lineTo(W - RHYTHM.COL, y - gap / 2); c.stroke(); c.restore(); }
+    // (DAILY FIX — the section rules read at a 360 downscale: 4 px (≈ 1.3 px there) in a firmer ink — they were 2 px at 12 % (gone at 360))
+    if (i) { c.save(); c.strokeStyle = L.rule; c.lineWidth = 4; c.beginPath(); c.moveTo(RHYTHM.COL, y - gap / 2); c.lineTo(W - RHYTHM.COL, y - gap / 2); c.stroke(); c.restore(); }
     const M = sec.own ? mods[sec.id] : null;
     cv.sections.push({ id: sec.id, y: y + Math.max(0, (box - hs[i] * s) / 2), s, h: hs[i] });
     c.save(); c.translate(0, y); c.scale(s, s);
@@ -114,7 +115,7 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
     c.restore();
     y += box + gap;
   });
-  if (notLine) { c.save(); c.font = `700 26px ${FONT_U}`; c.fillStyle = L.dim; spacedText(c, notLine, W / 2 + 3, FOOT.lineY - 40, 5); c.restore(); }
+  if (notLine) { c.save(); c.font = `700 ${SMALL_MIN}px ${FONT_U}`; c.fillStyle = L.dim; spacedText(c, notLine, W / 2 + 3, FOOT.lineY - 40, 5); c.restore(); }
   // ONE FOOT = THE ADDRESS AS ITS HEADLINE (CITY FIXES — the dailies chat, Nov 8) — SKINS 2A, NO PILLS: ONE straight thin neon line + the
   // address in plain neon lettering under it (the kit's foot — every share card's)
   shareAddress(c, look, { W });

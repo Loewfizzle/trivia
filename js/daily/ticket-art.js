@@ -17,15 +17,16 @@ export const TICKET_ART = {
 };
 /** THE DROP B — each ticket's INK by its key (the edge, the punched holes, the stub's art, the ADMITTED stamp) — night · day; a key not here = the
  *  house pink. THE DROP = PRISM DROP's WHITE LIGHT (its theme accent — its ice blue would twin COAST CLEAR's cyan) + a spectral violet by day,
- *  told apart at a glance by the prism's split beam. `stamp` = the stamp's own ink when it differs from the ticket's. */
+ *  told apart at a glance by the prism's split beam. `stamp` = the stamp's own ink when it differs from the ticket's (night); `stampDay` = the
+ *  same by day (DAILY FIX — THE PASSWORD's day stamp: its light blue was the faintest of the set on the cream paper). */
 export const TICKET_INK = {
-  password: { night: '#ff5ec4', day: '#2f86ff' },
+  password: { night: '#ff5ec4', day: '#2f86ff', stampDay: '#1450c0' },   // (DAILY FIX — the day stamp a deeper blue: the light ink read faintest on cream)
   coastclear: { night: '#5fe1ff', day: '#0f86b0' },
   drop: { night: '#eef1ff', day: '#6a3fd0', stamp: '#d9ccff' },
   jaywalk: { night: '#ffa53a', day: '#e0661c' },   // (DAILY A — the owner's orange: its ticket, its share section, its sweep segment)
 };
 export const inkOf = (key, look = 'night') => { const k = TICKET_INK[key]; return k ? (look === 'day' ? k.day : k.night) : look === 'day' ? '#2f86ff' : '#ff6fc8'; };
-export const stampInkOf = (key, look = 'night') => { const k = TICKET_INK[key]; return k && k.stamp && look !== 'day' ? k.stamp : inkOf(key, look); };
+export const stampInkOf = (key, look = 'night') => { const k = TICKET_INK[key]; return k && look === 'day' && k.stampDay ? k.stampDay : k && k.stamp && look !== 'day' ? k.stamp : inkOf(key, look); };
 /** the art's PATHS alone (the share image draws them on its canvas through an SVG image) */
 export const TICKET_PATHS = Object.fromEntries(Object.entries(TICKET_ART).map(([k, v]) => [k, /<g class="t">(.*?)<\/g>/.exec(v)[1]]));
 

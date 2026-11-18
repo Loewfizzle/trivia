@@ -17,6 +17,7 @@
        &look=day | night                                                  the look (THE GAME LOOK — Settings in the app)
        DAILY B — &jw=play | before | between | done | gold    JAYWALK's ticket as the 4th (needs &drop=1): before (no best / DAILY BEST from an
                                                           earlier day) · between tries (TRY AGAIN, 2 TRIES LEFT) · ADMITTED (the place) · ADMITTED + NEW DAILY BEST
+       DAILY FIX — &jwlast=<n>&jwbest=<n>                 the between ticket's LAST TRY + DAILY BEST lanes (888 = the widest; default 143 · 231)
        &best=1                                            a DAILY BEST from an earlier day on every daily (the before tickets read it) · &gold=<id> = that
                                                           finished daily's NEW DAILY BEST (the gold line) · &first=<id> = its very first best (no gold)
        &tab=scores (&state=swept)                                         DFIX5 — EVERYONE ON SCORES: 14 players (3 friends — BEN · KIM · MAXIMILIANOS), you
@@ -122,10 +123,12 @@ if (JW) {
   D.push({ id: 'jaywalk', name: 'JAYWALK', order: 4, ticket: 'jaywalk', lesson: false, better: 'high', hook: 'Three tries.', tries: 3 });
   const lanes = (l, k = 4000) => l * 1e5 + (99999 - k);
   const tr = (i, l, w = 'car') => ({ i, l, k: 4000, w });
-  pick.tries = { jaywalk: JW === 'between' ? { used: 1, left: 2, tries: [tr(0, 143)] } : JW === 'done' || JW === 'gold' ? { used: 3, left: 0, tries: [tr(0, 143), tr(1, 168), tr(2, 97)] } : { used: 0, left: 3, tries: [] } };
-  if (JW === 'between') pick.mine.jaywalk = lanes(143);
+  // (DAILY FIX — &jwlast=888&jwbest=888: the widest LAST TRY · DAILY BEST values, for the fit checks)
+  const LAST = Number(q.get('jwlast') || 143), JBEST = Number(q.get('jwbest') || 231);
+  pick.tries = { jaywalk: JW === 'between' ? { used: 1, left: 2, tries: [tr(0, LAST)] } : JW === 'done' || JW === 'gold' ? { used: 3, left: 0, tries: [tr(0, 143), tr(1, 168), tr(2, 97)] } : { used: 0, left: 3, tries: [] } };
+  if (JW === 'between') pick.mine.jaywalk = lanes(LAST);
   if (JW === 'done' || JW === 'gold') { pick.mine.jaywalk = lanes(168); pick.place = { ...(pick.place || {}), jaywalk: { p: 2, n: 5 } }; }
-  if (JW === 'before' || JW === 'between' || JW === 'done') bestOf.jaywalk = { best: { s: lanes(JW === 'before' ? 212 : 231), day: 'd20261105' }, newBest: false, first: false };
+  if (JW === 'before' || JW === 'between' || JW === 'done') bestOf.jaywalk = { best: { s: lanes(JW === 'before' ? 212 : JBEST), day: 'd20261105' }, newBest: false, first: false };
   if (JW === 'gold') bestOf.jaywalk = { best: { s: lanes(168), day: 'd20261108' }, newBest: true, first: false };
 }
 if (q.get('best') === '1') {
@@ -243,6 +246,9 @@ if (view === 'screen') {
   if (q.get('small')) { const sm = document.createElement('canvas'); sm.width = 360; sm.height = 450; const g = sm.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(cv, 0, 0, 360, 450); cv.replaceWith?.(sm); window.__small = sm; }
   cv.style.cssText = 'display:block;max-width:100%;max-height:100%;margin:auto;object-fit:contain';
   const st = document.getElementById('stage'); st.style.cssText += ';display:grid;place-items:center;background:#222';
+  // (DAILY FIX — the reviewer's "faint vertical hairlines at x≈280 / 800" were base.css's DESKTOP COLUMN FRAME (#stage::before / ::after) drawn
+  //  over the card on this page — never in the card's PNG: hidden here so the look review sees the card alone)
+  document.head.append(Object.assign(document.createElement('style'), { textContent: '#stage::before, #stage::after { display: none !important; }' }));
   st.append(window.__small || cv);
   window.__share = cv;
 } else if (view === 'banner') {

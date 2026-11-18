@@ -24,8 +24,9 @@ const emit = () => { for (const f of subs) { try { f(keyPopState()); } catch { /
 if (typeof window !== 'undefined') window.addEventListener('ns:notes', () => emit());
 
 /** every pop-up the save-your-key sheet must never open over (tests/keypop + the harbor keypop group read it) */
-//  (CITY G — the Nov 16 5:55 pm entry: + a running DAILY's run (.dy-run) — never over a game, a daily included)
-export const KEYPOP_COVERED = '.pg-moment, .modal:not(.out), .sh:not(.is-out), .final, .vl-dress, .vl-full, .pf-overlay, .gm, .sg-modal, .sg-fly, .pg-sc, .pg-pv, .sg-big, .dy-run';
+//  (CITY G — the Nov 16 5:55 pm entry: + a running DAILY's run (.dy-run) — never over a game, a daily included;
+//   DAILY FIX — the owner: + THE DAILIES screen itself (every .dy-overlay still up) — it waits, then shows once the player has left it)
+export const KEYPOP_COVERED = '.pg-moment, .modal:not(.out), .sh:not(.is-out), .final, .vl-dress, .vl-full, .pf-overlay, .gm, .sg-modal, .sg-fly, .pg-sc, .pg-pv, .sg-big, .dy-run, .dy-overlay:not(.screen-out)';
 let open = null, waitT = 0;
 /** busy() → true while something must not be covered (the title passes its scene's legendary) */
 export function maybeKeyPop({ why = '', busy = null } = {}) {

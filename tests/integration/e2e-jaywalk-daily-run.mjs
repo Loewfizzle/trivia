@@ -58,7 +58,7 @@ async function playTry(p, ticks, what) {
  *  header + THE SWEEP + all 4 tickets on screen (the last ticket's bottom inside the viewport), no name / line clipped */
 async function fitChecks() {
   const pv = await H.browser.newPage();
-  const states = ['state=waiting&drop=1&jw=before&best=1', 'state=one&drop=1&jw=between&best=1', 'state=swept&drop=1&dropst=done&jw=done', 'state=swept&drop=1&dropst=done&jw=gold&gold=password'];
+  const states = ['state=waiting&drop=1&jw=before&best=1', 'state=one&drop=1&jw=between&best=1', 'state=one&drop=1&jw=between&best=1&jwlast=888&jwbest=888', 'state=swept&drop=1&dropst=done&jw=done', 'state=swept&drop=1&dropst=done&jw=gold&gold=password'];
   for (const [w, h] of [[375, 667], [390, 844], [430, 932]]) for (const lk of ['night', 'day']) for (const q of states) {
     await pv.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     await pv.goto(guardUrl(`${BASE}/tests/integration/daily-preview.html?${q}&look=${lk}`, 'e2e-jaywalk-daily-run'));
@@ -67,9 +67,11 @@ async function fitChecks() {
     const f = await pv.evaluate(() => {
       const ts = [...document.querySelectorAll('.dy-ticket')], last = ts[ts.length - 1].getBoundingClientRect(), head = document.querySelector('.dy-sign').getBoundingClientRect(), meter = document.querySelector('.dy-sweep').getBoundingClientRect();
       const clipped = [...document.querySelectorAll('.dy-ticket .dy-name, .dy-ticket .dy-nw, .dy-ticket .dy-result')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent);
+      // (DAILY FIX — "LAST TRY · 888 LANES" on ONE line, its whole text inside its box)
+      for (const e of document.querySelectorAll('.dy-ticket .dy-result.is-last')) { const rg = document.createRange(); rg.selectNodeContents(e); const r = rg.getBoundingClientRect(), b = e.getBoundingClientRect(); if (r.height > parseFloat(getComputedStyle(e).fontSize) * 1.6 || r.right > b.right + 0.5) clipped.push(`${e.textContent} (wraps / cut)`); }
       return { bottom: Math.round(last.bottom), H: innerHeight, head: Math.round(head.top), meter: Math.round(meter.top), segs: document.querySelectorAll('.dy-seg').length, clipped };
     });
-    ok(f.bottom <= f.H && f.head >= 0 && f.meter > f.head && f.segs === 4 && !f.clipped.length, `FIT ${w}x${h} ${lk} ${q.replace(/state=|&drop=1|&dropst=done/g, '')}: the 4th ticket ends at ${f.bottom} of ${f.H}, header + THE SWEEP (4) above${f.clipped.length ? ` — CLIPPED ${f.clipped.join(' | ')}` : ''}`);
+    ok(f.bottom <= f.H && f.head >= 0 && f.meter > f.head && f.segs === 4 && !f.clipped.length, `FIT ${w}x${h} ${lk} ${q.replace(/state=|&drop=1|&dropst=done|&jwbest=\d+/g, '')}: the 4th ticket ends at ${f.bottom} of ${f.H}, header + THE SWEEP (4) above${f.clipped.length ? ` — CLIPPED ${f.clipped.join(' | ')}` : ''}`);
   }
   await pv.close();
 }
