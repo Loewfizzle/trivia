@@ -36,7 +36,7 @@ test('scene.js#destroy() destroys every module the scene creates (the long night
 test('the title STOPS the city at once (halt: the loop + every timer — the last frame under the fade), the teardown after the fade; the backdrop keeps ONE still', () => {
   const t = read('js/screens/title.js');
   assert.match(t, /if \(sc && sc\.halt\) sc\.halt\(\);\n    wrap\.classList\.add\('is-out'\);\n    setTimeout\(\(\) => \{ sc && sc\.destroy\(\); wrap\.remove\(\); \}, 420\);/);
-  assert.match(read('js/screens/harbor/scene.js'), /halt\(\) \{ destroyed = true; stop\(\); clearTimeout\(resizeT\); clearTimeout\(relayT\); clearTimeout\(extrasT\); clearInterval\(watchdog\); \}/);
+  assert.match(read('js/screens/harbor/scene.js'), /halt\(\) \{ (?:keep\(\); )?destroyed = true; stop\(\); clearTimeout\(resizeT\); clearTimeout\(relayT\); clearTimeout\(extrasT\); clearInterval\(watchdog\); \}/);
   const b = read('js/screens/backdrop.js');
   assert.match(b, /const c = snap \|\| document\.createElement\('canvas'\);/, 'ONE still canvas, reused');
   assert.doesNotMatch(b, /getContext\('2d'\)/, 'through ctx2d (the memory guard counts it)');

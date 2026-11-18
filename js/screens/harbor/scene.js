@@ -69,7 +69,7 @@ import { cabinetCut, setJaywalkPainter, setDropPainter } from './signs.js';
 import { vehiclesReset, vehicleInFront } from './occluders.js';
 
 import { quaySteps, drawQuayLamps, quayLampSprite } from './quay.js';
-import { createNeon, nightKey } from './neon.js';
+import { createNeon, nightKey, neonGeo } from './neon.js';
 import { waterSteps, createWater, waterBand, axisAt } from './water.js';
 import { pierSteps, pierLamps } from './pier.js';
 import { lighthouseSteps, createBeam, harborBlackout } from './lighthouse.js';
@@ -177,6 +177,10 @@ const GROUPS = ['far', 'near', 'water', 'harbor', 'road', 'bill', 'stage', 'fron
 // LOAD FIX 5 — NO TWO CAMERAS: every scene alive in the page (each = "is its loop running?") — the guard reads how many there are + how many
 // loops run (loadProbe().live): one city on screen means ONE scene, ONE loop
 const LIVE = new Set();
+// CITY G — THE RETURN UNDER THE HOLD: the city as last seen (half size), kept by halt() when a game / a menu goes on top; the next scene holds it at once
+let kept = null;
+const WORK = { key: '', c: null };   // (CITY G: the crew's plan for the billboard's game at a layout — pure data, one geometry, shared by every scene)
+const halfOf = full => { const pic = document.createElement('canvas'); pic.width = Math.max(1, Math.round(full.width / 2)); pic.height = Math.max(1, Math.round(full.height / 2)); const x = safeCtx(pic, { alpha: false }); x.imageSmoothingQuality = 'high'; x.drawImage(full, 0, 0, pic.width, pic.height); full.width = full.height = 0; return pic; };
 export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = skyClock(), games = [] } = {}) {
   if (typeof window !== 'undefined' && window.__boot) window.__boot.stage('the city started');   // (LOAD FIX 3: THE BOOT WATCHDOG's stage)
   // NIGHT-C — THE PARTY SONG IN SYNC: the live city runs on the SERVER clock (core/sky.js#setRealNow — the saved offset while parked, no
@@ -380,20 +384,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let fadeMs = 1200, skyPrev = null, skyFadeFrom = -1, skyFadeMs = 1500;
   let thinK = 0, thinBox = null;                 // (POLISH 5: the clouds over a sky message thin out while it is up)
   const wxRecent = () => performance.now() - wxChangedAt < 12000;
-  // FP3a — THE LOAD GATE (FREV B1: on an iPhone the city "shrinks, enlarges and snaps" while Safari's bars settle): during the LOAD
-  // WINDOW (until the reveal + LOAD_WIN) a height-only resize under 25 % is coalesced into ONE build 400 ms after the LAST one; a
-  // build runs from the next frame (the clear + the redraw share it); the title measures its rects at once (S.measure) so a change
-  // is ONE layout; the city is REVEALED only once its first bake + the lit windows are in, nothing is pending, no resize for 400 ms
-  // and the fonts are in (or 1.2 s passed) — S.onReveal tells the title (which holds the canvas dark until then) — never later
-  // than REVEAL_MAX; before the reveal a re-bake swaps in without a crossfade; no tier step until TIER_GRACE after the reveal.
+  // FP3a — THE LOAD GATE: dark until the first full frame is ready (the bake + lit windows, no resize for 400 ms, the fonts) → S.onReveal; never later than REVEAL_MAX (docs/harbor.md)
   const LOAD_WIN = 2500, REVEAL_MAX = 4500;
-  // THE LOAD FIX (Nov 6 — the owner's DOUBLED LETTERING): ONE CAMERA ON SCREEN. A re-layout after the reveal used to draw the live layers +
-  // THE CRISP LAYER (every sign's lettering) at the new camera at once while the baked city stayed on the old one until its re-bake landed +
-  // crossfaded (bake.js: a re-plan keeps drawing the old band) — every sign twice, the copy a little lower, for the whole re-bake. Now the
-  // last full frame AS SEEN (every canvas of the city's layer, the crisp lettering included) is HELD over the city while the new camera bakes
-  // underneath (no crossfade there, the bigger bake slices), then goes in the frame that draws the new camera — the old picture → the new
-  // one in ONE frame (the desktop re-fit's own cut: any dissolve between two cameras is two copies). A HOLD_MAX safety lets go regardless. Before the reveal nothing shows, nothing is held.
+  // THE LOAD FIX — ONE CAMERA ON SCREEN: a camera change after the reveal holds the last frame AS SEEN over the city until the new camera is baked, then CUTS (docs/harbor.md "THE LOAD FIX")
   const HOLD_MAX = 4000;
+  let heldStart = false;                    // (CITY G: this scene began under the last scene's picture — see `kept`)
+  const copyOf = cv => { const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; safeCtx(c, { alpha: false }).drawImage(cv, 0, 0); return c; };
+  /** CITY G: the city as seen now, half size → `kept` (the title going away: a game / a menu on top) */
+  function keep() { if (kept) freeCanvases(kept.pic); kept = null; try { const host = canvas.parentElement, full = shownAt >= 0 && W && !away ? (holdOn ? holdCv : holdShoot()) : null; if (full && full.width) kept = { pic: halfOf(full === holdCv ? copyOf(holdCv) : full), w: host.clientWidth, h: host.clientHeight, at: Date.now() }; } catch { kept = null; } }
   let holdCv = null, holdOn = false, holdAt = -1, holdShot = null, holdN = 0, holdUp = null;
   let pinT = null;                         // (THE LOAD FIX: a resize pin's transform — { x, y, s } — while the city's frame is pinned)
   /** the city's layer NOW as ONE picture → a canvas the size of the layer's box (at the city's dpr): the main canvas as CSS shows it (pinned:
@@ -448,24 +446,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!holdOn) return;
     const ready = !baker.pending && !wantBake && !wantBuild && !resizeT && now - lastResizeAt > 400 && bakeCamShown === camSig && !litBaker.pending && !!L && lightKey() === litBaker.key && fadeFrom < 0 && litFadeFrom < 0;
     const held = holdUp ? holdUp() : now - holdAt;
-    if (!ready && held < HOLD_MAX) return;
+    if (shownAt < 0 ? held < REVEAL_MAX + 4500 : !ready && held < HOLD_MAX) return;   // (CITY G: a held start lets go only after the reveal)
     holdOn = false;
     if (holdCv) { holdCv.style.display = 'none'; holdCv.width = holdCv.height = 0; }
     LOADLOG.add('hold', `let go after ${Math.round(held)} ms on screen${ready ? '' : ' (the safety)'} · the new camera in one frame`);
   }
 
-  // LOAD FIX 5 (Nov 11 — the owner's DOUBLED CITY: his iPhone, the first open of the day — the billboard, EST. 1924 + the blade each TWICE,
-  // for good) — THE BOX GATE: ONE question every path answers the same way — "is the city BUILT for the box it is shown in?". The city's box
-  // is 100lvh (Safari's bars never resize it), and it can change with NO window 'resize' (the large viewport settling while Safari restores
-  // a tab at launch: innerHeight stays). THE LOAD FIX watched the box with a ResizeObserver — but only AFTER the reveal; a box that moved
-  // during the boot was seen by nobody: the canvas stayed built for the first box, CSS cover-fitted it into the new one (1.08× from the
-  // top middle) while the crisp lettering stayed put, and NOTHING compared the two again. Now: the observer reports from the first frame
-  // (before the reveal: the debounced re-fit in the dark — no pin, nothing shows); the reveal waits for a city built for its box; and a
-  // look once a second + at every return to the screen (ONE layout read, never in a frame) catches a change no event reported. Every one
-  // of them goes through onResize → build → layout → holdStart: the one re-fit path, no second copy of the rule.
-  // LIKE FOR LIKE: the box read is the CANVAS's own (what build() measures), and it only counts while the stylesheet lays the canvas out
-  // to its layer (`styled`: the two boxes equal). With css/title.css missing (THE BOOT SAFETY NET's twice-failed sheet) the layer is a plain
-  // block + the canvas's box follows its own BUFFER — a gate comparing those re-fits itself bigger forever (found by the `load` group).
+  // LOAD FIX 5 — THE BOX GATE: is the city BUILT for the box it is shown in? — every path asks it, ONE answer: onResize → build → layout → holdStart (docs/harbor.md "THE BOX GATE")
   let boxSeen = null;                      // the canvas's box as last read — { w, h (pt), styled } (the observer's, or a look's)
   const boxOff = () => !!(boxSeen && boxSeen.styled && W && (Math.abs(Math.max(320, boxSeen.w) - W) >= 0.5 || Math.abs(Math.max(320, boxSeen.h) - H) >= 0.5));
   /** read the box (the layer's rect given — the observer's contentRect / a look's own read): never in a frame, never while pinned */
@@ -486,13 +473,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return boxCheck(why);
   }
 
-  // FR7 FIXES A — THE BLANK CITY AFTER BEING AWAY (a tester's iPhone, Nov 12: back to a tab that sat in the background — blank sky, black
-  // ground; the crisp lettering + the DOM signs still there; a refresh fixed it): iOS can discard a canvas's backing store in the background.
-  // THE LOST LOOK — on every return (visible / pageshow / focus — the wake path) and on a context-lost event: a watched context reports lost
-  // (canvas-safe.js#anyLost) OR the bake's SENTINEL — one painted pixel of a finished bake, recorded once a bake (the once-a-second look, never
-  // in a frame) — reads blank → THE ONE RE-FIT PATH: the dark held over the city (holdStart with a dark picture: the old one IS the blank),
-  // the sky + every layer re-painted (build → layout → the bakers re-planned), the hold lets go when the new bake is in — ONE cut, never a
-  // half-painted city. reportLost tells the rest (the effect library drops its sprites). At most once every LOST_GAP_MS.
+  // FR7 FIXES A — THE LOST LOOK: a lost context / a blank sentinel on a return → the dark held, the city re-painted through THE ONE RE-FIT PATH (docs/harbor.md "THE LOST LOOK")
   const LOST_GAP_MS = 5000;
   let sentinel = null, lostAt = -1e9;
   const lostLog = { n: 0, why: '', at: 0, checks: 0 };
@@ -530,13 +511,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     reportLost(`the city: ${lost}`);
     return true;
   }
-  // FIXES R2 — AWAY, LIGHT (the owner's iPhone, build 385e0d6: PAGE KILLED (likely memory) at 5:11 pm while he was away in Messages after SHARE
-  // TODAY — iOS ends the heaviest app in the background). While the page is HIDDEN the city keeps none of its big bakes: the last frame as
-  // seen is kept as ONE picture at half its resolution, then both bakers' canvases (both sets: the city + its lit windows) and the merged
-  // bands are zeroed (the long night's rule — freed at once, not at a GC). Back on screen: that picture is HELD over the city (THE HOLD — no
-  // dark, no flash), the city re-built + re-baked through THE ONE RE-FIT PATH (the box gate's own: measure → build → layout → the bakers
-  // re-planned), and the hold lets go in the frame that draws the new bake — ONE cut. Freed AT the hide, synchronously: iOS may freeze the
-  // page's timers right after it (a timer set to free "a moment later" would never run while it matters).
+  // FIXES R2 — AWAY, LIGHT: hidden → the last frame kept at half size, the bakes zeroed AT the hide; back → THE HOLD + THE ONE RE-FIT PATH (docs/harbor.md "AWAY, LIGHT")
   let away = null;
   const awayLog = { n: 0, freedMb: 0, keptMb: 0, backMs: 0, at: 0 };
   function awayFree() {
@@ -544,13 +519,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const mb0 = canvasMb().mb;
     let pic = null;
     const full = holdOn ? null : holdShoot();
-    if (full) { pic = document.createElement('canvas'); pic.width = Math.max(1, Math.round(full.width / 2)); pic.height = Math.max(1, Math.round(full.height / 2)); const x = safeCtx(pic, { alpha: false }); x.imageSmoothingQuality = 'high'; x.drawImage(full, 0, 0, pic.width, pic.height); full.width = full.height = 0; }
+    if (full) pic = halfOf(full);
     baker.free(); litBaker.free();
     for (const m of Object.values(merged)) { m.cv.width = m.cv.height = 0; m.ok = false; }
     // (+ the main canvas, the sky + its merged copy: build() + paintSky() size them again on the return, under the held picture)
     for (const c of [canvas, skyCv, skyPrev, skyMix.cv]) if (c) { c.width = 0; c.height = 0; }
     skyMix.sky = null; skyFadeFrom = -1;
     sentinel = null; fadeFrom = -1; litFadeFrom = -1;
+    // (CITY G: + the art the return's layout rebuilds anyway — the stars, the wheel, the water, the sign's halo + its dressing)
+    stars.destroy(); wheel.destroy(); water.destroy(); if (haloSp) haloSp.cv.width = 0; haloSp = null; if (dress && dress.free) dress.free();
     // (THE CANARY: the bakes' sentinel is gone with them — one opaque pixel on a tracked 1×1 canvas tells the return whether iOS discarded the
     //  page's canvases meanwhile (FR7 FIXES A's blank city): read blank → every cache-holder hears reportLost and re-draws its own art)
     const canary = document.createElement('canvas'); canary.width = canary.height = 1; { const x = safeCtx(canary); x.fillStyle = '#fff'; x.fillRect(0, 0, 1, 1); }
@@ -688,11 +665,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const tempNow = () => { const q = qp.get('temp'); return q != null && q !== '' && Number.isFinite(+q) ? +q : LK.temp; };
   const hotDay = () => { const tc = tempNow(); return tc != null && tc >= HOT_C; };
   // the traces outside a frame (the billboard's game at a layout): the crew's pure plan on the base map
-  let workCache = new Map(), workCacheL = null, workCacheH = -1;
-  function workTraceNow() {
-    if (!L || !LK.local || clock.force.has('no-work')) return null;
-    if (workCacheL !== L || workCacheH !== holdemRev()) { workCache = new Map(); workCacheL = L; workCacheH = holdemRev(); }   // (CITY FIXES: the HOLD'EM switch re-plans the billposter)
-    try { return tracesAt(clock.now() / 1000, { L, M: folkMap(L), ctx: { off: LK.local.off, seed: L.seed || 1924, force: workForced(), forceAt: workForceAt(), dusk: duskFor, hot: hotDay, flush: () => flushOk() } }, workCache); } catch { return null; }
+  function workTraceNow(l = L, sig = camSig) {
+    if (!l || !LK.local || clock.force.has('no-work')) return null;
+    // (CITY FIXES: the HOLD'EM switch re-plans the billposter; CITY G: ONE plan per geometry for every scene — a return from a match lays out the same city: not re-planned)
+    const wk = `${sig.split('|').slice(0, 4).join('|')}|${l.towerKey}|${holdemRev()}|${LK.local.off}|${workForced()}|${workForceAt()}`; if (WORK.key !== wk) { WORK.key = wk; WORK.c = new Map(); }
+    try { return tracesAt(clock.now() / 1000, { L: l, M: folkMap(l), ctx: { off: LK.local.off, seed: l.seed || 1924, force: workForced(), forceAt: workForceAt(), dusk: duskFor, hot: hotDay, flush: () => flushOk() } }, WORK.c); } catch { return null; }
   }
   let LH = harborWeights(LK), P = paletteFor(LH), skyKey = '', lookAt = 0, TW = toneWeights(LH);
   const skyKeyNow = () => `${LK.key}|${Math.round(((LH && LH.blue) || 0) * 40)}|${harborWarm(LK)}`;
@@ -746,8 +723,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     { const now = `${Math.round(W)}×${Math.round(H)}@${dpr}`; if (now !== was) LOADLOG.add('canvas', `${was || 'none'} → ${now} (${why})`); }
     layout(why);
   }
+  // CITY G — THE FIRST BUILD IN STEPS: the layout's two pure heavy pieces (the crew's day for the billboard, the neon's outlines + party plan —
+  // 0.3 + 0.75 s of a 1.3 s layout on the Chromebook at 4×) primed in frames of their own on the same geometry, then the build hits both caches
+  let primeN = 0, primeL = null, preSkip = 0, warmed = 0, warmNow = false;
+  function prime() {
+    if (primeN === 1) { measure(); const r = canvas.getBoundingClientRect(), tw = towerNow(); W = Math.max(320, r.width); H = Math.max(320, r.height); const c = cameraFor(W, H, rects(), { top: safeTopV, bottom: safeBotV }); primeL = harborLayout(c, seed, { tower: tw }); primeL.towerKey = towerKey(tw); workTraceNow(primeL, [W, H, Math.round(c.dock.y), Math.round(c.limitY)].join('|')); }
+    else if (primeL) { neonGeo(primeL); primeL = null; }
+  }
   function layout(why = 'a re-layout') {
     const rr = rects(), sig0 = camSig;
+    if (shownAt < 0) warmed = 0;
     cam = cameraFor(W, H, rr, { top: safeTopV, bottom: safeBotV });
     cam.tagGone = !!S.tagGone;                    // (a re-layout keeps the faded tagline: its band stays sky-low's)
     camSig = [W, H, Math.round(cam.dock.y), Math.round(cam.limitY), tier].join('|');
@@ -1124,7 +1109,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const BOARD_ID = 'bb-left';
   let sheetK = '', sheetV = null, bladeK = '', bladeV = null, boardCheck = 0, boardHeld = 0;
   const bladeGameOn = key => { const [y, m, d] = key.split('-').map(Number); return ghostAdGame(Date.UTC(y, m - 1, d, 23), signGames.map(g => g.id), null); };
-  const boardGameOf = (key, l) => { try { let g = neon.boardPick(key, 0, l); const nx = new Date(Date.UTC(...key.split('-').map((v, i) => +v - (i === 1 ? 1 : 0))) + 864e5).toISOString().slice(0, 10), bl = [bladeGameOn(key), bladeGameOn(nx)]; for (let n = 1; n < 4 && g && bl.includes(g); n++) g = neon.boardPick(key, n, l) || g; return g; } catch { return null; } };
+  const boardGameOf = (key, l) => { try { let g = neon.boardPick(key, 0, l); const nx = new Date(Date.UTC(...key.split('-').map((v, i) => +v - (i === 1 ? 1 : 0))) + 864e5).toISOString().slice(0, 10), bl = [bladeGameOn(key), bladeGameOn(nx)]; for (let n = 1; n < 4 && g && bl.includes(g); n++) g = neon.boardPick(key, n, l) || g; return g === 'holdem' ? 'holdem-open' : g; } catch { return null; } };   // (CITY G: the day's pick of HOLD'EM = the playable game — NOW OPEN, never COMING SOON)
   // CITY FIXES + HOLD'EM — THE BASE POSTER (core/harbor-holdem.js): a day key the ad covers shows HOLD'EM instead of its game (the owner's
   // switch via the cached GET; &force=billboard-holdem (+ &holdem=open) = from TODAY on this phone — the billposter pastes it at his slot)
   let holdemForced = false;
@@ -1776,7 +1761,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (window.devicePixelRatio !== devDpr) { devDpr = window.devicePixelRatio; onResize(); }
     // (FIXES R3 — THE AWAY RACE: iOS runs a frame (the watchdog / a focus) BEFORE visibilitychange — the frame runs the return itself; city-away-race.mjs)
     if (away && document.visibilityState === 'visible') awayBack('a frame first');
-    if (wantBuild) { const why = typeof wantBuild === 'string' ? wantBuild : 'a rebuild'; wantBuild = false; measure(); build(why); }      // (FP3a: the clear and the redraw in ONE frame — never a blank one)
+    if (away) return;   // (CITY G: hidden + freed — nothing to draw)
+    if (wantBuild === 'the start' && primeN < 2) { primeN++; try { prime(); } catch { primeN = 2; } seenAt = lastRaf = performance.now(); return; }
+    if (wantBuild) { const why = typeof wantBuild === 'string' ? wantBuild : 'a rebuild'; wantBuild = false; measure(); build(why); if (shownAt < 0) { seenAt = lastRaf = performance.now(); return; } }      // (FP3a: the clear and the redraw in ONE frame — never a blank one; CITY G: before the reveal (nothing shown) a build is its frame's only work — the draw in the next)
     if (benchPause || coverPause) { seenAt = performance.now(); lastRaf = now; last = now; return; }   // (+ SPEED PASS B: under a full card)   // (SKY-B: THE BENCH's COOL-DOWN — the city's frames skipped)
     seenAt = performance.now();                          // (8a: THE LOOP'S PULSE — the watchdog below restarts a loop that stopped getting frames)
     perf(Math.min(100, Math.max(0, now - lastRaf) || 16.7));          // (the frame intervals the tiering watches: every rAF, drawn or not)
@@ -1978,6 +1965,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     holdTick(now);   // (THE LOAD FIX: a held picture lets go once the new camera is in)
     // the neon's sprites build a few a frame (behind the facades' bake: never in the same frame as its first bake)
     if (!baker.pending || shownAt >= 0) neon.pump(baker.pending ? 1 : TIERS[tier].bakeMs);
+    // (CITY G: while a bake runs before the reveal, three frames in four only bake — the hidden city's draw no longer starves it)
+    if (shownAt < 0 && (baker.pending || litBaker.pending) && ++preSkip % 4) { clouds.pump(weak ? 40 : 16); return; }
     const lit = S.lit, night = DK;
     partyTick(t, dt, lit);
     neon.powerTick(t, S, DK);
@@ -2007,7 +1996,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (shownAt >= 0) mmTick(fs);         // (MODELS: the Mothman on the needle)
     const deadFar = !!(LB && LB.dead.far), deadCity = !!(LB && LB.dead.city), dk0 = LB ? LB.k : 0;
     const F = { c, deadCity, deadFar, dk0, fs, lit, night, off };
-    drawSky(F, t, dt, now); drawCity(F, t, dt, now); drawHarbor(F, t, dt, now); drawWeather(F, t, dt, now);
+    // (CITY G — THE WARM FRAMES: before the reveal the layers draw nothing (fadeIn 0) — two frames draw them clipped to nothing once the bake is under way: every module's art built, never in the first frame after the reveal)
+    warmNow = shownAt < 0 && warmed < 2 && !!bakeTones && (baker.pending || (baker.bakes > 0 && !litBaker.pending && litBaker.bakes > 0));
+    if (warmNow) { c.save(); c.beginPath(); c.rect(0, 0, 0, 0); c.clip(); }
+    drawSky(F, t, dt, now); drawCity(F, t, dt, now); if (!warmNow || warmed) { drawHarbor(F, t, dt, now); drawWeather(F, t, dt, now); }
+    if (warmNow) { c.restore(); warmNow = false; LOADLOG.add('note', `warm frame ${++warmed} of 2`); }
   }
   /** draw() — THE SKY (FR5 C1: draw() quartered — the locals it shares travel in F) */
   function drawSky(F, t, dt, now) {
@@ -2090,7 +2083,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (sky.bannerOver) sky.bannerOver(c, fs);   // (LOBBY FIXES: the banner plane in front of the clouds — never a ghost mid-flight)
     if (legends && !off.has('no-legends')) legends.sky(c, fs);
     signHalo(c);
-    if (shownAt < 0) tryReveal(now);
+    if (shownAt < 0 && !warmNow) tryReveal(now);
     sun.through(c, fs, (x, y) => clouds.coverAt(x, y));
     if (!off.has('no-rain') && LK.rain > 0.02) rain.veils(c, rainEnv(fs, 'veils'));
     bowT = bowTarget(t);
@@ -2107,7 +2100,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function drawCity(F, t, dt, now) {
     const { c, deadCity, deadFar, dk0, fs, lit, off } = F;
     // ---- the city: the baked layers, far → near, with the moving things between them
-    const fadeIn = shownAt < 0 ? 0 : smooth(0, 900, now - fadeT0);
+    const fadeIn = shownAt < 0 ? +warmNow : smooth(0, 900, now - fadeT0);
     mk9('the skyline');
     const crispOn = crisp.begin(c, tier, !off.has('no-crisp') && fadeIn > 0 && !!L && !!bakeTones && !!baker.key);   // (9c: the crisp layer this frame)
     const xf = fadeFrom < 0 ? 1 : smooth(0, fadeMs, now - fadeFrom);
@@ -2891,14 +2884,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
                       // (the readout shows the steps: 2→1→2)
 
 
-  // 8a — THE LOOP COMES BACK (the owner's iPhone after 7a: back from the home screen the music + Web Audio recovered — the DOM AUDIO
-  // panel live, "out WEB AUDIO" — yet the city's lights didn't pulse; the beat line she read is drawn BY this loop, so a stopped loop
-  // shows its last frame, numbers and all). The loop had ONE way back: a visibilitychange to 'visible' while it thought it was
-  // stopped. On iOS a return can come without that: the hidden event missed or coalesced (start() then saw `running` still true and
-  // did nothing) while WebKit dropped the rAF that was pending across the process suspension; a page restored with only a pageshow;
-  // the fail-stop after 30 failed frames (iOS out of canvas memory in the background). Now a watchdog: on visible, pageshow, focus,
-  // any tap and once a second, a visible page whose loop is stopped — or "running" with no frame for STALL_MS — is restarted
-  // (a fail-stopped one gets a fresh chance when the page comes back). harbor().loop / __district.loop(): what happened.
+  // 8a — THE LOOP COMES BACK: a visible page whose loop stopped (or "running" with no frame for STALL_MS) is restarted — on visible, pageshow, focus, any tap + once a second (harbor().loop)
   const STALL_MS = 1500;
   let seenAt = 0, startAt = 0, failStop = false;
   const loopLog = { restarts: 0, stalls: 0, why: '', at: 0 };
@@ -3005,7 +2991,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if ((!late || on < REVEAL_MAX + 2000) && (resizeT || wantBuild)) { heldAt('a re-fit on its way'); return; }
     if ((!late || on < REVEAL_MAX + 2000) && boxLook('at the reveal')) { heldAt('the box'); return; }
     shownAt = now; shownClock = clock.now() / 1000; revealWhy = ready && fonts && wx && sky && panel ? 'ready' : 'late';
-    { let inst = false; try { inst = !!(S.revealInstant && S.revealInstant()); } catch { /* the title's */ } fadeT0 = inst ? now - 900 : now; if (inst) LOADLOG.add('note', 'revealed under the boot screen: at once (its fade is the one fade)'); }
+    { let inst = false; try { inst = heldStart || !!(S.revealInstant && S.revealInstant()); } catch { /* the title's */ } fadeT0 = inst ? now - 900 : now; if (inst) LOADLOG.add('note', 'revealed under the boot screen: at once (its fade is the one fade)'); }
     clouds.settle();                              // (the clouds baked in the dark show at once with the city — no fade of their own)
     const waits = [!folk && 'the people', !ready && 'the bake', !fonts && 'the fonts', !wx && 'the weather', !sky && 'the clouds', !panel && "the panel's stored state", !songs && 'the party songs'].filter(Boolean);
     wxRevealed = true; wxHeld = wxNow() || wxHeld;
@@ -3065,6 +3051,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function start() {
     if (running || destroyed) return; running = true; last = lastRaf = startAt = performance.now(); if (!seenAt) seenAt = startAt; fastUntil = last + 1500;
     if (weak && firstStart) { firstStart = false; setTimeout(() => { if (running && !destroyed && !raf) { last = lastRaf = performance.now(); raf = requestAnimationFrame(frame); } }, 0); return; }
+    if (heldStart && firstStart) { firstStart = false; raf = requestAnimationFrame(() => { if (running && !destroyed) raf = requestAnimationFrame(frame); }); return; }   // (CITY G: a held start paints its picture before the city's first build)
     firstStart = false; raf = requestAnimationFrame(frame);
   }
   function stop() { running = false; cancelAnimationFrame(raf); }
@@ -3090,7 +3077,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return { y0: y0 - 6, y1: y1 + 6 };
   }
 
-  build();
+  wantBuild = 'the start';   // (CITY G — ONE LAYOUT: the first build in the first frame, on the title's rects measured then — never in the constructor's task)
+  { const r = canvas.getBoundingClientRect(), w = Math.max(320, r.width), h = Math.max(320, r.height), d = dprFor(w, h); canvas.width = Math.round(w * d); canvas.height = Math.round(h * d); }   // (its size at once, as before)
+  { const k = kept, host = canvas.parentElement; kept = null;
+    if (k && host && Math.abs(host.clientWidth - k.w) < 1 && Math.abs(host.clientHeight - k.h) < 1 && Date.now() - k.at < 7200e3) { heldStart = true; holdStart('back to the city: the last picture', k.pic); } else if (k) freeCanvases(k.pic); }
   start();
   // 9e — THE HANG WATCH + SEND REPORT (report.js): the worker beats from now; &debug=1 also names the frame's parts
   try { reporter = createReporter({ text: reportText, marks: DEBUG }); } catch { reporter = null; }
@@ -3336,7 +3326,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
     /** THE CITY's LONG NIGHT (Nov 12 night): the title going away STOPS the city AT ONCE — the frame loop + every timer (the last frame stays on
      *  screen under the 420-ms fade-out) — destroy() follows after the fade; never a frame drawn after the unmount */
-    halt() { destroyed = true; stop(); clearTimeout(resizeT); clearTimeout(relayT); clearTimeout(extrasT); clearInterval(watchdog); },
+    held: () => heldStart && holdOn,
+    halt() { keep(); destroyed = true; stop(); clearTimeout(resizeT); clearTimeout(relayT); clearTimeout(extrasT); clearInterval(watchdog); },
     destroy() {
       try { bb.destroy(); } catch { /* fine */ }
       try { moth.destroy(); } catch { /* fine */ }

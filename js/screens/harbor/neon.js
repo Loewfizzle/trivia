@@ -35,6 +35,16 @@ const lineK = ln => (ln.needle ? 1.5 : ln.thin ? THIN : 1);
 // a cut run's light: dimmer toward its two electrodes (like any open tube), the rest as the whole tube had it
 const capLight = lv => lv.map((v, i) => { const e = Math.min(i, lv.length - 1 - i); return e < 4 ? v * (0.62 + 0.095 * e) : v; });
 
+// CITY G: the outlines + their party plan, pure f(the layout) — ONE geometry kept for every scene, primed before the first layout (scene.js#prime)
+const GEO = { key: '', v: null };
+const geoKey = (L, sr) => { const c = L.cam; return `${c.W}|${c.H}|${c.F.toFixed(3)}|${c.limitY}|${Math.round(c.dock.y)}|${L.towerKey}|${L.squeeze}|${JSON.stringify([...sr])}`; };
+export function neonGeo(L) {
+  const signRects = new Map();
+  for (const sp of signSpots(L)) if (sp.kind !== 'icon' && sp.w) { if (!signRects.has(sp.host)) signRects.set(sp.host, []); signRects.get(sp.host).push(sp.w); }
+  const k = geoKey(L, signRects);
+  if (GEO.key !== k) { const O = outlines(L, signRects); GEO.key = k; GEO.v = { O, plan: partyPlan(partyPieces(L, O), depthLinks(O)) }; }
+  return GEO.v;
+}
 export function createNeon({ games: allGames = [], onContent = () => {} } = {}) {
   // (CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY: the scene hands the sign roster — core/harbor-neon.js#signRoster; a frozen game never hangs)
   const games = allGames.filter(g => g.playable).map(g => ({ ...g, short: signName(g) }));
@@ -80,7 +90,9 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       if (sp.kind === 'billboard') {
         // tonight's billboard advertises the game with NO sign tonight (NEON PASS 5: 11 signs for 12 games — the nightly shuffle
         // picks which), else one with no named sign (an icon one), never the one up the street
-        const show = (boards.length === 0 && o.boardGame) || billboardPick(games, spots, bPick, bKey, boards.length) || sp.show;
+        // (CITY G: a PICKED HOLD'EM = the playable game — NOW OPEN; the owner's switch arrives as o.boardGame, untouched)
+        let pk = billboardPick(games, spots, bPick, bKey, boards.length); if (pk === 'holdem') pk = 'holdem-open';
+        const show = (boards.length === 0 && o.boardGame) || pk || sp.show;
         boards.push({ ...buildBillboard(sp, billboardContent({ game: show }, games), { dpr, roofY, dead: o.boardDead, roofX0: roofX0Of(sp) }), roofY, item: true }); continue;
       }
       const g = sp.kind === 'fixed' ? null : games.find(x => x.id === pick.get(sp.id));
@@ -88,13 +100,11 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       signs.push(buildSign(sp, g && { ...g, signText: spotText(g, sp) || g.short }, { W, s, roofY, frame: frameOf(sp) }));
     }
     // the outlines, projected + cut (the far group and the near group: each against its own nearer buildings)
-    const signRects = new Map();
-    for (const sp of spots) if (sp.kind !== 'icon' && sp.w) { if (!signRects.has(sp.host)) signRects.set(sp.host, []); signRects.get(sp.host).push(sp.w); }
     // (NEON PASS 3 — DEPTH: each building's tubes weighted by how far away it stands: core/harbor-neon.js#DEPTH)
     // (DT1: the wheel backdrop's roof accent — calm: a fine tube, a soft glow, well under the wheel's brightness)
     // (FP2 — NEON BY DEPTH: the party colours by building, solved once here — core/harbor-show.js#partyPlan; each outline keeps the
     // colours of the tubes it meets at another depth, so a normal night's colour rotation never takes one of them)
-    const O = outlines(L, signRects), plan = partyPlan(partyPieces(L, O), depthLinks(O)), partners = O.map(() => new Set());
+    const { O, plan } = neonGeo(L), partners = O.map(() => new Set());
     for (const c of O.contacts || []) { partners[c.f].add(c.bl.role); partners[c.b].add(c.fl.role); }
     outs = O.map((o2, oi) => { const st = depthStrength(o2); return { ...o2, plan, partners: [...partners[oi]], st: o2.accent ? { ...st, w: st.w * 0.62, glow: st.glow * 0.55, a: st.a * 0.42, soft: 0.3 } : st }; });
     glassFaces = [];

@@ -436,6 +436,7 @@ export function createTitle() {
     // ran the Harbor in 1–3 ms; the Harbor's own step-down still protects a slow phone: docs/harbor.md#performance)
     scene = createHarbor(els.canvas, { games: GAMES, tier: 2 });
     scene.set({ motion: reduced() ? 0 : 1 });
+    if (scene.held()) els.sceneWrap.style.opacity = '1';   // (CITY G: back under the last picture — shown at once, the reveal a cut)
     scene.set({ onReveal: reveal, measure: () => ({ clear: clearZones(), textRects: textRects() }), revealInstant: bootCovers });   // (THE LOAD FIX: under the boot screen the city comes in at once — the boot's fade is the one fade)
     // a lightning strike: the glass of the dock catches the flash (9a: the Harbor plays its own thunder — 'thunder-far', delayed by the
     // strike's distance: harbor/sounds.js#thunder)
@@ -950,7 +951,7 @@ export function createTitle() {
   function reveal() {
     if (destroyed || !els.sceneWrap || !els.sceneWrap.classList.contains('is-hold')) return;
     els.sceneWrap.classList.add(bootCovers() ? 'is-now' : 'is-reveal');   // (THE LOAD FIX: under the boot screen — no fade of its own: css/title.css .is-now)
-    els.sceneWrap.classList.remove('is-hold');
+    els.sceneWrap.classList.remove('is-hold'); els.sceneWrap.style.opacity = '';
     cityDone();
     pgPreviewSoon(600);
     keyPopSoon(2600);

@@ -429,7 +429,7 @@ export function createWheel() {
     /** 9a — THE BLACKOUT AUDIT: the light the wheel drew last (its bulbs' level + the cabins lit) */
     lit: () => ({ bulbs: +lastLights.toFixed(3), cars: litCars }),
     debug: () => ({ x: cx, y: cy, r, scheme: schemeName, mb: +(mb + (bulbs ? bulbs.reduce((s, b) => s + b.width * b.height * 4, 0) / 1e6 : 0) + (cache ? cache.width * cache.height * 4 / 1e6 : 0)).toFixed(2) }),
-    destroy() { for (const cv of [steel, front, haze, pool, cache, allBulbs, ring, ...cars, ...(bulbs || []), ...dots.values()]) if (cv) { cv.width = 0; cv.height = 0; } dots.clear(); L = null; },
+    destroy() { for (const cv of [steel, front, haze, pool, cache, allBulbs, ring, ...cars, ...(bulbs || []), ...dots.values()]) if (cv) { cv.width = 0; cv.height = 0; } dots.clear(); L = null; steel = bulbs = allBulbs = ring = front = haze = pool = cache = null; cars = []; lookKey = bulbKey = cacheKey = ''; },   // (CITY G: nulled too — the hidden page's free; the next layout + draw build them again)
   };
 }
 

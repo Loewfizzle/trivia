@@ -122,7 +122,7 @@ export function createPeople() {
   //  The plan is in world units on the walking map: a re-layout whose map comes out the SAME (mapSig) keeps every visit — re-projected by
   //  the new camera, never re-planned; a changed map (a wider screen moves the edges people enter from) plans again, as it must. The staged
   //  first plan (A2) is for the FIRST plan only — a later re-layout never blanks the promenade for a frame (THE PEOPLE RULE))
-  function layout(l) { L = l; mapKey = ''; if (!lived) { staging = true; stageWhole = false; } solidsHP = undefined; roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; backLight = L ? crossLightOf(L) : () => 0; }
+  function layout(l) { L = l; mapKey = ''; if (!lived) { staging = true; stageWhole = false; } solidsHP = undefined; roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; backLight = L ? crossLightOf(L) : () => 0; if (L && roomPend) { const [a, b] = roomPend; roomPend = null; room(a, b); } }
   function ensureMap(event, ring = false) {
     const key = `${event ? 1 : 0}${ring ? 1 : 0}|${lineN}|${roomOn ? 'room' : ''}`;
     if (key === mapKey && M) return;
@@ -334,8 +334,9 @@ export function createPeople() {
   }
   /** the roster: [{ uid, slot ('L0'…), online, col [r,g,b], fresh (joined in the last seconds: walks in even on the first sight), kick?, goT?, outT? }]
    *  or null (no room — everyone leaves the promenade the way they would) */
+  let roomPend = null;   // (CITY G: a roster that came before the first layout — the city builds in its first frame — replayed by layout())
   function room(list, o = {}) {
-    if (!L) return;
+    if (!L) { roomPend = [list, o]; return; }
     const on = !!(list && list.length), t = rnow();
     if (on !== roomOn) { roomOn = on; mapKey = ''; ensureMap(false); }
     if (!roomMap) roomMap = folkMap(L, {});

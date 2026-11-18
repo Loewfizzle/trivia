@@ -127,7 +127,7 @@ export function createSignDress() {
     wpx = host.clientWidth || 0;           // (once, at attach — never in the frame loop)
     staticKey = '';
   }
-  function detach() { if (ro) { ro.disconnect(); ro = null; } if (cv) cv.remove(); cv = null; x = null; host = null; free(); }
+  function detach() { if (ro) { ro.disconnect(); ro = null; } if (cv) { cv.remove(); cv.width = cv.height = 0; } cv = null; x = null; host = null; free(); }
   function free() { if (job) { job.silk.width = job.silk.height = 0; job.glow.width = job.glow.height = 0; job = null; } for (const k of ['silk', 'glow']) if (cache[k]) { cache[k].width = cache[k].height = 0; cache[k] = null; } staticKey = ''; }
   function size() {
     // (C4d — FR4 H17: at the scene's RESOLUTION tier — 3 / 2 / 1.5 (env.dressDpr); it was the device's full 3× at tier 0 too, where this
@@ -278,5 +278,7 @@ export function createSignDress() {
     debug: () => ({ on, pieces: lastEnv ? want(lastEnv) : [], web: lastEnv && lastEnv.pieces ? lastEnv.pieces.web : null, webs: webs.map(w => ({ id: w.id, radials: w.radials.length, spiral: w.spiral.length })),
       spider: spiders[0] ? spiders[0].state() : null, spider2: spiders[1] ? spiders[1].state() : null, legs: spiders[0] ? spiders[0].legCheck() : null, legs2: spiders[1] ? spiders[1].legCheck() : null, shimmer: shimmer ? shimmer.state() : null, dotd: dotd ? dotd.debug() : null, draws, bakes, slowTask, ms: +lastMs.toFixed(2), canvas: cv ? [cv.width, cv.height] : null, dpr }),
     destroy: detach,
+    /** CITY G — AWAY, LIGHTER: every canvas zeroed while the page is hidden; size() + the static re-bake bring them back */
+    free: () => { free(); if (cv) cv.width = cv.height = 0; },
   };
 }

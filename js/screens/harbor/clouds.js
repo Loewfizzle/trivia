@@ -880,6 +880,7 @@ export function createClouds() {
       perf.ms = perf.ms * 0.97 + ms * 0.03; perf.n++;
     },
     coverAt,
+    pump(ms) { if (jobs.length && box) run(ms); },   // (CITY G: the first set's bake in a frame that draws nothing — before the reveal)
     /** POLISH 5: the load gate's view — plans made, how many clouds + their kinds, READY (planned + every cloud baked, or a clear sky),
      *  slow (the current set's blend in ms when it is a slow one) */
     stats: () => ({ plans, cuts, lastCut, n: list.length, kinds: [...new Set(list.map(d => d.kind))].join(' ') || 'clear', ready: !!planKey && (!!born || (!list.length && !jobs.length)), slow: appearMs > 1600 ? appearMs : 0 }),

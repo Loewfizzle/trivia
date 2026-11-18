@@ -2,7 +2,7 @@
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=perf, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
-import { OUT, CPU, BUDGET_MS, log, sleep, ok, okT, ON_CI, skipCI, warnings, GR, GUARD_SCENES, NIGHT, open, ev, waitFor, tapAt, harborUp, settled, heapNoCode, G, launchReal, closeReal, displayFps } from './kit.mjs';
+import { OUT, SHOTS, CPU, BUDGET_MS, log, sleep, ok, okT, ON_CI, skipCI, warnings, GR, GUARD_SCENES, NIGHT, open, ev, waitFor, tapAt, harborUp, settled, heapNoCode, G, launchReal, closeReal, displayFps } from './kit.mjs';
 
 G('perf', async () => {
   // ---- WIN2 — THE QUALITY STEP: a CALM LOAD on a mid phone profile (2x CPU) — 30 s after the reveal, NO tier step: nothing is judged in
@@ -304,4 +304,71 @@ G('longnight', async () => {
   ok(mpeak <= m0 * 1.25 && M.at(-1).gl <= M[1].gl, `THE LONG NIGHT — 6 trips title → YOUR CARD → title: canvases ${M.map(s => s.n).join(' ')} (peak ${mpeak} vs ${m0}), GPU contexts ${M[1].gl} → ${M.at(-1).gl}`);
   log('longnight', `trips ${JSON.stringify(S)} · menus ${JSON.stringify(M)}`);
   await C.ctx.close();
+});
+
+// ---- CITY G Group 4 — THE RETURN FROM A MATCH + WHAT A MATCH KEEPS (the owner's iPhone, a family match night: "harbor stall ≥ 1.5 s — a frame
+// gap (t1)" + "the loop restarted (watchdog)" right after the room came back). THE IPHONE PROFILE (402 × 874 @3, an iPhone UA reporting 2 cores),
+// a real room + a real start, 3 full matches (the start → the host's own game node at its final → back to the room) with the CPU 4× throttled from
+// the start to 10 s after the return: the worst frame from the return to +10 s, the canvases + the JS heap DURING each match (the city should hold
+// ~nothing there), no growth across the 3, and the hidden page's kept MB. Every canvas is tagged by the module that took its context (OWNERS).
+const MR_INIT = { fn: () => {
+  try { Object.defineProperty(Navigator.prototype, 'userAgent', { get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.7 Mobile/15E148 Safari/604.1', configurable: true }); } catch { /* fine */ }
+  try { Object.defineProperty(Navigator.prototype, 'hardwareConcurrency', { get: () => 2, configurable: true }); } catch { /* fine */ }
+  const all = [], own = new WeakMap(), orig = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (type, ...r) {
+    if (!own.has(this)) { const st = String(new Error().stack || '').split('\n').map(l => (l.match(/\/js\/([\w/.-]+?)\.js/) || [])[1]).filter(f => f && !/canvas-safe/.test(f)); own.set(this, st.slice(0, 2).join(' < ') || '?'); all.push(new WeakRef(this)); }
+    return orig.call(this, type, ...r);
+  };
+  window.__own = (top = 14) => { const g = {}; let tot = 0; for (const r of all) { const c = r.deref(); if (!c) continue; const px = (c.width || 0) * (c.height || 0); if (px <= 1) continue; const k = own.get(c); g[k] = (g[k] || 0) + px * 4; tot += px * 4; } return { mb: +(tot / 1e6).toFixed(1), top: Object.entries(g).sort((a, b) => b[1] - a[1]).slice(0, top).map(([k, b]) => `${k} ${(b / 1e6).toFixed(1)}`) }; };
+  const W = window.__wk = { gaps: [], last: 0 }, raf = window.requestAnimationFrame.bind(window);
+  const tick = t => { if (W.last) W.gaps.push([t, t - W.last]); W.last = t; if (W.gaps.length > 4000) W.gaps.splice(0, 2000); raf(tick); };
+  raf(tick);
+}, arg: null };
+G('matchreturn', async () => {
+  const L2 = await import('./lobby2.mjs');
+  const { Q, p, code } = await L2.hostRoom('mra', [402, 874], { init: MR_INIT, dpr: 3 });
+  await L2.fakeGuests(code, 1); await sleep(2500);
+  const cdp = await p.target().createCDPSession();
+  const mem = async () => ({ ...(await ev(p, "import('/js/ui/canvas-safe.js').then(m => m.canvasMb())")), own: await ev(p, 'window.__own()'), heap: +((await heapNoCode(cdp)).rest / 1e6).toFixed(1) });
+  const VIS = v => p.evaluate(v => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (v ? 'visible' : 'hidden') }); Object.defineProperty(document, 'hidden', { configurable: true, get: () => !v }); document.dispatchEvent(new Event('visibilitychange')); }, v);
+  const home = await mem();
+  log('matchreturn', `on the city: ${home.mb} MB (${home.n}) heap ${home.heap} MB · ${home.own.top.join(' · ')}`);
+  const T = [];
+  for (let i = 1; i <= 3; i++) {
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    await L2.startOC(p);
+    await waitFor(p, `!(${L2.onTitle})`, `match ${i}: the game`, 20000); await sleep(2500);
+    await p.evaluate(c => import('/js/firebase.js').then(fb => fb.update(fb.dbRef(`rooms/${c}/game`), { phase: 'final', phaseEndsAt: window.__arcade.serverNow() + 600000, phaseStartAt: window.__arcade.serverNow() - 120000 })), code);
+    await sleep(3000);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    const during = await mem();
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    const t0 = await ev(p, 'performance.now()');
+    await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+    // (the return: THE HOLD from the title's first frame — the last picture shown at once over the city being built, never the dark)
+    const held = await waitFor(p, "(() => { const w = document.querySelector('.nd-scene'), h = w && w.querySelector('.hc-hold'); return !!(w && h && h.style.display !== 'none' && getComputedStyle(w).opacity === '1' && !window.__district.harbor()?.shown); })()", `match ${i}: the held picture`, 15000).then(() => true, () => false);
+    if (SHOTS && held && i === 1) await p.screenshot({ path: `${OUT}matchreturn-held-402.png` });
+    await waitFor(p, '!!(window.__district && window.__district.harbor() && window.__district.harbor().shown)', `match ${i}: the city back`, 20000);
+    if (SHOTS && i === 1) await p.screenshot({ path: `${OUT}matchreturn-live-402.png` });
+    const shownMs = Math.round((await ev(p, 'performance.now()')) - t0);
+    await sleep(Math.max(0, 10000 - shownMs));
+    const gaps = await ev(p, `window.__wk.gaps.filter(([t]) => t >= ${t0} && t <= ${t0} + 10000)`);
+    const worst = gaps.reduce((m, [, g]) => Math.max(m, g), 0), worstAt = (gaps.find(([, g]) => g === worst) || [0])[0] - t0;
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    await sleep(1500);
+    T.push({ during, worst: Math.round(worst), worstAt: Math.round(worstAt), shownMs, held });
+    log('matchreturn', `match ${i}: DURING ${during.mb} MB (${during.n}) heap ${during.heap} · ${during.own.top.slice(0, 6).join(' · ')}`);
+    log('matchreturn', `match ${i}: the return — held ${held}, the city shown ${shownMs} ms, the worst frame ${Math.round(worst)} ms at +${Math.round(worstAt)} ms (${gaps.length} frames in 10 s)`);
+  }
+  const on = await mem();
+  await VIS(false); await sleep(400);
+  const aw = await ev(p, 'window.__district.away()'), hid = await mem();
+  log('matchreturn', `HIDDEN: ${hid.mb} MB (${hid.n}) of ${on.mb} · away ${JSON.stringify(aw)} · ${hid.own.top.join(' · ')}`);
+  await VIS(true); await sleep(1500);
+  ok(T.every(t => t.held), `THE RETURN UNDER THE HOLD — every return from a match shows the last picture at once over the city being built (${T.map(t => t.held).join(' ')})`);
+  okT(T.every(t => t.worst <= 1500), `THE RETURN at 4× CPU (the iPhone profile, 402 × 874 @3) — no frame over 1.5 s from the return to +10 s: ${T.map(t => `${t.worst} ms at +${t.worstAt}`).join(' · ')} (the city shown ${T.map(t => t.shownMs).join(' / ')} ms)`);
+  ok(T.every(t => t.during.mb <= 10), `DURING A MATCH the city holds ~nothing — the page's canvases ${T.map(t => t.during.mb).join(' / ')} MB (≤ 10: the held picture + the menus' still + the game's own)`);
+  ok(T[2].during.mb - T[0].during.mb <= 1.5 && T[2].during.heap - T[0].during.heap <= 4, `NO GROWTH over 3 matches — canvases ${T.map(t => t.during.mb).join(' → ')} MB, the JS heap (no code) ${T.map(t => t.during.heap).join(' → ')} MB`);
+  ok(aw && aw.keptMb <= on.mb * 0.35, `HIDDEN after the matches: ${aw && aw.keptMb} MB kept of ${on.mb} (≤ 35 %; the half-size picture + the small art)`);
+  await Q.ctx.close();
 });

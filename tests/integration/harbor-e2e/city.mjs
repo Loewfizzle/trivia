@@ -1132,9 +1132,12 @@ G('weakstart', async () => {
     log(`THE CHROMEBOOK at 4×: the reveal at ${revealAt} ms, the worst frame ${Math.round(worst)} ms to 15 s after it, tier ${tr0.tier}, dpr ${tr0.dpr}`);
     ok(tr0.weak === true && tr0.tier === 0 && tr0.dprTier === 0, `THE CHROMEBOOK — a WEAK DEVICE: the lowest tier from the start (weak ${tr0.weak}, tier ${tr0.tier}, the resolution's tier ${tr0.dprTier}; the steps ${JSON.stringify(tr0.hist || []).slice(0, 120)})`);
     ok(tr0.dpr >= 0.6 && tr0.dpr <= 0.75, `THE CHROMEBOOK — the backing store capped on its big screen: the city drawn at ${tr0.dpr.toFixed(2)} × (0.6–0.75), scaled up`);
-    // (at 4× the worst frame runs 1.37–1.97 s from run to run — a cold compile + the city's construction; under 1.5 s is NOT reliably met there:
-    //  docs/harbor/passes/city-f.md "THE CHROMEBOOK" — pinned here as never worse than before CITY F, the 1.5 s rule at 2× below)
-    okT(worst < 2117, `THE CHROMEBOOK at 4× — the worst frame from the start to 15 s after the reveal ${Math.round(worst)} ms: never worse than before CITY F (2,117)`);
+    // (CITY G — ONE LAYOUT, THE FIRST BUILD IN STEPS, THE WARM FRAMES: the real target for the worst frame — was 1.37–2.12 s; measured 0.73–0.93 s.
+    //  THE REVEAL under 4 s at 4× is NOT met: ~5.9–6.5 s, held by the work itself on one throttled core — the boot ~1.4 s, the layout ~1.3 s (now
+    //  three frames), the first bake ~1.5 s of slices, the warm frames ~1 s — pinned here as never later than before CITY F (5.5 s + 1.5 s of
+    //  this machine's noise); at 2× it is 2.4 s, below)
+    okT(worst <= 1500, `THE CHROMEBOOK at 4× — no frame over 1.5 s from the start to 15 s after the reveal (the worst ${Math.round(worst)} ms; before CITY G 1,367–2,117)`);
+    okT(revealAt != null && revealAt < 7000, `THE CHROMEBOOK at 4× — the reveal at ${revealAt} ms: never later than before (the 4 s target is met at 2× only)`);
     ok(!fades.length, `THE CHROMEBOOK — no bake crossfade at its lowest tier (a straight swap): ${fades.map(r => r.msg).join(' | ') || 'none'}`);
     if (SHOTS) await p.screenshot({ path: `${OUT}weakstart-chromebook-1600x1200.png` });
     await ctx.close(); }
