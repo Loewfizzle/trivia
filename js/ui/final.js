@@ -167,15 +167,20 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     cancelers.push(subscribe(paint));   // (the votes + the host move live — every phone's mirrored rv)
   }
   const canShare = !!(mod && typeof mod.shareRun === 'function' && g && g.participants && g.participants[me]);
+  // (JAYWALK BEFORE THE FLIP — a game whose card uploads at the tap: a slow first tap reads PREPARING…; 'ready' = the link is made but the
+  //  tap's user activation was spent on the upload (iOS) — the link reads SHARE again, lit, and the NEXT tap shares at once)
+  const shareT = h('span', 'SHARE');
   const share = canShare ? h('button.final-link.final-share', { type: 'button', 'data-gesture': true, onclick: () => {
     if (busy(share)) return;
-    share.classList.add('is-busy');
+    share.classList.add('is-busy'); share.classList.remove('is-ready');
+    const slow = setTimeout(() => { shareT.textContent = 'PREPARING…'; }, 250);
     Promise.resolve(mod.shareRun(g, state)).then(how => {
       if (how === 'saved') toast('Your run is saved', 'ok', { sub: 'The image is in your downloads.' });
       else if (how === 'copied') toast('Link copied', 'ok', { sub: 'The image is saved too.' });
       else if (how === 'failed') toast('Couldn’t draw the image', 'warn');
-    }, () => toast('Couldn’t draw the image', 'warn')).finally(() => share.classList.remove('is-busy'));
-  } }, finIcon('share'), h('span', 'SHARE')) : null;
+      else if (how === 'ready') share.classList.add('is-ready');
+    }, () => toast('Couldn’t draw the image', 'warn')).finally(() => { clearTimeout(slow); shareT.textContent = 'SHARE'; share.classList.remove('is-busy'); });
+  } }, finIcon('share'), shareT) : null;
   // (the quiet links: SOLO = SHARE · CITY; a MATCH = BACK TO THE ROOM · SHARE; no share → the way out alone, centred)
   const out = soloRoom || oneRoom ? leave : back;
   const linkList = soloRoom || oneRoom ? [share, out] : [out, share];

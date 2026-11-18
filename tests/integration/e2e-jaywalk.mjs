@@ -47,6 +47,8 @@ async function phone(slot, dpr = Number(process.env.E2E_DPR) || 2, name = 'HOPPE
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(String(e.message || e)));
+  let ups = 0;   // (BEFORE THE FLIP: the run card's uploads — every /api/daily shareCard this phone sends)
+  p.on('request', r => { try { if (/\/api\/daily/.test(r.url()) && /"shareCard"/.test(r.postData() || '')) ups++; } catch { /* fine */ } });
   if (process.env.JW_DEBUG) p.on('console', m => console.log(`   [${m.type()}] ${m.text().slice(0, 240)}`));
   await p.setViewport({ width: 390, height: 844, deviceScaleFactor: dpr, isMobile: true, hasTouch: true });
   await p.evaluateOnNewDocument(s => { try { localStorage.setItem('nd:entered', '1'); localStorage.setItem(`na:${s[0]}:profile`, JSON.stringify({ name: s[1], color: 'cyan', avatar: 'bolt' })); } catch { /* fine */ } }, [slot, name]);
@@ -58,7 +60,7 @@ async function phone(slot, dpr = Number(process.env.E2E_DPR) || 2, name = 'HOPPE
   const ev = js => p.evaluate(js);
   const tap = async sel => { const r = await p.evaluate(q => { const el = document.querySelector(q); if (!el) return null; const x = el.getBoundingClientRect(); return [x.left + x.width / 2, x.top + x.height / 2, x.width, x.height]; }, sel); if (!r) return null; await p.touchscreen.tap(r[0], r[1]); return r; };
   const shot = async name => { if (OUT) await p.screenshot({ path: join(OUT, name) }); };
-  return { p, ev, waitFor, open, tap, shot, errs, close: () => ctx.close() };
+  return { p, ev, waitFor, open, tap, shot, errs, uploads: () => ups, close: () => ctx.close() };
 }
 const hopUp = async (P, k) => { for (let i = 0; i < k; i++) { await P.p.touchscreen.tap(195, 520); await sleep(230); } };
 const pidOf = async P => { const uid = await P.ev(`${S}.uid`); for (let i = 0; i < 60; i++) { const pid = await dbGet(`uids/${uid}`); if (pid) return { uid, pid }; await sleep(250); } return { uid, pid: null }; };
@@ -82,17 +84,26 @@ const pastMoment = async P => {
 };
 const board = async pid => { const s = await dbGet(`pstats/${pid}`); return s && s.b && s.b['jaywalk-solo'] ? s.b['jaywalk-solo'].a : null; };
 /** H4B's add-on — THE SHARE = THE PICTURE ONLY: tap `sel` with the share sheet stubbed → what was shared + the link's page + its picture */
-async function shareLink(page, sel) {
-  await page.evaluate(() => { window.__shared = []; navigator.share = async d => { window.__shared.push(d); }; navigator.canShare = () => true; });
+async function shareLink(page, sel, spent = false) {
+  // (`spent`: the tap's user activation is gone by the time the upload answers — an iPhone's case: navigator.userActivation says so)
+  await page.evaluate(sp => { window.__shared = []; navigator.share = async d => { window.__shared.push(d); }; navigator.canShare = () => true; try { if (sp) Object.defineProperty(navigator, 'userActivation', { configurable: true, get: () => ({ isActive: false, hasBeenActive: true }) }); else delete navigator.userActivation; } catch { /* fine */ } }, spent);
   await page.evaluate(q => document.querySelector(q).click(), sel);
-  let out = null;
-  for (let i = 0; i < 100 && !(out && out.length); i++) { out = await page.evaluate(() => window.__shared); if (!(out && out.length)) await new Promise(r => setTimeout(r, 150)); }
+  // (BEFORE THE FLIP — THE CARD UPLOADS ONLY ON SHARE: a tap the upload SPENT → the console's SHARE reads lit ("ready"): one more tap
+  //  shares the link inside its own gesture; a live tap shares at once)
+  let out = null, again = false;
+  for (let i = 0; i < 100 && !(out && out.length); i++) {
+    out = await page.evaluate(() => window.__shared);
+    if (!(out && out.length)) {
+      if (!again && await page.evaluate(q => { const b = document.querySelector(q); return !!b && b.classList.contains('is-ready') && !b.classList.contains('is-busy'); }, sel)) { again = true; await page.evaluate(q => document.querySelector(q).click(), sel); }
+      await new Promise(r => setTimeout(r, 150));
+    }
+  }
   const d = (out && out[0]) || {}, url = d.url || '';
   const html = url ? await fetch(url, { redirect: 'manual' }).then(r => r.text()).catch(() => '') : '';
   const meta = k => (new RegExp(`<meta property="${k}" content="([^"]*)"`).exec(html) || [])[1] || '';
   const img = meta('og:image').replace(/&amp;/g, '&');
   const png = img ? Buffer.from(await fetch(img).then(r => r.arrayBuffer())) : Buffer.alloc(0);
-  return { keys: Object.keys(d).sort(), url, code: (/[?&]s=([A-Za-z0-9_-]{12})/.exec(url) || [])[1] || '', title: meta('og:title'), img, go: (/url=([^"]*)"/.exec(html) || [])[1] || '',
+  return { again, keys: Object.keys(d).sort(), url, code: (/[?&]s=([A-Za-z0-9_-]{12})/.exec(url) || [])[1] || '', title: meta('og:title'), img, go: (/url=([^"]*)"/.exec(html) || [])[1] || '',
     png: png.length > 24 && png.toString('latin1', 1, 4) === 'PNG' ? { w: png.readUInt32BE(16), h: png.readUInt32BE(20), bytes: png.length } : null, buf: png };
 }
 /** (the emulator stays clean for the other suites: every run card these phones uploaded — the end screens warm one each — is removed) */
@@ -220,7 +231,13 @@ try {
   const v1 = verifyNode({ code: g.code, matchId: g.m, node });
   ok(!!r1 && v1.ok && !v1.cut && v1.result.lanes === end.res.l, `the report is COUNTED — and the SERVER's own replay of the proof = ${v1.ok ? v1.result.lanes : '?'} lanes, the phone's ${end.res.l}`);
   // H4B's add-on — THE SHARE = THE PICTURE ONLY: SHARE sends ONLY THE LINK; its preview IS the run's card; a tap on it opens the site
-  const L1 = await shareLink(P.p, '.jw-final .final-share');
+  // BEFORE THE FLIP — THE RUN CARD UPLOADS ONLY ON SHARE: the end screen has been up (the card drawn behind it) — NOTHING has gone up
+  await sleep(4500);
+  ok(P.uploads() === 0 && !(await dbGet(`shrp/${pid}:jaywalk`)), `THE RUN CARD ONLY ON SHARE: the end screen read for 4.5 s, no SHARE tap → ${P.uploads()} uploads, no run card on the server`);
+  const L1 = await shareLink(P.p, '.jw-final .final-share', true);
+  ok(P.uploads() === 1 && L1.again, `… SHARE → ONE upload + the link (${P.uploads()}); a tap whose activation the upload spent reads SHARE again (lit) — one more tap shares it (${L1.again})`);
+  const L1b = await shareLink(P.p, '.jw-final .final-share');
+  ok(P.uploads() === 1 && L1b.url === L1.url && !L1b.again, `… a SECOND SHARE the same run → the same link at once, no second upload (${P.uploads()})`);
   ok(JSON.stringify(L1.keys) === '["url"]' && /\/api\/daily\?s=[A-Za-z0-9_-]{12}$/.test(L1.url), `H4B — SHARE sends ONLY THE LINK (${JSON.stringify(L1.keys)} — no text, no file, no site line): ${L1.url}`);
   ok(/ · JAYWALK · /.test(L1.title) && L1.go === '/' && !!L1.png && L1.png.w === 540 && L1.png.h === 675 && L1.png.bytes <= 300 * 1024, `… the link's preview IS the card (og:image ${L1.png ? `${L1.png.w} × ${L1.png.h}, ${Math.round(L1.png.bytes / 1024)} KB` : 'none'}; "${L1.title}") and a tap on it opens the site ("${L1.go}")`);
   if (OUT && L1.png) writeFileSync(join(OUT, 'share-link-solo-540.png'), L1.buf);
@@ -308,7 +325,7 @@ try {
       console.log('   the gate signs seen (by day):', JSON.stringify(gates), '· the banners:', JSON.stringify(banners));
       ok(['THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD'].every(n => gates[n] && gates[n].a > 0.9 && gates[n].look === 'day' && gates[n].top > vh * 0.2 && gates[n].top < vh * 0.4),
         `THE APPROACH SIGN in the REAL GAME, BY DAY: each gate's sign up whole (opacity > 0.9) on the approach, under the band (${Object.entries(gates).map(([k, g]) => `${k} ${g.a.toFixed(2)} at ${g.d.join('/')} lanes, top ${Math.round(g.top)} pt`).join(' · ')})`);
-      ok(['THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD'].every(n => banners.some(b => b.t.startsWith(n) && /LANE d+/.test(b.t) && b.bottom < vh * 0.27)),
+      ok(['THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD'].every(n => banners.some(b => b.t.startsWith(n) && /LANE \d+/.test(b.t) && b.bottom < vh * 0.27)),
         `THE ARRIVAL BANNER at each crossing — the name + its LANE, at the top over the skyline band, never over the lanes (${banners.map(b => `${b.t} ${Math.round(b.top)}–${Math.round(b.bottom)} pt`).join(' · ')})`);
       ok(snd.cues.includes('car-pass') || snd.cues.includes('horn') || snd.cues.includes('bell-on'), `THE WORLD's SOUNDS were cued for this kid (${[...new Set(snd.cues)].join(' · ')})`);
       ok(far.info.kid === true && far.kidPx >= 30 && far.kidPx <= 58, `THE NEW KID is the one drawn — ${far.kidPx.toFixed(1)} pt tall on this 390 pt phone at that moment (mid-hop he stretches; standing: ≈ 38.5 pt — the lab check)`);

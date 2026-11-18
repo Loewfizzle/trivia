@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { jwRunCard, JW_CARD, shotCrop, quant, SHOT_ZOOM, SHOT_UP, SHOT_UP_WALL, LINK_MAX, LINK_HARD, LINGER_MS, LINK_TRIES } from '../js/games/jaywalk/share.js';
+import { jwRunCard, JW_CARD, shotCrop, quant, SHOT_ZOOM, SHOT_UP, SHOT_UP_WALL, LINK_MAX, LINK_HARD, LINK_TRIES } from '../js/games/jaywalk/share.js';
 import { RUN_W, RUN_H } from '../js/games/kit/share-run.js';
 import { FOOT } from '../js/daily/share.js';
 
@@ -54,14 +54,19 @@ test('THE LINK\'s PICTURE fits the server: over 300 KB it is re-encoded on 6, th
 test('THE SHARE SENDS ONLY THE LINK: the dailies\' sender (the link alone when there is one — else the picture, with NO text); the card is built + uploaded BEFORE the tap; the server is asked for a RUN\'s card', () => {
   const s = code('js/games/jaywalk/share.js'), v = code('js/games/jaywalk/victory.js'), d = read('js/daily/share.js'), k = read('js/games/kit/share-run.js');
   assert.doesNotMatch(s, /runLine|shareRunCard|sendShare\(/, 'no "My JAYWALK run — … · https://…" line any more');
-  assert.match(s, /prepShare\(async \(\) => \(here\(\) \? \{ cv: drawJwCard\(game, \{ uid, name: me\.name, code \}\), name: 'neon-speakeasy-jaywalk\.png', line: '', upload \} : null\)\)/, 'the kit\'s prepare — the line is EMPTY; a build that would land in the next run is dropped');
+  assert.match(s, /prepShare\(async \(\) => \(here\(\) \? \{ cv: drawJwCard\(game, \{ uid, name: me\.name, code \}\), name: 'neon-speakeasy-jaywalk\.png', line: '', upload, onTap: true \} : null\)\)/, 'the kit\'s prepare — the line is EMPTY; a build that would land in the next run is dropped; BEFORE THE FLIP: the card UPLOADS ONLY ON SHARE');
   assert.match(d, /if \(url && canShareLink\(url\)\) \{\s*try \{ shareHold\(\); await navigator\.share\(\{ url \}\); return 'shared'; \}/, 'the site\'s rule (FIXES R1): the LINK ONLY');
   assert.doesNotMatch(s, /navigator\.share/, 'JAYWALK never calls the share sheet itself — ONE sender');
   assert.match(s, /api\('daily', \{ action: 'shareCard', games: \['jaywalk'\], run: \{ room: code, m \}, png: b64 \}\)/, 'a RUN\'s card: the match named, never a claim of lanes');
   assert.match(s, /if \(!e \|\| e\.code !== 'no_run' \|\| i === LINK_TRIES - 1 \|\| !here\(\)\) return '';/, 'the run not counted yet → once more; anything else → no link');
-  assert.match(s, /export function shareRun\(game, state\) \{\s*const P = prepRun\(game, state\);\s*P\.hurry\(\);\s*return P\.prep\.send\(\);/, 'the tap: nothing left to draw');
-  assert.match(s, /const upload = game && !game\.unproven && code \? async half => \{\s*await linger;\s*if \(!here\(\)\) return '';/, 'the end screen is read first (a quick PLAY AGAIN uploads nothing); an UNPROVEN run has no link');
-  assert.ok(LINGER_MS >= 1000 && LINGER_MS <= 2500 && LINK_TRIES >= 3);
+  assert.match(s, /export function shareRun\(game, state\) \{\s*return prepRun\(game, state\)\.prep\.send\(\);/, 'the tap: nothing left to draw — the upload starts here');
+  assert.match(s, /const upload = game && !game\.unproven && code \? async half => \{\s*if \(!here\(\)\) return '';/, 'an UNPROVEN run has no link');
+  assert.doesNotMatch(s, /linger|LINGER/, 'BEFORE THE FLIP: no timed upload behind the end screen any more');
+  assert.ok(LINK_TRIES >= 3);
+  assert.match(d, /const linkP = o\.upload && !o\.onTap \?/, 'the kit: an onTap card is not uploaded at warm()');
+  assert.match(d, /if \(L && !L\.tried\) \{   \/\/ \(the first SHARE: the card goes up now — once\)/, '… it goes up at the first SHARE, ONCE');
+  assert.match(d, /if \(!tapStillLive\(t0\)\) return 'ready';/, '… a spent tap → ready (the next tap shares inside its own gesture)');
+  assert.match(read('js/ui/final.js'), /else if \(how === 'ready'\) share\.classList\.add\('is-ready'\);/, 'the console\'s SHARE: PREPARING… → SHARE (lit)');
   assert.match(v, /lazyImport\(import\('\.\/share\.js'\), '\.\/share\.js'\)\.then\(m => m\.warmShare\(game, state\)\)/, 'THE CARD IS BUILT BEFORE THE TAP: the end screen warms it (solo + match)');
   assert.match(s, /kept\.pid === pid && kept\.h === h/, 'the same picture again shares the remembered link — nothing uploaded');
   // the kit: a cartridge's own middle box + no result line when the card has none (PRISM DROP + OVERCLOCK unchanged)

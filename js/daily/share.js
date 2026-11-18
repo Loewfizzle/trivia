@@ -236,18 +236,28 @@ export async function shareFonts() {
  * PFIX-3 — S11, THE CARD IS BUILT BEFORE THE TAP: `make()` (async → { cv, name, line } — its imports, an /api call, the drawing) runs when
  * the screen OPENS (`warm()`), the PNG + its file are kept, the canvas freed; the tap (`send()`) then reaches the share sheet with nothing
  * left to wait for. ONE send at a time (a double tap = 'busy'). A build that failed is tried again by the next warm / send.
+ * JAYWALK BEFORE THE FLIP — THE CARD UPLOADS ONLY ON SHARE (`o.onTap`): the card + its half-size PNG are made at warm(), NOTHING goes up
+ * until the player taps SHARE; then ONCE (a second SHARE shares the same link — nothing uploaded). The tap's user activation can be gone
+ * after the upload's await (iOS Safari refuses the share sheet then): a send whose activation is spent → 'ready' — the link is made, the
+ * NEXT tap shares it at once inside its own gesture (the console's SHARE: PREPARING… → SHARE — ui/final.js). The dailies' later share
+ * reuses this.
  */
+/** a share sheet can still open from this tap: the browser's own word (navigator.userActivation — Safari 16.4+), else ≤ 1 s since the tap */
+export const TAP_FRESH_MS = 1000;
+const tapStillLive = t0 => { try { if (navigator.userActivation) return navigator.userActivation.isActive; } catch { /* below */ } return performance.now() - t0 <= TAP_FRESH_MS; };
 export function prepShare(make) {
   let p = null, busy = false;
   const build = () => (p ||= shareFonts().then(make).then(async o => {
     if (!o || !o.cv) return null;
     // (CITY E — THE TAPPABLE SHARE CARD: `o.upload(png)` → the link (an absolute URL) — the half-size PNG sent NOW, while the screen opens,
-    //  never at the tap; a failed upload = no link: the share still goes out as the image + the line)
-    const linkP = o.upload ? halfPng(o.cv).then(b => (b ? o.upload(b) : '')).catch(e => { console.warn('[share] upload', e); return ''; }) : Promise.resolve('');
+    //  never at the tap; a failed upload = no link: the share still goes out as the image + the line. `o.onTap`: the PNG is kept, sent at the tap)
+    const halfP = o.upload ? halfPng(o.cv).catch(() => null) : Promise.resolve(null);
+    const linkP = o.upload && !o.onTap ? halfP.then(b => (b ? o.upload(b) : '')).catch(e => { console.warn('[share] upload', e); return ''; }) : Promise.resolve('');
     const f = await shareFile(o.cv, o.name || 'neon-speakeasy.png');
+    const half = o.onTap ? await halfP : null;
     const url = await linkP;
     try { o.cv.width = o.cv.height = 0; } catch { /* fine */ }               // (5.8 MB a card — freed at once: only the PNG is kept)
-    return f ? { ...f, line: o.line || '', url: url || '' } : null;
+    return f ? { ...f, line: o.line || '', url: url || '', later: o.onTap && o.upload ? { upload: o.upload, half, tried: false } : null } : null;
   }).catch(e => { console.warn('[share] build', e); return null; }).then(r => { if (!r) p = null; return r; }));
   return {
     warm() { build(); },
@@ -255,7 +265,19 @@ export function prepShare(make) {
     async send() {
       if (busy) return 'busy';
       busy = true;
-      try { const r = await build(); return r ? await sendReady(r) : 'failed'; } finally { busy = false; }
+      const t0 = performance.now();
+      try {
+        const r = await build();
+        if (!r) return 'failed';
+        const L = r.later;
+        if (L && !L.tried) {   // (the first SHARE: the card goes up now — once)
+          L.tried = true;
+          r.url = L.half ? await Promise.resolve(L.upload(L.half)).catch(e => { console.warn('[share] upload', e); return ''; }) || '' : '';
+          L.half = null;
+          if (!tapStillLive(t0)) return 'ready';
+        }
+        return await sendReady(r);
+      } finally { busy = false; }
     },
   };
 }

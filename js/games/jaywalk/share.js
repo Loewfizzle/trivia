@@ -6,9 +6,11 @@
 // H4B's ADD-ON (the owner, Nov 16 4:33 pm) — THE SHARE = THE PICTURE ONLY:
 //   · THE SHARE SENDS ONLY THE LINK (navigator.share({ url }) — the site's rule from FIXES R1): no "JAYWALK · 143 LANES" text, no site
 //     line. The link's preview IS this card (its og:image) and a tap on it opens neonspeakeasy.com. The dailies' own machinery
-//     (js/daily/share.js#prepShare → sendReady · api/_lib/share-card.js): THE CARD IS BUILT BEFORE THE TAP — the end screen warms it
-//     (the half-size PNG goes up while the player reads the screen, never at the tap); the server takes it only from a player its own
-//     COUNTED result of this match names; one run card a player a day, replaced in place; the same picture again uploads nothing.
+//     (js/daily/share.js#prepShare → sendReady · api/_lib/share-card.js): THE CARD IS BUILT BEFORE THE TAP — the end screen warms it;
+//     BEFORE THE FLIP (the owner, Nov 17 — the review's storage finding): it UPLOADS ONLY ON SHARE — the half-size PNG goes up at the
+//     player's first SHARE tap, once (prepShare's onTap: a spent tap → PREPARING… → SHARE, one more tap); the server takes it only from a
+//     player its own COUNTED result of this match names; one run card a player a day, replaced in place, kept 7 days; the same picture
+//     again uploads nothing.
 //     No link (an uncounted run, no signal, a desktop) → the picture itself goes out — still no text.
 //   · THE CARD: THE FRAME IS THE HERO — larger (the kit's `box` option: 984 × 792 of the card's 1080 × 1350), zoomed on the kid + what
 //     got him, brighter; the cause line ONCE (the big one in the frame — the result line under the name is gone); the lanes in the big
@@ -113,9 +115,7 @@ export function drawJwCard(game, { uid, name, code }) {
   return drawRunCard(card, (c, box, k) => drawRunMiddle(c, box, k, shot), JW_CARD);
 }
 
-// ---- THE LINK (the picture goes up BEFORE the tap; the tap shares the link alone)
-/** the end screen is read for this long before the card goes up (a quick PLAY AGAIN uploads nothing); a tap on SHARE ends the wait at once */
-export const LINGER_MS = 1500;
+// ---- THE LINK (BEFORE THE FLIP: the picture goes up only at the player's SHARE; the share is the link alone)
 /** the server's count of the run lands a moment after the podium: the upload is tried this often, this far apart */
 export const LINK_TRIES = 4, LINK_GAP_MS = 1200;
 export const LINK_KEY = 'ns:shr:jw';   // ({ pid, h, url } — the last run card this phone uploaded: the same picture again shares that link)
@@ -145,15 +145,12 @@ export async function fitPng(png) {
   return png.size <= LINK_HARD ? png : null;
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-let held = null;   // { m, prep, hurry } — ONE match's share at a time on this phone
+let held = null;   // { m, prep } — ONE match's share at a time on this phone
 function prepRun(game, state) {
   const m = game && game.matchId, uid = state && state.uid, code = state && state.code;
   if (held && held.m === m) return held;
-  let hurry = () => {};
-  const linger = new Promise(r => { hurry = r; setTimeout(r, LINGER_MS); });
   const here = () => !!(live.game && live.game.matchId === m);
   const upload = game && !game.unproven && code ? async half => {
-    await linger;
     if (!here()) return '';
     const png = await fitPng(half);
     if (!png) return '';
@@ -178,15 +175,14 @@ function prepRun(game, state) {
   } : null;
   const me = (state && state.players && state.players[uid]) || {};
   // (a build that would land in the NEXT run — PLAY AGAIN tapped while the fonts were still coming — is dropped: never a hitch mid-hop)
-  const prep = prepShare(async () => (here() ? { cv: drawJwCard(game, { uid, name: me.name, code }), name: 'neon-speakeasy-jaywalk.png', line: '', upload } : null));
-  held = { m, prep, hurry };
+  const prep = prepShare(async () => (here() ? { cv: drawJwCard(game, { uid, name: me.name, code }), name: 'neon-speakeasy-jaywalk.png', line: '', upload, onTap: true } : null));
+  held = { m, prep };
   return held;
 }
-/** the end screen is up: the card is drawn + (a moment later) its link made — nothing is left to wait for at the tap */
+/** the end screen is up: the card is DRAWN (its PNG kept on the phone) — nothing goes up until SHARE */
 export function warmShare(game, state) { try { prepRun(game, state).prep.warm(); } catch { /* the tap builds it */ } }
-/** SHARE MY RUN → 'shared' | 'none' | 'shown' | 'busy' | 'failed' — the LINK alone (its preview is the card); no link → the picture alone */
+/** SHARE MY RUN → 'shared' | 'ready' (the link made, the tap spent: SHARE again) | 'none' | 'shown' | 'busy' | 'failed' — the LINK alone (its
+ *  preview is the card; uploaded at this tap, once); no link → the picture alone */
 export function shareRun(game, state) {
-  const P = prepRun(game, state);
-  P.hurry();
-  return P.prep.send();
+  return prepRun(game, state).prep.send();
 }

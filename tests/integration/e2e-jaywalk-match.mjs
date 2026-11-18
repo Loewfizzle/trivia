@@ -42,17 +42,26 @@ const pidFor = async uid => { for (let i = 0; i < 80; i++) { const pid = await d
 const state = p => G(p, 'window.__jwGame.state()');
 const until = async (fn, ms = 30000, step = 150) => { const end = Date.now() + ms; while (Date.now() < end) { try { const v = await fn(); if (v) return v; } catch { /* busy */ } await sleep(step); } return null; };
 /** H4B's add-on — THE SHARE = THE PICTURE ONLY: tap `sel` with the share sheet stubbed → what was shared + the link's page + its picture */
-async function shareLink(page, sel) {
-  await page.evaluate(() => { window.__shared = []; navigator.share = async d => { window.__shared.push(d); }; navigator.canShare = () => true; });
+async function shareLink(page, sel, spent = false) {
+  // (`spent`: the tap's user activation is gone by the time the upload answers — an iPhone's case: navigator.userActivation says so)
+  await page.evaluate(sp => { window.__shared = []; navigator.share = async d => { window.__shared.push(d); }; navigator.canShare = () => true; try { if (sp) Object.defineProperty(navigator, 'userActivation', { configurable: true, get: () => ({ isActive: false, hasBeenActive: true }) }); else delete navigator.userActivation; } catch { /* fine */ } }, spent);
   await page.evaluate(q => document.querySelector(q).click(), sel);
-  let out = null;
-  for (let i = 0; i < 100 && !(out && out.length); i++) { out = await page.evaluate(() => window.__shared); if (!(out && out.length)) await new Promise(r => setTimeout(r, 150)); }
+  // (BEFORE THE FLIP — THE CARD UPLOADS ONLY ON SHARE: a tap the upload SPENT → the console's SHARE reads lit ("ready"): one more tap
+  //  shares the link inside its own gesture; a live tap shares at once)
+  let out = null, again = false;
+  for (let i = 0; i < 100 && !(out && out.length); i++) {
+    out = await page.evaluate(() => window.__shared);
+    if (!(out && out.length)) {
+      if (!again && await page.evaluate(q => { const b = document.querySelector(q); return !!b && b.classList.contains('is-ready') && !b.classList.contains('is-busy'); }, sel)) { again = true; await page.evaluate(q => document.querySelector(q).click(), sel); }
+      await new Promise(r => setTimeout(r, 150));
+    }
+  }
   const d = (out && out[0]) || {}, url = d.url || '';
   const html = url ? await fetch(url, { redirect: 'manual' }).then(r => r.text()).catch(() => '') : '';
   const meta = k => (new RegExp(`<meta property="${k}" content="([^"]*)"`).exec(html) || [])[1] || '';
   const img = meta('og:image').replace(/&amp;/g, '&');
   const png = img ? Buffer.from(await fetch(img).then(r => r.arrayBuffer())) : Buffer.alloc(0);
-  return { keys: Object.keys(d).sort(), url, code: (/[?&]s=([A-Za-z0-9_-]{12})/.exec(url) || [])[1] || '', title: meta('og:title'), img, go: (/url=([^"]*)"/.exec(html) || [])[1] || '',
+  return { again, keys: Object.keys(d).sort(), url, code: (/[?&]s=([A-Za-z0-9_-]{12})/.exec(url) || [])[1] || '', title: meta('og:title'), img, go: (/url=([^"]*)"/.exec(html) || [])[1] || '',
     png: png.length > 24 && png.toString('latin1', 1, 4) === 'PNG' ? { w: png.readUInt32BE(16), h: png.readUInt32BE(20), bytes: png.length } : null, buf: png };
 }
 /** (the emulator stays clean for the other suites: every run card these phones uploaded — the end screens warm one each — is removed) */
@@ -342,6 +351,8 @@ try {
   ok(card.shot && card.w === 1080 && card.h === 1350 && isCause(card.line) && card.result === '', `THE SHARE IMAGE: BOB's real frame + "${card.line}" — ONCE (no result line) (${card.w} × ${card.h})`);
   // H4B's add-on — THE SHARE = THE PICTURE ONLY: SHARE MY RUN sends ONLY THE LINK; its preview IS BOB's card; a guest of the owner's match has one too
   const LK = await shareLink(pages[1], '.jw-final .final-share');   // (CITY F: SHARE is the console's foot's)
+  { const cards = Object.values((await dbGet('shr')) || {}).filter(c => c && c.k === 'run' && pids.includes(c.p)).length;   // (BEFORE THE FLIP — THE RUN CARD ONLY ON SHARE)
+    ok(cards === 1, `THE RUN CARD ONLY ON SHARE: every phone's podium was up, only BOB tapped SHARE → ${cards} run card${cards === 1 ? '' : 's'} on the server`); }
   ok(JSON.stringify(LK.keys) === '["url"]' && /\/api\/daily\?s=[A-Za-z0-9_-]{12}$/.test(LK.url), `H4B — SHARE MY RUN sends ONLY THE LINK (${JSON.stringify(LK.keys)} — no text, no file): ${LK.url}`);
   ok(/BOB · JAYWALK · /.test(LK.title) && LK.go === '/' && !!LK.png && LK.png.w === 540 && LK.png.h === 675 && LK.png.bytes <= 300 * 1024, `… the link's preview IS the card (og:image ${LK.png ? `${LK.png.w} × ${LK.png.h}, ${Math.round(LK.png.bytes / 1024)} KB` : 'none'}; "${LK.title}") and a tap opens the site`);
   if (LK.png) { const { writeFileSync } = await import('node:fs'); writeFileSync(`${OUTDIR.replace(/\/?$/, '/')}share-link-match-540.png`, LK.buf); }
