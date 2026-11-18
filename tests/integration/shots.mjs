@@ -136,7 +136,7 @@ const SCENE = {
   'pn-podium': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism' }],
   // (THE JAYWALK GO-LIVE PASS: its card, night + day; HOW TO PLAY on its tab — act help = ui/help.js#openHelp(game))
   'pn-jaywalk': ['2026-11-10T20:30', { act: 'card', game: 'jaywalk' }], 'pn-jaywalk-day': ['2026-11-10T13:30', { act: 'card', game: 'jaywalk' }],
-  'jw-help': ['2026-11-10T20:30', { act: 'help', game: 'jaywalk' }], 'jw-help-day': ['2026-11-10T13:30', { act: 'help', game: 'jaywalk' }],
+  'jw-help': ['2026-11-10T20:30', { act: 'help', game: 'jaywalk' }], 'jw-help-day': ['2026-11-10T13:30', { act: 'help', game: 'jaywalk' }], 'jw-help-end': ['2026-11-10T20:30', { act: 'help', game: 'jaywalk', end: true }],
   // (PD-6 — THE SOLO PODIUM FITS: the podium AS IT LANDS (no scroll) — Safari WITH its toolbars = --sizes 390x650,402x690,430x746 (no --safe):
   //  PRISM DROP's solo (night + day, SCORE RUSH + SURVIVAL), OVERCLOCK's solo, a ROOM OF ONE (HOST → play alone); the multiplayer podium untouched)
   'pd6-pod': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism', top: 1 }], 'pd6-pod-day': ['2026-11-10T13:30', { act: 'solo-podium', game: 'prism', top: 1 }],
@@ -370,7 +370,8 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
   }
   if (o.act === 'bare') { await p.addStyleTag({ content: 'body * { visibility: hidden !important; } canvas { visibility: visible !important; }' }); await sleep(300); }
   if (o.act === 'menu') { await p.click('.menu-btn'); await p.waitForSelector('.gm .sh-panel'); await sleep(500); }
-  if (o.act === 'help') { await p.evaluate(g => import('/js/ui/help.js').then(m => m.openHelp(g)), o.game); await p.waitForSelector('.help-sheet .help-body li'); await sleep(600); }
+  if (o.act === 'help') { await p.evaluate(g => import('/js/ui/help.js').then(m => m.openHelp(g)), o.game); await p.waitForSelector('.help-sheet .help-body li'); await sleep(600);
+    if (o.end) { await p.evaluate(() => { const b = document.querySelector('.help-sheet .help-body'); b.scrollTop = b.scrollHeight; }); await sleep(400); } }   // (THE POLISH PASS: `end` — the help scrolled to its last line)
   // (PLAY NOW: the shelf · a card (the shelf → its row) · a solo run played to its podium — the clock pushed past its end)
   if (o.act === 'shelf' || o.act === 'card') {
     await p.evaluate(() => document.querySelector('.nd-tab-play').click()); await p.waitForSelector('.nd-shelf-sheet.is-in .nd-shelf-row'); await sleep(450);

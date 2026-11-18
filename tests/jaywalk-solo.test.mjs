@@ -271,11 +271,11 @@ test('HOW TO PLAY + YOUR TABLE: the rules IN ui/help.js since THE GO-LIVE PASS (
   assert.ok(goal.length <= 70 && titles.length === 2, 'one line + two short sections');
   for (const t of titles) assert.match(t, /^[A-Z ]{6,16}$/);
   for (const t of lines) assert.ok(t.length <= 52 && /^[A-Z]/.test(t), `a kid's line: ${t}`);
-  assert.equal(lines.length, 10, 'ten short lines (the review\'s nine + THE GO-LIVE PASS\'s keyboard line)');
+  assert.equal(lines.length, 11, 'eleven short lines (the review\'s nine + THE GO-LIVE PASS\'s keyboard line + THE POLISH PASS\'s Mothership — a MATCH ends at 6:00, never in solo)');
   const all = lines.join(' ');
-  for (const w of ['TAP', 'SWIPE', 'KEYBOARD', 'arrow keys', 'WASD', 'SPACE', 'ROADS', 'WATER', 'logs', 'RAILS', 'LIGHTS', 'RUNWAY', 'UFO', 'fog by day']) assert.ok(all.includes(w), `the rules say ${w}`);
+  for (const w of ['TAP', 'SWIPE', 'KEYBOARD', 'arrow keys', 'WASD', 'SPACE', 'ROADS', 'WATER', 'logs', 'RAILS', 'LIGHTS', 'RUNWAY', 'UFO', 'fog by day', 'MATCH ends at 6:00', 'MOTHERSHIP']) assert.ok(all.includes(w), `the rules say ${w}`);
   assert.doesNotMatch(goal + all, /night harbor/, 'true by DAY too (the go-live review)'); assert.match(goal, /One life\. In a match, the farthest wins\./);
-  assert.equal((blk.match(/svg\('/g) || []).length, 10, 'one small drawing a line (picture-led)');
+  assert.equal((blk.match(/svg\('/g) || []).length, 11, 'one small drawing a line (picture-led)');
   assert.match(help, /const TAB = \{ jaywalk: 'JW',/);
   assert.match(help, /\? h\('ul\.help-list\.help-pics', items\.map\(\(t, i\) => h\('li', h\('span\.help-pic', \{ html: r\.pics\[s\]\[i\] \}\), h\('span', t\)\)\)\)/, 'the shared help draws one picture a line');
   assert.match(read('css/components.css'), /\.help-pics li \{/, 'its CSS in the boot stylesheet — the help opens before the cartridge loads');

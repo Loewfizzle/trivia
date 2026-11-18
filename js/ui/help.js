@@ -264,6 +264,7 @@ RULES.jaywalk = {
       'RUNWAY: the lights race, then the jet flies by.',
       'A GREEN RING: a UFO is landing. Step out of it.',
       'THE LIGHTS go out behind you (fog by day). Move!',
+      'A MATCH ends at 6:00: the MOTHERSHIP lifts everyone.',
     ]],
   ],
 };
@@ -278,7 +279,8 @@ RULES.jaywalk.pics = [
     svg('<path d="M12 21V11"/><circle cx="8" cy="7" r="3"/><circle cx="16" cy="7" r="3"/><path d="M5 21h14"/>', '#ff5a5a'),                                    // the signal's two red lights
     svg('<path d="M3 13l18-6-6 6 6 6z"/><path d="M3 18h6M3 8h6" opacity=".6"/>', '#ffb347'),                                                                   // the runway: the jet's dart + the racing lights
     svg('<ellipse cx="12" cy="18" rx="8" ry="3"/><path d="M6 9h12M9 9a3 3 0 0 1 6 0"/><path d="M12 11v4" opacity=".6"/>', '#7dffa0'),                        // the UFO over its green ring
-    svg('<path d="M3 20h18M3 15h18"/><path d="M5 10h14" opacity=".55"/><path d="M8 5h8" opacity=".25"/>', '#b8a6ff')],                                         // the lights going out
+    svg('<path d="M3 20h18M3 15h18"/><path d="M5 10h14" opacity=".55"/><path d="M8 5h8" opacity=".25"/>', '#b8a6ff'),                                          // the lights going out
+    svg('<path d="M2 9c0-2 4.5-3.5 10-3.5S22 7 22 9s-4.5 3-10 3S2 11 2 9z"/><path d="M8 12l-3 9M16 12l3 9M12 12v9" opacity=".6"/>', '#7dffa0')],             // THE POLISH PASS: the Mothership + her beam (a match's end at 6:00 — never in solo)
 ];
 
 RULES.gridlock = {
