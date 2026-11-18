@@ -137,8 +137,13 @@ void main() {
     // blue, the brightest + bluest ground in view (night #1a6fe0 → #3fb0ff on the swells · day #2f9cff → #6cc8ff: the same identity,
     // brighter); white-ish ripple caps + specks DRIFTING WITH THE CURRENT (vState.y = the lane's own flow in cells a second — the way
     // its logs go: the flow reads); a BOLD bright foam line at both banks; the neon's reflections kept, small.
-    float t = uTime, flow = vState.y, xf = x - flow * t;          // (xf: the surface, carried by the current)
-    vec2 q = vec2(xf * 0.85, z * 2.4) + seed * 5.0;
+    // BEFORE THE FLIP (the inbox, Nov 17 6:58 pm — the owner: two water lanes side by side read as two strips): ONE BODY OF WATER — the
+    // surface's colour + ripple fields run on the WORLD's z (the lane + its z, as the grass does) with ONE slow drift, never a lane's own
+    // seed or current: no seam, no colour step between neighbouring water lanes; the foam + the shallows only where the water meets
+    // something that is not water (shD / shU). Each lane's SPECKS still ride its own current (xf) — the flow reads, the logs keep theirs.
+    float t = uTime, flow = vState.y, xf = x - flow * t;          // (xf: carried by this lane's current — the specks)
+    float zw = mod(vLane, 256.0) + z, xc = x - 0.12 * t;          // (the whole river's surface: the world's z, one slow drift)
+    vec2 q = vec2(xc * 0.85, zw * 2.4);
     float n1 = vnoise(q + vec2(0.0, -t * 0.06));
     float n2 = vnoise(q * 2.1 + vec2(0.0, t * 0.05) + 17.0);
     float n3 = vnoise(q * 4.6 + vec2(0.0, t * 0.09) + 41.0);
@@ -148,20 +153,20 @@ void main() {
     float rip = smoothstep(0.075, 0.0, abs(n2 - 0.52)) * smoothstep(0.34, 0.66, n3) + 0.5 * smoothstep(0.06, 0.0, abs(n1 - 0.46)) * smoothstep(0.45, 0.72, n2);
     c += vec3(0.62, 0.74, 0.78) * rip * mix(0.44, 0.34, uDay);
     // the specks: small white flecks carried along by the current, each coming + going to its own slow beat (every tier: the flow must read)
-    vec2 sp = vec2(xf * 4.0, z * 4.0), sid = floor(sp);
+    vec2 sp = vec2(xf * 4.0, z * 4.0), sid = floor(sp);   // (lane-local: a speck never straddles two currents)
     float sh = hash(sid + seed * 13.0);
     float gl = step(0.80, sh) * smoothstep(0.1, 1.0, sin(t * (0.9 + sh * 1.5) + sh * 40.0)) * smoothstep(0.30, 0.04, length((fract(sp) - 0.5) * vec2(0.55, 1.0)));
     c += vec3(0.86, 0.95, 1.0) * gl * mix(0.78, 0.95, uDay);
     if (uQ > 0.5) {
       // the neon's reflections, kept SMALL: short soft columns of the skyline's pink + violet lying on the water, broken by the swell (night)
-      float sx = xf * 0.7 + seed * 3.1 + (n1 - 0.5) * 0.5, id = floor(sx), f = fract(sx) - 0.5;
-      float colm = smoothstep(0.30, 0.04, abs(f)) * step(0.55, hash(vec2(id, seed))) * smoothstep(0.35, 0.8, n2);
-      vec3 neon = hash(vec2(id + 3.0, seed)) < 0.5 ? vec3(1.0, 0.30, 0.75) : vec3(0.62, 0.40, 1.0);
+      float sx = xc * 0.7 + (n1 - 0.5) * 0.5, id = floor(sx), f = fract(sx) - 0.5;   // (one body of water: the reflections run on across the lanes)
+      float colm = smoothstep(0.30, 0.04, abs(f)) * step(0.55, hash(vec2(id, 7.0))) * smoothstep(0.35, 0.8, n2);
+      vec3 neon = hash(vec2(id + 3.0, 7.0)) < 0.5 ? vec3(1.0, 0.30, 0.75) : vec3(0.62, 0.40, 1.0);
       c += neon * colm * 0.10 * (1.0 - uDay);
     }
     // THE BANKS: a BOLD bright foam line + a paler shallow where the water meets anything that is not water
     float shD = step(0.5, abs(dn - 2.0)), shU = step(0.5, abs(up - 2.0));
-    float lap = 0.014 * (n3 - 0.5) + 0.006 * sin(xf * 3.1 + seed);
+    float lap = 0.014 * (n3 - 0.5) + 0.006 * sin(xc * 3.1 + seed);
     float foam = max(smoothstep(0.115 + lap, 0.070 + lap, z) * shD, smoothstep(0.115 + lap, 0.070 + lap, 1.0 - z) * shU);
     c += vec3(0.10, 0.16, 0.10) * (smoothstep(0.30, 0.0, z) * shD + smoothstep(0.30, 0.0, 1.0 - z) * shU);
     c = mix(c, vec3(1.0), min(1.0, foam * (0.78 + 0.22 * n3)));

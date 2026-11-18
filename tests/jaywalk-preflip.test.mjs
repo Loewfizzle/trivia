@@ -82,3 +82,16 @@ test('THE APPROACH SIGN: drawn again whenever it might be blank (a refused / wip
   assert.match(n, /c\.fillStyle = css\(shade\(paint, 0\.72\)\);/, 'the day board: the area\'s paint darkened');
   assert.match(n, /offLost\(\);/, 'the subscription goes with the scene');
 });
+
+test('THE INBOX (Nov 17 6:58 pm): ONE BODY OF WATER + no white flash at a tier step / a resize', () => {
+  const fx = src('night-fx.js'), w = fx.slice(fx.indexOf('// THE WATER (H4'), fx.indexOf('} else if (type < 3.5)'));
+  assert.match(w, /float zw = mod\(vLane, 256\.0\) \+ z, xc = x - 0\.12 \* t;/, 'the surface runs on the world\'s z with ONE slow drift');
+  assert.match(w, /vec2 q = vec2\(xc \* 0\.85, zw \* 2\.4\);/, 'the colour + ripple fields: no lane seed, no lane current');
+  assert.doesNotMatch(w.slice(w.indexOf('vec2 q ='), w.indexOf('// the specks')), /seed|xf/, 'nothing lane-own in the surface');
+  assert.match(w, /float shD = step\(0\.5, abs\(dn - 2\.0\)\), shU = step\(0\.5, abs\(up - 2\.0\)\);/, 'the foam + the shallows only where the water meets something that is not water');
+  const n = src('night.js');
+  assert.match(n, /const fit = force => \{ fitAsk = Math\.max\(fitAsk, force \? 2 : 1\); \};/, 'a resize only ASKS');
+  assert.match(n, /function draw\(run, course, a, dt, o = null\) \{\n    if \(fitAsk\) \{ const f = fitAsk === 2; fitAsk = 0; fitNow\(f\); \}/, '… the next draw resizes FIRST, then renders (the canvas is never presented cleared)');
+  assert.equal((n.match(/renderer\.setSize\(/g) || []).length, 1, 'ONE resize path');
+  assert.match(n, /setTier\(o\.tier == null \? 2 : o\.tier\);\n  fitNow\(true\); fitAsk = 0;/);
+});

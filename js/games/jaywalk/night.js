@@ -420,7 +420,14 @@ export function createNight(host, o = {}) {
   }
   /** how deep in the far haze a point is (0 = clear · 1 = gone) — for what three's own fog cannot fade */
   const hazeAt = (x, y, z) => { const d = (x - cam.position.x) * fwd.x + (y - cam.position.y) * fwd.y + (z - cam.position.z) * fwd.z, u = clamp01((d - scene.fog.near) / Math.max(0.001, scene.fog.far - scene.fog.near)); return u * u * (3 - 2 * u); };
-  function fit(force) {
+  // BEFORE THE FLIP (the inbox, Nov 17 6:58 pm — "random weird flashes of white light" BY DAY): a resize CLEARS the 3D canvas. A tier step
+  // (the view's tiers.tick runs AFTER the frame's draw — automatic, whenever a phone's frames slip or have room again) or a ResizeObserver
+  // call resized it after the frame was drawn → that frame showed the stage's own background: the day's pale sky-blue (#c6e6f7) across
+  // the whole playfield for one frame (by night near-black: unseen). Now a resize only ASKS (fit); the next draw() resizes FIRST, then
+  // renders — the canvas is never presented cleared.
+  let fitAsk = 0;   // (0 · 1 = a size check · 2 = forced)
+  const fit = force => { fitAsk = Math.max(fitAsk, force ? 2 : 1); };
+  function fitNow(force) {
     const nw = host.clientWidth, nh = host.clientHeight, nd = resting ? 1 : Math.min(devDpr, DPR_AT[tier]);
     if (!nw || !nh || (!force && nw === w && nh === h && nd === dpr)) return;
     w = nw; h = nh; dpr = nd; if (resting) resting = 3;
@@ -440,6 +447,7 @@ export function createNight(host, o = {}) {
     fit(true);
   }
   setTier(o.tier == null ? 2 : o.tier);
+  fitNow(true); fitAsk = 0;   // (the new canvas: sized at once — nothing drawn on it yet)
 
   // ---- what stands on a lane (view only — from the seed + the lane)
   let courseRef = null, vseed = 0;
@@ -513,6 +521,7 @@ export function createNight(host, o = {}) {
    *  [{ run, hex, out? }] — each gets `tag` = [x, y] on the screen (CSS px) or null. `o.t` = THE WORLD's TICK: all is drawn at it.
    *  `o.a` = the ghosts' fraction; `g.vis` / `o.off` = a late hop's CATCH-UP ({ x, y, u: 0 … 1, d }); `g.held` = unconfirmed. */
   function draw(run, course, a, dt, o = null) {
+    if (fitAsk) { const f = fitAsk === 2; fitAsk = 0; fitNow(f); }   // (a resize asked since the last frame: done HERE, before this frame renders)
     if (resting === 1) return;   // (rest(): its still is up)
     if (resting) resting--;
     clock += dt;
