@@ -745,6 +745,27 @@ daily = its row; `tests/daily-best.test.mjs` checks every DAILIES row has one):
   SAFE TWICE; a removed profile is skipped). The preview names, per daily, the days with NOTHING kept (no plays, or `dailyFresh` wiped them).
 - Proven: `tests/daily-best.test.mjs` · `tests/integration/daily-jaywalk.test.mjs` "DAILY BEST".
 
+## DAILY B — THE TICKETS + THE SWEEP METER (Nov 18 2026 — docs/games/passes/daily-b.md; the owner's decisions: docs/games/plan.md "DAILY A / B" + "DAILY B")
+ONE pure rule per ticket — `js/daily/today-logic.js#ticketState(today, row, { lineOf, done })` — drawn by the SHARED ticket (js/screens/daily.js
+#ticketRow — every daily, no special path):
+- **BEFORE** (PLAY / RESUME): "DAILY BEST · <value>" in the ticket's OWN ink (`.dy-best`) once the player has a best from an EARLIER day — the
+  value in the daily's measure (`bestLine`: "4 GUESSES" · "1:12" · THE DROP's time alone "3:41" · "168 LANES"); no best yet → the hook.
+- **DONE** (the ADMITTED stamp): the result + the PLACE ("2ND OF 5 PLAYERS" — `placeLine`, from `today.place`) — or, when today's result beat
+  an EARLIER day's best (`newBest`), the gold NEW DAILY BEST in its place (`.dy-gold` — foil TEXT, never a pill). The very first best (`first`)
+  is never gold. COUNTS FROM TOMORROW · THIS RUN COULDN'T BE CHECKED win over both.
+- **A `tries` daily** (JAYWALK): BETWEEN TRIES = the LAST try big + "DAILY BEST · …" + TRY AGAIN with "n TRIES LEFT" under it; ADMITTED only
+  once no try is left or the player tapped DONE (per phone, per day — `today.js#markTriesDone`); a try still open is never ADMITTED. THE ROOM
+  WINS: "TRY ENDED · N TRIES LEFT" (`tryEndedLine`), nothing held. → docs/jaywalk.md "THE DAILY — THE PHONE HALF".
+- **THE SWEEP METER**: one segment per LIVE daily (the owner: 3 until JAYWALK goes live, then 4), each lit in ITS ticket's ink (`--sk` from
+  `TICKET_INK`, both looks); the meter IS the count — the "1 OF 3" words are gone (THE SWEEP · SWEPT stays its name).
+- **4 TICKETS FIT** at 375 × 667 · 390 × 844 · 430 × 932, both looks, with the header + THE SWEEP: at 375 pt (≤ 380) the shared ticket tightens (a
+  60 px stub, a slimmer PLAY) and from 4 rows (`.dy-rows.is-many`) the rows sit closer; a DAILY BEST line wraps only BEFORE its value. Proven:
+  e2e-jaywalk-daily-run.mjs's FIT checks (every ticket state, the 4th ticket's bottom inside the screen, nothing clipped).
+- **SHARE TODAY** lays out 1–6 sections evenly (unchanged) — JAYWALK's is `js/games/jaywalk/daily-share.js`; the plain line names a tries daily
+  "JAYWALK · BEST OF 3 · 143 lanes" (`shareTodayLine`).
+- Proven: `tests/daily-b.test.mjs` · `tests/integration/e2e-jaywalk-daily-run.mjs` · the preview page `daily-preview.html` (`&jw=` · `&best=1`
+  · `&gold=<id>` · `&first=<id>`).
+
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

@@ -194,10 +194,10 @@ await H.run(async () => {
   await sleep(1200);
   await click(A.page, '.dy-run > .dy-back');
   await waitFor(A.page, `!!document.querySelector('.dy-ticket[data-id="password"].is-done')`, 'DONE', 10000);
-  await waitFor(A.page, `/1ST OF 2 TODAY/.test(document.querySelector('.dy-ticket[data-id="password"]').innerText)`, 'the everyone place', 10000).catch(() => {});
+  await waitFor(A.page, `/1ST OF 2 PLAYERS/.test(document.querySelector('.dy-ticket[data-id="password"]').innerText)`, 'the everyone place', 10000).catch(() => {});
   const pwRow = await ev(A.page, `document.querySelector('.dy-ticket[data-id="password"]').innerText.replace(/\\s+/g, ' ')`);
   const stamp = await A.page.evaluate(() => { const s = document.querySelector('.dy-ticket[data-id="password"] .dy-stamp'); if (!s) return null; const m = /rotate\((-?[\d.]+)deg\)|matrix\(([^)]+)\)/.exec(getComputedStyle(s).transform) || []; return { svg: !!s.querySelector('svg text'), word: (s.querySelector('svg text') || {}).textContent, check: !!document.querySelector('.dy-check'), serial: (document.querySelector('.dy-ticket[data-id="password"] .dy-serial') || {}).textContent, tilted: getComputedStyle(s).transform !== 'none' }; });
-  ok(/2 GUESSES/.test(pwRow) && /1ST OF 2 TODAY/.test(pwRow) && stamp && stamp.svg && stamp.word === 'ADMITTED' && !stamp.check && stamp.tilted && /^Nº \d{4}$/.test(stamp.serial || ''), `DONE: the score + the EVERYONE place (DFIX5 — "1ST OF 2 TODAY") + the drawn ADMITTED stamp (tilted, no check circle) + the serial ${stamp && stamp.serial} ("${pwRow}")`);
+  ok(/2 GUESSES/.test(pwRow) && /1ST OF 2 PLAYERS/.test(pwRow) && stamp && stamp.svg && stamp.word === 'ADMITTED' && !stamp.check && stamp.tilted && /^Nº \d{4}$/.test(stamp.serial || ''), `DONE: the score + the EVERYONE place (DAILY B — "1ST OF 2 PLAYERS") + the drawn ADMITTED stamp (tilted, no check circle) + the serial ${stamp && stamp.serial} ("${pwRow}")`);
   if (H.SHOTS) await H.shotAll(A.page, 'dy-03-mixed');
   // DFIX2 — SCORES after you play: ALICE 1ST (2 GUESSES) framed as YOU, BOBBY 2ND (3 GUESSES) — each their slim card, the score UNDER it
   await click(A.page, '.dy-tab:nth-child(2)');
@@ -266,7 +266,7 @@ await H.run(async () => {
       for (const [x, y] of pts) if (await tap(x, y)) n++;
       // + the city's own answering points under this screen (whatever lies over them — a card, a gap, the padding; never a button)
       const under = (await pg.evaluate(pts => pts.filter(([x, y]) => { const e = document.elementFromPoint(x, y); return e && e.closest('.dy-overlay') && !e.closest('button, a, input, label, [role="button"], [data-press]'); }), signs)).filter((_, i) => i % 3 === 0).slice(0, 14);
-      for (const [x, y] of under) if (await tap(x, y)) m++;
+      for (const [x, y] of under) { const el = await pg.evaluate((x, y) => { const e = document.elementFromPoint(x, y); return e ? `${e.tagName}.${e.className}` : ''; }, Math.round(x), Math.round(y)); if (await tap(x, y)) { m++; const d = await pg.evaluate(() => document.body.dataset.daily || 'none'); console.log('TAPDBG2', Math.round(x), Math.round(y), el, d); } }
       await new Promise(r => setTimeout(r, 350));
       const after = await cityOpened(), cov = await pg.evaluate(() => !!window.__district && window.__district.covered()), pops = await pg.evaluate(() => window.__popups.slice());
       ok(!after.card && pops.length === 0 && after.sheet === before.sheet && after.daily && after.tab === before.tab, `${what}: ${n} taps on the rows (middles, edges, gaps, padding) + ${m} on a billboard's own points → no game card, no sheet EVER opened (${pops.length ? pops.join(' | ') : 'none'}), the screen still up (${JSON.stringify(after)})`);
@@ -400,7 +400,7 @@ await H.run(async () => {
   // time + ONE drawn searchlight ("…, 1 spot"), ALICE's none; one line each, never wrapping
   {
     const tkc = await A.page.evaluate(() => { const r = document.querySelector('.dy-ticket[data-id="coastclear"] .dy-result'); return { text: r.textContent, marks: r.querySelectorAll('.dy-mark').length, place: (document.querySelector('.dy-ticket[data-id="coastclear"] .dy-rank') || {}).textContent }; });
-    ok(/^\d+:\d\d$/.test(tkc.text) && tkc.marks === 0 && /^(1ST|2ND) OF 2 TODAY$/.test(tkc.place), `COAST CLEAR's ticket: the time, no lamp on a clean run, the everyone place (${JSON.stringify(tkc)})`);
+    ok(/^\d+:\d\d$/.test(tkc.text) && tkc.marks === 0 && /^(1ST|2ND) OF 2 PLAYERS$/.test(tkc.place), `COAST CLEAR's ticket: the time, no lamp on a clean run, the everyone place (${JSON.stringify(tkc)})`);
     await click(A.page, '.dy-tab:nth-child(2)');
     await waitFor(A.page, `(() => { const l = document.querySelector('.dy-sec[data-id="coastclear"] .dy-cards'); return l && l.dataset.strips === '2'; })()`, 'COAST CLEAR on SCORES', 10000);
     const cc = await A.page.evaluate(() => [...document.querySelectorAll('.dy-sec[data-id="coastclear"] .dy-crow')].map(r => { const s = r.querySelector('.dy-cscore'), b = s.getBoundingClientRect(); return { who: r.querySelector('.vl-name').textContent, text: s.textContent, marks: s.querySelectorAll('.dy-mark svg path').length ? s.querySelectorAll('.dy-mark').length : 0, label: s.getAttribute('aria-label') || '', oneLine: b.height < 24 }; }));

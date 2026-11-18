@@ -158,6 +158,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - A daily = its cartridge + ONE row in `config.js#DAILIES` (+ its server half in `api/_lib/dailies.js#SERVER_CARTS`) — PLUG-AND-PLAY, no fixed count.
 - DAILY BEST (DAILY A): ONE pure table, each daily's own rule (`core/daily-best.js` → `pstats/{pid}/db`, server-written in the finish's stats transaction); a `tries` row (JAYWALK: 3, the best counts) = `api/_lib/jaywalk-daily.js` + pure `jaywalk-tries.js` → docs/jaywalk.md "THE DAILY".
 - THE SERVER JUDGES every guess / move; answers + boards + THE DAILY SECRET live ONLY in the database (`tests/daily-secrets.test.mjs`) — never the pepper.
+- THE TICKET = ONE pure rule (`today-logic.js#ticketState`: DAILY BEST · place · gold NEW DAILY BEST; never ADMITTED while tries remain); a daily's own run (`daily.js#DAILY_RUNS`) stays out of its game's preload graph.
 - A RUN KEEPS ITS OWN DAY (`js/daily/run-day.js`); THE THROWAWAY GATE; the phone side on the kit (`js/daily/` — never a copy in a game).
 - THE GO-LIVE SWITCH + THE RESEED = /admin → THE DAILIES (owner-only); NO PILLS on the dailies; every colour a `--pw-*` / `--cc-*` token.
 - THE SCHEDULED GO-LIVE: an OFF daily opens ONLY at a 4 am turn the owner schedules (/admin → GO LIVE AT THE NEXT 4 AM — `progress/dlive`; `core/daily.js#rowOpenOn`), never mid-day; a finish sweeps its OWN day's set (`dailies.js#liveFor`) → docs/progression.md.

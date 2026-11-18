@@ -167,13 +167,12 @@ body[data-look="day"] .dy-rank.dy-gold { color: #7a4f00; background-image: linea
 .dy-left { font: 700 10px/1 var(--font-ui); letter-spacing: 0.14em; color: var(--dy-dim); white-space: nowrap; }
 .dy-ticket .btn.dy-play.is-long { min-width: 0; padding: 0 11px; font-size: 11px; letter-spacing: 0.1em; }
 .dy-nw { white-space: nowrap; }
-/* DAILY B — 4 TICKETS FIT (the SHARED ticket, every daily): a phone under 400 pt wide gets a tighter rhythm — a slimmer stub, a slimmer PLAY,
+/* DAILY B — 4 TICKETS FIT (the SHARED ticket, every daily): a phone under 381 pt wide (375) gets a tighter rhythm — a slimmer stub, a slimmer PLAY,
    less air — so a name + its DAILY BEST keep one line each; from 4 rows the rows sit closer + the meter tighter (375 × 667: all four on screen) */
-@media (max-width: 400px) {
+@media (max-width: 380px) {
   .dy-ticket { grid-template-columns: 60px 1fr auto; }
   .dy-info { padding-left: 11px; padding-right: 4px; }
   .dy-ticket .btn.dy-play { min-width: 78px; padding: 0 12px; }
-  .dy-act { padding-right: 10px; }
 }
 .dy-rows.is-many { gap: 11px; }
 .dy-rows.is-many .dy-ticket { min-height: 86px; }

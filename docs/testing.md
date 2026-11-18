@@ -1160,5 +1160,9 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   430, night + day, with and without the hint.
 - `/api`: `node --test daily-jaywalk.test.mjs` in tests/integration — its OWN file (`DAILY_TEST_OFF=jaywalk` opens the OFF row; the other
   suites' lists stay as they are). Unit: `tests/jaywalk-daily.test.mjs`, `tests/daily-best.test.mjs`. Rules: `rules.test.mjs` "DAILY A".
+- DAILY B — `e2e-jaywalk-daily-run.mjs "<browser>" [shots-dir]` — the REAL screens (on a `DAILY_TEST=1 … --emu` server; it schedules JAYWALK +
+  THE DROP from today — `progress/dlive` — and removes both at its end; run it AFTER e2e-daily): the 4-ticket FIT at three phones × both looks
+  (the preview page), then a player's day — 4 tickets + 4 segments, 3 tries (STOP, a refresh, THE ROOM WINS), ADMITTED only at the end, YOUR
+  BEST from the daily, SHARE TODAY's 4 sections. Unit: `tests/daily-b.test.mjs`.
 - `e2e-jaywalk-daily.mjs "<browser>" [--base …] [--shots …]` — on a `DAILY_TEST=1 … --emu` server; it opens the row through THE SCHEDULED
   GO-LIVE (`progress/dlive/jaywalk` — removed at its end; the server caches it ~30 s, so run e2e-daily BEFORE it, never right after).
