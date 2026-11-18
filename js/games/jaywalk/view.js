@@ -102,7 +102,7 @@ export function createView() {
   let rosterEl = null, rosterKey = '';   // (H5B's add-on — THE NAMES AT THE START: who is playing, lined up through the 3 · 2 · 1)
   let cues = createCues(), ducked = null, duckT = 0, trainOn = false, momK = 1;   // (H5A — THE WORLD's SOUNDS: cues.js; the music's level before the train ducked it)
   let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;   // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
-  let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, orderKey = '', countKey = '', watchKey = '';
+  let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, liveRuns = null, orderKey = '', countKey = '', watchKey = '';
   const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
   if (VIEWS) VIEWS.push(new WeakRef(frames));
   /** how long a run's end is seen before the end screen / the spectator's view covers it: THE ABDUCTION + THE MOTHERSHIP's lift are longer (H6A) */
@@ -178,7 +178,7 @@ export function createView() {
   function reset() {
     mode = 'wait'; course = START; run = createRun({ seed: 'start', mode: 'solo' }); log = []; queue = []; go = 0; proven = false; asked = false; goTries = 0; haveGo = false;
     sent = 0; chunkN = 0; lastFlush = 0; wroteE = false; overAt = 0; lanesShown = -1; markUntil = 0; shotAt = 0; revealed = false;
-    watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; orderKey = ''; countKey = ''; watchKey = '';
+    watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; liveRuns = null; orderKey = ''; countKey = ''; watchKey = '';
     cues = createCues(); quiet(); if (night) night.rest(false);
     for (const G of ghosts.values()) if (G.tagEl) G.tagEl.remove();
     ghosts.clear();
@@ -253,7 +253,7 @@ export function createView() {
     anchor();
     catchUp();
     mode = 'run';
-    if (night) night.setReveal(1);
+    revealed = true; if (night) night.setReveal(1);   // (THE POLISH PASS — the flag too: a scene REBUILT after a lost context reads it — a solo rebuild came back at reveal 0, the far lanes dark)
   }
   /** no proof here (no signal, the rules not published): a SOLO run still plays — on its own seed + clock, never counted */
   function unproven(why) {
@@ -490,6 +490,7 @@ export function createView() {
   }
   /** OUT in a match: the cause in neon words over the scene for a moment, then Call the Winner (two or more still in), then watching */
   function afterOut(g, runs) {
+    liveRuns = runs;
     const since = performance.now() - overAt;
     const ship = run.st === 'taken';   // (H6A — THE MOTHERSHIP = A FINISH LINE: its gold card, once the arrival has been seen)
     if (!outCard && mine(g) && since < 60000 && overAt > 0 && (!ship || since > 1500)) {
@@ -503,8 +504,9 @@ export function createView() {
       callDone = true;
       const cands = [...ghosts.values()].filter(G => inPlay(G, runs)).map(G => G.uid), made = runs && runs[uid] && runs[uid].k;
       const path = `${nodePath()}/k`;
-      expectRefusal(path, 'jaywalk call: the window closed, or the rules are not published yet');
-      callEl = showCall({ overlay: overEl, game: g, st: { live: { calls: made ? { [uid]: made } : {} } }, me: uid, player: u => st.players[u] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' }, candidates: cands, path,
+      // (THE POLISH PASS — THE LATE k WRITE: the rule takes a call only while the phase is 'play' and the pick has no `e` — the tap checks
+      //  both from the LIVE nodes (canPick + ended), and a race lost in flight / a write landing late is expected from the TAP, not the card)
+      callEl = showCall({ canPick: u => !(liveRuns && liveRuns[u] && liveRuns[u].e != null), expect: 'jaywalk call: the match moved on before the pick landed', overlay: overEl, game: g, st: { live: { calls: made ? { [uid]: made } : {} } }, me: uid, player: u => st.players[u] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' }, candidates: cands, path,
         line: u => { const G = ghosts.get(u), n = G ? G.run.best : 0; return `${n} ${n === 1 ? 'LANE' : 'LANES'}`; }, intro: n => `${n} still hopping — who goes the farthest? A right call earns game-night points.`,
         ended: () => !st.game || st.game.phase !== 'play' || st.game.matchId !== matchId, onState: msg => { callLine = msg === 'NO CALL' ? '' : msg; callEl = null; }, isDestroyed: () => gone });
     }

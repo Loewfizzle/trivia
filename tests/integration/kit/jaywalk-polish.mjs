@@ -57,3 +57,24 @@ export async function looksShare(p, { ok, sleep, waitFor, OUT }) {
   }
   return cards;
 }
+
+// THE LINES' WORDS OVER THE TRAFFIC: YOUR BEST (gold) on a road lane + a friend's (pink) on the next, the kid two lanes below; the shot is
+// taken as a TRUCK (3 cells) and then any vehicle passes over the words — by night + by day
+export async function looksLines(p, { ok, sleep, waitFor, OUT, shot }) {
+  const L = js => p.evaluate(js);
+  for (const look of ['night', 'day']) {
+    await L(`(() => { const J = window.__jwLab; J.bot(false); J.restart('solo', 'look3'); J.setCamera(8, 'straight', true); J.setLook('${look}'); J.hop('u'); })()`);
+    await sleep(700);
+    const lane = await p.evaluate(() => { const J = window.__jwLab; for (let l = 20; l < 400; l++) if (J.lane(l).type === 'road' && J.lane(l + 1).type === 'road' && J.lane(l - 1).type !== 'water' && J.lane(l - 2).type === 'grass' && J.items(l).items.some(q => q.len >= 3)) return l; return -1; });
+    ok(lane > 0, `a road lane with a truck, a road above it, grass two below (lane ${lane})`);
+    await p.evaluate(l => { const J = window.__jwLab; J.warp(l - 2); J.view.setLines({ best: { lane: l - 1, text: 'YOUR BEST · 143' }, friend: { lane: l, text: 'LIAM · 212' } }); }, lane);
+    // (a line marks the FAR edge of its lane — the words lie on the lane above it: YOUR BEST at lane-1 sits on `lane`, LIAM's on lane+1)
+    for (const [k, l] of [['truck', lane], ['car', lane], ['car-above', lane + 1]]) {   // (a vehicle across the screen's centre column — where the words are)
+      const seen = await waitFor(p, `window.__jwLab.items(${l}).items.some(c => ${k === 'truck' ? 'c.len >= 3 && ' : k === 'car' ? 'c.len < 3 && ' : ''}c.left < 4.6 && c.left + c.len > 4.4)`, 30000);
+      await sleep(30);
+      if (OUT) await shot(p, `lines/${look}-${k}-over-the-words.png`);
+      ok(seen, `${look}: a ${k} over the words of the line on lane ${l} (shot)`);
+    }
+  }
+  await L("window.__jwLab.view.setLines(null)");
+}

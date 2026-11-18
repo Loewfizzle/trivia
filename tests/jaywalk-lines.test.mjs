@@ -101,3 +101,16 @@ test('THE SOURCES: the lines come from the server\'s table, asked ONCE a run; dr
   assert.match(css, /\.jw-lanes\.is-record \{[^}]*#ffc53a/); assert.match(css, /\.jw-lanes\.is-flash \{ animation: jw-record/);
   assert.match(css, /@keyframes jw-record \{[^@]*transform: scale[^@]*opacity/, 'the flash: transform + opacity only');
 });
+
+test('THE POLISH PASS — THE WORDS WIN: a line\'s words draw above every vehicle / log / train / prop — only your own kid covers them (+ the dark: the blackout curtain)', () => {
+  const n = code('js/games/jaywalk/night.js');
+  const lbl = /const mat = new THREE\.MeshBasicMaterial\(\{ map: tex, transparent: true, depthWrite: false, depthTest: false \}\);[\s\S]{0,200}?mat\.stencilFunc = THREE\.NotEqualStencilFunc;\s*const m = new THREE\.Mesh\(labelGeo, mat\);\s*m\.renderOrder = (\d+)/.exec(n);
+  assert.ok(lbl, 'the words: transparent, NO depth test, masked only where the stencil says');
+  const orders = [...n.matchAll(/order: (\d+)/g)].map(x => +x[1]);
+  assert.ok(orders.length >= 4 && Math.max(...orders) < +lbl[1], `every instanced kind (vehicles, logs, trains, props, the ghosts: orders ${orders.join(' · ')}) draws before the words (${lbl[1]})`);
+  const writers = [...n.matchAll(/(\w+)\.stencilWrite = true;([^\n]*)/g)].filter(x => !/stencilWriteMask = 0/.test(x[2])).map(x => x[1]);
+  assert.deepEqual(writers, ['kidMat'], 'ONLY your own kid writes the stencil the words are masked by');
+  const later = [...n.matchAll(/(\w+)\.renderOrder = ([\d.]+)/g)].filter(x => +x[2] > +lbl[1]).map(x => x[1]);
+  assert.deepEqual(later.sort(), ['curtain', 'lip'], 'only the dark (THE BLACKOUT\'s curtain + the fog\'s lip) draws after the words');
+  assert.match(code('js/games/jaywalk/view.js'), /revealed = true; if \(night\) night\.setReveal\(1\);/, 'a SOLO run marks the reveal too: a scene rebuilt after a lost context comes back lit (it read `revealed` — the far lanes stayed dark)');
+});

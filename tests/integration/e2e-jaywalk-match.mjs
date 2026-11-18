@@ -361,6 +361,28 @@ try {
   ok((await pages[0].evaluate(() => document.querySelector('.jw-final .sheet-kicker').textContent)) === 'JAYWALK · MATCH', 'THE HEADER: JAYWALK · MATCH');
   ok(!!(await dbGet(`chats/${code}/m/s-win-${m}`)), 'the winner\'s line is in the chat (written once, by the host)');
   ok(refused.length === 0, `0 refused writes on the way to the final screen (${refused.join(' | ') || 'none'})`);
+  // ---- 7a. THE POLISH PASS — THE LATE k WRITE (/admin: "RULES REFUSED update rooms/*/jw/*/*/k {w, at}", the owner's iPhone on the final
+  // screen): the rule takes a call only while the phase is 'play' and the pick has no `e`. On CHARLIE's real page, his real k path, the
+  // kit's own card as JAYWALK opens it: (1) a tap that RACES THE FINAL (the phase already 'final') and (2) a pick ALREADY OUT (BOB's `e`
+  // there — the button greyed) → no write at all: no k node, 0 refused, 0 even expected
+  { const kpath = `rooms/${code}/jw/${m}/${uids[2]}/k`, quiet = [];
+    pages[2].on('console', q => { if (/\[rules\] jaywalk call/.test(q.text())) quiet.push(q.text()); });
+    const r = await pages[2].evaluate(async (path, cands) => {
+      const [K, F] = await Promise.all([import('/js/games/kit/call.js'), import('/js/firebase.js')]), s = window.__arcade.state;
+      const runs = (await F.get(F.dbRef(path.replace(/\/[^/]+\/k$/, '')))).val() || {};
+      const mount = ended => { const box = document.createElement('div'); document.body.append(box); const el = K.showCall({ overlay: box, game: { ...s.game, out: {} }, st: { live: { calls: {} } }, me: s.uid, player: u => s.players[u] || { name: 'X', color: 'cyan', avatar: 'ghost' }, candidates: cands, path, ended, onState: () => {}, canPick: u => !(runs[u] && runs[u].e != null), expect: 'jaywalk call: the match moved on before the pick landed' }); return { box, el }; };
+      const tap = (el, u) => { const b = el && el.querySelector(`.mk-call-pick[data-uid="${u}"]`); if (b) b.click(); return !!b; };
+      const a = mount(() => s.game.phase !== 'play'), t1 = tap(a.el, cands[0]);
+      const b = mount(() => false), outBtn = b.el && b.el.querySelector(`.mk-call-pick[data-uid="${cands[1]}"]`);
+      await new Promise(res => setTimeout(res, 250));
+      const greyed = !!outBtn && outBtn.classList.contains('is-out'), t2 = tap(b.el, cands[1]);
+      await new Promise(res => setTimeout(res, 1500));
+      a.box.remove(); b.box.remove();
+      return { phase: s.game.phase, t1, t2, greyed, bobOut: !!(runs[cands[1]] && runs[cands[1]].e != null) };
+    }, kpath, [uids[0], uids[1]]);
+    const k = await dbGet(kpath);
+    ok(r.phase === 'final' && r.t1 && r.t2 && r.greyed && r.bobOut && !k && refused.length === 0 && quiet.length === 0,
+      `THE LATE k WRITE: a call tapped as the final lands + a call on a player already out (greyed: ${r.greyed}) → no k written (${JSON.stringify(k)}), 0 refused, 0 expected (${quiet.length})`); }
   await host.reload({ waitUntil: 'load' });
   await waitFor(host, s => s.game && s.game.phase === 'final' && s.meta && s.meta.hostId === s.uid && !!window.__chat && !!document.querySelector('.jw-final .final'), 'the host is back on the final screen with a fresh page (still the host)', 40000);
   await sleep(3500);   // (the host's tick: 250 ms — the winner's line would have been asked for many times over)

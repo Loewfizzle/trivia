@@ -249,7 +249,7 @@ try {
   if (!await P.waitFor("document.querySelectorAll('.jw-table-list li').length === 4", 10000)) console.log('   (table now:', JSON.stringify(await P.ev("import('/js/profile/api.js').then(A => A.api('profile', { action: 'table', b: 'jaywalk-solo' })).then(d => d.rows.map(r => r.n + ' ' + r.v))")), ')');
   ok(await P.waitFor("document.querySelectorAll('.jw-table-list li').length === 4", 10000), 'YOUR TABLE: 4 rows (you + 3 friends — 12 · 10 · 8-letter names; a 3-digit and 2-digit bests)');
   for (const [w, hgt] of [[360, 780], [390, 844], [430, 932], [1440, 900]]) {
-    await P.p.setViewport({ width: w, height: hgt, deviceScaleFactor: w > 500 ? 1 : 2, isMobile: w < 500, hasTouch: true });
+    await P.p.setViewport({ width: w, height: hgt, deviceScaleFactor: w > 500 ? 1 : 2, isMobile: true, hasTouch: true });   // (isMobile kept: changing it reloads the page)
     await sleep(500);
     await P.ev("import('/js/ui/fit.js').then(m => document.querySelectorAll('.jw-table-card .vl-name').forEach(m.refit))");   // (a phone of this width fits its names ONCE, at its own width — the resize alone never re-fits a hugging plate)
     await sleep(200);
@@ -379,6 +379,10 @@ try {
   {
     const N = await again(); ok(N.up, 'PLAY AGAIN (for the lost-context check)'); await hopUp(P, 2);
     const s0 = await P.ev(`${G}.state()`);
+    // (THE POLISH PASS — the far lanes after a REAL loss: the playfield's far half (above the kid — the lanes ahead, under the band), its
+    //  mean brightness on a fresh scene vs the rebuilt one — the solo rebuild came back at reveal 0: the far lanes dark)
+    const farLum = async () => { const b64 = await P.p.screenshot({ encoding: 'base64', clip: { x: 0, y: 300, width: 390, height: 230 } }); return P.ev(`new Promise(r => { const i = new Image(); i.onload = () => { const c = document.createElement('canvas'); c.width = i.width; c.height = i.height; const x = c.getContext('2d'); x.drawImage(i, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; let s = 0; for (let k = 0; k < d.length; k += 4) s += 0.2126 * d[k] + 0.7152 * d[k + 1] + 0.0722 * d[k + 2]; r(s / (d.length / 4) / 255); }; i.src = 'data:image/png;base64,${b64}'; })`); };
+    await sleep(700); const lum0 = await farLum();
     const lost = await P.ev("(() => { const cv = document.querySelector('canvas.jw-canvas'); cv.__old = 1; const gl = cv.getContext('webgl2') || cv.getContext('webgl'), x = gl && gl.getExtension('WEBGL_lose_context'); if (!x) return false; x.loseContext(); return true; })()");
     if (!lost) ok(true, '(this browser has no WEBGL_lose_context: the lost-context check is skipped)');
     else {
@@ -388,6 +392,8 @@ try {
       ok(s1.scenes === s0.scenes + 1 && s1.canvases === 1 && s1.calls > 0, `… it DRAWS again (${s1.calls} draw calls a frame; ONE canvas; scene ${s0.scenes} → ${s1.scenes})`);
       ok(s1.mode === 'run' && s1.t > s0.t, `… and the run never stopped (tick ${s0.t} → ${s1.t})`);
       ok(P.errs.length === 0, `… no page error (${P.errs.slice(0, 2).join(' | ')})`);
+      await sleep(600); const lum1 = await farLum();
+      ok(lum1 >= lum0 * 0.7 && lum1 > 0.04, `… the REBUILT scene's far lanes are lit like the fresh one's (the far half's brightness ${lum0.toFixed(3)} → ${lum1.toFixed(3)})`);
       await P.shot('lost-context-rebuilt.png');
     }
     ok(await toEnd(P), '… that run ends (the kid stood still)');
