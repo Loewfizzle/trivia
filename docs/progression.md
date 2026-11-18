@@ -23,6 +23,16 @@ The passes: `docs/harbor/passes/progression-a.md` · `docs/harbor/passes/progres
 | `js/audio/progress-sfx.js` · `audio/sfx/pg-*.mp3` | the 9 sounds — docs/audio.md#the-progression-sounds |
 | `js/daily/contract.js` · `js/profile/events.js` | the phone's side of the daily contract (fetch only — no socket) · the events (fire-and-forget) |
 
+## RESULTS COMPACTED (CITY G, Nov 18 2026 — the Nov 17 2:50 pm inbox entry, item 4)
+results/{CODE}_{matchId} grew forever (solo PLAY AGAIN its fastest writer; a solo record ≈ 620 B, each room player ≈ 500 B — the whole podium
+payload per player). WHO READS IT: report.js + holdem-store.js (a duplicate report / a resend — the 6 h cap, a queued report, a 'retry' record's
+`xs` = THE LOST RUN) · share-card.js (a RUN's card: today / yesterday) · /admin's STATS history (insights.js#summarize — g, at, n, the players' ids)
+· THE BOARD's back-fill (board-fill.js — o.skip / o.n, this week's o.xp.gain, HOLD'EM's o.win / r.ko / r.mode / r.src) · the activity counter's
+one-time fill. THE RULE (`js/core/results-compact.js`): a 'done' record older than **14 days** is COMPACTED to exactly what those readers use
+(marked `c: 1`), never deleted, never a 'retry' / 'busy' one — by THE DAY'S CLOSE (`api/_lib/results-sweep.js` from api/daily.js 'today', ≤ 300
+records a day, never waited on). 78 % smaller (a solo record 619 → 158 B); every reader answers the same (`tests/city-g.test.mjs`). The nightly
+backup keeps the full records of the days before.
+
 ## Levels 1–100
 XP is earned exactly as before (`core/ranks.js#matchXp`: played, the placing, personal bests, a new game tonight, the weekly goal) — **minus
 the old streak bonus** (+10 % a night is gone: "streaks pay in milestones", no XP bonus). The level is a reading of the XP:

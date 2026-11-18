@@ -211,8 +211,7 @@ export function tubeButton(label, { kind = 'secondary', size = '', block = false
 /** CONFIRM-BY-SECOND-TAP on any tube button or row: the first tap arms it (red-filled + `text`), a second within `ms` runs `run`; it
  *  disarms by itself. The label is the element's first <span> (a row: its .sh-row-l b). Never a toast. → disarm() */
 export function confirmTap(el, text, run, { ms = 2500 } = {}) {
-  // (CITY G — THE LOST TAP ×2 on ☰ → "TAP AGAIN TO LEAVE", both rescued by the tap watch: the first tap's click swaps the label + restyles the
-  //  row (.is-confirm) and iOS sent the SECOND tap no click. A confirm control acts on its OWN press + lift — ui/tapwatch.js#data-press)
+  // (CITY G: iOS sent the SECOND tap no click after the label swap — a confirm control acts on its own press + lift)
   el.dataset.press = '';
   const lab = () => el.querySelector('.sh-row-l b') || el.querySelector('span') || el;
   let at = 0, t = 0, orig = null;

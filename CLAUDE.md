@@ -93,7 +93,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE WINDOW SCENES ARE TIMETABLE ROWS: a NEW scene = its `scene.<id>` row + `core/harbor-<id>.js` + its painter in windows.js#SCENE_PAINT.
 - THE RADIO: a timetable row with a `jack` = a jack on the desk; the SERVER checks the ROLE per action (`core/harbor-radio.js#ROLES`); a fired
   moment plays ONCE; only a server yes loads the radio (radio-gate.js); ONE RADIO PER LOBBY.
-- THE LOAD: the boot screen holds until THE CITY's reveal (ONE fade — keep index.html #boot + title.css .nd-sign in step); ONE CAMERA ON SCREEN;
+- THE LOAD: the boot screen holds until THE CITY's reveal (ONE fade: index.html #boot + title.css .nd-sign); ONE CAMERA ON SCREEN;
   THE BOOT BUDGET (`tests/integration/boot-budget.json` — raising it = a named decision); THE BOOT PRELOAD = `node scripts/build-boot-preload.mjs`
   after a module's imports change; no audio before a tap → docs/harbor.md (THE LOAD — "the boot").
 - THE BOOT WATCHDOG (inline in index.html, `window.__boot` — ONE reload, never a loop); THE REJOIN LIMIT (≤ 8 s on screen); EVERY dynamic import
@@ -113,6 +113,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE ROOM IN THE CITY: the old lobby screen is RETIRED — the room lives in the city from the join to the podium (`screens/room-city.js`,
   `core/harbor-room.js`, `core/room-show.js`); ONE SHEET STACK (`ui/layers.js` — every pop-up opens on top).
 - MAKE HOST (`room.js#makeHost` — to an ONLINE player); ONE ACCOUNT, ONE ROOM (`seats/{pid}` — `js/seat.js`); NAME + COLOUR edited only at the top of CUSTOMIZE YOUR CARD.
+- REMATCH IN PLACE (CITY G): the end screen's REMATCH = the 'r' start (`host.js#rematch({ inPlace })`) — no city / room / walk on any phone; a podium vote only while its end screen is up → docs/cartridge.md.
 - THE FROZEN CONTRACT: `config.js#FROZEN_IDS` — never loaded, logic + sims kept, views not maintained (docs/cartridge.md); a start's frame checked (host.js).
 - THE CONTRACT: a game = `meta.js` (PURE, no imports) + its cartridge `index.js` loaded ON DEMAND (`games/registry.js#loadGame` — never a static
   game import); `preload` ≤ 1.5 MB; the kit in `js/games/kit/` (prefix `gk-`) → docs/cartridge.md (moved).
@@ -202,8 +203,8 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 
 ## Working efficiently (what cost the most in past sessions)
 - **Edits:** use the Edit tool or a script file in the scratchpad. Never put code with backticks, `$` or `\b` inside an inline
-  `node -e "…"` / heredoc — the shell mangles it and the repair costs more than the edit.
-- **Names:** a view's own `update(state)` shadows Firebase's `update` — import it as `dbUpdate` (RUMRUNNER lost its DONE writes to this).
+  `node -e "…"` / heredoc — the shell mangles it.
+- **Names:** a view's own `update(state)` shadows Firebase's `update` — import it as `dbUpdate`.
 - **Tests, in order:** `node --test tests/*.test.mjs` (seconds) → the game's `FAST=1` E2E (≈ 2 min) → the full suite once before
   committing. Don't re-run a 20-minute suite to check one fix. Run E2E suites with absolute paths and from `tests/integration`.
   The city runs in the HARBOR suite by group: `ONLY=core,dock,neon` (the WHOLE harbor suite = the cloud's, on the tagged push — THE LOCAL TESTING RULE).
@@ -211,12 +212,12 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   painted frame). Never write a one-off screenshot script — add a scene or crop preset to shots.mjs. "No look change" = `tests/integration/pixdiff.mjs`
   (A/B against a worktree on :5174); City 2.0's speed gate = `title-perf.mjs --ab`.
 - **Waits in tests:** wait for the actual condition (`waitFor(page, js)`), never a fixed sleep "to be safe".
-- **Line endings:** LF everywhere (`.gitattributes`). **A new game = rules first** (pure `logic.js` + `director.js` + a whole-match simulation before any pixel).
+- **Line endings:** LF everywhere (`.gitattributes`).
 - Run `git status` before committing: stage the files of this task only (other work may be in the tree).
 
 ## File layout (top level — the full map: docs/data-model.md (moved); the city's: docs/harbor.md "THE FILE MAP"; each game's: its doc)
 ```
-index.html sw.js manifest.webmanifest assets/   shell, service worker (one copy per deploy + THE CARRY, /audio kept by version, never /api), PWA, icons
+index.html sw.js manifest.webmanifest assets/   shell, service worker (ONE DEPLOY AT A TIME + THE CARRY), PWA, icons
 board.html admin.html lab.html daychart.html jaywalk-lab.html 404.html   /board, /admin, /lab, /daychart, /jaywalk-lab, THE WRONG DOOR
 api/ (8 functions) + api/_lib/ + api/_data/      profile report board admin log sky time daily — firebase-admin, server-only data
 css/  base components screens title kit board admin vault progress daily chat + <game>.css   tokens, THE SHELL, screens, games
@@ -261,7 +262,7 @@ Rules of thumb: a player writes only under their own uid; anything secret lives 
 ## Audio (the short version; everything else in `docs/audio.md`)
 - MOOD MUSIC (`audio/mood.js`); City 2.0's stations play on the server clock — every phone the same song (`audio/party-music.js#stationOf`).
 - `playMusic(id, fallback)` driven by `app.js` from state; `sfx(name)` for the shared effects; a game's own palette in its `createSfx()`.
-- THE IDLE CUTOFF (`audio/idle.js`); LEAVING + MUTED: THE CUT IN ONE ORDER (ramp to 0 → the loops → THE ZEROS FIRST → the suspend); MUTED = NOTHING RUNS, ONLY the master reaches `ctx.destination` (`tests/audio-hush.test.mjs`) → docs/audio.md.
+- THE IDLE CUTOFF (`audio/idle.js`); LEAVING + MUTED: THE CUT IN ONE ORDER (ramp to 0 → the loops → THE ZEROS FIRST → the suspend); MUTED = NOTHING RUNS, ONLY the master reaches `ctx.destination`; THE THREE-WAY BUTTON (music off → all off → on) + THE SESSION BY STATE ('playback' · 'ambient' + THE HARD CUT · iOS alone) — ONE module `audio/sound-state.js`; every media element paused in the cut (CITY G) → docs/audio.md.
 - New songs: `scripts/add-city2-music.py` (City 2.0) — bump `music.js#REV` when replacing a file; never change a song element's playbackRate.
 
 ## Design system (the full text: docs/title.md (moved) + "THE SHELL")

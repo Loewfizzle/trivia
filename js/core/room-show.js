@@ -18,9 +18,7 @@ export const START = Object.freeze({
   quick: Object.freeze({ len: 3000, sign: 0, walkAt: 250, fadeAt: 2350 }),
   // (PLAY NOW — THE SOLO START: a solo room's every start — the sign lights at once + a ~2 s walk inside, straight into the game)
   solo: Object.freeze({ len: 2000, sign: 0, walkAt: 200, fadeAt: 1450 }),
-  // (CITY G — REMATCH IN PLACE (the owner, Nov 17): a REMATCH from END-SCREEN STANDARD A's bar (ui/final.js) skips the city — NO show: the end
-  //  screen gives way straight to the same game's own count on every phone. `len` = only the lead the game's clock gets (the write lands +
-  //  every phone mounts the game) — startShow is never on for it)
+  // (CITY G — REMATCH IN PLACE: the end screen's REMATCH — NO show; `len` = the game clock's lead only)
   inplace: Object.freeze({ len: 700, sign: 0, walkAt: 0, fadeAt: 0 }),
 });
 /** the LONGEST start (the safety limits read it) */
@@ -30,8 +28,7 @@ export const START_MS = START.full.len;
  *  the same id: every phone, every rules version */
 export const startKind = m => (typeof m !== 'string' ? 'full' : m[0] === 'q' ? 'quick' : m[0] === 's' ? 'solo' : m[0] === 'r' ? 'inplace' : 'full');
 export const startOf = m => START[startKind(m)];
-/** a new match id: 'q' + 5 for a same-game rematch from the room's ring (the quick start), 's' + 5 for a solo room's start (`kind` 'solo'),
- *  'r' + 5 for THE REMATCH IN PLACE (`kind` 'inplace' — CITY G: the end screen's bar), otherwise never a leading 'q', 's' or 'r' */
+/** a new match id: 'q…' the ring's rematch · 's…' a solo room's start · 'r…' THE REMATCH IN PLACE (CITY G) · else never a leading q / s / r */
 export function newMatchId(kind = false, rnd = Math.random) {
   const lead = kind === 'solo' ? 's' : kind === 'inplace' ? 'r' : kind ? 'q' : '';
   let id = ''; while (id.length < 6) { const c = Math.floor(rnd() * 36).toString(36); if (id.length || lead || (c !== 'q' && c !== 's' && c !== 'r')) id += c; }
@@ -90,7 +87,7 @@ export function startShow(meta, game, now) {
   const ready = meta.status === 'playing' && game && go.m === game.matchId, prep = meta.status === 'lobby' && !(game && game.matchId);
   if (!ready && !prep) return { on: false };
   const age = now - go.at, S = startOf(go.m);
-  if (startKind(go.m) === 'inplace') return { on: false, done: age >= S.len, inplace: true };   // (CITY G: REMATCH IN PLACE — never a show)
+  if (startKind(go.m) === 'inplace') return { on: false, done: age >= S.len, inplace: true };
   if (age < -500 || age >= S.len) return { on: false, done: age >= S.len };
   const a = Math.max(0, age);
   return { on: true, age: a, kind: startKind(go.m), ...S, fade: Math.max(0, Math.min(1, (a - S.fadeAt) / (S.len - S.fadeAt))), m: go.m, g: go.g };

@@ -495,6 +495,17 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   tap, the watchdog); `node e2e-lobbysong.mjs` (the room's song; its STUCK check fails since before M4 — docs/audio.md#m4 Known issues).
 - MOOD MUSIC: `node --test tests/mood.test.mjs` (boundaries, the bag, the song file) and `node e2e-mood.mjs "<browser>"` (title, mood change at a song's end, CLASSIC, every preview mood, lobby sync + late joiner + host migration, a game's own music, the public board's first tap).
 
+## CITY G's tests (Nov 18 2026)
+- `tests/integration/e2e-rematch.mjs` (`PHONES=2` or `4`, `GAMES=…`): REMATCH IN PLACE for every game on the shared end screen — the real start,
+  the host's game node set to its final (HOLD'EM: the real END GAME → the dealer), the guests' votes, the host's REMATCH, every phone's route sampled
+  every 100 ms (nothing between the two matches), 0 refused writes, THE ROOM LINK FITS at 375 / 390 / 430 / 1440. ≈ 65 s (2) / 85 s (4).
+- **THE DAILIES' TESTS NEED `DAILY_TEST=1`**: `e2e-daily.mjs` + `wk-press.mjs` run against `DAILY_TEST=1 node scripts/serve.mjs <port> --emu` — on
+  fresh emulators the dailies' go-live switch is off (no DAILY button / screen); `--emu` alone never set it. Both now ask the server first
+  (`kit/daily-mode.mjs`) and stop with the fix — that was the evening "red" (Nov 16 8:05 pm + Nov 17 2:50 pm entries), not the clock, not the product.
+- Harbor: `trivision-rebuild` (show job — the city rebuilt while a poster loads: all three faces), `mediacut` (audio job), `keypop` +2 cases
+  (a running daily; a game arriving during the pop-up's lazy imports), `roomchat` + THE CHAT CURSOR. Unit: `audio-session.test.mjs` (was
+  `audio-leave-mode`), `city-g.test.mjs`, `holdem-dealer` THE RETRY, `trivision` the loader. Retired: `audio-modes.mjs`, `audio-resume.mjs`.
+
 ## THE RULES-LAG (FR6 FIXES A, Nov 4 — the standard: a feature never fails silently when the live rules are older than the code)
 LOBBY 2.0 B changed `database.rules.json`; the live database kept the old rules until the owner re-published, and the show failed silently on
 every real phone (23 client writes swallowed a refusal with `.catch(() => {})`). Three things now make that impossible to miss:

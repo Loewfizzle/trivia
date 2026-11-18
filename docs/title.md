@@ -18,6 +18,16 @@ Deep-dive for the title screen: the opening sequence, the district scene, the lo
 > (Nov 5): the room's edges reset JOIN + HOST (`title.js#freshDock`) — the title is never unmounted by a room.
 
 
+## CITY G — THE THREE-WAY CORNER BUTTON + A CONFIRM CONTROL PRESSES (Nov 18 2026)
+- The music corner button is three-way (docs/audio.md "CITY G"): MUSIC OFF · EFFECTS ON → ALL SOUND OFF (a speaker ✕) → SOUND ON, a toast each tap;
+  ONE builder `audio/sound-state.js#wireSoundButton` (the app + /board); the title's tube icon carries the speaker too (`.nd-cic .sp`). The muted
+  hint pill is gone.
+- THE TAP WATCH: every confirm-by-second-tap control (`components.js#confirmTap` — "TAP AGAIN TO LEAVE", every tube / row with `confirm`) acts on
+  its OWN press + lift (`data-press`) — the owner's two lost taps on ☰ → LEAVE ROOM (the first tap swaps the label + restyles the row; iOS sent the
+  second no click). wk-press: a CONFIRM row, the clicks killed.
+- SAVE YOUR KEY (`profile/keypop.js`) is asked again AFTER its lazy imports (a game that began in that gap got the sheet over its end screen) and
+  never over a running daily (`.dy-run` in KEYPOP_COVERED).
+
 ## The title screen (NEON SPEAKEASY)
 NEON SPEAKEASY is the bar behind an unmarked door in a neon district at night; every game is a room inside. The title is
 the street outside: the district, the sign over the door.

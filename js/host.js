@@ -231,7 +231,6 @@ let starting = null;
 export function startGame(gameId, settings, { quick = false, solo = false, inPlace = false } = {}) {
   if (starting) return starting;
   // (PLAY NOW: a SOLO room's every start is THE SOLO START — the match id's leading 's', ~2 s — core/room-show.js#START.solo)
-  // (CITY G — REMATCH IN PLACE: the end screen's bar → the match id's leading 'r', no show — core/room-show.js#START.inplace)
   const kind = solo || isSoloMeta(state.meta) ? 'solo' : inPlace ? 'inplace' : quick;
   const p = startGameNow(gameId, settings, kind);
   starting = p;
@@ -341,8 +340,7 @@ if (typeof globalThis !== 'undefined') globalThis.__nsPlayNow = Object.freeze({ 
 
 // Same game, same settings, everyone currently connected (late joiners included).
 // (LOBBY 2.0 B — THE REMATCH RING: back in the room the match is gone (game: null) — the game it replays is meta/back's)
-/** a same-game REMATCH. inPlace (CITY G — the end screen's bar, ui/final.js): straight from the podium into the next match's own count on every
- *  phone — no city, no room, no walk (the 'r' start); without it (the room's REMATCH ring) the QUICK start's walk-in as before */
+/** a same-game REMATCH. inPlace (CITY G — the end screen's bar): the 'r' start, no city / room / walk; the room's ring: the QUICK walk-in */
 export function rematch({ inPlace = false } = {}) {
   const back = state.meta && state.meta.back;
   if (!isHost() || !(state.game || (back && back.g))) return Promise.resolve(false);

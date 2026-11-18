@@ -61,13 +61,11 @@ export function openSheet({ title = '', kicker = '', body = [], cls = '', theme 
   release = takeLayer(el, { close });   // (THE LAYER STACK: the newest pop-up on top + the one Esc closes it)
   document.body.append(el);
   requestAnimationFrame(() => { if (!closed) el.classList.add('is-in'); });
-  // (CITY G — THE CHAT CURSOR: iOS draws a text box's caret where the box was when it took focus — a box focused while the sheet still slid in
-  //  (a transform on its ancestor) showed its caret BELOW the box. Once the panel's slide ends: the caret re-seated where the box is now)
+  // (CITY G — THE CHAT CURSOR: a box focused mid-slide kept its caret at the pre-transform place — re-seated once the slide ends)
   sheet.addEventListener('transitionend', e => { if (e.target === sheet && e.propertyName === 'transform' && !closed) reseatCaret(sheet); });
   return api;
 }
-/** CITY G — THE CARET RE-SEAT: a focused text box inside `root` gets its selection set again (a different spot, then its own in the next
- *  frame) — iOS redraws the caret at the box's CURRENT place; the keyboard stays up (no blur), nothing re-renders */
+/** CITY G: a focused text box in `root` → its selection set again (elsewhere, then back next frame): iOS redraws the caret where the box is */
 export function reseatCaret(root) {
   const a = document.activeElement;
   if (!a || !root || !root.contains(a) || typeof a.setSelectionRange !== 'function') return false;
@@ -78,7 +76,7 @@ export function reseatCaret(root) {
   requestAnimationFrame(() => { try { if (document.activeElement === a) a.setSelectionRange(s, e); } catch { /* fine */ } });
   return true;
 }
-globalThis.__nsReseat = reseatCaret;   // (a lazy chunk — the chat — reads it here: THE STALE-MODULE RULE)
+globalThis.__nsReseat = reseatCaret;   // (the lazy chat's hub)
 
 export const sheetDepth = () => stack.length;
 export const topSheet = () => stack[stack.length - 1] || null;

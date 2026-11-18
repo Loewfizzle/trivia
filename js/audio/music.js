@@ -733,9 +733,7 @@ function hushMusic(on, why = 'hushed') {
   apply();
 }
 onHush(on => hushMusic(on, 'hushed'));
-// CITY G — THE MEDIA CUT (the 5:44 pm entry: the podium's victory song PLAYING at the first leave signal): EVERY element paused in the cut's own
-// step (the master is 0 at that instant — no click), the song's place kept; a silent blob mid-activation paused too (the next tap activates it
-// again — onGesture below). A blur that came back on screen: heal. The hidden → visible return is onVisibility's, as before.
+// CITY G — THE MEDIA CUT: EVERY element paused in the leave's own step (its place kept; a blob's next tap re-activates it); a blur back = heal
 onLeaveCut((left, why) => {
   if (!left) { heal('back after a blur'); return; }
   if (tape.active()) tape.abort(why);

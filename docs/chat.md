@@ -45,6 +45,14 @@ Deep-dive for the room chat: data, locks per game, system lines, profanity filte
   a game adds its own while it runs: `setGameChips(['NICE ROLL', …])` (≤ 4, ≤ 24 characters; `[]` clears) — THE CARTRIDGE PLUG.
 - The room dock's CHAT opens the sheet; its pink dot = `chat.unread`.
 
+## THE CHAT CURSOR (CITY G, Nov 18 2026)
+The owner's iPhone, the keyboard up: the BLINKING CARET showed BELOW the message box while the text landed inside it — iOS draws a text box's caret
+where it was when an ANCESTOR moved by a transform after focus. Now (chat/ui.js): once the keyboard + the slide settle (no new viewport size for
+320 ms) the panel's lift becomes the SAME offset by `bottom` (`.is-settled` — css/chat.css; layout, no transform left on the box's ancestors) and the
+caret is re-seated (`ui/sheet.js#reseatCaret`, via the `__nsReseat` hub — THE STALE-MODULE RULE): the keyboard stays up, nothing re-renders. EVERY
+sheet re-seats a focused box's caret once its opening slide ends (the restore-key field, the name field). Harbor `roomchat` checks it (Chromium's
+fake keyboard — the real iOS caret is the owner's eye).
+
 ## THE CHAT LOCK HIDES (SHELL 2.0 A, Nov 5 — docs/harbor/passes/shell-a.md)
 While a game locks chat (`chatLocked` — its cartridge; OVERCLOCK will lock it for the whole match: too fast-paced), the in-game chat button and
 the ☰ menu's CHAT row are HIDDEN for that stretch — never a greyed button — and no unread dot shows on ☰. The room's chat opens between games.

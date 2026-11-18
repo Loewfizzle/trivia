@@ -7,6 +7,14 @@ decisions: docs/games/plan.md "HOLD'EM — THE PLAN (Nov 10 2026)" + "HE1" + "HE
 SCREEN B". HE4, Nov 10 2026 — THE TABLE SCREEN B (below: "THE MOTION", "THE SHOWDOWN", "KO + SPECTATING", "CASH: LEAVE + THE LEDGER", "THE END SCREEN"). HE5, Nov 10
 2026 — BEN'S FIXES + THE SOUNDS + THE REAL CHIPS + THE SKINS / NEON CASINO (below: "HE5"). HE6–HE7 below. HE8, Nov 11 2026 — YOUR TURN TIMER, THE OWNER'S LIVE TEST, REAL-WORLD TOUGHNESS, LONG NIGHTS (below: "HE8").)*
 
+## A TIMEOUT IS NOT NO SIGNAL (CITY G, Nov 18 2026 — the owner, Nov 17 ~2:13 pm, good wifi, the CHECK button)
+`view.js#send`: a dealer call that fails with status 0 while the browser is ONLINE sends the move again ONCE (`RETRY_OPS` — act · pre · show · poke:
+each a no-op when repeated — an act carries its `seq` + hand, a repeat of one that landed is a 409 stale; never a rebuy / sit / leave); only a failed
+retry says THE DEALER IS SLOW — TRY AGAIN; NO SIGNAL only when this phone is offline. A call ≥ 3 s or timed out is COUNTED (`view.js#timed` →
+quiet kind `slow`, /admin's errors line) — the engine + index.js never read a clock. The 2:13 pm "room writes refused after leaving: 1" in the same
+minute = most likely the host hand-off during that network stall (the hostBeat stale ≥ 10 s → another phone claimed → the stalled host write
+refused, counted quietly); HOLD'EM's view writes nothing to rooms/. `tests/holdem-dealer.test.mjs` THE RETRY.
+
 ## The plan in short
 - Texas Hold'em (no-limit), 2–8 players, one phone each, **PLAY CHIPS ONLY** — chips reset every match, no bankroll, nothing buyable becomes
   chips, no money words anywhere ("CASH" is only the mode's name). No solo, no bots in v1 (the robots here only test the rules).

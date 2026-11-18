@@ -7,6 +7,17 @@ DAILY + `checkCartridge`) — and the console reads a game ONLY through it, neve
 How a real-time game is BUILT (rules first, the director, the view on the match kit, its E2E): `docs/match-kit.md` + CLAUDE.md's "Adding a
 game" checklist. This page is what it must EXPORT and what it GETS.
 
+## REMATCH IN PLACE (CITY G, Nov 18 2026 — the owner, Nov 17; docs/harbor/passes/city-g.md)
+A REMATCH from END-SCREEN STANDARD A's bar (`ui/final.js` → `host.js#rematch({ inPlace: true })`) starts the **'r' match** (`core/room-show.js` —
+`START.inplace`, `startKind` 'inplace'): `startShow` is never on for it, so every phone's route goes `game:<id>:<old>` → `game:<id>:<new>` with
+nothing between — no city, no room screen, no walk-inside; the game's clock gets a 700 ms lead (the write lands + every phone mounts). Everyone
+online is in, late joiners dealt in (the start as ever); a guest's tap = their vote (WAITING FOR THE HOST); every guest voted = still the host's tap.
+The room ring's REMATCH keeps the QUICK walk-in ('q'), a new game from GAMES the full one. **A LATE VOTE NEVER GOES IN:** a podium vote is written
+only while ITS end screen is up (`final.js` — the match + phase checked at the tap); a refused / late one is dropped, never queued (CITY F's
+`ns:rv-wait` is gone). The foot: ROOM (a door — solo CITY's shape) · SHARE, each inside its half at 375 / 390 / 430 / 1440. A cartridge needs
+nothing for it. Proof: `tests/integration/e2e-rematch.mjs` (every game on the shared end screen, 2 + 4 phones — the route sampled every 100 ms,
+0 refused writes, the foot's fit).
+
 ## What a game exports (`js/games/<id>/index.js`)
 | export | | what the console does with it |
 | --- | --- | --- |

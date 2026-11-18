@@ -31,7 +31,35 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
   unmasking); a track change resets it.
 
 
-## FIXES R3 — THE SQUEAL ON LEAVING THE HOME-SCREEN APP: THE LEAVE RECORD + THE LEAVE MODES (Nov 16 2026) — `audio/engine.js`, `audio/leave-report.js`, `audio/leave-text.js`
+## CITY G — THE THREE-WAY BUTTON + THE SESSION BY STATE (Nov 18 2026 — the owner's decisions Nov 16–17; docs/harbor/passes/city-g.md)
+ONE module: `js/audio/sound-state.js` (PURE decisions + the ONE button builder; the app's corner `ui/settings-panel.js` and /board's page both call
+`wireSoundButton`; the title's tube icon `title-dock.js#ICON.music` wears the same three states). FIXES R3's LEAVE MODES (A IDLE SILENCE · B CLOSE AT
+ONCE · C1 / C2 the session at boot) + the ☰ LEAVE MODE row are GONE — this is the only path:
+- **THE THREE-WAY CORNER BUTTON** (top right, every screen): tap 1 = MUSIC OFF, the effects on (the note slashed) · tap 2 = ALL SOUND OFF (a SPEAKER ✕ —
+  a different symbol, it reads at 36 pt) · tap 3 = everything back (the plain note); a 1.5 s toast each tap ("MUSIC OFF · EFFECTS ON" / "ALL SOUND
+  OFF" / "SOUND ON" — POLISH 5's no-toast rule ends here). It FOLLOWS ☰ Settings (`soundState`): the music on + the effects off = the plain note and
+  the next tap = all off; MUTE EVERYTHING = the speaker ✕. One state (audio/settings.js), never two copies. The music meant on but gone quiet: the tap
+  rescues it (music.js#musicNeedsRescue) instead of switching it off, as before.
+- **THE SESSION BY STATE** (`sessionFor`, engine.js#setSession on every settings change — at once): the music ON → `navigator.audioSession.type =
+  'playback'` (C2 — the no-squeal path the owner tested) · the music OFF + the effects ON → 'ambient' (the phone's own podcast / Spotify keeps
+  playing, the effects on top; the silent switch obeyed) · everything OFF → iOS left alone ('auto', set back only if this page had set a type) ·
+  THE INTERCOM's mic → 'play-and-record'.
+- **THE ANTI-SQUEAL GUARD** (engine.js#hardCut — 'ambient' only: iOS doesn't interrupt an ambient session first, C1 squealed on leave): the FIRST leave
+  signal (a touch phone's blur / pagehide / hidden) = the master 0 AT ONCE + the beds (the city's loops) stopped in the SAME step, ZERO_HOLD_MS of
+  zeros, then the suspend — THE CUT IN ONE ORDER. 'playback' keeps FIXES R2's ramp. The fallback (the effects silent while another app plays) was
+  NOT built — only if the owner's phone test still squeals.
+- **THE MEDIA CUT** (the 5:44 pm entry — "media: voice victory3 PLAYING" at the first signal): `engine.js#onLeaveCut(fn(left, why))` — music.js pauses
+  EVERY element (the songs, the podium's victory song, a direct path, a silent blob mid-activation) in the cut's own step, its place kept; a blur
+  that comes back = heal; the hidden → visible return = onVisibility as ever. The AUDIO LEAVE row ends "media after: all paused" (or what still plays).
+- **THE REPORTS**: AUDIO LEAVE / AUDIO CUT rows only from an admin phone (body.rd-owner — the radio's server yes, ADMIN_PIDS) or &debug=1; every
+  other phone's leave / cut is COUNTED (quiet kind `snd` — /admin's errors line). The row names the SESSION the state chose (no mode).
+- With the music off the city's loops are EFFECTS and play (mode A's rest is gone); the synced songs stop through a 0 bus as before (the
+  `__nsAudioRest` hub = the music's own switch). Tests: `tests/audio-session.test.mjs` (the button, the session per state, the hard cut, the media cut,
+  the record) · harbor `mediacut` · the `music` group's three taps · `audio-hush.mjs` · `audio-leave.mjs`. Retired: `audio-modes.mjs`, `audio-resume.mjs`.
+- **THE OWNER's PHONE TEST**: play a podcast → open the site → tap the music button once (MUSIC OFF · EFFECTS ON) → play a match → leave the app: the
+  podcast keeps going, no squeal.
+
+## FIXES R3 — THE SQUEAL ON LEAVING THE HOME-SCREEN APP: THE LEAVE RECORD + THE LEAVE MODES (Nov 16 2026; the MODES RETIRED by CITY G — above) — `audio/engine.js`, `audio/leave-report.js`, `audio/leave-text.js`
 
 **The owner's evidence (Nov 15 11:03–11:12 pm, iPhone iOS 18.7, the home-screen app, music OFF + effects ON):** R2 fixed the effects toggle
 (AUDIO CUT rows clean); leaving the app still squeals — and NO AUDIO CUT row came for that leave. The cut either never ran or iOS froze the

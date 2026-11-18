@@ -6791,3 +6791,14 @@ OWNER'S NOTES — NOV 15 (the CITY E prompt, from the city chat)
 * Anything in /admin or the STATS sheet = stills, no animation.
 * THE SOURCE's "1 OF 1" tag stays as it is.
 * The squeal clue (7:27 pm): all sound off → no squeal on leaving; music on + effects off → no squeal; switching SOUND EFFECTS off in settings squeals by itself — the cut of the effects makes it.
+
+## Nov 17–18 — CITY G (the owner's notes for it, from his prompt + the inbox)
+* THE ROOF BOARD must turn all three faces (HOLD'EM · JAYWALK · THE DROP) — OPEN DAY is flipped only once it does. Every HOLD'EM face reads the ONE switch (NOW OPEN since 11-08).
+* REMATCH from the end screen starts IN PLACE (no city / room / walk-inside) on every phone; a new game from the GAMES list keeps the walk-inside; every guest voting still waits for the host's tap. A late vote never goes in.
+* The end screen's room link = ROOM + a door/room icon (solo CITY's shape). The XP moment never reads "+0" for a counted match.
+* THE THREE-WAY corner button: music off (note slashed) → all sound off (speaker ✕) → back; a short toast each tap; Settings keeps its switches and the button follows them.
+* THE AUDIO SESSION by state: music on = 'playback' (C2), music off + effects on = 'ambient' (other apps' audio keeps playing), everything off = leave iOS alone. The anti-squeal guard for 'ambient'. Every media element paused on leave. The leave modes' test bench goes; AUDIO LEAVE / CUT rows from admin phones only.
+* The return from a match must not stall (THE HOLD); the city holds ~nothing during a match; cut the 60 MB kept when hidden; the Chromebook's one bake.
+* HOLD'EM: a timeout is not NO SIGNAL — retry once, then THE DEALER IS SLOW.
+* The STATS sheet's dailies chart = /admin's two-bar chart (ONE builder).
+
