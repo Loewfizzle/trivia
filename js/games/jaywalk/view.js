@@ -253,7 +253,7 @@ export function createView() {
     anchor();
     catchUp();
     mode = 'run';
-    revealed = true; if (night) night.setReveal(1);   // (THE POLISH PASS — the flag too: a scene REBUILT after a lost context reads it — a solo rebuild came back at reveal 0, the far lanes dark)
+    revealed = true; if (night) night.setReveal(1);   // (the flag too: a lost context's rebuild reads it — THE POLISH PASS)
   }
   /** no proof here (no signal, the rules not published): a SOLO run still plays — on its own seed + clock, never counted */
   function unproven(why) {
@@ -504,8 +504,7 @@ export function createView() {
       callDone = true;
       const cands = [...ghosts.values()].filter(G => inPlay(G, runs)).map(G => G.uid), made = runs && runs[uid] && runs[uid].k;
       const path = `${nodePath()}/k`;
-      // (THE POLISH PASS — THE LATE k WRITE: the rule takes a call only while the phase is 'play' and the pick has no `e` — the tap checks
-      //  both from the LIVE nodes (canPick + ended), and a race lost in flight / a write landing late is expected from the TAP, not the card)
+      // (THE POLISH PASS — THE LATE k WRITE: docs/jaywalk.md)
       callEl = showCall({ canPick: u => !(liveRuns && liveRuns[u] && liveRuns[u].e != null), expect: 'jaywalk call: the match moved on before the pick landed', overlay: overEl, game: g, st: { live: { calls: made ? { [uid]: made } : {} } }, me: uid, player: u => st.players[u] || { name: 'GHOST', color: 'cyan', avatar: 'ghost' }, candidates: cands, path,
         line: u => { const G = ghosts.get(u), n = G ? G.run.best : 0; return `${n} ${n === 1 ? 'LANE' : 'LANES'}`; }, intro: n => `${n} still hopping — who goes the farthest? A right call earns game-night points.`,
         ended: () => !st.game || st.game.phase !== 'play' || st.game.matchId !== matchId, onState: msg => { callLine = msg === 'NO CALL' ? '' : msg; callEl = null; }, isDestroyed: () => gone });

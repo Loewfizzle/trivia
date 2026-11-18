@@ -24,6 +24,7 @@ import map); the RULES are a pure engine that never knows about it.
 | H6B | Nov 17 2026 | `docs/games/passes/jaywalk-h6b.md` | THE FINAL POLISH (a VIEW + SOUND pass): THE PAINTED NIGHT SKYLINES (8, cross-faded at the gates — `skymarks.js` retired) + THE LOOK SWITCH's cross-fade · THE GATE SIGN only on the approach · the compact match chips · the lab's `?lane=N` · THE MOMENTS' FINISH (the solid UFO, the bigger Blackbird's blazing burners, the kids into the Mothership's port, the traffic stopping under it) · DOWNTOWN's storefronts (Kenney, on demand) · the tail light bar · THE MIX (measured) + NEW BEST's B take · THE CREDITS · two fresh-eyes reviews |
 | THE GO-LIVE REVIEW | Nov 17 2026 | `docs/games/passes/jaywalk-review.md` | the audit (a fresh auditor + a second reviewer — both reports verbatim) + its fixes · THE BLACKBIRD's DAY TELL · the fog's banding · the first look switch's long frame · the lane count clear of every landmark + a match's chips · Grok's two night touch-ups · THE MEMORY ON WEBKIT (`wk-jaywalk-mem.mjs`) · the go-live checklist (`jaywalk-golive-checklist.md`) — it does NOT flip `playable` |
 | THE GO-LIVE PASS | Nov 17 2026 | `docs/games/passes/jaywalk-golive.md` (the plan: `jaywalk-golive-checklist.md`) | ✓ DONE — flipped `playable` (empties `tests/registration.test.mjs#JAYWALK_WAITS`; the meta + its tile join the boot — after the city's CHROMEBOOK pass trims THE BOOT BUDGET: the owner, Nov 16) |
+| THE POLISH PASS | Nov 18 2026 | `docs/games/passes/jaywalk-polish.md` | ✓ DONE — YOUR TABLE's grid + the slim cards' one-line names · the share card's dark band · HOW TO PLAY's Mothership line · the late k write · the far lanes after a lost context ("THE POLISH PASS", below) |
 | DAILY A · DAILY B | — | — | its daily (`MODES.daily`) |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
@@ -1191,6 +1192,45 @@ water; each lane's specks still ride its own current (the logs keep theirs). Sho
 The pass's code took JAYWALK to 2,459 KB of its 2,450 KB line: full-line comments were stripped from `night.js` (−10.4 KB) and
 `night-fx.js` (−7.5 KB — most sat inside the GLSL the GPU compiles); code lines identical; their history is this doc + the pass logs.
 JAYWALK = 392 KB past the boot (395 at the start of the pass).
+
+## THE POLISH PASS (Nov 18 2026 — `docs/games/passes/jaywalk-polish.md`; the owner's decisions: `docs/games/plan.md` "JAYWALK … THE POLISH PASS") — the first pass after launch; no rules change, REPLAY = LIVE untouched
+
+### YOUR TABLE = ONE CENTRED GRID (`victory.js#yourTable` · css `.jw-table*`; `e2e-jaywalk.mjs` "YOUR TABLE at <w>")
+- RANK | CARD | SCORE: the block = the end screen's own column (the PLAY AGAIN bar's edges — `.jw-fin`'s 12 px given back; ≤ 440 at a desk,
+  centred); the rank + score columns are ONE width (`--jw-side`, from the widest score's digits — `--jw-d`, set by `yourTable`) so every card
+  is the same box, DEAD CENTRE; the scores right-aligned in their column; the label **YOUR TABLE centred on the screen** over the cards (the
+  owner's correction, Nov 18 6:55 am — like the lane count, LANES, NEW BEST above it).
+- **The names inside the cards** (the owner: "left on mine, right on friends'"): JAYWALK's own `.jw-table-list b` reached INTO the cards'
+  `b.vl-name` (right-aligned, the numerals' font) — now `li > b` only + the card's own left alignment (`.jw-table-card`).
+- Proven: the E2E seeds three friends (12 · 10 · 8-letter names; a 3 / 2 / 2-digit best — pids fresh each run) once the run's lines are read
+  and measures at 360 / 390 / 430 / 1440: equal margins, the bar's edges, one card box, the ranks' + scores' columns, every score fits, every
+  name on ONE line + whole (a phone fits once at its own width: the check re-fits after each resize). `JW_UNTIL=table` stops the E2E there.
+- **A NAME NEVER WRAPS MID-WORD ON A SLIM CARD** (every slim card — docs/vault.md "THE SLIM-CARD LONG-NAME STANDARD"): the plate may run to
+  the gem; the name ONE line — shrunk to 12 px, then an ellipsis as the last resort (`ui/fit.js` `o.one`). MAXIMILIANOS fits whole at 360 (14 px).
+
+### THE CAUSE LINE's DARK BAND (`share.js#drawRunMiddle` · `BAND`; the lab's `--polish=share`)
+A dark translucent tab (`rgba(7,6,11,0.72)`) hung from the frame's top-left behind the cause words — the frame's own corner at its top, an
+18 px corner at its foot (never a pill); both looks. The lab draws a REAL end (a car · the water · the blackout / the fog) by night + by day
+from the game's own frame grab into the game's own card: 1080 × 1350, 540 × 675 + the link-preview size; the band's luminance 0.110–0.147.
+
+### HOW TO PLAY — THE MOTHERSHIP (`ui/help.js#RULES.jaywalk`)
+An 11th line + its drawing: "A MATCH ends at 6:00: the MOTHERSHIP lifts everyone." (52 letters — the kid's-line cap; the goal line already says
+a match's farthest wins; never in solo). The boot: +331 B (16,586 B of room left). `shots.mjs` scene `jw-help-end` = the help at its last line.
+
+### THE LATE k WRITE (`kit/call.js` `canPick` · `expect`; `view.js#afterOut`; `e2e-jaywalk-match.mjs` 7a)
+/admin: "RULES REFUSED update rooms/*/jw/*/*/k {w, at}" on the final screen. The call's refusal was expected for 6 s from the CARD — a tap
+later than that which lost the race with the final was reported. Now a tap never writes once `ended()` or on a pick already out (its live
+node has an `e` — the button greys, `.mk-call-pick.is-out`), and a race still lost in flight is expected for 90 s from the TAP. (A call can't
+ride with your own `e`: it is a tap seconds later.) The kit's options are opt-in — the other games unchanged.
+
+### THE FAR LANES AFTER A REAL LOST CONTEXT (`view.js` `revealed`)
+A SOLO run turned the reveal on without setting the flag the rebuild reads — a rebuilt scene came back at reveal 0 (the start's few lanes lit,
+the rest dark). `e2e-jaywalk.mjs` 7c measures the far half's brightness fresh vs rebuilt (0.229 → 0.218).
+
+### THE LINES' WORDS WIN (already — locked: `tests/jaywalk-lines.test.mjs` "THE WORDS WIN")
+The words: no depth test, render order 5 over every instanced kind, masked only by the kid's stencil; only THE BLACKOUT's curtain + the fog's
+lip draw after them. The old frames' "cover" was the reveal's dark edge (above) + a vehicle seen through the letters' gaps. The lab's
+`--polish=lines`: a truck + a car across the words, both looks.
 
 ## THE CAMERA (H2B — `js/games/jaywalk/camera.js`: ONE pure module, the night look AND the graybox use it)
 The owner played H2 on his iPhone: "the game feels good", but it had to be ZOOMED IN — a closer camera that FOLLOWS the kid sideways, turned

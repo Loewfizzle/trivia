@@ -687,8 +687,11 @@ COAST CLEAR's two collectibles, awarded by the SERVER from its own record of the
   GIFT › → IT'S YOURS; seen as each closes; a refresh resumes; the old single slot migrates (docs/profiles.md).
 - **THE SLIM-CARD LONG-NAME STANDARD** (a RULE from now on — the owner, Nov 7): the longest name is `NAME_MAX` (js/config.js — 12). On every
   slim card the hero sits far RIGHT — a NEW card's strip hero centred **0.75–0.85** across (the gift strips: `tests/card-pass.test.mjs`), the left
-  free for the plate; every strip that declares a hero CAPS its plate there (`strip.js#heroRoom`), so a long name shrinks / goes to two lines,
-  never over the subject, never cut. Checked live by harbor **`stripfit`** (every strip at 390, `'W'.repeat(NAME_MAX)` + MAXIMILIANOS, LV 100).
+  free for the plate; every strip that declares a hero CAPS its plate there (`strip.js#heroRoom`), so a long name shrinks — never over the
+  subject. **JAYWALK THE POLISH PASS (the owner, Nov 18): a name NEVER WRAPS MID-WORD on a slim card** — the plate may run to the gem
+  (`calc(100% - 58px)` — it kept 124 px beside a non-friend plate), the name ONE line: shrunk to 12 px, then an ellipsis as the last resort
+  (`ui/fit.js` `o.one` → `.fit-cut`); the two-line split stays for the full card + the podium ("THE NAME NEVER CUTS OFF" there). Harbor
+  `stripfit` at 390: the widest twelve (W×12) reaches the ellipsis on 11 hero-capped strips, MAXIMILIANOS on 1. Checked live by harbor **`stripfit`** (every strip at 390, `'W'.repeat(NAME_MAX)` + MAXIMILIANOS, LV 100).
   A strip moves right by ZOOMING OUT its crop (`strip: [100, py, z]` — the art then sits right on its own ground colour; the gift / PW / CC maps
   all take the zoom). Moved this pass: the nephew's three, SUNSET STRIP, GOLDEN HOUR, GOLDEN BOOT, BUZZED LIGHTYEAR, SAFECRACKER, GHOST RUN.
 - **A full card's plate keeps its own cap** (`strip.js#layStep` no longer writes a full card's max-width — Safari let a 12-letter name run over a

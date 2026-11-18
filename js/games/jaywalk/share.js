@@ -66,7 +66,7 @@ export function shotCrop(src, box, kidX = 0.5, kidY = 0.62, zoom = SHOT_ZOOM, up
   const cx = (kidX == null ? 0.5 : kidX) * src.width, cy = (kidY == null ? 0.62 : kidY) * src.height - sh * up;
   return { sx: Math.max(0, Math.min(src.width - sw, cx - sw / 2)), sy: Math.max(0, Math.min(src.height - sh, cy - sh / 2)), sw, sh };
 }
-/** THE CAUSE LINE's band (THE POLISH PASS): the night's ink, translucent — the scene still shows through, the words always read */
+/** THE CAUSE LINE's band (THE POLISH PASS) */
 export const BAND = 'rgba(7,6,11,0.72)';
 /** the big lanes' size on the card (px of its 1080) */
 export const BIG_PX = 236;
@@ -84,10 +84,8 @@ export function drawRunMiddle(c, box, card, shot) {
   } else { const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#14102c'); g.addColorStop(1, '#090716'); c.fillStyle = g; c.fillRect(x, y, w, h); }
   // the words read on any frame: a soft dark at the head + the foot — short, so the scene stays the hero
   let g = c.createLinearGradient(0, y, 0, y + 210); g.addColorStop(0, 'rgba(7,6,11,0.86)'); g.addColorStop(1, 'rgba(7,6,11,0)'); c.fillStyle = g; c.fillRect(x, y, w, 210);
-  g = c.createLinearGradient(0, y + h - 270, 0, y + h); g.addColorStop(0, 'rgba(7,6,11,0)'); g.addColorStop(1, 'rgba(7,6,11,0.88)'); c.fillStyle = g; c.fillRect(x, y + h - 270, w, 270);
-  // THE POLISH PASS (the owner, Nov 18): THE CAUSE LINE's DARK BAND — the words read over the brightest frame (the day river, the fog) at
-  // link-preview size: a dark translucent tab hung from the frame's top-left behind the words (the frame's own corner at its top, a small
-  // corner at its foot — the house style, never a pill), the same in both looks
+  g = c.createLinearGradient(0, y + h - 330, 0, y + h); g.addColorStop(0, 'rgba(7,6,11,0)'); g.addColorStop(0.45, 'rgba(7,6,11,0.62)'); g.addColorStop(1, 'rgba(7,6,11,0.92)'); c.fillStyle = g; c.fillRect(x, y + h - 330, w, 330);
+  // THE CAUSE LINE's DARK BAND (THE POLISH PASS): a tab hung from the frame's top-left behind the words — never a pill
   const line = String((shot && shot.line) || card.line || '').toUpperCase();
   c.font = `900 66px ${DISPLAY}`;
   const rows = line ? wrap2(c, line, w - 210) : [];

@@ -280,7 +280,7 @@ RULES.jaywalk.pics = [
     svg('<path d="M3 13l18-6-6 6 6 6z"/><path d="M3 18h6M3 8h6" opacity=".6"/>', '#ffb347'),                                                                   // the runway: the jet's dart + the racing lights
     svg('<ellipse cx="12" cy="18" rx="8" ry="3"/><path d="M6 9h12M9 9a3 3 0 0 1 6 0"/><path d="M12 11v4" opacity=".6"/>', '#7dffa0'),                        // the UFO over its green ring
     svg('<path d="M3 20h18M3 15h18"/><path d="M5 10h14" opacity=".55"/><path d="M8 5h8" opacity=".25"/>', '#b8a6ff'),                                          // the lights going out
-    svg('<path d="M2 9c0-2 4.5-3.5 10-3.5S22 7 22 9s-4.5 3-10 3S2 11 2 9z"/><path d="M8 12l-3 9M16 12l3 9M12 12v9" opacity=".6"/>', '#7dffa0')],             // THE POLISH PASS: the Mothership + her beam (a match's end at 6:00 — never in solo)
+    svg('<path d="M8 7a4 3 0 0 1 8 0"/><path d="M2 10c0-1.7 4.5-3 10-3s10 1.3 10 3-4.5 3-10 3S2 11.7 2 10z"/><path d="M6.5 10h.01M12 10.5h.01M17.5 10h.01"/><path d="M8.5 13L6 21h12l-2.5-8" opacity=".45"/>', '#ff7fd6')],             // THE POLISH PASS: the Mothership — her dome, her lights, her beam (a match's end at 6:00)
 ];
 
 RULES.gridlock = {

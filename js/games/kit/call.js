@@ -6,9 +6,7 @@
 //     candidates: uids still in (not me) — needs ≥ 2;  path: `rooms/${code}/glcall/${matchId}/${me}`
 //     line(uid) → the small text under a name;  intro(n) → the sentence;  ended() → true once the match is over
 //     onState(msg) → 'YOUR CALL · NAME' | 'NO CALL' (the HUD shows it);  sfx() on a pick
-//     canPick(uid) → false = that pick can no longer be written (JAYWALK: they are out) — the button greys, a tap does nothing;
-//     expect: a label → a refusal of THIS write is expected for 90 s from the tap (firebase.js#expectRefusal — a pick that loses a race
-//       with the match's end, or lands late from a queue, is the game's own, never a RULES REFUSED row). JAYWALK THE POLISH PASS.
+//     canPick(uid) → false = no write for that pick (greyed); expect: a label → its refusal expected 90 s from the tap (JAYWALK's polish)
 //     ring: true → a COUNTDOWN RING beside the title (PD-2 — PRISM DROP): RING_TICKS ticks round a circle go out one by one + the seconds left
 //       in its middle (opacity only — never a repaint), in place of the bar
 import { h } from '../../ui/dom.js';

@@ -266,6 +266,7 @@
    (the frame's small mono kicker, restyled for JAYWALK's end screen only; one line between the corner buttons; no pill, no box) */
 .jw-final .final > .sheet-kicker { padding-top: 6px; font: 900 clamp(17px, 5.1vw, 22px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; color: #fff3fb;
   text-shadow: 0 0 3px #fff, 0 0 12px #ff4fc4, 0 0 28px rgba(255, 79, 196, 0.8), 0 2px 0 rgba(20, 0, 14, 0.9); }
+.jw-final .final > .sheet-kicker { align-self: stretch; text-align: center; padding-left: var(--cb-room); padding-right: var(--cb-room); }   /* (THE POLISH PASS — the reviewer: CENTRED between the corner buttons, like every line under it; at a desk ☰ sat on its J) */
 
 
 /* THE DAY LOOK (night.js#setLook — the stage carries data-look: the game from the phone's GAME LOOK, the lab from its own switch):
