@@ -19,7 +19,7 @@ import { colorHex, GAMES, APP_NAME, ROOM_IDLE_WARN_MS, isOwnerTest } from '../co
 import { state, isHost, setState } from '../store.js';
 import { isOnline, idleLeft } from '../core/room-logic.js';
 import { roomOrder } from '../core/harbor-room.js';
-import { exitHow } from '../room.js';
+import { exitHow, leaveRoom } from '../room.js';
 import { serverNow, dbRef, update as dbUpdate, serverTimestamp } from '../firebase.js';
 import { createRoomDock } from './room-dock.js';
 import { sfx } from '../audio/sfx.js';
@@ -94,7 +94,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
 
   // ---------------------------------------------------------------- the dock
   dock = createRoomDock({
-    invite: () => { sfx('select'); invite(); },
+    // (CITY H1 — LEAVE ON THE DOCK: the left ring = LEAVE → THE LEAVE SHEET (ui/leave-sheet.js); INVITE lives at the top of GUESTS)
+    leave: () => { sfx('select'); askLeave(); },
     play: () => {
       // (LOBBY 2.0 B — THE REMATCH RING: the host's tap = the same game + settings, everyone in (incl. late joiners — host.js#rematch); a
       //  guest's tap = their VOTE (again = take it back); nothing ever starts by itself)
@@ -134,6 +135,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const F = frMod.friendsHere(players());
     for (const [uid, T] of tags) { const on = uid !== st.uid && F.has(uid) && isOnline(st.presence, uid); if (T.el.classList.contains('is-friend') !== on) T.el.classList.toggle('is-friend', on); }
   }
+  /** THE LEAVE SHEET (CITY H1): LEAVE <WORD>? · LEAVE · STAY — the dock's ring + the guest list's foot */
+  function askLeave() { lazyImport(import('../ui/leave-sheet.js'), '../ui/leave-sheet.js').then(m => { if (!destroyed) m.openLeave({ onLeave: () => leaveRoom() }); }).catch(() => {}); }
   let invSheet = null;
   function invite() {
     const S = frMod && frMod.friendsNow();
@@ -178,7 +181,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
       h('small.rc-hc-k', 'YOUR ROOM IS OPEN'),
       h('b.rc-hc-t', 'THE HUSH WORD IS ', h('span.rc-hc-w', code())),
       share,
-      h('p.rc-hc-or', 'or tap INVITE anytime'));
+      h('p.rc-hc-or', 'or GUESTS → INVITE anytime'));
     document.body.append(el);
     // (a tap anywhere — but SHARE — closes it; so does the clock)
     const onDown = e => { if (!e.target.closest || !e.target.closest('.rc-hc-share')) closeHostCard(); };
@@ -223,7 +226,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     guestsUi = { pending: true };
     // (CITY C 0d: the city HOLDS at the tap — its ~200 ms frames at 4× CPU stop before the list's modules load; the list takes the hold over)
     const hold = holdCity();
-    lazyImport(import('./room-guests.js'), './room-guests.js').then(m => m.openGuestList({ get st() { return st; }, hold, openCard: openPlayerCard, onClose: () => { guestsUi = null; } }), e => { hold(); throw e; }).then(g => { if (destroyed) { g.close(); return; } guestsUi = g; }).catch(e => { guestsUi = null; console.warn('guests', e); });
+    lazyImport(import('./room-guests.js'), './room-guests.js').then(m => m.openGuestList({ get st() { return st; }, hold, openCard: openPlayerCard, invite: () => { sfx('select'); invite(); }, leave: askLeave, onClose: () => { guestsUi = null; } }), e => { hold(); throw e; }).then(g => { if (destroyed) { g.close(); return; } guestsUi = g; }).catch(e => { guestsUi = null; console.warn('guests', e); });
   }
 
   // ---------------------------------------------------------------- a player's card (a tap on their figure or their strip)
@@ -361,7 +364,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     //  the rules, /admin Nov 17 10:27 pm. Nothing is queued any more; a key an older build left is simply dropped)
     if (vs.on) { try { sessionStorage.removeItem('ns:rv-wait'); } catch { /* fine */ } }
     const rm = vs.on ? { on: true, voted: !!(st.rv && st.rv[st.uid] === vs.m), n: vs.voters.length, total: vs.total, pips: vs.guests.map(u => ({ col: colorHex((P[u] || {}).color), on: vs.voters.includes(u) })) } : null;
-    dock.set({ host: isHost(), hostName: hostName(), invitePulse: isHost() && ids.length === 1 && !invited(), newGame: isHost() && vs.on ? (ngSeen() ? 'calm' : 'breathe') : null, guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
+    dock.set({ host: isHost(), hostName: hostName(), alone: isHost() && ids.length === 1 && !invited() && !soloRoom(), newGame: isHost() && vs.on ? (ngSeen() ? 'calm' : 'breathe') : null, guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
       you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm,
       // DM2 — THE ROOM WINS (the host's side): who of the room is mid-daily — DFIX2 (FABLE REVIEW #2 finding 6 → Ben's decision 4): each phone's
       // OWN flag on its player node (players/{uid}/dy — js/daily/room-flag.js), read live from the mirrored room; was a 20 s poll of /api

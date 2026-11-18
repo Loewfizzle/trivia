@@ -31,6 +31,35 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
   unmasking); a track change resets it.
 
 
+## CITY H1 — THE SQUEAL, FOR REAL + MUSIC OFF = EFFECTS ONLY (Nov 18 2026 — the owner's /admin, 11+ AUDIO LEAVE reports; docs/harbor/passes/city-h1.md)
+**THE BUG (every report MUSIC OFF + EFFECTS ON = 'ambient'):** "cut: hard (ambient) — the master 0 + the beds stopped +0", then EVERY later line
+still m 1.000 until iOS took the app at +345–532 ms with live sound in the buffer → the squeal. CITY G's hard cut (`engine.js#hardCut → silence`)
+only SCHEDULED the zero: `cancelScheduledValues(t)` + `setValueAtTime(0, t)` is an event on the audio timeline — the page's `gain.value` (and
+the master itself) moves only when the render thread runs a quantum, and on an iPhone leaving an 'ambient' session it didn't. C2's lines read
+0.000 because 'playback' keeps rendering through its ramp. **THE FIX:** `silence(c, v)` sets the VALUE itself (`g.value = v` after the cancel —
+the setter's own `setValueAtTime` + the intrinsic value at once): the next report line reads m 0.000 in the blur's own task. The unit test's fake
+`AudioParam` applied `setValueAtTime` instantly (why CI was green) — `Param.spec` now models a phone whose audio thread never runs: the timeline
+moves nothing, only the setter does (`tests/audio-session.test.mjs` "THE SQUEAL, FOR REAL" — red on CITY G's engine, green now).
+**MUSIC OFF = EFFECTS ONLY (the owner's pick):** with the music off ('ambient' — a podcast keeps playing):
+- NO BEDS: the engine keeps every registered bed paused (`pauseBeds('effects only')`, `resumeBeds` refuses while `effectsOnly()`); the city's loops
+  (`city-sound.js#pumpOne` — water, hum, wind, club, boat, the bus idle) fade out in 80 ms + drop and stay off; the neon hum moment
+  (`ambience.js#neonHumFade`) doesn't start; the city's OWN ambience one-shots (gulls, gusts, rivets, its moments — `citySound` without `tap`)
+  are off too (they kept the context awake ~every second); a sound a TAP asked for (`tap: true` — the door's knock, a radio jack) still plays.
+  Read through ONE hub: `globalThis.__nsBedsOff` (= `engine.js#effectsOnly` — THE STALE-MODULE RULE).
+- THE DOZE: every source made on the context is COUNTED (`engine.js#sleepy` wraps `createBufferSource` / `createOscillator`: start +1, 'ended' −1).
+  `DOZE_MS` (300) after the last one ends (the 250-ms clock watch asks), the master ramps to 0 in LEAVE_S, ZERO_HOLD_MS of zeros, then the context
+  is SUSPENDED — "asleep": it still SAYS 'running' (an instance `state` getter), so every player makes + starts its effect as ever; that start
+  WAKES it (the master's value back to 1 while nothing sounds, then `resume()`). A wake whose resume never runs stops pretending after 1 s (the
+  usual recovery takes over). No tap, return or kick resumes an asleep context; the clock watch never calls it frozen. `audioHealth().state` =
+  'asleep', `.voices`; the AUDIO LEAVE row says "ctx asleep".
+- A leave while asleep finds nothing live; a leave during an effect = the hard cut, now real. Music ON keeps C2 ('playback') + the full ambience
+  exactly as before; ALL OFF (the hush) is untouched.
+- Proof: `audio-session.test.mjs` (the doze, the wake, asleep again, a leave + return stays asleep, the music back = awake + the beds) · harbor
+  `mediacut` (the real city: 8 voices → 0 asleep within ~1 s; an effect wakes it in ~50 ms; asleep again; a leave while asleep: master 0).
+- **THE OWNER's PHONE TEST:** a podcast on → the site → the music button ONCE (the note slashed) → play → leave the app: the podcast keeps going, no
+  squeal; the AUDIO LEAVE row reads "ctx asleep" or m 0.000 right after the cut.
+
+
 ## CITY G — THE THREE-WAY BUTTON + THE SESSION BY STATE (Nov 18 2026 — the owner's decisions Nov 16–17; docs/harbor/passes/city-g.md)
 ONE module: `js/audio/sound-state.js` (PURE decisions + the ONE button builder; the app's corner `ui/settings-panel.js` and /board's page both call
 `wireSoundButton`; the title's tube icon `title-dock.js#ICON.music` wears the same three states). FIXES R3's LEAVE MODES (A IDLE SILENCE · B CLOSE AT

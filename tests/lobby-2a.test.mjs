@@ -192,7 +192,7 @@ test('THE ROOM IN THE CITY — the wiring: City 2.0 rooms stay on the title (the
   const t = ['title', 'title-taps', 'title-neon', 'title-dock'].map(f => read(`js/screens/${f}.js`)).join(String.fromCharCode(10));   // (CITY 1.0 OUT: the title in four files)
   assert.match(t, /import\('\.\/room-city\.js'\)/); assert.match(t, /if \((?:T\.)?roomUi\) \{ armIdle\(\); return; \}/, 'the dock stays up in a room');
   const d = read('js/screens/room-dock.js');
-  for (const w of ["'INVITE'", "'YOU'", "'GUESTS'", "'GAMES'", "'CHAT'", "'PLAY'", "'WAITING'"]) assert.ok(d.includes(w), w);
+  for (const w of ["'LEAVE'", "'YOU'", "'GUESTS'", "'GAMES'", "'CHAT'", "'PLAY'", "'WAITING'"]) assert.ok(d.includes(w), w);   // (CITY H1: the left ring = LEAVE; INVITE in GUESTS)
   assert.match(d, /createDock\(/, 'THE FLANK restyled — the title dock\'s own markup');
   const rc = read('js/screens/room-city.js');
   assert.match(rc, /T\.el\.style\.transform = `translate3d\(/, 'the tags move by transform');

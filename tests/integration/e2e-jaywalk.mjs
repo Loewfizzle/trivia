@@ -244,6 +244,14 @@ try {
   ok(await board(pid) === v1.result.lanes, `the solo board (jaywalk-solo): best ${await board(pid)} — from the replay`);
   ok(await P.waitFor("!!document.querySelector('.jw-fin-best.is-new') && /NEW BEST/.test(document.querySelector('.jw-fin-best').textContent)", 10000), 'NEW BEST on the end screen — from the server\'s own answer');
   await P.shot('end-new-best.png');
+  // CITY H1 — THE FADE NEVER SLICES A BOX (the polish reviewer: PERSONAL BEST SET cut in half by MORE BELOW's fade at 390): with the cue up, no
+  // callout plaque crosses the fade's top line — one that would is moved down whole under the foot (ui/final.js#unslice)
+  await P.ev("(() => { const f = document.querySelector('.final'); if (f) f.scrollTop = 0; return 1; })()"); await sleep(1500);
+  const sl = await P.ev(`(() => { const f = document.querySelector('.final'), a = f && f.querySelector('.final-actions'); if (!f || !a) return null; const line = a.getBoundingClientRect().top - 34;
+    const cut = [...f.querySelectorAll('.rc-plaque, [data-box]')].map(b => b.getBoundingClientRect()).filter(r => r.height && r.top < line && r.bottom > line).length;
+    return { more: f.classList.contains('has-more') && !f.classList.contains('is-scrolled'), cut, n: f.querySelectorAll('.rc-plaque').length, gap: !!f.querySelector('.final-gap') }; })()`);
+  ok(sl && sl.cut === 0, `THE FADE NEVER SLICES A BOX: MORE BELOW ${sl && sl.more ? 'up' : 'not needed'} · ${sl && sl.n} plaque(s), ${sl && sl.cut} cut by the fade (a gap moved one down whole: ${sl && sl.gap})`);
+  await P.shot('end-fade-390.png');
   // THE POLISH PASS — YOUR TABLE = ONE centred grid (RANK | CARD | SCORE): equal side margins, every card the same box, the label on the
   // block's left edge, the ranks' centres in one column, the scores' right edges in one column — at 360 / 390 / 430 / 1440
   if (!await P.waitFor("document.querySelectorAll('.jw-table-list li').length === 4", 10000)) console.log('   (table now:', JSON.stringify(await P.ev("import('/js/profile/api.js').then(A => A.api('profile', { action: 'table', b: 'jaywalk-solo' })).then(d => d.rows.map(r => r.n + ' ' + r.v))")), ')');

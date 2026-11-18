@@ -86,7 +86,8 @@ test('THE MESSAGE: one at a time above the dock, a neon tube by colour, sentence
 
 test('THE ☰ MENU = the approved rows: Your card · How to play · Settings · Sound effects · (admins) The Lab · Admin · Leave room; in a game CHAT (hidden when locked) + QUIT / END', () => {
   const sp0 = read('js/ui/settings-panel.js'), sp = sp0.slice(sp0.indexOf('function openMenu()'));
-  const order = ["label: 'Your card'", "label: 'How to play'", "label: 'Settings'", "label: 'Sound effects'", 'for (const [, render] of [...menuExtras.entries()].sort(', "label: 'Leave room'"];
+  // (CITY H1: LEAVE moved to the VERY TOP in a room — THE LEAVE SHEET)
+  const order = ["'Quit — back to the city' : 'Leave'", "label: 'Your card'", "label: 'How to play'", "label: 'Settings'", "label: 'Sound effects'", 'for (const [, render] of [...menuExtras.entries()].sort('];
   let at = -1; for (const k of order) { const i = sp.indexOf(k); assert.ok(i > at, k); at = i; }
   assert.match(sp, /menuPanel = openSheet\(\{ title: 'MENU', cls: 'gm'/);
   assert.match(sp, /!chatMod\.locked\(\)\) \{\n\s+const n = chatMod\.chat\.unread;/, 'THE CHAT LOCK hides the row (never greyed)');

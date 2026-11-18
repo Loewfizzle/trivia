@@ -1142,7 +1142,6 @@ body.rc-going *, body.rc-going *::before, body.rc-going *::after { -webkit-backd
    (a guest — their own pink ring, never greyed); the voters' BOLD DOTS in one row right above it; the "3 of 7 want a rematch" pill just above
    the row (TIDIED Nov 4 9:25 am — no 👍 over the people any more). Static: no animation.
    ===================================================================================================================================== */
-.rdk-play.rdk-rm .rdk-w1 { font-size: 0.74em; letter-spacing: 0.03em; }   /* (LOBBY FIXES: REMATCH sits INSIDE the ring — never on the tube) */
 .rdk-play.rdk-rm .rdk-w2 { font: 800 8px/1 var(--font-ui); letter-spacing: 0.14em; color: rgba(255, 236, 248, 0.92); }
 .rdk-play.rdk-voted .rdk-w2 { color: #fff; }
 /* the dots: ONE row right above the ring, right-aligned with it (the TIDY — the owner, Nov 4 9:25 am); on a dark glass rail so they read on
@@ -1216,3 +1215,17 @@ body.nd-rest .rd-btn { pointer-events: none; }
 /* (JAYWALK H3 — a game with no tile yet: its neon mark stands in on its card — the owner's test card only) */
 .nd-pv-mark { display: grid; place-items: center; width: 100%; height: 100%; background: #0d0a1c; }
 .nd-pv-mark svg { width: 72%; height: 72%; }
+/* CITY H1 — LEAVE ON THE DOCK (the owner): the left ring = LEAVE in a room (JOIN outside one) — a door-out icon over the word, the same ring */
+.rdk-leave .nd-host-label { display: flex; flex-direction: column; align-items: center; gap: 3px; padding-left: 0; }
+.rdk-lv-ic { display: block; width: 17px; height: 17px; }
+.rdk-lv-ic svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.45)); }
+.rdk-lv-w { padding-left: 0.16em; }
+/* … and the GUESTS tab glows + its dot while you're alone (the old INVITE ring's breathe — until you invite someone or a guest arrives) */
+.rdk-guests.rdk-alone { position: relative; }
+.rdk-guests.rdk-alone .nd-tab-ic { filter: drop-shadow(0 0 6px rgba(255, 216, 74, 0.85)); }
+.rdk-guests.rdk-alone .rdk-lbl { color: #ffe9a6; }
+.rdk-guests.rdk-alone::after { content: ''; position: absolute; left: 50%; top: 44%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; pointer-events: none;
+  border: 1.5px solid rgba(255, 216, 74, 0.8); box-shadow: 0 0 12px rgba(255, 216, 74, 0.55); animation: rdk-inv-pulse 1.9s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .rdk-guests.rdk-alone::after { animation: none; opacity: 0.6; } }
+/* THE REMATCH RING (CITY H1 — the owner): RE / MATCH on two lines, bigger, inside the ring */
+.rdk-play.rdk-rm .rdk-w1 { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 1.08em; letter-spacing: 0.1em; line-height: 1; }

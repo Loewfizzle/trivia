@@ -133,7 +133,8 @@ export function paintLetters(x, game, style, M) {
       // BULB LETTERS: by day glass globes in their sockets, at night the bulbs' own light (a hot core + a soft halo)
       const vb2 = col.top - col.lh * (i + 1) + (col.lh - col.cap) / 2, r = BULB.r;
       for (const [u, v] of bulbPoints(ch, col.cx, vb2, col.cap, L.cw)) {
-        if (style === 'lit') { glowDot(x, u, v, r * 3.2, LK.bulb, 0.6); dot(x, u, v, r * 1.12, mix(LK.bulb, [255, 255, 255], 0.5)); dot(x, u, v, r * 0.62, mix(LK.bulb, [255, 255, 255], 0.88)); }
+        if (style === 'lit') { glowDot(x, u, v, r * 2.1, LK.bulb, 0.5);   // (CITY H1: a tighter bulb glow — the letter's shape crisp at phone size)
+          dot(x, u, v, r * 1.12, mix(LK.bulb, [255, 255, 255], 0.5)); dot(x, u, v, r * 0.62, mix(LK.bulb, [255, 255, 255], 0.88)); }
         else { dot(x, u, v, r * 1.3, mix(M.iron || [40, 36, 40], [0, 0, 0], 0.3)); dot(x, u, v, r, style === 'day' ? mix(BULB_GLASS, LK.bulb, 0.18) : mix(LK.bulb, LK.G.night, 0.72)); if (style === 'day') dot(x, u - r * 0.3, v + r * 0.3, r * 0.34, [255, 255, 255], 0.8); }
       }
       return;
@@ -147,7 +148,8 @@ export function paintLetters(x, game, style, M) {
       // second letter inside the first)
       if (style === 'day') text(x, ch, col.cx, vb, size, { fill: rgb(mix(ink, [236, 236, 242], 0.55)), stroke: rgb(mix(ink, [10, 10, 16], 0.5)), lw: size * 0.05, sq, font });
       else if (style === 'dark') text(x, ch, col.cx, vb, size, { fill: rgb(mix(ink, LK.G.night, 0.7)), sq, font });
-      else text(x, ch, col.cx, vb, size, { fill: rgb(mix(ink, [255, 255, 255], 0.42)), stroke: rgb(mix(ink, [255, 255, 255], 0.12)), lw: size * 0.05, sq, font, glow: [M.glowPx * 2.2, rgb(ink, 1)] });
+      // (CITY H1 — the owner: CRISP at phone size — no wide halo, a hair-thin edge at most (was glowPx × 2.2 ≈ 3.5 pt of blur); the bulbs keep it lively)
+      else text(x, ch, col.cx, vb, size, { fill: rgb(mix(ink, [255, 255, 255], 0.42)), stroke: rgb(mix(ink, [255, 255, 255], 0.12)), lw: size * 0.05, sq, font, glow: [M.glowPx * 0.45, rgb(ink, 0.85)] });
       return;
     }
     // ENAMEL: flat painted letters + a keyline + a soft shade; at night the floodlit board (paintBlade's lit layer) shows them in their paint

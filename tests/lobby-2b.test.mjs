@@ -138,11 +138,13 @@ test('THE BANNER PLANE obeys the sky: scene.roomBanner refuses during a legendar
 
 test('THE ADD-ON: LEAVE ROOM up front (the ☰ menu\'s first row in a room — red-edged, a second tap; the foot of GUESTS); the crew\'s LOBBY ONLY moments PLAY on the room\'s phones; ONE SHEET STACK for every pop-up', () => {
   const sp = read('js/ui/settings-panel.js');
-  // (SHELL 2.0 A — the approved ☰ menu: LEAVE ROOM is the LAST row, red-edged, a second tap confirms)
-  assert.match(sp, /row\(\{ icon: 'leave', label: 'Leave room', danger: true, cls: 'gm-leave', confirm: 'TAP AGAIN TO LEAVE'/);
-  assert.ok(sp.indexOf("label: 'Leave room'") > sp.indexOf("label: 'Your card'"), 'after YOUR CARD');
+  // (CITY H1 — the owner: LEAVE at the VERY TOP of ☰ in a room, a game or not, red-edged → THE LEAVE SHEET (LEAVE <WORD>? · LEAVE · STAY —
+  //  no more "TAP AGAIN TO LEAVE"); a solo room: ONE row, QUIT — BACK TO THE CITY; the guest list: INVITE on top, LEAVE ROOM at its foot)
+  assert.match(sp, /label: solo \? 'Quit — back to the city' : 'Leave', danger: !solo, cls: solo \? 'gm-solo-quit' : 'gm-leave', onClick: askLeave/);
+  assert.ok(sp.indexOf("'Quit — back to the city' : 'Leave'") < sp.indexOf("label: 'Your card'"), 'before YOUR CARD — the very top');
+  assert.doesNotMatch(sp + read('js/screens/room-guests.js'), /confirm: 'TAP AGAIN TO LEAVE'/);
   const rg = read('js/screens/room-guests.js');
-  assert.match(rg, /body: \[h\('div\.rg-h', count\), list, lockRow, night, leave\]/);
+  assert.match(rg, /body: \[inv, h\('div\.rg-h', count\), list, lockRow, night, leave\]\.filter\(Boolean\)/);
   // the cause of "the Blackbird didn't fly": rooms/{CODE}/radio's sky moments were never handed to the city — now they are
   const rm = read('js/room.js');
   assert.match(rm, /setState\(\{ roomRadio: all\.filter\(x => x\.kind !== 'intercom' && x\.jack\) \}\)/);

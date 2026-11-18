@@ -604,3 +604,7 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
 .pg-card-since small, .pg-card-since b { white-space: nowrap; }
 /* FIXES R2 — PICK A GAME wears the game's NEON MARK (ui/mark-svg.js — the PLAY sheet's own), never the poster tile: a dark tube-glass square,
    the tubes with a static glow (no animated filter) */
+/* CITY H1 — INVITE moved here from the dock (its left ring is LEAVE now): the room's word over ONE big pink INVITE, at the top of the list */
+.rg-invite { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 2px 0 16px; }
+.rg-inv-k { font: 800 11px/1 var(--font-display); letter-spacing: 0.22em; color: rgba(214, 248, 255, 0.92); }
+.rg-inv-w { margin-left: 4px; font: 900 17px/1 var(--font-display); letter-spacing: 0.16em; color: #fff; text-shadow: 0 0 10px rgba(255, 79, 184, 0.9), 0 0 2px #ff9ad5; }

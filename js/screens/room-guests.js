@@ -4,7 +4,9 @@
 // The host's KICK (a second tap confirms) + LOCK THE DOOR live here (today's rules). Only APPROVED art shows (js/vault/approved.js) — a card the
 // owner hasn't approved keeps its plain palette. THE JOIN ENTRANCE: a joiner's strip slides in playing its FULL animation once (~3.2 s),
 // then settles into the calm cut; its card-in sound (audio/lobby-sfx.js).
-//   openGuestList({ st (a live getter), openCard(uid), onClose }) → { update(st), close() }
+//   openGuestList({ st (a live getter), openCard(uid), invite(), leave(), onClose }) → { update(st), close() }
+// CITY H1 — the owner: INVITE moved here from the dock's left ring (now LEAVE): a big INVITE at the TOP with the room's word; the foot's LEAVE
+// ROOM opens THE LEAVE SHEET (ui/leave-sheet.js — no more "TAP AGAIN TO LEAVE").
 import { row, tubeButton } from '../ui/components.js';
 import { h } from '../ui/dom.js';
 import { afterTap } from '../ui/tapwatch.js';
@@ -15,7 +17,7 @@ import { isOnline } from '../core/room-logic.js';
 import { roomOrder } from '../core/harbor-room.js';
 import { levelOf } from '../core/levels.js';
 import { ITEM } from '../core/items.js';
-import { kickPlayer, setDoorLocked, leaveRoom } from '../room.js';
+import { kickPlayer, setDoorLocked } from '../room.js';
 import { sfx } from '../audio/sfx.js';
 import { nightStandings } from '../core/night.js';
 import { MAX_PLAYERS } from '../config.js';
@@ -39,8 +41,11 @@ export async function openGuestList(ctx) {
     for (const { uid } of roomOrder(P, st.meta && st.meta.hostId)) surfHost.append(phRow(uid, (P[uid] || {}).name));
     count.textContent = `${surfHost.children.length} / ${MAX_PLAYERS}`; }
   let surface = null, paint = () => {};
-  const leave = tubeButton('LEAVE ROOM', { kind: 'danger', block: true, cls: 'rg-leave', confirm: 'TAP AGAIN TO LEAVE', onClick: () => { sheet.close(); leaveRoom(); } });
-  const sheet = openPfSheet({ kicker: 'THE GUEST LIST', title: 'IN THE ROOM', cls: 'rg-sheet', body: [h('div.rg-h', count), list, lockRow, night, leave],
+  const leave = tubeButton('LEAVE ROOM', { kind: 'danger', block: true, cls: 'rg-leave', onClick: () => { if (ctx.leave) ctx.leave(); } });
+  // (the room's word over the big INVITE — ONE pink main on the sheet; the dock's ring used to be INVITE)
+  const word = String(ctx.st.code || '').toUpperCase(), solo = !!(ctx.st.meta && ctx.st.meta.settings && ctx.st.meta.settings.solo && ctx.st.meta.settings.solo.on === true);
+  const inv = solo || !ctx.invite ? null : h('div.rg-invite', h('small.rg-inv-k', 'THE HUSH WORD IS ', h('b.rg-inv-w', word)), tubeButton('INVITE', { kind: 'main', size: 'xl', block: true, cls: 'rg-invite-btn', onClick: () => ctx.invite() }));
+  const sheet = openPfSheet({ kicker: 'THE GUEST LIST', title: 'IN THE ROOM', cls: 'rg-sheet', body: [inv, h('div.rg-h', count), list, lockRow, night, leave].filter(Boolean),
     onClose: () => { closedEarly = true; if (unhold) { unhold(); unhold = null; } if (surface) surface.destroy(); if (ctx.onClose) ctx.onClose(); } });
   const [V, { FX }, { cardVars }, { approvedIds }, { isOneOfOne }, { lobbySfx }] = await Promise.all([
     lazyImport(import('../vault/strip.js'), '../vault/strip.js'), lazyImport(import('../fx/index.js'), '../fx/index.js'), lazyImport(import('../progress/look.js'), '../progress/look.js'), lazyImport(import('../vault/approved.js'), '../vault/approved.js'), lazyImport(import('../core/dev-cards.js'), '../core/dev-cards.js'), lazyImport(import('../audio/lobby-sfx.js'), '../audio/lobby-sfx.js')]);

@@ -1379,3 +1379,8 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .final-link.is-ready { animation: final-ready 0.5s ease-out 1; }   /* (lit in the game's accent — the bar's own colour — until it is tapped) */
 @keyframes final-ready { 0% { transform: scale(1); } 40% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .final-link.is-ready { animation: none; } }
+/* CITY H1 — THE LEAVE SHEET (ui/leave-sheet.js): ONE sheet for every way out — LEAVE <WORD>? · STAY | LEAVE (the danger tube), the host's heir named */
+.lv-note { margin: 2px 0 14px; text-align: center; font: 800 13px/1.35 var(--font-ui); letter-spacing: 0.12em; color: #ffe9a6; }
+.lv-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lv-row .btn { min-height: 52px; }
+.final-gap { flex: none; pointer-events: none; }   /* (CITY H1: the gap that moves a box whole under the foot — ui/final.js#unslice) */

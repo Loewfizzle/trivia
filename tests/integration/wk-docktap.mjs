@@ -103,7 +103,7 @@ if (ONLY.has('room')) {
     ok(dockUp, 'the room dock is up (the HOW TO SHARE card gone by itself)');
     const closeAll = async () => { await p.evaluate(() => Promise.all([import('/js/ui/sheet.js').then(m => m.closeAllSheets()), import('/js/screens/profile.js').then(m => m.closeCard && m.closeCard()).catch(() => {})])); await waitFor("!document.querySelector('.sh.is-in') && !document.querySelector('.pf-overlay')", 4000); await sleep(400); };
     const ROOM = [
-      ['INVITE', '.rdk-dock .rdk-invite', "!!window.__shared || !!document.querySelector('.sh.fr-invite-sheet.is-in')"],
+      ['LEAVE', '.rdk-dock .rdk-leave', "!!document.querySelector('.sh.lv-sheet.is-in')"],   // (CITY H1: the left ring = LEAVE → THE LEAVE SHEET; INVITE in GUESTS)
       ['PLAY (the host)', '.rdk-dock .rdk-play', "!!document.querySelector('.sh.is-in')"],
       ['YOU', '.rdk-dock .rdk-you', "!!document.querySelector('.pf-overlay')"],
       ['GUESTS', '.rdk-dock .rdk-guests', "!!document.querySelector('.sh.is-in')"],

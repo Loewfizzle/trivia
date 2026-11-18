@@ -1,12 +1,15 @@
 // LOBBY 2.0 A — THE ROOM DOCK (the owner's approved mock lobby-room.png, Nov 3 9:09–9:15 pm): THE FLANK restyled, not new colours — the
 // title's own dock (title-dock.js#createDock: the same rings, glass + tube icons, the same lighting from the sign) with the room's words:
-//   [ INVITE ring ]  [ glass pill: YOU · GUESTS · GAMES · BOARD · CHAT ]  [ PLAY ring ]   (FIXES R2: + BOARD — the owner's nephew)
-// the JOIN ring → INVITE (the same silver-white ring; EVERYONE may invite); the HOST ring → PLAY (the same hot-pink ring) for the HOST
+//   [ LEAVE ring ]  [ glass pill: YOU · GUESTS · GAMES · BOARD · CHAT ]  [ PLAY ring ]   (FIXES R2: + BOARD — the owner's nephew)
+// the JOIN ring → LEAVE (CITY H1 — the owner: JOIN outside a room, LEAVE inside — a door-out icon, the same silver-white ring → THE LEAVE SHEET;
+// INVITE moved to the top of the GUESTS sheet, the GUESTS tab glows + its dot while you're alone); the HOST ring → PLAY (the same hot-pink ring) for the HOST
 // only — a guest sees it greyed, WAITING FOR <HOST> (it changes hands with a host change); YOU = your emblem (the profile + CUSTOMIZE);
 // GUESTS = gold tube people + a YELLOW DOT when someone joined since you last opened it (no number); GAMES = the cyan grid; CHAT = the pink
 // tube bubble + its unread dot; tiny labels under the icons. Behaviour: room-city.js (handlers passed in).
 import { h } from '../ui/dom.js';
 import { createDock, ICON } from './title-dock.js';
+// (CITY H1: the LEAVE ring's door-out — an open door, an arrow out of it)
+const DOOR_OUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 4.2H6.6c-.8 0-1.4.6-1.4 1.4v12.8c0 .8.6 1.4 1.4 1.4H13"/><path d="M10.4 12h10M17 8.4l3.6 3.6-3.6 3.6"/></svg>';
 
 const tube = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="t">${d}</g><g class="c">${d}</g></svg>`;
 export const RICON = {
@@ -15,18 +18,18 @@ export const RICON = {
   // (SHELL 2.0 B1 — THE LOOK SWITCH's three states: a sun · a moon · AUTO = half a sun (its rays on the left) + half a moon)
 };
 
-/** on = { invite, play, you, guests, games, chat, note } → the dock (the same API as createDock: el, els, light, all, ringOn, …) + set(view) */
+/** on = { leave, play, you, guests, games, chat, note } → the dock (the same API as createDock: el, els, light, all, ringOn, …) + set(view) */
 export function createRoomDock(on) {
-  const d = createDock({ join: on.invite, host: on.play, board: () => {}, games: on.games, you: on.you,
+  const d = createDock({ join: on.leave, host: on.play, board: () => {}, games: on.games, you: on.you,
     code: { input() {}, paste() {}, focus() {}, blur() {}, keydown() {} }, go() {}, panelDown() {}, panelUp() {}, note: on.note || (() => {}) });
   const E = d.els;
   E.door.setAttribute('aria-label', 'The room');
   E.door.classList.add('rdk-dock');
   // the rings' words
-  E.joinTab.querySelector('.nd-host-label').textContent = 'INVITE';
-  E.joinTab.setAttribute('aria-label', 'Invite friends — share the hush word');
+  E.joinTab.querySelector('.nd-host-label').replaceChildren(h('span.rdk-lv-ic', { html: DOOR_OUT }), h('span.rdk-lv-w', 'LEAVE'));
+  E.joinTab.setAttribute('aria-label', 'Leave the room');
   E.joinTab.removeAttribute('aria-expanded');
-  E.joinTab.classList.add('rdk-invite');
+  E.joinTab.classList.add('rdk-leave');
   const hl = E.host.querySelector('.nd-host-label');
   hl.replaceChildren(h('span.rdk-w1', 'PLAY'), h('span.rdk-w2'));
   E.host.classList.add('rdk-play');
@@ -67,21 +70,22 @@ export function createRoomDock(on) {
    *        rm?: { on, voted (mine), n (votes), total (everyone), pips: [{ col (hex), on }] } — THE REMATCH VOTE } */
   d.set = v => {
     const rm = v.rm && v.rm.on ? v.rm : null;
-    // (LOBBY FIXES — AFTER THE MATCH, change-game.png v2 APPROVED: the host's GAMES tab reads NEW GAME in cyan and BREATHES (opacity + scale)
-    //  until it is tapped or a game starts; v.newGame = 'breathe' | 'calm' | null)
+    // (LOBBY FIXES — AFTER THE MATCH, change-game.png v2 APPROVED: the host's GAMES tab glows cyan and BREATHES (opacity + scale) until it is
+    //  tapped or a game starts; v.newGame = 'breathe' | 'calm' | null. CITY H1 — the owner: its word stays GAMES (was NEW GAME — the labels' air))
     const ng = v.newGame || null;
     if ((E.gamesTab.dataset.ng || '') !== (ng || '')) {
       E.gamesTab.dataset.ng = ng || '';
       E.gamesTab.classList.toggle('rdk-newgame', !!ng); E.gamesTab.classList.toggle('rdk-breathe', ng === 'breathe');
-      E.gamesTab.querySelector('.rdk-lbl').textContent = ng ? 'NEW GAME' : 'GAMES';
+      E.gamesTab.querySelector('.rdk-lbl').textContent = 'GAMES';
       E.gamesTab.setAttribute('aria-label', ng ? 'New game — pick another game' : 'The games');
     }
     // (DM2: the host's MID-DAILY line — before START only; the rematch pill takes the spot after a match)
     const midN = v.host && !rm ? v.mid || 0 : 0;
     if ((E.mid.dataset.n || '0') !== String(midN)) { E.mid.dataset.n = String(midN); E.mid.hidden = !midN; E.mid.querySelector('.rdk-mid-t').textContent = midN ? `${midN} ${midN === 1 ? 'PLAYER IS' : 'PLAYERS ARE'} MID-DAILY` : ''; }
-    const k = `${v.host ? 1 : 0}|${v.hostName || ''}|${v.guestsDot ? 1 : 0}|${v.chatDot ? 1 : 0}|${v.chatN || 0}|${rm ? `${rm.voted ? 1 : 0}${rm.n}/${rm.total}:${rm.pips.map(p => `${p.col}${p.on ? 1 : 0}`).join(',')}` : ''}`;
-    // (LOBBY FIXES — AFTER HOST: the INVITE ring breathes until the host invites someone or a guest arrives — opacity + scale only, CSS)
-    if (E.joinTab.classList.contains('rdk-pulse') !== !!v.invitePulse) E.joinTab.classList.toggle('rdk-pulse', !!v.invitePulse);
+    const k = `${v.host ? 1 : 0}|${v.hostName || ''}|${v.guestsDot ? 1 : 0}${v.alone ? 1 : 0}|${v.chatDot ? 1 : 0}|${v.chatN || 0}|${rm ? `${rm.voted ? 1 : 0}${rm.n}/${rm.total}:${rm.pips.map(p => `${p.col}${p.on ? 1 : 0}`).join(',')}` : ''}`;
+    // (LOBBY FIXES — AFTER HOST → CITY H1: the GUESTS tab glows + its dot while you're alone, until you invite someone or a guest arrives — the
+    //  old INVITE ring's breathe; opacity + scale only, CSS)
+    if (E.guestsTab.classList.contains('rdk-alone') !== !!v.alone) E.guestsTab.classList.toggle('rdk-alone', !!v.alone);
     if (v.you && v.youSig !== E.youSig) { E.youSig = v.youSig; E.youTab.querySelector('.nd-tab-ic').replaceChildren(v.you); if (v.youAria) E.youTab.setAttribute('aria-label', v.youAria); }
     if (k === last) return; last = k;
     E.host.classList.toggle('rdk-wait', !v.host && !rm);
@@ -90,7 +94,7 @@ export function createRoomDock(on) {
     if (rm) {
       E.host.setAttribute('aria-label', v.host ? `Rematch — the same game, the same settings, everyone in (${rm.n} of ${rm.total} want one)` : rm.voted ? 'You voted for a rematch — tap to take it back' : 'Vote for a rematch');
       E.host.setAttribute('aria-disabled', 'false');
-      hl.querySelector('.rdk-w1').textContent = 'REMATCH';
+      hl.querySelector('.rdk-w1').replaceChildren(h('span', 'RE'), h('span', 'MATCH'));   // (CITY H1: RE / MATCH, two lines, bigger)
       hl.querySelector('.rdk-w2').textContent = v.host ? '' : rm.voted ? '✓ VOTED' : 'VOTE';
     } else {
       E.host.setAttribute('aria-label', v.host ? 'Play — pick the game and start' : `Waiting for ${v.hostName || 'the host'} to start`);
@@ -105,8 +109,8 @@ export function createRoomDock(on) {
     E.votes.hidden = !lit.length;
     E.votes.replaceChildren(...(lit.length ? [h('span.rdk-vdots', ...lit.map(p => h('i.rdk-pip.is-on', { style: { '--c': p.col } }))), h('span.rdk-vw', 'want a rematch')] : []));
     E.votes.setAttribute('aria-label', lit.length ? `${lit.length} want${lit.length === 1 ? 's' : ''} a rematch` : '');
-    E.guestsTab.querySelector('.rdk-dot').hidden = !v.guestsDot;
-    E.guestsTab.setAttribute('aria-label', v.guestsDot ? 'The guest list — someone new joined' : 'The guest list');
+    E.guestsTab.querySelector('.rdk-dot').hidden = !v.guestsDot && !v.alone;
+    E.guestsTab.setAttribute('aria-label', v.guestsDot ? 'The guest list — someone new joined' : v.alone ? 'The guest list — invite someone' : 'The guest list');
     E.chatTab.querySelector('.rdk-dot').hidden = !v.chatDot;
     E.chatTab.setAttribute('aria-label', v.chatN ? `The room chat (${v.chatN} unread)` : 'The room chat');
   };

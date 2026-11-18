@@ -251,10 +251,11 @@ export function createDockWork(T) {
         const hr = T2.heldRun(), cs = L.chipState(t, hr);
         if (cs === 'drop') { T2.dropHeld(); return; }           // (dropHeld tells every listener — this paint runs again without the hold)
         if (T.els.dyChip) T.els.dyChip.hidden = cs !== 'show';
-        // the ☰ menu's row (THE DAILY SCREEN from anywhere outside a match — the room's way in): only while a daily is live
+        // ☰'s row (THE DAILY SCREEN — the room's way in): CITY H1 — the owner: gone outside a room (the dock's DAILIES + its dot is the way in);
+        //  IN a room it stays (the room's dock has no DAILIES), only while a daily is live
         const ds = L.dockState(t);
         Promise.all([lazyImport(import('../ui/settings-panel.js'), '../ui/settings-panel.js'), lazyImport(import('../ui/components.js'), '../ui/components.js')]).then(([S, Cm]) => S.setMenuExtra('dailies', ds.show
-          ? ({ close }) => Cm.row({ icon: ICON.daily, ic: '#ff6fc8', label: 'The dailies', value: ds.state === 'waiting' ? `${ds.left} LEFT` : 'ALL DONE', cls: 'gm-dailies', onClick: () => { close(); setState({ daily: { v: 'screen' } }); } })
+          ? ({ close }) => (state.code ? Cm.row({ icon: ICON.daily, ic: '#ff6fc8', label: 'The dailies', value: ds.state === 'waiting' ? `${ds.left} LEFT` : 'ALL DONE', cls: 'gm-dailies', onClick: () => { close(); setState({ daily: { v: 'screen' } }); } }) : null)
           : null)).catch(() => {});
       };
       if (dailyOff) dailyOff();

@@ -12,6 +12,7 @@ import { pushPaper } from './radio-push.js';
 import { nowPlayingText } from '../../audio/now-playing.js';
 import { openSheet } from '../../ui/sheet.js';
 import { lazyImport } from '../../ui/lazy-import.js';
+import { afterTap } from '../../ui/tapwatch.js';
 
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 let memo = null;   // { at, data } — 30 s
@@ -37,12 +38,12 @@ export function paint({ api, now }) {
     holder.replaceChildren(
       h('div.rd-big3',
         // (PLAY NOW — WHO'S ON: IN THE CITY is a door — a tap → who's online now (the owner's list; ui/whos-on.js — the server refuses anyone else))
-        h('button.rd-who', { type: 'button', 'aria-label': `${L.now.here} in the city — who's on`, onclick: () => lazyImport(import('../../ui/whos-on.js'), '../../ui/whos-on.js').then(m => m.openWhosOn({ api, openSheet })).catch(() => {}) },
+        h('button.rd-who', { type: 'button', 'data-press': true, 'aria-label': `${L.now.here} in the city — who's on`, onclick: () => lazyImport(import('../../ui/whos-on.js'), '../../ui/whos-on.js').then(m => m.openWhosOn({ api, openSheet })).catch(() => {}) },
           nixie(L.now.here), h('small', 'IN THE CITY ›')),
         // (CITY C — ROOMS OPEN + GAMES ON are doors too: the open rooms (the ledger's own list) → a room → its players' slim cards)
-        h('button.rd-who', { type: 'button', 'aria-label': `${L.now.rooms} rooms open — the list`, onclick: () => lazyImport(import('../../ui/whos-on.js'), '../../ui/whos-on.js').then(m => m.openRooms({ api, openSheet, rooms: L.rooms })).catch(() => {}) },
+        h('button.rd-who', { type: 'button', 'data-press': true, 'aria-label': `${L.now.rooms} rooms open — the list`, onclick: () => lazyImport(import('../../ui/whos-on.js'), '../../ui/whos-on.js').then(m => m.openRooms({ api, openSheet, rooms: L.rooms })).catch(() => {}) },
           nixie(L.now.rooms), h('small', 'ROOMS OPEN ›')),
-        h('button.rd-who', { type: 'button', 'aria-label': `${L.now.games} games on — the list`, onclick: () => lazyImport(import('../../ui/whos-on.js'), '../../ui/whos-on.js').then(m => m.openRooms({ api, openSheet, rooms: L.rooms, playing: true })).catch(() => {}) },
+        h('button.rd-who', { type: 'button', 'data-press': true, 'aria-label': `${L.now.games} games on — the list`, onclick: () => lazyImport(import('../../ui/whos-on.js'), '../../ui/whos-on.js').then(m => m.openRooms({ api, openSheet, rooms: L.rooms, playing: true })).catch(() => {}) },
           nixie(L.now.games), h('small', 'GAMES ON ›'))),
       np,
       h('section.rd-paper', h('h4', 'TODAY', h('em', 'since midnight · Eastern')),
@@ -97,7 +98,7 @@ export function paint({ api, now }) {
       h('p.rd-hint', 'Up to 10. A player needs a profile (after their first match) to join the crew. The crew fires sky moments in the room they’re in — every phone there sees it; tap a player in your room to switch THE CREW on their card.'));
   }
   const go = async () => {
-    try { if (!memo || now() - memo.at > 30e3) memo = { at: now(), data: await api('admin', { action: 'radioLedger' }) }; fill(memo.data); }
+    try { if (!memo || now() - memo.at > 30e3) memo = { at: now(), data: await api('admin', { action: 'radioLedger' }) }; const d = memo.data; afterTap(() => fill(d)); }   // (CITY H1 — THE RADIO's LOST TAP: an answer that lands mid-press waits for the lift)
     catch (e) { holder.replaceChildren(h('section.rd-paper', h('h4', 'THE LEDGER'), h('p', `Couldn’t read the ledger: ${(e && e.message) || 'offline'}`))); }
   };
   go();

@@ -68,7 +68,7 @@ ok(out.some(Boolean), `THE WALK BACK OUT in WebKit (${out})`);
 const ban = await Promise.all([p, q].map(x => wf(x, '(() => { const r = window.__district.roomBanner && window.__district.roomBanner(); return !!(r && r.last && r.last.how); })()', 30000).then(() => x.evaluate('window.__district.roomBanner().last'))));
 console.log('banner', JSON.stringify(ban));
 ok(ban.every(b => b && b.how === 'flown'), `THE WINNER's BANNER PLANE flies in WebKit (${ban.map(b => b && b.how).join(' / ')})`);
-const ring = await wf(p, "document.querySelector('.rdk-play').classList.contains('rdk-rm') && document.querySelector('.rdk-votes').hidden && document.querySelector('.rdk-games').textContent.includes('NEW GAME')", 15000);
+const ring = await wf(p, "document.querySelector('.rdk-play').classList.contains('rdk-rm') && document.querySelector('.rdk-votes').hidden && document.querySelector('.rdk-games').classList.contains('rdk-newgame')", 15000);
 ok(ring, 'THE REMATCH RING (no votes yet: no pill) + NEW GAME in the dock in WebKit');
 await p.screenshot({ path: 'shots-room2/wk-vote-host.png' });
 // THE STUCK JOIN (CITY 1.0 OUT Group 0): the guest (joined by the link) LEAVES → JOIN is fresh (empty, nothing breathing) → a new word typed → in

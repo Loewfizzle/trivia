@@ -389,6 +389,11 @@ at 8, squeeze 0.66, people ~33 pt.)
   apart agree; lanes, budget, heavy, rarity, `when()`, forced.
 
 ## THE TRI-VISION (Nov 12 night — passes/jaywalk-cards.md Group 2)
+**THE BOARD OPENS ON THE NEWEST GAME (CITY H1, Nov 18 — the owner):** the first frame the tri-vision is up (its art decoded, after the reveal) it
+TURNS at once — a real turn, its own motion (THE WINDOW RULE) — to the face whose switch went on MOST RECENTLY (`core/harbor-trivision.js#newestFace`
+over `faceDates()`: each face's `since` + OPEN DAY / THE DROP's go-live — /admin stamps them when a switch flips; never typed): today JAYWALK
+(OPEN DAY 11-17); then the shared clock's turns as ever. Was: HOLD'EM until the next turn. `tri().opened`; harbor `trivision` checks the opening
+turn (`id` 'o…'); `trivision.test.mjs` the pure pick.
 **THE ROOF BOARD's LOADER (CITY G, Nov 18 — the owner's /admin, Nov 17 7:26 pm: JAYWALK ON, yet the board turned only HOLD'EM → THE DROP):** the
 posters live at MODULE level while the city is destroyed + rebuilt on every game start / return; the old loader kept ONE callback and returned
 silently to a later caller while its picture still loaded — a scene destroyed mid-load took the answer with it and the rebuilt scene never showed
@@ -845,6 +850,11 @@ one-day AMBER tubes with them. Now:
   SMOOTH blurred shadow (`HALO_PASSES`, baked) — 0.95 in the gold week, 0.4 on the pink nights (they have the hue contrast), 0.6 by day.
   Measured (tube cores vs 5–14 pt beside them, the median): gold night 4.7 : 1 (a plain night 4.4–5.2), pink nights 4.5–5.2, day 4.5–4.8 (a
   plain day 4.0–4.3). `tests/leafbank.test.mjs` pins the numbers.
+- **THE LEAVES BEFORE THE LETTERS (CITY H1, Nov 18 — the owner: "the leaves load on top of the neon sign first, then the neon sign pops up over
+  it"):** `setOps`'s night floor (0.72 + 0.28 × lit) showed the leaves at 72 % at the sign's FIRST power-up, before any letter. Until the sign has
+  lit fully ONCE (lit ≥ 0.98) the night layer follows the letters (× lit² — the sign leads); after that the floor stays (dims, blackouts). The
+  day layer ignores the sign as before. The same hold for every other holiday dressing (`signdress.js` — the webs, the spiders, the Day of the
+  Dead pieces: the dressing canvas's opacity = max(day, lit²) until the first full light). `leaves().litOnce` in the debug.
 - **THE BUILD-UP** = the timetable row `thanksgiving.leaves` (`core/harbor-holiday.js#thanksLeaves` — days from Thanksgiving: `from` −11 → `full` −4,
   whole days from `turnH` 4 am the city's local clock: Nov 15 2026 ⅛ of the bank … Sun Nov 22 all of it, centre-out). A new day's leaves FADE IN
   over `fadeS` 2 s if the city is open across the 4 am line (a new bake laid over the old one — the cast in the pass log: no pop), at the next
@@ -1462,3 +1472,88 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   hotel blade's pick); a repeat only if names < signs, never a dark sign. **THE HOTEL's VERTICAL SIGN** (`n-blade`) = PRISM / HOLDEM only (no `split`).
 - **THE DROP's face is judged on the 4 am ET streak day** (`core/harbor-trivision.js#dropKey` — the scene passes its clock to `triFaces`): the board's
   own key is its WORK DAY (yesterday until the billposter's evening turn), which kept THE DROP out of the rotation on its go-live day.
+
+
+## THE BOOT TRIM (CITY H1) — comments moved out of the boot files, verbatim
+
+CITY H1 spent ~7 KB of THE BOOT BUDGET (THE SQUEAL's doze in `audio/engine.js`, the roof board's newest face, LEAVE on the dock); NEON PAR's
+go-live needs ~6 KB + 1 file, so two long comment blocks moved here word for word (code unchanged — CITY G's way).
+
+### js/core/harbor-promenade.js — the promenade's layout history (was its lines 62–95, inside `PROMENADE`)
+
+```
+  // FP — THE RE-LAYOUT (the owner approved the sketch, Oct 23): FURNITURE ON THE EDGES, AN OPEN FLOOR IN THE MIDDLE, THE FRONT EDGE
+  // CLEAR. THE BACK ROW along the curb, a steady street rhythm: maple (beside the blade) · tall lamp · [the crosswalk's landing, open]
+  // · maple with the BENCH under it · a planter · tall lamp. THE OPEN FLOOR: clear cobbles from the shopfront to the right edge, the
+  // MEDALLION at its centre (roughly under the wheel), the CART on its open right side. ONE big framing maple at the far right edge.
+  // THE FRONT EDGE: only two short warm globes, one at each corner (the speakeasy's corner + the right edge). ONE crafted planter
+  // tucked against the speakeasy's corner, beside the side wall (never in front of the door or the shop window).
+  // (at phone size the strip is ~70 pt deep, so depth stacks on screen: no curb tree may stand in front of the two stop lights or
+  // the crossing (f ~0.58–0.76), and the framing maple's crown covers the right quarter — so the back row's trees + bench sit LEFT
+  // of the crossing, beside the blade + under the wheel's deck, its second tall lamp right of it; the sketch's curb planter would
+  // stand hidden behind the framing maple — the ONE crafted planter is the speakeasy's corner one)
+  // FP2 — THE OWNER'S TWEAKS (Oct 24): the red curb maple beside / behind the DOUBLE AGENT blade is GONE (the corner clean, the wheel's
+  // left leg shows again); the corner URN is gone (the promenade has no planter now — the speakeasy has its window boxes + ivy;
+  // props.js#drawPlanter stays for later); THE MEDALLION moves to the middle of the open floor, in front of the crossing (~265 pt at
+  // 402); THE CART rests LEFT of it (~200 pt); THE BENCH + its tree shift LEFT (~160 pt: the cart's umbrella never hides the bench —
+  // tested) and that tree is a FLOWERING CRABAPPLE (pink-white blossom in spring — spring reads again; golden autumn + red fruit).
+  // So the back row is: crabapple with the bench · tall lamp · [the crossing's landing] · tall lamp. The framing maple keeps its
+  // own colour (v: the BLAZING ORANGE mix — core/harbor-trees.js#MAPLE_AUTUMN 1, "the big one on the front walk").
+  // PF — THE FINAL LAYOUT (the owner, Oct 24; the cart is back since FP3b — the vendor spot): THE BENCH +
+  // ITS CRABAPPLE move to where the cart's umbrella stood — just LEFT of the crossing, a little FORWARD, the tree bigger (the DOUBLE
+  // AGENT blade free, the tree shows); THE TALL LAMPS a matched PAIR FLANKING THE CROSSING (symmetric about its centre, 0.6675 — just
+  // outside the two stop lights: the crossing framed + lit, the bench in the left one's light); the two short globes stay at the
+  // front corners; nothing in front of the shopfront or the blade. THE CENTREPIECE is a brick PAVING INLAY now (props.js) on the
+  // crossing's axis, a little further back (z 43.4 → 44.8) — inside both flanking lamps' pools. THE MAILBOX by the front curb, right.
+  // PROM — THE PROMENADE, FINAL (the owner, Oct 28 — LOCKED): NO LAMPPOSTS (the tall pair + the two front globes gone: the implied lamps
+  // behind the viewer light it); THE FRAMING MAPLE moved BACK (f 0.888 z 38.2 → f 0.875 z 42.0 — its whole crown shows); THE CAB STAND
+  // bench at the FRONT CURB in front of it, facing the street (`cabStand`); THE WATER BENCH back at the crabapple, turned to face the
+  // harbor (`bench`, face 'water'); THE COMPASS bigger + forward (z 44.8 → 42.6); THE VENDOR CART to the front-middle LEFT of the compass
+  // (f 0.805 → 0.5); THE HYDRANT to the LEFT CURB (f 0.035), framing the corner
+  // C4b — THE LAYOUT (the owner, Oct 28 — review-4 §C3 option C, the giant off): THE COMPASS LEFT to f 0.515 (the crosswalk clear of
+  // every remaining centrepiece: its ring's right edge 250 pt vs the crossing's near edge 251 at 402), THE WATER BENCH back in front of
+  // the crabapple (f 0.42 — no centrepiece hides it), THE FRAMING MAPLE + THE CAB STAND to the RIGHT EDGE (f 0.875 → 0.9, its leaves 1–4
+  // pt inside the screen's edge at 390 / 402 / 430; the bench the same 0.70 u: f 0.9025; the maple keeps its crown — `seedF`, the plan's
+  // seed from its old spot), THE CART in the middle (f 0.69 — between the compass + the cab bench), wheeled up from BELOW THE DOCK
+  // (`from: 'below'`: across the front street + over the curb at its spot)
+```
+
+### js/screens/harbor/remote.js — THE PREVIEW PANEL's header (was its lines 1–35)
+
+```
+// CITY 2.0 — THE PREVIEW PANEL: the owner's test remote (docs/harbor.md#the-preview-panel). ?city=2 only: title.js imports this
+// module after the city's first paint, never on the default city.
+//   everyone on ?city=2   reads city2/live (server-written: /api/admin cityLive / cityClear) — CONN (Oct 28): through the cached
+//                         GET /api/admin?live=1 every ~5 min while the city is visible + focused (no database socket; ≲ 5 min to arrive —
+//                         THE CDN HOTFIX, Nov 12: each poll is one of Vercel's free million edge requests);
+//                         admins keep the live listener (firebase.js#want('admin')) — and plays
+//                         its state in sync from its startAt (the scene's remote(): the clock runs from there, a sky piece's
+//                         first flight starts there) until CLEAR or `until`; then the real city again. A node whose startAt is
+//                         still ahead (C2: the panel's DELAY) waits for it — every phone starts on the same beat
+//   the owner (admin)     9d: the ☰ menu's ADMIN row (its bottom) opens the sheet — the TEST pill is gone from the screen; while a
+//                         preview is on, a small dot on ☰ (JUST ME green, EVERYONE pink) + the row says what ("JUST ME · 10/27 22:30")
+//                         with a CLEAR beside it. JUST ME (this phone, kept for the tab) or EVERYONE ON CITY 2 (a draft, sent with
+//                         SEND TO EVERYONE); every row comes from core/harbor-remote.js
+// 9d — THE ADMIN PANEL (the owner, DECIDED): a pinned NOW bar at the very top, always open — TIME first (the date + time, the quick
+//                         chips, the date's holiday chips, MORE TIME), the WEATHER's chips, JUST ME / EVERYONE + CLEAR ALL; RECENT; the
+//                         sections by use (core/harbor-remote.js#SECTIONS); every row's hint on a line under its label
+// The state on this phone: JUST ME (if any) wins over EVERYONE's; nothing at all = the real city.
+// NEON PASS 5 — A LINK'S OWN SETTINGS WIN: opening a link that carries its own preview flags (&when, &force, &speed, &wx, &scene…)
+// drops a stored JUST ME state (a refresh of the same page keeps it); while JUST ME is on the pill says so + a one-tap ✕ beside it.
+// CITY 2.0 MUSIC: force a mood (part of the state, so EVERYONE's phones follow too), SKIP TO THE NEXT SONG (this phone), the song now.
+// C2 — THE PANEL REWORK (the owner, Oct 25: "very busy and unorganized"):
+//   FULL SCREEN       a full-screen glass sheet on a phone (the safe areas kept), a large centred one on a desktop
+//   THE DELAY         nothing changes while the sheet is open: JUST ME's taps QUEUE (the status says so); closing the sheet starts a
+//                     3-2-1 chip beside the pill (NOW / 3 S / 5 S, remembered on this device) and then the whole queued state
+//                     starts at once — its time jump, its sky pieces' first flights, its weather, its toggles, all from that moment.
+//                     Reopening during the countdown CANCELS it (what was queued stays queued — close again to start it).
+//                     EVERYONE: SEND pushes the server's startAt by the delay; every phone (the owner's shows the chip) starts then.
+//   SEARCH            one box over every row (label, hint, keywords, group, section); the sections with hits open, the rest hide
+//   RECENT            the last rows fired (6, remembered on this device); one tap fires it again (the sheet closes, the countdown runs)
+//   NINE SECTIONS     SKY · LEGENDARY · PEOPLE + WORKERS · WILDLIFE · HARBOR · WEATHER · TIME · LIGHTS + MUSIC · TOOLS (R.SECTIONS),
+//                     collapsible, the open ones remembered; inside, blocks: the panel's own controls + one per event group
+//   THE MODE          JUST ME = green, EVERYONE = pink: the sheet's top edge + the chips + the pill's dot + the countdown chip
+// The DOM keeps the old hooks: every section AND every block is a `.hr-sec` whose first `.hr-h` is its name (MUSIC, …); the
+// blocks carry the old category ids in data-cat (sounds, music, lights = PULSE, tools, party, time, weather, holidays + each
+// event block its area); openCats() takes a section id or an old category id.
+```

@@ -206,24 +206,24 @@ G('hostcard', async () => {
     const code = await ev(p, 'window.__arcade.state.code');
     const r = await ev(p, `(() => { const c = document.querySelector('.rc-hostcard'), s = c && c.querySelector('.rc-hc-share'), cv = document.querySelector('.nd-scene canvas'), b = s && s.getBoundingClientRect(), cb = c && c.getBoundingClientRect();
       return { boots: window.__boots, same: !!(cv && cv.dataset.lf === 'before'), text: c ? c.textContent : null, share: b ? Math.round(b.height) : 0, inView: !!(cb && cb.left >= 0 && cb.right <= innerWidth && cb.top >= 0),
-        pulse: document.querySelector('.rdk-invite').classList.contains('rdk-pulse') }; })()`);
+        pulse: document.querySelector('.rdk-guests').classList.contains('rdk-alone') && !document.querySelector('.rdk-guests .rdk-dot').hidden }; })()`);
     ok(r.boots === 0 && r.same, `THE ${view[0] > 1000 ? 'DESKTOP' : 'PHONE'} HOST: a clean move into the room — no boot screen in between (${r.boots}), the same city canvas (${r.same})`);
-    ok(r.text && /YOUR ROOM IS OPEN/.test(r.text) && new RegExp(`THE HUSH WORD IS ${code}`).test(r.text) && /SHARE INVITE/.test(r.text) && /or tap INVITE anytime/.test(r.text) && r.share >= 44 && r.inView,
+    ok(r.text && /YOUR ROOM IS OPEN/.test(r.text) && new RegExp(`THE HUSH WORD IS ${code}`).test(r.text) && /SHARE INVITE/.test(r.text) && /or GUESTS → INVITE anytime/.test(r.text) && r.share >= 44 && r.inView,
       `AFTER HOST (${view[0]}): the card — "${r.text}" — SHARE INVITE ${r.share} pt, on screen`);
-    ok(r.pulse, `… the INVITE ring breathes (no invite yet, no guest)`);
+    ok(r.pulse, `… the GUESTS tab glows + its dot (CITY H1 — alone: no invite yet, no guest)`);
     if (SHOTS) await p.screenshot({ path: `${OUT}hostcard-${view[0]}.png` });
     await sleep(8600);
-    const later = await ev(p, "({ card: !!document.querySelector('.rc-hostcard:not(.is-out)'), pulse: document.querySelector('.rdk-invite').classList.contains('rdk-pulse') })");
-    ok(!later.card && later.pulse, `… it closes itself after a few seconds (gone: ${!later.card}); the ring still breathes until an invite or a guest (${later.pulse})`);
+    const later = await ev(p, "({ card: !!document.querySelector('.rc-hostcard:not(.is-out)'), pulse: document.querySelector('.rdk-guests').classList.contains('rdk-alone') })");
+    ok(!later.card && later.pulse, `… it closes itself after a few seconds (gone: ${!later.card}); GUESTS still glows until an invite or a guest (${later.pulse})`);
     if (view[0] < 1000) {
       const N = await joinRoom('hcg', code);
-      await waitFor(p, "!document.querySelector('.rdk-invite').classList.contains('rdk-pulse')", 'the pulse stops', 10000).catch(() => {});
-      ok(!(await ev(p, "document.querySelector('.rdk-invite').classList.contains('rdk-pulse')")), '… a guest arrived → the INVITE ring stops breathing');
+      await waitFor(p, "!document.querySelector('.rdk-guests').classList.contains('rdk-alone')", 'the glow stops', 10000).catch(() => {});
+      ok(!(await ev(p, "document.querySelector('.rdk-guests').classList.contains('rdk-alone')")), '… a guest arrived → GUESTS stops glowing');
       await N.Q.ctx.close().catch(() => {});
     }
     await Q.ctx.close().catch(() => {});
   }
-  // a tap closes it; INVITE (the ring) stops the breathing
+  // a tap closes it; INVITE (CITY H1: at the top of GUESTS) stops the glow
   const T = await hostRoom('hct');
   await waitFor(T.p, "!!document.querySelector('.rc-hostcard')", 'the card', 8000).catch(() => {});
   await sleep(500);
@@ -231,10 +231,12 @@ G('hostcard', async () => {
   await sleep(500);
   const gone = !(await ev(T.p, "!!document.querySelector('.rc-hostcard:not(.is-out)')"));
   await ev(T.p, "(() => { window.navigator.share = undefined; return 1; })()");
-  await ev(T.p, "document.querySelector('.rdk-invite').click()");
+  await ev(T.p, "document.querySelector('.rdk-guests').click()");
+  await waitFor(T.p, "!!document.querySelector('.rg-sheet .rg-invite-btn')", 'GUESTS → INVITE', 10000).catch(() => {});
+  await ev(T.p, "document.querySelector('.rg-sheet .rg-invite-btn').click()");
   await sleep(600);
-  const pulse = await ev(T.p, "document.querySelector('.rdk-invite').classList.contains('rdk-pulse')");
-  ok(gone && !pulse, `… a tap closes the card (${gone}); a tap on INVITE stops the breathing (${!pulse})`);
+  const pulse = await ev(T.p, "document.querySelector('.rdk-guests').classList.contains('rdk-alone')");
+  ok(gone && !pulse, `… a tap closes the card (${gone}); GUESTS → INVITE stops the glow (${!pulse})`);
   await T.Q.ctx.close().catch(() => {});
 });
 
@@ -247,11 +249,25 @@ const signState = p => ev(p, `(() => { const s = document.querySelector('.nd-sig
     pink: !!(t && /ff2e97/i.test(t.innerHTML)), scaled: lay.some(x => x && x !== 'none' && !/^matrix\\(1, 0, 0, 1, 0, 0\\)$/.test(x)), m: window.__arcade.state.meta && window.__arcade.state.meta.go && window.__arcade.state.meta.go.m }; })()`);
 const ageOf = p => ev(p, '(() => { const g = window.__arcade.state.meta.go; return g ? window.__arcade.serverNow() - g.at : null; })()');
 
+// CITY H1 — THE DOCK's LABELS GET AIR (the owner): every label on the room dock (the two rings' words + the five tabs') with clear air between
+// its neighbours, at 390 × 844 AND 375 × 667, in every state (host / guest, the lobby / after a match) → { min gap pt, the tightest pair }
+async function dockGaps(pg, where) {
+  const out = [];
+  for (const [w, hh] of [[390, 844], [375, 667]]) {
+    await pg.setViewport({ width: w, height: hh, deviceScaleFactor: 2 }); await sleep(700);
+    const g = await ev(pg, `(() => { const ls = [...document.querySelectorAll('.rdk-dock .nd-host-label, .rdk-dock .rdk-lbl')].map(e => { const r = e.getBoundingClientRect(); return { t: e.textContent.trim(), l: r.left, r: r.right }; }).filter(x => x.r > x.l).sort((a, b) => a.l - b.l);
+      let min = 1e9, pair = ''; for (let i = 1; i < ls.length; i++) { const d = ls[i].l - ls[i - 1].r; if (d < min) { min = d; pair = ls[i - 1].t + ' | ' + ls[i].t; } } return { min: Math.round(min * 10) / 10, pair, n: ls.length }; })()`);
+    out.push({ w, ...g });
+  }
+  await pg.setViewport({ width: 402, height: 874, deviceScaleFactor: 2 }); await sleep(500);
+  ok(out.every(o => o.n === 7 && o.min >= 4), `THE DOCK's LABELS GET AIR (${where}): ${out.map(o => `${o.w}: ${o.n} labels, the tightest ${o.min} pt (${o.pair})`).join(' · ')}`);
+}
 G('newstart', async () => {
   const { Q: A, p, code, me } = await hostRoom('nsa');
   const { Q: B, p: q } = await joinRoom('nsb', code);
   await fakeGuests(code, 2);
   await settledRoom(p, 4, 40000).catch(() => {}); await settledRoom(q, 4, 40000).catch(() => {});
+  await dockGaps(p, 'the host, the lobby'); await dockGaps(q, 'a guest, the lobby');
   // ---- THE FULL START (a room's first game): sampled at its beats on the host's phone
   const t0 = Date.now();
   await startOC(p);
@@ -276,16 +292,17 @@ G('newstart', async () => {
   await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
   await Promise.all([p, q].map(x => waitFor(x, onTitle, 'back', 12000)));
   await waitFor(p, "document.querySelector('.rdk-play').classList.contains('rdk-rm')", 'the REMATCH ring', 30000).catch(() => {});
-  const ng = await ev(p, "(() => { const t = document.querySelector('.rdk-games'); return { lbl: t.textContent, breathe: t.classList.contains('rdk-breathe'), col: getComputedStyle(t.querySelector('.rdk-lbl')).color }; })()");
+  const ng = await ev(p, "(() => { const t = document.querySelector('.rdk-games'); return { lbl: t.textContent, ng: t.classList.contains('rdk-newgame'), breathe: t.classList.contains('rdk-breathe'), col: getComputedStyle(t.querySelector('.rdk-lbl')).color }; })()");
   const ngB = await ev(q, "document.querySelector('.rdk-games').textContent");
-  ok(/NEW GAME/.test(ng.lbl) && ng.breathe && /143, 246, 255/.test(ng.col) && /GAMES/.test(ngB) && !/NEW GAME/.test(ngB), `AFTER THE MATCH: the host's tab reads NEW GAME in cyan (${ng.col}) and breathes; the guest's still GAMES ("${ngB}")`);
+  ok(ng.lbl === 'GAMES' && ng.ng && ng.breathe && /143, 246, 255/.test(ng.col) && ngB === 'GAMES', `AFTER THE MATCH: the host's tab glows cyan (${ng.col}) + breathes — its word GAMES (CITY H1: was NEW GAME — "${ng.lbl}"); the guest's plain GAMES ("${ngB}")`);
   const pill = await ev(p, "document.querySelector('.rdk-votes').hidden");
   ok(pill, '…no pill until someone votes (no empty dots, no count)');
+  await dockGaps(p, 'the host, after a match — REMATCH + GAMES'); await dockGaps(q, 'a guest, after a match — REMATCH / VOTE');
   if (SHOTS) await p.screenshot({ path: `${OUT}newstart-aftermatch-host.png` });
   await ev(p, "document.querySelector('.rdk-games').click()");
   await waitFor(p, "!!document.querySelector('.rc-games-sheet')", 'the game list', 6000).catch(() => {});
   const calm = await ev(p, "(() => { const t = document.querySelector('.rdk-games'); return { lbl: t.textContent, breathe: t.classList.contains('rdk-breathe') }; })()");
-  ok(/NEW GAME/.test(calm.lbl) && !calm.breathe, `…tapped → the game list; NEW GAME stops breathing ("${calm.lbl}")`);
+  ok(calm.lbl === 'GAMES' && !calm.breathe, `…tapped → the game list; it stops breathing ("${calm.lbl}")`);
   await ev(p, "(() => { const b = document.querySelector('.rc-games-sheet .sh-back'); if (b) b.click(); })()"); await sleep(500);
   // ---- THE QUICK START (a same-game REMATCH): the sign lit at once, the walk-in, the fade — ~3 s
   const t1 = Date.now();

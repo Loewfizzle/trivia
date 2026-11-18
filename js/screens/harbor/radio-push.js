@@ -2,6 +2,7 @@
 // on an iPhone only once the site is ADDED TO THE HOME SCREEN (iOS 16.4+) and opened from there, with notifications allowed — the paper
 // says exactly that when it can't. Nothing here is needed for anything else to work.
 import { h } from '../../ui/dom.js';
+import { afterTap } from '../../ui/tapwatch.js';
 
 const supported = () => { try { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; } catch { return false; } };
 const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -33,7 +34,9 @@ export function pushPaper({ api }) {
     if (err) kids.push(h('p.rd-err', { role: 'alert' }, err));
     box.replaceChildren(...kids);
   };
-  const load = async () => { try { const s = await mySub(); S = await api('admin', { action: 'radioPush', op: 'state', endpoint: s ? s.endpoint : undefined }); } catch (e) { err = e.message; } paint(); };
+  // (CITY H1 — THE RADIO's LOST TAP (/admin, Nov 18 11:46 am: button.rd-who lost while this paper re-rendered): the state's answer is painted only
+  //  after a press has lifted — never under a finger (ui/tapwatch.js#afterTap); its own taps paint at once, as before)
+  const load = async () => { try { const s = await mySub(); S = await api('admin', { action: 'radioPush', op: 'state', endpoint: s ? s.endpoint : undefined }); } catch (e) { err = e.message; } afterTap(paint); };
   async function turnOn() {
     busy = true; err = ''; msg = ''; paint();
     try {

@@ -48,10 +48,13 @@ G('trivision', async () => {
   await Promise.all([harborUp(A.page), harborUp(B.page)]);
   const tri = p => ev(p, 'window.__district.tri()');
   const t0 = await tri(A.page);
-  ok(t0 && t0.shown === 0 && (t0.board === 'holdem-open' || t0.board === 'holdem'), `THE TRI-VISION — at the reveal the board shows HOLD'EM (face A: ${t0 && t0.board}), JAYWALK's art warming after it (warmed ${t0 && t0.warmed})`);
+  // (CITY H1: once JAYWALK's art has decoded the board OPENS on it — a warm cache can do that before this first look; else HOLD'EM, face A)
+  ok(t0 && ((t0.shown === 0 && (t0.board === 'holdem-open' || t0.board === 'holdem')) || /^jaywalk/.test(t0.opened || '')), `THE TRI-VISION — at the reveal the board shows HOLD'EM (face A) or has already OPENED on the newest (${t0 && t0.board}; opened ${t0 && t0.opened}), JAYWALK's art warming after the reveal (warmed ${t0 && t0.warmed})`);
   await waitFor(A.page, '(() => { const t = window.__district.tri(); return t && t.turns.length >= 1; })()', 'a turn', 30000).catch(() => {});
   const t1 = await tri(A.page), first = t1.turns[0];
   ok(first && /^holdem/.test(first.from) && /^jaywalk/.test(first.to), `the first JAYWALK face arrives BY A TURN (${first ? `${first.from} → ${first.to}` : 'no turn'}; JAYWALK's art ready: ${t1.ready})`);
+  // (CITY H1 — THE BOARD OPENS ON THE NEWEST GAME: that first turn is the OPENING one (id 'o…') — at once, to the face switched on most recently)
+  ok(first && /^o/.test(first.id) && /^jaywalk/.test(t1.opened || ''), `… it OPENS on the newest game: the opening turn ${first && first.id} → ${t1.opened} (then the shared clock)`);
   // mid-turn: the slats on the crisp layer (an iPhone's 3×), then the board holds the new face
   await waitFor(A.page, '(() => { const t = window.__district.tri(); return t && t.turn && t.turn.u > 0.1 && t.turn.u < 0.9; })()', 'mid-turn', 20000).catch(() => {});
   const mid = await ev(A.page, "(() => { const t = window.__district.tri(); const cv = [...document.querySelectorAll('canvas.hc-crisp')].length; return { u: t.turn && t.turn.u, cv }; })()");
@@ -175,9 +178,9 @@ G('room', async () => {
   await waitFor(q, '(() => { const r = window.__district.room(); return r.people.length === 8 && r.people.every(x => x.s && x.s.pose === "wait"); })()', 'all 8 settled on B', 45000).catch(() => {});
   const sA = Object.fromEntries((await roomOf(p)).people.map(x => [x.uid, `${x.slot}`])), sB = Object.fromEntries((await roomOf(q)).people.map(x => [x.uid, `${x.slot}`]));
   ok(JSON.stringify(sA, Object.keys(sA).sort()) === JSON.stringify(sB, Object.keys(sA).sort()) && sA[meB] === 'R3', `THE SAME LINES ON TWO PHONES (${Object.values(sA).join(' ')}; the new guest at ${sA[meB]})`);
-  const dB = await ev(q, "({ wait: document.querySelector('.rdk-play').classList.contains('rdk-wait'), txt: document.querySelector('.rdk-play .nd-host-label').textContent, inv: document.querySelector('.rdk-invite .nd-host-label').textContent })");
+  const dB = await ev(q, "({ wait: document.querySelector('.rdk-play').classList.contains('rdk-wait'), txt: document.querySelector('.rdk-play .nd-host-label').textContent, inv: document.querySelector('.rdk-leave .nd-host-label').textContent })");
   // (THE SPEED PASS — the owner: the ring reads WAITING / FOR HOST, never the host's name)
-  ok(dB.wait && /WAITING\s*FOR HOST/.test(dB.txt) && !/AVA/.test(dB.txt) && dB.inv === 'INVITE', `A GUEST's dock: INVITE (everyone) + the PLAY ring greyed — ${dB.txt} (${JSON.stringify(dB)})`);
+  ok(dB.wait && /WAITING\s*FOR HOST/.test(dB.txt) && !/AVA/.test(dB.txt) && dB.inv === 'LEAVE', `A GUEST's dock: LEAVE (CITY H1 — the left ring) + the PLAY ring greyed — ${dB.txt} (${JSON.stringify(dB)})`);
   if (SHOTS) { await p.screenshot({ path: `${OUT}lobby-room-8-host.png` }); await q.screenshot({ path: `${OUT}lobby-room-8-guest.png` }); }
   // a refresh: everyone already in place (no walk-in replay)
   await sleep(12500 - 0);   // (B's own join is older than FRESH_MS by now)
@@ -220,8 +223,12 @@ G('room', async () => {
   await ev(p, "document.querySelector('.rdk-you').click()");
   const you = await waitFor(p, "!!document.querySelector('.pf-overlay')", 'YOU → the card', 8000).then(() => true, () => false);
   ok(you, 'YOU → the profile + CUSTOMIZE (over the city)');
-  // INVITE (everyone — a guest here): the phone's share sheet with the hush word + the link
-  await ev(p, "(() => { window.__shared = null; navigator.share = async d => { window.__shared = d; }; document.querySelector('.rdk-invite').click(); })()");
+  // INVITE (everyone — a guest here; CITY H1: at the top of GUESTS): the phone's share sheet with the hush word + the link
+  await ev(p, "(() => { window.__shared = null; navigator.share = async d => { window.__shared = d; }; document.querySelector('.rdk-guests').click(); })()");
+  await waitFor(p, "!!document.querySelector('.rg-sheet .rg-invite-btn')", 'GUESTS → INVITE', 10000).catch(() => {});
+  const invTop = await ev(p, "(() => { const b = document.querySelector('.rg-sheet .sh-body'); return !!b && b.firstElementChild && b.firstElementChild.classList.contains('rg-invite') && (b.querySelector('.rg-inv-w') || {}).textContent; })()");
+  ok(invTop === code, `INVITE at the TOP of GUESTS with the room's word (${invTop})`);
+  await ev(p, "document.querySelector('.rg-sheet .rg-invite-btn').click()");
   const sh = await waitFor(p, '!!window.__shared', 'shared', 5000).then(() => ev(p, 'window.__shared'), () => null);
   ok(sh && sh.url && sh.url.includes(`room=${code}`) && sh.text.includes(code), `INVITE: the share sheet with the hush word + the link (${sh && sh.text})`);
   // PLAY (the host — B since the host change): the playable games → one → its options → INITIATE = today's game start

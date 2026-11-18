@@ -218,7 +218,21 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     if (gone) return;
     el.classList.toggle('has-more', el.scrollHeight - el.clientHeight - el.scrollTop > 6);
     if (el.scrollTop > 12) el.classList.add('is-scrolled');
+    unslice();
   };
+  // (CITY H1 — THE FADE NEVER SLICES A BOX (the polish reviewer: JAYWALK's solo end screen at 390 — PERSONAL BEST SET cut in half by MORE BELOW's
+  //  fade, its icon + number in fragments): while the cue shows (not scrolled yet), a box the fade's top line would cut — a callout plaque, or a
+  //  game's own [data-box] — moves down WHOLE under the foot by a gap before it; once you scroll, the gap stays (nothing jumps under a finger))
+  let gap = null;
+  function unslice() {
+    if (!el.classList.contains('has-more') || el.classList.contains('is-scrolled') || !el.isConnected) return;
+    if (gap) gap.style.height = '0px';
+    const foot = actions.getBoundingClientRect().top, line = foot - 34;
+    for (const b of el.querySelectorAll('.rc-plaque, [data-box]')) {
+      const r = b.getBoundingClientRect();
+      if (r.height && r.top < line && r.bottom > line) { if (!gap) gap = h('div.final-gap', { 'aria-hidden': 'true' }); if (gap.nextElementSibling !== b) b.before(gap); gap.style.height = `${Math.ceil(foot + 2 - r.top)}px`; break; }
+    }
+  }
   el.addEventListener('scroll', measure, { passive: true });
   const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null;
   if (ro) { ro.observe(el); for (const c of el.children) ro.observe(c); }

@@ -326,7 +326,7 @@ async function typeJoin(p, code, label) {
 }
 const menuLeave = async p => {
   await ev(p, "document.querySelector('.menu-btn').click()"); await waitFor(p, "!!document.querySelector('.gm .gm-leave')", 'the menu', 5000);
-  await ev(p, "document.querySelector('.gm .gm-leave').click()"); await sleep(150); await ev(p, "document.querySelector('.gm .gm-leave').click()");
+  await ev(p, "document.querySelector('.gm .gm-leave').click()"); await waitFor(p, "!!document.querySelector('.lv-sheet .lv-go')", 'the leave sheet', 8000).catch(() => {}); await ev(p, "document.querySelector('.lv-sheet .lv-go').click()");   // (CITY H1: THE LEAVE SHEET)
   await waitFor(p, '!window.__arcade.state.code', 'left', 8000);
 };
 const apiLeave = async p => { await ev(p, "(() => { import('/js/room.js').then(m => m.leaveRoom()); return 1; })()"); await waitFor(p, '!window.__arcade.state.code', 'left', 8000); };

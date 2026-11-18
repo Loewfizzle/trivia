@@ -419,30 +419,44 @@ G('leaveroom', async () => {
   const { Q: A, p, code } = await hostRoom('lra');
   const { Q: B, p: q, me: meB } = await joinRoom('lrb', code);
   await settledRoom(p, 2, 40000).catch(() => {});
-  // ☰ → LEAVE ROOM (SHELL 2.0 A — the approved menu: the LAST row, red-edged); one tap arms it (TAP AGAIN), the second leaves
+  // CITY H1 — THE LEAVE SHEET: ☰ → LEAVE at the VERY TOP (red-edged) → "LEAVE <WORD>?" · STAY · LEAVE (no more TAP AGAIN); STAY keeps you in
+  const sheetOf = pg => ev(pg, "(() => { const s = document.querySelector('.lv-sheet'); return s ? { t: (s.querySelector('.sh-t b') || {}).textContent, note: (s.querySelector('.lv-note') || {}).textContent || '', stay: !!s.querySelector('.lv-stay'), go: !!s.querySelector('.lv-go') } : null; })()");
+  const lvOpen = pg => waitFor(pg, "!!document.querySelector('.lv-sheet .lv-go')", 'the leave sheet', 8000).then(() => true, () => false);
   await ev(q, "document.querySelector('.menu-btn').click()"); await waitFor(q, "!!document.querySelector('.gm .sh-row')", 'the menu', 5000);
-  const m = await ev(q, "(() => { const all = [...document.querySelectorAll('.gm .sh-row')], f = all[all.length - 1]; return { first: f.querySelector('.sh-row-l b').textContent, red: f.classList.contains('gm-leave') && f.classList.contains('is-danger'), edge: getComputedStyle(f).borderTopColor }; })()");
+  const m = await ev(q, "(() => { const f = document.querySelector('.gm .sh-row'); return { first: f.querySelector('.sh-row-l b').textContent, red: f.classList.contains('gm-leave') && f.classList.contains('is-danger') }; })()");
   if (SHOTS) await q.screenshot({ path: `${OUT}room2-menu-leave.png` });
   await ev(q, "document.querySelector('.gm .gm-leave').click()");
-  const armed = await ev(q, "document.querySelector('.gm .gm-leave .sh-row-l b').textContent");
+  await lvOpen(q);
+  const sh = await sheetOf(q);
+  if (SHOTS) await q.screenshot({ path: `${OUT}room2-leave-sheet.png` });
+  await ev(q, "document.querySelector('.lv-sheet .lv-stay').click()");
+  await waitFor(q, "!document.querySelector('.lv-sheet.is-in')", 'STAY closes it', 5000).catch(() => {});
   const still = await ev(q, '!!window.__arcade.state.code');
-  await ev(q, "document.querySelector('.gm .gm-leave').click()");
+  ok(m.first === 'Leave' && m.red && sh && sh.t === `LEAVE ${code}?` && sh.stay && sh.go && still, `☰ → LEAVE: the FIRST row (${m.first}, red-edged ${m.red}) → the sheet "${sh && sh.t}" · STAY · LEAVE; STAY keeps you in (${still})`);
+  await ev(q, "document.querySelector('.menu-btn').click()"); await waitFor(q, "!!document.querySelector('.gm .gm-leave')", 'the menu', 5000);
+  await ev(q, "document.querySelector('.gm .gm-leave').click()"); await lvOpen(q);
+  await ev(q, "document.querySelector('.lv-sheet .lv-go').click()");
   const left = await waitFor(q, '!window.__arcade.state.code', 'B left', 8000).then(() => true, () => false);
   const wave = await waitFor(p, `(() => { const r = window.__district.room(); const x = r && r.people.find(y => y.uid === '${meB}'); return !!(x && x.leaving); })()`, 'the wave on A', 6000).then(() => true, () => false);
-  ok(m.first === 'Leave room' && m.red && /TAP AGAIN/.test(armed) && still && left && wave, `LEAVE ROOM — the LAST row of the ☰ menu (${m.first}, red-edged ${m.red}); one tap = "${armed}" (still in: ${still}); the second leaves (${left}) — the other phone sees them wave + walk off (${wave})`);
-  // GUESTS → LEAVE ROOM at the foot (B back in first)
+  ok(left && wave, `… LEAVE → out (${left}) — the other phone sees them wave + walk off (${wave})`);
+  // the DOCK's LEAVE ring (the left ring — JOIN outside a room): the HOST's sheet names the heir (room.js#leaveRoom's hand-off)
   const { Q: C, p: c, me: meC } = await joinRoom('lrc', code);
   await settledRoom(p, 2, 40000).catch(() => {});
+  const ring = await ev(p, "(() => { const r = document.querySelector('.rdk-dock .rdk-leave'); return r && { w: r.querySelector('.rdk-lv-w').textContent, ic: !!r.querySelector('.rdk-lv-ic svg') }; })()");
+  await ev(p, "document.querySelector('.rdk-dock .rdk-leave').click()"); await lvOpen(p);
+  const hs = await sheetOf(p), cName = await ev(p, `(window.__arcade.state.players['${meC}'] || {}).name || ''`);
+  if (SHOTS) await p.screenshot({ path: `${OUT}room2-leave-host.png` });
+  await ev(p, "document.querySelector('.lv-sheet .lv-stay').click()");
+  ok(ring && ring.w === 'LEAVE' && ring.ic && hs && hs.note === `HOST GOES TO ${String(cName).toUpperCase()}`, `THE DOCK's LEAVE ring (${JSON.stringify(ring)}) → the host's sheet: "${hs && hs.t}" — "${hs && hs.note}"`);
+  // GUESTS → LEAVE ROOM at the foot → the same sheet
   await ev(c, "document.querySelector('.rdk-guests').click()"); await waitFor(c, "!!document.querySelector('.rg-sheet .rg-leave')", 'the guest list', 10000);
-  const pos = await ev(c, "(() => { const b = document.querySelector('.rg-sheet .rg-leave'), body = document.querySelector('.rg-sheet .sh-body'); return { last: body.lastElementChild === b, txt: b.textContent }; })()");
-  await ev(c, "document.querySelector('.rg-sheet .rg-leave').scrollIntoView({ block: 'center' })"); await sleep(300);
-  if (SHOTS) await c.screenshot({ path: `${OUT}room2-guests-leave.png` });
-  await ev(c, "document.querySelector('.rg-sheet .rg-leave').click()");
-  const arm2 = await ev(c, "document.querySelector('.rg-sheet .rg-leave').textContent");
-  await ev(c, "document.querySelector('.rg-sheet .rg-leave').click()");
+  const pos = await ev(c, "(() => { const b = document.querySelector('.rg-sheet .rg-leave'), body = document.querySelector('.rg-sheet .sh-body'); return { last: body.lastElementChild === b, txt: b.textContent, inv: !!body.firstElementChild && body.firstElementChild.classList.contains('rg-invite') }; })()");
+  if (SHOTS) await c.screenshot({ path: `${OUT}room2-guests-invite.png` });
+  await ev(c, "document.querySelector('.rg-sheet .rg-leave').click()"); await lvOpen(c);
+  await ev(c, "document.querySelector('.lv-sheet .lv-go').click()");
   const left2 = await waitFor(c, '!window.__arcade.state.code', 'C left', 8000).then(() => true, () => false);
   const wave2 = await waitFor(p, `(() => { const r = window.__district.room(); const x = r && r.people.find(y => y.uid === '${meC}'); return !!(x && x.leaving); })()`, 'the wave on A', 6000).then(() => true, () => false);
-  ok(pos.last && pos.txt === 'LEAVE ROOM' && /TAP AGAIN/.test(arm2) && left2 && wave2, `LEAVE ROOM — the foot of GUESTS (the last thing in the sheet: ${pos.last}); "${arm2}" → left (${left2}); the wave on the other phone (${wave2})`);
+  ok(pos.last && pos.inv && pos.txt === 'LEAVE ROOM' && left2 && wave2, `GUESTS: INVITE at the top (${pos.inv}), LEAVE ROOM at the foot (${pos.last}) → the sheet → LEAVE → out (${left2}); the wave on the other phone (${wave2})`);
   await A.ctx.close(); await B.ctx.close(); await C.ctx.close();
 });
 
@@ -809,7 +823,9 @@ G('roomnote', async () => {
   // ---- 5. IDLE: the same one-line pill, NO × — the host keeps it open with a tap; a guest is told a game keeps it open
   await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
   await waitFor(p, onTitle, 'A back on the city', 15000); await waitFor(q, onTitle, 'B back on the city', 15000);
-  await dbPatch(`rooms/${code}/meta`, { activeAt: Date.now() - 52 * 60000 });
+  // (CITY H1 — the cloud red: 52:00 left exactly 8:00, so a phone whose server offset ran a few hundred ms behind ceil'd it to 9 MIN; 52.5
+  //  leaves 7:30 — 8 MIN on every phone, whatever its offset)
+  await dbPatch(`rooms/${code}/meta`, { activeAt: Date.now() - 52.5 * 60000 });
   await waitFor(p, "(() => { const n = window.__district.room().note; return n && n.on && n.kind === 'idle'; })()", 'the idle note (host)', 8000).catch(() => {});
   await waitFor(q, "(() => { const n = window.__district.room().note; return n && n.on && n.kind === 'idle'; })()", 'the idle note (guest)', 8000).catch(() => {});
   await sleep(600);

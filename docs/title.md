@@ -18,6 +18,23 @@ Deep-dive for the title screen: the opening sequence, the district scene, the lo
 > (Nov 5): the room's edges reset JOIN + HOST (`title.js#freshDock`) — the title is never unmounted by a room.
 
 
+## CITY H1 — LEAVE ON THE DOCK + THE LEAVE SHEET (Nov 18 2026 — the owner, Nov 17–18; docs/harbor/passes/city-h1.md)
+- **THE ROOM DOCK's left ring = LEAVE** (JOIN outside a room, LEAVE inside — a door-out icon over the word, the same ring; `room-dock.js`, class
+  `.rdk-leave`) → **THE LEAVE SHEET** (`ui/leave-sheet.js`, lazy): "LEAVE <ROOM WORD>?" · STAY | LEAVE (the danger tube); the host leaving reads
+  "HOST GOES TO <NAME>" (the same pick as `room.js#leaveRoom`'s hand-off — `core/room-logic.js#nextHost`), the last one "THE ROOM CLOSES". ONE
+  sheet for every way out — it REPLACES every "TAP AGAIN TO LEAVE".
+- **INVITE moved to the TOP of GUESTS:** the room's word over ONE big pink INVITE (`room-guests.js` `.rg-invite`); the guest list's foot keeps LEAVE
+  ROOM (→ the sheet). The GUESTS tab GLOWS + its dot while you're alone (`.rdk-alone` — the old ring's breathe, until you invite or a guest
+  arrives). The host card: "or GUESTS → INVITE anytime". The dock's size + labels otherwise unchanged; NEW GAME's word is GAMES (the cyan glow +
+  the breathe kept); REMATCH reads RE / MATCH, two lines, bigger. Harbor `newstart`: THE DOCK's LABELS GET AIR (every label ≥ 4 pt from its
+  neighbour at 390 × 844 + 375 × 667 — host / guest × lobby / after a match).
+- **☰ IN A ROOM:** LEAVE at the VERY TOP (a game or not — the same sheet); a SOLO room: ONE row, QUIT — BACK TO THE CITY (the same sheet → the
+  solo leave, `host.js#soloLeave` through `__nsPlayNow`) — no QUIT TO THE ROOM / END GAME there. ☰'s DAILIES row: gone outside a room (the dock's
+  DAILIES + its dot is the way in) — KEPT in a room, whose dock has no DAILIES (the dailies would have no way in from a room).
+- The chat's quick replies: the squared chip (a 9 px corner — NO PILLS). THE RADIO's ledger: its IN THE CITY / ROOMS / GAMES doors `data-press`,
+  the ledger's + the push paper's async answers painted after the lift (`afterTap`).
+
+
 ## CITY G — THE THREE-WAY CORNER BUTTON + A CONFIRM CONTROL PRESSES (Nov 18 2026)
 - The music corner button is three-way (docs/audio.md "CITY G"): MUSIC OFF · EFFECTS ON → ALL SOUND OFF (a speaker ✕) → SOUND ON, a toast each tap;
   ONE builder `audio/sound-state.js#wireSoundButton` (the app + /board); the title's tube icon carries the speaker too (`.nd-cic .sp`). The muted
@@ -1004,3 +1021,39 @@ within `DRAG_MS` (3 s — a pointer the browser cancelled for a scroll, or one p
 ## THE RULES FROM CLAUDE.md (moved Nov 15 — FIXES R2 Part C: the text CLAUDE.md held, verbatim)
 - THE TAP WATCH (`js/ui/tapwatch.js`, always on): never re-render a control under a finger; every `:hover` behind `@media (hover: hover)` → docs/title.md (moved).
 - EVERY TAP ACTS (CITY A): a control acts on its own press + lift — `data-press` (+ every `.btn-block`, every `.btn` in `[data-press-all]`); a control needing Safari's own gesture (share, passkey, clipboard, a submit) = `data-gesture` — it acts INSIDE the touch's lift, never rescued (CITY D) → docs/title.md.
+
+
+## THE TAP WATCH — the header (moved, CITY H1)
+
+`js/ui/tapwatch.js`'s header, word for word — moved out of THE BOOT BUDGET's bytes by CITY H1 (the code unchanged).
+
+```
+// THE TAP WATCH (CITY FIXES + HOLD'EM — the owner, Nov 8: "randomly a button does nothing on the first tap, works on the second" — the
+// intercom's SEND, HOST / JOIN, a card in SETTINGS, ADD FRIEND… on his iPhone, everywhere, at random). ALWAYS ON (never &debug=1 only —
+// the owner uses the live site normally). Three jobs, all on listeners (no frame loop, no layout read outside a tap):
+//   1. THE WATCH — a pointerdown + pointerup on a tappable (a button, a link, a row, anything with cursor: pointer) with NO click on it
+//      within RESCUE_MS = a LOST TAP → a report to /admin ("Reports from phones" → LOST TAP; /api/log { p: 'report', r: { kind: 'lost' } }):
+//      the screen, the element (its tag + classes + a short label — never a name, a code or an id), whether it was REPLACED / DETACHED
+//      between the down and the up, what was ON TOP at the lift point, whether it MOVED (> 6 px), the delays (the touch's input delay =
+//      the main thread busy; a late click), what re-rendered in that window (the parents whose children changed), what the page was doing
+//      (setTapContext: the city's last frame + a bake pending; a sheet animating; the long tasks where the browser counts them).
+//      Rate-limited on the device: ≤ 1 report a minute, ≤ 20 a day (+ the server's own limits).
+//   2. THE RESCUE — iOS drops a click when the node under the finger changed between the touch and the lift (WebKit re-hit-tests the tap at
+//      the lift: a re-render that REPLACED the button with an identical new one = "a different node" = no click), or when it decides the
+//      tap was a hover (content became visible during it). For a clean tap (a finger — never a mouse —, short, still, the lift on the same
+//      tappable or its identical replacement, nothing cancelled it) that got NO click by RESCUE_MS, the click is given to it (or to its
+//      replacement at the same spot); a real click arriving late after a rescue is swallowed (never twice). Off while a game runs
+//      (body[data-theme]: a game's pads act on their own pointer events) and on anything marked [data-tap-own].
+//   3. afterTap(fn) — the shared layer's "never re-render under a finger": a periodic repaint (the radio, the dock's DAILY slot, the guest
+//      list…) waits while a finger is down until its click has landed (≤ HOLD_MS after the lift), then runs once. A click's own handler runs
+//      after the press ends (the capture listener ends it first), so a tap's own re-render is never delayed.
+//   4. EVERY TAP ACTS (CITY A — item 5; the owner's iPhone, Safari 27.2: "ALL TIME" held 113 ms, travelled 0 px, nothing re-rendered — iOS
+//      simply sent no click). A control marked `data-press` acts on its OWN press + lift: a touch / pen pointerdown + pointerup of the SAME
+//      finger that began ON it, the finger travelled < 10 px, ≤ 600 ms, nothing cancelled it (a scroll) → its click is dispatched AT THE LIFT,
+//      once; the browser's own click, if it still arrives, is swallowed (never twice — any trusted click near the lift point for 800 ms). A lift
+//      counts even if the control MOVED under a still finger (the games shelf: a row slid 38 px as its sheet came in — Safari 27.0.1) or was
+//      replaced by its twin. A SHEET SETTLES before its rows take taps: a click landing in a pop-up younger than 350 ms (`data-born`) that no
+//      press began on (the opening tap's own click) is swallowed. ONE helper, no new import: a lazy chunk only writes the attribute (THE
+//      STALE-MODULE RULE). The mouse + the keyboard keep the plain click.
+// Polish like the error log: anything failing here never touches the app.
+```

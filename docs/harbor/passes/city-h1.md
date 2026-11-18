@@ -1,0 +1,58 @@
+# CITY H1 — THE FIXES + THE CITY (City 2.0 + the console) — Nov 18 2026, the mini PC
+
+The squeal for real, MUSIC OFF = EFFECTS ONLY, LEAVE on the dock, the sign's leaves + the roof board's first face, CITY G's four cloud reds, the
+small looks. CITY H2 (THE BOARD, THE YOU ROW, STATS, the games list, the flame) is next; CITY I after.
+
+**Step 0** — read CLAUDE.md, decisions.md, city-g.md, the audio / title / harbor docs. THE LAB: `node scripts/lab-export.mjs https://www.neonspeakeasy.com`
+→ 224 marks, **no open FIX**. THE SOLO-QUIT HOTFIX the prompt builds on was **not in the repo** (not on origin either) — its ☰ piece (a solo
+game's single QUIT — BACK TO THE CITY) is built here, on THE LEAVE SHEET. The inbox: "Nov 18 — TO THE CITY — NEXT PASS — from JAYWALK THE POLISH
+PASS" (1) + (2) built; "Nov 17 10:30 pm — TO THE CITY" (3) (THE BOARD's header) left for CITY H2. Own servers: fresh emulators +
+`serve.mjs --emu` (:5173). THE BOOT at the start: **room 10,085 B + 3 modules**.
+
+## Group 0 — CITY G's CLOUD REDS (89d1cc41)
+| red | cause | fix |
+| --- | --- | --- |
+| `show` — THE MUSIC BUTTON surge | **the TEST** (stale): CITY G made the corner button THREE-WAY; "back ON" tapped once from MUSIC OFF = ALL SOUND OFF, so no music start, no surge (reproduced locally, the same 2 reds) | back ON = tap until the button reads `on` (MUSIC OFF → ALL OFF → ON); the cooldown step uses the music's own switch — the toggle it was written for. 39 / 39 |
+| `perf` — MEMORY 20 cycles (heap +38.7 MB) | **not reproduced**: locally +3.3 MB (`perf` alone) and +3.4 MB (`matchreturn` → `perf`, the cloud's order); the cloud read +2.0 MB on CITY F, +38.7 on CITY G (Linux, no GPU) | the check now NAMES what grew when it's red (`kit.mjs#heapGrowth` — the top constructors between the two snapshots) — this push's cloud run answers it |
+| `lobbyfix` — THE ROOM NOTE — IDLE | **the TEST** (a timing edge): `activeAt` 52:00 ago left exactly 8:00 — a phone whose server offset ran a few hundred ms behind ceil'd it to 9 MIN | 52.5 min ago → 7:30 left → 8 MIN on every phone |
+| `audio` — THE ROOM IN THE URL | **the TEST** (a race): the room code came back before the city had mounted on the slow runner; the check read `__district` at once | wait for BOTH (the room + the city) |
+| (+ the `tests` job on df294b6d — `e2e-presence` FATAL at the join) | a 15 s boot wait on the 2-core runner (the DAILY FIX push; acc77f7a's was green) | run again on this push's `[harbor]` — named, not changed |
+
+## Group 1 — THE SQUEAL, FOR REAL + MUSIC OFF = EFFECTS ONLY
+See docs/audio.md "CITY H1". **The real cause:** CITY G's hard cut only SCHEDULED the zero (`setValueAtTime(0, t)` on the timeline) — the
+master's value (what the report reads, and what the hardware gets) moves only when the render thread runs a quantum; leaving an 'ambient'
+session on iOS it didn't, so the master stayed 1.000 with live beds until iOS froze the app mid-buffer. **Fix:** the VALUE set at once
+(`engine.js#silence(c, v)`); `tests/audio-session.test.mjs` "THE SQUEAL, FOR REAL" (a spec-accurate fake param — red on CITY G's engine, green
+now). **MUSIC OFF = EFFECTS ONLY:** no beds, no city ambience (only tapped city sounds), THE DOZE (asleep 300 ms after the last effect, an effect
+wakes it). Harbor `mediacut`: the real city 8 voices → 0, asleep in ~1 s; an effect wakes it in ~50 ms; asleep again; a leave while asleep finds
+the master at 0.
+**THE OWNER's PHONE TEST:** podcast on → the site → the music button ONCE (the note slashed) → play → leave the app: the podcast keeps going, no
+squeal; the AUDIO LEAVE row reads "ctx asleep", or m 0.000 on the line right after the cut.
+
+## Group 2 — THE SIGN + THE ROOF BOARD
+- **THE LEAVES BEFORE THE LETTERS:** until the sign has lit fully once, the leaves' night layer × lit² (the sign leads); then the 0.72 floor.
+  The same hold on every holiday dressing (`signdress.js`). docs/harbor.md "THANKSGIVING's SIGN".
+- **THE BOARD OPENS ON THE NEWEST GAME:** the first frame the tri-vision is up it turns at once to the face switched on most recently
+  (`newestFace`) — today JAYWALK — then the shared clock. docs/harbor.md "THE TRI-VISION".
+
+## Group 3 — LEAVING
+LEAVE on the dock's left ring + at the very top of ☰ (in a game too) → THE LEAVE SHEET (`ui/leave-sheet.js`); a solo game: ONE row, QUIT — BACK
+TO THE CITY (the same sheet); INVITE at the top of GUESTS; the GUESTS tab glows while you're alone; ☰'s DAILIES row gone OUTSIDE a room (kept in
+a room — the room's dock has no DAILIES). docs/title.md "CITY H1".
+
+## Group 4 — THE SMALL LOOKS
+The chat's quick replies squared (9 px) · the dock's labels: NEW GAME → GAMES, a gap check at 390 × 844 + 375 × 667 (harbor `newstart`) ·
+REMATCH → RE / MATCH, bigger · the blade sign's letters crisp (the neon glow 2.2 → 0.45 × BLADE_GLOW, the bulb letters' halo tighter) · THE
+RADIO's LOST TAP (`data-press` on the ledger's doors; its + the push paper's answers painted after the lift) · THE FADE NEVER SLICES A BOX
+(`ui/final.js#unslice` + e2e-jaywalk's check).
+
+## THE BOOT BUDGET
+CITY H1's code cost ~7 KB of boot bytes (the doze, the board's pick, the leave wiring). Paid back without touching code: three long comment blocks
+moved word for word into the docs (`harbor-promenade.js` 4.3 KB, `remote.js` 4.2 KB → docs/harbor.md "THE BOOT TRIM (CITY H1)"; `tapwatch.js`
+3.6 KB → docs/title.md "THE TAP WATCH — the header"). JAYWALK's per-game budget (the city + the game) back under its 2,450 KB.
+
+## FINAL
+(filled at the end)
+
+## OPEN FOR BEN
+(filled at the end)

@@ -240,6 +240,11 @@ function openMenu() {
   const inRoom = !!state.code;
   const playing = inRoom && state.meta && state.meta.status === 'playing' && state.game && state.quit !== state.game.matchId;
   const rows = [];
+  // (CITY H1 — LEAVE AT THE VERY TOP (the owner): in a room — a game or not — LEAVE opens THE LEAVE SHEET (ui/leave-sheet.js: LEAVE <WORD>? ·
+  //  LEAVE · STAY — no more "TAP AGAIN TO LEAVE"); a SOLO room keeps ONE way out: QUIT — BACK TO THE CITY (the same sheet), no room rows)
+  const solo = inRoom && !!(globalThis.__nsPlayNow && globalThis.__nsPlayNow.isSolo());
+  const askLeave = () => { closeMenu(); lazyImport(import('./leave-sheet.js'), './leave-sheet.js').then(m => m.openLeave({ solo, inGame: playing, onLeave: () => (solo ? globalThis.__nsPlayNow.leave() : leaveRoom()) })).catch(() => {}); };
+  if (inRoom) rows.push(row({ icon: solo ? 'quit' : 'leave', ic: solo ? '#ffc23d' : null, label: solo ? 'Quit — back to the city' : 'Leave', danger: !solo, cls: solo ? 'gm-solo-quit' : 'gm-leave', onClick: askLeave }));
   // (THE CHAT LOCK — SHELL 2.0 A: a game that locks chat HIDES the row for the match; DOUBLE AGENT's same-room mode has its own chat)
   if (playing && !document.body.classList.contains('da-inline-chat') && chatMod && chatUi && !chatMod.locked()) {
     const n = chatMod.chat.unread;
@@ -256,7 +261,7 @@ function openMenu() {
   // (FR7 FIXES A: a FIXED order — the players' rows first, the admins' LAB · ADMIN · the CITY PREVIEW always last; they used to show in the
   //  order their /api answers came back, so the DAILIES row could land under the admin row)
   if (!playing) for (const [, render] of [...menuExtras.entries()].sort((a, b) => EXTRA_ORDER(a[0]) - EXTRA_ORDER(b[0]))) { let el = null; try { el = render({ close: closeMenu }); } catch { el = null; } if (el) rows.push(el); }
-  if (playing) {
+  if (playing && !solo) {
     rows.push(row({ icon: 'quit', ic: '#ffc23d', label: 'Quit to the room', sub: 'The others keep playing', cls: 'gm-quit', confirm: 'TAP AGAIN TO QUIT', onClick: () => { closeMenu(); setState({ quit: state.game.matchId }); toast('You left the game', 'info', { ms: 3200, sub: 'You’ll be dealt into the next one.' }); } }));
     if (isHost()) {
       // (FR7 FIXES A — decision 5: a game whose result is the SERVER's (HOLD'EM's dealer) ends THROUGH it — the confirm says what happens:
@@ -268,9 +273,6 @@ function openMenu() {
       rows.push(row({ icon: 'end', label: 'End game for everyone', sub: line || undefined, danger: true, cls: 'gm-end', confirm: line ? 'TAP AGAIN — END IT NOW' : 'TAP AGAIN TO END IT',
         onClick: () => { closeMenu(); if (line) viaGame(); else lazyImport(import('../host.js'), '../host.js').then(m => m.backToLobby()); } }));
     }
-  } else if (inRoom) {
-    // (LOBBY 2.0 B — the owner's ADD-ON: LEAVE ROOM in the menu while in a room — red-edged, a second tap confirms; not during a match: QUIT first)
-    rows.push(row({ icon: 'leave', label: 'Leave room', danger: true, cls: 'gm-leave', confirm: 'TAP AGAIN TO LEAVE', onClick: () => { closeMenu(); leaveRoom(); } }));
   }
   menuPanel = openSheet({ title: 'MENU', cls: 'gm', label: 'Menu', onClose: () => { menuPanel = null; paintBtn(false); }, body: h('div.sh-row-list', ...rows) });
   paintBtn(true);

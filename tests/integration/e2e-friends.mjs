@@ -78,7 +78,10 @@ await H.run(async () => {
   await evalIn(B, async () => { const R = await import('/js/room.js'); await R.leaveRoom(); return true; });
   await waitFor(A, (s, u) => !s.players[u], 'BOB left', 20000, uids[1]);
   await sleep(800);
-  await ev(A, "document.querySelector('.rdk-invite, .nd-tab-join, .rdk-join') && (document.querySelector('.rdk-invite') || document.querySelector('.rdk-join') || document.querySelector('.nd-tab-join')).click()");
+  // (CITY H1: INVITE lives at the top of GUESTS — the dock's left ring is LEAVE)
+  await ev(A, "document.querySelector('.rdk-guests').click()");
+  await waitJs(A, "!!document.querySelector('.rg-sheet .rg-invite-btn')", 'GUESTS → INVITE');
+  await ev(A, "document.querySelector('.rg-sheet .rg-invite-btn').click()");
   await waitJs(A, "!!document.querySelector('.fr-invite-sheet .fr-inv')", 'the INVITE sheet with FRIENDS on top');
   await shotAll(A, 'fr-07-invite-sheet');
   await ev(A, "document.querySelector('.fr-invite-sheet .fr-inv').click()");
