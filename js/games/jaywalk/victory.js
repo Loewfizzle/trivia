@@ -6,6 +6,7 @@
 // replays the run: profile/queue.js's outcome — /api down = just the lanes). No pills, no emoji, no dev text.
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
+import { colorHex } from '../../config.js';
 import { createCourse } from './course.js';
 import { seedOf, standings } from './logic.js';
 import { causeLine, runLine, hitVehicle } from './causes.js';
@@ -54,7 +55,8 @@ export function tableRows(rows, max = TABLE_ROWS) {
   if (me && !top.includes(me)) top[top.length - 1] = me;
   return top;
 }
-function yourTable(el) {
+/** YOUR TABLE under the end screen's numbers (`me` = your colour: your row glows in it) — exported for e2e-jaywalk's re-ask */
+export function yourTable(el, me) {
   const slot = h('div.jw-table');
   el.append(slot);
   Promise.all([
@@ -65,7 +67,7 @@ function yourTable(el) {
     if (!rows.length || !slot.isConnected) { slot.remove(); return; }
     const strips = [], list = h('ol.jw-table-list', ...rows.map(r => {
       const st = SB.m.stripFor(SB.K, r, { friend: !r.me }); strips.push(st);
-      return h('li', { class: r.me ? 'is-me' : null }, h('span.jw-table-n', String(r.place)), h('div.jw-table-card', st.el), h('b', num(r.v)));
+      return h('li', { class: r.me ? 'is-me' : null, style: r.me && me ? { '--me': me } : null }, h('span.jw-table-n', String(r.place)), h('div.jw-table-card', st.el), h('b', num(r.v)));
     }));
     list.style.setProperty('--jw-d', String(Math.max(...rows.map(r => num(r.v).length))));   // (the widest score's digits → the rank + score columns' ONE width — css .jw-table-list)
     slot.replaceChildren(h('div.jw-table-k', 'YOUR TABLE'), list);
@@ -139,7 +141,7 @@ export function finalScene(el, game, state) {
   if (!code) return;
   // (YOUR TABLE: once the server has counted this run — its outcome — or a moment later, whichever comes first)
   let tabled = false;
-  const table = () => { if (!tabled && el.isConnected) { tabled = true; yourTable(el); } };
+  const p = ((state && state.players) || {})[uid], table = () => { if (!tabled && el.isConnected) { tabled = true; yourTable(el, p && p.color != null ? colorHex(p.color) : ''); } };   // (your row glows in YOUR colour)
   setTimeout(table, 2200);
   if (!(E.lanes > 0)) return;
   // NEW BEST / YOUR BEST — from the server's own answer for THIS match (it replayed the run); the phone only remembers the last one it was told

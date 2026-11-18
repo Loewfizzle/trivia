@@ -96,7 +96,8 @@ test('THE SOURCES: the lines come from the server\'s table, asked ONCE a run; dr
   // H5C (the review: "OUR BEST · 10" — cut by the screen's edge; washed out by night on water): CENTRED on the screen (they ride the camera's column), a dark halo in both looks
   assert.match(night, /lab\.m\.position\.set\(rig\.x\(\), 0\.07, wz\);/, 'the words ride the camera\'s own column: never cut by an edge');
   assert.match(night, /sx = Math\.min\(1, 930 \/ Math\.max\(1, w\)\), x0 = -w \/ 2;\s+c\.save\(\); c\.translate\(512, 106\);/, '… centred on their plane');
-  assert.match(night, /c\.shadowColor = 'rgba\(6, 4, 18, 0\.9\)'; c\.shadowBlur = 12; c\.fillStyle = '#0c1022'; for \(const \[dx, dy\] of RING8\) drawNum\(/, 'a dark edge + halo all round, night + day');
+  // (THE TOUCH-UP PASS — the owner: pink / gold words outlined so they read over a yellow taxi + the day's ground: TWO rings (10 + 5 px) + a soft shadow)
+  assert.match(night, /c\.shadowColor = 'rgba\(6, 4, 18, 0\.95\)'; c\.shadowBlur = 16; c\.fillStyle = '#0c1022'; for \(const r of \[10, 5\]\) for \(const \[dx, dy\] of RING8\) drawNum\(c, text, x0 \+ dx \* r, dy \* r,/, 'a THICK dark edge + halo all round, night + day');
   assert.match(night, /L\.tex\.dispose\(\); L\.cv\.width = 0;/, 'freed with the scene');
   assert.match(css, /\.jw-lanes\.is-record \{[^}]*#ffc53a/); assert.match(css, /\.jw-lanes\.is-flash \{ animation: jw-record/);
   assert.match(css, /@keyframes jw-record \{[^@]*transform: scale[^@]*opacity/, 'the flash: transform + opacity only');

@@ -93,7 +93,7 @@
 @keyframes jw-flick { 0%, 100% { opacity: 0; } 2% { opacity: 1; } 4% { opacity: 0; } 7% { opacity: 0.8; } 8.5% { opacity: 0; } 46% { opacity: 0.9; } 47.5% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .jw-sky-l, .jw-sky-n { animation: none; } }
 .jw-sub { margin-top: 6px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.2em; color: var(--text-dim); }
-.jw-mark { margin-top: 10px; min-height: 18px; font: 900 16px/1 var(--font-display); letter-spacing: 0.14em; color: #ffd6f0; text-shadow: 0 0 14px rgba(255, 79, 196, 0.7); }
+.jw-mark { margin-top: 10px; min-height: 18px; font: 900 16px/1 var(--font-display); letter-spacing: 0.14em; color: #ffd6f0; text-shadow: 0 1px 0 rgba(20, 0, 14, 0.95), 0 0 3px rgba(20, 0, 14, 0.9), 0 0 14px rgba(255, 79, 196, 0.7); }
 /* H5A — THE ARRIVAL GATEWAY: the area's name flashes once as the kid crosses it (transform + opacity only) */
 .jw-mark.is-flash { animation: jw-gate 0.62s ease-out 1; }
 @keyframes jw-gate { 0% { transform: scale(1.5); opacity: 0; } 30% { transform: scale(1.12); opacity: 1; } 55% { opacity: 0.45; } 75% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
@@ -156,6 +156,9 @@
 .jw-final { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; background: linear-gradient(rgba(7, 6, 11, 0.5) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%); animation: jw-fin-in 0.22s ease-out both; }
 @keyframes jw-fin-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .jw-final { animation: none; } }
+/* THE TOUCH-UP PASS — THE DAY END SCREEN's TITLE ON A SOFT DARK FADE (the owner): by day the bright sky + skyline sit behind the header +
+   the cause words — the top of the veil is darker there, easing into the night's own veil by a third of the screen (the night unchanged) */
+.jw-stage[data-look='day'] .jw-final { background: linear-gradient(rgba(7, 6, 11, 0.84) 0, rgba(7, 6, 11, 0.76) 16%, rgba(7, 6, 11, 0.9) 32%, rgba(7, 6, 11, 0.96) 100%); }
 .jw-final > .final { flex: 1 1 auto; min-height: 0; background: none; --fin-bg: rgba(7, 6, 11, 0.96); }
 .final:has(> .final-body[data-game='jaywalk'][data-mode='solo']) > .winner { display: none; }
 .jw-final .final.is-solo .burst { display: none; }   /* (a SOLO run's end is how you went OUT — no confetti over it; a MATCH keeps the frame's WINNER + its burst) */
@@ -186,6 +189,11 @@
 .jw-table-list li { display: grid; grid-template-columns: var(--jw-side) minmax(0, 1fr) var(--jw-side); align-items: center; column-gap: 8px; }
 .jw-table-n { font: 700 15px/1 var(--font-num, var(--font-ui)); color: var(--text-dim); text-align: center; }
 .jw-table-list li.is-me .jw-table-n { color: #ff8fd8; }
+/* THE TOUCH-UP PASS — YOUR ROW GLOWS (the owner): a light ring + a soft glow in YOUR colour round your whole row, on a layer of its own —
+   the grid never moves (no padding, no border); a plain rounded box, never a pill; static (no animated shadow) */
+.jw-table-list li { position: relative; }
+.jw-table-list li.is-me::before { content: ''; position: absolute; inset: -3px -6px; border-radius: 9px; pointer-events: none;
+  border: 1.5px solid var(--me, #ff8fd8); box-shadow: 0 0 12px -1px var(--me, #ff8fd8); opacity: 0.85; }
 .jw-table-card { min-width: 0; text-align: left; }   /* (the card's own alignment — .jw-fin's centred text never reaches its plate; its insides are the shared component's) */
 .jw-table-list li > b { text-align: right; white-space: nowrap; font: 700 20px/1 var(--font-num, var(--font-ui)); color: #fff; }
 
@@ -202,7 +210,8 @@
 /* a ghost's name over them: its player's colour as the rule under the name */
 .jw-tags { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
 .jw-tag { position: absolute; left: 0; top: 0; opacity: 0; padding: 2px 6px 1px; border-radius: 4px; background: rgba(7, 6, 11, 0.66); border-bottom: 2px solid var(--c, #fff);
-  font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.1em; color: #fff; white-space: nowrap; transition: opacity 0.15s; }
+  font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.1em; color: #fff; white-space: nowrap; transition: opacity 0.15s;
+  text-shadow: 0 1px 0 rgba(7, 6, 11, 0.95), 0 0 3px rgba(7, 6, 11, 0.9); }   /* (THE TOUCH-UP PASS: a dark edge — reads over a yellow taxi) */
 /* THE LIVE ORDER — the top-left corner, right under the menu: best first. OUT = a cross where the colour dot was + the name struck
    through (never colour alone). H6B — THE CHIPS ARE COMPACT (the owner: they covered the landmark painted on the band's left — the
    bridge, the lighthouse): a small colour dot + the name SHORT (≤ 6 letters seen — the whole name stays in the row) + the lanes, 13 px

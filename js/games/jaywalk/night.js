@@ -240,7 +240,8 @@ export function createNight(host, o = {}) {
     c.font = `900 104px ${FAM}`; c.textBaseline = 'alphabetic'; c.textAlign = 'left';
     const w = numWidth(c, text, 104, FAM, 900), sx = Math.min(1, 930 / Math.max(1, w)), x0 = -w / 2;
     c.save(); c.translate(512, 106); c.scale(sx, 1);
-    c.shadowColor = 'rgba(6, 4, 18, 0.9)'; c.shadowBlur = 12; c.fillStyle = '#0c1022'; for (const [dx, dy] of RING8) drawNum(c, text, x0 + dx * 6, dy * 6, 104, FAM, 900);
+    // (THE TOUCH-UP PASS: a THICKER dark edge — two rings + a soft shadow: pink / gold words read over a yellow taxi + the day's ground)
+    c.shadowColor = 'rgba(6, 4, 18, 0.95)'; c.shadowBlur = 16; c.fillStyle = '#0c1022'; for (const r of [10, 5]) for (const [dx, dy] of RING8) drawNum(c, text, x0 + dx * r, dy * r, 104, FAM, 900);
     c.shadowBlur = 0;
     if (day) {   // (BY DAY: the line's colour as paint)
       c.fillStyle = css(LINE_HEX[k]); drawNum(c, text, x0, 0, 104, FAM, 900);

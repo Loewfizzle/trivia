@@ -168,3 +168,33 @@ export async function looksKid(p, { ok, sleep, waitFor, OUT, only }) {
   await p.evaluate(() => { window.__tuCards = []; });
   return cards;
 }
+
+/** WORDS: a friend's PINK line + YOUR BEST (gold) on a road lane, a YELLOW TAXI under the pink words; two ghosts beside the kid with the
+ *  game's own name tags (the view's `.jw-tag` — the lab has no tags of its own: put where view.js puts them, over the ghost's head) */
+export async function looksWords(p, { ok, sleep, waitFor, OUT, shot }) {
+  const L = js => p.evaluate(js);
+  for (const look of ['night', 'day']) {
+    await L(`(() => { const J = window.__jwLab; J.freeze(false); J.ghosts(0); J.bot(false); J.restart('solo', 'look3'); J.setCamera(8, 'straight', true); J.setLook('${look}'); J.hop('u'); })()`);
+    await sleep(700);
+    const lane = await p.evaluate(() => { const J = window.__jwLab; for (let l = 24; l < 600; l++) if (J.lane(l).type === 'road' && J.lane(l - 2).type === 'grass' && J.lane(l - 1).type !== 'water' && J.items(l).items.some(q => q.what === 'taxi')) return l; return -1; });
+    ok(lane > 0, `${look}: a road lane with a taxi (lane ${lane})`);
+    // (a line's words lie on the lane under its number: the friend's (lane + 1) on the taxi's lane, YOUR BEST's on the grass below)
+    await p.evaluate(l => { const J = window.__jwLab; J.warp(l - 2); J.view.setLines({ best: { lane: l - 1, text: 'YOUR BEST · 143' }, friend: { lane: l + 1, text: 'LIAM · 7' } }); J.ghostsAt([[-2, 0], [2, 0]]); }, lane);
+    const seen = await waitFor(p, `window.__jwLab.items(${lane}).items.some(c => c.what === 'taxi' && c.left < 4.9 && c.left + c.len > 4.1)`, 40000);
+    await L('window.__jwLab.freeze(true)');
+    await p.evaluate(() => {   // the tags, as view.js draws them (a dark plate, the player's colour as the rule under the name)
+      const J = window.__jwLab, st = document.querySelector('.jw-stage'), s = J.state();
+      let box = document.getElementById('tu-tags'); if (box) box.remove();
+      box = document.createElement('div'); box.id = 'tu-tags'; box.className = 'jw-tags'; st.append(box);
+      for (const [dx, dy, name, c] of [[-2, 0, 'ZOE', '#22e0ff'], [2, 0, 'MAXIMILIANOS', '#ffe04a']]) {
+        const [x, y] = J.project(s.x + dx, s.y + dy + 0.5), t = document.createElement('div');
+        t.className = 'jw-tag'; t.textContent = name; t.style.setProperty('--c', c); t.style.opacity = '1';
+        t.style.transform = `translate(${x * innerWidth}px, ${y * innerHeight - 60}px) translate(-50%, -100%)`; box.append(t);
+      }
+    });
+    await sleep(120);
+    if (OUT) await shot(p, `words/${look}-pink-over-a-taxi.png`);
+    ok(seen, `${look}: a yellow taxi under the friend's pink words + two ghost tags (shot)`);
+    await L("document.getElementById('tu-tags').remove(); window.__jwLab.freeze(false); window.__jwLab.ghostsAt(null); window.__jwLab.view.setLines(null)");
+  }
+}

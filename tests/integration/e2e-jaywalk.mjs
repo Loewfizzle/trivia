@@ -261,6 +261,33 @@ try {
     await P.shot(`table-${w}.png`);
   }
   await P.p.setViewport({ width: 390, height: 844, deviceScaleFactor: Number(process.env.E2E_DPR) || 2, isMobile: true, hasTouch: true });
+  // THE TOUCH-UP PASS — YOUR ROW GLOWS: a ring + a soft glow in YOUR colour round your row (a layer of its own: the grid never moves) — your
+  // row in 4th / 1st / 3rd place (the friends' bests re-seeded, the table asked again), each by night + by day
+  for (const [place, bests] of [[4, null], [1, [8, 5, 3]], [3, [212, 98, 3]]]) {
+    if (bests) {
+      for (let i = 0; i < TBL.length; i++) await dbPut(`pstats/${TBL[i][0]}/b/jaywalk-solo`, { a: bests[i] });
+      await P.ev(`(() => { const t = document.querySelector('.jw-table'), el = t.parentElement; t.remove(); return import('/js/games/jaywalk/victory.js').then(V => V.yourTable(el, '${await P.ev("getComputedStyle(document.querySelector('.jw-table-list li.is-me')).getPropertyValue('--me').trim()")}')); })()`);
+      await P.waitFor("document.querySelectorAll('.jw-table-list li').length === 4", 10000);
+    }
+    const g = await P.ev(`(() => { const li = [...document.querySelectorAll('.jw-table-list li')], me = li.findIndex(x => x.classList.contains('is-me')), b = getComputedStyle(li[me], '::before'), r = li.map(x => x.getBoundingClientRect()), c = li.map(x => x.querySelector('.jw-table-card').getBoundingClientRect());
+      return { me: me + 1, col: getComputedStyle(li[me]).getPropertyValue('--me').trim(), bc: b.borderTopColor, sh: b.boxShadow, op: +b.opacity, rad: parseFloat(b.borderTopLeftRadius), pos: b.position, h: [...new Set(r.map(x => Math.round(x.height)))], cl: [...new Set(c.map(x => Math.round(x.left)))] }; })()`);
+    const hex = g.col.replace('#', ''), rgb = hex.length === 6 ? `rgb(${parseInt(hex.slice(0, 2), 16)}, ${parseInt(hex.slice(2, 4), 16)}, ${parseInt(hex.slice(4, 6), 16)})` : '';
+    ok(g.me === place && !!rgb && g.bc === rgb && g.sh.includes(rgb) && g.op > 0.5 && g.pos === 'absolute' && g.rad < 14 && g.h.length === 1 && g.cl.length === 1,
+      `YOUR ROW GLOWS in ${place === 1 ? '1st' : place === 3 ? '3rd' : '4th'}: a ring + a glow in your colour (${g.col} → ${g.bc}; radius ${g.rad} px — never a pill) on its own layer; every row one height (${g.h.join('/')}), every card one left edge (${g.cl.join('/')})`);
+    for (const look of ['night', 'day']) {
+      await P.ev(`import('/js/games/kit/look.js').then(m => m.saveLook('${look}'))`);
+      await P.waitFor(`document.querySelector('.jw-game').dataset.look === '${look}'`, 6000); await sleep(400);
+      await P.ev("document.querySelector('.jw-table').scrollIntoView({ block: 'center', behavior: 'instant' })"); await sleep(150);
+      await P.shot(`touchup-table-${place}-${look}-390.png`);
+      await P.ev("document.querySelector('.jw-final .final').scrollTo({ top: 0, behavior: 'instant' })"); await sleep(150);
+      if (place === 4) {
+        const top = await P.ev("(() => { const f = getComputedStyle(document.querySelector('.jw-final')).backgroundImage; return f; })()");
+        ok(look === 'night' || /rgba\(7, 6, 11, 0\.84\)/.test(top), `THE END SCREEN's TOP by ${look}: ${look === 'day' ? 'a soft dark fade under the title (0.84 at the top)' : 'the night veil, unchanged'}`);
+        await P.shot(`touchup-end-${look}-390.png`);
+      }
+    }
+  }
+  await P.ev("import('/js/games/kit/look.js').then(m => m.saveLook('night'))");
   for (const [fp] of TBL) { await dbPut(`pfr/${pid}/f/${fp}`, null); await dbPut(`pstats/${fp}`, null); await dbPut(`profiles/${fp}`, null); }
   if (process.env.JW_UNTIL === 'table') { await b.close(); console.log(`\n${n - fails.length}/${n} checks (JW_UNTIL=table) — ${fails.length ? `FAILED:\n  ${fails.join('\n  ')}` : 'all green'}`); process.exit(fails.length ? 1 : 0); }
   // ---- 6. PLAY AGAIN — measured: the tap → the next run's course is up (ready to hop)
