@@ -374,4 +374,4 @@
 @keyframes jw-arr-fade { 0% { opacity: 0; } 10% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .jw-arrive.is-on, .jw-arrive[data-look='day'].is-on { animation-name: jw-arr-fade; } }
 .jw-game.is-over .jw-arrive { visibility: hidden; }
-.jw-stage:not(.jw-game) .jw-arrive { top: min(calc(env(safe-area-inset-top) + 108px), calc(28% - 60px)); }   /* (the lab's HUD carries its mode line under the count) */
+.jw-stage:not(.jw-game) .jw-arrive { top: min(calc(env(safe-area-inset-top) + 116px), calc(28% - 60px)); }   /* (the lab's HUD carries its mode line under the count) */

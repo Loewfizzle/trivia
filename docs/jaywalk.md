@@ -1124,6 +1124,74 @@ The fixes added 5.6 KB to JAYWALK's eager graph (it stood 1 KB under its line). 
 this doc + the pass logs. After Group 2: 2,442 KB; after the audit's fixes: **2,447 of 2,450 KB** (the game alone 389 KB, 32 modules). A JAYWALK pass that adds code trims
 comments the same way before it thinks of the line.
 
+## BEFORE THE FLIP (Nov 17 2026 — `docs/games/passes/jaywalk-preflip.md`; the owner's decisions: `docs/games/plan.md` "JAYWALK … BEFORE THE FLIP") — the last game changes owed before THE GO-LIVE PASS (which flips `playable` and changes nothing else)
+
+### THE AREA ARRIVAL (`arrival.js` — the game + the lab · `night.js` the gate sign · css `.jw-arrive` / `.jw-gate`)
+- **THE ARRIVAL BANNER**: the instant this phone's own kid crosses an area's gate lane — the area's name BIG at the top + a small
+  `LANE 50` (a lap: `LAP 2 · LANE 450`), under the lane count, its foot ≤ 28 % of the screen (above the far haze: never over a lane),
+  2.5 s (`ARRIVE_MS`) with the area-arrival sound. NIGHT = a neon sign (a dark board, the area's colour as its tube + glow, a flicker
+  on); DAY = a painted sign (the area's paint darkened ×0.72 — white letters ≥ 4.5 : 1 on every area — a white trim, a drop-in swing);
+  reduced motion = a plain fade. transform + opacity only. ONE element, built once. Never over the Mothership's warning (a match, its
+  last 10 s — `SHIP_WARN`), the OUT card or the end: they win, and it goes at once if one starts (`view.js#arriveNow`). The old small
+  name flash under the count is retired. A ghost's crossing never shows.
+- **THE APPROACH SIGN** (GATE_SEEN 10 → GATE_GONE 3 lanes out, unchanged): in the real game on the emulators it WAS up whole by day
+  (9.5 → 4.5 lanes at every gate — `e2e-jaywalk` samples it), so the phone's own failure modes are closed: the board is marked drawn
+  only once it WAS drawn (an iPhone over its canvas memory refuses the 2D context — the old code then kept a blank sign for good), a
+  wiped canvas (`onCanvasLost`) or a blank board found as the sign comes up (its board's pixel) is drawn again, it is re-drawn once
+  Orbitron has loaded; by day the paint is darkened + a heavier keyline (the docks' brown board read as the brown planks); 82 % wide;
+  a small pop-in scale with its fade. The lab check: `jaywalk-lab.mjs --preflip` (3 areas, day + night, 8 + 5 lanes out + the crossing).
+
+### THE CAMERA + THE TAKES ARE PINNED (the owner, Nov 17)
+The game draws **ZOOM 8 · STRAIGHT** (`camera.js#ZOOM` / `ANGLE`) and plays **the owner's takes** for everyone — every A / B sound its
+take A (NEW BEST's B recording, the train's set B and the arrival's "Success" are single files) — whatever the lab saved on the phone.
+Only the lab page + THE SOUND AUDITION switch this phone's own picks on (`sfx.js#useLabPicks`). The `jw:lab:*` keys the game still
+reads are its OWN memory: the tier it settled at, the hint seen, the best the server last told it.
+
+### THE RUN CARD UPLOADS ONLY ON SHARE (the owner, Nov 17 — the review's storage finding)
+The end screen only DRAWS the card (its PNG + the half-size link picture kept on the phone); **nothing goes up until the player taps
+SHARE** — then once (`js/daily/share.js#prepShare`'s `onTap` — the daily's later share reuses it), the link shared alone; a second SHARE
+shares the same link, nothing uploaded; kept 7 days as before. iOS refuses the share sheet once the tap's user activation is spent on the
+upload's await: `send()` then answers `'ready'` (`navigator.userActivation.isActive`, else 1 s) and the console's SHARE
+(`ui/final.js`) reads **PREPARING… → SHARE** (lit, one pulse) — one more tap shares inside its own gesture. A live tap shares at once.
+
+### THE TEARDOWN — a lost context is never our own (`view.js#watchGL` · `night.js#destroy`)
+PROVEN in WebKit (`wk-jaywalk-mem.mjs` THE LEAVE): `night.destroy()` ends with `forceContextLoss()`, which fires the canvas's own
+`webglcontextlost` — every leave was reported to /admin as "the WebGL context was lost" (screen = title — the owner's two reports), and
+the two listeners each PLAY AGAIN mount added to the kept canvas held every old view alive (3 views after 3 runs; 8 views + 6 lost GL
+contexts held after 5 leaves — the review's ≈ 3–4 MB a run creep). Now the listeners come OFF (`offGL`) before any `destroy()`
+(unmount, the rebuild, the parked scene's 2.5 s timeout), the handler ignores a view that has gone / a scene not its own, and the 3D
+canvas is zeroed. After: 0 reports, no rebuild, JAYWALK's live GL contexts + canvases 0, 1–3 views alive after a full GC (WebKit's GC
+scans the stack conservatively: the last few may linger a while — the bug held every one: 10 after 10 runs, 8 after 5 leaves);
+a REAL loss mid-run still rebuilds + reports once. The WebKit process's own number swings ± 350 MB between leaves with no trend (printed,
+never asserted).
+
+### NO WHITE FLASH AT A TIER STEP (the inbox, Nov 17 6:58 pm — `night.js#fit` / `fitNow`)
+A quality-tier step (`tiers.tick` runs AFTER the frame's draw — automatic whenever a phone's frames slip or have room) or a
+ResizeObserver call resized — CLEARED — the 3D canvas after the frame was drawn: that frame showed the stage's own background, the
+day's pale sky-blue across the whole playfield (night: near-black, unseen). A resize now only ASKS; the next `draw()` resizes first,
+then renders. PROVEN: `jaywalk-lab.mjs --preflip=flash` (a 2-min DAY bot run through all 8 areas, ≈ 6,800 frames streamed, 32 tier
+steps fired after their frame's draw) — 17 whole-frame flashes on the old code, 0 now.
+
+### ONE BODY OF WATER (`night-fx.js` — the ground shader's water)
+Neighbouring water lanes read as ONE river: the surface's colour + ripple fields run on the world's z (the lane + its z, as the grass)
+with ONE slow drift — never a lane's own seed or current; the foam + the shallows only where the water meets something that is not
+water; each lane's specks still ride its own current (the logs keep theirs). Shots: 2 + 3 water lanes, day + night (`--preflip=water`).
+
+### THE SOUNDS, BEFORE THE FLIP (Grok's sfx5 — all CC0; the owner's picks, Nov 17 7:20 + 7:21 pm)
+- **THE STOPWATCH** (`stopwatch-tick.wav` — "Chronograph #2", Joseph SARDIN; a seamless 2 s WAV loop) REPLACES the lights dying (row,
+  file + credit gone): `cues.js#tickOf` — silent until the dark is within **3.5 lanes** (it waits at 5; measured ≈ 8 % of a moving
+  bot's run — at 4.5 it was 24 %, every run), then fading in (×0.18) + speeding up (0.85 → 1.75×) to its loudest at 1 lane; it glides
+  (`set()` — setTargetAtTime), fades out with the run.
+- **THE TRUCK HORN** (`truck-horn.mp3` — "Truck Horn", Pierre SIBANARCO): no horn added — the horn's own moments (its rules + ≤ 1 per
+  3 s) ALTERNATE car · truck, at the car horn's measured loudness (−27.1 LUFS at the SFX bus).
+- **THE AREA ARRIVAL** = "Success" (Sjonas88) — the sparkle is retired; level-matched (its loudest = the sparkle's, −16.7 LUFS);
+  `JW_SFX_REV` 4. The table: 12 sounds. Credits: `audio/jaywalk/CREDITS.md` + ☰ → Credits.
+
+### THE SIZE BUDGET, AGAIN (never raised)
+The pass's code took JAYWALK to 2,459 KB of its 2,450 KB line: full-line comments were stripped from `night.js` (−10.4 KB) and
+`night-fx.js` (−7.5 KB — most sat inside the GLSL the GPU compiles); code lines identical; their history is this doc + the pass logs.
+JAYWALK = 392 KB past the boot (395 at the start of the pass).
+
 ## THE CAMERA (H2B — `js/games/jaywalk/camera.js`: ONE pure module, the night look AND the graybox use it)
 The owner played H2 on his iPhone: "the game feels good", but it had to be ZOOMED IN — a closer camera that FOLLOWS the kid sideways, turned
 a little so the lanes run on a gentle diagonal (the genre's framing; nothing else of anyone's). PURE MATH: no three.js, no DOM, no clock of

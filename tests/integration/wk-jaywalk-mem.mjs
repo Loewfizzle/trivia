@@ -104,14 +104,16 @@ async function dropRunCards(pids) {
   for (const pid of pids) await dbPut(`shrp/${pid}:jaywalk`, null);
 }
 /** WebKit gives no gc(): a burst of short-lived garbage makes it collect (WeakRefs clear only after a GC + the job's end) */
-async function churn(P) { for (let k = 0; k < 6; k++) { await P.ev('(() => { let n = 0; for (let i = 0; i < 60; i++) { const a = []; for (let j = 0; j < 40000; j++) a.push({ j, s: "x" + j }); n += a.length; } return n; })()'); await sleep(150); } }
+// (+ big buffers: an old-generation object's WeakRef clears only after a FULL collection — a burst of small objects alone may be young-only)
+async function churn(P) { for (let k = 0; k < 6; k++) { await P.ev('(() => { let n = 0; for (let i = 0; i < 60; i++) { const a = []; for (let j = 0; j < 40000; j++) a.push({ j, s: "x" + j }); n += a.length; } for (let i = 0; i < 12; i++) { const b = new Float64Array(4e6); b[i] = i; n += b.length; } return n; })()'); await sleep(250); } }
 const WEBGL_LOST = "(window.__errlog ? window.__errlog.seen() : []).filter(k => /WebGL context was lost/.test(k)).length";
 const CITY_BACK = `!${S}.game && !document.querySelector('.jw-game') && !!(window.__district && window.__district.harbor() && window.__district.harbor().shown)`;
 async function toGame(P) {
-  if (!await P.tapUntil('.nd-tab-play', "!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"jaywalk\"]')")) return false;
-  if (!await P.tapUntil('.nd-shelf-row[data-game="jaywalk"]', "!!document.querySelector('.nd-card-sheet.is-in .nd-card[data-game=\"jaywalk\"] .nd-card-solo')")) return false;
-  if (!await P.tapUntil('.nd-card-solo', `${S}.game && ${S}.game.id === 'jaywalk' && !!document.querySelector('.jw-game canvas.jw-canvas') && !!${G}`, 45000)) return false;
-  return P.waitFor(`${G}.state().mode === 'run'`, 12000);
+  const step = (ok, what) => { if (!ok) console.log('   toGame stopped at:', what); return ok; };
+  if (!step(await P.tapUntil('.nd-tab-play', "!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"jaywalk\"]')"), 'the shelf')) return false;
+  if (!step(await P.tapUntil('.nd-shelf-row[data-game="jaywalk"]', "!!document.querySelector('.nd-card-sheet.is-in .nd-card[data-game=\"jaywalk\"] .nd-card-solo')"), 'the card')) return false;
+  if (!step(await P.tapUntil('.nd-card-solo', `${S}.game && ${S}.game.id === 'jaywalk' && !!document.querySelector('.jw-game canvas.jw-canvas') && !!${G}`, 45000), 'PLAY NOW → the game')) return false;
+  return step(await P.waitFor(`${G}.state().mode === 'run'`, 12000), 'GO');
 }
 async function oneRun(P) { await P.ev(`${G}.bot(true)`); await sleep(2500); await P.ev(`${G}.bot(false)`); const up = await P.waitFor(FINAL, 70000); if (up) await pastMoment(P, Date.now()); return up; }
 async function toCity(P, parkIt = false) {
@@ -124,8 +126,10 @@ async function toCity(P, parkIt = false) {
 async function leaveChecks(P) {
   // (1) the runs in a row: no old view kept alive (a GC can lag one beat behind: asked up to three times)
   let alive = -1;
-  for (let k = 0; k < 3 && (alive < 0 || alive > 2); k++) { await churn(P); alive = await P.ev('globalThis.__jwViews ? globalThis.__jwViews() : -1'); }
-  ok(alive >= 1 && alive <= 2, `THE LEAVE — ${RUNS} runs in a row (PLAY AGAIN): ${alive} JAYWALK views still alive after a GC (the one on screen + at most the one before — a listener on the kept canvas that held each old view would make it ${RUNS})`);
+  // (WebKit's GC scans the stack conservatively: the last 2–3 views can stay reachable a while — measured 2 · 3 · 7 (small churn); the BUG
+  //  held every one: 10 after 10 runs, 8 after 5 leaves — the line is 3)
+  for (let k = 0; k < 3 && (alive < 0 || alive > 3); k++) { await churn(P); alive = await P.ev('globalThis.__jwViews ? globalThis.__jwViews() : -1'); }
+  ok(alive >= 1 && alive <= 3, `THE LEAVE — ${RUNS} runs in a row (PLAY AGAIN): ${alive} JAYWALK views still alive after a full GC (≤ 3 — the last few a conservative GC may keep; the listener on the kept canvas that held each old view made it ${RUNS})`);
   const scenes0 = await P.ev('globalThis.__jwScenes()'), lost0 = await P.ev(WEBGL_LOST);
   // (2) BACK TO THE CITY
   ok(await toCity(P), 'THE LEAVE: BACK TO THE CITY → the city');
@@ -148,8 +152,8 @@ async function leaveChecks(P) {
     await churn(P); const wm = wkMb(); per.push(wm ? wm.web : null);
   }
   console.log('MEM the web process after each leave:', per.join(' → '), 'MB');
-  let views = 9;
-  for (let k = 0; k < 3 && views > 1; k++) { await churn(P); views = await P.ev('globalThis.__jwViews()'); }
+  let views = 99;
+  for (let k = 0; k < 3 && views > 3; k++) { await churn(P); views = await P.ev('globalThis.__jwViews()'); }
   L = await P.ev('window.__leak()');
   const w = wkMb(), lost2 = await P.ev(WEBGL_LOST);
   console.log(`MEM after ${LEAVES} × (a run + leave):`, JSON.stringify({ ...L, mb: w, views }));
@@ -158,7 +162,7 @@ async function leaveChecks(P) {
   const made = await P.ev('window.__cvNew()'), ours = Object.entries(made).filter(([k]) => /games\/jaywalk\//.test(k));
   console.log('   the views alive:', JSON.stringify(await P.ev('globalThis.__jwViewIds ? globalThis.__jwViewIds() : null')), '· canvases made since the baseline (by who):', Object.keys(made).length, 'kinds');
   ok(L.glJw === 0 && L.cvJw === 0 && L.glLive <= base.glLive && ours.length === 0, `THE LEAVE × ${LEAVES}: back to the city's baseline — live GL contexts ${base.glLive} → ${L.glLive} (JAYWALK's ${L.glJw}, held at all ${L.glHeld}), no canvas made by JAYWALK still holding pixels (${ours.map(([k, n]) => n + ' × ' + k).join(' | ') || 'none'}) — the city's own ${base.cvPix} → ${L.cvPix}`);
-  ok(views <= 1, `THE LEAVE × ${LEAVES}: ${views} JAYWALK views alive after a GC (the test hook's last one at most)`);
+  ok(views <= 3, `THE LEAVE × ${LEAVES}: ${views} JAYWALK views alive after a full GC (≤ 3 — the test hook's last one + what a conservative GC keeps a while; the bug held ${RUNS + LEAVES - 2}+)`);
   // (the web process is PRINTED, never asserted: WebKit's GPU + allocator swing it ± 350 MB between two leaves with no trend — measured
   // 927 → 777 → 1005 → 1132 → 795; the counts above are the proof)
   if (w && base.mb) console.log(`MEM the tab's own process: ${base.mb.web} MB at the baseline → ${w.web} MB after ${LEAVES} leaves`);

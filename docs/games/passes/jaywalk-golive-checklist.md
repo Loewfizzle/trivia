@@ -54,17 +54,36 @@ live tree) — but the hole the audit found stays open until the publish.
 ### WHAT THE AUDIT LEFT FOR GO-LIVE (`jaywalk-review.md` "… what was done with each finding")
 - **THE BOARD's JAYWALK tab** (`js/board/view.js` — five tabs today; `core/boards.js` has its rows since H3) + a line in
   `tests/registration.test.mjs` that checks for it. A playable game with no tab on THE BOARD is a go-live gap nothing tests yet.
-- **PIN THE CAMERA** (the audit's #14 — the owner's call, the review's recommendation): the game reads ZOOM · ANGLE (`view.js` —
+- ✓ JAYWALK BEFORE THE FLIP (4e47f0bd — docs/games/passes/jaywalk-preflip.md): ZOOM 8 · STRAIGHT + the owner's takes for everyone;
+  the lab keeps its switches for itself (`sfx.js#useLabPicks`) — `tests/jaywalk-preflip.test.mjs` + e2e-jaywalk (odd lab prefs saved).
+  **PIN THE CAMERA** (the audit's #14 — the owner's call, the review's recommendation): the game reads ZOOM · ANGLE (`view.js` —
   `jw:lab:*`, `lab-prefs.js`) and the A / B sound takes (`sfx.js`) from the OPEN lab page's settings: at go-live the game uses
   ZOOM 8 · STRAIGHT + the A takes for everyone (the lab keeps its switches for itself), or ZOOM becomes a real setting.
-- **AN 8-PHONE MATCH, MEASURED** (the audit's #6 — an estimate, never measured): every hop re-exports the whole `jw/{match}` tree on
+- ✓ CITY F (57b5e5b2 — docs/harbor/passes/city-f.md group 7): measured at 8 phones to 3.5 min, no slip.
+  **AN 8-PHONE MATCH, MEASURED** (the audit's #6 — an estimate, never measured): every hop re-exports the whole `jw/{match}` tree on
   every phone (`js/room.js` — the console's live listener, a BOOT file). Before the flip: an 8-bot match to minute 5 with the frame
   times + the JS heap printed (`e2e-jaywalk-match.mjs` takes `--four`; it needs an `--eight`). If it slips: the listener per player
   (child-added on `c`), with boot bytes the city's trim has freed.
-- **THE RUN CARD's STORAGE** (the audit's #5 — the owner's cost call, see the review's OPEN FOR BEN): decided before the flip.
-- **A QUEUED REPORT's PROOF** (the audit's #8): PLAY AGAIN prunes proofs older than four runs (`kit/again.js#KEEP_RUNS`) and BACK TO
+- ✓ JAYWALK BEFORE THE FLIP (18f5555f): the owner's call — THE RUN CARD UPLOADS ONLY ON SHARE (once; PREPARING… → SHARE
+  when iOS spent the tap; kept 7 days) — e2e-jaywalk: no tap → 0 uploads; SHARE → 1; a second SHARE → none. e2e-jaywalk-match: 1 card.
+  **THE RUN CARD's STORAGE** (the audit's #5 — the owner's cost call, see the review's OPEN FOR BEN): decided before the flip.
+- ✓ CITY F (57b5e5b2): a queued report's proof is kept (no prune, the room kept until the queue answers).
+  **A QUEUED REPORT's PROOF** (the audit's #8): PLAY AGAIN prunes proofs older than four runs (`kit/again.js#KEEP_RUNS`) and BACK TO
   THE CITY deletes the solo room — a best run whose report is still queued (`/api` down) can become unverifiable. The console's
   report queue is boot code: with the trim's bytes, never prune a proof whose report is still queued.
+
+### THE LOST CONTEXT + THE CREEP — ✓ JAYWALK BEFORE THE FLIP (be4bffdd; the inbox's Nov 17 5:55 pm entry)
+The verdict: BOTH a FALSE REPORT and a REAL ORPHAN, proven in WebKit (`tests/integration/wk-jaywalk-mem.mjs` "THE LEAVE", Playwright's
+WebKit as a phone, 390 × 844 @3, the emulators):
+- **before**: leaving the game → 1 "the WebGL context was lost" report a page (our own `forceContextLoss()` heard by our own listener —
+  the owner's two /admin rows, screen = title); 3 runs in a row → 3 views alive after a GC; 5 × (a run + leave) → 8 views + 6 (lost)
+  GL contexts still held — each PLAY AGAIN mount's listeners on the kept canvas held the view before it (THE CREEP's cause).
+- **after**: 0 reports, 0 rebuilds after leaving; 2 views alive after 10 PLAY AGAINs, 1–3 after 5 leaves (a full GC — WebKit's
+  conservative stack scan keeps the last few a while; the line is 3); the tab's process FLAT over 10 runs (474 → 466 MB — the review saw 553 → 583);
+  JAYWALK's live GL contexts 0 + no JAYWALK canvas holding pixels; the city's own canvases back where they were (they re-bake on return);
+  the PARKED scene's 2.5 s timeout path the same; a REAL loss mid-run still rebuilds + reports ONCE. The web process's working set swings
+  ± 350 MB between leaves with no trend (e.g. 927 → 777 → 1005 → 1132 → 795 MB) — printed, never asserted; the counts are the proof.
+  Still NOT measured on an iPhone (no desktop browser reports a phone's real memory).
 
 ### THE OWNER has done
 - Played the review's build on his phone, DAY + NIGHT, solo + a match: his EAR on THE MIX (never heard on a phone's speaker — the
@@ -113,7 +132,7 @@ live tree) — but the hole the audit found stays open until the publish.
      `testAdmins` lines go.
    - `tests/integration/e2e-smoke.mjs`: JAYWALK is in `GAMES=` since H4 as the owner's start — now a plain start, like the three.
    - the harbor suite: the `cartridge` group (JAYWALK playable), the groups that walk the signs / the shelf / THE BOARD.
-9. **THE SHARE + THE OG IMAGE** — the run's card (`share.js`, 540 × 675, uploaded at prepare — `api/_lib/share-card.js`) is done and
+9. **THE SHARE + THE OG IMAGE** — the run's card (`share.js`, 540 × 675, uploaded ONLY at the first SHARE tap since BEFORE THE FLIP — `api/_lib/share-card.js`) is done and
    tested; at go-live: (a) the SITE's own link preview (`index.html` og:image / the manifest's description) names three games —
    add JAYWALK where the games are listed; (b) `shareAddress` / the card's foot unchanged (ONE FOOT); (c) one real share from a
    non-owner phone on the emulators (step 8's stranger) proves the card is made for everyone.
