@@ -584,6 +584,11 @@ async function looksNums(p) {
 }
 
 try {
+  // (THE POLISH PASS: `--polish[=share|lines]` — kit/jaywalk-polish.mjs; the shots → share/ · lines/)
+  { const pol = argv.find(x => x === '--polish' || x.startsWith('--polish=')); if (pol) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); const K = await import('./kit/jaywalk-polish.mjs'); const w = pol.slice(9);
+    if (!w || w === 'share') await K.looksShare(o.p, { ok, sleep, waitFor, OUT });
+    if ((!w || w === 'lines') && K.looksLines) await K.looksLines(o.p, { ok, sleep, waitFor, OUT, shot });
+    if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   if (argv.includes('--nums')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksNums(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   // (BEFORE THE FLIP — THE AREA ARRIVAL: `--preflip` — kit/jaywalk-preflip.mjs; the shots → arrival/)
   { const pf = argv.find(x => x === '--preflip' || x.startsWith('--preflip=')); if (pf) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); if (pf === '--preflip=flash') { const { default: jpeg } = await import('jpeg-js'); const dir = OUT ? join(OUT, 'flash') : null; if (dir) mkdirSync(dir, { recursive: true }); const F = await flashScan(o.p, { ok, sleep, out: dir, decode: jpeg.decode, writeFile: writeFileSync }); ok(F.frames > 600 && F.secs > 100, `THE DAY FLASH SCAN ran: ${F.frames} frames, ${F.secs.toFixed(0)} s, 8 areas`); ok(F.events.length === 0 && F.steps >= 16, `no sudden whole-frame white jump by DAY — ${F.steps} quality-tier steps among them, each fired after its frame's draw (${F.events.length})`); } else await looksPreflip(o.p, { ok, shot, sleep, waitFor, what: pf.slice(10) }); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }

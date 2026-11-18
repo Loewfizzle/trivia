@@ -66,6 +66,8 @@ export function shotCrop(src, box, kidX = 0.5, kidY = 0.62, zoom = SHOT_ZOOM, up
   const cx = (kidX == null ? 0.5 : kidX) * src.width, cy = (kidY == null ? 0.62 : kidY) * src.height - sh * up;
   return { sx: Math.max(0, Math.min(src.width - sw, cx - sw / 2)), sy: Math.max(0, Math.min(src.height - sh, cy - sh / 2)), sw, sh };
 }
+/** THE CAUSE LINE's band (THE POLISH PASS): the night's ink, translucent — the scene still shows through, the words always read */
+export const BAND = 'rgba(7,6,11,0.72)';
 /** the big lanes' size on the card (px of its 1080) */
 export const BIG_PX = 236;
 /** the middle: THE RUN's FRAME (zoomed on the kid, lifted) under the words, the lanes + the icon over it — or, with no frame, the dark */
@@ -83,14 +85,22 @@ export function drawRunMiddle(c, box, card, shot) {
   // the words read on any frame: a soft dark at the head + the foot — short, so the scene stays the hero
   let g = c.createLinearGradient(0, y, 0, y + 210); g.addColorStop(0, 'rgba(7,6,11,0.86)'); g.addColorStop(1, 'rgba(7,6,11,0)'); c.fillStyle = g; c.fillRect(x, y, w, 210);
   g = c.createLinearGradient(0, y + h - 270, 0, y + h); g.addColorStop(0, 'rgba(7,6,11,0)'); g.addColorStop(1, 'rgba(7,6,11,0.88)'); c.fillStyle = g; c.fillRect(x, y + h - 270, w, 270);
+  // THE POLISH PASS (the owner, Nov 18): THE CAUSE LINE's DARK BAND — the words read over the brightest frame (the day river, the fog) at
+  // link-preview size: a dark translucent tab hung from the frame's top-left behind the words (the frame's own corner at its top, a small
+  // corner at its foot — the house style, never a pill), the same in both looks
+  const line = String((shot && shot.line) || card.line || '').toUpperCase();
+  c.font = `900 66px ${DISPLAY}`;
+  const rows = line ? wrap2(c, line, w - 210) : [];
+  if (rows.length) {
+    const bw = Math.min(w - 186, Math.max(...rows.map(t => c.measureText(t).width)) + 36 + 34), bh = 92 + (rows.length - 1) * 74 + 34;
+    c.fillStyle = BAND; c.beginPath(); c.roundRect(x, y, bw, bh, [0, 0, 18, 0]); c.fill();
+  }
   c.restore();
   // the frame's edge: one neon line (the kit's own rounded window — never a pill)
   c.save(); c.strokeStyle = card.accent; c.lineWidth = 4; c.shadowColor = card.accent; c.shadowBlur = 22; c.beginPath(); c.roundRect(x, y, w, h, r); c.stroke(); c.restore();
   // HOW THEY WENT OUT — ONCE: the big neon words at the frame's head
-  const line = String((shot && shot.line) || card.line || '').toUpperCase();
-  if (line) {
+  if (rows.length) {
     c.save(); c.textAlign = 'left'; c.font = `900 66px ${DISPLAY}`;
-    const rows = wrap2(c, line, w - 210);
     rows.forEach((t, i) => { c.shadowColor = card.accent; c.shadowBlur = 32; c.fillStyle = '#fff3fb'; c.fillText(t, x + 36, y + 92 + i * 74); c.shadowBlur = 8; c.fillText(t, x + 36, y + 92 + i * 74); });
     c.restore();
   }
