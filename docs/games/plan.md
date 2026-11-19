@@ -614,3 +614,12 @@
 - YOUR BEST tape = a THIN glowing gold OUTLINE round the tower (not a solid band — it read as a slab).
 - The end screen gets the STANDARD FOOTER: one big solid glowing PLAY AGAIN bar in HIGH RISE's accent (no pill shape); tap-anywhere-after-0.6 s stays.
 - The sounds ship compressed (not WAV).
+
+## HIGH RISE — S3 (approved Nov 19)
+- Ben's S2 FIX check pending on the phone (HITCH line). Ben's SOUND PICKS (final): ALL A — drop A (as recorded) · perfect A (the chime starts an octave down) · slice A (the glassy snap) · falling-piece · grow-back · streak · out · band-arrival · pass all A. The B takes leave the game.
+- NO DAILY for HIGH RISE (Ben, Nov 18): the seed barely changes play. The engine's daily mode stays unused. (Parked idea for later only: a one-shot "TODAY'S TWIST" daily.)
+- THE LOOK SWITCH: day / night follows the real sun (AUTO, the site's own sun rule as JAYWALK's); the test page's start screen has AUTO / DAY / NIGHT (remembered on this phone, try/catch); a switch cross-fades in 1.5 s; only the active look's plates + reflection map are kept, the other prewarmed on switch (no hitch).
+- THE DAY LOOK: frosted glass + polished chrome rims, soft colour showing through (pastel per band), sunlit from one side, the day reflection map; the SLIDING slab gets a stronger colour + an edge glow so it never washes out.
+- THE FLYERS (spectacle only, never hazards, never over the play zone): the seed's flyerFor picks THE BLACKBIRD or AN F-22 PAIR at floors 35–45 · THE UFO (AMBER rim lights + VIOLET underglow, no beam, no ground ring — never like JAYWALK's) around floor 85 · THE MOTHERSHIP seen from ~180, colossal at 200.
+- FLOOR 200: SOLO flies past the Mothership into DEEP SPACE (a moment, then on); MATCH = THE FINISH (white-gold light pours onto the top slab → MADE IT TO THE MOTHERSHIP, gold) — previewable on the test page with ?mode=match (nothing counts).
+- THE 2 CARDS' ART is prepared in S3; the cards are added + awarded in S4 (server-judged runs only, hidden until go-live).
