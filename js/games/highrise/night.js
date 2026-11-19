@@ -16,7 +16,7 @@ import { START, TRAVEL } from './tuning.js';
 import { slabAt } from './engine.js';
 import { CAM, camDist, SLAB_H } from './camera.js';
 import { plateMix, plateDrift, slabColor, SLACK } from './bands.js';
-import { GLASS_V, GLASS_F, PLATE_V, PLATE_F, SPARK_V, SPARK_F, RING_V, RING_F, createBloom } from './night-fx.js';
+import { GLASS_V, GLASS_F, PLATE_V, PLATE_F, SPARK_V, SPARK_F, RING_V, RING_F, TAPE_V, TAPE_F, createBloom } from './night-fx.js';
 
 const U = 1 / START, H = SLAB_H, RAD = Math.PI / 180;
 /** the slabs kept drawn under the top (the rest is below the screen) */
@@ -171,6 +171,16 @@ export function createNight(host, o = {}) {
     rgA.needsUpdate = rgB.needsUpdate = rgP.needsUpdate = true; ringN++;
   }
 
+  // ---- YOUR BEST's GOLD TAPE (S2 FIX): a THIN glowing gold OUTLINE round the slab of that floor — one line of light, no fill, the
+  // back edges faint (night-fx.js TAPE_F). Its own small mesh (one draw, only while a tape lies on the tower): its line covers, no depth.
+  const TAPE_H = 0.07, TAPE_OUT = 0.004;
+  const TAPE_GOLD = [1, 0.66, 0.14];   // (a deeper gold than the flash's: beside the cyan + the blue slabs' own lines the page's #ffc83c read as yellow — the look review)
+  const tapeU = { uCol: { value: new THREE.Vector3(TAPE_GOLD[0], TAPE_GOLD[1], TAPE_GOLD[2]) }, uGlow: { value: 1 }, uWhite: { value: 0 }, uH: { value: TAPE_H } };
+  const tapeGeo = new THREE.BoxGeometry(1, 1, 1);
+  const tapeMat = new THREE.ShaderMaterial({ vertexShader: TAPE_V, fragmentShader: TAPE_F, uniforms: tapeU, transparent: true, depthTest: false, depthWrite: false, blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor, side: THREE.DoubleSide, extensions: { derivatives: true } });
+  const tape = new THREE.Mesh(tapeGeo, tapeMat); tape.frustumCulled = false; tape.renderOrder = 12; tape.visible = false; scene.add(tape); made.push(tapeGeo, tapeMat);
+  twin(tape, tapeMat);
+
   // ---- the pieces that fall away (a cut's overhang; a slab that missed) — pooled
   const pieces = Array.from({ length: PIECES }, () => ({ on: false, age: 0, x: 0, y: 0, z: 0, sx: 0, sz: 0, vx: 0, vy: 0, vz: 0, rx: 0, rz: 0, ax: 0, az: 0, c: GOLD, life: 1200 }));
   let pieceAt = 0;
@@ -296,9 +306,11 @@ export function createNight(host, o = {}) {
     nb = 0;
     for (const k of [KIND.slab, KIND.slider, KIND.tape, KIND.trail]) put(0, -60, 0, 0.01, 0.01, 0.01, GOLD, 1, 0, 1, k, null);
     boxes.count = nb; boxes.instanceMatrix.needsUpdate = aColor.needsUpdate = aFx.needsUpdate = true;
+    const tapeWas = tape.visible; tape.visible = true; tape.position.set(0, -60, 0); tape.scale.set(0.01, 0.01, 0.01); tape.updateMatrixWorld();   // (the tape's program too: built here, not at the crossing)
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam, plate, TWINS); } catch { /* a phone that can't: the kinds build as they come */ }
     mark('compile');
     spT.setX(0, -1e6); spT.needsUpdate = true; rgB.setW(0, -1e6); rgB.needsUpdate = true;
+    tape.visible = tapeWas;
     warmed++;
   }
 
@@ -365,16 +377,13 @@ export function createNight(host, o = {}) {
       QQ.setFromEuler(EU.set(p.ax, 0, p.az));
       put(p.x, p.y, p.z, p.sx, H, p.sz, p.c, 1.1, 0, clamp01(1.6 * (1 - p.age / p.life)), KIND.slab, QQ);
     }
-    // YOUR BEST's gold tape: a thin outline band round the slab of that floor (no fill)
-    if (tapeFloor) {
-      const s = slabOf(tapeFloor);
-      if (s) {
-        const x0 = s.x0 * U, x1 = s.x1 * U, z0 = s.z0 * U, z1 = s.z1 * U, mx = (x0 + x1) / 2, mz = (z0 + z1) / 2, y = (s.floor - 0.5) * H, t = 0.02, hh = 0.05, g = 1 + 1.6 * Math.exp(-(clock - tapeAt) / 260), wh = 0.6 * Math.exp(-(clock - tapeAt) / 180);
-        put(mx, y, z0 - t / 2, x1 - x0 + 2 * t, hh, t, GOLD, g, wh, 1, KIND.tape, null);
-        put(mx, y, z1 + t / 2, x1 - x0 + 2 * t, hh, t, GOLD, g, wh, 1, KIND.tape, null);
-        put(x0 - t / 2, y, mz, t, hh, z1 - z0, GOLD, g, wh, 1, KIND.tape, null);
-        put(x1 + t / 2, y, mz, t, hh, z1 - z0, GOLD, g, wh, 1, KIND.tape, null);
-      }
+    // YOUR BEST's gold tape: a THIN glowing gold OUTLINE round the slab of that floor — a line of light, never a filled band (S2 FIX)
+    const ts = tapeFloor ? slabOf(tapeFloor) : null;
+    tape.visible = !!ts;
+    if (ts) {
+      const x0 = ts.x0 * U, x1 = ts.x1 * U, z0 = ts.z0 * U, z1 = ts.z1 * U, age = clock - tapeAt;
+      tape.position.set((x0 + x1) / 2, (ts.floor - 0.5) * H, (z0 + z1) / 2); tape.scale.set(x1 - x0 + 2 * TAPE_OUT, TAPE_H, z1 - z0 + 2 * TAPE_OUT);
+      tapeU.uGlow.value = 1 + 1.6 * Math.exp(-age / 260); tapeU.uWhite.value = 0.6 * Math.exp(-age / 180);
     }
     boxes.count = nb; boxes.instanceMatrix.needsUpdate = true; aColor.needsUpdate = true; aFx.needsUpdate = true;
     renderer.render(scene, cam);
