@@ -106,6 +106,10 @@
   --accent: #ff4fc4; --accent-2: #ffd6f0; --accent-ink: #1a0414;
   --accent-soft: rgba(255, 79, 196, 0.12); --accent-glow: rgba(255, 79, 196, 0.42);
 }
+[data-theme='highrise'] { /* HIGH RISE (S4A): its sign's hot pink (HIGH) over cyan (RISE) on the night glass */
+  --accent: #ff4fd8; --accent-2: #35e3ff; --accent-ink: #14061a;
+  --accent-soft: rgba(255, 79, 216, 0.12); --accent-glow: rgba(255, 79, 216, 0.42);
+}
 [data-theme='prism'] { /* PRISM DROP: clean white light with spectral edges */
   --accent: #f4f7ff; --accent-2: #8fd8ff; --accent-ink: #070912;
   --accent-soft: rgba(244, 247, 255, 0.08); --accent-glow: rgba(190, 210, 255, 0.4);

@@ -82,6 +82,7 @@ export const GAMES = [ // lobby order
   // BOARD's tab since HOLD'EM IN THE CITY (Nov 11); the HE8 owner gate stays in the code for the next game being built
   { id: 'holdem', name: "HOLD'EM", theme: 'holdem', tag: 'TEXAS HOLD’EM · 2–8', blurb: 'Two cards each, five on the table. Bet, bluff or fold. Play chips only.', playable: true, live: '2026-11-08' },   // (CITY H2: `live` = the go-live day — NEW on the games list its first 14 days: core/game-order.js)
   { id: 'jaywalk', name: 'JAYWALK', theme: 'jaywalk', tag: 'HOP THE HARBOR', blurb: 'Hop the lanes. Farthest wins.', playable: true, live: '2026-11-17' },   // (PLAYABLE since THE GO-LIVE PASS, Nov 17 — docs/jaywalk.md)
+  { id: 'highrise', name: 'HIGH RISE', theme: 'highrise', tag: 'STACK THE TOWER', blurb: 'One tap drops each slab. Tallest tower wins.', playable: false, preview: true },   // (BEING BUILT — HIDDEN: THE OWNER'S LIVE TEST only — docs/highrise.md)
 ];
 /** FIXES R2 — THE REVIEW B1, option (b) "KEEP COMPATIBLE" (the owner, Nov 15): the FROZEN games — not playable, not being built (`preview`). ONE
  *  list: games/registry.js#loadGame refuses them (never loaded — an emulator-only `&frozen=1` for tests), the whole-tree tests read it for

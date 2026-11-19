@@ -51,19 +51,16 @@ test('THE PAGE: at the site root (deployed), noindex nofollow, UNLISTED (nothing
   for (const f of readdirSync(new URL('../js/games/highrise/', import.meta.url))) assert.doesNotMatch(code(`js/games/highrise/${f}`), /highrise-lab/, `${f}: no link to the lab in code`);
 });
 
-test('HIGH RISE IS INVISIBLE TO PLAYERS (S1): no GAMES entry, no DAILIES row, no config / boot / cartridge / registry / rules / endpoint knows it', () => {
-  for (const f of ['js/config.js', 'js/app.js', 'js/games/registry.js', 'js/games/cartridge.js', 'js/games/preload.js', 'js/games/preload-graph.js', 'js/screens/title.js', 'js/screens/title-dock.js', 'js/core/game-order.js', 'database.rules.json', 'index.html']) {
+test('HIGH RISE IS HIDDEN FROM PLAYERS (S4A — it is a HIDDEN cartridge now: tests/highrise-cartridge.test.mjs holds its pins): nothing a player is offered names it — no boot file, no title / dock, no list order, no page', () => {
+  for (const f of ['js/app.js', 'js/games/cartridge.js', 'js/games/preload.js', 'js/screens/title.js', 'js/screens/title-dock.js', 'js/core/game-order.js', 'index.html', 'js/ui/help.js', 'js/ui/game-art.js', 'js/ui/credits.js', 'js/board/view.js']) {
     assert.doesNotMatch(read(f), /highrise|HIGH RISE/i, `${f} does not know HIGH RISE`);
   }
-  // (S2 added the test page's files — tests/highrise-play.test.mjs holds the whole list; still nothing a console could load as a game)
-  const dir = readdirSync(new URL('../js/games/highrise/', import.meta.url)).sort();
-  for (const f of ['meta.js', 'index.js', 'view.js', 'director.js']) assert.ok(!dir.includes(f), `no ${f} — nothing a console could load as a game`);
-  for (const f of readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js'))) assert.doesNotMatch(read(`api/${f}`), /highrise/i, `api/${f}: no endpoint wiring`);
+  assert.match(read('js/config.js'), /\{ id: 'highrise', name: 'HIGH RISE', [^\n]*playable: false, preview: true \},/, 'its GAMES row: BEING BUILT (`preview`) — never playable, offered to nobody but the owner\'s phone');
 });
 
 test('THE LAB NEVER COUNTS — its WHOLE module graph: only its own engine files + the integer hash + three.js; nothing from /api, the profile, progression, the report, share, the cards, Firebase, the store', () => {
   const g = graph('js/games/highrise/lab.js');
-  assert.deepEqual(g.files, ['js/core/rng.js', 'js/games/highrise/engine.js', 'js/games/highrise/graybox.js', 'js/games/highrise/lab.js', 'js/games/highrise/logic.js', 'js/games/highrise/replay.js', 'js/games/highrise/tower.js', 'js/games/highrise/tuning.js'], 'every module the page loads');
+  assert.deepEqual(g.files, ['js/core/rng.js', 'js/games/highrise/engine.js', 'js/games/highrise/graybox.js', 'js/games/highrise/lab.js', 'js/games/highrise/logic.js', 'js/games/highrise/meta.js', 'js/games/highrise/replay.js', 'js/games/highrise/tower.js', 'js/games/highrise/tuning.js'], 'every module the page loads');
   assert.deepEqual(g.bare, ['three'], 'the one outside module: three.js (the import map)');
   for (const f of g.files) {
     const s = code(f);

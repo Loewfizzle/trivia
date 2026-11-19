@@ -54,6 +54,9 @@ export function finalGame(id, uids, opts = {}) {
     // (JAYWALK H1: the replayed results — lanes, the tick, the cause, the lives left)
     case 'jaywalk': return { ...base, settings: { lives: 3 }, mode: n === 1 ? 'solo' : 'match', seed: 'fixture', playAt: T0,
       results: byRank(uids, i => ({ l: opts.lanes != null && i === 0 ? opts.lanes : 240 - i * 40, t: 9000 - i * 900, w: i ? 'car' : 'taken', lv: i ? 0 : 2 })) };
+    // (HIGH RISE S4A: the judged rows — the floor, the perfects, the tick, the cause)
+    case 'highrise': return { ...base, settings: {}, mode: n === 1 ? 'solo' : 'match', seed: 'fixture', playAt: T0,
+      results: byRank(uids, i => ({ f: opts.floor != null && i === 0 ? opts.floor : 120 - i * 20, p: 80 - i * 15, t: 9000 - i * 900, w: i ? 'miss' : 'made', e: 9100 - i * 900, s: 12 - i })) };
     case 'slip': {
       const out = Object.fromEntries(uids.slice(1).map((u, k) => [u, { at: T0 + 200_000 - k * 1000, place: k + 2, rem: k + 1, d: 2000 - k * 200 }]));
       return { ...base, settings: { lives: 3 }, playStartAt: T0, phaseStartAt: T0 + 240_000, out, winner: uids[0],

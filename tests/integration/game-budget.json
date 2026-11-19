@@ -4,6 +4,7 @@
     "overclock": { "modules": 185, "kb": 2650 },
     "prism": { "modules": 190, "kb": 2780 },
     "holdem": { "modules": 160, "kb": 2450 },
-    "jaywalk": { "modules": 160, "kb": 2450 }
+    "jaywalk": { "modules": 160, "kb": 2450 },
+    "highrise": { "modules": 160, "kb": 2450 }
   }
 }

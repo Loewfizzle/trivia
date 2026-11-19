@@ -21,7 +21,7 @@ test('THE CLASSIFICATION RULE: every top-level node the /api code reads or write
       let m; while ((m = re.exec(s))) seen.add(m[1]);
     }
   }
-  const IGNORE = new Set(['test', 'prism', 'oc', 'ocm', 'jw', 'subs']);   // (emulator-only switches under test* · paths INSIDE rooms/{CODE} (report.js's proof trees) · radio/push/subs)
+  const IGNORE = new Set(['test', 'prism', 'oc', 'ocm', 'jw', 'hr', 'subs']);   // (emulator-only switches under test* · paths INSIDE rooms/{CODE} (report.js's proof trees) · radio/push/subs)
   const loose = [...seen].filter(n => !all.includes(n) && !IGNORE.has(n) && !n.startsWith('test'));
   assert.deepEqual(loose, [], `nodes nobody classified (api/_lib/backup.js DURABLE / LIVE / SECRET): ${loose.join(', ')}`);
   for (const must of ['profiles', 'pstats', 'uids', 'seats', 'progress', 'lb', 'dly', 'results', 'ppriv', 'pkeys', 'pfr', 'flink', 'tags', 'vault', 'radio', 'city2']) assert.ok(DURABLE.includes(must), `${must} is backed up`);

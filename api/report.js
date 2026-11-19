@@ -24,9 +24,10 @@ import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/h
 import { noteSeen } from './_lib/seen.js';
 import { ref, val, emulated, adminPids } from './_lib/fb.js';
 import { jaywalkSolo, jaywalkMatch } from './_lib/jaywalk.js';
+import { highriseSolo, highriseMatch, HIGHRISE_COUNTS } from './_lib/highrise.js';
 import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
-import { applyMatch, needsRetry, mergeOutcomes, MIN_MATCH_GAP_MS } from './_lib/stats.js';
+import { applyMatch, wouldApply, needsRetry, mergeOutcomes, MIN_MATCH_GAP_MS } from './_lib/stats.js';
 import { bumpPlayed } from './_lib/activity.js';
 import { extractMatch, unreportable, REPORT_GAMES, DEALER_GAMES, SOLO_OK } from '../js/core/match-report.js';
 import { GAMES, MAX_PLAYERS } from '../js/config.js';
@@ -96,6 +97,30 @@ export async function reportableGame(id, uid = null, at = null) {
 
 // (JAYWALK H3 + H4 — THE SERVER'S OWN RESULT: a SOLO run and a MATCH are counted ONLY from the server's replay of the players' proof nodes — api/_lib/jaywalk.js)
 export { jaywalkSolo, jaywalkMatch };
+// HIGH RISE S4A — the SAME two paths (api/_lib/highrise.js: its own node `hr`, its own judge). THE PROOF GAMES: the games a result of which
+// exists ONLY from the server's replay of the players' proof nodes — { node (under rooms/{CODE}), solo, match }
+export { highriseSolo, highriseMatch };
+export const PROOF_GAMES = Object.freeze({
+  jaywalk: Object.freeze({ node: 'jw', solo: jaywalkSolo, match: jaywalkMatch }),
+  highrise: Object.freeze({ node: 'hr', solo: highriseSolo, match: highriseMatch }),
+});
+/**
+ * HIGH RISE S4A — THE SWITCH (api/_lib/highrise.js#HIGHRISE_COUNTS: OFF until go-live — ONE line there turns it on). OFF: a run is JUDGED
+ * and NOTHING is awarded (processReport returns WOULD COUNT before any claim / credit). On the LOCAL EMULATORS a test flips it through
+ * `testHighriseCounts` (server.test + e2e-highrise set it — never honoured in production: `emulated()`).
+ */
+export const highriseCounts = async () => HIGHRISE_COUNTS || (emulated() && !!(await val('testHighriseCounts')));
+/** PURE — the WOULD-AWARD the phone is told while counting is OFF: the server's own judged row + what the counted path would have done.
+ *  `row` = the server's result row { f, p, t, w, s, ft?, cut?, bad? } · `w` = stats.js#wouldApply's answer · `rec` = the board value */
+export function wouldAward(row, w, rec) {
+  const r = row || {}, out = { floor: Math.max(0, Math.floor(Number(r.f) || 0)), perfects: Math.max(0, Math.floor(Number(r.p) || 0)), cause: String(r.w || ''), ...(r.cut ? { cut: 1 } : {}) };
+  if (r.bad) return { ...out, skip: `refused (${r.bad})` };
+  if (!w || w.skip) return { ...out, skip: (w && w.skip) || 'not counted' };
+  const pb = (w.pbs || []).find(p => p.b === 'highrise-solo');
+  // (the cards by their FEAT — never an item's name: ITEM NAMES ONLY TO OWNERS)
+  const cards = [['above-the-clouds', 'clouds'], ['top-of-the-world', 'top']].filter(([a]) => (w.ach || []).some(x => (x && x.id ? x.id : x) === a)).map(([, f]) => f);
+  return { ...out, xp: w.xp, streak: w.streak, best: !!pb, table: rec != null ? rec : null, cards, ...(w.solo ? { so: w.solo } : {}) };
+}
 
 /**
  * FR7-A's C1 — THE REAL PLAYER COUNT (PURE). A match record may NAME at most MAX_REPORT_NAMES players (twice a full room — the join
@@ -127,9 +152,10 @@ export const PROOF_TREES = Object.freeze({
   prism: m => ({ room: [`prism/${m}`], seal: [] }),
   overclock: m => ({ room: [`oc/${m}`, `ocm/${m}`], seal: [`oc/${m}`] }),
   jaywalk: m => ({ room: [`jw/${m}`], seal: [] }),   // (JAYWALK H1: written AT GO — present = proven, a silent player included)
+  highrise: m => ({ room: [`hr/${m}`], seal: [] }),   // (HIGH RISE S4A: the same — its own node)
 });
 /** the games whose proof tree is FLAT — { uid: node } (PRISM's boards, JAYWALK's runs); the others' = { ci | key: { uid: … } } (OVERCLOCK) */
-const FLAT_PROOF = new Set(['prism', 'jaywalk']);
+const FLAT_PROOF = new Set(['prism', 'jaywalk', 'highrise']);
 /** PURE: the uids a match's trees prove */
 export function provenUids(gid, trees) {
   const out = new Set();
@@ -191,24 +217,27 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   if (named.length > MAX_REPORT_NAMES || Object.keys(night.p || {}).length > MAX_REPORT_NAMES) throw new ApiError(409, 'unverifiable', 'Too many players for one match.');
   let ex, src = 'room';
   // JAYWALK H3: a SOLO run (one name on the record, the reporter's) is counted from the SERVER's replay of their proof node — on both paths
-  const jwSolo = night.g === 'jaywalk' && named.length === 1 && named[0] === uid && Object.keys(night.p || {}).length <= 1;
-  let jwGo = 0;
+  const PG = PROOF_GAMES[night.g] || null;   // (HIGH RISE S4A: + HIGH RISE — the same two paths, its own node + judge)
+  const jwSolo = !!PG && named.length === 1 && named[0] === uid && Object.keys(night.p || {}).length <= 1;
+  let jwGo = 0, judged = null;   // (judged: the SERVER's own row of the reporter — THE SWITCH's answer reads it)
   const jwGame = async () => {
-    const node = await val(`rooms/${code}/jw/${matchId}/${uid}`);
-    const J = jaywalkSolo({ code, matchId, uid, node });
+    const node = await val(`rooms/${code}/${PG.node}/${matchId}/${uid}`);
+    const J = PG.solo({ code, matchId, uid, node });
     jwGo = (node && Number(node.go)) || 0;
-    if (!J.v.ok) console.warn('jaywalk run refused', `${code}_${matchId}`, J.v.why);
-    else if (J.v.cut) console.warn('jaywalk run cut', `${code}_${matchId}`, J.v.cut.why, J.v.cut.tick);
+    judged = J.game.results[uid];
+    if (!J.v.ok) console.warn(`${night.g} run refused`, `${code}_${matchId}`, J.v.why);
+    else if (J.v.cut) console.warn(`${night.g} run cut`, `${code}_${matchId}`, J.v.cut.why, J.v.cut.tick);
     return J.game;
   };
   // JAYWALK H4: a MATCH is counted the same way — every named player's run replayed from their own proof node (the course + tick 0 from
   // THE FIRST GO): nothing the host wrote is read, so the placings need no second opinion — on both paths
-  const jwMatch = night.g === 'jaywalk' && !jwSolo;
+  const jwMatch = !!PG && !jwSolo;
   const jwMatchGame = async uids => {
-    const M = jaywalkMatch({ code, matchId, uids, nodes: (await val(`rooms/${code}/jw/${matchId}`)) || {} });
+    const M = PG.match({ code, matchId, uids, nodes: (await val(`rooms/${code}/${PG.node}/${matchId}`)) || {} });
     if (!M.game) throw new ApiError(409, 'unverifiable', `This match has no proof (${M.why}).`);
     jwGo = M.game.playAt;
-    for (const [u, r] of Object.entries(M.game.results)) if (r.bad || r.cut) console.warn('jaywalk match run', `${code}_${matchId}`, u, r.bad || 'cut');
+    judged = M.game.results[uid] || null;
+    for (const [u, r] of Object.entries(M.game.results)) if (r.bad || r.cut) console.warn(`${night.g} match run`, `${code}_${matchId}`, u, r.bad || 'cut');
     return M.game;
   };
   if (game && game.matchId === matchId) {
@@ -281,6 +310,14 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   //  device never farms a better one; the match's window goes with it — ONE ACCOUNT, ONE ROOM: progress.js#overlaps)
   dedupePids(ex.rows, pids);
   const win = { c: code, s: Math.min(jwGo || Infinity, (game && game.matchId === matchId && Number(game.go)) || night.at), e: night.at };   // (a JAYWALK run began at its GO)
+  // HIGH RISE S4A — THE SWITCH, OFF (until go-live): the run was JUDGED — the proof node replayed, every check above passed — and NOTHING
+  // is awarded: no claim on results/, no pstats, no profile, no board row, no card, no streak day (credit() is never reached). The answer
+  // says what the counted path WOULD have done — the SAME pure step on a copy (stats.js#wouldApply, reads only).
+  if (ex.gid === 'highrise' && !(await highriseCounts())) {
+    const w = await wouldApply(key, ex, pids, uid, now, { code, meta, win }, at).catch(e => ({ skip: `error (${(e && e.message) || e})` }));
+    const rec = ex.rows[uid] && ex.rows[uid].rec ? ex.rows[uid].rec['highrise-solo'] : null;
+    return { ok: true, status: 'would_count', outcome: { none: true, would: wouldAward(judged, w, rec) } };
+  }
   return credit({ key, uid, myPid, ex, pids, now, room: { code, meta, win }, at, src });
 }
 

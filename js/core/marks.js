@@ -69,6 +69,8 @@ export const MARKS = {
     { d: 'M17.9 40.3 C31.4 47.2 43.8 60.9 56.2 72 C64.7 79.1 75.5 79.4 90.1 78.8 M56.5 37.5 L67.9 35.9 M59.8 47.2 L71.1 44.7 M63.2 56.8 L74.4 53.5', col: '#fff4fa' },
     { d: 'M9.1 68.4 H32.1 M20.4 77.5 H43.3', col: '#35e3ff' },
   ] },
+  // HIGH RISE (S4A — a STAND-IN until THE REVIEW's icon brief: the game is hidden): the stacked slabs in cyan, the sliding one in the sign's pink
+  highrise: { blade: 'HIGHRISE', tubes: [{ d: 'M24 84 H72 M28 68 H76 M22 52 H70', col: '#35e3ff' }, { d: 'M38 34 H86', col: '#ff4fd8' }] },
   // THE PASSWORD (PW1): a keyhole — the round eye and the slot below it, a key's tip at the door
   password: { blade: 'PASSWORD', tubes: [
     { d: 'M50 18 A17 17 0 1 1 49.9 18 Z', col: '#ff5ec4' },

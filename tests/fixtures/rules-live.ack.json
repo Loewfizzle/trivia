@@ -1,4 +1,4 @@
 {
-  "hash": "3b3f674c49210463",
-  "line": "RULES CHANGED: dly/jaywalk/$day/w/$uid/$try (JAYWALK daily proof node — c/$i chunks + e) — RE-PUBLISH database.rules.json in the Firebase console"
+  "hash": "b10b6ce4843e9a77",
+  "line": "RULES CHANGED: rooms/$code/hr/$match/$uid (HIGH RISE proof node — go, c/$i chunks, e, k) + still pending from DAILY A: dly/jaywalk/$day/w/$uid/$try (JAYWALK daily proof node) — RE-PUBLISH database.rules.json in the Firebase console"
 }

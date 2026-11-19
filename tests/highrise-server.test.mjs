@@ -28,15 +28,16 @@ function perfectTaps(seed, mode, n) {
   return taps;
 }
 
-test('THE SERVER HALF is PURE and NOT WIRED: no fb.js, no endpoint, the SAME engine modules as the phone; /api still has 8 functions', () => {
+test('THE SERVER HALF is PURE — and WIRED behind THE SWITCH (S4A): no fb.js, the SAME engine modules as the phone; /api still has 8 functions; only /api/report calls it', () => {
   const src = read('api/_lib/highrise.js');
   const imports = [...src.matchAll(/^import [^\n]* from '([^']+)';$/gm)].map(m => m[1]);
-  assert.deepEqual(imports, ['../../js/games/highrise/replay.js', '../../js/games/highrise/logic.js'], 'it imports the phone\'s own modules — nothing else');
+  assert.deepEqual(imports, ['../../js/games/highrise/replay.js', '../../js/games/highrise/logic.js', '../../js/games/highrise/proof.js'], 'it imports the phone\'s own modules — nothing else');
   assert.doesNotMatch(src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1'), /fb\.js|firebase|export default|\breq\b|\bres\./);
   const fns = readdirSync(new URL('../api/', import.meta.url)).filter(f => f.endsWith('.js'));
   assert.equal(fns.length, 8, `the function count stays 8 (${fns.join(' ')})`);
-  for (const f of fns) assert.doesNotMatch(read(`api/${f}`), /highrise/, `api/${f} does not know HIGH RISE yet`);
-  for (const f of readdirSync(new URL('../api/_lib/', import.meta.url))) if (f !== 'highrise.js' && f.endsWith('.js')) assert.doesNotMatch(read(`api/_lib/${f}`), /highrise/, `api/_lib/${f}: not wired`);
+  assert.deepEqual(fns.filter(f => /highrise/.test(read(`api/${f}`))), ['report.js'], 'ONE endpoint knows HIGH RISE: /api/report');
+  // THE SWITCH: ONE flag, OFF — the go-live pass flips this line
+  assert.match(src, /^export const HIGHRISE_COUNTS = false;$/m, 'THE SWITCH IS OFF until go-live');
 });
 
 test('THE JUDGE accepts honest bot logs — all four bots, every mode — and returns the run\'s own numbers', () => {

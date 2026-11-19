@@ -260,6 +260,17 @@ export function createNight(host, o = {}) {
   const tapeBack = new THREE.Mesh(tapeGeo, tapeBackMat); tapeBack.frustumCulled = false; tapeBack.renderOrder = 11; tapeBack.visible = false; scene.add(tapeBack);
   twin(tape, tapeMat);
   twin(tapeBack, tapeBackMat); TWINS[TWINS.length - 1][1].visible = false;   // (the faint back edges are no light: not in the bloom pass)
+  // ---- THE NEXT FRIEND's PINK TAPE (S4A — the owner: "the gold tape's style", in PINK): the SAME box, the SAME shader — so the SAME
+  // program (a second tape builds nothing: THE LAG RULES) — with its own colour + its own flash; its twins for the bloom pass too
+  const TAPE_PINK = [1, 0.2, 0.72];
+  const ftapeU = { ...tapeU, uCol: { value: new THREE.Vector3(TAPE_PINK[0], TAPE_PINK[1], TAPE_PINK[2]) }, uGlow: { value: 1 }, uWhite: { value: 0 } };
+  const ftapeBackU = { ...ftapeU, uFace: { value: 0 } };
+  const ftapeMat = new THREE.ShaderMaterial({ ...tapeOpt, uniforms: ftapeU, side: THREE.FrontSide, depthTest: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const ftapeBackMat = new THREE.ShaderMaterial({ ...tapeOpt, uniforms: ftapeBackU, side: THREE.BackSide, depthTest: false });
+  const ftape = new THREE.Mesh(tapeGeo, ftapeMat); ftape.frustumCulled = false; ftape.renderOrder = 12; ftape.visible = false; scene.add(ftape); made.push(ftapeMat, ftapeBackMat);
+  const ftapeBack = new THREE.Mesh(tapeGeo, ftapeBackMat); ftapeBack.frustumCulled = false; ftapeBack.renderOrder = 11; ftapeBack.visible = false; scene.add(ftapeBack);
+  twin(ftape, ftapeMat);
+  twin(ftapeBack, ftapeBackMat); TWINS[TWINS.length - 1][1].visible = false;
 
   // ---- THE FLYERS' STAGE (S3 — docs/highrise.md "THE FLYERS"): what flyers.js (a LAZY module — its models + sounds come with it)
   // draws through. Its two programs are BUILT IN THE WARM FRAME on a stand-in triangle; a model that lands later brings only its
@@ -326,7 +337,7 @@ export function createNight(host, o = {}) {
   // ---- the run's own state in the view
   let T = null, slabs = [], top = null, clock = 0, tier = 2, bloom = null;
   let landAt = -1e9, landFloor = -1, perfAt = -1e9, grow = null, bump = 0, outAt = -1e9;
-  let tapeFloor = 0, tapeAt = -1e9, sliderGlow = 0;
+  let tapeFloor = 0, tapeAt = -1e9, ftapeFloor = 0, ftapeAt = -1e9, sliderGlow = 0;
   let camX = 0, camY = 0, camZ = 0, dist = 14, w = 0, h = 0, dpr = 1, fitAsk = 2;
   let needWarm = true, warmed = 0, frames = 0, progN = 0;
   const HOT = [1, 0.86, 0.6];
@@ -336,7 +347,7 @@ export function createNight(host, o = {}) {
     T = tower; seed = run.seed; slabs = T.slabs(); top = T.top(); COLS.night.clear(); COLS.day.clear(); sldFloor = -1; if (snap) keepFirst = false;
     heldKey = -1;
     if (snap) {
-      landAt = perfAt = outAt = tapeAt = -1e9; landFloor = -1; grow = null; bump = 0;
+      landAt = perfAt = outAt = tapeAt = ftapeAt = -1e9; ftapeFloor = 0; landFloor = -1; grow = null; bump = 0;
       for (const p of pieces) p.on = false;
       for (let i = 0; i < SPARKS; i++) spT.setX(i, -1e6); spT.needsUpdate = true;
       for (let i = 0; i < RINGS; i++) rgB.setW(i, -1e6); rgB.needsUpdate = true;
@@ -393,6 +404,16 @@ export function createNight(host, o = {}) {
       if (s) ring(s, tapeFloor, 0.7, 0.9, GOLD, 0.85);
     }
   }
+  /** THE NEXT FRIEND's pink tape: the floor of the friend best just crossed (0 = none); `flash` = it was just crossed */
+  const PINK = [1, 0.31, 0.85];
+  function setFriend(floor, flash = false) {
+    ftapeFloor = floor > 0 ? floor : 0;
+    if (flash && ftapeFloor) {
+      ftapeAt = clock;
+      const s = slabOf(ftapeFloor);
+      if (s) ring(s, ftapeFloor, 0.7, 0.9, PINK, 0.85);
+    }
+  }
   const slabOf = floor => { for (let i = slabs.length - 1; i >= 0 && slabs[i].floor >= floor; i--) if (slabs[i].floor === floor) return slabs[i]; return null; };
 
   // ---- the size: a resize only ASKS; draw() resizes FIRST, then renders (JAYWALK's lesson: a resize after the frame = a blank frame)
@@ -446,6 +467,7 @@ export function createNight(host, o = {}) {
     boxes.count = nb; boxes.instanceMatrix.needsUpdate = aColor.needsUpdate = aFx.needsUpdate = aUp.needsUpdate = true;
     const tapeWas = tape.visible, backWas = tapeBack.visible, faceWas = tapeBackU.uFace.value;   // (the tape's programs too: built here, not at the crossing)
     tape.visible = tapeBack.visible = true; tapeBackU.uFace.value = 0.2; tape.position.set(0, -60, 0); tape.scale.set(0.01, 0.01, 0.01); tapeBack.position.copy(tape.position); tapeBack.scale.copy(tape.scale);
+    ftape.visible = ftapeBack.visible = true; ftapeBackU.uFace.value = 0.2; ftape.position.copy(tape.position); ftape.scale.copy(tape.scale); ftapeBack.position.copy(tape.position); ftapeBack.scale.copy(tape.scale);   // (S4A: the pink tape is the same program — drawn here once all the same)
     // (THE FLYERS' two programs + their twins: built here on the stand-in triangle — a model brings only buffers later)
     const flyWas = flySlots.map(f => f.mesh.visible), lgWas = lightsMesh.visible, lgN = lgGeo.instanceCount;
     for (const f of flySlots) { f.mesh.visible = true; f.mesh.matrix.makeTranslation(0, -60, 0); f.mesh.matrixWorldNeedsUpdate = true; }
@@ -454,7 +476,7 @@ export function createNight(host, o = {}) {
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam, plate, TWINS); } catch { /* a phone that can't: the kinds build as they come */ }
     mark('compile');
     spT.setX(0, -1e6); spT.needsUpdate = true; rgB.setW(0, -1e6); rgB.needsUpdate = true;
-    tape.visible = tapeWas; tapeBack.visible = backWas; tapeBackU.uFace.value = faceWas;
+    tape.visible = tapeWas; tapeBack.visible = backWas; tapeBackU.uFace.value = faceWas; ftape.visible = ftapeBack.visible = false; ftapeBackU.uFace.value = 0;
     flySlots.forEach((f, i) => { f.mesh.visible = flyWas[i]; }); lightsMesh.visible = lgWas; lgGeo.instanceCount = lgN;
     warmed++;
   }
@@ -566,6 +588,16 @@ export function createNight(host, o = {}) {
       tapeBack.position.copy(tape.position); tapeBack.scale.copy(tape.scale);
       tapeU.uGlow.value = 1 + 1.6 * Math.exp(-age / 260); tapeU.uWhite.value = 0.6 * Math.exp(-age / 180);
     }
+    // THE NEXT FRIEND's pink tape (S4A): the same thin outline at the friend best just crossed — never on the gold tape's own floor
+    const fs = ftapeFloor && ftapeFloor !== tapeFloor ? slabOf(ftapeFloor) : null;
+    const fback = fs ? TAPE_BACK * (1 - dayK) * clamp01((topFloor - fs.floor - TAPE_BACK_FROM) / (TAPE_BACK_FULL - TAPE_BACK_FROM)) : 0;
+    ftape.visible = !!fs; ftapeBack.visible = fback > 0.004; ftapeBackU.uFace.value = fback;
+    if (fs) {
+      const x0 = fs.x0 * U, x1 = fs.x1 * U, z0 = fs.z0 * U, z1 = fs.z1 * U, age = clock - ftapeAt;
+      ftape.position.set((x0 + x1) / 2, (fs.floor - 0.5) * H, (z0 + z1) / 2); ftape.scale.set(x1 - x0 + 2 * TAPE_OUT, TAPE_H, z1 - z0 + 2 * TAPE_OUT);
+      ftapeBack.position.copy(ftape.position); ftapeBack.scale.copy(ftape.scale);
+      ftapeU.uGlow.value = 1 + 1.6 * Math.exp(-age / 260); ftapeU.uWhite.value = 0.6 * Math.exp(-age / 180);
+    }
     boxes.count = nb; boxes.instanceMatrix.needsUpdate = true; aColor.needsUpdate = true; aFx.needsUpdate = true; aUp.needsUpdate = true;
     renderer.render(scene, cam);
     // (THE DAY LOOK has NO bloom — added light washes a bright sky out; through a switch it fades with the night)
@@ -585,7 +617,7 @@ export function createNight(host, o = {}) {
     return Math.min(1, zoneY(cx - TRAVEL - hw, cz - hd, f), zoneY(cx - hw, cz - TRAVEL - hd, f), zoneY(cx - hw, cz - hd, f), zoneY(cx + TRAVEL + hw, cz - hd, f), zoneY(cx - hw, cz + TRAVEL + hd, f));
   }
   return {
-    el, adopt, events, fall, draw, setTier, setBest, resize: () => fit(true),
+    el, adopt, events, fall, draw, setTier, setBest, setFriend, resize: () => fit(true),
     /** THE LOOK SWITCH: 'day' | 'night' — the other look's pictures come in off the frame, then a LOOK_FADE_MS cross-fade (`now`: at once) */
     setLook(l, now = false) {
       const t = l === 'day' ? 'day' : 'night';
@@ -626,7 +658,7 @@ export function createNight(host, o = {}) {
       if (fly) { try { fly.destroy(); } catch { /* gone */ } fly = null; }
       for (const l of ['night', 'day']) { SETS[l].forEach(dropPlate); SETS[l].clear(); dropEnv(l); }
       if (bloom) { bloom.dispose(); bloom = null; }
-      scene.remove(plate, boxes, sparks, rings, tape, tapeBack, lightsMesh, ...flySlots.map(f => f.mesh));
+      scene.remove(plate, boxes, sparks, rings, tape, tapeBack, ftape, ftapeBack, lightsMesh, ...flySlots.map(f => f.mesh));
       for (const m of made) m.dispose();
       renderer.dispose();
       try { renderer.forceContextLoss(); } catch { /* fine */ }

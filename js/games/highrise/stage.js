@@ -15,6 +15,7 @@ import { BANDS, bandAt, skyTone } from './bands.js';
 import { LOOKS, LOOK_LABEL, cleanLook, readLook, writeLook, guessLook, resolveLook, sunUpNow } from './look.js';
 import { BEST_KEY, cleanBest, bestView, crossedBest, nextBest, tagY } from './best.js';
 import { STREAK_EVERY } from './sounds.js';
+import { nextFriend, crossedFriend, friendTag } from './lines.js';
 import { FLY_FLOORS, flyPlan, flyDue, flyNeeds } from './flyplan.js';
 import { createTiers } from '../kit/tiers.js';
 import { createNight, KEEP } from './night.js';
@@ -129,7 +130,7 @@ export function createStage(app, o = {}) {
   const marks = { plate: 0, compile: 0, audio: 0, dom: 0 };
   const mark = k => { marks[k] = performance.now(); };
   setNum.mark = mark;
-  const NO_VIEW = { el: null, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, setLook() {}, rest() {}, resize() {}, flyers: () => false, band() {}, need() {}, fly: () => false, flyReset() {}, flyHush() {}, flyInfo: () => ({ ready: false }), project: () => [0, -1], zoneTop: () => 1, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
+  const NO_VIEW = { el: null, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, setFriend() {}, setLook() {}, rest() {}, resize() {}, flyers: () => false, band() {}, need() {}, fly: () => false, flyReset() {}, flyHush() {}, flyInfo: () => ({ ready: false }), project: () => [0, -1], zoneTop: () => 1, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
   let view, glDown = null;
   try { view = createNight(play, { tier: pin == null ? 2 : pin, mark, look: lookT }); }
   catch { stage.append(noGL()); return null; }
@@ -159,7 +160,7 @@ export function createStage(app, o = {}) {
     }
     if (glDown) { glDown.remove(); glDown = null; }
     tries = 0;
-    view.adopt(run, T, false); view.setBest(tapeFloor); if (shown) view.rest();
+    view.adopt(run, T, false); view.setBest(tapeFloor); view.setFriend(friendTape); if (shown) view.rest();
     if (FlyMod) { view.flyers(FlyMod); wanted.clear(); needFloor = -1; }   // (the flyers' stage is the new scene's: their models are asked for again)
     hook.view = view; rebuilds++; last = 0; sized();
     watchGL();
@@ -209,7 +210,7 @@ export function createStage(app, o = {}) {
     T = createTower(run, hooks, KEEP);
     best = Math.max(best, readBest()); tapeFloor = 0; newBest = false; bandNow = 0; notch = 0;   // (max: a phone whose storage is blocked still keeps its best for the visit)
     plan = flyPlan(seed); flown.jet = flown.ufo = flown.ship = false; wanted.clear(); needFloor = -1;
-    view.adopt(run, T); view.setBest(0); view.flyReset();
+    view.adopt(run, T); view.setBest(0); view.setFriend(0); friendTape = 0; ftagF = null; ftagFloor = -1; ftag.hidden = true; view.flyReset();
     end.hidden = true; again.hidden = true; start.hidden = false; soundsBtn.hidden = false; note.hidden = false;
     stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-made');
     startBest.textContent = best ? `YOUR BEST ${best}${PAGE ? ' · THIS PHONE' : ''}` : '';
@@ -310,6 +311,9 @@ export function createStage(app, o = {}) {
           tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold');
           say('NEW BEST', 'is-gold', 5, 1900, now); if (!late) cues.push({ id: 'streak', rate: 1.12 });
         }
+        // THE NEXT FRIEND crossed (S4A — YOUR TABLE's bests; solo only): the thin PINK tape lies on the tower at their floor, PASSED LIAM
+        // in the lane — and the next friend above takes the tag
+        if (o.friends && MODE === 'solo') { const f = crossedFriend(o.friends(), e.floor); if (f) { friendTape = f.v; view.setFriend(f.v, !late); if (!late) { say(`PASSED ${f.n}`, 'is-pink', 4, 1700, now); cues.push({ id: 'streak', rate: 1.06 }); } } }
         const b = bandAt(e.floor);
         // A BAND's ARRIVAL: its name (under the number) lights up — never said twice in the lane below
         if (b > bandNow) { bandNow = b; mark('dom'); band.textContent = BANDS[b].name; if (!calm && band.animate) band.animate(SWELL, { duration: 1700 }); if (!late) cues.push({ id: 'band-arrival' }); }
@@ -355,14 +359,14 @@ export function createStage(app, o = {}) {
     check.className = `hi-check ${same ? 'is-ok' : 'is-bad'}`;
     if (E && E.note) { check.className = 'hi-check is-note'; check.textContent = E.note; } else
     check.textContent = same ? 'REPLAY = LIVE ✓' : `REPLAY ≠ LIVE ✗ · first differs at tick ${at < 0 || at === Infinity ? '?' : at} · live ${live.floor} ${live.cause} · replay ${r.floor} ${r.cause}${why ? ` (${why})` : ''}`;
-    end.hidden = !card; again.hidden = !card; soundsBtn.hidden = false; note.hidden = false; tag.hidden = true; tagFloor = -1; ftag.hidden = true; ftagKey = '';
+    end.hidden = !card; again.hidden = !card; soundsBtn.hidden = false; note.hidden = false; tag.hidden = true; tagFloor = -1; ftag.hidden = true; ftagF = null;
     stage.classList.remove('is-live'); if (card) stage.classList.add('is-over');
     view.rest();   // (the first band's plate comes back while the card is up: PLAY AGAIN never starts on a blank sky)
     view.flyHush();   // (… and a flyer still in the sky fades out: never behind the card's words)
     hook.ends.push({ seed, mode: MODE, same, at, live, replay: r, taps: taps.slice(), best, was }); if (hook.ends.length > 50) hook.ends.shift();
   }
 
-  let raf = 0, last = 0, hudFloor = -1, hudLeft = -2, tagFloor = -1, tagAt = -1e9, ftagKey = '', ftagAt = -1e9, frameN = 0, lookSeen = lookT, toneSeen = skyTone(lookT, 0);
+  let raf = 0, last = 0, hudFloor = -1, hudLeft = -2, tagFloor = -1, tagAt = -1e9, ftagF = null, ftagFloor = -1, ftagAt = -1e9, friendTape = 0, frameN = 0, lookSeen = lookT, toneSeen = skyTone(lookT, 0);
   // THE HITCH COUNTER: frames over HITCH_MS in this run (after its first second; a tab that was away is not a hitch) + the last one's cause
   let hitchN = 0, hitchAll = 0, hitchLast = '', prevAt = 0, prevWork = 0, usual = TICK_MS;   // (usual: the phone's own frame, eased)
   const hitchList = [];
@@ -423,6 +427,16 @@ export function createStage(app, o = {}) {
       const tp = T.top(), y = tagY(view.project((tp.x0 + tp.x1) / 2, Math.min(best, run.floor + 100), (tp.z0 + tp.z1) / 2)[1] * stageH, hudFoot, view.zoneTop() * stageH);
       if (Math.abs(y - tagAt) >= 0.25) { tagAt = y; tag.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`; }   // (a tag that did not move is not written)
     } else if (tagFloor >= 0) { tagFloor = -1; tag.hidden = true; }
+    // THE NEXT FRIEND while they are ABOVE you (S4A): the same flag in PINK at their floor's own height — held clear of the HUD, of THE
+    // DROP ZONE and of the gold tag (a step above / below it); one friend at a time; solo only
+    const fr = o.friends && MODE === 'solo' && t0 != null && !shown && !isOver(run) ? nextFriend(o.friends(), run.floor) : null;
+    if (fr) {
+      if (fr !== ftagF || run.floor !== ftagFloor) { ftagF = fr; ftagFloor = run.floor; mark('dom'); ftag.firstChild.textContent = friendTag(fr, run.floor); ftag.hidden = false; ftagAt = -1e9; }
+      const tp = T.top(), zone = view.zoneTop() * stageH;
+      let y = tagY(view.project((tp.x0 + tp.x1) / 2, Math.min(fr.v, run.floor + 100), (tp.z0 + tp.z1) / 2)[1] * stageH, hudFoot, zone);
+      if (tagFloor >= 0 && Math.abs(y - tagAt) < 30) { const up = fr.v >= best; y = tagY(tagAt + (up ? -30 : 30), hudFoot, zone); if (Math.abs(y - tagAt) < 30) y = tagY(tagAt + (up ? 30 : -30), hudFoot, zone); }
+      if (Math.abs(y - ftagAt) >= 0.25) { ftagAt = y; ftag.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`; }
+    } else if (ftagF) { ftagF = null; ftagFloor = -1; ftag.hidden = true; }
     if (callUntil && now > callUntil) { callUntil = 0; callPri = 0; call.className = 'hi-call'; call.style.opacity = ''; if (later) { const l = later; later = null; say(l[0], l[1], l[2], l[3], now); } }
     frameN++;
     if (frames.length < 20000) frames.push(gap); else frames[frameN % 20000] = gap;
@@ -436,7 +450,7 @@ export function createStage(app, o = {}) {
   // (the pass's own checks — tests/integration/highrise-play.mjs)
   const hook = {
     ends: [], view, sfx: null, el: stage,
-    state: () => ({ mode: MODE, seed, look: lookT, choice, sky: stage.dataset.sky, started: t0 != null, starting, shown, card, lates: snd && snd.lates ? snd.lates() : 0, over: isOver(run), st: run.st, t: run.t, floor: run.floor, streak: run.streak, perfects: run.perfects, s0: run.s0, S: run.S, taps: taps.length, best, tapeOn: tapeFloor > 0, newBest, band: bandNow, words: endT.textContent, check: check.textContent, call: call.textContent, tag: tag.hidden ? '' : tag.textContent, top: { x0: run.x0, x1: run.x1, z0: run.z0, z1: run.z1, floor: run.floor }, viewTop: view.top(), tier: tiers.get(), tierPath: tierPath.slice(), rebuilds, sheet: sheetOpen, info: view.info() }),
+    state: () => ({ mode: MODE, seed, look: lookT, choice, sky: stage.dataset.sky, started: t0 != null, starting, shown, card, lates: snd && snd.lates ? snd.lates() : 0, over: isOver(run), st: run.st, t: run.t, floor: run.floor, streak: run.streak, perfects: run.perfects, s0: run.s0, S: run.S, taps: taps.length, best, tapeOn: tapeFloor > 0, newBest, band: bandNow, words: endT.textContent, check: check.textContent, call: call.textContent, tag: tag.hidden ? '' : tag.textContent, ftag: ftag.hidden ? '' : ftag.textContent, friendTape, top: { x0: run.x0, x1: run.x1, z0: run.z0, z1: run.z1, floor: run.floor }, viewTop: view.top(), tier: tiers.get(), tierPath: tierPath.slice(), rebuilds, sheet: sheetOpen, info: view.info() }),
     /** ms until the sliding slab is next dead on the tower — on its way out, or on its way back (null = no slab / its last pass is gone) */
     msToPerfect() {
       if (t0 == null || run.st !== 'slide') return null;
@@ -473,7 +487,7 @@ export function createStage(app, o = {}) {
     /** the stage's own end card after all (the podium never came: no signal) — with its one line */
     showCard(line) { if (!shown || card) return; card = true; overAt = performance.now(); end.hidden = false; again.hidden = false; stage.classList.add('is-over'); check.className = 'hi-check is-note'; check.textContent = line || ''; },
     /** the friends' bests changed (YOUR TABLE answered) */
-    friends() { ftagKey = ''; },
+    friends() { ftagF = null; ftagFloor = -1; },
     syncs: () => syncs.slice(),
     /** the cartridge unmounts: every listener, timer + the scene go */
     destroy() {

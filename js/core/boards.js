@@ -18,6 +18,9 @@ export const GAME_BOARDS = {
   prism: { records: [rec('prism-rush', 'SCORE RUSH', 'int', { short: 'BEST SCORE' })], career: [car('prism-ko', 'KNOCKOUTS', { stat: 'ko', short: 'KOs' })] },
   // (the solo lane's own boards — OC5: QUICK · SOLO from the room's record; B3: each its own name)
   jaywalk: { records: [rec('jaywalk-solo', 'FARTHEST RUN', 'int', { short: 'LANES' })], career: [] },   // (H3: the server's replay only)
+  // HIGH RISE (S4A — the server's replay only; NOTHING is written to it until go-live: api/_lib/highrise.js#HIGHRISE_COUNTS). Its value = a
+  // tower as ONE sort number — the floor, then the perfects, then the earlier tick (js/games/highrise/logic.js#towerScore); fmt 'floor' shows the floor
+  highrise: { records: [rec('highrise-solo', 'TALLEST TOWER', 'floor', { short: 'FLOORS' })], career: [] },
   overclock: { records: [rec('overclock-std', 'STANDARD MATCH', 'int', { short: 'BEST SCORE' }), rec('overclock-std-solo', 'STANDARD · SOLO', 'int'), rec('overclock-quick-solo', 'QUICK · SOLO', 'int')], career: [] },
   cipher: { records: [rec('cipher-score', 'BEST MATCH', 'int', { short: 'BEST SCORE' }), rec('cipher-fast5', 'FASTEST 5-LETTER SOLVE', 'ms', { dir: -1, short: 'FASTEST' })], career: [] },
   golf: { records: [rec('golf-par9', 'BEST 9 HOLES', 'par', { dir: -1, short: 'TO PAR' })], career: [] },
@@ -128,6 +131,7 @@ export function fmtValue(def, v) {
     case 'par': return v === 0 ? 'E' : v > 0 ? `+${v}` : `−${Math.abs(v)}`;
     case 'pct': return `${(v / 100).toFixed(1)}%`;
     case 'avg': return (v / 100).toFixed(1);   // (BOARD 2.0 A: a points board's ALL TIME — the average a day, stored × 100)
+    case 'floor': return num(v >= 1e11 ? Math.floor(v / 1e11) : v);   // (HIGH RISE: a tower's ONE sort number shows its floor — js/games/highrise/logic.js#TOWER_SPAN)
     case 'twko': { const { n, tie } = tieOf(v); return `${num(n)} ${n === 1 ? 'WIN' : 'WINS'} · ${num(tie)} ${tie === 1 ? 'KO' : 'KOs'}`; }   // (HOLD'EM's board)
     default: return num(v);
   }

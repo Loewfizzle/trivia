@@ -112,4 +112,19 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null, a
   return outcomes;
 }
 
+/**
+ * HIGH RISE S4A — THE SWITCH, OFF (api/_lib/highrise.js#HIGHRISE_COUNTS): what applyMatch WOULD do for ONE player — the SAME pure step
+ * (core/progress.js#matchStep) on their stats as they are now. READS ONLY: no transaction is opened, NOTHING is written — not pstats,
+ * not the profile, not a board, not an owner's count. → { skip } (empty · counted · overlap · too_soon) | { xp, streak, pbs, ach, items, solo }
+ */
+export async function wouldApply(key, ex, pids, uid, now = Date.now(), room = null, at = now) {
+  const pid = pids[uid], row = ex.rows[uid];
+  if (!pid || !row) return { skip: 'no profile' };
+  at = Math.min(Number(at) || now, now);
+  const [cur, outage] = await Promise.all([val(`pstats/${pid}`), outageDays().catch(() => ({}))]);
+  const res = step(cur, key, ex.gid, row, ex.n, now, at, outage, { ...factsFor(uid, ex, pids, at, room), founderOpen: false, win: (room && room.win) || null });
+  if (res.skip) return { skip: res.skip };
+  return { xp: res.xp.total, streak: res.streak.n, pbs: res.pbs || [], ach: res.ach || [], items: res.items || [], solo: res.solo || null };
+}
+
 export { toSort };

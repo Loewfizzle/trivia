@@ -28,6 +28,7 @@ const LOADERS = {
   drop: () => import('./drop/index.js'),   // (THE DROP A — DAILY-ONLY: PRISM DROP's daily — its row ships OFF)
   holdem: () => import('./holdem/index.js'),
   jaywalk: () => import('./jaywalk/index.js'),
+  highrise: () => import('./highrise/index.js'),   // (HIGH RISE S4A — BEING BUILT, hidden: no meta at boot until its go-live)
 };
 export const GAME_IDS = Object.freeze(Object.keys(LOADERS));
 export const META = Object.freeze({ overclock: overclockMeta, prism: prismMeta, holdem: holdemMeta, jaywalk: jaywalkMeta });
@@ -77,8 +78,8 @@ export function liveKeyFor(game) {
 // of their OWN, best effort: on the old rules a delete of a path they don't know is refused, and inside the atomic start / return it would
 // take the whole write down (OC1: OVERCLOCK's combo marks + READY taps). They're keyed by the match, so a leftover never leaks into the next.
 // Once the owner has re-published, a later pass may move them into ALL_PLAYER_NODES.
-export const NEW_PLAYER_NODES = ['ocm', 'ocnext', 'jw'];
+export const NEW_PLAYER_NODES = ['ocm', 'ocnext', 'jw', 'hr'];
 // (FR7 FIXES B: a play's proof — report.js#PROOF_TREES; kept at the walk back, wiped at the next start)
-export const PROOF_NODE_LIST = Object.freeze(['prism', 'oc', 'ocm', 'jw']);
+export const PROOF_NODE_LIST = Object.freeze(['prism', 'oc', 'ocm', 'jw', 'hr']);
 // Every player-writable node any game uses; wiped when a match starts or ends.
 export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes', 'pulse', 'golf', 'agclue', 'agready', 'agpin', 'agvote', 'agguess', 'prism', 'prismq', 'prismcall', 'slip', 'slipcall', 'glready', 'glshot', 'glres', 'glcall', 'hslock', 'rrpub'];
