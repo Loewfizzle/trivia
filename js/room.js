@@ -188,12 +188,7 @@ export async function sweepKeptRooms() {
   }
 }
 if (typeof globalThis !== 'undefined') globalThis.__nsSweepKept = () => sweepKeptRooms().catch(() => {});
-// CITY I — THE CLOSE IS IDEMPOTENT (the Chromebook's double close, re-checked at 4× CPU — tests/integration/e2e-hush.mjs): CITY G's ask-first left one
-// window — two closes that both saw the room still there (this device's idle close + its leave; or a second phone) → the second's root update
-// refused by the hush rule (the word's rest only WITH the room's deletion, so never two hush writes) → a RULES REFUSED row on a phone not watching
-// that room. Now: ONE close of a word at a time on this device (a second call shares the first's promise), a word this device closed in the last
-// 10 min is a no-op, and the refusal a close meets because ANOTHER phone just closed it is EXPECTED (firebase.js#expectRefusal on rooms/{code} —
-// a quiet line, never the alarm). No rules change.
+// CITY I — THE CLOSE IS IDEMPOTENT (docs/harbor.md "HOW TO PLAY OUT OF THE BOOT" — its last paragraph; tests/integration/e2e-close-twice.mjs)
 const closingRooms = new Map(), closedHere = new Map();
 const CLOSED_KEEP_MS = 10 * 60_000;
 function closeRoom(code, solo = false) {

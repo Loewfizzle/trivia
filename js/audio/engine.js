@@ -169,16 +169,8 @@ let sfxCutAt = 0;   // performance.now() the effects went to 0 (0 = they're on)
 export const sfxSilent = () => !!sfxCutAt && performance.now() - sfxCutAt >= CUT_S * 1000 + 30;
 onSettings(() => { applyVolumes(false); setSession('settings'); hushCheck('settings'); podCheck('settings'); });
 
-// ---- CITY I — MUSIC OFF = PODCAST MODE (the owner's pick, option 3 — the inbox's Nov 18 7:55 pm entry; docs/audio.md "CITY I"). THE SQUEAL came
-// back with H2's "music off = only the music": on iOS an 'ambient' session whose context is RUNNING at the leave squeals however fast the cut is
-// (his AUDIO LEAVE, 7:44 pm: the hard cut at +1 ms, the suspend asked at +106 — and it still squealed). So with the music OFF + the effects ON:
-// EFFECTS ONLY — no beds, no city loops, no ambience one-offs (city-sound.js / ambience.js read the hub globalThis.__nsBedsOff), no station song
-// element playing (music.js#hushMusic through onPodcast — the station's place kept by its clock) — and the context really SUSPENDED whenever no
-// effect sounds: every source made on it is COUNTED, NAP_MS after the last one ends the master is set to 0, ZERO_HOLD_MS of zeros, then
-// suspend(). It never PRETENDS to run (H1's doze did — that left a load with dead effects): ctx.state says 'suspended', so the FIRST tap's unlock
-// resumes it inside the gesture like any tap. An effect started while it naps resumes it at once — inside a tap iOS honours that; a tap's
-// effect fired on its pointerup (THE TAP WATCH) waits for that tap's touchend a few ms later; one that no tap follows (a timer's) is DROPPED if
-// the context isn't running WAKE_WAIT_MS later — never played late, never an error. A leave almost always finds it suspended: nothing to cut.
+// ---- CITY I — MUSIC OFF = PODCAST MODE (the owner's option 3): effects only, the context SUSPENDED between effects (never pretending), an effect
+// or a tap wakes it — the full text: docs/audio.md "CITY I — MUSIC OFF = PODCAST MODE".
 const NAP_MS = 150, WAKE_WAIT_MS = 300;
 let voices = 0, voiceAt = 0, napping = false, napT = 0;
 /** music off + effects on (the 'ambient' session) — PODCAST MODE */

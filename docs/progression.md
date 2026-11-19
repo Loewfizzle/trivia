@@ -922,3 +922,10 @@ CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines 
 - THE SHARE CARDS: ONE FOOT (`share.js#shareAddress`) + THE ONE RULE (`share.js#RHYTHM`, `tests/share-rhythm.test.mjs`); THE CARD IS BUILT BEFORE THE TAP (`prepShare`) → docs/progression.md.
 - THE TAPPABLE SHARE CARD (CITY E): SHARE TODAY shares a LINK whose preview IS the day's card (540 × 675, uploaded at prepare — `api/_lib/share-card.js` from api/daily.js; one a player a day, 7 days); JAYWALK's the same (a counted RUN's card, its own slot, uploaded only at SHARE) → docs/progression.md, docs/jaywalk.md.
 - EVERYONE ON SCORES: the day's top = ONE node a daily a day (`dly/{g}/{day}/t` — one transaction per COUNTING finish, `api/_lib/every.js` + pure `core/every.js`), never a scan; public faces only (board ids, never a pid) → docs/progression.md.
+
+## DON'T COUNT ON THE DAILIES (CITY I, Nov 18 — the full rule: docs/profiles.md "CITY I — SECOND ACCOUNTS + DON'T COUNT")
+A DON'T COUNT account (`nocount/{pid}`, the owner's tap in /admin) is left out AT READ of: EVERYONE ON SCORES (its row out, every place below moves up,
+the N one smaller per flagged finisher — `api/daily.js` 'every'), the ticket's place line + its N ('today' — `js/core/every.js#dropFlagged` ·
+`#countWithout`; below the kept top the histogram's "better" less the flagged rows above), THE PENTHOUSE (its count + its winners —
+`api/_lib/daily-close.js`). Its own result, DAILY BEST, points and its own ticket line ("1ST OF 3" as it was) never change; UNDO restores every view
+at once (the day's `t`, `n`, `h` were never touched).

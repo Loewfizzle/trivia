@@ -743,3 +743,23 @@ CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines 
 
 - ITEM NAMES ONLY TO OWNERS (`api/_lib/catalog.js` + `lab-text.js`, never served; `tests/vault-names.test.mjs`) — TWO named exceptions on THE PLAYER PAGE: the WORN card's name (`card.cn`) + the top-3 rarest achievements (`api/_lib/player.js`).
 - THE ADD-ME LINK + STATS (CITY C): a friend link = a server-made `flink/` code, never a pid; STATS = ONE builder (`js/admin/stats-view.js`) + ONE cached snapshot (`progress/statsSnap`) → docs/profiles.md.
+
+## CITY I — SECOND ACCOUNTS + DON'T COUNT (Nov 18 — docs/harbor/passes/city-i.md; owner-only, never automatic)
+- **THE SIGHTINGS (`api/_lib/seen-pure.js` + `seen.js`):** at a sign-in (`/api/profile` 'ensure') and a report (`/api/report`) the server notes a HASHED
+  address per account: `seen/{h}/{pid}: { f: first seen, l: last seen }`. `h` = HMAC-SHA256 of the address (an IPv4 as it is, an IPv6 by its /64 — a
+  phone's privacy addresses rotate inside it), keyed by a salt DERIVED from the existing pepper (`fb.js` — KEY_PEPPER or its service-account fallback),
+  24 hex chars. **Never the raw address, never a new env var; KEY_PEPPER + the VAPID keys untouched.** Kept **14 days** (`SEEN_DAYS` — a stale account
+  is dropped at the next write on that address); one write per account + address per 6 h (`SEEN_REFRESH_MS`). `seen` = **LIVE** in THE NIGHTLY BACKUP.
+- **/admin → SECOND ACCOUNTS** (owner-only — ADMIN_PIDS; `api/admin.js` 'secondAccounts'): the GROUPS of accounts linked through ANY shared address
+  (home + work = one group; union-find — `seenGroups`), each account's username + tag, first / last seen, counted plays, its DON'T COUNT state; then
+  every NOT COUNTED account (in a group or not) so UNDO is always one tap away. It only FLAGS — nothing happens on its own.
+- **DON'T COUNT** (`api/admin.js` 'noCount' { pid, on } — audited `noCount` / `countAgain`): `nocount/{pid}: { at, by }` — a server-only top-level node
+  (the root rule denies every client: **no rules change**), **DURABLE** in the backup. Applied **AT READ**, never by deleting rows (`api/_lib/nocount.js`
+  — the set, cached 15 s per instance, cleared on a flip): THE BOARD's top (`lb.js#topRows`) + every rank (`lb.js#rankOf` — a flagged row above you
+  never takes a place), EVERYONE ON SCORES + its N, the dailies' place line "2ND OF 5" + its N (`api/daily.js` — `js/core/every.js#dropFlagged` ·
+  `#countWithout`), THE PENTHOUSE's count + its winners (`daily-close.js`). Its own stats, DAILY BEST, streak, XP, items + achievements are untouched;
+  **its own views still count itself** (it sees no change of its own); **UNDO** (the node removed) = back everywhere at once — nothing rebuilt, nothing
+  stale. Not changed: the percentile "TOP X%" line (a histogram — never names a place) and YOUR TABLE (friends only).
+- Tests: `tests/seen.test.mjs` (the key, the HMAC, the window, the groups, the pure helpers) · `daily-module.test.mjs` "CITY I — DON'T COUNT" (a flagged
+  account finishes FIRST → the real player 1ST OF 2 — N one smaller; the flagged one still 1ST OF 3; SCORES + THE BOARD re-ranked; UNDO → 2ND OF 3;
+  owner-only, audited) + "SECOND ACCOUNTS" (two sign-ins from one connection = one group; no raw address stored).

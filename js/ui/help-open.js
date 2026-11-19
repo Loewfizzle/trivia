@@ -1,9 +1,5 @@
-// CITY I — HOW TO PLAY OUT OF THE BOOT: js/ui/help.js (~28 KB — every game's rules) used to be a STATIC import of the title, its taps, the
-// room, ☰ and the game options, so it rode every first load. Now every caller opens it through THIS small opener: the rules are a LAZY chunk
-// (THE SKEW WRAPPER), pre-warmed after THE CITY's reveal (title.js#reveal → warmHelpSoon — idle, in visible time, never before the reveal or
-// during the boot fade). A tap before it has loaded opens the sheet's FRAME at once (HOW TO PLAY + a quiet LOADING line — never a dead tap);
-// the rules fill that same sheet when they land (never a second sheet, never a double open). A failed load = "Couldn't open HOW TO PLAY —
-// TAP TO RETRY" in the frame + REPORTED to /admin (THE STALE-MODULE RULE — one tap = one fresh import past the module map's cached failure).
+// CITY I — HOW TO PLAY OUT OF THE BOOT: help.js is a lazy chunk opened ONLY through here (the frame at the tap, TAP TO RETRY, the warm-up after the
+// reveal) — docs/harbor.md "HOW TO PLAY OUT OF THE BOOT".
 import { lazyImport } from './lazy-import.js';
 import { openSheet } from './sheet.js';
 import { h } from './dom.js';

@@ -98,3 +98,7 @@ The token only READS the backup door — it can't sign in, write, or reach anyth
 `node --test tests/backup.test.mjs` (unit: THE CLASSIFICATION RULE, the token, the parts + slices) · on the emulators:
 `node --test backup.test.mjs` in `tests/integration` (the door 404 / 401, export → wipe → restore = identical, the live + secret nodes untouched,
 a part over the limit split + restored whole, THE REAL SIZE — `SEED=<players>`). NEVER THE LIVE SITE.
+
+## CITY I (Nov 18) — two new nodes
+`seen` (SECOND ACCOUNTS — hashed addresses, 14 days) = **LIVE** (never DURABLE with addresses); `nocount` (DON'T COUNT — the owner's decisions, no
+address in it) = **DURABLE**. `api/_lib/backup-pure.js` — `tests/backup.test.mjs`.

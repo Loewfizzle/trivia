@@ -871,3 +871,14 @@ CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines 
 
 - THE LIVE LANE (CITY D): every slim-card LIST = baked STILLS; ≤ 3 on-screen strips live page-wide, each its own small 2D canvas (`K.liveList` — never a surface over a list); CUSTOMIZE's grid = stills → docs/vault.md.
 - THE STRIP MATCH (CITY C): a slim card's material frames its picture EXACTLY as its effect does at any width (`tests/integration/strip-match.mjs`; stills at the hero's centre, kind `o` = transparent) → docs/vault.md.
+
+## THE STRIP MATCH's 13 (CITY I, Nov 18 — measured, NOT changed; named here)
+`strip-match.mjs --still --size 402` (max 9): **aurora 45 · frostbite 33.4 · marquee 33.4 · sg-btc 32.7 · neonglass 25.6 · century 20.8 · noir 20.1 ·
+smoke 19.2 · inferno 19 · dev-switchboard 12.9 · neoncamo 11.4 · glitter 10.5 · marquee-gold 10.2** — the same 13 as on CITY H1's + H2's code.
+- **Nine CSS-ART cards** (aurora, frostbite, marquee, sg-btc, neonglass, century, smoke, glitter, dev-switchboard — `js/vault/stills.js#CSS_ART`): the
+  material IS the card's own CSS picture (approved in THE LAB) and the live effect ADDS a layer over it (marquee's bulbs + its arrow, the aurora's
+  curtain…) — the gap is a layer fading in, not a re-framing. CITY C's `o` still (the effect's frame baked TRANSPARENT over the material — the
+  goldenhour gift's way) would close it, but it changes how those strips look in EVERY list → the owner's call (CITY I's OPEN FOR BEN).
+- **Four baked-still cards** (inferno, noir, neoncamo, marquee-gold): `build-card-stills.mjs` re-baked them BYTE-IDENTICAL — the stills are current;
+  the live strip draws its frame differently from its 360 × 64 bake (inferno's flames shorter) — the cause is not pinned (the renderer starts at tier 2
+  = the bake's q 1). Left for the next VAULT pass with the numbers above.
