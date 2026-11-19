@@ -1169,3 +1169,16 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   BEST from the daily, SHARE TODAY's 4 sections. Unit: `tests/daily-b.test.mjs`.
 - `e2e-jaywalk-daily.mjs "<browser>" [--base …] [--shots …]` — on a `DAILY_TEST=1 … --emu` server; it opens the row through THE SCHEDULED
   GO-LIVE (`progress/dlive/jaywalk` — removed at its end; the server caches it ~30 s, so run e2e-daily BEFORE it, never right after).
+
+## HIGH RISE S1 (Nov 18 2026 — docs/games/passes/highrise-s1.md)
+- Unit (`node --test tests/highrise-*.test.mjs`, seconds, no install): `highrise-engine.test.mjs` (20 — every rule with hand-built tap logs:
+  the perfect snap, the cut, grow-back + its cap, too thin, a miss, THE FUSE = TOO SLOW, the finish, the cap, the axes, the seeded ends, the
+  wobble's band, integer-only state, the same log twice = the same run, FAIR TAPS) · `highrise-server.test.mjs` (5 — `api/_lib/highrise.js`:
+  honest bot logs accepted, every forged case refused by name, the judge == the live engine for 500 bot runs) · `highrise-sim.test.mjs`
+  (4 — the FAST 200-seed bands of the owner's targets: a tuning slip goes red) · `highrise-lab.test.mjs` (6 — the page, the lab's WHOLE
+  module graph walked: THE LAB NEVER COUNTS; HIGH RISE invisible to the app; the view's tower == the engine's however the events are batched).
+- The full sim table: `node scripts/highrise-sim.mjs 2000` (≈ 0.4 s).
+- The browser: `node tests/integration/highrise-lab.mjs "<chromium>" [outDir]` (outside the sandbox; `scripts/serve.mjs` is enough — the lab
+  uses no emulator): 45 checks — the lab at 390 × 844, a bot run through REAL taps (CDP touches timed at each slab's perfect moment),
+  NO request but the page's own static files + the three.js CDN, no counted module, nothing stored, REPLAY = LIVE ✓, the mode switch,
+  `?mode=` `?seed=` `?fps=1`, + the 375 × 667 and 1440 × 900 shots. THE PAGES LOAD (`kit/page-loads.mjs`) covers `/highrise-lab`.
