@@ -12,7 +12,7 @@ import { BANDS, FADES, SLACK, bandAt, plateMix, plateDrift, SLAB_SETS, setColor,
 import { FLY_FLOORS, FLY_LATE, flyPlan, flyDue, flyNeeds } from '../js/games/highrise/flyplan.js';
 import { HI_SPECS, HI_AW, HI_AH } from '../js/fx/hi-specs.js';
 import { BEST_KEY, cleanBest, bestView, crossedBest, nextBest, tagY } from '../js/games/highrise/best.js';
-import { SOUNDS, SOUND_IDS, SOUND_FILES, VOICES, DROP_VARY, FALL_DELAY_S, STREAK_EVERY, CHIME_STEPS, chimeRate, admit, cuesOf } from '../js/games/highrise/sounds.js';
+import { SOUNDS, SOUND_IDS, SOUND_FILES, VOICES, DROP_VARY, FALL_DELAY_S, STREAK_EVERY, CHIME_STEPS, chimeRate, admit, cuesOf, GROW_TAKES, GROW_DEFAULT, GROW_KEY, cleanGrow, growFile, growLine } from '../js/games/highrise/sounds.js';
 import { createRun, stepTo, tap, isOver, paletteFor, flyerFor } from '../js/games/highrise/engine.js';
 import { gaussBot } from '../js/games/highrise/bot.js';
 import { PALETTE_N, TIGHT, CLOUDS_FLOOR, TOP_FLOOR } from '../js/games/highrise/tuning.js';
@@ -101,9 +101,10 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   assert.ok(code(`${HI}night.js`).includes('loadPicture(new URL(`plates/${look}-${band + 1}.webp?v=${HI_ART_REV}`, ART).href)') && (code(`${HI}night.js`).match(/(^|[^.\w])fetch\s*\(/g) || []).length === 1, '… night.js: its own plates, nothing else');
   assert.match(code(`${HI}sfx.js`), /const DIR = new URL\('\.\.\/\.\.\/\.\.\/audio\/highrise\/', import\.meta\.url\);/); assert.match(code(`${HI}sfx.js`), /fetch\(new URL\(`\$\{f\}\.mp3\?v=\$\{HI_SFX_REV\}`, DIR\)\)/, '… its own sounds (MP3 since S2 FIX)');
   assert.match(code(`${HI}night.js`), /const ART = new URL\('\.\.\/\.\.\/\.\.\/assets\/highrise\/', import\.meta\.url\);/);
-  // the ONLY thing stored: this phone's best + its look (`hi:play:*`; S3: the audition's picks are gone — the owner's are final)
+  // the ONLY thing stored: this phone's best + its look (`hi:play:*`; S3: the audition's picks are gone — the owner's are final) —
+  // + ONE pick again (S4A FIX's add-on): GROW-BACK's take, while the owner chooses between five by ear (sfx.js — sounds.js#GROW_KEY)
   const stores = own.filter(f => /localStorage/.test(code(`${HI}${f}`)));
-  assert.deepEqual(stores, ['look.js', 'play.js']);
+  assert.deepEqual(stores, ['look.js', 'play.js', 'sfx.js']);
   assert.equal(BEST_KEY, 'hi:play:best'); assert.match(code(`${HI}look.js`), /export const LOOK_KEY = 'hi:play:look';/);
   assert.equal((code(`${HI}look.js`).match(/localStorage\./g) || []).length, 2, 'look.js: the look, read + written');
   assert.match(code(`${HI}play.js`), /localStorage\.getItem\(BEST_KEY\)/); assert.match(code(`${HI}play.js`), /localStorage\.setItem\(BEST_KEY, String\(n\)\)/);
@@ -260,7 +261,7 @@ test('YOUR BEST (best.js — PURE): no best = nothing · above you = the right-e
 
 test('THE SOUNDS\' TABLE (sounds.js — PURE): nine sounds, every file ships, ONE take each (S3 — the owner\'s picks are FINAL: ALL A; the B takes left the game), THE PERFECT CHIME up a major-pentatonic scale holding after 8', () => {
   assert.deepEqual([...SOUND_IDS], ['drop', 'perfect', 'slice', 'falling-piece', 'grow-back', 'streak', 'out', 'band-arrival', 'pass']);
-  assert.deepEqual([...SOUND_FILES].sort(), ['band-arrival', 'drop', 'falling-piece', 'grow-back', 'out', 'pass', 'perfect', 'slice', 'streak']);
+  assert.deepEqual([...SOUND_FILES].sort(), ['band-arrival', 'drop', 'falling-piece', 'grow-back-1', 'out', 'pass', 'perfect', 'slice', 'streak']);   // (grow-back: its DEFAULT take's file — five takes while the owner picks: below)
   let total = 0;
   // THE SOUNDS SHIP COMPRESSED (S2 FIX — the owner; scripts/build-highrise-sounds.mjs): MPEG-1 Layer III, 44.1 kHz, MONO; no WAV ships
   for (const f of SOUND_FILES) {
@@ -269,21 +270,33 @@ test('THE SOUNDS\' TABLE (sounds.js — PURE): nine sounds, every file ships, ON
     assert.ok(b[0] === 0xff && (b[1] & 0xfe) === 0xfa, `${f}.mp3 begins with an MPEG-1 Layer III frame (no tag in front)`);
     assert.equal((b[2] >> 2) & 3, 0, `${f}.mp3 is 44.1 kHz`); assert.equal(b[3] >> 6, 3, `${f}.mp3 is mono`);
   }
-  assert.ok(total < 130 * 1024, `the sounds: ${(total / 1024).toFixed(0)} KB`);
-  assert.deepEqual(readdirSync(new URL('../audio/highrise/', import.meta.url)).filter(f => !/^(CREDITS\.md|LICENSE\.txt)$/.test(f)).sort(), SOUND_FILES.map(f => `${f}.mp3`).sort(), 'no stray file ships (no WAV, no B take)');
+  assert.ok(total < 135 * 1024, `the sounds a run fetches: ${(total / 1024).toFixed(0)} KB`);
+  assert.deepEqual(readdirSync(new URL('../audio/highrise/', import.meta.url)).filter(f => !/^(CREDITS\.md|LICENSE\.txt)$/.test(f)).sort(), [...new Set([...SOUND_FILES, ...GROW_TAKES.map(growFile)])].map(f => `${f}.mp3`).sort(), 'no stray file ships (no WAV, no B take — and the old grow-back is gone)');
+  // GROW-BACK — FIVE TAKES while the owner picks by ear (S4A FIX's add-on): the game plays this phone's pick, take 1 until then
+  assert.deepEqual([[...GROW_TAKES], GROW_DEFAULT, GROW_KEY], [[1, 2, 3, 4, 5], 1, 'hi:play:snd:grow-back']);
+  assert.deepEqual([cleanGrow('3'), cleanGrow(5), cleanGrow(null), cleanGrow('9'), cleanGrow('x'), cleanGrow(0)], [3, 5, 1, 1, 1, 1], 'a stored pick is one of the five — anything else: the default');
+  assert.deepEqual(GROW_TAKES.map(growFile), ['grow-back-1', 'grow-back-2', 'grow-back-3', 'grow-back-4', 'grow-back-5']); assert.equal(growLine(4), 'HIGH RISE · GROW-BACK = 4');
+  assert.equal(SOUNDS.find(q => q.id === 'grow-back').file, growFile(GROW_DEFAULT)); assert.equal(SOUNDS.filter(q => q.takes).length, 1, 'ONE sound has takes');
+  { const sx = code(`${HI}sfx.js`), au = code(`${HI}audition.js`), cr = read('audio/highrise/CREDITS.md');
+    assert.ok(sx.includes('file = s.takes ? growFile(take || grow()) : s.file;') && sx.includes('const runFiles = () => SOUND_FILES.map(f => (f === growFile(GROW_DEFAULT) ? growFile(grow()) : f));'), 'the game plays this phone\'s take — and fetches IT, not all five');
+    assert.ok(sx.includes('try { localStorage.setItem(GROW_KEY, String(growPick)); }'), 'the pick is remembered on this phone');
+    assert.ok(au.includes("play('perfect', { rate: chimeRate(GROW_DEMO.from + i), delay: i * GROW_DEMO.gap }); play('grow-back', { take: n, delay: i * GROW_DEMO.gap + 0.02 });") && au.includes('export const GROW_DEMO = Object.freeze({ times: 3, gap: 0.62, from: 7 });'), 'a take is heard IN CONTEXT: a perfect chime with it on top, three in a row');
+    assert.ok(au.includes('setGrow(n); mark();') && au.includes('navigator.clipboard.writeText(text)') && au.includes("h('span', 'COPY MY PICK')"), 'a tap chooses it; COPY MY PICK copies the one line');
+    for (const n of GROW_TAKES) assert.ok(cr.includes(`| grow-back-${n}.mp3 |`), `take ${n} is credited`);
+    assert.ok(/grow-back-4\.mp3 \| \*\*"Healing \(Balm\)\.wav" by Dylan Kelk \(SilverIllusionist\)[^|]*CC BY 4\.0/.test(cr) && !/grow-back\.wav/.test(cr), 'take 4 is CC BY 4.0: its credit is REQUIRED — and written'); }
   // an MP3's lead-in is skipped at play: a drop's sound stays on its tap
-  { const sx = code(`${HI}sfx.js`); assert.ok(sx.includes('leads.set(k, leadOf(b));') && sx.includes("src.start(t + delay, leads.get(s.file) || 0);"), 'each sound starts at its first audible sample'); }
+  { const sx = code(`${HI}sfx.js`); assert.ok(sx.includes('leads.set(k, leadOf(b));') && sx.includes("src.start(t + delay, leads.get(file) || 0);"), 'each sound starts at its first audible sample'); }
   assert.match(read('audio/highrise/CREDITS.md'), /CC0/); assert.ok(existsSync(new URL('../audio/highrise/LICENSE.txt', import.meta.url)));
   assert.doesNotMatch(read('audio/highrise/CREDITS.md'), /slice-b/, 'the credits name only what ships');
   for (const s of SOUNDS) {
-    assert.ok(s.label && s.file === s.id && s.rate > 0 && s.pri >= 1 && s.pri <= 4);
+    assert.ok(s.label && s.file === (s.takes ? growFile(GROW_DEFAULT) : s.id) && s.rate > 0 && s.pri >= 1 && s.pri <= 4);
     assert.ok(typeof s.gain === 'number' && s.gain > 0.2 && s.gain < 2.5, `${s.id} gain`);
-    assert.ok(!('takes' in s) && !('about' in s), `${s.id}: one take — nothing to choose`);
+    assert.ok((s.id === 'grow-back' ? s.takes === true : !('takes' in s)) && !('about' in s), `${s.id}: one take — nothing to choose (GROW-BACK alone has five while the owner picks: S4A FIX's add-on)`);
   }
   // THE PICKS (the owner, Nov 19 — ALL A): drop as recorded · the chime starts an octave down · the slice = the glassy snap (its own file)
   assert.equal(SOUNDS.find(s => s.id === 'drop').rate, 1); assert.equal(SOUNDS.find(s => s.id === 'perfect').rate, 0.5); assert.equal(SOUNDS.find(s => s.id === 'slice').file, 'slice');
-  assert.deepEqual(SOUNDS.map(s => s.gain), [1.5, 0.7, 1.18, 0.32, 0.4, 0.78, 2.1, 0.53, 0.65], 'the A takes\' own levels, unchanged');
-  for (const f of ['sounds.js', 'sfx.js', 'audition.js', 'play.js']) assert.doesNotMatch(code(`${HI}${f}`), /slice-b|setPick|picksLine|PLAY B|COPY MY PICKS|hi:play:snd/, `${f}: no B take, no pick, nothing stored for the sounds`);
+  assert.deepEqual(SOUNDS.map(s => s.gain), [1.5, 0.7, 1.18, 0.32, 0.5, 0.78, 2.1, 0.53, 0.65], 'the A takes\' own levels, unchanged — but GROW-BACK (S4A FIX: its five new takes all sit at −20 dBFS RMS; 0.5 keeps them under the chime)');
+  for (const f of ['sounds.js', 'sfx.js', 'audition.js', 'play.js']) assert.doesNotMatch(code(`${HI}${f}`), /slice-b|setPick|picksLine|PLAY B|COPY MY PICKS|hi:play:snd(?!:grow-back)/, `${f}: no B take, no pick, nothing stored for the sounds — but GROW-BACK's one take (S4A FIX's add-on)`);
   assert.ok(code(`${HI}audition.js`).includes("const b = tube('PLAY', () => (s.chime ? scale() : play(s.id)));"), 'the SOUNDS sheet = a plain list: every sound, one PLAY (the chime climbs its scale)');
   assert.deepEqual(SOUNDS.filter(s => !s.play).map(s => s.id), ['pass'], 'PASS is the match\'s (S4): in the list only');
   assert.equal(SOUNDS.find(s => s.id === 'out').pri, 4, 'your own OUT outranks everything');

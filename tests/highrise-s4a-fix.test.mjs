@@ -141,3 +141,15 @@ test('THE END = "A · THE HERO NUMBER": the cause small · the floor HUGE · FLO
   assert.match(s, /check\.hidden = !card \|\| !\(PAGE \|\| \(E && E\.note\)\);/, 'REPLAY = LIVE: the test page\'s alone');
   assert.match(css, /\.hi-check \{ position: absolute; left: 16px; right: 16px; bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 103px\);/);
 });
+
+test('NO PINK FLASH when a run ends: the console\'s crown wash is off in HIGH RISE\'s end screen — and a browser watch samples the frames', () => {
+  const css = read('css/highrise-play.css'), comp = read('css/components.css');
+  // the cause, still in the console (a WINNER's flash — other games keep it): the frame's ::before washes the accent over the whole screen
+  assert.ok(comp.includes('.final.crowned::before'), 'the console crowns its podium frame (the cause, named)');
+  assert.ok(css.includes('.hi-final .final::before { display: none; }'), 'HIGH RISE\'s end is how a tower fell: no wash at all');
+  // the watch: a screencast of the end transition, every frame's pink share — a frame far over its before / after = a flash
+  const fw = read('tests/integration/kit/flash-watch.mjs'), e2e = read('tests/integration/e2e-highrise.mjs'), pg = read('tests/integration/highrise-play.mjs');
+  assert.ok(fw.includes('export const FLASH_OVER = 0.22;') && fw.includes('Page.startScreencast'), 'the frames come from the compositor, not from a timer');
+  assert.ok(e2e.includes("import { flashWatch } from './kit/flash-watch.mjs';") && e2e.includes('fl.flash.length === 0') && e2e.includes('fl2.flash.length === 0'), 'the cartridge: the end + PLAY AGAIN');
+  assert.ok(pg.includes('flashWatch(') && pg.includes('flashLook'), 'the test page: every cause, both looks');
+});

@@ -184,7 +184,7 @@ test('STATIC — NO FUNCTION THAT RUNS EVERY FRAME BUILDS ANYTHING: no list, no 
   assert.match(read('css/highrise-play.css'), /\.hi-tag \{[^}]*transition: transform 0\.56s cubic-bezier\(0\.15, 0\.6, 0\.4, 1\);/, 'a CSS transition rides a tag to its place with the camera');
   // the sounds: a voice = a kept slot (its gain, its `ended` handler); a sound makes its source and nothing else
   const x = bare(read(`${HI}sfx.js`));
-  assert.match(x, /const POOL = VOICES \+ 3;/); assert.doesNotMatch(body(x, 'function start(id, rate, vol, delay, late) {'), /=>|\bfunction\b|\{\s*\.\.\./, 'start() holds no inner function');
+  assert.match(x, /const POOL = VOICES \+ 3;/); assert.doesNotMatch(body(x, 'function start(id, rate, vol, delay, late, take) {'), /=>|\bfunction\b|\{\s*\.\.\./, 'start() holds no inner function');
   assert.match(x, /if \(v\.gctx !== ctx\) \{ v\.g = ctx\.createGain\(\); v\.g\.connect\(dst\); v\.gctx = ctx; \}/, 'a voice\'s gain is made + wired once a context');
 });
 

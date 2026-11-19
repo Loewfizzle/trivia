@@ -5,7 +5,7 @@
 // nothing throws; the game never asks the sounds anything.
 // ONE take a sound (S3 — the owner's picks are final: ALL A; S2's B takes + this phone's `hi:play:snd:<id>` picks left the game).
 import { getContext, getSfxBus, isUnlocked, onUnlock } from '../../audio/engine.js';
-import { SOUNDS, SOUND_FILES, VOICES, DROP_VARY, admitSlot, cuesOf } from './sounds.js';
+import { SOUNDS, SOUND_FILES, VOICES, DROP_VARY, GROW_KEY, GROW_DEFAULT, cleanGrow, growFile, admitSlot, cuesOf } from './sounds.js';
 export { SOUNDS, cuesOf };
 
 const DIR = new URL('../../../audio/highrise/', import.meta.url);
@@ -56,8 +56,16 @@ const ringOut = (a, n, pick) => { const out = [], k = Math.min(n, RING); for (le
 let workAt = 0;                        // the last time the sounds did one-off work (a decode landed, the limiter was built) — THE HITCH COUNTER's 'audio' tag (play.js)
 export const lastWork = () => workAt;
 
-/** fetch the bytes now (no AudioContext needed) — every file by default (nine small MP3s) */
-export function fetchSounds(files = SOUND_FILES) {
+// GROW-BACK's TAKE on this phone (S4A FIX's add-on — sounds.js: five takes while the owner picks): read once; the SOUNDS sheet sets it
+let growPick = 0;
+/** the take the game plays here */
+export function grow() { if (!growPick) { try { growPick = cleanGrow(localStorage.getItem(GROW_KEY)); } catch { growPick = GROW_DEFAULT; } } return growPick; }
+/** the owner's pick: remembered on this phone, its file fetched + decoded at once (the next run plays it) */
+export function setGrow(n) { growPick = cleanGrow(n); try { localStorage.setItem(GROW_KEY, String(growPick)); } catch { /* a private window forgets: fine */ } fetchSounds([growFile(growPick)]); Promise.resolve(decode()).catch(() => {}); return growPick; }
+/** the files a run needs: the table's — with grow-back's default take swapped for this phone's */
+const runFiles = () => SOUND_FILES.map(f => (f === growFile(GROW_DEFAULT) ? growFile(grow()) : f));
+/** fetch the bytes now (no AudioContext needed) — every file a run needs by default (nine small MP3s) */
+export function fetchSounds(files = runFiles()) {
   for (const f of files) {
     if (bytes.has(f)) continue;
     const p = fetch(new URL(`${f}.mp3?v=${HI_SFX_REV}`, DIR)).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null)
@@ -103,21 +111,21 @@ export const lates = () => lateN;
  * (false: locked, muted, undecoded, outranked). A sound asked BEFORE the unlock (the first tap's own drop) plays as soon as it lands, if
  * still fresh.
  */
-export function play(id, o) { return o ? start(id, o.rate || 1, o.vol == null ? 1 : o.vol, o.delay || 0, !!o.late) : start(id, 1, 1, 0, false); }
+export function play(id, o) { return o ? start(id, o.rate || 1, o.vol == null ? 1 : o.vol, o.delay || 0, !!o.late, o.take || 0) : start(id, 1, 1, 0, false, 0); }
 /** … the same by plain numbers (a frame's cues: no options object is made) */
-function start(id, rate, vol, delay, late) {
+function start(id, rate, vol, delay, late, take) {
   const s = BY[id];
   if (!s) return false;
-  const t0 = performance.now();
+  const t0 = performance.now(), file = s.takes ? growFile(take || grow()) : s.file;   // (grow-back: the asked take — the SOUNDS sheet's — or this phone's pick)
   if (!late) { const q = asked[askedN++ % RING]; q.id = id; q.rate = r4(rate * s.rate); q.delay = r3(delay); }
   try {
-    if (!bytes.has(s.file)) fetchSounds([s.file]);
-    const ctx = getContext(), buf = bufs.get(s.file);
+    if (!bytes.has(file)) fetchSounds([file]);
+    const ctx = getContext(), buf = bufs.get(file);
     // (isUnlocked() = running OR NAPPING — CITY I's PODCAST MODE suspends the context between effects and a source's own start wakes
     //  it (engine.js#wakeFor): asking for `running` here made the whole game silent with the site's music off — the review's find)
     if (!isUnlocked() || !ctx || !buf || bufCtx !== ctx) {
       // (not ready: the first tap's own sound, or the first play of a sound just fetched — wait for the decode, play if still fresh)
-      if (!late) lateStart(id, rate, vol, delay, t0);
+      if (!late) lateStart(id, rate, vol, delay, t0, take);
       return false;
     }
     const a = admitSlot(slots, s.pri, VOICES);
@@ -133,7 +141,7 @@ function start(id, rate, vol, delay, late) {
     v.g.gain.cancelScheduledValues(t); v.g.gain.setValueAtTime(gain, t);
     src.connect(v.g);
     src.onended = v.ended;
-    src.start(t + delay, leads.get(s.file) || 0);
+    src.start(t + delay, leads.get(file) || 0);
     v.on = true; v.src = src; v.id = id; v.pri = s.pri; v.at = t0;
     const l = log[logN++ % RING]; l.id = id; l.rate = r4(rate * s.rate); l.gain = r3(gain);
     return true;
@@ -141,17 +149,17 @@ function start(id, rate, vol, delay, late) {
 }
 /** THE LATE PATH (never in a run — START waits for every decode): kept OUT of start() — a function an inner function reads the
  *  numbers of is given a fresh record for them at every call, and start() runs for every sound */
-function lateStart(id, rate, vol, delay, t0) {
+function lateStart(id, rate, vol, delay, t0, take) {
   lateN++;
-  const go = () => decode().then(() => { if (performance.now() - t0 < 220) start(id, rate, vol, delay, true); });
+  const go = () => decode().then(() => { if (performance.now() - t0 < 220) start(id, rate, vol, delay, true, take); });
   if (isUnlocked()) go(); else if (!lockWait) { lockWait = true; onUnlock(() => { lockWait = false; go(); }); }
 }
 /** a frame's CUES (sounds.js#cuesOf) → the sounds: a drop never the same twice (pitch ± 4 %, gain ± 1.5 dB) */
 export function playCues(cues, rnd = Math.random) {
   for (let i = 0; i < cues.length; i++) {
     const c = cues[i];
-    if (c.vary) start(c.id, 1 + (rnd() * 2 - 1) * DROP_VARY.rate, Math.pow(10, (rnd() * 2 - 1) * DROP_VARY.db / 20), c.delay || 0, false);
-    else start(c.id, c.rate || 1, 1, c.delay || 0, false);
+    if (c.vary) start(c.id, 1 + (rnd() * 2 - 1) * DROP_VARY.rate, Math.pow(10, (rnd() * 2 - 1) * DROP_VARY.db / 20), c.delay || 0, false, 0);
+    else start(c.id, c.rate || 1, 1, c.delay || 0, false, 0);
   }
 }
 /** silence everything still sounding (the sheet closing, the page leaving) */

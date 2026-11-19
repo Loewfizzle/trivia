@@ -20,6 +20,7 @@
 //   node tests/integration/highrise-play.mjs "<chromium>" [outDir] [--look] [--fly] [--perf] [--webkit] [--review] [--s3] [--hitch]   (--review = the fresh-eyes review's finds only; the whole check runs them too)
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
+import { flashWatch } from './kit/flash-watch.mjs';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
@@ -40,7 +41,7 @@ const shot = async (p, name) => { if (OUT) await p.screenshot({ path: join(OUT, 
 
 /** THE ONLY REQUESTS THE PAGE MAY MAKE: its own page + static files, three.js from the import map's CDN, the fonts */
 const OWN = [/^\/highrise-play(\.html)?$/, /^\/css\/(base|components|highrise-play)\.css$/, /^\/js\/games\/highrise\/[a-z-]+\.js$/, /^\/js\/games\/kit\/(tiers|look)\.js$/, /^\/js\/core\/(rng|sky|weather|harbor-weather|party)\.js$/,
-  /^\/js\/ui\/(dom|lazy-import|sheet|layers)\.js$/, /^\/js\/audio\/(engine|settings|sound-state|leave-text)\.js$/, /^\/js\/(errlog|core\/bot-ua)\.js$/, /^\/assets\/highrise\/(plates\/(night|day)-[1-5]\.webp|env-(night|day)\.png)$/, /^\/audio\/highrise\/[a-z-]+\.mp3$/,
+  /^\/js\/ui\/(dom|lazy-import|sheet|layers)\.js$/, /^\/js\/audio\/(engine|settings|sound-state|leave-text)\.js$/, /^\/js\/(errlog|core\/bot-ua)\.js$/, /^\/assets\/highrise\/(plates\/(night|day)-[1-5]\.webp|env-(night|day)\.png)$/, /^\/audio\/highrise\/[a-z0-9-]+\.mp3$/,
   /^\/assets\/favicon-64\.png$/, /^\/favicon\.ico$/, /^\/assets\/fonts\//,
   // (S3: THE FLYERS — JAYWALK's own Blackbird + UFO (shared, cached) + its GLB reader, HIGH RISE's F-22, the city's jet / UFO sounds)
   /^\/js\/games\/jaywalk\/models\.js$/, /^\/assets\/jaywalk\/models\/(blackbird|ufo)\.glb$/, /^\/assets\/highrise\/models\/f22\.glb$/, /^\/audio\/city\/(jet-scream|jets-formation|ufo-hum|ufo-beam-on)\.mp3$/];
@@ -223,7 +224,16 @@ async function main() {
   await sleep(450);
   // (S3 — the owner's picks are FINAL, ALL A: the sheet is a plain list — every sound, ONE PLAY each; nothing to choose, nothing stored)
   const au = await p.evaluate(() => ({ rows: [...document.querySelectorAll('.hi-au-row')].map(r => ({ id: r.dataset.id, plays: [...r.querySelectorAll('.hi-au-play')].map(b => [b.textContent, b.getBoundingClientRect().height]) })), extra: document.querySelectorAll('.hi-au-pick, .hi-au-copy, .hi-au-line').length, text: document.querySelector('.hi-au-sheet').textContent, open: window.__hiPlay.state().sheet }));
-  ok(au.open && au.rows.map(r => r.id).join() === 'drop,perfect,slice,falling-piece,grow-back,streak,out,band-arrival,pass' && au.rows.every(r => r.plays.length === 1 && r.plays[0][0] === 'PLAY' && r.plays[0][1] >= 40) && au.extra === 0 && !/PLAY B|USE|COPY MY PICKS/.test(au.text), 'the SOUNDS list: every sound, ONE PLAY each — no A / B, no picks, no COPY');
+  ok(au.open && au.rows.map(r => r.id).join() === 'drop,perfect,slice,falling-piece,grow-back,streak,out,band-arrival,pass' && au.rows.every(r => (r.id === 'grow-back' ? r.plays.length === 0 : r.plays.length === 1 && r.plays[0][0] === 'PLAY' && r.plays[0][1] >= 40)) && au.extra === 2 && !/PLAY B|USE|COPY MY PICKS\b/.test(au.text), 'the SOUNDS list: every sound, ONE PLAY each — no A / B; GROW-BACK alone has its five takes + COPY MY PICK');
+  // GROW-BACK's FIVE TAKES (S4A FIX's add-on — the owner picks by ear): 1 · 2 · 3 · 4 · 5, each ≥ 44 pt; a tap plays it IN CONTEXT (a perfect chime with it on top, three in a row) and CHOOSES it — remembered on this phone
+  const tk0 = await p.evaluate(() => ({ takes: [...document.querySelectorAll('.hi-au-take')].map(b2 => { const r = b2.getBoundingClientRect(); return [b2.textContent, r.width, r.height, b2.classList.contains('is-on'), parseFloat(getComputedStyle(b2).borderTopLeftRadius)]; }), stored: localStorage.getItem('hi:play:snd:grow-back'), grow: window.__hiPlay.sfx.grow(), line: document.querySelector('.hi-au-pick').textContent, n0: window.__hiPlay.sfx.wanted().length }));
+  ok(tk0.takes.map(x => x[0]).join('') === '12345' && tk0.takes.every(x => x[1] >= 44 && x[2] >= 44 && x[4] < 10) && tk0.takes.filter(x => x[3]).length === 1 && tk0.takes[0][3] && tk0.stored === null && tk0.grow === 1 && /GROW-BACK = 1/.test(tk0.line), 'GROW-BACK: five takes 1 · 2 · 3 · 4 · 5 (≥ 44 pt each, no pill); take 1 is on until a pick; nothing stored yet');
+  { const c = await p.evaluate(() => { const el = document.querySelector('.hi-au-take[data-take="3"]'); el.scrollIntoView({ block: 'center' }); const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }); await sleep(80); await tapAt(t, c[0], c[1]); await sleep(300); }
+  const tk1 = await p.evaluate(n0 => ({ on: [...document.querySelectorAll('.hi-au-take')].filter(b2 => b2.classList.contains('is-on')).map(b2 => b2.textContent).join(), stored: localStorage.getItem('hi:play:snd:grow-back'), grow: window.__hiPlay.sfx.grow(), line: document.querySelector('.hi-au-pick').textContent, asked: window.__hiPlay.sfx.wanted().slice(n0).map(q => `${q.id}@${q.delay}`), files: performance.getEntriesByType('resource').map(e => e.name).filter(u => /grow-back-\d\.mp3/.test(u)).length }), tk0.n0);
+  ok(tk1.on === '3' && tk1.stored === '3' && tk1.grow === 3 && /GROW-BACK = 3/.test(tk1.line), `a tap on 3 chooses it: remembered on this phone (${tk1.stored}), the game plays it (${tk1.line})`);
+  ok(tk1.asked.join() === 'perfect@0,grow-back@0.02,perfect@0.62,grow-back@0.64,perfect@1.24,grow-back@1.26' && tk1.files === 5, `… and plays it IN CONTEXT: a perfect chime with the grow-back on top, three in a row (${tk1.asked.join(' · ')}); all five takes were fetched for the sheet`);
+  await p.evaluate(() => { localStorage.removeItem('hi:play:snd:grow-back'); window.__hiPlay.sfx.setGrow(1); localStorage.removeItem('hi:play:snd:grow-back'); });   // (the rest of this run is the default take's)
+  await sleep(2000);
   const press = async sel => { const c = await p.evaluate(q => { const el = document.querySelector(q); el.scrollIntoView({ block: 'center' }); const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, sel); await sleep(80); await tapAt(t, c[0], c[1]); await sleep(120); };
   const before = (await p.evaluate(() => window.__hiPlay.sfx.wanted().length));
   await press('.hi-au-play[data-snd="slice"]');
@@ -763,6 +773,36 @@ async function screensLook() {
   }
 }
 
+// ---- NO PINK FLASH AT A RUN's END (S4A FIX — the owner's iPhone; the cartridge's own watch is in e2e-highrise.mjs: there the console's
+// podium frame flashed the accent over the whole screen): every frame the browser presents from the run's last moment to the settled
+// end screen, then through PLAY AGAIN into the next start — both looks, each way a tower ends (a miss · too thin · the fuse). No frame
+// may be far pinker than the screen was before AND is once settled (kit/flash-watch.mjs). `--flash`
+async function flashLook() {
+  for (const lk of (process.env.FLY_LOOKS || 'night,day').split(',')) {
+    for (const cause of ['miss', 'thin', 'slow']) {
+      const t = await open(390, 844, 1, `?seed=flash-${cause}&look=${lk}`), { p } = t;
+      await ready(p);
+      const w = await flashWatch(b, t.cdp);
+      if (cause === 'thin') await p.evaluate(() => window.__hiPlay.climb(40, () => 3));   // (every drop a cut: the slab thins until it slips off)
+      else {
+        await climb(p, 12);
+        if (cause === 'miss') await p.evaluate(() => new Promise(res => { const L = window.__hiPlay; (function w8() { if (L.state().st === 'slide') { document.querySelector('.hi-play').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', button: 0 })); res(); } else setTimeout(w8, 4); })(); }));
+      }
+      const ended = await waitFor(p, 'window.__hiPlay.state().shown', 12000);
+      await sleep(3600);
+      const r = await w.stop({ lead: 500, settle: 500 }), said = await p.evaluate(() => window.__hiPlay.state().words);
+      ok(ended && r.frames >= 20 && r.flash.length === 0, `${lk}, ${said}: NO PINK FLASH as the end screen comes up — ${r.frames} frames over ${r.ms} ms, the pinkest ${r.worst ? `${(r.worst.pink * 100).toFixed(0)} % of the screen at ${r.worst.t} ms` : '—'} (before ${(r.before * 100).toFixed(0)} %, settled ${(r.after * 100).toFixed(0)} %)${r.flash.length ? ` — FLASH: ${r.flash.slice(0, 4).map(f => `${(f.pink * 100).toFixed(0)} % at ${f.t} ms`).join(' · ')}` : ''}`);
+      const w2 = await flashWatch(b, t.cdp);
+      await tapAt(t, 195, 500);   // PLAY AGAIN (a tap anywhere) → the next run starts
+      await sleep(1300);
+      const r2 = await w2.stop({ lead: 60, settle: 300 });
+      ok(r2.frames >= 8 && r2.flash.length === 0 && await p.evaluate(() => window.__hiPlay.state().started), `${lk}, ${said}: … and none at PLAY AGAIN, into the next start (${r2.frames} frames; the pinkest ${r2.worst ? `${(r2.worst.pink * 100).toFixed(0)} %` : '—'}, before ${(r2.before * 100).toFixed(0)} %, settled ${(r2.after * 100).toFixed(0)} %)`);
+      ok(t.errs.length === 0, `${lk}, ${cause}: no page error (${t.errs.join(' | ')})`);
+      await t.close();
+    }
+  }
+}
+
 // ---- THE ICON (S4A FIX — the owner's pick "A · THE TOWER", js/core/marks.js `highrise`): the mark through the app's ONE builder
 // (ui/mark-svg.js — the PLAY shelf's row + the room's PICK A GAME: 40 px, stroke 7) at its real size and twice + four times it, beside
 // JAYWALK's, and in the PLAY sheet's preview tile (72 % of a dark tile). `--icon`
@@ -1110,6 +1150,7 @@ async function s3() {
 
 if (LOOK) await look();
 else if (argv.includes('--ufo')) await ufoLook();
+else if (argv.includes('--flash')) await flashLook();
 else if (argv.includes('--screens')) await screensLook();
 else if (argv.includes('--icon')) await iconLook();
 else if (argv.includes('--tape')) await tapeLook();
@@ -1119,7 +1160,7 @@ else if (PERF) await perf();
 else if (argv.includes('--webkit')) await webkit();
 else if (argv.includes('--review')) await review();
 else if (argv.includes('--s3')) await s3();
-else { await main(); await review(); await s3(); }
+else { await main(); await review(); await s3(); await flashLook(); }
 
 await b.close();
 console.log(`\n${checks - fails.length}/${checks} checks passed`);

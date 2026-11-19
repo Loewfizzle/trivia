@@ -12,6 +12,7 @@
 //   node tests/integration/e2e-highrise.mjs "<chromium>" [outDir] [--fast]     (`--fast` skips step 6's long run)
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
+import { flashWatch } from './kit/flash-watch.mjs';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { verifyNode } from '../../api/_lib/highrise.js';
@@ -50,7 +51,7 @@ async function phone(slot, name = 'STACKER') {
   const tap = async sel => { const r = await p.evaluate(q => { const el = document.querySelector(q); if (!el) return null; const x = el.getBoundingClientRect(); return [x.left + x.width / 2, x.top + x.height / 2]; }, sel); if (!r) return null; await p.touchscreen.tap(r[0], r[1]); return r; };
   const tapAt = async (x, y) => { await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1, radiusX: 4, radiusY: 4, force: 1 }] }); await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); };
   const shot = async name => { if (OUT) await p.screenshot({ path: join(OUT, name) }); };
-  return { p, ev, waitFor, open, tap, tapAt, shot, errs, close: () => ctx.close() };
+  return { p, cdp, ev, waitFor, open, tap, tapAt, shot, errs, close: () => ctx.close() };
 }
 const pidOf = async P => { const uid = await P.ev(`${S}.uid`); for (let i = 0; i < 60; i++) { const pid = await dbGet(`uids/${uid}`); if (pid) return { uid, pid }; await sleep(250); } return { uid, pid: null }; };
 const nodeOf = (code, m, uid) => dbGet(`rooms/${code}/hr/${m}/${uid}`);
@@ -143,7 +144,13 @@ try {
   await P.shot('run.png');
 
   // ---- the fuse ends it → e → the podium; THE SWITCH IS OFF → WOULD COUNT, nothing written
+  // (S4A FIX — THE PINK FLASH, the owner's iPhone: every frame the browser presents from the last seconds of the run to the settled end
+  //  screen — the console's podium frame flashed the game's accent, hot pink, over the whole screen as it came up)
+  const fw = await flashWatch(b, P.cdp);
   ok(await toFinal(P), 'THE FUSE ends the run → `e` → the host\'s step → the console\'s podium frame');
+  await sleep(3900);   // (the console CROWNS its podium frame 2.5 s after it stands — that was the flash: its ::before, the accent at 55 %, over the whole screen)
+  const fl = await fw.stop({ settle: 400 });
+  ok(fl.frames >= 20 && fl.flash.length === 0, `NO PINK FLASH as the end screen comes up: ${fl.frames} frames over ${fl.ms} ms — the pinkest ${fl.worst ? `${(fl.worst.pink * 100).toFixed(0)} % of the screen at ${fl.worst.t} ms` : '—'} (before ${(fl.before * 100).toFixed(0)} %, settled ${(fl.after * 100).toFixed(0)} %)${fl.flash.length ? ` — FLASH: ${fl.flash.slice(0, 4).map(f => `${(f.pink * 100).toFixed(0)} % at ${f.t} ms`).join(' · ')}` : ''}`);
   node = await nodeOf(g.code, g.m, uid);
   const game = await dbGet(`rooms/${g.code}/game`), mineRes = await P.ev(`${ST}.result()`), row = game.results[uid];
   ok(node.e && node.e.f === mineRes.floor && node.e.w === 'slow', `the end marker: floor ${node.e && node.e.f}, TOO SLOW`);
@@ -164,8 +171,12 @@ try {
 
   // ---- 5. PLAY AGAIN = THE INSTANT AGAIN: the next run starts with no tap; THE NEXT FRIEND (a fixture); then a FORGED node
   const scenes0 = await P.ev(`${ST}.state().rebuilds`);
+  const fw2 = await flashWatch(b, P.cdp);
   await P.ev("(() => { const b = document.querySelector('.hi-final .final-bar') || [...document.querySelectorAll('.hi-final button')].find(x => /PLAY AGAIN/.test(x.textContent)); b.click(); })()");
   ok(await P.waitFor(`${S}.game && ${S}.game.matchId !== '${g.m}' && ${S}.game.phase === 'play' && !!${G} && ${ST}.state().started && ${G}.state().proven`, 15000), 'PLAY AGAIN → the next run, a match of its own — started at once (no START tap), PROVEN');
+  await sleep(900);
+  const fl2 = await fw2.stop();
+  ok(fl2.frames >= 10 && fl2.flash.length === 0, `… and none at PLAY AGAIN, into the next start (${fl2.frames} frames; the pinkest ${fl2.worst ? `${(fl2.worst.pink * 100).toFixed(0)} %` : '—'}, before ${(fl2.before * 100).toFixed(0)} %, settled ${(fl2.after * 100).toFixed(0)} %)`);
   const g2 = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
   ok(await P.ev(`!document.querySelector('.hi-final') && ${ST}.state().floor === 0 && ${ST}.state().rebuilds === ${scenes0}`), '… the podium is gone, a fresh tower, the SAME scene (kept warm — never rebuilt)');
   ok(!!(await nodeOf(g.code, g.m, uid)), '… and the finished run\'s proof node is still in the room');

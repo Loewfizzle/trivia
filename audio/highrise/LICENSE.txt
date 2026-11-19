@@ -4,3 +4,7 @@ https://creativecommons.org/publicdomain/zero/1.0/
 
 Credit is appreciated, not required. Exact credit lines, authors, and
 source URLs for each sound are in notes.txt.
+
+ONE EXCEPTION (S4A FIX, Nov 19 — a candidate the owner is choosing between): grow-back-4.mp3 is built from
+"Healing (Balm).wav" by Dylan Kelk (SilverIllusionist), https://freesound.org/s/664265/ — CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/): credit REQUIRED; cut, mixed to mono, its level changed. See CREDITS.md.
