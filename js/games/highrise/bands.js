@@ -56,7 +56,36 @@ export const SLAB_SETS = Object.freeze({
     [0x9fe8ff, 0x4d7dff, 0x8a5bff, 0xe6f2ff],   // the stars: ice → blue → violet → starlight
     [0xffd166, 0xff7a9a, 0x9a4dff, 0x2bffb0],   // deep space: gold → coral → violet → aurora green
   ].map(set => Object.freeze(set.map(hex)))),
+  // THE DAY LOOK (S3 — the owner's pairs; frosted glass shows them as PASTELS: the shader mixes them into a milky body)
+  day: Object.freeze([
+    [0x12b8a6, 0xe6fbf6, 0x2fd0c8, 0xbdf3e8],   // the rooftops: warm teal / white
+    [0x2f93ff, 0xdfe8f4, 0x5a7dff, 0xc4d4e8],   // the skyline: sky blue / silver
+    [0xffa978, 0xff6f9c, 0xffc79a, 0xf58fbe],   // the clouds: peach / rose
+    [0x2a55ff, 0xc8ecff, 0x4a7dff, 0xe6f6ff],   // the stars: deep blue / ice
+    [0x9a55ff, 0x38f5b8, 0xc27bff, 0x49dcff],   // deep space: violet / aurora
+  ].map(set => Object.freeze(set.map(hex)))),
 });
+/** THE DAY LOOK's SLIDING SLAB (the owner: "a stronger saturated colour so it never washes out"): each band's ACCENT — the floor's own
+ *  pastel pulled most of the way to it (a silver / white step would vanish against a sunlit sky) */
+export const DAY_ACCENT = Object.freeze([0x00a890, 0x1466ff, 0xff3d7a, 0x1a3dff, 0x8a3dff].map(hex).map(c => Object.freeze(c)));
+export const ACCENT_PULL = 0.7;
+/** the SLIDING slab's colour on `floor` → [r, g, b] (sRGB): by night the floor's own neon; by day pulled to its band's accent */
+export function sliderColor(look, seed, floor) {
+  const c = slabColor(look, seed, floor);
+  if (look !== 'day') return c;
+  const m = plateMix(floor), a = DAY_ACCENT[m.a], b = DAY_ACCENT[m.b], k = ACCENT_PULL;
+  return [0, 1, 2].map(i => c[i] + (a[i] + (b[i] - a[i]) * m.m - c[i]) * k);
+}
+/** THE DAY LOOK's HEIGHT HAZE: what the tower fades into as it falls away under the top slab — each band's own air (sRGB) */
+export const DAY_HAZE = Object.freeze([0xa9d3f2, 0xb9dcf6, 0xdde8f6, 0x24449c, 0x161a4a].map(hex).map(c => Object.freeze(c)));
+/** the haze at a height `f` (floors): the band's, blended round a seam as the plates are → [r, g, b] (sRGB) */
+export function hazeAt(f) {
+  const m = plateMix(f), a = DAY_HAZE[m.a], b = DAY_HAZE[m.b];
+  return [a[0] + (b[0] - a[0]) * m.m, a[1] + (b[1] - a[1]) * m.m, a[2] + (b[2] - a[2]) * m.m];
+}
+/** THE WORDS ON THE SKY (S3): by DAY the three low bands are BRIGHT (dark navy words, a light halo); from THE STARS up the day plates
+ *  are dark like the night's — the words go back to light. `f` = the camera's height in floors → 'bright' | 'dark' */
+export const skyTone = (look, f) => (look === 'day' && f < BANDS[3].from - 2 ? 'bright' : 'dark');
 /** the colour of step `p` (0 … PALETTE_N − 1) of a band's set → [r, g, b] (sRGB, 0 … 1) */
 export function setColor(look, band, p) {
   const set = (SLAB_SETS[look] || SLAB_SETS.night)[band], n = set.length, t = (((p % PALETTE_N) + PALETTE_N) % PALETTE_N) / PALETTE_N * n;

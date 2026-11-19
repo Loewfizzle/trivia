@@ -32,8 +32,8 @@ const waitFor = async (p, js, ms = 20000) => { const end = Date.now() + ms; whil
 const shot = async (p, name) => { if (OUT) await p.screenshot({ path: join(OUT, name) }); };
 
 /** THE ONLY REQUESTS THE PAGE MAY MAKE: its own page + static files, three.js from the import map's CDN, the fonts */
-const OWN = [/^\/highrise-play(\.html)?$/, /^\/css\/(base|components|highrise-play)\.css$/, /^\/js\/games\/highrise\/[a-z-]+\.js$/, /^\/js\/games\/kit\/tiers\.js$/, /^\/js\/core\/rng\.js$/,
-  /^\/js\/ui\/(dom|lazy-import|sheet|layers)\.js$/, /^\/js\/audio\/(engine|settings|sound-state|leave-text)\.js$/, /^\/js\/(errlog|core\/bot-ua)\.js$/, /^\/assets\/highrise\/(plates\/night-[1-5]\.webp|env-night\.png)$/, /^\/audio\/highrise\/[a-z-]+\.mp3$/,
+const OWN = [/^\/highrise-play(\.html)?$/, /^\/css\/(base|components|highrise-play)\.css$/, /^\/js\/games\/highrise\/[a-z-]+\.js$/, /^\/js\/games\/kit\/(tiers|look)\.js$/, /^\/js\/core\/(rng|sky|weather|harbor-weather|party)\.js$/,
+  /^\/js\/ui\/(dom|lazy-import|sheet|layers)\.js$/, /^\/js\/audio\/(engine|settings|sound-state|leave-text)\.js$/, /^\/js\/(errlog|core\/bot-ua)\.js$/, /^\/assets\/highrise\/(plates\/(night|day)-[1-5]\.webp|env-(night|day)\.png)$/, /^\/audio\/highrise\/[a-z-]+\.mp3$/,
   /^\/assets\/favicon-64\.png$/, /^\/favicon\.ico$/, /^\/assets\/fonts\//];
 const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js';
 const allowed = url => { if (url === THREE_URL || /^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(url)) return true; const u = new URL(url); return u.origin === new URL(BASE).origin && OWN.some(re => re.test(u.pathname)); };
@@ -78,44 +78,46 @@ const sameTop = s => JSON.stringify(s.top) === JSON.stringify(s.viewTop);
 const climb = async (p, n, offSrc = '() => 0') => { const f = await p.evaluate((k, src) => window.__hiPlay.climb(k, (0, eval)(src)), n, offSrc); await sleep(450); return f; };
 
 // ---- THE LOOK: the review's shots (every band, the moments, the end) at 390 × 844 @3 — + the other sizes
-async function look() {
-  const t = await open(390, 844, 3, '?seed=look1');
+async function look() { for (const lk of (process.env.LOOKS || 'night,day').split(',')) await lookOf(lk); }
+async function lookOf(lk) {
+  const L = lk === 'day' ? 'day-' : '', LQ = `&look=${lk}`;
+  const t = await open(390, 844, 3, `?seed=look1${LQ}`);
   const { p } = t;
-  ok(t.up && await ready(p), 'the page + its night look are up (the plate, the reflection map, the warm frame)');
+  ok(t.up && await ready(p), `the page + its ${lk} look are up (the plate, the reflection map, the warm frame)`);
   await sleep(400);
-  await shot(p, 'play-390-start.png');
+  await shot(p, `play-390-${L}start.png`);
   // the rooftops: a few clean drops, then a cut (sparks + the falling piece), then a perfect (the ring)
   await climb(p, 6, 'i => (i % 3 === 2 ? 5 : 0)');
-  await shot(p, 'play-390-rooftops.png');
-  await p.evaluate(() => window.__hiPlay.climb(1, () => 7)); await sleep(30); await shot(p, 'play-390-cut.png');
+  await shot(p, `play-390-${L}rooftops.png`);
+  await p.evaluate(() => window.__hiPlay.climb(1, () => 7)); await sleep(30); await shot(p, `play-390-${L}cut.png`);
   await sleep(300);
-  await p.evaluate(() => window.__hiPlay.climb(1, () => 0)); await sleep(30); await shot(p, 'play-390-perfect.png');
-  if (await waitFor(p, '(() => { const m = window.__hiPlay.msToPerfect(); return m != null && m > 250 && m < 600; })()', 3000)) await shot(p, 'play-390-slide.png');
+  await p.evaluate(() => window.__hiPlay.climb(1, () => 0)); await sleep(30); await shot(p, `play-390-${L}perfect.png`);
+  if (await waitFor(p, '(() => { const m = window.__hiPlay.msToPerfect(); return m != null && m > 250 && m < 600; })()', 3000)) await shot(p, `play-390-${L}slide.png`);
   for (const [n, name] of [[30, 'skyline'], [70, 'clouds'], [125, 'stars'], [185, 'space'], [240, 'deep']]) {
     const f = (await st(p)).floor;
     await climb(p, n - f, 'i => (i % 11 === 10 ? 3 : 0)');
-    if (await waitFor(p, '(() => { const m = window.__hiPlay.msToPerfect(); return m != null && m > 120 && m < 420; })()', 3000)) await shot(p, `play-390-${name}.png`);
+    if (await waitFor(p, '(() => { const m = window.__hiPlay.msToPerfect(); return m != null && m > 120 && m < 420; })()', 3000)) await shot(p, `play-390-${L}${name}.png`);
     console.log('  ', name, JSON.stringify((await st(p)).info));
   }
   // the end: stop tapping — THE FUSE
   await waitFor(p, 'window.__hiPlay.state().shown', 15000); await sleep(300);
-  await shot(p, 'play-390-out.png');
-  ok(t.errs.length === 0, `no page error (${t.errs.join(' | ')})`);
+  await shot(p, `play-390-${L}out.png`);
+  ok(t.errs.length === 0, `${lk}: no page error (${t.errs.join(' | ')})`);
   await t.close();
   // YOUR BEST: the tag above you, then the gold tape on the tower once crossed (after its flash has gone), then a few floors on
   {
-    const d = await open(390, 844, 3, '?seed=look3', () => { try { localStorage.setItem('hi:play:best', '9'); } catch { /* fine */ } });
+    const d = await open(390, 844, 3, `?seed=look3${LQ}`, () => { try { localStorage.setItem('hi:play:best', '9'); } catch { /* fine */ } });
     await ready(d.p); await sleep(300);
     await climb(d.p, 5); await sleep(500);
-    await shot(d.p, 'play-390-besttag.png');
+    await shot(d.p, `play-390-${L}besttag.png`);
     await climb(d.p, 5); await sleep(1400);
-    await shot(d.p, 'play-390-tape.png');
+    await shot(d.p, `play-390-${L}tape.png`);
     await climb(d.p, 4); await sleep(700);
-    await shot(d.p, 'play-390-tape-later.png');
+    await shot(d.p, `play-390-${L}tape-later.png`);
     await d.close();
   }
-  for (const [w, h, dpr, name] of [[375, 667, 2, 'play-375x667'], [430, 932, 3, 'play-430x932'], [1440, 900, 1, 'play-1440x900']]) {
-    const d = await open(w, h, dpr, '?seed=look2');
+  for (const [w, h, dpr, nm] of [[375, 667, 2, 'play-375x667'], [430, 932, 3, 'play-430x932'], [1440, 900, 1, 'play-1440x900']]) {
+    const d = await open(w, h, dpr, `?seed=look2${LQ}`), name = `${nm}${lk === 'day' ? '-day' : ''}`;
     await ready(d.p); await sleep(300);
     await shot(d.p, `${name}-start.png`);
     await climb(d.p, 34, 'i => (i % 5 === 4 ? 4 : 0)'); await sleep(500);

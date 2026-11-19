@@ -13,7 +13,8 @@ import { createRun, stepTo, tap, isOver, resultOf } from './engine.js';
 import { replay } from './replay.js';
 import { endWords, tickOf, perfectsLine } from './logic.js';
 import { createTower } from './tower.js';
-import { BANDS, bandAt } from './bands.js';
+import { BANDS, bandAt, skyTone } from './bands.js';
+import { LOOKS, LOOK_LABEL, cleanLook, readLook, writeLook, guessLook, resolveLook, sunUpNow } from './look.js';
 import { BEST_KEY, cleanBest, bestView, crossedBest, nextBest, tagY } from './best.js';
 import { STREAK_EVERY } from './sounds.js';
 import { createTiers } from '../kit/tiers.js';
@@ -36,6 +37,8 @@ const newSeed = () => { const a = new Uint32Array(2); crypto.getRandomValues(a);
 /** `?seed=` — the SAME slabs on every run (a random one without it) · `?mode=` — match / daily (their finish + cap; the page itself is SOLO) */
 const FIXED = (Q.get('seed') || '').replace(/[^!-~]/g, '').slice(0, SEED_MAX);
 const MODE = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo';
+/** `?look=day|night` — that look for this visit (nothing stored); else this phone's choice: AUTO (the real sun) · DAY · NIGHT */
+const LOOK_Q = Q.get('look') === 'day' || Q.get('look') === 'night' ? Q.get('look') : null;
 /** the end's card comes this long after the run ended (the missed slab is seen falling) … */
 const END_HOLD_MS = 700;
 /** … and stays this long before a tap is PLAY AGAIN (a rhythm's next tap must not wipe it unread) */
@@ -76,8 +79,13 @@ function mount() {
   const hud = h('div.hi-hud', num, band, clock, call);
   const tag = h('div.hi-tag', { hidden: true }, h('span', ''));
   const startBest = h('div.hi-start-best', '');
+  // THE LOOK SWITCH (S3): AUTO · DAY · NIGHT — three plain choices under the sign (neon-underline, never a pill), each on its own
+  // press + lift (never the START tap); remembered on this phone. AUTO = the real sun (the site's own sun rule).
+  let choice = LOOK_Q || readLook(), lookT = choice === 'auto' ? guessLook(new Date().getHours()) : choice, sunKnown = choice !== 'auto';
+  const lookTabs = LOOKS.map(l => press(h('button.hi-tab.hi-look-b', { type: 'button', 'data-pick': l, 'aria-pressed': 'false' }, LOOK_LABEL[l]), () => pickLook(l)));
+  const lookRow = h('div.hi-look', { role: 'group', 'aria-label': 'The look' }, h('span.hi-look-k', 'LOOK'), ...lookTabs);
   const start = h('div.hi-start', h('div.hi-sign', { 'aria-label': 'High Rise' }, h('span', 'HIGH'), h('span', 'RISE')),
-    h('div.hi-start-go', 'TAP TO START'), h('div.hi-start-l', 'ONE TAP DROPS EACH SLAB'), startBest);
+    h('div.hi-start-go', 'TAP TO START'), h('div.hi-start-l', 'ONE TAP DROPS EACH SLAB'), startBest, lookRow);
   const endT = h('div.hi-end-t'), endN = h('div.hi-end-n'), endB = h('div.hi-end-band'), endL = h('div.hi-end-l'), endBest = h('div.hi-end-best'), check = h('div.hi-check');
   const end = h('div.hi-end', { hidden: true }, endT, h('div.hi-end-floor', h('span.hi-end-k', 'FLOOR'), endN), endB, endL, endBest, check);
   // THE END's FOOT (S2 FIX — END-SCREEN STANDARD A, the owner): ONE big SOLID glowing PLAY AGAIN bar in HIGH RISE's accent, a rounded
@@ -96,7 +104,7 @@ function mount() {
     lazyImport(import('./audition.js'), './audition.js').then(A => A.openAudition({ press, onClose: () => { sheetOpen = false; last = 0; } })).catch(() => { sheetOpen = false; });
   });
   Promise.all([lazyImport(import('../../audio/engine.js'), '../../audio/engine.js'), lazyImport(import('./sfx.js'), './sfx.js')]).then(([E, S]) => { E.installAudio(); S.fetchSounds(); snd = S; hook.sfx = S; }).catch(() => { /* silent: audio is polish */ });
-  const stage = h('div.hi-stage', { 'data-look': 'night' }, play, hud, tag, start, end, soundsBtn, note, fps, again);
+  const stage = h('div.hi-stage', { 'data-look': lookT, 'data-sky': skyTone(lookT, 0) }, play, hud, tag, start, end, soundsBtn, note, fps, again);
   app.replaceChildren(stage);
 
   // ---- the view (the night look) + its quality tiers; a browser with no WebGL gets the stage + one line saying so
@@ -110,9 +118,9 @@ function mount() {
   const marks = { plate: 0, compile: 0, audio: 0, dom: 0 };
   const mark = k => { marks[k] = performance.now(); };
   setNum.mark = mark;
-  const NO_VIEW = { el: null, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, rest() {}, resize() {}, project: () => [0, -1], zoneTop: () => 1, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
+  const NO_VIEW = { el: null, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, setLook() {}, rest() {}, resize() {}, project: () => [0, -1], zoneTop: () => 1, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
   let view, glDown = null;
-  try { view = createNight(play, { tier: pin == null ? 2 : pin, mark }); }
+  try { view = createNight(play, { tier: pin == null ? 2 : pin, mark, look: lookT }); }
   catch { stage.append(noGL()); return; }
   const tierPath = [pin == null ? 2 : pin];
   const tiers = createTiers({ apply: t => { view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });
@@ -131,7 +139,7 @@ function mount() {
     clearTimeout(lostTimer); lostTimer = 0;
     offGL();
     try { view.destroy(); } catch { /* it is gone already */ }
-    try { view = createNight(play, { tier: tiers.get(), mark }); }
+    try { view = createNight(play, { tier: tiers.get(), mark, look: lookT }); }
     catch {
       view = NO_VIEW; hook.view = view;
       if (!glDown) { glDown = noGL(); stage.append(glDown); }
@@ -145,6 +153,22 @@ function mount() {
     watchGL();
   }
   watchGL();
+
+  // ---- THE LOOK SWITCH: the choice → the look (AUTO asks the sun rule, again every minute) → the view cross-fades (night.js#setLook —
+  // the other look's pictures come in off the frame first: never a hitch); the page's words follow the picture (`data-look` turns
+  // half way through the fade, `data-sky` = bright under a sunlit sky / dark from THE STARS up: the frame, below)
+  function setLook(l, now = false) { lookT = l === 'day' ? 'day' : 'night'; view.setLook(lookT, now); }
+  function askSun() {
+    if (choice !== 'auto') return;
+    sunUpNow(Date.now()).then(up => { if (choice !== 'auto') return; const first = !sunKnown; sunKnown = true; setLook(resolveLook('auto', up), first && t0 == null); }, () => {});
+  }
+  function markLook() { for (const b of lookTabs) { const on = b.dataset.pick === choice; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); } }
+  function pickLook(l) {
+    choice = cleanLook(l); writeLook(choice); markLook();
+    if (choice === 'auto') askSun(); else setLook(choice);
+  }
+  markLook(); askSun();
+  setInterval(() => { if (document.visibilityState === 'visible') askSun(); }, 60000);
 
   // ---- the sizes the HUD needs (a ResizeObserver's — never a layout read in the frame)
   let stageH = 0, hudFoot = 0;
@@ -254,7 +278,7 @@ function mount() {
     hook.ends.push({ seed, mode: MODE, same, at, live, replay: r, taps: taps.slice(), best, was }); if (hook.ends.length > 50) hook.ends.shift();
   }
 
-  let raf = 0, last = 0, hudFloor = -1, hudLeft = -2, tagFloor = -1, tagAt = -1e9, frameN = 0;
+  let raf = 0, last = 0, hudFloor = -1, hudLeft = -2, tagFloor = -1, tagAt = -1e9, frameN = 0, lookSeen = lookT, toneSeen = skyTone(lookT, 0);
   // THE HITCH COUNTER: frames over HITCH_MS in this run (after its first second; a tab that was away is not a hitch) + the last one's cause
   let hitchN = 0, hitchAll = 0, hitchLast = '', prevAt = 0, prevWork = 0, usual = TICK_MS;   // (usual: the phone's own frame, eased)
   const hitchList = [];
@@ -300,6 +324,9 @@ function mount() {
       const text = cap == null ? '' : clockText(left * TICK_HZ);
       if (clock.textContent !== text) clock.textContent = text;
     }
+    // the page's words follow the picture: the look on screen + the sky's tone at this height (compared, written only at a change)
+    const lk = view.lookNow ? view.lookNow() : lookT, tone = skyTone(lk, run.floor);
+    if (lk !== lookSeen || tone !== toneSeen) { lookSeen = lk; toneSeen = tone; mark('dom'); stage.dataset.look = lk; stage.dataset.sky = tone; }
     // YOUR BEST while it is ABOVE you: the right-edge tag at its own height — held clear of the HUD and of THE DROP ZONE
     if (t0 != null && !shown && !isOver(run) && best > 0 && run.floor <= best) {
       if (tagFloor !== run.floor) { tagFloor = run.floor; tag.firstChild.textContent = bestView(best, run.floor).tag; tag.hidden = false; tagAt = -1e9; }
@@ -320,7 +347,7 @@ function mount() {
   // (the pass's own checks — tests/integration/highrise-play.mjs)
   const hook = window.__hiPlay = {
     ends: [], view, sfx: null,
-    state: () => ({ mode: MODE, seed, started: t0 != null, shown, over: isOver(run), st: run.st, t: run.t, floor: run.floor, streak: run.streak, perfects: run.perfects, s0: run.s0, S: run.S, taps: taps.length, best, tapeOn: tapeFloor > 0, newBest, band: bandNow, words: endT.textContent, check: check.textContent, call: call.textContent, tag: tag.hidden ? '' : tag.textContent, top: { x0: run.x0, x1: run.x1, z0: run.z0, z1: run.z1, floor: run.floor }, viewTop: view.top(), tier: tiers.get(), tierPath: tierPath.slice(), rebuilds, sheet: sheetOpen, info: view.info() }),
+    state: () => ({ mode: MODE, seed, look: lookT, choice, sky: stage.dataset.sky, started: t0 != null, shown, over: isOver(run), st: run.st, t: run.t, floor: run.floor, streak: run.streak, perfects: run.perfects, s0: run.s0, S: run.S, taps: taps.length, best, tapeOn: tapeFloor > 0, newBest, band: bandNow, words: endT.textContent, check: check.textContent, call: call.textContent, tag: tag.hidden ? '' : tag.textContent, top: { x0: run.x0, x1: run.x1, z0: run.z0, z1: run.z1, floor: run.floor }, viewTop: view.top(), tier: tiers.get(), tierPath: tierPath.slice(), rebuilds, sheet: sheetOpen, info: view.info() }),
     /** ms until the sliding slab is next dead on the tower — on its way out, or on its way back (null = no slab / its last pass is gone) */
     msToPerfect() {
       if (t0 == null || run.st !== 'slide') return null;
@@ -328,6 +355,8 @@ function mount() {
       return a > -8 ? a : b > -8 ? b : null;
     },
     restart: s => restart(s),
+    /** THE LOOK SWITCH: the choice ('auto' | 'day' | 'night') as the start screen's buttons make it · the look itself (the pass's check: a switch mid-run) */
+    pickLook: l => pickLook(l), setLook: (l, now) => setLook(l, now), look: () => ({ choice, look: lookT, sunKnown }),
     frames: () => frames.slice(),
     /** THE HITCH COUNTER: this run's count · every run's · the last one's words · each with its cause */
     hitches: () => ({ n: hitchN, all: hitchAll, last: hitchLast, list: hitchList.slice() }),
