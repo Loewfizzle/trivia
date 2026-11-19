@@ -631,7 +631,60 @@ async function hitch() {
   if (process.env.HITCH_GATE) ok(r.over33 <= Number(process.env.HITCH_GATE), `≤ ${process.env.HITCH_GATE} frames over 33 ms after the first second (${r.over33})`);
 }
 
+// ---- THE FLYERS' LOOK (S3): each flyer in both looks at 390 × 844 @3 — the flyby mid-pass (THE BLACKBIRD · the F-22 pair), the UFO,
+// THE MOTHERSHIP coming down / fully down / the solo moment, the match's finish + its gold end card. `FLY_LOOKS=day` = one look.
+/** keep a run alive while a flyer is watched: a clean drop every 1.1 s through the page's own climb hook (the fuse never ends it) */
+const alive = (p, on) => p.evaluate(v => { clearInterval(window.__alive); if (v) window.__alive = setInterval(() => { const L = window.__hiPlay; if (!L.state().over) L.climb(1); }, 1100); }, on);
+async function flyLook() {
+  for (const lk of (process.env.FLY_LOOKS || 'night,day').split(',')) {
+    const t = await open(390, 844, 3, `?seed=fly1&look=${lk}`), { p } = t;
+    ok(t.up && await ready(p), `${lk}: the page is up`);
+    await alive(p, true);
+    await climb(p, 38, 'i => (i % 11 === 10 ? 3 : 0)');
+    for (const kind of ['blackbird', 'f22']) {
+      const flew = await p.evaluate(k => window.__hiPlay.fly(k, k === 'f22' ? -1 : 1), kind);
+      ok(flew === true, `${lk}: ${kind} flies`);
+      await sleep(1050); await shot(p, `fly-${lk}-${kind}-a.png`);
+      await sleep(500); await shot(p, `fly-${lk}-${kind}-b.png`);
+      await sleep(550); await shot(p, `fly-${lk}-${kind}-c.png`);
+      console.log('  ', kind, JSON.stringify((await p.evaluate(() => window.__hiPlay.flyInfo())).boxes));
+      await sleep(1900);
+    }
+    await climb(p, 86 - (await st(p)).floor, 'i => (i % 11 === 10 ? 3 : 0)');
+    ok(await p.evaluate(() => window.__hiPlay.fly('ufo', 1)) === true, `${lk}: the UFO flies`);
+    await sleep(2600); await shot(p, `fly-${lk}-ufo-a.png`);
+    await sleep(1700); await shot(p, `fly-${lk}-ufo-b.png`);
+    await sleep(4200);
+    await climb(p, 190 - (await st(p)).floor, 'i => (i % 11 === 10 ? 3 : 0)');
+    await waitFor(p, "(window.__hiPlay.flyInfo().models || []).includes('mothership')", 8000); await sleep(900);
+    await shot(p, `fly-${lk}-ship-190.png`);
+    await climb(p, Math.max(0, 199 - (await st(p)).floor)); await sleep(500);
+    await shot(p, `fly-${lk}-ship-199.png`);
+    await climb(p, Math.max(0, 200 - (await st(p)).floor)); await sleep(1500);
+    await shot(p, `fly-${lk}-ship-pass-a.png`);
+    console.log('  ship', JSON.stringify(await p.evaluate(() => window.__hiPlay.flyInfo())));
+    await sleep(2300); await shot(p, `fly-${lk}-ship-pass-b.png`);
+    await sleep(2600);
+    await climb(p, 16); await sleep(700);
+    await shot(p, `fly-${lk}-deep.png`);
+    await alive(p, false);
+    ok(t.errs.length === 0, `${lk}: no page error (${t.errs.join(' | ')})`);
+    await t.close();
+    // THE MATCH's FINISH
+    const m = await open(390, 844, 3, `?seed=fly2&mode=match&look=${lk}`);
+    await ready(m.p);
+    await climb(m.p, 199); await sleep(1200);
+    await climb(m.p, 1); await sleep(1300);
+    await shot(m.p, `fly-${lk}-finish-pour.png`);
+    await waitFor(m.p, 'window.__hiPlay.state().shown', 8000); await sleep(500);
+    await shot(m.p, `fly-${lk}-finish-card.png`);
+    ok(m.errs.length === 0, `${lk} match: no page error (${m.errs.join(' | ')})`);
+    await m.close();
+  }
+}
+
 if (LOOK) await look();
+else if (argv.includes('--fly')) await flyLook();
 else if (argv.includes('--hitch')) await hitch();
 else if (PERF) await perf();
 else if (argv.includes('--webkit')) await webkit();

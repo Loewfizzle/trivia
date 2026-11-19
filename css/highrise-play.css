@@ -54,6 +54,9 @@
 .hi-end-t { font: 900 34px/1.04 var(--font-display); font-style: italic; letter-spacing: 0.03em; color: #fff; text-wrap: balance;
   text-shadow: 0 0 2px #fff, 0 0 14px rgba(255, 79, 216, 0.95), 0 0 34px rgba(255, 43, 214, 0.55), 0 2px 0 rgba(10, 7, 22, 0.6); }
 .hi-stage.is-made .hi-end-t { color: #fff6d8; text-shadow: 0 0 2px #fff, 0 0 14px rgba(255, 200, 60, 0.95), 0 0 34px rgba(255, 170, 30, 0.6), 0 2px 0 rgba(10, 7, 22, 0.6); }
+/* THE FINISH (S3 — MADE IT TO THE MOTHERSHIP): the whole card in GOLD — the words, the floor, the perfects */
+.hi-stage.is-made .hi-end-n { color: #fff6d8; text-shadow: 0 0 2px #fff, 0 0 14px rgba(255, 200, 60, 0.95), 0 0 34px rgba(255, 170, 30, 0.6), 0 3px 0 rgba(10, 7, 22, 0.55); }
+.hi-stage.is-made .hi-end-k, .hi-stage.is-made .hi-end-band, .hi-stage.is-made .hi-end-l { color: #ffe9a8; }
 .hi-end-floor { margin-top: 14px; display: inline-flex; align-items: baseline; gap: 12px; }
 .hi-end-k { font: 700 14px/1 var(--font-ui); letter-spacing: 0.32em; color: #d9d4f2; text-shadow: 0 1px 0 #0a0716, 0 0 8px #0a0716; }
 .hi-end-n { display: inline-flex; gap: 0.07em; font: 700 76px/0.92 var(--font-num); font-style: italic; color: #fff; font-variant-numeric: tabular-nums;

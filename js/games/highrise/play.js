@@ -17,6 +17,7 @@ import { BANDS, bandAt, skyTone } from './bands.js';
 import { LOOKS, LOOK_LABEL, cleanLook, readLook, writeLook, guessLook, resolveLook, sunUpNow } from './look.js';
 import { BEST_KEY, cleanBest, bestView, crossedBest, nextBest, tagY } from './best.js';
 import { STREAK_EVERY } from './sounds.js';
+import { FLY_FLOORS, flyPlan, flyDue, flyNeeds } from './flyplan.js';
 import { createTiers } from '../kit/tiers.js';
 import { createNight, KEEP } from './night.js';
 
@@ -41,6 +42,8 @@ const MODE = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo';
 const LOOK_Q = Q.get('look') === 'day' || Q.get('look') === 'night' ? Q.get('look') : null;
 /** the end's card comes this long after the run ended (the missed slab is seen falling) … */
 const END_HOLD_MS = 700;
+/** … THE FINISH (floor 200 in a match — `?mode=match` here): the white-gold light is seen pouring onto the top slab first */
+const MADE_HOLD_MS = 2600;
 /** … and stays this long before a tap is PLAY AGAIN (a rhythm's next tap must not wipe it unread) */
 const RETRY_MS = 600;
 /** a tap just before THE CAP is still the player's: the cap is shown this many ticks late (a touch may reach the page after its frame) */
@@ -118,7 +121,7 @@ function mount() {
   const marks = { plate: 0, compile: 0, audio: 0, dom: 0 };
   const mark = k => { marks[k] = performance.now(); };
   setNum.mark = mark;
-  const NO_VIEW = { el: null, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, setLook() {}, rest() {}, resize() {}, project: () => [0, -1], zoneTop: () => 1, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
+  const NO_VIEW = { el: null, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, setLook() {}, rest() {}, resize() {}, flyers: () => false, band() {}, need() {}, fly: () => false, flyReset() {}, flyHush() {}, flyInfo: () => ({ ready: false }), project: () => [0, -1], zoneTop: () => 1, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
   let view, glDown = null;
   try { view = createNight(play, { tier: pin == null ? 2 : pin, mark, look: lookT }); }
   catch { stage.append(noGL()); return; }
@@ -149,6 +152,7 @@ function mount() {
     if (glDown) { glDown.remove(); glDown = null; }
     tries = 0;
     view.adopt(run, T, false); view.setBest(tapeFloor); if (shown) view.rest();
+    if (FlyMod) { view.flyers(FlyMod); wanted.clear(); needFloor = -1; }   // (the flyers' stage is the new scene's: their models are asked for again)
     hook.view = view; rebuilds++; last = 0; sized();
     watchGL();
   }
@@ -180,12 +184,24 @@ function mount() {
   let seed = '', run = null, T = null, taps = [], t0 = null, shown = false, overAt = 0, endedAt = 0;
   let best = readBest(), tapeFloor = 0, newBest = false, bandNow = 0, notch = 0;   // (tapeFloor: the floor YOUR BEST's gold tape lies on — its own number: the end card moves `best` on)
   const ev = [], liveEv = [], frames = [];
+  // THE FLYERS (S3 — flyplan.js says WHEN + WHICH from the seed; flyers.js, a LAZY module, flies them — it is fetched from floor 20,
+  // each model + its sounds well before its own floor: night.js uploads them in an ordinary frame, never in the moment)
+  let plan = flyPlan(''), FlyMod = null, flyAsk = false, needFloor = -1;
+  const flown = { jet: false, ufo: false, ship: false }, wanted = new Set();
+  const loadFly = () => (FlyMod ? Promise.resolve(FlyMod) : lazyImport(import('./flyers.js'), './flyers.js').then(M => { FlyMod = M; view.flyers(M); needFloor = -1; return M; }));
+  function flyCheck() {
+    view.band(stageH ? hudFoot / stageH : 0.2);
+    if (run.floor < FLY_FLOORS.loadJet) return;
+    if (!FlyMod) { if (!flyAsk) { flyAsk = true; loadFly().catch(() => { flyAsk = false; }); } return; }
+    for (const k of flyNeeds(plan, run.floor)) if (!wanted.has(k)) { wanted.add(k); view.need(k); }
+  }
   const hooks = { onPerfect() { /* (the view reads the events itself) */ }, onFall: (r, floor, dx, dz, whole) => view.fall(r, floor, dx, dz, whole) };
   function restart(s = FIXED || newSeed()) {
     seed = s; run = createRun({ seed, mode: MODE }); taps = []; t0 = null; shown = false; overAt = 0; endedAt = 0; ev.length = 0; liveEv.length = 0;
     T = createTower(run, hooks, KEEP);
     best = Math.max(best, readBest()); tapeFloor = 0; newBest = false; bandNow = 0; notch = 0;   // (max: a phone whose storage is blocked still keeps its best for the visit)
-    view.adopt(run, T); view.setBest(0);
+    plan = flyPlan(seed); flown.jet = flown.ufo = flown.ship = false; wanted.clear(); needFloor = -1;
+    view.adopt(run, T); view.setBest(0); view.flyReset();
     end.hidden = true; again.hidden = true; start.hidden = false; soundsBtn.hidden = false; note.hidden = false;
     stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-made');
     startBest.textContent = best ? `YOUR BEST ${best} · THIS PHONE` : '';
@@ -234,6 +250,9 @@ function mount() {
       if (e.e === 'perfect') {
         if (e.streak > 0 && e.streak % STREAK_EVERY === 0) say(`STREAK ×${e.streak}`, 'is-streak', 3, 1500, now);
         else say(e.streak > 1 ? `PERFECT ×${e.streak}` : 'PERFECT', 'is-perfect', 1, 700, now);
+      } else if (e.e === 'made') {
+        // THE FINISH (a match's floor 200): the white-gold light pours onto the top slab — then the gold end card
+        view.fly('pour');
       } else if (e.e === 'land') {
         if (crossedBest(best, e.floor)) {
           tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold');
@@ -242,6 +261,14 @@ function mount() {
         const b = bandAt(e.floor);
         // A BAND's ARRIVAL: its name (under the number) lights up — never said twice in the lane below
         if (b > bandNow) { bandNow = b; mark('dom'); band.textContent = BANDS[b].name; if (!calm && band.animate) band.animate(SWELL, { duration: 1700 }); if (!late) cues.push({ id: 'band-arrival' }); }
+        // THE FLYERS: the seed's flyby (35–45) · the UFO (85) · floor 200 — SOLO flies past THE MOTHERSHIP (a moment, then on into deep space)
+        const due = flyDue(plan, e.floor, flown);
+        if (due) {
+          flown[due.split('-')[0]] = true;
+          if (due === 'jet') view.fly(plan.jet, plan.jetDir);
+          else if (due === 'ufo') view.fly('ufo', plan.ufoDir);
+          else if (due === 'ship' && MODE === 'solo') { view.fly('pass'); say('THE MOTHERSHIP', 'is-gold', 6, 2600, now); if (!late) cues.push({ id: 'band-arrival' }); }
+        }
         // SOLO PAST 200: every notch of the tightening is called — a FASTER that lands under a bigger call (a streak, NEW BEST) waits its turn
         if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; if (!say('FASTER', 'is-fast', 2, 1100, now)) later = ['FASTER', 'is-fast', 2, 1100]; } }
       }
@@ -275,6 +302,7 @@ function mount() {
     end.hidden = false; again.hidden = false; soundsBtn.hidden = false; note.hidden = false; tag.hidden = true; tagFloor = -1;
     stage.classList.remove('is-live'); stage.classList.add('is-over');
     view.rest();   // (the first band's plate comes back while the card is up: PLAY AGAIN never starts on a blank sky)
+    view.flyHush();   // (… and a flyer still in the sky fades out: never behind the card's words)
     hook.ends.push({ seed, mode: MODE, same, at, live, replay: r, taps: taps.slice(), best, was }); if (hook.ends.length > 50) hook.ends.shift();
   }
 
@@ -313,7 +341,7 @@ function mount() {
       ev.length = 0;
     }
     if (isOver(run) && !endedAt) endedAt = now;   // (the end's own frame — whether THE FUSE ended it in this frame or a TAP did in the touch handler: the review — a miss used to bring the card at once, over the falling slab)
-    if (isOver(run) && !shown && now - endedAt >= END_HOLD_MS) showEnd(now);
+    if (isOver(run) && !shown && now - endedAt >= (run.st === 'made' ? MADE_HOLD_MS : END_HOLD_MS)) showEnd(now);
     view.draw(run, isOver(run) ? run.end : tau, dt);
     // ---- the HUD: written only when it changes (two numbers compared — no text is built in a frame that changes nothing)
     const cap = MODES[MODE].capTicks, left = cap == null ? -1 : Math.max(0, Math.ceil((cap - (isOver(run) ? run.end : Math.floor(tau))) / TICK_HZ));
@@ -324,6 +352,7 @@ function mount() {
       const text = cap == null ? '' : clockText(left * TICK_HZ);
       if (clock.textContent !== text) clock.textContent = text;
     }
+    if (run.floor !== needFloor) { needFloor = run.floor; flyCheck(); }
     // the page's words follow the picture: the look on screen + the sky's tone at this height (compared, written only at a change)
     const lk = view.lookNow ? view.lookNow() : lookT, tone = skyTone(lk, run.floor);
     if (lk !== lookSeen || tone !== toneSeen) { lookSeen = lk; toneSeen = tone; mark('dom'); stage.dataset.look = lk; stage.dataset.sky = tone; }
@@ -355,6 +384,13 @@ function mount() {
       return a > -8 ? a : b > -8 ? b : null;
     },
     restart: s => restart(s),
+    /** THE FLYERS: the seed's plan · a moment NOW ('blackbird' | 'f22' | 'ufo' | 'ship' = THE MOTHERSHIP fully down | 'pass' | 'pour' — the
+     *  pass's look check: its module + model are fetched first) → a promise of true = it flies */
+    plan: () => ({ ...plan, flown: { ...flown } }), flyInfo: () => view.flyInfo(),
+    fly(kind, dir = 1) {
+      const model = kind === 'ship' || kind === 'pass' || kind === 'pour' ? 'mothership' : kind;
+      return loadFly().then(() => { view.band(stageH ? hudFoot / stageH : 0.2); view.need(model); return new Promise(res => { let n = 0; (function wait() { const i = view.flyInfo(); if ((i.models || []).includes(model)) return setTimeout(() => res(view.fly(kind, dir)), 120); if (++n > 120) return res(false); setTimeout(wait, 50); })(); }); });
+    },
     /** THE LOOK SWITCH: the choice ('auto' | 'day' | 'night') as the start screen's buttons make it · the look itself (the pass's check: a switch mid-run) */
     pickLook: l => pickLook(l), setLook: (l, now) => setLook(l, now), look: () => ({ choice, look: lookT, sunKnown }),
     frames: () => frames.slice(),

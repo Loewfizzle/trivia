@@ -157,12 +157,12 @@ float stars(vec2 p, float n, float seed) {
   vec2 g = p * n, c = floor(g), f = fract(g) - 0.5;
   float h = hash(c + seed);
   vec2 o = (vec2(hash(c + seed + 3.1), hash(c + seed + 7.7)) - 0.5) * 0.7;
-  float r = length(f - o), tw = 0.6 + 0.4 * sin(uTime * (0.6 + 2.2 * h) + h * 40.0);
-  return step(0.82, h) * smoothstep(0.11, 0.0, r) * tw;
+  float r = length(f - o), tw = 0.55 + 0.45 * sin(uTime * (0.6 + 2.2 * h) + h * 40.0);
+  return step(0.86, h) * smoothstep(0.05, 0.012, r) * tw;
 }
 vec3 space() {
   vec2 p = vec2((vS.x - 0.5) * uAspect, vS.y);
-  float s = stars(p + vec2(0.0, uTime * 0.012), 26.0, 0.0) * 0.9 + stars(p + vec2(0.0, uTime * 0.026), 15.0, 9.0) * 1.3;
+  float s = stars(p + vec2(0.0, uTime * 0.012), 30.0, 0.0) * 0.8 + stars(p + vec2(0.0, uTime * 0.026), 17.0, 9.0) * 1.25;
   // the aurora: two ribbons that wave slowly, green into violet, in the upper half
   float w1 = 0.66 + 0.07 * sin(p.x * 3.1 + uTime * 0.13) + 0.035 * sin(p.x * 7.3 - uTime * 0.21);
   float w2 = 0.8 + 0.06 * sin(p.x * 2.3 - uTime * 0.1 + 1.7) + 0.03 * sin(p.x * 6.1 + uTime * 0.17);
@@ -277,6 +277,82 @@ void main() {
   float dark = (1.0 - smoothstep(hw + 1.2 * px, hw + 2.7 * px, a)) * (1.0 - line) * uDay * 0.85;
   vec3 c = (uCol * (line + glow * (1.0 - line)) + vec3(uWhite) * line) * uGlow * k + vec3(0.2, 0.085, 0.01) * dark * k;
   gl_FragColor = vec4(c, min(1.0, line + glow * 0.6 + dark) * k);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+
+// ---- THE FLYERS (S3 — docs/highrise.md "THE FLYERS"; flyers.js flies them, night.js holds their stage). Two programs, BUILT IN THE
+// WARM FRAME on a stand-in triangle (THE LAG RULES: a model that lands later brings only its buffers):
+// A FLYER's BODY — a model's vertex colours lit in the WORLD: by day the tower's own sun + the sky's fill + a soft highlight; by night
+// a moonlit top, the city's glow from below, a rim of light round its outline (a near-black jet must read on a dark sky). uEmit = a
+// light its BELLY gives off (the UFO's violet, THE MOTHERSHIP's warm underside); uHaze sets it IN the air.
+export const FLY_V = /* glsl */`
+attribute vec3 color;
+varying vec3 vN, vNl, vW, vC;
+void main() {
+  vC = color; vNl = normal; vN = normalize(mat3(modelMatrix) * normal);
+  vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz;
+  gl_Position = projectionMatrix * viewMatrix * w;
+}`;
+export const FLY_F = /* glsl */`
+uniform float uDay, uBloom, uOpacity, uHazeK, uLift;
+uniform vec3 uSun, uTint, uRim, uEmit, uHazeC;
+varying vec3 vN, vNl, vW, vC;
+void main() {
+  vec3 N = normalize(vN); if (!gl_FrontFacing) N = -N;
+  vec3 V = normalize(cameraPosition - vW);
+  float fres = pow(1.0 - max(dot(N, V), 0.0), 2.5);
+  vec3 alb = vC * uTint;
+  vec3 dayL = vec3(0.3, 0.37, 0.52) * (0.65 + 0.35 * N.y) + vec3(1.0, 0.96, 0.88) * (0.95 * max(dot(N, uSun), 0.0));
+  float spec = pow(max(dot(reflect(-uSun, N), V), 0.0), 28.0);
+  vec3 day = alb * dayL + vec3(1.0, 0.97, 0.9) * spec * 0.4 + vec3(0.5, 0.62, 0.8) * fres * 0.12;
+  vec3 albN = mix(alb, vec3(0.2, 0.22, 0.3), uLift);
+  vec3 nightL = vec3(0.08, 0.09, 0.16) + vec3(0.26, 0.32, 0.5) * max(N.y, 0.0) + vec3(0.4, 0.12, 0.42) * (0.6 * max(-N.y, 0.0));
+  vec3 night = albN * nightL * 1.9 + uRim * fres * 0.55;
+  float under = pow(max(-vNl.y, 0.0), 1.5);
+  vec3 col = mix(night, day, uDay) + uEmit * under;
+  col = mix(col, uHazeC, uHazeK);
+  if (uBloom > 0.5) col = uEmit * under * 0.5 * (1.0 - uDay);
+  gl_FragColor = vec4(col, uOpacity);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+// THE FLYERS' LIGHTS — one instanced quad for every light a flyer carries: aP = (its place in the world, half its width) · aQ = (half
+// its length along aAx — 0 = round —, its kind, its strength, PAINT) · aC its colour · aAx its axis in the world (a flame, a trail,
+// the finish's beam: the +axis end is its HEAD). Kinds: 0 a round glow (a hot heart) · 1 a flame (bright at its head, a point at its
+// tail) · 2 a vapour trail (a soft ribbon fading to its tail) · 3 THE FINISH's light (a cone: narrow at the ship, wide on the slab).
+// PAINT 0 = added light (ONE · ONE_MINUS_SRC_ALPHA with alpha 0) … 1 = paint in its own colour (it reads on a bright sky).
+export const LIGHT_V = /* glsl */`
+attribute vec4 aP, aQ;
+attribute vec3 aC, aAx;
+uniform float uAspect;
+varying vec2 vQ; varying vec3 vK, vC;
+void main() {
+  vec4 c = projectionMatrix * viewMatrix * vec4(aP.xyz, 1.0);
+  float sx = projectionMatrix[0][0], sy = projectionMatrix[1][1], len = aP.w;
+  vec2 dir = vec2(0.0, 1.0);
+  if (aQ.x > 0.0) {
+    vec4 c2 = projectionMatrix * viewMatrix * vec4(aP.xyz + aAx, 1.0);
+    vec2 d = (c2.xy / c2.w - c.xy / c.w) * vec2(uAspect, 1.0);
+    float l = length(d);
+    dir = l > 1e-6 ? d / l : vec2(0.0, 1.0);
+    len = aQ.x * min(1.0, l * c.w / sy);   // (an axis turned towards the lens is seen short)
+  }
+  vec2 off = dir * position.y * len * 2.0 + vec2(dir.y, -dir.x) * position.x * aP.w * 2.0;
+  c.xy += vec2(off.x * sx, off.y * sy);
+  gl_Position = c;
+  vQ = position.xy * 2.0; vK = aQ.yzw; vC = aC;
+}`;
+export const LIGHT_F = /* glsl */`
+varying vec2 vQ; varying vec3 vK, vC;
+void main() {
+  float kind = vK.x, a, heart = 0.0, t = vQ.y * 0.5 + 0.5;
+  if (kind < 0.5) { float r = length(vQ); a = exp(-r * r * 4.5) * smoothstep(1.0, 0.7, r); heart = a * a; }
+  else if (kind < 1.5) { float w = 1.0 - vQ.x * vQ.x / max(0.05, t * t); a = max(w, 0.0) * t * t * smoothstep(1.0, 0.9, t); heart = a * a; }
+  else if (kind < 2.5) { a = exp(-vQ.x * vQ.x * 3.2) * t * smoothstep(1.0, 0.94, t) * (1.0 - 0.999 * step(1.0, abs(vQ.x))); }
+  else { float w = mix(1.0, 0.3, t), x = abs(vQ.x) / w; a = smoothstep(1.0, 0.15, x) * (0.5 + 0.5 * t) * smoothstep(0.0, 0.06, t); heart = smoothstep(0.5, 0.0, x) * 0.5; }
+  a *= vK.y;
+  gl_FragColor = vec4(mix(vC, vec3(1.0), min(1.0, heart * 0.8)) * a, a * vK.z);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;

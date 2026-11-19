@@ -16,7 +16,7 @@ import { START, TRAVEL } from './tuning.js';
 import { slabAt } from './engine.js';
 import { CAM, camDist, SLAB_H } from './camera.js';
 import { plateMix, plateDrift, slabColor, sliderColor, hazeAt, SLACK } from './bands.js';
-import { GLASS_V, GLASS_F, PLATE_V, PLATE_F, SPARK_V, SPARK_F, RING_V, RING_F, TAPE_V, TAPE_F, TAPE_BACK, createBloom } from './night-fx.js';
+import { GLASS_V, GLASS_F, PLATE_V, PLATE_F, SPARK_V, SPARK_F, RING_V, RING_F, TAPE_V, TAPE_F, TAPE_BACK, FLY_V, FLY_F, LIGHT_V, LIGHT_F, createBloom } from './night-fx.js';
 
 const U = 1 / START, H = SLAB_H, RAD = Math.PI / 180;
 /** the slabs kept drawn under the top (the rest is below the screen) */
@@ -33,6 +33,10 @@ export const SUN = Object.freeze([-0.42, 0.78, 0.46]);
 const ART = new URL('../../../assets/highrise/', import.meta.url);
 const PLATE_ASPECT = 720 / 1280;
 const PIECES = 8, TAPE = 4, BOXES = KEEP + 1 + 2 + PIECES + TAPE, SPARKS = 224, RINGS = 4;
+/** THE FLYERS' STAGE (S3): the bodies on screen at once (two jets, or the UFO; THE MOTHERSHIP) · every light they carry */
+export const FLY_SLOTS = 3, LIGHTS = 176;
+/** DEEP SPACE (S3 — solo, past THE MOTHERSHIP): the drifting stars + the aurora come in over these floors */
+export const SPACE_FROM = 200, SPACE_FULL = 212;
 const SPARKS_AT = [12, 22, 34];            // a cut's sparks by tier (× its length)
 const GOLD = [1, 0.78, 0.2], BG = 0x0a0716;
 // (THE DAY LOOK's lights are PAINT — night-fx.js: a cut's sparks WARM GOLD, a perfect's ring GOLD-WHITE)
@@ -257,6 +261,64 @@ export function createNight(host, o = {}) {
   twin(tape, tapeMat);
   twin(tapeBack, tapeBackMat); TWINS[TWINS.length - 1][1].visible = false;   // (the faint back edges are no light: not in the bloom pass)
 
+  // ---- THE FLYERS' STAGE (S3 — docs/highrise.md "THE FLYERS"): what flyers.js (a LAZY module — its models + sounds come with it)
+  // draws through. Its two programs are BUILT IN THE WARM FRAME on a stand-in triangle; a model that lands later brings only its
+  // buffers. FLY_SLOTS bodies (each its own material: its opacity, its tint, its lights), ONE instanced quad for every light.
+  const standIn = new THREE.BufferGeometry();
+  standIn.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0.01, 0, 0, 0, 0.01, 0], 3));
+  standIn.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
+  standIn.setAttribute('color', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0, 0, 0, 0], 3));
+  made.push(standIn);
+  const flySlots = [];
+  for (let i = 0; i < FLY_SLOTS; i++) {
+    const u = { uDay: G.uDay, uBloom: G.uBloom, uSun: G.uSun, uOpacity: { value: 1 }, uHazeK: { value: 0 }, uHazeC: { value: new THREE.Vector3() }, uLift: { value: 0 }, uTint: { value: new THREE.Vector3(1, 1, 1) }, uRim: { value: new THREE.Vector3() }, uEmit: { value: new THREE.Vector3() } };
+    const m = new THREE.ShaderMaterial({ vertexShader: FLY_V, fragmentShader: FLY_F, uniforms: u, transparent: true, depthWrite: true, side: THREE.DoubleSide, forceSinglePass: true });
+    const mesh = new THREE.Mesh(standIn, m);
+    mesh.frustumCulled = false; mesh.renderOrder = -50; mesh.visible = false; mesh.matrixAutoUpdate = false; scene.add(mesh); made.push(m);
+    twin(mesh, m);
+    flySlots.push({ mesh, u });
+  }
+  const lgGeo = new THREE.InstancedBufferGeometry();
+  lgGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0]), 3));
+  lgGeo.setIndex([0, 1, 2, 0, 2, 3]);
+  const lgP = new THREE.InstancedBufferAttribute(new Float32Array(LIGHTS * 4), 4), lgQ = new THREE.InstancedBufferAttribute(new Float32Array(LIGHTS * 4), 4), lgC = new THREE.InstancedBufferAttribute(new Float32Array(LIGHTS * 3), 3), lgA = new THREE.InstancedBufferAttribute(new Float32Array(LIGHTS * 3), 3);
+  for (const a of [lgP, lgQ, lgC, lgA]) a.setUsage(THREE.DynamicDrawUsage);
+  lgGeo.setAttribute('aP', lgP); lgGeo.setAttribute('aQ', lgQ); lgGeo.setAttribute('aC', lgC); lgGeo.setAttribute('aAx', lgA);
+  lgGeo.instanceCount = 0;
+  const lightMat = new THREE.ShaderMaterial({ vertexShader: LIGHT_V, fragmentShader: LIGHT_F, uniforms: { uAspect: G.uAspect }, transparent: true, depthWrite: false, depthTest: false, ...LIGHT_BLEND });
+  const lightsMesh = new THREE.Mesh(lgGeo, lightMat);
+  lightsMesh.frustumCulled = false; lightsMesh.renderOrder = -40; lightsMesh.visible = false; scene.add(lightsMesh); made.push(lgGeo, lightMat);
+  twin(lightsMesh, lightMat);
+  let nl = 0, fly = null, glance = 0, pour = 0, band0 = 0.2;
+  // (a model's buffers go to the GPU in an ordinary frame BEFORE its moment — drawn once, a speck far under the tower, in a free slot)
+  const toUpload = [];
+  let upSlot = null;
+  function uploadOne() {
+    if (!toUpload.length) return;
+    const f = flySlots.find(q => !q.mesh.visible);
+    if (!f) return;
+    upSlot = f; f.mesh.geometry = toUpload.shift(); f.mesh.visible = true; f.u.uOpacity.value = 1;
+    f.mesh.matrix.makeScale(1e-4, 1e-4, 1e-4); f.mesh.matrix.setPosition(camX, camY - 60, camZ); f.mesh.matrixWorldNeedsUpdate = true;
+    mark('plate');
+  }
+  /** a flyer's light this frame: its place, half its width, half its length (0 = round) along the axis (ax, ay, az), its colour, its strength, PAINT (0 light … 1 paint), its kind (night-fx.js LIGHT_F) */
+  function light(x, y, z, hw, hl, r, g, b, a, paint, kind, ax, ay, az) {
+    if (nl >= LIGHTS || a <= 0.003) return;
+    lgP.setXYZW(nl, x, y, z, hw); lgQ.setXYZW(nl, hl, kind, a, paint); lgC.setXYZ(nl, r, g, b); lgA.setXYZ(nl, ax || 0, ay || 0, az || 0); nl++;
+  }
+  // (the frame a flyer is placed in: the camera's own — its place, its three axes, its lens — so a flyer holds its place ON THE SCREEN
+  //  while the tower climbs: never over the play zone, never under the HUD's numbers)
+  const FR = { px: 0, py: 0, pz: 0, X: new THREE.Vector3(), Y: new THREE.Vector3(), Z: new THREE.Vector3(), th: Math.tan(CAM.fov * RAD / 2), aspect: 1, dist: 14, t: 0, dt: 0, day: 0, cf: 0, top: 0.2, bot: 0.4, reduce, hz: new THREE.Vector3(), tx: 0, ty: 0, tz: 0, tier: 2 };
+  const STAGE = {
+    THREE, slots: flySlots, standIn, light, mark,
+    /** a model's buffers go to the GPU now (a frame that draws nothing new), not in its moment's first frame */
+    upload(geo) { if (geo) toUpload.push(geo); },
+    /** the camera glances UP (0 … 1 — THE MOTHERSHIP's moment) · the white-gold light on the top slab (0 … 1 — THE FINISH) */
+    glance(v) { glance = reduce ? 0 : v; }, pour(v) { pour = v; },
+    ring: (k, life, c, reach) => { if (top) ring(top, slabs[slabs.length - 1].floor, reach, life, c, k); },
+    spark,
+  };
+
   // ---- the pieces that fall away (a cut's overhang; a slab that missed) — pooled
   const pieces = Array.from({ length: PIECES }, () => ({ on: false, age: 0, x: 0, y: 0, z: 0, sx: 0, sz: 0, vx: 0, vy: 0, vz: 0, rx: 0, rz: 0, ax: 0, az: 0, fl: 0, life: 1200 }));
   let pieceAt = 0;
@@ -367,7 +429,7 @@ export function createNight(host, o = {}) {
     const ty = slabs[slabs.length - 1].floor * H, tx = (top.x0 + top.x1) / 2 * U, tz = (top.z0 + top.z1) / 2 * U;
     camY += (ty - camY) * k; camX += (tx - camX) * k; camZ += (tz - camZ) * k;
     bump *= Math.exp(-dt / 90);
-    const lookY = camY + CAM.lift - bump * 0.022;
+    const lookY = camY + CAM.lift - bump * 0.022 + glance * 0.42;
     cam.position.set(camX + dist * cp * sy, lookY + dist * sp, camZ + dist * cp * cy);
     cam.lookAt(camX, lookY, camZ);
     cam.updateMatrixWorld();
@@ -384,10 +446,16 @@ export function createNight(host, o = {}) {
     boxes.count = nb; boxes.instanceMatrix.needsUpdate = aColor.needsUpdate = aFx.needsUpdate = aUp.needsUpdate = true;
     const tapeWas = tape.visible, backWas = tapeBack.visible, faceWas = tapeBackU.uFace.value;   // (the tape's programs too: built here, not at the crossing)
     tape.visible = tapeBack.visible = true; tapeBackU.uFace.value = 0.2; tape.position.set(0, -60, 0); tape.scale.set(0.01, 0.01, 0.01); tapeBack.position.copy(tape.position); tapeBack.scale.copy(tape.scale);
+    // (THE FLYERS' two programs + their twins: built here on the stand-in triangle — a model brings only buffers later)
+    const flyWas = flySlots.map(f => f.mesh.visible), lgWas = lightsMesh.visible, lgN = lgGeo.instanceCount;
+    for (const f of flySlots) { f.mesh.visible = true; f.mesh.matrix.makeTranslation(0, -60, 0); f.mesh.matrixWorldNeedsUpdate = true; }
+    lgP.setXYZW(0, 0, -60, 0, 0.01); lgQ.setXYZW(0, 0, 0, 1, 0); lgC.setXYZ(0, 1, 1, 1); lgA.setXYZ(0, 0, 0, 0); lgP.needsUpdate = lgQ.needsUpdate = lgC.needsUpdate = lgA.needsUpdate = true;
+    lgGeo.instanceCount = 1; lightsMesh.visible = true;
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam, plate, TWINS); } catch { /* a phone that can't: the kinds build as they come */ }
     mark('compile');
     spT.setX(0, -1e6); spT.needsUpdate = true; rgB.setW(0, -1e6); rgB.needsUpdate = true;
     tape.visible = tapeWas; tapeBack.visible = backWas; tapeBackU.uFace.value = faceWas;
+    flySlots.forEach((f, i) => { f.mesh.visible = flyWas[i]; }); lightsMesh.visible = lgWas; lgGeo.instanceCount = lgN;
     warmed++;
   }
 
@@ -420,6 +488,22 @@ export function createNight(host, o = {}) {
     setPlate('tA', 'uHaveA', 'uFlipA', SETS.night.get(mix.a)); setPlate('tB', 'uHaveB', 'uFlipB', SETS.night.get(mix.b));
     setPlate('tC', 'uHaveC', 'uFlipC', SETS.day.get(mix.a)); setPlate('tD', 'uHaveD', 'uFlipD', SETS.day.get(mix.b));
     plateU.uMix.value = mix.m; plateU.uDriftA.value = plateDrift(mix.a, cf); plateU.uDriftB.value = plateDrift(mix.b, cf);
+    // DEEP SPACE (solo, past THE MOTHERSHIP): the drifting stars + the aurora over the last plate
+    plateU.uSpace.value = cf <= SPACE_FROM ? 0 : cf >= SPACE_FULL ? 1 : (cf - SPACE_FROM) / (SPACE_FULL - SPACE_FROM);
+    // ---- THE FLYERS (flyers.js, once the page has handed it in): placed in the camera's own frame, drawn BEHIND the tower
+    nl = 0;
+    if (fly) {
+      const e = cam.matrixWorld.elements;
+      FR.px = e[12]; FR.py = e[13]; FR.pz = e[14]; FR.X.set(e[0], e[1], e[2]); FR.Y.set(e[4], e[5], e[6]); FR.Z.set(e[8], e[9], e[10]);
+      FR.aspect = cam.aspect; FR.dist = dist; FR.t = clock / 1000; FR.dt = dt; FR.day = dayK; FR.cf = cf; FR.top = band0; FR.bot = zoneNow(); FR.tier = tier;
+      if (dayK > 0) FR.hz.copy(G.uHaze.value).multiplyScalar(dayK); else FR.hz.set(0, 0, 0);
+      FR.hz.x += 0.012 * (1 - dayK); FR.hz.y += 0.008 * (1 - dayK); FR.hz.z += 0.03 * (1 - dayK);
+      FR.tx = (top.x0 + top.x1) / 2 * U; FR.ty = topFloor * H; FR.tz = (top.z0 + top.z1) / 2 * U;
+      fly.frame(FR);
+    }
+    uploadOne();
+    lgGeo.instanceCount = nl; lightsMesh.visible = nl > 0;
+    if (nl) { lgP.needsUpdate = lgQ.needsUpdate = lgC.needsUpdate = lgA.needsUpdate = true; }
 
     // ---- every box
     nb = 0;
@@ -429,6 +513,7 @@ export function createNight(host, o = {}) {
     for (let i = Math.max(0, slabs.length - KEEP); i < slabs.length; i++) {
       const s = slabs[i], isTop = s.floor === topFloor && s.floor === landFloor;
       let x0 = s.x0 * U, x1 = s.x1 * U, z0 = s.z0 * U, z1 = s.z1 * U, glow = 1, white = 0;
+      if (s.floor === topFloor && pour > 0) { white = Math.max(white, 0.85 * pour); glow += 1.2 * pour; }   // (THE FINISH: the white-gold light pours onto the top slab)
       if (isTop) {
         glow += 1.3 * Math.exp(-landAge / 130);
         if (perfAge < 700) white = 0.95 * Math.exp(-perfAge / 150);
@@ -485,6 +570,7 @@ export function createNight(host, o = {}) {
     renderer.render(scene, cam);
     // (THE DAY LOOK has NO bloom — added light washes a bright sky out; through a switch it fades with the night)
     if (bloom && tier === 2 && dayK < 1) bloom.render(scene, cam, plate, TWINS, 1 - dayK);
+    if (upSlot) { upSlot.mesh.visible = false; upSlot.mesh.geometry = standIn; upSlot = null; }
     // (a program built in THIS frame — anything the warm frame missed — is a hitch with a name: play.js's counter)
     const pn = renderer.info.programs ? renderer.info.programs.length : 0;
     if (pn !== progN) { progN = pn; mark('compile'); }
@@ -492,6 +578,12 @@ export function createNight(host, o = {}) {
   }
 
   const zoneY = (x, z, f) => { V.set(x * U, f * H, z * U).project(cam); return (1 - V.y) / 2; };
+  /** THE DROP ZONE's upper edge on the screen (0 … 1 from the top): the highest point the sliding slab's path reaches */
+  function zoneNow() {
+    const cx = (top.x0 + top.x1) / 2, cz = (top.z0 + top.z1) / 2, hw = (top.x1 - top.x0) / 2, hd = (top.z1 - top.z0) / 2, f = slabs[slabs.length - 1].floor + 1;
+    // (five corners of the slab's path — no list built: this runs every frame while the tag shows)
+    return Math.min(1, zoneY(cx - TRAVEL - hw, cz - hd, f), zoneY(cx - hw, cz - TRAVEL - hd, f), zoneY(cx - hw, cz - hd, f), zoneY(cx + TRAVEL + hw, cz - hd, f), zoneY(cx - hw, cz + TRAVEL + hd, f));
+  }
   return {
     el, adopt, events, fall, draw, setTier, setBest, resize: () => fit(true),
     /** THE LOOK SWITCH: 'day' | 'night' — the other look's pictures come in off the frame, then a LOOK_FADE_MS cross-fade (`now`: at once) */
@@ -510,20 +602,31 @@ export function createNight(host, o = {}) {
     /** a point (rule units x, z; y in floors) → [x, y] on the screen, 0 … 1 from the top left (as of the last frame's camera) */
     project(x, floor, z) { V.set(x * U, floor * H, z * U).project(cam); return [(1 + V.x) / 2, (1 - V.y) / 2]; },   // (a point BEHIND the camera comes back mirrored — a caller clamps its height first: play.js's tag)
     /** THE DROP ZONE's upper edge on the screen (0 … 1 from the top): the highest point the sliding slab's path reaches — nothing of a tag / a tape's label may sit under it */
-    zoneTop() {
-      const cx = (top.x0 + top.x1) / 2, cz = (top.z0 + top.z1) / 2, hw = (top.x1 - top.x0) / 2, hd = (top.z1 - top.z0) / 2, f = slabs[slabs.length - 1].floor + 1;
-      // (five corners of the slab's path — no list built: this runs every frame while the tag shows)
-      return Math.min(1, zoneY(cx - TRAVEL - hw, cz - hd, f), zoneY(cx - hw, cz - TRAVEL - hd, f), zoneY(cx - hw, cz - hd, f), zoneY(cx + TRAVEL + hw, cz - hd, f), zoneY(cx - hw, cz + TRAVEL + hd, f));
-    },
+    zoneTop: zoneNow,
+    // ---- THE FLYERS (S3): the page hands the lazy module in (again after a rebuild); the calls below are no-ops until it has
+    /** flyers.js's own module → its flyers on this scene's stage */
+    flyers(M) { if (!fly && M && M.createFlyers) { try { fly = M.createFlyers(STAGE); } catch { fly = null; } } return !!fly; },
+    /** the sky band the flyers keep to: its upper edge = the HUD's foot (0 … 1 from the top; the lower = THE DROP ZONE's own upper edge) */
+    band(topFrac) { band0 = topFrac; },
+    /** fetch a flyer's model + sounds ahead: 'blackbird' | 'f22' | 'ufo' | 'mothership' */
+    need(kind) { if (fly) fly.need(kind); },
+    /** a moment: 'blackbird' | 'f22' (the skyline flyby) · 'ufo' · 'pass' (solo: past THE MOTHERSHIP) · 'pour' (the match's finish); `dir` ±1 = the side it comes from → true = it flies */
+    fly(kind, dir) { return fly ? fly.start(kind, dir) : false; },
+    /** a new run: every flyer off the screen, its model freed */
+    flyReset() { if (fly) fly.reset(); glance = 0; pour = 0; },
+    /** the end card is up: the flyers leave the sky behind its words */
+    flyHush() { if (fly) fly.hush(); },
+    flyInfo: () => (fly ? fly.info() : { ready: false }),
     flashing: () => clock - perfAt < 460,
     falling: () => pieces.filter(p => p.on).length,
-    info: () => ({ look: lookNow(), target, dayK, fading, switches, tier, bloom: !!bloom && tier === 2, warmed, uploads, frames, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h, dist, slabs: slabs.length, boxes: nb, sparks: sparkN, rings: ringN, tape: tapeFloor, env: (target === 'day' ? G.uEnvDOn : G.uEnvOn).value === 1, envs: ['night', 'day'].filter(l => ENVS[l].ok), plates: [...SETS[target].entries()].filter(([, r]) => r.ok).map(([k]) => k).sort(), held: [...SETS[target].keys()].sort(), heldAll: { night: [...SETS.night.keys()].sort(), day: [...SETS.day.keys()].sort() }, loads, mix: plateMix(Math.max(0, camY / H)), reduce }),
+    info: () => ({ look: lookNow(), target, dayK, fading, switches, tier, bloom: !!bloom && tier === 2, warmed, uploads, frames, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h, dist, slabs: slabs.length, boxes: nb, lights: nl, space: plateU.uSpace.value, sparks: sparkN, rings: ringN, tape: tapeFloor, env: (target === 'day' ? G.uEnvDOn : G.uEnvOn).value === 1, envs: ['night', 'day'].filter(l => ENVS[l].ok), plates: [...SETS[target].entries()].filter(([, r]) => r.ok).map(([k]) => k).sort(), held: [...SETS[target].keys()].sort(), heldAll: { night: [...SETS.night.keys()].sort(), day: [...SETS.day.keys()].sort() }, loads, mix: plateMix(Math.max(0, camY / H)), reduce }),
     destroy() {
       dead = true;
       ro.disconnect();
+      if (fly) { try { fly.destroy(); } catch { /* gone */ } fly = null; }
       for (const l of ['night', 'day']) { SETS[l].forEach(dropPlate); SETS[l].clear(); dropEnv(l); }
       if (bloom) { bloom.dispose(); bloom = null; }
-      scene.remove(plate, boxes, sparks, rings, tape, tapeBack);
+      scene.remove(plate, boxes, sparks, rings, tape, tapeBack, lightsMesh, ...flySlots.map(f => f.mesh));
       for (const m of made) m.dispose();
       renderer.dispose();
       try { renderer.forceContextLoss(); } catch { /* fine */ }
