@@ -150,15 +150,15 @@ async function main() {
   ok(s.mode === 'solo' && !s.started && s.floor === 0 && /^[0-9a-z]{4,}$/.test(s.seed) && s.best === 0, `a new SOLO run waits for its start, a random seed (${s.seed}), no best yet on this phone`);
   const dom = await p.evaluate(() => {
     const q = sel => document.querySelector(sel), box = e => { const r = e.getBoundingClientRect(), c = getComputedStyle(e); return { x: r.left, y: r.top, w: r.width, h: r.height, fs: parseFloat(c.fontSize), text: e.textContent, op: +c.opacity }; };
-    return { sign: box(q('.hi-sign')), go: box(q('.hi-start-go')), l: box(q('.hi-start-l')), best: q('.hi-start-best').textContent, snd: box(q('.hi-snd')), note: box(q('.hi-note')), hud: box(q('.hi-hud')), endHidden: q('.hi-end').hidden, fps: !!q('.hi-fps'), stage: box(q('.hi-stage')), w: innerWidth, h: innerHeight, scroll: document.documentElement.scrollWidth, fonts: [...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/"/g, '')) };
+    return { sign: box(q('.hi-sign')), go: box(q('.hi-start-go')), l: box(q('.hi-start-l')), best: q('.hi-tag').hidden ? '' : q('.hi-tag').textContent, sub: box(q('.hi-start-sub')), box: getComputedStyle(q('.hi-start')).backgroundColor + getComputedStyle(q('.hi-start')).borderTopWidth, snd: box(q('.hi-snd')), note: box(q('.hi-note')), hud: box(q('.hi-hud')), endHidden: q('.hi-end').hidden, fps: !!q('.hi-fps'), stage: box(q('.hi-stage')), w: innerWidth, h: innerHeight, scroll: document.documentElement.scrollWidth, fonts: [...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/"/g, '')) };
   });
-  ok(dom.sign.text === 'HIGHRISE' && dom.sign.fs >= 56 && dom.sign.y > 40 && dom.sign.y + dom.sign.h < 844 * 0.36, `THE SIGN: HIGH / RISE stacked, big (${dom.sign.fs} px), in the free band above the tower`);
-  ok(dom.go.text === 'TAP TO START' && dom.go.fs >= 20 && dom.l.text === 'ONE TAP DROPS EACH SLAB' && dom.l.fs >= 13 && dom.best === '' && dom.endHidden, 'TAP TO START + the one rule under it; no best line on a first visit');
+  ok(dom.sign.text === 'HIGHRISE' && dom.sign.fs >= 56 && dom.sign.fs >= 80 && dom.sign.y > 60 && dom.sign.y + dom.sign.h < 844 * 0.4 && dom.sub.text === 'STACK IT AS HIGH AS YOU DARE' && dom.sub.fs >= 13 && dom.sub.y > dom.sign.y + dom.sign.h && dom.box === 'rgba(0, 0, 0, 0)0px', `THE WELCOME = A · THE SIGN: HIGH / RISE stacked, BIG (${dom.sign.fs} px), in the sky; its one line under it; no box, no panel`);
+  ok(dom.go.text === 'TAP TO START' && dom.go.fs >= 20 && dom.l.text === 'ONE TAP DROPS EACH SLAB' && dom.l.fs >= 13 && dom.go.fs >= 23 && dom.go.y > 844 * 0.8 && dom.l.y > dom.go.y && dom.best === '' && dom.endHidden, `TAP TO START big (${dom.go.fs} px) at the foot + the one rule under it; no BEST tag on a first visit`);
   ok(dom.snd.text === 'SOUNDS' && dom.snd.h >= 44 && dom.snd.w >= 44 && dom.snd.x >= 0 && dom.snd.y < 80 && dom.note.text === 'TEST PAGE · SOLO · NOTHING COUNTS YET' && dom.note.fs >= 11, 'SOUNDS in the top left corner (≥ 44 pt); the foot says TEST PAGE · SOLO · NOTHING COUNTS YET');
   ok(dom.hud.op === 0 && !dom.fps && dom.scroll <= dom.w && dom.stage.w === 390, 'the HUD waits for the run; no fps readout without ?fps=1; no sideways scroll');
   const geo = await p.evaluate(() => { const V = window.__hiPlay.view, a = V.project(5000, 0, -5000), c = V.project(-5000, 0, 5000), top = V.project(0, 0, 0); return { wide: Math.abs(a[0] - c[0]), level: Math.abs(a[1] - c[1]), topY: top[1], topX: top[0], zone: V.zoneTop() }; });
-  ok(geo.wide > 0.56 && geo.wide < 0.64 && geo.level < 0.01 && Math.abs(geo.topX - 0.5) < 0.02 && geo.topY > 0.5 && geo.topY < 0.68, `THE CAMERA: the first slab ≈ 60 % of the screen width (${(geo.wide * 100).toFixed(1)} %), corner-on, level, its top ${(geo.topY * 100).toFixed(0)} % down`);
-  ok(dom.go.y + dom.go.h < geo.topY * 844 - 40, 'the start\'s words sit clear above the tower\'s top');
+  ok(geo.wide > 0.54 && geo.wide < 0.64 && geo.level < 0.01 && Math.abs(geo.topX - 0.5) < 0.02 && geo.topY > 0.64 && geo.topY < 0.76, `THE CAMERA at THE WELCOME: the first slab ≈ 60 % of the screen width (${(geo.wide * 100).toFixed(1)} %), corner-on, level, its top ≈ 70 % down the screen (${(geo.topY * 100).toFixed(0)} %) — the sign has the sky`);
+  ok(dom.sub.y + dom.sub.h < geo.topY * 844 - 60 && dom.go.y > geo.topY * 844 + 40, 'the sign + its line sit clear above the top of the tower; TAP TO START below it, in the fade at the foot');
   ok(s.info.look === 'night' && s.info.tier === 2 && s.info.bloom && s.info.env && s.info.plates.includes(0) && s.info.held.length <= 2 && s.info.calls <= 12, `THE NIGHT LOOK: tier 2 + the bloom, the reflection map + the rooftops' plate in, ≤ 2 plates held (${s.info.held}), ${s.info.calls} draw calls a frame`);
 
   // ---- A BOT RUN THROUGH REAL TAPS
@@ -197,11 +197,11 @@ async function main() {
   const e = await p.evaluate(() => {
     const q = sel => document.querySelector(sel), box = el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, b: r.bottom, fs: parseFloat(getComputedStyle(el).fontSize), text: el.textContent }; };
     const L = window.__hiPlay, last = L.ends[L.ends.length - 1], tp = L.state().viewTop;
-    return { hidden: q('.hi-end').hidden, card: box(q('.hi-end')), words: box(q('.hi-end-t')), n: q('.hi-end-n').getAttribute('aria-label'), nfs: parseFloat(getComputedStyle(q('.hi-end-n')).fontSize), band: box(q('.hi-end-band')), line: box(q('.hi-end-l')), best: box(q('.hi-end-best')), go: box(q('.hi-again')), goR: parseFloat(getComputedStyle(q('.hi-again')).borderTopLeftRadius), goBg: getComputedStyle(q('.hi-again')).backgroundColor, goOld: !!q('.hi-end-go'), note: box(q('.hi-note')), sndB: box(q('.hi-snd')), check: box(q('.hi-check')), okCls: q('.hi-check').classList.contains('is-ok'),
+    return { hidden: q('.hi-end').hidden, card: box(q('.hi-end')), words: box(q('.hi-ec-cause')), n: q('.hi-ec-n').getAttribute('aria-label'), nBox: box(q('.hi-ec-n')), cols: [...document.querySelectorAll('.hi-ec-col')].map(c => [c.querySelector('.hi-ec-k').textContent, c.querySelector('b').textContent]), nfs: parseFloat(getComputedStyle(q('.hi-ec-n')).fontSize), band: box(q('.hi-ec-line')), line: box(q('.hi-ec-strip')), best: box(q('.hi-ec-col.is-best')), go: box(q('.hi-again')), goR: parseFloat(getComputedStyle(q('.hi-again')).borderTopLeftRadius), goBg: getComputedStyle(q('.hi-again')).backgroundColor, goOld: !!q('.hi-end-go'), note: box(q('.hi-note')), sndB: box(q('.hi-snd')), check: box(q('.hi-check')), okCls: q('.hi-check').classList.contains('is-ok'),
       top: L.view.project((tp.x0 + tp.x1) / 2, tp.floor, (tp.z0 + tp.z1) / 2)[1] * innerHeight, snd: !q('.hi-snd').hidden, last: { same: last.same, live: last.live, replay: last.replay, best: last.best, was: last.was }, stored: localStorage.getItem('hi:play:best'), keys: Object.keys(localStorage) };
   });
-  ok(!e.hidden && e.words.text === 'TOO SLOW' && e.words.fs >= 28 && e.n === String(s1.floor) && e.nfs >= 56 && e.band.text === 'THE ROOFTOPS', `THE END: "${e.words.text}" (${e.words.fs} px), FLOOR ${e.n} big, the band reached`);
-  ok(/^\d+ PERFECTS? · BEST STREAK \d+$/.test(e.line.text) && e.best.text === `YOUR BEST ${s1.floor}` && e.go.text === 'PLAY AGAIN' && e.go.fs >= 19 && !e.goOld, `"${e.line.text}" · "${e.best.text}" · PLAY AGAIN`);
+  ok(!e.hidden && e.words.text === 'TOO SLOW' && e.words.fs >= 17 && e.words.fs <= 22 && e.n === String(s1.floor) && e.nfs >= 120 && e.band.text === 'FLOOR · THE ROOFTOPS' && e.words.y < e.nBox.y && e.nBox.y < e.band.y && e.band.y < e.line.y, `THE END = A · THE HERO NUMBER: "${e.words.text}" small (${e.words.fs} px) · the floor ${e.n} HUGE (${e.nfs.toFixed(0)} px) · "${e.band.text}" · the stats strip`);
+  ok(e.cols.length === 3 && e.cols[0][0] === 'PERFECTS' && /^\d+$/.test(e.cols[0][1]) && e.cols[1][0] === 'BEST STREAK' && /^\d+$/.test(e.cols[1][1]) && e.cols[2][0] === 'YOUR BEST' && e.cols[2][1] === String(s1.floor) && e.go.text === 'PLAY AGAIN' && e.go.fs >= 19 && !e.goOld, `the strip: ${e.cols.map(c => c.join(' ')).join(' · ')} · PLAY AGAIN`);
   // THE END's FOOT (S2 FIX): ONE big solid bar in the game's accent — full width inside the gutters, ≥ 56 pt tall, a rounded rectangle (no pill), clear of the card, the SOUNDS button and the note
   ok(e.go.h >= 56 && e.go.x === 16 && e.go.w === 390 - 32 && e.goR > 0 && e.goR <= 14 && e.goR < e.go.h / 3 && e.goBg === 'rgb(255, 79, 216)', `THE FOOT: the PLAY AGAIN bar ${e.go.w} × ${e.go.h.toFixed(0)}, ${e.goR} px corners (no pill), solid in the accent (${e.goBg})`);
   ok(e.go.y >= e.card.b + 8 && e.go.y >= e.sndB.b + 8 && e.go.b <= e.note.y - 4 && e.go.b <= 844 - 8, `… clear of the card (${e.card.b.toFixed(0)} → ${e.go.y.toFixed(0)}), SOUNDS and the note (${e.go.b.toFixed(0)} → ${e.note.y.toFixed(0)})`);
@@ -289,8 +289,8 @@ async function main() {
   } else ok(true, '(this browser cannot lose a context on purpose)');
   // the end: NEW BEST · WAS n
   ok(await waitFor(p, 'window.__hiPlay.state().shown', 15000), 'the run ends (THE FUSE)');
-  const e2 = await p.evaluate(() => ({ best: document.querySelector('.hi-end-best').textContent, isNew: document.querySelector('.hi-end-best').classList.contains('is-new'), stored: localStorage.getItem('hi:play:best'), check: document.querySelector('.hi-check').textContent, band: document.querySelector('.hi-end-band').textContent, floor: window.__hiPlay.state().floor, ends: window.__hiPlay.ends.map(q => q.same) }));
-  ok(e2.best === `NEW BEST · WAS ${bestWas}` && e2.isNew && e2.stored === String(e2.floor) && e2.band === 'THE CLOUDS', `the end card: "${e2.best}" — stored (${e2.stored})`);
+  const e2 = await p.evaluate(() => ({ best: document.querySelector('.hi-ec-col.is-best').textContent, isNew: document.querySelector('.hi-ec-col.is-best').classList.contains('is-new'), stored: localStorage.getItem('hi:play:best'), check: document.querySelector('.hi-check').textContent, band: document.querySelector('.hi-ec-line').textContent, floor: window.__hiPlay.state().floor, ends: window.__hiPlay.ends.map(q => q.same) }));
+  ok(e2.best === `NEW BEST${e2.floor}` && e2.floor > bestWas && e2.isNew && e2.stored === String(e2.floor) && e2.band === 'FLOOR · THE CLOUDS', `the end card: NEW BEST ${e2.floor} (it was ${bestWas}) — stored (${e2.stored})`);
   ok(e2.check === 'REPLAY = LIVE ✓' && e2.ends.every(Boolean), `every run of this page: REPLAY = LIVE (${e2.ends.length} runs — real taps, the climb hook's drops, a lost context)`);
   ok(t.errs.length === 0, `no page error (${t.errs.join(' | ')})`);
 
@@ -306,7 +306,7 @@ async function main() {
   await sleep(6500);
   await p.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' }); document.dispatchEvent(new Event('visibilitychange')); });
   await p.bringToFront(); await other.close();
-  ok(await waitFor(p, 'window.__hiPlay.state().shown', 6000) && (await p.evaluate(() => document.querySelector('.hi-end-t').textContent)) === 'TOO SLOW', 'HIDING THE APP = NO PAUSE: back from 6.5 s away the run is over — TOO SLOW (the fuse)');
+  ok(await waitFor(p, 'window.__hiPlay.state().shown', 6000) && (await p.evaluate(() => document.querySelector('.hi-ec-cause').textContent)) === 'TOO SLOW', 'HIDING THE APP = NO PAUSE: back from 6.5 s away the run is over — TOO SLOW (the fuse)');
   const outs = await p.evaluate(() => window.__hiPlay.sfx.wanted().slice(-3).map(q => q.id));
   ok(outs[outs.length - 1] === 'out' && (await p.evaluate(() => window.__hiPlay.ends.slice(-1)[0].same)), 'the batch that came back sounds only its OUT; REPLAY = LIVE');
   const sent = t.reqs.slice(nBefore).filter(q => /\/api\//.test(q));
@@ -328,8 +328,8 @@ async function main() {
     const d = await open(390, 844, 3, '?mode=match&seed=abc&fps=1&tier=1&debug=1', () => { try { localStorage.setItem('hi:play:best', '41'); } catch { /* fine */ } });
     await ready(d.p); await sleep(700);
     const q = await st(d.p);
-    const dm = await d.p.evaluate(() => [document.querySelector('.hi-start-best').textContent, (document.querySelector('.hi-fps') || {}).textContent || '', location.search]);
-    ok(q.mode === 'match' && q.seed === 'abc' && q.best === 41 && dm[0] === 'YOUR BEST 41 · THIS PHONE' && q.info.tier === 1 && !q.info.bloom, '?mode=match&seed=abc&tier=1: the seed, the pinned tier (no bloom under the top tier); the start says YOUR BEST 41 · THIS PHONE');
+    const dm = await d.p.evaluate(() => [document.querySelector('.hi-tag').hidden ? '' : document.querySelector('.hi-tag').textContent, (document.querySelector('.hi-fps') || {}).textContent || '', location.search]);
+    ok(q.mode === 'match' && q.seed === 'abc' && q.best === 41 && dm[0] === 'BEST 41' && q.info.tier === 1 && !q.info.bloom, '?mode=match&seed=abc&tier=1: the seed, the pinned tier (no bloom under the top tier); the welcome shows YOUR BEST as the tape\'s tag — BEST 41');
     ok(/^\d+ fps · [\d.]+ ms · worst \d+ · tier 1 · \d+ calls · \d+ tris · 390×844 @2 · tick \d+ · HITCH \d+( \(last: .+\))?( · GC \d+)?$/.test(dm[1]), `?fps=1: the frame-rate readout (${dm[1]})`);
     ok(!/debug/.test(dm[2]), 'a &debug=1 link: the flag is dropped from the address (the shared audio engine never reports from here)');
     await tapAt(d, 195, 500);
@@ -337,9 +337,9 @@ async function main() {
     const clock = await d.p.evaluate(() => document.querySelector('.hi-clock').textContent);
     ok(/^[56]:\d\d$/.test(clock), `the match's clock runs under the band's name (${clock})`);
     await tapAt(d, 195, 500);   // (a drop the moment it entered: off the tower)
-    ok(await waitFor(d.p, 'window.__hiPlay.state().shown', 6000) && (await d.p.evaluate(() => document.querySelector('.hi-end-t').textContent)) === 'MISSED THE STACK', 'a drop with the slab off the tower: MISSED THE STACK');
-    const kept = await d.p.evaluate(() => [document.querySelector('.hi-end-best').textContent, localStorage.getItem('hi:play:best')]);
-    ok(kept[0] === 'YOUR BEST 41' && kept[1] === '41', 'a run under your best leaves it alone');
+    ok(await waitFor(d.p, 'window.__hiPlay.state().shown', 6000) && (await d.p.evaluate(() => document.querySelector('.hi-ec-cause').textContent)) === 'MISSED THE STACK', 'a drop with the slab off the tower: MISSED THE STACK');
+    const kept = await d.p.evaluate(() => [document.querySelector('.hi-ec-col.is-best').textContent, localStorage.getItem('hi:play:best')]);
+    ok(kept[0] === 'YOUR BEST41' && kept[1] === '41', 'a run under your best leaves it alone (YOUR BEST 41 in the strip)');
     ok(d.errs.length === 0 && d.reqs.every(r => allowed(r.slice(r.indexOf(' ') + 1))), `no page error, no stray request (${d.errs.join(' | ')})`);
     await d.close();
   }
@@ -368,7 +368,7 @@ async function main() {
     const q = await st(d.p);
     await shot(d.p, `${name}-run.png`);
     await waitFor(d.p, 'window.__hiPlay.state().shown', 15000);
-    const m = await d.p.evaluate(() => { const qs = sel => document.querySelector(sel), L = window.__hiPlay, tp = L.state().viewTop, st2 = qs('.hi-stage').getBoundingClientRect(), V = L.view, a = V.project(tp.x1, tp.floor, tp.z0), c = V.project(tp.x0, tp.floor, tp.z1); return { card: qs('.hi-end').getBoundingClientRect().bottom, top: V.project((tp.x0 + tp.x1) / 2, tp.floor, (tp.z0 + tp.z1) / 2)[1] * st2.height, stage: [st2.left, st2.width, st2.height], scroll: document.documentElement.scrollWidth, w: innerWidth, words: qs('.hi-end-t').textContent, go: qs('.hi-again').getBoundingClientRect(), check: qs('.hi-check').textContent }; });
+    const m = await d.p.evaluate(() => { const qs = sel => document.querySelector(sel), L = window.__hiPlay, tp = L.state().viewTop, st2 = qs('.hi-stage').getBoundingClientRect(), V = L.view, a = V.project(tp.x1, tp.floor, tp.z0), c = V.project(tp.x0, tp.floor, tp.z1); return { card: qs('.hi-end').getBoundingClientRect().bottom, top: V.project((tp.x0 + tp.x1) / 2, tp.floor, (tp.z0 + tp.z1) / 2)[1] * st2.height, stage: [st2.left, st2.width, st2.height], scroll: document.documentElement.scrollWidth, w: innerWidth, words: qs('.hi-ec-cause').textContent, go: qs('.hi-again').getBoundingClientRect(), check: qs('.hi-check').textContent }; });
     ok(d.up && q.taps === n && n >= 3 && m.scroll <= m.w && d.errs.length === 0, `${w} × ${h}: the game runs (floor ${q.floor} after ${n} real taps), no sideways scroll, no page error`);
     ok(m.card <= m.top + 6 && m.check === 'REPLAY = LIVE ✓', `${w} × ${h}: the end card ends above the top slab (${m.card.toFixed(0)} ≤ ${m.top.toFixed(0)}); REPLAY = LIVE ✓`);
     if (w > 700) ok(Math.abs(m.stage[1] - 0.6 * h) < 2 && Math.abs(m.stage[0] - (w - 0.6 * h) / 2) < 2, `${w} × ${h}: the phone's own column, centred (${m.stage[1].toFixed(0)} px wide)`);
@@ -380,7 +380,7 @@ async function main() {
 // ---- THE FRESH-EYES REVIEW's FINDS, each with its own check (docs/games/passes/highrise-s2.md "THE FRESH-EYES REVIEW")
 async function review() {
   const hit = (a, c) => !(a.r <= c.x || c.r <= a.x || a.b <= c.y || c.b <= a.y);
-  const boxes = p => p.evaluate(() => { const bx = sel => { const r = document.querySelector(sel).getBoundingClientRect(); return { x: r.left, y: r.top, r: r.right, b: r.bottom }; }, L = window.__hiPlay, tp = L.state().viewTop, sh = document.querySelector('.hi-stage').getBoundingClientRect().height; return { t: bx('.hi-end-t'), card: bx('.hi-end'), snd: bx('.hi-snd'), top: L.view.project((tp.x0 + tp.x1) / 2, tp.floor, (tp.z0 + tp.z1) / 2)[1] * sh, words: document.querySelector('.hi-end-t').textContent, best: document.querySelector('.hi-end-best').textContent, w: innerWidth }; });
+  const boxes = p => p.evaluate(() => { const bx = sel => { const r = document.querySelector(sel).getBoundingClientRect(); return { x: r.left, y: r.top, r: r.right, b: r.bottom }; }, L = window.__hiPlay, tp = L.state().viewTop, sh = document.querySelector('.hi-stage').getBoundingClientRect().height; return { t: bx('.hi-ec-cause'), card: bx('.hi-end'), snd: bx('.hi-snd'), top: L.view.project((tp.x0 + tp.x1) / 2, tp.floor, (tp.z0 + tp.z1) / 2)[1] * sh, words: document.querySelector('.hi-ec-cause').textContent, best: document.querySelector('.hi-ec-col.is-best').textContent, w: innerWidth }; });
   // (1) a phone in a Safari TAB is only ~660 px tall: the end's title never runs into the SOUNDS button — and THE END HOLD holds for a TAP's end
   for (const [w, h] of [[390, 664], [375, 667], [430, 739]]) {
     const d = await open(w, h, 2, '?seed=short');
@@ -396,7 +396,7 @@ async function review() {
     const g = await boxes(d.p);
     if (w === 390) ok(!early && held >= 550, `THE END HOLD holds when a TAP ends the run: the card came ${held} ms after the miss (the slab is seen falling first)`);
     ok(g.words === 'MISSED THE STACK' && !hit(g.t, g.snd) && g.t.y >= g.snd.b - 1 && g.card.b <= g.top + 6 && g.t.x >= 0 && g.t.r <= g.w, `${w} × ${h} (a Safari tab): "${g.words}" sits under the SOUNDS button's row (title from ${g.t.y.toFixed(0)}, the button to ${g.snd.b.toFixed(0)}) and the card still ends above the top slab (${g.card.b.toFixed(0)} ≤ ${g.top.toFixed(0)})`);
-    if (w === 390) ok(g.best === '', 'a first run that never landed a slab shows no "YOUR BEST 0"');
+    if (w === 390) ok(g.best === 'YOUR BEST—', 'a first run that never landed a slab shows no "YOUR BEST 0" (its column in the strip says —)');
     await shot(d.p, `review-${w}x${h}-missed.png`);
     await d.close();
   }
@@ -428,7 +428,7 @@ async function review() {
   {
     const d = await open(390, 844, 2, '?seed=far', () => { try { localStorage.setItem('hi:play:best', '300'); } catch { /* fine */ } });
     await ready(d.p); await sleep(200);
-    await tapAt(d, 195, 500); await sleep(400);
+    await tapAt(d, 195, 500); await sleep(1000);   // (the tag rides from the welcome's tape to its column on a 0.56 s transition)
     const g = await d.p.evaluate(() => { const r = document.querySelector('.hi-tag').getBoundingClientRect(), hud = document.querySelector('.hi-hud').getBoundingClientRect(); return { text: document.querySelector('.hi-tag').textContent, y: r.top, hud: hud.bottom, zone: window.__hiPlay.view.zoneTop() * innerHeight }; });
     ok(g.text === 'BEST 300 ▲300' && g.y - g.hud < 14 && g.y >= g.hud, `a best 300 floors up: the tag "${g.text}" sits at the TOP of its column (${g.y.toFixed(0)}, just under the HUD's ${g.hud.toFixed(0)} — never down against the drop zone at ${g.zone.toFixed(0)})`);
     await d.close();
@@ -474,7 +474,7 @@ async function review() {
     await d.p.evaluate(() => { const c = document.querySelector('canvas.hi-canvas'); (c.getContext('webgl2') || c.getContext('webgl')).getExtension('WEBGL_lose_context').loseContext(); });
     await waitFor(d.p, 'window.__hiPlay.state().rebuilds === 1 && window.__hiPlay.state().info.frames > 3', 4000);
     const s2 = await st(d.p);
-    ok(tapeWas === 5 && s2.info.tape === 5 && s2.best > 5, `a context lost on the END CARD: the gold tape stays on floor ${s2.info.tape} (the best moved on to ${s2.best})`);
+    ok(tapeWas === s2.best && s2.info.tape === s2.best && s2.best > 5, `a context lost on the END CARD: the gold tape stays where the end put it — round the NEW BEST's own top slab, floor ${s2.info.tape} (the best moved on from 5 to ${s2.best})`);
     // (9) PLAY AGAIN from high up: the first band's plate is back already
     ok(s2.info.held.includes(0) || s2.info.plates.includes(0), `the end card keeps the FIRST band's plate ready for PLAY AGAIN (held: ${s2.info.held})`);
     await d.close();
@@ -719,6 +719,50 @@ async function tapeLook() {
   }
 }
 
+// ---- THE WELCOME + THE END (S4A FIX's add-ons — the owner's picks "A · THE SIGN" + "A · THE HERO NUMBER"): the start screen and the
+// end screen in both looks at 390 × 844 @3 and 375 × 667 @2 — a first-ever visit + one with a best; a miss under the best, a NEW
+// BEST, MADE IT TO THE MOTHERSHIP (the match's finish — gold). `--screens` (SCREENS=start|end · FLY_LOOKS=day)
+async function screensLook() {
+  const which = process.env.SCREENS || 'start,end';
+  for (const lk of (process.env.FLY_LOOKS || 'night,day').split(',')) {
+    for (const [w, h, dpr] of [[390, 844, 3], [375, 667, 2]]) {
+      const size = `${w}x${h}`;
+      if (which.includes('start')) {
+        for (const best of [0, 119]) {
+          const t = await open(w, h, dpr, `?seed=welcome&look=${lk}`, best ? `try { localStorage.setItem('hi:play:best', '${best}'); } catch {}` : null);
+          ok(t.up && await ready(t.p), `${lk} ${size}: the start screen is up${best ? ' (a best of 119)' : ' (a first visit)'}`);
+          await sleep(900);
+          await shot(t.p, `start-${lk}-${size}${best ? '-best' : ''}.png`);
+          ok(t.errs.length === 0, `${lk} ${size}: no page error (${t.errs.join(' | ')})`);
+          await t.close();
+        }
+      }
+      if (which.includes('end')) {
+        // a miss at floor 75 under a best of 119 · a NEW BEST (57 → 63)
+        for (const [name, best, floors] of [['miss', 119, 75], ['newbest', 57, 63]]) {
+          const t = await open(w, h, dpr, `?seed=end1&look=${lk}`, `try { localStorage.setItem('hi:play:best', '${best}'); } catch {}`);
+          await ready(t.p);
+          await climb(t.p, floors, 'i => (i % 7 === 6 ? 2 : 0)');
+          await t.p.evaluate(() => new Promise(res => { const L = window.__hiPlay; (function w8() { if (L.state().st === 'slide') { const pl = document.querySelector('.hi-play'); pl.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', button: 0 })); res(); } else setTimeout(w8, 4); })(); }));
+          await waitFor(t.p, 'window.__hiPlay.state().shown', 9000); await sleep(1300);
+          await shot(t.p, `end-${lk}-${size}-${name}.png`);
+          ok(t.errs.length === 0, `${lk} ${size} ${name}: no page error (${t.errs.join(' | ')})`);
+          await t.close();
+        }
+        if (w === 390) {
+          const m = await open(w, h, dpr, `?seed=fly2&mode=match&look=${lk}`);
+          await ready(m.p);
+          await climb(m.p, 200);
+          await waitFor(m.p, 'window.__hiPlay.state().shown', 9000); await sleep(1300);
+          await shot(m.p, `end-${lk}-${size}-made.png`);
+          ok(m.errs.length === 0, `${lk} ${size} made: no page error (${m.errs.join(' | ')})`);
+          await m.close();
+        }
+      }
+    }
+  }
+}
+
 // ---- THE ICON (S4A FIX — the owner's pick "A · THE TOWER", js/core/marks.js `highrise`): the mark through the app's ONE builder
 // (ui/mark-svg.js — the PLAY shelf's row + the room's PICK A GAME: 40 px, stroke 7) at its real size and twice + four times it, beside
 // JAYWALK's, and in the PLAY sheet's preview tile (72 % of a dark tile). `--icon`
@@ -904,6 +948,7 @@ async function s3() {
     // NOTHING INSIDE THE PLAY ZONE — the canvas's own pixels: before a run the tower stands still, so the rows from THE DROP ZONE's upper
     // edge down must be THE SAME with a flyer in the sky as without one
     const bd = await bandOf(p);
+    await p.evaluate(() => window.__hiPlay.view.welcome(false)); await sleep(700);   // (THE WELCOME's own slab breathes in the play zone: put away for this pixel check)
     await grabDiff(p, 'zone', bd.zone, 1); await grabDiff(p, 'sky', bd.top, bd.zone);
     const still = await grabDiff(p, 'zone', bd.zone, 1);
     ok(still.changed === 0, `${lk}: (the play zone's pixels hold still before a run: ${still.changed} of ${still.n} changed)`);
@@ -1000,9 +1045,9 @@ async function s3() {
       ok(await waitFor(d.p, 'window.__hiPlay.state().shown', 6000), `${lk} match: the end card comes`);
       const held = Date.now() - tEnd;
       await sleep(400); await shot(d.p, `s3-390-${lk}-finish-card.png`);
-      const fc = await d.p.evaluate(() => { const q = sel => document.querySelector(sel), cs = sel => getComputedStyle(q(sel)).color; return { words: q('.hi-end-t').textContent, made: q('.hi-stage').classList.contains('is-made'), n: q('.hi-end-n').dataset.n, line: q('.hi-end-l').textContent, check: q('.hi-check').textContent, cT: cs('.hi-end-t'), cN: cs('.hi-end-n'), cL: cs('.hi-end-l'), bar: getComputedStyle(q('.hi-again')).backgroundColor, sky: q('.hi-stage').dataset.sky }; });
-      ok(fc.words === 'MADE IT TO THE MOTHERSHIP' && fc.made && fc.n === '200' && /^200 PERFECTS · BEST STREAK 200$/.test(fc.line), `${lk} match: the card — "${fc.words}", FLOOR ${fc.n}, "${fc.line}"`);
-      ok(fc.cT === 'rgb(255, 246, 216)' && fc.cN === 'rgb(255, 246, 216)' && fc.cL === 'rgb(255, 233, 168)' && fc.bar === 'rgb(255, 79, 216)' && fc.sky === 'dark', `${lk} match: … in GOLD (the words, the floor, the perfects); the PLAY AGAIN bar keeps HIGH RISE's hot pink`);
+      const fc = await d.p.evaluate(() => { const q = sel => document.querySelector(sel), cs = sel => getComputedStyle(q(sel)).color; return { words: q('.hi-ec-cause').textContent, made: q('.hi-stage').classList.contains('is-made'), n: q('.hi-ec-n').getAttribute('aria-label'), line: q('.hi-ec-strip').textContent, check: q('.hi-check').textContent, cT: cs('.hi-ec-cause'), cN: cs('.hi-ec-n'), bar: getComputedStyle(q('.hi-again')).backgroundColor, sky: q('.hi-stage').dataset.sky }; });
+      ok(fc.words === 'MADE IT TO THE MOTHERSHIP' && fc.made && fc.n === '200' && /^PERFECTS200BEST STREAK200YOUR BEST200$/.test(fc.line), `${lk} match: the card — "${fc.words}", FLOOR ${fc.n}, the strip 200 · 200 · 200`);
+      ok(fc.cT === 'rgb(255, 224, 138)' && fc.cN === 'rgb(255, 246, 216)' && fc.bar === 'rgb(255, 79, 216)' && fc.sky === 'dark', `${lk} match: … in GOLD (the words + the floor); the PLAY AGAIN bar keeps HIGH RISE's hot pink`);
       ok(held > 2400 && fc.check === 'REPLAY = LIVE ✓', `${lk} match: the card waited ${held} ms for the light; ${fc.check}`);
       ok(d.errs.length === 0 && d.reqs.every(r => allowed(r.slice(r.indexOf(' ') + 1))), `${lk} match: no page error, no stray request (${d.errs.join(' | ')})`);
       await d.close();
@@ -1021,9 +1066,9 @@ async function s3() {
     let n = 0;
     for (let i = 0; i < 9 && !(await st(d.p)).over; i++) { if (await atPerfect(d.p, 14) !== 'go') break; await tapAt(d, 195, 500); n++; await sleep(60); }
     ok(await waitFor(d.p, 'window.__hiPlay.state().shown', 9000), '… seven REAL taps later: floor 200');
-    const fe = await d.p.evaluate(() => ({ words: document.querySelector('.hi-end-t').textContent, check: document.querySelector('.hi-check').textContent, best: document.querySelector('.hi-end-best').textContent, stored: localStorage.getItem('hi:play:best'), floor: window.__hiPlay.state().floor }));
+    const fe = await d.p.evaluate(() => ({ words: document.querySelector('.hi-ec-cause').textContent, check: document.querySelector('.hi-check').textContent, best: document.querySelector('.hi-ec-col.is-best').textContent, stored: localStorage.getItem('hi:play:best'), floor: window.__hiPlay.state().floor }));
     ok(fe.words === 'MADE IT TO THE MOTHERSHIP' && fe.floor === 200 && n === 7 && fe.check === 'REPLAY = LIVE ✓', `the finish from a ?floor start: "${fe.words}" after ${n} real taps; ${fe.check}`);
-    ok(fe.stored === '7' && fe.best === 'YOUR BEST 7', `a look check never moves YOUR BEST (stored ${fe.stored}; the card: "${fe.best}")`);
+    ok(fe.stored === '7' && fe.best === 'YOUR BEST7', `a look check never moves YOUR BEST (stored ${fe.stored}; the card: "${fe.best}")`);
     ok(d.errs.length === 0, `no page error (${d.errs.join(' | ')})`);
     await d.close();
   }
@@ -1065,6 +1110,7 @@ async function s3() {
 
 if (LOOK) await look();
 else if (argv.includes('--ufo')) await ufoLook();
+else if (argv.includes('--screens')) await screensLook();
 else if (argv.includes('--icon')) await iconLook();
 else if (argv.includes('--tape')) await tapeLook();
 else if (argv.includes('--fly')) await flyLook();

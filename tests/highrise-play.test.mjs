@@ -59,7 +59,7 @@ test('HIGH RISE IS HIDDEN (S4A): a hidden cartridge — its files, and nothing a
     assert.doesNotMatch(read(f), /highrise|HIGH RISE/i, `${f} does not know HIGH RISE`);
   }
   const dir = readdirSync(new URL(`../${HI}`, import.meta.url)).sort();
-  assert.deepEqual(dir, ['audition.js', 'bands.js', 'best.js', 'bot.js', 'camera.js', 'director.js', 'engine.js', 'final.js', 'flyers.js', 'flyplan.js', 'graybox.js', 'index.js', 'lab.js', 'lines.js', 'logic.js', 'look.js', 'meta.js', 'night-fx.js', 'night.js', 'play.js', 'proof.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower.js', 'tuning.js', 'view.js'], 'S4A\'s files: + the cartridge (meta · index · director · view · final), the proof, the lines, the stage');
+  assert.deepEqual(dir, ['audition.js', 'bands.js', 'best.js', 'bot.js', 'camera.js', 'director.js', 'endscreen.js', 'engine.js', 'final.js', 'flyers.js', 'flyplan.js', 'graybox.js', 'index.js', 'lab.js', 'lines.js', 'logic.js', 'look.js', 'meta.js', 'night-fx.js', 'night.js', 'play.js', 'proof.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower.js', 'tuning.js', 'view.js'], 'S4A\'s files: + the cartridge (meta · index · director · view · final), the proof, the lines, the stage · S4A FIX: + endscreen.js (the end screen\'s body — the page\'s card + the cartridge\'s)');
   // the ONE endpoint that knows it: /api/report (the judge behind THE SWITCH) — no new function, no other endpoint
   const fns = readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js'));
   assert.deepEqual(fns.filter(f => /highrise/i.test(read(`api/${f}`))), ['report.js'], 'only /api/report knows HIGH RISE');
@@ -68,7 +68,7 @@ test('HIGH RISE IS HIDDEN (S4A): a hidden cartridge — its files, and nothing a
 test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + lazy): its own files, the kit\'s tiers, the shared sheet + audio engine, three.js; nothing from /api, the profile, progression, the report, share, the cards, Firebase, the store', () => {
   const g = graph(`${HI}play.js`);
   const own = g.files.filter(f => f.startsWith(HI)).map(f => f.slice(HI.length));
-  assert.deepEqual(own, ['audition.js', 'bands.js', 'best.js', 'camera.js', 'engine.js', 'flyers.js', 'flyplan.js', 'lines.js', 'logic.js', 'look.js', 'meta.js', 'night-fx.js', 'night.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower.js', 'tuning.js'], 'the game own modules (never the lab, never the sim bots, NEVER the cartridge view / index / proof / final) — S3: + the look choice, the flyers plan + the flyers (lazy) · S4A: + stage.js (the run loop the page AND the cartridge mount — it counts nothing itself), lines.js (pure: THE NEXT FRIEND words), meta.js (pure, no imports)');
+  assert.deepEqual(own, ['audition.js', 'bands.js', 'best.js', 'camera.js', 'endscreen.js', 'engine.js', 'flyers.js', 'flyplan.js', 'lines.js', 'logic.js', 'look.js', 'meta.js', 'night-fx.js', 'night.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower.js', 'tuning.js'], 'the game own modules (never the lab, never the sim bots, NEVER the cartridge view / index / proof / final) — S3: + the look choice, the flyers plan + the flyers (lazy) · S4A: + stage.js (the run loop the page AND the cartridge mount — it counts nothing itself), lines.js (pure: THE NEXT FRIEND words), meta.js (pure, no imports)');
   assert.deepEqual(g.files.filter(f => !f.startsWith(HI)), ['js/audio/engine.js', 'js/audio/leave-text.js', 'js/audio/settings.js', 'js/audio/sound-state.js', 'js/core/bot-ua.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/core/rng.js', 'js/core/sky.js', 'js/core/weather.js', 'js/errlog.js', 'js/games/jaywalk/models.js', 'js/games/kit/look.js', 'js/games/kit/tiers.js', 'js/ui/dom.js', 'js/ui/layers.js', 'js/ui/lazy-import.js', 'js/ui/sheet.js'], 'the shared modules: the integer hash, the tiers, the DOM helper + THE SHEET, the skew wrapper, the audio engine (+ what IT may load lazily: its leave text, the quiet counter) — the JAYWALK lab\'s kind; S3: + THE SITE\'s OWN SUN RULE (kit/look.js → core/sky.js + the three pure modules it reads — AUTO only) + JAYWALK\'s GLB reader (the flyers\' models, three.js only)');
   assert.ok(code('js/games/jaywalk/models.js').includes("const DIR = new URL('../../../assets/jaywalk/models/', import.meta.url);") && !/\/api\/|firebase|sendBeacon|WebSocket/i.test(code('js/games/jaywalk/models.js')), 'JAYWALK\'s GLB reader: three.js + its own model files, nothing else');
   for (const f of ['js/core/sky.js', 'js/core/weather.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/games/kit/look.js']) assert.doesNotMatch(code(f), /(^|[^.\w])fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket|firebase/i, `${f}: pure — it asks nothing of any server`);
@@ -142,7 +142,7 @@ test('THE RUN ON THE PAGE: FAIR TAPS, tick 0 = the START touch, a beat\'s tap ne
   // NO LAYOUT READ IN THE FRAME — nor in what the frame calls (the review: say() + moments() forced a layout on every perfect): the
   // ONLY layout reads of the whole page are sized()'s, a ResizeObserver's
   const layout = /clientWidth|clientHeight|getBoundingClientRect|offsetWidth|offsetHeight|offsetTop|scrollWidth|scrollHeight|getComputedStyle/g;
-  assert.equal(s.replace('function sized() { stageH = stage.clientHeight; hudFoot = hud.offsetTop + hud.offsetHeight; tagDirty = true; }', '').match(layout), null, 'no layout read anywhere but sized()');
+  assert.equal(s.replace('function sized() { stageH = stage.clientHeight; stageW = stage.clientWidth; hudFoot = hud.offsetTop + hud.offsetHeight; tagDirty = true; }', '').match(layout), null, 'no layout read anywhere but sized()');
   assert.ok(s.includes('const ro = new ResizeObserver(sized); ro.observe(stage); ro.observe(hud);'));
   assert.ok(s.includes("if (call.animate) { let a = pops.get(ms); if (a) a.play(); else { a = call.animate(POP, { duration: ms, fill: 'both' }); pops.set(ms, a); } callAnim = a; }") && s.includes("else call.style.opacity = '1';"), 'the announcer\'s one-shot = the Web Animations API (opacity + transform), restarted without a reflow');
   assert.doesNotMatch(read('css/highrise-play.css'), /@keyframes (?!hi-breathe)/, 'the only CSS keyframes left: the two breathing lines (opacity)');
@@ -252,7 +252,7 @@ test('YOUR BEST (best.js — PURE): no best = nothing · above you = the right-e
   assert.ok(s.includes("if (crossedBest(best, e.floor)) {") && s.includes("tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold');") && s.includes("say('NEW BEST', 'hi-call is-gold', 5, 1900, now);"));
   assert.ok(s.includes('let yg = gold ? tagY(view.restY(Math.min(best, run.floor + 100)) * stageH, hudFoot, zone) : -1e9, yf = -1e9;') && s.includes('const zone = view.restZone() * stageH;'), 'the tag: its floor\'s height (clamped 100 floors up — a point behind the camera projects mirrored: the review), clear of the HUD + THE DROP ZONE');
   assert.ok(s.includes('best = Math.max(best, readBest());'), 'a phone whose storage is blocked keeps its best for the visit');
-  assert.ok(s.includes("endBest.textContent = !best ? '' : !was ? `YOUR BEST ${best}`"), 'a first run that never landed a slab shows no "YOUR BEST 0"');
+  assert.ok(s.includes('EC.best(best, best > was && was > 0);') && read(`${HI}endscreen.js`).includes("bestV.textContent = v ? say(v) : '—';"), 'a first run that never landed a slab shows no "YOUR BEST 0" (the column says —); NEW BEST is said of a best that was beaten');
   assert.match(s, /best = FROM \? was : nextBest\(was, live\.floor\);[^\n]*\n\s*if \(best > was\) writeBest\(best\);/, 'a run moves YOUR BEST — a `?floor=N` look check never does');
   assert.ok(code(`${HI}play.js`).includes("const FROM = Math.max(0, Math.min(400, Math.floor(Number(Q.get('floor')) || 0)));") && s.includes('if (FROM) climbBy(FROM, null);'), '`?floor=N`: the START tap plays N clean drops through the real engine (the lab\'s `?lane=N`)');
   assert.match(read('css/highrise-play.css'), /\.hi-tag \{ position: absolute; right: 0;/, 'the tag sits at the RIGHT edge');
@@ -408,7 +408,7 @@ test('THE DAY LOOK (S3 — static): the SAME programs as the night (uDay in ever
   assert.deepEqual([0, 60, 107, 108, 150, 250].map(f => skyTone('day', f)), ['bright', 'bright', 'bright', 'dark', 'dark', 'dark']);
   assert.deepEqual([0, 60, 250].map(f => skyTone('night', f)), ['dark', 'dark', 'dark']);
   const css = read('css/highrise-play.css');
-  assert.match(css, /\.hi-stage\[data-sky='bright'\] \{ --hi-ink: #0d1740;/); assert.match(css, /\.hi-stage\[data-sky='bright'\] \.hi-num, \.hi-stage\[data-sky='bright'\] \.hi-end-n \{ color: var\(--hi-ink\);/);
+  assert.match(css, /\.hi-stage\[data-sky='bright'\] \{ --hi-ink: #0d1740;/); assert.match(css, /\.hi-stage\[data-sky='bright'\] \.hi-num \{ color: var\(--hi-ink\);/);
   assert.doesNotMatch(css, /data-sky='bright'\][^{]*\.hi-again/, 'the PLAY AGAIN bar keeps HIGH RISE\'s hot pink by day');
   assert.ok(code(`${HI}stage.js`).includes("if (lk !== lookSeen || tone !== toneSeen) { lookSeen = lk; toneSeen = tone; mark('dom'); stage.dataset.look = lk; stage.dataset.sky = tone; }"), 'the page\'s words follow the picture — written only at a change');
 });
@@ -530,9 +530,9 @@ test('THE FLYERS (S3 — flyers.js + night.js\'s stage, static): a LAZY module, 
   assert.ok(existsSync(new URL('../scripts/bake/highrise-f22.mjs', import.meta.url)) && /art\/models\/f22\/f22_raptor_free\.glb/.test(read('scripts/bake/highrise-f22.mjs')), 'built from the city\'s source model');
   // THE MOTHERSHIP + DEEP SPACE: seen from ~180, the solo moment (the camera glances up), the finish's light; the stars + the aurora past 200
   assert.ok(fl.includes('ease((F.cf - FLY.shipFrom) / (FLY.shipAt - FLY.shipFrom))') && fl.includes('S.glance(gl);') && fl.includes('S.pour(beam * (0.8 + 0.2 * Math.sin(tq * 7)));'));
-  assert.ok(n.includes('const lookY = NUM[CAMY] + CAM.lift - NUM[BUMP] * 0.022 + glance * 0.42,') && n.includes('glance(v) { glance = reduce ? 0 : v; }'), 'the camera glances up (not with reduce motion)');
+  assert.ok(n.includes('const lookY = NUM[CAMY] + CAM.lift - NUM[BUMP] * 0.022 + glance * 0.42 + NUM[LIFT] * 2 * dist * TH / cp,') && n.includes('glance(v) { glance = reduce ? 0 : v; }'), 'the camera glances up (not with reduce motion)');
   assert.match(n, /export const SPACE_FROM = 200, SPACE_FULL = 212;/); assert.ok(n.includes('const space = cf <= SPACE_FROM ? 0 : cf >= SPACE_FULL ? 1 : (cf - SPACE_FROM) / (SPACE_FULL - SPACE_FROM);') && n.includes('if (plateU.uSpace.value !== space) plateU.uSpace.value = space;') && fx.includes('if (uSpace > 0.001) c += space() * uSpace;'));
-  assert.match(read('css/highrise-play.css'), /\.hi-stage\.is-made \.hi-end-n \{ color: #fff6d8;/, 'THE FINISH: the end card in gold — the words, the floor, the perfects');
+  assert.match(read('css/highrise-play.css'), /\.hi-ec\.is-made \.hi-ec-n \{ color: #fff6d8;/, 'THE FINISH: the end card in gold — the words + the floor (S4A FIX: endscreen.js)');
   assert.doesNotMatch(fl, /performance\.now|requestAnimationFrame|\bDate\b/, 'flyers.js keeps no clock of its own (night.js hands it the frame)');
   for (const l of fl.split('\n').filter(x => /Math\.random/.test(x))) assert.match(l, /S\.spark\(/, 'its only dice are the finish\'s sparks');
 });

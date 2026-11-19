@@ -7,8 +7,8 @@
 // No pills, no emoji, no dev text. JAYWALK's victory.js is the pattern.
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { END_WORDS, perfectsLine, floorOf } from './logic.js';
-import { BANDS, bandAt } from './bands.js';
+import { END_WORDS, floorOf } from './logic.js';
+import { endCard } from './endscreen.js';
 import { BEST_KEY, cleanBest } from './best.js';
 import { BOARD, SRV_BEST_KEY } from './lines.js';
 
@@ -63,22 +63,20 @@ export function finalScene(el, game, state) {
   const uid = state && state.uid, code = state && state.code;
   const r = ((game && game.results) || {})[uid] || {}, floor = Math.max(0, Math.floor(Number(r.f) || 0)), made = r.w === 'made';
   el.classList.add('hi-fin'); el.dataset.mode = 'solo';
-  if (made) el.classList.add('is-made');
-  const big = h('b'), best = h('div.hi-fin-best', ''), would = h('div.hi-fin-would', '');
-  big.replaceChildren(...[...String(floor)].map(d => h('span.hi-dg', { 'aria-hidden': 'true' }, d))); big.setAttribute('aria-label', String(floor));
-  el.replaceChildren(
-    h('div.hi-fin-t', r.bad ? 'NOT COUNTED' : END_WORDS[r.w] || 'THE TOWER STANDS'),
-    h('div.hi-fin-floor', h('span.hi-fin-k', 'FLOOR'), big),
-    h('div.hi-fin-band', BANDS[bandAt(floor)].name),
-    h('div.hi-fin-l', `${perfectsLine(r.p)} · BEST STREAK ${Math.floor(Number(r.s) || 0)}`),
-    best, would);
+  // THE BODY = "A · THE HERO NUMBER" (S4A FIX's add-on — endscreen.js, the SAME card as the test page's): the cause · the floor, huge ·
+  // FLOOR · THE BAND · the stats strip (PERFECTS · BEST STREAK · YOUR BEST). THE SWITCH's line is ONE small line just over the PLAY AGAIN
+  // bar (moved there once the frame stands — never in the strip).
+  const EC = endCard(), would = h('div.hi-fin-would', '');
+  EC.set({ words: r.bad ? 'NOT COUNTED' : END_WORDS[r.w] || 'THE TOWER STANDS', made, floor, perfects: r.p, streak: r.s });
+  el.replaceChildren(EC.el, would);
+  const overBar = () => { const fr = el.closest('.final'), foot = fr && fr.querySelector('.final-foot'); if (foot && would.nextElementSibling !== foot) foot.before(would); };
   // YOUR BEST as this phone knows it (the server's last answer once counting is ON — else its own): the server's answer below puts it right
   const srv = cleanBest(ls.get(SRV_BEST_KEY)), known = srv || cleanBest(ls.get(BEST_KEY));
   // (THE REVIEW: the stage stored a run's new best BEFORE this screen was asked for — while counting is OFF (no server best yet) the
-  //  phone's own record says NEW BEST · WAS n here; the server's answer takes the line over once counting is ON)
+  //  phone's own record says NEW BEST here; the server's answer takes the column over once counting is ON)
   const nb = globalThis.__hiNewBest;
-  if (!srv && nb && game && nb.m === game.matchId && nb.v === floor && floor > 0) { best.textContent = nb.was > 0 ? `NEW BEST · WAS ${num(nb.was)}` : 'NEW BEST'; best.classList.add('is-new'); }
-  else if (known > 0) best.textContent = `YOUR BEST · ${num(known)}`;
+  if (!srv && nb && game && nb.m === game.matchId && nb.v === floor && floor > 0) EC.best(floor, true);
+  else EC.best(known, false);
   if (!code) return;
   let tabled = false;
   const table = () => { if (!tabled && el.isConnected) { tabled = true; yourTable(el); } };
@@ -90,14 +88,14 @@ export function finalScene(el, game, state) {
       if (!o || !el.isConnected) return;
       table();
       // THE SWITCH, OFF: the server judged the run, awarded nothing, and says what it WOULD have
-      if (o.would) { would.textContent = wouldLine(o.would); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }
+      if (o.would) { overBar(); would.textContent = wouldLine(o.would); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }
       // counting ON: NEW BEST / YOUR BEST from the server's own record of this match
       const pb = (o.pbs || []).find(x => x.b === BOARD), cur = (o.bests || {})[BOARD];
       if (pb) {
         ls.set(SRV_BEST_KEY, floorOf(pb.v));
-        best.textContent = pb.prev != null ? `NEW BEST · WAS ${num(floorOf(pb.prev))}` : 'NEW BEST'; best.classList.add('is-new');
+        EC.best(floorOf(pb.v), true);
         lazyImport(import('./sfx.js'), './sfx.js').then(S => S.play('streak', { rate: 1.12 })).catch(() => {});
-      } else if (cur != null) { ls.set(SRV_BEST_KEY, floorOf(cur)); best.textContent = `YOUR BEST · ${num(floorOf(cur))}`; }
+      } else if (cur != null) { ls.set(SRV_BEST_KEY, floorOf(cur)); EC.best(floorOf(cur), false); }
     };
     show(Q.outcomeFor(k));
     const off = Q.onOutcome((kk, o) => { if (kk === k) show(o); });

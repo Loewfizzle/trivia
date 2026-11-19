@@ -302,7 +302,7 @@ test('THE FRESH-EYES REVIEW — the view + the stage: a LATE GO answer never tou
   assert.doesNotMatch(v, /proof\(node\.go/, 'the seed is never picked from the mirror');
   assert.match(st, /starting = true; stage\.classList\.add\('is-starting'\);\s*awakeAt = performance\.now\(\); awake\(true\);/, 'the hold: in the START touch');
   assert.match(st, /if \(\(t0 != null \|\| starting\) && !shown && now - awakeAt > 1000\) \{ awakeAt = now; awake\(true\); \}/, '… renewed while GO is on its way');
-  assert.match(v, /S\.hideCard\(\);[^\n]*\n\s*final = createFinal\(/); assert.match(st, /hideCard\(\) \{ if \(!card\) return; card = false; end\.hidden = true; again\.hidden = true; stage\.classList\.remove\('is-over'\); \},/);
+  assert.match(v, /S\.hideCard\(\);[^\n]*\n\s*final = createFinal\(/); assert.match(st, /hideCard\(\) \{ if \(!card\) return; card = false; end\.hidden = true; check\.hidden = true; again\.hidden = true; stage\.classList\.remove\('is-over'\); \},/);
   assert.match(st, /!\(shown && !card\) && !stage\.classList\.contains\('is-final'\) &&/, 'a key never restarts a run under the podium');
   assert.ok(st.indexOf('if (best > was) writeBest(best);') < st.indexOf('const E = o.onEnd ? o.onEnd(live) : null;'), 'YOUR BEST is stored BEFORE the end screen is asked for');
   assert.match(fin, /if \(!srv && nb && game && nb\.m === game\.matchId && nb\.v === floor && floor > 0\)/, 'counting OFF: NEW BEST from this phone\'s own record of THIS run');

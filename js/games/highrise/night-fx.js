@@ -258,19 +258,21 @@ void main() {
 export const TAPE_LINE = 0.0021, TAPE_GLOW = 0.016, TAPE_BACK = 0.3;
 export const TAPE_V = /* glsl */`
 uniform float uH;
-varying float vY; varying vec3 vN;
-void main() { vY = position.y * uH; vN = normal; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+varying float vY, vA; varying vec3 vN;
+void main() { vY = position.y * uH; vN = normal; vA = abs(normal.x) > 0.5 ? position.z : position.x; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 // THE WHITE CORE (S4A FIX — the owner: THE NEXT FRIEND's pink tape "read only by its glow" over the rooftops' own pink slabs): uCore = 1
 // puts a thin WHITE line at the tape's heart and its own colour as a band either side of it (TAPE_CORE_EDGE × the line's half width),
 // then the glow — white on pink reads on a pink slab by night and on bright sky by day (there the dark outline under it is plum).
 // uCore = 0 is the gold tape exactly as it was (the same maths: the band IS the line).
-export const TAPE_CORE_EDGE = 1.25;
+export const TAPE_CORE_EDGE = 1.25, TAPE_DASHES = 9;
 export const TAPE_F = /* glsl */`
 uniform vec3 uCol;
-uniform float uGlow, uWhite, uFace, uBloom, uDay, uCore;
-varying float vY; varying vec3 vN;
+uniform float uGlow, uWhite, uFace, uBloom, uDay, uCore, uDash;
+varying float vY, vA; varying vec3 vN;
 void main() {
   if (abs(vN.y) > 0.5 || uFace < 0.004) discard;   // (no top, no foot: an outline, never a lid)
+  // (THE END SCREEN's ghost — YOUR BEST still above you: the same outline DASHED, ${TAPE_DASHES.toFixed(1)} dashes an edge — vA runs −0.5 … 0.5 along it)
+  if (uDash > 0.5 && fract(vA * ${TAPE_DASHES.toFixed(1)} + 0.25) > 0.56) discard;
   float px = fwidth(vY) + 1e-6, a = abs(vY);
   float hw = (1.0 + 0.9 * uDay) * max(1.1 * px, ${TAPE_LINE.toFixed(4)});
   float line = 1.0 - smoothstep(hw - 0.75 * px, hw + 0.75 * px, a);

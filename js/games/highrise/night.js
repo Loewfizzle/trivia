@@ -37,6 +37,13 @@ const PIECES = 8, TAPE = 4, BOXES = KEEP + 1 + 2 + PIECES + TAPE, SPARKS = 224, 
 export const FLY_SLOTS = 3, LIGHTS = 320;
 /** DEEP SPACE (S3 — solo, past THE MOTHERSHIP): the drifting stars + the aurora come in over these floors */
 export const SPACE_FROM = 200, SPACE_FULL = 212;
+/** THE POSES (S4A FIX's add-ons): how far down the screen the tower stands, a share of the screen's height · the end screen's ghost floats this many floors over the top slab */
+export const POSE = Object.freeze({ play: 0, welcome: 0.15, end: 0.1 });
+/** THE END's GHOST (YOUR BEST still above you — the dashed gold outline): never thinner than GHOST_MIN (world units — a slab's side is 1: a
+ *  top slab cut to a sliver still gets an outline that reads), and it FLOATS CLEAR of the tower — its near corner GHOST_GAP floors over
+ *  the top slab's far corner as the diagonal camera sees them: ghostUp(sx, sz) = how many floors over the top slab it hangs */
+export const GHOST_MIN = 0.62, GHOST_GAP = 1.4;
+export const ghostUp = (sx, sz) => GHOST_GAP + (Math.max(GHOST_MIN, sx) + Math.max(GHOST_MIN, sz)) * Math.tan(CAM.pitch * Math.PI / 180) / (Math.SQRT2 * SLAB_H);
 const SPARKS_AT = [12, 22, 34];            // a cut's sparks by tier (× its length)
 // (S4A FIX — every colour + rect a frame READS is a Float64Array: a list of fractions read as a plain array hands each one over as a
 //  small object in a browser's engine once two kinds of list meet at the same line — forty slabs, seven reads a slab, every frame)
@@ -271,7 +278,7 @@ export function createNight(host, o = {}) {
   // well under the top (TAPE_BACK_FROM … TAPE_BACK_FULL floors: never a diamond inside the top slab, where the player aims).
   const TAPE_H = 0.07, TAPE_OUT = 0.004, TAPE_BACK_FROM = 2, TAPE_BACK_FULL = 6;
   const TAPE_GOLD = [1, 0.56, 0.08];   // (a deeper, warmer gold than the flash's: beside the cyan + the blue slabs' own lines the page's #ffc83c read as lemon — the look review, twice)
-  const tapeU = { uCol: { value: new THREE.Vector3(TAPE_GOLD[0], TAPE_GOLD[1], TAPE_GOLD[2]) }, uGlow: { value: 1 }, uWhite: { value: 0 }, uH: { value: TAPE_H }, uBloom: G.uBloom, uFace: { value: 1 }, uDay: G.uDay, uCore: { value: 0 } };
+  const tapeU = { uCol: { value: new THREE.Vector3(TAPE_GOLD[0], TAPE_GOLD[1], TAPE_GOLD[2]) }, uGlow: { value: 1 }, uWhite: { value: 0 }, uH: { value: TAPE_H }, uBloom: G.uBloom, uFace: { value: 1 }, uDay: G.uDay, uCore: { value: 0 }, uDash: { value: 0 } };
   const tapeBackU = { ...tapeU, uFace: { value: 0 } };
   const tapeGeo = new THREE.BoxGeometry(1, 1, 1);
   const tapeOpt = { vertexShader: TAPE_V, fragmentShader: TAPE_F, transparent: true, depthWrite: false, blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor, extensions: { derivatives: true } };
@@ -285,7 +292,7 @@ export function createNight(host, o = {}) {
   // program (a second tape builds nothing: THE LAG RULES) — with its own colour + its own flash; its twins for the bloom pass too
   const TAPE_PINK = [1, 0.2, 0.72];
   // (S4A FIX — A WHITE CORE inside the pink: uCore = 1 — night-fx.js TAPE_F; it read only by its glow over the rooftops' own pink slabs)
-  const ftapeU = { ...tapeU, uCol: { value: new THREE.Vector3(TAPE_PINK[0], TAPE_PINK[1], TAPE_PINK[2]) }, uGlow: { value: 1 }, uWhite: { value: 0 }, uCore: { value: 1 } };
+  const ftapeU = { ...tapeU, uCol: { value: new THREE.Vector3(TAPE_PINK[0], TAPE_PINK[1], TAPE_PINK[2]) }, uGlow: { value: 1 }, uWhite: { value: 0 }, uCore: { value: 1 }, uDash: { value: 0 } };
   const ftapeBackU = { ...ftapeU, uFace: { value: 0 } };
   const ftapeMat = new THREE.ShaderMaterial({ ...tapeOpt, uniforms: ftapeU, side: THREE.FrontSide, depthTest: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const ftapeBackMat = new THREE.ShaderMaterial({ ...tapeOpt, uniforms: ftapeBackU, side: THREE.BackSide, depthTest: false });
@@ -379,10 +386,17 @@ export function createNight(host, o = {}) {
   // THE FRAME's OWN FRACTIONS (S4A FIX — ZERO GARBAGE): a fraction kept in a plain variable that functions share is a small object every
   // time it is written — the view's clock, the camera's ease, its place, the landing's bump, the slider's glow, the plates' drift are
   // written every frame: they live in ONE scratch of doubles instead (NUM[…] below — written in place, nothing made)
-  const NUM = new Float64Array(16), CLK = 0, CAMX = 1, CAMY = 2, CAMZ = 3, BUMP = 4, EYEX = 5, EYEY = 6, EYEZ = 7, SGLOW = 8, CF = 9, DRA = 10, DRB = 11, ZONE = 12, BACK = 13, FBACK = 14;
+  const NUM = new Float64Array(20), CLK = 0, CAMX = 1, CAMY = 2, CAMZ = 3, BUMP = 4, EYEX = 5, EYEY = 6, EYEZ = 7, SGLOW = 8, CF = 9, DRA = 10, DRB = 11, ZONE = 12, BACK = 13, FBACK = 14, LIFT = 15, WSL = 16;
   /** what the stage hands a frame: IO[0] = `tau`, the clock in ticks (a fraction into the next one) · IO[1] = `dt`, ms since the last frame */
   const IO = new Float64Array(2), RX = new Float64Array(4);   // (RX: a slab's four edges while its box is worked out)
   let tapeDrawn = -1, ftapeDrawn = -1;   // (the floor each tape's outline was last laid round: it is placed once, not every frame)
+  // THE WELCOME + THE END POSE (S4A FIX's add-ons — the owner's picks "A · THE SIGN" + "A · THE HERO NUMBER"): `liftTo` = how far DOWN the
+  // screen the tower stands (a share of its height) — 0 in play, POSE.welcome on the start screen (its top ≈ 70 % down: the sign has the
+  // sky), POSE.end under the end screen's stats; the camera eases there. `welc` = the first slab already sliding in (a stand-in drawn
+  // only on the start screen — the run's own first slab enters at its first beat); `tapeWelc` = YOUR BEST's gold tape round the
+  // waiting tower's top slab; `ghost` = YOUR BEST still above you at the end: the gold outline DASHED, floating over the top slab.
+  let liftTo = 0, welc = false, tapeWelc = false, ghost = false;
+  const WPINK = F64([1, 0.074, 0.69]);   // (the sign's pink #ff4fd8, linear)
   NUM[CF] = -1;
   // (the frame's kept records — nothing is made in a frame: the plates' mix, the sliding slab at two ticks, the day's air, a grow-back,
   //  a perfect's ring colour, the few numbers `?fps=1` shows)
@@ -520,7 +534,8 @@ export function createNight(host, o = {}) {
     const ty = slabs[slabs.length - 1].floor * H, tx = (top.x0 + top.x1) / 2 * U, tz = (top.z0 + top.z1) / 2 * U;
     NUM[CAMY] += (ty - NUM[CAMY]) * k; NUM[CAMX] += (tx - NUM[CAMX]) * k; NUM[CAMZ] += (tz - NUM[CAMZ]) * k;
     NUM[BUMP] *= Math.exp(-dt / 90);
-    const lookY = NUM[CAMY] + CAM.lift - NUM[BUMP] * 0.022 + glance * 0.42, x = NUM[CAMX] + dist * cp * sy, y = lookY + dist * sp, z = NUM[CAMZ] + dist * cp * cy;
+    NUM[LIFT] += (liftTo - NUM[LIFT]) * (1 - Math.exp(-dt / 170) * (dt >= 1000 ? 0 : 1));   // (the pose: the tower eases down the screen / back up)
+    const lookY = NUM[CAMY] + CAM.lift - NUM[BUMP] * 0.022 + glance * 0.42 + NUM[LIFT] * 2 * dist * TH / cp, x = NUM[CAMX] + dist * cp * sy, y = lookY + dist * sp, z = NUM[CAMZ] + dist * cp * cy;
     NUM[EYEX] = x; NUM[EYEY] = y; NUM[EYEZ] = z;
     cam.position.x = x; cam.position.y = y; cam.position.z = z;
     CE[12] = CW[12] = x; CE[13] = CW[13] = y; CE[14] = CW[14] = z;
@@ -663,6 +678,15 @@ export function createNight(host, o = {}) {
         }
       }
     } else NUM[SGLOW] = 0;
+    // THE WELCOME's SLAB (the start screen — the owner's picture): a first slab already sliding in from the far left (− x: up and to
+    // the left on the screen, clear of the sign above and the words at the foot) — the sign's pink, its soft trail behind it, a slow
+    // breath to and fro; it fades the moment the run starts (the run's own first slab enters at its first beat, on its own side)
+    NUM[WSL] += ((welc ? 1 : 0) - NUM[WSL]) * Math.min(1, dt / (welc ? 260 : 120));
+    if (NUM[WSL] > 0.01) {
+      const sx = (top.x1 - top.x0) * U, sz = (top.z1 - top.z0) * U, off = -(0.42 + 0.09 * Math.sin(NUM[CLK] / 1000 * 0.9));
+      BX[0] = (top.x0 + top.x1) / 2 * U + off; BX[1] = (topFloor + 0.5) * H; BX[2] = (top.z0 + top.z1) / 2 * U; BX[3] = sx; BX[4] = H; BX[5] = sz; BX[6] = 1.3; BX[7] = 0; BX[8] = NUM[WSL]; BX[9] = KIND.slider; put(WPINK, null, null);
+      if (tier > 0 && !reduce) { BX[0] -= (sx + 0.34) / 2; BX[3] = 0.34; BX[4] = H * 0.96; BX[5] = sz * 0.985; BX[6] = 1; BX[7] = 1; BX[8] = 0.8 * NUM[WSL]; BX[9] = KIND.trail; put(WPINK, null, null); }
+    }
     // the falling pieces
     for (let i = 0; i < PIECES; i++) {
       const p = pieces[i];
@@ -675,11 +699,19 @@ export function createNight(host, o = {}) {
       BX[0] = p.x; BX[1] = p.y; BX[2] = p.z; BX[3] = p.sx; BX[4] = H; BX[5] = p.sz; BX[6] = 1.1; BX[7] = 0; BX[8] = clamp01(1.6 * (1 - p.age / p.life)); BX[9] = KIND.slab; put(colMix(p.fl), QQ, null);
     }
     // YOUR BEST's gold tape: a THIN glowing gold OUTLINE round the slab of that floor — a line of light, never a filled band (S2 FIX)
-    const ts = tapeFloor ? slabOf(tapeFloor) : null;
+    const ts = tapeFloor ? slabOf(tapeFloor) : tapeWelc ? slabs[slabs.length - 1] : null, gh = !ts && ghost;
     // (the back edges come in as the tower climbs away from the tape — none while it lies just under the top)
     // (… and none by day: frosted glass is not seen through)
     NUM[BACK] = 0; if (ts) NUM[BACK] = TAPE_BACK * (1 - dayK) * clamp01((topFloor - ts.floor - TAPE_BACK_FROM) / (TAPE_BACK_FULL - TAPE_BACK_FROM));
-    tape.visible = !!ts; tapeBack.visible = NUM[BACK] > 0.004; if (tapeBackU.uFace.value !== NUM[BACK]) tapeBackU.uFace.value = NUM[BACK];
+    tape.visible = !!ts || gh; tapeBack.visible = NUM[BACK] > 0.004; if (tapeBackU.uFace.value !== NUM[BACK]) tapeBackU.uFace.value = NUM[BACK];
+    if (tapeU.uDash.value !== (gh ? 1 : 0)) tapeU.uDash.value = gh ? 1 : 0;
+    if (gh && tapeDrawn !== -2) {
+      // (the ghost: the top slab's own outline, floating clear over it)
+      tapeDrawn = -2;
+      const x0 = top.x0 * U, x1 = top.x1 * U, z0 = top.z0 * U, z1 = top.z1 * U;
+      tape.position.set((x0 + x1) / 2, (topFloor + ghostUp(x1 - x0, z1 - z0) - 0.5) * H, (z0 + z1) / 2); tape.scale.set(Math.max(GHOST_MIN, x1 - x0) + 2 * TAPE_OUT, TAPE_H, Math.max(GHOST_MIN, z1 - z0) + 2 * TAPE_OUT);
+      tapeU.uGlow.value = 1; tapeU.uWhite.value = 0;
+    }
     if (ts) {
       // (the outline is laid ONCE round its slab — a slab never moves; only its flash is a frame's)
       if (tapeDrawn !== ts.floor) {
@@ -743,6 +775,18 @@ export function createNight(host, o = {}) {
     restY: floor => scrY(-dist * cp * sy, floor * H - restH(), -dist * cp * cy),
     /** what the stage writes before draw(): [tau, dt] */
     io: IO,
+    // ---- THE WELCOME + THE END POSE (S4A FIX's add-ons)
+    /** where the tower stands: 'play' · 'welcome' (the start screen: its top ≈ 70 % down) · 'end' (under the end screen's stats); the camera eases there (at once before the first frame) */
+    pose(kind) { liftTo = POSE[kind] || 0; if (!frames) NUM[LIFT] = liftTo; },
+    /** the start screen's scene: a first slab already sliding in · `best`: YOUR BEST's gold tape round the waiting tower's top slab */
+    welcome(on, best = false) { welc = !!on; tapeWelc = !!on && !!best; tapeDrawn = -1; },
+    /** the end screen: YOUR BEST still above you — the gold outline DASHED, floating clear over the top slab (ghostUp) */
+    ghostBest(on) { ghost = !!on; tapeDrawn = -1; },
+    /** a point (rule units x, z; y in floors) in the POSE the tower is easing to → out[0], out[1] = its place on the screen (0 … 1 from the top left) */
+    poseXY(x, floor, z, out) {
+      const rx = x * U - restX(), ry = floor * H - restH(), rz = z * U - restZ(), vz = -(CZx * rx + CZy * ry + CZz * rz) * TH;
+      out[0] = (1 + (CXx * rx + CXy * ry + CXz * rz) / (vz * cam.aspect)) / 2; out[1] = (1 - (CYx * rx + CYy * ry + CYz * rz) / vz) / 2 + liftTo;
+    },
     /** the few numbers the `?fps=1` line shows — ONE kept record, written in the frame (never the whole info below) */
     stat: () => STAT,
     // ---- THE FLYERS (S3): the page hands the lazy module in (again after a rebuild); the calls below are no-ops until it has

@@ -169,7 +169,7 @@ test('STATIC — NO FUNCTION THAT RUNS EVERY FRAME BUILDS ANYTHING: no list, no 
   // … and nothing is handed a list of fractions: a flyer's light = 14 numbers in the stage's scratch, a box = 10
   assert.doesNotMatch(fl, /S\.light\(/, 'no call hands 14 fractions over'); assert.ok((fl.match(/S\.lit\(\)/g) || []).length >= 14);
   const n = bare(read(`${HI}night.js`));
-  assert.match(n, /const BX = new Float64Array\(10\)/); assert.match(n, /const LG = new Float64Array\(14\)/); assert.match(n, /const NUM = new Float64Array\(16\)/);
+  assert.match(n, /const BX = new Float64Array\(10\)/); assert.match(n, /const LG = new Float64Array\(14\)/); assert.match(n, /const NUM = new Float64Array\(20\)/);
   assert.match(n, /scene\.children\.sort\(\(a, b\) => a\.renderOrder - b\.renderOrder\);\s*renderer\.sortObjects = false;/, 'the draw order is fixed once — three.js does not sort every pass');
   assert.match(n, /cam\.matrixAutoUpdate = false; cam\.matrixWorldAutoUpdate = false;/, 'the camera only slides: no lookAt / inverse a frame');
   // holdPlates runs every frame: the function that drops the plates no longer wanted sits OUTSIDE it
@@ -179,7 +179,7 @@ test('STATIC — NO FUNCTION THAT RUNS EVERY FRAME BUILDS ANYTHING: no list, no 
   assert.match(s, /FPS_EVERY_MS = 1000/); assert.match(s, /if \(fps && now - fpsAt >= FPS_EVERY_MS\) \{ fpsAt = now; fpsLine\(\); \}/);
   assert.doesNotMatch(body(s, '  function fpsLine() {'), /view\.info\(\)|\.slice\(|\.reduce\(|Math\.max\(\.\.\./, 'the fps line reads the ring + ONE kept record');
   assert.match(s, /const frames = new Float32Array\(FRAMES_KEPT\)|frames = new Float32Array\(FRAMES_KEPT\)/);
-  assert.match(s, /if \(run\.floor !== tagSeenFloor \|\| liveNow !== tagSeenLive \|\| tagDirty\) placeTags\(liveNow\);/, 'the two tags: placed once a landing — never a style write a frame');
+  assert.match(s, /if \(run\.floor !== tagSeenFloor \|\| tagMode !== tagSeenLive \|\| tagDirty\) placeTags\(tagMode\);/, 'the two tags: placed once a landing — never a style write a frame');
   assert.doesNotMatch(body(s, '  function frame(now) {'), /\.style\.transform|\.deref\(|getBoundingClientRect|clientHeight|offsetTop/, 'the frame writes no tag transform, asks no WeakRef, reads no layout (the one HUD block writes its words on a CHANGE)');
   assert.match(read('css/highrise-play.css'), /\.hi-tag \{[^}]*transition: transform 0\.56s cubic-bezier\(0\.15, 0\.6, 0\.4, 1\);/, 'a CSS transition rides a tag to its place with the camera');
   // the sounds: a voice = a kept slot (its gain, its `ended` handler); a sound makes its source and nothing else

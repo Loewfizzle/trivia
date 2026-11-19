@@ -72,7 +72,7 @@ const botTo = (P, to) => P.p.evaluate(target => new Promise(res => {
     setTimeout(poll, m != null && m > 14 ? Math.min(30, m - 8) : 1);
   })();
 }), to);
-const toFinal = (P, ms = 30000) => P.waitFor(`${S}.game && ${S}.game.phase === 'final' && !!document.querySelector('.hi-final .hi-fin-t')`, ms);
+const toFinal = (P, ms = 30000) => P.waitFor(`${S}.game && ${S}.game.phase === 'final' && !!document.querySelector('.hi-final .hi-fin .hi-ec-cause')`, ms);
 const audio = P => P.ev("import('/js/audio/engine.js').then(E => E.audioHealth())");
 const snap = async pid => JSON.stringify([await dbGet(`pstats/${pid}`), await dbGet(`profiles/${pid}`), await dbGet('lb/highrise-solo'), await dbGet(`ppriv/${pid}`)]);
 /** the console's END-OF-ROUND MOMENT (a run that paid XP): waited out / continued */
@@ -153,10 +153,10 @@ try {
   const times = chunkTimes(node.c);
   ok(times && times.every(k => k.at >= node.go), 'the chunks\' clock runs forward from GO');
   ok(await P.waitFor("/^WOULD COUNT · FLOOR \\d+ · \\+\\d+ XP/.test((document.querySelector('.hi-fin-would') || {}).textContent || '')", 20000), 'THE SWITCH IS OFF: the server judged the run → the end card\'s small line WOULD COUNT');
-  const fin = await P.ev("({ t: document.querySelector('.hi-fin-t').textContent, n: document.querySelector('.hi-fin-floor b').getAttribute('aria-label'), w: document.querySelector('.hi-fin-would').textContent, kicker: document.querySelector('.hi-final .sheet-kicker').textContent, bar: !!document.querySelector('.hi-final .final-bar, .hi-final .btn-primary') })");
+  const fin = await P.ev("({ t: document.querySelector('.hi-fin .hi-ec-cause').textContent, n: document.querySelector('.hi-fin .hi-ec-n').getAttribute('aria-label'), w: document.querySelector('.hi-fin-would').textContent, kicker: document.querySelector('.hi-final .sheet-kicker').textContent, bar: !!document.querySelector('.hi-final .final-bar, .hi-final .btn-primary') })");
   ok(fin.t === 'TOO SLOW' && Number(fin.n) === V.floor && fin.kicker === 'HIGH RISE · SOLO', `the end screen: ${fin.kicker} · ${fin.t} · FLOOR ${fin.n}`);
   ok(new RegExp(`^WOULD COUNT · FLOOR ${V.floor} · `).test(fin.w), `WOULD COUNT matches the phone's own result (${fin.w})`);
-  ok(await P.ev("document.querySelector('.hi-fin-best').textContent === 'NEW BEST' && document.querySelector('.hi-fin-best').classList.contains('is-new')"), 'the end screen: NEW BEST (this phone’s own record while counting is OFF — stored before the screen was built)');
+  ok(await P.ev("document.querySelector('.hi-fin .hi-ec-col.is-best .hi-ec-k').textContent === 'NEW BEST' && document.querySelector('.hi-fin .hi-ec-col.is-best').classList.contains('is-new')"), 'the end screen: NEW BEST (this phone’s own record while counting is OFF — stored before the screen was built)');
   await sleep(1200);
   await P.shot('end-card-390x844.png');
   ok((await dbGet(`results/${g.code}_${g.m}`)) == null, 'counting OFF: no results/ record');
@@ -172,12 +172,13 @@ try {
   // THE NEXT FRIEND (a test fixture — YOUR TABLE is empty while counting is OFF): the pink tag above you → crossed → the pink tape
   await P.ev(`${G}.setFriends([{ n: 'LIAM', v: 3 }, { n: 'MAYA', v: 7 }])`);
   ok(await P.waitFor(`/^LIAM 3 ▲\\d$/.test(${ST}.state().ftag) || ${ST}.state().ftag === 'LIAM 3 · ONE MORE'`, 4000), `THE NEXT FRIEND above you: the pink tag "${await P.ev(`${ST}.state().ftag`)}"`);
-  const zone = await P.ev(`(() => { const t = document.querySelector('.hi-ftag').getBoundingClientRect(), s = document.querySelector('.hi-stage').getBoundingClientRect(); return { y: t.top + t.height / 2, right: Math.round(s.right - t.right), zone: ${ST}.view.zoneTop() * s.height, pink: getComputedStyle(document.querySelector('.hi-ftag')).borderLeftColor }; })()`);
+  await sleep(900);   // (S4A FIX: a tag is placed once a landing and rides to its place on a 0.56 s transition — measured once it rests)
+  const zone = await P.ev(`(() => { const t = document.querySelector('.hi-ftag').getBoundingClientRect(), s = document.querySelector('.hi-stage').getBoundingClientRect(); return { y: t.top + t.height / 2, right: Math.round(s.right - t.right), zone: ${ST}.view.zoneTop() * s.height, pink: getComputedStyle(document.querySelector('.hi-ftag')).boxShadow, core: getComputedStyle(document.querySelector('.hi-ftag')).borderLeftColor }; })()`);
   const order = await P.ev("(() => { const f = document.querySelector('.hi-ftag'), g = document.querySelector('.hi-tag:not(.hi-ftag)'); return g.hidden ? null : { f: f.getBoundingClientRect().top, g: g.getBoundingClientRect().top, t: g.textContent }; })()");
   await sleep(120);
   const order2 = await P.ev("(() => { const f = document.querySelector('.hi-ftag'), g = document.querySelector('.hi-tag:not(.hi-ftag)'); return g.hidden ? null : { f: f.getBoundingClientRect().top, g: g.getBoundingClientRect().top, t: g.textContent }; })()");
   ok(!!order2 && order2.f - order2.g >= 28, `the two tags keep the floors' order: LIAM 3 sits UNDER ${order2 && order2.t} (${order2 && (order2.f - order2.g).toFixed(0)} px apart)${order ? '' : ''}`);
-  ok(zone.right === 0 && zone.y < zone.zone && /255, 79, 216/.test(zone.pink), `… at the right edge, in PINK, above THE DROP ZONE (y ${zone.y.toFixed(0)} < ${zone.zone.toFixed(0)})`);
+  ok(zone.right === 0 && zone.y < zone.zone && /255, 79, 216/.test(zone.pink) && zone.core === 'rgb(255, 255, 255)', `… at the right edge, in PINK round a WHITE core, above THE DROP ZONE (y ${zone.y.toFixed(0)} < ${zone.zone.toFixed(0)})`);
   await drops(P, 5);
   ok(await P.waitFor(`${ST}.state().friendTape === 3 && /^MAYA 7/.test(${ST}.state().ftag)`, 6000), 'crossing LIAM\'s floor → the pink tape lies on the tower at floor 3 — and the next friend (MAYA) takes the tag');
   await P.shot('pink-tape-390x844.png');
@@ -196,7 +197,7 @@ try {
   ok(await toFinal(P, 20000), 'a FORGED node (150 perfect floors "played" in 2 s): the match ends on its `e`');
   const fg = await dbGet(`rooms/${g3.code}/game`);
   ok(fg.results[uid].f === 0 && /ahead/.test(fg.results[uid].bad || ''), `… THE JUDGE refuses it (${fg.results[uid].bad}) — floor 0, never 150`);
-  ok(await P.waitFor("/^WOULD NOT COUNT/.test((document.querySelector('.hi-fin-would') || {}).textContent || '') || document.querySelector('.hi-fin-t').textContent === 'NOT COUNTED'", 15000), `… and the server says so (${await P.ev("document.querySelector('.hi-fin-t').textContent + ' · ' + document.querySelector('.hi-fin-would').textContent")})`);
+  ok(await P.waitFor("/^WOULD NOT COUNT/.test((document.querySelector('.hi-fin-would') || {}).textContent || '') || document.querySelector('.hi-fin .hi-ec-cause').textContent === 'NOT COUNTED'", 15000), `… and the server says so (${await P.ev("document.querySelector('.hi-fin .hi-ec-cause').textContent + ' · ' + document.querySelector('.hi-fin-would').textContent")})`);
   ok((await snap(pid)) === before, '… still nothing written');
 
   // ---- 6. COUNTING ON (a test-only flip): a real run past floor 60 → the floor, XP, the streak, the best, ABOVE THE CLOUDS + THE HITCH RUN
@@ -209,8 +210,9 @@ try {
     const top = await botTo(P, 63);
     const hit = await P.ev(`${ST}.hitches()`), a4 = await audio(P);
     ok(top >= 63, `a real run by taps at the touch path: floor ${top}`);
-    // (headless Chromium's own ~0.65 s stall two minutes after launch is not the game's — a frame that long is the browser's, tagged gc)
-    const mine = hit.list.slice(h0), bad = mine.filter(h => !(h.why === 'gc' && h.gap > 400));
+    // (headless Chromium's own ~0.65 s stall two minutes after launch is not the game's — a frame that long, with no mark of the page's
+    //  own work on it, is the browser's: S4A FIX's honest counter names it `unknown` — or `gc`, if a collection is known to have run in it)
+    const mine = hit.list.slice(h0), bad = mine.filter(h => !((h.why === 'gc' || h.why === 'unknown') && h.gap > 400 && h.work < 12));
     ok(bad.length === 0, `THE HITCH RUN inside the cartridge (${top} floors, ~75 s): no frame over 33 ms after the first second (${bad.length} hitches${mine.length ? ` — seen: ${mine.map(h => `${h.why} ${h.gap} ms @${h.floor}`).join(' · ')}${mine.length > bad.length ? ' (the long one = headless Chromium, not the game)' : ''}` : ''})`);
     ok(a4.held && a4.state === 'running', 'the run holds the audio context awake to the end');
     ok(await toFinal(P, 30000), 'the fuse ends it → the podium');
@@ -225,7 +227,7 @@ try {
     ok(ps.pa && ps.pa.gf && ps.pa.gf['highrise-clouds'] === 1 && !ps.pa.gf['highrise-top'], '… the feat flag `clouds` from the server\'s replay (never `top`)');
     ok(ps.it && !!ps.it['card-abovetheclouds'] && (o.ach || []).includes('above-the-clouds') && !ps.it['card-topoftheworld'], `… ABOVE THE CLOUDS awarded (the card + its achievement) — TOP OF THE WORLD not (items ${Object.keys(ps.it || {}).filter(k => /^card-/.test(k)).join(' ')} · ach ${(o.ach || []).join(' ')})`);
     await pastMoment(P);
-    ok(await P.waitFor("/^NEW BEST/.test(document.querySelector('.hi-fin-best').textContent) && !document.querySelector('.hi-fin-would').textContent", 15000), `… the end screen says ${await P.ev("document.querySelector('.hi-fin-best').textContent")} — no WOULD COUNT line`);
+    ok(await P.waitFor("/^NEW BEST/.test(document.querySelector('.hi-fin .hi-ec-col.is-best').textContent) && !document.querySelector('.hi-fin-would').textContent", 15000), `… the end screen says ${await P.ev("document.querySelector('.hi-fin .hi-ec-col.is-best').textContent")} — no WOULD COUNT line`);
     await P.shot('end-card-counted-390x844.png');
     await dbPut('testHighriseCounts', null);
   }
