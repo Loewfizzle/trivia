@@ -271,7 +271,7 @@ export function createNight(host, o = {}) {
   // well under the top (TAPE_BACK_FROM … TAPE_BACK_FULL floors: never a diamond inside the top slab, where the player aims).
   const TAPE_H = 0.07, TAPE_OUT = 0.004, TAPE_BACK_FROM = 2, TAPE_BACK_FULL = 6;
   const TAPE_GOLD = [1, 0.56, 0.08];   // (a deeper, warmer gold than the flash's: beside the cyan + the blue slabs' own lines the page's #ffc83c read as lemon — the look review, twice)
-  const tapeU = { uCol: { value: new THREE.Vector3(TAPE_GOLD[0], TAPE_GOLD[1], TAPE_GOLD[2]) }, uGlow: { value: 1 }, uWhite: { value: 0 }, uH: { value: TAPE_H }, uBloom: G.uBloom, uFace: { value: 1 }, uDay: G.uDay };
+  const tapeU = { uCol: { value: new THREE.Vector3(TAPE_GOLD[0], TAPE_GOLD[1], TAPE_GOLD[2]) }, uGlow: { value: 1 }, uWhite: { value: 0 }, uH: { value: TAPE_H }, uBloom: G.uBloom, uFace: { value: 1 }, uDay: G.uDay, uCore: { value: 0 } };
   const tapeBackU = { ...tapeU, uFace: { value: 0 } };
   const tapeGeo = new THREE.BoxGeometry(1, 1, 1);
   const tapeOpt = { vertexShader: TAPE_V, fragmentShader: TAPE_F, transparent: true, depthWrite: false, blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor, extensions: { derivatives: true } };
@@ -284,7 +284,8 @@ export function createNight(host, o = {}) {
   // ---- THE NEXT FRIEND's PINK TAPE (S4A — the owner: "the gold tape's style", in PINK): the SAME box, the SAME shader — so the SAME
   // program (a second tape builds nothing: THE LAG RULES) — with its own colour + its own flash; its twins for the bloom pass too
   const TAPE_PINK = [1, 0.2, 0.72];
-  const ftapeU = { ...tapeU, uCol: { value: new THREE.Vector3(TAPE_PINK[0], TAPE_PINK[1], TAPE_PINK[2]) }, uGlow: { value: 1 }, uWhite: { value: 0 } };
+  // (S4A FIX — A WHITE CORE inside the pink: uCore = 1 — night-fx.js TAPE_F; it read only by its glow over the rooftops' own pink slabs)
+  const ftapeU = { ...tapeU, uCol: { value: new THREE.Vector3(TAPE_PINK[0], TAPE_PINK[1], TAPE_PINK[2]) }, uGlow: { value: 1 }, uWhite: { value: 0 }, uCore: { value: 1 } };
   const ftapeBackU = { ...ftapeU, uFace: { value: 0 } };
   const ftapeMat = new THREE.ShaderMaterial({ ...tapeOpt, uniforms: ftapeU, side: THREE.FrontSide, depthTest: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const ftapeBackMat = new THREE.ShaderMaterial({ ...tapeOpt, uniforms: ftapeBackU, side: THREE.BackSide, depthTest: false });

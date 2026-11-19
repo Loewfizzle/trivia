@@ -119,6 +119,8 @@ export function readFlyer(THREE, buf) {
   } catch { return parseGlb(buf); }
 }
 
+/** THE UFO's rim lamps (the tests read them): a lamp is OFF while its face is turned from the lens (facing ≤ LAMP_FROM), full from LAMP_FULL */
+export const LAMP_FROM = 0.03, LAMP_FULL = 0.25;
 const PI = Math.PI, TAU = PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const ease = v => { const t = clamp01(v); return t * t * (3 - 2 * t); };
@@ -296,6 +298,7 @@ export function createFlyers(S) {
   function endJet() { if (!jet) return; if (jet.snd) jet.snd.stop(0.6); hide(0); hide(1); drop(jet.kind); jet = null; boxes.jet = null; }
 
   // ---- THE UFO: amber running lights round its rim + a soft violet underglow — no beam, no ring on anything
+  // (a rim lamp's facing — how far its face is turned to the lens, −1 … 1: off at LAMP_FROM and under, full from LAMP_FULL up)
   const AMBER = [1.0, 0.6, 0.1], VIOLET = [0.5, 0.2, 1.0], UFO_O = { op: 1, haze: 0.22, lift: 0.4, tint: 0.68, rim: [1.0, 0.62, 0.2], em: [0, 0, 0] }, LAMP = [1.0, 0.46, 0.02];
   function frameUfo(F) {
     const g = geo.ufo;
@@ -319,12 +322,15 @@ export function createFlyers(S) {
     body(0, g, r2, u, u2, wd, q, F, UFO_O);
     // THE VIOLET UNDERGLOW: a soft flat pool of light under its belly
     LG[0] = q.x - u.x * 0.04 * wd; LG[1] = q.y - u.y * 0.04 * wd; LG[2] = q.z - u.z * 0.04 * wd; LG[3] = 0.15 * wd; LG[4] = 0.5 * wd; LG[5] = VIOLET[0]; LG[6] = VIOLET[1]; LG[7] = VIOLET[2]; LG[8] = (0.8 * n + 0.5 * d) * fade; LG[9] = 0.45 * d; LG[10] = 0; LG[11] = r.x; LG[12] = r.y; LG[13] = r.z; S.lit();
-    // THE AMBER RUNNING LIGHTS: ten round its rim, chasing — the ones on the far side dimmer
+    // THE AMBER RUNNING LIGHTS: ten round its rim, chasing. A LAMP ON THE FAR SIDE IS HIDDEN BY THE HULL (S4A FIX — the owner: they
+    // showed THROUGH the saucer, dimmed to 40 % — a lamp is a glow drawn over the body, so nothing hid it): each lamp sits on the rim's
+    // outer face, which looks straight OUT from the saucer's axis (`w`) — it is lit only while that face is turned to the lens
+    // (w · the way to the lens > 0): fully off behind the hull, a short smooth fade as it rounds the rim (≈ 13° of its turn), full in front
     c.set(F.px - P.x, F.py - P.y, F.pz - P.z).normalize();
     for (let i = 0; i < 10; i++) {
       const al = i * TAU / 10 + spin, ca = Math.cos(al), sa = Math.sin(al);
       w.copy(r).multiplyScalar(ca).addScaledVector(b, sa);
-      const face = 0.4 + 0.6 * ease((w.dot(c) + 0.3) / 0.6), ch = 0.45 + 0.55 * Math.pow(Math.max(0, Math.cos(al - spin - F.t * 3.2)), 3);
+      const face = ease((w.dot(c) - LAMP_FROM) / (LAMP_FULL - LAMP_FROM)), ch =0.45 + 0.55 * Math.pow(Math.max(0, Math.cos(al - spin - F.t * 3.2)), 3);
       LG[0] = q.x + w.x * 0.47 * wd + u.x * 0.115 * wd; LG[1] = q.y + w.y * 0.47 * wd + u.y * 0.115 * wd; LG[2] = q.z + w.z * 0.47 * wd + u.z * 0.115 * wd; LG[3] = 0.058 * wd; LG[4] = 0; LG[5] = LAMP[0]; LG[6] = LAMP[1]; LG[7] = LAMP[2]; LG[8] = face * ch * fade; LG[9] = 0.9 * d; LG[10] = 4; LG[11] = 0; LG[12] = 0; LG[13] = 0; S.lit();
     }
     const box = newBox('ufo');

@@ -2,7 +2,7 @@
 // Built in the main sign's language (js/ui/logo.js): one bent glass tube per stroke, rounded bends, electrode caps at the
 // tube ends. Pure data + tiny helpers (no DOM), so tests can check every game has a mark.
 //
-// A mark is drawn in a 0..100 box: { tubes: [{ d: SVG path, col }], blade: 'WORD' }. To add a game: add its mark here —
+// A mark is drawn in a 0..100 box: { tubes: [{ d: SVG path, col }], blade: 'WORD', w?: its tube width as an icon (7) }. To add a game: add its mark here —
 // the signs pick it up from the GAMES registry automatically. A game without a mark gets its initials in tube letters.
 
 export const MARKS = {
@@ -69,8 +69,14 @@ export const MARKS = {
     { d: 'M17.9 40.3 C31.4 47.2 43.8 60.9 56.2 72 C64.7 79.1 75.5 79.4 90.1 78.8 M56.5 37.5 L67.9 35.9 M59.8 47.2 L71.1 44.7 M63.2 56.8 L74.4 53.5', col: '#fff4fa' },
     { d: 'M9.1 68.4 H32.1 M20.4 77.5 H43.3', col: '#35e3ff' },
   ] },
-  // HIGH RISE (S4A — a STAND-IN until THE REVIEW's icon brief: the game is hidden): the stacked slabs in cyan, the sliding one in the sign's pink
-  highrise: { blade: 'HIGHRISE', tubes: [{ d: 'M24 84 H72 M28 68 H76 M22 52 H70', col: '#35e3ff' }, { d: 'M38 34 H86', col: '#ff4fd8' }] },
+  // HIGH RISE (S4A FIX — the owner's pick "A · THE TOWER"): a cyan isometric stack — its top face, its two sides, two floor lines — and
+  // the sign's pink slab dropping onto it. `w` = this mark's own tube width in the 0 … 100 box (ui/mark-svg.js; 7 without one): its
+  // floor lines sit 8 apart — at the house 7 they closed up into two solid blocks; at 4.5 it is the line drawing the owner picked
+  highrise: { blade: 'HIGHRISE', w: 4.5, tubes: [
+    { d: 'M26 58 L46 48 L66 58 M26 58 V86 L46 96 L66 86 V58 L46 68 L26 58 M46 68 V96', col: '#35e3ff' },
+    { d: 'M26 68 L46 78 L66 68 M26 77 L46 87 L66 77', col: '#35e3ff' },
+    { d: 'M36 26 L56 16 L76 26 L56 36 Z M36 26 V34 L56 44 L76 34 V26 M56 36 V44', col: '#ff4fd8' },
+  ] },
   // THE PASSWORD (PW1): a keyhole — the round eye and the slot below it, a key's tip at the door
   password: { blade: 'PASSWORD', tubes: [
     { d: 'M50 18 A17 17 0 1 1 49.9 18 Z', col: '#ff5ec4' },

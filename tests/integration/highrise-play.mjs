@@ -25,6 +25,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { flyPlan, FLY_FLOORS } from '../../js/games/highrise/flyplan.js';
+import { slabColor } from '../../js/games/highrise/bands.js';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null, LOOK = argv.includes('--look'), PERF = argv.includes('--perf');
@@ -692,6 +693,77 @@ async function flyLook() {
   }
 }
 
+// ---- THE PINK TAPE's WHITE CORE (S4A FIX — the owner: THE NEXT FRIEND's tape read only by its glow over the rooftops' own pink
+// slabs): a seed whose floors 2 … 5 are the rooftops' PINK by night; the friend's tape on floor 3 (the gold one on floor 6 beside it,
+// unchanged), just crossed + a few floors down (its faint back edges), in both looks — the whole screen + the tapes close. The
+// friend's TAG is the cartridge's (YOUR TABLE): its look is shot with a stand-in line. `--tape`
+async function tapeLook() {
+  const pink = c => c[0] > 0.8 && c[1] < 0.42 && c[2] > 0.55;
+  let seed = 'tape0', found = false;
+  for (let i = 0; i < 4000 && !found; i++) { seed = `tape${i}`; found = [2, 3, 4].every(f => pink(slabColor('night', seed, f))); }
+  console.log(`  the seed ${seed}: floors 2 … 4 pink by night ${found} — floor 3 = ${slabColor('night', seed, 3).map(v => v.toFixed(2)).join(' ')}`);
+  for (const lk of (process.env.FLY_LOOKS || 'night,day').split(',')) {
+    const t = await open(390, 844, 3, `?seed=${seed}&look=${lk}`), { p } = t;
+    ok(t.up && await ready(p), `${lk}: the page is up (seed ${seed})`);
+    for (const [n, floors] of [['a', 8], ['b', 13]]) {
+      await climb(p, floors - (await st(p)).floor);
+      await p.evaluate(() => { const V = window.__hiPlay.view; V.setFriend(3); V.setBest(6); const f = document.querySelector('.hi-ftag'); f.firstChild.firstChild.data = 'LIAM 57 ▲12'; f.style.transform = 'translate3d(0, 300px, 0)'; f.hidden = false; });
+      await sleep(700);
+      await shot(p, `tape-${lk}-${n}.png`);
+      const y = await p.evaluate(() => { const L = window.__hiPlay, tp = L.state().viewTop; return L.view.project((tp.x0 + tp.x1) / 2, 4.5, (tp.z0 + tp.z1) / 2)[1] * innerHeight; });
+      if (OUT) await p.screenshot({ path: join(OUT, `tape-${lk}-${n}-close.png`), clip: { x: 45, y: Math.max(0, Math.min(844 - 190, y - 95)), width: 300, height: 190 } });
+      if (OUT && n === 'a') await p.screenshot({ path: join(OUT, `tape-${lk}-tag.png`), clip: { x: 230, y: 262, width: 160, height: 48 } });
+    }
+    ok(t.errs.length === 0, `${lk}: no page error (${t.errs.join(' | ')})`);
+    await t.close();
+  }
+}
+
+// ---- THE ICON (S4A FIX — the owner's pick "A · THE TOWER", js/core/marks.js `highrise`): the mark through the app's ONE builder
+// (ui/mark-svg.js — the PLAY shelf's row + the room's PICK A GAME: 40 px, stroke 7) at its real size and twice + four times it, beside
+// JAYWALK's, and in the PLAY sheet's preview tile (72 % of a dark tile). `--icon`
+async function iconLook() {
+  const t = await open(390, 844, 3, '?look=night'), { p } = t;
+  await p.evaluate(async () => {
+    const { markSvg } = await import('/js/ui/mark-svg.js');
+    const box = document.createElement('div');
+    box.id = 'icon-look';
+    box.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0b0818;display:grid;grid-template-columns:repeat(2,1fr);gap:14px;padding:26px;align-content:start;font:600 12px/1.2 sans-serif;color:#9d94c8';
+    const cell = (id, px, label, tile) => `<div style="display:grid;justify-items:center;gap:6px"><div style="display:grid;place-items:center;width:${tile || px + 10}px;height:${tile || px + 10}px;${tile ? 'background:#0d0a1c;' : ''}filter:drop-shadow(0 0 5px ${id === 'highrise' ? 'rgba(53,227,255,.6)' : 'rgba(255,98,200,.6)'})">${markSvg({ id }).replace('<svg ', `<svg style="width:${px}px;height:${px}px" `)}</div><span>${label}</span></div>`;
+    box.innerHTML = [['highrise', 40, 'HIGH RISE · the shelf row (40 px)'], ['jaywalk', 40, 'JAYWALK · the shelf row'], ['highrise', 24, '24 px'], ['jaywalk', 24, '24 px'], ['highrise', 80, '80 px'], ['jaywalk', 80, '80 px'], ['highrise', 115, 'the preview tile (72 %)', 160], ['jaywalk', 115, 'the preview tile', 160]].map(c => cell(...c)).join('');
+    document.body.append(box);
+  });
+  await sleep(300);
+  await shot(p, 'icon-390x844.png');
+  // (does a stroke leave its 0 … 100 box? the mark's own drawn bounds, stroke and all)
+  const bb = await p.evaluate(() => [...document.querySelectorAll('#icon-look svg')].slice(0, 1).map(sv => { const r = sv.getBoundingClientRect(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const pa of sv.querySelectorAll('path')) { const b = pa.getBBox(); x0 = Math.min(x0, b.x - 2.25); y0 = Math.min(y0, b.y - 2.25); x1 = Math.max(x1, b.x + b.width + 2.25); y1 = Math.max(y1, b.y + b.height + 2.25); } return { x0, y0, x1, y1, px: r.width }; })[0]);
+  ok(bb.x0 >= 0 && bb.y0 >= 0 && bb.x1 <= 100 && bb.y1 <= 100, `THE TOWER's strokes stay inside the mark's 0 … 100 box, stroke and all (${bb.x0.toFixed(1)} · ${bb.y0.toFixed(1)} … ${bb.x1.toFixed(1)} · ${bb.y1.toFixed(1)})`);
+  ok(t.errs.length === 0, `no page error (${t.errs.join(' | ')})`);
+  await t.close();
+}
+
+// ---- THE UFO's LIGHTS (S4A FIX — the owner: its amber rim lamps on the FAR side showed THROUGH the hull): the UFO at four moments of
+// its drift in both looks at 390 × 844 @3 — the whole screen + the saucer itself, close (its own box, a margin round it). `--ufo`
+async function ufoLook() {
+  for (const lk of (process.env.FLY_LOOKS || 'night,day').split(',')) {
+    const t = await open(390, 844, 3, `?seed=fly1&look=${lk}`), { p } = t;
+    ok(t.up && await ready(p), `${lk}: the page is up`);
+    await alive(p, true);
+    await climb(p, 86, 'i => (i % 11 === 10 ? 3 : 0)');
+    ok(await p.evaluate(() => window.__hiPlay.fly('ufo', 1)) === true, `${lk}: the UFO flies`);
+    let wait = 1500;
+    for (const n of [1, 2, 3, 4]) {
+      await sleep(wait); wait = 1300;
+      const box = await p.evaluate(() => window.__hiPlay.flyInfo().boxes.ufo);
+      await shot(p, `ufo-${lk}-${n}.png`);
+      if (box && OUT) { const m = 0.05, x = Math.max(0, (box[0] - m) * 390), y = Math.max(0, (box[1] - m) * 844), w = Math.min(390 - x, (box[2] - box[0] + 2 * m) * 390), h = Math.min(844 - y, (box[3] - box[1] + 2 * m) * 844); if (w > 8 && h > 8) await p.screenshot({ path: join(OUT, `ufo-${lk}-${n}-close.png`), clip: { x, y, width: w, height: h } }); }
+    }
+    await alive(p, false);
+    ok(t.errs.length === 0, `${lk}: no page error (${t.errs.join(' | ')})`);
+    await t.close();
+  }
+}
+
 // ---- S3: THE LOOKS · THE LOOK SWITCH · THE FLYERS · DEEP SPACE · THE FINISH (docs/highrise.md; docs/games/passes/highrise-s3.md)
 /** the first seed of a family whose plan picks `kind` ('blackbird' | 'f22') — the page plays the SAME plan (flyplan.js is pure) */
 const seedFor = kind => { for (let i = 0; ; i++) { const sd = `s3${kind}${i}`; if (flyPlan(sd).jet === kind) return sd; } };
@@ -992,6 +1064,9 @@ async function s3() {
 }
 
 if (LOOK) await look();
+else if (argv.includes('--ufo')) await ufoLook();
+else if (argv.includes('--icon')) await iconLook();
+else if (argv.includes('--tape')) await tapeLook();
 else if (argv.includes('--fly')) await flyLook();
 else if (argv.includes('--hitch')) await hitch();
 else if (PERF) await perf();

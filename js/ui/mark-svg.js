@@ -5,6 +5,7 @@ import { markFor } from '../core/marks.js';
 
 export function markSvg(game, cls = 'nd-shelf-mark') {
   const m = markFor(game);
-  const tubes = ((m && m.tubes) || []).map(t => `<path d="${t.d}" style="stroke:${t.col};fill:none;stroke-width:7;stroke-linecap:round;stroke-linejoin:round"/>`).join('');
+  const w = (m && m.w) || 7;   // (a fine mark names its own tube width — core/marks.js: HIGH RISE's tower)
+  const tubes = ((m && m.tubes) || []).map(t => `<path d="${t.d}" style="stroke:${t.col};fill:none;stroke-width:${w};stroke-linecap:round;stroke-linejoin:round"/>`).join('');
   return `<svg viewBox="0 0 100 100" aria-hidden="true" class="${cls}">${tubes}</svg>`;
 }

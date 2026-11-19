@@ -149,7 +149,8 @@
 
 /* ---- S4A — THE NEXT FRIEND + THE CARTRIDGE (js/games/highrise/view.js mounts this SAME stage in the console's frame) ---- */
 /* THE NEXT FRIEND above you: the gold flag's twin in PINK (the site's pink — never gold: gold = YOUR BEST, nothing else) */
-.hi-ftag { color: #ffd9f4; border-left-color: #ff4fd8; }
+/* (S4A FIX — the friend's tag edge = the pink tape's own look: a WHITE core, the pink either side of it, a pink glow off it — static) */
+.hi-ftag { color: #ffd9f4; border-left: 2px solid #fff; padding-left: 12px; box-shadow: -2px 0 0 #ff4fd8, inset 2px 0 0 #ff4fd8, -4px 0 10px rgba(255, 79, 216, 0.8); }
 .hi-call.is-pink { color: #ffe6f8; text-shadow: 0 0 2px #fff, 0 0 12px rgba(255, 79, 216, 0.95), 0 0 28px rgba(255, 43, 214, 0.6), 0 2px 0 rgba(10, 7, 22, 0.6); }
 .hi-stage[data-sky='bright'] .hi-call.is-pink { color: #9c0a6e; text-shadow: var(--hi-halo); }
 /* START pressed, the run on its way (the sounds' decode / GO's answer — a moment): TAP TO START rests */

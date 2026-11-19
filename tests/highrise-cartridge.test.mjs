@@ -256,7 +256,7 @@ test('THE NEXT FRIEND (lines.js — PURE): the LOWEST friend best above you, one
   assert.match(st, /yf = tagY\(view\.restY\(Math\.min\(fr\.v, run\.floor \+ 100\)\) \* stageH, hudFoot, zone\);/, 'held between the HUD\'s foot and THE DROP ZONE\'s upper edge');
   assert.match(st, /if \(o\.friends && MODE === 'solo'\) \{ const f = crossedFriend\(o\.friends\(\), e\.floor\); if \(f\) \{ friendTape = f\.v; view\.setFriend\(f\.v, !late\);/);
   assert.match(code('js/games/highrise/night.js'), /const ftapeMat = new THREE\.ShaderMaterial\(\{ \.\.\.tapeOpt, uniforms: ftapeU,/, 'the pink tape = the gold tape\'s shader (the same program: a second tape builds nothing)');
-  assert.match(read('css/highrise-play.css'), /\.hi-ftag \{ color: #ffd9f4; border-left-color: #ff4fd8; \}/, 'PINK — never gold (gold = YOUR BEST)');
+  assert.match(read('css/highrise-play.css'), /\.hi-ftag \{ color: #ffd9f4; border-left: 2px solid #fff; padding-left: 12px; box-shadow: -2px 0 0 #ff4fd8, inset 2px 0 0 #ff4fd8, -4px 0 10px rgba\(255, 79, 216, 0\.8\); \}/, 'PINK (S4A FIX: a white core in it) — never gold (gold = YOUR BEST)');
   // the data: YOUR TABLE's board, the server's — asked once a run by the VIEW (never the stage, never the test page)
   assert.match(code('js/games/highrise/view.js'), /A\.api\('profile', \{ action: 'table', b: BOARD \}\)/); assert.equal(BOARD, 'highrise-solo');
   assert.doesNotMatch(code('js/games/highrise/stage.js'), /profile|api\(/);
