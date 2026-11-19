@@ -30,7 +30,8 @@ const S = {
 };
 const X = { at: Date.UTC(2026, 10, 15, 22), S, founders: 61, founder: { open: true, at: Date.UTC(2026, 10, 14, 15) },
   daily: { dailies: [{ id: 'password', name: 'THE PASSWORD', days: Array.from({ length: 7 }, (_, i) => ({ day: day(6 - i), started: 20 + i * 3, finished: 15 + i * 2 })) }, { id: 'coastclear', name: 'COAST CLEAR', days: Array.from({ length: 7 }, (_, i) => ({ day: day(6 - i), started: 12 + i, finished: 7 + i })) }] },
-  week: Array.from({ length: 7 }, (_, i) => ({ d: ek(6 - i), visits: 40 + i * 9, games: 8 + i * 2 })), spotted: Array.from({ length: 7 }, (_, i) => ({ d: ek(6 - i), n: (i * 3) % 7 })) };
+  // (CITY I: ?spike=1 = the owner's Nov 18 shape — today's visits 367 against ~103; ?nospot=1 = a week with no legendary spotted)
+  week: Array.from({ length: 7 }, (_, i) => ({ d: ek(6 - i), visits: /[?&]spike=1/.test(location.search) ? [96, 103, 88, 110, 97, 121, 367][i] : 40 + i * 9, games: /[?&]spike=1/.test(location.search) ? [9, 14, 6, 22, 11, 31, 42][i] : 8 + i * 2 })), spotted: Array.from({ length: 7 }, (_, i) => ({ d: ek(6 - i), n: /[?&]nospot=1/.test(location.search) ? 0 : (i * 3) % 7 })) };
 // CITY D — the add-on: WHO played each daily (today + this week) — 14 players a daily (the fold past 10), a NOT COUNTED one, a DIDN'T FINISH
 {
   const cards = ['card-inferno', 'card-sg-aurora', 'card-chrome', 'card-noir', 'card-velvet', 'card-prism', 'card-gold', 'card-legend', null, 'card-marble', 'card-circuit', 'card-house', 'card-confetti', 'card-sapphire'];

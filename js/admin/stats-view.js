@@ -221,14 +221,39 @@ function dailiesBlock(D, W, view = {}, rerender = () => {}) {
         whoOf(g.id) ? whoBlock(whoOf(g.id), W, view, rerender) : null);
     })) : h('p.ad-dim', 'No daily is live.'));
 }
-/** THE WEEK (CITY H2: a bar INSIDE a bar, like the dailies chart — the tall dim cyan = visits, the hot-pink inside = games) */
+/** THE WEEK — CITY I (the owner, Nov 18 6:50 pm: H2's bar-inside-a-bar was "too chaotic" — labels on the bars, one day's visits dwarfing the games,
+ *  two rows of dates): SEVEN HORIZONTAL ROWS, newest on top — the day (WED 11/18) · a VISITS bar (cyan) + its number AFTER the bar's end · a GAMES
+ *  bar (pink) + its number — each measure on ITS OWN scale (the week's longest = full); no number on a bar, no "x/y"; one legend line. A tap on a
+ *  row = that day's detail under it (one open at a time, MATCHES PER DAY's way). LEGENDARIES SPOTTED the same rows — or ONE line when the week is
+ *  all zero (never an empty chart). */
+const dayWord = k => { const m = /^d?(\d{4})-?(\d{2})-?(\d{2})$/.exec(String(k || '')); if (!m) return String(k || ''); const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])); return `${DOW3[d.getUTCDay()]} ${+m[2]}/${+m[3]}`; };
+const dayLong = k => { const m = /^d?(\d{4})-?(\d{2})-?(\d{2})$/.exec(String(k || '')); if (!m) return String(k || ''); const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])); return `${DOW3[d.getUTCDay()]} ${MON[d.getUTCMonth()]} ${+m[3]}`; };
+function weekRows(days, bars, detail) {
+  const max = bars.map(b => Math.max(1, ...days.map(x => Number(x[b.k]) || 0)));
+  let open = null;
+  const rows = days.map(x => {
+    const more = h('span.st-wk-x', { hidden: true }, detail(x));
+    const row = h('button.st-wk-row', { type: 'button', 'data-press': true, 'aria-expanded': 'false' },
+      h('span.st-wk-d', dayWord(x.d)),
+      h('span.st-wk-bars', ...bars.map((b, i) => { const v = Number(x[b.k]) || 0; return h(`span.st-wk-bar.is-${b.k}`, h('i', { style: { '--w': String(v / max[i]) } }), h('b', String(v))); })),
+      more);
+    row.addEventListener('click', () => {
+      const on = more.hidden;
+      if (open && open !== row) { open.querySelector('.st-wk-x').hidden = true; open.setAttribute('aria-expanded', 'false'); open.classList.remove('is-on'); }
+      more.hidden = !on; row.setAttribute('aria-expanded', String(on)); row.classList.toggle('is-on', on); open = on ? row : null;
+    });
+    return row;
+  });
+  return h('div.st-wk', ...rows);
+}
 function weekBlock(W, spotted) {
-  const wk = W || [], max = Math.max(1, ...wk.map(x => Math.max(x.visits || 0, x.games || 0)));
+  const wk = (W || []).slice().reverse(), sp = (spotted || []).slice().reverse();
+  const anySpotted = sp.some(x => (Number(x.n) || 0) > 0);
   return h('div.ad-block', h('h3', 'The week · visits + games'),
-    h('div.ad-cols.is-weeks.ad-dly-cols', ...wk.map(x => h('div.ad-col', { title: `${dayLabel(x.d)}: ${x.visits} visits · ${x.games} games`, style: { '--h': `${((x.visits || 0) / max) * 100}%`, '--f': `${((x.games || 0) / max) * 100}%` } }, h('i'), h('i.ad-col-f'), h('em', `${x.games || 0}/${x.visits || 0}`), h('small', dayLabel(x.d))))),
-    h('p.ad-note', 'The tall bar = visits, the bright one = games (games/visits). Visits are an estimate (a visible city says hello every ~5 min).'),
+    weekRows(wk, [{ k: 'visits' }, { k: 'games' }], x => `${dayLong(x.d)} · ${x.visits || 0} ${x.visits === 1 ? 'VISIT' : 'VISITS'} · ${x.games || 0} ${x.games === 1 ? 'GAME' : 'GAMES'}`),
+    h('p.ad-note', h('span.st-key.is-visits'), ' VISITS  ', h('span.st-key.is-games'), ' GAMES — each on its own scale. Visits = phones with the city on screen that day (an estimate: it says hello every ~5 min). Tap a day.'),
     h('div.ad-subh', 'Legendaries spotted'),
-    h('div.ad-cols.is-weeks.st-sp', ...(spotted || []).map(x => h('div.ad-col', { title: `${dayLabel(x.d)}: ${x.n}`, style: { '--h': `${(x.n / Math.max(1, ...(spotted || []).map(y => y.n))) * 100}%` } }, h('i'), h('em', String(x.n)), h('small', dayLabel(x.d))))));
+    anySpotted ? weekRows(sp, [{ k: 'n' }], x => `${dayLong(x.d)} · ${x.n} ${x.n === 1 ? 'SIGHTING' : 'SIGHTINGS'} COUNTED`) : h('p.ad-note.st-none', 'None spotted this week.'));
 }
 /** THE TILES (CITY H2): PLAYERS = who has PLAYED (big) + "N signed up, never played" · NEW THIS WEEK (a tap → its members as slim cards, the day
  *  each joined) · MATCHES TODAY — three in one row at 390 (FOUNDING MEMBERS gone) */
