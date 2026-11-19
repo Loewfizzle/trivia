@@ -623,3 +623,13 @@
 - THE FLYERS (spectacle only, never hazards, never over the play zone): the seed's flyerFor picks THE BLACKBIRD or AN F-22 PAIR at floors 35–45 · THE UFO (AMBER rim lights + VIOLET underglow, no beam, no ground ring — never like JAYWALK's) around floor 85 · THE MOTHERSHIP seen from ~180, colossal at 200.
 - FLOOR 200: SOLO flies past the Mothership into DEEP SPACE (a moment, then on); MATCH = THE FINISH (white-gold light pours onto the top slab → MADE IT TO THE MOTHERSHIP, gold) — previewable on the test page with ?mode=match (nothing counts).
 - THE 2 CARDS' ART is prepared in S3; the cards are added + awarded in S4 (server-judged runs only, hidden until go-live).
+
+## HIGH RISE — S4A (approved Nov 19)
+- Ben's S3 check: day + night looks, flyers, the Mothership and the gold-light finish all APPROVED. (His HITCH run comes later.)
+- SOUND SYNC (Ben, Nov 19 — "sometimes the sound isn't in sync with the blocks"; he plays with MUSIC OFF, phone speaker): cause = PODCAST MODE naps the context 150 ms after each sound and an effect must wake it (a variable iOS delay). FIX: a game holds the context AWAKE while a run is LIVE (naps again on the start / end screens; the 'ambient' session unchanged so podcasts keep playing); every sound decoded before the first tap (no late path in play). Applied to HIGH RISE + JAYWALK.
+- S4 SPLIT: S4A = sound sync + the hidden cartridge (owner-only, solo) + counting built OFF · S4B = THE MATCH.
+- COUNTING stays OFF until go-live behind ONE server switch; while OFF the server judges every cartridge run + shows "WOULD COUNT" on the end card, awards nothing.
+- XP + THE STREAK: a counted HIGH RISE solo run / match gives XP + keeps the streak, by JAYWALK's rules.
+- THE CARDS: ABOVE THE CLOUDS (floor 60, one run, any mode) · TOP OF THE WORLD (floor 200) — in the catalog, HIDDEN until go-live, awarded only from a server-judged run once counting is ON.
+- THE NEXT FRIEND = a PINK thin tape (the gold tape's style), the lowest friend best above you from YOUR TABLE; above you = a right-edge tag "LIAM 57 ▲12"; one friend at a time; solo only.
+- A MATCH: each phone in its own day / night look (JAYWALK's accepted rule).
