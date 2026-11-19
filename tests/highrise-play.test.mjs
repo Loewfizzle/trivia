@@ -88,7 +88,7 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   // (S2 FIX: + night.js — a plate's bytes, for createImageBitmap: decoded off the frame, uploaded a band ahead — THE LAG HUNT)
   assert.deepEqual(own.filter(f => /(^|[^.\w])fetch\s*\(/.test(code(`${HI}${f}`))), ['night.js', 'sfx.js'], 'only sfx.js (its sounds) + night.js (its plates) fetch');
   assert.ok(code(`${HI}night.js`).includes('loadPicture(new URL(`plates/${look}-${band + 1}.webp?v=${HI_ART_REV}`, ART).href)') && (code(`${HI}night.js`).match(/(^|[^.\w])fetch\s*\(/g) || []).length === 1, '… night.js: its own plates, nothing else');
-  assert.match(code(`${HI}sfx.js`), /const DIR = new URL\('\.\.\/\.\.\/\.\.\/audio\/highrise\/', import\.meta\.url\);/); assert.match(code(`${HI}sfx.js`), /fetch\(new URL\(`\$\{f\}\.wav\?v=\$\{HI_SFX_REV\}`, DIR\)\)/, '… its own WAVs');
+  assert.match(code(`${HI}sfx.js`), /const DIR = new URL\('\.\.\/\.\.\/\.\.\/audio\/highrise\/', import\.meta\.url\);/); assert.match(code(`${HI}sfx.js`), /fetch\(new URL\(`\$\{f\}\.mp3\?v=\$\{HI_SFX_REV\}`, DIR\)\)/, '… its own sounds (MP3 since S2 FIX)');
   assert.match(code(`${HI}night.js`), /const ART = new URL\('\.\.\/\.\.\/\.\.\/assets\/highrise\/', import\.meta\.url\);/);
   // the ONLY thing stored: this phone's best + its audition picks (`hi:play:*`)
   const stores = own.filter(f => /localStorage/.test(code(`${HI}${f}`)));
@@ -238,9 +238,17 @@ test('THE SOUNDS\' TABLE (sounds.js — PURE): nine sounds, every file ships, th
   assert.deepEqual([...SOUND_IDS], ['drop', 'perfect', 'slice', 'falling-piece', 'grow-back', 'streak', 'out', 'band-arrival', 'pass']);
   assert.deepEqual([...SOUND_FILES].sort(), ['band-arrival', 'drop', 'falling-piece', 'grow-back', 'out', 'pass', 'perfect', 'slice', 'slice-b', 'streak']);
   let total = 0;
-  for (const f of SOUND_FILES) { const u = new URL(`../audio/highrise/${f}.wav`, import.meta.url); assert.ok(existsSync(u), `${f}.wav ships`); total += statSync(u).size; const b = readFileSync(u); assert.equal(b.toString('latin1', 0, 4), 'RIFF'); assert.equal(b.readUInt16LE(22), 1, `${f}.wav is mono`); assert.equal(b.readUInt32LE(24), 44100); }
-  assert.ok(total < 700 * 1024, `the sounds: ${(total / 1024).toFixed(0)} KB`);
-  assert.deepEqual(readdirSync(new URL('../audio/highrise/', import.meta.url)).filter(f => f.endsWith('.wav')).map(f => f.slice(0, -4)).sort(), [...SOUND_FILES].sort(), 'no stray file ships');
+  // THE SOUNDS SHIP COMPRESSED (S2 FIX — the owner; scripts/build-highrise-sounds.mjs): MPEG-1 Layer III, 44.1 kHz, MONO — ≈ 120 KB in all (the WAVs were 633 KB); no WAV ships
+  for (const f of SOUND_FILES) {
+    const u = new URL(`../audio/highrise/${f}.mp3`, import.meta.url); assert.ok(existsSync(u), `${f}.mp3 ships`); total += statSync(u).size;
+    const b = readFileSync(u);
+    assert.ok(b[0] === 0xff && (b[1] & 0xfe) === 0xfa, `${f}.mp3 begins with an MPEG-1 Layer III frame (no tag in front)`);
+    assert.equal((b[2] >> 2) & 3, 0, `${f}.mp3 is 44.1 kHz`); assert.equal(b[3] >> 6, 3, `${f}.mp3 is mono`);
+  }
+  assert.ok(total < 150 * 1024, `the sounds: ${(total / 1024).toFixed(0)} KB`);
+  assert.deepEqual(readdirSync(new URL('../audio/highrise/', import.meta.url)).filter(f => !/^(CREDITS\.md|LICENSE\.txt)$/.test(f)).sort(), SOUND_FILES.map(f => `${f}.mp3`).sort(), 'no stray file ships (no WAV)');
+  // an MP3's lead-in is skipped at play: a drop's sound stays on its tap
+  { const sx = code(`${HI}sfx.js`); assert.ok(sx.includes('leads.set(k, leadOf(b));') && sx.includes("src.start(ctx.currentTime + (o.delay || 0), leads.get(tk.file) || 0);"), 'each sound starts at its first audible sample'); }
   assert.match(read('audio/highrise/CREDITS.md'), /CC0/); assert.ok(existsSync(new URL('../audio/highrise/LICENSE.txt', import.meta.url)));
   for (const s of SOUNDS) {
     assert.ok(s.takes.a && s.label && s.pri >= 1 && s.pri <= 4);

@@ -10,7 +10,19 @@ import { SOUNDS, SOUND_FILES, VOICES, DROP_VARY, admit, cuesOf } from './sounds.
 export { SOUNDS, cuesOf };
 
 const DIR = new URL('../../../audio/highrise/', import.meta.url);
-export const HI_SFX_REV = 1;   // (bump when a sound file is replaced)
+export const HI_SFX_REV = 2;   // (bump when a sound file is replaced — 2: the files ship as MP3, S2 FIX)
+// THE FILES ARE MP3 (S2 FIX — scripts/build-highrise-sounds.mjs: 633 KB of WAV → 121 KB). An MP3 begins with its encoder's LEAD-IN
+// (~25–50 ms of near-silence a WAV never had): each sound is started at its first audible sample (less a millisecond) — a drop's
+// sound stays ON its tap. Measured once a file, when its decode lands.
+export const LEAD_AT = 0.003, LEAD_MAX = 0.08;
+export function leadOf(b) {
+  try {
+    const d = b.getChannelData(0), n = Math.min(d.length, Math.floor(b.sampleRate * LEAD_MAX));
+    for (let i = 0; i < n; i++) if (d[i] > LEAD_AT || d[i] < -LEAD_AT) return Math.max(0, i / b.sampleRate - 0.001);
+  } catch { /* an odd buffer: from its start */ }
+  return 0;
+}
+const leads = new Map();              // file → seconds skipped at its start
 const BY = Object.fromEntries(SOUNDS.map(s => [s.id, s]));
 export const LIMITER = Object.freeze({ threshold: -8, knee: 6, ratio: 8, attack: 0.002, release: 0.16 });
 export const TRIM = 0.8;       // (takes the compressor's own make-up gain back out: a lone sound plays at its level)
@@ -33,11 +45,11 @@ const log = [], asked = [];            // the test hooks: what started · what w
 let workAt = 0;                        // the last time the sounds did one-off work (a decode landed, the limiter was built) — THE HITCH COUNTER's 'audio' tag (play.js)
 export const lastWork = () => workAt;
 
-/** fetch the bytes now (no AudioContext needed) — every file by default (ten small WAVs) */
+/** fetch the bytes now (no AudioContext needed) — every file by default (ten small MP3s) */
 export function fetchSounds(files = SOUND_FILES) {
   for (const f of files) {
     if (bytes.has(f)) continue;
-    const p = fetch(new URL(`${f}.wav?v=${HI_SFX_REV}`, DIR)).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null)
+    const p = fetch(new URL(`${f}.mp3?v=${HI_SFX_REV}`, DIR)).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null)
       .then(a => { if (!a && bytes.get(f) === p) bytes.delete(f); return a; });
     bytes.set(f, p);
   }
@@ -49,7 +61,7 @@ export function decode() {
   if (!ctx) return Promise.resolve();
   if (bufCtx !== ctx) { bufs.clear(); bufCtx = ctx; }
   return Promise.all([...bytes.entries()].map(([k, p]) => (bufs.has(k) ? null : p.then(a => (a ? new Promise((res, rej) => { const q = ctx.decodeAudioData(a.slice(0), res, rej); if (q && q.catch) q.catch(rej); }) : null))
-    .then(b => { if (b && bufCtx === ctx) { bufs.set(k, b); workAt = performance.now(); } }, () => {}))))
+    .then(b => { if (b && bufCtx === ctx) { bufs.set(k, b); leads.set(k, leadOf(b)); workAt = performance.now(); } }, () => {}))))
     // (S2 FIX — THE LAG HUNT: the limiter + its trim are built HERE, with the decode at the unlock — not inside the first drop's frame)
     .then(r => { try { if (isUnlocked()) out(ctx); } catch { /* at the first play, then */ } return r; });
 }
@@ -89,7 +101,7 @@ export function play(id, o = {}) {
     src.buffer = bufs.get(tk.file); src.playbackRate.value = (o.rate || 1) * tk.rate;
     g.gain.value = gainOf(s, ab) * (o.vol == null ? 1 : o.vol);
     src.connect(g); g.connect(out(ctx));
-    src.start(ctx.currentTime + (o.delay || 0)); live.add(v); src.onended = () => live.delete(v);
+    src.start(ctx.currentTime + (o.delay || 0), leads.get(tk.file) || 0); live.add(v); src.onended = () => live.delete(v);
     // (a dropped voice never stops dead: a 30 ms ramp, then the source)
     v.end = () => { live.delete(v); try { const t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + 0.03); src.stop(t + 0.05); } catch { /* ended */ } };
     log.push({ id, ab, rate: +src.playbackRate.value.toFixed(4), gain: +g.gain.value.toFixed(3) }); if (log.length > 300) log.shift();
@@ -109,3 +121,5 @@ export function stopAll() { for (const v of [...live]) v.end(); live.clear(); }
 export const played = () => log.slice();
 export const wanted = () => asked.slice();
 export const sounding = () => live.size;
+/** each decoded file: its length + the lead-in skipped at its start (s) */
+export const decoded = () => [...bufs.entries()].map(([file, b]) => ({ file, s: +b.duration.toFixed(3), lead: +(leads.get(file) || 0).toFixed(4) }));

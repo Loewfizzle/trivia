@@ -33,7 +33,7 @@ const shot = async (p, name) => { if (OUT) await p.screenshot({ path: join(OUT, 
 
 /** THE ONLY REQUESTS THE PAGE MAY MAKE: its own page + static files, three.js from the import map's CDN, the fonts */
 const OWN = [/^\/highrise-play(\.html)?$/, /^\/css\/(base|components|highrise-play)\.css$/, /^\/js\/games\/highrise\/[a-z-]+\.js$/, /^\/js\/games\/kit\/tiers\.js$/, /^\/js\/core\/rng\.js$/,
-  /^\/js\/ui\/(dom|lazy-import|sheet|layers)\.js$/, /^\/js\/audio\/(engine|settings|sound-state|leave-text)\.js$/, /^\/js\/(errlog|core\/bot-ua)\.js$/, /^\/assets\/highrise\/(plates\/night-[1-5]\.webp|env-night\.png)$/, /^\/audio\/highrise\/[a-z-]+\.wav$/,
+  /^\/js\/ui\/(dom|lazy-import|sheet|layers)\.js$/, /^\/js\/audio\/(engine|settings|sound-state|leave-text)\.js$/, /^\/js\/(errlog|core\/bot-ua)\.js$/, /^\/assets\/highrise\/(plates\/night-[1-5]\.webp|env-night\.png)$/, /^\/audio\/highrise\/[a-z-]+\.mp3$/,
   /^\/assets\/favicon-64\.png$/, /^\/favicon\.ico$/, /^\/assets\/fonts\//];
 const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js';
 const allowed = url => { if (url === THREE_URL || /^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(url)) return true; const u = new URL(url); return u.origin === new URL(BASE).origin && OWN.some(re => re.test(u.pathname)); };
@@ -308,7 +308,7 @@ async function main() {
   // ---- NOTHING COUNTS
   const stray = t.reqs.filter(q => !allowed(q.slice(q.indexOf(' ') + 1)) || !q.startsWith('GET '));
   ok(stray.length === 0, `NO request but the page's own static files, three.js from its CDN and the fonts (${t.reqs.length} requests${stray.length ? ` — STRAY: ${stray.join(' , ')}` : ''})`);
-  ok(t.reqs.some(q => q.endsWith(THREE_URL)) && t.reqs.some(q => /\/assets\/highrise\/plates\/night-1\.webp/.test(q)) && t.reqs.some(q => /\/audio\/highrise\/drop\.wav/.test(q)), '… (three.js, the plates, the sounds really came through them)');
+  ok(t.reqs.some(q => q.endsWith(THREE_URL)) && t.reqs.some(q => /\/assets\/highrise\/plates\/night-1\.webp/.test(q)) && t.reqs.some(q => /\/audio\/highrise\/drop\.mp3/.test(q)) && !t.reqs.some(q => /\.wav/.test(q)), '… (three.js, the plates, the sounds really came through them)');
   ok(!t.reqs.some(q => COUNTS.test(q.replace('/highrise-play', ''))), 'no /api, no Firebase, no profile / progression / report / share / cards / app module was loaded');
   ok(t.sockets.length === 0, 'no web socket');
   const page = await p.evaluate(async () => ({ ls: Object.keys(localStorage), ss: Object.keys(sessionStorage).length, cookie: document.cookie, sw: 'serviceWorker' in navigator ? (await navigator.serviceWorker.getRegistrations()).length : 0, arcade: typeof window.__arcade }));
@@ -322,7 +322,7 @@ async function main() {
     const q = await st(d.p);
     const dm = await d.p.evaluate(() => [document.querySelector('.hi-start-best').textContent, (document.querySelector('.hi-fps') || {}).textContent || '', location.search]);
     ok(q.mode === 'match' && q.seed === 'abc' && q.best === 41 && dm[0] === 'YOUR BEST 41 · THIS PHONE' && q.info.tier === 1 && !q.info.bloom, '?mode=match&seed=abc&tier=1: the seed, the pinned tier (no bloom under the top tier); the start says YOUR BEST 41 · THIS PHONE');
-    ok(/^\d+ fps · [\d.]+ ms · worst \d+ · tier 1 · \d+ calls · \d+ tris · 390×844 @2 · tick \d+$/.test(dm[1]), `?fps=1: the frame-rate readout (${dm[1]})`);
+    ok(/^\d+ fps · [\d.]+ ms · worst \d+ · tier 1 · \d+ calls · \d+ tris · 390×844 @2 · tick \d+ · HITCH \d+( \(last: .+\))?$/.test(dm[1]), `?fps=1: the frame-rate readout (${dm[1]})`);
     ok(!/debug/.test(dm[2]), 'a &debug=1 link: the flag is dropped from the address (the shared audio engine never reports from here)');
     await tapAt(d, 195, 500);
     await waitFor(d.p, "window.__hiPlay.state().st === 'slide'", 3000);
@@ -360,7 +360,7 @@ async function main() {
     const q = await st(d.p);
     await shot(d.p, `${name}-run.png`);
     await waitFor(d.p, 'window.__hiPlay.state().shown', 15000);
-    const m = await d.p.evaluate(() => { const qs = sel => document.querySelector(sel), L = window.__hiPlay, tp = L.state().viewTop, st2 = qs('.hi-stage').getBoundingClientRect(), V = L.view, a = V.project(tp.x1, tp.floor, tp.z0), c = V.project(tp.x0, tp.floor, tp.z1); return { card: qs('.hi-end').getBoundingClientRect().bottom, top: V.project((tp.x0 + tp.x1) / 2, tp.floor, (tp.z0 + tp.z1) / 2)[1] * st2.height, stage: [st2.left, st2.width, st2.height], scroll: document.documentElement.scrollWidth, w: innerWidth, words: qs('.hi-end-t').textContent, go: qs('.hi-end-go').getBoundingClientRect(), check: qs('.hi-check').textContent }; });
+    const m = await d.p.evaluate(() => { const qs = sel => document.querySelector(sel), L = window.__hiPlay, tp = L.state().viewTop, st2 = qs('.hi-stage').getBoundingClientRect(), V = L.view, a = V.project(tp.x1, tp.floor, tp.z0), c = V.project(tp.x0, tp.floor, tp.z1); return { card: qs('.hi-end').getBoundingClientRect().bottom, top: V.project((tp.x0 + tp.x1) / 2, tp.floor, (tp.z0 + tp.z1) / 2)[1] * st2.height, stage: [st2.left, st2.width, st2.height], scroll: document.documentElement.scrollWidth, w: innerWidth, words: qs('.hi-end-t').textContent, go: qs('.hi-again').getBoundingClientRect(), check: qs('.hi-check').textContent }; });
     ok(d.up && q.taps === n && n >= 3 && m.scroll <= m.w && d.errs.length === 0, `${w} × ${h}: the game runs (floor ${q.floor} after ${n} real taps), no sideways scroll, no page error`);
     ok(m.card <= m.top + 6 && m.check === 'REPLAY = LIVE ✓', `${w} × ${h}: the end card ends above the top slab (${m.card.toFixed(0)} ≤ ${m.top.toFixed(0)}); REPLAY = LIVE ✓`);
     if (w > 700) ok(Math.abs(m.stage[1] - 0.6 * h) < 2 && Math.abs(m.stage[0] - (w - 0.6 * h) / 2) < 2, `${w} × ${h}: the phone's own column, centred (${m.stage[1].toFixed(0)} px wide)`);

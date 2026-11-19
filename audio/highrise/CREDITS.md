@@ -1,5 +1,7 @@
 # HIGH RISE — the sounds (audio/highrise/) — all CC0 1.0 (credit appreciated, not required)
 
+> The files SHIP AS MP3 (`<id>.mp3`, 44.1 kHz mono — encoded from the WAVs named below by `scripts/build-highrise-sounds.mjs`, same level, nothing else changed); the sources + the licences are unchanged.
+
 Copied by `scripts/build-highrise-assets.py` from the owner's delivery (Downloads\grok\highrise\sfx — its notes.txt has each file's
 source, cut and measurements); the stereo takes mixed down to mono, nothing else changed.
 

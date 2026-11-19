@@ -4,7 +4,7 @@
 // THE TRIGGERS (cuesOf — the engine's events → the sounds): drop (every landing, a slight pitch vary) · perfect (THE CHIME) · slice (a
 // cut) · falling-piece ≈ 0.1 s after a slice · grow-back · streak (every 10 perfects in a row) · out · band-arrival · [pass = the
 // match's, S4 — in the audition only].
-/** a take: `file` (audio/highrise/<file>.wav) played at `rate` */
+/** a take: `file` (audio/highrise/<file>.mp3) played at `rate` */
 const take = (file, rate = 1) => Object.freeze({ file, rate });
 export const SOUNDS = Object.freeze([
   { id: 'drop', label: 'DROP', takes: { a: take('drop'), b: take('drop', 0.78) }, about: { a: 'as recorded', b: 'lower — a heavier slab' }, gain: 1.5, pri: 1, play: true },
