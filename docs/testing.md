@@ -1182,3 +1182,21 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   uses no emulator): 45 checks — the lab at 390 × 844, a bot run through REAL taps (CDP touches timed at each slab's perfect moment),
   NO request but the page's own static files + the three.js CDN, no counted module, nothing stored, REPLAY = LIVE ✓, the mode switch,
   `?mode=` `?seed=` `?fps=1`, + the 375 × 667 and 1440 × 900 shots. THE PAGES LOAD (`kit/page-loads.mjs`) covers `/highrise-lab`.
+
+## HIGH RISE S2 (Nov 18–19 2026 — docs/games/passes/highrise-s2.md)
+- Unit (`node --test tests/highrise-*.test.mjs`, seconds, no install): 48 — `highrise-engine.test.mjs` (21: + SOLO PAST 200 KEEPS
+  TIGHTENING — the curve past floor 200, no perfect tick on an odd sweep under 30, MATCH + DAILY pinned to S1's runs by digests — and
+  THE RANKING by perfects) · `highrise-sim.test.mjs` (5: + the near-perfect bot falls on floor 350–410, nobody is stopped by the sim) ·
+  `highrise-play.test.mjs` (11 — the page + NOTHING COUNTS: its WHOLE module graph, static + lazy, THE DOOR, the only storage; the run
+  on the page; the camera pinned to the lab's; the height areas + the slab colours; YOUR BEST; the sounds' table, the chime's scale, the
+  triggers on real runs; the night look's static rules) · `highrise-server.test.mjs` (5) · `highrise-lab.test.mjs` (6).
+- The full sim table: `node scripts/highrise-sim.mjs 2000`.
+- The browser: `node tests/integration/highrise-play.mjs "<chromium>" [outDir] [--look] [--perf]` (outside the sandbox;
+  `scripts/serve.mjs` is enough — the page uses no emulator): **86 checks** — the page at 390 × 844 @3, a bot run through REAL taps (CDP
+  touches), the HUD, the end card above the top slab, REPLAY = LIVE ✓, the sounds asked of the engine, THE AUDITION through real taps
+  (the chime's scale, USE B remembered, COPY MY PICKS), YOUR BEST (the tag clear of THE DROP ZONE → the gold tape + NEW BEST), the
+  bands + the plates held, THE LOST CONTEXT (lost on purpose → rebuilt on the same tower), NO PAUSE behind a hidden page, THE DOOR (0
+  requests to /api with the sound on), the network log, `?seed=` `?mode=` `?fps=1` `?tier=`, reduced motion (0 sparks), 375 × 667 ·
+  430 × 932 · 1440 × 900, + THE FRESH-EYES REVIEW's finds each with its check (`--review` alone: 16 — a Safari tab's height, MADE IT on the small phone, MUSIC OFF still sounds, a best 300 floors up, a WebGL 1 context, a rebuild with no context, FASTER under a streak, the tape through a rebuild). `--webkit` = Playwright's WebKit as an iPhone (6). `--look` = the review's shots only (every band, the cut, the perfect, YOUR BEST, the end, the sizes) ·
+  `--perf` = the frame rate at every tier at 1× + 4× CPU, the bot playing (12 checks). THE PAGES LOAD covers `/highrise-play`.
+- The assets: `python -P -E scripts/build-highrise-assets.py` (reads Downloads\grok\highrise; `--only=plates,env,sfx`, `--look=day` for S3).
