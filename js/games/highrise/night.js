@@ -16,6 +16,7 @@ import { START, TRAVEL } from './tuning.js';
 import { slabInto } from './engine.js';
 import { CAM, camDist, SLAB_H } from './camera.js';
 import { plateMix, plateMixInto, plateDrift, slabColor, sliderColor, hazeInto, SLACK } from './bands.js';
+import { PH, EV } from './trace.js';
 import { GLASS_V, GLASS_F, PLATE_V, PLATE_F, SPARK_V, SPARK_F, RING_V, RING_F, TAPE_V, TAPE_F, TAPE_BACK, FLY_V, FLY_F, LIGHT_V, LIGHT_F, createBloom } from './night-fx.js';
 
 const U = 1 / START, H = SLAB_H, RAD = Math.PI / 180;
@@ -64,6 +65,8 @@ export function createNight(host, o = {}) {
   const lookNow = () => (dayK >= 0.5 ? 'day' : 'night');
   /** THE HITCH COUNTER's cause marks (play.js): 'plate' = a picture uploaded · 'compile' = a program built / the tier stepped */
   const mark = typeof o.mark === 'function' ? o.mark : () => {};
+  /** THE ON-PHONE TRACE (S4A FIX 2 — `?trace=1`: trace.js): the frame's phases inside the scene (the flyers · the render · the bloom); null = off */
+  const TRC = o.trace || null;
   const reduce = o.reduce != null ? !!o.reduce : (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
   const devDpr = Math.min(window.devicePixelRatio || 1, 3);
   const renderer = new THREE.WebGLRenderer({ antialias: devDpr < 2, powerPreference: 'high-performance' });
@@ -244,11 +247,14 @@ export function createNight(host, o = {}) {
   const sparkMat = new THREE.ShaderMaterial({ vertexShader: SPARK_V, fragmentShader: SPARK_F, uniforms: { uTime: G.uTime, uAspect: G.uAspect, uDay: G.uDay }, transparent: true, depthWrite: false, ...LIGHT_BLEND });
   const sparks = new THREE.Mesh(quad, sparkMat); sparks.frustumCulled = false; sparks.renderOrder = 20; scene.add(sparks); made.push(quad, sparkMat);
   twin(sparks, sparkMat);
-  let spAt = 0, sparkN = 0;
+  let spAt = 0, sparkN = 0, spLo = 0, spCount = 0;
+  // (S4A FIX 2 — ONLY THE CHANGED RANGE goes to the GPU: the sparks written since the last frame are one run of the ring — `spLo`,
+  //  `spCount` — sent at the frame's draw; a run that wraps round the ring's end sends the whole buffer)
   function spark(x, y, z, vx, vy, vz, life, size, c) {
     const i = spAt++ % SPARKS;
+    if (!spCount) spLo = i;
     spO.setXYZ(i, x, y, z); spV.setXYZ(i, vx, vy, vz); spT.setXYZ(i, NUM[CLK] / 1000, life, size); spC.setXYZ(i, c[0], c[1], c[2]);
-    spO.needsUpdate = spV.needsUpdate = spT.needsUpdate = spC.needsUpdate = true; sparkN++;
+    spCount++; sparkN++;
   }
 
   // ---- THE RINGS OF LIGHT (a perfect's pulse, grow-back's, YOUR BEST's flash): flat on the slab's top, drawn in a shader
@@ -270,6 +276,35 @@ export function createNight(host, o = {}) {
     rgP.setXYZW(i, (r.x0 + r.x1) / 2 * U, floor * H + 0.004, (r.z0 + r.z1) / 2 * U, k);
     rgA.setXYZW(i, hx, hz, reach, life); rgB.setXYZW(i, c[0], c[1], c[2], NUM[CLK] / 1000);
     rgA.needsUpdate = rgB.needsUpdate = rgP.needsUpdate = true; ringN++;
+  }
+
+  // ONE RANGE OF AN ATTRIBUTE TO THE GPU (S4A FIX 2): three's own kept range record (`_updateRange` — its `addUpdateRange()` makes a new
+  // record at every call: garbage in a frame); a three without it sends the whole buffer, as before
+  const upRange = (a, off, cnt) => { const u = a._updateRange; if (u && cnt > 0) { u.offset = off; u.count = cnt; } a.needsUpdate = true; };
+  // THE LANDING FRAME's LATER JOBS (S4A FIX 2 — the owner's iPhone: a stall after a touch, the UFO jumping at every landing): the frame a
+  // slab lands draws ONLY what must be instant — the slab snapped into place (+ the overhang it lost, beside it: the same box, one
+  // record) and its flash; its sound started in the touch itself. A perfect's RING, grow-back's, and a cut's SPARK BURST are JOBS for the
+  // NEXT frame: a tiny queue, its room made once (JQ slots — a kind, the frame it is due, its numbers).
+  const JQ = 8, JN = 12, jKind = new Int8Array(JQ), jDue = new Int32Array(JQ), jArg = new Float64Array(JQ * JN), JR = { x0: 0, x1: 0, z0: 0, z1: 0 }, JC = new Float64Array(3);
+  const J_RING = 1, J_SPARKS = 2;
+  let jobsRun = 0;
+  /** a job's slot (its numbers are written straight into jArg at slot × JN) — −1 = the queue is full: the caller does it now */
+  function jobSlot(kind) { for (let i = 0; i < JQ; i++) if (!jKind[i]) { jKind[i] = kind; jDue[i] = frames + 1; return i; } return -1; }
+  function ringLater(r, floor, reach, life, c, k = 1) {
+    const i = jobSlot(J_RING);
+    if (i < 0) { ring(r, floor, reach, life, c, k); return; }
+    const o = i * JN;
+    jArg[o] = r.x0; jArg[o + 1] = r.x1; jArg[o + 2] = r.z0; jArg[o + 3] = r.z1; jArg[o + 4] = floor; jArg[o + 5] = reach; jArg[o + 6] = life; jArg[o + 7] = c[0]; jArg[o + 8] = c[1]; jArg[o + 9] = c[2]; jArg[o + 10] = k;
+  }
+  function runJobs() {
+    for (let i = 0; i < JQ; i++) {
+      if (!jKind[i] || jDue[i] > frames) continue;
+      const o = i * JN, kind = jKind[i];
+      jKind[i] = 0; jobsRun++;
+      if (TRC) TRC.ev |= EV.deferred;
+      if (kind === J_RING) { JR.x0 = jArg[o]; JR.x1 = jArg[o + 1]; JR.z0 = jArg[o + 2]; JR.z1 = jArg[o + 3]; JC[0] = jArg[o + 7]; JC[1] = jArg[o + 8]; JC[2] = jArg[o + 9]; ring(JR, jArg[o + 4], jArg[o + 5], jArg[o + 6], JC, jArg[o + 10]); }
+      else if (kind === J_SPARKS) sparksNow(o);
+    }
   }
 
   // ---- YOUR BEST's GOLD TAPE (S2 FIX): a THIN glowing gold OUTLINE round the slab of that floor — one line of light, no fill
@@ -375,6 +410,11 @@ export function createNight(host, o = {}) {
   // opaque mesh (drawn first, as before); two meshes that share an order (the gold + the pink tape) never overlap.
   scene.children.sort((a, b) => a.renderOrder - b.renderOrder);
   renderer.sortObjects = false;
+  // THE STATIC SCENE (S4A FIX 2): no mesh moves by itself — the plate, the boxes, the sparks, the rings, the lights sit at the origin
+  // (their numbers move in their buffers), a tape's matrix is set when it is laid, a flyer's when it moves — so three.js composes no
+  // matrix a frame, and the scene is walked ONCE a frame (draw: updateMatrixWorld), never by each of the bloom's passes
+  for (const m of scene.children) { m.updateMatrix(); m.matrixAutoUpdate = false; }
+  scene.matrixAutoUpdate = false; scene.matrixWorldAutoUpdate = false; scene.updateMatrixWorld(true);
 
   // ---- the pieces that fall away (a cut's overhang; a slab that missed) — pooled
   const pieces = Array.from({ length: PIECES }, () => ({ on: false, age: 0, x: 0, y: 0, z: 0, sx: 0, sz: 0, vx: 0, vy: 0, vz: 0, rx: 0, rz: 0, ax: 0, az: 0, fl: 0, life: 1200 }));
@@ -386,18 +426,19 @@ export function createNight(host, o = {}) {
   // THE FRAME's OWN FRACTIONS (S4A FIX — ZERO GARBAGE): a fraction kept in a plain variable that functions share is a small object every
   // time it is written — the view's clock, the camera's ease, its place, the landing's bump, the slider's glow, the plates' drift are
   // written every frame: they live in ONE scratch of doubles instead (NUM[…] below — written in place, nothing made)
-  const NUM = new Float64Array(20), CLK = 0, CAMX = 1, CAMY = 2, CAMZ = 3, BUMP = 4, EYEX = 5, EYEY = 6, EYEZ = 7, SGLOW = 8, CF = 9, DRA = 10, DRB = 11, ZONE = 12, BACK = 13, FBACK = 14, LIFT = 15, WSL = 16;
-  /** what the stage hands a frame: IO[0] = `tau`, the clock in ticks (a fraction into the next one) · IO[1] = `dt`, ms since the last frame */
-  const IO = new Float64Array(2), RX = new Float64Array(4);   // (RX: a slab's four edges while its box is worked out)
+  const NUM = new Float64Array(20), FBOT = 17, CLK = 0, CAMX = 1, CAMY = 2, CAMZ = 3, BUMP = 4, EYEX = 5, EYEY = 6, EYEZ = 7, SGLOW = 8, CF = 9, DRA = 10, DRB = 11, ZONE = 12, BACK = 13, FBACK = 14, LIFT = 15, WSL = 16;
+  /** what the stage hands a frame: IO[0] = `tau`, the clock in ticks (a fraction into the next one) · IO[1] = `dt`, ms since the last frame ·
+   *  IO[2] = the frame's timestamp (performance.now's clock — the flyers fly by it) */
+  const IO = new Float64Array(3), RX = new Float64Array(4);   // (S4A FIX 2: IO[2] = the frame's own timestamp, ms — THE FLYERS' CLOCK)   // (RX: a slab's four edges while its box is worked out)
   let tapeDrawn = -1, ftapeDrawn = -1;   // (the floor each tape's outline was last laid round: it is placed once, not every frame)
   // THE WELCOME + THE END POSE (S4A FIX's add-ons — the owner's picks "A · THE SIGN" + "A · THE HERO NUMBER"): `liftTo` = how far DOWN the
   // screen the tower stands (a share of its height) — 0 in play, POSE.welcome on the start screen (its top ≈ 70 % down: the sign has the
   // sky), POSE.end under the end screen's stats; the camera eases there. `welc` = the first slab already sliding in (a stand-in drawn
   // only on the start screen — the run's own first slab enters at its first beat); `tapeWelc` = YOUR BEST's gold tape round the
   // waiting tower's top slab; `ghost` = YOUR BEST still above you at the end: the gold outline DASHED, floating over the top slab.
-  let liftTo = 0, welc = false, tapeWelc = false, ghost = false;
+  let liftTo = 0, welc = false, tapeWelc = false, ghost = false, pathWant = false;   // (pathWant: THE FLYER PATH CHECK asked before the flyers' module came)
   const WPINK = F64([1, 0.074, 0.69]);   // (the sign's pink #ff4fd8, linear)
-  NUM[CF] = -1;
+  NUM[CF] = -1; NUM[FBOT] = -1;
   // (the frame's kept records — nothing is made in a frame: the plates' mix, the sliding slab at two ticks, the day's air, a grow-back,
   //  a perfect's ring colour, the few numbers `?fps=1` shows)
   const MIX = { a: 0, b: 0, m: 0 }, SA = { floor: 0, axis: 'x', off: 0, x0: 0, x1: 0, z0: 0, z1: 0 }, SB = { floor: 0, axis: 'x', off: 0, x0: 0, x1: 0, z0: 0, z1: 0 };
@@ -415,7 +456,7 @@ export function createNight(host, o = {}) {
     if (snap) {
       landAt = perfAt = outAt = tapeAt = ftapeAt = -1e9; ftapeFloor = 0; landFloor = -1; GROW.on = false; NUM[BUMP] = 0;
       for (let i = 0; i < PIECES; i++) pieces[i].on = false;
-      for (let i = 0; i < SPARKS; i++) spT.setX(i, -1e6); spT.needsUpdate = true;
+      for (let i = 0; i < SPARKS; i++) spT.setX(i, -1e6); spT.needsUpdate = true; spCount = 0; jKind.fill(0);
       for (let i = 0; i < RINGS; i++) rgB.setW(i, -1e6); rgB.needsUpdate = true;
     }
     NUM[CAMY] = slabs[slabs.length - 1].floor * H; NUM[CAMX] = (top.x0 + top.x1) / 2 * U; NUM[CAMZ] = (top.z0 + top.z1) / 2 * U;
@@ -431,12 +472,21 @@ export function createNight(host, o = {}) {
     p.vx = dx * 0.55; p.vz = dz * 0.55; p.vy = whole ? 0 : 0.25;
     p.rx = whole ? 0.25 : dz * 1.9; p.rz = whole ? -0.2 : -dx * 1.9;
     if (whole || reduce) return;
-    // THE SPARKS along the cut: the line where the piece left the slab
+    // THE SPARKS along the cut: the line where the piece left the slab — THE NEXT FRAME's job (S4A FIX 2: the landing frame draws the
+    // slab + its piece; the burst's numbers are worked out + sent one frame later)
     const along = dx ? p.sz : p.sx, n = Math.max(6, Math.round(SPARKS_AT[tier] * Math.min(1, 0.35 + along)));
     const ex = dx ? (dx > 0 ? r.x0 : r.x1) * U : 0, ez = dz ? (dz > 0 ? r.z0 : r.z1) * U : 0, y = floor * H;
+    let i = jobSlot(J_SPARKS), o = i * JN;
+    if (i < 0) { i = JQ; o = JQ * JN - JN; }   // (the queue is full: the burst now, through the last slot's numbers — never lost)
+    jArg[o] = dx; jArg[o + 1] = dz; jArg[o + 2] = ex; jArg[o + 3] = ez; jArg[o + 4] = y; jArg[o + 5] = p.x; jArg[o + 6] = p.z; jArg[o + 7] = p.sx; jArg[o + 8] = p.sz; jArg[o + 9] = n; jArg[o + 10] = floor; jArg[o + 11] = day ? 1 : 0;
+    if (i === JQ) sparksNow(o);
+  }
+  /** a cut's spark burst from its job's numbers (jArg at `o`) */
+  function sparksNow(o) {
+    const dx = jArg[o], dz = jArg[o + 1], ex = jArg[o + 2], ez = jArg[o + 3], y = jArg[o + 4], px = jArg[o + 5], pz = jArg[o + 6], psx = jArg[o + 7], psz = jArg[o + 8], n = jArg[o + 9], day = jArg[o + 11] > 0, c = colOf(jArg[o + 10]);
     for (let i = 0; i < n; i++) {
       const u = Math.random() - 0.5, sp = 0.5 + Math.random() * 1.9, up = 0.6 + Math.random() * 2.1;
-      const x = dx ? ex : p.x + u * p.sx, z = dz ? ez : p.z + u * p.sz;
+      const x = dx ? ex : px + u * psx, z = dz ? ez : pz + u * psz;
       spark(x, y - Math.random() * H * 0.8, z, dx * sp + (Math.random() - 0.5) * 0.7, up, dz * sp + (Math.random() - 0.5) * 0.7, 0.34 + Math.random() * 0.42, (0.006 + Math.random() * 0.006) * (day ? DAY_SPARK_SIZE : 1), day ? (Math.random() < 0.4 ? DAY_SPARK_HOT : DAY_SPARK) : Math.random() < 0.4 ? HOT : c);
     }
   }
@@ -455,8 +505,8 @@ export function createNight(host, o = {}) {
           perfAt = NUM[CLK];
           const c = colOf(e.floor);
           RINGC[0] = 0.55 + 0.45 * c[0]; RINGC[1] = 0.55 + 0.45 * c[1]; RINGC[2] = 0.55 + 0.45 * c[2];
-          ring(e, e.floor, 0.34 + Math.min(perfect, 8) * 0.03, 0.5, lookNow() === 'day' ? DAY_RING : RINGC);
-          if (grew) { GROW.on = true; GROW.floor = e.floor; GROW.x = grew.axis === 'x'; GROW.by = grew.by * U; GROW.at = NUM[CLK]; ring(e, e.floor, 0.42, 0.6, c, 0.55); }
+          ringLater(e, e.floor, 0.34 + Math.min(perfect, 8) * 0.03, 0.5, lookNow() === 'day' ? DAY_RING : RINGC);
+          if (grew) { GROW.on = true; GROW.floor = e.floor; GROW.x = grew.axis === 'x'; GROW.by = grew.by * U; GROW.at = NUM[CLK]; ringLater(e, e.floor, 0.42, 0.6, c, 0.55); }
         }
         perfect = 0; grew = null;
       } else if (e.e === 'out') { outAt = NUM[CLK]; perfect = 0; grew = null; }
@@ -566,15 +616,19 @@ export function createNight(host, o = {}) {
     rgP.setXYZW(0, 0, -60, 0, 1); rgA.setXYZW(0, 0.5, 0.5, 0.3, 1); rgB.setXYZW(0, 1, 1, 1, t); rgA.needsUpdate = rgB.needsUpdate = rgP.needsUpdate = true;
     nb = 0;
     for (const k of [KIND.slab, KIND.slider, KIND.tape, KIND.trail]) { BX[0] = 0; BX[1] = -60; BX[2] = 0; BX[3] = 0.01; BX[4] = 0.01; BX[5] = 0.01; BX[6] = 1; BX[7] = 0; BX[8] = 1; BX[9] = k; put(GOLD, null, null); }
+    // (S4A FIX 2 — PREWARM: a falling piece's TURNED box too (its matrix path), the whole pool's room: nothing a drop uses is met first in a drop)
+    for (let k = 0; k < PIECES; k++) { QQ.setFromEuler(EU.set(0.1 * k, 0, 0.05 * k)); put(GOLD, QQ, null); }
     boxes.count = nb; boxes.instanceMatrix.needsUpdate = aColor.needsUpdate = aFx.needsUpdate = aUp.needsUpdate = true;
     const tapeWas = tape.visible, backWas = tapeBack.visible, faceWas = tapeBackU.uFace.value;   // (the tape's programs too: built here, not at the crossing)
     tape.visible = tapeBack.visible = true; tapeBackU.uFace.value = 0.2; tape.position.set(0, -60, 0); tape.scale.set(0.01, 0.01, 0.01); tapeBack.position.copy(tape.position); tapeBack.scale.copy(tape.scale);
-    ftape.visible = ftapeBack.visible = true; ftapeBackU.uFace.value = 0.2; ftape.position.copy(tape.position); ftape.scale.copy(tape.scale); ftapeBack.position.copy(tape.position); ftapeBack.scale.copy(tape.scale);   // (S4A: the pink tape is the same program — drawn here once all the same)
+    ftape.visible = ftapeBack.visible = true; ftapeBackU.uFace.value = 0.2; ftape.position.copy(tape.position); ftape.scale.copy(tape.scale); ftapeBack.position.copy(tape.position); ftapeBack.scale.copy(tape.scale);
+    tape.updateMatrix(); tapeBack.updateMatrix(); ftape.updateMatrix(); ftapeBack.updateMatrix();   // (S4A: the pink tape is the same program — drawn here once all the same)
     // (THE FLYERS' two programs + their twins: built here on the stand-in triangle — a model brings only buffers later)
     const flyWas = flySlots.map(f => f.mesh.visible), lgWas = lightsMesh.visible, lgN = lgGeo.instanceCount;
     for (const f of flySlots) { f.mesh.visible = true; f.mesh.matrix.makeTranslation(0, -60, 0); f.mesh.matrixWorldNeedsUpdate = true; }
     lgP.setXYZW(0, 0, -60, 0, 0.01); lgQ.setXYZW(0, 0, 0, 1, 0); lgC.setXYZ(0, 1, 1, 1); lgA.setXYZ(0, 0, 0, 0); lgP.needsUpdate = lgQ.needsUpdate = lgC.needsUpdate = lgA.needsUpdate = true;
     lgGeo.instanceCount = 1; lightsMesh.visible = true;
+    scene.updateMatrixWorld();
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam, plate, TWINS); } catch { /* a phone that can't: the kinds build as they come */ }
     mark('compile');
     spT.setX(0, -1e6); spT.needsUpdate = true; rgB.setW(0, -1e6); rgB.needsUpdate = true;
@@ -593,6 +647,7 @@ export function createNight(host, o = {}) {
     NUM[CLK] += dt; G.uTime.value = NUM[CLK] / 1000;
     renderer.info.reset();
     slabs = T.slabs(); top = T.top();
+    runJobs();   // (S4A FIX 2: the landing's later jobs — a ring, a spark burst — one frame after it)
     aim();
     if (needWarm && w && h) { needWarm = false; warm(); }
     const topFloor = slabs[slabs.length - 1].floor;
@@ -624,17 +679,25 @@ export function createNight(host, o = {}) {
     if (plateU.uSpace.value !== space) plateU.uSpace.value = space;
     // ---- THE FLYERS (flyers.js, once the page has handed it in): placed in the camera's own frame, drawn BEHIND the tower
     nl = 0;
+    if (TRC) TRC.lap(PH.view);
     if (fly) {
       FR.px = NUM[EYEX]; FR.py = NUM[EYEY]; FR.pz = NUM[EYEZ];   // (its three axes never change: set once, below)
-      FR.aspect = cam.aspect; FR.dist = dist; FR.t = NUM[CLK] / 1000; FR.dt = dt; FR.day = dayK; FR.cf = cf; FR.top = band0; zoneFrom(false); FR.bot = NUM[ZONE]; FR.tier = tier;
+      // FLYERS ON REAL TIME (S4A FIX 2 — the owner: the UFO JUMPED at every landing): a flyer's place is a function of the REAL clock
+      // (the frame's own timestamp — a slow frame never makes it skip or lurch: it is simply where it should be by then) and of its SKY
+      // BAND — whose lower edge is THE DROP ZONE's upper edge as it will stand once the camera RESTS on the top slab (a landing moves the
+      // top slab up a floor at once while the camera eases after it: the zone as seen NOW leapt a floor's height up the screen and eased
+      // back — and the flyer with it). The rested zone moves only when the top slab's size does (a cut) — and is eased (≈ 0.6 s) even then.
+      FR.aspect = cam.aspect; FR.dist = dist; FR.t = (IO[2] > 0 ? IO[2] : NUM[CLK]) / 1000; FR.dt = dt; FR.day = dayK; FR.cf = cf; FR.top = band0; FR.tier = tier;
+      zoneFrom(true); if (NUM[FBOT] < 0 || dt >= 1000) NUM[FBOT] = NUM[ZONE]; else NUM[FBOT] += (NUM[ZONE] - NUM[FBOT]) * (1 - Math.exp(-dt / 600)); FR.bot = NUM[FBOT];
       if (dayK > 0) FR.hz.copy(G.uHaze.value).multiplyScalar(dayK); else FR.hz.set(0, 0, 0);
       FR.hz.x += 0.012 * (1 - dayK); FR.hz.y += 0.008 * (1 - dayK); FR.hz.z += 0.03 * (1 - dayK);
       FR.tx = (top.x0 + top.x1) / 2 * U; FR.ty = topFloor * H; FR.tz = (top.z0 + top.z1) / 2 * U;
       fly.frame(FR);
     }
+    if (TRC) TRC.lap(PH.flyers);
     uploadOne();
     lgGeo.instanceCount = nl; lightsMesh.visible = nl > 0;
-    if (nl) { lgP.needsUpdate = lgQ.needsUpdate = lgC.needsUpdate = lgA.needsUpdate = true; }
+    if (nl) { upRange(lgP, 0, nl * 4); upRange(lgQ, 0, nl * 4); upRange(lgC, 0, nl * 3); upRange(lgA, 0, nl * 3); }
 
     // ---- every box
     nb = 0;
@@ -709,7 +772,7 @@ export function createNight(host, o = {}) {
       // (the ghost: the top slab's own outline, floating clear over it)
       tapeDrawn = -2;
       const x0 = top.x0 * U, x1 = top.x1 * U, z0 = top.z0 * U, z1 = top.z1 * U;
-      tape.position.set((x0 + x1) / 2, (topFloor + ghostUp(x1 - x0, z1 - z0) - 0.5) * H, (z0 + z1) / 2); tape.scale.set(Math.max(GHOST_MIN, x1 - x0) + 2 * TAPE_OUT, TAPE_H, Math.max(GHOST_MIN, z1 - z0) + 2 * TAPE_OUT);
+      tape.position.set((x0 + x1) / 2, (topFloor + ghostUp(x1 - x0, z1 - z0) - 0.5) * H, (z0 + z1) / 2); tape.scale.set(Math.max(GHOST_MIN, x1 - x0) + 2 * TAPE_OUT, TAPE_H, Math.max(GHOST_MIN, z1 - z0) + 2 * TAPE_OUT); tape.updateMatrix();
       tapeU.uGlow.value = 1; tapeU.uWhite.value = 0;
     }
     if (ts) {
@@ -718,7 +781,7 @@ export function createNight(host, o = {}) {
         tapeDrawn = ts.floor;
         const x0 = ts.x0 * U, x1 = ts.x1 * U, z0 = ts.z0 * U, z1 = ts.z1 * U;
         tape.position.set((x0 + x1) / 2, (ts.floor - 0.5) * H, (z0 + z1) / 2); tape.scale.set(x1 - x0 + 2 * TAPE_OUT, TAPE_H, z1 - z0 + 2 * TAPE_OUT);
-        tapeBack.position.copy(tape.position); tapeBack.scale.copy(tape.scale);
+        tapeBack.position.copy(tape.position); tapeBack.scale.copy(tape.scale); tape.updateMatrix(); tapeBack.updateMatrix();
       }
       const age = NUM[CLK] - tapeAt, tg = 1 + 1.6 * Math.exp(-age / 260), tw = 0.6 * Math.exp(-age / 180);
       if (tapeU.uGlow.value !== tg) tapeU.uGlow.value = tg; if (tapeU.uWhite.value !== tw) tapeU.uWhite.value = tw;
@@ -732,15 +795,23 @@ export function createNight(host, o = {}) {
         ftapeDrawn = fs.floor;
         const x0 = fs.x0 * U, x1 = fs.x1 * U, z0 = fs.z0 * U, z1 = fs.z1 * U;
         ftape.position.set((x0 + x1) / 2, (fs.floor - 0.5) * H, (z0 + z1) / 2); ftape.scale.set(x1 - x0 + 2 * TAPE_OUT, TAPE_H, z1 - z0 + 2 * TAPE_OUT);
-        ftapeBack.position.copy(ftape.position); ftapeBack.scale.copy(ftape.scale);
+        ftapeBack.position.copy(ftape.position); ftapeBack.scale.copy(ftape.scale); ftape.updateMatrix(); ftapeBack.updateMatrix();
       }
       const age = NUM[CLK] - ftapeAt, tg = 1 + 1.6 * Math.exp(-age / 260), tw = 0.6 * Math.exp(-age / 180);
       if (ftapeU.uGlow.value !== tg) ftapeU.uGlow.value = tg; if (ftapeU.uWhite.value !== tw) ftapeU.uWhite.value = tw;
     }
-    boxes.count = nb; boxes.instanceMatrix.needsUpdate = true; aColor.needsUpdate = true; aFx.needsUpdate = true; aUp.needsUpdate = true;
+    // (S4A FIX 2: only the boxes drawn this frame go to the GPU — never the pool's empty room — and only the sparks written since the last frame)
+    boxes.count = nb; upRange(boxes.instanceMatrix, 0, nb * 16); upRange(aColor, 0, nb * 3); upRange(aFx, 0, nb * 4); upRange(aUp, 0, nb * 4);
+    if (spCount) { if (spCount >= SPARKS || spLo + spCount > SPARKS) { spO.needsUpdate = spV.needsUpdate = spT.needsUpdate = spC.needsUpdate = true; } else { upRange(spO, spLo * 3, spCount * 3); upRange(spV, spLo * 3, spCount * 3); upRange(spT, spLo * 3, spCount * 3); upRange(spC, spLo * 3, spCount * 3); } spCount = 0; }
+    // (ONE walk of the scene's matrices a frame: every mesh holds its matrix still (matrixAutoUpdate off — a tape's is set when it is
+    //  laid, a flyer's when it moves) and the scene is walked HERE, once — not again by each of the bloom's passes)
+    scene.updateMatrixWorld();
+    if (TRC) TRC.lap(PH.view);
     renderer.render(scene, cam);
+    if (TRC) TRC.lap(PH.render);
     // (THE DAY LOOK has NO bloom — added light washes a bright sky out; through a switch it fades with the night)
     if (bloom && tier === 2 && dayK < 1) bloom.render(scene, cam, plate, TWINS, 1 - dayK);
+    if (TRC) TRC.lap(PH.bloom);
     if (upSlot) { upSlot.mesh.visible = false; upSlot.mesh.geometry = standIn; upSlot = null; }
     // (a program built in THIS frame — anything the warm frame missed — is a hitch with a name: play.js's counter)
     const pn = renderer.info.programs ? renderer.info.programs.length : 0;
@@ -791,7 +862,7 @@ export function createNight(host, o = {}) {
     stat: () => STAT,
     // ---- THE FLYERS (S3): the page hands the lazy module in (again after a rebuild); the calls below are no-ops until it has
     /** flyers.js's own module → its flyers on this scene's stage */
-    flyers(M) { if (!fly && M && M.createFlyers) { try { fly = M.createFlyers(STAGE); } catch { fly = null; } } return !!fly; },
+    flyers(M) { if (!fly && M && M.createFlyers) { try { fly = M.createFlyers(STAGE); if (pathWant && fly.path) fly.path(true); } catch { fly = null; } } return !!fly; },
     /** the sky band the flyers keep to: its upper edge = the HUD's foot (0 … 1 from the top; the lower = THE DROP ZONE's own upper edge) */
     band(topFrac) { band0 = topFrac; },
     /** fetch a flyer's model + sounds ahead: 'blackbird' | 'f22' | 'ufo' | 'mothership' */
@@ -803,7 +874,10 @@ export function createNight(host, o = {}) {
     /** the end card is up: the flyers leave the sky behind its words */
     flyHush() { if (fly) fly.hush(); },
     flyInfo: () => (fly ? fly.info() : { ready: false }),
+    flyPath: on => { pathWant = !!on; return fly && fly.path ? fly.path(on) : null; },
     flashing: () => NUM[CLK] - perfAt < 460,
+    /** S4A FIX 2: the landing's later jobs run so far (the pass's check) */
+    jobs: () => jobsRun,
     falling: () => pieces.filter(p => p.on).length,
     info: () => ({ look: lookNow(), target, dayK, fading, switches, tier, bloom: !!bloom && tier === 2, warmed, uploads, frames, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h, dist, slabs: slabs.length, boxes: nb, lights: nl, space: plateU.uSpace.value, sparks: sparkN, rings: ringN, tape: tapeFloor, env: (target === 'day' ? G.uEnvDOn : G.uEnvOn).value === 1, envs: ['night', 'day'].filter(l => ENVS[l].ok), plates: [...SETS[target].entries()].filter(([, r]) => r.ok).map(([k]) => k).sort(), held: [...SETS[target].keys()].sort(), heldAll: { night: [...SETS.night.keys()].sort(), day: [...SETS.day.keys()].sort() }, loads, mix: plateMix(Math.max(0, NUM[CAMY] / H)), reduce }),
     destroy() {

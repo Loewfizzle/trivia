@@ -181,6 +181,16 @@ export function createFlyers(S) {
   let dead = false, jet = null, ufo = null, sparkAt = 0, hushed = false;
   const ship = { k: 0, vis: false, pass: null, pour: null, done: false, force: false, hum: null, ringT: -9, cut: null };
   const boxes = { jet: null, ufo: null, ship: null };
+  // THE FLYER PATH CHECK (S4A FIX 2 — tests/integration/highrise-flypath.mjs): while asked, every frame's flyer place ON THE SCREEN
+  // (its path point through the camera this frame draws with) — t (s) · x · y (0 … 1) · its kind (1 a jet · 2 the UFO · 3 THE MOTHERSHIP)
+  const PATH_N = 4096, PATH = new Float64Array(PATH_N * 4);
+  let pathOn = false, pathN = 0;
+  function rec(F, p, kind) {
+    if (!pathOn || pathN >= PATH_N) return;
+    w.set(p.x - F.px, p.y - F.py, p.z - F.pz);
+    const z = -w.dot(F.Z), o = pathN++ * 4;
+    PATH[o] = F.t; PATH[o + 1] = (w.dot(F.X) / (z * F.th * F.aspect) + 1) / 2; PATH[o + 2] = (1 - w.dot(F.Y) / (z * F.th)) / 2; PATH[o + 3] = kind;
+  }
   const offBed = (globalThis.__nsAudioBeds || (() => () => {}))({ pause() { quiet(0.02); }, resume() {} });
   function quiet(fade) { for (const o of [jet, ufo, ship]) if (o && o.hum) { o.hum.stop(fade); o.hum = null; } if (jet && jet.snd) { jet.snd.stop(fade); jet.snd = null; } }
 
@@ -271,6 +281,7 @@ export function createFlyers(S) {
     // (the pair's two jets are centred on the path: it runs a little lower in the band and nearly level — both stay under the HUD's foot)
     const by = bandY(F, two ? 0.53 : 0.5), arc = two ? 0.012 : 0.05;
     toWorld(P, F, dir * (-1.6 + 3.2 * s), by + arc * sn, F.dist * (1.05 + 0.2 * sn));
+    rec(F, P, 1);
     const s1 = s + 0.01, sn1 = Math.sin(PI * s1);
     toWorld(P1, F, dir * (-1.6 + 3.2 * s1), by + arc * sn1, F.dist * (1.05 + 0.2 * sn1));
     f.subVectors(P1, P).normalize();
@@ -310,6 +321,7 @@ export function createFlyers(S) {
     if (cut <= 0) { endUfo(); return; }
     if (ufo.hum) ufo.hum.gain(MIX['ufo-hum'].gain * Math.min(1, s / 0.15, (1 - s) / 0.2), 0.4);
     toWorld(P, F, ufo.dir * (-1.45 + 2.9 * s), bandY(F, 0.48) + 0.05 * Math.sin(TAU * 1.25 * s), D);
+    rec(F, P, 2);
     // seen almost from the side (the lens looks 33° down: it tips ~20° away, wobbling) — the classic saucer, its glow under it
     const a = 0.34 + 0.09 * Math.sin(F.t * 1.3);
     b.set(-F.Z.x, 0, -F.Z.z).normalize();                    // (level, away from the lens)
@@ -376,6 +388,7 @@ export function createFlyers(S) {
     if (ship.hum) ship.hum.gain(MIX['ufo-hum@ship'].gain * k * op, 0.5);
     const D = F.dist * 2.2, wd = widthAt(F, D, FLY.shipW * K), d = F.day;
     toWorld(P, F, x, y, D);
+    rec(F, P, 3);
     // seen FROM BELOW: its belly turned down to the lens (26° under its rim's plane); it turns slowly
     const e = 0.45;
     u.copy(F.Y).multiplyScalar(Math.cos(e)).addScaledVector(F.Z, -Math.sin(e));
@@ -451,6 +464,8 @@ export function createFlyers(S) {
   }
   return {
     need, start, frame, reset,
+    /** THE FLYER PATH CHECK: on → recording (from empty) · off → the record as [t, x, y, kind] rows */
+    path(on) { if (on) { pathOn = true; pathN = 0; return null; } pathOn = false; const out = []; for (let i = 0; i < pathN; i++) out.push([PATH[i * 4], PATH[i * 4 + 1], PATH[i * 4 + 2], PATH[i * 4 + 3]]); return out; },
     /** the end card is up: what is in the sky fades away (THE FINISH's ship + its light stay) */
     hush() { hushed = true; },
     info: () => ({ ready: true, models: Object.keys(geo).sort(), asked: Object.keys(asked).filter(k => asked[k]).sort(), jet: jet ? jet.kind : '', jetDir: jet ? jet.dir : 0, ufo: !!ufo, ship: { k: +ship.k.toFixed(3), vis: ship.vis, pass: !!ship.pass, pour: !!ship.pour, done: ship.done }, boxes: { jet: boxes.jet && boxes.jet.slice(), ufo: boxes.ufo && boxes.ufo.slice(), ship: boxes.ship && boxes.ship.slice() }, played: played.slice() }),

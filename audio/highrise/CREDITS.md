@@ -1,4 +1,4 @@
-# HIGH RISE — the sounds (audio/highrise/) — all CC0 1.0 (credit appreciated, not required), but ONE: grow-back-4 is CC BY 4.0 (credit REQUIRED — below)
+# HIGH RISE — the sounds (audio/highrise/) — all CC0 1.0 (credit appreciated, not required)
 
 > The files SHIP AS MP3 (`<id>.mp3`, 44.1 kHz mono — encoded from the WAVs named below by `scripts/build-highrise-sounds.mjs`, same level, nothing else changed); the sources + the licences are unchanged.
 
@@ -20,15 +20,10 @@ The reflection maps: `assets/highrise/env-night.png` = "Shanghai Bund" by Greg Z
 `assets/highrise/env-day.png` = "Kloofendal 48d Partly Cloudy (Pure Sky)" by Greg Zaal + Jarod Guest — https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky — CC0.
 The plates (`assets/highrise/plates/`): painted with Grok Imagine for NEON SPEAKEASY (AI-generated, not CC0).
 
-## GROW-BACK — five takes while the owner picks by ear (S4A FIX, Nov 19 — the old shimmer left the game)
-From the owner's delivery (Downloads\grok\highrise\sfx\grow-back-v2 — its notes.txt has each cut + its measurements); each mixed to mono and
-brought to ONE loudness (−20 dBFS RMS) by `scripts/build-highrise-growback.mjs`, nothing else changed. The game plays ONE (this phone's
-pick in the SOUNDS sheet; take 1 until then). **Once he has picked, the other four files + their lines here go.**
+## GROW-BACK — the owner's pick (S4A FIX 2, Nov 19 — FINAL; S4A FIX's other four candidates + their credits left the game)
+From the owner's delivery (Downloads\grok\highrise\sfx\grow-back-v2 — its notes.txt has the cut + its measurements); mixed to mono and
+brought to −20 dBFS RMS by `scripts/build-highrise-growback.mjs` (it was take 1 of five), nothing else changed.
 
 | file | source | author | licence |
 | --- | --- | --- | --- |
-| grow-back-1.mp3 | "Heal Restore" — https://freesound.org/s/878621/ | Qvantor | CC0 1.0 |
-| grow-back-2.mp3 | "health_restore.wav" — https://opengameart.org/content/magic-words-healing-sound-effect | Julie Damsgaard / Spring Spring | CC0 1.0 |
-| grow-back-3.mp3 | "Transition, action, jump, pitch-shift, short, shimmer, whoosh, positive, soft" — https://freesound.org/s/449645/ | CJDeets | CC0 1.0 |
-| grow-back-4.mp3 | **"Healing (Balm).wav" by Dylan Kelk (SilverIllusionist) — https://freesound.org/s/664265/ — licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/); cut to its first 0.85 s, mixed to mono, its level changed** | Dylan Kelk (SilverIllusionist) | **CC BY 4.0 — credit required** |
-| grow-back-5.mp3 | "Healing Spell Chime (Fantasy RPG)" — https://freesound.org/s/876169/ | Assetsmith | CC0 1.0 |
+| grow-back.mp3 | "Heal Restore" — https://freesound.org/s/878621/ | Qvantor | CC0 1.0 |

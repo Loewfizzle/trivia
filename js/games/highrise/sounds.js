@@ -5,17 +5,10 @@
 // THE TRIGGERS (cuesOf — the engine's events → the sounds): drop (every landing, a slight pitch vary) · perfect (THE CHIME) · slice (a
 // cut) · falling-piece ≈ 0.1 s after a slice · grow-back · streak (every 10 perfects in a row) · out · band-arrival · [pass = the
 // match's, S4 — in the audition only].
-// GROW-BACK HAS FIVE TAKES while the owner picks by ear (S4A FIX's add-on, Nov 19 — "more pleasant on the ears: a healing / soothing
-// sound"; the old shimmer is gone): audio/highrise/grow-back-1 … 5.mp3, all at ONE loudness (scripts/build-highrise-growback.mjs).
-// The game plays ONE of them — this phone's pick (the SOUNDS sheet on the test page: GROW_KEY), take GROW_DEFAULT until then. The
-// pass after his pick removes the other four + this switch.
-export const GROW_TAKES = Object.freeze([1, 2, 3, 4, 5]), GROW_DEFAULT = 1, GROW_KEY = 'hi:play:snd:grow-back';
-/** a stored / asked take → a real one (anything else = the default) */
-export const cleanGrow = v => { const n = Number(v); return GROW_TAKES.includes(n) ? n : GROW_DEFAULT; };
-/** a take's file */
-export const growFile = n => `grow-back-${cleanGrow(n)}`;
-/** the line the owner copies out of the SOUNDS sheet */
-export const growLine = n => `HIGH RISE · GROW-BACK = ${cleanGrow(n)}`;
+// GROW-BACK IS FINAL (S4A FIX 2 — the owner's pick, Nov 19): take 1 of S4A FIX's five, "Heal Restore" by Qvantor (Freesound 878621,
+// CC0) = audio/highrise/grow-back.mp3. The other four takes, their credits, this phone's pick + the SOUNDS sheet's chooser are gone.
+/** S4A FIX's pick key — no longer read; the page clears it once (sfx.js) */
+export const OLD_GROW_KEY = 'hi:play:snd:grow-back';
 /** a sound: its take = `file` (audio/highrise/<file>.mp3) played at `rate` */
 const snd = (id, label, gain, pri, play, rate = 1, more = null) => Object.freeze({ id, label, file: id, rate, gain, pri, play, ...more });
 export const SOUNDS = Object.freeze([
@@ -23,7 +16,7 @@ export const SOUNDS = Object.freeze([
   snd('perfect', 'PERFECT — THE CHIME', 0.7, 3, true, 0.5, { chime: true }),   // (its first note = the crystal bell an octave down)
   snd('slice', 'SLICE', 1.18, 2, true),
   snd('falling-piece', 'FALLING PIECE', 0.32, 1, true),
-  snd('grow-back', 'GROW-BACK', 0.5, 2, true, 1, { file: 'grow-back-1', takes: true }),   // (its file = the DEFAULT take's; the others: growFile — sfx.js plays the phone's pick)
+  snd('grow-back', 'GROW-BACK', 0.5, 2, true),   // (S4A FIX 2: the owner's pick — "Heal Restore", one take)
   snd('streak', 'STREAK (EVERY 10)', 0.78, 3, true),
   snd('out', 'OUT', 2.1, 4, true),
   snd('band-arrival', 'BAND ARRIVAL', 0.53, 3, true),

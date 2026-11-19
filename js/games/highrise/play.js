@@ -40,7 +40,7 @@ const writeBest = n => { try { localStorage.setItem(BEST_KEY, String(n)); } catc
 // THE PAGE = THE STAGE (stage.js — the run loop, the scene, the HUD, the sounds: the SAME module the cartridge mounts) with the page's own
 // pieces on (`page`): the look switch, the SOUNDS list, the note, its own end card + PLAY AGAIN; YOUR BEST = this phone's (`hi:play:best`)
 function mount() {
-  createStage(app, { page: true, hook: '__hiPlay', seed: FIXED, mode: MODE, look: LOOK_Q, from: FROM, fps: Q.get('fps') === '1', tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, best: { read: readBest, write: writeBest } });
+  createStage(app, { page: true, hook: '__hiPlay', seed: FIXED, mode: MODE, look: LOOK_Q, from: FROM, fps: Q.get('fps') === '1', trace: Q.get('trace') === '1', tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, best: { read: readBest, write: writeBest } });
 }
 
 try { mount(); }

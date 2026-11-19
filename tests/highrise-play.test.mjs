@@ -12,7 +12,7 @@ import { BANDS, FADES, SLACK, bandAt, plateMix, plateDrift, SLAB_SETS, setColor,
 import { FLY_FLOORS, FLY_LATE, flyPlan, flyDue, flyNeeds } from '../js/games/highrise/flyplan.js';
 import { HI_SPECS, HI_AW, HI_AH } from '../js/fx/hi-specs.js';
 import { BEST_KEY, cleanBest, bestView, crossedBest, nextBest, tagY } from '../js/games/highrise/best.js';
-import { SOUNDS, SOUND_IDS, SOUND_FILES, VOICES, DROP_VARY, FALL_DELAY_S, STREAK_EVERY, CHIME_STEPS, chimeRate, admit, cuesOf, GROW_TAKES, GROW_DEFAULT, GROW_KEY, cleanGrow, growFile, growLine } from '../js/games/highrise/sounds.js';
+import { SOUNDS, SOUND_IDS, SOUND_FILES, VOICES, DROP_VARY, FALL_DELAY_S, STREAK_EVERY, CHIME_STEPS, chimeRate, admit, cuesOf, OLD_GROW_KEY } from '../js/games/highrise/sounds.js';
 import { createRun, stepTo, tap, isOver, paletteFor, flyerFor } from '../js/games/highrise/engine.js';
 import { gaussBot } from '../js/games/highrise/bot.js';
 import { PALETTE_N, TIGHT, CLOUDS_FLOOR, TOP_FLOOR } from '../js/games/highrise/tuning.js';
@@ -59,7 +59,7 @@ test('HIGH RISE IS HIDDEN (S4A): a hidden cartridge — its files, and nothing a
     assert.doesNotMatch(read(f), /highrise|HIGH RISE/i, `${f} does not know HIGH RISE`);
   }
   const dir = readdirSync(new URL(`../${HI}`, import.meta.url)).sort();
-  assert.deepEqual(dir, ['audition.js', 'bands.js', 'best.js', 'bot.js', 'camera.js', 'director.js', 'endscreen.js', 'engine.js', 'final.js', 'flyers.js', 'flyplan.js', 'graybox.js', 'index.js', 'lab.js', 'lines.js', 'logic.js', 'look.js', 'meta.js', 'night-fx.js', 'night.js', 'play.js', 'proof.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower.js', 'tuning.js', 'view.js'], 'S4A\'s files: + the cartridge (meta · index · director · view · final), the proof, the lines, the stage · S4A FIX: + endscreen.js (the end screen\'s body — the page\'s card + the cartridge\'s)');
+  assert.deepEqual(dir, ['audition.js', 'bands.js', 'best.js', 'bot.js', 'camera.js', 'director.js', 'endscreen.js', 'engine.js', 'final.js', 'flyers.js', 'flyplan.js', 'graybox.js', 'index.js', 'lab.js', 'lines.js', 'logic.js', 'look.js', 'meta.js', 'night-fx.js', 'night.js', 'play.js', 'proof.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower.js', 'trace.js', 'tuning.js', 'view.js'], 'S4A\'s files: + the cartridge (meta · index · director · view · final), the proof, the lines, the stage · S4A FIX: + endscreen.js (the end screen\'s body — the page\'s card + the cartridge\'s)');
   // the ONE endpoint that knows it: /api/report (the judge behind THE SWITCH) — no new function, no other endpoint
   const fns = readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js'));
   assert.deepEqual(fns.filter(f => /highrise/i.test(read(`api/${f}`))), ['report.js'], 'only /api/report knows HIGH RISE');
@@ -68,7 +68,7 @@ test('HIGH RISE IS HIDDEN (S4A): a hidden cartridge — its files, and nothing a
 test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + lazy): its own files, the kit\'s tiers, the shared sheet + audio engine, three.js; nothing from /api, the profile, progression, the report, share, the cards, Firebase, the store', () => {
   const g = graph(`${HI}play.js`);
   const own = g.files.filter(f => f.startsWith(HI)).map(f => f.slice(HI.length));
-  assert.deepEqual(own, ['audition.js', 'bands.js', 'best.js', 'camera.js', 'endscreen.js', 'engine.js', 'flyers.js', 'flyplan.js', 'lines.js', 'logic.js', 'look.js', 'meta.js', 'night-fx.js', 'night.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower.js', 'tuning.js'], 'the game own modules (never the lab, never the sim bots, NEVER the cartridge view / index / proof / final) — S3: + the look choice, the flyers plan + the flyers (lazy) · S4A: + stage.js (the run loop the page AND the cartridge mount — it counts nothing itself), lines.js (pure: THE NEXT FRIEND words), meta.js (pure, no imports)');
+  assert.deepEqual(own, ['audition.js', 'bands.js', 'best.js', 'camera.js', 'endscreen.js', 'engine.js', 'flyers.js', 'flyplan.js', 'lines.js', 'logic.js', 'look.js', 'meta.js', 'night-fx.js', 'night.js', 'play.js', 'replay.js', 'sfx.js', 'sounds.js', 'stage.js', 'tower.js', 'trace.js', 'tuning.js'], 'the game own modules (never the lab, never the sim bots, NEVER the cartridge view / index / proof / final) — S3: + the look choice, the flyers plan + the flyers (lazy) · S4A: + stage.js (the run loop the page AND the cartridge mount — it counts nothing itself), lines.js (pure: THE NEXT FRIEND words), meta.js (pure, no imports)');
   assert.deepEqual(g.files.filter(f => !f.startsWith(HI)), ['js/audio/engine.js', 'js/audio/leave-text.js', 'js/audio/settings.js', 'js/audio/sound-state.js', 'js/core/bot-ua.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/core/rng.js', 'js/core/sky.js', 'js/core/weather.js', 'js/errlog.js', 'js/games/jaywalk/models.js', 'js/games/kit/look.js', 'js/games/kit/tiers.js', 'js/ui/dom.js', 'js/ui/layers.js', 'js/ui/lazy-import.js', 'js/ui/sheet.js'], 'the shared modules: the integer hash, the tiers, the DOM helper + THE SHEET, the skew wrapper, the audio engine (+ what IT may load lazily: its leave text, the quiet counter) — the JAYWALK lab\'s kind; S3: + THE SITE\'s OWN SUN RULE (kit/look.js → core/sky.js + the three pure modules it reads — AUTO only) + JAYWALK\'s GLB reader (the flyers\' models, three.js only)');
   assert.ok(code('js/games/jaywalk/models.js').includes("const DIR = new URL('../../../assets/jaywalk/models/', import.meta.url);") && !/\/api\/|firebase|sendBeacon|WebSocket/i.test(code('js/games/jaywalk/models.js')), 'JAYWALK\'s GLB reader: three.js + its own model files, nothing else');
   for (const f of ['js/core/sky.js', 'js/core/weather.js', 'js/core/harbor-weather.js', 'js/core/party.js', 'js/games/kit/look.js']) assert.doesNotMatch(code(f), /(^|[^.\w])fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket|firebase/i, `${f}: pure — it asks nothing of any server`);
@@ -102,11 +102,12 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   assert.match(code(`${HI}sfx.js`), /const DIR = new URL\('\.\.\/\.\.\/\.\.\/audio\/highrise\/', import\.meta\.url\);/); assert.match(code(`${HI}sfx.js`), /fetch\(new URL\(`\$\{f\}\.mp3\?v=\$\{HI_SFX_REV\}`, DIR\)\)/, '… its own sounds (MP3 since S2 FIX)');
   assert.match(code(`${HI}night.js`), /const ART = new URL\('\.\.\/\.\.\/\.\.\/assets\/highrise\/', import\.meta\.url\);/);
   // the ONLY thing stored: this phone's best + its look (`hi:play:*`; S3: the audition's picks are gone — the owner's are final) —
-  // + ONE pick again (S4A FIX's add-on): GROW-BACK's take, while the owner chooses between five by ear (sfx.js — sounds.js#GROW_KEY)
+  // (S4A FIX's GROW-BACK pick is gone too — S4A FIX 2: sfx.js only CLEARS its old key once)
   const stores = own.filter(f => /localStorage/.test(code(`${HI}${f}`)));
   assert.deepEqual(stores, ['look.js', 'play.js', 'sfx.js']);
   assert.equal(BEST_KEY, 'hi:play:best'); assert.match(code(`${HI}look.js`), /export const LOOK_KEY = 'hi:play:look';/);
   assert.equal((code(`${HI}look.js`).match(/localStorage\./g) || []).length, 2, 'look.js: the look, read + written');
+  assert.match(code(`${HI}sfx.js`), /try \{ localStorage\.removeItem\(OLD_GROW_KEY\); \}/); assert.equal((code(`${HI}sfx.js`).match(/localStorage\./g) || []).length, 1, 'sfx.js: only the old pick cleared'); assert.equal(OLD_GROW_KEY, 'hi:play:snd:grow-back');
   assert.match(code(`${HI}play.js`), /localStorage\.getItem\(BEST_KEY\)/); assert.match(code(`${HI}play.js`), /localStorage\.setItem\(BEST_KEY, String\(n\)\)/);
   assert.equal((code(`${HI}play.js`).match(/localStorage\./g) || []).length, 2, 'play.js: the best, read + written — nothing else');
   // every dynamic import through THE SKEW WRAPPER; a &debug=1 link can't make the shared audio engine report
@@ -114,7 +115,7 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   for (const m of stg.matchAll(/\bimport\(/g)) assert.equal(stg.slice(m.index - 11, m.index), 'lazyImport(', 'every dynamic import through lazyImport');
   assert.ok([...stg.matchAll(/\bimport\(/g)].length >= 4 && ![...play.matchAll(/\bimport\(/g)].length, '(S4A: the lazy imports are the stage\'s — the page itself has none)');
   // (S4A — THE STAGE NEVER COUNTS: what a cartridge run writes is HANDED IN (o.go · o.onFrame · o.onOver) — the page hands in nothing)
-  assert.match(play, /createStage\(app, \{ page: true, hook: '__hiPlay', seed: FIXED, mode: MODE, look: LOOK_Q, from: FROM, fps: Q\.get\('fps'\) === '1', tier: [^}]*, best: \{ read: readBest, write: writeBest \} \}\);/);
+  assert.match(play, /createStage\(app, \{ page: true, hook: '__hiPlay', seed: FIXED, mode: MODE, look: LOOK_Q, from: FROM, fps: Q\.get\('fps'\) === '1', trace: Q\.get\('trace'\) === '1', tier: [^}]*, best: \{ read: readBest, write: writeBest \} \}\);/);
   assert.doesNotMatch(play, /\bgo:|onFrame|onOver|onEnd|friends/, 'the page hands the stage no proof, no report, no friends');
   assert.match(play, /if \(Q\.has\('debug'\)\) \{ try \{ Q\.delete\('debug'\); history\.replaceState\(/);
   assert.doesNotMatch(play, /rd-owner/);
@@ -261,7 +262,7 @@ test('YOUR BEST (best.js — PURE): no best = nothing · above you = the right-e
 
 test('THE SOUNDS\' TABLE (sounds.js — PURE): nine sounds, every file ships, ONE take each (S3 — the owner\'s picks are FINAL: ALL A; the B takes left the game), THE PERFECT CHIME up a major-pentatonic scale holding after 8', () => {
   assert.deepEqual([...SOUND_IDS], ['drop', 'perfect', 'slice', 'falling-piece', 'grow-back', 'streak', 'out', 'band-arrival', 'pass']);
-  assert.deepEqual([...SOUND_FILES].sort(), ['band-arrival', 'drop', 'falling-piece', 'grow-back-1', 'out', 'pass', 'perfect', 'slice', 'streak']);   // (grow-back: its DEFAULT take's file — five takes while the owner picks: below)
+  assert.deepEqual([...SOUND_FILES].sort(), ['band-arrival', 'drop', 'falling-piece', 'grow-back', 'out', 'pass', 'perfect', 'slice', 'streak']);   // (S4A FIX 2: grow-back = the owner's pick, ONE file)
   let total = 0;
   // THE SOUNDS SHIP COMPRESSED (S2 FIX — the owner; scripts/build-highrise-sounds.mjs): MPEG-1 Layer III, 44.1 kHz, MONO; no WAV ships
   for (const f of SOUND_FILES) {
@@ -271,27 +272,20 @@ test('THE SOUNDS\' TABLE (sounds.js — PURE): nine sounds, every file ships, ON
     assert.equal((b[2] >> 2) & 3, 0, `${f}.mp3 is 44.1 kHz`); assert.equal(b[3] >> 6, 3, `${f}.mp3 is mono`);
   }
   assert.ok(total < 135 * 1024, `the sounds a run fetches: ${(total / 1024).toFixed(0)} KB`);
-  assert.deepEqual(readdirSync(new URL('../audio/highrise/', import.meta.url)).filter(f => !/^(CREDITS\.md|LICENSE\.txt)$/.test(f)).sort(), [...new Set([...SOUND_FILES, ...GROW_TAKES.map(growFile)])].map(f => `${f}.mp3`).sort(), 'no stray file ships (no WAV, no B take — and the old grow-back is gone)');
-  // GROW-BACK — FIVE TAKES while the owner picks by ear (S4A FIX's add-on): the game plays this phone's pick, take 1 until then
-  assert.deepEqual([[...GROW_TAKES], GROW_DEFAULT, GROW_KEY], [[1, 2, 3, 4, 5], 1, 'hi:play:snd:grow-back']);
-  assert.deepEqual([cleanGrow('3'), cleanGrow(5), cleanGrow(null), cleanGrow('9'), cleanGrow('x'), cleanGrow(0)], [3, 5, 1, 1, 1, 1], 'a stored pick is one of the five — anything else: the default');
-  assert.deepEqual(GROW_TAKES.map(growFile), ['grow-back-1', 'grow-back-2', 'grow-back-3', 'grow-back-4', 'grow-back-5']); assert.equal(growLine(4), 'HIGH RISE · GROW-BACK = 4');
-  assert.equal(SOUNDS.find(q => q.id === 'grow-back').file, growFile(GROW_DEFAULT)); assert.equal(SOUNDS.filter(q => q.takes).length, 1, 'ONE sound has takes');
-  { const sx = code(`${HI}sfx.js`), au = code(`${HI}audition.js`), cr = read('audio/highrise/CREDITS.md');
-    assert.ok(sx.includes('file = s.takes ? growFile(take || grow()) : s.file;') && sx.includes('const runFiles = () => SOUND_FILES.map(f => (f === growFile(GROW_DEFAULT) ? growFile(grow()) : f));'), 'the game plays this phone\'s take — and fetches IT, not all five');
-    assert.ok(sx.includes('try { localStorage.setItem(GROW_KEY, String(growPick)); }'), 'the pick is remembered on this phone');
-    assert.ok(au.includes("play('perfect', { rate: chimeRate(GROW_DEMO.from + i), delay: i * GROW_DEMO.gap }); play('grow-back', { take: n, delay: i * GROW_DEMO.gap + 0.02 });") && au.includes('export const GROW_DEMO = Object.freeze({ times: 3, gap: 0.62, from: 7 });'), 'a take is heard IN CONTEXT: a perfect chime with it on top, three in a row');
-    assert.ok(au.includes('setGrow(n); mark();') && au.includes('navigator.clipboard.writeText(text)') && au.includes("h('span', 'COPY MY PICK')"), 'a tap chooses it; COPY MY PICK copies the one line');
-    for (const n of GROW_TAKES) assert.ok(cr.includes(`| grow-back-${n}.mp3 |`), `take ${n} is credited`);
-    assert.ok(/grow-back-4\.mp3 \| \*\*"Healing \(Balm\)\.wav" by Dylan Kelk \(SilverIllusionist\)[^|]*CC BY 4\.0/.test(cr) && !/grow-back\.wav/.test(cr), 'take 4 is CC BY 4.0: its credit is REQUIRED — and written'); }
+  assert.deepEqual(readdirSync(new URL('../audio/highrise/', import.meta.url)).filter(f => !/^(CREDITS\.md|LICENSE\.txt)$/.test(f)).sort(), [...SOUND_FILES].map(f => `${f}.mp3`).sort(), 'no stray file ships (no WAV, no B take — and the four other grow-back takes of S4A FIX are gone)');
+  // GROW-BACK IS FINAL (S4A FIX 2 — the owner's pick: take 1, "Heal Restore" by Qvantor, CC0): ONE file, credited; the four others + their credits gone
+  { const sx = code(`${HI}sfx.js`), au = code(`${HI}audition.js`), cr = read('audio/highrise/CREDITS.md'), lic = read('audio/highrise/LICENSE.txt');
+    assert.ok(sx.includes('const t0 = performance.now(), file = s.file;') && sx.includes('const runFiles = () => SOUND_FILES;'), 'the game plays + fetches the one file');
+    assert.ok(!/GROW_DEMO|setGrow|COPY MY PICK|hi-au-take/.test(au), 'the SOUNDS sheet: no chooser — a plain PLAY');
+    assert.ok(cr.includes('| grow-back.mp3 | "Heal Restore" — https://freesound.org/s/878621/ | Qvantor | CC0 1.0 |') && !/grow-back-[1-5]|Dylan Kelk|CC BY/.test(cr) && !/CC BY|grow-back-4/.test(lic), 'credited: the one take; the CC BY take + its lines are gone'); }
   // an MP3's lead-in is skipped at play: a drop's sound stays on its tap
   { const sx = code(`${HI}sfx.js`); assert.ok(sx.includes('leads.set(k, leadOf(b));') && sx.includes("src.start(t + delay, leads.get(file) || 0);"), 'each sound starts at its first audible sample'); }
   assert.match(read('audio/highrise/CREDITS.md'), /CC0/); assert.ok(existsSync(new URL('../audio/highrise/LICENSE.txt', import.meta.url)));
   assert.doesNotMatch(read('audio/highrise/CREDITS.md'), /slice-b/, 'the credits name only what ships');
   for (const s of SOUNDS) {
-    assert.ok(s.label && s.file === (s.takes ? growFile(GROW_DEFAULT) : s.id) && s.rate > 0 && s.pri >= 1 && s.pri <= 4);
+    assert.ok(s.label && s.file === s.id && s.rate > 0 && s.pri >= 1 && s.pri <= 4);
     assert.ok(typeof s.gain === 'number' && s.gain > 0.2 && s.gain < 2.5, `${s.id} gain`);
-    assert.ok((s.id === 'grow-back' ? s.takes === true : !('takes' in s)) && !('about' in s), `${s.id}: one take — nothing to choose (GROW-BACK alone has five while the owner picks: S4A FIX's add-on)`);
+    assert.ok(!('takes' in s) && !('about' in s), `${s.id}: one take — nothing to choose (S4A FIX 2: GROW-BACK too)`);
   }
   // THE PICKS (the owner, Nov 19 — ALL A): drop as recorded · the chime starts an octave down · the slice = the glassy snap (its own file)
   assert.equal(SOUNDS.find(s => s.id === 'drop').rate, 1); assert.equal(SOUNDS.find(s => s.id === 'perfect').rate, 0.5); assert.equal(SOUNDS.find(s => s.id === 'slice').file, 'slice');
@@ -345,9 +339,9 @@ test('THE TRIGGERS (sounds.js#cuesOf — PURE, on REAL runs): drop on every land
   assert.deepEqual(cuesOf(ev, true), [{ id: 'out' }]);
   // the page: the cues of the frame's events, LATE after a long gap; the band's arrival + NEW BEST are its own
   const s = code(`${HI}stage.js`);
-  assert.match(s, /const late = gap > LATE_MS \|\| hush;/); assert.match(s, /soundNow\(late\); if \(snd && extra\.length\) snd\.playCues\(extra\);/);
+  assert.match(s, /const late = gap > LATE_MS \|\| hush;/); assert.match(s, /soundNow\(late\);\n/); assert.match(s, /const x = moments\(liveEv, from, to, now, false\);\n    if \(snd && x\.length\) snd\.playCues\(x\);/, "S4A FIX 2: the moments' own cues — a frame after the landing");
   // (S4A — THE SOUND SYNC: a tap's own sounds are asked IN THE TOUCH — `sounded` keeps the frame from asking them twice)
-  assert.match(s, /if \(tap\(run, tk, ev\)\) taps\.push\(tk\);[^\n]*\n\s*soundNow\(false\);/); assert.match(s, /const from = sounded;\s*sounded = ev\.length;/); assert.match(s, /snd\.playCues\(snd\.cuesOf\(ev, late, cues, from\)\);/); assert.match(s, /ev\.length = 0; sounded = 0; hush = false;/);
+  assert.match(s, /if \(tap\(run, tk, ev\)\) taps\.push\(tk\);[^\n]*\n[^\n]*\n\s*soundNow\(false\);/); assert.match(s, /const from = sounded;\s*sounded = ev\.length;/); assert.match(s, /snd\.playCues\(snd\.cuesOf\(ev, late, cues, from\)\);/); assert.match(s, /ev\.length = 0; sounded = 0; hush = false;/);
   assert.match(s, /if \(!late\) cues\.push\(CUE_BAND\);/); assert.match(s, /CUE_BAND = Object\.freeze\(\{ id: 'band-arrival' \}\)/);
   // SOLO PAST 200: every notch of the tightening is called FASTER
   assert.ok(s.includes("if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; if (!say('FASTER', 'hi-call is-fast', 2, 1100, now)) { later = true; laterText = 'FASTER'; laterCls = 'hi-call is-fast'; laterPri = 2; laterMs = 1100; } } }"), 'every notch is called — under a bigger call it waits its turn (the review)');
@@ -442,7 +436,7 @@ test('THE LOOK SWITCH (S3): AUTO · DAY · NIGHT on the start screen (this phone
   assert.ok(s.includes("choice = cleanLook(l); writeLook(choice); markLook();") && s.includes("if (choice === 'auto') askSun(); else setLook(choice);"));
   assert.ok(s.includes("sunUpNow(Date.now()).then(up => { if (choice !== 'auto') return; const first = !sunKnown; sunKnown = true; setLook(resolveLook('auto', up), first && t0 == null); }, () => {});"), 'AUTO asks the sun rule (the first answer before a run snaps; later ones cross-fade)');
   assert.ok(s.includes("const sunIv = PAGE ? setInterval(() => { if (document.visibilityState === 'visible') askSun(); }, 60000) : 0;"), '… again every minute');
-  assert.ok(s.includes('try { view = createNight(play, { tier: tiers.get(), mark, look: lookT }); }'), 'a rebuilt scene keeps the look');
+  assert.ok(s.includes('try { view = createNight(play, { tier: tiers.get(), mark, look: lookT, trace: TR }); }'), 'a rebuilt scene keeps the look');
   // the scene: the other look's pictures FIRST (the decode-ahead loader), then the fade; settled, the old look's go
   assert.match(n, /export const LOOK_FADE_MS = 1500;/); assert.match(n, /export const LOOK_WAIT_MS = 5000;/);
   assert.ok(n.includes('if (!fading && (lookReady(target, mix.a, mix.b) || (waited += dt) > LOOK_WAIT_MS)) fading = true;'), 'the cross-fade waits for the look\'s two plates + its reflection map');
@@ -505,7 +499,7 @@ test('THE FLYERS (S3 — flyers.js + night.js\'s stage, static): a LAZY module, 
   // behind the tower, in the camera's own frame; the band = the HUD's foot … THE DROP ZONE's upper edge
   assert.ok(n.includes('mesh.renderOrder = -50;') && n.includes('lightsMesh.renderOrder = -40;'), 'drawn before the tower (it covers them)');
   assert.ok(fl.includes('const toWorld = (out, F, x, y, D) => out.set(F.px, F.py, F.pz).addScaledVector(F.Z, -D).addScaledVector(F.X, x * D * F.th * F.aspect).addScaledVector(F.Y, y * D * F.th);'));
-  assert.ok(fl.includes('const bandY = (F, k) => 1 - 2 * (F.top + (Math.max(F.top + 0.08, F.bot) - F.top) * k);') && n.includes('FR.top = band0; zoneFrom(false); FR.bot = NUM[ZONE];') && s.includes('view.band(stageH ? hudFoot / stageH : 0.2);'));
+  assert.ok(fl.includes('const bandY = (F, k) => 1 - 2 * (F.top + (Math.max(F.top + 0.08, F.bot) - F.top) * k);') && n.includes('FR.top = band0; FR.tier = tier;') && n.includes('zoneFrom(true); if (NUM[FBOT] < 0 || dt >= 1000) NUM[FBOT] = NUM[ZONE];') && n.includes('FR.bot = NUM[FBOT];') && s.includes('view.band(stageH ? hudFoot / stageH : 0.2);'));
   assert.ok(fl.includes('F.dist * (1.05 + 0.2 * sn)') && fl.includes('const D = F.dist * 1.2,') && fl.includes('const D = F.dist * 2.2,'), 'every flyer is FURTHER than the tower');
   // (flyers.js imports three.js + the audio engine: its numbers are read as text — THE UNIT JOB INSTALLS NOTHING)
   const num = k => Number(new RegExp(`\\b${k}: ([0-9.]+)`).exec(fl)[1]);

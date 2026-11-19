@@ -5,11 +5,11 @@
 // nothing throws; the game never asks the sounds anything.
 // ONE take a sound (S3 — the owner's picks are final: ALL A; S2's B takes + this phone's `hi:play:snd:<id>` picks left the game).
 import { getContext, getSfxBus, isUnlocked, onUnlock } from '../../audio/engine.js';
-import { SOUNDS, SOUND_FILES, VOICES, DROP_VARY, GROW_KEY, GROW_DEFAULT, cleanGrow, growFile, admitSlot, cuesOf } from './sounds.js';
+import { SOUNDS, SOUND_FILES, VOICES, DROP_VARY, OLD_GROW_KEY, admitSlot, cuesOf } from './sounds.js';
 export { SOUNDS, cuesOf };
 
 const DIR = new URL('../../../audio/highrise/', import.meta.url);
-export const HI_SFX_REV = 2;   // (bump when a sound file is replaced — 2: the files ship as MP3, S2 FIX)
+export const HI_SFX_REV = 3;   // (bump when a sound file is replaced — 2: the files ship as MP3, S2 FIX · 3: GROW-BACK final, S4A FIX 2)
 // THE FILES ARE MP3 (S2 FIX — scripts/build-highrise-sounds.mjs: 633 KB of WAV → 121 KB). An MP3 begins with its encoder's LEAD-IN
 // (~25–50 ms of near-silence a WAV never had): each sound is started at its first audible sample (less a millisecond) — a drop's
 // sound stays ON its tap. Measured once a file, when its decode lands.
@@ -56,14 +56,9 @@ const ringOut = (a, n, pick) => { const out = [], k = Math.min(n, RING); for (le
 let workAt = 0;                        // the last time the sounds did one-off work (a decode landed, the limiter was built) — THE HITCH COUNTER's 'audio' tag (play.js)
 export const lastWork = () => workAt;
 
-// GROW-BACK's TAKE on this phone (S4A FIX's add-on — sounds.js: five takes while the owner picks): read once; the SOUNDS sheet sets it
-let growPick = 0;
-/** the take the game plays here */
-export function grow() { if (!growPick) { try { growPick = cleanGrow(localStorage.getItem(GROW_KEY)); } catch { growPick = GROW_DEFAULT; } } return growPick; }
-/** the owner's pick: remembered on this phone, its file fetched + decoded at once (the next run plays it) */
-export function setGrow(n) { growPick = cleanGrow(n); try { localStorage.setItem(GROW_KEY, String(growPick)); } catch { /* a private window forgets: fine */ } fetchSounds([growFile(growPick)]); Promise.resolve(decode()).catch(() => {}); return growPick; }
-/** the files a run needs: the table's — with grow-back's default take swapped for this phone's */
-const runFiles = () => SOUND_FILES.map(f => (f === growFile(GROW_DEFAULT) ? growFile(grow()) : f));
+// (S4A FIX 2 — GROW-BACK IS FINAL: one take. S4A FIX's pick on this phone is cleared once — nothing reads it any more)
+try { localStorage.removeItem(OLD_GROW_KEY); } catch { /* fine */ }
+const runFiles = () => SOUND_FILES;
 /** fetch the bytes now (no AudioContext needed) — every file a run needs by default (nine small MP3s) */
 export function fetchSounds(files = runFiles()) {
   for (const f of files) {
@@ -111,12 +106,12 @@ export const lates = () => lateN;
  * (false: locked, muted, undecoded, outranked). A sound asked BEFORE the unlock (the first tap's own drop) plays as soon as it lands, if
  * still fresh.
  */
-export function play(id, o) { return o ? start(id, o.rate || 1, o.vol == null ? 1 : o.vol, o.delay || 0, !!o.late, o.take || 0) : start(id, 1, 1, 0, false, 0); }
+export function play(id, o) { return o ? start(id, o.rate || 1, o.vol == null ? 1 : o.vol, o.delay || 0, !!o.late) : start(id, 1, 1, 0, false); }
 /** … the same by plain numbers (a frame's cues: no options object is made) */
-function start(id, rate, vol, delay, late, take) {
+function start(id, rate, vol, delay, late) {
   const s = BY[id];
   if (!s) return false;
-  const t0 = performance.now(), file = s.takes ? growFile(take || grow()) : s.file;   // (grow-back: the asked take — the SOUNDS sheet's — or this phone's pick)
+  const t0 = performance.now(), file = s.file;
   if (!late) { const q = asked[askedN++ % RING]; q.id = id; q.rate = r4(rate * s.rate); q.delay = r3(delay); }
   try {
     if (!bytes.has(file)) fetchSounds([file]);

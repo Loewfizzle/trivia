@@ -116,7 +116,7 @@ test('THE END = "A · THE HERO NUMBER": the cause small · the floor HUGE · FLO
   assert.match(e, /line\.textContent = `FLOOR · \$\{BANDS\[bandAt\(f\)\]\.name\}`;/); assert.match(e, /bestK\.textContent = isNew && v \? 'NEW BEST' : 'YOUR BEST';/);
   assert.match(e, /^import \{ h \} from '\.\.\/\.\.\/ui\/dom\.js';\nimport \{ BANDS, bandAt \} from '\.\/bands\.js';$/m, 'a view\'s helper: DOM + the bands — no rules, no storage, no fetch');
   // ONE builder, two callers
-  assert.match(s, /const EC = endCard\(\), check = h\('div\.hi-check', \{ hidden: true \}\);\n  const end = h\('div\.hi-end', \{ hidden: true \}, EC\.el\);/);
+  assert.match(s, /const EC = endCard\(\), check = h\('div\.hi-check', \{ hidden: true \}\);\n[\s\S]{0,400}?\n  const end = h\('div\.hi-end', \{ hidden: true \}, EC\.el, traceEl\);/);
   assert.match(f, /const EC = endCard\(\), would = h\('div\.hi-fin-would', ''\);/); assert.match(f, /el\.replaceChildren\(EC\.el, would\);/);
   assert.doesNotMatch(s + f, /hi-end-t|hi-end-n|hi-fin-t|hi-fin-floor|hi-fin-best|perfectsLine/, 'the seven same-weight lines are gone from both');
   // the sizes: the number ≈ 150 px at 390 wide, the cause ≈ 20 px
