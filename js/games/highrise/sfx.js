@@ -3,8 +3,7 @@
 // engine unlocks, each sound a buffer source → its gain → A SOFT LIMITER → the console's SFX bus (the Effects slider, the toggle, THE ONE
 // MUTE and THE CUT apply there). 8 VOICES by PRIORITY (sounds.js#admit). Audio is POLISH: locked, muted, a missing file — nothing plays,
 // nothing throws; the game never asks the sounds anything.
-// EVERY sound has its pick (A) and, where there is one, a B (a second file, or an in-code variant): THE AUDITION picks, this phone
-// remembers (`hi:play:snd:<id>`), the page plays the choice.
+// ONE take a sound (S3 — the owner's picks are final: ALL A; S2's B takes + this phone's `hi:play:snd:<id>` picks left the game).
 import { getContext, getSfxBus, isUnlocked, onUnlock } from '../../audio/engine.js';
 import { SOUNDS, SOUND_FILES, VOICES, DROP_VARY, admit, cuesOf } from './sounds.js';
 export { SOUNDS, cuesOf };
@@ -27,16 +26,6 @@ const BY = Object.fromEntries(SOUNDS.map(s => [s.id, s]));
 export const LIMITER = Object.freeze({ threshold: -8, knee: 6, ratio: 8, attack: 0.002, release: 0.16 });
 export const TRIM = 0.8;       // (takes the compressor's own make-up gain back out: a lone sound plays at its level)
 
-// ---- this phone's picks (THE AUDITION): localStorage only — never a server call, never a profile key
-const KEY = 'hi:play:snd:';
-const getPref = id => { try { return localStorage.getItem(KEY + id); } catch { return null; } };
-/** the take a sound plays: 'a' | 'b' */
-export const pick = id => (BY[id] && BY[id].takes.b && getPref(id) === 'b' ? 'b' : 'a');
-export function setPick(id, ab) { if (!BY[id]) return; try { localStorage.setItem(KEY + id, ab === 'b' && BY[id].takes.b ? 'b' : 'a'); } catch { /* not remembered: fine */ } }
-/** the one line the owner pastes into chat */
-export const picksLine = () => `HIGH RISE SOUNDS: ${SOUNDS.map(s => `${s.id} ${s.takes.b ? pick(s.id).toUpperCase() : 'A'}`).join(' · ')}`;
-const gainOf = (s, ab) => (typeof s.gain === 'number' ? s.gain : s.gain[ab] || s.gain.a);
-
 const bytes = new Map();               // file → Promise<ArrayBuffer | null>
 const bufs = new Map();                // file → AudioBuffer (for bufCtx)
 let bufCtx = null, bus = null, busCtx = null, hooked = false, lockWait = false;
@@ -45,7 +34,7 @@ const log = [], asked = [];            // the test hooks: what started · what w
 let workAt = 0;                        // the last time the sounds did one-off work (a decode landed, the limiter was built) — THE HITCH COUNTER's 'audio' tag (play.js)
 export const lastWork = () => workAt;
 
-/** fetch the bytes now (no AudioContext needed) — every file by default (ten small MP3s) */
+/** fetch the bytes now (no AudioContext needed) — every file by default (nine small MP3s) */
 export function fetchSounds(files = SOUND_FILES) {
   for (const f of files) {
     if (bytes.has(f)) continue;
@@ -75,15 +64,15 @@ function out(ctx) {
   return bus;
 }
 /**
- * play one sound NOW: id, { ab ('a' | 'b' — default: this phone's pick), rate (× the take's own), vol, delay (s) } → true = it started
+ * play one sound NOW: id, { rate (× the take's own), vol, delay (s) } → true = it started
  * (false: locked, muted, undecoded, outranked). A sound asked BEFORE the unlock (the first tap's own drop) plays as soon as it lands, if
  * still fresh.
  */
 export function play(id, o = {}) {
   const s = BY[id];
   if (!s) return false;
-  const ab = (o.ab === 'a' || o.ab === 'b') && s.takes[o.ab] ? o.ab : pick(id), tk = s.takes[ab], t0 = performance.now();
-  if (!o.late) { asked.push({ id, ab, rate: +((o.rate || 1) * tk.rate).toFixed(4), delay: +(o.delay || 0).toFixed(3) }); if (asked.length > 300) asked.shift(); }
+  const tk = s, t0 = performance.now();
+  if (!o.late) { asked.push({ id, rate: +((o.rate || 1) * tk.rate).toFixed(4), delay: +(o.delay || 0).toFixed(3) }); if (asked.length > 300) asked.shift(); }
   try {
     if (!bytes.has(tk.file)) fetchSounds([tk.file]);
     const ctx = getContext();
@@ -91,7 +80,7 @@ export function play(id, o = {}) {
     //  it (engine.js#wakeFor): asking for `running` here made the whole game silent with the site's music off — the review's find)
     if (!isUnlocked() || !ctx || !bufs.get(tk.file) || bufCtx !== ctx) {
       // (not ready: the first tap's own sound, or the first play of a sound just fetched — wait for the decode, play if still fresh)
-      if (!o.late) { const go = () => decode().then(() => { if (performance.now() - t0 < 220) play(id, { ...o, ab, late: true }); }); if (isUnlocked()) go(); else if (!lockWait) { lockWait = true; onUnlock(() => { lockWait = false; go(); }); } }
+      if (!o.late) { const go = () => decode().then(() => { if (performance.now() - t0 < 220) play(id, { ...o, late: true }); }); if (isUnlocked()) go(); else if (!lockWait) { lockWait = true; onUnlock(() => { lockWait = false; go(); }); } }
       return false;
     }
     const voices = [...live], a = admit(voices, s.pri, VOICES);
@@ -99,12 +88,12 @@ export function play(id, o = {}) {
     if (a.drop >= 0) voices[a.drop].end();
     const src = ctx.createBufferSource(), g = ctx.createGain(), v = { src, id, pri: s.pri, at: t0 };
     src.buffer = bufs.get(tk.file); src.playbackRate.value = (o.rate || 1) * tk.rate;
-    g.gain.value = gainOf(s, ab) * (o.vol == null ? 1 : o.vol);
+    g.gain.value = s.gain * (o.vol == null ? 1 : o.vol);
     src.connect(g); g.connect(out(ctx));
     src.start(ctx.currentTime + (o.delay || 0), leads.get(tk.file) || 0); live.add(v); src.onended = () => live.delete(v);
     // (a dropped voice never stops dead: a 30 ms ramp, then the source)
     v.end = () => { live.delete(v); try { const t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + 0.03); src.stop(t + 0.05); } catch { /* ended */ } };
-    log.push({ id, ab, rate: +src.playbackRate.value.toFixed(4), gain: +g.gain.value.toFixed(3) }); if (log.length > 300) log.shift();
+    log.push({ id, rate: +src.playbackRate.value.toFixed(4), gain: +g.gain.value.toFixed(3) }); if (log.length > 300) log.shift();
     return true;
   } catch { return false; }
 }

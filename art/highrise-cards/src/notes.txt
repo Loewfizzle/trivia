@@ -1,0 +1,117 @@
+HIGH RISE player-card art
+NEON SPEAKEASY  —  18 Nov 2026, America/Detroit
+Built-in Grok Imagine (GenerateImage). AI-generated, not CC0. Free only.
+
+DESTINATION
+  C:\Users\benja\Downloads\grok\highrise\cards\   (Beelink)
+  Worked in /workspace/neon/highrise/cards/
+
+SIZE
+  Brief asked 1280×720 landscape (native 16:9). Both cards are
+  1280×720 RGB PNG. Converted from the tool's JPEG to PNG with no
+  resize, no upscale, no crop, no stretch.
+  contact-sheet.jpg is a 1/2-scale preview (640×360 thumbs, exact 1/2)
+  at 1328×452, for review only — not a game asset.
+
+WHICH TO USE
+  Both cards below. One take each. No -b backups: both takes already
+  match the JAYWALK-style layout (subject on the right, left third
+  dark and quiet, no text).
+
+  above-the-clouds.png   USE
+  top-of-the-world.png   USE
+
+WHAT EACH SHOWS
+  above-the-clouds.png
+    A tall glowing glass-and-neon slab tower on the right half,
+    stacked translucent slabs edged in cyan, magenta and violet,
+    piercing up through a sea of night clouds. The top is lit.
+    Stars in the upper right. Left third is quiet dark navy sky.
+    No text, no logos, no people, no aircraft.
+
+  top-of-the-world.png
+    The top of that glowing glass-and-neon slab tower on the right
+    half, in space. A large saucer mothership hovers just above it,
+    with a soft white-gold light pouring down onto the top slab.
+    Left third is quiet dark starfield. No text, no logos, no people.
+
+PROMPTS (summary)
+  Cinematic premium night painting, smooth painterly style, not voxel
+  / blocky / pixel art. No text, letters, numbers, logos or UI.
+  Layout: entire left third nearly black and empty (reserved for a
+  long player name); subject strictly on the right half. Night neon
+  glass-slab tower; card 2 adds a colossal glowing mothership and a
+  white-gold downward light.
+
+QA  (Rec.709 luminance; left third = x 0–426)
+
+  above-the-clouds.png
+    Left-third mean L 5.06  vs rest 39.12  (ratio 0.129)
+    Left max L 21, std 2.5 — uniform dark navy, no bright clutter.
+    Slim band y38–62 left L 5.24 vs rest 39.75
+    First column with mean L>20 is x 668 (52.2%) — subject is on
+    the right half. YES for layout.
+
+  top-of-the-world.png
+    Left-third mean L 6.75  vs rest 39.70  (ratio 0.170)
+    Left max L 59 is a faint star; otherwise quiet dark space.
+    Slim band y38–62 left L 7.01 vs rest 57.77
+    First column with mean L>20 is x 690 (53.9%) — subject is on
+    the right half. YES for layout.
+
+  Compared with the JAYWALK cards (left L about 0.2–1.1, ratio
+  0.01–0.06), these left thirds are still dark and quiet but not
+  fully black. They are a dark navy / starfield, fine for a light
+  name overlay. No left-third grade was applied.
+
+CANDID MISSES
+  1. The mothership is clearly a large craft hovering over the tower
+     with the required downward white-gold light, but it sits fully
+     inside the right half rather than running off the top or right
+     edges. "Colossal" is a fair description of scale next to the
+     tower top, not of a ship that fills the sky.
+  2. Left-third luminance is ~5–7, not the near-black ~0–1 of the
+     JAYWALK cards. Still dark and uncluttered.
+  3. Native size is the tool's 1280×720, as requested.
+
+SHA256 (box, of the delivered PNGs)
+  ce7f292682ba86564825a6513844af53b696b83ffeeec9b76be55cd7a41b42bf  above-the-clouds.png
+  34f9f3c8d0a7b35ba90d1d222405c9dbaced16ebeb682a997118fe6fb7c59677  top-of-the-world.png
+
+--- v2 redo (18 Nov 2026) ---
+Claude approved above-the-clouds as-is and asked only for a
+colossal-mothership redo of top-of-the-world. The original
+top-of-the-world.png is UNCHANGED (hash 34f9f3c8… as above).
+above-the-clouds.png was not modified.
+
+Files (1280×720, Grok Imagine, JPEG converted to PNG with no
+resize or crop; one official take, no backup)
+  top-of-the-world-v2.png    official pick
+
+PICK  top-of-the-world-v2.png
+  A vast dark alien mothership fills the top of the frame. Only
+  its underside / edge is in view, with many small lights, and
+  it runs off the TOP and the RIGHT edges. A white-gold beam
+  pours down onto the glowing glass tower's top slab in the
+  lower-right. No text, logos, people, or ground plane.
+  One earlier take was rejected (saucer-like, did not clearly
+  leave the right edge, rocky ground under the tower) and is
+  not delivered as a backup.
+
+  Left-third mean luminance (Rec.709, x 0–426 of 1280):
+    Left-third mean L 1.07  vs rest 24.03  (ratio 0.044)
+    Left-third std 3.0. First column with mean L>20 is x 759
+    (right half). Much closer to the JAYWALK cards (left L
+    about 0.2–1.1) than the original's 6.75. No left-third
+    grade was applied.
+
+MISSES (v2 card)
+  1. A sliver of the mothership's left rim and lights enters
+     the left third at about x 392–426, near the top of the
+     frame (a few bright windows, max L 253). Columns x 0–390
+     stay near-black. The ship was not cropped at x=426, so
+     that colossal overhang is preserved.
+  2. Native size is the tool's 1280×720, as requested.
+
+SHA256 (box, v2 file only)
+  96b9bff627489363abc84a6a760d83e2f02eb38e01418d97f0dcf0ac101d4e90  top-of-the-world-v2.png
