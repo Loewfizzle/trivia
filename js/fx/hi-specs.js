@@ -1,8 +1,8 @@
 // HIGH RISE CARDS — THE ART, PREPARED (S3 — docs/highrise.md "THE CARDS' ART"): ABOVE THE CLOUDS + TOP OF THE WORLD as data (PURE — no
-// imports), in JAYWALK's own format (js/fx/jw-specs.js). **NOTHING READS THIS YET**: no catalog entry, no CSS class, no achievement —
-// the two cards are ADDED + AWARDED in S4 (server-judged runs only, hidden until go-live). S4 wires: js/vault/catalog.js +
-// api/_lib/catalog.js (the feats: tuning.js CLOUDS_FLOOR 60 → reachedClouds · TOP_FLOOR 200 → reachedTop), css/vault.css
-// `.vl-s-hi-*` / `.vl-fcm-hi-*` from the numbers below, js/vault/strip.js, the stills, the lab's text.
+// imports), in JAYWALK's own format (js/fx/jw-specs.js). S4A WIRED THEM (hidden until go-live — awarded only from a server-judged run once
+// counting is ON): api/_lib/catalog.js (the two cards + their achievements — the feats: tuning.js CLOUDS_FLOOR 60 → reachedClouds → `clouds`
+// · TOP_FLOOR 200 → reachedTop → `top`), js/vault/catalog.js (THE LAB 225–228), js/vault/strip.js (the materials), css/vault.css
+// `.vl-s-hi-*` / `.vl-fcm-hi-*` (the numbers below), vault/hero.js + vault/layout.js (the hero boxes), api/_lib/lab-text.js.
 // Each card's art = assets/vault/hi/<art>.webp, 1280 × 720 (Grok's masters — art/highrise-cards/src/, copies of the owner's delivery;
 // scripts/build-highrise-cards.mjs converts them + draws the slim / full previews these numbers were judged on).
 //   strip / full = the CSS crop, exactly `background: … px% py% / Z% auto` (THE SLIM-CARD LONG-NAME STANDARD: the picture set RIGHT, the

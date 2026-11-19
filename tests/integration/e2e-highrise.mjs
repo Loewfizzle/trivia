@@ -199,12 +199,13 @@ try {
     await P.ev("(() => { const b = document.querySelector('.hi-final .final-bar') || [...document.querySelectorAll('.hi-final button')].find(x => /PLAY AGAIN/.test(x.textContent)); b.click(); })()");
     await P.waitFor(`${S}.game && ${S}.game.matchId !== '${g3.m}' && ${S}.game.phase === 'play' && ${G}.state().proven`, 15000);
     const g4 = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
+    const h0 = (await P.ev(`${ST}.hitches()`)).list.length;   // (the earlier runs' own: this check's screenshots stall a frame)
     const top = await botTo(P, 63);
     const hit = await P.ev(`${ST}.hitches()`), a4 = await audio(P);
     ok(top >= 63, `a real run by taps at the touch path: floor ${top}`);
     // (headless Chromium's own ~0.65 s stall two minutes after launch is not the game's — a frame that long is the browser's, tagged gc)
-    const bad = hit.list.filter(h => !(h.why === 'gc' && h.gap > 400));
-    ok(bad.length === 0, `THE HITCH RUN inside the cartridge: no frame over 33 ms after the first second (${hit.n} counted${hit.list.length ? ` — ${hit.list.map(h => `${h.why} ${h.gap} ms @${h.floor}`).join(' · ')}` : ''})`);
+    const mine = hit.list.slice(h0), bad = mine.filter(h => !(h.why === 'gc' && h.gap > 400));
+    ok(bad.length === 0, `THE HITCH RUN inside the cartridge (${top} floors, ~75 s): no frame over 33 ms after the first second (${bad.length} hitches${mine.length ? ` — seen: ${mine.map(h => `${h.why} ${h.gap} ms @${h.floor}`).join(' · ')}${mine.length > bad.length ? ' (the long one = headless Chromium, not the game)' : ''}` : ''})`);
     ok(a4.held && a4.state === 'running', 'the run holds the audio context awake to the end');
     ok(await toFinal(P, 30000), 'the fuse ends it → the podium');
     const end = Date.now() + 25000; let res = null;
@@ -216,7 +217,7 @@ try {
     ok(ps.st && ps.st.n >= 1 && o.streak >= 1, `… the streak day counted (${o && o.streak})`);
     ok(floorOf(bestV) === top + 0 || floorOf(bestV) >= 63, `… the best: floor ${floorOf(bestV)} (${perfectsOf(bestV)} perfects) on the board highrise-solo`);
     ok(ps.pa && ps.pa.gf && ps.pa.gf['highrise-clouds'] === 1 && !ps.pa.gf['highrise-top'], '… the feat flag `clouds` from the server\'s replay (never `top`)');
-    ok(ps.it && ps.it['card-abovetheclouds'] && ps.ac && ps.ac['above-the-clouds'] && !ps.it['card-topoftheworld'], '… ABOVE THE CLOUDS awarded (the card + its achievement) — TOP OF THE WORLD not');
+    ok(ps.it && !!ps.it['card-abovetheclouds'] && (o.ach || []).includes('above-the-clouds') && !ps.it['card-topoftheworld'], `… ABOVE THE CLOUDS awarded (the card + its achievement) — TOP OF THE WORLD not (items ${Object.keys(ps.it || {}).filter(k => /^card-/.test(k)).join(' ')} · ach ${(o.ach || []).join(' ')})`);
     await pastMoment(P);
     ok(await P.waitFor("/^NEW BEST/.test(document.querySelector('.hi-fin-best').textContent) && !document.querySelector('.hi-fin-would').textContent", 15000), `… the end screen says ${await P.ev("document.querySelector('.hi-fin-best').textContent")} — no WOULD COUNT line`);
     await P.shot('end-card-counted-390x844.png');

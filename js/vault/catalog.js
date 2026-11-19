@@ -284,6 +284,13 @@ LAB.push(
   { id: 'card-beammeup', kind: 'card', tier: 'epic', n: 223 },
   { id: 'full-card-beammeup', kind: 'full', of: 'card-beammeup', tier: 'epic', n: 224 },
 );
+// HIGH RISE S4A — ITS TWO CARDS (Grok's art — S3; hidden until go-live: awarded only from a server-judged run once counting is ON)
+LAB.push(
+  { id: 'card-abovetheclouds', kind: 'card', tier: 'rare', n: 225 },
+  { id: 'card-topoftheworld', kind: 'card', tier: 'legendary', n: 226 },
+  { id: 'full-card-abovetheclouds', kind: 'full', of: 'card-abovetheclouds', tier: 'rare', n: 227 },
+  { id: 'full-card-topoftheworld', kind: 'full', of: 'card-topoftheworld', tier: 'legendary', n: 228 },
+);
 // THE CARD PASS — B7: OVERCLOCK's lucky emblem (OC5 shipped it with a placeholder glyph) — its real neon art
 LAB.push({ id: 'emb-horseshoe', kind: 'emblem', tier: 'uncommon', n: 208, fin: 'neon' });
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));

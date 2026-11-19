@@ -165,7 +165,7 @@
 .hi-stage[data-look='day'] .hi-final { background: linear-gradient(rgba(10, 7, 22, 0.84) 0, rgba(10, 7, 22, 0.78) 16%, rgba(10, 7, 22, 0.9) 32%, rgba(10, 7, 22, 0.96) 100%); }
 .hi-final > .final { flex: 1 1 auto; min-height: 0; background: none; --fin-bg: rgba(10, 7, 22, 0.96); }
 .hi-final .final.is-solo .burst { display: none; }   /* (a SOLO run's end is how the tower ended — no confetti over it) */
-.hi-final .final.is-solo .winner-name { display: none; }   /* (… and no "NAME · 85": the body names the floor) */
+.hi-final .final.is-solo .winner { display: none; }   /* (… and no "SOLO RUN · NAME · 85" block: the frame's header says HIGH RISE · SOLO, the body names the floor) */
 .hi-final .btn, .hi-final .btn::before, .hi-final .btn::after { border-radius: 8px; }
 .hi-final .final > .sheet-kicker { align-self: stretch; text-align: center; padding: 6px var(--cb-room) 0; font: 900 clamp(17px, 5.1vw, 22px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; color: #ffe6f8; text-shadow: 0 0 12px rgba(255, 79, 216, 0.7); }
 .hi-fin { display: grid; justify-items: center; gap: 8px; padding: 6px 12px 4px; text-align: center; }

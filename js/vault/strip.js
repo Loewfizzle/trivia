@@ -105,6 +105,9 @@ export const LOOKS = Object.freeze({
   'card-closeencounter': { mat: 'jw-closeencounter', fx: 'jwClose' },
   'card-rightofway': { mat: 'jw-rightofway', fx: 'jwRight' },
   'card-beammeup': { mat: 'jw-beammeup', fx: 'jwBeam' },   // (H6A — THE MOTHERSHIP's card)
+  // HIGH RISE S4A — ITS TWO CARDS: Grok's art = the material (css/vault.css .vl-s-hi-* — js/fx/hi-specs.js holds the same crops); no layer of their own yet
+  'card-abovetheclouds': { mat: 'hi-abovetheclouds' },
+  'card-topoftheworld': { mat: 'hi-topoftheworld' },
   // PW2 — THE PASSWORD's card: Grok's art = the material (css/vault.css .vl-s-pw-*), the game's layers = js/fx/pw-cards.js
   'card-safecracker': { mat: 'pw-safecracker', fx: 'pwSafe' },
   // CC2 — COAST CLEAR's card: Grok's art = the material (css/vault.css .vl-s-cc-*), the game's layers = js/fx/cc-cards.js

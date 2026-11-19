@@ -559,7 +559,13 @@ test('THE CARDS\' ART, PREPARED (S3): ABOVE THE CLOUDS + TOP OF THE WORLD throug
   }
   assert.match(read('art/highrise-cards/src/notes.txt'), /top-of-the-world-v2\.png\s+official pick/, 'TOP OF THE WORLD = Grok\'s v2 (the colossal ship)');
   assert.doesNotMatch(code('js/fx/hi-specs.js'), /import /, 'pure data');
-  // NOTHING READS THEM YET (S4 adds + awards the cards)
-  for (const f of ['js/vault/catalog.js', 'js/vault/strip.js', 'js/vault/full.js', 'js/fx/jw-cards.js', 'api/_lib/catalog.js']) assert.doesNotMatch(read(f), /hi-specs|HI_SPECS/, `${f} does not read the HIGH RISE cards' specs`);
+  // S4A — WIRED, HIDDEN UNTIL GO-LIVE: the hero boxes are read (vault/hero.js + vault/layout.js), the CSS crops ARE the specs' numbers
+  for (const f of ['js/vault/hero.js', 'js/vault/layout.js']) assert.match(read(f), /import \{ HI_SPECS \} from '\.\.\/fx\/hi-specs\.js';/, `${f} reads the HIGH RISE cards' hero boxes`);
+  for (const [id, S] of Object.entries(HI_SPECS)) {
+    const m = id.replace('card-', 'hi-');
+    assert.ok(read('css/vault.css').includes(`.vl-s-${m} .vl-mat { background: ${S.ground} url('../assets/vault/hi/${S.art}.webp') ${S.strip[0]}% ${S.strip[1]}% / ${Math.round(S.strip[2] * 100)}% auto no-repeat; }`), `${id}: the slim card's crop = hi-specs.js strip`);
+    assert.ok(read('css/vault.css').includes(`${S.ground} url('../assets/vault/hi/${S.art}.webp') ${S.full[0]}% ${S.full[1]}% / ${Math.round(S.full[2] * 100)}% auto no-repeat; }`), `${id}: the full card's = hi-specs.js full`);
+    assert.ok(read('js/vault/strip.js').includes(`'${id}': { mat: '${m}' },`), `${id}: its material (no layer of its own yet)`);
+  }
   assert.match(read('.vercelignore'), /^\/art$/m, 'the masters never deploy');
 });

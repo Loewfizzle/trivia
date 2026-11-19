@@ -18,12 +18,13 @@ const play = (s, { at = T0, gid = 'prism', rank = 2, n = 4, f, ctx = {} } = {}) 
 const has = (s, id) => !!(s.ac && s.ac[id]);
 
 test('thirty-two of them (OVERCLOCK CARDS added REDLINE + PHOTO FINISH; PW2 KEYHOLE + SAFECRACKER), the owner\'s names, every one unlocking a real item, ids unique', () => {
-  assert.equal(ACHIEVEMENTS.length, 45, '32 + the HORSESHOE (OC5) + KEYHOLE + SAFECRACKER (PW2) + LIGHTHOUSE + GHOST RUN (CC2) + PERFECT WEEK (DM2) + FIRST KO + PERFECT CLEAR + COMEBACK (PD-5B) + JAYWALK H6A\'s four (SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY · BEAM ME UP)');
-  assert.equal(new Set(ACHIEVEMENTS.map(a => a.id)).size, 45);
+  assert.equal(ACHIEVEMENTS.length, 47, '(+ HIGH RISE S4A: ABOVE THE CLOUDS + TOP OF THE WORLD — hidden until go-live) 32 + the HORSESHOE (OC5) + KEYHOLE + SAFECRACKER (PW2) + LIGHTHOUSE + GHOST RUN (CC2) + PERFECT WEEK (DM2) + FIRST KO + PERFECT CLEAR + COMEBACK (PD-5B) + JAYWALK H6A\'s four (SONIC BOOM · CLOSE ENCOUNTER · RIGHT OF WAY · BEAM ME UP)');
+  assert.equal(new Set(ACHIEVEMENTS.map(a => a.id)).size, 47);
   for (const a of ACHIEVEMENTS) { assert.ok(ITEM[a.item], `${a.id} → ${a.item}`); assert.ok(a.name && a.line); }
   assert.deepEqual(ACHIEVEMENTS.slice(0, 13).map(a => a.name), ['FIRST ROUND', 'HOUSE WARMING', 'FULL HOUSE', 'THE REGULAR', 'TOP SHELF', 'MADE MAN', 'KINGPIN', 'THE HOST', 'COMEBACK KID', 'LAST CALL', 'PARTY ANIMAL', 'NIGHT OWL', 'THE CREW']);
   assert.equal(ACH['kingpin'].item, 'card-marquee-gold'); assert.equal(ACH['the-host'].item, 'card-marquee');
-  assert.deepEqual({ ...GAME_ACHIEVEMENTS, jaywalk: undefined }, { jaywalk: undefined, prism: ['four-on-the-floor', 'first-ko', 'perfect-clear', 'comeback'], overclock: ['dead-on', 'overclocked', 'redline', 'photo-finish', 'horseshoe'], password: ['keyhole', 'safecracker'], coastclear: ['lighthouse', 'ghost-run'] });
+  assert.deepEqual(GAME_ACHIEVEMENTS.highrise, ['above-the-clouds', 'top-of-the-world'], 'HIGH RISE S4A: its two (floor 60 · floor 200)');
+  assert.deepEqual({ ...GAME_ACHIEVEMENTS, jaywalk: undefined, highrise: undefined }, { jaywalk: undefined, highrise: undefined, prism: ['four-on-the-floor', 'first-ko', 'perfect-clear', 'comeback'], overclock: ['dead-on', 'overclocked', 'redline', 'photo-finish', 'horseshoe'], password: ['keyhole', 'safecracker'], coastclear: ['lighthouse', 'ghost-run'] });
 });
 
 test('PLAYING: first round, hosting, full house, the regular, the wins, last call, party animal, night owl, the crew', () => {
