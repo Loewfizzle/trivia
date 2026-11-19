@@ -85,17 +85,19 @@ varying vec2 vS;
 void main() { vS = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 0.9999, 1.0); }`;
 export const PLATE_F = /* glsl */`
 uniform sampler2D tA, tB;
-uniform float uMix, uHaveA, uHaveB, uDriftA, uDriftB, uDim;
+uniform float uMix, uHaveA, uHaveB, uDriftA, uDriftB, uDim, uFlipA, uFlipB;
 uniform vec2 uFit;
 varying vec2 vS;
 // (no picture yet: a plain night sky — dark navy up top, a violet glow low)
 vec3 sky() { return mix(vec3(0.016, 0.006, 0.05), vec3(0.003, 0.002, 0.012), smoothstep(0.0, 0.8, vS.y)); }
-vec3 plate(sampler2D t, float have, float drift) {
+// (flip = 1: the picture came as an ImageBitmap — decoded off the frame, its first row at v = 0: night.js "THE PLATES")
+vec3 plate(sampler2D t, float have, float drift, float flip) {
   vec2 uv = vec2(0.5 + (vS.x - 0.5) * uFit.x, drift * (1.0 - uFit.y) + vS.y * uFit.y);
+  uv.y = mix(uv.y, 1.0 - uv.y, flip);
   return mix(sky(), texture2D(t, uv).rgb, have);
 }
 void main() {
-  vec3 c = mix(plate(tA, uHaveA, uDriftA), plate(tB, uHaveB, uDriftB), uMix) * uDim;
+  vec3 c = mix(plate(tA, uHaveA, uDriftA, uFlipA), plate(tB, uHaveB, uDriftB, uFlipB), uMix) * uDim;
   gl_FragColor = vec4(c, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -183,14 +185,19 @@ export function createBloom(renderer, uBloom) {
   const black = new THREE.Color(0x000000), keep = new THREE.Color();
   return {
     size(w, h) { a.setSize(Math.max(2, w >> 1), Math.max(2, h >> 1)); b.setSize(Math.max(2, w >> 2), Math.max(2, h >> 2)); c.setSize(Math.max(2, w >> 2), Math.max(2, h >> 2)); },
-    /** after the main picture: the lights again → blur → add. `hide` = what is no light at all (the plate) */
-    render(scene, cam, hide) {
+    /** after the main picture: the lights again → blur → add. `hide` = what is no light at all (the plate). `twins` = [mesh, its
+     *  material for THIS pass, (a slot)] — S2 FIX, THE LAG HUNT: one material drawn to the screen AND into a target is given a
+     *  different program by three.js each time (the target's colour space) — it re-worked the program's whole key, a ~150-field object +
+     *  a long string, SIX times a frame: megabytes of garbage a second, the collector's pauses. A twin is only ever drawn here. */
+    render(scene, cam, hide, twins) {
       const auto = renderer.autoClear, was = hide ? hide.visible : false;
       renderer.getClearColor(keep); const alpha = renderer.getClearAlpha();
       renderer.setClearColor(black, 1);
       if (hide) hide.visible = false;
       uBloom.value = 1;
+      if (twins) for (let i = 0; i < twins.length; i++) { const t = twins[i]; t[2] = t[0].material; t[0].material = t[1]; }
       renderer.setRenderTarget(a); renderer.clear(); renderer.render(scene, cam);
+      if (twins) for (let i = 0; i < twins.length; i++) { const t = twins[i]; t[0].material = t[2]; }
       uBloom.value = 0;
       if (hide) hide.visible = was;
       quad.material = blur;

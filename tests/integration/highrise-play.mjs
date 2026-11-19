@@ -537,7 +537,79 @@ async function webkit() {
   await wb.close();
 }
 
+// ---- THE LAG HUNT (S2 FIX — docs/games/passes/highrise-s2-fix.md): ONE LONG SOLO RUN, a bot at each slab's perfect moment (every 9th
+// drop a cut: its sparks + its falling piece), from the rooftops through every band's seam — every frame over 25 ms is logged with its
+// floor + (from S2 FIX on) the page's own cause tag. `--hitch` [--webkit] · HITCH_S (seconds, 240) · HITCH_CPU (Chromium's CPU throttle, 1)
+// · HITCH_Q (extra query, e.g. &tier=2). Chromium also reports the garbage made a second (performance.memory).
+const HITCH_BOT = secs => new Promise(res => {
+  const L = window.__hiPlay, play = document.querySelector('.hi-play'), T0 = performance.now(), rec = [], heap = [];
+  const tap = () => play.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', button: 0 }));
+  let last = 0, n = 0, runs = 1, frames = 0, over25 = 0, over33 = 0, over50 = 0, worst = 0, topFloor = 0, memAt = 0, grew = 0, gcs = 0;
+  const gaps = [];
+  const mem = () => (performance.memory ? performance.memory.usedJSHeapSize : 0);
+  (function fr(now) {
+    if (last) {
+      const gap = now - last, t = now - T0;
+      if (t > 1000) {
+        frames++; if (gaps.length < 40000) gaps.push(gap);
+        if (gap > 25) { over25++; if (gap > 33) over33++; if (gap > 50) over50++; if (gap > worst) worst = gap; if (rec.length < 400) { const s = L.state(), hs = L.hitches ? L.hitches() : null, h = hs && hs.list.length ? hs.list[hs.list.length - 1] : null; rec.push({ t: Math.round(t), gap: Math.round(gap), floor: s.floor, tier: s.tier, why: h && Math.abs(h.gap - gap) < 6 ? h.why : '' }); } }
+        const m = mem(); if (m) { if (memAt && m > memAt) grew += m - memAt; else if (memAt && m < memAt - 200000) gcs++; memAt = m; }
+      }
+    }
+    last = now;
+    if (now - T0 < secs * 1000) requestAnimationFrame(fr);
+    else { const s = L.state(), hs = L.hitches ? L.hitches() : null; gaps.sort((x, y) => x - y); const med = gaps[gaps.length >> 1] || 0; res({ med: +med.toFixed(1), spikes: gaps.filter(g => g > med + 25).length, secs, frames, over25, over33, over50, worst: Math.round(worst), rec, drops: n, runs, floor: s.floor, topFloor: Math.max(topFloor, s.floor), tier: s.tier, tierPath: s.tierPath, grewKBs: Math.round(grew / 1024 / secs), gcs, page: hs ? { n: hs.n, last: hs.last } : null, plates: s.info.plates, programs: s.info.programs }); }
+  })(performance.now());
+  tap();   // TAP TO START
+  let seen = 0;
+  (function poll() {
+    const at = performance.now();
+    if (at - T0 > secs * 1000) return;
+    const m = L.msToPerfect();
+    // (the page's whole state is read four times a second, not at every poll: the reading itself makes garbage — the measure's own)
+    if (m == null && at - seen > 250) {
+      seen = at;
+      const s = L.state();
+      if (s.floor > topFloor) topFloor = s.floor;
+      if (s.shown) { setTimeout(() => { tap(); runs++; setTimeout(poll, 300); }, 700); return; }
+    }
+    if (m != null && m <= 10) { setTimeout(() => { tap(); n++; setTimeout(poll, 200); }, n % 9 === 8 ? m + 28 : Math.max(0, m - 3)); return; }
+    setTimeout(poll, 4);
+  })();
+});
+async function hitch() {
+  const SECS = Number(process.env.HITCH_S) || 240, RATE = Number(process.env.HITCH_CPU) || 1, Q = `?seed=hitch&fps=1${process.env.HITCH_Q || ''}`, WK = argv.includes('--webkit');
+  let r, errs;
+  if (WK) {
+    const { webkit: wk } = await import(pathToFileURL(process.env.WK_PLAYWRIGHT || join(homedir(), 'wk', 'node_modules', 'playwright', 'index.mjs')).href);
+    const wb = await wk.launch(), ctx = await wb.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), wp = await ctx.newPage();
+    errs = []; wp.on('pageerror', e => errs.push(String(e.message || e)));
+    await wp.goto(guardUrl(`${BASE}/highrise-play${Q}`, 'highrise-play'), { waitUntil: 'load' });
+    const end = Date.now() + 20000;
+    while (Date.now() < end) { try { if (await wp.evaluate(() => { const i = window.__hiPlay && window.__hiPlay.state().info; return !!i && i.env && i.plates.includes(0) && i.warmed > 0 && i.frames > 5; })) break; } catch { /* loading */ } await sleep(80); }
+    await sleep(600);
+    r = await wp.evaluate(HITCH_BOT, SECS);
+    if (OUT) await wp.screenshot({ path: join(OUT, 'hitch-webkit.png') });
+    await wb.close();
+  } else {
+    const d = await open(390, 844, 3, Q);
+    await ready(d.p); await sleep(600);
+    if (RATE > 1) await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
+    r = await d.p.evaluate(HITCH_BOT, SECS);
+    if (RATE > 1) await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    if (OUT) await shot(d.p, `hitch-chromium-${RATE}x.png`);
+    errs = d.errs; await d.close();
+  }
+  const who = WK ? 'WebKit (an iPhone) 1×' : `Chromium ${RATE}× CPU`;
+  console.log(`\nTHE LAG HUNT — ${who}, ${r.secs} s after the first second: ${r.frames} frames · ${r.over25} over 25 ms · ${r.over33} over 33 ms · ${r.over50} over 50 ms · worst ${r.worst} ms · the usual frame ${r.med} ms, ${r.spikes} frames 25 ms over it`);
+  console.log(`  ${r.drops} drops, ${r.runs} run(s), top floor ${r.topFloor} (ends on ${r.floor}) · tier ${r.tierPath.join(' → ')} · plates held ${r.plates.join()} · ${r.programs} programs${r.grewKBs ? ` · garbage ≈ ${r.grewKBs} KB/s, ${r.gcs} collections seen` : ''}${r.page ? ` · the page's own HITCH counter: ${r.page.n} (last: ${r.page.last || '—'})` : ''}`);
+  for (const h of r.rec.slice(0, 60)) console.log(`    ${String(h.t).padStart(6)} ms  ${String(h.gap).padStart(4)} ms  floor ${h.floor}  tier ${h.tier}${h.why ? `  ${h.why}` : ''}`);
+  ok(errs.length === 0, `no page error (${errs.join(' | ')})`);
+  if (process.env.HITCH_GATE) ok(r.over33 <= Number(process.env.HITCH_GATE), `≤ ${process.env.HITCH_GATE} frames over 33 ms after the first second (${r.over33})`);
+}
+
 if (LOOK) await look();
+else if (argv.includes('--hitch')) await hitch();
 else if (PERF) await perf();
 else if (argv.includes('--webkit')) await webkit();
 else if (argv.includes('--review')) await review();

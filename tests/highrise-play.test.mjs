@@ -85,7 +85,9 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
     assert.doesNotMatch(s, /sessionStorage|indexedDB|document\.cookie|caches\./, `${f}: no other storage`);
   }
   // the ONE fetch: the sounds' own files; the pictures come through three's loader — both from the page's own folders
-  assert.deepEqual(own.filter(f => /(^|[^.\w])fetch\s*\(/.test(code(`${HI}${f}`))), ['sfx.js'], 'only sfx.js fetches');
+  // (S2 FIX: + night.js — a plate's bytes, for createImageBitmap: decoded off the frame, uploaded a band ahead — THE LAG HUNT)
+  assert.deepEqual(own.filter(f => /(^|[^.\w])fetch\s*\(/.test(code(`${HI}${f}`))), ['night.js', 'sfx.js'], 'only sfx.js (its sounds) + night.js (its plates) fetch');
+  assert.ok(code(`${HI}night.js`).includes('loadPicture(new URL(`plates/${look}-${band + 1}.webp?v=${HI_ART_REV}`, ART).href)') && (code(`${HI}night.js`).match(/(^|[^.\w])fetch\s*\(/g) || []).length === 1, '… night.js: its own plates, nothing else');
   assert.match(code(`${HI}sfx.js`), /const DIR = new URL\('\.\.\/\.\.\/\.\.\/audio\/highrise\/', import\.meta\.url\);/); assert.match(code(`${HI}sfx.js`), /fetch\(new URL\(`\$\{f\}\.wav\?v=\$\{HI_SFX_REV\}`, DIR\)\)/, '… its own WAVs');
   assert.match(code(`${HI}night.js`), /const ART = new URL\('\.\.\/\.\.\/\.\.\/assets\/highrise\/', import\.meta\.url\);/);
   // the ONLY thing stored: this phone's best + its audition picks (`hi:play:*`)
@@ -183,7 +185,7 @@ test('THE HEIGHT AREAS (bands.js — PURE): 0–25 the rooftops · 25–60 the s
   assert.ok(SLACK > 0.05 && SLACK <= 0.25);
   // only the current band's plate + the next one's are ever held (night.js#holdPlates) — and only the current LOOK's set is asked for
   const n = code(`${HI}night.js`);
-  assert.ok(n.includes('for (const [k, rec] of plates) if (k !== a && k !== b && !(a === b && k === a + 1) && !(keepFirst && k === 0)) { if (rec.tex) rec.tex.dispose(); plates.delete(k); }'));
+  assert.ok(n.includes('plates.forEach((rec, k) => { if (k !== a && k !== b && !(a === b && k === a + 1) && !(keepFirst && k === 0)) { dropPlate(rec); plates.delete(k); } });'));
   // (+ the FIRST band's plate again while the end card is up — PLAY AGAIN never starts on a blank sky: the review)
   assert.ok(n.includes('rest() { keepFirst = true; },') && n.includes('if (snap) keepFirst = false;') && code(`${HI}play.js`).includes('view.rest();'));
   assert.match(n, /new URL\(`plates\/\$\{look\}-\$\{band \+ 1\}\.webp\?v=\$\{HI_ART_REV\}`, ART\)/);
@@ -317,9 +319,10 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   assert.match(n, /if \(whole \|\| reduce\) return;/, 'reduced motion: no sparks');
   assert.ok(n.includes('transparent: true, depthWrite: true, extensions: { derivatives: true } });'), 'the glass asks for derivatives: its edges\' fwidth builds on a WebGL 1 phone too (the review: without it the whole tower was missing there)');
   assert.ok(code(`${HI}sfx.js`).includes('if (!isUnlocked() || !ctx || !bufs.get(tk.file) || bufCtx !== ctx) {') && !/ctx\.state !== 'running'/.test(code(`${HI}sfx.js`)), 'the sounds play on a NAPPING context too (PODCAST MODE — the review: the game was silent with the site\'s music off)');
-  assert.match(n, /if \(tier === 2 && !bloom\) \{ try \{ bloom = createBloom\(renderer, G\.uBloom\); \} catch \{ bloom = null; \} \}\s*if \(tier < 2 && bloom\) \{ bloom\.dispose\(\); bloom = null; \}/, 'the bloom at the top tier only');
+  // (S2 FIX: the bloom is BUILT at the top tier only, DRAWN at the top tier only — and KEPT through a step down: no rebuild mid-run)
+  assert.ok(n.includes('if (tier === 2 && !bloom) { try { bloom = createBloom(renderer, G.uBloom); if (warmed) needWarm = true; } catch { bloom = null; } }') && n.includes('if (bloom && tier === 2) bloom.render(scene, cam, plate, TWINS);') && n.includes('bloom: !!bloom && tier === 2') && !/tier < 2 && bloom\) \{ bloom\.dispose/.test(n), 'the bloom at the top tier only');
   assert.match(n, /export const DPR_AT = Object\.freeze\(\[1\.5, 2, 3\]\);/, 'the tiers\' sharpness: ≤ 1.5 · ≤ 2 · ≤ 3');
-  assert.match(n, /if \(needWarm && w && h\) \{ needWarm = false; warm\(\); \}/); assert.match(n, /renderer\.compile\(scene, cam\); renderer\.render\(scene, cam\); if \(bloom\) bloom\.render\(scene, cam, plate\);/, 'THE WARM FRAME: every program built in one hidden frame');
+  assert.match(n, /if \(needWarm && w && h\) \{ needWarm = false; warm\(\); \}/); assert.match(n, /renderer\.compile\(scene, cam\); renderer\.render\(scene, cam\); if \(bloom\) bloom\.render\(scene, cam, plate, TWINS\);/, 'THE WARM FRAME: every program built in one hidden frame (the bloom pass\'s twins too)');
   assert.match(n, /try \{ renderer\.forceContextLoss\(\); \} catch \{\s*\}\s*el\.width = el\.height = 0;\s*el\.remove\(\);/, 'the teardown frees the context + zeroes the canvas');
   for (const f of ['night.js', 'night-fx.js']) assert.doesNotMatch(code(`${HI}${f}`), /performance\.now|requestAnimationFrame|Date\b/, `${f} keeps no clock of its own (the page hands it dt)`);
 });

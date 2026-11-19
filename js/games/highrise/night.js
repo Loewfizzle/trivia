@@ -34,6 +34,8 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 export function createNight(host, o = {}) {
   const look = o.look === 'day' ? 'day' : 'night';
+  /** THE HITCH COUNTER's cause marks (play.js): 'plate' = a picture uploaded · 'compile' = a program built / the tier stepped */
+  const mark = typeof o.mark === 'function' ? o.mark : () => {};
   const reduce = o.reduce != null ? !!o.reduce : (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
   const devDpr = Math.min(window.devicePixelRatio || 1, 3);
   const renderer = new THREE.WebGLRenderer({ antialias: devDpr < 2, powerPreference: 'high-performance' });
@@ -50,28 +52,49 @@ export function createNight(host, o = {}) {
 
   // ---- THE PLATES: a screen-filling quad behind everything
   const blank = new THREE.DataTexture(new Uint8Array([10, 7, 22, 255]), 1, 1); blank.needsUpdate = true; made.push(blank);
-  const plateU = { tA: { value: blank }, tB: { value: blank }, uMix: { value: 0 }, uHaveA: { value: 0 }, uHaveB: { value: 0 }, uDriftA: { value: 0 }, uDriftB: { value: 0 }, uFit: { value: new THREE.Vector2(1, 1) }, uDim: { value: 0.92 } };
+  const plateU = { tA: { value: blank }, tB: { value: blank }, uMix: { value: 0 }, uHaveA: { value: 0 }, uHaveB: { value: 0 }, uDriftA: { value: 0 }, uDriftB: { value: 0 }, uFit: { value: new THREE.Vector2(1, 1) }, uDim: { value: 0.92 }, uFlipA: { value: 0 }, uFlipB: { value: 0 } };
   const plateMat = new THREE.ShaderMaterial({ vertexShader: PLATE_V, fragmentShader: PLATE_F, uniforms: plateU, depthTest: false, depthWrite: false });
   const plateGeo = new THREE.PlaneGeometry(2, 2), plate = new THREE.Mesh(plateGeo, plateMat);
   plate.frustumCulled = false; plate.renderOrder = -100; scene.add(plate); made.push(plateMat, plateGeo);
   const plates = new Map();   // band → { tex, ok } — ONLY the current band + the next are ever held
-  let dead = false, loads = 0;
+  let dead = false, loads = 0, uploads = 0;
   const loader = new THREE.TextureLoader();
+  // A PLATE IS DECODED + UPLOADED AHEAD, OFF THE FRAME (S2 FIX — THE LAG HUNT): three's TextureLoader hands the GPU an <img>, and a
+  // browser decodes an <img> at its FIRST DRAW — a 720 × 1280 WebP decoded + uploaded inside the very frame a band's seam began (the
+  // lag at each seam). Now: the bytes → createImageBitmap (decoded on another thread; an <img>.decode() where it is missing) → the
+  // texture is uploaded AT ONCE (renderer.initTexture), a whole band before the seam that first shows it.
+  const viaImg = url => new Promise((res, rej) => {
+    const im = new Image(); im.decoding = 'async';
+    im.onload = () => { const go = () => res({ image: im, flip: 0 }); if (im.decode) im.decode().then(go, go); else go(); };
+    im.onerror = () => rej(new Error('no plate')); im.src = url;
+  });
+  const loadPicture = url => (typeof createImageBitmap === 'function' && typeof fetch === 'function'
+    ? fetch(url).then(r => { if (!r.ok) throw new Error('no plate'); return r.blob(); }).then(bl => createImageBitmap(bl)).then(bm => ({ image: bm, flip: 1 })).catch(() => viaImg(url))
+    : viaImg(url));
+  const dropPlate = rec => { if (rec.tex) { const im = rec.tex.image; rec.tex.dispose(); if (im && im.close) im.close(); rec.tex = null; } rec.ok = false; };
   function wantPlate(band) {
     if (plates.has(band) || band < 0 || band > 4) return;
-    const rec = { tex: null, ok: false };
+    const rec = { tex: null, ok: false, flip: 0 };
     plates.set(band, rec); loads++;
-    rec.tex = loader.load(new URL(`plates/${look}-${band + 1}.webp?v=${HI_ART_REV}`, ART).href, t => {
-      if (dead || plates.get(band) !== rec) { t.dispose(); return; }
-      rec.ok = true;
-    }, undefined, () => { /* a missing picture: the dark sky stays */ });
-    rec.tex.colorSpace = THREE.SRGBColorSpace; rec.tex.generateMipmaps = false; rec.tex.minFilter = rec.tex.magFilter = THREE.LinearFilter;
+    loadPicture(new URL(`plates/${look}-${band + 1}.webp?v=${HI_ART_REV}`, ART).href).then(({ image, flip }) => {
+      if (dead || plates.get(band) !== rec) { if (image.close) image.close(); return; }
+      const t = new THREE.Texture(image);
+      t.colorSpace = THREE.SRGBColorSpace; t.generateMipmaps = false; t.minFilter = t.magFilter = THREE.LinearFilter; t.flipY = !flip; t.needsUpdate = true;
+      rec.tex = t; rec.flip = flip;
+      mark('plate');
+      try { renderer.initTexture(t); } catch { /* it uploads at its first draw */ }
+      rec.ok = true; uploads++;
+    }, () => { /* a missing picture: the dark sky stays */ });
   }
   let keepFirst = false;   // (the run is over: the FIRST band's plate is asked for again + kept — PLAY AGAIN never starts on a blank sky: the review)
+  let heldKey = -1;        // (the plates wanted change only at a seam's edge: the list is walked then, not every frame)
   function holdPlates(a, b) {
+    const key = a * 16 + b + (keepFirst ? 256 : 0);
+    if (key === heldKey) return;
+    heldKey = key;
     wantPlate(a); wantPlate(b); if (a === b) wantPlate(a + 1);
     if (keepFirst) wantPlate(0);
-    for (const [k, rec] of plates) if (k !== a && k !== b && !(a === b && k === a + 1) && !(keepFirst && k === 0)) { if (rec.tex) rec.tex.dispose(); plates.delete(k); }
+    plates.forEach((rec, k) => { if (k !== a && k !== b && !(a === b && k === a + 1) && !(keepFirst && k === 0)) { dropPlate(rec); plates.delete(k); } });
   }
   // THE REFLECTION MAP (the night HDRI's sky half, 256 × 64 — scripts/build-highrise-assets.py)
   const env = loader.load(new URL(`env-${look}.png?v=${HI_ART_REV}`, ART).href, () => { if (!dead) G.uEnvOn.value = 1; }, undefined, () => { /* no reflections: the glass keeps its colour + edges */ });
@@ -87,6 +110,11 @@ export function createNight(host, o = {}) {
   const glassMat = new THREE.ShaderMaterial({ vertexShader: GLASS_V, fragmentShader: GLASS_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uFadeH: G.uFadeH, uEnv: G.uEnv, uEnvOn: G.uEnvOn, uEnvRot: G.uEnvRot }, transparent: true, depthWrite: true, extensions: { derivatives: true } });   // (derivatives: the edges' fwidth on a WebGL 1 phone — without it the whole tower failed to build there: the review)
   const boxes = new THREE.InstancedMesh(boxGeo, glassMat, BOXES);
   boxes.instanceMatrix.setUsage(THREE.DynamicDrawUsage); boxes.frustumCulled = false; boxes.count = 0; scene.add(boxes); made.push(boxGeo, glassMat);
+  // THE BLOOM PASS's TWINS (S2 FIX — night-fx.js#createBloom "twins"): the same shader + the SAME uniforms, drawn only into the bloom's
+  // target — so no material ever changes program between the screen and a target (three.js re-keyed it six times a frame)
+  const TWINS = [];
+  const twin = (mesh, m) => { const c = m.clone(); c.uniforms = m.uniforms; made.push(c); TWINS.push([mesh, c, null]); };
+  twin(boxes, glassMat);
   let nb = 0;
   /** one box: its centre, its size, its colour (linear r g b), its glow · white flash · alpha · kind, its turn */
   function put(x, y, z, sx, sy, sz, c, glow, white, alpha, kind, q) {
@@ -114,6 +142,7 @@ export function createNight(host, o = {}) {
   quad.instanceCount = SPARKS;
   const sparkMat = new THREE.ShaderMaterial({ vertexShader: SPARK_V, fragmentShader: SPARK_F, uniforms: { uTime: G.uTime, uAspect: G.uAspect }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
   const sparks = new THREE.Mesh(quad, sparkMat); sparks.frustumCulled = false; sparks.renderOrder = 20; scene.add(sparks); made.push(quad, sparkMat);
+  twin(sparks, sparkMat);
   let spAt = 0, sparkN = 0;
   function spark(x, y, z, vx, vy, vz, life, size, c) {
     const i = spAt++ % SPARKS;
@@ -132,6 +161,7 @@ export function createNight(host, o = {}) {
   ringGeo.instanceCount = RINGS;
   const ringMat = new THREE.ShaderMaterial({ vertexShader: RING_V, fragmentShader: RING_F, uniforms: { uTime: G.uTime }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
   const rings = new THREE.Mesh(ringGeo, ringMat); rings.frustumCulled = false; rings.renderOrder = 15; scene.add(rings); made.push(ringGeo, ringMat);
+  twin(rings, ringMat);
   let rgAt = 0, ringN = 0;
   /** a ring off the rect r (rule units) on top of `floor`: it runs `reach` (world) outward in `life` s */
   function ring(r, floor, reach, life, c, k = 1) {
@@ -150,11 +180,13 @@ export function createNight(host, o = {}) {
   let landAt = -1e9, landFloor = -1, perfAt = -1e9, grow = null, bump = 0, outAt = -1e9;
   let tapeFloor = 0, tapeAt = -1e9, sliderGlow = 0;
   let camX = 0, camY = 0, camZ = 0, dist = 14, w = 0, h = 0, dpr = 1, fitAsk = 2;
-  let needWarm = true, warmed = 0, frames = 0;
+  let needWarm = true, warmed = 0, frames = 0, progN = 0;
+  const HOT = [1, 0.86, 0.6];
 
   /** a new run / a tower adopted after a rebuild: the tower object (tower.js — the page feeds it the events) */
   function adopt(run, tower, snap = true) {
     T = tower; seed = run.seed; slabs = T.slabs(); top = T.top(); cols.clear(); if (snap) keepFirst = false;
+    heldKey = -1;
     if (snap) {
       landAt = perfAt = outAt = tapeAt = -1e9; landFloor = -1; grow = null; bump = 0;
       for (const p of pieces) p.on = false;
@@ -180,7 +212,7 @@ export function createNight(host, o = {}) {
     for (let i = 0; i < n; i++) {
       const u = Math.random() - 0.5, sp = 0.5 + Math.random() * 1.9, up = 0.6 + Math.random() * 2.1;
       const x = dx ? ex : p.x + u * p.sx, z = dz ? ez : p.z + u * p.sz;
-      spark(x, y - Math.random() * H * 0.8, z, dx * sp + (Math.random() - 0.5) * 0.7, up, dz * sp + (Math.random() - 0.5) * 0.7, 0.34 + Math.random() * 0.42, 0.006 + Math.random() * 0.006, Math.random() < 0.4 ? [1, 0.86, 0.6] : c);
+      spark(x, y - Math.random() * H * 0.8, z, dx * sp + (Math.random() - 0.5) * 0.7, up, dz * sp + (Math.random() - 0.5) * 0.7, 0.34 + Math.random() * 0.42, 0.006 + Math.random() * 0.006, Math.random() < 0.4 ? HOT : c);
     }
   }
 
@@ -227,14 +259,17 @@ export function createNight(host, o = {}) {
     // the plate COVERS the screen with SLACK of its height to drift through: what part of it shows (uv width, uv height)
     const tall = (1 + SLACK) * Math.max(1, cam.aspect / (PLATE_ASPECT * (1 + SLACK))), wide = tall * PLATE_ASPECT / cam.aspect;
     plateU.uFit.value.set(1 / wide, 1 / tall);
-    if (bloom) bloom.size(Math.round(w * dpr), Math.round(h * dpr));
+    if (bloom && tier === 2) bloom.size(Math.round(w * dpr), Math.round(h * dpr));
   }
   const ro = new ResizeObserver(() => fit());
   ro.observe(host);
   function setTier(t) {
     tier = t < 0 ? 0 : t > 2 ? 2 : t | 0;
-    if (tier === 2 && !bloom) { try { bloom = createBloom(renderer, G.uBloom); } catch { bloom = null; } }
-    if (tier < 2 && bloom) { bloom.dispose(); bloom = null; }
+    // (S2 FIX — THE LAG HUNT: the bloom, once built, is KEPT when the tier steps down — a phone whose frame rate is only CAPPED (Low
+    //  Power Mode: the kit's probe steps 2 → 1 → 2 within four seconds) used to throw its programs + targets away and build them again
+    //  mid-run; a bloom built AFTER the warm frame gets a warm frame of its own)
+    if (tier === 2 && !bloom) { try { bloom = createBloom(renderer, G.uBloom); if (warmed) needWarm = true; } catch { bloom = null; } }
+    mark('compile');
     fit(true);
   }
   setTier(o.tier == null ? 2 : o.tier);
@@ -261,7 +296,8 @@ export function createNight(host, o = {}) {
     nb = 0;
     for (const k of [KIND.slab, KIND.slider, KIND.tape, KIND.trail]) put(0, -60, 0, 0.01, 0.01, 0.01, GOLD, 1, 0, 1, k, null);
     boxes.count = nb; boxes.instanceMatrix.needsUpdate = aColor.needsUpdate = aFx.needsUpdate = true;
-    try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam, plate); } catch { /* a phone that can't: the kinds build as they come */ }
+    try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam, plate, TWINS); } catch { /* a phone that can't: the kinds build as they come */ }
+    mark('compile');
     spT.setX(0, -1e6); spT.needsUpdate = true; rgB.setW(0, -1e6); rgB.needsUpdate = true;
     warmed++;
   }
@@ -280,8 +316,8 @@ export function createNight(host, o = {}) {
     const cf = Math.max(0, camY / H), mix = plateMix(cf);
     holdPlates(mix.a, mix.b);
     const pa = plates.get(mix.a), pb = plates.get(mix.b);
-    plateU.tA.value = pa && pa.ok ? pa.tex : blank; plateU.uHaveA.value = pa && pa.ok ? 1 : 0;
-    plateU.tB.value = pb && pb.ok ? pb.tex : blank; plateU.uHaveB.value = pb && pb.ok ? 1 : 0;
+    plateU.tA.value = pa && pa.ok ? pa.tex : blank; plateU.uHaveA.value = pa && pa.ok ? 1 : 0; plateU.uFlipA.value = pa && pa.ok ? pa.flip : 0;
+    plateU.tB.value = pb && pb.ok ? pb.tex : blank; plateU.uHaveB.value = pb && pb.ok ? 1 : 0; plateU.uFlipB.value = pb && pb.ok ? pb.flip : 0;
     plateU.uMix.value = mix.m; plateU.uDriftA.value = plateDrift(mix.a, cf); plateU.uDriftB.value = plateDrift(mix.b, cf);
 
     // ---- every box
@@ -342,10 +378,14 @@ export function createNight(host, o = {}) {
     }
     boxes.count = nb; boxes.instanceMatrix.needsUpdate = true; aColor.needsUpdate = true; aFx.needsUpdate = true;
     renderer.render(scene, cam);
-    if (bloom) bloom.render(scene, cam, plate);
+    if (bloom && tier === 2) bloom.render(scene, cam, plate, TWINS);
+    // (a program built in THIS frame — anything the warm frame missed — is a hitch with a name: play.js's counter)
+    const pn = renderer.info.programs ? renderer.info.programs.length : 0;
+    if (pn !== progN) { progN = pn; mark('compile'); }
     frames++;
   }
 
+  const zoneY = (x, z, f) => { V.set(x * U, f * H, z * U).project(cam); return (1 - V.y) / 2; };
   return {
     el, adopt, events, fall, draw, setTier, setBest, resize: () => fit(true),
     /** the run is over (the end card is up): the first band's plate comes back for the next run */
@@ -357,17 +397,16 @@ export function createNight(host, o = {}) {
     /** THE DROP ZONE's upper edge on the screen (0 … 1 from the top): the highest point the sliding slab's path reaches — nothing of a tag / a tape's label may sit under it */
     zoneTop() {
       const cx = (top.x0 + top.x1) / 2, cz = (top.z0 + top.z1) / 2, hw = (top.x1 - top.x0) / 2, hd = (top.z1 - top.z0) / 2, f = slabs[slabs.length - 1].floor + 1;
-      let y = 1;
-      for (const [x, z] of [[cx - TRAVEL - hw, cz - hd], [cx - hw, cz - TRAVEL - hd], [cx - hw, cz - hd], [cx + TRAVEL + hw, cz - hd], [cx - hw, cz + TRAVEL + hd]]) { V.set(x * U, f * H, z * U).project(cam); y = Math.min(y, (1 - V.y) / 2); }
-      return y;
+      // (five corners of the slab's path — no list built: this runs every frame while the tag shows)
+      return Math.min(1, zoneY(cx - TRAVEL - hw, cz - hd, f), zoneY(cx - hw, cz - TRAVEL - hd, f), zoneY(cx - hw, cz - hd, f), zoneY(cx + TRAVEL + hw, cz - hd, f), zoneY(cx - hw, cz + TRAVEL + hd, f));
     },
     flashing: () => clock - perfAt < 460,
     falling: () => pieces.filter(p => p.on).length,
-    info: () => ({ look, tier, bloom: !!bloom, warmed, frames, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h, dist, slabs: slabs.length, boxes: nb, sparks: sparkN, rings: ringN, tape: tapeFloor, env: G.uEnvOn.value === 1, plates: [...plates.entries()].filter(([, r]) => r.ok).map(([k]) => k).sort(), held: [...plates.keys()].sort(), loads, mix: plateMix(Math.max(0, camY / H)), reduce }),
+    info: () => ({ look, tier, bloom: !!bloom && tier === 2, warmed, uploads, frames, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h, dist, slabs: slabs.length, boxes: nb, sparks: sparkN, rings: ringN, tape: tapeFloor, env: G.uEnvOn.value === 1, plates: [...plates.entries()].filter(([, r]) => r.ok).map(([k]) => k).sort(), held: [...plates.keys()].sort(), loads, mix: plateMix(Math.max(0, camY / H)), reduce }),
     destroy() {
       dead = true;
       ro.disconnect();
-      for (const rec of plates.values()) if (rec.tex) rec.tex.dispose();
+      plates.forEach(dropPlate);
       plates.clear();
       if (bloom) { bloom.dispose(); bloom = null; }
       scene.remove(plate, boxes, sparks, rings);

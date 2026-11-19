@@ -44,6 +44,8 @@ const RETRY_MS = 600;
 const CAP_GRACE = 6;
 /** a frame that comes this long after the last one = the tab was away: its batch of events is LATE (only the OUT sounds — sounds.js#cuesOf) */
 const LATE_MS = 900;
+/** THE HITCH COUNTER (S2 FIX — THE LAG HUNT; `?fps=1` shows it): a frame that took longer than this, in a live run, after its first second */
+const HITCH_MS = 33;
 const clockText = ticks => { const s = Math.max(0, Math.ceil(ticks / TICK_HZ)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const readBest = () => { try { return cleanBest(localStorage.getItem(BEST_KEY)); } catch { return 0; } };
 const writeBest = n => { try { localStorage.setItem(BEST_KEY, String(n)); } catch { /* a private window forgets: fine */ } };
@@ -62,6 +64,7 @@ function setNum(node, n) {
   const s = String(n);
   if (node.dataset.n === s) return;
   node.dataset.n = s; node.setAttribute('aria-label', s);
+  if (setNum.mark) setNum.mark('dom');
   node.replaceChildren(...[...s].map(d => h('span.hi-dg', { 'aria-hidden': 'true' }, d)));
 }
 
@@ -93,9 +96,16 @@ function mount() {
   const pin = /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null;   // (`?tier=0|1|2` pins a quality tier — the pass's measure)
   const noGL = () => h('p.hi-nogl', 'This browser can’t draw the game here (it has no WebGL).');
   /** the view's stand-in while a lost context has not come back (the run goes on; nothing is drawn; the rebuild keeps trying) */
+  // THE HITCH COUNTER's cause marks: WHEN the page last did a piece of one-off work (performance.now()) — a hitch is named after the
+  // work done since the frame before it: plate (a backdrop uploaded) · compile (a program built, the tier stepped) · audio (a decode
+  // landed, the limiter built) · dom (the HUD was written) · gc (none of those + the page's own frame code was quick: the pause was the
+  // browser's — most often a collection) · unknown (the page's own frame code was slow, with no mark)
+  const marks = { plate: 0, compile: 0, audio: 0, dom: 0 };
+  const mark = k => { marks[k] = performance.now(); };
+  setNum.mark = mark;
   const NO_VIEW = { el: null, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, rest() {}, resize() {}, project: () => [0, -1], zoneTop: () => 1, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
   let view, glDown = null;
-  try { view = createNight(play, { tier: pin == null ? 2 : pin }); }
+  try { view = createNight(play, { tier: pin == null ? 2 : pin, mark }); }
   catch { stage.append(noGL()); return; }
   const tierPath = [pin == null ? 2 : pin];
   const tiers = createTiers({ apply: t => { view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });
@@ -114,7 +124,7 @@ function mount() {
     clearTimeout(lostTimer); lostTimer = 0;
     offGL();
     try { view.destroy(); } catch { /* it is gone already */ }
-    try { view = createNight(play, { tier: tiers.get() }); }
+    try { view = createNight(play, { tier: tiers.get(), mark }); }
     catch {
       view = NO_VIEW; hook.view = view;
       if (!glDown) { glDown = noGL(); stage.append(glDown); }
@@ -148,8 +158,8 @@ function mount() {
     end.hidden = true; start.hidden = false; soundsBtn.hidden = false; note.hidden = false;
     stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-made');
     startBest.textContent = best ? `YOUR BEST ${best} · THIS PHONE` : '';
-    hudKey = ''; callUntil = 0; callPri = 0; later = null; if (callAnim) { callAnim.cancel(); callAnim = null; } call.className = 'hi-call'; call.textContent = '';
-    band.textContent = BANDS[0].name; setNum(num, 0); tagKey = ''; tag.hidden = true;
+    hudFloor = -1; hudLeft = -2; hitchN = 0; hitchLast = ''; callUntil = 0; callPri = 0; later = null; if (callAnim) { callAnim.cancel(); callAnim = null; } call.className = 'hi-call'; call.textContent = '';
+    band.textContent = BANDS[0].name; setNum(num, 0); tagFloor = -1; tagAt = -1e9; tag.hidden = true;
   }
   // (while a run is LIVE the SOUNDS button + the note are off the screen: a thumb anywhere is a DROP, never a menu)
   const begin = ts => { t0 = ts; start.hidden = true; soundsBtn.hidden = true; note.hidden = true; stage.classList.add('is-live'); };
@@ -180,7 +190,7 @@ function mount() {
   /** → true = it is on the lane (false: a bigger call holds it) */
   function say(text, cls, pri, ms, now) {
     if (now < callUntil && pri < callPri) return false;
-    callUntil = now + ms; callPri = pri;
+    callUntil = now + ms; callPri = pri; mark('dom');
     call.textContent = text; call.className = `hi-call ${cls}`;
     if (callAnim) callAnim.cancel();
     if (call.animate) callAnim = call.animate(POP, { duration: ms, fill: 'both' }); else call.style.opacity = '1';
@@ -200,7 +210,7 @@ function mount() {
         }
         const b = bandAt(e.floor);
         // A BAND's ARRIVAL: its name (under the number) lights up — never said twice in the lane below
-        if (b > bandNow) { bandNow = b; band.textContent = BANDS[b].name; if (!calm && band.animate) band.animate(SWELL, { duration: 1700 }); if (!late) cues.push({ id: 'band-arrival' }); }
+        if (b > bandNow) { bandNow = b; mark('dom'); band.textContent = BANDS[b].name; if (!calm && band.animate) band.animate(SWELL, { duration: 1700 }); if (!late) cues.push({ id: 'band-arrival' }); }
         // SOLO PAST 200: every notch of the tightening is called — a FASTER that lands under a bigger call (a streak, NEW BEST) waits its turn
         if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; if (!say('FASTER', 'is-fast', 2, 1100, now)) later = ['FASTER', 'is-fast', 2, 1100]; } }
       }
@@ -231,18 +241,29 @@ function mount() {
     }
     check.className = `hi-check ${same ? 'is-ok' : 'is-bad'}`;
     check.textContent = same ? 'REPLAY = LIVE ✓' : `REPLAY ≠ LIVE ✗ · first differs at tick ${at < 0 || at === Infinity ? '?' : at} · live ${live.floor} ${live.cause} · replay ${r.floor} ${r.cause}${why ? ` (${why})` : ''}`;
-    end.hidden = false; soundsBtn.hidden = false; note.hidden = false; tag.hidden = true; tagKey = '';
+    end.hidden = false; soundsBtn.hidden = false; note.hidden = false; tag.hidden = true; tagFloor = -1;
     stage.classList.remove('is-live'); stage.classList.add('is-over');
     view.rest();   // (the first band's plate comes back while the card is up: PLAY AGAIN never starts on a blank sky)
     hook.ends.push({ seed, mode: MODE, same, at, live, replay: r, taps: taps.slice(), best, was }); if (hook.ends.length > 50) hook.ends.shift();
   }
 
-  let raf = 0, last = 0, hudKey = '', tagKey = '', frameN = 0;
+  let raf = 0, last = 0, hudFloor = -1, hudLeft = -2, tagFloor = -1, tagAt = -1e9, frameN = 0;
+  // THE HITCH COUNTER: frames over HITCH_MS in this run (after its first second; a tab that was away is not a hitch) + the last one's cause
+  let hitchN = 0, hitchAll = 0, hitchLast = '', prevAt = 0, prevWork = 0;
+  const hitchList = [];
+  function hitch(gap) {
+    const since = prevAt - 2;
+    if (snd && snd.lastWork) { const a = snd.lastWork(); if (a > marks.audio) marks.audio = a; }
+    const why = marks.plate >= since ? 'plate' : marks.compile >= since ? 'compile' : marks.audio >= since ? 'audio' : marks.dom >= since ? 'dom' : prevWork > 12 ? 'unknown' : 'gc';
+    hitchN++; hitchAll++; hitchLast = `${why} ${gap.toFixed(0)} ms @${run.floor}`;
+    if (hitchList.length < 200) hitchList.push({ why, gap: Math.round(gap), floor: run.floor, work: Math.round(prevWork) });
+  }
   function frame(now) {
     raf = requestAnimationFrame(frame);
     const w0 = performance.now(), gap = last ? now - last : TICK_MS, dt = Math.min(250, gap);
+    if (last && gap > HITCH_MS && gap < LATE_MS && prevAt && t0 != null && now - t0 > 1000 && !shown && !isOver(run)) hitch(gap);
     last = now;
-    if (document.visibilityState === 'hidden' || sheetOpen) return;
+    if (document.visibilityState === 'hidden' || sheetOpen) { prevAt = 0; return; }
     let tau = 0;
     if (t0 != null) {
       tau = Math.max(0, (now - t0) / TICK_MS);
@@ -262,28 +283,29 @@ function mount() {
     if (isOver(run) && !endedAt) endedAt = now;   // (the end's own frame — whether THE FUSE ended it in this frame or a TAP did in the touch handler: the review — a miss used to bring the card at once, over the falling slab)
     if (isOver(run) && !shown && now - endedAt >= END_HOLD_MS) showEnd(now);
     view.draw(run, isOver(run) ? run.end : tau, dt);
-    // ---- the HUD: written only when it changes
-    const cap = MODES[MODE].capTicks, left = cap == null ? '' : clockText(cap - (isOver(run) ? run.end : Math.floor(tau)));
-    const key = `${run.floor}|${left}`;
-    if (key !== hudKey) {
-      hudKey = key;
+    // ---- the HUD: written only when it changes (two numbers compared — no text is built in a frame that changes nothing)
+    const cap = MODES[MODE].capTicks, left = cap == null ? -1 : Math.max(0, Math.ceil((cap - (isOver(run) ? run.end : Math.floor(tau))) / TICK_HZ));
+    if (run.floor !== hudFloor || left !== hudLeft) {
+      hudFloor = run.floor; hudLeft = left;
       setNum(num, run.floor);
       const b = bandAt(run.floor); if (band.textContent !== BANDS[b].name) band.textContent = BANDS[b].name;
-      if (clock.textContent !== left) clock.textContent = left;
+      const text = cap == null ? '' : clockText(left * TICK_HZ);
+      if (clock.textContent !== text) clock.textContent = text;
     }
     // YOUR BEST while it is ABOVE you: the right-edge tag at its own height — held clear of the HUD and of THE DROP ZONE
-    const bv = t0 != null && !shown && !isOver(run) ? bestView(best, run.floor) : null;
-    if (bv && bv.tag) {
-      if (tagKey !== bv.tag) { tagKey = bv.tag; tag.firstChild.textContent = bv.tag; tag.hidden = false; }
+    if (t0 != null && !shown && !isOver(run) && best > 0 && run.floor <= best) {
+      if (tagFloor !== run.floor) { tagFloor = run.floor; tag.firstChild.textContent = bestView(best, run.floor).tag; tag.hidden = false; tagAt = -1e9; }
       // (its height is clamped to 100 floors up: a best far above is BEHIND the diagonal camera — projected, it came back mirrored and the tag jumped to the foot of its column: the review)
       const tp = T.top(), y = tagY(view.project((tp.x0 + tp.x1) / 2, Math.min(best, run.floor + 100), (tp.z0 + tp.z1) / 2)[1] * stageH, hudFoot, view.zoneTop() * stageH);
-      tag.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
-    } else if (tagKey) { tagKey = ''; tag.hidden = true; }
+      if (Math.abs(y - tagAt) >= 0.25) { tagAt = y; tag.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`; }   // (a tag that did not move is not written)
+    } else if (tagFloor >= 0) { tagFloor = -1; tag.hidden = true; }
     if (callUntil && now > callUntil) { callUntil = 0; callPri = 0; call.className = 'hi-call'; call.style.opacity = ''; if (later) { const l = later; later = null; say(l[0], l[1], l[2], l[3], now); } }
     frameN++;
     if (frames.length < 20000) frames.push(gap); else frames[frameN % 20000] = gap;
-    tiers.sample(now, performance.now() - w0); if (pin == null) tiers.tick(now);
-    if (fps && frameN % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · tier ${i.tier}${i.bloom ? ' bloom' : ''} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr} · tick ${run.t}`; }
+    // (the tier rule is asked six times a second, not sixty: each asking sorts its 120 samples three times — garbage, every frame)
+    prevWork = performance.now() - w0; prevAt = w0;
+    tiers.sample(now, prevWork); if (pin == null && frameN % 10 === 0) tiers.tick(now);
+    if (fps && frameN % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · tier ${i.tier}${i.bloom ? ' bloom' : ''} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr} · tick ${run.t} · HITCH ${hitchN}${hitchLast ? ` (last: ${hitchLast})` : ''}`; }
   }
   document.addEventListener('visibilitychange', () => { tiers.reset(); if (glDown && document.visibilityState === 'visible') { tries = 0; rebuild(); } });
 
@@ -299,6 +321,8 @@ function mount() {
     },
     restart: s => restart(s),
     frames: () => frames.slice(),
+    /** THE HITCH COUNTER: this run's count · every run's · the last one's words · each with its cause */
+    hitches: () => ({ n: hitchN, all: hitchAll, last: hitchLast, list: hitchList.slice() }),
     setTier: t => tiers.set(t),
     /** (the pass's LOOK CHECK — real drops through the real engine, played at once: the tower `n` floors up, the clock moved on with
      *  it; `off(i)` = how far off dead-on drop i lands, in ticks) */

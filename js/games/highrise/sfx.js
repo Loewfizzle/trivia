@@ -30,6 +30,8 @@ const bufs = new Map();                // file → AudioBuffer (for bufCtx)
 let bufCtx = null, bus = null, busCtx = null, hooked = false, lockWait = false;
 const live = new Set();                // the voices sounding: { src, pri, at }
 const log = [], asked = [];            // the test hooks: what started · what was asked for (locked / headless included)
+let workAt = 0;                        // the last time the sounds did one-off work (a decode landed, the limiter was built) — THE HITCH COUNTER's 'audio' tag (play.js)
+export const lastWork = () => workAt;
 
 /** fetch the bytes now (no AudioContext needed) — every file by default (ten small WAVs) */
 export function fetchSounds(files = SOUND_FILES) {
@@ -47,11 +49,13 @@ export function decode() {
   if (!ctx) return Promise.resolve();
   if (bufCtx !== ctx) { bufs.clear(); bufCtx = ctx; }
   return Promise.all([...bytes.entries()].map(([k, p]) => (bufs.has(k) ? null : p.then(a => (a ? new Promise((res, rej) => { const q = ctx.decodeAudioData(a.slice(0), res, rej); if (q && q.catch) q.catch(rej); }) : null))
-    .then(b => { if (b && bufCtx === ctx) bufs.set(k, b); }, () => {}))));
+    .then(b => { if (b && bufCtx === ctx) { bufs.set(k, b); workAt = performance.now(); } }, () => {}))))
+    // (S2 FIX — THE LAG HUNT: the limiter + its trim are built HERE, with the decode at the unlock — not inside the first drop's frame)
+    .then(r => { try { if (isUnlocked()) out(ctx); } catch { /* at the first play, then */ } return r; });
 }
 function out(ctx) {
   if (bus && busCtx === ctx) return bus;
-  busCtx = ctx;
+  busCtx = ctx; workAt = performance.now();
   const comp = ctx.createDynamicsCompressor(), trim = ctx.createGain();
   for (const [k, v] of Object.entries(LIMITER)) { try { comp[k].value = v; } catch { /* an old Safari */ } }
   trim.gain.value = TRIM; comp.connect(trim); trim.connect(getSfxBus() || ctx.destination);
