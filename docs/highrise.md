@@ -1,13 +1,15 @@
 # HIGH RISE (id `highrise`) — the tower-stacking game
 
-**BEING BUILT — S1 (Nov 18 2026): THE RULES · S2 (Nov 18–19 2026): THE NIGHT LOOK + SOLO on an unlisted test page.** A 3D neon
+**BEING BUILT — S1 (Nov 18 2026): THE RULES · S2 (Nov 18–19 2026): THE NIGHT LOOK + SOLO on an unlisted test page · S3 (Nov 19 2026):
+THE DAY LOOK + THE LOOK SWITCH + THE FLYERS + DEEP SPACE + THE MOTHERSHIP, the 2 cards' art prepared.** A 3D neon
 glass-slab tower: one tap drops each slab, the overhang slices off, a PERFECT snaps into place. Its signs read HIGH / RISE stacked.
 JAYWALK is its quality benchmark AND its engine formula (docs/jaywalk.md): a pure engine, a result = THE REPLAY of the player's own input
-log, a preview on the live site. The owner's decisions: `docs/games/plan.md` "HIGH RISE — S1" + "HIGH RISE — S2".
+log, a preview on the live site. The owner's decisions: `docs/games/plan.md` "HIGH RISE — S1" · "— S2" · "— S2 FIX" · "— S3"
+(**NO DAILY for HIGH RISE** — the owner, Nov 18: the seed barely changes play; the engine's daily mode stays unused).
 
 **HIGH RISE IS INVISIBLE TO PLAYERS**: no GAMES entry, no `config.js` change, no boot / cartridge / registry change, no Firebase rules
 change, no `/api` endpoint wiring (`tests/highrise-play.test.mjs` "HIGH RISE IS STILL INVISIBLE"). Its two addresses are UNLISTED:
-**/highrise-play** (THE TEST PAGE — the real night look, SOLO; **NOTHING COUNTS UNTIL GO-LIVE**) and **/highrise-lab** (S1's graybox —
+**/highrise-play** (THE TEST PAGE — the real game's two looks, SOLO; **NOTHING COUNTS UNTIL GO-LIVE**) and **/highrise-lab** (S1's graybox —
 never counts). Read this page before a HIGH RISE pass.
 
 ## THE PASSES — INDEX
@@ -16,6 +18,7 @@ never counts). Read this page before a HIGH RISE pass.
 | S1 — THE RULES | Nov 18 2026 | `docs/games/passes/highrise-s1.md` | the engine, the replay + the judge (server half), the bot sims + the tuned speed curve, THE LAB (/highrise-lab) |
 | S2 — THE NIGHT LOOK + SOLO | Nov 18–19 2026 | `docs/games/passes/highrise-s2.md` | THE TEST PAGE (/highrise-play — nothing counts): the glass tower, the cut + sparks, the perfect's ring, grow-back, the night plates + the reflection map, the HUD, YOUR BEST (this phone), the sounds + the audition; the rules: SOLO PAST 200 KEEPS TIGHTENING · the ranking by perfects |
 | S2 FIX — THE LAG HUNT | Nov 19 2026 | `docs/games/passes/highrise-s2-fix.md` | the owner's phone check: the lag spikes found + fixed (THE LAG RULES, THE HITCH COUNTER on `?fps=1`), YOUR BEST's tape = a thin gold OUTLINE, THE END's FOOT (the PLAY AGAIN bar), the sounds as MP3 (121 KB) |
+| S3 — THE DAY LOOK + THE FLYERS + DEEP SPACE | Nov 19 2026 | `docs/games/passes/highrise-s3.md` | THE DAY LOOK (frosted glass, one sun), THE LOOK SWITCH (AUTO · DAY · NIGHT, a 1.5 s cross-fade, never a hitch), THE FLYERS (the seed's Blackbird OR F-22 pair at 35–45 · the UFO at 85 · THE MOTHERSHIP from ~180), floor 200 (solo: the moment, then DEEP SPACE · `?mode=match`: THE FINISH + the gold card), the sounds final (ALL A), the 2 cards' art prepared |
 
 ## THE RULES (the owner's)
 - **THE ONE RULE:** the same seed + the same TAP LOG → the exact same run on any phone and on the server (**REPLAY = LIVE**). Integers /
@@ -31,7 +34,8 @@ never counts). Read this page before a HIGH RISE pass.
 - **THE FUSE:** an untapped slab drops by itself at the end of its 2nd sweep — the SAME drop; if it ends the run the cause is **TOO SLOW**.
 - **THE LANDING BEAT:** 12 ticks after each drop there is no slab — a tap then is not a drop (ignored, never logged; the judge refuses a
   log that holds one).
-- **THE MODES:** SOLO = endless · MATCH = floor 200 + a 6:00 cap · DAILY = floor 200 + a 5:00 cap. Floor 200 = **MADE IT TO THE
+- **THE MODES:** SOLO = endless · MATCH = floor 200 + a 6:00 cap · DAILY = floor 200 + a 5:00 cap (**UNUSED — NO DAILY for HIGH RISE**,
+  the owner, Nov 18: the seed barely changes play; the mode stays in the engine). Floor 200 = **MADE IT TO THE
   MOTHERSHIP** (a finish, not an out). The cap ends a run where it stands. **THE RANKING (S2 — the owner, Nov 18):** THE FLOOR
   first; at the SAME floor (above all: the Mothership's finishers — every clean run stands on floor 200 within a second, the curve sets
   the pace) → **THE MOST PERFECTS** → then the EARLIER tick. Match + daily alike (`logic.js#rankCompare` / `standings`); the podium's
@@ -41,7 +45,7 @@ never counts). Read this page before a HIGH RISE pass.
   near-perfect player falls (the σ 10 ms bot on floor 383, 5:33 in; THE SIMS). MATCH + DAILY end ON floor 200 (their slab 201 never
   enters): **unchanged, tick for tick** — pinned by digests of S1's runs (`tests/highrise-engine.test.mjs` "SOLO PAST 200").
 - **HIDING THE APP = NO PAUSE (S2 — the owner, JAYWALK's rule):** the run is on the clock; behind a hidden tab THE FUSE ends it (TOO
-  SLOW). The daily will follow JAYWALK's daily rule (S5).
+  SLOW).
 - **FAIR TAPS:** a tap counts at the finger's TOUCH (the pointerdown's `event.timeStamp` → its tick), never "the next frame".
 
 ## THE NUMBERS (fixed point — `js/games/highrise/tuning.js`, every number of the rules in one place)
@@ -201,16 +205,22 @@ What changed from the starting numbers, and why: `docs/games/passes/highrise-s1.
   THE PAGES LOAD (`kit/page-loads.mjs`) opens it in the smoke test. The page's hook for the checks: `window.__hiLab`.
 
 ## THE TEST PAGE — https://neonspeakeasy.com/highrise-play (S2 — `highrise-play.html` · `js/games/highrise/play.js` · `css/highrise-play.css`)
-The real game's NIGHT LOOK + SOLO, on the live site, on a phone: the owner tests on cellular, his brother from a shared link.
+The real game's two looks + SOLO, on the live site, on a phone: the owner tests on cellular, his brother from a shared link.
 **UNLISTED** (noindex nofollow; no page, no script, no manifest names it), **OPEN** (no gate, no sign-in). `?seed=` (the same slabs
-every run) · `?fps=1` (the frame rate + **THE HITCH COUNTER** — below) · `?tier=0|1|2` (pins a quality tier) · `?mode=match|daily` (the pass's own check of the finish + the cap — the
-page itself is SOLO).
+every run) · `?fps=1` (the frame rate + **THE HITCH COUNTER** — below) · `?tier=0|1|2` (pins a quality tier) · `?mode=match|daily` (the
+finish + the cap — **`?mode=match` = THE FINISH's preview**, S3: floor 200 → the white-gold light → the gold card; the page itself is
+SOLO) · `?look=day|night` (S3: that look for this visit — nothing stored) · **`?floor=N`** (S3 — the LOOK CHECK, the JAYWALK lab's
+`?lane=N`: the START tap plays N clean drops at once through the real engine and the run goes on LIVE from floor N — the flyby from
+~30, the UFO from ~80, THE MOTHERSHIP + floor 200 from ~190, the finish with `?mode=match&floor=193`; REPLAY = LIVE holds; it never
+moves YOUR BEST; the note says FROM FLOOR N).
 - **NOTHING COUNTS UNTIL GO-LIVE (the owner, Nov 18):** no XP, no streak, no server best, no YOUR TABLE, no cards, no share card —
   scores start clean at launch (the tuning may still change). The run is the pure engine in the tab: **ZERO server calls, ZERO database
   writes**; the page's whole module graph (static + lazy) holds nothing from `/api`, the profile, progression, the report, share, the
   cards, Firebase or the store (`tests/highrise-play.test.mjs`). Its only requests: its own static files (its modules, the plates, the
-  reflection map, the sounds), three.js from the import map's CDN, the fonts. Its only storage: `hi:play:best` (YOUR BEST — THIS PHONE)
-  + `hi:play:snd:<id>` (the audition's picks). COUNTING (the judge wired into `/api`, the solo run node + the match proof node = ONE
+  reflection maps, the sounds; S3: + the site's sun rule for AUTO — `games/kit/look.js` → `core/sky.js` + the three pure modules it
+  reads —, the flyers' models `assets/jaywalk/models/{blackbird,ufo}.glb` + `assets/highrise/models/f22.glb` + JAYWALK's GLB reader, the
+  city's four jet / UFO sound files), three.js from the import map's CDN, the fonts. Its only storage: `hi:play:best` (YOUR BEST —
+  THIS PHONE) + `hi:play:look` (S3: the look's choice; S2's `hi:play:snd:<id>` picks are gone — the owner's are final). COUNTING (the judge wired into `/api`, the solo run node + the match proof node = ONE
   rules change) is S4.
 - **THE DOOR (`play.js`, before the page mounts):** a shared module may call the server from wherever it runs — today the audio engine
   COUNTS a leave once (CITY G: `errlog.js#countQuiet('snd')` → one anonymous beacon to `/api/log`) and the skew wrapper asks `/api/time`
@@ -228,9 +238,11 @@ page itself is SOLO).
   an arrival) · THE ANNOUNCER LANE under that, one call at a time, a bigger moment never wiped by a smaller: PERFECT · PERFECT ×N ·
   STREAK ×10 (every 10) · NEW BEST (gold) · FASTER (every notch of the tightening past 200 — under a bigger call it waits its turn).
   Its one-shot + the band's arrival are Web Animations (opacity + transform; restarted with NO forced layout). (The altimeter = the match, S4.)
-- **THE START**: the sign (HIGH / RISE stacked, pink over cyan), TAP TO START, the one rule, YOUR BEST n · THIS PHONE. **THE END CARD**:
-  the cause's words (the game's own table; MADE IT in gold), FLOOR n, the band reached, "N PERFECTS · BEST STREAK n", YOUR BEST n /
-  NEW BEST · WAS n — its foot above the top slab (the tower stays in view), its head under the SOUNDS button's row
+- **THE START**: the sign (HIGH / RISE stacked, pink over cyan), TAP TO START, the one rule, YOUR BEST n · THIS PHONE, and (S3) the three
+  choices **AUTO · DAY · NIGHT** ("THE LOOK SWITCH", below). **THE END CARD**:
+  the cause's words (the game's own table), FLOOR n, the band reached, "N PERFECTS · BEST STREAK n", YOUR BEST n /
+  NEW BEST · WAS n (**MADE IT TO THE MOTHERSHIP = the whole card in GOLD** — the words, the floor, the perfects — and it waits 2.6 s
+  (`MADE_HOLD_MS`) for THE FINISH's light: S3) — its foot above the top slab (the tower stays in view), its head under the SOUNDS button's row
   (≥ 58 px down — a phone in a Safari TAB is only ~660 px tall), on every size.
 - **THE END's FOOT (S2 FIX — END-SCREEN STANDARD A, the owner):** ONE big SOLID glowing **PLAY AGAIN** bar at the foot of the end
   screen, in HIGH RISE's accent (`--hi-accent` — its sign's hot pink `#ff4fd8`, dark ink): full width inside the 16 pt gutters, 62 pt
@@ -252,9 +264,11 @@ page itself is SOLO).
   A rebuild that gets NO context says so and KEEPS TRYING (every 1.5 s, eight times, and at once when the page is back in front) — the
   run goes on meanwhile. The glass shader asks for `derivatives`: it builds on a WebGL 1 phone too.
 - **Locally:** `http://localhost:5173/highrise-play` · `node tests/integration/highrise-play.mjs "<chromium>" [outDir] [--look] [--perf]`
-  (`--look` = the review's shots: every band, the moments, YOUR BEST, the end, the sizes · `--perf` = the measure · `--webkit` = Playwright's
-  WebKit as an iPhone · `--review` = the fresh-eyes review's finds). THE PAGES LOAD
-  covers it. The page's hook for the checks: `window.__hiPlay` (`climb(n, off)` = real drops through the real engine, played at once).
+  (`--look` = the review's shots in BOTH looks: every band, the moments, YOUR BEST, the end, the sizes (`LOOKS=day`) · `--fly` = the
+  flyers' shots · `--perf` = the measure (`PERF_Q='&look=day'`) · `--webkit` = Playwright's WebKit as an iPhone · `--review` = S2's
+  fresh-eyes finds · `--s3` = S3's checks alone · `--hitch` = the long run, `HITCH_Q='&look=day'` by day). THE PAGES LOAD
+  covers it. The page's hook for the checks: `window.__hiPlay` (`climb(n, off)` = real drops through the real engine, played at once · S3: `pickLook` /
+  `setLook` / `look()` · `plan()` · `fly(kind)` · `flyInfo()`).
 
 ## THE NIGHT LOOK (S2 — `night.js` + `night-fx.js`; three.js 0.160 core only — the bloom + the sparks are ours)
 A VIEW: it reads the run + the tower the page builds from the events; it never writes them; the rules never import it.
@@ -299,7 +313,111 @@ A VIEW: it reads the run + the tower the page builds from the events; it never w
   **60.0 fps at every tier at 1× and 4× CPU** (p95 ≤ 17.3 ms, no frame over 18 ms) · tier 2: 10 draw calls a frame (4 the picture +
   the bloom's 6), ≈ 1,950 triangles · tiers 1 / 0: 4 calls, ≈ 970 triangles. A desktop GPU's numbers — the tiers are the phone's margin.
 
-## THE HEIGHT AREAS (S2 — `bands.js`, PURE; the NIGHT plates: `assets/highrise/plates/night-1…5.webp`)
+## THE DAY LOOK (S3 — the SAME scene + the SAME programs: `night.js` · `night-fx.js` `uDay` · `bands.js`; the owner's mockup: `Downloads\grok\highrise\mockups\highrise-day.png`)
+Night = smoked glass + neon; day = **frosted glass in the sun**. The look is a VIEW (no rule, no replay, no server file knows it).
+- **ONE SET OF PROGRAMS**: every material carries `uDay` (0 night … 1 day); the day's maths sit behind it, the night's are untouched at 0
+  — so a look switch **builds nothing** (THE LAG RULES) and can cross-fade.
+- **THE GLASS by day** (`GLASS_F`'s day branch): a milky body with **the band's pastel showing through the MIDDLE of each side face**
+  (frosted toward the rims); **ONE SUN** behind the tower on the left (`night.js#SUN` −0.42 · 0.78 · 0.46) + the sky's cool fill — the
+  top the brightest (warm where it faces the sun, cool away from it — never plain white: it keeps the band's tint), the face turned
+  to the sun lit, **the other clearly darker + more saturated** (the fresh-eyes review: the two sides must read apart at phone size);
+  **the slab above throws its shadow on a ledge** (each box is told the slab lying on it: `aUp` — a soft contact shadow + the cast
+  one, on the side away from the sun); **a chrome rim** (a THIN bright line where it catches the sun + a darker line just inside it
+  that is seen — polished metal reads by its contrast, a thick white line read as a line drawing); the
+  DAY reflection map mirrored in it; **a soft glint** slanting down the lit face of the whole tower (it rides with the camera); **a
+  light height haze** in the band's own air (`bands.js#DAY_HAZE`) where the night dims to black. **No bloom by day** (it fades with
+  the night through a switch).
+- **THE SLIDING SLAB by day** = **its band's ACCENT at full strength** (`bands.js#sliderColor`: the floor's pastel pulled 70 % of the
+  way to `DAY_ACCENT` — a silver / white step would vanish on a sunlit sky) + a white-hot rim and its faces lifting to white toward
+  the rim: the clearest thing on the screen. When it lands it is its floor's pastel (the landing's flare covers the turn).
+- **THE DAY's LIGHTS ARE PAINT**: the sparks, the rings, the flyers' lights are drawn ONE · ONE_MINUS_SRC_ALPHA — by night their alpha is
+  0 (added light, exactly as before), by day they are paint in their own colour: **a cut's sparks WARM GOLD** (1.7 × the night's
+  size — paint must be seen), **a perfect's ring GOLD-WHITE** with a white-hot heart (gone sooner than the night's: a faint ring left
+  hanging read as a smudge). **The gold tape** by day is **twice as thick** + gets **a darker outline** on both sides (no glow, no
+  back edges: frosted glass is not seen through).
+- **THE DAY BAND COLOURS** (`bands.js#SLAB_SETS.day` — the owner's pairs): rooftops = warm teal / white · skyline = sky blue / silver ·
+  clouds = peach / rose · stars = deep blue / ice · deep space = violet / aurora. The day plates 4 + 5 are dark (the edge of space,
+  deep space): there the day look is frosted glass on a dark sky.
+- **THE WORDS BY DAY** (`css/highrise-play.css` `.hi-stage[data-sky='bright']`): **dark navy `#0d1740` on a soft LIGHT HALO** — the
+  number, the band's name, the calls, the start + end screens; **GOLD by day = a bright amber-gold `#ffb81f` with a NAVY EDGE** (the
+  mockup's own PERFECT ×7 — the number past YOUR BEST, PERFECT / STREAK / NEW BEST, the best lines; a dark gold read as rust: the
+  fresh-eyes review); the PLAY AGAIN bar keeps HIGH RISE's hot pink; the tag + the note keep their own dark strips. **`data-sky`** = `bands.js#skyTone(look, floor)`: `bright` by day
+  up to floor ~108, **`dark` from THE STARS up** (the day plates are dark there — the words go back to light) and always by night.
+  Measured on the real pixels (the letters against what is right round them — `--s3`): the number 8.7–8.9 : 1 (gold, a navy edge),
+  the band's name 6.4–12 : 1 (navy on its halo — the 6.4 over the clouds plate's royal blue).
+
+## THE LOOK SWITCH (S3 — `look.js` · `play.js` · `night.js#setLook`)
+- **AUTO · DAY · NIGHT on the START screen**: three plain neon-underline choices under the sign (≥ 44 pt, no pill, no label — they
+  say what they are, and the row sits over the open water between the banks), each on its OWN press + lift (never the START tap); **remembered on this phone** (`hi:play:look`, try / catch); `?look=day|night` = that look for
+  a visit. **AUTO = the real sun, by THE SITE's OWN SUN RULE** (`games/kit/look.js#sunUpNow` → `core/sky.js`: the city's sun at this
+  phone's place — the same rule JAYWALK's GAME LOOK uses), asked again every minute; before it has answered (a lazy module) the
+  clock's own guess (day 7–19) — its first answer before a run snaps, later ones cross-fade. (At go-live the game reads the
+  console's GAME LOOK — `body[data-look]` — like every game; this switch is the test page's.)
+- **THE SWITCH NEVER HITCHES**: `setLook` first brings the OTHER look's pictures in — the current band's two plates + its reflection
+  map, all through the decode-ahead loader (bytes → `createImageBitmap` → `initTexture`) — and only THEN cross-fades over **1.5 s**
+  (`LOOK_FADE_MS`; it never waits longer than 5 s for them). The plate shader holds BOTH looks' pairs (`tA tB` night · `tC tD` day —
+  one program, one draw); the slabs' colours are blended in step. **Settled, only the look on screen keeps its plates + its
+  reflection map** (`holds(look)`); a run in one look never even asks for the other's files. The page's words turn half way
+  (`data-look`). Measured: a switch mid-run = **0 hitches, 0 new programs** (`--s3`).
+
+## THE FLYERS (S3 — `flyplan.js` (PURE: when + which) · `flyers.js` (a LAZY module: the flying + its sounds) · `night.js`'s stage · `night-fx.js` `FLY_*` / `LIGHT_*`)
+**SPECTACLE ONLY — never a hazard, never over the play zone, never under the HUD's numbers.** A VIEW: the rules know nothing of it.
+- **THE PLAN** (`flyplan.js#flyPlan(seed)` — the same on every phone): **THE SKYLINE FLYBY** on a seeded floor **35 … 45** — the seed's
+  `engine.js#flyerFor` picks ONE: **THE BLACKBIRD** alone, or **TWO F-22s in formation** — + the side it comes from · **THE UFO at
+  floor 85** · **THE MOTHERSHIP** seen from ~178, colossal at **200**. A landing starts its moment (`flyDue` — two floors late still
+  counts; further, it is missed).
+- **LAZY, AND NEVER A HITCH**: `flyers.js` is fetched from **floor 20**; each MODEL + its sounds when its own moment nears
+  (`flyNeeds`: the jets' from 20, the UFO's from 70, THE MOTHERSHIP's from 160). The two programs every flyer is drawn with (`FLY` a
+  body · `LIGHT` its lights) + their bloom twins are **built in THE WARM FRAME on a stand-in triangle**; a model that lands brings
+  only its buffers, **uploaded in an ordinary frame long before it flies** (`night.js#STAGE.upload` — one speck far under the tower);
+  **a model is READ FAST** (`flyers.js#readFlyer`: the flyers' one GLB layout straight through typed arrays — 0.35 ms for the F-22's
+  15,843 vertices where JAYWALK's general reader takes 6: a model lands mid-run, on a slow phone too).
+  **Each flyer is REMOVED + FREED after its moment** (the next run fetches it again from the phone's cache).
+- **IN THE CAMERA's OWN FRAME**: a flyer = a place on the screen + a depth BEHIND the tower (`toWorld`), so it keeps to **its band of
+  sky — between the HUD's foot and THE DROP ZONE's upper edge** — while the tower climbs; drawn before the tower (the tower covers
+  it). Checked on the canvas's own pixels: the play zone is the SAME with a flyer up as without (`--s3`). A flyer still in the sky
+  when the END CARD comes fades out in a third of a second.
+- **THE SKYLINE FLYBY** (3.4 s): in from one side near, round BEHIND the tower, out by the other — **banking round it (≈ 52°) so its
+  top side shows**. THE BLACKBIRD = 46 % of the screen's width; each F-22 28 %, the wingman behind + beside the leader. **Night**:
+  burner glow + a flame from each nozzle, red / green nav lights, a white tail strobe, a rim of light round a near-black jet;
+  **day**: **the darkest thing in the sky** (the Blackbird near-black, hardly any haze over a jet) + **two white vapour trails**. **The city's jet sound** (`audio/city/jet-scream` — the Blackbird ·
+  `jets-formation` — the pair), its loudest moment on the pass's middle, **panned with it**.
+- **THE UFO** (8 s): JAYWALK's saucer model, **never JAYWALK's look** — **ten AMBER lamps** chasing round its rim (amber to their
+  heart: `LIGHT_F` kind 4) + **a soft VIOLET underglow** (its belly + a flat pool of light under it); **no beam, no ground ring, no green**. Seen almost from the side
+  (the classic saucer), wobbling; the city's UFO hum, quiet, panned.
+- **THE MOTHERSHIP**: from floor ~178 a colossal DARK ship (2.7 screens wide) comes down overhead — its hull **built in code**
+  (`flyers.js#shipHull`: a smooth 120-sided disc of near-black steel PLATING — every terrace three bands of plates, each its own
+  shade, a darker seam between two —, three stepped terraces, a thick rim; JAYWALK's 28-sided saucer read as a pale polygon at this
+  size), **MANY SMALL LIGHTS**: four turning rings on its belly + its rim's (~225 points, every 8th a brighter lamp, a wave running
+  through them) + a lens, a deep hum building. The hull gives almost no light of its own — it stays DARK. **FLOOR 200, SOLO = the moment**: the camera glances up, its lights pulse, **"THE MOTHERSHIP"**
+  in the announcer lane + the band-arrival sound — then it leaves (up and away, 5.4 s in all) and the climb goes on. **MATCH
+  (`?mode=match`) = THE FINISH**: **a white-gold light pours onto the top slab** (a warm gold cone from where the ship's lens is SEEN
+  down to the slab — widest + brightest ON the slab —, a pool on its top, gold rings running off it, rising sparks; the slab
+  white-gold), the run is MADE → 2.6 s later the end card in GOLD (the hull stays dark and the lens + the light's head are turned
+  down behind the card: its words stand on the dark ship).
+- **THE MODELS**: `assets/jaywalk/models/{blackbird,ufo}.glb` = JAYWALK's own files (shared, cached; read by JAYWALK's GLB reader) ·
+  **`assets/highrise/models/f22.glb`** (399 KB, 15,843 vertices) = the city's source model found on the Beelink
+  (`art/models/f22/f22_raptor_free.glb`, 25 MB, git-ignored) through `node scripts/bake-model.mjs "<chromium>" highrise-f22`: the
+  **gear-retracted** pose, the wheels + the ladder left out, its softened base maps baked into vertex colours, thinned by vertex
+  clustering. Credits (CC BY — REQUIRED): `assets/highrise/models/CREDITS.md`.
+- **ITS NUMBERS** = `flyers.js#FLY` · the sounds' mix = `MIX`. An effect asks `isUnlocked()` (a napping context plays); a hum stops
+  at once when the page is left (the engine's bed hub).
+
+## DEEP SPACE (S3 — `night.js` `SPACE_FROM` 200 · `SPACE_FULL` 212 · `night-fx.js` `space()`)
+Solo, past THE MOTHERSHIP: over the last plate **slow drifting stars in two depths** (they twinkle) **+ an aurora's two ribbons**
+(green into violet, waving slowly) come in from floor 200 to 212 and hold from there — both looks. Light only, in the plate's own
+shader (one uniform, no new program, no extra draw).
+
+## THE CARDS' ART — PREPARED (S3; the cards themselves are S4's)
+**ABOVE THE CLOUDS** (floor 60 — `reachedClouds`) + **TOP OF THE WORLD** (floor 200 — `reachedTop`; Grok's v2: the colossal ship)
+through JAYWALK's card pipeline: the masters COPIED to `art/highrise-cards/src/` → `node scripts/build-highrise-cards.mjs "<browser>"
+[previewDir]` → `assets/vault/hi/above-the-clouds.webp` (34 KB) + `top-of-the-world.webp` (47 KB), 1280 × 720; **`js/fx/hi-specs.js`**
+= each card's slim + full crops in JAYWALK's format (the picture set RIGHT — the hero 0.81 / 0.78 across the slim card, the left its
+dark ground for a 12-letter name; the full card's art right at 80 % by its width) + the hero boxes. **NOTHING reads them yet**: no
+catalog entry, no CSS class, no achievement, no award (`tests/highrise-play.test.mjs`). S4 adds + awards the cards (server-judged
+runs only, hidden until go-live) and writes `.vl-s-hi-*` / `.vl-fcm-hi-*` from those numbers.
+
+## THE HEIGHT AREAS (S2 — `bands.js`, PURE; the plates: `assets/highrise/plates/night-1…5.webp` · S3: `day-1…5.webp`)
 | band | floors | its plate | its slab colours (four neons, walked one step a floor — `engine.js#paletteFor`) |
 | --- | --- | --- | --- |
 | THE ROOFTOPS | 0–24 | the harbour canal by night | pink → violet → blue → cyan |
@@ -314,7 +432,9 @@ A VIEW: it reads the run + the tower the page builds from the events; it never w
 - **Only the current look's set is asked for; only the current band's plate + the next one's are ever held** (`night.js#holdPlates` —
   a third is disposed the frame it is not needed) — plus the FIRST band's again while the end card is up (PLAY AGAIN never starts on a
   blank sky). No plate yet = a plain dark sky (the game never waits for a picture).
-- (S3: the DAY set — `--look=day` in the builder; THE FLYERS; deep space past 200; THE MOTHERSHIP at 200.)
+- **THE DAY SET (S3)**: the same five bands by day (day 1 = the owner's approved v2 redo) — the harbour canal in the sun · the city far
+  below under a pale sky · inside the sunlit cloud layer (its top deep royal blue) · the edge of space (dark indigo, the earth's
+  curve) · deep space (the aurora band, lighter than the night's). Their slab colours: "THE DAY LOOK", above.
 
 ## THE LINES — YOUR BEST (S2 — `best.js`, PURE · `night.js#setBest` · `play.js`)
 - **YOUR BEST = a GOLD TAPE — a THIN glowing gold OUTLINE round the tower** (S2 FIX, the owner: the first one, four gold boxes, "read
@@ -332,8 +452,11 @@ A VIEW: it reads the run + the tower the page builds from the events; it never w
 - **S2: the best is THIS PHONE's** (`hi:play:best`, written at a run's end when it is beaten — nothing counts until go-live). THE NEXT
   FRIEND's tape (the same in PINK) arrives with S4's counting.
 
-## THE SOUNDS + THE AUDITION (S2 — `sounds.js` (the PURE table + the triggers) · `sfx.js` · `audition.js`; the files: `audio/highrise/`)
-- **THE FILES ARE MP3 (S2 FIX — the owner):** ten files, **121 KB** (44.1 kHz mono, 128 kbps — `node scripts/build-highrise-sounds.mjs
+## THE SOUNDS (S2 — `sounds.js` (the PURE table + the triggers) · `sfx.js` · `audition.js` (the SOUNDS list); the files: `audio/highrise/`)
+- **THE PICKS ARE FINAL (S3 — the owner, Nov 19: ALL A)**: drop as recorded · the chime starting an octave down · the slice = the
+  glassy snap · every other sound its one take. **The B takes left the game** (the slice's backup file, the two in-code variants,
+  this phone's picks, PLAY A / B + COPY MY PICKS): `sounds.js` = ONE take a sound.
+- **THE FILES ARE MP3 (S2 FIX — the owner):** nine files, **117 KB** (S2 FIX shipped ten, 121 KB) (44.1 kHz mono, 128 kbps — `node scripts/build-highrise-sounds.mjs
   --lame <…/@breezystack/lamejs/dist/lamejs.js>`: a pure-JS encoder from npm, a BUILD TOOL given by path — never in package.json, never
   shipped; the build machine has no ffmpeg). The same level as the WAVs (each within 0.4–1.0 dB, decoded). **AN MP3's LEAD-IN IS
   SKIPPED AT PLAY** (`sfx.js#leadOf`): the encoder puts ~25 ms of near-silence in front of every sound — each starts at its first
@@ -350,25 +473,27 @@ A VIEW: it reads the run + the tower the page builds from the events; it never w
   only its OUT.
 - **THE PERFECT CHIME climbs a bright MAJOR-PENTATONIC scale** — one step a perfect in a row, HOLDING at the top after 8
   (`CHIME_STEPS` 0 · 2 · 4 · 7 · 9 · 12 · 14 · 16 semitones: do re mi so la do′ re′ mi′) — the crystal bell's playback rate.
-- **THE SOUND AUDITION** (the SOUNDS button, top left between runs → THE SHEET): every sound, PLAY (the chime climbs its scale); where
-  there are two takes PLAY A · PLAY B + USE A / B (remembered on this phone; the page plays the choice) — **slice**: the pick (a glassy
-  snap) vs the delivery's backup (shorter, clickier) · **drop**: as recorded vs lower, "a heavier slab" (an IN-CODE variant) ·
-  **perfect**: the chime starting an octave down vs a fifth down (in-code); **COPY MY PICKS** → one line ("HIGH RISE SOUNDS: drop A ·
-  perfect B · …") to paste into chat. The game holds still under the sheet.
+- **THE SOUNDS LIST** (the SOUNDS button, top left between runs → THE SHEET; it was S2's SOUND AUDITION): every sound, ONE **PLAY**
+  each (the chime climbs its scale) — nothing to choose, nothing stored. Kept (the call) so every sound — PASS too, not in play
+  yet — can still be heard on the test page. The game holds still under the sheet. THE FLYERS' sounds are the city's own files
+  (`flyers.js#MIX` — "THE FLYERS", above).
 - The levels are a FIRST MIX (set from each file's measured loudness — the pass log's table); the measured mix is the review's.
 - A sound replaced: bump `sfx.js#HI_SFX_REV`; a picture: `night.js#HI_ART_REV`. After any change: `node scripts/build-file-hashes.mjs`.
 
 ## THE ASSETS (S2 — `python -P -E scripts/build-highrise-assets.py` COPIES the owner's delivery; Downloads\grok\highrise is only read)
-- `assets/highrise/plates/night-1…5.webp` — the five painted NIGHT plates (Grok Imagine, 720 × 1280 → WebP q 90): **252 KB**.
+- `assets/highrise/plates/night-1…5.webp` — the five painted NIGHT plates (Grok Imagine, 720 × 1280 → WebP q 90): **252 KB** ·
+  `day-1…5.webp` (S3 — `--look=day`; day 1 = `day-1-rooftops-v2`): **251 KB**. Only the look on screen is fetched.
 - `assets/highrise/env-night.png` — **THE REFLECTION MAP**: "Shanghai Bund" (Greg Zaal, Poly Haven, CC0) — its UPPER (sky) HALF ONLY
   (the slabs' side faces mirror it downward: the promenade, its people and its street-level signs never ship), 256 × 64, blurred (smoked
   glass is no mirror), tone-curved into 8 bits (`v = x / (1 + x)`, gamma 2.2 — the shader undoes it: the lights come back hot): **14 KB**
-  (the 1.6 MB HDRI never ships).
-- `audio/highrise/` — the nine sounds + the slice's backup as **MP3** (S2 FIX: 44.1 kHz mono, 128 kbps — `build-highrise-assets.py`
-  makes the 16-bit mono WAVs from the delivery (633 KB), `scripts/build-highrise-sounds.mjs` turns them into the MP3s that ship + removes
-  the WAVs): **121 KB**, fetched after the page is up. All CC0 1.0 — `CREDITS.md` +
+  (the 1.6 MB HDRI never ships). `env-day.png` (S3) = "Kloofendal 48d Partly Cloudy (Pure Sky)" (Greg Zaal + Jarod Guest, Poly
+  Haven, CC0), the same way: **15 KB**.
+- `audio/highrise/` — the nine sounds as **MP3** (S3: the slice's backup left with the B takes) (S2 FIX: 44.1 kHz mono, 128 kbps — `build-highrise-assets.py`
+  makes the 16-bit mono WAVs from the delivery, `scripts/build-highrise-sounds.mjs` turns them into the MP3s that ship + removes
+  the WAVs): **117 KB**, fetched after the page is up. All CC0 1.0 — `CREDITS.md` +
   `LICENSE.txt` (the site's Credits sheet gets its HIGH RISE group at go-live).
-- The day plates + `day.hdr` + the two cards' art + the flyers' models are S3's.
+- `assets/highrise/models/f22.glb` (S3 — 399 KB; `scripts/bake/highrise-f22.mjs`) + `CREDITS.md` · `assets/vault/hi/*.webp` + their
+  masters `art/highrise-cards/src/` (S3 — "THE CARDS' ART"; `/art` never deploys).
 
 ## THE FILE MAP + THE TESTS
 ```
@@ -378,20 +503,26 @@ js/games/highrise/tuning.js engine.js logic.js replay.js    THE RULES (pure — 
 js/games/highrise/bot.js                            the sim bots          scripts/highrise-sim.mjs   the 2,000-seed table
 js/games/highrise/tower.js                          the tower a view draws, from the events (pure — the lab AND the game)
 js/games/highrise/play.js                           THE TEST PAGE: the run loop, the HUD, YOUR BEST, THE DOOR, the lost context
-js/games/highrise/night.js night-fx.js camera.js    THE NIGHT LOOK: the scene · the shaders + the bloom · the camera's numbers (pure)
-js/games/highrise/bands.js best.js                  THE HEIGHT AREAS + the slab colours · YOUR BEST's tag / tape (both pure)
-js/games/highrise/sounds.js sfx.js audition.js      THE SOUNDS: the table + the triggers (pure) · the engine glue · THE AUDITION
+js/games/highrise/night.js night-fx.js camera.js    THE TWO LOOKS (one scene, `uDay`): the scene + the flyers' stage · the shaders + the bloom · the camera's numbers (pure)
+js/games/highrise/bands.js best.js                  THE HEIGHT AREAS + both looks' slab colours, the day's haze + the sky's tone · YOUR BEST's tag / tape (both pure)
+js/games/highrise/look.js                           THE LOOK SWITCH's choice (AUTO · DAY · NIGHT — this phone; AUTO = the site's sun rule)
+js/games/highrise/flyplan.js flyers.js              THE FLYERS: when + which from the seed (pure) · the flying, the lights, the sounds (LAZY)
+js/games/highrise/sounds.js sfx.js audition.js      THE SOUNDS: the table + the triggers (pure) · the engine glue · the SOUNDS list
+js/fx/hi-specs.js                                   THE 2 CARDS' ART as data (S3 — nothing reads it until S4)
 js/games/highrise/lab.js graybox.js                 THE LAB (S1's graybox)
 api/_lib/highrise.js                                THE JUDGE's server half (pure, not wired)
-assets/highrise/  audio/highrise/                   the plates + the reflection map · the sounds   scripts/build-highrise-assets.py
+assets/highrise/  audio/highrise/                   the plates + the reflection maps + the F-22 · the sounds   scripts/build-highrise-assets.py [--look=day]
+assets/vault/hi/  art/highrise-cards/src/           the 2 cards' art + its masters   scripts/build-highrise-cards.mjs · scripts/bake/highrise-f22.mjs
 scripts/build-highrise-sounds.mjs                   the WAVs → the MP3s that ship (a pure-JS encoder from npm, given by path)
-tests/highrise-engine.test.mjs (21) · highrise-server.test.mjs (5) · highrise-sim.test.mjs (5) · highrise-lab.test.mjs (6) · highrise-play.test.mjs (11)
-tests/integration/highrise-play.mjs (93 — the browser; --review · --webkit · --look · --perf · --hitch = THE LAG HUNT's long run) · highrise-lab.mjs (45)
+tests/highrise-engine.test.mjs (21) · highrise-server.test.mjs (5) · highrise-sim.test.mjs (5) · highrise-lab.test.mjs (6) · highrise-play.test.mjs (16)
+tests/integration/highrise-play.mjs (217 — the browser; --review · --s3 (125) · --webkit · --look · --fly · --perf · --hitch = THE LAG HUNT's long run) · highrise-lab.mjs (45)
 ```
 
 ## COMING
-- **S3** — the DAY look, THE FLYERS (the Blackbird OR an F-22 pair · the UFO · THE MOTHERSHIP at 200), deep space, the 2 cards' art staged.
 - **S4** — COUNTING + THE MATCH: the judge wired into `/api` (solo + match), the solo run node + the match proof node (ONE rules
   change, ships OFF until go-live), the height tapes + the play-zone test, the altimeter, the announcer, WATCH, Call the Winner, the
   finish, REMATCH, the cards awarded, the pink friend tape. (The review's S1 notes for the wiring: "FOR S4" under THE JUDGE, above.)
-- **S5** — THE DAILY (best of 3, ships OFF). Then THE REVIEW (+ the icon + the billboard poster briefs) and THE GO-LIVE PASS.
+  S4 also: the two cards from the prepared art (`js/fx/hi-specs.js`), the site's Credits sheet's HIGH RISE group (the F-22, the
+  Blackbird, the saucer: CC BY — `assets/highrise/models/CREDITS.md`), the game reading the console's GAME LOOK (`body[data-look]`).
+- **NO DAILY** (the owner, Nov 18 — the seed barely changes play; parked idea only: a one-shot "TODAY'S TWIST"). Then THE REVIEW (+ the
+  icon + the billboard poster briefs) and THE GO-LIVE PASS.

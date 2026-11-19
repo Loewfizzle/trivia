@@ -34,13 +34,13 @@ const ART = new URL('../../../assets/highrise/', import.meta.url);
 const PLATE_ASPECT = 720 / 1280;
 const PIECES = 8, TAPE = 4, BOXES = KEEP + 1 + 2 + PIECES + TAPE, SPARKS = 224, RINGS = 4;
 /** THE FLYERS' STAGE (S3): the bodies on screen at once (two jets, or the UFO; THE MOTHERSHIP) · every light they carry */
-export const FLY_SLOTS = 3, LIGHTS = 176;
+export const FLY_SLOTS = 3, LIGHTS = 320;
 /** DEEP SPACE (S3 — solo, past THE MOTHERSHIP): the drifting stars + the aurora come in over these floors */
 export const SPACE_FROM = 200, SPACE_FULL = 212;
 const SPARKS_AT = [12, 22, 34];            // a cut's sparks by tier (× its length)
 const GOLD = [1, 0.78, 0.2], BG = 0x0a0716;
 // (THE DAY LOOK's lights are PAINT — night-fx.js: a cut's sparks WARM GOLD, a perfect's ring GOLD-WHITE)
-const DAY_SPARK = [1, 0.62, 0.1], DAY_SPARK_HOT = [1, 0.86, 0.42], DAY_RING = [1, 0.72, 0.16];
+const DAY_SPARK = [1, 0.46, 0.03], DAY_SPARK_HOT = [1, 0.76, 0.22], DAY_RING = [1, 0.72, 0.16], DAY_SPARK_SIZE = 1.7;
 const NO_UP = [1, 0, 1, 0];
 const KIND = { slab: 0, slider: 2, tape: 3, trail: 4 };
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -289,7 +289,7 @@ export function createNight(host, o = {}) {
   const lightsMesh = new THREE.Mesh(lgGeo, lightMat);
   lightsMesh.frustumCulled = false; lightsMesh.renderOrder = -40; lightsMesh.visible = false; scene.add(lightsMesh); made.push(lgGeo, lightMat);
   twin(lightsMesh, lightMat);
-  let nl = 0, fly = null, glance = 0, pour = 0, band0 = 0.2;
+  let nl = 0, fly = null, glance = 0, pour = 0, band0 = 0.2, hazeCf = -9;
   // (a model's buffers go to the GPU in an ordinary frame BEFORE its moment — drawn once, a speck far under the tower, in a free slot)
   const toUpload = [];
   let upSlot = null;
@@ -360,7 +360,7 @@ export function createNight(host, o = {}) {
     for (let i = 0; i < n; i++) {
       const u = Math.random() - 0.5, sp = 0.5 + Math.random() * 1.9, up = 0.6 + Math.random() * 2.1;
       const x = dx ? ex : p.x + u * p.sx, z = dz ? ez : p.z + u * p.sz;
-      spark(x, y - Math.random() * H * 0.8, z, dx * sp + (Math.random() - 0.5) * 0.7, up, dz * sp + (Math.random() - 0.5) * 0.7, 0.34 + Math.random() * 0.42, 0.006 + Math.random() * 0.006, day ? (Math.random() < 0.4 ? DAY_SPARK_HOT : DAY_SPARK) : Math.random() < 0.4 ? HOT : c);
+      spark(x, y - Math.random() * H * 0.8, z, dx * sp + (Math.random() - 0.5) * 0.7, up, dz * sp + (Math.random() - 0.5) * 0.7, 0.34 + Math.random() * 0.42, (0.006 + Math.random() * 0.006) * (day ? DAY_SPARK_SIZE : 1), day ? (Math.random() < 0.4 ? DAY_SPARK_HOT : DAY_SPARK) : Math.random() < 0.4 ? HOT : c);
     }
   }
 
@@ -484,7 +484,7 @@ export function createNight(host, o = {}) {
       }
       G.uDay.value = dayK;
     }
-    if (dayK > 0) { const hz = hazeAt(cf); C.setRGB(hz[0], hz[1], hz[2], THREE.SRGBColorSpace); G.uHaze.value.set(C.r, C.g, C.b); }
+    if (dayK > 0 && Math.abs(cf - hazeCf) > 0.05) { hazeCf = cf; const hz = hazeAt(cf); C.setRGB(hz[0], hz[1], hz[2], THREE.SRGBColorSpace); G.uHaze.value.set(C.r, C.g, C.b); }   // (the band's air: worked out as the camera climbs, not every frame)
     setPlate('tA', 'uHaveA', 'uFlipA', SETS.night.get(mix.a)); setPlate('tB', 'uHaveB', 'uFlipB', SETS.night.get(mix.b));
     setPlate('tC', 'uHaveC', 'uFlipC', SETS.day.get(mix.a)); setPlate('tD', 'uHaveD', 'uFlipD', SETS.day.get(mix.b));
     plateU.uMix.value = mix.m; plateU.uDriftA.value = plateDrift(mix.a, cf); plateU.uDriftB.value = plateDrift(mix.b, cf);

@@ -31,7 +31,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 | `docs/chat.md` · `docs/content.md` | room chat · adding questions / puzzles / words to any bank |
 | `docs/overclock.md` · `docs/prism.md` · `docs/holdem.md` | the three playable games (read before a pass on one) |
 | `docs/jaywalk.md` | **JAYWALK**: the engine, the replay + the proof node, THE SOLO GAME + its anti-cheat, THE LAB (/jaywalk-lab), THE DAILY |
-| `docs/highrise.md` | **HIGH RISE** (BEING BUILT — S1 the rules · S2 (+ S2 FIX) the night look + SOLO on the unlisted /highrise-play; NOT registered, invisible to players) |
+| `docs/highrise.md` | **HIGH RISE** (BEING BUILT — S1 the rules · S2 (+ S2 FIX) the night look + SOLO on the unlisted /highrise-play · S3 the day look, the look switch, the flyers; NOT registered, invisible to players) |
 | `docs/password.md` · `docs/coastclear.md` · `docs/prism.md` "THE DROP" | the three dailies (`docs/games/plan.md` = the owner's game decisions) |
 | `docs/pulse.md` `docs/golf.md` `docs/slip.md` `docs/gridlock.md` `docs/agent.md` `docs/stakes.md` `docs/rum.md` | that frozen game |
 
@@ -147,7 +147,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - PRISM DROP: never "Tetris" / "tetromino" / "T-spin", THE ANTI-CHEAT RULES, ONE definition per SKIN; THE DROP (the daily) → docs/prism.md.
 - HOLD'EM: the engine PURE + DETERMINISTIC, THE SERVER IS THE DEALER, PLAY CHIPS ONLY, the portrait untouched → docs/holdem.md.
 - JAYWALK: the rules PURE + CROSS-ENGINE SAFE, a result = THE REPLAY, the preview at /jaywalk-lab; THE SOLO RUN · THE MATCH · THE GHOSTS · THE LOOK(S) · THE AREAS · THE BIG MOMENTS · THE END SCREEN · BEFORE THE FLIP · THE RECORDER = ONE BOUND → docs/jaywalk.md.
-- HIGH RISE (being built): the rules PURE + INTEGERS ONLY, a result = THE REPLAY of the tap log (`replay.js#judgeRun`), THE LAB NEVER COUNTS · NOTHING COUNTS UNTIL GO-LIVE (/highrise-play: zero server calls — THE DOOR) · THE LAG RULES (nothing decoded / compiled / thrown away in a frame) → docs/highrise.md.
+- HIGH RISE (being built): the rules PURE + INTEGERS ONLY, a result = THE REPLAY of the tap log (`replay.js#judgeRun`), THE LAB NEVER COUNTS · NOTHING COUNTS UNTIL GO-LIVE (/highrise-play: zero server calls — THE DOOR) · THE LAG RULES (nothing decoded / compiled / thrown away in a frame) · THE TWO LOOKS = ONE set of programs (`uDay` — a switch builds nothing) · THE FLYERS lazy, in the sky band only (never the play zone) · NO DAILY → docs/highrise.md.
 
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
 - NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).

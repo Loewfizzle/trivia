@@ -40,6 +40,10 @@ const FIXED = (Q.get('seed') || '').replace(/[^!-~]/g, '').slice(0, SEED_MAX);
 const MODE = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo';
 /** `?look=day|night` — that look for this visit (nothing stored); else this phone's choice: AUTO (the real sun) · DAY · NIGHT */
 const LOOK_Q = Q.get('look') === 'day' || Q.get('look') === 'night' ? Q.get('look') : null;
+/** `?floor=N` (S3 — THE TEST PAGE's LOOK CHECK, the JAYWALK lab's `?lane=N`): the START tap plays N clean drops at once — the run
+ *  goes on LIVE from floor N (the flyby from ~30, the UFO from ~80, THE MOTHERSHIP + floor 200 from ~190: minutes of near-perfect play
+ *  otherwise). Real drops through the real engine (REPLAY = LIVE holds) — but not a run: it never moves YOUR BEST. Nothing counts here anyway. */
+const FROM = Math.max(0, Math.min(400, Math.floor(Number(Q.get('floor')) || 0)));
 /** the end's card comes this long after the run ended (the missed slab is seen falling) … */
 const END_HOLD_MS = 700;
 /** … THE FINISH (floor 200 in a match — `?mode=match` here): the white-gold light is seen pouring onto the top slab first */
@@ -86,7 +90,7 @@ function mount() {
   // press + lift (never the START tap); remembered on this phone. AUTO = the real sun (the site's own sun rule).
   let choice = LOOK_Q || readLook(), lookT = choice === 'auto' ? guessLook(new Date().getHours()) : choice, sunKnown = choice !== 'auto';
   const lookTabs = LOOKS.map(l => press(h('button.hi-tab.hi-look-b', { type: 'button', 'data-pick': l, 'aria-pressed': 'false' }, LOOK_LABEL[l]), () => pickLook(l)));
-  const lookRow = h('div.hi-look', { role: 'group', 'aria-label': 'The look' }, h('span.hi-look-k', 'LOOK'), ...lookTabs);
+  const lookRow = h('div.hi-look', { role: 'group', 'aria-label': 'The look: auto, day or night' }, ...lookTabs);
   const start = h('div.hi-start', h('div.hi-sign', { 'aria-label': 'High Rise' }, h('span', 'HIGH'), h('span', 'RISE')),
     h('div.hi-start-go', 'TAP TO START'), h('div.hi-start-l', 'ONE TAP DROPS EACH SLAB'), startBest, lookRow);
   const endT = h('div.hi-end-t'), endN = h('div.hi-end-n'), endB = h('div.hi-end-band'), endL = h('div.hi-end-l'), endBest = h('div.hi-end-best'), check = h('div.hi-check');
@@ -97,7 +101,7 @@ function mount() {
   const againIco = h('span.hi-again-i', { 'aria-hidden': 'true' });
   againIco.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>';
   const again = press(h('button.hi-again', { type: 'button', hidden: true }, againIco, h('span.hi-again-t', 'PLAY AGAIN')), () => { const now = performance.now(); if (shown && now - overAt > RETRY_MS) { restart(); begin(now); } });
-  const note = h('p.hi-note', 'TEST PAGE · SOLO · NOTHING COUNTS YET');
+  const note = h('p.hi-note', FROM ? `TEST PAGE · FROM FLOOR ${FROM} · NOTHING COUNTS` : 'TEST PAGE · SOLO · NOTHING COUNTS YET');
   const fps = Q.get('fps') === '1' ? h('div.hi-fps', '') : null;
   // THE SOUNDS (sfx.js — the SHARED audio engine's SFX bus; unlocked by the first tap, never before) + THE SOUND AUDITION (the SOUNDS sheet)
   let snd = null, sheetOpen = false;
@@ -209,7 +213,13 @@ function mount() {
     band.textContent = BANDS[0].name; setNum(num, 0); tagFloor = -1; tagAt = -1e9; tag.hidden = true;
   }
   // (while a run is LIVE the SOUNDS button + the note are off the screen: a thumb anywhere is a DROP, never a menu)
-  const begin = ts => { t0 = ts; start.hidden = true; soundsBtn.hidden = true; note.hidden = true; stage.classList.add('is-live'); };
+  const begin = ts => { t0 = ts; start.hidden = true; soundsBtn.hidden = true; note.hidden = true; stage.classList.add('is-live'); if (FROM) climbBy(FROM, null); };
+  /** `n` clean drops through the real engine, played at once (`off(i)` = how far off dead-on drop i lands, in ticks); the clock moves on with them */
+  function climbBy(n, off) {
+    for (let i = 0; i < n && !isOver(run); i++) { stepTo(run, run.s0, ev); if (run.st !== 'slide') break; const tk = run.s0 + Math.floor(run.S / 2) + (off ? off(i) : 0); if (tap(run, tk, ev)) taps.push(tk); }
+    t0 = performance.now() - run.t * TICK_MS; last = 0;
+    return run.floor;
+  }
 
   // FAIR TAPS: a tap counts at the finger's TOUCH — the pointerdown's own event.timeStamp → its tick — never "the next frame"
   function touch(ts) {
@@ -279,7 +289,7 @@ function mount() {
   function showEnd(now) {
     shown = true; overAt = now;
     const live = resultOf(run), b = bandAt(live.floor), was = best;
-    best = nextBest(was, live.floor);
+    best = FROM ? was : nextBest(was, live.floor);   // (a `?floor=N` look check is not a run: YOUR BEST stays)
     if (best > was) writeBest(best);
     endT.textContent = endWords(live);
     setNum(endN, live.floor);
@@ -401,9 +411,7 @@ function mount() {
      *  it; `off(i)` = how far off dead-on drop i lands, in ticks) */
     climb(n, off = () => 0) {
       if (t0 == null) begin(performance.now());
-      for (let i = 0; i < n && !isOver(run); i++) { stepTo(run, run.s0, ev); if (run.st !== 'slide') break; const tk = run.s0 + Math.floor(run.S / 2) + off(i); if (tap(run, tk, ev)) taps.push(tk); }
-      t0 = performance.now() - run.t * TICK_MS; last = 0;
-      return run.floor;
+      return climbBy(n, off);
     },
     stop() { cancelAnimationFrame(raf); offGL(); view.destroy(); },
   };

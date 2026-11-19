@@ -12,13 +12,19 @@
 //     web socket, no service worker; the only thing stored: `hi:play:*` on this phone
 //   · `--look` = the review's shots only (every band, the moments, the end) · `--perf` = the measured frame rate, every tier, 1× + 4× CPU
 //   · `--webkit` = Playwright's WebKit as an iPhone (~/wk): every shader builds, the scene draws, real touches drop slabs, REPLAY = LIVE
-//   node tests/integration/highrise-play.mjs "<chromium>" [outDir] [--look] [--perf] [--webkit] [--review]   (--review = the fresh-eyes review's finds only; the whole check runs them too)
+//   · S3 (`s3()` — the whole check runs it; `--s3` = it alone): BOTH LOOKS (AUTO · DAY · NIGHT on the start screen, remembered), a look
+//     SWITCH MID-RUN with no hitch + no new program, EACH FLYER AT ITS FLOOR in both looks (the seed's Blackbird / F-22 pair, the UFO,
+//     THE MOTHERSHIP + its solo moment + deep space, the match's FINISH + its gold card), NOTHING INSIDE THE PLAY ZONE (the canvas's own
+//     pixels under THE DROP ZONE's edge: the same with a flyer up as without), the day's words + the tape readable on a bright sky
+//   · `--fly` = the flyers' look shots · `--hitch` = THE LAG HUNT's long run (HITCH_Q='&look=day' = by day; the flyers fly in it)
+//   node tests/integration/highrise-play.mjs "<chromium>" [outDir] [--look] [--fly] [--perf] [--webkit] [--review] [--s3] [--hitch]   (--review = the fresh-eyes review's finds only; the whole check runs them too)
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
+import { flyPlan, FLY_FLOORS } from '../../js/games/highrise/flyplan.js';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null, LOOK = argv.includes('--look'), PERF = argv.includes('--perf');
@@ -34,12 +40,16 @@ const shot = async (p, name) => { if (OUT) await p.screenshot({ path: join(OUT, 
 /** THE ONLY REQUESTS THE PAGE MAY MAKE: its own page + static files, three.js from the import map's CDN, the fonts */
 const OWN = [/^\/highrise-play(\.html)?$/, /^\/css\/(base|components|highrise-play)\.css$/, /^\/js\/games\/highrise\/[a-z-]+\.js$/, /^\/js\/games\/kit\/(tiers|look)\.js$/, /^\/js\/core\/(rng|sky|weather|harbor-weather|party)\.js$/,
   /^\/js\/ui\/(dom|lazy-import|sheet|layers)\.js$/, /^\/js\/audio\/(engine|settings|sound-state|leave-text)\.js$/, /^\/js\/(errlog|core\/bot-ua)\.js$/, /^\/assets\/highrise\/(plates\/(night|day)-[1-5]\.webp|env-(night|day)\.png)$/, /^\/audio\/highrise\/[a-z-]+\.mp3$/,
-  /^\/assets\/favicon-64\.png$/, /^\/favicon\.ico$/, /^\/assets\/fonts\//];
+  /^\/assets\/favicon-64\.png$/, /^\/favicon\.ico$/, /^\/assets\/fonts\//,
+  // (S3: THE FLYERS — JAYWALK's own Blackbird + UFO (shared, cached) + its GLB reader, HIGH RISE's F-22, the city's jet / UFO sounds)
+  /^\/js\/games\/jaywalk\/models\.js$/, /^\/assets\/jaywalk\/models\/(blackbird|ufo)\.glb$/, /^\/assets\/highrise\/models\/f22\.glb$/, /^\/audio\/city\/(jet-scream|jets-formation|ufo-hum|ufo-beam-on)\.mp3$/];
 const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js';
 const allowed = url => { if (url === THREE_URL || /^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(url)) return true; const u = new URL(url); return u.origin === new URL(BASE).origin && OWN.some(re => re.test(u.pathname)); };
 const COUNTS = /\/api\/|firebaseio|firebasejs|\/js\/(profile|progress|board|daily|vault|chat|admin|screens)\/|\/js\/(firebase|store|room|host|identity|seat|app|config)\.js|share|report|cards?\b|sw\.js/i;
 
-async function open(w, h, dpr, q = '', before = null) {
+async function open(w, h, dpr, q0 = '', before = null) {
+  // (the S2 checks are the NIGHT look's: a page opens by night unless its address names a look — or asks for the phone's own choice: auto=1)
+  const q = /[?&](look|auto)=/.test(q0) ? q0 : `${q0}${q0 ? '&' : '?'}look=night`;
   const ctx = await b.createBrowserContext(), p = await ctx.newPage(), errs = [], reqs = [], sockets = [];
   p.on('pageerror', e => errs.push(String(e.message || e)));
   p.on('console', m => { if (m.type() === 'error' && !/favicon/.test(m.text())) errs.push(`console: ${m.text()}`); });
@@ -208,30 +218,25 @@ async function main() {
   ok(new Set(drops).size > 1 && drops.every(r => r > 0.95 && r < 1.05), 'a drop is never the same twice (its pitch within ± 4 %)');
   const sb = await p.evaluate(() => { const r = document.querySelector('.hi-snd').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
   await tapAt(t, sb[0], sb[1]);
-  ok(await waitFor(p, "!!document.querySelector('.hi-au-sheet.is-in, .hi-au-sheet') && document.querySelectorAll('.hi-au-row').length === 9", 6000), 'a real tap on SOUNDS opens THE AUDITION sheet: nine sounds');
+  ok(await waitFor(p, "!!document.querySelector('.hi-au-sheet.is-in, .hi-au-sheet') && document.querySelectorAll('.hi-au-row').length === 9", 6000), 'a real tap on SOUNDS opens the SOUNDS sheet: nine sounds');
   await sleep(450);
-  const au = await p.evaluate(() => ({ rows: [...document.querySelectorAll('.hi-au-row')].map(r => ({ id: r.dataset.id, plays: r.querySelectorAll('.hi-au-play').length, picks: [...r.querySelectorAll('.hi-au-pick')].map(b => [b.textContent, b.classList.contains('is-on'), b.getBoundingClientRect().height]) })), line: document.querySelector('.hi-au-line').textContent, open: window.__hiPlay.state().sheet }));
-  ok(au.open && au.rows.filter(r => r.plays === 2).map(r => r.id).join() === 'drop,perfect,slice' && au.rows.every(r => r.picks.every(x => x[2] >= 44)) && au.line === 'HIGH RISE SOUNDS: drop A · perfect A · slice A · falling-piece A · grow-back A · streak A · out A · band-arrival A · pass A', `the audition: PLAY A · PLAY B + USE A / B for drop · perfect · slice; "${au.line}"`);
+  // (S3 — the owner's picks are FINAL, ALL A: the sheet is a plain list — every sound, ONE PLAY each; nothing to choose, nothing stored)
+  const au = await p.evaluate(() => ({ rows: [...document.querySelectorAll('.hi-au-row')].map(r => ({ id: r.dataset.id, plays: [...r.querySelectorAll('.hi-au-play')].map(b => [b.textContent, b.getBoundingClientRect().height]) })), extra: document.querySelectorAll('.hi-au-pick, .hi-au-copy, .hi-au-line').length, text: document.querySelector('.hi-au-sheet').textContent, open: window.__hiPlay.state().sheet }));
+  ok(au.open && au.rows.map(r => r.id).join() === 'drop,perfect,slice,falling-piece,grow-back,streak,out,band-arrival,pass' && au.rows.every(r => r.plays.length === 1 && r.plays[0][0] === 'PLAY' && r.plays[0][1] >= 40) && au.extra === 0 && !/PLAY B|USE|COPY MY PICKS/.test(au.text), 'the SOUNDS list: every sound, ONE PLAY each — no A / B, no picks, no COPY');
   const press = async sel => { const c = await p.evaluate(q => { const el = document.querySelector(q); el.scrollIntoView({ block: 'center' }); const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, sel); await sleep(80); await tapAt(t, c[0], c[1]); await sleep(120); };
   const before = (await p.evaluate(() => window.__hiPlay.sfx.wanted().length));
-  await press('.hi-au-play[data-snd="slice:b"]');
-  await press('.hi-au-pick[data-pick="slice:b"]');
-  await press('.hi-au-pick[data-pick="perfect:b"]');
-  const au2 = await p.evaluate(() => ({ line: document.querySelector('.hi-au-line').textContent, slice: localStorage.getItem('hi:play:snd:slice'), perfect: localStorage.getItem('hi:play:snd:perfect'), wanted: window.__hiPlay.sfx.wanted().slice(-1)[0], n: window.__hiPlay.sfx.wanted().length }));
-  ok(au2.n === before + 1 && au2.wanted.id === 'slice' && au2.wanted.ab === 'b' && au2.slice === 'b' && au2.perfect === 'b' && /slice B/.test(au2.line) && /perfect B/.test(au2.line) && /drop A/.test(au2.line), `PLAY B plays the backup; USE B is remembered on this phone; the line follows ("${au2.line.slice(0, 60)}…")`);
-  await press('.hi-au-play[data-snd="perfect:b"]');
+  await press('.hi-au-play[data-snd="slice"]');
+  const au2 = await p.evaluate(() => ({ wanted: window.__hiPlay.sfx.wanted().slice(-1)[0], n: window.__hiPlay.sfx.wanted().length, ls: Object.keys(localStorage).filter(k => /snd/.test(k)) }));
+  ok(au2.n === before + 1 && au2.wanted.id === 'slice' && au2.wanted.rate === 1 && !('ab' in au2.wanted) && au2.ls.length === 0, 'PLAY plays the sound\'s one take (the slice = the glassy snap); nothing is stored for the sounds');
+  await press('.hi-au-play[data-snd="perfect"]');
   await sleep(320 * 9 + 200);
-  const scale = await p.evaluate(() => window.__hiPlay.sfx.wanted().filter(x => x.id === 'perfect' && x.ab === 'b').slice(-9).map(x => x.rate));
-  const want = [0, 2, 4, 7, 9, 12, 14, 16, 16].map(k => +(0.6674 * Math.pow(2, k / 12)).toFixed(4));
-  ok(JSON.stringify(scale) === JSON.stringify(want), `THE PERFECT CHIME climbs its major-pentatonic scale and HOLDS at the top (${scale.map(r => r.toFixed(2)).join(' ')})`);
-  await press('.hi-au-copy');
-  const said = await p.evaluate(() => document.querySelector('.hi-au-said').textContent);
-  ok(said === 'COPIED — PASTE IT INTO CHAT' || said === 'PRESS AND HOLD THE LINE ABOVE TO COPY IT', `COPY MY PICKS answers ("${said}")`);
+  const scale = await p.evaluate(() => window.__hiPlay.sfx.wanted().filter(x => x.id === 'perfect').slice(-9).map(x => x.rate));
+  const want = [0, 2, 4, 7, 9, 12, 14, 16, 16].map(k => +(0.5 * Math.pow(2, k / 12)).toFixed(4));
+  ok(JSON.stringify(scale) === JSON.stringify(want), `THE PERFECT CHIME starts an octave down, climbs its major-pentatonic scale and HOLDS at the top (${scale.map(r => r.toFixed(2)).join(' ')})`);
   // the run holds still under the sheet: a tap on the sheet is never a start
   ok(!(await st(p)).started || (await st(p)).shown, 'the game holds still under the sheet');
   await p.evaluate(() => document.querySelector('.sh-x').click());
   ok(await waitFor(p, '!window.__hiPlay.state().sheet', 3000), 'the sheet closes');
-  await p.evaluate(() => { localStorage.removeItem('hi:play:snd:slice'); localStorage.removeItem('hi:play:snd:perfect'); });
   await sleep(400);
 
   // ---- YOUR BEST: the tag while it is above you (never in THE DROP ZONE), the gold tape + NEW BEST at the crossing
@@ -271,7 +276,7 @@ async function main() {
   ok(b2.band === 2 && l2 === 'THE CLOUDS' && b2.info.held.length <= 2 && b2.info.plates.includes(2) && !b2.info.held.includes(0), `floor ${b2.floor}: THE CLOUDS — its plate is in, the rooftops' is let go (held: ${b2.info.held}; ${b2.info.loads} loaded so far)`);
   const arr = await p.evaluate(() => window.__hiPlay.sfx.wanted().filter(q => q.id === 'band-arrival').length);
   ok(arr === 2, 'a band\'s arrival sounds once a band');
-  ok(sameTop(b2) && b2.info.calls <= 13,   /* (the tape on: + its line, + its faint back edges, + its line in the bloom pass) */ `the view's tower == the engine's after ${b2.taps} drops; ${b2.info.calls} draw calls a frame`);
+  ok(sameTop(b2) && b2.info.calls <= 13 + (b2.info.lights ? 6 : 0),   /* (the tape on: + its line, + its faint back edges, + its line in the bloom pass; S3: a flyer in the sky — the climb just passed the flyby's floor — adds its bodies + its lights + their bloom twins: ≤ 6) */ `the view's tower == the engine's after ${b2.taps} drops; ${b2.info.calls} draw calls a frame${b2.info.lights ? ' (a flyer in the sky)' : ''}`);
 
   // ---- THE LOST CONTEXT: the scene is rebuilt on the same tower — the run never stopped
   const lost = await p.evaluate(() => { const c = document.querySelector('canvas.hi-canvas'), gl = c.getContext('webgl2') || c.getContext('webgl'), x2 = gl && gl.getExtension('WEBGL_lose_context'); if (!x2) return false; c.dataset.old = '1'; x2.loseContext(); return true; });
@@ -498,7 +503,7 @@ async function perf() {
   console.log('\n| tier | cpu | fps | frame ms (p95 · worst) | calls | tris | size |');
   console.log('| --- | --- | --- | --- | --- | --- | --- |');
   for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {
-    const d = await open(390, 844, 3, `?seed=perf&tier=${tier}`);
+    const d = await open(390, 844, 3, `?seed=perf&tier=${tier}${process.env.PERF_Q || ''}`);   // (PERF_Q='&look=day': the day look's measure)
     await ready(d.p); await sleep(300);
     await climb(d.p, 62, 'i => (i % 9 === 8 ? 2 : 0)');
     await d.cdp.send('Emulation.setCPUThrottlingRate', { rate });
@@ -619,6 +624,7 @@ async function hitch() {
     await ready(d.p); await sleep(600 + (Number(process.env.HITCH_IDLE) || 0));   // (HITCH_IDLE: the page waits on its start screen first — is a pause tied to the FLOOR, or to the browser's own clock?)
     if (RATE > 1) await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
     r = await d.p.evaluate(HITCH_BOT, SECS);
+    r.fly = await d.p.evaluate(() => ({ plan: window.__hiPlay.plan(), info: window.__hiPlay.flyInfo(), look: window.__hiPlay.state().info.look, space: window.__hiPlay.state().info.space }));
     if (RATE > 1) await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     if (OUT) await shot(d.p, `hitch-chromium-${RATE}x.png`);
     errs = d.errs; await d.close();
@@ -626,6 +632,8 @@ async function hitch() {
   const who = WK ? 'WebKit (an iPhone) 1×' : `Chromium ${RATE}× CPU`;
   console.log(`\nTHE LAG HUNT — ${who}, ${r.secs} s after the first second: ${r.frames} frames · ${r.over25} over 25 ms · ${r.over33} over 33 ms · ${r.over50} over 50 ms · worst ${r.worst} ms · the usual frame ${r.med} ms, ${r.spikes} frames 25 ms over it`);
   console.log(`  ${r.drops} drops, ${r.runs} run(s), top floor ${r.topFloor} (ends on ${r.floor}) · tier ${r.tierPath.join(' → ')} · plates held ${r.plates.join()} · ${r.programs} programs${r.grewKBs ? ` · garbage ≈ ${r.grewKBs} KB/s, ${r.gcs} collections seen` : ''}${r.page ? ` · the page's own HITCH counter: ${r.page.n} (last: ${r.page.last || '—'})` : ''}`);
+  // (S3: the long run flies its flyers — the seed's flyby, the UFO, THE MOTHERSHIP + its moment, on into deep space)
+  if (r.fly) console.log(`  the ${r.fly.look} look · the flyers: ${r.fly.plan.jet} at floor ${r.fly.plan.jetAt}, the UFO at ${r.fly.plan.ufoAt} — flown ${JSON.stringify(r.fly.plan.flown)} · their sounds asked ${r.fly.info.played ? r.fly.info.played.join(' · ') : '—'} · THE MOTHERSHIP done ${r.fly.info.ship ? r.fly.info.ship.done : '—'} · deep space ${r.fly.space}`);
   for (const h of r.rec.slice(0, 60)) console.log(`    ${String(h.t).padStart(6)} ms  ${String(h.gap).padStart(4)} ms  floor ${h.floor}  tier ${h.tier}${h.why ? `  ${h.why}` : ''}`);
   ok(errs.length === 0, `no page error (${errs.join(' | ')})`);
   if (process.env.HITCH_GATE) ok(r.over33 <= Number(process.env.HITCH_GATE), `≤ ${process.env.HITCH_GATE} frames over 33 ms after the first second (${r.over33})`);
@@ -633,8 +641,9 @@ async function hitch() {
 
 // ---- THE FLYERS' LOOK (S3): each flyer in both looks at 390 × 844 @3 — the flyby mid-pass (THE BLACKBIRD · the F-22 pair), the UFO,
 // THE MOTHERSHIP coming down / fully down / the solo moment, the match's finish + its gold end card. `FLY_LOOKS=day` = one look.
-/** keep a run alive while a flyer is watched: a clean drop every 1.1 s through the page's own climb hook (the fuse never ends it) */
-const alive = (p, on) => p.evaluate(v => { clearInterval(window.__alive); if (v) window.__alive = setInterval(() => { const L = window.__hiPlay; if (!L.state().over) L.climb(1); }, 1100); }, on);
+/** keep a run alive while a flyer is watched: a clean drop every 0.8 s through the page's own climb hook — never slower than the game's own
+ *  pace (a floor = 54 ticks = 0.9 s from floor 120 on: a slower hand falls behind the run's clock and THE FUSE ends it) */
+const alive = (p, on) => p.evaluate(v => { clearInterval(window.__alive); if (v) window.__alive = setInterval(() => { const L = window.__hiPlay; if (!L.state().over) L.climb(1); }, 800); }, on);
 async function flyLook() {
   for (const lk of (process.env.FLY_LOOKS || 'night,day').split(',')) {
     const t = await open(390, 844, 3, `?seed=fly1&look=${lk}`), { p } = t;
@@ -683,13 +692,313 @@ async function flyLook() {
   }
 }
 
+// ---- S3: THE LOOKS · THE LOOK SWITCH · THE FLYERS · DEEP SPACE · THE FINISH (docs/highrise.md; docs/games/passes/highrise-s3.md)
+/** the first seed of a family whose plan picks `kind` ('blackbird' | 'f22') — the page plays the SAME plan (flyplan.js is pure) */
+const seedFor = kind => { for (let i = 0; ; i++) { const sd = `s3${kind}${i}`; if (flyPlan(sd).jet === kind) return sd; } };
+/** THE CANVAS's OWN PIXELS (a small copy, read inside a frame, right after the page drew): the rows from `from` to `to` (0 … 1 from the
+ *  top) — the first call keeps them as the reference (`key`), a later one says how far the picture is from it */
+const grabDiff = (p, key, from, to) => p.evaluate((k, f, t2) => new Promise(res => requestAnimationFrame(() => {
+  const c = document.querySelector('canvas.hi-canvas'), w = 195, h = 422, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const x = cv.getContext('2d', { willReadFrequently: true }); x.drawImage(c, 0, 0, w, h);
+  const y0 = Math.ceil(f * h), y1 = Math.floor(t2 * h), d = x.getImageData(0, y0, w, Math.max(1, y1 - y0)).data;
+  window.__grab = window.__grab || {};
+  if (!window.__grab[k]) { window.__grab[k] = d; return res({ ref: true, n: d.length / 4 }); }
+  const r = window.__grab[k]; let changed = 0, max = 0;
+  for (let i = 0; i < d.length; i += 4) { const m = Math.max(Math.abs(d[i] - r[i]), Math.abs(d[i + 1] - r[i + 1]), Math.abs(d[i + 2] - r[i + 2])); if (m > 10) changed++; if (m > max) max = m; }
+  res({ ref: false, n: d.length / 4, changed, max });
+})), key, from, to);
+/** the band a flyer keeps to, on the screen (0 … 1 from the top): the HUD's foot … THE DROP ZONE's upper edge */
+const bandOf = p => p.evaluate(() => { const hud = document.querySelector('.hi-hud'), st2 = document.querySelector('.hi-stage'); return { top: (hud.offsetTop + hud.offsetHeight) / st2.clientHeight, zone: window.__hiPlay.view.zoneTop() }; });
+const flyInfo = p => p.evaluate(() => window.__hiPlay.flyInfo());
+/** WCAG's contrast of two sRGB colours */
+const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+const contrast = (a, b2) => { const x = lum(a), y = lum(b2); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+/** HOW THE WORDS READ, measured on the real pixels: a 3× capture of the element → its letters (the pixels in its own colour) against what
+ *  is RIGHT ROUND them (the halo over the sky) → WCAG's contrast */
+async function wordsRead(p, sel) {
+  const r = await p.evaluate(q => { const b2 = document.querySelector(q).getBoundingClientRect(); return { x: Math.max(0, b2.left - 5), y: Math.max(0, b2.top - 5), width: b2.width + 10, height: b2.height + 10 }; }, sel);
+  const b64 = await p.screenshot({ clip: r, encoding: 'base64' });
+  const m = await p.evaluate(async (data, q) => {
+    const im = new Image(); im.src = `data:image/png;base64,${data}`; await im.decode();
+    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+    const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0);
+    const d = x.getImageData(0, 0, c.width, c.height).data, col = getComputedStyle(document.querySelector(q)).color.match(/\d+/g).slice(0, 3).map(Number), w = c.width, h = c.height, isT = new Uint8Array(w * h);
+    let nT = 0;
+    for (let i = 0; i < w * h; i++) { const dr = d[i * 4] - col[0], dg = d[i * 4 + 1] - col[1], db = d[i * 4 + 2] - col[2]; if (dr * dr + dg * dg + db * db < 45 * 45) { isT[i] = 1; nT++; } }
+    const a = [0, 0, 0]; let n = 0;
+    for (let y = 0; y < h; y += 2) for (let xx = 0; xx < w; xx += 2) {
+      const i = y * w + xx; if (isT[i]) continue;
+      let near = false; for (const [dx, dy] of [[5, 0], [-5, 0], [0, 5], [0, -5]]) { const X = xx + dx, Y = y + dy; if (X >= 0 && X < w && Y >= 0 && Y < h && isT[Y * w + X]) { near = true; break; } }
+      if (near) { a[0] += d[i * 4]; a[1] += d[i * 4 + 1]; a[2] += d[i * 4 + 2]; n++; }
+    }
+    return { col, nT, n, round: n ? a.map(v => Math.round(v / n)) : null, text: document.querySelector(q).textContent };
+  }, b64, sel);
+  return { ...m, k: m.round ? contrast(m.col, m.round) : 0 };
+}
+/** the mean colour BEHIND an element (its box on the canvas — the WebGL picture, not the words) */
+const behind = (p, sel) => p.evaluate(q => new Promise(res => requestAnimationFrame(() => {
+  const el = document.querySelector(q), r = el.getBoundingClientRect(), c = document.querySelector('canvas.hi-canvas'), cr = c.getBoundingClientRect(), cv = document.createElement('canvas'); cv.width = 195; cv.height = Math.round(195 * cr.height / cr.width);
+  const x = cv.getContext('2d', { willReadFrequently: true }); x.drawImage(c, 0, 0, cv.width, cv.height);
+  const k = cv.width / cr.width, d = x.getImageData(Math.max(0, Math.floor((r.left - cr.left) * k)), Math.max(0, Math.floor((r.top - cr.top) * k)), Math.max(1, Math.ceil(r.width * k)), Math.max(1, Math.ceil(r.height * k))).data;
+  let a = [0, 0, 0], hi = 0, lo = 255; for (let i = 0; i < d.length; i += 4) { a[0] += d[i]; a[1] += d[i + 1]; a[2] += d[i + 2]; const L = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]; if (L > hi) hi = L; if (L < lo) lo = L; }
+  const n = d.length / 4, col = getComputedStyle(el).color.match(/\d+/g).slice(0, 3).map(Number);
+  res({ bg: a.map(v => Math.round(v / n)), hi: Math.round(hi), lo: Math.round(lo), col, text: el.textContent });
+})), sel);
+
+async function s3() {
+  const BB = seedFor('blackbird'), F22 = seedFor('f22');
+  console.log(`  (S3 seeds: ${BB} → ${JSON.stringify(flyPlan(BB))} · ${F22} → ${JSON.stringify(flyPlan(F22))})`);
+  ok(flyPlan(BB).jet === 'blackbird' && flyPlan(F22).jet === 'f22', 'the plan (flyplan.js — pure): one seed picks THE BLACKBIRD, another the F-22 pair');
+
+  // ---- THE START SCREEN's THREE CHOICES: AUTO · DAY · NIGHT — real taps, remembered on this phone; AUTO = the site's own sun rule
+  {
+    const t = await open(390, 844, 3, '?auto=1&seed=look');
+    const { p } = t;
+    ok(t.up && await ready(p), 'the page opens with this phone\'s own choice of look (none stored: AUTO)');
+    ok(await waitFor(p, 'window.__hiPlay.look().sunKnown', 6000), 'AUTO asks the sun rule');
+    await sleep(300);
+    const a = await p.evaluate(async () => {
+      const K = await import('/js/games/kit/look.js'), up = await K.sunUpNow(Date.now()), L = window.__hiPlay, tabs = [...document.querySelectorAll('.hi-look-b')].map(b2 => { const r = b2.getBoundingClientRect(); return { text: b2.textContent, on: b2.classList.contains('is-on'), w: r.width, h: r.height, y: r.top, b: r.bottom, radius: parseFloat(getComputedStyle(b2).borderRadius) || 0 }; });
+      const V = L.view, top = V.project(-5000, 0, -5000)[1] * innerHeight;
+      return { sun: K.resolveLook('auto', up), look: L.look(), tabs, top, stage: document.querySelector('.hi-stage').dataset.look, info: L.state().info.look, started: L.state().started, stored: localStorage.getItem('hi:play:look') };
+    });
+    ok(a.look.choice === 'auto' && a.look.look === a.sun && a.info === a.sun && a.stage === a.sun && a.stored === null, `AUTO = the real sun, by the site's own sun rule (now: ${a.sun}) — the tower, the plates and the page's words follow`);
+    ok(a.tabs.map(x => x.text).join(' ') === 'AUTO DAY NIGHT' && a.tabs.every(x => x.h >= 44 && x.w >= 44 && x.radius < 10) && a.tabs[0].on && !a.tabs[1].on && a.tabs.every(x => x.b < a.top - 20), `the three choices under the sign: AUTO · DAY · NIGHT, each ≥ 44 pt, no pill, AUTO lit; clear above the tower's top (${a.tabs[0].b.toFixed(0)} < ${a.top.toFixed(0)})`);
+    t.reqs.some(q => /\/js\/core\/sky\.js/.test(q)) ? ok(true, '(the sun rule = core/sky.js, fetched for AUTO)') : ok(false, 'core/sky.js was never fetched');
+    const tapTab = async i => { const c = await p.evaluate(k => { const r = document.querySelectorAll('.hi-look-b')[k].getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, i); await tapAt(t, c[0], c[1]); await sleep(150); };
+    const other = a.sun === 'day' ? 2 : 1, otherName = other === 1 ? 'day' : 'night';
+    await tapTab(other);
+    const b1 = await p.evaluate(() => ({ L: window.__hiPlay.look(), started: window.__hiPlay.state().started, stored: localStorage.getItem('hi:play:look'), on: [...document.querySelectorAll('.hi-look-b')].map(x => x.classList.contains('is-on')) }));
+    ok(b1.L.choice === otherName && b1.stored === otherName && !b1.started && b1.on[other] && !b1.on[0], `a real tap on ${otherName.toUpperCase()}: the choice is made + remembered (hi:play:look = ${b1.stored}) — and it is NOT the START tap`);
+    await sleep(700); await shot(p, `s3-390-switch-mid-${otherName}.png`);
+    ok(await waitFor(p, `window.__hiPlay.state().info.dayK === ${other === 1 ? 1 : 0} && !window.__hiPlay.state().info.fading`, 9000), `the picture cross-fades to ${otherName}`);
+    await sleep(200);   // (the old look's pictures go in the frame after the fade settles)
+    const b2 = await p.evaluate(() => ({ i: window.__hiPlay.state().info, stage: document.querySelector('.hi-stage').dataset.look }));
+    ok(b2.i.look === otherName && b2.stage === otherName && b2.i.heldAll[otherName === 'day' ? 'night' : 'day'].length === 0 && b2.i.envs.join() === otherName && b2.i.switches === 1, `settled: only the ${otherName} look keeps its plates (${JSON.stringify(b2.i.heldAll)}) + its reflection map (${b2.i.envs})`);
+    await shot(p, `s3-390-start-${otherName}.png`);
+    // a reload: the choice is remembered — the page opens in it at once (no fade)
+    await p.goto(guardUrl(`${BASE}/highrise-play?seed=look`, 'highrise-play'), { waitUntil: 'load' });
+    await waitFor(p, '!!window.__hiPlay', 8000); await ready(p);
+    const c1 = await p.evaluate(() => ({ L: window.__hiPlay.look(), i: window.__hiPlay.state().info, on: [...document.querySelectorAll('.hi-look-b')].map(x => x.classList.contains('is-on')) }));
+    ok(c1.L.choice === otherName && c1.i.look === otherName && c1.i.dayK === (otherName === 'day' ? 1 : 0) && c1.i.switches === 0 && c1.on[other], `a reload: this phone remembers ${otherName.toUpperCase()} — the page opens in it at once`);
+    await tapTab(0); await sleep(300);
+    ok((await p.evaluate(() => localStorage.getItem('hi:play:look'))) === 'auto', 'a tap on AUTO: back to the real sun');
+    ok(t.errs.length === 0 && t.reqs.every(r => allowed(r.slice(r.indexOf(' ') + 1))), `no page error, no stray request (${t.errs.join(' | ')}${t.reqs.filter(r => !allowed(r.slice(r.indexOf(' ') + 1))).join(' , ')})`);
+    await t.close();
+  }
+
+  // ---- A LOOK SWITCH MID-RUN: the other look's pictures come in off the frame, a 1.5 s cross-fade — no hitch, no new program
+  {
+    const t = await open(390, 844, 3, '?seed=switch&look=night&fps=1');
+    const { p } = t;
+    await ready(p);
+    await climb(p, 14, 'i => (i % 5 === 4 ? 3 : 0)'); await alive(p, true); await sleep(1300);
+    const s0 = await st(p), n0 = t.reqs.length;
+    ok(s0.info.look === 'night' && s0.info.heldAll.day.length === 0 && !t.reqs.some(q => /plates\/day-|env-day/.test(q)), 'a night run holds ONLY the night look\'s pictures (no day file was even asked for)');
+    const t0 = Date.now();
+    await p.evaluate(() => window.__hiPlay.setLook('day'));
+    ok(await waitFor(p, 'window.__hiPlay.state().info.fading', 4000), 'the day look\'s pictures are in → the cross-fade begins');
+    const tf = Date.now(), mid = await st(p);
+    ok(mid.info.plates.length >= 1 && mid.info.envs.includes('day') && mid.info.heldAll.night.length >= 1, `… BOTH looks' pictures are held through the fade (day: ${mid.info.heldAll.day} · night: ${mid.info.heldAll.night}; reflection maps: ${mid.info.envs})`);
+    // (no screenshot here: a 3× capture stalls the page ~0.3 s — it would be this check's own hitch; the start screen's switch is shot above)
+    ok(await waitFor(p, 'window.__hiPlay.state().info.dayK === 1 && !window.__hiPlay.state().info.fading', 4000), 'the fade ends by day');
+    const fadeMs = Date.now() - tf; await sleep(200);   // (the old look's pictures go in the frame after the fade settles)
+    const s1 = await st(p), h1 = await p.evaluate(() => window.__hiPlay.hitches());
+    ok(fadeMs > 1100 && fadeMs < 2300, `the cross-fade takes ≈ 1.5 s (${fadeMs} ms; the pictures took ${tf - t0} ms to come in first)`);
+    ok(s1.info.programs === s0.info.programs && s1.info.heldAll.night.length === 0 && s1.info.envs.join() === 'day' && !s1.over && sameTop(s1), `NO new program (${s0.info.programs} → ${s1.info.programs}); settled, the night look's pictures are gone; the run never stopped (floor ${s0.floor} → ${s1.floor})`);
+    ok(h1.n === 0, `NO HITCH through the switch (HITCH ${h1.n}${h1.last ? ` — ${h1.last}` : ''})`);
+    const day = await p.evaluate(() => ({ stage: document.querySelector('.hi-stage').dataset.look, sky: document.querySelector('.hi-stage').dataset.sky, num: getComputedStyle(document.querySelector('.hi-num')).color, bloom: window.__hiPlay.state().info.calls }));
+    ok(day.stage === 'day' && day.sky === 'bright' && day.num === 'rgb(13, 23, 64)' && day.bloom <= 6, `the page's words follow: dark navy under a sunlit sky; no bloom by day (${day.bloom} draw calls a frame)`);
+    ok(t.reqs.slice(n0).some(q => /plates\/day-1\.webp/.test(q)) && t.reqs.slice(n0).some(q => /env-day\.png/.test(q)), 'the day pictures were fetched AT the switch');
+    await p.evaluate(() => window.__hiPlay.setLook('night'));
+    ok(await waitFor(p, 'window.__hiPlay.state().info.dayK === 0 && !window.__hiPlay.state().info.fading', 6000), '… and back to night');
+    await sleep(200);
+    const s2 = await st(p), h2 = await p.evaluate(() => window.__hiPlay.hitches());
+    ok(s2.info.heldAll.day.length === 0 && s2.info.programs === s0.info.programs && h2.n === 0 && s2.info.bloom, `night again: the day's pictures gone, the bloom back, still no new program, HITCH ${h2.n}`);
+    await alive(p, false);
+    ok(t.errs.length === 0, `no page error (${t.errs.join(' | ')})`);
+    await t.close();
+  }
+
+  for (const lk of ['night', 'day']) {
+    // ---- THE FLYERS, each AT ITS FLOOR — the seed's BLACKBIRD, the UFO at 85, THE MOTHERSHIP from ~180, the solo moment at 200, deep space
+    const plan = flyPlan(BB);
+    const t = await open(390, 844, 3, `?seed=${BB}&look=${lk}&fps=1`);
+    const { p } = t;
+    ok(t.up && await ready(p), `${lk}: the page is up`);
+    const i0 = (await st(p)).info;
+    ok(i0.look === lk && i0.heldAll[lk === 'day' ? 'night' : 'day'].length === 0 && t.reqs.some(q => new RegExp(`plates/${lk}-1\\.webp`).test(q)) && !t.reqs.some(q => new RegExp(`plates/${lk === 'day' ? 'night' : 'day'}-`).test(q)), `${lk}: only the ${lk} look's plates + reflection map are asked for`);
+    ok(!t.reqs.some(q => /flyers\.js|\.glb|audio\/city/.test(q)), `${lk}: nothing of the flyers is fetched before floor ${FLY_FLOORS.loadJet}`);
+    // NOTHING INSIDE THE PLAY ZONE — the canvas's own pixels: before a run the tower stands still, so the rows from THE DROP ZONE's upper
+    // edge down must be THE SAME with a flyer in the sky as without one
+    const bd = await bandOf(p);
+    await grabDiff(p, 'zone', bd.zone, 1); await grabDiff(p, 'sky', bd.top, bd.zone);
+    const still = await grabDiff(p, 'zone', bd.zone, 1);
+    ok(still.changed === 0, `${lk}: (the play zone's pixels hold still before a run: ${still.changed} of ${still.n} changed)`);
+    for (const kind of ['ufo', 'blackbird', 'f22']) {
+      ok(await p.evaluate(k => window.__hiPlay.fly(k, 1), kind) === true, `${lk}: ${kind} takes off (before a run — the pixel check)`);
+      let worst = 0, seenSky = 0, boxOk = true, boxWorst = '';
+      const until = Date.now() + (kind === 'ufo' ? 7600 : 3200);
+      while (Date.now() < until) {
+        const z = await grabDiff(p, 'zone', bd.zone, 1), sk = await grabDiff(p, 'sky', bd.top, bd.zone), fi = await flyInfo(p), bx = kind === 'ufo' ? fi.boxes.ufo : fi.boxes.jet;
+        worst = Math.max(worst, z.changed); seenSky = Math.max(seenSky, sk.changed);
+        if (bx && bx[2] > 0.02 && bx[0] < 0.98 && (bx[1] < bd.top - 0.012 || bx[3] > bd.zone + 0.004)) { boxOk = false; boxWorst = bx.map(v => v.toFixed(3)).join(' '); }
+        await sleep(90);
+      }
+      ok(worst === 0, `${lk}: ${kind} — NOTHING INSIDE THE PLAY ZONE: its pixels are the same with the flyer up as without (worst frame: ${worst} of ${still.n} changed)`);
+      ok(seenSky > 180, `${lk}: ${kind} — it is SEEN in its band of sky (${seenSky} of the band's ${Math.round((bd.zone - bd.top) * 422) * 195} sample pixels changed at its fullest)`);
+      ok(boxOk, `${lk}: ${kind} — its box keeps to the band: under the HUD's foot (${bd.top.toFixed(3)}), above THE DROP ZONE (${bd.zone.toFixed(3)})${boxOk ? '' : ` — OUT: ${boxWorst}`}`);
+      await waitFor(p, "(() => { const f = window.__hiPlay.flyInfo(); return !f.jet && !f.ufo; })()", 9000);
+    }
+    const freed = await flyInfo(p);
+    ok(freed.models.length === 0, `${lk}: each flyer is FREED after its moment (models held: ${freed.models.join(', ') || 'none'})`);
+    // THE RUN: the seed's flyby AT ITS FLOOR
+    await climb(p, plan.jetAt - 2); await alive(p, true);
+    ok(await waitFor(p, "(() => { const f = window.__hiPlay.flyInfo(); return (f.asked || []).includes('blackbird') || (f.models || []).includes('blackbird'); })()", 4000), `${lk}: THE BLACKBIRD's model is asked for from floor ${FLY_FLOORS.loadJet} — ${plan.jetAt - FLY_FLOORS.loadJet} floors before it flies`);
+    ok(await waitFor(p, "window.__hiPlay.flyInfo().jet === 'blackbird'", 6000), `${lk}: THE SKYLINE FLYBY — this seed's flyer is THE BLACKBIRD`);
+    const fj = await st(p), fi = await flyInfo(p);
+    ok(fj.floor >= plan.jetAt && fj.floor <= plan.jetAt + 2 && fi.jetDir === plan.jetDir, `${lk}: … at ITS floor (planned ${plan.jetAt}, the tower on ${fj.floor}), from its side (${plan.jetDir > 0 ? 'the left' : 'the right'})`);
+    await sleep(1500); await shot(p, `s3-390-${lk}-blackbird.png`);
+    const bj = (await flyInfo(p)).boxes.jet, bd2 = await bandOf(p);
+    ok(!!bj && bj[1] >= bd2.top - 0.012 && bj[3] <= bd2.zone + 0.004 && bj[2] - bj[0] > 0.3, `${lk}: mid-pass it is BIG (${bj ? ((bj[2] - bj[0]) * 100).toFixed(0) : '?'} % of the screen's width) and in its band (${bj ? bj[1].toFixed(3) : '?'} … ${bj ? bj[3].toFixed(3) : '?'} between ${bd2.top.toFixed(3)} and ${bd2.zone.toFixed(3)})`);
+    ok((await flyInfo(p)).played.includes('jet-scream'), `${lk}: the city's jet sound is asked for`);
+    await waitFor(p, "!window.__hiPlay.flyInfo().jet", 5000);
+    // THE UFO at 85
+    await alive(p, false); await climb(p, plan.ufoAt - 2 - (await st(p)).floor, 'i => (i % 11 === 10 ? 3 : 0)'); await alive(p, true);
+    ok(await waitFor(p, 'window.__hiPlay.flyInfo().ufo', 7000), `${lk}: THE UFO comes at floor ${plan.ufoAt}`);
+    await sleep(3300); await shot(p, `s3-390-${lk}-ufo.png`);
+    const bu = (await flyInfo(p)).boxes.ufo, bd3 = await bandOf(p);
+    ok(!!bu && bu[1] >= bd3.top - 0.012 && bu[3] <= bd3.zone + 0.004 && bu[2] - bu[0] > 0.25 && (await flyInfo(p)).played.includes('ufo-hum'), `${lk}: the UFO drifts in its band (${bu ? bu[1].toFixed(3) : '?'} … ${bu ? bu[3].toFixed(3) : '?'}), ${bu ? ((bu[2] - bu[0]) * 100).toFixed(0) : '?'} % wide; its hum is asked for`);
+    await waitFor(p, '!window.__hiPlay.flyInfo().ufo', 9000);
+    // THE MOTHERSHIP: seen from ~180, colossal at 200; SOLO: the moment, then on into DEEP SPACE
+    await alive(p, false); await climb(p, 176 - (await st(p)).floor, 'i => (i % 11 === 10 ? 3 : 0)'); await sleep(700);
+    const k176 = (await flyInfo(p)).ship;
+    await climb(p, 190 - (await st(p)).floor); await alive(p, true); await sleep(1200);
+    const k190 = (await flyInfo(p)).ship; await shot(p, `s3-390-${lk}-ship-190.png`);
+    ok(!k176.vis && k190.vis && k190.k > 0.2 && k190.k < 0.95, `${lk}: THE MOTHERSHIP is not there at 176, coming down at 190 (${(k190.k * 100).toFixed(0)} % of the way)`);
+    await alive(p, false); await climb(p, Math.max(0, 199 - (await st(p)).floor)); await sleep(900);
+    const k199 = await flyInfo(p); await shot(p, `s3-390-${lk}-ship-199.png`);
+    ok(k199.ship.k > 0.97 && !!k199.boxes.ship && k199.boxes.ship[2] - k199.boxes.ship[0] > 2 && k199.boxes.ship[3] < (await bandOf(p)).zone, `${lk}: at 199 it is COLOSSAL — ${k199.boxes.ship ? (k199.boxes.ship[2] - k199.boxes.ship[0]).toFixed(1) : '?'} screens wide, overhead (its lowest point ${k199.boxes.ship ? k199.boxes.ship[3].toFixed(2) : '?'} — above THE DROP ZONE)`);
+    await alive(p, true);
+    ok(await waitFor(p, 'window.__hiPlay.flyInfo().ship.pass', 5000), `${lk}: FLOOR 200, SOLO — the moment begins`);
+    await sleep(700);
+    const pm = await p.evaluate(() => ({ call: document.querySelector('.hi-call').textContent, arr: window.__hiPlay.sfx.wanted().filter(q => q.id === 'band-arrival').length, over: window.__hiPlay.state().over, played: window.__hiPlay.flyInfo().played }));
+    ok(pm.call === 'THE MOTHERSHIP' && pm.arr >= 1 && !pm.over && pm.played.includes('ufo-hum@ship'), `${lk}: "THE MOTHERSHIP" in the announcer lane + the band-arrival sound; the run goes on`);
+    await sleep(600); await shot(p, `s3-390-${lk}-ship-pass.png`);
+    ok(await waitFor(p, 'window.__hiPlay.flyInfo().ship.done', 8000), `${lk}: … then it leaves`);
+    const gone = await flyInfo(p);
+    ok(!gone.ship.vis && !gone.models.includes('mothership'), `${lk}: THE MOTHERSHIP is removed + freed`);
+    await alive(p, false); await climb(p, 216 - (await st(p)).floor); await alive(p, true); await sleep(1400);
+    const deep = await st(p); await shot(p, `s3-390-${lk}-deep.png`);
+    ok(deep.info.space === 1 && deep.floor >= 216 && !deep.over, `${lk}: past 200 the climb goes on into DEEP SPACE (the stars + the aurora full at floor 212; the tower on ${deep.floor})`);
+    const hh = await p.evaluate(() => window.__hiPlay.hitches());
+    console.log(`   ${lk}: hitches through the flyers' run: ${hh.n} ${hh.last}`);
+    await alive(p, false);
+    ok(t.errs.length === 0 && t.reqs.every(r => allowed(r.slice(r.indexOf(' ') + 1))) && !t.reqs.some(q => /\/api\//.test(q)) && t.sockets.length === 0, `${lk}: no page error; NO request beyond the page's own static files + three.js (${t.reqs.length} requests${t.errs.length ? ` — ${t.errs.join(' | ')}` : ''}${t.reqs.filter(r => !allowed(r.slice(r.indexOf(' ') + 1))).join(' , ')})`);
+    ok(await waitFor(p, 'window.__hiPlay.state().shown', 15000) && (await p.evaluate(() => window.__hiPlay.ends.slice(-1)[0].same)), `${lk}: after the flyers' run — REPLAY = LIVE ✓`);
+    await t.close();
+
+    // the OTHER seed: the F-22 pair, at its floor
+    {
+      const pl = flyPlan(F22), d = await open(390, 844, 3, `?seed=${F22}&look=${lk}`);
+      await ready(d.p);
+      await climb(d.p, pl.jetAt - 2); await alive(d.p, true);
+      ok(await waitFor(d.p, "window.__hiPlay.flyInfo().jet === 'f22'", 7000), `${lk}: another seed → the F-22 PAIR (the jets' choice follows the seed)`);
+      const f = await st(d.p);
+      await sleep(1450); await shot(d.p, `s3-390-${lk}-f22.png`);
+      const bx = (await flyInfo(d.p)).boxes.jet, bd4 = await bandOf(d.p), pl2 = (await flyInfo(d.p)).played;
+      ok(f.floor >= pl.jetAt && f.floor <= pl.jetAt + 2 && !!bx && bx[1] >= bd4.top - 0.012 && bx[3] <= bd4.zone + 0.004 && pl2.includes('jets-formation'), `${lk}: … at its floor (planned ${pl.jetAt}, on ${f.floor}); BOTH jets in the band (${bx ? bx[1].toFixed(3) : '?'} … ${bx ? bx[3].toFixed(3) : '?'} between ${bd4.top.toFixed(3)} and ${bd4.zone.toFixed(3)}); the city's formation sound`);
+      ok(d.reqs.some(q => /assets\/highrise\/models\/f22\.glb/.test(q)) && !d.reqs.some(q => /blackbird\.glb/.test(q)), `${lk}: only ITS model was fetched (f22.glb — never the Blackbird's)`);
+      await alive(d.p, false);
+      ok(d.errs.length === 0, `${lk}: no page error (${d.errs.join(' | ')})`);
+      await d.close();
+    }
+
+    // ---- THE MATCH's FINISH (?mode=match — nothing counts): the white-gold light, then the gold end card
+    {
+      const d = await open(390, 844, 3, `?seed=finish&mode=match&look=${lk}`);
+      await ready(d.p);
+      await climb(d.p, 199); await sleep(1000);
+      await d.p.evaluate(() => window.__hiPlay.climb(1));
+      const tEnd = Date.now();
+      ok(await waitFor(d.p, 'window.__hiPlay.flyInfo().ship.pour', 3000), `${lk} match: FLOOR 200 — THE FINISH: the light pours`);
+      await sleep(1300); await shot(d.p, `s3-390-${lk}-finish-pour.png`);
+      const pr = await d.p.evaluate(() => ({ shown: window.__hiPlay.state().shown, st: window.__hiPlay.state().st, lights: window.__hiPlay.state().info.lights }));
+      ok(!pr.shown && pr.st === 'made' && pr.lights > 50, `${lk} match: the run is MADE; the light is seen first (${pr.lights} lights on screen, the card not yet up)`);
+      ok(await waitFor(d.p, 'window.__hiPlay.state().shown', 6000), `${lk} match: the end card comes`);
+      const held = Date.now() - tEnd;
+      await sleep(400); await shot(d.p, `s3-390-${lk}-finish-card.png`);
+      const fc = await d.p.evaluate(() => { const q = sel => document.querySelector(sel), cs = sel => getComputedStyle(q(sel)).color; return { words: q('.hi-end-t').textContent, made: q('.hi-stage').classList.contains('is-made'), n: q('.hi-end-n').dataset.n, line: q('.hi-end-l').textContent, check: q('.hi-check').textContent, cT: cs('.hi-end-t'), cN: cs('.hi-end-n'), cL: cs('.hi-end-l'), bar: getComputedStyle(q('.hi-again')).backgroundColor, sky: q('.hi-stage').dataset.sky }; });
+      ok(fc.words === 'MADE IT TO THE MOTHERSHIP' && fc.made && fc.n === '200' && /^200 PERFECTS · BEST STREAK 200$/.test(fc.line), `${lk} match: the card — "${fc.words}", FLOOR ${fc.n}, "${fc.line}"`);
+      ok(fc.cT === 'rgb(255, 246, 216)' && fc.cN === 'rgb(255, 246, 216)' && fc.cL === 'rgb(255, 233, 168)' && fc.bar === 'rgb(255, 79, 216)' && fc.sky === 'dark', `${lk} match: … in GOLD (the words, the floor, the perfects); the PLAY AGAIN bar keeps HIGH RISE's hot pink`);
+      ok(held > 2400 && fc.check === 'REPLAY = LIVE ✓', `${lk} match: the card waited ${held} ms for the light; ${fc.check}`);
+      ok(d.errs.length === 0 && d.reqs.every(r => allowed(r.slice(r.indexOf(' ') + 1))), `${lk} match: no page error, no stray request (${d.errs.join(' | ')})`);
+      await d.close();
+    }
+  }
+
+  // ---- `?floor=N` (the test page's look check): the START tap plays N clean drops — the run goes on live from there; YOUR BEST stays
+  {
+    const d = await open(390, 844, 3, '?floor=193&mode=match&seed=from&look=night', () => { try { localStorage.setItem('hi:play:best', '7'); } catch { /* fine */ } });
+    await ready(d.p);
+    const n0 = await d.p.evaluate(() => document.querySelector('.hi-note').textContent);
+    await tapAt(d, 195, 500); await sleep(500);
+    const f0 = await st(d.p);
+    ok(n0 === 'TEST PAGE · FROM FLOOR 193 · NOTHING COUNTS' && f0.started && f0.floor === 193 && !f0.over && f0.taps === 193, `?floor=193: ONE tap = the START — the run is live on floor ${f0.floor} (193 clean drops through the real engine); the note says so`);
+    ok(await waitFor(d.p, 'window.__hiPlay.flyInfo().ship && window.__hiPlay.flyInfo().ship.k > 0.3', 6000), '… THE MOTHERSHIP is coming down over it');
+    let n = 0;
+    for (let i = 0; i < 9 && !(await st(d.p)).over; i++) { if (await atPerfect(d.p, 14) !== 'go') break; await tapAt(d, 195, 500); n++; await sleep(60); }
+    ok(await waitFor(d.p, 'window.__hiPlay.state().shown', 9000), '… seven REAL taps later: floor 200');
+    const fe = await d.p.evaluate(() => ({ words: document.querySelector('.hi-end-t').textContent, check: document.querySelector('.hi-check').textContent, best: document.querySelector('.hi-end-best').textContent, stored: localStorage.getItem('hi:play:best'), floor: window.__hiPlay.state().floor }));
+    ok(fe.words === 'MADE IT TO THE MOTHERSHIP' && fe.floor === 200 && n === 7 && fe.check === 'REPLAY = LIVE ✓', `the finish from a ?floor start: "${fe.words}" after ${n} real taps; ${fe.check}`);
+    ok(fe.stored === '7' && fe.best === 'YOUR BEST 7', `a look check never moves YOUR BEST (stored ${fe.stored}; the card: "${fe.best}")`);
+    ok(d.errs.length === 0, `no page error (${d.errs.join(' | ')})`);
+    await d.close();
+  }
+
+  // ---- BY DAY THE WORDS + THE TAPE READ on a bright sky; from THE STARS up the words are light again
+  {
+    const d = await open(390, 844, 3, '?seed=read&look=day', () => { try { localStorage.setItem('hi:play:best', '9'); } catch { /* fine */ } });
+    const { p } = d;
+    await ready(p);
+    await climb(p, 6); await alive(p, true); await sleep(900);
+    const tg = await p.evaluate(() => { const q = document.querySelector('.hi-tag'), c = getComputedStyle(q); return { text: q.textContent, col: c.color, bg: c.backgroundColor }; });
+    ok(/^BEST 9 ▲\d$/.test(tg.text) && tg.bg === 'rgba(10, 7, 22, 0.84)', `by day YOUR BEST's tag keeps its own dark flag ("${tg.text}")`);
+    for (const [floor, band] of [[12, 'THE ROOFTOPS'], [40, 'THE SKYLINE'], [84, 'THE CLOUDS']]) {
+      await alive(p, false); await climb(p, floor - (await st(p)).floor); await alive(p, true); await sleep(1100);
+      const sky = await p.evaluate(() => document.querySelector('.hi-stage').dataset.sky), bg = await behind(p, '.hi-num'), num = await wordsRead(p, '.hi-num'), bn = await wordsRead(p, '.hi-band');
+      ok(sky === 'bright' && bn.text === band && ['13,23,64', '255,184,31'].includes(num.col.join()) && num.nT > 400 && bn.nT > 60 && num.k >= 4.5 && bn.k >= 4.5, `day, floor ${floor} (${band}, the sky behind the number rgb ${bg.bg}): the big number reads ${num.k.toFixed(1)} : 1 (${num.col.join() === '13,23,64' ? 'dark navy on its light halo' : 'gold with a navy edge — YOUR BEST is passed'}), the band's name ${bn.k.toFixed(1)} : 1`);
+      if (floor === 12) {
+        // the gold tape lies on floor 9 (crossed at 10): its line is GOLD on the frosted tower, a darker outline beside it
+        const tp = await p.evaluate(() => new Promise(res => requestAnimationFrame(() => {
+          const L = window.__hiPlay, V = L.view, c = document.querySelector('canvas.hi-canvas'), sl = L.state().viewTop, pt = V.project(sl.x1, 8.5, sl.z1), cv = document.createElement('canvas'); cv.width = c.width; cv.height = c.height;
+          const x = cv.getContext('2d', { willReadFrequently: true }); x.drawImage(c, 0, 0);
+          const px = Math.round(pt[0] * c.width), py = Math.round(pt[1] * c.height), d2 = x.getImageData(px - 60, py - 30, 120, 60).data; let gold = 0, dark = 0;
+          for (let i = 0; i < d2.length; i += 4) { const r = d2[i], g = d2[i + 1], b2 = d2[i + 2]; if (r > 190 && g > 95 && g < 218 && b2 < 135 && r - b2 > 95) gold++; if (r < 150 && g < 110 && b2 < 70 && r > b2 + 30) dark++; }
+          res({ gold, dark, tape: L.state().info.tape });
+        })));
+        ok(tp.tape === 9 && tp.gold >= 40 && tp.dark >= 20, `day: the gold tape on floor ${tp.tape} READS on the frosted tower — ${tp.gold} gold pixels at its near corner, ${tp.dark} of its darker outline`);
+        await shot(p, 's3-390-day-tape.png');
+      }
+    }
+    await shot(p, 's3-390-day-clouds-hud.png');
+    await alive(p, false); await climb(p, 130 - (await st(p)).floor, 'i => (i % 11 === 10 ? 3 : 0)'); await alive(p, true); await sleep(1300);
+    const up = await p.evaluate(() => ({ sky: document.querySelector('.hi-stage').dataset.sky, look: document.querySelector('.hi-stage').dataset.look })), numUp = await behind(p, '.hi-num'), bandUp = await behind(p, '.hi-band');
+    ok(up.look === 'day' && up.sky === 'dark' && numUp.col.join() === '255,255,255' && contrast(numUp.col, numUp.bg) >= 4.5 && contrast(bandUp.col, bandUp.bg) >= 4.5, `day, floor 130 (THE STARS — a dark plate): the words are LIGHT again (the number ${contrast(numUp.col, numUp.bg).toFixed(1)} : 1, the band's name ${contrast(bandUp.col, bandUp.bg).toFixed(1)} : 1 on rgb ${numUp.bg})`);
+    await alive(p, false);
+    ok(d.errs.length === 0, `no page error (${d.errs.join(' | ')})`);
+    await d.close();
+  }
+}
+
 if (LOOK) await look();
 else if (argv.includes('--fly')) await flyLook();
 else if (argv.includes('--hitch')) await hitch();
 else if (PERF) await perf();
 else if (argv.includes('--webkit')) await webkit();
 else if (argv.includes('--review')) await review();
-else { await main(); await review(); }
+else if (argv.includes('--s3')) await s3();
+else { await main(); await review(); await s3(); }
 
 await b.close();
 console.log(`\n${checks - fails.length}/${checks} checks passed`);

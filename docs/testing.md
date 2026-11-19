@@ -1209,3 +1209,23 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   audition's PLAY buttons start on a napping audio context; `serve.mjs` is enough) + `tests/jaywalk-podcast.test.mjs`.
 - HIGH RISE's sounds: `node scripts/build-highrise-sounds.mjs --lame <…/@breezystack/lamejs/dist/lamejs.js>` (WAV → the MP3s that ship).
 - The assets: `python -P -E scripts/build-highrise-assets.py` (reads Downloads\grok\highrise; `--only=plates,env,sfx`, `--look=day` for S3).
+
+## HIGH RISE S3 (Nov 19 2026 — docs/games/passes/highrise-s3.md)
+- Unit: `highrise-play.test.mjs` is **16** (+ THE DAY LOOK — one set of programs, the day colours, the sliding slab's accent, the sky's
+  tone · THE LOOK SWITCH — `look.js`, the fade after the pictures, only the look on screen keeps its own · THE FLYERS' PLAN — `flyplan.js`
+  over 400 seeds · THE FLYERS — lazy, the warm frame, the band, the F-22's file, the credits · THE CARDS' ART — the files, the crops,
+  nothing reads them); the sounds' table = the final one (ALL A).
+- The browser: `node tests/integration/highrise-play.mjs "<chromium>" [outDir]` = the whole check, now **217** = S2's + `s3()` (`--s3`
+  alone: 125 — the three choices through real taps + a reload, a look switch mid-run (0 hitches, 0 new programs), each flyer AT ITS FLOOR in
+  both looks, **the play zone's pixels the same with a flyer up as without**, THE MOTHERSHIP + the solo moment + deep space, the
+  match's finish + its gold card, the day's words + the tape read on the real pixels). A page opens by NIGHT unless its address names
+  a look (`look=` / `auto=1`): S2's checks are the night look's.
+- The test page's `?floor=N` (the START tap plays N clean drops, the run goes on live) is checked in `s3()` — the finish from
+  `?floor=193&mode=match` through seven REAL taps.
+- `--look` shoots BOTH looks (`LOOKS=day` = one) · `--fly` = the flyers' shots (`FLY_LOOKS=`) · `--perf` by day: `PERF_Q='&look=day'` ·
+  `--hitch` by day: `HITCH_Q='&look=day'` (the long run flies its flyers and prints which).
+- A test hand that keeps a run alive through the page's `climb` hook must drop at least every 0.9 s past floor 120 (a floor = 54
+  ticks there): slower, it falls behind the run's clock and THE FUSE ends the run — the test's fault, not the game's.
+- The assets: `python -P -E scripts/build-highrise-assets.py --only=plates,env --look=day` · the F-22: `node scripts/bake-model.mjs
+  "<chromium>" highrise-f22` (needs the city's source model `art/models/f22/`, on the build machine only) · the cards' art: `node
+  scripts/build-highrise-cards.mjs "<chromium>" [previewDir]` (needs `scripts/serve.mjs` on :5173).

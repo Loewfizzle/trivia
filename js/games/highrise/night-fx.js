@@ -91,18 +91,19 @@ void main() {
       float slider = step(1.5, kind);
       float ndl = max(dot(N, uSun), 0.0);
       float hy = clamp(abs(vLocal.y) / vHalf.y, 0.0, 1.0);
-      float core = top > 0.5 ? 0.3 : mix(0.94, 0.46, smoothstep(0.15, 0.95, hy));
+      float shadeSide = top > 0.5 ? 0.0 : step(0.5, an.x);   // (the face turned from the sun)
+      float core = top > 0.5 ? 0.42 : mix(0.98, mix(0.5, 0.68, shadeSide), smoothstep(0.15, 0.95, hy));
       vec3 milk = mix(vec3(0.94, 0.965, 1.0), vColor, core);
       // (THE SLIDING SLAB: its colour at full strength — night.js hands it the band's ACCENT: the clearest thing on a sunlit screen)
       vec3 strong = vColor * (top > 0.5 ? 1.0 : 0.72) + vec3(0.03);
       milk = mix(milk, strong, slider);
       // the sky's fill (cool on a face turned from the sun) + the sun
       vec3 amb = mix(vec3(0.2, 0.27, 0.46), vec3(0.42, 0.46, 0.52), N.y * 0.5 + 0.5);
-      vec3 light = amb + vec3(1.0, 0.95, 0.86) * (0.8 * ndl);
+      vec3 light = amb * (1.0 - 0.24 * shadeSide) + vec3(1.0, 0.95, 0.86) * (0.74 * ndl);
       light = mix(light, max(light, vec3(0.74)), slider);
       // the top: warm where it faces the sun, cool away from it; a side: brighter up at its lit edge
       float across = smoothstep(-1.0, 1.0, 0.5 * (vLocal.z / vHalf.z - vLocal.x / vHalf.x));
-      vec3 sheen = top > 0.5 ? mix(vec3(0.86, 0.92, 1.0), vec3(1.05, 1.02, 0.97), across) : vec3(mix(0.84, 1.06, clamp(0.5 + vLocal.y / (2.0 * vHalf.y), 0.0, 1.0)));
+      vec3 sheen = top > 0.5 ? mix(vec3(0.8, 0.87, 0.97), vec3(1.0, 0.98, 0.93), across) : vec3(mix(0.84, 1.06, clamp(0.5 + vLocal.y / (2.0 * vHalf.y), 0.0, 1.0)));
       vec3 dcol = milk * light * sheen;
       // THE SUN's GLINT: one soft band of light slanting down the lit face of the whole tower (it rides with the camera — a reflection, not paint)
       if (top < 0.5 && an.z > 0.5) dcol += vec3(1.0, 0.97, 0.9) * 0.2 * exp(-pow((vWorld.x * 0.8 + (uTopY - vWorld.y) * 0.5 - 0.1) / 0.2, 2.0)) * (1.0 - slider);
@@ -114,17 +115,17 @@ void main() {
       vec3 envd = min(envAt(uEnvD, R, uEnvDFlip), vec3(3.0)) * uEnvDOn;
       dcol += envd * (top > 0.5 ? 0.11 : 0.07) * (0.35 + 2.4 * fres) * (1.0 - 0.6 * slider);
       // the chrome rim: a bright line where it catches the sun, a darker line just inside it (polished metal reads by its contrast)
-      float lw = LW * 1.3;
+      float lw = LW * 0.95;
       float rim = 1.0 - smoothstep(lw - aa, lw + aa, e);
-      float inner = (1.0 - smoothstep(lw * 2.5 - aa, lw * 2.5 + aa, e)) * (1.0 - rim);
+      float inner = (1.0 - smoothstep(lw * 3.0 - aa, lw * 3.0 + aa, e)) * (1.0 - rim);
       vec3 chrome = mix(vec3(0.62, 0.7, 0.84), vec3(1.0), clamp(0.3 + 0.95 * ndl + 0.35 * top, 0.0, 1.0)) * (0.92 + 0.16 * vFx.x);
-      dcol = mix(dcol, dcol * mix(0.7, 0.5, slider), inner * 0.6);
+      dcol = mix(dcol, dcol * mix(0.52, 0.5, slider), inner * 0.8);
       // (the sliding slab's EDGE GLOW: its faces lift to white toward the rim)
       dcol = mix(dcol, vec3(1.0), slider * 0.5 * exp(-e / 0.04));
       dcol = mix(dcol, mix(chrome, vec3(1.0), slider), rim);
       // a landing's flare + a PERFECT's flash: gold-white by day
       dcol = mix(dcol, vec3(1.0, 0.94, 0.72) * 1.08, clamp(vFx.y * (0.4 + 0.5 * max(rim, halo)), 0.0, 1.0));
-      dcol = mix(dcol, uHaze, (1.0 - fall) * 0.5 * (1.0 - slider));
+      dcol = mix(dcol, uHaze, (1.0 - fall) * 0.36 * (1.0 - slider));
       col = mix(col, dcol, uDay); alpha = mix(alpha, vFx.z, uDay);
     }
   }
@@ -240,7 +241,7 @@ void main() {
   float wd = 0.018 + 0.05 * k, x = (sdf - r) / wd;
   float band = exp(-x * x), wash = sdf > 0.0 && sdf < r ? 0.16 : 0.0, fade = (1.0 - k) * (1.0 - k);
   // (by day the ring is PAINT — gold-white, a white-hot heart: night.js hands the colour; by night added light, as before)
-  float pa = clamp((band + wash * 0.5) * fade * vS, 0.0, 1.0);
+  float pa = clamp((band + wash * 0.25) * fade * (1.0 - k) * vS, 0.0, 1.0);
   gl_FragColor = vec4(mix(vB.rgb * (band * 1.5 + wash) * fade * vS, mix(vB.rgb, vec3(1.0), band * band * 0.55) * pa, uDay), pa * uDay);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -266,7 +267,7 @@ varying float vY; varying vec3 vN;
 void main() {
   if (abs(vN.y) > 0.5 || uFace < 0.004) discard;   // (no top, no foot: an outline, never a lid)
   float px = fwidth(vY) + 1e-6, a = abs(vY);
-  float hw = max(1.1 * px, ${TAPE_LINE.toFixed(4)});
+  float hw = (1.0 + 0.9 * uDay) * max(1.1 * px, ${TAPE_LINE.toFixed(4)});
   float line = 1.0 - smoothstep(hw - 0.75 * px, hw + 0.75 * px, a);
   float halo = exp(-a / ${TAPE_GLOW.toFixed(4)}) * 0.42;
   float k = uFace * (uBloom > 0.5 ? 0.4 : 1.0);
@@ -274,7 +275,7 @@ void main() {
   // (THE DAY LOOK: the glow goes — light adds nothing to a bright sky — and a DARKER OUTLINE lies under the gold line, both sides,
   //  so the tape still reads on white glass + blue sky)
   float glow = halo * (1.0 - 0.85 * uDay);
-  float dark = (1.0 - smoothstep(hw + 1.2 * px, hw + 2.7 * px, a)) * (1.0 - line) * uDay * 0.85;
+  float dark = (1.0 - smoothstep(hw + 1.6 * px, hw + 3.6 * px, a)) * (1.0 - line) * uDay * 0.9;
   vec3 c = (uCol * (line + glow * (1.0 - line)) + vec3(uWhite) * line) * uGlow * k + vec3(0.2, 0.085, 0.01) * dark * k;
   gl_FragColor = vec4(c, min(1.0, line + glow * 0.6 + dark) * k);
   #include <tonemapping_fragment>
@@ -320,7 +321,8 @@ void main() {
 // THE FLYERS' LIGHTS — one instanced quad for every light a flyer carries: aP = (its place in the world, half its width) · aQ = (half
 // its length along aAx — 0 = round —, its kind, its strength, PAINT) · aC its colour · aAx its axis in the world (a flame, a trail,
 // the finish's beam: the +axis end is its HEAD). Kinds: 0 a round glow (a hot heart) · 1 a flame (bright at its head, a point at its
-// tail) · 2 a vapour trail (a soft ribbon fading to its tail) · 3 THE FINISH's light (a cone: narrow at the ship, wide on the slab).
+// tail) · 2 a vapour trail (a soft ribbon fading to its tail) · 3 THE FINISH's light (a cone: narrow at the ship, wide + brightest on
+// the slab) · 4 a LAMP (a round glow that keeps its own colour to its heart — the UFO's amber).
 // PAINT 0 = added light (ONE · ONE_MINUS_SRC_ALPHA with alpha 0) … 1 = paint in its own colour (it reads on a bright sky).
 export const LIGHT_V = /* glsl */`
 attribute vec4 aP, aQ;
@@ -350,7 +352,8 @@ void main() {
   if (kind < 0.5) { float r = length(vQ); a = exp(-r * r * 4.5) * smoothstep(1.0, 0.7, r); heart = a * a; }
   else if (kind < 1.5) { float w = 1.0 - vQ.x * vQ.x / max(0.05, t * t); a = max(w, 0.0) * t * t * smoothstep(1.0, 0.9, t); heart = a * a; }
   else if (kind < 2.5) { a = exp(-vQ.x * vQ.x * 3.2) * t * smoothstep(1.0, 0.94, t) * (1.0 - 0.999 * step(1.0, abs(vQ.x))); }
-  else { float w = mix(1.0, 0.3, t), x = abs(vQ.x) / w; a = smoothstep(1.0, 0.15, x) * (0.5 + 0.5 * t) * smoothstep(0.0, 0.06, t); heart = smoothstep(0.5, 0.0, x) * 0.5; }
+  else if (kind < 3.5) { float w = mix(1.0, 0.28, t), x = abs(vQ.x) / w; a = smoothstep(1.0, 0.1, x) * (1.0 - 0.5 * t) * smoothstep(0.0, 0.16, t); heart = smoothstep(0.45, 0.0, x) * 0.35 * (1.0 - t); }
+  else { float r = length(vQ); a = exp(-r * r * 3.6) * smoothstep(1.0, 0.7, r); heart = a * a * 0.12; }
   a *= vK.y;
   gl_FragColor = vec4(mix(vC, vec3(1.0), min(1.0, heart * 0.8)) * a, a * vK.z);
   #include <tonemapping_fragment>

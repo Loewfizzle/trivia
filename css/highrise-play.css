@@ -47,7 +47,7 @@
 .hi-start-go { margin-top: 26px; font: 700 22px/1 var(--font-display); letter-spacing: 0.2em; text-indent: 0.2em; color: #fff; text-shadow: 0 0 12px rgba(255, 79, 216, 0.8), 0 2px 0 rgba(10, 7, 22, 0.6); animation: hi-breathe 1.6s ease-in-out infinite alternate; }
 .hi-start-l { margin-top: 12px; font: 600 13px/1 var(--font-ui); letter-spacing: 0.22em; text-indent: 0.22em; color: #d9d4f2; text-shadow: 0 1px 0 #0a0716, 0 0 8px #0a0716; }
 .hi-start-best { margin-top: 14px; min-height: 14px; font: 700 13px/1 var(--font-num); letter-spacing: 0.16em; text-indent: 0.16em; color: #ffd978; text-shadow: 0 1px 0 #0a0716, 0 0 8px #0a0716; }
-@keyframes hi-breathe { from { opacity: 0.55; } to { opacity: 1; } }
+@keyframes hi-breathe { from { opacity: var(--hi-breathe-lo, 0.55); } to { opacity: 1; } }
 
 /* THE END: the cause's words, the floor, the perfects, YOUR BEST, PLAY AGAIN — its foot above the top slab (the tower stays in view) */
 .hi-end { top: calc(env(safe-area-inset-top, 0px) + max(7%, 58px)); padding: 0 16px; }   /* (≥ 58 px: under the SOUNDS button's row — a phone in a Safari TAB is only ~660 px tall: the review) */
@@ -104,31 +104,33 @@
 /* THE LOOK SWITCH (S3): AUTO · DAY · NIGHT under the sign — three plain choices (neon-underline tabs, never a pill), each ≥ 44 pt,
    each on its own press + lift (the START tap is everywhere else) */
 .hi-look { margin-top: 8px; display: inline-flex; align-items: center; pointer-events: auto; }
-.hi-look-k { padding: 0 8px 0 0; font: 700 11px/1 var(--font-ui); letter-spacing: 0.2em; color: #b9b3da; text-shadow: 0 1px 0 #0a0716, 0 0 8px #0a0716; }
 .hi-look-b { color: #d9d4f2; text-shadow: 0 1px 0 #0a0716, 0 0 8px #0a0716; }
 
 /* THE DAY LOOK's WORDS (S3 — `data-sky='bright'`: the day look under a sunlit sky, floors 0 … ~108; from THE STARS up the day plates
    are dark and the words above stay as they are): DARK NAVY with a soft LIGHT HALO — readable over bright sky + white cloud. The
    PLAY AGAIN bar keeps HIGH RISE's hot pink; the tag + the note keep their own dark strips. */
-.hi-stage[data-sky='bright'] { --hi-ink: #0d1740; --hi-halo: 0 0 2px rgba(255, 255, 255, 0.95), 0 0 9px rgba(255, 255, 255, 0.9), 0 0 22px rgba(255, 255, 255, 0.6); }
-.hi-stage[data-sky='bright'] .hi-num, .hi-stage[data-sky='bright'] .hi-end-n { color: var(--hi-ink); text-shadow: 0 0 3px #fff, 0 0 14px rgba(255, 255, 255, 0.95), 0 0 34px rgba(255, 255, 255, 0.7); }
-.hi-stage[data-sky='bright'].is-gold .hi-num { color: #8f4a00; text-shadow: 0 0 3px #fff, 0 0 14px rgba(255, 244, 205, 0.98), 0 0 34px rgba(255, 226, 150, 0.8); }
+.hi-stage[data-sky='bright'] { --hi-ink: #0d1740; --hi-halo: 0 0 2px rgba(255, 255, 255, 0.95), 0 0 9px rgba(255, 255, 255, 0.9), 0 0 22px rgba(255, 255, 255, 0.6); --hi-breathe-lo: 0.84;
+  /* (GOLD by day — the fresh-eyes review: a dark gold read as rust: a bright amber-gold with a NAVY EDGE (the mockup's own PERFECT ×7), then the light halo) */
+  --hi-gold: #ffb81f; --hi-edge: 1.5px 0 0 var(--hi-ink), -1.5px 0 0 var(--hi-ink), 0 1.5px 0 var(--hi-ink), 0 -1.5px 0 var(--hi-ink), 1.1px 1.1px 0 var(--hi-ink), -1.1px 1.1px 0 var(--hi-ink), 1.1px -1.1px 0 var(--hi-ink), -1.1px -1.1px 0 var(--hi-ink);
+  --hi-edge-big: 3px 0 0 var(--hi-ink), -3px 0 0 var(--hi-ink), 0 3px 0 var(--hi-ink), 0 -3px 0 var(--hi-ink), 2.1px 2.1px 0 var(--hi-ink), -2.1px 2.1px 0 var(--hi-ink), 2.1px -2.1px 0 var(--hi-ink), -2.1px -2.1px 0 var(--hi-ink); }
+.hi-stage[data-sky='bright'] .hi-num, .hi-stage[data-sky='bright'] .hi-end-n { color: var(--hi-ink); text-shadow: 0 0 2px #fff, 0 0 6px #fff, 0 0 14px rgba(255, 255, 255, 0.95), 0 0 34px rgba(255, 255, 255, 0.7); }
+.hi-stage[data-sky='bright'].is-gold .hi-num { color: var(--hi-gold); text-shadow: var(--hi-edge-big), 0 0 16px rgba(255, 255, 255, 0.9); }
 .hi-stage[data-sky='bright'] .hi-band, .hi-stage[data-sky='bright'] .hi-clock, .hi-stage[data-sky='bright'] .hi-start-l, .hi-stage[data-sky='bright'] .hi-end-k,
 .hi-stage[data-sky='bright'] .hi-end-band, .hi-stage[data-sky='bright'] .hi-end-l, .hi-stage[data-sky='bright'] .hi-snd, .hi-stage[data-sky='bright'] .hi-fps,
-.hi-stage[data-sky='bright'] .hi-look-k, .hi-stage[data-sky='bright'] .hi-look-b { color: var(--hi-ink); text-shadow: var(--hi-halo); }
+.hi-stage[data-sky='bright'] .hi-look-b { color: var(--hi-ink); text-shadow: var(--hi-halo); }
 .hi-stage[data-sky='bright'] .hi-snd { box-shadow: inset 0 -2px 0 rgba(13, 23, 64, 0.45); }
 .hi-stage[data-sky='bright'] .hi-look-b { box-shadow: inset 0 -2px 0 rgba(13, 23, 64, 0.3); }
-.hi-stage[data-sky='bright'] .hi-look-b.is-on { color: #a8006e; box-shadow: inset 0 -3px 0 #e0189a; }
+.hi-stage[data-sky='bright'] .hi-look-b.is-on { color: #8f005e; box-shadow: inset 0 -3px 0 #e0189a; }
 .hi-stage[data-sky='bright'] .hi-call { color: var(--hi-ink); text-shadow: var(--hi-halo); }
-.hi-stage[data-sky='bright'] .hi-call.is-perfect, .hi-stage[data-sky='bright'] .hi-call.is-streak { color: #a14600; }
+.hi-stage[data-sky='bright'] .hi-call.is-perfect, .hi-stage[data-sky='bright'] .hi-call.is-streak { color: var(--hi-gold); text-shadow: var(--hi-edge), 0 0 12px rgba(255, 255, 255, 0.85); }
 .hi-stage[data-sky='bright'] .hi-call.is-fast { color: #00508f; }
-.hi-stage[data-sky='bright'] .hi-call.is-gold { color: #8f4a00; text-shadow: 0 0 3px #fff, 0 0 12px rgba(255, 244, 205, 0.98), 0 0 26px rgba(255, 226, 150, 0.8); }
-.hi-stage[data-sky='bright'] .hi-sign span:first-child { color: #d4108e; text-shadow: 0 0 3px #fff, 0 0 12px rgba(255, 255, 255, 0.95), 0 0 30px rgba(255, 255, 255, 0.7); }
+.hi-stage[data-sky='bright'] .hi-call.is-gold { color: var(--hi-gold); text-shadow: var(--hi-edge), 0 0 12px rgba(255, 255, 255, 0.85); }
+.hi-stage[data-sky='bright'] .hi-sign span:first-child { color: #c00a80; text-shadow: 0 0 3px #fff, 0 0 12px rgba(255, 255, 255, 0.95), 0 0 30px rgba(255, 255, 255, 0.7); }
 .hi-stage[data-sky='bright'] .hi-sign span:last-child { color: #0668c4; text-shadow: 0 0 3px #fff, 0 0 12px rgba(255, 255, 255, 0.95), 0 0 30px rgba(255, 255, 255, 0.7); }
-.hi-stage[data-sky='bright'] .hi-start-go, .hi-stage[data-sky='bright'] .hi-end-t { color: var(--hi-ink); text-shadow: 0 0 3px #fff, 0 0 12px rgba(255, 255, 255, 0.95), 0 0 28px rgba(255, 255, 255, 0.7); }
-.hi-stage[data-sky='bright'].is-made .hi-end-t { color: #8f4a00; text-shadow: 0 0 3px #fff, 0 0 12px rgba(255, 244, 205, 0.98), 0 0 28px rgba(255, 226, 150, 0.8); }
-.hi-stage[data-sky='bright'] .hi-start-best, .hi-stage[data-sky='bright'] .hi-end-best { color: #8f4a00; text-shadow: var(--hi-halo); }
-.hi-stage[data-sky='bright'] .hi-end-best.is-new { color: #8f4a00; text-shadow: 0 0 3px #fff, 0 0 12px rgba(255, 244, 205, 0.98), 0 0 24px rgba(255, 226, 150, 0.8); }
+.hi-stage[data-sky='bright'] .hi-start-go, .hi-stage[data-sky='bright'] .hi-end-t { color: var(--hi-ink); text-shadow: 0 0 2px #fff, 0 0 6px #fff, 0 0 12px rgba(255, 255, 255, 0.95), 0 0 28px rgba(255, 255, 255, 0.7); }
+.hi-stage[data-sky='bright'].is-made .hi-end-t { color: var(--hi-gold); text-shadow: var(--hi-edge), 0 0 12px rgba(255, 255, 255, 0.85); }
+.hi-stage[data-sky='bright'] .hi-start-best, .hi-stage[data-sky='bright'] .hi-end-best { color: var(--hi-gold); text-shadow: var(--hi-edge), 0 0 10px rgba(255, 255, 255, 0.85); }
+.hi-stage[data-sky='bright'] .hi-end-best.is-new { color: var(--hi-gold); text-shadow: var(--hi-edge), 0 0 12px rgba(255, 255, 255, 0.9); }
 .hi-stage[data-sky='bright'] .hi-check.is-ok { color: #06602c; text-shadow: var(--hi-halo); }
 .hi-stage[data-sky='bright'] .hi-check.is-bad { color: #a30018; text-shadow: var(--hi-halo); }
 

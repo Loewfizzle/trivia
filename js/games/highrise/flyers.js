@@ -28,7 +28,7 @@ const MODELS = { blackbird: [JW, MODEL_REV], ufo: [JW, MODEL_REV], mothership: n
 /** ITS NUMBERS (the tests read them): seconds, shares of the screen's width, floors */
 export const FLY = Object.freeze({
   jetS: 3.4, bank: 0.9,                         // the flyby: how long it takes to cross, how far it banks (rad — ≈ 52°)
-  jetW: 0.46, f22W: 0.3,                        // a jet's length on the screen (× the screen's width): THE BLACKBIRD · each F-22 of the pair
+  jetW: 0.46, f22W: 0.28,                        // a jet's length on the screen (× the screen's width): THE BLACKBIRD · each F-22 of the pair
   ufoS: 8, ufoW: 0.36,                          // the UFO: its drift across, how wide it is
   shipFrom: 178, shipAt: 200, shipW: 2.7,       // THE MOTHERSHIP: seen from this floor, colossal at this one, how wide (× the screen)
   passS: 5.4, pourS: 2.6,                       // solo: the moment + its leaving · the match: the finish's light before the end card
@@ -89,44 +89,87 @@ function play(id, o = {}) {
   return H;
 }
 
+/**
+ * A FLYER's MODEL, READ FAST (THE LAG RULES — a model lands mid-run, on a slow phone too): our flyers' GLBs are ONE layout (16 bytes a
+ * vertex: position int16 × 3 · a pad · normal int8 × 3 · a spare byte · colour u8 × 4 — scripts/build-jaywalk-assets.py#write_glb,
+ * scripts/bake/highrise-f22.mjs), so they are read straight through typed arrays — ~0.3 ms for the F-22's 16,000 vertices, where the
+ * general reader (JAYWALK's parseGlb: one DataView call a number) takes ~10. Any other layout → the general reader.
+ */
+const LIN = new Float32Array(256);
+for (let i = 0; i < 256; i++) { const c = i / 255; LIN[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+export function readFlyer(THREE, buf) {
+  try {
+    const dv = new DataView(buf);
+    if (dv.getUint32(0, true) !== 0x46546c67) return parseGlb(buf);
+    const jl = dv.getUint32(12, true), json = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 20, jl))), bin = 20 + jl + 8;
+    const A = json.accessors, V = json.bufferViews, n = A[0].count, at = bin + (V[0].byteOffset || 0), k = ((json.nodes[0].scale || [1])[0]) / 32767;
+    if ((V[0].byteStride || 0) !== 16 || A[0].componentType !== 5122 || A[1].componentType !== 5120 || A[2].componentType !== 5121 || A[3].componentType !== 5123 || at % 2) return parseGlb(buf);
+    const i16 = new Int16Array(buf, at, n * 8), i8 = new Int8Array(buf, at, n * 16), u8 = new Uint8Array(buf, at, n * 16);
+    const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3);
+    for (let v = 0, o = 0; v < n; v++, o += 3) {
+      const a = v * 8, b2 = v * 16;
+      pos[o] = i16[a] * k; pos[o + 1] = i16[a + 1] * k; pos[o + 2] = i16[a + 2] * k;
+      nor[o] = i8[b2 + 8] / 127; nor[o + 1] = i8[b2 + 9] / 127; nor[o + 2] = i8[b2 + 10] / 127;
+      col[o] = LIN[u8[b2 + 12]]; col[o + 1] = LIN[u8[b2 + 13]]; col[o + 2] = LIN[u8[b2 + 14]];
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.setIndex(new THREE.BufferAttribute(new Uint16Array(buf, bin + (V[1].byteOffset || 0), A[3].count), 1));
+    return g;
+  } catch { return parseGlb(buf); }
+}
+
 const PI = Math.PI, TAU = PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const ease = v => { const t = clamp01(v); return t * t * (3 - 2 * t); };
 // where a jet's lights sit, in its own model (1 long, nose + z, + x = its LEFT wing): the two nozzles · the wing tips · the tail
 const JET = {
-  blackbird: { noz: [[0.118, 0.05, -0.47], [-0.118, 0.05, -0.47]], tip: [0.25, 0.035, -0.3], tail: [0, 0.12, -0.42], mid: 0.06, tint: 1.5, tintDay: 0.75, lift: 0.8, rim: [0.3, 0.58, 1.0], burn: [0.55, 0.78, 1.0], w: 'jetW', snd: 'jet-scream' },
-  f22: { noz: [[0.045, 0.085, -0.47], [-0.045, 0.085, -0.47]], tip: [0.35, 0.07, -0.26], tail: [0, 0.2, -0.38], mid: 0.09, tint: 1.7, tintDay: 1.15, lift: 0.62, rim: [1.0, 0.42, 0.78], burn: [1.0, 0.5, 0.55], w: 'f22W', snd: 'jets-formation' },
+  blackbird: { noz: [[0.118, 0.05, -0.47], [-0.118, 0.05, -0.47]], tip: [0.25, 0.035, -0.3], tail: [0, 0.12, -0.42], mid: 0.06, tint: 1.5, tintDay: 0.3, lift: 0.8, rim: [0.3, 0.58, 1.0], burn: [0.55, 0.78, 1.0], w: 'jetW', snd: 'jet-scream' },
+  f22: { noz: [[0.045, 0.085, -0.47], [-0.045, 0.085, -0.47]], tip: [0.35, 0.07, -0.26], tail: [0, 0.2, -0.38], mid: 0.09, tint: 1.7, tintDay: 0.9, lift: 0.62, rim: [1.0, 0.42, 0.78], burn: [1.0, 0.5, 0.55], w: 'f22W', snd: 'jets-formation' },
 };
 // THE MOTHERSHIP's lights: rings on its belly (its share of the ship's width, how many, their colour, the way the ring turns)
-const RINGS = [[0.15, 18, [1.0, 0.92, 0.72], 1, -0.03], [0.27, 34, [1.0, 0.68, 0.28], -1, -0.012], [0.39, 50, [0.6, 0.9, 1.0], 1, 0.014]];
-const RIM = [0.5, 44, [0.85, 0.92, 1.0], 0.078];
+// THE MOTHERSHIP's lights: MANY SMALL ONES — rings on its belly (its share of the ship's width, how many, their colour, the way the ring
+// turns, its height on the hull), every `BIG`-th one a brighter lamp; its rim's; a lens at its heart
+const RINGS = [[0.095, 14, [1.0, 0.92, 0.72], -1, -0.034], [0.15, 26, [1.0, 0.92, 0.72], 1, -0.03], [0.27, 48, [1.0, 0.68, 0.28], -1, -0.012], [0.39, 72, [0.6, 0.9, 1.0], 1, 0.014]];
+const RIM = [0.5, 64, [0.85, 0.92, 1.0], 0.078], BIG = 8;
+const GOLD = [1, 0.84, 0.42];
 /**
  * THE MOTHERSHIP's HULL, built in code: a disc of revolution 1 across (its belly down, − y) — a lens at its heart, three stepped
- * terraces (the lights' rings sit on their lips), a thick rim — 128 sides (smooth at any size), every panel its own shade of dark
- * steel, the steps between the terraces darker. Seen only from below. → a geometry with position · normal · color (linear).
+ * terraces (the lights' rings sit on their lips), a thick rim — 120 sides (smooth at any size). DARK STEEL PLATING: every terrace is
+ * three bands of plates, each plate its own near-black shade, a darker seam between two (finer toward the rim: 15 · 30 · 40 · 60
+ * plates a band), the steps between the terraces darker still. Seen only from below. → a geometry: position · normal · color (linear).
  */
 const HULL = [[0, -0.036], [0.052, -0.036], [0.064, -0.02], [0.14, -0.03], [0.152, -0.018], [0.26, -0.012], [0.272, 0.0], [0.38, 0.014], [0.392, 0.026], [0.468, 0.05], [0.5, 0.07], [0.5, 0.088], [0.44, 0.104], [0.3, 0.135], [0.15, 0.2], [0, 0.22]];
-export function shipHull(THREE, sides = 128) {
-  const pos = [], nor = [], col = [], hash = (a, b) => { const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return v - Math.floor(v); };
+export function shipHull(THREE, sides = 120) {
+  const hash = (a, b) => { const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return v - Math.floor(v); };
+  // the bands: a terrace (a long shallow segment) is split in three, a step / the lens / the rim / the top stay whole
+  const bands = [];
   for (let j = 0; j + 1 < HULL.length; j++) {
-    const [r0, y0] = HULL[j], [r1, y1] = HULL[j + 1];
-    // the segment's own normal (outward: away from the axis below, the profile runs centre → rim → top → centre)
-    let nr = y1 - y0, ny = -(r1 - r0); const nl = Math.hypot(nr, ny) || 1; nr /= nl; ny /= nl;
-    const step = Math.abs(y1 - y0) > Math.abs(r1 - r0) * 0.8, lens = j === 0, rim = j === 10, panels = j < 2 ? 8 : j < 4 ? 16 : 32, per = sides / panels;
-    for (let i = 0; i < sides; i++) {
-      const a0 = i / sides * TAU, a1 = (i + 1) / sides * TAU, k = Math.floor((i + (j % 4 === 3 ? per / 2 : 0)) / per);
-      const sh = lens ? 1 : rim ? 0.15 : step ? 0.012 : 0.04 + 0.055 * hash(j, k) - (i % per === 0 && !step ? 0.028 : 0);   // (a seam between two panels: a darker line)
-      const c = lens ? [0.5, 0.4, 0.24] : rim ? [sh, sh * 1.04, sh * 1.16] : [sh * 0.92, sh, sh * 1.22];
-      const v = (r, y, a) => { pos.push(r * Math.cos(a), y, r * Math.sin(a)); nor.push(nr * Math.cos(a), ny, nr * Math.sin(a)); col.push(c[0], c[1], c[2]); };
-      v(r0, y0, a0); v(r1, y1, a0); v(r1, y1, a1);
-      v(r0, y0, a0); v(r1, y1, a1); v(r0, y0, a1);
-    }
+    const [r0, y0] = HULL[j], [r1, y1] = HULL[j + 1], step = Math.abs(y1 - y0) > Math.abs(r1 - r0) * 0.8, n = !step && j > 0 && j < 10 && r1 - r0 > 0.05 ? 3 : 1;
+    for (let k = 0; k < n; k++) bands.push({ r0: r0 + (r1 - r0) * k / n, y0: y0 + (y1 - y0) * k / n, r1: r0 + (r1 - r0) * (k + 1) / n, y1: y0 + (y1 - y0) * (k + 1) / n, step, lens: j === 0, rim: j === 10, top: j > 10 });
   }
+  const pos = new Float32Array(bands.length * sides * 18), nor = new Float32Array(pos.length), col = new Float32Array(pos.length);
+  let o = 0;
+  bands.forEach((B, j) => {
+    let nr = B.y1 - B.y0, ny = -(B.r1 - B.r0); const nl = Math.hypot(nr, ny) || 1; nr /= nl; ny /= nl;   // (the band's own normal: outward — down under the belly)
+    const mid = (B.r0 + B.r1) / 2, per = mid < 0.1 ? 8 : mid < 0.2 ? 4 : mid < 0.33 ? 3 : 2, shift = j % 2 ? per >> 1 : 0;
+    for (let i = 0; i < sides; i++) {
+      const a0 = i / sides * TAU, a1 = (i + 1) / sides * TAU, k = Math.floor((i + shift) / per), seam = (i + shift) % per === 0 && !B.step && !B.lens && !B.rim;
+      const sh = B.lens ? 1 : B.rim ? 0.1 : B.step ? 0.006 : B.top ? 0.03 : Math.max(0.008, 0.026 + 0.05 * hash(j, k) - (seam ? 0.022 : 0));
+      const c0 = B.lens ? 0.5 : sh * 0.9, c1 = B.lens ? 0.4 : sh, c2 = B.lens ? 0.24 : sh * (B.rim ? 1.16 : 1.26);
+      const ca0 = Math.cos(a0), sa0 = Math.sin(a0), ca1 = Math.cos(a1), sa1 = Math.sin(a1);
+      // (two triangles: inner·a0, outer·a0, outer·a1 — inner·a0, outer·a1, inner·a1: outward-facing)
+      const P6 = [B.r0, B.y0, ca0, sa0, B.r1, B.y1, ca0, sa0, B.r1, B.y1, ca1, sa1, B.r0, B.y0, ca0, sa0, B.r1, B.y1, ca1, sa1, B.r0, B.y0, ca1, sa1];
+      for (let v = 0; v < 6; v++) {
+        const r = P6[v * 4], y = P6[v * 4 + 1], cc = P6[v * 4 + 2], ss = P6[v * 4 + 3];
+        pos[o] = r * cc; pos[o + 1] = y; pos[o + 2] = r * ss; nor[o] = nr * cc; nor[o + 1] = ny; nor[o + 2] = nr * ss; col[o] = c0; col[o + 1] = c1; col[o + 2] = c2; o += 3;
+      }
+    }
+  });
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   return g;
 }
-const GOLD = [1, 0.86, 0.5];
 
 /** the flyers on a scene's stage (night.js#STAGE) → { need, start, frame, reset, info, destroy } */
 export function createFlyers(S) {
@@ -134,7 +177,7 @@ export function createFlyers(S) {
   const P = V3(), P1 = V3(), Pb = V3(), f = V3(), r = V3(), u = V3(), r2 = V3(), u2 = V3(), b = V3(), c = V3(), q = V3(), w = V3(), UP = new THREE.Vector3(0, 1, 0), M = new THREE.Matrix4(), SC = V3();
   const geo = {}, asked = {};
   let dead = false, jet = null, ufo = null, sparkAt = 0, hushed = false;
-  const ship = { k: 0, vis: false, pass: null, pour: null, done: false, force: false, hum: null, ringAt: false };
+  const ship = { k: 0, vis: false, pass: null, pour: null, done: false, force: false, hum: null, ringT: -9, cut: null };
   const boxes = { jet: null, ufo: null, ship: null };
   const offBed = (globalThis.__nsAudioBeds || (() => () => {}))({ pause() { quiet(0.02); }, resume() {} });
   function quiet(fade) { for (const o of [jet, ufo, ship]) if (o && o.hum) { o.hum.stop(fade); o.hum = null; } if (jet && jet.snd) { jet.snd.stop(fade); jet.snd = null; } }
@@ -149,7 +192,7 @@ export function createFlyers(S) {
     const [dir, rev] = MODELS[kind];
     fetch(new URL(`${kind}.glb?v=${rev}`, dir)).then(res => (res.ok ? res.arrayBuffer() : null)).then(buf => {
       if (!buf || dead || !asked[kind]) { if (!buf) asked[kind] = false; return; }
-      const g = parseGlb(buf); geo[kind] = g; S.upload(g);
+      const g = readFlyer(THREE, buf); geo[kind] = g; S.upload(g);
     }).catch(() => { asked[kind] = false; });
   }
   /** FREED after its moment (the next run fetches it again — from the phone's own cache) */
@@ -178,7 +221,8 @@ export function createFlyers(S) {
     const z = -w.dot(F.Z), x = (w.dot(F.X) / (z * F.th * F.aspect) + 1) / 2, y = (1 - w.dot(F.Y) / (z * F.th)) / 2;
     if (x < box[0]) box[0] = x; if (y < box[1]) box[1] = y; if (x > box[2]) box[2] = x; if (y > box[3]) box[3] = y;
   }
-  const newBox = () => [9, 9, -9, -9];
+  // (a flyer's box + its body's numbers are kept — nothing is made in a frame: THE LAG RULES)
+  const BOX = { jet: [0, 0, 0, 0], ufo: [0, 0, 0, 0], ship: [0, 0, 0, 0] }, newBox = k => { const b2 = BOX[k]; b2[0] = b2[1] = 9; b2[2] = b2[3] = -9; return b2; }, JET_O = { op: 1, haze: 0.2, lift: 0, tint: 1, rim: null, em: null };
 
   /** THE END CARD IS UP (the run is over): a flyer still in the sky fades out in a third of a second — never behind the card's words */
   const cutOf = (o, F) => { if (!hushed) return 1; if (o.cut == null) o.cut = F.t; return 1 - (F.t - o.cut) / 0.35; };
@@ -220,35 +264,39 @@ export function createFlyers(S) {
     }
     const s = (F.t - jet.t0) / FLY.jetS;
     if (s >= 1) { endJet(); return; }
-    const dir = jet.dir, sn = Math.sin(PI * s), Dm = F.dist * 1.25, len = widthAt(F, Dm, FLY[J.w]);
+    const dir = jet.dir, sn = Math.sin(PI * s), Dm = F.dist * 1.25, len = widthAt(F, Dm, FLY[J.w]), two = jet.kind === 'f22';
     // THE PATH: in from one side NEAR, round BEHIND the tower (its far point at the middle), out by the other side
-    toWorld(P, F, dir * (-1.6 + 3.2 * s), bandY(F, 0.5) + 0.05 * sn, F.dist * (1.05 + 0.2 * sn));
+    // (the pair's two jets are centred on the path: it runs a little lower in the band and nearly level — both stay under the HUD's foot)
+    const by = bandY(F, two ? 0.53 : 0.5), arc = two ? 0.012 : 0.05;
+    toWorld(P, F, dir * (-1.6 + 3.2 * s), by + arc * sn, F.dist * (1.05 + 0.2 * sn));
     const s1 = s + 0.01, sn1 = Math.sin(PI * s1);
-    toWorld(P1, F, dir * (-1.6 + 3.2 * s1), bandY(F, 0.5) + 0.05 * sn1, F.dist * (1.05 + 0.2 * sn1));
+    toWorld(P1, F, dir * (-1.6 + 3.2 * s1), by + arc * sn1, F.dist * (1.05 + 0.2 * sn1));
     f.subVectors(P1, P).normalize();
     r.crossVectors(UP, f).normalize(); u.crossVectors(f, r);
     // IT BANKS ROUND THE TOWER: its top side turns to the lens for a beat
     c.set(F.px - P.x, F.py - P.y, F.pz - P.z).normalize();
     const bank = FLY.bank * Math.pow(Math.max(0, sn), 0.8) * (r.dot(c) > 0 ? -1 : 1), cb = Math.cos(bank), sb = Math.sin(bank);
     r2.copy(r).multiplyScalar(cb).addScaledVector(u, sb); u2.copy(u).multiplyScalar(cb).addScaledVector(r, -sb);
-    const cut = cutOf(jet, F), fade = Math.min(1, s / 0.05, (1 - s) / 0.05) * cut, o = { op: fade, haze: 0.2, lift: J.lift, tint: J.tint + (J.tintDay - J.tint) * F.day, rim: J.rim, em: EM0 }, box = newBox();
+    const cut = cutOf(jet, F), fade = Math.min(1, s / 0.05, (1 - s) / 0.05) * cut, o = JET_O, box = newBox('jet');
+    o.op = fade; o.lift = J.lift; o.tint = J.tint + (J.tintDay - J.tint) * F.day; o.rim = J.rim; o.em = EM0;
+    o.haze = 0.2 - 0.16 * F.day;   // (by day a jet is the DARKEST thing in the sky: hardly any air over it — the review)
     if (cut <= 0) { endJet(); return; }
-    const two = jet.kind === 'f22', side = r2.dot(c) > 0 ? -1 : 1;
+    const side = r2.dot(c) > 0 ? -1 : 1;
     for (let k = 0; k < (two ? 2 : 1); k++) {
       // (the pair: the wingman a little behind + beside the leader, the same bank — the two CENTRED on the path: neither leaves the band)
-      Pb.copy(P); if (two) Pb.addScaledVector(r2, (k ? 0.5 : -0.5) * side * 0.62 * len).addScaledVector(f, (k ? -0.5 : 0.5) * 0.8 * len);
+      Pb.copy(P); if (two) Pb.addScaledVector(r2, (k ? 0.5 : -0.5) * side * 0.46 * len).addScaledVector(f, (k ? -0.5 : 0.5) * 0.86 * len);
       q.copy(Pb).addScaledVector(u2, -J.mid * len);
       body(k, g, r2, u2, f, len, q, F, o);
       Pb.copy(q);   // (jetLights works in q)
       jetLights(F, jet.kind, Pb, len, fade);
-      for (const e of [-0.5, 0.5]) { w.copy(Pb).addScaledVector(f, e * len); seen(F, w, box); w.copy(Pb).addScaledVector(r2, e * 0.74 * len); seen(F, w, box); w.copy(Pb).addScaledVector(u2, e * 0.3 * len); seen(F, w, box); }
+      for (let e = -0.5; e <= 0.5; e += 1) { w.copy(Pb).addScaledVector(f, e * len); seen(F, w, box); w.copy(Pb).addScaledVector(r2, e * 0.74 * len); seen(F, w, box); w.copy(Pb).addScaledVector(u2, e * 0.3 * len); seen(F, w, box); }
     }
     boxes.jet = box;
   }
   function endJet() { if (!jet) return; if (jet.snd) jet.snd.stop(0.6); hide(0); hide(1); drop(jet.kind); jet = null; boxes.jet = null; }
 
   // ---- THE UFO: amber running lights round its rim + a soft violet underglow — no beam, no ring on anything
-  const AMBER = [1.0, 0.6, 0.1], VIOLET = [0.5, 0.2, 1.0], UFO_O = { op: 1, haze: 0.22, lift: 0.4, tint: 0.95, rim: [1.0, 0.62, 0.2], em: [0, 0, 0] };
+  const AMBER = [1.0, 0.6, 0.1], VIOLET = [0.5, 0.2, 1.0], UFO_O = { op: 1, haze: 0.22, lift: 0.4, tint: 0.68, rim: [1.0, 0.62, 0.2], em: [0, 0, 0] }, LAMP = [1.0, 0.46, 0.02];
   function frameUfo(F) {
     const g = geo.ufo;
     if (!g) { endUfo(); return; }
@@ -267,7 +315,7 @@ export function createFlyers(S) {
     const spin = F.t * 0.9, cs = Math.cos(spin), sn = Math.sin(spin);
     r2.copy(r).multiplyScalar(cs).addScaledVector(b, sn); u2.crossVectors(r2, u);
     q.copy(P).addScaledVector(u, -0.18 * wd);
-    UFO_O.op = fade; UFO_O.em[0] = VIOLET[0] * (0.9 * n + 0.3 * d); UFO_O.em[1] = VIOLET[1] * (0.9 * n + 0.3 * d); UFO_O.em[2] = VIOLET[2] * (0.9 * n + 0.3 * d);
+    UFO_O.op = fade; UFO_O.haze = 0.22 - 0.16 * d; UFO_O.em[0] = VIOLET[0] * (0.9 * n + 0.3 * d); UFO_O.em[1] = VIOLET[1] * (0.9 * n + 0.3 * d); UFO_O.em[2] = VIOLET[2] * (0.9 * n + 0.3 * d);
     body(0, g, r2, u, u2, wd, q, F, UFO_O);
     // THE VIOLET UNDERGLOW: a soft flat pool of light under its belly
     S.light(q.x - u.x * 0.04 * wd, q.y - u.y * 0.04 * wd, q.z - u.z * 0.04 * wd, 0.15 * wd, 0.5 * wd, VIOLET[0], VIOLET[1], VIOLET[2], (0.8 * n + 0.5 * d) * fade, 0.45 * d, 0, r.x, r.y, r.z);
@@ -277,16 +325,16 @@ export function createFlyers(S) {
       const al = i * TAU / 10 + spin, ca = Math.cos(al), sa = Math.sin(al);
       w.copy(r).multiplyScalar(ca).addScaledVector(b, sa);
       const face = 0.4 + 0.6 * ease((w.dot(c) + 0.3) / 0.6), ch = 0.45 + 0.55 * Math.pow(Math.max(0, Math.cos(al - spin - F.t * 3.2)), 3);
-      S.light(q.x + w.x * 0.47 * wd + u.x * 0.115 * wd, q.y + w.y * 0.47 * wd + u.y * 0.115 * wd, q.z + w.z * 0.47 * wd + u.z * 0.115 * wd, 0.05 * wd, 0, AMBER[0], AMBER[1], AMBER[2], face * ch * fade, 0.9 * d, 0);
+      S.light(q.x + w.x * 0.47 * wd + u.x * 0.115 * wd, q.y + w.y * 0.47 * wd + u.y * 0.115 * wd, q.z + w.z * 0.47 * wd + u.z * 0.115 * wd, 0.058 * wd, 0, LAMP[0], LAMP[1], LAMP[2], face * ch * fade, 0.9 * d, 4);
     }
-    const box = newBox();
-    for (const e of [-0.5, 0.5]) { w.copy(P).addScaledVector(r, e * wd); seen(F, w, box); w.copy(P).addScaledVector(u, e * 0.42 * wd); seen(F, w, box); }
+    const box = newBox('ufo');
+    for (let e = -0.5; e <= 0.5; e += 1) { w.copy(P).addScaledVector(r, e * wd); seen(F, w, box); w.copy(P).addScaledVector(u, e * 0.42 * wd); seen(F, w, box); }
     boxes.ufo = box;
   }
   function endUfo() { if (!ufo) return; if (ufo.hum) ufo.hum.stop(0.8); hide(0); drop('ufo'); ufo = null; boxes.ufo = null; }
 
   // ---- THE MOTHERSHIP
-  const SHIP_O = { op: 1, haze: 0.06, lift: 0, tint: 0.72, rim: [0.1, 0.13, 0.26], em: [0, 0, 0] };
+  const SHIP_O = { op: 1, haze: 0.03, lift: 0, tint: 0.5, rim: [0.07, 0.1, 0.22], em: [0, 0, 0] };
   function frameShip(F) {
     const g = geo.mothership, t = F.t;
     let k = ship.done ? 0 : ship.force ? 1 : ease((F.cf - FLY.shipFrom) / (FLY.shipAt - FLY.shipFrom));
@@ -296,8 +344,10 @@ export function createFlyers(S) {
     if (ship.pass || ship.pour) k = 1;
     ship.k = k;
     let x = 0.1, y = 2.3 - 1.22 * k, K = 1, op = Math.min(1, k * 2.5), pulse = 0.5 + 0.5 * Math.sin(t * 1.7), gl = 0;
-    // (the run ended under it — not THE FINISH: it fades behind the end card's words)
-    if (hushed && !ship.pour) { if (ship.cut == null) ship.cut = t; op *= Math.max(0.22, 1 - (t - ship.cut) / 0.5); }
+    // (the run ended under it — not THE FINISH: it fades behind the end card's words; THE FINISH's own ship stays, but its lens + the
+    //  head of its light are turned down behind the gold card's words)
+    let calm = 1;
+    if (hushed) { if (ship.cut == null) ship.cut = t; const q2 = Math.min(1, (t - ship.cut) / 0.5); if (ship.pour) calm = 1 - 0.72 * q2; else op *= Math.max(0.22, 1 - q2); }
     if (ship.pass) {
       // SOLO, FLOOR 200: the camera glances up, its lights pulse — then it leaves (up and away) and the climb goes on
       const tp = t - ship.pass.t0, go = clamp01((tp - 2.3) / (FLY.passS - 2.3));
@@ -312,7 +362,6 @@ export function createFlyers(S) {
       const tq = t - ship.pour.t0;
       beam = ease(tq / 0.5); gl = 0.5 * ease(tq / 0.9); y -= 0.1 * ease(tq / 0.9); pulse = 0.6 + 0.4 * Math.sin(tq * 6);
       S.pour(beam * (0.8 + 0.2 * Math.sin(tq * 7)));
-      if (tq > 0.3 && !ship.ringAt) { ship.ringAt = true; S.ring(0.9, 1.1, GOLD, 0.85); }
       if (!F.reduce && t - sparkAt > 0.09 && tq < 6) { sparkAt = t; S.spark(F.tx + (Math.random() - 0.5) * 0.7, F.ty + 0.02, F.tz + (Math.random() - 0.5) * 0.7, (Math.random() - 0.5) * 0.3, 1.6 + Math.random() * 1.4, (Math.random() - 0.5) * 0.3, 0.5 + Math.random() * 0.4, 0.007, GOLD); }
     }
     S.glance(gl);
@@ -327,33 +376,43 @@ export function createFlyers(S) {
     const spin = t * 0.045, cs = Math.cos(spin), sn = Math.sin(spin);
     r2.copy(r).multiplyScalar(cs).addScaledVector(b, sn); u2.crossVectors(r2, u);
     if (g) {
-      SHIP_O.op = op; const em = 0.035 + 0.045 * pulse + 0.2 * beam; SHIP_O.em[0] = em; SHIP_O.em[1] = em * 0.74; SHIP_O.em[2] = em * 0.42;
+      // (the hull stays DARK — at THE FINISH too: only its lens + its lights give light; the gold card's words stand on it)
+      SHIP_O.op = op; SHIP_O.tint = 0.5 + 0.4 * d; const em = 0.012 + 0.014 * pulse; SHIP_O.em[0] = em; SHIP_O.em[1] = em * 0.74; SHIP_O.em[2] = em * 0.42;
       body(2, g, r2, u, u2, wd, P, F, SHIP_O); ship.vis = true;
       // ITS MANY SMALL LIGHTS: three rings on its belly, each turning its own way, a wave running through them; its rim's; its lens
-      const hw = 0.0048 * wd, paint = 0.2 * d;
+      const hw = 0.0027 * wd, paint = 0.2 * d;
       for (let j = 0; j < RINGS.length; j++) {
         const R = RINGS[j], col = R[2];
         for (let i = 0; i < R[1]; i++) {
           const al = i * TAU / R[1] + spin * R[3] * 3, ca = Math.cos(al), sa = Math.sin(al), br = (0.5 + 0.5 * Math.sin(t * 2.2 - j * 1.4 + i * 0.7)) * (0.55 + 0.45 * pulse);
-          const h = (R[4] - 0.004) * wd;
-          S.light(P.x + (r.x * ca + b.x * sa) * R[0] * wd + u.x * h, P.y + (r.y * ca + b.y * sa) * R[0] * wd + u.y * h, P.z + (r.z * ca + b.z * sa) * R[0] * wd + u.z * h, hw, 0, col[0], col[1], col[2], (0.35 + 0.65 * br) * op, paint, 0);
+          const h = (R[4] - 0.004) * wd, big = i % BIG === 0;
+          S.light(P.x + (r.x * ca + b.x * sa) * R[0] * wd + u.x * h, P.y + (r.y * ca + b.y * sa) * R[0] * wd + u.y * h, P.z + (r.z * ca + b.z * sa) * R[0] * wd + u.z * h, big ? hw * 2.3 : hw, 0, col[0], col[1], col[2], (big ? 0.6 + 0.4 * br : 0.4 + 0.6 * br) * op, paint, 0);
         }
       }
       for (let i = 0; i < RIM[1]; i++) {
         const al = i * TAU / RIM[1] - spin * 2, ca = Math.cos(al), sa = Math.sin(al), col = RIM[2];
-        S.light(P.x + (r.x * ca + b.x * sa) * RIM[0] * wd + u.x * RIM[3] * wd, P.y + (r.y * ca + b.y * sa) * RIM[0] * wd + u.y * RIM[3] * wd, P.z + (r.z * ca + b.z * sa) * RIM[0] * wd + u.z * RIM[3] * wd, hw * 0.9, 0, col[0], col[1], col[2], (0.5 + 0.3 * pulse) * op, paint, 0);
+        S.light(P.x + (r.x * ca + b.x * sa) * RIM[0] * wd + u.x * RIM[3] * wd, P.y + (r.y * ca + b.y * sa) * RIM[0] * wd + u.y * RIM[3] * wd, P.z + (r.z * ca + b.z * sa) * RIM[0] * wd + u.z * RIM[3] * wd, hw, 0, col[0], col[1], col[2], (0.55 + 0.3 * pulse) * op, paint, 0);
       }
-      S.light(P.x - u.x * 0.04 * wd, P.y - u.y * 0.04 * wd, P.z - u.z * 0.04 * wd, 0.085 * wd, 0, 1, 0.88, 0.58, (0.55 + 0.35 * pulse + beam) * op, paint, 0);
-      const box = newBox();
-      for (const s of [-0.5, 0.5]) { w.copy(P).addScaledVector(r, s * wd); seen(F, w, box); w.copy(P).addScaledVector(b, s * wd); seen(F, w, box); }
+      S.light(P.x - u.x * 0.04 * wd, P.y - u.y * 0.04 * wd, P.z - u.z * 0.04 * wd, 0.085 * wd, 0, 1, 0.88, 0.58, (0.55 + 0.35 * pulse + beam) * op * calm, paint, 0);
+      const box = newBox('ship');
+      for (let s = -0.5; s <= 0.5; s += 1) { w.copy(P).addScaledVector(r, s * wd); seen(F, w, box); w.copy(P).addScaledVector(b, s * wd); seen(F, w, box); }
       boxes.ship = box;
     } else if (ship.vis) { hide(2); ship.vis = false; }
     if (beam > 0.01) {
-      // the light: a cone from the ship's lens (above the screen's top) down to the top slab, a pool on the slab
-      q.set(F.tx, F.ty + 0.02, F.tz); w.subVectors(P, q);
-      const L = w.length(); w.multiplyScalar(1 / L);
-      S.light((P.x + q.x) / 2, (P.y + q.y) / 2, (P.z + q.z) / 2, 0.64, L / 2, 1, 0.9, 0.58, (0.46 + 0.3 * d) * beam, 0.35 * d, 3, w.x, w.y, w.z);
-      S.light(q.x, q.y, q.z, 0.34, 0.9, 1, 0.92, 0.66, 0.75 * beam, 0.3 * d, 0, F.X.x, F.X.y, F.X.z);
+      // THE LIGHT: a cone from where the ship's lens is SEEN down to the top slab — its head is put at the SLAB's own depth (an axis
+      // square to the lens: both its ends land where they are seen — the ship itself is far behind the tower), wide + brightest on the
+      // slab; warm gold in its own colour (added to an aurora it went white); a pool on the slab's top
+      q.set(F.tx, F.ty + 0.02, F.tz);
+      w.set(P.x - u.x * 0.04 * wd - F.px, P.y - u.y * 0.04 * wd - F.py, P.z - u.z * 0.04 * wd - F.pz);
+      const zl = -w.dot(F.Z), xn = w.dot(F.X) / (zl * F.th * F.aspect), yn = Math.min(1.3, w.dot(F.Y) / (zl * F.th));
+      w.set(q.x - F.px, q.y - F.py, q.z - F.pz);
+      toWorld(P1, F, xn, yn, -w.dot(F.Z));
+      w.subVectors(P1, q);
+      const L = w.length(), keep = 0.5 + 0.5 * calm; w.multiplyScalar(1 / L);
+      S.light((P1.x + q.x) / 2, (P1.y + q.y) / 2, (P1.z + q.z) / 2, 0.66, L / 2, 1, 0.8, 0.36, 0.66 * beam * keep, 0.45 + 0.2 * d, 3, w.x, w.y, w.z);
+      S.light(q.x, q.y, q.z, 0.36, 0.95, 1, 0.84, 0.42, 0.85 * beam, 0.35, 0, F.X.x, F.X.y, F.X.z);
+      // … and gold rings keep running off the slab while it pours
+      if (ship.pour && t - ship.ringT > 0.8 && t - ship.pour.t0 < 7) { ship.ringT = t; S.ring(0.85, 1.0, GOLD, 0.75); }
     }
   }
 
@@ -369,7 +428,7 @@ export function createFlyers(S) {
     if (kind === 'blackbird' || kind === 'f22') { if (!geo[kind] || jet || ufo) return false; jet = { kind, t0: -1, dir: d, snd: null }; return true; }
     if (kind === 'ufo') { if (!geo.ufo || jet || ufo) return false; ufo = { t0: -1, dir: d, hum: null }; return true; }
     if (kind === 'pass') { if (ship.done || ship.pass) return false; need('mothership'); ship.pass = { t0: -1 }; return true; }
-    if (kind === 'pour') { if (ship.pour) return false; need('mothership'); ship.pour = { t0: -1 }; ship.ringAt = false; return true; }
+    if (kind === 'pour') { if (ship.pour) return false; need('mothership'); ship.pour = { t0: -1 }; ship.ringT = -9; return true; }
     if (kind === 'ship') { need('mothership'); ship.force = true; return true; }
     return false;
   }
@@ -379,7 +438,7 @@ export function createFlyers(S) {
     if (jet) { hide(0); hide(1); jet = null; }
     if (ufo) { hide(0); ufo = null; }
     hide(2);
-    ship.k = 0; ship.vis = false; ship.pass = ship.pour = null; ship.done = false; ship.force = false; ship.ringAt = false; ship.cut = null; hushed = false;
+    ship.k = 0; ship.vis = false; ship.pass = ship.pour = null; ship.done = false; ship.force = false; ship.ringT = -9; ship.cut = null; hushed = false;
     boxes.jet = boxes.ufo = boxes.ship = null;
     S.glance(0); S.pour(0);
   }
