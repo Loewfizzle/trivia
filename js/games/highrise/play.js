@@ -78,7 +78,13 @@ function mount() {
   const start = h('div.hi-start', h('div.hi-sign', { 'aria-label': 'High Rise' }, h('span', 'HIGH'), h('span', 'RISE')),
     h('div.hi-start-go', 'TAP TO START'), h('div.hi-start-l', 'ONE TAP DROPS EACH SLAB'), startBest);
   const endT = h('div.hi-end-t'), endN = h('div.hi-end-n'), endB = h('div.hi-end-band'), endL = h('div.hi-end-l'), endBest = h('div.hi-end-best'), check = h('div.hi-check');
-  const end = h('div.hi-end', { hidden: true }, endT, h('div.hi-end-floor', h('span.hi-end-k', 'FLOOR'), endN), endB, endL, endBest, h('div.hi-end-go', 'TAP TO PLAY AGAIN'), check);
+  const end = h('div.hi-end', { hidden: true }, endT, h('div.hi-end-floor', h('span.hi-end-k', 'FLOOR'), endN), endB, endL, endBest, check);
+  // THE END's FOOT (S2 FIX — END-SCREEN STANDARD A, the owner): ONE big SOLID glowing PLAY AGAIN bar in HIGH RISE's accent, a rounded
+  // rectangle (never a pill), on its OWN press + lift. A tap ANYWHERE after RETRY_MS is still PLAY AGAIN — and the bar keeps the same
+  // wait: it comes up where the thumb was dropping slabs, and a rhythm's next tap must not wipe the card unread.
+  const againIco = h('span.hi-again-i', { 'aria-hidden': 'true' });
+  againIco.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>';
+  const again = press(h('button.hi-again', { type: 'button', hidden: true }, againIco, h('span.hi-again-t', 'PLAY AGAIN')), () => { const now = performance.now(); if (shown && now - overAt > RETRY_MS) { restart(); begin(now); } });
   const note = h('p.hi-note', 'TEST PAGE · SOLO · NOTHING COUNTS YET');
   const fps = Q.get('fps') === '1' ? h('div.hi-fps', '') : null;
   // THE SOUNDS (sfx.js — the SHARED audio engine's SFX bus; unlocked by the first tap, never before) + THE SOUND AUDITION (the SOUNDS sheet)
@@ -89,7 +95,7 @@ function mount() {
     lazyImport(import('./audition.js'), './audition.js').then(A => A.openAudition({ press, onClose: () => { sheetOpen = false; last = 0; } })).catch(() => { sheetOpen = false; });
   });
   Promise.all([lazyImport(import('../../audio/engine.js'), '../../audio/engine.js'), lazyImport(import('./sfx.js'), './sfx.js')]).then(([E, S]) => { E.installAudio(); S.fetchSounds(); snd = S; hook.sfx = S; }).catch(() => { /* silent: audio is polish */ });
-  const stage = h('div.hi-stage', { 'data-look': 'night' }, play, hud, tag, start, end, soundsBtn, note, fps);
+  const stage = h('div.hi-stage', { 'data-look': 'night' }, play, hud, tag, start, end, soundsBtn, note, fps, again);
   app.replaceChildren(stage);
 
   // ---- the view (the night look) + its quality tiers; a browser with no WebGL gets the stage + one line saying so
@@ -155,7 +161,7 @@ function mount() {
     T = createTower(run, hooks, KEEP);
     best = Math.max(best, readBest()); tapeFloor = 0; newBest = false; bandNow = 0; notch = 0;   // (max: a phone whose storage is blocked still keeps its best for the visit)
     view.adopt(run, T); view.setBest(0);
-    end.hidden = true; start.hidden = false; soundsBtn.hidden = false; note.hidden = false;
+    end.hidden = true; again.hidden = true; start.hidden = false; soundsBtn.hidden = false; note.hidden = false;
     stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-made');
     startBest.textContent = best ? `YOUR BEST ${best} · THIS PHONE` : '';
     hudFloor = -1; hudLeft = -2; hitchN = 0; hitchLast = ''; callUntil = 0; callPri = 0; later = null; if (callAnim) { callAnim.cancel(); callAnim = null; } call.className = 'hi-call'; call.textContent = '';
@@ -241,7 +247,7 @@ function mount() {
     }
     check.className = `hi-check ${same ? 'is-ok' : 'is-bad'}`;
     check.textContent = same ? 'REPLAY = LIVE ✓' : `REPLAY ≠ LIVE ✗ · first differs at tick ${at < 0 || at === Infinity ? '?' : at} · live ${live.floor} ${live.cause} · replay ${r.floor} ${r.cause}${why ? ` (${why})` : ''}`;
-    end.hidden = false; soundsBtn.hidden = false; note.hidden = false; tag.hidden = true; tagFloor = -1;
+    end.hidden = false; again.hidden = false; soundsBtn.hidden = false; note.hidden = false; tag.hidden = true; tagFloor = -1;
     stage.classList.remove('is-live'); stage.classList.add('is-over');
     view.rest();   // (the first band's plate comes back while the card is up: PLAY AGAIN never starts on a blank sky)
     hook.ends.push({ seed, mode: MODE, same, at, live, replay: r, taps: taps.slice(), best, was }); if (hook.ends.length > 50) hook.ends.shift();

@@ -184,11 +184,14 @@ async function main() {
   const e = await p.evaluate(() => {
     const q = sel => document.querySelector(sel), box = el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, b: r.bottom, fs: parseFloat(getComputedStyle(el).fontSize), text: el.textContent }; };
     const L = window.__hiPlay, last = L.ends[L.ends.length - 1], tp = L.state().viewTop;
-    return { hidden: q('.hi-end').hidden, card: box(q('.hi-end')), words: box(q('.hi-end-t')), n: q('.hi-end-n').getAttribute('aria-label'), nfs: parseFloat(getComputedStyle(q('.hi-end-n')).fontSize), band: box(q('.hi-end-band')), line: box(q('.hi-end-l')), best: box(q('.hi-end-best')), go: box(q('.hi-end-go')), check: box(q('.hi-check')), okCls: q('.hi-check').classList.contains('is-ok'),
+    return { hidden: q('.hi-end').hidden, card: box(q('.hi-end')), words: box(q('.hi-end-t')), n: q('.hi-end-n').getAttribute('aria-label'), nfs: parseFloat(getComputedStyle(q('.hi-end-n')).fontSize), band: box(q('.hi-end-band')), line: box(q('.hi-end-l')), best: box(q('.hi-end-best')), go: box(q('.hi-again')), goR: parseFloat(getComputedStyle(q('.hi-again')).borderTopLeftRadius), goBg: getComputedStyle(q('.hi-again')).backgroundColor, goOld: !!q('.hi-end-go'), note: box(q('.hi-note')), sndB: box(q('.hi-snd')), check: box(q('.hi-check')), okCls: q('.hi-check').classList.contains('is-ok'),
       top: L.view.project((tp.x0 + tp.x1) / 2, tp.floor, (tp.z0 + tp.z1) / 2)[1] * innerHeight, snd: !q('.hi-snd').hidden, last: { same: last.same, live: last.live, replay: last.replay, best: last.best, was: last.was }, stored: localStorage.getItem('hi:play:best'), keys: Object.keys(localStorage) };
   });
   ok(!e.hidden && e.words.text === 'TOO SLOW' && e.words.fs >= 28 && e.n === String(s1.floor) && e.nfs >= 56 && e.band.text === 'THE ROOFTOPS', `THE END: "${e.words.text}" (${e.words.fs} px), FLOOR ${e.n} big, the band reached`);
-  ok(/^\d+ PERFECTS? · BEST STREAK \d+$/.test(e.line.text) && e.best.text === `YOUR BEST ${s1.floor}` && e.go.text === 'TAP TO PLAY AGAIN' && e.go.fs >= 18, `"${e.line.text}" · "${e.best.text}" · TAP TO PLAY AGAIN`);
+  ok(/^\d+ PERFECTS? · BEST STREAK \d+$/.test(e.line.text) && e.best.text === `YOUR BEST ${s1.floor}` && e.go.text === 'PLAY AGAIN' && e.go.fs >= 19 && !e.goOld, `"${e.line.text}" · "${e.best.text}" · PLAY AGAIN`);
+  // THE END's FOOT (S2 FIX): ONE big solid bar in the game's accent — full width inside the gutters, ≥ 56 pt tall, a rounded rectangle (no pill), clear of the card, the SOUNDS button and the note
+  ok(e.go.h >= 56 && e.go.x === 16 && e.go.w === 390 - 32 && e.goR > 0 && e.goR <= 14 && e.goR < e.go.h / 3 && e.goBg === 'rgb(255, 79, 216)', `THE FOOT: the PLAY AGAIN bar ${e.go.w} × ${e.go.h.toFixed(0)}, ${e.goR} px corners (no pill), solid in the accent (${e.goBg})`);
+  ok(e.go.y >= e.card.b + 8 && e.go.y >= e.sndB.b + 8 && e.go.b <= e.note.y - 4 && e.go.b <= 844 - 8, `… clear of the card (${e.card.b.toFixed(0)} → ${e.go.y.toFixed(0)}), SOUNDS and the note (${e.go.b.toFixed(0)} → ${e.note.y.toFixed(0)})`);
   ok(e.card.b <= e.top + 6 && [e.words, e.line, e.best, e.go, e.check].every(x => x.x >= 0 && x.x + x.w <= 390), `the end card ends above the top slab — the tower stays in view (card to ${e.card.b.toFixed(0)}, the top slab at ${e.top.toFixed(0)}); it fits the screen`);
   ok(e.check.text === 'REPLAY = LIVE ✓' && e.okCls && e.last.same && JSON.stringify(e.last.live) === JSON.stringify(e.last.replay), `after the run: ${e.check.text}`);
   ok(e.stored === String(s1.floor) && e.last.was === 0 && e.last.best === s1.floor && e.snd, `YOUR BEST = THIS PHONE: stored (hi:play:best = ${e.stored}); the SOUNDS button is back`);
@@ -468,6 +471,24 @@ async function review() {
     ok(s2.info.held.includes(0) || s2.info.plates.includes(0), `the end card keeps the FIRST band's plate ready for PLAY AGAIN (held: ${s2.info.held})`);
     await d.close();
   }
+  // ---- S2 FIX: THE END's FOOT on a short phone in a Safari tab (375 × 667) with the fps line on — the bar's own press + lift
+  {
+    const d = await open(375, 667, 2, '?seed=foot&fps=1');
+    await ready(d.p); await sleep(200);
+    await climb(d.p, 4);
+    await waitFor(d.p, 'window.__hiPlay.state().shown', 15000);
+    const shownAt = Date.now();
+    const g = await d.p.evaluate(() => { const bx = sel => { const r = document.querySelector(sel).getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, b: r.bottom }; }; return { bar: bx('.hi-again'), card: bx('.hi-end'), fps: bx('.hi-fps'), snd: bx('.hi-snd'), note: bx('.hi-note'), text: document.querySelector('.hi-again').textContent, fs: parseFloat(getComputedStyle(document.querySelector('.hi-again')).fontSize), fpsText: document.querySelector('.hi-fps').textContent }; });
+    ok(g.text === 'PLAY AGAIN' && g.bar.h >= 56 && g.bar.x === 16 && g.bar.w === 375 - 32 && g.fs >= 19, `375 × 667: the PLAY AGAIN bar ${g.bar.w} × ${g.bar.h.toFixed(0)} (${g.fs.toFixed(1)} px)`);
+    ok(g.card.b + 8 <= g.fps.y && g.fps.b + 4 <= g.bar.y && g.bar.b + 4 <= g.note.y && g.snd.b + 8 <= g.bar.y && g.card.b + 8 <= g.bar.y, `… nothing overlaps: the card to ${g.card.b.toFixed(0)}, the fps line ${g.fps.y.toFixed(0)}–${g.fps.b.toFixed(0)}, the bar ${g.bar.y.toFixed(0)}–${g.bar.b.toFixed(0)}, the note from ${g.note.y.toFixed(0)}`);
+    ok(/HITCH \d+/.test(g.fpsText), `?fps=1 shows THE HITCH COUNTER ("${g.fpsText.slice(g.fpsText.indexOf('HITCH'))}")`);
+    if (OUT) await shot(d.p, 'review-375-foot.png');
+    await sleep(Math.max(0, 750 - (Date.now() - shownAt)));
+    await tapAt(d, g.bar.x + g.bar.w / 2, g.bar.y + g.bar.h / 2);
+    ok(await waitFor(d.p, '(() => { const s = window.__hiPlay.state(); return s.started && !s.shown && s.floor === 0 && s.taps === 0; })()', 3000) && await d.p.evaluate(() => document.querySelector('.hi-again').hidden), 'the bar\'s own press + lift = PLAY AGAIN: the next run is on, the bar is gone');
+    ok(d.errs.length === 0, `… no page error (${d.errs.join(' | ')})`);
+    await d.close();
+  }
 }
 
 // ---- THE MEASURE: the frame rate at every tier, at 1× and 4× CPU, the bot playing (a cut + its sparks every third drop) high in the clouds
@@ -593,7 +614,7 @@ async function hitch() {
     await wb.close();
   } else {
     const d = await open(390, 844, 3, Q);
-    await ready(d.p); await sleep(600);
+    await ready(d.p); await sleep(600 + (Number(process.env.HITCH_IDLE) || 0));   // (HITCH_IDLE: the page waits on its start screen first — is a pause tied to the FLOOR, or to the browser's own clock?)
     if (RATE > 1) await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
     r = await d.p.evaluate(HITCH_BOT, SECS);
     if (RATE > 1) await d.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
