@@ -21,8 +21,8 @@ test('hushed: a tap never resumes / blips / rebuilds; the context suspended afte
   assert.match(E, /if \(hushed \|\| hushWanted\(\)\) \{[\s\S]{0,600}gestureListeners\.forEach[\s\S]{0,120}return;\s*\}/, 'unlock while hushed: listeners only');
   assert.match(E, /g\.linearRampToValueAtTime\(0, t \+ FADE_OUT_S\);[\s\S]{0,40}\} catch \{ \/\* closed \*\/ \}[\s\S]{0,400}if \(master && master\.gain\.value > 1e-5\) \{ hushT = setTimeout\(go, 40\); return; \}[\s\S]{0,120}c\.suspend\(\)[\s\S]{0,200}hushT = setTimeout\(go, Math\.round\(FADE_OUT_S \* 1000\) \+ ZERO_HOLD_MS\);/, 'the ramp first, THE ZEROS FIRST, the suspend after (FIXES R2)');
   assert.match(E, /function kick\(\) \{\s*if \(!ctx \|\| !unlocked \|\| hushed/);
-  assert.match(M, /function activate\(voice\) \{\s*if \(audioHushed\(\)( \|\| musicResting\(\))?\) \{ voice\.needAct = true; return; \}/, 'no silent activation loop while hushed (FIXES R3: + while resting)');
-  assert.match(M, /if \(!visible \|\| audioHushed\(\)( \|\| musicResting\(\))?\) return;/, 'apply() starts nothing while hushed');
+  assert.match(M, /function activate\(voice\) \{\s*if \(audioHushed\(\)( \|\| musicResting\(\)| \|\| podcastNow\(\))?\) \{ voice\.needAct = true; return; \}/, 'no silent activation loop while hushed (FIXES R3: + while resting; CITY I: + PODCAST MODE)');
+  assert.match(M, /if \(!visible \|\| audioHushed\(\)( \|\| musicResting\(\)| \|\| podcastNow\(\))?\) return;/, 'apply() starts nothing while hushed');
   assert.match(M, /function hushMusic\(on, why = 'hushed'\) \{[\s\S]{0,900}x\.el\.removeAttribute\('src'\)/, 'the elements released');
   assert.match(M, /onHush\(on => hushMusic\(on, 'hushed'\)\);/, 'the hush runs it (FIXES R3: one body for the hush + mode A\'s rest)');
 });

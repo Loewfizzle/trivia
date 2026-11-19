@@ -31,7 +31,40 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
   unmasking); a track change resets it.
 
 
-## CITY H2 — MUSIC OFF = ONLY THE MUSIC OFF (Nov 18 2026 — the owner OVERRULES H1's call; the inbox's 4:00 + 4:03 pm entries; docs/harbor/passes/city-h2.md)
+## CITY I — MUSIC OFF = PODCAST MODE (Nov 18 2026 — the owner's pick, OPTION 3; the inbox's 7:55 pm entry; docs/harbor/passes/city-i.md)
+**Why:** THE SQUEAL came back with H2's "music off = only the music". His AUDIO LEAVE (7:44 pm, build ca29a6e, iPhone 18.7, the home-screen app,
+music off + effects on): session ambient · the context RUNNING at the first signal, master 1.000, three beds live + a station song element PLAYING at a
+0 bus; the hard cut zeroed the master at +1 ms, the suspend was asked at +106 — and it STILL squealed. With iOS's 'ambient' session a RUNNING context
+at the leave squeals however fast the cut (his Nov 16 C1 test too; only C2 'playback' is silent, and that pauses other apps' audio). So the leave
+must find the context already SUSPENDED.
+- **MUSIC ON** — unchanged: C2 'playback', the music + the city's beds + the effects.
+- **MUSIC OFF (the slashed note) = PODCAST MODE** — session 'ambient' (other apps keep playing) + EFFECTS ONLY: no bed (`engine.js#pauseBeds`,
+  `resumeBeds` refuses), no city loop + no city ambience one-off (`city-sound.js` / `ambience.js` read the hub `globalThis.__nsBedsOff` =
+  `engine.js#effectsOnly`; a sound a TAP asked for — `citySound(…, { tap: true })`: the door's knock, a radio jack — still plays), NO media element
+  playing (`music.js` rests every element through `engine.js#onPodcast` — THE HUSH's own `hushMusic`; the station's synced song stops through its
+  `rest()`; the song's place is kept by the clock, never by a silent playing element).
+- **THE NAP:** every source made on the context is COUNTED (`countVoices` wraps `createBufferSource` / `createOscillator`: start +1, 'ended' −1);
+  `NAP_MS` (150) after the last one ends the master's VALUE goes to 0, `ZERO_HOLD_MS` of zeros, then `suspend()` — for real: `ctx.state` says
+  'suspended' (H1's doze PRETENDED 'running' — that was the load bug). `isUnlocked()` / `canStart()` count a nap as startable, so every player still
+  makes its effect; its `start()` WAKES the context (`wakeFor`): the master to 1 + `resume()` — inside a tap iOS honours it; a tap's effect fired on
+  its pointerup (THE TAP WATCH) is woken by that tap's touchend a few ms later; an effect NO tap follows (a timer's) is DROPPED (stopped) if the
+  context isn't running `WAKE_WAIT_MS` (300) later — never queued to play late, never an error / a report row. Off screen / hushed an effect is
+  dropped at once. `kick()`, the return to the screen and the OS's own statechange never wake a nap. A rebuild resets the count.
+- **THE LOAD BUG STAYS FIXED:** a load in music-off → the FIRST tap anywhere: `unlock()` sees a suspended context (no pretending) and resumes it IN
+  the gesture, exactly as music-on does; it naps again ~250 ms later if nothing sounds.
+- **ALL OFF** (the speaker ✕) — unchanged (the hush). **The music back ON** (a tap): awake at once, the beds back (`resumeBeds`), music.js activates
+  its elements in that tap + the station plays where it is. **Music → off:** H1's instant cut (the beds paused, the music bus to 0, the nap follows).
+- **/admin AUDIO LEAVE:** the row now opens with **"ctx at the leave: SUSPENDED / RUNNING"** (+ "(podcast mode, between effects)") — `leave-text.js`;
+  `soundingNow()` carries `napping`; `audioHealth()` carries `napping`, `voices`, `podcast`.
+- **Proof** (Chromium — Playwright's WebKit on Windows has no Web Audio; only the owner's iPhone can prove the squeal is gone): `audio-session.test.mjs`
+  "MUSIC OFF = PODCAST MODE" (no beds, suspended between effects, a tap resumes in the tap, an effect wakes it, a lone effect dropped, a leave finds it
+  suspended + the record says so, the return wakes nothing, the music back = awake + the beds) · `audio-leave.mjs` 28 / 28 (a load in music-off → one
+  tap → suspended between effects, no element playing, no bed; an effect wakes it + SOUNDS, then suspended again; a leave between effects finds it
+  suspended; the music back ON = running, the city's loops + the station back) · harbor `mediacut` (the real city) · `audio-hush.mjs` 9 / 9.
+- **THE OWNER's PHONE CHECK:** music off, play a podcast, use the site, switch apps from the home-screen app a few times: no squeal, the podcast keeps
+  playing, effects play.
+
+## CITY H2 — MUSIC OFF = ONLY THE MUSIC OFF (UNDONE by CITY I — PODCAST MODE, above) (Nov 18 2026 — the owner OVERRULES H1's call; the inbox's 4:00 + 4:03 pm entries; docs/harbor/passes/city-h2.md)
 The owner: "I want the music off just to kill the music … tap it twice, all sounds off". With the music off the city's beds (water, hum, wind,
 club, boat…) AND its one-offs (gulls, gusts, traffic…) play exactly as with the music on; only the music stops. CITY H1's EFFECTS ONLY is UNDONE:
 no `effectsOnly` / `__nsBedsOff` hub, no doze (`sleepy` / `doze` / `wake` — the context asleep between effects while SAYING 'running'), no `tap`

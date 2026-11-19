@@ -45,11 +45,11 @@ export const getMaster = () => master;
 /** the fade's timings (the tests + the docs): the ramp out, the ramp back, the suspend's wait after the ramp is scheduled */
 export const FADE = Object.freeze({ outS: FADE_OUT_S, inS: FADE_IN_S, suspendMs: SUSPEND_AFTER_MS, cutS: CUT_S, leaveS: LEAVE_S, zeroHoldMs: ZERO_HOLD_MS,
   hushSuspendMs: Math.round(FADE_OUT_S * 1000) + ZERO_HOLD_MS, leaveSuspendMs: Math.round(LEAVE_S * 1000) + ZERO_HOLD_MS });
-export const isUnlocked = () => unlocked && !!ctx && ctx.state === 'running';
+export const isUnlocked = () => unlocked && !!ctx && (ctx.state === 'running' || (napping && ctx.state === 'suspended'));   // (CITY I: a podcast-mode nap counts — the effect wakes it: engine.js#wakeFor)
 /** Inside a gesture's handling right now (iOS lets a media element / a context start only here)? */
 export const inGesture = () => performance.now() - gestureAt < 60;
 /** May the music start now? Running, or inside a gesture that just asked the context to run (it will). */
-export const canStart = () => unlocked && !!ctx && ctx.state !== 'closed' && (ctx.state === 'running' || inGesture());
+export const canStart = () => unlocked && !!ctx && ctx.state !== 'closed' && (ctx.state === 'running' || inGesture() || napping);   // (CITY I: a napping context wakes for the effect — engine.js#wakeFor)
 /** The context's clock: is it moving? (false = frozen: 'running' but stopped) */
 export const clockFrozen = () => frozen;
 /** a resume we asked for didn't bring the context back (the next tap rebuilds it) · the first tap has happened */
@@ -94,12 +94,16 @@ function createContext() {
   try { c = ctx = new AC({ latencyHint: 'interactive' }); }
   catch (e) { audioLog(`new context ✗ ${(e && e.name) || 'error'} (alive ${made - closed})`); ctx = null; return null; }
   made++;
+  countVoices(c);   // (CITY I — PODCAST MODE: the nap waits for the last sounding source)
   c.onstatechange = () => {
     if (c !== ctx) return;
+    if (napping && c.state === 'suspended') { audioLog('ctx → suspended (podcast mode)'); return; }   // (our own nap — never "the OS took it")
     audioLog(`ctx → ${c.state}`);
     leaveNote(`ctx ${c.state}`, c.state === 'interrupted');
     if (c.state === 'running') {
       stuck = false; askedAt = 0; gestureAskAt = 0; clearTimeout(intT); intT = 0;
+      if (napping) { napping = false; if (master) silence(c, 1); }   // (CITY I: woken — a tap's resume or an effect's)
+      if (podOn && !voices) napSoon();
       // (FIXES R1: running OFF SCREEN — the OS gave it back while the app is away: never a sound there; the return brings it back from 0)
       if (!visibleNow || document.visibilityState === 'hidden') { if (master) silence(c); pendingFadeIn = false; setTimeout(() => { if (ctx === c && c.state === 'running' && (!visibleNow || document.visibilityState === 'hidden')) c.suspend().catch(() => {}); }, ZERO_HOLD_MS); audioLog('running off screen — silenced + suspended'); return; }
       // (FIXES R1 — THE REVIEW A15: a context that started itself while hushed — NOTHING RUNS)
@@ -163,11 +167,94 @@ function busTo(p, v, t, tau, ramp) {
 let sfxCutAt = 0;   // performance.now() the effects went to 0 (0 = they're on)
 /** FIXES R2: the effects are OFF and their bus has reached 0 — a loop may be stopped now (city-sound.js: never mid-sound) */
 export const sfxSilent = () => !!sfxCutAt && performance.now() - sfxCutAt >= CUT_S * 1000 + 30;
-onSettings(() => { applyVolumes(false); setSession('settings'); hushCheck('settings'); });
+onSettings(() => { applyVolumes(false); setSession('settings'); hushCheck('settings'); podCheck('settings'); });
 
-// CITY H2 (the owner, Nov 18): MUSIC OFF = ONLY THE MUSIC OFF — the beds + the city's sounds play as with the music on; the session stays
-// 'ambient'. CITY H1's doze (the context asleep between effects, still saying 'running') is gone: it left a load in music-off with dead effects.
+// ---- CITY I — MUSIC OFF = PODCAST MODE (the owner's pick, option 3 — the inbox's Nov 18 7:55 pm entry; docs/audio.md "CITY I"). THE SQUEAL came
+// back with H2's "music off = only the music": on iOS an 'ambient' session whose context is RUNNING at the leave squeals however fast the cut is
+// (his AUDIO LEAVE, 7:44 pm: the hard cut at +1 ms, the suspend asked at +106 — and it still squealed). So with the music OFF + the effects ON:
+// EFFECTS ONLY — no beds, no city loops, no ambience one-offs (city-sound.js / ambience.js read the hub globalThis.__nsBedsOff), no station song
+// element playing (music.js#hushMusic through onPodcast — the station's place kept by its clock) — and the context really SUSPENDED whenever no
+// effect sounds: every source made on it is COUNTED, NAP_MS after the last one ends the master is set to 0, ZERO_HOLD_MS of zeros, then
+// suspend(). It never PRETENDS to run (H1's doze did — that left a load with dead effects): ctx.state says 'suspended', so the FIRST tap's unlock
+// resumes it inside the gesture like any tap. An effect started while it naps resumes it at once — inside a tap iOS honours that; a tap's
+// effect fired on its pointerup (THE TAP WATCH) waits for that tap's touchend a few ms later; one that no tap follows (a timer's) is DROPPED if
+// the context isn't running WAKE_WAIT_MS later — never played late, never an error. A leave almost always finds it suspended: nothing to cut.
+const NAP_MS = 150, WAKE_WAIT_MS = 300;
+let voices = 0, voiceAt = 0, napping = false, napT = 0;
+/** music off + effects on (the 'ambient' session) — PODCAST MODE */
+export const effectsOnly = () => sessionWant() === 'ambient' && !hushed;
+globalThis.__nsBedsOff = effectsOnly;   // (the city's loops + its ambience one-offs: city-sound.js + ambience.js read it through the hub)
+const podListeners = new Set();
+let podOn = false;
+/** fn(on) when PODCAST MODE starts / ends (music.js rests its elements); called at once while it's on */
+export function onPodcast(fn) { podListeners.add(fn); if (podOn) { try { fn(true); } catch (e) { console.warn(e); } } return () => podListeners.delete(fn); }
+export const podcastNow = () => podOn;
+function podCheck(why) {
+  const on = effectsOnly();
+  if (on === podOn) { if (on) napSoon(); return; }
+  podOn = on;
+  audioLog(`podcast mode ${on ? 'ON' : 'off'} (${why})`);
+  if (on) pauseBeds('podcast mode');
+  else { wakeNow('music back'); if (visibleNow && !blurred) resumeBeds(); }
+  podListeners.forEach(fn => { try { fn(on); } catch (e) { console.warn(e); } });
+  if (on) napSoon();
+}
 const stNow = () => (ctx ? ctx.state : 'none');
+/** every source on the context counted (start +1, 'ended' −1): the nap waits for the last one; a start while napping wakes it */
+function countVoices(c) {
+  for (const k of ['createBufferSource', 'createOscillator']) {
+    const mk = c[k];
+    if (typeof mk !== 'function') continue;
+    c[k] = function () {
+      const src = mk.apply(c, arguments), st = src.start;
+      src.start = function () {
+        let on = c === ctx;
+        const end = () => { if (on) { on = false; voices = Math.max(0, voices - 1); voiceAt = performance.now(); napSoon(); } };
+        if (on) { voices++; try { src.addEventListener('ended', end); } catch { /* fine */ } wakeFor(src); }
+        try { return st.apply(src, arguments); } catch (e) { end(); throw e; }
+      };
+      return src;
+    };
+  }
+}
+function napSoon() { if (!napT && podOn && !napping) napT = setTimeout(napNow, NAP_MS); }
+function napNow() {
+  napT = 0;
+  const c = ctx;
+  if (!c || napping || !podOn || !unlocked || hushed || c.state !== 'running') return;
+  if (voices > 0) return;   // (the last one's 'ended' asks again)
+  if (performance.now() - voiceAt < NAP_MS) { napSoon(); return; }
+  napping = true; askedAt = 0; gestureAskAt = 0; stuck = false;
+  silence(c);   // (THE ZEROS FIRST: the master's VALUE to 0 at once, ZERO_HOLD_MS of zeros, then the suspend)
+  setTimeout(() => {
+    if (ctx !== c || !napping) return;
+    if (voices > 0 || !podOn) { napping = false; silence(c, 1); return; }
+    c.suspend().then(() => { if (ctx === c && napping) audioLog('podcast mode — suspended between effects'); }, () => {});
+  }, ZERO_HOLD_MS);
+}
+/** a source started while napping: resume now (a tap honours it); off screen / hushed it is dropped at once; outside a tap it is dropped if the
+ *  context isn't running WAKE_WAIT_MS later (a tap's touchend lands well inside that) */
+function wakeFor(src) {
+  if (napT) { clearTimeout(napT); napT = 0; }
+  if (!napping) return;
+  const c = ctx;
+  if (!c || hushed || !visibleNow || blurred || document.visibilityState !== 'visible') { try { src.stop(); } catch { /* fine */ } return; }
+  if (c.state === 'running') { napping = false; silence(c, 1); return; }
+  silence(c, 1);   // (the context is suspended: nothing sounds until it runs — then at full level, no ramp to miss)
+  if (inGesture()) ask('an effect, in a tap');
+  else { try { c.resume().catch(() => {}); } catch { /* fine */ } }   // (no stuck bookkeeping: a refused resume outside a tap is expected)
+  setTimeout(() => { if (ctx === c && c.state !== 'running') { try { src.stop(); } catch { /* fine */ } } }, WAKE_WAIT_MS);
+}
+/** leaving PODCAST MODE (the music back on — a tap): awake at once */
+function wakeNow(why) {
+  if (napT) { clearTimeout(napT); napT = 0; }
+  if (!napping) return;
+  napping = false;
+  const c = ctx;
+  if (!c || hushed) return;
+  silence(c, 1);
+  if (c.state !== 'running' && visibleNow) ask(why);
+}
 
 // ---- CITY A — item 29, THE LEAVING SQUEAL (the owner's iPhone, SOUND MUTED, no music: a short high-pitched noise switching from Safari to another
 // app). Muted = every voice at 0, so it was the audio MACHINERY still live — the context running for THE PROBE / the beat analysers, the
@@ -182,7 +269,7 @@ function hushCheck(why) {
   const want = hushWanted();
   if (want === hushed) { if (want && ctx && ctx.state === 'running' && !hushT) hushNow(why); return; }
   hushed = want;
-  if (want) { audioLog(`hush (${why}) — the master to 0, then the context suspended`); hushNow(why); return; }
+  if (want) { napping = false; if (napT) { clearTimeout(napT); napT = 0; } audioLog(`hush (${why}) — the master to 0, then the context suspended`); hushNow(why); return; }
   clearTimeout(hushT); hushT = 0;
   audioLog(`unhush (${why}${inGesture() ? ' · in tap' : ''})`);
   if (!ctx || !unlocked) return;
@@ -249,7 +336,7 @@ function closeContext(c) {
 function rebuild(why) {
   const old = ctx;
   closeContext(old);
-  ctx = null; musicBus = null; sfxBus = null; master = null;
+  ctx = null; musicBus = null; sfxBus = null; master = null; voices = 0; napping = false;
   if (!createContext()) { ctx = old; return; }
   stuck = false; rebuilds++; lastWhy = why; askedAt = 0; gestureAskAt = 0; lastRebuildAt = performance.now(); bornOfRebuild = true; frozenAfterRebuild = false;
   audioLog(`rebuild #${rebuilds} (${why}) · alive ${made - closed}`);
@@ -334,7 +421,7 @@ export function onGesture(fn) { gestureListeners.add(fn); return () => gestureLi
 export function onFrozen(fn) { frozenListeners.add(fn); return () => frozenListeners.delete(fn); }
 
 /** The engine's state for tests + the readout. */
-export const audioHealth = () => ({ state: stNow(), hushed, session: sessionWant(), bedsOn: bedsPaused ? 0 : beds.size, pendingFadeIn, stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
+export const audioHealth = () => ({ state: stNow(), napping, voices, podcast: podOn, hushed, session: sessionWant(), bedsOn: bedsPaused ? 0 : beds.size, pendingFadeIn, stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
   time: ctx ? +ctx.currentTime.toFixed(2) : 0, session: sessionInfo(), sessionSet: { ...sessionSet }, made, closed, alive: made - closed,
   movingFor: clock.moving > 0 && !frozen ? Math.round(performance.now() - clock.moving) : 0, ok: graphOk() });
 function sessionInfo() { try { const a = navigator.audioSession; return a ? `${a.type || '?'}/${'state' in a ? a.state || '?' : 'n/a'}` : ''; } catch { return ''; } }
@@ -359,7 +446,7 @@ export function simulateFrozen() {
 
 // Retry a resume (no-op when already running or not yet unlocked by a gesture).
 function kick() {
-  if (!ctx || !unlocked || hushed || document.visibilityState !== 'visible') return;
+  if (!ctx || !unlocked || hushed || napping || document.visibilityState !== 'visible') return;   // (CITY I: a nap is woken by an effect / a tap only)
   if (ctx.state !== 'running') ask('retry');
 }
 
@@ -367,6 +454,7 @@ function kick() {
 // path plays); one that NEVER started (still 0.00 after NEVER_STARTED_MS) counts at once
 let clock = { t: -1, since: 0, moving: 0 };   // moving: performance.now() since when the clock has been seen moving (0 = not yet)
 function watchClock() {
+  if (podOn && !napping && !napT && !voices && ctx && ctx.state === 'running' && performance.now() - voiceAt >= NAP_MS) napSoon();   // (CITY I: the safety net)
   if (!ctx || !unlocked || !visibleNow || document.visibilityState !== 'visible' || ctx.state !== 'running') { clock = { t: -1, since: performance.now(), moving: 0 }; if (frozen && ctx && ctx.state !== 'running') frozen = false; return; }
   const now = performance.now(), t = ctx.currentTime;
   if (t !== clock.t) { if (frozen) audioLog('clock moving again'); clock = { t, since: now, moving: frozen || !clock.moving ? now : clock.moving }; frozen = false; return; }
@@ -390,7 +478,8 @@ export function holdBed(bed) { beds.add(bed); if (bedsPaused) { try { bed.pause(
 globalThis.__nsAudioBeds = holdBed;
 export const bedCount = () => beds.size;
 function pauseBeds(why) { bedsPaused = true; for (const b of [...beds]) { try { b.pause(why); } catch { /* gone */ } } }
-function resumeBeds() { if (!bedsPaused) return; bedsPaused = false; for (const b of [...beds]) { try { b.resume(); } catch { /* gone */ } } }
+function resumeBeds() { if (!bedsPaused || podOn) return;   // (CITY I — PODCAST MODE: no beds)
+  bedsPaused = false; for (const b of [...beds]) { try { b.resume(); } catch { /* gone */ } } }
 // ---- THE FADE ON LEAVING (DFIX3 ADD-ON → CITY D): the master to 0 AT ONCE on the audio clock + the beds stopped, the suspend follows; back = 0 → up once running
 function fadeOut(why) {
   clearTimeout(fadeT); clearTimeout(blurT); blurT = 0;
@@ -462,6 +551,7 @@ function setVisible(visible, why = '') {
   if (visible) { visibleAt = performance.now(); setSession('back on screen'); mediaCutOn = false; }   // (CITY G: the media's own return = onVisibility)
   if (ctx) {
     if (visible && unlocked && hushed) { /* (CITY A: hushed — back on screen wakes nothing) */ }
+    else if (visible && unlocked && podOn && ctx.state !== 'running') { napping = true; pendingFadeIn = false; askedAt = 0; gestureAskAt = 0; }   // (CITY I — PODCAST MODE: the return wakes nothing — the next effect / tap does)
     else if (visible && unlocked) {
       clearTimeout(fadeT);
       pendingFadeIn = true;
@@ -518,7 +608,7 @@ const soundingHubs = new Map();
 export function soundingHub(name, fn) { soundingHubs.set(name, fn); return () => soundingHubs.delete(name); }
 globalThis.__nsSounding = soundingHub;
 export function soundingNow() {
-  const o = { ctx: stNow(), master: master ? +master.gain.value.toFixed(3) : null, fx: sfxBus ? +sfxBus.gain.value.toFixed(3) : null,
+  const o = { ctx: stNow(), napping, master: master ? +master.gain.value.toFixed(3) : null, fx: sfxBus ? +sfxBus.gain.value.toFixed(3) : null,
     music: musicBus ? +musicBus.gain.value.toFixed(3) : null, beds: bedsPaused ? `${beds.size} stopped` : beds.size, hushed };
   for (const [k, fn] of soundingHubs) { try { o[k] = fn(); } catch { o[k] = '?'; } }
   return o;
@@ -620,4 +710,5 @@ export function installAudio() {
   for (const ms of [4000, 15000]) setTimeout(sendLeave, ms);   // (FIXES R3: a leave never come back from)
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(sendKept, 1500); });
   setSession('boot');   // (CITY G — THE SESSION BY STATE from the first moment: the music on = 'playback' (C2's tested path), off = 'ambient')
+  podCheck('boot');     // (CITY I — PODCAST MODE from the first moment: a load with the music off rests the music + keeps the beds off)
 }

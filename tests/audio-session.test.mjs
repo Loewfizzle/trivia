@@ -119,7 +119,7 @@ test('THE LEAVE RECORD: sent as ONE AUDIO LEAVE row on the return (kind leave) �
   await sleep(1600);
   const leave = rows().filter(r => r.kind === 'leave');
   assert.equal(leave.length, 1);
-  assert.match(leave[0].text, /^AUDIO LEAVE · session playback · blur → pagehide \+\d+ ms → hidden \+\d+ ms → freeze/);
+  assert.match(leave[0].text, /^AUDIO LEAVE · ctx at the leave: RUNNING · session playback · blur → pagehide \+\d+ ms → hidden \+\d+ ms → freeze/);
   assert.match(leave[0].text, /back after \d+\.\d s \(visible/);
   assert.match(leave[0].text, /media after: all paused/);
   assert.equal(rec(), null, 'cleared once sent');
@@ -171,24 +171,56 @@ test('THE SQUEAL, FOR REAL (CITY H1): on a phone whose audio thread never runs, 
   updateSettings({ musicOff: false }); c.set('running');
 });
 
-test('MUSIC OFF = ONLY THE MUSIC OFF (CITY H2 — the owner overrules H1): the beds keep playing, the context never sleeps; a suspended context at a tap is resumed IN the tap', async () => {
+test('MUSIC OFF = PODCAST MODE (CITY I — the owner\'s option 3): no beds; the context SUSPENDED between effects (never pretending); a tap resumes it IN the tap; an effect wakes it; one no tap follows is dropped; a leave finds it suspended; the music back = awake + the beds', async () => {
   updateSettings({ musicOff: false, sfxOff: false, muted: false });
   ctx().set('running');
   await sleep(300);
   bedPaused = false;
   updateSettings({ musicOff: true });
-  assert.equal(bedPaused, false, 'the music off: the beds play on');
+  assert.equal(E.podcastNow(), true, 'music off + effects on = PODCAST MODE');
+  assert.equal(bedPaused, true, 'the beds paused at the switch');
   const c = ctx(), s0 = c.suspends;
-  await sleep(300 + E.FADE.zeroHoldMs + 400);
-  assert.equal(H().state, 'running', 'nothing sounding: still running (no doze)'); assert.equal(c.suspends, s0, 'never suspended on screen');
-  assert.equal(H().master, 1, 'the master up');
-  // (the 4:03 pm entry: a context that came up suspended in music-off — the first tap resumes it inside the gesture)
-  c.set('suspended'); const r0 = c.resumes;
+  await sleep(150 + E.FADE.zeroHoldMs + 120);
+  assert.equal(c.state, 'suspended', 'nothing sounding: SUSPENDED (ctx.state says so — no pretending)');
+  assert.equal(c.suspends, s0 + 1); assert.equal(H().napping, true); assert.equal(H().master, 0, 'the master 0 before the suspend (THE ZEROS FIRST)');
+  // (the H1 load bug must not come back: the first tap resumes it IN the gesture)
+  let r0 = c.resumes;
   doc.fire('touchend');
-  assert.ok(c.resumes > r0, 'a tap on a suspended context asks it to run, in the tap');
+  assert.ok(c.resumes > r0, 'a tap asks the napping context to run, inside the tap');
   c.set('running');
+  assert.equal(H().napping, false); assert.equal(H().master, 1, 'running again at full level');
+  await sleep(150 + E.FADE.zeroHoldMs + 120);
+  assert.equal(c.state, 'suspended', 'asleep again ~250 ms after the tap (no effect played)');
+  // an effect with NO tap (a timer's): asks once, dropped if the context isn't running WAKE_WAIT_MS later — never played late
+  r0 = c.resumes;
+  const lone = c.createBufferSource(); let loneEnded = false; lone.start(); const end0 = lone._end; lone._end = () => { loneEnded = true; if (end0) end0(); };
+  assert.ok(c.resumes > r0, 'an effect started while napping asks the context to run');
+  assert.equal(H().voices >= 1, true);
+  await sleep(380);
+  assert.equal(loneEnded, true, 'no tap followed + the context never ran: the effect was DROPPED (stopped), never queued for later');
+  // an effect IN a tap: it plays (the context runs), then the nap follows its end
+  doc.fire('touchend');
+  const fx = c.createBufferSource(); fx.start();
+  c.set('running');
+  await sleep(320);
+  assert.equal(c.state, 'running', 'an effect sounding: awake');
+  fx.stop();
+  await sleep(150 + E.FADE.zeroHoldMs + 120);
+  assert.equal(c.state, 'suspended', '…its end → suspended again');
+  // a leave while napping: nothing to cut
+  const s1 = c.suspends; delete store[R.LEAVE_REC_KEY];
+  win.fire('blur');
+  assert.equal(c.state, 'suspended'); assert.equal(c.suspends, s1, 'a leave finds it suspended — nothing cut, nothing suspended again');
+  assert.equal(rec().first.ctx, 'suspended', 'THE LEAVE RECORD notes "ctx at the leave: suspended" up front');
+  win.fire('focus'); await sleep(500);
+  assert.equal(c.state, 'suspended', 'the return wakes nothing');
+  // the music back ON (a tap): awake at once + the beds back
+  doc.fire('touchend');
   updateSettings({ musicOff: false });
-  assert.equal(bedPaused, false);
+  assert.equal(E.podcastNow(), false); assert.equal(bedPaused, false, 'the beds back with the music');
+  c.set('running');
+  await sleep(150 + E.FADE.zeroHoldMs + 120);
+  assert.equal(c.state, 'running', 'music on: never napping');
 });
 
 test('MUTED = NOTHING RUNS: suspended after the ramp; a tap resumes nothing; leaving + coming back wakes nothing', async () => {

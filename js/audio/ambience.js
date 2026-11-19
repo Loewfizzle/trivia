@@ -220,7 +220,7 @@ export function neonCatch({ level = 1, dur = 0 } = {}) { return playNeon(NEON_RE
  * fully on (`hold` s), then FADES OUT smoothly over `fade` s (an equal-power curve: no sudden tail) and stops. → stop(fade s).
  */
 export function neonHumFade({ level = 1, fadeIn = 0.8, hold = 1.5, fade = 10 } = {}) {
-  if (!isUnlocked()) return () => {};
+  if (!isUnlocked() || (globalThis.__nsBedsOff && globalThis.__nsBedsOff())) return () => {};   // (CITY I — PODCAST MODE: a bed — none with the music off)
   const ctx = getContext(), out = ctx.createGain();
   let src = null, stopped = false, endT = 0;
   out.gain.setValueAtTime(0, ctx.currentTime);
@@ -361,7 +361,7 @@ export function thunder({ near = false, delay = 2, level = 1 } = {}) {
 export function knock({ level = 1 } = {}) {
   if (!isUnlocked()) return;
   // (PART 8a: the slot door-knock, once a recording fills it — core/city-sounds.js; until then this synthesized one)
-  if (isFilled('door-knock') && citySound('door-knock', { gain: level })) return;
+  if (isFilled('door-knock') && citySound('door-knock', { gain: level, tap: true })) return;
   const ctx = getContext();
   const out = ctx.createGain(); out.gain.value = 0.5 * level; out.connect(getSfxBus());
   for (const [dt, v] of [[0, 1], [0.16, 0.8]]) {

@@ -74,7 +74,7 @@ try {
     const before = await p.evaluate(async () => {
       const [E, A, X] = await Promise.all([import('/js/audio/engine.js'), import('/js/audio/ambience.js'), import('/js/audio/sfx.js')]);
       A.neonHumFade({ hold: 30, fade: 30 }); X.sfx('select');
-      // (CITY H2 — MUSIC OFF = ONLY THE MUSIC OFF: the beds run as with the music on; + a 3-s one-off effect — the leave lands mid-sound)
+      // (CITY I — MUSIC OFF = PODCAST MODE: no bed runs (the hum's call is a no-op) — a 3-s one-off effect keeps the context awake: the leave lands mid-sound)
       const EOn = (await import('/js/audio/settings.js')).settings.musicOff;
       if (EOn) { const c = E.getContext(), b = c.createBuffer(1, c.sampleRate * 3, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.sin(i / 9) * 0.05; const o = c.createBufferSource(), g = c.createGain(); o.buffer = b; o.connect(g).connect(E.getSfxBus()); o.start(); }   // (a 3-s one-shot effect: the leave lands mid-sound)
       await new Promise(r => setTimeout(r, EOn ? 400 : 900));
@@ -94,7 +94,7 @@ try {
     const at = await p.evaluate(() => import('/js/audio/engine.js').then(E => ({ s: window.__atSuspend.slice(), state: E.getContext() && E.getContext().state, log: E.audioEvents().slice(-8).map(x => x.m) })));
     const sus = at.s[at.s.length - 1];
     console.log(`  · ${name}: before the leave — the context ${before.state}, ${before.beds} bed(s), master ${before.master}; the log: ${at.log.join(' · ')}`);
-    ok(before.state === 'running' && (prefs.sfxOff ? true : before.beds >= 1 && before.bedsOn >= 1) && before.peak > 0, `${name}: the audio running + SOUNDING before the leave (${before.state}, ${before.beds} bed(s), ${before.bedsOn} on, the output's peak ${before.peak})`);
+    ok(before.state === 'running' && (prefs.sfxOff ? true : prefs.musicOff ? before.bedsOn === 0 : before.beds >= 1 && before.bedsOn >= 1) && before.peak > 0, `${name}: the audio running + SOUNDING before the leave (${before.state}, ${before.beds} bed(s), ${before.bedsOn} on${prefs.musicOff ? ' — PODCAST MODE: none' : ''}, the output's peak ${before.peak})`);
     // (CITY G: with the music off — the 'ambient' session — the earliest signal is THE HARD CUT: "the master 0 + the beds in one step")
     ok(at.log.some(m => /the master 0 at once|the master 0 \+ the beds in one step/.test(m)), `${name}: the AUDIO log — "the master 0 at once" (ambient: the hard cut) on the earliest signal (${at.log.filter(m => /blur|fade out|suspended/.test(m)).join(' · ')})`);
     ok(!!sus && at.state === 'suspended', `${name}: suspended after the leave (${at.state})`);
@@ -110,8 +110,9 @@ try {
     });
     await p.touchscreen.tap(195, 600);
     await sleep(1200);
-    const back = await p.evaluate(() => import('/js/audio/engine.js').then(E => ({ state: E.getContext() && E.getContext().state, h: E.audioHealth().state, master: window.__master(), log: E.audioEvents().slice(-4).map(x => x.m) })));
-    ok(back.state === 'running' && back.master > 0.9, `${name}: back on screen — the context ${back.h}, the master ${back.master && back.master.toFixed(2)} (${back.log.join(' · ')})`);
+    const back = await p.evaluate(() => import('/js/audio/engine.js').then(E => ({ state: E.getContext() && E.getContext().state, h: E.audioHealth().state, nap: E.audioHealth().napping, voices: E.audioHealth().voices, master: window.__master(), log: E.audioEvents().slice(-4).map(x => x.m) })));
+    // (CITY I — PODCAST MODE: back on screen + a tap = awake for a moment, then SUSPENDED again between effects — never running idle)
+    ok(prefs.musicOff ? (back.state === 'suspended' && back.nap) || (back.state === 'running' && back.voices > 0 && back.master > 0.9) : back.state === 'running' && back.master > 0.9, `${name}: back on screen — the context ${back.h}${back.nap ? ' (podcast mode, between effects)' : prefs.musicOff ? ` (an effect still sounding — ${back.voices} voice(s))` : ''}, the master ${back.master && back.master.toFixed(2)} (${back.log.join(' · ')})`);
     await ctx.close();
   }
   // CITY H2 (the 4:03 pm entry) — MUSIC OFF AT LOAD: the FIRST tap on the city unlocks + resumes the audio; an effect then SOUNDS (the effects
@@ -130,10 +131,51 @@ try {
       const c = E.getContext(), m = E.getMaster(), an = c.createAnalyser(); an.fftSize = 2048; m.connect(an);
       X.sfx('select');
       let peak = 0; const d = new Float32Array(an.fftSize);
-      for (let k = 0; k < 12; k++) { await new Promise(r => setTimeout(r, 25)); an.getFloatTimeDomainData(d); for (const v of d) peak = Math.max(peak, Math.abs(v)); }
-      return { state: c.state, fx: E.getSfxBus().gain.value, master: m.gain.value, peak: +peak.toFixed(4), bedsOn: E.audioHealth().bedsOn, session: E.audioHealth().session };
+      let ran = false, mx = 0;
+      for (let k = 0; k < 12; k++) { await new Promise(r => setTimeout(r, 25)); if (c.state === 'running') ran = true; mx = Math.max(mx, m.gain.value); an.getFloatTimeDomainData(d); for (const v of d) peak = Math.max(peak, Math.abs(v)); }
+      return { state: ran ? 'running' : c.state, fx: E.getSfxBus().gain.value, master: mx, peak: +peak.toFixed(4), bedsOn: E.audioHealth().bedsOn, session: E.audioHealth().session };   // (CITY I: PODCAST MODE naps again ~250 ms after the effect — the run + the master's top are what count)
     });
     ok(r.state === 'running' && r.fx > 0.05 && r.master > 0.9 && r.peak > 0.001, `MUSIC OFF AT LOAD → one tap → an effect SOUNDS (ctx ${r.state}, the effects bus ${r.fx.toFixed(2)}, master ${r.master.toFixed(2)}, the output's peak ${r.peak}, session ${r.session})`);
+    await ctx.close();
+  }
+  // CITY I — MUSIC OFF = PODCAST MODE (the owner's option 3): a load with the music off → the first tap wakes the audio; between effects the
+  // context is SUSPENDED (the master 0 first); NO media element plays, no bed / city loop; an effect wakes it + SOUNDS; then asleep again; the
+  // music back ON = awake, the beds + the station back. (Chromium: Playwright's WebKit on Windows has no Web Audio — the owner's phone decides)
+  {
+    const ctx = await browser.createBrowserContext();
+    const p = await ctx.newPage();
+    await p.evaluateOnNewDocument(INIT, 'wpm', { musicOff: true });
+    await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await p.goto(guardUrl(`${BASE}/?emu&slot=wpm&city=2&idle=1&debug=1`, 'wk-audio-leave.mjs'));
+    await p.waitForFunction('!!(window.__district && window.__district.harbor() && window.__district.harbor().shown)', { timeout: 60000 });
+    await p.touchscreen.tap(195, 560);
+    await sleep(2500);   // (the city's sounds would have started by now — in podcast mode none do)
+    const idle = await p.evaluate(() => import('/js/audio/engine.js').then(E => { const h = E.audioHealth(), sn = E.soundingNow(); return { state: E.getContext().state, nap: h.napping, pod: h.podcast, master: E.getMaster().gain.value, media: sn.media, city: sn.city, songs: sn.songs, beds: h.bedsOn, playing: [...document.querySelectorAll('audio, video')].filter(e => !e.paused).length }; }));
+    ok(idle.pod && idle.state === 'suspended' && idle.nap && idle.master === 0, `PODCAST MODE: a load with the music off + a tap → between effects the context is SUSPENDED (${idle.state}, napping ${idle.nap}, master ${idle.master})`);
+    ok(idle.playing === 0 && /none/.test(String(idle.media)) && idle.beds === 0, `PODCAST MODE: no media element playing (${idle.playing} — music.js: ${idle.media}), no bed (${idle.beds}); the city: ${idle.city} · the station: ${idle.songs}`);
+    const fx = await p.evaluate(async () => {
+      const [E, X] = await Promise.all([import('/js/audio/engine.js'), import('/js/audio/sfx.js')]);
+      const c = E.getContext(), m = E.getMaster(), an = c.createAnalyser(); an.fftSize = 2048; m.connect(an);
+      X.sfx('select');
+      let peak = 0; const d = new Float32Array(an.fftSize);
+      let mid = c.state;
+      for (let k = 0; k < 14; k++) { await new Promise(r => setTimeout(r, 25)); if (c.state === 'running') mid = 'running'; an.getFloatTimeDomainData(d); for (const v of d) peak = Math.max(peak, Math.abs(v)); }
+      await new Promise(r => setTimeout(r, 900));
+      return { mid, peak: +peak.toFixed(4), after: c.state, nap: E.audioHealth().napping };
+    });
+    ok(fx.mid === 'running' && fx.peak > 0.001 && fx.after === 'suspended' && fx.nap, `PODCAST MODE: an effect wakes it + SOUNDS (${fx.mid}, the output's peak ${fx.peak}), then SUSPENDED again (${fx.after})`);
+    // a leave while napping: nothing to cut — the AUDIO LEAVE record says "ctx at the leave: suspended"
+    const lv = await p.evaluate(() => { window.dispatchEvent(new Event('blur')); return import('/js/audio/engine.js').then(E => { const ep = window.__audioLeave && window.__audioLeave.episode(); return { state: E.getContext().state, first: ep && ep.first ? ep.first.ctx : '(no record)' }; }); });
+    ok(lv.state === 'suspended' && (lv.first === 'suspended' || lv.first === '(no record)'), `PODCAST MODE: a leave between effects finds the context SUSPENDED (the record's first line: ${lv.first})`);
+    await p.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await sleep(500);
+    // the music back ON (a tap — its gesture): awake, the city's sounds + the station back
+    await p.touchscreen.tap(195, 600);
+    await p.evaluate(() => import('/js/audio/settings.js').then(S => S.updateSettings({ musicOff: false })));
+    await p.touchscreen.tap(195, 610);
+    await sleep(3000);
+    const on = await p.evaluate(() => import('/js/audio/engine.js').then(E => { const h = E.audioHealth(), sn = E.soundingNow(); return { state: E.getContext().state, nap: h.napping, pod: h.podcast, master: E.getMaster().gain.value, city: sn.city, songs: sn.songs, media: sn.media }; }));
+    ok(!on.pod && on.state === 'running' && !on.nap && on.master > 0.9, `MUSIC BACK ON: awake (${on.state}, master ${on.master.toFixed(2)}) — the city: ${on.city} · the station: ${on.songs} · music.js: ${on.media}`);
     await ctx.close();
   }
   // A BLUR THAT COMES BACK (the share sheet — still on screen): silent for a moment, then everything back, never suspended

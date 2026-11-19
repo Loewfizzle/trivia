@@ -13,7 +13,7 @@ export function radioSound() {
       const slot = SLOT[name]; if (!slot) return;
       try {
         if (!warm) { warm = true; for (const s of Object.values(SLOT)) cityPrefetch(s); }
-        citySound(slot, { jitter: 0.02 });
+        citySound(slot, { jitter: 0.02, tap: true });
       } catch { /* polish */ }
     },
     slots: SLOT,

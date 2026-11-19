@@ -682,20 +682,24 @@ G('mediacut', async () => {
   ok(h.after === 'all paused', `… hidden after it: every element still paused (${h.after})`);
   await ev(p, "Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('focus'))");
   await P.ctx.close();
-  // ---- CITY H2 — MUSIC OFF = ONLY THE MUSIC OFF (the owner overrules H1): the city's loops + its one-offs play on, the context never sleeps,
-  //  the session 'ambient'; a leave still finds the master's VALUE at 0 on the first signal
+  // ---- CITY I — MUSIC OFF = PODCAST MODE (the owner's option 3, the 7:55 pm entry): on the REAL city with the music off, no loop sounds, no media
+  //  element plays, the context is SUSPENDED between effects; an effect wakes it, then it naps again; a leave finds it suspended
   { const Q = await open({ slot: 'mc2', qs: `${NIGHT}&debug=1`, view: [402, 874] }), q = Q.page;
     await harborUp(q); await tapAt(q, 30, 300);
     await waitFor(q, "import('/js/audio/engine.js').then(E => E.audioUnlocked() && E.audioHealth().state === 'running')", 'the audio running', 8000).catch(() => {});
     await sleep(2500);
     await ev(q, "import('/js/audio/settings.js').then(m => m.updateSettings({ musicOff: true, sfxOff: false, muted: false }))");
     await sleep(2500);
-    const a = await ev(q, "Promise.all([import('/js/audio/engine.js'), import('/js/audio/city-sound.js')]).then(([E, C]) => ({ h: E.audioHealth(), loops: C.citySoundsDebug().loops.filter(L => L.voices > 0).length }))");
-    ok(a.h.state === 'running' && a.h.master === 1 && a.loops > 0,
-      `MUSIC OFF = ONLY THE MUSIC: the city's loops play on (${a.loops} sounding), the context ${a.h.state}, master ${a.h.master}`);
+    const a = await ev(q, "Promise.all([import('/js/audio/engine.js'), import('/js/audio/city-sound.js')]).then(([E, C]) => ({ h: E.audioHealth(), st: E.getContext().state, loops: C.citySoundsDebug().loops.filter(L => L.voices > 0).length, els: [...document.querySelectorAll('audio, video')].filter(e => !e.paused).length }))");
+    ok(a.h.podcast && a.st === 'suspended' && a.h.napping && a.h.master === 0 && a.loops === 0 && a.els === 0,
+      `PODCAST MODE (the real city): no loop (${a.loops} sounding), no element playing (${a.els}), the context ${a.st} between effects (napping ${a.h.napping}), master ${a.h.master}`);
+    const fx = await ev(q, `(async () => { const [E, X] = await Promise.all([import('/js/audio/engine.js'), import('/js/audio/sfx.js')]); X.sfx('select'); let ran = false;
+      for (let k = 0; k < 10; k++) { await new Promise(r => setTimeout(r, 30)); if (E.getContext().state === 'running') ran = true; }
+      await new Promise(r => setTimeout(r, 900)); return { ran, after: E.getContext().state }; })()`);
+    ok(fx.ran && fx.after === 'suspended', `… an effect wakes it (${fx.ran ? 'ran' : 'NEVER RAN'}), then it naps again (${fx.after})`);
     await ev(q, "window.dispatchEvent(new Event('blur')); Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))");
-    const lv = await ev(q, "import('/js/audio/engine.js').then(E => E.audioHealth())");
-    ok(lv.master === 0, `… a leave with the beds sounding: the master ${lv.master} on the line right after the cut`);
+    const lv = await ev(q, "import('/js/audio/engine.js').then(E => ({ h: E.audioHealth(), st: E.getContext().state }))");
+    ok(lv.st === 'suspended' && lv.h.master === 0, `… a leave between effects: the context ${lv.st}, master ${lv.h.master} — nothing to cut`);
     await Q.ctx.close(); }
   // ---- CITY H2 (the 3:52 pm entry) — THE FAST CYCLE: the music sounding, the corner button OFF → ALL OFF → ON inside about a second → the
   //  music back at once. (CITY H1 read music.js's own clock — -1 while the city's SYNCED STATION holds the song: the music was back, the
