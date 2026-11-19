@@ -633,3 +633,10 @@
 - THE CARDS: ABOVE THE CLOUDS (floor 60, one run, any mode) · TOP OF THE WORLD (floor 200) — in the catalog, HIDDEN until go-live, awarded only from a server-judged run once counting is ON.
 - THE NEXT FRIEND = a PINK thin tape (the gold tape's style), the lowest friend best above you from YOUR TABLE; above you = a right-edge tag "LIAM 57 ▲12"; one friend at a time; solo only.
 - A MATCH: each phone in its own day / night look (JAYWALK's accepted rule).
+
+## HIGH RISE — S4A FIX (approved Nov 19)
+- Ben's iPhone (?fps=1, Safari): 60 fps average but HITCH 88 (day, floor 83) and HITCH 52 (night, floor 53), the last cause "gc 41 ms" both times — about one 2–3-frame stall per floor = the "random lag". The S2 FIX cut garbage 6× on the PC; Safari is far more sensitive. TARGET: ZERO allocations in a live run's steady state (the only reliable way to HITCH 0 on iOS).
+- THE UFO: its amber rim lights on the FAR side showed THROUGH the hull (dimmed to 40%, drawn as glows on top). Far-side lights must be fully hidden, fading in / out as they round the rim; both looks.
+- THE PINK FRIEND TAPE: a WHITE core inside the pink glow (it read only by its glow over the rooftops' pink slabs).
+- THE ICON = "A · THE TOWER" (Ben's pick, Downloads\NEON\highrise-icon-options.png): a cyan isometric stack + the pink slab dropping on top.
+- S4B decided: only THE OWNER can start a match (in a room he hosts); others join and play; fewest players 2; anyone who joins mid-match WATCHES until the REMATCH.
