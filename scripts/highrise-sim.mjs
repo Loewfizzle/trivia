@@ -3,10 +3,11 @@
 // floor 200 for those who do. THE SPEED CURVE (tuning.js#SWEEP) is tuned until the table hits the owner's targets:
 //   sloppy median 30–60 s · good median 2–3 min · near-perfect floor 200 in ≈ 3:00–4:00, most of its runs · casual between.
 //   node scripts/highrise-sim.mjs [seeds = 2000] [--json]
-// (an endless SOLO run is stopped at floor SOLO_STOP — a bot that never slips would never end; the table says how many were stopped)
+// (an endless SOLO run is stopped at floor SOLO_STOP — S1: a bot that never slipped never ended; S2's SOLO PAST 200 tightening ends
+//  every run long before it — the table still says if any was stopped)
 import { createRun, isOver } from '../js/games/highrise/engine.js';
 import { BOTS, BOT_IDS, gaussBot, playBot } from '../js/games/highrise/bot.js';
-import { TICK_HZ, SWEEP, WOBBLE, PERFECT, GROW, GROW_STREAK, BEAT, MODES, CLOUDS_FLOOR, TOP_FLOOR } from '../js/games/highrise/tuning.js';
+import { TICK_HZ, SWEEP, TIGHT, WOBBLE, PERFECT, GROW, GROW_STREAK, BEAT, MODES, CLOUDS_FLOOR, TOP_FLOOR } from '../js/games/highrise/tuning.js';
 
 export const SOLO_STOP = 1200;
 const pct = (sorted, p) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))] : 0);
@@ -42,7 +43,7 @@ if (isMain) {
   for (const mode of ['solo', 'match']) for (const id of BOT_IDS) rows.push(simBot(id, mode, n));
   if (json) console.log(JSON.stringify(rows));
   else {
-    console.log(`HIGH RISE — the bot sims · ${n} seeds a bot · SWEEP ${JSON.stringify(SWEEP)} ±${WOBBLE} · PERFECT ${PERFECT} · GROW ${GROW} after ${GROW_STREAK} · BEAT ${BEAT} · match cap ${mmss(MODES.match.capTicks / TICK_HZ)}`);
+    console.log(`HIGH RISE — the bot sims · ${n} seeds a bot · SWEEP ${JSON.stringify(SWEEP)} ±${WOBBLE} · past floor ${TIGHT.from}: −${TIGHT.by} every ${TIGHT.every} floors, ≥ ${TIGHT.min} · PERFECT ${PERFECT} · GROW ${GROW} after ${GROW_STREAK} · BEAT ${BEAT} · match cap ${mmss(MODES.match.capTicks / TICK_HZ)}`);
     console.log('| mode | bot | σ ms | time med (p10–p90) | floor med (p10–p90) | ≥ 60 | ≥ 200 | to floor 200 med (p10–p90) |');
     console.log('| --- | --- | --- | --- | --- | --- | --- | --- |');
     for (const r of rows) {

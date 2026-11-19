@@ -5,7 +5,7 @@
 // one to the next. The phone's live run and the server's judge run THIS code.
 // PURE: no DOM, no three.js, never Math.random / Date / performance / a frame clock; integers + Math.floor / Math.imul only (no float).
 import { hashString } from '../../core/rng.js';
-import { START, PERFECT, GROW, GROW_STREAK, THIN, TRAVEL, FUSE_SWEEPS, BEAT, WOBBLE, SWEEP_MIN, SWEEP_MAX, sweepBase, MODES, MODE_IDS, MAX_TAPS, PALETTE_N, CLOUDS_FLOOR, TOP_FLOOR } from './tuning.js';
+import { START, PERFECT, GROW, GROW_STREAK, THIN, TRAVEL, FUSE_SWEEPS, BEAT, WOBBLE, SWEEP_MAX, sweepBase, sweepFloorMin, MODES, MODE_IDS, MAX_TAPS, PALETTE_N, CLOUDS_FLOOR, TOP_FLOOR } from './tuning.js';
 
 // ---- THE SEED's picks (integers only): which end a slab enters from + its sweep's wobble — and nothing else
 /** uint32 → uint32, scrambled (Math.imul + shifts: exact on every engine) */
@@ -21,8 +21,8 @@ export const axisOf = floor => (floor % 2 === 0 ? 'x' : 'z');
 export const endOf = (h, floor) => (pick(h, floor, 0x51ab37) & 1 ? 1 : -1);
 /** the ticks one sweep of `floor`'s slab takes: the curve + the seeded wobble (± WOBBLE), never out of the curve's band */
 export function sweepTicks(h, floor) {
-  const s = sweepBase(floor) + (pick(h, floor, 0x77e19d) % (2 * WOBBLE + 1)) - WOBBLE;
-  return s < SWEEP_MIN ? SWEEP_MIN : s > SWEEP_MAX ? SWEEP_MAX : s;
+  const s = sweepBase(floor) + (pick(h, floor, 0x77e19d) % (2 * WOBBLE + 1)) - WOBBLE, lo = sweepFloorMin(floor);
+  return s < lo ? lo : s > SWEEP_MAX ? SWEEP_MAX : s;
 }
 /**
  * THE SLIDE: the slab's offset from the tower's top (its low edge − the top's low edge on the slide axis; 0 = dead on) `k` ticks after

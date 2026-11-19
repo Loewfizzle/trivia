@@ -3,11 +3,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { TICK_HZ, START, PERFECT, GROW, GROW_STREAK, THIN, TRAVEL, FUSE_SWEEPS, BEAT, SWEEP, WOBBLE, SWEEP_MIN, SWEEP_MAX, sweepBase, MODES, MODE_IDS, MAX_TAPS, FLOOR_TICKS_MAX, PALETTE_N, CLOUDS_FLOOR, TOP_FLOOR } from '../js/games/highrise/tuning.js';
+import { TICK_HZ, START, PERFECT, GROW, GROW_STREAK, THIN, TRAVEL, FUSE_SWEEPS, BEAT, SWEEP, WOBBLE, SWEEP_MIN, SWEEP_MAX, sweepBase, sweepFloorMin, TIGHT, MODES, MODE_IDS, MAX_TAPS, FLOOR_TICKS_MAX, PALETTE_N, CLOUDS_FLOOR, TOP_FLOOR } from '../js/games/highrise/tuning.js';
 import { createRun, stepTo, tap, isOver, resultOf, slabAt, topOf, slideOff, sweepTicks, endOf, axisOf, seedHash, modeRow, flyerFor, paletteFor } from '../js/games/highrise/engine.js';
-import { END_WORDS, endWords, seedOf, tickOf, featsOf, standings, rankCompare } from '../js/games/highrise/logic.js';
+import { END_WORDS, endWords, seedOf, tickOf, featsOf, standings, rankCompare, perfectsLine } from '../js/games/highrise/logic.js';
 import { replay, packTaps, unpackTaps } from '../js/games/highrise/replay.js';
-import { gaussBot, playBot } from '../js/games/highrise/bot.js';
+import { BOTS, BOT_IDS, gaussBot, playBot } from '../js/games/highrise/bot.js';
+import { hashString } from '../js/core/rng.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const code = f => read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1');
@@ -312,22 +313,49 @@ test('THE SEED picks ONLY which end each slab enters from (+ its sweep\'s wobble
 
 test('THE SPEED CURVE + THE WOBBLE: sweep ticks fall along the curve to floor 120, then hold; the wobble is ± 3 ticks, seeded, and never leaves the curve\'s band', () => {
   assert.deepEqual(SWEEP.map(k => [...k]), [[1, 140], [120, 84]], 'the sims\' curve (the owner\'s starting points were 96 → 45: docs/games/passes/highrise-s1.md)');
-  assert.deepEqual([sweepBase(0), sweepBase(1), sweepBase(120), sweepBase(121), sweepBase(5000)], [140, 140, 84, 84, 84]);
-  for (let f = 1; f < 400; f++) { assert.ok(Number.isInteger(sweepBase(f))); assert.ok(sweepBase(f + 1) <= sweepBase(f), 'never slower as it climbs'); }
+  assert.deepEqual([sweepBase(0), sweepBase(1), sweepBase(120), sweepBase(121), sweepBase(200)], [140, 140, 84, 84, 84]);
+  for (let f = 1; f < 700; f++) { assert.ok(Number.isInteger(sweepBase(f))); assert.ok(sweepBase(f + 1) <= sweepBase(f), 'never slower as it climbs'); }
   assert.equal(WOBBLE, 3);
   const seen = new Set();
   for (let s = 0; s < 60; s++) {
     const h = seedHash(`w${s}`);
-    for (let f = 1; f <= 400; f++) {
+    for (let f = 1; f <= 600; f++) {
       const S = sweepTicks(h, f), w = S - sweepBase(f);
-      assert.ok(Number.isInteger(S) && S >= SWEEP_MIN && S <= SWEEP_MAX, 'in the band');
+      assert.ok(Number.isInteger(S) && S >= sweepFloorMin(f) && S <= SWEEP_MAX, 'in the band');
+      if (f <= TIGHT.from) assert.ok(S >= SWEEP_MIN, 'up to floor 200: S1\'s band, unchanged');
       assert.ok(abs(w) <= WOBBLE);
       if (f > 10 && f < 110) seen.add(w);
     }
   }
   assert.deepEqual([...seen].sort((a, b) => a - b), [-3, -2, -1, 0, 1, 2, 3], 'every wobble comes up');
   assert.equal(sweepTicks(seedHash('w1'), 77), sweepTicks(seedHash('w1'), 77));
-  assert.ok(SWEEP_MIN >= 60, 'the fastest sweep still gives two perfect ticks a pass (500 units a tick at most)');
+  assert.ok(SWEEP_MIN >= 60, 'the fastest sweep up to floor 200 still gives two perfect ticks a pass (500 units a tick at most)');
+});
+
+test('SOLO PAST 200 KEEPS TIGHTENING (S2 — the owner): from floor 200 the sweep loses 3 ticks every 10 floors, never under 24 — MATCH + DAILY (they end ON floor 200) are S1\'s runs, tick for tick', () => {
+  assert.deepEqual({ ...TIGHT }, { from: 200, every: 10, by: 3, min: 24 });
+  assert.deepEqual([200, 201, 209, 210, 219, 220, 300, 390, 399, 400, 401, 1000, 20000].map(sweepBase), [84, 84, 84, 81, 81, 78, 54, 27, 27, 24, 24, 24, 24]);
+  assert.deepEqual([1, 200, 201, 5000].map(sweepFloorMin), [84, 84, 24, 24]);
+  // past the tightening's floor NOBODY climbs for ever: on a sweep of an ODD number of ticks under 30 no tick is within the perfect
+  // window (the slab is never closer than 30000 / (2 S) > 500 units) — a cut every such floor, whoever taps
+  for (const S of [25, 27, 29]) { let best = 1e9; for (let k = 0; k <= 2 * S; k++) best = Math.min(best, abs(slideOff(S, 1, k))); assert.ok(best > PERFECT, `S ${S}: the nearest tick is ${best} off`); }
+  for (const S of [24, 26, 84]) assert.equal(slideOff(S, 1, S / 2), 0, 'an even sweep still has its dead-on tick');
+  // an ENDLESS run reaches the tightened floors — and the engine plays them (the slab of floor 231 sweeps in 75 ± 3)
+  const h = seedHash('tight'); for (let f = 230; f < 240; f++) assert.ok(abs(sweepTicks(h, f) - 75) <= WOBBLE);
+  // S1's runs, PINNED (the digests were taken on S1's code, ae444bf3, before this change): four bots × 60 seeds a mode, every run's
+  // floor / ticks / end / streaks / last slab / last tap — a match + a daily never spawn slab 201; a solo run is the same up to floor 200
+  const digest = mode => {
+    let s = '';
+    for (const id of BOT_IDS) for (let i = 0; i < 60; i++) {
+      const seed = `gold-${id}-${i}`, run = createRun({ seed, mode }), taps = playBot(run, gaussBot({ sigmaMs: BOTS[id], seed }), { maxFloor: 200 });
+      s += `${run.floor},${run.at},${run.end},${run.st},${run.cause},${run.perfects},${run.maxStreak},${run.x0},${run.x1},${run.z0},${run.z1},${taps.length ? taps[taps.length - 1] : 0};`;
+    }
+    return `${hashString(s).toString(36)}-${hashString(`b:${s}`).toString(36)}-${s.length}`;
+  };
+  assert.equal(digest('match'), '7hhk6j-1ma91zn-13058', 'MATCH: S1\'s runs, unchanged');
+  assert.equal(digest('daily'), '7hhk6j-1ma91zn-13058', 'DAILY: S1\'s runs, unchanged');
+  assert.equal(digest('solo'), 'ozbkhw-t5pysc-12878', 'SOLO up to floor 200: S1\'s runs, unchanged');
+  for (const mode of ['match', 'daily']) { const r = createRun({ seed: 'fin', mode }); playBot(r, gaussBot({ sigmaMs: 4, seed: 'fin' })); assert.deepEqual([r.st, r.floor], ['made', 200], `${mode}: the run ends ON floor 200 — slab 201 never enters`); }
 });
 
 test('INTEGERS ONLY + THE SAME LOG TWICE = THE SAME RUN: every number of the state and of every event is a whole number; a replay is identical, tick by tick or in jumps', () => {
@@ -389,10 +417,19 @@ test('THE PURE EXTRAS (view-only, the same on every phone): flyerFor(seed) = bla
   assert.ok(new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(s => paletteFor(s, 0))).size > 2, 'the seed picks where the wheel starts');
 });
 
-test('THE RANKING (height, then the EARLIER tick) + THE SEED + THE END\'s WORDS + THE PACKED LOG', () => {
-  assert.ok(rankCompare({ floor: 9, tick: 500 }, { floor: 8, tick: 100 }) < 0); assert.ok(rankCompare({ floor: 9, tick: 400 }, { floor: 9, tick: 500 }) < 0);
-  assert.deepEqual(standings([{ uid: 'a', floor: 40, tick: 900 }, { uid: 'b', floor: 55, tick: 2000 }, { uid: 'c', floor: 40, tick: 800 }, { uid: 'd', floor: 40, tick: 900 }]),
-    [{ uid: 'b', rank: 1, floor: 55, tick: 2000 }, { uid: 'c', rank: 2, floor: 40, tick: 800 }, { uid: 'a', rank: 3, floor: 40, tick: 900 }, { uid: 'd', rank: 3, floor: 40, tick: 900 }]);
+test('THE RANKING (S2 — the floor, then THE MOST PERFECTS, then the EARLIER tick) + THE SEED + THE END\'s WORDS + THE PACKED LOG', () => {
+  assert.ok(rankCompare({ floor: 9, tick: 500 }, { floor: 8, tick: 100 }) < 0, 'the floor first — whatever the perfects + the tick');
+  assert.ok(rankCompare({ floor: 9, perfects: 1, tick: 500 }, { floor: 8, perfects: 8, tick: 100 }) < 0);
+  assert.ok(rankCompare({ floor: 200, perfects: 182, tick: 12490 }, { floor: 200, perfects: 171, tick: 12470 }) < 0, 'two Mothership finishers: the most perfects wins, not the hair-earlier tick');
+  assert.ok(rankCompare({ floor: 9, perfects: 4, tick: 400 }, { floor: 9, perfects: 4, tick: 500 }) < 0, 'the same floor + perfects: the earlier tick');
+  assert.ok(rankCompare({ floor: 9, tick: 400 }, { floor: 9, tick: 500 }) < 0, 'a row without perfects counts 0');
+  assert.deepEqual(standings([{ uid: 'a', floor: 40, perfects: 12, tick: 900 }, { uid: 'b', floor: 55, perfects: 3, tick: 2000 }, { uid: 'c', floor: 40, perfects: 12, tick: 800 }, { uid: 'd', floor: 40, perfects: 12, tick: 900 }, { uid: 'e', floor: 40, perfects: 30, tick: 990 }]),
+    [{ uid: 'b', rank: 1, floor: 55, perfects: 3, tick: 2000 }, { uid: 'e', rank: 2, floor: 40, perfects: 30, tick: 990 }, { uid: 'c', rank: 3, floor: 40, perfects: 12, tick: 800 }, { uid: 'a', rank: 4, floor: 40, perfects: 12, tick: 900 }, { uid: 'd', rank: 4, floor: 40, perfects: 12, tick: 900 }]);
+  assert.deepEqual(standings([{ uid: 'x', floor: '7', perfects: 'NaN', tick: null }]), [{ uid: 'x', rank: 1, floor: 7, perfects: 0, tick: 0 }], 'a bad number counts 0');
+  assert.equal(perfectsLine(182), '182 PERFECTS'); assert.equal(perfectsLine(1), '1 PERFECT'); assert.equal(perfectsLine(0), '0 PERFECTS');
+  // the judge's row carries what the ranking reads: the floor, the perfects, the tick
+  const rk = createRun({ seed: 'rank', mode: 'match' }); playBot(rk, gaussBot({ sigmaMs: 25, seed: 'rank' }));
+  const res = resultOf(rk); assert.ok(Number.isInteger(res.floor) && Number.isInteger(res.perfects) && Number.isInteger(res.tick));
   assert.deepEqual(END_WORDS, { miss: 'MISSED THE STACK', thin: 'SLIPPED OFF', slow: 'TOO SLOW', made: 'MADE IT TO THE MOTHERSHIP', cap: 'TIME’S UP' });
   assert.equal(endWords(resultOf(createRun({ seed: 'x' }))), '', 'a run still going has no end words');
   assert.equal(seedOf('WORD', 'm1', 1700000000000), seedOf('WORD', 'm1', 1700000000000)); assert.notEqual(seedOf('WORD', 'm1', 1700000000000), seedOf('WORD', 'm1', 1700000000001));

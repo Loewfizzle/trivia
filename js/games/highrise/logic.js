@@ -25,15 +25,22 @@ export const tickOf = (ms, t0) => Math.round((ms - t0) * TICK_HZ / 1000);
 /** a result's feats as a row carries them: 'reachedClouds reachedTop' ('' = none) */
 export const featsOf = r => Object.keys((r && r.feats) || {}).filter(k => r.feats[k]).join(' ');
 
-/** THE RANKING: height, then the EARLIER tick (a < 0 = a is ahead) */
-export const rankCompare = (a, b) => (b.floor - a.floor) || (a.tick - b.tick);
-/** rows { uid, floor, tick } → [{ uid, rank, floor, tick }] — the same height at the same tick share the place */
+/**
+ * THE RANKING (S2 — the owner, Nov 18): THE FLOOR first; at the SAME floor (above all: the Mothership's finishers, who all stand on
+ * floor 200 within a second of each other — the curve sets the pace) → THE MOST PERFECTS → then the EARLIER tick. Match + daily alike.
+ * (a < 0 = a is ahead; a row without `perfects` counts 0.)
+ */
+export const rankCompare = (a, b) => (b.floor - a.floor) || ((b.perfects || 0) - (a.perfects || 0)) || (a.tick - b.tick);
+/** rows { uid, floor, perfects, tick } → [{ uid, rank, floor, perfects, tick }] — the same height, perfects and tick share the place */
 export function standings(rows) {
-  const list = (rows || []).map(r => ({ uid: r.uid, floor: Number(r.floor) || 0, tick: Number(r.tick) || 0 }));
+  const n = v => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
+  const list = (rows || []).map(r => ({ uid: r.uid, floor: n(r.floor), perfects: n(r.perfects), tick: n(r.tick) }));
   list.sort((a, b) => rankCompare(a, b) || (a.uid < b.uid ? -1 : a.uid > b.uid ? 1 : 0));
   let rank = 0;
   return list.map((r, i) => {
     if (!i || rankCompare(list[i - 1], r) !== 0) rank = i + 1;
-    return { uid: r.uid, rank, floor: r.floor, tick: r.tick };
+    return { uid: r.uid, rank, floor: r.floor, perfects: r.perfects, tick: r.tick };
   });
 }
+/** the podium's line under a name: "182 PERFECTS" (1 PERFECT) */
+export const perfectsLine = n => `${Number(n) || 0} PERFECT${Number(n) === 1 ? '' : 'S'}`;

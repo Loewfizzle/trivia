@@ -37,6 +37,13 @@ export const SWEEP = Object.freeze([Object.freeze([1, 140]), Object.freeze([120,
 export const WOBBLE = 3;
 export const SWEEP_MAX = SWEEP.reduce((m, k) => (k[1] > m ? k[1] : m), 0);
 export const SWEEP_MIN = SWEEP.reduce((m, k) => (k[1] < m ? k[1] : m), SWEEP_MAX);
+/**
+ * SOLO PAST 200 KEEPS TIGHTENING (S2 — the owner, Nov 18: S1's held curve let a near-perfect player climb for ever): past floor `from`
+ * the sweep loses `by` ticks every `every` floors (floor 210, 220, …), never under `min` — so even a near-perfect player falls. Only an
+ * ENDLESS run ever gets there: MATCH + DAILY end ON floor 200 (MADE IT), their slab 201 never enters — they are unchanged, tick for tick
+ * (tests/highrise-engine.test.mjs pins S1's runs). SET BY THE SIMS (docs/games/passes/highrise-s2.md).
+ */
+export const TIGHT = Object.freeze({ from: 200, every: 10, by: 3, min: 24 });
 /** the curve alone (no wobble): the sweep ticks of `floor` (1 = the first slab) */
 export function sweepBase(floor) {
   const K = SWEEP;
@@ -47,8 +54,13 @@ export function sweepBase(floor) {
       return a[1] + Math.floor((b[1] - a[1]) * (floor - a[0]) / (b[0] - a[0]));
     }
   }
-  return K[K.length - 1][1];
+  const held = K[K.length - 1][1];
+  if (floor <= TIGHT.from) return held;
+  const s = held - TIGHT.by * Math.floor((floor - TIGHT.from) / TIGHT.every);
+  return s < TIGHT.min ? TIGHT.min : s;
 }
+/** the lowest a floor's sweep may wobble to: the curve's own band up to floor 200 (S1, unchanged) — past it, the tightening's floor */
+export const sweepFloorMin = floor => (floor > TIGHT.from ? TIGHT.min : SWEEP_MIN);
 
 /** THE MODES: `finish` = the floor that ends the run as MADE IT (null = endless) · `capTicks` = the tick the run ends where it stands (null = none) */
 export const MODES = Object.freeze({

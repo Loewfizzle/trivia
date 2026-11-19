@@ -48,7 +48,20 @@ test('THE TARGETS (the near-perfect bot): floor 200 in ≈ 3:00–4:00, MOST of 
   assert.equal(np.floor.med, 200, 'a match ends at the finish');
   assert.ok(match.good.r200 <= 0.1, 'floor 200 is a feat: a good bot almost never gets there');
   assert.ok(match.sloppy.r200 === 0 && match.casual.r200 === 0);
-  assert.equal(solo.nearPerfect.stopped > 0, true, `(solo is endless: the sim stops a run at floor ${SOLO_STOP})`);
+});
+
+test('SOLO PAST 200 KEEPS TIGHTENING (S2 — the owner: even a near-perfect player falls, ≈ floors 300–400): the near-perfect bot falls between floors 330 and 430, about five and a half minutes in — and nobody is ever stopped by the sim', () => {
+  const np = solo.nearPerfect;
+  assert.equal(np.stopped, 0, `every near-perfect run ENDS (S1: all of them were stopped at floor ${SOLO_STOP})`);
+  assert.ok(np.floor.med >= 350 && np.floor.med <= 410, `the near-perfect bot falls on floor ${np.floor.med}`);
+  assert.ok(np.floor.p10 >= 330 && np.floor.p90 <= 430, `… ${np.floor.p10}–${np.floor.p90}`);
+  assert.ok(np.time.med >= 300 && np.time.med <= 400, `… ${np.time.med.toFixed(0)} s in`);
+  assert.ok(np.r200 >= 0.9, 'floor 200 is still its home ground');
+  for (const id of BOT_IDS) assert.equal(solo[id].stopped, 0);
+  // a machine (σ 3 ms) falls too — the tightening's floor leaves an odd sweep no perfect tick
+  let top = 0;
+  for (let i = 0; i < 12; i++) { const seed = `mach${i}`, run = createRun({ seed, mode: 'solo' }); playBot(run, gaussBot({ sigmaMs: 3, seed }), { maxFloor: SOLO_STOP }); assert.ok(isOver(run), `${seed}: a 3-ms machine is out on floor ${run.floor}`); top = Math.max(top, run.floor); }
+  assert.ok(top < 800, `the tallest machine run: floor ${top}`);
 });
 
 test('THE SIMS PLAY THE REAL RULES: every bot log is one THE JUDGE accepts', () => {
