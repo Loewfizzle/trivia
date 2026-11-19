@@ -1572,3 +1572,28 @@ go-live needs ~6 KB + 1 file, so two long comment blocks moved here word for wor
 // blocks carry the old category ids in data-cat (sounds, music, lights = PULSE, tools, party, time, weather, holidays + each
 // event block its area); openCats() takes a section id or an old category id.
 ```
+
+## THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines moved here word for word; CLAUDE.md keeps ONE short line pointing at this heading.
+
+- Every force flag has a panel row (`core/harbor-remote.js`; `tests/harbor-remote.test.mjs`). Every canvas through `safeCtx` / `ctx2d` (ui/canvas-safe.js).
+- THE CITY TIMETABLE (`core/harbor-schedule.js`) holds EVERY timed thing (`tests/harbor-sched-strays.test.mjs`; THE GOLDEN TABLE
+  `tests/fixtures/sched-golden.mjs` proves a move changed nothing); THE SHOWCASE DIAL, THE DAY CHART (/daychart), THE TIER TABLE (`core/harbor-tiers.js`) for every NEW per-phone number.
+- THE WINDOW SCENES ARE TIMETABLE ROWS: a NEW scene = its `scene.<id>` row + `core/harbor-<id>.js` + its painter in windows.js#SCENE_PAINT.
+- THE RADIO: a timetable row with a `jack` = a jack on the desk; the SERVER checks the ROLE per action (`core/harbor-radio.js#ROLES`); a fired
+  moment plays ONCE; only a server yes loads the radio (radio-gate.js); ONE RADIO PER LOBBY.
+- THE LOAD: the boot screen holds until THE CITY's reveal (ONE fade: index.html #boot + title.css .nd-sign); ONE CAMERA ON SCREEN;
+  THE BOOT BUDGET (`tests/integration/boot-budget.json` — raising it = a named decision); THE BOOT PRELOAD = `node scripts/build-boot-preload.mjs`
+  after a module's imports change; no audio before a tap → docs/harbor.md (THE LOAD — "the boot").
+- THE BOOT WATCHDOG (inline in index.html, `window.__boot` — ONE reload, never a loop); THE REJOIN LIMIT (≤ 8 s on screen); EVERY dynamic import
+  through THE SKEW WRAPPER (`lazyImport(import('./x.js'), 'x')` — `tests/lazy-import.test.mjs`); boot gates in VISIBLE time (ui/onscreen.js); no regex lookbehind.
+- THE BOX GATE: every camera / box change through ONE gate (scene.js#boxCheck) — never a second canvas resize; NO TWO CAMERAS (`wk-double.mjs`;
+  a new path = its row in `tests/integration/kit/two-cameras.mjs`).
+- THE LONG NIGHT's RULE: every module the scene creates is destroyed in scene.js#destroy(), its canvases freed at once (`ui/canvas-safe.js#freeCanvases`).
+- AWAY, LIGHT (FIXES R2): a HIDDEN page keeps none of the city's bakes (scene.js#awayFree); the return holds the last picture + re-bakes through THE ONE RE-FIT PATH.
+- THE ONE-STALL RULE (CITY C): a > 1 s frame in the city's first moments steps a tier at once + is remembered (`core/harbor-tiers.js#stallStepMs`, `na:tier`) → docs/harbor/passes/city-c.md.
+- THE CITY'S IDLE POLLS: every call = an edge request — only from a tab on screen AND focused, ≥ 5 min; a new idle poll = a named decision (`tests/cdn-hotfix.test.mjs`) → docs/launch.md (moved).
+- Debug flags: `&debug=1`, `&dpr=3`, `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary waits for the reveal + a tap; `&lgnow=1` at once).
+- A holiday SIGN FORCE (`&force=sign-*`) shows the FULL look any day, in season too; THANKSGIVING = the maple leaves BEHIND the letters + THE GOLD WEEK (`leafbank.js`) → docs/harbor.md.
+- THE TRI-VISION: the roof board turns HOLD'EM → JAYWALK → THE DROP (from its go-live) by ONE pure clock (`core/harbor-trivision.js`) → docs/harbor.md (moved).
+- THE SIGNS: ONE roster (`core/harbor-neon.js#signRoster` — the playable games); NO NAMED SIGN EVER DARK; OVER / CLOCK + JAY / WALK always stacked; THE DROP's face only from its go-live, via the cached feed → docs/harbor.md "CITY B".

@@ -2148,3 +2148,8 @@ for the effects (the city's beds). /audio is kept BY VERSION in the worker (`na-
 
 ## THE RULES FROM CLAUDE.md (moved Nov 15 — FIXES R2 Part C: the text CLAUDE.md held, verbatim)
 - THE IDLE CUTOFF (`audio/idle.js`) — never during a match. LEAVING (a touch blur · pagehide · hidden · freeze): the master to 0 AT ONCE + every loop a bed (`engine.js#holdBed`) stopped, then the suspend (CITY D). MUTED (or music + effects off) = NOTHING RUNS (the context suspended, every element paused); ONLY the master reaches `ctx.destination` (`tests/audio-hush.test.mjs`). Audio is unlocked by a gesture (iOS); the engine retries on every tap.
+
+## THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines moved here word for word; CLAUDE.md keeps ONE short line pointing at this heading.
+
+- THE IDLE CUTOFF (`audio/idle.js`); LEAVING + MUTED: THE CUT IN ONE ORDER (ramp to 0 → the loops → THE ZEROS FIRST → the suspend); MUTED = NOTHING RUNS, ONLY the master reaches `ctx.destination`; THE THREE-WAY BUTTON (music off → all off → on) + THE SESSION BY STATE ('playback' · 'ambient' + THE HARD CUT · iOS alone) — ONE module `audio/sound-state.js`; every media element paused in the cut (CITY G) → docs/audio.md.

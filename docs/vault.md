@@ -865,3 +865,9 @@ reduced effects = the glow held steady at 0.85. Your rank number pink (each list
 li.is-me .jw-table-n`, `.lb-row.lb-strip.is-me .lb-rank`). REMOVED: THE BOARD's pink left edge + wash (CITY E), JAYWALK's ring in your colour
 (THE TOUCH-UP PASS — `.jw-table-list li.is-me::before`), SCORES' lit frame (DFIX3), the results rows' tint on a slim-card row. THE LIVE LANE holds:
 the glow is CSS round a still (no surface, no lane). `tests/you-row.test.mjs`; e2e-jaywalk's YOUR TABLE check.
+
+## THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines moved here word for word; CLAUDE.md keeps ONE short line pointing at this heading.
+
+- THE LIVE LANE (CITY D): every slim-card LIST = baked STILLS; ≤ 3 on-screen strips live page-wide, each its own small 2D canvas (`K.liveList` — never a surface over a list); CUSTOMIZE's grid = stills → docs/vault.md.
+- THE STRIP MATCH (CITY C): a slim card's material frames its picture EXACTLY as its effect does at any width (`tests/integration/strip-match.mjs`; stills at the hero's centre, kind `o` = transparent) → docs/vault.md.

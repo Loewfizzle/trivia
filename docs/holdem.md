@@ -988,3 +988,9 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   on every op; a seat whose player left goes AWAY at once; the record + `hole/` deleted 8 s after the end; EV_KEEP 24 + no second `shown`; the podium waits
   4.5 s (`logic.js#directorStep`); a missed run with an OLD start is history (`OLDEST_SLACK_MS`); SIT BACK DOWN with your chips; `assets/holdem/CREDITS.md`.
 - **HOLD'EM's BET SLIDER (HE11 — docs/holdem.md "HE11"):** a custom control (`holdem/bet-slider.js` — pointer capture, transform only, never rebuilt under a finger, CONFIRM one-shot) on THE BET STEPS (`holdem/bet-steps.js` PURE: the smallest round unit ≥ the small blind giving ≤ 60 stops; min + ALL IN exact, ALL IN only the last slice — `tests/holdem-bet-steps.test.mjs`, `wk-holdem-slider.mjs`).
+
+## THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines moved here word for word; CLAUDE.md keeps ONE short line pointing at this heading.
+
+- HOLD'EM: the engine PURE + DETERMINISTIC; THE SERVER IS THE DEALER (the deck only in `hrec/{CODE}`); PLAY CHIPS ONLY — no money words;
+  ANIMATIONS COME FROM THE STATE; THE PORTRAIT IS UNTOUCHED by sideways CSS → docs/holdem.md (moved).

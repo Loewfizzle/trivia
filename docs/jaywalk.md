@@ -1598,3 +1598,23 @@ CITY H2 (Nov 18) made room in CLAUDE.md for THE YOU ROW + THE GAMES LIST ORDER +
 
 - JAYWALK's FAR EDGE + THE FRESH-EYES REVIEW (H5C): the day band = a PAINTED skyline per area (`skyline.js`), solid down to THE SEA WALL (nothing half-see-through over the backdrop); a line's words draw above everything but your own kid; EVERY JAYWALK pass ends with a fresh-context reviewer over the full day + night shot set, its report verbatim in the pass log → docs/jaywalk.md "NO WEAK POINTS".
 - JAYWALK's FINISH (H6B): the band's pictures are PAINTED in BOTH looks (no light blinks on a landmark: `SKY_OFF`); THE GATE SIGN only on the approach (gone 3 lanes out); a cue's level only in `sounds.js` / `flyers.js#MIX`, measured (`jaywalk-mix.mjs`) → docs/jaywalk.md "THE FINAL POLISH".
+
+## THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines moved here word for word; CLAUDE.md keeps ONE short line pointing at this heading.
+
+- JAYWALK: the rules PURE + CROSS-ENGINE SAFE (integers + Math.floor — no sin / cos / pow / sqrt, never Math.random / Date.now / a
+  frame clock); a lane = f(seed, index), a hazard = f(lane, tick); a result = THE REPLAY of the hop log; every pass ships its preview at
+  /jaywalk-lab (OPEN since H2B: no gate, ZERO server calls, no writes, noindex + unlisted) — never a 192.168 / tests/ link in a summary → docs/jaywalk.md.
+- JAYWALK's SOLO RUN (H3): THE COURSE IS PICKED AFTER GO (`logic.js#seedOf`); the SERVER's clock, never paused; counted ONLY from the server's replay of the server-stamped chunks (`api/_lib/jaywalk.js#verifyNode`); PLAY AGAIN = THE INSTANT AGAIN; THE LINES → docs/jaywalk.md "THE RULES FROM CLAUDE.md (moved Nov 18)".
+- JAYWALK's MATCH (H4): ONE LIFE EVERYWHERE; the course + tick 0 from THE FIRST GO; ONE judge (`replay.js#judgeRun`); THE DROPPED SIGNAL; THE CAUSE LINE NAMES THE VEHICLE (`causes.js#vehicleAt`) → docs/jaywalk.md "THE RULES FROM CLAUDE.md (moved Nov 18)".
+- JAYWALK's GHOSTS (H4B): a ghost = the engine's state AT THE WORLD's TICK (`ghosts.js`: no hop assumed, a late hop catches up, a death once their `e` confirms it); a match's GO = a transaction never applied locally, THE NODES ARE THE TRUTH (`logic.js#startOf`) → docs/jaywalk.md "THE GHOSTS".
+- JAYWALK's LOOK (H2) is a VIEW (`night.js` — draws from (run, course), never writes; instanced, no point light, no bloom below the top
+  tier); THE CAMERA = ONE pure module every view shares (`camera.js` — ZOOM columns, the follow, the turn; swipes screen-relative); its files
+  only through `scripts/build-jaywalk-assets.py` → docs/jaywalk.md "THE CAMERA".
+- JAYWALK's LOOKS (H5B): DAY + NIGHT are ONE scene (`night.js#setLook` — a VIEW: no rule / replay / server file knows the look; the phone's GAME LOOK read live; THE FOG BANK = the blackout by day); BLUE ON THE GROUND = WATER, NOTHING ELSE (the friend line = a pink tape between posts); the rail signals flash ONLY in the tell → docs/jaywalk.md "THE DAY LOOK" + "BLUE ON THE GROUND".
+- JAYWALK's FAR EDGE + THE FRESH-EYES REVIEW (H5C) · FINISH (H6B) → docs/jaywalk.md "THE RULES FROM CLAUDE.md (moved Nov 18)" (moved for CITY H2).
+- JAYWALK's AREAS (H5A): the lean = RULES (`tuning.js#AREAS`; the sims green in all 8); the look = a VIEW (`areas.js`): an obstacle drawn ONLY where the rules have one — nothing covers a play column; sounds only through PURE `cues.js` → docs/jaywalk.md.
+- JAYWALK's BIG MOMENTS (H6A): THE BLACKBIRD · THE UFO · THE MOTHERSHIP = ONE view module ON DEMAND (`flyers.js`; a moment = f(the rules' tick)); THE MOTHERSHIP is A FINISH LINE (never "TAKEN"); the cards' flags + YOUR BEST only from the server's replay → docs/jaywalk.md "THE BIG MOMENTS".
+- JAYWALK's END SCREEN RESTS THE SCENE (H6B): behind an end screen the 3D scene is a small still (`night.js#rest`); the run's picture = ONE cropped canvas; THE FINAL SCREEN's BUDGET (`kit/jaywalk-mem.mjs#JW_FINAL_BUDGET_MB` — raising it = a named decision) → docs/jaywalk.md "THE END SCREEN's MEMORY".
+- JAYWALK BEFORE THE FLIP: the game never reads the lab's prefs; a teardown never reports a lost context (listeners off first); a resize only ASKS, draw() resizes → docs/jaywalk.md.
+- JAYWALK's RECORDER + JUDGE = ONE BOUND (`engine.js#inputProblem`); the count's sizes + `skyline.js#SKY_MAX` change together → docs/jaywalk.md "THE GO-LIVE REVIEW".

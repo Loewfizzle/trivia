@@ -737,3 +737,9 @@ WEEK: a bar INSIDE a bar (the tall dim cyan = visits, the hot-pink inside = game
 heading cyan (#5fe3ff); a two-tone bar = a dim cyan outer + a hot-pink inner; /admin's matching charts follow (the same builders + admin.css).
 THE FOLD: every slim-card list (each daily's WHO, most active players) shows 3 cards + SHOW ALL (N); SHOW LESS folds it back (`foldBtn` — the
 shell's squared 9-px tube).
+
+## THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines moved here word for word; CLAUDE.md keeps ONE short line pointing at this heading.
+
+- ITEM NAMES ONLY TO OWNERS (`api/_lib/catalog.js` + `lab-text.js`, never served; `tests/vault-names.test.mjs`) — TWO named exceptions on THE PLAYER PAGE: the WORN card's name (`card.cn`) + the top-3 rarest achievements (`api/_lib/player.js`).
+- THE ADD-ME LINK + STATS (CITY C): a friend link = a server-made `flink/` code, never a pid; STATS = ONE builder (`js/admin/stats-view.js`) + ONE cached snapshot (`progress/statsSnap`) → docs/profiles.md.

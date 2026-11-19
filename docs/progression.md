@@ -908,3 +908,17 @@ two strokes, no glow, no fill, deeper colours (`FLAME_DAY` — #d4147f + #c99410
 FLICKER (opacity only — css/progress.css `pg-wait`); FROZEN stays blue; OUT a dark outline; the lit tongue breathes; reduced motion = still.
 PROGRESSION B's three nested tubes (the licks, the amber middle, the fill, the halo) are gone. ONE file: SHARE TODAY (still reads at the 360-px
 downscale, night + day), the profile, THE PLAYER PAGE, the streak card + its week, the end-of-match moment (`look.js#flameIcon`).
+
+## THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines moved here word for word; CLAUDE.md keeps ONE short line pointing at this heading.
+
+- A daily = its cartridge + ONE row in `config.js#DAILIES` (+ its server half in `api/_lib/dailies.js#SERVER_CARTS`) — PLUG-AND-PLAY, no fixed count.
+- DAILY BEST (DAILY A): ONE pure table, each daily's own rule (`core/daily-best.js` → `pstats/{pid}/db`, server-written in the finish's stats transaction); a `tries` row (JAYWALK: 3, the best counts) = `api/_lib/jaywalk-daily.js` + pure `jaywalk-tries.js` → docs/jaywalk.md "THE DAILY".
+- THE SERVER JUDGES every guess / move; answers + boards + THE DAILY SECRET live ONLY in the database (`tests/daily-secrets.test.mjs`) — never the pepper.
+- THE TICKET = ONE pure rule (`today-logic.js#ticketState`; never ADMITTED while tries remain), its PLAY in its `TICKET_INK`; a daily's run (`daily.js#DAILY_RUNS`) out of its game's preload graph; THE 360 FLOOR (`share.js#SMALL_MIN`).
+- A RUN KEEPS ITS OWN DAY (`js/daily/run-day.js`); THE THROWAWAY GATE; the phone side on the kit (`js/daily/` — never a copy in a game).
+- THE GO-LIVE SWITCH + THE RESEED = /admin → THE DAILIES (owner-only); NO PILLS on the dailies; every colour a `--pw-*` / `--cc-*` token.
+- THE SCHEDULED GO-LIVE: an OFF daily opens ONLY at a 4 am turn the owner schedules (/admin → GO LIVE AT THE NEXT 4 AM — `progress/dlive`; `core/daily.js#rowOpenOn`), never mid-day; a finish sweeps its OWN day's set (`dailies.js#liveFor`) → docs/progression.md.
+- THE SHARE CARDS: ONE FOOT (`share.js#shareAddress`) + THE ONE RULE (`share.js#RHYTHM`, `tests/share-rhythm.test.mjs`); THE CARD IS BUILT BEFORE THE TAP (`prepShare`) → docs/progression.md.
+- THE TAPPABLE SHARE CARD (CITY E): SHARE TODAY shares a LINK whose preview IS the day's card (540 × 675, uploaded at prepare — `api/_lib/share-card.js` from api/daily.js; one a player a day, 7 days); JAYWALK's the same (a counted RUN's card, its own slot, uploaded only at SHARE) → docs/progression.md, docs/jaywalk.md.
+- EVERYONE ON SCORES: the day's top = ONE node a daily a day (`dly/{g}/{day}/t` — one transaction per COUNTING finish, `api/_lib/every.js` + pure `core/every.js`), never a scan; public faces only (board ids, never a pid) → docs/progression.md.

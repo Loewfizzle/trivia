@@ -817,3 +817,10 @@ none). `__drop.bar()` for the tests (e2e-drop). The board's own pixels unchanged
 
 ## THE RULES FROM CLAUDE.md (moved Nov 15 — FIXES R2 Part C: the text CLAUDE.md held, verbatim)
 - PRISM's SKINS: a skin = ONE definition in `prism/skins.js` + its art — NO skin-specific path in view / board / rail / victory; ONE counter a match (`game.sk`), every phone draws `pool[k % n]`; a refactor proves `prism-skin-snap.mjs` IDENTICAL; a skin's sourced sounds = `sounds.files` (the code-made voice the fallback); by day the tiers drop the extras FIRST, the board's 3× LAST; a NIGHT skin with its own background = a PAGE skin (no shader work — its moving pieces in the view's `.pd-sky`, by CSS; `.pd[data-lite]` / `[data-still]` stop them) → docs/prism.md "THE SKINS".
+
+## THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines moved here word for word; CLAUDE.md keeps ONE short line pointing at this heading.
+
+- PRISM DROP: never the words "Tetris", "tetromino" or "T-spin"; THE ANTI-CHEAT RULES A PASS MUST KEEP (the board node's write window) → docs/prism.md (moved).
+- PRISM's SKINS: ONE definition each in `prism/skins.js` + its art — no skin-specific path; `prism-skin-snap.mjs` IDENTICAL after a refactor → docs/prism.md "THE SKINS".
+- THE DROP: the phone PLAYS, the server REPLAYS (ONE pure engine — `prism/drop.js` + `drop-judge.js`); a log upload never re-sends the log (chunks beside a small record); a pause never waits on its chunk, a refused finish is scored at its last provable point (PFIX-3) → docs/prism.md "THE DROP".

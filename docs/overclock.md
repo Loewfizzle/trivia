@@ -1083,3 +1083,9 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   `ml-` `sp-`); MISSING LINK records each clue's SIDE (the answer screen + the demo show the WHOLE word, the link lit) and every join is a real word
   (Hunspell en_US / ENABLE) or a Wiktionary phrase; SPELLCHECK is American (the right word in Hunspell en_US — SCOWL; no wrong one a word in
   en_US / en_GB / ENABLE; `hard` = the common slip, the answer's underlines).
+
+## THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I, THE CLAUDE.md TRIM: the text CLAUDE.md held, verbatim)
+CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines moved here word for word; CLAUDE.md keeps ONE short line pointing at this heading.
+
+- OVERCLOCK: its timings are the owner's (pinned by tests); NO SIDEWAYS SCROLL, EVER; right = green, wrong = red + cracked, NO ✓ / ✕; the
+  pools are BUILT (never edit `data/oc/*.json` by hand — `node scripts/oc-pools/build.mjs`) → docs/overclock.md (moved).

@@ -8,7 +8,7 @@ CONTRACT"), code + data + rules kept; JAYWALK live since Nov 17: docs/jaywalk.md
 HOLD'EM's dealer, THE BOARD, admin, errors, the dailies, the weather, the clock). In code the city is still "the district" (`nd-` prefix,
 `window.__district`). The full intro: docs/roadmap-history.md (moved). `ROADMAP.md` = what shipped + what is next.
 
-**THIS FILE IS THE SHORT GUIDE (THE CLAUDE.md DIET, Nov 13):** ≤ 40 KB (`tests/claude-md-size.test.mjs`). A pass adds AT MOST ONE line here per
+**THIS FILE IS THE SHORT GUIDE (THE CLAUDE.md DIET, Nov 13):** ≤ 40 KB (`tests/claude-md-size.test.mjs`); CITY I's TRIM (Nov 18) took it to ~32 KB — keep it near there (a game's / an area's long lines live in its doc). A pass adds AT MOST ONE line here per
 new standing rule; its detail goes in the doc that owns the area. "(moved)" after a doc = its section **THE RULES FROM CLAUDE.md (moved Nov 13)** —
 the full text this file used to hold, verbatim (`scripts/claude-md-coverage.mjs` proves nothing was lost). **Keep this file, ROADMAP.md (one line
 per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
@@ -87,27 +87,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE WIND IS ONE STATE (`core/harbor-wind.js` → scene.js#WF once a frame): anything that moves in the wind reads it.
 - THE BEAT: the lights follow the song's grid; a TRUSTED GRID ALWAYS PUNCHES; the kicks only calibrate the lead (`core/harbor-beat.js`).
 - 3D only as BAKED sprites (`scripts/bake-model.mjs`); lettering nothing passes in front of → THE CRISP LAYER (crisp.js).
-- Every force flag has a panel row (`core/harbor-remote.js`; `tests/harbor-remote.test.mjs`). Every canvas through `safeCtx` / `ctx2d` (ui/canvas-safe.js).
-- THE CITY TIMETABLE (`core/harbor-schedule.js`) holds EVERY timed thing (`tests/harbor-sched-strays.test.mjs`; THE GOLDEN TABLE
-  `tests/fixtures/sched-golden.mjs` proves a move changed nothing); THE SHOWCASE DIAL, THE DAY CHART (/daychart), THE TIER TABLE (`core/harbor-tiers.js`) for every NEW per-phone number.
-- THE WINDOW SCENES ARE TIMETABLE ROWS: a NEW scene = its `scene.<id>` row + `core/harbor-<id>.js` + its painter in windows.js#SCENE_PAINT.
-- THE RADIO: a timetable row with a `jack` = a jack on the desk; the SERVER checks the ROLE per action (`core/harbor-radio.js#ROLES`); a fired
-  moment plays ONCE; only a server yes loads the radio (radio-gate.js); ONE RADIO PER LOBBY.
-- THE LOAD: the boot screen holds until THE CITY's reveal (ONE fade: index.html #boot + title.css .nd-sign); ONE CAMERA ON SCREEN;
-  THE BOOT BUDGET (`tests/integration/boot-budget.json` — raising it = a named decision); THE BOOT PRELOAD = `node scripts/build-boot-preload.mjs`
-  after a module's imports change; no audio before a tap → docs/harbor.md (THE LOAD — "the boot").
-- THE BOOT WATCHDOG (inline in index.html, `window.__boot` — ONE reload, never a loop); THE REJOIN LIMIT (≤ 8 s on screen); EVERY dynamic import
-  through THE SKEW WRAPPER (`lazyImport(import('./x.js'), 'x')` — `tests/lazy-import.test.mjs`); boot gates in VISIBLE time (ui/onscreen.js); no regex lookbehind.
-- THE BOX GATE: every camera / box change through ONE gate (scene.js#boxCheck) — never a second canvas resize; NO TWO CAMERAS (`wk-double.mjs`;
-  a new path = its row in `tests/integration/kit/two-cameras.mjs`).
-- THE LONG NIGHT's RULE: every module the scene creates is destroyed in scene.js#destroy(), its canvases freed at once (`ui/canvas-safe.js#freeCanvases`).
-- AWAY, LIGHT (FIXES R2): a HIDDEN page keeps none of the city's bakes (scene.js#awayFree); the return holds the last picture + re-bakes through THE ONE RE-FIT PATH.
-- THE ONE-STALL RULE (CITY C): a > 1 s frame in the city's first moments steps a tier at once + is remembered (`core/harbor-tiers.js#stallStepMs`, `na:tier`) → docs/harbor/passes/city-c.md.
-- THE CITY'S IDLE POLLS: every call = an edge request — only from a tab on screen AND focused, ≥ 5 min; a new idle poll = a named decision (`tests/cdn-hotfix.test.mjs`) → docs/launch.md (moved).
-- Debug flags: `&debug=1`, `&dpr=3`, `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary waits for the reveal + a tap; `&lgnow=1` at once).
-- A holiday SIGN FORCE (`&force=sign-*`) shows the FULL look any day, in season too; THANKSGIVING = the maple leaves BEHIND the letters + THE GOLD WEEK (`leafbank.js`) → docs/harbor.md.
-- THE TRI-VISION: the roof board turns HOLD'EM → JAYWALK → THE DROP (from its go-live) by ONE pure clock (`core/harbor-trivision.js`) → docs/harbor.md (moved).
-- THE SIGNS: ONE roster (`core/harbor-neon.js#signRoster` — the playable games); NO NAMED SIGN EVER DARK; OVER / CLOCK + JAY / WALK always stacked; THE DROP's face only from its go-live, via the cached feed → docs/harbor.md "CITY B".
+- The city's module rules — every force flag a panel row + every canvas through `safeCtx` · THE CITY TIMETABLE (every timed thing; THE GOLDEN TABLE) · THE WINDOW SCENES ARE TIMETABLE ROWS · THE RADIO (the server checks the ROLE) · THE LOAD + THE BOOT BUDGET + THE BOOT PRELOAD · THE BOOT WATCHDOG · THE REJOIN LIMIT · EVERY dynamic import through THE SKEW WRAPPER (`lazyImport`) · THE BOX GATE + NO TWO CAMERAS · THE LONG NIGHT's RULE · AWAY, LIGHT · THE ONE-STALL RULE · THE CITY'S IDLE POLLS · the debug flags · the SIGN FORCE · THE TRI-VISION · THE SIGNS → docs/harbor.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".
 
 **The console + the room** (→ docs/harbor.md (moved), docs/cartridge.md, docs/title.md)
 - THE ROOM IN THE CITY: the old lobby screen is RETIRED — the room lives in the city from the join to the podium (`screens/room-city.js`,
@@ -140,61 +120,30 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
   the 3rd COUNTED PLAY (`core/progress.js#countedPlays`); a public row = `api/board.js#ROW_KEYS`.
 - THE REAL PLAYER COUNT: anything the server PAYS BY A COUNT takes it from what it can verify (`api/report.js`); A SEAT IS NOT A PLAY (`PROOF_TREES`).
 - Anti-cheat never depends on the code being secret: the server checks + replays every result; secrets only in Vercel's env.
-- ITEM NAMES ONLY TO OWNERS (`api/_lib/catalog.js` + `lab-text.js`, never served; `tests/vault-names.test.mjs`) — TWO named exceptions on THE PLAYER PAGE: the WORN card's name (`card.cn`) + the top-3 rarest achievements (`api/_lib/player.js`).
-- THE ADD-ME LINK + STATS (CITY C): a friend link = a server-made `flink/` code, never a pid; STATS = ONE builder (`js/admin/stats-view.js`) + ONE cached snapshot (`progress/statsSnap`) → docs/profiles.md.
+- ITEM NAMES ONLY TO OWNERS (two named exceptions on THE PLAYER PAGE) · THE ADD-ME LINK (a server-made `flink/` code) + STATS (ONE builder, ONE snapshot) → docs/profiles.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".
 - FRIENDS: `pfr/{pid}` server-written, its owner reads it (`core/friends.js#friendStep`); PASSKEYS (`api/_lib/passkeys.js`, the RESTORE KEY stays the fallback) → docs/profiles.md (moved).
 - SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS — only through `ui/strip-board.js` (never a second strip system); every place 1 / 2 / 3 = THE DECO MEDALS (`ui/medal.js`).
 - THE YOU ROW (CITY H2): YOUR card in EVERY slim-card list = ONE breathing pink glow (`ui/strip-board.js#markMine`); no list keeps its own "me" box / edge / tint → docs/vault.md.
-- THE LIVE LANE (CITY D): every slim-card LIST = baked STILLS; ≤ 3 on-screen strips live page-wide, each its own small 2D canvas (`K.liveList` — never a surface over a list); CUSTOMIZE's grid = stills → docs/vault.md.
+- THE LIVE LANE (lists = baked STILLS, ≤ 3 live strips) · THE STRIP MATCH (a slim card's material frames its picture as its effect does) → docs/vault.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".
 
 **THE VAULT** (→ docs/vault.md (moved))
 - EMBLEMS + GLOWS MOVE ON THE COMPOSITOR (`js/vault/emblem-art.js` — never a CSS animation on an SVG element); THE PROMINENCE RULE is the budget.
 - A FULL CARD ON TOP HOLDS EVERYTHING BEHIND IT — every full card through `vault/full.js#openFullCard`.
 - THE CARD LAYOUT RULE (`js/vault/layout.js`) + THE CARD TEXT STANDARD; THE SLIM-CARD LONG-NAME STANDARD (`config.js#NAME_MAX` 12); THE HERO-SPOT RULE (`js/vault/hero.js`).
-- THE STRIP MATCH (CITY C): a slim card's material frames its picture EXACTLY as its effect does at any width (`tests/integration/strip-match.mjs`; stills at the hero's centre, kind `o` = transparent) → docs/vault.md.
 - NO BLACK TILES: a card drawn in code = a baked still (`js/vault/stills.js` + `node scripts/build-card-stills.mjs`).
 - THE GIFT CARDS: 1-of-1, given ONLY by the owner's `/admin → GIFTS`; the DEV cards the owner's only (`js/core/dev-cards.js`); a MEMBER Nº is server-only.
 - A pass that edits a lab item's art bumps `js/vault/catalog.js#LAB_V` + writes its line in `api/_lib/lab-text.js#LAB_CHANGES`.
 - An unknown path gets THE WRONG DOOR (`404.html` — keep vercel.json free of rewrites).
 - THE LAB FEEDS EVERY PASS: every pass runs scripts/lab-export.mjs <live> at its START and builds the open FIX marks (bump LAB_V + its LAB_CHANGES line) — rebuilt items show under CHANGED for the owner's re-mark → docs/vault.md.
 
-**The dailies** (→ docs/progression.md (moved), docs/password.md, docs/coastclear.md)
-- A daily = its cartridge + ONE row in `config.js#DAILIES` (+ its server half in `api/_lib/dailies.js#SERVER_CARTS`) — PLUG-AND-PLAY, no fixed count.
-- DAILY BEST (DAILY A): ONE pure table, each daily's own rule (`core/daily-best.js` → `pstats/{pid}/db`, server-written in the finish's stats transaction); a `tries` row (JAYWALK: 3, the best counts) = `api/_lib/jaywalk-daily.js` + pure `jaywalk-tries.js` → docs/jaywalk.md "THE DAILY".
-- THE SERVER JUDGES every guess / move; answers + boards + THE DAILY SECRET live ONLY in the database (`tests/daily-secrets.test.mjs`) — never the pepper.
-- THE TICKET = ONE pure rule (`today-logic.js#ticketState`; never ADMITTED while tries remain), its PLAY in its `TICKET_INK`; a daily's run (`daily.js#DAILY_RUNS`) out of its game's preload graph; THE 360 FLOOR (`share.js#SMALL_MIN`).
-- A RUN KEEPS ITS OWN DAY (`js/daily/run-day.js`); THE THROWAWAY GATE; the phone side on the kit (`js/daily/` — never a copy in a game).
-- THE GO-LIVE SWITCH + THE RESEED = /admin → THE DAILIES (owner-only); NO PILLS on the dailies; every colour a `--pw-*` / `--cc-*` token.
-- THE SCHEDULED GO-LIVE: an OFF daily opens ONLY at a 4 am turn the owner schedules (/admin → GO LIVE AT THE NEXT 4 AM — `progress/dlive`; `core/daily.js#rowOpenOn`), never mid-day; a finish sweeps its OWN day's set (`dailies.js#liveFor`) → docs/progression.md.
-- THE SHARE CARDS: ONE FOOT (`share.js#shareAddress`) + THE ONE RULE (`share.js#RHYTHM`, `tests/share-rhythm.test.mjs`); THE CARD IS BUILT BEFORE THE TAP (`prepShare`) → docs/progression.md.
-- THE TAPPABLE SHARE CARD (CITY E): SHARE TODAY shares a LINK whose preview IS the day's card (540 × 675, uploaded at prepare — `api/_lib/share-card.js` from api/daily.js; one a player a day, 7 days); JAYWALK's the same (a counted RUN's card, its own slot, uploaded only at SHARE) → docs/progression.md, docs/jaywalk.md.
-- EVERYONE ON SCORES: the day's top = ONE node a daily a day (`dly/{g}/{day}/t` — one transaction per COUNTING finish, `api/_lib/every.js` + pure `core/every.js`), never a scan; public faces only (board ids, never a pid) → docs/progression.md.
-- THE DROP: the phone PLAYS, the server REPLAYS (ONE pure engine — `prism/drop.js` + `drop-judge.js`); a log upload never re-sends the log (chunks beside a small record); a pause never waits on its chunk, a refused finish is scored at its last provable point (PFIX-3) → docs/prism.md "THE DROP".
+**The dailies** (→ docs/progression.md, docs/password.md, docs/coastclear.md; the full rule lines: docs/progression.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)")
+- A daily = its cartridge + ONE row in `config.js#DAILIES` (PLUG-AND-PLAY); THE SERVER JUDGES every guess (answers + THE DAILY SECRET only in the database); DAILY BEST · THE TICKET · A RUN KEEPS ITS OWN DAY · THE GO-LIVE SWITCH + THE SCHEDULED GO-LIVE · THE SHARE CARDS · EVERYONE ON SCORES → docs/progression.md.
 
-**The games** (read the game's doc before a pass on it)
-- OVERCLOCK: its timings are the owner's (pinned by tests); NO SIDEWAYS SCROLL, EVER; right = green, wrong = red + cracked, NO ✓ / ✕; the
-  pools are BUILT (never edit `data/oc/*.json` by hand — `node scripts/oc-pools/build.mjs`) → docs/overclock.md (moved).
-- PRISM DROP: never the words "Tetris", "tetromino" or "T-spin"; THE ANTI-CHEAT RULES A PASS MUST KEEP (the board node's write window) → docs/prism.md (moved).
-- PRISM's SKINS: ONE definition each in `prism/skins.js` + its art — no skin-specific path; `prism-skin-snap.mjs` IDENTICAL after a refactor → docs/prism.md "THE SKINS".
-- HOLD'EM: the engine PURE + DETERMINISTIC; THE SERVER IS THE DEALER (the deck only in `hrec/{CODE}`); PLAY CHIPS ONLY — no money words;
-  ANIMATIONS COME FROM THE STATE; THE PORTRAIT IS UNTOUCHED by sideways CSS → docs/holdem.md (moved).
-- JAYWALK: the rules PURE + CROSS-ENGINE SAFE (integers + Math.floor — no sin / cos / pow / sqrt, never Math.random / Date.now / a
-  frame clock); a lane = f(seed, index), a hazard = f(lane, tick); a result = THE REPLAY of the hop log; every pass ships its preview at
-  /jaywalk-lab (OPEN since H2B: no gate, ZERO server calls, no writes, noindex + unlisted) — never a 192.168 / tests/ link in a summary → docs/jaywalk.md.
-- JAYWALK's SOLO RUN (H3): THE COURSE IS PICKED AFTER GO (`logic.js#seedOf`); the SERVER's clock, never paused; counted ONLY from the server's replay of the server-stamped chunks (`api/_lib/jaywalk.js#verifyNode`); PLAY AGAIN = THE INSTANT AGAIN; THE LINES → docs/jaywalk.md "THE RULES FROM CLAUDE.md (moved Nov 18)".
-- JAYWALK's MATCH (H4): ONE LIFE EVERYWHERE; the course + tick 0 from THE FIRST GO; ONE judge (`replay.js#judgeRun`); THE DROPPED SIGNAL; THE CAUSE LINE NAMES THE VEHICLE (`causes.js#vehicleAt`) → docs/jaywalk.md "THE RULES FROM CLAUDE.md (moved Nov 18)".
-- JAYWALK's GHOSTS (H4B): a ghost = the engine's state AT THE WORLD's TICK (`ghosts.js`: no hop assumed, a late hop catches up, a death once their `e` confirms it); a match's GO = a transaction never applied locally, THE NODES ARE THE TRUTH (`logic.js#startOf`) → docs/jaywalk.md "THE GHOSTS".
-- JAYWALK's LOOK (H2) is a VIEW (`night.js` — draws from (run, course), never writes; instanced, no point light, no bloom below the top
-  tier); THE CAMERA = ONE pure module every view shares (`camera.js` — ZOOM columns, the follow, the turn; swipes screen-relative); its files
-  only through `scripts/build-jaywalk-assets.py` → docs/jaywalk.md "THE CAMERA".
-- JAYWALK's LOOKS (H5B): DAY + NIGHT are ONE scene (`night.js#setLook` — a VIEW: no rule / replay / server file knows the look; the phone's GAME LOOK read live; THE FOG BANK = the blackout by day); BLUE ON THE GROUND = WATER, NOTHING ELSE (the friend line = a pink tape between posts); the rail signals flash ONLY in the tell → docs/jaywalk.md "THE DAY LOOK" + "BLUE ON THE GROUND".
-- JAYWALK's FAR EDGE + THE FRESH-EYES REVIEW (H5C) · FINISH (H6B) → docs/jaywalk.md "THE RULES FROM CLAUDE.md (moved Nov 18)" (moved for CITY H2).
-- JAYWALK's AREAS (H5A): the lean = RULES (`tuning.js#AREAS`; the sims green in all 8); the look = a VIEW (`areas.js`): an obstacle drawn ONLY where the rules have one — nothing covers a play column; sounds only through PURE `cues.js` → docs/jaywalk.md.
-- JAYWALK's BIG MOMENTS (H6A): THE BLACKBIRD · THE UFO · THE MOTHERSHIP = ONE view module ON DEMAND (`flyers.js`; a moment = f(the rules' tick)); THE MOTHERSHIP is A FINISH LINE (never "TAKEN"); the cards' flags + YOUR BEST only from the server's replay → docs/jaywalk.md "THE BIG MOMENTS".
-
-- JAYWALK's END SCREEN RESTS THE SCENE (H6B): behind an end screen the 3D scene is a small still (`night.js#rest`); the run's picture = ONE cropped canvas; THE FINAL SCREEN's BUDGET (`kit/jaywalk-mem.mjs#JW_FINAL_BUDGET_MB` — raising it = a named decision) → docs/jaywalk.md "THE END SCREEN's MEMORY".
-- JAYWALK BEFORE THE FLIP: the game never reads the lab's prefs; a teardown never reports a lost context (listeners off first); a resize only ASKS, draw() resizes → docs/jaywalk.md.
-- JAYWALK's RECORDER + JUDGE = ONE BOUND (`engine.js#inputProblem`); the count's sizes + `skyline.js#SKY_MAX` change together → docs/jaywalk.md "THE GO-LIVE REVIEW".
+**The games** (read the game's doc before a pass on it; each game's full rule lines: its doc, "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)")
+- OVERCLOCK: its timings are the owner's, NO SIDEWAYS SCROLL, right / wrong never ✓ / ✕, the pools are BUILT → docs/overclock.md.
+- PRISM DROP: never "Tetris" / "tetromino" / "T-spin", THE ANTI-CHEAT RULES, ONE definition per SKIN; THE DROP (the daily) → docs/prism.md.
+- HOLD'EM: the engine PURE + DETERMINISTIC, THE SERVER IS THE DEALER, PLAY CHIPS ONLY, the portrait untouched → docs/holdem.md.
+- JAYWALK: the rules PURE + CROSS-ENGINE SAFE, a result = THE REPLAY, the preview at /jaywalk-lab; THE SOLO RUN · THE MATCH · THE GHOSTS · THE LOOK(S) · THE AREAS · THE BIG MOMENTS · THE END SCREEN · BEFORE THE FLIP · THE RECORDER = ONE BOUND → docs/jaywalk.md.
 
 **Deploy, launch + safety** (→ docs/testing.md (moved), docs/launch.md (moved))
 - NEVER THE LIVE SITE: tests + repros on the emulators (`kit/live-guard.mjs`; `LIVE=1` on purpose only).
@@ -267,7 +216,7 @@ Rules of thumb: a player writes only under their own uid; anything secret lives 
 ## Audio (the short version; everything else in `docs/audio.md`)
 - MOOD MUSIC (`audio/mood.js`); City 2.0's stations play on the server clock — every phone the same song (`audio/party-music.js#stationOf`).
 - `playMusic(id, fallback)` driven by `app.js` from state; `sfx(name)` for the shared effects; a game's own palette in its `createSfx()`.
-- THE IDLE CUTOFF (`audio/idle.js`); LEAVING + MUTED: THE CUT IN ONE ORDER (ramp to 0 → the loops → THE ZEROS FIRST → the suspend); MUTED = NOTHING RUNS, ONLY the master reaches `ctx.destination`; THE THREE-WAY BUTTON (music off → all off → on) + THE SESSION BY STATE ('playback' · 'ambient' + THE HARD CUT · iOS alone) — ONE module `audio/sound-state.js`; every media element paused in the cut (CITY G) → docs/audio.md.
+- THE IDLE CUTOFF · LEAVING + MUTED: THE CUT IN ONE ORDER · MUTED = NOTHING RUNS · THE THREE-WAY BUTTON + THE SESSION BY STATE (`audio/sound-state.js`) → docs/audio.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".
 - MUSIC OFF = PODCAST MODE (CITY I): effects only — no beds / loops / playing element; the context SUSPENDED between effects (`engine.js#napNow`, never pretending), an effect or a tap wakes it → docs/audio.md.
 - New songs: `scripts/add-city2-music.py` (City 2.0) — bump `music.js#REV` when replacing a file; never change a song element's playbackRate.
 
