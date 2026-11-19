@@ -608,3 +608,9 @@
 - THE ASSETS (Grok — Downloads\grok\highrise, approved Nov 18): plates\ night-1…5 (+ the day set for S3) · hdri\ night.hdr (Shanghai Bund) + day.hdr, Poly Haven CC0 · sfx\ 1-drop … 9-band-arrival (CC0; 3-slice-v2 + its -b) · cards\ (S3 / S4) · mockups\ highrise-night.png / highrise-day.png (the approved look).
 - THE FLYERS (the Blackbird OR an F-22 pair · the UFO · THE MOTHERSHIP) + the DAY look + deep space + the 2 cards' art = S3. THE MATCH + counting = S4. THE DAILY = S5.
 - The model: FABLE; if its credits run out mid-pass, finish on Opus 5.5 high.
+
+## HIGH RISE — S2 FIX (approved Nov 19)
+- Ben's phone check of S2: the glass, the sliding slab, cuts + sparks + the perfect ring and the backdrops all approved; 60 fps at tier 2 on his iPhone — but RANDOM LAG spikes he can feel.
+- YOUR BEST tape = a THIN glowing gold OUTLINE round the tower (not a solid band — it read as a slab).
+- The end screen gets the STANDARD FOOTER: one big solid glowing PLAY AGAIN bar in HIGH RISE's accent (no pill shape); tap-anywhere-after-0.6 s stays.
+- The sounds ship compressed (not WAV).
