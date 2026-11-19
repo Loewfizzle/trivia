@@ -44,8 +44,9 @@ const RETRY_MS = 600;
 const CAP_GRACE = 6;
 /** a frame that comes this long after the last one = the tab was away: its batch of events is LATE (only the OUT sounds — sounds.js#cuesOf) */
 const LATE_MS = 900;
-/** THE HITCH COUNTER (S2 FIX — THE LAG HUNT; `?fps=1` shows it): a frame that took longer than this, in a live run, after its first second */
-const HITCH_MS = 33;
+/** THE HITCH COUNTER (S2 FIX — THE LAG HUNT; `?fps=1` shows it): a frame that took longer than this, in a live run, after its first
+ *  second — AND longer than HITCH_X × the phone's own usual frame (iOS Low Power Mode draws at 30 Hz: every frame is 33.3 ms, none a hitch) */
+const HITCH_MS = 33, HITCH_X = 1.5;
 const clockText = ticks => { const s = Math.max(0, Math.ceil(ticks / TICK_HZ)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const readBest = () => { try { return cleanBest(localStorage.getItem(BEST_KEY)); } catch { return 0; } };
 const writeBest = n => { try { localStorage.setItem(BEST_KEY, String(n)); } catch { /* a private window forgets: fine */ } };
@@ -255,7 +256,7 @@ function mount() {
 
   let raf = 0, last = 0, hudFloor = -1, hudLeft = -2, tagFloor = -1, tagAt = -1e9, frameN = 0;
   // THE HITCH COUNTER: frames over HITCH_MS in this run (after its first second; a tab that was away is not a hitch) + the last one's cause
-  let hitchN = 0, hitchAll = 0, hitchLast = '', prevAt = 0, prevWork = 0;
+  let hitchN = 0, hitchAll = 0, hitchLast = '', prevAt = 0, prevWork = 0, usual = TICK_MS;   // (usual: the phone's own frame, eased)
   const hitchList = [];
   function hitch(gap) {
     const since = prevAt - 2;
@@ -267,7 +268,8 @@ function mount() {
   function frame(now) {
     raf = requestAnimationFrame(frame);
     const w0 = performance.now(), gap = last ? now - last : TICK_MS, dt = Math.min(250, gap);
-    if (last && gap > HITCH_MS && gap < LATE_MS && prevAt && t0 != null && now - t0 > 1000 && !shown && !isOver(run)) hitch(gap);
+    if (last && gap > HITCH_MS && gap > usual * HITCH_X && gap < LATE_MS && prevAt && t0 != null && now - t0 > 1000 && !shown && !isOver(run)) hitch(gap);
+    if (last && prevAt) usual += (Math.min(gap, 100) - usual) * 0.05;
     last = now;
     if (document.visibilityState === 'hidden' || sheetOpen) { prevAt = 0; return; }
     let tau = 0;

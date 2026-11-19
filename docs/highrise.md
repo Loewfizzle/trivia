@@ -15,6 +15,7 @@ never counts). Read this page before a HIGH RISE pass.
 | --- | --- | --- | --- |
 | S1 — THE RULES | Nov 18 2026 | `docs/games/passes/highrise-s1.md` | the engine, the replay + the judge (server half), the bot sims + the tuned speed curve, THE LAB (/highrise-lab) |
 | S2 — THE NIGHT LOOK + SOLO | Nov 18–19 2026 | `docs/games/passes/highrise-s2.md` | THE TEST PAGE (/highrise-play — nothing counts): the glass tower, the cut + sparks, the perfect's ring, grow-back, the night plates + the reflection map, the HUD, YOUR BEST (this phone), the sounds + the audition; the rules: SOLO PAST 200 KEEPS TIGHTENING · the ranking by perfects |
+| S2 FIX — THE LAG HUNT | Nov 19 2026 | `docs/games/passes/highrise-s2-fix.md` | the owner's phone check: the lag spikes found + fixed (THE LAG RULES, THE HITCH COUNTER on `?fps=1`), YOUR BEST's tape = a thin gold OUTLINE, THE END's FOOT (the PLAY AGAIN bar), the sounds as MP3 (121 KB) |
 
 ## THE RULES (the owner's)
 - **THE ONE RULE:** the same seed + the same TAP LOG → the exact same run on any phone and on the server (**REPLAY = LIVE**). Integers /
@@ -202,7 +203,7 @@ What changed from the starting numbers, and why: `docs/games/passes/highrise-s1.
 ## THE TEST PAGE — https://neonspeakeasy.com/highrise-play (S2 — `highrise-play.html` · `js/games/highrise/play.js` · `css/highrise-play.css`)
 The real game's NIGHT LOOK + SOLO, on the live site, on a phone: the owner tests on cellular, his brother from a shared link.
 **UNLISTED** (noindex nofollow; no page, no script, no manifest names it), **OPEN** (no gate, no sign-in). `?seed=` (the same slabs
-every run) · `?fps=1` · `?tier=0|1|2` (pins a quality tier) · `?mode=match|daily` (the pass's own check of the finish + the cap — the
+every run) · `?fps=1` (the frame rate + **THE HITCH COUNTER** — below) · `?tier=0|1|2` (pins a quality tier) · `?mode=match|daily` (the pass's own check of the finish + the cap — the
 page itself is SOLO).
 - **NOTHING COUNTS UNTIL GO-LIVE (the owner, Nov 18):** no XP, no streak, no server best, no YOUR TABLE, no cards, no share card —
   scores start clean at launch (the tuning may still change). The run is the pure engine in the tab: **ZERO server calls, ZERO database
@@ -229,8 +230,21 @@ page itself is SOLO).
   Its one-shot + the band's arrival are Web Animations (opacity + transform; restarted with NO forced layout). (The altimeter = the match, S4.)
 - **THE START**: the sign (HIGH / RISE stacked, pink over cyan), TAP TO START, the one rule, YOUR BEST n · THIS PHONE. **THE END CARD**:
   the cause's words (the game's own table; MADE IT in gold), FLOOR n, the band reached, "N PERFECTS · BEST STREAK n", YOUR BEST n /
-  NEW BEST · WAS n, TAP TO PLAY AGAIN — its foot above the top slab (the tower stays in view), its head under the SOUNDS button's row
+  NEW BEST · WAS n — its foot above the top slab (the tower stays in view), its head under the SOUNDS button's row
   (≥ 58 px down — a phone in a Safari TAB is only ~660 px tall), on every size.
+- **THE END's FOOT (S2 FIX — END-SCREEN STANDARD A, the owner):** ONE big SOLID glowing **PLAY AGAIN** bar at the foot of the end
+  screen, in HIGH RISE's accent (`--hi-accent` — its sign's hot pink `#ff4fd8`, dark ink): full width inside the 16 pt gutters, 62 pt
+  tall (58 on a short phone), a rounded RECTANGLE (8 px corners — never a pill), the replay arrow + the words, the glow static, on its
+  OWN press + lift. **A tap ANYWHERE after 0.6 s is still PLAY AGAIN** — and the bar keeps the same wait (it comes up where the thumb
+  was dropping slabs: a rhythm's next tap must not wipe the card unread). The card's own "TAP TO PLAY AGAIN" line is gone (one cue).
+  With `?fps=1` the fps line moves up, clear of the bar. (The page builds its own bar — it loads no `ui/final.js`.)
+- **THE HITCH COUNTER (S2 FIX — `?fps=1`, the last words of the line: `HITCH 2 (last: plate 48 ms @21)`):** the frames over **33 ms**
+  in THIS run (after its first second; a tab that was away is not one; and over 1.5 × the phone's own usual frame — Low Power Mode
+  draws at 30 Hz, every frame 33.3 ms: none of them a hitch) + the last one's CAUSE and floor — for the owner's screenshot.
+  The cause = the one-off work the page did since the frame before: **plate** (a backdrop uploaded) · **compile** (a program built /
+  the tier stepped) · **audio** (a decode landed / the limiter built) · **dom** (the HUD was written in that frame) · **gc** (none of
+  those and the page's own frame code was quick — the pause was the browser's: most often a collection) · **unknown** (the page's own
+  frame code was slow, with no mark). `window.__hiPlay.hitches()` = the list.
 - **DESKTOP COMES FREE:** a wide screen gets the phone's own column (0.6 of the height wide), centred.
 - **THE LOST CONTEXT** (JAYWALK's lesson): `webglcontextlost` → the scene is REBUILT — destroyed + created again on the SAME tower
   object, tier + gold tape — the moment the context is restored, or after 1.5 s; the listeners come OFF before any destroy (its own
@@ -265,6 +279,22 @@ A VIEW: it reads the run + the tower the page builds from the events; it never w
   blurred at a quarter, added back) · **1** = DPR ≤ 2, no bloom · **0** = DPR ≤ 1.5, fewer sparks, no trail. **THE WARM FRAME**: one of
   everything far under the tower + one hidden frame (the bloom too) before the first slab moves. A resize only ASKS — the frame
   resizes first, then renders.
+- **THE LAG RULES (S2 FIX — the owner felt random lag spikes at 60 fps; `docs/games/passes/highrise-s2-fix.md` has the numbers) —
+  nothing is DECODED, COMPILED or THROWN AWAY in a frame:**
+  (1) **A PLATE IS DECODED + UPLOADED AHEAD** — its bytes → `createImageBitmap` (decoded off the main thread; an `<img>.decode()` where
+  it is missing) → `renderer.initTexture` AT ONCE, a whole band before the seam that first shows it (three's `TextureLoader` hands the
+  GPU an `<img>`, decoded at its first draw: a 33–50 ms frame at every seam). An ImageBitmap's first row is at v = 0: the plate
+  shader flips it (`uFlipA / uFlipB`).
+  (2) **THE BLOOM PASS DRAWS TWINS** — a material drawn to the screen AND into a render target changes program each time in three.js
+  (the target's colour space): it re-worked the program's whole key SIX times a frame — ≈ 2.7 MB of garbage a second. Every mesh has
+  a twin material (the same shader, the SAME uniforms object) that is only ever drawn in the bloom pass (`night-fx.js#createBloom`
+  "twins"). A NEW material that the bloom pass draws needs its twin (`night.js#twin`).
+  (3) **THE WARM FRAME BUILDS EVERYTHING** — the tape's program too; a program built in a later frame is counted (`compile`).
+  (4) **THE BLOOM IS KEPT through a tier step down** (Low Power Mode's probe steps 2 → 1 → 2 within four seconds — it used to throw
+  the bloom's programs + targets away and build them again mid-run); it is built + drawn at tier 2 only.
+  (5) **NO GARBAGE IN A FRAME THAT CHANGES NOTHING**: the HUD compares two numbers (no text built), the tag is written only when it
+  moved, the plates' list is walked only at a seam's edge, the tier rule is asked six times a second (each asking sorts its samples).
+  (6) **THE SOUNDS' one-off work is done at the unlock** — the decode AND the limiter (not in the first drop's frame).
 - **MEASURED (the mini PC, 390 × 844 @3, the bot playing high in the clouds — a cut + its sparks every third drop; `--perf`):**
   **60.0 fps at every tier at 1× and 4× CPU** (p95 ≤ 17.3 ms, no frame over 18 ms) · tier 2: 10 draw calls a frame (4 the picture +
   the bloom's 6), ≈ 1,950 triangles · tiers 1 / 0: 4 calls, ≈ 970 triangles. A desktop GPU's numbers — the tiers are the phone's margin.
@@ -287,7 +317,11 @@ A VIEW: it reads the run + the tower the page builds from the events; it never w
 - (S3: the DAY set — `--look=day` in the builder; THE FLYERS; deep space past 200; THE MOTHERSHIP at 200.)
 
 ## THE LINES — YOUR BEST (S2 — `best.js`, PURE · `night.js#setBest` · `play.js`)
-- **YOUR BEST = a GOLD TAPE** (a thin outline band round the slab, no fill) on the tower at your best floor. **While that floor is
+- **YOUR BEST = a GOLD TAPE — a THIN glowing gold OUTLINE round the tower** (S2 FIX, the owner: the first one, four gold boxes, "read
+  as a slab"): ONE line of light at the mid height of the slab of your best floor, all the way round — ≈ 3 px at 3× (its width follows
+  the pixel: never under ~2 device px at any tier), a soft glow off it, NO fill, no lid; the edges turned away from the camera are
+  drawn FAINT through the glass. Its own small mesh (`night-fx.js TAPE_F` — one draw, only while a tape lies on the tower; the line
+  covers what is behind it, so its gold stays gold on a cyan slab; a deeper gold than the flash's). It lies on the tower at your best floor. **While that floor is
   ABOVE you** there is no tower there yet: it is a **right-edge tag "BEST 57 ▲12"** (gold, flat — no pill) at its floor's own height,
   HELD in the clear column between the HUD's foot and **THE DROP ZONE's upper edge** (`best.js#tagY` · `night.js#zoneTop` = the highest
   point the sliding slab's path reaches) — never over the drop zone. Standing ON it: "BEST 57 · ONE MORE". (A best more than 100 floors
@@ -299,6 +333,11 @@ A VIEW: it reads the run + the tower the page builds from the events; it never w
   FRIEND's tape (the same in PINK) arrives with S4's counting.
 
 ## THE SOUNDS + THE AUDITION (S2 — `sounds.js` (the PURE table + the triggers) · `sfx.js` · `audition.js`; the files: `audio/highrise/`)
+- **THE FILES ARE MP3 (S2 FIX — the owner):** ten files, **121 KB** (44.1 kHz mono, 128 kbps — `node scripts/build-highrise-sounds.mjs
+  --lame <…/@breezystack/lamejs/dist/lamejs.js>`: a pure-JS encoder from npm, a BUILD TOOL given by path — never in package.json, never
+  shipped; the build machine has no ffmpeg). The same level as the WAVs (each within 0.4–1.0 dB, decoded). **AN MP3's LEAD-IN IS
+  SKIPPED AT PLAY** (`sfx.js#leadOf`): the encoder puts ~25 ms of near-silence in front of every sound — each starts at its first
+  audible sample, so a drop's sound stays ON its tap.
 - Through the SHARED engine (`audio/engine.js` — JAYWALK's pattern): the bytes fetched early (no AudioContext — nothing sounds before a
   tap), decoded once at the unlock, each sound a buffer source → its gain → a soft limiter (−8 dB, 8 : 1) + a trim → the console's SFX
   bus. **8 VOICES by PRIORITY** (your OUT 4 > the chime · the streak · a band's arrival 3 > the slice · grow-back 2 > a drop · the
@@ -325,8 +364,9 @@ A VIEW: it reads the run + the tower the page builds from the events; it never w
   (the slabs' side faces mirror it downward: the promenade, its people and its street-level signs never ship), 256 × 64, blurred (smoked
   glass is no mirror), tone-curved into 8 bits (`v = x / (1 + x)`, gamma 2.2 — the shader undoes it: the lights come back hot): **14 KB**
   (the 1.6 MB HDRI never ships).
-- `audio/highrise/` — the nine sounds + the slice's backup as 16-bit 44.1 kHz MONO WAV (the stereo takes mixed down; **no MP3 encoder
-  on the build machine** — an MP3 set would be ≈ 120 KB): **633 KB**, fetched after the page is up. All CC0 1.0 — `CREDITS.md` +
+- `audio/highrise/` — the nine sounds + the slice's backup as **MP3** (S2 FIX: 44.1 kHz mono, 128 kbps — `build-highrise-assets.py`
+  makes the 16-bit mono WAVs from the delivery (633 KB), `scripts/build-highrise-sounds.mjs` turns them into the MP3s that ship + removes
+  the WAVs): **121 KB**, fetched after the page is up. All CC0 1.0 — `CREDITS.md` +
   `LICENSE.txt` (the site's Credits sheet gets its HIGH RISE group at go-live).
 - The day plates + `day.hdr` + the two cards' art + the flyers' models are S3's.
 
@@ -344,8 +384,9 @@ js/games/highrise/sounds.js sfx.js audition.js      THE SOUNDS: the table + the 
 js/games/highrise/lab.js graybox.js                 THE LAB (S1's graybox)
 api/_lib/highrise.js                                THE JUDGE's server half (pure, not wired)
 assets/highrise/  audio/highrise/                   the plates + the reflection map · the sounds   scripts/build-highrise-assets.py
+scripts/build-highrise-sounds.mjs                   the WAVs → the MP3s that ship (a pure-JS encoder from npm, given by path)
 tests/highrise-engine.test.mjs (21) · highrise-server.test.mjs (5) · highrise-sim.test.mjs (5) · highrise-lab.test.mjs (6) · highrise-play.test.mjs (11)
-tests/integration/highrise-play.mjs (86 — the browser; --review · --webkit · --look · --perf) · highrise-lab.mjs (45)
+tests/integration/highrise-play.mjs (93 — the browser; --review · --webkit · --look · --perf · --hitch = THE LAG HUNT's long run) · highrise-lab.mjs (45)
 ```
 
 ## COMING

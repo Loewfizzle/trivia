@@ -23,7 +23,7 @@ import { pathToFileURL } from 'node:url';
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null, LOOK = argv.includes('--look'), PERF = argv.includes('--perf');
 if (OUT) mkdirSync(OUT, { recursive: true });
-const b = await puppeteer.launch({ executablePath: argv[0], headless: true, args: ['--enable-gpu', '--use-angle=d3d11', '--enable-webgl', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
+const b = await puppeteer.launch({ executablePath: argv[0], headless: true, protocolTimeout: 900000 /* (--hitch: one call lasts the whole run) */, args: ['--enable-gpu', '--use-angle=d3d11', '--enable-webgl', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
 const fails = [];
 let checks = 0;
 const ok = (c, what) => { checks++; console.log(c ? 'OK  ' : 'FAIL', what); if (!c) fails.push(what); };
@@ -269,7 +269,7 @@ async function main() {
   ok(b2.band === 2 && l2 === 'THE CLOUDS' && b2.info.held.length <= 2 && b2.info.plates.includes(2) && !b2.info.held.includes(0), `floor ${b2.floor}: THE CLOUDS — its plate is in, the rooftops' is let go (held: ${b2.info.held}; ${b2.info.loads} loaded so far)`);
   const arr = await p.evaluate(() => window.__hiPlay.sfx.wanted().filter(q => q.id === 'band-arrival').length);
   ok(arr === 2, 'a band\'s arrival sounds once a band');
-  ok(sameTop(b2) && b2.info.calls <= 12, `the view's tower == the engine's after ${b2.taps} drops; ${b2.info.calls} draw calls a frame`);
+  ok(sameTop(b2) && b2.info.calls <= 13,   /* (the tape on: + its line, + its faint back edges, + its line in the bloom pass) */ `the view's tower == the engine's after ${b2.taps} drops; ${b2.info.calls} draw calls a frame`);
 
   // ---- THE LOST CONTEXT: the scene is rebuilt on the same tower — the run never stopped
   const lost = await p.evaluate(() => { const c = document.querySelector('canvas.hi-canvas'), gl = c.getContext('webgl2') || c.getContext('webgl'), x2 = gl && gl.getExtension('WEBGL_lose_context'); if (!x2) return false; c.dataset.old = '1'; x2.loseContext(); return true; });

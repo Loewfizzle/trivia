@@ -16,7 +16,7 @@ import { START, TRAVEL } from './tuning.js';
 import { slabAt } from './engine.js';
 import { CAM, camDist, SLAB_H } from './camera.js';
 import { plateMix, plateDrift, slabColor, SLACK } from './bands.js';
-import { GLASS_V, GLASS_F, PLATE_V, PLATE_F, SPARK_V, SPARK_F, RING_V, RING_F, TAPE_V, TAPE_F, createBloom } from './night-fx.js';
+import { GLASS_V, GLASS_F, PLATE_V, PLATE_F, SPARK_V, SPARK_F, RING_V, RING_F, TAPE_V, TAPE_F, TAPE_BACK, createBloom } from './night-fx.js';
 
 const U = 1 / START, H = SLAB_H, RAD = Math.PI / 180;
 /** the slabs kept drawn under the top (the rest is below the screen) */
@@ -171,15 +171,22 @@ export function createNight(host, o = {}) {
     rgA.needsUpdate = rgB.needsUpdate = rgP.needsUpdate = true; ringN++;
   }
 
-  // ---- YOUR BEST's GOLD TAPE (S2 FIX): a THIN glowing gold OUTLINE round the slab of that floor — one line of light, no fill, the
-  // back edges faint (night-fx.js TAPE_F). Its own small mesh (one draw, only while a tape lies on the tower): its line covers, no depth.
-  const TAPE_H = 0.07, TAPE_OUT = 0.004;
-  const TAPE_GOLD = [1, 0.66, 0.14];   // (a deeper gold than the flash's: beside the cyan + the blue slabs' own lines the page's #ffc83c read as yellow — the look review)
-  const tapeU = { uCol: { value: new THREE.Vector3(TAPE_GOLD[0], TAPE_GOLD[1], TAPE_GOLD[2]) }, uGlow: { value: 1 }, uWhite: { value: 0 }, uH: { value: TAPE_H } };
+  // ---- YOUR BEST's GOLD TAPE (S2 FIX): a THIN glowing gold OUTLINE round the slab of that floor — one line of light, no fill
+  // (night-fx.js TAPE_F). Two small meshes on one box, only while a tape lies on the tower: the faces TOWARDS the camera, with depth
+  // (the sliding slab passes in front of the line); the faces turned AWAY, faint, through the glass — and only once the tape lies
+  // well under the top (TAPE_BACK_FROM … TAPE_BACK_FULL floors: never a diamond inside the top slab, where the player aims).
+  const TAPE_H = 0.07, TAPE_OUT = 0.004, TAPE_BACK_FROM = 2, TAPE_BACK_FULL = 6;
+  const TAPE_GOLD = [1, 0.56, 0.08];   // (a deeper, warmer gold than the flash's: beside the cyan + the blue slabs' own lines the page's #ffc83c read as lemon — the look review, twice)
+  const tapeU = { uCol: { value: new THREE.Vector3(TAPE_GOLD[0], TAPE_GOLD[1], TAPE_GOLD[2]) }, uGlow: { value: 1 }, uWhite: { value: 0 }, uH: { value: TAPE_H }, uBloom: G.uBloom, uFace: { value: 1 } };
+  const tapeBackU = { ...tapeU, uFace: { value: 0 } };
   const tapeGeo = new THREE.BoxGeometry(1, 1, 1);
-  const tapeMat = new THREE.ShaderMaterial({ vertexShader: TAPE_V, fragmentShader: TAPE_F, uniforms: tapeU, transparent: true, depthTest: false, depthWrite: false, blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor, side: THREE.DoubleSide, extensions: { derivatives: true } });
-  const tape = new THREE.Mesh(tapeGeo, tapeMat); tape.frustumCulled = false; tape.renderOrder = 12; tape.visible = false; scene.add(tape); made.push(tapeGeo, tapeMat);
+  const tapeOpt = { vertexShader: TAPE_V, fragmentShader: TAPE_F, transparent: true, depthWrite: false, blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor, extensions: { derivatives: true } };
+  const tapeMat = new THREE.ShaderMaterial({ ...tapeOpt, uniforms: tapeU, side: THREE.FrontSide, depthTest: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const tapeBackMat = new THREE.ShaderMaterial({ ...tapeOpt, uniforms: tapeBackU, side: THREE.BackSide, depthTest: false });
+  const tape = new THREE.Mesh(tapeGeo, tapeMat); tape.frustumCulled = false; tape.renderOrder = 12; tape.visible = false; scene.add(tape); made.push(tapeGeo, tapeMat, tapeBackMat);
+  const tapeBack = new THREE.Mesh(tapeGeo, tapeBackMat); tapeBack.frustumCulled = false; tapeBack.renderOrder = 11; tapeBack.visible = false; scene.add(tapeBack);
   twin(tape, tapeMat);
+  twin(tapeBack, tapeBackMat); TWINS[TWINS.length - 1][1].visible = false;   // (the faint back edges are no light: not in the bloom pass)
 
   // ---- the pieces that fall away (a cut's overhang; a slab that missed) — pooled
   const pieces = Array.from({ length: PIECES }, () => ({ on: false, age: 0, x: 0, y: 0, z: 0, sx: 0, sz: 0, vx: 0, vy: 0, vz: 0, rx: 0, rz: 0, ax: 0, az: 0, c: GOLD, life: 1200 }));
@@ -306,11 +313,12 @@ export function createNight(host, o = {}) {
     nb = 0;
     for (const k of [KIND.slab, KIND.slider, KIND.tape, KIND.trail]) put(0, -60, 0, 0.01, 0.01, 0.01, GOLD, 1, 0, 1, k, null);
     boxes.count = nb; boxes.instanceMatrix.needsUpdate = aColor.needsUpdate = aFx.needsUpdate = true;
-    const tapeWas = tape.visible; tape.visible = true; tape.position.set(0, -60, 0); tape.scale.set(0.01, 0.01, 0.01); tape.updateMatrixWorld();   // (the tape's program too: built here, not at the crossing)
+    const tapeWas = tape.visible, backWas = tapeBack.visible, faceWas = tapeBackU.uFace.value;   // (the tape's programs too: built here, not at the crossing)
+    tape.visible = tapeBack.visible = true; tapeBackU.uFace.value = 0.2; tape.position.set(0, -60, 0); tape.scale.set(0.01, 0.01, 0.01); tapeBack.position.copy(tape.position); tapeBack.scale.copy(tape.scale);
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam, plate, TWINS); } catch { /* a phone that can't: the kinds build as they come */ }
     mark('compile');
     spT.setX(0, -1e6); spT.needsUpdate = true; rgB.setW(0, -1e6); rgB.needsUpdate = true;
-    tape.visible = tapeWas;
+    tape.visible = tapeWas; tapeBack.visible = backWas; tapeBackU.uFace.value = faceWas;
     warmed++;
   }
 
@@ -379,10 +387,13 @@ export function createNight(host, o = {}) {
     }
     // YOUR BEST's gold tape: a THIN glowing gold OUTLINE round the slab of that floor — a line of light, never a filled band (S2 FIX)
     const ts = tapeFloor ? slabOf(tapeFloor) : null;
-    tape.visible = !!ts;
+    // (the back edges come in as the tower climbs away from the tape — none while it lies just under the top)
+    const back = ts ? TAPE_BACK * clamp01((topFloor - ts.floor - TAPE_BACK_FROM) / (TAPE_BACK_FULL - TAPE_BACK_FROM)) : 0;
+    tape.visible = !!ts; tapeBack.visible = back > 0.004; tapeBackU.uFace.value = back;
     if (ts) {
       const x0 = ts.x0 * U, x1 = ts.x1 * U, z0 = ts.z0 * U, z1 = ts.z1 * U, age = clock - tapeAt;
       tape.position.set((x0 + x1) / 2, (ts.floor - 0.5) * H, (z0 + z1) / 2); tape.scale.set(x1 - x0 + 2 * TAPE_OUT, TAPE_H, z1 - z0 + 2 * TAPE_OUT);
+      tapeBack.position.copy(tape.position); tapeBack.scale.copy(tape.scale);
       tapeU.uGlow.value = 1 + 1.6 * Math.exp(-age / 260); tapeU.uWhite.value = 0.6 * Math.exp(-age / 180);
     }
     boxes.count = nb; boxes.instanceMatrix.needsUpdate = true; aColor.needsUpdate = true; aFx.needsUpdate = true;
@@ -418,7 +429,7 @@ export function createNight(host, o = {}) {
       plates.forEach(dropPlate);
       plates.clear();
       if (bloom) { bloom.dispose(); bloom = null; }
-      scene.remove(plate, boxes, sparks, rings);
+      scene.remove(plate, boxes, sparks, rings, tape, tapeBack);
       for (const m of made) m.dispose();
       renderer.dispose();
       try { renderer.forceContextLoss(); } catch { /* fine */ }

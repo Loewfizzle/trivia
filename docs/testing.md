@@ -1199,4 +1199,13 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   requests to /api with the sound on), the network log, `?seed=` `?mode=` `?fps=1` `?tier=`, reduced motion (0 sparks), 375 × 667 ·
   430 × 932 · 1440 × 900, + THE FRESH-EYES REVIEW's finds each with its check (`--review` alone: 16 — a Safari tab's height, MADE IT on the small phone, MUSIC OFF still sounds, a best 300 floors up, a WebGL 1 context, a rebuild with no context, FASTER under a streak, the tape through a rebuild). `--webkit` = Playwright's WebKit as an iPhone (6). `--look` = the review's shots only (every band, the cut, the perfect, YOUR BEST, the end, the sizes) ·
   `--perf` = the frame rate at every tier at 1× + 4× CPU, the bot playing (12 checks). THE PAGES LOAD covers `/highrise-play`.
+  **`--hitch` [`--webkit`] = THE LAG HUNT's long run** (S2 FIX — `HITCH_S` seconds, 240 · `HITCH_CPU` Chromium's throttle · `HITCH_IDLE` ms
+  on the start screen first · `HITCH_GATE` n = fail over n frames past 33 ms): ONE solo run by a bot, every frame over 25 ms logged
+  with its floor + the page's own cause tag, + the garbage made a second (Chromium). Two things it taught: headless Chromium stalls
+  ONCE for ~0.65 s two minutes after its launch whatever the page does (it moves with the clock, not the floor — not a hitch of the
+  game), and Playwright's WebKit on this Windows machine renders in software at ~21 fps (every frame is over 33 ms: it proves the
+  code path, never the frame times). The whole check is now **93** (+ THE END's FOOT, the MP3s).
+- JAYWALK with the site's MUSIC OFF: `node tests/integration/jaywalk-podcast.mjs "<chromium>"` (5 — every JAYWALK sound + the
+  audition's PLAY buttons start on a napping audio context; `serve.mjs` is enough) + `tests/jaywalk-podcast.test.mjs`.
+- HIGH RISE's sounds: `node scripts/build-highrise-sounds.mjs --lame <…/@breezystack/lamejs/dist/lamejs.js>` (WAV → the MP3s that ship).
 - The assets: `python -P -E scripts/build-highrise-assets.py` (reads Downloads\grok\highrise; `--only=plates,env,sfx`, `--look=day` for S3).

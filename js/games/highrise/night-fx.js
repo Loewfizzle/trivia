@@ -164,28 +164,32 @@ void main() {
 }`;
 
 // ---- YOUR BEST's GOLD TAPE (S2 FIX — the owner: "a THIN glowing gold OUTLINE round the tower, not a solid band — it read as a slab"):
-// a band of four side faces round the slab of that floor, and on it ONE thin line of light at the slab's mid height — ≈ 2–3 px at 3×
-// (never under ~2 device px at any tier: its width follows the pixel), a soft glow off it, NO fill. The faces turned away from the camera
-// are drawn too, FAINT (seen through the glass — the mesh ignores depth): the outline goes all the way round the tower.
-// The line COVERS what is behind it (premultiplied: its gold stays gold on a cyan slab — added light turned it green: the look review).
-export const TAPE_LINE = 0.0021, TAPE_GLOW = 0.011, TAPE_BACK = 0.3;
+// a band of four side faces round the slab of that floor, and on it ONE thin line of light at the slab's mid height — ≈ 3 px at 3×
+// (never under ~2 device px at any tier: its width follows the pixel), a soft glow off it, NO fill, no lid. Drawn TWICE (night.js):
+// the faces towards the camera at full strength WITH depth (the sliding slab + a falling piece pass in front of it), the faces turned
+// away FAINT and through the glass (uFace — the outline goes all the way round), and those only once the tape lies well under the
+// top: just crossed, they drew a bright diamond inside the top slab — in the aim zone (the fresh-eyes review).
+// The line COVERS what is behind it (premultiplied: its gold stays gold on a cyan slab — added light turned it green); in the bloom
+// pass it is held down (uBloom): the blur's added light washed the gold to lemon.
+export const TAPE_LINE = 0.0021, TAPE_GLOW = 0.016, TAPE_BACK = 0.3;
 export const TAPE_V = /* glsl */`
 uniform float uH;
 varying float vY; varying vec3 vN;
 void main() { vY = position.y * uH; vN = normal; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 export const TAPE_F = /* glsl */`
 uniform vec3 uCol;
-uniform float uGlow, uWhite;
+uniform float uGlow, uWhite, uFace, uBloom;
 varying float vY; varying vec3 vN;
 void main() {
-  if (abs(vN.y) > 0.5) discard;   // (no top, no foot: an outline, never a lid)
+  if (abs(vN.y) > 0.5 || uFace < 0.004) discard;   // (no top, no foot: an outline, never a lid)
   float px = fwidth(vY) + 1e-6, a = abs(vY);
   float hw = max(1.1 * px, ${TAPE_LINE.toFixed(4)});
   float line = 1.0 - smoothstep(hw - 0.75 * px, hw + 0.75 * px, a);
-  float halo = exp(-a / ${TAPE_GLOW.toFixed(4)}) * 0.3;
-  float face = gl_FrontFacing ? 1.0 : ${TAPE_BACK.toFixed(2)};
-  vec3 c = (uCol * (line * 1.08 + halo) + vec3(uWhite) * line) * uGlow * face;
-  gl_FragColor = vec4(c, min(1.0, line + halo * 0.6) * face);
+  float halo = exp(-a / ${TAPE_GLOW.toFixed(4)}) * 0.42;
+  float k = uFace * (uBloom > 0.5 ? 0.4 : 1.0);
+  // (the line + its glow never ADD past the gold itself: 1.4 × the colour clipped its red and read as lemon — the look review)
+  vec3 c = (uCol * (line + halo * (1.0 - line)) + vec3(uWhite) * line) * uGlow * k;
+  gl_FragColor = vec4(c, min(1.0, line + halo * 0.6) * k);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
