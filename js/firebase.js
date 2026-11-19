@@ -56,10 +56,10 @@ function refused(op, r, patch, e) {
   if (!isRefusal(e)) return;
   const keys = patch && typeof patch === 'object' && !Array.isArray(patch) && op === 'update' ? Object.keys(patch).slice(0, 4).map(pathShape) : [];
   const shape = `${op} ${pathShape(refPath(r))}${keys.length ? ` {${keys.join(', ')}}` : ''}`;
-  const ex = expected(refPath(r));
-  if (ex) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${ex}:`, shape); } return; }
   // (CITY G: a ROOT update that deletes a room (the close + its word's rest) is that room's write — judged by the same quiet rule)
   const rp = refPath(r) === '/' && keys.length ? (Object.keys(patch).find(k => /^\/?rooms\/[^/]+$/.test(k)) || refPath(r)) : refPath(r);
+  const ex = expected(refPath(r)) || (rp !== refPath(r) && expected(String(rp).replace(/^\/?/, '/')));   // (CITY I: + an expected refusal on the ROOM a root update deletes — the second close)
+  if (ex) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${ex}:`, shape); } countGone(); return; }
   if (/^\/?(rooms|chats)\//.test(rp)) { setTimeout(() => { const quiet = quietRoomRefusal(rp, { hostGone: safeGone, roomGone }); if (quiet) { countGone(); if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${quiet} — a write refused after ${quiet === 'no longer the host' ? 'the hand-off' : 'leaving'}:`, shape); } return; } report(shape); }, HOST_SETTLE_MS); return; }
   report(shape);
 }

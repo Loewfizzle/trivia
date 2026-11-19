@@ -188,8 +188,26 @@ export async function sweepKeptRooms() {
   }
 }
 if (typeof globalThis !== 'undefined') globalThis.__nsSweepKept = () => sweepKeptRooms().catch(() => {});
-async function closeRoom(code, solo = false) {
+// CITY I — THE CLOSE IS IDEMPOTENT (the Chromebook's double close, re-checked at 4× CPU — tests/integration/e2e-hush.mjs): CITY G's ask-first left one
+// window — two closes that both saw the room still there (this device's idle close + its leave; or a second phone) → the second's root update
+// refused by the hush rule (the word's rest only WITH the room's deletion, so never two hush writes) → a RULES REFUSED row on a phone not watching
+// that room. Now: ONE close of a word at a time on this device (a second call shares the first's promise), a word this device closed in the last
+// 10 min is a no-op, and the refusal a close meets because ANOTHER phone just closed it is EXPECTED (firebase.js#expectRefusal on rooms/{code} —
+// a quiet line, never the alarm). No rules change.
+const closingRooms = new Map(), closedHere = new Map();
+const CLOSED_KEEP_MS = 10 * 60_000;
+function closeRoom(code, solo = false) {
+  const now = Date.now();
+  for (const [c, t] of closedHere) if (now - t > CLOSED_KEEP_MS) closedHere.delete(c);
+  if (closingRooms.has(code)) return closingRooms.get(code);
+  if (closedHere.has(code)) { lazyImport(import('./errlog.js'), './errlog.js').then(m => m.countQuiet && m.countQuiet('gone')).catch(() => {}); return Promise.resolve(); }
+  const p = closeRoomOnce(code, solo).finally(() => { closingRooms.delete(code); closedHere.set(code, Date.now()); });
+  closingRooms.set(code, p);
+  return p;
+}
+async function closeRoomOnce(code, solo) {
   // (PLAY NOW: a solo room rests no word — its code was never a hush word, and the pool stays untouched)
+  expectRefusal(R(code), 'the room was already closed (a second close — CITY I)', 8000);
   if (solo) await remove(dbRef(R(code)));
   else {
     // (CITY G — THE DOUBLE CLOSE: the word rests only WITH the room's deletion — already gone = done + a quiet 'gone' count, never refused)
