@@ -80,7 +80,10 @@ export function play(id, o = {}) {
   try {
     if (!bytes.has(key)) fetchSounds([id], true);
     const ctx = getContext();
-    if (!isUnlocked() || !ctx || ctx.state !== 'running' || !bufs.get(key) || bufCtx !== ctx) {
+    // (isUnlocked() = running OR NAPPING — CITY I's PODCAST MODE suspends the context between effects and a source's own start wakes it
+    //  (engine.js#wakeFor): asking for `running` here made JAYWALK silent with the site's MUSIC OFF — HIGH RISE S2's review found it,
+    //  the same fix as js/games/highrise/sfx.js; tests/jaywalk-podcast.test.mjs + tests/integration/jaywalk-podcast.mjs)
+    if (!isUnlocked() || !ctx || !bufs.get(key) || bufCtx !== ctx) {
       // (not ready: the first tap's own sound, or the first play of a sound just fetched — wait for the decode, play if still fresh)
       if (!o.late) { const go = () => decode().then(() => { if (performance.now() - t0 < (s.loop ? 1500 : 220)) { const h = play(id, { ...o, ab, late: true }); if (h && o.onLate) o.onLate(h); } }); if (isUnlocked()) go(); else if (!lockWait) { lockWait = true; onUnlock(() => { lockWait = false; go(); }); } }   // (locked / muted: ONE sound waits for the unlock — every call used to leave a listener there for good)
       return null;
