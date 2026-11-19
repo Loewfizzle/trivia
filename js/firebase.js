@@ -50,17 +50,23 @@ export const hostRefusals = () => [...NOT_HOST];
 // (+ the add-on: an EXPECTED refusal — the leaving host's hand-off to an heir the rules refuse, a host claim the rules refuse — is said by its
 //  caller BEFORE the write: expectRefusal(path, label, ms) → a refusal of a write under that path inside ms is that quiet label, never the alarm)
 const EXPECT = [];
-export function expectRefusal(path, label, ms = 6000) { EXPECT.push({ path: String(path).replace(/^\/?/, '/'), label, until: Date.now() + ms }); while (EXPECT.length > 12) EXPECT.shift(); }
-const expected = p => { const now = Date.now(); for (let i = EXPECT.length - 1; i >= 0; i--) { const x = EXPECT[i]; if (x.until < now) { EXPECT.splice(i, 1); continue; } if (p.startsWith(x.path)) return x.label; } return null; };
+export function expectRefusal(path, label, ms = 6000, kind = '') { EXPECT.push({ path: String(path).replace(/^\/?/, '/'), label, kind, until: Date.now() + ms }); while (EXPECT.length > 12) EXPECT.shift(); }   // (CITY I: + `kind` — the quiet count it is, e.g. 'late-proof')
+const expectedOf = p => { const now = Date.now(); for (let i = EXPECT.length - 1; i >= 0; i--) { const x = EXPECT[i]; if (x.until < now) { EXPECT.splice(i, 1); continue; } if (p.startsWith(x.path)) return x; } return null; };
+const expected = p => { const x = expectedOf(p); return x ? x.label : null; };
+/** an expected refusal → its quiet count (CITY I: the entry's `kind`, else 'gone' — a room's / chat's write after the phone left it) */
+const quietFor = x => { if (x && x.kind) lazyImport(import('./errlog.js'), './errlog.js').then(m => { if (typeof m.countQuiet === 'function') m.countQuiet(x.kind); }).catch(() => {}); else countGone(); };
 function refused(op, r, patch, e) {
   if (!isRefusal(e)) return;
   const keys = patch && typeof patch === 'object' && !Array.isArray(patch) && op === 'update' ? Object.keys(patch).slice(0, 4).map(pathShape) : [];
   const shape = `${op} ${pathShape(refPath(r))}${keys.length ? ` {${keys.join(', ')}}` : ''}`;
   // (CITY G: a ROOT update that deletes a room (the close + its word's rest) is that room's write — judged by the same quiet rule)
   const rp = refPath(r) === '/' && keys.length ? (Object.keys(patch).find(k => /^\/?rooms\/[^/]+$/.test(k)) || refPath(r)) : refPath(r);
-  const ex = expected(refPath(r)) || (rp !== refPath(r) && expected(String(rp).replace(/^\/?/, '/')));   // (CITY I: + an expected refusal on the ROOM a root update deletes — the second close)
-  if (ex) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${ex}:`, shape); } countGone(); return; }
-  if (/^\/?(rooms|chats)\//.test(rp)) { setTimeout(() => { const quiet = quietRoomRefusal(rp, { hostGone: safeGone, roomGone }); if (quiet) { countGone(); if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${quiet} — a write refused after ${quiet === 'no longer the host' ? 'the hand-off' : 'leaving'}:`, shape); } return; } report(shape); }, HOST_SETTLE_MS); return; }
+  const exOf = () => expectedOf(refPath(r)) || (rp !== refPath(r) ? expectedOf(String(rp).replace(/^\/?/, '/')) : null);   // (CITY I: + an expected refusal on the ROOM a root update deletes — the second close)
+  const ex = exOf();
+  if (ex) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${ex.label}:`, shape); } quietFor(ex); return; }
+  if (/^\/?(rooms|chats)\//.test(rp)) { setTimeout(() => { const quiet = quietRoomRefusal(rp, { hostGone: safeGone, roomGone }); if (quiet) { countGone(); if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${quiet} — a write refused after ${quiet === 'no longer the host' ? 'the hand-off' : 'leaving'}:`, shape); } return; }
+    const late = exOf(); if (late) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${late.label}:`, shape); } quietFor(late); return; }   // (CITY I: an expectation this phone learned DURING the settle — it saw the match end just after the refusal)
+    report(shape); }, HOST_SETTLE_MS); return; }
   report(shape);
 }
 const safeGone = () => { try { return !!hostGone(); } catch { return false; } };

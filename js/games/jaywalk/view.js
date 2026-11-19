@@ -163,7 +163,7 @@ export function createView() {
   // ---- THE RUN
   function reset() {
     mode = 'wait'; course = START; run = createRun({ seed: 'start', mode: 'solo' }); log = []; queue = []; go = 0; proven = false; asked = false; goTries = 0; haveGo = false;
-    sent = 0; chunkN = 0; lastFlush = 0; wroteE = false; overAt = 0; lanesShown = -1; markUntil = 0; shotAt = 0; revealed = false;
+    sent = 0; chunkN = 0; lastFlush = 0; wroteE = false; verifyFirst = false; overAt = 0; lanesShown = -1; markUntil = 0; shotAt = 0; revealed = false;
     watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; liveRuns = null; orderKey = ''; countKey = ''; watchKey = '';
     cues = createCues(); quiet(); if (night) night.rest(false);
     for (const G of ghosts.values()) if (G.tagEl) G.tagEl.remove();
@@ -234,7 +234,7 @@ export function createView() {
     const seed = ds || isProof ? ds || seedOf(code, matchId, go) : `u${Math.floor(go).toString(36)}${Math.floor(Math.random() * 1e9).toString(36)}`;
     course = createCourse(seed); run = createRun({ seed, mode: ds ? 'daily' : 'solo' });
     const old = chunks ? logFromChunks(chunks) : null;
-    log = old || []; sent = log.length; chunkN = chunks ? Object.keys(chunks).length : 0;
+    log = old || []; sent = log.length; chunkN = chunks ? Object.keys(chunks).length : 0; verifyFirst = !!chunks;   // (CITY I: a rejoin's first write reads the chunks fresh)
     anchor();
     catchUp();
     mode = 'run';
@@ -250,7 +250,7 @@ export function createView() {
   function adoptMatch(S, runs) {
     go = S.playAt; course = createCourse(S.seed); run = createRun({ seed: S.seed, mode: 'match' });
     const node = runs && mine(st.game) ? runs[uid] : null, old = node && node.c ? logFromChunks(node.c) : null;
-    log = old || []; sent = log.length; chunkN = node && node.c ? Object.keys(node.c).length : 0; queue = [];
+    log = old || []; sent = log.length; chunkN = node && node.c ? Object.keys(node.c).length : 0; queue = []; verifyFirst = !!(node && node.c);   // (CITY I)
     if (node && node.go > 0) haveGo = true;
     if (node && node.e) wroteE = true;
     for (const G of ghosts.values()) resetGhost(G, S.seed);
@@ -329,8 +329,35 @@ export function createView() {
     lineKey = key; night.setLines(want);
   }
   /** THE PROOF: the new hops go up in chunks, each server-stamped on ARRIVAL; offline they queue + land together (THE DROPPED SIGNAL) */
+  // CITY I — A LATE PROOF CHUNK = A QUIET COUNT, NEVER A RULES REFUSED ROW (the inbox's 8:05 pm entry — the late k write's family, docs/jaywalk.md
+  // "THE LATE PROOF CHUNK"): the rules take c/{i} only in 'play' (+ the count's last 2 s) and once per index. (1) once this phone KNOWS the match
+  // left 'play' / moved on, no chunk (nor `e`) is written — the unsent hops are dropped + counted ('late-proof'); (2) from the moment it sees the
+  // end, a refusal of one already in flight is EXPECTED (firebase.js#expectRefusal — a quiet count; one refused while still in 'play' stays the
+  // alarm); (3) the first write after a REJOIN reads the node's chunks fresh and never re-sends an index that is there. The proof still verifies:
+  // once the phase is over every later chunk is refused too — no hole; the server's judge counts the run to its last LANDED hop.
+  const countQuietLate = () => lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => { if (typeof m.countQuiet === 'function') m.countQuiet('late-proof'); }).catch(() => {});   // (THE STALE-MODULE RULE: an existing export, lazily)
+  const matchLeft = () => !D && !!matchId && (!st.game || st.game.matchId !== matchId || (st.game.phase !== 'play' && st.game.phase !== 'count'));   // (past 'play' — the count's last 2 s still take a chunk)
+  let lateSeen = '', verifyFirst = false;
+  function lateProof(why) {
+    if (D || lateSeen === matchId || !proven) return;
+    lateSeen = matchId;
+    expectRefusal(`${nodePath()}/c`, `jaywalk: a proof chunk after the match ended (${why})`, 90_000, 'late-proof');
+    expectRefusal(`${nodePath()}/e`, `jaywalk: the end after the match ended (${why})`, 90_000, 'late-proof');
+  }
   function flush(force) {
     if (!proven || sent >= log.length) return;
+    if (matchLeft()) { lateProof('dropped'); if (sent < log.length) { sent = log.length; countQuietLate(); } return; }
+    if (verifyFirst) {   // (3: a rejoin — the chunks read fresh first; an index already there is never sent again)
+      verifyFirst = false;
+      const m = matchId;
+      dbGet(dbRef(`${nodePath()}/c`)).then(snap => {
+        if (gone || m !== matchId) return;
+        const c = snap.val(), n = c ? Object.keys(c).length : 0;
+        if (n > chunkN) { chunkN = n; sent = Math.min(log.length, (logFromChunks(c) || []).length); countQuietLate(); }
+        flush(true);
+      }, () => flush(true));
+      return;
+    }
     const now = performance.now();
     if (!force && now - lastFlush < (isMatch ? CLOCK.flushMatchMs : CLOCK.flushMs)) return;
     lastFlush = now;
@@ -346,6 +373,7 @@ export function createView() {
     mode = 'over'; overAt = performance.now(); shotAt = overAt + shotMs(run, course); queue = [];
     quiet();
     flush(true);
+    if (proven && !wroteE && !D && matchLeft()) { wroteE = true; lateProof('the end after the end'); countQuietLate(); }   // (CITY I: never `e` once the match left 'play')
     if (proven && !wroteE && !D) { wroteE = true; dbUpdate(dbRef(nodePath()), { e: { l: run.best, t: run.bestT, w: String(run.cause || '').slice(0, 12) } }).catch(() => {}); }   // (THE DAILY: daily-run.js writes `e`)
   }
   /** THE SHARE IMAGE's frame: the kid still clearly SEEN + what got him (shot.js#shotMs — per cause) — kept on this phone until the next run */
@@ -662,7 +690,8 @@ export function createView() {
       sync();
       raf = requestAnimationFrame(frame);
     },
-    update(state) { st = state; if (night) sync(); },
+    update(state) { st = state; if (matchLeft()) lateProof('seen');   // (CITY I: from the moment this phone sees the match end, a chunk / e still in flight is an expected refusal)
+      if (night) sync(); },
     unmount() {
       gone = true; cancelAnimationFrame(raf); clearTimeout(goTimer);
       if (offGL) offGL();   // (BEFORE THE FLIP: off BEFORE any destroy() — a deliberate teardown is never a lost context)

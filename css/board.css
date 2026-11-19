@@ -65,7 +65,7 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 .bd-tabs .nt-tab { padding: 0 2px; font-size: 10.5px; letter-spacing: clamp(0.02em, calc((100vw - 360px) * 0.004), 0.08em); }
 .bd-tabs.is-even .nt-tab { flex: 1 1 auto; min-width: 44px; }
 /* ---- ONE row: THIS WEEK | ALL TIME — a SQUARED two-part switch (the chosen half lit pink, its words dark; NO PILL) — + THE PICKER ---- */
-.bd-ctrl { display: flex; gap: 10px; flex: none; align-items: stretch; }
+.bd-ctrl { display: flex; gap: 10px; flex: none; align-items: stretch; margin-left: calc(52px + 8px); }   /* (CITY I — the owner's 6:50 pm entry: the THIS WEEK | ALL TIME switch + the picker sit in the CARD COLUMN — the medal column's 52 px + the row's 8-px gap stay its own gutter; the NEON TABS row above stays full width) */
 .bd-period { flex: 1 1 0; max-width: 260px; gap: 0; padding: 2px; border-radius: 4px; box-shadow: none; border: 1px solid rgba(255, 124, 203, 0.42); background: rgba(10, 7, 20, 0.6); }
 .bd-period .nt-tab { min-height: 38px; border-radius: 2px; font: 700 10.5px/1 var(--font-ui); letter-spacing: 0.14em; color: var(--bd-dim); }
 .bd-period .nt-tab.is-on { background: #ff4fc8; color: #1c0716; text-shadow: none; box-shadow: 0 0 14px rgba(255, 79, 200, 0.45); }

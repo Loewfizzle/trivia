@@ -135,8 +135,8 @@ function record(input, label = '') {
 // CITY A — THE QUIET COUNTS (api/log.js#QUIET_KINDS): a kind of noise that is COUNTED, never a row — once a page per kind (a page that saw it,
 // not every write): 'gone' = a room write the rules refused after this phone left / lost the host / saw its room close (firebase.js), 'ext' = a
 // browser extension's error. /admin's errors shows the two numbers.
-const QUIET = new Set(['gone', 'ext', 'snd', 'slow', 'dead']), quietSent = new Set();   // (CITY G: + snd · slow; CITY H2: + dead — NEVER A DEAD SCREEN, app.js)
-const quietN = { gone: 0, ext: 0, snd: 0, slow: 0, dead: 0 };
+const QUIET = new Set(['gone', 'ext', 'snd', 'slow', 'dead', 'late-proof']), quietSent = new Set();   // (CITY G: + snd · slow; CITY H2: + dead — NEVER A DEAD SCREEN, app.js)
+const quietN = { gone: 0, ext: 0, snd: 0, slow: 0, dead: 0, 'late-proof': 0 };
 export function countQuiet(kind) {
   try {
     if (!QUIET.has(kind)) return;

@@ -1229,6 +1229,21 @@ later than that which lost the race with the final was reported. Now a tap never
 node has an `e` — the button greys, `.mk-call-pick.is-out`), and a race still lost in flight is expected for 90 s from the TAP. (A call can't
 ride with your own `e`: it is a tap seconds later.) The kit's options are opt-in — the other games unchanged.
 
+### THE LATE PROOF CHUNK (CITY I — the inbox's Nov 18 8:05 pm entry; `view.js#flush` · `#lateProof`; `firebase.js#expectRefusal`'s `kind`; `e2e-jaywalk-match.mjs` 8d)
+/admin, Nov 18 4:33 pm: "RULES REFUSED set rooms/*/jw/{matchId}/*/c/*" (game:jaywalk/play). The rules take `c/{i}` only in 'play' (+ the count's last
+2 s) and once per index; `flush` wrote with no phase check, so a chunk that landed after the host ended the match (THE MOTHERSHIP's cap + 4 s, END
+GAME, `endedFor` deciding a silent / dropped phone was done) rang the alarm. Now: (1) once this phone KNOWS the match left 'play' (phase past play, the
+matchId moved, the game gone — solo too; never the daily, its own windows) no chunk and no `e` is written — the unsent hops are dropped and COUNTED
+(quiet kind **late-proof** — `api/log.js#QUIET_KINDS`, /admin's errors line); (2) from the moment it SEES the end (`update(state)`), a chunk / `e`
+already in flight that the rules refuse is EXPECTED (90 s, kind late-proof) — a quiet line; firebase.js re-checks the expectations after its 2.5-s
+settle too, so a refusal that beat the phase change to the phone is judged the same; a chunk refused WHILE the match is still in 'play' stays the
+alarm; (3) the first write after a REJOIN reads the node's chunks fresh and never re-sends an index that is there (the one way a stale count could
+happen: the dead page's last chunk landing after the new page's first read). **The proof still verifies:** once the phase is over every later chunk
+is refused too — no hole; the judge (`replay.js#judgeRun`, the host's podium + the server) counts the run to its last LANDED hop: **a refused late
+chunk costs only the hops in it (at most one flush's worth — ≤ `CLOCK.flushMatchMs` of hops — plus anything hopped offline), the run still counts,
+never NOT COUNTED, never a 'chunks' failure.** Test: e2e-jaywalk-match 8d — BOB offline hopping, the host's END (`director.js#endNow`), back online:
+1 quiet line, the late-proof count, 0 RULES REFUSED, no chunk landed, the podium's 0 lanes = the landed proof (91 / 91). No rules change.
+
 ### THE FAR LANES AFTER A REAL LOST CONTEXT (`view.js` `revealed`)
 A SOLO run turned the reveal on without setting the flag the rebuild reads — a rebuilt scene came back at reveal 0 (the start's few lanes lit,
 the rest dark). `e2e-jaywalk.mjs` 7c measures the far half's brightness fresh vs rebuilt (0.229 → 0.218).

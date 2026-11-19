@@ -518,6 +518,33 @@ try {
     await waitFor(host, s => s.meta && s.meta.status === 'lobby', 'back in the room (after the scripted match)', 30000);
   }
 
+  // ---- 8d. CITY I — A LATE PROOF CHUNK = A QUIET COUNT, NEVER A RULES REFUSED ROW (the inbox's 8:05 pm entry): one more match; BOB's line drops
+  //  (offline — his chunks + his `e` queue on the phone) while he hops on; the HOST ENDS the match without them (director.js#endNow — the host's
+  //  END); back online his queued writes land AFTER 'final' → refused by the rules, rightly → on his phone a QUIET line + the 'late-proof' count
+  { await start(host, N);
+    const m3 = await evalIn(host, s => s.game.matchId);
+    await all(N, (p, i) => waitFor(p, s => s.game.phase === 'play' && window.__jwGame.state().mode === 'run', `${NAMES[i]}: match 3 is on`, 25000));
+    const r0 = refused.length, bobQuiet = [], bobAlarm = [];
+    pages[1].on('console', q => { const t = q.text(); if (/\[rules\] jaywalk: (a proof chunk|the end) after the match ended/.test(t)) bobQuiet.push(t); if (/\[rules\] refused/.test(t)) bobAlarm.push(t); });
+    await pages[1].evaluate(() => import('/js/firebase.js').then(F => F.goOffline()));
+    await G(pages[1], 'window.__jwGame.bot(true, { lazy: true })');
+    const offHops = await until(async () => { const s = await state(pages[1]); return s.hops >= 3 ? s.hops : null; }, 20000);
+    await host.evaluate(async () => { const s = window.__arcade.state, [D, F] = await Promise.all([import('/js/games/jaywalk/director.js'), import('/js/firebase.js')]); const p = D.endNow(s.game, { now: F.serverNow(), live: s.live, code: s.code }); if (p) await F.update(F.dbRef(`rooms/${s.code}/game`), p); });
+    await all(N, (p, i) => (i === 1 ? Promise.resolve() : waitFor(p, s => s.game && s.game.phase === 'final', `${NAMES[i]}: the host ended match 3`, 30000)));
+    await pages[1].evaluate(() => import('/js/firebase.js').then(F => F.goOnline()));
+    await waitFor(pages[1], s => s.game && s.game.phase === 'final', 'BOB: back online → the final', 30000);
+    await sleep(4000);   // (the refusal's judgement settles in HOST_SETTLE_MS)
+    const bq = await pages[1].evaluate(() => ({ late: (window.__errlog && window.__errlog.quiet()['late-proof']) || 0, rows: (window.__errlog ? window.__errlog.pending() : []).map(x => x.m || '').filter(x => /RULES REFUSED/.test(x)) }));
+    const bobNode = await dbGet(`rooms/${code}/jw/${m3}/${uids[1]}`), bobRes = await evalIn(host, (s, u) => (s.game.results || {})[u] || null, uids[1]);
+    ok(!!offHops && bobAlarm.length === 0 && bq.rows.length === 0 && bq.late > 0 && bobQuiet.length > 0,
+      `A LATE PROOF CHUNK (CITY I): BOB hopped ${offHops} offline, the host ended the match without them → back online, his late writes refused = QUIET (${bobQuiet.length} quiet line(s), 'late-proof' counted ${bq.late}), 0 RULES REFUSED (alarm ${bobAlarm.length}, rows ${bq.rows.length})`);
+    const landed = bobNode && bobNode.c ? Object.keys(bobNode.c).length : 0;
+    ok(landed === 0 && (!bobRes || bobRes.l === 0), `…the proof still verifies: no chunk landed after the end (${landed}) — the podium counts the run to its last LANDED hop (${bobRes ? bobRes.l : 0} lanes — no crash, no NOT COUNTED)`);
+    refused.splice(r0);   // (the SDK's own "permission_denied" warnings for those expected refusals — not this suite's alarm)
+    await G(pages[1], 'window.__jwGame.bot(false)');
+    await H.backToLobby(host);
+    await waitFor(host, s => s.meta && s.meta.status === 'lobby', 'back in the room (after match 3)', 30000); }
+
   // ---- 9. PERFORMANCE: a 4-player match (3 ghosts), 390 × 844 @3, 4× CPU — the host's phone
   if (PERF) {
     await H.backToLobby(host);
