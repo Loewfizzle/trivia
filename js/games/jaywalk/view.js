@@ -97,6 +97,12 @@ export function createView() {
   if (VIEWS) VIEWS.push(new WeakRef(frames));
   /** how long a run's end is seen before the end screen / the spectator's view covers it: THE ABDUCTION + THE MOTHERSHIP's lift are longer (H6A) */
   const hold = () => Math.max(END_HOLD_MS, night ? night.holdMs(run) : 0);
+  // HIGH RISE S4A — THE SOUND SYNC (the owner plays with MUSIC OFF): PODCAST MODE naps the audio context between two effects — every hop's
+  // sound then had to wake it first (on iOS at the finger's LIFT: the sound late by a variable beat). A LIVE run HOLDS IT AWAKE: a lease
+  // renewed once a second from the frame (audio/engine.js#holdAwake, through its hub — THE STALE-MODULE RULE), let go when the run ends
+  let awakeAt = 0;
+  const awake = on => { const f = globalThis.__nsHoldAwake; if (f) { try { f(on, 'jaywalk'); } catch { /* audio is polish */ } } };
+  const syncs = TEST ? [] : null;   // (the pass's measure — tests/integration/sound-sync.mjs: when each hop's / landing's sound was asked)
   const srvNow = () => t0srv + (performance.now() - t0perf);
   const anchor = () => { t0srv = serverNow(); t0perf = performance.now(); };
   const soloGame = g => !!g && g.mode === 'solo' && Object.keys(g.participants || {}).length === 1;
@@ -284,6 +290,7 @@ export function createView() {
         if (sndOn) { try { SFX.play('area-arrive'); } catch { /* silent */ } }
       }
       if (sndOn) { try { SFX.onEvent(e); } catch { /* silent */ } }
+      if (syncs && (e.e === 'hop' || (e.e === 'land' && e.on === 'wood'))) { if (syncs.length >= 400) syncs.shift(); syncs.push({ e: e.e, at: performance.now() }); }
     }
     // THE WORLD's SOUNDS (cues.js, PURE): this phone's own kid only, while he is in
     if (sndOn && !isOver(run)) { try { for (const q of cuesAt(cues, run, course)) { SFX.onCue(q); duck(q.cue); } } catch { /* silent */ } }
@@ -371,6 +378,7 @@ export function createView() {
   /** the run is over: the last chunk, then `e` — the host's step ends the match on it (a signal: never read as a score) */
   function onOver() {
     mode = 'over'; overAt = performance.now(); shotAt = overAt + shotMs(run, course); queue = [];
+    awakeAt = 0; awake(false);   // (THE SOUND SYNC: the hold ends with the run — the hit's own sound plays out, then the context naps again)
     quiet();
     flush(true);
     if (proven && !wroteE && !D && matchLeft()) { wroteE = true; lateProof('the end after the end'); countQuietLate(); }   // (CITY I: never `e` once the match left 'play')
@@ -536,6 +544,7 @@ export function createView() {
       a = isOver(run) || run.t < c.t || c.t < 0 ? 0 : c.a;
       flush(false);
       if (isOver(run)) onOver();
+      else if (sndOn && now - awakeAt > 1000) { awakeAt = now; awake(true); }   // (THE SOUND SYNC: the lease, renewed while the run is live)
     }
     let drawRun = run, extra = null;
     if (isMatch && c) {
@@ -658,7 +667,7 @@ export function createView() {
     if (final) final.refresh();
   }
   /** back on screen: the clock re-read (a suspended tab's own timer may have stood still) — GO stays the run's tick 0 */
-  const onVis = () => { last = 0; if (document.visibilityState !== 'hidden') anchor(); };
+  const onVis = () => { last = 0; if (document.visibilityState !== 'hidden') anchor(); else { awakeAt = 0; awake(false); } };
 
   return {
     mount(el, state) {
@@ -679,7 +688,7 @@ export function createView() {
           adopts: adopts.slice(), seen: { ...watch }, g0: st.game ? st.game.g0 || 0 : 0,
           snd: { cues: SFX.cues(), wanted: SFX.wanted().map(q => q.id), by: SFX.totals().by, ducked: ducked != null },
           arrive: arriveEl ? arriveEl.text() : '', tier: night ? night.tier() : -1, info: night ? night.info() : null, kidPx: night ? night.kidHeightPx() : 0 }),
-        hop, frames: () => frames.slice(), cost: () => cost.slice(), clearFrames() { frames.length = 0; cost.length = 0; stamps.length = 0; },
+        hop, syncs: () => syncs.slice(), frames: () => frames.slice(), cost: () => cost.slice(), clearFrames() { frames.length = 0; cost.length = 0; stamps.length = 0; },
         /** every frame so far: [ms after tick 0, the frame's length, its own work] — THE START's measure */
         timeline: () => { const z = t0perf + (go - t0srv); return frames.map((d, i) => [Math.round(stamps[i] - z), +d.toFixed(1), +cost[i].toFixed(1)]); },
         setTier(t) { pinned = t != null; if (t != null) tiers.set(t); },
@@ -696,6 +705,7 @@ export function createView() {
       gone = true; cancelAnimationFrame(raf); clearTimeout(goTimer);
       if (offGL) offGL();   // (BEFORE THE FLIP: off BEFORE any destroy() — a deliberate teardown is never a lost context)
       document.removeEventListener('visibilitychange', onVis);
+      awake(false);   // (THE SOUND SYNC: a hold never outlives the view)
       if (mode === 'run' && run && !isOver(run)) flush(true);   // (a QUIT mid-run: what was hopped is in the proof)
       if (offControls) offControls();
       if (final) final.destroy();

@@ -223,6 +223,63 @@ test('MUSIC OFF = PODCAST MODE (CITY I — the owner\'s option 3): no beds; the 
   assert.equal(c.state, 'running', 'music on: never napping');
 });
 
+test('THE HOLD (HIGH RISE S4A — THE SOUND SYNC): a LIVE run holds the napping context AWAKE — a lease the game renews; let go / lapsed / hidden → the nap is back; the session type, the music, the hush + the leave are untouched', async () => {
+  updateSettings({ musicOff: true, sfxOff: false, muted: false });
+  const c = ctx();
+  doc.fire('touchend'); c.set('running');
+  await sleep(150 + E.FADE.zeroHoldMs + 120);
+  assert.equal(c.state, 'suspended', 'podcast mode, nothing sounding: asleep');
+  assert.equal(session.type, 'ambient');
+  assert.equal(typeof globalThis.__nsHoldAwake, 'function', 'the hub a lazy chunk reaches it through (THE STALE-MODULE RULE)');
+  // the run starts (the START tap): the hold asks the context to run AT ONCE; awake, it stays awake — no nap between two effects
+  doc.fire('touchend');   // (the START tap — its own silent blip is the tap's, not an effect's)
+  const n0 = H().naps, w0 = H().wakes, r0 = c.resumes;
+  globalThis.__nsHoldAwake(true, 'test');
+  assert.ok(c.resumes > r0 || c.state === 'running', 'the hold wakes a napping context (inside the START tap)');
+  c.set('running');
+  assert.equal(H().held, true); assert.equal(H().napping, false); assert.equal(H().master, 1);
+  for (let i = 0; i < 3; i++) { const fx = c.createBufferSource(); fx.start(); assert.equal(c.state, 'running', 'an effect finds the context RUNNING — on its moment'); fx.stop(); await sleep(320); E.holdAwake(true, 'test'); }
+  assert.equal(c.state, 'running', 'a second of silence between drops: still awake');
+  assert.equal(H().naps, n0, 'no nap while held'); assert.equal(H().wakes, w0, 'no effect had to wake it');
+  assert.ok(E.voiceStarts().slice(-3).every(r => r.wait === 0), 'the engine\'s own record: each source started on a running context (wait 0)');
+  assert.equal(session.type, 'ambient', 'the session type never changed: the phone\'s podcast keeps playing');
+  assert.equal(E.podcastNow(), true, 'still PODCAST MODE (no music, no beds)'); assert.equal(bedPaused, true);
+  // let go (the end card): the nap comes back
+  E.holdAwake(false, 'test');
+  assert.equal(H().held, false);
+  await sleep(150 + E.FADE.zeroHoldMs + 120);
+  assert.equal(c.state, 'suspended', 'released → asleep again between effects');
+  // A LEASE, never a latch: a game that stops renewing (a crash, an unmount) loses the hold by itself
+  doc.fire('touchend'); E.holdAwake(true, 'test'); c.set('running');
+  assert.equal(H().held, true);
+  await sleep(E.HOLD_LEASE_MS + 250 + 150 + E.FADE.zeroHoldMs + 150);
+  assert.equal(H().held, false, 'not renewed for HOLD_LEASE_MS: the lease lapsed');
+  assert.equal(c.state, 'suspended', '… and the context naps again by itself');
+  // hidden mid-run: the hold is dropped at once, the leave suspends as ever; back on screen nothing is woken until a tap / an effect
+  doc.fire('touchend'); E.holdAwake(true, 'test'); c.set('running');
+  vis(false);
+  assert.equal(H().held, false, 'a leave drops the hold');
+  await sleep(E.FADE.zeroHoldMs + 400);
+  assert.equal(c.state, 'suspended', 'hidden: suspended (the leave path as it was)');
+  vis(true); await sleep(300);
+  assert.equal(c.state, 'suspended', 'back on screen: nothing woken');
+  // MUTED = NOTHING RUNS, held or not
+  doc.fire('touchend'); c.set('running');
+  updateSettings({ muted: true });
+  await sleep(E.FADE.outS * 1000 + E.FADE.zeroHoldMs + 200);
+  const r1 = c.resumes;
+  E.holdAwake(true, 'test');
+  assert.equal(c.resumes, r1, 'muted: the hold resumes nothing'); assert.equal(c.state, 'suspended');
+  E.holdAwake(false, 'test');
+  // the music ON: the hold changes nothing (the context runs anyway — never napping)
+  doc.fire('touchend');
+  updateSettings({ muted: false, musicOff: false, sfxOff: false });
+  c.set('running');
+  E.holdAwake(true, 'test'); E.holdAwake(false, 'test');
+  await sleep(150 + E.FADE.zeroHoldMs + 120);
+  assert.equal(c.state, 'running'); assert.equal(session.type, 'playback'); assert.equal(E.podcastNow(), false);
+});
+
 test('MUTED = NOTHING RUNS: suspended after the ramp; a tap resumes nothing; leaving + coming back wakes nothing', async () => {
   updateSettings({ muted: false, musicOff: false, sfxOff: false });
   if (!ctx() || ctx().state === 'closed') doc.fire('touchend');

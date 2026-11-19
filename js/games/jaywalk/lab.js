@@ -127,7 +127,7 @@ async function mount() {
     const ev = [];
     if (safe && run.wall > (run.y - 5) * FP) run.wall = (run.y - 5) * FP;
     step(run, course, d, ev);
-    for (const e of ev) { if (e.e === 'landmark') { arrive.show(e.lane, look); if (snd) snd.play('area-arrive'); } if (snd) snd.onEvent(e); }
+    for (const e of ev) { if (e.e === 'landmark') { arrive.show(e.lane, look); if (snd) snd.play('area-arrive'); } if (snd) snd.onEvent(e); if (snd && (e.e === 'hop' || (e.e === 'land' && e.on === 'wood'))) { if (syncs.length >= 400) syncs.shift(); syncs.push({ e: e.e, at: performance.now() }); } }
     if (snd && !isOver(run)) for (const q of cuesAt(cues, run, course)) snd.onCue(q);   // (H5A — THE WORLD's SOUNDS: cues.js)
     if (snd && isOver(run)) { snd.onCue({ cue: 'bell-off' }); snd.onCue({ cue: 'tick-off' }); }   // (H5A: the area's name as its gateway shows it — THE DOCKS · LAP 2)
     steps++;
@@ -148,6 +148,11 @@ async function mount() {
     lab.ends.push({ seed, mode, same, live, replay: r, hops: log.length });
   }
   let raf = 0, hudKey = '', holdAt = null, fakes = null, frozen = false, endAt = 0;
+  // HIGH RISE S4A — THE SOUND SYNC: a LIVE run holds the audio context awake (PODCAST MODE naps it between two effects — a hop's sound then
+  // had to wake it first); a lease renewed once a second, let go when the run ends (audio/engine.js#holdAwake, through its hub)
+  let awakeAt = 0;
+  const awake = on => { const f = globalThis.__nsHoldAwake; if (f) { try { f(on, 'lab'); } catch { /* audio is polish */ } } };
+  const syncs = [];
   function frame(now) {
     raf = requestAnimationFrame(frame);
     const dt = last ? Math.min(250, now - last) : TICK_MS;
@@ -162,6 +167,7 @@ async function mount() {
     while (acc >= TICK_MS && n < 6) { if (!isOver(run) && !held()) tick(); acc -= TICK_MS; n++; }
     if (acc > TICK_MS) { acc = 0; slow++; }   // (a long stall: the run simply waits — it never skips rules)
     // (H6A — THE BIG MOMENTS are SEEN before the end's words cover them: the abduction, the shockwave, THE MOTHERSHIP's lift — as in the game)
+    if (started && !isOver(run)) { if (snd && now - awakeAt > 1000) { awakeAt = now; awake(true); } } else if (awakeAt) { awakeAt = 0; awake(false); }
     if (isOver(run) && !shown) { if (!endAt) endAt = now; if (now - endAt >= (view.holdMs ? view.holdMs(run) : 0)) showEnd(); } else if (!isOver(run)) endAt = 0;
     // (a measure only — lab.ghosts(n): n see-through kids hop beside him, each a copy of his own run a column over: an 8-KID scene)
     if (fakes) for (let k = 0; k < fakes.length; k++) { if (fakes[k].still) continue; const dx = ((k + 1) % 2 ? 1 : -1) * Math.ceil((k + 1) / 2) * FP, r = fakes[k].run; Object.assign(r, run); r.x = Math.max(FP / 2, Math.min(8.5 * FP, run.x + dx)); r.fx = run.fx + (r.x - run.x); r.tx = run.tx + (r.x - run.x); }
@@ -179,7 +185,7 @@ async function mount() {
     if (frames.length < 20000) { frames.push(dt); cost.push(performance.now() - t0); }
     if (fps && frames.length % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr}${i.tier == null ? '' : ` · tier ${tierPath.join('→')}`} · tick ${run.t}`; }
   }
-  document.addEventListener('visibilitychange', () => { last = 0; acc = 0; });
+  document.addEventListener('visibilitychange', () => { last = 0; acc = 0; if (document.visibilityState === 'hidden' && awakeAt) { awakeAt = 0; awake(false); } });
   restart();
   raf = requestAnimationFrame(frame);
 
@@ -193,7 +199,7 @@ async function mount() {
     /** (the framing's checks) a ground point (column cells, lane) → [x, y] on the screen, 0 … 1 from the top left */
     project: (cells, lane) => view.project(cells, lane),
     lane: i => { const L = course.lane(i); return { type: L.type, dir: L.dir || (L.pulse && L.pulse.dir) || 0, mark: L.mark || '' }; },
-    hop,
+    hop, syncs: () => syncs.slice(),
     frames: () => frames.slice(),
     cost: () => cost.slice(),
     clearFrames() { frames.length = 0; cost.length = 0; },

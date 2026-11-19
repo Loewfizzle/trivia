@@ -173,6 +173,8 @@ onSettings(() => { applyVolumes(false); setSession('settings'); hushCheck('setti
 // or a tap wakes it — the full text: docs/audio.md "CITY I — MUSIC OFF = PODCAST MODE".
 const NAP_MS = 150, WAKE_WAIT_MS = 300;
 let voices = 0, voiceAt = 0, napping = false, napT = 0;
+let holdUntil = 0, naps = 0, wakes = 0;   // (HIGH RISE S4A — THE SOUND SYNC: a game's hold-awake lease, below · the naps taken · the effects that had to wake one)
+const heldNow = () => holdUntil > performance.now();
 /** music off + effects on (the 'ambient' session) — PODCAST MODE */
 export const effectsOnly = () => sessionWant() === 'ambient' && !hushed;
 globalThis.__nsBedsOff = effectsOnly;   // (the city's loops + its ambience one-offs: city-sound.js + ambience.js read it through the hub)
@@ -202,25 +204,38 @@ function countVoices(c) {
       src.start = function () {
         let on = c === ctx;
         const end = () => { if (on) { on = false; voices = Math.max(0, voices - 1); voiceAt = performance.now(); napSoon(); } };
-        if (on) { voices++; try { src.addEventListener('ended', end); } catch { /* fine */ } wakeFor(src); }
+        if (on) { voices++; try { src.addEventListener('ended', end); } catch { /* fine */ } noteStart(c); wakeFor(src); }
         try { return st.apply(src, arguments); } catch (e) { end(); throw e; }
       };
       return src;
     };
   }
 }
-function napSoon() { if (!napT && podOn && !napping) napT = setTimeout(napNow, NAP_MS); }
+/** HIGH RISE S4A — THE SOUND SYNC's measure: every source's start — `at` (performance.now()) + `wait`: how long it then waited for a
+ *  SLEEPING context to run (0 = it was running: the sound is on its moment; −1 = it never ran) — tests/integration/sound-sync.mjs */
+const starts = [];
+export const voiceStarts = () => starts.slice();
+function noteStart(c) {
+  const r = { at: performance.now(), wait: 0 };
+  if (starts.length >= 240) starts.shift();
+  starts.push(r);
+  if (c.state === 'running') return;
+  r.wait = -1;
+  const on = () => { if (c.state !== 'running') return; r.wait = performance.now() - r.at; try { c.removeEventListener('statechange', on); } catch { /* fine */ } };
+  try { c.addEventListener('statechange', on); } catch { /* fine */ }
+}
+function napSoon() { if (!napT && podOn && !napping && !heldNow()) napT = setTimeout(napNow, NAP_MS); }
 function napNow() {
   napT = 0;
   const c = ctx;
   if (!c || napping || !podOn || !unlocked || hushed || c.state !== 'running') return;
-  if (voices > 0) return;   // (the last one's 'ended' asks again)
+  if (voices > 0 || heldNow()) return;   // (the last one's 'ended' asks again · HIGH RISE S4A: a live run holds it awake — the lease's end asks again)
   if (performance.now() - voiceAt < NAP_MS) { napSoon(); return; }
-  napping = true; askedAt = 0; gestureAskAt = 0; stuck = false;
+  napping = true; naps++; askedAt = 0; gestureAskAt = 0; stuck = false;
   silence(c);   // (THE ZEROS FIRST: the master's VALUE to 0 at once, ZERO_HOLD_MS of zeros, then the suspend)
   setTimeout(() => {
     if (ctx !== c || !napping) return;
-    if (voices > 0 || !podOn) { napping = false; silence(c, 1); return; }
+    if (voices > 0 || !podOn || heldNow()) { napping = false; silence(c, 1); return; }
     c.suspend().then(() => { if (ctx === c && napping) audioLog('podcast mode — suspended between effects'); }, () => {});
   }, ZERO_HOLD_MS);
 }
@@ -229,6 +244,7 @@ function napNow() {
 function wakeFor(src) {
   if (napT) { clearTimeout(napT); napT = 0; }
   if (!napping) return;
+  wakes++;
   const c = ctx;
   if (!c || hushed || !visibleNow || blurred || document.visibilityState !== 'visible') { try { src.stop(); } catch { /* fine */ } return; }
   if (c.state === 'running') { napping = false; silence(c, 1); return; }
@@ -247,6 +263,33 @@ function wakeNow(why) {
   silence(c, 1);
   if (c.state !== 'running' && visibleNow) ask(why);
 }
+
+// ---- HIGH RISE S4A — THE SOUND SYNC (the owner, Nov 19: "sometimes the sound isn't in sync with the blocks" — MUSIC OFF, the phone's speaker).
+// The cause: PODCAST MODE naps the context NAP_MS after each sound, so in a game EVERY effect had to wake it first — a resume takes a
+// variable moment on iOS, and the sound lands that much after its slab. THE FIX: a game HOLDS THE CONTEXT AWAKE while a run is LIVE.
+// A LEASE, never a latch: holdAwake(true) keeps the nap away for HOLD_LEASE_MS and the game RENEWS it from its own frame loop (once a
+// second) — a game that ends, unmounts, crashes or is hidden stops renewing and the nap comes back by itself; holdAwake(false) ends it at
+// once (the end card, the start screen). It NEVER changes the session type (still 'ambient': the phone's podcast keeps playing), never
+// touches the music, the hush (muted = nothing runs) or THE CUT (a leave suspends as before + drops the hold). Out of PODCAST MODE it is
+// a no-op (the context runs anyway). A LAZY chunk reaches it through the hub globalThis.__nsHoldAwake (THE STALE-MODULE RULE).
+export const HOLD_LEASE_MS = 3000;
+/** is a game holding the context awake now (its lease not lapsed)? */
+export const heldAwake = () => heldNow();
+export function holdAwake(on, who = 'game') {
+  if (!on) { if (holdUntil) { holdUntil = 0; audioLog(`hold released (${who})`); napSoon(); } return; }
+  if (!heldNow()) audioLog(`held awake (${who})`);
+  holdUntil = performance.now() + HOLD_LEASE_MS;
+  if (napT) { clearTimeout(napT); napT = 0; }
+  if (!napping) return;
+  // (asleep between two effects: awake NOW — the START tap's own gesture on iOS; away / muted it stays down: the leave + the hush own that)
+  const c = ctx;
+  if (!c || !unlocked || hushed || !visibleNow || blurred || document.visibilityState !== 'visible') return;
+  if (c.state === 'running') { napping = false; silence(c, 1); return; }   // (caught between the zeros and the suspend)
+  silence(c, 1);
+  if (inGesture()) ask(`held awake (${who})`);
+  else { try { c.resume().catch(() => {}); } catch { /* fine */ } }   // (outside a tap a refused resume is expected: the next effect / tap wakes it, as before)
+}
+globalThis.__nsHoldAwake = holdAwake;
 
 // ---- CITY A — item 29, THE LEAVING SQUEAL (the owner's iPhone, SOUND MUTED, no music: a short high-pitched noise switching from Safari to another
 // app). Muted = every voice at 0, so it was the audio MACHINERY still live — the context running for THE PROBE / the beat analysers, the
@@ -413,7 +456,7 @@ export function onGesture(fn) { gestureListeners.add(fn); return () => gestureLi
 export function onFrozen(fn) { frozenListeners.add(fn); return () => frozenListeners.delete(fn); }
 
 /** The engine's state for tests + the readout. */
-export const audioHealth = () => ({ state: stNow(), napping, voices, podcast: podOn, hushed, session: sessionWant(), bedsOn: bedsPaused ? 0 : beds.size, pendingFadeIn, stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
+export const audioHealth = () => ({ state: stNow(), napping, held: heldNow(), naps, wakes, voices, podcast: podOn, hushed, session: sessionWant(), bedsOn: bedsPaused ? 0 : beds.size, pendingFadeIn, stuck, frozen, rebuilds, why: lastWhy, unlocked, visible: visibleNow, master: master ? +master.gain.value.toFixed(3) : null,
   time: ctx ? +ctx.currentTime.toFixed(2) : 0, session: sessionInfo(), sessionSet: { ...sessionSet }, made, closed, alive: made - closed,
   movingFor: clock.moving > 0 && !frozen ? Math.round(performance.now() - clock.moving) : 0, ok: graphOk() });
 function sessionInfo() { try { const a = navigator.audioSession; return a ? `${a.type || '?'}/${'state' in a ? a.state || '?' : 'n/a'}` : ''; } catch { return ''; } }
@@ -539,6 +582,7 @@ function blurBack() {
 function setVisible(visible, why = '') {
   if (visible === visibleNow) { if (visible) kick(); return; }
   visibleNow = visible;
+  if (!visible && holdUntil) { holdUntil = 0; audioLog('hold dropped (hidden)'); }   // (HIGH RISE S4A: a leave ends any hold — the cut + the suspend run as ever)
   blurred = false; clearTimeout(blurT); blurT = 0;
   if (visible) { visibleAt = performance.now(); setSession('back on screen'); mediaCutOn = false; }   // (CITY G: the media's own return = onVisibility)
   if (ctx) {

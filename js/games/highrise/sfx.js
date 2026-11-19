@@ -63,6 +63,19 @@ function out(ctx) {
   bus = comp;
   return bus;
 }
+/** S4A — THE SOUND SYNC: is EVERY fetched sound decoded for the live context (nothing a drop would have to wait for)? */
+export const ready = () => { const ctx = getContext(); return !!ctx && bufCtx === ctx && bytes.size > 0 && [...bytes.keys()].every(k => bufs.has(k)); };
+/** → a promise: every sound decoded — or `ms` passed (no engine, no signal, a locked phone: the run never waits longer). START waits
+ *  this moment, so no sound of a run takes the late path below */
+export function whenReady(ms = 600) {
+  return new Promise(res => {
+    const t = setTimeout(res, ms), done = () => { clearTimeout(t); res(); };
+    try { onUnlock(() => { decode().then(() => (ready() ? done() : null), () => {}); }); } catch { done(); }
+  });
+}
+let lateN = 0;
+/** how often a sound was asked BEFORE it could play (locked / undecoded — the late path): 0 in a run (the pass's check) */
+export const lates = () => lateN;
 /**
  * play one sound NOW: id, { rate (× the take's own), vol, delay (s) } → true = it started
  * (false: locked, muted, undecoded, outranked). A sound asked BEFORE the unlock (the first tap's own drop) plays as soon as it lands, if
@@ -80,7 +93,7 @@ export function play(id, o = {}) {
     //  it (engine.js#wakeFor): asking for `running` here made the whole game silent with the site's music off — the review's find)
     if (!isUnlocked() || !ctx || !bufs.get(tk.file) || bufCtx !== ctx) {
       // (not ready: the first tap's own sound, or the first play of a sound just fetched — wait for the decode, play if still fresh)
-      if (!o.late) { const go = () => decode().then(() => { if (performance.now() - t0 < 220) play(id, { ...o, late: true }); }); if (isUnlocked()) go(); else if (!lockWait) { lockWait = true; onUnlock(() => { lockWait = false; go(); }); } }
+      if (!o.late) { lateN++; const go = () => decode().then(() => { if (performance.now() - t0 < 220) play(id, { ...o, late: true }); }); if (isUnlocked()) go(); else if (!lockWait) { lockWait = true; onUnlock(() => { lockWait = false; go(); }); } }
       return false;
     }
     const voices = [...live], a = admit(voices, s.pri, VOICES);
