@@ -9,7 +9,7 @@ import { state, isHost, setState } from '../store.js';
 import { dbRef, update } from '../firebase.js';
 import { leaveRoom } from '../room.js';
 import { colorHex, GAMES } from '../config.js';
-import { openHelp } from './help.js';
+import { openHelp } from './help-open.js';
 import { segmented, row, tubeButton } from './components.js';
 import { openSheet } from './sheet.js';
 import { loadProfile } from '../identity.js';

@@ -1228,4 +1228,8 @@ body.nd-rest .rd-btn { pointer-events: none; }
   border: 1.5px solid rgba(255, 216, 74, 0.8); box-shadow: 0 0 12px rgba(255, 216, 74, 0.55); animation: rdk-inv-pulse 1.9s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) { .rdk-guests.rdk-alone::after { animation: none; opacity: 0.6; } }
 /* THE REMATCH RING (CITY H1 — the owner): RE / MATCH on two lines, bigger, inside the ring */
-.rdk-play.rdk-rm .rdk-w1 { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 1.08em; letter-spacing: 0.1em; line-height: 1; }
+.rdk-play.rdk-rm .rdk-w1 { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 1.08em; letter-spacing: 0.08em; line-height: 1; }
+/* (CITY I — H2's cloud red: each line's box carried its last letter's tracking — 48 pt in the 47-pt inner circle + the word 1 pt left of centre;
+   the trailing 0.1em cancelled, so the box is the letters and they sit centred) */
+.rdk-play.rdk-rm .rdk-w1 > span { margin-right: -0.08em; }   /* (+ the tracking 0.1 → 0.08em: 2 pt of air) */
+.rdk-play.rdk-rm .nd-host-label { padding-left: 0; }   /* (the one-line label's 0.16em balance pushed the two compensated lines 1 pt right — .rdk-leave's way) */

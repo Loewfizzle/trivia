@@ -23,7 +23,7 @@ import { exitHow, leaveRoom } from '../room.js';
 import { serverNow, dbRef, update as dbUpdate, serverTimestamp } from '../firebase.js';
 import { createRoomDock } from './room-dock.js';
 import { sfx } from '../audio/sfx.js';
-import { openHelp } from '../ui/help.js';
+import { openHelp } from '../ui/help-open.js';
 import { reducedMotion } from '../ui/dom.js';
 import { closeAll } from '../ui/layers.js';
 import { startShow, fileInOrder, backShow, voteState, GO_DEAD_MS, goWaiting } from '../core/room-show.js';

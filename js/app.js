@@ -124,10 +124,19 @@ function paintCrew(st) {
   if (!r) return;
   if (r.on) radioGate.fresh(); else radioGate.drop();
 }
+// CITY I — THE FROZEN-GAME HANG (e2e-profiles' CIPHER podium, red since JAYWALK H2): a room playing a game that can NEVER load here (a FROZEN
+// id — registry.js#loadGame answers null at once — or a game this build doesn't have) re-rendered → wantGame → null → re-rendered … a
+// microtask loop that never yielded: the page froze. Now that id is remembered and the phone leaves for the city ONCE (NEVER A DEAD SCREEN —
+// counted 'dead'); a load that THROWS (the network) is retried by the next state change, as before.
+const unloadable = new Set();
 function wantGame(id) {
-  if (wanting.has(id)) return;
+  if (wanting.has(id) || unloadable.has(id)) return;
   wanting.add(id);
-  loadGame(id).then(() => { wanting.delete(id); render(state); }, e => { wanting.delete(id); console.warn('[app] the game didn’t load', e); });
+  loadGame(id).then(m => {
+    wanting.delete(id);
+    if (!m) { unloadable.add(id); console.warn('[app] this game can’t load here', id); dead(); return; }
+    render(state);
+  }, e => { wanting.delete(id); console.warn('[app] the game didn’t load', e); });
 }
 let goT = 0, goM = '';
 function goTimer(st) {

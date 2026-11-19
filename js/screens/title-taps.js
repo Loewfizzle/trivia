@@ -2,7 +2,7 @@ import { openSheet } from '../ui/sheet.js';
 import { GAMES, MIN_PLAYERS, MAX_PLAYERS, isOwnerTest } from '../config.js';
 import { toast } from '../ui/toast.js';
 import { sfx } from '../audio/sfx.js';
-import { openHelp } from '../ui/help.js';
+import { openHelp } from '../ui/help-open.js';
 import { neonDropout, knock } from '../audio/ambience.js';
 import { useEmulator, loadMe } from '../identity.js';
 import { metaOf, loadGame } from '../games/registry.js';

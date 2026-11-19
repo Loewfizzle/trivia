@@ -27,7 +27,7 @@ import { GOOD_ICONS, WEATHER_ICONS, DISTRICT_ICONS, VALE_SVG, svgEl } from './ic
 import { createCity } from './scene.js';
 import { createSfx } from './audio.js';
 import { drawNewspaper, loadPaperFonts, savePage } from './newspaper.js';
-import { openHelp } from '../../ui/help.js';
+import { openHelp } from '../../ui/help-open.js';
 
 const num = n => Math.round(n).toLocaleString('en-US');
 const fmtPct = r => { const p = r * 100; return Number.isInteger(p) ? String(p) : p.toFixed(1); };

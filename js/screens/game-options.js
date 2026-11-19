@@ -11,7 +11,7 @@ import { startGame, onlineCount } from '../host.js';
 import { metaOf, loadGame } from '../games/registry.js';
 import { preloadSheets } from '../games/lazy-view.js';
 import { minPlayersOf } from '../games/cartridge.js';
-import { openHelp } from '../ui/help.js';
+import { openHelp } from '../ui/help-open.js';
 import { prefetch } from '../audio/music.js';
 import { lazyImport } from '../ui/lazy-import.js';
 

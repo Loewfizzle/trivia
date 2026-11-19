@@ -13,7 +13,7 @@ import { toast } from './ui/toast.js';
 import { livePathsFor, liveKeyFor, onGameLoaded } from './games/registry.js';
 import { closeAll } from './ui/layers.js';
 import { watchRoomProfiles, stopRoomProfiles } from './profile/public.js';
-import { claimSeatFor, takeSeat, freeSeat, watchSeat, seatConflict } from './seat.js';
+import { claimSeatFor, takeSeat, freeSeat, watchSeat, seatConflict, myPid } from './seat.js';
 import { lazyImport } from './ui/lazy-import.js';
 
 const R = code => `rooms/${code}`;
@@ -328,6 +328,10 @@ function enterRoom(code, { solo = false } = {}) {
     else if (seen.self) { if (leavingCode !== code) exitRoom('YOU WERE DISCONNECTED FROM THE ROOM', 'warn', { how: 'lost' }); return; }
     setState({ players });
     watchRoomProfiles(players);
+    // (CITY I — THE LOST SEAT LINK, every ordering: our own node arrived WITHOUT the pid while this phone has a profile (it linked while the
+    //  join was in flight — even before the room code was set, where profile/me.js#linkRoomSeat can't see a room yet) → linked ONCE a room)
+    const own = players[state.uid];
+    if (own && !own.pid && myPid() && pidHealed !== code) { pidHealed = code; updateMyProfile(loadProfile()).catch(() => {}); }
   });
   listen('presence', presence => {
     setState({ presence: normalizePresence(presence) });
@@ -363,12 +367,8 @@ function enterRoom(code, { solo = false } = {}) {
   });
   // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: another device of this profile took the seat (MOVE HERE) → this one walks out of the room — the
   //  same leave as LEAVE ROOM: the others see the wave + the walk-off)
-  unsubs.push(watchSeat(code, ({ code: to, here, uid }) => {
-    if (state.code !== code) return;
-    // (the SAME room: the other device is the same person sitting down — a host hands the room to it, never closes it as "the last one out"
-    //  (its player node may not have reached this phone yet))
-    leaveRoom({ keepSeat: true, heir: here ? uid : null, reason: here ? 'YOU MOVED TO YOUR OTHER DEVICE' : `YOU MOVED TO ROOM ${to} ON YOUR OTHER DEVICE` });
-  }));
+  seatArmed = myPid() ? code : null;
+  unsubs.push(watchSeat(code, seatMoved(code)));
   armPresence();
 }
 
@@ -455,6 +455,7 @@ function stopListening() {
   stopRoomProfiles();
   unsubs.forEach(u => u());
   unsubs = [];
+  seatArmed = null; pidHealed = null;
   liveUnsubs.forEach(u => u());
   liveUnsubs = [];
   liveWanted = null;
@@ -547,8 +548,29 @@ export async function setDoorLocked(on) {
   await update(dbRef(`${R(state.code)}/meta`), { locked: on ? true : null });
 }
 
+// (the seat watch's answer: another device of this profile took the seat → this one walks out)
+const seatMoved = code => ({ code: to, here, uid }) => {
+  if (state.code !== code) return;
+  // (the SAME room: the other device is the same person sitting down — a host hands the room to it, never closes it as "the last one out"
+  //  (its player node may not have reached this phone yet))
+  leaveRoom({ keepSeat: true, heir: here ? uid : null, reason: here ? 'YOU MOVED TO YOUR OTHER DEVICE' : `YOU MOVED TO ROOM ${to} ON YOUR OTHER DEVICE` });
+};
+let seatArmed = null;   // the room whose seat watch runs with a profile (null: joined before the profile linked)
+let pidHealed = null;   // the room whose seat link was healed once (the players listener)
+
 export async function updateMyProfile(profile) {
   if (!state.code) return;
+  // CITY I — THE LOST SEAT LINK (e2e-profiles' "room seats carry the profile id"): a profile that linked AFTER this phone joined had no seat —
+  // the join's claim had no pid — and the rules refuse a pid on our player node until seats/{pid} is ours, so the pid never landed. Take the
+  // seat now when no other live device holds it (no question mid-room: a conflict leaves the node without the pid, like a join without a
+  // profile) + arm the seat watch the join couldn't.
+  const mine = state.players && state.players[state.uid];
+  //  (the profile can also land BETWEEN the join's takeSeat (no pid yet) and its writePlayer (the pid there): that write was refused too)
+  if (mine && !mine.pid && myPid()) {
+    const code = state.code;
+    if (!(await seatConflict(code))) await takeSeat(code);
+    if (state.code === code && seatArmed !== code) { seatArmed = code; unsubs.push(watchSeat(code, seatMoved(code))); }
+  }
   await writePlayer(state.code, profile, state.players);
 }
 

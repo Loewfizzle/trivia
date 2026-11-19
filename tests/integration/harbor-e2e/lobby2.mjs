@@ -302,8 +302,8 @@ G('afterparty', async () => {
   ok(ringA.w === 'REMATCH' && ringA.pips === 0 && ringA.lit === 0 && /REMATCH\s*VOTE/.test(ringB.w) && !ringB.wait, `THE REMATCH RING: the host's reads ${ringA.w} — no empty dots (LOBBY FIXES: v2); the guest's own ring reads "${ringB.w}" (not greyed)`);
   // the word FITS inside the ring (the real font)
   // (LOBBY FIXES — the owner: REMATCH must sit INSIDE the ring, never on the tube: within the tube's inner circle — 0.62 of the ring's width)
-  const fit = await ev(p, "(() => { const l = document.querySelector('.rdk-play .rdk-w1'), r = document.querySelector('.rdk-play .nd-hring').getBoundingClientRect(), b = l.getBoundingClientRect(), cx = r.left + r.width / 2, inner = r.width * 0.62; return { lw: Math.round(b.width), rw: Math.round(r.width), inside: b.left >= cx - inner / 2 && b.right <= cx + inner / 2 }; })()");
-  ok(fit.inside, `…the word REMATCH sits INSIDE the ring's tube (${fit.lw} pt in its ${Math.round(fit.rw * 0.62)} pt inner circle)`);
+  const fit = await ev(p, "(() => { const l = document.querySelector('.rdk-play .rdk-w1'), r = document.querySelector('.rdk-play .nd-hring').getBoundingClientRect(), b = l.getBoundingClientRect(), cx = r.left + r.width / 2, inner = r.width * 0.62; return { lw: Math.round(b.width), rw: Math.round(r.width), inside: b.left >= cx - inner / 2 && b.right <= cx + inner / 2, gl: Math.round((b.left - (cx - inner / 2)) * 10) / 10, gr: Math.round((cx + inner / 2 - b.right) * 10) / 10, kids: [...l.children].map(k => { const q = k.getBoundingClientRect(); return Math.round((q.left + q.right) / 2 - cx); }) }; })()");
+  ok(fit.inside, `…the word REMATCH sits INSIDE the ring's tube (${fit.lw} pt in its ${Math.round(fit.rw * 0.62)} pt inner circle — air ${fit.gl} | ${fit.gr} pt; the lines' centres ${fit.kids.join(' / ')} pt off)`);
   // B votes: a dot lights in B's colour on BOTH phones, the pill, the 👍 over B
   await ev(q, "document.querySelector('.rdk-play').click()");
   await waitFor(p, "document.querySelectorAll('.rdk-pip.is-on').length === 1", 'a dot lit on A', 6000).catch(() => {});

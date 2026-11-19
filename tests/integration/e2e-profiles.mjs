@@ -12,7 +12,7 @@ process.env.FIREBASE_DATABASE_EMULATOR_HOST ||= '127.0.0.1:9000';
 process.env.GCLOUD_PROJECT ||= 'demo-arcade';
 import { createHarness, REVIEW_SIZES } from './kit/harness.mjs';
 import { val, ref } from '../../api/_lib/fb.js';
-import { finalGame, cipherSigned } from '../fixtures/finals.mjs';
+import { finalGame } from '../fixtures/finals.mjs';
 
 const H = await createHarness({ name: 'profiles', slot: 'f', sizes: REVIEW_SIZES });
 const { pages, log, sleep, ok, evalIn, waitFor, uids, shotAll, openPlayer, BASE, browser } = H;
@@ -28,7 +28,9 @@ await H.run(async () => {
   ok(/^p[a-z2-9]{11}$/.test(me0.pid) && /^\d{4}$/.test(me0.profile.t), `ALICE got a profile automatically (${me0.profile.n}#${me0.profile.t})`);
   ok(me1.pid && me1.pid !== me0.pid, 'BOB got his own');
   ok(!!(await p0.evaluate(s => localStorage.getItem(`na:${s}:pkey`), slotOf(0))), 'the key is kept on the device');
-  await waitFor(p0, s => Object.values(s.players).every(p => p.pid), 'room seats carry the profile id', 20000);
+  await waitFor(p0, s => Object.values(s.players).every(p => p.pid), 'room seats carry the profile id', 20000)
+    .catch(async e => { { const m = await meOf(p0, slotOf(0)); log('seat in db:', JSON.stringify(await val(`seats/${m.pid}`)), 'link:', JSON.stringify(await val(`uids/${m.uid}`)), 'room:', H.code, 'node:', JSON.stringify(await val(`rooms/${H.code}/players/${m.uid}`))); }
+      for (const pg of [p0, p1]) log('seats:', JSON.stringify(await pg.evaluate(() => { const s = window.__arcade.state; return { uid: s.uid, players: s.players, me: localStorage.getItem('na:' + new URLSearchParams(location.search).get('slot') + ':me') }; }))); throw e; });
   // (LOBBY 2.0 A: the room is the live city — each seat's emblem over its player's head; their strips in the guest list)
   await p0.waitForFunction(() => document.querySelectorAll('.rc-tags .rc-tag').length === 2 || document.querySelectorAll('.lobby-screen .chip .rk-badge').length === 2, { timeout: 15000 });
   ok(true, 'the room shows both players (an emblem over each head)');
@@ -61,13 +63,15 @@ await H.run(async () => {
     if (r.url().includes('/api/report') && r.method() === 'POST') reportHits++;
     r.continue();
   });
-  await ref('testReportAll').set(true);   // (HE10: CIPHER is frozen — reportable on the emulators only behind this switch, api/report.js#reportableGame)
-  const game = finalGame('cipher', [uids[0], uids[1]], { matchId: `e2e${Date.now().toString(36).slice(-6)}` });
-  game.phaseStartAt = Date.now(); game.phaseEndsAt = Date.now() + 60_000;
+  // (CITY I — the match moved off CIPHER: a FROZEN game never loads (config.js#FROZEN_IDS), and a room playing one froze the page
+  //  (app.js#wantGame's null loop — fixed; e2e-playnow's frozenroom case). OVERCLOCK is playable: its podium is real, its proof = each
+  //  player's own challenge board — A SEAT IS NOT A PLAY — written here as the players would have)
+  const game = finalGame('overclock', [uids[0], uids[1]], { matchId: `e2e${Date.now().toString(36).slice(-6)}` });
+  // (OVERCLOCK's podium = THE VICTORY, after the last challenge's beats + THE FINAL STANDINGS, timed from the phase's start: the phase began
+  //  40 s ago, so the victory is up at once; the host's director ends 'final' at phaseEndsAt — 90 s away)
+  game.ci = game.total - 1; game.phaseStartAt = Date.now() - 40_000; game.phaseEndsAt = Date.now() + 90_000;
   const code = H.code;
-  // (APP FIXES: a CIPHER final is checked against the players' own signed boards — written here as the players would have)
-  const { boards } = cipherSigned(game, code);
-  await ref(`rooms/${code}/boards/${game.matchId}`).set(boards);
+  await ref(`rooms/${code}/oc/${game.matchId}/0`).set({ [uids[0]]: { done: true, doneAt: Date.now() - 5000 }, [uids[1]]: { done: true, doneAt: Date.now() - 5000 } });
   await p0.evaluate(async (c, g, names) => {
     const fb = await import('/js/firebase.js');
     const night = { g: g.id, at: fb.serverTimestamp(), p: { [Object.keys(g.participants)[0]]: 3, [Object.keys(g.participants)[1]]: 2 }, n: names };
@@ -108,8 +112,8 @@ await H.run(async () => {
   await p0.waitForSelector('.pg-moment.is-end', { timeout: 3000 });
   const end = await p0.evaluate(() => ({ lv: document.querySelector('.pg-lv-n').textContent, st: (document.querySelector('.pg-streak b') || {}).textContent || '',
     today: !!document.querySelector('.pg-streak .pg-dots i.is-played'), ach: [...document.querySelectorAll('.pg-ach div > b')].map(b => b.textContent), tease: (document.querySelector('.pg-tease b') || {}).textContent || '',
-    total: document.querySelector('.pg-total-v').textContent, upGone: !document.querySelector('.pg-up.is-on') }));
-  ok(/^LEVEL [56]$/.test(end.lv) && end.upGone && /^\+\d+ XP$/.test(end.total), `the skip → the end at once (${end.lv}, ${end.total})`);
+    total: document.querySelector('.pg-total-v').textContent, upGone: !document.querySelector('.pg-up:not(.pg-big).is-on'), upCls: [...document.querySelectorAll('.pg-up')].map(e => e.className).join(' | ') + ' / moment: ' + (document.querySelector('.pg-moment') || {}).className }));
+  ok(/^LEVEL [56]$/.test(end.lv) && end.upGone && /^\+\d+ XP$/.test(end.total), `the skip → the end at once (${end.lv}, ${end.total}${end.upGone ? '' : `, the level-up still up: ${end.upCls}`})`);
   ok(/1 NIGHT STREAK/.test(end.st) && end.today, `the streak lights + today's dot (${end.st})`);
   ok(end.ach.includes('FIRST ROUND'), `an achievement slides in (${end.ach.join(', ')})`);
   ok(/^NEXT UNLOCK AT LEVEL \d+$/.test(end.tease), `the tease — when, never what (${end.tease})`);
@@ -118,14 +122,25 @@ await H.run(async () => {
   ok(bar && bar.tube && /138, 42, 102/.test(bar.had) && /255, 79, 184/.test(bar.got) && !/169, 130, 60|230, 196, 122/.test(bar.had), `THE ROUND-END BAR is the PINK NEON TUBE (earned ${bar && bar.had.slice(0, 40)}… · the gain ${bar && bar.got.slice(0, 40)}…)`);
   ok(!/\?\?\?|\d+ of \d+/i.test(await p0.$eval('.pg-moment', e => e.textContent)), 'no ??? and no totals anywhere');
   await H.shot(p0, 'pf-03b-moment-end-390x844');
+  // (CITY F — an EPIC / LEGENDARY item this match earned gets ITS OWN held beat after the sheet (OVERCLOCK's final earns one — CIPHER's never
+  //  did): each held until a tap, its first second's taps ignored — tapped through here, then CONTINUE)
+  const bigNames = [];
+  for (let i = 0; i < 6 && (await p0.$('.pg-big.is-on')); i++) {
+    bigNames.push(await p0.$eval('.pg-big.is-on .pg-up-n', e => e.textContent).catch(() => '?'));
+    await sleep(1150);
+    await p0.evaluate(() => document.querySelector('.pg-moment').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+    await sleep(350);
+  }
+  ok(!(await p0.$('.pg-big.is-on')), `THE BIG ITEM BEATS after the end: ${bigNames.length ? bigNames.join(', ') : 'none this match'} — each held, a tap moves on`);
   await p0.click('.pg-moment .pg-btn');
   await p0.waitForFunction(() => !document.querySelector('.pg-moment'), { timeout: 3000 });
   ok(!!(await p0.$('.final')), 'CONTINUE → back to the podium (REMATCH / LOBBY as today)');
   const pub0 = await val(`profiles/${me0.pid}`);
   ok(pub0.r === 1 && pub0.x >= 250, `the public profile shows REGULAR (${pub0.x} XP)`);
-  ok((await val(`pstats/${me0.pid}/g/cipher/p`)) === 1, 'ALICE: one cipher match counted');
-  await p0.waitForSelector('.final .pod .rk-badge', { timeout: 10000 }).catch(() => {});
-  ok(await p0.$('.final .rk-badge'), 'emblems on the podium / results list');
+  ok((await val(`pstats/${me0.pid}/g/overclock/p`)) === 1, 'ALICE: one OVERCLOCK match counted');
+  // (CITY I: the podium = each player's SLIM CARD now — SLIM CARDS EVERYWHERE — the emblem on its plate, no separate badge)
+  await p0.waitForSelector('.final .vl-strip .vl-emb, .final .rk-badge', { timeout: 10000 }).catch(() => {});
+  ok(await p0.$('.final .vl-strip .vl-emb, .final .rk-badge'), 'emblems on the podium / results list (on each slim card)');
   await shotAll(p0, 'pf-04-podium-done');
 
   // ---- 4. the offline phone comes back: its report goes, nothing is counted twice
@@ -143,12 +158,12 @@ await H.run(async () => {
   await p1.waitForFunction(s => !(JSON.parse(localStorage.getItem(`na:${s}:rq`) || '[]')).length, { timeout: 20000 }, slotOf(1));
   ok(reportHits >= 2, `M4: the queue resent it by itself after retryAfter (${reportHits} sends)`);
   ok(true, 'BOB\'s queued report was delivered once he was back');
-  await p1.waitForSelector('.rc-plaque, .rc-xp', { timeout: 15000 }).catch(() => {});
+  await p1.waitForSelector('.rc-xp', { timeout: 15000 }).catch(() => {});   // (CITY I: the XP box comes one plaque-step AFTER his plaques — OVERCLOCK earns him a PERSONAL BEST)
   ok(await p1.$('.rc-xp'), 'BOB gets his own outcome on his podium');
-  ok((await val(`pstats/${me1.pid}/g/cipher/p`)) === 1 && (await val(`pstats/${me0.pid}/g/cipher/p`)) === 1, 'the match is counted exactly once for each');
+  ok((await val(`pstats/${me1.pid}/g/overclock/p`)) === 1 && (await val(`pstats/${me0.pid}/g/overclock/p`)) === 1, 'the match is counted exactly once for each');
   await p1.evaluate(() => import('/js/profile/queue.js').then(m => { localStorage.removeItem(`na:f1:rdone`); return m.queueReport(window.__arcade.state.code, window.__arcade.state.game); }));
   await sleep(2500);
-  ok((await val(`pstats/${me1.pid}/g/cipher/p`)) === 1, 'a forced re-send is still counted once');
+  ok((await val(`pstats/${me1.pid}/g/overclock/p`)) === 1, 'a forced re-send is still counted once');
 
   // ---- 5. back in the room: THE SAVE-YOUR-KEY POP-UP (LOBBY 2.0 A's ADD-ON — replaced the 3rd-match reminder): her card + COPY · SHARE · LATER
   await H.backToLobby(p0);
@@ -174,6 +189,7 @@ await H.run(async () => {
   await p3.evaluate(() => [...document.querySelectorAll('.screen-in .pf-restore')].pop().click());
   await p3.waitForSelector('.pf-restore-sheet .pf-key-in', { timeout: 6000 });
   await p3.type('.pf-restore-sheet .pf-key-in', JSON.parse(key0).toLowerCase().replace(/-/g, ' '));
+  await p3.waitForSelector('.pf-restore-sheet .btn-primary', { visible: true, timeout: 6000 }).catch(() => {}); await sleep(400);   // (CITY I: the sheet settled — never a click mid-slide)
   await p3.click('.pf-restore-sheet .btn-primary');
   await p3.waitForFunction(pid => JSON.parse(localStorage.getItem('na:f3:me') || 'null').pid === pid, { timeout: 15000 }, me0.pid);
   ok(true, 'a fresh browser restored ALICE\'s profile with her key (typed in lowercase with spaces)');
@@ -189,12 +205,12 @@ await H.run(async () => {
   await p3.waitForFunction(() => document.querySelectorAll('.pg-prof .pg-ach').length >= 2 && !!document.querySelector('.pg-cz'), { timeout: 15000 }).catch(() => {});   // (the restored profile's sections, not the blank one's)
   // THE VAULT 2C — THE PROFILE REARRANGED: the card on top, CUSTOMIZE YOUR CARD under it, then LEVEL · THE STREAK · STATS · ACHIEVEMENTS (as
   // trophies) …; ACCOUNT at the foot (EDIT PROFILE · YOUR KEY · the birthday · the opt-out); no BOARD button on the profile
-  const lay = await p3.evaluate(() => { const sc = document.querySelector('.pf-scroll'), kids = [...sc.children]; const at = sel => kids.findIndex(k => k.matches(sel) || !!k.querySelector(sel));
+  const lay = await p3.evaluate(() => { const sc = document.querySelector('.pf-scroll'), kids = [...sc.children].filter(k => !k.matches('.pf-knock-slot'));   /* (CITY I: CITY C's KNOCK slot sits between the card + CUSTOMIZE by design — a waiting request's card right under YOURS) */ const at = sel => kids.findIndex(k => k.matches(sel) || !!k.querySelector(sel));
     return { card: at('.pf-card-slot'), cz: at('.pg-cz'), prog: at('.pg-prof'), mast: at('.pf-mastery'), acc: at('.pf-account'), board: [...sc.querySelectorAll('button')].some(b => /^THE BOARD$/.test(b.textContent.trim())), edit: !sc.querySelector('.pf-account .pf-er-name, .pf-account .pf-edit'),
       goal: !!document.querySelector('.pg-prof .pf-goal-t'), old: /NOT PLAYED YET|MEMBERSHIP/.test(document.querySelector('.pf-screen').textContent), menu: (() => { const m = document.querySelector('.menu-btn'); return !!m && getComputedStyle(m).display !== 'none'; })(),
-      medals: document.querySelectorAll('.pg-trophies .pg-medal').length, chips: document.querySelectorAll('.pg-trophies .pg-rw[data-id]').length }; });
+      kidsSeen: kids.map(k => k.className.split(' ')[0]).join(' '), medals: document.querySelectorAll('.pg-trophies .pg-medal').length, chips: document.querySelectorAll('.pg-trophies .pg-rw[data-id]').length }; });
   ok(lay.card === 0 && lay.cz === 1 && lay.prog > lay.cz && lay.mast > lay.prog && lay.acc > lay.mast && !lay.board && lay.edit && lay.medals >= 2 && lay.chips >= 2 && lay.goal && !lay.old && !lay.menu,
-    `THE PROFILE (LOBBY 2.0 A): the card (${lay.card}) → CUSTOMIZE YOUR CARD (${lay.cz}) → the sections + THE GOAL TILE (${lay.prog}, ${lay.goal}) → MASTERY (${lay.mast}) → ACCOUNT (${lay.acc}); no BOARD button, no NOT PLAYED YET / MEMBERSHIP (${!lay.old}), no ☰ on the page (${!lay.menu}); ${lay.medals} trophies with ${lay.chips} reward chips`);
+    `THE PROFILE (LOBBY 2.0 A): the card (${lay.card}) → CUSTOMIZE YOUR CARD (${lay.cz}) → the sections + THE GOAL TILE (${lay.prog}, ${lay.goal}) → MASTERY (${lay.mast}) → ACCOUNT (${lay.acc}); no BOARD button, no NOT PLAYED YET / MEMBERSHIP (${!lay.old}), no ☰ on the page (${!lay.menu}); ${lay.medals} trophies with ${lay.chips} reward chips${lay.cz === 1 ? '' : ` [${lay.kidsSeen}]`}`);
   // EDIT PROFILE → NAME › → its own sheet; ‹ goes back ONE step (to Edit profile), then one more (the profile)
   const tapIt = sel => p3.evaluate(q => { const e = document.querySelector(q); if (e) e.click(); return !!e; }, sel);
   // (LOBBY FIXES — the owner's ADD-ON 3: no NAME / COLOUR rows in ACCOUNT; the card's ✎ opens the name editor, ‹ = one step back)
@@ -330,6 +346,8 @@ await H.run(async () => {
     await p8.waitForSelector('.byc-bring .pk-signin', { timeout: 8000 }).catch(() => {});
     ok(!!(await p8.$('.byc-bring .pk-signin')) && /OR PASTE YOUR KEY/.test(await p8.$eval('.byc-bring', e => e.textContent)), 'BRING YOUR CARD: SIGN IN WITH … above "OR PASTE YOUR KEY"');
     await shotAll(p8, 'pf-06p-bring-faceid', REVIEW_SIZES.slice(0, 3));
+    // (CITY I: the button can still be mid-slide right after the shots — puppeteer's "not clickable": wait for its box + the sheet to settle)
+    await p8.waitForSelector('.byc-bring .pk-signin', { visible: true, timeout: 8000 }).catch(() => {}); await sleep(450);
     await p8.click('.byc-bring .pk-signin');
     await p8.waitForFunction(pid => (JSON.parse(localStorage.getItem('na:f8:me') || 'null') || {}).pid === pid, { timeout: 20000 }, me0.pid).catch(() => {});
     await p8.waitForFunction(() => !document.querySelector('.byc-bring'), { timeout: 3000 }).catch(() => {});
@@ -441,7 +459,7 @@ await H.run(async () => {
   // the board's GET is browser-cached (max-age 10 s + stale-while-revalidate 60 s): look at ALL TIME, a list this browser hasn't fetched
   await openBoard('all');
   ok(await p3.$('.bd-me.is-ranked'), 'your pinned row shows your exact rank');
-  const rows = await p3.$$eval('.bd-rows .bd-row:not(.is-skel)', els => els.map(el => ({ n: el.dataset.n || '', me: el.classList.contains('is-me'), you: el.classList.contains('sb-me'), more: !!el.querySelector('button.bd-open'), strip: !!el.querySelector('.vl-strip'), id: el.dataset.id })));
+  const rows = await p3.$$eval('.bd-rows .bd-row:not(.is-skel)', els => els.map(el => ({ n: el.dataset.n || '', me: el.classList.contains('is-me'), you: el.classList.contains('sb-me') || !!el.querySelector('.vl-strip.sb-me'),   /* (THE YOU ROW's glow lives on the slim card — ui/strip-board.js#markMine) */ more: !!el.querySelector('button.bd-open'), strip: !!el.querySelector('.vl-strip'), id: el.dataset.id })));
   ok(rows.length > 0 && rows.every(r => r.strip), `SLIM CARDS EVERYWHERE: every board row is its player's slim card (${rows.length})`);
   const mine = rows.find(r => r.me);
   const bid3 = await p3.evaluate(() => { for (const k of Object.keys(localStorage)) if (/:me$/.test(k)) { const v = JSON.parse(localStorage.getItem(k)); return `${k}=${v && v.profile && v.profile.bid}`; } return 'none'; });
@@ -467,23 +485,24 @@ await H.run(async () => {
   await p3.evaluate(() => { const b = document.querySelector('.vl-full.pp .vl-full-x'); if (b) b.click(); });
   await p0.evaluate(() => import('/js/profile/me.js').then(m => m.setShown(false)));
   ok((await val(`lb/xp/all/${me0.pid}`)) == null, 'opted out: off the boards');
-  ok((await val(`pstats/${me0.pid}/g/cipher/p`)) === 1, '…and the stats are still there');
+  ok((await val(`pstats/${me0.pid}/g/overclock/p`)) === 1, '…and the stats are still there');
   await p0.evaluate(() => import('/js/profile/me.js').then(m => m.setShown(true)));
   ok((await val(`lb/xp/all/${me0.pid}`)) != null, 'opted back in: on the boards again');
 
   // ---- 8b. BOARD 2.0 B — THE PLAYER PAGE: from a board row, a room's name tag, a friend; a hidden player + a blocker see the name + the emblem only
   {
-    const pp = async (pg, want = 'card') => { await pg.waitForFunction(w => { const e = document.querySelector('.vl-full.pp'); return e && e.dataset.state === w; }, { timeout: 15000 }, want); return pg.evaluate(() => { const e = document.querySelector('.vl-full.pp'); return { text: e.textContent.toUpperCase(), card: !!e.querySelector('.vl-fc, .pg-card'), lv: !!e.querySelector('.pp-lv'), meds: e.querySelectorAll('.pp-med').length, dots: !!e.querySelector('.pp-dots'), covered: document.body.classList.contains('vl-covered') }; }); };
+    const pp = async (pg, want = 'card') => { await pg.waitForFunction(w => { const e = document.querySelector('.vl-full.pp'); return e && e.dataset.state === w; }, { timeout: 15000 }, want); return pg.evaluate(() => { const e = document.querySelector('.vl-full.pp'); return { text: e.textContent.replace(/\s+/g, ' ').toUpperCase(), card: !!e.querySelector('.vl-fc, .pg-card'), lv: !!e.querySelector('.pp-lv'), meds: e.querySelectorAll('.pp-med').length, dots: !!e.querySelector('.pp-more, .pp-dots'),   /* (the ⋯ = the MORE tube now — player-page.js) */ covered: document.body.classList.contains('vl-covered') }; }); };
     const ppClose = pg => pg.evaluate(() => { const b = document.querySelector('.vl-full.pp .vl-full-x'); if (b) b.click(); });
     // (a) a BOARD ROW (p3 = ALICE's second phone): tap BOB's card
     await openBoard('all');
-    const bob = (await p3.$$eval('.bd-rows .bd-row', els => els.map(e => ({ id: e.dataset.id, me: e.classList.contains('is-me') })))).find(r => !r.me);
+    const bobRows = await p3.$$eval('.bd-rows .bd-row', els => els.map(e => ({ id: e.dataset.id, me: e.classList.contains('is-me') })));
+    const bob = bobRows.find(r => r.id === me1.profile.bid) || bobRows.find(r => !r.me);   // (CITY I: BOB's own row by his board id — the emulators keep earlier runs' players)
     ok(!!bob, 'the board has another player\'s row to tap');
     if (bob) {
       await p3.click(`.bd-row[data-id="${bob.id}"] .bd-open`);
       const a = await pp(p3);
       const bobName = String((await val(`profiles/${me1.pid}/n`)) || me1.profile.n).toUpperCase();
-      ok(a.card && a.lv && a.dots && a.covered && a.text.includes(bobName), `THE PLAYER PAGE from a board row: ${bobName}'s card + LV + ⋯, over a covered page`);
+      ok(a.card && a.lv && a.dots && a.covered && a.text.includes(bobName), `THE PLAYER PAGE from a board row: ${bobName}'s card + LV + ⋯, over a covered page${a.card && a.lv && a.dots && a.covered && a.text.includes(bobName) ? '' : ` [card ${a.card} lv ${a.lv} more ${a.dots} covered ${a.covered} name ${bobName} text ${a.text.slice(0, 400)}]`}`);
       ok(!/MATCHES PLAYED|WIN RATE|BEST GAME/.test(a.text) && !a.text.includes(String(me1.pid).toUpperCase()), 'NOT the stats, NOT the best game, never the profile id');
       await shotAll(p3, 'pf-07c-player-page', REVIEW_SIZES.slice(0, 1));
       await ppClose(p3);
@@ -607,6 +626,7 @@ await H.run(async () => {
       return st;
     };
     const names = { [uids[0]]: 'ALICE', [uids[1]]: 'BOB' };
+    const oc0 = Number(await val(`pstats/${me0.pid}/g/overclock/p`)) || 0;   // (CITY I: step 3's match is an OVERCLOCK one now)
     // REDLINE: ALICE alone on top of all six (2 players, QUICK)
     const a = await playOc(ocFinal(Array.from({ length: 6 }, () => ({ [uids[0]]: 150, [uids[1]]: 130 }))), names, 'redline');
     const rl = a.ach.find(x => x.id === 'redline');
@@ -620,7 +640,7 @@ await H.run(async () => {
     // the same match reported again: nothing new
     await p0.evaluate(() => import('/js/profile/queue.js').then(m => { for (const k of Object.keys(localStorage)) if (/:rdone$/.test(k)) localStorage.removeItem(k); return m.queueReport(window.__arcade.state.code, window.__arcade.state.game); }));
     await sleep(2500);
-    ok((await val(`pstats/${me0.pid}/g/overclock/p`)) === 2, 'a re-sent report is still counted once (2 OVERCLOCK matches)');
+    { const n = Number(await val(`pstats/${me0.pid}/g/overclock/p`)) || 0; ok(n === oc0 + 2, `a re-sent report is still counted once (${oc0} + 2 OVERCLOCK matches = ${n})`); }
     // THE ADD-ON: a SOLO run → SOLO RUN · Just you; hosting untouched; HOUSE WARMING (from her first hosted room) kept
     const ho0 = await val(`pstats/${me0.pid}/pa/ho`);
     const s = await playOc(ocFinal(Array.from({ length: 6 }, () => ({ [uids[0]]: 120 })), [uids[0]]), { [uids[0]]: 'ALICE' }, 'solo');

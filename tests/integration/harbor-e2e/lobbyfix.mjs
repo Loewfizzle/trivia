@@ -254,7 +254,10 @@ const ageOf = p => ev(p, '(() => { const g = window.__arcade.state.meta.go; retu
 async function dockGaps(pg, where) {
   const out = [];
   for (const [w, hh] of [[390, 844], [375, 667]]) {
-    await pg.setViewport({ width: w, height: hh, deviceScaleFactor: 2 }); await sleep(700);
+    await pg.setViewport({ width: w, height: hh, deviceScaleFactor: 2 }); await sleep(300);
+    // (CITY I — H2's cloud red "390: 0 labels": the slow runner's dock was still re-laying out after the resize — wait for the condition, not a sleep)
+    await waitFor(pg, "[...document.querySelectorAll('.rdk-dock .nd-host-label, .rdk-dock .rdk-lbl')].filter(e => { const r = e.getBoundingClientRect(); return r.right > r.left; }).length === 7", 'the dock labels', 6000).catch(() => {});
+    await sleep(250);
     const g = await ev(pg, `(() => { const ls = [...document.querySelectorAll('.rdk-dock .nd-host-label, .rdk-dock .rdk-lbl')].map(e => { const r = e.getBoundingClientRect(); return { t: e.textContent.trim(), l: r.left, r: r.right }; }).filter(x => x.r > x.l).sort((a, b) => a.l - b.l);
       let min = 1e9, pair = ''; for (let i = 1; i < ls.length; i++) { const d = ls[i].l - ls[i - 1].r; if (d < min) { min = d; pair = ls[i - 1].t + ' | ' + ls[i].t; } } return { min: Math.round(min * 10) / 10, pair, n: ls.length }; })()`);
     out.push({ w, ...g });
@@ -322,7 +325,8 @@ G('newstart', async () => {
 const plateMiss = (p, sel) => ev(p, `(() => { const out = [];
   for (const pl of document.querySelectorAll('${sel}')) { const P = pl.getBoundingClientRect(), card = pl.closest('[data-card]').dataset.card;
     const lines = [...pl.querySelectorAll('.vl-fc-name, .vl-fc-lv, .vl-name, .vl-lv')];
-    for (const l of lines) { const r = document.createRange(); r.selectNodeContents(l); const b = r.getBoundingClientRect(); if (b.right > P.right - 1 || b.left < P.left) out.push(card + ' ' + l.className.split(' ')[0] + ' ' + Math.round(b.right - P.right)); }
+    for (const l of lines) { const r = document.createRange(); r.selectNodeContents(l); const b = l.classList.contains('fit-cut') ? l.getBoundingClientRect() : r.getBoundingClientRect();   // (CITY I: a slim name cut to its ellipsis (.fit-cut — JAYWALK POLISH's one-line rule) shows only its own box, never its whole text)
+    if (b.right > P.right - 1 || b.left < P.left) out.push(card + ' ' + l.className.split(' ')[0] + ' ' + Math.round(b.right - P.right)); }
     // (the stepped plate: its short row reaches past its own words — the level line, or the name on THE REVERSE STEP — CARD FIXES)
     const st = pl.dataset.step, x2 = +pl.dataset.x2, row = st === 'n' ? pl.querySelector('.vl-lv, .vl-fc-lv') : st === 'r' ? pl.querySelector('.vl-name, .vl-fc-name') : null; if (row) { const r = document.createRange(); r.selectNodeContents(row); const sc = P.width / pl.offsetWidth; if ((r.getBoundingClientRect().right - P.left) / sc > x2 - 2) out.push(card + ' step ' + st + ' ' + Math.round((r.getBoundingClientRect().right - P.left) / sc - x2)); } }
   return out; })()`);
@@ -689,4 +693,79 @@ G('shell', async () => {
     await c2.close();
   }
   ok(fits.every(f => f.ok), `THE XP BOX FITS at 390 / 402 / 430 (${fits.map(f => `${f.w}: ${f.lv}${f.ok ? '' : ` ✗ ${f.clash.join(' · ')} lines ${f.lines} in ${f.inBox}`}`).join(' | ')}) — nothing collides, the whole box a button (no YOUR CARD tube), the reasons whole`);
+});
+
+// CITY I — HOW TO PLAY OUT OF THE BOOT (ui/help-open.js): help.js is a lazy chunk, warmed after the reveal. A COLD tap right after the reveal
+// (help.js held back by the network) opens the sheet's FRAME at once — never a dead tap — and the rules fill that same sheet; a second tap while
+// it loads opens nothing more; a FAILED load = TAP TO RETRY in the frame + reported, and the retry fills it. Then the warm path: the rules load
+// on their own after the reveal (no tap).
+G('helpcold', async () => {
+  const Q = await open({ slot: 'hlc', qs: NIGHT, view: [390, 844] }), p = Q.page;
+  let mode = 'hold', release = null, asked = 0;
+  await p.setRequestInterception(true);
+  p.on('request', r => {
+    if (r.isInterceptResolutionHandled()) return;
+    if (!/\/js\/ui\/help\.js(\?|$)/.test(r.url())) return r.continue();
+    asked++;
+    if (mode === 'fail') return r.abort('internetdisconnected');
+    if (mode === 'hold') { release = () => r.continue(); return; }
+    r.continue();
+  });
+  await harborUp(p);
+  const notIn = await ev(p, "!performance.getEntriesByType('resource').some(e => /\\/js\\/ui\\/help\\.js/.test(e.name))");
+  ok(notIn, 'CITY I: help.js is not fetched with the boot (a lazy chunk)');
+  // ---- a cold tap (the network holds help.js): the frame at once, ONE sheet even after a second tap
+  await ev(p, "document.querySelector('.menu-btn').click()");
+  await waitFor(p, "!!document.querySelector('.gm.is-in .gm-help')", 'the menu', 6000); await sleep(400);
+  const t0 = Date.now();
+  await ev(p, "document.querySelector('.gm .gm-help').click()");
+  await waitFor(p, "!!document.querySelector('.help-sheet .help-wait')", 'the frame', 1500);
+  const frameMs = Date.now() - t0;
+  await ev(p, "(() => { const r = document.querySelector('.gm .gm-help'); if (r) r.click(); })()");   // (a second tap under the frame — the menu row, if still reachable)
+  await sleep(300);
+  const sheets1 = await ev(p, "document.querySelectorAll('.help-sheet:not(.is-out)').length");
+  ok(frameMs < 1000 && sheets1 === 1, `a COLD tap → the HOW TO PLAY frame at once (${frameMs} ms, LOADING…) — ${sheets1} sheet after a second tap`);
+  for (let i = 0; i < 50 && !release; i++) await sleep(100);   // (a Node-side wait: the held request)
+  ok(!!release, `…help.js asked for once the tap came (${asked} request)`);
+  release();
+  await waitFor(p, "!!document.querySelector('.help-sheet:not(.is-out) .help-tab') && !document.querySelector('.help-sheet .help-wait')", 'the rules in the frame', 8000);
+  const filled = await ev(p, "({ n: document.querySelectorAll('.help-sheet:not(.is-out)').length, tabs: document.querySelectorAll('.help-sheet .help-tab').length, goal: !!document.querySelector('.help-sheet .help-goal'), back: !document.querySelector('.help-sheet .sh-back').hidden, open: document.body.classList.contains('help-open') })");
+  ok(filled.n === 1 && filled.tabs >= 4 && filled.goal && filled.back && filled.open, `…the rules fill THAT sheet (${filled.n} sheet, ${filled.tabs} tabs, ‹ back to ☰: ${filled.back})`);
+  await ev(p, "[...document.querySelectorAll('.sh:not(.is-out) .sh-x')].pop().click()"); await sleep(500);
+  ok(!(await ev(p, "document.body.classList.contains('help-open') || !!document.querySelector('.help-sheet:not(.is-out)')")), '…× closes it (its cleanup ran)');
+  await Q.ctx.close();
+
+  // ---- a FAILED load: TAP TO RETRY in the frame + reported; the retry fills it
+  const R = await open({ slot: 'hlf', qs: NIGHT, view: [390, 844] }), q = R.page;
+  let fail = true, tries = 0;
+  await q.setRequestInterception(true);
+  q.on('request', r => {
+    if (r.isInterceptResolutionHandled()) return;
+    if (!/\/js\/ui\/help\.js(\?|$)/.test(r.url())) return r.continue();
+    tries++;
+    return fail ? r.abort('internetdisconnected') : r.continue();
+  });
+  await harborUp(q);
+  await ev(q, "import('/js/ui/help-open.js').then(m => m.openHelp('overclock'))");
+  await waitFor(q, "!!document.querySelector('.help-sheet [data-retry=\"help\"]')", 'TAP TO RETRY', 8000);
+  const msg = await ev(q, "document.querySelector('.help-sheet [data-retry]').textContent");
+  const reported = await ev(q, "(window.__errlog ? window.__errlog.seen() : []).some(k => /help/.test(k))");
+  ok(/TAP TO RETRY/.test(msg) && reported, `a FAILED load → "${msg}" in the frame + reported (${reported})`);
+  fail = false;
+  await ev(q, "document.querySelector('.help-sheet [data-retry]').click()");
+  await waitFor(q, "!!document.querySelector('.help-sheet:not(.is-out) .help-tab')", 'the rules after the retry', 8000);
+  const tab = await ev(q, "(document.querySelector('.help-sheet .help-tab[aria-selected=\"true\"]') || {}).dataset?.id || ''");
+  ok(tab === 'overclock' && tries >= 2, `…TAP TO RETRY → a fresh import fills it (the asked-for tab: ${tab}; ${tries} requests)`);
+  await R.ctx.close();
+
+  // ---- the warm path: no tap — the rules load on their own a few seconds after the reveal
+  const W = await open({ slot: 'hlw', qs: NIGHT, view: [390, 844] }), w = W.page;
+  await harborUp(w);
+  await waitFor(w, "performance.getEntriesByType('resource').some(e => /\\/js\\/ui\\/help\\.js/.test(e.name))", 'the warm load', 12000);
+  await ev(w, "document.querySelector('.menu-btn').click()");
+  await waitFor(w, "!!document.querySelector('.gm.is-in .gm-help')", 'the menu', 6000); await sleep(400);
+  await ev(w, "document.querySelector('.gm .gm-help').click()");
+  await sleep(60);
+  ok(await ev(w, "!!document.querySelector('.help-sheet .help-tab') && !document.querySelector('.help-sheet .help-wait')"), 'WARMED after the reveal: a tap opens the rules at once (no LOADING frame)');
+  await W.ctx.close();
 });

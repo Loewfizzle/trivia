@@ -19,7 +19,6 @@ import { levelLabel } from '../core/levels.js';
 import { avatar } from '../ui/components.js';
 import { gameArt, gameArtSvg } from '../ui/game-art.js';
 import { logoSvg, logoGlowSvg, logoRaceSvg, logoTrack, anchorsSvg, TAGLINE } from '../ui/logo.js';
-import { openHelp } from '../ui/help.js';
 import { toast } from '../ui/toast.js';
 import { APP_NAME, GAMES, MIN_PLAYERS, MAX_PLAYERS, colorHex } from '../config.js';
 import { setState } from '../store.js';
@@ -49,6 +48,7 @@ import { createDock, createDockWork, dressCorners, ICON } from './title-dock.js'
 import { createTaps } from './title-taps.js';
 import { createNeon } from './title-neon.js';
 import { onScreenWait } from '../ui/onscreen.js';
+import { warmHelpSoon } from '../ui/help-open.js';
 import { lazyImport } from '../ui/lazy-import.js';
 import { afterTap } from '../ui/tapwatch.js';
 // CITY 2.0 — THE HARBOR (docs/harbor.md): THE city (CITY 1.0 OUT, Nov 5 — City 1.0 deleted; an old `?city=1` / `?city=2` link lands here).
@@ -955,6 +955,7 @@ export function createTitle() {
     cityDone();
     pgPreviewSoon(600);
     keyPopSoon(2600);
+    warmHelpSoon(3000);   // (CITY I — HOW TO PLAY is a lazy chunk now: warmed 3 s of VISIBLE time after the reveal, in an idle moment — ui/help-open.js)
     friendsSoon(3400);   // (FRIENDS A — the requests badge on YOU + INVITES THAT WAIT: ONE /api call, never a socket)
     // (VERCEL WEB ANALYTICS — Nov 12 night: Vercel's script AFTER THE CITY's reveal, once a page — never in THE BOOT BUDGET: ui/analytics.js)
     setTimeout(() => lazyImport(import('../ui/analytics.js'), '../ui/analytics.js').then(m => m.loadAnalytics()).catch(() => {}), 2000);

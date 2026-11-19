@@ -345,6 +345,15 @@ try {
       const ms = Date.now() - t0;
       ok(boot && back && ms <= 9500, `NEVER A DEAD SCREEN: a room code whose meta never comes (${boot ? 'set' : 'NOT set'}) → the city in ${ms} ms`);
       await P.ctx.close(); }
+    // CITY I — THE FROZEN-GAME HANG (e2e-profiles' CIPHER podium): a room PLAYING a game that can never load here (a FROZEN id) looped
+    // render → loadGame → null → render in microtasks and froze the page; now → the city once, the page answering all along
+    { const P = await phone('frozenroom');
+      const t0 = Date.now();
+      await P.ev("import('/js/store.js').then(m => { m.setState({ code: 'ZQXV', meta: { status: 'playing', hostId: 'nobody', createdAt: Date.now() }, game: { id: 'cipher', matchId: 'mfrozen', phase: 'reveal' } }); return 1; })");
+      const alive = await Promise.race([P.ev('1 + 1').then(v => v === 2), new Promise(r => setTimeout(() => r(false), 4000))]);
+      const back = await P.waitFor(`!${S}.code && window.__arcade.route() === 'title'`, 11000);
+      ok(alive && back, `NEVER A DEAD SCREEN: a room playing a FROZEN game (CIPHER) → the page keeps answering (${alive}) + the city in ${Date.now() - t0} ms`);
+      await P.ctx.close(); }
   }
   if (!ONLY.length || ONLY.includes('sign')) {
     const P = await phone('signer');

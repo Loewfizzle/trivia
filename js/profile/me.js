@@ -86,8 +86,13 @@ export function syncMe() {
 }
 
 // in a room already? put the profile id on our player node so the lobby and chat can show the emblem and tag
-async function linkRoomSeat() {
-  if (!state.code || !state.players[state.uid] || state.players[state.uid].pid === myPid()) return;
+// (CITY I — THE LOST SEAT LINK, e2e-profiles' "room seats carry the profile id": the profile landed WHILE the join's own write was in flight —
+//  writePlayer had read no pid, and this found no seat in the state yet, so the seat never got its pid. It waits for the seat now: every
+//  0.5 s, at most 10 s)
+async function linkRoomSeat(tries = 0) {
+  if (!state.code) return;
+  if (!state.players[state.uid]) { if (tries < 20) setTimeout(() => linkRoomSeat(tries + 1), 500); return; }
+  if (state.players[state.uid].pid === myPid()) return;
   try { const { updateMyProfile } = await lazyImport(import('../room.js'), '../room.js'); await updateMyProfile(loadProfile()); } catch { /* next join */ }
 }
 

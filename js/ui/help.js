@@ -430,8 +430,10 @@ function body(id) {
   ];
 }
 
-export function openHelp(gameId) {
-  closeHelp();
+/** CITY I: opened through ui/help-open.js (this file is a LAZY chunk — never a static import). `frame` = the sheet help-open.js opened
+ *  at the tap while this file loaded: the rules fill THAT sheet (never a second one) and its close runs this file's cleanup (whenClosed) */
+export function openHelp(gameId, frame = null) {
+  if (!frame) closeHelp();
   // (only the PLAYABLE games' tabs + the game on screen's own)
   const first = (GAMES.find(g => g.playable) || GAMES[0]).id;
   let current = gameId && (RULES[gameId] || hub(gameId)) ? gameId : first;
@@ -451,7 +453,9 @@ export function openHelp(gameId) {
     tabs.append(h('button.help-tab', { type: 'button', role: 'tab', dataset: { id: g.id, theme: g.theme }, onclick: () => show(g.id), 'aria-label': g.name, title: g.name }, gameArtSvg(g.id) || TAB[g.id] || g.name.slice(0, 2)));
   }
   // (THE SHEET; the game's name = its small line)
-  sheet = openSheet({ title: 'HOW TO PLAY', kicker: ' ', cls: 'help-sheet', label: 'How to play', body: [tabs, content], onClose: () => { sheet = null; document.body.classList.remove('help-open'); } });
+  const cleanup = () => { sheet = null; document.body.classList.remove('help-open'); };
+  if (frame) { sheet = frame; frame.whenClosed = cleanup; frame.body.replaceChildren(tabs, content); }
+  else sheet = openSheet({ title: 'HOW TO PLAY', kicker: ' ', cls: 'help-sheet', label: 'How to play', body: [tabs, content], onClose: cleanup });
   const kick = sheet.head.querySelector('.sh-t small');
   name.remove(); if (kick) kick.replaceWith(name);
   document.body.classList.add('help-open');
