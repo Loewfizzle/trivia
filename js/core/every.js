@@ -40,6 +40,12 @@ export function buildTop(scores, notCounted, extras = {}, better = 'high', keep 
   const rows = Object.entries(scores || {}).filter(([k, s]) => num(s) != null && !(notCounted && notCounted[k])).map(([k, s]) => ({ k, s: Number(s), ...(extras && extras[k] ? { e: extras[k] } : {}) }));
   return { v: 1, rows: rows.sort(cmpRows(better)).slice(0, keep) };
 }
+/** CITY I — DON'T COUNT (PURE): the day's kept rows without the flagged accounts (the owner's /admin — api/_lib/nocount.js) — every place below
+ *  them moves up; the viewer's OWN row stays when the viewer is the flagged one (it sees no change of its own) */
+export const dropFlagged = (rows, flagged, viewer = null) => (!flagged || !flagged.size ? rows || [] : (rows || []).filter(r => r.k === viewer || !flagged.has(r.k)));
+/** CITY I — DON'T COUNT (PURE): the N of "Nth OF N" less the flagged accounts that counted today (`finished` = those flagged pids with a counting
+ *  finish), never below the viewer's own place */
+export const countWithout = (n, finished, place = 0) => Math.max(0, (Number(n) || 0) - (finished || 0), place || 0);
 /** a player's place in the kept list (1-based) | null (not in it) */
 export const placeIn = (rows, pid) => { const i = (rows || []).findIndex(r => r.k === pid); return i < 0 ? null : i + 1; };
 

@@ -31,7 +31,7 @@ import { DAILIES } from '../../js/config.js';
 const NOW = Date.UTC(2026, 10, 10, 1, 0, 0);   // Mon Nov 9 2026, 8 pm Eastern
 const DAY = 86_400_000, WEEK_AGO = NOW - 7 * DAY;
 const day = streakDay(NOW);
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'dsched', 'pcount', 'streak', 'progress', 'pfr', 'seats', 'dsecret'];
+const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'dsched', 'pcount', 'streak', 'progress', 'pfr', 'seats', 'dsecret', 'nocount', 'seen'];
 before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); forgetPicks(); forgetPwDays(); forgetBoards(); clearSwitchCache(); loadDailies(); });
 after(async () => { await deleteApp(fb().app); });
 
@@ -714,4 +714,68 @@ test('DFIX5 — EVERYONE ON SCORES: the day\'s top kept at every COUNTING finish
   const e6 = (await D('e-eve', { action: 'every', all: ['test'] }, T0 + 91e3)).every.test;
   assert.equal(e6.rows.length, 16); assert.ok(!e6.me, 'SHOW ALL: you are in the list itself');
   assert.ok(TOP_KEEP >= 50);
+});
+
+// ---------------------------------------------------------------- CITY I — DON'T COUNT (docs/profiles.md "CITY I — SECOND ACCOUNTS + DON'T COUNT")
+test('CITY I — DON\'T COUNT: the owner\'s flag (owner-only, audited) takes an account out of the place line + its N, SCORES, THE BOARD\'s top + ranks — applied at read; the flagged account sees no change of its own; UNDO = back everywhere at once', async () => {
+  const T0 = NOW + 213 * DAY, dk = streakDay(T0), base = `dly/test/${dk}`;
+  for (const [u, n] of [['n-own', 'OWNER'], ['n-alt', 'ALTONE'], ['n-real', 'REALONE'], ['n-third', 'THIRDONE']]) await ensure(u, n, T0 - 7 * DAY);
+  const pid = {}; for (const u of ['n-own', 'n-alt', 'n-real', 'n-third']) pid[u] = await pidOf(u);
+  const run = async (u, at, off = 0) => { const s = await D(u, { action: 'start', game: 'test' }, at); return D(u, { action: 'finish', game: 'test', result: { guess: (FAKE_DAILY.target(s.seed) + off) % 1000 } }, at + 500); };
+  await run('n-alt', T0 + 5e3);            // the second account finishes FIRST
+  await run('n-real', T0 + 10e3);          // the real player: 2ND
+  await run('n-third', T0 + 20e3, 4);
+  const place = async (u, at) => (await D(u, { action: 'today' }, at)).place.test;
+  assert.deepEqual(await place('n-real', T0 + 30e3), { p: 2, n: 3 }, 'before: REALONE 2ND OF 3');
+  process.env.ADMIN_PIDS = pid['n-own'];
+  const { clearBoardCache, topRows, rankOf } = await import('../../api/_lib/lb.js');
+  try {
+    await rejects(adminAction('n-real', { action: 'noCount', pid: pid['n-alt'], on: true }), 403, 'not_admin');
+    assert.equal(await val(`nocount/${pid['n-alt']}`), null, 'a non-owner writes nothing');
+    // THE BOARD: two rows on a points board, the flagged one above
+    await ref('/').update({ [`lb/daily/all/${pid['n-alt']}`]: 900, [`lb/daily/all/${pid['n-real']}`]: 800 });
+    clearBoardCache();
+    assert.equal(await rankOf('daily', 'all', 800, T0), 2);
+    const r = await adminAction('n-own', { action: 'noCount', pid: pid['n-alt'], on: true }, T0 + 31e3);
+    assert.ok((await val(`nocount/${pid['n-alt']}`)).at > 0, 'the flag: server-written');
+    assert.ok(r.flagged.some(a => a.pid === pid['n-alt'] && a.nc), '/admin lists it under NOT COUNTED (UNDO always there)');
+    assert.ok(Object.values((await val('audit')) || {}).some(a => a.act === 'noCount' && a.pid === pid['n-alt']), 'audited');
+    assert.deepEqual(await place('n-real', T0 + 32e3), { p: 1, n: 2 }, 'flagged: REALONE 1ST OF 2 (N one smaller)');
+    assert.deepEqual(await place('n-alt', T0 + 32e3), { p: 1, n: 3 }, 'the flagged account sees no change of its own (1ST OF 3)');
+    const ev = (await D('n-third', { action: 'every' }, T0 + 33e3)).every.test;
+    assert.deepEqual(ev.rows.map(x => [x.n, x.rank]), [['REALONE', 1], ['THIRDONE', 2]], 'SCORES: ALTONE out, the places below move up');
+    assert.equal(ev.n, 2);
+    const tr = await topRows('daily', 'all', T0);
+    assert.ok(!tr.rows.some(x => x.pid === pid['n-alt']) && tr.rows.find(x => x.pid === pid['n-real']).rank === 1, 'THE BOARD: out of the top, REALONE 1ST');
+    assert.equal(await rankOf('daily', 'all', 800, T0), 1, 'every rank: the flagged row never takes a place');
+    assert.equal(await rankOf('daily', 'all', 900, T0), 1, '…and its own rank unchanged');
+    assert.ok((await val(`pstats/${pid['n-alt']}`)).dl, 'its own stats untouched');
+    // UNDO
+    await adminAction('n-own', { action: 'noCount', pid: pid['n-alt'], on: false }, T0 + 34e3);
+    assert.equal(await val(`nocount/${pid['n-alt']}`), null);
+    assert.deepEqual(await place('n-real', T0 + 35e3), { p: 2, n: 3 }, 'UNDO: REALONE 2ND OF 3 again');
+    assert.deepEqual((await D('n-third', { action: 'every' }, T0 + 36e3)).every.test.rows.map(x => x.n), ['ALTONE', 'REALONE', 'THIRDONE']);
+    assert.equal(await rankOf('daily', 'all', 800, T0), 2);
+    assert.ok((await topRows('daily', 'all', T0)).rows.some(x => x.pid === pid['n-alt']), 'back on THE BOARD — nothing rebuilt, nothing stale');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('nocount').remove(); await ref('lb/daily/all').remove(); clearBoardCache(); }
+});
+
+test('CITY I — SECOND ACCOUNTS: two accounts signing in from one connection = one group in /admin (a hashed address only — never the address); another connection alone = none', async () => {
+  const T0 = NOW + 214 * DAY;
+  await ensure('s-one', 'SAMEONE', T0, '198.51.100.7');
+  await ensure('s-two', 'SAMETWO', T0 + 60e3, '198.51.100.7');
+  await ensure('s-solo', 'SOLOONE', T0, '198.51.100.99');
+  await ensure('s-own', 'OWNERTWO', T0, '203.0.113.200');
+  const pid = {}; for (const u of ['s-one', 's-two', 's-solo', 's-own']) pid[u] = await pidOf(u);
+  const seen = (await val('seen')) || {};
+  assert.ok(!JSON.stringify(seen).includes('198.51'), 'never the raw address');
+  process.env.ADMIN_PIDS = pid['s-own'];
+  try {
+    await rejects(adminAction('s-one', { action: 'secondAccounts' }), 403, 'not_admin');
+    const r = await adminAction('s-own', { action: 'secondAccounts' }, T0 + 120e3);
+    const g = r.groups.find(x => x.accounts.some(a => a.pid === pid['s-one']));
+    assert.ok(g && g.accounts.map(a => a.n).sort().join() === 'SAMEONE,SAMETWO', `one group: SAMEONE + SAMETWO (${g && g.accounts.map(a => a.n)})`);
+    assert.ok(g.accounts.every(a => a.first > 0 && typeof a.plays === 'number' && !a.nc), 'first seen + plays, nothing flagged on its own');
+    assert.ok(!r.groups.some(x => x.accounts.some(a => a.pid === pid['s-solo'])), 'a lone connection: no group');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('seen').remove(); }
 });

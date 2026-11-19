@@ -6,10 +6,12 @@ import { gzipSync, gunzipSync } from 'node:zlib';
 
 /** every node a restore needs — the players' progress, their keys, the boards, the dailies' results, the Lab, the radio, the city */
 export const DURABLE = Object.freeze(['profiles', 'pstats', 'uids', 'seats', 'progress', 'lb', 'dly', 'results', 'ppriv', 'pkeys', 'pfr', 'flink', 'tags',
-  'vault', 'radio', 'city2', 'members', 'gifts', 'streak', 'gplay', 'pcount', 'pkc', 'pkx', 'audit', 'flags', 'logstats', 'errlog', 'phonelog', 'backups']);
+  'vault', 'radio', 'city2', 'members', 'gifts', 'streak', 'gplay', 'pcount', 'pkc', 'pkx', 'audit', 'flags', 'logstats', 'errlog', 'phonelog', 'backups',
+  'nocount']);   // (CITY I — DON'T COUNT: the owner's decisions — no address in it)
 /** left out — live / ephemeral (a room's nodes, presence, the rate limits, caches, a passkey's one-time challenge, the 7-day share pictures) */
 export const LIVE = Object.freeze(['rooms', 'hush', 'chats', 'fleets', 'glsonar', 'spy', 'hsbet', 'rrp', 'rrsec', 'seal', 'hole', 'hrec', 'rl', 'here', 'wx',
-  'pkch', 'shr', 'shrx', 'shrp', 'testAdmins', 'testReportAll', 'testHoldemGate']);
+  'pkch', 'shr', 'shrx', 'shrp', 'testAdmins', 'testReportAll', 'testHoldemGate',
+  'seen']);   // (CITY I — SECOND ACCOUNTS: hashed addresses, 14 days — LIVE, never DURABLE with addresses)
 /** left out ON PURPOSE — THE DAILY SECRET + THE FROZEN SCHEDULE (future answers): only in the database (tests/daily-secrets.test.mjs) */
 export const SECRET = Object.freeze(['dsecret', 'dsched']);
 /** the biggest gzipped part an answer may carry (Vercel answers at most 4.5 MB) — BACKUP_PART_MAX lowers it (the tests) */

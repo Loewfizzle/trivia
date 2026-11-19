@@ -74,7 +74,9 @@ import { forgetBoards } from './_lib/cc-board.js';
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, adminPids } from './_lib/fb.js';
 import { pidOf, publicProfile, rename, privateInfo, isPid, encodeKey } from './_lib/profiles.js';
-import { syncBoards, clearEntry, boardPaths, rankOf, publicName } from './_lib/lb.js';
+import { syncBoards, clearEntry, boardPaths, rankOf, publicName, clearBoardCache } from './_lib/lb.js';
+import { seenGroupsNow } from './_lib/seen.js';
+import { SEEN_DAYS } from './_lib/seen-pure.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
 import { nameKey } from '../js/core/names.js';
 import { houseNick, isBoardId } from '../js/core/nicknames.js';
@@ -343,6 +345,24 @@ async function cityLive(me, body, now) {
   return { live };
 }
 
+// CITY I — SECOND ACCOUNTS (owner-only): the groups of accounts that share a hashed address within SEEN_DAYS (api/_lib/seen.js) — each account's
+// username, first seen, counted plays + its DON'T COUNT state; + every DON'T COUNT account (in a group or not) so UNDO is always one tap away.
+// It only FLAGS: nothing happens until the owner taps DON'T COUNT (api/_lib/nocount.js — applied at read, undone at once).
+async function secondAccounts(now) {
+  const [groups, nc] = await Promise.all([seenGroupsNow(now), val('nocount')]);
+  const flagged = nc || {};
+  const pids = [...new Set([...groups.flatMap(g => g.pids), ...Object.keys(flagged)])];
+  const info = Object.fromEntries(await Promise.all(pids.map(async p => {
+    const [prof, cp] = await Promise.all([val(`profiles/${p}`), val(`pstats/${p}/cp`)]);
+    return [p, { pid: p, n: prof ? prof.n : '?', t: prof ? prof.t : '', plays: Number(cp) || 0, nc: flagged[p] ? { at: flagged[p].at || 0 } : null }];
+  })));
+  return {
+    days: SEEN_DAYS,
+    groups: groups.map(g => ({ shared: g.shared, accounts: g.pids.map(p => ({ ...info[p], first: g.first[p], last: g.last[p] })) })),
+    flagged: Object.keys(flagged).map(p => info[p]).sort((a, b) => (b.nc ? b.nc.at : 0) - (a.nc ? a.nc.at : 0)),
+  };
+}
+
 export async function adminAction(uid, body, now = Date.now()) {
   const me = await pidOf(uid);
   const admin = !!me && adminPids().includes(me);
@@ -354,6 +374,16 @@ export async function adminAction(uid, body, now = Date.now()) {
   if (pid && !isPid(pid)) throw new ApiError(400, 'bad_pid');
   switch (body.action) {
     case 'search': return { players: await search(body.q) };
+    case 'secondAccounts': return secondAccounts(now);
+    case 'noCount': {   // (CITY I — DON'T COUNT / UNDO: the owner's tap, never automatic; audited)
+      if (!pid) throw new ApiError(400, 'bad_pid');
+      const on = !!body.on;
+      if (on && !(await val(`profiles/${pid}`))) throw new ApiError(404, 'no_profile');
+      await ref(`nocount/${pid}`).set(on ? { at: now, by: me } : null);
+      clearBoardCache();
+      await audit(me, on ? 'noCount' : 'countAgain', pid);
+      return secondAccounts(now);
+    }
     case 'player': return playerView(pid, now);
     case 'removeRecord': await removeRecord(pid, String(body.b), body.p || null, now); await audit(me, 'removeRecord', pid, { b: String(body.b), p: body.p || 'both' }); return playerView(pid, now);
     case 'resetBoard': await resetBoard(pid, String(body.b), now); await audit(me, 'resetBoard', pid, { b: String(body.b) }); return playerView(pid, now);

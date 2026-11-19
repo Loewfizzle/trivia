@@ -64,7 +64,14 @@ import { tablePids } from '../js/core/friends.js';
 import { dailyPoints } from '../js/core/daily-points.js';
 import { timing, noTiming } from './_lib/timing.js';
 import { ensureTop, addTop, extraOf } from './_lib/every.js';
-import { everyView, placeIn, TOP_KEEP, TOP_SHOW } from '../js/core/every.js';
+import { everyView, placeIn, dropFlagged, countWithout, TOP_KEEP, TOP_SHOW } from '../js/core/every.js';
+import { noCountSet } from './_lib/nocount.js';
+/** CITY I — DON'T COUNT: how many flagged accounts (not the viewer) counted a finish on this daily's day (one small read each — the set is tiny) */
+async function flaggedFinished(base, nc, viewer) {
+  if (!nc || !nc.size) return 0;
+  const n = await Promise.all([...nc].filter(f => f !== viewer).map(async f => { const [r, x] = await Promise.all([val(`${base}/r/${f}`), val(`${base}/x/${f}`)]); return r != null && !x ? 1 : 0; }));
+  return n.reduce((a, b) => a + b, 0);
+}
 import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE } from './_lib/share-card.js';   // (CITY E — THE TAPPABLE SHARE CARD)
 import { compactResults } from './_lib/results-sweep.js';   // (CITY G — results/ compacted past 14 days)
 import { bestStep, bestView, pointsRaise, isBetter } from '../js/core/daily-best.js';   // (DAILY A — DAILY BEST + a better try's points)
@@ -410,7 +417,10 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         if ((n || 0) >= BAND_MIN) { const st = standing(dailyOf(g), hist || {}, n, v); stand[g] = { n, top: Math.round(st.top * 10) / 10, pct: st.pct }; }
         // DFIX5 — THE TICKET LINE = the EVERYONE place among the day's counting finishers ("4TH OF 12 TODAY"): exact inside the kept top; below it
         // (a day of more than TOP_KEEP), from the histogram (the finishers strictly better + 1)
-        { const at = top ? placeIn(top, pid) : null; const p = at || ((n || 0) > TOP_KEEP ? standing(dailyOf(g), hist || {}, n, v).better + 1 : null); if (p) placeOf[g] = { p, n: Math.max(Number(n) || 0, p) }; }
+        // (CITY I — DON'T COUNT: the flagged accounts take no place and are not in the N — the viewer's own result always counts for itself)
+        { const nc = await noCountSet(now), topC = top ? dropFlagged(top, nc, pid) : null, fin = await flaggedFinished(base, nc, pid);
+          const above = (top || []).filter(r => r.k !== pid && nc.has(r.k)).length;
+          const at = topC ? placeIn(topC, pid) : null; const p = at || ((n || 0) > TOP_KEEP ? standing(dailyOf(g), hist || {}, n, v).better + 1 - above : null); if (p) placeOf[g] = { p, n: countWithout(n, fin, p) }; }
       }));
       const friends = {};
       // (FRIENDS A — YOUR TABLE reads YOUR FRIENDS LIST on the server: a stranger's daily is never readable by naming their id; ≤ 12 —
@@ -452,7 +462,9 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       await Promise.all(games.map(async g => {
         const cart = dailyOf(g), base = `dly/${g}/${day}`;
         if (!cart) return;
-        const [top, n, mineV, gatedX] = await Promise.all([ensureTop(cart, base, { day, now }).catch(() => []), val(`${base}/n`), val(`${base}/r/${pid}`), val(`${base}/x/${pid}`)]);
+        const [top0, n0, mineV, gatedX, nc] = await Promise.all([ensureTop(cart, base, { day, now }).catch(() => []), val(`${base}/n`), val(`${base}/r/${pid}`), val(`${base}/x/${pid}`), noCountSet(now)]);
+        // (CITY I — DON'T COUNT: the flagged accounts out of the list + its N — every place below them moves up; the viewer's own row stays)
+        const top = dropFlagged(top0, nc, pid), n = countWithout(n0, await flaggedFinished(base, nc, pid));
         const played = mineV != null;
         const [[pfr, createdAt], { publicFaces }] = await Promise.all([fP, lbP]);
         const friendsOf = new Set(Object.keys((pfr && pfr.f) || {}));

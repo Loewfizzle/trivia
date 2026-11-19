@@ -9,6 +9,7 @@
 //   calls rude (core/names.js#isOffensive) is shown as its HOUSE NICKNAME (js/core/nicknames.js — the old BNAME names, kept for this);
 //   REPORT NAME + /admin's rename / hide stay. A profile is listed only from its BOARD_MIN_MATCHES-th COUNTED PLAY (profiles/{pid}/m) — a counted
 //   room match or a counted daily finish; never a solo run (PD-3 Group 0 — core/progress.js#countedPlays).
+import { noCountSet, clearNoCount } from './nocount.js';
 import { createHmac } from 'node:crypto';
 import { ref, val, fb } from './fb.js';
 import { BOARD_GAMES, boardDef, careerBoards, toSort, winRate, MIN_WR_GAMES, fromSort, GAME_BOARDS, careerValue } from '../../js/core/boards.js';
@@ -72,15 +73,21 @@ export function boardPaths(pid, stats, { hidden = false, now = Date.now(), only 
 /** 1 + how many entries beat this sort value (ties share a rank). */
 export async function rankOf(board, period, sortV, now = Date.now()) {
   if (sortV == null) return null;
-  const snap = await ref(`lb/${board}/${periodKey(period, now)}`).orderByValue().startAfter(sortV).once('value');
-  return snap.numChildren() + 1;
+  const pk = periodKey(period, now);
+  const snap = await ref(`lb/${board}/${pk}`).orderByValue().startAfter(sortV).once('value');
+  // (CITY I — DON'T COUNT: a flagged account above never takes a place — its row stays (UNDO is instant), it is just not counted; the flagged
+  //  account's OWN rank is unchanged — no row strictly above it is itself)
+  const nc = await noCountSet(now);
+  let above = snap.numChildren();
+  if (nc.size) snap.forEach(c => { if (nc.has(c.key)) above--; });
+  return above + 1;
 }
 
 // ---- the top 100, joined with profiles, cached for a few seconds per instance (and by the CDN, see api/board.js)
 const cache = new Map();
 const CACHE_MS = 15_000;
 
-export function clearBoardCache() { cache.clear(); pubCache.clear(); }
+export function clearBoardCache() { cache.clear(); pubCache.clear(); clearNoCount(); }
 
 /** BOARD 2.0 A — why a profile is off the boards: 'opt' (the opt-out / the admin's hide — every board) · 'matches' (under the floor of 3 COUNTED
  *  PLAYS — PD-3 Group 0: room matches + counted daily finishes, never a solo run; the daily boards still list it from its 3rd day played) ·
@@ -151,12 +158,12 @@ export async function topRows(board, period, now = Date.now()) {
   const raw = [];
   snap.forEach(c => { raw.push({ pid: c.key, s: c.val() }); });
   raw.sort((a, b) => b.s - a.s || (a.pid < b.pid ? -1 : 1));
-  const profs = await profilesOf(raw.map(r => r.pid));
+  const [profs, nc] = await Promise.all([profilesOf(raw.map(r => r.pid)), noCountSet(now)]);
   const rows = [];
   let rank = 0, prev = null, i = 0;
   for (const r of raw) {
     const p = profs[r.pid];
-    if (!p || p.h || (!def.points && (p.m || 0) < minMatches())) continue;   // (BOARD 2.0 A: a points board's floor is checked when it is written)
+    if (!p || p.h || nc.has(r.pid) || (!def.points && (p.m || 0) < minMatches())) continue;   // (CITY I: + DON'T COUNT — api/_lib/nocount.js)   // (BOARD 2.0 A: a points board's floor is checked when it is written)
     i++;
     if (r.s !== prev) { rank = i; prev = r.s; }
     // pid stays on the cached row for the server (REPORT finds a row by its id); api/board.js sends only the public fields

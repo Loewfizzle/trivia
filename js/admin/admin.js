@@ -95,6 +95,11 @@ function shell() {
         confirmBtn('Dismiss all', async () => { renderFlags((await call('clearFlag')).flags); toast('Dismissed'); audit(); }, 'is-danger')),
       h('p.ad-dim', 'REPORT on THE BOARD (anyone, no sign-in; limited per device + IP). The public sees the player’s username (a rude one as a house nickname) — never an id or key. OPEN the player to hide them from every board.'),
       h('ol.ad-errs', { id: 'ad-flags' }, h('li.ad-dim', 'Loading…'))),
+    // CITY I — SECOND ACCOUNTS + DON'T COUNT (owner-only): accounts that share a hashed address — it only FLAGS; DON'T COUNT is the owner's tap
+    card('ad-second', 'Second accounts', { cls: 'ad-errors ad-second', open: false },
+      h('div.ad-row', h('button.btn.btn-ghost.btn-sm.ad-btn', { type: 'button', onclick: secondAccounts }, 'Refresh')),
+      h('p.ad-dim', 'Accounts seen on the SAME connection in the last 14 days (the server keeps only a hashed address — never the address itself). Nothing happens on its own. DON’T COUNT takes an account out of THE BOARD, SCORES, the dailies’ “2ND OF 5” line + THE PENTHOUSE for everyone else — its own stats, streak, XP, items + achievements stay, and it sees no change of its own. UNDO puts it back everywhere at once.'),
+      h('div.ad-second-list', { id: 'ad-second' }, h('p.ad-dim', 'Loading…'))),
     card('ad-errors', 'Errors from phones', { cls: 'ad-errors', open: false },
       logTools('ad-errors', v => { logs.errQ = v; paintErrors(); }, errors, confirmBtn('Clear all', async () => { renderErrors((await call('clearErrors')).errors); toast('Cleared'); audit(); }, 'is-danger')),
       h('p.ad-dim', 'Code errors on players’ screens — one row per kind (the message), with its count + first / last seen; tap a row for each place it happened. MARK SEEN resets the “new” count. Quiet for 30 days → removed.'),
@@ -188,6 +193,7 @@ function shell() {
   errors();
   reports();
   flags();
+  secondAccounts();
   testPlayers();
   backups();
   gifts();
@@ -701,6 +707,36 @@ function paintReports() {
     onSeen: async () => { const r = await call('seenLogs', { ids: g.items.map(x => x.id) }); renderReports(r.reports); toast('Marked seen'); audit(); },
     onClear: async () => { renderReports((await call('clearReports', { ids: g.items.map(x => x.id) })).reports); audit(); },
   })) : [h('li.ad-dim', logs.rep.length ? 'Nothing matches the filter.' : 'No reports yet.')]));
+}
+
+// CITY I — SECOND ACCOUNTS (api/admin.js#secondAccounts) + DON'T COUNT / UNDO (api/admin.js 'noCount' — audited)
+async function secondAccounts() {
+  if (!document.getElementById('ad-second')) return;
+  renderSecond(await call('secondAccounts'));
+}
+function renderSecond(r) {
+  const box = document.getElementById('ad-second');
+  if (!box || !r) return;
+  { const c = cardOf('ad-second'); if (c) c.count(String((r.groups || []).length)); }
+  const day = at => (at ? new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase() : '—');
+  const flip = (a, on) => (on
+    ? confirmBtn('DON’T COUNT', async () => { renderSecond(await call('noCount', { pid: a.pid, on: true })); toast(`${a.n} is not counted`); audit(); }, 'is-danger')
+    : tubeButton('UNDO', { kind: 'secondary', size: 'sm', cls: 'ad-btn', onClick: async () => { renderSecond(await call('noCount', { pid: a.pid, on: false })); toast(`${a.n} counts again`); audit(); } }));
+  const row = a => h('li.ad-err.ad-sa',
+    h('div.ad-err-top',
+      h('button.ad-err-m', { type: 'button', title: 'Open the player', onclick: () => open(a.pid) }, `${a.n}${fmtTag(a.t)}`),
+      a.nc ? h('span.ad-tag.is-hidden', 'NOT COUNTED') : null,
+      flip(a, !a.nc)),
+    h('div.ad-err-meta',
+      a.first ? h('span', `first seen ${day(a.first)}`) : null,
+      a.last ? h('span', `last ${day(a.last)}`) : null,
+      h('span', `${a.plays} play${a.plays === 1 ? '' : 's'}`),
+      a.nc ? h('span', `not counted since ${day(a.nc.at)}`) : null));
+  const groups = (r.groups || []).map((g, i) => h('section.ad-sa-g', h('h3.ad-h3', `GROUP ${i + 1}`, h('small', ` · ${g.accounts.length} accounts${g.shared > 1 ? ` · ${g.shared} shared connections` : ''}`)), h('ol.ad-errs', ...g.accounts.map(row))));
+  const off = (r.flagged || []).filter(Boolean);
+  box.replaceChildren(
+    ...(groups.length ? groups : [h('p.ad-dim', `No accounts share a connection (the last ${r.days || 14} days).`)]),
+    ...(off.length ? [h('section.ad-sa-g', h('h3.ad-h3', 'NOT COUNTED', h('small', ` · ${off.length}`)), h('ol.ad-errs', ...off.map(row)))] : []));
 }
 
 // BNAME — THE BOARD's REPORT button (api/board.js#flagRow)

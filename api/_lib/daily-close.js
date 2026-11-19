@@ -8,6 +8,7 @@
 //   progress.js#penthouseStep inside ONE pstats transaction (idempotent by m/ph_<game>_<day>: two racing closers → one grant), then bumpOwners.
 //   The player sees it on their next visit — the card-earned moment the `me` call already plays for a reward found waiting.
 // Cost: a memo per warm function (CLOSED) — the first call of a day on an instance reads LOOK_BACK markers per live daily; nothing after.
+import { noCountSet } from './nocount.js';
 import { ref, val } from './fb.js';
 import { bumpOwners } from './owners.js';
 import { founderOpen } from './founder.js';
@@ -95,7 +96,8 @@ export async function recloseDay({ game, day, now = Date.now() }) {
   if (!cur || cur.st !== 'done') return null;
   const [scores, gated] = await Promise.all([val(`${base}/r`), val(`${base}/x`)]);
   const counting = {};
-  for (const [pid, v] of Object.entries(scores || {})) if (!(gated && gated[pid])) counting[pid] = v;
+  const nc = await noCountSet(now);   // (CITY I — DON'T COUNT: a flagged account is not in THE PENTHOUSE's count, nor its winners — api/_lib/nocount.js)
+  for (const [pid, v] of Object.entries(scores || {})) if (!(gated && gated[pid]) && !nc.has(pid)) counting[pid] = v;
   const cart = dailyOf(game);
   const now1 = penthouseWinners(counting, (cart && cart.better) || 'high');
   const had = new Set(Array.isArray(cur.w) ? cur.w : []);
@@ -122,7 +124,8 @@ export async function closeDay({ game, day, now = Date.now() }) {
   if (!tx.committed) return { game, day, closed: false };
   const [scores, gated] = await Promise.all([val(`${base}/r`), val(`${base}/x`)]);
   const counting = {};
-  for (const [pid, v] of Object.entries(scores || {})) if (!(gated && gated[pid])) counting[pid] = v;
+  const nc = await noCountSet(now);   // (CITY I — DON'T COUNT: a flagged account is not in THE PENTHOUSE's count, nor its winners — api/_lib/nocount.js)
+  for (const [pid, v] of Object.entries(scores || {})) if (!(gated && gated[pid]) && !nc.has(pid)) counting[pid] = v;
   const cart = dailyOf(game);
   const winners = penthouseWinners(counting, (cart && cart.better) || 'high');
   const n = Object.keys(counting).length;

@@ -20,7 +20,8 @@
 // (a fixed XP, 4 a day) never took a count from a phone.
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { readFileSync } from 'node:fs';
-import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
+import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/http.js';
+import { noteSeen } from './_lib/seen.js';
 import { ref, val, emulated, adminPids } from './_lib/fb.js';
 import { jaywalkSolo, jaywalkMatch } from './_lib/jaywalk.js';
 import { pidOf } from './_lib/profiles.js';
@@ -141,13 +142,14 @@ export function provenUids(gid, trees) {
 }
 export const asSoloRow = row => ({ rank: (row && row.rank) || 1, win: false, solo: true, c: { p: 1 }, rec: {} });
 
-export async function processReport(uid, body, now = Date.now()) {
+export async function processReport(uid, body, now = Date.now(), ip = '') {
   const code = String(body.code || '');
   const matchId = String(body.matchId || '');
   // (APP FIXES: any A–Z — a HUSH WORD uses every letter; the old random codes' alphabet (no I / O) refused rooms like MOON or COIN)
   if (!/^[A-Z]{4}$/.test(code) || !/^[a-z0-9]{3,16}$/.test(matchId)) throw new ApiError(400, 'bad_match');
   const key = `${code}_${matchId}`;
   const myPid = await pidOf(uid);
+  if (myPid && ip) await noteSeen(myPid, ip, now);   // (CITY I — SECOND ACCOUNTS: the hashed address noted at a report — api/_lib/seen.js; never throws)
   const done = await val(`results/${key}`);
   if (done && done.st === 'done') return { ok: true, status: done.pre ? 'before_reset' : 'done', outcome: myPid ? (done.o && done.o[myPid]) || null : null };
   // THE DROP A Group 0 (c) — THE LOST RUN: a match the server already VERIFIED and held for a resend (M4's 'retry') carries its checked extract
@@ -333,7 +335,7 @@ export default route(['POST'], async (req, res) => {
     return;
   }
   try {
-    send(res, 200, withShow(await processReport(uid, body)));
+    send(res, 200, withShow(await processReport(uid, body, Date.now(), clientIp(req))));
   } catch (e) {
     if (!(e instanceof ApiError) || e.status >= 500 || e.status === 401) throw e;
     send(res, 200, { ok: false, code: e.code, retry: e.status === 425 || e.status === 429, message: e.message, ...(e.extra && e.extra.retryAfter ? { retryAfter: e.extra.retryAfter } : {}) });

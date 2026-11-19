@@ -39,6 +39,7 @@ import { OWNER_GIFTS, isOwnerGift, isGiftCard } from '../js/core/gift-cards.js';
 import { giftQueue, giftSeen } from './_lib/gifts.js';
 import { overallValues } from '../js/core/overall.js';
 import { playerAnswer } from './_lib/player.js';
+import { noteSeen } from './_lib/seen.js';
 import { ensureProfile, pidOf, publicProfile, restore, newKey, rename, setShown, privateInfo, setPrefs } from './_lib/profiles.js';
 import { boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
@@ -83,7 +84,7 @@ export async function myRanks(pid, boards, now = Date.now()) {
 
 export async function profileAction(uid, body, ip = '', now = Date.now(), req = null) {
   switch (body.action) {
-    case 'ensure': return ensureProfile(uid, { name: body.name, avatar: body.avatar, color: body.color }, now, ip);
+    case 'ensure': { const r = await ensureProfile(uid, { name: body.name, avatar: body.avatar, color: body.color }, now, ip); if (r && r.pid) await noteSeen(r.pid, ip, now); return r; }   // (CITY I — SECOND ACCOUNTS: the hashed address noted at the sign-in — api/_lib/seen.js)
     case 'me': {
       const pid = await mine(uid);
       let [profile, stats, priv] = await Promise.all([publicProfile(pid), val(`pstats/${pid}`), privateInfo(pid)]);
