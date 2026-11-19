@@ -646,3 +646,10 @@
 - THE END SCREEN = "A · THE HERO NUMBER" (his pick, Downloads\NEON\highrise-end-A.png): the cause small → the floor number huge → FLOOR · THE BAND → the stats strip (PERFECTS · BEST STREAK · YOUR BEST) → the tower still lit under it (your best above you = a dashed gold outline) → the PLAY AGAIN bar.
 - A PINK FLASH WHEN A RUN ENDS (his iPhone, "at the final screen"): find it, kill it at its source, a test that fails on a pink large-area frame.
 - THE GROW-BACK SOUND IS TOO HARSH ("more pleasant on the ears — a healing / soothing sound"): five candidates as takes 1–5 on the SOUNDS sheet, heard in context, his pick remembered on the phone; default take 1; the next pass keeps the pick and removes the other four.
+
+## HIGH RISE — S4A FIX 2 (approved Nov 19)
+- Ben's iPhone after S4A FIX: HITCH 114 (day, floor 99: gc 40 · TAP 46 · unknown 28) / HITCH 95 (night, floor 90: plate 1 · gc 27 · TAP 30 · unknown 37). He does NOT feel lag in play — but THE UFO visibly JUMPS on every slab landing (the landing frame runs long; the flyer skips). The biggest named cause is now "tap" = the landing frame.
+- The beelink can't reproduce iOS stalls → measure ON THE PHONE: a ?trace=1 breakdown.
+- UFO lamps hidden: approved. The pink flash: gone (Ben checked). Welcome A + end A: in.
+- GROW-BACK = #1 "Heal Restore" by Qvantor (Freesound 878621, CC0) — FINAL (Ben's pick); takes 2–5 + their credits removed.
+- Multiplayer stays S4B (the cartridge is solo-only until then).
