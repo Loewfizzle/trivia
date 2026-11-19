@@ -55,8 +55,9 @@ test('HIGH RISE IS INVISIBLE TO PLAYERS (S1): no GAMES entry, no DAILIES row, no
   for (const f of ['js/config.js', 'js/app.js', 'js/games/registry.js', 'js/games/cartridge.js', 'js/games/preload.js', 'js/games/preload-graph.js', 'js/screens/title.js', 'js/screens/title-dock.js', 'js/core/game-order.js', 'database.rules.json', 'index.html']) {
     assert.doesNotMatch(read(f), /highrise|HIGH RISE/i, `${f} does not know HIGH RISE`);
   }
+  // (S2 added the test page's files — tests/highrise-play.test.mjs holds the whole list; still nothing a console could load as a game)
   const dir = readdirSync(new URL('../js/games/highrise/', import.meta.url)).sort();
-  assert.deepEqual(dir, ['bot.js', 'engine.js', 'graybox.js', 'lab.js', 'logic.js', 'replay.js', 'tower.js', 'tuning.js'], 'S1\'s files: no meta.js / index.js / view.js — nothing a console could load as a game');
+  for (const f of ['meta.js', 'index.js', 'view.js', 'director.js']) assert.ok(!dir.includes(f), `no ${f} — nothing a console could load as a game`);
   for (const f of readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js'))) assert.doesNotMatch(read(`api/${f}`), /highrise/i, `api/${f}: no endpoint wiring`);
 });
 
