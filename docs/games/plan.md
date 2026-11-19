@@ -579,3 +579,16 @@
 - JAYWALK's daily keeps the mood station (no own song set).
 - Every PLAY button takes its own ticket's colour (TICKET_INK), both looks.
 - The ticket number, THE PASSWORD's day stamp and the share card's thin lines get enough contrast to read on the phone.
+
+## HIGH RISE — S1 (approved Nov 18)
+- HIGH RISE (game id `highrise`, was STACK): a 3D neon glass-slab tower-stacking mini game. One tap drops each slab; the overhang slices off; a PERFECT snaps into place. Signs read HIGH / RISE stacked. JAYWALK is its benchmark + engine formula. Built on the beelink.
+- THE ONE RULE: a pure engine — same seed + same tap log → the exact same run on any phone and the server (REPLAY = LIVE). Integers / fixed point only; no floats in the rules, no Date / Math.random / performance in the rules.
+- Square slabs; the first slab ≈ 60% of the screen width. The slide alternates direction every floor (x then z); the seed picks only which end each slab starts from (fully off the tower).
+- PERFECT = within 5% of the STARTING width (a fixed window; never shrinks). GROW-BACK: after 6 perfects in a row, each further perfect adds back 4% of the starting width on the cut axis, never past the start size.
+- The FUSE: an untapped slab drops by itself at the end of its 2nd sweep. A short LANDING BEAT after each drop ignores taps.
+- OUT: a complete miss → MISSED THE STACK · a slab under 5% of the start width → SLIPPED OFF · the fuse's drop misses / thins out → TOO SLOW (the fuse drop is otherwise a normal drop) · floor 200 in a match / daily → MADE IT TO THE MOTHERSHIP (a finish).
+- MODES: MATCH = finish at floor 200 + a 6:00 cap · DAILY = floor 200 + a 5:00 cap · SOLO = endless. RANKING: height, then the earlier tick.
+- THE SPEED CURVE is set by the bot sims to hit the targets (sloppy 30–60 s · good 2–3 min · near-perfect floor 200 ≈ 3:30).
+- FAIR TAPS: a tap counts at the finger's touch (pointerdown event.timeStamp → its tick), not the next frame.
+- THE LAB (highrise-lab.html) NEVER COUNTS: zero server calls, zero database writes, nothing from /api, the report, progression or the profile — a test proves it.
+- The rest of the plan (looks, heights, flyers, match tapes, daily) lives in docs/highrise.md and arrives in S2–S5.
