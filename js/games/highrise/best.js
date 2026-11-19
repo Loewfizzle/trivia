@@ -21,6 +21,8 @@ export function bestView(best, floor) {
   const gap = best - floor;
   return { tag: gap ? `BEST ${best} ▲${gap}` : `BEST ${best} · ONE MORE`, gap };
 }
+/** the tag's words alone ('' = no tag: no best yet, or it is under you) — the stage writes them once a landing and makes nothing else */
+export const bestTag = (best, floor) => (!(best > 0) || floor > best ? '' : best - floor ? `BEST ${best} ▲${best - floor}` : `BEST ${best} · ONE MORE`);
 /** the landing on `floor` just crossed YOUR BEST (once a run: the first floor over it) */
 export const crossedBest = (best, floor) => best > 0 && floor === best + 1;
 /** the best after a run that reached `floor` */

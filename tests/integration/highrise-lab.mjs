@@ -29,7 +29,7 @@ const shot = async (p, name) => { if (OUT) await p.screenshot({ path: join(OUT, 
 
 /** THE ONLY REQUESTS THE LAB MAY MAKE: its own page + static files, and three.js from the import map's CDN */
 const OWN = [/^\/highrise-lab(\.html)?$/, /^\/css\/highrise\.css$/, /^\/js\/games\/highrise\/(lab|graybox|tower|engine|replay|logic|meta|tuning)\.js$/, /^\/js\/core\/rng\.js$/, /^\/assets\/favicon-64\.png$/, /^\/favicon\.ico$/];
-const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js';
+const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 const allowed = url => { if (url === THREE_URL) return true; const u = new URL(url); return u.origin === new URL(BASE).origin && OWN.some(re => re.test(u.pathname)); };
 const COUNTS = /\/api\/|firebase|gstatic|googleapis|\/js\/(profile|progress|board|daily|vault|chat|admin|audio|ui|screens)\/|\/js\/(firebase|store|room|host|identity|seat|errlog|app|config)\.js|share|report|cards?\b|sw\.js/i;
 

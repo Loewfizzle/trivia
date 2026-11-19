@@ -136,12 +136,18 @@ export function tap(run, T, ev) {
 
 /** THE SLIDING SLAB at a tick (null = none: a beat, the run over): its edges + its offset from the top — for the VIEW (which may ease between two ticks) */
 export function slabAt(run, tick) {
+  return slabInto(run, tick, { floor: 0, axis: 'x', off: 0, x0: 0, x1: 0, z0: 0, z1: 0 });
+}
+/** … the same, written INTO `out` (a record the view keeps — S4A FIX, ZERO GARBAGE: a frame asks it twice and makes nothing) → out | null */
+export function slabInto(run, tick, out) {
   if (run.st !== 'slide') return null;
   const floor = run.floor + 1, x = floor % 2 === 0, lim = FUSE_SWEEPS * run.S;
   let k = tick - run.s0;
   if (k < 0) k = 0; else if (k > lim) k = lim;
   const off = slideOff(run.S, run.e, k);
-  return { floor, axis: x ? 'x' : 'z', off, x0: run.x0 + (x ? off : 0), x1: run.x1 + (x ? off : 0), z0: run.z0 + (x ? 0 : off), z1: run.z1 + (x ? 0 : off) };
+  out.floor = floor; out.axis = x ? 'x' : 'z'; out.off = off;
+  out.x0 = run.x0 + (x ? off : 0); out.x1 = run.x1 + (x ? off : 0); out.z0 = run.z0 + (x ? 0 : off); out.z1 = run.z1 + (x ? 0 : off);
+  return out;
 }
 /** THE TOP SLAB as the view wants it: its centre + its sides (a centre may sit on a half unit — the RULES only ever use the edges) */
 export const topOf = run => ({ cx: (run.x0 + run.x1) / 2, cz: (run.z0 + run.z1) / 2, w: run.x1 - run.x0, d: run.z1 - run.z0 });

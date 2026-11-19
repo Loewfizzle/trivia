@@ -43,7 +43,7 @@ const OWN = [/^\/highrise-play(\.html)?$/, /^\/css\/(base|components|highrise-pl
   /^\/assets\/favicon-64\.png$/, /^\/favicon\.ico$/, /^\/assets\/fonts\//,
   // (S3: THE FLYERS — JAYWALK's own Blackbird + UFO (shared, cached) + its GLB reader, HIGH RISE's F-22, the city's jet / UFO sounds)
   /^\/js\/games\/jaywalk\/models\.js$/, /^\/assets\/jaywalk\/models\/(blackbird|ufo)\.glb$/, /^\/assets\/highrise\/models\/f22\.glb$/, /^\/audio\/city\/(jet-scream|jets-formation|ufo-hum|ufo-beam-on)\.mp3$/];
-const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js';
+const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 const allowed = url => { if (url === THREE_URL || /^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(url)) return true; const u = new URL(url); return u.origin === new URL(BASE).origin && OWN.some(re => re.test(u.pathname)); };
 const COUNTS = /\/api\/|firebaseio|firebasejs|\/js\/(profile|progress|board|daily|vault|chat|admin|screens)\/|\/js\/(firebase|store|room|host|identity|seat|app|config)\.js|share|report|cards?\b|sw\.js/i;
 
@@ -329,7 +329,7 @@ async function main() {
     const q = await st(d.p);
     const dm = await d.p.evaluate(() => [document.querySelector('.hi-start-best').textContent, (document.querySelector('.hi-fps') || {}).textContent || '', location.search]);
     ok(q.mode === 'match' && q.seed === 'abc' && q.best === 41 && dm[0] === 'YOUR BEST 41 · THIS PHONE' && q.info.tier === 1 && !q.info.bloom, '?mode=match&seed=abc&tier=1: the seed, the pinned tier (no bloom under the top tier); the start says YOUR BEST 41 · THIS PHONE');
-    ok(/^\d+ fps · [\d.]+ ms · worst \d+ · tier 1 · \d+ calls · \d+ tris · 390×844 @2 · tick \d+ · HITCH \d+( \(last: .+\))?$/.test(dm[1]), `?fps=1: the frame-rate readout (${dm[1]})`);
+    ok(/^\d+ fps · [\d.]+ ms · worst \d+ · tier 1 · \d+ calls · \d+ tris · 390×844 @2 · tick \d+ · HITCH \d+( \(last: .+\))?( · GC \d+)?$/.test(dm[1]), `?fps=1: the frame-rate readout (${dm[1]})`);
     ok(!/debug/.test(dm[2]), 'a &debug=1 link: the flag is dropped from the address (the shared audio engine never reports from here)');
     await tapAt(d, 195, 500);
     await waitFor(d.p, "window.__hiPlay.state().st === 'slide'", 3000);

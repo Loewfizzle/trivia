@@ -54,17 +54,41 @@ export function admit(voices, pri, max = VOICES) {
  *   OUT sounds — never a burst of every drop that "happened" while nobody watched.
  * A band's arrival is the VIEW's (it knows the band a floor stands in): see bandCue.
  */
-export function cuesOf(events, late = false) {
-  const out = [];
-  for (const e of events) {
-    if (e.e === 'out') out.push({ id: 'out' });
+export function cuesOf(events, late = false, out = [], from = 0) {
+  // (S4A FIX — ZERO GARBAGE: every cue is one of a few CONSTANT records, and the stage hands in its own list + where this batch
+  //  starts in its events — a landing's sounds are asked without one object made)
+  out.length = 0;
+  for (let i = from; i < events.length; i++) {
+    const e = events[i];
+    if (e.e === 'out') out.push(CUE.out);
     if (late) continue;
-    if (e.e === 'land') out.push({ id: 'drop', vary: true });
+    if (e.e === 'land') out.push(CUE.drop);
     else if (e.e === 'perfect') {
-      out.push({ id: 'perfect', rate: chimeRate(e.streak) });
-      if (e.streak > 0 && e.streak % STREAK_EVERY === 0) out.push({ id: 'streak' });
-    } else if (e.e === 'cut') { out.push({ id: 'slice' }); out.push({ id: 'falling-piece', delay: FALL_DELAY_S }); }
-    else if (e.e === 'grow') out.push({ id: 'grow-back' });
+      out.push(CUE_CHIME[e.streak < 1 ? 0 : e.streak > CHIME_STEPS.length ? CHIME_STEPS.length - 1 : Math.floor(e.streak) - 1]);
+      if (e.streak > 0 && e.streak % STREAK_EVERY === 0) out.push(CUE.streak);
+    } else if (e.e === 'cut') { out.push(CUE.slice); out.push(CUE.fall); }
+    else if (e.e === 'grow') out.push(CUE.grow);
   }
   return out;
+}
+const CUE = Object.freeze({ out: Object.freeze({ id: 'out' }), drop: Object.freeze({ id: 'drop', vary: true }), streak: Object.freeze({ id: 'streak' }), slice: Object.freeze({ id: 'slice' }),
+  fall: Object.freeze({ id: 'falling-piece', delay: FALL_DELAY_S }), grow: Object.freeze({ id: 'grow-back' }) });
+/** the chime's eight cues (one a step of the scale: chimeRate(1) … chimeRate(8)) */
+const CUE_CHIME = Object.freeze(CHIME_STEPS.map((_, i) => Object.freeze({ id: 'perfect', rate: chimeRate(i + 1) })));
+
+/**
+ * PRIORITY on a POOL of voice slots (sfx.js keeps its voices — nothing is made when a sound starts): the SAME rule as admit() over the
+ * slots that are sounding (`on`) → −1 = a voice is free · −2 = a full house and the new sound is outranked (dropped) · else the slot
+ * it takes over (the lowest-ranked, the oldest of those)
+ */
+export function admitSlot(slots, pri, max = VOICES) {
+  let n = 0, lo = -1;
+  for (let i = 0; i < slots.length; i++) {
+    const v = slots[i];
+    if (!v.on) continue;
+    n++;
+    if (lo < 0 || v.pri < slots[lo].pri || (v.pri === slots[lo].pri && v.at < slots[lo].at)) lo = i;
+  }
+  if (n < max) return -1;
+  return slots[lo].pri < pri ? lo : -2;
 }

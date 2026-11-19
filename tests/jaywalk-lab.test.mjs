@@ -13,7 +13,7 @@ test('THE PAGE: at the site root (deployed), noindex nofollow, UNLISTED (nothing
   assert.ok(existsSync(new URL('../jaywalk-lab.html', import.meta.url)));
   const html = read('jaywalk-lab.html'), ignore = read('.vercelignore');
   assert.match(html, /<meta name="robots" content="noindex, nofollow">/);
-  assert.match(html, /<script type="importmap">\{ "imports": \{ "three": "https:\/\/cdn\.jsdelivr\.net\/npm\/three@0\.160\.0\/build\/three\.module\.min\.js" \} \}<\/script>/);
+  assert.match(html, /<script type="importmap">\{ "imports": \{ "three": "https:\/\/cdn\.jsdelivr\.net\/npm\/three@0\.160\.0\/build\/three.module.js" \} \}<\/script>/);
   assert.match(html, /Opening the lab…/); assert.doesNotMatch(html, /Checking the door/);
   assert.match(html, /<script type="module" src="js\/games\/jaywalk\/lab\.js"><\/script>/);
   assert.ok(!/jaywalk/.test(ignore) && !/^\*\.html$/m.test(ignore), '.vercelignore keeps it (tests/ never deploys — this page does)');

@@ -173,7 +173,7 @@ export function shipHull(THREE, sides = 120) {
 
 /** the flyers on a scene's stage (night.js#STAGE) → { need, start, frame, reset, info, destroy } */
 export function createFlyers(S) {
-  const { THREE } = S, V3 = () => new THREE.Vector3();
+  const { THREE } = S, V3 = () => new THREE.Vector3(), LG = S.LG;   // (LG: a light's 14 numbers — written here, read by S.lit(): no call ever hands a fraction over — S4A FIX)
   const P = V3(), P1 = V3(), Pb = V3(), f = V3(), r = V3(), u = V3(), r2 = V3(), u2 = V3(), b = V3(), c = V3(), q = V3(), w = V3(), UP = new THREE.Vector3(0, 1, 0), M = new THREE.Matrix4(), SC = V3();
   const geo = {}, asked = {};
   let dead = false, jet = null, ufo = null, sparkAt = 0, hushed = false;
@@ -235,22 +235,22 @@ export function createFlyers(S) {
       q.copy(at).addScaledVector(r2, z[0] * len).addScaledVector(u2, z[1] * len).addScaledVector(f, z[2] * len);
       if (n > 0.01) {
         // NIGHT: the burner's glow + its flame behind it
-        S.light(q.x, q.y, q.z, 0.085 * len, 0, J.burn[0], J.burn[1], J.burn[2], 0.95 * n, 0, 0);
-        S.light(q.x - f.x * 0.2 * len, q.y - f.y * 0.2 * len, q.z - f.z * 0.2 * len, 0.034 * len, 0.2 * len, J.burn[0], J.burn[1], J.burn[2], 0.9 * n, 0, 1, f.x, f.y, f.z);
+        LG[0] = q.x; LG[1] = q.y; LG[2] = q.z; LG[3] = 0.085 * len; LG[4] = 0; LG[5] = J.burn[0]; LG[6] = J.burn[1]; LG[7] = J.burn[2]; LG[8] = 0.95 * n; LG[9] = 0; LG[10] = 0; LG[11] = 0; LG[12] = 0; LG[13] = 0; S.lit();
+        LG[0] = q.x - f.x * 0.2 * len; LG[1] = q.y - f.y * 0.2 * len; LG[2] = q.z - f.z * 0.2 * len; LG[3] = 0.034 * len; LG[4] = 0.2 * len; LG[5] = J.burn[0]; LG[6] = J.burn[1]; LG[7] = J.burn[2]; LG[8] = 0.9 * n; LG[9] = 0; LG[10] = 1; LG[11] = f.x; LG[12] = f.y; LG[13] = f.z; S.lit();
       }
       // DAY: a white vapour trail from each engine (a faint cool one by night)
       const tl = 1.05 * len;
-      S.light(q.x - f.x * tl, q.y - f.y * tl, q.z - f.z * tl, 0.03 * len, tl, 1, 1, 1, 0.78 * d, 1, 2, f.x, f.y, f.z);
-      if (n > 0.01) S.light(q.x - f.x * tl * 0.7, q.y - f.y * tl * 0.7, q.z - f.z * tl * 0.7, 0.03 * len, tl * 0.7, 0.55, 0.7, 1, 0.16 * n, 0, 2, f.x, f.y, f.z);
+      LG[0] = q.x - f.x * tl; LG[1] = q.y - f.y * tl; LG[2] = q.z - f.z * tl; LG[3] = 0.03 * len; LG[4] = tl; LG[5] = 1; LG[6] = 1; LG[7] = 1; LG[8] = 0.78 * d; LG[9] = 1; LG[10] = 2; LG[11] = f.x; LG[12] = f.y; LG[13] = f.z; S.lit();
+      if (n > 0.01) { LG[0] = q.x - f.x * tl * 0.7; LG[1] = q.y - f.y * tl * 0.7; LG[2] = q.z - f.z * tl * 0.7; LG[3] = 0.03 * len; LG[4] = tl * 0.7; LG[5] = 0.55; LG[6] = 0.7; LG[7] = 1; LG[8] = 0.16 * n; LG[9] = 0; LG[10] = 2; LG[11] = f.x; LG[12] = f.y; LG[13] = f.z; S.lit(); }
     }
     if (n > 0.01) {
       // the nav lights: red on the left tip, green on the right — and a white strobe on the tail (two quick flashes)
       const ph = (F.t * 1.1) % 1, strobe = ph < 0.06 || (ph > 0.14 && ph < 0.2) ? 1 : 0, T = J.tip;
       q.copy(at).addScaledVector(r2, T[0] * len).addScaledVector(u2, T[1] * len).addScaledVector(f, T[2] * len);
-      S.light(q.x, q.y, q.z, 0.05 * len, 0, 1, 0.12, 0.1, 0.9 * n, 0, 0);
+      LG[0] = q.x; LG[1] = q.y; LG[2] = q.z; LG[3] = 0.05 * len; LG[4] = 0; LG[5] = 1; LG[6] = 0.12; LG[7] = 0.1; LG[8] = 0.9 * n; LG[9] = 0; LG[10] = 0; LG[11] = 0; LG[12] = 0; LG[13] = 0; S.lit();
       q.copy(at).addScaledVector(r2, -T[0] * len).addScaledVector(u2, T[1] * len).addScaledVector(f, T[2] * len);
-      S.light(q.x, q.y, q.z, 0.05 * len, 0, 0.15, 1, 0.3, 0.9 * n, 0, 0);
-      if (strobe) { q.copy(at).addScaledVector(u2, J.tail[1] * len).addScaledVector(f, J.tail[2] * len); S.light(q.x, q.y, q.z, 0.07 * len, 0, 1, 1, 1, n, 0, 0); }
+      LG[0] = q.x; LG[1] = q.y; LG[2] = q.z; LG[3] = 0.05 * len; LG[4] = 0; LG[5] = 0.15; LG[6] = 1; LG[7] = 0.3; LG[8] = 0.9 * n; LG[9] = 0; LG[10] = 0; LG[11] = 0; LG[12] = 0; LG[13] = 0; S.lit();
+      if (strobe) { q.copy(at).addScaledVector(u2, J.tail[1] * len).addScaledVector(f, J.tail[2] * len); LG[0] = q.x; LG[1] = q.y; LG[2] = q.z; LG[3] = 0.07 * len; LG[4] = 0; LG[5] = 1; LG[6] = 1; LG[7] = 1; LG[8] = n; LG[9] = 0; LG[10] = 0; LG[11] = 0; LG[12] = 0; LG[13] = 0; S.lit(); }
     }
   }
   function frameJet(F) {
@@ -318,14 +318,14 @@ export function createFlyers(S) {
     UFO_O.op = fade; UFO_O.haze = 0.22 - 0.16 * d; UFO_O.em[0] = VIOLET[0] * (0.9 * n + 0.3 * d); UFO_O.em[1] = VIOLET[1] * (0.9 * n + 0.3 * d); UFO_O.em[2] = VIOLET[2] * (0.9 * n + 0.3 * d);
     body(0, g, r2, u, u2, wd, q, F, UFO_O);
     // THE VIOLET UNDERGLOW: a soft flat pool of light under its belly
-    S.light(q.x - u.x * 0.04 * wd, q.y - u.y * 0.04 * wd, q.z - u.z * 0.04 * wd, 0.15 * wd, 0.5 * wd, VIOLET[0], VIOLET[1], VIOLET[2], (0.8 * n + 0.5 * d) * fade, 0.45 * d, 0, r.x, r.y, r.z);
+    LG[0] = q.x - u.x * 0.04 * wd; LG[1] = q.y - u.y * 0.04 * wd; LG[2] = q.z - u.z * 0.04 * wd; LG[3] = 0.15 * wd; LG[4] = 0.5 * wd; LG[5] = VIOLET[0]; LG[6] = VIOLET[1]; LG[7] = VIOLET[2]; LG[8] = (0.8 * n + 0.5 * d) * fade; LG[9] = 0.45 * d; LG[10] = 0; LG[11] = r.x; LG[12] = r.y; LG[13] = r.z; S.lit();
     // THE AMBER RUNNING LIGHTS: ten round its rim, chasing — the ones on the far side dimmer
     c.set(F.px - P.x, F.py - P.y, F.pz - P.z).normalize();
     for (let i = 0; i < 10; i++) {
       const al = i * TAU / 10 + spin, ca = Math.cos(al), sa = Math.sin(al);
       w.copy(r).multiplyScalar(ca).addScaledVector(b, sa);
       const face = 0.4 + 0.6 * ease((w.dot(c) + 0.3) / 0.6), ch = 0.45 + 0.55 * Math.pow(Math.max(0, Math.cos(al - spin - F.t * 3.2)), 3);
-      S.light(q.x + w.x * 0.47 * wd + u.x * 0.115 * wd, q.y + w.y * 0.47 * wd + u.y * 0.115 * wd, q.z + w.z * 0.47 * wd + u.z * 0.115 * wd, 0.058 * wd, 0, LAMP[0], LAMP[1], LAMP[2], face * ch * fade, 0.9 * d, 4);
+      LG[0] = q.x + w.x * 0.47 * wd + u.x * 0.115 * wd; LG[1] = q.y + w.y * 0.47 * wd + u.y * 0.115 * wd; LG[2] = q.z + w.z * 0.47 * wd + u.z * 0.115 * wd; LG[3] = 0.058 * wd; LG[4] = 0; LG[5] = LAMP[0]; LG[6] = LAMP[1]; LG[7] = LAMP[2]; LG[8] = face * ch * fade; LG[9] = 0.9 * d; LG[10] = 4; LG[11] = 0; LG[12] = 0; LG[13] = 0; S.lit();
     }
     const box = newBox('ufo');
     for (let e = -0.5; e <= 0.5; e += 1) { w.copy(P).addScaledVector(r, e * wd); seen(F, w, box); w.copy(P).addScaledVector(u, e * 0.42 * wd); seen(F, w, box); }
@@ -337,6 +337,7 @@ export function createFlyers(S) {
   const SHIP_O = { op: 1, haze: 0.03, lift: 0, tint: 0.5, rim: [0.07, 0.1, 0.22], em: [0, 0, 0] };
   function frameShip(F) {
     const g = geo.mothership, t = F.t;
+    if (!ship.vis && !ship.hum && !ship.force && !ship.pass && !ship.pour && (ship.done || F.cf <= FLY.shipFrom)) { ship.k = 0; return; }   // (not in the sky: nothing to work out)
     let k = ship.done ? 0 : ship.force ? 1 : ease((F.cf - FLY.shipFrom) / (FLY.shipAt - FLY.shipFrom));
     if (ship.pass && ship.pass.t0 < 0) { ship.pass.t0 = t; play('ufo-beam-on@ship', { gain: 0.4 }); }
     if (ship.pour && ship.pour.t0 < 0) { ship.pour.t0 = t; play('ufo-beam-on@ship'); }
@@ -386,14 +387,14 @@ export function createFlyers(S) {
         for (let i = 0; i < R[1]; i++) {
           const al = i * TAU / R[1] + spin * R[3] * 3, ca = Math.cos(al), sa = Math.sin(al), br = (0.5 + 0.5 * Math.sin(t * 2.2 - j * 1.4 + i * 0.7)) * (0.55 + 0.45 * pulse);
           const h = (R[4] - 0.004) * wd, big = i % BIG === 0;
-          S.light(P.x + (r.x * ca + b.x * sa) * R[0] * wd + u.x * h, P.y + (r.y * ca + b.y * sa) * R[0] * wd + u.y * h, P.z + (r.z * ca + b.z * sa) * R[0] * wd + u.z * h, big ? hw * 2.3 : hw, 0, col[0], col[1], col[2], (big ? 0.6 + 0.4 * br : 0.4 + 0.6 * br) * op, paint, 0);
+          LG[0] = P.x + (r.x * ca + b.x * sa) * R[0] * wd + u.x * h; LG[1] = P.y + (r.y * ca + b.y * sa) * R[0] * wd + u.y * h; LG[2] = P.z + (r.z * ca + b.z * sa) * R[0] * wd + u.z * h; LG[3] = big ? hw * 2.3 : hw; LG[4] = 0; LG[5] = col[0]; LG[6] = col[1]; LG[7] = col[2]; LG[8] = (big ? 0.6 + 0.4 * br : 0.4 + 0.6 * br) * op; LG[9] = paint; LG[10] = 0; LG[11] = 0; LG[12] = 0; LG[13] = 0; S.lit();
         }
       }
       for (let i = 0; i < RIM[1]; i++) {
         const al = i * TAU / RIM[1] - spin * 2, ca = Math.cos(al), sa = Math.sin(al), col = RIM[2];
-        S.light(P.x + (r.x * ca + b.x * sa) * RIM[0] * wd + u.x * RIM[3] * wd, P.y + (r.y * ca + b.y * sa) * RIM[0] * wd + u.y * RIM[3] * wd, P.z + (r.z * ca + b.z * sa) * RIM[0] * wd + u.z * RIM[3] * wd, hw, 0, col[0], col[1], col[2], (0.55 + 0.3 * pulse) * op, paint, 0);
+        LG[0] = P.x + (r.x * ca + b.x * sa) * RIM[0] * wd + u.x * RIM[3] * wd; LG[1] = P.y + (r.y * ca + b.y * sa) * RIM[0] * wd + u.y * RIM[3] * wd; LG[2] = P.z + (r.z * ca + b.z * sa) * RIM[0] * wd + u.z * RIM[3] * wd; LG[3] = hw; LG[4] = 0; LG[5] = col[0]; LG[6] = col[1]; LG[7] = col[2]; LG[8] = (0.55 + 0.3 * pulse) * op; LG[9] = paint; LG[10] = 0; LG[11] = 0; LG[12] = 0; LG[13] = 0; S.lit();
       }
-      S.light(P.x - u.x * 0.04 * wd, P.y - u.y * 0.04 * wd, P.z - u.z * 0.04 * wd, 0.085 * wd, 0, 1, 0.88, 0.58, (0.55 + 0.35 * pulse + beam) * op * calm, paint, 0);
+      LG[0] = P.x - u.x * 0.04 * wd; LG[1] = P.y - u.y * 0.04 * wd; LG[2] = P.z - u.z * 0.04 * wd; LG[3] = 0.085 * wd; LG[4] = 0; LG[5] = 1; LG[6] = 0.88; LG[7] = 0.58; LG[8] = (0.55 + 0.35 * pulse + beam) * op * calm; LG[9] = paint; LG[10] = 0; LG[11] = 0; LG[12] = 0; LG[13] = 0; S.lit();
       const box = newBox('ship');
       for (let s = -0.5; s <= 0.5; s += 1) { w.copy(P).addScaledVector(r, s * wd); seen(F, w, box); w.copy(P).addScaledVector(b, s * wd); seen(F, w, box); }
       boxes.ship = box;
@@ -409,8 +410,8 @@ export function createFlyers(S) {
       toWorld(P1, F, xn, yn, -w.dot(F.Z));
       w.subVectors(P1, q);
       const L = w.length(), keep = 0.5 + 0.5 * calm; w.multiplyScalar(1 / L);
-      S.light((P1.x + q.x) / 2, (P1.y + q.y) / 2, (P1.z + q.z) / 2, 0.66, L / 2, 1, 0.8, 0.36, 0.66 * beam * keep, 0.45 + 0.2 * d, 3, w.x, w.y, w.z);
-      S.light(q.x, q.y, q.z, 0.36, 0.95, 1, 0.84, 0.42, 0.85 * beam, 0.35, 0, F.X.x, F.X.y, F.X.z);
+      LG[0] = (P1.x + q.x) / 2; LG[1] = (P1.y + q.y) / 2; LG[2] = (P1.z + q.z) / 2; LG[3] = 0.66; LG[4] = L / 2; LG[5] = 1; LG[6] = 0.8; LG[7] = 0.36; LG[8] = 0.66 * beam * keep; LG[9] = 0.45 + 0.2 * d; LG[10] = 3; LG[11] = w.x; LG[12] = w.y; LG[13] = w.z; S.lit();
+      LG[0] = q.x; LG[1] = q.y; LG[2] = q.z; LG[3] = 0.36; LG[4] = 0.95; LG[5] = 1; LG[6] = 0.84; LG[7] = 0.42; LG[8] = 0.85 * beam; LG[9] = 0.35; LG[10] = 0; LG[11] = F.X.x; LG[12] = F.X.y; LG[13] = F.X.z; S.lit();
       // … and gold rings keep running off the slab while it pours
       if (ship.pour && t - ship.ringT > 0.8 && t - ship.pour.t0 < 7) { ship.ringT = t; S.ring(0.85, 1.0, GOLD, 0.75); }
     }

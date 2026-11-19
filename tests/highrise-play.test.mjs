@@ -127,7 +127,7 @@ test('THE RUN ON THE PAGE: FAIR TAPS, tick 0 = the START touch, a beat\'s tap ne
   assert.doesNotMatch(s, /addEventListener\('click'/, 'never a click');
   assert.match(s, /const tk = tickOf\(ts, t0\);\s*if \(tap\(run, tk, ev\)\) taps\.push\(tk\);/, 'the touch\'s time → its tick → the engine\'s own tap(): logged only when it dropped a slab');
   assert.match(s, /if \(t0 == null\) \{ begin\(ts\); return; \}/, 'tick 0 = the START touch (never a drop)');
-  assert.match(s, /tau = Math\.max\(0, \(now - t0\) \/ TICK_MS\);/, 'the run is on the page\'s clock from the start touch — nothing pauses it');
+  assert.match(s, /FS\[TAU\] = Math\.max\(0, \(now - t0\) \/ TICK_MS\);/, 'the run is on the page\'s clock from the start touch — nothing pauses it');
   assert.doesNotMatch(s, /visibilitychange'[^\n]*t0\s*[+-]?=/, 'a hidden tab never moves the run\'s start (NO PAUSE: THE FUSE ends it — TOO SLOW)');
   assert.match(page, /const MODE = MODE_IDS\.includes\(Q\.get\('mode'\)\) \? Q\.get\('mode'\) : 'solo';/, 'the page is SOLO (`?mode=` is the pass\'s own check of the finish + the cap)');
   assert.match(s, /replay\(\{ seed, mode: MODE, taps \}\)/); assert.match(s, /const fresh = createRun\(\{ seed, mode: MODE \}\), evR = \[\];/, 'the recorded log replayed through a FRESH engine, event by event');
@@ -142,12 +142,12 @@ test('THE RUN ON THE PAGE: FAIR TAPS, tick 0 = the START touch, a beat\'s tap ne
   // NO LAYOUT READ IN THE FRAME — nor in what the frame calls (the review: say() + moments() forced a layout on every perfect): the
   // ONLY layout reads of the whole page are sized()'s, a ResizeObserver's
   const layout = /clientWidth|clientHeight|getBoundingClientRect|offsetWidth|offsetHeight|offsetTop|scrollWidth|scrollHeight|getComputedStyle/g;
-  assert.equal(s.replace('function sized() { stageH = stage.clientHeight; hudFoot = hud.offsetTop + hud.offsetHeight; }', '').match(layout), null, 'no layout read anywhere but sized()');
+  assert.equal(s.replace('function sized() { stageH = stage.clientHeight; hudFoot = hud.offsetTop + hud.offsetHeight; tagDirty = true; }', '').match(layout), null, 'no layout read anywhere but sized()');
   assert.ok(s.includes('const ro = new ResizeObserver(sized); ro.observe(stage); ro.observe(hud);'));
-  assert.ok(s.includes("if (call.animate) callAnim = call.animate(POP, { duration: ms, fill: 'both' }); else call.style.opacity = '1';"), 'the announcer\'s one-shot = the Web Animations API (opacity + transform), restarted without a reflow');
+  assert.ok(s.includes("if (call.animate) { let a = pops.get(ms); if (a) a.play(); else { a = call.animate(POP, { duration: ms, fill: 'both' }); pops.set(ms, a); } callAnim = a; }") && s.includes("else call.style.opacity = '1';"), 'the announcer\'s one-shot = the Web Animations API (opacity + transform), restarted without a reflow');
   assert.doesNotMatch(read('css/highrise-play.css'), /@keyframes (?!hi-breathe)/, 'the only CSS keyframes left: the two breathing lines (opacity)');
   // THE END HOLD holds for EVERY end — THE FUSE's (in the frame) and a TAP's (in the touch handler: the review)
-  assert.ok(s.includes('if (isOver(run) && !endedAt) endedAt = now;') && s.includes("if (isOver(run) && !shown && now - endedAt >= (run.st === 'made' ? MADE_HOLD_MS : END_HOLD_MS)) showEnd(now);"));
+  assert.ok(s.includes('if (over && !endedAt) endedAt = now;') && s.includes("if (over && !shown && now - endedAt >= (run.st === 'made' ? MADE_HOLD_MS : END_HOLD_MS)) showEnd(now);") && s.includes('const over = isOver(run);'));
   assert.equal((s.match(/endedAt = now/g) || []).length, 1, 'ONE place sets the end\'s time: the frame that first sees the run over');
   assert.match(s, /const END_HOLD_MS = 700;/); assert.match(s, /const MADE_HOLD_MS = 2600;/, 'THE FINISH: the white-gold light is seen pouring first');
   assert.ok(s.includes("document.addEventListener('keydown', e => { if (sheetOpen || !keyOk()) return;") && s.includes('const keyOk = () => PAGE || '), 'the SOUNDS sheet keeps its own keys (S4A: in the console a key is a drop only while nothing else has the focus)');
@@ -173,7 +173,7 @@ test('THE CAMERA: the lab\'s diagonal camera, pinned equal (45° turn, 33° down
   assert.equal(camDist(1.6), camDist(0.62), 'a wide screen: the phone column\'s distance (DESKTOP COMES FREE)');
   const n = code(`${HI}night.js`);
   assert.match(n, /import \{ CAM, camDist, SLAB_H \} from '\.\/camera\.js';/);
-  const draw = n.slice(n.indexOf('function draw(run, tau, dt)'), n.indexOf('return {', n.indexOf('function draw(run, tau, dt)')));
+  const draw = n.slice(n.indexOf('function draw(run) {'), n.indexOf('return {', n.indexOf('function draw(run) {')));
   assert.doesNotMatch(draw, /clientWidth|clientHeight|getBoundingClientRect|offsetWidth/, 'no layout read in the frame');
   assert.match(draw, /if \(fitAsk\) \{ const f = fitAsk === 2; fitAsk = 0; fitNow\(f\); \}/, 'a resize only ASKS; the frame resizes first, then renders');
 });
@@ -204,7 +204,7 @@ test('THE HEIGHT AREAS (bands.js — PURE): 0–25 the rooftops · 25–60 the s
   assert.ok(SLACK > 0.05 && SLACK <= 0.25);
   // only the current band's plate + the next one's are ever held (night.js#holdPlates) — and only the current LOOK's set is asked for
   const n = code(`${HI}night.js`);
-  assert.ok(n.includes('plates.forEach((rec, k) => { if (k !== a && k !== b && !(a === b && k === a + 1) && !(keepFirst && k === 0)) { dropPlate(rec); plates.delete(k); } });'));
+  assert.ok(n.includes('const dropUnwanted = (rec, k, plates) => { if (k !== wantA && k !== wantB && !(wantA === wantB && k === wantA + 1) && !(keepFirst && k === 0)) { dropPlate(rec); plates.delete(k); } };') && n.includes('plates.forEach(dropUnwanted);'));
   // (+ the FIRST band's plate again while the end card is up — PLAY AGAIN never starts on a blank sky: the review)
   assert.ok(n.includes('rest() { keepFirst = true; },') && n.includes('if (snap) keepFirst = false;') && code(`${HI}stage.js`).includes('view.rest();'));
   assert.match(n, /new URL\(`plates\/\$\{look\}-\$\{band \+ 1\}\.webp\?v=\$\{HI_ART_REV\}`, ART\)/);
@@ -249,8 +249,8 @@ test('YOUR BEST (best.js — PURE): no best = nothing · above you = the right-e
   assert.equal(tagY(300, 380, 400), 402, 'no clear column at all: just under the HUD');
   // the page wires it: the best BEFORE the run, the tag while above, the crossing → the tape + NEW BEST, stored at the end
   const s = code(`${HI}stage.js`);
-  assert.ok(s.includes("if (crossedBest(best, e.floor)) {") && s.includes("tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold');") && s.includes("say('NEW BEST', 'is-gold', 5, 1900, now);"));
-  assert.ok(s.includes('tagNat = tagY(view.project((tp.x0 + tp.x1) / 2, Math.min(best, run.floor + 100), (tp.z0 + tp.z1) / 2)[1] * stageH, hudFoot, view.zoneTop() * stageH);') && s.includes('const y = tagNat + tagShift;'), 'the tag: its floor\'s height (clamped 100 floors up — a point behind the camera projects mirrored: the review), clear of the HUD + THE DROP ZONE');
+  assert.ok(s.includes("if (crossedBest(best, e.floor)) {") && s.includes("tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold');") && s.includes("say('NEW BEST', 'hi-call is-gold', 5, 1900, now);"));
+  assert.ok(s.includes('let yg = gold ? tagY(view.restY(Math.min(best, run.floor + 100)) * stageH, hudFoot, zone) : -1e9, yf = -1e9;') && s.includes('const zone = view.restZone() * stageH;'), 'the tag: its floor\'s height (clamped 100 floors up — a point behind the camera projects mirrored: the review), clear of the HUD + THE DROP ZONE');
   assert.ok(s.includes('best = Math.max(best, readBest());'), 'a phone whose storage is blocked keeps its best for the visit');
   assert.ok(s.includes("endBest.textContent = !best ? '' : !was ? `YOUR BEST ${best}`"), 'a first run that never landed a slab shows no "YOUR BEST 0"');
   assert.match(s, /best = FROM \? was : nextBest\(was, live\.floor\);[^\n]*\n\s*if \(best > was\) writeBest\(best\);/, 'a run moves YOUR BEST — a `?floor=N` look check never does');
@@ -272,7 +272,7 @@ test('THE SOUNDS\' TABLE (sounds.js — PURE): nine sounds, every file ships, ON
   assert.ok(total < 130 * 1024, `the sounds: ${(total / 1024).toFixed(0)} KB`);
   assert.deepEqual(readdirSync(new URL('../audio/highrise/', import.meta.url)).filter(f => !/^(CREDITS\.md|LICENSE\.txt)$/.test(f)).sort(), SOUND_FILES.map(f => `${f}.mp3`).sort(), 'no stray file ships (no WAV, no B take)');
   // an MP3's lead-in is skipped at play: a drop's sound stays on its tap
-  { const sx = code(`${HI}sfx.js`); assert.ok(sx.includes('leads.set(k, leadOf(b));') && sx.includes("src.start(ctx.currentTime + (o.delay || 0), leads.get(tk.file) || 0);"), 'each sound starts at its first audible sample'); }
+  { const sx = code(`${HI}sfx.js`); assert.ok(sx.includes('leads.set(k, leadOf(b));') && sx.includes("src.start(t + delay, leads.get(s.file) || 0);"), 'each sound starts at its first audible sample'); }
   assert.match(read('audio/highrise/CREDITS.md'), /CC0/); assert.ok(existsSync(new URL('../audio/highrise/LICENSE.txt', import.meta.url)));
   assert.doesNotMatch(read('audio/highrise/CREDITS.md'), /slice-b/, 'the credits name only what ships');
   for (const s of SOUNDS) {
@@ -332,13 +332,13 @@ test('THE TRIGGERS (sounds.js#cuesOf — PURE, on REAL runs): drop on every land
   assert.deepEqual(cuesOf(ev, true), [{ id: 'out' }]);
   // the page: the cues of the frame's events, LATE after a long gap; the band's arrival + NEW BEST are its own
   const s = code(`${HI}stage.js`);
-  assert.match(s, /const late = gap > LATE_MS \|\| hush;/); assert.match(s, /soundNow\(late\); if \(snd && more\.length\) snd\.playCues\(more\);/);
+  assert.match(s, /const late = gap > LATE_MS \|\| hush;/); assert.match(s, /soundNow\(late\); if \(snd && extra\.length\) snd\.playCues\(extra\);/);
   // (S4A — THE SOUND SYNC: a tap's own sounds are asked IN THE TOUCH — `sounded` keeps the frame from asking them twice)
-  assert.match(s, /if \(tap\(run, tk, ev\)\) taps\.push\(tk\);[^\n]*\n\s*soundNow\(false\);/); assert.match(s, /const fresh = sounded \? ev\.slice\(sounded\) : ev;\s*sounded = ev\.length;/); assert.match(s, /snd\.playCues\(snd\.cuesOf\(fresh, late\)\);/); assert.match(s, /ev\.length = 0; sounded = 0; hush = false;/);
-  assert.match(s, /if \(!late\) cues\.push\(\{ id: 'band-arrival' \}\);/);
+  assert.match(s, /if \(tap\(run, tk, ev\)\) taps\.push\(tk\);[^\n]*\n\s*soundNow\(false\);/); assert.match(s, /const from = sounded;\s*sounded = ev\.length;/); assert.match(s, /snd\.playCues\(snd\.cuesOf\(ev, late, cues, from\)\);/); assert.match(s, /ev\.length = 0; sounded = 0; hush = false;/);
+  assert.match(s, /if \(!late\) cues\.push\(CUE_BAND\);/); assert.match(s, /CUE_BAND = Object\.freeze\(\{ id: 'band-arrival' \}\)/);
   // SOLO PAST 200: every notch of the tightening is called FASTER
-  assert.ok(s.includes("if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; if (!say('FASTER', 'is-fast', 2, 1100, now)) later = ['FASTER', 'is-fast', 2, 1100]; } }"), 'every notch is called — under a bigger call it waits its turn (the review)');
-  assert.ok(s.includes('if (later) { const l = later; later = null; say(l[0], l[1], l[2], l[3], now); }'));
+  assert.ok(s.includes("if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; if (!say('FASTER', 'hi-call is-fast', 2, 1100, now)) { later = true; laterText = 'FASTER'; laterCls = 'hi-call is-fast'; laterPri = 2; laterMs = 1100; } } }"), 'every notch is called — under a bigger call it waits its turn (the review)');
+  assert.ok(s.includes('if (later) { later = null; say(laterText, laterCls, laterPri, laterMs, now); }'));
   assert.equal(TIGHT.every, 10);
 });
 
@@ -356,7 +356,7 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   assert.doesNotMatch(draw, /spO\.|spV\.|spark\(/, 'no spark is stepped on the CPU in the frame');
   assert.match(n, /if \(whole \|\| reduce\) return;/, 'reduced motion: no sparks');
   assert.ok(n.includes('transparent: true, depthWrite: true, extensions: { derivatives: true } });'), 'the glass asks for derivatives: its edges\' fwidth builds on a WebGL 1 phone too (the review: without it the whole tower was missing there)');
-  assert.ok(code(`${HI}sfx.js`).includes('if (!isUnlocked() || !ctx || !bufs.get(tk.file) || bufCtx !== ctx) {') && !/ctx\.state !== 'running'/.test(code(`${HI}sfx.js`)), 'the sounds play on a NAPPING context too (PODCAST MODE — the review: the game was silent with the site\'s music off)');
+  assert.ok(code(`${HI}sfx.js`).includes('if (!isUnlocked() || !ctx || !buf || bufCtx !== ctx) {') && !/ctx\.state !== 'running'/.test(code(`${HI}sfx.js`)), 'the sounds play on a NAPPING context too (PODCAST MODE — the review: the game was silent with the site\'s music off)');
   // (S2 FIX: the bloom is BUILT at the top tier only, DRAWN at the top tier only — and KEPT through a step down: no rebuild mid-run)
   assert.ok(n.includes('if (tier === 2 && !bloom) { try { bloom = createBloom(renderer, G.uBloom); if (warmed) needWarm = true; } catch { bloom = null; } }') && n.includes('if (bloom && tier === 2 && dayK < 1) bloom.render(scene, cam, plate, TWINS, 1 - dayK);') && n.includes('bloom: !!bloom && tier === 2') && !/tier < 2 && bloom\) \{ bloom\.dispose/.test(n), 'the bloom at the top tier only');
   assert.match(n, /export const DPR_AT = Object\.freeze\(\[1\.5, 2, 3\]\);/, 'the tiers\' sharpness: ≤ 1.5 · ≤ 2 · ≤ 3');
@@ -379,14 +379,14 @@ test('THE DAY LOOK (S3 — static): the SAME programs as the night (uDay in ever
   assert.ok(fx.includes('if (uDay > 0.001 && uBloom < 0.5) {') && fx.includes('col = mix(col, dcol, uDay); alpha = mix(alpha, vFx.z, uDay);'), 'the day glass is mixed in by uDay (at 0 the night\'s picture is untouched)');
   assert.ok(fx.includes('float ndl = max(dot(N, uSun), 0.0);') && fx.includes('float sdUp(vec2 p)') && fx.includes('dcol = mix(dcol, uHaze, (1.0 - fall) * 0.36 * (1.0 - slider));') && fx.includes('float shadeSide = top > 0.5 ? 0.0 : step(0.5, an.x);'), 'ONE sun · the slab above throws its shadow on a ledge · a light height haze');
   assert.ok(fx.includes('float rim = 1.0 - smoothstep(lw - aa, lw + aa, e);') && fx.includes('float inner = (1.0 - smoothstep(lw * 3.0 - aa, lw * 3.0 + aa, e)) * (1.0 - rim);'), 'the chrome rim: a bright line + a darker line inside it');
-  assert.ok(n.includes("boxGeo.setAttribute('aUp', aUp);") && n.includes('put((x0 + x1) / 2, (s.floor - 0.5) * H, (z0 + z1) / 2, x1 - x0, H, z1 - z0, colMix(s.floor), glow, white, 1, KIND.slab, null, up);'), 'each slab is told the slab lying on it');
+  assert.ok(n.includes("boxGeo.setAttribute('aUp', aUp);") && n.includes('BX[8] = 1; BX[9] = KIND.slab; put(colMix(s.floor), null, up);') && n.includes('UPV[0] = n.x0 * U; UPV[1] = n.x1 * U; UPV[2] = n.z0 * U; UPV[3] = n.z1 * U; up = UPV;'), 'each slab is told the slab lying on it');
   assert.match(n, /export const SUN = Object\.freeze\(\[-0\.42, 0\.78, 0\.46\]\);/);
   // the lights are PAINT by day (ONE · ONE_MINUS_SRC_ALPHA: alpha 0 = the night's added light, as before)
   assert.ok(n.includes('const LIGHT_BLEND = { blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor };'));
   assert.ok(fx.includes('gl_FragColor = vec4(mix(hue * a * 1.7, hue * pa, uDay), pa * uDay);'), 'a spark: added light by night, paint by day');
-  assert.ok(n.includes('const DAY_SPARK = [1, 0.46, 0.03], DAY_SPARK_HOT = [1, 0.76, 0.22], DAY_RING = [1, 0.72, 0.16], DAY_SPARK_SIZE = 1.7;'), 'day sparks warm gold (bigger: paint must be seen), the perfect\'s ring gold-white');
+  assert.ok(n.includes('const DAY_SPARK = F64([1, 0.46, 0.03]), DAY_SPARK_HOT = F64([1, 0.76, 0.22]), DAY_RING = F64([1, 0.72, 0.16]), DAY_SPARK_SIZE = 1.7;'), 'day sparks warm gold (bigger: paint must be seen), the perfect\'s ring gold-white');
   assert.ok(fx.includes('float dark = (1.0 - smoothstep(hw + 1.6 * px, hw + 3.6 * px, a)) * (1.0 - line) * uDay * 0.9;') && fx.includes('float hw = (1.0 + 0.9 * uDay) * max(1.1 * px, '), 'the gold tape by day: twice as thick, a darker outline under it');
-  assert.ok(n.includes('const back = ts ? TAPE_BACK * (1 - dayK) *'), '… and no back edges through frosted glass');
+  assert.ok(n.includes('NUM[BACK] = 0; if (ts) NUM[BACK] = TAPE_BACK * (1 - dayK) *'), '… and no back edges through frosted glass');
   // no bloom by day (it fades with the night through a switch)
   assert.ok(n.includes('if (bloom && tier === 2 && dayK < 1) bloom.render(scene, cam, plate, TWINS, 1 - dayK);') && fx.includes('add.uniforms.uK.value = BLOOM_K * k;'));
   // THE DAY COLOURS: the owner's pairs, a band; every step a real colour; the sliding slab pulled to its band's accent
@@ -472,7 +472,7 @@ test('THE FLYERS\' PLAN (flyplan.js — PURE): the seed picks THE BLACKBIRD or t
   const s = code(`${HI}stage.js`);
   assert.ok(s.includes('plan = flyPlan(seed); flown.jet = flown.ufo = flown.ship = false; wanted.clear(); needFloor = -1;') && /view\.adopt\(run, T\); view\.setBest\(0\); view\.setFriend\(0\);[^\n]* view\.flyReset\(\);/.test(s));
   assert.ok(s.includes("if (due === 'jet') view.fly(plan.jet, plan.jetDir);") && s.includes("else if (due === 'ufo') view.fly('ufo', plan.ufoDir);"));
-  assert.ok(s.includes("else if (due === 'ship' && MODE === 'solo') { view.fly('pass'); say('THE MOTHERSHIP', 'is-gold', 6, 2600, now); if (!late) cues.push({ id: 'band-arrival' }); }"));
+  assert.ok(s.includes("else if (due === 'ship' && MODE === 'solo') { view.fly('pass'); say('THE MOTHERSHIP', 'hi-call is-gold', 6, 2600, now); if (!late) cues.push(CUE_BAND); }"));
   assert.ok(s.includes("} else if (e.e === 'made') {") && s.includes("view.fly('pour');"), 'a match\'s floor 200 = THE FINISH');
   assert.ok(s.includes('view.flyHush();'), 'the end card up: a flyer still in the sky fades away');
 });
@@ -482,7 +482,7 @@ test('THE FLYERS (S3 — flyers.js + night.js\'s stage, static): a LAZY module, 
   // LAZY: the page never imports flyers.js statically; it is fetched from floor 20, through THE SKEW WRAPPER
   assert.doesNotMatch(s, /from '\.\/flyers\.js'/); assert.doesNotMatch(n, /flyers\.js/);
   assert.ok(s.includes("lazyImport(import('./flyers.js'), './flyers.js').then(M => { FlyMod = M; view.flyers(M); needFloor = -1; return M; })") && s.includes('if (run.floor < FLY_FLOORS.loadJet) return;'));
-  assert.ok(s.includes('for (const k of flyNeeds(plan, run.floor)) if (!wanted.has(k)) { wanted.add(k); view.need(k); }'));
+  assert.ok(s.includes('flyNeeds(plan, run.floor, needs);') && s.includes('for (let i = 0; i < needs.length; i++) { const k = needs[i]; if (!wanted.has(k)) { wanted.add(k); view.need(k); } }'));
   assert.ok(s.includes('if (FlyMod) { view.flyers(FlyMod); wanted.clear(); needFloor = -1; }'), 'a rebuilt scene (a lost context) gets its flyers again');
   // THE LAG RULES: both programs (+ their twins) on a stand-in triangle in the warm frame; a model's buffers in an ordinary frame, before its moment
   assert.ok(n.includes('const mesh = new THREE.Mesh(standIn, m);') && n.includes('twin(mesh, m);') && n.includes('twin(lightsMesh, lightMat);'));
@@ -492,7 +492,7 @@ test('THE FLYERS (S3 — flyers.js + night.js\'s stage, static): a LAZY module, 
   // behind the tower, in the camera's own frame; the band = the HUD's foot … THE DROP ZONE's upper edge
   assert.ok(n.includes('mesh.renderOrder = -50;') && n.includes('lightsMesh.renderOrder = -40;'), 'drawn before the tower (it covers them)');
   assert.ok(fl.includes('const toWorld = (out, F, x, y, D) => out.set(F.px, F.py, F.pz).addScaledVector(F.Z, -D).addScaledVector(F.X, x * D * F.th * F.aspect).addScaledVector(F.Y, y * D * F.th);'));
-  assert.ok(fl.includes('const bandY = (F, k) => 1 - 2 * (F.top + (Math.max(F.top + 0.08, F.bot) - F.top) * k);') && n.includes('FR.top = band0; FR.bot = zoneNow();') && s.includes('view.band(stageH ? hudFoot / stageH : 0.2);'));
+  assert.ok(fl.includes('const bandY = (F, k) => 1 - 2 * (F.top + (Math.max(F.top + 0.08, F.bot) - F.top) * k);') && n.includes('FR.top = band0; zoneFrom(false); FR.bot = NUM[ZONE];') && s.includes('view.band(stageH ? hudFoot / stageH : 0.2);'));
   assert.ok(fl.includes('F.dist * (1.05 + 0.2 * sn)') && fl.includes('const D = F.dist * 1.2,') && fl.includes('const D = F.dist * 2.2,'), 'every flyer is FURTHER than the tower');
   // (flyers.js imports three.js + the audio engine: its numbers are read as text — THE UNIT JOB INSTALLS NOTHING)
   const num = k => Number(new RegExp(`\\b${k}: ([0-9.]+)`).exec(fl)[1]);
@@ -530,8 +530,8 @@ test('THE FLYERS (S3 — flyers.js + night.js\'s stage, static): a LAZY module, 
   assert.ok(existsSync(new URL('../scripts/bake/highrise-f22.mjs', import.meta.url)) && /art\/models\/f22\/f22_raptor_free\.glb/.test(read('scripts/bake/highrise-f22.mjs')), 'built from the city\'s source model');
   // THE MOTHERSHIP + DEEP SPACE: seen from ~180, the solo moment (the camera glances up), the finish's light; the stars + the aurora past 200
   assert.ok(fl.includes('ease((F.cf - FLY.shipFrom) / (FLY.shipAt - FLY.shipFrom))') && fl.includes('S.glance(gl);') && fl.includes('S.pour(beam * (0.8 + 0.2 * Math.sin(tq * 7)));'));
-  assert.ok(n.includes('const lookY = camY + CAM.lift - bump * 0.022 + glance * 0.42;') && n.includes('glance(v) { glance = reduce ? 0 : v; }'), 'the camera glances up (not with reduce motion)');
-  assert.match(n, /export const SPACE_FROM = 200, SPACE_FULL = 212;/); assert.ok(n.includes('plateU.uSpace.value = cf <= SPACE_FROM ? 0 : cf >= SPACE_FULL ? 1 : (cf - SPACE_FROM) / (SPACE_FULL - SPACE_FROM);') && fx.includes('if (uSpace > 0.001) c += space() * uSpace;'));
+  assert.ok(n.includes('const lookY = NUM[CAMY] + CAM.lift - NUM[BUMP] * 0.022 + glance * 0.42,') && n.includes('glance(v) { glance = reduce ? 0 : v; }'), 'the camera glances up (not with reduce motion)');
+  assert.match(n, /export const SPACE_FROM = 200, SPACE_FULL = 212;/); assert.ok(n.includes('const space = cf <= SPACE_FROM ? 0 : cf >= SPACE_FULL ? 1 : (cf - SPACE_FROM) / (SPACE_FULL - SPACE_FROM);') && n.includes('if (plateU.uSpace.value !== space) plateU.uSpace.value = space;') && fx.includes('if (uSpace > 0.001) c += space() * uSpace;'));
   assert.match(read('css/highrise-play.css'), /\.hi-stage\.is-made \.hi-end-n \{ color: #fff6d8;/, 'THE FINISH: the end card in gold — the words, the floor, the perfects');
   assert.doesNotMatch(fl, /performance\.now|requestAnimationFrame|\bDate\b/, 'flyers.js keeps no clock of its own (night.js hands it the frame)');
   for (const l of fl.split('\n').filter(x => /Math\.random/.test(x))) assert.match(l, /S\.spark\(/, 'its only dice are the finish\'s sparks');

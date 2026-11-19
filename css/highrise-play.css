@@ -32,8 +32,11 @@
 .hi-call.is-fast { text-shadow: 0 0 2px #fff, 0 0 12px rgba(0, 240, 255, 0.9), 0 0 26px rgba(0, 200, 255, 0.5), 0 2px 0 rgba(10, 7, 22, 0.6); }
 .hi-call.is-gold { color: #fff6d8; text-shadow: 0 0 2px #fff, 0 0 12px rgba(255, 200, 60, 0.95), 0 0 28px rgba(255, 170, 30, 0.6), 0 2px 0 rgba(10, 7, 22, 0.6); }
 
-/* YOUR BEST while it is above you: the right-edge tag (gold; a flat flag — no pill). Its height is the frame's (transform only). */
+/* YOUR BEST while it is above you: the right-edge tag (gold; a flat flag — no pill). Its height is written ONCE A LANDING (S4A FIX —
+   never a style write a frame): where it will stand once the camera rests on the new floor; this transition rides it there with the
+   camera (the camera eases by e^(−t / 140 ms) — the curve below is that ease over 0.56 s). Transform only. */
 .hi-tag { position: absolute; right: 0; top: 0; margin-top: -14px; height: 28px; padding: 0 10px 0 11px; display: flex; align-items: center; pointer-events: none; will-change: transform;
+  transition: transform 0.56s cubic-bezier(0.15, 0.6, 0.4, 1);
   font: 700 13px/1 var(--font-num); letter-spacing: 0.08em; color: #ffe9a8; background: rgba(10, 7, 22, 0.84); border-left: 3px solid #ffc83c; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hi-tag[hidden] { display: none; }
 
@@ -141,7 +144,7 @@
   .hi-end { top: calc(env(safe-area-inset-top, 0px) + max(5%, 56px)); } .hi-end-t { font-size: 28px; } .hi-end-n { font-size: 58px; } .hi-end-floor { margin-top: 8px; } .hi-end-l { margin-top: 8px; font-size: 14px; } .hi-check { margin-top: 8px; } .hi-again { min-height: 58px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hi-start-go { animation: none; } .hi-again { transition: none; }
+  .hi-start-go { animation: none; } .hi-again { transition: none; } .hi-tag { transition: none; }
 }
 
 /* ---- S4A — THE NEXT FRIEND + THE CARTRIDGE (js/games/highrise/view.js mounts this SAME stage in the console's frame) ---- */

@@ -13,9 +13,9 @@
 //   sparks, no trail. THE WARM FRAME: every program is built in one hidden frame before the first slab moves.
 import * as THREE from 'three';
 import { START, TRAVEL } from './tuning.js';
-import { slabAt } from './engine.js';
+import { slabInto } from './engine.js';
 import { CAM, camDist, SLAB_H } from './camera.js';
-import { plateMix, plateDrift, slabColor, sliderColor, hazeAt, SLACK } from './bands.js';
+import { plateMix, plateMixInto, plateDrift, slabColor, sliderColor, hazeInto, SLACK } from './bands.js';
 import { GLASS_V, GLASS_F, PLATE_V, PLATE_F, SPARK_V, SPARK_F, RING_V, RING_F, TAPE_V, TAPE_F, TAPE_BACK, FLY_V, FLY_F, LIGHT_V, LIGHT_F, createBloom } from './night-fx.js';
 
 const U = 1 / START, H = SLAB_H, RAD = Math.PI / 180;
@@ -38,12 +38,16 @@ export const FLY_SLOTS = 3, LIGHTS = 320;
 /** DEEP SPACE (S3 — solo, past THE MOTHERSHIP): the drifting stars + the aurora come in over these floors */
 export const SPACE_FROM = 200, SPACE_FULL = 212;
 const SPARKS_AT = [12, 22, 34];            // a cut's sparks by tier (× its length)
-const GOLD = [1, 0.78, 0.2], BG = 0x0a0716;
+// (S4A FIX — every colour + rect a frame READS is a Float64Array: a list of fractions read as a plain array hands each one over as a
+//  small object in a browser's engine once two kinds of list meet at the same line — forty slabs, seven reads a slab, every frame)
+const F64 = a => Float64Array.from(a);
+const GOLD = F64([1, 0.78, 0.2]), BG = 0x0a0716;
 // (THE DAY LOOK's lights are PAINT — night-fx.js: a cut's sparks WARM GOLD, a perfect's ring GOLD-WHITE)
-const DAY_SPARK = [1, 0.46, 0.03], DAY_SPARK_HOT = [1, 0.76, 0.22], DAY_RING = [1, 0.72, 0.16], DAY_SPARK_SIZE = 1.7;
-const NO_UP = [1, 0, 1, 0];
+const DAY_SPARK = F64([1, 0.46, 0.03]), DAY_SPARK_HOT = F64([1, 0.76, 0.22]), DAY_RING = F64([1, 0.72, 0.16]), DAY_SPARK_SIZE = 1.7;
+const NO_UP = F64([1, 0, 1, 0]);
 const KIND = { slab: 0, slider: 2, tape: 3, trail: 4 };
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+const LOOK_IDS = ['night', 'day'];
 
 export function createNight(host, o = {}) {
   // THE LOOK (S3 — docs/highrise.md "THE LOOK SWITCH"): `target` = the look asked for; `dayK` = where the picture is (0 night … 1 day).
@@ -114,17 +118,21 @@ export function createNight(host, o = {}) {
   let heldKey = -1;        // (the plates wanted change only at a seam's edge — or at a look switch: the list is walked then, not every frame)
   /** the look(s) whose pictures are held now: the one on screen — and, through a switch, the one coming */
   const holds = look => (look === 'day' ? dayK > 0 || target === 'day' : dayK < 1 || target === 'night');
+  // (S4A FIX — ZERO GARBAGE: holdPlates runs EVERY frame, so it holds no function of its own inside it — a function whose own numbers
+  //  an inner function reads is given a fresh record for them at EVERY call, used or not; the two plates wanted sit out here instead)
+  let wantA = -1, wantB = -1;
+  const dropUnwanted = (rec, k, plates) => { if (k !== wantA && k !== wantB && !(wantA === wantB && k === wantA + 1) && !(keepFirst && k === 0)) { dropPlate(rec); plates.delete(k); } };
   function holdPlates(a, b) {
     const key = a * 16 + b + (keepFirst ? 256 : 0) + (holds('night') ? 512 : 0) + (holds('day') ? 1024 : 0);
     if (key === heldKey) return;
-    heldKey = key;
-    for (const look of ['night', 'day']) {
-      const plates = SETS[look];
+    heldKey = key; wantA = a; wantB = b;
+    for (let li = 0; li < LOOK_IDS.length; li++) {
+      const look = LOOK_IDS[li], plates = SETS[look];
       if (!holds(look)) { plates.forEach(dropPlate); plates.clear(); dropEnv(look); continue; }
       wantEnv(look);
       wantPlate(look, a); wantPlate(look, b); if (a === b) wantPlate(look, a + 1);
       if (keepFirst) wantPlate(look, 0);
-      plates.forEach((rec, k) => { if (k !== a && k !== b && !(a === b && k === a + 1) && !(keepFirst && k === 0)) { dropPlate(rec); plates.delete(k); } });
+      plates.forEach(dropUnwanted);
     }
   }
   // THE REFLECTION MAPS (each look's HDRI — its sky half, 256 × 64: scripts/build-highrise-assets.py): the night's in uEnv, the day's in
@@ -162,27 +170,40 @@ export function createNight(host, o = {}) {
   const twin = (mesh, m) => { const c = m.clone(); c.uniforms = m.uniforms; made.push(c); TWINS.push([mesh, c, null]); };
   twin(boxes, glassMat);
   let nb = 0;
-  /** one box: its centre, its size, its colour (linear r g b), its glow · white flash · alpha · kind, its turn; `up` = the slab lying
-   *  ON it (world x0, x1, z0, z1 — THE DAY LOOK's ledge shadow), or none */
-  function put(x, y, z, sx, sy, sz, c, glow, white, alpha, kind, q, up) {
+  // ZERO GARBAGE (S4A FIX): a box's NUMBERS go through ONE scratch of doubles — BX = its centre (0 1 2), its size (3 4 5), its glow ·
+  // white flash · alpha · kind (6 7 8 9) — and from there straight into the instance buffers (a call that hands a browser's engine
+  // ten fractions makes ten small objects of them, fifty boxes a frame; a slab that is not turned needs no matrix maths at all)
+  const BX = new Float64Array(10), IM = boxes.instanceMatrix.array, AC = aColor.array, AF = aFx.array, AU = aUp.array;
+  /** one box: BX (above) + its colour (linear r g b), its turn (null = none); `up` = the slab lying ON it (world x0, x1, z0, z1 — THE
+   *  DAY LOOK's ledge shadow), or none */
+  function put(c, q, up) {
     if (nb >= BOXES) return;
-    P.set(x, y, z); S.set(sx, sy, sz); M.compose(P, q || Q0, S); boxes.setMatrixAt(nb, M);
-    const u = up || NO_UP;
-    aColor.setXYZ(nb, c[0], c[1], c[2]); aFx.setXYZW(nb, glow, white, alpha, kind); aUp.setXYZW(nb, u[0], u[1], u[2], u[3]); nb++;
+    const o = nb * 16, o3 = nb * 3, o4 = nb * 4, u = up || NO_UP;
+    if (q) { P.set(BX[0], BX[1], BX[2]); S.set(BX[3], BX[4], BX[5]); M.compose(P, q, S); M.toArray(IM, o); }
+    else {
+      IM[o] = BX[3]; IM[o + 1] = 0; IM[o + 2] = 0; IM[o + 3] = 0; IM[o + 4] = 0; IM[o + 5] = BX[4]; IM[o + 6] = 0; IM[o + 7] = 0;
+      IM[o + 8] = 0; IM[o + 9] = 0; IM[o + 10] = BX[5]; IM[o + 11] = 0; IM[o + 12] = BX[0]; IM[o + 13] = BX[1]; IM[o + 14] = BX[2]; IM[o + 15] = 1;
+    }
+    AC[o3] = c[0]; AC[o3 + 1] = c[1]; AC[o3 + 2] = c[2];
+    AF[o4] = BX[6]; AF[o4 + 1] = BX[7]; AF[o4 + 2] = BX[8]; AF[o4 + 3] = BX[9];
+    AU[o4] = u[0]; AU[o4 + 1] = u[1]; AU[o4 + 2] = u[2]; AU[o4 + 3] = u[3];
+    nb++;
   }
   // a floor's colour (linear, cached a look): bands.js#slabColor — its band's set, blended round a seam; through a look switch the
   // two looks' colours are blended (one scratch colour: put() copies it at once)
-  const COLS = { night: new Map(), day: new Map() }, CMIX = [0, 0, 0], UPV = [0, 0, 0, 0];
+  // (the cache: a RING of 128 kept colours a look — a floor's slot = floor & 127; the floors on screen (forty slabs + the building's
+  //  forty under the first) never share one. A floor's colour is worked out once, when it first shows — nothing is made after that)
+  const COL_N = 128, mkCols = () => ({ at: new Int32Array(COL_N).fill(-1e9), c: Array.from({ length: COL_N }, () => new Float64Array(3)) });
+  const COLS = { night: mkCols(), day: mkCols() }, CMIX = new Float64Array(3), UPV = new Float64Array(4);
   let seed = '';
   function colIn(look, floor) {
-    const cols = COLS[look];
-    let c = cols.get(floor);
-    if (!c) { const s = slabColor(look, seed, floor); C.setRGB(s[0], s[1], s[2], THREE.SRGBColorSpace); c = [C.r, C.g, C.b]; cols.set(floor, c); if (cols.size > 400) cols.delete(cols.keys().next().value); }
+    const cols = COLS[look], k = floor & (COL_N - 1), c = cols.c[k];
+    if (cols.at[k] !== floor) { const s = slabColor(look, seed, floor); C.setRGB(s[0], s[1], s[2], THREE.SRGBColorSpace); c[0] = C.r; c[1] = C.g; c[2] = C.b; cols.at[k] = floor; }
     return c;
   }
   const colOf = floor => colIn(lookNow(), floor);
   // (the SLIDING slab's: by day its band's accent — bands.js#sliderColor; one slab at a time: worked out when its floor / the look changes)
-  const SLD = [0, 0, 0];
+  const SLD = new Float64Array(3);
   let sldFloor = -1, sldK = -1;
   function colSlider(floor) {
     if (floor !== sldFloor || dayK !== sldK) {
@@ -219,7 +240,7 @@ export function createNight(host, o = {}) {
   let spAt = 0, sparkN = 0;
   function spark(x, y, z, vx, vy, vz, life, size, c) {
     const i = spAt++ % SPARKS;
-    spO.setXYZ(i, x, y, z); spV.setXYZ(i, vx, vy, vz); spT.setXYZ(i, clock / 1000, life, size); spC.setXYZ(i, c[0], c[1], c[2]);
+    spO.setXYZ(i, x, y, z); spV.setXYZ(i, vx, vy, vz); spT.setXYZ(i, NUM[CLK] / 1000, life, size); spC.setXYZ(i, c[0], c[1], c[2]);
     spO.needsUpdate = spV.needsUpdate = spT.needsUpdate = spC.needsUpdate = true; sparkN++;
   }
 
@@ -240,7 +261,7 @@ export function createNight(host, o = {}) {
   function ring(r, floor, reach, life, c, k = 1) {
     const i = rgAt++ % RINGS, hx = (r.x1 - r.x0) / 2 * U, hz = (r.z1 - r.z0) / 2 * U;
     rgP.setXYZW(i, (r.x0 + r.x1) / 2 * U, floor * H + 0.004, (r.z0 + r.z1) / 2 * U, k);
-    rgA.setXYZW(i, hx, hz, reach, life); rgB.setXYZW(i, c[0], c[1], c[2], clock / 1000);
+    rgA.setXYZW(i, hx, hz, reach, life); rgB.setXYZW(i, c[0], c[1], c[2], NUM[CLK] / 1000);
     rgA.needsUpdate = rgB.needsUpdate = rgP.needsUpdate = true; ringN++;
   }
 
@@ -309,19 +330,29 @@ export function createNight(host, o = {}) {
     const f = flySlots.find(q => !q.mesh.visible);
     if (!f) return;
     upSlot = f; f.mesh.geometry = toUpload.shift(); f.mesh.visible = true; f.u.uOpacity.value = 1;
-    f.mesh.matrix.makeScale(1e-4, 1e-4, 1e-4); f.mesh.matrix.setPosition(camX, camY - 60, camZ); f.mesh.matrixWorldNeedsUpdate = true;
+    f.mesh.matrix.makeScale(1e-4, 1e-4, 1e-4); f.mesh.matrix.setPosition(NUM[CAMX], NUM[CAMY] - 60, NUM[CAMZ]); f.mesh.matrixWorldNeedsUpdate = true;
     mark('plate');
   }
-  /** a flyer's light this frame: its place, half its width, half its length (0 = round) along the axis (ax, ay, az), its colour, its strength, PAINT (0 light … 1 paint), its kind (night-fx.js LIGHT_F) */
-  function light(x, y, z, hw, hl, r, g, b, a, paint, kind, ax, ay, az) {
-    if (nl >= LIGHTS || a <= 0.003) return;
-    lgP.setXYZW(nl, x, y, z, hw); lgQ.setXYZW(nl, hl, kind, a, paint); lgC.setXYZ(nl, r, g, b); lgA.setXYZ(nl, ax || 0, ay || 0, az || 0); nl++;
+  /** a flyer's light this frame — its 14 numbers in LG (S4A FIX — ZERO GARBAGE: a call that hands a browser's engine fourteen fractions
+   *  makes fourteen small objects of them, two hundred lights a frame under THE MOTHERSHIP): 0 1 2 its place · 3 half its width · 4 half
+   *  its length (0 = round) along the axis in 11 12 13 · 5 6 7 its colour · 8 its strength · 9 PAINT (0 light … 1 paint) · 10 its kind
+   *  (night-fx.js LIGHT_F) */
+  const LG = new Float64Array(14), LP = lgP.array, LQ = lgQ.array, LC = lgC.array, LA = lgA.array;
+  function lit() {
+    if (nl >= LIGHTS || LG[8] <= 0.003) return;
+    const o4 = nl * 4, o3 = nl * 3;
+    LP[o4] = LG[0]; LP[o4 + 1] = LG[1]; LP[o4 + 2] = LG[2]; LP[o4 + 3] = LG[3];
+    LQ[o4] = LG[4]; LQ[o4 + 1] = LG[10]; LQ[o4 + 2] = LG[8]; LQ[o4 + 3] = LG[9];
+    LC[o3] = LG[5]; LC[o3 + 1] = LG[6]; LC[o3 + 2] = LG[7];
+    LA[o3] = LG[11]; LA[o3 + 1] = LG[12]; LA[o3 + 2] = LG[13];
+    nl++;
   }
   // (the frame a flyer is placed in: the camera's own — its place, its three axes, its lens — so a flyer holds its place ON THE SCREEN
   //  while the tower climbs: never over the play zone, never under the HUD's numbers)
   const FR = { px: 0, py: 0, pz: 0, X: new THREE.Vector3(), Y: new THREE.Vector3(), Z: new THREE.Vector3(), th: Math.tan(CAM.fov * RAD / 2), aspect: 1, dist: 14, t: 0, dt: 0, day: 0, cf: 0, top: 0.2, bot: 0.4, reduce, hz: new THREE.Vector3(), tx: 0, ty: 0, tz: 0, tier: 2 };
+  FR.X.set(0, 0, 0); FR.Y.set(0, 0, 0); FR.Z.set(0, 0, 1);   // (the camera's axes — filled in once the camera is turned: below)
   const STAGE = {
-    THREE, slots: flySlots, standIn, light, mark,
+    THREE, slots: flySlots, standIn, LG, lit, mark,
     /** a model's buffers go to the GPU now (a frame that draws nothing new), not in its moment's first frame */
     upload(geo) { if (geo) toUpload.push(geo); },
     /** the camera glances UP (0 … 1 — THE MOTHERSHIP's moment) · the white-gold light on the top slab (0 … 1 — THE FINISH) */
@@ -330,29 +361,49 @@ export function createNight(host, o = {}) {
     spark,
   };
 
+  // THE DRAW ORDER IS FIXED (S4A FIX — ZERO GARBAGE): every mesh has its own renderOrder and nothing is ever added later, so the
+  // scene's list is put in that order ONCE and three.js is told not to sort it — it sorted the same dozen objects every pass, five
+  // passes a frame (a sort makes its own scratch list each time, and works every object's depth out first). The plate is the one
+  // opaque mesh (drawn first, as before); two meshes that share an order (the gold + the pink tape) never overlap.
+  scene.children.sort((a, b) => a.renderOrder - b.renderOrder);
+  renderer.sortObjects = false;
+
   // ---- the pieces that fall away (a cut's overhang; a slab that missed) — pooled
   const pieces = Array.from({ length: PIECES }, () => ({ on: false, age: 0, x: 0, y: 0, z: 0, sx: 0, sz: 0, vx: 0, vy: 0, vz: 0, rx: 0, rz: 0, ax: 0, az: 0, fl: 0, life: 1200 }));
   let pieceAt = 0;
 
   // ---- the run's own state in the view
-  let T = null, slabs = [], top = null, clock = 0, tier = 2, bloom = null;
-  let landAt = -1e9, landFloor = -1, perfAt = -1e9, grow = null, bump = 0, outAt = -1e9;
-  let tapeFloor = 0, tapeAt = -1e9, ftapeFloor = 0, ftapeAt = -1e9, sliderGlow = 0;
-  let camX = 0, camY = 0, camZ = 0, dist = 14, w = 0, h = 0, dpr = 1, fitAsk = 2;
+  let T = null, slabs = [], top = null, tier = 2, bloom = null;
+  let landAt = -1e9, landFloor = -1, perfAt = -1e9, outAt = -1e9;
+  // THE FRAME's OWN FRACTIONS (S4A FIX — ZERO GARBAGE): a fraction kept in a plain variable that functions share is a small object every
+  // time it is written — the view's clock, the camera's ease, its place, the landing's bump, the slider's glow, the plates' drift are
+  // written every frame: they live in ONE scratch of doubles instead (NUM[…] below — written in place, nothing made)
+  const NUM = new Float64Array(16), CLK = 0, CAMX = 1, CAMY = 2, CAMZ = 3, BUMP = 4, EYEX = 5, EYEY = 6, EYEZ = 7, SGLOW = 8, CF = 9, DRA = 10, DRB = 11, ZONE = 12, BACK = 13, FBACK = 14;
+  /** what the stage hands a frame: IO[0] = `tau`, the clock in ticks (a fraction into the next one) · IO[1] = `dt`, ms since the last frame */
+  const IO = new Float64Array(2), RX = new Float64Array(4);   // (RX: a slab's four edges while its box is worked out)
+  let tapeDrawn = -1, ftapeDrawn = -1;   // (the floor each tape's outline was last laid round: it is placed once, not every frame)
+  NUM[CF] = -1;
+  // (the frame's kept records — nothing is made in a frame: the plates' mix, the sliding slab at two ticks, the day's air, a grow-back,
+  //  a perfect's ring colour, the few numbers `?fps=1` shows)
+  const MIX = { a: 0, b: 0, m: 0 }, SA = { floor: 0, axis: 'x', off: 0, x0: 0, x1: 0, z0: 0, z1: 0 }, SB = { floor: 0, axis: 'x', off: 0, x0: 0, x1: 0, z0: 0, z1: 0 };
+  const HZ = [0, 0, 0], GROW = { on: false, floor: 0, x: false, by: 0, at: 0 }, RINGC = new Float64Array(3);
+  const STAT = { tier: 2, bloom: false, calls: 0, tris: 0, w: 0, h: 0, dpr: 1 };
+  let tapeFloor = 0, tapeAt = -1e9, ftapeFloor = 0, ftapeAt = -1e9;
+  let dist = 14, w = 0, h = 0, dpr = 1, fitAsk = 2;
   let needWarm = true, warmed = 0, frames = 0, progN = 0;
-  const HOT = [1, 0.86, 0.6];
+  const HOT = F64([1, 0.86, 0.6]);
 
   /** a new run / a tower adopted after a rebuild: the tower object (tower.js — the page feeds it the events) */
   function adopt(run, tower, snap = true) {
-    T = tower; seed = run.seed; slabs = T.slabs(); top = T.top(); COLS.night.clear(); COLS.day.clear(); sldFloor = -1; if (snap) keepFirst = false;
-    heldKey = -1;
+    T = tower; seed = run.seed; slabs = T.slabs(); top = T.top(); COLS.night.at.fill(-1e9); COLS.day.at.fill(-1e9); sldFloor = -1; if (snap) keepFirst = false;
+    heldKey = -1; tapeDrawn = ftapeDrawn = -1;
     if (snap) {
-      landAt = perfAt = outAt = tapeAt = ftapeAt = -1e9; ftapeFloor = 0; landFloor = -1; grow = null; bump = 0;
-      for (const p of pieces) p.on = false;
+      landAt = perfAt = outAt = tapeAt = ftapeAt = -1e9; ftapeFloor = 0; landFloor = -1; GROW.on = false; NUM[BUMP] = 0;
+      for (let i = 0; i < PIECES; i++) pieces[i].on = false;
       for (let i = 0; i < SPARKS; i++) spT.setX(i, -1e6); spT.needsUpdate = true;
       for (let i = 0; i < RINGS; i++) rgB.setW(i, -1e6); rgB.needsUpdate = true;
     }
-    camY = slabs[slabs.length - 1].floor * H; camX = (top.x0 + top.x1) / 2 * U; camZ = (top.z0 + top.z1) / 2 * U;
+    NUM[CAMY] = slabs[slabs.length - 1].floor * H; NUM[CAMX] = (top.x0 + top.x1) / 2 * U; NUM[CAMZ] = (top.z0 + top.z1) / 2 * U;
   }
 
   /** the tower's hook: a cut's overhang (dx / dz = the side it hangs on) or a WHOLE slab that missed / slipped falls away */
@@ -379,19 +430,21 @@ export function createNight(host, o = {}) {
   function events(evs) {
     top = T.top();
     let perfect = 0, grew = null;
-    for (const e of evs) {
+    for (let i = 0; i < evs.length; i++) {
+      const e = evs[i];
       if (e.e === 'perfect') perfect = e.streak;
       else if (e.e === 'grow') grew = e;
       else if (e.e === 'land') {
-        landAt = clock; landFloor = e.floor; bump = reduce ? 0 : 1;
+        landAt = NUM[CLK]; landFloor = e.floor; NUM[BUMP] = reduce ? 0 : 1;
         if (perfect) {
-          perfAt = clock;
+          perfAt = NUM[CLK];
           const c = colOf(e.floor);
-          ring(e, e.floor, 0.34 + Math.min(perfect, 8) * 0.03, 0.5, lookNow() === 'day' ? DAY_RING : [0.55 + 0.45 * c[0], 0.55 + 0.45 * c[1], 0.55 + 0.45 * c[2]]);
-          if (grew) { grow = { floor: e.floor, x: grew.axis === 'x', by: grew.by * U, at: clock }; ring(e, e.floor, 0.42, 0.6, c, 0.55); }
+          RINGC[0] = 0.55 + 0.45 * c[0]; RINGC[1] = 0.55 + 0.45 * c[1]; RINGC[2] = 0.55 + 0.45 * c[2];
+          ring(e, e.floor, 0.34 + Math.min(perfect, 8) * 0.03, 0.5, lookNow() === 'day' ? DAY_RING : RINGC);
+          if (grew) { GROW.on = true; GROW.floor = e.floor; GROW.x = grew.axis === 'x'; GROW.by = grew.by * U; GROW.at = NUM[CLK]; ring(e, e.floor, 0.42, 0.6, c, 0.55); }
         }
         perfect = 0; grew = null;
-      } else if (e.e === 'out') { outAt = clock; perfect = 0; grew = null; }
+      } else if (e.e === 'out') { outAt = NUM[CLK]; perfect = 0; grew = null; }
     }
   }
 
@@ -399,17 +452,17 @@ export function createNight(host, o = {}) {
   function setBest(floor, flash = false) {
     tapeFloor = floor > 0 ? floor : 0;
     if (flash && tapeFloor) {
-      tapeAt = clock;
+      tapeAt = NUM[CLK];
       const s = slabOf(tapeFloor);
       if (s) ring(s, tapeFloor, 0.7, 0.9, GOLD, 0.85);
     }
   }
   /** THE NEXT FRIEND's pink tape: the floor of the friend best just crossed (0 = none); `flash` = it was just crossed */
-  const PINK = [1, 0.31, 0.85];
+  const PINK = F64([1, 0.31, 0.85]);
   function setFriend(floor, flash = false) {
     ftapeFloor = floor > 0 ? floor : 0;
     if (flash && ftapeFloor) {
-      ftapeAt = clock;
+      ftapeAt = NUM[CLK];
       const s = slabOf(ftapeFloor);
       if (s) ring(s, ftapeFloor, 0.7, 0.9, PINK, 0.85);
     }
@@ -444,26 +497,59 @@ export function createNight(host, o = {}) {
   setTier(o.tier == null ? 2 : o.tier);
   fitNow(true); fitAsk = 0;
 
+  // THE CAMERA ONLY EVER SLIDES (S4A FIX — ZERO GARBAGE): it looks along ONE fixed line (the diagonal, 33° down) — its turn is worked
+  // out ONCE, here, by three's own lookAt; a frame then only moves it: three numbers into its matrix + three into the matrix's
+  // inverse (the turn's own transpose never changes). No lookAt, no quaternion, no matrix inverse a frame — and its three axes
+  // (CX · CY · CZ: right, up, back) are plain numbers the tags + the drop zone are worked out from.
   const cp = Math.cos(CAM.pitch * RAD), sp = Math.sin(CAM.pitch * RAD), sy = Math.sin(CAM.yaw * RAD), cy = Math.cos(CAM.yaw * RAD);
-  function aim(dt) {
-    const k = dt >= 1000 ? 1 : 1 - Math.exp(-dt / 140);
+  cam.position.set(cp * sy, sp, cp * cy); cam.lookAt(0, 0, 0); cam.updateMatrix(); cam.updateMatrixWorld(true);
+  cam.matrixAutoUpdate = false; cam.matrixWorldAutoUpdate = false;
+  const CE = cam.matrix.elements, CW = cam.matrixWorld.elements, CI = cam.matrixWorldInverse.elements;
+  const CXx = CE[0], CXy = CE[1], CXz = CE[2], CYx = CE[4], CYy = CE[5], CYz = CE[6], CZx = CE[8], CZy = CE[9], CZz = CE[10], TH = Math.tan(CAM.fov * RAD / 2);
+  function place(x, y, z) {
+    NUM[EYEX] = x; NUM[EYEY] = y; NUM[EYEZ] = z;   // (where the camera stands, this frame)
+    cam.position.set(x, y, z);
+    CE[12] = CW[12] = x; CE[13] = CW[13] = y; CE[14] = CW[14] = z;
+    CI[12] = -(CXx * x + CXy * y + CXz * z); CI[13] = -(CYx * x + CYy * y + CYz * z); CI[14] = -(CZx * x + CZy * y + CZz * z);
+  }
+  place(cp * sy, sp, cp * cy);
+  FR.X.set(CXx, CXy, CXz); FR.Y.set(CYx, CYy, CYz); FR.Z.set(CZx, CZy, CZz);
+  function aim() {
+    const dt = IO[1], k = 1 - Math.exp(-dt / 140) * (dt >= 1000 ? 0 : 1);   // (a long gap: it snaps — the 0 / 1 is a whole number, the fraction crosses no branch)
     const ty = slabs[slabs.length - 1].floor * H, tx = (top.x0 + top.x1) / 2 * U, tz = (top.z0 + top.z1) / 2 * U;
-    camY += (ty - camY) * k; camX += (tx - camX) * k; camZ += (tz - camZ) * k;
-    bump *= Math.exp(-dt / 90);
-    const lookY = camY + CAM.lift - bump * 0.022 + glance * 0.42;
-    cam.position.set(camX + dist * cp * sy, lookY + dist * sp, camZ + dist * cp * cy);
-    cam.lookAt(camX, lookY, camZ);
-    cam.updateMatrixWorld();
+    NUM[CAMY] += (ty - NUM[CAMY]) * k; NUM[CAMX] += (tx - NUM[CAMX]) * k; NUM[CAMZ] += (tz - NUM[CAMZ]) * k;
+    NUM[BUMP] *= Math.exp(-dt / 90);
+    const lookY = NUM[CAMY] + CAM.lift - NUM[BUMP] * 0.022 + glance * 0.42, x = NUM[CAMX] + dist * cp * sy, y = lookY + dist * sp, z = NUM[CAMZ] + dist * cp * cy;
+    NUM[EYEX] = x; NUM[EYEY] = y; NUM[EYEZ] = z;
+    cam.position.x = x; cam.position.y = y; cam.position.z = z;
+    CE[12] = CW[12] = x; CE[13] = CW[13] = y; CE[14] = CW[14] = z;
+    CI[12] = -(CXx * x + CXy * y + CXz * z); CI[13] = -(CYx * x + CYy * y + CYz * z); CI[14] = -(CZx * x + CZy * y + CZz * z);
+  }
+  // WHERE THE CAMERA WILL REST on the top slab (it eases there after a landing): the stage places its right-edge tags for THAT view,
+  // once a landing — and lets a CSS transition ride them there (never a style write a frame)
+  const restX = () => (top.x0 + top.x1) / 2 * U + dist * cp * sy, restH = () => slabs[slabs.length - 1].floor * H + CAM.lift + dist * sp, restZ = () => (top.z0 + top.z1) / 2 * U + dist * cp * cy;
+  /** a point's height on the screen (0 … 1 from the top), given where it lies FROM the camera (the point − the camera) */
+  const scrY = (rx, ry, rz) => (1 - (CYx * rx + CYy * ry + CYz * rz) / (-(CZx * rx + CZy * ry + CZz * rz) * TH)) / 2;
+  /** THE DROP ZONE's upper edge (0 … 1 from the top): the highest point the sliding slab's path reaches — as the camera stands NOW, or (`rest`) once it rests on the top slab */
+  function zoneFrom(rest) {
+    const cx = rest ? restX() : NUM[EYEX], cy = rest ? restH() : NUM[EYEY], cz = rest ? restZ() : NUM[EYEZ];
+    const mx = (top.x0 + top.x1) / 2, mz = (top.z0 + top.z1) / 2, hw = (top.x1 - top.x0) / 2, hd = (top.z1 - top.z0) / 2, ry = (slabs[slabs.length - 1].floor + 1) * H - cy;
+    // (five corners of the slab's path, each written out — no list, no call: this runs every frame while a flyer is in the sky)
+    const ky = CYy * ry, kz = CZy * ry, xa = (mx - hw) * U - cx, za = (mz - hd) * U - cz, xl = xa - TRAVEL * U, xr = (mx + TRAVEL + hw) * U - cx, zn = za - TRAVEL * U, zf = (mz + TRAVEL + hd) * U - cz;
+    NUM[ZONE] = Math.min(1,
+      (1 - (CYx * xl + ky + CYz * za) / (-(CZx * xl + kz + CZz * za) * TH)) / 2, (1 - (CYx * xa + ky + CYz * zn) / (-(CZx * xa + kz + CZz * zn) * TH)) / 2,
+      (1 - (CYx * xa + ky + CYz * za) / (-(CZx * xa + kz + CZz * za) * TH)) / 2, (1 - (CYx * xr + ky + CYz * za) / (-(CZx * xr + kz + CZz * za) * TH)) / 2,
+      (1 - (CYx * xa + ky + CYz * zf) / (-(CZx * xa + kz + CZz * zf) * TH)) / 2);
   }
 
   /** THE WARM FRAME: a phone builds a program + uploads a mesh at its FIRST DRAW WITH SOMETHING IN IT — one of everything is put far
    *  below the tower, one hidden frame is rendered (the bloom too), then all is put back */
   function warm() {
-    const t = clock / 1000;
+    const t = NUM[CLK] / 1000;
     spO.setXYZ(0, 0, -60, 0); spT.setXYZ(0, t, 1, 0.01); spO.needsUpdate = spT.needsUpdate = true;
     rgP.setXYZW(0, 0, -60, 0, 1); rgA.setXYZW(0, 0.5, 0.5, 0.3, 1); rgB.setXYZW(0, 1, 1, 1, t); rgA.needsUpdate = rgB.needsUpdate = rgP.needsUpdate = true;
     nb = 0;
-    for (const k of [KIND.slab, KIND.slider, KIND.tape, KIND.trail]) put(0, -60, 0, 0.01, 0.01, 0.01, GOLD, 1, 0, 1, k, null);
+    for (const k of [KIND.slab, KIND.slider, KIND.tape, KIND.trail]) { BX[0] = 0; BX[1] = -60; BX[2] = 0; BX[3] = 0.01; BX[4] = 0.01; BX[5] = 0.01; BX[6] = 1; BX[7] = 0; BX[8] = 1; BX[9] = k; put(GOLD, null, null); }
     boxes.count = nb; boxes.instanceMatrix.needsUpdate = aColor.needsUpdate = aFx.needsUpdate = aUp.needsUpdate = true;
     const tapeWas = tape.visible, backWas = tapeBack.visible, faceWas = tapeBackU.uFace.value;   // (the tape's programs too: built here, not at the crossing)
     tape.visible = tapeBack.visible = true; tapeBackU.uFace.value = 0.2; tape.position.set(0, -60, 0); tape.scale.set(0.01, 0.01, 0.01); tapeBack.position.copy(tape.position); tapeBack.scale.copy(tape.scale);
@@ -478,22 +564,26 @@ export function createNight(host, o = {}) {
     spT.setX(0, -1e6); spT.needsUpdate = true; rgB.setW(0, -1e6); rgB.needsUpdate = true;
     tape.visible = tapeWas; tapeBack.visible = backWas; tapeBackU.uFace.value = faceWas; ftape.visible = ftapeBack.visible = false; ftapeBackU.uFace.value = 0;
     flySlots.forEach((f, i) => { f.mesh.visible = flyWas[i]; }); lightsMesh.visible = lgWas; lgGeo.instanceCount = lgN;
+    tapeDrawn = ftapeDrawn = -1;
     warmed++;
   }
 
   const setPlate = (t, have, flip, rec) => { const ok = !!rec && rec.ok; plateU[t].value = ok ? rec.tex : blank; plateU[have].value = ok ? 1 : 0; plateU[flip].value = ok ? rec.flip : 0; };
-  /** one frame: the run, `tau` = the clock in ticks (a fraction into the next one), `dt` ms since the last frame */
-  function draw(run, tau, dt) {
+  /** one frame: the run — and, in IO (the stage writes them: no call hands a fraction over), `tau` = the clock in ticks (a fraction
+   *  into the next one) + `dt` = ms since the last frame */
+  function draw(run) {
+    const tau = IO[0], dt = IO[1];
     if (fitAsk) { const f = fitAsk === 2; fitAsk = 0; fitNow(f); }
-    clock += dt; G.uTime.value = clock / 1000;
+    NUM[CLK] += dt; G.uTime.value = NUM[CLK] / 1000;
     renderer.info.reset();
     slabs = T.slabs(); top = T.top();
-    aim(dt);
+    aim();
     if (needWarm && w && h) { needWarm = false; warm(); }
     const topFloor = slabs[slabs.length - 1].floor;
-    G.uTopY.value = camY;
+    if (G.uTopY.value !== NUM[CAMY]) G.uTopY.value = NUM[CAMY];
     // ---- the plates behind (the camera's own height in floors picks them: they cross-fade as it CLIMBS, not as a slab lands)
-    const cf = Math.max(0, camY / H), mix = plateMix(cf);
+    const cf = Math.max(0, NUM[CAMY] / H), mix = MIX;
+    if (cf !== NUM[CF]) { NUM[CF] = cf; plateMixInto(cf, MIX); NUM[DRA] = plateDrift(MIX.a, cf); NUM[DRB] = plateDrift(MIX.b, cf); }
     holdPlates(mix.a, mix.b);
     // THE LOOK SWITCH: the look coming waits for its pictures (a band's two plates + its reflection map — all decoded + uploaded off
     // the frame), then the two looks cross-fade; settled, the other look's pictures go
@@ -506,18 +596,21 @@ export function createNight(host, o = {}) {
       }
       G.uDay.value = dayK;
     }
-    if (dayK > 0 && Math.abs(cf - hazeCf) > 0.05) { hazeCf = cf; const hz = hazeAt(cf); C.setRGB(hz[0], hz[1], hz[2], THREE.SRGBColorSpace); G.uHaze.value.set(C.r, C.g, C.b); }   // (the band's air: worked out as the camera climbs, not every frame)
+    if (dayK > 0 && Math.abs(cf - hazeCf) > 0.05) { hazeCf = cf; const hz = hazeInto(cf, HZ); C.setRGB(hz[0], hz[1], hz[2], THREE.SRGBColorSpace); G.uHaze.value.set(C.r, C.g, C.b); }   // (the band's air: worked out as the camera climbs, not every frame)
     setPlate('tA', 'uHaveA', 'uFlipA', SETS.night.get(mix.a)); setPlate('tB', 'uHaveB', 'uFlipB', SETS.night.get(mix.b));
     setPlate('tC', 'uHaveC', 'uFlipC', SETS.day.get(mix.a)); setPlate('tD', 'uHaveD', 'uFlipD', SETS.day.get(mix.b));
-    plateU.uMix.value = mix.m; plateU.uDriftA.value = plateDrift(mix.a, cf); plateU.uDriftB.value = plateDrift(mix.b, cf);
+    // (a uniform's number is written only when it CHANGED: a fraction stored into a record every frame is a small object every frame)
+    if (plateU.uMix.value !== mix.m) plateU.uMix.value = mix.m;
+    if (plateU.uDriftA.value !== NUM[DRA]) plateU.uDriftA.value = NUM[DRA];
+    if (plateU.uDriftB.value !== NUM[DRB]) plateU.uDriftB.value = NUM[DRB];
     // DEEP SPACE (solo, past THE MOTHERSHIP): the drifting stars + the aurora over the last plate
-    plateU.uSpace.value = cf <= SPACE_FROM ? 0 : cf >= SPACE_FULL ? 1 : (cf - SPACE_FROM) / (SPACE_FULL - SPACE_FROM);
+    const space = cf <= SPACE_FROM ? 0 : cf >= SPACE_FULL ? 1 : (cf - SPACE_FROM) / (SPACE_FULL - SPACE_FROM);
+    if (plateU.uSpace.value !== space) plateU.uSpace.value = space;
     // ---- THE FLYERS (flyers.js, once the page has handed it in): placed in the camera's own frame, drawn BEHIND the tower
     nl = 0;
     if (fly) {
-      const e = cam.matrixWorld.elements;
-      FR.px = e[12]; FR.py = e[13]; FR.pz = e[14]; FR.X.set(e[0], e[1], e[2]); FR.Y.set(e[4], e[5], e[6]); FR.Z.set(e[8], e[9], e[10]);
-      FR.aspect = cam.aspect; FR.dist = dist; FR.t = clock / 1000; FR.dt = dt; FR.day = dayK; FR.cf = cf; FR.top = band0; FR.bot = zoneNow(); FR.tier = tier;
+      FR.px = NUM[EYEX]; FR.py = NUM[EYEY]; FR.pz = NUM[EYEZ];   // (its three axes never change: set once, below)
+      FR.aspect = cam.aspect; FR.dist = dist; FR.t = NUM[CLK] / 1000; FR.dt = dt; FR.day = dayK; FR.cf = cf; FR.top = band0; zoneFrom(false); FR.bot = NUM[ZONE]; FR.tier = tier;
       if (dayK > 0) FR.hz.copy(G.uHaze.value).multiplyScalar(dayK); else FR.hz.set(0, 0, 0);
       FR.hz.x += 0.012 * (1 - dayK); FR.hz.y += 0.008 * (1 - dayK); FR.hz.z += 0.03 * (1 - dayK);
       FR.tx = (top.x0 + top.x1) / 2 * U; FR.ty = topFloor * H; FR.tz = (top.z0 + top.z1) / 2 * U;
@@ -529,74 +622,87 @@ export function createNight(host, o = {}) {
 
     // ---- every box
     nb = 0;
-    const landAge = clock - landAt, perfAge = clock - perfAt, first = slabs[0].floor;
+    const landAge = NUM[CLK] - landAt, perfAge = NUM[CLK] - perfAt, first = slabs[0].floor;
     // THE BUILDING under the first slab: full-size floors of the same glass, each its own colour (the tower is a tower from the first second)
-    if (first <= 0) for (let fl = Math.max(first - KEEP, topFloor - KEEP + 1); fl < first; fl++) put(0, (fl - 0.5) * H, 0, 1, H, 1, colMix(fl), 1, 0, 1, KIND.slab, null);
+    if (first <= 0) for (let fl = Math.max(first - KEEP, topFloor - KEEP + 1); fl < first; fl++) { BX[0] = 0; BX[1] = (fl - 0.5) * H; BX[2] = 0; BX[3] = 1; BX[4] = H; BX[5] = 1; BX[6] = 1; BX[7] = 0; BX[8] = 1; BX[9] = KIND.slab; put(colMix(fl), null, null); }
     for (let i = Math.max(0, slabs.length - KEEP); i < slabs.length; i++) {
       const s = slabs[i], isTop = s.floor === topFloor && s.floor === landFloor;
-      let x0 = s.x0 * U, x1 = s.x1 * U, z0 = s.z0 * U, z1 = s.z1 * U, glow = 1, white = 0;
-      if (s.floor === topFloor && pour > 0) { white = Math.max(white, 0.85 * pour); glow += 1.2 * pour; }   // (THE FINISH: the white-gold light pours onto the top slab)
+      // (a slab's own numbers are worked out IN the scratch — RX its four edges, BX[6] its glow, BX[7] its white flash: a fraction that a
+      //  branch may change is a small object in a browser engine's middle tier, and there are forty slabs a frame)
+      RX[0] = s.x0 * U; RX[1] = s.x1 * U; RX[2] = s.z0 * U; RX[3] = s.z1 * U; BX[6] = 1; BX[7] = 0;
+      if (s.floor === topFloor && pour > 0) { BX[7] = 0.85 * pour; BX[6] += 1.2 * pour; }   // (THE FINISH: the white-gold light pours onto the top slab)
       if (isTop) {
-        glow += 1.3 * Math.exp(-landAge / 130);
-        if (perfAge < 700) white = 0.95 * Math.exp(-perfAge / 150);
-        if (grow && grow.floor === s.floor) {
+        BX[6] += 1.3 * Math.exp(-landAge / 130);
+        if (perfAge < 700) BX[7] = 0.95 * Math.exp(-perfAge / 150);
+        if (GROW.on && GROW.floor === s.floor) {
           // GROW-BACK: the slab swells out from the size it snapped to
-          const k = clamp01((clock - grow.at) / 240), left = grow.by * (1 - k) * (1 - k) / 2;
-          if (grow.x) { x0 += left; x1 -= left; } else { z0 += left; z1 -= left; }
-          glow += 0.9 * (1 - k);
+          const k = clamp01((NUM[CLK] - GROW.at) / 240), left = GROW.by * (1 - k) * (1 - k) / 2;
+          if (GROW.x) { RX[0] += left; RX[1] -= left; } else { RX[2] += left; RX[3] -= left; }
+          BX[6] += 0.9 * (1 - k);
         }
       }
       // (the slab lying ON this one: THE DAY LOOK's shadow on the ledge it leaves)
       let up = null;
       if (i + 1 < slabs.length) { const n = slabs[i + 1]; UPV[0] = n.x0 * U; UPV[1] = n.x1 * U; UPV[2] = n.z0 * U; UPV[3] = n.z1 * U; up = UPV; }
-      put((x0 + x1) / 2, (s.floor - 0.5) * H, (z0 + z1) / 2, x1 - x0, H, z1 - z0, colMix(s.floor), glow, white, 1, KIND.slab, null, up);
+      BX[0] = (RX[0] + RX[1]) / 2; BX[1] = (s.floor - 0.5) * H; BX[2] = (RX[2] + RX[3]) / 2; BX[3] = RX[1] - RX[0]; BX[4] = H; BX[5] = RX[3] - RX[2]; BX[8] = 1; BX[9] = KIND.slab; put(colMix(s.floor), null, up);
     }
     // the sliding slab, eased between its two ticks — a stronger colour, a brighter edge, a short trail behind it
-    const k0 = Math.floor(tau), a = slabAt(run, k0);
+    const k0 = Math.floor(tau), a = slabInto(run, k0, SA);
     if (a) {
-      const b = slabAt(run, k0 + 1), f = tau - k0, mx = (a.x0 + a.x1) / 2, mz = (a.z0 + a.z1) / 2, c = colSlider(a.floor);
+      const b = slabInto(run, k0 + 1, SB), f = tau - k0, mx = (a.x0 + a.x1) / 2, mz = (a.z0 + a.z1) / 2, c = colSlider(a.floor);
       const x = (mx + ((b.x0 + b.x1) / 2 - mx) * f) * U, z = (mz + ((b.z0 + b.z1) / 2 - mz) * f) * U, y = (a.floor - 0.5) * H, sx = (a.x1 - a.x0) * U, sz = (a.z1 - a.z0) * U;
-      sliderGlow += (1 - sliderGlow) * Math.min(1, dt / 90);
-      put(x, y, z, sx, H, sz, c, 1.25 + 0.2 * sliderGlow, 0, 1, KIND.slider, null);
+      NUM[SGLOW] += (1 - NUM[SGLOW]) * Math.min(1, dt / 90);
+      BX[0] = x; BX[1] = y; BX[2] = z; BX[3] = sx; BX[4] = H; BX[5] = sz; BX[6] = 1.25 + 0.2 * NUM[SGLOW]; BX[7] = 0; BX[8] = 1; BX[9] = KIND.slider; put(c, null, null);
       if (tier > 0 && !reduce) {
         const v = (b.off - a.off) * U, dir = v > 0 ? 1 : v < 0 ? -1 : 0, len = Math.min(0.5, Math.abs(v) * 9);
         if (dir && len > 0.02) {
-          if (a.axis === 'x') put(x - dir * (sx + len) / 2, y, z, len, H * 0.96, sz * 0.985, c, 1, dir, 0.8, KIND.trail, null);
-          else put(x, y, z - dir * (sz + len) / 2, sx * 0.985, H * 0.96, len, c, 1, dir * 2, 0.8, KIND.trail, null);
+          if (a.axis === 'x') { BX[0] = x - dir * (sx + len) / 2; BX[1] = y; BX[2] = z; BX[3] = len; BX[4] = H * 0.96; BX[5] = sz * 0.985; BX[6] = 1; BX[7] = dir; BX[8] = 0.8; BX[9] = KIND.trail; }
+          else { BX[0] = x; BX[1] = y; BX[2] = z - dir * (sz + len) / 2; BX[3] = sx * 0.985; BX[4] = H * 0.96; BX[5] = len; BX[6] = 1; BX[7] = dir * 2; BX[8] = 0.8; BX[9] = KIND.trail; }
+          put(c, null, null);
         }
       }
-    } else sliderGlow = 0;
+    } else NUM[SGLOW] = 0;
     // the falling pieces
-    for (const p of pieces) {
+    for (let i = 0; i < PIECES; i++) {
+      const p = pieces[i];
       if (!p.on) continue;
       p.age += dt;
       if (p.age > p.life) { p.on = false; continue; }
       const s = dt / 1000;
       p.vy -= 9 * s; p.x += p.vx * s; p.y += p.vy * s; p.z += p.vz * s; p.ax += p.rx * s; p.az += p.rz * s;
       QQ.setFromEuler(EU.set(p.ax, 0, p.az));
-      put(p.x, p.y, p.z, p.sx, H, p.sz, colMix(p.fl), 1.1, 0, clamp01(1.6 * (1 - p.age / p.life)), KIND.slab, QQ);
+      BX[0] = p.x; BX[1] = p.y; BX[2] = p.z; BX[3] = p.sx; BX[4] = H; BX[5] = p.sz; BX[6] = 1.1; BX[7] = 0; BX[8] = clamp01(1.6 * (1 - p.age / p.life)); BX[9] = KIND.slab; put(colMix(p.fl), QQ, null);
     }
     // YOUR BEST's gold tape: a THIN glowing gold OUTLINE round the slab of that floor — a line of light, never a filled band (S2 FIX)
     const ts = tapeFloor ? slabOf(tapeFloor) : null;
     // (the back edges come in as the tower climbs away from the tape — none while it lies just under the top)
     // (… and none by day: frosted glass is not seen through)
-    const back = ts ? TAPE_BACK * (1 - dayK) * clamp01((topFloor - ts.floor - TAPE_BACK_FROM) / (TAPE_BACK_FULL - TAPE_BACK_FROM)) : 0;
-    tape.visible = !!ts; tapeBack.visible = back > 0.004; tapeBackU.uFace.value = back;
+    NUM[BACK] = 0; if (ts) NUM[BACK] = TAPE_BACK * (1 - dayK) * clamp01((topFloor - ts.floor - TAPE_BACK_FROM) / (TAPE_BACK_FULL - TAPE_BACK_FROM));
+    tape.visible = !!ts; tapeBack.visible = NUM[BACK] > 0.004; if (tapeBackU.uFace.value !== NUM[BACK]) tapeBackU.uFace.value = NUM[BACK];
     if (ts) {
-      const x0 = ts.x0 * U, x1 = ts.x1 * U, z0 = ts.z0 * U, z1 = ts.z1 * U, age = clock - tapeAt;
-      tape.position.set((x0 + x1) / 2, (ts.floor - 0.5) * H, (z0 + z1) / 2); tape.scale.set(x1 - x0 + 2 * TAPE_OUT, TAPE_H, z1 - z0 + 2 * TAPE_OUT);
-      tapeBack.position.copy(tape.position); tapeBack.scale.copy(tape.scale);
-      tapeU.uGlow.value = 1 + 1.6 * Math.exp(-age / 260); tapeU.uWhite.value = 0.6 * Math.exp(-age / 180);
+      // (the outline is laid ONCE round its slab — a slab never moves; only its flash is a frame's)
+      if (tapeDrawn !== ts.floor) {
+        tapeDrawn = ts.floor;
+        const x0 = ts.x0 * U, x1 = ts.x1 * U, z0 = ts.z0 * U, z1 = ts.z1 * U;
+        tape.position.set((x0 + x1) / 2, (ts.floor - 0.5) * H, (z0 + z1) / 2); tape.scale.set(x1 - x0 + 2 * TAPE_OUT, TAPE_H, z1 - z0 + 2 * TAPE_OUT);
+        tapeBack.position.copy(tape.position); tapeBack.scale.copy(tape.scale);
+      }
+      const age = NUM[CLK] - tapeAt, tg = 1 + 1.6 * Math.exp(-age / 260), tw = 0.6 * Math.exp(-age / 180);
+      if (tapeU.uGlow.value !== tg) tapeU.uGlow.value = tg; if (tapeU.uWhite.value !== tw) tapeU.uWhite.value = tw;
     }
     // THE NEXT FRIEND's pink tape (S4A): the same thin outline at the friend best just crossed — never on the gold tape's own floor
     const fs = ftapeFloor && ftapeFloor !== tapeFloor ? slabOf(ftapeFloor) : null;
-    const fback = fs ? TAPE_BACK * (1 - dayK) * clamp01((topFloor - fs.floor - TAPE_BACK_FROM) / (TAPE_BACK_FULL - TAPE_BACK_FROM)) : 0;
-    ftape.visible = !!fs; ftapeBack.visible = fback > 0.004; ftapeBackU.uFace.value = fback;
+    NUM[FBACK] = 0; if (fs) NUM[FBACK] = TAPE_BACK * (1 - dayK) * clamp01((topFloor - fs.floor - TAPE_BACK_FROM) / (TAPE_BACK_FULL - TAPE_BACK_FROM));
+    ftape.visible = !!fs; ftapeBack.visible = NUM[FBACK] > 0.004; if (ftapeBackU.uFace.value !== NUM[FBACK]) ftapeBackU.uFace.value = NUM[FBACK];
     if (fs) {
-      const x0 = fs.x0 * U, x1 = fs.x1 * U, z0 = fs.z0 * U, z1 = fs.z1 * U, age = clock - ftapeAt;
-      ftape.position.set((x0 + x1) / 2, (fs.floor - 0.5) * H, (z0 + z1) / 2); ftape.scale.set(x1 - x0 + 2 * TAPE_OUT, TAPE_H, z1 - z0 + 2 * TAPE_OUT);
-      ftapeBack.position.copy(ftape.position); ftapeBack.scale.copy(ftape.scale);
-      ftapeU.uGlow.value = 1 + 1.6 * Math.exp(-age / 260); ftapeU.uWhite.value = 0.6 * Math.exp(-age / 180);
+      if (ftapeDrawn !== fs.floor) {
+        ftapeDrawn = fs.floor;
+        const x0 = fs.x0 * U, x1 = fs.x1 * U, z0 = fs.z0 * U, z1 = fs.z1 * U;
+        ftape.position.set((x0 + x1) / 2, (fs.floor - 0.5) * H, (z0 + z1) / 2); ftape.scale.set(x1 - x0 + 2 * TAPE_OUT, TAPE_H, z1 - z0 + 2 * TAPE_OUT);
+        ftapeBack.position.copy(ftape.position); ftapeBack.scale.copy(ftape.scale);
+      }
+      const age = NUM[CLK] - ftapeAt, tg = 1 + 1.6 * Math.exp(-age / 260), tw = 0.6 * Math.exp(-age / 180);
+      if (ftapeU.uGlow.value !== tg) ftapeU.uGlow.value = tg; if (ftapeU.uWhite.value !== tw) ftapeU.uWhite.value = tw;
     }
     boxes.count = nb; boxes.instanceMatrix.needsUpdate = true; aColor.needsUpdate = true; aFx.needsUpdate = true; aUp.needsUpdate = true;
     renderer.render(scene, cam);
@@ -606,16 +712,12 @@ export function createNight(host, o = {}) {
     // (a program built in THIS frame — anything the warm frame missed — is a hitch with a name: play.js's counter)
     const pn = renderer.info.programs ? renderer.info.programs.length : 0;
     if (pn !== progN) { progN = pn; mark('compile'); }
+    STAT.tier = tier; STAT.bloom = !!bloom && tier === 2; STAT.calls = renderer.info.render.calls; STAT.tris = renderer.info.render.triangles; STAT.w = w; STAT.h = h; STAT.dpr = dpr;
     frames++;
   }
 
-  const zoneY = (x, z, f) => { V.set(x * U, f * H, z * U).project(cam); return (1 - V.y) / 2; };
-  /** THE DROP ZONE's upper edge on the screen (0 … 1 from the top): the highest point the sliding slab's path reaches */
-  function zoneNow() {
-    const cx = (top.x0 + top.x1) / 2, cz = (top.z0 + top.z1) / 2, hw = (top.x1 - top.x0) / 2, hd = (top.z1 - top.z0) / 2, f = slabs[slabs.length - 1].floor + 1;
-    // (five corners of the slab's path — no list built: this runs every frame while the tag shows)
-    return Math.min(1, zoneY(cx - TRAVEL - hw, cz - hd, f), zoneY(cx - hw, cz - TRAVEL - hd, f), zoneY(cx - hw, cz - hd, f), zoneY(cx + TRAVEL + hw, cz - hd, f), zoneY(cx - hw, cz + TRAVEL + hd, f));
-  }
+  /** THE DROP ZONE's upper edge on the screen (0 … 1 from the top), as the camera stands NOW */
+  const zoneNow = () => { zoneFrom(false); return NUM[ZONE]; };
   return {
     el, adopt, events, fall, draw, setTier, setBest, setFriend, resize: () => fit(true),
     /** THE LOOK SWITCH: 'day' | 'night' — the other look's pictures come in off the frame, then a LOOK_FADE_MS cross-fade (`now`: at once) */
@@ -635,6 +737,13 @@ export function createNight(host, o = {}) {
     project(x, floor, z) { V.set(x * U, floor * H, z * U).project(cam); return [(1 + V.x) / 2, (1 - V.y) / 2]; },   // (a point BEHIND the camera comes back mirrored — a caller clamps its height first: play.js's tag)
     /** THE DROP ZONE's upper edge on the screen (0 … 1 from the top): the highest point the sliding slab's path reaches — nothing of a tag / a tape's label may sit under it */
     zoneTop: zoneNow,
+    /** … and once the camera RESTS on the top slab · the height on the screen (0 … 1 from the top) of `floor`, over the top slab's centre, in that rested view */
+    restZone: () => { zoneFrom(true); return NUM[ZONE]; },
+    restY: floor => scrY(-dist * cp * sy, floor * H - restH(), -dist * cp * cy),
+    /** what the stage writes before draw(): [tau, dt] */
+    io: IO,
+    /** the few numbers the `?fps=1` line shows — ONE kept record, written in the frame (never the whole info below) */
+    stat: () => STAT,
     // ---- THE FLYERS (S3): the page hands the lazy module in (again after a rebuild); the calls below are no-ops until it has
     /** flyers.js's own module → its flyers on this scene's stage */
     flyers(M) { if (!fly && M && M.createFlyers) { try { fly = M.createFlyers(STAGE); } catch { fly = null; } } return !!fly; },
@@ -649,9 +758,9 @@ export function createNight(host, o = {}) {
     /** the end card is up: the flyers leave the sky behind its words */
     flyHush() { if (fly) fly.hush(); },
     flyInfo: () => (fly ? fly.info() : { ready: false }),
-    flashing: () => clock - perfAt < 460,
+    flashing: () => NUM[CLK] - perfAt < 460,
     falling: () => pieces.filter(p => p.on).length,
-    info: () => ({ look: lookNow(), target, dayK, fading, switches, tier, bloom: !!bloom && tier === 2, warmed, uploads, frames, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h, dist, slabs: slabs.length, boxes: nb, lights: nl, space: plateU.uSpace.value, sparks: sparkN, rings: ringN, tape: tapeFloor, env: (target === 'day' ? G.uEnvDOn : G.uEnvOn).value === 1, envs: ['night', 'day'].filter(l => ENVS[l].ok), plates: [...SETS[target].entries()].filter(([, r]) => r.ok).map(([k]) => k).sort(), held: [...SETS[target].keys()].sort(), heldAll: { night: [...SETS.night.keys()].sort(), day: [...SETS.day.keys()].sort() }, loads, mix: plateMix(Math.max(0, camY / H)), reduce }),
+    info: () => ({ look: lookNow(), target, dayK, fading, switches, tier, bloom: !!bloom && tier === 2, warmed, uploads, frames, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, programs: renderer.info.programs ? renderer.info.programs.length : 0, dpr, w, h, dist, slabs: slabs.length, boxes: nb, lights: nl, space: plateU.uSpace.value, sparks: sparkN, rings: ringN, tape: tapeFloor, env: (target === 'day' ? G.uEnvDOn : G.uEnvOn).value === 1, envs: ['night', 'day'].filter(l => ENVS[l].ok), plates: [...SETS[target].entries()].filter(([, r]) => r.ok).map(([k]) => k).sort(), held: [...SETS[target].keys()].sort(), heldAll: { night: [...SETS.night.keys()].sort(), day: [...SETS.day.keys()].sort() }, loads, mix: plateMix(Math.max(0, NUM[CAMY] / H)), reduce }),
     destroy() {
       dead = true;
       ro.disconnect();

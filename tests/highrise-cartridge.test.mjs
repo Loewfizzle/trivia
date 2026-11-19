@@ -252,8 +252,8 @@ test('THE NEXT FRIEND (lines.js — PURE): the LOWEST friend best above you, one
   assert.equal(crossedFriend(T.friends, 13).n, 'MAYA'); assert.equal(crossedFriend(T.friends, 12), null); assert.equal(crossedFriend(T.friends, 58).n, 'LIAM'); assert.equal(crossedFriend(null, 5), null);
   // the stage: solo only, never without a list handed in (the test page hands none), the tag clear of THE DROP ZONE + the gold tag
   const st = code('js/games/highrise/stage.js');
-  assert.match(st, /const fr = o\.friends && MODE === 'solo' && t0 != null && !shown && !isOver\(run\) \? nextFriend\(o\.friends\(\), run\.floor\) : null;/);
-  assert.match(st, /let y = tagY\(view\.project\([^\n]*\)\[1\] \* stageH, hudFoot, zone\);/, 'held between the HUD\'s foot and THE DROP ZONE\'s upper edge');
+  assert.match(st, /const gold = live && best > 0 && run\.floor <= best, fr = live && o\.friends && MODE === 'solo' \? nextFriend\(o\.friends\(\), run\.floor\) : null;/);   // (S4A FIX: asked once a landing — placeTags — never every frame)
+  assert.match(st, /yf = tagY\(view\.restY\(Math\.min\(fr\.v, run\.floor \+ 100\)\) \* stageH, hudFoot, zone\);/, 'held between the HUD\'s foot and THE DROP ZONE\'s upper edge');
   assert.match(st, /if \(o\.friends && MODE === 'solo'\) \{ const f = crossedFriend\(o\.friends\(\), e\.floor\); if \(f\) \{ friendTape = f\.v; view\.setFriend\(f\.v, !late\);/);
   assert.match(code('js/games/highrise/night.js'), /const ftapeMat = new THREE\.ShaderMaterial\(\{ \.\.\.tapeOpt, uniforms: ftapeU,/, 'the pink tape = the gold tape\'s shader (the same program: a second tape builds nothing)');
   assert.match(read('css/highrise-play.css'), /\.hi-ftag \{ color: #ffd9f4; border-left-color: #ff4fd8; \}/, 'PINK — never gold (gold = YOUR BEST)');
@@ -307,7 +307,7 @@ test('THE FRESH-EYES REVIEW — the view + the stage: a LATE GO answer never tou
   assert.ok(st.indexOf('if (best > was) writeBest(best);') < st.indexOf('const E = o.onEnd ? o.onEnd(live) : null;'), 'YOUR BEST is stored BEFORE the end screen is asked for');
   assert.match(fin, /if \(!srv && nb && game && nb\.m === game\.matchId && nb\.v === floor && floor > 0\)/, 'counting OFF: NEW BEST from this phone\'s own record of THIS run');
   assert.doesNotMatch(fin, /if \(!\(floor > 0\)\) return;/, 'the server\'s answer shows whatever the host\'s row says');
-  assert.match(st, /if \(Math\.abs\(want - tagNat\) >= 29\.5\) y = want; else \{ y = tagNat; shift = up \? 30 : -30; \}/, 'no room on the friend\'s side: the GOLD tag steps the other way — the higher floor stays above');
+  assert.match(st, /if \(Math\.abs\(want - yg\) >= 29\.5\) yf = want; else \{ yf = yg; yg \+= up \? 30 : -30; \}/, 'no room on the friend\'s side: the GOLD tag steps the other way — the higher floor stays above');
   assert.match(st, /if \(document\.visibilityState === 'hidden'\) \{ awake\(false\); if \(o\.onHide\) o\.onHide\(\); \}/); assert.match(v, /hide: \(\) => \{ if \(S && started && !S\.state\(\)\.over\) flush\(true\); \}/, 'a hidden page\'s last taps go up at once');
   assert.match(code('js/audio/engine.js'), /if \(startWaits >= 8\) return;/, 'the sync measure never piles listeners on a context that does not run');
 });

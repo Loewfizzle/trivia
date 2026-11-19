@@ -22,8 +22,8 @@ export function flyDue(plan, floor, done) {
   return '';
 }
 /** what must be on its way at `floor`: the models to ask for (each once — the caller keeps what it asked) */
-export function flyNeeds(plan, floor) {
-  const out = [];
+export function flyNeeds(plan, floor, out = []) {
+  out.length = 0;   // (the stage hands its own list in: asked once a floor, nothing made)
   if (floor >= FLY_FLOORS.loadJet && floor <= plan.jetAt + FLY_LATE) out.push(plan.jet);
   if (floor >= FLY_FLOORS.loadUfo && floor <= plan.ufoAt + FLY_LATE) out.push('ufo');
   if (floor >= FLY_FLOORS.loadShip && floor <= FLY_FLOORS.ship + FLY_LATE) out.push('mothership');

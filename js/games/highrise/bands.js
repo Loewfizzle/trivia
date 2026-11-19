@@ -29,14 +29,17 @@ export function bandAt(floor) {
   return i;
 }
 /** the plates at a height `f` (floors, a fraction): { a, b, m } — plate `a` under plate `b` at weight `m` (0 = only a; a === b outside a fade) */
-export function plateMix(f) {
+export function plateMix(f) { return plateMixInto(f, { a: 0, b: 0, m: 0 }); }
+/** … the same, written INTO `out` (S4A FIX — ZERO GARBAGE: the view's frame keeps ONE record and asks every frame) → out */
+export function plateMixInto(f, out) {
   for (let s = 0; s < FADES.length; s++) {
     const at = BANDS[s + 1].from, w = FADES[s], lo = at - w / 2, hi = at + w / 2;
-    if (f < lo) return { a: s, b: s, m: 0 };
-    if (f < hi) return { a: s, b: s + 1, m: smooth((f - lo) / w) };
+    if (f < lo) { out.a = s; out.b = s; out.m = 0; return out; }
+    if (f < hi) { out.a = s; out.b = s + 1; out.m = smooth((f - lo) / w); return out; }
   }
   const last = BANDS.length - 1;
-  return { a: last, b: last, m: 0 };
+  out.a = last; out.b = last; out.m = 0;
+  return out;
 }
 /** a plate's DRIFT at height `f`: 0 (its foot — as its band fades in) → 1 (its top — as the next band takes over); the last band's never ends */
 export function plateDrift(band, f) {
@@ -79,9 +82,13 @@ export function sliderColor(look, seed, floor) {
 /** THE DAY LOOK's HEIGHT HAZE: what the tower fades into as it falls away under the top slab — each band's own air (sRGB) */
 export const DAY_HAZE = Object.freeze([0xa9d3f2, 0xb9dcf6, 0xdde8f6, 0x24449c, 0x161a4a].map(hex).map(c => Object.freeze(c)));
 /** the haze at a height `f` (floors): the band's, blended round a seam as the plates are → [r, g, b] (sRGB) */
-export function hazeAt(f) {
-  const m = plateMix(f), a = DAY_HAZE[m.a], b = DAY_HAZE[m.b];
-  return [a[0] + (b[0] - a[0]) * m.m, a[1] + (b[1] - a[1]) * m.m, a[2] + (b[2] - a[2]) * m.m];
+export function hazeAt(f) { return hazeInto(f, [0, 0, 0]); }
+const HZ_MIX = { a: 0, b: 0, m: 0 };
+/** … the same, written INTO `out` ([r, g, b] — the view keeps one) → out */
+export function hazeInto(f, out) {
+  const m = plateMixInto(f, HZ_MIX), a = DAY_HAZE[m.a], b = DAY_HAZE[m.b];
+  out[0] = a[0] + (b[0] - a[0]) * m.m; out[1] = a[1] + (b[1] - a[1]) * m.m; out[2] = a[2] + (b[2] - a[2]) * m.m;
+  return out;
 }
 /** THE WORDS ON THE SKY (S3): by DAY the three low bands are BRIGHT (dark navy words, a light halo); from THE STARS up the day plates
  *  are dark like the night's — the words go back to light. `f` = the camera's height in floors → 'bright' | 'dark' */

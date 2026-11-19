@@ -34,14 +34,14 @@ test('THE PAGE: at the site root (deployed), noindex nofollow, UNLISTED (nothing
   assert.ok(existsSync(new URL('../highrise-lab.html', import.meta.url)));
   const html = read('highrise-lab.html'), ignore = read('.vercelignore');
   assert.match(html, /<meta name="robots" content="noindex, nofollow">/);
-  assert.match(html, /<script type="importmap">\{ "imports": \{ "three": "https:\/\/cdn\.jsdelivr\.net\/npm\/three@0\.160\.0\/build\/three\.module\.min\.js" \} \}<\/script>/, 'the same three.js import map as jaywalk-lab.html');
+  assert.match(html, /<script type="importmap">\{ "imports": \{ "three": "https:\/\/cdn\.jsdelivr\.net\/npm\/three@0\.160\.0\/build\/three\.module\.js" \} \}<\/script>/, 'the same three.js import map as jaywalk-lab.html (S4A FIX: the READABLE build — the minified one makes a closure at every draw call)');
   assert.equal(html.match(/<script type="importmap">[^<]+<\/script>/)[0], read('jaywalk-lab.html').match(/<script type="importmap">[^<]+<\/script>/)[0]);
   assert.match(html, /<script type="module" src="js\/games\/highrise\/lab\.js" onerror=/, 'its one script (a failed load says so — never a blank page)');
   assert.match(html, /Opening the lab…/);
   // its only files: the icon, its own stylesheet, its own script; the only outside address: three.js
   const urls = [...html.matchAll(/(?:href|src)="([^"]+)"/g)].map(m => m[1]);
   assert.deepEqual(urls, ['assets/favicon-64.png', 'css/highrise.css', 'js/games/highrise/lab.js']);
-  assert.deepEqual([...html.matchAll(/https?:\/\/[^\s"'<>]+/g)].map(m => m[0]), ['https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js'], 'no web font, no other host');
+  assert.deepEqual([...html.matchAll(/https?:\/\/[^\s"'<>]+/g)].map(m => m[0]), ['https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js'], 'no web font, no other host');
   assert.doesNotMatch(read('css/highrise.css'), /url\(|@import|@font-face/, 'its stylesheet loads nothing');
   assert.ok(!/highrise/.test(ignore) && !/^\*\.html$/m.test(ignore), '.vercelignore keeps it (it deploys)');
   assert.match(read('scripts/serve.mjs'), /path === '\/highrise-lab'/, 'the local server maps /highrise-lab like Vercel\'s cleanUrls');
