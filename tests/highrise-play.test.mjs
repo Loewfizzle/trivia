@@ -398,7 +398,7 @@ test('THE DAY LOOK (S3 — static): the SAME programs as the night (uDay in ever
   assert.ok(n.includes('const LIGHT_BLEND = { blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor };'));
   assert.ok(fx.includes('gl_FragColor = vec4(mix(hue * a * 1.7, hue * pa, uDay), pa * uDay);'), 'a spark: added light by night, paint by day');
   assert.ok(n.includes('const DAY_SPARK = F64([1, 0.46, 0.03]), DAY_SPARK_HOT = F64([1, 0.76, 0.22]), DAY_RING = F64([1, 0.72, 0.16]), DAY_SPARK_SIZE = 1.7;'), 'day sparks warm gold (bigger: paint must be seen), the perfect\'s ring gold-white');
-  assert.ok(fx.includes('float dark = (1.0 - smoothstep(hb + 1.6 * px, hb + 3.6 * px, a)) * (1.0 - band) * uDay * 0.9;') && fx.includes('float hw = (1.0 + 0.9 * uDay) * max(1.1 * px, '), 'the gold tape by day: twice as thick, a darker outline under it');
+  assert.ok(fx.includes('float dk = mix(uCore * step(0.99, uFace), 1.0, uDay);') && fx.includes('float dark = (1.0 - smoothstep(hb + 1.6 * px, hb + 3.6 * px, a)) * (1.0 - band) * dk * 0.9;') && fx.includes('float hw = (1.0 + 0.9 * uDay) * max(1.1 * px, '), 'the gold tape by day: twice as thick, a darker outline under it (dk = uDay for the gold tape: uCore 0 — S4A FIX gave the PINK tape\'s front edges that outline by night too)');
   assert.ok(n.includes('NUM[BACK] = 0; if (ts) NUM[BACK] = TAPE_BACK * (1 - dayK) *'), '… and no back edges through frosted glass');
   // no bloom by day (it fades with the night through a switch)
   assert.ok(n.includes('if (bloom && tier === 2 && dayK < 1) bloom.render(scene, cam, plate, TWINS, 1 - dayK);') && fx.includes('add.uniforms.uK.value = BLOOM_K * k;'));

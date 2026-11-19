@@ -35,11 +35,17 @@ test('THE PINK TAPE HAS A WHITE CORE: white at its heart, the pink either side, 
   const fx = read(`${HI}night-fx.js`), TAPE_F = fx.slice(fx.indexOf('export const TAPE_F = '), fx.indexOf('// ---- THE FLYERS'));
   const TAPE_CORE_EDGE = Number(fx.match(/export const TAPE_CORE_EDGE = ([\d.]+),/)[1]), TAPE_LINE = Number(fx.match(/export const TAPE_LINE = ([\d.]+),/)[1]);
   assert.match(TAPE_F, /uniform float uGlow, uWhite, uFace, uBloom, uDay, uCore, uDash;/);
-  assert.match(TAPE_F, /vec3 lineC = mix\(uCol, vec3\(1\.0\), line \* uCore \* 0\.94 \* step\(0\.99, uFace\)\);/, 'the core is white, on the edges turned to the camera only (never a white diamond through the glass)');
-  assert.ok(TAPE_F.includes('float hb = hw * (1.0 + ${TAPE_CORE_EDGE.toFixed(2)} * uCore);'), 'the colour\'s band is wider than the core');
-  assert.ok(TAPE_CORE_EDGE >= 1 && TAPE_CORE_EDGE <= 2 && TAPE_LINE === 0.0021);
+  assert.ok(TAPE_F.includes('vec3 lineC = mix(uCol * (1.0 - 0.34 * uCore * (1.0 - uDay) * step(0.99, uFace)), vec3(1.0), line * uCore * 0.94 * step(0.99, uFace));'), 'the core is white, on the edges turned to the camera only (never a white diamond through the glass); by night the band round it is a DEEPER pink (the bloom washed a full-strength one to white)');
+  const TAPE_CORE_NIGHT = Number(fx.match(/TAPE_CORE_NIGHT = ([\d.]+),/)[1]);
+  assert.ok(TAPE_F.includes('float hb = hw * (1.0 + mix(${TAPE_CORE_NIGHT.toFixed(2)}, ${TAPE_CORE_EDGE.toFixed(2)}, uDay) * uCore);'), 'the colour\'s band is wider than the core — wider still by night');
+  assert.ok(TAPE_CORE_EDGE >= 1 && TAPE_CORE_EDGE <= 2 && TAPE_CORE_NIGHT > TAPE_CORE_EDGE && TAPE_CORE_NIGHT <= 3.5 && TAPE_LINE === 0.0021);
+  // THE FRESH-EYES REVIEW (the pass's close): by night a white line in a pink glow is what a pink slab's own edge looks like — the
+  // cored tape's FRONT edges get the day's dark outline too (white · solid pink · a dark edge); the glow stays out of that edge
+  assert.ok(TAPE_F.includes('float dk = mix(uCore * step(0.99, uFace), 1.0, uDay);') && TAPE_F.includes('float glow = halo * (1.0 - 0.85 * uDay) * (1.0 - dark * (1.0 - uDay));'), 'a dark edge round the pink band by night — the front edges of the cored tape alone');
+  // … and with uCore = 0 (the gold tape) every one of those terms is the S2 FIX's: dk = uDay · dark = 0 by night, so the glow is whole · the band's colour × 1
+  { const dk = (core, face, day) => (core * (face >= 0.99 ? 1 : 0)) * (1 - day) + day; assert.deepEqual([dk(0, 1, 0), dk(0, 1, 1), dk(0, 0.3, 0), dk(1, 1, 0), dk(1, 0.3, 0), dk(1, 1, 1)], [0, 1, 0, 1, 0, 1]); }
   // uCore = 0 (the gold tape): the band IS the line, the core adds nothing — the S2 FIX's maths, term for term
-  assert.match(TAPE_F, /vec3 c = \(lineC \* band \+ uCol \* glow \* \(1\.0 - band\) \+ vec3\(uWhite\) \* band\) \* uGlow \* k \+ mix\(vec3\(0\.2, 0\.085, 0\.01\), vec3\(0\.2, 0\.02, 0\.13\), uCore\) \* dark \* k;/);
+  assert.ok(TAPE_F.includes('vec3 c = (lineC * band + uCol * glow * (1.0 - band) + vec3(uWhite) * band) * uGlow * k + mix(vec3(0.2, 0.085, 0.01), vec3(0.2, 0.02, 0.13), uCore) * mix(0.3, 1.0, uDay) * dark * k;'));
   assert.match(TAPE_F, /gl_FragColor = vec4\(c, min\(1\.0, band \+ glow \* 0\.6 \+ dark\) \* k\);/);
   const n = read(`${HI}night.js`);
   assert.match(n, /const tapeU = \{[^\n]*uCore: \{ value: 0 \}, uDash: \{ value: 0 \} \};/, 'the gold tape: no core');
@@ -139,6 +145,8 @@ test('THE END = "A · THE HERO NUMBER": the cause small · the floor HUGE · FLO
   assert.match(f, /const overBar = \(\) => \{ const fr = el\.closest\('\.final'\), foot = fr && fr\.querySelector\('\.final-foot'\); if \(foot && would\.nextElementSibling !== foot\) foot\.before\(would\); \};/);
   assert.match(f, /if \(o\.would\) \{ overBar\(\); would\.textContent = wouldLine\(o\.would\);/, 'WOULD COUNT: one small line over the bar');
   assert.match(s, /check\.hidden = !card \|\| !\(PAGE \|\| \(E && E\.note\)\);/, 'REPLAY = LIVE: the test page\'s alone');
+  // THE FRESH-EYES REVIEW: the ghost's words sit beside its right corner — or OVER the arm's end where the screen's edge leaves no room (never struck through by the dashes)
+  assert.ok(s.includes('const GHOST_TAG_UP = 26;') && s.includes('y = XY[1] * stageH - (ghost && gxr > stageW - 118 ? GHOST_TAG_UP : 0);'));
   assert.match(css, /\.hi-check \{ position: absolute; left: 16px; right: 16px; bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 103px\);/);
 });
 

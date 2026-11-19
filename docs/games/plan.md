@@ -640,3 +640,9 @@
 - THE PINK FRIEND TAPE: a WHITE core inside the pink glow (it read only by its glow over the rooftops' pink slabs).
 - THE ICON = "A · THE TOWER" (Ben's pick, Downloads\NEON\highrise-icon-options.png): a cyan isometric stack + the pink slab dropping on top.
 - S4B decided: only THE OWNER can start a match (in a room he hosts); others join and play; fewest players 2; anyone who joins mid-match WATCHES until the REMATCH.
+
+## HIGH RISE — S4A FIX, THE ADD-ONS (the owner, Nov 19 — through THE ADD-ON INBOX, built in the same pass)
+- THE WELCOME (START) SCREEN = "A · THE SIGN" (his pick, Downloads\NEON\highrise-welcome-A.png): no box / panel — the sign big in the sky, the real tower standing low with a first slab sliding in, YOUR BEST as the real gold tape + its tag, TAP TO START big at the foot.
+- THE END SCREEN = "A · THE HERO NUMBER" (his pick, Downloads\NEON\highrise-end-A.png): the cause small → the floor number huge → FLOOR · THE BAND → the stats strip (PERFECTS · BEST STREAK · YOUR BEST) → the tower still lit under it (your best above you = a dashed gold outline) → the PLAY AGAIN bar.
+- A PINK FLASH WHEN A RUN ENDS (his iPhone, "at the final screen"): find it, kill it at its source, a test that fails on a pink large-area frame.
+- THE GROW-BACK SOUND IS TOO HARSH ("more pleasant on the ears — a healing / soothing sound"): five candidates as takes 1–5 on the SOUNDS sheet, heard in context, his pick remembered on the phone; default take 1; the next pass keeps the pick and removes the other four.

@@ -425,6 +425,8 @@ export function createStage(app, o = {}) {
   // (the two tags are placed ONCE A LANDING — tagSeen*: what they were last placed for)
   let tagSeenFloor = -1, tagSeenLive = -1, fpsAt = 0, endSaid = '';
   const XY = new Float64Array(2);
+  /** the end's ghost words: this far (px) over the outline's right corner when they cannot sit beside it */
+  const GHOST_TAG_UP = 26;
   // THE HITCH COUNTER: frames over HITCH_MS in this run (after its first second; a tab that was away is not a hitch) + the last one's cause
   let hitchN = 0, hitchAll = 0, hitchLast = '';
   // (the frame's own fractions — when the last frame began, how long its code took, the phone's usual frame (eased) — in ONE scratch
@@ -463,7 +465,8 @@ export function createStage(app, o = {}) {
       mark('dom');
       tag.classList.toggle('is-ghost', ghost);
       tagT.data = ghost ? `BEST ${best} ↑` : `BEST ${best}`;
-      const x = ghost ? Math.min(XY[0] * stageW + 10, stageW - 118) : 0, y = XY[1] * stageH;
+      // (the ghost's words sit BESIDE its right corner — or, where the screen's edge leaves no room there, OVER the arm's end: never struck through by the dashes — the fresh-eyes review)
+      const gxr = XY[0] * stageW + 10, x = ghost ? Math.min(gxr, stageW - 118) : 0, y = XY[1] * stageH - (ghost && gxr > stageW - 118 ? GHOST_TAG_UP : 0);
       tagAt = -1e9; tag.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
       if (!tagOn) { tagOn = true; tag.hidden = false; }
       return;

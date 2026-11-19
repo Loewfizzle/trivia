@@ -1215,7 +1215,7 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   tone · THE LOOK SWITCH — `look.js`, the fade after the pictures, only the look on screen keeps its own · THE FLYERS' PLAN — `flyplan.js`
   over 400 seeds · THE FLYERS — lazy, the warm frame, the band, the F-22's file, the credits · THE CARDS' ART — the files, the crops,
   nothing reads them); the sounds' table = the final one (ALL A).
-- The browser: `node tests/integration/highrise-play.mjs "<chromium>" [outDir]` = the whole check, now **217** = S2's + `s3()` (`--s3`
+- The browser: `node tests/integration/highrise-play.mjs "<chromium>" [outDir]` = the whole check, now **238** (S4A FIX) = S2's + `s3()` (`--s3`
   alone: 125 — the three choices through real taps + a reload, a look switch mid-run (0 hitches, 0 new programs), each flyer AT ITS FLOOR in
   both looks, **the play zone's pixels the same with a flyer up as without**, THE MOTHERSHIP + the solo moment + deep space, the
   match's finish + its gold card, the day's words + the tape read on the real pixels). A page opens by NIGHT unless its address names
@@ -1228,10 +1228,16 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   ticks there): slower, it falls behind the run's clock and THE FUSE ends the run — the test's fault, not the game's.
 - **HIGH RISE S4A:** unit `tests/highrise-cartridge.test.mjs` (13 — the hidden cartridge, the proof + the judge, THE SWITCH, the lines, the cards) ·
   the rules: `rules.test.mjs` "the hr proof node" · `/api`: `server.test.mjs` "HIGH RISE S4A" (both switch states) · the browser on the emulators:
-  `node tests/integration/e2e-highrise.mjs "<chromium>" [outDir] [--fast]` (59 — the owner starts a solo run in a room, real taps, the proof, WOULD
+  `node tests/integration/e2e-highrise.mjs "<chromium>" [outDir] [--fast]` (61 — the owner starts a solo run in a room, real taps, the proof, WOULD
   COUNT == the phone's result, nothing written; PLAY AGAIN; the pink tag + tape (a fixture); a forged node; then — not with `--fast` — counting ON by
   the test flip `testHighriseCounts`: floor 63 by taps → counted + the card + THE HITCH RUN inside the cartridge; `HI_LOOK=day` = the day look's
   shots). **The API server must be FRESH** (a `serve.mjs` started before a catalog change keeps the old catalog: the card is "not awarded").
+- **HIGH RISE S4A FIX — ZERO GARBAGE:** `node tests/integration/highrise-alloc.mjs "<chromium>" [--table] [--min-three]` (THE GUARD: Chromium's
+  allocation sampler over 30 s of a live run a look, a flyer in the sky — FAILS if the game's own code makes over 12 KB of OBJECTS a second or
+  three.js over its line; `--table` = 60 s + the top sites; `E2E_BASE=` a worktree's server = the BEFORE numbers; `serve.mjs` is enough) ·
+  unit `tests/highrise-zero-garbage.test.mjs` (8 — STATIC: no frame function builds anything) + `tests/highrise-s4a-fix.test.mjs` (6) · the
+  shots: `highrise-play.mjs "<chromium>" <outDir> --ufo | --tape | --icon | --screens` · NO PINK FLASH: `--flash` (the page: every cause × both
+  looks) + inside `e2e-highrise.mjs` — both through `kit/flash-watch.mjs` (the compositor's screencast frames, each one's pink share).
 - **THE SOUND SYNC:** `node tests/integration/sound-sync.mjs "<chromium>" [--before]` (42 — /highrise-play + /jaywalk-lab, music ON and OFF, real
   touches: every landing sound within 20 ms of its event, no wake-up / nap in a live run, the hold let go on the end card + at a leave; `--before` = the
   same run with the hold switched off in the page — the BEFORE numbers; `serve.mjs` is enough).

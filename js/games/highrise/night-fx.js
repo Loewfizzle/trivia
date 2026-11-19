@@ -261,10 +261,12 @@ uniform float uH;
 varying float vY, vA; varying vec3 vN;
 void main() { vY = position.y * uH; vN = normal; vA = abs(normal.x) > 0.5 ? position.z : position.x; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 // THE WHITE CORE (S4A FIX — the owner: THE NEXT FRIEND's pink tape "read only by its glow" over the rooftops' own pink slabs): uCore = 1
-// puts a thin WHITE line at the tape's heart and its own colour as a band either side of it (TAPE_CORE_EDGE × the line's half width),
+// puts a thin WHITE line at the tape's heart and its own colour as a SOLID band either side of it (TAPE_CORE_EDGE × the line's half
+// width by day · TAPE_CORE_NIGHT by night — the fresh-eyes review: at 1.25 the night tape was a white line with a pink glow, which is
+// exactly what a pink slab's own edge is; a wide solid pink stripe with a white heart is like nothing else on the tower),
 // then the glow — white on pink reads on a pink slab by night and on bright sky by day (there the dark outline under it is plum).
 // uCore = 0 is the gold tape exactly as it was (the same maths: the band IS the line).
-export const TAPE_CORE_EDGE = 1.25, TAPE_DASHES = 9;
+export const TAPE_CORE_EDGE = 1.25, TAPE_CORE_NIGHT = 2.6, TAPE_DASHES = 9;
 export const TAPE_F = /* glsl */`
 uniform vec3 uCol;
 uniform float uGlow, uWhite, uFace, uBloom, uDay, uCore, uDash;
@@ -277,18 +279,22 @@ void main() {
   float hw = (1.0 + 0.9 * uDay) * max(1.1 * px, ${TAPE_LINE.toFixed(4)});
   float line = 1.0 - smoothstep(hw - 0.75 * px, hw + 0.75 * px, a);
   // (the colour's own band: the line itself — or, round a white core, a little wider than it)
-  float hb = hw * (1.0 + ${TAPE_CORE_EDGE.toFixed(2)} * uCore);
+  float hb = hw * (1.0 + mix(${TAPE_CORE_NIGHT.toFixed(2)}, ${TAPE_CORE_EDGE.toFixed(2)}, uDay) * uCore);
   float band = 1.0 - smoothstep(hb - 0.75 * px, hb + 0.75 * px, a);
   float halo = exp(-a / ${TAPE_GLOW.toFixed(4)}) * 0.42;
   float k = uFace * (uBloom > 0.5 ? 0.4 : 1.0);
   // (the line + its glow never ADD past the gold itself: 1.4 × the colour clipped its red and read as lemon — the look review)
   // (THE DAY LOOK: the glow goes — light adds nothing to a bright sky — and a DARKER OUTLINE lies under the gold line, both sides,
   //  so the tape still reads on white glass + blue sky)
-  float glow = halo * (1.0 - 0.85 * uDay);
-  float dark = (1.0 - smoothstep(hb + 1.6 * px, hb + 3.6 * px, a)) * (1.0 - band) * uDay * 0.9;
+  // (BY NIGHT the cored tape's FRONT edges get that outline too — the fresh-eyes review: a white line in a pink glow is what a pink
+  //  slab's own edge looks like; white · solid pink · a dark edge is like nothing else on the tower. The gold tape: uCore 0 — as it was.)
+  float dk = mix(uCore * step(0.99, uFace), 1.0, uDay);
+  float dark = (1.0 - smoothstep(hb + 1.6 * px, hb + 3.6 * px, a)) * (1.0 - band) * dk * 0.9;
+  float glow = halo * (1.0 - 0.85 * uDay) * (1.0 - dark * (1.0 - uDay));
   // (the core is the FRONT edges' alone: the faint back edges seen through the glass stay plain colour — a white diamond in the aim zone otherwise)
-  vec3 lineC = mix(uCol, vec3(1.0), line * uCore * 0.94 * step(0.99, uFace));
-  vec3 c = (lineC * band + uCol * glow * (1.0 - band) + vec3(uWhite) * band) * uGlow * k + mix(vec3(0.2, 0.085, 0.01), vec3(0.2, 0.02, 0.13), uCore) * dark * k;
+  // (by night the cored tape's band is a DEEPER pink — at full strength the bloom + the tone curve washed it to the core's own white)
+  vec3 lineC = mix(uCol * (1.0 - 0.34 * uCore * (1.0 - uDay) * step(0.99, uFace)), vec3(1.0), line * uCore * 0.94 * step(0.99, uFace));
+  vec3 c = (lineC * band + uCol * glow * (1.0 - band) + vec3(uWhite) * band) * uGlow * k + mix(vec3(0.2, 0.085, 0.01), vec3(0.2, 0.02, 0.13), uCore) * mix(0.3, 1.0, uDay) * dark * k;
   gl_FragColor = vec4(c, min(1.0, band + glow * 0.6 + dark) * k);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
