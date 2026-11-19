@@ -148,7 +148,19 @@ test('FORGED LOGS — every one refused, by name', () => {
   for (const m of [null, '', 'hard', 'constructor', '__proto__', 'toString', 'Solo', 7, {}]) assert.equal(why(honest, m), 'mode', String(m));
   for (const t of [undefined, null, 'abc', '12.40', 12, { length: 2, 0: 12, 1: 40 }, new Set([12])]) assert.equal(why(t), 'taps', String(t));
   assert.equal(judgePacked({ seed, mode, log: 'c..x' }).why, 'log'); assert.equal(judgePacked({ seed, mode, log: null }).why, 'log'); assert.equal(judgePacked().why, 'log');
-  assert.deepEqual(judgeRun(), { ok: false, why: 'seed' }); assert.deepEqual(judgeRun(null), { ok: false, why: 'seed' });
+  // THE MODE IS REQUIRED (the review: a missing one must never be quietly judged as solo — no finish, no cap)
+  assert.deepEqual(judgeRun({ seed, taps: honest }), { ok: false, why: 'mode' }); assert.deepEqual(judgeRun({ seed, mode: undefined, taps: honest }), { ok: false, why: 'mode' });
+  assert.deepEqual(judgePacked({ seed, log: packTaps(honest) }), { ok: false, why: 'mode' });
+  // nothing throws: every hostile input gets its { ok: false, why }
+  for (const x of [undefined, null, 0, 'x', 12, true, []]) { assert.deepEqual(judgeRun(x), { ok: false, why: 'mode' }, String(x)); assert.deepEqual(judgePacked(x), { ok: false, why: 'log' }, String(x)); }
+  // a seed a transport could mangle: only printable ASCII, no space
+  for (const sd of ['a b', ' x', 'x\n', 'x\u0000y', 'caf\u00e9', '\ud83d\ude80', '\ud800', 'tab\tbed']) assert.deepEqual(judgeRun({ seed: sd, mode, taps: [] }), { ok: false, why: 'seed' }, JSON.stringify(sd));
+  for (const sd of ['a', 'h1x2y3', 'A-Z_0.9:~!', 'x'.repeat(SEED_MAX)]) assert.equal(judgeRun({ seed: sd, mode, taps: [] }).ok, true, sd);
+  // THE PACKED LOG: canonical only (packTaps(unpackTaps(s)) === s), and a string longer than any log packs to is refused before it is read
+  const packed = packTaps(honest);
+  assert.equal(judgePacked({ seed, mode, log: packed }).ok, true);
+  for (const bad of [`0${packed}`, packed.replace('.', '.0'), packed.toUpperCase() === packed ? 'A' : packed.toUpperCase(), `${packed}.`, `${packed} `, 'c.'.repeat(4000000)]) assert.deepEqual(judgePacked({ seed, mode, log: bad }), { ok: false, why: 'log' }, bad.slice(0, 24));
+  assert.equal(judgePacked({ seed, mode: 'solo', log: 'c.'.repeat(MAX_TAPS) + 'c' }).why, 'too many taps', 'a log just over the tap limit is read, then refused by name');
   // a claimed result is never read: there is no field for one
   const lie = judgeRun({ seed, mode, taps: honest.slice(0, 3), floor: 200, made: true, cause: 'made', result: { floor: 200 } });
   assert.deepEqual([lie.ok, lie.floor, lie.cause], [true, 3, 'slow']);

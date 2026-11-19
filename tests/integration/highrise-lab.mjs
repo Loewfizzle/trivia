@@ -3,8 +3,10 @@
 //   · the lab loads at 390 × 844: its stage, the graybox, TAP TO START; the first slab ≈ 60 % of the screen width; the HUD readable
 //   · a BOT RUN THROUGH REAL TAPS (CDP touches, timed at each slab's perfect moment): the first touch only STARTS the run; every drop is
 //     logged at the touch's own tick; a touch in a landing beat is not a drop; the view's tower == the engine's
-//   · the run ends (THE FUSE): the cause's words big in the middle, TAP TO RETRY, **REPLAY = LIVE ✓**; one tap = the next run
-//   · the mode switch (SOLO / MATCH / DAILY, ?mode=), ?seed= (the same slabs every retry), ?fps=1
+//   · the run ends (THE FUSE): the cause's words big in the middle band (between the HUD and the top slab), TAP TO RETRY, **REPLAY = LIVE ✓**;
+//     one tap = the next run; the longest end states (MADE IT TO THE MOTHERSHIP · TIME'S UP + the red REPLAY ≠ LIVE line) fit the phone
+//   · the mode switch (SOLO / MATCH / DAILY, ?mode=) — BETWEEN runs only: off the screen while a run is live (a thumb at the foot is a
+//     drop) · ?seed= (the same slabs every retry) · ?fps=1
 //   · **THE LAB NEVER COUNTS**: NO request but the page's own static files + three.js from its CDN — no /api, no Firebase, no web
 //     socket, no profile / progression / report / share / cards module, no service worker, nothing stored
 //   · the shots (390 × 844 — the pass's review; + 375 × 667 and 1440 × 900) into [outDir] — kept out of git
@@ -26,7 +28,7 @@ const waitFor = async (p, js, ms = 20000) => { const end = Date.now() + ms; whil
 const shot = async (p, name) => { if (OUT) await p.screenshot({ path: join(OUT, name) }); };
 
 /** THE ONLY REQUESTS THE LAB MAY MAKE: its own page + static files, and three.js from the import map's CDN */
-const OWN = [/^\/highrise-lab(\.html)?$/, /^\/css\/highrise\.css$/, /^\/js\/games\/highrise\/(lab|graybox|engine|replay|logic|tuning)\.js$/, /^\/js\/core\/rng\.js$/, /^\/assets\/favicon-64\.png$/, /^\/favicon\.ico$/];
+const OWN = [/^\/highrise-lab(\.html)?$/, /^\/css\/highrise\.css$/, /^\/js\/games\/highrise\/(lab|graybox|tower|engine|replay|logic|tuning)\.js$/, /^\/js\/core\/rng\.js$/, /^\/assets\/favicon-64\.png$/, /^\/favicon\.ico$/];
 const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js';
 const allowed = url => { if (url === THREE_URL) return true; const u = new URL(url); return u.origin === new URL(BASE).origin && OWN.some(re => re.test(u.pathname)); };
 const COUNTS = /\/api\/|firebase|gstatic|googleapis|\/js\/(profile|progress|board|daily|vault|chat|admin|audio|ui|screens)\/|\/js\/(firebase|store|room|host|identity|seat|errlog|app|config)\.js|share|report|cards?\b|sw\.js/i;
@@ -92,17 +94,18 @@ const t = await open(390, 844, 3);
   // ---- A BOT RUN THROUGH REAL TAPS
   let best = null;
   for (let go = 0; go < 5 && !(best && best.floor >= 6); go++) {
-    if (go) { await waitFor(p, 'window.__hiLab.state().shown', 12000); await sleep(420); }
+    if (go) { await waitFor(p, 'window.__hiLab.state().shown', 12000); await sleep(700); }
     await tapAt(t, 195, 500);   // (the START — or TAP TO RETRY, which starts the next run)
     await waitFor(p, 'window.__hiLab.state().started && !window.__hiLab.state().over', 3000);
     const s0 = await st(p);
     if (!go) ok(s0.started && s0.taps === 0 && s0.floor === 0, 'the first touch only STARTS the run (tick 0 = that touch) — it is not a drop');
+    if (!go) ok(await p.evaluate(() => document.querySelector('.hi-bar').hidden && getComputedStyle(document.querySelector('.hi-bar')).display === 'none'), 'while a run is LIVE the mode switch is off the screen (a thumb at the foot is a drop, never a restart)');
     let beatChecked = go > 0, tops = true, floors = 0;
     for (let i = 0; i < 14; i++) {
       const sig = await atPerfect(p, 14);
       if (sig !== 'go') break;
       const before = await st(p);
-      await tapAt(t, 195, 500);
+      await tapAt(t, 195, i % 2 ? 787 : 500);   // (every other tap at the FOOT, where the mode switch sits between runs)
       const after = await st(p);
       if (after.taps !== before.taps + 1) { tops = false; break; }
       if (!after.over) { floors = after.floor; if (!sameTop(after)) await sleep(40); }
@@ -119,8 +122,12 @@ const t = await open(390, 844, 3);
     if (go === 0 || s1.floor >= 6) {
       await sleep(80);
       const s2 = await st(p);
-      ok(tops && (s2.over || sameTop(s2)), `every real tap is one logged drop (${s2.taps} taps → floor ${s2.floor}); the view's tower == the engine's`);
-      if (!s2.over) await shot(p, 'lab-390x844-run.png');
+      ok(tops && s2.mode === 'solo' && (s2.over || sameTop(s2)), `every real tap is one logged drop — in the middle or at the foot (${s2.taps} taps → floor ${s2.floor}); the view's tower == the engine's`);
+      if (!s2.over) {
+        await shot(p, 'lab-390x844-run.png');
+        // (the review: a shot WITH the sliding slab — the next slab on its way in; the bot has stopped tapping: THE FUSE follows)
+        if (await waitFor(p, '(() => { const m = window.__hiLab.msToPerfect(); return m != null && m > 150 && m < 520; })()', 4000)) await shot(p, 'lab-390x844-slide.png');
+      }
     }
   }
   ok(best && best.floor >= 3, `the bot's real taps build a tower (floor ${best && best.floor})`);
@@ -129,29 +136,45 @@ const t = await open(390, 844, 3);
   const e = await p.evaluate(() => {
     const q = sel => document.querySelector(sel), box = el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, fs: parseFloat(getComputedStyle(el).fontSize), text: el.textContent }; };
     const L = window.__hiLab, last = L.ends[L.ends.length - 1];
-    return { hidden: q('.hi-end').hidden, words: box(q('.hi-end-t')), line: box(q('.hi-end-l')), go: box(q('.hi-end-go')), check: box(q('.hi-check')), okCls: q('.hi-check').classList.contains('is-ok'), ends: L.ends.map(x => ({ same: x.same, cause: x.live.cause, floor: x.live.floor, taps: x.taps.length })), last: { same: last.same, at: last.at, live: last.live, replay: last.replay }, s: L.state() };
+    return { hidden: q('.hi-end').hidden, panel: box(q('.hi-end')), bar: !q('.hi-bar').hidden, top: L.view.project(0, L.state().floor, 0)[1] * innerHeight, hudBottom: q('.hi-sub').getBoundingClientRect().bottom, words: box(q('.hi-end-t')), line: box(q('.hi-end-l')), go: box(q('.hi-end-go')), check: box(q('.hi-check')), okCls: q('.hi-check').classList.contains('is-ok'), ends: L.ends.map(x => ({ same: x.same, cause: x.live.cause, floor: x.live.floor, taps: x.taps.length })), last: { same: last.same, at: last.at, live: last.live, replay: last.replay }, s: L.state() };
   });
-  ok(!e.hidden && ['TOO SLOW', 'MISSED THE STACK', 'SLIPPED OFF'].includes(e.words.text) && e.words.fs >= 30 && Math.abs(e.words.y + e.words.h / 2 - 422) < 160, `on OUT the cause's words big in the middle: "${e.words.text}" (${e.words.fs} px)`);
+  ok(!e.hidden && ['TOO SLOW', 'MISSED THE STACK', 'SLIPPED OFF'].includes(e.words.text) && e.words.fs >= 30 && e.words.y > 844 * 0.25 && e.words.y + e.words.h < 844 * 0.5, `on OUT the cause's words big in the middle band: "${e.words.text}" (${e.words.fs} px)`);
+  ok(e.panel.y >= e.hudBottom && e.panel.y + e.panel.h <= e.top + 6 && e.bar, `the end's words sit between the HUD and the middle of the top slab — the action stays in view (panel ${e.panel.y.toFixed(0)}–${(e.panel.y + e.panel.h).toFixed(0)}, the top slab at ${e.top.toFixed(0)}); the mode switch is back`);
   ok(e.go.text === 'TAP TO RETRY' && e.go.fs >= 20 && /^FLOOR \d+\n\d+ PERFECTS? · BEST STREAK \d+$/.test(e.line.text), `TAP TO RETRY under it (+ "${e.line.text.replace('\n', ' / ')}")`);
   ok(/^REPLAY = LIVE ✓ · floor \d+ · tick \d+ · \d+ taps$/.test(e.check.text) && e.okCls && e.last.same && JSON.stringify(e.last.live) === JSON.stringify(e.last.replay), `after the run: ${e.check.text}`);
   ok(e.ends.every(x => x.same), `every run of this page so far: REPLAY = LIVE (${e.ends.map(x => `${x.cause} floor ${x.floor}, ${x.taps} taps`).join(' · ')})`);
   ok([e.words, e.line, e.go, e.check].every(x => x.x >= 0 && x.x + x.w <= 390), 'the end\'s words fit the screen');
   await shot(p, 'lab-390x844-out.png');
   // one tap = the next run
-  await sleep(420);
+  await sleep(700);
   const seedWas = e.s.seed;
   await tapAt(t, 195, 500);
   await waitFor(p, 'window.__hiLab.state().started && !window.__hiLab.state().shown', 3000);
   const r = await st(p);
   ok(r.started && !r.shown && r.floor === 0 && r.taps === 0 && r.seed !== seedWas, 'ONE tap = TAP TO RETRY: the next run is on, a new random seed');
   ok(await p.evaluate(() => document.querySelector('.hi-end').hidden && document.querySelector('.hi-start').hidden), '… the end\'s words gone');
-  // the mode switch: a real tap on MATCH (never a drop, never a start)
+  // the mode switch lives BETWEEN runs: end this one (a drop the moment the slab enters — off the tower), then a real tap on MATCH
+  await waitFor(p, "window.__hiLab.state().st === 'slide'", 3000);
+  await tapAt(t, 195, 500);
+  ok(await waitFor(p, "window.__hiLab.state().shown && !document.querySelector('.hi-bar').hidden", 6000) && (await p.evaluate(() => document.querySelector('.hi-end-t').textContent)) === 'MISSED THE STACK', 'a drop with the slab off the tower: MISSED THE STACK — the mode switch is back');
   const tab = await p.evaluate(() => { const r = document.querySelector('.hi-tab[data-mode="match"]').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
   await tapAt(t, tab[0], tab[1]);
   await waitFor(p, "window.__hiLab.state().mode === 'match' && document.querySelector('.hi-sub').textContent.startsWith('MATCH')", 3000);
   const m = await st(p);
   const sub = await p.evaluate(() => [document.querySelector('.hi-sub').textContent, document.querySelector('.hi-tab[data-mode="match"]').classList.contains('is-on'), document.querySelector('.hi-start').hidden]);
   ok(m.mode === 'match' && !m.started && m.taps === 0 && sub[0] === 'MATCH · 6:00' && sub[1] && !sub[2], 'the mode switch: MATCH — a fresh run waits for its start, the clock shows its 6:00 cap');
+  // THE LONGEST END STATES fit the phone (a LOOK CHECK — the panel filled by hand: floor 200 takes 3:28 of perfect taps)
+  for (const [cause, bad, name] of [['made', false, 'lab-390x844-made.png'], ['cap', true, 'lab-390x844-timesup-bad.png']]) {
+    const f = await p.evaluate((c, bd) => {
+      const L = window.__hiLab; L.showWords(c, bd);
+      const q = sel => document.querySelector(sel), box = el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, fs: parseFloat(getComputedStyle(el).fontSize), text: el.textContent, sw: el.scrollWidth, cw: el.clientWidth }; };
+      return { panel: box(q('.hi-end')), words: box(q('.hi-end-t')), check: box(q('.hi-check')), go: box(q('.hi-end-go')), top: L.view.project(0, L.state().floor, 0)[1] * innerHeight, hudBottom: q('.hi-sub').getBoundingClientRect().bottom };
+    }, cause, bad);
+    ok(f.words.fs >= 30 && [f.words, f.check, f.go].every(x => x.x >= 0 && x.x + x.w <= 390 && x.sw <= x.cw + 1) && f.panel.y >= f.hudBottom - 2 && f.panel.y + f.panel.h <= f.top + 6,
+      `"${f.words.text}"${bad ? ' + the long REPLAY ≠ LIVE line' : ''}: fits the phone, between the HUD and the tower's top (panel ${f.panel.y.toFixed(0)}–${(f.panel.y + f.panel.h).toFixed(0)}, HUD to ${f.hudBottom.toFixed(0)}, the top slab at ${f.top.toFixed(0)})`);
+    await shot(p, name);
+  }
+  await p.evaluate(() => window.__hiLab.restart());
   ok(t.errs.length === 0, `no page error (${t.errs.join(' | ')})`);
 
   // ---- THE LAB NEVER COUNTS
@@ -186,7 +209,7 @@ await t.close();
   ok(await waitFor(p, 'window.__hiLab.state().shown', 6000), 'a tap with the slab off the tower ends the run');
   const words = await p.evaluate(() => [document.querySelector('.hi-end-t').textContent, document.querySelector('.hi-check').textContent]);
   ok(words[0] === 'MISSED THE STACK' && /^REPLAY = LIVE ✓/.test(words[1]), `"${words[0]}" — ${words[1]}`);
-  await sleep(420);
+  await sleep(700);
   await tapAt(d, 195, 500);
   await waitFor(p, "window.__hiLab.state().st === 'slide' && !window.__hiLab.state().shown", 3000);
   const c = await st(p);

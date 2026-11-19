@@ -4,7 +4,8 @@
 import { BEAT, FLOOR_TICKS_MAX, MAX_TAPS, SEED_MAX } from './tuning.js';
 import { createRun, stepTo, tap, isOver, resultOf, modeRow } from './engine.js';
 
-export const seedProblem = seed => (typeof seed !== 'string' || !seed || seed.length > SEED_MAX ? 'seed' : null);
+/** a seed = 1 … 64 printable ASCII characters, no space (seedOf makes [0-9a-z]) — nothing a transport could normalise into another seed */
+export const seedProblem = seed => (typeof seed !== 'string' || seed.length > SEED_MAX || !/^[!-~]+$/.test(seed) ? 'seed' : null);
 
 /** the most taps a `mode` run can hold: a tap = a drop = a floor (the finishing floor ends the run) */
 export const maxTaps = mode => { const M = modeRow(mode); return M && M.finish != null ? Math.min(M.finish, MAX_TAPS) : MAX_TAPS; };
@@ -40,6 +41,7 @@ export function tapsProblem(taps, mode = 'solo') {
  * (or THE CAP) always ends it. `until` (a tick) = the run as it stands then (a run still going — a match scored live).
  */
 export function replay({ seed, mode = 'solo', taps = [], until = null } = {}) {
+  if (until != null && !(Number.isSafeInteger(until) && until >= 0)) until = 0;   // (a bad `until` counts nothing — never the whole run)
   const run = createRun({ seed, mode });
   let used = 0, bad = -1, why = '';
   for (let i = 0; i < taps.length; i++) {
@@ -58,10 +60,11 @@ export function replay({ seed, mode = 'solo', taps = [], until = null } = {}) {
 /**
  * THE JUDGE (PURE): ONE run from its seed + mode + tap log → { ok: true, floor, tick, end, cause, made, perfects, maxStreak, taps, feats }
  * | { ok: false, why }. The floor is the judge's own — a phone's claimed height is never read.
+ * `mode` is REQUIRED (a missing one is never quietly judged as solo — no finish, no cap).
  * REFUSED: a malformed seed · an unknown mode · a log that breaks its bounds (tapsProblem) · a tap that does not land on a sliding slab
  * (in a landing beat · after the run ended).
  */
-export function judgeRun({ seed, mode = 'solo', taps } = {}) {
+export function judgeRun({ seed, mode, taps } = {}) {
   if (!modeRow(mode)) return { ok: false, why: 'mode' };
   if (seedProblem(seed)) return { ok: false, why: 'seed' };
   const bad = tapsProblem(taps, mode);
@@ -80,9 +83,9 @@ export function packTaps(taps) {
 }
 /** → the tap log, or null (a bad string); '' = an empty log */
 export function unpackTaps(str) {
-  if (typeof str !== 'string') return null;
+  if (typeof str !== 'string' || str.length > 7 * MAX_TAPS) return null;   // (longer than any log packs to: refused before it is read)
   if (!str) return [];
-  if (!/^[0-9a-z]{1,6}(\.[0-9a-z]{1,6})*$/.test(str)) return null;
+  if (!/^(?:0|[1-9a-z][0-9a-z]{0,5})(?:\.(?:0|[1-9a-z][0-9a-z]{0,5}))*$/.test(str)) return null;   // (canonical: packTaps(unpackTaps(s)) === s)
   const out = [];
   let t = 0;
   for (const part of str.split('.')) { t += parseInt(part, 36); out.push(t); }

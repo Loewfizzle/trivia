@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { START, PALETTE_N } from './tuning.js';
 import { slabAt, paletteFor } from './engine.js';
+import { createTower } from './tower.js';
 
 const U = 1 / START;            // rule units → world units: the starting slab is 1 × 1
 const H = 0.14;                 // a slab's thickness (world)
@@ -47,27 +48,19 @@ export function createGraybox(host) {
     return { m, vx: 0, vy: 0, vz: 0, rx: 0, rz: 0, age: 0, on: false };
   });
   let pieceAt = 0;
-  // the PERFECT flash: four white bars round the top slab's upper edge
+  // the PERFECT flash: the top slab's whole top face goes white (fading) + four white bars round its upper edge (they stay a beat longer)
   const flashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 });
+  const plateMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
   const bars = [0, 1, 2, 3].map(() => { const m = new THREE.Mesh(box, flashMat); m.visible = false; scene.add(m); return m; });
+  const plate = new THREE.Mesh(box, plateMat); plate.visible = false; scene.add(plate);
   let flashAge = 1e9;
-  const FLASH_MS = 420, BAR = 0.045;
+  const FLASH_MS = 460, BAR = 0.07;
 
   /** the shade of a floor's slab: grays walking the wheel (paletteFor — the same index the real looks will colour by) */
-  const shadeOf = (seed, floor) => { const i = paletteFor(seed, floor), f = 1 - Math.abs(2 * i / PALETTE_N - 1); return C.setHSL(0.62, 0.1, 0.36 + 0.3 * f + (floor & 1 ? 0.045 : 0)); };   // (+ every other slab a touch lighter: each floor reads)
+  const shadeOf = (seed, floor) => { const i = paletteFor(seed, floor), f = 1 - Math.abs(2 * i / PALETTE_N - 1); return C.setHSL(0.62, 0.12, 0.27 + 0.2 * f + (floor & 1 ? 0.085 : 0)); };   // (mid grays — a white flash + the pale sliding slab stand out; every other slab lighter: each floor reads)
 
-  // ---- the view's own tower (built from the EVENTS — the lab's check compares its top with the engine's)
-  let slabs = [], top = null, pending = null, seed = '';
-  const rect = (x0, x1, z0, z1) => ({ x0, x1, z0, z1 });
-  function reset(run) {
-    seed = run.seed;
-    top = rect(run.x0, run.x1, run.z0, run.z1);
-    slabs = [{ ...top, floor: 0 }];
-    pending = null; flashAge = 1e9;
-    for (const p of pieces) { p.on = false; p.m.visible = false; }
-    slider.visible = false;
-    camY = 0; camX = (top.x0 + top.x1) / 2 * U; camZ = (top.z0 + top.z1) / 2 * U;
-  }
+  // ---- the view's own tower: tower.js builds it from the EVENTS (pure — tests/highrise-lab.test.mjs proves it equals the engine's)
+  let T = null, slabs = [], top = null, seed = '';
   function fall(r, floor, dx, dz, whole) {
     const p = pieces[pieceAt++ % pieces.length];
     p.on = true; p.age = 0;
@@ -78,34 +71,17 @@ export function createGraybox(host) {
     p.vx = dx * 0.5; p.vz = dz * 0.5; p.vy = 0;
     p.rx = whole ? 0 : dz * 1.6; p.rz = whole ? 0 : -dx * 1.6;
   }
-  /** the run's EVENTS since the last frame, in order (engine.js#stepTo / tap) */
-  function feed(events) {
-    for (const e of events) {
-      if (e.e === 'drop') {
-        const x = e.axis === 'x';
-        pending = { floor: e.floor, x, off: e.off, r: rect(top.x0 + (x ? e.off : 0), top.x1 + (x ? e.off : 0), top.z0 + (x ? 0 : e.off), top.z1 + (x ? 0 : e.off)) };
-      } else if (!pending) continue;
-      else if (e.e === 'perfect') { pending.r = { ...top }; flashAge = 0; }
-      else if (e.e === 'grow') {
-        const l = Math.floor(e.by / 2), r = pending.r;
-        if (pending.x) { r.x0 -= l; r.x1 += e.by - l; } else { r.z0 -= l; r.z1 += e.by - l; }
-      } else if (e.e === 'cut') {
-        const r = pending.r, pc = { ...r }, s = e.side;
-        if (pending.x) { if (s > 0) { r.x1 = top.x1; pc.x0 = top.x1; } else { r.x0 = top.x0; pc.x1 = top.x0; } }
-        else if (s > 0) { r.z1 = top.z1; pc.z0 = top.z1; } else { r.z0 = top.z0; pc.z1 = top.z0; }
-        fall(pc, pending.floor, pending.x ? s : 0, pending.x ? 0 : s, false);
-      } else if (e.e === 'out') {
-        fall(pending.r, pending.floor, 0, 0, true);   // (the slab that missed / slipped: it just falls)
-        pending = null;
-      }
-    }
-    if (pending) {   // (it landed)
-      top = pending.r;
-      slabs.push({ ...top, floor: pending.floor });
-      if (slabs.length > KEEP + 8) slabs.splice(0, slabs.length - KEEP);
-      pending = null;
-    }
+  function reset(run) {
+    seed = run.seed;
+    T = createTower(run, { onPerfect: () => { flashAge = 0; }, onFall: fall }, KEEP);
+    slabs = T.slabs(); top = T.top();
+    flashAge = 1e9;
+    for (const p of pieces) { p.on = false; p.m.visible = false; }
+    slider.visible = false;
+    camY = 0; camX = (top.x0 + top.x1) / 2 * U; camZ = (top.z0 + top.z1) / 2 * U;
   }
+  /** the run's EVENTS since the last frame, in order (engine.js#stepTo / tap) */
+  function feed(events) { T.feed(events); top = T.top(); }
 
   let w = 0, h = 0, dist = 14, camX = 0, camY = 0, camZ = 0;
   function resize() {
@@ -168,15 +144,17 @@ export function createGraybox(host) {
     // the PERFECT flash
     flashAge += dt;
     const fo = flashAge < FLASH_MS ? 1 - flashAge / FLASH_MS : 0;
-    flashMat.opacity = fo;
+    flashMat.opacity = fo; plateMat.opacity = fo * fo * 0.9;
     if (fo > 0) {
       const y = slabs[slabs.length - 1].floor * H + 0.004, x0 = top.x0 * U, x1 = top.x1 * U, z0 = top.z0 * U, z1 = top.z1 * U, mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
       bars[0].position.set(mx, y, z0); bars[0].scale.set(x1 - x0 + BAR, 0.012, BAR);
       bars[1].position.set(mx, y, z1); bars[1].scale.set(x1 - x0 + BAR, 0.012, BAR);
       bars[2].position.set(x0, y, mz); bars[2].scale.set(BAR, 0.012, z1 - z0 + BAR);
       bars[3].position.set(x1, y, mz); bars[3].scale.set(BAR, 0.012, z1 - z0 + BAR);
+      plate.position.set(mx, y, mz); plate.scale.set(x1 - x0, 0.006, z1 - z0);
     }
     for (const b of bars) b.visible = fo > 0;
+    plate.visible = fo > 0;
     renderer.render(scene, cam);
   }
 
@@ -191,8 +169,8 @@ export function createGraybox(host) {
     info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, dist, slabs: slabs.length }),
     destroy() {
       ro.disconnect();
-      for (const m of [tower, slider, ...bars, ...pieces.map(p => p.m)]) scene.remove(m);
-      tower.material.dispose(); slider.material.dispose(); flashMat.dispose(); for (const p of pieces) p.m.material.dispose();
+      for (const m of [tower, slider, plate, ...bars, ...pieces.map(p => p.m)]) scene.remove(m);
+      tower.material.dispose(); slider.material.dispose(); flashMat.dispose(); plateMat.dispose(); for (const p of pieces) p.m.material.dispose();
       box.dispose(); renderer.dispose();
       try { renderer.forceContextLoss(); } catch { /* fine */ }
       el.remove();

@@ -94,6 +94,7 @@ function drop(run, T, fuse, ev) {
   }
   if (x) { run.x0 = nlo; run.x1 = nhi; } else { run.z0 = nlo; run.z1 = nhi; }
   run.floor = floor; run.at = T;
+  if (ev) ev.push({ e: 'land', floor, x0: run.x0, x1: run.x1, z0: run.z0, z1: run.z1, t: T });   // (the slab as it lies — a view needs nothing else to draw it)
   const M = MODES[run.mode];
   if (M.finish != null && floor >= M.finish) return finish(run, 'made', '', T, ev);
   run.st = 'beat'; run.s0 = T + BEAT;
@@ -103,9 +104,11 @@ function drop(run, T, fuse, ev) {
  * bring the run to tick T (an integer): every slab's entry and every FUSE drop up to T happens, in order; THE CAP (a mode's capTicks)
  * ends the run where it stands AT its tick — before anything else that tick. `ev` (optional) collects the EVENTS for the view:
  *   spawn { floor, axis, from, S } · drop { floor, axis, off, fuse } · perfect { floor, streak } · grow { floor, axis, by } ·
- *   cut { floor, axis, side, piece: { lo, hi, size } } · out { cause } · made · cap — each with its tick `t`.
+ *   cut { floor, axis, side, piece: { lo, hi, size } } · land { floor, x0, x1, z0, z1 } (the slab as it lies) · out { cause } · made · cap
+ *   — each with its tick `t`. A drop's own events (drop → perfect / grow / cut → land | out) are pushed together, in that order.
  */
 export function stepTo(run, T, ev) {
+  if (!Number.isSafeInteger(T)) return run;   // (a tick is a whole number — anything else moves nothing)
   const cap = MODES[run.mode].capTicks;
   while (!isOver(run)) {
     const next = run.st === 'beat' ? run.s0 : run.s0 + FUSE_SWEEPS * run.S;

@@ -405,3 +405,30 @@ test('THE RANKING (height, then the EARLIER tick) + THE SEED + THE END\'s WORDS 
   for (const bad of ['1c..2', '.1c', '1c.', 'A.1', '1c,2', '1234567.1', null, 12, undefined]) assert.equal(unpackTaps(bad), null, String(bad));
   assert.equal(MAX_TAPS, 20000);
 });
+
+test('THE REVIEW\'S CORNERS, PINNED: PERFECT is judged FIRST (a slab cut to exactly 500, dropped exactly 500 off, snaps on — the plan\'s own order) · stepTo moves nothing on a tick that is not a whole number · a bad `until` counts nothing', () => {
+  // a 500-wide slab, a sweep of 120 ticks (250 units a tick: ±500 is a tick of its own)
+  const run = createRun({ seed: 'corner', mode: 'solo' });
+  enter(run);
+  run.S = 120; run.z0 = -250; run.z1 = 250;   // (the test's own poke: floor 1 slides on z)
+  const t = tickWhere(run, o => abs(o) === PERFECT);
+  assert.ok(t >= 0);
+  const ev = [];
+  assert.ok(tap(run, t, ev));
+  assert.deepEqual(ev.map(e => e.e), ['drop', 'perfect', 'land'], '|offset| = 500 on a 500 slab: a PERFECT (within the window), not a miss');
+  assert.deepEqual([run.floor, run.z0, run.z1, run.st], [1, -250, 250, 'beat']);
+  // … one tick further out (750 off) there is no overlap at all: a miss
+  const r2 = createRun({ seed: 'corner', mode: 'solo' });
+  enter(r2); r2.S = 120; r2.z0 = -250; r2.z1 = 250;
+  tap(r2, tickWhere(r2, o => abs(o) === 750));
+  assert.deepEqual([r2.st, r2.cause, r2.floor], ['out', 'miss', 0]);
+  // stepTo: a tick is a whole number
+  const r3 = createRun({ seed: 'nan', mode: 'match' }), snap = JSON.stringify(r3);
+  for (const bad of [NaN, Infinity, -Infinity, 12.5, '50', null, undefined, {}, 2 ** 53]) { stepTo(r3, bad); assert.equal(JSON.stringify(r3), snap, `stepTo(${String(bad)}) moves nothing`); }
+  stepTo(r3, -5); assert.equal(JSON.stringify(r3), snap, 'a tick before the start moves nothing');
+  // replay's `until`: a bad one counts NOTHING (never the whole run)
+  const taps = playBot(createRun({ seed: 'until', mode: 'solo' }), gaussBot({ sigmaMs: 10, seed: 'until' }), { maxFloor: 30 });
+  assert.equal(replay({ seed: 'until', mode: 'solo', taps, until: taps[9] }).floor, 10, 'the run as it stood at the 10th tap');
+  for (const bad of [NaN, '500', 12.5, -1, Infinity, {}]) { const r = replay({ seed: 'until', mode: 'solo', taps, until: bad }); assert.deepEqual([r.floor, r.over, r.used], [0, false, 0], `until ${String(bad)}`); }
+  assert.equal(replay({ seed: 'until', mode: 'solo', taps }).floor, 30);
+});

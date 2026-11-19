@@ -7,23 +7,25 @@
 import { TICK_MS, TICK_HZ, MODES, MODE_IDS, BEAT, FLOOR_TICKS_MAX, SEED_MAX } from './tuning.js';
 import { createRun, stepTo, tap, isOver, resultOf } from './engine.js';
 import { replay } from './replay.js';
-import { endWords, tickOf } from './logic.js';
-import { createGraybox } from './graybox.js';
+import { END_WORDS, endWords, tickOf } from './logic.js';
+import { createGraybox } from './graybox.js';   // (+ its tower.js)
 
 const app = document.getElementById('app');
 const Q = new URLSearchParams(location.search);
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
 const newSeed = () => { const a = new Uint32Array(2); crypto.getRandomValues(a); return [...a].map(x => x.toString(36)).join(''); };
 /** `?seed=` — the SAME slabs on every retry (a random one, shown, without it) */
-const FIXED = (Q.get('seed') || '').slice(0, SEED_MAX);
+const FIXED = (Q.get('seed') || '').replace(/[^!-~]/g, '').slice(0, SEED_MAX);
 const clock = ticks => { const s = Math.max(0, Math.ceil(ticks / TICK_HZ)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+/** the end's words stay this long before a tap is TAP TO RETRY (a rhythm's next tap must not wipe them unread) */
+const RETRY_MS = 600;
 /** a tap just before THE CAP is still the player's: the cap is shown this many ticks late (a touch may reach the page after its frame) */
 const CAP_GRACE = 6;
 /** a button that acts on its own press + lift (never a click), and is never a drop */
 function press(node, fn) {
   let id = null;
   node.addEventListener('pointerdown', e => { id = e.pointerId; e.stopPropagation(); });
-  node.addEventListener('pointerup', e => { e.stopPropagation(); if (id === e.pointerId) { id = null; fn(); } });
+  node.addEventListener('pointerup', e => { e.stopPropagation(); if (id === e.pointerId) { id = null; node.blur(); fn(); } });   // (blur: Space / Enter is a DROP again, not this button)
   node.addEventListener('pointercancel', () => { id = null; });
   node.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); fn(); } });
   return node;
@@ -56,17 +58,18 @@ function mount() {
   function restart(m = mode, s = FIXED || newSeed()) {
     mode = m; seed = s; run = createRun({ seed, mode }); taps = []; t0 = null; shown = false; overAt = 0; ev.length = 0; liveEv.length = 0;
     view.reset(run);
-    end.hidden = true; start.hidden = false; hudKey = '';
+    end.hidden = true; start.hidden = false; bar.hidden = false; hudKey = '';
     for (const t of tabs) t.classList.toggle('is-on', t.dataset.mode === mode);
     seedLine.textContent = `seed ${seed}`;
   }
-  const begin = ts => { t0 = ts; start.hidden = true; };
+  // (while a run is LIVE the mode switch + the seed are off the screen: a thumb resting at the foot is a DROP, never a restart)
+  const begin = ts => { t0 = ts; start.hidden = true; bar.hidden = true; };
 
   // FAIR TAPS: a tap counts at the finger's TOUCH — the pointerdown's own event.timeStamp → its tick — never "the next frame"
   function touch(ts) {
     const now = performance.now();
     if (!(ts > 0 && ts <= now + 4 && now - ts < 1000)) ts = now;   // (a browser whose event clock is not the page's: the handler's own time)
-    if (shown) { if (now - overAt > 350) { restart(); begin(ts); } return; }   // TAP TO RETRY = the next run's START
+    if (shown) { if (now - overAt > RETRY_MS) { restart(); begin(ts); } return; }   // TAP TO RETRY = the next run's START
     if (t0 == null) { begin(ts); return; }
     if (isOver(run)) return;
     const T = tickOf(ts, t0);
@@ -93,11 +96,11 @@ function mount() {
     check.className = `hi-check ${same ? 'is-ok' : 'is-bad'}`;
     check.textContent = same ? `REPLAY = LIVE ✓ · floor ${r.floor} · tick ${r.tick} · ${taps.length} taps`
       : `REPLAY ≠ LIVE ✗ · first differs at tick ${at < 0 || at === Infinity ? '?' : at} · live floor ${live.floor} ${live.cause} · replay floor ${r.floor} ${r.cause}${why ? ` (${why})` : ''}`;
-    end.hidden = false;
+    end.hidden = false; bar.hidden = false;
     lab.ends.push({ seed, mode, same, at, live, replay: r, taps: taps.slice() });
   }
 
-  let raf = 0, last = 0, hudKey = '';
+  let raf = 0, last = 0, hudKey = '', frameN = 0;
   function frame(now) {
     raf = requestAnimationFrame(frame);
     const dt = last ? Math.min(250, now - last) : TICK_MS;
@@ -122,8 +125,9 @@ function mount() {
       streakN.textContent = `STREAK ${run.streak}`;
       sub.textContent = cap == null ? 'SOLO · ENDLESS' : `${mode.toUpperCase()} · ${left}`;
     }
-    if (frames.length < 20000) frames.push(dt);
-    if (fps && frames.length % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr} · tick ${run.t}`; }
+    frameN++;
+    if (frames.length < 20000) frames.push(dt); else frames[frameN % 20000] = dt;
+    if (fps && frameN % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr} · tick ${run.t}`; }
   }
   document.addEventListener('visibilitychange', () => { last = 0; });
 
@@ -135,6 +139,8 @@ function mount() {
     msToPerfect: () => (t0 != null && run.st === 'slide' ? t0 + (run.s0 + run.S / 2) * TICK_MS - performance.now() : null),
     restart: (m, s) => restart(m || mode, s),
     frames: () => frames.slice(),
+    /** (a LOOK CHECK only — never a run) the end panel with a cause's words + a long check line: the longest states fit the phone */
+    showWords(cause, bad) { endT.textContent = END_WORDS[cause] || ''; endL.textContent = 'FLOOR 200\n200 PERFECTS · BEST STREAK 200'; check.className = `hi-check ${bad ? 'is-bad' : 'is-ok'}`; check.textContent = bad ? 'REPLAY ≠ LIVE ✗ · first differs at tick 12345 · live floor 200 made · replay floor 199 thin (past the end)' : 'REPLAY = LIVE ✓ · floor 200 · tick 12480 · 200 taps'; end.hidden = false; start.hidden = true; },
     stop() { cancelAnimationFrame(raf); view.destroy(); },
   };
   restart();

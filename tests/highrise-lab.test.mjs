@@ -7,6 +7,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
+import { createTower } from '../js/games/highrise/tower.js';
+import { createRun, stepTo, tap, isOver } from '../js/games/highrise/engine.js';
+import { gaussBot } from '../js/games/highrise/bot.js';
+import { BEAT, FLOOR_TICKS_MAX, MODE_IDS } from '../js/games/highrise/tuning.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const code = f => read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1');
@@ -52,13 +56,13 @@ test('HIGH RISE IS INVISIBLE TO PLAYERS (S1): no GAMES entry, no DAILIES row, no
     assert.doesNotMatch(read(f), /highrise|HIGH RISE/i, `${f} does not know HIGH RISE`);
   }
   const dir = readdirSync(new URL('../js/games/highrise/', import.meta.url)).sort();
-  assert.deepEqual(dir, ['bot.js', 'engine.js', 'graybox.js', 'lab.js', 'logic.js', 'replay.js', 'tuning.js'], 'S1\'s files: no meta.js / index.js / view.js — nothing a console could load as a game');
+  assert.deepEqual(dir, ['bot.js', 'engine.js', 'graybox.js', 'lab.js', 'logic.js', 'replay.js', 'tower.js', 'tuning.js'], 'S1\'s files: no meta.js / index.js / view.js — nothing a console could load as a game');
   for (const f of readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js'))) assert.doesNotMatch(read(`api/${f}`), /highrise/i, `api/${f}: no endpoint wiring`);
 });
 
 test('THE LAB NEVER COUNTS — its WHOLE module graph: only its own engine files + the integer hash + three.js; nothing from /api, the profile, progression, the report, share, the cards, Firebase, the store', () => {
   const g = graph('js/games/highrise/lab.js');
-  assert.deepEqual(g.files, ['js/core/rng.js', 'js/games/highrise/engine.js', 'js/games/highrise/graybox.js', 'js/games/highrise/lab.js', 'js/games/highrise/logic.js', 'js/games/highrise/replay.js', 'js/games/highrise/tuning.js'], 'every module the page loads');
+  assert.deepEqual(g.files, ['js/core/rng.js', 'js/games/highrise/engine.js', 'js/games/highrise/graybox.js', 'js/games/highrise/lab.js', 'js/games/highrise/logic.js', 'js/games/highrise/replay.js', 'js/games/highrise/tower.js', 'js/games/highrise/tuning.js'], 'every module the page loads');
   assert.deepEqual(g.bare, ['three'], 'the one outside module: three.js (the import map)');
   for (const f of g.files) {
     const s = code(f);
@@ -83,8 +87,11 @@ test('THE LAB\'s RUN: FAIR TAPS (pointerdown → event.timeStamp → its tick), 
   assert.match(s, /replay\(\{ seed, mode, taps \}\)/, 'the recorded log replayed after each run …');
   assert.match(s, /const fresh = createRun\(\{ seed, mode \}\), evR = \[\];/, '… through a FRESH engine, event by event');
   assert.match(lab, /REPLAY = LIVE ✓/); assert.match(lab, /REPLAY ≠ LIVE ✗ · first differs at tick/, 'a red line + the first differing tick if it ever differs');
-  assert.match(s, /MODE_IDS\.includes\(Q\.get\('mode'\)\) \? Q\.get\('mode'\) : 'solo'/); assert.match(s, /const FIXED = \(Q\.get\('seed'\) \|\| ''\)\.slice\(0, SEED_MAX\);/); assert.match(s, /Q\.get\('fps'\) === '1'/);
-  assert.match(lab, /TAP TO RETRY/); assert.match(s, /endT\.textContent = endWords\(live\);/, 'the cause\'s words = the game\'s own table');
+  assert.match(s, /MODE_IDS\.includes\(Q\.get\('mode'\)\) \? Q\.get\('mode'\) : 'solo'/); assert.match(s, /const FIXED = \(Q\.get\('seed'\) \|\| ''\)\.replace\(\/\[\^!-~\]\/g, ''\)\.slice\(0, SEED_MAX\);/); assert.match(s, /Q\.get\('fps'\) === '1'/);
+  assert.match(lab, /TAP TO RETRY/);
+  assert.match(s, /const RETRY_MS = 600;/); assert.match(s, /if \(shown\) \{ if \(now - overAt > RETRY_MS\) \{ restart\(\); begin\(ts\); \} return; \}/, 'the end\'s words stay 0.6 s before a tap is the retry');
+  assert.match(s, /const begin = ts => \{ t0 = ts; start\.hidden = true; bar\.hidden = true; \};/, 'while a run is LIVE the mode switch is off the screen: a thumb at the foot is a drop, never a restart (the review)');
+  assert.match(s, /end\.hidden = false; bar\.hidden = false;/, '… back with the end\'s words'); assert.match(s, /endT\.textContent = endWords\(live\);/, 'the cause\'s words = the game\'s own table');
   assert.match(s, /catch \{ stage\.append\(el\('p', 'hi-nogl',/, 'no WebGL: the page still loads and says so');
   assert.match(read('css/highrise.css'), /\.hi-play \{[^}]*touch-action: none;[^}]*-webkit-tap-highlight-color: transparent;/, 'no page scroll, no tap flash over the play');
   assert.match(read('css/highrise.css'), /\.hi-tab \{[^}]*height: 48px;/, 'the mode tabs ≥ 44 pt');
@@ -98,9 +105,56 @@ test('THE GRAYBOX: flat boxes, THE DIAGONAL CAMERA (45° turn, 33° down, a narr
   assert.match(g, /dist = Math\.SQRT2 \/ \(2 \* CAM\.fill \* a \* Math\.tan\(CAM\.fov \* RAD \/ 2\)\);/, 'the first slab (√2 wide seen corner-on) = 60 % of the screen width');
   assert.match(g, /new THREE\.InstancedMesh\(box, new THREE\.MeshLambertMaterial/, 'the tower: one instanced mesh of flat-shaded boxes');
   assert.match(g, /function draw\(run, tau, dt\)/);
-  assert.match(g, /else if \(e\.e === 'perfect'\) \{ pending\.r = \{ \.\.\.top \}; flashAge = 0; \}/, 'a perfect flashes the top edge white');
-  assert.match(g, /fall\(pc, pending\.floor,/, 'the cut piece just falls away');
+  assert.match(g, /T = createTower\(run, \{ onPerfect: \(\) => \{ flashAge = 0; \}, onFall: fall \}, KEEP\);/, 'a perfect flashes the top (its face + its edge, white); the cut piece just falls away — from tower.js\'s hooks');
+  assert.match(g, /plateMat\.opacity = fo \* fo \* 0\.9;/, 'the whole top face flashes (a thin outline alone was too weak on a light slab — the review)');
   const frame = g.slice(g.indexOf('function draw('), g.indexOf('return {', g.indexOf('function draw(')));
   assert.doesNotMatch(frame, /clientWidth|clientHeight|getBoundingClientRect|offsetWidth/, 'no layout read in the frame (sizes come from the ResizeObserver)');
   for (const f of ['engine.js', 'replay.js', 'tuning.js', 'logic.js']) assert.doesNotMatch(code(`js/games/highrise/${f}`), /performance\.|requestAnimationFrame/, `${f} never reads a frame clock`);
+});
+
+test('THE VIEW\'S TOWER == THE ENGINE\'S, HOWEVER THE EVENTS ARE BATCHED (tower.js — the review: two drops in one batch lost a slab): one batch, one event at a time, random chunks, a tap + the fuse together', () => {
+  const rect = r => ({ x0: r.x0, x1: r.x1, z0: r.z0, z1: r.z1 });
+  let cuts = 0, wholes = 0, flashes = 0;
+  for (let i = 0; i < 40; i++) {
+    const seed = `tw${i}`, mode = MODE_IDS[i % 3], run = createRun({ seed, mode }), bot = gaussBot({ sigmaMs: [60, 40, 25, 10][i % 4], seed }), ev = [];
+    while (!isOver(run) && run.floor < 220) { stepTo(run, run.s0, ev); if (run.st !== 'slide' || !tap(run, bot(run), ev)) break; }
+    if (!isOver(run)) stepTo(run, run.t + BEAT + FLOOR_TICKS_MAX, ev);
+    assert.ok(isOver(run));
+    // the batches: everything at once · one event a batch · chunks of 1–9 (a frame may hold two drops) · split right after every 'drop'
+    let k = i + 1;
+    const rnd = () => { k = (k * 1103515245 + 12345) % 2147483648; return k; };
+    const ways = [
+      [ev],
+      ev.map(e => [e]),
+      (() => { const out = []; for (let a = 0; a < ev.length;) { const n = 1 + rnd() % 9; out.push(ev.slice(a, a + n)); a += n; } return out; })(),
+      (() => { const out = [[]]; for (const e of ev) { out[out.length - 1].push(e); if (e.e === 'drop') out.push([]); } return out; })(),
+    ];
+    for (const [w, batches] of ways.entries()) {
+      const fresh = createRun({ seed, mode }), falls = [];
+      let perfects = 0;
+      const T = createTower(fresh, { onPerfect: () => perfects++, onFall: (r, floor, dx, dz, whole) => falls.push({ r: rect(r), whole }) }, 100000);
+      for (const b of batches) T.feed(b);
+      assert.deepEqual(rect(T.top()), rect(run), `${seed} way ${w}: the view's top slab = the engine's`);
+      assert.equal(T.floor(), run.floor); assert.equal(T.slabs().length, run.floor + 1, 'one slab a floor (+ the base): none lost, none doubled');
+      assert.equal(perfects, run.perfects);
+      assert.equal(falls.filter(f => !f.whole).length, ev.filter(e => e.e === 'cut').length, 'a piece falls for every cut');
+      assert.equal(falls.filter(f => f.whole).length, run.st === 'out' ? 1 : 0, 'the slab that missed / slipped falls whole');
+      for (const f of falls) assert.ok(f.r.x1 > f.r.x0 && f.r.z1 > f.r.z0);
+      if (!w) { cuts += falls.filter(f => !f.whole).length; wholes += falls.filter(f => f.whole).length; flashes += perfects; }
+    }
+  }
+  assert.ok(cuts > 300 && wholes > 20 && flashes > 500, `cuts ${cuts}, whole falls ${wholes}, perfect flashes ${flashes}`);
+  // the two repros of the review, by hand: two taps with no frame between · a tap, then THE FUSE, in one batch
+  const a = createRun({ seed: 'two', mode: 'solo' }), ev = [];
+  for (let n = 0; n < 2; n++) { stepTo(a, a.s0); let t = a.s0 + Math.floor(a.S / 2) - 6; assert.ok(tap(a, t, ev)); }
+  const V = createTower(createRun({ seed: 'two', mode: 'solo' }));
+  V.feed(ev);
+  assert.deepEqual([V.floor(), V.slabs().length, rect(V.top())], [2, 3, rect(a)]);
+  const b = createRun({ seed: 'hid', mode: 'solo' }), evb = [];
+  stepTo(b, b.s0); tap(b, b.s0 + Math.floor(b.S / 2), evb); stepTo(b, 100000, evb);
+  assert.deepEqual(evb.map(e => e.e), ['drop', 'perfect', 'land', 'spawn', 'drop', 'out']);
+  const W = createTower(createRun({ seed: 'hid', mode: 'solo' }));
+  W.feed(evb);
+  assert.deepEqual([W.floor(), W.slabs().length], [1, 2], 'the floor that landed before the fuse is drawn');
+  assert.doesNotMatch(code('js/games/highrise/tower.js'), /from '|document|window|THREE/, 'tower.js is pure: no import, no DOM, no three.js');
 });

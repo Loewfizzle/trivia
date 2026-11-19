@@ -11,15 +11,16 @@ import { featsOf } from '../../js/games/highrise/logic.js';
  *   floor = the slabs landed · tick = when the last one landed (THE RANKING: height, then the earlier tick) · end = the tick the run ended ·
  *   cause = 'miss' (MISSED THE STACK) | 'thin' (SLIPPED OFF) | 'slow' (TOO SLOW — the fuse) | 'made' (floor 200: MADE IT) | 'cap'.
  * The result is the server's OWN replay — a phone's claimed floor is never read (there is no field for one).
- * REFUSED (`why`): 'seed' (not a string of 1 … 64) · 'mode' · 'taps' (not a list) · 'too many taps' (more taps than the mode has floors /
+ * REFUSED (`why`): 'mode' (REQUIRED — a missing one is never judged as solo) · 'seed' (not 1 … 64 printable ASCII characters) · 'taps' (not a list) · 'too many taps' (more taps than the mode has floors /
  * than any run holds) · 'entry' (a tick that is not a whole number ≥ 0) · 'ticks not rising' · 'in the landing beat' (a tap with no slab
  * to drop — also a tap before the first slab) · 'past the cap' · 'after the fuse' (a gap no honest run has: the fuse had dropped that
  * slab) · 'past the end' (a tap after the run was over — an out, the finish, the fuse's own drop).
  */
-export const judgeRun = input => judge(input || {});
+export const judgeRun = input => judge(input && typeof input === 'object' ? input : {});
 
 /** the same judge from a PACKED log (replay.js#packTaps — S2's run node keeps it that way) */
-export function judgePacked({ seed, mode = 'solo', log } = {}) {
+export function judgePacked(input) {
+  const { seed, mode, log } = input && typeof input === 'object' ? input : {};
   const taps = unpackTaps(log);
   return taps ? judge({ seed, mode, taps }) : { ok: false, why: 'log' };
 }
