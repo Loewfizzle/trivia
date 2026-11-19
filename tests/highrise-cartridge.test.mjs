@@ -202,7 +202,7 @@ test('THE SWITCH (COUNTING OFF until go-live): ONE flag, OFF; /api/report return
   const rep = code('api/report.js'), stats = code('api/_lib/stats.js');
   assert.match(rep, /export const highriseCounts = async \(\) => HIGHRISE_COUNTS \|\| \(emulated\(\) && !!\(await val\('testHighriseCounts'\)\)\);/, 'the test flip is honoured on the emulators only');
   // the switch sits AFTER every verification and BEFORE credit(): nothing is claimed, nothing written
-  const sw = rep.indexOf("if (ex.gid === 'highrise' && !(await highriseCounts())) {"), cr = rep.indexOf('return credit({ key, uid, myPid, ex, pids, now, room: { code, meta, win }, at, src });');
+  const sw = rep.indexOf("if (hrOff && ex.gid === 'highrise') {"), cr = rep.indexOf('return credit({ key, uid, myPid, ex, pids, now, room: { code, meta, win }, at, src });');
   assert.ok(sw > 0 && cr > sw && rep.indexOf('dedupePids(ex.rows, pids);') < sw, 'judged first, then the switch, then (only when ON) credit()');
   const body = rep.slice(sw, cr);
   assert.match(body, /return \{ ok: true, status: 'would_count', outcome: \{ none: true, would: wouldAward\(judged, w, rec\) \} \};/);
@@ -212,6 +212,11 @@ test('THE SWITCH (COUNTING OFF until go-live): ONE flag, OFF; /api/report return
   assert.match(wa, /const res = step\(cur, key, ex\.gid, row, ex\.n, now, at, outage,/);
   // the ONLY other writers of a result for it: credit() — reached only past the switch
   assert.equal((rep.match(/highriseCounts\(\)/g) || []).length, 1, 'ONE place asks the switch');
+  // (the fresh-eyes review: asked BEFORE the one earlier write a HIGH RISE match could reach — a match from before the progress reset)
+  const ask = rep.indexOf("const hrOff = night.g === 'highrise' && !(await highriseCounts());"), pre = rep.indexOf("if (hrOff) return { ok: true, status: 'before_reset', outcome: null };"), seal = rep.indexOf("{ st: 'done', at: now, pre: 1, by: uid, o: {} }");
+  assert.ok(ask > 0 && ask < pre && pre < seal && seal < sw, 'OFF: not even the before-reset record is sealed');
+  // every write processReport itself can make sits past the switch's ask or is not HIGH RISE's (noteSeen = the account's hashed address, every report)
+  assert.equal((rep.slice(0, ask).match(/\.set\(|\.update\(|\.transaction\(/g) || []).length, 0, 'nothing is written before the switch is asked');
   // ON (the pure step — what credit() runs): a counted run past floor 60
   const S = highriseSolo({ code: CODE, matchId: M, uid: 'u1', node: nodeOf(botTaps(BOTS.nearPerfect)) }), ex = extractMatch(S.game);
   const res = matchStep(null, { key: `${CODE}_${M}`, gid: 'highrise', row: ex.rows.u1, n: 1, now: GO + 400000, at: GO + 400000, gap: 0 });
@@ -270,4 +275,39 @@ test('THE VIEW WRITES THE PROOF — AND ONLY ITS OWN NODE: GO once (the server\'
   assert.match(v, /if \(!proven\) \{ showLeave\(\); return \{ own: true, note: 'NOT COUNTED — NO LINE TO THE BOARD' \}; \}/, 'an UNPROVEN run ends on the stage\'s own card');
   // the stage itself writes nothing (it is the test page's module too)
   assert.doesNotMatch(code('js/games/highrise/stage.js'), /firebase|dbRef|serverTimestamp|\/api\//);
+});
+
+test('THE FRESH-EYES REVIEW — the host\'s podium reads its LIVE MIRROR (a chunk in flight carries the phone\'s estimate of the server\'s time): never an honest run refused as "the chunks\' clock"; THE SERVER stays strict', () => {
+  const taps = botTaps(BOTS.good), node = nodeOf(taps), seed = seedOf(CODE, M, GO), want = judgeRun({ seed, mode: 'solo', taps });
+  // the last chunk still unacknowledged: its `at` = the phone's estimate — a round trip EARLIER than the acknowledged chunk before it
+  const n = Object.keys(node.c).length, flight = { ...node, c: { ...node.c, [n - 1]: { ...node.c[n - 1], at: node.c[n - 2].at - 180 } }, e: { f: 1, t: 1, w: 'miss' } };
+  assert.equal(judgeSolo({ code: CODE, matchId: M, node: flight }).why, 'the chunks\' clock', 'the strict judge (the server\'s) refuses a clock that runs backwards');
+  const row = scoreNode(CODE, M, flight);
+  assert.ok(!row.bad && row.f === want.floor && row.p === want.perfects, `the host's podium: the run as it was (floor ${row.f})`);
+  const g = createGame({ matchId: M, settings: {}, participants: { u1: true }, now: 1, seed: 'x' });
+  assert.equal(nextStep(g, { now: 2, live: { runs: { u1: flight } }, code: CODE }).results.u1.f, want.floor);
+  // the lenient read forgives ONLY the backwards step: a log AHEAD of the clock is still refused on the podium
+  assert.match(scoreNode(CODE, M, { go: GO, c: { 0: { s: packTaps(taps), at: GO + 2000 } } }).bad, /ahead/);
+  assert.match(code('js/games/highrise/director.js'), /judgeSolo\(\{ code, matchId, node, mirror: true \}\)/);
+  assert.doesNotMatch(code('api/_lib/highrise.js'), /mirror/, 'the server never sets it');
+  assert.equal(highriseSolo({ code: CODE, matchId: M, uid: 'u1', node: flight }).v.why, 'the chunks\' clock', '… the server\'s result of the same node: refused (it only ever reads acknowledged stamps)');
+});
+
+test('THE FRESH-EYES REVIEW — the view + the stage: a LATE GO answer never touches a run that went on; the hold is taken in the START touch; the podium puts the stage\'s card away; the best is stored before the end screen; the two tags keep the floors\' order', () => {
+  const v = code('js/games/highrise/view.js'), st = code('js/games/highrise/stage.js'), fin = code('js/games/highrise/final.js');
+  assert.match(v, /const stale = \(\) => done \|\| gone \|\| m !== matchId;/);
+  assert.match(v, /const proof = \(goAt, chunks\) => \{\s*if \(stale\(\)\) \{ if \(!gone && m === matchId\) spent = true; return; \}/, 'a late GO: nothing of the view is written — and this match\'s one GO is spent');
+  assert.match(v, /const unproven = why => \{ if \(stale\(\)\) return;/);
+  assert.match(v, /if \(node && node\.go > 0\) \{\s*dbGet\(dbRef\(nodePath\(\)\)\)\.then\(snap => \{ const n = snap\.val\(\); if \(n && n\.go > 0 && !n\.e\) proof\(n\.go, n\.c\); else unproven\('again'\); \}\)/, 'a rejoin reads the node FROM THE SERVER — never the mirror\'s estimate');
+  assert.doesNotMatch(v, /proof\(node\.go/, 'the seed is never picked from the mirror');
+  assert.match(st, /starting = true; stage\.classList\.add\('is-starting'\);\s*awakeAt = performance\.now\(\); awake\(true\);/, 'the hold: in the START touch');
+  assert.match(st, /if \(\(t0 != null \|\| starting\) && !shown && now - awakeAt > 1000\) \{ awakeAt = now; awake\(true\); \}/, '… renewed while GO is on its way');
+  assert.match(v, /S\.hideCard\(\);[^\n]*\n\s*final = createFinal\(/); assert.match(st, /hideCard\(\) \{ if \(!card\) return; card = false; end\.hidden = true; again\.hidden = true; stage\.classList\.remove\('is-over'\); \},/);
+  assert.match(st, /!\(shown && !card\) && !stage\.classList\.contains\('is-final'\) &&/, 'a key never restarts a run under the podium');
+  assert.ok(st.indexOf('if (best > was) writeBest(best);') < st.indexOf('const E = o.onEnd ? o.onEnd(live) : null;'), 'YOUR BEST is stored BEFORE the end screen is asked for');
+  assert.match(fin, /if \(!srv && nb && game && nb\.m === game\.matchId && nb\.v === floor && floor > 0\)/, 'counting OFF: NEW BEST from this phone\'s own record of THIS run');
+  assert.doesNotMatch(fin, /if \(!\(floor > 0\)\) return;/, 'the server\'s answer shows whatever the host\'s row says');
+  assert.match(st, /if \(Math\.abs\(want - tagNat\) >= 29\.5\) y = want; else \{ y = tagNat; shift = up \? 30 : -30; \}/, 'no room on the friend\'s side: the GOLD tag steps the other way — the higher floor stays above');
+  assert.match(st, /if \(document\.visibilityState === 'hidden'\) \{ awake\(false\); if \(o\.onHide\) o\.onHide\(\); \}/); assert.match(v, /hide: \(\) => \{ if \(S && started && !S\.state\(\)\.over\) flush\(true\); \}/, 'a hidden page\'s last taps go up at once');
+  assert.match(code('js/audio/engine.js'), /if \(startWaits >= 8\) return;/, 'the sync measure never piles listeners on a context that does not run');
 });

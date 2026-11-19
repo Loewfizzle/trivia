@@ -210,7 +210,7 @@ export function createStage(app, o = {}) {
     T = createTower(run, hooks, KEEP);
     best = Math.max(best, readBest()); tapeFloor = 0; newBest = false; bandNow = 0; notch = 0;   // (max: a phone whose storage is blocked still keeps its best for the visit)
     plan = flyPlan(seed); flown.jet = flown.ufo = flown.ship = false; wanted.clear(); needFloor = -1;
-    view.adopt(run, T); view.setBest(0); view.setFriend(0); friendTape = 0; ftagF = null; ftagFloor = -1; ftag.hidden = true; view.flyReset();
+    view.adopt(run, T); view.setBest(0); view.setFriend(0); friendTape = 0; ftagF = null; ftagFloor = -1; ftag.hidden = true; tagShift = 0; tagNat = -1e9; view.flyReset();
     end.hidden = true; again.hidden = true; start.hidden = false; soundsBtn.hidden = false; note.hidden = false;
     stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-made');
     startBest.textContent = best ? `YOUR BEST ${best}${PAGE ? ' · THIS PHONE' : ''}` : '';
@@ -229,6 +229,7 @@ export function createStage(app, o = {}) {
     const ready = !snd || !snd.ready || snd.ready();
     if (ready && !o.go) { live(ts); return; }
     starting = true; stage.classList.add('is-starting');
+    awakeAt = performance.now(); awake(true);   // (THE REVIEW: the hold is taken IN the START touch — GO's answer lands outside any tap, where iOS may refuse to wake a napping context)
     const m = startN;
     const on = G => { if (gone || m !== startN) return; starting = false; stage.classList.remove('is-starting'); if (G) adopt(G); else live(ready ? ts : performance.now()); };
     Promise.all([ready ? null : snd.whenReady(START_WAIT_MS), o.go ? o.go() : null]).then(r => on(r[1]), () => on(null));
@@ -276,7 +277,7 @@ export function createStage(app, o = {}) {
   play.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' && e.button !== 0) return; touch(e.timeStamp); });
   play.addEventListener('touchmove', e => e.preventDefault(), { passive: false });   // (no page scroll under a finger)
   // (in the console a key is a drop only while nothing else has the focus — its menus + the podium keep their own keys)
-  const keyOk = () => PAGE || (!(shown && !card) && (!document.activeElement || document.activeElement === document.body || stage.contains(document.activeElement)));
+  const keyOk = () => PAGE || (!(shown && !card) && !stage.classList.contains('is-final') && (!document.activeElement || document.activeElement === document.body || stage.contains(document.activeElement)));
   document.addEventListener('keydown', e => { if (sheetOpen || !keyOk()) return; if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); touch(e.timeStamp); } }, sig);   // (the sheet's own buttons keep their keys)
 
   // ---- THE ANNOUNCER LANE (under the band's name): one call at a time — a bigger moment is never wiped by a smaller one
@@ -335,11 +336,11 @@ export function createStage(app, o = {}) {
   function showEnd(now) {
     shown = true; overAt = now; awake(false);   // (THE SOUND SYNC: the hold ends with the run — the context naps again on the end card)
     const live = resultOf(run), b = bandAt(live.floor), was = best;
+    best = FROM ? was : nextBest(was, live.floor);   // (a `?floor=N` look check is not a run: YOUR BEST stays)
+    if (best > was) writeBest(best);   // (THE REVIEW: stored BEFORE the end screen is asked for — the podium's body reads it)
     // THE CARTRIDGE: the console's podium IS the end screen — the stage's own card only for a run that can't reach it (UNPROVEN)
     const E = o.onEnd ? o.onEnd(live) : null;
     card = !E || !!E.own;
-    best = FROM ? was : nextBest(was, live.floor);   // (a `?floor=N` look check is not a run: YOUR BEST stays)
-    if (best > was) writeBest(best);
     endT.textContent = endWords(live);
     setNum(endN, live.floor);
     endB.textContent = BANDS[b].name;
@@ -366,7 +367,7 @@ export function createStage(app, o = {}) {
     hook.ends.push({ seed, mode: MODE, same, at, live, replay: r, taps: taps.slice(), best, was }); if (hook.ends.length > 50) hook.ends.shift();
   }
 
-  let raf = 0, last = 0, hudFloor = -1, hudLeft = -2, tagFloor = -1, tagAt = -1e9, ftagF = null, ftagFloor = -1, ftagAt = -1e9, friendTape = 0, frameN = 0, lookSeen = lookT, toneSeen = skyTone(lookT, 0);
+  let raf = 0, last = 0, hudFloor = -1, hudLeft = -2, tagFloor = -1, tagAt = -1e9, tagNat = -1e9, tagShift = 0, ftagF = null, ftagFloor = -1, ftagAt = -1e9, friendTape = 0, frameN = 0, lookSeen = lookT, toneSeen = skyTone(lookT, 0);
   // THE HITCH COUNTER: frames over HITCH_MS in this run (after its first second; a tab that was away is not a hitch) + the last one's cause
   let hitchN = 0, hitchAll = 0, hitchLast = '', prevAt = 0, prevWork = 0, usual = TICK_MS;   // (usual: the phone's own frame, eased)
   const hitchList = [];
@@ -401,7 +402,7 @@ export function createStage(app, o = {}) {
       if (liveEv.length < 400000) liveEv.push(...ev);
       ev.length = 0; sounded = 0; hush = false;
     }
-    if (t0 != null && !shown && now - awakeAt > 1000) { awakeAt = now; awake(true); }   // (THE SOUND SYNC: the lease, renewed while the run is live)
+    if ((t0 != null || starting) && !shown && now - awakeAt > 1000) { awakeAt = now; awake(true); }   // (THE SOUND SYNC: the lease, renewed while the run is live)
     if (t0 != null && o.onFrame) o.onFrame(now);
     if (isOver(run) && !endedAt && o.onOver) o.onOver(resultOf(run));
     if (isOver(run) && !endedAt) endedAt = now;   // (the end's own frame — whether THE FUSE ended it in this frame or a TAP did in the touch handler: the review — a miss used to bring the card at once, over the falling slab)
@@ -424,9 +425,11 @@ export function createStage(app, o = {}) {
     if (t0 != null && !shown && !isOver(run) && best > 0 && run.floor <= best) {
       if (tagFloor !== run.floor) { tagFloor = run.floor; tag.firstChild.textContent = bestView(best, run.floor).tag; tag.hidden = false; tagAt = -1e9; }
       // (its height is clamped to 100 floors up: a best far above is BEHIND the diagonal camera — projected, it came back mirrored and the tag jumped to the foot of its column: the review)
-      const tp = T.top(), y = tagY(view.project((tp.x0 + tp.x1) / 2, Math.min(best, run.floor + 100), (tp.z0 + tp.z1) / 2)[1] * stageH, hudFoot, view.zoneTop() * stageH);
+      const tp = T.top();
+      tagNat = tagY(view.project((tp.x0 + tp.x1) / 2, Math.min(best, run.floor + 100), (tp.z0 + tp.z1) / 2)[1] * stageH, hudFoot, view.zoneTop() * stageH);
+      const y = tagNat + tagShift;   // (tagShift: a step out of THE NEXT FRIEND's way — below)
       if (Math.abs(y - tagAt) >= 0.25) { tagAt = y; tag.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`; }   // (a tag that did not move is not written)
-    } else if (tagFloor >= 0) { tagFloor = -1; tag.hidden = true; }
+    } else if (tagFloor >= 0) { tagFloor = -1; tag.hidden = true; tagNat = -1e9; }
     // THE NEXT FRIEND while they are ABOVE you (S4A): the same flag in PINK at their floor's own height — held clear of the HUD, of THE
     // DROP ZONE and of the gold tag (a step above / below it); one friend at a time; solo only
     const fr = o.friends && MODE === 'solo' && t0 != null && !shown && !isOver(run) ? nextFriend(o.friends(), run.floor) : null;
@@ -434,9 +437,16 @@ export function createStage(app, o = {}) {
       if (fr !== ftagF || run.floor !== ftagFloor) { ftagF = fr; ftagFloor = run.floor; mark('dom'); ftag.firstChild.textContent = friendTag(fr, run.floor); ftag.hidden = false; ftagAt = -1e9; }
       const tp = T.top(), zone = view.zoneTop() * stageH;
       let y = tagY(view.project((tp.x0 + tp.x1) / 2, Math.min(fr.v, run.floor + 100), (tp.z0 + tp.z1) / 2)[1] * stageH, hudFoot, zone);
-      if (tagFloor >= 0 && Math.abs(y - tagAt) < 30) { const up = fr.v >= best; y = tagY(tagAt + (up ? -30 : 30), hudFoot, zone); if (Math.abs(y - tagAt) < 30) y = tagY(tagAt + (up ? 30 : -30), hudFoot, zone); }
+      // (THE REVIEW — THE TWO TAGS KEEP THE FLOORS' ORDER: the higher floor's tag above. Where the friend's own side has no room (both
+      //  held at the column's edge) the GOLD tag steps the other way instead — next frame, through tagShift)
+      let shift = 0;
+      if (tagFloor >= 0 && Math.abs(y - tagNat) < 30) {
+        const up = fr.v >= best, want = tagY(tagNat + (up ? -30 : 30), hudFoot, zone);
+        if (Math.abs(want - tagNat) >= 29.5) y = want; else { y = tagNat; shift = up ? 30 : -30; }
+      }
+      tagShift = shift;
       if (Math.abs(y - ftagAt) >= 0.25) { ftagAt = y; ftag.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`; }
-    } else if (ftagF) { ftagF = null; ftagFloor = -1; ftag.hidden = true; }
+    } else if (ftagF) { ftagF = null; ftagFloor = -1; ftag.hidden = true; tagShift = 0; }
     if (callUntil && now > callUntil) { callUntil = 0; callPri = 0; call.className = 'hi-call'; call.style.opacity = ''; if (later) { const l = later; later = null; say(l[0], l[1], l[2], l[3], now); } }
     frameN++;
     if (frames.length < 20000) frames.push(gap); else frames[frameN % 20000] = gap;
@@ -445,7 +455,7 @@ export function createStage(app, o = {}) {
     tiers.sample(now, prevWork); if (pin == null && frameN % 10 === 0) tiers.tick(now);
     if (fps && frameN % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · tier ${i.tier}${i.bloom ? ' bloom' : ''} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr} · tick ${run.t} · HITCH ${hitchN}${hitchLast ? ` (last: ${hitchLast})` : ''}`; }
   }
-  document.addEventListener('visibilitychange', () => { tiers.reset(); if (document.visibilityState === 'hidden') awake(false); else if (o.onShow) o.onShow(); if (glDown && document.visibilityState === 'visible') { tries = 0; rebuild(); } }, sig);
+  document.addEventListener('visibilitychange', () => { tiers.reset(); if (document.visibilityState === 'hidden') { awake(false); if (o.onHide) o.onHide(); } else if (o.onShow) o.onShow(); if (glDown && document.visibilityState === 'visible') { tries = 0; rebuild(); } }, sig);
 
   // (the pass's own checks — tests/integration/highrise-play.mjs)
   const hook = {
@@ -486,6 +496,8 @@ export function createStage(app, o = {}) {
     taps: () => taps, result: () => resultOf(run), seed: () => seed,
     /** the stage's own end card after all (the podium never came: no signal) — with its one line */
     showCard(line) { if (!shown || card) return; card = true; overAt = performance.now(); end.hidden = false; again.hidden = false; stage.classList.add('is-over'); check.className = 'hi-check is-note'; check.textContent = line || ''; },
+    /** the podium takes the screen: the stage's own card is put away (never a restart under it) */
+    hideCard() { if (!card) return; card = false; end.hidden = true; again.hidden = true; stage.classList.remove('is-over'); },
     /** the friends' bests changed (YOUR TABLE answered) */
     friends() { ftagF = null; ftagFloor = -1; },
     syncs: () => syncs.slice(),

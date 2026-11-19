@@ -90,11 +90,15 @@ export function clockProblem(go, times) {
  * refuses (the bounds, a tap in a landing beat, a tap after the end). A log that falls BEHIND the clock with no silence to explain it is
  * CUT (`cut: { why: 'behind', tick }`): judged up to its last on-time tap — the fuse then ends that run where it stood.
  */
-export function judgeNode({ seed, mode = 'solo', node } = {}) {
+export function judgeNode({ seed, mode = 'solo', node, mirror = false } = {}) {
   if (!node || typeof node !== 'object' || !(Number(node.go) > 0)) return { ok: false, why: 'no go' };
   let taps = tapsFromChunks(node.c);
   const times = chunkTimes(node.c);
   if (!taps || !times) return { ok: false, why: 'chunks' };
+  // (THE REVIEW — `mirror`: THE HOST's PODIUM judges its own LIVE mirror, where a chunk still in flight carries the phone's ESTIMATE of
+  //  the server's time — a round trip early, so it can read as stamped BEFORE the acknowledged chunk ahead of it: an honest run refused
+  //  as "the chunks' clock". The podium's read takes the times as never running backwards; THE SERVER's judge never sets it — strict.)
+  if (mirror) { let last = Number(node.go); for (const k of times) { if (k.at < last) k.at = last; last = k.at; } }
   const c = clockProblem(Number(node.go), times);
   let cut = null;
   if (c && c.why !== 'behind') return { ok: false, why: c.why === 'ahead' ? 'ahead of the clock' : c.why === 'clock' ? 'the chunks\' clock' : c.why };
@@ -103,5 +107,5 @@ export function judgeNode({ seed, mode = 'solo', node } = {}) {
   return j.ok && cut ? { ...j, cut } : j;
 }
 /** a SOLO run's node: the seed = logic.js#seedOf(code, matchId, its own GO) — picked AFTER GO, nobody can shop for a tower */
-export const judgeSolo = ({ code, matchId, node } = {}) => (node && Number(node.go) > 0
-  ? judgeNode({ seed: seedOf(String(code), String(matchId), Number(node.go)), mode: 'solo', node }) : { ok: false, why: 'no go' });
+export const judgeSolo = ({ code, matchId, node, mirror = false } = {}) => (node && Number(node.go) > 0
+  ? judgeNode({ seed: seedOf(String(code), String(matchId), Number(node.go)), mode: 'solo', node, mirror }) : { ok: false, why: 'no go' });

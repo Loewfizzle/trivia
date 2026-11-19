@@ -214,6 +214,7 @@ function countVoices(c) {
 /** HIGH RISE S4A — THE SOUND SYNC's measure: every source's start — `at` (performance.now()) + `wait`: how long it then waited for a
  *  SLEEPING context to run (0 = it was running: the sound is on its moment; −1 = it never ran) — tests/integration/sound-sync.mjs */
 const starts = [];
+let startWaits = 0;
 export const voiceStarts = () => starts.slice();
 function noteStart(c) {
   const r = { at: performance.now(), wait: 0 };
@@ -221,8 +222,10 @@ function noteStart(c) {
   starts.push(r);
   if (c.state === 'running') return;
   r.wait = -1;
-  const on = () => { if (c.state !== 'running') return; r.wait = performance.now() - r.at; try { c.removeEventListener('statechange', on); } catch { /* fine */ } };
-  try { c.addEventListener('statechange', on); } catch { /* fine */ }
+  if (startWaits >= 8) return;   // (THE REVIEW: never more than a few listeners waiting — a context that never runs adds no more)
+  startWaits++;
+  const on = () => { if (c.state !== 'running') return; r.wait = performance.now() - r.at; startWaits--; try { c.removeEventListener('statechange', on); } catch { /* fine */ } };
+  try { c.addEventListener('statechange', on); } catch { startWaits--; }
 }
 function napSoon() { if (!napT && podOn && !napping && !heldNow()) napT = setTimeout(napNow, NAP_MS); }
 function napNow() {

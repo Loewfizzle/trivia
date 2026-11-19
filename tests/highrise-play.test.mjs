@@ -250,7 +250,7 @@ test('YOUR BEST (best.js — PURE): no best = nothing · above you = the right-e
   // the page wires it: the best BEFORE the run, the tag while above, the crossing → the tape + NEW BEST, stored at the end
   const s = code(`${HI}stage.js`);
   assert.ok(s.includes("if (crossedBest(best, e.floor)) {") && s.includes("tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold');") && s.includes("say('NEW BEST', 'is-gold', 5, 1900, now);"));
-  assert.ok(s.includes('y = tagY(view.project((tp.x0 + tp.x1) / 2, Math.min(best, run.floor + 100), (tp.z0 + tp.z1) / 2)[1] * stageH, hudFoot, view.zoneTop() * stageH);'), 'the tag: its floor\'s height (clamped 100 floors up — a point behind the camera projects mirrored: the review), clear of the HUD + THE DROP ZONE');
+  assert.ok(s.includes('tagNat = tagY(view.project((tp.x0 + tp.x1) / 2, Math.min(best, run.floor + 100), (tp.z0 + tp.z1) / 2)[1] * stageH, hudFoot, view.zoneTop() * stageH);') && s.includes('const y = tagNat + tagShift;'), 'the tag: its floor\'s height (clamped 100 floors up — a point behind the camera projects mirrored: the review), clear of the HUD + THE DROP ZONE');
   assert.ok(s.includes('best = Math.max(best, readBest());'), 'a phone whose storage is blocked keeps its best for the visit');
   assert.ok(s.includes("endBest.textContent = !best ? '' : !was ? `YOUR BEST ${best}`"), 'a first run that never landed a slab shows no "YOUR BEST 0"');
   assert.match(s, /best = FROM \? was : nextBest\(was, live\.floor\);[^\n]*\n\s*if \(best > was\) writeBest\(best\);/, 'a run moves YOUR BEST — a `?floor=N` look check never does');

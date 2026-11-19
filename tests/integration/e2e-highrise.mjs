@@ -109,6 +109,7 @@ try {
   await P.tap('.nd-shelf-row[data-game="highrise"]');
   ok(await P.waitFor("!!document.querySelector('.nd-card-sheet.is-in .nd-card[data-game=\"highrise\"] .nd-card-solo')", 8000), 'its row → THE GAME CARD with PLAY NOW');
   await P.shot('owner-card.png');
+  await sleep(450);   // (a tap in the card sheet's first moment is dropped — its opening guard; with no outDir there is no shot to wait on)
   const tPlay = Date.now();
   await P.tap('.nd-card-solo');
   ok(await P.waitFor(`${S}.game && ${S}.game.id === 'highrise' && !!document.querySelector('.hi-stage.hi-game canvas.hi-canvas') && !!${G} && ${ST}.state().info.warmed > 0`, 30000), `PLAY NOW → the game's own screen: the stage in the console's frame (${Date.now() - tPlay} ms from the tap — THE SOLO START's walk inside)`);
@@ -155,6 +156,7 @@ try {
   const fin = await P.ev("({ t: document.querySelector('.hi-fin-t').textContent, n: document.querySelector('.hi-fin-floor b').getAttribute('aria-label'), w: document.querySelector('.hi-fin-would').textContent, kicker: document.querySelector('.hi-final .sheet-kicker').textContent, bar: !!document.querySelector('.hi-final .final-bar, .hi-final .btn-primary') })");
   ok(fin.t === 'TOO SLOW' && Number(fin.n) === V.floor && fin.kicker === 'HIGH RISE · SOLO', `the end screen: ${fin.kicker} · ${fin.t} · FLOOR ${fin.n}`);
   ok(new RegExp(`^WOULD COUNT · FLOOR ${V.floor} · `).test(fin.w), `WOULD COUNT matches the phone's own result (${fin.w})`);
+  ok(await P.ev("document.querySelector('.hi-fin-best').textContent === 'NEW BEST' && document.querySelector('.hi-fin-best').classList.contains('is-new')"), 'the end screen: NEW BEST (this phone’s own record while counting is OFF — stored before the screen was built)');
   await sleep(1200);
   await P.shot('end-card-390x844.png');
   ok((await dbGet(`results/${g.code}_${g.m}`)) == null, 'counting OFF: no results/ record');
@@ -171,6 +173,10 @@ try {
   await P.ev(`${G}.setFriends([{ n: 'LIAM', v: 3 }, { n: 'MAYA', v: 7 }])`);
   ok(await P.waitFor(`/^LIAM 3 ▲\\d$/.test(${ST}.state().ftag) || ${ST}.state().ftag === 'LIAM 3 · ONE MORE'`, 4000), `THE NEXT FRIEND above you: the pink tag "${await P.ev(`${ST}.state().ftag`)}"`);
   const zone = await P.ev(`(() => { const t = document.querySelector('.hi-ftag').getBoundingClientRect(), s = document.querySelector('.hi-stage').getBoundingClientRect(); return { y: t.top + t.height / 2, right: Math.round(s.right - t.right), zone: ${ST}.view.zoneTop() * s.height, pink: getComputedStyle(document.querySelector('.hi-ftag')).borderLeftColor }; })()`);
+  const order = await P.ev("(() => { const f = document.querySelector('.hi-ftag'), g = document.querySelector('.hi-tag:not(.hi-ftag)'); return g.hidden ? null : { f: f.getBoundingClientRect().top, g: g.getBoundingClientRect().top, t: g.textContent }; })()");
+  await sleep(120);
+  const order2 = await P.ev("(() => { const f = document.querySelector('.hi-ftag'), g = document.querySelector('.hi-tag:not(.hi-ftag)'); return g.hidden ? null : { f: f.getBoundingClientRect().top, g: g.getBoundingClientRect().top, t: g.textContent }; })()");
+  ok(!!order2 && order2.f - order2.g >= 28, `the two tags keep the floors' order: LIAM 3 sits UNDER ${order2 && order2.t} (${order2 && (order2.f - order2.g).toFixed(0)} px apart)${order ? '' : ''}`);
   ok(zone.right === 0 && zone.y < zone.zone && /255, 79, 216/.test(zone.pink), `… at the right edge, in PINK, above THE DROP ZONE (y ${zone.y.toFixed(0)} < ${zone.zone.toFixed(0)})`);
   await drops(P, 5);
   ok(await P.waitFor(`${ST}.state().friendTape === 3 && /^MAYA 7/.test(${ST}.state().ftag)`, 6000), 'crossing LIAM\'s floor → the pink tape lies on the tower at floor 3 — and the next friend (MAYA) takes the tag');

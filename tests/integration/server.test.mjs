@@ -981,7 +981,8 @@ test('HIGH RISE S4A — the hidden cartridge: the owner-only gate; COUNTING OFF 
     });
     return { code, matchId, live: r.live };
   };
-  const snap = async p => JSON.stringify([await val(`pstats/${p}`), await val(`profiles/${p}`), await val('lb/highrise-solo'), await val(`ppriv/${p}`), await val('owners')]);
+  // (the fresh-eyes review: the WHOLE database outside the rooms — every top-level node: pstats, profiles, lb, owners, activity, results, pfr, seen …)
+  const snap = async () => { const all = (await val('/')) || {}; delete all.rooms; return JSON.stringify(all); };
   const best = async () => { const st = await stats(uid); return st && st.b && st.b['highrise-solo'] ? st.b['highrise-solo'].a : null; };
 
   // ---- THE OWNER-ONLY GATE: a game being built — a stranger's run is never even judged

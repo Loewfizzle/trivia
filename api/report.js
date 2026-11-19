@@ -207,7 +207,10 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   // clamped to ≤ now — and one that FINISHED BEFORE THE PROGRESS RESET is never paid in the new epoch: sealed done (never retried), the phone
   // told quietly ('before_reset' — no outcome, no message)
   const at = Math.min(night.at, now);
+  // HIGH RISE S4A — THE SWITCH, asked ONCE (the fresh-eyes review: before the one earlier write a HIGH RISE match could reach)
+  const hrOff = night.g === 'highrise' && !(await highriseCounts());
   if (Number(resetAt) > 0 && at < Number(resetAt)) {
+    if (hrOff) return { ok: true, status: 'before_reset', outcome: null };   // (counting OFF: not even the sealed record)
     await ref(`results/${key}`).transaction(cur => (cur && cur.st === 'done' ? undefined : { st: 'done', at: now, pre: 1, by: uid, o: {} }));
     return { ok: true, status: 'before_reset', outcome: null };
   }
@@ -313,7 +316,7 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   // HIGH RISE S4A — THE SWITCH, OFF (until go-live): the run was JUDGED — the proof node replayed, every check above passed — and NOTHING
   // is awarded: no claim on results/, no pstats, no profile, no board row, no card, no streak day (credit() is never reached). The answer
   // says what the counted path WOULD have done — the SAME pure step on a copy (stats.js#wouldApply, reads only).
-  if (ex.gid === 'highrise' && !(await highriseCounts())) {
+  if (hrOff && ex.gid === 'highrise') {
     const w = await wouldApply(key, ex, pids, uid, now, { code, meta, win }, at).catch(e => ({ skip: `error (${(e && e.message) || e})` }));
     const rec = ex.rows[uid] && ex.rows[uid].rec ? ex.rows[uid].rec['highrise-solo'] : null;
     return { ok: true, status: 'would_count', outcome: { none: true, would: wouldAward(judged, w, rec) } };

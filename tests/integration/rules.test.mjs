@@ -1600,6 +1600,9 @@ test('HIGH RISE S4A — the hr proof node: own uid + own match only, GO once, ap
   await assertFails(set(ref(db('p2'), `${R}/hr/m2/p2/go`), serverTimestamp()), 'only the match that is on');
   await assertFails(set(ref(db('p2'), `${N}/go2`), 1), 'no other field');
   await assertFails(set(ref(db('p2'), N), { go: 1 }), 'never the whole node at once (its leaves only)');
+  // (the fresh-eyes review's gaps) GO + a chunk + the end in ONE update: refused (a chunk needs a GO that is already THERE)
+  await assertFails(update(ref(db('host'), `${R}/hr/m1/host`), { go: serverTimestamp(), 'c/0': { s: '1c', at: serverTimestamp() }, e: { f: 1, t: 30, w: 'miss' } }), 'never GO + a chunk + the end at once');
+  await assertFails(set(ref(db('p2'), `${N}/c/01`), { s: '1c', at: serverTimestamp() }), 'no chunk index with a leading zero');
   await assertFails(set(ref(db('p2'), `${N}/c/0`), '1c.1k'), 'never a bare string — a chunk carries its server timestamp');
   await assertFails(set(ref(db('p2'), `${N}/c/0`), { s: '1c.1k' }), '… a chunk without its time');
   await assertFails(set(ref(db('p2'), `${N}/c/0`), { s: '1c.1k', at: now() - 60000 }), '… or with a time of its own choosing (the rules: === now)');
@@ -1620,6 +1623,14 @@ test('HIGH RISE S4A — the hr proof node: own uid + own match only, GO once, ap
   await assertFails(update(ref(db('p2'), `${N}/k`), { w: 'host', at: serverTimestamp() }), 'no call before your own end (S4B\'s Call the Winner)');
   await assertFails(set(ref(db('host'), `${R}/hr/m1/host/e`), { f: -1, t: 0 }), 'a bad end (and no GO)');
   await assertSucceeds(set(ref(db('p2'), `${N}/c/1`), C('2a')), 'the last chunk');
+  await assertSucceeds(set(ref(db('p2'), `${N}/c/9999`), C('2b')), 'index 9999 is the last one allowed');
+  await assertFails(set(ref(db('p2'), `${N}/e`), { f: 1000001, t: 400 }), 'a floor past the bound');
+  await assertFails(set(ref(db('p2'), `${N}/e`), { f: 3, t: 400, w: 'a cause far too long' }), 'a cause past 12 characters');
+  // a KICKED / unseated player writes nothing more
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/kicked/p2`), true));
+  await assertFails(set(ref(db('p2'), `${N}/c/2`), C('1c')), 'kicked: no chunk');
+  await assertFails(update(ref(db('p2'), N), { e: { f: 3, t: 400, w: 'miss' } }), 'kicked: no end');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/kicked/p2`), null));
   await assertFails(set(ref(db('p2'), `${N}/e`), { f: 3, t: 400, w: 'miss', claimed: 999 }), 'the end has no other field');
   await assertFails(set(ref(db('p2'), `${N}/e`), { f: 3 }), '… and needs its tick');
   await assertSucceeds(update(ref(db('p2'), N), { e: { f: 3, t: 400, w: 'miss' } }), 'the end');
@@ -1629,6 +1640,11 @@ test('HIGH RISE S4A — the hr proof node: own uid + own match only, GO once, ap
   await assertFails(remove(ref(db('host'), `${R}/hr/m1`)), 'the host never deletes the LIVE match\'s tree');
   await assertFails(remove(ref(db('host'), `${R}/hr`)), '… nor the whole hr node while its live match is in it');
   await assertFails(remove(ref(db('host'), N)), '… nor one player\'s node');
+  // the SAME match once it is FINAL: the players write nothing more; the host may clear its tree (after the end — as jw)
+  await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { phase: 'final' }));
+  await assertFails(set(ref(db('host'), `${R}/hr/m1/host/go`), serverTimestamp()), 'final: no GO');
+  await assertFails(set(ref(db('p2'), `${N}/c/3`), C('1c')), 'final: no chunk');
+  await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { phase: 'play' }));
   // PLAY AGAIN started the next run (match m2): m1's node — GO + the log + the end — is still there; its player can't touch it any more
   await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { matchId: 'm2', phase: 'play', playAt: now() }));
   const kept = (await get(ref(db('host'), N))).val();

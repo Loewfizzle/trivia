@@ -23,7 +23,7 @@ const NONE = Object.freeze({ f: 0, p: 0, t: 0, w: '', e: -1, s: 0 });
  */
 export function scoreNode(code, matchId, node) {
   if (!node || !(Number(node.go) > 0)) return { ...NONE };
-  const v = judgeSolo({ code, matchId, node });
+  const v = judgeSolo({ code, matchId, node, mirror: true });   // (the host's own live mirror — proof.js `mirror`; the server's count is strict)
   if (!v.ok) return { ...NONE, go: Number(node.go), bad: String(v.why || 'refused').slice(0, 24) };
   const ft = Object.keys(v.feats || {}).filter(k => v.feats[k]).join(' ');
   return { f: v.floor, p: v.perfects, t: v.tick, w: v.cause, e: v.end, s: v.maxStreak, go: Number(node.go), ...(ft ? { ft } : {}), ...(v.cut ? { cut: 1 } : {}) };

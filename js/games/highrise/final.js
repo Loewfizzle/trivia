@@ -73,13 +73,17 @@ export function finalScene(el, game, state) {
     h('div.hi-fin-l', `${perfectsLine(r.p)} · BEST STREAK ${Math.floor(Number(r.s) || 0)}`),
     best, would);
   // YOUR BEST as this phone knows it (the server's last answer once counting is ON — else its own): the server's answer below puts it right
-  const known = cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY));
-  if (known > 0) best.textContent = `YOUR BEST · ${num(known)}`;
+  const srv = cleanBest(ls.get(SRV_BEST_KEY)), known = srv || cleanBest(ls.get(BEST_KEY));
+  // (THE REVIEW: the stage stored a run's new best BEFORE this screen was asked for — while counting is OFF (no server best yet) the
+  //  phone's own record says NEW BEST · WAS n here; the server's answer takes the line over once counting is ON)
+  const nb = globalThis.__hiNewBest;
+  if (!srv && nb && game && nb.m === game.matchId && nb.v === floor && floor > 0) { best.textContent = nb.was > 0 ? `NEW BEST · WAS ${num(nb.was)}` : 'NEW BEST'; best.classList.add('is-new'); }
+  else if (known > 0) best.textContent = `YOUR BEST · ${num(known)}`;
   if (!code) return;
   let tabled = false;
   const table = () => { if (!tabled && el.isConnected) { tabled = true; yourTable(el); } };
   setTimeout(table, 2200);
-  if (!(floor > 0)) return;
+  // (THE REVIEW: the server's answer is shown WHATEVER the host's own row says — a podium row of 0 never hides it)
   lazyImport(import('../../profile/queue.js'), '../../profile/queue.js').then(Q => {
     const k = Q.matchKey(code, game.matchId);
     const show = o => {

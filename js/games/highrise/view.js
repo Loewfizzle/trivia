@@ -48,12 +48,13 @@ const drv = {
   hook: TEST ? '__hiStage' : '',
   lookNow,
   // YOUR BEST: the SERVER's (the best it last told this phone — once counting is ON); while counting is OFF, this phone's own (the test page's key)
-  best: { read: () => cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY)), write: n => ls.set(BEST_KEY, n) },
+  best: { read: () => cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY)), write: n => { const was = cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY)); ls.set(BEST_KEY, n); if (cur) cur.best(was, n); } },
   go: () => (cur ? cur.go() : Promise.resolve(null)),
   onFrame: now => { if (cur) cur.frame(now); },
   onOver: r => { if (cur) cur.over(r); },
   onEnd: r => (cur ? cur.end(r) : { own: true }),
   onShow: () => { if (cur) cur.shown(); },
+  onHide: () => { if (cur) cur.hide(); },   // (THE REVIEW: the last second's taps go up as the page is hidden — never left for the return)
   friends: () => (cur ? cur.friends() : []),
 };
 
@@ -82,19 +83,30 @@ export function createView() {
     const m = matchId, path = `${nodePath()}/go`;
     return new Promise(res => {
       let done = false;
-      const fin = G => { if (done || gone || m !== matchId) return; done = true; clearTimeout(goTimer); started = true; res(G); };
+      // (THE REVIEW — A LATE ANSWER NEVER TOUCHES A RUN THAT WENT ON: each call checks ITS OWN state — done / gone / another match — BEFORE
+      //  it writes anything of the view's; JAYWALK's `mode !== 'wait'` guard)
+      const stale = () => done || gone || m !== matchId;
+      const fin = G => { done = true; clearTimeout(goTimer); started = true; res(G); };
       const proof = (goAt, chunks) => {
+        // (a GO that landed AFTER this run went on unproven: this match's one GO is spent — the next run here plays unproven too,
+        //  never on a minutes-old GO)
+        if (stale()) { if (!gone && m === matchId) spent = true; return; }
         const old = chunks ? tapsFromChunks(chunks) : null;
         go = goAt; proven = true; sent = old ? old.length : 0; chunkN = chunks ? Object.keys(chunks).length : 0; verifyFirst = !!chunks; wroteE = false;
         fin({ seed: seedOf(code, matchId, go), t0: perfOf(go), taps: old || [] });
       };
       /** no proof here (no signal, the rules not published, this match's one GO already spent): the run still PLAYS — on its own seed, never counted */
-      const unproven = why => { if (why === 'refused') refused(); go = 0; proven = false; fin({ seed: newSeed(), t0: performance.now(), taps: [] }); };
+      const unproven = why => { if (stale()) return; if (why === 'refused') refused(); go = 0; proven = false; fin({ seed: newSeed(), t0: performance.now(), taps: [] }); };
       if (spent || matchLeft()) { unproven('again'); return; }
-      const runs = runsNow(), node = runs ? runs[uid] : null;
-      if (node && node.go > 0) { if (node.e) unproven('again'); else proof(node.go, node.c); return; }   // (a refresh / a rejoin mid-run: the run so far is in the node)
       clearTimeout(goTimer);
       goTimer = setTimeout(() => unproven('no answer'), GO_WAIT_MS);
+      // a refresh / a rejoin mid-run: the run so far is in the node — READ FROM THE SERVER (never this phone's mirror: while a GO of its
+      // own is unacknowledged the mirror holds the phone's ESTIMATE of the server's time — the seed is never picked from an estimate)
+      const runs = runsNow(), node = runs ? runs[uid] : null;
+      if (node && node.go > 0) {
+        dbGet(dbRef(nodePath())).then(snap => { const n = snap.val(); if (n && n.go > 0 && !n.e) proof(n.go, n.c); else unproven('again'); }).catch(() => unproven('again'));
+        return;
+      }
       expectRefusal(path, 'highrise GO: already written (a rejoin) or the rules are not published yet');
       dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => {
         const v = snap.val();
@@ -159,6 +171,7 @@ export function createView() {
   function showFinal(g) {
     clearTimeout(finalTimer);
     if (leaveBtn) { leaveBtn.remove(); leaveBtn = null; }
+    S.hideCard();   // (THE REVIEW: the podium takes the screen — the stage's own NO SIGNAL card is put away, a key can not restart under it)
     final = createFinal({ rows: gameStandings(g).map(r => ({ uid: r.uid, rank: r.rank, score: r.floor })), players: st.players, me: uid, presence: st.presence, kicker: 'HIGH RISE · SOLO', scoreLabel: 'FLOORS', winnerLine: nm => `${nm} BUILT THE TALLEST` });
     finalWrap = h('div.hi-final', final.el);
     S.el.classList.add('is-final'); S.el.append(finalWrap);
@@ -176,7 +189,7 @@ export function createView() {
   return {
     mount(el, state) {
       st = state; code = state.code; uid = state.uid; matchId = state.game ? state.game.matchId : '';
-      cur = { go: askGo, frame: () => flush(false), over, end, shown: () => { if (proven && go > 0 && S && !S.state().over) S.setT0(perfOf(go)); }, friends: () => friends };
+      cur = { go: askGo, frame: () => flush(false), over, end, hide: () => { if (S && started && !S.state().over) flush(true); }, best: (was, v) => { globalThis.__hiNewBest = { m: matchId, was, v }; }, shown: () => { if (proven && go > 0 && S && !S.state().over) S.setT0(perfOf(go)); }, friends: () => friends };
       const had = unpark();
       if (had) { S = had; el.replaceChildren(S.el); S.el.classList.remove('is-final'); S.restart(); }
       else S = createStage(el, drv);

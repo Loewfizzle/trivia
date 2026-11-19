@@ -1,16 +1,18 @@
 # HIGH RISE (id `highrise`) — the tower-stacking game
 
 **BEING BUILT — S1 (Nov 18 2026): THE RULES · S2 (Nov 18–19 2026): THE NIGHT LOOK + SOLO on an unlisted test page · S3 (Nov 19 2026):
-THE DAY LOOK + THE LOOK SWITCH + THE FLYERS + DEEP SPACE + THE MOTHERSHIP, the 2 cards' art prepared.** A 3D neon
+THE DAY LOOK + THE LOOK SWITCH + THE FLYERS + DEEP SPACE + THE MOTHERSHIP, the 2 cards' art prepared · S4A (Nov 19 2026): THE SOUND
+SYNC, THE HIDDEN CARTRIDGE (the owner's phone only, SOLO in a room), COUNTING built end to end — and switched OFF.** A 3D neon
 glass-slab tower: one tap drops each slab, the overhang slices off, a PERFECT snaps into place. Its signs read HIGH / RISE stacked.
 JAYWALK is its quality benchmark AND its engine formula (docs/jaywalk.md): a pure engine, a result = THE REPLAY of the player's own input
-log, a preview on the live site. The owner's decisions: `docs/games/plan.md` "HIGH RISE — S1" · "— S2" · "— S2 FIX" · "— S3"
+log, a preview on the live site. The owner's decisions: `docs/games/plan.md` "HIGH RISE — S1" · "— S2" · "— S2 FIX" · "— S3" · "— S4A"
 (**NO DAILY for HIGH RISE** — the owner, Nov 18: the seed barely changes play; the engine's daily mode stays unused).
 
-**HIGH RISE IS INVISIBLE TO PLAYERS**: no GAMES entry, no `config.js` change, no boot / cartridge / registry change, no Firebase rules
-change, no `/api` endpoint wiring (`tests/highrise-play.test.mjs` "HIGH RISE IS STILL INVISIBLE"). Its two addresses are UNLISTED:
-**/highrise-play** (THE TEST PAGE — the real game's two looks, SOLO; **NOTHING COUNTS UNTIL GO-LIVE**) and **/highrise-lab** (S1's graybox —
-never counts). Read this page before a HIGH RISE pass.
+**HIGH RISE IS HIDDEN FROM PLAYERS (S4A)**: a HIDDEN cartridge — its `config.js` GAMES row is `playable: false` + `preview` (BEING BUILT):
+no sign, no list, no board tab, no HOW TO PLAY, no meta at boot; **only THE OWNER's phone can start it** ("THE CARTRIDGE", below), and
+**NOTHING IS AWARDED UNTIL GO-LIVE** ("THE SWITCH"). Its two addresses stay UNLISTED: **/highrise-play** (THE TEST PAGE — the real game's
+two looks, SOLO; its door shut: **NOTHING COUNTS**, zero server calls) and **/highrise-lab** (S1's graybox — never counts). Read this page
+before a HIGH RISE pass.
 
 ## THE PASSES — INDEX
 | pass | date | log | what it built |
@@ -18,6 +20,7 @@ never counts). Read this page before a HIGH RISE pass.
 | S1 — THE RULES | Nov 18 2026 | `docs/games/passes/highrise-s1.md` | the engine, the replay + the judge (server half), the bot sims + the tuned speed curve, THE LAB (/highrise-lab) |
 | S2 — THE NIGHT LOOK + SOLO | Nov 18–19 2026 | `docs/games/passes/highrise-s2.md` | THE TEST PAGE (/highrise-play — nothing counts): the glass tower, the cut + sparks, the perfect's ring, grow-back, the night plates + the reflection map, the HUD, YOUR BEST (this phone), the sounds + the audition; the rules: SOLO PAST 200 KEEPS TIGHTENING · the ranking by perfects |
 | S2 FIX — THE LAG HUNT | Nov 19 2026 | `docs/games/passes/highrise-s2-fix.md` | the owner's phone check: the lag spikes found + fixed (THE LAG RULES, THE HITCH COUNTER on `?fps=1`), YOUR BEST's tape = a thin gold OUTLINE, THE END's FOOT (the PLAY AGAIN bar), the sounds as MP3 (121 KB) |
+| S4A — THE SOUND SYNC + THE HIDDEN CARTRIDGE + COUNTING (OFF) | Nov 19 2026 | `docs/games/passes/highrise-s4a.md` | THE SOUND SYNC (a live run holds the audio context awake — HIGH RISE + JAYWALK), THE HIDDEN CARTRIDGE (the owner's phone only, SOLO in a room — the stage in the console's frame), THE PROOF (the `hr` node + its rules), THE JUDGE on the server, THE SWITCH (counting OFF: judged, WOULD COUNT, nothing awarded), the board, YOUR TABLE, THE NEXT FRIEND's pink tape, the 2 cards in the catalog (hidden) |
 | S3 — THE DAY LOOK + THE FLYERS + DEEP SPACE | Nov 19 2026 | `docs/games/passes/highrise-s3.md` | THE DAY LOOK (frosted glass, one sun), THE LOOK SWITCH (AUTO · DAY · NIGHT, a 1.5 s cross-fade, never a hitch), THE FLYERS (the seed's Blackbird OR F-22 pair at 35–45 · the UFO at 85 · THE MOTHERSHIP from ~180), floor 200 (solo: the moment, then DEEP SPACE · `?mode=match`: THE FINISH + the gold card), the sounds final (ALL A), the 2 cards' art prepared |
 
 ## THE RULES (the owner's)
@@ -145,8 +148,9 @@ The cheap bounds (`tapsProblem`) only NAME what the engine's own `tap()` refuses
 that `tap()` returns false for. A log the phone's recorder made (it logs a tick only when `tap()` returned true) always passes.
 
 **THE SERVER HALF:** `api/_lib/highrise.js` — PURE, NOT a function (the 8 stay 8), imports the SAME `js/games/highrise` modules (as
-`api/_lib/jaywalk.js` does): `judgeRun` · `judgePacked({ seed, mode, log })` · `serverRow(v)` (the row a report will read). **NOT WIRED**
-into `/api/report` — S2 (the solo run node), S4 (the match), S5 (the daily) do that. `tests/highrise-server.test.mjs`: honest bot logs
+`api/_lib/jaywalk.js` does): `judgeRun` · `judgePacked({ seed, mode, log })` · `serverRow(v)` (the row a report reads) · S4A:
+`verifyNode` · `highriseSolo` · `highriseMatch` (S4B's half) · `HIGHRISE_COUNTS`. **WIRED into `/api/report` since S4A — behind THE
+SWITCH** ("THE PROOF" + "THE SWITCH", below). `tests/highrise-server.test.mjs`: honest bot logs
 accepted, every forged case refused by name, the judge == the live engine for 500 bot runs across all modes.
 
 **FOR S4 (the wiring — S1's review notes; counting moved from S2 to S4, nothing calls the judge yet):** an EMPTY log is an honest run (`ok`, floor 0, TOO SLOW) — a
@@ -204,8 +208,12 @@ What changed from the starting numbers, and why: `docs/games/passes/highrise-s1.
   through REAL taps, NO request but the page's own static files + the three.js CDN, no counted module, REPLAY = LIVE ✓, the shots).
   THE PAGES LOAD (`kit/page-loads.mjs`) opens it in the smoke test. The page's hook for the checks: `window.__hiLab`.
 
-## THE TEST PAGE — https://neonspeakeasy.com/highrise-play (S2 — `highrise-play.html` · `js/games/highrise/play.js` · `css/highrise-play.css`)
+## THE TEST PAGE — https://neonspeakeasy.com/highrise-play (S2 — `highrise-play.html` · `js/games/highrise/play.js` + `stage.js` · `css/highrise-play.css`)
 The real game's two looks + SOLO, on the live site, on a phone: the owner tests on cellular, his brother from a shared link.
+**S4A: its run loop is `stage.js` — ONE module the page AND the cartridge mount** (the scene, the HUD, YOUR BEST, the flyers, the
+sounds); `play.js` = the page itself: THE DOOR, its `?…` flags, its best (`hi:play:best`), and `createStage(app, { page: true, … })` —
+the page's own pieces (the look switch, the SOUNDS list, the note, its own end card every run) are behind `o.page`. The page hands the
+stage no proof, no report, no friends: it still counts nothing (`tests/highrise-play.test.mjs`).
 **UNLISTED** (noindex nofollow; no page, no script, no manifest names it), **OPEN** (no gate, no sign-in). `?seed=` (the same slabs
 every run) · `?fps=1` (the frame rate + **THE HITCH COUNTER** — below) · `?tier=0|1|2` (pins a quality tier) · `?mode=match|daily` (the
 finish + the cap — **`?mode=match` = THE FINISH's preview**, S3: floor 200 → the white-gold light → the gold card; the page itself is
@@ -227,7 +235,7 @@ moves YOUR BEST; the note says FROM FLOOR N).
   if a module fails to link. On THIS page `fetch` + `sendBeacon` to `/api/…` stop before they leave the phone. PROVEN in the browser
   check: the page hidden with its sound on → the counter's module loads, **0 requests to `/api/`**. (The site's service worker, on a
   phone it already controls, still asks `/api/time` at a navigation — ONE DEPLOY AT A TIME, the same for every page; not the page's code.)
-- **THE RUN** (`play.js`): tick 0 = the START touch; FAIR TAPS (the pointerdown's `event.timeStamp` → its tick); a tap in a landing
+- **THE RUN** (`stage.js`): tick 0 = the START touch (S4A: START first waits ≤ 0.6 s for every sound's decode — "THE SOUND SYNC"); FAIR TAPS (the pointerdown's `event.timeStamp` → its tick); a tap in a landing
   beat is never logged; the events of a frame → `tower.js` (the engine's own `land`) → the view's moments → the sounds' cues. **NO
   PAUSE**: the clock runs on behind a hidden tab — back from it THE FUSE has ended the run (TOO SLOW; its batch sounds only its OUT:
   `LATE_MS` 900). While a run is LIVE the SOUNDS button + the foot note are off the screen (a thumb anywhere is a drop). THE END CARD
@@ -449,8 +457,17 @@ runs only, hidden until go-live) and writes `.vl-s-hi-*` / `.vl-fcm-hi-*` from t
 - **CROSSING IT** (the landing on floor best + 1 — once a run): the gold band appears round the slab of your best floor with a flash
   (a gold ring), **NEW BEST** in the announcer lane, the streak's sparkle a step higher, and the floor number turns GOLD for the rest
   of the run. **No tag, no tape on a first-ever run** (no best yet).
-- **S2: the best is THIS PHONE's** (`hi:play:best`, written at a run's end when it is beaten — nothing counts until go-live). THE NEXT
-  FRIEND's tape (the same in PINK) arrives with S4's counting.
+- **S2: the best is THIS PHONE's** (`hi:play:best`, written at a run's end when it is beaten — nothing counts until go-live). In the
+  cartridge: the SERVER's best once counting is ON (`hi:best` — only ever written from the server's own answer), this phone's while OFF.
+- **THE NEXT FRIEND = THE PINK TAPE (S4A — `lines.js`, PURE · `stage.js` · `night.js#setFriend`; the owner, Nov 19):** the LOWEST friend
+  best still ABOVE you, from YOUR TABLE's HIGH RISE bests (the board `highrise-solo` through `/api/profile { action: 'table' }` — the
+  SERVER's; **empty while counting is OFF**, so no friend line shows until go-live — the e2e proves the look with a fixture). Above
+  you = the gold tag's twin **in PINK** at the right edge: **"LIAM 57 ▲12"** ("LIAM 57 · ONE MORE" on their floor), held in the same
+  clear column — between the HUD's foot and THE DROP ZONE's upper edge — and a step above / below the gold tag when the two would
+  meet. **Crossing it** (the landing on floor v + 1): a thin PINK tape lies round the slab of their floor (the gold tape's shader —
+  the SAME program: a second tape builds nothing; its twins in the bloom pass), **PASSED LIAM** in the announcer lane (pink), the
+  sparkle a step up — and the next friend above takes the tag. ONE friend at a time (one tag, one pink tape); SOLO only; never on the
+  test page (it hands the stage no list). Gold stays YOUR BEST's, nothing else.
 
 ## THE SOUNDS (S2 — `sounds.js` (the PURE table + the triggers) · `sfx.js` · `audition.js` (the SOUNDS list); the files: `audio/highrise/`)
 - **THE PICKS ARE FINAL (S3 — the owner, Nov 19: ALL A)**: drop as recorded · the chime starting an octave down · the slice = the
@@ -495,6 +512,112 @@ runs only, hidden until go-live) and writes `.vl-s-hi-*` / `.vl-fcm-hi-*` from t
 - `assets/highrise/models/f22.glb` (S3 — 399 KB; `scripts/bake/highrise-f22.mjs`) + `CREDITS.md` · `assets/vault/hi/*.webp` + their
   masters `art/highrise-cards/src/` (S3 — "THE CARDS' ART"; `/art` never deploys).
 
+## THE SOUND SYNC (S4A — the owner, Nov 19: "sometimes the sound isn't in sync with the blocks"; he plays with MUSIC OFF, the phone's speaker)
+- **THE CAUSE:** PODCAST MODE (CITY I — the site's music off, the effects on) NAPS the audio context 150 ms after each sound, and a
+  drop comes every 1.4–2.4 s — so EVERY drop's sound had to wake the context first. On iOS a context resumes only inside a gesture's
+  END (the finger's lift): the sound landed a variable beat after its slab.
+- **THE FIX (1) — A LIVE RUN HOLDS THE CONTEXT AWAKE:** `audio/engine.js#holdAwake(on, who)` (a lazy chunk reads its hub
+  `globalThis.__nsHoldAwake` — THE STALE-MODULE RULE). **A LEASE, never a latch:** a hold lasts `HOLD_LEASE_MS` 3 s and the game
+  RENEWS it once a second from its own frame loop — so a game that ends, unmounts, crashes or is hidden loses it by itself; the end
+  card lets it go at once (the context naps again on the start / end screens); a leave drops it in the same step as ever. It never
+  changes the session type (still `ambient`: the phone's podcast keeps playing), never touches the music, the hush (muted = nothing
+  runs) or THE CUT; with the music ON it is a no-op. **HIGH RISE** (the test page + the cartridge — `stage.js`) holds it from START
+  to the end card; **JAYWALK** (the game, the daily, the lab) from the run's start to its end.
+- **(2) — A DROP's SOUNDS ARE ASKED IN THE TOUCH** (`stage.js#soundNow`): the tap handler itself plays the cues of the events its
+  drop made — never a frame later (`sounded` keeps the frame from asking them twice; the fuse's drop + the moments' cues stay the
+  frame's).
+- **(3) — EVERY SOUND IS DECODED BEFORE THE FIRST TAP:** START waits ≤ `START_WAIT_MS` 0.6 s for the decodes (`sfx.js#ready` /
+  `whenReady`; a first-ever tap is also the audio's unlock) — so no sound of a run takes the late path (`sfx.js#lates()` = 0 in play:
+  the checks assert it). In the console the sounds are decoded as the stage mounts.
+- **MEASURED** (`node tests/integration/sound-sync.mjs "<chromium>"` — real touches, BOTH games, music ON and OFF; `--before` = the
+  same run with the hold switched off in the page): each landing event (HIGH RISE drop · perfect · slice — JAYWALK hop) → the moment
+  its sound was asked (`syncs`) → the engine's own record of that source's start (`voiceStarts`: at + how long it waited for a
+  sleeping context). **AFTER: every gap ≤ 0.4 ms, 0 wake-ups, 0 naps in a live run; the context naps again on the end card. BEFORE
+  (music off): a wake-up on most effects (8–9 in a 14-tap run), 10–13 ms each even in desktop Chromium** — on an iPhone the wait is
+  the finger's lift. `tests/audio-session.test.mjs` "THE HOLD" = the same on the real engine over a fake context.
+
+## THE CARTRIDGE (S4A — HIDDEN: THE OWNER'S LIVE TEST, JAYWALK H1 / H3's pattern; `meta.js` · `director.js` · `index.js` · `view.js` · `final.js`)
+- **WHO CAN START IT: THE OWNER ALONE.** `config.js` GAMES row `{ id: 'highrise', … playable: false, preview: true }` → `isPlayable` /
+  `isOwnerTest` are true only on a phone the SERVER said is the owner's (the radio gate — `ADMIN_PIDS`). **How:** the dock's **PLAY →
+  HIGH RISE · TEST → PLAY NOW** (a private solo room), or HOST a room → PICK A GAME → HIGH RISE · TEST with nobody else in it. Nobody
+  else's shelf, list, sign, board or HOW TO PLAY changes; a start from any other phone is refused (COMING SOON); the server counts a
+  game being built for the owner alone (`api/report.js#reportableGame`) — and, until go-live, for nobody ("THE SWITCH").
+- **S4A = THE SOLO RUN** (`index.js#start` returns null for a room of two or more — the console's COULD NOT START; **THE MATCH = S4B**).
+- **THE BOOT IS UNTOUCHED BY THE GAME:** no meta at boot (the registry loads the cartridge by id — `registration.test.mjs`
+  `HIGHRISE_WAITS`: meta · help · art · the board's tab → the go-live pass · smoke → S4B); THE BOOT BUDGET stays green (307 / 310
+  modules, 6,478 of 6,500 KB — the pass added the GAMES row, the stand-in mark, the loader line, the board's row, the engine's hold).
+- **THE SCREEN** = THE STAGE (`stage.js` — the SAME module the test page mounts) in the console's game frame: ☰ top-left + music
+  top-right, the look = the console's GAME LOOK read LIVE (`body[data-look]` — no switch of its own), the music by look (`index.js
+  #musicFor`: the day deck by day, the evening deck by night — JAYWALK's rule). None of the test page's own pieces.
+- **THE RUN:** TAP TO START → **GO** ("THE PROOF") → the run on the SERVER's clock (tick 0 = GO; back on screen the clock is read
+  again; hiding the app = no pause — THE FUSE ends it). A refresh mid-run takes the run back from its node.
+- **THE END = THE CONSOLE's PODIUM FRAME** (`ui/final.js`; the body = `final.js#finalScene`): how the tower ended (the game's own
+  words), FLOOR n, the band, the perfects, YOUR BEST / NEW BEST (the server's answer), YOUR TABLE (you + your friends' bests — slim
+  cards, shown when a friend has one), and — while counting is OFF — the small line **WOULD COUNT · FLOOR 85 · +15 XP**. The foot is
+  the console's: **PLAY AGAIN** (END-SCREEN STANDARD A, the game's ACCENT) · CITY.
+- **PLAY AGAIN = THE INSTANT AGAIN** (`index.js#soloAgain` → `games/kit/again.js`): the next run = a match of its own (its own id,
+  proof node, report), started at once — the tap WAS the PLAY AGAIN; **the stage is parked over the remount** (its WebGL context,
+  programs, plates, decoded sounds kept ≤ 2.5 s — any other unmount frees it at once).
+- **AN UNPROVEN RUN** (GO refused / unanswered for 4 s: no signal, or the rules not yet re-published): the game still PLAYS — on a seed
+  of its own, never counted — and ends on the stage's own card (**NOT COUNTED — NO LINE TO THE BOARD**, PLAY AGAIN · BACK TO THE
+  CITY). A proven run whose end never reaches the room (no signal) gets the same card after 6 s: NO SIGNAL — YOUR RUN COUNTS WHEN
+  IT IS BACK.
+
+## THE PROOF (S4A — `proof.js`, PURE: the phone, the host's director AND the server run it; JAYWALK's `jw` node, copied)
+- **THE NODE** `rooms/{CODE}/hr/{matchId}/{uid}` = `{ go` (the SERVER's time, written ONCE at GO — the rules: `=== now`; **the seed is
+  picked from it**: `logic.js#seedOf(code, matchId, go)` — nobody can shop for a tower; tick 0)`, c/{i} = { s, at }` (the packed taps
+  of that chunk — the gaps in base 36, '.' between — + the SERVER's time it ARRIVED; append only, i 0–9999, ≤ 400 chars)`, e { f, t, w }`
+  (the run's end, once — a SIGNAL for the host's step: never read as a score)`, k` (S4B's Call the Winner — its rule ships now)` }`.
+  `registry.js#PROOF_NODE_LIST` + `NEW_PLAYER_NODES` (`hr`): the next start / PLAY AGAIN never wipes the just-finished run's node.
+- **THE RULES** (`database.rules.json` `hr` — mirrored from `jw`; `rules.test.mjs` "the hr proof node"): the player's own uid + their
+  own match only, only while it is on; GO once; a chunk written once with the server's time, never re-stamped, never deleted, bounded;
+  the end once; **+ stricter than `jw`: no chunk and no end before GO, NOTHING after the end**; the host may delete ONE finished
+  match's tree — never the live one's, never a player's node. **A RULES CHANGE: RE-PUBLISH `database.rules.json`.**
+- **A LATE GO ANSWER NEVER TOUCHES A RUN THAT WENT ON** (the review — `view.js#askGo` `stale()`): every answer checks its own call
+  first; a GO that lands after the 4 s wait marks the match's one GO spent (the next run there is unproven too); a rejoin reads the
+  node from the SERVER, never the mirror.
+- **THE VIEW's THREE WRITES** (`view.js`): GO (set, then READ BACK — never the phone's own estimate), a chunk (one a second while
+  there are new taps), `e` (right behind the last chunk). Never anything once the match left `play` (an expected refusal — counted,
+  never a row: JAYWALK's THE LATE PROOF CHUNK).
+- **THE JUDGE OF A NODE** (`proof.js#judgeNode` / `judgeSolo`): the chunks → the tap log + its clock → **THE SPEED CHECK, BOTH WAYS**
+  (`CLOCK` — JAYWALK's numbers: a chunk's last tap at most 2 s AHEAD of its own server time — a sped-up game, a log made in advance →
+  REFUSED; its first tap more than 8 s BEHIND with no silence to explain it — slow motion → the run is CUT at its last on-time tap;
+  **THE DROPPED SIGNAL** — a silence ≤ 75 s, then the queued chunks landing together and back on the clock within 15 s — is never
+  held against the run) → `replay.js#judgeRun` (the SAME engine the phone ran). The host's podium rows (`director.js#scoreNode`) and
+  the server's result both come through it. A phone's claimed floor is never read. **The host's podium reads its LIVE MIRROR**
+  (`judgeNode({ mirror: true })` — the review: a chunk still in flight carries the phone's ESTIMATE of the server's time, a round
+  trip early; the podium takes the times as never running backwards) — **the SERVER's judge is strict** (acknowledged stamps only).
+- **THE SERVER** (`api/report.js` `PROOF_GAMES` — JAYWALK's two paths, generalised: `{ node, solo, match }`): a SOLO run is judged from
+  the node on BOTH paths (the room still on that match · the room already moved on — PLAY AGAIN: `src: 'proof'`). `highriseSolo` builds
+  the match (`sv`) the report reads; only an `sv` match earns a record / a card flag (`core/match-report.js#highriseExtra`); an EMPTY
+  log (floor 0) is never a play; a refused log is named in `rejected`. `highriseMatch` = S4B's half, ready (THE FIRST GO's seed).
+- **Known limit** (JAYWALK's): a bot that plays in real time is indistinguishable from a very good player.
+
+## THE SWITCH (S4A — COUNTING STAYS OFF UNTIL GO-LIVE: the owner, Nov 19)
+- **ONE server-side flag: `api/_lib/highrise.js#HIGHRISE_COUNTS = false`** — THE GO-LIVE PASS flips this ONE line.
+- **OFF:** `/api/report` still does all the judging (the gate, the night record, the proof node replayed, every check) — then
+  **returns before any claim or credit**: `{ ok, status: 'would_count', outcome: { none: true, would } }`. `would` = `{ floor,
+  perfects, cause, xp, streak, best, table (the board's value), cards: ['clouds' | 'top'] }` — what the counted path WOULD have done,
+  from the SAME pure step on a copy (`api/_lib/stats.js#wouldApply` — reads only) — or `{ skip }` (a refused / an empty run).
+  **NOTHING is written**: no `results/`, no pstats, no profile, no board row, no card, no streak day, no owners' count
+  (`server.test.mjs` + `e2e-highrise.mjs` compare the database before / after). The end card shows **WOULD COUNT · FLOOR n · +XP**.
+- **ON (go-live):** JAYWALK's normal counted path — XP + the streak by JAYWALK's rules (THE SOLO LANE: a small XP for the day's first
+  4 solo runs, `QUICK_SOLO`: no 45 s gap between quick solo runs), the best on the board **`highrise-solo`** (TALLEST TOWER — a tower
+  as ONE sort number: the floor, then THE MOST PERFECTS, then the earlier tick — `logic.js#towerScore`, `core/boards.js` fmt
+  `floor`; no tab on THE BOARD until go-live), YOUR TABLE, the cards.
+- **The test flip:** on the LOCAL EMULATORS only, the database switch `testHighriseCounts` turns it on (`api/report.js#highriseCounts`
+  — `emulated()`; never honoured in production).
+
+## THE CARDS (S4A — in the catalog, HIDDEN until go-live)
+**ABOVE THE CLOUDS** (`card-abovetheclouds`, rare — floor 60 in ONE run, any mode) + **TOP OF THE WORLD** (`card-topoftheworld`,
+legendary — floor 200) and their achievements `above-the-clouds` / `top-of-the-world` (`api/_lib/catalog.js`): unlocked ONLY by the
+feat flags of a run the SERVER judged (`highrise-clouds` · `highrise-top` — the proof node's replay → the row's `ft` →
+`match-report.js#highriseExtra` → `pa.gf`; never a number a phone sends, never a host-written result). **Hidden** = nothing is awarded
+while THE SWITCH is OFF, and a collection shows only what its player owns (the owner sees them in THE LAB: 225–228). S3's art +
+`js/fx/hi-specs.js` are read now: `js/vault/strip.js` (the materials), `css/vault.css` `.vl-s-hi-*` / `.vl-fcm-hi-*` (the crops = the
+specs' numbers — pinned), `vault/hero.js` + `layout.js` (the hero boxes), `api/_lib/lab-text.js`. No layer of their own yet (still
+pictures).
+
 ## THE FILE MAP + THE TESTS
 ```
 highrise-play.html  css/highrise-play.css           THE TEST PAGE + its HUD (prefix hi-; the site's tokens + THE SHEET)
@@ -502,7 +625,10 @@ highrise-lab.html  css/highrise.css                 THE LAB's page + its plain-t
 js/games/highrise/tuning.js engine.js logic.js replay.js    THE RULES (pure — the phone AND the server)
 js/games/highrise/bot.js                            the sim bots          scripts/highrise-sim.mjs   the 2,000-seed table
 js/games/highrise/tower.js                          the tower a view draws, from the events (pure — the lab AND the game)
-js/games/highrise/play.js                           THE TEST PAGE: the run loop, the HUD, YOUR BEST, THE DOOR, the lost context
+js/games/highrise/play.js stage.js                  THE TEST PAGE (its door, its flags, its best) · THE STAGE: the run loop, the HUD, YOUR BEST, the lost context — the page AND the cartridge mount it
+js/games/highrise/meta.js director.js index.js      THE CARTRIDGE (S4A — hidden): the thin meta · the pure host step · the contract
+js/games/highrise/view.js final.js                  … its screen (the stage in the console's frame + the proof's writes) · the end screen's body + YOUR TABLE
+js/games/highrise/proof.js lines.js                 THE PROOF (pure: the node's chunks, THE SPEED CHECK, the judge of a node) · THE NEXT FRIEND (pure)
 js/games/highrise/night.js night-fx.js camera.js    THE TWO LOOKS (one scene, `uDay`): the scene + the flyers' stage · the shaders + the bloom · the camera's numbers (pure)
 js/games/highrise/bands.js best.js                  THE HEIGHT AREAS + both looks' slab colours, the day's haze + the sky's tone · YOUR BEST's tag / tape (both pure)
 js/games/highrise/look.js                           THE LOOK SWITCH's choice (AUTO · DAY · NIGHT — this phone; AUTO = the site's sun rule)
@@ -510,19 +636,21 @@ js/games/highrise/flyplan.js flyers.js              THE FLYERS: when + which fro
 js/games/highrise/sounds.js sfx.js audition.js      THE SOUNDS: the table + the triggers (pure) · the engine glue · the SOUNDS list
 js/fx/hi-specs.js                                   THE 2 CARDS' ART as data (S3 — nothing reads it until S4)
 js/games/highrise/lab.js graybox.js                 THE LAB (S1's graybox)
-api/_lib/highrise.js                                THE JUDGE's server half (pure, not wired)
+api/_lib/highrise.js                                THE JUDGE's server half (pure) + THE SWITCH (HIGHRISE_COUNTS) — wired into api/report.js (PROOF_GAMES) since S4A
 assets/highrise/  audio/highrise/                   the plates + the reflection maps + the F-22 · the sounds   scripts/build-highrise-assets.py [--look=day]
 assets/vault/hi/  art/highrise-cards/src/           the 2 cards' art + its masters   scripts/build-highrise-cards.mjs · scripts/bake/highrise-f22.mjs
 scripts/build-highrise-sounds.mjs                   the WAVs → the MP3s that ship (a pure-JS encoder from npm, given by path)
-tests/highrise-engine.test.mjs (21) · highrise-server.test.mjs (5) · highrise-sim.test.mjs (5) · highrise-lab.test.mjs (6) · highrise-play.test.mjs (16)
+tests/highrise-engine.test.mjs (21) · highrise-server.test.mjs (5) · highrise-sim.test.mjs (5) · highrise-lab.test.mjs (6) · highrise-play.test.mjs (16) · highrise-cartridge.test.mjs (13 — S4A)
+tests/integration/e2e-highrise.mjs (59 — the emulators: the hidden cartridge end to end; `--fast` skips the counting-ON run) · sound-sync.mjs (42 — both games; `--before`) · rules.test.mjs "the hr proof node" · server.test.mjs "HIGH RISE S4A"
 tests/integration/highrise-play.mjs (217 — the browser; --review · --s3 (125) · --webkit · --look · --fly · --perf · --hitch = THE LAG HUNT's long run) · highrise-lab.mjs (45)
 ```
 
 ## COMING
-- **S4** — COUNTING + THE MATCH: the judge wired into `/api` (solo + match), the solo run node + the match proof node (ONE rules
-  change, ships OFF until go-live), the height tapes + the play-zone test, the altimeter, the announcer, WATCH, Call the Winner, the
-  finish, REMATCH, the cards awarded, the pink friend tape. (The review's S1 notes for the wiring: "FOR S4" under THE JUDGE, above.)
-  S4 also: the two cards from the prepared art (`js/fx/hi-specs.js`), the site's Credits sheet's HIGH RISE group (the F-22, the
-  Blackbird, the saucer: CC BY — `assets/highrise/models/CREDITS.md`), the game reading the console's GAME LOOK (`body[data-look]`).
+- **S4B** — THE MATCH: a room of two or more (the count, THE FIRST GO → the seed — `logic.js#matchStart` + `highriseMatch` are
+  ready), the other towers' height tapes + the play-zone test, the altimeter, the announcer, WATCH, Call the Winner (its `k` rule
+  shipped with S4A), THE FINISH, REMATCH, the smoke start. Each phone in its own day / night look (JAYWALK's accepted rule).
+- **THE GO-LIVE PASS** (after THE REVIEW): `playable: true` + `HIGHRISE_COUNTS = true` (ONE line each), its meta at boot, HOW TO
+  PLAY, its tile + icon, the board's tab, the site's Credits sheet's HIGH RISE group (the F-22, the Blackbird, the saucer: CC BY —
+  `assets/highrise/models/CREDITS.md`), the cards' own motion.
 - **NO DAILY** (the owner, Nov 18 — the seed barely changes play; parked idea only: a one-shot "TODAY'S TWIST"). Then THE REVIEW (+ the
   icon + the billboard poster briefs) and THE GO-LIVE PASS.

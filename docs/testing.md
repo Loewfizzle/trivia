@@ -1226,6 +1226,15 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   `--hitch` by day: `HITCH_Q='&look=day'` (the long run flies its flyers and prints which).
 - A test hand that keeps a run alive through the page's `climb` hook must drop at least every 0.9 s past floor 120 (a floor = 54
   ticks there): slower, it falls behind the run's clock and THE FUSE ends the run — the test's fault, not the game's.
+- **HIGH RISE S4A:** unit `tests/highrise-cartridge.test.mjs` (13 — the hidden cartridge, the proof + the judge, THE SWITCH, the lines, the cards) ·
+  the rules: `rules.test.mjs` "the hr proof node" · `/api`: `server.test.mjs` "HIGH RISE S4A" (both switch states) · the browser on the emulators:
+  `node tests/integration/e2e-highrise.mjs "<chromium>" [outDir] [--fast]` (59 — the owner starts a solo run in a room, real taps, the proof, WOULD
+  COUNT == the phone's result, nothing written; PLAY AGAIN; the pink tag + tape (a fixture); a forged node; then — not with `--fast` — counting ON by
+  the test flip `testHighriseCounts`: floor 63 by taps → counted + the card + THE HITCH RUN inside the cartridge; `HI_LOOK=day` = the day look's
+  shots). **The API server must be FRESH** (a `serve.mjs` started before a catalog change keeps the old catalog: the card is "not awarded").
+- **THE SOUND SYNC:** `node tests/integration/sound-sync.mjs "<chromium>" [--before]` (42 — /highrise-play + /jaywalk-lab, music ON and OFF, real
+  touches: every landing sound within 20 ms of its event, no wake-up / nap in a live run, the hold let go on the end card + at a leave; `--before` = the
+  same run with the hold switched off in the page — the BEFORE numbers; `serve.mjs` is enough).
 - The assets: `python -P -E scripts/build-highrise-assets.py --only=plates,env --look=day` · the F-22: `node scripts/bake-model.mjs
   "<chromium>" highrise-f22` (needs the city's source model `art/models/f22/`, on the build machine only) · the cards' art: `node
   scripts/build-highrise-cards.mjs "<chromium>" [previewDir]` (needs `scripts/serve.mjs` on :5173).

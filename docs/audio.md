@@ -31,6 +31,24 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
   unmasking); a track change resets it.
 
 
+## THE HOLD — A LIVE GAME RUN KEEPS THE CONTEXT AWAKE (HIGH RISE S4A — Nov 19 2026; the owner: "sometimes the sound isn't in sync with the blocks")
+**Why:** PODCAST MODE (below) naps the context 150 ms after each effect — right for the city, wrong for a game: a drop / a hop comes every second or
+two, so EVERY effect first had to wake the context (on iOS at the finger's LIFT — a variable delay between the picture and its sound).
+- **`engine.js#holdAwake(on, who)`** + its hub **`globalThis.__nsHoldAwake`** (a game's lazy chunk reads the hub — THE STALE-MODULE RULE). **A LEASE,
+  never a latch:** `holdAwake(true)` keeps the nap away for `HOLD_LEASE_MS` (3 s); the game RENEWS it once a second from its frame loop while a run is
+  LIVE, and lets it go (`holdAwake(false)`) on its end card. A game that ends, unmounts or crashes stops renewing: the lease lapses and the nap is back
+  by itself (`watchClock`'s safety net). A leave (hidden / pagehide / freeze) drops the hold in the same step — the cut + the suspend run as ever.
+- **What it never does:** change the session type (still `ambient` — the phone's podcast keeps playing), start the music or a bed, lift a hush (MUTED =
+  NOTHING RUNS, held or not), resume a context off screen. With the music ON it is a no-op (the context runs anyway).
+- Asked while NAPPING (a run's START): the context is asked to run at once — inside the START tap's gesture on iOS; a refused resume outside a tap is
+  left for the next tap / effect, exactly as before.
+- **Who holds it:** HIGH RISE (`games/highrise/stage.js` — the test page + the cartridge: START → the end card) · JAYWALK (`view.js` — the game + the
+  daily — and `lab.js`: the run's start → its end). Another game's effects are untouched (the city's call — the inbox's FYI).
+- **The measure:** `voiceStarts()` = every source's start + how long it waited for a sleeping context (`wait` 0 = on its moment) · `audioHealth()` carries
+  `held · naps · wakes`. `tests/audio-session.test.mjs` "THE HOLD" (the real engine: held → no nap between effects, the session unchanged; released /
+  lapsed / hidden → the nap is back; muted → nothing resumed; music on → nothing changes) + `tests/integration/sound-sync.mjs` (both games, music on +
+  off, real touches: every gap ≤ 0.4 ms, 0 wake-ups in a live run — docs/highrise.md "THE SOUND SYNC").
+
 ## CITY I — MUSIC OFF = PODCAST MODE (Nov 18 2026 — the owner's pick, OPTION 3; the inbox's 7:55 pm entry; docs/harbor/passes/city-i.md)
 **Why:** THE SQUEAL came back with H2's "music off = only the music". His AUDIO LEAVE (7:44 pm, build ca29a6e, iPhone 18.7, the home-screen app,
 music off + effects on): session ambient · the context RUNNING at the first signal, master 1.000, three beds live + a station song element PLAYING at a
