@@ -67,9 +67,11 @@ export function createNight(host, o = {}) {
     }, undefined, () => { /* a missing picture: the dark sky stays */ });
     rec.tex.colorSpace = THREE.SRGBColorSpace; rec.tex.generateMipmaps = false; rec.tex.minFilter = rec.tex.magFilter = THREE.LinearFilter;
   }
+  let keepFirst = false;   // (the run is over: the FIRST band's plate is asked for again + kept — PLAY AGAIN never starts on a blank sky: the review)
   function holdPlates(a, b) {
     wantPlate(a); wantPlate(b); if (a === b) wantPlate(a + 1);
-    for (const [k, rec] of plates) if (k !== a && k !== b && !(a === b && k === a + 1)) { if (rec.tex) rec.tex.dispose(); plates.delete(k); }
+    if (keepFirst) wantPlate(0);
+    for (const [k, rec] of plates) if (k !== a && k !== b && !(a === b && k === a + 1) && !(keepFirst && k === 0)) { if (rec.tex) rec.tex.dispose(); plates.delete(k); }
   }
   // THE REFLECTION MAP (the night HDRI's sky half, 256 × 64 — scripts/build-highrise-assets.py)
   const env = loader.load(new URL(`env-${look}.png?v=${HI_ART_REV}`, ART).href, () => { if (!dead) G.uEnvOn.value = 1; }, undefined, () => { /* no reflections: the glass keeps its colour + edges */ });
@@ -82,7 +84,7 @@ export function createNight(host, o = {}) {
   const aColor = new THREE.InstancedBufferAttribute(new Float32Array(BOXES * 3), 3), aFx = new THREE.InstancedBufferAttribute(new Float32Array(BOXES * 4), 4);
   aColor.setUsage(THREE.DynamicDrawUsage); aFx.setUsage(THREE.DynamicDrawUsage);
   boxGeo.setAttribute('aColor', aColor); boxGeo.setAttribute('aFx', aFx);
-  const glassMat = new THREE.ShaderMaterial({ vertexShader: GLASS_V, fragmentShader: GLASS_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uFadeH: G.uFadeH, uEnv: G.uEnv, uEnvOn: G.uEnvOn, uEnvRot: G.uEnvRot }, transparent: true, depthWrite: true });
+  const glassMat = new THREE.ShaderMaterial({ vertexShader: GLASS_V, fragmentShader: GLASS_F, uniforms: { uBloom: G.uBloom, uTopY: G.uTopY, uFadeH: G.uFadeH, uEnv: G.uEnv, uEnvOn: G.uEnvOn, uEnvRot: G.uEnvRot }, transparent: true, depthWrite: true, extensions: { derivatives: true } });   // (derivatives: the edges' fwidth on a WebGL 1 phone — without it the whole tower failed to build there: the review)
   const boxes = new THREE.InstancedMesh(boxGeo, glassMat, BOXES);
   boxes.instanceMatrix.setUsage(THREE.DynamicDrawUsage); boxes.frustumCulled = false; boxes.count = 0; scene.add(boxes); made.push(boxGeo, glassMat);
   let nb = 0;
@@ -152,7 +154,7 @@ export function createNight(host, o = {}) {
 
   /** a new run / a tower adopted after a rebuild: the tower object (tower.js — the page feeds it the events) */
   function adopt(run, tower, snap = true) {
-    T = tower; seed = run.seed; slabs = T.slabs(); top = T.top(); cols.clear();
+    T = tower; seed = run.seed; slabs = T.slabs(); top = T.top(); cols.clear(); if (snap) keepFirst = false;
     if (snap) {
       landAt = perfAt = outAt = tapeAt = -1e9; landFloor = -1; grow = null; bump = 0;
       for (const p of pieces) p.on = false;
@@ -208,7 +210,7 @@ export function createNight(host, o = {}) {
     if (flash && tapeFloor) {
       tapeAt = clock;
       const s = slabOf(tapeFloor);
-      if (s) ring(s, tapeFloor, 0.75, 0.9, GOLD, 1.25);
+      if (s) ring(s, tapeFloor, 0.7, 0.9, GOLD, 0.85);
     }
   }
   const slabOf = floor => { for (let i = slabs.length - 1; i >= 0 && slabs[i].floor >= floor; i--) if (slabs[i].floor === floor) return slabs[i]; return null; };
@@ -346,10 +348,12 @@ export function createNight(host, o = {}) {
 
   return {
     el, adopt, events, fall, draw, setTier, setBest, resize: () => fit(true),
+    /** the run is over (the end card is up): the first band's plate comes back for the next run */
+    rest() { keepFirst = true; },
     /** the view's own top slab (from the events) — the page's check: it equals the engine's */
     top: () => ({ ...top, floor: slabs[slabs.length - 1].floor }),
     /** a point (rule units x, z; y in floors) → [x, y] on the screen, 0 … 1 from the top left (as of the last frame's camera) */
-    project(x, floor, z) { V.set(x * U, floor * H, z * U).project(cam); return [(1 + V.x) / 2, (1 - V.y) / 2]; },
+    project(x, floor, z) { V.set(x * U, floor * H, z * U).project(cam); return [(1 + V.x) / 2, (1 - V.y) / 2]; },   // (a point BEHIND the camera comes back mirrored — a caller clamps its height first: play.js's tag)
     /** THE DROP ZONE's upper edge on the screen (0 … 1 from the top): the highest point the sliding slab's path reaches — nothing of a tag / a tape's label may sit under it */
     zoneTop() {
       const cx = (top.x0 + top.x1) / 2, cz = (top.z0 + top.z1) / 2, hw = (top.x1 - top.x0) / 2, hd = (top.z1 - top.z0) / 2, f = slabs[slabs.length - 1].floor + 1;

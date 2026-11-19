@@ -59,8 +59,9 @@ export function sweepBase(floor) {
   const s = held - TIGHT.by * Math.floor((floor - TIGHT.from) / TIGHT.every);
   return s < TIGHT.min ? TIGHT.min : s;
 }
-/** the lowest a floor's sweep may wobble to: the curve's own band up to floor 200 (S1, unchanged) — past it, the tightening's floor */
-export const sweepFloorMin = floor => (floor > TIGHT.from ? TIGHT.min : SWEEP_MIN);
+/** the lowest a floor's sweep may wobble to: the curve's own band until the FIRST notch (floor 210 — floors 201 … 209 are S1's 84 … 87,
+ *  the review's find) — from there, the tightening's floor */
+export const sweepFloorMin = floor => (floor >= TIGHT.from + TIGHT.every ? TIGHT.min : SWEEP_MIN);
 
 /** THE MODES: `finish` = the floor that ends the run as MADE IT (null = endless) · `capTicks` = the tick the run ends where it stands (null = none) */
 export const MODES = Object.freeze({

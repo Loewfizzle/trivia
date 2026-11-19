@@ -11,11 +11,14 @@
 //   · **NOTHING COUNTS**: NO request but the page's own static files, three.js from its CDN and the fonts — no /api, no Firebase, no
 //     web socket, no service worker; the only thing stored: `hi:play:*` on this phone
 //   · `--look` = the review's shots only (every band, the moments, the end) · `--perf` = the measured frame rate, every tier, 1× + 4× CPU
-//   node tests/integration/highrise-play.mjs "<chromium>" [outDir] [--look] [--perf]
+//   · `--webkit` = Playwright's WebKit as an iPhone (~/wk): every shader builds, the scene draws, real touches drop slabs, REPLAY = LIVE
+//   node tests/integration/highrise-play.mjs "<chromium>" [outDir] [--look] [--perf] [--webkit] [--review]   (--review = the fresh-eyes review's finds only; the whole check runs them too)
 import puppeteer from './kit/puppeteer.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
+import { pathToFileURL } from 'node:url';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null, LOOK = argv.includes('--look'), PERF = argv.includes('--perf');
@@ -99,6 +102,18 @@ async function look() {
   await shot(p, 'play-390-out.png');
   ok(t.errs.length === 0, `no page error (${t.errs.join(' | ')})`);
   await t.close();
+  // YOUR BEST: the tag above you, then the gold tape on the tower once crossed (after its flash has gone), then a few floors on
+  {
+    const d = await open(390, 844, 3, '?seed=look3', () => { try { localStorage.setItem('hi:play:best', '9'); } catch { /* fine */ } });
+    await ready(d.p); await sleep(300);
+    await climb(d.p, 5); await sleep(500);
+    await shot(d.p, 'play-390-besttag.png');
+    await climb(d.p, 5); await sleep(1400);
+    await shot(d.p, 'play-390-tape.png');
+    await climb(d.p, 4); await sleep(700);
+    await shot(d.p, 'play-390-tape-later.png');
+    await d.close();
+  }
   for (const [w, h, dpr, name] of [[375, 667, 2, 'play-375x667'], [430, 932, 3, 'play-430x932'], [1440, 900, 1, 'play-1440x900']]) {
     const d = await open(w, h, dpr, '?seed=look2');
     await ready(d.p); await sleep(300);
@@ -351,6 +366,110 @@ async function main() {
   }
 }
 
+// ---- THE FRESH-EYES REVIEW's FINDS, each with its own check (docs/games/passes/highrise-s2.md "THE FRESH-EYES REVIEW")
+async function review() {
+  const hit = (a, c) => !(a.r <= c.x || c.r <= a.x || a.b <= c.y || c.b <= a.y);
+  const boxes = p => p.evaluate(() => { const bx = sel => { const r = document.querySelector(sel).getBoundingClientRect(); return { x: r.left, y: r.top, r: r.right, b: r.bottom }; }, L = window.__hiPlay, tp = L.state().viewTop, sh = document.querySelector('.hi-stage').getBoundingClientRect().height; return { t: bx('.hi-end-t'), card: bx('.hi-end'), snd: bx('.hi-snd'), top: L.view.project((tp.x0 + tp.x1) / 2, tp.floor, (tp.z0 + tp.z1) / 2)[1] * sh, words: document.querySelector('.hi-end-t').textContent, best: document.querySelector('.hi-end-best').textContent, w: innerWidth }; });
+  // (1) a phone in a Safari TAB is only ~660 px tall: the end's title never runs into the SOUNDS button — and THE END HOLD holds for a TAP's end
+  for (const [w, h] of [[390, 664], [375, 667], [430, 739]]) {
+    const d = await open(w, h, 2, '?seed=short');
+    await ready(d.p); await sleep(200);
+    await tapAt(d, w / 2, h * 0.6);
+    await waitFor(d.p, "window.__hiPlay.state().st === 'slide'", 3000);
+    await tapAt(d, w / 2, h * 0.6);   // (a drop the moment it entered: MISSED THE STACK — a TAP ends this run)
+    const t0 = Date.now();
+    await waitFor(d.p, 'window.__hiPlay.state().over', 2000);
+    const early = await d.p.evaluate(() => window.__hiPlay.state().shown);
+    await waitFor(d.p, 'window.__hiPlay.state().shown', 4000);
+    const held = Date.now() - t0;
+    const g = await boxes(d.p);
+    if (w === 390) ok(!early && held >= 550, `THE END HOLD holds when a TAP ends the run: the card came ${held} ms after the miss (the slab is seen falling first)`);
+    ok(g.words === 'MISSED THE STACK' && !hit(g.t, g.snd) && g.t.y >= g.snd.b - 1 && g.card.b <= g.top + 6 && g.t.x >= 0 && g.t.r <= g.w, `${w} × ${h} (a Safari tab): "${g.words}" sits under the SOUNDS button's row (title from ${g.t.y.toFixed(0)}, the button to ${g.snd.b.toFixed(0)}) and the card still ends above the top slab (${g.card.b.toFixed(0)} ≤ ${g.top.toFixed(0)})`);
+    if (w === 390) ok(g.best === '', 'a first run that never landed a slab shows no "YOUR BEST 0"');
+    await shot(d.p, `review-${w}x${h}-missed.png`);
+    await d.close();
+  }
+  // (2) the longest title — MADE IT TO THE MOTHERSHIP, in gold — on the small phone
+  {
+    const d = await open(375, 667, 2, '?seed=made&mode=match');
+    await ready(d.p); await sleep(200);
+    await d.p.evaluate(() => window.__hiPlay.climb(200));
+    await waitFor(d.p, 'window.__hiPlay.state().shown', 6000);
+    const g = await boxes(d.p), s = await st(d.p);
+    const gold = await d.p.evaluate(() => document.querySelector('.hi-stage').classList.contains('is-made'));
+    ok(s.floor === 200 && g.words === 'MADE IT TO THE MOTHERSHIP' && gold && !hit(g.t, g.snd) && g.card.b <= g.top + 6 && g.t.x >= 0 && g.t.r <= g.w, `375 × 667: floor 200 = "${g.words}" in gold — clear of SOUNDS, above the top slab (${g.card.b.toFixed(0)} ≤ ${g.top.toFixed(0)}), inside the screen`);
+    ok((await d.p.evaluate(() => document.querySelector('.hi-check').textContent)) === 'REPLAY = LIVE ✓', '… REPLAY = LIVE ✓ for a full 200-floor match run');
+    await shot(d.p, 'review-375x667-made.png');
+    await d.close();
+  }
+  // (3) THE SITE's MUSIC OFF (PODCAST MODE — the audio context naps between effects): the game still SOUNDS
+  {
+    const d = await open(390, 844, 2, '?seed=pod', () => { try { localStorage.setItem('na:settings', JSON.stringify({ musicOff: true })); } catch { /* fine */ } });
+    await ready(d.p); await waitFor(d.p, '!!window.__hiPlay.sfx', 5000); await sleep(600);
+    await tapAt(d, 195, 500);
+    for (let i = 0; i < 6; i++) { if (await atPerfect(d.p, 14) !== 'go') break; await tapAt(d, 195, 500); if ((await st(d.p)).over) break; }
+    await sleep(300);
+    const a = await d.p.evaluate(() => ({ asked: window.__hiPlay.sfx.wanted().length, played: window.__hiPlay.sfx.played().map(q => q.id) }));
+    ok(a.asked >= 6 && a.played.filter(q => q === 'drop').length >= 3, `MUSIC OFF (podcast mode): the sounds still start — ${a.played.length} of ${a.asked} asked (${[...new Set(a.played)].join(' · ')})`);
+    await d.close();
+  }
+  // (4) a best FAR above (behind the diagonal camera): the tag stays at the TOP of its clear column
+  {
+    const d = await open(390, 844, 2, '?seed=far', () => { try { localStorage.setItem('hi:play:best', '300'); } catch { /* fine */ } });
+    await ready(d.p); await sleep(200);
+    await tapAt(d, 195, 500); await sleep(400);
+    const g = await d.p.evaluate(() => { const r = document.querySelector('.hi-tag').getBoundingClientRect(), hud = document.querySelector('.hi-hud').getBoundingClientRect(); return { text: document.querySelector('.hi-tag').textContent, y: r.top, hud: hud.bottom, zone: window.__hiPlay.view.zoneTop() * innerHeight }; });
+    ok(g.text === 'BEST 300 ▲300' && g.y - g.hud < 14 && g.y >= g.hud, `a best 300 floors up: the tag "${g.text}" sits at the TOP of its column (${g.y.toFixed(0)}, just under the HUD's ${g.hud.toFixed(0)} — never down against the drop zone at ${g.zone.toFixed(0)})`);
+    await d.close();
+  }
+  // (5) a WebGL 1 phone: the glass still builds (its edges' derivatives) — the tower is there
+  {
+    const d = await open(390, 844, 2, '?seed=gl1', () => { const g = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (type, ...a) { return type === 'webgl2' ? null : g.call(this, type, ...a); }; });
+    await ready(d.p); await sleep(300);
+    await climb(d.p, 6);
+    const s = await st(d.p);
+    const gl1 = await d.p.evaluate(() => { const c = document.querySelector('canvas.hi-canvas'); return typeof WebGL2RenderingContext === 'undefined' || !(c.getContext('webgl') instanceof WebGL2RenderingContext); });
+    ok(gl1 && d.errs.length === 0 && s.info.programs >= 4 && s.info.frames > 10 && sameTop(s), `a WebGL 1 context: every shader builds (${s.info.programs} programs, no shader error${d.errs.length ? ` — ${d.errs.join(' | ').slice(0, 200)}` : ''}), the tower is drawn`);
+    await shot(d.p, 'review-webgl1.png');
+    await d.close();
+  }
+  // (6) a rebuild that gets NO context keeps trying — the scene comes back by itself
+  {
+    const d = await open(390, 844, 2, '?seed=nogl');
+    await ready(d.p); await sleep(200);
+    await climb(d.p, 5);
+    await d.p.evaluate(() => {
+      const g = HTMLCanvasElement.prototype.getContext; window.__noGL = true;
+      HTMLCanvasElement.prototype.getContext = function (type, ...a) { return window.__noGL && /webgl/.test(type) ? null : g.call(this, type, ...a); };
+      const c = document.querySelector('canvas.hi-canvas'); (g.call(c, 'webgl2') || g.call(c, 'webgl')).getExtension('WEBGL_lose_context').loseContext();
+    });
+    ok(await waitFor(d.p, "!!document.querySelector('.hi-nogl') && !document.querySelector('canvas.hi-canvas')", 4000), 'a lost context + NO new context: the line says so (the run goes on)');
+    await d.p.evaluate(() => { window.__noGL = false; });
+    ok(await waitFor(d.p, "!document.querySelector('.hi-nogl') && !!document.querySelector('canvas.hi-canvas') && window.__hiPlay.state().rebuilds === 1 && window.__hiPlay.state().info.frames > 3", 5000), '… and the rebuild KEEPS TRYING: the scene is back by itself, the line is gone');
+    ok(d.errs.filter(e => !/WebGL|context/i.test(e)).length === 0, `no page error (${d.errs.filter(e => !/WebGL|context/i.test(e)).join(' | ')})`);
+    await d.close();
+  }
+  // (7) a FASTER that lands under a STREAK call waits its turn · (8) the tape keeps ITS floor through a rebuild on the end card
+  {
+    const d = await open(390, 844, 2, '?seed=notch', () => { try { localStorage.setItem('hi:play:best', '5'); } catch { /* fine */ } });
+    await ready(d.p); await sleep(200);
+    await climb(d.p, 208, 'i => (i === 8 ? 3 : 0)');   // (one cut at drop 9: the streak's tens then land on floors 209, 219, …)
+    await d.p.evaluate(() => window.__hiPlay.climb(1)); await sleep(60);
+    const c1 = await d.p.evaluate(() => document.querySelector('.hi-call').textContent);
+    const later = await waitFor(d.p, "document.querySelector('.hi-call').textContent === 'FASTER'", 3000);
+    ok(c1 !== 'FASTER' && c1.length > 0 && later, `floor 209 lands the first notch under a bigger call ("${c1}"): FASTER waits its turn, then shows`);
+    await waitFor(d.p, 'window.__hiPlay.state().shown', 12000);
+    const tapeWas = (await st(d.p)).info.tape;
+    await d.p.evaluate(() => { const c = document.querySelector('canvas.hi-canvas'); (c.getContext('webgl2') || c.getContext('webgl')).getExtension('WEBGL_lose_context').loseContext(); });
+    await waitFor(d.p, 'window.__hiPlay.state().rebuilds === 1 && window.__hiPlay.state().info.frames > 3', 4000);
+    const s2 = await st(d.p);
+    ok(tapeWas === 5 && s2.info.tape === 5 && s2.best > 5, `a context lost on the END CARD: the gold tape stays on floor ${s2.info.tape} (the best moved on to ${s2.best})`);
+    // (9) PLAY AGAIN from high up: the first band's plate is back already
+    ok(s2.info.held.includes(0) || s2.info.plates.includes(0), `the end card keeps the FIRST band's plate ready for PLAY AGAIN (held: ${s2.info.held})`);
+    await d.close();
+  }
+}
+
 // ---- THE MEASURE: the frame rate at every tier, at 1× and 4× CPU, the bot playing (a cut + its sparks every third drop) high in the clouds
 async function perf() {
   console.log('\n| tier | cpu | fps | frame ms (p95 · worst) | calls | tris | size |');
@@ -379,9 +498,50 @@ async function perf() {
   }
 }
 
+// ---- WEBKIT (Playwright's, as an iPhone — the phones this game is for): the shaders build, the scene draws, real touches drop slabs
+async function webkit() {
+  let wb;
+  try {
+    const { webkit: wk } = await import(pathToFileURL(process.env.WK_PLAYWRIGHT || join(homedir(), 'wk', 'node_modules', 'playwright', 'index.mjs')).href);
+    wb = await wk.launch();
+  } catch (e) { console.log(`(no Playwright WebKit here — ${String(e.message).split('\n')[0]})`); return; }
+  const ctx = await wb.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+  const wp = await ctx.newPage(), errs = [], reqs = [];
+  wp.on('pageerror', e => errs.push(String(e.message || e)));
+  wp.on('console', m => { if (m.type() === 'error' || /THREE\.WebGL|shader|GLSL/i.test(m.text())) errs.push(`console: ${m.text().slice(0, 300)}`); });
+  wp.on('request', r => reqs.push(r.url()));
+  await wp.goto(guardUrl(`${BASE}/highrise-play?seed=wk`, 'highrise-play'), { waitUntil: 'load' });
+  const wait = async (js, ms = 15000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await wp.evaluate(js)) return true; } catch { /* loading */ } await sleep(80); } return false; };
+  ok(await wait("!!window.__hiPlay && !!document.querySelector('canvas.hi-canvas')") && await wait('(() => { const i = window.__hiPlay.state().info; return i.env && i.plates.includes(0) && i.warmed > 0 && i.frames > 5; })()'), 'WebKit (an iPhone): the page + its night look are up — the plate, the reflection map, the warm frame, frames drawn');
+  const i0 = await wp.evaluate(() => window.__hiPlay.state().info);
+  ok(errs.length === 0 && i0.programs >= 4, `every shader built in WebKit — the glass, the plate, the sparks, the rings (+ the bloom's): ${i0.programs} programs, no shader error (${errs.join(' | ')})`);
+  await wp.touchscreen.tap(195, 500);
+  await wait('window.__hiPlay.state().started', 3000);
+  let n = 0;
+  for (let k = 0; k < 6; k++) {
+    const sig = await wp.evaluate(() => new Promise(res => { const t0 = performance.now(); (function poll() { const L = window.__hiPlay; if (L.state().over) return res('over'); const m = L.msToPerfect(); if (m != null && m <= 30) return res('go'); if (performance.now() - t0 > 9000) return res('timeout'); setTimeout(poll, 2); })(); }));
+    if (sig !== 'go') break;
+    const before = await wp.evaluate(() => window.__hiPlay.state().taps);
+    await wp.touchscreen.tap(195, 500);
+    if (await wp.evaluate(() => window.__hiPlay.state().taps) === before + 1) n++;
+    if (await wp.evaluate(() => window.__hiPlay.state().over)) break;
+  }
+  ok(n >= 3, `real touches drop slabs in WebKit (${n} drops)`);
+  await wp.evaluate(() => window.__hiPlay.climb(20, i => (i % 3 === 2 ? 4 : 0))); await sleep(500);
+  const s1 = await wp.evaluate(() => window.__hiPlay.state());
+  ok(JSON.stringify(s1.top) === JSON.stringify(s1.viewTop) && s1.info.sparks > 0 && s1.info.rings > 0 && s1.info.frames > i0.frames + 10, `the view's tower == the engine's on floor ${s1.floor}; sparks + rings flew; the frames keep coming`);
+  if (OUT) await wp.screenshot({ path: join(OUT, 'webkit-390x844-run.png') });
+  ok(await wait('window.__hiPlay.state().shown', 15000) && (await wp.evaluate(() => document.querySelector('.hi-check').textContent)) === 'REPLAY = LIVE ✓', 'the run ends (THE FUSE): REPLAY = LIVE ✓ in WebKit');
+  if (OUT) await wp.screenshot({ path: join(OUT, 'webkit-390x844-out.png') });
+  ok(errs.length === 0 && !reqs.some(u => /\/api\//.test(u)), `no page error, no shader error, no /api request in WebKit (${errs.join(' | ')})`);
+  await wb.close();
+}
+
 if (LOOK) await look();
 else if (PERF) await perf();
-else await main();
+else if (argv.includes('--webkit')) await webkit();
+else if (argv.includes('--review')) await review();
+else { await main(); await review(); }
 
 await b.close();
 console.log(`\n${checks - fails.length}/${checks} checks passed`);

@@ -322,7 +322,7 @@ test('THE SPEED CURVE + THE WOBBLE: sweep ticks fall along the curve to floor 12
     for (let f = 1; f <= 600; f++) {
       const S = sweepTicks(h, f), w = S - sweepBase(f);
       assert.ok(Number.isInteger(S) && S >= sweepFloorMin(f) && S <= SWEEP_MAX, 'in the band');
-      if (f <= TIGHT.from) assert.ok(S >= SWEEP_MIN, 'up to floor 200: S1\'s band, unchanged');
+      if (f < TIGHT.from + TIGHT.every) assert.ok(S >= SWEEP_MIN, 'up to the first notch: S1\'s band, unchanged');
       assert.ok(abs(w) <= WOBBLE);
       if (f > 10 && f < 110) seen.add(w);
     }
@@ -335,7 +335,8 @@ test('THE SPEED CURVE + THE WOBBLE: sweep ticks fall along the curve to floor 12
 test('SOLO PAST 200 KEEPS TIGHTENING (S2 — the owner): from floor 200 the sweep loses 3 ticks every 10 floors, never under 24 — MATCH + DAILY (they end ON floor 200) are S1\'s runs, tick for tick', () => {
   assert.deepEqual({ ...TIGHT }, { from: 200, every: 10, by: 3, min: 24 });
   assert.deepEqual([200, 201, 209, 210, 219, 220, 300, 390, 399, 400, 401, 1000, 20000].map(sweepBase), [84, 84, 84, 81, 81, 78, 54, 27, 27, 24, 24, 24, 24]);
-  assert.deepEqual([1, 200, 201, 5000].map(sweepFloorMin), [84, 84, 24, 24]);
+  assert.deepEqual([1, 200, 201, 209, 210, 5000].map(sweepFloorMin), [84, 84, 84, 84, 24, 24], 'floors 201 … 209 keep S1\'s band: the first notch is floor 210');
+  for (let s = 0; s < 40; s++) for (let f = 201; f < 210; f++) { const S = sweepTicks(seedHash(`n${s}`), f); assert.ok(S >= 84 && S <= 87, `floor ${f}: ${S}`); }
   // past the tightening's floor NOBODY climbs for ever: on a sweep of an ODD number of ticks under 30 no tick is within the perfect
   // window (the slab is never closer than 30000 / (2 S) > 500 units) — a cut every such floor, whoever taps
   for (const S of [25, 27, 29]) { let best = 1e9; for (let k = 0; k <= 2 * S; k++) best = Math.min(best, abs(slideOff(S, 1, k))); assert.ok(best > PERFECT, `S ${S}: the nearest tick is ${best} off`); }

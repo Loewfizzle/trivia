@@ -91,26 +91,39 @@ function mount() {
 
   // ---- the view (the night look) + its quality tiers; a browser with no WebGL gets the stage + one line saying so
   const pin = /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null;   // (`?tier=0|1|2` pins a quality tier — the pass's measure)
-  let view;
+  const noGL = () => h('p.hi-nogl', 'This browser can’t draw the game here (it has no WebGL).');
+  /** the view's stand-in while a lost context has not come back (the run goes on; nothing is drawn; the rebuild keeps trying) */
+  const NO_VIEW = { el: null, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, rest() {}, resize() {}, project: () => [0, -1], zoneTop: () => 1, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
+  let view, glDown = null;
   try { view = createNight(play, { tier: pin == null ? 2 : pin }); }
-  catch { stage.append(h('p.hi-nogl', 'This browser can’t draw the game here (it has no WebGL).')); return; }
+  catch { stage.append(noGL()); return; }
   const tierPath = [pin == null ? 2 : pin];
   const tiers = createTiers({ apply: t => { view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });
 
   // THE LOST CONTEXT (JAYWALK's lesson — iOS takes a WebGL context away under memory pressure; the run is on the clock: a blank
   // playfield is a slab dropped unseen): the scene is REBUILT — destroyed + created again on the same tower, tier + tape — the moment
   // the context is restored, or after 1.5 s without it. The listeners come OFF before any destroy (its own forceContextLoss is never "lost").
-  let lostTimer = 0, rebuilds = 0;
+  // NO context to be had yet (the review: one failed rebuild used to end the page until a reload): the line says so, the run goes on,
+  // and the rebuild TRIES AGAIN — every 1.5 s, eight times, and the moment the page is back in front.
+  let lostTimer = 0, rebuilds = 0, tries = 0;
   const onLost = e => { e.preventDefault(); if (!lostTimer) lostTimer = setTimeout(rebuild, 1500); };
   const onBack = () => rebuild();
-  const watchGL = () => { view.el.addEventListener('webglcontextlost', onLost); view.el.addEventListener('webglcontextrestored', onBack); };
-  const offGL = () => { view.el.removeEventListener('webglcontextlost', onLost); view.el.removeEventListener('webglcontextrestored', onBack); };
+  const watchGL = () => { if (view.el) { view.el.addEventListener('webglcontextlost', onLost); view.el.addEventListener('webglcontextrestored', onBack); } };
+  const offGL = () => { if (view.el) { view.el.removeEventListener('webglcontextlost', onLost); view.el.removeEventListener('webglcontextrestored', onBack); } };
   function rebuild() {
     clearTimeout(lostTimer); lostTimer = 0;
     offGL();
     try { view.destroy(); } catch { /* it is gone already */ }
-    try { view = createNight(play, { tier: tiers.get() }); } catch { stage.append(h('p.hi-nogl', 'This browser can’t draw the game here (it has no WebGL).')); cancelAnimationFrame(raf); return; }
-    view.adopt(run, T, false); view.setBest(tapeOn ? best : 0);
+    try { view = createNight(play, { tier: tiers.get() }); }
+    catch {
+      view = NO_VIEW; hook.view = view;
+      if (!glDown) { glDown = noGL(); stage.append(glDown); }
+      if (++tries <= 8) lostTimer = setTimeout(rebuild, 1500);
+      return;
+    }
+    if (glDown) { glDown.remove(); glDown = null; }
+    tries = 0;
+    view.adopt(run, T, false); view.setBest(tapeFloor); if (shown) view.rest();
     hook.view = view; rebuilds++; last = 0; sized();
     watchGL();
   }
@@ -124,19 +137,19 @@ function mount() {
 
   // ---- the run: the pure engine on this tab's clock. Tick 0 = the START touch; the RULES never read the clock — the page turns it into ticks.
   let seed = '', run = null, T = null, taps = [], t0 = null, shown = false, overAt = 0, endedAt = 0;
-  let best = readBest(), tapeOn = false, newBest = false, bandNow = 0, notch = 0;
+  let best = readBest(), tapeFloor = 0, newBest = false, bandNow = 0, notch = 0;   // (tapeFloor: the floor YOUR BEST's gold tape lies on — its own number: the end card moves `best` on)
   const ev = [], liveEv = [], frames = [];
   const hooks = { onPerfect() { /* (the view reads the events itself) */ }, onFall: (r, floor, dx, dz, whole) => view.fall(r, floor, dx, dz, whole) };
   function restart(s = FIXED || newSeed()) {
     seed = s; run = createRun({ seed, mode: MODE }); taps = []; t0 = null; shown = false; overAt = 0; endedAt = 0; ev.length = 0; liveEv.length = 0;
     T = createTower(run, hooks, KEEP);
-    best = readBest(); tapeOn = false; newBest = false; bandNow = 0; notch = 0;
+    best = Math.max(best, readBest()); tapeFloor = 0; newBest = false; bandNow = 0; notch = 0;   // (max: a phone whose storage is blocked still keeps its best for the visit)
     view.adopt(run, T); view.setBest(0);
     end.hidden = true; start.hidden = false; soundsBtn.hidden = false; note.hidden = false;
     stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-made');
     startBest.textContent = best ? `YOUR BEST ${best} · THIS PHONE` : '';
-    hudKey = ''; callUntil = 0; callPri = 0; call.className = 'hi-call'; call.textContent = '';
-    band.textContent = BANDS[0].name; band.classList.remove('is-new'); setNum(num, 0); tagKey = ''; tag.hidden = true;
+    hudKey = ''; callUntil = 0; callPri = 0; later = null; if (callAnim) { callAnim.cancel(); callAnim = null; } call.className = 'hi-call'; call.textContent = '';
+    band.textContent = BANDS[0].name; setNum(num, 0); tagKey = ''; tag.hidden = true;
   }
   // (while a run is LIVE the SOUNDS button + the note are off the screen: a thumb anywhere is a DROP, never a menu)
   const begin = ts => { t0 = ts; start.hidden = true; soundsBtn.hidden = true; note.hidden = true; stage.classList.add('is-live'); };
@@ -154,16 +167,24 @@ function mount() {
   }
   play.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' && e.button !== 0) return; touch(e.timeStamp); });
   play.addEventListener('touchmove', e => e.preventDefault(), { passive: false });   // (no page scroll under a finger)
-  document.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); touch(e.timeStamp); } });
+  document.addEventListener('keydown', e => { if (sheetOpen) return; if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); touch(e.timeStamp); } });   // (the sheet's own buttons keep their keys)
 
   // ---- THE ANNOUNCER LANE (under the band's name): one call at a time — a bigger moment is never wiped by a smaller one
-  let callUntil = 0, callPri = 0;
+  // Its one-shot (and the band's arrival) are played through the Web Animations API — opacity + transform only, restarted WITHOUT a
+  // forced layout (the review: `void el.offsetWidth` here was a layout read inside the frame, on every perfect).
+  const calm = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
+  const POP = calm ? [{ opacity: 0 }, { opacity: 1, offset: 0.1 }, { opacity: 1, offset: 0.86 }, { opacity: 0 }]
+    : [{ opacity: 0, transform: 'translateY(8px) scale(0.86)' }, { opacity: 1, transform: 'scale(1.06)', offset: 0.1 }, { opacity: 1, transform: 'none', offset: 0.2 }, { opacity: 1, transform: 'none', offset: 0.82 }, { opacity: 0, transform: 'translateY(-4px)' }];
+  const SWELL = [{ transform: 'scale(1)', opacity: 0.4 }, { transform: 'scale(1.32)', opacity: 1, offset: 0.14 }, { transform: 'scale(1.32)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }];
+  let callUntil = 0, callPri = 0, callAnim = null, later = null;
+  /** → true = it is on the lane (false: a bigger call holds it) */
   function say(text, cls, pri, ms, now) {
-    if (now < callUntil && pri < callPri) return;
+    if (now < callUntil && pri < callPri) return false;
     callUntil = now + ms; callPri = pri;
-    call.textContent = text; call.className = 'hi-call';
-    void call.offsetWidth;   // (restart its one-shot — an event's write, never in a steady frame)
-    call.className = `hi-call is-on ${cls}`;
+    call.textContent = text; call.className = `hi-call ${cls}`;
+    if (callAnim) callAnim.cancel();
+    if (call.animate) callAnim = call.animate(POP, { duration: ms, fill: 'both' }); else call.style.opacity = '1';
+    return true;
   }
   /** this frame's events → the HUD's calls + YOUR BEST's crossing + the band's arrival; → the extra sound cues the view's moments make */
   function moments(evs, now, late) {
@@ -174,14 +195,14 @@ function mount() {
         else say(e.streak > 1 ? `PERFECT ×${e.streak}` : 'PERFECT', 'is-perfect', 1, 700, now);
       } else if (e.e === 'land') {
         if (crossedBest(best, e.floor)) {
-          tapeOn = true; newBest = true; view.setBest(best, true); stage.classList.add('is-gold');
+          tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold');
           say('NEW BEST', 'is-gold', 5, 1900, now); if (!late) cues.push({ id: 'streak', rate: 1.12 });
         }
         const b = bandAt(e.floor);
         // A BAND's ARRIVAL: its name (under the number) lights up — never said twice in the lane below
-        if (b > bandNow) { bandNow = b; band.textContent = BANDS[b].name; band.classList.remove('is-new'); void band.offsetWidth; band.classList.add('is-new'); if (!late) cues.push({ id: 'band-arrival' }); }
-        // SOLO PAST 200: every notch of the tightening is called
-        if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; say('FASTER', 'is-fast', 2, 1100, now); } }
+        if (b > bandNow) { bandNow = b; band.textContent = BANDS[b].name; if (!calm && band.animate) band.animate(SWELL, { duration: 1700 }); if (!late) cues.push({ id: 'band-arrival' }); }
+        // SOLO PAST 200: every notch of the tightening is called — a FASTER that lands under a bigger call (a streak, NEW BEST) waits its turn
+        if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; if (!say('FASTER', 'is-fast', 2, 1100, now)) later = ['FASTER', 'is-fast', 2, 1100]; } }
       }
     }
     return cues;
@@ -196,7 +217,7 @@ function mount() {
     setNum(endN, live.floor);
     endB.textContent = BANDS[b].name;
     endL.textContent = `${perfectsLine(live.perfects)} · BEST STREAK ${live.maxStreak}`;
-    endBest.textContent = !was ? `YOUR BEST ${best}` : best > was ? `NEW BEST · WAS ${was}` : `YOUR BEST ${best}`;
+    endBest.textContent = !best ? '' : !was ? `YOUR BEST ${best}` : best > was ? `NEW BEST · WAS ${was}` : `YOUR BEST ${best}`;   // (a first run that never landed a slab has no best to show)
     endBest.classList.toggle('is-new', best > was && was > 0);
     stage.classList.toggle('is-made', live.made);
     // THE DETERMINISM CHECK (the owner's, on a real iPhone): the recorded tap log replayed through a FRESH engine — the judge's own code
@@ -212,7 +233,8 @@ function mount() {
     check.textContent = same ? 'REPLAY = LIVE ✓' : `REPLAY ≠ LIVE ✗ · first differs at tick ${at < 0 || at === Infinity ? '?' : at} · live ${live.floor} ${live.cause} · replay ${r.floor} ${r.cause}${why ? ` (${why})` : ''}`;
     end.hidden = false; soundsBtn.hidden = false; note.hidden = false; tag.hidden = true; tagKey = '';
     stage.classList.remove('is-live'); stage.classList.add('is-over');
-    hook.ends.push({ seed, mode: MODE, same, at, live, replay: r, taps: taps.slice(), best, was });
+    view.rest();   // (the first band's plate comes back while the card is up: PLAY AGAIN never starts on a blank sky)
+    hook.ends.push({ seed, mode: MODE, same, at, live, replay: r, taps: taps.slice(), best, was }); if (hook.ends.length > 50) hook.ends.shift();
   }
 
   let raf = 0, last = 0, hudKey = '', tagKey = '', frameN = 0;
@@ -227,7 +249,6 @@ function mount() {
       if (!isOver(run)) {
         const tk = Math.floor(tau), cap = MODES[MODE].capTicks;
         stepTo(run, cap != null && tk >= cap && tk < cap + CAP_GRACE ? cap - 1 : tk, ev);
-        if (isOver(run)) endedAt = now;
       }
     }
     if (ev.length) {
@@ -238,6 +259,7 @@ function mount() {
       if (liveEv.length < 400000) liveEv.push(...ev);
       ev.length = 0;
     }
+    if (isOver(run) && !endedAt) endedAt = now;   // (the end's own frame — whether THE FUSE ended it in this frame or a TAP did in the touch handler: the review — a miss used to bring the card at once, over the falling slab)
     if (isOver(run) && !shown && now - endedAt >= END_HOLD_MS) showEnd(now);
     view.draw(run, isOver(run) ? run.end : tau, dt);
     // ---- the HUD: written only when it changes
@@ -253,21 +275,22 @@ function mount() {
     const bv = t0 != null && !shown && !isOver(run) ? bestView(best, run.floor) : null;
     if (bv && bv.tag) {
       if (tagKey !== bv.tag) { tagKey = bv.tag; tag.firstChild.textContent = bv.tag; tag.hidden = false; }
-      const tp = T.top(), y = tagY(view.project((tp.x0 + tp.x1) / 2, best, (tp.z0 + tp.z1) / 2)[1] * stageH, hudFoot, view.zoneTop() * stageH);
+      // (its height is clamped to 100 floors up: a best far above is BEHIND the diagonal camera — projected, it came back mirrored and the tag jumped to the foot of its column: the review)
+      const tp = T.top(), y = tagY(view.project((tp.x0 + tp.x1) / 2, Math.min(best, run.floor + 100), (tp.z0 + tp.z1) / 2)[1] * stageH, hudFoot, view.zoneTop() * stageH);
       tag.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
     } else if (tagKey) { tagKey = ''; tag.hidden = true; }
-    if (callUntil && now > callUntil) { callUntil = 0; callPri = 0; call.className = 'hi-call'; }
+    if (callUntil && now > callUntil) { callUntil = 0; callPri = 0; call.className = 'hi-call'; call.style.opacity = ''; if (later) { const l = later; later = null; say(l[0], l[1], l[2], l[3], now); } }
     frameN++;
     if (frames.length < 20000) frames.push(gap); else frames[frameN % 20000] = gap;
     tiers.sample(now, performance.now() - w0); if (pin == null) tiers.tick(now);
     if (fps && frameN % 30 === 0) { const l = frames.slice(-120), avg = l.reduce((a, b) => a + b, 0) / l.length, i = view.info(); fps.textContent = `${(1000 / avg).toFixed(0)} fps · ${avg.toFixed(1)} ms · worst ${Math.max(...l).toFixed(0)} · tier ${i.tier}${i.bloom ? ' bloom' : ''} · ${i.calls} calls · ${i.tris} tris · ${i.w}×${i.h} @${i.dpr} · tick ${run.t}`; }
   }
-  document.addEventListener('visibilitychange', () => { tiers.reset(); });
+  document.addEventListener('visibilitychange', () => { tiers.reset(); if (glDown && document.visibilityState === 'visible') { tries = 0; rebuild(); } });
 
   // (the pass's own checks — tests/integration/highrise-play.mjs)
   const hook = window.__hiPlay = {
     ends: [], view, sfx: null,
-    state: () => ({ mode: MODE, seed, started: t0 != null, shown, over: isOver(run), st: run.st, t: run.t, floor: run.floor, streak: run.streak, perfects: run.perfects, s0: run.s0, S: run.S, taps: taps.length, best, tapeOn, newBest, band: bandNow, words: endT.textContent, check: check.textContent, call: call.textContent, tag: tag.hidden ? '' : tag.textContent, top: { x0: run.x0, x1: run.x1, z0: run.z0, z1: run.z1, floor: run.floor }, viewTop: view.top(), tier: tiers.get(), tierPath: tierPath.slice(), rebuilds, sheet: sheetOpen, info: view.info() }),
+    state: () => ({ mode: MODE, seed, started: t0 != null, shown, over: isOver(run), st: run.st, t: run.t, floor: run.floor, streak: run.streak, perfects: run.perfects, s0: run.s0, S: run.S, taps: taps.length, best, tapeOn: tapeFloor > 0, newBest, band: bandNow, words: endT.textContent, check: check.textContent, call: call.textContent, tag: tag.hidden ? '' : tag.textContent, top: { x0: run.x0, x1: run.x1, z0: run.z0, z1: run.z1, floor: run.floor }, viewTop: view.top(), tier: tiers.get(), tierPath: tierPath.slice(), rebuilds, sheet: sheetOpen, info: view.info() }),
     /** ms until the sliding slab is next dead on the tower — on its way out, or on its way back (null = no slab / its last pass is gone) */
     msToPerfect() {
       if (t0 == null || run.st !== 'slide') return null;

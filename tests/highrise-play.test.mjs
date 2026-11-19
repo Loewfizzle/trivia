@@ -117,13 +117,27 @@ test('THE RUN ON THE PAGE: FAIR TAPS, tick 0 = the START touch, a beat\'s tap ne
   assert.match(s, /const RETRY_MS = 600;/); assert.match(s, /if \(shown\) \{ if \(now - overAt > RETRY_MS\) \{ restart\(\); begin\(ts\); \} return; \}/, 'the end card stays 0.6 s before a tap is PLAY AGAIN');
   assert.match(s, /const begin = ts => \{ t0 = ts; start\.hidden = true; soundsBtn\.hidden = true; note\.hidden = true;/, 'while a run is LIVE the SOUNDS button is off the screen: a thumb anywhere is a drop');
   assert.match(s, /T\.feed\(ev\); view\.events\(ev\);/, 'the tower is tower.js\'s (the engine\'s own land events) — then the view\'s moments');
-  assert.match(s, /catch \{ stage\.append\(h\('p\.hi-nogl',/, 'no WebGL: the page still loads and says so');
-  const frame = s.slice(s.indexOf('function frame(now)'), s.indexOf("document.addEventListener('visibilitychange'"));
-  assert.doesNotMatch(frame, /clientWidth|clientHeight|getBoundingClientRect|offsetWidth|offsetHeight|offsetTop/, 'no layout read in the frame (the sizes are a ResizeObserver\'s)');
+  assert.ok(s.includes("catch { stage.append(noGL()); return; }") && s.includes("const noGL = () => h('p.hi-nogl',"), 'no WebGL: the page still loads and says so');
+  // NO LAYOUT READ IN THE FRAME — nor in what the frame calls (the review: say() + moments() forced a layout on every perfect): the
+  // ONLY layout reads of the whole page are sized()'s, a ResizeObserver's
+  const layout = /clientWidth|clientHeight|getBoundingClientRect|offsetWidth|offsetHeight|offsetTop|scrollWidth|scrollHeight|getComputedStyle/g;
+  assert.equal(s.replace('function sized() { stageH = stage.clientHeight; hudFoot = hud.offsetTop + hud.offsetHeight; }', '').match(layout), null, 'no layout read anywhere but sized()');
+  assert.ok(s.includes('new ResizeObserver(sized).observe(stage); new ResizeObserver(sized).observe(hud);'));
+  assert.ok(s.includes("if (call.animate) callAnim = call.animate(POP, { duration: ms, fill: 'both' }); else call.style.opacity = '1';"), 'the announcer\'s one-shot = the Web Animations API (opacity + transform), restarted without a reflow');
+  assert.doesNotMatch(read('css/highrise-play.css'), /@keyframes (?!hi-breathe)/, 'the only CSS keyframes left: the two breathing lines (opacity)');
+  // THE END HOLD holds for EVERY end — THE FUSE's (in the frame) and a TAP's (in the touch handler: the review)
+  assert.ok(s.includes('if (isOver(run) && !endedAt) endedAt = now;') && s.includes('if (isOver(run) && !shown && now - endedAt >= END_HOLD_MS) showEnd(now);'));
+  assert.equal((s.match(/endedAt = now/g) || []).length, 1, 'ONE place sets the end\'s time: the frame that first sees the run over');
+  assert.match(s, /const END_HOLD_MS = 700;/);
+  assert.ok(s.includes("document.addEventListener('keydown', e => { if (sheetOpen) return;"), 'the SOUNDS sheet keeps its own keys');
   // THE LOST CONTEXT: rebuilt on the same tower; the listeners come off before any destroy
   assert.match(s, /const onLost = e => \{ e\.preventDefault\(\); if \(!lostTimer\) lostTimer = setTimeout\(rebuild, 1500\); \};/);
   assert.match(s, /function rebuild\(\) \{\s*clearTimeout\(lostTimer\); lostTimer = 0;\s*offGL\(\);\s*try \{ view\.destroy\(\); \}/, 'offGL BEFORE destroy (its own forceContextLoss is never "lost")');
-  assert.match(s, /view\.adopt\(run, T, false\); view\.setBest\(tapeOn \? best : 0\);/, '… the same tower, the same tape');
+  assert.ok(s.includes('view.adopt(run, T, false); view.setBest(tapeFloor); if (shown) view.rest();'), '… the same tower, the tape on ITS OWN floor (not the best the end card moved on)');
+  // a rebuild that gets NO context keeps trying (the review: one failure used to end the page until a reload)
+  assert.ok(s.includes('view = NO_VIEW; hook.view = view;') && s.includes('if (++tries <= 8) lostTimer = setTimeout(rebuild, 1500);'));
+  assert.ok(s.includes("if (glDown && document.visibilityState === 'visible') { tries = 0; rebuild(); }"), '… and at once when the page is back in front');
+  assert.ok(s.includes('if (glDown) { glDown.remove(); glDown = null; }'), 'the "no WebGL" line leaves when the scene is back');
   assert.match(read('css/highrise-play.css'), /\.hi-play \{[^}]*touch-action: none;[^}]*-webkit-tap-highlight-color: transparent;/);
   assert.match(read('css/highrise-play.css'), /\.hi-snd \{[^}]*min-height: 44px; min-width: 44px;/, 'the corner button ≥ 44 pt');
 });
@@ -169,7 +183,9 @@ test('THE HEIGHT AREAS (bands.js — PURE): 0–25 the rooftops · 25–60 the s
   assert.ok(SLACK > 0.05 && SLACK <= 0.25);
   // only the current band's plate + the next one's are ever held (night.js#holdPlates) — and only the current LOOK's set is asked for
   const n = code(`${HI}night.js`);
-  assert.match(n, /for \(const \[k, rec\] of plates\) if \(k !== a && k !== b && !\(a === b && k === a \+ 1\)\) \{ if \(rec\.tex\) rec\.tex\.dispose\(\); plates\.delete\(k\); \}/);
+  assert.ok(n.includes('for (const [k, rec] of plates) if (k !== a && k !== b && !(a === b && k === a + 1) && !(keepFirst && k === 0)) { if (rec.tex) rec.tex.dispose(); plates.delete(k); }'));
+  // (+ the FIRST band's plate again while the end card is up — PLAY AGAIN never starts on a blank sky: the review)
+  assert.ok(n.includes('rest() { keepFirst = true; },') && n.includes('if (snap) keepFirst = false;') && code(`${HI}play.js`).includes('view.rest();'));
   assert.match(n, /new URL\(`plates\/\$\{look\}-\$\{band \+ 1\}\.webp\?v=\$\{HI_ART_REV\}`, ART\)/);
   for (let i = 1; i <= 5; i++) { const f = new URL(`../assets/highrise/plates/night-${i}.webp`, import.meta.url); assert.ok(existsSync(f) && statSync(f).size < 90 * 1024, `night-${i}.webp ships, small`); }
   assert.ok(statSync(new URL('../assets/highrise/env-night.png', import.meta.url)).size < 24 * 1024, 'the reflection map: a small picture, never the HDRI');
@@ -208,8 +224,10 @@ test('YOUR BEST (best.js — PURE): no best = nothing · above you = the right-e
   assert.equal(tagY(300, 380, 400), 402, 'no clear column at all: just under the HUD');
   // the page wires it: the best BEFORE the run, the tag while above, the crossing → the tape + NEW BEST, stored at the end
   const s = code(`${HI}play.js`);
-  assert.match(s, /if \(crossedBest\(best, e\.floor\)\) \{\s*tapeOn = true; newBest = true; view\.setBest\(best, true\); stage\.classList\.add\('is-gold'\);\s*say\('NEW BEST', 'is-gold', 5, 1900, now\);/);
-  assert.match(s, /y = tagY\(view\.project\(\(tp\.x0 \+ tp\.x1\) \/ 2, best, \(tp\.z0 \+ tp\.z1\) \/ 2\)\[1\] \* stageH, hudFoot, view\.zoneTop\(\) \* stageH\);/, 'the tag: its floor\'s height, clear of the HUD + THE DROP ZONE');
+  assert.ok(s.includes("if (crossedBest(best, e.floor)) {") && s.includes("tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold');") && s.includes("say('NEW BEST', 'is-gold', 5, 1900, now);"));
+  assert.ok(s.includes('y = tagY(view.project((tp.x0 + tp.x1) / 2, Math.min(best, run.floor + 100), (tp.z0 + tp.z1) / 2)[1] * stageH, hudFoot, view.zoneTop() * stageH);'), 'the tag: its floor\'s height (clamped 100 floors up — a point behind the camera projects mirrored: the review), clear of the HUD + THE DROP ZONE');
+  assert.ok(s.includes('best = Math.max(best, readBest());'), 'a phone whose storage is blocked keeps its best for the visit');
+  assert.ok(s.includes("endBest.textContent = !best ? '' : !was ? `YOUR BEST ${best}`"), 'a first run that never landed a slab shows no "YOUR BEST 0"');
   assert.match(s, /best = nextBest\(was, live\.floor\);\s*if \(best > was\) writeBest\(best\);/);
   assert.match(read('css/highrise-play.css'), /\.hi-tag \{ position: absolute; right: 0;/, 'the tag sits at the RIGHT edge');
 });
@@ -279,7 +297,8 @@ test('THE TRIGGERS (sounds.js#cuesOf — PURE, on REAL runs): drop on every land
   assert.match(s, /const late = gap > LATE_MS;/); assert.match(s, /if \(snd\) \{ snd\.playCues\(snd\.cuesOf\(ev, late\)\); if \(more\.length\) snd\.playCues\(more\); \}/);
   assert.match(s, /if \(!late\) cues\.push\(\{ id: 'band-arrival' \}\);/);
   // SOLO PAST 200: every notch of the tightening is called FASTER
-  assert.match(s, /if \(e\.floor > TIGHT\.from\) \{ const k = Math\.floor\(\(e\.floor \+ 1 - TIGHT\.from\) \/ TIGHT\.every\); if \(k > notch\) \{ notch = k; say\('FASTER', 'is-fast', 2, 1100, now\); \} \}/);
+  assert.ok(s.includes("if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; if (!say('FASTER', 'is-fast', 2, 1100, now)) later = ['FASTER', 'is-fast', 2, 1100]; } }"), 'every notch is called — under a bigger call it waits its turn (the review)');
+  assert.ok(s.includes('if (later) { const l = later; later = null; say(l[0], l[1], l[2], l[3], now); }'));
   assert.equal(TIGHT.every, 10);
 });
 
@@ -296,6 +315,8 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   const draw = n.slice(n.indexOf('function draw(run, tau, dt)'), n.indexOf('return {', n.indexOf('function draw(run, tau, dt)')));
   assert.doesNotMatch(draw, /spO\.|spV\.|spark\(/, 'no spark is stepped on the CPU in the frame');
   assert.match(n, /if \(whole \|\| reduce\) return;/, 'reduced motion: no sparks');
+  assert.ok(n.includes('transparent: true, depthWrite: true, extensions: { derivatives: true } });'), 'the glass asks for derivatives: its edges\' fwidth builds on a WebGL 1 phone too (the review: without it the whole tower was missing there)');
+  assert.ok(code(`${HI}sfx.js`).includes('if (!isUnlocked() || !ctx || !bufs.get(tk.file) || bufCtx !== ctx) {') && !/ctx\.state !== 'running'/.test(code(`${HI}sfx.js`)), 'the sounds play on a NAPPING context too (PODCAST MODE — the review: the game was silent with the site\'s music off)');
   assert.match(n, /if \(tier === 2 && !bloom\) \{ try \{ bloom = createBloom\(renderer, G\.uBloom\); \} catch \{ bloom = null; \} \}\s*if \(tier < 2 && bloom\) \{ bloom\.dispose\(\); bloom = null; \}/, 'the bloom at the top tier only');
   assert.match(n, /export const DPR_AT = Object\.freeze\(\[1\.5, 2, 3\]\);/, 'the tiers\' sharpness: ≤ 1.5 · ≤ 2 · ≤ 3');
   assert.match(n, /if \(needWarm && w && h\) \{ needWarm = false; warm\(\); \}/); assert.match(n, /renderer\.compile\(scene, cam\); renderer\.render\(scene, cam\); if \(bloom\) bloom\.render\(scene, cam, plate\);/, 'THE WARM FRAME: every program built in one hidden frame');
