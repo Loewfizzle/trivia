@@ -3,7 +3,7 @@
 **BEING BUILT — S1 (Nov 18 2026): THE RULES · S2 (Nov 18–19 2026): THE NIGHT LOOK + SOLO on an unlisted test page · S3 (Nov 19 2026):
 THE DAY LOOK + THE LOOK SWITCH + THE FLYERS + DEEP SPACE + THE MOTHERSHIP, the 2 cards' art prepared · S4A (Nov 19 2026): THE SOUND
 SYNC, THE HIDDEN CARTRIDGE (the owner's phone only, SOLO in a room), COUNTING built end to end — and switched OFF · S4A FIX (Nov 19 2026):
-ZERO GARBAGE IN PLAY (the iPhone's stalls), THE WELCOME + THE END (the owner's A picks), the UFO's lamps, the pink tape's white core, THE ICON · S4B (Nov 19–20 2026): THE END SCREEN (JAYWALK's standard), THE LAG CHECK (the pre-warm, `?lean=1`), THE MATCH (2 … 8 players, hidden), THE RULE-SET TABLE, THE LIVE LOCK (a rules change).** A 3D neon
+ZERO GARBAGE IN PLAY (the iPhone's stalls), THE WELCOME + THE END (the owner's A picks), the UFO's lamps, the pink tape's white core, THE ICON · S4B (Nov 19–20 2026): THE END SCREEN (JAYWALK's standard), THE LAG CHECK (the pre-warm, `?lean=1`), THE MATCH (2 … 8 players, hidden), THE RULE-SET TABLE, THE LIVE LOCK (a rules change) · S5 (Nov 20 2026): THE PLACE NUMBER + the ranked list in WATCH, 18 s, THE SHARE IMAGE, THE B1 BILLBOARD art (not installed), THE BAKED HUD.** A 3D neon
 glass-slab tower: one tap drops each slab, the overhang slices off, a PERFECT snaps into place. Its signs read HIGH / RISE stacked.
 JAYWALK is its quality benchmark AND its engine formula (docs/jaywalk.md): a pure engine, a result = THE REPLAY of the player's own input
 log, a preview on the live site. The owner's decisions: `docs/games/plan.md` "HIGH RISE — S1" · "— S2" · "— S2 FIX" · "— S3" · "— S4A" · "— S4A FIX" (+ its ADD-ONS)
@@ -25,6 +25,7 @@ before a HIGH RISE pass.
 | S4A FIX — ZERO GARBAGE + THE WELCOME + THE END | Nov 19 2026 | `docs/games/passes/highrise-s4a-fix.md` | ZERO GARBAGE IN PLAY (a live frame makes no objects — the guard `highrise-alloc.mjs`; three.js as its readable build), THE HITCH COUNTER honest (gc only when seen), the UFO's far-side lamps hidden, the pink tape's white core, THE ICON = THE TOWER, THE WELCOME = A · THE SIGN, THE END = A · THE HERO NUMBER, NO PINK FLASH at a run's end (the console's crown wash), GROW-BACK's five takes |
 | S4A FIX 2 — THE ON-PHONE TRACE + THE LANDING FRAME + FLYERS ON REAL TIME | Nov 19 2026 | `docs/games/passes/highrise-s4a-fix2.md` | `?trace=1` (every frame timed in phases; the end card lists THE 5 WORST), THE LANDING FRAME (only the slab + its sound on it — the rest in the next frames, prewarmed, changed ranges only, a static scene), THE FLYERS ON REAL TIME (the UFO's jump at every landing: the sky band off the RESTED camera — `highrise-flypath.mjs`), GROW-BACK FINAL ("Heal Restore") |
 | S4B — THE END SCREEN · THE LAG CHECK · THE MATCH · THE RULE-SET TABLE | Nov 19–20 2026 | `docs/games/passes/highrise-s4b.md` | THE END SCREEN = JAYWALK's standard (ONE builder), THE PRE-WARM + `?lean=1` + the repaint audit, THE MATCH (2 … 8 players — the tapes, the tags, the altimeter, WATCH, Call the Winner, REMATCH; the 8-player pixel test), THE RULE-SET TABLE (`rules.js` — every run records its rule set), THE LIVE LOCK (`jw` + `hr` — A RULES CHANGE), "+0 XP · DAILY CAP" |
+| S5 — BEN'S NOTES | Nov 20 2026 | `docs/games/passes/highrise-s5.md` | THE PLACE NUMBER (the altimeter gone from live play) + THE RANKED LIST in WATCH, 18 s, THE ANNOUNCER CHECK, zero garbage in a match; THE SHARE IMAGE (JAYWALK's standard — SHARE on the footer); THE POSTER + THE B1 BILLBOARD art + its in-city readability proof; THE EFFECTS REBUILD (THE BAKED HUD — `?lean=<name>` bisect) |
 | S3 — THE DAY LOOK + THE FLYERS + DEEP SPACE | Nov 19 2026 | `docs/games/passes/highrise-s3.md` | THE DAY LOOK (frosted glass, one sun), THE LOOK SWITCH (AUTO · DAY · NIGHT, a 1.5 s cross-fade, never a hitch), THE FLYERS (the seed's Blackbird OR F-22 pair at 35–45 · the UFO at 85 · THE MOTHERSHIP from ~180), floor 200 (solo: the moment, then DEEP SPACE · `?mode=match`: THE FINISH + the gold card), the sounds final (ALL A), the 2 cards' art prepared |
 
 ## THE RULES (the owner's)
@@ -711,7 +712,7 @@ strip, the dashed gold outline + `BEST n ↑` are gone. Top to bottom, the same 
 - **the floor**, huge + white with a cyan glow (the ONE white hero — ≈ 100 px at 390), `FLOORS` under it.
 - **YOUR BEST · n** in gold — `NEW BEST · WAS n` when beaten (a match shows no YOUR BEST line: it shows your place — and a match's floor never SETS YOUR BEST: it is the solo best; a first run's floor is YOUR BEST, never NEW BEST, on the podium as on the stage's card).
 - one line **n PERFECTS · BEST STREAK n**, then **YOUR TABLE** (the slim cards) right under it, then the universal footer
-  (PLAY AGAIN · CITY — **SHARE comes with the share image at THE REVIEW**).
+  (PLAY AGAIN · SHARE · CITY — S5: THE SHARE IMAGE, below).
 - JAYWALK's veil dims the scene, night + day. `WOULD COUNT …` stays ONE small line over the bar (`final.js#wouldLine`).
 - **"+0 XP" SAYS WHY (S4B Group 3):** it is the day's XP cap, not a fault — THE SOLO LANE pays a streak day's first 4 solo runs
   (EVERY solo game's: four JAYWALK runs use them up), a room match stops at THE DAILY CEILING. The line reads
@@ -737,7 +738,7 @@ Tests: `tests/highrise-s4b.test.mjs` · `highrise-play.mjs --end` (every cause +
   184 between landings with NO rival on screen; it is now a class on the TAGS themselves (each already its own compositor layer;
   a tag not shown is not written): 3.0 · 6.0 a landing, between landings only the clock's one write a second. `--table` now
   names WHEN the between-landing writes fall (100 ms buckets since the tap) + the nodes.
-- **STILL OPEN — ZERO GARBAGE holds for SOLO only** (measured at S4B's close: `ALLOC_Q='&mode=match&rivals=7' node
+- ~~STILL OPEN~~ **CLOSED IN S5 (THE MATCH's garbage 42.6 → 8.0 KB/s — the guard's MATCH row; "THE MATCH" below)** — was: ZERO GARBAGE held for SOLO only (measured at S4B's close: `ALLOC_Q='&mode=match&rivals=7' node
   tests/integration/highrise-alloc.mjs <chromium> --table`): with 7 bot rivals the match's HUD + rival helpers make ≈ 13–15 KB of
   objects a second (`matchhud.js#altimeter` · `rivals.js#mergeTags` / `matchCalls` / `nearest` · `stage.js#placeRivals`) against 4.4
   in a solo run and the guard's 12; the room's mirror of the proof tree is not in that number → the inbox (THE REVIEW).
@@ -750,7 +751,7 @@ Tests: `highrise-prewarm.mjs` (35: floor 1 → 120 · floor 80 by day · lean ·
 **The rules** (PURE — `match.js` · `director.js`): `count` (3 · 2 · 1) → `play` → `final`. Every phone writes its own GO on its proof
 node (a transaction, never applied locally); **THE FIRST GO** picks the seed + tick 0 for everyone (`logic.js#matchStart` — the nodes
 are the truth: `match.js#startOf` puts a game that says otherwise right). No GO anywhere within 3 s → the match plays UNPROVEN (never
-counted). **THE END**: every tower ended — its node says `e`; a silent phone is waited for (online: `IDLE_OUT_MS` 12 s — the fuse has
+counted). **THE END**: every tower ended — its node says `e`; a silent phone is waited for (online: `IDLE_OUT_MS` 18 s — S5, JAYWALK's own; S4B had 12 s — the fuse has
 ended that tower by then; offline: + `DROP_WAIT_MS` 75 s, THE DROPPED SIGNAL) — or the 6:00 cap + 4 s. **The rows** = THE JUDGE's
 replay of each node (`director.js#scoreMatchNode` → `proof.js#judgeNode`, exactly as the server's `highriseMatch`): the floor, then
 the most perfects, then the earlier tick. FINISH = floor 200 (MADE IT). Call the Winner is scored from each caller's own `k`
@@ -764,14 +765,26 @@ fuse's end only once their `e` is here; the cap is marked, never stepped).
   (no tape flashing under the top slab).
 - **THE TAGS** (`matchhud.js#setTags`): a rival AT / OVER you = a right-edge tag `ALEX ▲3` in the clear column; the 3 nearest,
   merged when they would overlap (`rivals.js#mergeTags`), dim while a slab slides (`matchhud.js#dim` — on the tags, never their box).
-- **THE ALTIMETER**: every player's height, a slim ordered strip at the left edge (44 pt rows once you watch).
+- ~~THE ALTIMETER~~ → **THE PLACE NUMBER (S5 — the owner: the altimeter was "movement in the corner of your eye")**: ONE big still
+  number top-left under ☰ (`matchhud.js#place`) — `3RD / 8` (the ordinal 50 px in the game's numerals, `/ 8` smaller + dimmer;
+  `1ST` gold); your place = 1 + the players STRICTLY over your floor (`rivals.js#placeOf` — a level player shares it); written only
+  when it changes, a change = ONE pulse of its glow copy (up cyan · down soft pink — opacity + transform). A live climber's only.
+- **THE RANKED LIST (S5 — WATCH only)**: every player, the highest first, 44 pt rows — the place · a colour bar · the name · the floor;
+  the watched row lit, YOU outlined, OUT a cross + struck name, the finish a gold diamond, a silent phone a hollow bar. Tap a row =
+  watch them; a tap elsewhere = the next; the one you follow STAYS while they climb (a tap's pick is spent once followed). The HUD
+  column steps right of it. The test page's bot room (`?mode=match&rivals=7`) has OUT = WATCH too (its card after every bot is down
+  or 45 s — `matchsim.js#SIM_WATCH_MS`).
+- **THE ANNOUNCER (S5)**: the match lane 16 px (it was 12), one line, held 1.5 s, inside the HUD column; the same words twice inside
+  4 s are said once (`REPEAT_MS`). The solo lane: PERFECT + FASTER held 1.5 s (PERFECT was 0.7).
+- **ZERO GARBAGE IN A MATCH (S5)**: `nearest` · `mergeTags` · `matchCalls` fill kept scratch; the cartridge's pump keeps ONE row a
+  rival, the live key once a game, `S.me(record)`; with 7 bot rivals the game's own code 8.0 KB/s (the guard's MATCH row; it was 42.6).
 - **THE PIXEL TEST** (`tests/integration/highrise-rivals.mjs`): 8 players, 48 frozen samples day + night at 390 × 844 — 0 rival
   pixels in the play zone.
 
 **THE SCREEN** (`stage.js` · `matchhud.js` · `view.js`): the match kit's announcer for the passes (merged: `3 PASSED YOU`), who is out,
 MADE IT (rivals' streaks are NOT called — everyone climbs in step). **OUT** = the cause's words → Call the Winner (the kit's) →
-**WATCH** (the leader first; a tap = the next; a tap on the altimeter = that player — their tower from their landed taps, its slab
-seen sliding). The finish at floor 200 (the gold light), TIME'S UP at the cap. The podium `HIGH RISE · MATCH`: every row its floor +
+**WATCH** (the leader first; a tap = the next; a tap on a row of THE RANKED LIST = that player — their tower from their landed taps,
+its slab seen sliding). The finish at floor 200 (the gold light), TIME'S UP at the cap. The podium `HIGH RISE · MATCH`: every row its floor +
 cause + perfects, your place + your call; **REMATCH in place**. Each phone its own look.
 
 **ROCK SOLID** (each tested — `e2e-highrise-match.mjs`, 55: three phones + a late joiner): a refresh mid-run + after out, an app
@@ -781,6 +794,48 @@ its line ≥ 10 s the host moves to a guest who can not START the hidden game (R
 **THE SERVER** (`api/_lib/highrise.js#highriseMatch`): every run from the server's replay on THE FIRST GO's seed; behind THE SWITCH —
 WOULD COUNT for every player, NOTHING written. **The test page**: `?mode=match&rivals=N` — bot rivals on the same seed
 (`matchsim.js`, lazy; nothing counts).
+
+## THE SHARE IMAGE (S5 — the owner's mockup `Downloads\NEON\highrise-share-image.png`; JAYWALK's standard: `share.js` + `shot.js`)
+- **THE FRAME** (`shot.js` · `night.js#snap`): a beat after YOUR tower's end (`SHOT_AT`: a miss 170 ms · too thin 200 · too slow 300 ·
+  the bell 60 · THE FINISH 1.7 s) the next frame drawn is copied off the canvas in that frame + where the top slab stands; kept on this
+  phone under the run's key (the cartridge: its match id); never while WATCH is up.
+- **THE CARD** (`share.js#drawHiCard` on the kit's `drawRunCard`, 1080 × 1350): the sign + `HIGH RISE · SOLO` / `· MATCH`; THE HERO FRAME
+  (JAYWALK's box 984 × 792 at 48, 348, one neon edge) = the real frame zoomed on the tower's top (full width — the falling slab beside it),
+  lifted by night; the cause ONCE in a dark tab (58 px, ≤ 2 lines); THE TOWER top-right; `BAND · N PERFECTS` lavender; the floor in the
+  game's numerals (Chakra Petch — Orbitron's zero is slashed) white-hot + CYAN glow + FLOORS; the name; the kit's foot. **THE FINISH =
+  ALL GOLD.** The numbers = THE JUDGE's whenever it has answered (the frame gives the picture).
+- **SHARE on the universal footer** (`index.js#shareRun`, lazy — solo + match): drawn while the end screen is read (`final.js` →
+  `warmShare`), uploaded only at the first SHARE tap, fitted under the server's cap (`kit/share-run.js#fitPng` — JAYWALK's, moved to the
+  kit). **Behind THE SWITCH:** `api/_lib/share-card.js#RUN_GAMES` + `highrise` — a run's card only with the server's own COUNTED
+  result (none while counting is off); once the server said WOULD COUNT (`globalThis.__hiWould`) the phone asks nothing → the
+  PICTURE alone goes out, no text. The test page never loads the share kit (its door).
+- Tests: `highrise-share.mjs` (4 real runs → their cards) · `e2e-highrise.mjs` (SHARE → the picture alone, 0 /api calls) ·
+  `share-card.test.mjs` "HIGH RISE S5" · `tests/highrise-s5.test.mjs`.
+
+## THE BILLBOARD (S5 — B1, the owner's pick `Downloads\NEON\highrise-billboard-B-v2.png`, the TOP one; NOT installed in the city)
+- **THE POSTER** (`poster.js` — the test page's `?poster=1&seed=poster2&floor=78&look=night`): the real night scene staged the same every
+  time (the seed `poster2`: violet-blue slabs in THE CLOUDS; one cut, frozen 140 ms later), cropped to the board's 848 : 448 round the
+  tower's top, darkened for the words.
+- **B1** (`billboard.js`, pure canvas): HIGH (white-hot, hot-pink edge, thick dark outline) over RISE (cyan edge), each cap 0.255 of the
+  board; the dark foot band + its pink neon line; OPEN NOW big WHITE heavy (never black-on-pink). The lettering = path data in BOWLBY ONE
+  (`billboard-glyphs.js`, GENERATED — OFL, no font load).
+- **Build**: `node scripts/build-highrise-billboard.mjs "<chromium>"` (serve.mjs on :5173) → `assets/city/highrise/billboard.webp`
+  (848 × 448, the words baked in — drawn whole like JAYWALK's OPEN NOW face) + the 2× / 1× PNGs. **The CITY chat installs it at go-live.**
+- **THE READABILITY PROOF** (`tests/integration/highrise-billboard.mjs` — in the city at 390 × 844, local only: the roof board's JAYWALK
+  OPEN NOW face forced, its picture's request answered with HIGH RISE's in the test): HIGH 11.2 pt · RISE 10.9 pt vs JAYWALK's word
+  9.0 pt; OPEN NOW 6.1 pt vs NOW OPEN 3.7 pt.
+
+## THE EFFECTS REBUILD — THE BAKED HUD (S5 — the owner's A/B: `?lean=1` halved Safari's slow frames)
+- **THE BISECT** (`highrise-paint.mjs --bisect`; `?lean=<name>` = ONE effect off: num · call · band · clock · tag · fps · ann · place):
+  the paint COUNTS were the same with and without lean — the cost was the BLUR re-rasterised inside them. Raster a second (the owner's
+  link `?trace=1&fps=1`, Chromium): BEFORE 0.74 night / 0.79 day (the number 0.33 / 0.36 · the announcer 0.27 / 0.10 · the band 0.20 /
+  0.09 · the fps line 0.15 / 0.33 · the tags 0.07 / 0) — AFTER 0.17 / 0.15 — `?lean=1` 0.10.
+- **THE BAKED HUD** (`bakedtext.js`): the floor number's ten digits drawn WITH their glow once a style — read off the number's OWN computed
+  style (the CSS stays the one source: the gold, the day's ink, `?lean`) — a landing copies 1 – 3 bitmaps into ONE canvas; the digit boxes
+  keep the layout + the reading (transparent). The announcer's lane: its pieces ("PERFECT ×", "NEW BEST", each digit …) baked once a style,
+  a call composes them (the pop stays a Web Animation). WARMED behind the welcome (`stage.js#warmHud`: the gold set, the lane's words) —
+  nothing baked in a live frame; ≤ 2 digit sets kept (an evicted one's canvases zeroed). The fps line: a flat dark plate, no halo.
+- `?lean=1` + `?lean=<name>` stay (the owner's A/B). WebKit is not measurable on the Beelink (software GL) — the iPhone A/B is the measure.
 
 ## THE RULE-SET TABLE (S4B — `rules.js`, PURE, imports nothing)
 Every rule number lives in ONE row per rule set — `RULE_SETS` — the start size, the perfect window, grow-back, too thin, the travel,
@@ -833,6 +888,9 @@ js/games/highrise/bot.js                            the sim bots          script
 js/games/highrise/tower.js                          the tower a view draws, from the events (pure — the lab AND the game)
 js/games/highrise/play.js stage.js                  THE TEST PAGE (its door, its flags, its best) · THE STAGE: the run loop, the HUD, YOUR BEST, the lost context — the page AND the cartridge mount it
 js/games/highrise/meta.js director.js index.js      THE CARTRIDGE (S4A — hidden): the thin meta · the pure host step · the contract
+js/games/highrise/shot.js share.js                  THE SHARE IMAGE (S5): the run's frame (pure state) · the card + SHARE (lazy, the cartridge's)
+js/games/highrise/poster.js billboard.js billboard-glyphs.js   THE B1 BILLBOARD (S5): the staged scene (?poster=1) · the painter (pure) · Bowlby One as paths (GENERATED)   scripts/build-highrise-billboard.mjs
+js/games/highrise/bakedtext.js                      THE BAKED HUD (S5): the number + the announcer's glow baked once a style
 js/games/highrise/view.js final.js endscreen.js     … its screen (the stage in the console's frame + the proof's writes) · the end screen's body + YOUR TABLE · THE END's ONE builder (the page's card too)
 js/games/highrise/proof.js lines.js                 THE PROOF (pure: the node's chunks, THE SPEED CHECK, the judge of a node) · THE NEXT FRIEND (pure)
 js/games/highrise/night.js night-fx.js camera.js    THE TWO LOOKS (one scene, `uDay`): the scene + the flyers' stage · the shaders + the bloom · the camera's numbers (pure)
@@ -856,9 +914,11 @@ tests/integration/e2e-highrise-match.mjs (55 — three phones + a late joiner; `
 tests/integration/highrise-play.mjs (238 — the browser; --end (52) · --review · --s3 (125) · --webkit · --look · --fly · --perf · --hitch = THE LAG HUNT's long run · S4A FIX's shots: --ufo · --tape · --icon · --screens · --flash) · highrise-lab.mjs (45)
 ```
 
+tests/highrise-s5.test.mjs · tests/integration/highrise-place.mjs (THE PLACE NUMBER + WATCH + THE ANNOUNCER) · highrise-share.mjs · highrise-billboard.mjs · highrise-paint.mjs --bisect
+
 ## COMING
-- **THE REVIEW** — the share image (then SHARE joins the end screen's footer), the icon + the billboard poster briefs, the owner's
-  phone checks of S4B (the end screen, the lag A/B, a match with his brother).
+- **THE REVIEW = REVIEW ONLY** (the owner, Nov 20): a fresh read-only audit — NO code changes — a ranked findings report for the owner to
+  pick from; then **REVIEW FIX** (his picks); then **GO-LIVE** (+ the CITY chat installs the B1 billboard).
 - **THE GO-LIVE PASS** (after THE REVIEW): `playable: true` + `HIGHRISE_COUNTS = true` (ONE line each), its meta at boot, HOW TO
   PLAY, its tile + icon, the board's tab, the site's Credits sheet's HIGH RISE group (the F-22, the Blackbird, the saucer: CC BY —
   `assets/highrise/models/CREDITS.md`), the cards' own motion.

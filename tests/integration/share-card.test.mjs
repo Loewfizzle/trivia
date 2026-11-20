@@ -230,6 +230,7 @@ test('HIGH RISE S5 — A RUN\'s CARD: refused with no counted result (counting O
   } finally {
     await ref('results/TOWR_m1hi5').remove();
     await ref(`shrp/${a.pid}:highrise`).remove();
+    await ref(`shrx/${today}`).remove();   // (the sweep's index — left behind, the CITY E test's count of today's cards saw two)
     for (const [code, c] of Object.entries((await val('shr')) || {})) if (c.p === a.pid) await ref(`shr/${code}`).remove();
     forgetShareSweep();
   }

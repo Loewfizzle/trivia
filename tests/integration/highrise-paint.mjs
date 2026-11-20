@@ -115,7 +115,9 @@ for (const [name, q] of RUNS) {
   const allow = clock ? Math.ceil(r.secs) + 2 : lean ? r.taps : 0;
   ok(r.layout.idle <= allow && r.paint.idle <= allow * 2, `${name}: BETWEEN landings (> ${SETTLE} ms after a tap) the page gives the browser NOTHING to lay out or paint — ${r.layout.idle} layouts · ${r.paint.idle} paints${clock ? ` (≤ ${allow} · ${allow * 2}: the clock's one write a second)` : lean ? ` (≤ ${allow} · ${allow * 2}: the lane hiding its own words, once a call)` : ''}${r.paint.idle && !clock && !lean ? ` — ${r.paint.idleNodes.join(' ')} at ${r.paint.idleAt.join(' ')} ms` : ''}; ${r.style.idle} style ticks (a running animation's own, no paint)`);
   if (lean) ok(r.style.idle <= r.taps, `${name}: … and LEAN has NO animation over the canvas — ${r.style.idle} style recalcs between landings (the lane's own hide, ≤ one a call; a plain run ticks ~${res[0].style.idle})`);
-  ok(r.paint.perTap <= 6.5 && r.layout.perTap <= 4, `${name}: a LANDING costs ${r.layout.perTap.toFixed(1)} layouts · ${r.paint.perTap.toFixed(1)} paints (${(r.paint.ms / Math.max(1, r.taps)).toFixed(2)} ms of paint on this machine) — the number, the lane, the tag`);
+  // (S5: + THE BAKED HUD's two canvases (the number, the lane — an image copied, no blur: the bisect's raster column is the cost) + a match's
+  //  PLACE NUMBER — 8.5 paints a landing; it was 6.5)
+  ok(r.paint.perTap <= 8.5 && r.layout.perTap <= 4, `${name}: a LANDING costs ${r.layout.perTap.toFixed(1)} layouts · ${r.paint.perTap.toFixed(1)} paints (${(r.paint.ms / Math.max(1, r.taps)).toFixed(2)} ms of paint on this machine) — the number, the lane, the tag`);
 }
 if (TABLE) {
   // (WHAT wrote between landings: the count by time since the last tap — 100 ms buckets — + the nodes the trace names)
