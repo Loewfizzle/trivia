@@ -25,8 +25,7 @@ export const HIGHRISE_WAITS = Object.freeze({
   help: 'the go-live pass — HOW TO PLAY (ui/help.js RULES + its tab)',
   art: 'the go-live pass — its tile (ui/game-art.js ART: the icon brief of THE REVIEW)',
   boardtab: 'the go-live pass — its tab on THE BOARD (board/view.js TABS)',
-  smoke: 'S4B — its smoke start (e2e-smoke.mjs), with THE MATCH',
-});
+});   // (S4B: its smoke start is IN — e2e-smoke.mjs: a local page that asks, two phones = THE MATCH's opening)
 const WAITS = Object.freeze({ jaywalk: JAYWALK_WAITS, highrise: HIGHRISE_WAITS });
 /** a live node only the SERVER writes (rules: .write false) — not a player node, never in the wipe list (its dealer clears it) */
 const SERVER_LIVE = Object.freeze({ holdem: "HOLD'EM's public table — rooms/{CODE}/holdem, written by THE DEALER (api/_lib/holdem-store.js) only" });

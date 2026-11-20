@@ -8,7 +8,8 @@
 // No pills, no emoji, no dev text. JAYWALK's victory.js is the pattern.
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { END_WORDS, floorOf } from './logic.js';
+import { END_WORDS, floorOf, gameStandings } from './logic.js';
+import { ordinal } from './match.js';
 import { endCard } from './endscreen.js';
 import { BEST_KEY, cleanBest } from './best.js';
 import { BOARD, SRV_BEST_KEY } from './lines.js';
@@ -60,7 +61,46 @@ export function yourTable(el) {
   }).catch(() => slot.remove());
 }
 
+/**
+ * S4B — A MATCH's body (JAYWALK's: the frame's own WINNER line leads, the console lists EVERY place under this body as slim cards with
+ * their floor + how their tower ended + their perfects): how YOUR tower ended, in the cause's neon · "57 FLOORS · YOU FINISHED 2ND" ·
+ * your call's result · THE SWITCH's line (WOULD COUNT) just over the REMATCH bar. A watcher (a late joiner): nothing of their own.
+ */
+function matchScene(el, game, state) {
+  const uid = state && state.uid, code = state && state.code, mine = !!(game.participants && game.participants[uid]);
+  el.classList.add('hi-fin'); el.dataset.mode = 'match'; el.dataset.podium = 'none';
+  if (!mine) return;
+  const r = ((game.results) || {})[uid] || {}, floor = Math.max(0, Math.floor(Number(r.f) || 0)), made = r.w === 'made';
+  const place = (gameStandings(game).find(x => x.uid === uid) || {}).rank || 0, floorsTxt = `${num(floor)} ${floor === 1 ? 'FLOOR' : 'FLOORS'}`;
+  const would = h('div.hi-fin-would', '');
+  const body = h(`div.hi-ec${made ? '.is-made' : ''}`, h('div.hi-ec-cause', game.unproven || r.bad ? 'NOT COUNTED' : END_WORDS[r.w] || 'NO TOWER'),
+    h('div.hi-fin-place', game.unproven ? `${floorsTxt} · NO LINE TO THE BOARD` : place ? `${floorsTxt} · YOU FINISHED ${ordinal(place)}` : floorsTxt));
+  el.replaceChildren(body, would);
+  const c = (game.calls || {})[uid];
+  if (c) el.append(h('div.hi-fin-call', c.ok ? `YOUR CALL WAS RIGHT · +${c.bonus} POINTS` : 'YOUR CALL MISSED'));
+  const overBar = () => { const fr = el.closest('.final'), foot = fr && fr.querySelector('.final-foot'); if (foot && would.nextElementSibling !== foot) foot.before(would); };
+  setTimeout(overBar, 0);
+  // (the winner's moment: the console's own sting is off for this game — a match plays it here, once the crown lands; a draw: none)
+  const first = gameStandings(game).filter(x => x.rank === 1);
+  if (first.length === 1) setTimeout(() => { if (el.isConnected) lazyImport(import('../../audio/progress-sfx.js'), '../../audio/progress-sfx.js').then(m => m.pgSfx('victory')).catch(() => {}); }, 2500);
+  if (!code || game.unproven) return;
+  // the server's own answer for this match (it REPLAYED every player's run): THE SWITCH's line while counting is OFF; a NEW BEST once ON
+  lazyImport(import('../../profile/queue.js'), '../../profile/queue.js').then(Q => {
+    const k = Q.matchKey(code, game.matchId);
+    const show = o => {
+      if (!o || !el.isConnected) return;
+      if (o.would) { overBar(); would.textContent = wouldLine(o.would); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }
+      const pb = (o.pbs || []).find(x => x.b === BOARD);
+      if (pb && !el.querySelector('.hi-fin-best')) { ls.set(SRV_BEST_KEY, floorOf(pb.v)); body.append(h('div.hi-ec-best.hi-fin-best.is-new', pb.prev != null ? `NEW BEST · WAS ${num(floorOf(pb.prev))}` : 'NEW BEST')); }
+    };
+    show(Q.outcomeFor(k));
+    const off = Q.onOutcome((kk, o) => { if (kk === k) show(o); });
+    const iv = setInterval(() => { if (!el.isConnected) { clearInterval(iv); off(); } }, 3000);
+  }).catch(() => {});
+}
+
 export function finalScene(el, game, state) {
+  if (game && game.mode !== 'solo') { matchScene(el, game, state); return; }
   const uid = state && state.uid, code = state && state.code;
   const r = ((game && game.results) || {})[uid] || {}, floor = Math.max(0, Math.floor(Number(r.f) || 0)), made = r.w === 'made';
   el.classList.add('hi-fin'); el.dataset.mode = 'solo';

@@ -31,9 +31,12 @@ export const statsLine = (perfects, streak) => `${say(perfects)} PERFECT${whole(
  */
 export function endCard({ header = '' } = {}) {
   const cause = h('div.hi-ec-cause'), n = h('div.hi-ec-n'), fl = h('div.hi-ec-fl', 'FLOORS'), bestL = h('div.hi-ec-best'), line = h('div.hi-ec-line');
-  const el = h('div.hi-ec', header ? h('div.hi-ec-hd', endHeader(header)) : null, cause, n, fl, bestL, line);
+  const hd = header ? h('div.hi-ec-hd', endHeader(header)) : null;
+  const el = h('div.hi-ec', hd, cause, n, fl, bestL, line);
   return {
     el,
+    /** the card's own header says SOLO or MATCH (a cartridge's stage plays both) */
+    header(mode) { if (hd) hd.replaceChildren(endHeader(mode)); },
     set({ words, made, floor, perfects, streak }) {
       const f = whole(floor);
       el.classList.toggle('is-made', !!made);

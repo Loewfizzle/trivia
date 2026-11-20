@@ -40,7 +40,7 @@ const waitFor = async (p, js, ms = 20000) => { const end = Date.now() + ms; whil
 const shot = async (p, name) => { if (OUT) await p.screenshot({ path: join(OUT, name) }); };
 
 /** THE ONLY REQUESTS THE PAGE MAY MAKE: its own page + static files, three.js from the import map's CDN, the fonts */
-const OWN = [/^\/highrise-play(\.html)?$/, /^\/css\/(base|components|highrise-play)\.css$/, /^\/js\/games\/highrise\/[a-z-]+\.js$/, /^\/js\/games\/kit\/(tiers|look)\.js$/, /^\/js\/core\/(rng|sky|weather|harbor-weather|party)\.js$/,
+const OWN = [/^\/highrise-play(\.html)?$/, /^\/css\/(base|components|highrise-play)\.css$/, /^\/js\/games\/highrise\/[a-z-]+\.js$/, /^\/js\/games\/kit\/(tiers|look|moments)\.js$/, /^\/js\/core\/(rng|sky|weather|harbor-weather|party)\.js$/,
   /^\/js\/ui\/(dom|lazy-import|sheet|layers)\.js$/, /^\/js\/audio\/(engine|settings|sound-state|leave-text)\.js$/, /^\/js\/(errlog|core\/bot-ua)\.js$/, /^\/assets\/highrise\/(plates\/(night|day)-[1-5]\.webp|env-(night|day)\.png)$/, /^\/audio\/highrise\/[a-z0-9-]+\.mp3$/,
   /^\/assets\/favicon-64\.png$/, /^\/favicon\.ico$/, /^\/assets\/fonts\//,
   // (S3: THE FLYERS — JAYWALK's own Blackbird + UFO (shared, cached) + its GLB reader, HIGH RISE's F-22, the city's jet / UFO sounds)

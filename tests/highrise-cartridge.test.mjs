@@ -77,7 +77,7 @@ test('THE CARTRIDGE (meta + director — PURE): SOLO, both looks, no options; `p
   assert.equal(nextRun(g, { matchId: 'x', now: 1 }), null, 'never from a run still on');
   assert.deepEqual(scoreNode(CODE, M, null), { f: 0, p: 0, t: 0, w: '', e: -1, s: 0 }, 'no GO = no tower');
   const idx = read('js/games/highrise/index.js');
-  assert.match(idx, /if \(Object\.keys\(participants \|\| \{\}\)\.length !== 1\) return null;/, 'S4A: one player only — THE MATCH is S4B');
+  assert.match(idx, /const n = Object\.keys\(participants \|\| \{\}\)\.length;\n  if \(n < 1 \|\| n > MATCH_MAX\) return null;/, 'one player = the solo run · 2 … 8 = THE MATCH (S4B — tests/highrise-match.test.mjs)');
   assert.match(idx, /export const livePaths = g => \(\{ runs: `hr\/\$\{g\.matchId\}` \}\);/); assert.match(idx, /export const soloAgain = /); assert.match(idx, /lazyView\(\(\) => lazyImport\(import\('\.\/view\.js'\), '\.\/view\.js'\), \['kit', 'highrise-play'\]\)/, 'the stage\'s own sheet');
 });
 
@@ -252,7 +252,7 @@ test('THE NEXT FRIEND (lines.js — PURE): the LOWEST friend best above you, one
   assert.equal(crossedFriend(T.friends, 13).n, 'MAYA'); assert.equal(crossedFriend(T.friends, 12), null); assert.equal(crossedFriend(T.friends, 58).n, 'LIAM'); assert.equal(crossedFriend(null, 5), null);
   // the stage: solo only, never without a list handed in (the test page hands none), the tag clear of THE DROP ZONE + the gold tag
   const st = code('js/games/highrise/stage.js');
-  assert.match(st, /const gold = live && !FROM && best > 0 && run\.floor <= best, fr = live && o\.friends && MODE === 'solo' \? nextFriend\(o\.friends\(\), run\.floor\) : null;/);   // (S4A FIX: asked once a landing — placeTags — never every frame)
+  assert.match(st, /const gold = live && !FROM && !matchOn && best > 0 && run\.floor <= best, fr = live && o\.friends && MODE === 'solo' \? nextFriend\(o\.friends\(\), run\.floor\) : null;/);   // (S4A FIX: asked once a landing — placeTags — never every frame)
   assert.match(st, /yf = tagY\(view\.restY\(Math\.min\(fr\.v, run\.floor \+ 100\)\) \* stageH, hudFoot, zone\);/, 'held between the HUD\'s foot and THE DROP ZONE\'s upper edge');
   assert.match(st, /if \(o\.friends && MODE === 'solo'\) \{ const f = crossedFriend\(o\.friends\(\), e\.floor\); if \(f\) \{ friendTape = f\.v; view\.setFriend\(f\.v, !late\);/);
   assert.match(code('js/games/highrise/night.js'), /const ftapeMat = new THREE\.ShaderMaterial\(\{ \.\.\.tapeOpt, uniforms: ftapeU,/, 'the pink tape = the gold tape\'s shader (the same program: a second tape builds nothing)');
@@ -271,7 +271,7 @@ test('THE VIEW WRITES THE PROOF — AND ONLY ITS OWN NODE: GO once (the server\'
   assert.match(v, /dbUpdate\(dbRef\(nodePath\(\)\), \{ e: \{ f: r\.floor, t: r\.tick, w: String\(r\.cause \|\| ''\)\.slice\(0, 12\) \} \}\)/);
   assert.equal((v.match(/dbSet\(|dbUpdate\(/g) || []).length, 3, 'three writes in all: GO, a chunk, the end');
   assert.match(v, /if \(matchLeft\(\)\) \{ lateProof\('dropped'\); sent = taps\.length; countQuietLate\(\); return; \}/, 'never a chunk once the match left `play`');
-  assert.match(v, /if \(performance\.now\(\) - \(globalThis\.__nsAgainAt \|\| -1e9\) < 3000\) park\(S\); else S\.destroy\(\);/, 'parked only over PLAY AGAIN — else freed at once');
+  assert.match(v, /if \(!isMatch && performance\.now\(\) - \(globalThis\.__nsAgainAt \|\| -1e9\) < 3000\) park\(S\); else S\.destroy\(\);/, 'parked only over a SOLO run\'s PLAY AGAIN — else (a match too) freed at once');
   assert.match(v, /if \(!proven\) \{ showLeave\(\); return \{ own: true, note: 'NOT COUNTED — NO LINE TO THE BOARD' \}; \}/, 'an UNPROVEN run ends on the stage\'s own card');
   // the stage itself writes nothing (it is the test page's module too)
   assert.doesNotMatch(code('js/games/highrise/stage.js'), /firebase|dbRef|serverTimestamp|\/api\//);
@@ -302,7 +302,7 @@ test('THE FRESH-EYES REVIEW — the view + the stage: a LATE GO answer never tou
   assert.doesNotMatch(v, /proof\(node\.go/, 'the seed is never picked from the mirror');
   assert.match(st, /starting = true; stage\.classList\.add\('is-starting'\);\s*awakeAt = performance\.now\(\); awake\(true\);/, 'the hold: in the START touch');
   assert.match(st, /if \(\(t0 != null \|\| starting\) && !shown && now - awakeAt > 1000\) \{ awakeAt = now; awake\(true\); \}/, '… renewed while GO is on its way');
-  assert.match(v, /S\.hideCard\(\);[^\n]*\n\s*final = createFinal\(/); assert.match(st, /hideCard\(\) \{ if \(!card\) return; card = false; end\.hidden = true; check\.hidden = true; again\.hidden = true; stage\.classList\.remove\('is-over'\); \},/);
+  assert.match(v, /S\.hideCard\(\);[\s\S]{0,500}?final = createFinal\(/); assert.match(st, /hideCard\(\) \{ if \(!card\) return; card = false; end\.hidden = true; check\.hidden = true; again\.hidden = true; stage\.classList\.remove\('is-over'\); \},/);
   assert.match(st, /!\(shown && !card\) && !stage\.classList\.contains\('is-final'\) &&/, 'a key never restarts a run under the podium');
   assert.ok(st.indexOf('if (best > was) writeBest(best);') < st.indexOf('const E = o.onEnd ? o.onEnd(live) : null;'), 'YOUR BEST is stored BEFORE the end screen is asked for');
   assert.match(fin, /if \(!srv && nb && game && nb\.m === game\.matchId && nb\.v === floor && floor > 0\)/, 'counting OFF: NEW BEST from this phone\'s own record of THIS run');

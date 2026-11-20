@@ -11,7 +11,7 @@ const HI = 'js/games/highrise/';
 // ---- GROUP 0 — THE END SCREEN
 test('THE END = JAYWALK\'S STANDARD: ONE builder (the page\'s card + the cartridge\'s body) — the header, the cause, the floor + FLOORS, YOUR BEST · n, n PERFECTS · BEST STREAK n; nothing else', () => {
   const e = read(`${HI}endscreen.js`), s = read(`${HI}stage.js`), f = read(`${HI}final.js`), v = read(`${HI}view.js`);
-  assert.match(e, /const el = h\('div\.hi-ec', header \? h\('div\.hi-ec-hd', endHeader\(header\)\) : null, cause, n, fl, bestL, line\);/, 'top to bottom: (the header) · the cause · the number · FLOORS · the best · the stats line');
+  assert.match(e, /const hd = header \? h\('div\.hi-ec-hd', endHeader\(header\)\) : null;\n  const el = h\('div\.hi-ec', hd, cause, n, fl, bestL, line\);/, 'top to bottom: (the header) · the cause · the number · FLOORS · the best · the stats line');
   assert.match(e, /h\('b\.hi-hd-a', \{ 'aria-hidden': 'true' \}, 'HIGH'\), ' ', h\('b\.hi-hd-b', \{ 'aria-hidden': 'true' \}, 'RISE'\), h\('i\.hi-hd-m', \{ 'aria-hidden': 'true' \}, ` · \$\{m\}`\)/, 'the header\'s three words, each its own neon');
   assert.match(e, /const m = mode === 'match' \? 'MATCH' : 'SOLO';/);
   assert.match(e, /fl\.textContent = f === 1 \? 'FLOOR' : 'FLOORS';/);
@@ -113,7 +113,7 @@ test('`?floor=N` counts toward NOTHING: the shortcut\'s perfects + streak are ta
   assert.ok(s.includes('if (FROM) { climbBy(FROM, null); skipP = run.perfects; skipS = run.streak; }'));
   assert.ok(s.includes('const st = e.streak - skipS;') && s.includes('if (st > streakTop) streakTop = st;') && s.includes("} else if (e.e === 'cut') { skipS = 0; }"), 'the announcer + the best streak count what was PLAYED; a cut ends the shortcut\'s streak too');
   assert.ok(s.includes('perfects: live.perfects - skipP, streak: FROM ? streakTop : live.maxStreak });'));
-  assert.ok(s.includes('if (!FROM && crossedBest(best, e.floor)) {') && s.includes('const gold = live && !FROM && best > 0 && run.floor <= best,') && s.includes('best = FROM ? was : nextBest(was, live.floor);'), 'no gold line, no NEW BEST, nothing stored');
+  assert.ok(s.includes('if (!FROM && !matchOn && crossedBest(best, e.floor)) {') && s.includes('const gold = live && !FROM && !matchOn && best > 0 && run.floor <= best,') && s.includes('best = FROM ? was : nextBest(was, live.floor);'), 'no gold line, no NEW BEST, nothing stored');
   // the chime climbs from its first step again (sounds.js#cuesOf's `skip`)
   const { cuesOf, chimeRate } = await import(new URL(`../${HI}sounds.js`, import.meta.url));
   const ev = [{ e: 'perfect', streak: 81 }];
@@ -121,4 +121,49 @@ test('`?floor=N` counts toward NOTHING: the shortcut\'s perfects + streak are ta
   assert.equal(cuesOf(ev, false, [], 0, 0)[0].rate, chimeRate(8), '(without the skip: the top of the scale)');
   assert.equal(cuesOf([{ e: 'perfect', streak: 90 }], false, [], 0, 80).length, 2, 'the streak\'s sparkle at the 10th perfect PLAYED');
   assert.equal(cuesOf([{ e: 'perfect', streak: 90 }], false, [], 0, 85).length, 1);
+});
+
+// ---- GROUP 2 — THE MATCH (the rules + whole-match sims: tests/highrise-match.test.mjs; here: the screen's static pins)
+test('THE MATCH on the phone (view.js): GO is a TRANSACTION never applied locally · the seed + tick 0 from THE FIRST GO (the nodes are the truth) · the proof as a solo run\'s, sent at once · a match never starts by a tap, never parks its stage · a late joiner WATCHES', () => {
+  const v = read(`${HI}view.js`), s = read(`${HI}stage.js`);
+  assert.ok(v.includes("runTransaction(dbRef(path), curV => (curV == null ? serverTimestamp() : undefined), { applyLocally: false })"), 'GO: a transaction, never applied locally — the mirror holds confirmed GOs only');
+  assert.ok(v.includes('const St = startOf(g, runs, code);') && v.includes('if (St && (mSeed !== St.seed || mPlayAt !== St.playAt)) adoptMatch(St, runs);'), 'the seed + tick 0: match.js#startOf — in the count and in play alike');
+  assert.ok(v.includes("if (mine(g) && !goAsked && !haveGo && (g.phase === 'play' || (g.phase === 'count' && now >= g.playAt - GO_EARLY_MS))) askGoMatch();") && v.includes('export const GO_EARLY_MS = 1800;'), 'each phone writes its GO in the count\'s last 2 s (the rules\' window)');
+  assert.ok(v.includes("if (mine(g)) S.adopt({ mode: 'match', seed: St.seed, t0: perfOf(St.playAt), taps: old || [] });") && v.includes("else S.spectate({ mode: 'match', seed: St.seed, t0: perfOf(St.playAt) });"), 'a participant plays (a rejoin: their own taps so far); anyone else WATCHES');
+  assert.ok(v.includes('if (!force && now - lastFlush < (isMatch ? FLUSH_MATCH_MS : CLOCK.flushMs)) return;') && v.includes('export const FLUSH_MATCH_MS = 150;'), 'a rival\'s height is never a second old');
+  assert.ok(v.includes("if (!isMatch && performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000) park(S); else S.destroy();") && s.includes("if (t0 == null) { if (matchOn && !PAGE) return; begin(ts); return; }"));
+  // the rivals: everyone's proof nodes through rivals.js; the calls through the match kit's announcer; Call the Winner = the kit's, `k` on your own node
+  assert.ok(v.includes('if (!g.unproven) { feedRival(R, runs && runs[u]); capRival(R, tick); }') && v.includes('const calls = matchCalls(memo,') && v.includes('for (const c of calls) hud.announce(c.text, c.kind);'));
+  assert.ok(v.includes("callEl = showCall({ canPick: u => !(liveRuns && liveRuns[u] && liveRuns[u].e != null),") && v.includes("path: `${nodePath()}/k`,"), 'Call the Winner: the match kit\'s — never a pick for a player whose end is already here');
+  assert.ok(v.includes("(r.cause === 'miss' || r.cause === 'thin' || r.cause === 'slow') && since > CALL_AFTER_MS && g.phase === 'play' && !g.unproven && wroteE"), 'a call only from a player who is OUT (never the finisher / the bell), once their own end is written');
+  // OUT = WATCH: the altimeter's pick · a tap's pick while they climb · else THE LEADER
+  assert.ok(v.includes('const f = pickAny && rivals.has(pickAny) ? pickAny : follow(others, followPick);') && v.includes('S.watch({ uid: f, name: R.name, seed: mSeed, taps: R.taps, done: () => R.done });'));
+  assert.ok(v.includes("txt = `WATCHING ${F.name} · ${F.floor}${live.length > 1 || F.over ? ' · TAP FOR THE NEXT' : ''}`;"));
+  assert.ok(v.includes("kicker: endHeader(solo ? 'solo' : 'match')") && v.includes("note: `${g.unproven ? 'NOT COUNTED' : END_WORDS[(res[r.uid] || {}).w] || 'NO TOWER'} · ${perfectsLine(r.perfects)}`"), 'the podium: HIGH RISE · MATCH; every row its floor + how the tower ended + its perfects');
+});
+
+test('THE TAPES NEVER BLOCK THE PLAY (the stage + the scene): a rival under you = a tape on your tower — never the top slab, never in the bloom pass; at / over you = a tag in the clear column; the 3 nearest, merged; dim while a slab slides; a watched tower is never stepped to its fuse', async () => {
+  const s = read(`${HI}stage.js`), n = read(`${HI}night.js`), hud = read(`${HI}matchhud.js`), css = read('css/highrise-play.css');
+  const { RIVALS_SHOWN } = await import(new URL(`../${HI}rivals.js`, import.meta.url));
+  assert.match(n, /export const RIVAL_TAPES = 3, RIVAL_DIM = 0\.45;/); assert.equal(RIVALS_SHOWN, 3); assert.match(hud, /export const RIVAL_TAGS = 3;/);
+  assert.ok(n.includes('rs = rivalsOn && R.floor > 0 && R.floor < topFloor ? slabOf(R.floor) : null;'), 'a tape lies only on a floor UNDER the top slab');
+  assert.ok(n.includes('twin(mesh, m); TWINS[TWINS.length - 1][1].visible = false;\n    RTAPES.push('), 'never in the bloom pass: no light past its own line');
+  assert.ok(n.includes('NUM[RFACE] = 1; if (rivalDim) NUM[RFACE] = RIVAL_DIM;'), 'dim while a slab slides');
+  assert.ok(s.includes("others.push(!r.over && r.floor === here - 1 ? { ...r, floor: here } : r);"), 'a rival still climbing one floor under you is LEVEL (a network\'s beat behind): a tag, never a tape flashing under your top slab');
+  assert.ok(s.includes('const N = nearest(others, here, RIVALS_SHOWN), zone = view.restZone() * stageH;') && s.includes('y: tagY(view.restY(Math.min(r.floor, here + 100)) * stageH, hudFoot, zone, 14, 12)') && s.includes('MH.setTags(mergeTags(tagItems, 30), hexOfRival);'), 'the tags: the clear column, 12 px clear of THE DROP ZONE, merged within 30 px');
+  assert.ok(s.includes("if (matchOn) { const sl = run.st === 'slide' && !watchW ? 1 : 0; if (sl !== dimWas) { dimWas = sl; MH.dim(sl === 1); view.dimRivals(sl === 1); } }"));
+  assert.ok(s.includes('if (matchOn && live) placeRivals();') && s.includes("const gold = live && !FROM && !matchOn && best > 0 && run.floor <= best,"), 'a match\'s right-edge column is the rivals\': no gold line, no friend\'s');
+  // WATCH: the tower from THEIR landed taps; its next slab ENTERS on the clock (seen sliding) and is HELD before its fuse
+  assert.ok(s.includes('while (wN < tp.length && !isOver(run)) tap(run, tp[wN++], ev);') && s.includes('if (!isOver(run)) { const en = entryTick(run, Math.floor(FS[TAU])); if (en >= 0) stepTo(run, en, ev); }'));
+  assert.ok(s.includes("else if (watchW && run.st === 'slide' && io[0] > run.s0 + 2 * run.S - 1) io[0] = run.s0 + 2 * run.S - 1;"));
+  assert.ok(s.includes("if (watchW) { if (o.onWatchTap) o.onWatchTap(); return; }") && s.includes("if (ev.length && watchW) { T.feed(ev); view.events(ev); ev.length = 0; sounded = 0; hush = false; }"), 'a watcher\'s tap = the next player; a watched tower is drawn, never sounded');
+  // the HUD: the kit's announcer; the altimeter takes no touch while you play, 44 pt rows once you watch; OUT = a cross + a struck name; no pill
+  assert.ok(hud.includes("import { createAnnouncer } from '../kit/moments.js';") && hud.includes("const ann = createAnnouncer(lane, { prefix: 'hi', holdMs: 1500, queueMax: 3 });"));
+  assert.match(css, /\.hi-alt \{[^}]*pointer-events: none;/); assert.match(css, /\.hi-stage\.is-watch \.hi-alt \{ pointer-events: auto; \}\n\.hi-stage\.is-watch \.hi-alt li \{ height: 44px;/);
+  assert.match(css, /\.hi-alt li\.is-out \.hi-alt-n \{ text-decoration: line-through;/); assert.match(css, /\.hi-alt li\.is-out \.hi-alt-dot::before, \.hi-alt li\.is-out \.hi-alt-dot::after \{/, 'OUT = a cross + a struck name — never colour alone');
+  assert.match(css, /\.hi-rtags\.is-dim \{ opacity: 0\.5; \}/);
+  for (const m of css.matchAll(/\.hi-(?:alt|rtag|ann|count|roster|watch|outcard)[^{]*\{([^}]*)\}/g)) assert.doesNotMatch(m[1], /border-radius: (?:[2-9]\d|\d{3,})px|border-radius: 999/, 'no pill anywhere in the match\'s HUD');
+  // the test page's `?mode=match&rivals=N`: bot rivals, lazy, the page alone — the pixel test's room of 8
+  assert.ok(s.includes("if (PAGE && MODE === 'match' && o.sim > 0) lazyImport(import('./matchsim.js'), './matchsim.js')") && read(`${HI}play.js`).includes("sim: Math.max(0, Math.min(7, Math.floor(Number(Q.get('rivals')) || 0))),"));
+  assert.doesNotMatch(read(`${HI}matchsim.js`), /firebase|\/api\/|profile|store\.js|fetch\(/, 'the sim: the rules + the bots — nothing that counts');
 });

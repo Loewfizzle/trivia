@@ -34,6 +34,8 @@ export const SUN = Object.freeze([-0.42, 0.78, 0.46]);
 const ART = new URL('../../../assets/highrise/', import.meta.url);
 const PLATE_ASPECT = 720 / 1280;
 const PIECES = 8, TAPE = 4, BOXES = KEEP + 1 + 2 + PIECES + TAPE, SPARKS = 224, RINGS = 4;
+/** S4B — THE RIVALS' HEIGHT TAPES on the tower at once (the nearest rivals under you) · their strength while a slab slides (DIM) */
+export const RIVAL_TAPES = 3, RIVAL_DIM = 0.45;
 /** THE FLYERS' STAGE (S3): the bodies on screen at once (two jets, or the UFO; THE MOTHERSHIP) · every light they carry */
 export const FLY_SLOTS = 3, LIGHTS = 320;
 /** DEEP SPACE (S3 — solo, past THE MOTHERSHIP): the drifting stars + the aurora come in over these floors */
@@ -339,6 +341,20 @@ export function createNight(host, o = {}) {
   const ftapeBack = new THREE.Mesh(tapeGeo, ftapeBackMat); ftapeBack.frustumCulled = false; ftapeBack.renderOrder = 11; ftapeBack.visible = false; scene.add(ftapeBack);
   twin(ftape, ftapeMat);
   twin(ftapeBack, ftapeBackMat); TWINS[TWINS.length - 1][1].visible = false;
+  // ---- THE RIVALS' HEIGHT TAPES (S4B — docs/highrise.md "THE MATCH"): a rival UNDER you in a match = a thin outline round YOUR tower
+  // at their floor, in THEIR colour — at most RIVAL_TAPES (the nearest; rivals.js#nearest). The SAME box + the SAME shader as the gold
+  // tape (the same program: a rival's tape builds nothing — drawn once in THE WARM FRAME). THE TAPES NEVER BLOCK THE PLAY: never on the
+  // top slab (a rival level with you is a right-edge tag), front edges only, NEVER IN THE BLOOM PASS (its twin is off: no light past
+  // its own line — nothing of a rival reaches the play zone), and DIM while a slab slides (`dimRivals`).
+  const RTAPES = [];
+  for (let i = 0; i < RIVAL_TAPES; i++) {
+    const u = { ...tapeU, uCol: { value: new THREE.Vector3(1, 1, 1) }, uGlow: { value: 1 }, uWhite: { value: 0 }, uFace: { value: 1 }, uCore: { value: 0 }, uDash: { value: 0 } };
+    const m = new THREE.ShaderMaterial({ ...tapeOpt, uniforms: u, side: THREE.FrontSide, depthTest: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    const mesh = new THREE.Mesh(tapeGeo, m); mesh.frustumCulled = false; mesh.renderOrder = 12; mesh.visible = false; scene.add(mesh); made.push(m);
+    twin(mesh, m); TWINS[TWINS.length - 1][1].visible = false;
+    RTAPES.push({ mesh, u, floor: 0, drawn: -1 });
+  }
+  let rivalDim = false, rivalsOn = true;
 
   // ---- THE FLYERS' STAGE (S3 — docs/highrise.md "THE FLYERS"): what flyers.js (a LAZY module — its models + sounds come with it)
   // draws through. Its two programs are BUILT IN THE WARM FRAME on a stand-in triangle; a model that lands later brings only its
@@ -430,7 +446,7 @@ export function createNight(host, o = {}) {
   // THE FRAME's OWN FRACTIONS (S4A FIX — ZERO GARBAGE): a fraction kept in a plain variable that functions share is a small object every
   // time it is written — the view's clock, the camera's ease, its place, the landing's bump, the slider's glow, the plates' drift are
   // written every frame: they live in ONE scratch of doubles instead (NUM[…] below — written in place, nothing made)
-  const NUM = new Float64Array(20), FBOT = 17, CLK = 0, CAMX = 1, CAMY = 2, CAMZ = 3, BUMP = 4, EYEX = 5, EYEY = 6, EYEZ = 7, SGLOW = 8, CF = 9, DRA = 10, DRB = 11, ZONE = 12, BACK = 13, FBACK = 14, LIFT = 15, WSL = 16;
+  const NUM = new Float64Array(20), FBOT = 17, CLK = 0, CAMX = 1, CAMY = 2, CAMZ = 3, BUMP = 4, EYEX = 5, EYEY = 6, EYEZ = 7, SGLOW = 8, CF = 9, DRA = 10, DRB = 11, ZONE = 12, BACK = 13, FBACK = 14, LIFT = 15, WSL = 16, RFACE = 18;
   /** what the stage hands a frame: IO[0] = `tau`, the clock in ticks (a fraction into the next one) · IO[1] = `dt`, ms since the last frame ·
    *  IO[2] = the frame's timestamp (performance.now's clock — the flyers fly by it) */
   const IO = new Float64Array(3), RX = new Float64Array(4);   // (S4A FIX 2: IO[2] = the frame's own timestamp, ms — THE FLYERS' CLOCK)   // (RX: a slab's four edges while its box is worked out)
@@ -626,7 +642,8 @@ export function createNight(host, o = {}) {
     const tapeWas = tape.visible, backWas = tapeBack.visible, faceWas = tapeBackU.uFace.value;   // (the tape's programs too: built here, not at the crossing)
     tape.visible = tapeBack.visible = true; tapeBackU.uFace.value = 0.2; tape.position.set(0, -60, 0); tape.scale.set(0.01, 0.01, 0.01); tapeBack.position.copy(tape.position); tapeBack.scale.copy(tape.scale);
     ftape.visible = ftapeBack.visible = true; ftapeBackU.uFace.value = 0.2; ftape.position.copy(tape.position); ftape.scale.copy(tape.scale); ftapeBack.position.copy(tape.position); ftapeBack.scale.copy(tape.scale);
-    tape.updateMatrix(); tapeBack.updateMatrix(); ftape.updateMatrix(); ftapeBack.updateMatrix();   // (S4A: the pink tape is the same program — drawn here once all the same)
+    tape.updateMatrix(); tapeBack.updateMatrix(); ftape.updateMatrix(); ftapeBack.updateMatrix();
+    for (const R of RTAPES) { R.mesh.visible = true; R.mesh.position.copy(tape.position); R.mesh.scale.copy(tape.scale); R.mesh.updateMatrix(); R.drawn = -1; }   // (S4B: the rivals' tapes — the same program, met here)   // (S4A: the pink tape is the same program — drawn here once all the same)
     // (THE FLYERS' two programs + their twins: built here on the stand-in triangle — a model brings only buffers later)
     const flyWas = flySlots.map(f => f.mesh.visible), lgWas = lightsMesh.visible, lgN = lgGeo.instanceCount;
     for (const f of flySlots) { f.mesh.visible = true; f.mesh.matrix.makeTranslation(0, -60, 0); f.mesh.matrixWorldNeedsUpdate = true; }
@@ -637,6 +654,7 @@ export function createNight(host, o = {}) {
     mark('compile');
     spT.setX(0, -1e6); spT.needsUpdate = true; rgB.setW(0, -1e6); rgB.needsUpdate = true;
     tape.visible = tapeWas; tapeBack.visible = backWas; tapeBackU.uFace.value = faceWas; ftape.visible = ftapeBack.visible = false; ftapeBackU.uFace.value = 0;
+    for (const R of RTAPES) R.mesh.visible = false;
     flySlots.forEach((f, i) => { f.mesh.visible = flyWas[i]; }); lightsMesh.visible = lgWas; lgGeo.instanceCount = lgN;
     tapeDrawn = ftapeDrawn = -1;
     warmed++;
@@ -804,6 +822,20 @@ export function createNight(host, o = {}) {
       const age = NUM[CLK] - ftapeAt, tg = 1 + 1.6 * Math.exp(-age / 260), tw = 0.6 * Math.exp(-age / 180);
       if (ftapeU.uGlow.value !== tg) ftapeU.uGlow.value = tg; if (ftapeU.uWhite.value !== tw) ftapeU.uWhite.value = tw;
     }
+    // THE RIVALS' HEIGHT TAPES (S4B): each round the slab of its rival's floor — laid ONCE (a slab never moves), NEVER on the top slab
+    // (floors under yours only: nothing of a rival in the play zone), dim while a slab slides. A plain loop over three records.
+    for (let i = 0; i < RTAPES.length; i++) {
+      const R = RTAPES[i], rs = rivalsOn && R.floor > 0 && R.floor < topFloor ? slabOf(R.floor) : null;
+      if (R.mesh.visible !== !!rs) R.mesh.visible = !!rs;
+      if (!rs) continue;
+      if (R.drawn !== rs.floor) {
+        R.drawn = rs.floor;
+        const x0 = rs.x0 * U, x1 = rs.x1 * U, z0 = rs.z0 * U, z1 = rs.z1 * U;
+        R.mesh.position.set((x0 + x1) / 2, (rs.floor - 0.5) * H, (z0 + z1) / 2); R.mesh.scale.set(x1 - x0 + 2 * TAPE_OUT, TAPE_H, z1 - z0 + 2 * TAPE_OUT); R.mesh.updateMatrix();
+      }
+      NUM[RFACE] = 1; if (rivalDim) NUM[RFACE] = RIVAL_DIM;
+      if (R.u.uFace.value !== NUM[RFACE]) R.u.uFace.value = NUM[RFACE];
+    }
     // (S4A FIX 2: only the boxes drawn this frame go to the GPU — never the pool's empty room — and only the sparks written since the last frame)
     boxes.count = nb; upRange(boxes.instanceMatrix, 0, nb * 16); upRange(aColor, 0, nb * 3); upRange(aFx, 0, nb * 4); upRange(aUp, 0, nb * 4);
     if (spCount) { if (spCount >= SPARKS || spLo + spCount > SPARKS) { spO.needsUpdate = spV.needsUpdate = spT.needsUpdate = spC.needsUpdate = true; } else { upRange(spO, spLo * 3, spCount * 3); upRange(spV, spLo * 3, spCount * 3); upRange(spT, spLo * 3, spCount * 3); upRange(spC, spLo * 3, spCount * 3); } spCount = 0; }
@@ -828,6 +860,11 @@ export function createNight(host, o = {}) {
   const zoneNow = () => { zoneFrom(false); return NUM[ZONE]; };
   return {
     el, adopt, events, fall, draw, setTier, setBest, setFriend, resize: () => fit(true),
+    /** S4B — a rival's HEIGHT TAPE: slot i (0 … RIVAL_TAPES − 1) round the slab of `floor` (0 = none) in their colour (r g b, 0 … 1) */
+    setRival(i, floor, r, g, b) { const R = RTAPES[i]; if (!R) return; const f = floor > 0 ? Math.floor(floor) : 0; if (R.floor !== f) { R.floor = f; R.drawn = -1; } if (f) R.u.uCol.value.set(r, g, b); },
+    /** … DIM while a slab slides · (the pass's pixel test) every rival tape off / on */
+    dimRivals(on) { rivalDim = !!on; }, showRivals(on) { rivalsOn = !!on; },
+    rivalInfo: () => RTAPES.map(R => ({ floor: R.floor, on: R.mesh.visible && R.floor > 0, face: R.u.uFace.value })),
     /** THE LOOK SWITCH: 'day' | 'night' — the other look's pictures come in off the frame, then a LOOK_FADE_MS cross-fade (`now`: at once) */
     setLook(l, now = false) {
       const t = l === 'day' ? 'day' : 'night';

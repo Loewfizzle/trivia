@@ -225,3 +225,78 @@
 /* THE ON-PHONE TRACE (S4A FIX 2 — `?trace=1`: the end card's 5 worst frames, under the stats strip; ≥ 12 px, a dark plate so it reads over any sky) */
 .hi-trace { margin: 12px auto 0; width: min(100%, 368px); padding: 7px 9px 8px; border-radius: 6px; background: rgba(10, 7, 22, 0.8); color: #fff; text-align: left; font: 600 12px/1.4 var(--font-mono); letter-spacing: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .hi-trace[hidden] { display: none; }
+
+/* ---- S4B — THE MATCH's HUD (js/games/highrise/matchhud.js — docs/highrise.md "THE MATCH"): nothing of it in a solo run ---- */
+/* a match starts on the count — never on a tap: the welcome's TAP TO START + the look switch are off */
+.hi-stage.is-match.hi-game .hi-start-foot { display: none; }
+/* THE ALTIMETER: a slim strip at the LEFT edge, under ☰ — EVERY player's height, the highest first: a dot in their colour · their name ·
+   their floor, on a flat dark strip (it reads over a bright sky + a dark one alike; no pill). YOU = outlined. OUT = a CROSS in the dot's
+   place + the name struck (a shape, never colour alone) · the finish = a gold DIAMOND · a silent phone = a hollow dot. While YOU play
+   it takes no touch; once you WATCH every row is a 44 pt tap target. It ends above THE DROP ZONE (the pass's pixel test). */
+.hi-alt { position: absolute; z-index: 2; left: 4px; top: calc(env(safe-area-inset-top, 0px) + 56px); width: 94px; margin: 0; padding: 2px 0; list-style: none; display: none; pointer-events: none; background: rgba(10, 7, 22, 0.6); }
+.hi-stage.is-match.is-live .hi-alt, .hi-stage.is-match.is-watch .hi-alt { display: block; }
+.hi-alt li { --c: #fff; display: grid; grid-template-columns: 9px minmax(0, 1fr) auto; align-items: center; column-gap: 5px; height: 20px; padding: 0 5px 0 4px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.05em; color: #fff; -webkit-tap-highlight-color: transparent; }
+.hi-alt-dot { position: relative; width: 8px; height: 8px; background: var(--c); }
+.hi-alt-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hi-alt b { font: 700 12px/1 var(--font-num); font-variant-numeric: tabular-nums; }
+.hi-alt li.is-me { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.85); }
+.hi-alt li.is-watched { background: rgba(255, 255, 255, 0.16); }
+.hi-alt li.is-out .hi-alt-n { text-decoration: line-through; color: #c9c3e6; }
+.hi-alt li.is-out .hi-alt-dot { background: none; }
+.hi-alt li.is-out .hi-alt-dot::before, .hi-alt li.is-out .hi-alt-dot::after { content: ''; position: absolute; left: -1px; right: -1px; top: 3px; height: 2px; background: var(--c); transform: rotate(45deg); }
+.hi-alt li.is-out .hi-alt-dot::after { transform: rotate(-45deg); }
+.hi-alt li.is-made .hi-alt-dot { background: #ffc83c; transform: rotate(45deg); }
+.hi-alt li.is-made b { color: #ffd257; }
+.hi-alt li.is-silent .hi-alt-dot { background: none; box-shadow: inset 0 0 0 1.5px var(--c); }
+.hi-alt li.is-silent .hi-alt-n { color: #c9c3e6; }
+.hi-stage.is-watch .hi-alt { pointer-events: auto; }
+.hi-stage.is-watch .hi-alt li { height: 44px; cursor: pointer; }
+/* THE RIVALS' TAGS: the gold flag's twin in the RIVAL's colour ("ALEX ▲3"), in the same clear column — and DIM while a slab slides
+   (one class on their own layer: opacity only) */
+.hi-rtags { position: absolute; inset: 0; pointer-events: none; opacity: 1; transition: opacity 0.14s linear; }
+.hi-rtags.is-dim { opacity: 0.5; }
+.hi-rtag { --c: #fff; color: #fff; border-left: 3px solid var(--c); }
+/* THE ANNOUNCER (the match kit's — one visible, a short queue): the passes, the rivals' streaks, who is out — a flat line under the
+   game's own lane, its edge in the call's colour (opacity + transform only) */
+.hi-ann { display: flex; justify-content: center; min-height: 24px; margin-top: 4px; pointer-events: none; }
+.hi-ann-in { padding: 4px 9px 4px 8px; font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.16em; white-space: nowrap; color: #fff; background: rgba(10, 7, 22, 0.72); border-left: 3px solid #36c9ff; animation: hi-ann-in 0.3s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.hi-ann-in.is-out, .hi-ann-in.is-passed.is-out { animation: hi-ann-out 0.4s ease both; }
+.hi-ann-in.is-passed { border-left-color: #ff4fd8; }
+.hi-ann-in.is-streak, .hi-ann-in.is-made { border-left-color: #ffc83c; }
+.hi-ann-in.is-gone { border-left-color: #8f89b3; color: #d9d4f2; }
+@keyframes hi-ann-in { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes hi-ann-out { to { opacity: 0; transform: translateY(-5px); } }
+/* 3 · 2 · 1 · GO (JAYWALK's) + the names lined up through the count */
+.hi-count { position: absolute; z-index: 4; left: 0; right: 0; top: 33%; text-align: center; pointer-events: none; opacity: 0; font: 900 124px/1 var(--font-num); color: #fff; text-shadow: 0 0 6px #fff, 0 0 26px #ff4fd8, 0 0 60px rgba(255, 79, 216, 0.85), 0 4px 0 rgba(0, 0, 0, 0.8); }
+.hi-count.is-on { opacity: 1; }
+.hi-count.is-go { color: #e6fbff; text-shadow: 0 0 6px #fff, 0 0 26px #36c9ff, 0 0 60px rgba(54, 201, 255, 0.85), 0 4px 0 rgba(0, 0, 0, 0.8); }
+.hi-count.is-wait { top: 40%; font: 800 20px/1.2 var(--font-display); letter-spacing: 0.24em; text-shadow: 0 0 12px rgba(255, 79, 216, 0.9), 0 2px 0 rgba(0, 0, 0, 0.8); }
+.hi-roster { position: absolute; z-index: 4; left: 6%; right: 6%; top: 53%; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; pointer-events: none; opacity: 0; transition: opacity 0.25s; }
+.hi-roster.is-on { opacity: 1; }
+.hi-roster span { --c: #fff; padding: 4px 9px 4px 8px; font: 700 13px/1 var(--font-ui); letter-spacing: 0.12em; color: #fff; background: rgba(10, 7, 22, 0.74); border-left: 3px solid var(--c); }
+.hi-roster span.is-me { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.85); }
+/* OUT = WATCH: the watcher's line at the foot · the OUT card (JAYWALK's: the words over the scene for a moment) · the overlay Call the Winner uses */
+.hi-watch { position: absolute; z-index: 3; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); text-align: center; pointer-events: none; opacity: 0; font: 700 13px/1.35 var(--font-ui); letter-spacing: 0.16em; color: #fff; text-shadow: 0 0 2px #0a0716, 0 2px 0 #0a0716, 0 0 5px #0a0716, 0 0 12px rgba(10, 7, 22, 0.95), 0 0 26px rgba(10, 7, 22, 0.7); }
+.hi-watch.is-on { opacity: 1; }
+.hi-over { position: absolute; inset: 0; z-index: 5; pointer-events: none; --mk-accent: #ff4fd8; --mk-accent-2: #36c9ff; }
+.hi-over > * { pointer-events: auto; }
+.hi-outcard { position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 214px); display: grid; justify-items: center; gap: 8px; text-align: center; pointer-events: none; animation: hi-fin-in 0.25s ease-out backwards; transition: opacity 0.5s; }
+.hi-outcard.is-gone { opacity: 0; }
+.hi-outcard-k { padding-left: 0.34em; font: 700 13px/1 var(--font-ui); letter-spacing: 0.34em; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.8), 0 0 8px rgba(10, 7, 22, 0.9); }
+.hi-outcard .hi-ec-cause { font-size: 28px; text-shadow: 0 0 1px rgba(255, 236, 250, 0.8), 0 3px 0 rgba(20, 0, 14, 0.95), 0 0 12px rgba(20, 0, 30, 0.9), 0 0 30px rgba(255, 43, 214, 0.65); }
+.hi-outcard.is-made .hi-ec-cause { color: #ffc83c; text-shadow: 0 0 1px rgba(255, 250, 230, 0.8), 0 3px 0 rgba(60, 30, 0, 0.95), 0 0 12px rgba(40, 20, 0, 0.9), 0 0 30px rgba(255, 170, 30, 0.65); }
+.hi-outcard-n { font: 700 20px/1 var(--font-num); letter-spacing: 0.14em; color: #fff; text-shadow: 0 0 12px rgba(0, 240, 255, 0.6), 0 2px 0 rgba(0, 0, 0, 0.8); }
+/* A MATCH's podium body (JAYWALK's: compact — the frame's WINNER line leads, the console's list follows): the cause, then ONE line */
+.hi-fin[data-mode='match'] { gap: 8px; }
+.hi-fin[data-mode='match'] .hi-ec { gap: 8px; }
+.hi-fin[data-mode='match'] .hi-ec-cause { font-size: 24px; }
+.hi-fin[data-mode='match'] .hi-ec.is-made .hi-ec-cause { font-size: 26px; }
+.hi-fin-place { font: 700 16px/1.25 var(--font-ui); letter-spacing: 0.2em; padding-left: 0.2em; color: #fff; }
+.hi-fin-call { font: 700 13px/1.3 var(--font-ui); letter-spacing: 0.16em; color: #ffd257; }
+/* a watcher's stage: the HUD stays (the watched tower's number), the stage's own start + end are off */
+.hi-stage.is-watch .hi-start, .hi-stage.is-watch .hi-end, .hi-stage.is-watch .hi-again { display: none; }
+/* the podium takes the screen: the match's HUD goes */
+.hi-stage.hi-stage.hi-stage.is-final .hi-alt, .hi-stage.is-final .hi-rtags, .hi-stage.is-final .hi-watch, .hi-stage.is-final .hi-over, .hi-stage.is-final .hi-count, .hi-stage.is-final .hi-roster, .hi-stage.hi-stage.hi-stage.is-over .hi-alt, .hi-stage.is-over .hi-rtags { display: none; }   /* (the class thrice: over the altimeter's own is-match.is-live / is-watch rule) */
+/* (the pass's pixel test: every rival thing off — night.js#showRivals takes the tapes) */
+.hi-stage.no-rivals .hi-alt, .hi-stage.no-rivals .hi-rtags, .hi-stage.no-rivals .hi-ann { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) { .hi-ann-in, .hi-ann-in.is-out, .hi-outcard { animation: none; } .hi-rtags, .hi-roster, .hi-outcard { transition: none; } }
