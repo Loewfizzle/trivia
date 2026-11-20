@@ -367,7 +367,7 @@ test('THE NIGHT LOOK (night.js + night-fx.js — static): ONE instanced mesh for
   assert.match(fx, /vec3 at\(float t\) \{ return aO \+ aV \* t \+ vec3\(0\.0, -4\.5 \* t \* t, 0\.0\); \}/, 'a spark is flown in the shader (its start, its throw, gravity)');
   const draw = n.slice(n.indexOf('function draw(run, tau, dt)'), n.indexOf('return {', n.indexOf('function draw(run, tau, dt)')));
   assert.doesNotMatch(draw, /spO\.|spV\.|spark\(/, 'no spark is stepped on the CPU in the frame');
-  assert.match(n, /if \(whole \|\| reduce\) return;/, 'reduced motion: no sparks');
+  assert.match(n, /if \(whole \|\| reduce( \|\| NOSPARK)?\) return;/, 'reduced motion: no sparks');
   assert.ok(n.includes('transparent: true, depthWrite: true, extensions: { derivatives: true } });'), 'the glass asks for derivatives: its edges\' fwidth builds on a WebGL 1 phone too (the review: without it the whole tower was missing there)');
   assert.ok(code(`${HI}sfx.js`).includes('if (!isUnlocked() || !ctx || !buf || bufCtx !== ctx) {') && !/ctx\.state !== 'running'/.test(code(`${HI}sfx.js`)), 'the sounds play on a NAPPING context too (PODCAST MODE — the review: the game was silent with the site\'s music off)');
   // (S2 FIX: the bloom is BUILT at the top tier only, DRAWN at the top tier only — and KEPT through a step down: no rebuild mid-run)
