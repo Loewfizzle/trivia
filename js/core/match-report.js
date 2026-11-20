@@ -34,7 +34,7 @@ const STANDINGS = {
   cipher: cipherStandings, signal: signalRankings, overclock: ocStandings, bluff: bluffStandings, pulse: pulseStandings,
   golf: golfStandings, agent: agentStandings, prism: prismStandings, slip: slipStandings, gridlock: gridlockStandings,
   stakes: stakesStandings, rum: rumStandings,
-  highrise: highriseStandings,   // (HIGH RISE S4A — BEING BUILT + its counting OFF: api/report.js#reportableGame + THE SWITCH)
+  highrise: highriseStandings,   // (HIGH RISE — playable + counting since THE GO-LIVE, Nov 20: THE SWITCH api/_lib/highrise.js#HIGHRISE_COUNTS)
   jaywalk: jaywalkStandings,   // (JAYWALK H1 — BEING BUILT: the server's report still refuses it until its row is playable — api/report.js#reportableGame)
 };
 export const REPORT_GAMES = Object.keys(STANDINGS);

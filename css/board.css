@@ -60,10 +60,15 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
   -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22%, #000 74%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0, #000 22%, #000 74%, transparent 100%);
 }
 
-/* ---- the tabs: THE NEON TABS (ONE builder with STATS) — six games on one row at 390, no sideways scroll ---- */
+/* ---- the tabs: THE NEON TABS (ONE builder with STATS) — seven tabs on one row at 360 – 430, no sideways scroll ---- */
 .bd-tabs { flex: none; }
 .bd-tabs .nt-tab { padding: 0 2px; font-size: 10.5px; letter-spacing: clamp(0.02em, calc((100vw - 360px) * 0.004), 0.08em); }
 .bd-tabs.is-even .nt-tab { flex: 1 1 auto; min-width: 44px; }
+/* (HIGH RISE's GO-LIVE — SEVEN tabs: its tab reads HIGH / RISE stacked, like its signs' two words — the row had no air between the words at
+   390 and cut them at 360; a narrow phone takes the tabs a size down) */
+.bd-tabs .nt-tab[data-id='highrise'] span { display: block; width: min-content; white-space: normal; line-height: 1.05; text-align: center; }
+@media (max-width: 389px) { .bd-tabs .nt-tab { font-size: 9.5px; letter-spacing: 0; padding: 0 1px; } .bd-tabs.is-even .nt-tab { flex: 1 0 auto; } }   /* (never shrunk under its words) */
+@media (max-width: 369px) { .bd-tabs .nt-tab { font-size: 9px; } }
 /* ---- ONE row: THIS WEEK | ALL TIME — a SQUARED two-part switch (the chosen half lit pink, its words dark; NO PILL) — + THE PICKER ---- */
 .bd-ctrl { display: flex; gap: 10px; flex: none; align-items: stretch; margin-left: calc(52px + 8px); }   /* (CITY I — the owner's 6:50 pm entry: the THIS WEEK | ALL TIME switch + the picker sit in the CARD COLUMN — the medal column's 52 px + the row's 8-px gap stay its own gutter; the NEON TABS row above stays full width) */
 .bd-period { flex: 1 1 0; max-width: 260px; gap: 0; padding: 2px; border-radius: 4px; box-shadow: none; border: 1px solid rgba(255, 124, 203, 0.42); background: rgba(10, 7, 20, 0.6); }

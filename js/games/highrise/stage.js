@@ -245,7 +245,7 @@ export function createStage(app, o = {}) {
     if (glDown) { glDown.remove(); glDown = null; }
     tries = 0;
     view.adopt(run, T, false); view.setBest(tapeFloor); view.setFriend(friendTape); if (shown) view.rest();
-    view.pose(shown ? endPose() : t0 == null ? 'welcome' : 'play'); view.welcome(t0 == null && !shown, best > 0); view.ghostBest(false); tagDirty = true;
+    view.pose(watchW ? 'play' : stage.classList.contains('is-ended') ? endPose() : t0 == null ? 'welcome' : 'play');   // (THE CLOSE's REVIEW: a rebuild while WATCHING keeps play's camera — never the day end's pull-back) view.welcome(t0 == null && !shown, best > 0); view.ghostBest(false); tagDirty = true;
     if (FlyMod) { view.flyers(FlyMod); wanted.clear(); needFloor = -1; needAll(); }   // (the flyers' stage is the new scene's: their models are asked for again — all of them, at once)
     hook.view = view; rebuilds++; last = 0; sized();
     watchGL();

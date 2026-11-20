@@ -720,7 +720,7 @@ export function createNight(host, o = {}) {
       // BAND — whose lower edge is THE DROP ZONE's upper edge as it will stand once the camera RESTS on the top slab (a landing moves the
       // top slab up a floor at once while the camera eases after it: the zone as seen NOW leapt a floor's height up the screen and eased
       // back — and the flyer with it). The rested zone moves only when the top slab's size does (a cut) — and is eased (≈ 0.6 s) even then.
-      FR.aspect = cam.aspect; FR.dist = dist; FR.t = (IO[2] > 0 ? IO[2] : NUM[CLK]) / 1000; FR.dt = dt; FR.day = dayK; FR.cf = cf; FR.top = band0; FR.tier = tier;
+      FR.aspect = cam.aspect; FR.dist = dist * NUM[FARK]; FR.t = (IO[2] > 0 ? IO[2] : NUM[CLK]) / 1000; FR.dt = dt; FR.day = dayK; FR.cf = cf; FR.top = band0; FR.tier = tier;
       zoneFrom(true); if (NUM[FBOT] < 0 || dt >= 1000) NUM[FBOT] = NUM[ZONE]; else NUM[FBOT] += (NUM[ZONE] - NUM[FBOT]) * (1 - Math.exp(-dt / 600)); FR.bot = NUM[FBOT];
       if (dayK > 0) FR.hz.copy(G.uHaze.value).multiplyScalar(dayK); else FR.hz.set(0, 0, 0);
       FR.hz.x += 0.012 * (1 - dayK); FR.hz.y += 0.008 * (1 - dayK); FR.hz.z += 0.03 * (1 - dayK);

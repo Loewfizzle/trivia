@@ -943,7 +943,8 @@ test('JAYWALK H3 — THE SOLO RUN: the best from the SERVER\'s replay (never the
 // (rooms/{CODE}/hr/{m}/{uid}); a game BEING BUILT — only THE OWNER's report is even judged; COUNTING OFF (the switch — the default):
 // the answer is WOULD COUNT and NOTHING is written; COUNTING ON (the emulators' test flip): the floor, XP, the streak, the best, the
 // cards at floor 60 / 200 — JAYWALK's normal counted path.
-test('HIGH RISE S4A → THE GO-LIVE — playable for everyone: a stranger\'s run judged; THE KILL SWITCH OFF (forced on the emulators) = judged, WOULD COUNT, nothing written (profiles / boards / cards / streak / results); a forged node refused; THE SWITCH ON (the code\'s value) = floor, XP, streak, best, the cards at 60 / 200', async () => {
+test('HIGH RISE S4A → THE GO-LIVE — playable for everyone: a stranger\'s run judged; THE KILL SWITCH OFF (forced on the emulators) = judged, WOULD COUNT, nothing written (profiles / boards / cards / streak / results); a forged node refused; THE SWITCH ON (the code\'s value) = floor, XP, streak, best, the cards at 60 / 200', async (t) => {
+  t.after(() => ref('testHighriseCounts').set(null));   // (THE CLOSE's REVIEW: a failure mid-block never leaves the kill switch forced OFF for the next suite)
   const { seedOf, floorOf, perfectsOf, towerScore } = await import('../../js/games/highrise/logic.js');
   const { createRun } = await import('../../js/games/highrise/engine.js');
   const { packFrom } = await import('../../js/games/highrise/proof.js');
@@ -1098,7 +1099,8 @@ test('HIGH RISE S4A → THE GO-LIVE — playable for everyone: a stranger\'s run
 // HIGH RISE S4B — THE MATCH: every named player's run is REPLAYED from their own `hr` node on THE FIRST GO's seed + clock (nothing the host
 // wrote is read); a game BEING BUILT — a match THE OWNER played in is judged for everyone in it; COUNTING OFF (the switch — the default):
 // WOULD COUNT for each reporter, NOTHING written; COUNTING ON (the emulators' test flip): JAYWALK's normal counted path for all of them.
-test('HIGH RISE S4B → THE GO-LIVE — THE MATCH: every run from the SERVER\'s replay on THE FIRST GO\'s seed; a plain room judged; THE KILL SWITCH OFF = WOULD COUNT, nothing written; the gates (unproven · no proof · a seat is not a play); ON = counted for all', async () => {
+test('HIGH RISE S4B → THE GO-LIVE — THE MATCH: every run from the SERVER\'s replay on THE FIRST GO\'s seed; a plain room judged; THE KILL SWITCH OFF = WOULD COUNT, nothing written; the gates (unproven · no proof · a seat is not a play); ON = counted for all', async (t) => {
+  t.after(() => ref('testHighriseCounts').set(null));
   const { seedOf, GO_LEAD_MS, gameStandings, floorOf } = await import('../../js/games/highrise/logic.js');
   const { createRun } = await import('../../js/games/highrise/engine.js');
   const { packFrom } = await import('../../js/games/highrise/proof.js');

@@ -72,8 +72,8 @@ export const ITEM_ROWS = [
   // JAYWALK H6A — THE MOTHERSHIP's card (Grok's art assets/vault/jw/mothership.webp, the motion js/fx/jw-cards.js#beamMeUp)
   C('card-beammeup', 'BEAM ME UP', 'epic', '#04040a', '#ffe9c0', '#ffd27a', 'Still standing when they came for you.'),
   // HIGH RISE S4A — ITS TWO CARDS (Grok's art assets/vault/hi/ — S3; js/fx/hi-specs.js: the crops + the hero boxes; no layer of their own yet):
-  // unlocked by HIGH RISE's achievements below — the feat flags from the SERVER's replay of a run. HIDDEN UNTIL GO-LIVE: nothing is ever
-  // awarded while counting is OFF (api/_lib/highrise.js#HIGHRISE_COUNTS), and a collection shows only what its player owns
+  // unlocked by HIGH RISE's achievements below — the feat flags from the SERVER's replay of a run. Awarded since THE GO-LIVE (Nov 20 —
+  // api/_lib/highrise.js#HIGHRISE_COUNTS ON); a collection shows only what its player owns
   C('card-abovetheclouds', 'ABOVE THE CLOUDS', 'rare', '#05060d', '#bfe6ff', '#ff4fd8', 'Sixty floors. The city is weather now.'),
   C('card-topoftheworld', 'TOP OF THE WORLD', 'legendary', '#020203', '#ffe9c0', '#ffd27a', 'Two hundred floors. They sent a ship.'),
   // PW2 — THE PASSWORD's card (Grok's vault door — the art assets/vault/pw/, the motion js/fx/pw-cards.js): both doors in six guesses or fewer

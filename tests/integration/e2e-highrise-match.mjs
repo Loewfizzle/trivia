@@ -62,6 +62,7 @@ let fatal = null;
 try {
   const host = await H.joinAll(N);
   const code = H.code;
+  await dbPut('testHighriseCounts', null);   // (the code's own ON — never a flip a failed suite left behind)
   // ---- 1. A PLAIN HOST (THE GO-LIVE — HIGH RISE is playable for everyone): the room's game list offers it, no TEST mark, no owner set-up
   const pids = [];
   for (let i = 0; i < N; i++) pids[i] = await pidFor(uids[i]);

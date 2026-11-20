@@ -71,6 +71,9 @@ test('T1 — every playable game is registered in EVERY place the console, the s
 
 test('JAYWALK H1 — a game BEING BUILT (a `preview` row) is registered in the same places — minus its ONE named list of waits, each with its pass; none of them stale', async () => {
   assert.deepEqual(BUILDING.map(g => g.id), [], 'NO game is being built (HIGH RISE went playable at its GO-LIVE, Nov 20) — the rule waits for the next one');
+  // (THE CLOSE's REVIEW: with no `preview` row the loop below checks nothing ON PURPOSE — the next game being built brings it back; the playable
+  //  games pass the full check above, HIGH RISE among them)
+  assert.ok(GAMES.some(g => g.id === 'highrise' && g.playable), 'HIGH RISE is checked as a playable game now');
   for (const g of BUILDING) {
     const waits = WAITS[g.id] || {}, found = await gaps(g), keys = new Set(found.map(x => x[0]));
     assert.deepEqual(found.filter(([k]) => !(k in waits)).map(([, what]) => `${g.id}: ${what}`), [], `${g.id}: every place that does not wait`);

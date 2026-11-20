@@ -120,6 +120,7 @@ const pastMoment = async P => {
 };
 
 try {
+  await dbPut('testHighriseCounts', null);   // (the code's own ON — never a flip a failed suite left behind)
   // ---- 1. A STRANGER (THE GO-LIVE — HIGH RISE is playable for everyone): the PLAY shelf lists it, no · TEST, no owner set-up
   const P = await phone(`hi${Date.now() % 100000}`);
   const { uid, pid } = await pidOf(P);

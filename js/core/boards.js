@@ -18,7 +18,7 @@ export const GAME_BOARDS = {
   prism: { records: [rec('prism-rush', 'SCORE RUSH', 'int', { short: 'BEST SCORE' })], career: [car('prism-ko', 'KNOCKOUTS', { stat: 'ko', short: 'KOs' })] },
   // (the solo lane's own boards — OC5: QUICK · SOLO from the room's record; B3: each its own name)
   jaywalk: { records: [rec('jaywalk-solo', 'FARTHEST RUN', 'int', { short: 'LANES' })], career: [] },   // (H3: the server's replay only)
-  // HIGH RISE (S4A — the server's replay only; NOTHING is written to it until go-live: api/_lib/highrise.js#HIGHRISE_COUNTS). Its value = a
+  // HIGH RISE (S4A — the server's replay only; written since THE GO-LIVE, Nov 20: api/_lib/highrise.js#HIGHRISE_COUNTS). Its value = a
   // tower as ONE sort number — the floor, then the perfects, then the earlier tick (js/games/highrise/logic.js#towerScore); fmt 'floor' shows the floor
   highrise: { records: [rec('highrise-solo', 'TALLEST TOWER', 'floor', { short: 'FLOORS' })], career: [] },
   overclock: { records: [rec('overclock-std', 'STANDARD MATCH', 'int', { short: 'BEST SCORE' }), rec('overclock-std-solo', 'STANDARD · SOLO', 'int'), rec('overclock-quick-solo', 'QUICK · SOLO', 'int')], career: [] },

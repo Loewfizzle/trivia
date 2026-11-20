@@ -30,7 +30,7 @@ function newSeed() {
   return [...a].map(x => x.toString(36)).join('');
 }
 
-/** ONE player = THE SOLO RUN · 2 … 8 = THE MATCH (S4B). (WHO may start it is the console's gate: a hidden game — THE OWNER's phone alone;
+/** ONE player = THE SOLO RUN · 2 … 8 = THE MATCH (S4B). (WHO may start it is the console's gate — any phone since THE GO-LIVE;
  *  a late joiner is not among the participants: they WATCH until the REMATCH deals them in.) */
 export async function start({ matchId, settings, participants, now }) {
   const n = Object.keys(participants || {}).length;

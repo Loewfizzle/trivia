@@ -413,7 +413,7 @@ RULES.highrise = {
       'TAP anywhere to drop the sliding slab.',
       'What hangs over the edge is CUT OFF.',
       'Land it right on top: PERFECT. Nothing is cut.',
-      '6 PERFECTS in a row and the slab GROWS BACK.',
+      'After 6 PERFECTS in a row, each PERFECT GROWS BACK.',
       'KEYBOARD: SPACE or ENTER drops.',
     ]],
     ['HOW IT ENDS', [

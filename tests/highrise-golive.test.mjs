@@ -22,6 +22,7 @@ test('HOW TO PLAY: RULES.highrise in ui/help.js — one line + two short section
   for (const t of lines) assert.ok(t.length <= 52 && /^[A-Z0-9]/.test(t), `a kid's line: ${t}`);
   assert.equal(lines.length, 11);
   const all = lines.join(' ');
+  assert.ok(lines.includes('After 6 PERFECTS in a row, each PERFECT GROWS BACK.'), 'grow-back: the 7th perfect in a row is the first that grows (engine.js — streak > 6)');
   for (const w of ['TAP', 'CUT OFF', 'PERFECT', 'GROWS BACK', 'SPACE or ENTER', 'MISSED THE STACK', 'SLIPPED OFF', 'TOO SLOW', 'No pause', 'tallest tower wins', '6:00', 'MOTHERSHIP']) assert.ok(all.includes(w), `the rules say ${w}`);
   const pics = help.slice(help.indexOf('RULES.highrise.pics = ['), help.indexOf('const LEGEND = ['));
   assert.equal((pics.match(/svg\('/g) || []).length, 11, 'one drawing a line');
