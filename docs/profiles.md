@@ -172,8 +172,15 @@ username + the board id leave the server (server.test.mjs).
   room-mate's profile by the pid on their seat), never the whole list and never signed out (it was `.read: true` at the top — a dump of
   every typed name). **Re-publish the rules in the Firebase console.**
 - **THE FLOOR — WHO GETS LISTED (PD-3 Group 0, the owner Nov 9; was the 3-match floor):** a profile is listed on any public board only from
-  its **3rd COUNTED PLAY** — a counted ROOM match (2+ players) OR a counted DAILY finish (THE THROWAWAY GATE's `counts` — `core/streak.js#countsOn`);
-  a SOLO run never counts. `pstats/{pid}/cp` = the count, kept by `core/progress.js#matchStep` + `dailyStep` in their own transactions
+  its **3rd COUNTED PLAY** — a counted ROOM match (2+ players), a counted DAILY finish (THE THROWAWAY GATE's `counts` — `core/streak.js#countsOn`),
+  or — **THE PROOF PASS, Nov 20: A VERIFIED SOLO RUN IS A COUNTED PLAY** (the owner: a friend's account played JAYWALK solo for two days and
+  never appeared) — a SOLO run THE SERVER replayed itself from the player's proof node AND counted: JAYWALK (`api/_lib/jaywalk.js#verifyNode`),
+  HIGH RISE (`api/_lib/highrise.js`'s judge) — `core/proof.js#VERIFIED_SOLO` = `api/report.js#PROOF_GAMES`; the row's `sv`
+  (`core/match-report.js#extractMatch`: only on a match the server built, not refused, not empty). THE DROP + JAYWALK's daily are dailies:
+  their counted finish was a counted play already. A refused / unproven run, and a solo run of a game the HOST grades (OVERCLOCK, PRISM
+  DROP), never count. DON'T COUNT still hides (applied at read). THE RE-COUNT of the players who already had their runs = the owner's
+  `/admin → THE BOARDS → BACK-FILL` (idempotent — `cp` = the larger of the live count and the re-counted one; the preview says how many more
+  are listed). Tests: `tests/proof-solo.test.mjs` · `server.test.mjs` "A VERIFIED SOLO RUN IS A COUNTED PLAY". `pstats/{pid}/cp` = the count, kept by `core/progress.js#matchStep` + `dailyStep` in their own transactions
   (`countedPlays(stats)` — a profile from before it: its counted matches + its counted daily finishes, an estimate until the back-fill);
   `lb.js#hiddenOf` = `progress.js#boardHidden`. `profiles/{pid}/m` = the same count (written by a match AND a daily). Under it no board entry is
   written (`boardPaths(..., hidden)`); the play that crosses it (a match OR a daily) re-syncs every game's boards at once. /admin → THE BOARDS →
@@ -609,7 +616,7 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   `/board`, the title's preview) = an opaque board id + the player's USERNAME — never a profile id, the key or the tag's digits; a name the
   filter calls rude shows as its HOUSE NICKNAME (`api/_lib/lb.js#publicName`, `js/core/nicknames.js`); REPORT + /admin's rename / hide stay;
   a report pushes the owner (`api/board.js` → `radio.js#notifyOwner`). `profiles/{pid}` is readable one at a time by signed-in users, never
-  as a list. A profile is listed from its 3rd COUNTED PLAY (a room match or a counted daily — never a solo run; `core/progress.js#countedPlays`, PD-3). docs/profiles.md "REAL USERNAMES".
+  as a list. A profile is listed from its 3rd COUNTED PLAY (a room match, a counted daily, or — THE PROOF PASS — a solo run the SERVER verified: JAYWALK / HIGH RISE; `core/progress.js#countedPlays`, PD-3). docs/profiles.md "REAL USERNAMES".
 
 ### Anti-cheat + THE REAL PLAYER COUNT
 

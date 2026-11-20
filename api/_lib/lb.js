@@ -8,7 +8,8 @@
 //   beside an opaque board id (boardId: an HMAC of the pid with the server's pepper — REPORT + your own row find it). A name the filter
 //   calls rude (core/names.js#isOffensive) is shown as its HOUSE NICKNAME (js/core/nicknames.js — the old BNAME names, kept for this);
 //   REPORT NAME + /admin's rename / hide stay. A profile is listed only from its BOARD_MIN_MATCHES-th COUNTED PLAY (profiles/{pid}/m) — a counted
-//   room match or a counted daily finish; never a solo run (PD-3 Group 0 — core/progress.js#countedPlays).
+//   room match, a counted daily finish, or (THE PROOF PASS, Nov 20) a SOLO run the SERVER verified — replayed from the player's proof node and
+//   counted: JAYWALK, HIGH RISE; any other solo run never (PD-3 Group 0 — core/progress.js#countedPlays).
 import { noCountSet, clearNoCount } from './nocount.js';
 import { createHmac } from 'node:crypto';
 import { ref, val, fb } from './fb.js';
@@ -90,7 +91,7 @@ const CACHE_MS = 15_000;
 export function clearBoardCache() { cache.clear(); pubCache.clear(); clearNoCount(); }
 
 /** BOARD 2.0 A — why a profile is off the boards: 'opt' (the opt-out / the admin's hide — every board) · 'matches' (under the floor of 3 COUNTED
- *  PLAYS — PD-3 Group 0: room matches + counted daily finishes, never a solo run; the daily boards still list it from its 3rd day played) ·
+ *  PLAYS — PD-3 Group 0: room matches + counted daily finishes + (THE PROOF PASS) server-verified solo runs; the daily boards still list it from its 3rd day played) ·
  *  false (listed) */
 export const hiddenOf = (prof, stats) => boardHidden(prof, stats, minMatches());
 /** the counted plays the listing reads (core/progress.js#countedPlays) */

@@ -176,7 +176,7 @@ export function provenUids(gid, trees) {
   }
   return out;
 }
-export const asSoloRow = row => ({ rank: (row && row.rank) || 1, win: false, solo: true, c: { p: 1 }, rec: {} });
+export const asSoloRow = row => ({ rank: (row && row.rank) || 1, win: false, solo: true, c: { p: 1 }, rec: {}, ...(row && row.sv === 1 ? { sv: 1 } : {}) });   // (THE PROOF PASS: + `sv` — a proof game's match with ONE real player: its run was the server's own replay → a verified solo run)
 
 export async function processReport(uid, body, now = Date.now(), ip = '') {
   const code = String(body.code || '');

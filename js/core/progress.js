@@ -46,7 +46,8 @@ export const weekXp = (s, now) => (s && s.xw && s.xw.wk === weekKey(now) ? s.xw.
 export const DEFAULT_GAP_MS = 45_000;
 /**
  * WHO GETS LISTED (PD-3 Group 0 — the owner, Nov 9): a profile is on the public boards from its 3rd COUNTED PLAY — a counted ROOM match (2+
- * players; a solo run never counts) OR a counted DAILY finish (THE THROWAWAY GATE's `counts`). pstats.cp keeps the count, written by matchStep +
+ * players), a counted DAILY finish (THE THROWAWAY GATE's `counts`), or (THE PROOF PASS, Nov 20) a SOLO run THE SERVER VERIFIED — replayed from
+ * the player's own proof node and counted (JAYWALK, HIGH RISE: matchStep, the row's `sv`); any other solo run never counts. pstats.cp keeps the count, written by matchStep +
  * dailyStep in the same transaction as the rest; a profile from before it has none yet → the best estimate from what its stats hold (every match
  * counted in `g` + every counted daily finish in DAILY POINTS' tally) — /admin → THE BOARDS' back-fill sets it exactly from the records.
  */
@@ -109,7 +110,10 @@ export function matchStep(s0, { key, gid, row, n, now, at = now, gap = DEFAULT_G
   const day = { k: dk, g: { ...(box.g || {}) }, ...(box.so ? { so: box.so } : {}), ...(box.n ? { n: box.n } : {}) };
   const solo = n === 1;   // (SHELL 2.0 B1 — THE SOLO LANE: a room of one)
   if (!solo) day.n = roomsToday + 1;   // (THE DAILY CEILING's count)
-  next.cp = countedPlays(s) + (solo ? 0 : 1);   // (PD-3 Group 0 — WHO GETS LISTED: a room match counts, a solo run never)
+  // (PD-3 Group 0 — WHO GETS LISTED: a room match counts. THE PROOF PASS, Nov 20 — A VERIFIED SOLO RUN IS A COUNTED PLAY: a solo run counts
+  //  ONLY when THE SERVER replayed it itself from the player's proof node and did not refuse it — the row's `sv`, core/match-report.js#
+  //  VERIFIED_SOLO: JAYWALK, HIGH RISE. Any other solo run (a game the host grades): never.)
+  next.cp = countedPlays(s) + (solo ? (row && row.sv === 1 ? 1 : 0) : 1);
   const firstToday = !day.g[gid];
   day.g[gid] = 1;
   const gamesToday = Object.keys(day.g).length;

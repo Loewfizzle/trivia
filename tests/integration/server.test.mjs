@@ -2942,3 +2942,122 @@ test('CITY D: STATS → THE DAILIES — who played each daily (today + this week
     assert.ok(!JSON.stringify(W).includes(a.pid), 'no pid in the copy — a face by index');
   } finally { process.env.ADMIN_PIDS = ''; await ref('progress/statsSnap').remove(); await ref(`dly/${g}/${today}`).remove(); await ref(`dly/${g}/${y2}`).remove(); await ref('progress/dailies').set(was); clearSwitchCache(); }
 });
+
+// THE PROOF PASS (Nov 20) — A VERIFIED SOLO RUN IS A COUNTED PLAY (the inbox's Nov 20 2:17 pm entry — the owner: a friend's new account played
+// JAYWALK solo for two days and never appeared on THE BOARD). THE BOARD lists a profile from its 3rd COUNTED PLAY; a solo run never counted.
+// Now a solo run THE SERVER replayed itself from the player's proof node AND counted (JAYWALK's verifyNode, HIGH RISE's judge — core/proof.js#
+// VERIFIED_SOLO; THE DROP + JAYWALK's daily are dailies: a counted daily finish counted already) is a counted play. A refused / unproven run,
+// a solo run of a game the host grades: never. DON'T COUNT still hides. The re-count of the players who already have their runs = the
+// owner's BACK-FILL (api/_lib/board-fill.js — idempotent: a second run writes the same numbers).
+test('THE PROOF PASS — A VERIFIED SOLO RUN IS A COUNTED PLAY: a solo-only player is listed from the 3rd run the SERVER verified; a refused run + a host-graded solo run never count; DON\'T COUNT still hides; the BACK-FILL re-counts the old records, twice = the same', async () => {
+  const { seedOf } = await import('../../js/games/jaywalk/logic.js');
+  const { createCourse } = await import('../../js/games/jaywalk/course.js');
+  const { createRun, resultOf, step, isOver } = await import('../../js/games/jaywalk/engine.js');
+  const { packLog } = await import('../../js/games/jaywalk/replay.js');
+  const { greedyBot, playBot } = await import('../../js/games/jaywalk/bot.js');
+  const { VERIFIED_SOLO } = await import('../../js/core/proof.js');
+  const { PROOF_GAMES } = await import('../../api/report.js');
+  assert.deepEqual([...VERIFIED_SOLO].sort(), Object.keys(PROOF_GAMES).sort(), 'the verified-solo games = the games the server replays itself');
+  process.env.BOARD_MIN_MATCHES = '3';
+  await ref('testReportAll').set(null);
+  await ref('progress/resetAt').set(null);   // (an earlier test's reset epoch: this test's records all count)
+  const code = nextCode();
+  let mN = 0;
+  /** an honest JAYWALK solo run of ~`ticks` → its proof node (a chunk a second, stamped) + the live result; `forged` = the whole log uploaded at once (a log from the future) */
+  const runOf = (matchId, ticks, forged = false) => {
+    let go = clock - 120_000, seed, course, run, log;
+    for (let k = 0; ; k++) {
+      seed = seedOf(code, matchId, go); course = createCourse(seed); run = createRun({ seed, mode: 'solo' });
+      log = playBot(run, course, greedyBot({ seed }), ticks);
+      while (!isOver(run)) step(run, course, '');
+      if ((log.length >= 20 && run.best >= 8) || k > 200) break;
+      go += 7;
+    }
+    const c = {};
+    let from = 0, i = 0;
+    while (from < log.length) { const edge = (Math.floor(log[from].t / 60) + 1) * 60; let to = from; while (to < log.length && log[to].t < edge) to++; c[i++] = { s: packLog(log.slice(0, to), from), at: forged ? go + 400 : go + Math.ceil(edge * 1000 / 60) + 150 }; from = to; }
+    return { node: { go, c, e: { l: run.best, t: run.bestT, w: run.cause } }, live: resultOf(run), go };
+  };
+  const soloRun = async (uid, name, pid, { ticks = 1500, forged = false, noProof = false } = {}) => {
+    const matchId = `s${(mN++).toString(36)}vs${Math.floor(clock % 1e6).toString(36)}`.slice(0, 12), r = runOf(matchId, ticks, forged);
+    await ref(`rooms/${code}`).update({
+      meta: { hostId: uid, status: 'playing', createdAt: clock - 600_000, activeAt: clock, locked: true, settings: { solo: { on: true, g: 'jaywalk' } } },
+      players: { [uid]: { name, color: 'cyan', avatar: 'bolt', joinedAt: 1, pid } },
+      game: { id: 'jaywalk', matchId, phase: 'final', mode: 'solo', seed: 'host', settings: { lives: 1 }, participants: { [uid]: true }, playAt: r.go - 50, phaseStartAt: clock, results: { [uid]: { l: 99999, t: 5, w: 'car', lv: 0 } } },
+      [`night/${matchId}`]: { g: 'jaywalk', at: clock, p: { [uid]: 0 }, n: { [uid]: name } },
+      [`jw/${matchId}/${uid}`]: noProof ? null : r.node,
+    });
+    return { code, matchId, live: r.live };
+  };
+  try {
+    const me = await ensure('u-vs1', 'SOLOIST'), pid = me.pid;
+    const listed = async (b = 'jaywalk-solo') => { clearBoardCache(); const q = await boardQuery({ b, p: 'all' }, clock); return q.rows.some(r => r.id === me.profile.bid); };
+    const cp = async p => (await val(`pstats/${p}/cp`)) || 0;
+    // run 1 + run 2: verified + counted — two counted plays, not listed yet
+    const A = await soloRun('u-vs1', 'SOLOIST', pid);
+    { const r = await report('u-vs1', A); assert.equal(r.status, 'counted'); assert.ok(!r.outcome.skip); }
+    assert.equal(await cp(pid), 1, 'a verified solo run IS a counted play');
+    assert.equal(await val(`profiles/${pid}/m`), 1);
+    tick(60_000);
+    const B = await soloRun('u-vs1', 'SOLOIST', pid);
+    await report('u-vs1', B);
+    assert.equal(await cp(pid), 2); assert.equal(await listed(), false, '2 verified runs: not listed'); assert.equal(await val(`lb/jaywalk-solo/all/${pid}`), null, 'no board row yet');
+    assert.equal((await report('u-vs1', B, clock + 3000)).status, 'done', 'the same run reported again: done');
+    assert.equal(await cp(pid), 2, '… never counted twice');
+    // a REFUSED run (a forged log — the server's replay says no): an empty run — not a counted play
+    tick(60_000);
+    const F = await soloRun('u-vs1', 'SOLOIST', pid, { ticks: 4000, forged: true });
+    { const r = await report('u-vs1', F); assert.equal(r.outcome && r.outcome.skip, 'empty', 'refused by the replay'); }
+    assert.equal(await cp(pid), 2, 'a refused run never counts');
+    // an UNPROVEN run (no proof node: the phone never wrote GO): nothing
+    tick(60_000);
+    const N = await soloRun('u-vs1', 'SOLOIST', pid, { noProof: true });
+    { let out = null; try { out = await report('u-vs1', N); } catch (e) { out = { err: e.code }; } assert.ok(out.err || (out.outcome && out.outcome.skip) || !out.outcome, `an unproven run is not counted (${JSON.stringify(out).slice(0, 80)})`); }
+    assert.equal(await cp(pid), 2, 'an unproven run never counts');
+    // a solo run of a game THE HOST grades (OVERCLOCK — the room's own results): counted for XP as ever, never a counted play
+    tick(60_000);
+    const O = await seedRoom('overclock', ['u-vs1']);
+    await ref(`rooms/${O.code}/night/${O.matchId}/p/u-vs1`).set(0);
+    assert.equal((await report('u-vs1', O)).status, 'counted');
+    assert.equal(await cp(pid), 2, 'a host-graded solo run: never a counted play');
+    assert.equal(await listed(), false);
+    // run 3: listed — on the board with the SERVER's lanes, never the room's claim
+    tick(300_000);   // (ONE ACCOUNT, ONE ROOM: a run's window opens at its GO, 2 min before its end — clear of the OVERCLOCK room's match)
+    const C = await soloRun('u-vs1', 'SOLOIST', pid, { ticks: 2600 });
+    await report('u-vs1', C);
+    assert.equal(await cp(pid), 3); assert.equal(await val(`profiles/${pid}/m`), 3);
+    assert.equal(await listed(), true, 'the 3rd verified solo run: LISTED — a solo-only player');
+    const row = await val(`lb/jaywalk-solo/all/${pid}`);
+    assert.ok(row != null && JSON.stringify(row).includes(String(Math.max(A.live.lanes, B.live.lanes, C.live.lanes))) && !JSON.stringify(row).includes('99999'), `the board row = the server's best (${JSON.stringify(row)})`);
+    // DON'T COUNT still hides (applied at read — its own stats untouched); UNDO shows them again
+    const own = await ensure('u-vsown', 'VSOWNER');
+    process.env.ADMIN_PIDS = `${own.pid}`;
+    await adminAction('u-vsown', { action: 'noCount', pid, on: true }, clock);
+    assert.equal(await listed(), false, 'DON\'T COUNT: off THE BOARD'); assert.equal(await cp(pid), 3, 'its own count untouched');
+    await adminAction('u-vsown', { action: 'noCount', pid, on: false }, clock);
+    assert.equal(await listed(), true, 'UNDO: back at once');
+    // THE RE-COUNT (the players who ALREADY have their verified runs, from before this pass: their solo runs never counted): the BACK-FILL
+    // rebuilds COUNTED PLAYS from the records the server keeps — a second run writes the same numbers
+    const two = await ensure('u-vs2', 'TWORUNS');
+    for (let k = 0; k < 2; k++) { tick(60_000); await report('u-vs2', await soloRun('u-vs2', 'TWORUNS', two.pid)); }
+    for (const p of [pid, two.pid]) await ref('/').update({ [`pstats/${p}/cp`]: 0, [`profiles/${p}/m`]: 0, [`lb/jaywalk-solo/all/${p}`]: null, [`lb/xp/all/${p}`]: null });   // (as before this pass)
+    assert.equal(await listed(), false, 'as it was: three verified solo runs, not listed');
+    const dry = (await adminAction('u-vsown', { action: 'boardsBackfill' }, clock)).backfill;
+    assert.ok(!dry.done && dry.preview.listedAfter > dry.preview.listedNow, `the preview: more players listed after (${dry.preview.listedNow} → ${dry.preview.listedAfter}); nothing written`);
+    assert.equal(await cp(pid), 0);
+    await adminAction('u-vsown', { action: 'boardsBackfill', confirm: true }, clock);
+    assert.equal(await cp(pid), 3, 'the re-count: 3 verified solo runs on record (the refused, the unproven + the host-graded ones not among them)');
+    assert.equal(await cp(two.pid), 2);
+    assert.equal(await listed(), true, 'listed at once');
+    clearBoardCache();
+    assert.ok(!(await boardQuery({ b: 'jaywalk-solo', p: 'all' }, clock)).rows.some(r => r.id === two.profile.bid), 'two verified runs: still not listed');
+    const snap1 = JSON.stringify([await val(`pstats/${pid}`), await val(`lb/jaywalk-solo/all/${pid}`), await val(`pstats/${two.pid}/cp`)]);
+    await adminAction('u-vsown', { action: 'boardsBackfill', confirm: true }, clock);
+    assert.equal(JSON.stringify([await val(`pstats/${pid}`), await val(`lb/jaywalk-solo/all/${pid}`), await val(`pstats/${two.pid}/cp`)]), snap1, 'IDEMPOTENT: a second back-fill writes the same numbers — never a double count');
+    // … and a run counted AFTER the back-fill adds one, once
+    tick(60_000);
+    await report('u-vs1', await soloRun('u-vs1', 'SOLOIST', pid));
+    assert.equal(await cp(pid), 4);
+  } finally { process.env.BOARD_MIN_MATCHES = '1'; process.env.ADMIN_PIDS = ''; await ref('testReportAll').set(true); await ref('nocount').remove(); await ref('audit').remove(); clearBoardCache(); }
+  tick();
+});

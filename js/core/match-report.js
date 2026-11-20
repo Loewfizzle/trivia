@@ -15,6 +15,7 @@ import { standings as jaywalkStandings } from '../games/jaywalk/logic.js';
 import * as hiMeta from '../games/highrise/meta.js';
 import { gameStandings as highriseStandings, towerScore } from '../games/highrise/logic.js';
 import { boardDef } from './boards.js';
+import { VERIFIED_SOLO } from './proof.js';
 import { rankings as signalRankings } from '../games/signal/logic.js';
 import { standings as ocStandings, MODES as OC_MODES, roundWin as ocRoundWin, ptsCeiling as ocPtsCeiling, matchMax as ocMatchMax } from '../games/overclock/logic.js';
 import { SKILL_TYPES as OC_SKILL_TYPES } from '../games/overclock/challenges.js';
@@ -413,6 +414,15 @@ export function soloEmpty(game, uid, row = {}) {
   return !(num(row.score) > 0 || (f ? f(game, uid) : false));
 }
 
+/**
+ * THE PROOF PASS — A VERIFIED SOLO RUN IS A COUNTED PLAY (the owner, Nov 20: a friend's account played JAYWALK solo for two days and never
+ * appeared on THE BOARD): the games whose runs THE SERVER REPLAYS ITSELF from the player's proof node (api/report.js#PROOF_GAMES — JAYWALK's
+ * verifyNode, HIGH RISE's judge; pinned equal by tests/proof-solo.test.mjs). A row of such a match the server built (`game.sv`) and did NOT
+ * refuse (`bad`) carries `sv: 1` — core/progress.js#matchStep counts a SOLO run toward WHO GETS LISTED only with it. (THE DROP + JAYWALK's
+ * daily are dailies: a counted daily finish was a counted play already — dailyStep.) Never a row from a room's own game blob: for these
+ * ids api/report.js builds the match itself, on every path.
+ */
+export { VERIFIED_SOLO };   // (the list lives in core/proof.js — PURE, no imports: core/board-fill.js reads it too)
 export function extractMatch(game, ctx = {}) {
   const why = unreportable(game);
   if (why) throw new Error(why);
@@ -428,6 +438,7 @@ export function extractMatch(game, ctx = {}) {
     const o = { rank: row.rank, win, c: { p: 1, ...(win ? { w: 1 } : {}) }, rec: {}, rejected: out.rejected };
     EXTRA[game.id](game, row.uid, o, row, ctx, win);
     if (solo && (soloEmpty(game, row.uid, row) || o.hidden)) o.empty = 1;   // (B1: nothing answered, nothing scored → never counted; THE DROP B: a solo SURVIVAL's time past its rows — hidden time — neither)
+    if (game.sv === 1 && VERIFIED_SOLO.includes(game.id) && !((game.results || {})[row.uid] || {}).bad && !o.empty) o.sv = 1;   // (THE PROOF PASS: the server's own replay, not refused)
     delete o.hidden;
     if (solo) { o.solo = true; const rec = {}; for (const [b, v] of Object.entries(o.rec)) { const sb = soloBoard(b); if (sb) rec[sb] = v; } o.rec = rec; }
     delete o.rejected;

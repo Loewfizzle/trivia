@@ -21,6 +21,11 @@ export const LEAF_MS = 3 * 3600_000;
  *  (4 am New York — the streak day's line). Pinned equal to the rules' number by tests/proof-pass.test.mjs. */
 export const T0_SUNSET_MS = Date.UTC(2026, 10, 27, 9, 0, 0);
 
+/** THE PROOF GAMES: the games whose runs THE SERVER REPLAYS ITSELF from the player's proof node (api/report.js#PROOF_GAMES — pinned equal
+ *  by tests/proof-solo.test.mjs). A VERIFIED SOLO RUN IS A COUNTED PLAY: core/match-report.js marks their rows `sv`, core/board-fill.js
+ *  re-counts their solo records. */
+export const VERIFIED_SOLO = Object.freeze(['jaywalk', 'highrise']);
+
 /** a player's node → its GO (the server's time), 0 = none (a number child — the stamp — is not a node) */
 export const goOf = node => { const v = node && typeof node === 'object' ? Number(node.go) : 0; return v > 0 ? v : 0; };
 /** the tree's stamp (0 = none: a tree from before the re-publish, or an old phone's) */

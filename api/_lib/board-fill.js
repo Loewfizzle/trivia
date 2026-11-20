@@ -8,7 +8,8 @@
 // Each player: ONE transaction on pstats/{pid} (the week counter = the larger of the live one and the rebuilt one; the points set from the
 // records), then their board rows from the stats (lb.js#boardPaths). A second run writes the same numbers.
 // PD-3 Group 0 — WHO GETS LISTED: the same run sets each profile's COUNTED PLAYS (pstats.cp) exactly from the records (core/board-fill.js#
-// countedPlaysFromRecords — room matches + counted daily finishes, never a solo run) and RE-CHECKS who's listed: every board row (not only the
+// countedPlaysFromRecords — room matches + counted daily finishes + (THE PROOF PASS, Nov 20) the counted SOLO records of the games the server
+// replays itself: JAYWALK, HIGH RISE — a solo run of any other game never) and RE-CHECKS who's listed: every board row (not only the
 // overall ones) + profiles/{pid}/m are rewritten, so a player the new rule lists appears on every board, one it doesn't comes off.
 import { ref, val } from './fb.js';
 import { boardPaths, hiddenOf, clearBoardCache } from './lb.js';

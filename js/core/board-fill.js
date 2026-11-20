@@ -6,6 +6,7 @@
 // rebuilt one — a payment landing during the run is never lost).
 import { weekKey } from './week.js';
 import { DAILY_XP, SWEEP_XP } from './daily.js';
+import { VERIFIED_SOLO } from './proof.js';
 
 /**
  * results: { key: { at, o } } · daily: { [game]: { [day]: { r, s, x } } } · live: the dailies on the list (core/daily.js#todaysDailies) ·
@@ -40,7 +41,8 @@ export function rebuildWeekXp({ results = {}, daily = {}, live = [], wk }) {
 
 /**
  * WHO GETS LISTED (PD-3 Group 0): every profile's COUNTED PLAYS rebuilt from the records — a counted ROOM match (results/{key}: the outcome not
- * skipped, 2+ players — a solo run never counts; a record from before `n` was stored counts as a room match) + a counted DAILY finish (dly/…: a
+ * skipped, 2+ players; a record from before `n` was stored counts as a room match) or (THE PROOF PASS) a counted SOLO run of a game the server
+ * replays itself (JAYWALK, HIGH RISE — a solo run of any other game never counts) + a counted DAILY finish (dly/…: a
  * score that isn't in `x`, the non-counting results — THE THROWAWAY GATE). → { [pid]: n }
  */
 export function countedPlaysFromRecords({ results = {}, daily = {} }) {
@@ -51,7 +53,9 @@ export function countedPlaysFromRecords({ results = {}, daily = {} }) {
     for (const [pid, o] of Object.entries(r.o)) {
       if (!o || o.skip) continue;
       const n = Number(r.n ?? o.n ?? 2);
-      if (n >= 2) add(pid);
+      // (THE PROOF PASS — A VERIFIED SOLO RUN IS A COUNTED PLAY: a counted solo record of a game the SERVER replays itself — the record's
+      //  `g`, core/match-report.js#VERIFIED_SOLO — counts too; a refused / empty run's outcome is a `skip`: never)
+      if (n >= 2 || (n === 1 && VERIFIED_SOLO.includes(r.g))) add(pid);
     }
   }
   for (const days of Object.values(daily || {})) for (const D of Object.values(days || {})) {

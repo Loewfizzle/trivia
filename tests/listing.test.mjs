@@ -1,5 +1,6 @@
 // WHO GETS LISTED (PD-3 Group 0 — the owner, Nov 9): a profile is on the public boards from its 3rd COUNTED PLAY — a counted room match OR a
-// counted daily finish (THE THROWAWAY GATE) — never a solo run. core/progress.js#countedPlays + boardHidden (api/_lib/lb.js#hiddenOf reads them),
+// counted daily finish (THE THROWAWAY GATE) — never a solo run of a game the HOST grades (THE PROOF PASS, Nov 20: a solo run the SERVER
+// verified — JAYWALK, HIGH RISE — IS a counted play: tests/proof-solo.test.mjs). core/progress.js#countedPlays + boardHidden (api/_lib/lb.js#hiddenOf reads them),
 // core/streak.js#countsOn (the gate), core/board-fill.js#countedPlaysFromRecords (the back-fill's exact re-count).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

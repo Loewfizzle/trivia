@@ -62,7 +62,7 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null, a
     const stats = tx.snapshot.val();
     const prof = (await val(`profiles/${pid}`)) || {};
     // BNAME → PD-3 Group 0: listed on the public boards only from the BOARD_MIN_MATCHES-th COUNTED PLAY (room matches + counted daily finishes —
-    // never a solo run: core/progress.js#countedPlays)
+    // + THE PROOF PASS: a SOLO run the server VERIFIED (JAYWALK / HIGH RISE — the row's `sv`); any other solo run never: core/progress.js#countedPlays)
     const played = playCount(stats);
     const listed = !prof.h && played >= minMatches();
     // ranks before the boards change (for "ENTERED THE TOP 10")
