@@ -67,3 +67,26 @@ test('THE POSTER\'s pixels stay PNG-friendly (no dithered canvas gradient / shad
   const { LINK_HARD } = await import(new URL('../js/games/kit/share-run.js', import.meta.url));
   assert.ok(read('api/_lib/share-card.js').includes('MAX_BYTES = 400 * 1024') && LINK_HARD < 400 * 1024, 'under the server\'s cap (read as text — THE UNIT JOB INSTALLS NOTHING)');
 });
+
+test('THE WOULD COUNT LINE: NEW BEST only when the floor BEATS the YOUR BEST shown (counting OFF: the server keeps no record — its own word is "best" for every run) · it wraps, never cut off', async () => {
+  const { wouldLine } = await import(new URL(`../${HI}final.js`, import.meta.url));
+  const w = { floor: 113, xp: 0, so: { n: 9, max: 4 }, best: true };
+  assert.equal(wouldLine(w, 119), 'WOULD COUNT · FLOOR 113 · +0 XP · DAILY CAP', 'the owner\'s case: 113 under a best of 119 — no NEW BEST');
+  assert.equal(wouldLine(w, 113), 'WOULD COUNT · FLOOR 113 · +0 XP · DAILY CAP', 'level with the best: not a new one');
+  assert.equal(wouldLine(w, 112), 'WOULD COUNT · FLOOR 113 · +0 XP · DAILY CAP · NEW BEST', 'beaten: NEW BEST');
+  assert.equal(wouldLine(w, 0), 'WOULD COUNT · FLOOR 113 · +0 XP · DAILY CAP', 'no best shown = a first run: YOUR BEST, never NEW BEST (the end screen\'s rule)');
+  assert.equal(wouldLine(w), 'WOULD COUNT · FLOOR 113 · +0 XP · DAILY CAP · NEW BEST', 'no best handed in: the server\'s own word (S4B)');
+  const f = read(`${HI}final.js`), css = read('css/highrise-play.css');
+  assert.ok(f.includes('would.textContent = wouldLine(o.would, shownBest);') && f.includes('would.textContent = wouldLine(o.would, cleanBest(ls.get(SRV_BEST_KEY)));'), 'solo + match: the best this phone shows');
+  assert.match(css, /\.hi-fin-would \{[^}]*padding: 0 16px;[^}]*white-space: normal; text-wrap: balance;/, 'it wraps inside the 16 px gutters (e2e-highrise measures it at 390 × 844 with the longest line)');
+});
+
+test('THE DAY END SCREEN: by day ONE soft still of the scene shows through a dark tint (darker over the words + the foot, lighter where the tower stands) — no CSS filter; night unchanged', () => {
+  const s = read(`${HI}stage.js`), css = read('css/highrise-play.css');
+  assert.ok(s.includes("const endBg = h('canvas.hi-endbg', { 'aria-hidden': 'true', width: 1, height: 1 });") && s.includes('play, endBg, shade, hud, tag,'), 'the still sits over the scene, under the veil');
+  assert.ok(s.includes("stage.classList.add('is-ended'); tagDirty = true; endStill();") && s.includes("if (gone || n !== stillN || !stage.classList.contains('is-ended') || lookSeen !== 'day' || !view.snap || !stageW) return;"), 'taken once, after the end pose eased, a DAY scene only');
+  assert.ok(s.includes("stillN++; stage.classList.remove('has-still');"), 'a new run drops it');
+  assert.match(css, /\.hi-stage\.is-ended\.has-still\[data-look='day'\] \.hi-endbg \{ opacity: 1; \}/);
+  assert.match(css, /\.hi-stage\.is-ended \.hi-shade \{ background: linear-gradient\(rgba\(7, 6, 11, 0\.5\) 0, rgba\(7, 6, 11, 0\.9\) 26%, rgba\(7, 6, 11, 0\.96\) 100%\); \}/, 'night: JAYWALK\'s veil, unchanged');
+  assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/filter: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;/g, ''), /(?:^|[\s;{])(?:-webkit-)?(?:backdrop-)?filter\s*:/, 'no filter in the game\'s sheet (the lag rules)');
+});

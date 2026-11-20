@@ -170,6 +170,16 @@ try {
   const fin = await P.ev("({ t: document.querySelector('.hi-fin .hi-ec-cause').textContent, n: document.querySelector('.hi-fin .hi-ec-n').getAttribute('aria-label'), w: document.querySelector('.hi-fin-would').textContent, kicker: document.querySelector('.hi-final .sheet-kicker').textContent, bar: !!document.querySelector('.hi-final .final-bar, .hi-final .btn-primary') })");
   ok(fin.t === 'TOO SLOW' && Number(fin.n) === V.floor && fin.kicker === 'HIGH RISE · SOLO', `the end screen: ${fin.kicker} · ${fin.t} · FLOOR ${fin.n}`);
   ok(new RegExp(`^WOULD COUNT · FLOOR ${V.floor} · `).test(fin.w), `WOULD COUNT matches the phone's own result (${fin.w})`);
+  // REVIEW FIX B — THE WOULD COUNT LINE: never NEW BEST unless the floor beats the YOUR BEST shown (none shown here: a first run — never
+  // NEW BEST), and it FITS the phone (it ran off the right edge at 390 × 844: it wraps now, never cut off)
+  ok(!/NEW BEST/.test(fin.w), `… no NEW BEST with no YOUR BEST shown (counting OFF: the server keeps no record — its own "best" is every run): "${fin.w}"`);
+  {
+    const wf = await P.ev("(() => { const w = document.querySelector('.hi-fin-would'), r = w.getBoundingClientRect(), cs = getComputedStyle(w); return { l: r.left, r: r.right, sw: w.scrollWidth, cw: w.clientWidth, ws: cs.whiteSpace, iw: innerWidth }; })()");
+    ok(wf.l >= 0 && wf.r <= wf.iw && wf.sw <= wf.cw + 1 && wf.ws === 'normal', `… and it fits the phone: ${wf.l.toFixed(0)}–${wf.r.toFixed(0)} of ${wf.iw}, nothing past its edge (scroll ${wf.sw} ≤ ${wf.cw}), wrapping`);
+    // the longest line the server can send, put in the same element: it wraps inside the screen (two lines), never cut off
+    const lng = await P.ev("(async () => { const F = await import('/js/games/highrise/final.js'), w = document.querySelector('.hi-fin-would'), was = w.textContent; w.textContent = F.wouldLine({ floor: 113, xp: 0, so: { n: 9, max: 4 }, best: true, cards: ['a', 'b'] }, 112); const r = w.getBoundingClientRect(), o = { t: w.textContent, l: r.left, r: r.right, h: r.height, lh: parseFloat(getComputedStyle(w).lineHeight), sw: w.scrollWidth, cw: w.clientWidth }; w.textContent = was; return o; })()");
+    ok(lng.l >= 0 && lng.r <= 390 && lng.sw <= lng.cw + 1 && Math.round(lng.h / lng.lh) <= 2, `the LONGEST line ("${lng.t}") wraps on ${Math.round(lng.h / lng.lh)} lines inside the 390 — never cut off`);
+  }
   ok(await P.ev("document.querySelector('.hi-fin .hi-ec-best').textContent === ''"), 'the end screen: NO YOUR BEST line — a run that never counted (counting OFF) never sets it; only the server record of a counted run does (REVIEW FIX A — the owner call)');
   await sleep(1200);
   await P.shot('end-card-390x844.png');

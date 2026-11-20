@@ -115,7 +115,7 @@ test('THE END, after S4B: the hero-number card is GONE (no stats strip, no dashe
   assert.doesNotMatch(e + s + f + css, /hi-ec-strip|hi-ec-col|hi-ec-k\b|is-ghost|GHOST_TAG_UP/, 'the strip + the ghost words left with design A');
   assert.match(s, /view\.pose\('end'\); view\.ghostBest\(false\);/, 'the scene is dimmed behind the card: no dashed outline');
   assert.match(f, /const overBar = \(\) => \{ const fr = el\.closest\('\.final'\), foot = fr && fr\.querySelector\('\.final-foot'\); if \(foot && would\.nextElementSibling !== foot\) foot\.before\(would\); \};/);
-  assert.match(f, /if \(o\.would\) \{ (globalThis\.__hiWould = game\.matchId; )?overBar\(\); would\.textContent = wouldLine\(o\.would\);/, 'WOULD COUNT: one small line over the bar');
+  assert.match(f, /if \(o\.would\) \{ (globalThis\.__hiWould = game\.matchId; )?overBar\(\); would\.textContent = wouldLine\(o\.would(, shownBest)?\);/, 'WOULD COUNT: one small line over the bar');
   assert.match(s, /check\.hidden = !card \|\| !\(PAGE \|\| \(E && E\.note\)\);/, 'REPLAY = LIVE: the test page\'s alone');
   assert.match(css, /\.hi-check \{ position: absolute; left: 16px; right: 16px; bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 103px\);/);
 });

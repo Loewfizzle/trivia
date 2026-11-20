@@ -17,15 +17,18 @@ import { BOARD, SRV_BEST_KEY } from './lines.js';
 const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, String(v)); } catch { /* fine */ } } };
 const num = n => Math.round(Number(n) || 0).toLocaleString('en-US');
 
-/** THE SWITCH's line (counting OFF): what the server WOULD have awarded for the run it just judged — floor, XP, the streak, a best, a card */
-export function wouldLine(w) {
+/** THE SWITCH's line (counting OFF): what the server WOULD have awarded for the run it just judged — floor, XP, the streak, a best, a card.
+ *  `best` (REVIEW FIX B — the owner: it said NEW BEST at 113 with a best of 119): the YOUR BEST this screen SHOWS — while counting is
+ *  OFF the server keeps no record, so its own `best` is true for every run; the line says NEW BEST only when the floor BEATS the best
+ *  shown (none shown = a first run: YOUR BEST, never NEW BEST — the end screen's own rule). Left out: the server's word. */
+export function wouldLine(w, best = null) {
   if (!w || typeof w !== 'object') return '';
   if (w.skip) return `WOULD NOT COUNT · ${String(w.skip).toUpperCase()}`;
   // (S4B — "+0 XP" SAYS WHY: the day's XP is done — THE SOLO LANE pays a streak day's first `so.max` solo runs (every solo game counts
   //  toward them), a room match stops at THE DAILY CEILING. Not a fault of the run: it still counts for the board + the streak)
   const capped = !(w.xp > 0) && (!!w.cap || !!(w.so && w.so.n > w.so.max));
   const parts = [`FLOOR ${num(w.floor)}`, `+${num(w.xp)} XP${capped ? ' · DAILY CAP' : ''}`];
-  if (w.best) parts.push('NEW BEST');
+  if (best == null ? w.best : best > 0 && Number(w.floor) > best) parts.push('NEW BEST');
   if (w.cards && w.cards.length) parts.push(w.cards.length === 1 ? '1 CARD' : `${w.cards.length} CARDS`);
   return `WOULD COUNT · ${parts.join(' · ')}`;
 }
@@ -94,7 +97,7 @@ function matchScene(el, game, state) {
     const k = Q.matchKey(code, game.matchId);
     const show = o => {
       if (!o || !el.isConnected) return;
-      if (o.would) { globalThis.__hiWould = game.matchId; overBar(); would.textContent = wouldLine(o.would); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }   // (S5: THE SWITCH said WOULD COUNT — the share card asks no link)
+      if (o.would) { globalThis.__hiWould = game.matchId; overBar(); would.textContent = wouldLine(o.would, cleanBest(ls.get(SRV_BEST_KEY))); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }   // (S5: THE SWITCH said WOULD COUNT — the share card asks no link · REVIEW FIX B: NEW BEST only over this phone's YOUR BEST)
       const pb = (o.pbs || []).find(x => x.b === BOARD);
       // (REVIEW FIX A — the owner's call: a COUNTED match raises YOUR BEST, as the server's record does — NEW BEST only of a best beaten)
       if (pb && !el.querySelector('.hi-fin-best')) { ls.set(SRV_BEST_KEY, floorOf(pb.v)); const beat = pb.prev != null && floorOf(pb.prev) > 0; body.append(h(`div.hi-ec-best.hi-fin-best${beat ? '.is-new' : ''}`, beat ? `NEW BEST · WAS ${num(floorOf(pb.prev))}` : `YOUR BEST · ${num(floorOf(pb.v))}`)); }
@@ -124,7 +127,8 @@ export function finalScene(el, game, state) {
   setTimeout(overBar, 0);   // (once the frame stands: YOUR TABLE sits right under the personal numbers — nothing between them)
   // YOUR BEST as the SERVER last told this phone (REVIEW FIX A — the owner's call: a COUNTED run raises it, a run that never counted
   //  never does — the test page's best, an unproven run, counting OFF): the server's answer below puts it right (NEW BEST from its record)
-  EC.best(cleanBest(ls.get(SRV_BEST_KEY)), false);
+  const shownBest = cleanBest(ls.get(SRV_BEST_KEY));
+  EC.best(shownBest, false);
   if (!code) return;
   let tabled = false;
   const table = () => { if (!tabled && el.isConnected) { tabled = true; yourTable(el); } };
@@ -136,7 +140,7 @@ export function finalScene(el, game, state) {
       if (!o || !el.isConnected) return;
       table();
       // THE SWITCH, OFF: the server judged the run, awarded nothing, and says what it WOULD have
-      if (o.would) { globalThis.__hiWould = game.matchId; overBar(); would.textContent = wouldLine(o.would); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }   // (S5: THE SWITCH said WOULD COUNT — the share card asks no link)
+      if (o.would) { globalThis.__hiWould = game.matchId; overBar(); would.textContent = wouldLine(o.would, shownBest); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }   // (S5: THE SWITCH said WOULD COUNT — the share card asks no link)
       // counting ON: NEW BEST / YOUR BEST from the server's own record of this match
       const pb = (o.pbs || []).find(x => x.b === BOARD), cur = (o.bests || {})[BOARD];
       if (pb) {

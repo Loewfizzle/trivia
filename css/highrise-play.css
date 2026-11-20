@@ -59,7 +59,15 @@
 /* (S4B — THE END = JAYWALK'S STANDARD: the scene is DIMMED behind the card — JAYWALK's own veil, number for number; by day its top is
    darker: the header + the cause stand over a bright sky) */
 .hi-stage.is-ended .hi-shade { background: linear-gradient(rgba(7, 6, 11, 0.5) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%); }
-.hi-stage.is-ended[data-look='day'] .hi-shade { background: linear-gradient(rgba(7, 6, 11, 0.84) 0, rgba(7, 6, 11, 0.76) 16%, rgba(7, 6, 11, 0.9) 32%, rgba(7, 6, 11, 0.96) 100%); }
+/* REVIEW FIX B — THE DAY END SCREEN (the owner: "that's perfect" — Downloads/NEON/highrise-day-end-screen.png, the RIGHT side): a day run's
+   end keeps its dark style (neon only glows on dark), but the day sky + YOUR tower show through — softly blurred, under a DARK TINT that is
+   darker at the top (the header, the cause, the floor + the stat lines: every word ≥ 4.5 : 1 — --text-dim's line over a WHITE sky at
+   0.88 — measured: tests/integration/highrise-play.mjs --end) and the foot (the buttons), lighter in the middle (60–74 %: where the tower stands). Never a solid black. Night: unchanged.
+   The scene = ONE still (stage.js#endStill — the canvas shrunk to a quarter, softened, shown stretched: soft, frozen, NO filter), faded in once. */
+.hi-stage.is-ended[data-look='day'] .hi-shade { background: linear-gradient(rgba(7, 6, 11, 0.88) 0, rgba(7, 6, 11, 0.88) 46%, rgba(7, 6, 11, 0.58) 60%, rgba(7, 6, 11, 0.58) 74%, rgba(7, 6, 11, 0.84) 88%, rgba(7, 6, 11, 0.9) 100%); }
+.hi-endbg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
+.hi-stage.is-ended.has-still[data-look='day'] .hi-endbg { opacity: 1; }
+@media (prefers-reduced-transparency: reduce) { .hi-stage.is-ended[data-look='day'] .hi-shade { background: rgba(7, 6, 11, 0.86); } }
 
 /* THE WELCOME = "A · THE SIGN" (S4A FIX's add-on — the owner's pick, Nov 19): NO BOX — full-bleed. The sign BIG in the sky (white faces;
    HIGH a pink neon edge + glow, RISE a blue one), one line under it; TAP TO START big in the soft dark fade at the foot. The tower,
@@ -222,6 +230,7 @@
 .hi-stage:not(.is-ended) > .hi-final { background: linear-gradient(rgba(7, 6, 11, 0.5) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%); }
 .hi-stage[data-look='day']:not(.is-ended) > .hi-final { background: linear-gradient(rgba(7, 6, 11, 0.84) 0, rgba(7, 6, 11, 0.76) 16%, rgba(7, 6, 11, 0.9) 32%, rgba(7, 6, 11, 0.96) 100%); }
 .hi-final > .final { flex: 1 1 auto; min-height: 0; background: none; --fin-bg: rgba(7, 6, 11, 0.96); }
+.hi-stage[data-look='day'].is-ended .hi-final > .final { --fin-bg: rgba(7, 6, 11, 0.5); }   /* (REVIEW FIX B: by day the foot's backing lets the tinted scene through too) */
 .hi-final .final.is-solo .burst, .hi-final .final.is-solo .winner { display: none; }
 /* NO PINK FLASH (S4A FIX — the owner's iPhone: "a pink flash when the round ends … at the final screen"): the console CROWNS its podium
    frame 2.5 s after it stands — its ::before washes the game's accent over the WHOLE screen for 0.6 s (css/components.css
@@ -232,7 +241,9 @@
 .hi-fin { display: grid; justify-items: center; gap: 10px; padding: 6px 12px 4px; text-align: center; }   /* (JAYWALK's .jw-fin) */
 /* THE SWITCH's line (counting OFF until go-live): what the server WOULD have awarded — small, plain, the server's own words */
 /* (ONE small line just over the PLAY AGAIN bar — never among the personal numbers; it goes away at go-live) */
-.hi-fin-would { min-height: 16px; margin: 0 0 8px; text-align: center; font: 700 clamp(10px, 2.9vw, 12px)/1.3 var(--font-ui); letter-spacing: 0.08em; white-space: nowrap; color: #7dffb0; text-shadow: 0 1px 0 #0a0716; }
+/* (REVIEW FIX B: it ran off the right edge at 390 × 844 — "… NEW BEST · " cut off: it WRAPS now, balanced over two lines inside the
+   screen's 16 px gutters — never cut off) */
+.hi-fin-would { min-height: 16px; margin: 0 0 8px; padding: 0 16px; box-sizing: border-box; max-width: 100%; text-align: center; font: 700 clamp(10px, 2.9vw, 12px)/1.35 var(--font-ui); letter-spacing: 0.08em; white-space: normal; text-wrap: balance; overflow-wrap: anywhere; color: #7dffb0; text-shadow: 0 1px 0 #0a0716; }
 .hi-fin-would.is-off { color: #d9d4f2; }
 .hi-fin-would:empty { min-height: 0; }
 /* YOUR TABLE (JAYWALK's grid): the slim cards span the screen's 16 px gutters, centred; the rank + floor columns ONE width */

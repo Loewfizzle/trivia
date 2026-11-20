@@ -782,9 +782,11 @@ async function endLook() {
     ['newbest', '?seed=end1', 57, 'MISSED THE STACK', async pg => { await climb(pg, 63, 'i => (i % 7 === 6 ? 2 : 0)'); await tapNow(pg); }],
     ['made', '?seed=fly2&mode=match', 0, 'MADE IT TO THE MOTHERSHIP', async pg => { await climb(pg, 200); }],
   ];
-  for (const lk of (process.env.FLY_LOOKS || 'night,day').split(',')) {
+  // (REVIEW FIX B: `END_SIZES=390x844,375x667` — the short phone too; the default stays the one size)
+  const SIZES = (process.env.END_SIZES || '390x844').split(',').map(z => z.split('x').map(Number));
+  for (const [VW, VH] of SIZES) for (const lk of (process.env.FLY_LOOKS || 'night,day').split(',')) {
     for (const [name, q, best, words, play] of CASES) {
-      const t = await open(390, 844, 3, `${q}&look=${lk}`, best ? `try { localStorage.setItem('hi:play:best', '${best}'); } catch {}` : null);
+      const t = await open(VW, VH, 3, `${q}&look=${lk}`, best ? `try { localStorage.setItem('hi:play:best', '${best}'); } catch {}` : null);
       await ready(t.p);
       await play(t.p);
       const shown = await waitFor(t.p, 'window.__hiPlay.state().shown', 15000);
@@ -800,7 +802,34 @@ async function endLook() {
       ok(inOrder && inside && !e.strip && !e.tag && e.parts[5].b <= e.check.y - 8 && e.check.b <= e.bar.y + 1 && /NOTHING COUNTS/.test(e.note), `${lk} · ${name}: in order, inside the 390, no strip / tag; the card ends at ${e.parts[5].b.toFixed(0)}, REPLAY = LIVE just over the PLAY AGAIN bar (${e.bar.y.toFixed(0)}), the note under it`);
       if (name === 'newbest') ok(e.best === 'NEW BEST · WAS 57', `${lk}: a floor past YOUR BEST = "${e.best}"`);
       if (name === 'cap') ok(Number(e.floor) > 60 && Number(e.floor) < 200, `${lk}: the 6:00 cap ended a real run on floor ${e.floor} (never the finish)`);
-      await shot(t.p, `page-${lk}-390x844-${name}.png`);
+      // REVIEW FIX B — THE DAY END SCREEN: by day the scene shows through as ONE soft still (no filter) — by night none; every stat line
+      // still reads ≥ 4.5 : 1 against the brightest of its own ground (the tinted still in its box — the worst of it)
+      await waitFor(t.p, "document.querySelector('.hi-stage').classList.contains('has-still') || document.querySelector('.hi-stage').dataset.look === 'night'", 3000);
+      await sleep(400);
+      const st = await t.p.evaluate(() => { const S = document.querySelector('.hi-stage'), c = document.querySelector('.hi-endbg'); return { still: S.classList.contains('has-still'), op: getComputedStyle(c).opacity, w: c.width, sw: S.clientWidth, filter: [...document.querySelectorAll('.hi-canvas, .hi-endbg, .hi-shade')].map(x => getComputedStyle(x).filter).filter(f => f && f !== 'none') }; });
+      if (lk === 'day') ok(st.still && st.op === '1' && st.w === Math.round(st.sw / 4) && !st.filter.length, `${lk} · ${name}: the day scene shows through — ONE soft still ${st.w} px wide (a quarter of ${st.sw}), opacity ${st.op}, no CSS filter`);
+      else ok(!st.still && st.op === '0', `${lk} · ${name}: by night no still (today's veil)`);
+      const lines = await t.p.evaluate(() => ['.hi-ec-fl', '.hi-ec-best', '.hi-ec-line'].map(sel => { const el = document.querySelector(sel), r = el.getBoundingClientRect(), cs = getComputedStyle(el); return { sel, x: Math.max(0, r.left), y: r.top, w: Math.min(innerWidth, r.right) - Math.max(0, r.left), h: r.height, col: cs.color }; }));
+      const worst = [];
+      // (the GROUND alone: the card's words hidden for the measure — no neighbour's glow counted — each line's own box sampled, then shown again)
+      await t.p.evaluate(() => { const st = document.createElement('style'); st.id = 'hi-measure'; st.textContent = '.hi-end, .hi-check, .hi-again, .hi-note, .hi-snd { visibility: hidden !important; }'; document.head.append(st); });
+      await sleep(80);
+      for (const L of lines) {
+        const bands = [await t.p.screenshot({ encoding: 'base64', clip: { x: L.x, y: L.y, width: L.w, height: L.h } })];
+        const r = await t.p.evaluate(async (bands, col) => {
+          const lum = (r, g, b) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+          const ls = [];
+          for (const b64 of bands) { const im = new Image(); im.src = `data:image/png;base64,${b64}`; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; for (let i = 0; i < d.length; i += 4) ls.push(lum(d[i], d[i + 1], d[i + 2])); }
+          ls.sort((a, b) => a - b);
+          const bg = ls[Math.floor(ls.length * 0.95)], m = col.match(/\d+/g).map(Number), fg = lum(m[0], m[1], m[2]);
+          return (fg + 0.05) / (bg + 0.05);
+        }, bands, L.col);
+        worst.push(`${L.sel} ${r.toFixed(1)}`);
+        if (r < 4.5) worst.push('LOW');
+      }
+      await t.p.evaluate(() => document.getElementById('hi-measure').remove());
+      ok(!worst.includes('LOW'), `${VW}x${VH} ${lk} · ${name}: every stat line reads ≥ 4.5 : 1 on its own ground (the brightest 5 % of the tinted scene in its box, the words hidden) — ${worst.join(' · ')}`);
+      await shot(t.p, `page-${lk}-${VW}x${VH}-${name}.png`);
       ok(t.errs.length === 0, `${lk} · ${name}: no page error (${t.errs.join(' | ')})`);
       await t.close();
     }

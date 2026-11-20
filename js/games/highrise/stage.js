@@ -32,6 +32,9 @@ export const newSeed = () => { const a = new Uint32Array(2); crypto.getRandomVal
 const END_HOLD_MS = 700;
 /** … THE FINISH (floor 200 in a match — `?mode=match` here): the white-gold light is seen pouring onto the top slab first */
 const MADE_HOLD_MS = 2600;
+/** REVIEW FIX B — THE DAY END SCREEN's still: taken this long after the end card (the end pose has eased — night.js POSE.end) · its width
+ *  = the screen's / this (shown stretched: the soft blur of the owner's mockup, ≈ 5 px) */
+const END_STILL_MS = 650, END_STILL_DIV = 4;
 /** … and stays this long before a tap is PLAY AGAIN (a rhythm's next tap must not wipe it unread) */
 const RETRY_MS = 600;
 /** a tap just before THE CAP is still the player's: the cap is shown this many ticks late (a touch may reach the page after its frame) */
@@ -156,6 +159,10 @@ export function createStage(app, o = {}) {
   const end = h('div.hi-end', { hidden: true }, EC.el, traceEl);
   // (the soft dark fades behind the two screens' words — the sky at the top, the foot: one layer, never a box; off while a run is live)
   const shade = h('div.hi-shade', { 'aria-hidden': 'true' });
+  // REVIEW FIX B — THE DAY END SCREEN (the owner: "that's perfect"): by day the end's dark style stays, but the day sky + YOUR tower show
+  // through it — ONE STILL of the scene, taken once the end pose has settled (night.js#snap), shrunk to a quarter of the screen's width and
+  // shown stretched: soft, frozen, no CSS filter (the game's sheet has none — the lag rules), nothing redrawn a frame. Night: none.
+  const endBg = h('canvas.hi-endbg', { 'aria-hidden': 'true', width: 1, height: 1 });
   // THE END's FOOT (S2 FIX — END-SCREEN STANDARD A, the owner): ONE big SOLID glowing PLAY AGAIN bar in HIGH RISE's accent, a rounded
   // rectangle (never a pill), on its OWN press + lift. A tap ANYWHERE after RETRY_MS is still PLAY AGAIN — and the bar keeps the same
   // wait: it comes up where the thumb was dropping slabs, and a rhythm's next tap must not wipe the card unread.
@@ -173,7 +180,7 @@ export function createStage(app, o = {}) {
   });
   // (the page installs the shared engine itself; in the console it is running long since — and the sounds are DECODED AHEAD there, never on the first drop)
   Promise.all([PAGE ? lazyImport(import('../../audio/engine.js'), '../../audio/engine.js') : null, lazyImport(import('./sfx.js'), './sfx.js')]).then(([E, S]) => { if (gone) return; if (E) E.installAudio(); S.fetchSounds(); Promise.resolve(S.decode()).catch(() => {}); snd = S; hook.sfx = S; }).catch(() => { /* silent: audio is polish */ });
-  const stage = h('div.hi-stage', { class: [LEAN ? 'is-lean' : '', ...[...LEANS].map(k => `lean-${k}`)].join(' ').trim() || null, 'data-look': lookT, 'data-sky': skyTone(lookT, 0) }, play, shade, hud, tag, ftag, start, end, check, PAGE ? soundsBtn : null, PAGE ? note : null, fps, again);
+  const stage = h('div.hi-stage', { class: [LEAN ? 'is-lean' : '', ...[...LEANS].map(k => `lean-${k}`)].join(' ').trim() || null, 'data-look': lookT, 'data-sky': skyTone(lookT, 0) }, play, endBg, shade, hud, tag, ftag, start, end, check, PAGE ? soundsBtn : null, PAGE ? note : null, fps, again);
   app.replaceChildren(stage);
 
   // ---- the view (the night look) + its quality tiers; a browser with no WebGL gets the stage + one line saying so
@@ -424,7 +431,39 @@ export function createStage(app, o = {}) {
   // skipP / skipS = the perfects + the streak the shortcut made; a cut ends that streak like any other. streakTop = the best streak PLAYED.
   let skipP = 0, skipS = 0, streakTop = 0;
   const hooks = { onPerfect() { /* (the view reads the events itself) */ }, onFall: (r, floor, dx, dz, whole) => view.fall(r, floor, dx, dz, whole) };
+  /** the still's soft blur: a box blur (radius 1, two passes) over the SMALL picture, once (≈ 100 × 210 px — under a
+   *  millisecond): shrunk alone it read DOTTED (the slabs' lit lines broke into a grid of points); stretched after this, it is smooth */
+  function soften(c, w, hh) {
+    try {
+      const im = c.getImageData(0, 0, w, hh), d = im.data, t = new Uint8ClampedArray(d.length);
+      for (let pass = 0; pass < 2; pass++) {
+        for (const [src, dst, dx, dy] of [[d, t, 1, 0], [t, d, 0, 1]]) {
+          for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4, a = (Math.max(0, y - dy) * w + Math.max(0, x - dx)) * 4, b = (Math.min(hh - 1, y + dy) * w + Math.min(w - 1, x + dx)) * 4;
+            for (let k = 0; k < 3; k++) dst[i + k] = (src[a + k] + src[i + k] + src[b + k]) / 3;
+            dst[i + 3] = 255;
+          }
+        }
+      }
+      c.putImageData(im, 0, 0);
+    } catch { /* the plain shrink */ }
+  }
+  /** the day end's still (REVIEW FIX B): END_STILL_MS after the end (the end pose eased), a day scene only — 1 / END_STILL_DIV of the width */
+  let stillN = 0;
+  function endStill() {
+    const n = ++stillN;
+    setTimeout(() => {
+      if (gone || n !== stillN || !stage.classList.contains('is-ended') || lookSeen !== 'day' || !view.snap || !stageW) return;
+      view.snap(cv => {
+        if (!cv || gone || n !== stillN) return;
+        const w = Math.max(16, Math.round(stageW / END_STILL_DIV)), hh = Math.max(16, Math.round(w * cv.height / cv.width)), c = endBg.getContext('2d');
+        if (c) { endBg.width = w; endBg.height = hh; c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(cv, 0, 0, w, hh); soften(c, w, hh); stage.classList.add('has-still'); }
+        cv.width = cv.height = 0;
+      }, Math.round(stageW));
+    }, END_STILL_MS);
+  }
   function restart(s = FIXED || newSeed()) {
+    stillN++; stage.classList.remove('has-still');
     wD = wDT = WATCH_DELAY_MS / TICK_MS; wPin = false; lateRing.fill(0); lateN = 0; wPast = 0; wAway = false;   // (REVIEW FIX A: a new run / match = the playback's own numbers afresh)
     seed = s; momDue = -1; landF = -1e9; run = createRun({ seed, mode: MODE }); liveRun = null; watchW = null; mine = null; mineT = null; pendEnd = null; wN = 0; watchMode(false); if (MH) MH.reset(); for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0); skipP = 0; skipS = 0; streakTop = 0; taps = []; t0 = null; shown = false; card = false; overAt = 0; endedAt = 0; ev.length = 0; liveN = 0; sounded = 0; hush = false; starting = false; startN++; stage.classList.remove('is-starting');
     T = createTower(run, hooks, KEEP);
@@ -609,7 +648,7 @@ export function createStage(app, o = {}) {
     EC.best(best, best > was && was > 0, was);   // (a first run's floor is YOUR BEST — NEW BEST is said of a best that was BEATEN)
     // (S4B — JAYWALK's standard: the scene is DIMMED behind the card — no dashed outline over the tower, no BEST n ↑ beside it)
     view.pose('end'); view.ghostBest(false);
-    stage.classList.add('is-ended'); tagDirty = true;
+    stage.classList.add('is-ended'); tagDirty = true; endStill();
     stage.classList.toggle('is-made', live.made);
     // THE DETERMINISM CHECK (the owner's, on a real iPhone): the recorded tap log replayed through a FRESH engine — the judge's own code
     const { used, bad, why, ...r } = replay({ seed, mode: MODE, taps });
