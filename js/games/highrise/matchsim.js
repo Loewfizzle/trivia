@@ -21,7 +21,7 @@ const rgbOf = hex => [parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3,
 
 /** startSim(hook, n) → { stop, watch(i), state } — pumps the rivals' rows into the stage ten times a second */
 export function startSim(S, n) {
-  let seed = '', list = [], key = '', memo = { sides: {}, said: {} }, followUid = '', pickUid = '', nextPick = '', watchFrom = 0, lastRows = [];
+  let seed = '', list = [], key = '', memo = { sides: {}, said: {} }, followUid = '', pickUid = '', nextPick = '', watchFrom = 0, lastRows = [], allOut = 0;
   const api = { watchOff: false };
   const meRec = { floor: 0, perfects: 0, over: false, made: false, cause: '' };
   function build() {
@@ -51,11 +51,13 @@ export function startSim(S, n) {
     if (S.watchWait && S.watchWait()) {
       const now = performance.now(), bots = rows.filter(r => !r.me), live = bots.filter(r => !r.over);
       if (!watchFrom) watchFrom = now;
-      if (!live.length || now - watchFrom > SIM_WATCH_MS) { watchFrom = 0; followUid = ''; pickUid = ''; nextPick = ''; hud.watching(''); S.unwatch(); return; }
+      // (REVIEW FIX A: the watched tower is played back late — the card waits for the playback to show the last bot's end)
+      if (live.length) allOut = 0; else if (!allOut) allOut = now;
+      if ((allOut && now - allOut > (S.watchSync ? S.watchSync().delayMs : 0) + 900) || now - watchFrom > SIM_WATCH_MS) { allOut = 0; watchFrom = 0; followUid = ''; pickUid = ''; nextPick = ''; hud.watching(''); S.unwatch(); return; }
       const f = pickUid && bots.some(r => r.uid === pickUid) ? pickUid : follow(bots, nextPick || followUid);   // (the one you follow STAYS while they climb)
       if (f && f !== followUid) { followUid = f; nextPick = ''; const p = list.find(q => q.uid === f); if (p) S.watch({ uid: p.uid, name: p.name, seed, taps: p.R.taps, done: () => p.done }); key = ''; }
-      const F = bots.find(r => r.uid === followUid);
-      hud.watching(F ? (live.length && !F.over ? `WATCHING ${F.name} · ${F.floor} · TAP FOR THE NEXT` : `${F.name}’S TOWER · ${F.floor}`) : '');
+      const F = bots.find(r => r.uid === followUid), fl = F && S.watching() === F.uid && S.watchFloor() >= 0 ? S.watchFloor() : F ? F.floor : 0;   // (REVIEW FIX A: the drawn — delayed — tower's floor)
+      hud.watching(F ? (live.length && !F.over ? `WATCHING ${F.name} · ${fl} · TAP FOR THE NEXT` : `${F.name}’S TOWER · ${fl}`) : '');
     } else if (watchFrom) { watchFrom = 0; followUid = ''; pickUid = ''; nextPick = ''; }
     // THE CALLS (rivals.js#matchCalls): a pass either way · who is out · who made it
     for (const c of matchCalls(memo, me, rows)) hud.announce(c.text, c.kind);   // (your own row is skipped there)
@@ -73,6 +75,8 @@ export function startSim(S, n) {
     pick(uid) { if (list.some(p => p.uid === uid)) { pickUid = uid; pump(); } },
     /** WATCH rival i (the look check: the page's own run must be over in a match — or `S.spectate` first) */
     watch(i) { const p = list[i]; if (p) S.watch({ uid: p.uid, name: p.name, seed, taps: p.R.taps, done: () => p.done }); },
+    /** (REVIEW FIX A — the spectate-sync test) a bot's LANDED taps as this phone has them */
+    taps: uid => { const p = list.find(q => q.uid === uid); return p ? p.R.taps.slice() : []; },
     state: () => list.map(p => ({ uid: p.uid, name: p.name, floor: p.R.run.floor, over: rivalOver(p.R), end: rivalEnd(p.R), k: p.k, of: p.all.length })),
   });
 }

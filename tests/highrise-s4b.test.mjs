@@ -144,7 +144,7 @@ test('THE MATCH on the phone (view.js): GO is a TRANSACTION never applied locall
   assert.ok(v.includes("(r.cause === 'miss' || r.cause === 'thin' || r.cause === 'slow') && since > CALL_AFTER_MS && g.phase === 'play' && !g.unproven && wroteE"), 'a call only from a player who is OUT (never the finisher / the bell), once their own end is written');
   // OUT = WATCH: the ranked list's pick · a tap's pick while they climb · the one you follow STAYS while they climb (S5) · else THE LEADER
   assert.ok(v.includes('const f = pickAny && rivals.has(pickAny) ? pickAny : follow(others, followPick || followUid);') && v.includes('S.watch({ uid: f, name: R.name, seed: mSeed, taps: R.taps, done: () => R.done });'));
-  assert.ok(v.includes("txt = `WATCHING ${F.name} · ${F.floor}${live.length > 1 || F.over ? ' · TAP FOR THE NEXT' : ''}`;"));
+  assert.ok(v.includes("txt = `WATCHING ${F.name} · ${fl}${live.length > 1 || F.over ? ' · TAP FOR THE NEXT' : ''}`;") && v.includes('S.watchFloor()'), 'the watcher line: the DRAWN (delayed) tower floor — REVIEW FIX A');
   assert.ok(v.includes("kicker: endHeader(solo ? 'solo' : 'match')") && v.includes("note: `${g.unproven ? 'NOT COUNTED' : END_WORDS[(res[r.uid] || {}).w] || 'NO TOWER'} · ${perfectsLine(r.perfects)}`"), 'the podium: HIGH RISE · MATCH; every row its floor + how the tower ended + its perfects');
 });
 
@@ -160,7 +160,8 @@ test('THE TAPES NEVER BLOCK THE PLAY (the stage + the scene): a rival under you 
   assert.ok(s.includes("if (matchOn) { const sl = run.st === 'slide' && !watchW ? 1 : 0; if (sl !== dimWas) { dimWas = sl; MH.dim(sl === 1); view.dimRivals(sl === 1); } }"));
   assert.ok(s.includes('if (matchOn && live) placeRivals();') && s.includes("const gold = live && !FROM && !matchOn && best > 0 && run.floor <= best,"), 'a match\'s right-edge column is the rivals\': no gold line, no friend\'s');
   // WATCH: the tower from THEIR landed taps; its next slab ENTERS on the clock (seen sliding) and is HELD before its fuse
-  assert.ok(s.includes('while (wN < tp.length && !isOver(run)) tap(run, tp[wN++], ev);') && s.includes('if (!isOver(run)) { const en = entryTick(run, Math.floor(FS[TAU])); if (en >= 0) stepTo(run, en, ev); }'));
+  // (REVIEW FIX A — SPECTATE IN SYNC: the taps + the entry on THE PLAYBACK TICK `P` = the match's tick − the delay; the slab still held, never stepped to its fuse)
+  assert.ok(s.includes('while (wN < tp.length && tp[wN] <= P && !isOver(run)) tap(run, tp[wN++], ev);') && s.includes('if (!isOver(run)) { const en = entryTick(run, P); if (en >= 0) stepTo(run, en, ev); }'));
   assert.ok(s.includes("else if (watchW && run.st === 'slide' && io[0] > run.s0 + 2 * run.S - 1) io[0] = run.s0 + 2 * run.S - 1;"));
   assert.ok(s.includes("if (watchW) { if (o.onWatchTap) o.onWatchTap(); else if (hook.sim && hook.sim.next) hook.sim.next(); return; }") && s.includes("if (ev.length && watchW) { T.feed(ev); view.events(ev); ev.length = 0; sounded = 0; hush = false; }"), 'a watcher\'s tap = the next player; a watched tower is drawn, never sounded');
   // the HUD: the kit's announcer; the ranked list (S5 — WATCH only): 44 pt rows; OUT = a cross + a struck name; no pill

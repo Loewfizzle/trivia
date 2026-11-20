@@ -8,7 +8,7 @@ import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { TICK_MS, TICK_HZ, MODES, MODE_IDS, SEED_MAX, TIGHT } from './tuning.js';
 import { RIVAL_TAPES } from './night.js';
-import { createRun, stepTo, tap, isOver, resultOf, endBy } from './engine.js';
+import { createRun, stepTo, tap, isOver, resultOf, endBy, slabInto } from './engine.js';
 import { replay } from './replay.js';
 import { endWords, tickOf } from './logic.js';
 import { createTower } from './tower.js';
@@ -42,6 +42,13 @@ const LATE_MS = 900;
 /** THE HITCH COUNTER (S2 FIX — THE LAG HUNT; `?fps=1` shows it): a frame that took longer than this, in a live run, after its first
  *  second — AND longer than HITCH_X × the phone's own usual frame (iOS Low Power Mode draws at 30 Hz: every frame is 33.3 ms, none a hitch) */
 const HITCH_MS = 33, HITCH_X = 1.5;
+/** REVIEW FIX A — SPECTATE IN SYNC: the watched tower is played back this late (ms) — a rival's tap reaches this phone 0.17–0.27 s after
+ *  it was made with the test page's bots (the review), ~0.25–0.5 s in a real match (the 150 ms send + the line + the 100 ms pump) */
+export const WATCH_DELAY_MS = 750;
+/** … a tap later than the delay grows it to its lateness + WATCH_MARGIN_MS, up to WATCH_DELAY_MAX_MS — eased in: the playback runs at
+ *  (1 − WATCH_SLEW) of real time until the new delay is reached (never a jump of the drawn tower) */
+export const WATCH_DELAY_MAX_MS = 2500, WATCH_MARGIN_MS = 300, WATCH_SLEW = 0.3;
+const LATE_KEEP = 12, WREC = 6;
 const clockText = ticks => { const s = Math.max(0, Math.ceil(ticks / TICK_HZ)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
 /** a button that acts on its own press + lift (never a click: iOS drops them on a page that just moved), and is never a drop */
@@ -264,6 +271,36 @@ export function createStage(app, o = {}) {
   // you = a right-edge tag in the clear column — the 3 nearest each way, merged when they would overlap, DIM while a slab slides.
   // OUT = WATCH: `watch(W)` swaps the tower on screen for a rival's — built from THEIR landed taps, never a tap assumed.
   let MH = null, matchOn = false, rivalRows = null, watchW = null, mine = null, mineT = null, wN = 0, dimWas = -1, frozen = 0, watchUi = false;
+  // (REVIEW FIX A — THE PLAYBACK: wP the tick the watched tower is drawn at · wD its delay now · wDT the delay wanted (ticks) · wSeen the
+  //  taps whose lateness is measured · wDrawn the furthest tick drawn of the slab now sliding · wPast taps that came after it · the ring
+  //  of the last lateness values · wRec the pass's frame record (tests only — null in play))
+  let wP = 0, wD = WATCH_DELAY_MS / TICK_MS, wDT = WATCH_DELAY_MS / TICK_MS, wSeen = 0, wDrawn = -1, wPast = 0, lateN = 0, wRec = null, wRecN = 0, wPin = false;
+  const lateRing = new Float64Array(LATE_KEEP), WSL = { floor: 0, axis: 'x', off: 0, x0: 0, x1: 0, z0: 0, z1: 0 }, WXY = new Float64Array(2), WXY2 = new Float64Array(2);
+  // (the ranked list in WATCH reads the watched player's row from the SAME delayed tower — a kept record, filled in place)
+  const wRow = { uid: '', name: '', hex: '', rgb: null, floor: 0, perfects: 0, over: false, end: '', silent: false, me: false, watched: true }, wList = [];
+  let wListFloor = -1;
+  function listRows(rows) {
+    if (!watchW || !rows) return rows;
+    wList.length = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      if (r.uid !== watchW.uid) { wList.push(r); continue; }
+      wRow.uid = r.uid; wRow.name = r.name; wRow.hex = r.hex; wRow.rgb = r.rgb; wRow.silent = r.silent; wRow.me = r.me; wRow.watched = r.watched;
+      wRow.floor = run.floor; wRow.perfects = run.perfects; wRow.over = isOver(run); wRow.end = isOver(run) ? r.end || 'out' : '';
+      wList.push(wRow);
+    }
+    wListFloor = run.floor;
+    return wList;
+  }
+  /** (tests only: wRec is null in play) the frame's watched slab as drawn */
+  function recWatch() {
+    const o = wRecN++ * WREC, sl = run.st === 'slide' ? slabInto(run, view.io[0], WSL) : null;
+    wRec[o] = view.io[0]; wRec[o + 1] = sl ? sl.floor : 0; wRec[o + 2] = sl ? sl.off : 0;
+    if (!sl) { wRec[o + 3] = wRec[o + 4] = wRec[o + 5] = 0; return; }
+    const cx = (sl.x0 + sl.x1) / 2, cz = (sl.z0 + sl.z1) / 2;
+    view.poseXY(cx, sl.floor - 0.5, cz, WXY); view.poseXY(sl.axis === 'x' ? cx + 1 : cx, sl.floor - 0.5, sl.axis === 'x' ? cz : cz + 1, WXY2);
+    wRec[o + 3] = WXY[0]; wRec[o + 4] = WXY[1]; wRec[o + 5] = Math.hypot((WXY2[0] - WXY[0]) * stageW, (WXY2[1] - WXY[1]) * stageH);
+  }
   // (S5 — ZERO GARBAGE IN A MATCH: the rivals' placing fills records made ONCE — the level stand-ins, the tags' items, nearest's two
   //  lists, the merged tags — nothing made at a landing but a tag's new words)
   const others = [], tagItems = [], lvPool = [], itemPool = [], NR = { above: [], below: [] }, MT = { list: [], pool: [] }, NO_TAGS = [];
@@ -279,7 +316,7 @@ export function createStage(app, o = {}) {
   function watchMode(on) {
     if (watchUi === on) return;
     watchUi = on; stage.classList.toggle('is-watch', on);
-    if (on && MH) { MH.place(0, 0); if (rivalRows) MH.altimeter(rivalRows); }
+    if (on && MH) { MH.place(0, 0); if (rivalRows) MH.altimeter(listRows(rivalRows)); }
   }
   /** the rivals round the tower ON SCREEN (yours — or the one you watch): tapes under it, tags at / over it — and (S5) THE PLACE NUMBER
    *  while you climb. Once a landing / a change. */
@@ -309,13 +346,28 @@ export function createStage(app, o = {}) {
     // THE PLACE NUMBER (S5): where YOU stand while you climb — written by the HUD only when it changes
     MH.place(watchW || isOver(run) ? 0 : placeOf(rivalRows, here, run.perfects), rivalRows.length);
   }
-  /** WATCHING: the watched player's landed taps → their tower (never a tap assumed; their end only once it is signalled) */
+  /** WATCHING: the watched player's landed taps → their tower (never a tap assumed; their end only once it is signalled).
+   *  REVIEW FIX A — SPECTATE IN SYNC (the owner: "it goes past, and then it snaps back on top and drops"): the watched tower is played
+   *  BACK on a short delay — at THE PLAYBACK TICK `wP` = the match's tick − `wD` — each landed tap applied when the playback reaches ITS
+   *  OWN tick, so the slab slides and drops exactly where they tapped (their taps reach this phone 0.2–0.5 s after they were made: drawn
+   *  on the live clock the slab slid past the tap, then jumped back). `wD` starts at WATCH_DELAY_MS; a tap that comes later than the
+   *  delay (a bad line) GROWS it — eased in by playing back slower, never a jump — and until a tap lands the slab is HELD at its sweep's
+   *  edge (never stepped to its fuse). Their end, their cuts, misses, grow-backs + falls are the engine's own, at their own ticks. */
   function feedWatch() {
-    const tp = watchW.taps;
-    while (wN < tp.length && !isOver(run)) tap(run, tp[wN++], ev);
-    if (!isOver(run) && watchW.done()) stepTo(run, endBy(run, tp.length ? tp[tp.length - 1] : 0), ev);
-    // (the next slab ENTERS on the clock — the seed's own doing: the watched tower's slab is seen sliding; never stepped to its fuse)
-    if (!isOver(run)) { const en = entryTick(run, Math.floor(FS[TAU])); if (en >= 0) stepTo(run, en, ev); }
+    const tp = watchW.taps, P = Math.floor(wP);
+    // (each tap's lateness, measured as it ARRIVES: the playback's delay is kept above the worst of the last few + a margin)
+    for (; wSeen < tp.length; wSeen++) {
+      const late = FS[TAU] - tp[wSeen];
+      lateRing[lateN++ % LATE_KEEP] = late;
+      let worst = 0; for (let i = 0; i < LATE_KEEP; i++) if (lateRing[i] > worst) worst = lateRing[i];
+      const want = Math.min(WATCH_DELAY_MAX_MS / TICK_MS, Math.max(WATCH_DELAY_MS / TICK_MS, worst + WATCH_MARGIN_MS / TICK_MS));
+      if (want > wDT && !wPin) wDT = want;
+      if (tp[wSeen] < wDrawn) wPast++;   // (it came after the playback had passed its tick: the slab was drawn past it — counted, the delay grows)
+    }
+    while (wN < tp.length && tp[wN] <= P && !isOver(run)) tap(run, tp[wN++], ev);
+    if (!isOver(run) && wN >= tp.length && watchW.done()) stepTo(run, Math.min(P, endBy(run, tp.length ? tp[tp.length - 1] : 0)), ev);
+    // (the next slab ENTERS on the playback clock — the seed's own doing: the watched tower's slab is seen sliding; never stepped to its fuse)
+    if (!isOver(run)) { const en = entryTick(run, P); if (en >= 0) stepTo(run, en, ev); }
   }
   // ---- the run: the pure engine on this tab's clock. Tick 0 = the START touch; the RULES never read the clock — the page turns it into ticks.
   let seed = '', run = null, T = null, taps = [], t0 = null, shown = false, card = false, overAt = 0, endedAt = 0;
@@ -699,8 +751,12 @@ export function createStage(app, o = {}) {
     FS[TAU] = 0;
     if (t0 != null) {
       FS[TAU] = Math.max(0, (now - t0) / TICK_MS);
-      if (watchW) feedWatch();
-      else if (!isOver(run)) {
+      if (watchW) {
+        // (THE PLAYBACK: a delay that must grow is eased in — the playback runs at (1 − WATCH_SLEW) of real time until it is there)
+        if (wD < wDT) wD = Math.min(wDT, wD + WATCH_SLEW * Math.min(250, gap) / TICK_MS);
+        wP = Math.max(0, FS[TAU] - wD);
+        feedWatch();
+      } else if (!isOver(run)) {
         const tk = Math.floor(FS[TAU]), cap = MODES[MODE].capTicks;
         if (TR) TR.lap(PH.other);
         stepTo(run, cap != null && tk >= cap && tk < cap + CAP_GRACE ? cap - 1 : tk, ev);
@@ -738,7 +794,12 @@ export function createStage(app, o = {}) {
     if (shotAt && now >= shotAt) takeShot();
     if (over && !endedAt) endedAt = now;   // (the end's own frame — whether THE FUSE ended it in this frame or a TAP did in the touch handler: the review — a miss used to bring the card at once, over the falling slab)
     if (over && !shown && now - endedAt >= (run.st === 'made' ? MADE_HOLD_MS : END_HOLD_MS)) showEnd(now);
-    io[0] = FS[TAU]; if (over) io[0] = run.end; else if (watchW && run.st === 'slide' && io[0] > run.s0 + 2 * run.S - 1) io[0] = run.s0 + 2 * run.S - 1;   // (a watched slab is HELD at its last tick: it waits for its tap / their end)
+    io[0] = watchW ? wP : FS[TAU]; if (over) io[0] = run.end; else if (watchW && run.st === 'slide' && io[0] > run.s0 + 2 * run.S - 1) io[0] = run.s0 + 2 * run.S - 1;   // (a watched slab is HELD at its sweep's last tick: it waits for its tap / their end)
+    if (watchW) {
+      if (run.st === 'slide') { if (wDrawn < run.s0) wDrawn = run.s0; if (io[0] > wDrawn) wDrawn = io[0]; } else wDrawn = -1;
+      if (wRec && wRecN < wRec.length / WREC) recWatch();
+      if (rivalRows && MH && watchUi && run.floor !== wListFloor) MH.altimeter(listRows(rivalRows));   // (the list's watched row = the delayed tower's)
+    }
     if (matchOn) { const sl = run.st === 'slide' && !watchW ? 1 : 0; if (sl !== dimWas) { dimWas = sl; MH.dim(sl === 1); view.dimRivals(sl === 1); } }   // (S4B: the rivals DIM while YOUR slab slides)
     io[2] = now;   // (S4A FIX 2 — THE FLYERS' CLOCK: the frame's own timestamp)
     if (TR) TR.lap(PH.other);
@@ -832,7 +893,7 @@ export function createStage(app, o = {}) {
     /** (REVIEW FIX A — the HUD's gap check) a call on the game's own lane, as a landing says it ('hi-call is-perfect' …) */
     say: (text, cls = 'hi-call is-perfect') => say(text, cls, 9, 1500, performance.now()), matchState: () => (MH ? { ...MH.state(), tapes: view.rivalInfo ? view.rivalInfo() : [], watching: watchW ? watchW.uid : '', on: matchOn } : null),
     /** every player's row — the rivals round the tower on screen + THE PLACE NUMBER placed again; WATCH's ranked list (S5) while it is up */
-    rivals(rows) { if (!matchOn) return; rivalRows = rows; const M = matchHud(); if (watchUi) M.altimeter(rows); tagDirty = true; },
+    rivals(rows) { if (!matchOn) return; rivalRows = rows; const M = matchHud(); if (watchUi) M.altimeter(listRows(rows)); tagDirty = true; },
     /** OUT = WATCH: the tower on screen becomes W's — { uid, seed, taps (their LANDED taps — a list that grows), done: () => their end is signalled } */
     /** a WATCHER who never played (a late joiner, a refresh after their own end): the match's seed + clock, no run of their own */
     spectate(G) {
@@ -844,14 +905,23 @@ export function createStage(app, o = {}) {
     watch(W) {
       if (!W || !shown || card) return;
       if (!mine) { mine = run; mineT = T; }
-      watchW = W; wN = 0;
+      watchW = W; wN = 0; wSeen = W.taps.length; wD = wDT; wP = Math.max(0, FS[TAU] - wD); wDrawn = -1;   // (the taps already here came earlier: their lateness is not known)
       run = createRun({ seed: W.seed, mode: MODE }); T = createTower(run, hooks, KEEP);
       ev.length = 0; sounded = 0; momDue = -1;
+      // (REVIEW FIX A — a CLEAN START: the new player's tower is caught up to the playback tick and fed to the tower BEFORE the view
+      //  adopts it — the catch-up's falling pieces, rings + the last landing's bump are cleared by the adopt: no half-drawn slab)
+      feedWatch(); T.feed(ev); ev.length = 0;
       view.adopt(run, T); view.pose('play'); view.flyReset();
-      feedWatch(); hush = true;
+      hush = true; wListFloor = -1;
       hudFloor = -1; tagDirty = true; last = 0;
     },
     watching: () => (watchW ? watchW.uid : ''),
+    /** (REVIEW FIX A) the watched tower's floor as it is DRAWN (the delayed playback) — the watcher's line + the list read it (-1 = none) */
+    watchFloor: () => (watchW ? run.floor : -1),
+    /** (the spectate-sync test) the playback's numbers · `ms` = set the delay (0 + `pin` = the old live clock, kept: the test's own control) */
+    watchSync(ms, pin = false) { if (ms != null) { wD = wDT = Math.max(0, ms) / TICK_MS; lateRing.fill(0); wPin = !!pin; } return { delayMs: wD * TICK_MS, wantMs: wDT * TICK_MS, past: wPast, p: wP, tick: FS[TAU] }; },
+    /** (the spectate-sync test) record every watched frame: [the drawn tick, the sliding slab's floor (0 = none), its offset, its centre's screen x + y (0 … 1), px per unit along its axis] */
+    watchRec(on) { if (on) { wRec = new Float64Array(WREC * 20000); wRecN = 0; return null; } const out = []; for (let i = 0; i < wRecN; i++) out.push(Array.from(wRec.subarray(i * WREC, i * WREC + WREC))); wRec = null; return out; },
     /** (S5) the test page's end is waiting behind WATCH */
     watchWait: () => !!pendEnd,
     /** (S5 — the test page's bot room) WATCH is over: YOUR tower back on screen, then the page's own end card */

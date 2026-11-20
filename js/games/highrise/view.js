@@ -298,8 +298,9 @@ export function createView() {
     let txt = '';
     if (S.watching() || !mine(g) || since > 900) {
       const F = others.find(x => x.uid === followUid);
-      if (F && live.length) txt = `WATCHING ${F.name} · ${F.floor}${live.length > 1 || F.over ? ' · TAP FOR THE NEXT' : ''}`;
-      else if (F) txt = `${F.name}’S TOWER · ${F.floor}`;
+      const fl = F && S.watching() === F.uid && S.watchFloor() >= 0 ? S.watchFloor() : F ? F.floor : 0;   // (REVIEW FIX A: the floor of the tower as it is DRAWN — the delayed playback)
+      if (F && live.length) txt = `WATCHING ${F.name} · ${fl}${live.length > 1 || F.over ? ' · TAP FOR THE NEXT' : ''}`;
+      else if (F) txt = `${F.name}’S TOWER · ${fl}`;
       if (!live.length) {
         // (everyone seen is out: the room waits for an end not yet signalled — a dropped signal gets its time)
         const wait = Object.keys(g.participants || {}).filter(u => !(runs && runs[u] && runs[u].e) && !(u === uid && wroteE));

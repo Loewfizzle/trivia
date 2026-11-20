@@ -61,7 +61,7 @@ test('ZERO GARBAGE IN A MATCH — nearest · mergeTags · matchCalls with kept s
 
 test('THE ALTIMETER IS GONE from live play — THE PLACE NUMBER in its corner, written only at a change; the ranked list in WATCH only; THE ANNOUNCER: big, 1.5 s, never a burst', () => {
   const hud = read(`${HI}matchhud.js`), s = read(`${HI}stage.js`), css = read('css/highrise-play.css'), v = read(`${HI}view.js`), sim = read(`${HI}matchsim.js`);
-  assert.ok(s.includes('rivals(rows) { if (!matchOn) return; rivalRows = rows; const M = matchHud(); if (watchUi) M.altimeter(rows); tagDirty = true; },'), 'the list is built only while you watch');
+  assert.ok(s.includes('rivals(rows) { if (!matchOn) return; rivalRows = rows; const M = matchHud(); if (watchUi) M.altimeter(listRows(rows)); tagDirty = true; },'), 'the list is built only while you watch (REVIEW FIX A: the watched row from the delayed tower)');
   assert.ok(s.includes('MH.place(watchW || isOver(run) ? 0 : placeOf(rivalRows, here, run.perfects), rivalRows.length);'), 'THE PLACE NUMBER: while you climb, once a landing / a change');
   assert.ok(hud.includes('if (rank === placeV && n === placeT) return;'), 'written only when YOUR place changes');
   assert.ok(hud.includes("placeFx.className = `hi-place-fx ${rank < was ? 'is-up' : 'is-down'}`;"), 'the pulse: up cyan, down soft pink');
