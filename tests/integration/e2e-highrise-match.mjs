@@ -20,6 +20,9 @@ const { highriseMatch } = await import('../../api/_lib/highrise.js');
 const { matchStart, firstGo, GO_LEAD_MS, gameStandings, floorOf } = await import('../../js/games/highrise/logic.js');
 const { tapsFromChunks } = await import('../../js/games/highrise/proof.js');
 const { goUids, stampOf, GO_WINDOW_MS } = await import('../../js/core/proof.js');   // (THE PROOF PASS: the tree's stamp + its players' nodes)
+// THE PROOF PASS — THE SWITCH-OVER: `OLD_RULES=1` = this run is on the rules as published BEFORE the pass (kit/swap-rules.mjs loads them into
+// the emulator): the stamp is refused (silently), every GO lands the old way, a chunk after the match ended is refused quietly — the fallback
+const OLD_RULES = process.env.OLD_RULES === '1';
 const { judgeRun } = await import('../../js/games/highrise/replay.js');
 const { callBonus } = await import('../../js/core/playlist.js');
 
@@ -89,7 +92,8 @@ try {
   const SV = matchStart(code, m, nodes0), sts = await all(N, p => state(p));
   const goers = goUids(nodes0), T0S = stampOf(nodes0);
   ok(goers.length === N, `every phone wrote its own GO (${goers.map(u => nodes0[u].go - firstGo(nodes0)).join(' / ')} ms after the first)`);
-  ok(T0S > 0 && T0S <= firstGo(nodes0) && goers.every(u => nodes0[u].go <= T0S + GO_WINDOW_MS), `THE PROOF PASS — THE STAMP: the tree's first write (t0, ${firstGo(nodes0) - T0S} ms before THE FIRST GO); every GO within ${GO_WINDOW_MS} ms of it`);
+  if (OLD_RULES) ok(T0S === 0 && goers.length === N, 'THE SWITCH-OVER (the OLD rules): the stamp was refused, silently — every GO landed the old way');
+  else ok(T0S > 0 && T0S <= firstGo(nodes0) && goers.every(u => nodes0[u].go <= T0S + GO_WINDOW_MS), `THE PROOF PASS — THE STAMP: the tree's first write (t0, ${firstGo(nodes0) - T0S} ms before THE FIRST GO); every GO within ${GO_WINDOW_MS} ms of it`);
   ok(game.mode === 'match' && game.seed === SV.seed && game.playAt === SV.playAt && game.playAt === firstGo(nodes0) + GO_LEAD_MS, 'THE FIRST GO picked the seed + tick 0 (the step count → play wrote them)');
   ok(sts.every(s => s.isMatch && s.seed === SV.seed && s.playAt === SV.playAt && s.haveGo && s.stage.seed === SV.seed && s.stage.mode === 'match'), `the SAME seed + the SAME clock on all ${N} phones = the server's own derivation (${SV.seed})`);
   ok(await until(async () => (await all(N, p => state(p))).every(s => s.proven), 5000), '… each phone PROVEN');

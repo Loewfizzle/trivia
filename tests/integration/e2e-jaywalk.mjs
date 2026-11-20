@@ -58,7 +58,12 @@ async function phone(slot, dpr = Number(process.env.E2E_DPR) || 2, name = 'HOPPE
   const open = async () => { await p.goto(guardUrl(`${BASE}/?emu&slot=${slot}&city=2&when=2026-11-10T20:30`, 'e2e-jaywalk.mjs'), { waitUntil: 'domcontentloaded' }); if (!await waitFor(UP, 60000)) throw new Error('the city never came up'); };
   await open();
   const ev = js => p.evaluate(js);
-  const tap = async sel => { const r = await p.evaluate(q => { const el = document.querySelector(q); if (!el) return null; const x = el.getBoundingClientRect(); return [x.left + x.width / 2, x.top + x.height / 2, x.width, x.height]; }, sel); if (!r) return null; await p.touchscreen.tap(r[0], r[1]); return r; };
+  // (THE PROOF PASS — the inbox's "e2e-jaywalk red at PLAY NOW", Nov 20 ~4:45 am: the tap read its target's place while its SHEET WAS STILL
+  //  SLIDING IN (the card is `.is-in` from the first frame of its entry) — the finger landed where the button had been, nothing started,
+  //  25 s later the check failed; on a slow moment only. THE WAITS RULE: wait for the actual condition — the target has stopped moving
+  //  (the same box three samples running) — then tap it.)
+  const boxOf = sel => p.evaluate(q => { const el = document.querySelector(q); if (!el) return null; const x = el.getBoundingClientRect(); return [x.left + x.width / 2, x.top + x.height / 2, x.width, x.height]; }, sel);
+  const tap = async sel => { let r = await boxOf(sel), same = 0; for (let i = 0; r && same < 3 && i < 60; i++) { await sleep(50); const q = await boxOf(sel); if (!q) { r = null; break; } same = Math.abs(q[0] - r[0]) + Math.abs(q[1] - r[1]) < 0.5 ? same + 1 : 0; r = q; } if (!r) return null; await p.touchscreen.tap(r[0], r[1]); return r; };
   const shot = async name => { if (OUT) await p.screenshot({ path: join(OUT, name) }); };
   return { p, ev, waitFor, open, tap, shot, errs, uploads: () => ups, close: () => ctx.close() };
 }

@@ -20,6 +20,9 @@ const { installLag, setLag } = await import('./kit/lag.mjs');
 const { memAt, memLine, JW_FINAL_BUDGET_MB } = await import('./kit/jaywalk-mem.mjs');
 const { matchStart } = await import('../../js/games/jaywalk/logic.js');
 const { goUids, stampOf, GO_WINDOW_MS } = await import('../../js/core/proof.js');   // (THE PROOF PASS: the tree's stamp + its players' nodes)
+// THE PROOF PASS — THE SWITCH-OVER: `OLD_RULES=1` = this run is on the rules as published BEFORE the pass (kit/swap-rules.mjs loads them into
+// the emulator): the stamp is refused (silently), every GO lands the old way, a chunk after the match ended is refused quietly — the fallback
+const OLD_RULES = process.env.OLD_RULES === '1';
 const jaywalkMatchOf = await import('../../api/_lib/jaywalk.js').then(J => (code, matchId, uids, nodes) => J.jaywalkMatch({ code, matchId, uids, nodes: nodes || {} }).game);
 // (H6A — step 8c: a scripted finished match whose owner is still in at THE MOTHERSHIP's tick — the pure engine, in Node)
 const JW = { ...(await import('../../js/games/jaywalk/logic.js')), ...(await import('../../js/games/jaywalk/course.js')), ...(await import('../../js/games/jaywalk/engine.js')), ...(await import('../../js/games/jaywalk/bot.js')), packLog: (await import('../../js/games/jaywalk/replay.js')).packLog, T: await import('../../js/games/jaywalk/tuning.js') };
@@ -139,7 +142,7 @@ try {
   for (let i = 0; i < N; i++) await pages[i].setViewport({ ...H.VIEW, deviceScaleFactor: 2 });   // (the shots at @2)
   // H5B — THE REFUSED CHAT WRITE ("set chats/*/m/*" ×2 on game:jaywalk/final): every write the rules refuse on any phone, from here on
   const refused = [];
-  pages.slice(0, N).forEach((p, i) => p.on('console', m => { const t = m.text(); if (/\[rules\] refused|permission_denied/i.test(t)) refused.push(`${NAMES[i]}: ${t.slice(0, 120)}`); }));
+  pages.slice(0, N).forEach((p, i) => p.on('console', m => { const t = m.text(); if (/\[rules\] refused|permission_denied/i.test(t) && !(OLD_RULES && /\/t0 failed/.test(t))) refused.push(`${NAMES[i]}: ${t.slice(0, 120)}`); }));   // (THE SWITCH-OVER: on the OLD rules the stamp's refusal is EXPECTED and silent — the SDK's own warning line is not this suite's alarm)
   // ---- 1. A PLAIN HOST (THE GO-LIVE PASS — JAYWALK is playable for everyone): the room's game list offers it, no TEST mark, no owner set-up
   const pids = await Promise.all(uids.slice(0, N).map(pidFor));
   ok(pids.every(Boolean), 'every phone has its profile');
@@ -185,7 +188,8 @@ try {
   const first = firstGo(nodes0);
   const goers = goUids(nodes0), T0S = stampOf(nodes0);
   ok(goers.length === N && first > 0, `every phone wrote its own GO (${goers.length} proof nodes)`);
-  ok(T0S > 0 && T0S <= first && goers.every(u => nodes0[u].go <= T0S + GO_WINDOW_MS), `THE PROOF PASS — THE STAMP: the tree's first write (t0, ${first - T0S} ms before THE FIRST GO); every GO within ${GO_WINDOW_MS} ms of it`);
+  if (OLD_RULES) ok(T0S === 0 && goers.length === N, 'THE SWITCH-OVER (the OLD rules): the stamp was refused, silently — every GO landed the old way');
+  else ok(T0S > 0 && T0S <= first && goers.every(u => nodes0[u].go <= T0S + GO_WINDOW_MS), `THE PROOF PASS — THE STAMP: the tree's first write (t0, ${first - T0S} ms before THE FIRST GO); every GO within ${GO_WINDOW_MS} ms of it`);
   ok(game.g0 === first && game.playAt === first + GO_LEAD_MS && game.seed === seedOf(code, m, first), `THE FIRST GO (${first}) picked the course (${game.seed}) + tick 0 = that time + ${GO_LEAD_MS} ms`);
   const sts = await all(N, p => state(p));
   ok(sts.every(s => s.seed === game.seed && s.go === game.playAt && s.proven && s.isMatch), 'the SAME course + the SAME clock on all three phones, each proven');
@@ -546,10 +550,13 @@ try {
     // (On the rules as published BEFORE this pass they are refused → the writer's LATE_TRIES, a quiet 'late-proof' count:
     //  tests/proof-writer.test.mjs + rules.test.mjs "THE SWITCH-OVER".)
     const landed = bobNode && bobNode.c ? Object.keys(bobNode.c).length : 0, w3 = await state(pages[1]);
-    ok(!!offHops && bobAlarm.length === 0 && bq.rows.length === 0 && landed > 0 && w3.acked === w3.hops,
+    if (OLD_RULES) ok(!!offHops && bobAlarm.length === 0 && bq.rows.length === 0 && bq.late > 0 && bobQuiet.length > 0 && landed === 0,
+      `A LATE PROOF CHUNK on the OLD rules (CITY I's behaviour, kept): BOB hopped ${offHops} offline, the host ended the match → his late writes refused = QUIET (${bobQuiet.length} quiet line(s), 'late-proof' counted ${bq.late}), 0 RULES REFUSED (alarm ${bobAlarm.length}, rows ${bq.rows.length}), none landed (${landed})`);
+    else ok(!!offHops && bobAlarm.length === 0 && bq.rows.length === 0 && landed > 0 && w3.acked === w3.hops,
       `A LATE PROOF CHUNK (THE PROOF PASS): BOB hopped ${offHops} offline, the host ended the match without them → back online, his queued hops LAND (${landed} chunk(s), ${w3.acked} of ${w3.hops} hops acknowledged) — 0 RULES REFUSED (alarm ${bobAlarm.length}, rows ${bq.rows.length}), ${bobQuiet.length} quiet line(s)`);
     const srv3 = jaywalkMatchOf(code, m3, uids.slice(0, N), await dbGet(`rooms/${code}/jw/${m3}`));
-    ok(!!srv3 && !srv3.results[uids[1]].bad && srv3.results[uids[1]].l >= (bobRes ? bobRes.l : 0) && (!bobRes || !bobRes.bad),
+    if (OLD_RULES) ok(!bobRes || (bobRes.l === 0 && !bobRes.bad), `…the proof still verifies on the OLD rules: no chunk landed after the end — the podium counts the run to its last LANDED hop (${bobRes ? bobRes.l : 0} lanes — no crash, no NOT COUNTED)`);
+    else ok(!!srv3 && !srv3.results[uids[1]].bad && srv3.results[uids[1]].l >= (bobRes ? bobRes.l : 0) && (!bobRes || !bobRes.bad),
       `…the proof still verifies: the SERVER's replay of BOB's node counts his whole log (${srv3 ? srv3.results[uids[1]].l : '—'} lanes; the podium, taken at the host's END, showed ${bobRes ? bobRes.l : 0}) — no crash, no NOT COUNTED`);
     refused.splice(r0);   // (the SDK's own "permission_denied" warnings for those expected refusals — not this suite's alarm)
     await G(pages[1], 'window.__jwGame.bot(false)');
