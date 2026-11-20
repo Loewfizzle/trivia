@@ -170,6 +170,8 @@
 /* a short phone (375 × 667): everything a size down — the end's card must still end above the top slab */
 @media (max-height: 740px) {
   .hi-num { font-size: 66px; } .hi-call { margin-top: 8px; font-size: 22px; } .hi-call.is-perfect { font-size: 18px; }
+  /* (REVIEW FIX A: the floor is a size down here — so is THE PLACE NUMBER, ≥ 16 px clear of the band line + the callout at 375 × 667) */
+  .hi-stage .hi-place { top: calc(env(safe-area-inset-top, 0px) + 56px); } .hi-stage .hi-place b { font-size: 40px; } .hi-stage .hi-place i { font-size: 19px; } .hi-stage .hi-place span { margin-top: 4px; font-size: 15px; }
   .hi-sign { font-size: calc(var(--hi-w) * 0.2); } .hi-start-top { top: calc(env(safe-area-inset-top, 0px) + 11%); } .hi-start-sub { margin-top: 13px; font-size: 13px; } .hi-start-go { font-size: 23px; } .hi-start-foot { bottom: calc(env(safe-area-inset-bottom, 0px) + 50px); }
   .hi-ec { gap: 7px; } .hi-ec-cause { font-size: min(29px, calc(var(--hi-w) * 0.078)); } .hi-ec-n { margin-top: 2px; font-size: 78px; } .hi-ec-fl { font-size: 14px; }
   .hi-ec-best { margin-top: 2px; font-size: 15px; } .hi-ec-best.is-new { font-size: 20px; } .hi-again { min-height: 58px; } .hi-check { bottom: calc(env(safe-area-inset-bottom, 0px) + 98px); }

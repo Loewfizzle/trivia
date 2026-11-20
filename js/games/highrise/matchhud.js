@@ -30,6 +30,11 @@ export const LIST_MAX = 5;
 /** THE PLACE NUMBER's pulse (ms) */
 export const PULSE_MS = 650;
 
+// (the pulse's keyframes made ONCE — REVIEW FIX A: with ties by perfects the place moves at more landings; a pulse makes no lists)
+const FX_CALM = [{ opacity: 0 }, { opacity: 1, offset: 0.2 }, { opacity: 0 }];
+const FX_KEYS = [{ opacity: 0, transform: 'scale(1)' }, { opacity: 1, transform: 'scale(1.1)', offset: 0.22 }, { opacity: 0, transform: 'scale(1.16)' }];
+const IN_KEYS = [{ transform: 'scale(1)' }, { transform: 'scale(1.1)', offset: 0.22 }, { transform: 'scale(1)' }];
+const PULSE_OPT = { duration: PULSE_MS, easing: 'ease-out' };
 /** createMatchHud(stage, hud) → the match's HUD (its nodes are added to the stage once; `hud` = the stage's own HUD column: the lane sits under its call line) */
 export function createMatchHud(stage, hud) {
   const alt = h('ol.hi-alt', { 'aria-label': 'Every player, the highest first — tap a name to watch them' });
@@ -123,8 +128,8 @@ export function createMatchHud(stage, hud) {
       if (was && was !== rank && placeFx.animate) {
         placeFx.className = `hi-place-fx ${rank < was ? 'is-up' : 'is-down'}`;
         if (fxA) fxA.cancel();
-        fxA = placeFx.animate(calm ? [{ opacity: 0 }, { opacity: 1, offset: 0.2 }, { opacity: 0 }] : [{ opacity: 0, transform: 'scale(1)' }, { opacity: 1, transform: 'scale(1.1)', offset: 0.22 }, { opacity: 0, transform: 'scale(1.16)' }], { duration: PULSE_MS, easing: 'ease-out' });
-        if (!calm) { if (pulseA) pulseA.cancel(); pulseA = placeIn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.1)', offset: 0.22 }, { transform: 'scale(1)' }], { duration: PULSE_MS, easing: 'ease-out' }); }
+        fxA = placeFx.animate(calm ? FX_CALM : FX_KEYS, PULSE_OPT);
+        if (!calm) { if (pulseA) pulseA.cancel(); pulseA = placeIn.animate(IN_KEYS, PULSE_OPT); }
       }
     },
     /** THE TAGS: the merged tags [{ text, y, uids }] (rivals.js#mergeTags) + each lead's colour (`hexOf(uid)`) — written only when they change */

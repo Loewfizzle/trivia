@@ -277,7 +277,7 @@ export function createStage(app, o = {}) {
   // (REVIEW FIX A — THE PLAYBACK: wP the tick the watched tower is drawn at · wD its delay now · wDT the delay wanted (ticks) · wSeen the
   //  taps whose lateness is measured · wDrawn the furthest tick drawn of the slab now sliding · wPast taps that came after it · the ring
   //  of the last lateness values · wRec the pass's frame record (tests only — null in play))
-  let wP = 0, wD = WATCH_DELAY_MS / TICK_MS, wDT = WATCH_DELAY_MS / TICK_MS, wSeen = 0, wDrawn = -1, wPast = 0, lateN = 0, wRec = null, wRecN = 0, wPin = false;
+  let wP = 0, wD = WATCH_DELAY_MS / TICK_MS, wDT = WATCH_DELAY_MS / TICK_MS, wSeen = 0, wDrawn = -1, wPast = 0, lateN = 0, wRec = null, wRecN = 0, wPin = false, wAway = false;
   const lateRing = new Float64Array(LATE_KEEP), WSL = { floor: 0, axis: 'x', off: 0, x0: 0, x1: 0, z0: 0, z1: 0 }, WXY = new Float64Array(2), WXY2 = new Float64Array(2);
   // (the ranked list in WATCH reads the watched player's row from the SAME delayed tower — a kept record, filled in place)
   const wRow = { uid: '', name: '', hex: '', rgb: null, floor: 0, perfects: 0, over: false, end: '', silent: false, me: false, watched: true }, wList = [];
@@ -356,15 +356,17 @@ export function createStage(app, o = {}) {
    *  on the live clock the slab slid past the tap, then jumped back). `wD` starts at WATCH_DELAY_MS; a tap that comes later than the
    *  delay (a bad line) GROWS it — eased in by playing back slower, never a jump — and until a tap lands the slab is HELD at its sweep's
    *  edge (never stepped to its fuse). Their end, their cuts, misses, grow-backs + falls are the engine's own, at their own ticks. */
-  function feedWatch() {
+  function feedWatch(measure) {
     const tp = watchW.taps, P = Math.floor(wP);
-    // (each tap's lateness, measured as it ARRIVES: the playback's delay is kept above the worst of the last few + a margin)
+    // (each tap's lateness, measured as it ARRIVES: the playback's delay is kept above the worst of the last few + a margin — and comes
+    //  back down once the line is good again. THE CLOSE's REVIEW: taps that piled up while this page was hidden / under a sheet are not
+    //  "late" — they are not measured (they pushed the delay straight to its cap, for every watch after))
+    if (!measure) wSeen = tp.length;
     for (; wSeen < tp.length; wSeen++) {
       const late = FS[TAU] - tp[wSeen];
       lateRing[lateN++ % LATE_KEEP] = late;
       let worst = 0; for (let i = 0; i < LATE_KEEP; i++) if (lateRing[i] > worst) worst = lateRing[i];
-      const want = Math.min(WATCH_DELAY_MAX_MS / TICK_MS, Math.max(WATCH_DELAY_MS / TICK_MS, worst + WATCH_MARGIN_MS / TICK_MS));
-      if (want > wDT && !wPin) wDT = want;
+      if (!wPin) wDT = Math.min(WATCH_DELAY_MAX_MS / TICK_MS, Math.max(WATCH_DELAY_MS / TICK_MS, worst + WATCH_MARGIN_MS / TICK_MS));
       if (tp[wSeen] < wDrawn) wPast++;   // (it came after the playback had passed its tick: the slab was drawn past it — counted, the delay grows)
     }
     while (wN < tp.length && tp[wN] <= P && !isOver(run)) tap(run, tp[wN++], ev);
@@ -420,6 +422,7 @@ export function createStage(app, o = {}) {
   let skipP = 0, skipS = 0, streakTop = 0;
   const hooks = { onPerfect() { /* (the view reads the events itself) */ }, onFall: (r, floor, dx, dz, whole) => view.fall(r, floor, dx, dz, whole) };
   function restart(s = FIXED || newSeed()) {
+    wD = wDT = WATCH_DELAY_MS / TICK_MS; wPin = false; lateRing.fill(0); lateN = 0; wPast = 0; wAway = false;   // (REVIEW FIX A: a new run / match = the playback's own numbers afresh)
     seed = s; momDue = -1; landF = -1e9; shotAt = 0; run = createRun({ seed, mode: MODE }); liveRun = null; watchW = null; mine = null; mineT = null; pendEnd = null; wN = 0; watchMode(false); if (MH) MH.reset(); for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0); skipP = 0; skipS = 0; streakTop = 0; taps = []; t0 = null; shown = false; card = false; overAt = 0; endedAt = 0; ev.length = 0; liveN = 0; sounded = 0; hush = false; starting = false; startN++; stage.classList.remove('is-starting');
     T = createTower(run, hooks, KEEP);
     best = Math.max(best, readBest()); tapeFloor = 0; newBest = false; bandNow = 0; notch = 0;   // (max: a phone whose storage is blocked still keeps its best for the visit)
@@ -750,15 +753,17 @@ export function createStage(app, o = {}) {
     // (a record is counted by the run's state as it OPENED — the frame that ends the run (its miss, its falling slab) is counted too: the review)
     if (TR) { TR.begin(w0, gap, run.floor, last && gap < LATE_MS && FS[PREV_AT] && trLive); trLive = t0 != null && now - t0 > 1000 && !shown && !isOver(run); }
     last = now;
-    if (document.hidden || sheetOpen) { FS[PREV_AT] = 0; return; }
+    if (document.hidden || sheetOpen) { FS[PREV_AT] = 0; wAway = true; return; }
     FS[TAU] = 0;
     if (t0 != null) {
       FS[TAU] = Math.max(0, (now - t0) / TICK_MS);
       if (watchW) {
         // (THE PLAYBACK: a delay that must grow is eased in — the playback runs at (1 − WATCH_SLEW) of real time until it is there)
+        // (… and a delay that may shrink, the same way: the playback at (1 + WATCH_SLEW) until it is down — never a jump either way)
         if (wD < wDT) wD = Math.min(wDT, wD + WATCH_SLEW * Math.min(250, gap) / TICK_MS);
+        else if (wD > wDT) wD = Math.max(wDT, wD - WATCH_SLEW * Math.min(250, gap) / TICK_MS);
         wP = Math.max(0, FS[TAU] - wD);
-        feedWatch();
+        feedWatch(!wAway && gap < LATE_MS); wAway = false;
       } else if (!isOver(run)) {
         const tk = Math.floor(FS[TAU]), cap = MODES[MODE].capTicks;
         if (TR) TR.lap(PH.other);
@@ -908,6 +913,9 @@ export function createStage(app, o = {}) {
     watch(W) {
       if (!W || !shown || card) return;
       if (!mine) { mine = run; mineT = T; }
+      // (THE CLOSE's REVIEW: the tick from the CLOCK — a late joiner's first watch comes in the same pump as its spectate(), before any
+      //  frame has written FS[TAU]: the catch-up fed nothing and the next frame played every tap at once)
+      if (t0 != null) FS[TAU] = Math.max(0, (performance.now() - t0) / TICK_MS);
       watchW = W; wN = 0; wSeen = W.taps.length; wD = wDT; wP = Math.max(0, FS[TAU] - wD); wDrawn = -1;   // (the taps already here came earlier: their lateness is not known)
       run = createRun({ seed: W.seed, mode: MODE }); T = createTower(run, hooks, KEEP);
       ev.length = 0; sounded = 0; momDue = -1;

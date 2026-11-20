@@ -219,9 +219,10 @@ for (const look of LOOKS) {
   await p.close();
 }
 // DESKTOP COMES FREE (REVIEW FIX A): the same HUD at 1440 × 900 — THE PLACE NUMBER clear of the floor, the band line, a callout + the announcer
-{
+// + the short phone (375 × 667 — the CSS's max-height 740 step): the gaps + the announcer above THE DROP ZONE (THE CLOSE's REVIEW)
+for (const [W, H, D] of [[1440, 900, 1], [375, 667, 2]]) {
   const p = await b.newPage();
-  await p.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
+  await p.setViewport({ width: W, height: H, deviceScaleFactor: D, isMobile: W < 800, hasTouch: W < 800 });
   await p.goto(guardUrl(`${BASE}/highrise-play?mode=match&rivals=7&seed=place5&floor=20&look=night`, 'highrise-play'), { waitUntil: 'load' });
   await until(p, '(() => { const L = window.__hiPlay; return L && L.sim && L.state().warm; })()', 25000);
   await p.evaluate("document.querySelector('.hi-play').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', button: 0 }))");
@@ -234,8 +235,10 @@ for (const look of LOOKS) {
   await sleep(900);
   const dk = await p.evaluate(HUD_GEO);
   const dsep = (a, q) => Math.max(q.l - a.r, a.l - q.r, q.t - a.b, a.t - q.b);
-  ok([dk.num, dk.bandText, dk.callText, dk.annText].every(q => dsep(dk.place, q) >= 16), `1440 × 900: THE PLACE NUMBER clear of the floor / band / callout / announcer (${[dk.num, dk.bandText, dk.callText, dk.annText].map(q => dsep(dk.place, q).toFixed(0)).join(' · ')} px)`);
-  await shot(p, 'hud-night-1440x900.png');
+  ok([dk.num, dk.bandText, dk.callText, dk.annText].every(q => dsep(dk.place, q) >= 16), `${W} × ${H}: THE PLACE NUMBER clear of the floor / band / callout / announcer (${[dk.num, dk.bandText, dk.callText, dk.annText].map(q => dsep(dk.place, q).toFixed(0)).join(' · ')} px)`);
+  const zone = await p.evaluate('window.__hiPlay.view.restZone()');
+  ok(dk.bandrow.t - dk.num.b >= 16 && dk.call.t - dk.bandrow.b >= 16 && dk.ann.t - dk.call.b >= 16 && (typeof zone !== 'number' || dk.annText.b < zone * H), `${W} × ${H}: the gaps ${(dk.bandrow.t - dk.num.b).toFixed(0)} · ${(dk.call.t - dk.bandrow.b).toFixed(0)} · ${(dk.ann.t - dk.call.b).toFixed(0)} px, the announcer ends ${dk.annText.b.toFixed(0)} — THE DROP ZONE from ${typeof zone === 'number' ? (zone * H).toFixed(0) : '?'}`);
+  await shot(p, `hud-night-${W}x${H}.png`);
   await p.close();
 }
 await b.close();

@@ -241,6 +241,9 @@ try {
 
   // ---- 5. PLAY AGAIN = THE INSTANT AGAIN: the next run starts with no tap; THE NEXT FRIEND (a fixture); then a FORGED node
   const scenes0 = await P.ev(`${ST}.state().rebuilds`);
+  // (REVIEW FIX A: the cartridge's YOUR BEST = the SERVER's record only — nothing while counting is OFF. A fixture of the server's best,
+  //  as YOUR TABLE would leave it on this phone, so the gold tag stands beside THE NEXT FRIEND's below)
+  await P.ev("localStorage.setItem('hi:best', '5')");
   const fw2 = await flashWatch(b, P.cdp);
   await P.ev("(() => { const b = document.querySelector('.hi-final .final-bar') || [...document.querySelectorAll('.hi-final button')].find(x => /PLAY AGAIN/.test(x.textContent)); b.click(); })()");
   ok(await P.waitFor(`${S}.game && ${S}.game.matchId !== '${g.m}' && ${S}.game.phase === 'play' && !!${G} && ${ST}.state().started && ${G}.state().proven`, 15000), 'PLAY AGAIN → the next run, a match of its own — started at once (no START tap), PROVEN');

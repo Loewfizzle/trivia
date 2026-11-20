@@ -335,6 +335,9 @@ export function createView() {
     //  match with NO taps of its own: floor 0, TOO SLOW. A proven match in `play` always has a node to read: wait for it.)
     if (St && (mSeed !== St.seed || mPlayAt !== St.playAt) && (runs || g.unproven)) adoptMatch(St, runs);
     proven = haveGo && !g.unproven && mine(g);
+    // (THE CLOSE's REVIEW — SHOULD 1's take-back: a run that ENDED while the match was marked unproven (the host's hiccup) never wrote its
+    //  `e` (over() needs `proven`) — once proven again, the end goes up now: Call the Winner opens, the match does not wait 18 s)
+    if (proven && started && !wroteE && S && S.me(meRec).over) over(S.result());
     if (proven && adopted && !wroteRs && !(runs && runs[uid] && (runs[uid].rs != null || runs[uid].c))) writeRs();   // (the rules: only before the log's first chunk)
     if (adopted && !final) {
       const rows = feedRivals(g, runs || {}, now);
