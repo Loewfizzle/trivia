@@ -657,6 +657,9 @@ async function flyLook() {
     await alive(p, true);
     await climb(p, 38, 'i => (i % 11 === 10 ? 3 : 0)');
     for (const kind of ['blackbird', 'f22']) {
+      // (REVIEW FIX B — the review's note: the script asked for the F-22 while the Blackbird — the seed's own flyby, met in the climb, or
+      //  the last one asked here — was still in the sky; the game (rightly) flies ONE jet at a time. Wait for a clear sky first.)
+      ok(await waitFor(p, "!window.__hiPlay.flyInfo().jet", 20000), `${lk}: the sky is clear before the ${kind} is asked for`);
       const flew = await p.evaluate(k => window.__hiPlay.fly(k, k === 'f22' ? -1 : 1), kind);
       ok(flew === true, `${lk}: ${kind} flies`);
       await sleep(1050); await shot(p, `fly-${lk}-${kind}-a.png`);
@@ -665,7 +668,8 @@ async function flyLook() {
       console.log('  ', kind, JSON.stringify((await p.evaluate(() => window.__hiPlay.flyInfo())).boxes));
       await sleep(1900);
     }
-    await climb(p, 86 - (await st(p)).floor, 'i => (i % 11 === 10 ? 3 : 0)');
+    await climb(p, 84 - (await st(p)).floor, 'i => (i % 11 === 10 ? 3 : 0)');   // (REVIEW FIX B: under the UFO's own floor 85 — at 86 the game had flown it already: one at a time)
+    ok(await waitFor(p, '!window.__hiPlay.flyInfo().ufo && !window.__hiPlay.flyInfo().jet', 20000), `${lk}: the sky is clear before the UFO is asked for`);
     ok(await p.evaluate(() => window.__hiPlay.fly('ufo', 1)) === true, `${lk}: the UFO flies`);
     await sleep(2600); await shot(p, `fly-${lk}-ufo-a.png`);
     await sleep(1700); await shot(p, `fly-${lk}-ufo-b.png`);
