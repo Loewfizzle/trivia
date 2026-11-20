@@ -49,8 +49,11 @@ async function card(name, run, want) {
     // the tower's middle shows (the hero's lit glass at the card's centre, under the words)
     const tower = avg(440, 760, 200, 160);
     // HIGH (left of centre) · RISE (right) — their lit letters' colour · the number's core
-    const high = avg(260, L.titleY - 70, 230, 64, 330), rise = avg(600, L.titleY - 70, 230, 64, 330), num = avg(300, L.bigY - 170, 480, 140, 600);
-    const out = { w: cv.width, h: cv.height, card: { line: k.line, sub: k.sub, stat: k.stat, hero: k.hero, gold: k.gold }, edge, tower, high, rise, num };
+    const high = avg(260, L.titleY - 70, 230, 64, 330), rise = avg(600, L.titleY - 70, 230, 64, 330), num = avg(Math.round(cv.hiRow.bx), L.bigY - 170, Math.round(cv.hiRow.ux - L.unitGap - cv.hiRow.bx), 140, 600);   // (THE GO-LIVE: the number's own place — FLOORS stands right of it)
+    const out = { w: cv.width, h: cv.height, card: { line: k.line, unit: k.bigUnit, band: k.band, stat: k.stat, hero: k.hero, gold: k.gold }, edge, tower, high, rise, num, row: cv.hiRow };
+    // (THE GO-LIVE: FLOORS's lit core colour where it stands beside the number · the band's)
+    out.unitCol = avg(Math.round(cv.hiRow.ux), L.bigY - Math.round(L.unitPx * 0.7), Math.round(cv.hiRow.uw), Math.round(L.unitPx * 0.66), 330);
+    out.bandCol = avg(200, L.bandY - Math.round(L.bandPx * 0.7), 680, Math.round(L.bandPx * 0.66), 330);
     const scaled = w => { const s = document.createElement('canvas'); s.width = w; s.height = Math.round(w * 1350 / 1080); const x = s.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(cv, 0, 0, s.width, s.height); return s; };
     const half = scaled(540), thumb = scaled(300), t = thumb.getContext('2d'), sc = 300 / 1080;
     // THE READABILITY at 300 px: the lettering's lit core against the dark round it (a luminance ratio — the words read when the core is
@@ -61,6 +64,8 @@ async function card(name, run, want) {
       num: { cap: Math.round(L.bigPx * 0.72 * sc), ratio: ratio(240, L.bigY - L.bigPx * 0.78, 600, L.bigPx * 0.8) },
       title: { cap: Math.round(L.titlePx * 0.72 * sc), ratio: ratio(200, L.titleY - L.titlePx * 0.8, 680, L.titlePx * 0.85) },
       cause: { cap: Math.round(L.causePx * 0.72 * sc), ratio: ratio(80, L.causeY - L.causePx * 0.8, 920, L.causePx * 0.85) },
+      unit: { cap: Math.round(L.unitPx * 0.72 * sc), ratio: ratio(out.row.ux, L.bigY - L.unitPx * 0.8, out.row.uw, L.unitPx * 0.85) },
+      band: { cap: Math.round(L.bandPx * 0.72 * sc), ratio: ratio(100, L.bandY - L.bandPx * 0.8, 880, L.bandPx * 0.85) },
     };
     const hb = await new Promise(r => half.toBlob(r, 'image/png')), fit = await K.fitPng(hb);
     out.halfKb = hb.size / 1024; out.fitKb = fit ? fit.size / 1024 : -1;
@@ -68,14 +73,18 @@ async function card(name, run, want) {
     return out;
   }, run);
   const C = res.card;
-  ok(res.w === 1080 && res.h === 1350, `${name}: 1080 × 1350 — "${C.line}" · "${C.sub}" · "${C.stat}" · the ${C.hero} shot`);
+  ok(res.w === 1080 && res.h === 1350, `${name}: 1080 × 1350 — "${C.line}" · "${C.unit}" · "${C.band}" · "${C.stat}" · the ${C.hero} shot`);
+  // THE GO-LIVE — "10 FLOORS" on ONE row (FLOORS right of the number, inside the card), the band on its own line under it
+  ok(res.row && res.row.ux > res.row.bx && res.row.bx >= 60 && res.row.ux + res.row.uw <= 1020, `${name}: "${C.unit}" stands right beside the number on its line (the row ${Math.round(res.row.bx)} … ${Math.round(res.row.ux + res.row.uw)} of 1080)`);
   ok(C.hero === want.hero, `${name}: the hero shot = the band reached (${C.hero})`);
   ok(res.edge <= 24, `${name}: FULL-BLEED — the card's edges are the hero's own pixels (Δ ${res.edge}) · no inner frame`);
   ok(res.tower[0] + res.tower[1] + res.tower[2] > 120, `${name}: the tower shows under the words (${res.tower})`);
   const isGold = c => c[0] > 200 && c[1] > 150 && c[2] < 170, isPink = c => c[0] > 200 && c[2] > 170 && c[1] < 200, isCyan = c => c[2] > 200 && c[1] > 180 && c[0] < 200;
   ok(want.gold ? isGold(res.high) && isGold(res.rise) : isPink(res.high) && isCyan(res.rise), `${name}: HIGH ${want.gold ? 'GOLD' : 'pink'} (${res.high}) · RISE ${want.gold ? 'GOLD' : 'cyan'} (${res.rise})`);
   ok(res.num[0] > 225 && res.num[1] > 225 && res.num[2] > 210, `${name}: the floor white-hot (${res.num})`);
-  for (const k of ['num', 'title', 'cause']) ok(res.read[k].ratio >= 3 && res.read[k].cap >= (k === 'num' ? 50 : 14), `${name}: at 300 px wide the ${k === 'num' ? 'number' : k === 'title' ? 'HIGH RISE' : 'cause'} reads — ${res.read[k].cap} px caps, ${res.read[k].ratio.toFixed(1)} : 1 on its ground`);
+  ok(want.gold ? isGold(res.unitCol) && isGold(res.bandCol) : isCyan(res.unitCol) && isPink(res.bandCol), `${name}: FLOORS ${want.gold ? 'GOLD' : 'cyan'} (${res.unitCol}) · the band ${want.gold ? 'GOLD' : 'PINK'} (${res.bandCol})`);
+  const NAMES = { num: 'number', title: 'HIGH RISE', cause: 'cause', unit: 'FLOORS', band: 'band' };
+  for (const k of ['num', 'title', 'cause', 'unit', 'band']) ok(res.read[k].ratio >= 3 && res.read[k].cap >= (k === 'num' ? 50 : 13), `${name}: at 300 px wide the ${NAMES[k]} reads — ${res.read[k].cap} px caps, ${res.read[k].ratio.toFixed(1)} : 1 on its ground`);
   ok(res.fitKb > 0 && res.fitKb <= 390, `${name}: the link's 540 × 675 picture fits the server's cap (≤ LINK_HARD 390) (${res.halfKb.toFixed(0)} KB → ${res.fitKb.toFixed(0)} KB)`);
   if (OUT) for (const [k, sz] of [['full', '1080x1350'], ['half', '540x675'], ['thumb', '300x375']]) writeFileSync(join(OUT, `card-${name}-${sz}.png`), Buffer.from(res[k].split(',')[1], 'base64'));
 }

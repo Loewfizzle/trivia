@@ -12,13 +12,13 @@ test('THE POSTER — the card\'s words from the PUBLIC numbers only · the hero 
   const H = await import(new URL(`../${HI}share.js`, import.meta.url));
   const c = H.hiRunCard({ floor: 42, perfects: 31, cause: 'miss', made: false, mode: 'solo', name: 'Ben', pid: 'p-secret', uid: 'u1' });
   assert.equal(c.title, 'HIGH RISE'); assert.equal(c.mode, 'SOLO'); assert.equal(c.name, 'BEN'); assert.equal(c.big, '42'); assert.equal(c.bigUnit, 'FLOORS');
-  assert.equal(c.line, 'MISSED THE STACK'); assert.equal(c.sub, 'FLOORS · THE SKYLINE'); assert.equal(c.stat, '31 PERFECTS · BEN'); assert.equal(c.hero, 'skyline'); assert.equal(c.gold, false); assert.equal(c.look, 'night');
+  assert.equal(c.line, 'MISSED THE STACK'); assert.equal(c.bigUnit, 'FLOORS'); assert.equal(c.band, 'THE SKYLINE'); assert.equal(c.stat, '31 PERFECTS · BEN'); assert.equal(c.hero, 'skyline'); assert.equal(c.gold, false); assert.equal(c.look, 'night');
   assert.ok(!JSON.stringify(c).includes('p-secret') && !JSON.stringify(c).includes('u1'), 'nothing private on the card');
   // the band reached picks the shot — at each band's first floor + its last
   for (const [f, id] of [[0, 'rooftops'], [24, 'rooftops'], [25, 'skyline'], [59, 'skyline'], [60, 'clouds'], [109, 'clouds'], [110, 'stars'], [169, 'stars'], [170, 'space'], [260, 'space']]) assert.equal(H.hiRunCard({ floor: f }).hero, id, `floor ${f} → ${id}`);
   const g = H.hiRunCard({ floor: 200, perfects: 171, cause: 'made', made: true, mode: 'match', name: 'BEN' });
-  assert.equal(g.gold, true); assert.equal(g.accent, H.GOLD); assert.equal(g.mode, 'MATCH'); assert.equal(g.line, 'MADE IT TO THE MOTHERSHIP'); assert.equal(g.hero, 'mothership'); assert.equal(g.sub, 'FLOORS · DEEP SPACE');
-  assert.equal(H.hiRunCard({ floor: 1, perfects: 1, cause: 'slow' }).sub, 'FLOOR · THE ROOFTOPS'); assert.equal(H.hiRunCard({ floor: 1, perfects: 1 }).stat, '1 PERFECT', 'no name → the perfects alone');
+  assert.equal(g.gold, true); assert.equal(g.accent, H.GOLD); assert.equal(g.mode, 'MATCH'); assert.equal(g.line, 'MADE IT TO THE MOTHERSHIP'); assert.equal(g.hero, 'mothership'); assert.equal(g.band, 'DEEP SPACE');
+  assert.equal(H.hiRunCard({ floor: 1, perfects: 1, cause: 'slow' }).bigUnit, 'FLOOR'); assert.equal(H.hiRunCard({ floor: 1, perfects: 1, cause: 'slow' }).band, 'THE ROOFTOPS'); assert.equal(H.hiRunCard({ floor: 1, perfects: 1 }).stat, '1 PERFECT', 'no name → the perfects alone');
   assert.deepEqual([...H.HERO_IDS], ['rooftops', 'skyline', 'clouds', 'stars', 'space', 'mothership']);
   assert.match(H.heroUrl('clouds'), /\/assets\/highrise\/share\/clouds\.webp$/); assert.match(H.heroUrl('nope'), /\/rooftops\.webp$/, 'an unknown id → the first band, never a path from outside');
   assert.equal(H.runOf({ mode: 'solo', results: { u: { f: 57, p: 9, w: 'thin' } } }, 'u').floor, 57);

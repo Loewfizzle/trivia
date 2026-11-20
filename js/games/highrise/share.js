@@ -6,7 +6,10 @@
 //     heroes.mjs + poster.js#runHero: a tall neon tower rising from the foot, its lit top just under the middle, that band's sky behind;
 //     no flyers) — the band the run REACHED; THE MOTHERSHIP's gold shot for a finished tower. Never the live frame. No inner frame box.
 //   · top: HIGH (hot pink) + RISE (cyan) in neon + "SOLO · NEONSPEAKEASY" (or MATCH) small under it
-//   · the floor HUGE in the sky (the game's numerals — white-hot, a CYAN glow) + "FLOORS · THE SKYLINE" under it
+//   · the floor HUGE in the sky (the game's numerals — white-hot, a CYAN glow) with "FLOORS" right beside it on its line (bold cyan,
+//     tight — it reads "10 FLOORS"), then THE BAND ("THE SKYLINE") on its own line under it in PINK neon (THE GO-LIVE — the owner, from
+//     the real card in Messages: "FLOORS · THE ROOFTOPS" read as small wide-spaced cyan blurs + confused; Downloads/NEON/highrise-share-
+//     floors-fix.png, the RIGHT side). THE FINISH: the same layout, all gold
 //   · the foot, over a dark fade: the cause in big pink neon (2 lines when long), "31 PERFECTS · BEN", the kit's neon line + NEONSPEAKEASY.COM
 //   · MADE IT TO THE MOTHERSHIP = ALL GOLD type (the title, the number's glow, the cause, the line) on the gold shot.
 // THE SHARE = THE LINK ALONE (JAYWALK H4B — navigator.share({ url }), its preview = this card): built when the end screen stands, uploaded
@@ -27,9 +30,10 @@ export const PINK = '#ff4fd8', CYAN = '#35e3ff', GOLD = '#ffc83c', GOLD_CORE = '
 /** the six hero shots (poster.js HEROES — the same ids): a band's id, or THE MOTHERSHIP for a finished tower */
 export const HERO_IDS = Object.freeze([...BANDS.map(b => b.id), 'mothership']);
 export const HERO_DIR = new URL('../../../assets/highrise/share/', import.meta.url);
-/** the card's layout, px of its 1080 × 1350 (the mockup's): the title · the mode line · the floor's baseline + its size · the band line ·
- *  the cause's LAST baseline + its size / line height · the perfects line (the kit's foot follows at its own place: daily/share.js FOOT) */
-export const POSTER_L = Object.freeze({ titleY: 122, titlePx: 92, modeY: 172, modePx: 30, bigY: 440, bigPx: 270, bandY: 512, bandPx: 42, causeY: 1092, causePx: 76, causeLh: 80, statY: 1158, statPx: 40 });
+/** the card's layout, px of its 1080 × 1350 (the mockup's): the title · the mode line · the floor's baseline + its size · FLOORS beside it
+ *  (its size, the gap after the number) · the band line · the cause's LAST baseline + its size / line height · the perfects line (the kit's
+ *  foot follows at its own place: daily/share.js FOOT) */
+export const POSTER_L = Object.freeze({ titleY: 122, titlePx: 92, modeY: 172, modePx: 30, bigY: 440, bigPx: 270, unitPx: 72, unitGap: 30, bandY: 546, bandPx: 68, causeY: 1092, causePx: 76, causeLh: 80, statY: 1158, statPx: 40 });
 const NUMS = '"Chakra Petch", system-ui, sans-serif';
 const DISPLAY = '"Orbitron", "Chakra Petch", system-ui, sans-serif';
 
@@ -41,7 +45,7 @@ export function hiRunCard({ floor = 0, perfects = 0, cause = '', made = false, m
   return {
     ...card, gold, hero: gold ? 'mothership' : b.id,
     line: gold ? END_WORDS.made : END_WORDS[cause] || 'THE TOWER STANDS',
-    sub: `${card.bigUnit} · ${b.name}`,
+    band: b.name,   // (THE GO-LIVE: its own pink line under "10 FLOORS" — card.bigUnit stands beside the number)
     stat: `${p} ${p === 1 ? 'PERFECT' : 'PERFECTS'}${card.name ? ` · ${card.name}` : ''}`,
   };
 }
@@ -143,9 +147,14 @@ export function paintPoster(c, card, hero) {
   // (numWidth measures in the context's OWN font — set to each size tried)
   c.save(); if ('letterSpacing' in c) c.letterSpacing = '0px';   // (THE CLOSE's REVIEW: only where the canvas HAS it — an older iPhone's would gain a plain property, and daily/share.js#tracks would stop spacing by hand)
   const nw = q => { c.font = `700 ${q}px ${NUMS}`; return numWidth(c, big, q, NUMS, 700); };
-  while (px > 160 && nw(px) > W - 120) px -= 10;
-  const bx = (W - nw(px)) / 2;
+  // (THE GO-LIVE: the number + FLOORS are ONE row, centred together — "10 FLOORS"; the number a size down when the row is too wide)
+  const unit = card.bigUnit || 'FLOORS', uls = 2;
+  c.font = `900 ${L.unitPx}px ${DISPLAY}`;
+  const uw = spacedWidth(c, unit, uls), row = q => nw(q) + L.unitGap + uw;
+  while (px > 160 && row(px) > W - 120) px -= 10;
+  const bx = (W - row(px)) / 2, ux = bx + nw(px) + L.unitGap;
   c.restore();
+  card.row = { px, bx, ux, uw };   // (where the row stands — the share check reads it)
   lit.push((g, pass, k = 1) => {
     g.save(); g.textAlign = 'left'; if ('letterSpacing' in g) g.letterSpacing = '0px'; g.font = `700 ${px}px ${NUMS}`;
     if (pass === 'core') g.fillStyle = gold ? '#fff6dc' : '#f2feff';
@@ -154,8 +163,10 @@ export function paintPoster(c, card, hero) {
     if (pass === 'wide') drawNum(g, big, bx, L.bigY, px, NUMS, 700);
     g.restore();
   });
-  // FLOORS · THE BAND (the glow's colour, spaced wide)
-  lit.push(neon(card.sub || '', W / 2, L.bandY, { px: L.bandPx, glow, core: gold ? '#ffeec2' : '#d9f9ff', ls: 14, weight: 800, wide: 0.3, maxW: W - 120 }));
+  // FLOORS right beside the number, on its baseline (bold CYAN, tight — gold for THE FINISH) · THE BAND on its own line under it (PINK neon,
+  // bigger + bolder, tight — gold for THE FINISH)
+  lit.push(neon(unit, ux + uw / 2 - uls / 2, L.bigY, { px: L.unitPx, glow, core: gold ? '#ffefc4' : '#b8f6ff', ls: uls, weight: 900, wide: 0.16 }));
+  lit.push(neon(card.band || '', W / 2, L.bandY, { px: L.bandPx, glow: gold ? GOLD : PINK, core: gold ? GOLD_CORE : '#ffd9f5', ls: 3, weight: 900, wide: 0.34, maxW: W - 110 }));
   // THE CAUSE (hot pink · gold), 1 or 2 lines — its LAST line on causeY
   c.save(); c.font = `900 ${L.causePx}px ${DISPLAY}`;
   const rows = card.line ? wrap2(c, card.line, W - 110, 3) : [];
@@ -183,6 +194,7 @@ export function drawHiCard(run, hero) {
   const c = ctx2d(cv);
   if (!c) return null;
   paintPoster(c, card, hero);
+  cv.hiRow = card.row;   // (the number row's place: the share check measures FLOORS where it stands)
   return cv;
 }
 
