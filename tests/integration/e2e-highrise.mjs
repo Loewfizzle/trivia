@@ -170,7 +170,7 @@ try {
   const fin = await P.ev("({ t: document.querySelector('.hi-fin .hi-ec-cause').textContent, n: document.querySelector('.hi-fin .hi-ec-n').getAttribute('aria-label'), w: document.querySelector('.hi-fin-would').textContent, kicker: document.querySelector('.hi-final .sheet-kicker').textContent, bar: !!document.querySelector('.hi-final .final-bar, .hi-final .btn-primary') })");
   ok(fin.t === 'TOO SLOW' && Number(fin.n) === V.floor && fin.kicker === 'HIGH RISE · SOLO', `the end screen: ${fin.kicker} · ${fin.t} · FLOOR ${fin.n}`);
   ok(new RegExp(`^WOULD COUNT · FLOOR ${V.floor} · `).test(fin.w), `WOULD COUNT matches the phone's own result (${fin.w})`);
-  ok(await P.ev("document.querySelector('.hi-fin .hi-ec-best').textContent === 'NEW BEST' && document.querySelector('.hi-fin .hi-ec-best').classList.contains('is-new')"), 'the end screen: NEW BEST (this phone’s own record while counting is OFF — stored before the screen was built)');
+  ok(await P.ev(`document.querySelector('.hi-fin .hi-ec-best').textContent === 'YOUR BEST · ${V.floor}' && !document.querySelector('.hi-fin .hi-ec-best').classList.contains('is-new')`), `the end screen: YOUR BEST · ${V.floor} (this phone’s own record while counting is OFF — stored before the screen was built; a FIRST run is never a NEW BEST: nothing was beaten)`);
   await sleep(1200);
   await P.shot('end-card-390x844.png');
 
@@ -280,8 +280,11 @@ try {
     ok(top >= 63, `a real run by taps at the touch path: floor ${top}`);
     // (headless Chromium's own ~0.65 s stall two minutes after launch is not the game's — a frame that long, with no mark of the page's
     //  own work on it, is the browser's: S4A FIX's honest counter names it `unknown` — or `gc`, if a collection is known to have run in it)
-    const mine = hit.list.slice(h0), bad = mine.filter(h => !((h.why === 'gc' || h.why === 'unknown') && h.gap > 400 && h.work < 12));
-    ok(bad.length === 0, `THE HITCH RUN inside the cartridge (${top} floors, ~75 s): no frame over 33 ms after the first second (${bad.length} hitches${mine.length ? ` — seen: ${mine.map(h => `${h.why} ${h.gap} ms @${h.floor}`).join(' · ')}${mine.length > bad.length ? ' (the long one = headless Chromium, not the game)' : ''}` : ''})`);
+    //  (THE CLOSE: the stall lands on whatever frame is due — with the bot tapping every floor that frame often carries a TAP's mark
+    //  (seen twice, 617 + 633 ms at the same point of the run): what makes it the browser's is its size against the page's OWN measured
+    //  work in it (< 12 ms), not the name of the mark)
+    const mine = hit.list.slice(h0), bad = mine.filter(h => !(h.gap > 400 && h.work < 12));
+    ok(bad.length === 0, `THE HITCH RUN inside the cartridge (${top} floors, ~75 s): no frame over 33 ms after the first second (${bad.length} hitches${mine.length ? ` — seen: ${mine.map(h => `${h.why} ${h.gap} ms (the page's own work ${h.work} ms) @${h.floor}`).join(' · ')}${mine.length > bad.length ? ' (the long one = headless Chromium, not the game)' : ''}` : ''})`);
     ok(a4.held && a4.state === 'running', 'the run holds the audio context awake to the end');
     ok(await toFinal(P, 30000), 'the fuse ends it → the podium');
     const end = Date.now() + 25000; let res = null;

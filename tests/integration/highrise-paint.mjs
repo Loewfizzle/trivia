@@ -58,7 +58,7 @@ async function run(q, name) {
   const out = { name, taps: tapsAt.length, floor, secs: (to - from) / 1000 };
   for (const k of ['style', 'layout', 'paint']) {
     const inRun = rows[k].filter(r => r.at >= from && r.at <= to), idle = inRun.filter(r => since(r.at) > SETTLE);
-    out[k] = { n: inRun.length, perTap: inRun.length / Math.max(1, tapsAt.length), ms: inRun.reduce((s, r) => s + r.ms, 0), idle: idle.length, idleNodes: [...new Set(idle.map(r => r.node).filter(Boolean))].slice(0, 6), idleAt: idle.slice(0, 6).map(r => Math.round(since(r.at))) };
+    out[k] = { n: inRun.length, perTap: inRun.length / Math.max(1, tapsAt.length), ms: inRun.reduce((s, r) => s + r.ms, 0), idle: idle.length, idleNodes: [...new Set(idle.map(r => r.node).filter(Boolean))].slice(0, 6), idleAt: idle.slice(0, 6).map(r => Math.round(since(r.at))), hist: idle.reduce((m, r) => { const k = Math.min(20, Math.floor(since(r.at) / 100)); m[k] = (m[k] || 0) + 1; return m; }, {}) };
   }
   out.errs = errs;
   return out;
@@ -81,6 +81,8 @@ for (const [name, q] of RUNS) {
   ok(r.paint.perTap <= 6.5 && r.layout.perTap <= 4, `${name}: a LANDING costs ${r.layout.perTap.toFixed(1)} layouts · ${r.paint.perTap.toFixed(1)} paints (${(r.paint.ms / Math.max(1, r.taps)).toFixed(2)} ms of paint on this machine) — the number, the lane, the tag`);
 }
 if (TABLE) {
+  // (WHAT wrote between landings: the count by time since the last tap — 100 ms buckets — + the nodes the trace names)
+  for (const r of res) console.log(`${r.name}: layouts by 100 ms since the tap ${JSON.stringify(r.layout.hist)} ${r.layout.idleNodes.join(' ')} · paints ${JSON.stringify(r.paint.hist)} ${r.paint.idleNodes.join(' ')}`);
   console.log('\n| run | landings | style recalcs (a landing · between) | layouts (a landing · between) | paints (a landing · between) | paint ms a landing |\n| --- | --- | --- | --- | --- | --- |');
   for (const r of res) console.log(`| ${r.name} | ${r.taps} | ${r.style.perTap.toFixed(1)} · ${r.style.idle} | ${r.layout.perTap.toFixed(1)} · ${r.layout.idle} | ${r.paint.perTap.toFixed(1)} · ${r.paint.idle} | ${(r.paint.ms / Math.max(1, r.taps)).toFixed(2)} |`);
 }

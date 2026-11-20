@@ -21,7 +21,7 @@ export function createMatchHud(stage, hud) {
   const alt = h('ol.hi-alt', { 'aria-label': 'The altimeter: every player’s height' });
   const tagBox = h('div.hi-rtags', { 'aria-hidden': 'true' });
   const tags = [];
-  for (let i = 0; i < RIVAL_TAGS; i++) { const t = document.createTextNode(''), el = h('div.hi-tag.hi-rtag', { hidden: true }, h('span', t)); tags.push({ el, t, text: '', y: -1e9, hex: '', on: false }); tagBox.append(el); }
+  for (let i = 0; i < RIVAL_TAGS; i++) { const t = document.createTextNode(''), el = h('div.hi-tag.hi-rtag', { hidden: true }, h('span', t)); tags.push({ el, t, text: '', y: -1e9, hex: '', on: false, dim: false }); tagBox.append(el); }
   const lane = h('div.hi-ann', { 'aria-live': 'polite' });
   const roster = h('div.hi-roster', { 'aria-label': 'Who is playing' }), countT = document.createTextNode(''), count = h('div.hi-count', { 'aria-live': 'polite' }, countT);
   const watchT = document.createTextNode(''), watch = h('div.hi-watch', { 'aria-live': 'polite' }, watchT);
@@ -30,7 +30,7 @@ export function createMatchHud(stage, hud) {
   stage.append(alt, tagBox, roster, count, watch, over);
   const ann = createAnnouncer(lane, { prefix: 'hi', holdMs: 1500, queueMax: 3 });
   const rows = new Map();   // uid → { li, nameT, floorT, name, floor, state, me }
-  let orderKey = '', pick = null, countKey = '', rosterKey = '', watchKey = '';
+  let orderKey = '', pick = null, countKey = '', rosterKey = '', watchKey = '', heldAt = 0, dimOn = false;   // (heldAt: a row is under a finger — never moved then)
   /** a tap on a player's row (only while watching — css: pointer-events) = watch them. Press + lift, never a click. */
   function rowFor(uid) {
     let r = rows.get(uid);
@@ -38,9 +38,9 @@ export function createMatchHud(stage, hud) {
     const nameT = document.createTextNode(''), floorT = document.createTextNode('0');
     const li = h('li', { 'data-uid': uid }, h('i.hi-alt-dot', { 'aria-hidden': 'true' }), h('span.hi-alt-n', nameT), h('b', floorT));
     let id = null;
-    li.addEventListener('pointerdown', e => { id = e.pointerId; e.stopPropagation(); });
-    li.addEventListener('pointerup', e => { e.stopPropagation(); if (id === e.pointerId) { id = null; if (pick) pick(uid); } });
-    li.addEventListener('pointercancel', () => { id = null; });
+    li.addEventListener('pointerdown', e => { id = e.pointerId; heldAt = performance.now(); e.stopPropagation(); });
+    li.addEventListener('pointerup', e => { e.stopPropagation(); heldAt = 0; if (id === e.pointerId) { id = null; if (pick) pick(uid); } });
+    li.addEventListener('pointercancel', () => { id = null; heldAt = 0; });
     r = { li, nameT, floorT, name: '', floor: -1, state: '', me: null, hex: '', seen: false };
     rows.set(uid, r);
     return r;
@@ -62,7 +62,8 @@ export function createMatchHud(stage, hud) {
         const state = `${p.me ? 'is-me ' : ''}${p.end === 'made' ? 'is-made ' : p.over ? 'is-out ' : p.silent ? 'is-silent ' : ''}${p.watched ? 'is-watched' : ''}`.trim();
         if (r.state !== state) { r.state = state; r.li.className = state; }
       }
-      if (key !== orderKey) {   // (the order changed — or a player came / went: the rows are put in place once)
+      // (THE CLOSE's REVIEW — NEVER RE-RENDER UNDER A FINGER: while a row is pressed (≤ 1.5 s) the order waits for the next change)
+      if (key !== orderKey && !(heldAt && performance.now() - heldAt < 1500)) {   // (the order changed — or a player came / went: the rows are put in place once)
         orderKey = key;
         for (const [uid, r] of rows) if (!r.seen) { r.li.remove(); rows.delete(uid); }
         for (let i = 0; i < sorted.length; i++) alt.append(rows.get(sorted[i].uid).li);
@@ -78,10 +79,13 @@ export function createMatchHud(stage, hud) {
         if (t.hex !== hex) { t.hex = hex; t.el.style.setProperty('--c', hex); }
         if (Math.abs(g.y - t.y) >= 0.25) { t.y = g.y; t.el.style.transform = `translate3d(0, ${g.y.toFixed(1)}px, 0)`; }
         if (!t.on) { t.on = true; t.el.hidden = false; }
+        if (t.dim !== dimOn) { t.dim = dimOn; t.el.classList.toggle('is-dim', dimOn); }
       }
     },
-    /** DIM while a slab slides (one class on the tags' own layer — opacity only) */
-    dim(on) { tagBox.classList.toggle('is-dim', !!on); },
+    /** DIM while a slab slides — on the TAGS THEMSELVES (each is its own compositor layer already: opacity there paints nothing). THE
+     *  CLOSE's LAG CHECK: the class sat on the tags' full-stage box — a layout + paints at every landing, with no rival on screen
+     *  too (tests/integration/highrise-paint.mjs). A tag not shown is not written. */
+    dim(on) { dimOn = !!on; for (let i = 0; i < RIVAL_TAGS; i++) { const t = tags[i]; if (t.on && t.dim !== dimOn) { t.dim = dimOn; t.el.classList.toggle('is-dim', dimOn); } } },
     announce(text, kind) { ann.announce(text, kind); },
     log: () => ann.log.slice(),
     /** 3 · 2 · 1 · GO (`text`; '' = gone) + the names lined up through the count (`names` = [{ name, hex, me }], null = as they are) */
@@ -96,12 +100,13 @@ export function createMatchHud(stage, hud) {
     watching(text) { if (text === watchKey) return; watchKey = text; watchT.data = text; watch.classList.toggle('is-on', !!text); },
     /** a new match on the same stage: nothing of the last one stays */
     reset() {
-      for (const t of tags) { t.on = false; t.el.hidden = true; t.y = -1e9; }
+      for (const t of tags) { t.on = false; t.el.hidden = true; t.y = -1e9; if (t.dim) { t.dim = false; t.el.classList.remove('is-dim'); } }
+      dimOn = false;
       for (const r of rows.values()) r.li.remove();
-      rows.clear(); orderKey = ''; ann.clear(); over.replaceChildren(); tagBox.classList.remove('is-dim');
+      rows.clear(); orderKey = ''; ann.clear(); over.replaceChildren();
       countKey = ''; countT.data = ''; count.className = 'hi-count'; roster.classList.remove('is-on'); watchKey = ''; watchT.data = ''; watch.classList.remove('is-on');
     },
-    state: () => ({ alt: [...alt.children].map(li => ({ uid: li.dataset.uid, text: li.textContent, cls: li.className })), tags: tags.filter(t => t.on).map(t => ({ text: t.text, y: t.y, hex: t.hex })), dim: tagBox.classList.contains('is-dim'), count: countKey, roster: [...roster.children].map(e => e.textContent), watch: watchKey, calls: ann.log.slice() }),
+    state: () => ({ alt: [...alt.children].map(li => ({ uid: li.dataset.uid, text: li.textContent, cls: li.className })), tags: tags.filter(t => t.on).map(t => ({ text: t.text, y: t.y, hex: t.hex })), dim: dimOn, count: countKey, roster: [...roster.children].map(e => e.textContent), watch: watchKey, calls: ann.log.slice() }),
     destroy() { alt.remove(); tagBox.remove(); lane.remove(); roster.remove(); count.remove(); watch.remove(); over.remove(); },
   };
 }

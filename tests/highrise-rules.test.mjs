@@ -108,7 +108,17 @@ test('EVERY RUN RECORDS ITS RULE SET; THE JUDGE CHECKS IT + REFUSES AN UNKNOWN O
   assert.equal(sv.game.results.u1.bad, 'rules', 'the server\'s own row says why'); assert.equal(sv.game.results.u1.f, 0);
   // A MATCH = ONE rule set: THE FIRST GO's; a node that names another is refused (the others are judged as ever)
   const nodes = { u1: { go: GO + 40, c, rs: 'classic' }, u2: { go: GO, c }, u3: { go: GO + 90, c, rs: 'turbo' } };
-  assert.equal(matchRules(nodes), 'classic', 'the first GO\'s player named none: classic'); assert.equal(matchRules({ a: { go: 5, rs: 'x1' }, b: { go: 9 } }), 'x1'); assert.equal(matchRules({}), 'classic');
+  assert.equal(matchRules(nodes), 'classic', 'the first GO\'s player named none: classic'); assert.equal(matchRules({}), 'classic');
+  // THE CLOSE's REVIEW: a set NOBODY KNOWS is never the match's — the first GO's player naming "zz" voided EVERYONE's tower (a draw at
+  // will). The match stays classic; the one refused is the player who named it. Two GOs in one millisecond: the lowest uid's.
+  for (const bad of ['x1', 'zz', 'constructor', '', 7]) assert.equal(matchRules({ a: { go: 5, rs: bad }, b: { go: 9, rs: 'classic' } }), 'classic', `an unknown set is never the match's: ${JSON.stringify(bad)}`);
+  assert.equal(matchRules({ b: { go: 5, rs: 'zz' }, a: { go: 5 } }), 'classic'); assert.equal(matchRules({ a: { go: 5 }, b: { go: 5, rs: 'zz' } }), 'classic');
+  assert.ok(read('js/games/highrise/proof.js').includes('(first === null || u < first)'), 'a tied first GO: the LOWEST uid — never the order the keys came in');
+  const grief = { u1: { go: GO, c, rs: 'zz' }, u2: { go: GO + 40, c, rs: 'classic' }, u3: { go: GO + 90, c } };
+  const gs = highriseMatch({ code: CODE, matchId: M, uids: ['u1', 'u2', 'u3'], nodes: grief });
+  assert.equal(gs.game.results.u1.bad, 'rules', 'the griefer\'s own node is the one refused');
+  assert.ok(gs.game.results.u2.bad !== 'rules' && gs.game.results.u3.bad !== 'rules', '… never the honest towers');
+  assert.equal(scoreMatchNode({ seed: gs.game.seed, playAt: gs.game.playAt }, grief.u2, matchRules(grief)).bad === 'rules', false, 'the host\'s podium agrees');
   assert.equal(judgeNode({ seed: ns, mode: 'match', node: { ...nodes.u1, go: GO + 2000 }, rules: 'classic' }).ok !== undefined, true);
   const srv = highriseMatch({ code: CODE, matchId: M, uids: ['u1', 'u2', 'u3'], nodes });
   assert.equal(srv.game.results.u3.bad, 'rules', 'another rule set in the same match: no tower'); assert.ok(!srv.game.results.u1.bad && !srv.game.results.u2.bad || srv.game.results.u1.bad !== 'rules');
@@ -126,7 +136,7 @@ test('THE LIVE LOCK (the rules gap jw + hr shared): the host deletes ONE match\'
     for (const leaf of ['go', 'c', 'e', 'k']) assert.ok(rules[node].$match.$uid[leaf], `${node}/${leaf} untouched`);
   }
   const rs = rules.hr.$match.$uid.rs;
-  assert.ok(rs['.write'].includes('auth.uid === $uid') && rs['.write'].includes('newData.exists() && !data.exists()') && rs['.write'].includes("'/go').exists()") && rs['.write'].includes("'/e').exists()"), 'rs: own uid, once, after GO, before the end');
+  assert.ok(rs['.write'].includes('auth.uid === $uid') && rs['.write'].includes('newData.exists() && !data.exists()') && rs['.write'].includes("'/go').exists()") && rs['.write'].includes("!newData.parent().child('e').exists() && !newData.parent().child('c').exists()"), 'rs: own uid, once, after GO, before the end AND before the log\'s first chunk (never in one write with either)');
   assert.equal(rs['.validate'], 'newData.isString() && newData.val().length >= 1 && newData.val().length <= 16 && newData.val().matches(/^[a-z0-9-]+$/)'); assert.equal(RULES_ID_MAX, 16);
   // the client: only what the rules allow is ever asked (one refused path would take the whole prune down)
   const { staleProofPaths, proofUnlocked, PROOF_LOCK_MS, PROOF_LOCK_SLACK_MS } = await import('../js/core/room-logic.js');

@@ -36,6 +36,8 @@ import { endHeader } from './endscreen.js';
 export const GO_WAIT_MS = 4000;
 /** the podium is waited this long after a proven run's end before the stage's own card says NO SIGNAL (never a frozen screen) */
 export const FINAL_WAIT_MS = 6000;
+/** a match is over (the host's step) while this phone's own tower still climbs: the podium waits for its end at most this long */
+export const FINAL_HOLD_MS = 3000;
 /** S4B — a MATCH: this phone writes its GO this long before the count's end (the rules open the window 2 s before it) */
 export const GO_EARLY_MS = 1800;
 /** … its new taps go up this often (a tap a chunk, in practice: a rival's height on the other phones is never a second old) */
@@ -82,7 +84,7 @@ const drv = {
 export function createView() {
   let S = null, st = null, gone = false, code = '', uid = '', matchId = '';
   let go = 0, proven = false, spent = false, started = false, sent = 0, chunkN = 0, lastFlush = 0, wroteE = false, verifyFirst = false, lateSeen = '';
-  let final = null, finalWrap = null, leaveBtn = null, goTimer = 0, finalTimer = 0, friends = [];
+  let final = null, finalWrap = null, leaveBtn = null, goTimer = 0, finalTimer = 0, finalSeen = 0, friends = [];
   // the match (S4B)
   let isMatch = false, haveGo = false, goAsked = false, goTries = 0, mSeed = '', mPlayAt = 0, adopted = false, pumpIv = 0, rowsKey = '';
   let outCard = null, outAt = 0, outRes = null, callEl = null, callLine = '', callDone = false, liveRuns = null, followUid = '', followPick = '', pickAny = '', watchKey = '', countNames = null;
@@ -253,7 +255,7 @@ export function createView() {
     const since = performance.now() - outAt, r = outRes, hud = S.hud(), others = rows.filter(x => !x.me), live = others.filter(x => !x.over);
     if (r && !outCard && mine(g) && since < 60000) {
       const made = r.cause === 'made';
-      outCard = h(`div.hi-outcard${made ? '.is-made' : ''}`, h('div.hi-outcard-k', made ? 'THE FINISH LINE' : r.cause === 'cap' ? 'THE BELL' : 'OUT'), h('div.hi-ec-cause', g.unproven ? 'NOT COUNTED' : END_WORDS[r.cause] || 'THE TOWER STANDS'), h('div.hi-outcard-n', `${r.floor} ${r.floor === 1 ? 'FLOOR' : 'FLOORS'}`));
+      outCard = h(`div.hi-outcard${made ? '.is-made' : ''}`, h('div.hi-outcard-k', made ? 'THE FINISH LINE' : r.cause === 'cap' ? 'THE BELL' : 'OUT'), h('div.hi-ec-cause', g.unproven || !haveGo ? 'NOT COUNTED' : END_WORDS[r.cause] || 'THE TOWER STANDS'), h('div.hi-outcard-n', `${r.floor} ${r.floor === 1 ? 'FLOOR' : 'FLOORS'}`));
       hud.over.append(outCard);
       setTimeout(() => { if (outCard) outCard.classList.add('is-gone'); }, made ? MADE_SHOW_MS : OUT_SHOW_MS);
     }
@@ -294,16 +296,23 @@ export function createView() {
     if (mine(g) && !goAsked && !haveGo && (g.phase === 'play' || (g.phase === 'count' && now >= g.playAt - GO_EARLY_MS))) askGoMatch();
     // the seed + tick 0 (match.js#startOf: THE NODES ARE THE TRUTH) — in the count and in `play` alike; the game's own only with no node to read (UNPROVEN)
     const St = startOf(g, runs, code);
-    if (St && (mSeed !== St.seed || mPlayAt !== St.playAt)) adoptMatch(St, runs);
+    // (THE CLOSE's REVIEW: never adopted from the game alone while the proof mirror is still on its way — a refresh mid-run took the
+    //  match with NO taps of its own: floor 0, TOO SLOW. A proven match in `play` always has a node to read: wait for it.)
+    if (St && (mSeed !== St.seed || mPlayAt !== St.playAt) && (runs || g.unproven)) adoptMatch(St, runs);
     proven = haveGo && !g.unproven && mine(g);
-    if (proven && adopted && !wroteRs && !(runs && runs[uid] && runs[uid].rs != null)) writeRs();
+    if (proven && adopted && !wroteRs && !(runs && runs[uid] && (runs[uid].rs != null || runs[uid].c))) writeRs();   // (the rules: only before the log's first chunk)
     if (adopted && !final) {
       const rows = feedRivals(g, runs || {}, now);
       if (outRes || !mine(g)) afterOut(g, runs, rows);
     }
     // THE PODIUM for everyone (the host's step) — once this player's own end has been SEEN (the stage's end hold, the finish's light);
     // a watcher, a refresh on it: at once
-    if (g.phase === 'final' && !final && (!adopted || !mine(g) || (S.state().shown && (!outRes || performance.now() - outAt > (outRes.cause === 'made' ? 1400 : 500))))) { S.hud().count('', null); S.hud().watching(''); showFinal(g); }
+    // (THE CLOSE's REVIEW: … and never held for ever — a tower still climbing when the match is over (its chunks did not arrive: nothing
+    //  more can count) gets the podium after FINAL_HOLD_MS)
+    if (g.phase === 'final' && !final) {
+      if (!finalSeen) finalSeen = performance.now();
+      if (!adopted || !mine(g) || performance.now() - finalSeen > FINAL_HOLD_MS || (S.state().shown && (!outRes || performance.now() - outAt > (outRes.cause === 'made' ? 1400 : 500)))) { S.hud().count('', null); S.hud().watching(''); showFinal(g); }
+    }
   }
   /** the stage's end moment in a match: OUT (or the finish / the bell) — the watcher's view follows; the podium comes with the host's step */
   function endMatch(r) { if (!outRes) { outRes = r; outAt = performance.now(); } sync(); return { own: false, watch: true }; }

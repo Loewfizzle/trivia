@@ -253,9 +253,9 @@
 .hi-stage.is-watch .hi-alt li { height: 44px; cursor: pointer; }
 /* THE RIVALS' TAGS: the gold flag's twin in the RIVAL's colour ("ALEX ▲3"), in the same clear column — and DIM while a slab slides
    (one class on their own layer: opacity only) */
-.hi-rtags { position: absolute; inset: 0; pointer-events: none; opacity: 1; transition: opacity 0.14s linear; }
-.hi-rtags.is-dim { opacity: 0.5; }
-.hi-rtag { --c: #fff; color: #fff; border-left: 3px solid var(--c); }
+.hi-rtags { position: absolute; inset: 0; pointer-events: none; }
+.hi-rtag { --c: #fff; color: #fff; border-left: 3px solid var(--c); will-change: transform, opacity; transition: transform 0.56s cubic-bezier(0.15, 0.6, 0.4, 1), opacity 0.14s linear; }
+.hi-rtag.is-dim { opacity: 0.5; }
 /* THE ANNOUNCER (the match kit's — one visible, a short queue): the passes, the rivals' streaks, who is out — a flat line under the
    game's own lane, its edge in the call's colour (opacity + transform only) */
 .hi-ann { display: flex; justify-content: center; min-height: 24px; margin-top: 4px; pointer-events: none; }
@@ -299,4 +299,4 @@
 .hi-stage.hi-stage.hi-stage.is-final .hi-alt, .hi-stage.is-final .hi-rtags, .hi-stage.is-final .hi-watch, .hi-stage.is-final .hi-over, .hi-stage.is-final .hi-count, .hi-stage.is-final .hi-roster, .hi-stage.hi-stage.hi-stage.is-over .hi-alt, .hi-stage.is-over .hi-rtags { display: none; }   /* (the class thrice: over the altimeter's own is-match.is-live / is-watch rule) */
 /* (the pass's pixel test: every rival thing off — night.js#showRivals takes the tapes) */
 .hi-stage.no-rivals .hi-alt, .hi-stage.no-rivals .hi-rtags, .hi-stage.no-rivals .hi-ann { visibility: hidden; }
-@media (prefers-reduced-motion: reduce) { .hi-ann-in, .hi-ann-in.is-out, .hi-outcard { animation: none; } .hi-rtags, .hi-roster, .hi-outcard { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .hi-ann-in, .hi-ann-in.is-out, .hi-outcard { animation: none; } .hi-rtag, .hi-roster, .hi-outcard { transition: none; } }

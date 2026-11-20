@@ -1812,6 +1812,11 @@ test("HIGH RISE S4B — the proof node's `rs`: the run's rule set — own uid, o
   await assertSucceeds(update(ref(db('p2'), N), { 'c/0': { s: '1c.1k', at: serverTimestamp() } }), 'the log goes on as ever');
   // the host: GO + the rule set in ONE write is fine (GO is in the write); after the end — nothing
   await assertSucceeds(update(ref(db('host'), `${R}/hr/m1/host`), { go: serverTimestamp() }));
+  // THE CLOSE's REVIEW: only BEFORE the log's first chunk (a rule set is never picked once the climb is seen) — and never in the same
+  // write as a chunk or the end
+  await assertFails(update(ref(db('host'), `${R}/hr/m1/host`), { rs: 'classic', 'c/0': { s: '1c.1k', at: serverTimestamp() } }), 'never in one write with the first chunk');
+  await assertSucceeds(update(ref(db('host'), `${R}/hr/m1/host`), { 'c/0': { s: '1c.1k', at: serverTimestamp() } }), 'the first chunk');
+  await assertFails(set(ref(db('host'), `${R}/hr/m1/host/rs`), 'classic'), 'no rule set once the log has begun');
   await assertSucceeds(update(ref(db('host'), `${R}/hr/m1/host`), { e: { f: 0, t: 300, w: 'slow' } }), 'the end');
   await assertFails(set(ref(db('host'), `${R}/hr/m1/host/rs`), 'classic'), 'no rule set after the end');
   await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { phase: 'final' }));

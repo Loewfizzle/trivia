@@ -183,7 +183,7 @@ export function createStage(app, o = {}) {
   const gcReg = HAS_WEAK ? new FinalizationRegistry(() => { if (!canaryGone) { marks.gc = performance.now(); gcSeen++; } hitchLine(); putCanary(); }) : null;
   function putCanary() { if (gone || !gcReg) return; const c = {}; canary = new WeakRef(c); gcReg.register(c); canaryGone = false; }
   const setNum = numBox(num, mark);
-  const NO_VIEW = { el: null, warm: () => true, flyReady: () => true, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, setFriend() {}, setLook() {}, rest() {}, resize() {}, flyers: () => false, band() {}, need() {}, fly: () => false, flyReset() {}, flyHush() {}, flyInfo: () => ({ ready: false }), flyPath: () => null, project: () => [0, -1], zoneTop: () => 1, restZone: () => 1, restY: () => -1, stat: () => null, io: new Float64Array(3), pose() {}, welcome() {}, ghostBest() {}, poseXY(x, f, z, out) { out[0] = 0; out[1] = -1; }, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
+  const NO_VIEW = { el: null, setRival() {}, dimRivals() {}, showRivals() {}, warm: () => true, flyReady: () => true, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, setFriend() {}, setLook() {}, rest() {}, resize() {}, flyers: () => false, band() {}, need() {}, fly: () => false, flyReset() {}, flyHush() {}, flyInfo: () => ({ ready: false }), flyPath: () => null, project: () => [0, -1], zoneTop: () => 1, restZone: () => 1, restY: () => -1, stat: () => null, io: new Float64Array(3), pose() {}, welcome() {}, ghostBest() {}, poseXY(x, f, z, out) { out[0] = 0; out[1] = -1; }, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
   let view, glDown = null;
   try { view = createNight(play, { tier: pin == null ? 2 : pin, mark, look: lookT, trace: TR }); }
   catch { stage.append(noGL()); return null; }
@@ -482,7 +482,7 @@ export function createStage(app, o = {}) {
     if (momDue >= 0) runMoments(now);   // (the last landing's moments before its end card)
     shown = true; overAt = now; liveRun = null; awake(false);   // (THE SOUND SYNC: the hold ends with the run — the context naps again on the end card)
     const live = resultOf(run), b = bandAt(live.floor), was = best;
-    best = FROM ? was : nextBest(was, live.floor);   // (a `?floor=N` look check is not a run: YOUR BEST stays)
+    best = FROM || matchOn ? was : nextBest(was, live.floor);   // (a `?floor=N` look check is not a run: YOUR BEST stays · THE CLOSE's REVIEW: YOUR BEST is the SOLO best — a match's floor never sets it)
     if (best > was) writeBest(best);   // (THE REVIEW: stored BEFORE the end screen is asked for — the podium's body reads it)
     // THE CARTRIDGE: the console's podium IS the end screen — the stage's own card only for a run that can't reach it (UNPROVEN)
     const E = o.onEnd ? o.onEnd(live) : null;

@@ -1244,3 +1244,8 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 - The assets: `python -P -E scripts/build-highrise-assets.py --only=plates,env --look=day` · the F-22: `node scripts/bake-model.mjs
   "<chromium>" highrise-f22` (needs the city's source model `art/models/f22/`, on the build machine only) · the cards' art: `node
   scripts/build-highrise-cards.mjs "<chromium>" [previewDir]` (needs `scripts/serve.mjs` on :5173).
+- **HIGH RISE S4B:** THE MATCH `node tests/integration/e2e-highrise-match.mjs "<chromium>" <outDir> [--fast]` (55 — the emulators: three
+  phones + a late joiner; `--fast` = two phones) · THE PIXEL TEST `highrise-rivals.mjs` (10 — 8 players, day + night, 0 rival pixels in
+  the play zone) · THE PRE-WARM `highrise-prewarm.mjs` (35) · WHAT REPAINTS IN PLAY `highrise-paint.mjs` (13 — a Chromium trace) · the
+  end screen's shots `highrise-play.mjs … --end` (52) + `HI_UNTIL=table node e2e-highrise.mjs …` (YOUR TABLE's fixtures). `serve.mjs`
+  is enough for the four page checks; the E2Es need the emulators.

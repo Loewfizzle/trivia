@@ -9,7 +9,7 @@
 import { judgeRun, unpackTaps } from './replay.js';
 import { TICK_HZ } from './tuning.js';
 import { seedOf, firstGo } from './logic.js';
-import { RULES_DEFAULT } from './rules.js';
+import { RULES_DEFAULT, ruleSet } from './rules.js';
 
 /**
  * THE CLOCK (JAYWALK's, number for number — a run is played ON the server's clock; every chunk carries the moment it ARRIVED):
@@ -112,11 +112,16 @@ export function judgeNode({ seed, mode = 'solo', node, mirror = false, rules = n
   const j = judgeRun({ seed, mode, taps, rules: rs });
   return j.ok && cut ? { ...j, cut } : j;
 }
-/** S4B — a MATCH's rule set = the one THE FIRST GO's player named (none = "classic"): PURE — the phones, the host and the server agree */
+/** S4B — a MATCH's rule set = the one THE FIRST GO's player named (none = "classic"): PURE — the phones, the host and the server agree.
+ *  THE CLOSE's REVIEW: a set NOBODY KNOWS is never the match's — the match stays "classic" and that player's own node is the one refused
+ *  (one player naming "zz" voided everyone's tower); two GOs in the same millisecond: the LOWEST uid's (never the order the keys came in). */
 export function matchRules(runs) {
   const g0 = firstGo(runs);
-  for (const n of Object.values(runs || {})) if (n && Number(n.go) === g0 && g0 > 0) return n.rs == null ? RULES_DEFAULT : n.rs;
-  return RULES_DEFAULT;
+  if (!(g0 > 0)) return RULES_DEFAULT;
+  let first = null;
+  for (const u of Object.keys(runs || {})) { const n = runs[u]; if (n && Number(n.go) === g0 && (first === null || u < first)) first = u; }
+  const rs = first === null ? null : runs[first].rs;
+  return rs != null && ruleSet(rs) ? rs : RULES_DEFAULT;
 }
 /** a SOLO run's node: the seed = logic.js#seedOf(code, matchId, its own GO) — picked AFTER GO, nobody can shop for a tower */
 export const judgeSolo = ({ code, matchId, node, mirror = false } = {}) => (node && Number(node.go) > 0

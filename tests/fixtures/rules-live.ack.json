@@ -1,4 +1,4 @@
 {
-  "hash": "5751bd1923bc91d6",
-  "line": "RULES CHANGED: rooms/$code/jw/$match + rooms/$code/hr/$match — THE LIVE LOCK (the host deletes ONE match's proof tree only once his own GO in it is 10 min old, whatever game/phase says; the whole jw / hr node never) + rooms/$code/hr/$match/$uid (HIGH RISE proof node — go, c/$i chunks, e, k + S4B's rs: the run's rule set) + still pending from DAILY A: dly/jaywalk/$day/w/$uid/$try (JAYWALK daily proof node) — RE-PUBLISH database.rules.json in the Firebase console"
+  "hash": "131aaea2a9fa4d21",
+  "line": "RULES CHANGED: rooms/$code/jw/$match + rooms/$code/hr/$match — THE LIVE LOCK (the host deletes ONE match's proof tree only once his own GO in it is 10 min old, whatever game/phase says; the whole jw / hr node never) + rooms/$code/hr/$match/$uid (HIGH RISE proof node — go, c/$i chunks, e, k + S4B's rs: the run's rule set — written once, behind GO, before the log's first chunk) + still pending from DAILY A: dly/jaywalk/$day/w/$uid/$try (JAYWALK daily proof node) — RE-PUBLISH database.rules.json in the Firebase console"
 }

@@ -1105,6 +1105,10 @@ phones' nodes without a GO scored "no go", the host the winner of a counted matc
 delete is now refused while that match is LIVE (count / play) after the write. An older match's prune, the end, a new start, another
 game's start still clear it — `host.js#pruneProofs` + `kit/again.js` already make those in writes of their own. Nothing honest ever
 deleted a live tree: no client change, no fallback needed on the old rules.
+**HIGH RISE S4B — THE LIVE LOCK (A RULES CHANGE — docs/highrise.md "THE LIVE LOCK"):** that refusal read game/phase, which the host
+writes — a modified host flipped it first. Now ONE match's tree goes only once THE HOST's OWN `go` in it is 10 min old (whatever
+`game` says); a tree with no GO of his never; the WHOLE `jw` node never. `host.js#pruneProofs` + `kit/again.js` ask only for what
+the rules allow (`core/room-logic.js#proofUnlocked`) — a held tree waits for a later start.
 
 ### NEVER A CAR IN YOUR KID's COLOUR (`night.js#carTint` — a VIEW) · HOW TO PLAY
 A cyan kid vanished against two cyan vans. A car's tint walks the palette past any colour near the viewer's kid's (each phone its

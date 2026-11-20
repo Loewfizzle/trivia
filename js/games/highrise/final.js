@@ -120,7 +120,7 @@ export function finalScene(el, game, state) {
   // (THE REVIEW: the stage stored a run's new best BEFORE this screen was asked for — while counting is OFF (no server best yet) the
   //  phone's own record says NEW BEST here; the server's answer takes the column over once counting is ON)
   const nb = globalThis.__hiNewBest;
-  if (!srv && nb && game && nb.m === game.matchId && nb.v === floor && floor > 0) EC.best(floor, true, nb.was);
+  if (!srv && nb && game && nb.m === game.matchId && nb.v === floor && floor > 0) EC.best(floor, nb.was > 0, nb.was);   // (THE CLOSE's REVIEW: a first run's floor is YOUR BEST — NEW BEST only of a best that was BEATEN, as the stage's own card)
   else EC.best(known, false);
   if (!code) return;
   let tabled = false;
