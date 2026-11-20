@@ -7,6 +7,7 @@
 import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { chromiumPages, webkitPages } from './kit/page-loads.mjs';
+import { BOOT_WAIT_MS } from './kit/harness.mjs';   // (THE PROOF PASS: the boot wait's named allowance for the cloud runner's speed)
 
 const BROWSER = process.argv[2];
 const OUT = (process.argv[3] || './shots').replace(/\/?$/, '/');
@@ -134,7 +135,7 @@ try {
   // ---- title + create (host) — a brand-new phone
   const host = await open(0);
   await host.waitForSelector('.nd-host', { timeout: 20000 });
-  await host.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
+  await host.waitForFunction(() => !document.getElementById('boot'), { timeout: BOOT_WAIT_MS });
   ok(await host.evaluate(() => !/[?&]slot=/.test(location.search)), 'host is a regular phone tab (no test slot)');
   await check('title');
   for (let k = 0; k < 5 && !(await host.$('.setup-screen input.input')); k++) {
@@ -151,7 +152,7 @@ try {
   // ---- join (guest) through the invite link, also a regular phone
   const guest = await open(1, `&room=${code}`);
   await guest.waitForSelector('.nd-go', { timeout: 20000 });
-  await guest.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
+  await guest.waitForFunction(() => !document.getElementById('boot'), { timeout: BOOT_WAIT_MS });
   await check('invite');
   await tap(guest, '.nd-go');
   await guest.waitForSelector('.input-code');

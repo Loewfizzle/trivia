@@ -9,7 +9,7 @@
 //      back within a few seconds.
 //   4. THE HOST REFRESHES mid-challenge + the same late onDisconnect: nobody claims the host while its heartbeat is fresh
 //      (client + rules) — the host is NOT deposed.
-import { createHarness } from './kit/harness.mjs';
+import { createHarness, BOOT_WAIT_MS } from './kit/harness.mjs';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { ref, set, update } from 'firebase/database';
 
@@ -51,8 +51,8 @@ await H.run(async () => {
   p.on('request', r => { if (/\/js\/chat\/ui\.js/.test(r.url()) && !held) { held = r; return; } r.continue().catch(() => {}); });
   await p.goto(`${H.BASE}/?emu&slot=pr2&room=${H.code}`);
   pages[2] = p;
-  await p.waitForSelector('.nd-go', { timeout: 20000 });
-  await p.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
+  await p.waitForSelector('.nd-go', { timeout: BOOT_WAIT_MS });
+  await p.waitForFunction(() => !document.getElementById('boot'), { timeout: BOOT_WAIT_MS });   // (the runner's speed: kit/harness.mjs#BOOT_WAIT_MS)
   await p.click('.nd-go');
   await p.waitForSelector('.input-code');
   await p.type('.setup-screen input.input:not(.input-code)', H.NAMES[2]);

@@ -15,6 +15,14 @@ export const NAMES = ['ALICE', 'BOB', 'CHARLIE', 'DANA', 'EVE', 'FINN', 'GRACE',
 export const VIEW = { width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true };
 export const PHONE_SIZES = [[390, 844], [412, 915]];
 export const REVIEW_SIZES = [[390, 844], [412, 915], [1440, 900]];
+/**
+ * THE BOOT WAIT (THE PROOF PASS, Nov 20 — GitHub's `tests` job, red on e2e-presence.mjs:55 since HIGH RISE's go-live): how long a test waits
+ * for a page's boot screen to go. The cloud runner draws the city WITHOUT a GPU on two cores: a THIRD phone booting while two cities
+ * already draw took ~13 s there in the last green run (9432ec57: room → the lobby strip check in 39 s) — against a 15 s wait it was a coin
+ * toss, and HIGH RISE's listing tipped it. On the mini PC the same boot takes 2.3 s (5.9 s at 3× CPU). A NAMED ALLOWANCE for the runner's
+ * speed — the check is unchanged: the boot screen must go (the app's own watchdog still reports a boot over 12 s).
+ */
+export const BOOT_WAIT_MS = 45000;
 export const BAD_TEXT = /\bnull\b|\bundefined\b|\bNaN\b|\[object Object\]/;
 const CONSOLE_NOISE = /ERR_|Failed to load resource|favicon|permission_denied|PERMISSION_DENIED|Client is offline|net::|WebGL|GPU stall/i;
 
@@ -98,7 +106,7 @@ export async function createHarness({ name, slot = 'e', hook = null, sizes = REV
   async function join(i) {
     const p = await openPlayer(i, `room=${code}`);
     await p.waitForSelector('.nd-go', { timeout: 20000 });
-    await p.waitForFunction(() => !document.getElementById('boot'), { timeout: 15000 });
+    await p.waitForFunction(() => !document.getElementById('boot'), { timeout: BOOT_WAIT_MS });
     await p.click('.nd-go');
     await p.waitForSelector('.input-code');
     await p.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
