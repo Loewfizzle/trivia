@@ -93,6 +93,7 @@ const START_WAIT_MS = 600;
  *   o.page      THE TEST PAGE's own pieces: the look switch, the SOUNDS list, the note, its own end card every run, the audio engine installed here
  *   o.seed · o.mode · o.look · o.from · o.fps · o.tier · o.trace · o.lean     the page's `?…` flags (lean — S4B, THE LAG A/B: every DOM / CSS
  *               effect drawn over the 3D view is OFF while a run is live — the glows, the transitions, the announcer's motion; the canvas's own look stays)
+ *   o.cam · o.noFly   REVIEW FIX B — the test page's `?poster=hero` only: THE HERO CAMERA (night.js) · no flyer moments (the finish's pour stays)
  *   o.best      { read() → floor, write(n) } — YOUR BEST's store (the page: this phone's `hi:play:best`)
  *   o.hook      the name its checks find the hook under (`window[o.hook]`)
  *   THE CARTRIDGE (view.js) hands in what a run WRITES — the stage itself never counts anything:
@@ -209,7 +210,7 @@ export function createStage(app, o = {}) {
   const BL = bakedLine(call);
   const NO_VIEW = { el: null, setRival() {}, dimRivals() {}, showRivals() {}, warm: () => true, flyReady: () => true, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, setFriend() {}, setLook() {}, rest() {}, resize() {}, flyers: () => false, band() {}, need() {}, fly: () => false, flyReset() {}, flyHush() {}, flyInfo: () => ({ ready: false }), flyPath: () => null, project: () => [0, -1], zoneTop: () => 1, restZone: () => 1, restY: () => -1, stat: () => null, io: new Float64Array(3), pose() {}, welcome() {}, ghostBest() {}, poseXY(x, f, z, out) { out[0] = 0; out[1] = -1; }, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
   let view, glDown = null;
-  try { view = createNight(play, { tier: pin == null ? 2 : pin, mark, look: lookT, trace: TR }); }
+  try { view = createNight(play, { tier: pin == null ? 2 : pin, mark, look: lookT, trace: TR, cam: o.cam }); }
   catch { stage.append(noGL()); return null; }
   const tierPath = [pin == null ? 2 : pin];
   const tiers = createTiers({ apply: t => { view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });
@@ -228,7 +229,7 @@ export function createStage(app, o = {}) {
     clearTimeout(lostTimer); lostTimer = 0;
     offGL();
     try { view.destroy(); } catch { /* it is gone already */ }
-    try { view = createNight(play, { tier: tiers.get(), mark, look: lookT, trace: TR }); }
+    try { view = createNight(play, { tier: tiers.get(), mark, look: lookT, trace: TR, cam: o.cam }); }
     catch {
       view = NO_VIEW; hook.view = view;
       if (!glDown) { glDown = noGL(); stage.append(glDown); }
@@ -385,7 +386,10 @@ export function createStage(app, o = {}) {
   // THE FLYERS (S3 — flyplan.js says WHEN + WHICH from the seed; flyers.js, a LAZY module, flies them — it is fetched from floor 20,
   // each model + its sounds well before its own floor: night.js uploads them in an ordinary frame, never in the moment)
   let plan = flyPlan(''), FlyMod = null, flyAsk = false, needFloor = -1;
-  const flown = { jet: false, ufo: false, ship: false }, wanted = new Set();
+  // (REVIEW FIX B — `o.noFly`: THE SHARE CARD's hero shots (the test page's `?poster=hero`) — no flyby, no UFO, no MOTHERSHIP pass: every
+  //  moment counts as flown already; a match's FINISH still pours its gold light under the ship — the gold shot's)
+  const NOFLY = !!o.noFly;
+  const flown = { jet: NOFLY, ufo: NOFLY, ship: NOFLY }, wanted = new Set();
   const loadFly = () => (FlyMod ? Promise.resolve(FlyMod) : lazyImport(import('./flyers.js'), './flyers.js').then(M => { FlyMod = M; view.flyers(M); needFloor = -1; return M; }));
   function flyCheck() {
     view.band(stageH ? hudFoot / stageH : 0.2);
@@ -426,7 +430,7 @@ export function createStage(app, o = {}) {
     seed = s; momDue = -1; landF = -1e9; shotAt = 0; run = createRun({ seed, mode: MODE }); liveRun = null; watchW = null; mine = null; mineT = null; pendEnd = null; wN = 0; watchMode(false); if (MH) MH.reset(); for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0); skipP = 0; skipS = 0; streakTop = 0; taps = []; t0 = null; shown = false; card = false; overAt = 0; endedAt = 0; ev.length = 0; liveN = 0; sounded = 0; hush = false; starting = false; startN++; stage.classList.remove('is-starting');
     T = createTower(run, hooks, KEEP);
     best = Math.max(best, readBest()); tapeFloor = 0; newBest = false; bandNow = 0; notch = 0;   // (max: a phone whose storage is blocked still keeps its best for the visit)
-    plan = flyPlan(seed); flown.jet = flown.ufo = flown.ship = false; wanted.clear(); needFloor = -1;
+    plan = flyPlan(seed); flown.jet = flown.ufo = flown.ship = NOFLY; wanted.clear(); needFloor = -1;
     view.adopt(run, T); view.setBest(0); view.setFriend(0); friendTape = 0; tagOn = false; ftagF = null; ftag.hidden = true; tagDirty = true; view.flyReset();
     prewarm();   // (S4B: every flyer's model on its way NOW — behind the welcome screen, never at its floor)
     // (THE WELCOME's scene: the tower low on the screen, a first slab already sliding in, YOUR BEST's tape)

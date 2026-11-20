@@ -79,6 +79,10 @@ export function createNight(host, o = {}) {
   const scene = new THREE.Scene();
   renderer.setClearColor(BG, 1);
   const cam = new THREE.PerspectiveCamera(CAM.fov, 1, 0.5, 80);
+  // REVIEW FIX B — THE HERO CAMERA (`o.cam` — the test page's `?poster=hero` only: THE SHARE CARD's six hero shots, poster.js): a LOWER
+  // look (`pitch`°, the play's 33°) from FARTHER back (`far` × the play's distance) — a tall tower, its top in the sky. Never in play.
+  const HERO = o.cam && typeof o.cam === 'object' ? o.cam : null;
+  const PITCH = HERO && HERO.pitch > 0 && HERO.pitch < 80 ? HERO.pitch : CAM.pitch, FAR = HERO && HERO.far > 0 ? HERO.far : 1;
   // the uniforms every material shares (one object each: a pass flips them once)
   const G = { uBloom: { value: 0 }, uTime: { value: 0 }, uTopY: { value: 0 }, uFadeH: { value: 3.5 }, uEnv: { value: null }, uEnvOn: { value: 0 }, uEnvFlip: { value: 0 }, uEnvD: { value: null }, uEnvDOn: { value: 0 }, uEnvDFlip: { value: 0 }, uEnvRot: { value: 0.18 }, uAspect: { value: 1 },
     uDay: { value: dayK }, uSun: { value: new THREE.Vector3(SUN[0], SUN[1], SUN[2]).normalize() }, uHaze: { value: new THREE.Vector3(0.4, 0.65, 0.9) } };
@@ -561,7 +565,7 @@ export function createNight(host, o = {}) {
     if (!nw || !nh || (!force && nw === w && nh === h && nd === dpr)) return;
     w = nw; h = nh; dpr = nd;
     renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
-    cam.aspect = w / h; dist = camDist(cam.aspect); cam.updateProjectionMatrix();
+    cam.aspect = w / h; dist = camDist(cam.aspect) * FAR; cam.updateProjectionMatrix();
     G.uAspect.value = cam.aspect;
     // the plate COVERS the screen with SLACK of its height to drift through: what part of it shows (uv width, uv height)
     const tall = (1 + SLACK) * Math.max(1, cam.aspect / (PLATE_ASPECT * (1 + SLACK))), wide = tall * PLATE_ASPECT / cam.aspect;
@@ -586,7 +590,7 @@ export function createNight(host, o = {}) {
   // out ONCE, here, by three's own lookAt; a frame then only moves it: three numbers into its matrix + three into the matrix's
   // inverse (the turn's own transpose never changes). No lookAt, no quaternion, no matrix inverse a frame — and its three axes
   // (CX · CY · CZ: right, up, back) are plain numbers the tags + the drop zone are worked out from.
-  const cp = Math.cos(CAM.pitch * RAD), sp = Math.sin(CAM.pitch * RAD), sy = Math.sin(CAM.yaw * RAD), cy = Math.cos(CAM.yaw * RAD);
+  const cp = Math.cos(PITCH * RAD), sp = Math.sin(PITCH * RAD), sy = Math.sin(CAM.yaw * RAD), cy = Math.cos(CAM.yaw * RAD);
   cam.position.set(cp * sy, sp, cp * cy); cam.lookAt(0, 0, 0); cam.updateMatrix(); cam.updateMatrixWorld(true);
   cam.matrixAutoUpdate = false; cam.matrixWorldAutoUpdate = false;
   const CE = cam.matrix.elements, CW = cam.matrixWorld.elements, CI = cam.matrixWorldInverse.elements;

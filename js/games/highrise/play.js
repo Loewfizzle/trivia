@@ -40,12 +40,18 @@ const writeBest = n => { try { localStorage.setItem(BEST_KEY, String(n)); } catc
 
 // THE PAGE = THE STAGE (stage.js — the run loop, the scene, the HUD, the sounds: the SAME module the cartridge mounts) with the page's own
 // pieces on (`page`): the look switch, the SOUNDS list, the note, its own end card + PLAY AGAIN; YOUR BEST = this phone's (`hi:play:best`)
-function mount() {
-  const S = createStage(app, { page: true, hook: '__hiPlay', seed: FIXED, mode: MODE, look: LOOK_Q, from: FROM, fps: Q.get('fps') === '1', trace: Q.get('trace') === '1', lean: Q.get('lean') || '', sim: Math.max(0, Math.min(7, Math.floor(Number(Q.get('rivals')) || 0))), tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, best: { read: readBest, write: writeBest } });
+function mount(cam = null, shot = null) {
+  const S = createStage(app, { page: true, cam, noFly: !!shot, hook: '__hiPlay', seed: shot ? shot.seed : FIXED, mode: shot ? shot.mode : MODE, look: shot ? 'night' : LOOK_Q, from: shot ? shot.floor : FROM, fps: Q.get('fps') === '1', trace: Q.get('trace') === '1', lean: Q.get('lean') || '', sim: Math.max(0, Math.min(7, Math.floor(Number(Q.get('rivals')) || 0))), tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, best: { read: readBest, write: writeBest } });
   // S5 — `?poster=1` (JAYWALK's lab's): THE POSTER for THE B1 BILLBOARD — the staged moment in the real night scene, the board drawn over it
   //  (poster.js, lazy; the build: scripts/build-highrise-billboard.mjs — `&seed=poster2&floor=78&look=night`). Nothing counts here either.
   if (Q.get('poster') === '1') lazyImport(import('./poster.js'), './poster.js').then(M => M.runPoster(S, app)).catch(e => console.warn('[poster]', e));
+  return S;
 }
 
-try { mount(); }
+// REVIEW FIX B — `?poster=hero&shot=<id>` (+ `&tier=2`): ONE of THE SHARE CARD's six hero shots (poster.js#runHero — THE HERO
+// CAMERA, lower + farther back: the stage is mounted with it + the shot's own seed, mode + floor, ALWAYS the night look); the build: scripts/build-highrise-heroes.mjs. Nothing counts here either.
+try {
+  if (Q.get('poster') === 'hero') lazyImport(import('./poster.js'), './poster.js').then(M => M.runHero(mount(M.HERO_CAM, M.heroOf(Q.get('shot') || '') || M.HEROES[0]), app, Q.get('shot') || M.HEROES[0].id)).catch(e => { window.__hiHeroErr = String((e && e.message) || e); console.warn('[hero]', e); });
+  else mount();
+}
 catch (e) { app.replaceChildren(h('p.hi-wait', `Can’t open the game: ${(e && e.message) || e}`)); }

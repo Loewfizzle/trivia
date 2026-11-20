@@ -80,7 +80,7 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   assert.ok(door.includes("const toApi = u => { try { return new URL(String((u && u.url) || u), location.href).pathname.startsWith('/api/'); } catch { return false; } };"));
   assert.ok(door.includes("window.fetch = (u, o) => (toApi(u) ? Promise.reject(new TypeError('this page never calls the server')) : pageFetch(u, o));"));
   assert.ok(door.includes('if (pageBeacon) navigator.sendBeacon = (u, d) => (toApi(u) ? true : pageBeacon(u, d));'));
-  assert.ok(door.indexOf('window.fetch = ') > 0 && door.indexOf('window.fetch = ') < door.indexOf('function mount()') && door.indexOf('function mount()') < door.indexOf('createStage(app,'), 'the door is shut before the page mounts (before the audio engine is ever installed)');
+  assert.ok(door.indexOf('window.fetch = ') > 0 && door.indexOf('window.fetch = ') < door.indexOf('function mount(') && door.indexOf('function mount(') < door.indexOf('createStage(app,'), 'the door is shut before the page mounts (before the audio engine is ever installed)');
   assert.ok(read('js/errlog.js').includes("navigator.sendBeacon && navigator.sendBeacon('/api/log', blob))) fetch('/api/log'"), '(the quiet counter goes through sendBeacon / fetch — the two the door holds)');
   const doorText = door.slice(door.indexOf('const toApi'), door.indexOf('/** `?seed=`') > 0 ? door.indexOf('/** `?seed=`') : door.indexOf('const FIXED'));
   for (const f of own) {
@@ -115,10 +115,13 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   for (const m of stg.matchAll(/\bimport\(/g)) assert.equal(stg.slice(m.index - 11, m.index), 'lazyImport(', 'every dynamic import through lazyImport');
   assert.ok([...stg.matchAll(/\bimport\(/g)].length >= 4, '(S4A: the lazy imports are the stage\'s)');
   // (S5: the page's ONE lazy import — THE POSTER, `?poster=1` alone — through the skew wrapper too)
-  assert.deepEqual([...play.matchAll(/\bimport\(\s*'([^']+)'/g)].map(m => m[1]), ['./poster.js']); for (const m of play.matchAll(/\bimport\(/g)) assert.equal(play.slice(m.index - 11, m.index), 'lazyImport(');
+  assert.deepEqual([...play.matchAll(/\bimport\(\s*'([^']+)'/g)].map(m => m[1]), ['./poster.js', './poster.js'], '(REVIEW FIX B: + `?poster=hero` — the same lazy module)'); for (const m of play.matchAll(/\bimport\(/g)) assert.equal(play.slice(m.index - 11, m.index), 'lazyImport(');
   assert.match(play, /if \(Q\.get\('poster'\) === '1'\) lazyImport\(import\('\.\/poster\.js'\)/, 'only behind ?poster=1');
+  assert.match(play, /if \(Q\.get\('poster'\) === 'hero'\) lazyImport\(import\('\.\/poster\.js'\)/, '… or ?poster=hero (REVIEW FIX B — the hero shots)');
   // (S4A — THE STAGE NEVER COUNTS: what a cartridge run writes is HANDED IN (o.go · o.onFrame · o.onOver) — the page hands in nothing)
-  assert.match(play, /createStage\(app, \{ page: true, hook: '__hiPlay', seed: FIXED, mode: MODE, look: LOOK_Q, from: FROM, fps: Q\.get\('fps'\) === '1', trace: Q\.get\('trace'\) === '1', lean: Q\.get\('lean'\) \|\| '', sim: [^}]*, tier: [^}]*, best: \{ read: readBest, write: writeBest \} \}\);/);
+  // (REVIEW FIX B: `cam` + `noFly` + the shot's own seed / mode / floor / the night look — `?poster=hero` alone: `shot` is null otherwise)
+  assert.match(play, /function mount\(cam = null, shot = null\) \{/);
+  assert.match(play, /createStage\(app, \{ page: true, cam, noFly: !!shot, hook: '__hiPlay', seed: shot \? shot\.seed : FIXED, mode: shot \? shot\.mode : MODE, look: shot \? 'night' : LOOK_Q, from: shot \? shot\.floor : FROM, fps: Q\.get\('fps'\) === '1', trace: Q\.get\('trace'\) === '1', lean: Q\.get\('lean'\) \|\| '', sim: [^}]*, tier: [^}]*, best: \{ read: readBest, write: writeBest \} \}\);/);
   assert.doesNotMatch(play, /\bgo:|onFrame|onOver|onEnd|friends/, 'the page hands the stage no proof, no report, no friends');
   assert.match(play, /if \(Q\.has\('debug'\)\) \{ try \{ Q\.delete\('debug'\); history\.replaceState\(/);
   assert.doesNotMatch(play, /rd-owner/);
@@ -439,7 +442,7 @@ test('THE LOOK SWITCH (S3): AUTO · DAY · NIGHT on the start screen (this phone
   assert.ok(s.includes("choice = cleanLook(l); writeLook(choice); markLook();") && s.includes("if (choice === 'auto') askSun(); else setLook(choice);"));
   assert.ok(s.includes("sunUpNow(Date.now()).then(up => { if (choice !== 'auto') return; const first = !sunKnown; sunKnown = true; setLook(resolveLook('auto', up), first && t0 == null); }, () => {});"), 'AUTO asks the sun rule (the first answer before a run snaps; later ones cross-fade)');
   assert.ok(s.includes("const sunIv = PAGE ? setInterval(() => { if (document.visibilityState === 'visible') askSun(); }, 60000) : 0;"), '… again every minute');
-  assert.ok(s.includes('try { view = createNight(play, { tier: tiers.get(), mark, look: lookT, trace: TR }); }'), 'a rebuilt scene keeps the look');
+  assert.ok(s.includes('try { view = createNight(play, { tier: tiers.get(), mark, look: lookT, trace: TR, cam: o.cam }); }'), 'a rebuilt scene keeps the look (+ REVIEW FIX B: the hero camera, the poster only)');
   // the scene: the other look's pictures FIRST (the decode-ahead loader), then the fade; settled, the old look's go
   assert.match(n, /export const LOOK_FADE_MS = 1500;/); assert.match(n, /export const LOOK_WAIT_MS = 5000;/);
   assert.ok(n.includes('if (!fading && (lookReady(target, mix.a, mix.b) || (waited += dt) > LOOK_WAIT_MS)) fading = true;'), 'the cross-fade waits for the look\'s two plates + its reflection map');
@@ -480,7 +483,7 @@ test('THE FLYERS\' PLAN (flyplan.js — PURE): the seed picks THE BLACKBIRD or t
   for (const f of ['tuning.js', 'engine.js', 'logic.js', 'replay.js']) assert.doesNotMatch(code(`${HI}${f}`), /flyplan|flyers|look\.js/, `${f} (the rules) never reads the flyers`);
   // the page: the plan from the run's seed, a moment at its landing; floor 200 — SOLO: the pass + THE MOTHERSHIP in the lane + the band-arrival sound · a finishing mode: THE FINISH
   const s = code(`${HI}stage.js`);
-  assert.ok(s.includes('plan = flyPlan(seed); flown.jet = flown.ufo = flown.ship = false; wanted.clear(); needFloor = -1;') && /view\.adopt\(run, T\); view\.setBest\(0\); view\.setFriend\(0\);[^\n]* view\.flyReset\(\);/.test(s));
+  assert.ok(s.includes('plan = flyPlan(seed); flown.jet = flown.ufo = flown.ship = NOFLY; wanted.clear(); needFloor = -1;') && s.includes('const NOFLY = !!o.noFly;') && /view\.adopt\(run, T\); view\.setBest\(0\); view\.setFriend\(0\);[^\n]* view\.flyReset\(\);/.test(s));
   assert.ok(s.includes("if (due === 'jet') view.fly(plan.jet, plan.jetDir);") && s.includes("else if (due === 'ufo') view.fly('ufo', plan.ufoDir);"));
   assert.ok(s.includes("else if (due === 'ship' && MODE === 'solo') { view.fly('pass'); say('THE MOTHERSHIP', 'hi-call is-gold', 6, 2600, now); if (!late) cues.push(CUE_BAND); }"));
   assert.ok(s.includes("else if (e.e === 'made') {") && s.includes("view.fly('pour');"), 'a match\'s floor 200 = THE FINISH');
