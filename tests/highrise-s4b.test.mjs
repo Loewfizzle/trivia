@@ -91,7 +91,7 @@ test('`?lean=1` (the test page only): every DOM / CSS effect over the 3D view is
   const s = read(`${HI}stage.js`), play = read(`${HI}play.js`), css = read('css/highrise-play.css');
   assert.ok(play.includes("lean: Q.get('lean') === '1',") && s.includes('LEAN = PAGE && !!o.lean;'), 'the page\'s flag — never the cartridge\'s');
   assert.ok(s.includes("class: LEAN ? 'is-lean' : null,") && s.includes('createTrace({ lean: LEAN })'));
-  assert.match(css, /\.hi-stage\.is-lean\.is-live \.hi-hud, \.hi-stage\.is-lean\.is-live \.hi-hud \*, \.hi-stage\.is-lean\.is-live \.hi-tag, \.hi-stage\.is-lean\.is-live \.hi-tag \*, \.hi-stage\.is-lean\.is-live \.hi-fps \{\n  text-shadow: none !important; box-shadow: none !important; filter: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; animation: none !important; transition: none !important;/);
+  assert.match(css, /\.hi-stage\.is-lean\.is-live \.hi-hud, \.hi-stage\.is-lean\.is-live \.hi-hud \*, \.hi-stage\.is-lean\.is-live \.hi-tag, \.hi-stage\.is-lean\.is-live \.hi-tag \*, \.hi-stage\.is-lean\.is-live \.hi-fps, \.hi-stage\.is-lean\.is-live \.hi-place \* \{\n  text-shadow: none !important; box-shadow: none !important; filter: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; animation: none !important; transition: none !important;/);
   assert.ok(s.includes('const canPop = !LEAN && !!call.animate;') && s.includes('if (!calm && !LEAN && band.animate)'), 'no Web Animation over the canvas in a LEAN run');
   assert.ok(s.includes("LEAN ? `TEST PAGE · LEAN${FROM ? ` · FROM FLOOR ${FROM}` : ''} · NOTHING COUNTS`"));
 });
@@ -139,11 +139,11 @@ test('THE MATCH on the phone (view.js): GO is a TRANSACTION never applied locall
   assert.ok(v.includes('if (!force && now - lastFlush < (isMatch ? FLUSH_MATCH_MS : CLOCK.flushMs)) return;') && v.includes('export const FLUSH_MATCH_MS = 150;'), 'a rival\'s height is never a second old');
   assert.ok(v.includes("if (!isMatch && performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000) park(S); else S.destroy();") && s.includes("if (t0 == null) { if (matchOn && !PAGE) return; begin(ts); return; }"));
   // the rivals: everyone's proof nodes through rivals.js; the calls through the match kit's announcer; Call the Winner = the kit's, `k` on your own node
-  assert.ok(v.includes('if (!g.unproven) { feedRival(R, runs && runs[u]); capRival(R, tick); }') && v.includes('const calls = matchCalls(memo,') && v.includes('for (const c of calls) hud.announce(c.text, c.kind);'));
+  assert.ok(v.includes('if (!g.unproven) { feedRival(R, runs && runs[u]); capRival(R, tick); }') && v.includes('const calls = matchCalls(memo, me || noMe, rowList);') && v.includes('for (let i = 0; i < calls.length; i++) { const c = calls[i]; hud.announce(c.text, c.kind);'));
   assert.ok(v.includes("callEl = showCall({ canPick: u => !(liveRuns && liveRuns[u] && liveRuns[u].e != null),") && v.includes("path: `${nodePath()}/k`,"), 'Call the Winner: the match kit\'s — never a pick for a player whose end is already here');
   assert.ok(v.includes("(r.cause === 'miss' || r.cause === 'thin' || r.cause === 'slow') && since > CALL_AFTER_MS && g.phase === 'play' && !g.unproven && wroteE"), 'a call only from a player who is OUT (never the finisher / the bell), once their own end is written');
-  // OUT = WATCH: the altimeter's pick · a tap's pick while they climb · else THE LEADER
-  assert.ok(v.includes('const f = pickAny && rivals.has(pickAny) ? pickAny : follow(others, followPick);') && v.includes('S.watch({ uid: f, name: R.name, seed: mSeed, taps: R.taps, done: () => R.done });'));
+  // OUT = WATCH: the ranked list's pick · a tap's pick while they climb · the one you follow STAYS while they climb (S5) · else THE LEADER
+  assert.ok(v.includes('const f = pickAny && rivals.has(pickAny) ? pickAny : follow(others, followPick || followUid);') && v.includes('S.watch({ uid: f, name: R.name, seed: mSeed, taps: R.taps, done: () => R.done });'));
   assert.ok(v.includes("txt = `WATCHING ${F.name} · ${F.floor}${live.length > 1 || F.over ? ' · TAP FOR THE NEXT' : ''}`;"));
   assert.ok(v.includes("kicker: endHeader(solo ? 'solo' : 'match')") && v.includes("note: `${g.unproven ? 'NOT COUNTED' : END_WORDS[(res[r.uid] || {}).w] || 'NO TOWER'} · ${perfectsLine(r.perfects)}`"), 'the podium: HIGH RISE · MATCH; every row its floor + how the tower ended + its perfects');
 });
@@ -155,17 +155,17 @@ test('THE TAPES NEVER BLOCK THE PLAY (the stage + the scene): a rival under you 
   assert.ok(n.includes('rs = rivalsOn && R.floor > 0 && R.floor < topFloor ? slabOf(R.floor) : null;'), 'a tape lies only on a floor UNDER the top slab');
   assert.ok(n.includes('twin(mesh, m); TWINS[TWINS.length - 1][1].visible = false;\n    RTAPES.push('), 'never in the bloom pass: no light past its own line');
   assert.ok(n.includes('NUM[RFACE] = 1; if (rivalDim) NUM[RFACE] = RIVAL_DIM;'), 'dim while a slab slides');
-  assert.ok(s.includes("others.push(!r.over && r.floor === here - 1 ? { ...r, floor: here } : r);"), 'a rival still climbing one floor under you is LEVEL (a network\'s beat behind): a tag, never a tape flashing under your top slab');
-  assert.ok(s.includes('const N = nearest(others, here, RIVALS_SHOWN), zone = view.restZone() * stageH;') && s.includes('y: tagY(view.restY(Math.min(r.floor, here + 100)) * stageH, hudFoot, zone, 14, 12)') && s.includes('MH.setTags(mergeTags(tagItems, 30), hexOfRival);'), 'the tags: the clear column, 12 px clear of THE DROP ZONE, merged within 30 px');
+  assert.ok(s.includes("if (!r.over && r.floor === here - 1) { let q = lvPool[lv];") && s.includes('q.floor = here; others.push(q); }'), 'a rival still climbing one floor under you is LEVEL (a network\'s beat behind): a tag, never a tape flashing under your top slab');
+  assert.ok(s.includes('const N = nearest(others, here, RIVALS_SHOWN, NR), zone = view.restZone() * stageH;') && s.includes('q.y = tagY(view.restY(Math.min(r.floor, here + 100)) * stageH, hudFoot, zone, 14, 12);') && s.includes('MH.setTags(mergeTags(tagItems, 30, MT), hexOfRival);'), 'the tags: the clear column, 12 px clear of THE DROP ZONE, merged within 30 px');
   assert.ok(s.includes("if (matchOn) { const sl = run.st === 'slide' && !watchW ? 1 : 0; if (sl !== dimWas) { dimWas = sl; MH.dim(sl === 1); view.dimRivals(sl === 1); } }"));
   assert.ok(s.includes('if (matchOn && live) placeRivals();') && s.includes("const gold = live && !FROM && !matchOn && best > 0 && run.floor <= best,"), 'a match\'s right-edge column is the rivals\': no gold line, no friend\'s');
   // WATCH: the tower from THEIR landed taps; its next slab ENTERS on the clock (seen sliding) and is HELD before its fuse
   assert.ok(s.includes('while (wN < tp.length && !isOver(run)) tap(run, tp[wN++], ev);') && s.includes('if (!isOver(run)) { const en = entryTick(run, Math.floor(FS[TAU])); if (en >= 0) stepTo(run, en, ev); }'));
   assert.ok(s.includes("else if (watchW && run.st === 'slide' && io[0] > run.s0 + 2 * run.S - 1) io[0] = run.s0 + 2 * run.S - 1;"));
-  assert.ok(s.includes("if (watchW) { if (o.onWatchTap) o.onWatchTap(); return; }") && s.includes("if (ev.length && watchW) { T.feed(ev); view.events(ev); ev.length = 0; sounded = 0; hush = false; }"), 'a watcher\'s tap = the next player; a watched tower is drawn, never sounded');
-  // the HUD: the kit's announcer; the altimeter takes no touch while you play, 44 pt rows once you watch; OUT = a cross + a struck name; no pill
+  assert.ok(s.includes("if (watchW) { if (o.onWatchTap) o.onWatchTap(); else if (hook.sim && hook.sim.next) hook.sim.next(); return; }") && s.includes("if (ev.length && watchW) { T.feed(ev); view.events(ev); ev.length = 0; sounded = 0; hush = false; }"), 'a watcher\'s tap = the next player; a watched tower is drawn, never sounded');
+  // the HUD: the kit's announcer; the ranked list (S5 — WATCH only): 44 pt rows; OUT = a cross + a struck name; no pill
   assert.ok(hud.includes("import { createAnnouncer } from '../kit/moments.js';") && hud.includes("const ann = createAnnouncer(lane, { prefix: 'hi', holdMs: 1500, queueMax: 3 });"));
-  assert.match(css, /\.hi-alt \{[^}]*pointer-events: none;/); assert.match(css, /\.hi-stage\.is-watch \.hi-alt \{ pointer-events: auto; \}\n\.hi-stage\.is-watch \.hi-alt li \{ height: 44px;/);
+  assert.match(css, /\.hi-alt \{[^}]*display: none; pointer-events: none;/); assert.match(css, /\.hi-stage\.is-match\.is-watch \.hi-alt \{ display: block; pointer-events: auto; \}/); assert.match(css, /\.hi-alt li \{[^}]*height: 44px;/);
   assert.match(css, /\.hi-alt li\.is-out \.hi-alt-n \{ text-decoration: line-through;/); assert.match(css, /\.hi-alt li\.is-out \.hi-alt-dot::before, \.hi-alt li\.is-out \.hi-alt-dot::after \{/, 'OUT = a cross + a struck name — never colour alone');
   assert.match(css, /\.hi-rtag\.is-dim \{ opacity: 0\.5; \}/); assert.doesNotMatch(css, /\.hi-rtags\.is-dim/, 'THE CLOSE: the dim is on the tags (compositor layers) — never on their full-stage box (it was a layout + paints at every landing)');
   assert.ok(read('js/games/highrise/matchhud.js').includes("dim(on) { dimOn = !!on; for (let i = 0; i < RIVAL_TAGS; i++) { const t = tags[i]; if (t.on && t.dim !== dimOn) {"), '… and a tag not shown is not written');

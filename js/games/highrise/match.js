@@ -17,8 +17,9 @@ export const END_GRACE_MS = 4000;
  *  taps may still be queued on the phone) before the match ends without it */
 export const DROP_WAIT_MS = 75000;
 /** a tower nobody touches is OUT within the fuse (FLOOR_TICKS_MAX — 4.9 s): a player whose proof has not moved for this long, with no end
- *  signalled, has a dead phone — the room stops waiting (an OFFLINE one gets DROP_WAIT_MS on top) */
-export const IDLE_OUT_MS = 12000;
+ *  signalled, has a dead phone — the room stops waiting (an OFFLINE one gets DROP_WAIT_MS on top). S5 — 18 s, JAYWALK's own (the owner,
+ *  Nov 20; S4B had 12 s): a signal the database has not yet seen drop gets 18 s for its queued taps — pinned equal by a test */
+export const IDLE_OUT_MS = 18000;
 /** an UNPROVEN match (no proof can be written — nobody's end can be signalled) simply ends after this (JAYWALK's) */
 export const UNPROVEN_MS = 90000;
 /** Call the Winner: a call counts when it was made within this of the caller's own end (the fall is seen first, then the kit's window) */

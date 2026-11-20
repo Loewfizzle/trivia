@@ -19,6 +19,9 @@
 //     --min-three  three.js's MINIFIED build in place of the readable one the pages load (the pass's own comparison: the minified
 //                  build makes a closure at every draw call — its minifier folded setProgram into its caller as a function made + called
 //                  on the spot; the readable build makes none)
+//   S5 — THE MATCH ROW: the guard (no flag) also measures a MATCH by night — /highrise-play?mode=match&rivals=7 (seven bot rivals on the same
+//     seed: their towers, the tags + tapes, THE PLACE NUMBER, the calls) against the SAME budget; the test page's own bots (matchsim.js —
+//     never in the cartridge) are EXCLUDED by site, and they never take the page to WATCH (sim.watchOff). ALLOC_MATCH=0 = no match row.
 //   ALLOC_S (seconds) · ALLOC_LOOKS (night,day) · ALLOC_FROM (the start floor, both looks) · ALLOC_TOP (24) · ALLOC_Q (extra query) ·
 //   ALLOC_SIZES=1 (what sizes each top site's objects are) · ALLOC_JS (V8 flags) · E2E_BASE (the code from BEFORE the pass is
 //   measured with this same script: it has no phase() / soon() hook — the bot reads its whole state four times a second instead)
@@ -75,8 +78,8 @@ const BOT = () => {
   requestAnimationFrame(fr);
 };
 
-async function measure(look) {
-  const FROM = fromOf(look);
+async function measure(look, extra = '') {
+  const FROM = fromOf(look), Q = extra || process.env.ALLOC_Q || '';
   const ctx = await b.createBrowserContext(), p = await ctx.newPage(), errs = [];
   p.on('pageerror', e => errs.push(String(e.message || e)));
   p.on('console', m => { if (m.type() === 'error' && !/favicon/.test(m.text())) errs.push(`console: ${m.text()}`); });
@@ -86,10 +89,12 @@ async function measure(look) {
   }
   const cdp = await p.createCDPSession();
   await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
-  await p.goto(guardUrl(`${BASE}/highrise-play?seed=alloc&fps=1&look=${look}${FROM ? `&floor=${FROM}` : ''}${process.env.ALLOC_Q || ''}`, 'highrise-play'), { waitUntil: 'load' });
+  await p.goto(guardUrl(`${BASE}/highrise-play?seed=alloc&fps=1&look=${look}${FROM ? `&floor=${FROM}` : ''}${Q}`, 'highrise-play'), { waitUntil: 'load' });
   const end = Date.now() + 20000;
   while (Date.now() < end) { try { if (await p.evaluate(() => { const i = window.__hiPlay && window.__hiPlay.state().info; return !!i && i.env && i.plates.includes(0) && i.warmed > 0 && i.frames > 5; })) break; } catch { /* loading */ } await sleep(80); }
   await sleep(500);
+  // (a match: the page's own bot rivals keep the run a RUN — they never take it to WATCH when it ends)
+  if (/rivals=/.test(Q)) { const t = Date.now() + 10000; while (Date.now() < t && !(await p.evaluate('!!(window.__hiPlay && window.__hiPlay.sim)'))) await sleep(80); await p.evaluate('window.__hiPlay.sim.watchOff = true'); }
   await p.evaluate(BOT);
   // "after the first second": the START touch, the climb to the start floor, the first second of the run
   const t1 = Date.now() + 15000;
@@ -136,17 +141,18 @@ async function measure(look) {
       if (size === 12) { row[1] += size * n; nums += size * n; continue; }
       if (size >= ONE_OFF && n <= 3) { once += size * n; continue; }
       row[0] += size * n; objs += size * n;
-      if (/three@|three\.module/.test(top)) three += size * n; else if (/ \/js\//.test(top)) own += size * n;
+      if (/three@|three\.module/.test(top)) three += size * n; else if (/ \/js\//.test(top) && !/matchsim\.js/.test(top)) own += size * n;   // (S5: the test page's bots are not the game)
     }
     sites.set(site, row);
   }
   const rows = [...sites.entries()].sort((x, y) => y[1][0] - x[1][0] || y[1][1] - x[1][1]);
-  return { look, from: FROM, secs, onceKb: once / 1024, objKbs: objs / 1024 / secs, numKbs: nums / 1024 / secs, ownKbs: own / 1024 / secs, threeKbs: three / 1024 / secs, grewKbs: grew / 1024 / secs, gcs, rows, info, errs, hist };
+  return { look: extra ? `${look} MATCH` : look, from: FROM, secs, onceKb: once / 1024, objKbs: objs / 1024 / secs, numKbs: nums / 1024 / secs, ownKbs: own / 1024 / secs, threeKbs: three / 1024 / secs, grewKbs: grew / 1024 / secs, gcs, rows, info, errs, hist };
 }
 
-const out = [];
-for (const look of LOOKS) {
-  const r = await measure(look);
+const out = [], RUNS = LOOKS.map(l => [l, '']);
+if (!TABLE && process.env.ALLOC_MATCH !== '0' && !process.env.ALLOC_Q) RUNS.push(['night', '&mode=match&rivals=7']);
+for (const [look, extra] of RUNS) {
+  const r = await measure(look, extra);
   out.push(r);
   console.log(`\nHIGH RISE — ALLOCATION, the ${r.look} look, ${r.secs.toFixed(0)} s of a live run after its first second (from floor ${r.from} to ${r.info.floor}, ${r.info.drops} drops, ${r.info.runs} run(s), tier ${r.info.tier}):`);
   console.log(`  OBJECTS ${r.objKbs.toFixed(1)} KB a second (the game's own code ${r.ownKbs.toFixed(1)} · three.js's ${r.threeKbs.toFixed(1)} · the browser's ${(r.objKbs - r.ownKbs - r.threeKbs).toFixed(1)}) · one-offs (not in the rates) ${r.onceKb.toFixed(0)} KB in all · boxed numbers (Chromium only) ${r.numKbs.toFixed(1)} KB a second · the heap's own growth ${r.grewKbs.toFixed(1)} KB a second, ${r.gcs} collections seen · the page's HITCH ${r.info.hitch.n}${r.info.hitch.last ? ` (last: ${r.info.hitch.last})` : ''}`);
@@ -155,11 +161,11 @@ for (const look of LOOKS) {
     console.log('  | objects, bytes / s | boxed numbers, bytes / s | site |');
     for (const [site, [o, n]] of r.rows.slice(0, TOP)) console.log(`  | ${(o / r.secs).toFixed(0).padStart(8)} | ${(n / r.secs).toFixed(0).padStart(8)} | ${site} |${process.env.ALLOC_SIZES && r.hist.has(site) ? ` sizes: ${[...r.hist.get(site).entries()].sort((x, y) => y[0] * y[1] - x[0] * x[1]).slice(0, 7).map(([sz, c]) => `${sz} B × ${c}`).join(' · ')}` : ''}`);
   }
-  ok(r.errs.length === 0, `${look}: no page error (${r.errs.join(' | ')})`);
-  ok(r.info.drops >= SECS * 0.5 && r.info.look === look, `${look}: the run was LIVE the whole time (${r.info.drops} drops in ${r.secs.toFixed(0)} s, the ${r.info.look} look)`);
+  ok(r.errs.length === 0, `${r.look}: no page error (${r.errs.join(' | ')})`);
+  ok(r.info.drops >= SECS * 0.5 && r.info.look === look.split(' ')[0], `${r.look}: the run was LIVE the whole time (${r.info.drops} drops in ${r.secs.toFixed(0)} s, the ${r.info.look} look)`);
   if (!TABLE || process.env.ALLOC_BUDGET_KB) {
-    ok(r.ownKbs <= BUDGET, `${look}: THE GAME's OWN CODE makes ≤ ${BUDGET} KB of objects a second in a live run (${r.ownKbs.toFixed(1)})`);
-    ok(r.threeKbs <= threeOf(look), `${look}: three.js's own objects ≤ ${threeOf(look)} KB a second (${r.threeKbs.toFixed(1)})`);
+    ok(r.ownKbs <= BUDGET, `${r.look}: THE GAME's OWN CODE makes ≤ ${BUDGET} KB of objects a second in a live run (${r.ownKbs.toFixed(1)})`);
+    ok(r.threeKbs <= threeOf(look), `${r.look}: three.js's own objects ≤ ${threeOf(look)} KB a second (${r.threeKbs.toFixed(1)})`);
   }
 }
 await b.close();

@@ -23,7 +23,7 @@ import { createNight, KEEP } from './night.js';
 import { endCard } from './endscreen.js';
 import { createTrace, PH, EV, SETUP } from './trace.js';
 import { createMatchHud } from './matchhud.js';
-import { nearest, mergeTags, entryTick, RIVALS_SHOWN } from './rivals.js';
+import { nearest, mergeTags, entryTick, placeOf, RIVALS_SHOWN } from './rivals.js';
 
 
 export const newSeed = () => { const a = new Uint32Array(2); crypto.getRandomValues(a); return [...a].map(x => x.toString(36)).join(''); };
@@ -249,29 +249,51 @@ export function createStage(app, o = {}) {
   // rivals.js). THE TAPES NEVER BLOCK THE PLAY: a rival UNDER you = a thin tape on your own tower (never the top slab), one AT or OVER
   // you = a right-edge tag in the clear column — the 3 nearest each way, merged when they would overlap, DIM while a slab slides.
   // OUT = WATCH: `watch(W)` swaps the tower on screen for a rival's — built from THEIR landed taps, never a tap assumed.
-  let MH = null, matchOn = false, rivalRows = null, watchW = null, mine = null, wN = 0, dimWas = -1, frozen = 0;
-  const others = [], tagItems = [];
+  let MH = null, matchOn = false, rivalRows = null, watchW = null, mine = null, mineT = null, wN = 0, dimWas = -1, frozen = 0, watchUi = false;
+  // (S5 — ZERO GARBAGE IN A MATCH: the rivals' placing fills records made ONCE — the level stand-ins, the tags' items, nearest's two
+  //  lists, the merged tags — nothing made at a landing but a tag's new words)
+  const others = [], tagItems = [], lvPool = [], itemPool = [], NR = { above: [], below: [] }, MT = { list: [], pool: [] };
   const hexOfRival = uid => { for (let i = 0; i < rivalRows.length; i++) if (rivalRows[i].uid === uid) return rivalRows[i].hex; return '#ffffff'; };
-  function matchHud() { if (!MH) { MH = createMatchHud(stage, hud); MH.onPick(uid => { if (watchW && o.onWatchPick) o.onWatchPick(uid); }); } return MH; }
+  function matchHud() { if (!MH) { MH = createMatchHud(stage, hud); MH.onPick(uid => { if (!watchW) return; if (o.onWatchPick) o.onWatchPick(uid); else if (hook.sim && hook.sim.pick) hook.sim.pick(uid); }); } return MH; }
   function setMatch(on) {
     matchOn = !!on; stage.classList.toggle('is-match', matchOn);
     if (matchOn) matchHud(); else if (MH) MH.reset();
     for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0);
     rivalRows = null; dimWas = -1; tagDirty = true;
   }
-  /** the rivals round the tower ON SCREEN (yours — or the one you watch): tapes under it, tags at / over it. Once a landing / a change. */
+  /** WATCH on / off (S5): the ranked list is built as it comes on (and kept up while it is on); THE PLACE NUMBER goes */
+  function watchMode(on) {
+    if (watchUi === on) return;
+    watchUi = on; stage.classList.toggle('is-watch', on);
+    if (on && MH) { MH.place(0, 0); if (rivalRows) MH.altimeter(rivalRows); }
+  }
+  /** the rivals round the tower ON SCREEN (yours — or the one you watch): tapes under it, tags at / over it — and (S5) THE PLACE NUMBER
+   *  while you climb. Once a landing / a change. */
   function placeRivals() {
     if (!rivalRows) return;
     const here = run.floor, skip = watchW ? watchW.uid : '';
     others.length = 0;
     // (a rival still CLIMBING one floor under you is LEVEL with you — their tap is a network's beat behind yours: a tag, never a tape
     //  flashing under your top slab at every landing. A tape = a tower that ENDED under you, or one at least two floors down.)
-    for (let i = 0; i < rivalRows.length; i++) { const r = rivalRows[i]; if (watchW ? r.uid !== skip : !r.me) others.push(!r.over && r.floor === here - 1 ? { ...r, floor: here } : r); }
-    const N = nearest(others, here, RIVALS_SHOWN), zone = view.restZone() * stageH;
+    let lv = 0;
+    for (let i = 0; i < rivalRows.length; i++) {
+      const r = rivalRows[i];
+      if (watchW ? r.uid === skip : r.me) continue;
+      if (!r.over && r.floor === here - 1) { let q = lvPool[lv]; if (!q) { q = { uid: '', name: '', rgb: null, floor: 0, over: false }; lvPool.push(q); } lv++; q.uid = r.uid; q.name = r.name; q.rgb = r.rgb; q.floor = here; others.push(q); }
+      else others.push(r);
+    }
+    const N = nearest(others, here, RIVALS_SHOWN, NR), zone = view.restZone() * stageH;
     for (let i = 0; i < RIVAL_TAPES; i++) { const r = N.below[i]; if (r) view.setRival(i, r.floor, r.rgb[0], r.rgb[1], r.rgb[2]); else view.setRival(i, 0, 0, 0, 0); }
     tagItems.length = 0;
-    for (let i = 0; i < N.above.length; i++) { const r = N.above[i]; tagItems.push({ uid: r.uid, name: r.name, up: r.floor - here, y: tagY(view.restY(Math.min(r.floor, here + 100)) * stageH, hudFoot, zone, 14, 12) }); }   // (12 px clear of the zone: the camera is still easing onto the new floor as its slab enters)
-    MH.setTags(mergeTags(tagItems, 30), hexOfRival);
+    for (let i = 0; i < N.above.length; i++) {
+      const r = N.above[i];
+      let q = itemPool[i]; if (!q) { q = { uid: '', name: '', up: 0, y: 0 }; itemPool.push(q); }
+      q.uid = r.uid; q.name = r.name; q.up = r.floor - here; q.y = tagY(view.restY(Math.min(r.floor, here + 100)) * stageH, hudFoot, zone, 14, 12);   // (12 px clear of the zone: the camera is still easing onto the new floor as its slab enters)
+      tagItems.push(q);
+    }
+    MH.setTags(mergeTags(tagItems, 30, MT), hexOfRival);
+    // THE PLACE NUMBER (S5): where YOU stand while you climb — written by the HUD only when it changes
+    MH.place(watchW || isOver(run) ? 0 : placeOf(rivalRows, here), rivalRows.length);
   }
   /** WATCHING: the watched player's landed taps → their tower (never a tap assumed; their end only once it is signalled) */
   function feedWatch() {
@@ -318,7 +340,7 @@ export function createStage(app, o = {}) {
   let skipP = 0, skipS = 0, streakTop = 0;
   const hooks = { onPerfect() { /* (the view reads the events itself) */ }, onFall: (r, floor, dx, dz, whole) => view.fall(r, floor, dx, dz, whole) };
   function restart(s = FIXED || newSeed()) {
-    seed = s; momDue = -1; landF = -1e9; run = createRun({ seed, mode: MODE }); liveRun = null; watchW = null; mine = null; wN = 0; stage.classList.remove('is-watch'); if (MH) MH.reset(); for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0); skipP = 0; skipS = 0; streakTop = 0; taps = []; t0 = null; shown = false; card = false; overAt = 0; endedAt = 0; ev.length = 0; liveN = 0; sounded = 0; hush = false; starting = false; startN++; stage.classList.remove('is-starting');
+    seed = s; momDue = -1; landF = -1e9; run = createRun({ seed, mode: MODE }); liveRun = null; watchW = null; mine = null; mineT = null; pendEnd = null; wN = 0; watchMode(false); if (MH) MH.reset(); for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0); skipP = 0; skipS = 0; streakTop = 0; taps = []; t0 = null; shown = false; card = false; overAt = 0; endedAt = 0; ev.length = 0; liveN = 0; sounded = 0; hush = false; starting = false; startN++; stage.classList.remove('is-starting');
     T = createTower(run, hooks, KEEP);
     best = Math.max(best, readBest()); tapeFloor = 0; newBest = false; bandNow = 0; notch = 0;   // (max: a phone whose storage is blocked still keeps its best for the visit)
     plan = flyPlan(seed); flown.jet = flown.ufo = flown.ship = false; wanted.clear(); needFloor = -1;
@@ -383,7 +405,7 @@ export function createStage(app, o = {}) {
     if (sheetOpen) return;
     const now = performance.now();
     if (!(ts > 0 && ts <= now + 4 && now - ts < 1000)) ts = now;   // (a browser whose event clock is not the page's: the handler's own time)
-    if (watchW) { if (o.onWatchTap) o.onWatchTap(); return; }   // (S4B — OUT = WATCH: a tap anywhere = the next player)
+    if (watchW) { if (o.onWatchTap) o.onWatchTap(); else if (hook.sim && hook.sim.next) hook.sim.next(); return; }   // (S4B — OUT = WATCH: a tap anywhere = the next player)
     if (shown && !card) return;   // (the cartridge: the console's podium is on its way — never a restart under it)
     if (shown) { if (now - overAt > RETRY_MS) { restart(); begin(ts); } return; }   // TAP TO PLAY AGAIN = the next run's START
     if (t0 == null) { if (matchOn && !PAGE) return; begin(ts); return; }   // (a cartridge's MATCH starts on the count — never on a tap)
@@ -435,7 +457,7 @@ export function createStage(app, o = {}) {
         const st = e.streak - skipS;   // (a `?floor=N` start's own perfects count toward nothing)
         if (st > streakTop) streakTop = st;
         if (st > 0 && st % STREAK_EVERY === 0) say(`STREAK ×${st}`, 'hi-call is-streak', 3, 1500, now);
-        else say(st > 1 ? `PERFECT ×${st}` : 'PERFECT', 'hi-call is-perfect', 1, 700, now);
+        else say(st > 1 ? `PERFECT ×${st}` : 'PERFECT', 'hi-call is-perfect', 1, 1500, now);   // (S5 — THE ANNOUNCER CHECK: 0.7 s was gone before it was read; the next perfect replaces it — the same priority)
       } else if (e.e === 'cut') { skipS = 0; }   // (a cut ends the streak — the shortcut's too)
       else if (e.e === 'made') {
         // THE FINISH (a match's floor 200): the white-gold light pours onto the top slab — then the gold end card
@@ -461,7 +483,7 @@ export function createStage(app, o = {}) {
           else if (due === 'ship' && MODE === 'solo') { view.fly('pass'); say('THE MOTHERSHIP', 'hi-call is-gold', 6, 2600, now); if (!late) cues.push(CUE_BAND); }
         }
         // SOLO PAST 200: every notch of the tightening is called — a FASTER that lands under a bigger call (a streak, NEW BEST) waits its turn
-        if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; if (!say('FASTER', 'hi-call is-fast', 2, 1100, now)) { later = true; laterText = 'FASTER'; laterCls = 'hi-call is-fast'; laterPri = 2; laterMs = 1100; } } }
+        if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; if (!say('FASTER', 'hi-call is-fast', 2, 1500, now)) { later = true; laterText = 'FASTER'; laterCls = 'hi-call is-fast'; laterPri = 2; laterMs = 1500; } } }
       }
     }
     return cues;
@@ -485,11 +507,17 @@ export function createStage(app, o = {}) {
     best = FROM || matchOn ? was : nextBest(was, live.floor);   // (a `?floor=N` look check is not a run: YOUR BEST stays · THE CLOSE's REVIEW: YOUR BEST is the SOLO best — a match's floor never sets it)
     if (best > was) writeBest(best);   // (THE REVIEW: stored BEFORE the end screen is asked for — the podium's body reads it)
     // THE CARTRIDGE: the console's podium IS the end screen — the stage's own card only for a run that can't reach it (UNPROVEN)
-    const E = o.onEnd ? o.onEnd(live) : null;
+    // (S5 — THE TEST PAGE's bot room (`?mode=match&rivals=N`): OUT = WATCH there too — the ranked list, a tap = the next, a row = that
+    //  bot; the page's own card comes once every bot is down (or after SIM_WATCH_MS): matchsim.js)
+    const E = o.onEnd ? o.onEnd(live) : PAGE && matchOn && hook.sim && hook.sim.wantWatch() ? { watch: true, page: true } : null;
     card = !E || !!E.own;
     endSaid = endWords(live);
     // S4B — OUT = WATCH (a match): no card, no veil — the stage stays live for the watcher (the driver hands the tower to watch in)
-    if (E && E.watch) { card = false; stage.classList.add('is-watch'); hook.ends.push({ seed, mode: MODE, live, taps: taps.slice(), best, was, watch: true }); if (hook.ends.length > 50) hook.ends.shift(); return; }
+    if (E && E.watch) { card = false; watchMode(true); hook.ends.push({ seed, mode: MODE, live, taps: taps.slice(), best, was, watch: true }); if (hook.ends.length > 50) hook.ends.shift(); if (E.page) pendEnd = { live, was, E: null }; return; }
+    cardEnd(live, was, E);
+  }
+  /** the end card's half of an end (the page's own card) — at once, or (S5, the test page's bot room) once WATCH is over */
+  function cardEnd(live, was, E) {
     EC.set({ words: endSaid, made: live.made, floor: live.floor, perfects: live.perfects - skipP, streak: FROM ? streakTop : live.maxStreak });   // (a `?floor=N` start's floors count toward nothing)
     EC.best(best, best > was && was > 0, was);   // (a first run's floor is YOUR BEST — NEW BEST is said of a best that was BEATEN)
     // (S4B — JAYWALK's standard: the scene is DIMMED behind the card — no dashed outline over the tower, no BEST n ↑ beside it)
@@ -518,6 +546,7 @@ export function createStage(app, o = {}) {
     hook.ends.push({ seed, mode: MODE, rules: run.rules, same, at, live, replay: r, taps: taps.slice(), best, was }); if (hook.ends.length > 50) hook.ends.shift();
   }
 
+  let pendEnd = null;   // (S5: the test page's end waiting behind WATCH)
   let trLive = false;   // (THE TRACE: the run was live as this frame's record opened)
   let raf = 0, last = 0, hudFloor = -1, hudLeft = -2, tagOn = false, tagAt = -1e9, ftagF = null, ftagAt = -1e9, friendTape = 0, frameN = 0, lookSeen = lookT, toneSeen = skyTone(lookT, 0);
   // (the two tags are placed ONCE A LANDING — tagSeen*: what they were last placed for)
@@ -549,6 +578,7 @@ export function createStage(app, o = {}) {
   function placeTags(mode) {
     const live = mode === 2;
     if (TR) { if (live) TR.ev |= EV.tags; }
+    if (MH && !live) MH.place(0, 0);   // (S5: THE PLACE NUMBER is a live climber's only — the welcome, the end's hold, the card)
     tagSeenFloor = run.floor; tagSeenLive = mode; tagDirty = false;
     // THE WELCOME (mode 1): YOUR BEST's tag at the gold tape round the waiting tower's top slab — "BEST 119" · THE END (mode 3 — S4B,
     // JAYWALK's standard): no tag at all (the card's own YOUR BEST · n line says it; the scene is dimmed behind the card)
@@ -751,6 +781,8 @@ export function createStage(app, o = {}) {
     setT0(ms) { if (t0 != null && ms > 0) { t0 = ms; last = 0; } },
     /** the run's tap log (the SAME list the engine's drops are logged in — the proof's chunks are cut from it) · its result as it stands */
     taps: () => taps, result: () => resultOf(mine || run), seed: () => seed,
+    /** (S5 — ZERO GARBAGE IN A MATCH) YOUR numbers read into a record the caller keeps — what a match's pump asks 10 × a second */
+    me(into) { const r = mine || run; into.floor = r.floor; into.perfects = r.perfects; into.over = isOver(r); into.made = r.st === 'made'; into.cause = r.st === 'out' ? r.cause : r.st === 'made' || r.st === 'cap' ? r.st : ''; return into; },
     /** the stage's own end card after all (the podium never came: no signal) — with its one line */
     showCard(line) { if (!shown || card) return; card = true; overAt = performance.now(); end.hidden = false; again.hidden = false; stage.classList.add('is-over'); check.className = 'hi-check is-note'; check.textContent = line || ''; check.hidden = !line; },
     /** the podium takes the screen: the stage's own card is put away (never a restart under it) */
@@ -760,19 +792,19 @@ export function createStage(app, o = {}) {
     // ---- S4B — THE MATCH's handles
     /** a match is on this stage (the count before its run is known: the welcome's scene, no TAP TO START) · its HUD */
     setMatch: on => setMatch(on), hud: () => matchHud(), matchState: () => (MH ? { ...MH.state(), tapes: view.rivalInfo ? view.rivalInfo() : [], watching: watchW ? watchW.uid : '', on: matchOn } : null),
-    /** every player's row (the altimeter) — and the rivals round the tower on screen, placed again */
-    rivals(rows) { if (!matchOn) return; rivalRows = rows; matchHud().altimeter(rows); tagDirty = true; },
+    /** every player's row — the rivals round the tower on screen + THE PLACE NUMBER placed again; WATCH's ranked list (S5) while it is up */
+    rivals(rows) { if (!matchOn) return; rivalRows = rows; const M = matchHud(); if (watchUi) M.altimeter(rows); tagDirty = true; },
     /** OUT = WATCH: the tower on screen becomes W's — { uid, seed, taps (their LANDED taps — a list that grows), done: () => their end is signalled } */
     /** a WATCHER who never played (a late joiner, a refresh after their own end): the match's seed + clock, no run of their own */
     spectate(G) {
       if (G.mode && MODE_IDS.includes(G.mode) && G.mode !== MODE) { MODE = G.mode; EC.header(MODE === 'solo' ? 'solo' : 'match'); }
       if ((MODE === 'match') !== matchOn) setMatch(MODE === 'match');
       restart(G.seed); live(G.t0);
-      shown = true; card = false; overAt = endedAt = performance.now(); liveRun = null; awake(false); stage.classList.add('is-watch');
+      shown = true; card = false; overAt = endedAt = performance.now(); liveRun = null; awake(false); watchMode(true);
     },
     watch(W) {
       if (!W || !shown || card) return;
-      if (!mine) mine = run;
+      if (!mine) { mine = run; mineT = T; }
       watchW = W; wN = 0;
       run = createRun({ seed: W.seed, mode: MODE }); T = createTower(run, hooks, KEEP);
       ev.length = 0; sounded = 0; momDue = -1;
@@ -781,6 +813,17 @@ export function createStage(app, o = {}) {
       hudFloor = -1; tagDirty = true; last = 0;
     },
     watching: () => (watchW ? watchW.uid : ''),
+    /** (S5) the test page's end is waiting behind WATCH */
+    watchWait: () => !!pendEnd,
+    /** (S5 — the test page's bot room) WATCH is over: YOUR tower back on screen, then the page's own end card */
+    unwatch() {
+      if (!pendEnd) return;
+      const P = pendEnd; pendEnd = null;
+      if (mine) { run = mine; T = mineT; mine = null; mineT = null; view.adopt(run, T); }
+      watchW = null; wN = 0; ev.length = 0; sounded = 0; hush = false; watchMode(false);
+      if (MH) { MH.watching(''); MH.place(0, 0); }
+      cardEnd(P.live, P.was, P.E);
+    },
     /** the match's clock in ticks (a fraction into the next) — what a driver steps the rivals to */
     tick: () => FS[TAU], live: () => t0 != null,
     /** (the pass's pixel test) the SAME instant drawn again and again · every rival thing off / on */

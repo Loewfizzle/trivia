@@ -344,7 +344,7 @@ test('THE TRIGGERS (sounds.js#cuesOf — PURE, on REAL runs): drop on every land
   assert.match(s, /if \(tap\(run, tk, ev\)\) taps\.push\(tk\);[^\n]*\n[^\n]*\n\s*soundNow\(false\);/); assert.match(s, /const from = sounded;\s*sounded = ev\.length;/); assert.match(s, /snd\.playCues\(snd\.cuesOf\(ev, late, cues, from, skipS\)\);/); assert.match(s, /ev\.length = 0; sounded = 0; hush = false;/);
   assert.match(s, /if \(!late\) cues\.push\(CUE_BAND\);/); assert.match(s, /CUE_BAND = Object\.freeze\(\{ id: 'band-arrival' \}\)/);
   // SOLO PAST 200: every notch of the tightening is called FASTER
-  assert.ok(s.includes("if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; if (!say('FASTER', 'hi-call is-fast', 2, 1100, now)) { later = true; laterText = 'FASTER'; laterCls = 'hi-call is-fast'; laterPri = 2; laterMs = 1100; } } }"), 'every notch is called — under a bigger call it waits its turn (the review)');
+  assert.ok(s.includes("if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; if (!say('FASTER', 'hi-call is-fast', 2, 1500, now)) { later = true; laterText = 'FASTER'; laterCls = 'hi-call is-fast'; laterPri = 2; laterMs = 1500; } } }"), 'every notch is called — under a bigger call it waits its turn (the review)');
   assert.ok(s.includes('if (later) { later = null; say(laterText, laterCls, laterPri, laterMs, now); }'));
   assert.equal(TIGHT.every, 10);
 });

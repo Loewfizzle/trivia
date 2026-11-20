@@ -67,31 +67,51 @@ export const entryTick = (run, tick) => (run.st === 'beat' && tick >= run.s0 ? r
 export const drawTick = (run, tick) => (run.st === 'slide' ? Math.min(tick, run.s0 + 2 * run.S - 1) : tick);
 
 const byId = (a, b) => (a.uid < b.uid ? -1 : a.uid > b.uid ? 1 : 0);
+const upFirst = (a, b) => a.floor - b.floor || byId(a, b), downFirst = (a, b) => b.floor - a.floor || byId(a, b);
 /**
  * the rivals a player standing on `floor` is shown: rows [{ uid, name, floor, … }] → { above, below } — `above` = the ≤ max NEAREST at
- * or over that floor (a right-edge tag each, nearest first) · `below` = the ≤ max NEAREST under it (a tape on the tower each)
+ * or over that floor (a right-edge tag each, nearest first) · `below` = the ≤ max NEAREST under it (a tape on the tower each).
+ * S5 — ZERO GARBAGE IN A MATCH: `into` ({ above: [], below: [] }, kept by the caller) is filled IN PLACE — no list made a call, the
+ * sort in place on those two short lists (the old answer, to the row: tests/highrise-match.test.mjs)
  */
-export function nearest(rows, floor, max = RIVALS_SHOWN) {
-  const above = [], below = [];
-  for (const r of rows || []) (r.floor >= floor ? above : below).push(r);
-  above.sort((a, b) => a.floor - b.floor || byId(a, b));
-  below.sort((a, b) => b.floor - a.floor || byId(a, b));
-  return { above: above.slice(0, max), below: below.slice(0, max) };
+export function nearest(rows, floor, max = RIVALS_SHOWN, into = null) {
+  const out = into || { above: [], below: [] }, above = out.above, below = out.below;
+  above.length = 0; below.length = 0;
+  if (rows) for (let i = 0; i < rows.length; i++) { const r = rows[i]; (r.floor >= floor ? above : below).push(r); }
+  above.sort(upFirst); below.sort(downFirst);
+  if (above.length > max) above.length = max;
+  if (below.length > max) below.length = max;
+  return out;
 }
 /** a rival's tag: "ALEX ▲3" — on your own floor: "ALEX · LEVEL" */
 export const rivalTag = (name, up) => (up > 0 ? `${name} ▲${up}` : `${name} · LEVEL`);
 /**
  * TAGS THAT WOULD OVERLAP MERGE: items [{ uid, name, up (floors over you), y (px — where its tag would sit) }] → [{ text, y, uids }]:
- * tags closer than `gap` px are ONE tag — the NEAREST rival's name + "+N" + its own ▲ ("ALEX +2 ▲3"), at that rival's height
+ * tags closer than `gap` px are ONE tag — the NEAREST rival's name + "+N" + its own ▲ ("ALEX +2 ▲3"), at that rival's height.
+ * S5 — ZERO GARBAGE IN A MATCH: `into` ({ list: [], pool: [] }, kept by the caller) = the answer's records made ONCE and filled again
+ * (a tag's words are built only when its name / count / ▲ changed); `items` is then sorted IN PLACE (the caller's own scratch list)
  */
-export function mergeTags(items, gap = 30) {
-  const list = (items || []).slice().sort((a, b) => a.up - b.up || byId(a, b)), out = [];
-  for (const it of list) {
-    const g = out.find(q => Math.abs(q.y - it.y) < gap);
-    if (g) { g.uids.push(it.uid); g.text = `${g.name} +${g.uids.length - 1}${g.up > 0 ? ` ▲${g.up}` : ' · LEVEL'}`; }
-    else out.push({ text: rivalTag(it.name, it.up), y: it.y, uids: [it.uid], name: it.name, up: it.up });
+const tagOrder = (a, b) => a.up - b.up || byId(a, b);
+function tagText(g) {
+  const n = g.uids.length;
+  if (g.tn !== g.name || g.tc !== n || g.tu !== g.up) { g.tn = g.name; g.tc = n; g.tu = g.up; g.text = n > 1 ? `${g.name} +${n - 1}${g.up > 0 ? ` ▲${g.up}` : ' · LEVEL'}` : rivalTag(g.name, g.up); }
+}
+export function mergeTags(items, gap = 30, into = null) {
+  const list = into ? (items || []) : (items || []).slice();
+  list.sort(tagOrder);
+  const out = into ? into.list : [], pool = into ? into.pool : null;
+  out.length = 0;
+  for (let i = 0; i < list.length; i++) {
+    const it = list[i];
+    let g = null;
+    for (let j = 0; j < out.length; j++) if (Math.abs(out[j].y - it.y) < gap) { g = out[j]; break; }
+    if (g) { g.uids.push(it.uid); tagText(g); continue; }
+    if (pool) { g = pool[out.length]; if (!g) { g = { text: '', y: 0, uids: [], name: '', up: 0, tn: null, tc: 0, tu: 0 }; pool.push(g); } g.uids.length = 0; }
+    else g = { text: '', y: 0, uids: [], name: '', up: 0, tn: null, tc: 0, tu: 0 };
+    g.y = it.y; g.name = it.name; g.up = it.up; g.uids.push(it.uid); tagText(g);
+    out.push(g);
   }
-  return out;
+  return into ? out : out.map(g => ({ text: g.text, y: g.y, uids: g.uids, name: g.name, up: g.up }));
 }
 /**
  * A PASS: `sides` remembers which side of you each rival last stood on (+1 = you are over them · −1 = they are over you; level = no
@@ -106,14 +126,19 @@ export function passStep(sides, uid, mine, theirs) {
 }
 /**
  * THE MATCH's CALLS (the announcer's lane — PURE): `memo` = { sides: {}, said: {} } kept for the match · `me` = { floor, over } · `rows` =
- * the RIVALS [{ uid, name, floor, end }] → [{ text, kind }]:
+ * the RIVALS [{ uid, name, floor, end }] (a row with `me: true` is skipped) → [{ text, kind }]:
  *   a PASS either way — "YOU PASSED ALEX" · "ALEX PASSED YOU"; several in one beat are ONE call ("3 PASSED YOU": everyone climbs at the
  *   same pace, so a slab dropped on its second pass lets the whole room by at once) · who is OUT ("FINN IS OUT · 21") · who MADE IT.
  *   (A rival's own streak is never called: the room's streaks run in step — seven calls at every tenth floor.)
+ * S5 — ZERO GARBAGE IN A MATCH: the answer is ONE list kept in the memo (`memo.out` — read it before the next call); a beat with
+ * nothing to say makes nothing (the calls' words only when a call is made)
  */
 export function matchCalls(memo, me, rows) {
-  const out = [], meUp = [], themUp = [];
-  for (const r of rows || []) {
+  const out = memo.out || (memo.out = []), meUp = memo.meUp || (memo.meUp = []), themUp = memo.themUp || (memo.themUp = []);
+  out.length = 0; meUp.length = 0; themUp.length = 0;
+  if (rows) for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    if (r.me) continue;
     if (!me.over) { const how = passStep(memo.sides, r.uid, me.floor, r.floor); if (how === 'me') meUp.push(r.name); else if (how === 'them') themUp.push(r.name); }
     if (r.end && !memo.said[r.uid]) { memo.said[r.uid] = 1; if (r.end === 'made') out.push({ text: `${r.name} MADE IT`, kind: 'made' }); else if (r.end === 'out') out.push({ text: `${r.name} IS OUT · ${r.floor}`, kind: 'gone' }); }
   }
@@ -121,8 +146,20 @@ export function matchCalls(memo, me, rows) {
   if (themUp.length) out.unshift({ text: themUp.length === 1 ? `${themUp[0]} PASSED YOU` : `${themUp.length} PASSED YOU`, kind: 'passed' });
   return out;
 }
-/** THE ALTIMETER's order: the highest first (then the most perfects, then the id) */
-export const altOrder = rows => (rows || []).slice().sort((a, b) => b.floor - a.floor || (b.perfects || 0) - (a.perfects || 0) || byId(a, b));
+/** THE PLACE NUMBER (S5): where YOU stand — 1 + the players STRICTLY over your floor (a level player shares your place: everyone climbs
+ *  in step, and a rival's height is a network's beat old — a place that only moves when someone is really over / under you) */
+export function placeOf(rows, floor) {
+  let n = 1;
+  if (rows) for (let i = 0; i < rows.length; i++) if (!rows[i].me && rows[i].floor > floor) n++;
+  return n;
+}
+/** "1ST" · "2ND" · "3RD" · "4TH" … (11TH–13TH) → [the number, its suffix] — the place number's two sizes */
+export const ordSuffix = n => { const t = n % 100; return t >= 11 && t <= 13 ? 'TH' : n % 10 === 1 ? 'ST' : n % 10 === 2 ? 'ND' : n % 10 === 3 ? 'RD' : 'TH'; };
+/** THE RANKED LIST's order (WATCH — S5; it was THE ALTIMETER's): the highest first (then the most perfects, then the id) */
+const rankOrder = (a, b) => b.floor - a.floor || (b.perfects || 0) - (a.perfects || 0) || byId(a, b);
+export const altOrder = rows => (rows || []).slice().sort(rankOrder);
+/** … in place, into the caller's own scratch list (nothing made) */
+export function rankInto(rows, into) { into.length = 0; if (rows) for (let i = 0; i < rows.length; i++) into.push(rows[i]); return into.sort(rankOrder); }
 /** the players still climbing, the highest first — whom a watcher follows: the picked one while they are in, else THE LEADER */
 export function follow(rows, pick = '') {
   const live = altOrder((rows || []).filter(r => !r.over));

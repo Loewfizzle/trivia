@@ -94,7 +94,9 @@ export function createView() {
   const nameOf = u => String(((st.players && st.players[u]) || {}).name || 'GHOST').toUpperCase();
   const mine = g => !!(g && g.participants && g.participants[uid]);
   const nodePath = () => `rooms/${code}/hr/${matchId}/${uid}`;
-  const runsNow = () => (st && st.game && st.liveKey === liveKeyFor(st.game) && st.live && st.live.runs) || null;
+  // (S5 — ZERO GARBAGE IN A MATCH: the live key is worked out once a GAME (a new snapshot = a new object), never 10 × a second — its JSON)
+  let lkGame = null, lkKey = null;
+  const runsNow = () => { const g = st && st.game; if (!g) return null; if (g !== lkGame) { lkGame = g; lkKey = liveKeyFor(g); } return (st.liveKey === lkKey && st.live && st.live.runs) || null; };
   /** a server time → this page's clock (the stage's tick 0 is a performance.now() value) */
   const perfOf = srv => performance.now() - (serverNow() - srv);
   const matchLeft = () => !!matchId && (!st.game || st.game.matchId !== matchId || (st.game.phase !== 'play' && !(isMatch && st.game.phase === 'count')));   // (a match: the count's last 2 s still take a chunk)
@@ -227,27 +229,44 @@ export function createView() {
     if (!countNames) countNames = Object.keys(g.participants || {}).sort((a, b) => (a === uid ? -1 : b === uid ? 1 : a < b ? -1 : 1)).map(u => ({ name: nameOf(u), hex: hexOf(u), me: u === uid }));
     S.hud().count(key, countNames);
   }
-  /** everyone's proof nodes → their towers (rivals.js: each chunk once, no tap assumed) → THE ALTIMETER, the tags + tapes, the calls */
+  /** everyone's proof nodes → their towers (rivals.js: each chunk once, no tap assumed) → THE PLACE NUMBER, the tags + tapes, the calls.
+   *  S5 — ZERO GARBAGE IN A MATCH (it runs 10 × a second): each player's row is ONE record kept on their rival (YOURS on `meRow`), the
+   *  list ONE array filled in place, a change found field by field (no key string), your own numbers read into a kept record */
+  const rowList = [], meRec = { floor: 0, perfects: 0, over: false, made: false, cause: '' }, noMe = { floor: 0, over: true };
+  let meRow = null;
   function feedRivals(g, runs, now) {
-    const tick = Math.floor((now - mPlayAt) * TICK_HZ / 1000), me = mine(g) ? S.result() : null, watched = S.watching();
-    const rows = [];
-    for (const u of Object.keys(g.participants || {})) {
+    const tick = Math.floor((now - mPlayAt) * TICK_HZ / 1000), me = mine(g) ? S.me(meRec) : null, watched = S.watching(), parts = g.participants || {};
+    let n = 0, dirty = false;
+    for (const u in parts) {
       if (u === uid) continue;
       let R = rivals.get(u);
-      if (!R) { const hex = hexOf(u); R = { ...createRival(mSeed), uid: u, name: nameOf(u), hex, rgb: rgbOf(hex) }; rivals.set(u, R); }
+      if (!R) { const hex = hexOf(u); R = { ...createRival(mSeed), uid: u, name: nameOf(u), hex, rgb: rgbOf(hex) }; R.row = { uid: u, name: R.name, hex, rgb: R.rgb, floor: -1, perfects: 0, over: false, end: '', silent: false, me: false, watched: false }; rivals.set(u, R); }
       if (!g.unproven) { feedRival(R, runs && runs[u]); capRival(R, tick); }
-      rows.push({ uid: u, name: R.name, hex: R.hex, rgb: R.rgb, floor: R.run.floor, perfects: R.run.perfects, over: rivalOver(R), end: rivalEnd(R), silent: rivalSilent(R, tick), me: false, watched: watched === u });
+      const w = R.row, fl = R.run.floor, ov = rivalOver(R), en = rivalEnd(R), si = rivalSilent(R, tick), wa = watched === u;
+      if (w.floor !== fl || w.over !== ov || w.end !== en || w.silent !== si || w.watched !== wa) { dirty = true; w.floor = fl; w.over = ov; w.end = en; w.silent = si; w.watched = wa; }
+      w.perfects = R.run.perfects;
+      if (rowList[n] !== w) { rowList[n] = w; dirty = true; }
+      n++;
     }
-    const calls = matchCalls(memo, me ? { floor: me.floor, over: me.over } : { floor: 0, over: true }, rows);
-    if (me) { const hex = hexOf(uid); rows.push({ uid, name: nameOf(uid), hex, rgb: rgbOf(hex), floor: me.floor, perfects: me.perfects, over: me.over, end: me.made ? 'made' : me.cause === 'cap' ? 'cap' : me.over ? 'out' : '', silent: false, me: true, watched: false }); }
-    const key = rows.map(r => `${r.uid}:${r.floor}:${r.end}:${r.silent ? 1 : 0}:${r.watched ? 1 : 0}`).join('|');
-    if (key !== rowsKey) { rowsKey = key; S.rivals(rows); }
+    if (rowList.length > n + (me ? 1 : 0)) { rowList.length = n; dirty = true; }
+    rowList.length = n;
+    const calls = matchCalls(memo, me || noMe, rowList);
+    if (me) {
+      if (!meRow) { const hex = hexOf(uid); meRow = { uid, name: nameOf(uid), hex, rgb: rgbOf(hex), floor: -1, perfects: 0, over: false, end: '', silent: false, me: true, watched: false }; }
+      const en = me.made ? 'made' : me.cause === 'cap' ? 'cap' : me.over ? 'out' : '';
+      if (meRow.floor !== me.floor || meRow.over !== me.over || meRow.end !== en) { dirty = true; meRow.floor = me.floor; meRow.over = me.over; meRow.end = en; }
+      meRow.perfects = me.perfects;
+      rowList.push(meRow);
+      if (rowsKey !== 'me') { rowsKey = 'me'; dirty = true; }
+    } else if (rowsKey !== 'them') { rowsKey = 'them'; dirty = true; }
+    if (dirty) S.rivals(rowList);
     if (calls.length) {
       const hud = S.hud();
-      for (const c of calls) hud.announce(c.text, c.kind);
-      if (S.sfx && calls.some(c => c.kind === 'pass' || c.kind === 'passed')) { try { S.sfx.play('pass'); } catch { /* audio is polish */ } }
+      let pass = false;
+      for (let i = 0; i < calls.length; i++) { const c = calls[i]; hud.announce(c.text, c.kind); if (c.kind === 'pass' || c.kind === 'passed') pass = true; }
+      if (S.sfx && pass) { try { S.sfx.play('pass'); } catch { /* audio is polish */ } }
     }
-    return rows;
+    return rowList;
   }
   /** OUT in a match: the cause's words over the scene for a moment, then Call the Winner (two or more still climbing), then WATCHING */
   function afterOut(g, runs, rows) {
@@ -270,7 +289,8 @@ export function createView() {
     // WHOM THE WATCHER FOLLOWS: the player picked on the altimeter (any of them) · else the one picked by a tap while they climb · else THE LEADER
     const held = since >= (r && r.cause === 'made' ? MADE_SHOW_MS : 900) || !mine(g);
     if (held && !callEl && others.length) {
-      const f = pickAny && rivals.has(pickAny) ? pickAny : follow(others, followPick);
+      // (S5: the one you follow STAYS while they climb — the leader was picked again at every pump: level players swapped the view every floor)
+      const f = pickAny && rivals.has(pickAny) ? pickAny : follow(others, followPick || followUid);
       if (f && f !== followUid) { followUid = f; const R = rivals.get(f); S.watch({ uid: f, name: R.name, seed: mSeed, taps: R.taps, done: () => R.done }); rowsKey = ''; }
     }
     let txt = '';
@@ -375,7 +395,7 @@ export function createView() {
       loadTable(uid).then(T => { if (gone || !T) return; friends = T.friends; if (T.best > 0) ls.set(SRV_BEST_KEY, T.best); if (S) S.friends(); });
       if (TEST) globalThis.__hiGame = { stage: S, state: () => ({ matchId, go, proven, spent, started, sent, chunks: chunkN, wroteE, final: !!final, leave: !!leaveBtn, friends: friends.map(f => `${f.n} ${f.v}`), stage: S.state(),
         isMatch, haveGo, seed: mSeed, playAt: mPlayAt, adopted, watching: S.watching(), follow: followUid, call: !!callEl, callLine, out: !!outRes, outCard: !!outCard, hud: S.matchState(),
-        rivals: [...rivals.values()].map(R => ({ uid: R.uid, name: R.name, floor: R.run.floor, perfects: R.run.perfects, taps: R.taps.length, over: rivalOver(R), end: rivalEnd(R), done: R.done, bad: R.bad })) }), setFriends(f) { friends = f; S.friends(); } };
+        rivals: [...rivals.values()].map(R => ({ uid: R.uid, name: R.name, floor: R.run.floor, perfects: R.run.perfects, taps: R.taps.length, over: rivalOver(R), end: rivalEnd(R), done: R.done, bad: R.bad, silent: !!(R.row && R.row.silent) })) }), setFriends(f) { friends = f; S.friends(); } };
       if (isMatch) { S.setMatch(true); pumpIv = setInterval(pumpMatch, 100); }
       sync();
       // PLAY AGAIN's remount (the console's INSTANT AGAIN): the next run starts at once — its tap WAS the PLAY AGAIN

@@ -4,14 +4,14 @@
 //   · 3 · 2 · 1 · GO: the names lined up; every phone writes its own GO; THE FIRST GO picks the seed + tick 0 — the SAME on every phone
 //     and in the server's own derivation
 //   · THE PROOF: each player's own `hr` node — server-stamped chunks; the RIVALS = everyone's nodes through the same engine: THE
-//     ALTIMETER (every height), a tape on your tower where an out rival stopped, a right-edge tag for a rival level with / above you
+//     PLACE NUMBER (S5 — "2ND / 3": the altimeter is gone from live play), a tape on your tower where an out rival stopped, a right-edge tag for a rival level with / above you
 //   · OUT = the cause's words → CALL THE WINNER (the kit's; `k` on your own node) → WATCH: the leader first, a tap = the next player, a
-//     tap on the altimeter = that player; "WATCHING ALICE · 12 · TAP FOR THE NEXT"
+//     tap on a row of WATCH's ranked list = that player; "WATCHING ALICE · 12 · TAP FOR THE NEXT"
 //   · the last tower's end → the host's step → the podium on every phone: HIGH RISE · MATCH, the winner, everyone as slim cards with
 //     their floor + how their tower ended + their perfects; the results = THE JUDGE's replay — the SERVER's own (highriseMatch) agrees
 //     to the floor; the call's game-night points; THE SWITCH IS OFF → WOULD COUNT for everyone, NOTHING written
 //   · (the full run) ROCK-SOLID: a REFRESH mid-match rejoins from the node · an APP SWITCH re-reads the clock · a SIGNAL DROP (the line
-//     cut 10 s: the altimeter says so, the queued taps land, the run counts in full) · REMATCH in place · a LATE JOINER WATCHES until
+//     cut 10 s: his tower holds (NO SIGNAL — never out), the queued taps land, the run counts in full) · REMATCH in place · a LATE JOINER WATCHES until
 //     the next REMATCH deals them in · THE HOST's PHONE DIES mid-match: a new host carries the match to its podium
 //   node tests/integration/e2e-highrise-match.mjs "<chromium>" [outDir] [--fast]     (--fast: two phones, one match, no rock-solid part)
 process.env.GPU = process.env.GPU || '1';
@@ -96,10 +96,10 @@ try {
   await bot(pages[0]); await bot(pages[1], 5); if (N > 2) await bot(pages[2]);
   ok(await until(async () => (await all(N, p => state(p))).every(s => s.rivals.length === N - 1 && s.rivals.every(r => r.floor >= 3) && s.stage.floor >= 3), 30000), `each phone sees the ${N - 1} other tower${N > 2 ? 's' : ''} climb — their own taps through the same engine`);
   const hud0 = (await state(pages[0])).hud;
-  ok(hud0.alt.length === N && hud0.alt.some(a => /^ALICE\d+$/.test(a.text) && /is-me/.test(a.cls)) && hud0.alt.some(a => /^BOB\d+$/.test(a.text)), `THE ALTIMETER on ALICE's phone: every player's height, her own row outlined (${hud0.alt.map(a => a.text).join(' · ')})`);
+  ok(hud0.alt.length === 0 && new RegExp(`^[1-${N}](ST|ND|RD) / ${N}$`).test(hud0.place), `THE PLACE NUMBER on ALICE's phone ("${hud0.place}") — no altimeter while she climbs (S5)`);
   ok(hud0.tags.length >= 1 && /^(BOB|CHARLIE)( \+\d)?( ▲\d+| · LEVEL)$/.test(hud0.tags[0].text), `a rival level with / over her = a right-edge tag ("${hud0.tags.map(t => t.text).join('" · "')}")`);
-  const geo = await pages[0].evaluate(() => { const V = window.__hiStage.view, sh = innerHeight, a = document.querySelector('.hi-alt').getBoundingClientRect(), t = [...document.querySelectorAll('.hi-rtag:not([hidden])')].map(e => e.getBoundingClientRect()); return { zone: V.restZone() * sh, alt: a.bottom, altW: a.width, tags: t.map(r => r.bottom), hud: document.querySelector('.hi-hud').getBoundingClientRect().bottom }; });
-  ok(geo.alt <= geo.zone && geo.tags.every(b => b <= geo.zone + 1) && geo.altW <= 100, `THE TAPES NEVER BLOCK THE PLAY: the altimeter ends at ${geo.alt.toFixed(0)}, the tags at ${geo.tags.map(b => b.toFixed(0)).join(' / ')} — all above THE DROP ZONE's upper edge (${geo.zone.toFixed(0)} — as the camera rests; the pixel test samples it live: highrise-rivals.mjs)`);
+  const geo = await pages[0].evaluate(() => { const V = window.__hiStage.view, sh = innerHeight, a = document.querySelector('.hi-place').getBoundingClientRect(), t = [...document.querySelectorAll('.hi-rtag:not([hidden])')].map(e => e.getBoundingClientRect()); return { zone: V.restZone() * sh, alt: a.bottom, altW: a.width, tags: t.map(r => r.bottom), hud: document.querySelector('.hi-hud').getBoundingClientRect().bottom }; });
+  ok(geo.alt > 0 && geo.alt <= geo.zone && geo.tags.every(b => b <= geo.zone + 1) && geo.altW <= 130, `THE TAPES NEVER BLOCK THE PLAY: THE PLACE NUMBER ends at ${geo.alt.toFixed(0)}, the tags at ${geo.tags.map(b => b.toFixed(0)).join(' / ')} — all above THE DROP ZONE's upper edge (${geo.zone.toFixed(0)} — as the camera rests; the pixel test samples it live: highrise-rivals.mjs)`);
   await H.shot(pages[0], 'match-rivals');
   // ---- 4. BOB out first → the cause's words → Call the Winner → WATCH
   ok(await until(async () => (await state(pages[1])).out, 30000), 'BOB stops at floor 5 → THE FUSE: out');
@@ -122,19 +122,19 @@ try {
   const f1 = (await state(pages[1])).stage.floor; await sleep(2500); const f2 = (await state(pages[1])).stage.floor, wNow = (await state(pages[wi])).stage.floor;
   ok(f2 > f1 && Math.abs(f2 - wNow) <= 2, `BOB's screen shows ${NAMES[wi]}'s own tower climbing (floor ${f1} → ${f2}; theirs: ${wNow}) — the big number is the watched tower's`);
   ok((await state(pages[1])).stage.st === 'slide' || (await until(async () => (await state(pages[1])).stage.st === 'slide', 3000)), '… its slab is seen SLIDING (the entry is the seed\'s own — never a tap assumed)');
-  ok(await pages[1].evaluate("getComputedStyle(document.querySelector('.hi-alt li')).height === '44px' && getComputedStyle(document.querySelector('.hi-alt')).pointerEvents === 'auto'"), 'watching: every altimeter row is a 44 pt tap target');
+  ok(await pages[1].evaluate("getComputedStyle(document.querySelector('.hi-alt li')).height === '44px' && getComputedStyle(document.querySelector('.hi-alt')).pointerEvents === 'auto'"), 'watching: every row of THE RANKED LIST is a 44 pt tap target');
   if (N > 2) {
     await until(() => pages[1].evaluate(() => !document.querySelector('.mk-call')), 4000);
     await pages[1].touchscreen.tap(195, 600);
     ok(await until(async () => (await state(pages[1])).watching === uids[wi === 0 ? 2 : 0], 5000), `a tap anywhere = the next player still in ("${(await state(pages[1])).hud.watch}")`);
     const row = await pages[1].evaluate(u => { const r = document.querySelector(`.hi-alt li[data-uid="${u}"]`).getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, uids[0]);
     await pages[1].touchscreen.tap(row[0], row[1]);
-    ok(await until(async () => (await state(pages[1])).watching === uids[0], 5000), 'a tap on a player in THE ALTIMETER = jump to them (ALICE)');
+    ok(await until(async () => (await state(pages[1])).watching === uids[0], 5000), 'a tap on a player in THE RANKED LIST = jump to them (ALICE)');
   }
   await H.shot(pages[1], 'match-watch');
   // on ALICE's phone: BOB is marked out (a cross + a struck name), his tape lies on her tower at his floor, the lane said so
-  const ha = await until(async () => { const h = (await state(pages[0])).hud; return h.alt.some(a => /^BOB/.test(a.text) && /is-out/.test(a.cls)) && h.tapes.some(t => t.floor === bobFloor && t.on) ? h : null; }, 8000);
-  ok(!!ha, `on ALICE's phone: BOB is OUT on the altimeter (a cross + a struck name — never colour alone) and HIS HEIGHT TAPE lies round her tower at floor ${bobFloor}`);
+  const ha = await until(async () => { const h = (await state(pages[0])).hud; return (await state(pages[0])).rivals.some(r => r.name === 'BOB' && r.end === 'out') && h.tapes.some(t => t.floor === bobFloor && t.on) ? h : null; }, 8000);
+  ok(!!ha, `on ALICE's phone: BOB is OUT and HIS HEIGHT TAPE lies round her tower at floor ${bobFloor}`);
   ok(!!ha && ha.calls.some(c => c === `BOB IS OUT · ${bobFloor}`), `the announcer (the match kit's) called it: ${ha ? ha.calls.join(' · ') : ''}`);
   await H.shot(pages[0], 'match-tape');
 
@@ -150,14 +150,14 @@ try {
     await bot(pages[0]);
     const fa = (await state(pages[0])).stage.floor;
     ok(await until(async () => { const s = await state(pages[0]); return !s.stage.over && s.stage.floor >= fa + 2 && s.proven; }, 12000), 'AN APP SWITCH (1.5 s away): back, ALICE\'s run goes on — on the same clock, still proven');
-    // (b) A SIGNAL DROP: CHARLIE's line is cut for ~12 s while he climbs on — the others see his tower stop and the altimeter say NO
+    // (b) A SIGNAL DROP: CHARLIE's line is cut for ~12 s while he climbs on — the others see his tower stop and read NO
     // SIGNAL (never OUT); back, the queued taps land together and his run counts IN FULL (the dropped signal is never held against it).
     // (A guest's line: the HOST's own, cut for 10 s, hands the room to a guest — who can not start a game being built: the owner's
     //  REMATCH would wait for MAKE HOST. Named in the pass log.)
     const fb = (await state(pages[2])).stage.floor;
     await pages[2].evaluate("import('/js/firebase.js').then(f => f.goOffline())");
-    const silent = await until(async () => { const h = (await state(pages[0])).hud; return h.alt.some(a => /^CHARLIE/.test(a.text) && /is-silent/.test(a.cls)) ? h : null; }, 16000);
-    ok(!!silent && !silent.alt.some(a => /^CHARLIE/.test(a.text) && /is-out/.test(a.cls)), 'A SIGNAL DROP: on ALICE\'s phone CHARLIE\'s tower holds still and his altimeter row says NO SIGNAL (a hollow dot) — never OUT');
+    const silent = await until(async () => { const r = (await state(pages[0])).rivals.find(x => x.name === 'CHARLIE'); return r && r.silent ? r : null; }, 16000);
+    ok(!!silent && !silent.over, 'A SIGNAL DROP: on ALICE\'s phone CHARLIE\'s tower holds still — NO SIGNAL (a hollow bar in WATCH\'s list) — never OUT');
     await pages[2].evaluate("import('/js/firebase.js').then(f => f.goOnline())");
     const fc = (await state(pages[2])).stage.floor;
     ok(fc > fb + 3 && await until(async () => { const r = (await state(pages[0])).rivals.find(x => x.name === 'CHARLIE'); return r && r.floor >= fc && !r.bad; }, 12000), `… back on the line: his queued taps land together — ALICE's screen catches up to floor ${fc} (he climbed ${fc - fb} floors offline)`);
