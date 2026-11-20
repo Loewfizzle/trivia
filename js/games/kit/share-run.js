@@ -110,14 +110,19 @@ export async function fitPng(png) {
     const c = ctx2d(cv);
     c.drawImage(bmp, 0, 0); if (bmp.close) bmp.close();
     const src = c.getImageData(0, 0, cv.width, cv.height);
+    let least = null;   // (HIGH RISE REVIEW FIX B: the smallest re-encode — a picture that never gets under LINK_MAX may still fit the server's cap)
     for (const bits of [6, 5]) {
       const im = new ImageData(new Uint8ClampedArray(src.data), cv.width, cv.height), d = im.data;
       for (let i = 0; i < d.length; i += 4) { d[i] = quant(d[i], bits); d[i + 1] = quant(d[i + 1], bits); d[i + 2] = quant(d[i + 2], bits); d[i + 3] = 255; }
       c.putImageData(im, 0, 0);
       const b = await new Promise(r => { try { cv.toBlob(r, 'image/png'); } catch { r(null); } });
       if (b && b.size <= LINK_MAX) { cv.width = cv.height = 0; return b; }
+      if (b && (!least || b.size < least.size)) least = b;
     }
     cv.width = cv.height = 0;
+    // (a busy picture — HIGH RISE's CLOUDS poster: 314 KB on 5 bits — under the server's hard cap still goes up as a link, never the
+    //  picture alone; only when even that is over LINK_HARD is there no link)
+    if (least && least.size <= LINK_HARD && least.size < png.size) return least;
   } catch { /* an old WebView: as it is, if it fits */ }
   return png.size <= LINK_HARD ? png : null;
 }

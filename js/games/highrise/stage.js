@@ -24,7 +24,6 @@ import { endCard } from './endscreen.js';
 import { createTrace, PH, EV, SETUP } from './trace.js';
 import { createMatchHud } from './matchhud.js';
 import { nearest, mergeTags, entryTick, placeOf, RIVALS_SHOWN } from './rivals.js';
-import { keepShot, shotMs } from './shot.js';
 import { bakedNumber, bakedLine } from './bakedtext.js';
 
 
@@ -427,7 +426,7 @@ export function createStage(app, o = {}) {
   const hooks = { onPerfect() { /* (the view reads the events itself) */ }, onFall: (r, floor, dx, dz, whole) => view.fall(r, floor, dx, dz, whole) };
   function restart(s = FIXED || newSeed()) {
     wD = wDT = WATCH_DELAY_MS / TICK_MS; wPin = false; lateRing.fill(0); lateN = 0; wPast = 0; wAway = false;   // (REVIEW FIX A: a new run / match = the playback's own numbers afresh)
-    seed = s; momDue = -1; landF = -1e9; shotAt = 0; run = createRun({ seed, mode: MODE }); liveRun = null; watchW = null; mine = null; mineT = null; pendEnd = null; wN = 0; watchMode(false); if (MH) MH.reset(); for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0); skipP = 0; skipS = 0; streakTop = 0; taps = []; t0 = null; shown = false; card = false; overAt = 0; endedAt = 0; ev.length = 0; liveN = 0; sounded = 0; hush = false; starting = false; startN++; stage.classList.remove('is-starting');
+    seed = s; momDue = -1; landF = -1e9; run = createRun({ seed, mode: MODE }); liveRun = null; watchW = null; mine = null; mineT = null; pendEnd = null; wN = 0; watchMode(false); if (MH) MH.reset(); for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0); skipP = 0; skipS = 0; streakTop = 0; taps = []; t0 = null; shown = false; card = false; overAt = 0; endedAt = 0; ev.length = 0; liveN = 0; sounded = 0; hush = false; starting = false; startN++; stage.classList.remove('is-starting');
     T = createTower(run, hooks, KEEP);
     best = Math.max(best, readBest()); tapeFloor = 0; newBest = false; bandNow = 0; notch = 0;   // (max: a phone whose storage is blocked still keeps its best for the visit)
     plan = flyPlan(seed); flown.jet = flown.ufo = flown.ship = NOFLY; wanted.clear(); needFloor = -1;
@@ -635,14 +634,8 @@ export function createStage(app, o = {}) {
   }
 
   let pendEnd = null;   // (S5: the test page's end waiting behind WATCH)
-  // S5 — THE SHARE IMAGE: this run's frame, kept on the phone (shot.js) under the driver's key (the cartridge: its match id; the page: its seed)
-  let shotAt = 0, shotRun = -1;
-  function takeShot() {
-    shotAt = 0;
-    if (shotRun !== startN || !view.snap || watchW) return;   // (a watched tower on screen is never YOUR picture — the review)
-    const r = mine || run, key = o.shotKey ? o.shotKey() : seed, n = startN;
-    view.snap(cv => { if (!cv || gone || n !== startN) return; keepShot({ key, canvas: cv, topX: cv.topX, topY: cv.topY, floor: r.floor, perfects: r.perfects - skipP, cause: r.st === 'out' ? r.cause : r.st, made: r.st === 'made', look: lookSeen }); }, 1080);
-  }
+  // (REVIEW FIX B: S5's run frame — copied off the canvas a beat after YOUR end for the share card — is GONE: the card is THE POSTER now,
+  //  a pre-rendered hero shot of the band reached (share.js). night.js#snap stays: the poster's own staging reads it.)
   let trLive = false;   // (THE TRACE: the run was live as this frame's record opened)
   let raf = 0, last = 0, hudFloor = -1, hudLeft = -2, tagOn = false, tagAt = -1e9, ftagF = null, ftagAt = -1e9, friendTape = 0, frameN = 0, lookSeen = lookT, toneSeen = skyTone(lookT, 0);
   // (the two tags are placed ONCE A LANDING — tagSeen*: what they were last placed for)
@@ -801,9 +794,6 @@ export function createStage(app, o = {}) {
     if (t0 != null && o.onFrame) o.onFrame(now);
     const over = isOver(run);
     if (over && !endedAt && o.onOver) o.onOver(resultOf(run));
-    // S5 — THE SHARE IMAGE's frame: a beat after YOUR tower's end (per cause — shot.js), the next frame drawn is copied (night.js#snap)
-    if (over && !endedAt && !watchW && t0 != null) { shotAt = now + shotMs(run.st === 'out' ? run.cause : run.st, run.st === 'made'); shotRun = startN; }   // (the bell's own beat — the review)
-    if (shotAt && now >= shotAt) takeShot();
     if (over && !endedAt) endedAt = now;   // (the end's own frame — whether THE FUSE ended it in this frame or a TAP did in the touch handler: the review — a miss used to bring the card at once, over the falling slab)
     if (over && !shown && now - endedAt >= (run.st === 'made' ? MADE_HOLD_MS : END_HOLD_MS)) showEnd(now);
     io[0] = watchW ? wP : FS[TAU]; if (over) io[0] = run.end; else if (watchW && run.st === 'slide' && io[0] > run.s0 + 2 * run.S - 1) io[0] = run.s0 + 2 * run.S - 1;   // (a watched slab is HELD at its sweep's last tick: it waits for its tap / their end)

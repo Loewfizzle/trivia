@@ -196,8 +196,9 @@ try {
     const apiAfter = await P.p.evaluate(() => performance.getEntriesByType('resource').filter(e => /\/api\/daily/.test(e.name)).length);
     ok(!!sh && !!got && got.w === 1080 && got.h === 1350 && !got.url && !got.text && got.name === 'neon-speakeasy-high-rise.png', `SHARE (counting OFF): the PICTURE alone — ${got ? `${got.w} × ${got.h} ${got.name}, no link, no text` : 'nothing shared'}`);
     ok(apiAfter === apiBefore, `… and no link was asked of the server (THE SWITCH said WOULD COUNT): ${apiAfter - apiBefore} /api/daily calls`);
-    const shotOk = await P.p.evaluate(async () => { const S = await import('/js/games/highrise/shot.js'), s = S.lastShot(); return !!(s && s.canvas && s.canvas.width === 1080 && typeof s.key === 'string' && s.key.length > 3); });
-    ok(shotOk, 'the card\'s hero = THIS run\'s frame, kept under its match id (shot.js)');
+    // (REVIEW FIX B — THE POSTER: the card's picture = the band's hero shot, fetched from the site's own assets when the card is drawn)
+    const heroOk = await P.p.evaluate(() => performance.getEntriesByType('resource').filter(e => /\/assets\/highrise\/share\/[a-z]+\.webp/.test(e.name)).map(e => e.name.split('/').pop()));
+    ok(heroOk.length === 1 && heroOk[0].startsWith('rooftops.webp'), `the card's picture = THE POSTER's hero shot for the band reached (${heroOk.join(' ') || 'none'})`);
   }
   ok(!E.table && !E.strip && E.winner === 'none' && !E.tag && !E.pills.length && E.scroll <= E.w, `YOUR TABLE is hidden while counting is OFF (no empty table); no stats strip, no winner block, no tag over the tower, no pill (${E.pills.join(' ')}), no sideways scroll`);
   if (S4B_OUT) await P.p.screenshot({ path: join(S4B_OUT, `cartridge-${LOOKN}-390x844-tooslow.png`) });
