@@ -120,7 +120,9 @@ export function createStage(app, o = {}) {
   // (ZERO GARBAGE: every line of the HUD that changes in a run keeps ONE text node — a change writes its `data`, never a new node)
   const callT = document.createTextNode(''), clockT = document.createTextNode(''), tagT = document.createTextNode(''), ftagT = document.createTextNode(''), fpsA = document.createTextNode(''), fpsB = document.createTextNode(''), fpsC = document.createTextNode('');
   const num = h('div.hi-num'), band = h('div.hi-band', BANDS[0].name), call = h('div.hi-call', { 'aria-live': 'polite' }, h('span.hi-callt', callT)), clock = h('div.hi-clock', clockT);
-  const hud = h('div.hi-hud', num, band, clock, call);
+  // (REVIEW FIX A — THE TOP HUD: the band + the match's clock share ONE row — a match lays it out as one narrow centred line,
+  //  "THE ROOFTOPS · 5:37"; solo keeps the band on its own line, as before)
+  const hud = h('div.hi-hud', num, h('div.hi-bandrow', band, clock), call);
   const tag = h('div.hi-tag', { hidden: true }, h('span', tagT));
   const ftag = h('div.hi-tag.hi-ftag', { hidden: true }, h('span', ftagT));   // (S4A — THE NEXT FRIEND above you: the same flag in PINK)
   // THE LOOK SWITCH (S3): AUTO · DAY · NIGHT — three plain choices under the sign (neon-underline, never a pill), each on its own
@@ -305,7 +307,7 @@ export function createStage(app, o = {}) {
     }
     MH.setTags(mergeTags(tagItems, 30, MT), hexOfRival);
     // THE PLACE NUMBER (S5): where YOU stand while you climb — written by the HUD only when it changes
-    MH.place(watchW || isOver(run) ? 0 : placeOf(rivalRows, here), rivalRows.length);
+    MH.place(watchW || isOver(run) ? 0 : placeOf(rivalRows, here, run.perfects), rivalRows.length);
   }
   /** WATCHING: the watched player's landed taps → their tower (never a tap assumed; their end only once it is signalled) */
   function feedWatch() {
@@ -826,7 +828,9 @@ export function createStage(app, o = {}) {
     friends() { tagDirty = true; },
     // ---- S4B — THE MATCH's handles
     /** a match is on this stage (the count before its run is known: the welcome's scene, no TAP TO START) · its HUD */
-    setMatch: on => setMatch(on), hud: () => matchHud(), matchState: () => (MH ? { ...MH.state(), tapes: view.rivalInfo ? view.rivalInfo() : [], watching: watchW ? watchW.uid : '', on: matchOn } : null),
+    setMatch: on => setMatch(on), hud: () => matchHud(),
+    /** (REVIEW FIX A — the HUD's gap check) a call on the game's own lane, as a landing says it ('hi-call is-perfect' …) */
+    say: (text, cls = 'hi-call is-perfect') => say(text, cls, 9, 1500, performance.now()), matchState: () => (MH ? { ...MH.state(), tapes: view.rivalInfo ? view.rivalInfo() : [], watching: watchW ? watchW.uid : '', on: matchOn } : null),
     /** every player's row — the rivals round the tower on screen + THE PLACE NUMBER placed again; WATCH's ranked list (S5) while it is up */
     rivals(rows) { if (!matchOn) return; rivalRows = rows; const M = matchHud(); if (watchUi) M.altimeter(rows); tagDirty = true; },
     /** OUT = WATCH: the tower on screen becomes W's — { uid, seed, taps (their LANDED taps — a list that grows), done: () => their end is signalled } */

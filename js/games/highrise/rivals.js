@@ -146,11 +146,12 @@ export function matchCalls(memo, me, rows) {
   if (themUp.length) out.unshift({ text: themUp.length === 1 ? `${themUp[0]} PASSED YOU` : `${themUp.length} PASSED YOU`, kind: 'passed' });
   return out;
 }
-/** THE PLACE NUMBER (S5): where YOU stand — 1 + the players STRICTLY over your floor (a level player shares your place: everyone climbs
- *  in step, and a rival's height is a network's beat old — a place that only moves when someone is really over / under you) */
-export function placeOf(rows, floor) {
+/** THE PLACE NUMBER (S5): where YOU stand — 1 + the players STRICTLY ahead of you. REVIEW FIX A (the owner's call, Nov 20): ahead = the
+ *  final ranking's rule — a higher floor, or the same floor with MORE perfects (the review saw seven level bots all "1ST"); the same
+ *  floor + the same perfects share the place. It does not flicker: a rival's height + perfects only move at their landing. */
+export function placeOf(rows, floor, perfects = 0) {
   let n = 1;
-  if (rows) for (let i = 0; i < rows.length; i++) if (!rows[i].me && rows[i].floor > floor) n++;
+  if (rows) for (let i = 0; i < rows.length; i++) { const r = rows[i]; if (!r.me && (r.floor > floor || (r.floor === floor && (r.perfects || 0) > perfects))) n++; }
   return n;
 }
 /** "1ST" · "2ND" · "3RD" · "4TH" … (11TH–13TH) → [the number, its suffix] — the place number's two sizes */

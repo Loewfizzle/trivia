@@ -1,8 +1,10 @@
 // HIGH RISE — THE MATCH's HUD (S4B — docs/highrise.md "THE MATCH"): the DOM a match adds over the stage — nothing of it in a solo run.
-//   · THE PLACE NUMBER (S5 — the owner: the altimeter's "moving text in the corner of your eye" is GONE): ONE big still number in the
-//     top-left corner, under ☰ — "3RD / 8" ("1ST" in gold) — written only when YOUR place changes, with a short pulse (up = cyan, down =
-//     soft pink: an opacity + transform one-shot, never sliding text). While you climb only.
-//   · THE RANKED LIST (S5 — WATCH only, the altimeter's old WATCH role): every player, the highest first — big rows (≥ 44 pt): the place,
+//   · THE PLACE NUMBER (S5 — the owner: the altimeter's "moving text in the corner of your eye" is GONE): ONE big still number — since
+//     REVIEW FIX A alone in the TOP-RIGHT corner, under the music button: "3RD" with "/ 8" small under it ("1ST" in gold) — written only
+//     when YOUR place changes, with a short pulse (up = cyan, down = soft pink: an opacity + transform one-shot, never sliding text).
+//     While you climb only. A place = the floor, then the most perfects (rivals.js#placeOf — the final ranking's rule).
+//   · THE RANKED LIST (S5 — WATCH only, the altimeter's old WATCH role): the players, the highest first — at most LIST_MAX rows
+//     (REVIEW FIX A: clear of the slab's way in — the leaders + the watched + YOU, "+N MORE"), big rows (≥ 44 pt): the place,
 //     a bar in their colour, their name, their floor; the one you watch lit; YOU outlined; OUT = a cross + the name struck (a shape,
 //     never colour alone); the finish = a gold diamond; a phone that went silent = a hollow bar. Tap a row = watch them (press + lift);
 //     a tap anywhere else = the next player (the stage's own).
@@ -21,12 +23,18 @@ import { rankInto, ordSuffix } from './rivals.js';
 export const RIVAL_TAGS = 3;
 /** the same call twice inside this = said once (S5 — THE ANNOUNCER CHECK: never a burst of one line) */
 export const REPEAT_MS = 4000;
+/** THE RANKED LIST's rows at most (REVIEW FIX A — the review's SHOULD 2: 8 rows of 44 pt ran to y 408, over where a slab slides in
+ *  from the left in 83 % of its frames; 5 rows end at ~276, clear of THE DROP ZONE). Past 5 players: the leaders + the one you watch +
+ *  YOU, the rest folded into a quiet "+N MORE" foot — a tap off the list still steps to the next player, every one of them. */
+export const LIST_MAX = 5;
 /** THE PLACE NUMBER's pulse (ms) */
 export const PULSE_MS = 650;
 
 /** createMatchHud(stage, hud) → the match's HUD (its nodes are added to the stage once; `hud` = the stage's own HUD column: the lane sits under its call line) */
 export function createMatchHud(stage, hud) {
   const alt = h('ol.hi-alt', { 'aria-label': 'Every player, the highest first — tap a name to watch them' });
+  const moreT = document.createTextNode(''), moreLi = h('li.hi-alt-more', { 'aria-hidden': 'true' }, moreT);
+  let moreN = 0;
   // THE PLACE NUMBER: its text nodes made once (the ordinal's number · its suffix · "/ 8"), the pulse's glow a copy over it
   const placeN = document.createTextNode(''), placeS = document.createTextNode(''), placeOf_ = document.createTextNode('');
   const fxN = document.createTextNode(''), fxS = document.createTextNode('');
@@ -61,7 +69,7 @@ export function createMatchHud(stage, hud) {
     // (THE CLOSE's REVIEW: the order that waited under the finger is put right at the lift — nothing else may come to ask for it)
     li.addEventListener('pointerup', e => { e.stopPropagation(); heldAt = 0; if (id === e.pointerId) { id = null; if (pick) pick(uid); } if (lastList) api.altimeter(lastList); });
     li.addEventListener('pointercancel', () => { id = null; heldAt = 0; if (lastList) api.altimeter(lastList); });
-    r = { li, nameT, floorT, rankT, rank: 0, name: '', floor: -1, state: '', me: null, hex: '', seen: false };
+    r = { li, nameT, floorT, rankT, rank: 0, name: '', floor: -1, state: '', me: null, hex: '', seen: false, show: true };
     rows.set(uid, r);
     return r;
   }
@@ -72,13 +80,19 @@ export function createMatchHud(stage, hud) {
      *  order. The stage calls it only while you watch (a live climber's corner holds THE PLACE NUMBER alone). */
     altimeter(list) {
       lastList = list;
-      const sorted = rankInto(list, order);
-      let key = '', rank = 0, prevF = -1;
+      const sorted = rankInto(list, order), n = sorted.length;
+      let key = '', rank = 0, prevF = -1, prevP = -1, forced = 0, shown = 0;
+      for (let i = 0; i < n; i++) if (sorted[i].me || sorted[i].watched) forced++;
+      let lead = LIST_MAX - forced;   // (past LIST_MAX: the leaders' rows left once the watched one + YOU have theirs)
       for (const r of rows.values()) r.seen = false;
-      for (let i = 0; i < sorted.length; i++) {
-        const p = sorted[i], r = rowFor(p.uid);
-        if (p.floor !== prevF) { rank = i + 1; prevF = p.floor; }   // (a level player shares the place — THE PLACE NUMBER's rule)
-        r.seen = true; key += `${p.uid}|`;
+      for (let i = 0; i < n; i++) {
+        const p = sorted[i], r = rowFor(p.uid), pf = p.perfects || 0;
+        // (REVIEW FIX A — the owner's call: a place is shared only by the SAME floor AND the same perfects — the final ranking's rule,
+        //  THE PLACE NUMBER's too; the review saw seven level bots all reading "1")
+        if (p.floor !== prevF || pf !== prevP) { rank = i + 1; prevF = p.floor; prevP = pf; }
+        r.seen = true;
+        r.show = n <= LIST_MAX || p.me || p.watched || lead-- > 0;
+        if (r.show) { key += `${p.uid}|`; shown++; }
         if (r.rank !== rank) { r.rank = rank; r.rankT.data = String(rank); }
         if (r.name !== p.name) { r.name = p.name; r.nameT.data = p.name; }
         if (r.floor !== p.floor) { r.floor = p.floor; r.floorT.data = String(p.floor); }
@@ -86,11 +100,14 @@ export function createMatchHud(stage, hud) {
         const state = `${p.me ? 'is-me ' : ''}${p.end === 'made' ? 'is-made ' : p.over ? 'is-out ' : p.silent ? 'is-silent ' : ''}${p.watched ? 'is-watched' : ''}`.trim();
         if (r.state !== state) { r.state = state; r.li.className = state; }
       }
+      const more = n - shown;
       // (THE CLOSE's REVIEW — NEVER RE-RENDER UNDER A FINGER: while a row is pressed (≤ 1.5 s) the order waits for the next change)
-      if (key !== orderKey && !(heldAt && performance.now() - heldAt < 1500)) {   // (the order changed — or a player came / went: the rows are put in place once)
+      if ((key !== orderKey || more !== moreN) && !(heldAt && performance.now() - heldAt < 1500)) {   // (the order changed — or a player came / went: the rows are put in place once)
         orderKey = key;
-        for (const [uid, r] of rows) if (!r.seen) { r.li.remove(); rows.delete(uid); }
-        for (let i = 0; i < sorted.length; i++) alt.append(rows.get(sorted[i].uid).li);
+        for (const [uid, r] of rows) if (!r.seen) { r.li.remove(); rows.delete(uid); } else if (!r.show) r.li.remove();
+        for (let i = 0; i < n; i++) { const r = rows.get(sorted[i].uid); if (r.show) alt.append(r.li); }
+        if (more !== moreN) { moreN = more; moreT.data = more ? `+${more} MORE` : ''; }
+        if (more) alt.append(moreLi); else moreLi.remove();
       }
     },
     /** THE PLACE NUMBER (S5): `rank` of `n` (0 = hidden). Written ONLY when it changes; a change after the first = the pulse — up (a
@@ -152,11 +169,11 @@ export function createMatchHud(stage, hud) {
       for (const t of tags) { t.on = false; t.el.hidden = true; t.y = -1e9; if (t.dim) { t.dim = false; t.el.classList.remove('is-dim'); } }
       dimOn = false;
       for (const r of rows.values()) r.li.remove();
-      rows.clear(); orderKey = ''; rosterRef = null; lastList = null; ann.clear(); said.clear(); over.replaceChildren();
+      rows.clear(); orderKey = ''; moreN = 0; moreT.data = ''; moreLi.remove(); rosterRef = null; lastList = null; ann.clear(); said.clear(); over.replaceChildren();
       placeV = 0; placeT = 0; place.className = 'hi-place'; if (fxA) { fxA.cancel(); fxA = null; } if (pulseA) { pulseA.cancel(); pulseA = null; }
       countKey = ''; countT.data = ''; count.className = 'hi-count'; roster.classList.remove('is-on'); watchKey = ''; watchT.data = ''; watch.classList.remove('is-on');
     },
-    state: () => ({ place: placeV ? `${placeV}${ordSuffix(placeV)} / ${placeT}` : '', placeCls: place.className, alt: [...alt.children].map(li => ({ uid: li.dataset.uid, text: li.textContent, cls: li.className })), tags: tags.filter(t => t.on).map(t => ({ text: t.text, y: t.y, hex: t.hex })), dim: dimOn, count: countKey, roster: [...roster.children].map(e => e.textContent), watch: watchKey, calls: ann.log.slice() }),
+    state: () => ({ place: placeV ? `${placeV}${ordSuffix(placeV)} / ${placeT}` : '', placeCls: place.className, alt: [...alt.children].filter(li => li !== moreLi).map(li => ({ uid: li.dataset.uid, text: li.textContent, cls: li.className })), more: moreN, tags: tags.filter(t => t.on).map(t => ({ text: t.text, y: t.y, hex: t.hex })), dim: dimOn, count: countKey, roster: [...roster.children].map(e => e.textContent), watch: watchKey, calls: ann.log.slice() }),
     destroy() { place.remove(); alt.remove(); tagBox.remove(); lane.remove(); roster.remove(); count.remove(); watch.remove(); over.remove(); },
   };
   return api;

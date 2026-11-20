@@ -21,6 +21,10 @@ test('THE PLACE NUMBER: 1 + the players STRICTLY over your floor (a level player
   const rows = [{ uid: 'a', floor: 12 }, { uid: 'b', floor: 10 }, { uid: 'c', floor: 10 }, { uid: 'me', floor: 10, me: true }, { uid: 'd', floor: 3 }];
   assert.equal(placeOf(rows, 10), 2, 'one over you → 2ND; the level ones share it');
   assert.equal(placeOf(rows, 13), 1); assert.equal(placeOf(rows, 2), 5); assert.equal(placeOf([], 4), 1);
+  // REVIEW FIX A (the owner's call): a tie on the floor goes to the most perfects; the same floor + perfects share the place
+  const lv = [{ uid: 'a', floor: 10, perfects: 6 }, { uid: 'b', floor: 10, perfects: 4 }, { uid: 'c', floor: 10, perfects: 4 }, { uid: 'd', floor: 10 }, { uid: 'me', floor: 10, perfects: 4, me: true }];
+  assert.equal(placeOf(lv, 10, 4), 2, 'one level player with more perfects → 2ND; the two on 4 share it');
+  assert.equal(placeOf(lv, 10, 7), 1); assert.equal(placeOf(lv, 10, 0), 4, 'a missing perfects count = 0');
   assert.deepEqual([1, 2, 3, 4, 8, 11, 12, 13, 21, 22, 23, 101].map(ordSuffix), ['ST', 'ND', 'RD', 'TH', 'TH', 'TH', 'TH', 'TH', 'ST', 'ND', 'RD', 'ST']);
 });
 
@@ -58,7 +62,7 @@ test('ZERO GARBAGE IN A MATCH — nearest · mergeTags · matchCalls with kept s
 test('THE ALTIMETER IS GONE from live play — THE PLACE NUMBER in its corner, written only at a change; the ranked list in WATCH only; THE ANNOUNCER: big, 1.5 s, never a burst', () => {
   const hud = read(`${HI}matchhud.js`), s = read(`${HI}stage.js`), css = read('css/highrise-play.css'), v = read(`${HI}view.js`), sim = read(`${HI}matchsim.js`);
   assert.ok(s.includes('rivals(rows) { if (!matchOn) return; rivalRows = rows; const M = matchHud(); if (watchUi) M.altimeter(rows); tagDirty = true; },'), 'the list is built only while you watch');
-  assert.ok(s.includes('MH.place(watchW || isOver(run) ? 0 : placeOf(rivalRows, here), rivalRows.length);'), 'THE PLACE NUMBER: while you climb, once a landing / a change');
+  assert.ok(s.includes('MH.place(watchW || isOver(run) ? 0 : placeOf(rivalRows, here, run.perfects), rivalRows.length);'), 'THE PLACE NUMBER: while you climb, once a landing / a change');
   assert.ok(hud.includes('if (rank === placeV && n === placeT) return;'), 'written only when YOUR place changes');
   assert.ok(hud.includes("placeFx.className = `hi-place-fx ${rank < was ? 'is-up' : 'is-down'}`;"), 'the pulse: up cyan, down soft pink');
   assert.doesNotMatch(css, /\.hi-stage\.is-match\.is-live \.hi-alt/, 'no altimeter rule for a live run');

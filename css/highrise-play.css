@@ -251,24 +251,38 @@
 /* a match starts on the count — never on a tap: the welcome's TAP TO START + the look switch are off */
 .hi-stage.is-match.hi-game .hi-start-foot { display: none; }
 /* THE PLACE NUMBER (S5 — the owner: the altimeter's moving rows were "movement in the corner of your eye … only distracting"): ONE big
-   STILL number in the top-left corner under ☰ — "3RD / 8" (the ordinal in the game's numerals, "/ 8" smaller + dimmer; "1ST" gold) —
-   clear of the play zone (the HUD's band) and of the tags (the right edge). Written only when YOUR place changes; the change = a short
-   pulse (its glow copy: up cyan, down soft pink — opacity + transform, a one-shot; nothing slides). A live climber's only. */
-.hi-place { position: absolute; z-index: 2; left: 12px; top: calc(env(safe-area-inset-top, 0px) + 50px); display: none; pointer-events: none; }
+   STILL number — "3RD" (the ordinal in the game's numerals; "1ST" gold) with "/ 8" small + dimmer UNDER it. REVIEW FIX A (the owner,
+   Nov 20 — "8TH / 8" ran into THE ROOFTOPS): ALONE in the TOP-RIGHT corner, under the music button (the console's corner: 42 pt from
+   +10), right-aligned, clear space all round — the floor + its band line stay centred, the tags start under the HUD's foot. Written
+   only when YOUR place changes; the change = a short pulse (its glow copy: up cyan, down soft pink — opacity + transform, a one-shot;
+   nothing slides). A live climber's only. */
+.hi-place { position: absolute; z-index: 2; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 60px); display: none; pointer-events: none; }
 .hi-stage.is-match.is-live:not(.is-watch):not(.is-over):not(.is-final) .hi-place.is-on { display: block; }   /* (THE CLOSE's REVIEW: the hide rules below were weaker than this one) */
 .hi-stage.is-watch .hi-place, .hi-stage.is-over .hi-place, .hi-stage.is-final .hi-place { display: none; }
-.hi-place-in, .hi-place-fx { display: flex; align-items: baseline; white-space: nowrap; font-style: italic; transform-origin: 0 60%; }
+.hi-place-in, .hi-place-fx { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; white-space: nowrap; font-style: italic; transform-origin: 100% 40%; }
 .hi-place b { font: 700 50px/0.9 var(--font-num); font-variant-numeric: tabular-nums; }
 .hi-place i { margin-left: 2px; font: 700 23px/1 var(--font-num); font-style: italic; }
-.hi-place span { margin-left: 7px; font: 700 20px/1 var(--font-num); font-style: normal; letter-spacing: 0.04em; color: #c9c3e6; }
+.hi-place span { flex: 0 0 100%; margin-top: 6px; padding-right: 2px; text-align: right; font: 700 17px/1 var(--font-num); font-style: normal; letter-spacing: 0.06em; color: #c9c3e6; }
 .hi-place-in { color: #fff; text-shadow: 0 0 2px #fff, 0 0 12px rgba(54, 201, 255, 0.55), 0 2px 0 rgba(10, 7, 22, 0.75), 0 0 10px rgba(10, 7, 22, 0.8); }
 .hi-place-in span { text-shadow: 0 2px 0 rgba(10, 7, 22, 0.8), 0 0 8px rgba(10, 7, 22, 0.9); }
 .hi-place.is-first .hi-place-in { color: #ffd257; text-shadow: 0 0 2px #fff6d8, 0 0 14px rgba(255, 200, 60, 0.9), 0 2px 0 rgba(30, 16, 0, 0.8), 0 0 10px rgba(10, 7, 22, 0.7); }
-.hi-place-fx { position: absolute; left: 0; top: 0; opacity: 0; will-change: opacity, transform; color: #e6fbff; text-shadow: 0 0 3px #fff, 0 0 14px #36c9ff, 0 0 30px rgba(54, 201, 255, 0.9); }
+.hi-place.is-first .hi-place-in span { color: #e9d9a8; }
+.hi-place-fx { position: absolute; right: 0; top: 0; opacity: 0; will-change: opacity, transform; color: #e6fbff; text-shadow: 0 0 3px #fff, 0 0 14px #36c9ff, 0 0 30px rgba(54, 201, 255, 0.9); }
 .hi-place-fx.is-down { color: #ffe6f8; text-shadow: 0 0 3px #fff, 0 0 14px #ff8fd8, 0 0 30px rgba(255, 120, 210, 0.85); }
 .hi-stage[data-sky='bright'] .hi-place-in { color: var(--hi-ink); text-shadow: var(--hi-halo); }
 .hi-stage[data-sky='bright'] .hi-place-in span { color: #2a3566; text-shadow: var(--hi-halo); }
 .hi-stage[data-sky='bright'] .hi-place.is-first .hi-place-in { color: var(--hi-gold); text-shadow: var(--hi-edge-big), 0 0 14px rgba(255, 255, 255, 0.9); }
+/* THE TOP HUD in a match (REVIEW FIX A — the owner: the floor, band, clock and PERFECT ×5 read as ONE cluster — the review measured the
+   gaps 6 · 0 · 12 · 4 px): the floor big + centred; the band + the clock ONE narrow centred line under it ("THE ROOFTOPS · 5:37" —
+   tighter spacing, never spreading sideways into the place number's corner); the callouts under all of it. Every gap ≥ 16 px at
+   390 × 844 (tests/integration/highrise-place.mjs measures them). Solo keeps its own (approved) stack. */
+.hi-bandrow { display: block; }
+.hi-stage.is-match .hi-bandrow { display: flex; justify-content: center; align-items: baseline; margin: 16px auto 0; max-width: 200px; white-space: nowrap; }
+.hi-stage.is-match .hi-band { margin-top: 0; font-size: 12px; letter-spacing: 0.11em; text-indent: 0; }
+.hi-stage.is-match .hi-clock { margin-top: 0; font-size: 12px; letter-spacing: 0.06em; }
+.hi-stage.is-match .hi-clock::before { content: '·'; margin: 0 0.45em; }
+.hi-stage.is-match .hi-call { margin-top: 30px; }   /* (30: the call's line also clears THE PLACE NUMBER's foot by 16 — a long call is wide) */
+.hi-stage.is-match .hi-ann { margin-top: 16px; }
 /* THE RANKED LIST (S5 — WATCH only; the altimeter's old WATCH role): every player, the highest first, BIG rows (44 pt) under ☰ — the
    place · a bar in their colour · their name · their floor, on a flat dark strip (no pill). The one you WATCH lit (a bright plate + a
    wider bar) · YOU outlined · OUT = a CROSS in the bar's place + the name struck (a shape, never colour alone) · the finish = a gold
@@ -293,6 +307,8 @@
 .hi-alt li.is-made b { color: #ffd257; }
 .hi-alt li.is-silent .hi-alt-dot { background: none; box-shadow: inset 0 0 0 2px var(--c); }
 .hi-alt li.is-silent .hi-alt-n { color: #c9c3e6; }
+/* REVIEW FIX A — past LIST_MAX (5) players the rest fold into one quiet foot (no tap of its own: a tap off the list = the next player) */
+.hi-alt li.hi-alt-more { display: block; height: auto; padding: 4px 9px 5px 28px; font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.12em; color: #c9c3e6; cursor: default; pointer-events: none; }
 /* THE RIVALS' TAGS: the gold flag's twin in the RIVAL's colour ("ALEX ▲3"), in the same clear column — and DIM while a slab slides
    (one class on their own layer: opacity only) */
 .hi-rtags { position: absolute; inset: 0; pointer-events: none; }
