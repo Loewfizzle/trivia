@@ -147,7 +147,7 @@ test('THE RUN ON THE PAGE: FAIR TAPS, tick 0 = the START touch, a beat\'s tap ne
   assert.equal(s.replace('function sized() { stageH = stage.clientHeight; stageW = stage.clientWidth; hudFoot = hud.offsetTop + hud.offsetHeight; tagDirty = true; }', '').match(layout), null, 'no layout read anywhere but sized()');
   assert.ok(s.includes('const ro = new ResizeObserver(sized); ro.observe(stage); ro.observe(hud);'));
   assert.ok(s.includes("if (call.animate) { let a = pops.get(ms); if (a) a.play(); else { a = call.animate(POP, { duration: ms, fill: 'both' }); pops.set(ms, a); } callAnim = a; }") && s.includes("else call.style.opacity = '1';"), 'the announcer\'s one-shot = the Web Animations API (opacity + transform), restarted without a reflow');
-  assert.doesNotMatch(read('css/highrise-play.css'), /@keyframes (?!hi-breathe)/, 'the only CSS keyframes left: the two breathing lines (opacity)');
+  assert.doesNotMatch(read('css/highrise-play.css'), /@keyframes (?!hi-breathe|hi-new|hi-fin-in)/, 'the only CSS keyframes: the two breathing lines (opacity) + S4B\'s END SCREEN pair (NEW BEST\'s pop, the podium frame\'s fade — JAYWALK\'s; never in a live run)');
   // THE END HOLD holds for EVERY end — THE FUSE's (in the frame) and a TAP's (in the touch handler: the review)
   assert.ok(s.includes('if (over && !endedAt) endedAt = now;') && s.includes("if (over && !shown && now - endedAt >= (run.st === 'made' ? MADE_HOLD_MS : END_HOLD_MS)) showEnd(now);") && s.includes('const over = isOver(run);'));
   assert.equal((s.match(/endedAt = now/g) || []).length, 1, 'ONE place sets the end\'s time: the frame that first sees the run over');
@@ -254,7 +254,7 @@ test('YOUR BEST (best.js — PURE): no best = nothing · above you = the right-e
   assert.ok(s.includes("if (crossedBest(best, e.floor)) {") && s.includes("tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold');") && s.includes("say('NEW BEST', 'hi-call is-gold', 5, 1900, now);"));
   assert.ok(s.includes('let yg = gold ? tagY(view.restY(Math.min(best, run.floor + 100)) * stageH, hudFoot, zone) : -1e9, yf = -1e9;') && s.includes('const zone = view.restZone() * stageH;'), 'the tag: its floor\'s height (clamped 100 floors up — a point behind the camera projects mirrored: the review), clear of the HUD + THE DROP ZONE');
   assert.ok(s.includes('best = Math.max(best, readBest());'), 'a phone whose storage is blocked keeps its best for the visit');
-  assert.ok(s.includes('EC.best(best, best > was && was > 0);') && read(`${HI}endscreen.js`).includes("bestV.textContent = v ? say(v) : '—';"), 'a first run that never landed a slab shows no "YOUR BEST 0" (the column says —); NEW BEST is said of a best that was beaten');
+  assert.ok(s.includes('EC.best(best, best > was && was > 0, was);') && read(`${HI}endscreen.js`).includes("bestL.textContent = !v ? '' : nb ? (whole(was) > 0 ? `NEW BEST · WAS ${say(was)}` : 'NEW BEST') : `YOUR BEST · ${say(v)}`;"), 'a first run that never landed a slab shows no "YOUR BEST 0" (no line at all); NEW BEST is said of a best that was beaten');
   assert.match(s, /best = FROM \? was : nextBest\(was, live\.floor\);[^\n]*\n\s*if \(best > was\) writeBest\(best\);/, 'a run moves YOUR BEST — a `?floor=N` look check never does');
   assert.ok(code(`${HI}play.js`).includes("const FROM = Math.max(0, Math.min(400, Math.floor(Number(Q.get('floor')) || 0)));") && s.includes('if (FROM) climbBy(FROM, null);'), '`?floor=N`: the START tap plays N clean drops through the real engine (the lab\'s `?lane=N`)');
   assert.match(read('css/highrise-play.css'), /\.hi-tag \{ position: absolute; right: 0;/, 'the tag sits at the RIGHT edge');
@@ -539,7 +539,7 @@ test('THE FLYERS (S3 — flyers.js + night.js\'s stage, static): a LAZY module, 
   assert.ok(fl.includes('ease((F.cf - FLY.shipFrom) / (FLY.shipAt - FLY.shipFrom))') && fl.includes('S.glance(gl);') && fl.includes('S.pour(beam * (0.8 + 0.2 * Math.sin(tq * 7)));'));
   assert.ok(n.includes('const lookY = NUM[CAMY] + CAM.lift - NUM[BUMP] * 0.022 + glance * 0.42 + NUM[LIFT] * 2 * dist * TH / cp,') && n.includes('glance(v) { glance = reduce ? 0 : v; }'), 'the camera glances up (not with reduce motion)');
   assert.match(n, /export const SPACE_FROM = 200, SPACE_FULL = 212;/); assert.ok(n.includes('const space = cf <= SPACE_FROM ? 0 : cf >= SPACE_FULL ? 1 : (cf - SPACE_FROM) / (SPACE_FULL - SPACE_FROM);') && n.includes('if (plateU.uSpace.value !== space) plateU.uSpace.value = space;') && fx.includes('if (uSpace > 0.001) c += space() * uSpace;'));
-  assert.match(read('css/highrise-play.css'), /\.hi-ec\.is-made \.hi-ec-n \{ color: #fff6d8;/, 'THE FINISH: the end card in gold — the words + the floor (S4A FIX: endscreen.js)');
+  assert.match(read('css/highrise-play.css'), /\.hi-ec\.is-made \.hi-ec-cause \{[^}]*color: #ffc83c;/, 'THE FINISH: the end card\'s words in GOLD (S4B: the number stays the one white hero — endscreen.js)');
   assert.doesNotMatch(fl, /performance\.now|requestAnimationFrame|\bDate\b/, 'flyers.js keeps no clock of its own (night.js hands it the frame)');
   for (const l of fl.split('\n').filter(x => /Math\.random/.test(x))) assert.match(l, /S\.spark\(/, 'its only dice are the finish\'s sparks');
 });

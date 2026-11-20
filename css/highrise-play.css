@@ -41,12 +41,15 @@
 .hi-tag[hidden] { display: none; }
 
 /* THE SHADE (S4A FIX's add-ons): the soft dark fades behind the WELCOME's + the END's words — the sky at the top, the foot — ONE
-   layer over the picture, never a box; off while a run is live. The end's top fade runs down to the stats strip's foot. */
+   layer over the picture, never a box; off while a run is live. */
 .hi-stage { --hi-w: min(100vw, calc(100dvh * 0.6)); }
 .hi-shade { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.35s ease;
   background: linear-gradient(to bottom, rgba(8, 6, 22, 0.44) 0, rgba(8, 6, 22, 0.22) 26%, rgba(8, 6, 22, 0) 46%), linear-gradient(to top, rgba(8, 6, 22, 0.9) 0, rgba(8, 6, 22, 0.66) 13%, rgba(8, 6, 22, 0) 31%); }
 .hi-stage.is-welcome .hi-shade, .hi-stage.is-ended .hi-shade { opacity: 1; }
-.hi-stage.is-ended .hi-shade { background: linear-gradient(to bottom, rgba(8, 6, 22, 0.88) 0, rgba(8, 6, 22, 0.84) 40%, rgba(8, 6, 22, 0) 57%), linear-gradient(to top, rgba(8, 6, 22, 0.92) 0, rgba(8, 6, 22, 0.66) 13%, rgba(8, 6, 22, 0) 30%); }
+/* (S4B — THE END = JAYWALK'S STANDARD: the scene is DIMMED behind the card — JAYWALK's own veil, number for number; by day its top is
+   darker: the header + the cause stand over a bright sky) */
+.hi-stage.is-ended .hi-shade { background: linear-gradient(rgba(7, 6, 11, 0.5) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%); }
+.hi-stage.is-ended[data-look='day'] .hi-shade { background: linear-gradient(rgba(7, 6, 11, 0.84) 0, rgba(7, 6, 11, 0.76) 16%, rgba(7, 6, 11, 0.9) 32%, rgba(7, 6, 11, 0.96) 100%); }
 
 /* THE WELCOME = "A · THE SIGN" (S4A FIX's add-on — the owner's pick, Nov 19): NO BOX — full-bleed. The sign BIG in the sky (white faces;
    HIGH a pink neon edge + glow, RISE a blue one), one line under it; TAP TO START big in the soft dark fade at the foot. The tower,
@@ -67,30 +70,31 @@
 .hi-start-l { margin-top: 15px; font: 600 13px/1 var(--font-ui); letter-spacing: 0.24em; text-indent: 0.24em; color: #d9d4f2; white-space: nowrap; text-shadow: 0 1px 0 #0a0716, 0 0 8px #0a0716; }
 @keyframes hi-breathe { from { opacity: var(--hi-breathe-lo, 0.55); } to { opacity: 1; } }
 
-/* THE END = "A · THE HERO NUMBER" (S4A FIX's add-on — the owner's pick, Nov 19; js/games/highrise/endscreen.js — ONE builder for this
-   page's card AND the cartridge's body in the console's podium frame): the CAUSE small in the accent · THE FLOOR NUMBER huge, the cyan
-   glow · FLOOR · THE BAND · THE STATS STRIP — three columns between two hairlines, thin dividers, the best in gold. No boxes, no
-   pills. The tower stays LIT under it. MADE IT TO THE MOTHERSHIP: the cause + the number in gold. */
-.hi-end { top: calc(env(safe-area-inset-top, 0px) + max(11.5%, 64px)); padding: 0 16px; }   /* (≥ 64 px: under the SOUNDS button's row / the console's corner buttons) */
-.hi-ec { display: grid; justify-items: center; text-align: center; }
-.hi-ec-cause { max-width: 15em; font: 900 20px/1.16 var(--font-display); letter-spacing: 0.16em; text-indent: 0.16em; color: #ff9ae9; text-wrap: balance; text-shadow: 0 0 10px rgba(255, 79, 216, 0.9), 0 0 24px rgba(255, 43, 214, 0.55), 0 1px 0 rgba(10, 7, 22, 0.6); }
-.hi-ec-n { margin-top: 8px; display: inline-flex; gap: 0.05em; font: 700 calc(var(--hi-w) * 0.385)/0.86 var(--font-num); font-style: italic; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap;
-  text-shadow: 0 0 2px #fff, 0 0 16px rgba(0, 240, 255, 0.9), 0 0 40px rgba(0, 190, 255, 0.5), 0 4px 0 rgba(10, 7, 22, 0.55); }
-.hi-ec-n[data-dg='3'] { font-size: calc(var(--hi-w) * 0.335); }
-.hi-ec-n[data-dg='4'], .hi-ec-n[data-dg='5'] { font-size: calc(var(--hi-w) * 0.25); }
-.hi-ec-line { margin-top: 14px; font: 700 14px/1 var(--font-ui); letter-spacing: 0.42em; text-indent: 0.42em; color: #d9d4f2; white-space: nowrap; text-shadow: 0 1px 0 #0a0716; }
-.hi-ec-strip { margin-top: 24px; width: min(100%, 336px); display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 11px 0 12px; border-top: 1px solid rgba(255, 255, 255, 0.22); border-bottom: 1px solid rgba(255, 255, 255, 0.22); }
-.hi-ec-col { display: grid; justify-items: center; align-content: start; gap: 10px; padding: 3px 2px 1px; min-width: 0; }
-.hi-ec-col + .hi-ec-col { border-left: 1px solid rgba(255, 255, 255, 0.22); }
-.hi-ec-k { font: 700 11px/1 var(--font-ui); letter-spacing: 0.2em; text-indent: 0.2em; color: #c3bde6; white-space: nowrap; }
-.hi-ec-col b { font: 700 29px/1 var(--font-num); font-style: italic; color: #fff; font-variant-numeric: tabular-nums; }
-.hi-ec-col.is-best b { color: #ffd257; }
-.hi-ec-col.is-new .hi-ec-k { color: #ffd257; }
-.hi-ec-col.is-new b { text-shadow: 0 0 10px rgba(255, 200, 60, 0.9), 0 0 22px rgba(255, 170, 30, 0.5); }
-.hi-ec.is-made .hi-ec-cause { color: #ffe08a; text-shadow: 0 0 10px rgba(255, 200, 60, 0.95), 0 0 24px rgba(255, 170, 30, 0.6), 0 1px 0 rgba(10, 7, 22, 0.6); }
-.hi-ec.is-made .hi-ec-n { color: #fff6d8; text-shadow: 0 0 2px #fff, 0 0 16px rgba(255, 200, 60, 0.95), 0 0 40px rgba(255, 170, 30, 0.6), 0 4px 0 rgba(10, 7, 22, 0.55); }
-/* YOUR BEST still above you, on the end screen: plain gold words beside the dashed outline over the tower (the flag's own node, no flag) */
-.hi-tag.is-ghost { right: auto; left: 0; padding: 0; background: none; border: 0; color: #ffd257; letter-spacing: 0.1em; transition: none; text-shadow: 0 1px 0 #0a0716, 0 0 6px rgba(10, 7, 22, 0.9); }
+/* THE END = JAYWALK'S STANDARD (S4B — the owner, Nov 19: "the end screen needs to look like JAYWALK's"; the mockup
+   Downloads\NEON\highrise-end-jaywalk-style-v2.png; js/games/highrise/endscreen.js — ONE builder for this page's card AND the cartridge's
+   body in the console's podium frame; JAYWALK's layout, type, sizes + spacing: css/jaywalk.css .jw-fin*). Top to bottom: THE HEADER
+   HIGH RISE · SOLO · THE CAUSE big, up to two lines · THE FLOOR NUMBER huge + FLOORS · YOUR BEST · n · n PERFECTS · BEST STREAK n.
+   REAL COLOURED NEON, never all white: HIGH = the sign's hot pink, RISE = its cyan, the mode a soft lavender; the cause SATURATED HOT
+   PINK (the colour IS the letter — a hair-thin bright edge + its glow; MADE IT TO THE MOTHERSHIP = GOLD); the number the ONE white hero
+   with a cyan glow; YOUR BEST gold. The same in both looks (the words stand on the veil). No stats strip, no boxes, no pills. */
+.hi-end { top: calc(env(safe-area-inset-top, 0px) + 50px); padding: 0 12px; }   /* (under the SOUNDS button's row; in the console the frame's kicker sits between the corner buttons) */
+.hi-ec { display: grid; justify-items: center; gap: 10px; text-align: center; }
+.hi-ec-hd, .hi-final .final > .sheet-kicker { font: 900 clamp(15px, calc(var(--hi-w) * 0.049), 21px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; }
+.hi-ec-hd { margin-bottom: 4px; }
+.hi-hd b, .hi-hd i { font: inherit; font-style: normal; }
+.hi-hd-a { color: #ff4fd8; text-shadow: 0 0 1px rgba(255, 236, 250, 0.75), 0 0 10px rgba(255, 79, 216, 0.95), 0 0 24px rgba(255, 43, 214, 0.6), 0 2px 0 rgba(20, 0, 14, 0.9); }
+.hi-hd-b { color: #36c9ff; text-shadow: 0 0 1px rgba(232, 250, 255, 0.75), 0 0 10px rgba(54, 201, 255, 0.95), 0 0 24px rgba(0, 150, 255, 0.6), 0 2px 0 rgba(0, 10, 24, 0.9); }
+.hi-hd-m { color: #c9b6ff; text-shadow: 0 0 10px rgba(158, 126, 255, 0.6), 0 2px 0 rgba(10, 4, 24, 0.9); }
+.hi-ec-cause { max-width: 11.5em; font: 900 min(34px, calc(var(--hi-w) * 0.087))/1.06 var(--font-display); letter-spacing: 0.04em; color: #ff4fd8; text-wrap: balance;
+  text-shadow: 0 0 1px rgba(255, 236, 250, 0.8), 0 0 12px rgba(255, 79, 216, 0.95), 0 0 30px rgba(255, 43, 214, 0.65), 0 3px 0 rgba(20, 0, 14, 0.9); }
+.hi-ec-n { margin-top: 6px; display: inline-flex; gap: 0.05em; font: 700 clamp(84px, calc(var(--hi-w) * 0.256), 104px)/0.95 var(--font-num); letter-spacing: 0.02em; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap;
+  text-shadow: 0 0 2px #fff, 0 0 16px rgba(0, 240, 255, 0.85), 0 0 38px rgba(0, 190, 255, 0.45), 0 3px 0 rgba(0, 0, 0, 0.8); }
+.hi-ec-fl { margin-top: -6px; padding-left: 0.34em; font: 700 15px/1 var(--font-ui); letter-spacing: 0.34em; color: var(--text-dim); }
+.hi-ec-best { min-height: 20px; margin-top: 4px; padding-left: 0.2em; font: 800 16px/1.25 var(--font-ui); letter-spacing: 0.2em; color: #ffd257; white-space: nowrap; text-shadow: 0 0 10px rgba(255, 200, 60, 0.45), 0 1px 0 rgba(30, 14, 0, 0.9); }
+.hi-ec-best.is-new { padding-left: 0.1em; font: 900 22px/1.1 var(--font-display); letter-spacing: 0.1em; text-shadow: 0 0 1px rgba(255, 250, 230, 0.8), 0 0 14px rgba(255, 200, 60, 0.95), 0 0 30px rgba(255, 170, 30, 0.65); animation: hi-new 0.5s cubic-bezier(0.2, 1.7, 0.4, 1) both; }
+@keyframes hi-new { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: none; } }
+.hi-ec-line { padding-left: 0.2em; font: 600 13px/1.2 var(--font-ui); letter-spacing: 0.2em; color: var(--text-dim); white-space: nowrap; }
+.hi-ec.is-made .hi-ec-cause { max-width: 13em; font-size: min(28px, calc(var(--hi-w) * 0.07)); color: #ffc83c; text-shadow: 0 0 1px rgba(255, 250, 230, 0.8), 0 0 12px rgba(255, 200, 60, 0.95), 0 0 30px rgba(255, 170, 30, 0.65), 0 3px 0 rgba(60, 30, 0, 0.9); }
 /* THE END's FOOT — END-SCREEN STANDARD A (S2 FIX, the owner; css/components.css .final-bar is the app's — this page loads no ui/final.js):
    ONE big SOLID glowing PLAY AGAIN bar in HIGH RISE's accent (--hi-accent: its sign's hot pink), dark ink on it; a rounded RECTANGLE
    (8 px corners — never a pill), full width inside the 16 pt gutters, 62 pt tall; the glow static. Above the page's note. */
@@ -155,11 +159,11 @@
 @media (max-height: 740px) {
   .hi-num { font-size: 66px; } .hi-call { margin-top: 8px; font-size: 22px; } .hi-call.is-perfect { font-size: 18px; }
   .hi-sign { font-size: calc(var(--hi-w) * 0.2); } .hi-start-top { top: calc(env(safe-area-inset-top, 0px) + 11%); } .hi-start-sub { margin-top: 13px; font-size: 13px; } .hi-start-go { font-size: 23px; } .hi-start-foot { bottom: calc(env(safe-area-inset-bottom, 0px) + 50px); }
-  .hi-end { top: calc(env(safe-area-inset-top, 0px) + max(8.5%, 58px)); } .hi-ec-cause { font-size: 17px; } .hi-ec-n { margin-top: 5px; font-size: calc(var(--hi-w) * 0.315); } .hi-ec-n[data-dg='3'] { font-size: calc(var(--hi-w) * 0.285); } .hi-ec-line { margin-top: 10px; font-size: 13px; }
-  .hi-ec-strip { margin-top: 15px; padding: 8px 0 9px; } .hi-ec-col { gap: 7px; } .hi-ec-col b { font-size: 24px; } .hi-again { min-height: 58px; } .hi-check { bottom: calc(env(safe-area-inset-bottom, 0px) + 98px); }
+  .hi-ec { gap: 7px; } .hi-ec-cause { font-size: min(29px, calc(var(--hi-w) * 0.078)); } .hi-ec-n { margin-top: 2px; font-size: 78px; } .hi-ec-fl { font-size: 14px; }
+  .hi-ec-best { margin-top: 2px; font-size: 15px; } .hi-ec-best.is-new { font-size: 20px; } .hi-again { min-height: 58px; } .hi-check { bottom: calc(env(safe-area-inset-bottom, 0px) + 98px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hi-start-go { animation: none; } .hi-again { transition: none; } .hi-tag { transition: none; }
+  .hi-start-go { animation: none; } .hi-again { transition: none; } .hi-tag { transition: none; } .hi-ec-best.is-new, .hi-final { animation: none; }
 }
 
 /* ---- S4A — THE NEXT FRIEND + THE CARTRIDGE (js/games/highrise/view.js mounts this SAME stage in the console's frame) ---- */
@@ -174,25 +178,29 @@
 .hi-check.is-note { font: 700 12px/1.3 var(--font-ui); letter-spacing: 0.16em; color: #ffd978; }
 /* THE CARTRIDGE: the stage fills the console's game frame (a wide screen: the phone's own column, centred — DESKTOP COMES FREE) */
 .hi-stage.hi-game { position: fixed; inset: 0; margin: 0 auto; height: 100dvh; }
-.hi-stage.is-final .hi-start, .hi-stage.is-final .hi-hud, .hi-stage.is-final .hi-tag:not(.is-ghost) { display: none; }
+.hi-stage.is-final .hi-start, .hi-stage.is-final .hi-hud, .hi-stage.is-final .hi-tag { display: none; }
 /* the stage's own card has no console foot: its way out sits just over the PLAY AGAIN bar (a plain neon-underline line, ≥ 44 pt — no pill) */
 .hi-leave { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 122px); min-height: 44px; padding: 0 14px; border: 0; background: none; color: #fff; font: 700 13px/1 var(--font-ui); letter-spacing: 0.2em; white-space: nowrap; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.3); text-shadow: 0 1px 0 #0a0716, 0 0 8px #0a0716; }
 .hi-leave.is-busy { opacity: 0.5; pointer-events: none; }
-/* THE END SCREEN in the console's podium frame (ui/final.js — its body = final.js#finalScene = endscreen.js's card): THE TOWER STAYS LIT
-   (S4A FIX's add-on) — the frame itself has no backing: the stage's own shade is the one fade behind the words; the frame's foot keeps
-   its solid strip. A SOLO run: no kicker line, no winner block, no confetti — the cause is the first thing read. */
-.hi-final { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; }
-.hi-final > .final { flex: 1 1 auto; min-height: 0; background: none; --fin-bg: rgba(10, 7, 22, 0.94); }
-.hi-final .final.is-solo .burst, .hi-final .final.is-solo .winner, .hi-final .final.is-solo > .sheet-kicker { display: none; }
+/* THE END SCREEN in the console's podium frame (ui/final.js — its body = final.js#finalScene = endscreen.js's card; S4B — JAYWALK'S
+   STANDARD): the frame's kicker = THE HEADER (HIGH RISE · SOLO, its own neon — endscreen.js#endHeader), no winner block, no confetti in a
+   solo run; the scene DIMMED behind it (the stage's shade = JAYWALK's veil; a podium that stands with no end seen first — a refresh on
+   it — wears the veil itself); the frame's foot = the console's universal footer on its solid strip. */
+.hi-final { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; animation: hi-fin-in 0.22s ease-out both; }
+@keyframes hi-fin-in { from { opacity: 0; } to { opacity: 1; } }
+.hi-stage:not(.is-ended) > .hi-final { background: linear-gradient(rgba(7, 6, 11, 0.5) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%); }
+.hi-stage[data-look='day']:not(.is-ended) > .hi-final { background: linear-gradient(rgba(7, 6, 11, 0.84) 0, rgba(7, 6, 11, 0.76) 16%, rgba(7, 6, 11, 0.9) 32%, rgba(7, 6, 11, 0.96) 100%); }
+.hi-final > .final { flex: 1 1 auto; min-height: 0; background: none; --fin-bg: rgba(7, 6, 11, 0.96); }
+.hi-final .final.is-solo .burst, .hi-final .final.is-solo .winner { display: none; }
 /* NO PINK FLASH (S4A FIX — the owner's iPhone: "a pink flash when the round ends … at the final screen"): the console CROWNS its podium
    frame 2.5 s after it stands — its ::before washes the game's accent over the WHOLE screen for 0.6 s (css/components.css
    .final.crowned::before: a winner's flash). HIGH RISE's accent is its sign's hot pink, and its end is how a tower fell: no flash. */
 .hi-final .final::before { display: none; }
 .hi-final .btn, .hi-final .btn::before, .hi-final .btn::after { border-radius: 8px; }
-.hi-final .final > .sheet-kicker { align-self: stretch; text-align: center; padding: 6px var(--cb-room) 0; font: 900 clamp(17px, 5.1vw, 22px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; color: #ffe6f8; text-shadow: 0 0 12px rgba(255, 79, 216, 0.7); }
-.hi-fin { display: grid; justify-items: center; padding: clamp(6px, 5.5dvh, 52px) 4px 4px; text-align: center; }   /* (the cause sits under the corner buttons' row, as on the page) */
+.hi-final .final > .sheet-kicker { align-self: stretch; text-align: center; padding: 6px var(--cb-room) 0; color: #c9b6ff; text-shadow: none; }   /* (centred between the corner buttons — JAYWALK's; its words carry their own neon: .hi-hd-*) */
+.hi-fin { display: grid; justify-items: center; gap: 10px; padding: 6px 12px 4px; text-align: center; }   /* (JAYWALK's .jw-fin) */
 /* THE SWITCH's line (counting OFF until go-live): what the server WOULD have awarded — small, plain, the server's own words */
-/* (S4A FIX's add-on: ONE small line just over the PLAY AGAIN bar — never in the stats strip) */
+/* (ONE small line just over the PLAY AGAIN bar — never among the personal numbers; it goes away at go-live) */
 .hi-fin-would { min-height: 16px; margin: 0 0 8px; text-align: center; font: 700 clamp(10px, 2.9vw, 12px)/1.3 var(--font-ui); letter-spacing: 0.08em; white-space: nowrap; color: #7dffb0; text-shadow: 0 1px 0 #0a0716; }
 .hi-fin-would.is-off { color: #d9d4f2; }
 .hi-fin-would:empty { min-height: 0; }

@@ -18,8 +18,7 @@ import { STREAK_EVERY } from './sounds.js';
 import { nextFriend, crossedFriend, friendTag } from './lines.js';
 import { FLY_FLOORS, flyPlan, flyDue, flyNeeds } from './flyplan.js';
 import { createTiers } from '../kit/tiers.js';
-import { createNight, KEEP, GHOST_MIN, ghostUp } from './night.js';
-import { START } from './tuning.js';
+import { createNight, KEEP } from './night.js';
 import { endCard } from './endscreen.js';
 import { createTrace, PH, EV } from './trace.js';
 
@@ -120,9 +119,9 @@ export function createStage(app, o = {}) {
   const start = h('div.hi-start',
     h('div.hi-start-top', h('div.hi-sign', { 'aria-label': 'High Rise' }, h('span', 'HIGH'), h('span', 'RISE')), h('div.hi-start-sub', 'STACK IT AS HIGH AS YOU DARE'), PAGE ? lookRow : null),
     h('div.hi-start-foot', h('div.hi-start-go', 'TAP TO START'), h('div.hi-start-l', 'ONE TAP DROPS EACH SLAB')));
-  // THE END = "A · THE HERO NUMBER" (S4A FIX's add-on — endscreen.js: the cause · the floor, huge · FLOOR · THE BAND · the stats strip); the
-  // tower stays LIT under it (night.js#pose 'end'), YOUR BEST still above = a dashed gold outline over it + "BEST 119 ↑"
-  const EC = endCard(), check = h('div.hi-check', { hidden: true });
+  // THE END = JAYWALK'S STANDARD (S4B — endscreen.js: the header HIGH RISE · SOLO · the cause in hot-pink neon · the floor, huge · FLOORS ·
+  // YOUR BEST · n in gold · n PERFECTS · BEST STREAK n) on JAYWALK's dark veil (css .hi-shade — the scene dimmed behind it)
+  const EC = endCard({ header: MODE === 'solo' ? 'solo' : 'match' }), check = h('div.hi-check', { hidden: true });
   // THE ON-PHONE TRACE (S4A FIX 2 — `?trace=1`, trace.js): every frame timed in phases; the end card lists THE 5 WORST under the stats
   // strip (the owner screenshots it). Off = null: every call site below is one `if (TR)`.
   const TR = o.trace ? createTrace() : null, traceEl = TR ? h('div.hi-trace', { hidden: true }) : null;
@@ -135,7 +134,7 @@ export function createStage(app, o = {}) {
   const againIco = h('span.hi-again-i', { 'aria-hidden': 'true' });
   againIco.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>';
   const again = press(h('button.hi-again', { type: 'button', hidden: true }, againIco, h('span.hi-again-t', 'PLAY AGAIN')), () => { const now = performance.now(); if (shown && card && now - overAt > RETRY_MS) { restart(); begin(now); } });
-  const note = h('p.hi-note', FROM ? `TEST PAGE · FROM FLOOR ${FROM} · NOTHING COUNTS` : 'TEST PAGE · SOLO · NOTHING COUNTS YET');
+  const note = h('p.hi-note', FROM ? `TEST PAGE · FROM FLOOR ${FROM} · NOTHING COUNTS` : MODE === 'solo' ? 'TEST PAGE · SOLO · NOTHING COUNTS YET' : 'TEST PAGE · THE MATCH’S LOOK · NOTHING COUNTS');
   const fps = o.fps ? h('div.hi-fps', fpsA, fpsB, fpsC) : null;
   // THE SOUNDS (sfx.js — the SHARED audio engine's SFX bus; unlocked by the first tap, never before) + THE SOUND AUDITION (the SOUNDS sheet)
   let snd = null, sheetOpen = false;
@@ -201,7 +200,7 @@ export function createStage(app, o = {}) {
     if (glDown) { glDown.remove(); glDown = null; }
     tries = 0;
     view.adopt(run, T, false); view.setBest(tapeFloor); view.setFriend(friendTape); if (shown) view.rest();
-    view.pose(shown ? 'end' : t0 == null ? 'welcome' : 'play'); view.welcome(t0 == null && !shown, best > 0); view.ghostBest(shown && best > run.floor); tagDirty = true;
+    view.pose(shown ? 'end' : t0 == null ? 'welcome' : 'play'); view.welcome(t0 == null && !shown, best > 0); view.ghostBest(false); tagDirty = true;
     if (FlyMod) { view.flyers(FlyMod); wanted.clear(); needFloor = -1; }   // (the flyers' stage is the new scene's: their models are asked for again)
     hook.view = view; rebuilds++; last = 0; sized();
     watchGL();
@@ -415,11 +414,9 @@ export function createStage(app, o = {}) {
     card = !E || !!E.own;
     endSaid = endWords(live);
     EC.set({ words: endSaid, made: live.made, floor: live.floor, perfects: live.perfects, streak: live.maxStreak });
-    EC.best(best, best > was && was > 0);   // (a first run's floor is YOUR BEST — NEW BEST is said of a best that was BEATEN)
-    // THE TOWER STAYS LIT under the stats: it eases down the screen; YOUR BEST still above = the dashed gold outline over the top slab
-    // (+ "BEST 119 ↑" — placeTags); a NEW BEST = the solid gold tape round the top slab, with its flash
-    view.pose('end'); view.ghostBest(best > live.floor);
-    if (best > was && was > 0 && live.floor > 0) { tapeFloor = live.floor; view.setBest(live.floor, true); }
+    EC.best(best, best > was && was > 0, was);   // (a first run's floor is YOUR BEST — NEW BEST is said of a best that was BEATEN)
+    // (S4B — JAYWALK's standard: the scene is DIMMED behind the card — no dashed outline over the tower, no BEST n ↑ beside it)
+    view.pose('end'); view.ghostBest(false);
     stage.classList.add('is-ended'); tagDirty = true;
     stage.classList.toggle('is-made', live.made);
     // THE DETERMINISM CHECK (the owner's, on a real iPhone): the recorded tap log replayed through a FRESH engine — the judge's own code
@@ -449,8 +446,6 @@ export function createStage(app, o = {}) {
   // (the two tags are placed ONCE A LANDING — tagSeen*: what they were last placed for)
   let tagSeenFloor = -1, tagSeenLive = -1, fpsAt = 0, endSaid = '';
   const XY = new Float64Array(2);
-  /** the end's ghost words: this far (px) over the outline's right corner when they cannot sit beside it */
-  const GHOST_TAG_UP = 26;
   // THE HITCH COUNTER: frames over HITCH_MS in this run (after its first second; a tab that was away is not a hitch) + the last one's cause
   let hitchN = 0, hitchAll = 0, hitchLast = '';
   // (the frame's own fractions — when the last frame began, how long its code took, the phone's usual frame (eased) — in ONE scratch
@@ -477,25 +472,19 @@ export function createStage(app, o = {}) {
   function placeTags(mode) {
     const live = mode === 2;
     tagSeenFloor = run.floor; tagSeenLive = mode; tagDirty = false;
-    // THE WELCOME (mode 1): YOUR BEST's tag at the gold tape round the waiting tower's top slab — "BEST 119" · THE END (mode 3): YOUR
-    // BEST still above you — "BEST 119 ↑" beside the dashed outline floating over the top slab (plain gold words, no flag)
+    // THE WELCOME (mode 1): YOUR BEST's tag at the gold tape round the waiting tower's top slab — "BEST 119" · THE END (mode 3 — S4B,
+    // JAYWALK's standard): no tag at all (the card's own YOUR BEST · n line says it; the scene is dimmed behind the card)
     if (mode === 1 || mode === 3) {
       if (ftagF) { ftagF = null; ftag.hidden = true; }
-      const ghost = mode === 3, on = best > 0 && (ghost ? best > run.floor : true), tp = T.top();
+      const on = mode === 1 && best > 0, tp = T.top();
       if (!on) { if (tagOn) { tagOn = false; tag.hidden = true; } return; }
-      // (the outline's right corner, in the pose the tower eases to — the end's ghost is never thinner than GHOST_MIN: night.js)
-      const gx = ghost ? Math.max(0, GHOST_MIN * START - (tp.x1 - tp.x0)) / 2 : 0, gz = ghost ? Math.max(0, GHOST_MIN * START - (tp.z1 - tp.z0)) / 2 : 0;
-      view.poseXY(tp.x1 + gx, run.floor - 0.5 + (ghost ? ghostUp((tp.x1 - tp.x0) / START, (tp.z1 - tp.z0) / START) : 0), tp.z0 - gz, XY);
+      view.poseXY(tp.x1, run.floor - 0.5, tp.z0, XY);
       mark('dom');
-      tag.classList.toggle('is-ghost', ghost);
-      tagT.data = ghost ? `BEST ${best} ↑` : `BEST ${best}`;
-      // (the ghost's words sit BESIDE its right corner — or, where the screen's edge leaves no room there, OVER the arm's end: never struck through by the dashes — the fresh-eyes review)
-      const gxr = XY[0] * stageW + 10, x = ghost ? Math.min(gxr, stageW - 118) : 0, y = XY[1] * stageH - (ghost && gxr > stageW - 118 ? GHOST_TAG_UP : 0);
-      tagAt = -1e9; tag.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+      tagT.data = `BEST ${best}`;
+      tagAt = -1e9; tag.style.transform = `translate3d(0, ${(XY[1] * stageH).toFixed(1)}px, 0)`;
       if (!tagOn) { tagOn = true; tag.hidden = false; }
       return;
     }
-    if (tag.classList.contains('is-ghost')) tag.classList.remove('is-ghost');
     const gold = live && best > 0 && run.floor <= best, fr = live && o.friends && MODE === 'solo' ? nextFriend(o.friends(), run.floor) : null;
     if (!gold && tagOn) { tagOn = false; tag.hidden = true; }
     if (!fr && ftagF) { ftagF = null; ftag.hidden = true; }

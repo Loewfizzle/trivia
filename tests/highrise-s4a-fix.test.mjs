@@ -91,7 +91,7 @@ test('THE WELCOME = "A · THE SIGN": no box, no panel — the sign BIG in the sk
   // the scene: the pose, the slab, the tape — set at a run's (re)start, put away the moment it goes live
   assert.match(s, /view\.pose\('welcome'\); view\.welcome\(true, best > 0\); view\.ghostBest\(false\);/);
   assert.match(s, /stage\.classList\.remove\('is-welcome'\); stage\.classList\.add\('is-live'\); view\.pose\('play'\); view\.welcome\(false\);/);
-  assert.match(s, /tagT\.data = ghost \? `BEST \$\{best\} ↑` : `BEST \$\{best\}`;/, 'the welcome\'s tag: BEST 119, at the tape');
+  assert.match(s, /tagT\.data = `BEST \$\{best\}`;/, 'the welcome\'s tag: BEST 119, at the tape');
   const pose = n.match(/export const POSE = Object\.freeze\(\{ play: 0, welcome: ([\d.]+), end: ([\d.]+) \}\);/);
   assert.ok(pose && Number(pose[1]) >= 0.12 && Number(pose[1]) <= 0.2 && Number(pose[2]) >= 0.06 && Number(pose[2]) <= 0.14, 'the tower stands ≈ 70 % down on the welcome, a little lower than in play under the end\'s stats');
   assert.match(n, /NUM\[LIFT\] \+= \(liftTo - NUM\[LIFT\]\) \* \(1 - Math\.exp\(-dt \/ 170\) \* \(dt >= 1000 \? 0 : 1\)\);/, 'the camera EASES between the poses');
@@ -109,44 +109,14 @@ test('THE WELCOME = "A · THE SIGN": no box, no panel — the sign BIG in the sk
   for (const m of css.matchAll(/\.hi-(?:start|sign|shade|ec|look)[^{]*\{([^}]*)\}/g)) assert.doesNotMatch(m[1], /border-radius: (?:[2-9]\d|\d{3,})px|border-radius: 999/, 'no pill anywhere on the two screens');
 });
 
-test('THE END = "A · THE HERO NUMBER": the cause small · the floor HUGE · FLOOR · THE BAND · the stats strip (PERFECTS · BEST STREAK · YOUR BEST / NEW BEST in gold) — ONE builder for the page\'s card and the cartridge\'s body; the tower stays lit; the ghost; the lines over the bar', () => {
-  const e = read(`${HI}endscreen.js`), s = read(`${HI}stage.js`), f = read(`${HI}final.js`), n = read(`${HI}night.js`), fx = read(`${HI}night-fx.js`), css = read('css/highrise-play.css');
-  assert.match(e, /const el = h\('div\.hi-ec', cause, n, line, strip\);/, 'top to bottom: the cause, the number, the line, the strip — nothing else');
-  assert.match(e, /h\('div\.hi-ec-col', h\('span\.hi-ec-k', 'PERFECTS'\), perf\), h\('div\.hi-ec-col', h\('span\.hi-ec-k', 'BEST STREAK'\), streak\), bestCol\);/);
-  assert.match(e, /line\.textContent = `FLOOR · \$\{BANDS\[bandAt\(f\)\]\.name\}`;/); assert.match(e, /bestK\.textContent = isNew && v \? 'NEW BEST' : 'YOUR BEST';/);
-  assert.match(e, /^import \{ h \} from '\.\.\/\.\.\/ui\/dom\.js';\nimport \{ BANDS, bandAt \} from '\.\/bands\.js';$/m, 'a view\'s helper: DOM + the bands — no rules, no storage, no fetch');
-  // ONE builder, two callers
-  assert.match(s, /const EC = endCard\(\), check = h\('div\.hi-check', \{ hidden: true \}\);\n[\s\S]{0,400}?\n  const end = h\('div\.hi-end', \{ hidden: true \}, EC\.el, traceEl\);/);
-  assert.match(f, /const EC = endCard\(\), would = h\('div\.hi-fin-would', ''\);/); assert.match(f, /el\.replaceChildren\(EC\.el, would\);/);
-  assert.doesNotMatch(s + f, /hi-end-t|hi-end-n|hi-fin-t|hi-fin-floor|hi-fin-best|perfectsLine/, 'the seven same-weight lines are gone from both');
-  // the sizes: the number ≈ 150 px at 390 wide, the cause ≈ 20 px
-  assert.match(css, /\.hi-ec-n \{[^}]*font: 700 calc\(var\(--hi-w\) \* 0\.385\)\/0\.86 var\(--font-num\);/); assert.match(css, /\.hi-ec-cause \{[^}]*font: 900 20px\/1\.16 var\(--font-display\); letter-spacing: 0\.16em;/);
-  assert.match(css, /\.hi-ec-strip \{[^}]*grid-template-columns: 1fr 1fr 1fr;[^}]*border-top: 1px solid rgba\(255, 255, 255, 0\.22\); border-bottom: 1px solid rgba\(255, 255, 255, 0\.22\); \}/, 'two hairlines');
-  assert.match(css, /\.hi-ec-col \+ \.hi-ec-col \{ border-left: 1px solid rgba\(255, 255, 255, 0\.22\); \}/, 'thin dividers');
-  assert.match(css, /\.hi-ec-col\.is-best b \{ color: #ffd257; \}/); assert.match(css, /\.hi-ec\.is-made \.hi-ec-cause \{ color: #ffe08a;/);
-  // the tower stays LIT: the pose, no backing on the console's frame; YOUR BEST above = the dashed ghost + BEST n ↑; a new best = the tape on the top slab
-  assert.match(s, /view\.pose\('end'\); view\.ghostBest\(best > live\.floor\);/);
-  assert.match(s, /if \(best > was && was > 0 && live\.floor > 0\) \{ tapeFloor = live\.floor; view\.setBest\(live\.floor, true\); \}/, 'NEW BEST: the solid gold tape round the top slab, with its flash');
-  assert.match(css, /\.hi-final \{ position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; \}/, 'the podium frame has no backing of its own: the tower shows');
-  assert.match(css, /\.hi-final \.final\.is-solo \.burst, \.hi-final \.final\.is-solo \.winner, \.hi-final \.final\.is-solo > \.sheet-kicker \{ display: none; \}/);
-  assert.match(fx, /if \(uDash > 0\.5 && fract\(vA \* \$\{TAPE_DASHES\.toFixed\(1\)\} \+ 0\.25\) > 0\.56\) discard;/, 'the ghost = the tape\'s own outline, dashed (the same program)');
-  assert.match(n, /if \(tapeU\.uDash\.value !== \(gh \? 1 : 0\)\) tapeU\.uDash\.value = gh \? 1 : 0;/);
-  assert.match(css, /\.hi-tag\.is-ghost \{ right: auto; left: 0; padding: 0; background: none; border: 0; color: #ffd257;/, 'BEST n ↑: plain gold words beside it');
-  // the ghost floats CLEAR of the tower: its near corner over the top slab's far corner, as the diagonal camera sees them
-  const pitch = 33 * Math.PI / 180, H = 0.14, gap = Number(n.match(/GHOST_MIN = ([\d.]+), GHOST_GAP = ([\d.]+);/)[2]), min = Number(n.match(/GHOST_MIN = ([\d.]+)/)[1]);
-  const up = (sx, sz) => gap + (Math.max(min, sx) + Math.max(min, sz)) * Math.tan(pitch) / (Math.SQRT2 * H);
-  assert.match(n, /export const ghostUp = \(sx, sz\) => GHOST_GAP \+ \(Math\.max\(GHOST_MIN, sx\) \+ Math\.max\(GHOST_MIN, sz\)\) \* Math\.tan\(CAM\.pitch \* Math\.PI \/ 180\) \/ \(Math\.SQRT2 \* SLAB_H\);/);
-  for (const [sx, sz] of [[1, 1], [0.7, 0.9], [0.1, 1], [0.05, 0.05]]) {
-    // (floors a slab's far corner stands above its near one on the screen = (sx + sz) · tan(pitch) / (√2 · H))
-    const depth = (Math.max(min, sx) + Math.max(min, sz)) * Math.tan(pitch) / (Math.SQRT2 * H);
-    assert.ok(up(sx, sz) - depth >= 1 && up(sx, sz) < 9, `a ${sx} × ${sz} top: the ghost hangs ${up(sx, sz).toFixed(1)} floors up — clear of the slab, still on the screen`);
-  }
-  // the two small lines sit just over the PLAY AGAIN bar — never in the strip
+// (THE END = "A · THE HERO NUMBER" was S4A FIX's; S4B replaced it with JAYWALK'S STANDARD — its pins: tests/highrise-s4b.test.mjs)
+test('THE END, after S4B: the hero-number card is GONE (no stats strip, no dashed ghost over the tower) — the small lines still sit just over the PLAY AGAIN bar', () => {
+  const e = read(`${HI}endscreen.js`), s = read(`${HI}stage.js`), f = read(`${HI}final.js`), css = read('css/highrise-play.css');
+  assert.doesNotMatch(e + s + f + css, /hi-ec-strip|hi-ec-col|hi-ec-k\b|is-ghost|GHOST_TAG_UP/, 'the strip + the ghost words left with design A');
+  assert.match(s, /view\.pose\('end'\); view\.ghostBest\(false\);/, 'the scene is dimmed behind the card: no dashed outline');
   assert.match(f, /const overBar = \(\) => \{ const fr = el\.closest\('\.final'\), foot = fr && fr\.querySelector\('\.final-foot'\); if \(foot && would\.nextElementSibling !== foot\) foot\.before\(would\); \};/);
   assert.match(f, /if \(o\.would\) \{ overBar\(\); would\.textContent = wouldLine\(o\.would\);/, 'WOULD COUNT: one small line over the bar');
   assert.match(s, /check\.hidden = !card \|\| !\(PAGE \|\| \(E && E\.note\)\);/, 'REPLAY = LIVE: the test page\'s alone');
-  // THE FRESH-EYES REVIEW: the ghost's words sit beside its right corner — or OVER the arm's end where the screen's edge leaves no room (never struck through by the dashes)
-  assert.ok(s.includes('const GHOST_TAG_UP = 26;') && s.includes('y = XY[1] * stageH - (ghost && gxr > stageW - 118 ? GHOST_TAG_UP : 0);'));
   assert.match(css, /\.hi-check \{ position: absolute; left: 16px; right: 16px; bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 103px\);/);
 });
 

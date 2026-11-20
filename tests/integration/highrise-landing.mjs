@@ -70,7 +70,7 @@ if (process.env.LAND_GATE) ok(tr.land.p95 <= Number(process.env.LAND_GATE), `the
 await p.waitForFunction(() => window.__hiPlay.state().shown, { timeout: 20000 });
 await sleep(900);
 const pan = await p.evaluate(() => {
-  const t = document.querySelector('.hi-trace'), a = document.querySelector('.hi-again'), s = document.querySelector('.hi-ec-strip');
+  const t = document.querySelector('.hi-trace'), a = document.querySelector('.hi-again'), s = document.querySelector('.hi-ec-line');   // (S4B: the panel sits under the card's last personal line)
   if (!t || t.hidden) return null;
   const r = t.getBoundingClientRect(), ra = a.getBoundingClientRect(), rs = s.getBoundingClientRect(), cs = getComputedStyle(t);
   return { text: t.textContent, top: r.top, bottom: r.bottom, left: r.left, right: r.right, againTop: ra.top, stripBottom: rs.bottom, font: parseFloat(cs.fontSize), w: innerWidth, h: innerHeight, lines: t.textContent.split('\n').length };

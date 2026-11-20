@@ -17,11 +17,14 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { verifyNode } from '../../api/_lib/highrise.js';
 import { tapsFromChunks, chunkTimes, packFrom } from '../../js/games/highrise/proof.js';
-import { seedOf, floorOf, perfectsOf } from '../../js/games/highrise/logic.js';
+import { seedOf, floorOf, perfectsOf, towerScore } from '../../js/games/highrise/logic.js';
 import { createRun, stepTo, tap as engineTap } from '../../js/games/highrise/engine.js';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), FAST = argv.includes('--fast') || process.env.FAST === '1', OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
+// (S4B: `HI_UNTIL=table` stops after THE END SCREEN's checks + YOUR TABLE's fixtures · `S4B_OUT=<dir>` = their shots · `HI_LOOK=day` = by day)
+const S4B_OUT = process.env.S4B_OUT || null, LOOKN = process.env.HI_LOOK === 'day' ? 'day' : 'night';
+if (S4B_OUT) mkdirSync(S4B_OUT, { recursive: true });
 if (OUT) mkdirSync(OUT, { recursive: true });
 const DB = 'http://127.0.0.1:9000', NS = 'ns=demo-arcade-default-rtdb', AUTH = { Authorization: 'Bearer owner' };
 const dbGet = path => fetch(`${DB}/${path}.json?${NS}`, { headers: AUTH }).then(r => r.json());
@@ -107,6 +110,7 @@ try {
   ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"highrise\"]')", 6000), 'PLAY → the shelf lists HIGH RISE');
   ok(/HIGH RISE · TEST/.test(await P.ev("document.querySelector('.nd-shelf-row[data-game=\"highrise\"]').textContent")), '… marked · TEST');
   await P.shot('owner-shelf.png');
+  await sleep(450);   // (a tap in the shelf sheet's first moment is dropped — its opening guard; with no outDir there is no shot to wait on)
   await P.tap('.nd-shelf-row[data-game="highrise"]');
   ok(await P.waitFor("!!document.querySelector('.nd-card-sheet.is-in .nd-card[data-game=\"highrise\"] .nd-card-solo')", 8000), 'its row → THE GAME CARD with PLAY NOW');
   await P.shot('owner-card.png');
@@ -163,9 +167,59 @@ try {
   const fin = await P.ev("({ t: document.querySelector('.hi-fin .hi-ec-cause').textContent, n: document.querySelector('.hi-fin .hi-ec-n').getAttribute('aria-label'), w: document.querySelector('.hi-fin-would').textContent, kicker: document.querySelector('.hi-final .sheet-kicker').textContent, bar: !!document.querySelector('.hi-final .final-bar, .hi-final .btn-primary') })");
   ok(fin.t === 'TOO SLOW' && Number(fin.n) === V.floor && fin.kicker === 'HIGH RISE · SOLO', `the end screen: ${fin.kicker} · ${fin.t} · FLOOR ${fin.n}`);
   ok(new RegExp(`^WOULD COUNT · FLOOR ${V.floor} · `).test(fin.w), `WOULD COUNT matches the phone's own result (${fin.w})`);
-  ok(await P.ev("document.querySelector('.hi-fin .hi-ec-col.is-best .hi-ec-k').textContent === 'NEW BEST' && document.querySelector('.hi-fin .hi-ec-col.is-best').classList.contains('is-new')"), 'the end screen: NEW BEST (this phone’s own record while counting is OFF — stored before the screen was built)');
+  ok(await P.ev("document.querySelector('.hi-fin .hi-ec-best').textContent === 'NEW BEST' && document.querySelector('.hi-fin .hi-ec-best').classList.contains('is-new')"), 'the end screen: NEW BEST (this phone’s own record while counting is OFF — stored before the screen was built)');
   await sleep(1200);
   await P.shot('end-card-390x844.png');
+
+  // ---- S4B — THE END = JAYWALK'S STANDARD, in the console's podium frame (docs/highrise.md "THE END")
+  const box = "const q = s => document.querySelector(s), bx = el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }, col = s => getComputedStyle(q(s)).color;";
+  const E = await P.ev(`(() => { ${box} return { kT: q('.hi-final .sheet-kicker').textContent, hd: bx(q('.hi-final .hi-hd')), kCols: [col('.hi-final .hi-hd-a'), col('.hi-final .hi-hd-b'), col('.hi-final .hi-hd-m')], menu: bx(q('.menu-btn')), music: bx(q('.music-btn')),
+    cause: bx(q('.hi-fin .hi-ec-cause')), causeCol: col('.hi-fin .hi-ec-cause'), causeFs: parseFloat(getComputedStyle(q('.hi-fin .hi-ec-cause')).fontSize), n: bx(q('.hi-fin .hi-ec-n')), nCol: col('.hi-fin .hi-ec-n'), nFs: parseFloat(getComputedStyle(q('.hi-fin .hi-ec-n')).fontSize), fl: bx(q('.hi-fin .hi-ec-fl')), flT: q('.hi-fin .hi-ec-fl').textContent,
+    best: bx(q('.hi-fin .hi-ec-best')), bestCol: col('.hi-fin .hi-ec-best'), line: bx(q('.hi-fin .hi-ec-line')), lineT: q('.hi-fin .hi-ec-line').textContent, would: bx(q('.hi-fin-would')), bar: bx(q('.hi-final .final-bar')), barT: q('.hi-final .final-bar').textContent, barBg: getComputedStyle(q('.hi-final .final-bar')).backgroundColor,
+    links: [...document.querySelectorAll('.hi-final .final-link')].map(a => a.textContent), table: !!q('.hi-table'), strip: !!q('.hi-ec-strip, .hi-ec-col'), winner: q('.hi-final .winner') ? getComputedStyle(q('.hi-final .winner')).display : 'none', tag: !!q('.hi-tag:not([hidden])') && getComputedStyle(q('.hi-tag')).display !== 'none',
+    veil: getComputedStyle(q('.hi-shade')).opacity, look: q('.hi-stage').dataset.look, scroll: document.documentElement.scrollWidth, w: innerWidth,
+    pills: [...document.querySelectorAll('.hi-final *')].filter(el => { const cs = getComputedStyle(el), r = parseFloat(cs.borderTopLeftRadius) || 0, b = el.getBoundingClientRect(); return b.width > b.height * 1.6 && b.height > 12 && r >= b.height / 2 - 0.5 && (cs.backgroundColor !== 'rgba(0, 0, 0, 0)' || parseFloat(cs.borderTopWidth) > 0); }).map(el => el.className).slice(0, 4) }; })()`);
+  ok(E.kT === 'HIGH RISE · SOLO' && E.kCols.join('|') === 'rgb(255, 79, 216)|rgb(54, 201, 255)|rgb(201, 182, 255)' && E.hd.x >= E.menu.r + 2 && E.hd.r <= E.music.x - 2 && Math.abs((E.hd.x + E.hd.r) / 2 - 195) < 2, `THE HEADER "${E.kT}": HIGH hot pink · RISE cyan · the mode lavender — one line, centred between the corner buttons (${E.hd.x.toFixed(0)}–${E.hd.r.toFixed(0)}; ☰ to ${E.menu.r.toFixed(0)}, music from ${E.music.x.toFixed(0)})`);
+  ok(E.causeCol === 'rgb(255, 79, 216)' && E.causeFs >= 30 && E.nCol === 'rgb(255, 255, 255)' && E.nFs >= 84 && E.flT === (V.floor === 1 ? 'FLOOR' : 'FLOORS') && E.bestCol === 'rgb(255, 210, 87)' && /^\d+ PERFECTS? · BEST STREAK \d+$/.test(E.lineT) && E.hd.b <= E.cause.y && E.cause.b <= E.n.y + 4 && E.n.b <= E.fl.y + 8 && E.fl.b <= E.best.y && E.best.b <= E.line.y,
+    `top to bottom: the cause in saturated hot pink (${E.causeFs.toFixed(0)} px) · the floor HUGE + white (${E.nFs.toFixed(0)} px) · ${E.flT} · the best in gold · "${E.lineT}"`);
+  ok(/PLAY AGAIN/.test(E.barT) && E.barBg === 'rgb(255, 79, 216)' && E.links.join('|') === 'CITY' && E.bar.b <= 844 && E.would.b <= E.bar.y + 1 && E.bar.y - E.would.b < 24 && E.would.y >= E.line.b, `THE UNIVERSAL FOOTER: the PLAY AGAIN bar in the accent + CITY (SHARE comes with THE SHARE IMAGE — THE REVIEW); WOULD COUNT is the one small line just over the bar (${E.would.y.toFixed(0)}–${E.would.b.toFixed(0)}, the bar at ${E.bar.y.toFixed(0)})`);
+  ok(!E.table && !E.strip && E.winner === 'none' && !E.tag && !E.pills.length && E.scroll <= E.w, `YOUR TABLE is hidden while counting is OFF (no empty table); no stats strip, no winner block, no tag over the tower, no pill (${E.pills.join(' ')}), no sideways scroll`);
+  if (S4B_OUT) await P.p.screenshot({ path: join(S4B_OUT, `cartridge-${LOOKN}-390x844-tooslow.png`) });
+  // YOUR TABLE — its layout proven with FIXTURES (0 · 1 · 3 · 8 friends; the board has no rows of its own while counting is OFF): the
+  // friends' profiles + their HIGH RISE bests + YOUR list are written straight into the emulator, the table re-asked through the real
+  // /api/profile + the real slim cards (JAYWALK's check: e2e-jaywalk.mjs "YOUR TABLE at <w>")
+  {
+    const FR = [['DIMETIME', 212, 190], ['ZACKATTACK12', 176, 150], ['RYLEN', 88, 61], ['MAXIMILIANOS', 301, 280], ['QUINN', 120, 100], ['HOPPER', 64, 40], ['IVY', 45, 30], ['BO', 9, 2]];
+    // (pid-like — p + 11 of the id alphabet: core/friends.js#isPidLike; fresh each run — no state carried between runs)
+    const rnd = () => Array.from({ length: 8 }, () => 'abcdefghijkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 32)]).join(''), base = rnd(), fpid = i => `phi${base}${'abcdefgh'[i]}`;
+    const mineWas = await dbGet(`pstats/${pid}/b/highrise-solo`);
+    await dbPut(`pstats/${pid}/b/highrise-solo`, { a: towerScore(119, 101, 9000) });
+    let seeded = 0;
+    for (const k of [0, 1, 3, 8]) {
+      for (; seeded < k; seeded++) { const [nm, f, pf] = FR[seeded]; await dbPut(`profiles/${fpid(seeded)}`, { n: nm, x: 4200 + seeded * 900, a: 'bolt', c: ['pink', 'cyan'][seeded % 2], m: 9 }); await dbPut(`pstats/${fpid(seeded)}/b/highrise-solo`, { a: towerScore(f, pf, 7000 + seeded) }); await dbPut(`pfr/${pid}/f/${fpid(seeded)}`, Date.now()); }
+      await P.ev("(() => { const t = document.querySelector('.hi-table'), el = document.querySelector('.hi-fin'); if (t) t.remove(); return import('/js/games/highrise/final.js').then(V => { V.yourTable(el); }); })()");
+      const want = k ? Math.min(k + 1, 4) : 0;
+      if (want) ok(await P.waitFor(`document.querySelectorAll('.hi-table-list li').length === ${want} && [...document.querySelectorAll('.hi-table-card')].every(c => c.getBoundingClientRect().height > 30)`, 12000), `YOUR TABLE with ${k} friend${k === 1 ? '' : 's'}: ${want} rows (you always among them)`);
+      else { await sleep(1800); ok(await P.ev("!document.querySelector('.hi-table')"), 'YOUR TABLE with 0 friends: no table at all (a table of one is nothing)'); }
+      await sleep(700);
+      const T = await P.ev(`(() => { ${box} const tb = q('.hi-table'), fr = q('.hi-final .final'); if (!tb) return { none: true, bar: bx(q('.hi-final .final-bar')), line: bx(q('.hi-fin .hi-ec-line')), more: fr.classList.contains('has-more') };
+        const li = [...tb.querySelectorAll('li')], cards = li.map(x => bx(x.querySelector('.hi-table-card'))), fin = bx(q('.hi-fin'));
+        return { tb: bx(tb), k: bx(q('.hi-table-k')), kT: q('.hi-table-k').textContent, line: bx(q('.hi-fin .hi-ec-line')), bar: bx(q('.hi-final .final-bar')), city: bx(q('.hi-final .final-link')), cards, places: li.map(x => x.querySelector('.hi-table-n').textContent), floors: li.map(x => x.querySelector('b:last-child').textContent), sc: li.map(x => bx(x.querySelector(':scope > b'))),
+          me: li.map(x => x.classList.contains('is-me')), names: li.map(x => (x.querySelector('.vl-name') || x.querySelector('.hi-table-card')).textContent.trim().slice(0, 14)), more: fr.classList.contains('has-more'), moreOn: getComputedStyle(q('.hi-final .final-more')).opacity, foot: bx(q('.hi-final .final-actions')), scroll: document.documentElement.scrollWidth, w: innerWidth, between: [...q('.hi-fin').children].map(c => c.classList[0]) }; })()`);
+      if (!T.none) {
+        const ml = T.tb.x, mr = 390 - T.tb.r, cw = T.cards.map(c => Math.round(c.w)), cx = T.cards.map(c => Math.round(c.x));
+        ok(T.kT === 'YOUR TABLE' && T.tb.y >= T.line.b && T.tb.y - T.line.b <= 28 && JSON.stringify(T.between) === JSON.stringify(['hi-ec', 'hi-table']), `${k}: YOUR TABLE sits RIGHT UNDER the personal numbers (${(T.tb.y - T.line.b).toFixed(0)} px under the stats line — nothing between them)`);
+        ok(Math.abs(ml - mr) <= 1.5 && new Set(cw).size === 1 && new Set(cx).size === 1 && Math.abs((T.k.x + T.k.r) / 2 - 195) <= 2 && T.sc.every(b => b.r <= T.tb.r + 0.5) && T.scroll <= T.w, `${k}: one centred grid — margins ${ml.toFixed(1)} | ${mr.toFixed(1)}, every card the same box (${cw[0]} wide from ${cx[0]}), the label centred, the floors right-aligned inside it`);
+        ok(T.me.filter(Boolean).length === 1 && T.places.every((x, i) => !i || Number(x) > Number(T.places[i - 1])) && T.floors[T.me.indexOf(true)] === '119', `${k}: best first (places ${T.places.join(' · ')} — floors ${T.floors.join(' · ')}), YOUR row marked, your 119`);
+        ok(T.bar.b <= 844 && T.city.b <= 844 + 1 && (T.cards[T.cards.length - 1].b <= T.foot.y + 1 || (T.more && Number(T.moreOn) > 0.5)), `${k}: the footer stays on screen (the bar to ${T.bar.b.toFixed(0)}); the last card ${T.cards[T.cards.length - 1].b <= T.foot.y + 1 ? `ends above it (${T.cards[T.cards.length - 1].b.toFixed(0)} ≤ ${T.foot.y.toFixed(0)})` : 'runs under it — MORE BELOW says so'}`);
+      }
+      if (S4B_OUT) await P.p.screenshot({ path: join(S4B_OUT, `cartridge-${LOOKN}-390x844-table-${k}.png`) });
+    }
+    for (let i = 0; i < seeded; i++) { await dbPut(`pfr/${pid}/f/${fpid(i)}`, null); await dbPut(`pstats/${fpid(i)}`, null); await dbPut(`profiles/${fpid(i)}`, null); }
+    await dbPut(`pstats/${pid}/b/highrise-solo`, mineWas == null ? null : mineWas);
+    await P.ev("(() => { const t = document.querySelector('.hi-table'); if (t) t.remove(); })()");
+  }
+  if (process.env.HI_UNTIL === 'table') { await b.close(); console.log(`\n${n - fails.length}/${n} checks (HI_UNTIL=table) — ${fails.length ? `FAILED:\n  ${fails.join('\n  ')}` : 'all green'}`); process.exit(fails.length ? 1 : 0); }
   ok((await dbGet(`results/${g.code}_${g.m}`)) == null, 'counting OFF: no results/ record');
   ok((await snap(pid)) === before, 'counting OFF: NOTHING written — pstats, the profile, the board highrise-solo, the private profile all untouched');
 
@@ -238,7 +292,7 @@ try {
     ok(ps.pa && ps.pa.gf && ps.pa.gf['highrise-clouds'] === 1 && !ps.pa.gf['highrise-top'], '… the feat flag `clouds` from the server\'s replay (never `top`)');
     ok(ps.it && !!ps.it['card-abovetheclouds'] && (o.ach || []).includes('above-the-clouds') && !ps.it['card-topoftheworld'], `… ABOVE THE CLOUDS awarded (the card + its achievement) — TOP OF THE WORLD not (items ${Object.keys(ps.it || {}).filter(k => /^card-/.test(k)).join(' ')} · ach ${(o.ach || []).join(' ')})`);
     await pastMoment(P);
-    ok(await P.waitFor("/^NEW BEST/.test(document.querySelector('.hi-fin .hi-ec-col.is-best').textContent) && !document.querySelector('.hi-fin-would').textContent", 15000), `… the end screen says ${await P.ev("document.querySelector('.hi-fin .hi-ec-col.is-best').textContent")} — no WOULD COUNT line`);
+    ok(await P.waitFor("/^NEW BEST/.test(document.querySelector('.hi-fin .hi-ec-best').textContent) && !document.querySelector('.hi-fin-would').textContent", 15000), `… the end screen says ${await P.ev("document.querySelector('.hi-fin .hi-ec-best').textContent")} — no WOULD COUNT line`);
     await P.shot('end-card-counted-390x844.png');
     await dbPut('testHighriseCounts', null);
   }

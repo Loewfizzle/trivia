@@ -1,7 +1,8 @@
-// HIGH RISE — THE END SCREEN (S4A — docs/highrise.md "THE CARTRIDGE"): the BODY inside the console's podium frame (ui/final.js owns the
-// frame: the XP box, THE FOOT — END-SCREEN STANDARD A: PLAY AGAIN · BACK TO THE CITY). It names HOW THE TOWER ENDED (the game's own
-// table — logic.js#END_WORDS), THE FLOOR, the band reached, the perfects, then YOUR BEST — or NEW BEST — and YOUR TABLE: only from the
-// SERVER's own answer for this match (it REPLAYED the run from the proof node — profile/queue.js's outcome); /api down = just the floor.
+// HIGH RISE — THE END SCREEN (S4A; S4B: JAYWALK'S STANDARD — docs/highrise.md "THE END"): the BODY inside the console's podium frame
+// (ui/final.js owns the frame: the header — its kicker —, the XP box, THE UNIVERSAL FOOTER: PLAY AGAIN · SHARE | CITY). It names HOW THE
+// TOWER ENDED in big neon words (the game's own table — logic.js#END_WORDS), THE FLOOR huge + FLOORS, YOUR BEST · n — or NEW BEST —, one
+// line n PERFECTS · BEST STREAK n, and YOUR TABLE right under them: only from the SERVER's own answer for this match (it REPLAYED the run
+// from the proof node — profile/queue.js's outcome); /api down = just the floor.
 // THE SWITCH IS OFF until go-live (api/_lib/highrise.js#HIGHRISE_COUNTS): the server judges the run and AWARDS NOTHING — its answer is
 // the small line "WOULD COUNT · FLOOR 85 · +12 XP" (the proof the whole pipeline works), and YOUR BEST stays this phone's own.
 // No pills, no emoji, no dev text. JAYWALK's victory.js is the pattern.
@@ -63,19 +64,20 @@ export function finalScene(el, game, state) {
   const uid = state && state.uid, code = state && state.code;
   const r = ((game && game.results) || {})[uid] || {}, floor = Math.max(0, Math.floor(Number(r.f) || 0)), made = r.w === 'made';
   el.classList.add('hi-fin'); el.dataset.mode = 'solo';
-  // THE BODY = "A · THE HERO NUMBER" (S4A FIX's add-on — endscreen.js, the SAME card as the test page's): the cause · the floor, huge ·
-  // FLOOR · THE BAND · the stats strip (PERFECTS · BEST STREAK · YOUR BEST). THE SWITCH's line is ONE small line just over the PLAY AGAIN
-  // bar (moved there once the frame stands — never in the strip).
+  // THE BODY = JAYWALK'S STANDARD (S4B — endscreen.js, the SAME card as the test page's; the header is the frame's kicker): the cause ·
+  // the floor, huge · FLOORS · YOUR BEST · n · n PERFECTS · BEST STREAK n — then YOUR TABLE. THE SWITCH's line is ONE small line just
+  // over the PLAY AGAIN bar (moved there once the frame stands — never among the personal numbers; it goes away at go-live).
   const EC = endCard(), would = h('div.hi-fin-would', '');
   EC.set({ words: r.bad ? 'NOT COUNTED' : END_WORDS[r.w] || 'THE TOWER STANDS', made, floor, perfects: r.p, streak: r.s });
   el.replaceChildren(EC.el, would);
   const overBar = () => { const fr = el.closest('.final'), foot = fr && fr.querySelector('.final-foot'); if (foot && would.nextElementSibling !== foot) foot.before(would); };
+  setTimeout(overBar, 0);   // (once the frame stands: YOUR TABLE sits right under the personal numbers — nothing between them)
   // YOUR BEST as this phone knows it (the server's last answer once counting is ON — else its own): the server's answer below puts it right
   const srv = cleanBest(ls.get(SRV_BEST_KEY)), known = srv || cleanBest(ls.get(BEST_KEY));
   // (THE REVIEW: the stage stored a run's new best BEFORE this screen was asked for — while counting is OFF (no server best yet) the
   //  phone's own record says NEW BEST here; the server's answer takes the column over once counting is ON)
   const nb = globalThis.__hiNewBest;
-  if (!srv && nb && game && nb.m === game.matchId && nb.v === floor && floor > 0) EC.best(floor, true);
+  if (!srv && nb && game && nb.m === game.matchId && nb.v === floor && floor > 0) EC.best(floor, true, nb.was);
   else EC.best(known, false);
   if (!code) return;
   let tabled = false;
@@ -93,7 +95,7 @@ export function finalScene(el, game, state) {
       const pb = (o.pbs || []).find(x => x.b === BOARD), cur = (o.bests || {})[BOARD];
       if (pb) {
         ls.set(SRV_BEST_KEY, floorOf(pb.v));
-        EC.best(floorOf(pb.v), true);
+        EC.best(floorOf(pb.v), true, pb.prev != null ? floorOf(pb.prev) : 0);
         lazyImport(import('./sfx.js'), './sfx.js').then(S => S.play('streak', { rate: 1.12 })).catch(() => {});
       } else if (cur != null) { ls.set(SRV_BEST_KEY, floorOf(cur)); EC.best(floorOf(cur), false); }
     };

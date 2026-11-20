@@ -1,47 +1,54 @@
-// HIGH RISE — THE END SCREEN's BODY: "A · THE HERO NUMBER" (S4A FIX's add-on — the owner's pick, Nov 19: Downloads\NEON\highrise-end-A.png;
-// docs/highrise.md "THE END SCREEN"). ONE builder for the test page's own card (stage.js) AND the cartridge's body inside the console's
-// podium frame (final.js) — the same four things, top to bottom, nothing else:
-//   the CAUSE, small, in the accent (MISSED THE STACK · SLIPPED OFF · TOO SLOW · TIME'S UP — MADE IT TO THE MOTHERSHIP in gold)
-//   THE FLOOR NUMBER, huge, centred, the cyan glow
-//   one line: FLOOR · THE CLOUDS
-//   THE STATS STRIP: three columns between two hairlines, thin dividers — PERFECTS · BEST STREAK · YOUR BEST (the best in gold;
-//     NEW BEST takes its label's place, in gold, when the run beat it). No boxes, no pills.
-// The tower stays LIT under it (the stage's own picture: night.js#pose 'end'); THE FOOT is the caller's (the page's PLAY AGAIN bar · the
-// console's standard foot). A VIEW's helper: DOM only — no rules, no storage, no fetch.
+// HIGH RISE — THE END SCREEN's BODY = JAYWALK'S STANDARD (S4B — the owner, Nov 19: "the end screen needs to look like JAYWALK's"; the
+// mockup: Downloads\NEON\highrise-end-jaywalk-style-v2.png; docs/highrise.md "THE END"). It replaces S4A FIX's "A · THE HERO NUMBER".
+// ONE builder for the test page's own card (stage.js) AND the cartridge's body inside the console's podium frame (final.js) — top to
+// bottom, JAYWALK's layout, type, sizes + spacing (js/games/jaywalk/victory.js#buildEnd · css .jw-fin*):
+//   the HEADER "HIGH RISE · SOLO" (· MATCH in a match) — HIGH in the sign's hot pink, RISE in its cyan, the mode in a soft lavender
+//     (endHeader: the cartridge hands it to the console's frame as its kicker; the page's card wears it itself)
+//   the CAUSE — big neon words, up to two lines, SATURATED HOT PINK (the colour IS the letter: a hair-thin bright core + its glow);
+//     MADE IT TO THE MOTHERSHIP = GOLD
+//   THE FLOOR NUMBER, huge — the one WHITE hero, a cyan glow — and FLOORS under it
+//   YOUR BEST · 119 in gold (NEW BEST · WAS 119 when this run beat it) + ONE small line: 66 PERFECTS · BEST STREAK 14
+// YOUR TABLE (final.js) follows right under the personal numbers; THE FOOT is the caller's (the console's universal footer · the page's
+// PLAY AGAIN bar). No stats strip, no dashed tower line, no pills. A VIEW's helper: DOM only — no rules, no storage, no fetch.
 import { h } from '../../ui/dom.js';
-import { BANDS, bandAt } from './bands.js';
 
 const whole = n => Math.max(0, Math.floor(Number(n) || 0));
 const say = n => whole(n).toLocaleString('en-US');
 
+/** the header's words in their own neon: HIGH (hot pink) · RISE (cyan) · the mode (lavender) — one node, the frame's kicker or the card's top line */
+export function endHeader(mode = 'solo') {
+  const m = mode === 'match' ? 'MATCH' : 'SOLO';
+  return h('span.hi-hd', { role: 'heading', 'aria-level': '1', 'aria-label': `High Rise, ${m.toLowerCase()}` }, h('b.hi-hd-a', { 'aria-hidden': 'true' }, 'HIGH'), ' ', h('b.hi-hd-b', { 'aria-hidden': 'true' }, 'RISE'), h('i.hi-hd-m', { 'aria-hidden': 'true' }, ` · ${m}`));
+}
+/** "66 PERFECTS · BEST STREAK 14" (1 PERFECT) */
+export const statsLine = (perfects, streak) => `${say(perfects)} PERFECT${whole(perfects) === 1 ? '' : 'S'} · BEST STREAK ${say(streak)}`;
+
 /**
- * endCard() → { el, set({ words, made, floor, perfects, streak }), best(value, isNew) }
- *   set: the run's own numbers (the judge's / the engine's) · best: YOUR BEST's column — 0 = no best yet (the column says —);
- *   isNew = this run beat it (the label reads NEW BEST)
+ * endCard({ header }) → { el, set({ words, made, floor, perfects, streak }), best(value, isNew, was) }
+ *   header: 'solo' | 'match' = the card wears the header itself (the test page); none = the console's frame shows it (the cartridge)
+ *   set: the run's own numbers (the judge's / the engine's) · best: YOUR BEST's line — 0 = no best yet (no line);
+ *   isNew = this run beat it (NEW BEST — `was` > 0: NEW BEST · WAS n)
  */
-export function endCard() {
-  const cause = h('div.hi-ec-cause'), n = h('div.hi-ec-n'), line = h('div.hi-ec-line');
-  const perf = h('b', '0'), streak = h('b', '0'), bestV = h('b', '—'), bestK = h('span.hi-ec-k', 'YOUR BEST');
-  const bestCol = h('div.hi-ec-col.is-best', bestK, bestV);
-  const strip = h('div.hi-ec-strip', h('div.hi-ec-col', h('span.hi-ec-k', 'PERFECTS'), perf), h('div.hi-ec-col', h('span.hi-ec-k', 'BEST STREAK'), streak), bestCol);
-  const el = h('div.hi-ec', cause, n, line, strip);
+export function endCard({ header = '' } = {}) {
+  const cause = h('div.hi-ec-cause'), n = h('div.hi-ec-n'), fl = h('div.hi-ec-fl', 'FLOORS'), bestL = h('div.hi-ec-best'), line = h('div.hi-ec-line');
+  const el = h('div.hi-ec', header ? h('div.hi-ec-hd', endHeader(header)) : null, cause, n, fl, bestL, line);
   return {
     el,
-    set({ words, made, floor, perfects, streak: st }) {
+    set({ words, made, floor, perfects, streak }) {
       const f = whole(floor);
       el.classList.toggle('is-made', !!made);
       cause.textContent = words || '';
       // (each digit its own box — a little room between two: a 1 never runs into its neighbour)
       n.replaceChildren(...[...String(f)].map(d => h('span.hi-dg', { 'aria-hidden': 'true' }, d)));
       n.setAttribute('aria-label', String(f)); n.dataset.dg = String(String(f).length);
-      line.textContent = `FLOOR · ${BANDS[bandAt(f)].name}`;
-      perf.textContent = say(perfects); streak.textContent = say(st);
+      fl.textContent = f === 1 ? 'FLOOR' : 'FLOORS';
+      line.textContent = statsLine(perfects, streak);
     },
-    best(value, isNew) {
-      const v = whole(value);
-      bestV.textContent = v ? say(v) : '—';
-      bestK.textContent = isNew && v ? 'NEW BEST' : 'YOUR BEST';
-      bestCol.classList.toggle('is-new', !!isNew && v > 0);
+    best(value, isNew, was = 0) {
+      const v = whole(value), nb = !!isNew && v > 0;
+      bestL.textContent = !v ? '' : nb ? (whole(was) > 0 ? `NEW BEST · WAS ${say(was)}` : 'NEW BEST') : `YOUR BEST · ${say(v)}`;
+      bestL.classList.toggle('is-new', nb);
+      el.classList.toggle('is-new', nb);
     },
   };
 }

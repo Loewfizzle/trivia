@@ -1,0 +1,58 @@
+// HIGH RISE — S4B (docs/highrise.md · docs/games/passes/highrise-s4b.md): THE END SCREEN = JAYWALK'S STANDARD · THE LAG CHECK (PRE-WARM,
+// `?lean=1`, what repaints in play, `?floor=N` counts toward nothing) · THE MATCH · THE RULE-SET TABLE. The STATIC half — the browser
+// halves: tests/integration/highrise-play.mjs (`--end`) · e2e-highrise.mjs (the cartridge's end + YOUR TABLE's fixtures) · e2e-highrise-match.mjs.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
+const HI = 'js/games/highrise/';
+
+// ---- GROUP 0 — THE END SCREEN
+test('THE END = JAYWALK\'S STANDARD: ONE builder (the page\'s card + the cartridge\'s body) — the header, the cause, the floor + FLOORS, YOUR BEST · n, n PERFECTS · BEST STREAK n; nothing else', () => {
+  const e = read(`${HI}endscreen.js`), s = read(`${HI}stage.js`), f = read(`${HI}final.js`), v = read(`${HI}view.js`);
+  assert.match(e, /const el = h\('div\.hi-ec', header \? h\('div\.hi-ec-hd', endHeader\(header\)\) : null, cause, n, fl, bestL, line\);/, 'top to bottom: (the header) · the cause · the number · FLOORS · the best · the stats line');
+  assert.match(e, /h\('b\.hi-hd-a', \{ 'aria-hidden': 'true' \}, 'HIGH'\), ' ', h\('b\.hi-hd-b', \{ 'aria-hidden': 'true' \}, 'RISE'\), h\('i\.hi-hd-m', \{ 'aria-hidden': 'true' \}, ` · \$\{m\}`\)/, 'the header\'s three words, each its own neon');
+  assert.match(e, /const m = mode === 'match' \? 'MATCH' : 'SOLO';/);
+  assert.match(e, /fl\.textContent = f === 1 \? 'FLOOR' : 'FLOORS';/);
+  assert.match(e, /export const statsLine = \(perfects, streak\) => `\$\{say\(perfects\)\} PERFECT\$\{whole\(perfects\) === 1 \? '' : 'S'\} · BEST STREAK \$\{say\(streak\)\}`;/);
+  assert.match(e, /bestL\.textContent = !v \? '' : nb \? \(whole\(was\) > 0 \? `NEW BEST · WAS \$\{say\(was\)\}` : 'NEW BEST'\) : `YOUR BEST · \$\{say\(v\)\}`;/, 'YOUR BEST · n — NEW BEST (· WAS n) when beaten — no line with no best');
+  assert.match(e, /^import \{ h \} from '\.\.\/\.\.\/ui\/dom\.js';$/m); assert.equal((e.match(/^import /gm) || []).length, 1, 'a view\'s helper: DOM only — no rules, no storage, no fetch');
+  // ONE builder, two callers; the cartridge's header = the console frame's kicker
+  assert.match(s, /const EC = endCard\(\{ header: MODE === 'solo' \? 'solo' : 'match' \}\), check = h\('div\.hi-check', \{ hidden: true \}\);/);
+  assert.match(f, /const EC = endCard\(\), would = h\('div\.hi-fin-would', ''\);/); assert.match(f, /el\.replaceChildren\(EC\.el, would\);/);
+  assert.match(v, /kicker: endHeader\(/, 'the frame\'s kicker IS the header (HIGH RISE · SOLO / · MATCH in its own neon)');
+  assert.match(f, /setTimeout\(overBar, 0\);/, 'WOULD COUNT leaves the body at once: YOUR TABLE sits right under the personal numbers');
+  // a NEW BEST: only of a best that was BEATEN on the page; a shortcut run never sets or compares one
+  assert.match(s, /EC\.best\(best, best > was && was > 0, was\);/);
+  assert.match(s, /best = FROM \? was : nextBest\(was, live\.floor\);/, 'a `?floor=N` run never moves YOUR BEST');
+  // SHARE waits for THE SHARE IMAGE (THE REVIEW): the universal footer shows it by itself once the cartridge exports shareRun
+  assert.doesNotMatch(read(`${HI}index.js`), /shareRun/, 'no shareRun yet: the footer = PLAY AGAIN · CITY');
+});
+
+test('THE END\'s COLOURS ARE REAL NEON, never all white: HIGH hot pink · RISE cyan · the mode lavender · the cause SATURATED HOT PINK (gold for the finish) · the number the one white hero · YOUR BEST gold; JAYWALK\'s sizes + veil', () => {
+  const css = read('css/highrise-play.css'), jw = read('css/jaywalk.css');
+  assert.match(css, /\.hi-hd-a \{ color: #ff4fd8;/); assert.match(css, /\.hi-hd-b \{ color: #36c9ff;/); assert.match(css, /\.hi-hd-m \{ color: #c9b6ff;/);
+  assert.match(css, /\.hi-ec-cause \{ max-width: 11\.5em; font: 900 min\(34px, calc\(var\(--hi-w\) \* 0\.087\)\)\/1\.06 var\(--font-display\); letter-spacing: 0\.04em; color: #ff4fd8; text-wrap: balance;/, 'the cause: JAYWALK\'s 34 px / 1.06, the letters THEMSELVES hot pink');
+  assert.match(jw, /\.jw-fin-cause \{ max-width: 11\.5em; font: 900 34px\/1\.06 var\(--font-display\); letter-spacing: 0\.04em;/, '(JAYWALK\'s own cause — the reference)');
+  assert.match(css, /\.hi-ec\.is-made \.hi-ec-cause \{[^}]*color: #ffc83c;/, 'MADE IT TO THE MOTHERSHIP = GOLD');
+  assert.match(css, /\.hi-ec-n \{[^}]*font: 700 clamp\(84px, calc\(var\(--hi-w\) \* 0\.256\), 104px\)\/0\.95 var\(--font-num\);[^}]*color: #fff;/, 'the floor: huge, WHITE');
+  assert.match(css, /\.hi-ec-n \{[^}]*rgba\(0, 240, 255, 0\.85\)/, '… with the cyan glow');
+  assert.match(css, /\.hi-ec-fl \{[^}]*font: 700 15px\/1 var\(--font-ui\); letter-spacing: 0\.34em;/); assert.match(jw, /\.jw-fin-n > span \{ font: 700 15px\/1 var\(--font-ui\); letter-spacing: 0\.34em;/);
+  assert.match(css, /\.hi-ec-best \{[^}]*color: #ffd257;/);
+  // every colour on the veil reads ≥ 4.5 : 1 (the veil's lightest stop over a white sky = rgba(7, 6, 11, 0.76) → ≈ #42414a at worst)
+  const lum = hex => { const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  for (const [what, hex] of [['HIGH', '#ff4fd8'], ['RISE', '#36c9ff'], ['the mode', '#c9b6ff'], ['the finish', '#ffc83c'], ['YOUR BEST', '#ffd257']]) assert.ok(ratio(hex, '#0a0914') >= 4.5, `${what} ${hex} on the night veil: ${ratio(hex, '#0a0914').toFixed(1)} : 1`);
+  // the scene DIMMED behind it = JAYWALK's veil, number for number (night + day)
+  const veilN = 'linear-gradient(rgba(7, 6, 11, 0.5) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%)', veilD = 'linear-gradient(rgba(7, 6, 11, 0.84) 0, rgba(7, 6, 11, 0.76) 16%, rgba(7, 6, 11, 0.9) 32%, rgba(7, 6, 11, 0.96) 100%)';
+  assert.ok(jw.includes(`.jw-final { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; background: ${veilN};`) && jw.includes(`.jw-stage[data-look='day'] .jw-final { background: ${veilD}; }`));
+  assert.ok(css.includes(`.hi-stage.is-ended .hi-shade { background: ${veilN}; }`) && css.includes(`.hi-stage.is-ended[data-look='day'] .hi-shade { background: ${veilD}; }`), 'the stage\'s shade behind the end = that veil');
+  assert.ok(css.includes(`.hi-stage:not(.is-ended) > .hi-final { background: ${veilN}; }`), 'a podium with no end seen first (a refresh on it) wears the veil itself — never twice');
+  // the frame: the kicker shown (the header), the winner block + the burst hidden in a solo run, JAYWALK's body grid
+  assert.match(css, /\.hi-final \.final\.is-solo \.burst, \.hi-final \.final\.is-solo \.winner \{ display: none; \}/);
+  assert.doesNotMatch(css, /\.hi-final \.final\.is-solo > \.sheet-kicker \{ display: none/);
+  assert.match(css, /\.hi-fin \{ display: grid; justify-items: center; gap: 10px; padding: 6px 12px 4px; text-align: center; \}/); assert.match(jw, /\.jw-fin \{ display: grid; justify-items: center; gap: 10px; padding: 6px 12px 4px; text-align: center; \}/);
+  // no pill on the card: no capsule radius on any of its rules
+  for (const m of css.matchAll(/\.hi-(?:ec|hd|fin|table)[^{]*\{([^}]*)\}/g)) assert.doesNotMatch(m[1], /border-radius: (?:[2-9]\d|\d{3,})px|border-radius: 999/, 'no pill anywhere on the end screen');
+});

@@ -18,6 +18,7 @@ import { CLOCK, packFrom, tapsFromChunks } from './proof.js';
 import { BEST_KEY, cleanBest } from './best.js';
 import { BOARD, SRV_BEST_KEY, TABLE_KEEP_MS, parseTable } from './lines.js';
 import { createStage, newSeed } from './stage.js';
+import { endHeader } from './endscreen.js';
 
 /** GO's answer is waited this long before a run goes on UNPROVEN (never a stuck start) */
 export const GO_WAIT_MS = 4000;
@@ -172,7 +173,7 @@ export function createView() {
     clearTimeout(finalTimer);
     if (leaveBtn) { leaveBtn.remove(); leaveBtn = null; }
     S.hideCard();   // (THE REVIEW: the podium takes the screen — the stage's own NO SIGNAL card is put away, a key can not restart under it)
-    final = createFinal({ rows: gameStandings(g).map(r => ({ uid: r.uid, rank: r.rank, score: r.floor })), players: st.players, me: uid, presence: st.presence, kicker: 'HIGH RISE · SOLO', scoreLabel: 'FLOORS', winnerLine: nm => `${nm} BUILT THE TALLEST` });
+    final = createFinal({ rows: gameStandings(g).map(r => ({ uid: r.uid, rank: r.rank, score: r.floor })), players: st.players, me: uid, presence: st.presence, kicker: endHeader('solo'), scoreLabel: 'FLOORS', winnerLine: nm => `${nm} BUILT THE TALLEST` });
     finalWrap = h('div.hi-final', final.el);
     S.el.classList.add('is-final'); S.el.append(finalWrap);
   }
