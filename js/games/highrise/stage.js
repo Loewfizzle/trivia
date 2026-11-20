@@ -444,6 +444,7 @@ export function createStage(app, o = {}) {
     hook.ends.push({ seed, mode: MODE, same, at, live, replay: r, taps: taps.slice(), best, was }); if (hook.ends.length > 50) hook.ends.shift();
   }
 
+  let trLive = false;   // (THE TRACE: the run was live as this frame's record opened)
   let raf = 0, last = 0, hudFloor = -1, hudLeft = -2, tagOn = false, tagAt = -1e9, ftagF = null, ftagAt = -1e9, friendTape = 0, frameN = 0, lookSeen = lookT, toneSeen = skyTone(lookT, 0);
   // (the two tags are placed ONCE A LANDING — tagSeen*: what they were last placed for)
   let tagSeenFloor = -1, tagSeenLive = -1, fpsAt = 0, endSaid = '';
@@ -558,7 +559,8 @@ export function createStage(app, o = {}) {
     io[1] = Math.min(250, gap);
     if (last && gap > HITCH_MS && gap > FS[USUAL] * HITCH_X && gap < LATE_MS && FS[PREV_AT] && t0 != null && now - t0 > 1000 && !shown && !isOver(run)) hitch(gap);
     if (last && FS[PREV_AT]) FS[USUAL] += (Math.min(gap, 100) - FS[USUAL]) * 0.05;
-    if (TR) TR.begin(w0, gap, run.floor, last && gap < LATE_MS && FS[PREV_AT] && t0 != null && now - t0 > 1000 && !shown && !isOver(run));
+    // (a record is counted by the run's state as it OPENED — the frame that ends the run (its miss, its falling slab) is counted too: the review)
+    if (TR) { TR.begin(w0, gap, run.floor, last && gap < LATE_MS && FS[PREV_AT] && trLive); trLive = t0 != null && now - t0 > 1000 && !shown && !isOver(run); }
     last = now;
     if (document.hidden || sheetOpen) { FS[PREV_AT] = 0; return; }
     FS[TAU] = 0;

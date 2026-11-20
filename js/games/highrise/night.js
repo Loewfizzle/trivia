@@ -285,7 +285,7 @@ export function createNight(host, o = {}) {
   // slab lands draws ONLY what must be instant — the slab snapped into place (+ the overhang it lost, beside it: the same box, one
   // record) and its flash; its sound started in the touch itself. A perfect's RING, grow-back's, and a cut's SPARK BURST are JOBS for the
   // NEXT frame: a tiny queue, its room made once (JQ slots — a kind, the frame it is due, its numbers).
-  const JQ = 8, JN = 12, jKind = new Int8Array(JQ), jDue = new Int32Array(JQ), jArg = new Float64Array(JQ * JN), JR = { x0: 0, x1: 0, z0: 0, z1: 0 }, JC = new Float64Array(3);
+  const JQ = 8, JN = 12, jKind = new Int8Array(JQ), jDue = new Int32Array(JQ), jArg = new Float64Array((JQ + 1) * JN), JR = { x0: 0, x1: 0, z0: 0, z1: 0 }, JC = new Float64Array(3);
   const J_RING = 1, J_SPARKS = 2;
   let jobsRun = 0;
   /** a job's slot (its numbers are written straight into jArg at slot × JN) — −1 = the queue is full: the caller does it now */
@@ -477,7 +477,7 @@ export function createNight(host, o = {}) {
     const along = dx ? p.sz : p.sx, n = Math.max(6, Math.round(SPARKS_AT[tier] * Math.min(1, 0.35 + along)));
     const ex = dx ? (dx > 0 ? r.x0 : r.x1) * U : 0, ez = dz ? (dz > 0 ? r.z0 : r.z1) * U : 0, y = floor * H;
     let i = jobSlot(J_SPARKS), o = i * JN;
-    if (i < 0) { i = JQ; o = JQ * JN - JN; }   // (the queue is full: the burst now, through the last slot's numbers — never lost)
+    if (i < 0) { i = JQ; o = JQ * JN; }   // (the queue is full: the burst now, through the spare slot past the queue — a waiting job is never overwritten: the review)
     jArg[o] = dx; jArg[o + 1] = dz; jArg[o + 2] = ex; jArg[o + 3] = ez; jArg[o + 4] = y; jArg[o + 5] = p.x; jArg[o + 6] = p.z; jArg[o + 7] = p.sx; jArg[o + 8] = p.sz; jArg[o + 9] = n; jArg[o + 10] = floor; jArg[o + 11] = day ? 1 : 0;
     if (i === JQ) sparksNow(o);
   }

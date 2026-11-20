@@ -73,7 +73,7 @@ test('THE LANDING FRAME: the slab + its sound now — the moments, the number, t
   assert.match(s, /momDue = -1; landF = -1e9; run = createRun/, 'a new run drops what was waiting');
   assert.match(s, /for \(const ms of \[700, 1100, 1500, 1700, 1900, 2600\]\) \{ const a = call\.animate\(POP, \{ duration: ms, fill: 'both' \}\); a\.cancel\(\); pops\.set\(ms, a\); \}/, 'every announcer length made ahead');
   // the scene: a ring + a spark burst are jobs for the next frame; the queue's room made once
-  assert.match(n, /const JQ = 8, JN = 12, jKind = new Int8Array\(JQ\), jDue = new Int32Array\(JQ\), jArg = new Float64Array\(JQ \* JN\)/);
+  assert.match(n, /const JQ = 8, JN = 12, jKind = new Int8Array\(JQ\), jDue = new Int32Array\(JQ\), jArg = new Float64Array\(\(JQ \+ 1\) \* JN\)/, 'the queue + ONE spare slot: a full queue never overwrites a waiting job'); assert.match(n, /if \(i < 0\) \{ i = JQ; o = JQ \* JN; \}/);
   assert.equal((body(n, '  function events(evs) {').match(/ringLater\(/g) || []).length, 2, 'the perfect ring + grow-back\'s, later');
   assert.match(body(n, '  function fall(r, floor, dx, dz, whole) {'), /let i = jobSlot\(J_SPARKS\)/, 'the spark burst later (the piece itself drawn with the slab)');
   assert.match(n, /runJobs\(\);   \/\/ \(S4A FIX 2/, 'the jobs run at the next draw');

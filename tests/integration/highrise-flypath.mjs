@@ -24,15 +24,16 @@ const fails = [];
 let checks = 0;
 const ok = (c, what) => { checks++; console.log(c ? 'OK  ' : 'FAIL', what); if (!c) fails.push(what); };
 
-/** in the page: the bot — a touch on each slab's perfect moment (a timer for it), all the time the check runs; window.__fp.drops = the touches */
+/** in the page: the bot — a touch on each slab's perfect moment (a timer for it), every 4th 30 ms LATE (a CUT: the top slab shrinks — the
+ *  drop zone's rested edge moves, the band eases: the review), all the time the check runs; window.__fp.drops = the touches, .cuts */
 const BOT = () => {
   const L = window.__hiPlay, play = document.querySelector('.hi-play'), init = { bubbles: true, pointerType: 'touch', button: 0 };
-  const B = window.__fp = { drops: 0, at: [], stop: false };
+  const B = window.__fp = { drops: 0, cuts: 0, at: [], stop: false };
   (function poll() {
     if (B.stop) return;
     if (L.phase() !== 1) { setTimeout(poll, 20); return; }
     const m = L.soon();
-    if (m !== -9999 && m <= 40) { setTimeout(() => { B.drops++; B.at.push(performance.now()); play.dispatchEvent(new PointerEvent('pointerdown', init)); setTimeout(poll, 200); }, Math.max(0, m - 2)); return; }
+    if (m !== -9999 && m <= 40) { const cut = B.drops % 4 === 3; setTimeout(() => { B.drops++; if (cut) B.cuts++; B.at.push(performance.now()); play.dispatchEvent(new PointerEvent('pointerdown', init)); setTimeout(poll, 200); }, cut ? m + 30 : Math.max(0, m - 2)); return; }
     setTimeout(poll, 4);
   })();
 };
@@ -52,7 +53,7 @@ async function cross(ev, kind) {
     })();
   }), kind);
   const rows = await ev(() => window.__hiPlay.flyPath(false)), d1 = await ev(() => window.__fp.drops), st = await ev(() => window.__hiPlay.state());
-  return { flew: true, rows, drops: d1 - d0, over: st.over };
+  return { flew: true, rows, drops: d1 - d0, over: st.over, cuts: await ev(() => window.__fp.cuts) };
 }
 
 /** each sample against its neighbours, by time → the worst deviation in px + where */
@@ -81,7 +82,7 @@ async function run(name, ev, close) {
     ok(c.flew, `${name}: ${kind} flew`);
     if (!c.flew) continue;
     const j = judge(c.rows, code);
-    console.log(`     ${kind}: ${j.frames} frames drawn, ${c.drops} slabs landed in its flight, ${j.gaps} frames slower than 25 ms · the worst frame ${j.worst.toFixed(3)} px off its path`);
+    console.log(`     ${kind}: ${j.frames} frames drawn, ${c.drops} slabs landed in its flight (${c.cuts} cuts so far), ${j.gaps} frames slower than 25 ms · the worst frame ${j.worst.toFixed(3)} px off its path`);
     ok(j.n > 40 && c.drops >= 2 && !c.over, `${name}: ${kind} crossed while slabs landed (${j.n} samples, ${c.drops} landings, the run live)`);
     ok(j.worst <= TOL, `${name}: ${kind} — no frame jumps off its smooth path at a landing (worst ${j.worst.toFixed(3)} px ≤ ${TOL})`);
   }

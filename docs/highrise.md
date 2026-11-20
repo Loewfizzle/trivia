@@ -23,6 +23,7 @@ before a HIGH RISE pass.
 | S2 FIX — THE LAG HUNT | Nov 19 2026 | `docs/games/passes/highrise-s2-fix.md` | the owner's phone check: the lag spikes found + fixed (THE LAG RULES, THE HITCH COUNTER on `?fps=1`), YOUR BEST's tape = a thin gold OUTLINE, THE END's FOOT (the PLAY AGAIN bar), the sounds as MP3 (121 KB) |
 | S4A — THE SOUND SYNC + THE HIDDEN CARTRIDGE + COUNTING (OFF) | Nov 19 2026 | `docs/games/passes/highrise-s4a.md` | THE SOUND SYNC (a live run holds the audio context awake — HIGH RISE + JAYWALK), THE HIDDEN CARTRIDGE (the owner's phone only, SOLO in a room — the stage in the console's frame), THE PROOF (the `hr` node + its rules), THE JUDGE on the server, THE SWITCH (counting OFF: judged, WOULD COUNT, nothing awarded), the board, YOUR TABLE, THE NEXT FRIEND's pink tape, the 2 cards in the catalog (hidden) |
 | S4A FIX — ZERO GARBAGE + THE WELCOME + THE END | Nov 19 2026 | `docs/games/passes/highrise-s4a-fix.md` | ZERO GARBAGE IN PLAY (a live frame makes no objects — the guard `highrise-alloc.mjs`; three.js as its readable build), THE HITCH COUNTER honest (gc only when seen), the UFO's far-side lamps hidden, the pink tape's white core, THE ICON = THE TOWER, THE WELCOME = A · THE SIGN, THE END = A · THE HERO NUMBER, NO PINK FLASH at a run's end (the console's crown wash), GROW-BACK's five takes |
+| S4A FIX 2 — THE ON-PHONE TRACE + THE LANDING FRAME + FLYERS ON REAL TIME | Nov 19 2026 | `docs/games/passes/highrise-s4a-fix2.md` | `?trace=1` (every frame timed in phases; the end card lists THE 5 WORST), THE LANDING FRAME (only the slab + its sound on it — the rest in the next frames, prewarmed, changed ranges only, a static scene), THE FLYERS ON REAL TIME (the UFO's jump at every landing: the sky band off the RESTED camera — `highrise-flypath.mjs`), GROW-BACK FINAL ("Heal Restore") |
 | S3 — THE DAY LOOK + THE FLYERS + DEEP SPACE | Nov 19 2026 | `docs/games/passes/highrise-s3.md` | THE DAY LOOK (frosted glass, one sun), THE LOOK SWITCH (AUTO · DAY · NIGHT, a 1.5 s cross-fade, never a hitch), THE FLYERS (the seed's Blackbird OR F-22 pair at 35–45 · the UFO at 85 · THE MOTHERSHIP from ~180), floor 200 (solo: the moment, then DEEP SPACE · `?mode=match`: THE FINISH + the gold card), the sounds final (ALL A), the 2 cards' art prepared |
 
 ## THE RULES (the owner's)
@@ -230,7 +231,7 @@ moves YOUR BEST; the note says FROM FLOOR N).
   reflection maps, the sounds; S3: + the site's sun rule for AUTO — `games/kit/look.js` → `core/sky.js` + the three pure modules it
   reads —, the flyers' models `assets/jaywalk/models/{blackbird,ufo}.glb` + `assets/highrise/models/f22.glb` + JAYWALK's GLB reader, the
   city's four jet / UFO sound files), three.js from the import map's CDN, the fonts. Its only storage: `hi:play:best` (YOUR BEST —
-  THIS PHONE) + `hi:play:look` (S3: the look's choice; S2's `hi:play:snd:<id>` picks are gone — the owner's are final — but ONE, S4A FIX: `hi:play:snd:grow-back`, GROW-BACK's take while he picks). COUNTING (the judge wired into `/api`, the solo run node + the match proof node = ONE
+  THIS PHONE) + `hi:play:look` (S3: the look's choice; S2's `hi:play:snd:<id>` picks are gone — the owner's are final; S4A FIX's `hi:play:snd:grow-back` too since S4A FIX 2: cleared once). COUNTING (the judge wired into `/api`, the solo run node + the match proof node = ONE
   rules change) is S4.
 - **THE DOOR (`play.js`, before the page mounts):** a shared module may call the server from wherever it runs — today the audio engine
   COUNTS a leave once (CITY G: `errlog.js#countQuiet('snd')` → one anonymous beacon to `/api/log`) and the skew wrapper asks `/api/time`
@@ -288,6 +289,16 @@ moves YOUR BEST; the note says FROM FLOOR N).
   plain frame) · **dom** (the HUD was written in that frame) · **tap** (a touch landed in it) · **work** (the page's own frame code
   took over 12 ms) · **unknown** (none of those — never guessed as gc). **GC n** = the collections seen this run.
   `window.__hiPlay.hitches()` = the list + `by` (the counts) + `gcs`.
+- **THE TRACE (S4A FIX 2 — `?trace=1`, `trace.js`; the Beelink can not make an iPhone stall, so the phone measures itself):** every
+  frame timed in PHASES with `performance.now` — `tap` (the touch handler's engine step) · `engine` · `fx` (the tower's feed + the
+  view's events) · `audio` · `view` (the camera, the plates, the boxes) · `flyers` · `render` · `bloom` · `hud` · `other` — into
+  typed arrays made once (nothing built in a frame; off = `null`, one `if (TR)` a call site). A frame's GAP is charged to the record
+  before it (that frame's phases + any touch handled after it); what the page's own code did not take of it, past one usual frame,
+  is **browser** (a collection, the browser's own style / layout / paint, the GPU — never guessed at). **THE END CARD** (the test
+  page; under the stats strip, 12 px, a dark plate) lists **THE 5 WORST FRAMES** — total ms · the floor · what happened (land ·
+  perfect · cut · seam · flyer · grow · out · plate · compile · decode · later = the landing's deferred work) · the top 2 phases —
+  + one line: **the frames over 33 ms by their top phase**. `window.__hiPlay.trace()` = the same as data (+ every landing frame's
+  work: `land` mean / p95 / max). The cartridge's end is the console's podium: not there (the test page is the owner's measure).
 - **DESKTOP COMES FREE:** a wide screen gets the phone's own column (0.6 of the height wide), centred.
 - **THE LOST CONTEXT** (JAYWALK's lesson): `webglcontextlost` → the scene is REBUILT — destroyed + created again on the SAME tower
   object, tier + gold tape — the moment the context is restored, or after 1.5 s; the listeners come OFF before any destroy (its own
@@ -357,6 +368,19 @@ A VIEW: it reads the run + the tower the page builds from the events; it never w
   20 by day; `--table` = the pass's table) + `tests/highrise-zero-garbage.test.mjs` (STATIC: every frame function's source is scanned).
   Chromium's BOXED NUMBERS (12-byte fractions in functions its optimizer has not reached — `draw` stays in its first tiers) are
   counted apart and not guarded: Safari keeps a fraction in the value itself. Numbers: the pass log.
+  (8) **THE LANDING FRAME DOES ONLY WHAT MUST BE INSTANT (S4A FIX 2 — the owner's iPhone named "tap" its biggest cause):** the slab
+  snapped into place (+ the overhang it lost, beside it — one box record) and its flash; its sound already started IN THE TOUCH
+  (THE SOUND SYNC). The rest waits: the HUD's moments (the announcer, a band's arrival, YOUR BEST / a friend crossed, a flyer's start,
+  their extra sounds) are read off the run's kept events the NEXT frame (`stage.js LATER_MOMENTS`), the big number + the band's
+  name two frames after (`LATER_NUM` — a flyer's fetch / THE MOTHERSHIP's hull never on the landing frame either), the right-edge
+  tags three (`LATER_TAGS`); a perfect's RING, grow-back's and a cut's SPARK BURST are JOBS for the next frame (`night.js` — a queue
+  of 8, its numbers in one typed array). **PREWARM:** the falling pieces' turned boxes in THE WARM FRAME, every announcer length's
+  animation made ahead, the band's swell kept. **ONLY THE CHANGED RANGE goes to the GPU** (three's own kept `_updateRange` — its
+  `addUpdateRange()` makes a record each call): the boxes drawn this frame, the sparks written since the last, the lights lit.
+  **A STATIC SCENE:** no mesh composes its matrix a frame (`matrixAutoUpdate` off; a tape's is set when it is laid, a flyer's when it
+  moves) and the scene is walked ONCE a frame (`draw` → `scene.updateMatrixWorld()`), never again by each bloom pass. Measured
+  (Chromium 4× CPU, `highrise-landing.mjs`): the landing frame's own work **2.30 → 1.66 ms** mean (under a plain frame's 1.68),
+  p95 3.9 → 2.4, max 7.6 → 3.5.
 - **MEASURED (the mini PC, 390 × 844 @3, the bot playing high in the clouds — a cut + its sparks every third drop; `--perf`):**
   **60.0 fps at every tier at 1× and 4× CPU** (p95 ≤ 17.3 ms, no frame over 18 ms) · tier 2: 10 draw calls a frame (4 the picture +
   the bloom's 6), ≈ 1,950 triangles · tiers 1 / 0: 4 calls, ≈ 970 triangles. A desktop GPU's numbers — the tiers are the phone's margin.
@@ -423,7 +447,12 @@ Night = smoked glass + neon; day = **frosted glass in the sun**. The look is a V
   **Each flyer is REMOVED + FREED after its moment** (the next run fetches it again from the phone's cache).
 - **IN THE CAMERA's OWN FRAME**: a flyer = a place on the screen + a depth BEHIND the tower (`toWorld`), so it keeps to **its band of
   sky — between the HUD's foot and THE DROP ZONE's upper edge** — while the tower climbs; drawn before the tower (the tower covers
-  it). Checked on the canvas's own pixels: the play zone is the SAME with a flyer up as without (`--s3`). A flyer still in the sky
+  it). **ON REAL TIME, AND STILL THROUGH A LANDING (S4A FIX 2 — the owner: the UFO JUMPED at every landing):** the band's lower edge
+  is the drop zone AS IT WILL STAND ONCE THE CAMERA RESTS on the top slab (`zoneFrom(true)`, eased 0.6 s through a cut) — the zone as
+  seen NOW leapt a floor's height up the screen at each landing (the top slab moves at once, the camera eases after it) and the
+  flyer with it; a flyer's clock = the frame's own timestamp (`IO[2]`). THE CHECK: `tests/integration/highrise-flypath.mjs` (each
+  flyer crosses while a bot drops every slab; every drawn frame's place is set against its neighbours by time — FAILS over 1.5 px;
+  the old rule: 4.9 px the UFO, 5.4 the F-22s; now ≤ 0.03 Chromium, ≤ 0.22 WebKit). Checked on the canvas's own pixels: the play zone is the SAME with a flyer up as without (`--s3`). A flyer still in the sky
   when the END CARD comes fades out in a third of a second.
 - **THE SKYLINE FLYBY** (3.4 s): in from one side near, round BEHIND the tower, out by the other — **banking round it (≈ 52°) so its
   top side shows**. THE BLACKBIRD = 46 % of the screen's width; each F-22 28 %, the wingman behind + beside the leader. **Night**:
@@ -538,16 +567,13 @@ runs only, hidden until go-live) and writes `.vl-s-hi-*` / `.vl-fcm-hi-*` from t
 - **THE PERFECT CHIME climbs a bright MAJOR-PENTATONIC scale** — one step a perfect in a row, HOLDING at the top after 8
   (`CHIME_STEPS` 0 · 2 · 4 · 7 · 9 · 12 · 14 · 16 semitones: do re mi so la do′ re′ mi′) — the crystal bell's playback rate.
 - **THE SOUNDS LIST** (the SOUNDS button, top left between runs → THE SHEET; it was S2's SOUND AUDITION): every sound, ONE **PLAY**
-  each (the chime climbs its scale) — nothing to choose, nothing stored (but GROW-BACK's take, below). Kept (the call) so every sound — PASS too, not in play
+  each (the chime climbs its scale) — nothing to choose, nothing stored (S4A FIX 2: GROW-BACK's chooser is gone too). Kept (the call) so every sound — PASS too, not in play
   yet — can still be heard on the test page. The game holds still under the sheet. THE FLYERS' sounds are the city's own files
   (`flyers.js#MIX` — "THE FLYERS", above).
-- **GROW-BACK HAS FIVE TAKES (S4A FIX's add-on — the owner: "more pleasant on the ears"; he picks BY EAR):** `audio/highrise/grow-back-1…5.mp3`
-  (his five candidates, COPIED → mono, all at −20 dBFS RMS: `scripts/build-highrise-growback.mjs`; the gain 0.5 keeps each under the
-  chime). THE SOUNDS sheet's GROW-BACK row = five buttons 1 · 2 · 3 · 4 · 5: a tap plays that take IN CONTEXT (a perfect chime with it
-  on top, three in a quick streak — `audition.js GROW_DEMO`) and CHOOSES it — remembered on this phone (`sounds.js GROW_KEY`
-  `hi:play:snd:grow-back`), the game (the page AND the cartridge) plays it and fetches only IT; COPY MY PICK copies
-  `HIGH RISE · GROW-BACK = n`. Default: take 1. **The next pass keeps the picked take and removes the other four** (+ their credits;
-  take 4 is CC BY 4.0 — its credit is in `audio/highrise/CREDITS.md` while it ships).
+- **GROW-BACK IS FINAL (S4A FIX 2 — the owner's pick by ear, Nov 19):** take 1 of S4A FIX's five — "Heal Restore" by Qvantor (Freesound
+  878621, CC0) = `audio/highrise/grow-back.mp3` (mono, −20 dBFS RMS: `scripts/build-highrise-growback.mjs`; the gain 0.5 keeps it under
+  the chime; `HI_SFX_REV` 3). The other four takes, their credits (the CC BY take 4 too), the SOUNDS sheet's chooser + COPY MY PICK
+  and this phone's pick are gone (`sfx.js` clears the old `hi:play:snd:grow-back` once).
 - **A VOICE POOL (S4A FIX):** `sfx.js` makes its voices once (each its own gain + `ended` handler); a sound = its buffer source, nothing else.
 - The levels are a FIRST MIX (set from each file's measured loudness — the pass log's table); the measured mix is the review's.
 - A sound replaced: bump `sfx.js#HI_SFX_REV`; a picture: `night.js#HI_ART_REV`. After any change: `node scripts/build-file-hashes.mjs`.
@@ -689,14 +715,16 @@ js/games/highrise/bands.js best.js                  THE HEIGHT AREAS + both look
 js/games/highrise/look.js                           THE LOOK SWITCH's choice (AUTO · DAY · NIGHT — this phone; AUTO = the site's sun rule)
 js/games/highrise/flyplan.js flyers.js              THE FLYERS: when + which from the seed (pure) · the flying, the lights, the sounds (LAZY)
 js/games/highrise/sounds.js sfx.js audition.js      THE SOUNDS: the table + the triggers (pure) · the engine glue · the SOUNDS list
+js/games/highrise/trace.js                          THE TRACE (S4A FIX 2 — `?trace=1`: a frame's phases, the 5 worst, typed arrays only)
 js/fx/hi-specs.js                                   THE 2 CARDS' ART as data (S3 — nothing reads it until S4)
 js/games/highrise/lab.js graybox.js                 THE LAB (S1's graybox)
 api/_lib/highrise.js                                THE JUDGE's server half (pure) + THE SWITCH (HIGHRISE_COUNTS) — wired into api/report.js (PROOF_GAMES) since S4A
 assets/highrise/  audio/highrise/                   the plates + the reflection maps + the F-22 · the sounds   scripts/build-highrise-assets.py [--look=day]
 assets/vault/hi/  art/highrise-cards/src/           the 2 cards' art + its masters   scripts/build-highrise-cards.mjs · scripts/bake/highrise-f22.mjs
-scripts/build-highrise-sounds.mjs                   the WAVs → the MP3s that ship (a pure-JS encoder from npm, given by path) · build-highrise-growback.mjs (the five takes: mono, one loudness)
+scripts/build-highrise-sounds.mjs                   the WAVs → the MP3s that ship (a pure-JS encoder from npm, given by path) · build-highrise-growback.mjs (S4A FIX's takes: mono, one loudness — take 1 ships)
 tests/highrise-engine.test.mjs (21) · highrise-server.test.mjs (5) · highrise-sim.test.mjs (5) · highrise-lab.test.mjs (6) · highrise-play.test.mjs (16) · highrise-cartridge.test.mjs (13 — S4A) · highrise-zero-garbage.test.mjs (8) + highrise-s4a-fix.test.mjs (6 — S4A FIX)
 tests/integration/highrise-alloc.mjs (S4A FIX — THE GUARD: 8; `--table` = the pass's table) · kit/flash-watch.mjs (NO PINK FLASH)
+tests/highrise-s4a-fix2.test.mjs (5) · tests/integration/highrise-landing.mjs (S4A FIX 2 — the landing frame's measure, Chromium 4× CPU + the trace panel: 7) · highrise-flypath.mjs (each flyer's path through landings, Chromium + WebKit: 26)
 tests/integration/e2e-highrise.mjs (61 — the emulators: the hidden cartridge end to end; `--fast` skips the counting-ON run) · sound-sync.mjs (42 — both games; `--before`) · rules.test.mjs "the hr proof node" · server.test.mjs "HIGH RISE S4A"
 tests/integration/highrise-play.mjs (238 — the browser; --review · --s3 (125) · --webkit · --look · --fly · --perf · --hitch = THE LAG HUNT's long run · S4A FIX's shots: --ufo · --tape · --icon · --screens · --flash) · highrise-lab.mjs (45)
 ```
