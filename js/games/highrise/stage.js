@@ -264,7 +264,7 @@ export function createStage(app, o = {}) {
   let MH = null, matchOn = false, rivalRows = null, watchW = null, mine = null, mineT = null, wN = 0, dimWas = -1, frozen = 0, watchUi = false;
   // (S5 — ZERO GARBAGE IN A MATCH: the rivals' placing fills records made ONCE — the level stand-ins, the tags' items, nearest's two
   //  lists, the merged tags — nothing made at a landing but a tag's new words)
-  const others = [], tagItems = [], lvPool = [], itemPool = [], NR = { above: [], below: [] }, MT = { list: [], pool: [] };
+  const others = [], tagItems = [], lvPool = [], itemPool = [], NR = { above: [], below: [] }, MT = { list: [], pool: [] }, NO_TAGS = [];
   const hexOfRival = uid => { for (let i = 0; i < rivalRows.length; i++) if (rivalRows[i].uid === uid) return rivalRows[i].hex; return '#ffffff'; };
   function matchHud() { if (!MH) { MH = createMatchHud(stage, hud); MH.onPick(uid => { if (!watchW) return; if (o.onWatchPick) o.onWatchPick(uid); else if (hook.sim && hook.sim.pick) hook.sim.pick(uid); }); } return MH; }
   function setMatch(on) {
@@ -343,6 +343,17 @@ export function createStage(app, o = {}) {
   // START waits ≤ START_WAIT_MS for it (a slow line never holds a start longer); the trace names anything that still came late.
   const FLY_ALL = ['blackbird', 'f22', 'ufo', 'mothership'];
   const needAll = () => { for (let i = 0; i < FLY_ALL.length; i++) view.need(FLY_ALL[i]); };
+  // S5 — THE CLOSE's REVIEW: the baked HUD WARMED behind the welcome — a first NEW BEST / PERFECT / STREAK / FASTER bakes nothing in its
+  // frame: the gold set of the number (a run that can beat a best), the lane's words + digits in each of its classes. The stage is
+  // dressed in each style for a moment and dressed back (a style recalc each — no paint: nothing is drawn between). Cached across runs.
+  const WARM_CALLS = [['hi-call is-perfect', ['PERFECT ×0123456789', 'PERFECT']], ['hi-call is-streak', ['STREAK ×0123456789']], ['hi-call is-gold', ['NEW BEST', 'THE MOTHERSHIP']], ['hi-call is-fast', ['FASTER']]];
+  function warmHud() {
+    if (best > 0 && !FROM && !matchOn) { stage.classList.add('is-gold'); BN.warm(); stage.classList.remove('is-gold'); }
+    BN.dirty();
+    const sk = `${toneSeen}|${stageW}x${stageH}`;
+    for (const [cls, words] of WARM_CALLS) { call.className = `${cls} is-baked`; BL.warm(`${cls}|${sk}`, words); }
+    call.className = 'hi-call is-baked';
+  }
   function prewarm() { if (!flyAsk || !FlyMod) { flyAsk = true; loadFly().then(() => { if (!gone) needAll(); }).catch(() => { flyAsk = false; }); } else needAll(); }
   const warmOk = () => view.warm() && view.flyReady();
   const whenWarm = ms => new Promise(res => { const from = performance.now(); (function poll() { if (gone || warmOk() || performance.now() - from >= ms) res(); else setTimeout(poll, 40); })(); });
@@ -361,12 +372,12 @@ export function createStage(app, o = {}) {
     // (THE WELCOME's scene: the tower low on the screen, a first slab already sliding in, YOUR BEST's tape)
     view.pose('welcome'); view.welcome(true, best > 0); view.ghostBest(false);
     end.hidden = true; check.hidden = true; again.hidden = true; start.hidden = false; soundsBtn.hidden = false; note.hidden = false;
-    stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-made', 'is-ended'); stage.classList.add('is-welcome'); BN.dirty();
+    stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-made', 'is-ended'); stage.classList.add('is-welcome'); warmHud();
     hudFloor = -1; hudLeft = -2; hitchN = 0; hitchLast = ''; hitchBy.plate = hitchBy.compile = hitchBy.audio = hitchBy.gc = hitchBy.dom = hitchBy.tap = hitchBy.work = hitchBy.unknown = 0; gcSeen = 0; hitchLine(); callUntil = 0; callPri = 0; later = null; if (callAnim) { callAnim.cancel(); callAnim = null; } call.className = 'hi-call is-baked'; callT.data = ''; BL.set('', '');
     band.textContent = BANDS[0].name; setNum(0); tag.hidden = true; tagAt = -1e9; ftagAt = -1e9;
   }
   // (while a run is LIVE the SOUNDS button + the note are off the screen: a thumb anywhere is a DROP, never a menu)
-  const live = ts => { t0 = ts; start.hidden = true; soundsBtn.hidden = true; note.hidden = true; stage.classList.remove('is-welcome'); stage.classList.add('is-live'); view.pose('play'); view.welcome(false); if (TR) TR.reset(); awakeAt = performance.now(); awake(true); if (FlyMod) needAll(); if (FROM) { climbBy(FROM, null); skipP = run.perfects; skipS = run.streak; } liveRun = run; };   // (needAll at the unlock: the flyers' sounds are decoded now)
+  const live = ts => { t0 = ts; start.hidden = true; soundsBtn.hidden = true; note.hidden = true; stage.classList.remove('is-welcome'); stage.classList.add('is-live'); if (LEANS.size) BN.dirty(); view.pose('play'); view.welcome(false); if (TR) TR.reset(); awakeAt = performance.now(); awake(true); if (FlyMod) needAll(); if (FROM) { climbBy(FROM, null); skipP = run.perfects; skipS = run.streak; } liveRun = run; };   // (needAll at the unlock: the flyers' sounds are decoded now)
   // THE START (S4A). THE PAGE: tick 0 = the START touch — but START waits a moment (≤ START_WAIT_MS) until EVERY sound is decoded: no
   // sound of a run ever takes the late path (THE SOUND SYNC; a first-ever tap is also the audio's unlock). THE CARTRIDGE: tick 0 = GO —
   // `o.go()` writes the proof node's first value (the SERVER's time), reads it back and hands in the seed picked from it + that moment
@@ -564,7 +575,7 @@ export function createStage(app, o = {}) {
   let shotAt = 0, shotRun = -1;
   function takeShot() {
     shotAt = 0;
-    if (shotRun !== startN || !view.snap) return;
+    if (shotRun !== startN || !view.snap || watchW) return;   // (a watched tower on screen is never YOUR picture — the review)
     const r = mine || run, key = o.shotKey ? o.shotKey() : seed, n = startN;
     view.snap(cv => { if (!cv || gone || n !== startN) return; keepShot({ key, canvas: cv, topX: cv.topX, topY: cv.topY, floor: r.floor, perfects: r.perfects - skipP, cause: r.st === 'out' ? r.cause : r.st, made: r.st === 'made', look: lookSeen }); }, 1080);
   }
@@ -721,7 +732,7 @@ export function createStage(app, o = {}) {
     const over = isOver(run);
     if (over && !endedAt && o.onOver) o.onOver(resultOf(run));
     // S5 — THE SHARE IMAGE's frame: a beat after YOUR tower's end (per cause — shot.js), the next frame drawn is copied (night.js#snap)
-    if (over && !endedAt && !watchW && t0 != null) { shotAt = now + shotMs(run.cause, run.st === 'made'); shotRun = startN; }
+    if (over && !endedAt && !watchW && t0 != null) { shotAt = now + shotMs(run.st === 'out' ? run.cause : run.st, run.st === 'made'); shotRun = startN; }   // (the bell's own beat — the review)
     if (shotAt && now >= shotAt) takeShot();
     if (over && !endedAt) endedAt = now;   // (the end's own frame — whether THE FUSE ended it in this frame or a TAP did in the touch handler: the review — a miss used to bring the card at once, over the falling slab)
     if (over && !shown && now - endedAt >= (run.st === 'made' ? MADE_HOLD_MS : END_HOLD_MS)) showEnd(now);
@@ -845,7 +856,10 @@ export function createStage(app, o = {}) {
       const P = pendEnd; pendEnd = null;
       if (mine) { run = mine; T = mineT; mine = null; mineT = null; view.adopt(run, T); }
       watchW = null; wN = 0; ev.length = 0; sounded = 0; hush = false; watchMode(false);
-      if (MH) { MH.watching(''); MH.place(0, 0); }
+      // (THE CLOSE's REVIEW: the card IS the page's now — `card` on, its hold from now; the watched tower's tapes + tags go)
+      card = true; overAt = performance.now();
+      for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0);
+      if (MH) { MH.watching(''); MH.place(0, 0); MH.setTags(NO_TAGS, hexOfRival); }
       cardEnd(P.live, P.was, P.E);
     },
     /** the match's clock in ticks (a fraction into the next) — what a driver steps the rivals to */

@@ -168,9 +168,10 @@ function prepRun(game, state) {
   const me = (state && state.players && state.players[uid]) || {};
   const prep = prepShare(async () => {
     if (!here()) return null;
-    const shot = shotFor(m), r = runOf(game, uid);
-    // (this phone's own frame knows the run best — a podium row can lag the stage by a landing)
-    const run = shot ? { ...r, floor: shot.floor, perfects: shot.perfects, cause: shot.cause, made: shot.made } : r;
+    const shot = shotFor(m), r = runOf(game, uid), judged = !!(((game && game.results) || {})[uid] || {}).w;
+    // (THE CLOSE's REVIEW: the numbers are THE JUDGE's — the podium's + the counted result's — whenever it has spoken; the frame gives the
+    //  picture, and its own numbers only for a run the judge has not answered)
+    const run = shot && !judged ? { ...r, floor: shot.floor, perfects: shot.perfects, cause: shot.cause, made: shot.made } : r;
     return { cv: drawHiCard({ ...run, name: me.name }, shot), name: 'neon-speakeasy-high-rise.png', line: '', upload, onTap: true };
   });
   held = { m, prep };

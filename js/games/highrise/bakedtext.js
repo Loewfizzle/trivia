@@ -6,7 +6,8 @@
 // text-shadow: the CSS stays the one source of the look, the gold, the day's ink, ?lean's switches included) into a small bitmap; a
 // landing then only COPIES the 1 – 3 digits' bitmaps into ONE canvas over the number (drawImage — no blur, no text layout). The digit
 // boxes underneath keep the layout + the reading (aria-label) with transparent, shadowless text. A style change (gold, the sky's tone,
-// a resize) bakes the ten digits again — a few times a run, never in a landing's frame when it can be helped (stage.js warms both styles).
+// a resize) picks another baked set: the plain + the gold one of the look on screen are WARMED behind the welcome (stage.js#warmHud —
+// THE CLOSE's review: a NEW BEST must bake nothing in its frame); at most SETS_KEPT sets are kept, an evicted one's canvases zeroed.
 // DOM + canvas only — no rules, nothing counts.
 
 /** "rgb(255, 0, 0) 0px 0px 14px, rgba(…) 0px 3px 0px" → [{ color, x, y, blur }] (the computed style's own order: the FIRST on top) */
@@ -25,14 +26,21 @@ export function parseShadows(s) {
   return out;
 }
 const DIG = '0123456789';
+/** the digit sets kept (each ≈ 9 MB of canvas at 3× — the plain + the gold of the look on screen) */
+export const SETS_KEPT = 2;
+/** document.fonts.check, never throwing (an empty font string — a detached node's computed style — is a SyntaxError) */
+const fontReady = f => { try { return !document.fonts || !document.fonts.check || document.fonts.check(f); } catch { return true; } };
+const zero = list => { for (const g of list) { g.width = 0; g.height = 0; } };
 /** the number's overlay: `node` = .hi-num (its digit boxes stay for the layout + the reading) → { set(n), dirty(), destroy() } */
 export function bakedNumber(node, mark) {
   const cv = document.createElement('canvas');
   cv.className = 'hi-numc'; cv.setAttribute('aria-hidden', 'true');
   node.append(cv);
   node.classList.add('is-baked');
-  let key = '', glyphs = null, adv = 0, gap = 0, pad = 0, lh = 0, dpr = 1, shown = -1, cssW = 0, cssH = 0, em = 84;
-  const gw = new Float64Array(10);   // (each digit's OWN advance — the face's numerals are proportional: a 1 is narrow, as in the DOM)
+  let key = '', glyphs = null, adv = 0, gap = 0, pad = 0, lh = 0, dpr = 1, shown = -1, cssW = 0, cssH = 0, em = 84, gw = null;
+  const sets = new Map();   // style key → { glyphs, gw, adv, gap, pad, lh, em, dpr } (most recent last)
+  // (each digit keeps its OWN advance — the face's numerals are proportional; the DOM's tabular-nums finds no tabular set in it: the
+  //  shots before / after prove a 1 sits narrow there too)
   /** the ten digits, baked from the number's OWN computed style (read once a style — never in a plain landing) */
   function bake() {
     const cs = getComputedStyle(node), probe = cs;   // (the digits inherit the number's font + colour; the text-shadow is the number's)
@@ -40,15 +48,18 @@ export function bakedNumber(node, mark) {
     const k = `${font}|${fill}|${sh}|${Math.min(window.devicePixelRatio || 1, 3)}`;
     if (k === key && glyphs) return false;
     // (the font not here yet: bake now, and once more the moment it lands — never a fallback face left on screen)
-    if (document.fonts && document.fonts.check && !document.fonts.check(font)) document.fonts.load(font).then(() => { key = ''; api.dirty(); }).catch(() => {});
-    key = k; dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const ready = fontReady(font);
+    if (!ready) document.fonts.load(font).then(() => { for (const S of sets.values()) zero(S.glyphs); sets.clear(); key = ''; api.dirty(); }).catch(() => {});
+    const had = sets.get(k);
+    if (had) { sets.delete(k); sets.set(k, had); ({ glyphs, gw, adv, gap, pad, lh, em, dpr } = had); key = k; shown = -1; cssW = 0; return true; }
+    key = k; dpr = Math.min(window.devicePixelRatio || 1, 3); cssW = 0;   // (cssW: a new dpr = a new backing size — the review)
     const px = parseFloat(probe.fontSize) || 84, lhV = parseFloat(probe.lineHeight);
     lh = Number.isFinite(lhV) ? lhV : px * 0.92;
     const shadows = parseShadows(sh);
     pad = Math.ceil(shadows.reduce((m, s) => Math.max(m, s.blur * 1.25 + Math.max(Math.abs(s.x), Math.abs(s.y))), 2));
     const m = document.createElement('canvas').getContext('2d');
     m.font = font;
-    adv = 0; for (let i = 0; i < 10; i++) { gw[i] = m.measureText(DIG[i]).width; adv = Math.max(adv, gw[i]); }
+    gw = new Float64Array(10); adv = 0; for (let i = 0; i < 10; i++) { gw[i] = m.measureText(DIG[i]).width; adv = Math.max(adv, gw[i]); }
     em = px;
     gap = px * 0.07;
     const met = m.measureText('0'), fa = met.fontBoundingBoxAscent || px * 0.95, fd = met.fontBoundingBoxDescent || px * 0.25, base = (lh - (fa + fd)) / 2 + fa;
@@ -69,6 +80,7 @@ export function bakedNumber(node, mark) {
       c.fillStyle = fill; c.fillText(d, x, y);
       glyphs.push(g);
     }
+    if (ready) { sets.set(k, { glyphs, gw, adv, gap, pad, lh, em, dpr }); while (sets.size > SETS_KEPT) { const [k0, S0] = sets.entries().next().value; sets.delete(k0); if (S0.glyphs !== glyphs) zero(S0.glyphs); } }
     shown = -1;
     return true;
   }
@@ -91,8 +103,10 @@ export function bakedNumber(node, mark) {
     set(n) { if (!glyphs) bake(); if (n === shown) return; shown = n; if (mark) mark('dom'); draw(n); },
     /** the number's style changed (gold · the sky's tone · a resize · ?lean): the ten digits are baked again, then drawn */
     dirty() { if (!glyphs) return; if (bake() && shown >= 0) { const n = shown; shown = -1; api.set(n); } },
+    /** bake the set of the number's CURRENT style now (the warm-up: the stage dresses the stage, asks, and dresses it back) */
+    warm() { bake(); },
     /** (the checks) */
-    info: () => ({ key, pad, adv, dpr, glyphs: glyphs ? glyphs.length : 0, w: cv.width, h: cv.height }),
+    info: () => ({ key, pad, adv, dpr, glyphs: glyphs ? glyphs.length : 0, sets: sets.size, w: cv.width, h: cv.height }),
     destroy() { cv.remove(); node.classList.remove('is-baked'); },
   };
   return api;
@@ -135,18 +149,19 @@ export function bakedLine(node) {
   cv.className = 'hi-callc'; cv.setAttribute('aria-hidden', 'true');
   node.append(cv); node.classList.add('is-baked');
   const styles = new Map(), pieces = new Map(), parts = [];
-  let shownKey = '', cssW = 0, cssH = 0, dpr = 1, fontWait = false;
-  return {
+  let shownKey = '', cssW = 0, cssH = 0, dpr = 1, fontWait = false, lastText = '', lastSk = '';
+  const api = {
     /** the lane now says `text` in its current class; `sk` = what its style depends on (its class + the sky's tone + the size) */
     set(text, sk) {
       const k = `${sk}|${text}`;
       if (k === shownKey) return;
-      shownKey = k;
+      shownKey = k; lastText = text; lastSk = sk;
       if (!text) { if (cssW) { const c = cv.getContext('2d'); c.clearRect(0, 0, cv.width, cv.height); } return; }
-      dpr = Math.min(window.devicePixelRatio || 1, 3);
+      const d = Math.min(window.devicePixelRatio || 1, 3);
+      if (d !== dpr) { dpr = d; cssW = 0; }   // (a new dpr = a new backing size — the review)
       let S = styles.get(sk);
       if (!S) { S = styleOf(node); styles.set(sk, S); if (styles.size > 24) styles.delete(styles.keys().next().value); }
-      if (!fontWait && document.fonts && document.fonts.check && !document.fonts.check(S.font)) { fontWait = true; document.fonts.load(S.font).then(() => { pieces.clear(); shownKey = ''; fontWait = false; }).catch(() => {}); }
+      if (!fontWait && !fontReady(S.font)) { fontWait = true; document.fonts.load(S.font).then(() => { for (const P of pieces.values()) zero([P.g]); pieces.clear(); shownKey = ''; fontWait = false; if (lastText) api.set(lastText, lastSk); }).catch(() => {}); }   // (the call on screen redrawn in the face — the review)
       // the pieces: the words between digits + each digit alone (a digit's bitmap serves every PERFECT ×n)
       parts.length = 0;
       for (const p of text.split(SPLIT)) if (p) parts.push(p);
@@ -154,7 +169,7 @@ export function bakedLine(node) {
       for (let i = 0; i < parts.length; i++) {
         const pk = `${S.key}|${dpr}|${parts[i]}`;
         let P = pieces.get(pk);
-        if (!P) { P = bakePiece(S, parts[i], dpr); pieces.set(pk, P); if (pieces.size > 96) { const first = pieces.keys().next().value; pieces.delete(first); } }
+        if (!P) { P = bakePiece(S, parts[i], dpr); pieces.set(pk, P); if (pieces.size > 96) { const first = pieces.keys().next().value; zero([pieces.get(first).g]); pieces.delete(first); } }
         parts[i] = P; w += P.w + (i ? S.ls : 0); lean = P.lean;
       }
       const W = w + 2 * S.pad + lean, H = S.lh + 2 * S.pad;
@@ -168,7 +183,16 @@ export function bakedLine(node) {
       let x = 0;
       for (let i = 0; i < parts.length; i++) { const P = parts[i]; c.drawImage(P.g, Math.round(x * dpr), 0); x += P.w + S.ls; }
     },
+    /** WARM (behind the welcome — the review: a first PERFECT / STREAK / NEW BEST bakes nothing in its frame): `words` in the lane's
+     *  CURRENT class (`sk` = the key say() will use), + the ten digits; nothing shown */
+    warm(sk, words) {
+      const d = Math.min(window.devicePixelRatio || 1, 3);
+      let S = styles.get(sk);
+      if (!S) { S = styleOf(node); styles.set(sk, S); }
+      for (const w of words) for (const p of w.split(SPLIT)) if (p) { const pk = `${S.key}|${d}|${p}`; if (!pieces.has(pk)) pieces.set(pk, bakePiece(S, p, d)); }
+    },
     info: () => ({ styles: styles.size, pieces: pieces.size, w: cv.width, h: cv.height }),
     destroy() { cv.remove(); node.classList.remove('is-baked'); },
   };
+  return api;
 }

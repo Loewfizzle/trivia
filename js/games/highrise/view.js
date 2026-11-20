@@ -290,9 +290,10 @@ export function createView() {
     // WHOM THE WATCHER FOLLOWS: the player picked on the altimeter (any of them) · else the one picked by a tap while they climb · else THE LEADER
     const held = since >= (r && r.cause === 'made' ? MADE_SHOW_MS : 900) || !mine(g);
     if (held && !callEl && others.length) {
-      // (S5: the one you follow STAYS while they climb — the leader was picked again at every pump: level players swapped the view every floor)
+      // (S5: the one you follow STAYS while they climb — the leader was picked again at every pump: level players swapped the view every floor;
+      //  THE CLOSE's REVIEW: a tap's pick is spent once it is followed — a pick left behind made `follow` ignore followUid again)
       const f = pickAny && rivals.has(pickAny) ? pickAny : follow(others, followPick || followUid);
-      if (f && f !== followUid) { followUid = f; const R = rivals.get(f); S.watch({ uid: f, name: R.name, seed: mSeed, taps: R.taps, done: () => R.done }); rowsKey = ''; }
+      if (f && f !== followUid) { followUid = f; followPick = ''; const R = rivals.get(f); S.watch({ uid: f, name: R.name, seed: mSeed, taps: R.taps, done: () => R.done }); rowsKey = ''; }
     }
     let txt = '';
     if (S.watching() || !mine(g) || since > 900) {

@@ -48,7 +48,7 @@ export function createMatchHud(stage, hud) {
   const said = new Map();   // (a call's words → when they were last said: REPEAT_MS)
   const rows = new Map();   // uid → { li, nameT, floorT, name, floor, state, me }
   const order = [];   // (the ranked list's scratch: sorted in place)
-  let rosterRef = null, orderKey = '', pick = null, countKey = '', rosterKey = '', watchKey = '', heldAt = 0, dimOn = false;   // (heldAt: a row is under a finger — never moved then)
+  let lastList = null, rosterRef = null, orderKey = '', pick = null, countKey = '', rosterKey = '', watchKey = '', heldAt = 0, dimOn = false;   // (heldAt: a row is under a finger — never moved then)
   /** a tap on a player's row (only while watching — css: pointer-events) = watch them. Press + lift, never a click. */
   function rowFor(uid) {
     let r = rows.get(uid);
@@ -58,18 +58,20 @@ export function createMatchHud(stage, hud) {
     const li = h('li', { 'data-uid': uid }, h('em', rankT), h('i.hi-alt-dot', { 'aria-hidden': 'true' }), h('span.hi-alt-n', nameT), h('b', floorT));
     let id = null;
     li.addEventListener('pointerdown', e => { id = e.pointerId; heldAt = performance.now(); e.stopPropagation(); });
-    li.addEventListener('pointerup', e => { e.stopPropagation(); heldAt = 0; if (id === e.pointerId) { id = null; if (pick) pick(uid); } });
-    li.addEventListener('pointercancel', () => { id = null; heldAt = 0; });
+    // (THE CLOSE's REVIEW: the order that waited under the finger is put right at the lift — nothing else may come to ask for it)
+    li.addEventListener('pointerup', e => { e.stopPropagation(); heldAt = 0; if (id === e.pointerId) { id = null; if (pick) pick(uid); } if (lastList) api.altimeter(lastList); });
+    li.addEventListener('pointercancel', () => { id = null; heldAt = 0; if (lastList) api.altimeter(lastList); });
     r = { li, nameT, floorT, rankT, rank: 0, name: '', floor: -1, state: '', me: null, hex: '', seen: false };
     rows.set(uid, r);
     return r;
   }
-  return {
+  const api = {
     over, lane, alt, tagBox, placeEl: place,
     onPick(fn) { pick = fn; },
     /** THE RANKED LIST (WATCH only — S5): rows [{ uid, name, hex, floor, perfects, over, end, silent, me, watched }] — every player, any
      *  order. The stage calls it only while you watch (a live climber's corner holds THE PLACE NUMBER alone). */
     altimeter(list) {
+      lastList = list;
       const sorted = rankInto(list, order);
       let key = '', rank = 0, prevF = -1;
       for (const r of rows.values()) r.seen = false;
@@ -150,11 +152,12 @@ export function createMatchHud(stage, hud) {
       for (const t of tags) { t.on = false; t.el.hidden = true; t.y = -1e9; if (t.dim) { t.dim = false; t.el.classList.remove('is-dim'); } }
       dimOn = false;
       for (const r of rows.values()) r.li.remove();
-      rows.clear(); orderKey = ''; rosterRef = null; ann.clear(); said.clear(); over.replaceChildren();
+      rows.clear(); orderKey = ''; rosterRef = null; lastList = null; ann.clear(); said.clear(); over.replaceChildren();
       placeV = 0; placeT = 0; place.className = 'hi-place'; if (fxA) { fxA.cancel(); fxA = null; } if (pulseA) { pulseA.cancel(); pulseA = null; }
       countKey = ''; countT.data = ''; count.className = 'hi-count'; roster.classList.remove('is-on'); watchKey = ''; watchT.data = ''; watch.classList.remove('is-on');
     },
     state: () => ({ place: placeV ? `${placeV}${ordSuffix(placeV)} / ${placeT}` : '', placeCls: place.className, alt: [...alt.children].map(li => ({ uid: li.dataset.uid, text: li.textContent, cls: li.className })), tags: tags.filter(t => t.on).map(t => ({ text: t.text, y: t.y, hex: t.hex })), dim: dimOn, count: countKey, roster: [...roster.children].map(e => e.textContent), watch: watchKey, calls: ann.log.slice() }),
     destroy() { place.remove(); alt.remove(); tagBox.remove(); lane.remove(); roster.remove(); count.remove(); watch.remove(); over.remove(); },
   };
+  return api;
 }

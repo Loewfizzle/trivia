@@ -53,7 +53,7 @@ export function startSim(S, n) {
       if (!watchFrom) watchFrom = now;
       if (!live.length || now - watchFrom > SIM_WATCH_MS) { watchFrom = 0; followUid = ''; pickUid = ''; nextPick = ''; hud.watching(''); S.unwatch(); return; }
       const f = pickUid && bots.some(r => r.uid === pickUid) ? pickUid : follow(bots, nextPick || followUid);   // (the one you follow STAYS while they climb)
-      if (f && f !== followUid) { followUid = f; const p = list.find(q => q.uid === f); if (p) S.watch({ uid: p.uid, name: p.name, seed, taps: p.R.taps, done: () => p.done }); key = ''; }
+      if (f && f !== followUid) { followUid = f; nextPick = ''; const p = list.find(q => q.uid === f); if (p) S.watch({ uid: p.uid, name: p.name, seed, taps: p.R.taps, done: () => p.done }); key = ''; }
       const F = bots.find(r => r.uid === followUid);
       hud.watching(F ? (live.length && !F.over ? `WATCHING ${F.name} · ${F.floor} · TAP FOR THE NEXT` : `${F.name}’S TOWER · ${F.floor}`) : '');
     } else if (watchFrom) { watchFrom = 0; followUid = ''; pickUid = ''; nextPick = ''; }

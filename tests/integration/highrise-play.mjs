@@ -188,7 +188,7 @@ async function main() {
   await sleep(120);
   const s1 = await st(p);
   ok(tops && s1.floor >= 6 && (s1.over || sameTop(s1)), `every real tap is one logged drop — in the middle or at the foot (${s1.taps} taps → floor ${s1.floor}); the view's tower == the engine's`);
-  const hud = await p.evaluate(() => { const q = sel => document.querySelector(sel), r = q('.hi-num').getBoundingClientRect(); return { n: q('.hi-num').getAttribute('aria-label'), fs: parseFloat(getComputedStyle(q('.hi-num')).fontSize), y: r.top, b: r.bottom, band: q('.hi-band').textContent, bandFs: parseFloat(getComputedStyle(q('.hi-band')).fontSize), digits: q('.hi-num').children.length }; });
+  const hud = await p.evaluate(() => { const q = sel => document.querySelector(sel), r = q('.hi-num').getBoundingClientRect(); return { n: q('.hi-num').getAttribute('aria-label'), fs: parseFloat(getComputedStyle(q('.hi-num')).fontSize), y: r.top, b: r.bottom, band: q('.hi-band').textContent, bandFs: parseFloat(getComputedStyle(q('.hi-band')).fontSize), digits: q('.hi-num').querySelectorAll('.hi-dg').length }; });
   ok(hud.n === String(s1.floor) && hud.fs >= 64 && hud.y < 844 * 0.1 && hud.digits === String(s1.floor).length && hud.band === 'THE ROOFTOPS' && hud.bandFs >= 13, `THE HUD: the floor number big at the top (${hud.fs} px, each digit its own box), the band's name under it`);
   ok(perfectSeen, 'a PERFECT is called in the announcer lane');
   ok(s1.info.rings > 0 && s1.info.boxes >= s1.floor + 2, `a perfect pulses its ring of light (${s1.info.rings} rings so far); every floor is a box in the ONE mesh (${s1.info.boxes})`);

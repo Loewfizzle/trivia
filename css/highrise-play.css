@@ -255,7 +255,7 @@
    clear of the play zone (the HUD's band) and of the tags (the right edge). Written only when YOUR place changes; the change = a short
    pulse (its glow copy: up cyan, down soft pink — opacity + transform, a one-shot; nothing slides). A live climber's only. */
 .hi-place { position: absolute; z-index: 2; left: 12px; top: calc(env(safe-area-inset-top, 0px) + 50px); display: none; pointer-events: none; }
-.hi-stage.is-match.is-live .hi-place.is-on { display: block; }
+.hi-stage.is-match.is-live:not(.is-watch):not(.is-over):not(.is-final) .hi-place.is-on { display: block; }   /* (THE CLOSE's REVIEW: the hide rules below were weaker than this one) */
 .hi-stage.is-watch .hi-place, .hi-stage.is-over .hi-place, .hi-stage.is-final .hi-place { display: none; }
 .hi-place-in, .hi-place-fx { display: flex; align-items: baseline; white-space: nowrap; font-style: italic; transform-origin: 0 60%; }
 .hi-place b { font: 700 50px/0.9 var(--font-num); font-variant-numeric: tabular-nums; }

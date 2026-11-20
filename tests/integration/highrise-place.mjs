@@ -149,6 +149,13 @@ for (const look of LOOKS) {
   await p.touchscreen.tap(300, 620);
   const after = await until(p, `(() => { const u = window.__hiPlay.watching(); return u && u !== '${before}' ? u : null; })()`, 4000);
   ok(!!after, `${look}: a tap off the list = the next player (${before} → ${after})`);
+  // (THE CLOSE's review) WATCH over → the page's own card is UP: PLAY AGAIN works, no rival tag left over YOUR tower
+  await p.evaluate('window.__hiPlay.sim.watchOff = true; window.__hiPlay.unwatch()');
+  const cardUp = await until(p, "(() => { const s = window.__hiPlay.state(); return s.card && !document.querySelector('.hi-end').hidden && ![...document.querySelectorAll('.hi-rtag')].some(t => !t.hidden && getComputedStyle(t).display !== 'none') ? s : null; })()", 4000);
+  ok(!!cardUp, `${look}: WATCH over → the end card is up, no rival tag left (card ${cardUp ? cardUp.card : '—'})`);
+  await sleep(900);
+  await p.touchscreen.tap(195, 500);
+  ok(!!await until(p, '(() => { const L = window.__hiPlay; return !L.state().card && !L.watching(); })()', 4000), `${look}: … and a tap = PLAY AGAIN (the page never stuck)`);
   ok(errs.length === 0, `${look}: no page error (${errs.join(' | ')})`);
   await p.close();
 }

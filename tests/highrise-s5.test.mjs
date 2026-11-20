@@ -62,7 +62,9 @@ test('THE ALTIMETER IS GONE from live play — THE PLACE NUMBER in its corner, w
   assert.ok(hud.includes('if (rank === placeV && n === placeT) return;'), 'written only when YOUR place changes');
   assert.ok(hud.includes("placeFx.className = `hi-place-fx ${rank < was ? 'is-up' : 'is-down'}`;"), 'the pulse: up cyan, down soft pink');
   assert.doesNotMatch(css, /\.hi-stage\.is-match\.is-live \.hi-alt/, 'no altimeter rule for a live run');
-  assert.match(css, /\.hi-stage\.is-match\.is-live \.hi-place\.is-on \{ display: block; \}/);
+  assert.match(css, /\.hi-stage\.is-match\.is-live:not\(\.is-watch\):not\(\.is-over\):not\(\.is-final\) \.hi-place\.is-on \{ display: block; \}/, 'the show rule never beats the hide rules (THE CLOSE\'s review)');
+  assert.ok(s.includes('card = true; overAt = performance.now();') && s.includes('MH.setTags(NO_TAGS, hexOfRival);'), 'THE CLOSE\'s review: after WATCH the page\'s card IS up (a tap = PLAY AGAIN), the watched tower\'s tapes + tags gone');
+  assert.ok(v.includes("followUid = f; followPick = '';") && sim.includes("followUid = f; nextPick = '';"), 'a tap\'s pick is spent once followed');
   assert.match(css, /\.hi-stage\.is-watch \.hi-place, \.hi-stage\.is-over \.hi-place, \.hi-stage\.is-final \.hi-place \{ display: none; \}/);
   assert.match(css, /\.hi-place b \{ font: 700 50px/); assert.match(css, /\.hi-place\.is-first \.hi-place-in \{ color: #ffd257;/, '1ST in gold');
   assert.match(css, /\.hi-place-fx \{[^}]*will-change: opacity, transform;/, 'the pulse = its own layer: opacity + transform');
@@ -74,7 +76,7 @@ test('THE ALTIMETER IS GONE from live play — THE PLACE NUMBER in its corner, w
   assert.ok(v.includes('if (g !== lkGame) { lkGame = g; lkKey = liveKeyFor(g); }'), 'the live key once a game — never its JSON 10 × a second');
   assert.ok(v.includes('me = mine(g) ? S.me(meRec) : null') && v.includes('if (dirty) S.rivals(rowList);'), 'the rows: ONE record each, a change found field by field');
   assert.ok(hud.includes('if (names && names !== rosterRef) {'), 'the count\'s roster is not rebuilt from the same list');
-  assert.ok(s.includes('const others = [], tagItems = [], lvPool = [], itemPool = [], NR = { above: [], below: [] }, MT = { list: [], pool: [] };'));
+  assert.ok(s.includes('const others = [], tagItems = [], lvPool = [], itemPool = [], NR = { above: [], below: [] }, MT = { list: [], pool: [] }, NO_TAGS = [];'));
   // the test page's bot room: OUT = WATCH there too, the page's own card once every bot is down (or after SIM_WATCH_MS)
   assert.ok(sim.includes('export const SIM_WATCH_MS = 45000;') && sim.includes('wantWatch: () => !api.watchOff && list.some(p => !rivalOver(p.R)),'));
   assert.ok(s.includes('const E = o.onEnd ? o.onEnd(live) : PAGE && matchOn && hook.sim && hook.sim.wantWatch() ? { watch: true, page: true } : null;'));
@@ -110,7 +112,7 @@ test('THE SHARE IMAGE — the card\'s words from the PUBLIC numbers only · JAYW
 test('THE SHARE IMAGE is wired like JAYWALK\'s: the frame a beat after the end (night.js#snap → shot.js), SHARE on the console\'s footer (index.js#shareRun, lazy), drawn while the end screen is read, the link uploaded only at SHARE — and never while THE SWITCH says WOULD COUNT; the server takes HIGH RISE\'s run card only with a counted result', () => {
   const s = read(`${HI}stage.js`), n = read(`${HI}night.js`), ix = read(`${HI}index.js`), fin = read(`${HI}final.js`), sh = read(`${HI}share.js`), srv = read('api/_lib/share-card.js'), v = read(`${HI}view.js`);
   assert.ok(n.includes('if (snapAsk) { const ask = snapAsk; snapAsk = null; try { ask(grab(snapW)); } catch { ask(null); } }'), 'copied IN the frame it was drawn');
-  assert.ok(s.includes("if (over && !endedAt && !watchW && t0 != null) { shotAt = now + shotMs(run.cause, run.st === 'made'); shotRun = startN; }"), 'YOUR tower\'s end — never a watched one');
+  assert.ok(s.includes("if (over && !endedAt && !watchW && t0 != null) { shotAt = now + shotMs(run.st === 'out' ? run.cause : run.st, run.st === 'made'); shotRun = startN; }") && s.includes('if (shotRun !== startN || !view.snap || watchW) return;'), 'YOUR tower\'s end — never a watched one');
   assert.ok(v.includes("shotKey: () => (cur && cur.key ? cur.key() : ''),") && v.includes('key: () => matchId };'), 'the cartridge keeps the frame under its match id');
   assert.ok(ix.includes("export const shareRun = (game, state) => lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state));"));
   assert.ok(fin.includes("lazyImport(import('./share.js'), './share.js').then(m => m.warmShare(game, state)).catch(() => {});"), 'drawn while the end screen is read');
@@ -135,4 +137,17 @@ test('THE B1 BILLBOARD — Bowlby One as GENERATED path data (no font load) · H
   const vp8 = webp.indexOf('VP8'), kind = webp.toString('ascii', vp8, vp8 + 4);
   if (kind === 'VP8 ') assert.deepEqual([webp.readUInt16LE(vp8 + 14) & 0x3fff, webp.readUInt16LE(vp8 + 16) & 0x3fff], [848, 448], 'the board\'s 848 × 448');
   for (const f of ['js/screens/harbor/signs.js', 'js/screens/harbor/scene.js', 'js/screens/harbor/jaywalk-art.js', 'js/core/harbor-trivision.js']) assert.doesNotMatch(read(f), /highrise|HIGH RISE/i, `${f}: the CITY chat installs it at go-live — not wired in this pass`);
+});
+
+test('THE CLOSE\'s REVIEW — the baked HUD is WARMED behind the welcome (no bake in a NEW BEST / first-call frame), at most SETS_KEPT digit sets kept (evicted ones zeroed), a new dpr resizes the backing, the share card\'s numbers are THE JUDGE\'s', async () => {
+  const s = read(`${HI}stage.js`), b = read(`${HI}bakedtext.js`), sh = read(`${HI}share.js`);
+  const { SETS_KEPT, parseShadows } = await import(new URL(`../${HI}bakedtext.js`, import.meta.url));
+  assert.equal(SETS_KEPT, 2);
+  assert.ok(s.includes("stage.classList.add('is-welcome'); warmHud();") && s.includes("if (best > 0 && !FROM && !matchOn) { stage.classList.add('is-gold'); BN.warm(); stage.classList.remove('is-gold'); }") && s.includes('BL.warm(`${cls}|${sk}`, words);'));
+  assert.ok(b.includes('while (sets.size > SETS_KEPT)') && b.includes('if (S0.glyphs !== glyphs) zero(S0.glyphs);'), 'an evicted set\'s canvases are zeroed');
+  assert.ok(b.includes('cssW = 0;   // (cssW: a new dpr') && b.includes('if (d !== dpr) { dpr = d; cssW = 0; }'));
+  assert.ok(sh.includes('const run = shot && !judged ?'), 'the judge\'s numbers whenever it has spoken');
+  assert.deepEqual(parseShadows('rgb(255, 255, 255) 0px 0px 2px, rgba(255, 79, 216, 0.95) 0px 0px 14px, rgba(10, 7, 22, 0.55) 0px 3px 0px'), [{ color: 'rgb(255, 255, 255)', x: 0, y: 0, blur: 2 }, { color: 'rgba(255, 79, 216, 0.95)', x: 0, y: 0, blur: 14 }, { color: 'rgba(10, 7, 22, 0.55)', x: 0, y: 3, blur: 0 }]);
+  assert.deepEqual(parseShadows('0px 1px 0px rgb(10, 7, 22)'), [{ color: 'rgb(10, 7, 22)', x: 0, y: 1, blur: 0 }], 'colour last too');
+  assert.deepEqual(parseShadows('none'), []);
 });

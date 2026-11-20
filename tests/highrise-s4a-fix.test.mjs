@@ -90,7 +90,7 @@ test('THE WELCOME = "A · THE SIGN": no box, no panel — the sign BIG in the sk
   assert.doesNotMatch(s, /hi-start-best|THIS PHONE/, 'YOUR BEST is the tape + its tag — never a line of text on the start screen');
   // the scene: the pose, the slab, the tape — set at a run's (re)start, put away the moment it goes live
   assert.match(s, /view\.pose\('welcome'\); view\.welcome\(true, best > 0\); view\.ghostBest\(false\);/);
-  assert.match(s, /stage\.classList\.remove\('is-welcome'\); stage\.classList\.add\('is-live'\); view\.pose\('play'\); view\.welcome\(false\);/);
+  assert.match(s, /stage\.classList\.remove\('is-welcome'\); stage\.classList\.add\('is-live'\); (if \(LEANS\.size\) BN\.dirty\(\); )?view\.pose\('play'\); view\.welcome\(false\);/);
   assert.match(s, /tagT\.data = `BEST \$\{best\}`;/, 'the welcome\'s tag: BEST 119, at the tape');
   const pose = n.match(/export const POSE = Object\.freeze\(\{ play: 0, welcome: ([\d.]+), end: ([\d.]+) \}\);/);
   assert.ok(pose && Number(pose[1]) >= 0.12 && Number(pose[1]) <= 0.2 && Number(pose[2]) >= 0.06 && Number(pose[2]) <= 0.14, 'the tower stands ≈ 70 % down on the welcome, a little lower than in play under the end\'s stats');
