@@ -18,8 +18,10 @@ export function labMarks() {
   marksP = fetch('/api/admin?lab=export', { cache: 'no-store' }).then(r => (r.ok ? r.json() : { marks: {} })).then(j => j.marks || {}).catch(() => ({}));
   return marksP;
 }
+/** HIGH RISE's GO-LIVE (the owner, Nov 20): its two cards ship as they are — out of THE LAB, approved by that call (no mark ever needed) */
+export const SHIPPED = Object.freeze(['card-abovetheclouds', 'card-topoftheworld', 'full-card-abovetheclouds', 'full-card-topoftheworld']);
 /** is this item's new art approved? */
-export async function isApproved(id) { const m = await labMarks(); return !!(m[id] && m[id].m === 'approve'); }
+export async function isApproved(id) { if (SHIPPED.includes(id)) return true; const m = await labMarks(); return !!(m[id] && m[id].m === 'approve'); }
 /** the approved ids (a set) — + THE TWO DEV CARDS (THE VAULT 2B: only the owner can ever hold them, and he IS the lab — his own card shows
  *  its art while he marks it; their lab rows still carry his marks) */
 export async function approvedIds() {
@@ -27,5 +29,6 @@ export async function approvedIds() {
   const out = new Set(Object.entries(m).filter(([, v]) => v && v.m === 'approve').map(([k]) => k));
   // (SHELL 2.0 B2: + THE GIFT CARDS — a 1-of-1 is given only once the owner has picked it in THE LAB: its one owner always sees its art)
   for (const id of ONE_OF_ONE_CARDS) { out.add(id); out.add(`full-${id}`); }
+  for (const id of SHIPPED) out.add(id);
   return out;
 }

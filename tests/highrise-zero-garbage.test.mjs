@@ -209,5 +209,5 @@ test('three.js COMES AS ITS READABLE BUILD on every page (the minified build mak
     assert.equal(m[1], 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js', `${p}: the readable build, the one pinned version`);
   }
   assert.ok(n >= 4, `index.html + the three unlisted pages name it (${n})`);
-  assert.doesNotMatch(read('index.html') + read('highrise-play.html') + read('jaywalk-lab.html') + read('highrise-lab.html'), /three\.module\.min\.js/);
+  assert.doesNotMatch(read('index.html') + read('highrise-play.html') + read('jaywalk-lab.html'), /three\.module\.min\.js/);
 });

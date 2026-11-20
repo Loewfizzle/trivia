@@ -48,18 +48,19 @@ test('THE PAGE: at the site root (deployed), noindex nofollow, UNLISTED (nothing
   assert.match(read('scripts/serve.mjs'), /path === '\/highrise-play'/, 'the local server maps /highrise-play like Vercel\'s cleanUrls');
   assert.match(read('tests/integration/kit/page-loads.mjs'), /\['\/highrise-play', "!!document\.querySelector\('#app \.hi-stage'\)"\]/, 'THE PAGES LOAD: a stranger gets the game\'s stage');
   // UNLISTED: no page, no script, no manifest names it
-  for (const f of ['index.html', 'board.html', 'admin.html', 'lab.html', 'daychart.html', 'jaywalk-lab.html', 'highrise-lab.html', '404.html', 'manifest.webmanifest', 'sw.js', 'vercel.json']) assert.doesNotMatch(read(f), /highrise-play/i, `${f} never names it`);
+  for (const f of ['index.html', 'board.html', 'admin.html', 'lab.html', 'daychart.html', 'jaywalk-lab.html', '404.html', 'manifest.webmanifest', 'sw.js', 'vercel.json']) assert.doesNotMatch(read(f), /highrise-play/i, `${f} never names it`);
   for (const f of readdirSync(new URL(`../${HI}`, import.meta.url))) assert.doesNotMatch(code(`${HI}${f}`).replace("['kit', 'highrise-play']", ''), /highrise-play|highrise-lab/, `${f}: no link to a HIGH RISE page in code`);   // (S4A: index.js names the stage's SHEET — css/highrise-play.css — never the page)
   assert.doesNotMatch(read('css/highrise-play.css'), /border-radius: (9999|999|[1-9]\d)px|border-radius: 50%/, 'NO PILLS');
   assert.doesNotMatch(read('css/highrise-play.css'), /url\(|@import|@font-face/, 'its stylesheet loads nothing');
 });
 
-test('HIGH RISE IS HIDDEN (S4A): a hidden cartridge — its files, and nothing a player is offered knows it (the cartridge\'s own pins: tests/highrise-cartridge.test.mjs)', () => {
-  for (const f of ['js/app.js', 'js/games/cartridge.js', 'js/games/preload.js', 'js/screens/title.js', 'js/screens/title-dock.js', 'js/core/game-order.js', 'index.html', 'js/ui/credits.js', 'js/ui/help.js']) {
-    assert.doesNotMatch(read(f), /highrise|HIGH RISE/i, `${f} does not know HIGH RISE`);
+test('HIGH RISE\'s FILES (PLAYABLE since THE GO-LIVE, Nov 20 — the cartridge\'s own pins: tests/highrise-cartridge.test.mjs): the console never names the game in its own code; HOW TO PLAY + the credits do', () => {
+  for (const f of ['js/app.js', 'js/games/cartridge.js', 'js/games/preload.js', 'js/screens/title.js', 'js/screens/title-dock.js', 'js/core/game-order.js']) {
+    assert.doesNotMatch(read(f), /highrise|HIGH RISE/i, `${f} does not know HIGH RISE (the console reads the GAMES rows)`);
   }
+  assert.match(read('js/ui/help.js'), /RULES\.highrise = \{/); assert.match(read('js/ui/credits.js'), /group: 'HIGH RISE', title: 'HIGH RISE — 3D models: the F-22'/, 'the credits group (the F-22\'s CC BY line is required)');
   const dir = readdirSync(new URL(`../${HI}`, import.meta.url)).sort();
-  assert.deepEqual(dir, ['audition.js', 'bakedtext.js', 'bands.js', 'best.js', 'billboard-glyphs.js', 'billboard.js', 'bot.js', 'camera.js', 'director.js', 'endscreen.js', 'engine.js', 'final.js', 'flyers.js', 'flyplan.js', 'graybox.js', 'index.js', 'lab.js', 'lines.js', 'logic.js', 'look.js', 'match.js', 'matchhud.js', 'matchsim.js', 'meta.js', 'night-fx.js', 'night.js', 'play.js', 'poster.js', 'proof.js', 'replay.js', 'rivals.js', 'rules.js', 'sfx.js', 'share.js', 'sounds.js', 'stage.js', 'tower.js', 'trace.js', 'tuning.js', 'view.js'], 'S5: + THE B1 BILLBOARD (billboard.js + its GENERATED glyphs, poster.js — the test page ?poster=1) + THE SHARE IMAGE (share.js — the card, the cartridge only; REVIEW FIX B: shot.js — S5\'s run frame — GONE: the card is THE POSTER) · S4B: + THE MATCH (match.js — its rules · rivals.js — the rivals, pure · matchhud.js — its HUD · matchsim.js — the test page\'s bot rivals) + rules.js (THE RULE-SET TABLE) · S4A\'s files: + the cartridge (meta · index · director · view · final), the proof, the lines, the stage · S4A FIX: + endscreen.js (the end screen\'s body — the page\'s card + the cartridge\'s)');
+  assert.deepEqual(dir, ['audition.js', 'bakedtext.js', 'bands.js', 'best.js', 'billboard-glyphs.js', 'billboard.js', 'bot.js', 'camera.js', 'director.js', 'endscreen.js', 'engine.js', 'final.js', 'flyers.js', 'flyplan.js', 'index.js', 'lines.js', 'logic.js', 'look.js', 'match.js', 'matchhud.js', 'matchsim.js', 'meta.js', 'night-fx.js', 'night.js', 'play.js', 'poster.js', 'proof.js', 'replay.js', 'rivals.js', 'rules.js', 'sfx.js', 'share.js', 'sounds.js', 'stage.js', 'tower.js', 'trace.js', 'tuning.js', 'view.js'], 'S5: + THE B1 BILLBOARD (billboard.js + its GENERATED glyphs, poster.js — the test page ?poster=1) + THE SHARE IMAGE (share.js — the card, the cartridge only; REVIEW FIX B: shot.js — S5\'s run frame — GONE: the card is THE POSTER) · S4B: + THE MATCH (match.js — its rules · rivals.js — the rivals, pure · matchhud.js — its HUD · matchsim.js — the test page\'s bot rivals) + rules.js (THE RULE-SET TABLE) · S4A\'s files: + the cartridge (meta · index · director · view · final), the proof, the lines, the stage · S4A FIX: + endscreen.js (the end screen\'s body — the page\'s card + the cartridge\'s)');
   // the ONE endpoint that knows it: /api/report (the judge behind THE SWITCH) — no new function, no other endpoint
   const fns = readdirSync(new URL('../api/', import.meta.url)).filter(n => n.endsWith('.js'));
   assert.deepEqual(fns.filter(f => /highrise/i.test(read(`api/${f}`))), ['report.js'], 'only /api/report knows HIGH RISE');
@@ -171,11 +172,9 @@ test('THE RUN ON THE PAGE: FAIR TAPS, tick 0 = the START touch, a beat\'s tap ne
   assert.match(read('css/highrise-play.css'), /\.hi-snd \{[^}]*min-height: 44px; min-width: 44px;/, 'the corner button ≥ 44 pt');
 });
 
-test('THE CAMERA: the lab\'s diagonal camera, pinned equal (45° turn, 33° down, a 20° lens, the first slab 60 % of the screen — of a phone-shaped column on a wide one)', () => {
+test('THE CAMERA: the diagonal camera, pinned (45° turn, 33° down, a 20° lens, the first slab 60 % of the screen — of a phone-shaped column on a wide one; the lab\'s graybox it came from left with /highrise-lab at THE GO-LIVE)', () => {
   assert.deepEqual({ ...CAM }, { fov: 20, yaw: 45, pitch: 33, fill: 0.6, aspectMax: 0.62, lift: 0.5 });
-  const lab = read(`${HI}graybox.js`).match(/export const CAM = Object\.freeze\((\{[^}]+\})\);/)[1];
-  assert.deepEqual((0, eval)(`(${lab})`), { ...CAM }, 'camera.js#CAM == graybox.js#CAM');
-  assert.equal(SLAB_H, 0.14); assert.match(read(`${HI}graybox.js`), /const H = 0\.14;/, 'the same slab thickness as the graybox');
+  assert.equal(SLAB_H, 0.14);
   // the first slab (√2 wide seen corner-on) = 60 % of the screen width: half the view's width at the camera's distance × 0.6 = √2 / 2
   for (const a of [375 / 667, 390 / 844, 430 / 932]) { const d = camDist(a), half = d * Math.tan(10 * Math.PI / 180) * a; assert.ok(Math.abs(Math.SQRT2 / 2 / half - 0.6) < 1e-9, `aspect ${a.toFixed(3)}`); }
   assert.equal(camDist(1.6), camDist(0.62), 'a wide screen: the phone column\'s distance (DESKTOP COMES FREE)');

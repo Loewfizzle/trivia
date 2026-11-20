@@ -63,7 +63,7 @@ export const AVATAR_IDS = Object.keys(AVATARS);
 // THE GAMES (lobby order). WINDOWS (the owner, Nov 1): ONLY PRISM DROP + OVERCLOCK are PLAYABLE (+ HOLD'EM since HE10, Nov 11) — `playable: false` HIDES a game
 // everywhere a player could start it (the lobby's picker, HOW TO PLAY, the title's games sheet, host.js#startGame refuses it — a rematch,
 // an invite or a stale link included); its code, data + rules stay, FROZEN (FROZEN_IDS below — docs/cartridge.md "THE FROZEN CONTRACT"). The city's
-// signs come from core/harbor-neon.js#signRoster (the playable games + JAYWALK) — FIXES R2: the old `sign` flag is gone (nothing read it).
+// signs come from core/harbor-neon.js#signRoster (the playable games, minus THE SIGN HOLD) — FIXES R2: the old `sign` flag is gone (nothing read it).
 // A game comes back = playable: true (and off FROZEN_IDS — derived, nothing to edit).
 export const GAMES = [ // lobby order
   { id: 'rum', name: 'RUMRUNNER', theme: 'rum', tag: 'PROHIBITION TRADING', blurb: 'Buy low at the Docks, sell high Uptown. Dodge the feds. Pay Mr. Balboni. Richest at dawn wins.', playable: false },
@@ -82,7 +82,7 @@ export const GAMES = [ // lobby order
   // BOARD's tab since HOLD'EM IN THE CITY (Nov 11); the HE8 owner gate stays in the code for the next game being built
   { id: 'holdem', name: "HOLD'EM", theme: 'holdem', tag: 'TEXAS HOLD’EM · 2–8', blurb: 'Two cards each, five on the table. Bet, bluff or fold. Play chips only.', playable: true, live: '2026-11-08' },   // (CITY H2: `live` = the go-live day — NEW on the games list its first 14 days: core/game-order.js)
   { id: 'jaywalk', name: 'JAYWALK', theme: 'jaywalk', tag: 'HOP THE HARBOR', blurb: 'Hop the lanes. Farthest wins.', playable: true, live: '2026-11-17' },   // (PLAYABLE since THE GO-LIVE PASS, Nov 17 — docs/jaywalk.md)
-  { id: 'highrise', name: 'HIGH RISE', theme: 'highrise', tag: 'STACK THE TOWER', blurb: 'One tap drops each slab. Tallest tower wins.', playable: false, preview: true },   // (BEING BUILT — HIDDEN: THE OWNER'S LIVE TEST only — docs/highrise.md)
+  { id: 'highrise', name: 'HIGH RISE', theme: 'highrise', tag: 'STACK THE TOWER', blurb: 'One tap drops each slab. Tallest tower wins.', playable: true, live: '2026-11-20' },   // (PLAYABLE since THE GO-LIVE, Nov 20; off the signs: harbor-neon.js#SIGN_HOLD)
 ];
 /** FIXES R2 — THE REVIEW B1, option (b) "KEEP COMPATIBLE" (the owner, Nov 15): the FROZEN games — not playable, not being built (`preview`). ONE
  *  list: games/registry.js#loadGame refuses them (never loaded — an emulator-only `&frozen=1` for tests), the whole-tree tests read it for

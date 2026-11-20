@@ -84,9 +84,13 @@ G('neon', async () => {
     // (NEON PASS 6, the owner: the tiny floating icons are gone — 4 named signs + the billboard a fifth game)
     // (DT1: the left roof slot is gone — 3 named signs: the blade + the two roof signs; the billboard a fourth game)
     // (CITY B — the playable games (JAYWALK's own row since its go-live), never a frozen one; NO NAMED SIGN EVER DARK — the blade + both roof signs; the billboard a fourth)
-    const PLAY = ['prism', 'holdem', 'overclock', 'jaywalk'];
+    const PLAY = ['prism', 'holdem', 'overclock', 'jaywalk'];   // (HIGH RISE's GO-LIVE: playable, but on no sign until THE CITY PASS lifts THE SIGN HOLD — core/harbor-neon.js#SIGN_HOLD)
     ok(new Set(games).size === 3 && games.every(g => PLAY.includes(g)) && h.neon.signs.filter(s => s.kind === 'named').length === 3 && !h.neon.signs.some(s => s.kind === 'icon') && h.neon.signs.every(s => s.on) && bb && !games.includes(h.neon.boards[0].game),
       `SIGNS: the playable games named in the skyline tonight (${h.neon.signs.filter(s => s.kind === 'named').map(s => s.game).join(', ')}; stacked roof signs + the blade), no icons, the billboard a fourth (${bb}), every sign lit at night`);
+    // HIGH RISE's GO-LIVE — THE SIGN HOLD: playable, yet on NO sign, board face or blade while held (THE CITY PASS lifts it)
+    { const blade = await ev(N.page, "(() => { const s = window.__district.scene(); return s && s.bladeGame ? s.bladeGame() : null; })()").catch(() => null);
+      ok(!games.includes('highrise') && h.neon.boards.every(b => !/highrise/.test(`${b.game || ''} ${b.show || ''}`)) && !/highrise/.test(String(blade || '')),
+        `THE SIGN HOLD: no HIGH RISE sign anywhere in the city (the named signs ${games.join(', ')} · the board ${h.neon.boards.map(b => b.show || b.game).join(', ')}${blade ? ` · the blade ${blade}` : ''})`); }
     ok(h.neon.outlines.length >= 12 && h.neon.outlines.some(o => o.id === 'needle') && h.neon.led === 2 && h.beacons.length >= 10,
       `NEON OUTLINES: ${h.neon.outlines.length} buildings outlined (the needle, the heroes…), the 2 glass towers' LED facades, ${h.beacons.length} aircraft beacons`);
     const sg = h.neon.signs.find(s => s.game), hit = await ev(N.page, `window.__district.hit(${sg.rect.x + sg.rect.w / 2}, ${sg.rect.y + sg.rect.h / 2})`);

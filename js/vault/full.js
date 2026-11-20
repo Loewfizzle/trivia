@@ -20,7 +20,7 @@ import { createSurface, fxCover } from '../fx/renderer.js';
 import { FX } from '../fx/index.js';
 import { LOOKS, vaultSheet, fxOpts, stepPlate } from './strip.js';
 import { watchFull } from './layout.js';
-import { LAB } from './catalog.js';
+import { LAB, SHIPPED_TIERS } from './catalog.js';
 import { fitName, onFontsLoaded } from '../ui/fit.js';
 import { approvedIds } from './approved.js';
 import { emblemEl, hasArt } from './emblem-art.js';
@@ -36,7 +36,7 @@ import { takeLayer, onCloseAll, bornGuard } from '../ui/layers.js';
 /** the full card's id in THE CARD LAB (its own mark: a strip can be approved before its full card) */
 export const fullId = card => `full-${card}`;
 const nameOf = id => ((LAB.find(x => x.id === id) || {}).name) || ((ITEM[id] || {}).name) || '';
-const tierOf = id => ((LAB.find(x => x.id === id) || {}).tier) || ((ITEM[id] || {}).tier) || 'common';
+const tierOf = id => ((LAB.find(x => x.id === id) || {}).tier) || ((ITEM[id] || {}).tier) || SHIPPED_TIERS[id] || 'common';
 /** the sighting's line under its title (THE VAULT 1C: the ship sails ON the harbor) */
 const spotOf = card => (card === 'card-sg-ghostship' ? 'sighted on the harbor' : 'spotted over the harbor');
 const timeOf = at => { try { return new Date(at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase(); } catch { return ''; } };

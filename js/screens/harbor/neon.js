@@ -11,7 +11,7 @@
 //               light of the evening), each with its sputter-on / stutter-off, its tubes one by one; a rare flicker; a core flutter
 //   moments     hooks for later parts, previewed now with &force=: party (chasers + the beat + colour shifts), flash (a game's
 //               colours sweeping across the skyline: Lobby 2.0's start), scheme (holidays, CITY CONTROL)
-import { outlines, signSpots, assignSigns, billboardPick, signText as spotText, nightKey, roleColour, SCHEMES, depthStrength, HAZE, depthLinks, partyPieces, lineKey, partySlot, neonClash } from '../../core/harbor-neon.js';
+import { outlines, signSpots, signRoster, assignSigns, billboardPick, signText as spotText, nightKey, roleColour, SCHEMES, depthStrength, HAZE, depthLinks, partyPieces, lineKey, partySlot, neonClash } from '../../core/harbor-neon.js';
 import { project } from '../../core/harbor-layout.js';
 import { skyItems } from './skyline.js';
 import { tube, drawLit, drawGlass, caps, sprite, bbox, free, mix, rgba } from './tubes.js';
@@ -47,7 +47,7 @@ export function neonGeo(L) {
 }
 export function createNeon({ games: allGames = [], onContent = () => {} } = {}) {
   // (CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY: the scene hands the sign roster — core/harbor-neon.js#signRoster; a frozen game never hangs)
-  const games = allGames.filter(g => g.playable).map(g => ({ ...g, short: signName(g) }));
+  const games = signRoster(allGames).map(g => ({ ...g, short: signName(g) }));
   let L = null, cam = null, dpr = 1, tier = 2, W = 0;
   let signs = [], boards = [], outs = [], items = [], queue = [], key = '', scheme = 'city', assignKey = '';
   let built = 0, lastOn = false, mbSprites = 0, rev = 0, fresh = null;

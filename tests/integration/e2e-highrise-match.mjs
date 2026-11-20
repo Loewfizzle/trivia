@@ -1,6 +1,6 @@
 // HIGH RISE S4B — THE MATCH end to end, on the emulators + scripts/serve.mjs --emu (NEVER THE LIVE SITE): docs/highrise.md "THE MATCH"
-//   · ONLY THE OWNER STARTS IT: a plain host's start is refused; the host made THE OWNER (the server's yes — testAdmins/{pid}) starts it
-//     for the room; the others join + play
+//   · A PLAIN HOST (THE GO-LIVE, Nov 20 — HIGH RISE is playable): the room's game list offers it (no TEST mark) to the host AND a guest;
+//     a plain host starts it for the room; the others join + play
 //   · 3 · 2 · 1 · GO: the names lined up; every phone writes its own GO; THE FIRST GO picks the seed + tick 0 — the SAME on every phone
 //     and in the server's own derivation
 //   · THE PROOF: each player's own `hr` node — server-stamped chunks; the RIVALS = everyone's nodes through the same engine: THE
@@ -9,7 +9,7 @@
 //     tap on a row of WATCH's ranked list = that player; "WATCHING ALICE · 12 · TAP FOR THE NEXT"
 //   · the last tower's end → the host's step → the podium on every phone: HIGH RISE · MATCH, the winner, everyone as slim cards with
 //     their floor + how their tower ended + their perfects; the results = THE JUDGE's replay — the SERVER's own (highriseMatch) agrees
-//     to the floor; the call's game-night points; THE SWITCH IS OFF → WOULD COUNT for everyone, NOTHING written
+//     to the floor; the call's game-night points; THE SWITCH IS ON → the match COUNTED for every player (no WOULD COUNT line)
 //   · (the full run) ROCK-SOLID: a REFRESH mid-match rejoins from the node · an APP SWITCH re-reads the clock · a SIGNAL DROP (the line
 //     cut 10 s: his tower holds (NO SIGNAL — never out), the queued taps land, the run counts in full) · REMATCH in place · a LATE JOINER WATCHES until
 //     the next REMATCH deals them in · THE HOST's PHONE DIES mid-match: a new host carries the match to its podium
@@ -17,7 +17,7 @@
 process.env.GPU = process.env.GPU || '1';
 const { createHarness } = await import('./kit/harness.mjs');
 const { highriseMatch } = await import('../../api/_lib/highrise.js');
-const { matchStart, firstGo, GO_LEAD_MS, gameStandings } = await import('../../js/games/highrise/logic.js');
+const { matchStart, firstGo, GO_LEAD_MS, gameStandings, floorOf } = await import('../../js/games/highrise/logic.js');
 const { tapsFromChunks } = await import('../../js/games/highrise/proof.js');
 const { judgeRun } = await import('../../js/games/highrise/replay.js');
 const { callBonus } = await import('../../js/core/playlist.js');
@@ -48,12 +48,11 @@ const bot = (page, to = Infinity) => page.evaluate(target => {
     setTimeout(poll, m !== -9999 && m > 14 ? Math.min(30, m - 8) : 4);
   })();
 }, to);
-const snap = async pid => JSON.stringify({ ps: await dbGet(`pstats/${pid}`), pr: await dbGet(`profiles/${pid}`) });
 const PODIUM = "!!document.querySelector('.hi-final .final')";
 
 /** the host starts HIGH RISE and every phone stands on the match's own screen */
 async function start(host, n) {
-  ok(await H.startGame(host, 'highrise', {}), 'THE OWNER (the host) starts HIGH RISE for the room');
+  ok(await H.startGame(host, 'highrise', {}), 'the host (a plain one — no owner set-up) starts HIGH RISE for the room');
   for (let i = 0; i < n; i++) await waitFor(pages[i], s => s.game && s.game.id === 'highrise' && !!window.__hiGame && !!document.querySelector('.hi-stage.hi-game canvas.hi-canvas'), `${NAMES[i]}: the match screen`, 40000);
 }
 /** every phone at GO: the count ran, the run adopted, live */
@@ -63,16 +62,20 @@ let fatal = null;
 try {
   const host = await H.joinAll(N);
   const code = H.code;
-  // ---- 1. ONLY THE OWNER STARTS IT
-  ok(!(await H.startGame(host, 'highrise', {})) && !(await evalIn(host, s => s.game)), 'a plain host can NOT start it (a game being built: nobody but THE OWNER)');
+  // ---- 1. A PLAIN HOST (THE GO-LIVE — HIGH RISE is playable for everyone): the room's game list offers it, no TEST mark, no owner set-up
   const pids = [];
   for (let i = 0; i < N; i++) pids[i] = await pidFor(uids[i]);
-  await dbPut(`testAdmins/${pids[0]}`, true);
-  await host.evaluate(() => sessionStorage.clear());
-  await H.refresh(host);
-  ok(await until(() => host.evaluate("import('/js/config.js').then(c => c.isOwnerTest('highrise'))"), 25000), 'the host is THE OWNER now (the server\'s yes — the radio gate)');
-  await waitFor(host, (s, k) => s.meta && s.meta.hostId === s.uid && Object.keys(s.players || {}).length === k, 'the room is back on the owner\'s phone', 30000, N);
-  const before = await Promise.all(pids.map(snap));
+  ok(pids.every(Boolean), 'every phone has its profile');
+  ok((await all(N, p => p.evaluate(() => import('/js/config.js').then(c => c.isPlayable('highrise') && !c.isOwnerTest('highrise'))))).every(Boolean), 'every phone: HIGH RISE is playable — never a TEST');
+  for (const [p, who] of [[host, 'the host'], [pages[1], 'a guest']]) {
+    await p.waitForSelector('.rdk-games', { timeout: 20000 });
+    await p.evaluate(() => document.querySelector('.rdk-games').click());
+    await p.waitForSelector('.rc-games-sheet .rc-game[data-game="highrise"]', { timeout: 8000 });
+    ok(await p.evaluate(() => !document.querySelector('.rc-games-sheet .rc-game[data-game="highrise"] .rc-game-test') && !/TEST/.test(document.querySelector('.rc-games-sheet .rc-game[data-game="highrise"]').textContent)), `THE ROOM's GAME LIST (${who}): HIGH RISE, no TEST mark`);
+    if (p === host) { await sleep(500); await H.shot(host, 'room-games'); }
+    await p.keyboard.press('Escape');
+    await p.waitForFunction(() => !document.querySelector('.rc-games-sheet.is-in'), { timeout: 8000 }).catch(() => {});
+  }
   // ---- 2. 3 · 2 · 1 · GO — the same seed + clock on every phone
   await start(host, N);
   const counts = await until(async () => { const c = await all(N, async p => (await state(p)).hud); return c.every(h => h && (/^[123]$/.test(h.count) || h.count === 'GET READY' || h.count === 'GO')) ? c : null; }, 8000, 60);
@@ -202,11 +205,12 @@ try {
     ok(night && night.b[uids[1]] === callBonus(2), 'the bonus is on the night record');
   }
   await H.shot(pages[0], 'match-podium-winner'); await H.shot(pages[1], 'match-podium');
-  // THE SWITCH IS OFF: the server judged the match → WOULD COUNT on the end screens; NOTHING written for anyone
-  ok(await until(async () => (await all(N, p => p.evaluate("(document.querySelector('.hi-fin-would') || {}).textContent || ''"))).every(t => /^WOULD (NOT )?COUNT/.test(t)), 25000), `THE SWITCH IS OFF: the server judged the match for every player — ${(await all(N, p => p.evaluate("(document.querySelector('.hi-fin-would') || {}).textContent || ''"))).join(' | ')}`);
-  const after = await Promise.all(pids.map(snap));
-  ok(after.every((x, i) => x === before[i]), 'NOTHING was written: every player\'s pstats + profile are byte for byte what they were');
-
+  // THE SWITCH IS ON (THE GO-LIVE): the server judged the match from every node and COUNTED it for every player — no WOULD COUNT line
+  const res = await until(async () => { const r = await dbGet(`results/${code}_${m}`); return r && r.st === 'done' ? r : null; }, 30000);
+  ok(!!res && pids.every(pid => res.o && res.o[pid]), `the match is COUNTED for all ${N} (${res ? Object.keys(res.o || {}).length : 0} outcomes — a plain host + ${N - 1} guest${N > 2 ? 's' : ''})`);
+  { const bs = await Promise.all(pids.map(pid => dbGet(`pstats/${pid}/b/highrise-solo`)));
+    ok(bs.every((b2, i) => b2 && floorOf(b2.a) === fin.results[uids[i]].f), `… each player's best on TALLEST TOWER = the judge's floor (${bs.map(b2 => b2 && floorOf(b2.a)).join(' / ')}) — a counted match raises YOUR BEST`); }
+  ok(await until(async () => (await all(N, p => p.evaluate("(document.querySelector('.hi-fin-would') || {}).textContent || ''"))).every(t => t === ''), 5000), 'no WOULD COUNT line on any end screen');
   if (!FAST) {
     // ---- 7. REMATCH in place · a LATE JOINER WATCHES · the next REMATCH deals them in · THE HOST's PHONE DIES mid-match
     await host.evaluate(() => document.querySelector('.hi-final .final-rematch').click());
@@ -244,6 +248,5 @@ try {
     const g4 = await dbGet(`rooms/${code}/game`), n4 = await dbGet(`rooms/${code}/hr/${m3}`), s4 = highriseMatch({ code, matchId: m3, uids: uids.slice(0, 4), nodes: n4 });
     ok(g4.matchId === m3 && g4.phase === 'final' && uids.slice(0, 4).every(u => s4.game.results[u].f === g4.results[u].f && s4.game.results[u].w === g4.results[u].w), `the new host's podium = the judge's replay of every node — the dead phone's tower too (ALICE: floor ${g4.results[uids[0]].f}, ${g4.results[uids[0]].w}); the server agrees (${((Date.now() - t0) / 1000).toFixed(0)} s after her phone died)`);
   }
-  await dbPut(`testAdmins/${pids[0]}`, null);
 } catch (e) { fatal = e; }
 await H.finish(fatal);

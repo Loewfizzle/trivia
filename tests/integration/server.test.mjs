@@ -943,7 +943,7 @@ test('JAYWALK H3 — THE SOLO RUN: the best from the SERVER\'s replay (never the
 // (rooms/{CODE}/hr/{m}/{uid}); a game BEING BUILT — only THE OWNER's report is even judged; COUNTING OFF (the switch — the default):
 // the answer is WOULD COUNT and NOTHING is written; COUNTING ON (the emulators' test flip): the floor, XP, the streak, the best, the
 // cards at floor 60 / 200 — JAYWALK's normal counted path.
-test('HIGH RISE S4A — the hidden cartridge: the owner-only gate; COUNTING OFF = judged, WOULD COUNT, nothing written (profiles / boards / cards / streak / results); a forged node refused; COUNTING ON = floor, XP, streak, best, the cards at 60 / 200', async () => {
+test('HIGH RISE S4A → THE GO-LIVE — playable for everyone: a stranger\'s run judged; THE KILL SWITCH OFF (forced on the emulators) = judged, WOULD COUNT, nothing written (profiles / boards / cards / streak / results); a forged node refused; THE SWITCH ON (the code\'s value) = floor, XP, streak, best, the cards at 60 / 200', async () => {
   const { seedOf, floorOf, perfectsOf, towerScore } = await import('../../js/games/highrise/logic.js');
   const { createRun } = await import('../../js/games/highrise/engine.js');
   const { packFrom } = await import('../../js/games/highrise/proof.js');
@@ -951,8 +951,9 @@ test('HIGH RISE S4A — the hidden cartridge: the owner-only gate; COUNTING OFF 
   const { gaussBot, playBot, BOTS } = await import('../../js/games/highrise/bot.js');
   const { SOLO_XP } = await import('../../js/core/ranks.js');
   const { HIGHRISE_COUNTS } = await import('../../api/_lib/highrise.js');
-  assert.equal(HIGHRISE_COUNTS, false, 'THE SWITCH ships OFF');
-  await ref('testReportAll').set(null); await ref('testHighriseCounts').set(null);
+  assert.equal(HIGHRISE_COUNTS, true, 'THE SWITCH ships ON since THE GO-LIVE');
+  // (THE KILL SWITCH's OFF path, still tested: the emulators' flip forces it OFF over the code's ON — api/report.js#highriseCounts)
+  await ref('testReportAll').set(null); await ref('testHighriseCounts').set(false);
   const uid = 'u-hi', other = 'u-hix';
   await ensure(uid, 'STACKER'); await ensure(other, 'OTHER');
   const pid = await val(`uids/${uid}`), opid = await val(`uids/${other}`);
@@ -985,11 +986,10 @@ test('HIGH RISE S4A — the hidden cartridge: the owner-only gate; COUNTING OFF 
   const snap = async () => { const all = (await val('/')) || {}; delete all.rooms; return JSON.stringify(all); };
   const best = async () => { const st = await stats(uid); return st && st.b && st.b['highrise-solo'] ? st.b['highrise-solo'].a : null; };
 
-  // ---- THE OWNER-ONLY GATE: a game being built — a stranger's run is never even judged
+  // ---- THE GO-LIVE: playable for everyone — a STRANGER's run (no owner anywhere) is judged like anyone's
   const A = await seedRun(other, opid, m => runOf(m, BOTS.good, 90));
-  await rejects(report(other, A), 409, 'not_reportable');
-  assert.equal(await val(`results/${code}_${A.matchId}`), null);
-  await ref(`testAdmins/${pid}`).set(true);
+  const ra0 = await report(other, A);
+  assert.deepEqual([ra0.status, ra0.outcome.would.floor], ['would_count', A.live.floor], 'a stranger\'s run: JUDGED (the kill switch OFF here: WOULD COUNT)');
 
   // ---- COUNTING OFF (the default): judged → WOULD COUNT — and NOTHING written
   tick(9000);
@@ -1042,8 +1042,8 @@ test('HIGH RISE S4A — the hidden cartridge: the owner-only gate; COUNTING OFF 
   assert.equal(await snap(pid), before, 'after every OFF report: still nothing written');
   assert.equal(await best(), null);
 
-  // ---- COUNTING ON (a test-only flip — the emulators): JAYWALK's normal counted path
-  await ref('testHighriseCounts').set(true);
+  // ---- THE SWITCH ON (the code's own value since THE GO-LIVE — the flip cleared): JAYWALK's normal counted path
+  await ref('testHighriseCounts').set(null);
   tick(9000);
   const D = await seedRun(uid, pid, m => runOf(m, BOTS.good, 90));
   const rd = await report(uid, D);
@@ -1079,10 +1079,14 @@ test('HIGH RISE S4A — the hidden cartridge: the owner-only gate; COUNTING OFF 
   await ref(`pfr/${pid}/f/${fp}`).set(clock);
   const tb = await profileAction(uid, { action: 'table', b: 'highrise-solo' }, '', clock);
   assert.deepEqual(tb.rows.map(r => [r.n, floorOf(r.v), !!r.me]), [['STACKER', T.live.floor, true], ['LIAM', 57, false]], 'you + your friend, the tallest first');
-  // somebody else's counted run: never yours; a stranger still can not report his own (being built)
+  // somebody else's counted run: never yours
   const rx = await report(other, T);
   assert.deepEqual([rx.status, rx.outcome], ['done', null]);
-  await ref('testHighriseCounts').set(null); await ref(`testAdmins/${pid}`).set(null);
+  // … and the stranger's OWN run counts now (a playable game — no owner)
+  tick(60_000);
+  const A2 = await seedRun(other, opid, m => runOf(m, BOTS.good, 30));
+  assert.equal((await report(other, A2)).status, 'counted', 'a stranger\'s own run: COUNTED (THE GO-LIVE)');
+  await ref('testHighriseCounts').set(null);
   await ref('testReportAll').set(true);
   tick();
 });
@@ -1094,19 +1098,18 @@ test('HIGH RISE S4A — the hidden cartridge: the owner-only gate; COUNTING OFF 
 // HIGH RISE S4B — THE MATCH: every named player's run is REPLAYED from their own `hr` node on THE FIRST GO's seed + clock (nothing the host
 // wrote is read); a game BEING BUILT — a match THE OWNER played in is judged for everyone in it; COUNTING OFF (the switch — the default):
 // WOULD COUNT for each reporter, NOTHING written; COUNTING ON (the emulators' test flip): JAYWALK's normal counted path for all of them.
-test('HIGH RISE S4B — THE MATCH: every run from the SERVER\'s replay on THE FIRST GO\'s seed; the owner\'s guests judged; COUNTING OFF = WOULD COUNT, nothing written; the gates (no owner · unproven · no proof · a seat is not a play); ON = counted for all', async () => {
+test('HIGH RISE S4B → THE GO-LIVE — THE MATCH: every run from the SERVER\'s replay on THE FIRST GO\'s seed; a plain room judged; THE KILL SWITCH OFF = WOULD COUNT, nothing written; the gates (unproven · no proof · a seat is not a play); ON = counted for all', async () => {
   const { seedOf, GO_LEAD_MS, gameStandings, floorOf } = await import('../../js/games/highrise/logic.js');
   const { createRun } = await import('../../js/games/highrise/engine.js');
   const { packFrom } = await import('../../js/games/highrise/proof.js');
   const { judgeRun } = await import('../../js/games/highrise/replay.js');
   const { gaussBot, playBot } = await import('../../js/games/highrise/bot.js');
   const { highriseMatch, HIGHRISE_COUNTS } = await import('../../api/_lib/highrise.js');
-  assert.equal(HIGHRISE_COUNTS, false, 'THE SWITCH ships OFF');
-  await ref('testReportAll').set(null); await ref('testHighriseCounts').set(null);
-  const U = ['u-hm1', 'u-hm2', 'u-hm3'], NAME = ['OWNER', 'GUESTA', 'GUESTB'];
+  assert.equal(HIGHRISE_COUNTS, true, 'THE SWITCH ships ON since THE GO-LIVE');
+  await ref('testReportAll').set(null); await ref('testHighriseCounts').set(false);   // (THE KILL SWITCH forced OFF for the OFF half)
+  const U = ['u-hm1', 'u-hm2', 'u-hm3'], NAME = ['HOSTA', 'GUESTA', 'GUESTB'];
   for (let i = 0; i < 3; i++) await ensure(U[i], NAME[i]);
   const P = await Promise.all(U.map(u => val(`uids/${u}`)));
-  await ref(`testAdmins/${P[0]}`).set(true);
   const code = nextCode();
   let mN = 0;
   /** a finished match as the room holds it: each player's proof node (a bot's taps on THE FIRST GO's seed — a chunk a tap, stamped a beat
@@ -1137,7 +1140,7 @@ test('HIGH RISE S4B — THE MATCH: every run from the SERVER\'s replay on THE FI
   };
   const snap = async () => { const all = (await val('/')) || {}; delete all.rooms; return JSON.stringify(all); };
 
-  // ---- COUNTING OFF: a GUEST reports a match the owner played in → JUDGED from the server's own replay — WOULD COUNT, nothing written
+  // ---- THE KILL SWITCH OFF: a GUEST of a plain room reports → JUDGED from the server's own replay — WOULD COUNT, nothing written
   const before = await snap();
   const A = await seedMatch();
   assert.ok(A.live[U[0]].floor >= 40 && A.live[U[1]].floor >= 24 && A.live[U[2]].floor >= 9 && A.live[U[0]].floor > A.live[U[1]].floor && A.live[U[1]].floor > A.live[U[2]].floor, `the fixture: three towers (${U.map(u => A.live[u].floor).join(' · ')} floors), each ended by THE FUSE`);
@@ -1146,7 +1149,7 @@ test('HIGH RISE S4B — THE MATCH: every run from the SERVER\'s replay on THE FI
   assert.deepEqual([ra.outcome.would.floor, ra.outcome.would.perfects, ra.outcome.would.cause], [A.live[U[1]].floor, A.live[U[1]].perfects, A.live[U[1]].cause], `WOULD COUNT = the SERVER's replay of the reporter's own node (floor ${ra.outcome.would.floor}) — never the host's forged 999`);
   assert.ok(ra.outcome.would.xp > 0 && ra.outcome.none === true, 'what the counted path would pay');
   const ro = await report(U[0], A);
-  assert.deepEqual([ro.status, ro.outcome.would.floor], ['would_count', A.live[U[0]].floor], 'the owner\'s own report: his tower');
+  assert.deepEqual([ro.status, ro.outcome.would.floor], ['would_count', A.live[U[0]].floor], 'the host\'s own report: his tower');
   assert.ok(ro.outcome.would.xp >= ra.outcome.would.xp, `the winner's XP is at least the runner-up's (${ro.outcome.would.xp} vs ${ra.outcome.would.xp})`);
   assert.equal(await snap(), before, 'NOTHING written: every profile, pstats, board, results/ record — untouched');
   assert.equal(await val(`results/${code}_${A.matchId}`), null);
@@ -1160,10 +1163,10 @@ test('HIGH RISE S4B — THE MATCH: every run from the SERVER\'s replay on THE FI
   const B = await seedMatch({ moved: true });
   const rb = await report(U[2], B);
   assert.deepEqual([rb.status, rb.outcome.would.floor], ['would_count', B.live[U[2]].floor], 'the room is already on the next match: judged from the proof nodes');
-  // ---- THE GATES: a match the owner did NOT play · an UNPROVEN match · no proof at all · a seat with no node
+  // ---- THE GATES: an UNPROVEN match · no proof at all · a seat with no node (THE GO-LIVE: any room's match is judged — two guests alone too)
   tick(60_000);
   const C = await seedMatch({ players: [U[1], U[2]], floors: [20, 9], sig: [20, 30] });
-  await rejects(report(U[1], C), 409, 'not_reportable');
+  assert.equal((await report(U[1], C)).status, 'would_count', 'a match of two players, nobody special: JUDGED (playable for everyone)');
   tick(60_000);
   const D = await seedMatch({ unproven: true });
   await rejects(report(U[0], D), 409, 'unverifiable');
@@ -1177,19 +1180,19 @@ test('HIGH RISE S4B — THE MATCH: every run from the SERVER\'s replay on THE FI
   assert.deepEqual([(await report(U[1], F)).status], ['would_count'], 'A SEAT IS NOT A PLAY: no node, no report — the two who played are still judged');
   assert.equal(await snap(), before, 'after every OFF report: still nothing written');
 
-  // ---- COUNTING ON (a test-only flip — the emulators): JAYWALK's normal counted path, for everyone in the owner's match
-  await ref('testHighriseCounts').set(true);
+  // ---- THE SWITCH ON (the code's own value — the flip cleared): JAYWALK's normal counted path, for everyone in the match
+  await ref('testHighriseCounts').set(null);
   tick(60_000);
   const G2 = await seedMatch();
   const rg = await report(U[1], G2);
-  assert.equal(rg.status, 'counted', 'ON: a guest in the owner\'s room reports — counted');
+  assert.equal(rg.status, 'counted', 'ON: a guest reports — counted');
   const done = await val(`results/${code}_${G2.matchId}`);
   assert.deepEqual(Object.keys(done.o || {}).sort(), [...P].sort(), 'ALL THREE are credited');
   assert.equal(!!done.o[P[0]].win, true, 'the tallest tower wins'); assert.equal(!!rg.outcome.win, false, '… never the host\'s forged 999 for the reporter');
   assert.ok(rg.outcome.xp.gain > 0 && rg.outcome.streak >= 1, 'XP + the streak day (JAYWALK\'s rules)');
   assert.deepEqual((rg.outcome.pbs || []).filter(x => x.b === 'highrise-solo').map(x => floorOf(x.v)), [G2.live[U[1]].floor], 'a counted MATCH run raises YOUR BEST (the same board)');
-  assert.equal((await report(U[0], G2, clock + 3000)).status, 'done', 'credited once (the owner\'s own report finds it done)');
-  await ref('testHighriseCounts').set(null); await ref(`testAdmins/${P[0]}`).set(null);
+  assert.equal((await report(U[0], G2, clock + 3000)).status, 'done', 'credited once (the host\'s own report finds it done)');
+  await ref('testHighriseCounts').set(null);
   await ref('testReportAll').set(true);
   tick();
 });
@@ -1801,7 +1804,7 @@ test('CONN: GET /api/admin?live=1 — city2/live for any visitor, edge-cached, o
   { const r = await call('/api/admin?live=1');
     assert.equal(r.code, 200); assert.equal(r.body.live, null); assert.ok(Math.abs(r.body.at - Date.now()) < 5000, 'the server time it was read');
     // (CITY H2 — THE GAMES LIST ORDER: the playable games' ORDER only — every playable id once, no counts; worked once a streak day)
-    assert.deepEqual([...r.body.order].sort(), ['holdem', 'jaywalk', 'overclock', 'prism'], `the order (${JSON.stringify(r.body.order)})`);
+    assert.deepEqual([...r.body.order].sort(), ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism'], `the order (THE GO-LIVE: + HIGH RISE) (${JSON.stringify(r.body.order)})`);
     const stored = await val('progress/gameOrder'); assert.deepEqual(stored.order, r.body.order); assert.match(stored.day, /^d\d{8}$/);
     assert.equal(r.h['cache-control'], LIVE_CACHE); assert.match(LIVE_CACHE, /s-maxage=\d+/); assert.match(LIVE_CACHE, /public/); }
   const now = Date.now();

@@ -50,11 +50,13 @@ export const GAME_LIGHT = {
   pulse: ['#a374ff', '#00f0ff'], bluff: ['#efe6d2', '#d7262e'], stakes: ['#3fd49a', '#f2c869'], rum: ['#f0c75e', '#e0465f'],
   holdem: ['#f2c14e', '#39d98a'],   // (HOLD'EM IN THE CITY: its casino gold + the felt)
   jaywalk: ['#ff4fc4', '#35e3ff'],   // (THE GO-LIVE PASS: its signs' pink + THE SIGNAL's cyan)
+  highrise: ['#ff4fd8', '#35e3ff'],   // (HIGH RISE — THE GO-LIVE, Nov 20: the sign's HIGH pink + RISE cyan)
 };
 const gameName = id => (GAMES.find(g => g.id === id) || DAILIES.find(g => g.id === id) || { name: String(id).toUpperCase() }).name;
 /** THE TABS (the owner, Nov 9): the overall XP board, the dailies' points, the playable games (HOLD'EM IN THE CITY, Nov 11: + HOLD'EM —
- *  FIVE tabs at 390 without a sideways scroll: PRISM DROP's tab reads PRISM; THE GO-LIVE PASS, Nov 17: + JAYWALK — SIX) */
-export const TABS = Object.freeze(['xp', 'dailies', 'overclock', 'prism', 'holdem', 'jaywalk']);
+ *  FIVE tabs at 390 without a sideways scroll: PRISM DROP's tab reads PRISM; THE GO-LIVE PASS, Nov 17: + JAYWALK — SIX; HIGH RISE's GO-LIVE,
+ *  Nov 20 (the owner: its own tab): + HIGH RISE — SEVEN) */
+export const TABS = Object.freeze(['xp', 'dailies', 'overclock', 'prism', 'holdem', 'jaywalk', 'highrise']);
 const TAB_NAMES = Object.freeze({ xp: 'XP', dailies: 'DAILIES', prism: 'PRISM' });
 const tabName = id => TAB_NAMES[id] || gameName(id);
 /** a deep link's / the title preview's game → its tab (a game without a tab → XP) */

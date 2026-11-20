@@ -1249,3 +1249,19 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   the play zone) · THE PRE-WARM `highrise-prewarm.mjs` (35) · WHAT REPAINTS IN PLAY `highrise-paint.mjs` (13 — a Chromium trace) · the
   end screen's shots `highrise-play.mjs … --end` (52) + `HI_UNTIL=table node e2e-highrise.mjs …` (YOUR TABLE's fixtures). `serve.mjs`
   is enough for the four page checks; the E2Es need the emulators.
+
+## HIGH RISE — THE GO-LIVE (Nov 20 2026 — docs/games/passes/highrise-golive.md)
+- **/highrise-lab is DELETED**: `highrise-lab.test.mjs` + `tests/integration/highrise-lab.mjs` went with it (THE PAGES LOAD no longer
+  opens it); the one game check it held — THE VIEW'S TOWER == THE ENGINE'S, however the events are batched — moved to
+  `tests/highrise-tower.test.mjs`.
+- `tests/highrise-golive.test.mjs` (8): HOW TO PLAY's kid standard, THE SIGN HOLD, NEW on top, THE BOARD's seventh tab, the two cards out
+  of THE LAB, the credits group, the lab page gone, the share card's type.
+- **THE SWITCH's emulator flip is TWO-WAY**: `testHighriseCounts` = true OR false, over the code's ON (`api/report.js#highriseCounts`).
+  `server.test.mjs` forces it OFF for the kill switch's WOULD COUNT half, then clears it (the code's ON) for the counted half.
+- `e2e-highrise.mjs` = A STRANGER's run (no owner set-up, no flip): the shelf's five rows, HIGH RISE on top with NEW (its first 14 days),
+  the run COUNTED, YOUR BEST from the server, SHARE = the LINK (one upload, its page's preview 540 × 675). `e2e-highrise-match.mjs` = a
+  PLAIN host; the room's list shows HIGH RISE with no TEST mark to the host + a guest; the match COUNTED for everyone.
+- `highrise-play.mjs --end` measures EVERY line now (the header's three words, the cause, the number + the stat lines) — the day end
+  screen's still is HALF the width. `highrise-share.mjs`: "10 FLOORS" on one row + the band in pink, both read at 300 px.
+- The harbor groups: `room` (PICK A GAME = 5), `tapfit` (THE BOARD's SEVEN tabs on one row), `cartridge` (the metas
+  `highrise,holdem,jaywalk,overclock,prism`; the plug = 8), `neon` (THE SIGN HOLD: no HIGH RISE sign anywhere in the city).

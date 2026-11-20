@@ -35,26 +35,25 @@ function nodeOf(taps, { go = GO, lag = 300, per = 1 } = {}) {
 /** a bot's whole SOLO run on the seed GO picks (σ ms — bot.js#BOTS) → its tap log */
 const botTaps = (sigma, seed = seedOf(CODE, M, GO)) => playBot(createRun({ seed, mode: 'solo' }), gaussBot({ sigmaMs: sigma, seed: `c${sigma}` }), { maxFloor: 320 });
 
-test('THE HIDDEN CARTRIDGE: a GAMES row BEING BUILT — never playable, never frozen; a TEST on THE OWNER\'s phone only (config.js#isOwnerTest — the server\'s yes); nobody else\'s lists change', () => {
+test('PLAYABLE (THE GO-LIVE, Nov 20): its GAMES row playable: true, live 2026-11-20, no preview — offered + startable on EVERY phone (never a TEST); its meta at boot; HOW TO PLAY, its tile, THE BOARD tab; held OFF the city signs (THE SIGN HOLD)', () => {
   const g = GAMES.find(x => x.id === 'highrise');
-  assert.ok(g && g.playable === false && g.preview === true && g.name === 'HIGH RISE' && g.theme === 'highrise' && g.tag && g.blurb);
-  assert.ok(!FROZEN_IDS.includes('highrise'), 'being built — not frozen');
+  assert.ok(g && g.playable === true && g.preview === undefined && g.live === '2026-11-20' && g.name === 'HIGH RISE' && g.theme === 'highrise' && g.tag && g.blurb);
+  assert.ok(!FROZEN_IDS.includes('highrise'), 'a playable game — never frozen');
   setOwnerPhone(false);
-  assert.equal(isPlayable('highrise'), false, 'a stranger can not start it'); assert.equal(isOwnerTest('highrise'), false);
+  assert.equal(isPlayable('highrise'), true, 'THE ONE SWITCH is on: a stranger starts it'); assert.equal(isOwnerTest('highrise'), false, 'never a TEST');
   setOwnerPhone(true);
-  try { assert.equal(isPlayable('highrise'), true, 'THE OWNER\'s phone may'); assert.equal(isOwnerTest('highrise'), true, '… as a TEST'); } finally { setOwnerPhone(false); }
-  // hidden from every list / sign / board: each reads `playable` (or its own explicit list)
-  assert.match(read('js/core/harbor-neon.js'), /signRoster/); assert.doesNotMatch(read('js/core/harbor-neon.js'), /highrise/i, 'no city sign');
-  assert.doesNotMatch(read('js/board/view.js'), /highrise/i, 'no tab on THE BOARD');
-  for (const f of ['js/ui/help.js', 'js/ui/game-art.js', 'js/ui/credits.js', 'js/core/game-order.js', 'js/screens/title-dock.js']) assert.doesNotMatch(read(f), /highrise/i, `${f} does not know it`);
-  assert.match(read('js/screens/title-taps.js'), /const base = GAMES\.filter\(g => g\.playable \|\| isOwnerTest\(g\.id\)\);/, 'the PLAY shelf: the playable games + the owner\'s test');
-  assert.match(read('js/screens/room-city.js'), /GAMES\.filter\(g => g\.playable \|\| \(asHost && isOwnerTest\(g\.id\)\)\)/, 'the room\'s list: the same, the host\'s only');
-  assert.match(read('js/host.js'), /if \(!isPlayable\(gameId\)\) \{ toast\('COMING SOON', 'info'\); return false; \}/, 'a start of a hidden game is refused on every other phone');
-  // no meta at boot (a hidden game adds nothing to the boot graph); loaded by id only
-  const reg = read('js/games/registry.js');
-  assert.match(reg, /highrise: \(\) => import\('\.\/highrise\/index\.js'\),/); assert.doesNotMatch(reg, /import \* as \w+ from '\.\/highrise\/meta\.js'/, 'no thin meta at boot until its go-live');
-  // the server: counted for nobody but the owner (a game being built) — and, until go-live, for NOBODY (THE SWITCH)
-  assert.match(read('api/report.js'), /if \(uid && GAMES\.some\(g => g\.id === id && g\.preview && !g\.playable\)\) \{/, 'reportableGame: a game being built = the owner alone');
+  try { assert.equal(isOwnerTest('highrise'), false, 'not even on the owner\'s phone — no "· TEST" anywhere'); } finally { setOwnerPhone(false); }
+  // the surfaces every playable game has (registration.test.mjs checks the full list)
+  assert.match(read('js/games/registry.js'), /import \* as highriseMeta from '\.\/highrise\/meta\.js';/, 'its thin meta at boot');
+  assert.match(read('js/ui/help.js'), /RULES\.highrise = \{/); assert.match(read('js/ui/help.js'), /highrise: 'HR'/, 'HOW TO PLAY + its tab');
+  assert.match(read('js/ui/game-art.js'), /highrise: \(\) => HIGHRISE/, 'its tile (THE TOWER)');
+  assert.match(read('js/board/view.js'), /'jaywalk', 'highrise'\]\);/, 'its tab on THE BOARD');
+  // THE SIGN HOLD (until THE CITY PASS lifts it): playable — and on no sign
+  assert.match(read('js/core/harbor-neon.js'), /export const SIGN_HOLD = Object\.freeze\(\['highrise'\]\);/);
+  assert.match(read('js/core/harbor-neon.js'), /!SIGN_HOLD\.includes\(g\.id\)/, 'the roster leaves it out');
+  assert.match(read('js/screens/harbor/neon.js'), /const games = signRoster\(allGames\)/, 'the neon (the signs + the billboard) reads the same roster');
+  // the server: counted for everyone (the owner-only branch never matches a playable row)
+  assert.match(read('api/report.js'), /if \(uid && GAMES\.some\(g => g\.id === id && g\.preview && !g\.playable\)\) \{/, 'reportableGame: the being-built branch is for a preview row only');
 });
 
 test('THE CARTRIDGE (meta + director — PURE): SOLO, both looks, no options; `play` from the start; the run ends on the player\'s `e`; the rows are THE JUDGE\'s; PLAY AGAIN = a match of its own; a room of two can not start it yet (S4B)', async () => {
@@ -197,10 +196,10 @@ test('THE BOARD highrise-solo: a tower as ONE sort number — the FLOOR, then TH
   assert.equal(floorOf(null), 0); assert.equal(floorOf('x'), 0); assert.equal(floorOf(57), 57); assert.equal(perfectsOf(57), 0);
 });
 
-test('THE SWITCH (COUNTING OFF until go-live): ONE flag, OFF; /api/report returns WOULD COUNT before any claim / credit; the dry run reads only; ON = the pure step awards floor, XP, the streak, the best, the card', () => {
-  assert.equal(HIGHRISE_COUNTS, false, 'OFF — the go-live pass flips this ONE line');
+test('THE SWITCH — ON since THE GO-LIVE (Nov 20); OFF stays the one-line KILL SWITCH: /api/report would return WOULD COUNT before any claim / credit; the dry run reads only; ON = the pure step awards floor, XP, the streak, the best, the card', () => {
+  assert.equal(HIGHRISE_COUNTS, true, 'ON — THE GO-LIVE flipped this ONE line (false again = judged, never awarded)');
   const rep = code('api/report.js'), stats = code('api/_lib/stats.js');
-  assert.match(rep, /export const highriseCounts = async \(\) => HIGHRISE_COUNTS \|\| \(emulated\(\) && !!\(await val\('testHighriseCounts'\)\)\);/, 'the test flip is honoured on the emulators only');
+  assert.ok(rep.includes("export const highriseCounts = async () => { if (emulated()) { const t = await val('testHighriseCounts'); if (t === true || t === false) return t; } return HIGHRISE_COUNTS; };"), 'the test flip (either way) is honoured on the emulators only — the code\'s value everywhere else');
   // the switch sits AFTER every verification and BEFORE credit(): nothing is claimed, nothing written
   const sw = rep.indexOf("if (hrOff && ex.gid === 'highrise') {"), cr = rep.indexOf('return credit({ key, uid, myPid, ex, pids, now, room: { code, meta, win }, at, src });');
   assert.ok(sw > 0 && cr > sw && rep.indexOf('dedupePids(ex.rows, pids);') < sw, 'judged first, then the switch, then (only when ON) credit()');
@@ -230,14 +229,19 @@ test('THE SWITCH (COUNTING OFF until go-live): ONE flag, OFF; /api/report return
   assert.equal(matchStep(null, { key: 'k', gid: 'highrise', row: none.rows.u1, n: 1, now: GO, at: GO, gap: 0 }).skip, 'empty');
 });
 
-test('THE CARDS: ABOVE THE CLOUDS (floor 60) + TOP OF THE WORLD (floor 200) in the catalog — unlocked only by the server\'s feat flags; in THE LAB; hidden until go-live (nothing is awarded while the switch is OFF)', () => {
+test('THE CARDS: ABOVE THE CLOUDS (floor 60) + TOP OF THE WORLD (floor 200) in the catalog — unlocked only by the server\'s feat flags; OUT of THE LAB at the go-live (the owner: their lab marks removed — they ship as they are)', () => {
   assert.ok(ITEM['card-abovetheclouds'] && ITEM['card-abovetheclouds'].tier === 'rare' && ITEM['card-topoftheworld'].tier === 'legendary');
   const a = ACH['above-the-clouds'], b = ACH['top-of-the-world'];
   assert.ok(a.item === 'card-abovetheclouds' && b.item === 'card-topoftheworld' && a.game === 'highrise' && b.game === 'highrise');
   assert.equal(a.check({}, { gf: { 'highrise-clouds': 1 } }), true); assert.equal(a.check({}, { gf: {} }), false); assert.equal(a.check({ b: { 'highrise-solo': { a: towerScore(300) } } }, {}), false, 'never from a number — the flag only');
   assert.equal(b.check({}, { gf: { 'highrise-top': 1 } }), true); assert.equal(b.check({}, { gf: { 'highrise-clouds': 1 } }), false);
-  const lab = read('js/vault/catalog.js');
-  for (const id of ['card-abovetheclouds', 'card-topoftheworld', 'full-card-abovetheclouds', 'full-card-topoftheworld']) { assert.ok(lab.includes(`{ id: '${id}',`), `${id} in THE LAB`); assert.ok(read('api/_lib/lab-text.js').includes(`"${id}": { "name":`), `${id}: its name + text are the server's`); }
+  const lab = read('js/vault/catalog.js'), appr = read('js/vault/approved.js');
+  for (const id of ['card-abovetheclouds', 'card-topoftheworld', 'full-card-abovetheclouds', 'full-card-topoftheworld']) {
+    assert.ok(!lab.includes(`{ id: '${id}',`), `${id}: out of THE LAB`); assert.ok(!read('api/_lib/lab-text.js').includes(`"${id}"`), `${id}: no lab text`);
+    assert.ok(appr.includes(`'${id}'`), `${id}: its art ships (approved.js#SHIPPED — no mark needed)`);
+  }
+  assert.match(appr, /for \(const id of SHIPPED\) out\.add\(id\);/); assert.match(appr, /if \(SHIPPED\.includes\(id\)\) return true;/);
+  assert.match(lab, /export const SHIPPED_TIERS = Object\.freeze\(\{ 'card-abovetheclouds': 'rare', 'card-topoftheworld': 'legendary' \}\);/, 'their tiers without a lab row');
 });
 
 test('THE NEXT FRIEND (lines.js — PURE): the LOWEST friend best above you, one at a time; the tag\'s words; the landing over their floor crosses it; the table\'s values are towers (one sort number) or plain floors', () => {

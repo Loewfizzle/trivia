@@ -1,13 +1,14 @@
-// HIGH RISE S4A — THE HIDDEN CARTRIDGE, end to end on the LOCAL EMULATORS (NEVER THE LIVE SITE): docs/highrise.md "THE CARTRIDGE" · "THE PROOF" · "THE SWITCH"
-//   1. A STRANGER never sees it: no row on the PLAY shelf, PLAY NOW refuses it (COMING SOON)
-//   2. THE OWNER'S LIVE TEST (the server's yes — on the emulators testAdmins/{pid}): PLAY → HIGH RISE · TEST → its card → PLAY NOW → the game
+// HIGH RISE — PLAYABLE + COUNTING since THE GO-LIVE (Nov 20), end to end on the LOCAL EMULATORS (NEVER THE LIVE SITE): docs/highrise.md
+// "THE CARTRIDGE" · "THE PROOF" · "THE SWITCH" (S4A's hidden-cartridge steps 1 + 2 + 4 rewritten to the playable, counting truth)
+//   1. A STRANGER (no owner set-up): the PLAY shelf lists HIGH RISE — five rows, no · TEST, on TOP with NEW its first 14 days
+//   2. its row → THE GAME CARD → PLAY NOW → the game
 //   3. START → GO (the SERVER's time, read back) → the seed = hash(code + matchId + GO); REAL TAPS drop slabs; the proof node fills with
 //      server-stamped chunks; the run HOLDS THE AUDIO CONTEXT AWAKE (music off); THE FUSE ends it → `e` → the console's podium
-//   4. THE SWITCH IS OFF: /api/report JUDGES the run — WOULD COUNT matches the phone's own result — and writes NOTHING (pstats, the
-//      profile, the boards, results/ untouched)
+//   4. THE SWITCH IS ON: /api/report JUDGES the run from its proof node and COUNTS it (results/ done, the best on highrise-solo = the
+//      judge's floor); the end screen says YOUR BEST from the server's record, no WOULD COUNT line; SHARE = the LINK (one upload)
 //   5. PLAY AGAIN = the console's INSTANT AGAIN (the next run starts with no tap, the scene kept warm) · THE NEXT FRIEND's pink tag + tape
-//      (a test fixture: none while counting is OFF) · a FORGED node is refused
-//   6. COUNTING ON (a test-only flip: testHighriseCounts): a real run past floor 60 → the floor, XP, the streak, the best (the board
+//      (a test fixture) · a FORGED node is refused — NOT COUNTED, no best of it
+//   6. A LONG COUNTED RUN: a real run past floor 60 → the floor, XP, the streak, the best (the board
 //      highrise-solo), ABOVE THE CLOUDS — and THE HITCH RUN inside the cartridge (no frame over 33 ms after the first second)
 //   node tests/integration/e2e-highrise.mjs "<chromium>" [outDir] [--fast]     (`--fast` skips step 6's long run)
 import puppeteer from './kit/puppeteer.mjs';
@@ -17,6 +18,8 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { verifyNode } from '../../api/_lib/highrise.js';
 import { tapsFromChunks, chunkTimes, packFrom } from '../../js/games/highrise/proof.js';
+import { isNew, dayKeyOf } from '../../js/core/game-order.js';
+import { streakDay } from '../../js/core/streak.js';
 import { seedOf, floorOf, perfectsOf, towerScore } from '../../js/games/highrise/logic.js';
 import { createRun, stepTo, tap as engineTap } from '../../js/games/highrise/engine.js';
 
@@ -76,6 +79,34 @@ const botTo = (P, to) => P.p.evaluate(target => new Promise(res => {
     setTimeout(poll, m != null && m > 14 ? Math.min(30, m - 8) : 1);
   })();
 }), to);
+/** THE GO-LIVE — SHARE with counting ON (JAYWALK's machinery: e2e-jaywalk.mjs#shareLink): the share sheet stubbed → what was shared + its
+ *  link's page + its picture (a tap whose activation the upload SPENT → SHARE reads lit; one more tap shares the link in its own gesture) */
+async function shareLink(page, sel) {
+  await page.evaluate(() => { window.__shared = []; navigator.share = async d => { window.__shared.push(d); }; navigator.canShare = () => true; });
+  await page.evaluate(q => document.querySelector(q).click(), sel);
+  let out = null, again = false;
+  for (let i = 0; i < 120 && !(out && out.length); i++) {
+    out = await page.evaluate(() => window.__shared);
+    if (!(out && out.length)) {
+      if (!again && await page.evaluate(q => { const b2 = document.querySelector(q); return !!b2 && b2.classList.contains('is-ready') && !b2.classList.contains('is-busy'); }, sel)) { again = true; await page.evaluate(q => document.querySelector(q).click(), sel); }
+      await sleep(150);
+    }
+  }
+  const d = (out && out[0]) || {}, url = d.url || '';
+  const html = url ? await fetch(url, { redirect: 'manual' }).then(r => r.text()).catch(() => '') : '';
+  const meta = k => (new RegExp(`<meta property="${k}" content="([^"]*)"`).exec(html) || [])[1] || '';
+  const img = meta('og:image').replace(/&amp;/g, '&');
+  const png = img ? Buffer.from(await fetch(img).then(r => r.arrayBuffer())) : Buffer.alloc(0);
+  return { again, keys: Object.keys(d).sort(), url, files: (d.files || []).length, img, png: png.length > 24 && png.toString('latin1', 1, 4) === 'PNG' ? { w: png.readUInt32BE(16), h: png.readUInt32BE(20), bytes: png.length } : null };
+}
+/** (the emulator stays clean for the other suites: this phone's run cards removed) */
+async function dropRunCards(pid) {
+  await sleep(2500);
+  const all = (await dbGet('shr')) || {};
+  for (const [code, c] of Object.entries(all)) if (c && c.p === pid && c.k === 'run') { await dbPut(`shr/${code}`, null); if (c.d) await dbPut(`shrx/${c.d}/${code}`, null); }
+  await dbPut(`shrp/${pid}:highrise`, null);
+}
+const counted = async (code, m, ms = 25000) => { const end = Date.now() + ms; while (Date.now() < end) { const r = await dbGet(`results/${code}_${m}`); if (r && r.st === 'done') return r; await sleep(200); } return null; };
 const toFinal = (P, ms = 30000) => P.waitFor(`${S}.game && ${S}.game.phase === 'final' && !!document.querySelector('.hi-final .hi-fin .hi-ec-cause')`, ms);
 const audio = P => P.ev("import('/js/audio/engine.js').then(E => E.audioHealth())");
 const snap = async pid => JSON.stringify([await dbGet(`pstats/${pid}`), await dbGet(`profiles/${pid}`), await dbGet('lb/highrise-solo'), await dbGet(`ppriv/${pid}`)]);
@@ -89,32 +120,24 @@ const pastMoment = async P => {
 };
 
 try {
-  await dbPut('testHighriseCounts', null);
-  // ---- 1. nobody but the owner ever sees it
+  // ---- 1. A STRANGER (THE GO-LIVE — HIGH RISE is playable for everyone): the PLAY shelf lists it, no · TEST, no owner set-up
   const P = await phone(`hi${Date.now() % 100000}`);
   const { uid, pid } = await pidOf(P);
   ok(!!pid, 'the phone has its profile');
-  ok(await P.ev("import('/js/config.js').then(c => !c.isPlayable('highrise') && !c.isOwnerTest('highrise') && c.GAMES.some(g => g.id === 'highrise' && g.preview && !g.playable))"), 'a stranger: HIGH RISE is a game BEING BUILT — not playable, never a TEST');
+  ok(await P.ev("import('/js/config.js').then(c => c.isPlayable('highrise') && !c.isOwnerTest('highrise') && c.GAMES.some(g => g.id === 'highrise' && g.playable && !g.preview))"), 'a stranger: HIGH RISE is PLAYABLE — never a TEST');
   await P.tap('.nd-tab-play');
-  ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row')", 6000), 'a stranger: the dock\'s PLAY opens THE GAMES SHELF');
-  ok(await P.ev("!document.querySelector('.nd-shelf-row[data-game=\"highrise\"]') && document.querySelectorAll('.nd-shelf-row').length === 4 && !/HIGH RISE/i.test(document.querySelector('.nd-shelf-sheet').textContent)"), '… the four playable games — NO HIGH RISE anywhere on it');
-  ok(await P.ev("import('/js/host.js').then(m => m.playSolo('highrise'))") === false && !(await P.ev(`${S}.code`)), '… and PLAY NOW refuses it (COMING SOON): nobody else can start it');
-  ok(await P.ev("!/HIGH RISE|highrise/i.test(document.body.innerText)"), '… nothing on the city\'s screen names it');
-
-  // ---- 2. THE OWNER'S LIVE TEST: the server's own yes → HIGH RISE · TEST on the shelf → its card → PLAY NOW
-  await dbPut(`testAdmins/${pid}`, true);
-  await P.ev('sessionStorage.clear()');   // (the gate remembers a NO for the tab: this tab was a stranger a moment ago)
-  await P.open();
-  ok(await P.waitFor("import('/js/config.js').then(c => c.isOwnerTest('highrise'))", 20000), 'THE OWNER\'s phone: the server\'s yes arrives (the radio gate) → HIGH RISE is his to test');
-  await P.tap('.nd-tab-play');
-  ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"highrise\"]')", 6000), 'PLAY → the shelf lists HIGH RISE');
-  ok(/HIGH RISE · TEST/.test(await P.ev("document.querySelector('.nd-shelf-row[data-game=\"highrise\"]').textContent")), '… marked · TEST');
-  await P.shot('owner-shelf.png');
-  await sleep(450);   // (a tap in the shelf sheet's first moment is dropped — its opening guard; with no outDir there is no shot to wait on)
+  ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"highrise\"]')", 6000), 'a stranger: the dock\'s PLAY → THE GAMES SHELF lists HIGH RISE');
+  const shelf = await P.ev("({ rows: [...document.querySelectorAll('.nd-shelf-sheet .nd-shelf-row')].map(r => r.dataset.game), hi: document.querySelector('.nd-shelf-row[data-game=\"highrise\"]').textContent, isNew: !!document.querySelector('.nd-shelf-row[data-game=\"highrise\"] .gm-new') })");
+  ok(shelf.rows.length === 5 && !/TEST/.test(shelf.hi), `… five playable games (${shelf.rows.join(' · ')}) — HIGH RISE with no · TEST ("${shelf.hi.replace(/\s+/g, ' ').trim()}")`);
+  const freshNow = isNew('2026-11-20', dayKeyOf(streakDay(Date.now())));
+  if (freshNow) ok(shelf.rows[0] === 'highrise' && shelf.isNew, `… on TOP with NEW (its first 14 days from its go-live, Nov 20): ${shelf.rows[0]}${shelf.isNew ? ' · NEW' : ''}`);
+  else ok(!shelf.isNew, '… past its first 14 days: no NEW (the popularity order)');
+  await P.shot('stranger-shelf.png');
+  await sleep(450);   // (a tap in the shelf sheet's first moment is dropped — its opening guard)
   await P.tap('.nd-shelf-row[data-game="highrise"]');
   ok(await P.waitFor("!!document.querySelector('.nd-card-sheet.is-in .nd-card[data-game=\"highrise\"] .nd-card-solo')", 8000), 'its row → THE GAME CARD with PLAY NOW');
-  await P.shot('owner-card.png');
-  await sleep(450);   // (a tap in the card sheet's first moment is dropped — its opening guard; with no outDir there is no shot to wait on)
+  await P.shot('stranger-card.png');
+  await sleep(450);
   const tPlay = Date.now();
   await P.tap('.nd-card-solo');
   ok(await P.waitFor(`${S}.game && ${S}.game.id === 'highrise' && !!document.querySelector('.hi-stage.hi-game canvas.hi-canvas') && !!${G} && ${ST}.state().info.warmed > 0`, 30000), `PLAY NOW → the game's own screen: the stage in the console's frame (${Date.now() - tPlay} ms from the tap — THE SOLO START's walk inside)`);
@@ -122,11 +145,10 @@ try {
   ok(g.mode === 'solo' && g.phase === 'play' && g.m[0] === 's', `PLAY NOW's solo room, SOLO, playing (match ${g.m})`);
   ok(await P.ev("!!document.querySelector('.menu-btn') && !!document.querySelector('.music-btn') && !document.querySelector('.hi-snd') && !document.querySelector('.hi-note') && !document.querySelector('.hi-look')"), 'inside the console\'s game frame: the corner menu + music — none of the test page\'s own pieces (SOUNDS · the note · the look switch)');
   ok(await P.ev(`${ST}.state().look === document.body.dataset.look`), 'the look = the console\'s GAME LOOK (body[data-look])');
-  ok(await P.ev(`${G}.state().friends.length === 0 && !${ST}.state().ftag`), 'THE NEXT FRIEND: none (counting is OFF — the board has no rows)');
+  ok(await P.ev(`${G}.state().friends.length === 0 && !${ST}.state().ftag`), 'THE NEXT FRIEND: none (a fresh phone has no friends)');
   await P.shot('start.png');
 
   // ---- 3. START → GO → the seed; real taps → the proof
-  const before = await snap(pid);
   await P.tapAt(195, 620);
   ok(await P.waitFor(`${ST}.state().started && ${G}.state().proven`, 8000), 'START → GO landed: the run is on, PROVEN');
   let node = await nodeOf(g.code, g.m, uid), gs = await P.ev(`${G}.state()`);
@@ -150,7 +172,7 @@ try {
   ok(gs.stage.lates === 0, 'no sound took the late path in play');
   await P.shot('run.png');
 
-  // ---- the fuse ends it → e → the podium; THE SWITCH IS OFF → WOULD COUNT, nothing written
+  // ---- the fuse ends it → e → the podium; THE SWITCH IS ON → COUNTED
   // (S4A FIX — THE PINK FLASH, the owner's iPhone: every frame the browser presents from the last seconds of the run to the settled end
   //  screen — the console's podium frame flashed the game's accent, hot pink, over the whole screen as it came up)
   const fw = await flashWatch(b, P.cdp);
@@ -166,21 +188,16 @@ try {
   ok(row && row.f === V.floor && row.p === V.perfects && !row.bad, 'the host\'s podium row = the judge\'s');
   const times = chunkTimes(node.c);
   ok(times && times.every(k => k.at >= node.go), 'the chunks\' clock runs forward from GO');
-  ok(await P.waitFor("/^WOULD COUNT · FLOOR \\d+ · \\+\\d+ XP/.test((document.querySelector('.hi-fin-would') || {}).textContent || '')", 20000), 'THE SWITCH IS OFF: the server judged the run → the end card\'s small line WOULD COUNT');
-  const fin = await P.ev("({ t: document.querySelector('.hi-fin .hi-ec-cause').textContent, n: document.querySelector('.hi-fin .hi-ec-n').getAttribute('aria-label'), w: document.querySelector('.hi-fin-would').textContent, kicker: document.querySelector('.hi-final .sheet-kicker').textContent, bar: !!document.querySelector('.hi-final .final-bar, .hi-final .btn-primary') })");
+  const res1 = await counted(g.code, g.m);
+  ok(res1 && res1.g === 'highrise', 'THE SWITCH IS ON: the run is COUNTED from its proof node (results/ done) — no owner, no test flip');
+  const best1 = await dbGet(`pstats/${pid}/b/highrise-solo`);
+  ok(best1 && floorOf(best1.a) === V.floor, `… the best on the board highrise-solo = THE JUDGE's floor (${best1 && floorOf(best1.a)})`);
+  ok(res1 && res1.o && res1.o[pid] && res1.o[pid].xp && res1.o[pid].xp.gain >= 0, `… paid by THE SOLO LANE (+${res1 && res1.o && res1.o[pid] && res1.o[pid].xp ? res1.o[pid].xp.gain : '?'} XP)`);
+  await pastMoment(P);
+  ok(await P.waitFor(`document.querySelector('.hi-fin .hi-ec-best').textContent === 'YOUR BEST · ${V.floor}'`, 15000), `the end screen: YOUR BEST · ${V.floor} from the server's record (a first counted run — never NEW BEST)`);
+  const fin = await P.ev("({ t: document.querySelector('.hi-fin .hi-ec-cause').textContent, n: document.querySelector('.hi-fin .hi-ec-n').getAttribute('aria-label'), w: document.querySelector('.hi-fin-would').textContent, kicker: document.querySelector('.hi-final .sheet-kicker').textContent })");
   ok(fin.t === 'TOO SLOW' && Number(fin.n) === V.floor && fin.kicker === 'HIGH RISE · SOLO', `the end screen: ${fin.kicker} · ${fin.t} · FLOOR ${fin.n}`);
-  ok(new RegExp(`^WOULD COUNT · FLOOR ${V.floor} · `).test(fin.w), `WOULD COUNT matches the phone's own result (${fin.w})`);
-  // REVIEW FIX B — THE WOULD COUNT LINE: never NEW BEST unless the floor beats the YOUR BEST shown (none shown here: a first run — never
-  // NEW BEST), and it FITS the phone (it ran off the right edge at 390 × 844: it wraps now, never cut off)
-  ok(!/NEW BEST/.test(fin.w), `… no NEW BEST with no YOUR BEST shown (counting OFF: the server keeps no record — its own "best" is every run): "${fin.w}"`);
-  {
-    const wf = await P.ev("(() => { const w = document.querySelector('.hi-fin-would'), r = w.getBoundingClientRect(), cs = getComputedStyle(w); return { l: r.left, r: r.right, sw: w.scrollWidth, cw: w.clientWidth, ws: cs.whiteSpace, iw: innerWidth }; })()");
-    ok(wf.l >= 0 && wf.r <= wf.iw && wf.sw <= wf.cw + 1 && wf.ws === 'normal', `… and it fits the phone: ${wf.l.toFixed(0)}–${wf.r.toFixed(0)} of ${wf.iw}, nothing past its edge (scroll ${wf.sw} ≤ ${wf.cw}), wrapping`);
-    // the longest line the server can send, put in the same element: it wraps inside the screen (two lines), never cut off
-    const lng = await P.ev("(async () => { const F = await import('/js/games/highrise/final.js'), w = document.querySelector('.hi-fin-would'), was = w.textContent; w.textContent = F.wouldLine({ floor: 113, xp: 0, so: { n: 9, max: 4 }, best: true, cards: ['a', 'b'] }, 112); const r = w.getBoundingClientRect(), o = { t: w.textContent, l: r.left, r: r.right, h: r.height, lh: parseFloat(getComputedStyle(w).lineHeight), sw: w.scrollWidth, cw: w.clientWidth }; w.textContent = was; return o; })()");
-    ok(lng.l >= 0 && lng.r <= 390 && lng.sw <= lng.cw + 1 && Math.round(lng.h / lng.lh) <= 2, `the LONGEST line ("${lng.t}") wraps on ${Math.round(lng.h / lng.lh)} lines inside the 390 — never cut off`);
-  }
-  ok(await P.ev("document.querySelector('.hi-fin .hi-ec-best').textContent === ''"), 'the end screen: NO YOUR BEST line — a run that never counted (counting OFF) never sets it; only the server record of a counted run does (REVIEW FIX A — the owner call)');
+  ok(fin.w === '', 'no WOULD COUNT line (counting is ON)');
   await sleep(1200);
   await P.shot('end-card-390x844.png');
 
@@ -195,24 +212,18 @@ try {
   ok(E.kT === 'HIGH RISE · SOLO' && E.kCols.join('|') === 'rgb(255, 79, 216)|rgb(54, 201, 255)|rgb(201, 182, 255)' && E.hd.x >= E.menu.r + 2 && E.hd.r <= E.music.x - 2 && Math.abs((E.hd.x + E.hd.r) / 2 - 195) < 2, `THE HEADER "${E.kT}": HIGH hot pink · RISE cyan · the mode lavender — one line, centred between the corner buttons (${E.hd.x.toFixed(0)}–${E.hd.r.toFixed(0)}; ☰ to ${E.menu.r.toFixed(0)}, music from ${E.music.x.toFixed(0)})`);
   ok(E.causeCol === 'rgb(255, 79, 216)' && E.causeFs >= 30 && E.nCol === 'rgb(255, 255, 255)' && E.nFs >= 84 && E.flT === (V.floor === 1 ? 'FLOOR' : 'FLOORS') && E.bestCol === 'rgb(255, 210, 87)' && /^\d+ PERFECTS? · BEST STREAK \d+$/.test(E.lineT) && E.hd.b <= E.cause.y && E.cause.b <= E.n.y + 4 && E.n.b <= E.fl.y + 8 && E.fl.b <= E.best.y && E.best.b <= E.line.y,
     `top to bottom: the cause in saturated hot pink (${E.causeFs.toFixed(0)} px) · the floor HUGE + white (${E.nFs.toFixed(0)} px) · ${E.flT} · the best in gold · "${E.lineT}"`);
-  ok(/PLAY AGAIN/.test(E.barT) && E.barBg === 'rgb(255, 79, 216)' && E.links.join('|') === 'SHARE|CITY' && E.bar.b <= 844 && E.would.b <= E.bar.y + 1 && E.bar.y - E.would.b < 24 && E.would.y >= E.line.b, `THE UNIVERSAL FOOTER: the PLAY AGAIN bar in the accent + SHARE · CITY (S5 — THE SHARE IMAGE); WOULD COUNT is the one small line just over the bar (${E.would.y.toFixed(0)}–${E.would.b.toFixed(0)}, the bar at ${E.bar.y.toFixed(0)})`);
-  // S5 — SHARE: the card drawn from THIS run's frame; with THE SWITCH OFF (WOULD COUNT) no link is asked — the PICTURE alone goes out, no text
+  ok(/PLAY AGAIN/.test(E.barT) && E.barBg === 'rgb(255, 79, 216)' && E.links.join('|') === 'SHARE|CITY' && E.bar.b <= 844, `THE UNIVERSAL FOOTER: the PLAY AGAIN bar in the accent + SHARE · CITY (S5 — THE SHARE IMAGE); no WOULD COUNT line once counting is ON — line just over the bar (${E.would.y.toFixed(0)}–${E.would.b.toFixed(0)}, the bar at ${E.bar.y.toFixed(0)})`);
+  // THE GO-LIVE — SHARE with counting ON: THE LINK (JAYWALK's machinery) — the card goes up ONCE, its page's preview = THE POSTER
   {
-    await P.p.evaluate(() => { window.__shared = []; navigator.share = async d => { window.__shared.push(d); }; navigator.canShare = () => true; });
-    const apiBefore = await P.p.evaluate(() => performance.getEntriesByType('resource').filter(e => /\/api\/daily/.test(e.name)).length);
-    await P.p.evaluate(() => { const a = [...document.querySelectorAll('.hi-final .final-link')].find(x => /SHARE/.test(x.textContent)); a.click(); });
-    const sh = await P.waitFor("window.__shared && window.__shared.length ? window.__shared[0] : null", 15000);
-    const got = await P.p.evaluate(async () => { const d = window.__shared[0], f = d && d.files && d.files[0]; if (!f) return null; const bm = await createImageBitmap(f); return { url: d.url || '', text: d.text || '', type: f.type, w: bm.width, h: bm.height, name: f.name }; });
-    const apiAfter = await P.p.evaluate(() => performance.getEntriesByType('resource').filter(e => /\/api\/daily/.test(e.name)).length);
-    ok(!!sh && !!got && got.w === 1080 && got.h === 1350 && !got.url && !got.text && got.name === 'neon-speakeasy-high-rise.png', `SHARE (counting OFF): the PICTURE alone — ${got ? `${got.w} × ${got.h} ${got.name}, no link, no text` : 'nothing shared'}`);
-    ok(apiAfter === apiBefore, `… and no link was asked of the server (THE SWITCH said WOULD COUNT): ${apiAfter - apiBefore} /api/daily calls`);
-    // (REVIEW FIX B — THE POSTER: the card's picture = the band's hero shot, fetched from the site's own assets when the card is drawn)
+    const L = await shareLink(P.p, '.hi-final .final-share');
+    ok(L.url && L.keys.join() === 'url' && !L.files, `SHARE (counting ON): the LINK alone (${L.url ? L.url.replace(/^https?:\/\/[^/]+/, '') : 'none'}${L.again ? ' — a second tap in its own gesture' : ''})`);
+    ok(L.png && L.png.w === 540 && L.png.h === 675, `… its page's preview = the run's card (${L.png ? `${L.png.w} × ${L.png.h}, ${(L.png.bytes / 1024).toFixed(0)} KB` : 'none'})`);
     const heroOk = await P.p.evaluate(() => performance.getEntriesByType('resource').filter(e => /\/assets\/highrise\/share\/[a-z]+\.webp/.test(e.name)).map(e => e.name.split('/').pop()));
     ok(heroOk.length === 1 && heroOk[0].startsWith('rooftops.webp'), `the card's picture = THE POSTER's hero shot for the band reached (${heroOk.join(' ') || 'none'})`);
   }
-  ok(!E.table && !E.strip && E.winner === 'none' && !E.tag && !E.pills.length && E.scroll <= E.w, `YOUR TABLE is hidden while counting is OFF (no empty table); no stats strip, no winner block, no tag over the tower, no pill (${E.pills.join(' ')}), no sideways scroll`);
+  ok(!E.table && !E.strip && E.winner === 'none' && !E.tag && !E.pills.length && E.scroll <= E.w, `no YOUR TABLE with no friends (a table of one is nothing); no stats strip, no winner block, no tag over the tower, no pill (${E.pills.join(' ')}), no sideways scroll`);
   if (S4B_OUT) await P.p.screenshot({ path: join(S4B_OUT, `cartridge-${LOOKN}-390x844-tooslow.png`) });
-  // YOUR TABLE — its layout proven with FIXTURES (0 · 1 · 3 · 8 friends; the board has no rows of its own while counting is OFF): the
+  // YOUR TABLE — its layout proven with FIXTURES (0 · 1 · 3 · 8 friends — a fresh phone has none of its own): the
   // friends' profiles + their HIGH RISE bests + YOUR list are written straight into the emulator, the table re-asked through the real
   // /api/profile + the real slim cards (JAYWALK's check: e2e-jaywalk.mjs "YOUR TABLE at <w>")
   {
@@ -247,13 +258,11 @@ try {
     await P.ev("(() => { const t = document.querySelector('.hi-table'); if (t) t.remove(); })()");
   }
   if (process.env.HI_UNTIL === 'table') { await b.close(); console.log(`\n${n - fails.length}/${n} checks (HI_UNTIL=table) — ${fails.length ? `FAILED:\n  ${fails.join('\n  ')}` : 'all green'}`); process.exit(fails.length ? 1 : 0); }
-  ok((await dbGet(`results/${g.code}_${g.m}`)) == null, 'counting OFF: no results/ record');
-  ok((await snap(pid)) === before, 'counting OFF: NOTHING written — pstats, the profile, the board highrise-solo, the private profile all untouched');
 
   // ---- 5. PLAY AGAIN = THE INSTANT AGAIN: the next run starts with no tap; THE NEXT FRIEND (a fixture); then a FORGED node
   const scenes0 = await P.ev(`${ST}.state().rebuilds`);
-  // (REVIEW FIX A: the cartridge's YOUR BEST = the SERVER's record only — nothing while counting is OFF. A fixture of the server's best,
-  //  as YOUR TABLE would leave it on this phone, so the gold tag stands beside THE NEXT FRIEND's below)
+  // (REVIEW FIX A: the cartridge's YOUR BEST = the SERVER's record only. A fixture of the server's best, as YOUR TABLE would leave it on
+  //  this phone, so the gold tag stands beside THE NEXT FRIEND's below)
   await P.ev("localStorage.setItem('hi:best', '5')");
   const fw2 = await flashWatch(b, P.cdp);
   await P.ev("(() => { const b = document.querySelector('.hi-final .final-bar') || [...document.querySelectorAll('.hi-final button')].find(x => /PLAY AGAIN/.test(x.textContent)); b.click(); })()");
@@ -264,7 +273,7 @@ try {
   const g2 = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
   ok(await P.ev(`!document.querySelector('.hi-final') && ${ST}.state().floor === 0 && ${ST}.state().rebuilds === ${scenes0}`), '… the podium is gone, a fresh tower, the SAME scene (kept warm — never rebuilt)');
   ok(!!(await nodeOf(g.code, g.m, uid)), '… and the finished run\'s proof node is still in the room');
-  // THE NEXT FRIEND (a test fixture — YOUR TABLE is empty while counting is OFF): the pink tag above you → crossed → the pink tape
+  // THE NEXT FRIEND (a test fixture — a fresh phone has no friends): the pink tag above you → crossed → the pink tape
   await P.ev(`${G}.setFriends([{ n: 'LIAM', v: 3 }, { n: 'MAYA', v: 7 }])`);
   ok(await P.waitFor(`/^LIAM 3 ▲\\d$/.test(${ST}.state().ftag) || ${ST}.state().ftag === 'LIAM 3 · ONE MORE'`, 4000), `THE NEXT FRIEND above you: the pink tag "${await P.ev(`${ST}.state().ftag`)}"`);
   await sleep(900);   // (S4A FIX: a tag is placed once a landing and rides to its place on a 0.56 s transition — measured once it rests)
@@ -292,12 +301,11 @@ try {
   ok(await toFinal(P, 20000), 'a FORGED node (150 perfect floors "played" in 2 s): the match ends on its `e`');
   const fg = await dbGet(`rooms/${g3.code}/game`);
   ok(fg.results[uid].f === 0 && /ahead/.test(fg.results[uid].bad || ''), `… THE JUDGE refuses it (${fg.results[uid].bad}) — floor 0, never 150`);
-  ok(await P.waitFor("/^WOULD NOT COUNT/.test((document.querySelector('.hi-fin-would') || {}).textContent || '') || document.querySelector('.hi-fin .hi-ec-cause').textContent === 'NOT COUNTED'", 15000), `… and the server says so (${await P.ev("document.querySelector('.hi-fin .hi-ec-cause').textContent + ' · ' + document.querySelector('.hi-fin-would').textContent")})`);
-  ok((await snap(pid)) === before, '… still nothing written');
+  ok(await P.waitFor("document.querySelector('.hi-fin .hi-ec-cause').textContent === 'NOT COUNTED'", 15000), `… and the server says so (${await P.ev("document.querySelector('.hi-fin .hi-ec-cause').textContent + ' · ' + document.querySelector('.hi-fin-would').textContent")})`);
+  { const bf = await dbGet(`pstats/${pid}/b/highrise-solo`); ok(bf && floorOf(bf.a) < 150, `… and no best of it (the board highrise-solo stays on floor ${bf && floorOf(bf.a)}, never 150)`); }
 
-  // ---- 6. COUNTING ON (a test-only flip): a real run past floor 60 → the floor, XP, the streak, the best, ABOVE THE CLOUDS + THE HITCH RUN
+  // ---- 6. A LONG COUNTED RUN: a real run past floor 60 → the floor, XP, the streak, the best, ABOVE THE CLOUDS + THE HITCH RUN
   if (!FAST) {
-    await dbPut('testHighriseCounts', true);
     await P.ev("(() => { const b = document.querySelector('.hi-final .final-bar') || [...document.querySelectorAll('.hi-final button')].find(x => /PLAY AGAIN/.test(x.textContent)); b.click(); })()");
     await P.waitFor(`${S}.game && ${S}.game.matchId !== '${g3.m}' && ${S}.game.phase === 'play' && ${G}.state().proven`, 15000);
     const g4 = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
@@ -316,7 +324,7 @@ try {
     ok(await toFinal(P, 30000), 'the fuse ends it → the podium');
     const end = Date.now() + 25000; let res = null;
     while (Date.now() < end && !(res && res.st === 'done')) { res = await dbGet(`results/${g4.code}_${g4.m}`); await sleep(200); }
-    ok(res && res.st === 'done' && res.g === 'highrise', 'COUNTING ON: the run is COUNTED (results/ done)');
+    ok(res && res.st === 'done' && res.g === 'highrise', 'the run is COUNTED (results/ done)');
     const ps = await dbGet(`pstats/${pid}`), bestV = ps && ps.b && ps.b['highrise-solo'] ? ps.b['highrise-solo'].a : null;
     const o = res.o && res.o[pid];
     ok(o && o.xp && o.xp.gain > 0 && ps.xp === o.xp.to, `… XP +${o && o.xp && o.xp.gain}`);
@@ -327,12 +335,11 @@ try {
     await pastMoment(P);
     ok(await P.waitFor("/^(NEW BEST|YOUR BEST · \\d+)/.test(document.querySelector('.hi-fin .hi-ec-best').textContent) && !document.querySelector('.hi-fin-would').textContent", 15000), `… the end screen says ${await P.ev("document.querySelector('.hi-fin .hi-ec-best').textContent")} — no WOULD COUNT line`);
     await P.shot('end-card-counted-390x844.png');
-    await dbPut('testHighriseCounts', null);
   }
+  await dropRunCards(pid);
   ok(P.errs.length === 0, `no page error (${P.errs.join(' | ')})`);
   await P.close();
 } catch (e) { ok(false, `FATAL ${e && e.stack ? e.stack : e}`); }
-await dbPut('testHighriseCounts', null);
 await b.close();
 console.log(`\n${n - fails.length}/${n} checks passed`);
 if (fails.length) { console.log('FAILED:\n  ' + fails.join('\n  ')); process.exit(1); }

@@ -405,7 +405,7 @@ test('events: when() gates by the context; forced events run at once', () => {
 
 // ================================================================== Part 3: NEON + SIGNS + BILLBOARDS
 import { signName } from '../js/screens/harbor/signs.js';
-import { signSpots, spotConflicts, assignSigns, billboardPick, fitsSpot, signText, signRoster, nightKey, outlines, roleFamily, SCHEMES, roleColour, MIN_STEP, fillet, WARM_ROLES, DEPTH, depthStrength } from '../js/core/harbor-neon.js';
+import { SIGN_HOLD, signSpots, spotConflicts, assignSigns, billboardPick, fitsSpot, signText, signRoster, nightKey, outlines, roleFamily, SCHEMES, roleColour, MIN_STEP, fillet, WARM_ROLES, DEPTH, depthStrength } from '../js/core/harbor-neon.js';
 import { showItems, showFrame, newShowOut, sceneAt, everyday, signMotion, beatEnv, FX, MAX_MOVING, MAX_RACE, SHOW_SCENES, nightStage, rotateMix, burnout, burnoutFlicker, punchEnv, beatOf, harborParty } from '../js/core/harbor-show.js';
 import { flattenPath, tubeLight } from '../js/core/tube-path.js';
 import { scrollColumns } from '../js/core/harbor-windows.js';
@@ -1831,7 +1831,7 @@ test('DT2 — THE CLOUDS\' light: white by midday, gold low, coral + pink after 
 test('THE DAY PASS — the painted day faces: every game has one, and its letters stand out from its board (the glance test by day)', () => {
   const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
   const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-  for (const g of GAMES.filter(x => !x.preview)) {   // (HE3: a game being built gets its day face the pass it becomes playable — HOLD'EM's since HOLD'EM IN THE CITY)
+  for (const g of GAMES.filter(x => !x.preview && !SIGN_HOLD.includes(x.id))) {   // (HE3: a game being built gets its day face the pass it becomes playable — HOLD'EM's since HOLD'EM IN THE CITY · HIGH RISE's GO-LIVE: a game under THE SIGN HOLD hangs on no sign — THE CITY PASS gives it its day face as it lifts the hold)
     assert.ok(DAY_PAINT[g.id], `${g.id} has a painted scheme`);
     const p = dayPaint(g);
     assert.ok(ratio(p.ink, p.face) >= 4.5, `${g.id}: letters ${ratio(p.ink, p.face).toFixed(1)}:1 on their board`);
@@ -3332,7 +3332,7 @@ test('9c — THE CENTREPIECE SHOW LIGHTING: the floods come on with the lamps (n
 test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM · THE GO-LIVE PASS: + JAYWALK); the sign games; every start path refuses a hidden game', async () => {
   const { readFileSync } = await import('node:fs');
   const { isPlayable } = await import('../js/config.js');
-  const ON = ['holdem', 'jaywalk', 'overclock', 'prism'];
+  const ON = ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism'];   // (HIGH RISE's GO-LIVE, Nov 20: + HIGH RISE — playable; its signs wait on THE SIGN HOLD below)
   assert.deepEqual(GAMES.filter(g => g.playable).map(g => g.id).sort(), ON);
   // (FIXES R2 — Part C: the `sign` flag is gone — nothing read it; the city's signs = core/harbor-neon.js#signRoster: the playable games + JAYWALK)
   assert.ok(GAMES.every(g => !('sign' in g)), 'no GAMES row carries the old sign flag');
@@ -3351,7 +3351,8 @@ test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM · THE
   const five = signRoster(GAMES).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
   const { L } = setup('402x874'), spots = signSpots(L), seen = new Set();
   for (let d = 0; d < 14; d++) { const n = new Date(Date.UTC(2026, 10, 2) + d * 864e5).toISOString().slice(0, 10), pk = assignSigns(five, spots, n); for (const v of pk.values()) seen.add(v); seen.add(billboardPick(five, spots, pk, n)); }
-  assert.deepEqual([...seen].filter(Boolean).sort(), ['holdem', 'jaywalk', 'overclock', 'prism'], 'every sign game, over two weeks');
+  assert.deepEqual([...seen].filter(Boolean).sort(), ['holdem', 'jaywalk', 'overclock', 'prism'], 'every sign game, over two weeks — and never a game under THE SIGN HOLD (HIGH RISE until THE CITY PASS)');
+  assert.deepEqual(SIGN_HOLD, ['highrise'], 'THE SIGN HOLD: HIGH RISE is playable, held off every sign until THE CITY PASS lifts it');
   // (HOLD'EM IN THE CITY: the roof billboard is HOLD'EM's ad now — every one of the five hangs on a SKYLINE SIGN over two weeks, not only the
   //  board; HOLD'EM spells HOLD'EM whole — the apostrophe tube, never HOLDEM)
   const onSign = new Set();

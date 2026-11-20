@@ -8,7 +8,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
-import { signSpots, assignSigns, billboardPick, signText, signRoster, hotelAvoid, SIGN_SPLIT } from '../js/core/harbor-neon.js';
+import { SIGN_HOLD, signSpots, assignSigns, billboardPick, signText, signRoster, hotelAvoid, SIGN_SPLIT } from '../js/core/harbor-neon.js';
 import { ghostAdGame } from '../js/core/harbor-speakeasy.js';
 import { signName, buildSign } from '../js/screens/harbor/signs.js';
 import { bladeWords } from '../js/screens/harbor/speakeasy-blade.js';
@@ -29,8 +29,11 @@ const IDS = ROSTER.map(g => g.id);
 const FROZEN = new Set(GAMES.filter(g => !g.playable).map(g => g.id));
 const PHONE = ['n-blade', 'n-roofA', 'n-roofB'];
 
-test('the roster: the PLAYABLE games (JAYWALK by its own row since its go-live) — never a frozen game or a daily; a row turning playable joins with no code change', () => {
-  assert.deepEqual(IDS.slice().sort(), GAMES.filter(g => g.playable && !g.daily).map(g => g.id).sort());
+test('the roster: the PLAYABLE games (JAYWALK by its own row since its go-live) minus THE SIGN HOLD — never a frozen game or a daily; a row turning playable joins with no code change', () => {
+  assert.deepEqual(IDS.slice().sort(), GAMES.filter(g => g.playable && !g.daily && !SIGN_HOLD.includes(g.id)).map(g => g.id).sort());
+  // (HIGH RISE's GO-LIVE, Nov 20 — THE SIGN HOLD: HIGH RISE is playable and on NO sign until THE CITY PASS lifts the hold — one line)
+  assert.ok(GAMES.find(g => g.id === 'highrise').playable && SIGN_HOLD.includes('highrise') && !IDS.includes('highrise'), 'HIGH RISE: playable, held off every sign');
+  assert.ok(signRoster(GAMES.map(g => g)).every(g => !SIGN_HOLD.includes(g.id)), 'nothing held ever reaches a sign');
   assert.ok(IDS.includes('jaywalk'), 'JAYWALK — its own GAMES row, playable (THE GO-LIVE PASS)');
   assert.ok(ROSTER.every(g => !FROZEN.has(g.id) && !g.daily));
   assert.equal(signRoster(GAMES).filter(g => g.id === 'jaywalk').length, 1, 'its own row, never twice');

@@ -105,11 +105,12 @@ export const PROOF_GAMES = Object.freeze({
   highrise: Object.freeze({ node: 'hr', solo: highriseSolo, match: highriseMatch }),
 });
 /**
- * HIGH RISE S4A — THE SWITCH (api/_lib/highrise.js#HIGHRISE_COUNTS: OFF until go-live — ONE line there turns it on). OFF: a run is JUDGED
- * and NOTHING is awarded (processReport returns WOULD COUNT before any claim / credit). On the LOCAL EMULATORS a test flips it through
- * `testHighriseCounts` (server.test + e2e-highrise set it — never honoured in production: `emulated()`).
+ * HIGH RISE S4A — THE SWITCH (api/_lib/highrise.js#HIGHRISE_COUNTS — ON since THE GO-LIVE, Nov 20; false = the one-line KILL SWITCH). OFF: a
+ * run is JUDGED and NOTHING is awarded (processReport returns WOULD COUNT before any claim / credit). On the LOCAL EMULATORS a test sets
+ * `testHighriseCounts` true OR false — either way, over the code's value (THE GO-LIVE: false keeps the kill switch's OFF path tested) —
+ * never honoured in production (`emulated()`).
  */
-export const highriseCounts = async () => HIGHRISE_COUNTS || (emulated() && !!(await val('testHighriseCounts')));
+export const highriseCounts = async () => { if (emulated()) { const t = await val('testHighriseCounts'); if (t === true || t === false) return t; } return HIGHRISE_COUNTS; };
 /** PURE — the WOULD-AWARD the phone is told while counting is OFF: the server's own judged row + what the counted path would have done.
  *  `row` = the server's result row { f, p, t, w, s, ft?, cut?, bad? } · `w` = stats.js#wouldApply's answer · `rec` = the board value */
 export function wouldAward(row, w, rec) {

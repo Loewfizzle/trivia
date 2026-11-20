@@ -37,7 +37,7 @@ test('THE SERVER HALF is PURE — and WIRED behind THE SWITCH (S4A): no fb.js, t
   assert.equal(fns.length, 8, `the function count stays 8 (${fns.join(' ')})`);
   assert.deepEqual(fns.filter(f => /highrise/.test(read(`api/${f}`))), ['report.js'], 'ONE endpoint knows HIGH RISE: /api/report');
   // THE SWITCH: ONE flag, OFF — the go-live pass flips this line
-  assert.match(src, /^export const HIGHRISE_COUNTS = false;$/m, 'THE SWITCH IS OFF until go-live');
+  assert.match(src, /^export const HIGHRISE_COUNTS = true;$/m, 'THE SWITCH IS ON since THE GO-LIVE (Nov 20) — false again is the kill switch');
 });
 
 test('THE JUDGE accepts honest bot logs — all four bots, every mode — and returns the run\'s own numbers', () => {

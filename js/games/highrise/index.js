@@ -1,7 +1,6 @@
-// HIGH RISE — THE CARTRIDGE (S4A — docs/highrise.md "THE CARTRIDGE"; the contract: js/games/contract.js, docs/cartridge.md). HIDDEN:
-// config.js GAMES `playable: false` + `preview` — THE OWNER'S LIVE TEST only (JAYWALK H1 / H3's rule): his phone's PLAY shelf + his room's
-// list offer HIGH RISE · TEST, nobody else's; the server counts nothing of it for anyone else (api/report.js#reportableGame) — and, until
-// go-live, awards NOTHING at all (THE SWITCH: api/_lib/highrise.js#HIGHRISE_COUNTS — the server judges every run and answers WOULD COUNT).
+// HIGH RISE — THE CARTRIDGE (S4A — docs/highrise.md "THE CARTRIDGE"; the contract: js/games/contract.js, docs/cartridge.md). PLAYABLE for
+// everyone since THE GO-LIVE (Nov 20 — config.js GAMES `playable: true`): any phone's PLAY shelf + any room's list; every proven run COUNTS
+// (THE SWITCH: api/_lib/highrise.js#HIGHRISE_COUNTS — ON; false = the kill switch: judged, WOULD COUNT, nothing awarded).
 // S4A = THE SOLO RUN: the stage (stage.js — the SAME module /highrise-play mounts) in the console's frame, the proof written as you
 // drop (view.js → rooms/{CODE}/hr/{matchId}/{uid}), the end screen (final.js), PLAY AGAIN = the console's INSTANT AGAIN.
 // S4B = THE MATCH (2 … 8 players — a room THE OWNER hosts; docs/highrise.md "THE MATCH"; JAYWALK's is the pattern): the SAME seed for
@@ -18,7 +17,7 @@ import { lazyImport } from '../../ui/lazy-import.js';
 /** THE MUSIC FOLLOWS THE LOOK (JAYWALK's rule — the existing mood stations): the day deck by day, the evening deck by night */
 export const musicFor = () => [typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];
 
-// (the stage's own sheet — css/highrise-play.css, the test page's: ONE look for both; css/highrise.css is THE LAB's graybox)
+// (the stage's own sheet — css/highrise-play.css, the test page's: ONE look for both)
 export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), ['kit', 'highrise-play']);
 
 // THE PROOF NODE (rooms/{CODE}/hr/{matchId}/{uid} — proof.js): written by the player AT GO + their tap log in chunks as they drop

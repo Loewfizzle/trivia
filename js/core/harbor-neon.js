@@ -921,10 +921,11 @@ export function fitsSpot(name, sp) {
 const dayNo = key => { const m = /^(\d+)-(\d+)-(\d+)$/.exec(key || ''); return m ? Math.round(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000) : null; };
 
 // ---- CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY (the owner, Nov 14)
-/** the games a city sign may name: the playable ones (config.js GAMES[].playable — never a frozen game, never a daily); a game whose row
- *  turns playable joins every sign with no code change (JAYWALK's stand-in row went at its go-live, Nov 17 — its own row is playable) */
+/** THE SIGN HOLD (HIGH RISE's GO-LIVE, Nov 20): a playable game kept OFF every city sign until THE CITY PASS lifts it (docs/highrise.md) */
+export const SIGN_HOLD = Object.freeze(['highrise']);
+/** the games a city sign may name: the playable ones (never a frozen game, never a daily), minus THE SIGN HOLD */
 export function signRoster(games) {
-  return (games || []).filter(g => g && g.playable && !g.daily);
+  return (games || []).filter(g => g && g.playable && !g.daily && !SIGN_HOLD.includes(g.id));
 }
 /** the owner's call (Nov 15): these names are ALWAYS two stacked words on every neon sign — never one line — where the spot takes two (a roof
  *  sign) or allows a split (`split` — the vertical blades) */

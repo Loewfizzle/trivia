@@ -13,6 +13,7 @@ import * as overclockMeta from './overclock/meta.js';
 import * as prismMeta from './prism/meta.js';
 import * as holdemMeta from './holdem/meta.js';   // (HE10: HOLD'EM playable — its thin meta at boot, like every playable game)
 import * as jaywalkMeta from './jaywalk/meta.js';   // (THE GO-LIVE PASS: JAYWALK playable — its thin meta at boot, the same)
+import * as highriseMeta from './highrise/meta.js';
 import { state } from '../store.js';
 import { FROZEN_IDS } from '../config.js';   // (FIXES R2 — B1: the frozen games are never loaded)
 import { unsealed } from './kit/seal.js';
@@ -28,10 +29,10 @@ const LOADERS = {
   drop: () => import('./drop/index.js'),   // (THE DROP A — DAILY-ONLY: PRISM DROP's daily — its row ships OFF)
   holdem: () => import('./holdem/index.js'),
   jaywalk: () => import('./jaywalk/index.js'),
-  highrise: () => import('./highrise/index.js'),   // (HIGH RISE S4A — BEING BUILT, hidden: no meta at boot until its go-live)
+  highrise: () => import('./highrise/index.js'),
 };
 export const GAME_IDS = Object.freeze(Object.keys(LOADERS));
-export const META = Object.freeze({ overclock: overclockMeta, prism: prismMeta, holdem: holdemMeta, jaywalk: jaywalkMeta });
+export const META = Object.freeze({ overclock: overclockMeta, prism: prismMeta, holdem: holdemMeta, jaywalk: jaywalkMeta, highrise: highriseMeta });
 export const GAME_MODULES = {};
 const pending = {}, loadedFns = new Set();
 // (FIXES R2 — B1: a FROZEN game is never loaded — config.js#FROZEN_IDS; the emulators' `&frozen=1` lets a test load one on purpose)

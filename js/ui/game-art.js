@@ -334,7 +334,17 @@ ${glow('jw-glow', 2.6)}</defs>
 <path d="M0 99.5H120" stroke="#35e3ff" stroke-opacity="0.35" stroke-width="1"/>
 <g transform="translate(9 8)" fill="none" stroke-linecap="round" stroke-linejoin="round">${JW_TUBES}</g></svg>`;
 
-const ART = { jaywalk: () => JAYWALK, holdem, rum: () => RUM, stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
+// HIGH RISE (THE GO-LIVE): its mark THE TOWER (core/marks.js) lit on a night sky — thin tubes (marks.js `w`)
+const HR_TUBES = MARKS.highrise.tubes.map(t => `<path d="${t.d}" stroke="${t.col}" stroke-width="8" opacity="0.5" filter="url(#hr-glow)"/><path d="${t.d}" stroke="${t.col}" stroke-width="4.6"/><path d="${t.d}" stroke="#f4feff" stroke-width="1.3" opacity="0.85"/>`).join('');
+const HIGHRISE = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
+<radialGradient id="hr-bg" cx="0.5" cy="0.3" r="0.9"><stop offset="0" stop-color="#22184e"/><stop offset="0.6" stop-color="#0c0b26"/><stop offset="1" stop-color="#04040d"/></radialGradient>
+${glow('hr-glow', 2.4)}</defs>
+<rect width="120" height="120" fill="url(#hr-bg)"/>
+<path d="M0 120V104h8v-6h7v9h6v-12h8v14h7v-8h6v-5h9v13h6V94h7v12h8v-7h6v9h7v-10h9v22z" fill="#0a0918"/>
+<path d="M0 104h8v-6h7v9h6v-12h8v14h7v-8h6v-5h9v13h6V94h7v12h8v-7h6v9h7v-10h9" fill="none" stroke="#ff4fd8" stroke-opacity="0.28" stroke-width="1"/>
+<g transform="translate(9 3)" fill="none" stroke-linecap="round" stroke-linejoin="round">${HR_TUBES}</g></svg>`;
+
+const ART = { highrise: () => HIGHRISE, jaywalk: () => JAYWALK, holdem, rum: () => RUM, stakes: () => STAKES, gridlock, slip, prism, overclock, golf: () => GOLF, pulse: () => PULSE, cipher, signal: () => SIGNAL, bluff: () => BLUFF, agent };
 
 /** Just the SVG (e.g. the How to Play tabs). */
 export const gameArtSvg = id => (ART[id] ? svgEl(ART[id]()) : null);

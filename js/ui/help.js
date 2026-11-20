@@ -402,13 +402,51 @@ RULES.golf = {
   ],
 };
 
+// HIGH RISE — THE GO-LIVE (Nov 20): JAYWALK's shape — one line, short lines a kid can read (≤ 52), one small drawing each (`pics`). Checked
+// against the rules (docs/highrise.md "THE RULES"): a tap drops · the overhang is cut · PERFECT = no cut · GROW-BACK after 6 perfects in a
+// row · MISSED THE STACK · SLIPPED OFF · THE FUSE (TOO SLOW) · hiding the app = no pause · a MATCH: the tallest tower wins (ties: the most
+// perfects), a 6:00 cap, floor 200 = THE MOTHERSHIP · SPACE / ENTER on a keyboard (stage.js).
+RULES.highrise = {
+  goal: 'Stack the tower as high as you can. One tap drops each slab.',
+  sections: [
+    ['HOW TO STACK', [
+      'TAP anywhere to drop the sliding slab.',
+      'What hangs over the edge is CUT OFF.',
+      'Land it right on top: PERFECT. Nothing is cut.',
+      '6 PERFECTS in a row and the slab GROWS BACK.',
+      'KEYBOARD: SPACE or ENTER drops.',
+    ]],
+    ['HOW IT ENDS', [
+      'MISSED THE STACK: the slab missed the tower.',
+      'SLIPPED OFF: the slab was cut too thin.',
+      'TOO SLOW: wait and it drops by itself.',
+      'No pause: leaving the app does not stop it.',
+      'A MATCH: the tallest tower wins. Ends at 6:00.',
+      'Floor 200 in a match: THE MOTHERSHIP!',
+    ]],
+  ],
+};
+RULES.highrise.pics = [
+  [svg('<circle cx="12" cy="17" r="3"/><path d="M12 12V3M8 7l4-4 4 4"/>', '#ff7fd6'),                                                             // tap: a finger's dot + an arrow
+    svg('<rect x="5" y="14" width="11" height="4"/><path d="M16 14h4v4h-4" stroke-dasharray="2 2"/><path d="M5 10h15" opacity=".5"/>', '#8ff0ff'),   // the overhang cut away (dashed)
+    svg('<rect x="5" y="9" width="14" height="4"/><rect x="5" y="15" width="14" height="4"/><path d="M12 2.5l1 2.2 2.4.3-1.8 1.6.5 2.4-2.1-1.2-2.1 1.2.5-2.4-1.8-1.6 2.4-.3z"/>', '#ffd36a'),   // PERFECT: two slabs stacked + a star
+    svg('<rect x="7" y="14" width="10" height="4"/><path d="M3 10h18M3 10l2-2M3 10l2 2M21 10l-2-2M21 10l-2 2"/>', '#7dffa0'),                         // GROWS BACK: the slab widening
+    svg('<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/>', '#8ff0ff')],                  // a keyboard
+  [svg('<rect x="6" y="14" width="10" height="6"/><rect x="15" y="4" width="7" height="3" transform="rotate(25 18 5)"/>', '#ff5a8a'),                  // MISSED: the slab tumbling past the tower
+    svg('<rect x="6" y="14" width="10" height="6"/><rect x="16" y="9" width="2" height="4"/><path d="M19 13l1.5 5" opacity=".6"/>', '#ff5a8a'),         // SLIPPED OFF: a sliver falling
+    svg('<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>', '#ffb347'),                                                                 // TOO SLOW: a stopwatch
+    svg('<path d="M9 6v12M15 6v12"/><path d="M4 20L20 4" opacity=".7"/>', '#ffb347'),                                                                // no pause: the pause sign struck out
+    svg('<rect x="3" y="12" width="5" height="9"/><rect x="10" y="5" width="5" height="16"/><rect x="17" y="9" width="4" height="12"/>', '#b8a6ff'),   // a MATCH: the towers side by side, the tallest wins
+    svg('<path d="M8 7a4 3 0 0 1 8 0"/><path d="M2 10c0-1.7 4.5-3 10-3s10 1.3 10 3-4.5 3-10 3S2 11.7 2 10z"/><path d="M6.5 10h.01M12 10.5h.01M17.5 10h.01"/><path d="M8.5 13L6 21h12l-2.5-8" opacity=".45"/>', '#ffd36a')],   // THE MOTHERSHIP
+];
+
 const LEGEND = [
   ['2', 'A', 'Right letter, right spot'],
   ['1', 'B', 'In the word, wrong spot'],
   ['0', 'C', 'Not in the word'],
 ];
 
-const TAB = { jaywalk: 'JW', holdem: 'HE', rum: 'RR', stakes: 'HS', gridlock: 'GL', slip: 'SS', prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
+const TAB = { jaywalk: 'JW', highrise: 'HR', holdem: 'HE', rum: 'RR', stakes: 'HS', gridlock: 'GL', slip: 'SS', prism: 'PD', cipher: 'CB', signal: 'LS', bluff: 'NB', overclock: 'OC', pulse: 'PU', golf: 'NP', agent: 'DA' };
 
 let sheet = null;
 

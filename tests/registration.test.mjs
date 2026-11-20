@@ -20,12 +20,7 @@ const BUILDING = GAMES.filter(g => !g.playable && g.preview && !g.daily);
  *  (a test below fails on a stale entry); the go-live pass (the fix pass that flips `playable`) must leave it EMPTY (a test says so) — it did. */
 export const JAYWALK_WAITS = Object.freeze({});   // (THE GO-LIVE PASS, Nov 17: EMPTY — meta, help, art all landed; JAYWALK is playable)
 /** HIGH RISE S4A — THE HIDDEN CARTRIDGE (being built): what it does not have YET, each with the pass that gives it */
-export const HIGHRISE_WAITS = Object.freeze({
-  meta: 'the go-live pass — its thin meta at boot (registry.js#META): a hidden game adds nothing to the boot',
-  help: 'the go-live pass — HOW TO PLAY (ui/help.js RULES + its tab)',
-  art: 'the go-live pass — its tile (ui/game-art.js ART: the icon brief of THE REVIEW)',
-  boardtab: 'the go-live pass — its tab on THE BOARD (board/view.js TABS)',
-});   // (S4B: its smoke start is IN — e2e-smoke.mjs: a local page that asks, two phones = THE MATCH's opening)
+export const HIGHRISE_WAITS = Object.freeze({});   // (HIGH RISE's GO-LIVE, Nov 20: EMPTY — the meta, HOW TO PLAY, the tile, THE BOARD's tab all landed; HIGH RISE is playable)   // (S4B: its smoke start is IN — e2e-smoke.mjs: a local page that asks, two phones = THE MATCH's opening)
 const WAITS = Object.freeze({ jaywalk: JAYWALK_WAITS, highrise: HIGHRISE_WAITS });
 /** a live node only the SERVER writes (rules: .write false) — not a player node, never in the wipe list (its dealer clears it) */
 const SERVER_LIVE = Object.freeze({ holdem: "HOLD'EM's public table — rooms/{CODE}/holdem, written by THE DEALER (api/_lib/holdem-store.js) only" });
@@ -75,7 +70,7 @@ test('T1 — every playable game is registered in EVERY place the console, the s
 });
 
 test('JAYWALK H1 — a game BEING BUILT (a `preview` row) is registered in the same places — minus its ONE named list of waits, each with its pass; none of them stale', async () => {
-  assert.deepEqual(BUILDING.map(g => g.id), ['highrise'], 'ONE game is being built: HIGH RISE (S4A — the hidden cartridge)');
+  assert.deepEqual(BUILDING.map(g => g.id), [], 'NO game is being built (HIGH RISE went playable at its GO-LIVE, Nov 20) — the rule waits for the next one');
   for (const g of BUILDING) {
     const waits = WAITS[g.id] || {}, found = await gaps(g), keys = new Set(found.map(x => x[0]));
     assert.deepEqual(found.filter(([k]) => !(k in waits)).map(([, what]) => `${g.id}: ${what}`), [], `${g.id}: every place that does not wait`);
@@ -92,6 +87,7 @@ test('JAYWALK is playable, no waits (THE GO-LIVE PASS): a playable game has no w
     else assert.ok(g.preview === true, `${id}: waits are only for a game being built`);
   }
   assert.ok(GAMES.find(x => x.id === 'jaywalk').playable && Object.keys(JAYWALK_WAITS).length === 0, 'JAYWALK is playable, no waits');
+  assert.ok(GAMES.find(x => x.id === 'highrise').playable && Object.keys(HIGHRISE_WAITS).length === 0, 'HIGH RISE is playable, no waits (its GO-LIVE, Nov 20)');
   // (the rule still bites — the same check on a copy: a playable row with a wait left is red)
   const ok = (g, w) => !g.playable || Object.keys(w).length === 0;
   assert.equal(ok({ playable: true }, { meta: 'the go-live pass — x' }), false, 'a playable row with a wait left is red');

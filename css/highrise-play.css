@@ -1,6 +1,6 @@
 /* HIGH RISE (prefix hi-) — S2: THE TEST PAGE (highrise-play.html — docs/highrise.md "THE TEST PAGE"): the real game's night look + solo.
-   Its tokens + fonts are the site's (css/base.css); the SOUNDS sheet + its tubes are THE SHELL's (css/components.css). The lab's graybox
-   page keeps its own self-contained file (css/highrise.css — the two never load together). PHONE FIRST: a wide screen gets the phone's
+   Its tokens + fonts are the site's (css/base.css); the SOUNDS sheet + its tubes are THE SHELL's (css/components.css). (THE LAB's graybox page
+   + its css/highrise.css left at THE GO-LIVE.) PHONE FIRST: a wide screen gets the phone's
    own column, centred (DESKTOP COMES FREE). Motion: transform + opacity only; the glows are static. */
 .hi-play-html, .hi-play-on { margin: 0; height: 100%; background: #05040c; color: var(--text); overflow: hidden; overscroll-behavior: none; }
 .hi-play-on { font-family: var(--font-ui); -webkit-text-size-adjust: 100%; touch-action: pan-x pan-y; }

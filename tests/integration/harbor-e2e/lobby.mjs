@@ -261,7 +261,7 @@ G('room', async () => {
   await waitFor(q, "!!document.querySelector('.sh.options')", 'the options', 8000).catch(() => {});
   await ev(q, "document.querySelector('.sh.options .btn-primary').click()");
   const started = await waitFor(q, "window.__arcade.state.meta && window.__arcade.state.meta.status === 'playing'", 'the game starts', 15000).then(() => true, () => false);
-  ok(gs.n === 4 && gs.t === 'PICK A GAME' && started,   // (THE GO-LIVE PASS: + JAYWALK — four playable)
+  ok(gs.n === 5 && gs.t === 'PICK A GAME' && started,   // (THE GO-LIVE PASS: + JAYWALK · HIGH RISE's GO-LIVE: + HIGH RISE — five playable)
   `PLAY (the host): PICK A GAME (${gs.n} playable) → its options → INITIATE — today's start path (${started ? 'playing' : 'not started'})`);
   await A.ctx.close(); await B.ctx.close();
   log('room', 'done');
@@ -447,7 +447,7 @@ G('tapfit', async () => {
     } finally { await ctx.close(); }
   }
   // THE BOARD's TOP REDONE (the owner's iPhone at 390, Nov 12 — "the whole top is messed up"): NO ☰ on THE BOARD (THE PROFILE's rule — ‹ BACK alone in
-  // the top-left corner), the title on its own row, the six tabs on ONE row (THE GO-LIVE PASS: + JAYWALK) — the title box, the tab row + the corner buttons never overlap, at the
+  // the top-left corner), the title on its own row, the SEVEN tabs on ONE row (THE GO-LIVE PASS: + JAYWALK · HIGH RISE's GO-LIVE: + HIGH RISE) — the title box, the tab row + the corner buttons never overlap, at the
   // phones' widths (+ 390 × 664: Safari with its bars) and the desktop, on the app's board + the public /board
   for (const [w, h] of [[390, 844], [390, 664], [402, 874], [430, 932], [1440, 900]]) for (const mode of ['app', 'public']) {
     const ctx = await br.createBrowserContext(), p = await ctx.newPage();
@@ -467,7 +467,7 @@ G('tapfit', async () => {
       const bad = [];
       if (hit(g.title, g.row)) bad.push('the title over the tabs');
       for (const [k, c] of g.corners) { if (k === 'menu') bad.push('a ☰ on THE BOARD'); if (hit(c, g.title)) bad.push(`${k} over the title`); if (hit(c, g.row)) bad.push(`${k} over the tabs`); }
-      if (g.tops.length !== 1 || g.n !== 6) bad.push(`the tabs on ${g.tops.length} rows (${g.n})`);
+      if (g.tops.length !== 1 || g.n !== 7) bad.push(`the tabs on ${g.tops.length} rows (${g.n})`);
       const back = g.corners.find(c => c[0] === 'back');
       if (!back || back[1].x > 20 || back[1].y > 24) bad.push(`‹ BACK not in the corner (${back ? `${Math.round(back[1].x)}, ${Math.round(back[1].y)}` : 'none'})`);
       ok(!bad.length, `THE BOARD's TOP · ${mode} ${w}×${h}: the title (${Math.round(g.title.y)}–${Math.round(g.title.y + g.title.h)}) above the tabs (${g.row ? Math.round(g.row.y) : '—'}, one row of ${g.n}), ‹ BACK in the corner, no ☰${bad.length ? ` — ${bad.join(' · ')}` : ''}`);

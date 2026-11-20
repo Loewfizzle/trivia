@@ -1,6 +1,7 @@
 # HIGH RISE (id `highrise`) — the tower-stacking game
 
-**BEING BUILT — S1 (Nov 18 2026): THE RULES · S2 (Nov 18–19 2026): THE NIGHT LOOK + SOLO on an unlisted test page · S3 (Nov 19 2026):
+**PLAYABLE + COUNTING since THE GO-LIVE (Nov 20 2026 — `docs/games/passes/highrise-golive.md`): for everyone, on top of the games list
+with NEW, its own BOARD tab — held OFF the city's signs by THE SIGN HOLD until THE CITY PASS.** The road: S1 (Nov 18 2026): THE RULES · S2 (Nov 18–19 2026): THE NIGHT LOOK + SOLO on an unlisted test page · S3 (Nov 19 2026):
 THE DAY LOOK + THE LOOK SWITCH + THE FLYERS + DEEP SPACE + THE MOTHERSHIP, the 2 cards' art prepared · S4A (Nov 19 2026): THE SOUND
 SYNC, THE HIDDEN CARTRIDGE (the owner's phone only, SOLO in a room), COUNTING built end to end — and switched OFF · S4A FIX (Nov 19 2026):
 ZERO GARBAGE IN PLAY (the iPhone's stalls), THE WELCOME + THE END (the owner's A picks), the UFO's lamps, the pink tape's white core, THE ICON · S4B (Nov 19–20 2026): THE END SCREEN (JAYWALK's standard), THE LAG CHECK (the pre-warm, `?lean=1`), THE MATCH (2 … 8 players, hidden), THE RULE-SET TABLE, THE LIVE LOCK (a rules change) · S5 (Nov 20 2026): THE PLACE NUMBER + the ranked list in WATCH, 18 s, THE SHARE IMAGE, THE B1 BILLBOARD art (not installed), THE BAKED HUD · THE REVIEW (Nov 20, review only) · REVIEW FIX A (Nov 20): THE TOP HUD, SPECTATE IN SYNC, the match fixes · REVIEW FIX B (Nov 20): THE SHARE CARD = B · THE POSTER (six hero shots), THE DAY END SCREEN, THE WOULD COUNT LINE.** A 3D neon
@@ -9,11 +10,12 @@ JAYWALK is its quality benchmark AND its engine formula (docs/jaywalk.md): a pur
 log, a preview on the live site. The owner's decisions: `docs/games/plan.md` "HIGH RISE — S1" · "— S2" · "— S2 FIX" · "— S3" · "— S4A" · "— S4A FIX" (+ its ADD-ONS)
 (**NO DAILY for HIGH RISE** — the owner, Nov 18: the seed barely changes play; the engine's daily mode stays unused).
 
-**HIGH RISE IS HIDDEN FROM PLAYERS (S4A)**: a HIDDEN cartridge — its `config.js` GAMES row is `playable: false` + `preview` (BEING BUILT):
-no sign, no list, no board tab, no HOW TO PLAY, no meta at boot; **only THE OWNER's phone can start it** ("THE CARTRIDGE", below), and
-**NOTHING IS AWARDED UNTIL GO-LIVE** ("THE SWITCH"). Its two addresses stay UNLISTED: **/highrise-play** (THE TEST PAGE — the real game's
-two looks, SOLO; its door shut: **NOTHING COUNTS**, zero server calls) and **/highrise-lab** (S1's graybox — never counts). Read this page
-before a HIGH RISE pass.
+**HIGH RISE IS LIVE (THE GO-LIVE, Nov 20)**: its `config.js` GAMES row is `playable: true, live: '2026-11-20'` — every phone's PLAY
+shelf + every room's PICK A GAME (on TOP with NEW its first 14 days), HOW TO PLAY, its tile (THE TOWER), its BOARD tab (TALLEST TOWER), its
+meta at boot; **THE SWITCH is ON** (`HIGHRISE_COUNTS = true`: XP, the ONE streak, YOUR BEST, YOUR TABLE, the two cards, the share LINK,
+THE DAILY CEILING 20). **THE SIGN HOLD** (`core/harbor-neon.js#SIGN_HOLD`) keeps it OFF every city sign until THE CITY PASS lifts it
+("THE GO-LIVE", below). The unlisted test page **/highrise-play** stays — its door shut: **NOTHING COUNTS**, zero server calls.
+/highrise-lab (S1's graybox) was DELETED at the go-live (the owner's call). Read this page before a HIGH RISE pass.
 
 ## THE PASSES — INDEX
 | pass | date | log | what it built |
@@ -29,6 +31,7 @@ before a HIGH RISE pass.
 | THE REVIEW (review only) | Nov 20 2026 | `docs/games/passes/highrise-review.md` | a read-only audit before go-live: the engine, the judge + speed SOLID; Ben's HUD + spectate notes measured; the match's host trust (MUST 2 → THE PROOF PASS); the go-live checklist |
 | REVIEW FIX A — THE MATCH | Nov 20 2026 | `docs/games/passes/highrise-fix-a.md` | THE TOP HUD (the floor centred, band + clock one narrow line, THE PLACE NUMBER alone top-right, every gap ≥ 16 px), the place ties (floor → perfects), WATCH's list ≤ 5 rows, SPECTATE IN SYNC (the watched player played back 750 ms late — 0 px past a tap), A GO IS NOT A PLAY, a host hiccup at GO no longer unproven, no GHOST all match, YOUR BEST = counted runs only |
 | REVIEW FIX B — THE SHARE CARD | Nov 20 2026 | `docs/games/passes/highrise-fix-b.md` | THE SHARE CARD = B · THE POSTER (the six HERO SHOTS from the real game — the hero camera, no flyers — full-bleed, always night, ALL GOLD for the finish; the live-frame capture GONE), THE DAY END SCREEN (one soft still of the day scene under a dark tint — no filter), THE WOULD COUNT LINE (wraps; NEW BEST only over the best shown), the `--fly` shot script |
+| THE GO-LIVE (+ the day end screen + the share card's type) | Nov 20 2026 | `docs/games/passes/highrise-golive.md` | THE DAY END SCREEN to the mockup (the camera pulled back, a NAVY tint, far less blur; every line measured) · THE SHARE CARD's TYPE ("10 FLOORS" + the band in pink) · THE FLIP (playable for everyone, NEW on top, HIGHRISE_COUNTS ON, its meta at boot, HOW TO PLAY, the tile, THE BOARD's tab, the credits group, the weekly goal's pool) · THE SIGN HOLD · /highrise-lab deleted · the two cards out of THE LAB |
 | S3 — THE DAY LOOK + THE FLYERS + DEEP SPACE | Nov 19 2026 | `docs/games/passes/highrise-s3.md` | THE DAY LOOK (frosted glass, one sun), THE LOOK SWITCH (AUTO · DAY · NIGHT, a 1.5 s cross-fade, never a hitch), THE FLYERS (the seed's Blackbird OR F-22 pair at 35–45 · the UFO at 85 · THE MOTHERSHIP from ~180), floor 200 (solo: the moment, then DEEP SPACE · `?mode=match`: THE FINISH + the gold card), the sounds final (ALL A), the 2 cards' art prepared |
 
 ## THE RULES (the owner's)
@@ -104,7 +107,7 @@ the engine jumps from one to the next (a judge's replay costs one step a tap, no
   A drop's own events come together, in order: `drop` → `perfect` / `grow` / `cut` → `land` | `out`.
 - **THE TOWER A VIEW DRAWS** = `tower.js#createTower(run, { onPerfect, onFall })` fed with those events — pure, and the slab lies where
   the engine's own `land` says, so no batching (two drops in one frame, a tap + the fuse with no frame between) can lose or double a slab
-  (`tests/highrise-lab.test.mjs` "THE VIEW'S TOWER == THE ENGINE'S" — the fresh-eyes review's find). S2's looks build on it.
+  (`tests/highrise-tower.test.mjs` "THE VIEW'S TOWER == THE ENGINE'S" — moved from the lab's test at THE GO-LIVE — the fresh-eyes review's find). S2's looks build on it.
 - **THE PURE EXTRAS** (view-only, but the same on every phone): `flyerFor(seed)` → 'blackbird' | 'f22' · `paletteFor(seed, floor)` → a
   colour index 0 … 23 (the seed picks where the wheel starts; one step a floor).
 
@@ -192,30 +195,10 @@ tightening a 7-ms player falls on floor ≈ 418, a 5-ms machine on ≈ 447 at 5:
 What changed from the starting numbers, and why: `docs/games/passes/highrise-s1.md` "THE TUNING" + `highrise-s2.md` "THE TUNING".
 `tests/highrise-sim.test.mjs` = the FAST version (200 seeds) asserting the bands — a future tuning slip goes red there.
 
-## THE LAB
-**https://neonspeakeasy.com/highrise-lab** — `highrise-lab.html` (the site root — it deploys; noindex nofollow; linked from nowhere) +
-`js/games/highrise/lab.js` + `graybox.js` + `css/highrise.css` (prefix `hi-`). Open to anyone with the link.
-- **THE GRAYBOX** (three.js 0.160 — the same import map as jaywalk-lab.html): flat-shaded boxes; **THE DIAGONAL CAMERA** the real game
-  will use (`graybox.js#CAM`: turned 45°, 33° down, a narrow 20° lens) climbing with the top slab; the first slab = 60 % of the screen
-  width (on a wide screen, of a phone-shaped column — DESKTOP COMES FREE); the cut piece just falls away; a PERFECT flashes the top
-  edge white. It builds its own tower from the engine's EVENTS (the lab's check: its top == the engine's).
-- **Tap anywhere to drop** — the pointerdown's `event.timeStamp` → its tick (FAIR TAPS). The first touch only STARTS the run (tick 0 =
-  that touch); TAP TO RETRY is the next run's start (the end's words stay 0.6 s first). Space / Enter on a keyboard.
-- **THE HUD** (plain text, readable at 390 × 844): FLOOR big at the top · STREAK · the mode + its clock · SOLO / MATCH / DAILY (`?mode=`) ·
-  the seed (`?seed=` = the same slabs on every retry; else a random one, shown) · on OUT the cause's words big in the middle band (between
-  the HUD and the top slab — the falling slab stays in view) + TAP TO RETRY. The mode switch + the seed are OFF the screen while a run is
-  live (a thumb at the foot is a drop, never a restart) and back with the end's words.
-- **After every run** the recorded log is replayed through a FRESH engine: **REPLAY = LIVE ✓** (or ✗ + the first differing tick).
-  `?fps=1` = a frame-rate readout.
-- **THE LAB NEVER COUNTS:** zero `fetch` / XHR / web socket / Firebase; it imports nothing from `/api`, the profile, progression, the
-  report, share or the cards; nothing is stored. EVERY import is STATIC (its own engine files + `core/rng.js` + three.js): no dynamic
-  import, so not even the skew wrapper's deploy check can run. No web font (the HUD is the system's monospace). (Precisely: this is the
-  PAGE. On a phone the site's service worker already controls, `sw.js` itself asks `GET /api/time` at any navigation in its scope — ONE
-  DEPLOY AT A TIME's build check, read-only, the same for /jaywalk-lab and every page; nothing of the run is in it.)
-- **The tests:** `tests/highrise-lab.test.mjs` (unit — the page, the WHOLE module graph walked and proven clean, HIGH RISE invisible) +
-  `tests/integration/highrise-lab.mjs "<chromium>" [outDir]` (the browser half, outside the sandbox: the lab at 390 × 844, a bot run
-  through REAL taps, NO request but the page's own static files + the three.js CDN, no counted module, REPLAY = LIVE ✓, the shots).
-  THE PAGES LOAD (`kit/page-loads.mjs`) opens it in the smoke test. The page's hook for the checks: `window.__hiLab`.
+## THE LAB — DELETED AT THE GO-LIVE (Nov 20 — the owner's call)
+S1's graybox page (/highrise-lab — `highrise-lab.html`, `js/games/highrise/lab.js` + `graybox.js`, `css/highrise.css`, its unit + browser
+tests) is GONE; an old link gets THE WRONG DOOR (`404.html`). Its camera numbers live on in `camera.js#CAM` (pinned in
+`tests/highrise-play.test.mjs`). The unlisted test page /highrise-play stays (below). The history: `docs/games/passes/highrise-s1.md`.
 
 ## THE TEST PAGE — https://neonspeakeasy.com/highrise-play (S2 — `highrise-play.html` · `js/games/highrise/play.js` + `stage.js` · `css/highrise-play.css`)
 The real game's two looks + SOLO, on the live site, on a phone: the owner tests on cellular, his brother from a shared link.
@@ -623,7 +606,9 @@ runs only, hidden until go-live) and writes `.vl-s-hi-*` / `.vl-fcm-hi-*` from t
   (music off): a wake-up on most effects (8–9 in a 14-tap run), 10–13 ms each even in desktop Chromium** — on an iPhone the wait is
   the finger's lift. `tests/audio-session.test.mjs` "THE HOLD" = the same on the real engine over a fake context.
 
-## THE CARTRIDGE (S4A — HIDDEN: THE OWNER'S LIVE TEST, JAYWALK H1 / H3's pattern; `meta.js` · `director.js` · `index.js` · `view.js` · `final.js`)
+## THE CARTRIDGE (S4A — built HIDDEN (the owner's phone only), PLAYABLE for everyone since THE GO-LIVE; `meta.js` · `director.js` · `index.js` · `view.js` · `final.js`)
+- **THE GO-LIVE (Nov 20): ANY PHONE** — PLAY → HIGH RISE (no · TEST) → PLAY NOW, or any host's PICK A GAME. The owner-only lines just
+  below are S4A's history (the console's preview gate stays in the code for the next game being built).
 - **WHO CAN START IT: THE OWNER ALONE.** `config.js` GAMES row `{ id: 'highrise', … playable: false, preview: true }` → `isPlayable` /
   `isOwnerTest` are true only on a phone the SERVER said is the owner's (the radio gate — `ADMIN_PIDS`). **How:** the dock's **PLAY →
   HIGH RISE · TEST → PLAY NOW** (a private solo room), or HOST a room → PICK A GAME → HIGH RISE · TEST with nobody else in it. Nobody
@@ -680,7 +665,10 @@ runs only, hidden until go-live) and writes `.vl-s-hi-*` / `.vl-fcm-hi-*` from t
   log (floor 0) is never a play; a refused log is named in `rejected`. `highriseMatch` = S4B's half, ready (THE FIRST GO's seed).
 - **Known limit** (JAYWALK's): a bot that plays in real time is indistinguishable from a very good player.
 
-## THE SWITCH (S4A — COUNTING STAYS OFF UNTIL GO-LIVE: the owner, Nov 19)
+## THE SWITCH (S4A — OFF until go-live · ON since THE GO-LIVE, Nov 20)
+- **THE GO-LIVE: `HIGHRISE_COUNTS = true`.** OFF stays the one-line KILL SWITCH (false again = judged, never awarded — nothing else to
+  undo). The emulators' flip `testHighriseCounts` is now TWO-WAY (true or false, over the code's value — `api/report.js#highriseCounts`):
+  `server.test.mjs` forces it OFF to keep the kill switch's WOULD COUNT path tested; e2e-highrise + e2e-highrise-match run the code's ON.
 - **ONE server-side flag: `api/_lib/highrise.js#HIGHRISE_COUNTS = false`** — THE GO-LIVE PASS flips this ONE line.
 - **OFF:** `/api/report` still does all the judging (the gate, the night record, the proof node replayed, every check) — then
   **returns before any claim or credit**: `{ ok, status: 'would_count', outcome: { none: true, would } }`. `would` = `{ floor,
@@ -695,7 +683,10 @@ runs only, hidden until go-live) and writes `.vl-s-hi-*` / `.vl-fcm-hi-*` from t
 - **The test flip:** on the LOCAL EMULATORS only, the database switch `testHighriseCounts` turns it on (`api/report.js#highriseCounts`
   — `emulated()`; never honoured in production).
 
-## THE CARDS (S4A — in the catalog, HIDDEN until go-live)
+## THE CARDS (S4A — in the catalog; awarded since THE GO-LIVE; OUT OF THE LAB)
+- **THE GO-LIVE (the owner: "the two cards' lab marks removed")**: their four rows (n 225–228) left THE LAB (`js/vault/catalog.js` — no row,
+  no lab text) and their art SHIPS as it is: `js/vault/approved.js#SHIPPED` (strip + full card, no mark ever needed); their tiers without a
+  lab row: `catalog.js#SHIPPED_TIERS` (read by `strip.js` + `full.js`). Still pictures (the cards' own motion: a later pass).
 **ABOVE THE CLOUDS** (`card-abovetheclouds`, rare — floor 60 in ONE run, any mode) + **TOP OF THE WORLD** (`card-topoftheworld`,
 legendary — floor 200) and their achievements `above-the-clouds` / `top-of-the-world` (`api/_lib/catalog.js`): unlocked ONLY by the
 feat flags of a run the SERVER judged (`highrise-clouds` · `highrise-top` — the proof node's replay → the row's `ft` →
@@ -717,7 +708,14 @@ strip, the dashed gold outline + `BEST n ↑` are gone. Top to bottom, the same 
 - one line **n PERFECTS · BEST STREAK n**, then **YOUR TABLE** (the slim cards) right under it, then the universal footer
   (PLAY AGAIN · SHARE · CITY — S5: THE SHARE IMAGE, below).
 - JAYWALK's veil dims the scene, night + day. `WOULD COUNT …` stays ONE small line over the bar (`final.js#wouldLine`).
-- **THE DAY END SCREEN (REVIEW FIX B — the owner: "that's perfect", `Downloads\NEON\highrise-day-end-screen.png` the RIGHT side):** a day
+- **THE DAY END SCREEN — THE GO-LIVE's FIX (Ben's iPhone after FIX B: "grey murk, no blue sky, the tower a blurred grey blob"):** the camera
+  PULLS BACK for a day end (`night.js#POSE_FAR` endDay 1.7 × play's distance + `POSE.endDay` −0.05 — eased like the lift; `stage.js#endPose`
+  picks it by the look on screen, and follows a look switch under the end screen): the WHOLE top of the tower in the still with its edges;
+  the still at HALF the width + ONE soften pass (far less blur); the tint NAVY `rgba(9, 15, 42, …)` — 0.86 over the words only (to 44 %),
+  0.46 → 0.34 → 0.46 from the middle down, 0.7 at the foot; the foot's backing navy 0.55. EVERY line measured now (the header's three
+  words, the cause, the number + the stat lines): day worst 4.7 : 1 at 390 × 844 + 375 × 667; the NIGHT finish's header over THE
+  MOTHERSHIP's lit hull read 2.8 : 1 → that one veil's top 0.86 (6.8+). Side-by-sides: `Downloads\NEON\highrise-golive\end\`.
+  FIX B's first version (history): a day
   run's end keeps its dark style, layout, colours, glow + buttons, but the day sky + YOUR tower show through — ONE STILL of the scene
   (`stage.js#endStill`: taken END_STILL_MS after the end card — the end pose eased — through `night.js#snap`, shrunk to a quarter + a tiny
   box blur (`soften`), shown stretched in `.hi-endbg`: soft, frozen, NO CSS filter — the game's sheet keeps none, nothing redrawn a frame)
@@ -840,7 +838,10 @@ the missed slab frozen like a bridge). THE POSTER never uses the run's own frame
 - **THE CARD** (`share.js#paintPoster` — 1080 × 1350, FULL-BLEED, NO inner frame box, ALWAYS THE NIGHT LOOK whatever look the run was played
   in): the band's HERO SHOT fills the card (the band REACHED — `bandAt(floor)`; THE MOTHERSHIP's gold shot for a finished tower) ·
   top: HIGH (hot pink #ff4fd8) + RISE (cyan #35e3ff) in neon, a clear gap between, `SOLO · NEONSPEAKEASY` (or MATCH) small under it ·
-  the floor HUGE in the sky (the game's numerals, white-hot, a CYAN glow; a size down for a long number) + `FLOORS · THE SKYLINE` ·
+  the floor HUGE in the sky (the game's numerals, white-hot, a CYAN glow; a size down for a long number) with **FLOORS right beside it
+  on its baseline** (THE GO-LIVE — Ben: "FLOORS · THE ROOFTOPS" read as small wide-spaced cyan blurs: 72 px bold cyan, tight, a small
+  halo — it reads "10 FLOORS", the row centred together) + **THE BAND on its own line in PINK neon** (68 px, 900, tight — gold on the
+  finish; `hiRunCard` → `band`, `POSTER_L.unitPx / unitGap / bandY / bandPx`) — both read at 300 px (14 px caps) ·
   the foot over a dark fade: the cause in big pink neon (two lines a size down when long — MADE IT TO / THE MOTHERSHIP), `31 PERFECTS · BEN`,
   the kit's neon line + NEONSPEAKEASY.COM. **THE FINISH = ALL GOLD type** (the title, the number's glow, the cause, the line) on the gold shot.
   The numbers = the host's result rows (THE JUDGE's — the same the end screen shows).
@@ -938,13 +939,12 @@ a refused chunk in order — for both games at once; it touches live JAYWALK's r
 ## THE FILE MAP + THE TESTS
 ```
 highrise-play.html  css/highrise-play.css           THE TEST PAGE + its HUD (prefix hi-; the site's tokens + THE SHEET)
-highrise-lab.html  css/highrise.css                 THE LAB's page + its plain-text HUD (self-contained)
 js/games/highrise/rules.js                          THE RULE-SET TABLE (S4B — pure, imports nothing: every rule number, one row a rule set)
 js/games/highrise/tuning.js engine.js logic.js replay.js    THE RULES (pure — the phone AND the server; tuning.js = the classic row by name)
 js/games/highrise/match.js rivals.js                THE MATCH's rules (S4B — pure: the count, the end, the calls) · THE RIVALS (pure: a rival's tower from their landed taps, the tags, the passes)
 js/games/highrise/matchhud.js matchsim.js           THE MATCH's HUD (the altimeter, the tags, the announcer's lane, the count, WATCH) · the test page's bot rivals (lazy — `?mode=match&rivals=N`)
 js/games/highrise/bot.js                            the sim bots          scripts/highrise-sim.mjs   the 2,000-seed table
-js/games/highrise/tower.js                          the tower a view draws, from the events (pure — the lab AND the game)
+js/games/highrise/tower.js                          the tower a view draws, from the events (pure)
 js/games/highrise/play.js stage.js                  THE TEST PAGE (its door, its flags, its best) · THE STAGE: the run loop, the HUD, YOUR BEST, the lost context — the page AND the cartridge mount it
 js/games/highrise/meta.js director.js index.js      THE CARTRIDGE (S4A — hidden): the thin meta · the pure host step · the contract
 js/games/highrise/share.js                          THE SHARE CARD = B · THE POSTER (REVIEW FIX B): the card + SHARE (lazy, the cartridge's) — S5's shot.js GONE
@@ -960,12 +960,11 @@ js/games/highrise/flyplan.js flyers.js              THE FLYERS: when + which fro
 js/games/highrise/sounds.js sfx.js audition.js      THE SOUNDS: the table + the triggers (pure) · the engine glue · the SOUNDS list
 js/games/highrise/trace.js                          THE TRACE (S4A FIX 2 — `?trace=1`: a frame's phases, the 5 worst, typed arrays only)
 js/fx/hi-specs.js                                   THE 2 CARDS' ART as data (S3 — nothing reads it until S4)
-js/games/highrise/lab.js graybox.js                 THE LAB (S1's graybox)
 api/_lib/highrise.js                                THE JUDGE's server half (pure) + THE SWITCH (HIGHRISE_COUNTS) — wired into api/report.js (PROOF_GAMES) since S4A
 assets/highrise/  audio/highrise/                   the plates + the reflection maps + the F-22 · the sounds   scripts/build-highrise-assets.py [--look=day]
 assets/vault/hi/  art/highrise-cards/src/           the 2 cards' art + its masters   scripts/build-highrise-cards.mjs · scripts/bake/highrise-f22.mjs
 scripts/build-highrise-sounds.mjs                   the WAVs → the MP3s that ship (a pure-JS encoder from npm, given by path) · build-highrise-growback.mjs (S4A FIX's takes: mono, one loudness — take 1 ships)
-tests/highrise-engine.test.mjs (21) · highrise-server.test.mjs (5) · highrise-sim.test.mjs (5) · highrise-lab.test.mjs (6) · highrise-play.test.mjs (16) · highrise-cartridge.test.mjs (13 — S4A) · highrise-zero-garbage.test.mjs (8) + highrise-s4a-fix.test.mjs (6 — S4A FIX)
+tests/highrise-engine.test.mjs (21) · highrise-server.test.mjs (5) · highrise-sim.test.mjs (5) · highrise-play.test.mjs (16) · highrise-cartridge.test.mjs (13 — S4A) · highrise-zero-garbage.test.mjs (8) + highrise-s4a-fix.test.mjs (6 — S4A FIX)
 tests/integration/highrise-alloc.mjs (S4A FIX — THE GUARD: 8; `--table` = the pass's table) · kit/flash-watch.mjs (NO PINK FLASH)
 tests/highrise-s4a-fix2.test.mjs (5) · tests/integration/highrise-landing.mjs (S4A FIX 2 — the landing frame's measure, Chromium 4× CPU + the trace panel: 7) · highrise-flypath.mjs (each flyer's path through landings, Chromium + WebKit: 26)
 tests/integration/e2e-highrise.mjs (61 — the emulators: the hidden cartridge end to end; `--fast` skips the counting-ON run) · sound-sync.mjs (42 — both games; `--before`) · rules.test.mjs "the hr proof node" · server.test.mjs "HIGH RISE S4A"
@@ -978,14 +977,27 @@ tests/highrise-s5.test.mjs · tests/integration/highrise-place.mjs (THE PLACE NU
 tests/highrise-fix-b.test.mjs (REVIEW FIX B — THE POSTER, the six shots, the frame GONE, THE WOULD COUNT LINE, THE DAY END SCREEN) · tests/integration/highrise-share.mjs (THE POSTER at 1080 · 540 · 300) · highrise-play.mjs --end (+ the day still, the contrast measure, END_SIZES)
 tests/highrise-fix-a.test.mjs (REVIEW FIX A) · tests/integration/highrise-spectate.mjs (SPECTATE IN SYNC — every watched frame against each tap's own spot; its CONTROL on the old live clock) · highrise-place.mjs (+ THE TOP HUD's gaps, the ties, the list's fold, 1440 × 900)
 
+## THE GO-LIVE (Nov 20 2026 — `docs/games/passes/highrise-golive.md`; the owner's calls: `docs/games/plan.md` "HIGH RISE — THE GO-LIVE")
+- **THE FLIP (two lines):** `config.js` GAMES row `playable: true, live: '2026-11-20'` (no `preview`) · `api/_lib/highrise.js#HIGHRISE_COUNTS = true`.
+- **THE SURFACES:** its meta at boot (`registry.js#META` — meta.js's comments trimmed: it ships at boot now) · HOW TO PLAY (`ui/help.js`
+  `RULES.highrise` — eleven short lines a kid can read, one drawing each; tab `HR`) · its tile THE TOWER (`ui/game-art.js` — `MARKS.highrise`
+  lit on a night sky) · THE BOARD's SEVENTH tab (`board/view.js#TABS` + `GAME_LIGHT` pink + cyan) · the room list's logo colour
+  (`tube-logo.js#LOGO_ACC` hot pink) · the Credits sheet's HIGH RISE group (`ui/credits.js` — the F-22's CC BY 4.0 line REQUIRED, the
+  Blackbird + the UFO (CC BY), the sounds + the skies (CC0), the Grok art).
+- **NEW ON TOP:** `core/game-order.js` puts a game's first 14 days on top, the newest first — HIGH RISE above JAYWALK until Dec 3.
+- **THE WEEKLY GOAL:** a playable board game joins `core/boards.js#GOAL_GAMES` by its row — "Play 5 different games" weeks (from the week
+  of Dec 7) count HIGH RISE; this week's goal unchanged (checked: no mid-week switch). THE DAILY CEILING stays 20 for every game.
+- **THE SIGN HOLD (`core/harbor-neon.js#SIGN_HOLD = ['highrise']`):** HIGH RISE is playable and on NO city sign — `signRoster` (the named
+  signs, the hotel blade, the speakeasy blade's week, the ghost ad) and the neon's own list (`screens/harbor/neon.js` — the billboard pick)
+  leave it out; the tri-vision's faces are their own list (HOLD'EM · JAYWALK · THE DROP). **THE CITY PASS LIFTS IT** (empties the list — one
+  line) when it installs the B1 billboard, the HIGH / RISE roof sign + its day enamel, the blade. Tests: `tests/highrise-golive.test.mjs`,
+  `city-b-signs`, `harbor.test` (THE DAY PASS skips a held game), the harbor `neon` group ("THE SIGN HOLD: no HIGH RISE sign anywhere").
+- **THE BUDGETS, no raise:** THE BOOT 308 / 310 modules; `js/games` at boot 29.2 of 30 KB; JAYWALK's per-game line 2,449.7 of 2,450 KB
+  (comments trimmed — the review's ~0.3 KB).
+
 ## COMING
-- ~~THE REVIEW~~ (done) → ~~REVIEW FIX A — THE MATCH~~ (done) → ~~REVIEW FIX B — THE SHARE CARD~~ (done — SHOULD 7, the F-22's
-  1.1 MB before the first tap, still OPEN: docs/games/passes/highrise-fix-b.md) → **THE CITY pass** (HIGH RISE's billboard + roof sign + blade, lit only by the go-live switch — BEFORE the flip) → **GO-LIVE** →
-  **THE PROOF PASS** (JAYWALK + HIGH RISE's host trust, a re-publish — after go-live, BEFORE strangers are invited). The owner's go-live
-  calls (Nov 20): HIGH RISE counts toward the weekly "5 different games" · its own BOARD tab · THE DAILY CEILING stays 20 · /highrise-lab
-  deleted · the two cards' lab marks removed · JAYWALK's boot budget needs ~0.3 KB at the flip (trim comments or a named raise).
-- **THE GO-LIVE PASS** (after THE REVIEW): `playable: true` + `HIGHRISE_COUNTS = true` (ONE line each), its meta at boot, HOW TO
-  PLAY, its tile + icon, the board's tab, the site's Credits sheet's HIGH RISE group (the F-22, the Blackbird, the saucer: CC BY —
-  `assets/highrise/models/CREDITS.md`), the cards' own motion.
-- **NO DAILY** (the owner, Nov 18 — the seed barely changes play; parked idea only: a one-shot "TODAY'S TWIST"). Then THE REVIEW (+ the
-  icon + the billboard poster briefs) and THE GO-LIVE PASS.
+- ~~THE GO-LIVE~~ (done, Nov 20) → **THE PROOF PASS** (JAYWALK + HIGH RISE's host trust — the review's MUST 2; before strangers are invited;
+  ends in a re-publish) → **THE CITY PASS** (the B1 billboard, the roof tube sign HIGH / RISE, the blades, the rotation HIGH RISE → JAYWALK →
+  HOLD'EM with THE DROP removed — and it LIFTS THE SIGN HOLD).
+- Still open: SHOULD 7 (the F-22's 1.1 MB before the first tap — the owner's iPhone A/B) · the cards' own motion · NO DAILY (the owner,
+  Nov 18).

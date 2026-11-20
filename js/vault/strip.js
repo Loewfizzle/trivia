@@ -8,7 +8,7 @@
 import { h } from '../ui/dom.js';
 import { createSurface } from '../fx/renderer.js';
 import { FX } from '../fx/index.js';
-import { LAB } from './catalog.js';
+import { LAB, SHIPPED_TIERS } from './catalog.js';
 import { TIER_NAMES, ITEM } from '../core/items.js';
 import { emblemEl, hasArt } from './emblem-art.js';
 import { applyGlow } from './glows.js';
@@ -122,7 +122,7 @@ export const LOOKS = Object.freeze({
 /** a card's effect options on a surface (its tint rides along) */
 export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });
 export { vaultSheet } from './sheet.js';
-const tierOf = id => (LAB.find(x => x.id === id) || {}).tier || 'common';
+const tierOf = id => (LAB.find(x => x.id === id) || {}).tier || SHIPPED_TIERS[id] || 'common';   // (HIGH RISE's two cards: out of THE LAB at its go-live)
 /** an emblem's tier (the lab's row, else the owner's item row; the sign-up shapes are commons) */
 export const embTier = id => (id && ((LAB.find(x => x.id === id) || {}).tier || (ITEM[id] || {}).tier)) || 'common';
 

@@ -137,6 +137,9 @@ const SCENE = {
   // (THE JAYWALK GO-LIVE PASS: its card, night + day; HOW TO PLAY on its tab — act help = ui/help.js#openHelp(game))
   'pn-jaywalk': ['2026-11-10T20:30', { act: 'card', game: 'jaywalk' }], 'pn-jaywalk-day': ['2026-11-10T13:30', { act: 'card', game: 'jaywalk' }],
   'jw-help': ['2026-11-10T20:30', { act: 'help', game: 'jaywalk' }], 'jw-help-day': ['2026-11-10T13:30', { act: 'help', game: 'jaywalk' }], 'jw-help-end': ['2026-11-10T20:30', { act: 'help', game: 'jaywalk', end: true }],
+  // (HIGH RISE's GO-LIVE: the shelf, its card night + day, HOW TO PLAY on its tab + its end)
+  'pn-highrise': ['2026-11-10T20:30', { act: 'card', game: 'highrise' }], 'pn-highrise-day': ['2026-11-10T13:30', { act: 'card', game: 'highrise' }],
+  'hr-help': ['2026-11-10T20:30', { act: 'help', game: 'highrise' }], 'hr-help-day': ['2026-11-10T13:30', { act: 'help', game: 'highrise' }], 'hr-help-end': ['2026-11-10T20:30', { act: 'help', game: 'highrise', end: true }],
   // (PD-6 — THE SOLO PODIUM FITS: the podium AS IT LANDS (no scroll) — Safari WITH its toolbars = --sizes 390x650,402x690,430x746 (no --safe):
   //  PRISM DROP's solo (night + day, SCORE RUSH + SURVIVAL), OVERCLOCK's solo, a ROOM OF ONE (HOST → play alone); the multiplayer podium untouched)
   'pd6-pod': ['2026-11-10T20:30', { act: 'solo-podium', game: 'prism', top: 1 }], 'pd6-pod-day': ['2026-11-10T13:30', { act: 'solo-podium', game: 'prism', top: 1 }],

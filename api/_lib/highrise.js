@@ -40,8 +40,10 @@ export const serverRow = v => (v && v.ok
  * cards' flags) — and WRITES NOTHING: no pstats, no profile, no board row, no card, no streak day, no results/ record. THE GO-LIVE PASS
  * sets this to true (ONE line) — then a run is counted by JAYWALK's normal path. (On the LOCAL EMULATORS a test may flip it through the
  * database switch `testHighriseCounts` — api/report.js#highriseCounts; never honoured in production.)
+ * THE GO-LIVE (Nov 20): ON — every proven solo run + match counts (XP, the ONE streak, YOUR BEST, YOUR TABLE, the two cards, the share
+ * LINK, THE DAILY CEILING). The OFF path stays as the one-line KILL SWITCH (false again = judged, never awarded — nothing else to undo).
  */
-export const HIGHRISE_COUNTS = false;
+export const HIGHRISE_COUNTS = true;
 
 /** ONE player's PROOF NODE → the judge's answer for a SOLO run (the seed = seedOf(code, matchId, go): picked after GO; tick 0 = that GO). No GO = no run. */
 export const verifyNode = ({ code, matchId, node } = {}) => judgeSolo({ code, matchId, node });
