@@ -13,7 +13,7 @@
 // behind the last chunk — a SIGNAL: the result is THE JUDGE's replay of the node, proof.js#judgeSolo — never a number the phone claims).
 import { cleanSettings } from './meta.js';
 import { modeOf, matchStart, seedOf } from './logic.js';
-import { judgeSolo, judgeNode } from './proof.js';
+import { judgeSolo, judgeNode, matchRules } from './proof.js';
 import { COUNT_MS, NO_GO_MS, END_GRACE_MS, UNPROVEN_MS, startOf, capAt, endedFor, scoreCalls } from './match.js';
 
 /** the match (start() adds nothing else): `now` = the moment the MATCH begins (after the walk inside) */
@@ -43,9 +43,9 @@ export function scoreNode(code, matchId, node) {
   return rowOf(judgeSolo({ code, matchId, node, mirror: true }), node, true);   // (the host's own live mirror — proof.js `mirror`; the server's count is strict)
 }
 /** S4B — a MATCH's node: judged on THE FIRST GO's seed + clock (tick 0 = game.playAt — exactly as the server's highriseMatch does) */
-export function scoreMatchNode(game, node) {
+export function scoreMatchNode(game, node, rules = null) {
   if (!node || !(Number(node.go) > 0) || !game.seed) return { ...NONE };
-  return rowOf(judgeNode({ seed: game.seed, mode: 'match', node: { ...node, go: game.playAt }, mirror: true }), node, false);
+  return rowOf(judgeNode({ seed: game.seed, mode: 'match', node: { ...node, go: game.playAt }, mirror: true, rules }), node, false);
 }
 function finalPatch(game0, runs, now, code) {
   if (game0.mode === 'solo') {
@@ -57,8 +57,8 @@ function finalPatch(game0, runs, now, code) {
   //  otherwise the patch puts it right)
   const S = startOf(game0, runs, code), moved = !!S && (S.seed !== game0.seed || S.playAt !== game0.playAt);
   const game = moved ? { ...game0, seed: S.seed, playAt: S.playAt, g0: S.g0 } : game0;
-  const results = {};
-  for (const uid of Object.keys(game.participants || {})) results[uid] = game.unproven ? { ...NONE } : scoreMatchNode(game, runs[uid]);
+  const results = {}, rules = matchRules(runs);   // (everyone in a match climbs by ONE rule set: THE FIRST GO's)
+  for (const uid of Object.keys(game.participants || {})) results[uid] = game.unproven ? { ...NONE } : scoreMatchNode(game, runs[uid], rules);
   const patch = { phase: 'final', phaseStartAt: now, endAt: now, results, ...(moved ? { seed: S.seed, playAt: S.playAt, g0: S.g0 } : {}) };
   const calls = game.unproven ? {} : scoreCalls(game, runs, results);
   if (Object.keys(calls).length) patch.calls = calls;

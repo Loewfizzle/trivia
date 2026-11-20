@@ -2,12 +2,14 @@
 // the phone, the host's director and the SERVER run this file. A run is counted ONLY from its PROOF NODE:
 //   rooms/{CODE}/hr/{matchId}/{uid} = { go (the SERVER's time, written ONCE at GO — the seed is picked from it: logic.js#seedOf; tick 0),
 //     c/{i} = { s: the packed taps of that chunk, at: the SERVER's time it ARRIVED } (append only, i 0 … 9999, ≤ 400 chars),
-//     e { f, t, w } (the run's end, once — a SIGNAL for the host's step: never read as a score) }
+//     e { f, t, w } (the run's end, once — a SIGNAL for the host's step: never read as a score),
+//     rs (S4B — the RULE SET the run is played on: rules.js — written once, right behind GO; none = "classic"; the judge refuses one it does not know) }
 // THE JUDGE (judgeNode) = the chunks → the tap log + its clock → THE SPEED CHECK both ways + THE DROPPED SIGNAL → replay.js#judgeRun (the
 // SAME engine the phone ran). A phone's claimed floor is never read — there is no field the judge takes one from.
 import { judgeRun, unpackTaps } from './replay.js';
 import { TICK_HZ } from './tuning.js';
-import { seedOf } from './logic.js';
+import { seedOf, firstGo } from './logic.js';
+import { RULES_DEFAULT } from './rules.js';
 
 /**
  * THE CLOCK (JAYWALK's, number for number — a run is played ON the server's clock; every chunk carries the moment it ARRIVED):
@@ -90,8 +92,12 @@ export function clockProblem(go, times) {
  * refuses (the bounds, a tap in a landing beat, a tap after the end). A log that falls BEHIND the clock with no silence to explain it is
  * CUT (`cut: { why: 'behind', tick }`): judged up to its last on-time tap — the fuse then ends that run where it stood.
  */
-export function judgeNode({ seed, mode = 'solo', node, mirror = false } = {}) {
+export function judgeNode({ seed, mode = 'solo', node, mirror = false, rules = null } = {}) {
   if (!node || typeof node !== 'object' || !(Number(node.go) > 0)) return { ok: false, why: 'no go' };
+  // (S4B — THE RULE SET: the node's own `rs` — none = "classic". `rules` = the set a MATCH is played on (its first GO's player's): a
+  //  node that names another one is refused — everyone in a match climbs by the same numbers)
+  const rs = node.rs == null ? RULES_DEFAULT : node.rs;
+  if (rules != null && rs !== rules) return { ok: false, why: 'rules' };
   let taps = tapsFromChunks(node.c);
   const times = chunkTimes(node.c);
   if (!taps || !times) return { ok: false, why: 'chunks' };
@@ -103,8 +109,14 @@ export function judgeNode({ seed, mode = 'solo', node, mirror = false } = {}) {
   let cut = null;
   if (c && c.why !== 'behind') return { ok: false, why: c.why === 'ahead' ? 'ahead of the clock' : c.why === 'clock' ? 'the chunks\' clock' : c.why };
   if (c) { cut = { why: 'behind', tick: c.tick }; taps = taps.slice(0, c.taps); }
-  const j = judgeRun({ seed, mode, taps });
+  const j = judgeRun({ seed, mode, taps, rules: rs });
   return j.ok && cut ? { ...j, cut } : j;
+}
+/** S4B — a MATCH's rule set = the one THE FIRST GO's player named (none = "classic"): PURE — the phones, the host and the server agree */
+export function matchRules(runs) {
+  const g0 = firstGo(runs);
+  for (const n of Object.values(runs || {})) if (n && Number(n.go) === g0 && g0 > 0) return n.rs == null ? RULES_DEFAULT : n.rs;
+  return RULES_DEFAULT;
 }
 /** a SOLO run's node: the seed = logic.js#seedOf(code, matchId, its own GO) — picked AFTER GO, nobody can shop for a tower */
 export const judgeSolo = ({ code, matchId, node, mirror = false } = {}) => (node && Number(node.go) > 0

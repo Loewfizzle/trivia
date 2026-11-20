@@ -8,8 +8,7 @@
 //   · THE 6:00 CAP falls for everyone still standing at its own tick: nothing to confirm.
 // And what a player SEES of them: THE HEIGHT TAPES (a rival under you = a thin tape round YOUR tower at their floor) + THE TAGS (a rival
 // at or above you = a right-edge tag "ALEX ▲3" in the clear column) — at most the 3 nearest each way, tags that would overlap MERGE.
-import { createRun, tap, stepTo, isOver } from './engine.js';
-import { BEAT, FLOOR_TICKS_MAX, MODES } from './tuning.js';
+import { createRun, tap, stepTo, isOver, endBy } from './engine.js';
 import { unpackTaps } from './replay.js';
 
 /** at most this many rivals as tags (above) · as tapes on the tower (below) */
@@ -44,13 +43,13 @@ export function feedRival(R, node) {
       if (R.bad) break;
     }
   }
-  if (node && node.e && !R.done) { R.done = true; if (!isOver(R.run)) stepTo(R.run, R.last + BEAT + FLOOR_TICKS_MAX); }
+  if (node && node.e && !R.done) { R.done = true; if (!isOver(R.run)) stepTo(R.run, endBy(R.run, R.last)); }
   return fresh;
 }
 /** THE CAP: at its tick every tower still standing stops where it stands — MARKED, never stepped (a tap of theirs from before the cap
  *  may still be on its way: the engine is moved by landed taps alone) */
 export function capRival(R, tick) {
-  const cap = MODES[R.mode] ? MODES[R.mode].capTicks : null;
+  const cap = R.run.R.modes[R.mode] ? R.run.R.modes[R.mode].capTicks : null;
   if (cap != null && tick >= cap && !isOver(R.run)) R.capped = true;
 }
 /** has this rival's climb ENDED, as far as this phone knows? (the finish + the cap are ends too: `rivalEnd` says which) */
@@ -60,7 +59,7 @@ export const rivalEnd = R => (isOver(R.run) ? (R.run.st === 'made' ? 'made' : R.
 /** their slab's fuse is long past at `tick` — a whole floor's longest time (FLOOR_TICKS_MAX) + SILENT_TICKS since their last LANDED tap —
  *  with no tap and no end here: their signal is away (shown as such — never as out). (A rival's run rests in its landing beat between
  *  two taps: it is moved by landed taps alone — so this is counted from the last one, never from a slab's own state.) */
-export const rivalSilent = (R, tick) => !isOver(R.run) && !R.capped && !R.done && tick > R.last + FLOOR_TICKS_MAX + SILENT_TICKS;
+export const rivalSilent = (R, tick) => !isOver(R.run) && !R.capped && !R.done && tick > R.last + R.run.R.floorTicksMax + SILENT_TICKS;
 /** WATCHING a tower: the next slab ENTERS on the clock (the entry is the seed's — nothing of the player's), so it is seen sliding; it is
  *  never stepped to its fuse (a held slab waits for its tap / their end) → the tick the engine may be stepped to now (−1 = not yet) */
 export const entryTick = (run, tick) => (run.st === 'beat' && tick >= run.s0 ? run.s0 : -1);

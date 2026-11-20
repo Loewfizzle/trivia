@@ -5,46 +5,54 @@
 // one to the next. The phone's live run and the server's judge run THIS code.
 // PURE: no DOM, no three.js, never Math.random / Date / performance / a frame clock; integers + Math.floor / Math.imul only (no float).
 import { hashString } from '../../core/rng.js';
-import { START, PERFECT, GROW, GROW_STREAK, THIN, TRAVEL, FUSE_SWEEPS, BEAT, WOBBLE, SWEEP_MAX, sweepBase, sweepFloorMin, MODES, MODE_IDS, MAX_TAPS, PALETTE_N, CLOUDS_FLOOR, TOP_FLOOR } from './tuning.js';
+import { MODE_IDS, MAX_TAPS, PALETTE_N, CLOUDS_FLOOR, TOP_FLOOR } from './tuning.js';
+// S4B — THE RULE-SET TABLE (rules.js): every rule number is read off the rule set THIS RUN is played on (`run.R` — the row; `run.rules` —
+// its id, recorded with the run). The engine holds no rule number of its own.
+import { RULE_SETS, RULES_DEFAULT, ruleSet, sweepBaseOf, sweepFloorMinOf } from './rules.js';
+
+const CLASSIC = RULE_SETS[RULES_DEFAULT];
 
 // ---- THE SEED's picks (integers only): which end a slab enters from + its sweep's wobble — and nothing else
 /** uint32 → uint32, scrambled (Math.imul + shifts: exact on every engine) */
 const mix = a => { a = Math.imul(a ^ (a >>> 16), 0x85ebca6b); a = Math.imul(a ^ (a >>> 13), 0xc2b2ae35); return (a ^ (a >>> 16)) >>> 0; };
 export const seedHash = seed => hashString(`highrise:${seed}`);
 const pick = (h, floor, salt) => mix((h ^ Math.imul(floor, 0x9e3779b1) ^ salt) >>> 0);
-/** a mode's row — only the MODES' own names (never 'constructor' / '__proto__') */
-export const modeRow = mode => (typeof mode === 'string' && MODE_IDS.includes(mode) ? MODES[mode] : null);
+/** a mode's row on rule set `R` — only the modes' own names (never 'constructor' / '__proto__') */
+export const modeRow = (mode, R = CLASSIC) => (typeof mode === 'string' && MODE_IDS.includes(mode) ? R.modes[mode] : null);
 
 /** the slide axis of `floor` (1 = the first slab): even floors slide along x, odd floors along z */
 export const axisOf = floor => (floor % 2 === 0 ? 'x' : 'z');
 /** the end `floor`'s slab enters from: +1 / −1 on its axis — the seed's pick (fully off the tower either way) */
 export const endOf = (h, floor) => (pick(h, floor, 0x51ab37) & 1 ? 1 : -1);
-/** the ticks one sweep of `floor`'s slab takes: the curve + the seeded wobble (± WOBBLE), never out of the curve's band */
-export function sweepTicks(h, floor) {
-  const s = sweepBase(floor) + (pick(h, floor, 0x77e19d) % (2 * WOBBLE + 1)) - WOBBLE, lo = sweepFloorMin(floor);
-  return s < lo ? lo : s > SWEEP_MAX ? SWEEP_MAX : s;
+/** the ticks one sweep of `floor`'s slab takes on rule set `R`: the curve + the seeded wobble (± R.wobble), never out of the curve's band */
+export function sweepTicks(h, floor, R = CLASSIC) {
+  const s = sweepBaseOf(R, floor) + (pick(h, floor, 0x77e19d) % (2 * R.wobble + 1)) - R.wobble, lo = sweepFloorMinOf(R, floor);
+  return s < lo ? lo : s > R.sweepMax ? R.sweepMax : s;
 }
 /**
  * THE SLIDE: the slab's offset from the tower's top (its low edge − the top's low edge on the slide axis; 0 = dead on) `k` ticks after
  * it entered — a triangle wave: e × TRAVEL at k = 0 (fully off), 0 at half a sweep, −e × TRAVEL at k = S, back at k = 2 S …
  * The floor is taken on the UNSIGNED distance, so the two directions mirror each other exactly.
  */
-export function slideOff(S, e, k) {
-  const m = k % (2 * S), kk = m <= S ? m : 2 * S - m, d = TRAVEL - Math.floor(2 * TRAVEL * kk / S);
+export function slideOff(S, e, k, travel = CLASSIC.travel) {
+  const m = k % (2 * S), kk = m <= S ? m : 2 * S - m, d = travel - Math.floor(2 * travel * kk / S);
   return e > 0 ? d : 0 - d;   // (0 − d: never a negative zero)
 }
 
-/** a new run: the base slab (START × START, centred on 0) "landed" at tick 0 — the first slab enters at tick BEAT */
-export function createRun({ seed, mode = 'solo' } = {}) {
-  if (!modeRow(mode)) throw new Error(`highrise: unknown mode ${mode}`);
-  const s = String(seed), half = START / 2;
+/** a new run on rule set `rules` (rules.js — "classic" when none is named): the base slab (start × start, centred on 0) "landed" at
+ *  tick 0 — the first slab enters at tick `beat`. The run RECORDS its rule set (`rules`) and carries its row (`R`). */
+export function createRun({ seed, mode = 'solo', rules = RULES_DEFAULT } = {}) {
+  const R = ruleSet(rules);
+  if (!R) throw new Error(`highrise: unknown rule set ${rules}`);
+  if (!modeRow(mode, R)) throw new Error(`highrise: unknown mode ${mode}`);
+  const s = String(seed), half = R.start / 2;
   return {
-    seed: s, mode, h: seedHash(s),
+    seed: s, mode, rules: R.id, R, h: seedHash(s),
     t: 0,                                   // the tick the run was stepped to
     st: 'beat',                             // 'beat' (a landing beat: no slab) | 'slide' | 'out' | 'made' | 'cap'
     floor: 0, at: 0,                        // the slabs landed + the tick the last one landed (THE RANKING: height, then the earlier tick)
     x0: -half, x1: half, z0: -half, z1: half,   // THE TOP SLAB's edges (integers)
-    s0: BEAT, S: 0, e: 0,                   // the slab's entry tick (in a beat: the NEXT one's) · its sweep ticks · its entry end (+1 / −1)
+    s0: R.beat, S: 0, e: 0,                 // the slab's entry tick (in a beat: the NEXT one's) · its sweep ticks · its entry end (+1 / −1)
     streak: 0, perfects: 0, maxStreak: 0, taps: 0,
     cause: '', end: -1,                     // out: 'miss' | 'thin' | 'slow' · the tick the run ended
   };
@@ -59,7 +67,7 @@ function finish(run, st, cause, T, ev) {
 /** the next slab enters (at run.s0) */
 function spawn(run, ev) {
   const floor = run.floor + 1;
-  run.st = 'slide'; run.S = sweepTicks(run.h, floor); run.e = endOf(run.h, floor);
+  run.st = 'slide'; run.S = sweepTicks(run.h, floor, run.R); run.e = endOf(run.h, floor);
   if (ev) ev.push({ e: 'spawn', floor, axis: axisOf(floor), from: run.e, S: run.S, t: run.s0 });
 }
 
@@ -69,18 +77,18 @@ function spawn(run, ev) {
  * slab GROWS BACK) · no overlap → OUT, a miss · else it is CUT to the overlap (the streak ends) and, if a side is under THIN, it slips off.
  */
 function drop(run, T, fuse, ev) {
-  const floor = run.floor + 1, x = floor % 2 === 0, axis = x ? 'x' : 'z';
+  const R = run.R, floor = run.floor + 1, x = floor % 2 === 0, axis = x ? 'x' : 'z';
   const lo = x ? run.x0 : run.z0, hi = x ? run.x1 : run.z1, size = hi - lo;
-  const off = slideOff(run.S, run.e, T - run.s0), a = off < 0 ? -off : off;
+  const off = slideOff(run.S, run.e, T - run.s0, R.travel), a = off < 0 ? -off : off;
   if (!fuse) run.taps++;
   if (ev) ev.push({ e: 'drop', floor, axis, off, fuse, t: T });
   let nlo = lo, nhi = hi;
-  if (a <= PERFECT) {
+  if (a <= R.perfect) {
     run.streak++; run.perfects++;
     if (run.streak > run.maxStreak) run.maxStreak = run.streak;
     if (ev) ev.push({ e: 'perfect', floor, streak: run.streak, t: T });
-    if (run.streak > GROW_STREAK && size < START) {
-      const g = START - size < GROW ? START - size : GROW, l = Math.floor(g / 2);
+    if (run.streak > R.growStreak && size < R.start) {
+      const g = R.start - size < R.grow ? R.start - size : R.grow, l = Math.floor(g / 2);
       nlo = lo - l; nhi = hi + (g - l);
       if (ev) ev.push({ e: 'grow', floor, axis, by: g, t: T });
     }
@@ -90,14 +98,14 @@ function drop(run, T, fuse, ev) {
     // the CUT: the piece past the slab below falls away (its size + side are rules data; its fall is the view's)
     if (off > 0) nlo = lo + off; else nhi = hi + off;
     if (ev) ev.push({ e: 'cut', floor, axis, side: off > 0 ? 1 : -1, piece: { lo: off > 0 ? hi : lo + off, hi: off > 0 ? hi + off : lo, size: a }, t: T });
-    if (nhi - nlo < THIN || (x ? run.z1 - run.z0 : run.x1 - run.x0) < THIN) return finish(run, 'out', fuse ? 'slow' : 'thin', T, ev);
+    if (nhi - nlo < R.thin || (x ? run.z1 - run.z0 : run.x1 - run.x0) < R.thin) return finish(run, 'out', fuse ? 'slow' : 'thin', T, ev);
   }
   if (x) { run.x0 = nlo; run.x1 = nhi; } else { run.z0 = nlo; run.z1 = nhi; }
   run.floor = floor; run.at = T;
   if (ev) ev.push({ e: 'land', floor, x0: run.x0, x1: run.x1, z0: run.z0, z1: run.z1, t: T });   // (the slab as it lies — a view needs nothing else to draw it)
-  const M = MODES[run.mode];
+  const M = R.modes[run.mode];
   if (M.finish != null && floor >= M.finish) return finish(run, 'made', '', T, ev);
-  run.st = 'beat'; run.s0 = T + BEAT;
+  run.st = 'beat'; run.s0 = T + R.beat;
 }
 
 /**
@@ -109,9 +117,9 @@ function drop(run, T, fuse, ev) {
  */
 export function stepTo(run, T, ev) {
   if (!Number.isSafeInteger(T)) return run;   // (a tick is a whole number — anything else moves nothing)
-  const cap = MODES[run.mode].capTicks;
+  const cap = run.R.modes[run.mode].capTicks, fuse = run.R.fuseSweeps;
   while (!isOver(run)) {
-    const next = run.st === 'beat' ? run.s0 : run.s0 + FUSE_SWEEPS * run.S;
+    const next = run.st === 'beat' ? run.s0 : run.s0 + fuse * run.S;
     if (cap != null && cap <= next) { if (cap <= T) finish(run, 'cap', '', cap, ev); break; }
     if (next > T) break;
     if (run.st === 'beat') spawn(run, ev); else drop(run, next, true, ev);
@@ -141,10 +149,10 @@ export function slabAt(run, tick) {
 /** … the same, written INTO `out` (a record the view keeps — S4A FIX, ZERO GARBAGE: a frame asks it twice and makes nothing) → out | null */
 export function slabInto(run, tick, out) {
   if (run.st !== 'slide') return null;
-  const floor = run.floor + 1, x = floor % 2 === 0, lim = FUSE_SWEEPS * run.S;
+  const floor = run.floor + 1, x = floor % 2 === 0, lim = run.R.fuseSweeps * run.S;
   let k = tick - run.s0;
   if (k < 0) k = 0; else if (k > lim) k = lim;
-  const off = slideOff(run.S, run.e, k);
+  const off = slideOff(run.S, run.e, k, run.R.travel);
   out.floor = floor; out.axis = x ? 'x' : 'z'; out.off = off;
   out.x0 = run.x0 + (x ? off : 0); out.x1 = run.x1 + (x ? off : 0); out.z0 = run.z0 + (x ? 0 : off); out.z1 = run.z1 + (x ? 0 : off);
   return out;
@@ -152,9 +160,14 @@ export function slabInto(run, tick, out) {
 /** THE TOP SLAB as the view wants it: its centre + its sides (a centre may sit on a half unit — the RULES only ever use the edges) */
 export const topOf = run => ({ cx: (run.x0 + run.x1) / 2, cz: (run.z0 + run.z1) / 2, w: run.x1 - run.x0, d: run.z1 - run.z0 });
 
+/** the tick by which a run whose LAST tap fell at `lastTap` (0 = none) has surely ended (the beat + the fuse's sweeps at the slowest
+ *  sweep of its rule set) — what a replay steps to after the last tap */
+export const endBy = (run, lastTap) => lastTap + run.R.beat + run.R.floorTicksMax;
+
 /** the run's RESULT — what the phone shows and the server's judge returns (the same code) */
 export function resultOf(run) {
   return {
+    rules: run.rules,   // (S4B: the rule set this run was played on — recorded with it)
     floor: run.floor, tick: run.at, end: run.end, over: isOver(run),
     cause: run.st === 'out' ? run.cause : run.st === 'made' || run.st === 'cap' ? run.st : '',
     made: run.st === 'made',

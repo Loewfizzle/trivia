@@ -4,7 +4,7 @@
 // ready for S4B) — behind THE SWITCH (HIGHRISE_COUNTS, below: OFF until go-live — judged, never awarded).
 import { judgeRun as judge, unpackTaps } from '../../js/games/highrise/replay.js';
 import { featsOf, matchStart } from '../../js/games/highrise/logic.js';
-import { judgeNode, judgeSolo } from '../../js/games/highrise/proof.js';
+import { judgeNode, judgeSolo, matchRules } from '../../js/games/highrise/proof.js';
 
 /**
  * judgeRun({ seed, mode, taps }) → { ok: true, floor, tick, end, cause, made, perfects, maxStreak, taps, feats: { reachedClouds, reachedTop } }
@@ -66,12 +66,12 @@ export function highriseMatch({ code, matchId, uids, nodes }) {
   const S = matchStart(String(code), String(matchId), nodes), ids = (uids || []).filter(u => typeof u === 'string');
   if (!S || ids.length < 2) return { game: null, why: S ? 'players' : 'no go' };
   if (!ids.some(u => nodes[u] && nodes[u].c != null)) return { game: null, why: 'no drops' };
-  const results = {}, participants = {};
+  const results = {}, participants = {}, rules = matchRules(nodes);   // (S4B: ONE rule set a match — THE FIRST GO's; a node that names another is refused)
   for (const u of ids) {
     participants[u] = true;
     const node = nodes && nodes[u];
     // (a match's tick 0 = THE FIRST GO + its lead: the node is judged on that clock — S4B's view writes its chunks against it)
-    results[u] = node && Number(node.go) > 0 ? serverRow(judgeNode({ seed: S.seed, mode: 'match', node: { ...node, go: S.playAt } })) : { f: 0, t: 0, w: '', e: -1, p: 0, s: 0, bad: 'no go' };
+    results[u] = node && Number(node.go) > 0 ? serverRow(judgeNode({ seed: S.seed, mode: 'match', node: { ...node, go: S.playAt }, rules })) : { f: 0, t: 0, w: '', e: -1, p: 0, s: 0, bad: 'no go' };
   }
   return { game: { id: 'highrise', matchId, phase: 'final', mode: 'match', sv: 1, seed: S.seed, playAt: S.playAt, g0: S.g0, participants, settings: {}, results } };
 }

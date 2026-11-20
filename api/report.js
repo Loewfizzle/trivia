@@ -119,7 +119,10 @@ export function wouldAward(row, w, rec) {
   const pb = (w.pbs || []).find(p => p.b === 'highrise-solo');
   // (the cards by their FEAT — never an item's name: ITEM NAMES ONLY TO OWNERS)
   const cards = [['above-the-clouds', 'clouds'], ['top-of-the-world', 'top']].filter(([a]) => (w.ach || []).some(x => (x && x.id ? x.id : x) === a)).map(([, f]) => f);
-  return { ...out, xp: w.xp, streak: w.streak, best: !!pb, table: rec != null ? rec : null, cards, ...(w.solo ? { so: w.solo } : {}) };
+  // (S4B — "+0 XP" SAYS WHY: the day's XP is done — a solo run past THE SOLO LANE's SOLO_DAY_XP paid runs of the streak day (every solo
+  //  game counts toward them: four JAYWALK runs use them up), or a room match past THE DAILY CEILING. `cap` → the line's "DAILY CAP")
+  const cap = !(w.xp > 0) && (!!w.capped || !!(w.solo && w.solo.n > w.solo.max));
+  return { ...out, xp: w.xp, streak: w.streak, best: !!pb, table: rec != null ? rec : null, cards, ...(w.solo ? { so: w.solo } : {}), ...(cap ? { cap: 1 } : {}) };
 }
 
 /**

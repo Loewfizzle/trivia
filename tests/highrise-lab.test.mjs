@@ -60,7 +60,7 @@ test('HIGH RISE IS HIDDEN FROM PLAYERS (S4A — it is a HIDDEN cartridge now: te
 
 test('THE LAB NEVER COUNTS — its WHOLE module graph: only its own engine files + the integer hash + three.js; nothing from /api, the profile, progression, the report, share, the cards, Firebase, the store', () => {
   const g = graph('js/games/highrise/lab.js');
-  assert.deepEqual(g.files, ['js/core/rng.js', 'js/games/highrise/engine.js', 'js/games/highrise/graybox.js', 'js/games/highrise/lab.js', 'js/games/highrise/logic.js', 'js/games/highrise/meta.js', 'js/games/highrise/replay.js', 'js/games/highrise/tower.js', 'js/games/highrise/tuning.js'], 'every module the page loads');
+  assert.deepEqual(g.files, ['js/core/rng.js', 'js/games/highrise/engine.js', 'js/games/highrise/graybox.js', 'js/games/highrise/lab.js', 'js/games/highrise/logic.js', 'js/games/highrise/meta.js', 'js/games/highrise/replay.js', 'js/games/highrise/rules.js', 'js/games/highrise/tower.js', 'js/games/highrise/tuning.js'], 'every module the page loads (S4B: + rules.js — THE RULE-SET TABLE the engine reads)');
   assert.deepEqual(g.bare, ['three'], 'the one outside module: three.js (the import map)');
   for (const f of g.files) {
     const s = code(f);

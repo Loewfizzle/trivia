@@ -269,7 +269,8 @@ test('THE VIEW WRITES THE PROOF — AND ONLY ITS OWN NODE: GO once (the server\'
   assert.match(v, /fin\(\{ seed: seedOf\(code, matchId, go\), t0: perfOf\(go\), taps: old \|\| \[\] \}\);/, 'the seed = hash(code + matchId + GO); tick 0 = GO');
   assert.match(v, /dbSet\(dbRef\(`\$\{nodePath\(\)\}\/c\/\$\{chunkN\}`\), \{ s, at: serverTimestamp\(\) \}\)/);
   assert.match(v, /dbUpdate\(dbRef\(nodePath\(\)\), \{ e: \{ f: r\.floor, t: r\.tick, w: String\(r\.cause \|\| ''\)\.slice\(0, 12\) \} \}\)/);
-  assert.equal((v.match(/dbSet\(|dbUpdate\(/g) || []).length, 3, 'three writes in all: GO, a chunk, the end');
+  assert.equal((v.match(/dbSet\(|dbUpdate\(/g) || []).length, 4, 'four writes in all: GO, the rule set (S4B: `rs`, once, right behind GO), a chunk, the end');
+  assert.match(v, /dbSet\(dbRef\(path\), RULES_DEFAULT\)\.catch\(/, 'the rule set: best effort — a refused write is read as classic by the judge');
   assert.match(v, /if \(matchLeft\(\)\) \{ lateProof\('dropped'\); sent = taps\.length; countQuietLate\(\); return; \}/, 'never a chunk once the match left `play`');
   assert.match(v, /if \(!isMatch && performance\.now\(\) - \(globalThis\.__nsAgainAt \|\| -1e9\) < 3000\) park\(S\); else S\.destroy\(\);/, 'parked only over a SOLO run\'s PLAY AGAIN — else (a match too) freed at once');
   assert.match(v, /if \(!proven\) \{ showLeave\(\); return \{ own: true, note: 'NOT COUNTED — NO LINE TO THE BOARD' \}; \}/, 'an UNPROVEN run ends on the stage\'s own card');

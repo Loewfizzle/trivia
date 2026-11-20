@@ -6,9 +6,9 @@
 // HIDING THE APP = NO PAUSE (the owner — JAYWALK's rule): the run is on the clock; back from a hidden tab THE FUSE has ended it (TOO SLOW).
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { TICK_MS, TICK_HZ, MODES, MODE_IDS, BEAT, FLOOR_TICKS_MAX, SEED_MAX, TIGHT } from './tuning.js';
+import { TICK_MS, TICK_HZ, MODES, MODE_IDS, SEED_MAX, TIGHT } from './tuning.js';
 import { RIVAL_TAPES } from './night.js';
-import { createRun, stepTo, tap, isOver, resultOf } from './engine.js';
+import { createRun, stepTo, tap, isOver, resultOf, endBy } from './engine.js';
 import { replay } from './replay.js';
 import { endWords, tickOf } from './logic.js';
 import { createTower } from './tower.js';
@@ -277,7 +277,7 @@ export function createStage(app, o = {}) {
   function feedWatch() {
     const tp = watchW.taps;
     while (wN < tp.length && !isOver(run)) tap(run, tp[wN++], ev);
-    if (!isOver(run) && watchW.done()) stepTo(run, (tp.length ? tp[tp.length - 1] : 0) + BEAT + FLOOR_TICKS_MAX, ev);
+    if (!isOver(run) && watchW.done()) stepTo(run, endBy(run, tp.length ? tp[tp.length - 1] : 0), ev);
     // (the next slab ENTERS on the clock — the seed's own doing: the watched tower's slab is seen sliding; never stepped to its fuse)
     if (!isOver(run)) { const en = entryTick(run, Math.floor(FS[TAU])); if (en >= 0) stepTo(run, en, ev); }
   }
@@ -501,7 +501,7 @@ export function createStage(app, o = {}) {
     let same = bad < 0 && used === taps.length && JSON.stringify(r) === JSON.stringify(live), at = -1;
     const fresh = createRun({ seed, mode: MODE }), evR = [];
     for (const t of taps) tap(fresh, t, evR);
-    stepTo(fresh, (taps.length ? taps[taps.length - 1] : 0) + BEAT + FLOOR_TICKS_MAX, evR);
+    stepTo(fresh, endBy(fresh, taps.length ? taps[taps.length - 1] : 0), evR);
     for (let i = 0; i < Math.max(evR.length, liveN); i++) {
       const lv = i < liveN ? liveEv[i] : undefined;
       if (JSON.stringify(evR[i]) !== JSON.stringify(lv)) { same = false; at = Math.min(evR[i] ? evR[i].t : Infinity, lv ? lv.t : Infinity); break; }
@@ -515,7 +515,7 @@ export function createStage(app, o = {}) {
     stage.classList.remove('is-live'); if (card) stage.classList.add('is-over');
     view.rest();   // (the first band's plate comes back while the card is up: PLAY AGAIN never starts on a blank sky)
     view.flyHush();   // (… and a flyer still in the sky fades out: never behind the card's words)
-    hook.ends.push({ seed, mode: MODE, same, at, live, replay: r, taps: taps.slice(), best, was }); if (hook.ends.length > 50) hook.ends.shift();
+    hook.ends.push({ seed, mode: MODE, rules: run.rules, same, at, live, replay: r, taps: taps.slice(), best, was }); if (hook.ends.length > 50) hook.ends.shift();
   }
 
   let trLive = false;   // (THE TRACE: the run was live as this frame's record opened)

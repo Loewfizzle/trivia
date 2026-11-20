@@ -36,5 +36,5 @@ test('BACK TO THE CITY: the last one out KEEPS a room whose report is queued; th
   assert.match(queue, /saveQueue\(loadQueue\(\)\.filter\(x => x\.k !== k\)\);\n[^\n]*\n\s*if \(globalThis\.__nsSweepKept\) globalThis\.__nsSweepKept\(\);/);
   // (host.js's soloLeave still settles the report first — ≤ 3 s; only what is STILL queued after it keeps the room)
   assert.match(read('js/host.js'), /q\.settle\(q\.matchKey\(code, m\), 3000\)/);
-  assert.match(read('js/games/kit/again.js'), /pruneRuns\(code, recent, m => pending\(matchKey\(code, m\)\)\)/);
+  assert.match(read('js/games/kit/again.js'), /pruneRuns\(code, recent, m => pending\(matchKey\(code, m\)\) \|\| held\(m\)\)/);
 });

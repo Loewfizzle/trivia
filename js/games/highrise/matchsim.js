@@ -7,8 +7,7 @@ import { createRun } from './engine.js';
 import { gaussBot, playBot } from './bot.js';
 import { judgeRun } from './replay.js';
 import { createRival, rivalOver, rivalEnd, capRival, matchCalls } from './rivals.js';
-import { tap, stepTo, isOver } from './engine.js';
-import { BEAT, FLOOR_TICKS_MAX } from './tuning.js';
+import { tap, stepTo, isOver, endBy } from './engine.js';
 
 /** the rivals' names, colours (the console's player colours) + their timing errors (ms): a near-perfect one, good ones, sloppy ones */
 export const SIM = Object.freeze([
@@ -34,7 +33,7 @@ export function startSim(S, n) {
     const tick = Math.floor(S.tick()), me = S.result(), hud = S.hud();
     for (const p of list) {
       while (p.k < p.all.length && p.all[p.k] + LAG <= tick && !isOver(p.R.run)) { if (tap(p.R.run, p.all[p.k])) { p.R.taps.push(p.all[p.k]); p.R.last = p.all[p.k]; } p.k++; }
-      if (!p.done && p.k >= p.all.length && tick >= p.end + LAG) { p.done = true; p.R.done = true; if (!isOver(p.R.run)) stepTo(p.R.run, p.R.last + BEAT + FLOOR_TICKS_MAX); }
+      if (!p.done && p.k >= p.all.length && tick >= p.end + LAG) { p.done = true; p.R.done = true; if (!isOver(p.R.run)) stepTo(p.R.run, endBy(p.R.run, p.R.last)); }
       capRival(p.R, tick);
     }
     const watched = S.watching();

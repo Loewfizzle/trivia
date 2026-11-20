@@ -23,6 +23,7 @@ import { createFinal } from '../../ui/final.js';
 import { backToLobby } from '../../host.js';
 import { seedOf, gameStandings, END_WORDS, perfectsLine } from './logic.js';
 import { TICK_HZ } from './tuning.js';
+import { RULES_DEFAULT } from './rules.js';
 import { startOf } from './match.js';
 import { createRival, resetRival, feedRival, capRival, rivalOver, rivalEnd, rivalSilent, matchCalls, follow, nextFollow } from './rivals.js';
 import { CLOCK, packFrom, tapsFromChunks } from './proof.js';
@@ -105,6 +106,16 @@ export function createView() {
     expectRefusal(`${nodePath()}/e`, `highrise: the end after the match ended (${why})`, 90_000, 'late-proof');
   }
 
+  /** S4B — THE RULE SET: the run RECORDS the rule set it is played on — `rs` on its own proof node, once, right behind its GO. Best
+   *  effort: on rules not yet re-published the write is refused (expected, quiet) — THE JUDGE reads a node with no `rs` as "classic". */
+  let wroteRs = false;
+  function writeRs() {
+    if (wroteRs || gone || matchLeft()) return;
+    wroteRs = true;
+    const path = `${nodePath()}/rs`;
+    expectRefusal(path, 'highrise rs: already written (a rejoin) or the rules are not re-published yet', 90_000);
+    dbSet(dbRef(path), RULES_DEFAULT).catch(() => { /* the judge reads no `rs` as classic */ });
+  }
   /** GO: the proof node's first write — the SERVER's time, read back → the seed + tick 0. → the run the stage adopts */
   function askGo() {
     const m = matchId, path = `${nodePath()}/go`;
@@ -137,7 +148,7 @@ export function createView() {
       expectRefusal(path, 'highrise GO: already written (a rejoin) or the rules are not published yet');
       dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => {
         const v = snap.val();
-        if (typeof v === 'number' && v > 0) proof(v, null); else unproven('no go');
+        if (typeof v === 'number' && v > 0) { proof(v, null); writeRs(); } else unproven('no go');
       }).catch(() => {
         // refused: this run's GO is already there (a rejoin) — take the node; nothing there = unproven
         dbGet(dbRef(nodePath())).then(snap => { const n = snap.val(); if (n && n.go > 0 && !n.e) proof(n.go, n.c); else unproven('refused'); }).catch(() => unproven('refused'));
@@ -285,6 +296,7 @@ export function createView() {
     const St = startOf(g, runs, code);
     if (St && (mSeed !== St.seed || mPlayAt !== St.playAt)) adoptMatch(St, runs);
     proven = haveGo && !g.unproven && mine(g);
+    if (proven && adopted && !wroteRs && !(runs && runs[uid] && runs[uid].rs != null)) writeRs();
     if (adopted && !final) {
       const rows = feedRivals(g, runs || {}, now);
       if (outRes || !mine(g)) afterOut(g, runs, rows);

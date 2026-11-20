@@ -124,7 +124,7 @@ export async function wouldApply(key, ex, pids, uid, now = Date.now(), room = nu
   const [cur, outage] = await Promise.all([val(`pstats/${pid}`), outageDays().catch(() => ({}))]);
   const res = step(cur, key, ex.gid, row, ex.n, now, at, outage, { ...factsFor(uid, ex, pids, at, room), founderOpen: false, win: (room && room.win) || null });
   if (res.skip) return { skip: res.skip };
-  return { xp: res.xp.total, streak: res.streak.n, pbs: res.pbs || [], ach: res.ach || [], items: res.items || [], solo: res.solo || null };
+  return { xp: res.xp.total, streak: res.streak.n, pbs: res.pbs || [], ach: res.ach || [], items: res.items || [], solo: res.solo || null, ...(res.capped ? { capped: true } : {}) };   // (S4B: capped = past THE DAILY CEILING — the line says why it is +0)
 }
 
 export { toSort };

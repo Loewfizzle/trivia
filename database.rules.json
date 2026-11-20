@@ -696,9 +696,8 @@
           }
         },
         "jw": {
-          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists() && !(newData.parent().child('game/id').val() === 'jaywalk' && (newData.parent().child('game/phase').val() === 'count' || newData.parent().child('game/phase').val() === 'play') && data.child(newData.parent().child('game/matchId').val()).exists())",
           "$match": {
-            ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists() && !(newData.parent().parent().child('game/id').val() === 'jaywalk' && newData.parent().parent().child('game/matchId').val() === $match && (newData.parent().parent().child('game/phase').val() === 'count' || newData.parent().parent().child('game/phase').val() === 'play'))",
+            ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists() && !(newData.parent().parent().child('game/id').val() === 'jaywalk' && newData.parent().parent().child('game/matchId').val() === $match && (newData.parent().parent().child('game/phase').val() === 'count' || newData.parent().parent().child('game/phase').val() === 'play')) && (!data.exists() || (data.child(auth.uid).child('go').isNumber() && data.child(auth.uid).child('go').val() < now - 600000))",
             "$uid": {
               "go": {
                 ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'jaywalk' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (root.child('rooms/' + $code + '/game/phase').val() === 'play' || (root.child('rooms/' + $code + '/game/phase').val() === 'count' && now >= root.child('rooms/' + $code + '/game/playAt').val() - 2000)) && newData.exists() && !data.exists()",
@@ -755,9 +754,8 @@
           }
         },
         "hr": {
-          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists() && !(newData.parent().child('game/id').val() === 'highrise' && (newData.parent().child('game/phase').val() === 'count' || newData.parent().child('game/phase').val() === 'play') && data.child(newData.parent().child('game/matchId').val()).exists())",
           "$match": {
-            ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists() && !(newData.parent().parent().child('game/id').val() === 'highrise' && newData.parent().parent().child('game/matchId').val() === $match && (newData.parent().parent().child('game/phase').val() === 'count' || newData.parent().parent().child('game/phase').val() === 'play'))",
+            ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists() && !(newData.parent().parent().child('game/id').val() === 'highrise' && newData.parent().parent().child('game/matchId').val() === $match && (newData.parent().parent().child('game/phase').val() === 'count' || newData.parent().parent().child('game/phase').val() === 'play')) && (!data.exists() || (data.child(auth.uid).child('go').isNumber() && data.child(auth.uid).child('go').val() < now - 600000))",
             "$uid": {
               "go": {
                 ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'highrise' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (root.child('rooms/' + $code + '/game/phase').val() === 'play' || (root.child('rooms/' + $code + '/game/phase').val() === 'count' && now >= root.child('rooms/' + $code + '/game/playAt').val() - 2000)) && newData.exists() && !data.exists()",
@@ -790,6 +788,10 @@
                 "$other": {
                   ".validate": false
                 }
+              },
+              "rs": {
+                ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'highrise' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (root.child('rooms/' + $code + '/game/phase').val() === 'play' || (root.child('rooms/' + $code + '/game/phase').val() === 'count' && now >= root.child('rooms/' + $code + '/game/playAt').val() - 2000)) && newData.exists() && !data.exists() && root.child('rooms/' + $code + '/hr/' + $match + '/' + $uid + '/go').exists() && !root.child('rooms/' + $code + '/hr/' + $match + '/' + $uid + '/e').exists()",
+                ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16 && newData.val().matches(/^[a-z0-9-]+$/)"
               },
               "e": {
                 ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'highrise' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (root.child('rooms/' + $code + '/game/phase').val() === 'play' || (root.child('rooms/' + $code + '/game/phase').val() === 'count' && now >= root.child('rooms/' + $code + '/game/playAt').val() - 2000)) && newData.exists() && !data.exists() && root.child('rooms/' + $code + '/hr/' + $match + '/' + $uid + '/go').exists()",

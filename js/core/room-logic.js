@@ -155,8 +155,22 @@ export const GAME_ON_LINE = 'A GAME IS STILL ON — WAIT FOR ITS END';
  * started, so a new start clears the proof nodes (games/registry.js#PROOF_NODE_LIST) of every match EXCEPT the ones in `keep` (the previous
  * match + the new one). PURE: trees = { node: { matchId: … } } → { 'node/matchId': null } for each stale match.
  */
-export function staleProofPaths(trees, keep = []) {
-  const k = new Set(keep.filter(Boolean)), out = {};
-  for (const [node, t] of Object.entries(trees || {})) if (t && typeof t === 'object') for (const m of Object.keys(t)) if (!k.has(m)) out[`${node}/${m}`] = null;
+export function staleProofPaths(trees, keep = [], lock = null) {
+  const k = new Set(keep.filter(Boolean)), out = {}, L = lock && new Set(lock.nodes || []);
+  for (const [node, t] of Object.entries(trees || {})) if (t && typeof t === 'object') for (const m of Object.keys(t)) {
+    if (k.has(m) || (L && L.has(node) && !proofUnlocked(t[m], lock.uid, lock.now))) continue;   // (THE LIVE LOCK: the rules would refuse it — and one refused path takes the whole prune down)
+    out[`${node}/${m}`] = null;
+  }
   return out;
 }
+/**
+ * HIGH RISE S4B — THE LIVE LOCK (database.rules.json `jw/{match}` + `hr/{match}` — the gap both games shared): the host may delete ONE
+ * match's proof tree only when HIS OWN `go` in it is older than PROOF_LOCK_MS — whatever `game` says. (The rule used to look at
+ * game/phase alone: a host on a modified client flipped the phase, deleted the live tree and wrote a new GO.) A GO is the server's
+ * time, written once, by its player: nothing the host writes moves it. A tree with no GO of the host's is never his to delete — it goes
+ * with the room. PURE: `lock` = { nodes: the locked proof nodes, uid: the host, now: the server's time } → only what the rules allow.
+ */
+export const PROOF_LOCK_MS = 600_000;
+/** the phone's estimate of the server's clock is never trusted to the second */
+export const PROOF_LOCK_SLACK_MS = 30_000;
+export const proofUnlocked = (tree, uid, now) => { const go = Number(tree && tree[uid] && tree[uid].go); return go > 0 && go < now - PROOF_LOCK_MS - PROOF_LOCK_SLACK_MS; };

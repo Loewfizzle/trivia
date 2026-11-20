@@ -1009,6 +1009,18 @@ test('HIGH RISE S4A — the hidden cartridge: the owner-only gate; COUNTING OFF 
   assert.equal(await val(`results/${code}_${B.matchId}`), null, '… no results/ record either (nothing claimed, nothing sealed)');
   assert.equal((await report(uid, B)).status, 'would_count', 'asked again: judged again, the same — still nothing written');
   assert.equal(await snap(pid), before);
+  // S4B — "+0 XP" SAYS WHY: the streak day's 4 paid solo runs are used up (ANY solo game's — four JAYWALK runs) → +0 XP + `cap` (the
+  // line's DAILY CAP); the run would still count for the board. The day box is put back: the snapshot below is the same.
+  {
+    const { streakDay } = await import('../../js/core/streak.js');
+    const sp = `pstats/${pid}`, keep = await val(sp);
+    assert.ok(!w.cap && w.so && w.so.n === 1 && w.so.max === 4, 'a paid run: the day\u2019s 1st of 4 — no cap');
+    await ref(`${sp}/day`).set({ k: streakDay(clock), so: 4 });
+    const wc = (await report(uid, B)).outcome.would;
+    assert.deepEqual([wc.xp, wc.cap, wc.so.n, wc.so.max, wc.floor, wc.best], [0, 1, 5, 4, B.live.floor, true], 'the 5th solo run of the streak day: +0 XP, capped — floor + best as ever');
+    if (keep == null) await ref(sp).remove(); else await ref(sp).set(keep);
+    assert.equal(await snap(pid), before, 'the fixture is put back');
+  }
   // … the room moved on (PLAY AGAIN): the proof node + the night record are enough — the same answer
   tick(9000);
   const C = await seedRun(uid, pid, m => runOf(m, BOTS.casual, 40), { moved: true });

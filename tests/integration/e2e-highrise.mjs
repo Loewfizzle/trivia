@@ -134,6 +134,9 @@ try {
   ok(node && typeof node.go === 'number' && Math.abs(node.go - srv) < 15000 && gs.go === node.go, `the proof node's GO = the SERVER's time (${node && node.go}), read back by the phone`);
   ok(gs.stage.seed === seedOf(g.code, g.m, node.go) && gs.stage.seed !== g.hostSeed, `THE SEED IS PICKED AFTER GO: hash(code + matchId + GO) = ${gs.stage.seed} — never the host's own (${g.hostSeed})`);
   ok(await P.ev(`import('/js/firebase.js').then(f => f.set(f.dbRef('rooms/' + ${S}.code + '/hr/' + ${S}.game.matchId + '/' + ${S}.uid + '/go'), f.serverTimestamp()).then(() => false, () => true))`), '… GO is written once (a second one is refused)');
+  // S4B — THE RULE SET: the run records the rule set it is played on — `rs` on its own proof node, once, right behind GO
+  { let rs = null; for (let i = 0; i < 40 && rs == null; i++) { rs = await P.ev(`import('/js/firebase.js').then(f => f.get(f.dbRef('rooms/' + ${S}.code + '/hr/' + ${S}.game.matchId + '/' + ${S}.uid + '/rs')).then(x => x.val()))`); if (rs == null) await sleep(100); }
+    ok(rs === 'classic', `the proof node names its RULE SET (rs = ${rs})`); }
   const a0 = await audio(P);
   const d1 = await drops(P, 9, i => (i % 4 === 3 ? 95 : 20));
   await sleep(1300);

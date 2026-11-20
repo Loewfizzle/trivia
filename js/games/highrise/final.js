@@ -21,7 +21,10 @@ const num = n => Math.round(Number(n) || 0).toLocaleString('en-US');
 export function wouldLine(w) {
   if (!w || typeof w !== 'object') return '';
   if (w.skip) return `WOULD NOT COUNT · ${String(w.skip).toUpperCase()}`;
-  const parts = [`FLOOR ${num(w.floor)}`, `+${num(w.xp)} XP`];
+  // (S4B — "+0 XP" SAYS WHY: the day's XP is done — THE SOLO LANE pays a streak day's first `so.max` solo runs (every solo game counts
+  //  toward them), a room match stops at THE DAILY CEILING. Not a fault of the run: it still counts for the board + the streak)
+  const capped = !(w.xp > 0) && (!!w.cap || !!(w.so && w.so.n > w.so.max));
+  const parts = [`FLOOR ${num(w.floor)}`, `+${num(w.xp)} XP${capped ? ' · DAILY CAP' : ''}`];
   if (w.best) parts.push('NEW BEST');
   if (w.cards && w.cards.length) parts.push(w.cards.length === 1 ? '1 CARD' : `${w.cards.length} CARDS`);
   return `WOULD COUNT · ${parts.join(' · ')}`;

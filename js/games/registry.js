@@ -81,5 +81,7 @@ export function liveKeyFor(game) {
 export const NEW_PLAYER_NODES = ['ocm', 'ocnext', 'jw', 'hr'];
 // (FR7 FIXES B: a play's proof — report.js#PROOF_TREES; kept at the walk back, wiped at the next start)
 export const PROOF_NODE_LIST = Object.freeze(['prism', 'oc', 'ocm', 'jw', 'hr']);
+// (HIGH RISE S4B — THE LIVE LOCK: the proof trees the host may delete only once his own GO in them is 10 min old — core/room-logic.js#proofUnlocked)
+export const LOCKED_PROOF_NODES = Object.freeze(['jw', 'hr']);
 // Every player-writable node any game uses; wiped when a match starts or ends.
 export const ALL_PLAYER_NODES = ['boards', 'answers', 'targets', 'oc', 'lies', 'votes', 'pulse', 'golf', 'agclue', 'agready', 'agpin', 'agvote', 'agguess', 'prism', 'prismq', 'prismcall', 'slip', 'slipcall', 'glready', 'glshot', 'glres', 'glcall', 'hslock', 'rrpub'];

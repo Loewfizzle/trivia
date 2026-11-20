@@ -13,7 +13,7 @@ import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE, stalePr
 import { closeIdleRoom, createSoloRoom, leaveRoom } from './room.js';
 import { loadProfile } from './identity.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
-import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, PROOF_NODE_LIST, loadGame, metaOf } from './games/registry.js';
+import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES, NEW_PLAYER_NODES, PROOF_NODE_LIST, LOCKED_PROOF_NODES, loadGame, metaOf } from './games/registry.js';
 import { toast } from './ui/toast.js';
 import { lazyImport } from './ui/lazy-import.js';
 import { nightPoints } from './core/night.js';
@@ -379,7 +379,7 @@ async function pruneProofs(code, keep) {
   try {
     const trees = {};
     await Promise.all(PROOF_NODE_LIST.map(async n => { const v = (await get(dbRef(`rooms/${code}/${n}`))).val(); if (v) trees[n] = v; }));
-    const gone = staleProofPaths(trees, keep);
+    const gone = staleProofPaths(trees, keep, { nodes: LOCKED_PROOF_NODES, uid: state.uid, now: serverNow() });   // (THE LIVE LOCK: a tree the rules still hold waits for a later start)
     if (Object.keys(gone).length) await update(dbRef(`rooms/${code}`), gone).catch(() => {});
   } catch { /* polish: the room's deletion cleans the rest */ }
 }

@@ -184,6 +184,7 @@ try {
   await all(N, (p, i) => waitFor(p, s => s.game && s.game.phase === 'final' && !!document.querySelector('.hi-final .final'), `${NAMES[i]}: the podium`, 60000));
   const fin = await dbGet(`rooms/${code}/game`), nodes = await dbGet(`rooms/${code}/hr/${m}`);
   const srv = highriseMatch({ code, matchId: m, uids: uids.slice(0, N), nodes });
+  ok(uids.slice(0, N).every(u => !nodes[u] || !nodes[u].go || nodes[u].rs === 'classic'), `S4B: every proven node names its RULE SET (${uids.slice(0, N).map(u => (nodes[u] && nodes[u].rs) || '-').join(' ')}) — the match is judged on ONE`);
   ok(srv.game && uids.slice(0, N).every(u => srv.game.results[u].f === fin.results[u].f && srv.game.results[u].p === fin.results[u].p && srv.game.results[u].t === fin.results[u].t && srv.game.results[u].w === fin.results[u].w), `the podium's rows = THE JUDGE's replay of each node — THE SERVER's own count agrees to the floor (${uids.slice(0, N).map((u, i) => `${NAMES[i]} ${fin.results[u].f} ${fin.results[u].w}`).join(' · ')})`);
   const st = gameStandings(fin);
   ok(st[0].uid === uids[0] && fin.results[uids[0]].f > fin.results[uids[1]].f && fin.results[uids[1]].f === bobFloor, 'THE RANKING: ALICE built the tallest; BOB\'s row = the 5 floors he dropped');

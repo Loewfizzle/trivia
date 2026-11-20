@@ -12,11 +12,13 @@ import { newMatchId } from '../../core/room-show.js';
 import { frameProblems } from '../cartridge.js';
 import { GAME_MODULES, ALL_PLAYER_NODES, NEW_PLAYER_NODES, PROOF_NODE_LIST } from '../registry.js';
 import { pending, matchKey } from '../../profile/queue.js';
+import { PROOF_LOCK_MS, PROOF_LOCK_SLACK_MS } from '../../core/room-logic.js';
 
 /** the finished runs whose PROOF NODES stay in the room (a queued report may land after the next run began — api/report.js reads them) */
 export const KEEP_RUNS = 4;
 const recent = [];
 let busy = null;
+const endedAt = new Map();   // (matchId → the server's time its run ended on this phone: THE LIVE LOCK's clock)
 /** CITY F — A QUEUED REPORT's PROOF (PURE): the runs past the last KEEP_RUNS whose proof may go — NEVER one whose report is still in the
  *  console's queue (/api down: its proof is the server's only evidence; it is tried again at the next run). Mutates `list` (the kept stay).
  *  → the match ids to prune */
@@ -58,7 +60,10 @@ async function run() {
   // (THE RULES-LAG: the nodes newer than the published rules in a write of their own; the older runs' proofs go one by one — best effort)
   const extra = Object.fromEntries(NEW_PLAYER_NODES.filter(n => !proof.has(n)).map(n => [n, null]));
   if (Object.keys(extra).length) update(dbRef(`rooms/${code}`), extra).catch(() => {});
-  recent.push(g.matchId);
-  pruneRuns(code, recent, m => pending(matchKey(code, m))).forEach(old => { for (const n of PROOF_NODE_LIST) remove(dbRef(`rooms/${code}/${n}/${old}`)).catch(() => {}); });
+  recent.push(g.matchId); endedAt.set(g.matchId, serverNow());
+  // (HIGH RISE S4B — THE LIVE LOCK: a run's proof tree is the host's to delete only once its GO is 10 min old — a younger one is KEPT in
+  //  the list, as a queued one is, and goes at a later run; a run ended AFTER its GO, so its end's time is the safe side)
+  const held = m => serverNow() - (endedAt.get(m) || 0) < PROOF_LOCK_MS + PROOF_LOCK_SLACK_MS;
+  pruneRuns(code, recent, m => pending(matchKey(code, m)) || held(m)).forEach(old => { endedAt.delete(old); for (const n of PROOF_NODE_LIST) remove(dbRef(`rooms/${code}/${n}/${old}`)).catch(() => {}); });
   return true;
 }
