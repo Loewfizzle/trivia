@@ -319,7 +319,8 @@ body). No frame on this phone (a refresh on the podium) → the same card on the
   - **THE CARD IS BUILT BEFORE THE TAP** (`victory.js#finalScene` → `share.js#warmShare` → `prepShare`): the end screen draws the
     card; `LINGER_MS` 1.5 s later (the end screen is being read — a quick PLAY AGAIN uploads nothing; a tap on SHARE ends the wait at
     once) the half-size PNG goes up; the tap shares the ready link. A picture over 300 KB is re-encoded on 6, then 5 bits a channel
-    (`fitPng` — the server's cap is 400 KB; a game frame is a heavier PNG than a scorecard).
+    (`fitPng` — the server's cap is 400 KB; a game frame is a heavier PNG than a scorecard; HIGH RISE REVIEW FIX B: when no re-encode reaches
+    LINK_MAX, the smallest one still goes up if it is under LINK_HARD — before, no link at all).
   - **THE SERVER** (`api/_lib/share-card.js#saveShareCard` — `POST /api/daily { action: 'shareCard', games: ['jaywalk'], run: { room,
     m }, png }`): a RUN's card is accepted ONLY from a player the server's own COUNTED result of that match names
     (`results/{ROOM}_{m}` — `st: 'done'`, the game, `o[pid]`), on that result's own day (today / yesterday). The report lands a moment

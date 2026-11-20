@@ -50,7 +50,7 @@ test('THE LIVE FRAME IS GONE: no shot.js, no capture a beat after the end, no in
   assert.doesNotMatch(s, /keepShot|shotMs|takeShot|shotAt|shotRun/, 'the stage takes no frame of a run');
   assert.doesNotMatch(v, /shotKey/, 'the cartridge keeps no frame key');
   assert.doesNotMatch(sh, /shot\.js|shotFor|HI_CARD|shotCrop|drawRunCard/, 'the card has no hero frame / box');
-  assert.ok(p.includes('S.view.snap(res, S.view.el.width)') && read(`${HI}night.js`).includes('snap(fn, width = 1080) { snapAsk = fn; snapW = width; },'), 'the poster pipeline still copies the canvas');
+  assert.ok(p.includes('S.view.snap(res, S.view.el.width)') && read(`${HI}night.js`).includes("snap(fn, width = 1080) { snapAsk = typeof fn === 'function' ? fn : null; snapW = width; },"), 'the poster pipeline still copies the canvas');
   assert.ok(read(`${HI}index.js`).includes("export const shareRun = (game, state) => lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state));"), 'SHARE on the footer, lazy (unchanged)');
   assert.ok(sh.includes("if (!here() || globalThis.__hiWould === m) return '';") && sh.includes("name: 'neon-speakeasy-high-rise.png', line: '', upload, onTap: true"), 'the link alone, uploaded at the tap — none while counting is OFF (unchanged)');
   assert.doesNotMatch(read(`${HI}stage.js`) + read(`${HI}play.js`), /share\.js'/, 'the test page never loads the share kit');
@@ -63,7 +63,7 @@ test('THE POSTER\'s pixels stay PNG-friendly (no dithered canvas gradient / shad
   assert.ok(body.includes("litLayer(c, W, H, 1 / 6, lit, 'wide');") && body.includes("litLayer(c, W, H, 1 / 2, lit, 'tight');") && body.includes("for (const f of lit) f(c, 'core');"));
   assert.ok(sh.includes("if (pass === 'core') { c.fillStyle = core; } else"), 'a word\'s core pass: no shadow either');
   const K = read('js/games/kit/share-run.js');
-  assert.ok(K.includes('if (least && least.size <= LINK_HARD && least.size < png.size) return least;'), 'fitPng: the smallest re-encode under LINK_HARD still goes up as a link');
+  assert.ok(K.includes('if (png.size > LINK_HARD && fits) return fits;') && K.includes('if (b && !fits && b.size <= LINK_HARD) fits = b;') && K.includes('return png.size <= LINK_HARD ? png : null;'), 'fitPng: a picture under the cap goes up AS IT IS (JAYWALK unchanged); one over it as its first re-encode under LINK_HARD');
   const { LINK_HARD } = await import(new URL('../js/games/kit/share-run.js', import.meta.url));
   assert.ok(read('api/_lib/share-card.js').includes('MAX_BYTES = 400 * 1024') && LINK_HARD < 400 * 1024, 'under the server\'s cap (read as text — THE UNIT JOB INSTALLS NOTHING)');
 });
@@ -85,7 +85,8 @@ test('THE DAY END SCREEN: by day ONE soft still of the scene shows through a dar
   const s = read(`${HI}stage.js`), css = read('css/highrise-play.css');
   assert.ok(s.includes("const endBg = h('canvas.hi-endbg', { 'aria-hidden': 'true', width: 1, height: 1 });") && s.includes('play, endBg, shade, hud, tag,'), 'the still sits over the scene, under the veil');
   assert.ok(s.includes("stage.classList.add('is-ended'); tagDirty = true; endStill();") && s.includes("if (gone || n !== stillN || !stage.classList.contains('is-ended') || lookSeen !== 'day' || !view.snap || !stageW) return;"), 'taken once, after the end pose eased, a DAY scene only');
-  assert.ok(s.includes("stillN++; stage.classList.remove('has-still');"), 'a new run drops it');
+  assert.ok(s.includes("stillN++; stage.classList.remove('has-still'); if (view.snap) view.snap(null);"), 'a new run drops it (+ a still asked for and not yet taken)');
+  assert.match(css, /\.hi-stage\.is-ended\.has-still\[data-look='day'\] \.hi-shade \{ background: linear-gradient\(rgba\(7, 6, 11, 0\.88\) 0,/, 'the lighter middle only OVER the still — no still, the old day veil');
   assert.match(css, /\.hi-stage\.is-ended\.has-still\[data-look='day'\] \.hi-endbg \{ opacity: 1; \}/);
   assert.match(css, /\.hi-stage\.is-ended \.hi-shade \{ background: linear-gradient\(rgba\(7, 6, 11, 0\.5\) 0, rgba\(7, 6, 11, 0\.9\) 26%, rgba\(7, 6, 11, 0\.96\) 100%\); \}/, 'night: JAYWALK\'s veil, unchanged');
   assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/filter: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;/g, ''), /(?:^|[\s;{])(?:-webkit-)?(?:backdrop-)?filter\s*:/, 'no filter in the game\'s sheet (the lag rules)');

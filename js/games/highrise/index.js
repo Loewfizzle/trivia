@@ -51,7 +51,7 @@ export function preload() {
 /** PLAY AGAIN after a solo run — the console's INSTANT AGAIN (games/kit/again.js): the next run as a match of its own, no walk inside */
 export const soloAgain = (game, { matchId, now }) => nextRun(game, { matchId, now });
 export { finalScene } from './final.js';
-/** SHARE (S5): THE SHARE IMAGE (share.js — the frame the tower fell on, the floor, the cause, THE TOWER) on the site's share kit; the console's
+/** SHARE (S5; REVIEW FIX B: THE POSTER — share.js: the band's pre-rendered hero shot, the floor, the cause) on the site's share kit; the console's
  *  universal footer shows SHARE for a cartridge with it (ui/final.js) — solo + match */
 export const shareRun = (game, state) => lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state));
 

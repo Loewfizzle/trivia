@@ -899,7 +899,7 @@ export function createNight(host, o = {}) {
     /** the view's own top slab (from the events) — the page's check: it equals the engine's */
     top: () => ({ ...top, floor: slabs[slabs.length - 1].floor }),
     /** (S5) the NEXT frame drawn → fn(a 2D canvas `width` px wide, with topX / topY | null): THE SHARE IMAGE's frame, the poster */
-    snap(fn, width = 1080) { snapAsk = fn; snapW = width; },
+    snap(fn, width = 1080) { snapAsk = typeof fn === 'function' ? fn : null; snapW = width; },   // (null = a request let go)
     /** a point (rule units x, z; y in floors) → [x, y] on the screen, 0 … 1 from the top left (as of the last frame's camera) */
     project(x, floor, z) { V.set(x * U, floor * H, z * U).project(cam); return [(1 + V.x) / 2, (1 - V.y) / 2]; },   // (a point BEHIND the camera comes back mirrored — a caller clamps its height first: play.js's tag)
     /** THE DROP ZONE's upper edge on the screen (0 … 1 from the top): the highest point the sliding slab's path reaches — nothing of a tag / a tape's label may sit under it */

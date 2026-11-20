@@ -49,7 +49,7 @@ test('THE END\'s COLOURS ARE REAL NEON, never all white: HIGH hot pink · RISE c
   assert.ok(jw.includes(`.jw-final { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; background: ${veilN};`) && jw.includes(`.jw-stage[data-look='day'] .jw-final { background: ${veilD}; }`));
   // (REVIEW FIX B — THE DAY END SCREEN: by day the scene shows through — dark over the words, lighter where the tower stands)
   const dayEnd = 'linear-gradient(rgba(7, 6, 11, 0.88) 0, rgba(7, 6, 11, 0.88) 46%, rgba(7, 6, 11, 0.58) 60%, rgba(7, 6, 11, 0.58) 74%, rgba(7, 6, 11, 0.84) 88%, rgba(7, 6, 11, 0.9) 100%)';
-  assert.ok(css.includes(`.hi-stage.is-ended .hi-shade { background: ${veilN}; }`) && css.includes(`.hi-stage.is-ended[data-look='day'] .hi-shade { background: ${dayEnd}; }`), 'the stage\'s shade behind the end = that veil');
+  assert.ok(css.includes(`.hi-stage.is-ended .hi-shade { background: ${veilN}; }`) && css.includes(`.hi-stage.is-ended[data-look='day'] .hi-shade { background: ${veilD}; }`) && css.includes(`.hi-stage.is-ended.has-still[data-look='day'] .hi-shade { background: ${dayEnd}; }`), 'the stage\'s shade behind the end = that veil');
   assert.ok(css.includes(`.hi-stage:not(.is-ended) > .hi-final { background: ${veilN}; }`), 'a podium with no end seen first (a refresh on it) wears the veil itself — never twice');
   // the frame: the kicker shown (the header), the winner block + the burst hidden in a solo run, JAYWALK's body grid
   assert.match(css, /\.hi-final \.final\.is-solo \.burst, \.hi-final \.final\.is-solo \.winner \{ display: none; \}/);

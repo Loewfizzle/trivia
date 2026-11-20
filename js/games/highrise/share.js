@@ -48,14 +48,17 @@ export function hiRunCard({ floor = 0, perfects = 0, cause = '', made = false, m
 /** PURE: the hero shot's address (the band reached — THE MOTHERSHIP's for the finish) */
 export const heroUrl = id => new URL(`${HERO_IDS.includes(id) ? id : 'rooftops'}.webp`, HERO_DIR).href;
 /** the hero shot as a decoded picture (null: it could not load — the card draws on the night's dark instead) */
-export function loadHero(id) {
+export const HERO_WAIT_MS = 3000;
+export function loadHero(id, ms = HERO_WAIT_MS) {
+  // (THE CLOSE's REVIEW: never waits for ever — a stalled fetch would leave SHARE 'busy' all match: after `ms` the card draws on the dark)
   return new Promise(res => {
+    const t = setTimeout(() => res(null), ms);
     try {
-      const im = new Image(); im.decoding = 'async';
-      im.onload = () => (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => res(im));
-      im.onerror = () => res(null);
+      const im = new Image();
+      im.onload = () => { clearTimeout(t); res(im); };
+      im.onerror = () => { clearTimeout(t); res(null); };
       im.src = heroUrl(id);
-    } catch { res(null); }
+    } catch { clearTimeout(t); res(null); }
   });
 }
 /** the cause on ≤ 2 lines of ≤ `max` px: split at the most even space */
@@ -85,7 +88,7 @@ function neon(text, x, y, { px, glow, core, ls = 0, weight = 900, fam = DISPLAY,
 function litLayer(c, W, H, k, lit, pass) {
   const s = document.createElement('canvas'); s.width = Math.round(W * k); s.height = Math.round(H * k);
   const g = s.getContext('2d');
-  if (!g) return;
+  if (!g) { s.width = s.height = 0; return; }
   g.scale(k, k);
   for (const f of lit) f(g, pass, k);
   c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(s, 0, 0, W, H); c.restore();
@@ -94,7 +97,9 @@ function litLayer(c, W, H, k, lit, pass) {
 /** a vertical wash (top → bottom stops) over x, y, w, h: a 1 × 64 strip stretched (no dither — see paintPoster) */
 function wash(c, x, y, w, h, stops) {
   const s = document.createElement('canvas'); s.width = 1; s.height = 64;
-  const k = s.getContext('2d'), g = k.createLinearGradient(0, 0, 0, 64);
+  const k = s.getContext('2d');
+  if (!k) return;
+  const g = k.createLinearGradient(0, 0, 0, 64);
   for (const [at, col] of stops) g.addColorStop(at, col);
   k.fillStyle = g; k.fillRect(0, 0, 1, 64);
   c.save(); c.imageSmoothingEnabled = true; c.drawImage(s, 0, 0.5, 1, 63, x, y, w, h); c.restore();
@@ -102,7 +107,9 @@ function wash(c, x, y, w, h, stops) {
 /** a round shade (`col` at the centre → clear at radius r): a 64 × 64 disc stretched */
 function glowDisc(c, cx, cy, r, col) {
   const s = document.createElement('canvas'); s.width = s.height = 64;
-  const k = s.getContext('2d'), g = k.createRadialGradient(32, 32, 0, 32, 32, 32);
+  const k = s.getContext('2d');
+  if (!k) return;
+  const g = k.createRadialGradient(32, 32, 0, 32, 32, 32);
   g.addColorStop(0, col); g.addColorStop(1, col.replace(/[\d.]+\)$/, '0)'));
   k.fillStyle = g; k.fillRect(0, 0, 64, 64);
   c.save(); c.imageSmoothingEnabled = true; c.drawImage(s, cx - r, cy - r, 2 * r, 2 * r); c.restore();
@@ -134,13 +141,13 @@ export function paintPoster(c, card, hero) {
   const big = card.big || '0', glow = gold ? GOLD : CYAN;
   let px = L.bigPx;
   // (numWidth measures in the context's OWN font — set to each size tried)
-  c.save(); c.letterSpacing = '0px';
+  c.save(); if ('letterSpacing' in c) c.letterSpacing = '0px';   // (THE CLOSE's REVIEW: only where the canvas HAS it — an older iPhone's would gain a plain property, and daily/share.js#tracks would stop spacing by hand)
   const nw = q => { c.font = `700 ${q}px ${NUMS}`; return numWidth(c, big, q, NUMS, 700); };
   while (px > 160 && nw(px) > W - 120) px -= 10;
   const bx = (W - nw(px)) / 2;
   c.restore();
   lit.push((g, pass, k = 1) => {
-    g.save(); g.textAlign = 'left'; g.letterSpacing = '0px'; g.font = `700 ${px}px ${NUMS}`;
+    g.save(); g.textAlign = 'left'; if ('letterSpacing' in g) g.letterSpacing = '0px'; g.font = `700 ${px}px ${NUMS}`;
     if (pass === 'core') g.fillStyle = gold ? '#fff6dc' : '#f2feff';
     else { g.fillStyle = pass === 'wide' ? glow : (gold ? '#ffe7a6' : '#9eefff'); g.shadowColor = glow; g.shadowBlur = (pass === 'wide' ? 64 : 22) * k; }
     drawNum(g, big, bx, L.bigY, px, NUMS, 700);

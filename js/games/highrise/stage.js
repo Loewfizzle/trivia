@@ -455,7 +455,8 @@ export function createStage(app, o = {}) {
     setTimeout(() => {
       if (gone || n !== stillN || !stage.classList.contains('is-ended') || lookSeen !== 'day' || !view.snap || !stageW) return;
       view.snap(cv => {
-        if (!cv || gone || n !== stillN) return;
+        if (!cv) return;
+        if (gone || n !== stillN) { cv.width = cv.height = 0; return; }
         const w = Math.max(16, Math.round(stageW / END_STILL_DIV)), hh = Math.max(16, Math.round(w * cv.height / cv.width)), c = endBg.getContext('2d');
         if (c) { endBg.width = w; endBg.height = hh; c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(cv, 0, 0, w, hh); soften(c, w, hh); stage.classList.add('has-still'); }
         cv.width = cv.height = 0;
@@ -463,7 +464,7 @@ export function createStage(app, o = {}) {
     }, END_STILL_MS);
   }
   function restart(s = FIXED || newSeed()) {
-    stillN++; stage.classList.remove('has-still');
+    stillN++; stage.classList.remove('has-still'); if (view.snap) view.snap(null);   // (THE CLOSE's REVIEW: a still asked for and not yet taken is let go — the next run's welcome never grabs it)
     wD = wDT = WATCH_DELAY_MS / TICK_MS; wPin = false; lateRing.fill(0); lateN = 0; wPast = 0; wAway = false;   // (REVIEW FIX A: a new run / match = the playback's own numbers afresh)
     seed = s; momDue = -1; landF = -1e9; run = createRun({ seed, mode: MODE }); liveRun = null; watchW = null; mine = null; mineT = null; pendEnd = null; wN = 0; watchMode(false); if (MH) MH.reset(); for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0); skipP = 0; skipS = 0; streakTop = 0; taps = []; t0 = null; shown = false; card = false; overAt = 0; endedAt = 0; ev.length = 0; liveN = 0; sounded = 0; hush = false; starting = false; startN++; stage.classList.remove('is-starting');
     T = createTower(run, hooks, KEEP);
