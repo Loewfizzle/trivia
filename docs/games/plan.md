@@ -687,3 +687,15 @@
   - (3) THE SHARE CARD → B · THE POSTER + the 6 hero shots.
   - (4) Claude's rec, Ben to confirm: THE PLACE NUMBER's ties use the final ranking's rule (floor → most perfects).
 - Live JAYWALK solo WORKS on Ben's phone (Nov 20) → the failing e2e-jaywalk PLAY NOW check is a test problem, likely the 4 am day line → the JAYWALK chat's inbox, not HIGH RISE's.
+
+## HIGH RISE — REVIEW FIX A: THE MATCH (approved Nov 20 — the report: docs/games/passes/highrise-review.md)
+- BEN'S CALLS on the review (Nov 20, all of Claude's recs):
+  1. PLACE TIES = floor → most perfects (the final ranking's rule), in THE PLACE NUMBER AND the WATCH list.
+  2. A COUNTED MATCH RAISES YOUR BEST (like JAYWALK; the server already does). Runs that never counted never set it.
+  3. THE PROOF PASS (the review's MUST 2 — the host-trust holes, JAYWALK + HIGH RISE together, ends in a re-publish) runs AFTER go-live, BEFORE strangers are invited. Not in REVIEW FIX A; `jw` + `hr` rules untouched for it here.
+  4. A silent phone stays out after 18 s (JAYWALK's value).
+  5. GO-LIVE (a later pass — recorded only, nothing built now): HIGH RISE counts toward the weekly "5 different games" goal · it gets its own BOARD tab like JAYWALK · THE DAILY CEILING stays 20 for every game · /highrise-lab is deleted at go-live (like JAYWALK's) · the two cards' lab marks removed.
+- The `hr` rules ARE published (Ben re-published S4B's file — Downloads\NEON\database.rules.nov20-s4b.json — on Nov 20; it equals database.rules.json). The repo's record updated: database.rules.json → tests/fixtures/rules-live.json, the ack deleted (THE RULES-LAG; the review's MUST 1 closed).
+- The share card redesign (B · THE POSTER) is REVIEW FIX B, not this pass.
+- GO-LIVE ORDER (the review's MUST 4): the CITY pass (HIGH RISE's billboard + roof sign + blade, lit only by the go-live switch) lands BEFORE the go-live flip; JAYWALK's boot budget needs ~0.3 KB more room at the flip (trim comments, or a named raise).
+- THIS PASS (REVIEW FIX A): G1 THE TOP HUD (the floor centred, band + clock narrow under it, THE PLACE NUMBER alone top-right, the callouts under all of it, every gap ≥ 16 px at 390 × 844) + WATCH's list off the slab's way in · G2 SPECTATE IN SYNC (the watched player played back on a short delay from their landed taps' own ticks — no slide past, no snap back) · G3 the match fixes (the place ties, a GO alone is not a player, a host hiccup at GO, GHOST names, YOUR BEST = counted runs, the match E2E's daytime red).
