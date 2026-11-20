@@ -12,7 +12,9 @@ SCREEN). The bible: `docs/highrise.md` "THE SHARE CARD = B · THE POSTER" + "THE
 | `3137afec` | Group 2 — THE SHARE CARD = B · THE POSTER (the live frame GONE; PNG-friendly; fitPng's fallback) |
 | `d03ad087` | Group 3 — THE DAY END SCREEN + THE WOULD COUNT LINE |
 | `51530d48` | Group 4 (part) — the `--fly` shot script |
-| the close | THE FRESH-EYES REVIEW's fixes, the docs, the pass log, the final run (the ci tag) |
+| `386618cf` | the close — THE FRESH-EYES REVIEW's fixes + the docs |
+| `d52ebc2b` | ADD-ON (the owner) — THE HERO SHOTS = A CLEAN BREAK (no sparks) |
+| the close (top) | the pass log, the final run (the ci tag) |
 
 THE ADD-ON INBOX: read at the start, after every group's commit and before the final run — nothing was addressed to this pass. The
 open entries are to THE NEXT CITY PASS and to JAYWALK — left untouched.
@@ -90,8 +92,23 @@ open entries are to THE NEXT CITY PASS and to JAYWALK — left untouched.
 6. Checked, no change: the card reads `game.results` — present whenever the end screen (which reads the same rows) warms the share.
    Nits fixed: the small layers' canvases freed + null-checked.
 
-## THE FINAL RUN
-(filled at the close)
+## THE FINAL RUN (this pass's own emulators + its own `serve.mjs --emu`, nothing else running; logs: `Downloads\NEON\highrise-fix-b\logs\`)
+- Unit **2382 / 2382** · the rules **89 / 89** · `/api` **68 / 68** (run last, after the browser E2Es) · the smoke test **26 / 26**.
+- THE SHARE CARD (`highrise-share.mjs`) **88 / 88** — the six shots load (1080 × 1350, ≤ 120 KB), every card full-bleed, the colours, THE
+  READABILITY at 300 px, the links ≤ LINK_HARD.
+- THE END SCREEN (`highrise-play.mjs --end`, `END_SIZES=390x844,375x667`) **152 / 152** — the day still (a quarter, no filter), every stat
+  line ≥ 4.5 : 1 on its own ground (day worst 5.6), night unchanged.
+- The test page `highrise-play.mjs` **237 / 237** (REPLAY = LIVE ✓ on every run, a lost context survived) · `--webkit` **6 / 6** · `--fly`
+  **18 / 18** (was 8 / 12).
+- `e2e-highrise` **88 / 88** (incl. the counting-ON run; the WOULD COUNT line fits, the longest wraps on 2 lines, no NEW BEST with none
+  shown; SHARE → the picture alone, 0 /api calls; the card's picture = the band's hero shot) · `e2e-highrise-match` (3 phones + a late
+  joiner) **55 / 55**.
+- Zero garbage: solo **5.8 KB/s** night (≤ 12; the guard 12 / 12) · a match with 7 bots **10.3 KB/s** (≤ 12; FIX A read 8.9 — this
+  pass changed nothing a live match runs: run-to-run spread).
+- THE 8-PLAYER PIXEL TEST **10 / 10** · THE TOP HUD + the ties + WATCH (`highrise-place.mjs`) **150 / 150** · SPECTATE IN SYNC
+  (`highrise-spectate.mjs`) **32 / 32**.
+- Not run: the harbor suite (nothing in the city changed — the cloud runs it on the tagged push).
+- Every server this pass started (the emulators: npm · firebase · java; `serve.mjs --emu`) stopped at the end, by exact PID.
 
 ## THE CALLS MADE (obvious / established — overrule any)
 - The hero floors + beats (above) and THE HERO CAMERA's 24° / 2.1 ×; the seed `poster2` (B1's tower) for all six.
@@ -103,4 +120,19 @@ open entries are to THE NEXT CITY PASS and to JAYWALK — left untouched.
 - The WOULD COUNT line wraps (rather than shortening its words).
 
 ## OPEN FOR BEN
-(filled at the close)
+1. **RE-PUBLISH: nothing** (no rules change). Nothing counts yet.
+2. **PHONE CHECKS**
+   - THE DAY END SCREEN: play a run in the DAY look to its end — https://neonspeakeasy.com/highrise-play?look=day (or the look switch on the
+     start screen → DAY) — the end card over the soft day scene.
+   - SHARE: https://neonspeakeasy.com → PLAY → HIGH RISE · TEST → play solo → tap SHARE on the end screen (counting OFF: the PICTURE itself
+     goes out — THE POSTER for the band you reached). Also check the WOULD COUNT line fits and never says NEW BEST under your best.
+   - THE SIX HERO SHOTS: `Downloads\NEON\highrise-fix-b\hero\` (rooftops · skyline · clouds · stars · space · mothership .png) · the cards
+     at 1080 / 540 / 300: `Downloads\NEON\highrise-fix-b\share\` · the end screens: `Downloads\NEON\highrise-fix-b\end\`.
+3. **CALLS YOU CAN OVERRULE**: the hero floors + beats (each shot's next slab hovering clear, never a bridge) and THE HERO CAMERA (24°,
+   2.1 ×) · A CLEAN BREAK (your add-on — no sparks in any shot) · DEEP SPACE's shot at 175 (no ship; the hull hangs from 178) · THE
+   MOTHERSHIP's card says `FLOORS · DEEP SPACE` · two-line causes a size down · the day end's tint DARKER over the words than the mockup (the
+   4.5 : 1 rule) and the scene a frozen still · the WOULD COUNT line wraps rather than shortening · the kit's fitPng: a card over the server's
+   cap goes up re-encoded (JAYWALK's cards under the cap unchanged).
+4. **NOT DONE**: SHOULD 7 — the F-22 (389 KB) + the UFO hum (259 KB) + the jet formation (180 KB) are fetched before the first tap even on a
+   run that never reaches them. Any fix changes S4B's PRE-WARM (built for the 65 ms hitch at floor 80) — it wants your iPhone A/B (a lazy
+   F-22 after START vs today's). Next: THE CITY pass (the signage, lit at go-live) → GO-LIVE → THE PROOF PASS.
