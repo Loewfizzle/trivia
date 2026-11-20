@@ -10,8 +10,9 @@ RIGHT side — its TYPE only).
 | `916d9583` | Step 0 — the owner's decisions into plan.md |
 | `2152826d` | Group 1 — THE DAY END SCREEN to the mockup |
 | `ff200b22` | Group 2 — THE SHARE CARD'S TYPE |
-| (Group 3) | THE GO-LIVE FLIP + THE SIGN HOLD + the tests that flip |
-| (the close) | the fresh-eyes review's fixes, the docs, this log, the final run (the ci tag) |
+| `c7107f5c` | Group 3 — THE GO-LIVE FLIP + THE SIGN HOLD + the tests that flip |
+| `71a64d88` | the close — THE FRESH-EYES REVIEW's fixes + THE BOARD's seven tabs on a narrow phone |
+| the close (top) | this log, the final run (the ci tag) |
 
 THE ADD-ON INBOX: read at the start, after each group's commit and before the final run — nothing addressed to this pass. The open
 entries are to THE NEXT CITY PASS and to JAYWALK — left untouched. This pass ADDS one: to THE CITY PASS — "lift THE SIGN HOLD".
@@ -87,14 +88,68 @@ THE LAB EXPORT (the start): 224 marks, no FIX.
 - "Dead code after the flip" — kept as the kill switch (named above).
 - "The cards are still pictures" — still pictures (the owner's call: out of THE LAB, ship as they are).
 
-## THE FRESH-EYES REVIEW
-(the close)
+## THE BOARD's SEVEN TABS (found in the shots, the close — `Downloads\NEON\highrise-golive\board\`)
+The harbor `tapfit` geometry passed ("one row of 7") but the picture did not: the seven labels filled 357 of 358 px at 390 (no air between
+the words) and were CUT at 375 + 360 (the row's flex shrank the long words). Fix: HIGH RISE's tab reads **HIGH / RISE stacked** (its signs'
+two-word rule) · under 390 the tabs never shrink below their words, a size down (9.5 px; 9 px under 370). Measured at 390 / 375 / 360: no
+word cut, ≥ 5 px between words, every tab ≥ 44 px, no sideways scroll. `tapfit` now runs 360 too, checks a cut by the words' OWN box
+against the tab (the old scrollWidth check could not see it) and saves the shots.
 
-## THE FINAL RUN
-(the close)
+## THE FRESH-EYES REVIEW (a separate read-only agent that wrote none of it — the whole pass's diff; its finds, all fixed in `71a64d88`)
+"Nothing serious. The flip looks clean." (it ran the unit suite: 2385 / 0). THE SIGN HOLD checked path by path (the named signs, the blades,
+the ghost ad, the billboard pick, the tri-vision's own list, a sign tap): clean. The emulator flip: production can't honour it (`emulated()`).
+The vault: nothing else needs a lab row; SHIPPED only decides art for a card someone owns. The share row: fits 1–3 digits + the gold.
+1. **LOW-MEDIUM** — a WebGL rebuild while WATCHING (out, spectating) by day took the day end's pull-back (`stage.js` rebuild posed
+   `shown ? endPose()`) → a rebuild while watching keeps play's camera; the end pose only under the end screen itself.
+2. **LOW** — HOW TO PLAY said "6 PERFECTS in a row and the slab GROWS BACK"; the engine grows from the 7th → "After 6 PERFECTS in a row,
+   each PERFECT GROWS BACK." (pinned in `highrise-golive.test.mjs`).
+3. **LOW** — the flyers stood off the eye by play's distance during the pull-back → `FR.dist = dist × the pull-back`.
+4. **LOW (tests)** — a failed server block could leave `testHighriseCounts = false` on the emulators → `t.after` resets it; both E2Es clear
+   it at their start.
+5. **LOW** — the being-built registration check now loops over nothing → it says so, and asserts HIGH RISE is checked as playable.
+6. **LOW** — stale "hidden / until go-live" comments (the cartridge, the catalog, boards, match-report, the timetable row) → updated.
+
+## THE FINAL RUN (fresh emulators + this pass's own `serve.mjs --emu`, one at a time, nothing else running; logs `Downloads\NEON\highrise-golive\logs\`)
+| check | result |
+| --- | --- |
+| unit (`node --test tests/*.test.mjs`) | **2385 / 0** |
+| smoke (THE PAGES LOAD — /highrise-lab gone: 2 page loads fewer) | **24 / 24** — five playable, ten hidden, HIGH RISE started by a regular host |
+| `e2e-highrise` (full — A STRANGER, counted; the long run past 60, ABOVE THE CLOUDS) | **81 / 81** |
+| `e2e-highrise-match` (3 phones + a late joiner, REMATCH, the dead host) | **58 / 58** — a plain host; COUNTED for all; each best = the judge's floor |
+| the test page `highrise-play.mjs` (REPLAY = LIVE ✓ every run) · `--webkit` | **237 / 237 · 6 / 6** |
+| THE END SCREEN `--end` (390 × 844 + 375 × 667, both looks, EVERY line) | **152 / 152** — day worst 4.7 : 1, night worst 4.6 (`end\contrast.txt`) |
+| THE SHARE CARD `highrise-share.mjs` | **120 / 120** |
+| ZERO GARBAGE `highrise-alloc.mjs` | first run **11 / 12** (the 7-bot MATCH 14.3 KB/s over the 12 line — the sites: the bots' sim, three.js, the match HUD; nothing this pass runs in a live frame) → alone, nothing else busy: **12 / 12** (solo 6.0 night / 5.4 day, MATCH 10.4 — FIX B read 10.3): run-to-run spread, named |
+| THE TOP HUD `highrise-place.mjs` · SPECTATE `highrise-spectate.mjs` · THE PIXEL TEST `highrise-rivals.mjs` | **150 / 150 · 32 / 32 · 10 / 10** |
+| rules (`rules.test.mjs`) · `/api` (`server.test.mjs`) — last, after the browser E2Es | **89 / 0 · 68 / 0** |
+| the harbor groups (`neon, cartridge, room, tapfit, trivision, load, gamestart, sololook, gameflows, vault`) | **203 / 203, errors none** — THE SIGN HOLD in a real city; PICK A GAME = 5; the real boot 338 requests · 2,769 KB; then `tapfit` again with 360 + the cut check: **26 / 26** |
+- The full harbor suite: the cloud's, on the tagged push (THE LOCAL TESTING RULE).
+- Every server this pass started (the emulators: npm · cmd · firebase · java; `serve.mjs --emu`; the earlier plain `serve.mjs`) stopped at
+  the end, by exact PID.
 
 ## THE CALLS MADE (obvious / established — overrule any)
-(the close)
+- THE DAY END: the pull-back 1.7 × with the tower a touch higher (the mockup's tower size + place); the navy `rgba(9, 15, 42)`; the still at
+  half the width + one soft pass; the NIGHT finish's veil top darker (its header measured 2.8 : 1 over THE MOTHERSHIP's hull).
+- THE SHARE TYPE: FLOORS 72 px bold cyan with a small halo (at 300 px its own glow is its ground: 3.3–4.1 : 1 — it reads); the band 68 px.
+- HOW TO PLAY's eleven lines + drawings (my words, checked against the rules) — and "After 6 PERFECTS in a row, each PERFECT GROWS BACK".
+- THE BOARD: HIGH RISE's tab stacked HIGH / RISE; the tabs a size down under 390.
+- The tile THE TOWER over a low pink-edged skyline; the logo colour hot pink; the credits group's wording (the CC BY lines copied exactly).
+- THE KILL SWITCH kept (the review called the would-count path dead code); the emulator flip made two-way to keep it tested.
+- The two cards: out of THE LAB AND their art shipped as it is (the owner's "lab marks removed" read as: no lab review needed — they ship).
+  If you wanted them kept in THE LAB for a later mark, say so: one revert of `approved.js#SHIPPED` + the four rows.
+- NEW on top by `live: '2026-11-20'` (the 4 am streak day of today); HIGH RISE above JAYWALK (both NEW) until Dec 3.
 
 ## OPEN FOR BEN
-(the close)
+1. **RE-PUBLISH: nothing.** No rules change (`database.rules.json` = what you published Nov 20).
+2. **YOUR PHONE CHECKS** (after the deploy):
+   - The game from the city: https://neonspeakeasy.com → PLAY → HIGH RISE (top, NEW, no TEST) → PLAY NOW. A counted run: the end screen
+     says YOUR BEST from the server, no WOULD COUNT line.
+   - A DAY run's end screen (the fix): https://neonspeakeasy.com/highrise-play?look=day — play to the end: a blue sky, the whole top of
+     your tower, the words on navy. (The test page never counts.)
+   - SHARE from a real counted run: the cartridge's end screen → SHARE → the link; open it in Messages — the card says "10 FLOORS" with
+     the band in pink under it.
+   - A match with your brother: https://neonspeakeasy.com → HOST → PICK A GAME → HIGH RISE — counted for both of you.
+   - THE BOARD's HIGH RISE tab: https://neonspeakeasy.com/board (seven tabs, HIGH / RISE stacked).
+3. **CALLS YOU CAN OVERRULE**: see "THE CALLS MADE" above — the two cards shipping as they are is the one most worth a look.
+4. **NOT DONE / NEXT**: THE PROOF PASS (the host-trust holes — before strangers are invited) → THE CITY PASS (its signs; it lifts THE SIGN
+   HOLD — the inbox has the entry). SHOULD 7 (the F-22's 1.1 MB before the first tap) still wants your iPhone A/B.
