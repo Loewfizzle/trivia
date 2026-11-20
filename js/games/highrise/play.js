@@ -41,7 +41,7 @@ const writeBest = n => { try { localStorage.setItem(BEST_KEY, String(n)); } catc
 // THE PAGE = THE STAGE (stage.js — the run loop, the scene, the HUD, the sounds: the SAME module the cartridge mounts) with the page's own
 // pieces on (`page`): the look switch, the SOUNDS list, the note, its own end card + PLAY AGAIN; YOUR BEST = this phone's (`hi:play:best`)
 function mount() {
-  const S = createStage(app, { page: true, hook: '__hiPlay', seed: FIXED, mode: MODE, look: LOOK_Q, from: FROM, fps: Q.get('fps') === '1', trace: Q.get('trace') === '1', lean: Q.get('lean') === '1', sim: Math.max(0, Math.min(7, Math.floor(Number(Q.get('rivals')) || 0))), tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, best: { read: readBest, write: writeBest } });
+  const S = createStage(app, { page: true, hook: '__hiPlay', seed: FIXED, mode: MODE, look: LOOK_Q, from: FROM, fps: Q.get('fps') === '1', trace: Q.get('trace') === '1', lean: Q.get('lean') || '', sim: Math.max(0, Math.min(7, Math.floor(Number(Q.get('rivals')) || 0))), tier: /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null, best: { read: readBest, write: writeBest } });
   // S5 — `?poster=1` (JAYWALK's lab's): THE POSTER for THE B1 BILLBOARD — the staged moment in the real night scene, the board drawn over it
   //  (poster.js, lazy; the build: scripts/build-highrise-billboard.mjs — `&seed=poster2&floor=78&look=night`). Nothing counts here either.
   if (Q.get('poster') === '1') lazyImport(import('./poster.js'), './poster.js').then(M => M.runPoster(S, app)).catch(e => console.warn('[poster]', e));

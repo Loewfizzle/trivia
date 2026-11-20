@@ -89,11 +89,11 @@ test('THE PRE-WARM: everything a run can need is fetched, built + uploaded BEHIN
 
 test('`?lean=1` (the test page only): every DOM / CSS effect over the 3D view is OFF while a run is live — the glows, the transitions, the animations; the panel + the note say LEAN', () => {
   const s = read(`${HI}stage.js`), play = read(`${HI}play.js`), css = read('css/highrise-play.css');
-  assert.ok(play.includes("lean: Q.get('lean') === '1',") && s.includes('LEAN = PAGE && !!o.lean;'), 'the page\'s flag — never the cartridge\'s');
-  assert.ok(s.includes("class: LEAN ? 'is-lean' : null,") && s.includes('createTrace({ lean: LEAN })'));
+  assert.ok(play.includes("lean: Q.get('lean') || '',") && s.includes("const leanQ = PAGE ? String(o.lean === true ? '1' : o.lean || '') : '', LEAN = leanQ === '1' || leanQ === 'all';"), 'the page\'s flag — never the cartridge\'s');
+  assert.ok(s.includes("class: [LEAN ? 'is-lean' : '', ...[...LEANS].map(k => `lean-${k}`)].join(' ').trim() || null,") && s.includes('createTrace({ lean: LEAN })'));
   assert.match(css, /\.hi-stage\.is-lean\.is-live \.hi-hud, \.hi-stage\.is-lean\.is-live \.hi-hud \*, \.hi-stage\.is-lean\.is-live \.hi-tag, \.hi-stage\.is-lean\.is-live \.hi-tag \*, \.hi-stage\.is-lean\.is-live \.hi-fps, \.hi-stage\.is-lean\.is-live \.hi-place \* \{\n  text-shadow: none !important; box-shadow: none !important; filter: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; animation: none !important; transition: none !important;/);
-  assert.ok(s.includes('const canPop = !LEAN && !!call.animate;') && s.includes('if (!calm && !LEAN && band.animate)'), 'no Web Animation over the canvas in a LEAN run');
-  assert.ok(s.includes("LEAN ? `TEST PAGE · LEAN${FROM ? ` · FROM FLOOR ${FROM}` : ''} · NOTHING COUNTS`"));
+  assert.ok(s.includes("const canPop = !LEANS.has('call') && !!call.animate;") && s.includes("if (!calm && !LEANS.has('band') && band.animate)"), 'no Web Animation over the canvas in a LEAN run');
+  assert.ok(s.includes("LEAN || LEANS.size ? `TEST PAGE · LEAN${LEAN ? '' : ` (${[...LEANS].join(' ')})`}${FROM ? ` · FROM FLOOR ${FROM}` : ''} · NOTHING COUNTS`"));
 });
 
 test('WHAT REPAINTS IN PLAY — the fixes: an ended call writes nothing, the clock keeps ONE text node; no filter / backdrop-filter in the game\'s sheet', () => {

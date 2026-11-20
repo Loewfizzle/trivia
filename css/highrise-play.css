@@ -21,6 +21,16 @@
   text-shadow: 0 0 2px #fff, 0 0 14px rgba(255, 79, 216, 0.95), 0 0 34px rgba(255, 43, 214, 0.6), 0 3px 0 rgba(10, 7, 22, 0.55); }
 .hi-stage.is-gold .hi-num { text-shadow: 0 0 2px #fff, 0 0 14px rgba(255, 200, 60, 0.95), 0 0 34px rgba(255, 170, 30, 0.6), 0 3px 0 rgba(10, 7, 22, 0.55); }
 .hi-dg { display: block; }
+/* S5 — THE BAKED NUMBER (js/games/highrise/bakedtext.js — THE EFFECTS REBUILD): the digits + their glow drawn ONCE a style into bitmaps,
+   a landing copies them into ONE canvas over the number — no blur re-painted. The digit boxes stay for the layout + the reading:
+   transparent + shadowless (the number's OWN style — its font, colour, text-shadow — is what the bitmaps are baked from). */
+.hi-num.is-baked { position: relative; }
+.hi-num.is-baked .hi-dg { color: transparent; text-shadow: none; }
+.hi-numc { position: absolute; left: 50%; top: 0; transform: translateX(-50%); pointer-events: none; }
+/* … and THE BAKED LINE (the announcer's lane — bakedtext.js#bakedLine): its words keep the reading, transparent + shadowless */
+.hi-call.is-baked { position: relative; }
+.hi-call.is-baked .hi-callt { color: transparent; text-shadow: none; }
+.hi-callc { position: absolute; left: 50%; top: 0; transform: translateX(-50%); pointer-events: none; }
 .hi-band { margin-top: 8px; font: 700 13px/1 var(--font-ui); letter-spacing: 0.42em; text-indent: 0.42em; color: #d9d4f2; text-shadow: 0 1px 0 #0a0716, 0 0 10px #0a0716; }
 .hi-clock { min-height: 0; margin-top: 4px; font: 700 13px/1 var(--font-num); letter-spacing: 0.14em; color: #d9d4f2; font-variant-numeric: tabular-nums; text-shadow: 0 1px 0 #0a0716, 0 0 8px #0a0716; }
 .hi-clock:empty { display: none; }
@@ -118,7 +128,8 @@
   box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.22); text-shadow: 0 1px 0 #0a0716, 0 0 8px #0a0716; }
 /* (the note on its own dark strip — a flat band, edge to edge: the tower's stripes ran through its words under the PLAY AGAIN bar: the fresh-eyes look) */
 .hi-note { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 5px); margin: 0; padding: 5px 0; background: rgba(10, 7, 22, 0.7); text-align: center; pointer-events: none; font: 700 11px/1 var(--font-ui); letter-spacing: 0.24em; text-indent: 0.24em; color: #d9d4f2; text-shadow: 0 1px 0 #0a0716, 0 0 8px #0a0716; }
-.hi-fps { position: absolute; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 30px); text-align: center; font: 500 11px/1.3 var(--font-mono); color: #fff; text-shadow: 0 1px 0 #0a0716, 0 0 8px #0a0716; pointer-events: none; }
+.hi-fps { position: absolute; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 30px); text-align: center; font: 500 11px/1.3 var(--font-mono); color: #fff; text-shadow: none; pointer-events: none; }   /* (S5 — THE EFFECTS REBUILD: the line is rewritten every second — its 8 px halo was re-rasterised each time: now ONE plain text draw on a flat plate) */
+.hi-fps-in { padding: 1px 6px; background: rgba(10, 7, 22, 0.74); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 
 /* THE SOUNDS LIST (the SOUNDS sheet — audition.js; S3: the picks are final, a row = its name + ONE PLAY) */
 .hi-au { display: grid; gap: 4px; padding: 2px 0 calc(env(safe-area-inset-bottom) + 12px); }
@@ -148,7 +159,8 @@
   --hi-edge-big: 3px 0 0 var(--hi-ink), -3px 0 0 var(--hi-ink), 0 3px 0 var(--hi-ink), 0 -3px 0 var(--hi-ink), 2.1px 2.1px 0 var(--hi-ink), -2.1px 2.1px 0 var(--hi-ink), 2.1px -2.1px 0 var(--hi-ink), -2.1px -2.1px 0 var(--hi-ink); }
 .hi-stage[data-sky='bright'] .hi-num { color: var(--hi-ink); text-shadow: 0 0 2px #fff, 0 0 6px #fff, 0 0 14px rgba(255, 255, 255, 0.95), 0 0 34px rgba(255, 255, 255, 0.7); }
 .hi-stage[data-sky='bright'].is-gold .hi-num { color: var(--hi-gold); text-shadow: var(--hi-edge-big), 0 0 16px rgba(255, 255, 255, 0.9); }
-.hi-stage[data-sky='bright'] .hi-band, .hi-stage[data-sky='bright'] .hi-clock, .hi-stage[data-sky='bright'].is-live .hi-fps { color: var(--hi-ink); text-shadow: var(--hi-halo); }
+.hi-stage[data-sky='bright'] .hi-band, .hi-stage[data-sky='bright'] .hi-clock { color: var(--hi-ink); text-shadow: var(--hi-halo); }
+/* (S5: by day the fps line keeps its white words on the dark plate — no 22 px halo re-rasterised every second) */
 .hi-stage[data-sky='bright'] .hi-call { color: var(--hi-ink); text-shadow: var(--hi-halo); }
 .hi-stage[data-sky='bright'] .hi-call.is-perfect, .hi-stage[data-sky='bright'] .hi-call.is-streak { color: var(--hi-gold); text-shadow: var(--hi-edge), 0 0 12px rgba(255, 255, 255, 0.85); }
 .hi-stage[data-sky='bright'] .hi-call.is-fast { color: #00508f; }
@@ -173,6 +185,15 @@
 .hi-stage.is-lean.is-live .hi-hud, .hi-stage.is-lean.is-live .hi-hud *, .hi-stage.is-lean.is-live .hi-tag, .hi-stage.is-lean.is-live .hi-tag *, .hi-stage.is-lean.is-live .hi-fps, .hi-stage.is-lean.is-live .hi-place * {
   text-shadow: none !important; box-shadow: none !important; filter: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; animation: none !important; transition: none !important; will-change: auto !important; }
 .hi-stage.is-lean .hi-shade, .hi-stage.is-lean .hi-hud { transition: none; }
+/* S5 — THE EFFECTS BISECT: `?lean=num,call,…` — ONE effect off at a time (the test page only; tests/integration/highrise-paint.mjs --bisect) */
+.hi-stage.lean-num.is-live .hi-num, .hi-stage.lean-num.is-live .hi-num * { text-shadow: none !important; }
+.hi-stage.lean-call.is-live .hi-call { text-shadow: none !important; }
+.hi-stage.lean-band.is-live .hi-band { text-shadow: none !important; }
+.hi-stage.lean-clock.is-live .hi-clock { text-shadow: none !important; }
+.hi-stage.lean-tag.is-live .hi-tag, .hi-stage.lean-tag.is-live .hi-tag * { text-shadow: none !important; box-shadow: none !important; transition: none !important; will-change: auto !important; }
+.hi-stage.lean-fps.is-live .hi-fps { text-shadow: none !important; }
+.hi-stage.lean-ann.is-live .hi-ann, .hi-stage.lean-ann.is-live .hi-ann * { text-shadow: none !important; animation: none !important; }
+.hi-stage.lean-place.is-live .hi-place * { text-shadow: none !important; }
 
 /* ---- S4A — THE NEXT FRIEND + THE CARTRIDGE (js/games/highrise/view.js mounts this SAME stage in the console's frame) ---- */
 /* THE NEXT FRIEND above you: the gold flag's twin in PINK (the site's pink — never gold: gold = YOUR BEST, nothing else) */

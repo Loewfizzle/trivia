@@ -9,7 +9,8 @@ NOTHING COUNTS (`HIGHRISE_COUNTS` off). The owner's decisions: `docs/games/plan.
 | `353933b7` | Step 0 — Ben's notes into plan.md; the Lab's marks re-exported (no open FIX mark) |
 | `757742c3` | Group 1 — THE PLACE NUMBER + THE RANKED LIST IN WATCH + 18 s + THE ANNOUNCER CHECK + ZERO GARBAGE IN A MATCH |
 | `c2caacd8` | Group 2 — THE SHARE IMAGE |
-| Group 3 | THE POSTER → THE B1 BILLBOARD ART |
+| `6245257a` | Group 3 — THE POSTER → THE B1 BILLBOARD ART |
+| Group 4 | THE EFFECTS REBUILD |
 
 THE ADD-ON INBOX: read at the start, after every group's commit and before the final run (see THE CLOSE).
 
@@ -84,3 +85,38 @@ the raw frames `frame-*.jpg`.
 
 **Shots**: `Downloads\NEON\highrise-s5\billboard\` — the PNGs + `city-390x844-{jaywalk,highrise}-open.png` + their `-board.png`
 close crops + `billboard-measure.json`.
+
+## GROUP 4 — THE EFFECTS REBUILD (Ben's A/B: `?lean=1` halved Safari's slow frames)
+**THE BISECT** (`tests/integration/highrise-paint.mjs --bisect` — a Chromium trace of the owner's OWN link `?trace=1&fps=1`, 20 s of a bot's
+run, by night + by day; `?lean=<name>` turns ONE effect off: `num` · `call` · `band` · `clock` · `tag` · `fps` · `ann` · `place`). Every DOM /
+CSS effect drawn over the 3D view during a run: the floor number's text-shadow (4 layers, a 34 px blur) · the announcer's lane (a 26 px
+glow + its Web Animation pop) · the band's name (a 10 px halo; its swell at an arrival) · the match clock (an 8 px halo) · the tags (a
+transform transition, the friend's box-shadow) · the `?fps=1` line (an 8 px halo — 22 px by day — rewritten EVERY SECOND) · the match lane +
+THE PLACE NUMBER. No filter / backdrop-filter / blend mode anywhere in the sheet. **Ranked by raster time** (what the GPU / Safari spends
+re-rasterising; the paint COUNTS were the same with and without lean — ≈ 5–7 a second — the cost is the blur inside them):
+
+| raster ms a second | night | day |
+| --- | --- | --- |
+| the plain link — BEFORE | **0.74** | **0.79** |
+| … the floor number's share | 0.33 | 0.36 |
+| … the announcer's | 0.27 | 0.10 |
+| … the band's (it shares the number's invalidation) | 0.20 | 0.09 |
+| … the fps line's | 0.15 | 0.33 |
+| … the tags' | 0.07 | 0 |
+| **the plain link — AFTER** | **0.17** | **0.15** |
+| `?lean=1` (unchanged) | 0.10 | 0.10 |
+
+**THE REBUILD — the same look** (before / after at 390 × 844, the SAME frozen instant, the old DOM glow switched back on for the before:
+`Downloads\NEON\highrise-s5\effects\hud-{night,day}-before-left-after-right.png` · the number alone: `num-{night,day}-before-after.png`):
+1. **THE FLOOR NUMBER** (`bakedtext.js#bakedNumber`): the ten digits drawn WITH their glow ONCE a style — read off the number's own
+   computed style (font, colour, every text-shadow: the gold, the day's ink, `?lean`'s switches all still come from the CSS) — into small
+   bitmaps; a landing COPIES 1 – 3 of them into ONE canvas over the number (no blur, no text layout). The digit boxes stay for the layout
+   + the reading (transparent, shadowless). A style change (gold · the sky's tone · a resize · the font landing) bakes again.
+   (Found on the way: the face's numerals are PROPORTIONAL — the baked 1 first sat in a 0's box; each digit now keeps its own advance.)
+2. **THE ANNOUNCER's LANE** (`bakedtext.js#bakedLine`): its pieces ("PERFECT ×", "NEW BEST", "FASTER", each digit …) baked once a style;
+   a call composes their bitmaps; the pop stays a Web Animation (transform + opacity on the compositor).
+3. **THE FPS LINE**: its halo → one plain text draw on a flat dark plate (by day too) — it is rewritten every second.
+Kept as it was (cheap — measured ≈ 0): the band's name (only rewritten at an arrival), the tags (a transform transition), the place +
+the lane in a match (written only at a change). `?lean=1` still works (and `?lean=<name>` for one effect) — the owner's A/B is unchanged.
+**WebKit**: not measured — Playwright's WebKit on the Beelink draws WebGL in software (~21 fps): its frame times say nothing about
+paint (the memory "Beelink frame-timing quirks"); the owner's iPhone A/B is the measure.

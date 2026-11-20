@@ -25,6 +25,7 @@ import { createTrace, PH, EV, SETUP } from './trace.js';
 import { createMatchHud } from './matchhud.js';
 import { nearest, mergeTags, entryTick, placeOf, RIVALS_SHOWN } from './rivals.js';
 import { keepShot, shotMs } from './shot.js';
+import { bakedNumber, bakedLine } from './bakedtext.js';
 
 
 export const newSeed = () => { const a = new Uint32Array(2); crypto.getRandomValues(a); return [...a].map(x => x.toString(36)).join(''); };
@@ -74,6 +75,8 @@ function numBox(node, mark) {
 const CUE_BEST = Object.freeze({ id: 'streak', rate: 1.12 }), CUE_FRIEND = Object.freeze({ id: 'streak', rate: 1.06 }), CUE_BAND = Object.freeze({ id: 'band-arrival' });
 /** the frame times kept for the pass's measures (a ring of numbers made once) · the `?fps=1` line is written this often (ms — once a second: its words are the one thing a live frame still builds) */
 const FRAMES_KEPT = 20000, FPS_EVERY_MS = 1000;
+/** S5 — THE EFFECTS BISECT: the effects over the 3D view `?lean=` can switch off one by one (the test page only) */
+export const LEAN_PARTS = Object.freeze(['num', 'call', 'band', 'clock', 'tag', 'fps', 'ann', 'place']);
 
 /** START waits at most this long for every sound's decode (S4A — THE SOUND SYNC: no sound of a run takes the late path) */
 const START_WAIT_MS = 600;
@@ -99,7 +102,11 @@ const START_WAIT_MS = 600;
 export function createStage(app, o = {}) {
   const PAGE = !!o.page, FIXED = String(o.seed || '').slice(0, SEED_MAX);
   let MODE = MODE_IDS.includes(o.mode) ? o.mode : 'solo';   // (S4B: a cartridge's stage plays a SOLO run or a MATCH — `adopt` says which)
-  const FROM = Math.max(0, Math.min(400, Math.floor(Number(o.from) || 0))), LOOK_Q = o.look === 'day' || o.look === 'night' ? o.look : null, LEAN = PAGE && !!o.lean;
+  const FROM = Math.max(0, Math.min(400, Math.floor(Number(o.from) || 0))), LOOK_Q = o.look === 'day' || o.look === 'night' ? o.look : null;
+  // S5 — THE EFFECTS BISECT (the test page only): `?lean=1` = every DOM / CSS effect over the 3D view off while a run is live (S4B's A/B);
+  // `?lean=num,call,…` = only THOSE (LEAN_PARTS) — each effect's own cost measured alone (tests/integration/highrise-paint.mjs --bisect)
+  const leanQ = PAGE ? String(o.lean === true ? '1' : o.lean || '') : '', LEAN = leanQ === '1' || leanQ === 'all';
+  const LEANS = new Set(LEAN ? LEAN_PARTS : leanQ.split(',').filter(k => LEAN_PARTS.includes(k)));
   const bestAt = o.best || { read: () => 0, write() {} }, readBest = () => cleanBest(bestAt.read()), writeBest = n => bestAt.write(n);
   const ac = new AbortController(), sig = { signal: ac.signal };   // (the cartridge unmounts: every listener on the document goes with it)
   let gone = false;
@@ -112,7 +119,7 @@ export function createStage(app, o = {}) {
   const play = h('div.hi-play', { role: 'application', 'aria-label': 'High Rise — tap to drop the slab' });
   // (ZERO GARBAGE: every line of the HUD that changes in a run keeps ONE text node — a change writes its `data`, never a new node)
   const callT = document.createTextNode(''), clockT = document.createTextNode(''), tagT = document.createTextNode(''), ftagT = document.createTextNode(''), fpsA = document.createTextNode(''), fpsB = document.createTextNode(''), fpsC = document.createTextNode('');
-  const num = h('div.hi-num'), band = h('div.hi-band', BANDS[0].name), call = h('div.hi-call', { 'aria-live': 'polite' }, callT), clock = h('div.hi-clock', clockT);
+  const num = h('div.hi-num'), band = h('div.hi-band', BANDS[0].name), call = h('div.hi-call', { 'aria-live': 'polite' }, h('span.hi-callt', callT)), clock = h('div.hi-clock', clockT);
   const hud = h('div.hi-hud', num, band, clock, call);
   const tag = h('div.hi-tag', { hidden: true }, h('span', tagT));
   const ftag = h('div.hi-tag.hi-ftag', { hidden: true }, h('span', ftagT));   // (S4A — THE NEXT FRIEND above you: the same flag in PINK)
@@ -143,8 +150,8 @@ export function createStage(app, o = {}) {
   const againIco = h('span.hi-again-i', { 'aria-hidden': 'true' });
   againIco.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>';
   const again = press(h('button.hi-again', { type: 'button', hidden: true }, againIco, h('span.hi-again-t', 'PLAY AGAIN')), () => { const now = performance.now(); if (shown && card && now - overAt > RETRY_MS) { restart(); begin(now); } });
-  const note = h('p.hi-note', LEAN ? `TEST PAGE · LEAN${FROM ? ` · FROM FLOOR ${FROM}` : ''} · NOTHING COUNTS` : FROM ? `TEST PAGE · FROM FLOOR ${FROM} · NOTHING COUNTS` : MODE === 'solo' ? 'TEST PAGE · SOLO · NOTHING COUNTS YET' : 'TEST PAGE · THE MATCH’S LOOK · NOTHING COUNTS');
-  const fps = o.fps ? h('div.hi-fps', fpsA, fpsB, fpsC) : null;
+  const note = h('p.hi-note', LEAN || LEANS.size ? `TEST PAGE · LEAN${LEAN ? '' : ` (${[...LEANS].join(' ')})`}${FROM ? ` · FROM FLOOR ${FROM}` : ''} · NOTHING COUNTS` : FROM ? `TEST PAGE · FROM FLOOR ${FROM} · NOTHING COUNTS` : MODE === 'solo' ? 'TEST PAGE · SOLO · NOTHING COUNTS YET' : 'TEST PAGE · THE MATCH’S LOOK · NOTHING COUNTS');
+  const fps = o.fps ? h('div.hi-fps', h('span.hi-fps-in', fpsA, fpsB, fpsC)) : null;   // (S5: its words on a flat dark plate — no glow re-drawn every second)
   // THE SOUNDS (sfx.js — the SHARED audio engine's SFX bus; unlocked by the first tap, never before) + THE SOUND AUDITION (the SOUNDS sheet)
   let snd = null, sheetOpen = false;
   const soundsBtn = press(h('button.hi-snd', { type: 'button' }, 'SOUNDS'), () => {
@@ -154,7 +161,7 @@ export function createStage(app, o = {}) {
   });
   // (the page installs the shared engine itself; in the console it is running long since — and the sounds are DECODED AHEAD there, never on the first drop)
   Promise.all([PAGE ? lazyImport(import('../../audio/engine.js'), '../../audio/engine.js') : null, lazyImport(import('./sfx.js'), './sfx.js')]).then(([E, S]) => { if (gone) return; if (E) E.installAudio(); S.fetchSounds(); Promise.resolve(S.decode()).catch(() => {}); snd = S; hook.sfx = S; }).catch(() => { /* silent: audio is polish */ });
-  const stage = h('div.hi-stage', { class: LEAN ? 'is-lean' : null, 'data-look': lookT, 'data-sky': skyTone(lookT, 0) }, play, shade, hud, tag, ftag, start, end, check, PAGE ? soundsBtn : null, PAGE ? note : null, fps, again);
+  const stage = h('div.hi-stage', { class: [LEAN ? 'is-lean' : '', ...[...LEANS].map(k => `lean-${k}`)].join(' ').trim() || null, 'data-look': lookT, 'data-sky': skyTone(lookT, 0) }, play, shade, hud, tag, ftag, start, end, check, PAGE ? soundsBtn : null, PAGE ? note : null, fps, again);
   app.replaceChildren(stage);
 
   // ---- the view (the night look) + its quality tiers; a browser with no WebGL gets the stage + one line saying so
@@ -183,7 +190,11 @@ export function createStage(app, o = {}) {
   //  Nothing is asked in a frame: a WeakRef's deref() is not free in every engine)
   const gcReg = HAS_WEAK ? new FinalizationRegistry(() => { if (!canaryGone) { marks.gc = performance.now(); gcSeen++; } hitchLine(); putCanary(); }) : null;
   function putCanary() { if (gone || !gcReg) return; const c = {}; canary = new WeakRef(c); gcReg.register(c); canaryGone = false; }
-  const setNum = numBox(num, mark);
+  // S5 — THE EFFECTS REBUILD: the digits' glow BAKED once a style (bakedtext.js) — a landing copies bitmaps, the browser paints no blur;
+  // the digit boxes keep the layout + the reading (transparent, shadowless — css .hi-num.is-baked)
+  const setBox = numBox(num, null), BN = bakedNumber(num, mark), setNum = n => { setBox(n); BN.set(n); };
+  // (… and the announcer's lane: its words + digits baked once a style, a call composes their bitmaps — bakedtext.js#bakedLine)
+  const BL = bakedLine(call);
   const NO_VIEW = { el: null, setRival() {}, dimRivals() {}, showRivals() {}, warm: () => true, flyReady: () => true, adopt() {}, events() {}, fall() {}, draw() {}, setTier() {}, setBest() {}, setFriend() {}, setLook() {}, rest() {}, resize() {}, flyers: () => false, band() {}, need() {}, fly: () => false, flyReset() {}, flyHush() {}, flyInfo: () => ({ ready: false }), flyPath: () => null, project: () => [0, -1], zoneTop: () => 1, restZone: () => 1, restY: () => -1, stat: () => null, io: new Float64Array(3), pose() {}, welcome() {}, ghostBest() {}, poseXY(x, f, z, out) { out[0] = 0; out[1] = -1; }, top: () => ({ x0: 0, x1: 0, z0: 0, z1: 0, floor: -1 }), info: () => ({ down: true }), destroy() {} };
   let view, glDown = null;
   try { view = createNight(play, { tier: pin == null ? 2 : pin, mark, look: lookT, trace: TR }); }
@@ -240,7 +251,7 @@ export function createStage(app, o = {}) {
 
   // ---- the sizes the HUD needs (a ResizeObserver's — never a layout read in the frame)
   let stageH = 0, stageW = 0, hudFoot = 0, tagDirty = true;   // (tagDirty: the screen's size / the friends changed — the two tags are placed again)
-  function sized() { stageH = stage.clientHeight; stageW = stage.clientWidth; hudFoot = hud.offsetTop + hud.offsetHeight; tagDirty = true; }
+  function sized() { stageH = stage.clientHeight; stageW = stage.clientWidth; hudFoot = hud.offsetTop + hud.offsetHeight; tagDirty = true; if (typeof BN !== 'undefined') BN.dirty(); }
   const ro = new ResizeObserver(sized); ro.observe(stage); ro.observe(hud);
   sized();
 
@@ -350,8 +361,8 @@ export function createStage(app, o = {}) {
     // (THE WELCOME's scene: the tower low on the screen, a first slab already sliding in, YOUR BEST's tape)
     view.pose('welcome'); view.welcome(true, best > 0); view.ghostBest(false);
     end.hidden = true; check.hidden = true; again.hidden = true; start.hidden = false; soundsBtn.hidden = false; note.hidden = false;
-    stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-made', 'is-ended'); stage.classList.add('is-welcome');
-    hudFloor = -1; hudLeft = -2; hitchN = 0; hitchLast = ''; hitchBy.plate = hitchBy.compile = hitchBy.audio = hitchBy.gc = hitchBy.dom = hitchBy.tap = hitchBy.work = hitchBy.unknown = 0; gcSeen = 0; hitchLine(); callUntil = 0; callPri = 0; later = null; if (callAnim) { callAnim.cancel(); callAnim = null; } call.className = 'hi-call'; callT.data = '';
+    stage.classList.remove('is-live', 'is-over', 'is-gold', 'is-made', 'is-ended'); stage.classList.add('is-welcome'); BN.dirty();
+    hudFloor = -1; hudLeft = -2; hitchN = 0; hitchLast = ''; hitchBy.plate = hitchBy.compile = hitchBy.audio = hitchBy.gc = hitchBy.dom = hitchBy.tap = hitchBy.work = hitchBy.unknown = 0; gcSeen = 0; hitchLine(); callUntil = 0; callPri = 0; later = null; if (callAnim) { callAnim.cancel(); callAnim = null; } call.className = 'hi-call is-baked'; callT.data = ''; BL.set('', '');
     band.textContent = BANDS[0].name; setNum(0); tag.hidden = true; tagAt = -1e9; ftagAt = -1e9;
   }
   // (while a run is LIVE the SOUNDS button + the note are off the screen: a thumb anywhere is a DROP, never a menu)
@@ -435,14 +446,15 @@ export function createStage(app, o = {}) {
   // (ZERO GARBAGE: ONE animation a length is made and kept — a call plays it again; the lane's words go into its one text node)
   const pops = new Map();
   // (S4A FIX 2 — PREWARM: every length the lane plays is MADE NOW, stopped — a first PERFECT / STREAK / NEW BEST builds nothing; the band's swell too)
-  const canPop = !LEAN && !!call.animate;   // (LEAN: the lane's words just show — no Web Animation over the canvas)
+  const canPop = !LEANS.has('call') && !!call.animate;   // (LEAN: the lane's words just show — no Web Animation over the canvas)
   if (canPop) for (const ms of [700, 1100, 1500, 1700, 1900, 2600]) { const a = call.animate(POP, { duration: ms, fill: 'both' }); a.cancel(); pops.set(ms, a); }
   let swellA = null;
   /** → true = it is on the lane (false: a bigger call holds it). `cls` = the lane's WHOLE class ('hi-call is-perfect') */
   function say(text, cls, pri, ms, now) {
     if (now < callUntil && pri < callPri) return false;
     callUntil = now + ms; callPri = pri; mark('dom');
-    callT.data = text; if (call.className !== cls) call.className = cls;
+    callT.data = text; if (call.className !== `${cls} is-baked`) call.className = `${cls} is-baked`;   // (is-baked: the lane's words drawn by its canvas)
+    BL.set(text, `${cls}|${toneSeen}|${stageW}x${stageH}`);   // (S5: the glow baked — a call copies bitmaps; its style read once a class + sky + size)
     if (callAnim) callAnim.cancel();
     if (canPop) { let a = pops.get(ms); if (a) a.play(); else { a = call.animate(POP, { duration: ms, fill: 'both' }); pops.set(ms, a); } callAnim = a; }
     else call.style.opacity = '1';
@@ -465,7 +477,7 @@ export function createStage(app, o = {}) {
         view.fly('pour');
       } else if (e.e === 'land') {
         if (!FROM && !matchOn && crossedBest(best, e.floor)) {   // (a `?floor=N` run never compares a best)
-          tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold');
+          tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold'); BN.dirty();
           say('NEW BEST', 'hi-call is-gold', 5, 1900, now); if (!late) cues.push(CUE_BEST);
         }
         // THE NEXT FRIEND crossed (S4A — YOUR TABLE's bests; solo only): the thin PINK tape lies on the tower at their floor, PASSED LIAM
@@ -473,7 +485,7 @@ export function createStage(app, o = {}) {
         if (o.friends && MODE === 'solo') { const f = crossedFriend(o.friends(), e.floor); if (f) { friendTape = f.v; view.setFriend(f.v, !late); if (!late) { say(`PASSED ${f.n}`, 'hi-call is-pink', 4, 1700, now); cues.push(CUE_FRIEND); } } }
         const b = bandAt(e.floor);
         // A BAND's ARRIVAL: its name (under the number) lights up — never said twice in the lane below
-        if (b > bandNow) { bandNow = b; mark('dom'); if (TR) TR.ev |= EV.seam; band.textContent = BANDS[b].name; if (!calm && !LEAN && band.animate) { if (swellA) { swellA.cancel(); swellA.play(); } else swellA = band.animate(SWELL, { duration: 1700 }); } if (!late) cues.push(CUE_BAND); }
+        if (b > bandNow) { bandNow = b; mark('dom'); if (TR) TR.ev |= EV.seam; band.textContent = BANDS[b].name; if (!calm && !LEANS.has('band') && band.animate) { if (swellA) { swellA.cancel(); swellA.play(); } else swellA = band.animate(SWELL, { duration: 1700 }); } if (!late) cues.push(CUE_BAND); }
         // THE FLYERS: the seed's flyby (35–45) · the UFO (85) · floor 200 — SOLO flies past THE MOTHERSHIP (a moment, then on into deep space)
         const due = flyDue(plan, e.floor, flown);
         if (due) {
@@ -731,7 +743,7 @@ export function createStage(app, o = {}) {
     if (run.floor !== needFloor && frameN >= landF + LATER_NUM) { needFloor = run.floor; flyCheck(); }   // (S4A FIX 2: never on the landing frame — a model's fetch / THE MOTHERSHIP's hull is begun two frames later)
     // the page's words follow the picture: the look on screen + the sky's tone at this height (compared, written only at a change)
     const lk = view.lookNow ? view.lookNow() : lookT, tone = skyTone(lk, run.floor);
-    if (lk !== lookSeen || tone !== toneSeen) { lookSeen = lk; toneSeen = tone; mark('dom'); stage.dataset.look = lk; stage.dataset.sky = tone; }
+    if (lk !== lookSeen || tone !== toneSeen) { lookSeen = lk; toneSeen = tone; mark('dom'); stage.dataset.look = lk; stage.dataset.sky = tone; BN.dirty(); }
     // the two right-edge tags: placed once a landing (+ when the run starts / ends, the screen's size or the friends change)
     // (the tags' mode: 1 the welcome · 2 a live run · 3 the end screen · 0 between — the end's hold)
     const tagMode = watchW ? 2 : t0 == null ? (shown ? 3 : 1) : shown ? 3 : over ? 0 : 2;
@@ -753,7 +765,7 @@ export function createStage(app, o = {}) {
   // (the pass's own checks — tests/integration/highrise-play.mjs)
   const hook = {
     ends: [], view, sfx: null, el: stage,
-    state: () => ({ mode: MODE, seed, look: lookT, choice, sky: stage.dataset.sky, started: t0 != null, starting, shown, card, lates: snd && snd.lates ? snd.lates() : 0, over: isOver(run), st: run.st, t: run.t, floor: run.floor, streak: run.streak, perfects: run.perfects, shownPerfects: run.perfects - skipP, shownStreak: run.streak - skipS, lean: LEAN, warm: warmOk(), s0: run.s0, S: run.S, taps: taps.length, best, tapeOn: tapeFloor > 0, newBest, band: bandNow, words: endSaid, check: check.hidden ? '' : check.textContent, call: call.textContent, tag: tag.hidden ? '' : tag.textContent, ftag: ftag.hidden ? '' : ftag.textContent, friendTape, top: { x0: run.x0, x1: run.x1, z0: run.z0, z1: run.z1, floor: run.floor }, viewTop: view.top(), tier: tiers.get(), tierPath: tierPath.slice(), rebuilds, sheet: sheetOpen, info: view.info() }),
+    state: () => ({ mode: MODE, seed, look: lookT, choice, sky: stage.dataset.sky, started: t0 != null, starting, shown, card, lates: snd && snd.lates ? snd.lates() : 0, over: isOver(run), st: run.st, t: run.t, floor: run.floor, streak: run.streak, perfects: run.perfects, shownPerfects: run.perfects - skipP, shownStreak: run.streak - skipS, lean: LEAN, leans: [...LEANS], warm: warmOk(), s0: run.s0, S: run.S, taps: taps.length, best, tapeOn: tapeFloor > 0, newBest, band: bandNow, words: endSaid, check: check.hidden ? '' : check.textContent, call: call.textContent, tag: tag.hidden ? '' : tag.textContent, ftag: ftag.hidden ? '' : ftag.textContent, friendTape, top: { x0: run.x0, x1: run.x1, z0: run.z0, z1: run.z1, floor: run.floor }, viewTop: view.top(), tier: tiers.get(), tierPath: tierPath.slice(), rebuilds, sheet: sheetOpen, info: view.info() }),
     /** ms until the sliding slab is next dead on the tower — on its way out, or on its way back (null = no slab / its last pass is gone) */
     /** … the same as a WHOLE number of ms (−9999 = none) — nothing is made: the allocation measure's bot asks it every frame */
     soon() { if (t0 == null || run.st !== 'slide') return -9999; const a = t0 + (run.s0 + run.S / 2) * TICK_MS - performance.now(), b = a + run.S * TICK_MS; return a > -8 ? Math.round(a) : b > -8 ? Math.round(b) : -9999; },

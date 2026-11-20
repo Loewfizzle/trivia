@@ -1,10 +1,10 @@
 {
-  "_": "CITY A (Nov 14) — THE PER-GAME BUDGET: the city's boot graph (scripts/boot-bytes.mjs#bootGraph from js/app.js) + ONE cartridge's whole graph past it (js/games/preload-graph.js — what the lobby wires for the PICKED game only). Raw bytes on disk. RAISING ANY NUMBER IS A DECISION a pass names in its summary. Set from CITY A's own numbers + ~5 %: OVERCLOCK 175 modules / 2511 KB · PRISM DROP 179 / 2642 · HOLD'EM 149 / 2310. JAYWALK H1 (Nov 16): a NEW line for the game being built — its H1 graph is 134 modules / ~2100 KB (the stub screen); the line is HOLD'EM's, the room its real screen (H2–H6) gets — three.js itself comes from the CDN (the import map), never counted here. HIGH RISE S5 (Nov 20): highrise 2450 → 2500 KB — THE PLACE NUMBER + WATCH's ranked list + the zero-garbage match helpers took it to 2454 (a named call in the pass summary).",
+  "_": "CITY A (Nov 14) — THE PER-GAME BUDGET: the city's boot graph (scripts/boot-bytes.mjs#bootGraph from js/app.js) + ONE cartridge's whole graph past it (js/games/preload-graph.js — what the lobby wires for the PICKED game only). Raw bytes on disk. RAISING ANY NUMBER IS A DECISION a pass names in its summary. Set from CITY A's own numbers + ~5 %: OVERCLOCK 175 modules / 2511 KB · PRISM DROP 179 / 2642 · HOLD'EM 149 / 2310. JAYWALK H1 (Nov 16): a NEW line for the game being built — its H1 graph is 134 modules / ~2100 KB (the stub screen); the line is HOLD'EM's, the room its real screen (H2–H6) gets — three.js itself comes from the CDN (the import map), never counted here. HIGH RISE S5 (Nov 20): highrise 2450 → 2500 KB — THE PLACE NUMBER + WATCH's ranked list + the zero-garbage match helpers took it to 2454 (a named call in the pass summary); its modules 160 → 165: THE EFFECTS REBUILD's bakedtext.js made 161.",
   "games": {
     "overclock": { "modules": 185, "kb": 2650 },
     "prism": { "modules": 190, "kb": 2780 },
     "holdem": { "modules": 160, "kb": 2450 },
     "jaywalk": { "modules": 160, "kb": 2450 },
-    "highrise": { "modules": 160, "kb": 2500 }
+    "highrise": { "modules": 165, "kb": 2500 }
   }
 }
