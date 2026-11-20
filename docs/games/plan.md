@@ -653,3 +653,13 @@
 - UFO lamps hidden: approved. The pink flash: gone (Ben checked). Welcome A + end A: in.
 - GROW-BACK = #1 "Heal Restore" by Qvantor (Freesound 878621, CC0) — FINAL (Ben's pick); takes 2–5 + their credits removed.
 - Multiplayer stays S4B (the cartridge is solo-only until then).
+
+## HIGH RISE — S4B (approved Nov 19–20)
+- THE END SCREEN = JAYWALK'S STANDARD (replaces design A; mockup Downloads\NEON\highrise-end-jaywalk-style-v2.png): header "HIGH RISE · SOLO" (HIGH hot pink, RISE cyan, "· SOLO" lavender; "· MATCH" in a match) → the cause in saturated hot-pink neon (MADE IT TO THE MOTHERSHIP = gold) → the floor HUGE, white with a cyan glow, "FLOORS" under it → "YOUR BEST · N" gold + one line "N PERFECTS · BEST STREAK N" → YOUR TABLE slim cards right under the personal numbers → the shared universal footer (PLAY AGAIN · SHARE | CITY). No 3-column stats strip, no dashed tower line. Never all white: the colours are real neon.
+- THE SHARE IMAGE moves from S4B to THE REVIEW.
+- THE LAG (Ben's iPhone trace after FIX 2): our code ≈ 1 ms in every slow frame; ~1.5% of frames ≈ 40 ms, ALL "browser" (Safari paint ≈ 24 ms), spread over the run, never on landings; one 65 ms first-time set-up at floor 80 (seam+flyer+later). Plan: pre-warm everything before the first tap + a `?lean=1` A/B switch; rebuild the over-the-game effects only if lean clearly wins on Ben's phone.
+- `?floor=N` shortcut floors never count as perfects / streak (test-page bug).
+- The UFO glide through landings: confirmed smooth on Ben's iPhone.
+- THE MATCH (decided): only THE OWNER starts it (a room he hosts), 2–8 players, a mid-match joiner WATCHES until the REMATCH; the same seed for everyone (THE FIRST GO, server time), each player's own `hr` proof node, the server replays every run; RIVALS = HEIGHT TAPES + THE ALTIMETER — the tapes never block the play (a rival above = a right-edge tag "ALEX ▲3", the 3 nearest, merged when they would overlap, dim while a slab slides); OUT = WATCH (the leader first, tap = the next, tap the altimeter = that player); the announcer calls passes + streaks; Call the Winner; floor 200 = the Mothership (most perfects breaks ties, then the earlier tick), the 6:00 cap = TIME'S UP; each phone its own day / night look; XP + the streak by JAYWALK's rules behind HIGHRISE_COUNTS (off).
+- THE RULE-SET TABLE: every rule number in ONE table, today's only entry "classic"; a run records its rule set, the judge rejects an unknown one; nothing changes in play.
+- THE RULES GAP shared with JAYWALK (a host on a modified client can delete his own live proof tree) is closed for `hr` + `jw`.
