@@ -185,7 +185,20 @@ try {
   ok(E.kT === 'HIGH RISE · SOLO' && E.kCols.join('|') === 'rgb(255, 79, 216)|rgb(54, 201, 255)|rgb(201, 182, 255)' && E.hd.x >= E.menu.r + 2 && E.hd.r <= E.music.x - 2 && Math.abs((E.hd.x + E.hd.r) / 2 - 195) < 2, `THE HEADER "${E.kT}": HIGH hot pink · RISE cyan · the mode lavender — one line, centred between the corner buttons (${E.hd.x.toFixed(0)}–${E.hd.r.toFixed(0)}; ☰ to ${E.menu.r.toFixed(0)}, music from ${E.music.x.toFixed(0)})`);
   ok(E.causeCol === 'rgb(255, 79, 216)' && E.causeFs >= 30 && E.nCol === 'rgb(255, 255, 255)' && E.nFs >= 84 && E.flT === (V.floor === 1 ? 'FLOOR' : 'FLOORS') && E.bestCol === 'rgb(255, 210, 87)' && /^\d+ PERFECTS? · BEST STREAK \d+$/.test(E.lineT) && E.hd.b <= E.cause.y && E.cause.b <= E.n.y + 4 && E.n.b <= E.fl.y + 8 && E.fl.b <= E.best.y && E.best.b <= E.line.y,
     `top to bottom: the cause in saturated hot pink (${E.causeFs.toFixed(0)} px) · the floor HUGE + white (${E.nFs.toFixed(0)} px) · ${E.flT} · the best in gold · "${E.lineT}"`);
-  ok(/PLAY AGAIN/.test(E.barT) && E.barBg === 'rgb(255, 79, 216)' && E.links.join('|') === 'CITY' && E.bar.b <= 844 && E.would.b <= E.bar.y + 1 && E.bar.y - E.would.b < 24 && E.would.y >= E.line.b, `THE UNIVERSAL FOOTER: the PLAY AGAIN bar in the accent + CITY (SHARE comes with THE SHARE IMAGE — THE REVIEW); WOULD COUNT is the one small line just over the bar (${E.would.y.toFixed(0)}–${E.would.b.toFixed(0)}, the bar at ${E.bar.y.toFixed(0)})`);
+  ok(/PLAY AGAIN/.test(E.barT) && E.barBg === 'rgb(255, 79, 216)' && E.links.join('|') === 'SHARE|CITY' && E.bar.b <= 844 && E.would.b <= E.bar.y + 1 && E.bar.y - E.would.b < 24 && E.would.y >= E.line.b, `THE UNIVERSAL FOOTER: the PLAY AGAIN bar in the accent + SHARE · CITY (S5 — THE SHARE IMAGE); WOULD COUNT is the one small line just over the bar (${E.would.y.toFixed(0)}–${E.would.b.toFixed(0)}, the bar at ${E.bar.y.toFixed(0)})`);
+  // S5 — SHARE: the card drawn from THIS run's frame; with THE SWITCH OFF (WOULD COUNT) no link is asked — the PICTURE alone goes out, no text
+  {
+    await P.p.evaluate(() => { window.__shared = []; navigator.share = async d => { window.__shared.push(d); }; navigator.canShare = () => true; });
+    const apiBefore = await P.p.evaluate(() => performance.getEntriesByType('resource').filter(e => /\/api\/daily/.test(e.name)).length);
+    await P.p.evaluate(() => { const a = [...document.querySelectorAll('.hi-final .final-link')].find(x => /SHARE/.test(x.textContent)); a.click(); });
+    const sh = await P.waitFor("window.__shared && window.__shared.length ? window.__shared[0] : null", 15000);
+    const got = await P.p.evaluate(async () => { const d = window.__shared[0], f = d && d.files && d.files[0]; if (!f) return null; const bm = await createImageBitmap(f); return { url: d.url || '', text: d.text || '', type: f.type, w: bm.width, h: bm.height, name: f.name }; });
+    const apiAfter = await P.p.evaluate(() => performance.getEntriesByType('resource').filter(e => /\/api\/daily/.test(e.name)).length);
+    ok(!!sh && !!got && got.w === 1080 && got.h === 1350 && !got.url && !got.text && got.name === 'neon-speakeasy-high-rise.png', `SHARE (counting OFF): the PICTURE alone — ${got ? `${got.w} × ${got.h} ${got.name}, no link, no text` : 'nothing shared'}`);
+    ok(apiAfter === apiBefore, `… and no link was asked of the server (THE SWITCH said WOULD COUNT): ${apiAfter - apiBefore} /api/daily calls`);
+    const shotOk = await P.p.evaluate(async () => { const S = await import('/js/games/highrise/shot.js'), s = S.lastShot(); return !!(s && s.canvas && s.canvas.width === 1080 && typeof s.key === 'string' && s.key.length > 3); });
+    ok(shotOk, 'the card\'s hero = THIS run\'s frame, kept under its match id (shot.js)');
+  }
   ok(!E.table && !E.strip && E.winner === 'none' && !E.tag && !E.pills.length && E.scroll <= E.w, `YOUR TABLE is hidden while counting is OFF (no empty table); no stats strip, no winner block, no tag over the tower, no pill (${E.pills.join(' ')}), no sideways scroll`);
   if (S4B_OUT) await P.p.screenshot({ path: join(S4B_OUT, `cartridge-${LOOKN}-390x844-tooslow.png`) });
   // YOUR TABLE — its layout proven with FIXTURES (0 · 1 · 3 · 8 friends; the board has no rows of its own while counting is OFF): the

@@ -209,3 +209,28 @@ test('JAYWALK H4B — A RUN\'s CARD: only a counted result\'s player, its own sl
     forgetShareSweep();
   }
 });
+
+// HIGH RISE S5 — ITS RUN CARD on the same machinery, BEHIND THE SWITCH: with HIGHRISE_COUNTS off a run has NO counted result
+// (results/{ROOM}_{m} is never written) → the card is refused (no_run: the phone shares the picture itself); with a counted result (the
+// go-live) it is taken into HIGH RISE's own slot, like JAYWALK's.
+test('HIGH RISE S5 — A RUN\'s CARD: refused with no counted result (counting OFF), taken into its own slot once counted', async () => {
+  const a = await ensure('u-hi-run-a', 'HiAmy');
+  const ok = png(CARD_W, CARD_H).toString('base64'), at = T0 + 500;
+  const call = uid => dailyAction(uid, { action: 'shareCard', games: ['highrise'], run: { room: 'TOWR', m: 'm1hi5' }, png: ok }, T0 + 1000);
+  try {
+    await assert.rejects(call('u-hi-run-a'), e => e.code === 'no_run', 'counting OFF: no result, no link');
+    await ref('results/TOWR_m1hi5').set({ st: 'done', at, g: 'jaywalk', mode: 'solo', n: 1, o: { [a.pid]: { xp: 3 } } });
+    await assert.rejects(call('u-hi-run-a'), e => e.code === 'no_run', 'another game\'s result never opens HIGH RISE\'s card');
+    await ref('results/TOWR_m1hi5').set({ st: 'done', at, g: 'highrise', mode: 'solo', n: 1, o: { [a.pid]: { xp: 3 } } });
+    const r = await call('u-hi-run-a');
+    assert.ok(r.code && r.path, 'counted: the link is made');
+    assert.equal(await val(`shrp/${a.pid}:highrise/${today}`), r.code, 'ITS OWN slot (never JAYWALK\'s or the day\'s scorecard)');
+    const card = await val(`shr/${r.code}`);
+    assert.deepEqual({ g: card.g, k: card.k, s: card.s }, { g: ['highrise'], k: 'run', s: `${a.pid}:highrise` });
+  } finally {
+    await ref('results/TOWR_m1hi5').remove();
+    await ref(`shrp/${a.pid}:highrise`).remove();
+    for (const [code, c] of Object.entries((await val('shr')) || {})) if (c.p === a.pid) await ref(`shr/${code}`).remove();
+    forgetShareSweep();
+  }
+});

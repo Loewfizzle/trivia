@@ -848,12 +848,28 @@ export function createNight(host, o = {}) {
     // (THE DAY LOOK has NO bloom — added light washes a bright sky out; through a switch it fades with the night)
     if (bloom && tier === 2 && dayK < 1) bloom.render(scene, cam, plate, TWINS, 1 - dayK);
     if (TRC) TRC.lap(PH.bloom);
+    // (S5 — THE SHARE IMAGE's frame: copied off the canvas IN the frame it was drawn — no preserveDrawingBuffer; asked once a run)
+    if (snapAsk) { const ask = snapAsk; snapAsk = null; try { ask(grab(snapW)); } catch { ask(null); } }
     if (upSlot) { upSlot.mesh.visible = false; upSlot.mesh.geometry = standIn; upSlot = null; }
     // (a program built in THIS frame — anything the warm frame missed — is a hitch with a name: play.js's counter)
     const pn = renderer.info.programs ? renderer.info.programs.length : 0;
     if (pn !== progN) { progN = pn; mark('compile'); }
     STAT.tier = tier; STAT.bloom = !!bloom && tier === 2; STAT.calls = renderer.info.render.calls; STAT.tris = renderer.info.render.triangles; STAT.w = w; STAT.h = h; STAT.dpr = dpr;
     frames++;
+  }
+
+  // S5 — THE SHARE IMAGE (JAYWALK's night.js#snap): the picture on the canvas right now → a 2D canvas `width` px wide + where the top
+  // slab's centre stands on it (topX / topY, 0 … 1) — the card zooms on it. Made only when asked (the run's end + a beat): never in play.
+  let snapAsk = null, snapW = 1080;
+  function grab(width = 1080) {
+    const cv = document.createElement('canvas'), k = width / el.width, hh = Math.max(1, Math.round(el.height * k));
+    cv.width = width; cv.height = hh;
+    const c = cv.getContext('2d');
+    if (!c) return null;
+    c.drawImage(el, 0, 0, width, hh);
+    V.set((top.x0 + top.x1) / 2 * U, (slabs[slabs.length - 1].floor - 0.5) * H, (top.z0 + top.z1) / 2 * U).project(cam);
+    cv.topX = (1 + V.x) / 2; cv.topY = (1 - V.y) / 2;
+    return cv;
   }
 
   /** THE DROP ZONE's upper edge on the screen (0 … 1 from the top), as the camera stands NOW */
@@ -878,6 +894,8 @@ export function createNight(host, o = {}) {
     rest() { keepFirst = true; },
     /** the view's own top slab (from the events) — the page's check: it equals the engine's */
     top: () => ({ ...top, floor: slabs[slabs.length - 1].floor }),
+    /** (S5) the NEXT frame drawn → fn(a 2D canvas `width` px wide, with topX / topY | null): THE SHARE IMAGE's frame, the poster */
+    snap(fn, width = 1080) { snapAsk = fn; snapW = width; },
     /** a point (rule units x, z; y in floors) → [x, y] on the screen, 0 … 1 from the top left (as of the last frame's camera) */
     project(x, floor, z) { V.set(x * U, floor * H, z * U).project(cam); return [(1 + V.x) / 2, (1 - V.y) / 2]; },   // (a point BEHIND the camera comes back mirrored — a caller clamps its height first: play.js's tag)
     /** THE DROP ZONE's upper edge on the screen (0 … 1 from the top): the highest point the sliding slab's path reaches — nothing of a tag / a tape's label may sit under it */

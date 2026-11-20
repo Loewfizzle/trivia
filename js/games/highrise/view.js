@@ -79,6 +79,7 @@ const drv = {
   onWatchTap: () => { if (cur && cur.watchTap) cur.watchTap(); },
   onWatchPick: u => { if (cur && cur.watchPick) cur.watchPick(u); },
   friends: () => (cur ? cur.friends() : []),
+  shotKey: () => (cur && cur.key ? cur.key() : ''),   // (S5: THE SHARE IMAGE's frame is kept under this match's id)
 };
 
 export function createView() {
@@ -385,7 +386,7 @@ export function createView() {
     mount(el, state) {
       st = state; code = state.code; uid = state.uid; matchId = state.game ? state.game.matchId : '';
       isMatch = !!state.game && state.game.mode !== 'solo';
-      cur = { go: askGo, frame: () => flush(false), over, end: r => (isMatch ? endMatch(r) : end(r)), watchTap: () => { pickAny = ''; const rows = [...rivals.values()].map(R => ({ uid: R.uid, floor: R.run.floor, perfects: R.run.perfects, over: rivalOver(R) })); followPick = nextFollow(rows, followUid); }, watchPick: u => { if (u !== uid && rivals.has(u)) pickAny = u; }, hide: () => { if (S && started && !S.state().over) flush(true); }, best: (was, v) => { globalThis.__hiNewBest = { m: matchId, was, v }; }, shown: () => { if (proven && go > 0 && S && !S.state().over) S.setT0(perfOf(go)); }, friends: () => friends };
+      cur = { go: askGo, frame: () => flush(false), over, end: r => (isMatch ? endMatch(r) : end(r)), watchTap: () => { pickAny = ''; const rows = [...rivals.values()].map(R => ({ uid: R.uid, floor: R.run.floor, perfects: R.run.perfects, over: rivalOver(R) })); followPick = nextFollow(rows, followUid); }, watchPick: u => { if (u !== uid && rivals.has(u)) pickAny = u; }, hide: () => { if (S && started && !S.state().over) flush(true); }, best: (was, v) => { globalThis.__hiNewBest = { m: matchId, was, v }; }, shown: () => { if (proven && go > 0 && S && !S.state().over) S.setT0(perfOf(go)); }, friends: () => friends, key: () => matchId };
       const had = unpark();
       if (had) { S = had; el.replaceChildren(S.el); S.el.classList.remove('is-final'); S.restart(); }
       else S = createStage(el, drv);

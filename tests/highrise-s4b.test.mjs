@@ -27,7 +27,7 @@ test('THE END = JAYWALK\'S STANDARD: ONE builder (the page\'s card + the cartrid
   assert.match(s, /EC\.best\(best, best > was && was > 0, was\);/);
   assert.match(s, /best = FROM \|\| matchOn \? was : nextBest\(was, live\.floor\);/, 'a `?floor=N` run never moves YOUR BEST — nor a MATCH\'s floor (YOUR BEST is the solo best)');
   // SHARE waits for THE SHARE IMAGE (THE REVIEW): the universal footer shows it by itself once the cartridge exports shareRun
-  assert.doesNotMatch(read(`${HI}index.js`), /shareRun/, 'no shareRun yet: the footer = PLAY AGAIN · CITY');
+  assert.match(read(`${HI}index.js`), /export const shareRun = /, 'S5: THE SHARE IMAGE — the footer = PLAY AGAIN · SHARE · CITY');
 });
 
 test('THE END\'s COLOURS ARE REAL NEON, never all white: HIGH hot pink · RISE cyan · the mode lavender · the cause SATURATED HOT PINK (gold for the finish) · the number the one white hero · YOUR BEST gold; JAYWALK\'s sizes + veil', () => {

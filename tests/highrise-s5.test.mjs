@@ -85,3 +85,37 @@ test('THE ANNOUNCER CHECK — the solo calls hold long enough to read (PERFECT �
   assert.ok(s.includes("else say(st > 1 ? `PERFECT ×${st}` : 'PERFECT', 'hi-call is-perfect', 1, 1500, now);"), 'PERFECT: 1.5 s (a new perfect replaces it — the same priority)');
   assert.ok(s.includes("if (!say('FASTER', 'hi-call is-fast', 2, 1500, now))"), 'FASTER: 1.5 s');
 });
+
+test('THE SHARE IMAGE — the card\'s words from the PUBLIC numbers only · JAYWALK\'s box · the crop zoomed on the top, never past an edge · ALL GOLD for the finish', async () => {
+  const H = await import(new URL(`../${HI}share.js`, import.meta.url));
+  const c = H.hiRunCard({ floor: 104, perfects: 93, cause: 'miss', made: false, mode: 'solo', name: 'Ben', pid: 'p-secret', uid: 'u1' });
+  assert.equal(c.title, 'HIGH RISE'); assert.equal(c.mode, 'SOLO'); assert.equal(c.name, 'BEN'); assert.equal(c.big, '104'); assert.equal(c.bigUnit, 'FLOORS');
+  assert.equal(c.line, 'MISSED THE STACK'); assert.equal(c.band, 'THE CLOUDS · 93 PERFECTS'); assert.equal(c.accent, H.PINK); assert.equal(c.gold, false);
+  assert.ok(!JSON.stringify(c).includes('p-secret') && !JSON.stringify(c).includes('u1'), 'nothing private on the card');
+  const g = H.hiRunCard({ floor: 200, perfects: 171, cause: 'made', made: true, mode: 'match', name: 'BEN' });
+  assert.equal(g.gold, true); assert.equal(g.accent, H.GOLD); assert.equal(g.mode, 'MATCH'); assert.equal(g.line, 'MADE IT TO THE MOTHERSHIP'); assert.equal(g.band, 'DEEP SPACE · 171 PERFECTS');
+  assert.equal(H.hiRunCard({ floor: 1, perfects: 1, cause: 'slow' }).bigUnit, 'FLOOR'); assert.equal(H.hiRunCard({ floor: 1, perfects: 1 }).band, 'THE ROOFTOPS · 1 PERFECT');
+  assert.deepEqual({ ...H.HI_CARD.box }, { x: 48, y: 348, w: 984, h: 792 }, 'JAYWALK\'s hero box');
+  const src = { width: 1080, height: 2337 }, box = H.HI_CARD.box;
+  for (const [tx, ty] of [[0.5, 0.59], [0.02, 0.02], [0.98, 0.99], [0.5, 0.62]]) {
+    const q = H.shotCrop(src, box, tx, ty);
+    assert.ok(q.sx >= 0 && q.sy >= 0 && q.sx + q.sw <= src.width + 1e-6 && q.sy + q.sh <= src.height + 1e-6, `inside the frame (${tx}, ${ty})`);
+    assert.ok(Math.abs(q.sw / q.sh - box.w / box.h) < 1e-6, 'the box\'s own shape — never stretched');
+  }
+  const q = H.shotCrop(src, box, 0.5, 0.59);
+  assert.ok(Math.abs(q.sy + q.sh * H.TOP_AT - 0.59 * src.height) < 1, 'the top slab at TOP_AT of the box');
+  assert.equal(H.runOf({ mode: 'solo', results: { u: { f: 57, p: 9, w: 'thin' } } }, 'u').floor, 57);
+});
+
+test('THE SHARE IMAGE is wired like JAYWALK\'s: the frame a beat after the end (night.js#snap → shot.js), SHARE on the console\'s footer (index.js#shareRun, lazy), drawn while the end screen is read, the link uploaded only at SHARE — and never while THE SWITCH says WOULD COUNT; the server takes HIGH RISE\'s run card only with a counted result', () => {
+  const s = read(`${HI}stage.js`), n = read(`${HI}night.js`), ix = read(`${HI}index.js`), fin = read(`${HI}final.js`), sh = read(`${HI}share.js`), srv = read('api/_lib/share-card.js'), v = read(`${HI}view.js`);
+  assert.ok(n.includes('if (snapAsk) { const ask = snapAsk; snapAsk = null; try { ask(grab(snapW)); } catch { ask(null); } }'), 'copied IN the frame it was drawn');
+  assert.ok(s.includes("if (over && !endedAt && !watchW && t0 != null) { shotAt = now + shotMs(run.cause, run.st === 'made'); shotRun = startN; }"), 'YOUR tower\'s end — never a watched one');
+  assert.ok(v.includes("shotKey: () => (cur && cur.key ? cur.key() : ''),") && v.includes('key: () => matchId };'), 'the cartridge keeps the frame under its match id');
+  assert.ok(ix.includes("export const shareRun = (game, state) => lazyImport(import('./share.js'), './share.js').then(m => m.shareRun(game, state));"));
+  assert.ok(fin.includes("lazyImport(import('./share.js'), './share.js').then(m => m.warmShare(game, state)).catch(() => {});"), 'drawn while the end screen is read');
+  assert.ok((fin.match(/globalThis\.__hiWould = game\.matchId;/g) || []).length === 2, 'solo + match: WOULD COUNT marks the match');
+  assert.ok(sh.includes("if (!here() || globalThis.__hiWould === m) return '';") && sh.includes("name: 'neon-speakeasy-high-rise.png', line: '', upload, onTap: true"), 'the link alone, uploaded at the tap — none while counting is OFF');
+  assert.ok(srv.includes("export const RUN_GAMES = Object.freeze(['jaywalk', 'highrise'])"));
+  assert.doesNotMatch(read(`${HI}stage.js`) + read(`${HI}play.js`), /share\.js'/, 'the test page never loads the share kit (its door: nothing from config / the dailies / Firebase)');
+});

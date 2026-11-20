@@ -94,3 +94,30 @@ export async function shareRunCard(card, drawMiddle) {
   if (!cv) return 'failed';
   return sendShare(cv, { file: `neon-speakeasy-${card.game}.png`, line: runLine(card) });
 }
+
+// ---- THE LINK's PICTURE (JAYWALK H4B — moved here from js/games/jaywalk/share.js in HIGH RISE S5: both games' run cards go up through it)
+/** the link's picture is kept under this (the server's cap is 400 KB — a game frame is a heavy PNG; the dailies' cards are 79–246 KB) */
+export const LINK_MAX = 300 * 1024, LINK_HARD = 390 * 1024;
+/** PURE: a colour channel on `bits` bits (its high bits repeated below — white stays white) */
+export const quant = (v, bits) => ((v >> (8 - bits)) << (8 - bits)) | (v >> bits);
+/** a picture over LINK_MAX is re-encoded on 6, then 5 bits a channel (the eye can't tell on a link preview; the PNG is a third of the size)
+ *  → the blob to upload, or null (still over the server's cap: no link — the picture itself goes out) */
+export async function fitPng(png) {
+  if (!png || png.size <= LINK_MAX) return png || null;
+  try {
+    const bmp = await createImageBitmap(png), cv = document.createElement('canvas');
+    cv.width = bmp.width; cv.height = bmp.height;
+    const c = ctx2d(cv);
+    c.drawImage(bmp, 0, 0); if (bmp.close) bmp.close();
+    const src = c.getImageData(0, 0, cv.width, cv.height);
+    for (const bits of [6, 5]) {
+      const im = new ImageData(new Uint8ClampedArray(src.data), cv.width, cv.height), d = im.data;
+      for (let i = 0; i < d.length; i += 4) { d[i] = quant(d[i], bits); d[i + 1] = quant(d[i + 1], bits); d[i + 2] = quant(d[i + 2], bits); d[i + 3] = 255; }
+      c.putImageData(im, 0, 0);
+      const b = await new Promise(r => { try { cv.toBlob(r, 'image/png'); } catch { r(null); } });
+      if (b && b.size <= LINK_MAX) { cv.width = cv.height = 0; return b; }
+    }
+    cv.width = cv.height = 0;
+  } catch { /* an old WebView: as it is, if it fits */ }
+  return png.size <= LINK_HARD ? png : null;
+}

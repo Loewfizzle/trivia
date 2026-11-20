@@ -70,7 +70,7 @@ test('THE LANDING FRAME: the slab + its sound now — the moments, the number, t
   assert.match(s, /&& frameN >= landF \+ LATER_NUM\) \{\n      if \(TR\) \{ if \(run\.floor !== hudFloor\) TR\.ev \|= EV\.num; \}\n      hudFloor = run\.floor;/, 'the big number two frames after (its frame named in the trace: S4B)');
   assert.match(s, /if \(run\.floor !== needFloor && frameN >= landF \+ LATER_NUM\)/, 'a flyer\'s fetch / the hull never on the landing frame');
   assert.match(s, /function showEnd\(now\) \{\n    if \(momDue >= 0\) runMoments\(now\);/, 'the last landing\'s moments before its end card');
-  assert.match(s, /momDue = -1; landF = -1e9; run = createRun/, 'a new run drops what was waiting');
+  assert.match(s, /momDue = -1; landF = -1e9; (shotAt = 0; )?run = createRun/, 'a new run drops what was waiting');
   assert.match(s, /for \(const ms of \[700, 1100, 1500, 1700, 1900, 2600\]\) \{ const a = call\.animate\(POP, \{ duration: ms, fill: 'both' \}\); a\.cancel\(\); pops\.set\(ms, a\); \}/, 'every announcer length made ahead');
   // the scene: a ring + a spark burst are jobs for the next frame; the queue's room made once
   assert.match(n, /const JQ = 8, JN = 12, jKind = new Int8Array\(JQ\), jDue = new Int32Array\(JQ\), jArg = new Float64Array\(\(JQ \+ 1\) \* JN\)/, 'the queue + ONE spare slot: a full queue never overwrites a waiting job'); assert.match(n, /if \(i < 0\) \{ i = JQ; o = JQ \* JN; \}/);

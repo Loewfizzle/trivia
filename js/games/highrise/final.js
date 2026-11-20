@@ -73,6 +73,8 @@ function matchScene(el, game, state) {
   const uid = state && state.uid, code = state && state.code, mine = !!(game.participants && game.participants[uid]);
   el.classList.add('hi-fin'); el.dataset.mode = 'match'; el.dataset.podium = 'none';
   if (!mine) return;
+  // S5 — THE SHARE IMAGE is DRAWN while the end screen is read (nothing goes up until SHARE): share.js, lazily
+  lazyImport(import('./share.js'), './share.js').then(m => m.warmShare(game, state)).catch(() => {});
   const r = ((game.results) || {})[uid] || {}, floor = Math.max(0, Math.floor(Number(r.f) || 0)), made = r.w === 'made';
   const place = (gameStandings(game).find(x => x.uid === uid) || {}).rank || 0, floorsTxt = `${num(floor)} ${floor === 1 ? 'FLOOR' : 'FLOORS'}`;
   const would = h('div.hi-fin-would', '');
@@ -92,7 +94,7 @@ function matchScene(el, game, state) {
     const k = Q.matchKey(code, game.matchId);
     const show = o => {
       if (!o || !el.isConnected) return;
-      if (o.would) { overBar(); would.textContent = wouldLine(o.would); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }
+      if (o.would) { globalThis.__hiWould = game.matchId; overBar(); would.textContent = wouldLine(o.would); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }   // (S5: THE SWITCH said WOULD COUNT — the share card asks no link)
       const pb = (o.pbs || []).find(x => x.b === BOARD);
       if (pb && !el.querySelector('.hi-fin-best')) { ls.set(SRV_BEST_KEY, floorOf(pb.v)); body.append(h('div.hi-ec-best.hi-fin-best.is-new', pb.prev != null ? `NEW BEST · WAS ${num(floorOf(pb.prev))}` : 'NEW BEST')); }
     };
@@ -107,6 +109,10 @@ export function finalScene(el, game, state) {
   const uid = state && state.uid, code = state && state.code;
   const r = ((game && game.results) || {})[uid] || {}, floor = Math.max(0, Math.floor(Number(r.f) || 0)), made = r.w === 'made';
   el.classList.add('hi-fin'); el.dataset.mode = 'solo';
+  if (game && game.participants && game.participants[uid]) {
+    // S5 — THE SHARE IMAGE is DRAWN while the end screen is read (nothing goes up until SHARE): share.js, lazily
+    lazyImport(import('./share.js'), './share.js').then(m => m.warmShare(game, state)).catch(() => {});
+  }
   // THE BODY = JAYWALK'S STANDARD (S4B — endscreen.js, the SAME card as the test page's; the header is the frame's kicker): the cause ·
   // the floor, huge · FLOORS · YOUR BEST · n · n PERFECTS · BEST STREAK n — then YOUR TABLE. THE SWITCH's line is ONE small line just
   // over the PLAY AGAIN bar (moved there once the frame stands — never among the personal numbers; it goes away at go-live).
@@ -133,7 +139,7 @@ export function finalScene(el, game, state) {
       if (!o || !el.isConnected) return;
       table();
       // THE SWITCH, OFF: the server judged the run, awarded nothing, and says what it WOULD have
-      if (o.would) { overBar(); would.textContent = wouldLine(o.would); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }
+      if (o.would) { globalThis.__hiWould = game.matchId; overBar(); would.textContent = wouldLine(o.would); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }   // (S5: THE SWITCH said WOULD COUNT — the share card asks no link)
       // counting ON: NEW BEST / YOUR BEST from the server's own record of this match
       const pb = (o.pbs || []).find(x => x.b === BOARD), cur = (o.bests || {})[BOARD];
       if (pb) {
