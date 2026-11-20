@@ -115,6 +115,9 @@ export function createStage(app, o = {}) {
   const leanQ = PAGE ? String(o.lean === true ? '1' : o.lean || '') : '', LEAN = leanQ === '1' || leanQ === 'all';
   const LEANS = new Set(LEAN ? LEAN_PARTS : leanQ.split(',').filter(k => LEAN_PARTS.includes(k)));
   const bestAt = o.best || { read: () => 0, write() {} }, readBest = () => cleanBest(bestAt.read()), writeBest = n => bestAt.write(n);
+  // (REVIEW FIX A: does a run on this stage raise YOUR BEST itself? The test page: yes — its phone's own best. The cartridge: NO — only
+  //  the server's record of a COUNTED run does (view.js#best: `runs: false`): an unproven run's own card never says NEW BEST)
+  const runsSetBest = !o.best || o.best.runs !== false;
   const ac = new AbortController(), sig = { signal: ac.signal };   // (the cartridge unmounts: every listener on the document goes with it)
   let gone = false;
   // THE SOUND SYNC (S4A — the owner: "sometimes the sound isn't in sync with the blocks", MUSIC OFF): PODCAST MODE naps the audio context
@@ -582,7 +585,7 @@ export function createStage(app, o = {}) {
     if (momDue >= 0) runMoments(now);   // (the last landing's moments before its end card)
     shown = true; overAt = now; liveRun = null; awake(false);   // (THE SOUND SYNC: the hold ends with the run — the context naps again on the end card)
     const live = resultOf(run), b = bandAt(live.floor), was = best;
-    best = FROM || matchOn ? was : nextBest(was, live.floor);   // (a `?floor=N` look check is not a run: YOUR BEST stays · THE CLOSE's REVIEW: YOUR BEST is the SOLO best — a match's floor never sets it)
+    best = FROM || matchOn || !runsSetBest ? was : nextBest(was, live.floor);   // (a `?floor=N` look check is not a run: YOUR BEST stays · the test page's bot match never counts · REVIEW FIX A: in the cartridge only the SERVER's record of a counted run — solo OR match — raises it)
     if (best > was) writeBest(best);   // (THE REVIEW: stored BEFORE the end screen is asked for — the podium's body reads it)
     // THE CARTRIDGE: the console's podium IS the end screen — the stage's own card only for a run that can't reach it (UNPROVEN)
     // (S5 — THE TEST PAGE's bot room (`?mode=match&rivals=N`): OUT = WATCH there too — the ranked list, a tap = the next, a row = that

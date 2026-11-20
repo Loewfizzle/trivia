@@ -14,7 +14,7 @@
 import { cleanSettings } from './meta.js';
 import { modeOf, matchStart, seedOf } from './logic.js';
 import { judgeSolo, judgeNode, matchRules } from './proof.js';
-import { COUNT_MS, NO_GO_MS, END_GRACE_MS, UNPROVEN_MS, startOf, capAt, endedFor, scoreCalls } from './match.js';
+import { COUNT_MS, NO_GO_MS, END_GRACE_MS, UNPROVEN_MS, startOf, capAt, endedFor, scoreCalls, goBeforeGiveUp } from './match.js';
 
 /** the match (start() adds nothing else): `now` = the moment the MATCH begins (after the walk inside) */
 export function createGame({ matchId, settings, participants, now, seed }) {
@@ -78,7 +78,13 @@ export function nextStep(game, { now, live, code = '', online = null } = {}) {
   if (game.phase !== 'play') return null;
   if (game.mode === 'solo') return ids.length > 0 && ids.every(u => runs[u] && runs[u].e) ? finalPatch(game, runs, now, code) : null;
   if (now >= capAt(game) + END_GRACE_MS) return finalPatch(game, runs, now, code);
-  if (game.unproven) return now >= game.playAt + UNPROVEN_MS ? finalPatch(game, runs, now, code) : null;
+  if (game.unproven) {
+    // (REVIEW FIX A — SHOULD 1: a FIRST GO the server stamped before this host gave up = a hiccup of the host's, not a match without
+    //  proof: the unproven mark is taken back and the match climbs on the GO's seed + tick 0 — the phones' own startOf already does)
+    const S = matchStart(code, game.matchId, runs);
+    if (goBeforeGiveUp(game, S)) return { unproven: null, playAt: S.playAt, seed: S.seed, g0: S.g0 };
+    return now >= game.playAt + UNPROVEN_MS ? finalPatch(game, runs, now, code) : null;
+  }
   const done = ids.length > 0 && ids.every(u => endedFor(game, runs[u], now, !online || !!online[u]));
   return done ? finalPatch(game, runs, now, code) : null;
 }

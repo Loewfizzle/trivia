@@ -35,10 +35,16 @@ export const MATCH_MIN = 2, MATCH_MAX = 8;
  * can never pick a seed. null = not known yet (the count holds).
  */
 export function startOf(game, runs, code) {
-  const m = game && !game.unproven && game.mode !== 'solo' && runs ? matchStart(code, game.matchId, runs) : null;
-  if (m) return m;
+  const m = game && game.mode !== 'solo' && runs ? matchStart(code, game.matchId, runs) : null;
+  if (m && (!game.unproven || goBeforeGiveUp(game, m))) return m;
   return game && game.phase !== 'count' && game.seed ? { g0: game.g0 || 0, playAt: game.playAt, seed: game.seed } : null;
 }
+/** REVIEW FIX A — SHOULD 1 (A HOST HICCUP AT GO): the host's line stalled round GO, its mirror showed no GO for NO_GO_MS and it marked
+ *  the match UNPROVEN — AFTER everyone had started; every phone restarted on a stand-in seed and nothing counted. THE NODES ARE THE TRUTH
+ *  here too: a FIRST GO the server stamped BEFORE the host gave up (the unproven step's own time) means the GO was there all along —
+ *  the match is proven: its seed + tick 0 are the GO's (the director takes the unproven mark back: director.js#nextStep). A GO stamped
+ *  after it (a phone that came back later) never moves a match already climbing on its stand-in. */
+export const goBeforeGiveUp = (game, S) => !!(S && game && game.phaseStartAt && S.g0 <= game.phaseStartAt);
 /** a match's clock: a server time → its tick (tick 0 = game.playAt) · the moment the 6:00 cap falls (ms, a server time) */
 export const tickAt = (game, now) => Math.floor((now - game.playAt) * TICK_HZ / 1000);
 export const capAt = game => game.playAt + Math.ceil(MODES.match.capTicks * 1000 / TICK_HZ);

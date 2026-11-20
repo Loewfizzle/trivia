@@ -62,6 +62,14 @@ export function highriseSolo({ code, matchId, uid, node }) {
  * node on THE FIRST GO's seed (logic.js#matchStart — nothing the host wrote is read). A named player with no node has no tower (A SEAT IS
  * NOT A PLAY). → { game (`sv` 1) | null (no GO at all · fewer than two players · nobody ever dropped a slab), why? }
  */
+/**
+ * REVIEW FIX A — MUST 3 (A GO IS NOT A PLAY): one person with spare tabs could seat 7 phones that only write GO and never tap — the
+ * server counted 8 players and paid an "8-player match" won on 3 floors. In a HIGH RISE match a player COUNTS only with at least one
+ * LANDED slab in the SERVER's own replay (floor ≥ 1) — the proof tree's uids narrowed to those. HIGH RISE only (JAYWALK's rule, "a silent
+ * player included", is untouched until THE PROOF PASS). PURE: (the uids the tree proves, the server's rows) → the uids that played.
+ */
+export const HR_PLAYED_FLOOR = 1;
+export const hrPlayed = (proven, results) => new Set([...(proven || [])].filter(u => !!(results && results[u] && results[u].f >= HR_PLAYED_FLOOR)));
 export function highriseMatch({ code, matchId, uids, nodes }) {
   const S = matchStart(String(code), String(matchId), nodes), ids = (uids || []).filter(u => typeof u === 'string');
   if (!S || ids.length < 2) return { game: null, why: S ? 'players' : 'no go' };

@@ -11,7 +11,7 @@ import { lazyImport } from '../../ui/lazy-import.js';
 import { END_WORDS, floorOf, gameStandings } from './logic.js';
 import { ordinal } from './match.js';
 import { endCard } from './endscreen.js';
-import { BEST_KEY, cleanBest } from './best.js';
+import { cleanBest } from './best.js';
 import { BOARD, SRV_BEST_KEY } from './lines.js';
 
 const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, String(v)); } catch { /* fine */ } } };
@@ -96,7 +96,8 @@ function matchScene(el, game, state) {
       if (!o || !el.isConnected) return;
       if (o.would) { globalThis.__hiWould = game.matchId; overBar(); would.textContent = wouldLine(o.would); would.classList.toggle('is-off', !!o.would.skip); el.dataset.would = String(o.would.floor); return; }   // (S5: THE SWITCH said WOULD COUNT — the share card asks no link)
       const pb = (o.pbs || []).find(x => x.b === BOARD);
-      if (pb && !el.querySelector('.hi-fin-best')) { ls.set(SRV_BEST_KEY, floorOf(pb.v)); body.append(h('div.hi-ec-best.hi-fin-best.is-new', pb.prev != null ? `NEW BEST · WAS ${num(floorOf(pb.prev))}` : 'NEW BEST')); }
+      // (REVIEW FIX A — the owner's call: a COUNTED match raises YOUR BEST, as the server's record does — NEW BEST only of a best beaten)
+      if (pb && !el.querySelector('.hi-fin-best')) { ls.set(SRV_BEST_KEY, floorOf(pb.v)); const beat = pb.prev != null && floorOf(pb.prev) > 0; body.append(h(`div.hi-ec-best.hi-fin-best${beat ? '.is-new' : ''}`, beat ? `NEW BEST · WAS ${num(floorOf(pb.prev))}` : `YOUR BEST · ${num(floorOf(pb.v))}`)); }
     };
     show(Q.outcomeFor(k));
     const off = Q.onOutcome((kk, o) => { if (kk === k) show(o); });
@@ -121,13 +122,9 @@ export function finalScene(el, game, state) {
   el.replaceChildren(EC.el, would);
   const overBar = () => { const fr = el.closest('.final'), foot = fr && fr.querySelector('.final-foot'); if (foot && would.nextElementSibling !== foot) foot.before(would); };
   setTimeout(overBar, 0);   // (once the frame stands: YOUR TABLE sits right under the personal numbers — nothing between them)
-  // YOUR BEST as this phone knows it (the server's last answer once counting is ON — else its own): the server's answer below puts it right
-  const srv = cleanBest(ls.get(SRV_BEST_KEY)), known = srv || cleanBest(ls.get(BEST_KEY));
-  // (THE REVIEW: the stage stored a run's new best BEFORE this screen was asked for — while counting is OFF (no server best yet) the
-  //  phone's own record says NEW BEST here; the server's answer takes the column over once counting is ON)
-  const nb = globalThis.__hiNewBest;
-  if (!srv && nb && game && nb.m === game.matchId && nb.v === floor && floor > 0) EC.best(floor, nb.was > 0, nb.was);   // (THE CLOSE's REVIEW: a first run's floor is YOUR BEST — NEW BEST only of a best that was BEATEN, as the stage's own card)
-  else EC.best(known, false);
+  // YOUR BEST as the SERVER last told this phone (REVIEW FIX A — the owner's call: a COUNTED run raises it, a run that never counted
+  //  never does — the test page's best, an unproven run, counting OFF): the server's answer below puts it right (NEW BEST from its record)
+  EC.best(cleanBest(ls.get(SRV_BEST_KEY)), false);
   if (!code) return;
   let tabled = false;
   const table = () => { if (!tabled && el.isConnected) { tabled = true; yourTable(el); } };
@@ -144,7 +141,7 @@ export function finalScene(el, game, state) {
       const pb = (o.pbs || []).find(x => x.b === BOARD), cur = (o.bests || {})[BOARD];
       if (pb) {
         ls.set(SRV_BEST_KEY, floorOf(pb.v));
-        EC.best(floorOf(pb.v), true, pb.prev != null ? floorOf(pb.prev) : 0);
+        EC.best(floorOf(pb.v), pb.prev != null && floorOf(pb.prev) > 0, pb.prev != null ? floorOf(pb.prev) : 0);   // (NEW BEST only of a best that was BEATEN — a first counted run is YOUR BEST)
         lazyImport(import('./sfx.js'), './sfx.js').then(S => S.play('streak', { rate: 1.12 })).catch(() => {});
       } else if (cur != null) { ls.set(SRV_BEST_KEY, floorOf(cur)); EC.best(floorOf(cur), false); }
     };

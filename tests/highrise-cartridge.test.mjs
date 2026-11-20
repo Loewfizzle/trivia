@@ -306,7 +306,7 @@ test('THE FRESH-EYES REVIEW — the view + the stage: a LATE GO answer never tou
   assert.match(v, /S\.hideCard\(\);[\s\S]{0,500}?final = createFinal\(/); assert.match(st, /hideCard\(\) \{ if \(!card\) return; card = false; end\.hidden = true; check\.hidden = true; again\.hidden = true; stage\.classList\.remove\('is-over'\); \},/);
   assert.match(st, /!\(shown && !card\) && !stage\.classList\.contains\('is-final'\) &&/, 'a key never restarts a run under the podium');
   assert.ok(st.indexOf('if (best > was) writeBest(best);') < st.indexOf('const E = o.onEnd ? o.onEnd(live) :'), 'YOUR BEST is stored BEFORE the end screen is asked for');
-  assert.match(fin, /if \(!srv && nb && game && nb\.m === game\.matchId && nb\.v === floor && floor > 0\)/, 'counting OFF: NEW BEST from this phone\'s own record of THIS run');
+  assert.ok(fin.includes('EC.best(cleanBest(ls.get(SRV_BEST_KEY)), false);') && !fin.includes('__hiNewBest') && !/BEST_KEY\b(?<!SRV_BEST_KEY)/.test(fin.replace(/SRV_BEST_KEY/g, '')), 'REVIEW FIX A: YOUR BEST in the cartridge = the SERVER record only (a run that never counted never sets it)');
   assert.doesNotMatch(fin, /if \(!\(floor > 0\)\) return;/, 'the server\'s answer shows whatever the host\'s row says');
   assert.match(st, /if \(Math\.abs\(want - yg\) >= 29\.5\) yf = want; else \{ yf = yg; yg \+= up \? 30 : -30; \}/, 'no room on the friend\'s side: the GOLD tag steps the other way — the higher floor stays above');
   assert.match(st, /if \(document\.visibilityState === 'hidden'\) \{ awake\(false\); if \(o\.onHide\) o\.onHide\(\); \}/); assert.match(v, /hide: \(\) => \{ if \(S && started && !S\.state\(\)\.over\) flush\(true\); \}/, 'a hidden page\'s last taps go up at once');

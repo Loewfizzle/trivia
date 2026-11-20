@@ -15,7 +15,7 @@ import { BOTS, gaussBot, playBot } from '../js/games/highrise/bot.js';
 import { createRun, stepTo, tap, isOver, resultOf } from '../js/games/highrise/engine.js';
 import { TICK_HZ, MODES, BEAT, FLOOR_TICKS_MAX } from '../js/games/highrise/tuning.js';
 import { createRival, resetRival, feedRival, capRival, rivalOver, rivalEnd, rivalSilent, drawTick, entryTick, matchCalls, nearest, rivalTag, mergeTags, passStep, altOrder, follow, nextFollow, RIVALS_SHOWN } from '../js/games/highrise/rivals.js';
-import { highriseMatch } from '../api/_lib/highrise.js';
+import { highriseMatch, hrPlayed, HR_PLAYED_FLOOR } from '../api/_lib/highrise.js';
 import { callBonus } from '../js/core/playlist.js';
 import * as IDX from '../js/games/highrise/meta.js';
 
@@ -81,7 +81,7 @@ test('GO — THE SEED IS PICKED AFTER GO: THE FIRST GO among the proof nodes set
   const u = nextStep(g, { now: g.playAt + NO_GO_MS, live: { runs: {} }, code: CODE });
   assert.ok(u && u.phase === 'play' && u.unproven === 1 && u.seed && u.playAt === g.playAt + NO_GO_MS + 800);
   const gu = { ...g, ...u };
-  assert.deepEqual(startOf(gu, { u1: { go: T0 } }, CODE), { g0: 0, playAt: gu.playAt, seed: gu.seed }, 'an unproven match plays the game\'s own stand-in');
+  assert.deepEqual(startOf(gu, { u1: { go: gu.phaseStartAt + 1 } }, CODE), { g0: 0, playAt: gu.playAt, seed: gu.seed }, 'an unproven match plays the game stand-in (a GO stamped AFTER the host gave up never moves it — REVIEW FIX A)');
   assert.equal(nextStep(gu, { now: gu.playAt + UNPROVEN_MS - 1, live: { runs: {} }, code: CODE }), null);
   const fu = nextStep(gu, { now: gu.playAt + UNPROVEN_MS, live: { runs: {} }, code: CODE });
   assert.ok(fu.phase === 'final' && Object.values(fu.results).every(r => r.f === 0) && !fu.calls, 'it ends after 90 s, with nothing to count');
@@ -253,4 +253,47 @@ test('THE HEIGHT TAPES + THE TAGS (rivals.js): a rival UNDER you = a tape on you
   assert.equal(follow(live), 'a', 'THE LEADER still climbing (BOB, higher, is out)'); assert.equal(follow(live, 'd'), 'd', 'the picked one while they are in'); assert.equal(follow(live, 'b'), 'a', 'a picked player who went out: back to the leader');
   assert.equal(nextFollow(live, 'a'), 'c'); assert.equal(nextFollow(live, 'c'), 'd'); assert.equal(nextFollow(live, 'd'), 'a', 'round and round');
   assert.equal(follow(live.map(r => ({ ...r, over: true }))), 'b', 'nobody left: the highest tower');
+});
+
+test('REVIEW FIX A — MUST 3, A GO IS NOT A PLAY: seven seats that only write GO beside one real player → the server replay proves ONE player (a landed slab each) — never an "8-player match"; an honest 8 all count; JAYWALK untouched', () => {
+  const { us, S, bots, nodesAt } = playMatch(8);
+  const end = S.playAt + Math.max(...us.map(u => ms(bots[u].want.end))) + 700;
+  const honest = nodesAt(end), srv = highriseMatch({ code: CODE, matchId: M, uids: us, nodes: honest });
+  assert.equal(hrPlayed(new Set(us), srv.game.results).size, 8, 'an honest 8: all eight landed a slab');
+  // the padded room: u1 plays; u2 … u8 wrote only their GO
+  const padded = { u1: honest.u1 };
+  for (const u of us.slice(1)) padded[u] = { go: honest[u].go };
+  const pad = highriseMatch({ code: CODE, matchId: M, uids: us, nodes: padded });
+  const proven = new Set(Object.keys(padded));   // (report.js#provenUids: every node in the tree — the old count, 8)
+  const played = hrPlayed(proven, pad.game.results);
+  assert.equal(proven.size, 8);
+  assert.deepEqual([...played], ['u1'], 'only the player with a landed slab counts — one real player = the solo rule');
+  assert.equal(HR_PLAYED_FLOOR, 1);
+  const rep = read('api/report.js');
+  assert.ok(rep.includes("if (ex.gid === 'highrise' && matchRows) proven = hrPlayed(proven, matchRows);"), 'report.js narrows the proof tree for HIGH RISE only, before the count');
+  assert.ok(rep.includes("jaywalk: m => ({ room: [`jw/${m}`], seal: [] }),   // (JAYWALK H1: written AT GO — present = proven, a silent player included)"), 'the JAYWALK rule unchanged (THE PROOF PASS)');
+});
+
+test('REVIEW FIX A — SHOULD 1, A HOST HICCUP AT GO: the host saw no GO for NO_GO_MS (its line stalled) and marked the match UNPROVEN after everyone had started — a FIRST GO stamped BEFORE it gave up takes the mark back: the GO seed + tick 0, the match counted as normal', () => {
+  const { g, S, runs0, us, bots, nodesAt } = playMatch(3);
+  // the host's mirror is empty at the count's end + NO_GO_MS: it gives up
+  const giveUp = g.playAt + NO_GO_MS;
+  const u = nextStep(g, { now: giveUp, live: { runs: {} }, code: CODE });
+  assert.ok(u && u.unproven === 1 && u.phaseStartAt === giveUp);
+  const gu = { ...g, ...u };
+  // the phones whose mirrors have the GO never leave its seed (THE NODES ARE THE TRUTH)
+  assert.deepEqual(startOf(gu, runs0, CODE), S, 'a phone reads the GO from the nodes, unproven mark or not');
+  // the host's line comes back: the GOs (all stamped before the give-up) → the mark is taken back, the GO seed + tick 0 written
+  const back = nextStep(gu, { now: giveUp + 2500, live: { runs: runs0 }, code: CODE });
+  assert.deepEqual(back, { unproven: null, playAt: S.playAt, seed: S.seed, g0: S.g0 });
+  const gp = { ...gu, ...back, unproven: undefined };
+  assert.equal(nextStep(gp, { now: giveUp + 2600, live: { runs: runs0 }, code: CODE, online: parts(3) }), null, 'then it climbs as normal');
+  const after = S.playAt + Math.max(...us.map(x => ms(bots[x].want.end))) + 700;
+  const fin = nextStep(gp, { now: after, live: { runs: nodesAt(after) }, code: CODE, online: parts(3) });
+  assert.equal(fin.phase, 'final');
+  for (const x of us) assert.equal(fin.results[x].f, bots[x].want.floor, `${x}: counted from the replay — not NOTHING`);
+  // a GO stamped AFTER the give-up (a phone back later) never takes it back
+  const late = { u1: { go: giveUp + 1 } };
+  assert.equal(nextStep(gu, { now: giveUp + 2500, live: { runs: late }, code: CODE }), null);
+  assert.ok(read('js/games/highrise/director.js').includes('if (goBeforeGiveUp(game, S)) return { unproven: null, playAt: S.playAt, seed: S.seed, g0: S.g0 };'));
 });

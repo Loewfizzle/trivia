@@ -25,7 +25,7 @@ test('THE END = JAYWALK\'S STANDARD: ONE builder (the page\'s card + the cartrid
   assert.match(f, /setTimeout\(overBar, 0\);/, 'WOULD COUNT leaves the body at once: YOUR TABLE sits right under the personal numbers');
   // a NEW BEST: only of a best that was BEATEN on the page; a shortcut run never sets or compares one
   assert.match(s, /EC\.best\(best, best > was && was > 0, was\);/);
-  assert.match(s, /best = FROM \|\| matchOn \? was : nextBest\(was, live\.floor\);/, 'a `?floor=N` run never moves YOUR BEST — nor a MATCH\'s floor (YOUR BEST is the solo best)');
+  assert.match(s, /best = FROM \|\| matchOn \|\| !runsSetBest \? was : nextBest\(was, live\.floor\);/, 'a `?floor=N` run never moves YOUR BEST — nor the test page bot match; in the cartridge only the SERVER record of a counted run (REVIEW FIX A)');
   // SHARE waits for THE SHARE IMAGE (THE REVIEW): the universal footer shows it by itself once the cartridge exports shareRun
   assert.match(read(`${HI}index.js`), /export const shareRun = /, 'S5: THE SHARE IMAGE — the footer = PLAY AGAIN · SHARE · CITY');
 });
@@ -113,7 +113,7 @@ test('`?floor=N` counts toward NOTHING: the shortcut\'s perfects + streak are ta
   assert.ok(s.includes('if (FROM) { climbBy(FROM, null); skipP = run.perfects; skipS = run.streak; }'));
   assert.ok(s.includes('const st = e.streak - skipS;') && s.includes('if (st > streakTop) streakTop = st;') && s.includes("} else if (e.e === 'cut') { skipS = 0; }"), 'the announcer + the best streak count what was PLAYED; a cut ends the shortcut\'s streak too');
   assert.ok(s.includes('perfects: live.perfects - skipP, streak: FROM ? streakTop : live.maxStreak });'));
-  assert.ok(s.includes('if (!FROM && !matchOn && crossedBest(best, e.floor)) {') && s.includes('const gold = live && !FROM && !matchOn && best > 0 && run.floor <= best,') && s.includes('best = FROM || matchOn ? was : nextBest(was, live.floor);'), 'no gold line, no NEW BEST, nothing stored');
+  assert.ok(s.includes('if (!FROM && !matchOn && crossedBest(best, e.floor)) {') && s.includes('const gold = live && !FROM && !matchOn && best > 0 && run.floor <= best,') && s.includes('best = FROM || matchOn || !runsSetBest ? was : nextBest(was, live.floor);'), 'no gold line, no NEW BEST, nothing stored');
   // the chime climbs from its first step again (sounds.js#cuesOf's `skip`)
   const { cuesOf, chimeRate } = await import(new URL(`../${HI}sounds.js`, import.meta.url));
   const ev = [{ e: 'perfect', streak: 81 }];
@@ -131,7 +131,7 @@ test('THE MATCH on the phone (view.js): GO is a TRANSACTION never applied locall
   // THE CLOSE's REVIEW: the podium is never held for ever · NOT COUNTED when this phone's GO was refused · a first run is YOUR BEST, never NEW BEST · the stand-in view has the match's handles · a pressed altimeter row is never moved
   assert.ok(v.includes('performance.now() - finalSeen > FINAL_HOLD_MS') && /export const FINAL_HOLD_MS = 3000;/.test(v), 'a tower still climbing when the match is over: the podium after FINAL_HOLD_MS');
   assert.ok(v.includes("g.unproven || !haveGo ? 'NOT COUNTED'"), 'OUT with no GO of this phone\'s: NOT COUNTED');
-  assert.ok(read('js/games/highrise/final.js').includes('EC.best(floor, nb.was > 0, nb.was);'), 'the podium: NEW BEST only of a best that was beaten');
+  assert.ok(read('js/games/highrise/final.js').includes('EC.best(floorOf(pb.v), pb.prev != null && floorOf(pb.prev) > 0, pb.prev != null ? floorOf(pb.prev) : 0);'), 'the podium: NEW BEST only of a best that was beaten (the SERVER record — REVIEW FIX A)');
   assert.ok(/const NO_VIEW = \{ el: null, setRival\(\) \{\}, dimRivals\(\) \{\}, showRivals\(\) \{\},/.test(read('js/games/highrise/stage.js')), 'no WebGL: PLAY AGAIN never throws on a match handle');
   assert.ok(read('js/games/highrise/matchhud.js').includes('if ((key !== orderKey || more !== moreN) && !(heldAt && performance.now() - heldAt < 1500)) {'), 'NEVER RE-RENDER UNDER A FINGER: the altimeter\'s order waits while a row is pressed');
   assert.ok(v.includes("if (mine(g) && !goAsked && !haveGo && (g.phase === 'play' || (g.phase === 'count' && now >= g.playAt - GO_EARLY_MS))) askGoMatch();") && v.includes('export const GO_EARLY_MS = 1800;'), 'each phone writes its GO in the count\'s last 2 s (the rules\' window)');

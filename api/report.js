@@ -24,7 +24,7 @@ import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/h
 import { noteSeen } from './_lib/seen.js';
 import { ref, val, emulated, adminPids } from './_lib/fb.js';
 import { jaywalkSolo, jaywalkMatch } from './_lib/jaywalk.js';
-import { highriseSolo, highriseMatch, HIGHRISE_COUNTS } from './_lib/highrise.js';
+import { highriseSolo, highriseMatch, HIGHRISE_COUNTS, hrPlayed } from './_lib/highrise.js';
 import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
 import { applyMatch, wouldApply, needsRetry, mergeOutcomes, MIN_MATCH_GAP_MS } from './_lib/stats.js';
@@ -225,7 +225,7 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   // JAYWALK H3: a SOLO run (one name on the record, the reporter's) is counted from the SERVER's replay of their proof node — on both paths
   const PG = PROOF_GAMES[night.g] || null;   // (HIGH RISE S4A: + HIGH RISE — the same two paths, its own node + judge)
   const jwSolo = !!PG && named.length === 1 && named[0] === uid && Object.keys(night.p || {}).length <= 1;
-  let jwGo = 0, judged = null;   // (judged: the SERVER's own row of the reporter — THE SWITCH's answer reads it)
+  let jwGo = 0, judged = null, matchRows = null;   // (judged: the SERVER's own row of the reporter — THE SWITCH's answer reads it · matchRows: every named player's)
   const jwGame = async () => {
     const node = await val(`rooms/${code}/${PG.node}/${matchId}/${uid}`);
     const J = PG.solo({ code, matchId, uid, node });
@@ -242,7 +242,7 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
     const M = PG.match({ code, matchId, uids, nodes: (await val(`rooms/${code}/${PG.node}/${matchId}`)) || {} });
     if (!M.game) throw new ApiError(409, 'unverifiable', `This match has no proof (${M.why}).`);
     jwGo = M.game.playAt;
-    judged = M.game.results[uid] || null;
+    judged = M.game.results[uid] || null; matchRows = M.game.results;
     for (const [u, r] of Object.entries(M.game.results)) if (r.bad || r.cut) console.warn(`${night.g} match run`, `${code}_${matchId}`, u, r.bad || 'cut');
     return M.game;
   };
@@ -285,6 +285,8 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
     const T = PROOF_TREES[ex.gid](matchId);
     const trees = await Promise.all([...T.room.map(p => val(`rooms/${code}/${p}`)), ...T.seal.map(p => val(`seal/${code}/${p}`))]);
     proven = provenUids(ex.gid, trees);
+    // (REVIEW FIX A — MUST 3: a HIGH RISE match counts a player only with a LANDED slab in the server's replay — a GO alone is not a play)
+    if (ex.gid === 'highrise' && matchRows) proven = hrPlayed(proven, matchRows);
   }
   const playedIt = u => !proven || proven.has(u);
   // credit only uids with a SEAT in the room (players/{uid}) — a name in night.n is not a player — AND (FR7 FIXES B) their own proof

@@ -89,8 +89,11 @@ try {
   ok(await all(N, p => p.evaluate("!!document.querySelector('.menu-btn') && !!document.querySelector('.music-btn')")).then(a => a.every(Boolean)), 'the console\'s corner buttons are on the match screen');
   // each phone its own look (the console's GAME LOOK — per phone, read live)
   if (N > 2) {
+    // (REVIEW FIX A — the review's daytime red: by day AUTO is DAY on every phone, so "his alone" was false — ALEX is pinned to NIGHT first)
+    await pages[0].evaluate(() => import('/js/games/kit/look.js').then(k => k.saveLook('night')));
+    await until(async () => (await state(pages[0])).stage.look === 'night', 6000);
     await pages[2].evaluate(() => import('/js/games/kit/look.js').then(k => k.saveLook('day')));
-    ok(await until(async () => (await state(pages[2])).stage.look === 'day', 6000) && (await state(pages[0])).stage.look !== 'day', 'EACH PHONE ITS OWN LOOK: CHARLIE switches to DAY mid-match — his screen alone');
+    ok(await until(async () => (await state(pages[2])).stage.look === 'day', 6000) && (await state(pages[0])).stage.look === 'night', 'EACH PHONE ITS OWN LOOK: ALEX on NIGHT, CHARLIE switches to DAY mid-match — his screen alone (at any hour)');
   }
   // ---- 3. THE RIVALS — everyone's proof nodes through the same engine
   await bot(pages[0]); await bot(pages[1], 5); if (N > 2) await bot(pages[2]);

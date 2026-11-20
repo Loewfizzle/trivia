@@ -170,7 +170,7 @@ try {
   const fin = await P.ev("({ t: document.querySelector('.hi-fin .hi-ec-cause').textContent, n: document.querySelector('.hi-fin .hi-ec-n').getAttribute('aria-label'), w: document.querySelector('.hi-fin-would').textContent, kicker: document.querySelector('.hi-final .sheet-kicker').textContent, bar: !!document.querySelector('.hi-final .final-bar, .hi-final .btn-primary') })");
   ok(fin.t === 'TOO SLOW' && Number(fin.n) === V.floor && fin.kicker === 'HIGH RISE · SOLO', `the end screen: ${fin.kicker} · ${fin.t} · FLOOR ${fin.n}`);
   ok(new RegExp(`^WOULD COUNT · FLOOR ${V.floor} · `).test(fin.w), `WOULD COUNT matches the phone's own result (${fin.w})`);
-  ok(await P.ev(`document.querySelector('.hi-fin .hi-ec-best').textContent === 'YOUR BEST · ${V.floor}' && !document.querySelector('.hi-fin .hi-ec-best').classList.contains('is-new')`), `the end screen: YOUR BEST · ${V.floor} (this phone’s own record while counting is OFF — stored before the screen was built; a FIRST run is never a NEW BEST: nothing was beaten)`);
+  ok(await P.ev("document.querySelector('.hi-fin .hi-ec-best').textContent === ''"), 'the end screen: NO YOUR BEST line — a run that never counted (counting OFF) never sets it; only the server record of a counted run does (REVIEW FIX A — the owner call)');
   await sleep(1200);
   await P.shot('end-card-390x844.png');
 
@@ -311,7 +311,7 @@ try {
     ok(ps.pa && ps.pa.gf && ps.pa.gf['highrise-clouds'] === 1 && !ps.pa.gf['highrise-top'], '… the feat flag `clouds` from the server\'s replay (never `top`)');
     ok(ps.it && !!ps.it['card-abovetheclouds'] && (o.ach || []).includes('above-the-clouds') && !ps.it['card-topoftheworld'], `… ABOVE THE CLOUDS awarded (the card + its achievement) — TOP OF THE WORLD not (items ${Object.keys(ps.it || {}).filter(k => /^card-/.test(k)).join(' ')} · ach ${(o.ach || []).join(' ')})`);
     await pastMoment(P);
-    ok(await P.waitFor("/^NEW BEST/.test(document.querySelector('.hi-fin .hi-ec-best').textContent) && !document.querySelector('.hi-fin-would').textContent", 15000), `… the end screen says ${await P.ev("document.querySelector('.hi-fin .hi-ec-best').textContent")} — no WOULD COUNT line`);
+    ok(await P.waitFor("/^(NEW BEST|YOUR BEST · \\d+)/.test(document.querySelector('.hi-fin .hi-ec-best').textContent) && !document.querySelector('.hi-fin-would').textContent", 15000), `… the end screen says ${await P.ev("document.querySelector('.hi-fin .hi-ec-best').textContent")} — no WOULD COUNT line`);
     await P.shot('end-card-counted-390x844.png');
     await dbPut('testHighriseCounts', null);
   }

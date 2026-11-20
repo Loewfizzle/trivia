@@ -27,7 +27,7 @@ import { RULES_DEFAULT } from './rules.js';
 import { startOf } from './match.js';
 import { createRival, resetRival, feedRival, capRival, rivalOver, rivalEnd, rivalSilent, matchCalls, follow, nextFollow } from './rivals.js';
 import { CLOCK, packFrom, tapsFromChunks } from './proof.js';
-import { BEST_KEY, cleanBest } from './best.js';
+import { cleanBest } from './best.js';
 import { BOARD, SRV_BEST_KEY, TABLE_KEEP_MS, parseTable } from './lines.js';
 import { createStage, newSeed } from './stage.js';
 import { endHeader } from './endscreen.js';
@@ -68,8 +68,10 @@ const lookNow = () => (typeof document !== 'undefined' && document.body && docum
 const drv = {
   hook: TEST ? '__hiStage' : '',
   lookNow,
-  // YOUR BEST: the SERVER's (the best it last told this phone — once counting is ON); while counting is OFF, this phone's own (the test page's key)
-  best: { read: () => cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY)), write: n => { const was = cleanBest(ls.get(SRV_BEST_KEY)) || cleanBest(ls.get(BEST_KEY)); ls.set(BEST_KEY, n); if (cur) cur.best(was, n); } },
+  // YOUR BEST (REVIEW FIX A — the owner's call, Nov 20: "a COUNTED run raises YOUR BEST — solo or match, like JAYWALK; a run that never
+  // counted never sets it"): the SERVER's — the best it last told this phone (YOUR TABLE's answer, a counted run's NEW BEST). Never the
+  // test page's (`hi:play:best`), never an UNPROVEN run's, nothing while counting is OFF: a run on this stage never raises it itself (`runs: false`)
+  best: { read: () => cleanBest(ls.get(SRV_BEST_KEY)), write() {}, runs: false },
   go: () => (cur ? cur.go() : Promise.resolve(null)),
   onFrame: now => { if (cur) cur.frame(now); },
   onOver: r => { if (cur) cur.over(r); },
@@ -234,10 +236,20 @@ export function createView() {
    *  S5 — ZERO GARBAGE IN A MATCH (it runs 10 × a second): each player's row is ONE record kept on their rival (YOURS on `meRow`), the
    *  list ONE array filled in place, a change found field by field (no key string), your own numbers read into a kept record */
   const rowList = [], meRec = { floor: 0, perfects: 0, over: false, made: false, cause: '' }, noMe = { floor: 0, over: true };
-  let meRow = null;
+  let meRow = null, playersSeen = null;
   function feedRivals(g, runs, now) {
     const tick = Math.floor((now - mPlayAt) * TICK_HZ / 1000), me = mine(g) ? S.me(meRec) : null, watched = S.watching(), parts = g.participants || {};
     let n = 0, dirty = false;
+    // (REVIEW FIX A — SHOULD 5: a rival's name + colour were read ONCE — a player whose entry landed late stayed "GHOST" all match. The
+    //  room's player list is a new object at every change: then (only then) every kept row reads its name + colour again)
+    if (st.players !== playersSeen) {
+      playersSeen = st.players; countNames = null;
+      for (const R of rivals.values()) {
+        const nm = nameOf(R.uid), hx = hexOf(R.uid);
+        if (R.name !== nm || R.hex !== hx) { R.name = nm; R.hex = hx; R.rgb = rgbOf(hx); R.row.name = nm; R.row.hex = hx; R.row.rgb = R.rgb; dirty = true; }
+      }
+      if (meRow) { const nm = nameOf(uid), hx = hexOf(uid); if (meRow.name !== nm || meRow.hex !== hx) { meRow.name = nm; meRow.hex = hx; meRow.rgb = rgbOf(hx); dirty = true; } }
+    }
     for (const u in parts) {
       if (u === uid) continue;
       let R = rivals.get(u);
@@ -388,7 +400,7 @@ export function createView() {
     mount(el, state) {
       st = state; code = state.code; uid = state.uid; matchId = state.game ? state.game.matchId : '';
       isMatch = !!state.game && state.game.mode !== 'solo';
-      cur = { go: askGo, frame: () => flush(false), over, end: r => (isMatch ? endMatch(r) : end(r)), watchTap: () => { pickAny = ''; const rows = [...rivals.values()].map(R => ({ uid: R.uid, floor: R.run.floor, perfects: R.run.perfects, over: rivalOver(R) })); followPick = nextFollow(rows, followUid); }, watchPick: u => { if (u !== uid && rivals.has(u)) pickAny = u; }, hide: () => { if (S && started && !S.state().over) flush(true); }, best: (was, v) => { globalThis.__hiNewBest = { m: matchId, was, v }; }, shown: () => { if (proven && go > 0 && S && !S.state().over) S.setT0(perfOf(go)); }, friends: () => friends, key: () => matchId };
+      cur = { go: askGo, frame: () => flush(false), over, end: r => (isMatch ? endMatch(r) : end(r)), watchTap: () => { pickAny = ''; const rows = [...rivals.values()].map(R => ({ uid: R.uid, floor: R.run.floor, perfects: R.run.perfects, over: rivalOver(R) })); followPick = nextFollow(rows, followUid); }, watchPick: u => { if (u !== uid && rivals.has(u)) pickAny = u; }, hide: () => { if (S && started && !S.state().over) flush(true); }, shown: () => { if (proven && go > 0 && S && !S.state().over) S.setT0(perfOf(go)); }, friends: () => friends, key: () => matchId };
       const had = unpark();
       if (had) { S = had; el.replaceChildren(S.el); S.el.classList.remove('is-final'); S.restart(); }
       else S = createStage(el, drv);
