@@ -166,6 +166,14 @@
   .hi-start-go { animation: none; } .hi-again { transition: none; } .hi-tag { transition: none; } .hi-ec-best.is-new, .hi-final { animation: none; }
 }
 
+/* `?lean=1` (S4B — THE LAG A/B; the test page only — the owner's iPhone trace charged every slow frame to the BROWSER's own paint):
+   while a run is LIVE every DOM / CSS effect drawn over the 3D view is OFF — the text glows + shadows, any filter / backdrop blur, every
+   transition + animation (the announcer's motion is off in the stage: stage.js LEAN). The canvas's own look stays. The trace panel + the
+   note say LEAN; compare its "> 33 MS" count with a plain run's. */
+.hi-stage.is-lean.is-live .hi-hud, .hi-stage.is-lean.is-live .hi-hud *, .hi-stage.is-lean.is-live .hi-tag, .hi-stage.is-lean.is-live .hi-tag *, .hi-stage.is-lean.is-live .hi-fps {
+  text-shadow: none !important; box-shadow: none !important; filter: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; animation: none !important; transition: none !important; will-change: auto !important; }
+.hi-stage.is-lean .hi-shade, .hi-stage.is-lean .hi-hud { transition: none; }
+
 /* ---- S4A — THE NEXT FRIEND + THE CARTRIDGE (js/games/highrise/view.js mounts this SAME stage in the console's frame) ---- */
 /* THE NEXT FRIEND above you: the gold flag's twin in PINK (the site's pink — never gold: gold = YOUR BEST, nothing else) */
 /* (S4A FIX — the friend's tag edge = the pink tape's own look: a WHITE core, the pink either side of it, a pink glow off it — static) */

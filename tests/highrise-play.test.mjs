@@ -115,7 +115,7 @@ test('NOTHING COUNTS UNTIL GO-LIVE — the page\'s WHOLE module graph (static + 
   for (const m of stg.matchAll(/\bimport\(/g)) assert.equal(stg.slice(m.index - 11, m.index), 'lazyImport(', 'every dynamic import through lazyImport');
   assert.ok([...stg.matchAll(/\bimport\(/g)].length >= 4 && ![...play.matchAll(/\bimport\(/g)].length, '(S4A: the lazy imports are the stage\'s — the page itself has none)');
   // (S4A — THE STAGE NEVER COUNTS: what a cartridge run writes is HANDED IN (o.go · o.onFrame · o.onOver) — the page hands in nothing)
-  assert.match(play, /createStage\(app, \{ page: true, hook: '__hiPlay', seed: FIXED, mode: MODE, look: LOOK_Q, from: FROM, fps: Q\.get\('fps'\) === '1', trace: Q\.get\('trace'\) === '1', tier: [^}]*, best: \{ read: readBest, write: writeBest \} \}\);/);
+  assert.match(play, /createStage\(app, \{ page: true, hook: '__hiPlay', seed: FIXED, mode: MODE, look: LOOK_Q, from: FROM, fps: Q\.get\('fps'\) === '1', trace: Q\.get\('trace'\) === '1', lean: Q\.get\('lean'\) === '1', tier: [^}]*, best: \{ read: readBest, write: writeBest \} \}\);/);
   assert.doesNotMatch(play, /\bgo:|onFrame|onOver|onEnd|friends/, 'the page hands the stage no proof, no report, no friends');
   assert.match(play, /if \(Q\.has\('debug'\)\) \{ try \{ Q\.delete\('debug'\); history\.replaceState\(/);
   assert.doesNotMatch(play, /rd-owner/);
@@ -137,8 +137,8 @@ test('THE RUN ON THE PAGE: FAIR TAPS, tick 0 = the START touch, a beat\'s tap ne
   assert.match(s, /const RETRY_MS = 600;/); assert.match(s, /if \(shown\) \{ if \(now - overAt > RETRY_MS\) \{ restart\(\); begin\(ts\); \} return; \}/, 'the end card stays 0.6 s before a tap is PLAY AGAIN');
   assert.match(s, /const live = ts => \{ t0 = ts; start\.hidden = true; soundsBtn\.hidden = true; note\.hidden = true;/, 'while a run is LIVE the SOUNDS button is off the screen: a thumb anywhere is a drop');
   // (S4A — THE SOUND SYNC: START waits a moment for every sound's decode — then tick 0; with the sounds ready (every later run) tick 0 IS the touch)
-  assert.match(s, /const START_WAIT_MS = 600;/); assert.match(s, /const ready = !snd \|\| !snd\.ready \|\| snd\.ready\(\);\s*if \(ready && !o\.go\) \{ live\(ts\); return; \}/, 'the sounds decoded = tick 0 at the START touch itself');
-  assert.match(s, /Promise\.all\(\[ready \? null : snd\.whenReady\(START_WAIT_MS\), o\.go \? o\.go\(\) : null\]\)/, '… else START waits ≤ 0.6 s for the decodes (and, in the cartridge, for GO)');
+  assert.match(s, /const START_WAIT_MS = 600;/); assert.match(s, /const ready = !snd \|\| !snd\.ready \|\| snd\.ready\(\), warm = warmOk\(\);\s*if \(ready && warm && !o\.go\) \{ live\(ts\); return; \}/, 'the sounds decoded + the pre-warm done (S4B) = tick 0 at the START touch itself');
+  assert.match(s, /Promise\.all\(\[ready \? null : snd\.whenReady\(START_WAIT_MS\), o\.go \? o\.go\(\) : null, warm \? null : whenWarm\(START_WAIT_MS\)\]\)/, '… else START waits ≤ 0.6 s for the decodes + the pre-warm (and, in the cartridge, for GO)');
   assert.match(s, /T\.feed\(ev\); view\.events\(ev\);/, 'the tower is tower.js\'s (the engine\'s own land events) — then the view\'s moments');
   assert.ok(s.includes("catch { stage.append(noGL()); return null; }") && s.includes("const noGL = () => h('p.hi-nogl',"), 'no WebGL: the page still loads and says so');
   // NO LAYOUT READ IN THE FRAME — nor in what the frame calls (the review: say() + moments() forced a layout on every perfect): the
@@ -146,7 +146,7 @@ test('THE RUN ON THE PAGE: FAIR TAPS, tick 0 = the START touch, a beat\'s tap ne
   const layout = /clientWidth|clientHeight|getBoundingClientRect|offsetWidth|offsetHeight|offsetTop|scrollWidth|scrollHeight|getComputedStyle/g;
   assert.equal(s.replace('function sized() { stageH = stage.clientHeight; stageW = stage.clientWidth; hudFoot = hud.offsetTop + hud.offsetHeight; tagDirty = true; }', '').match(layout), null, 'no layout read anywhere but sized()');
   assert.ok(s.includes('const ro = new ResizeObserver(sized); ro.observe(stage); ro.observe(hud);'));
-  assert.ok(s.includes("if (call.animate) { let a = pops.get(ms); if (a) a.play(); else { a = call.animate(POP, { duration: ms, fill: 'both' }); pops.set(ms, a); } callAnim = a; }") && s.includes("else call.style.opacity = '1';"), 'the announcer\'s one-shot = the Web Animations API (opacity + transform), restarted without a reflow');
+  assert.ok(s.includes("if (canPop) { let a = pops.get(ms); if (a) a.play(); else { a = call.animate(POP, { duration: ms, fill: 'both' }); pops.set(ms, a); } callAnim = a; }") && s.includes("else call.style.opacity = '1';"), 'the announcer\'s one-shot = the Web Animations API (opacity + transform), restarted without a reflow');
   assert.doesNotMatch(read('css/highrise-play.css'), /@keyframes (?!hi-breathe|hi-new|hi-fin-in)/, 'the only CSS keyframes: the two breathing lines (opacity) + S4B\'s END SCREEN pair (NEW BEST\'s pop, the podium frame\'s fade — JAYWALK\'s; never in a live run)');
   // THE END HOLD holds for EVERY end — THE FUSE's (in the frame) and a TAP's (in the touch handler: the review)
   assert.ok(s.includes('if (over && !endedAt) endedAt = now;') && s.includes("if (over && !shown && now - endedAt >= (run.st === 'made' ? MADE_HOLD_MS : END_HOLD_MS)) showEnd(now);") && s.includes('const over = isOver(run);'));
@@ -251,12 +251,12 @@ test('YOUR BEST (best.js — PURE): no best = nothing · above you = the right-e
   assert.equal(tagY(300, 380, 400), 402, 'no clear column at all: just under the HUD');
   // the page wires it: the best BEFORE the run, the tag while above, the crossing → the tape + NEW BEST, stored at the end
   const s = code(`${HI}stage.js`);
-  assert.ok(s.includes("if (crossedBest(best, e.floor)) {") && s.includes("tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold');") && s.includes("say('NEW BEST', 'hi-call is-gold', 5, 1900, now);"));
+  assert.ok(s.includes("if (!FROM && crossedBest(best, e.floor)) {") && s.includes("tapeFloor = best; newBest = true; view.setBest(tapeFloor, true); stage.classList.add('is-gold');") && s.includes("say('NEW BEST', 'hi-call is-gold', 5, 1900, now);"));
   assert.ok(s.includes('let yg = gold ? tagY(view.restY(Math.min(best, run.floor + 100)) * stageH, hudFoot, zone) : -1e9, yf = -1e9;') && s.includes('const zone = view.restZone() * stageH;'), 'the tag: its floor\'s height (clamped 100 floors up — a point behind the camera projects mirrored: the review), clear of the HUD + THE DROP ZONE');
   assert.ok(s.includes('best = Math.max(best, readBest());'), 'a phone whose storage is blocked keeps its best for the visit');
   assert.ok(s.includes('EC.best(best, best > was && was > 0, was);') && read(`${HI}endscreen.js`).includes("bestL.textContent = !v ? '' : nb ? (whole(was) > 0 ? `NEW BEST · WAS ${say(was)}` : 'NEW BEST') : `YOUR BEST · ${say(v)}`;"), 'a first run that never landed a slab shows no "YOUR BEST 0" (no line at all); NEW BEST is said of a best that was beaten');
   assert.match(s, /best = FROM \? was : nextBest\(was, live\.floor\);[^\n]*\n\s*if \(best > was\) writeBest\(best\);/, 'a run moves YOUR BEST — a `?floor=N` look check never does');
-  assert.ok(code(`${HI}play.js`).includes("const FROM = Math.max(0, Math.min(400, Math.floor(Number(Q.get('floor')) || 0)));") && s.includes('if (FROM) climbBy(FROM, null);'), '`?floor=N`: the START tap plays N clean drops through the real engine (the lab\'s `?lane=N`)');
+  assert.ok(code(`${HI}play.js`).includes("const FROM = Math.max(0, Math.min(400, Math.floor(Number(Q.get('floor')) || 0)));") && s.includes('if (FROM) { climbBy(FROM, null); skipP = run.perfects; skipS = run.streak; }'), '`?floor=N`: the START tap plays N clean drops through the real engine (the lab\'s `?lane=N`)');
   assert.match(read('css/highrise-play.css'), /\.hi-tag \{ position: absolute; right: 0;/, 'the tag sits at the RIGHT edge');
 });
 
@@ -341,7 +341,7 @@ test('THE TRIGGERS (sounds.js#cuesOf — PURE, on REAL runs): drop on every land
   const s = code(`${HI}stage.js`);
   assert.match(s, /const late = gap > LATE_MS \|\| hush;/); assert.match(s, /soundNow\(late\);\n/); assert.match(s, /const x = moments\(liveEv, from, to, now, false\);\n    if \(snd && x\.length\) snd\.playCues\(x\);/, "S4A FIX 2: the moments' own cues — a frame after the landing");
   // (S4A — THE SOUND SYNC: a tap's own sounds are asked IN THE TOUCH — `sounded` keeps the frame from asking them twice)
-  assert.match(s, /if \(tap\(run, tk, ev\)\) taps\.push\(tk\);[^\n]*\n[^\n]*\n\s*soundNow\(false\);/); assert.match(s, /const from = sounded;\s*sounded = ev\.length;/); assert.match(s, /snd\.playCues\(snd\.cuesOf\(ev, late, cues, from\)\);/); assert.match(s, /ev\.length = 0; sounded = 0; hush = false;/);
+  assert.match(s, /if \(tap\(run, tk, ev\)\) taps\.push\(tk\);[^\n]*\n[^\n]*\n\s*soundNow\(false\);/); assert.match(s, /const from = sounded;\s*sounded = ev\.length;/); assert.match(s, /snd\.playCues\(snd\.cuesOf\(ev, late, cues, from, skipS\)\);/); assert.match(s, /ev\.length = 0; sounded = 0; hush = false;/);
   assert.match(s, /if \(!late\) cues\.push\(CUE_BAND\);/); assert.match(s, /CUE_BAND = Object\.freeze\(\{ id: 'band-arrival' \}\)/);
   // SOLO PAST 200: every notch of the tightening is called FASTER
   assert.ok(s.includes("if (e.floor > TIGHT.from) { const k = Math.floor((e.floor + 1 - TIGHT.from) / TIGHT.every); if (k > notch) { notch = k; if (!say('FASTER', 'hi-call is-fast', 2, 1100, now)) { later = true; laterText = 'FASTER'; laterCls = 'hi-call is-fast'; laterPri = 2; laterMs = 1100; } } }"), 'every notch is called — under a bigger call it waits its turn (the review)');
@@ -480,7 +480,7 @@ test('THE FLYERS\' PLAN (flyplan.js — PURE): the seed picks THE BLACKBIRD or t
   assert.ok(s.includes('plan = flyPlan(seed); flown.jet = flown.ufo = flown.ship = false; wanted.clear(); needFloor = -1;') && /view\.adopt\(run, T\); view\.setBest\(0\); view\.setFriend\(0\);[^\n]* view\.flyReset\(\);/.test(s));
   assert.ok(s.includes("if (due === 'jet') view.fly(plan.jet, plan.jetDir);") && s.includes("else if (due === 'ufo') view.fly('ufo', plan.ufoDir);"));
   assert.ok(s.includes("else if (due === 'ship' && MODE === 'solo') { view.fly('pass'); say('THE MOTHERSHIP', 'hi-call is-gold', 6, 2600, now); if (!late) cues.push(CUE_BAND); }"));
-  assert.ok(s.includes("} else if (e.e === 'made') {") && s.includes("view.fly('pour');"), 'a match\'s floor 200 = THE FINISH');
+  assert.ok(s.includes("else if (e.e === 'made') {") && s.includes("view.fly('pour');"), 'a match\'s floor 200 = THE FINISH');
   assert.ok(s.includes('view.flyHush();'), 'the end card up: a flyer still in the sky fades away');
 });
 
@@ -490,7 +490,7 @@ test('THE FLYERS (S3 — flyers.js + night.js\'s stage, static): a LAZY module, 
   assert.doesNotMatch(s, /from '\.\/flyers\.js'/); assert.doesNotMatch(n, /flyers\.js/);
   assert.ok(s.includes("lazyImport(import('./flyers.js'), './flyers.js').then(M => { FlyMod = M; view.flyers(M); needFloor = -1; return M; })") && s.includes('if (run.floor < FLY_FLOORS.loadJet) return;'));
   assert.ok(s.includes('flyNeeds(plan, run.floor, needs);') && s.includes('for (let i = 0; i < needs.length; i++) { const k = needs[i]; if (!wanted.has(k)) { wanted.add(k); view.need(k); } }'));
-  assert.ok(s.includes('if (FlyMod) { view.flyers(FlyMod); wanted.clear(); needFloor = -1; }'), 'a rebuilt scene (a lost context) gets its flyers again');
+  assert.ok(s.includes('if (FlyMod) { view.flyers(FlyMod); wanted.clear(); needFloor = -1; needAll(); }'), 'a rebuilt scene (a lost context) gets its flyers again — all of them, at once (S4B)');
   // THE LAG RULES: both programs (+ their twins) on a stand-in triangle in the warm frame; a model's buffers in an ordinary frame, before its moment
   assert.ok(n.includes('const mesh = new THREE.Mesh(standIn, m);') && n.includes('twin(mesh, m);') && n.includes('twin(lightsMesh, lightMat);'));
   assert.ok(n.includes('for (const f of flySlots) { f.mesh.visible = true; f.mesh.matrix.makeTranslation(0, -60, 0); f.mesh.matrixWorldNeedsUpdate = true; }') && n.includes('lgGeo.instanceCount = 1; lightsMesh.visible = true;'), 'the warm frame draws the flyers\' two programs');
@@ -510,7 +510,8 @@ test('THE FLYERS (S3 — flyers.js + night.js\'s stage, static): a LAZY module, 
   const ufo = fl.slice(fl.indexOf('function frameUfo(F)'), fl.indexOf('function endUfo()'));
   assert.doesNotMatch(ufo, /beam|GREEN|S\.ring|S\.pour|, 3, [rwf]/, 'the UFO: no beam (light kind 3), no ring');
   // freed after its moment
-  assert.ok(fl.includes("function endJet() { if (!jet) return; if (jet.snd) jet.snd.stop(0.6); hide(0); hide(1); drop(jet.kind); jet = null; boxes.jet = null; }") && fl.includes("function endUfo() { if (!ufo) return; if (ufo.hum) ufo.hum.stop(0.8); hide(0); drop('ufo'); ufo = null; boxes.ufo = null; }") && fl.includes("drop('mothership');"));
+  // (S4B — PRE-WARM: a model is no longer dropped after its moment — it stays for the stage's life; freed with the scene)
+  assert.ok(fl.includes("function endJet() { if (!jet) return; if (jet.snd) jet.snd.stop(0.6); hide(0); hide(1); jet = null; boxes.jet = null; }") && fl.includes("function endUfo() { if (!ufo) return; if (ufo.hum) ufo.hum.stop(0.8); hide(0); ufo = null; boxes.ufo = null; }") && !fl.includes("drop('mothership');") && !fl.includes("drop('ufo');") && fl.includes("for (const k of Object.keys(geo)) drop(k);"));
   // the sounds: the city's own files through the engine's SFX bus; an effect asks isUnlocked() — never the context's state (PODCAST MODE)
   assert.doesNotMatch(fl, /ctx\.state|\.state === 'running'|\.state !== 'running'/); assert.ok(fl.includes('if (!isUnlocked()) return H;') && fl.includes('tail.connect(getSfxBus() || ctx.destination);'));
   for (const f of ['jet-scream', 'jets-formation', 'ufo-hum', 'ufo-beam-on']) assert.ok(existsSync(new URL(`../audio/city/${f}.mp3`, import.meta.url)), `audio/city/${f}.mp3`);

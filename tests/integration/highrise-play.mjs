@@ -5,7 +5,7 @@
 //     view's tower == the engine's, the HUD (the big floor number, the band's name, the announcer lane), REPLAY = LIVE ✓ on the end card
 //   · YOUR BEST = THIS PHONE: stored after a run, the right-edge tag while it is above you (never in THE DROP ZONE), the gold tape +
 //     NEW BEST at the crossing
-//   · THE HEIGHT AREAS: the band's name + its plate change as the tower climbs; only two plates are ever held
+//   · THE HEIGHT AREAS: the band's name + its plate change as the tower climbs; the look's FIVE plates are held from the welcome on (S4B — PRE-WARM)
 //   · THE SOUNDS: the cues asked of the engine (the chime climbing its scale), THE AUDITION sheet + COPY MY PICKS
 //   · THE LOST CONTEXT: the scene rebuilt on the same tower, the run never stopped
 //   · **NOTHING COUNTS**: NO request but the page's own static files, three.js from its CDN and the fonts — no /api, no Firebase, no
@@ -160,7 +160,7 @@ async function main() {
   const geo = await p.evaluate(() => { const V = window.__hiPlay.view, a = V.project(5000, 0, -5000), c = V.project(-5000, 0, 5000), top = V.project(0, 0, 0); return { wide: Math.abs(a[0] - c[0]), level: Math.abs(a[1] - c[1]), topY: top[1], topX: top[0], zone: V.zoneTop() }; });
   ok(geo.wide > 0.54 && geo.wide < 0.64 && geo.level < 0.01 && Math.abs(geo.topX - 0.5) < 0.02 && geo.topY > 0.64 && geo.topY < 0.76, `THE CAMERA at THE WELCOME: the first slab ≈ 60 % of the screen width (${(geo.wide * 100).toFixed(1)} %), corner-on, level, its top ≈ 70 % down the screen (${(geo.topY * 100).toFixed(0)} %) — the sign has the sky`);
   ok(dom.sub.y + dom.sub.h < geo.topY * 844 - 60 && dom.go.y > geo.topY * 844 + 40, 'the sign + its line sit clear above the top of the tower; TAP TO START below it, in the fade at the foot');
-  ok(s.info.look === 'night' && s.info.tier === 2 && s.info.bloom && s.info.env && s.info.plates.includes(0) && s.info.held.length <= 2 && s.info.calls <= 12, `THE NIGHT LOOK: tier 2 + the bloom, the reflection map + the rooftops' plate in, ≤ 2 plates held (${s.info.held}), ${s.info.calls} draw calls a frame`);
+  ok(s.info.look === 'night' && s.info.tier === 2 && s.info.bloom && s.info.env && s.info.plates.includes(0) && s.info.held.length === 5 && s.info.calls <= 12, `THE NIGHT LOOK: tier 2 + the bloom, the reflection map + the rooftops' plate in, the look's five plates held (${s.info.held} — S4B's PRE-WARM), ${s.info.calls} draw calls a frame`);
 
   // ---- A BOT RUN THROUGH REAL TAPS
   await tapAt(t, 195, 500);
@@ -271,15 +271,15 @@ async function main() {
   const cueN = await p.evaluate(() => window.__hiPlay.sfx.wanted().filter(q => q.id === 'streak' && Math.abs(q.rate - 1.12) < 0.001).length);
   ok(cueN === 1, 'NEW BEST sounds once');
 
-  // ---- THE HEIGHT AREAS: the band's name + its plate follow the climb; only two plates are ever held
+  // ---- THE HEIGHT AREAS: the band's name + its plate follow the climb; the look's five plates are held all along (S4B: nothing is loaded at a seam)
   await climb(p, 26 - x.floor);
   await sleep(900);
   const b1 = await st(p), l1 = await p.evaluate(() => document.querySelector('.hi-band').textContent);
-  ok(b1.floor >= 26 && b1.band === 1 && l1 === 'THE SKYLINE' && b1.info.held.length <= 2, `floor ${b1.floor}: THE SKYLINE (plates held: ${b1.info.held})`);
+  ok(b1.floor >= 26 && b1.band === 1 && l1 === 'THE SKYLINE' && b1.info.held.length === 5, `floor ${b1.floor}: THE SKYLINE (plates held: ${b1.info.held})`);
   await climb(p, 70 - b1.floor);
   await sleep(1300);
   const b2 = await st(p), l2 = await p.evaluate(() => document.querySelector('.hi-band').textContent);
-  ok(b2.band === 2 && l2 === 'THE CLOUDS' && b2.info.held.length <= 2 && b2.info.plates.includes(2) && !b2.info.held.includes(0), `floor ${b2.floor}: THE CLOUDS — its plate is in, the rooftops' is let go (held: ${b2.info.held}; ${b2.info.loads} loaded so far)`);
+  ok(b2.band === 2 && l2 === 'THE CLOUDS' && b2.info.held.length === 5 && b2.info.plates.includes(2) && b2.info.loads === b1.info.loads, `floor ${b2.floor}: THE CLOUDS — its plate was in long before (held: ${b2.info.held}); nothing loaded on the way up (${b2.info.loads} loads, all before the first tap)`);
   const arr = await p.evaluate(() => window.__hiPlay.sfx.wanted().filter(q => q.id === 'band-arrival').length);
   ok(arr === 2, 'a band\'s arrival sounds once a band');
   ok(sameTop(b2) && b2.info.calls <= 13 + (b2.info.lights ? 6 : 0),   /* (the tape on: + its line, + its faint back edges, + its line in the bloom pass; S3: a flyer in the sky — the climb just passed the flyby's floor — adds its bodies + its lights + their bloom twins: ≤ 6) */ `the view's tower == the engine's after ${b2.taps} drops; ${b2.info.calls} draw calls a frame${b2.info.lights ? ' (a flyer in the sky)' : ''}`);
@@ -1018,7 +1018,7 @@ async function s3() {
     ok(t.up && await ready(p), `${lk}: the page is up`);
     const i0 = (await st(p)).info;
     ok(i0.look === lk && i0.heldAll[lk === 'day' ? 'night' : 'day'].length === 0 && t.reqs.some(q => new RegExp(`plates/${lk}-1\\.webp`).test(q)) && !t.reqs.some(q => new RegExp(`plates/${lk === 'day' ? 'night' : 'day'}-`).test(q)), `${lk}: only the ${lk} look's plates + reflection map are asked for`);
-    ok(!t.reqs.some(q => /flyers\.js|\.glb|audio\/city/.test(q)), `${lk}: nothing of the flyers is fetched before floor ${FLY_FLOORS.loadJet}`);
+    ok(t.reqs.some(q => /flyers\.js/.test(q)) && ['blackbird.glb', 'f22.glb', 'ufo.glb'].every(f => t.reqs.some(q => q.includes(f))), `${lk}: S4B — PRE-WARM: the flyers' module + every model are fetched BEHIND THE WELCOME SCREEN (it was: nothing before floor ${FLY_FLOORS.loadJet})`);
     // NOTHING INSIDE THE PLAY ZONE — the canvas's own pixels: before a run the tower stands still, so the rows from THE DROP ZONE's upper
     // edge down must be THE SAME with a flyer in the sky as without one
     const bd = await bandOf(p);
@@ -1042,7 +1042,7 @@ async function s3() {
       await waitFor(p, "(() => { const f = window.__hiPlay.flyInfo(); return !f.jet && !f.ufo; })()", 9000);
     }
     const freed = await flyInfo(p);
-    ok(freed.models.length === 0, `${lk}: each flyer is FREED after its moment (models held: ${freed.models.join(', ') || 'none'})`);
+    ok(freed.models.length === 4, `${lk}: S4B — a flyer's model STAYS after its moment (the next run uploads nothing): ${freed.models.join(', ')}`);
     // THE RUN: the seed's flyby AT ITS FLOOR
     await climb(p, plan.jetAt - 2); await alive(p, true);
     ok(await waitFor(p, "(() => { const f = window.__hiPlay.flyInfo(); return (f.asked || []).includes('blackbird') || (f.models || []).includes('blackbird'); })()", 4000), `${lk}: THE BLACKBIRD's model is asked for from floor ${FLY_FLOORS.loadJet} — ${plan.jetAt - FLY_FLOORS.loadJet} floors before it flies`);
@@ -1078,7 +1078,7 @@ async function s3() {
     await sleep(600); await shot(p, `s3-390-${lk}-ship-pass.png`);
     ok(await waitFor(p, 'window.__hiPlay.flyInfo().ship.done', 8000), `${lk}: … then it leaves`);
     const gone = await flyInfo(p);
-    ok(!gone.ship.vis && !gone.models.includes('mothership'), `${lk}: THE MOTHERSHIP is removed + freed`);
+    ok(!gone.ship.vis && gone.models.includes('mothership'), `${lk}: THE MOTHERSHIP is removed from the sky (its hull stays ready — S4B)`);
     await alive(p, false); await climb(p, 216 - (await st(p)).floor); await alive(p, true); await sleep(1400);
     const deep = await st(p); await shot(p, `s3-390-${lk}-deep.png`);
     ok(deep.info.space === 1 && deep.floor >= 216 && !deep.over, `${lk}: past 200 the climb goes on into DEEP SPACE (the stars + the aurora full at floor 212; the tower on ${deep.floor})`);
@@ -1099,7 +1099,7 @@ async function s3() {
       await sleep(1450); await shot(d.p, `s3-390-${lk}-f22.png`);
       const bx = (await flyInfo(d.p)).boxes.jet, bd4 = await bandOf(d.p), pl2 = (await flyInfo(d.p)).played;
       ok(f.floor >= pl.jetAt && f.floor <= pl.jetAt + 2 && !!bx && bx[1] >= bd4.top - 0.012 && bx[3] <= bd4.zone + 0.004 && pl2.includes('jets-formation'), `${lk}: … at its floor (planned ${pl.jetAt}, on ${f.floor}); BOTH jets in the band (${bx ? bx[1].toFixed(3) : '?'} … ${bx ? bx[3].toFixed(3) : '?'} between ${bd4.top.toFixed(3)} and ${bd4.zone.toFixed(3)}); the city's formation sound`);
-      ok(d.reqs.some(q => /assets\/highrise\/models\/f22\.glb/.test(q)) && !d.reqs.some(q => /blackbird\.glb/.test(q)), `${lk}: only ITS model was fetched (f22.glb — never the Blackbird's)`);
+      ok(d.reqs.some(q => /assets\/highrise\/models\/f22\.glb/.test(q)) && d.reqs.some(q => /blackbird\.glb/.test(q)), `${lk}: its model was fetched — and, since S4B's PRE-WARM, the other jet's too (the next run's seed may pick it; a cartridge's seed is not known before GO)`);
       await alive(d.p, false);
       ok(d.errs.length === 0, `${lk}: no page error (${d.errs.join(' | ')})`);
       await d.close();

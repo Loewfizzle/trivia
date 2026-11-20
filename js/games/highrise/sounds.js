@@ -58,7 +58,7 @@ export function admit(voices, pri, max = VOICES) {
  *   OUT sounds — never a burst of every drop that "happened" while nobody watched.
  * A band's arrival is the VIEW's (it knows the band a floor stands in): see bandCue.
  */
-export function cuesOf(events, late = false, out = [], from = 0) {
+export function cuesOf(events, late = false, out = [], from = 0, skip = 0) {
   // (S4A FIX — ZERO GARBAGE: every cue is one of a few CONSTANT records, and the stage hands in its own list + where this batch
   //  starts in its events — a landing's sounds are asked without one object made)
   out.length = 0;
@@ -68,8 +68,9 @@ export function cuesOf(events, late = false, out = [], from = 0) {
     if (late) continue;
     if (e.e === 'land') out.push(CUE.drop);
     else if (e.e === 'perfect') {
-      out.push(CUE_CHIME[e.streak < 1 ? 0 : e.streak > CHIME_STEPS.length ? CHIME_STEPS.length - 1 : Math.floor(e.streak) - 1]);
-      if (e.streak > 0 && e.streak % STREAK_EVERY === 0) out.push(CUE.streak);
+      const st = e.streak - skip;   // (`skip` — S4B: the perfects a `?floor=N` start played at once count toward nothing)
+      out.push(CUE_CHIME[st < 1 ? 0 : st > CHIME_STEPS.length ? CHIME_STEPS.length - 1 : Math.floor(st) - 1]);
+      if (st > 0 && st % STREAK_EVERY === 0) out.push(CUE.streak);
     } else if (e.e === 'cut') { out.push(CUE.slice); out.push(CUE.fall); }
     else if (e.e === 'grow') out.push(CUE.grow);
   }

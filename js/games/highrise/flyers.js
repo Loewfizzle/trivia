@@ -207,7 +207,8 @@ export function createFlyers(S) {
       const g = readFlyer(THREE, buf); geo[kind] = g; S.upload(g);
     }).catch(() => { asked[kind] = false; });
   }
-  /** FREED after its moment (the next run fetches it again — from the phone's own cache) */
+  /** FREED with the scene (S4B — PRE-WARM: a model is no longer dropped after its moment — every flyer is uploaded ONCE, behind the
+   *  welcome screen, and stays: a second run, PLAY AGAIN, a ?floor=N start upload nothing) */
   function drop(kind) { const g = geo[kind]; if (g) { try { g.dispose(); } catch { /* gone */ } delete geo[kind]; } asked[kind] = false; }
   const hide = i => { const s = S.slots[i]; s.mesh.visible = false; s.mesh.geometry = S.standIn; };
 
@@ -306,7 +307,7 @@ export function createFlyers(S) {
     }
     boxes.jet = box;
   }
-  function endJet() { if (!jet) return; if (jet.snd) jet.snd.stop(0.6); hide(0); hide(1); drop(jet.kind); jet = null; boxes.jet = null; }
+  function endJet() { if (!jet) return; if (jet.snd) jet.snd.stop(0.6); hide(0); hide(1); jet = null; boxes.jet = null; }   // (S4B — PRE-WARM: its model STAYS on the GPU for the stage's life — the next run uploads nothing)
 
   // ---- THE UFO: amber running lights round its rim + a soft violet underglow — no beam, no ring on anything
   // (a rim lamp's facing — how far its face is turned to the lens, −1 … 1: off at LAMP_FROM and under, full from LAMP_FULL up)
@@ -349,7 +350,7 @@ export function createFlyers(S) {
     for (let e = -0.5; e <= 0.5; e += 1) { w.copy(P).addScaledVector(r, e * wd); seen(F, w, box); w.copy(P).addScaledVector(u, e * 0.42 * wd); seen(F, w, box); }
     boxes.ufo = box;
   }
-  function endUfo() { if (!ufo) return; if (ufo.hum) ufo.hum.stop(0.8); hide(0); drop('ufo'); ufo = null; boxes.ufo = null; }
+  function endUfo() { if (!ufo) return; if (ufo.hum) ufo.hum.stop(0.8); hide(0); ufo = null; boxes.ufo = null; }
 
   // ---- THE MOTHERSHIP
   const SHIP_O = { op: 1, haze: 0.03, lift: 0, tint: 0.5, rim: [0.07, 0.1, 0.22], em: [0, 0, 0] };
@@ -373,7 +374,7 @@ export function createFlyers(S) {
       gl = tp < 1.2 ? ease(tp / 1.2) : tp < 2.4 ? 1 : 1 - ease((tp - 2.4) / 1.6);
       y -= 0.12 * ease(tp / 1.2); pulse = 0.5 + 0.5 * Math.sin(tp * 9);
       x += 1.9 * go * go; y += 1.5 * go * go; K = 1 - 0.45 * go; op = 1 - Math.pow(go, 1.6);
-      if (tp >= FLY.passS) { ship.pass = null; ship.done = true; S.glance(0); hide(2); ship.vis = false; boxes.ship = null; drop('mothership'); if (ship.hum) { ship.hum.stop(1.2); ship.hum = null; } return; }
+      if (tp >= FLY.passS) { ship.pass = null; ship.done = true; S.glance(0); hide(2); ship.vis = false; boxes.ship = null; if (ship.hum) { ship.hum.stop(1.2); ship.hum = null; } return; }
     }
     let beam = 0;
     if (ship.pour) {
@@ -464,6 +465,8 @@ export function createFlyers(S) {
   }
   return {
     need, start, frame, reset,
+    /** S4B — PRE-WARM: every flyer's model is read + handed to the stage (the four kinds) */
+    ready: () => !!(geo.blackbird && geo.f22 && geo.ufo && geo.mothership),
     /** THE FLYER PATH CHECK: on → recording (from empty) · off → the record as [t, x, y, kind] rows */
     path(on) { if (on) { pathOn = true; pathN = 0; return null; } pathOn = false; const out = []; for (let i = 0; i < pathN; i++) out.push([PATH[i * 4], PATH[i * 4 + 1], PATH[i * 4 + 2], PATH[i * 4 + 3]]); return out; },
     /** the end card is up: what is in the sky fades away (THE FINISH's ship + its light stay) */

@@ -38,9 +38,9 @@ test('THE TRACE (trace.js — the record a gap is charged to): the 5 WORST kept 
   assert.equal(w.land.n, 1); assert.equal(w.land.max, 34);
   const lines = T.lines();
   assert.match(lines[0], /^TRACE · 5 WORST FRAMES OF 13$/);
-  assert.equal(lines.length, 7, 'the title, five frames, the counts');
+  assert.equal(lines.length, 8, 'the title, five frames, the counts, S4B\'s SET-UP AFTER START line');
   assert.match(lines[1], /^120 ms · F4 · none · browser \d+ · render 1$/, 'total ms · the floor · what happened · the top 2 phases');
-  assert.match(lines[lines.length - 1], /^> 33 MS: \d+ — /);
+  assert.match(lines[lines.length - 2], /^> 33 MS: \d+ — /); assert.equal(lines[lines.length - 1], 'SET-UP AFTER START: none', 'S4B: the pre-warm\'s own line');
   // what happened: the events of the record, by name
   const T2 = createTrace();
   T2.begin(0, 16, 0, false); T2.add(PH.render, 30); T2.ev = EV.land | EV.perfect | EV.deferred; T2.begin(0, 60, 1, true);
@@ -50,7 +50,7 @@ test('THE TRACE (trace.js — the record a gap is charged to): the 5 WORST kept 
 
 test('THE TRACE IS FREE WHEN OFF + MAKES NOTHING WHEN ON: one `if (TR)` a call site; its frame functions build no list / record / closure / string', () => {
   const s = read(`${HI}stage.js`), n = read(`${HI}night.js`), t = bare(read(`${HI}trace.js`)), p = read(`${HI}play.js`);
-  assert.match(s, /const TR = o\.trace \? createTrace\(\) : null, traceEl = TR \? h\('div\.hi-trace', \{ hidden: true \}\) : null;/);
+  assert.match(s, /const TR = o\.trace \? createTrace\(\{ lean: LEAN \}\) : null, traceEl = TR \? h\('div\.hi-trace', \{ hidden: true \}\) : null;/);
   assert.match(p, /trace: Q\.get\('trace'\) === '1'/, 'the page: ?trace=1');
   assert.match(n, /const TRC = o\.trace \|\| null;/);
   const lines = (src, re) => src.split('\n').filter(l => re.test(l));
@@ -67,7 +67,7 @@ test('THE LANDING FRAME: the slab + its sound now — the moments, the number, t
   assert.match(s, /const LATER_MOMENTS = 1, LATER_NUM = 2, LATER_TAGS = 3;/);
   assert.match(s, /else \{ momFrom = from; momTo = liveN; momDue = frameN \+ LATER_MOMENTS; landF = frameN; \}/, 'a landing\'s moments are read off the kept events next frame');
   assert.match(s, /if \(momDue >= 0 && frameN >= momDue\) runMoments\(now\);/);
-  assert.match(s, /&& frameN >= landF \+ LATER_NUM\) \{\n      hudFloor = run\.floor;/, 'the big number two frames after');
+  assert.match(s, /&& frameN >= landF \+ LATER_NUM\) \{\n      if \(TR\) \{ if \(run\.floor !== hudFloor\) TR\.ev \|= EV\.num; \}\n      hudFloor = run\.floor;/, 'the big number two frames after (its frame named in the trace: S4B)');
   assert.match(s, /if \(run\.floor !== needFloor && frameN >= landF \+ LATER_NUM\)/, 'a flyer\'s fetch / the hull never on the landing frame');
   assert.match(s, /function showEnd\(now\) \{\n    if \(momDue >= 0\) runMoments\(now\);/, 'the last landing\'s moments before its end card');
   assert.match(s, /momDue = -1; landF = -1e9; run = createRun/, 'a new run drops what was waiting');

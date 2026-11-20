@@ -252,7 +252,7 @@ test('THE NEXT FRIEND (lines.js — PURE): the LOWEST friend best above you, one
   assert.equal(crossedFriend(T.friends, 13).n, 'MAYA'); assert.equal(crossedFriend(T.friends, 12), null); assert.equal(crossedFriend(T.friends, 58).n, 'LIAM'); assert.equal(crossedFriend(null, 5), null);
   // the stage: solo only, never without a list handed in (the test page hands none), the tag clear of THE DROP ZONE + the gold tag
   const st = code('js/games/highrise/stage.js');
-  assert.match(st, /const gold = live && best > 0 && run\.floor <= best, fr = live && o\.friends && MODE === 'solo' \? nextFriend\(o\.friends\(\), run\.floor\) : null;/);   // (S4A FIX: asked once a landing — placeTags — never every frame)
+  assert.match(st, /const gold = live && !FROM && best > 0 && run\.floor <= best, fr = live && o\.friends && MODE === 'solo' \? nextFriend\(o\.friends\(\), run\.floor\) : null;/);   // (S4A FIX: asked once a landing — placeTags — never every frame)
   assert.match(st, /yf = tagY\(view\.restY\(Math\.min\(fr\.v, run\.floor \+ 100\)\) \* stageH, hudFoot, zone\);/, 'held between the HUD\'s foot and THE DROP ZONE\'s upper edge');
   assert.match(st, /if \(o\.friends && MODE === 'solo'\) \{ const f = crossedFriend\(o\.friends\(\), e\.floor\); if \(f\) \{ friendTape = f\.v; view\.setFriend\(f\.v, !late\);/);
   assert.match(code('js/games/highrise/night.js'), /const ftapeMat = new THREE\.ShaderMaterial\(\{ \.\.\.tapeOpt, uniforms: ftapeU,/, 'the pink tape = the gold tape\'s shader (the same program: a second tape builds nothing)');

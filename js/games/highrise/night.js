@@ -133,13 +133,17 @@ export function createNight(host, o = {}) {
   let wantA = -1, wantB = -1;
   const dropUnwanted = (rec, k, plates) => { if (k !== wantA && k !== wantB && !(wantA === wantB && k === wantA + 1) && !(keepFirst && k === 0)) { dropPlate(rec); plates.delete(k); } };
   function holdPlates(a, b) {
-    const key = a * 16 + b + (keepFirst ? 256 : 0) + (holds('night') ? 512 : 0) + (holds('day') ? 1024 : 0);
+    const key = a * 16 + b + (keepFirst ? 256 : 0) + (holds('night') ? 512 : 0) + (holds('day') ? 1024 : 0) + (target === 'day' ? 2048 : 0);
     if (key === heldKey) return;
     heldKey = key; wantA = a; wantB = b;
     for (let li = 0; li < LOOK_IDS.length; li++) {
       const look = LOOK_IDS[li], plates = SETS[look];
       if (!holds(look)) { plates.forEach(dropPlate); plates.clear(); dropEnv(look); continue; }
       wantEnv(look);
+      // S4B — PRE-WARM (the owner's iPhone trace: a 65 ms first-time set-up at floor 80): THE LOOK ON SCREEN holds ALL FIVE of its
+      // plates from the welcome screen on — decoded + uploaded before the first tap, never at a seam (18 MB on the GPU; it was two).
+      // A look on its way OUT through a switch keeps what it has until it is let go.
+      if (look === target) { for (let k = 0; k < 5; k++) wantPlate(look, k); continue; }
       wantPlate(look, a); wantPlate(look, b); if (a === b) wantPlate(look, a + 1);
       if (keepFirst) wantPlate(look, 0);
       plates.forEach(dropUnwanted);
@@ -874,6 +878,16 @@ export function createNight(host, o = {}) {
     /** the end card is up: the flyers leave the sky behind its words */
     flyHush() { if (fly) fly.hush(); },
     flyInfo: () => (fly ? fly.info() : { ready: false }),
+    /** S4B — PRE-WARM: is everything a run can need ON THE GPU? the warm frame drawn, the look on screen's five plates + its
+     *  reflection map in (or failed: a missing picture never holds a start), no model still waiting for its upload frame */
+    warm() {
+      if (!warmed || toUpload.length || upSlot) return false;
+      const plates = SETS[target], env = ENVS[target];
+      for (let k = 0; k < 5; k++) { const r = plates.get(k); if (!r || !r.done) return false; }
+      return env.done;
+    },
+    /** … and every flyer's model read (flyers.js — the lazy module itself too) */
+    flyReady: () => !!fly && fly.ready(),
     flyPath: on => { pathWant = !!on; return fly && fly.path ? fly.path(on) : null; },
     flashing: () => NUM[CLK] - perfAt < 460,
     /** S4A FIX 2: the landing's later jobs run so far (the pass's check) */
