@@ -847,7 +847,7 @@ the missed slab frozen like a bridge). THE POSTER never uses the run's own frame
 - **THE SIX HERO SHOTS** (`assets/highrise/share/<id>.webp`, 1080 × 1350, 46–80 KB each — fetched only when the card is drawn): ROOFTOPS ·
   SKYLINE · CLOUDS · STARS · DEEP SPACE · THE MOTHERSHIP. Made by THE POSTER PIPELINE (B1's): the test page's `?poster=hero&shot=<id>`
   (`poster.js#runHero` — `HEROES`: the seed `poster2`, each band's floor 19 · 36 · 76 · 140 · 175 (DEEP SPACE under THE MOTHERSHIP's hull,
-  which hangs from 178) · the match's FINISH at 200) climbs clean, drops ONE cut (its falling piece + sparks), freezes a beat later (each
+  which hangs from 178) · the match's FINISH at 200) climbs clean, drops ONE cut (A CLEAN BREAK — the owner's add-on: its falling piece, crisp, NO sparks: HERO_CAM `sparks: false` → night.js `NOSPARK`, the hero mode only), freezes a beat later (each
   shot's own `beat` — the next slab CLEAR of the top, never lying across it) and copies the canvas. **THE HERO CAMERA** (`night.js` `o.cam`
   — the test page's hero mode only): 24° down (play: 33°), 2.1 × play's distance — a TALL tower rising from the foot, its lit top at 52 % of
   the card (`HERO_TOP`), the sky above calm for the number. **NO FLYERS** (`stage.js` `o.noFly`: every moment counts as flown; the

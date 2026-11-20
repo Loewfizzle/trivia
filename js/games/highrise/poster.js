@@ -58,15 +58,16 @@ export async function runPoster(S, app) {
 
 // ---- REVIEW FIX B — THE HERO SHOTS (THE SHARE CARD = B · THE POSTER — the owner's pick, Downloads\NEON\highrise-share-B.png;
 // docs/highrise.md "THE SHARE CARD"). The test page's `?poster=hero&shot=<id>`: ONE of six frames staged in the REAL NIGHT scene, the same
-// every time — the tower climbed clean to its floor, one CUT dropped (its falling piece + its sparks), frozen a beat later — seen by THE
+// every time — the tower climbed clean to its floor, one CUT dropped (its falling piece — A CLEAN BREAK, no sparks: HERO_CAM), frozen a beat later — seen by THE
 // HERO CAMERA (night.js `o.cam`: lower + farther back than play's — a TALL tower rising from the foot, its lit top in the sky). Cropped to
 // the card's 4 : 5 with the top at HERO_TOP of its height. NO FLYERS: each floor sits clear of a flyer's floor (FLY_FLOORS — the flyby
 // 35–45, the UFO 85, THE MOTHERSHIP 200) and the stage is told no flyer moment comes (stage.js `o.noFly`); THE MOTHERSHIP's shot is the match's FINISH (floor 200 — the gold light poured, the ship over it).
 // The build: scripts/build-highrise-heroes.mjs → assets/highrise/share/<id>.webp (shipped small — the card draws one, share.js).
 /** the card's shape (share.js CARD_W × CARD_H) — the shots are made at it */
 export const HERO_W = 1080, HERO_H = 1350;
-/** THE HERO CAMERA: `pitch`° down (play: 33) · `far` × play's distance */
-export const HERO_CAM = Object.freeze({ pitch: 24, far: 2.1 });
+/** THE HERO CAMERA: `pitch`° down (play: 33) · `far` × play's distance · `sparks: false` = A CLEAN BREAK (the owner's add-on, Nov 20: "at the
+ *  screen share size, that white sparks looks bad" — the cut piece falls away crisp, its neon edges + clean cut faces, no streaks, no debris) */
+export const HERO_CAM = Object.freeze({ pitch: 24, far: 2.1, sparks: false });
 /** where the tower's top slab stands on the card (0 … 1 from the top) · the beat after the cut the frame is frozen at (the next slab
  *  sliding in over the top, the cut piece falling past it, its sparks still bright) */
 export const HERO_TOP = 0.52, HERO_BEAT_MS = 330;

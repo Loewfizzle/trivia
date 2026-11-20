@@ -30,8 +30,13 @@ open entries are to THE NEXT CITY PASS and to JAYWALK — left untouched.
 - **THE BEAT, per shot**: S5's 140 ms froze the next slab LEVEL with the top — a bridge, the very thing the owner hated. Each shot's own
   beat (rooftops 220 · skyline 330 · clouds 450 · stars 230 · space 330 ms) — the next slab clear of the top, hovering, the cut piece falling
   with its sparks (`&beat=<ms>` = the build's tuning sweep).
-- `scripts/build-highrise-heroes.mjs` → `assets/highrise/share/<id>.webp` (1080 × 1350, 46–80 KB, quality 0.8 — the browser's own encoder)
+- `scripts/build-highrise-heroes.mjs` → `assets/highrise/share/<id>.webp` (1080 × 1350, 44–79 KB, quality 0.8 — the browser's own encoder)
   + the PNGs. Floors: ROOFTOPS 19 · SKYLINE 36 · CLOUDS 76 · STARS 140 · DEEP SPACE 175 · THE MOTHERSHIP 200.
+
+## ADD-ON (the owner, Nov 20, typed into the pass) — THE HERO SHOTS = A CLEAN BREAK
+- "At the screen share size, that white sparks looks bad": NO sparks in any of the six hero shots — the cut piece falls away as a clean
+  break (its neon edges + clean cut faces, no streaks, no debris). `poster.js` HERO_CAM `sparks: false` → `night.js` (`NOSPARK` — the hero
+  mode only: a cut's burst is never queued). Live play keeps its sparks. The six shots rebuilt.
 
 ## GROUP 2 — THE SHARE CARD = B · THE POSTER (`Downloads\NEON\highrise-fix-b\share\` — every card at 1080 · 540 · 300)
 - `share.js` rebuilt to the mockup: 1080 × 1350 FULL-BLEED, NO inner frame, ALWAYS night — the band's hero shot (the band REACHED; THE
@@ -69,8 +74,21 @@ open entries are to THE NEXT CITY PASS and to JAYWALK — left untouched.
 - **SHOULD 7 (the F-22's 1.1 MB before the first tap): NOT built** — it changes S4B's PRE-WARM guarantee (every flyer model uploaded behind
   the welcome — the fix for the 65 ms hitch at floor 80) and needs the owner's iPhone A/B to judge. OPEN FOR BEN.
 
-## THE CLOSE — THE FRESH-EYES REVIEW
-(filled at the close)
+## THE CLOSE — THE FRESH-EYES REVIEW (a separate read-only agent that wrote none of it) — its finds, fixed (`386618cf`)
+1. **An iPhone before Safari 18.4** (no canvas `letterSpacing`): the card's two `letterSpacing = '0px'` resets CREATED a plain property,
+   so `daily/share.js#tracks` stopped spacing by hand — unspaced letters, HIGH / RISE's glows off their letters. Reset only where the
+   canvas has it.
+2. **fitPng changed JAYWALK**: the first version sent the smallest re-encode even for a picture already under the cap (banding on JAYWALK
+   previews of 300–390 KB). Now a picture under LINK_HARD goes up AS IT IS (as before); only one OVER it goes as its first re-encode under
+   it (6 bits before 5).
+3. **SHARE could stay 'busy' all match** if the hero shot's fetch stalled (no timeout; prepShare caches its build): `loadHero` gives up
+   after 3 s — the card draws on the night's dark.
+4. **A still asked for could outlive a restart** (tab hidden → the next welcome's first frame grabbed it): `restart()` lets the request go
+   (`night.js#snap(null)`); a late still's canvas is freed.
+5. **A day end with no still** (the look turned to day after the end, a lost context) got the lighter tint over the live, sharp scene: the
+   lighter tint is keyed on `.has-still` — no still = the old day veil.
+6. Checked, no change: the card reads `game.results` — present whenever the end screen (which reads the same rows) warms the share.
+   Nits fixed: the small layers' canvases freed + null-checked.
 
 ## THE FINAL RUN
 (filled at the close)

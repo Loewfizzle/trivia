@@ -37,7 +37,8 @@ test('THE SIX HERO SHOTS ship small, 1080 × 1350 (WebP) — made by the poster 
     const vp8 = b.indexOf('VP8 ');
     if (vp8 > 0) assert.deepEqual([b.readUInt16LE(vp8 + 14) & 0x3fff, b.readUInt16LE(vp8 + 16) & 0x3fff], [1080, 1350], `${id}: the card's own size`);
   }
-  assert.match(P, /export const HERO_CAM = Object\.freeze\(\{ pitch: \d+, far: [\d.]+ \}\);/);
+  assert.match(P, /export const HERO_CAM = Object\.freeze\(\{ pitch: \d+, far: [\d.]+, sparks: false \}\);/, 'A CLEAN BREAK (the owner\'s add-on): no sparks in a hero shot');
+  assert.ok(read(`${HI}night.js`).includes('const NOSPARK = !!HERO && HERO.sparks === false;') && read(`${HI}night.js`).includes('if (whole || reduce || NOSPARK) return;'), '… the hero mode only — play keeps its sparks');
   assert.ok(read(`${HI}night.js`).includes('const PITCH = HERO && HERO.pitch > 0 && HERO.pitch < 80 ? HERO.pitch : CAM.pitch, FAR = HERO && HERO.far > 0 ? HERO.far : 1;'), 'THE HERO CAMERA: night.js o.cam (the test page\'s ?poster=hero only)');
   assert.ok(read(`${HI}stage.js`).includes('const flown = { jet: NOFLY, ufo: NOFLY, ship: NOFLY }'), 'NO FLYERS in a hero shot (the finish\'s pour stays — the gold shot\'s)');
   assert.ok(read(`${HI}play.js`).includes("M.runHero(mount(M.HERO_CAM, M.heroOf(Q.get('shot') || '') || M.HEROES[0])"), 'the page mounts the hero shot\'s camera + its seed, mode, floor');

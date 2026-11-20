@@ -83,6 +83,8 @@ export function createNight(host, o = {}) {
   // look (`pitch`°, the play's 33°) from FARTHER back (`far` × the play's distance) — a tall tower, its top in the sky. Never in play.
   const HERO = o.cam && typeof o.cam === 'object' ? o.cam : null;
   const PITCH = HERO && HERO.pitch > 0 && HERO.pitch < 80 ? HERO.pitch : CAM.pitch, FAR = HERO && HERO.far > 0 ? HERO.far : 1;
+  // (the owner's add-on, Nov 20: THE HERO SHOTS = A CLEAN BREAK — `sparks: false`: a cut's piece falls away crisp, no spark burst; play keeps its sparks)
+  const NOSPARK = !!HERO && HERO.sparks === false;
   // the uniforms every material shares (one object each: a pass flips them once)
   const G = { uBloom: { value: 0 }, uTime: { value: 0 }, uTopY: { value: 0 }, uFadeH: { value: 3.5 }, uEnv: { value: null }, uEnvOn: { value: 0 }, uEnvFlip: { value: 0 }, uEnvD: { value: null }, uEnvDOn: { value: 0 }, uEnvDFlip: { value: 0 }, uEnvRot: { value: 0.18 }, uAspect: { value: 1 },
     uDay: { value: dayK }, uSun: { value: new THREE.Vector3(SUN[0], SUN[1], SUN[2]).normalize() }, uHaze: { value: new THREE.Vector3(0.4, 0.65, 0.9) } };
@@ -495,7 +497,7 @@ export function createNight(host, o = {}) {
     p.ax = p.az = 0;
     p.vx = dx * 0.55; p.vz = dz * 0.55; p.vy = whole ? 0 : 0.25;
     p.rx = whole ? 0.25 : dz * 1.9; p.rz = whole ? -0.2 : -dx * 1.9;
-    if (whole || reduce) return;
+    if (whole || reduce || NOSPARK) return;
     // THE SPARKS along the cut: the line where the piece left the slab — THE NEXT FRAME's job (S4A FIX 2: the landing frame draws the
     // slab + its piece; the burst's numbers are worked out + sent one frame later)
     const along = dx ? p.sz : p.sx, n = Math.max(6, Math.round(SPARKS_AT[tier] * Math.min(1, 0.35 + along)));
