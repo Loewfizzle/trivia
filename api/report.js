@@ -25,7 +25,7 @@ import { noteSeen } from './_lib/seen.js';
 import { ref, val, emulated, adminPids } from './_lib/fb.js';
 import { jaywalkSolo, jaywalkMatch } from './_lib/jaywalk.js';
 import { highriseSolo, highriseMatch, HIGHRISE_COUNTS } from './_lib/highrise.js';
-import { goUids } from '../js/core/proof.js';
+import { goUids, firstGo, onTime } from '../js/core/proof.js';
 import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
 import { applyMatch, wouldApply, needsRetry, mergeOutcomes, MIN_MATCH_GAP_MS } from './_lib/stats.js';
@@ -226,12 +226,19 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   }
   // (FR7-A's C1: a record naming more players than a room can ever hold is refused BEFORE anything is extracted from it)
   const inRoom = !!(game && game.matchId === matchId);
-  const named = inRoom ? Object.keys(game.participants || {}) : Object.keys(night.p || {});
+  let named = inRoom ? Object.keys(game.participants || {}) : Object.keys(night.p || {});
   if (named.length > MAX_REPORT_NAMES || Object.keys(night.p || {}).length > MAX_REPORT_NAMES) throw new ApiError(409, 'unverifiable', 'Too many players for one match.');
   let ex, src = 'room';
   // JAYWALK H3: a SOLO run (one name on the record, the reporter's) is counted from the SERVER's replay of their proof node — on both paths
   const PG = PROOF_GAMES[night.g] || null;   // (HIGH RISE S4A: + HIGH RISE — the same two paths, its own node + judge)
-  const jwSolo = !!PG && named.length === 1 && named[0] === uid && Object.keys(night.p || {}).length <= 1;
+  // THE PROOF PASS — THE FRESH-EYES REVIEW (finding 2 — THE DROPPED LEADER): the HOST names the players (game.participants · night.p), and
+  // at his `final` step he left the leader out — the leader's complete, on-time node sat in the tree and was never read; the host won. The
+  // TREE says who played: every uid with an ON-TIME GO (the rules took that GO only from a seated, un-kicked player the game named AT GO —
+  // nothing written later takes it back) is a player of this match, named at the end or not. And a SOLO run is one only when the tree
+  // holds no other player's GO (naming himself alone, the host turned a match into "his solo run" and sealed everyone else out).
+  const proofTree = PG ? (await val(`rooms/${code}/${PG.node}/${matchId}`)) || {} : null;
+  const goers = PG ? (g0 => goUids(proofTree).filter(u => onTime(proofTree[u], g0)))(firstGo(proofTree)) : [];
+  const jwSolo = !!PG && named.length === 1 && named[0] === uid && Object.keys(night.p || {}).length <= 1 && goers.every(u => u === uid);
   let jwGo = 0, judged = null, matchPlayed = null;   // (judged: the SERVER's own row of the reporter — THE SWITCH's answer reads it · matchPlayed: the uids the server's replay saw PLAY — a hop / a landed slab)
   const jwGame = async () => {
     const node = await val(`rooms/${code}/${PG.node}/${matchId}/${uid}`);
@@ -246,7 +253,10 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   // THE FIRST GO): nothing the host wrote is read, so the placings need no second opinion — on both paths
   const jwMatch = !!PG && !jwSolo;
   const jwMatchGame = async uids => {
-    const M = PG.match({ code, matchId, uids, nodes: (await val(`rooms/${code}/${PG.node}/${matchId}`)) || {} });
+    const all = [...new Set([...uids, ...goers])];   // (… the named + everyone the tree proves started on time)
+    if (all.length > MAX_REPORT_NAMES) throw new ApiError(409, 'unverifiable', 'Too many players for one match.');
+    named = all;
+    const M = PG.match({ code, matchId, uids: all, nodes: proofTree });
     if (!M.game) throw new ApiError(409, 'unverifiable', `This match has no proof (${M.why}).`);
     jwGo = M.game.playAt;
     judged = M.game.results[uid] || null; matchPlayed = new Set(M.played || []);
@@ -255,7 +265,7 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   };
   if (game && game.matchId === matchId) {
     if (game.phase !== 'final') throw new ApiError(425, 'not_final', 'The match is still running.');
-    if (!game.participants || !game.participants[uid]) throw new ApiError(403, 'not_in_match');
+    if (!(jwMatch && goers.includes(uid)) && (!game.participants || !game.participants[uid])) throw new ApiError(403, 'not_in_match');   // (a proof match: a player the tree proves may report, named or not)
     if (game.id !== night.g) throw new ApiError(409, 'mismatch', 'The match doesn’t match its record.');
     if (jwMatch && game.unproven) throw new ApiError(409, 'unverifiable', 'This match was played without its proof.');
     try { ex = extractMatch(jwSolo ? await jwGame() : jwMatch ? await jwMatchGame(Object.keys(game.participants)) : game, { pulseCounts: loadPulseCounts() }); } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(409, 'unverifiable', e.message); }
@@ -276,8 +286,8 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   } else if (jwMatch) {
     // (the room moved on — a rematch: the finished match's proof nodes are still there (a start keeps the last match's) → the same replay
     //  for EVERYONE the night record names; a report landing after the rematch still credits them all)
-    if (!(night.p && Object.prototype.hasOwnProperty.call(night.p, uid))) throw new ApiError(403, 'not_in_match');
-    try { ex = extractMatch(await jwMatchGame(Object.keys(night.p)), {}); } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(409, 'unverifiable', e.message); }
+    if (!goers.includes(uid) && !(night.p && Object.prototype.hasOwnProperty.call(night.p, uid))) throw new ApiError(403, 'not_in_match');
+    try { ex = extractMatch(await jwMatchGame(Object.keys(night.p || {})), {}); } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(409, 'unverifiable', e.message); }
     src = 'proof';
   } else if (body.snap && typeof body.snap === 'object' && body.snap.matchId === matchId) {
     // the room moved on (a rematch): the PLACINGS from the night record only — never a client's game blob

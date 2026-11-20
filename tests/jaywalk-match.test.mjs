@@ -386,6 +386,14 @@ test('THE PROOF PASS — THE SERVER\'S TWO GUARDS + A GO ALONE IS NOT A PLAYER: 
   const g1 = { ...createGame({ matchId: 'm0', settings: {}, participants: { a: true, b: true, c: true }, now: T0, seed: 'x' }), phase: 'play', playAt: S.playAt, seed: S.seed, g0: S.g0 };
   assert.equal(scoreRuns(g1, late, now, CODE).a.bad, 'late go'); assert.equal(scoreRuns(g1, noGo, now, CODE).a.bad, 'no go');
   assert.deepEqual(scoreRuns(g1, nodes, now, CODE), J.game.results, 'an honest match: the podium = the server, row for row (as before)');
+  // THE FRESH-EYES REVIEW (finding 3 — THE SORE LOSER): b LOST and breaks his own log after the podium (the rules take a leaf for 3 h): a
+  // junk chunk behind a hole — his whole log is refused (0 lanes), but his FIRST CHUNK still replays a hop: he stays a PLAYER who lost,
+  // so a's win over him stands (he used to drop out of `played` → a 2-player match became a's solo run: no win)
+  const sore = { ...nodes, b: { ...nodes.b, c: { ...nodes.b.c, 9999: { s: 'U1', at: now } } } };
+  const G4 = jaywalkMatch({ code: CODE, matchId: 'm0', uids, nodes: sore });
+  assert.deepEqual([G4.game.results.b.bad, G4.game.results.b.l, G4.played], ['chunks', 0, ['a', 'b']], 'a broken log: refused, 0 lanes — and still a player');
+  const junkOnly = { ...nodes, c: { go: nodes.c.go, c: { 5: { s: 'U1', at: now } } } };
+  assert.deepEqual(jaywalkMatch({ code: CODE, matchId: 'm0', uids, nodes: junkOnly }).played, ['a', 'b'], 'a seat with junk and no valid first chunk: still nobody (MUST 3 holds)');
   // the report reads `played`
   const rep = (await import('node:fs')).readFileSync(new URL('../api/report.js', import.meta.url), 'utf8');
   assert.ok(rep.includes('judged = M.game.results[uid] || null; matchPlayed = new Set(M.played || []);') && rep.includes('if (GO_TREES.has(gid)) { for (const u of goUids(t)) out.add(u); continue; }'));

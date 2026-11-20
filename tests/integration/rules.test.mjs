@@ -1971,6 +1971,13 @@ test('THE PROOF PASS — hole (a) THE LEAF WRITES (jw + hr): a chunk, the end, t
     await assertFails(set(ref(db('p2'), `${N}/c/0`), chunkOf(s)), `${node}: no chunk 3 h after the GO`);
     await assertFails(set(ref(db('p2'), `${N}/e`), end), `${node}: no end 3 h after the GO`);
     if (node === 'hr') await assertFails(set(ref(db('p2'), `${N}/rs`), 'classic'), 'hr: no rule set 3 h after the GO');
+    if (node === 'hr') {   // (THE FRESH-EYES REVIEW: the rule set only within 10 s of its player's own GO — never switched after the fact)
+      const late = proofRoom(gid); late.rooms[CODE].hr = { mat1: { t0: now() - 12000, p2: { go: now() - 11000 }, host: { go: now() - 4000 } } };
+      await seed(late);
+      await assertFails(set(ref(db('p2'), `${N}/rs`), 'classic'), 'hr: no rule set 11 s after the GO');
+      await assertSucceeds(set(ref(db('host'), `${T}/host/rs`), 'classic'), 'hr: 4 s after it: taken');
+      await seed(old);
+    }
     await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${N}/e`), end));
     await assertFails(update(ref(db('p2'), `${N}/k`), { w: 'host', at: serverTimestamp() }), `${node}: no call 3 h after the GO`);
     await assertSucceeds(update(ref(db('p2'), `${R}/${node}/mat9/p2/k`), { w: 'host', at: serverTimestamp() }), `${node}: inside the 3 h a call lands`);
@@ -2076,6 +2083,10 @@ test('THE PROOF PASS — Call the Winner\'s pick (SHOULD 9 — jw + hr): only on
     await assertFails(update(ref(db('p2'), K), call('p2')), `${node}: never yourself`);
     await assertFails(update(ref(db('p2'), K), call('p3')), `${node}: p3 has no GO — a seat with no run is never called`);
     await assertFails(update(ref(db('p2'), K), call('t0')), `${node}: never the tree's stamp`);
+    // (THE FRESH-EYES REVIEW: `w` had no bound — a uid followed by megabytes of slashes passed the "has a GO" check and landed in the tree every phone mirrors)
+    await assertFails(update(ref(db('p2'), K), call(`host${'/'.repeat(200)}`)), `${node}: a pick is a uid — never a path`);
+    await assertFails(update(ref(db('p2'), K), call('host/')), `${node}: … not one slash`);
+    await assertFails(update(ref(db('p2'), K), call('h'.repeat(65))), `${node}: … at most 64 characters`);
     await assertFails(update(ref(db('p2'), K), call('nobody')), `${node}: not a player`);
     await assertFails(update(ref(db('p2'), K), { w: 'host', at: now() - 9000 }), `${node}: the server's time only`);
     await assertFails(update(ref(db('p2'), K), { w: 'host' }), `${node}: … and never without it`);

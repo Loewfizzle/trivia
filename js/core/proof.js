@@ -16,6 +16,11 @@ export const GO_WINDOW_MS = 5000;
 export const T0_KEY = 't0';
 /** a leaf (a chunk, the end, the rule set, a call) is taken this long after its player's own GO (the rules) */
 export const LEAF_MS = 3 * 3600_000;
+/** … HIGH RISE's `rs` (the run's rule set) only this long after its player's GO (THE FRESH-EYES REVIEW: a match's rule set is THE FIRST GO's
+ *  player's — with 3 h to write it, a first-GO seat that never taps could switch the set after the fact the day a second set ships) */
+export const RS_MS = 10_000;
+/** a Call the Winner pick names a uid: letters + digits, at most this long (the rules' bound — it had none: megabytes fitted in `k/w`) */
+export const CALL_UID_MAX = 64;
 /** THE SWITCH-OVER (the rules' `go`): until this server time a GO is still taken in a tree WITHOUT a stamp — a phone that has not
  *  refreshed since the deploy never stamps one, and its run must still count. After it every GO needs the stamp. Nov 27 2026, 09:00 UTC
  *  (4 am New York — the streak day's line). Pinned equal to the rules' number by tests/proof-pass.test.mjs. */

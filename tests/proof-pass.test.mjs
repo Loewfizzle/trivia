@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { GO_WINDOW_MS, LEAF_MS, T0_KEY, T0_SUNSET_MS, firstGo, goOf, stampOf, onTime, goUids, inMatch, fullDraw } from '../js/core/proof.js';
+import { GO_WINDOW_MS, LEAF_MS, RS_MS, CALL_UID_MAX, T0_KEY, T0_SUNSET_MS, firstGo, goOf, stampOf, onTime, goUids, inMatch, fullDraw } from '../js/core/proof.js';
 import { proofUnlocked, staleProofPaths, PROOF_LOCK_MS, PROOF_LOCK_SLACK_MS } from '../js/core/room-logic.js';
 import * as JW from '../js/games/jaywalk/logic.js';
 import * as HR from '../js/games/highrise/logic.js';
@@ -42,11 +42,12 @@ test('THE NUMBERS ARE THE RULES\' (database.rules.json `jw` + `hr`): the GO wind
     assert.ok(M.t0['.write'].includes(`/game/id').val() === '${gid}'`) && M.t0['.write'].includes("/game/participants/' + auth.uid).exists()") && M.t0['.write'].includes("/kicked/' + auth.uid).exists()"), `${node}: by a seated, un-kicked player of this game's match`);
     const own = `${go}.isNumber() && now < ${go}.val() + ${LEAF_MS}`;
     for (const [leaf, rule] of [['c/$i', U.c.$i['.write']], ['e', U.e['.write']], ['k', U.k['.write']], ...(U.rs ? [['rs', U.rs['.write']]] : [])]) {
-      assert.ok(rule.includes(own), `${node}/${leaf}: on its player's OWN go + LEAF_MS`);
+      assert.ok(rule.includes(leaf === 'rs' ? `${go}.isNumber() && now < ${go}.val() + ${RS_MS}` : own), `${node}/${leaf}: on its player's OWN go + ${leaf === 'rs' ? 'RS_MS (10 s — the review)' : 'LEAF_MS'}`);
       assert.doesNotMatch(rule, /game\/|\/players\/|\/kicked\/|meta\//, `${node}/${leaf}: reads NOTHING the host writes (hole a)`);
       assert.ok(rule.startsWith('auth != null && auth.uid === $uid && '), `${node}/${leaf}: its own player only`);
     }
     assert.doesNotMatch(U.k.w['.validate'], /game\//, `${node}/k/w: the named player by THEIR OWN go — not the host's list`);
+    assert.ok(U.k.w['.validate'].startsWith(`newData.isString() && newData.val().length <= ${CALL_UID_MAX} && newData.val().matches(/^[A-Za-z0-9]+$/) && `), `${node}/k/w: a uid's shape, bounded (THE FRESH-EYES REVIEW: it had no bound)`);
     assert.ok(M['.write'].endsWith(`(!data.exists() || (data.child('t0').isNumber() ? data.child('t0').val() < now - ${PROOF_LOCK_MS} : (data.child(auth.uid).child('go').isNumber() && data.child(auth.uid).child('go').val() < now - ${PROOF_LOCK_MS})))`), `${node}: THE LOCK — by the stamp's age; a tree without one by the host's own GO, as before`);
   }
   const same = s => JSON.stringify(s).split('highrise').join('G').split('jaywalk').join('G').split("/hr/'").join("/N/'").split("/jw/'").join("/N/'");

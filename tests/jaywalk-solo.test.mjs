@@ -250,7 +250,7 @@ test('THE PHONE\'s SIDE OF THE PROOF (view.js): GO = the server\'s time, read ba
   assert.match(r, /if \(!\(await reportableGame\(gid, uid, \{ code, matchId \}\)\)\) throw new ApiError\(409, 'not_reportable'/);
   assert.match(r, /try \{ ex = extractMatch\(jwSolo \? await jwGame\(\) : jwMatch \? await jwMatchGame\(Object\.keys\(game\.participants\)\) : game,/, 'in the room: a solo run AND a match from the server\'s own replay');
   assert.match(r, /\} else if \(jwSolo\) \{/, 'the room moved on (PLAY AGAIN): the proof node still counts the run');
-  assert.match(r, /\} else if \(jwMatch\) \{[\s\S]{0,700}ex = extractMatch\(await jwMatchGame\(Object\.keys\(night\.p\)\), \{\}\)/, '… a MATCH after a rematch: everyone the night record names, from their proof nodes');
+  assert.match(r, /\} else if \(jwMatch\) \{[\s\S]{0,700}ex = extractMatch\(await jwMatchGame\(Object\.keys\(night\.p \|\| \{\}\)\), \{\}\)/, '… a MATCH after a rematch: everyone the night record names, from their proof nodes');
   assert.match(r, /if \(jwMatch && game\.unproven\) throw new ApiError\(409, 'unverifiable'/, 'an UNPROVEN match is never counted');
   assert.match(r, /const agree = jwMatch \|\| /, 'a match the server replayed itself needs no second opinion on its placings');
   // THE MATCH on the phone (H4): the first GO, the ghosts, the half-second chunks, Call the Winner, the frame for the share image

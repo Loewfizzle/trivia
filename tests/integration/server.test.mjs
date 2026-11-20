@@ -1327,6 +1327,34 @@ test('JAYWALK H4 — THE MATCH: every run from the SERVER\'s replay, the owner\'
   const rf = await report(U[0], F);
   assert.equal(rf.status, 'counted');
   assert.deepEqual(Object.keys((await val(`results/${code}_${F.matchId}`)).o || {}).sort(), [P[0], P[1]].sort(), 'no node, no credit — the two who played are counted');
+  // ---- THE PROOF PASS — THE FRESH-EYES REVIEW, finding 2 (THE DROPPED LEADER): the HOST names the players — at his `final` step he leaves the
+  // leader out of game.participants + the night record. The tree proves who started on time: the leader is replayed + credited all the same.
+  const lead = async () => { let X = null; for (let k = 0; k < 40; k++) { tick(60_000); X = await seedMatch({ ticks: [240, 1500, 0] }); if (X.live[U[1]].l > X.live[U[0]].l && X.live[U[0]].l > 0) break; } return X; };
+  const drop = async (X, keep = [U[0], U[2]]) => { await ref(`rooms/${code}/game/participants`).set(Object.fromEntries(keep.map(u => [u, true]))); await ref(`rooms/${code}/night/${X.matchId}/p`).set(Object.fromEntries(keep.map(u => [u, 1]))); };
+  const D1 = await lead(); await drop(D1);
+  const rd1 = await report(U[0], D1);
+  assert.equal(rd1.status, 'counted'); assert.equal(!!rd1.outcome.win, false, 'the host who dropped the leader from the list does NOT win');
+  const dd1 = await val(`results/${code}_${D1.matchId}`);
+  assert.ok(dd1.o[P[1]] && dd1.o[P[1]].win, 'the dropped leader is replayed from the tree + credited — with the win');
+  assert.equal(dd1.n, 2, 'two real players (the third only wrote GO)');
+  // … the dropped leader's OWN report (first) is taken too — a player the tree proves may report
+  const D2 = await lead(); await drop(D2);
+  const rd2 = await report(U[1], D2);
+  assert.equal(rd2.status, 'counted'); assert.equal(!!rd2.outcome.win, true, 'the leader reports: the win is theirs');
+  // … the host names HIMSELF ALONE (it reads as "his solo run") while the tree holds the others' on-time GOs: still the match
+  const D3 = await lead(); await drop(D3, [U[0]]);
+  await ref(`rooms/${code}/night/${D3.matchId}/p/${U[0]}`).set(0);
+  const rd3 = await report(U[0], D3);
+  const dd3 = await val(`results/${code}_${D3.matchId}`);
+  assert.equal(rd3.status, 'counted'); assert.equal(dd3.n, 2, 'a match, never a solo run'); assert.ok(dd3.o[P[1]] && dd3.o[P[1]].win && !rd3.outcome.win, 'the leader wins it');
+  // ---- finding 3 (THE SORE LOSER): the loser breaks his own log after the podium (a junk chunk behind a hole) before the first report —
+  // his row is refused (0 lanes), he is still a player who lost: the winner keeps the win of a 2-player match
+  const S1 = await lead();
+  await ref(`rooms/${code}/jw/${S1.matchId}/${U[0]}/c/9999`).set({ s: 'U1', at: clock });
+  const rs1 = await report(U[1], S1);
+  const ds1 = await val(`results/${code}_${S1.matchId}`);
+  assert.equal(rs1.status, 'counted'); assert.equal(!!rs1.outcome.win, true, 'the winner keeps the WIN — the loser breaking his own log voids nothing');
+  assert.equal(ds1.n, 2); assert.ok(ds1.o[P[0]] && !ds1.o[P[0]].win, 'the sore loser: a player who lost');
   await ref('testReportAll').set(true);
   tick();
 });

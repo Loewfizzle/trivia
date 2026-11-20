@@ -32,6 +32,7 @@ THE DAILY CEILING 20). **THE SIGN HOLD** (`core/harbor-neon.js#SIGN_HOLD`) keeps
 | REVIEW FIX A — THE MATCH | Nov 20 2026 | `docs/games/passes/highrise-fix-a.md` | THE TOP HUD (the floor centred, band + clock one narrow line, THE PLACE NUMBER alone top-right, every gap ≥ 16 px), the place ties (floor → perfects), WATCH's list ≤ 5 rows, SPECTATE IN SYNC (the watched player played back 750 ms late — 0 px past a tap), A GO IS NOT A PLAY, a host hiccup at GO no longer unproven, no GHOST all match, YOUR BEST = counted runs only |
 | REVIEW FIX B — THE SHARE CARD | Nov 20 2026 | `docs/games/passes/highrise-fix-b.md` | THE SHARE CARD = B · THE POSTER (the six HERO SHOTS from the real game — the hero camera, no flyers — full-bleed, always night, ALL GOLD for the finish; the live-frame capture GONE), THE DAY END SCREEN (one soft still of the day scene under a dark tint — no filter), THE WOULD COUNT LINE (wraps; NEW BEST only over the best shown), the `--fly` shot script |
 | THE GO-LIVE (+ the day end screen + the share card's type) | Nov 20 2026 | `docs/games/passes/highrise-golive.md` | THE DAY END SCREEN to the mockup (the camera pulled back, a NAVY tint, far less blur; every line measured) · THE SHARE CARD's TYPE ("10 FLOORS" + the band in pink) · THE FLIP (playable for everyone, NEW on top, HIGHRISE_COUNTS ON, its meta at boot, HOW TO PLAY, the tile, THE BOARD's tab, the credits group, the weekly goal's pool) · THE SIGN HOLD · /highrise-lab deleted · the two cards out of THE LAB |
+| THE PROOF PASS (JAYWALK + HIGH RISE) | Nov 20 2026 | `docs/games/passes/proof-pass.md` | THE HOST-TRUST HOLES closed (the review's MUST 2 a / b / c): THE STAMP `t0`, GO within 5 s of it, the leaves on the player's OWN go, the lock by the stamp's age, the server's two guards; THE PROOF WRITER shared with JAYWALK (one burst at a time, a refused chunk sent again); "your own phone missed the GO" → it WATCHES; a verified solo run is a counted play; the per-game budget 2,600 KB — **a rules change** |
 | S3 — THE DAY LOOK + THE FLYERS + DEEP SPACE | Nov 19 2026 | `docs/games/passes/highrise-s3.md` | THE DAY LOOK (frosted glass, one sun), THE LOOK SWITCH (AUTO · DAY · NIGHT, a 1.5 s cross-fade, never a hitch), THE FLYERS (the seed's Blackbird OR F-22 pair at 35–45 · the UFO at 85 · THE MOTHERSHIP from ~180), floor 200 (solo: the moment, then DEEP SPACE · `?mode=match`: THE FINISH + the gold card), the sounds final (ALL A), the 2 cards' art prepared |
 
 ## THE RULES (the owner's)
@@ -914,7 +915,34 @@ the fuse, the landing beat, the speed curve + its wobble, the solo tightening pa
 - **NOTHING CHANGED IN PLAY — proven** (`tests/highrise-rules.test.mjs`): the digests of 720 bot runs + the whole event stream of 36
   were taken on the untouched engine; after the table they are the same, digest for digest.
 
+## THE PROOF PASS (Nov 20 — the host-trust holes; the code + the rules are JAYWALK's too: `docs/match-kit.md` "THE PROOF TREE + THE PROOF WRITER")
+
+The review's MUST 2 (`docs/games/passes/highrise-review.md`): three ways a MODIFIED HOST could win or wreck a match — (a) THE LEAF WRITES, (b) THE
+PRE-DATED GO, (c) THE EARLY FIRST GO. Closed for `hr` + `jw` together, ONE design, ONE copy of the code; the full text lives in
+`docs/match-kit.md`. What it means for HIGH RISE:
+- **The tree** `rooms/{CODE}/hr/{matchId}` now carries **THE STAMP `t0`** (the server's time of the tree's first write). `view.js` stamps it
+  right ahead of a solo GO (`kit/proof-io.js#stampT0`) and through `writeMatchGo` in a match; a GO is taken only within 5 s of it; the tree
+  can be deleted only once the stamp is 10 min old (THE LIVE LOCK below, now by the stamp).
+- **The chunks + the end** go up through **THE PROOF WRITER** (`kit/proof-writer.js`, shared): one burst at a time, a refused chunk read back +
+  sent again, never dropped on the mirror alone, `e` behind the last chunk's acknowledgement. `view.js` keeps two writes of its own: GO + `rs`.
+- **The server** (`api/_lib/highrise.js#highriseMatch`): a node counts only with its GO; a GO later than 5 s after THE FIRST GO is no tower
+  (`bad: 'late go'` — the host's podium says the same: `director.js#scoreMatchNode`); it returns `played` (MUST 3's landed slab) — the report
+  reads it. A phone whose own GO landed past the window writes nothing more and its out card says NOT COUNTED (`lateGo`).
+- **"YOUR OWN PHONE MISSED THE GO"** (REVIEW FIX A left it here): a phone that reaches the match's real clock with NO taps of its own, after
+  the fuse has ended a tower nobody touched (`view.js#towerGone` — the engine's own answer), no longer restarts and goes "TOO SLOW" at floor 0:
+  it WATCHES (a late joiner's view), told plainly **YOU MISSED THE START — NOT COUNTED**; its end is signalled so the room does not wait 18 s.
+- **Call the Winner** (`match.js#scoreCalls`): a player with no run is never "still in" (not nameable, not in the bonus's count); a full draw
+  pays nobody.
+- **THE SWITCH-OVER**: the new code works on the rules as published before the pass (the stamp refused silently, GO as before); a phone still
+  on the old code works on the new rules until Nov 27 2026 09:00 UTC (the rules' own date) — both proven end to end (`OLD_RULES=1`, `kit/swap-rules.mjs`).
+Tests: `rules.test.mjs` "THE PROOF PASS" (8 blocks, both nodes) · `tests/proof-writer.test.mjs` · `tests/proof-pass.test.mjs` ·
+`tests/highrise-match.test.mjs` "THE PROOF PASS" (the guards + the missed start) · `e2e-highrise-match.mjs` (the stamp in a real match).
+
 ## THE LIVE LOCK (S4B — the rules gap `jw` + `hr` shared; `database.rules.json` — A RULES CHANGE)
+(THE PROOF PASS, Nov 20: a tree that carries THE STAMP `t0` now unlocks by ITS STAMP's age — every GO in it is within 5 s of the stamp, so a
+GO pre-dated under a future match id unlocks nothing a rival is in; a tree without a stamp: the host's own GO, exactly as below. `proofUnlocked`
+reads the stamp first — `docs/match-kit.md` "THE PROOF TREE + THE PROOF WRITER".)
+
 The delete of a LIVE match's proof tree was refused by reading game/phase + game/matchId — which the HOST writes. On a modified
 client: flip the phase (or the match id, or the game), delete the tree, flip it back, write a new GO → a new seed; the honest phones
 never re-write their GO → "no go" for them. Now, for both games:

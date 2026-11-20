@@ -27,6 +27,7 @@ import map); the RULES are a pure engine that never knows about it.
 | THE POLISH PASS | Nov 18 2026 | `docs/games/passes/jaywalk-polish.md` | ✓ DONE — YOUR TABLE's grid + the slim cards' one-line names · the share card's dark band · HOW TO PLAY's Mothership line · the late k write · the far lanes after a lost context ("THE POLISH PASS", below) |
 | DAILY A | Nov 18 2026 | `docs/games/passes/daily-a.md` | ✓ THE DAILY's SERVER HALF (3 tries, the proof node, the 4 conditions, the points curve) + its test page — ships OFF ("THE DAILY", below) |
 | DAILY B | Nov 18 2026 | `docs/games/passes/daily-b.md` | ✓ THE DAILY's PHONE HALF: its ticket (orange, the walk signal), the run on the REAL view, STOP, TRY AGAIN · DONE, TRY ENDED · N TRIES LEFT, its SHARE TODAY section, its cards + YOUR BEST — ships OFF ("THE DAILY — THE PHONE HALF", below) |
+| THE PROOF PASS (JAYWALK + HIGH RISE) | Nov 20 2026 | `docs/games/passes/proof-pass.md` | THE HOST-TRUST HOLES closed for `jw` (THE STAMP `t0`, GO within 5 s of it, the leaves on the player's OWN go, the lock by the stamp's age, the server's two guards) + THE PROOF WRITER shared with HIGH RISE; JAYWALK'S GO FIXES (a host hiccup at GO no longer voids the match; a GO alone is not a player; a refresh never adopts from the game alone; Call the Winner's no-run case); a verified solo run is a counted play — **a rules change** |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
 this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
@@ -167,6 +168,34 @@ its zone holds no water / rail. A greedy bot + a random bot play whole runs thro
   `registry.js#PROOF_NODE_LIST` + `NEW_PLAYER_NODES` (`jw`): a rematch / the next start NEVER wipes the just-finished match's node
   (`host.js#pruneProofs` keeps [previous, new] — H4: `prevM` is read BEFORE the start's stamp clears `meta/back`, a start from the room
   after BACK TO THE ROOM used to prune the just-finished match; PLAY AGAIN keeps the last 4). A SOLO run (H3) and a MATCH (H4) write it.
+
+## THE PROOF PASS (Nov 20 — the host-trust holes + JAYWALK'S GO FIXES; shared with HIGH RISE: `docs/match-kit.md` "THE PROOF TREE + THE PROOF WRITER")
+
+JAYWALK must play and count EXACTLY as before for an honest player — the same engine, judge, clock rules, boards. What changed, and why:
+- **THE PROOF WRITER** (`js/games/kit/proof-writer.js` + `proof-io.js` — HIGH RISE's too; `view.js` no longer writes a chunk, the end or the
+  match GO itself): ONE burst at a time, a REFUSED chunk read back + sent again, the hops NEVER dropped on the mirror alone, `e` behind the last
+  chunk's acknowledgement; a dead line still queues a chunk a second so the burst lands together (THE DROPPED SIGNAL, as before). Why: a host
+  on a modified phone flipped the game's phase for a moment — a rival's chunk was refused, the next index landed, the log had a hole, THE JUDGE
+  refused the whole run (the review's MUST 2 a). THE DAILY (its own node + rules) keeps the old way (`pipe`).
+- **THE RULES** (`jw` — a re-publish): THE STAMP `t0` (the tree's first write, the server's time), a GO only within 5 s of it (until Nov 27 a
+  phone that has not refreshed still GOes without one), the chunks / the end / the call on the player's OWN `go` + 3 h — nothing the host
+  writes; the tree's lock by the stamp's age. A chunk that lands after the host ended the match is now TAKEN (it used to be refused): the
+  server's replay reads the whole honest log (a dropped player's queued hops) — the podium shows what had landed at the host's END.
+- **THE SERVER** (`api/_lib/jaywalk.js#jaywalkMatch`): a node counts only WITH its GO; a GO later than 5 s after THE FIRST GO is no run
+  (`bad: 'late go'` — the host's podium agrees: `logic.js#scoreRun`); and **A GO ALONE IS NOT A PLAYER** (HIGH RISE's MUST 3, for JAYWALK):
+  `played` = the uids with at least ONE HOP in the server's own replay (`JW_PLAYED_HOPS`) — `api/report.js` counts + credits only those. A
+  seat that only wrote GO (a spare tab) no longer makes a "2-player match": the one who hopped is left the solo rule, never a win. (Before: "a
+  silent-but-present player still counts" — a counted loss for an AFK player; now nothing for them.)
+- **A HOST HICCUP AT GO** (HIGH RISE's REVIEW FIX A, ported): the host's mirror showed no GO for `NO_GO_MS` and it marked the match UNPROVEN
+  after everyone had started — every phone restarted on a stand-in course, nothing counted. Now a FIRST GO the server stamped BEFORE the host
+  gave up keeps the phones on the GO's course (`logic.js#goBeforeGiveUp` + `startOf`) and the director takes the mark back (the play patch
+  again: the GO's seed / playAt / g0, `unproven: null`); a run that ended in that window sends its `e` once proven again (`view.js#syncMatch`).
+- **A REFRESH MID-MATCH** never adopts the match from the game alone while the proof mirror is still on its way (HIGH RISE S4B's own fix).
+- **Call the Winner** (`logic.js#scoreCalls`): a player with no run is never "still in"; a full draw pays nobody.
+- **A VERIFIED SOLO RUN IS A COUNTED PLAY**: a JAYWALK solo run the server replayed + counted now counts toward THE BOARD's 3 plays
+  (`docs/profiles.md` "THE FLOOR — WHO GETS LISTED").
+Proof it plays + counts as before: `e2e-jaywalk.mjs` + `e2e-jaywalk-match.mjs` (new rules; old rules `OLD_RULES=1`; the OLD client on the new
+rules), the replay + judge sims (unit), `tests/jaywalk-match.test.mjs` "THE PROOF PASS" (the guards · the host hiccup).
 
 ## THE MATCH (H4 — ONE LIFE; the cartridge — hidden: THE OWNER'S LIVE TEST)
 One run each on the SAME course, one life; the others are see-through ghosts; farthest wins, ties → the earlier tick. **Real matches run

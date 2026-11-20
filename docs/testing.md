@@ -928,6 +928,22 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   Web Audio).
 - `tests/integration/scores-timing.mjs` (RTT_MS=40) — /api/daily `every` + `today` cold / warm; `scores-open.mjs "<browser>" --base … --visit 1|2|both
   [--profile dir]` — SCORES in the real app at 150-ms latency against a cold `serve.mjs`.
+- **THE PROOF PASS (Nov 20) — the proof tree's tests + tools.** `rules.test.mjs` "THE PROOF PASS": 8 blocks for BOTH nodes (`jw` + `hr`) — the
+  stamp, hole (a) the leaf writes (the host's own flips through the real rules), hole (b) the pre-dated GO + the lock by the stamp, hole (c)
+  the early first GO, odd match ids, the count window, Call the Winner's pick, a kicked / unseated player, and THE SWITCH-OVER against three
+  more copies of the rules loaded into their own namespaces (`nsEnv`: LEGACY — the sunset far away · STRICT — the sunset passed · BEFORE —
+  `tests/fixtures/rules-before-proof.json`, the rules as published before the pass): never dependent on today's date.
+  `tests/proof-writer.test.mjs` (the shared writer on a fake line: 300 random host-flip matches — never a hole) · `tests/proof-pass.test.mjs`
+  (the shared numbers PINNED equal to `database.rules.json`) · `tests/proof-solo.test.mjs` (a verified solo run is a counted play).
+  **THE SWITCH-OVER end to end:** `node tests/integration/kit/swap-rules.mjs tests/fixtures/rules-before-proof.json` loads the OLD rules into the
+  running emulator (no argument = the repo's again) → `OLD_RULES=1 FAST=1 node e2e-jaywalk-match.mjs …` / `e2e-highrise-match.mjs` (the
+  stamp is refused silently, a late chunk refused quietly); the OLD CODE on the new rules = a worktree of the commit before the pass served
+  on another port behind one origin whose `/api` is the new server (the pass log has the recipe).
+- **THE BOOT WAIT** (`kit/harness.mjs#BOOT_WAIT_MS` = 45 s — the harness, `e2e-presence.mjs`, `e2e-smoke.mjs`): a NAMED allowance for the
+  cloud runner's speed (a third phone's boot there ≈ 13 s — two cities already drawing, no GPU; 2.3 s on the mini PC). The check is
+  unchanged: the boot screen must go. `tests/audio-session.test.mjs`: the nap asserts wait for the ACTUAL condition (`settle`, ≤ 4 s) after
+  the time the nap should take — the cloud's "MUSIC OFF = PODCAST MODE" red (two chained timers against a fixed 120 ms margin).
+- `e2e-jaywalk.mjs`: its `tap` waits until the target has stopped moving (a sheet still sliding in: the "PLAY NOW red" of Nov 20).
 - `e2e-presence.mjs`: the refresh case runs on the first SKILL challenge (DUMB LUCK never ends early — the cloud flake); `SLOW=<rate>` throttles every
   phone's CPU. `wk-press.mjs` + SAVE YOUR KEY (share / copy inside the touch). The daily screen's part of wk-press needs a `DAILY_TEST=1` server.
 - `tests/integration/city-away.mjs "<chromium>"` (FIXES R2 — AWAY, LIGHT) — the city's canvas MB on screen → hidden (at most half kept) → back

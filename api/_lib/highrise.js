@@ -73,6 +73,14 @@ export function highriseSolo({ code, matchId, uid, node }) {
  */
 export const HR_PLAYED_FLOOR = 1;
 export const hrPlayed = (proven, results) => new Set([...(proven || [])].filter(u => !!(results && results[u] && results[u].f >= HR_PLAYED_FLOOR)));
+/** THE FRESH-EYES REVIEW (finding 3 — THE SORE LOSER, api/_lib/jaywalk.js#firstChunkHops): a REFUSED log still PLAYED when its FIRST
+ *  CHUNK alone lands a slab in the server's replay — a loser who breaks his own log after the podium stays a player who lost */
+function firstChunkFloor(S, node, rules) {
+  const c0 = node && node.c != null ? node.c[0] : null;
+  if (c0 == null) return 0;
+  const v = judgeNode({ seed: S.seed, mode: 'match', node: { ...node, go: S.playAt, c: { 0: c0 } }, rules });
+  return v.ok ? v.floor : 0;
+}
 export function highriseMatch({ code, matchId, uids, nodes }) {
   const S = matchStart(String(code), String(matchId), nodes), ids = (uids || []).filter(u => typeof u === 'string');
   if (!S || ids.length < 2) return { game: null, why: S ? 'players' : 'no go' };
@@ -87,5 +95,5 @@ export function highriseMatch({ code, matchId, uids, nodes }) {
     results[u] = onTime(node, S.g0) ? serverRow(judgeNode({ seed: S.seed, mode: 'match', node: { ...node, go: S.playAt }, rules })) : { f: 0, t: 0, w: '', e: -1, p: 0, s: 0, bad: goOf(node) ? 'late go' : 'no go' };
   }
   // (`played` — MUST 3: the uids with a LANDED slab in this replay; the report counts + credits only these)
-  return { game: { id: 'highrise', matchId, phase: 'final', mode: 'match', sv: 1, seed: S.seed, playAt: S.playAt, g0: S.g0, participants, settings: {}, results }, played: Object.keys(results).filter(u => results[u].f >= HR_PLAYED_FLOOR) };
+  return { game: { id: 'highrise', matchId, phase: 'final', mode: 'match', sv: 1, seed: S.seed, playAt: S.playAt, g0: S.g0, participants, settings: {}, results }, played: Object.keys(results).filter(u => results[u].f >= HR_PLAYED_FLOOR || (results[u].bad && onTime(nodes[u], S.g0) && firstChunkFloor(S, nodes[u], rules) >= HR_PLAYED_FLOOR)) };
 }

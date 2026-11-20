@@ -69,8 +69,21 @@ export function jaywalkSolo({ code, matchId, uid, node }) {
  *     report counts + credits only these (api/report.js — HIGH RISE's hrPlayed, the same rule)
  * → { game (`sv` 1), played } | { game: null, why } (no GO at all, or nobody ever hopped — nothing to count)
  */
-/** a JAYWALK match player = at least this many hops in THE SERVER's own replay of their node (a refused log counts none) */
+/** a JAYWALK match player = at least this many hops in THE SERVER's own replay of their node */
 export const JW_PLAYED_HOPS = 1;
+/**
+ * THE FRESH-EYES REVIEW (finding 3 — THE SORE LOSER): the leaves hang on the player's own GO for 3 h now, so a player who LOST could break
+ * his own log after the podium (one junk chunk behind a hole, a hop after his own end) before the first report sealed the match: his whole
+ * log was refused → 0 hops → "not a player" → the winner of a 2-player match was paid as a solo run (no win, no record). A refused log
+ * still PLAYED when its FIRST CHUNK (written once, in real time, long before any sabotage) replays with a hop: he is a player who lost
+ * — his row stays the refused one (0 lanes), the count + the winner's win stand. A seat that never made a valid hop is still nobody.
+ */
+function firstChunkHops(S, node) {
+  const c0 = node && node.c != null ? node.c[0] : null, o = { hops: 0 };
+  if (c0 == null) return 0;
+  const r = scoreNode({ seed: S.seed, mode: 'match', node: { ...node, c: { 0: c0 } }, t0: S.playAt, from: S.g0, out: o });
+  return r.bad ? 0 : o.hops;
+}
 export function jaywalkMatch({ code, matchId, uids, nodes }) {
   const S = matchStart(String(code), String(matchId), nodes), ids = (uids || []).filter(u => typeof u === 'string');
   if (!S || ids.length < 2) return { game: null, why: S ? 'players' : 'no go' };
@@ -80,7 +93,7 @@ export function jaywalkMatch({ code, matchId, uids, nodes }) {
     participants[u] = true;
     const node = nodes && nodes[u], o = { hops: 0 };
     results[u] = onTime(node, S.g0) ? scoreNode({ seed: S.seed, mode: 'match', node, t0: S.playAt, from: S.g0, out: o }) : { l: 0, t: 0, w: '', e: -1, bad: goOf(node) ? 'late go' : 'no go' };
-    if (o.hops >= JW_PLAYED_HOPS) played.push(u);
+    if (o.hops >= JW_PLAYED_HOPS || (results[u].bad && onTime(node, S.g0) && firstChunkHops(S, node) >= JW_PLAYED_HOPS)) played.push(u);
   }
   const game = { id: 'jaywalk', matchId, phase: 'final', mode: 'match', sv: 1, seed: S.seed, playAt: S.playAt, g0: S.g0, participants, settings: {}, results };
   const calls = scoreCalls(game, nodes, results);

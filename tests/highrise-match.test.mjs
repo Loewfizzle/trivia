@@ -336,6 +336,12 @@ test('THE PROOF PASS — THE SERVER\'S TWO GUARDS (HIGH RISE): a node counts onl
   const G3 = highriseMatch({ code: CODE, matchId: M, uids: us, nodes: early });
   for (const u of us) if (u !== first) assert.equal(G3.game.results[u].bad, 'late go', `${u}: GOed 20 s after him — not in his match`);
   assert.ok(G3.played.every(u => u === first), 'at most the early bird played — one real player = the solo rule, never a win');
+  // THE FRESH-EYES REVIEW (finding 3 — THE SORE LOSER): a player who lost breaks his own log after the podium (a junk chunk behind a hole) —
+  // refused, floor 0, but his FIRST CHUNK still lands a slab in the replay: a player who lost, the winner's win stands
+  const loser = us[us.length - 1], sore = { ...nodes, [loser]: { ...nodes[loser], c: { ...nodes[loser].c, 9999: { s: '1c', at: end } } } };
+  const G4 = highriseMatch({ code: CODE, matchId: M, uids: us, nodes: sore });
+  assert.deepEqual([G4.game.results[loser].bad, G4.game.results[loser].f, G4.played.includes(loser)], ['chunks', 0, true], 'a broken log: refused, floor 0 — and still a player');
+  assert.ok(!highriseMatch({ code: CODE, matchId: M, uids: us, nodes: { ...nodes, [loser]: { go: nodes[loser].go, c: { 7: { s: '1c', at: end } } } } }).played.includes(loser), 'junk with no valid first chunk: nobody (MUST 3 holds)');
   // the host's podium: the same refusal
   const g = { id: 'highrise', matchId: M, mode: 'match', participants: parts(4), seed: S.seed, playAt: S.playAt, g0: S.g0, phase: 'play' };
   assert.equal(scoreMatchNode(g, late[lateU]).bad, 'late go'); assert.ok(!scoreMatchNode(g, nodes[lateU]).bad);

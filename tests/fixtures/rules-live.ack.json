@@ -1,4 +1,4 @@
 {
- "hash": "98f2fec155bb1a6e",
+ "hash": "41e15a7875c0cef6",
  "line": "RULES CHANGED: rooms/{CODE}/jw/{matchId} + rooms/{CODE}/hr/{matchId} — THE PROOF PASS (the host-trust holes): + t0 (THE STAMP: the tree's first write, the server's time, once) · go only within 5 s of it (until Nov 27 a phone that has not refreshed still GOes without one) · c/{i}, e, k, rs on the player's OWN go + 3 h — nothing the host writes · the tree's lock by the stamp's age · only real match ids — RE-PUBLISH database.rules.json in the Firebase console (Downloads\\NEON\\database.rules.nov20-proof.json), any time AFTER the deploy is live: the new code works on the old rules, a phone still on the old code works on the new ones"
 }
