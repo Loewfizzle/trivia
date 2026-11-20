@@ -811,9 +811,9 @@ async function endLook() {
       await waitFor(t.p, "document.querySelector('.hi-stage').classList.contains('has-still') || document.querySelector('.hi-stage').dataset.look === 'night'", 3000);
       await sleep(400);
       const st = await t.p.evaluate(() => { const S = document.querySelector('.hi-stage'), c = document.querySelector('.hi-endbg'); return { still: S.classList.contains('has-still'), op: getComputedStyle(c).opacity, w: c.width, sw: S.clientWidth, filter: [...document.querySelectorAll('.hi-canvas, .hi-endbg, .hi-shade')].map(x => getComputedStyle(x).filter).filter(f => f && f !== 'none') }; });
-      if (lk === 'day') ok(st.still && st.op === '1' && st.w === Math.round(st.sw / 4) && !st.filter.length, `${lk} · ${name}: the day scene shows through — ONE soft still ${st.w} px wide (a quarter of ${st.sw}), opacity ${st.op}, no CSS filter`);
+      if (lk === 'day') ok(st.still && st.op === '1' && st.w === Math.round(st.sw / 2) && !st.filter.length, `${lk} · ${name}: the day scene shows through — ONE soft still ${st.w} px wide (half of ${st.sw}), opacity ${st.op}, no CSS filter`);
       else ok(!st.still && st.op === '0', `${lk} · ${name}: by night no still (today's veil)`);
-      const lines = await t.p.evaluate(() => ['.hi-ec-fl', '.hi-ec-best', '.hi-ec-line'].map(sel => { const el = document.querySelector(sel), r = el.getBoundingClientRect(), cs = getComputedStyle(el); return { sel, x: Math.max(0, r.left), y: r.top, w: Math.min(innerWidth, r.right) - Math.max(0, r.left), h: r.height, col: cs.color }; }));
+      const lines = await t.p.evaluate(() => ['.hi-ec-hd .hi-hd-a', '.hi-ec-hd .hi-hd-b', '.hi-ec-hd .hi-hd-m', '.hi-ec-cause', '.hi-ec-n', '.hi-ec-fl', '.hi-ec-best', '.hi-ec-line'].map(sel => document.querySelector(sel)).filter(el => el && el.getBoundingClientRect().height > 0).map(el => { const sel = el.className, r = el.getBoundingClientRect(), cs = getComputedStyle(el); return { sel, x: Math.max(0, r.left), y: r.top, w: Math.min(innerWidth, r.right) - Math.max(0, r.left), h: r.height, col: cs.color }; }));
       const worst = [];
       // (the GROUND alone: the card's words hidden for the measure — no neighbour's glow counted — each line's own box sampled, then shown again)
       await t.p.evaluate(() => { const st = document.createElement('style'); st.id = 'hi-measure'; st.textContent = '.hi-end, .hi-check, .hi-again, .hi-note, .hi-snd { visibility: hidden !important; }'; document.head.append(st); });
@@ -832,7 +832,7 @@ async function endLook() {
         if (r < 4.5) worst.push('LOW');
       }
       await t.p.evaluate(() => document.getElementById('hi-measure').remove());
-      ok(!worst.includes('LOW'), `${VW}x${VH} ${lk} · ${name}: every stat line reads ≥ 4.5 : 1 on its own ground (the brightest 5 % of the tinted scene in its box, the words hidden) — ${worst.join(' · ')}`);
+      ok(!worst.includes('LOW'), `${VW}x${VH} ${lk} · ${name}: EVERY line (the header's three words, the cause, the number + the stat lines — THE GO-LIVE) reads ≥ 4.5 : 1 on its own ground (the brightest 5 % of the tinted scene in its box, the words hidden) — ${worst.join(' · ')}`);
       await shot(t.p, `page-${lk}-${VW}x${VH}-${name}.png`);
       ok(t.errs.length === 0, `${lk} · ${name}: no page error (${t.errs.join(' | ')})`);
       await t.close();

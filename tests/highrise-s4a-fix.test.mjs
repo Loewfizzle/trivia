@@ -92,10 +92,10 @@ test('THE WELCOME = "A · THE SIGN": no box, no panel — the sign BIG in the sk
   assert.match(s, /view\.pose\('welcome'\); view\.welcome\(true, best > 0\); view\.ghostBest\(false\);/);
   assert.match(s, /stage\.classList\.remove\('is-welcome'\); stage\.classList\.add\('is-live'\); (if \(LEANS\.size\) BN\.dirty\(\); )?view\.pose\('play'\); view\.welcome\(false\);/);
   assert.match(s, /tagT\.data = `BEST \$\{best\}`;/, 'the welcome\'s tag: BEST 119, at the tape');
-  const pose = n.match(/export const POSE = Object\.freeze\(\{ play: 0, welcome: ([\d.]+), end: ([\d.]+) \}\);/);
+  const pose = n.match(/export const POSE = Object\.freeze\(\{ play: 0, welcome: ([\d.]+), end: ([\d.]+), endDay: -?[\d.]+ \}\);/);
   assert.ok(pose && Number(pose[1]) >= 0.12 && Number(pose[1]) <= 0.2 && Number(pose[2]) >= 0.06 && Number(pose[2]) <= 0.14, 'the tower stands ≈ 70 % down on the welcome, a little lower than in play under the end\'s stats');
   assert.match(n, /NUM\[LIFT\] \+= \(liftTo - NUM\[LIFT\]\) \* \(1 - Math\.exp\(-dt \/ 170\) \* \(dt >= 1000 \? 0 : 1\)\);/, 'the camera EASES between the poses');
-  assert.match(n, /pose\(kind\) \{ liftTo = POSE\[kind\] \|\| 0; if \(!frames\) NUM\[LIFT\] = liftTo; \}/, '… and stands there at once on the first frame');
+  assert.ok(n.includes('pose(kind) { liftTo = POSE[kind] || 0; farTo = POSE_FAR[kind] || 1; if (!frames) { NUM[LIFT] = liftTo; NUM[FARK] = farTo; } }'), '… and stands there at once on the first frame (THE GO-LIVE: + the day end pull-back)');
   assert.match(n, /NUM\[WSL\] \+= \(\(welc \? 1 : 0\) - NUM\[WSL\]\) \* Math\.min\(1, dt \/ \(welc \? 260 : 120\)\);/, 'the welcome\'s slab fades the moment the run starts');
   assert.match(n, /BX\[8\] = NUM\[WSL\]; BX\[9\] = KIND\.slider; put\(WPINK, null, null\);/, 'the sign\'s pink, drawn as the sliding slab is');
   assert.match(n, /const ts = tapeFloor \? slabOf\(tapeFloor\) : tapeWelc \? slabs\[slabs\.length - 1\] : null, gh = !ts && ghost;/, 'YOUR BEST\'s gold tape round the waiting tower\'s top slab');
@@ -113,7 +113,7 @@ test('THE WELCOME = "A · THE SIGN": no box, no panel — the sign BIG in the sk
 test('THE END, after S4B: the hero-number card is GONE (no stats strip, no dashed ghost over the tower) — the small lines still sit just over the PLAY AGAIN bar', () => {
   const e = read(`${HI}endscreen.js`), s = read(`${HI}stage.js`), f = read(`${HI}final.js`), css = read('css/highrise-play.css');
   assert.doesNotMatch(e + s + f + css, /hi-ec-strip|hi-ec-col|hi-ec-k\b|is-ghost|GHOST_TAG_UP/, 'the strip + the ghost words left with design A');
-  assert.match(s, /view\.pose\('end'\); view\.ghostBest\(false\);/, 'the scene is dimmed behind the card: no dashed outline');
+  assert.match(s, /view\.pose\(endPose\(\)\); view\.ghostBest\(false\);/, 'the scene is dimmed behind the card: no dashed outline');
   assert.match(f, /const overBar = \(\) => \{ const fr = el\.closest\('\.final'\), foot = fr && fr\.querySelector\('\.final-foot'\); if \(foot && would\.nextElementSibling !== foot\) foot\.before\(would\); \};/);
   assert.match(f, /if \(o\.would\) \{ (globalThis\.__hiWould = game\.matchId; )?overBar\(\); would\.textContent = wouldLine\(o\.would(, shownBest)?\);/, 'WOULD COUNT: one small line over the bar');
   assert.match(s, /check\.hidden = !card \|\| !\(PAGE \|\| \(E && E\.note\)\);/, 'REPLAY = LIVE: the test page\'s alone');

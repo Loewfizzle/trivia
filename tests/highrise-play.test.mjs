@@ -423,7 +423,7 @@ test('THE DAY LOOK (S3 — static): the SAME programs as the night (uDay in ever
   const css = read('css/highrise-play.css');
   assert.match(css, /\.hi-stage\[data-sky='bright'\] \{ --hi-ink: #0d1740;/); assert.match(css, /\.hi-stage\[data-sky='bright'\] \.hi-num \{ color: var\(--hi-ink\);/);
   assert.doesNotMatch(css, /data-sky='bright'\][^{]*\.hi-again/, 'the PLAY AGAIN bar keeps HIGH RISE\'s hot pink by day');
-  assert.ok(code(`${HI}stage.js`).includes("if (lk !== lookSeen || tone !== toneSeen) { lookSeen = lk; toneSeen = tone; mark('dom'); stage.dataset.look = lk; stage.dataset.sky = tone; BN.dirty(); }"), 'the page\'s words follow the picture — written only at a change');
+  assert.ok(code(`${HI}stage.js`).includes("if (lk !== lookSeen || tone !== toneSeen) { const lkd = lk !== lookSeen; lookSeen = lk; toneSeen = tone; mark('dom'); stage.dataset.look = lk; stage.dataset.sky = tone; BN.dirty(); if (lkd && stage.classList.contains('is-ended')) view.pose(endPose()); }"), 'the page\'s words follow the picture — written only at a change (THE GO-LIVE: under the end screen the pose follows the look)');
 });
 
 test('THE LOOK SWITCH (S3): AUTO · DAY · NIGHT on the start screen (this phone remembers), AUTO = the site\'s own sun rule, a 1.5 s cross-fade AFTER the other look\'s pictures are in, only the look(s) on screen keep theirs', async () => {
@@ -544,7 +544,7 @@ test('THE FLYERS (S3 — flyers.js + night.js\'s stage, static): a LAZY module, 
   assert.ok(existsSync(new URL('../scripts/bake/highrise-f22.mjs', import.meta.url)) && /art\/models\/f22\/f22_raptor_free\.glb/.test(read('scripts/bake/highrise-f22.mjs')), 'built from the city\'s source model');
   // THE MOTHERSHIP + DEEP SPACE: seen from ~180, the solo moment (the camera glances up), the finish's light; the stars + the aurora past 200
   assert.ok(fl.includes('ease((F.cf - FLY.shipFrom) / (FLY.shipAt - FLY.shipFrom))') && fl.includes('S.glance(gl);') && fl.includes('S.pour(beam * (0.8 + 0.2 * Math.sin(tq * 7)));'));
-  assert.ok(n.includes('const lookY = NUM[CAMY] + CAM.lift - NUM[BUMP] * 0.022 + glance * 0.42 + NUM[LIFT] * 2 * dist * TH / cp,') && n.includes('glance(v) { glance = reduce ? 0 : v; }'), 'the camera glances up (not with reduce motion)');
+  assert.ok(n.includes('const dd = dist * NUM[FARK], lookY = NUM[CAMY] + CAM.lift - NUM[BUMP] * 0.022 + glance * 0.42 + NUM[LIFT] * 2 * dd * TH / cp,') && n.includes('glance(v) { glance = reduce ? 0 : v; }'), 'the camera glances up (not with reduce motion)');
   assert.match(n, /export const SPACE_FROM = 200, SPACE_FULL = 212;/); assert.ok(n.includes('const space = cf <= SPACE_FROM ? 0 : cf >= SPACE_FULL ? 1 : (cf - SPACE_FROM) / (SPACE_FULL - SPACE_FROM);') && n.includes('if (plateU.uSpace.value !== space) plateU.uSpace.value = space;') && fx.includes('if (uSpace > 0.001) c += space() * uSpace;'));
   assert.match(read('css/highrise-play.css'), /\.hi-ec\.is-made \.hi-ec-cause \{[^}]*color: #ffc83c;/, 'THE FINISH: the end card\'s words in GOLD (S4B: the number stays the one white hero — endscreen.js)');
   assert.doesNotMatch(fl, /performance\.now|requestAnimationFrame|\bDate\b/, 'flyers.js keeps no clock of its own (night.js hands it the frame)');

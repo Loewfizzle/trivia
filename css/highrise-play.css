@@ -59,16 +59,18 @@
 /* (S4B — THE END = JAYWALK'S STANDARD: the scene is DIMMED behind the card — JAYWALK's own veil, number for number; by day its top is
    darker: the header + the cause stand over a bright sky) */
 .hi-stage.is-ended .hi-shade { background: linear-gradient(rgba(7, 6, 11, 0.5) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%); }
-/* REVIEW FIX B — THE DAY END SCREEN (the owner: "that's perfect" — Downloads/NEON/highrise-day-end-screen.png, the RIGHT side): a day run's
-   end keeps its dark style (neon only glows on dark), but the day sky + YOUR tower show through — softly blurred, under a DARK TINT that is
-   darker at the top (the header, the cause, the floor + the stat lines: every word ≥ 4.5 : 1 — --text-dim's line over a WHITE sky at
-   0.88 — measured: tests/integration/highrise-play.mjs --end) and the foot (the buttons), lighter in the middle (60–74 %: where the tower stands). Never a solid black. Night: unchanged.
-   The scene = ONE still (stage.js#endStill — the canvas shrunk to a quarter, softened, shown stretched: soft, frozen, NO filter), faded in once. */
+.hi-stage.is-ended.is-made[data-look='night'] .hi-shade { background: linear-gradient(rgba(7, 6, 11, 0.86) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%); }   /* (THE GO-LIVE — every line measured: the night FINISH's header stood over THE MOTHERSHIP's lit hull at 2.8 : 1 — its veil's top darker) */
+/* REVIEW FIX B → THE GO-LIVE — THE DAY END SCREEN (the owner's mockup Downloads/NEON/highrise-day-end-screen.png, the RIGHT side; FIX B read as
+   "grey murk" on his iPhone): a day run's end keeps its dark style (neon only glows on dark), but the day SKY + YOUR tower show through —
+   ONE still (stage.js#endStill — the camera PULLED BACK for it: night.js#POSE_FAR endDay, the whole top of the tower in frame; half the
+   width + one soft pass: a soft touch, NO filter), faded in once, under a NAVY tint (never grey / black — the sky stays blue): dark ONLY
+   behind the words (to 44 % — every stat line ≥ 4.5 : 1, measured: tests/integration/highrise-play.mjs --end), much lighter from the
+   middle down (the sky + the tower), a little darker again at the foot (the buttons). Night: unchanged. */
 .hi-stage.is-ended[data-look='day'] .hi-shade { background: linear-gradient(rgba(7, 6, 11, 0.84) 0, rgba(7, 6, 11, 0.76) 16%, rgba(7, 6, 11, 0.9) 32%, rgba(7, 6, 11, 0.96) 100%); }   /* (no still — the look turned to day later, a lost context: the old day veil) */
-.hi-stage.is-ended.has-still[data-look='day'] .hi-shade { background: linear-gradient(rgba(7, 6, 11, 0.88) 0, rgba(7, 6, 11, 0.88) 46%, rgba(7, 6, 11, 0.58) 60%, rgba(7, 6, 11, 0.58) 74%, rgba(7, 6, 11, 0.84) 88%, rgba(7, 6, 11, 0.9) 100%); }
+.hi-stage.is-ended.has-still[data-look='day'] .hi-shade { background: linear-gradient(rgba(9, 15, 42, 0.86) 0, rgba(9, 15, 42, 0.86) 44%, rgba(9, 15, 42, 0.46) 56%, rgba(9, 15, 42, 0.34) 70%, rgba(9, 15, 42, 0.46) 82%, rgba(9, 15, 42, 0.7) 100%); }
 .hi-endbg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
 .hi-stage.is-ended.has-still[data-look='day'] .hi-endbg { opacity: 1; }
-@media (prefers-reduced-transparency: reduce) { .hi-stage.is-ended.has-still[data-look='day'] .hi-shade { background: rgba(7, 6, 11, 0.86); } }
+@media (prefers-reduced-transparency: reduce) { .hi-stage.is-ended.has-still[data-look='day'] .hi-shade { background: rgba(9, 15, 42, 0.86); } }
 
 /* THE WELCOME = "A · THE SIGN" (S4A FIX's add-on — the owner's pick, Nov 19): NO BOX — full-bleed. The sign BIG in the sky (white faces;
    HIGH a pink neon edge + glow, RISE a blue one), one line under it; TAP TO START big in the soft dark fade at the foot. The tower,
@@ -231,7 +233,7 @@
 .hi-stage:not(.is-ended) > .hi-final { background: linear-gradient(rgba(7, 6, 11, 0.5) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%); }
 .hi-stage[data-look='day']:not(.is-ended) > .hi-final { background: linear-gradient(rgba(7, 6, 11, 0.84) 0, rgba(7, 6, 11, 0.76) 16%, rgba(7, 6, 11, 0.9) 32%, rgba(7, 6, 11, 0.96) 100%); }
 .hi-final > .final { flex: 1 1 auto; min-height: 0; background: none; --fin-bg: rgba(7, 6, 11, 0.96); }
-.hi-stage[data-look='day'].is-ended.has-still .hi-final > .final { --fin-bg: rgba(7, 6, 11, 0.5); }   /* (REVIEW FIX B: by day the foot's backing lets the tinted scene through too) */
+.hi-stage[data-look='day'].is-ended.has-still .hi-final > .final { --fin-bg: rgba(9, 15, 42, 0.55); }   /* (REVIEW FIX B: by day the foot's backing lets the tinted scene through too) */
 .hi-final .final.is-solo .burst, .hi-final .final.is-solo .winner { display: none; }
 /* NO PINK FLASH (S4A FIX — the owner's iPhone: "a pink flash when the round ends … at the final screen"): the console CROWNS its podium
    frame 2.5 s after it stands — its ::before washes the game's accent over the WHOLE screen for 0.6 s (css/components.css

@@ -41,7 +41,11 @@ export const FLY_SLOTS = 3, LIGHTS = 320;
 /** DEEP SPACE (S3 — solo, past THE MOTHERSHIP): the drifting stars + the aurora come in over these floors */
 export const SPACE_FROM = 200, SPACE_FULL = 212;
 /** THE POSES (S4A FIX's add-ons): how far down the screen the tower stands, a share of the screen's height · the end screen's ghost floats this many floors over the top slab */
-export const POSE = Object.freeze({ play: 0, welcome: 0.15, end: 0.1 });
+export const POSE = Object.freeze({ play: 0, welcome: 0.15, end: 0.1, endDay: -0.05 });
+/** THE GO-LIVE — THE DAY END's PULL-BACK (the owner's mockup `Downloads/NEON/highrise-day-end-screen.png`, the RIGHT side): a pose may stand the
+ *  camera FARTHER back — a share of play's distance (1 = play's). `endDay` = the day end screen: the WHOLE top of the tower in frame with its
+ *  neon edges, never a giant close-up block (its still is taken once the camera has eased there — stage.js#endStill). Night's end: 1. */
+export const POSE_FAR = Object.freeze({ endDay: 1.7 });
 /** THE END's GHOST (YOUR BEST still above you — the dashed gold outline): never thinner than GHOST_MIN (world units — a slab's side is 1: a
  *  top slab cut to a sliver still gets an outline that reads), and it FLOATS CLEAR of the tower — its near corner GHOST_GAP floors over
  *  the top slab's far corner as the diagonal camera sees them: ghostUp(sx, sz) = how many floors over the top slab it hangs */
@@ -452,7 +456,7 @@ export function createNight(host, o = {}) {
   // THE FRAME's OWN FRACTIONS (S4A FIX — ZERO GARBAGE): a fraction kept in a plain variable that functions share is a small object every
   // time it is written — the view's clock, the camera's ease, its place, the landing's bump, the slider's glow, the plates' drift are
   // written every frame: they live in ONE scratch of doubles instead (NUM[…] below — written in place, nothing made)
-  const NUM = new Float64Array(20), FBOT = 17, CLK = 0, CAMX = 1, CAMY = 2, CAMZ = 3, BUMP = 4, EYEX = 5, EYEY = 6, EYEZ = 7, SGLOW = 8, CF = 9, DRA = 10, DRB = 11, ZONE = 12, BACK = 13, FBACK = 14, LIFT = 15, WSL = 16, RFACE = 18;
+  const NUM = new Float64Array(20), FARK = 19, FBOT = 17, CLK = 0, CAMX = 1, CAMY = 2, CAMZ = 3, BUMP = 4, EYEX = 5, EYEY = 6, EYEZ = 7, SGLOW = 8, CF = 9, DRA = 10, DRB = 11, ZONE = 12, BACK = 13, FBACK = 14, LIFT = 15, WSL = 16, RFACE = 18;
   /** what the stage hands a frame: IO[0] = `tau`, the clock in ticks (a fraction into the next one) · IO[1] = `dt`, ms since the last frame ·
    *  IO[2] = the frame's timestamp (performance.now's clock — the flyers fly by it) */
   const IO = new Float64Array(3), RX = new Float64Array(4);   // (S4A FIX 2: IO[2] = the frame's own timestamp, ms — THE FLYERS' CLOCK)   // (RX: a slab's four edges while its box is worked out)
@@ -462,9 +466,9 @@ export function createNight(host, o = {}) {
   // sky), POSE.end under the end screen's stats; the camera eases there. `welc` = the first slab already sliding in (a stand-in drawn
   // only on the start screen — the run's own first slab enters at its first beat); `tapeWelc` = YOUR BEST's gold tape round the
   // waiting tower's top slab; `ghost` = YOUR BEST still above you at the end: the gold outline DASHED, floating over the top slab.
-  let liftTo = 0, welc = false, tapeWelc = false, ghost = false, pathWant = false;   // (pathWant: THE FLYER PATH CHECK asked before the flyers' module came)
+  let liftTo = 0, farTo = 1, welc = false, tapeWelc = false, ghost = false, pathWant = false;   // (pathWant: THE FLYER PATH CHECK asked before the flyers' module came)
   const WPINK = F64([1, 0.074, 0.69]);   // (the sign's pink #ff4fd8, linear)
-  NUM[CF] = -1; NUM[FBOT] = -1;
+  NUM[CF] = -1; NUM[FBOT] = -1; NUM[FARK] = 1;
   // (the frame's kept records — nothing is made in a frame: the plates' mix, the sliding slab at two ticks, the day's air, a grow-back,
   //  a perfect's ring colour, the few numbers `?fps=1` shows)
   const MIX = { a: 0, b: 0, m: 0 }, SA = { floor: 0, axis: 'x', off: 0, x0: 0, x1: 0, z0: 0, z1: 0 }, SB = { floor: 0, axis: 'x', off: 0, x0: 0, x1: 0, z0: 0, z1: 0 };
@@ -611,7 +615,8 @@ export function createNight(host, o = {}) {
     NUM[CAMY] += (ty - NUM[CAMY]) * k; NUM[CAMX] += (tx - NUM[CAMX]) * k; NUM[CAMZ] += (tz - NUM[CAMZ]) * k;
     NUM[BUMP] *= Math.exp(-dt / 90);
     NUM[LIFT] += (liftTo - NUM[LIFT]) * (1 - Math.exp(-dt / 170) * (dt >= 1000 ? 0 : 1));   // (the pose: the tower eases down the screen / back up)
-    const lookY = NUM[CAMY] + CAM.lift - NUM[BUMP] * 0.022 + glance * 0.42 + NUM[LIFT] * 2 * dist * TH / cp, x = NUM[CAMX] + dist * cp * sy, y = lookY + dist * sp, z = NUM[CAMZ] + dist * cp * cy;
+    NUM[FARK] += (farTo - NUM[FARK]) * (1 - Math.exp(-dt / 140) * (dt >= 1000 ? 0 : 1));   // (THE GO-LIVE: the day end's pull-back eases out — and back in for the next run)
+    const dd = dist * NUM[FARK], lookY = NUM[CAMY] + CAM.lift - NUM[BUMP] * 0.022 + glance * 0.42 + NUM[LIFT] * 2 * dd * TH / cp, x = NUM[CAMX] + dd * cp * sy, y = lookY + dd * sp, z = NUM[CAMZ] + dd * cp * cy;
     NUM[EYEX] = x; NUM[EYEY] = y; NUM[EYEZ] = z;
     cam.position.x = x; cam.position.y = y; cam.position.z = z;
     CE[12] = CW[12] = x; CE[13] = CW[13] = y; CE[14] = CW[14] = z;
@@ -913,7 +918,7 @@ export function createNight(host, o = {}) {
     io: IO,
     // ---- THE WELCOME + THE END POSE (S4A FIX's add-ons)
     /** where the tower stands: 'play' · 'welcome' (the start screen: its top ≈ 70 % down) · 'end' (under the end screen's stats); the camera eases there (at once before the first frame) */
-    pose(kind) { liftTo = POSE[kind] || 0; if (!frames) NUM[LIFT] = liftTo; },
+    pose(kind) { liftTo = POSE[kind] || 0; farTo = POSE_FAR[kind] || 1; if (!frames) { NUM[LIFT] = liftTo; NUM[FARK] = farTo; } },
     /** the start screen's scene: a first slab already sliding in · `best`: YOUR BEST's gold tape round the waiting tower's top slab */
     welcome(on, best = false) { welc = !!on; tapeWelc = !!on && !!best; tapeDrawn = -1; },
     /** the end screen: YOUR BEST still above you — the gold outline DASHED, floating clear over the top slab (ghostUp) */

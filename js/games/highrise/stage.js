@@ -34,7 +34,7 @@ const END_HOLD_MS = 700;
 const MADE_HOLD_MS = 2600;
 /** REVIEW FIX B — THE DAY END SCREEN's still: taken this long after the end card (the end pose has eased — night.js POSE.end) · its width
  *  = the screen's / this (shown stretched: the soft blur of the owner's mockup, ≈ 5 px) */
-const END_STILL_MS = 650, END_STILL_DIV = 4;
+const END_STILL_MS = 650, END_STILL_DIV = 2;   // (THE GO-LIVE — the owner: "far less blur, a soft touch only": half the width (was a quarter) + ONE soften pass (was two))
 /** … and stays this long before a tap is PLAY AGAIN (a rhythm's next tap must not wipe it unread) */
 const RETRY_MS = 600;
 /** a tap just before THE CAP is still the player's: the cap is shown this many ticks late (a touch may reach the page after its frame) */
@@ -245,7 +245,7 @@ export function createStage(app, o = {}) {
     if (glDown) { glDown.remove(); glDown = null; }
     tries = 0;
     view.adopt(run, T, false); view.setBest(tapeFloor); view.setFriend(friendTape); if (shown) view.rest();
-    view.pose(shown ? 'end' : t0 == null ? 'welcome' : 'play'); view.welcome(t0 == null && !shown, best > 0); view.ghostBest(false); tagDirty = true;
+    view.pose(shown ? endPose() : t0 == null ? 'welcome' : 'play'); view.welcome(t0 == null && !shown, best > 0); view.ghostBest(false); tagDirty = true;
     if (FlyMod) { view.flyers(FlyMod); wanted.clear(); needFloor = -1; needAll(); }   // (the flyers' stage is the new scene's: their models are asked for again — all of them, at once)
     hook.view = view; rebuilds++; last = 0; sized();
     watchGL();
@@ -436,7 +436,7 @@ export function createStage(app, o = {}) {
   function soften(c, w, hh) {
     try {
       const im = c.getImageData(0, 0, w, hh), d = im.data, t = new Uint8ClampedArray(d.length);
-      for (let pass = 0; pass < 2; pass++) {
+      for (let pass = 0; pass < 1; pass++) {
         for (const [src, dst, dx, dy] of [[d, t, 1, 0], [t, d, 0, 1]]) {
           for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) {
             const i = (y * w + x) * 4, a = (Math.max(0, y - dy) * w + Math.max(0, x - dx)) * 4, b = (Math.min(hh - 1, y + dy) * w + Math.min(w - 1, x + dx)) * 4;
@@ -450,6 +450,9 @@ export function createStage(app, o = {}) {
   }
   /** the day end's still (REVIEW FIX B): END_STILL_MS after the end (the end pose eased), a day scene only — 1 / END_STILL_DIV of the width */
   let stillN = 0;
+  /** THE GO-LIVE — the end's pose by the look on screen: by DAY the camera pulls back (night.js#POSE_FAR — the whole top of the tower in the
+   *  still, the owner's mockup); by night JAYWALK's veil hides the scene — unchanged */
+  const endPose = () => (lookSeen === 'day' ? 'endDay' : 'end');
   function endStill() {
     const n = ++stillN;
     setTimeout(() => {
@@ -648,7 +651,7 @@ export function createStage(app, o = {}) {
     EC.set({ words: endSaid, made: live.made, floor: live.floor, perfects: live.perfects - skipP, streak: FROM ? streakTop : live.maxStreak });   // (a `?floor=N` start's floors count toward nothing)
     EC.best(best, best > was && was > 0, was);   // (a first run's floor is YOUR BEST — NEW BEST is said of a best that was BEATEN)
     // (S4B — JAYWALK's standard: the scene is DIMMED behind the card — no dashed outline over the tower, no BEST n ↑ beside it)
-    view.pose('end'); view.ghostBest(false);
+    view.pose(endPose()); view.ghostBest(false);
     stage.classList.add('is-ended'); tagDirty = true; endStill();
     stage.classList.toggle('is-made', live.made);
     // THE DETERMINISM CHECK (the owner's, on a real iPhone): the recorded tap log replayed through a FRESH engine — the judge's own code
@@ -859,7 +862,7 @@ export function createStage(app, o = {}) {
     if (run.floor !== needFloor && frameN >= landF + LATER_NUM) { needFloor = run.floor; flyCheck(); }   // (S4A FIX 2: never on the landing frame — a model's fetch / THE MOTHERSHIP's hull is begun two frames later)
     // the page's words follow the picture: the look on screen + the sky's tone at this height (compared, written only at a change)
     const lk = view.lookNow ? view.lookNow() : lookT, tone = skyTone(lk, run.floor);
-    if (lk !== lookSeen || tone !== toneSeen) { lookSeen = lk; toneSeen = tone; mark('dom'); stage.dataset.look = lk; stage.dataset.sky = tone; BN.dirty(); }
+    if (lk !== lookSeen || tone !== toneSeen) { const lkd = lk !== lookSeen; lookSeen = lk; toneSeen = tone; mark('dom'); stage.dataset.look = lk; stage.dataset.sky = tone; BN.dirty(); if (lkd && stage.classList.contains('is-ended')) view.pose(endPose()); }   // (THE GO-LIVE: the look turned under the end screen — the pose follows it)
     // the two right-edge tags: placed once a landing (+ when the run starts / ends, the screen's size or the friends change)
     // (the tags' mode: 1 the welcome · 2 a live run · 3 the end screen · 0 between — the end's hold)
     const tagMode = watchW ? 2 : t0 == null ? (shown ? 3 : 1) : shown ? 3 : over ? 0 : 2;
