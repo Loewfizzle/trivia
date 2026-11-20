@@ -671,3 +671,19 @@
 - THE LAG A/B on Ben's iPhone (day look both): normal 76 slow frames of 5,268 (1.44%), HITCH 75, Safari ≈ 24–28 ms per slow frame · LEAN 43 of 6,187 (0.70%), HITCH 42, Safari ≈ 16–18 ms. Pre-warm works ("SET-UP AFTER START: none"). → LEAN CLEARLY WINS: half of Safari's slow frames are our over-the-game effects. Rebuild them to stop repainting, same look.
 - THE SHARE IMAGE = Ben's approved mockup (Downloads\NEON\highrise-share-image.png) — moved back from THE REVIEW into S5.
 - THE BILLBOARD = B1 (Downloads\NEON\highrise-billboard-B-v2.png, the TOP one); ONE billboard only; "OPEN NOW" (not NOW OPEN). Built as art in S5; the CITY chat installs it at go-live.
+
+## HIGH RISE — THE REVIEW (approved Nov 20 — REVIEW ONLY: no code changes; the report: docs/games/passes/highrise-review.md)
+- THE LAG IS CLOSED (Ben's iPhone after S5: normal 0.96% slow frames vs lean 1.02% — our effects cost nothing now; the rest is Safari's own).
+- THE SHARE CARD IS REDESIGNED (Ben, Nov 20 — he hated S5's live-frame card: a short pale day stack at floor 14 with the missed slab frozen like a bridge). NEW = "B · THE POSTER" (mockup Downloads\NEON\highrise-share-B.png):
+  - 1080 × 1350, full-bleed, NO inner frame box, ALWAYS the night look.
+  - Top: "HIGH" pink + "RISE" cyan neon, with "SOLO · NEONSPEAKEASY" (or MATCH) small under it.
+  - The floor HUGE (white-hot, cyan glow) in the sky, with "FLOORS · BAND" under it.
+  - A tall glowing neon tower rising from the bottom, its top under the number. NO flyers.
+  - Bottom: the cause in big pink neon, then "N PERFECTS · NAME", then the kit's foot.
+  - The picture = PRE-RENDERED hero shots from the real game (the billboard's poster-mode pipeline), one per band: rooftops · skyline · clouds · stars · deep space, plus a GOLD Mothership finish. Never the live frame.
+- BEN'S DECIDED CHANGES for REVIEW FIX:
+  - (1) THE TOP HUD is bunched up: "8TH / 8" runs into "THE ROOFTOPS"; the floor, band, clock and PERFECT ×5 read as one cluster. → The floor big + centred, with the band + clock centred narrow under it. THE PLACE NUMBER alone in the TOP-RIGHT corner ("8TH" big, "/ 8" small under it). The callouts under everything, with room.
+  - (2) SPECTATE is out of sync. Ben, watching GUS: "it goes past, and then it snaps back on top and drops". → WATCH plays the watched player back on a short delay, from their landed taps' own ticks, so their slab slides and drops exactly where they tapped; no snapping.
+  - (3) THE SHARE CARD → B · THE POSTER + the 6 hero shots.
+  - (4) Claude's rec, Ben to confirm: THE PLACE NUMBER's ties use the final ranking's rule (floor → most perfects).
+- Live JAYWALK solo WORKS on Ben's phone (Nov 20) → the failing e2e-jaywalk PLAY NOW check is a test problem, likely the 4 am day line → the JAYWALK chat's inbox, not HIGH RISE's.
