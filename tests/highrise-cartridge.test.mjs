@@ -268,14 +268,19 @@ test('THE NEXT FRIEND (lines.js — PURE): the LOWEST friend best above you, one
 
 test('THE VIEW WRITES THE PROOF — AND ONLY ITS OWN NODE: GO once (the server\'s time, read back), the chunks server-stamped, `e` once behind the last chunk; never after the match left `play`; the scene parked only over PLAY AGAIN', () => {
   const v = code('js/games/highrise/view.js');
-  assert.match(v, /const nodePath = \(\) => `rooms\/\$\{code\}\/hr\/\$\{matchId\}\/\$\{uid\}`;/, 'its own uid, its own match');
+  assert.ok(v.includes('const treePath = () => `rooms/${code}/hr/${matchId}`, nodePath = () => `${treePath()}/${uid}`;'), 'its own uid, its own match');
   assert.match(v, /dbSet\(dbRef\(path\), serverTimestamp\(\)\)\.then\(\(\) => dbGet\(dbRef\(path\)\)\)/, 'GO: the server\'s time, read back — never the phone\'s estimate');
   assert.match(v, /fin\(\{ seed: seedOf\(code, matchId, go\), t0: perfOf\(go\), taps: old \|\| \[\] \}\);/, 'the seed = hash(code + matchId + GO); tick 0 = GO');
-  assert.match(v, /dbSet\(dbRef\(`\$\{nodePath\(\)\}\/c\/\$\{chunkN\}`\), \{ s, at: serverTimestamp\(\) \}\)/);
-  assert.match(v, /dbUpdate\(dbRef\(nodePath\(\)\), \{ e: \{ f: r\.floor, t: r\.tick, w: String\(r\.cause \|\| ''\)\.slice\(0, 12\) \} \}\)/);
-  assert.equal((v.match(/dbSet\(|dbUpdate\(/g) || []).length, 4, 'four writes in all: GO, the rule set (S4B: `rs`, once, right behind GO), a chunk, the end');
+  // THE PROOF PASS: the chunks + the end go up through THE PROOF WRITER (kit/proof-writer.js + proof-io.js — JAYWALK's too)
+  const io = code('js/games/kit/proof-io.js');
+  assert.ok(io.includes('chunk: (i, s) => dbSet(dbRef(`${path()}/c/${i}`), { s, at: serverTimestamp() }),') && io.includes('end: e => dbUpdate(dbRef(path()), { e }),'), 'a chunk = its taps + the SERVER\'s time; the end = `e` on the node');
+  assert.ok(v.includes("W.end({ f: r.floor, t: r.tick, w: String(r.cause || '').slice(0, 12) });") && v.includes('io: proofIo(nodePath),'), 'the end: a signal only, behind the last chunk');
+  assert.equal((v.match(/dbSet\(|dbUpdate\(/g) || []).length, 2, 'two writes of the view\'s own: GO, the rule set (S4B: `rs`, once, right behind GO) — the chunks + the end are the writer\'s');
   assert.match(v, /dbSet\(dbRef\(path\), RULES_DEFAULT\)\.catch\(/, 'the rule set: best effort — a refused write is read as classic by the judge');
-  assert.match(v, /if \(matchLeft\(\)\) \{ lateProof\('dropped'\); sent = taps\.length; countQuietLate\(\); return; \}/, 'never a chunk once the match left `play`');
+  // (THE PROOF PASS — the review's MUST 2 a: the taps are NEVER dropped on the mirror alone — a mirror that says the match moved on only
+  //  makes a refusal expected; they go after LATE_TRIES refusals in that state)
+  assert.ok(v.includes("left: matchLeft,") && v.includes("onLate: why => { lateProof(why); if (why === 'dropped') countQuietLate(); },"));
+  assert.ok(code('js/games/kit/proof-writer.js').includes('if (left() && ++lateTries > LATE_TRIES) { giveUpLate(); return; }'), 'dropped only once the rules keep refusing while the mirror says the match is over');
   assert.match(v, /if \(!isMatch && performance\.now\(\) - \(globalThis\.__nsAgainAt \|\| -1e9\) < 3000\) park\(S\); else S\.destroy\(\);/, 'parked only over a SOLO run\'s PLAY AGAIN — else (a match too) freed at once');
   assert.match(v, /if \(!proven\) \{ showLeave\(\); return \{ own: true, note: 'NOT COUNTED — NO LINE TO THE BOARD' \}; \}/, 'an UNPROVEN run ends on the stage\'s own card');
   // the stage itself writes nothing (it is the test page's module too)

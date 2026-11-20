@@ -31,7 +31,8 @@ function perfectTaps(seed, mode, n) {
 test('THE SERVER HALF is PURE — and WIRED behind THE SWITCH (S4A): no fb.js, the SAME engine modules as the phone; /api still has 8 functions; only /api/report calls it', () => {
   const src = read('api/_lib/highrise.js');
   const imports = [...src.matchAll(/^import [^\n]* from '([^']+)';$/gm)].map(m => m[1]);
-  assert.deepEqual(imports, ['../../js/games/highrise/replay.js', '../../js/games/highrise/logic.js', '../../js/games/highrise/proof.js'], 'it imports the phone\'s own modules — nothing else');
+  assert.deepEqual(imports, ['../../js/games/highrise/replay.js', '../../js/games/highrise/logic.js', '../../js/games/highrise/proof.js', '../../js/core/proof.js'], 'it imports the phone\'s own modules — nothing else (THE PROOF PASS: + core/proof.js — PURE, no imports: the tree\'s shared helpers)');
+  assert.doesNotMatch(read('js/core/proof.js'), /^import /m, 'core/proof.js: PURE — no imports at all');
   assert.doesNotMatch(src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1'), /fb\.js|firebase|export default|\breq\b|\bres\./);
   const fns = readdirSync(new URL('../api/', import.meta.url)).filter(f => f.endsWith('.js'));
   assert.equal(fns.length, 8, `the function count stays 8 (${fns.join(' ')})`);

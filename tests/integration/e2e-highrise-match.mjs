@@ -19,6 +19,7 @@ const { createHarness } = await import('./kit/harness.mjs');
 const { highriseMatch } = await import('../../api/_lib/highrise.js');
 const { matchStart, firstGo, GO_LEAD_MS, gameStandings, floorOf } = await import('../../js/games/highrise/logic.js');
 const { tapsFromChunks } = await import('../../js/games/highrise/proof.js');
+const { goUids, stampOf, GO_WINDOW_MS } = await import('../../js/core/proof.js');   // (THE PROOF PASS: the tree's stamp + its players' nodes)
 const { judgeRun } = await import('../../js/games/highrise/replay.js');
 const { callBonus } = await import('../../js/core/playlist.js');
 
@@ -86,7 +87,9 @@ try {
   await atGo(N);
   const m = await evalIn(host, s => s.game.matchId), game = await dbGet(`rooms/${code}/game`), nodes0 = await dbGet(`rooms/${code}/hr/${m}`);
   const SV = matchStart(code, m, nodes0), sts = await all(N, p => state(p));
-  ok(Object.keys(nodes0 || {}).length === N && Object.values(nodes0).every(n => typeof n.go === 'number'), `every phone wrote its own GO (${Object.values(nodes0 || {}).map(n => n.go - firstGo(nodes0)).join(' / ')} ms after the first)`);
+  const goers = goUids(nodes0), T0S = stampOf(nodes0);
+  ok(goers.length === N, `every phone wrote its own GO (${goers.map(u => nodes0[u].go - firstGo(nodes0)).join(' / ')} ms after the first)`);
+  ok(T0S > 0 && T0S <= firstGo(nodes0) && goers.every(u => nodes0[u].go <= T0S + GO_WINDOW_MS), `THE PROOF PASS — THE STAMP: the tree's first write (t0, ${firstGo(nodes0) - T0S} ms before THE FIRST GO); every GO within ${GO_WINDOW_MS} ms of it`);
   ok(game.mode === 'match' && game.seed === SV.seed && game.playAt === SV.playAt && game.playAt === firstGo(nodes0) + GO_LEAD_MS, 'THE FIRST GO picked the seed + tick 0 (the step count → play wrote them)');
   ok(sts.every(s => s.isMatch && s.seed === SV.seed && s.playAt === SV.playAt && s.haveGo && s.stage.seed === SV.seed && s.stage.mode === 'match'), `the SAME seed + the SAME clock on all ${N} phones = the server's own derivation (${SV.seed})`);
   ok(await until(async () => (await all(N, p => state(p))).every(s => s.proven), 5000), '… each phone PROVEN');

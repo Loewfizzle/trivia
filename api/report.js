@@ -24,7 +24,8 @@ import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/h
 import { noteSeen } from './_lib/seen.js';
 import { ref, val, emulated, adminPids } from './_lib/fb.js';
 import { jaywalkSolo, jaywalkMatch } from './_lib/jaywalk.js';
-import { highriseSolo, highriseMatch, HIGHRISE_COUNTS, hrPlayed } from './_lib/highrise.js';
+import { highriseSolo, highriseMatch, HIGHRISE_COUNTS } from './_lib/highrise.js';
+import { goUids } from '../js/core/proof.js';
 import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
 import { applyMatch, wouldApply, needsRetry, mergeOutcomes, MIN_MATCH_GAP_MS } from './_lib/stats.js';
@@ -155,16 +156,21 @@ export const proofPaths = (gid, matchId, uid) => (PROOF_PATHS[gid] ? PROOF_PATHS
 export const PROOF_TREES = Object.freeze({
   prism: m => ({ room: [`prism/${m}`], seal: [] }),
   overclock: m => ({ room: [`oc/${m}`, `ocm/${m}`], seal: [`oc/${m}`] }),
-  jaywalk: m => ({ room: [`jw/${m}`], seal: [] }),   // (JAYWALK H1: written AT GO — present = proven, a silent player included)
+  jaywalk: m => ({ room: [`jw/${m}`], seal: [] }),   // (JAYWALK H1: written AT GO. THE PROOF PASS: a node counts only WITH its GO (provenUids), and in a MATCH only with a hop the server replayed — `played`)
   highrise: m => ({ room: [`hr/${m}`], seal: [] }),   // (HIGH RISE S4A: the same — its own node)
 });
 /** the games whose proof tree is FLAT — { uid: node } (PRISM's boards, JAYWALK's runs); the others' = { ci | key: { uid: … } } (OVERCLOCK) */
 const FLAT_PROOF = new Set(['prism', 'jaywalk', 'highrise']);
+/** … of which the proof-node games: a node = { go, c, e } — it counts only with its GO (core/proof.js#goUids) */
+const GO_TREES = new Set(['jaywalk', 'highrise']);
 /** PURE: the uids a match's trees prove */
 export function provenUids(gid, trees) {
   const out = new Set();
   for (const t of trees || []) {
     if (!t || typeof t !== 'object') continue;
+    // (THE PROOF PASS — THE SERVER's GUARD 1: in a GO tree (jw · hr) a node counts only WITH its GO — never a node of chunks alone (its
+    //  GO gone with a deleted tree), never the tree's own stamp `t0`)
+    if (GO_TREES.has(gid)) { for (const u of goUids(t)) out.add(u); continue; }
     if (FLAT_PROOF.has(gid)) { for (const u of Object.keys(t)) out.add(u); continue; }
     for (const per of Object.values(t)) if (per && typeof per === 'object') for (const u of Object.keys(per)) out.add(u);
   }
@@ -226,7 +232,7 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   // JAYWALK H3: a SOLO run (one name on the record, the reporter's) is counted from the SERVER's replay of their proof node — on both paths
   const PG = PROOF_GAMES[night.g] || null;   // (HIGH RISE S4A: + HIGH RISE — the same two paths, its own node + judge)
   const jwSolo = !!PG && named.length === 1 && named[0] === uid && Object.keys(night.p || {}).length <= 1;
-  let jwGo = 0, judged = null, matchRows = null;   // (judged: the SERVER's own row of the reporter — THE SWITCH's answer reads it · matchRows: every named player's)
+  let jwGo = 0, judged = null, matchPlayed = null;   // (judged: the SERVER's own row of the reporter — THE SWITCH's answer reads it · matchPlayed: the uids the server's replay saw PLAY — a hop / a landed slab)
   const jwGame = async () => {
     const node = await val(`rooms/${code}/${PG.node}/${matchId}/${uid}`);
     const J = PG.solo({ code, matchId, uid, node });
@@ -243,7 +249,7 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
     const M = PG.match({ code, matchId, uids, nodes: (await val(`rooms/${code}/${PG.node}/${matchId}`)) || {} });
     if (!M.game) throw new ApiError(409, 'unverifiable', `This match has no proof (${M.why}).`);
     jwGo = M.game.playAt;
-    judged = M.game.results[uid] || null; matchRows = M.game.results;
+    judged = M.game.results[uid] || null; matchPlayed = new Set(M.played || []);
     for (const [u, r] of Object.entries(M.game.results)) if (r.bad || r.cut) console.warn(`${night.g} match run`, `${code}_${matchId}`, u, r.bad || 'cut');
     return M.game;
   };
@@ -286,8 +292,9 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
     const T = PROOF_TREES[ex.gid](matchId);
     const trees = await Promise.all([...T.room.map(p => val(`rooms/${code}/${p}`)), ...T.seal.map(p => val(`seal/${code}/${p}`))]);
     proven = provenUids(ex.gid, trees);
-    // (REVIEW FIX A — MUST 3: a HIGH RISE match counts a player only with a LANDED slab in the server's replay — a GO alone is not a play)
-    if (ex.gid === 'highrise' && matchRows) proven = hrPlayed(proven, matchRows);
+    // (REVIEW FIX A — MUST 3 + THE PROOF PASS: a MATCH of a proof game counts a player only with a MOVE in the server's own replay — a
+    //  landed slab (HIGH RISE), a hop (JAYWALK): a GO alone is not a play)
+    if (matchPlayed) proven = new Set([...proven].filter(u => matchPlayed.has(u)));
   }
   const playedIt = u => !proven || proven.has(u);
   // credit only uids with a SEAT in the room (players/{uid}) — a name in night.n is not a player — AND (FR7 FIXES B) their own proof

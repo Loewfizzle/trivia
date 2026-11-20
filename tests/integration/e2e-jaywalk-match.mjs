@@ -19,6 +19,8 @@ const { CAUSE_LINES, DAY_LINES } = await import('../../js/games/jaywalk/causes.j
 const { installLag, setLag } = await import('./kit/lag.mjs');
 const { memAt, memLine, JW_FINAL_BUDGET_MB } = await import('./kit/jaywalk-mem.mjs');
 const { matchStart } = await import('../../js/games/jaywalk/logic.js');
+const { goUids, stampOf, GO_WINDOW_MS } = await import('../../js/core/proof.js');   // (THE PROOF PASS: the tree's stamp + its players' nodes)
+const jaywalkMatchOf = await import('../../api/_lib/jaywalk.js').then(J => (code, matchId, uids, nodes) => J.jaywalkMatch({ code, matchId, uids, nodes: nodes || {} }).game);
 // (H6A — step 8c: a scripted finished match whose owner is still in at THE MOTHERSHIP's tick — the pure engine, in Node)
 const JW = { ...(await import('../../js/games/jaywalk/logic.js')), ...(await import('../../js/games/jaywalk/course.js')), ...(await import('../../js/games/jaywalk/engine.js')), ...(await import('../../js/games/jaywalk/bot.js')), packLog: (await import('../../js/games/jaywalk/replay.js')).packLog, T: await import('../../js/games/jaywalk/tuning.js') };
 
@@ -181,14 +183,16 @@ try {
   await all(N, (p, i) => waitFor(p, s => s.game.phase === 'play' && window.__jwGame.state().mode === 'run' && window.__jwGame.state().t >= 0, `${NAMES[i]}: GO`, 20000));
   const m = g0.m, game = await evalIn(host, s => s.game), nodes0 = await dbGet(`rooms/${code}/jw/${m}`);
   const first = firstGo(nodes0);
-  ok(Object.keys(nodes0 || {}).length === N && first > 0, `every phone wrote its own GO (${Object.keys(nodes0 || {}).length} proof nodes)`);
+  const goers = goUids(nodes0), T0S = stampOf(nodes0);
+  ok(goers.length === N && first > 0, `every phone wrote its own GO (${goers.length} proof nodes)`);
+  ok(T0S > 0 && T0S <= first && goers.every(u => nodes0[u].go <= T0S + GO_WINDOW_MS), `THE PROOF PASS — THE STAMP: the tree's first write (t0, ${first - T0S} ms before THE FIRST GO); every GO within ${GO_WINDOW_MS} ms of it`);
   ok(game.g0 === first && game.playAt === first + GO_LEAD_MS && game.seed === seedOf(code, m, first), `THE FIRST GO (${first}) picked the course (${game.seed}) + tick 0 = that time + ${GO_LEAD_MS} ms`);
   const sts = await all(N, p => state(p));
   ok(sts.every(s => s.seed === game.seed && s.go === game.playAt && s.proven && s.isMatch), 'the SAME course + the SAME clock on all three phones, each proven');
   // H4B — THE SAME COURSE FOR EVERYONE, proven on the real line: each phone's own seed + tick 0, the server's own derivation, never a switch
   const SV0 = matchStart(code, m, nodes0);
   sts.forEach((s, i) => log(`  ${NAMES[i]}: seed ${s.seed} · tick 0 ${s.go} · took it ${s.adopts.map(a => `${a.at} ms from tick 0`).join(', ')}${LAG && i === 2 ? ` (a ${LAG} ms line)` : ''}`));
-  log(`  the server: seed ${SV0.seed} · tick 0 ${SV0.playAt} · GOs ${Object.values(nodes0).map(n => n.go - first).join(' / ')} ms after the first`);
+  log(`  the server: seed ${SV0.seed} · tick 0 ${SV0.playAt} · GOs ${goers.map(u => nodes0[u].go - first).join(' / ')} ms after the first`);
   ok(sts.every(s => s.seed === SV0.seed && s.go === SV0.playAt), `H4B — every phone's seed + tick 0 = the server's own (matchStart of the proof nodes)${LAG ? ` — one phone ${LAG} ms slow` : ''}`);
   ok(sts.every(s => s.adopts.length === 1 && s.adopts[0].t === 0 && s.adopts[0].hops === 0), 'H4B — each phone took its course ONCE, before it had played a tick (never a switch)');
   // ---- 3. THE GHOSTS + THE LIVE ORDER
@@ -401,7 +405,7 @@ try {
   sts2.forEach((s, i) => log(`  ${NAMES[i]}: seed ${s.seed} · tick 0 ${s.go} · took it ${s.adopts.filter(a => a.seed === s.seed).map(a => `${a.at} ms from tick 0`).join(', ')}${LAG && i === 0 ? ` (a ${LAG} ms line)` : ''}`));
   ok(!!SV2 && game2.seed === SV2.seed && game2.playAt === SV2.playAt && sts2.every(s => s.seed === SV2.seed && s.go === SV2.playAt && s.adopts.filter(a => a.seed !== game.seed).length === 1), `H4B — the rematch: every phone + the host's GO patch = the server's own seed + tick 0, each took it once${LAG ? ` — THE HOST ${LAG} ms slow` : ''}`);
   if (LAG) await setLag(host, 0, 0);
-  ok(kept && Object.keys(kept).length === N && uids.slice(0, N).every(u => kept[u].go > 0), '… the finished match\'s proof nodes are still there (a late report still finds them)');
+  ok(kept && goUids(kept).length === N && uids.slice(0, N).every(u => kept[u].go > 0), '… the finished match\'s proof nodes are still there (a late report still finds them)');
   await all(N, (p, i) => waitFor(p, s => s.game && s.game.phase === 'final', `${NAMES[i]}: the rematch ends (nobody hops: the blackout takes all three)`, 60000));
   const fin2 = await evalIn(host, s => s.game);
   ok(Object.values(fin2.results).every(r => r.l === 0 && r.w === 'wall'), 'three silent-but-present players: each has a run (the blackout\'s), 0 lanes');
@@ -536,10 +540,17 @@ try {
     await sleep(4000);   // (the refusal's judgement settles in HOST_SETTLE_MS)
     const bq = await pages[1].evaluate(() => ({ late: (window.__errlog && window.__errlog.quiet()['late-proof']) || 0, rows: (window.__errlog ? window.__errlog.pending() : []).map(x => x.m || '').filter(x => /RULES REFUSED/.test(x)) }));
     const bobNode = await dbGet(`rooms/${code}/jw/${m3}/${uids[1]}`), bobRes = await evalIn(host, (s, u) => (s.game.results || {})[u] || null, uids[1]);
-    ok(!!offHops && bobAlarm.length === 0 && bq.rows.length === 0 && bq.late > 0 && bobQuiet.length > 0,
-      `A LATE PROOF CHUNK (CITY I): BOB hopped ${offHops} offline, the host ended the match without them → back online, his late writes refused = QUIET (${bobQuiet.length} quiet line(s), 'late-proof' counted ${bq.late}), 0 RULES REFUSED (alarm ${bobAlarm.length}, rows ${bq.rows.length})`);
-    const landed = bobNode && bobNode.c ? Object.keys(bobNode.c).length : 0;
-    ok(landed === 0 && (!bobRes || bobRes.l === 0), `…the proof still verifies: no chunk landed after the end (${landed}) — the podium counts the run to its last LANDED hop (${bobRes ? bobRes.l : 0} lanes — no crash, no NOT COUNTED)`);
+    // THE PROOF PASS (Nov 20): the re-published rules hang a chunk on its player's OWN go — nothing the host writes refuses it (the
+    // review's MUST 2 a). BOB's queued hops therefore LAND when his line is back, although the host had ended the match: never a RULES
+    // REFUSED row, never a quiet count, and THE SERVER's replay reads his whole honest log (a dropped signal: a silence, then a burst).
+    // (On the rules as published BEFORE this pass they are refused → the writer's LATE_TRIES, a quiet 'late-proof' count:
+    //  tests/proof-writer.test.mjs + rules.test.mjs "THE SWITCH-OVER".)
+    const landed = bobNode && bobNode.c ? Object.keys(bobNode.c).length : 0, w3 = await state(pages[1]);
+    ok(!!offHops && bobAlarm.length === 0 && bq.rows.length === 0 && landed > 0 && w3.acked === w3.hops,
+      `A LATE PROOF CHUNK (THE PROOF PASS): BOB hopped ${offHops} offline, the host ended the match without them → back online, his queued hops LAND (${landed} chunk(s), ${w3.acked} of ${w3.hops} hops acknowledged) — 0 RULES REFUSED (alarm ${bobAlarm.length}, rows ${bq.rows.length}), ${bobQuiet.length} quiet line(s)`);
+    const srv3 = jaywalkMatchOf(code, m3, uids.slice(0, N), await dbGet(`rooms/${code}/jw/${m3}`));
+    ok(!!srv3 && !srv3.results[uids[1]].bad && srv3.results[uids[1]].l >= (bobRes ? bobRes.l : 0) && (!bobRes || !bobRes.bad),
+      `…the proof still verifies: the SERVER's replay of BOB's node counts his whole log (${srv3 ? srv3.results[uids[1]].l : '—'} lanes; the podium, taken at the host's END, showed ${bobRes ? bobRes.l : 0}) — no crash, no NOT COUNTED`);
     refused.splice(r0);   // (the SDK's own "permission_denied" warnings for those expected refusals — not this suite's alarm)
     await G(pages[1], 'window.__jwGame.bot(false)');
     await H.backToLobby(host);

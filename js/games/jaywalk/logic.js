@@ -6,6 +6,7 @@ import { MODES, TICK_HZ, CLOCK } from './tuning.js';
 import { hashString } from '../../core/rng.js';
 import { CALL_MS, callBonus } from '../../core/playlist.js';
 import { judgeRun, logFromChunks, chunkTimes } from './replay.js';
+import { firstGo, onTime, goOf, inMatch, fullDraw } from '../../core/proof.js';
 
 export { DEFAULT_SETTINGS, cleanSettings, chatLocked, CALL_MS };
 
@@ -41,11 +42,7 @@ export const soloTick = (go, now) => Math.floor((now - go) * TICK_HZ / 1000);
  * same on every phone and on the server, whoever the host is (in practice the host's phone is as likely as any — nobody chooses the
  * millisecond). The match's course = seedOf(code, matchId, that time); its tick 0 = that time + GO_LEAD_MS.
  */
-export function firstGo(runs) {
-  let g = 0;
-  for (const n of Object.values(runs || {})) { const v = n && Number(n.go); if (v > 0 && (!g || v < g)) g = v; }
-  return g;
-}
+export { firstGo };   // (THE PROOF PASS: ONE copy — core/proof.js, HIGH RISE's too)
 /** the match's clock + course from its proof nodes (null = no GO yet) — PURE: the phones, the host's director and the server agree */
 export const matchStart = (code, matchId, runs) => { const g0 = firstGo(runs); return g0 ? { g0, playAt: g0 + GO_LEAD_MS, seed: seedOf(code, matchId, g0) } : null; };
 /**
@@ -56,10 +53,16 @@ export const matchStart = (code, matchId, runs) => { const g0 = firstGo(runs); r
  * of the server's time can never pick a course. null = not known yet (the count holds).
  */
 export function startOf(game, runs, code) {
-  const m = game && !game.unproven && game.mode !== 'solo' && runs ? matchStart(code, game.matchId, runs) : null;
-  if (m) return m;
+  const m = game && game.mode !== 'solo' && runs ? matchStart(code, game.matchId, runs) : null;
+  if (m && (!game.unproven || goBeforeGiveUp(game, m))) return m;
   return game && game.phase !== 'count' && game.seed ? { g0: game.g0 || 0, playAt: game.playAt, seed: game.seed } : null;
 }
+/** THE PROOF PASS — A HOST HICCUP AT GO (HIGH RISE's REVIEW FIX A, SHOULD 1 — js/games/highrise/match.js#goBeforeGiveUp, ported): the
+ *  host's line stalled round GO, its mirror showed no GO for NO_GO_MS and it marked the match UNPROVEN — AFTER everyone had started; every
+ *  phone restarted on a stand-in course and nothing counted. THE NODES ARE THE TRUTH here too: a FIRST GO the server stamped BEFORE the
+ *  host gave up (the unproven step's own time) was there all along — the match is proven: its course + tick 0 are the GO's (the director
+ *  takes the mark back: director.js#nextStep). A GO stamped after it never moves a match already running on its stand-in. */
+export const goBeforeGiveUp = (game, S) => !!(S && game && game.phaseStartAt && S.g0 <= game.phaseStartAt);
 /** the seed one player's run is played on: SOLO = from their own GO (null before it) · a MATCH = the game's (the director's GO patch) */
 export const runSeed = (game, node, code) => (game.mode === 'solo' ? (node && node.go > 0 ? seedOf(code, game.matchId, node.go) : null) : game.seed || null);
 
@@ -73,11 +76,12 @@ export const featsOf = r => Object.keys(r.feats || {}).filter(k => r.feats[k]).j
  * bad (why — a refused log: the run of a kid who never hopped) }. `t0` = tick 0 (a server time), `from` = the earliest a chunk may arrive,
  * `until` = score it as it stands at that tick. The host's podium and the server's count both come through here.
  */
-export function scoreNode({ seed, mode, node, t0, from = null, until = null }) {
+export function scoreNode({ seed, mode, node, t0, from = null, until = null, out = null }) {
   const log = node && node.c != null ? logFromChunks(node.c) : [], times = node && node.c != null ? chunkTimes(node.c) : [];
   let j = log && times ? judgeRun({ seed, mode, log, go: t0, times, from, until }) : { ok: false, why: 'chunks' }, bad = '';
   if (!j.ok) { bad = String(j.why || 'refused').slice(0, 24); j = judgeRun({ seed, mode, log: [], until }); }
   const r = j.result, f = bad ? '' : featsOf(r);
+  if (out) out.hops = bad ? 0 : j.hops;   // (THE PROOF PASS: the hops THE JUDGE counted — "a GO alone is not a player", api/_lib/jaywalk.js#jwPlayed)
   return { l: r.lanes, t: r.tick, w: r.cause || '', e: r.end, y: r.y, px: r.x, ...(r.taken ? { x: 1 } : {}), ...(f ? { f } : {}), ...(j.cut ? { cut: 1 } : {}), ...(bad ? { bad } : {}) };
 }
 /**
@@ -89,6 +93,10 @@ export function scoreRun(game, node, now = null, code = '') {
   if (!seed) return { ...NONE };
   const t0 = solo ? node.go : game.playAt;
   const until = now == null ? null : solo ? Math.max(0, soloTick(t0, now)) + CLOCK.ahead : Math.max(0, tickAt(game, now));
+  // (THE PROOF PASS — the server's guard, on the host's podium too: in a proven match a node with NO GO, or a GO later than the window
+  //  after THE FIRST GO, is no run — the kid who never hopped, `bad` says why; api/_lib/jaywalk.js#jaywalkMatch drops it the same way)
+  const late = !solo && game.g0 > 0 && node && !onTime(node, game.g0) ? (goOf(node) ? 'late go' : 'no go') : '';
+  if (late) return { ...scoreNode({ seed, mode: game.mode, node: null, t0, from: game.g0, until }), bad: late };
   return { ...scoreNode({ seed, mode: game.mode, node, t0, from: solo ? null : game.g0 || null, until }), ...(solo ? { go: node.go } : {}) };
 }
 /** every participant's result (a silent-but-present player still has a run) */
@@ -118,10 +126,12 @@ export function standings(game) {
  */
 export function scoreCalls(game, runs, results) {
   const out = {}, ids = Object.keys(game.participants || {}), first = standings({ participants: game.participants, results }).filter(r => r.rank === 1).map(r => r.uid);
-  const endOf = u => { const r = results[u] || {}; return r.x || !(r.e >= 0) ? Infinity : r.e; };
+  // (THE PROOF PASS — core/proof.js: a player with NO RUN (no GO on time) is never "still in" (they ended before anyone: −1); a FULL DRAW pays nobody)
+  const g0 = firstGo(runs), endOf = u => { const r = results[u] || {}; return !inMatch(runs, u, g0) ? -1 : r.x || !(r.e >= 0) ? Infinity : r.e; };
+  if (fullDraw(first, ids)) return out;
   for (const uid of ids) {
     const k = runs && runs[uid] && runs[uid].k, mine = endOf(uid);
-    if (!k || typeof k.w !== 'string' || k.w === uid || !game.participants[k.w] || mine === Infinity) continue;
+    if (!k || typeof k.w !== 'string' || k.w === uid || !game.participants[k.w] || mine === Infinity || mine < 0) continue;
     const outAt = game.playAt + mine * 1000 / TICK_HZ;
     if (!(endOf(k.w) > mine) || !(Number(k.at) <= outAt + CALL_WINDOW_MS)) continue;
     const rem = ids.filter(u => u !== uid && endOf(u) > mine).length, ok = first.includes(k.w);

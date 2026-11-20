@@ -156,6 +156,7 @@ export function judgeRun({ seed, mode = 'solo', log, go = null, times = null, fr
   }
   const r = replay({ seed, mode, log, until: cut ? (until == null ? cut.tick : Math.min(until, cut.tick)) : until });
   if (!cut && r.over && r.used < log.length) return { ok: false, why: 'past the end' };
-  const { used, over, ...result } = r; void used;
-  return cut ? { ok: true, result, over, cut } : { ok: true, result, over };
+  const { used, over, ...result } = r;
+  // (THE PROOF PASS: + `hops` — the hops the replay PLAYED: "a GO alone is not a player" reads it, never a phone's claim)
+  return cut ? { ok: true, result, over, cut, hops: used } : { ok: true, result, over, hops: used };
 }

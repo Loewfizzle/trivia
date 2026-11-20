@@ -5,6 +5,7 @@
 import { judgeRun as judge, unpackTaps } from '../../js/games/highrise/replay.js';
 import { featsOf, matchStart } from '../../js/games/highrise/logic.js';
 import { judgeNode, judgeSolo, matchRules } from '../../js/games/highrise/proof.js';
+import { onTime, goOf } from '../../js/core/proof.js';
 
 /**
  * judgeRun({ seed, mode, taps }) → { ok: true, floor, tick, end, cause, made, perfects, maxStreak, taps, feats: { reachedClouds, reachedTop } }
@@ -75,13 +76,16 @@ export const hrPlayed = (proven, results) => new Set([...(proven || [])].filter(
 export function highriseMatch({ code, matchId, uids, nodes }) {
   const S = matchStart(String(code), String(matchId), nodes), ids = (uids || []).filter(u => typeof u === 'string');
   if (!S || ids.length < 2) return { game: null, why: S ? 'players' : 'no go' };
-  if (!ids.some(u => nodes[u] && nodes[u].c != null)) return { game: null, why: 'no drops' };
+  // (THE PROOF PASS — THE SERVER's TWO GUARDS, JAYWALK's too: a node counts only with a GO; a GO later than GO_WINDOW_MS after THE FIRST
+  //  GO is no tower ('late go') — the host who GOes alone early and adds the rivals later wins nothing)
+  if (!ids.some(u => onTime(nodes[u], S.g0) && nodes[u].c != null)) return { game: null, why: 'no drops' };
   const results = {}, participants = {}, rules = matchRules(nodes);   // (S4B: ONE rule set a match — THE FIRST GO's; a node that names another is refused)
   for (const u of ids) {
     participants[u] = true;
     const node = nodes && nodes[u];
     // (a match's tick 0 = THE FIRST GO + its lead: the node is judged on that clock — S4B's view writes its chunks against it)
-    results[u] = node && Number(node.go) > 0 ? serverRow(judgeNode({ seed: S.seed, mode: 'match', node: { ...node, go: S.playAt }, rules })) : { f: 0, t: 0, w: '', e: -1, p: 0, s: 0, bad: 'no go' };
+    results[u] = onTime(node, S.g0) ? serverRow(judgeNode({ seed: S.seed, mode: 'match', node: { ...node, go: S.playAt }, rules })) : { f: 0, t: 0, w: '', e: -1, p: 0, s: 0, bad: goOf(node) ? 'late go' : 'no go' };
   }
-  return { game: { id: 'highrise', matchId, phase: 'final', mode: 'match', sv: 1, seed: S.seed, playAt: S.playAt, g0: S.g0, participants, settings: {}, results } };
+  // (`played` — MUST 3: the uids with a LANDED slab in this replay; the report counts + credits only these)
+  return { game: { id: 'highrise', matchId, phase: 'final', mode: 'match', sv: 1, seed: S.seed, playAt: S.playAt, g0: S.g0, participants, settings: {}, results }, played: Object.keys(results).filter(u => results[u].f >= HR_PLAYED_FLOOR) };
 }

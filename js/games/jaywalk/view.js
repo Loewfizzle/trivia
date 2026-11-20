@@ -2,7 +2,10 @@
 // the RUN = this phone's pure engine on the SERVER's clock, ONE LIFE → docs/jaywalk.md "THE SOLO GAME" · "THE MATCH" · "THE GHOSTS".
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { dbRef, set as dbSet, get as dbGet, update as dbUpdate, runTransaction, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
+import { dbRef, set as dbSet, get as dbGet, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
+import { createProofWriter } from '../kit/proof-writer.js';
+import { proofIo, stampT0, writeMatchGo } from '../kit/proof-io.js';
+import { firstGo, onTime, goOf } from '../../core/proof.js';
 import { colorHex } from '../../config.js';
 import { liveKeyFor } from '../registry.js';
 import { createFinal } from '../../ui/final.js';
@@ -84,7 +87,7 @@ export function createView() {
   // the run
   let code = '', uid = '', matchId = '', mode = 'wait', D = null;   // 'wait' (the course is on its way) · 'run' · 'over' (out / taken / watching)
   let run = null, course = START, log = [], queue = [], go = 0, proven = false, asked = false, goTries = 0, haveGo = false;
-  let sent = 0, chunkN = 0, lastFlush = 0, wroteE = false, overAt = 0, goTimer = 0, shotAt = 0, lastPump = 0;
+  let wroteE = false, overAt = 0, goTimer = 0, shotAt = 0, lastPump = 0, lateGo = false;
   let t0srv = 0, t0perf = 0, last = 0, markUntil = 0, lanesShown = -1, sndOn = false, bot = null, pinned = false, revealed = false;
   // the match
   const ghosts = new Map();   // uid → ghosts.js#createGhost (conf · run · log · done · held · vis · behind) + { uid, n (chunks read), lastT, hex, name, tagEl, dir, outAt }
@@ -107,7 +110,7 @@ export function createView() {
   const anchor = () => { t0srv = serverNow(); t0perf = performance.now(); };
   const soloGame = g => !!g && g.mode === 'solo' && Object.keys(g.participants || {}).length === 1;
   const mine = g => !!(g && g.participants && g.participants[uid]);
-  const nodePath = () => (D ? D.path : `rooms/${code}/jw/${matchId}/${uid}`);
+  const treePath = () => `rooms/${code}/jw/${matchId}`, nodePath = () => (D ? D.path : `${treePath()}/${uid}`);
   const runsNow = () => (st && st.game && st.liveKey === liveKeyFor(st.game) && st.live && st.live.runs) || null;
   const nameOf = u => String(((st.players && st.players[u]) || {}).name || 'GHOST').toUpperCase();
 
@@ -169,7 +172,7 @@ export function createView() {
   // ---- THE RUN
   function reset() {
     mode = 'wait'; course = START; run = createRun({ seed: 'start', mode: 'solo' }); log = []; queue = []; go = 0; proven = false; asked = false; goTries = 0; haveGo = false;
-    sent = 0; chunkN = 0; lastFlush = 0; wroteE = false; verifyFirst = false; overAt = 0; lanesShown = -1; markUntil = 0; shotAt = 0; revealed = false;
+    newWriter(); wroteE = false; lateGo = false; overAt = 0; lanesShown = -1; markUntil = 0; shotAt = 0; revealed = false;
     watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; liveRuns = null; orderKey = ''; countKey = ''; watchKey = '';
     cues = createCues(); quiet(); if (night) night.rest(false);
     for (const G of ghosts.values()) if (G.tagEl) G.tagEl.remove();
@@ -199,6 +202,7 @@ export function createView() {
     clearTimeout(goTimer);
     goTimer = setTimeout(() => { if (!gone && m === matchId && mode === 'wait') unproven('no answer'); }, GO_WAIT_MS);
     expectRefusal(path, 'jaywalk GO: already written (a rejoin) or the rules are not published yet');
+    stampT0(treePath(), 'jaywalk');   // (THE PROOF PASS — THE STAMP: the tree's first write, right ahead of the GO — core/proof.js)
     dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => {
       if (gone || m !== matchId || mode !== 'wait') return;
       const v = snap.val();
@@ -217,14 +221,12 @@ export function createView() {
   function askGoMatch() {
     if (asked) return;
     asked = true;
-    const m = matchId, path = `${nodePath()}/go`, runs = runsNow(), node = runs ? runs[uid] : null;
+    const m = matchId, runs = runsNow(), node = runs ? runs[uid] : null;
     if (node && node.go > 0) { haveGo = true; return; }
-    expectRefusal(path, 'jaywalk GO: already written (a rejoin), a touch early, or the rules are not published yet');
     const again = () => { if (gone || m !== matchId) return; if (goTries++ < 7) setTimeout(() => { asked = false; }, 420); else refused(); };
-    // (a TRANSACTION, never applied locally — THE NODES ARE THE TRUTH)
-    runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }).then(() => { if (m === matchId) haveGo = true; }).catch(() => {
-      dbGet(dbRef(path)).then(snap => { if (gone || m !== matchId) return; if (typeof snap.val() === 'number') haveGo = true; else again(); }).catch(again);
-    });
+    // (a TRANSACTION, never applied locally — THE NODES ARE THE TRUTH. THE PROOF PASS: the stamp + the GO are the kit's —
+    //  kit/proof-io.js#writeMatchGo, HIGH RISE's too)
+    writeMatchGo(treePath(), uid, 'jaywalk').then(ok => { if (gone || m !== matchId) return; if (ok) haveGo = true; else again(); }, again);
   }
   /** the engine caught up to the clock from a node's hop log (a refresh / a rejoin mid-run) */
   function catchUp() {
@@ -240,7 +242,7 @@ export function createView() {
     const seed = ds || isProof ? ds || seedOf(code, matchId, go) : `u${Math.floor(go).toString(36)}${Math.floor(Math.random() * 1e9).toString(36)}`;
     course = createCourse(seed); run = createRun({ seed, mode: ds ? 'daily' : 'solo' });
     const old = chunks ? logFromChunks(chunks) : null;
-    log = old || []; sent = log.length; chunkN = chunks ? Object.keys(chunks).length : 0; verifyFirst = !!chunks;   // (CITY I: a rejoin's first write reads the chunks fresh)
+    log = old || []; W.reset({ sent: log.length, next: chunks ? Object.keys(chunks).length : 0, verify: !!chunks });   // (CITY I: a rejoin's first write reads the chunks fresh)
     anchor();
     catchUp();
     mode = 'run';
@@ -256,7 +258,7 @@ export function createView() {
   function adoptMatch(S, runs) {
     go = S.playAt; course = createCourse(S.seed); run = createRun({ seed: S.seed, mode: 'match' });
     const node = runs && mine(st.game) ? runs[uid] : null, old = node && node.c ? logFromChunks(node.c) : null;
-    log = old || []; sent = log.length; chunkN = node && node.c ? Object.keys(node.c).length : 0; queue = []; verifyFirst = !!(node && node.c);   // (CITY I)
+    log = old || []; W.reset({ sent: log.length, next: node && node.c ? Object.keys(node.c).length : 0, verify: !!(node && node.c) }); queue = [];   // (CITY I)
     if (node && node.go > 0) haveGo = true;
     if (node && node.e) wroteE = true;
     for (const G of ghosts.values()) resetGhost(G, S.seed);
@@ -344,45 +346,42 @@ export function createView() {
   // once the phase is over every later chunk is refused too — no hole; the server's judge counts the run to its last LANDED hop.
   const countQuietLate = () => lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => { if (typeof m.countQuiet === 'function') m.countQuiet('late-proof'); }).catch(() => {});   // (THE STALE-MODULE RULE: an existing export, lazily)
   const matchLeft = () => !D && !!matchId && (!st.game || st.game.matchId !== matchId || (st.game.phase !== 'play' && st.game.phase !== 'count'));   // (past 'play' — the count's last 2 s still take a chunk)
-  let lateSeen = '', verifyFirst = false;
+  let lateSeen = '';
   function lateProof(why) {
     if (D || lateSeen === matchId || !proven) return;
     lateSeen = matchId;
     expectRefusal(`${nodePath()}/c`, `jaywalk: a proof chunk after the match ended (${why})`, 90_000, 'late-proof');
     expectRefusal(`${nodePath()}/e`, `jaywalk: the end after the match ended (${why})`, 90_000, 'late-proof');
   }
-  function flush(force) {
-    if (!proven || sent >= log.length) return;
-    if (matchLeft()) { lateProof('dropped'); if (sent < log.length) { sent = log.length; countQuietLate(); } return; }
-    if (verifyFirst) {   // (3: a rejoin — the chunks read fresh first; an index already there is never sent again)
-      verifyFirst = false;
-      const m = matchId;
-      dbGet(dbRef(`${nodePath()}/c`)).then(snap => {
-        if (gone || m !== matchId) return;
-        const c = snap.val(), n = c ? Object.keys(c).length : 0;
-        if (n > chunkN) { chunkN = n; sent = Math.min(log.length, (logFromChunks(c) || []).length); countQuietLate(); }
-        flush(true);
-      }, () => flush(true));
-      return;
-    }
-    const now = performance.now();
-    if (!force && now - lastFlush < (isMatch ? CLOCK.flushMatchMs : CLOCK.flushMs)) return;
-    lastFlush = now;
-    while (sent < log.length && chunkN < CLOCK.chunks) {
-      let n = log.length - sent, s = packLog(log.slice(0, sent + n), sent);
-      while (s.length > CLOCK.chunkMax && n > 1) { n = Math.ceil(n / 2); s = packLog(log.slice(0, sent + n), sent); }
-      dbSet(dbRef(`${nodePath()}/c/${chunkN}`), { s, at: serverTimestamp() }).catch(() => { /* a refused chunk: the server simply can't count the run */ });
-      chunkN++; sent += n;
-    }
+  // THE PROOF PASS — THE PROOF WRITER (kit/proof-writer.js, HIGH RISE's too — the review's MUST 2 a): ONE burst at a time (the next chunk
+  // leaves once the one before is acknowledged), a REFUSED chunk is read back + sent again, the hops are NEVER dropped on the mirror alone
+  // (a mirror that says "the match moved on" only makes a refusal expected — (1) above now takes LATE_TRIES refusals), `e` behind the last
+  // chunk. A run's writer is its own (a late answer never touches the next run's). THE DAILY (its own node + rules): the old way (`pipe`).
+  let W = null;
+  function newWriter() {
+    if (W) W.close();   // (the run before: what it logged leaves now; its late answers touch nothing)
+    W = createProofWriter({
+      count: () => log.length, pack: (a, b) => packLog(log.slice(0, b), a), entriesOf: c => { const l = logFromChunks(c); return l ? l.length : -1; },
+      chunkMax: CLOCK.chunkMax, chunks: CLOCK.chunks, flushMs: () => (isMatch ? CLOCK.flushMatchMs : CLOCK.flushMs), left: matchLeft,
+      onLate: why => { lateProof(why); if (why === 'dropped') countQuietLate(); },
+      onDead: why => lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => m.reportError(new Error(`JAYWALK: the proof log could not be completed (${why}) — the run can not count`), 'rules')).catch(() => {}),
+      io: proofIo(nodePath), pipe: !!D,
+    });
   }
+  function flush(force) { if (proven && W) W.flush(force); }
   /** the run is over: the last chunk, then `e` — the host's step ends the match on it (a signal: never read as a score) */
   function onOver() {
     mode = 'over'; overAt = performance.now(); shotAt = overAt + shotMs(run, course); queue = [];
     awakeAt = 0; awake(false);   // (THE SOUND SYNC: the hold ends with the run — the hit's own sound plays out, then the context naps again)
     quiet();
     flush(true);
-    if (proven && !wroteE && !D && matchLeft()) { wroteE = true; lateProof('the end after the end'); countQuietLate(); }   // (CITY I: never `e` once the match left 'play')
-    if (proven && !wroteE && !D) { wroteE = true; dbUpdate(dbRef(nodePath()), { e: { l: run.best, t: run.bestT, w: String(run.cause || '').slice(0, 12) } }).catch(() => {}); }   // (THE DAILY: daily-run.js writes `e`)
+    sendEnd();
+  }
+  /** `e` — behind the last chunk's acknowledgement (the writer); once (THE DAILY: daily-run.js writes its own `e`) */
+  function sendEnd() {
+    if (!proven || wroteE || D || !W) return;
+    wroteE = true;
+    W.end({ l: run.best, t: run.bestT, w: String(run.cause || '').slice(0, 12) });
   }
   /** THE SHARE IMAGE's frame: the kid still clearly SEEN + what got him (shot.js#shotMs — per cause) — kept on this phone until the next run */
   function takeShot() {
@@ -648,8 +647,18 @@ export function createView() {
     // the course + tick 0 (H4B — logic.js#startOf: THE NODES ARE THE TRUTH): THE FIRST GO among the proof nodes the SERVER sent — in the
     // count and in `play` alike, exactly what the server's own count derives; the game's own only with no node to read (an UNPROVEN match)
     const S = startOf(g, runs, code);
-    if (S && (course.seed !== S.seed || go !== S.playAt)) { if (TEST) adopts.push({ at: Math.round(srvNow() - S.playAt), seed: S.seed, t: run.t, hops: log.length }); adoptMatch(S, runs); }
-    proven = haveGo && !g.unproven && mine(g);
+    // (THE PROOF PASS — the inbox, Nov 20 ~12:49 am (2), HIGH RISE S4B's own fix: never adopted from the game ALONE while the proof mirror
+    //  is still on its way — a refresh mid-match took the match with NO hops of its own replayed. A proven match in `play` always has a
+    //  node to read: wait for it.)
+    if (S && (course.seed !== S.seed || go !== S.playAt) && (runs || g.unproven)) { if (TEST) adopts.push({ at: Math.round(srvNow() - S.playAt), seed: S.seed, t: run.t, hops: log.length }); adoptMatch(S, runs); }
+    // (THE PROOF PASS: a GO of this phone's own that landed LATER than the window after THE FIRST GO is no run — the server drops it
+    //  (core/proof.js#onTime): nothing is written for it. On the re-published rules such a GO is refused.)
+    const myNode = runs ? runs[uid] : null;
+    lateGo = !!myNode && goOf(myNode) > 0 && !onTime(myNode, firstGo(runs));
+    proven = haveGo && !g.unproven && mine(g) && !lateGo;
+    // (THE PROOF PASS — A HOST HICCUP AT GO, the take-back (HIGH RISE's REVIEW FIX A): a run that ENDED while the match was marked
+    //  unproven never wrote its `e` — once proven again the end goes up now: Call the Winner opens, the match does not wait 18 s)
+    if (proven && mode === 'over' && !wroteE && run && isOver(run)) sendEnd();
     if (course !== START && runs) feedGhosts(g, runs);
   }
   function sync() {
@@ -680,7 +689,7 @@ export function createView() {
       reset();
       if (isMatch) root.classList.add('is-match');
       if (TEST) globalThis.__jwGame = {
-        state: () => ({ mode, proven, haveGo, matchId, go, seed: course.seed, t: run.t, st: run.st, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent, chunks: chunkN, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
+        state: () => ({ mode, proven, haveGo, matchId, go, seed: course.seed, t: run.t, st: run.st, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent: W ? W.state().sent : 0, chunks: W ? W.state().chunks : 0, acked: W ? W.state().acked : 0, lateGo, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
           lines: { best: lines.best, friends: lines.friends.map(f => `${f.n} ${f.v}`), record, shown: lineKey, flash: lanesEl.classList.contains('is-flash'), gold: lanesEl.classList.contains('is-record') },
           isMatch, watching, follow: followUid, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
           ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag, held: G.held, done: G.done, behind: G.behind, fade: +(G.fade || 0).toFixed(2), x: G.run.x / FP, name: G.name, shown: !!G.tagKey, text: G.tagEl.textContent })),
@@ -707,6 +716,7 @@ export function createView() {
       document.removeEventListener('visibilitychange', onVis);
       awake(false);   // (THE SOUND SYNC: a hold never outlives the view)
       if (mode === 'run' && run && !isOver(run)) flush(true);   // (a QUIT mid-run: what was hopped is in the proof)
+      if (W) W.close();   // (… what is logged leaves now, in order; nothing is tried again once the view is gone)
       if (offControls) offControls();
       if (final) final.destroy();
       quiet();

@@ -796,19 +796,53 @@ test('FR7 FIXES B — C5: the live rooms by the index — a stale room and the b
 // JAYWALK H1 — THE PROOF NODE (rooms/{CODE}/jw/{matchId}/{uid} — api/report.js#PROOF_TREES): written by the player AT GO → present = proven.
 // A player who wrote GO and never hopped (silent but present) still counts; a seated guest with no node does not. (H4: a match is the
 // server's replay of its proof nodes — at least one player must have hopped: a match where NOBODY ever did has nothing to count.)
-test('JAYWALK H1 — the proof node: GO alone proves a player (silent but present still counts); no node = a seat, never a play', async () => {
+// THE PROOF PASS (Nov 20 — the review's MUST 3 for JAYWALK, HIGH RISE's since REVIEW FIX A): A GO ALONE IS NOT A PLAYER — a match player
+// counts only with at least ONE HOP in the server's own replay of their node; + THE SERVER's TWO GUARDS (a node counts only with its GO; a
+// GO later than GO_WINDOW_MS after THE FIRST GO is no run); the tree's own stamp (`t0`) is never a player.
+test('JAYWALK H1 + THE PROOF PASS — the proof node: a GO alone is NOT a player (a hop in the server\'s replay is); no node = a seat, never a play; a late GO / a node without its GO = no run; the stamp is nobody', async () => {
   await ensure('u-jw1', 'JAYONE'); await ensure('u-jw2', 'JAYTWO');
   const J = await seedRoom('jaywalk', ['u-jw1', 'u-jw2']);
   assert.deepEqual(Object.keys(await val(`rooms/${J.code}/jw/${J.matchId}`)).sort(), ['u-jw1', 'u-jw2'], 'both wrote GO — nothing else');
   await rejects(report('u-jw1', J), 409, 'unverifiable');   // (H4: nobody hopped at all — nothing to replay, nothing counted)
   // one hop by the first player (half a second after tick 0 = THE FIRST GO + 2 s, stamped on time): the second stays silent
-  const hopOnce = async (R, u) => { const n = await val(`rooms/${R.code}/jw/${R.matchId}`), g0 = Math.min(...Object.values(n).map(x => x.go)); await ref(`rooms/${R.code}/jw/${R.matchId}/${u}/c/0`).set({ s: 'Uu', at: g0 + 2000 + 700 }); };
+  const hopOnce = async (R, u) => { const n = await val(`rooms/${R.code}/jw/${R.matchId}`), g0 = Math.min(...Object.values(n).filter(x => x && x.go > 0).map(x => x.go)); await ref(`rooms/${R.code}/jw/${R.matchId}/${u}/c/0`).set({ s: 'Uu', at: g0 + 2000 + 700 }); };
   await hopOnce(J, 'u-jw1');
+  await rejects(report('u-jw2', J), 403, 'not_in_match');   // (the GO-only seat's own report: it did not play)
   const r = await report('u-jw1', J);
   assert.equal(r.status, 'counted');
-  assert.equal(r.outcome.n, 2, 'a 2-player match: the silent player counts');
+  assert.equal(r.outcome.n, 1, 'one player hopped, the other only wrote GO: ONE real player — the solo rule, never a "2-player match"');
+  assert.equal(r.outcome.win, false, 'no win over a seat that never played');
   const o = (await val(`results/${J.code}_${J.matchId}`)).o;
-  assert.ok(o[await val('uids/u-jw1')] && o[await val('uids/u-jw2')], 'both credited');
+  assert.ok(o[await val('uids/u-jw1')] && !o[await val('uids/u-jw2')], 'the GO-only seat is not credited');
+  tick();
+  // BOTH hop (the tree carries its stamp — nobody's node): a 2-player match, both credited
+  await ensure('u-jw5', 'JAYFIVE'); await ensure('u-jw6', 'JAYSIX');
+  const B = await seedRoom('jaywalk', ['u-jw5', 'u-jw6']);
+  await hopOnce(B, 'u-jw5'); await hopOnce(B, 'u-jw6');
+  await ref(`rooms/${B.code}/jw/${B.matchId}/t0`).set(Math.min(...Object.values(await val(`rooms/${B.code}/jw/${B.matchId}`)).filter(x => x && x.go > 0).map(x => x.go)) - 3);
+  const rb2 = await report('u-jw5', B);
+  assert.equal(rb2.outcome.n, 2, 'two players who each hopped: a 2-player match (the stamp is no third)');
+  const ob = (await val(`results/${B.code}_${B.matchId}`)).o;
+  assert.ok(ob[await val('uids/u-jw5')] && ob[await val('uids/u-jw6')] && Object.keys(ob).length === 2, 'both credited — and nobody called t0');
+  tick();
+  // GUARD 2 — a GO later than the window after THE FIRST GO (the host GOes alone early, the rival is added later): the late run is dropped
+  await ensure('u-jw7', 'JAYEARLY'); await ensure('u-jw8', 'JAYLATE');
+  const L = await seedRoom('jaywalk', ['u-jw7', 'u-jw8']);
+  const g0L = (await val(`rooms/${L.code}/jw/${L.matchId}/u-jw7/go`));
+  await ref(`rooms/${L.code}/jw/${L.matchId}/u-jw8/go`).set(g0L + 5001);
+  await ref(`rooms/${L.code}/jw/${L.matchId}/u-jw7/c/0`).set({ s: 'Uu', at: g0L + 2700 });
+  await ref(`rooms/${L.code}/jw/${L.matchId}/u-jw8/c/0`).set({ s: 'Uu', at: g0L + 2000 + 5001 + 700 });
+  await rejects(report('u-jw8', L), 403, 'not_in_match');
+  const rl = await report('u-jw7', L);
+  assert.deepEqual([rl.outcome.n, rl.outcome.win], [1, false], 'the early bird is left a solo run — never a win over rivals who could not start with him');
+  tick();
+  // GUARD 1 — a node of chunks with no GO (the tree deleted under the match, the rival's chunks written on): not a player
+  await ensure('u-jw9', 'JAYKEEP'); await ensure('u-jwa', 'JAYGONE');
+  const G = await seedRoom('jaywalk', ['u-jw9', 'u-jwa']);
+  await hopOnce(G, 'u-jw9'); await hopOnce(G, 'u-jwa');
+  await ref(`rooms/${G.code}/jw/${G.matchId}/u-jwa/go`).set(null);
+  const rg = await report('u-jw9', G);
+  assert.deepEqual([rg.outcome.n, rg.outcome.win], [1, false], 'a node without its GO proves nobody');
   tick();
   await ensure('u-jw3', 'JAYHOST'); await ensure('u-jw4', 'JAYSEAT');
   const S = await seedRoom('jaywalk', ['u-jw3', 'u-jw4'], { noProof: ['u-jw4'] });
@@ -1199,7 +1233,7 @@ test('HIGH RISE S4B → THE GO-LIVE — THE MATCH: every run from the SERVER\'s 
   tick();
 });
 
-test('JAYWALK H4 — THE MATCH: every run from the SERVER\'s replay, the owner\'s guests counted, the silent player credited, a report after the rematch, the gates', async () => {
+test('JAYWALK H4 — THE MATCH: every run from the SERVER\'s replay, the owner\'s guests counted, the silent player NOT a player (THE PROOF PASS: a GO alone is not a play), a report after the rematch, the gates', async () => {
   const { seedOf, GO_LEAD_MS, standings } = await import('../../js/games/jaywalk/logic.js');
   const { createCourse } = await import('../../js/games/jaywalk/course.js');
   const { createRun, step, isOver } = await import('../../js/games/jaywalk/engine.js');
@@ -1251,10 +1285,12 @@ test('JAYWALK H4 — THE MATCH: every run from the SERVER\'s replay, the owner\'
   assert.equal(ra.status, 'counted', 'a guest in the owner\'s room reports — counted');
   const done = await val(`results/${code}_${A.matchId}`);
   assert.equal(done.src, 'room');
-  assert.deepEqual(Object.keys(done.o || {}).sort(), [...P].sort(), 'ALL THREE are credited — the two guests + the silent-but-present player included');
+  assert.deepEqual(Object.keys(done.o || {}).sort(), [P[0], P[1]].sort(), 'the two who HOPPED are credited — the silent seat (a GO, never a hop) is not a player (THE PROOF PASS)');
+  assert.equal(done.n, 2, 'the match pays as a 2-player match — never 3');
   assert.equal(!!ra.outcome.win, false, `the placings are the SERVER's replay (the winner: ${NAME[U.indexOf(top)]}, ${A.live[top].l} lanes) — never the host's forged 99,999 for the reporter`);
   assert.equal(!!done.o[P[U.indexOf(top)]].win, true, 'the farthest run wins');
-  assert.ok(done.o[P[2]] && !done.o[P[2]].win, 'the silent player: credited as played, never a win');
+  assert.equal(done.o[P[2]], undefined, 'the silent player: nothing — no match played, no loss, no XP');
+  assert.equal((await report(U[2], A, clock + 2000)).outcome, null, 'the silent seat\'s own report: the match is done — nothing for them');
   // (the server's own match: the seed + tick 0 from THE FIRST GO, the rows = each node's replay — the same lanes the logs really reached)
   const SV = jaywalkMatch({ code, matchId: A.matchId, uids: U, nodes: A.nodes });
   assert.equal(SV.game.seed, A.seed); assert.equal(SV.game.playAt, A.playAt);
@@ -1263,11 +1299,12 @@ test('JAYWALK H4 — THE MATCH: every run from the SERVER\'s replay, the owner\'
   // ---- a report landing AFTER THE REMATCH: the room moved on — the proof nodes + the night record still credit everyone
   tick(60_000);
   const B = await seedMatch({ moved: true, ticks: [900, 1500, 0] });
-  const rb = await report(U[2], B);
+  await rejects(report(U[2], B), 403, 'not_in_match');   // (THE PROOF PASS: the silent seat's report of a match it never played in)
+  const rb = await report(U[0], B);
   assert.equal(rb.status, 'counted', 'the room is already on the next match: still counted');
   const doneB = await val(`results/${code}_${B.matchId}`);
   assert.equal(doneB.src, 'proof', 'from the proof nodes');
-  assert.deepEqual(Object.keys(doneB.o || {}).sort(), [...P].sort(), 'everyone the night record names (with their own proof) is credited');
+  assert.deepEqual(Object.keys(doneB.o || {}).sort(), [P[0], P[1]].sort(), 'everyone the night record names WITH A HOP of their own is credited');
   // ---- THE OWNER'S LIVE TEST (generic — kept for the next game being built): while a game is being built, a match the owner did NOT play
   // is never counted (the row flipped back in-process); playable (THE GO-LIVE PASS), the same match IS counted
   tick(60_000);

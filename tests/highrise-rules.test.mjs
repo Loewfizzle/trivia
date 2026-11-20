@@ -131,12 +131,13 @@ test('THE LIVE LOCK (the rules gap jw + hr shared): the host deletes ONE match\'
   for (const [node, gid] of [['jw', 'jaywalk'], ['hr', 'highrise']]) {
     assert.equal(rules[node]['.write'], undefined, `${node}: the WHOLE node is never the host's to delete (it was — refused only by game/phase, which the host writes)`);
     const w = rules[node].$match['.write'];
-    assert.ok(w.endsWith(" && (!data.exists() || (data.child(auth.uid).child('go').isNumber() && data.child(auth.uid).child('go').val() < now - 600000))"), `${node}: THE LOCK — his own GO, 10 min, or a tree that is not there`);
+    // (THE PROOF PASS, Nov 20: a tree that carries THE STAMP unlocks by ITS STAMP's age — tests/proof-pass.test.mjs; without one: his own GO, as S4B)
+    assert.ok(w.endsWith(" && (!data.exists() || (data.child('t0').isNumber() ? data.child('t0').val() < now - 600000 : (data.child(auth.uid).child('go').isNumber() && data.child(auth.uid).child('go').val() < now - 600000)))"), `${node}: THE LOCK — the stamp (or, without one, his own GO), 10 min, or a tree that is not there`);
     assert.ok(w.includes(`newData.parent().parent().child('game/id').val() === '${gid}'`) && w.includes('!newData.exists()') && w.includes("/meta/hostId').val() === auth.uid"), `${node}: … on top of what it always asked (the host, a delete, not the live match)`);
     for (const leaf of ['go', 'c', 'e', 'k']) assert.ok(rules[node].$match.$uid[leaf], `${node}/${leaf} untouched`);
   }
   const rs = rules.hr.$match.$uid.rs;
-  assert.ok(rs['.write'].includes('auth.uid === $uid') && rs['.write'].includes('newData.exists() && !data.exists()') && rs['.write'].includes("'/go').exists()") && rs['.write'].includes("!newData.parent().child('e').exists() && !newData.parent().child('c').exists()"), 'rs: own uid, once, after GO, before the end AND before the log\'s first chunk (never in one write with either)');
+  assert.ok(rs['.write'].includes('auth.uid === $uid') && rs['.write'].includes('newData.exists() && !data.exists()') && rs['.write'].includes("'/go').isNumber()") && rs['.write'].includes("!newData.parent().child('e').exists() && !newData.parent().child('c').exists()"), 'rs: own uid, once, after GO, before the end AND before the log\'s first chunk (never in one write with either)');
   assert.equal(rs['.validate'], 'newData.isString() && newData.val().length >= 1 && newData.val().length <= 16 && newData.val().matches(/^[a-z0-9-]+$/)'); assert.equal(RULES_ID_MAX, 16);
   // the client: only what the rules allow is ever asked (one refused path would take the whole prune down)
   const { staleProofPaths, proofUnlocked, PROOF_LOCK_MS, PROOF_LOCK_SLACK_MS } = await import('../js/core/room-logic.js');

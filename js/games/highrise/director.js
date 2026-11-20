@@ -14,6 +14,7 @@
 import { cleanSettings } from './meta.js';
 import { modeOf, matchStart, seedOf } from './logic.js';
 import { judgeSolo, judgeNode, matchRules } from './proof.js';
+import { onTime } from '../../core/proof.js';
 import { COUNT_MS, NO_GO_MS, END_GRACE_MS, UNPROVEN_MS, startOf, capAt, endedFor, scoreCalls, goBeforeGiveUp } from './match.js';
 
 /** the match (start() adds nothing else): `now` = the moment the MATCH begins (after the walk inside) */
@@ -45,6 +46,8 @@ export function scoreNode(code, matchId, node) {
 /** S4B — a MATCH's node: judged on THE FIRST GO's seed + clock (tick 0 = game.playAt — exactly as the server's highriseMatch does) */
 export function scoreMatchNode(game, node, rules = null) {
   if (!node || !(Number(node.go) > 0) || !game.seed) return { ...NONE };
+  // (THE PROOF PASS — the server's guard, on the host's podium too: a GO later than the window after THE FIRST GO is no tower)
+  if (game.g0 > 0 && !onTime(node, game.g0)) return { ...NONE, bad: 'late go' };
   return rowOf(judgeNode({ seed: game.seed, mode: 'match', node: { ...node, go: game.playAt }, mirror: true, rules }), node, false);
 }
 function finalPatch(game0, runs, now, code) {

@@ -173,4 +173,11 @@ export function staleProofPaths(trees, keep = [], lock = null) {
 export const PROOF_LOCK_MS = 600_000;
 /** the phone's estimate of the server's clock is never trusted to the second */
 export const PROOF_LOCK_SLACK_MS = 30_000;
-export const proofUnlocked = (tree, uid, now) => { const go = Number(tree && tree[uid] && tree[uid].go); return go > 0 && go < now - PROOF_LOCK_MS - PROOF_LOCK_SLACK_MS; };
+/** THE PROOF PASS (Nov 20 — the review's MUST 2 b, THE PRE-DATED GO: the host wrote his GO under a FUTURE match id, waited 10 min, started
+ *  that match and deleted its live tree): a tree that carries THE STAMP (`t0` — core/proof.js: the server's time of its first write; every
+ *  GO in it is within 5 s of it) unlocks by ITS STAMP's age, whoever the host is; a tree without one (before the re-publish, an old
+ *  phone's) by the host's own GO, as before. The rules say the same (database.rules.json `jw/$match` · `hr/$match`). */
+export const proofUnlocked = (tree, uid, now) => {
+  const t0 = tree && typeof tree.t0 === 'number' ? tree.t0 : 0, go = t0 > 0 ? t0 : Number(tree && tree[uid] && tree[uid].go);
+  return go > 0 && go < now - PROOF_LOCK_MS - PROOF_LOCK_SLACK_MS;
+};

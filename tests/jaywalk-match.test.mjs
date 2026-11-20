@@ -222,7 +222,9 @@ test('CALL THE WINNER: a right call (made once out, on a player still in, in tim
   // a out at 10 s (lane 12) · b out at 30 s (lane 40) · c out at 50 s (lane 90 — the farthest) · d out at 60 s (lane 70) · e TAKEN at the cap (lane 60)
   const results = { a: { l: 12, t: sec(9), e: sec(10) }, b: { l: 40, t: sec(29), e: sec(30) }, c: { l: 90, t: sec(49), e: sec(50) }, d: { l: 70, t: sec(58), e: sec(60) }, e: { l: 60, t: sec(200), e: T.MODES.match.cap, x: 1 } };
   const outAt = u => playAt + msOf(results[u].e);
-  const call = (u, w, dt = 4000) => ({ [u]: { k: { w, at: outAt(u) + dt } } });
+  // (THE PROOF PASS: every player's node carries its GO — a player with NO run can not be named, and is not counted as "still in")
+  const GO = playAt - 2000, go = r => { const o = {}; for (const u of ['a', 'b', 'c', 'd', 'e']) o[u] = { go: GO, ...(r[u] || {}) }; return o; };
+  const call = (u, w, dt = 4000) => go({ [u]: { k: { w, at: outAt(u) + dt } } });
   assert.deepEqual(scoreCalls(game, call('a', 'c'), results), { a: { w: 'c', ok: true, bonus: callBonus(4) } }, 'a called c with 4 still in');
   assert.equal(callBonus(4), 1.2); assert.equal(CALL_WINDOW_MS, CALL_MS + 6000);
   assert.deepEqual(scoreCalls(game, call('b', 'c'), results).b, { w: 'c', ok: true, bonus: callBonus(3) }, 'fewer still in: a smaller bonus');
@@ -232,8 +234,15 @@ test('CALL THE WINNER: a right call (made once out, on a player still in, in tim
   assert.deepEqual(scoreCalls(game, call('b', 'a'), results), {}, 'a was already out');
   assert.deepEqual(scoreCalls(game, call('a', 'a'), results), {}, 'never yourself');
   assert.deepEqual(scoreCalls(game, call('a', 'zz'), results), {}, 'not a player');
-  assert.deepEqual(scoreCalls(game, { e: { k: { w: 'c', at: playAt + 1000 } } }, results), {}, 'a taken player was never out');
-  assert.deepEqual(scoreCalls(game, { a: { k: { w: 'c' } } }, results), {}, 'a call without the server\'s time');
+  assert.deepEqual(scoreCalls(game, go({ e: { k: { w: 'c', at: playAt + 1000 } } }), results), {}, 'a taken player was never out');
+  assert.deepEqual(scoreCalls(game, go({ a: { k: { w: 'c' } } }), results), {}, 'a call without the server\'s time');
+  // THE PROOF PASS — the inbox's (3) + the review's NICE: a player with NO RUN is never "still in"; a FULL DRAW pays nobody
+  const noRun = call('a', 'c'); delete noRun.b.go;
+  assert.deepEqual(scoreCalls(game, noRun, results).a, { w: 'c', ok: true, bonus: callBonus(3) }, 'b has no run: three were still in, not four');
+  const late = call('a', 'c'); late.c.go = GO + 5001;
+  assert.deepEqual(scoreCalls(game, late, results), {}, 'the named player\'s GO was past the window: no run, no call');
+  const draw = Object.fromEntries(['a', 'b', 'c', 'd', 'e'].map((u, i) => [u, { l: 0, t: 0, e: sec(10 + i) }]));
+  assert.deepEqual(scoreCalls(game, call('a', 'e'), draw), {}, 'everyone tied for first: a full draw pays nobody');
   assert.deepEqual(scoreCalls(game, call('d', 'e'), results).d, { w: 'e', ok: false, bonus: 0 }, 'e was still in (taken later) — but c won');
   // a tie for first: either of the two is a right call
   const tied = { ...results, d: { l: 90, t: sec(49), e: sec(60) } };
@@ -340,4 +349,75 @@ test('A LOG FROM THE FUTURE IS REFUSED · a chunk clock that runs backwards is r
   assert.equal(verifyRun({ seed: LONG.seed, mode: 'solo', log: logFromChunks(future.c), go: LONG.go, times: chunkTimes(future.c) }).why, 'ahead of the clock');
   assert.deepEqual(scoreRun({ mode: 'solo', matchId: LONG.matchId, participants: { a: true } }, future, LONG.go + 60_000, CODE), { l: 0, t: 0, w: 'wall', e: scoreRun({ mode: 'solo', matchId: LONG.matchId, participants: { a: true } }, { go: LONG.go }, LONG.go + 60_000, CODE).e, y: 0, px: 4500, bad: 'ahead of the clock', go: LONG.go }, 'the host\'s podium says the same: a kid who never hopped, named');
   assert.equal(tickAt({ playAt: T0 }, T0 + 1000), T.TICK_HZ);
+});
+
+// ---- THE PROOF PASS (Nov 20 — docs/games/passes/proof-pass.md): the review's MUST 2 step 1 (THE SERVER's TWO GUARDS) + MUST 3 + SHOULD 1, for JAYWALK
+test('THE PROOF PASS — THE SERVER\'S TWO GUARDS + A GO ALONE IS NOT A PLAYER: a node counts only with a GO; a GO later than the window after THE FIRST GO is no run (the early-first-GO host wins nothing); `played` = a hop the server replayed; the host\'s podium says the same', async () => {
+  const { GO_WINDOW_MS, goUids, firstGo: coreFirstGo, T0_KEY } = await import('../js/core/proof.js');
+  const { JW_PLAYED_HOPS } = await import('../api/_lib/jaywalk.js');
+  const { S, at, last } = MATCH, now = last + 400, nodes = at(now), uids = ['a', 'b', 'c'];
+  assert.equal(firstGo, coreFirstGo, 'ONE firstGo — core/proof.js (HIGH RISE\'s too)');
+  // an honest match: a + b hopped, c only wrote GO (silent) — c is NOT a player any more
+  const J = jaywalkMatch({ code: CODE, matchId: 'm0', uids, nodes });
+  assert.deepEqual(J.played, ['a', 'b'], 'the players = the uids with a hop in the server\'s own replay (c wrote GO and never hopped)');
+  assert.equal(JW_PLAYED_HOPS, 1);
+  assert.ok(!J.game.results.c.bad && J.game.results.c.l === 0, 'c still has a row (the blackout took the kid) — it is the COUNT that drops them');
+  // the tree's own stamp is never a player, never a GO
+  const stamped = { ...nodes, [T0_KEY]: S.g0 - 3 };
+  assert.deepEqual(jaywalkMatch({ code: CODE, matchId: 'm0', uids, nodes: stamped }).game.results, J.game.results, 'the stamp changes nothing');
+  assert.equal(firstGo(stamped), S.g0); assert.deepEqual(goUids(stamped).sort(), ['a', 'b', 'c']);
+  // GUARD 1 — a node counts only with a GO: a's GO gone (the tree deleted under the match, a's chunks written on) → no run, not a player
+  const noGo = { ...nodes, a: { c: nodes.a.c, e: nodes.a.e } };
+  const G1 = jaywalkMatch({ code: CODE, matchId: 'm0', uids, nodes: noGo });
+  assert.equal(G1.game.results.a.bad, 'no go'); assert.deepEqual(G1.played, ['b']); assert.deepEqual(goUids(noGo).sort(), ['b', 'c'], 'report.js#provenUids: a node of chunks alone proves nobody');
+  // GUARD 2 — a GO later than the window after THE FIRST GO is no run
+  const late = { ...nodes, a: { ...nodes.a, go: S.g0 + GO_WINDOW_MS + 1 } };
+  const G2 = jaywalkMatch({ code: CODE, matchId: 'm0', uids, nodes: late });
+  assert.deepEqual([G2.game.results.a.bad, G2.game.results.a.l, G2.played], ['late go', 0, ['b']], 'a\'s long run is not in this match');
+  const edge = { ...nodes, a: { ...nodes.a, go: S.g0 + GO_WINDOW_MS } };
+  assert.ok(!jaywalkMatch({ code: CODE, matchId: 'm0', uids, nodes: edge }).game.results.a.bad, 'the window\'s last millisecond is in');
+  assert.equal(GO_WINDOW_MS, 5000);
+  // … THE EARLY FIRST GO (hole c): the host GOes ALONE 20 s early — everyone else's GO is then "late": he is left a solo run, never a win
+  const early = { ...nodes, c: { go: S.g0 - 20000, c: nodes.b.c } };
+  const G3 = jaywalkMatch({ code: CODE, matchId: 'm0', uids, nodes: early });
+  assert.deepEqual([G3.game.results.a.bad, G3.game.results.b.bad], ['late go', 'late go'], 'the rivals who GOed 20 s after him have no run in HIS match');
+  assert.ok(G3.played.every(u => u === 'c') && G3.played.length <= 1, 'at most the early bird himself played — one real player = the solo rule (api/report.js)');
+  // the host's podium (the director's scoring) agrees with the server on both guards
+  const g1 = { ...createGame({ matchId: 'm0', settings: {}, participants: { a: true, b: true, c: true }, now: T0, seed: 'x' }), phase: 'play', playAt: S.playAt, seed: S.seed, g0: S.g0 };
+  assert.equal(scoreRuns(g1, late, now, CODE).a.bad, 'late go'); assert.equal(scoreRuns(g1, noGo, now, CODE).a.bad, 'no go');
+  assert.deepEqual(scoreRuns(g1, nodes, now, CODE), J.game.results, 'an honest match: the podium = the server, row for row (as before)');
+  // the report reads `played`
+  const rep = (await import('node:fs')).readFileSync(new URL('../api/report.js', import.meta.url), 'utf8');
+  assert.ok(rep.includes('judged = M.game.results[uid] || null; matchPlayed = new Set(M.played || []);') && rep.includes('if (GO_TREES.has(gid)) { for (const u of goUids(t)) out.add(u); continue; }'));
+});
+
+test('THE PROOF PASS — A HOST HICCUP AT GO (HIGH RISE\'s REVIEW FIX A, ported): the host saw no GO for NO_GO_MS and marked the match UNPROVEN after everyone had started — a FIRST GO stamped BEFORE it gave up takes the mark back; one stamped after never moves a match on its stand-in', async () => {
+  const { startOf, goBeforeGiveUp } = await import('../js/games/jaywalk/logic.js');
+  const g0 = createGame({ matchId: 'm0', settings: {}, participants: { a: true, b: true, c: true }, now: T0, seed: 'x' });
+  const giveUp = g0.playAt + NO_GO_MS, u = nextStep(g0, { now: giveUp, live: { runs: {} }, code: CODE });
+  assert.ok(u.unproven === 1 && u.phaseStartAt === giveUp, 'the host\'s mirror was empty: it gave up');
+  const gu = { ...g0, ...u };
+  // the GOs were there all along (stamped in the count's last 2 s — before the give-up)
+  const runs = { a: { go: g0.playAt - 1800 }, b: { go: g0.playAt - 1750 }, c: { go: g0.playAt - 1600 } }, S = matchStart(CODE, 'm0', runs);
+  assert.ok(goBeforeGiveUp(gu, S));
+  assert.deepEqual(startOf(gu, runs, CODE), S, 'a phone reads the GO from the nodes, unproven mark or not — it never leaves the GO\'s course');
+  const back = nextStep(gu, { now: giveUp + 2500, live: { runs }, code: CODE });
+  assert.deepEqual(back, { phase: 'play', phaseStartAt: S.playAt, playAt: S.playAt, seed: S.seed, g0: S.g0, unproven: null }, 'the mark is taken back: the GO\'s course + tick 0 (the patch moves the phase stamp — THE 3 S RULE)');
+  const gp = { ...gu, ...back }; delete gp.unproven;
+  assert.equal(nextStep(gp, { now: giveUp + 3000, live: { runs }, code: CODE, online: { a: true, b: true, c: true } }), null, 'the match runs on as a proven one');
+  assert.deepEqual(startOf(gp, runs, CODE), S);
+  // the match is then scored + counted as normal (the same rows as a match that never hiccuped)
+  const { at, last } = MATCH;
+  // a GO stamped AFTER the give-up (a phone that came back later) never moves a match already running on its stand-in
+  const lateRuns = { a: { go: giveUp + 900 } }, L = matchStart(CODE, 'm0', lateRuns);
+  assert.ok(!goBeforeGiveUp(gu, L));
+  assert.deepEqual(startOf(gu, lateRuns, CODE), { g0: 0, playAt: gu.playAt, seed: gu.seed }, 'the phones stay on the stand-in');
+  assert.equal(nextStep(gu, { now: giveUp + 2500, live: { runs: lateRuns }, code: CODE }), null, 'the host does not take the mark back');
+  assert.equal(nextStep(gu, { now: gu.playAt + UNPROVEN_MS, live: { runs: lateRuns }, code: CODE }).phase, 'final', 'it ends by its clock, never counted');
+  void at; void last;
+  // the view: a run that ended while the match was marked unproven sends its end once proven again; a refresh never adopts from the game alone
+  const v = (await import('node:fs')).readFileSync(new URL('../js/games/jaywalk/view.js', import.meta.url), 'utf8');
+  assert.ok(v.includes("if (proven && mode === 'over' && !wroteE && run && isOver(run)) sendEnd();"), 'the end goes up once proven again — the match does not wait 18 s');
+  assert.ok(v.includes('if (S && (course.seed !== S.seed || go !== S.playAt) && (runs || g.unproven)) {'), 'never adopted from the game alone while the proof mirror is on its way (the inbox, Nov 20 — HIGH RISE S4B\'s own fix)');
+  assert.ok(v.includes('lateGo = !!myNode && goOf(myNode) > 0 && !onTime(myNode, firstGo(runs));') && v.includes('proven = haveGo && !g.unproven && mine(g) && !lateGo;'), 'a GO of this phone\'s own past the window: nothing is written for it');
 });

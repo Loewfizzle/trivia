@@ -7,6 +7,7 @@
 import { judgeRun, seedProblem, logFromChunks, chunkTimes } from '../../js/games/jaywalk/replay.js';
 import { MODES } from '../../js/games/jaywalk/tuning.js';
 import { seedOf, matchStart, scoreNode, scoreCalls, featsOf } from '../../js/games/jaywalk/logic.js';
+import { onTime, goOf } from '../../js/core/proof.js';
 
 export { logFromChunks, seedOf };
 
@@ -58,22 +59,31 @@ export function jaywalkSolo({ code, matchId, uid, node }) {
 /**
  * H4 — A MATCH, THE SERVER'S OWN (PURE): every named player's run REPLAYED from their own proof node — the SAME judge the host's podium
  * ran (logic.js#scoreNode). The course + tick 0 come from THE FIRST GO among the match's nodes (logic.js#matchStart) — nothing the host
- * wrote is read: not game.seed, not game.playAt, not game.results. A silent-but-present player (a GO, no hops) has a run — the blackout's;
- * a named player with no node has none (A SEAT IS NOT A PLAY — the report drops them). The room's game may be GONE (a rematch): the proof
- * nodes + the night record are enough. → { game (`sv` 1) | null (no GO at all, or nobody ever hopped — nothing to count), why? }
+ * wrote is read: not game.seed, not game.playAt, not game.results. A named player with no node has no run (A SEAT IS NOT A PLAY — the
+ * report drops them). The room's game may be GONE (a rematch): the proof nodes + the night record are enough.
+ * THE PROOF PASS (Nov 20 — the review's MUST 2 step 1 + MUST 3, for JAYWALK): THE SERVER's TWO GUARDS + "a GO alone is not a player" —
+ *   · a node counts only with a GO (a node of chunks alone — its GO deleted with the tree, a host's trick — is no run: 'no go')
+ *   · a GO later than GO_WINDOW_MS after THE FIRST GO is no run ('late go' — the host who GOes alone early and adds the rivals later
+ *     wins nothing: their runs are dropped, he is left a solo run)
+ *   · `played` = the uids whose run THE JUDGE counted at least ONE HOP of (JW_PLAYED_HOPS) — a seat that only wrote GO is not a player: the
+ *     report counts + credits only these (api/report.js — HIGH RISE's hrPlayed, the same rule)
+ * → { game (`sv` 1), played } | { game: null, why } (no GO at all, or nobody ever hopped — nothing to count)
  */
+/** a JAYWALK match player = at least this many hops in THE SERVER's own replay of their node (a refused log counts none) */
+export const JW_PLAYED_HOPS = 1;
 export function jaywalkMatch({ code, matchId, uids, nodes }) {
   const S = matchStart(String(code), String(matchId), nodes), ids = (uids || []).filter(u => typeof u === 'string');
   if (!S || ids.length < 2) return { game: null, why: S ? 'players' : 'no go' };
-  if (!ids.some(u => nodes[u] && nodes[u].c != null)) return { game: null, why: 'no hops' };
-  const results = {}, participants = {};
+  if (!ids.some(u => onTime(nodes[u], S.g0) && nodes[u].c != null)) return { game: null, why: 'no hops' };
+  const results = {}, participants = {}, played = [];
   for (const u of ids) {
     participants[u] = true;
-    const node = nodes && nodes[u];
-    results[u] = node && Number(node.go) > 0 ? scoreNode({ seed: S.seed, mode: 'match', node, t0: S.playAt, from: S.g0 }) : { l: 0, t: 0, w: '', e: -1, bad: 'no go' };
+    const node = nodes && nodes[u], o = { hops: 0 };
+    results[u] = onTime(node, S.g0) ? scoreNode({ seed: S.seed, mode: 'match', node, t0: S.playAt, from: S.g0, out: o }) : { l: 0, t: 0, w: '', e: -1, bad: goOf(node) ? 'late go' : 'no go' };
+    if (o.hops >= JW_PLAYED_HOPS) played.push(u);
   }
   const game = { id: 'jaywalk', matchId, phase: 'final', mode: 'match', sv: 1, seed: S.seed, playAt: S.playAt, g0: S.g0, participants, settings: {}, results };
   const calls = scoreCalls(game, nodes, results);
   if (Object.keys(calls).length) game.calls = calls;
-  return { game };
+  return { game, played };
 }

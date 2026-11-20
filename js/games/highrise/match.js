@@ -6,6 +6,7 @@
 import { CALL_MS, callBonus } from '../../core/playlist.js';
 import { TICK_HZ, MODES } from './tuning.js';
 import { matchStart, gameStandings } from './logic.js';
+import { firstGo, inMatch, fullDraw } from '../../core/proof.js';
 
 export { CALL_MS };
 export const COUNT_MS = 3000;             // (3 · 2 · 1 before GO)
@@ -71,10 +72,12 @@ export const endedFor = (game, node, now, online) => !!(node && node.e) || now >
  */
 export function scoreCalls(game, runs, results) {
   const out = {}, ids = Object.keys(game.participants || {}), first = gameStandings({ participants: game.participants, results }).filter(r => r.rank === 1).map(r => r.uid);
-  const endOf = u => { const r = results[u] || {}; return stoodToEnd(r) || !(r.e >= 0) ? Infinity : r.e; };
+  // (THE PROOF PASS — core/proof.js: a player with NO RUN (no GO on time) is never "still in" (they ended before anyone: −1); a FULL DRAW pays nobody)
+  const g0 = firstGo(runs), endOf = u => { const r = results[u] || {}; return !inMatch(runs, u, g0) ? -1 : stoodToEnd(r) || !(r.e >= 0) ? Infinity : r.e; };
+  if (fullDraw(first, ids)) return out;
   for (const uid of ids) {
     const k = runs && runs[uid] && runs[uid].k, mine = endOf(uid);
-    if (!k || typeof k.w !== 'string' || k.w === uid || !game.participants[k.w] || mine === Infinity) continue;
+    if (!k || typeof k.w !== 'string' || k.w === uid || !game.participants[k.w] || mine === Infinity || mine < 0) continue;
     const outAt = game.playAt + mine * 1000 / TICK_HZ;
     if (!(endOf(k.w) > mine) || !(Number(k.at) <= outAt + CALL_WINDOW_MS)) continue;
     const rem = ids.filter(u => u !== uid && endOf(u) > mine).length, ok = first.includes(k.w);

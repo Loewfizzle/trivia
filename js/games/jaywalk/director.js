@@ -10,7 +10,7 @@
 //     moment + a grace. The results are THE JUDGE's replay of each player's log (logic.js#scoreRuns), never their claim.
 // H3 — THE SOLO RUN: no count (PLAY NOW's walk inside is the wait) — `play` from the start; the run's own clock starts at the PLAYER's GO
 // (their proof node's server timestamp — the course is picked from it: logic.js#seedOf), never at game.playAt.
-import { cleanSettings, modeOf, capAt, scoreRuns, scoreCalls, matchStart, startOf, seedOf, COUNT_MS, END_GRACE_MS, NO_GO_MS, DROP_WAIT_MS } from './logic.js';
+import { cleanSettings, modeOf, capAt, scoreRuns, scoreCalls, matchStart, startOf, seedOf, goBeforeGiveUp, COUNT_MS, END_GRACE_MS, NO_GO_MS, DROP_WAIT_MS } from './logic.js';
 
 /** a kid nobody moves is out within this (the blackout: 8 lanes behind at the start + its 3 s wait — ≈ 16 s; ≤ 9 s later on) */
 export const IDLE_OUT_MS = 18000;
@@ -63,7 +63,14 @@ export function nextStep(game, { now, live, code = '', online = null } = {}) {
   if (game.mode === 'solo') return ids.length > 0 && ids.every(u => runs[u] && runs[u].e) ? finalPatch(game, runs, now, code) : null;
   const cap = capAt(game);
   if (cap != null && now >= cap + END_GRACE_MS) return finalPatch(game, runs, now, code);
-  if (game.unproven) return now >= game.playAt + UNPROVEN_MS ? finalPatch(game, runs, now, code) : null;
+  if (game.unproven) {
+    // (THE PROOF PASS — A HOST HICCUP AT GO (HIGH RISE's REVIEW FIX A, SHOULD 1, ported): a FIRST GO the server stamped before this host
+    //  gave up = a hiccup of the host's, not a match without proof: the unproven mark is taken back and the match runs on the GO's
+    //  course + tick 0 — the phones' own startOf already does. A GO stamped after the give-up never moves a match on its stand-in.)
+    const S = matchStart(code, game.matchId, runs);
+    if (goBeforeGiveUp(game, S)) return { phase: 'play', phaseStartAt: S.playAt, playAt: S.playAt, seed: S.seed, g0: S.g0, unproven: null };
+    return now >= game.playAt + UNPROVEN_MS ? finalPatch(game, runs, now, code) : null;
+  }
   const done = ids.length > 0 && ids.every(u => endedFor(game, runs[u], now, !online || !!online[u]));
   return done ? finalPatch(game, runs, now, code) : null;
 }

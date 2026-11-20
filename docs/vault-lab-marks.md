@@ -1,6 +1,6 @@
 # THE CARD LAB — the owner's marks (read this FIRST in the next VAULT pass)
 
-Exported 2026-11-20 16:59 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
+Exported 2026-11-20 19:33 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
 
 | # | item | tier | mark | note | when | v |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -227,8 +227,4 @@ Exported 2026-11-20 16:59 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 222 | RIGHT OF WAY · FULL CARD (`full-card-rightofway`) | legendary | APPROVE |  | 2026-11-17 11:24 UTC | v2 |
 | 223 | BEAM ME UP (`card-beammeup`) | epic | APPROVE |  | 2026-11-17 11:24 UTC | v1 |
 | 224 | BEAM ME UP · FULL CARD (`full-card-beammeup`) | epic | APPROVE |  | 2026-11-17 11:24 UTC | v1 |
-| 225 | ABOVE THE CLOUDS (`card-abovetheclouds`) | rare | — |  | — | v1 |
-| 226 | TOP OF THE WORLD (`card-topoftheworld`) | legendary | — |  | — | v1 |
-| 227 | ABOVE THE CLOUDS · FULL CARD (`full-card-abovetheclouds`) | rare | — |  | — | v1 |
-| 228 | TOP OF THE WORLD · FULL CARD (`full-card-topoftheworld`) | legendary | — |  | — | v1 |
 | 208 | HORSESHOE (`emb-horseshoe`) | uncommon | APPROVE |  | 2026-11-15 22:10 UTC | v2 |

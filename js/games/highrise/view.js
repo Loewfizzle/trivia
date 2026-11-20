@@ -15,9 +15,13 @@
 // comes with the host's step. A late joiner (not a participant) WATCHES from the start.
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
-import { dbRef, set as dbSet, get as dbGet, update as dbUpdate, runTransaction, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
+import { dbRef, set as dbSet, get as dbGet, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
 import { colorHex } from '../../config.js';
 import { showCall } from '../kit/call.js';
+import { createProofWriter } from '../kit/proof-writer.js';
+import { proofIo, stampT0, writeMatchGo } from '../kit/proof-io.js';
+import { firstGo, onTime, goOf } from '../../core/proof.js';
+import { createRun, stepTo, isOver } from './engine.js';
 import { liveKeyFor } from '../registry.js';
 import { createFinal } from '../../ui/final.js';
 import { backToLobby } from '../../host.js';
@@ -85,17 +89,17 @@ const drv = {
 
 export function createView() {
   let S = null, st = null, gone = false, code = '', uid = '', matchId = '';
-  let go = 0, proven = false, spent = false, started = false, sent = 0, chunkN = 0, lastFlush = 0, wroteE = false, verifyFirst = false, lateSeen = '';
+  let go = 0, proven = false, spent = false, started = false, wroteE = false, lateSeen = '';
   let final = null, finalWrap = null, leaveBtn = null, goTimer = 0, finalTimer = 0, finalSeen = 0, friends = [];
   // the match (S4B)
-  let isMatch = false, haveGo = false, goAsked = false, goTries = 0, mSeed = '', mPlayAt = 0, adopted = false, pumpIv = 0, rowsKey = '';
+  let isMatch = false, haveGo = false, goAsked = false, goTries = 0, mSeed = '', mPlayAt = 0, adopted = false, pumpIv = 0, rowsKey = '', lateGo = false, missed = false;
   let outCard = null, outAt = 0, outRes = null, callEl = null, callLine = '', callDone = false, liveRuns = null, followUid = '', followPick = '', pickAny = '', watchKey = '', countNames = null;
   const rivals = new Map(), memo = { sides: {}, said: {} };   // uid → rivals.js's record + { uid, name, hex, rgb }
   const hexOf = u => colorHex(((st.players && st.players[u]) || {}).color) || '#00f0ff';
   const rgbOf = hex => [parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255];
   const nameOf = u => String(((st.players && st.players[u]) || {}).name || 'GHOST').toUpperCase();
   const mine = g => !!(g && g.participants && g.participants[uid]);
-  const nodePath = () => `rooms/${code}/hr/${matchId}/${uid}`;
+  const treePath = () => `rooms/${code}/hr/${matchId}`, nodePath = () => `${treePath()}/${uid}`;
   // (S5 — ZERO GARBAGE IN A MATCH: the live key is worked out once a GAME (a new snapshot = a new object), never 10 × a second — its JSON)
   let lkGame = null, lkKey = null;
   const runsNow = () => { const g = st && st.game; if (!g) return null; if (g !== lkGame) { lkGame = g; lkKey = liveKeyFor(g); } return (st.liveKey === lkKey && st.live && st.live.runs) || null; };
@@ -112,6 +116,16 @@ export function createView() {
     expectRefusal(`${nodePath()}/e`, `highrise: the end after the match ended (${why})`, 90_000, 'late-proof');
   }
 
+  // THE PROOF (THE PROOF PASS — kit/proof-writer.js, JAYWALK's too): the new taps go up as chunks — one a second (a match: at once),
+  // each stamped by the SERVER when it arrives; ONE burst at a time, a refused chunk sent again, never dropped on the mirror alone;
+  // then `e` behind the last chunk's acknowledgement
+  const W = createProofWriter({
+    count: () => (S ? S.taps().length : 0), pack: (a, b) => packFrom(S.taps(), a, b), entriesOf: c => { const t = tapsFromChunks(c); return t ? t.length : -1; },
+    chunkMax: CLOCK.chunkMax, chunks: CLOCK.chunks, flushMs: () => (isMatch ? FLUSH_MATCH_MS : CLOCK.flushMs), left: matchLeft,
+    onLate: why => { lateProof(why); if (why === 'dropped') countQuietLate(); },
+    onDead: why => lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => m.reportError(new Error(`HIGH RISE: the proof log could not be completed (${why}) — the run can not count`), 'rules')).catch(() => {}),
+    io: proofIo(nodePath),
+  });
   /** S4B — THE RULE SET: the run RECORDS the rule set it is played on — `rs` on its own proof node, once, right behind its GO. Best
    *  effort: on rules not yet re-published the write is refused (expected, quiet) — THE JUDGE reads a node with no `rs` as "classic". */
   let wroteRs = false;
@@ -136,11 +150,11 @@ export function createView() {
         //  never on a minutes-old GO)
         if (stale()) { if (!gone && m === matchId) spent = true; return; }
         const old = chunks ? tapsFromChunks(chunks) : null;
-        go = goAt; proven = true; sent = old ? old.length : 0; chunkN = chunks ? Object.keys(chunks).length : 0; verifyFirst = !!chunks; wroteE = false;
+        go = goAt; proven = true; W.reset({ sent: old ? old.length : 0, next: chunks ? Object.keys(chunks).length : 0, verify: !!chunks }); wroteE = false;
         fin({ seed: seedOf(code, matchId, go), t0: perfOf(go), taps: old || [] });
       };
       /** no proof here (no signal, the rules not published, this match's one GO already spent): the run still PLAYS — on its own seed, never counted */
-      const unproven = why => { if (stale()) return; if (why === 'refused') refused(); go = 0; proven = false; fin({ seed: newSeed(), t0: performance.now(), taps: [] }); };
+      const unproven = why => { if (stale()) return; if (why === 'refused') refused(); go = 0; proven = false; W.reset(); fin({ seed: newSeed(), t0: performance.now(), taps: [] }); };
       if (spent || matchLeft()) { unproven('again'); return; }
       clearTimeout(goTimer);
       goTimer = setTimeout(() => unproven('no answer'), GO_WAIT_MS);
@@ -152,6 +166,7 @@ export function createView() {
         return;
       }
       expectRefusal(path, 'highrise GO: already written (a rejoin) or the rules are not published yet');
+      stampT0(treePath(), 'highrise');   // (THE PROOF PASS — THE STAMP: the tree's first write, right ahead of the GO — core/proof.js)
       dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => {
         const v = snap.val();
         if (typeof v === 'number' && v > 0) { proof(v, null); writeRs(); } else unproven('no go');
@@ -161,39 +176,14 @@ export function createView() {
       });
     });
   }
-  /** THE PROOF: the new taps go up as chunks (one a second; `force` = now) — each stamped by the SERVER when it arrives */
-  function flush(force) {
-    const taps = S.taps();
-    if (!proven || sent >= taps.length) return;
-    if (matchLeft()) { lateProof('dropped'); sent = taps.length; countQuietLate(); return; }
-    if (verifyFirst) {   // (a rejoin: the chunks read fresh first — an index already there is never sent again)
-      verifyFirst = false;
-      const m = matchId;
-      dbGet(dbRef(`${nodePath()}/c`)).then(snap => {
-        if (gone || m !== matchId) return;
-        const c = snap.val(), n = c ? Object.keys(c).length : 0;
-        if (n > chunkN) { chunkN = n; sent = Math.min(S.taps().length, (tapsFromChunks(c) || []).length); countQuietLate(); }
-        flush(true);
-      }, () => flush(true));
-      return;
-    }
-    const now = performance.now();
-    if (!force && now - lastFlush < (isMatch ? FLUSH_MATCH_MS : CLOCK.flushMs)) return;
-    lastFlush = now;
-    while (sent < taps.length && chunkN < CLOCK.chunks) {
-      let n = taps.length - sent, s = packFrom(taps, sent, sent + n);
-      while (s.length > CLOCK.chunkMax && n > 1) { n = Math.ceil(n / 2); s = packFrom(taps, sent, sent + n); }
-      dbSet(dbRef(`${nodePath()}/c/${chunkN}`), { s, at: serverTimestamp() }).catch(() => { /* a refused chunk: the server simply can't count the run */ });
-      chunkN++; sent += n;
-    }
-  }
+  /** THE PROOF: the new taps go up (`force` = now) — the writer above */
+  function flush(force) { if (proven && S) W.flush(force); }
   /** the run is over: the last chunk, then `e` — the host's step ends the match on it (a signal: never read as a score) */
   function over(r) {
     flush(true);
     if (!proven || wroteE) return;
     wroteE = true; spent = true;
-    if (matchLeft()) { lateProof('the end after the end'); countQuietLate(); return; }
-    dbUpdate(dbRef(nodePath()), { e: { f: r.floor, t: r.tick, w: String(r.cause || '').slice(0, 12) } }).catch(() => {});
+    W.end({ f: r.floor, t: r.tick, w: String(r.cause || '').slice(0, 12) });
   }
   // ---- S4B — THE MATCH
   /** GO (a MATCH): this phone's own `go` — its proof of being there; the FIRST one to land is the match's (logic.js#firstGo). A
@@ -202,25 +192,42 @@ export function createView() {
   function askGoMatch() {
     if (goAsked) return;
     goAsked = true;
-    const m = matchId, path = `${nodePath()}/go`, runs = runsNow(), node = runs ? runs[uid] : null;
+    const m = matchId, runs = runsNow(), node = runs ? runs[uid] : null;
     if (node && node.go > 0) { haveGo = true; return; }
-    expectRefusal(path, 'highrise GO: already written (a rejoin), a touch early, or the rules are not published yet');
     const again = () => { if (gone || m !== matchId) return; if (goTries++ < 7) setTimeout(() => { goAsked = false; }, 420); else refused(); };
-    runTransaction(dbRef(path), curV => (curV == null ? serverTimestamp() : undefined), { applyLocally: false }).then(() => { if (m === matchId) haveGo = true; }).catch(() => {
-      dbGet(dbRef(path)).then(snap => { if (gone || m !== matchId) return; if (typeof snap.val() === 'number') haveGo = true; else again(); }).catch(again);
-    });
+    // (THE PROOF PASS: the stamp + the GO are the kit's — kit/proof-io.js#writeMatchGo, JAYWALK's too)
+    writeMatchGo(treePath(), uid, 'highrise').then(ok => { if (gone || m !== matchId) return; if (ok) haveGo = true; else again(); }, again);
+  }
+  /** THE PROOF PASS — "YOUR OWN PHONE MISSED THE GO" (REVIEW FIX A left it here): has a tower NOBODY TOUCHED already ended on the match's
+   *  clock? (the fuse — the engine's own answer, never a guessed number) */
+  function towerGone(St) {
+    const tick = Math.floor((serverNow() - St.playAt) * TICK_HZ / 1000);
+    if (tick <= 0) return false;
+    const r = createRun({ seed: St.seed, mode: 'match' });
+    stepTo(r, tick);
+    return isOver(r);
   }
   /** the match's seed + tick 0 land (THE FIRST GO — in `play` the game's own): the stage takes the run; a rejoin replays this player's
    *  own taps so far; a WATCHER (not a participant) has no run of their own */
   function adoptMatch(St, runs) {
     mSeed = St.seed; mPlayAt = St.playAt; go = St.playAt;
     const g = st.game, node = runs && mine(g) ? runs[uid] : null, old = node && node.c ? tapsFromChunks(node.c) : null;
-    sent = old ? old.length : 0; chunkN = node && node.c ? Object.keys(node.c).length : 0; verifyFirst = !!(node && node.c);
+    W.reset({ sent: old ? old.length : 0, next: node && node.c ? Object.keys(node.c).length : 0, verify: !!(node && node.c) });
     if (node && node.go > 0) haveGo = true;
     if (node && node.e) { wroteE = true; callDone = true; }   // (a rejoin after their own end: straight to watching)
     for (const R of rivals.values()) resetRival(R, St.seed);
     rowsKey = ''; followUid = ''; adopted = true; started = true;
-    if (mine(g)) S.adopt({ mode: 'match', seed: St.seed, t0: perfOf(St.playAt), taps: old || [] });
+    // THE PROOF PASS — "YOUR OWN PHONE MISSED THE GO" (a hiccup on this phone AND the host's: it was climbing an UNPROVEN stand-in when
+    // the real GO showed; or it simply comes late): it reaches the match's real clock with NO taps of its own, and on that clock the
+    // fuse has already ended a tower nobody touched. It used to restart there and go "TOO SLOW" at floor 0 — a fall that never
+    // happened. Now it WATCHES (a late joiner's view), told plainly: YOU MISSED THE START — NOT COUNTED. Its end is signalled (a GO of
+    // its own may be there: the room does not wait 18 s for it); the server counts no player without a landed slab (MUST 3).
+    missed = mine(g) && !(old && old.length) && !(node && node.e) && towerGone(St);
+    if (missed) {
+      callDone = true;
+      S.spectate({ mode: 'match', seed: St.seed, t0: perfOf(St.playAt) });
+      S.hud().announce('YOU MISSED THE START — NOT COUNTED', 'passed');
+    } else if (mine(g)) S.adopt({ mode: 'match', seed: St.seed, t0: perfOf(St.playAt), taps: old || [] });
     else S.spectate({ mode: 'match', seed: St.seed, t0: perfOf(St.playAt) });
   }
   /** 3 · 2 · 1 · GO — from the match's own tick 0 once the first GO has landed (till then the count the host set) */
@@ -237,7 +244,7 @@ export function createView() {
   const rowList = [], meRec = { floor: 0, perfects: 0, over: false, made: false, cause: '' }, noMe = { floor: 0, over: true };
   let meRow = null, playersSeen = null;
   function feedRivals(g, runs, now) {
-    const tick = Math.floor((now - mPlayAt) * TICK_HZ / 1000), me = mine(g) ? S.me(meRec) : null, watched = S.watching(), parts = g.participants || {};
+    const tick = Math.floor((now - mPlayAt) * TICK_HZ / 1000), me = mine(g) && !missed ? S.me(meRec) : null, watched = S.watching(), parts = g.participants || {};   // (a phone that MISSED THE START has no tower of its own: a watcher's rows)
     let n = 0, dirty = false;
     // (REVIEW FIX A — SHOULD 5: a rival's name + colour were read ONCE — a player whose entry landed late stayed "GHOST" all match. The
     //  room's player list is a new object at every change: then (only then) every kept row reads its name + colour again)
@@ -286,7 +293,7 @@ export function createView() {
     const since = performance.now() - outAt, r = outRes, hud = S.hud(), others = rows.filter(x => !x.me), live = others.filter(x => !x.over);
     if (r && !outCard && mine(g) && since < 60000) {
       const made = r.cause === 'made';
-      outCard = h(`div.hi-outcard${made ? '.is-made' : ''}`, h('div.hi-outcard-k', made ? 'THE FINISH LINE' : r.cause === 'cap' ? 'THE BELL' : 'OUT'), h('div.hi-ec-cause', g.unproven || !haveGo ? 'NOT COUNTED' : END_WORDS[r.cause] || 'THE TOWER STANDS'), h('div.hi-outcard-n', `${r.floor} ${r.floor === 1 ? 'FLOOR' : 'FLOORS'}`));
+      outCard = h(`div.hi-outcard${made ? '.is-made' : ''}`, h('div.hi-outcard-k', made ? 'THE FINISH LINE' : r.cause === 'cap' ? 'THE BELL' : 'OUT'), h('div.hi-ec-cause', g.unproven || !haveGo || lateGo ? 'NOT COUNTED' : END_WORDS[r.cause] || 'THE TOWER STANDS'), h('div.hi-outcard-n', `${r.floor} ${r.floor === 1 ? 'FLOOR' : 'FLOORS'}`));
       hud.over.append(outCard);
       setTimeout(() => { if (outCard) outCard.classList.add('is-gone'); }, made ? MADE_SHOW_MS : OUT_SHOW_MS);
     }
@@ -299,7 +306,7 @@ export function createView() {
         ended: () => !st.game || st.game.phase !== 'play' || st.game.matchId !== matchId, onState: msg => { callLine = msg === 'NO CALL' ? '' : msg; callEl = null; }, isDestroyed: () => gone });
     }
     // WHOM THE WATCHER FOLLOWS: the player picked on the altimeter (any of them) · else the one picked by a tap while they climb · else THE LEADER
-    const held = since >= (r && r.cause === 'made' ? MADE_SHOW_MS : 900) || !mine(g);
+    const held = since >= (r && r.cause === 'made' ? MADE_SHOW_MS : 900) || !mine(g) || missed;
     if (held && !callEl && others.length) {
       // (S5: the one you follow STAYS while they climb — the leader was picked again at every pump: level players swapped the view every floor;
       //  THE CLOSE's REVIEW: a tap's pick is spent once it is followed — a pick left behind made `follow` ignore followUid again)
@@ -333,14 +340,20 @@ export function createView() {
     // (THE CLOSE's REVIEW: never adopted from the game alone while the proof mirror is still on its way — a refresh mid-run took the
     //  match with NO taps of its own: floor 0, TOO SLOW. A proven match in `play` always has a node to read: wait for it.)
     if (St && (mSeed !== St.seed || mPlayAt !== St.playAt) && (runs || g.unproven)) adoptMatch(St, runs);
-    proven = haveGo && !g.unproven && mine(g);
+    // (THE PROOF PASS: a GO of this phone's own that landed LATER than the window after THE FIRST GO is no run — the server drops it
+    //  (core/proof.js#onTime): nothing is written for it, the out card says NOT COUNTED. On the re-published rules such a GO is refused.)
+    const myNode = runs ? runs[uid] : null;
+    lateGo = !!myNode && goOf(myNode) > 0 && !onTime(myNode, firstGo(runs));
+    proven = haveGo && !g.unproven && mine(g) && !lateGo;
+    // (… a phone that MISSED THE START and has a GO of its own: its end is signalled once — the room never waits 18 s for it)
+    if (missed && proven && !wroteE) { wroteE = true; spent = true; W.end({ f: 0, t: 0, w: 'slow' }); }
     // (THE CLOSE's REVIEW — SHOULD 1's take-back: a run that ENDED while the match was marked unproven (the host's hiccup) never wrote its
     //  `e` (over() needs `proven`) — once proven again, the end goes up now: Call the Winner opens, the match does not wait 18 s)
-    if (proven && started && !wroteE && S && S.me(meRec).over) over(S.result());
+    if (proven && started && !wroteE && !missed && S && S.me(meRec).over) over(S.result());
     if (proven && adopted && !wroteRs && !(runs && runs[uid] && (runs[uid].rs != null || runs[uid].c))) writeRs();   // (the rules: only before the log's first chunk)
     if (adopted && !final) {
       const rows = feedRivals(g, runs || {}, now);
-      if (outRes || !mine(g)) afterOut(g, runs, rows);
+      if (outRes || !mine(g) || missed) afterOut(g, runs, rows);
     }
     // THE PODIUM for everyone (the host's step) — once this player's own end has been SEEN (the stage's end hold, the finish's light);
     // a watcher, a refresh on it: at once
@@ -410,7 +423,7 @@ export function createView() {
       S.el.classList.add('hi-game');
       // THE NEXT FRIEND's tape (lines.js — YOUR TABLE's HIGH RISE bests, the SERVER's: empty while counting is OFF)
       loadTable(uid).then(T => { if (gone || !T) return; friends = T.friends; if (T.best > 0) ls.set(SRV_BEST_KEY, T.best); if (S) S.friends(); });
-      if (TEST) globalThis.__hiGame = { stage: S, state: () => ({ matchId, go, proven, spent, started, sent, chunks: chunkN, wroteE, final: !!final, leave: !!leaveBtn, friends: friends.map(f => `${f.n} ${f.v}`), stage: S.state(),
+      if (TEST) globalThis.__hiGame = { stage: S, writer: () => W.state(), state: () => ({ matchId, go, proven, spent, started, sent: W.state().sent, chunks: W.state().chunks, acked: W.state().acked, lateGo, missed, wroteE, final: !!final, leave: !!leaveBtn, friends: friends.map(f => `${f.n} ${f.v}`), stage: S.state(),
         isMatch, haveGo, seed: mSeed, playAt: mPlayAt, adopted, watching: S.watching(), follow: followUid, call: !!callEl, callLine, out: !!outRes, outCard: !!outCard, hud: S.matchState(),
         rivals: [...rivals.values()].map(R => ({ uid: R.uid, name: R.name, floor: R.run.floor, perfects: R.run.perfects, taps: R.taps.length, over: rivalOver(R), end: rivalEnd(R), done: R.done, bad: R.bad, silent: !!(R.row && R.row.silent) })) }), setFriends(f) { friends = f; S.friends(); } };
       if (isMatch) { S.setMatch(true); pumpIv = setInterval(pumpMatch, 100); }
@@ -423,6 +436,7 @@ export function createView() {
       gone = true; clearTimeout(goTimer); clearTimeout(finalTimer); clearInterval(pumpIv);
       if (callEl) { callEl.remove(); callEl = null; }
       if (S && started && !S.state().over) flush(true);   // (a QUIT mid-run: what was dropped is in the proof)
+      W.close();   // (… what is logged leaves now, in order; nothing is tried again once the view is gone)
       if (final) final.destroy();
       if (finalWrap) finalWrap.remove();
       if (leaveBtn) leaveBtn.remove();

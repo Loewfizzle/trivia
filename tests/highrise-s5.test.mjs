@@ -78,7 +78,7 @@ test('THE ALTIMETER IS GONE from live play — THE PLACE NUMBER in its corner, w
   for (const m of css.matchAll(/\.hi-(?:place|alt)[^{]*\{([^}]*)\}/g)) assert.doesNotMatch(m[1], /border-radius: (?:[2-9]\d|\d{3,})px|border-radius: 999/, 'no pill');
   // ZERO GARBAGE IN A MATCH: the cartridge's pump — rows kept per rival, the live key once a game, YOUR numbers into a kept record
   assert.ok(v.includes('if (g !== lkGame) { lkGame = g; lkKey = liveKeyFor(g); }'), 'the live key once a game — never its JSON 10 × a second');
-  assert.ok(v.includes('me = mine(g) ? S.me(meRec) : null') && v.includes('if (dirty) S.rivals(rowList);'), 'the rows: ONE record each, a change found field by field');
+  assert.ok(v.includes('me = mine(g) && !missed ? S.me(meRec) : null') && v.includes('if (dirty) S.rivals(rowList);'), 'the rows: ONE record each, a change found field by field');
   assert.ok(hud.includes('if (names && names !== rosterRef) {'), 'the count\'s roster is not rebuilt from the same list');
   assert.ok(s.includes('const others = [], tagItems = [], lvPool = [], itemPool = [], NR = { above: [], below: [] }, MT = { list: [], pool: [] }, NO_TAGS = [];'));
   // the test page's bot room: OUT = WATCH there too, the page's own card once every bot is down (or after SIM_WATCH_MS)

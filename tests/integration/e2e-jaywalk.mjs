@@ -123,7 +123,8 @@ try {
   ok(await P.ev("import('/js/config.js').then(c => c.isPlayable('jaywalk') && !c.isOwnerTest('jaywalk'))"), 'a stranger: JAYWALK is playable — never a TEST');
   await P.tap('.nd-tab-play');
   ok(await P.waitFor("!!document.querySelector('.nd-shelf-sheet.is-in .nd-shelf-row[data-game=\"jaywalk\"]')", 6000), 'a stranger: the dock\'s PLAY → THE GAMES SHELF lists JAYWALK');
-  ok(await P.ev("document.querySelectorAll('.nd-shelf-row').length === 4 && !/TEST/.test(document.querySelector('.nd-shelf-row[data-game=\"jaywalk\"]').textContent)"), '… the four playable games — JAYWALK unmarked (no · TEST)');
+  // (THE PROOF PASS: the count is the config's — HIGH RISE's go-live made it five; this check still said four)
+  ok(await P.ev("import('/js/config.js').then(c => document.querySelectorAll('.nd-shelf-row').length === c.GAMES.filter(g => g.playable).length && !/TEST/.test(document.querySelector('.nd-shelf-row[data-game=\"jaywalk\"]').textContent))"), '… every playable game, no more — JAYWALK unmarked (no · TEST)');
   await P.shot('stranger-shelf.png');
   // (THE LINES: a FRIEND with a server-counted JAYWALK best of 7 lanes — a real profile of their own, on the stranger's friends list)
   const FR = await phone(`jwf${Date.now() % 100000}`, 1, 'LIAM');

@@ -54,6 +54,51 @@ console's podium rise. **The results rows** (every `leaderboard()` — the podiu
 - **The kit's reserved pieces** (OVERCLOCK pass 1 builds them, prefix `gk-`): `numpad.js` · `keyboard.js` · `tach.js` · `slam.js` ·
   `answer.js` (docs/cartridge.md D9).
 
+## THE PROOF TREE + THE PROOF WRITER (THE PROOF PASS, Nov 20 — the code JAYWALK + HIGH RISE share)
+
+A **proof game** (JAYWALK `jw`, HIGH RISE `hr`) is counted ONLY from the server's replay of what each phone wrote into its own node. Three
+shared files hold what both games used to copy — a new proof game takes them, it never writes its own:
+
+| file | what |
+| --- | --- |
+| `js/core/proof.js` | PURE, no imports (phone · host · server). `firstGo` · `goOf` · `onTime` · `goUids` · `stampOf` · `inMatch` · `fullDraw`; the numbers `GO_WINDOW_MS` 5 s · `LEAF_MS` 3 h · `T0_SUNSET_MS` — each PINNED equal to `database.rules.json` by `tests/proof-pass.test.mjs` |
+| `js/games/kit/proof-writer.js` | PURE, no imports. The chunk + end writer (below) |
+| `js/games/kit/proof-io.js` | the writer's database half (`proofIo`) + GO: `stampT0(tree, label)` · `writeMatchGo(tree, uid, label)` |
+
+**THE TREE** `rooms/{CODE}/{jw|hr}/{matchId}` = `{ t0, {uid}: { go, c/{i}, e, k?, rs? } }`.
+- **THE STAMP `t0`**: whoever GOes first stamps the tree — the SERVER's time, once, only while the tree is EMPTY, by a seated un-kicked
+  player of that match in the GO window. Nobody (not the host) moves or deletes it.
+- **GO**: own uid, once, the server's time, only **within 5 s of the stamp** (+ the old seat / kick / participant / window checks — they
+  can only refuse). Until **Nov 27 2026 09:00 UTC** (`T0_SUNSET_MS` — THE SWITCH-OVER) a GO is still taken in a tree WITHOUT a stamp: a
+  phone that has not refreshed since the deploy never writes one, and its run must still count. After it every GO needs the stamp
+  (nothing to re-publish: the date is in the rule).
+- **The leaves** (`c/{i}` · `e` · `k` · `rs`): own uid, once, the player's OWN `go` there, within 3 h of it. **They read NOTHING the
+  host writes** — not `game/phase`, not the match id, not the player list, not the kick list.
+- **THE LOCK**: the host deletes ONE tree only once its stamp is 10 min old (a tree without a stamp: his own GO, as S4B) —
+  `core/room-logic.js#proofUnlocked` asks only for what the rules allow.
+- **THE SERVER's TWO GUARDS** (`api/_lib/jaywalk.js` · `highrise.js`, the host's podium too): a node counts only WITH its GO
+  (`goUids` — `api/report.js#provenUids`); a GO later than `GO_WINDOW_MS` after THE FIRST GO is no run (`bad: 'late go'`). And **a GO
+  alone is not a player**: a match's `played` = the uids with a MOVE in the server's own replay (a hop / a landed slab) — the report
+  counts + credits only those.
+
+**THE HOLES THESE CLOSE** (the review's MUST 2 — `docs/games/passes/highrise-review.md`; each pinned for BOTH nodes in
+`tests/integration/rules.test.mjs` "THE PROOF PASS"): (a) THE LEAF WRITES — the host flipped the phase, a rival's chunk was refused, the
+log had a hole; (b) THE PRE-DATED GO — the host's old GO under a future match id unlocked the live tree; (c) THE EARLY FIRST GO — the
+host GOes alone, adds the rivals later, their runs have already timed out.
+
+**THE WRITER** (`createProofWriter` — one a run): ONE BURST AT A TIME (the next chunk leaves once the one before is acknowledged — a
+later chunk never lands before an earlier one) · A REFUSED CHUNK IS READ BACK + SENT AGAIN (0.4 · 0.8 · 1.6 · 3 s …, for 90 s) · NEVER
+DROPPED ON THE MIRROR ALONE (a mirror that says "the match moved on" only makes a refusal expected; dropped after `LATE_TRIES`
+refusals in that state — the quiet `late-proof` count) · A DEAD LINE (no answer for 1.5 s): the new moves queue behind the unanswered
+chunk once a second and land TOGETHER (THE DROPPED SIGNAL: the judge wants a burst) · THE END behind the last chunk's
+acknowledgement · `pipe: true` = the old way (JAYWALK's daily: its own node + rules). A view calls `W.reset({ sent, next, verify })`
+at each adopt, `W.flush(force)` from its frame, `W.end(payload)` once, `W.close()` at unmount.
+
+**THE ORDER OF A RULES CHANGE HERE**: the phones' code first, the rules whenever after — the new code's stamp is refused silently on
+the old rules (`expectRefusal(…, 'none')`) and GO works as before; the old code's GO is taken on the new rules until the sunset.
+Tests: `tests/proof-writer.test.mjs` (the writer on a fake line — 300 random host-flip matches: never a hole) · `tests/proof-pass.test.mjs`
+· `rules.test.mjs` "THE PROOF PASS" (8 blocks, both nodes, + THE SWITCH-OVER against three copies of the rules).
+
 ## The E2E harness (`tests/integration/kit/harness.mjs`)
 ```js
 import { createHarness, REVIEW_SIZES } from './kit/harness.mjs';

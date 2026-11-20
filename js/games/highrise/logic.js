@@ -1,6 +1,7 @@
 // HIGH RISE — THE RUN's WORDS, SEEDS + SCORING (S1 — docs/highrise.md): PURE (no DOM, no clock). The match / the solo run node / the daily
 // arrive in S2–S5; what every one of them will share lives here: the end's words, the seed a run is played on, THE RANKING, the feats.
 import { hashString } from '../../core/rng.js';
+import { firstGo } from '../../core/proof.js';
 import { TICK_HZ } from './tuning.js';
 // (THE THIN META — S4A: the console's values live in meta.js, PURE + no imports — one source)
 import { DEFAULT_SETTINGS, cleanSettings, chatLocked } from './meta.js';
@@ -60,11 +61,7 @@ export const modeOf = participants => (Object.keys(participants || {}).length ==
 /** S4B's shape, ready (JAYWALK's — docs/jaywalk.md "THE MATCH"): a MATCH's tick 0 = THE FIRST GO among its proof nodes + this */
 export const GO_LEAD_MS = 2000;
 /** THE FIRST GO: the EARLIEST `go` among a match's proof nodes (0 = none yet) — final the moment it lands (the server stamps on arrival) */
-export function firstGo(runs) {
-  let g = 0;
-  for (const n of Object.values(runs || {})) { const v = n && Number(n.go); if (v > 0 && (!g || v < g)) g = v; }
-  return g;
-}
+export { firstGo };   // (THE PROOF PASS: ONE copy — core/proof.js, JAYWALK's too)
 /** a match's clock + seed from its proof nodes (null = no GO yet) — PURE: the phones, the host's director and the server agree */
 export const matchStart = (code, matchId, runs) => { const g0 = firstGo(runs); return g0 ? { g0, playAt: g0 + GO_LEAD_MS, seed: seedOf(code, matchId, g0) } : null; };
 /**

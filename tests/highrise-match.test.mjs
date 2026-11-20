@@ -166,20 +166,30 @@ test('CALL THE WINNER (the kit\'s piece, scored here): a call counts when the ca
   // u1 wins (floor 150, out at tick 9000) · u2 floor 90 (out at 5000) · u3 floor 40 (out at 2000) · u4 floor 20 (out at 1000)
   const results = { u1: { f: 150, p: 100, t: 8900, w: 'miss', e: 9000 }, u2: { f: 90, p: 50, t: 4900, w: 'thin', e: 5000 }, u3: { f: 40, p: 20, t: 1900, w: 'slow', e: 2000 }, u4: { f: 20, p: 5, t: 900, w: 'miss', e: 1000 } };
   const at = tick => T0 + ms(tick);
-  const runs = {
+  // (THE PROOF PASS: every player's node carries its GO — a player with NO run can not be named, and is not counted as "still in")
+  const GO = T0 - 2000, go = r => { const o = {}; for (const u of ['u1', 'u2', 'u3', 'u4']) o[u] = { go: GO, ...(r[u] || {}) }; return o; };
+  const runs = go({
     u4: { k: { w: 'u1', at: at(1000) + 4000 } },               // out first, called the winner in time → right, 3 still in
     u3: { k: { w: 'u2', at: at(2000) + 3000 } },               // called u2 (still in then) → wrong
     u2: { k: { w: 'u4', at: at(5000) + 2000 } },               // called a player ALREADY out → no call
     u1: { k: { w: 'u2', at: at(9000) + 1000 } },               // the winner "calling" after everyone was out → no call
-  };
+  });
   const calls = scoreCalls(game, runs, results);
   assert.deepEqual(calls, { u4: { w: 'u1', ok: true, bonus: callBonus(3) }, u3: { w: 'u2', ok: false, bonus: 0 } });
   assert.deepEqual(nightBonus({ calls }), { u4: callBonus(3) });
-  assert.deepEqual(scoreCalls(game, { u4: { k: { w: 'u1', at: at(1000) + CALL_WINDOW_MS + 1 } } }, results), {}, 'too late: no call');
-  assert.deepEqual(scoreCalls(game, { u4: { k: { w: 'u4', at: at(1000) } } }, results), {}, 'never yourself');
+  assert.deepEqual(scoreCalls(game, go({ u4: { k: { w: 'u1', at: at(1000) + CALL_WINDOW_MS + 1 } } }), results), {}, 'too late: no call');
+  assert.deepEqual(scoreCalls(game, go({ u4: { k: { w: 'u4', at: at(1000) } } }), results), {}, 'never yourself');
+  // THE PROOF PASS — the inbox's (3) + the review's NICE: a player with NO RUN (no GO / a GO past the window) is never "still in" — not
+  // nameable, not counted in the bonus; a FULL DRAW pays nobody
+  const noRun = go({ u4: { k: { w: 'u1', at: at(1000) + 4000 } } }); delete noRun.u2.go;
+  assert.deepEqual(scoreCalls(game, noRun, results), { u4: { w: 'u1', ok: true, bonus: callBonus(2) } }, 'u2 has no run: two were still in, not three');
+  const named = go({ u4: { k: { w: 'u1', at: at(1000) + 4000 } } }); named.u1.go = GO + 5001;
+  assert.deepEqual(scoreCalls(game, named, results), {}, 'the named player\'s GO was past the window: no run, no call');
+  const draw = { u1: { f: 0, p: 0, t: 0, w: 'slow', e: 300 }, u2: { f: 0, p: 0, t: 0, w: 'slow', e: 300 }, u3: { f: 0, p: 0, t: 0, w: 'slow', e: 300 }, u4: { f: 0, p: 0, t: 0, w: 'miss', e: 100 } };
+  assert.deepEqual(scoreCalls(game, go({ u4: { k: { w: 'u1', at: at(100) + 1000 } } }), draw), {}, 'everyone tied for first: a full draw pays nobody');
   // a player who stood to the end (the finish / the cap) was never out: no call of theirs counts — and a call FOR them can win
   const r2 = { ...results, u1: { f: 200, p: 190, t: 12400, w: 'made', e: 12400 } };
-  assert.deepEqual(scoreCalls(game, { u1: { k: { w: 'u2', at: at(100) } }, u4: { k: { w: 'u1', at: at(1000) + 100 } } }, r2), { u4: { w: 'u1', ok: true, bonus: callBonus(3) } });
+  assert.deepEqual(scoreCalls(game, go({ u1: { k: { w: 'u2', at: at(100) } }, u4: { k: { w: 'u1', at: at(1000) + 100 } } }), r2), { u4: { w: 'u1', ok: true, bonus: callBonus(3) } });
   assert.equal(ordinal(1), '1ST'); assert.equal(ordinal(2), '2ND'); assert.equal(ordinal(3), '3RD'); assert.equal(ordinal(4), '4TH'); assert.equal(ordinal(11), '11TH');
 });
 
@@ -266,12 +276,13 @@ test('REVIEW FIX A — MUST 3, A GO IS NOT A PLAY: seven seats that only write G
   const pad = highriseMatch({ code: CODE, matchId: M, uids: us, nodes: padded });
   const proven = new Set(Object.keys(padded));   // (report.js#provenUids: every node in the tree — the old count, 8)
   const played = hrPlayed(proven, pad.game.results);
+  assert.deepEqual(pad.played, ['u1'], 'THE PROOF PASS: the match itself says who PLAYED — the report reads it');
+  assert.equal(srv.played.length, 8);
   assert.equal(proven.size, 8);
   assert.deepEqual([...played], ['u1'], 'only the player with a landed slab counts — one real player = the solo rule');
   assert.equal(HR_PLAYED_FLOOR, 1);
   const rep = read('api/report.js');
-  assert.ok(rep.includes("if (ex.gid === 'highrise' && matchRows) proven = hrPlayed(proven, matchRows);"), 'report.js narrows the proof tree for HIGH RISE only, before the count');
-  assert.ok(rep.includes("jaywalk: m => ({ room: [`jw/${m}`], seal: [] }),   // (JAYWALK H1: written AT GO — present = proven, a silent player included)"), 'the JAYWALK rule unchanged (THE PROOF PASS)');
+  assert.ok(rep.includes('if (matchPlayed) proven = new Set([...proven].filter(u => matchPlayed.has(u)));'), 'report.js narrows the proof tree to the players the server\'s replay saw PLAY, before the count (THE PROOF PASS: JAYWALK too — a hop)');
 });
 
 test('REVIEW FIX A — SHOULD 1, A HOST HICCUP AT GO: the host saw no GO for NO_GO_MS (its line stalled) and marked the match UNPROVEN after everyone had started — a FIRST GO stamped BEFORE it gave up takes the mark back: the GO seed + tick 0, the match counted as normal', () => {
@@ -296,4 +307,53 @@ test('REVIEW FIX A — SHOULD 1, A HOST HICCUP AT GO: the host saw no GO for NO_
   const late = { u1: { go: giveUp + 1 } };
   assert.equal(nextStep(gu, { now: giveUp + 2500, live: { runs: late }, code: CODE }), null);
   assert.ok(read('js/games/highrise/director.js').includes('if (goBeforeGiveUp(game, S)) return { unproven: null, playAt: S.playAt, seed: S.seed, g0: S.g0 };'));
+});
+
+// ---- THE PROOF PASS (Nov 20 — docs/games/passes/proof-pass.md): THE SERVER's TWO GUARDS for HIGH RISE (JAYWALK's too) + "YOUR OWN PHONE MISSED THE GO"
+test('THE PROOF PASS — THE SERVER\'S TWO GUARDS (HIGH RISE): a node counts only with a GO; a GO later than the window after THE FIRST GO is no tower — the host who GOes alone early wins nothing; the host\'s podium says the same; the stamp is never a player', async () => {
+  const { GO_WINDOW_MS, goUids, firstGo: coreFirstGo, T0_KEY } = await import('../js/core/proof.js');
+  assert.equal(firstGo, coreFirstGo, 'ONE firstGo — core/proof.js (JAYWALK\'s too)');
+  const { us, S, bots, nodesAt } = playMatch(4);
+  const end = S.playAt + Math.max(...us.map(u => ms(bots[u].want.end))) + 700, nodes = nodesAt(end);
+  const H = highriseMatch({ code: CODE, matchId: M, uids: us, nodes });
+  assert.deepEqual(H.played, us, 'an honest four: all played');
+  // the tree's stamp: not a GO, not a player, changes no row
+  const stamped = { ...nodes, [T0_KEY]: S.g0 - 2 };
+  assert.deepEqual(highriseMatch({ code: CODE, matchId: M, uids: us, nodes: stamped }).game.results, H.game.results);
+  assert.deepEqual(goUids(stamped).sort(), [...us].sort()); assert.equal(firstGo(stamped), S.g0);
+  // GUARD 1: u2's GO gone, its chunks there → no tower, not a player
+  const noGo = { ...nodes, u2: { c: nodes.u2.c, e: nodes.u2.e } };
+  const G1 = highriseMatch({ code: CODE, matchId: M, uids: us, nodes: noGo });
+  assert.equal(G1.game.results.u2.bad, 'no go'); assert.ok(!G1.played.includes('u2')); assert.ok(!goUids(noGo).includes('u2'));
+  // GUARD 2: a GO past the window → no tower ('late go'); the window's last millisecond is in
+  const lateU = us.find(u => nodes[u].go !== S.g0);
+  const late = { ...nodes, [lateU]: { ...nodes[lateU], go: S.g0 + GO_WINDOW_MS + 1 } };
+  const G2 = highriseMatch({ code: CODE, matchId: M, uids: us, nodes: late });
+  assert.deepEqual([G2.game.results[lateU].bad, G2.game.results[lateU].f], ['late go', 0]); assert.ok(!G2.played.includes(lateU));
+  assert.ok(!highriseMatch({ code: CODE, matchId: M, uids: us, nodes: { ...nodes, [lateU]: { ...nodes[lateU], go: S.g0 + GO_WINDOW_MS } } }).game.results[lateU].bad);
+  // THE EARLY FIRST GO (hole c): one player GOes alone 20 s early — the others are then "late": no tower of theirs in HIS match
+  const first = us.find(u => nodes[u].go === S.g0), early = { ...nodes, [first]: { ...nodes[first], go: S.g0 - 20000 } };
+  const G3 = highriseMatch({ code: CODE, matchId: M, uids: us, nodes: early });
+  for (const u of us) if (u !== first) assert.equal(G3.game.results[u].bad, 'late go', `${u}: GOed 20 s after him — not in his match`);
+  assert.ok(G3.played.every(u => u === first), 'at most the early bird played — one real player = the solo rule, never a win');
+  // the host's podium: the same refusal
+  const g = { id: 'highrise', matchId: M, mode: 'match', participants: parts(4), seed: S.seed, playAt: S.playAt, g0: S.g0, phase: 'play' };
+  assert.equal(scoreMatchNode(g, late[lateU]).bad, 'late go'); assert.ok(!scoreMatchNode(g, nodes[lateU]).bad);
+});
+
+test('THE PROOF PASS — "YOUR OWN PHONE MISSED THE GO" (REVIEW FIX A left it here): a phone that reaches the match\'s real clock with no taps of its own, after the fuse has ended a tower nobody touched, WATCHES — never a fake restart that goes TOO SLOW; its end is signalled', () => {
+  const v = read('js/games/highrise/view.js');
+  // the engine's own answer: a tower nobody touched is over once its first slab's fuse has run — and not before
+  const r = createRun({ seed: 'missed', mode: 'match' }), limit = r.R.floorTicksMax;
+  const at = t => { const x = createRun({ seed: 'missed', mode: 'match' }); stepTo(x, t); return isOver(x); };
+  let gone = -1; for (let t = 1; t < limit * 4 && gone < 0; t++) if (at(t)) gone = t;
+  assert.ok(gone > 60 && gone <= limit * 3, `a tower nobody touched ends at tick ${gone} (the fuse — ${(gone / TICK_HZ).toFixed(1)} s)`);
+  assert.equal(at(gone - 1), false);
+  assert.ok(v.includes('function towerGone(St) {') && v.includes("const r = createRun({ seed: St.seed, mode: 'match' });") && v.includes('stepTo(r, tick);') && v.includes('return isOver(r);'), 'the view asks the ENGINE whether the untouched tower is gone — never a guessed number');
+  assert.ok(v.includes('missed = mine(g) && !(old && old.length) && !(node && node.e) && towerGone(St);'), 'only a player with NO taps of their own, no end yet, on a clock where the fuse has run');
+  assert.ok(v.includes("S.hud().announce('YOU MISSED THE START — NOT COUNTED', 'passed');") && v.includes("S.spectate({ mode: 'match', seed: St.seed, t0: perfOf(St.playAt) });"), 'it WATCHES, told plainly — never adopt() into a run that is already over');
+  assert.ok(v.includes("if (missed && proven && !wroteE) { wroteE = true; spent = true; W.end({ f: 0, t: 0, w: 'slow' }); }"), 'its end is signalled (a GO of its own may be there): the room does not wait 18 s');
+  assert.ok(v.includes('if (outRes || !mine(g) || missed) afterOut(g, runs, rows);') && v.includes('me = mine(g) && !missed ? S.me(meRec) : null'), 'the watcher\'s view + rows from then on');
+  // a rejoin WITH taps of its own, or before the fuse: plays on as before
+  assert.ok(v.includes("} else if (mine(g)) S.adopt({ mode: 'match', seed: St.seed, t0: perfOf(St.playAt), taps: old || [] });"));
 });
