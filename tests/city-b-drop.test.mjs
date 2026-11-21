@@ -1,7 +1,7 @@
 // CITY B — GROUP 3: THE DROP on THE TRI-VISION (core/harbor-trivision.js — the third face; docs/harbor/passes/city-b.md).
 //  - the face exists ONLY once THE DROP is live (its go-live day from the cached feed — radioPublic.drop ← progress/dlive.drop + the dailies'
 //    switch) for 14 days (THE CITY TIMETABLE's billboard.drop), then retires by itself; the owner's ON (that window) · OFF · KEEP ON
-//  - triFaces: the live faces in order (HOLD'EM → JAYWALK → THE DROP); one face alone = no turning; the turns' TIMES never depend on the faces
+//  - triFaces: the live faces in order (CITY PART 1: HIGH RISE → JAYWALK → HOLD'EM — THE DROP's face removed); one face alone = no turning; the turns' TIMES never depend on the faces
 //  - no new poll: the feed's drop rides the SAME cached GET (api/_lib/radio.js#radioPublic) — the source says so
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -35,17 +35,18 @@ test('CITY B: 14 days from the go-live day, then it retires by itself — OFF ne
   assert.equal(dropFace({ live: null, mode: 'keep' }, live, days), null, 'not live = no face');
 });
 
-test('CITY B: the faces in order — HOLD’EM → JAYWALK → THE DROP; the drop alone beside HOLD’EM still turns; the turn times unchanged by N', () => {
+test('CITY PART 1: the faces in order — HIGH RISE → JAYWALK → HOLD’EM (the newest first); THE DROP\'s face NEVER joins now (the owner\'s call — its feed pieces still answer); the turn times unchanged by N', () => {
   setJaywalk({ on: false }); setDrop(null);
+  assert.equal(triFaces('2026-11-14'), null, 'before HIGH RISE\'s go-live, JAYWALK off: HOLD’EM alone — no turning');
   const day = '2026-12-05';
-  assert.equal(triFaces(day), null, 'HOLD’EM alone: no turning');
   setDrop({ live: '2026-12-01', mode: 'on' });
+  assert.equal(dropShow(day), 'drop', 'THE DROP\'s own window still answers (the feed, /admin)');
   const two = triFaces(day);
-  assert.ok(two && two.length === 2 && two[0].startsWith('holdem') && two[1] === 'drop', `HOLD'EM + THE DROP turn: ${two}`);
+  assert.deepEqual(two, ['highrise', 'holdem-open'], `HIGH RISE + HOLD'EM turn — never THE DROP: ${two}`);
   setJaywalk({ on: true, bar: 'soon', since: '2026-11-01' });
   const F = triFaces(day);
-  assert.equal(F.length, 3); assert.ok(F[1].startsWith('jaywalk') && F[2] === 'drop', `the order ${F}`);
-  assert.equal(triFaces(plus('2026-12-01', 14)).length, 2, 'retired: back to two faces');
+  assert.deepEqual(F, ['highrise', 'jaywalk', 'holdem-open'], `the order ${F}`);
+  assert.ok(!triFaces(plus('2026-12-01', 3)).includes('drop'), 'THE DROP: out of the rotation for good');
   // the clock: the same turn times whatever the faces; each turn lands on the next face (A → B → C → A)
   const K = triKnobs(), T = turnsBetween(0, 2000, K);
   for (const t of T) { assert.equal(triClock(t + 0.01, K, 0, 2).at, triClock(t + 0.01, K, 0, 3).at); }

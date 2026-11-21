@@ -1953,7 +1953,7 @@ test('THE SLOT RULE (DT1 — the owner: never a shortened name): the blade one-w
     {
       const ROSTER = signRoster(GAMES).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
       const ROOF = ROSTER.filter(g => spots.some(sp => sp.kind === 'named' && signText(g, sp)));
-      assert.deepEqual(ROOF.map(g => g.id).sort(), ['holdem', 'jaywalk', 'overclock', 'prism'], `${k}: the games a skyline sign takes`);
+      assert.deepEqual(ROOF.map(g => g.id).sort(), ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism'], `${k}: the games a skyline sign takes`);   // (CITY PART 1: + HIGH / RISE — the roof signs + the speakeasy blade)
       for (let w = 0; w < 16; w++) {
         const seen = new Set();
         for (let d = 0; d < 7; d++) { const n = new Date(Date.UTC(2026, 9, 5) + (w * 7 + d) * 864e5).toISOString().slice(0, 10); for (const v of assignSigns(ROSTER, spots, n).values()) seen.add(v); { const [yy, mm, dd] = n.split('-').map(Number); seen.add(ghostAdGame(Date.UTC(yy, mm - 1, dd, 23), ROSTER.map(g => g.id), null)); } }   // (CITY D: the speakeasy blade's weekly game is on the skyline too — the roofs skip it)
@@ -3209,6 +3209,7 @@ test('PF — THE PREVIEW PANEL lists the centrepiece test under PROMENADE', () =
 import { streetLook, CURB_STEP, SHEEN } from '../js/screens/harbor/street.js';
 import { createStrings, BULB, CANOPY, frontProfile } from '../js/screens/harbor/strings.js';
 import { MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, WASH, washCone, BLADE, LETTER, bladeLetters, bladeWords, BLADE_ONE } from '../js/screens/harbor/speakeasy.js';
+import { BLADE_COLUMN } from '../js/screens/harbor/speakeasy-blade.js';   // (CITY PART 1: HIGH RISE in ONE column on the speakeasy blade)
 import { ROOM_TINT, LATE_TINT, lateOf } from '../js/screens/harbor/windows.js';
 const pfLum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 test('PF — THE STREET reads as its own surface: tarred setts darker + cooler than the promenade\'s, tar in the joints (never black at night), the worn paths\' sheen, a clear curb step', () => {
@@ -3266,13 +3267,13 @@ test('SP2 — THE MARQUEE (crest + foot only — the letters get the long sides)
 test('SP2 — THE BLADE READS for every game: big letters filling the board (one column a word), never a sliver', () => {
   const { L } = setup('402x874'), k = bladeGeo(speakGeo(L)).k;
   for (const g of GAMES) {
-    const T = bladeLetters(g.name), words = bladeWords(g.name);
-    assert.equal(T.cols.length, Math.min(2, words.length), `${g.name}: a column a word`);
+    const T = bladeLetters(g.name), words = bladeWords(g.name), oneCol = BLADE_COLUMN.includes(g.name.toUpperCase());
+    assert.equal(T.cols.length, oneCol ? 1 : Math.min(2, words.length), `${g.name}: a column a word (CITY PART 1: HIGH RISE = ONE column, HIGH over RISE)`);
     assert.equal(words.join(''), g.name.toUpperCase().replace(/\s+/g, ''), `${g.name}: every letter, in order`);
     assert.ok(words.every(w => w.length <= BLADE_ONE), `${g.name}: no column longer than ${BLADE_ONE} (8P: SLIP / STREAM)`);
     assert.ok(T.cap * k >= 10, `${g.name}: letters ${(T.cap * k).toFixed(1)} pt tall at 402 (8P: the 10 pt rule)`);
     assert.ok(T.cap <= T.cw * LETTER.tall + 1e-9 && T.cap <= T.lh, `${g.name}: never taller than its slot or a sliver of its column`);
-    for (const c of T.cols) assert.ok(c.top <= BLADE.v1 - LETTER.v1 + 1e-9 && c.top - c.lh * c.word.length >= BLADE.v0 + LETTER.v0 - 1e-9, `${g.name}: between the crest's bulbs + the foot's`);
+    for (const c of T.cols) assert.ok(c.top <= BLADE.v1 - LETTER.v1 + 1e-9 && c.top - c.lh * (c.slots ?? c.word.length) >= BLADE.v0 + LETTER.v0 - 1e-9, `${g.name}: between the crest's bulbs + the foot's`);
   }
 });
 test('SP2 — THE WALL-WASHERS: accents, not panels — a lamp over each brick pier (never a window); a hot spot under it fanning down in a soft V, gone within the top third, no outline', () => {
@@ -3329,10 +3330,10 @@ test('9c — THE CENTREPIECE SHOW LIGHTING: the floods come on with the lamps (n
 });
 
 // ================================================================ WINDOWS — Group 0: ONLY TWO GAMES PLAYABLE + THE FIVE SIGNS (the owner, Nov 1)
-test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM · THE GO-LIVE PASS: + JAYWALK); the sign games; every start path refuses a hidden game', async () => {
+test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM · THE GO-LIVE PASS: + JAYWALK · + HIGH RISE, on the signs since CITY PART 1); the sign games; every start path refuses a hidden game', async () => {
   const { readFileSync } = await import('node:fs');
   const { isPlayable } = await import('../js/config.js');
-  const ON = ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism'];   // (HIGH RISE's GO-LIVE, Nov 20: + HIGH RISE — playable; its signs wait on THE SIGN HOLD below)
+  const ON = ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism'];   // (HIGH RISE's GO-LIVE, Nov 20: + HIGH RISE — playable; on the signs since CITY PART 1 lifted THE SIGN HOLD)
   assert.deepEqual(GAMES.filter(g => g.playable).map(g => g.id).sort(), ON);
   // (FIXES R2 — Part C: the `sign` flag is gone — nothing read it; the city's signs = core/harbor-neon.js#signRoster: the playable games + JAYWALK)
   assert.ok(GAMES.every(g => !('sign' in g)), 'no GAMES row carries the old sign flag');
@@ -3351,13 +3352,13 @@ test('WINDOWS — only PRISM DROP + OVERCLOCK playable (HE10: + HOLD’EM · THE
   const five = signRoster(GAMES).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
   const { L } = setup('402x874'), spots = signSpots(L), seen = new Set();
   for (let d = 0; d < 14; d++) { const n = new Date(Date.UTC(2026, 10, 2) + d * 864e5).toISOString().slice(0, 10), pk = assignSigns(five, spots, n); for (const v of pk.values()) seen.add(v); seen.add(billboardPick(five, spots, pk, n)); }
-  assert.deepEqual([...seen].filter(Boolean).sort(), ['holdem', 'jaywalk', 'overclock', 'prism'], 'every sign game, over two weeks — and never a game under THE SIGN HOLD (HIGH RISE until THE CITY PASS)');
-  assert.deepEqual(SIGN_HOLD, ['highrise'], 'THE SIGN HOLD: HIGH RISE is playable, held off every sign until THE CITY PASS lifts it');
+  assert.deepEqual([...seen].filter(Boolean).sort(), ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism'], 'every sign game, over two weeks (CITY PART 1: HIGH RISE too — THE SIGN HOLD lifted)');
+  assert.deepEqual(SIGN_HOLD, [], 'THE SIGN HOLD: empty since CITY PART 1 (HIGH RISE’s signs in) — the switch stays for the next game');
   // (HOLD'EM IN THE CITY: the roof billboard is HOLD'EM's ad now — every one of the five hangs on a SKYLINE SIGN over two weeks, not only the
   //  board; HOLD'EM spells HOLD'EM whole — the apostrophe tube, never HOLDEM)
   const onSign = new Set();
   for (let d = 0; d < 14; d++) { const n = new Date(Date.UTC(2026, 10, 9) + d * 864e5).toISOString().slice(0, 10); for (const v of assignSigns(five, spots, n).values()) onSign.add(v); }
-  assert.deepEqual([...onSign].sort(), ['holdem', 'jaywalk', 'overclock', 'prism'], 'every sign game on a skyline sign over two weeks (OVER / CLOCK stacked on a roof)');
+  assert.deepEqual([...onSign].sort(), ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism'], 'every sign game on a skyline sign over two weeks (OVER / CLOCK + HIGH / RISE stacked on a roof)');
   assert.equal(five.find(g => g.id === 'holdem').short, "HOLD'EM");
   assert.ok(!GAMES.find(g => g.id === 'gridlock').sign && !GAMES.find(g => g.id === 'gridlock').playable, 'GRIDLOCK off the skyline, its game frozen as before');
 });

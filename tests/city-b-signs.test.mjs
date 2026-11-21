@@ -31,8 +31,8 @@ const PHONE = ['n-blade', 'n-roofA', 'n-roofB'];
 
 test('the roster: the PLAYABLE games (JAYWALK by its own row since its go-live) minus THE SIGN HOLD — never a frozen game or a daily; a row turning playable joins with no code change', () => {
   assert.deepEqual(IDS.slice().sort(), GAMES.filter(g => g.playable && !g.daily && !SIGN_HOLD.includes(g.id)).map(g => g.id).sort());
-  // (HIGH RISE's GO-LIVE, Nov 20 — THE SIGN HOLD: HIGH RISE is playable and on NO sign until THE CITY PASS lifts the hold — one line)
-  assert.ok(GAMES.find(g => g.id === 'highrise').playable && SIGN_HOLD.includes('highrise') && !IDS.includes('highrise'), 'HIGH RISE: playable, held off every sign');
+  // (CITY PART 1, Nov 20 — THE SIGN HOLD LIFTED in the same pass as HIGH RISE's signs: it hangs like every playable game)
+  assert.ok(GAMES.find(g => g.id === 'highrise').playable && SIGN_HOLD.length === 0 && IDS.includes('highrise'), 'HIGH RISE: playable + on the signs (the hold is empty)');
   assert.ok(signRoster(GAMES.map(g => g)).every(g => !SIGN_HOLD.includes(g.id)), 'nothing held ever reaches a sign');
   assert.ok(IDS.includes('jaywalk'), 'JAYWALK — its own GAMES row, playable (THE GO-LIVE PASS)');
   assert.ok(ROSTER.every(g => !FROZEN.has(g.id) && !g.daily));
@@ -58,7 +58,7 @@ test('a year of nights at 390 / 402 / 430 + 1440: NO NAMED SIGN EVER DARK, no fr
 });
 
 test('OVER / CLOCK + JAY / WALK ALWAYS stacked on two lines on every sign; every stacked word ≥ ~9 pt, every one-word name ≥ 10 pt; every letter spelled', () => {
-  assert.deepEqual(Object.keys(SIGN_SPLIT).sort(), ['jaywalk', 'overclock']);
+  assert.deepEqual(Object.keys(SIGN_SPLIT).sort(), ['highrise', 'jaywalk', 'overclock']);   // (CITY PART 1: + HIGH / RISE)
   for (const k of ['390x844', '402x874', '430x932']) {
     const { cam, L } = setup(k), spots = signSpots(L).filter(s => s.kind === 'named'), seen = new Set();
     for (const n of YEAR) {
@@ -101,8 +101,8 @@ test('THE HOTEL BLADE cycles PRISM · HOLDEM ONLY (CITY D — JAY / WALK too lon
 
 // CITY D — NO GAME TWICE (the owner saw roof A HOLD'EM · roof B OVER/CLOCK · the hotel blade PRISM · the speakeasy blade OVER/CLOCK — JAYWALK nowhere):
 // the four named signs show four DIFFERENT games every night — the roster has four names, so none repeats and every one shows
-test('CITY D — a year of nights: roof A · roof B · the hotel blade · the speakeasy blade’s game = FOUR DIFFERENT games, all four names up', () => {
-  assert.equal(IDS.length, 4, 'the roster: PRISM · HOLD’EM · OVERCLOCK · JAYWALK');
+test('CITY D — a year of nights: roof A · roof B · the hotel blade · the speakeasy blade’s game = FOUR DIFFERENT games; CITY PART 1: five names — every one up each week', () => {
+  assert.equal(IDS.length, 5, 'the roster: PRISM · HOLD’EM · OVERCLOCK · JAYWALK · HIGH RISE (CITY PART 1 — four signs a night, the fifth rests)');
   for (const k of ['390x844', '402x874', '430x932']) {
     const { L } = setup(k), spots = signSpots(L);
     for (const n of YEAR) {
@@ -112,6 +112,12 @@ test('CITY D — a year of nights: roof A · roof B · the hotel blade · the sp
       const four = [pk.get('n-roofA'), pk.get('n-roofB'), pk.get('n-blade'), blade];
       assert.equal(new Set(four).size, 4, `${k} ${n}: ${four.join(' · ')} — a game twice`);
       assert.ok(['prism', 'holdem'].includes(pk.get('n-blade')), `${k} ${n}: the hotel blade ${pk.get('n-blade')}`);
+    }
+    // (CITY PART 1 — five games on four signs: across each week every one of the five hangs somewhere at least once)
+    for (let w = 0; w + 7 <= YEAR.length; w += 7) {
+      const up = new Set();
+      for (const n of YEAR.slice(w, w + 7)) { const pk = assignSigns(ROSTER, spots, n), [y, m, d] = n.split('-').map(Number); [pk.get('n-roofA'), pk.get('n-roofB'), pk.get('n-blade'), ghostAdGame(Date.UTC(y, m - 1, d, 23), IDS, null)].forEach(g => up.add(g)); }
+      assert.equal(up.size, 5, `${k} the week from ${YEAR[w]}: ${[...up].join(' · ')} — a game never up`);
     }
   }
 });

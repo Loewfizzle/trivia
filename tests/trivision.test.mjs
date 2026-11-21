@@ -48,7 +48,7 @@ test('JAYWALK\'s switch: the default ON · COMING SOON from its day; the owner\'
   assert.equal(jaywalkState().src, 'default');
   assert.equal(jaywalkShow('2026-11-11'), null, 'before its day: none');
   assert.equal(jaywalkShow('2026-11-14'), 'jaywalk');
-  assert.deepEqual(triFaces('2026-11-14'), ['holdem-open', 'jaywalk'], 'both up → the board turns');
+  assert.deepEqual(triFaces('2026-11-14'), ['jaywalk', 'holdem-open'], 'both up → the board turns (CITY PART 1: the newest first — HIGH RISE → JAYWALK → HOLD\'EM; HIGH RISE not live yet on the 14th)');
   const r0 = jaywalkRev();
   setJaywalk({ on: true, bar: 'soon', open: '2026-12-01', since: '2026-11-12' });
   assert.ok(jaywalkRev() > r0, 'a change bumps the revision');
@@ -69,9 +69,12 @@ test('THE BILLPOSTER stays home while the board turns (the turning board is the 
   const kinds = key => workDay(key, { seed: 1924, day0: day0Of(key), off: -300 }).map(w => w.kind);
   for (const k of ['2026-11-13', '2026-11-20', '2026-12-04']) { assert.equal(triKeeps(k), true); assert.ok(!kinds(k).includes('billposter'), `${k}: no billposter`); }
   // (the tri-vision's own rule: HOLD'EM switched on from a day — HOLD'EM's rule alone would send him to paste it — the turning board keeps him home)
+  setHoldem({ on: true, bar: 'open', since: '2026-11-18' });
+  assert.equal(triKeeps('2026-11-18'), true); assert.ok(!kinds('2026-11-18').includes('billposter'), 'the first day of the turning board: no paste');
+  setJaywalk({ on: false }); assert.ok(kinds('2026-11-18').includes('billposter'), "JAYWALK off (before HIGH RISE's go-live): HOLD'EM's rule — he pastes it once");
+  // (CITY PART 1: from HIGH RISE's go-live its face turns with HOLD'EM's — JAYWALK off, the board still turns: he stays home)
   setHoldem({ on: true, bar: 'open', since: '2026-11-25' });
-  assert.equal(triKeeps('2026-11-25'), true); assert.ok(!kinds('2026-11-25').includes('billposter'), 'the first day of the turning board: no paste');
-  setJaywalk({ on: false }); assert.ok(kinds('2026-11-25').includes('billposter'), "JAYWALK off: HOLD'EM's rule — he pastes it once");
+  assert.equal(triKeeps('2026-11-25'), true); assert.ok(!kinds('2026-11-25').includes('billposter'), 'HIGH RISE + HOLD’EM turn: no paste');
   reset();
 });
 
@@ -98,7 +101,7 @@ test('the scene: the tri-vision\'s pieces (the warm after the reveal, the swap u
   // (PLAY NOW 0c — THE ROOF BOARD STOPPED TURNING: a failed art / painter is asked again on a backoff + reported, never left for good)
   assert.match(sc, /tri\.retryAt = performance\.now\(\) \+ \[3e3, 15e3, 60e3, 300e3\]\[Math\.min\(tri\.fails - 1, 3\)\]/);
   assert.match(sc, /m\.warmJaywalk\(\(\) => \{[^}]*\}, why => \{ if \(!destroyed\) triWarmFailed\(/);
-  assert.match(sc, /reportError\(new Error\(`THE TRI-VISION: JAYWALK's \$\{what\} failed to load/);
+  assert.match(sc, /reportError\(new Error\(`THE TRI-VISION: \$\{\/HIGH RISE\/\.test\(what\) \? '' : 'JAYWALK’s '\}\$\{what\} failed to load/);   // (CITY PART 1: HIGH RISE's face reports by its own name)
   assert.match(readFileSync('js/screens/harbor/jaywalk-art.js', 'utf8'), /me\.onerror = \(\) => \{ if \(L\.img === me\) L\.img = null; flush\(false, `\$\{what\} failed`\); \};/);
   const signs = readFileSync(new URL('../js/screens/harbor/signs.js', import.meta.url), 'utf8');
   assert.doesNotMatch(signs + sc, /^import [^\n]*jaywalk-art\.js/m, 'no static import of the poster');

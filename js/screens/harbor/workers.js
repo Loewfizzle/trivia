@@ -395,7 +395,7 @@ export function bladeArt(L, T, game, dpr = 2) {
   const G = speakGeo(L), bg = bladeGeo(G), M = mats(T), R = bg.rect, pad = 2, X0 = R.x - pad, Y0 = R.y - pad, W = R.w + pad * 2, H = R.h + pad * 2;
   const mk = gm => { const cv = document.createElement('canvas'); cv.width = Math.ceil(W * dpr); cv.height = Math.ceil(H * dpr); const x = safeCtx(cv); if (!x) return cv; x.setTransform(dpr, 0, 0, dpr, -X0 * dpr, -Y0 * dpr); x.save(); wallMap(x, bg.ox, bg.oy, bg.k); paintBlade(x, M, gm); x.restore(); return cv; };
   const letters = bladeLetters(game.name || game.id), rows = [];
-  for (const col of letters.cols) [...col.word].forEach((ch, i) => { const v1 = col.top - col.lh * i, v0 = v1 - col.lh; rows.push({ y0: bg.oy - bg.k * v1, y1: bg.oy - bg.k * v0 }); });
+  for (const col of letters.cols) [...col.word].forEach((ch, i) => { if (ch === ' ') return; const v1 = col.top - col.lh * (col.at ? col.at[i] : i), v0 = v1 - col.lh; rows.push({ y0: bg.oy - bg.k * v1, y1: bg.oy - bg.k * v0 }); });   // (CITY PART 1: a one-column name's gap — speakeasy-blade.js#BLADE_COLUMN)
   rows.sort((a, b) => a.y0 - b.y0);
   return { blank: mk({ ...game, name: ' ' }), fresh: mk(game), rect: { x: X0, y: Y0, w: W, h: H }, face: { y0: bg.oy - bg.k * BLADE.v1, y1: bg.oy - bg.k * BLADE.v0 }, rows, key: `${game.id}|${L.cam.W}x${L.cam.H}` };
 }

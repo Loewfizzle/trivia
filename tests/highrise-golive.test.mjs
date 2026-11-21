@@ -29,17 +29,19 @@ test('HOW TO PLAY: RULES.highrise in ui/help.js — one line + two short section
   assert.match(help, /const TAB = \{ jaywalk: 'JW', highrise: 'HR',/, 'its tab');
 });
 
-test('THE SIGN HOLD: HIGH RISE playable and on NO city sign (the roster every sign, the billboard, the blades + the ghost ad read) until THE CITY PASS lifts it', () => {
-  assert.deepEqual(SIGN_HOLD, ['highrise']);
+test('THE SIGN HOLD — LIFTED (CITY PART 1, Nov 20): HIGH RISE is on the city\'s signs through THE ONE roster (the roof signs, the speakeasy blade, the ghost ad) + its own tri-vision face; the hold stays as the switch for the next game', () => {
+  assert.deepEqual(SIGN_HOLD, []);
   assert.ok(GAMES.find(g => g.id === 'highrise').playable);
-  assert.ok(!signRoster(GAMES).some(g => g.id === 'highrise'), 'not in the roster');
-  assert.deepEqual(signRoster(GAMES).map(g => g.id).sort(), ['holdem', 'jaywalk', 'overclock', 'prism']);
+  assert.ok(signRoster(GAMES).some(g => g.id === 'highrise'), 'in the roster');
+  assert.deepEqual(signRoster(GAMES).map(g => g.id).sort(), ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism']);
   // the neon takes the roster (never its own `playable` filter) — the scene hands it the same; the ghost ad + the blades read signGames
   assert.match(read('js/screens/harbor/neon.js'), /const games = signRoster\(allGames\)\.map/);
   const scene = read('js/screens/harbor/scene.js');
   assert.match(scene, /const signGames = signRoster\(games\);/); assert.match(scene, /createNeon\(\{ games: signGames,/); assert.match(scene, /const playable = signGames;/);
-  // nothing in the city names HIGH RISE on its own (the trivision's faces are its own list: HOLD'EM · JAYWALK · THE DROP)
-  for (const f of ['js/core/harbor-trivision.js', 'js/core/harbor-speakeasy.js', 'js/screens/harbor/signs.js', 'js/screens/harbor/speakeasy-blade.js']) assert.doesNotMatch(read(f), /highrise/i, `${f}`);
+  // its own pieces: the two-tone roof sign + its day enamel (signs.js), the stacked split (harbor-neon.js), the tri-vision's face (harbor-trivision.js)
+  assert.match(read('js/screens/harbor/signs.js'), /SIGN_ACC2 = Object\.freeze\(\{ highrise: '#35e3ff' \}\)/);
+  assert.match(read('js/screens/harbor/signs.js'), /highrise: '#ff4fd8'/);
+  assert.match(read('js/core/harbor-neon.js'), /highrise: \['HIGH', 'RISE'\]/);
 });
 
 test('THE GAMES LIST: HIGH RISE on TOP with NEW from its go-live day (the newest NEW first, above JAYWALK) for 14 days', () => {

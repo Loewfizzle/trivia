@@ -36,7 +36,7 @@ import { createSceneRadio } from './scene-radio.js';
 import { setShowcase } from '../../core/harbor-showcase.js';
 import { hintAt, ownerMessages, intercomHead } from '../../core/harbor-billboard.js';
 import { holdemShow, setHoldemForce, holdemRev } from '../../core/harbor-holdem.js';
-import { triFaces, triClock, triKnobs, triProgress, slatU, slatLook, setJaywalkForce, jaywalkRev, setDropForce, isJaywalkId, newestFace, faceDates } from '../../core/harbor-trivision.js';
+import { triFaces, triClock, triKnobs, triProgress, slatU, slatLook, setJaywalkForce, jaywalkRev, setDropForce, isJaywalkId, isHighriseId, newestFace, faceDates } from '../../core/harbor-trivision.js';
 import { roomRects } from '../../core/harbor-room.js';
 import { createScenePanel } from './scene-panel.js';
 import { createScenePerf } from './scene-perf.js';
@@ -65,7 +65,7 @@ import { facadeSteps } from './skyline.js';
 import { litSteps, createLights, newMeta } from './lights.js';
 import { rayStrength, drawRays } from './rays.js';
 import { searchlightStep, drawBeams } from './searchlights.js';
-import { cabinetCut, setJaywalkPainter, setDropPainter } from './signs.js';
+import { cabinetCut, setJaywalkPainter, setDropPainter, setHighrisePainter } from './signs.js';
 import { vehiclesReset, vehicleInFront } from './occluders.js';
 
 import { quaySteps, drawQuayLamps, quayLampSprite } from './quay.js';
@@ -1127,11 +1127,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (THE TRI-VISION's state — its functions below workBoard; declared up here: boardSync reads it)
   let jaywalkForced = false, dropForced = false;
   const benchK = new Map(), BENCH_XF_S = 0.25;   // (THE BENCH OVER THE TAXI: each bench overlay's own fade, 1 = shown)
-  const tri = { pick: null, shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null, jwOpen: false, openWarmed: false, fails: 0, retryAt: 0, dr: null, drWarm: false, drRetry: 0 };
+  const tri = { pick: null, shown: 0, lastN: null, turn: null, swap: false, warmed: false, art: new Map(), jw: null, jwOpen: false, openWarmed: false, fails: 0, retryAt: 0, dr: null, drWarm: false, drRetry: 0, hr: false, hrWarmed: false };   // (CITY PART 1: hr — HIGH RISE's poster decoded)
   const triWarmFailed = what => {
     tri.warmed = false; tri.fails++;
     tri.retryAt = performance.now() + [3e3, 15e3, 60e3, 300e3][Math.min(tri.fails - 1, 3)];
-    if (tri.fails === 1 || tri.fails === 4) reportError(new Error(`THE TRI-VISION: JAYWALK's ${what} failed to load (try ${tri.fails}) — the board stays on HOLD'EM until it does`), 'trivision art');
+    if (tri.fails === 1 || tri.fails === 4) reportError(new Error(`THE TRI-VISION: ${/HIGH RISE/.test(what) ? '' : 'JAYWALK’s '}${what} failed to load (try ${tri.fails}) — the board stays on HOLD'EM until it does`), 'trivision art');
   };
   const triTurns = [];
   const boardWant = (key, l) => {
@@ -1261,6 +1261,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (CITY F — THE OPEN NOW BILLBOARD: the face the board turns to decides WHICH picture warms — COMING SOON's art, or from the OPEN DAY the
     //  owner's poster (jaywalk-art.js#warmJaywalk(…, open)); a face shows only once ITS picture has decoded)
     const needOpen = !!F && F.includes('jaywalk-open'), needSoon = !!F && F.includes('jaywalk');
+    const needHr = !!F && F.some(isHighriseId);   // (CITY PART 1: HIGH RISE's OPEN NOW face — its picture warms like JAYWALK's)
     // (CITY H2 — ONE FACE FROM THE FIRST FRAME (the 4:03 pm entry): the face the board OPENS on is picked from ALL of today's faces by their
     //  switch dates (newestFace) — and that ONE face's picture warms at once, before the reveal; the others after it, as ever)
     if (F && tri.lastN == null) tri.pick = F[newestFace(F, faceDates())];   // (until it opens the pick follows the feed — COMING SOON → NOW OPEN)
@@ -1268,8 +1269,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (needSoon && !tri.warmed && early('jaywalk') && performance.now() >= tri.retryAt) { tri.warmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jw = m; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (!destroyed) triWarmFailed(`poster art (${why})`); }); }).catch(e => { if (!destroyed) triWarmFailed(`painter (${(e && e.message) || e})`); }); }   // (the poster's module + its art: AFTER the reveal — never the boot graph)
     if (needOpen && !tri.openWarmed && early('jaywalk-open') && performance.now() >= tri.retryAt) { tri.openWarmed = true; lazyImport(import('./jaywalk-art.js'), './jaywalk-art.js').then(m => { if (!destroyed) m.warmJaywalk(() => { if (destroyed) return; tri.jwOpen = true; tri.fails = 0; setJaywalkPainter(m.paintJaywalk); boardCheck = 0; }, why => { if (destroyed) return; tri.openWarmed = false; triWarmFailed(`the open-now poster (${why})`); }, true); }).catch(e => { if (destroyed) return; tri.openWarmed = false; triWarmFailed(`painter (${(e && e.message) || e})`); }); }
     if (needDr && !tri.drWarm && early('drop') && performance.now() >= tri.drRetry) { tri.drWarm = true; lazyImport(import('./drop-art.js'), './drop-art.js').then(m => { if (!destroyed) m.warmDrop(() => { if (destroyed) return; tri.dr = m; setDropPainter(m.paintDrop); boardCheck = 0; }); }).catch(e => { if (destroyed) return; tri.drWarm = false; tri.drRetry = performance.now() + 15e3; reportError(new Error(`THE TRI-VISION: THE DROP's painter failed to load (${(e && e.message) || e})`), 'trivision art'); }); }
+    if (needHr && !tri.hrWarmed && early('highrise') && performance.now() >= tri.retryAt) { tri.hrWarmed = true; lazyImport(import('./highrise-art.js'), './highrise-art.js').then(m => { if (!destroyed) m.warmHighrise(() => { if (destroyed) return; tri.hr = true; tri.fails = 0; setHighrisePainter(m.paintHighrise); boardCheck = 0; }, why => { if (!destroyed) { tri.hrWarmed = false; triWarmFailed(`HIGH RISE poster (${why})`); } }); }).catch(e => { if (!destroyed) { tri.hrWarmed = false; triWarmFailed(`HIGH RISE painter (${(e && e.message) || e})`); } }); }   // (CITY PART 1: lazy — never the boot graph; a failure retries on the backoff)
     if (!F) return null;
-    const G = F.filter(f => (f !== 'jaywalk' || tri.jw) && (f !== 'jaywalk-open' || tri.jwOpen) && (f !== 'drop' || tri.dr));
+    const G = F.filter(f => (f !== 'jaywalk' || tri.jw) && (f !== 'jaywalk-open' || tri.jwOpen) && (f !== 'drop' || tri.dr) && (f !== 'highrise' || tri.hr));
     return G.length >= 2 ? G : null;
   }
   /** every frame (boardSync): the clock's turn → a turn from the face on show to the clock's (never a pop-in) → the faces [A, B], or null */
@@ -2997,7 +2999,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     let late = on > REVEAL_MAX && !(((baker.bakes >= 1 && bakeCamShown !== camSig) || !box || !!resizeT || !!wantBuild || (!fonts && fontsAsked) || (people.ready && !people.ready())) && on < REVEAL_MAX + 2000);   // (CITY C 0c: + the title's faces already on their way + the people's staged first plan — the Chromebook's swap 0.8 s after a late reveal re-laid the dock + an 870 ms frame)
     const folk = (clock.force && clock.force.has && clock.force.has('no-people')) || !people.ready || people.ready() || on > REVEAL_MAX - 500;
     // (CITY H2 — ONE FACE FROM THE FIRST FRAME: the reveal waits for the roof board's PICKED poster (≤ REVEAL_MAX − 0.5 s; a failed load lets go))
-    const bp = tri.pick, board = !bp || /^holdem/.test(bp) || (bp === 'jaywalk' ? !!tri.jw : bp === 'jaywalk-open' ? tri.jwOpen : bp === 'drop' ? !!tri.dr : true) || tri.fails > 0 || on > REVEAL_MAX - 500;
+    const bp = tri.pick, board = !bp || /^holdem/.test(bp) || (bp === 'jaywalk' ? !!tri.jw : bp === 'jaywalk-open' ? tri.jwOpen : bp === 'drop' ? !!tri.dr : bp === 'highrise' ? !!tri.hr : true) || tri.fails > 0 || on > REVEAL_MAX - 500;
     // CITY PART 1 — A FIRST VISIT THAT NEVER LOADED (a Pixel 8 on 4G, nothing cached): every cap above counts from THIS SCENE's start — on a slow
     //  first visit the scene starts late (the module graph first) and then waited its caps again, past the watchdog's 12 s. THE PAGE'S CLOCK:
     //  once the PAGE has been on screen NET_LET_GO_MS (index.html#__boot.onScreen), every gate that waits on the NETWORK lets go (the fonts, the

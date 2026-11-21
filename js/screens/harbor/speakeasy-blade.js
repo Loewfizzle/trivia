@@ -76,12 +76,21 @@ export function bladeWords(name) {
   const w = words[0];
   return BLADE_SPLIT[w] ? [...BLADE_SPLIT[w]] : [w.slice(0, Math.ceil(w.length / 2)), w.slice(Math.ceil(w.length / 2))];
 }
+/** CITY PART 1 — ONE COLUMN, TWO WORDS (the owner, Nov 20: the speakeasy blade's HIGH RISE "stacked with a clear gap, or one line — whichever
+ *  reads at 390 unzoomed"): two side-by-side columns read ACROSS on a vertical board (HR · II · GS · HE), so these names stack in ONE column —
+ *  the first word over the second, a short gap (BLADE_GAP_SLOT of a letter's slot) between them; every letter still ≥ 10 pt (tests/harbor.test.mjs) */
+export const BLADE_COLUMN = Object.freeze(['HIGH RISE']);
+export const BLADE_GAP_SLOT = 0.6;
+const colSlots = w => [...w].reduce((a, ch) => a + (ch === ' ' ? BLADE_GAP_SLOT : 1), 0);
+/** each character's slot offset down its column (a space = the gap) */
+export const colAt = w => { const at = []; let y = 0; for (const ch of w) { at.push(y); y += ch === ' ' ? BLADE_GAP_SLOT : 1; } return at; };
 export function bladeLetters(name, bw = BLADE.bw, v0 = BLADE.v0, v1 = BLADE.v1) {
-  const words = bladeWords(name), nc = Math.max(1, words.length);
+  const one = String(name || '').toUpperCase().trim().replace(/\s+/g, ' ');
+  const words = BLADE_COLUMN.includes(one) ? [one] : bladeWords(name), nc = Math.max(1, words.length);
   const x0 = MARQUEE.edge + 0.05, x1 = bw - MARQUEE.edge - 0.05, top = v1 - LETTER.v1, foot = v0 + LETTER.v0, ih = top - foot;
-  const cw = (x1 - x0 - LETTER.gap * (nc - 1)) / nc, n = Math.max(1, ...words.map(w => w.length)), lh = ih / n;
+  const cw = (x1 - x0 - LETTER.gap * (nc - 1)) / nc, n = Math.max(1, ...words.map(colSlots)), lh = ih / n;
   const cap = Math.min(lh * 0.86, cw * LETTER.tall);
-  return { cw, cap, lh, cols: words.map((w, ci) => ({ word: w, cx: x0 + cw * (ci + 0.5) + LETTER.gap * ci, lh, cap, top: top - (ih - lh * w.length) / 2 })) };
+  return { cw, cap, lh, cols: words.map((w, ci) => ({ word: w, at: colAt(w), slots: colSlots(w), cx: x0 + cw * (ci + 0.5) + LETTER.gap * ci, lh, cap, top: top - (ih - lh * colSlots(w)) / 2 })) };
 }
 /** paint the name (board units, v up): each letter centred in its slot, squeezed / stretched to fill the column; style: 'day' (cream +
  *  gold paint, a dark keyline, a drop shade), 'dark' (the night's unlit letters: dull paint), 'lit' (the warm-white self-lit letter
@@ -128,10 +137,11 @@ export function paintLetters(x, game, style, M) {
   const L = bladeLetters(game.name || game.id), LK = bladeLook(game), S = LK.S, font = BLADE_FONT[S.font] || FONT, wide = BLADE_WIDE[S.font] || LETTER.wide, ink = LK.letter;
   x.save(); x.font = font(100); const cap = (x.measureText('H').actualBoundingBoxAscent || 70) / 100; x.restore();
   for (const col of L.cols) [...col.word].forEach((ch, i) => {
-    const size = col.cap / cap, vb = col.top - col.lh * (i + 1) + (col.lh - col.cap) / 2;
+    if (ch === ' ') return;   // (CITY PART 1: the gap between a one-column name's two words)
+    const slot = col.at ? col.at[i] : i, size = col.cap / cap, vb = col.top - col.lh * (slot + 1) + (col.lh - col.cap) / 2;
     if (S.kind === 'bulb') {
       // BULB LETTERS: by day glass globes in their sockets, at night the bulbs' own light (a hot core + a soft halo)
-      const vb2 = col.top - col.lh * (i + 1) + (col.lh - col.cap) / 2, r = BULB.r;
+      const vb2 = col.top - col.lh * (slot + 1) + (col.lh - col.cap) / 2, r = BULB.r;
       for (const [u, v] of bulbPoints(ch, col.cx, vb2, col.cap, L.cw)) {
         if (style === 'lit') { glowDot(x, u, v, r * 2.1, LK.bulb, 0.5);   // (CITY H1: a tighter bulb glow — the letter's shape crisp at phone size)
           dot(x, u, v, r * 1.12, mix(LK.bulb, [255, 255, 255], 0.5)); dot(x, u, v, r * 0.62, mix(LK.bulb, [255, 255, 255], 0.88)); }
@@ -146,7 +156,8 @@ export function paintLetters(x, game, style, M) {
     if (S.kind === 'neon') {
       // NEON TUBES: by day pale unlit glass on the dark board; at night ONE clean letter in its colour, a white-hot body, its glow (9e: never a
       // second letter inside the first)
-      if (style === 'day') text(x, ch, col.cx, vb, size, { fill: rgb(mix(ink, [236, 236, 242], 0.55)), stroke: rgb(mix(ink, [10, 10, 16], 0.5)), lw: size * 0.05, sq, font });
+      // (CITY PART 1 — THE DAY PASS: unlit glass is nearly colourless in sunlight — a faint tint of the letter's colour, never a pastel that reads lit)
+      if (style === 'day') text(x, ch, col.cx, vb, size, { fill: rgb(mix(ink, [222, 224, 232], 0.8)), stroke: rgb(mix(ink, [10, 10, 16], 0.62)), lw: size * 0.05, sq, font });
       else if (style === 'dark') text(x, ch, col.cx, vb, size, { fill: rgb(mix(ink, LK.G.night, 0.7)), sq, font });
       // (CITY H1 — the owner: CRISP at phone size — no wide halo, a hair-thin edge at most (was glowPx × 2.2 ≈ 3.5 pt of blur); the bulbs keep it lively)
       else text(x, ch, col.cx, vb, size, { fill: rgb(mix(ink, [255, 255, 255], 0.42)), stroke: rgb(mix(ink, [255, 255, 255], 0.12)), lw: size * 0.05, sq, font, glow: [M.glowPx * 0.45, rgb(ink, 0.85)] });

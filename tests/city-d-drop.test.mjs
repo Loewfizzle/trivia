@@ -25,21 +25,22 @@ test('CITY D: a daily turned on (GO LIVE AT THE NEXT 4 AM — the only way an OF
   setDrop({ live: '2026-11-15', mode: 'on' });
   // Nov 15, 9:40 am ET — the board's WORK DAY is still Nov 14
   const now = at('2026-11-15T14:40:00Z');
-  assert.deepEqual(triFaces('2026-11-14'), ['holdem-open', 'jaywalk'], 'the board\'s key alone (the old judging): THE DROP a day early — the bug');
-  assert.deepEqual(triFaces('2026-11-14', now), ['holdem-open', 'jaywalk', 'drop'], 'judged on the streak day: THE DROP is in the rotation');
+  // (CITY PART 1: THE DROP's face is OUT of the rotation — the streak-day rule (dropKey) now judges HIGH RISE's go-live face)
+  assert.deepEqual(triFaces('2026-11-14', now), ['jaywalk', 'holdem-open'], 'THE DROP never joins the board now');
   assert.equal(dropKey('2026-11-14', now), '2026-11-15');
   assert.equal(dropKey('2026-11-16', now), '2026-11-16', 'a later board key stands');
   assert.equal(dropKey('2026-11-14', null), '2026-11-14', 'no clock: the key alone (the day chart, fixed-day tests)');
   // before 4 am ET the streak day is still the 14th: not live yet
-  assert.deepEqual(triFaces('2026-11-14', at('2026-11-15T08:30:00Z')), ['holdem-open', 'jaywalk'], '3:30 am ET: not yet');
-  // 14 days counted from the go-live: retired on the 29th's streak day
-  assert.deepEqual(triFaces('2026-11-28', at('2026-11-29T14:00:00Z')), ['holdem-open', 'jaywalk'], 'retired after its 14 days');
+  // HIGH RISE (live Nov 20): the board's key is still the 19th on the 20th's morning — judged on the streak day it is up; before 4 am ET not yet
+  assert.deepEqual(triFaces('2026-11-19', at('2026-11-20T14:40:00Z')), ['highrise', 'jaywalk', 'holdem-open'], 'HIGH RISE on its go-live morning (the streak day)');
+  assert.deepEqual(triFaces('2026-11-19', at('2026-11-20T08:30:00Z')), ['jaywalk', 'holdem-open'], '3:30 am ET on the 20th: not yet');
+  assert.deepEqual(triFaces('2026-11-19'), ['jaywalk', 'holdem-open'], 'the board\'s key alone (no clock): a day late — the clock is handed in (the scene)');
   setDrop(null);
 });
 
-test('CITY D: the scene hands the board its clock; the order and the shared clock unchanged (HOLD\'EM → JAYWALK → THE DROP)', () => {
+test('CITY D: the scene hands the board its clock (CITY PART 1: the order HIGH RISE → JAYWALK → HOLD\'EM, HIGH RISE judged on the streak day)', () => {
   const sc = readFileSync('js/screens/harbor/scene.js', 'utf8');
   assert.match(sc, /const F = key \? triFaces\(key, clock\.now\(\)\) : null/);
   const T = readFileSync('js/core/harbor-trivision.js', 'utf8');
-  assert.match(T, /\[holdemShow\(dayKey\), jaywalkShow\(dayKey\), dropShow\(dropKey\(dayKey, nowMs\)\)\]/);
+  assert.match(T, /\[highriseShow\(dropKey\(dayKey, nowMs\)\), jaywalkShow\(dayKey\), holdemShow\(dayKey\)\]/);
 });

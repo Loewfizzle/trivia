@@ -35,7 +35,7 @@ function nodeOf(taps, { go = GO, lag = 300, per = 1 } = {}) {
 /** a bot's whole SOLO run on the seed GO picks (σ ms — bot.js#BOTS) → its tap log */
 const botTaps = (sigma, seed = seedOf(CODE, M, GO)) => playBot(createRun({ seed, mode: 'solo' }), gaussBot({ sigmaMs: sigma, seed: `c${sigma}` }), { maxFloor: 320 });
 
-test('PLAYABLE (THE GO-LIVE, Nov 20): its GAMES row playable: true, live 2026-11-20, no preview — offered + startable on EVERY phone (never a TEST); its meta at boot; HOW TO PLAY, its tile, THE BOARD tab; held OFF the city signs (THE SIGN HOLD)', () => {
+test('PLAYABLE (THE GO-LIVE, Nov 20): its GAMES row playable: true, live 2026-11-20, no preview — offered + startable on EVERY phone (never a TEST); its meta at boot; HOW TO PLAY, its tile, THE BOARD tab; on the city signs since CITY PART 1 lifted THE SIGN HOLD', () => {
   const g = GAMES.find(x => x.id === 'highrise');
   assert.ok(g && g.playable === true && g.preview === undefined && g.live === '2026-11-20' && g.name === 'HIGH RISE' && g.theme === 'highrise' && g.tag && g.blurb);
   assert.ok(!FROZEN_IDS.includes('highrise'), 'a playable game — never frozen');
@@ -48,9 +48,9 @@ test('PLAYABLE (THE GO-LIVE, Nov 20): its GAMES row playable: true, live 2026-11
   assert.match(read('js/ui/help.js'), /RULES\.highrise = \{/); assert.match(read('js/ui/help.js'), /highrise: 'HR'/, 'HOW TO PLAY + its tab');
   assert.match(read('js/ui/game-art.js'), /highrise: \(\) => HIGHRISE/, 'its tile (THE TOWER)');
   assert.match(read('js/board/view.js'), /'jaywalk', 'highrise'\]\);/, 'its tab on THE BOARD');
-  // THE SIGN HOLD (until THE CITY PASS lifts it): playable — and on no sign
-  assert.match(read('js/core/harbor-neon.js'), /export const SIGN_HOLD = Object\.freeze\(\['highrise'\]\);/);
-  assert.match(read('js/core/harbor-neon.js'), /!SIGN_HOLD\.includes\(g\.id\)/, 'the roster leaves it out');
+  // THE SIGN HOLD — LIFTED by CITY PART 1 (Nov 20) with HIGH RISE's signs: the hold is empty, the roster's filter stays (the next game's go-live)
+  assert.match(read('js/core/harbor-neon.js'), /export const SIGN_HOLD = Object\.freeze\(\[\]\);/);
+  assert.match(read('js/core/harbor-neon.js'), /!SIGN_HOLD\.includes\(g\.id\)/, 'the roster still reads the hold');
   assert.match(read('js/screens/harbor/neon.js'), /const games = signRoster\(allGames\)/, 'the neon (the signs + the billboard) reads the same roster');
   // the server: counted for everyone (the owner-only branch never matches a playable row)
   assert.match(read('api/report.js'), /if \(uid && GAMES\.some\(g => g\.id === id && g\.preview && !g\.playable\)\) \{/, 'reportableGame: the being-built branch is for a preview row only');
