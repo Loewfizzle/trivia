@@ -260,7 +260,7 @@
 /* J1 — THE ORDER, BIGGER (the owner, from friends' feedback): ~22 pt rows, the dot / name / lanes readable at 390 unzoomed; OUT = a RED X in the
    dot's place + the name struck through + dimmed (a shape — never colour alone); YOUR row keeps its edge. 8 players = 190 px — the left column
    under ☰, the lanes' middle clear (375 × 667 too). */
-.jw-order { gap: 2px; max-width: 136px; }
+.jw-order { gap: 2px; max-width: 136px; z-index: 5; }   /* (over the moments' layer — the OUT banner's veil never dims the list) */
 .jw-order li { grid-template-columns: 10px minmax(0, 72px) auto; gap: 6px; padding: 0 6px 0 7px; height: 22px; font: 700 14px/22px var(--font-ui); letter-spacing: 0.02em; }
 .jw-order-dot { width: 10px; height: 10px; box-shadow: 0 0 5px var(--c); }
 .jw-order b { font: 700 15px/22px var(--font-num, var(--font-ui)); min-width: 1.6em; }
@@ -295,7 +295,7 @@
 .jw-flash { position: absolute; inset: 0; background: rgba(255, 70, 96, 0.3); opacity: 0; animation: jw-flash 0.4s ease-out 3s both; }
 .jw-h2h { position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 160px); display: grid; justify-items: center; gap: 6px; text-align: center; transform-origin: 50% 0;
   animation: jw-h2h-in 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both; transition: transform 1.6s ease-in, opacity 1.6s ease-in; }
-.jw-h2h b { font: 900 38px/1 var(--font-display); letter-spacing: 0.06em; color: #fff4f6; text-shadow: 0 0 4px #fff, 0 0 16px #ff2a46, 0 0 36px rgba(255, 42, 70, 0.8), 0 3px 0 rgba(0, 0, 0, 0.8); }
+.jw-h2h b { white-space: nowrap; font: 900 clamp(28px, 9.4vw, 38px)/1 var(--font-display); letter-spacing: 0.06em; color: #fff4f6; text-shadow: 0 0 4px #fff, 0 0 16px #ff2a46, 0 0 36px rgba(255, 42, 70, 0.8), 0 3px 0 rgba(0, 0, 0, 0.8); }
 .jw-h2h > span { font: 800 18px/1.2 var(--font-num, var(--font-ui)); letter-spacing: 0.08em; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.8); }
 .jw-h2h > span span { text-shadow: 0 0 10px currentColor, 0 2px 0 rgba(0, 0, 0, 0.9); }
 .jw-h2h i { font-style: normal; color: #ff8a9a; margin: 0 4px; }
@@ -316,7 +316,7 @@
 .jw-duel-p.is-lead::before { content: ''; position: absolute; left: 50%; top: -7px; margin-left: -5px; border: 5px solid transparent; border-top: 0; border-bottom: 6px solid #fff; }
 /* LAST ONE STANDING */
 .jw-last { position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 160px); display: grid; justify-items: center; gap: 6px; text-align: center; animation: jw-last 2.6s ease-out both; }
-.jw-last b { font: 900 30px/1.05 var(--font-display); letter-spacing: 0.05em; color: #fff8e6; text-shadow: 0 0 4px #fff, 0 0 16px #ffc83c, 0 0 34px rgba(255, 190, 40, 0.75), 0 3px 0 rgba(0, 0, 0, 0.8); }
+.jw-last b { font: 900 clamp(24px, 7.6vw, 30px)/1.05 var(--font-display); letter-spacing: 0.05em; color: #fff8e6; text-shadow: 0 0 4px #fff, 0 0 16px #ffc83c, 0 0 34px rgba(255, 190, 40, 0.75), 0 3px 0 rgba(0, 0, 0, 0.8); }
 .jw-last span { font: 800 15px/1.2 var(--font-ui); letter-spacing: 0.14em; padding-left: 0.14em; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.8); }
 @keyframes jw-last { 0% { opacity: 0; transform: scale(0.7); } 12% { opacity: 1; transform: none; } 82% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 /* Reduced motion: every moment simply shows + goes (its own timer), a steady edge glow (.is-still), no flash, no shrink */

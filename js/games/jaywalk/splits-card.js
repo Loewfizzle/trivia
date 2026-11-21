@@ -48,6 +48,7 @@ export function splitsCard(ticks) {
     server(sp) {
       if (!sp || !el.isConnected) return;
       const r = cleanSplits(sp.r), b = sp.b != null ? cleanSplits(sp.b) : known();   // (no bests in the answer — a run not counted: the remembered ones stay)
+      if (Array.isArray(sp.r) && !r.length) { el.hidden = true; return; }   // (the server's run reached no split — a cut run: its numbers win)
       if (r.length && (r.length !== shown.length || r.some((t, i) => t !== shown[i]))) { shown = r; build(r); }   // (the server's numbers win)
       rememberBests(b);
       bests(b, Array.isArray(sp.n) ? sp.n : []);

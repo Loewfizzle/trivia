@@ -567,7 +567,7 @@ async function creditTry({ pid, cart, day, now, closed }) {
   const { founderOpen } = await import('./_lib/founder.js');
   const fOpen = await founderOpen(now).catch(() => false);
   let res = null;
-  await ref(`pstats/${pid}`).transaction(cur => { if (cur == null) return null; res = jwCredit(cur, { lanes: closed.l, feats: closed.f, splits: closed.sp || null, now, founderOpen: fOpen }); return res && res.next ? res.next : undefined; });
+  await ref(`pstats/${pid}`).transaction(cur => { if (cur == null) return null; res = jwCredit(cur, { lanes: closed.l, feats: closed.f, splits: closed.sp || [], now, founderOpen: fOpen }); return res && res.next ? res.next : undefined; });
   if (!res) return null;
   if (!res.next) return { pbs: [], items: [], ach: [], ...(res.sp ? { sp: res.sp } : {}) };   // (J1: nothing new to write — the splits' answer still goes to the end card)
   const [{ boardPaths, playCount, minMatches }, prof] = await Promise.all([import('./_lib/lb.js'), val(`profiles/${pid}`)]);

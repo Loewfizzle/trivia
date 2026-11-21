@@ -146,7 +146,7 @@ test('THE SERVER KEEPS THEM (a counted solo run → matchStep): pstats.jsp + the
   const b = matchStep(a.next, { key: 'k2', gid: 'jaywalk', row: ex2.rows.u, n: 1, now: T0 + 60_000, gap: 0 });
   assert.deepEqual(b.next.jsp, [1800, 3900]); assert.deepEqual(b.sp.n, [{ i: 1, at: 100, tick: 3900, prev: 4000 }]);
   const c = matchStep(b.next, { key: 'k3', gid: 'jaywalk', row: extractMatch(mk(undefined, 'r3')).rows.u, n: 1, now: T0 + 120_000, gap: 0 });
-  assert.deepEqual(c.next.jsp, [1800, 3900], 'a run with no split keeps the bests'); assert.equal(c.sp, undefined);
+  assert.deepEqual(c.next.jsp, [1800, 3900], 'a run with no split keeps the bests'); assert.deepEqual(c.sp, { r: [], b: [1800, 3900], n: [] }, 'the answer says "no split" (the end card follows the server)');
   // (an unverified solo row — no `sv` — never reaches the bests)
   const un = extractMatch({ ...mk([10, 20], 'r4'), sv: 0 });
   assert.equal(un.rows.u.sp, undefined);
@@ -161,6 +161,7 @@ test('THE DAILY KEEPS THEM (jaywalk-credit.js#creditTry): the try\'s splits → 
   const c = creditTry(b.next, { lanes: 60, feats: '', splits: [1750], now: T0 });
   assert.equal(c.next, null, 'nothing to write'); assert.deepEqual(c.sp, { r: [1750], b: [1700, 4000], n: [] });
   assert.equal(creditTry(b.next, { lanes: 0, feats: '', splits: null, now: T0 }), null);
+  assert.deepEqual(creditTry(b.next, { lanes: 3, feats: '', splits: [], now: T0 }).sp, { r: [], b: [1700, 4000], n: [] }, 'a counted try under 50: the answer says "no split"');
   const daily = readFileSync(new URL('../api/daily.js', import.meta.url), 'utf8');
   assert.match(daily, /return res && res\.next \? res\.next : undefined/, 'the transaction never commits a null (it would delete pstats)');
 });

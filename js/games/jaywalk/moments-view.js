@@ -100,7 +100,8 @@ export function createMomentsView(root, o) {
         const X = xs[i];
         if (now - X.at > X_MS) { X.el.remove(); xs.splice(i, 1); continue; }
         const p = ghostAt(X.u);
-        if (!p) { X.el.style.opacity = '0'; continue; }
+        if (!p) { X.el.style.visibility = 'hidden'; continue; }   // (visibility — the X's own animation owns its opacity)
+        X.el.style.visibility = '';
         const key = `${Math.round(p[0])},${Math.round(p[1])}`;
         if (key !== X.k) { X.k = key; X.el.style.transform = `translate3d(${Math.round(p[0])}px,${Math.round(p[1])}px,0) translate(-50%,-50%)`; }
       }

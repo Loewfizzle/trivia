@@ -69,7 +69,7 @@ export function stepGhost(G, course, target, now) {
     while (r.t < target && !isOver(r) && n < GHOST_STEPS) {
       n++;
       if (sure) { step(r, course, ''); continue; }
-      Object.assign(G.keep, r);
+      Object.assign(G.keep, r); G.keep.sp = r.sp.slice();   // (J1 — the review: its own splits)
       step(r, course, '');
       if (r.st === 'out') { Object.assign(r, G.keep); G.held = true; G.heldAt = now; break; }
     }

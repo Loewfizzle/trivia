@@ -29,7 +29,9 @@ export function mountJ1(stage, { what, sfx }) {
   if (what !== 'moments') return;
   const M = createMomentsView(stage, { nameOf: u => u, colorOf: u => COLORS[u] || '#fff', sound: id => { const S = sfx(); if (S) { try { S.play(id); } catch { /* silent */ } } } });
   const S0 = sfx(); if (S0 && S0.MATCH_SOUNDS) S0.fetchSounds(S0.MATCH_SOUNDS);
-  const ids = ['YOU', 'MIA', 'LIAM', 'JO'], W = () => stage.clientWidth || 390, H = () => stage.clientHeight || 844;
+  let sw = stage.clientWidth || 390, sh = stage.clientHeight || 844;   // (read once + on a resize — never in the frame)
+  addEventListener('resize', () => { sw = stage.clientWidth || sw; sh = stage.clientHeight || sh; });
+  const ids = ['YOU', 'MIA', 'LIAM', 'JO'], W = () => sw, H = () => sh;
   let t0 = performance.now(), ends = {}, raf = 0, pumpAt = 0;
   const lanes = t => ({ YOU: 60 + Math.floor(t / 400), MIA: 87, LIAM: 90 + (t > 4000 ? 0 : Math.floor(t / 500)), JO: 55 + Math.floor(Math.min(t, 10000) / 420) });
   const ghostAt = u => (ends[u] ? [W() * (u === 'MIA' ? 0.3 : u === 'LIAM' ? 0.68 : 0.5), H() * 0.5, 44] : null);

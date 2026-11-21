@@ -231,7 +231,7 @@ rules), the replay + judge sims (unit), `tests/jaywalk-match.test.mjs` "THE PROO
 - **THE ORDER, BIGGER**: ~22 pt rows (20 on a short phone), OUT = a RED X in the dot's place + the name struck (red) + dimmed; your edge stays.
 - **THE OUT BANNER**: "MIA IS OUT" (the name in the player's colour) + "87 LANES · 3 LEFT" — a strip under the numeral (its words clear the
   order list), ~1.5 s; outs within 1 s merge ("MIA + LIAM OUT" · "2 LEFT"); the out sound ONCE a banner; never on the out phone's own screen
-  (its OUT card says it — the banner waits out the card). **THE RED X**: where their ghost fell, if on screen — ~a car wide, ~60 % see-through,
+  (its OUT card says it; while that card is up no banner covers it — the order list marks the out, the red X still comes). **THE RED X**: where their ghost fell, if on screen — ~a car wide, ~60 % see-through,
   their name small over it, gone in 1.5 s (it follows the camera by transform; the stage's size from a ResizeObserver).
 - **HEAD TO HEAD** — a 3+ player match narrows TO two (an out leaves exactly two), ONCE: the big words + "BEN 142 vs JUSTIN 138" (under the
   banner's band), the screen's EDGES pulse red faster and faster (0.5 → 3 s) with the siren's wind-up, one flash at its peak, then the words

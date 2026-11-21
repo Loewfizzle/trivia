@@ -148,7 +148,7 @@ async function mount() {
       : `REPLAY ≠ LIVE — live lane ${live.lanes} t ${live.tick} ${live.cause} · replay lane ${r.lanes} t ${r.tick} ${r.cause} (${used}/${log.length} hops)`;
     // (J1 — YOUR SPLITS on the lab's end too: the phone's own engine — no server here, so no NEW BEST marks)
     if (endSp) { endSp.remove(); endSp = null; }
-    if (!warped) lazyImport(import('./splits-card.js'), './splits-card.js').then(m => { const SC = m.splitsCard(run.sp); if (SC.el && shown) { endSp = SC.el; end.append(SC.el); } }).catch(() => {});
+    if (!warped) lazyImport(import('./splits-card.js'), './splits-card.js').then(m => { const SC = m.splitsCard(run.sp); if (SC.el && shown && !endSp) { endSp = SC.el; end.append(SC.el); } }).catch(() => {});
     end.hidden = false;
     lab.ends.push({ seed, mode, same, live, replay: r, hops: log.length });
   }

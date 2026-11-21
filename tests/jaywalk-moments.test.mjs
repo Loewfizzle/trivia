@@ -52,6 +52,16 @@ test('A WATCHER (not a player) sees every out + the head-to-head; never LAST ONE
   ends.b = e(20); assert.deepEqual(run(M, ids, 'watcher', ends).events.map(x => x.k), ['out']);
 });
 
+test('A QUIET END (the review): a run the host\'s own idle rule calls over with no `e` leaves the count with no moment; the view feeds only on-time GOs', () => {
+  const ids = ['a', 'b', 'c'], M = createMoments();
+  run(M, ids, 'a', { b: null, c: null });
+  assert.deepEqual(run(M, ids, 'a', { b: { l: 4, w: 'quiet' }, c: null }).events, [], 'no banner, no HEAD TO HEAD for a phone that quit');
+  assert.deepEqual(run(M, ids, 'a', { b: { l: 4, w: 'quiet' }, c: e(9) }, null, { a: 20, c: 9 }).events.map(x => x.k), ['out', 'last'], 'the real out still counts');
+  const v = readFileSync(new URL('../js/games/jaywalk/view.js', import.meta.url), 'utf8');
+  assert.match(v, /filter\(u => u === uid \? mine\(g\) && .*: onTime\(runs\[u\], g0\)\)/, 'a seat with no on-time GO is never in the moments');
+  assert.match(v, /\{ w: 'quiet', l: /); assert.match(v, /!root\.classList\.contains\('is-over'\)/, 'no moment behind the podium');
+});
+
 test('THE MOTHERSHIP is a finish, not an OUT: no banner, no HEAD TO HEAD, no LAST ONE STANDING when it takes the runs still in', () => {
   const ids = ['a', 'b', 'c'], M = createMoments(), ends = { b: null, c: null };
   run(M, ids, 'a', ends);
@@ -86,7 +96,7 @@ test('AN HONEST END GAME never shows a fake OUT: the moments read ONLY each play
   run(M, ids, 'a', { b: null, c: null });
   assert.deepEqual(run(M, ids, 'a', { b: null, c: null }).events, [], 'the host ended the match: nobody\'s own end came — nothing shows');
   const v = readFileSync(new URL('../js/games/jaywalk/view.js', import.meta.url), 'utf8');
-  assert.match(v, /ends\[u\] = e \|\| null/, 'the view feeds the nodes\' own `e`');
+  assert.match(v, /ends\[u\] = e \|\| \(u !== uid && live/, 'the view feeds the nodes\' own `e` (or a quiet end — never an out)');
   assert.match(v, /const own = mine\(g\) && run && isOver\(run\)/, '… and this phone\'s own engine');
 });
 

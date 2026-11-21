@@ -551,11 +551,16 @@ export function createView() {
 
   // ---- J1 — THE MATCH MOMENTS (moments.js + moments-view.js): every OUT from that player's OWN end — their node's `e`, this phone's own
   // engine — never the host's state (an honest END GAME never shows a fake OUT)
+  // (THE FRESH-EYES REVIEW: only a player with an on-time GO is in the moments — a seat that never GOes is never a duellist; a run the
+  //  host's own rule calls over without its `e` (a phone that quit / died mid-run: director.js#liveOf — idle-out, never the host's word) is
+  //  a QUIET end: no banner, no sound, it just leaves the count)
   function pumpMoments(g, runs) {
-    const ids = Object.keys(g.participants || {}), ends = {}, lanes = {};
+    const g0 = firstGo(runs), ids = Object.keys(g.participants || {}).filter(u => u === uid ? mine(g) && (!runs[u] || onTime(runs[u], g0) || !goOf(runs[u])) : onTime(runs[u], g0)), ends = {}, lanes = {};
+    let live = null;
+    try { live = new Set(liveOf({ code, matchId, tree: runs, now: srvNow(), online: null }).uids); } catch { live = null; }
     for (const u of ids) {
       const e = runs[u] && runs[u].e, G = ghosts.get(u);
-      ends[u] = e || null;
+      ends[u] = e || (u !== uid && live && !live.has(u) ? { w: 'quiet', l: G ? G.run.best : 0 } : null);
       lanes[u] = u === uid ? run.best : Math.max(G ? G.run.best : 0, e ? Number(e.l) || 0 : 0);
     }
     const own = mine(g) && run && isOver(run) ? { w: run.st === 'taken' ? 'taken' : run.cause, l: run.best } : null;
@@ -613,7 +618,7 @@ export function createView() {
       extra = { ghosts: list, t: wt + wa, a: wa, off: F ? F.vis : null, own: drawRun === run };
       if (TEST) probe(list, F, wt);
       drawOrder(g, runs); drawWatch(g, runs);
-      if (mom && runs && course !== START && c && c.t >= 0) {
+      if (mom && runs && course !== START && c && c.t >= 0 && !root.classList.contains('is-over')) {   // (never behind the podium: no moment's sound over it)
         if (now - momAt > 100) { momAt = now; pumpMoments(g, runs); }
         mom.frame(now, ghostAt);
       }

@@ -139,7 +139,7 @@ export function matchStep(s0, { key, gid, row, n, now, at = now, gap = DEFAULT_G
   // counted run (row.sp — core/match-report.js#jaywalkExtra; solo, match + the daily's tries all count — the daily: api/_lib/jaywalk-credit.js).
   // The outcome carries { r: this run's splits, b: the bests after it, n: the splits it made faster } — the end card's NEW BEST marks
   let sp = null;
-  if (row.sp && row.sp.length) { const S = splitBests(s.jsp, row.sp); if (S.changed) next.jsp = S.next; sp = { r: row.sp, b: S.next, n: S.news }; }
+  if (Array.isArray(row.sp)) { const S = splitBests(s.jsp, row.sp); if (S.changed) next.jsp = S.next; sp = { r: row.sp, b: S.next, n: S.news }; }
   const xp = solo ? soloXp(day.so || 0) : matchXp({ rank: row.rank, win: row.win, n, pbs: pbs.filter(p => !p.first).length, firstToday, gamesToday });
   if (solo) { day.so = (day.so || 0) + 1; if (!oldWeek) next.gs[gid] = (next.gs[gid] || 0) + 1; }   // (CITY FIXES: the week's solo plays — never the goal)
   // (PROGRESSION A: NO streak XP — the owner kept Grok's "streaks pay in milestones"; the old +10 % a night is gone)

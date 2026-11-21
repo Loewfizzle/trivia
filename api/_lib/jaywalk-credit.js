@@ -34,7 +34,7 @@ export function creditTry(s0, { lanes = 0, feats = '', splits = null, now = Date
   if (add.length) { next.pa = { ...(s0.pa || {}), gf: { ...gf, ...Object.fromEntries(add.map(k => [k, 1])) } }; changed = true; }
   let sp = null;
   const runSp = cleanSplits(splits);   // (an array, or the object the database hands back for one)
-  if (runSp.length) {
+  if (runSp.length || Array.isArray(splits)) {   // (an explicit empty list: the answer says "no split")
     const S = splitBests(s0.jsp, runSp);
     if (S.changed) { next.jsp = S.next; changed = true; }
     sp = { r: runSp, b: S.next, n: S.news };

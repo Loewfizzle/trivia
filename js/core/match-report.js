@@ -364,8 +364,7 @@ function jaywalkExtra(game, uid, out) {
   if (num(r.l) > 0) out.rec[solo ? 'jaywalk' : 'jaywalk-solo'] = Math.floor(num(r.l));
   for (const k of String(r.f || '').split(' ')) if (JW_FEATS.includes(k) && !(solo && k === 'mothership')) (out.f ||= {})[k] = 1;
   // (J1 — SPLIT TIMES: the run's splits from the SAME server replay → the player's best splits — core/progress.js#matchStep)
-  const sp = cleanSplits(r.sp);
-  if (sp.length) out.sp = sp;
+  out.sp = cleanSplits(r.sp);   // (an EMPTY list too: the server's answer then says "no split" — the end card's boxes follow it)
 }
 
 // HIGH RISE (S4A — JAYWALK's rule): the tower of a run the SERVER replayed itself (`game.sv` — api/_lib/highrise.js#highriseSolo builds that

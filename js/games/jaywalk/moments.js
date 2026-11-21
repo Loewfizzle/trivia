@@ -16,7 +16,7 @@ export const LAST_MS = 2600;           // (LAST ONE STANDING's card)
 export const createMoments = () => ({ base: false, seen: {}, h2h: false, last: false });
 
 /** a player's end as the moments read it: null (still in) · { out: bool (false = THE MOTHERSHIP took them), l (lanes) } */
-const endOf = e => (e && typeof e === 'object' ? { out: e.w !== 'taken', l: Math.max(0, Math.floor(Number(e.l) || 0)) } : null);
+const endOf = e => (e && typeof e === 'object' ? { out: e.w !== 'taken' && e.w !== 'quiet', l: Math.max(0, Math.floor(Number(e.l) || 0)) } : null);   // ('quiet' — view.js: a run the host's own rule calls over with no `e`: it leaves the count, no moment)
 
 /**
  * ONE STEP (PURE): `ids` = the match's players · `me` = this phone (a watcher: not among ids) · `ends` = { uid: their node's `e` | null } ·
