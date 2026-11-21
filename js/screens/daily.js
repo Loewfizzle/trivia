@@ -23,7 +23,7 @@ import { toast } from '../ui/toast.js';
 import { streakDay } from '../core/streak.js';
 import { dailyRow } from '../core/daily.js';
 import { msToTurn, fmtCountdown } from '../daily/clock.js';
-import { loadToday, todayNow, onToday, markFinished, markStarted, markLesson, heldRun, holdRun, dropHeld, turnNow, staleToday, triesDone, markTriesDone } from '../daily/today.js';
+import { loadToday, todayNow, onToday, markFinished, markStarted, markLesson, heldRun, holdRun, dropHeld, turnNow, staleToday, triesDone } from '../daily/today.js';
 import { sweepState, tableFor, everyoneLine, ordinal, tableCut, cardRows, stillToPlay, allTimeRows, allTimeLine, ticketState, tryEndedLine, COUNTS_FROM_TOMORROW, ROOM_BANNER } from '../daily/today-logic.js';
 import { MIN_DAYS } from '../core/daily-points.js';
 import { syncMidFlag, wantFlag } from '../daily/room-flag.js';

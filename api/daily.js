@@ -448,7 +448,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       // built here (core/jw-times.js#timeView — the phone only draws: { tabs, b: { lane: { list: [{ k: pid, t, rank, me? }], mine } } })
       const jt = {};
       await Promise.all(games.filter(g => mineScores[g] != null && dailyOf(g) && dailyOf(g).splits).map(async g => {
-        const got = await tableSplits(day, [pid, ...pids.filter(p => friends[p] && friends[p][g] && friends[p][g].score != null)]).catch(() => null);
+        const got = await tableSplits(g, day, [pid, ...pids.filter(p => friends[p] && friends[p][g] && friends[p][g].score != null)]).catch(() => null);
         if (got && Object.keys(got).length) jt[g] = timeView(got, { pid, unranked: !!gated[g], limit: 99 });
       }));
       const [ls, createdAt] = await lsP;
@@ -492,7 +492,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         // J3 — THE TIME BOARDS (a `splits` cartridge — JAYWALK): per 50 lanes the day's fastest SERVER split of each counted player, from ONE read
         // of the day's split board; only once YOU have played (the scores' own rule); DON'T COUNT + THE THROWAWAY GATE out (your own row stays —
         // a gated YOU unranked); the same top cut + your place below it; equal times share a place
-        const times = cart.splits && played ? await timesFor({ pid, base, day, limit, friendsOf, nc, meGated: !!(gatedX || !countsOn(createdAt, day)), publicFaces }).catch(e => { console.warn('time boards', e && e.message); return null; }) : null;
+        const times = cart.splits && played ? await timesFor({ pid, game: g, base, day, limit, friendsOf, nc, meGated: !!(gatedX || !countsOn(createdAt, day)), publicFaces }).catch(e => { console.warn('time boards', e && e.message); return null; }) : null;
         out[g] = { n: Number(n) || 0, played, rows: v.list.map(face), ...(me ? { me } : {}), more: v.more, ...(times ? { times } : {}) };
       }));
       return { day, every: out };
@@ -536,8 +536,8 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
 }
 
 /** J3 — one daily's TIME BOARDS for `every` (see the call): the faces fetched only for the rows that can show (each tab's top + a margin) */
-async function timesFor({ pid, base, day, limit, friendsOf, nc, meGated, publicFaces }) {
-  const [map0, xs] = await Promise.all([dayBoard(day), val(`${base}/x`)]);
+async function timesFor({ pid, game, base, day, limit, friendsOf, nc, meGated, publicFaces }) {
+  const [map0, xs] = await Promise.all([dayBoard(game, day), val(`${base}/x`)]);
   const gated = new Set(Object.keys(xs || {}));
   const map = Object.fromEntries(Object.entries(map0).filter(([k]) => k === pid || (!nc.has(k) && !gated.has(k))));
   const opts = { pid, friends: friendsOf, unranked: meGated };
@@ -548,7 +548,8 @@ async function timesFor({ pid, base, day, limit, friendsOf, nc, meGated, publicF
   const V = timeView(map, { ...opts, hidden, limit });
   const pub = (k, x) => { const f = faces[k] || {}; return { id: f.id, n: f.n, a: f.a, c: f.c, r: f.r, l: f.l, cd: f.cd, es: f.es, tb: f.tb, g: f.g, t: x.t, ...(x.rank ? { rank: x.rank } : {}), ...(x.me ? { me: 1 } : {}), ...(x.f ? { f: 1 } : {}), ...(x.gated ? { gated: 1 } : {}) }; };
   const b = {};
-  for (const lane of V.tabs) { const t = V.b[lane]; b[lane] = { rows: t.list.map(x => pub(x.k, x)), ...(t.mine ? { me: pub(t.mine.k, t.mine) } : {}), more: t.more }; }
+  // (a row past the faces' margin with no public face = a hidden profile too: left out — never a blank strip; the places stay as ranked)
+  for (const lane of V.tabs) { const t = V.b[lane]; b[lane] = { rows: t.list.filter(x => faces[x.k] || x.k === pid).map(x => pub(x.k, x)), ...(t.mine ? { me: pub(t.mine.k, t.mine) } : {}), more: t.more }; }
   return { tabs: V.tabs, b };
 }
 

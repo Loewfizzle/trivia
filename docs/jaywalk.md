@@ -389,7 +389,7 @@ The server already let a player use the 3 tries any time until 4 am (the best co
   dock + the screen re-read `today`: a new day's ticket; THE DAY'S CLOSE scores anything left open). One try played = the day's result.
 
 ### THE TIME BOARDS (`js/core/jw-times.js` PURE · `api/_lib/jaywalk-times.js` · `api/daily.js` `every` + `today` · `js/screens/daily.js`)
-- **THE DAY's SPLIT BOARD** `dly/jaywalk/{day}/sp/{pid}` = [the best tick to 50, to 100, …] — each player's FASTEST time to every 50 from ANY of
+- **THE DAY's SPLIT BOARD** `dly/{game}/{day}/sp/{pid}` (JAYWALK: `dly/jaywalk/…` — the path from the cartridge's id) = [the best tick to 50, to 100, …] — each player's FASTEST time to every 50 from ANY of
   the day's closed tries, from the SERVER's replay splits only (`scoreTry`'s `sp`, J1); raised by ONE transaction at every close
   (`api/daily.js#creditQuiet` → `daySplits` — FINISH, the next START, THE ROOM WINS, `today`, THE DAY'S CLOSE — a cartridge with `splits: true`).
   A refused try has no splits (never on a board). A day whose tries closed before J3 is built ONCE from its records (`dayBoard` → `spb: 1`).
@@ -403,7 +403,7 @@ The server already let a player use the 3 tries any time until 4 am (the best co
   unchanged) · **FASTEST TO 50** · **TO 100** · TO 150 … — a tab for every 50 someone in the shown scope reached ("as high as the guy goes"); the
   row keeps its scroll over a repaint; its ends FADE (a word cut at the panel's edge read as broken). A time row: place (EVERYONE: THE DECO
   MEDALS 1–3 · YOUR FRIENDS: 1ST / 2ND in words, as its lanes list) · the slim card · the time `m:ss.t` (tenths floored). **EQUAL
-  TIMES SHARE A PLACE** (both 1ST, the next 3RD). TODAY only — ALL TIME stays the lanes average; solo keeps personal-best splits only.
+  TIMES SHARE A PLACE** — equal AS SHOWN, to the tenth a row prints (both 1ST, the next 3RD). TODAY only — ALL TIME stays the lanes average; solo keeps personal-best splits only.
 - **A VIEW**: the time boards never touch the lanes result, the points, ALL TIME, DAILY BEST, the streak or XP (`tests/jaywalk-j3.test.mjs`).
 - **The phone's code stays light**: the daily screen + the share card import only `core/jw-time-text.js` (the words: `timeClock`, `tabLabel`,
   `bestTimeLine` — its TICK_HZ / SPLIT_EVERY checked against tuning.js); the board logic + tuning.js stay on the server. Nothing in JAYWALK's

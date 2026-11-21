@@ -90,6 +90,8 @@ test('J3 — THE TABS: one per 50 anyone in the scope reached (none for a split 
   assert.deepEqual(timeTabs({ x: [1900] }), [0]);
   assert.deepEqual(timeTabs({}), []);
   assert.deepEqual(timeRows(map, 0).map(r => [r.k, r.rank]), [['b', 1], ['a', 2], ['c', 2], ['d', 4], ['me', 5]], 'a + c tie at 1800 = both 2ND, the next is 4TH');
+  // equal AS SHOWN: 1800 + 1805 ticks both print 0:30.0 → one place (the finer tick first); 1806 = 0:30.1 → the next place
+  assert.deepEqual(timeRows({ x: [1805], y: [1800], z: [1806] }, 0).map(r => [r.k, r.rank, timeClock(r.t)]), [['y', 1, '0:30.0'], ['x', 1, '0:30.0'], ['z', 3, '0:30.1']]);
   const V = timeView(map, { pid: 'me', friends: new Set(['c']), limit: 3 });
   assert.deepEqual(V.tabs, [50, 100, 150]);
   assert.deepEqual(V.b[50].list.map(r => r.k), ['b', 'a', 'c']); assert.equal(V.b[50].list[2].f, 1, 'a friend marked');
@@ -138,7 +140,8 @@ test('J3 — the time boards are a VIEW: the lanes result, the points, ALL TIME 
   assert.match(A, /!nc\.has\(k\) && !gated\.has\(k\)/, 'DON\'T COUNT + THE THROWAWAY GATE out of EVERYONE\'s time boards');
   assert.match(read('api/_lib/jaywalk-daily.js'), /splits: true,/);
   const T = read('api/_lib/jaywalk-times.js');
-  assert.match(T, /if \(!pid \|\| !closed \|\| closed\.bad \|\| !closed\.sp\) return null;/, 'a refused / unproven try writes nothing');
+  assert.match(T, /if \(!pid \|\| !closed \|\| closed\.bad \|\| !closed\.sp \|\| !cart \|\| !cart\.id\) return null;/, 'a refused / unproven try writes nothing');
+  assert.match(T, /const base = \(game, day\) => `dly\/\$\{game\}\/\$\{day\}`;/, 'the path names the cartridge game: never the JAYWALK board for another daily');
   // nothing of the time boards in JAYWALK's room preload graph (its budget untouched)
   for (const f of ['js/core/jw-times.js', 'js/core/jw-time-text.js', 'js/screens/daily.js']) assert.ok(!PRELOAD.jaywalk.includes(f), `${f} stays out of JAYWALK's preload graph`);
 });

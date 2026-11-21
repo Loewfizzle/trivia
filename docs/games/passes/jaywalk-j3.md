@@ -57,3 +57,45 @@ ONE definition: the PLAY sheet, PICK A GAME, the card art, the share image follo
 - **Refine 3** — the share section's "TO 150 · 2:03" touched "BEST OF 3" on the 4-section card → 10 units lower, the bars stepped down with it.
 - THE RED SNEAKER reads RED at every size by night and by day — clearly apart from the pink before-row, nowhere near orange; the white sole /
   laces + the cyan lines unchanged; the card art (bottom) glows red.
+
+## THE FRESH-EYES REVIEW (a reviewer agent on `4cc86b44..HEAD`, read-only — "nothing serious"; the board transaction, no pid in a public row,
+the gating, the run's ends, the DONE path for another daily all checked clean). Its findings, and what this pass did:
+- MEDIUM — ties were ranked by the raw tick while a row prints tenths (two "0:30.0" rows read 1ST + 2ND) → **fixed**: `timeRows` ranks by the
+  tenth shown (`tests/jaywalk-j3.test.mjs`: 1800 + 1805 ticks = one place, 1806 the next).
+- LOW — a row past the faces' margin with no public face came out as a blank strip → **fixed**: left out like a hidden profile (places kept).
+- LOW — the one-time build merged with a plain update (a try closing during it could lose a faster split) → **fixed**: each player's row
+  raised by its own transaction, then `spb`.
+- LOW — `jaywalk-times.js` hard-coded `dly/jaywalk/…` behind a generic `splits` flag (a trap for HIGH RISE's daily) → **fixed**: the path
+  from the cartridge's id (`dly/{game}/{day}/sp`).
+- LOW — two conditional checks in the /api test → the refused-try check is now unconditional (the forged log = the WHOLE log in one chunk
+  10 ms after GO), the same-day account is checked by its board id; the tie check stays conditional (two bots rarely tie — the unit test pins ties).
+- LOW — a dead `markTriesDone` import in `js/screens/daily.js` → removed.
+- LOW — reads per call (faces for each tab's top + a margin; `today` + ≤ 13 small `sp/{pid}` reads once a JAYWALK result is in) → kept: bounded,
+  cached; named.
+- LOW (older than J3) — the dock's DAILY button + THE SWEEP count JAYWALK done after ONE try while the ticket says TRY AGAIN → kept (one try
+  played = the day's result — the owner's own line); OPEN FOR BEN 2.
+
+## THE FINAL RUN (local, the Beelink — my own emulators + `DAILY_TEST=1 serve.mjs --emu`)
+- unit `node --test tests/*.test.mjs` **2,505 / 2,505** (+ `jaywalk-j3` 8)
+- the real switch (v1 today): `e2e-jaywalk` FAST **102 / 102** · `e2e-jaywalk-match` FAST **103 / 103** · `e2e-daily` **122 / 122** (the first try
+  stopped at THE PASSWORD's word: my /api test had wiped the daily secret under a running server — re-run on a restarted server, green; the
+  known "E2Es after server tests" trap) · `e2e-jaywalk-daily-run` v1 **67 / 67** with the time boards exercised (+ 68 / 68 night and day with
+  `J3_SHOTS=1`; one seed's course stopped the bot short of 50 on every try → **60 / 60** with the time checks honestly skipped — the test now says
+  so, and try 2 plays on toward a split) · smoke **24 / 24** · `jaywalk-lab --perf` **132 / 132**
+- v2 (`JW_CV=0` against a `JW_CV_SWITCH_MS=0` server): `e2e-jaywalk-daily-run` **60 / 60** (that seed: no 50 reached) · `e2e-jaywalk` **102 / 102** ·
+  `e2e-jaywalk-match` **101 / 101** (the moment checks vary with who goes out first)
+- rules `rules.test.mjs` **100 / 100** · `/api` `server.test.mjs` **72 / 72** · `daily-jaywalk.test.mjs` **8 / 8** (one earlier run saw the strong
+  bot die at 28 lanes under the weak one's 178 on a fresh random daily secret — the THREE TRIES test's own seed luck, older than J3; not chased)
+- JAYWALK's room preload graph unchanged (43 modules, 496 KB — `build-preload-graph.mjs`: no diff); no draw call added (the run untouched).
+- HIGH RISE's daily: not on main yet when this pass pushed (the HIGH RISE chat's) — the shared pieces changed generically: `ticketState`'s
+  `allDay` (off unless a row says it; DONE kept), `daily.js`'s time tabs (only when an answer carries `times` / `jt`), `jaywalk-times.js` keyed
+  by the cartridge's id.
+
+## OPEN FOR BEN
+1. RE-PUBLISH: nothing (no rules change). J2's `database.rules.nov21-j2.json` is still yours before Nov 27.
+2. The dock's DAILY button + THE SWEEP count JAYWALK done after its FIRST try (one try = the day's result) while the ticket keeps TRY AGAIN ·
+   n TRIES LEFT all day. Keep that, or should the dock keep nudging until all 3 are used?
+3. Calls named (overrule any): the share's best-time line sits under BEST OF 3 (THE ONE RULE — no room between the big number and the stat);
+   the boards print `m:ss.t`, the share card `m:ss` (your example "1:14"); the time boards show only once you have played (the scores' rule);
+   a same-day account is never on a time board (shown to itself as NOT COUNTED); YOUR FRIENDS ranks in words, EVERYONE with the medals; the
+   red is `#ff3344`.

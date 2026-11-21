@@ -35,6 +35,7 @@ import { jwScore, jwLanes } from '../../js/core/daily-best.js';
 import { dailyPoints } from '../../js/core/daily-points.js';
 import { TRIES, LEAD_MS, CAP_MS, GRACE_MS, QUIET_MS } from '../../api/_lib/jaywalk-tries.js';
 import { dayFromTries } from '../../js/core/jw-times.js';
+import { boardId } from '../../api/_lib/lb.js';
 
 const NOW = Date.UTC(2026, 10, 18, 18, 0, 0);   // Wed Nov 18 2026, 1 pm Eastern
 const DAY = 86_400_000, WEEK_AGO = NOW - 30 * DAY;
@@ -178,7 +179,7 @@ test('J3 — THE TIME BOARDS: the day split board = each player best SERVER spli
   const rows50 = [...E.times.b[50].rows, ...(E.times.b[50].me ? [E.times.b[50].me] : [])];
   assert.equal(rows50.find(r => r.me).t, want[0], 'your time to 50 = your best server split');
   assert.ok(rows50.some(r => r.t === wantDee[0] && !r.me), 'JayDee — their time to 50 listed');
-  assert.ok(!rows50.some(r => r.n === 'TimEve' || r.n === 'JAYEVE'), 'the same-day account is never on a time board');
+  assert.ok(!rows50.some(r => r.id === boardId(eve) || /^timeve$/i.test(String(r.n || ''))), 'the same-day account is never on a time board (by its board id)');
   assert.ok(rows50.every(r => !r.k && !r.pid), 'never a pid in a public row');
   const sorted = rows50.map(r => r.t); assert.deepEqual(sorted, [...sorted].sort((a, b) => a - b), 'fastest first');
   if (want[0] === wantDee[0]) assert.equal(rows50[0].rank, rows50[1].rank, 'equal times share a place');
@@ -198,9 +199,10 @@ test('J3 — THE TIME BOARDS: the day split board = each player best SERVER spli
   const gus = await pidOf('jt-gus');
   s = await D('jt-gus', { action: 'start', game: 'jaywalk' }, NOW + 9000e3);
   const live = await playTry(s, { botSeed: 'gus' });
-  await ref(`${s.run.path}/c`).set({ 0: { s: Object.values((await val(`${s.run.path}/c`)) || {}).map(c => c.s)[0] || 'a', at: s.run.go + 10 } });   // (the whole log stamped at once — far AHEAD of the clock)
+  await ref(`${s.run.path}/c`).set({ 0: { s: packLog(live.log, 0), at: s.run.go + 10 } });   // (the WHOLE log in one chunk stamped 10 ms after GO — far AHEAD of the clock)
   const fg = await D('jt-gus', { action: 'finish', game: 'jaywalk' }, live.end);
-  if (fg.try && fg.try.bad) assert.equal(await val(`dly/jaywalk/${day}/sp/${gus}`), null, 'a refused try is never on a time board');
+  assert.ok(fg.try && fg.try.bad, `the forged log is refused (${JSON.stringify(fg.try)})`);
+  assert.equal(await val(`dly/jaywalk/${day}/sp/${gus}`), null, 'a refused try is never on a time board');
   // THE BUILD: a day whose board is missing (tries closed before J3) is built ONCE from the records — the same numbers
   const before = await val(`dly/jaywalk/${day}/sp`);
   await ref(`dly/jaywalk/${day}`).update({ sp: null, spb: null });

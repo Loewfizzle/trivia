@@ -7,6 +7,7 @@
 //   share a place (both 1ST, the next 3RD). The time boards are a VIEW: they never touch the lanes result, the points, ALL TIME or DAILY BEST.
 import { cleanSplits, splitBests, splitLane } from './splits.js';
 export { timeClock, tabLabel, bestTimeLine } from './jw-time-text.js';
+import { TICK_HZ } from './jw-time-text.js';
 
 /** the rows a time tab shows before SHOW ALL / the most it lists (the lanes board's own cut — core/every.js TOP_SHOW / TOP_KEEP) */
 export const TIME_SHOW = 10, TIME_KEEP = 50;
@@ -39,13 +40,14 @@ export function timeTabs(map) {
   for (const sp of Object.values(map || {})) n = Math.max(n, cleanSplits(sp).length);
   return Array.from({ length: n }, (_, i) => i);
 }
-/** one tab's ranking: everyone in `map` who reached split i, fastest first; EQUAL TIMES SHARE A PLACE (1, 1, 3); a stable order by pid */
+/** one tab's ranking: everyone in `map` who reached split i, fastest first; EQUAL TIMES SHARE A PLACE (1, 1, 3) — equal AS SHOWN: the tenths a row
+ *  prints (timeClock — the fresh-eyes review: two rows both reading 0:30.0 must not be 1ST and 2ND); within a tenth the finer tick orders them */
 export function timeRows(map, i) {
   const rows = [];
   for (const [k, v] of Object.entries(map || {})) { const sp = cleanSplits(v); if (sp.length > i) rows.push({ k, t: sp[i] }); }
   rows.sort((a, b) => a.t - b.t || (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
   let rank = 0, prev = null;
-  rows.forEach((r, j) => { if (r.t !== prev) { rank = j + 1; prev = r.t; } r.rank = rank; });
+  rows.forEach((r, j) => { const tn = Math.floor((r.t * 10) / TICK_HZ); if (tn !== prev) { rank = j + 1; prev = tn; } r.rank = rank; });
   return rows;
 }
 

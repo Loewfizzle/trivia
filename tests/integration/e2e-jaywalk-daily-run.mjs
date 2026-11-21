@@ -167,6 +167,8 @@ async function day1() {
   await tap(A.page, '.dy-ticket[data-id="jaywalk"] .dy-play');
   await waitFor(A.page, `!!window.__jwGame && window.__jwGame.state().mode === 'run' && window.__jwGame.state().seed !== ${JSON.stringify('x')} && window.__jwGame.state().proven && window.__jwGame.state().t < 600`, 'TRY 2 started', 30000);
   const s2 = await playTry(A.page, 300, 'TRY 2');
+  // (J3: try 2 also plays on toward a split — a course where try 1's bot fell short still gives THE TIME BOARDS a time to check)
+  await waitFor(A.page, `window.__jwGame.state().best >= 56 || window.__jwGame.state().over`, 'TRY 2: toward 50 lanes', 120000).catch(() => {});
   ok(s2.seed === seed1, 'TRY 2: the same course (the day\'s seed — every try, every player)');
   await A.page.reload();
   await waitFor(A.page, `!document.getElementById('boot') && !!window.__arcade`, 'the page back after the refresh', 40000);
@@ -228,6 +230,10 @@ async function day1() {
   { const { dayFromTries } = await import('../../js/core/jw-times.js');
     const want = dayFromTries(closedTries(R));
     const board = await val(`dly/jaywalk/${day}/sp/${A.pid}`);
+    if (!want.length) {
+      // (the bot fell short of 50 on every try of this course: no split → no row on the board, no best-time line — checked, the rest skipped)
+      ok(board == null && !(J && J.hs), `no try reached 50 on this course: no board row (${JSON.stringify(board)}), no best-time line — the time-board checks skipped`);
+    } else {
     ok(want.length >= 1 && JSON.stringify(board) === JSON.stringify(want), `THE DAY's SPLIT BOARD = the best per split of the closed tries' SERVER splits (${JSON.stringify(board)} = ${JSON.stringify(want)})`);
     ok(J && J.hs && J.hs.at === want.length * 50 && J.hs.t === want[want.length - 1], `the share card's best-time line: TO ${J && J.hs && J.hs.at} (the highest 50 reached, its best tick ${J && J.hs && J.hs.t})`);
     const E = (await api(A.page, { action: 'every' })).every.jaywalk;
@@ -250,7 +256,7 @@ async function day1() {
     const { timeClock } = await import('../../js/core/jw-time-text.js');
     ok(tr.includes(timeClock(want[0])), `FASTEST TO 50 lists your time ${timeClock(want[0])} (${tr.join(' · ')})`);
     if (H.SHOTS) await H.shotAll(A.page, 'jr-06b-scores-to50');
-    await screen(A.page); }
+    await screen(A.page); } }
   ok(J && J.t[J.b] === best && jwLanes(sh.mine.jaywalk) === best, 'its best bar = the day\'s result');
   for (const lk of ['night', 'day']) {
     const pv = await H.browser.newPage();
