@@ -1089,3 +1089,13 @@ CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines 
 
 - OVERCLOCK: its timings are the owner's (pinned by tests); NO SIDEWAYS SCROLL, EVER; right = green, wrong = red + cracked, NO ✓ / ✕; the
   pools are BUILT (never edit `data/oc/*.json` by hand — `node scripts/oc-pools/build.mjs`) → docs/overclock.md (moved).
+
+## CITY PART 1 — OVERCLOCK = ONE BOARD (the owner, Nov 19: "simplify")
+**BEST QUICK RUN** (`overclock-quick`, short BEST SCORE): a QUICK run of all six challenges, SOLO OR IN A ROOM (the board's `both` — the solo
+lane keeps the id: `match-report.js#soloBoard`), `ocRunPlausible`'s bound, a 0 never a record. THE OVERCLOCK tab: that one board (`tab`) —
+THIS WEEK / ALL TIME, no picker. **THE DUMB LUCK CHECK:** a 12-1 long shot pays `luck.js#DL_MAX` = 260, a skill challenge's ceiling 160 (DUMB
+LUCK is never the ×2 final) → the BOARD score leaves DUMB LUCK's points out (`match-report.js#ocBoardScore`); the match's own total + its podium
+keep them. STANDARD + MARATHON: XP as ever, no board. The old three (`overclock-std`, `-std-solo`, `-quick-solo`) are RETIRED
+(`core/boards.js#RETIRED_BOARDS` — no definition: never written, never shown; their rows stay in the database). THE SEED: /admin's BACK-FILL
+starts each BEST QUICK RUN from the player's old QUICK · SOLO best (`core/board-fill.js#seedOcQuick` — idempotent). Tests:
+`tests/city-part1-overclock.test.mjs`, `server.test.mjs` "OVERCLOCK = ONE BOARD", `profiles.test.mjs`.

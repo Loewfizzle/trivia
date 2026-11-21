@@ -929,3 +929,9 @@ the N one smaller per flagged finisher — `api/daily.js` 'every'), the ticket's
 `#countWithout`; below the kept top the histogram's "better" less the flagged rows above), THE PENTHOUSE (its count + its winners —
 `api/_lib/daily-close.js`). Its own result, DAILY BEST, points and its own ticket line ("1ST OF 3" as it was) never change; UNDO restores every view
 at once (the day's `t`, `n`, `h` were never touched).
+
+## CITY PART 1 — OVERCLOCK's ONE BOARD + THE BACK-FILL's SEED
+OVERCLOCK has ONE record board — `overclock-quick` (BEST QUICK RUN, solo or in a room; DUMB LUCK's points left out) — docs/overclock.md. A
+board definition may say `both` (a SOLO run and a ROOM match share it — `match-report.js#soloBoard` keeps the id). A RETIRED board
+(`core/boards.js#RETIRED_BOARDS`) has no definition: the writer + every screen skip it, its rows stay. /admin → THE BOARDS → BACK-FILL now also
+seeds BEST QUICK RUN from the old QUICK · SOLO best (`core/board-fill.js#seedOcQuick`; the preview counts the players — `ocSeed`).

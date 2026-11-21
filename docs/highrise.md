@@ -1037,3 +1037,11 @@ tests/highrise-fix-a.test.mjs (REVIEW FIX A) · tests/integration/highrise-spect
   for a rival's live tower (`kit/run-hold.js`), then is scored from the nodes (`director.js#finalPatch`). The server's live rule: `match.js#liveOf`.
 - FINAL_HOLD_MS (3 s) now applies only once this phone's own tower is over (it used to put the podium over a tower still climbing).
 - The solo + match GO now go up behind the stamp's answer (THE TREE CAP — `kit/proof-io.js#stampT0`).
+
+## CITY PART 1 — HIGH RISE IN THE CITY (THE SIGN HOLD lifted, Nov 20)
+`core/harbor-neon.js#SIGN_HOLD` = [] — lifted in the same commit as the signs. **THE TRI-VISION:** the OPEN NOW face = the B1 poster
+(`assets/city/highrise/billboard.webp`), drawn WHOLE by the lazy `screens/harbor/highrise-art.js`; lit by HIGH RISE's own GAMES row (`playable`
++ `live`, `core/harbor-trivision.js#highriseShow`, judged on the streak day); the rotation HIGH RISE → JAYWALK → HOLD'EM, the board opens on
+HIGH RISE; THE DROP's face removed. **THE ROOF TUBE SIGN:** HIGH / RISE stacked, #ff4fd8 over #35e3ff at night (`signs.js#SIGN_ACC2`), by day
+raspberry + teal paint on cream (`DAY_PAINT.highrise`). **THE SPEAKEASY BLADE:** ONE column, HIGH over RISE with a gap. Never the hotel blade.
+The pass log: docs/harbor/passes/city-part1.md.

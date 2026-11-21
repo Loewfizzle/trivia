@@ -2171,3 +2171,14 @@ for the effects (the city's beds). /audio is kept BY VERSION in the worker (`na-
 CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines moved here word for word; CLAUDE.md keeps ONE short line pointing at this heading.
 
 - THE IDLE CUTOFF (`audio/idle.js`); LEAVING + MUTED: THE CUT IN ONE ORDER (ramp to 0 → the loops → THE ZEROS FIRST → the suspend); MUTED = NOTHING RUNS, ONLY the master reaches `ctx.destination`; THE THREE-WAY BUTTON (music off → all off → on) + THE SESSION BY STATE ('playback' · 'ambient' + THE HARD CUT · iOS alone) — ONE module `audio/sound-state.js`; every media element paused in the cut (CITY G) → docs/audio.md.
+
+## CITY PART 1 — AN EFFECT ASKS `isUnlocked()`, NEVER THE CONTEXT's STATE (PODCAST MODE's sweep, Nov 20)
+With the site's MUSIC OFF (PODCAST MODE) the engine SUSPENDS the context between effects and a source's own start wakes it
+(`engine.js#wakeFor`). An effect player that gated on `ctx.state === 'running'` was silent with the music off — 12 gates swept to
+`isUnlocked()` (running OR napping): HOLD'EM (`games/holdem/sfx.js`), the JAYWALK flyers ×2 (`flyers.js`), OVERCLOCK ×3 (`games/overclock/sfx.js`),
+PRISM DROP's effects (`games/prism/audio.js` play), the dailies ×2 (`daily/sfx.js`), progress (`audio/progress-sfx.js`), the room
+(`audio/lobby-sfx.js`), THE BOARD (`board/audio.js`). KEPT — they read the music / its clock, never start an effect: `prism/audio.js`'s synced
+song voice placement (named on its line), `engine.js`, `music.js`, `beat.js`, `synced-songs.js`, `tape-stop.js`, `diag.js`, `pulse/clock.js`.
+THE GUARD: `tests/podcast-sweep.test.mjs` (a `running` gate anywhere else fails). The browser check: `tests/integration/podcast-sweep.mjs` — music
+off, the engine napping, one typical sound from every live game + a flyer + both dailies + progress + the room + THE BOARD STARTS (14 / 14; 7 of
+11 were silent before).

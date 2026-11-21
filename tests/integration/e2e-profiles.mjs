@@ -66,9 +66,13 @@ await H.run(async () => {
   // (CITY I — the match moved off CIPHER: a FROZEN game never loads (config.js#FROZEN_IDS), and a room playing one froze the page
   //  (app.js#wantGame's null loop — fixed; e2e-playnow's frozenroom case). OVERCLOCK is playable: its podium is real, its proof = each
   //  player's own challenge board — A SEAT IS NOT A PLAY — written here as the players would have)
-  const game = finalGame('overclock', [uids[0], uids[1]], { matchId: `e2e${Date.now().toString(36).slice(-6)}` });
+  // (CITY PART 1 — OVERCLOCK = ONE BOARD: a QUICK match carries the record — BEST QUICK RUN — its plaque; a STANDARD one has no board now)
+  const game = finalGame('overclock', [uids[0], uids[1]], { matchId: `e2e${Date.now().toString(36).slice(-6)}`, mode: 'quick' });
   // (OVERCLOCK's podium = THE VICTORY, after the last challenge's beats + THE FINAL STANDINGS, timed from the phase's start: the phase began
   //  40 s ago, so the victory is up at once; the host's director ends 'final' at phaseEndsAt — 90 s away)
+  // (CITY PART 1: ONE BOARD for solo + room — ALICE's room run is 600 (100 a challenge, still 1ST), so step 7's SOLO 720 is her new best;
+  //  BOB takes the first challenge — no REDLINE sweep before its own step)
+  for (const [ci, r] of Object.entries(game.results)) { r[uids[0]].pts = 100; r[uids[1]].pts = Number(ci) === 0 ? 105 : 80; }
   game.ci = game.total - 1; game.phaseStartAt = Date.now() - 40_000; game.phaseEndsAt = Date.now() + 90_000;
   const code = H.code;
   await ref(`rooms/${code}/oc/${game.matchId}/0`).set({ [uids[0]]: { done: true, doneAt: Date.now() - 5000 }, [uids[1]]: { done: true, doneAt: Date.now() - 5000 } });
@@ -643,22 +647,23 @@ await H.run(async () => {
     { const n = Number(await val(`pstats/${me0.pid}/g/overclock/p`)) || 0; ok(n === oc0 + 2, `a re-sent report is still counted once (${oc0} + 2 OVERCLOCK matches = ${n})`); }
     // THE ADD-ON: a SOLO run → SOLO RUN · Just you; hosting untouched; HOUSE WARMING (from her first hosted room) kept
     const ho0 = await val(`pstats/${me0.pid}/pa/ho`);
-    const s = await playOc(ocFinal(Array.from({ length: 6 }, () => ({ [uids[0]]: 120 })), [uids[0]]), { [uids[0]]: 'ALICE' }, 'solo');
+    // (CITY PART 1 — ONE BOARD: the earlier QUICK room matches put ALICE's BEST QUICK RUN at 900 — this solo run (155 a challenge = 930) beats it)
+    const s = await playOc(ocFinal(Array.from({ length: 6 }, () => ({ [uids[0]]: 155 })), [uids[0]]), { [uids[0]]: 'ALICE' }, 'solo');
     ok(s.place === 'SOLO RUN' && /^Just you/.test(s.sub) && !/players/.test(s.sub), `a SOLO run reads "${s.place} · ${s.sub}"`);
     ok((await val(`pstats/${me0.pid}/pa/ho`)) === ho0, `a SOLO run never counts as hosting (ho ${ho0} → ${await val(`pstats/${me0.pid}/pa/ho`)})`);
     ok(!!(await val(`pstats/${me0.pid}/ac/house-warming`)), 'HOUSE WARMING stays with who has it');
     ok(!!(await val(`pstats/${me0.pid}/it/card-redline`)), 'REDLINE is still hers');
-    // OC5 — THE QUICK SOLO PERSONAL BEST: that SOLO QUICK run is on the server's own board (overclock-quick-solo, its total); the victory body
+    // OC5 — THE QUICK SOLO PERSONAL BEST (CITY PART 1: the ONE board, overclock-quick — solo or room): that SOLO QUICK run is on it (its total); the victory body
     // says NEW PERSONAL BEST; a lower run afterwards says YOUR SCORE + YOUR BEST (the outcome's bests)
-    const qs = await val(`pstats/${me0.pid}/b/overclock-quick-solo`);
-    ok(qs && qs.a === 120 * 5 + 120, `THE QUICK SOLO BOARD: the server counted the run (${JSON.stringify(qs)})`);
+    const qs = await val(`pstats/${me0.pid}/b/overclock-quick`);   // (CITY PART 1 — ONE BOARD: BEST QUICK RUN, solo or room)
+    ok(qs && qs.a === 155 * 6, `THE QUICK SOLO RUN on THE ONE BOARD: the server counted it (${JSON.stringify(qs)})`);
     const v1 = await p0.evaluate(() => ({ stamp: (document.querySelector('.oc-vic-stamp b') || {}).textContent, best: (document.querySelector('.oc-vic-best') || {}).textContent }));
     ok(v1.stamp === 'NEW PERSONAL BEST', `THE SOLO VICTORY: "${v1.stamp}" (${v1.best})`);
     await playOc(ocFinal(Array.from({ length: 6 }, () => ({ [uids[0]]: 40 })), [uids[0]]), { [uids[0]]: 'ALICE' }, 'solo-lower');
     await sleep(800);
     const v2 = await p0.evaluate(() => ({ stamp: (document.querySelector('.oc-vic-stamp b') || {}).textContent, best: (document.querySelector('.oc-vic-best') || {}).textContent }));
-    ok(v2.stamp === 'YOUR SCORE' && /YOUR BEST · 720/.test(v2.best || ''), `THE SOLO VICTORY, not a best: "${v2.stamp}" + "${v2.best}"`);
-    ok((await val(`pstats/${me0.pid}/b/overclock-quick-solo`)).a === 720, 'the board keeps the best');
+    ok(v2.stamp === 'YOUR SCORE' && /YOUR BEST · 930/.test(v2.best || ''), `THE SOLO VICTORY, not a best: "${v2.stamp}" + "${v2.best}"`);
+    ok((await val(`pstats/${me0.pid}/b/overclock-quick`)).a === 930, 'the board keeps the best');
     // OC5 — THE HORSESHOE: ALICE backed the winning horse of a DUMB LUCK race (the server replays the draw from the room's record), BOB didn't
     const L = await import('../../js/games/overclock/luck.js');
     const hs = ocFinal(Array.from({ length: 6 }, (_, ci) => ({ [uids[0]]: 90 + ci, [uids[1]]: 100 })));

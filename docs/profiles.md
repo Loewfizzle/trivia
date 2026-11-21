@@ -770,3 +770,11 @@ CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines 
 - Tests: `tests/seen.test.mjs` (the key, the HMAC, the window, the groups, the pure helpers) · `daily-module.test.mjs` "CITY I — DON'T COUNT" (a flagged
   account finishes FIRST → the real player 1ST OF 2 — N one smaller; the flagged one still 1ST OF 3; SCORES + THE BOARD re-ranked; UNDO → 2ND OF 3;
   owner-only, audited) + "SECOND ACCOUNTS" (two sign-ins from one connection = one group; no raw address stored).
+
+## CITY PART 1 — ADD FRIEND ON THE PLAYER PAGE (the owner's iPhone, Nov 20)
+**THE ONE TARGET RESOLVER:** `api/_lib/player.js#pidOfQuery` — the player page's own query (`{ pid }` · a board row `{ b, bid }` · a SCORES row
+`{ id, dg }`) → the pid, the same for the page AND every friend action from it (`api/_lib/friends.js#friendDo`); the friend tube's target IS the
+page's query (`player-page.js#actions`). The bar starts from the SERVER's relation (the page's answer — a cached list may be older) and asks
+for a fresh list when they disagree; a slow /api shows the tube busy (aria-busy). THE COVER (`css/vault.css`) never pauses THE MESSAGE
+(`.sh-msgs`) or a pop-up opened over the card (`data-over-cover` — `ui/layers.js`): every message over the page was frozen at opacity 0.
+Tests: `tests/integration/e2e-friend-page.mjs` (real touch taps, every entry point, every message SEEN) · `friends.test.mjs`.
