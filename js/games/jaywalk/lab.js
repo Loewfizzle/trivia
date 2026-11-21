@@ -1,6 +1,8 @@
 // /jaywalk-lab — THE JAYWALK LAB (H1 — docs/jaywalk.md "THE LAB"): the preview of a game BEING BUILT, on the LIVE site, on a phone, on
 // cellular. **OPEN SINCE H2B** (the owner, Nov 16: his brother tests it on his own phone from a shared link): NO owner gate, NO sign-in,
-// **ZERO server calls** — the page never loads Firebase, never calls /api: the run is the pure engine in this tab. Still noindex nofollow +
+// NO GAME CALLS — the page never loads Firebase, never calls /api for anything of the game: the run is the pure engine in this tab
+// (J2 — THE LINE CORRECTED, the owner's call: the shared audio engine may send ONE anonymous count when the page is left with its sound
+// on — engine.js#quietAudio → errlog.js#countQuiet('snd'), no id, no data of the run — it is not blocked). Still noindex nofollow +
 // UNLISTED (nothing links to it), NO room, NO database writes of any kind. (Its one possible request beyond its own files: THE SKEW
 // WRAPPER asks the deploy's id if a module ever fails to link — ui/lazy-import.js, the rule for every dynamic import.)
 import { h } from '../../ui/dom.js';
@@ -24,8 +26,8 @@ const app = document.getElementById('app');
 const Q = new URLSearchParams(location.search);
 /** J2 — COURSE RULES v2: `?cv=2` previews v2 any time, `?cv=1` today's; none = the version in force by this phone's clock (a look check — the lab never counts) */
 const CV = Q.get('cv') === '2' ? 2 : Q.get('cv') === '1' ? 1 : versionAt(Date.now());
-// (ZERO server calls: the shared audio engine reports a cut only from the owner's phone inside the app, or on a link that says &debug=1 —
-//  the lab drops that flag from its own address before the engine is ever installed)
+// (no game calls: the shared audio engine's REPORTS of a cut come only from the owner's phone inside the app, or on a link that says
+//  &debug=1 — the lab drops that flag before the engine is ever installed; its one anonymous LEAVE count may still go — J2's corrected line)
 if (Q.has('debug')) { try { Q.delete('debug'); history.replaceState(null, '', `${location.pathname}${Q.toString() ? `?${Q}` : ''}`); } catch { /* fine */ } }
 
 /** the page could not start (a module that failed to load): say so — never a blank page */

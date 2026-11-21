@@ -12,6 +12,8 @@
 //   node tests/integration/e2e-jaywalk-match.mjs "<chromium>" [outDir] [--perf]
 if (process.env.GPU === 'off') delete process.env.GPU; else process.env.GPU = process.env.GPU || '1';   // (GPU=off: the software renderer — a machine whose GPU path is down; THE CONSOLE FIX)   // (three.js: the real GPU path, as e2e-jaywalk)
 const { createHarness } = await import('./kit/harness.mjs');
+// (J2 — COURSE RULES v2: JW_CV=0 = v2 from the start on the pages (the harness adds &jwcv=) — this script's own replays of the nodes agree)
+if (process.env.JW_CV != null) (await import('../../js/games/jaywalk/versions.js')).setCvSwitch(Number(process.env.JW_CV));
 const { jaywalkMatch } = await import('../../api/_lib/jaywalk.js');
 const { seedOf, firstGo, GO_LEAD_MS } = await import('../../js/games/jaywalk/logic.js');
 const { CAUSE_LINES, DAY_LINES } = await import('../../js/games/jaywalk/causes.js');
@@ -175,7 +177,7 @@ try {
   for (let i = 0; i < N; i++) await pages[i].setViewport({ ...H.VIEW, deviceScaleFactor: 2 });   // (the shots at @2)
   // H5B — THE REFUSED CHAT WRITE ("set chats/*/m/*" ×2 on game:jaywalk/final): every write the rules refuse on any phone, from here on
   const refused = [];
-  pages.slice(0, N).forEach((p, i) => p.on('console', m => { const t = m.text(); if (/\[rules\] refused|permission_denied/i.test(t) && !(OLD_RULES && /\/t0 failed/.test(t)) && !/update at \/rooms\/[A-Z]{4} failed: permission_denied/.test(t)) refused.push(`${NAMES[i]}: ${t.slice(0, 120)}`); }));   // (THE SWITCH-OVER: on the OLD rules the stamp's refusal is EXPECTED and silent — the SDK's own warning line is not this suite's alarm)
+  pages.slice(0, N).forEach((p, i) => p.on('console', m => { const t = m.text(); if (/\[rules\] refused|permission_denied/i.test(t) && !(OLD_RULES && /\/t0 failed/.test(t)) && !/\/cv failed: permission_denied/i.test(t) && !/update at \/rooms\/[A-Z]{4} failed: permission_denied/.test(t)) refused.push(`${NAMES[i]}: ${t.slice(0, 120)}`); }));   // (THE SWITCH-OVER: on the OLD rules the stamp's refusal is EXPECTED and silent — the SDK's own warning line is not this suite's alarm)
   // ---- 1. A PLAIN HOST (THE GO-LIVE PASS — JAYWALK is playable for everyone): the room's game list offers it, no TEST mark, no owner set-up
   const pids = await Promise.all(uids.slice(0, N).map(pidFor));
   ok(pids.every(Boolean), 'every phone has its profile');

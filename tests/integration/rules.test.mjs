@@ -2230,3 +2230,24 @@ test('THE CONSOLE FIX — THE TREE CAP (jw + hr): the stamp only WITH the room\'
     await assertSucceeds(set(ref(legacy.db('p2'), `${T}/p2/c/0`), chunkOf(s)), `${node} · … and its log`);
   }
 });
+
+// JAYWALK J2 — COURSE RULES v2: the proof node's `cv` (the course version — js/games/jaywalk/versions.js): the player's OWN node, written ONCE,
+// a number 1 or 2, only beside its own GO and within 3 h of it — the chunks' window, a dropped signal never loses it (the server + the host check it against the version in force at the GO —
+// a phone never picks its own; refused here, the phone plays v1 = what the server replays a run with no cv on)
+test('JAYWALK J2 — the jw proof node\'s cv: own uid, once, 1 or 2, only after its own GO and within 3 h of it', async () => {
+  const room = playingRoom('play');
+  room.rooms[CODE].game = { id: 'jaywalk', matchId: 'mm1', phase: 'play', participants: { host: true, p2: true }, playAt: now() - 5000, seed: 's', mode: 'match' };
+  room.rooms[CODE].jw = { mm1: { host: { go: now() - 4 * 3600000 } } };
+  await seed(room);
+  const N = `${R}/jw/mm1/p2`;
+  await assertFails(set(ref(db('p2'), `${N}/cv`), 2), 'not before its own GO');
+  await assertSucceeds(set(ref(db('p2'), `${N}/go`), serverTimestamp()), 'GO');
+  await assertFails(set(ref(db('p2'), `${N}/cv`), 3), 'a version that does not exist');
+  await assertFails(set(ref(db('p2'), `${N}/cv`), '2'), 'a number, never a string');
+  await assertFails(set(ref(db('p2'), `${N}/cv`), 0), 'never 0');
+  await assertFails(set(ref(db('host'), `${N}/cv`), 2), 'never another player\'s');
+  await assertSucceeds(set(ref(db('p2'), `${N}/cv`), 2), 'cv beside its GO');
+  await assertFails(set(ref(db('p2'), `${N}/cv`), 1), 'written ONCE (never changed after the course is seen)');
+  await assertFails(set(ref(db('p2'), `${N}/cv`), null), '… never removed');
+  await assertFails(set(ref(db('host'), `${R}/jw/mm1/host/cv`), 2), 'more than 3 h after its own GO (the chunks' own window): refused');
+});

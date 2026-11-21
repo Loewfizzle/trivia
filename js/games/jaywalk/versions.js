@@ -46,10 +46,11 @@ export function runVersion(cv, E, go) {
   if (cv != null) return cv === E ? E : 0;
   return E === 1 || Number(go) < CV_GRACE_END_MS ? 1 : 0;
 }
-/** the daily's START: the version a NEW try is opened on → 1 | 2, or 0 = refused (an old phone once THE GRACE is over). `cvs` = the newest
- *  version the phone says it knows (none = an old-code phone) */
+/** the daily's START: the version a NEW try is opened on → 1 | 2, or 0 = refused. ONE COURSE A DAY ("a day's daily uses the version in force
+ *  at its 4 am" — the fresh-eyes review's M4: no grace here): a v2 day refuses a phone that does not know v2 (it is told to refresh); a v1 day
+ *  is v1 for everyone. `cvs` = the newest version the phone says it knows (none = an old-code phone). (`now` kept for the callers' shape) */
 export function tryVersion(day, cvs, now) {
   const E = versionOfDay(day);
-  if (Number(cvs) >= E) return E;
-  return E === 1 || Number(now) < CV_GRACE_END_MS ? 1 : 0;
+  void now;
+  return E === 1 ? 1 : Number(cvs) >= E ? E : 0;
 }

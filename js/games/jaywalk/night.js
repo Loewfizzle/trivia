@@ -475,7 +475,7 @@ export function createNight(host, o = {}) {
    * streak under bright paint) + a row of flickering flame tongues, cooling as it ages but bright to the last deadly tick; then it goes
    * out fast (EMBER ticks of dim embers — never read as fire). Instanced kinds only (no draw call of its own). `u` = ticks into the lap.
    */
-  const EMBER = 14, burnHash = (i, k) => (Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1;
+  const EMBER = 14, burnHash = (i, k) => { const x = (Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1; return x < 0 ? x + 1 : x; };   // (0 … 1: the tongues stay inside their own lane)
   function burnLane(p, u, z, lt) {
     const end = p.pass + p.trail;
     if (u >= end + EMBER) return;

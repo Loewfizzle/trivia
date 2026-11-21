@@ -29,6 +29,9 @@ import { seedOf } from '../../js/games/jaywalk/logic.js';
 import { memAt, memLine, browserMb, JW_FINAL_BUDGET_MB } from './kit/jaywalk-mem.mjs';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
+// (J2 — COURSE RULES v2: JW_CV=0 plays v2 from the start — serve.mjs started with JW_CV_SWITCH_MS=0 so the local /api agrees; without it the
+//  version is the one in force at the run's GO — today v1, from 2026-11-22 09:00 UTC v2)
+const JW_CV = process.env.JW_CV != null ? Number(process.env.JW_CV) : null;
 const argv = process.argv.slice(2), PERF = argv.includes('--perf'), DROP = argv.includes('--drop'), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
 if (OUT) mkdirSync(OUT, { recursive: true });
 const DB = 'http://127.0.0.1:9000', NS = 'ns=demo-arcade-default-rtdb', AUTH = { Authorization: 'Bearer owner' };
@@ -55,7 +58,7 @@ async function phone(slot, dpr = Number(process.env.E2E_DPR) || 2, name = 'HOPPE
   // (BEFORE THE FLIP — THE CAMERA + THE TAKES ARE PINNED: this phone has the LAB's odd picks saved — ZOOM 7, TURNED, every B take; the game ignores them)
   await p.evaluateOnNewDocument(() => { try { for (const [k, v] of [['zoom', '7'], ['angle', 'turned'], ['snd:hop', 'b'], ['snd:land-wood', 'b'], ['snd:train-pass', 'b']]) localStorage.setItem(`jw:lab:${k}`, v); } catch { /* fine */ } });
   const waitFor = async (js, ms = 20000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await p.evaluate(js)) return true; } catch { /* navigating */ } await sleep(50); } return false; };
-  const open = async () => { await p.goto(guardUrl(`${BASE}/?emu&slot=${slot}&city=2&when=2026-11-10T20:30`, 'e2e-jaywalk.mjs'), { waitUntil: 'domcontentloaded' }); if (!await waitFor(UP, 60000)) throw new Error('the city never came up'); };
+  const open = async () => { await p.goto(guardUrl(`${BASE}/?emu&slot=${slot}&city=2&when=2026-11-10T20:30${JW_CV != null ? `&jwcv=${JW_CV}` : ''}`, 'e2e-jaywalk.mjs'), { waitUntil: 'domcontentloaded' }); if (!await waitFor(UP, 60000)) throw new Error('the city never came up'); };
   await open();
   const ev = js => p.evaluate(js);
   // (THE PROOF PASS — the inbox's "e2e-jaywalk red at PLAY NOW", Nov 20 ~4:45 am: the tap read its target's place while its SHEET WAS STILL
@@ -153,6 +156,13 @@ try {
   ok(node && typeof node.go === 'number' && Math.abs(node.go - srv) < 15000 && st.go === node.go, `the proof node's GO = the SERVER's time (${node && node.go}), read back by the phone`);
   const want = await P.ev(`import('/js/games/jaywalk/logic.js').then(L => L.seedOf(${S}.code, ${S}.game.matchId, ${node.go}))`);
   ok(st.proven && st.seed === want && st.seed !== g.hostSeed, `THE COURSE IS PICKED AFTER GO: seed = hash(code + matchId + GO) = ${st.seed} — never the host's own (${g.hostSeed})`);
+  // J2 — COURSE RULES v2: the proof carries the version in force at its GO (`cv`, written once beside it) — the phone plays exactly that one
+  { const V = await import('../../js/games/jaywalk/versions.js'); if (JW_CV != null) V.setCvSwitch(JW_CV);
+    const wantCv = V.versionAt(node.go); let cvNode = null;
+    for (let k = 0; k < 40 && cvNode == null; k++) { cvNode = (await nodeOf(g.code, g.m, uid) || {}).cv ?? null; if (cvNode == null) await sleep(150); }
+    const stCv = (await P.ev(`${G}.state()`)).cv;
+    ok(cvNode === wantCv && stCv === wantCv, `COURSE RULES v${wantCv}: the proof's cv (${cvNode}) = the version in force at its GO = the course the phone plays (v${stCv})`);
+    ok(await P.ev(`import('/js/firebase.js').then(f => f.set(f.dbRef('rooms/' + ${S}.code + '/jw/' + ${S}.game.matchId + '/' + ${S}.uid + '/cv'), ${wantCv === 2 ? 1 : 2}).then(() => false, () => true))`), '… cv is written once (another version is refused)'); }
   ok(await P.ev(`import('/js/firebase.js').then(f => f.set(f.dbRef('rooms/' + ${S}.code + '/jw/' + ${S}.game.matchId + '/' + ${S}.uid + '/go'), f.serverTimestamp()).then(() => false, () => true))`), '… GO is written once (a second one is refused)');
   ok(await P.ev("!!document.querySelector('.jw-hint') && /TAP TO HOP · SWIPE TO STEP/.test(document.querySelector('.jw-hint').textContent)"), 'the first-run hint: TAP TO HOP · SWIPE TO STEP');
   // (H5B — BOTH looks: the phone's GAME LOOK decides (AUTO = the real sun — so the check picks one: NIGHT first, DAY below))

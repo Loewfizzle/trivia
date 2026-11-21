@@ -650,6 +650,37 @@ try {
     }
     throw Object.assign(new Error('look only'), { look: true });
   } }
+  // J2 — THE HARD LIMITS on a BUSY RUNWAY (--j2perf): 8 kids (the kid + 7 ghosts), NIGHT, tier 2, THE AIRFIELD's runways (v2) against its
+  // v1 bands — the worst draw-call frame over a whole lap (frozen, every 4th tick) + the frame rate at 4× CPU with the world running, 390 + 430
+  if (argv.includes('--j2perf')) {
+    for (const [where, from] of [['DOWNTOWN', 250], ['THE AIRFIELD', 400]]) for (const cv of [1, 2]) for (const w of [390, 430]) {
+      const o = await open(w, w === 430 ? 932 : 844, 3, `&preview=1&seed=${where === 'DOWNTOWN' ? 'perfseed2' : 'look3'}&tier=2&zoom=8&angle=straight&look=night&cv=${cv}`);
+      await up(o.p);
+      const R = await o.p.evaluate(f => { const J = window.__jwLab; J.ghosts(7); return J.runway(f, 1); }, from);
+      if (!R || R.y0 >= from + 50) { console.log(`J2PERF ${where} v${cv}: no runway in the area on this seed`); await o.close(); continue; }
+      await o.p.evaluate(y => { const J = window.__jwLab; J.warp(y); J.ghosts(7); }, R.y0 - 1);
+      await sleep(1500);
+      let worst = 0, at = -1;
+      for (let t = R.period * 8; t < R.period * 9; t += 4) {
+        const c = await o.p.evaluate(async tt => { const J = window.__jwLab; J.setT(tt); J.freeze(true); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); return J.state().info.calls; }, t);
+        if (c > worst) { worst = c; at = t; }
+      }
+      await o.p.evaluate(() => window.__jwLab.freeze(false));
+      await o.p.emulateCPUThrottling(4);
+      await sleep(1200); await o.p.evaluate(() => window.__jwLab.clearFrames());
+      const calls = [];
+      for (let k = 0; k < 50; k++) { await sleep(200); calls.push(await o.p.evaluate(() => window.__jwLab.state().info.calls)); }
+      const fr = (await o.p.evaluate(() => window.__jwLab.frames())).sort((a, c) => a - c);
+      await o.p.emulateCPUThrottling(1);
+      const avg = fr.reduce((a, c) => a + c, 0) / fr.length;
+      const row = { where, cv, w, runway: `${R.y0} × ${R.n}`, worstCalls: worst, worstAt: at, runCalls: Math.max(...calls), frames: fr.length, fps: +(1000 / avg).toFixed(1), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1) };
+      console.log('J2PERF', JSON.stringify(row));
+      ok(row.worstCalls <= 64 && row.runCalls <= 64, `${where} v${cv} ${w}: 8 kids, night, tier 2 — the worst runway frame ${row.worstCalls} draw calls (running ${row.runCalls}) ≤ 64`);
+      ok(row.fps >= 57 && !o.errs.length, `${where} v${cv} ${w}: 4× CPU on the runway — ${row.fps} fps (p95 ${row.p95Ms} ms, worst ${row.worstMs})`);
+      await o.close();
+    }
+    throw Object.assign(new Error('look only'), { look: true });
+  }
   if (argv.includes('--glow')) {
     const pages = await Promise.all(['&occ=0', ''].map(q => open(390, 844, 3, `&preview=1&seed=look3&tier=2&zoom=8&angle=straight&look=night${q}`)));
     for (const o of pages) await up(o.p);

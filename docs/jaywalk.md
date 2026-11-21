@@ -30,11 +30,14 @@ import map); the RULES are a pure engine that never knows about it.
 | THE PROOF PASS (JAYWALK + HIGH RISE) | Nov 20 2026 | `docs/games/passes/proof-pass.md` | THE HOST-TRUST HOLES closed for `jw` (THE STAMP `t0`, GO within 5 s of it, the leaves on the player's OWN go, the lock by the stamp's age, the server's two guards) + THE PROOF WRITER shared with HIGH RISE; JAYWALK'S GO FIXES (a host hiccup at GO no longer voids the match; a GO alone is not a player; a refresh never adopts from the game alone; Call the Winner's no-run case); a verified solo run is a counted play — **a rules change** |
 | THE CONSOLE FIX (JAYWALK + HIGH RISE + the console) | Nov 20 2026 | `docs/games/passes/console-fix.md` | A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST: a `final` early, a moved-on room or a kick — the phone plays its run out, writes its end, THEN follows (THE RUN HOLD); the server holds the report (425 still_live) while a run is live, the cap ends the wait; the podium waits + re-scores from the nodes; a kicked proven player is credited; THE TREE CAP (1,000 stamped trees a room) — **a rules change** |
 | J1 — SPLITS · THE MATCH MOMENTS · THE NIGHT GLOW FIX | Nov 21 2026 | `docs/games/passes/jaywalk-j1.md` | SPLIT TIMES every 50 lanes on every end card (the server keeps the best splits from its own replay) · THE MATCH MOMENTS (the bigger order, OUT banners, the red X, HEAD TO HEAD + the siren, THE DUEL STRIP, LAST ONE STANDING — every out from the player's OWN end) · THE NIGHT GLOW FIX (the bloom's solid occluders) · + the city's END-SCREEN HEADER (a game's MODE) |
+| J2 — EVEN STARTS · THE BLACKBIRD's RUNWAYS · COURSE RULES v2 | Nov 21 2026 | `docs/games/passes/jaywalk-j2.md` | COURSE RULES v2 from the 4 am turn of Nov 22 (a course = seed + version; the version in the proof, checked against its GO; v1 frozen byte for byte) · no opening runs free · runways of 3–4 lanes, a jet each + THE AFTERBURNER TRAIL, every one proven passable · THE SOUND RULE · a RULES CHANGE (`jw/…/cv`) |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
 this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
 
 ## THE RULES (js/games/jaywalk/ — `tuning.js` holds EVERY number)
+> **J2 — COURSE RULES v2 from 2026-11-22 09:00 UTC** ("J2" below): EVEN STARTS + THE BLACKBIRD's RUNWAYS; this section is v1's (kept byte for byte —
+> a run's version travels in its proof).
 - **THE FIXED STEP:** the rules count TICKS, 60 a second (`TICK_HZ`); a hop = `HOP_TICKS` 8 = 133 ms. The rules NEVER read Math.random /
   Date.now / performance.now / a frame clock, and use **integers / fixed point (`FP` 1000 = a cell) with + − × ÷ + Math.floor only — no
   Math.sin / cos / pow / exp / sqrt** (V8 and JavaScriptCore may differ in the last bit; the phone and the server must agree hop for hop).
@@ -45,7 +48,7 @@ this page's layout wins over the render's). The engine never cares. JAYWALK's fl
   cells, from the seed — long ones more common early, short ones later: `WATER.lenW` — + UNEVEN gaps: short 0.9–1.5 cells or long 1.4 + by
   heat; a 1-cell log only on a slow lane, `WATER.oneV`, with no water lane beside it; the water kills; two
   water lanes side by side always run opposite ways; never more than 3 in a row (H5A: a long run goes on after its break — every 4th lane of it is ground; the same for the rails, `RAIL_RUN_MAX` 3); a log carrying you off the screen edge = a hit) · **rail** (a
-  train: the signal lights 1 s first, then a long fast body) · **THE FLIGHT PATH** (`flight` — a band of 2 lanes sharing ONE pulse: THE
+  train: the signal lights 1 s first, then a long fast body) · **THE FLIGHT PATH** (`flight` — COURSE RULES v1: a band of 2 lanes sharing ONE pulse — v2's RUNWAYS: "J2" below: THE
   BLACKBIRD's tell 1.8 s (never under 1.5 s — `MIN_TELL_TICKS`), then a 0.2 s pass) · **THE UFO** (not a lane: a zone of 8 grass / road lanes
   it drifts over on a slow diagonal; its beam circle, radius 1.25 cells, on the ground = the warning; stepping in = abducted).
 - **A HAZARD's POSITION = a pure function of (lane, tick)** — `moverLeft` (cars, logs), `pulseAt` + `pulseLeft` (trains, THE BLACKBIRD:
@@ -260,6 +263,67 @@ unchanged) · `jaywalk-lab.mjs --bloom-ab` / `--glow`.
 `jaywalk-lab.html?j1=splits` (a solo end card with YOUR SPLITS — the server's sample answer lands a moment later: one NEW BEST) ·
 `?j1=splits9` (a long run's row) · `?j1=moments` (the moments on a loop: an out + the red X → HEAD TO HEAD + the siren → THE DUEL STRIP →
 LAST ONE STANDING; the sounds after the first tap). The lab's own end shows YOUR SPLITS for a real (unwarped) run. Zero server calls.
+
+## J2 (Nov 21 — the owner, Nov 19–21; the pass log `docs/games/passes/jaywalk-j2.md`) — COURSE RULES v2 · a RULES CHANGE (`jw/{match}/{uid}/cv`)
+
+### COURSE RULES v2 (`versions.js` — ONE source; `course.js` takes `cv`; `tests/jaywalk-versions.test.mjs` + `jaywalk-v1-frozen.test.mjs`)
+- **A course is a PURE function of (seed, course version).** `createCourse(seed, { cv })` · `buildLane / typeAt / specials / rawType (…, cv)` ·
+  `replay / judgeRun / verifyRun / scoreNode / scoreTry ({ …, cv })` — the default is **1 everywhere**. v1 = the rules exactly as they shipped
+  up to J1: `tests/fixtures/jaywalk-v1/` is a FROZEN copy (course + tuning + engine + replay at 28972e7b, never edited) and the test holds
+  the live code with cv 1 to it byte for byte (900,000+ lanes, the hazards in time, 210 whole bot runs).
+- **THE SWITCH:** v2 from **2026-11-22 09:00 UTC = the 4 am Eastern daily turn** (`CV_SWITCH_MS`, the streak day `d20261122`) — never mid-day.
+  A run's version = the one in force at its GO (a SERVER time): a solo run's own GO, a match's FIRST GO (`logic.js#matchVersion`); the
+  daily's = the one in force at its day's 4 am (`versionOfDay`).
+- **IT TRAVELS IN THE PROOF + IS CHECKED** (`runVersion` — the host's podium + the server): the proof node's **`cv`** (written once by the
+  player beside its GO — the rules: own uid, once, 1 or 2, within 3 h of its GO, the chunks' window) must BE the version in force at the GO, else the run is refused
+  (`bad: 'version'`) — **a phone never picks its own**. **No `cv`** (an old-code phone) = v1 until **THE GRACE ends, 2026-11-27 09:00 UTC**,
+  then refused. The daily: the SERVER picks the try's version at START (`tryVersion`: the day's, if the phone says it knows it — `cvs`)
+  and keeps it in the try record (`t.cv` 2; none = v1); START answers it, the phone plays it. **ONE COURSE A DAY — no grace for the
+  daily** (the fresh-eyes review's M4: "a day's daily uses the version in force at its 4 am"): an old phone on a v2 day is refused
+  (`old_version` — it is told to refresh), never handed v1.
+- **THE PHONE:** solo writes `cv` right after its GO's read-back (`view.js#writeCv`; a refresh before it landed writes it on the rejoin —
+  only while no hop is logged), a match once THE FIRST GO is known — and **a match phone takes the course only once its version is SETTLED**
+  (its node's cv, or its own write's answer; by tick 0 the version in force): never a course swapped under it; **refused (the
+  rules not re-published yet) → the phone plays v1** — exactly what the server replays a run with no `cv` on: they always agree. A result
+  row judged on v2 carries `cv: 2` (the end line rebuilds the lane that hit them).
+- **THE LAB:** `jaywalk-lab.html?cv=2` previews v2 any time (`?cv=1` today's; none = the version in force by the phone's clock) ·
+  `&rw=N` puts the kid on the safe lane before the course's Nth runway. **THE EMULATOR:** `?emu&jwcv=0` + `JW_CV_SWITCH_MS=0` on serve.mjs
+  (honoured OFF Vercel only) play v2 before the real switch (`JW_CV=0` in the E2Es).
+
+### EVEN STARTS (v2 — `tuning.js#EVEN` · `course.js#openingKinds`; `tests/jaywalk-j2-sim.test.mjs`)
+The opening (lanes 4–49) keeps the heat's mix but never runs free: **≤ 2 ground lanes in a row, ≤ 5 in any 10, ≤ 3 hazards in a row**
+(decided lane by lane in order from the seed alone — a forced hazard from the lane's own second rng; the calm lanes 0–3, the water / rail
+firsts + run caps kept). 5,000 seeds, the steady bot: time to 50 median **13.9 → 14.6 s**, the fastest 5 % **9.6 → 10.1 s**, the fastest 1 %
+8.3 → 8.9 s; reaches 50 **89.7 → 90.9 %** (the same curve); the longest open run p95 **7 → 3**, max 14 → 5; the fewest hazard lanes in 10:
+0 → 2 (median 3 → 5). Past lane 50 a v2 lane's KIND is v1's (but the runways, their safe lanes, a UFO's stretch).
+
+### THE BLACKBIRD's RUNWAYS (v2 — `tuning.js#RUNWAY` · `course.js#specials2` + `#runwaySlack` · `night.js#burnLane` · `flyers.js`)
+- **A runway = 3–4 flight lanes, EACH its own jet on ONE shared lap**, staggered by the seed (the order shuffled; the spacing from a tight
+  cluster to the lap shared evenly). The lap 4–6 s early → 3–4.5 s deep (by heat, never under 3 s); every lane's tell **1.6 s** (≥
+  MIN_TELL_TICKS). Each pulse: `band` = its own lane, `n` 1, `trail`, `rw` / `rn` (its runway) — the engine's boom logic unchanged.
+- **THE AFTERBURNER TRAIL** (`course.js#laneHit`): everything behind the jet burns through its pass, then the WHOLE lane for **42 ticks
+  (0.7 s)** — cause `'blackbird'` (no new cause, no card change; SONIC BOOM still = a close pass). `pulseAt` names it (`st: 'trail'`).
+- **MORE OFTEN:** from lane **120** (was 150), more from 250 (a second runway in 45 % of those stretches), **THE AIRFIELD four**; never a UFO
+  in a runway's stretch; never two back to back — a **SAFE ground lane right before and right after every runway** (`waitAt`).
+- **FAIR BY CONSTRUCTION:** every layout is checked AS IT IS MADE (`runwaySlack` — a careful kid waiting + hopping gets across from ≥ 24
+  start ticks of every lap, a lane deadly at every column through pass + trail); one that is not → the tight cluster (always a calm gap).
+  The test's own search through the REAL hit test at three columns: **trapped never** (every 4th start tick of every runway of 160 seeds),
+  the worst wait ≤ 4 s (the solo wall at its nearest gives 8 s).
+- **THE NUMBERS** (600 seeds): a BLIND cross (straight up, hop after hop) is hit **v1 6.5 % → v2 72 %** (lanes 120–249: 4.9 → 59 % ·
+  250–449: 5.7 → 69 % · the loop: 7.3 → 77 %); the careful (greedy) bot killed per runway met **0 → 1.5 %**; runways to lane 450: 3.9 → 7.6.
+- **THE LOOK:** the runway lights race per lane in its own tell (night + day, as before); **the trail = fire on the road** — a glowing streak
+  (a hot core in an orange glow · by day a dark scorched band under bright orange paint) + a row of flickering flame tongues, cooling but
+  bright to the last deadly tick, then out fast (14 ticks of dim embers — never read as fire); drawn in night.js (never waiting for the
+  lazy flyers' module), instanced — no draw call of its own. A v2 jet flies ONE lane (× 0.7 — `FLY.rwScale`); **all jets = ONE instanced
+  mesh (6) + their flames ONE (12)** — one draw call however many fly.
+
+### THE SOUND RULE (`runway-sound.js` — PURE; `flyers.js#MIX` + `jet`; `tests/jaywalk-runway-sound.test.mjs`)
+The crackle **only when a runway is within 3 lanes ahead of YOUR kid (or under him), ONCE per visit, ≥ 8 s apart, the three takes in turn**
+(never the same twice running); its later tells = the lights + a soft **runway tick** at most; every pass keeps its scream + boom **faded by
+its distance** (1 next to him, × 0.75 a lane, silent from 8 lanes / off-screen); the trail plays a real **fire flicker** under the boom. The
+warning stays VISUAL (fair with the sound off). THE MIX (measured — `jaywalk-mix.mjs`, now its guards): radio-static_1 0.34 · _2 0.5 · _3 0.56
+(−26.7 / −26.3 / −25.5 LUFS into the bus) · runway-tick 0.12 (−35.5) · afterburner-flicker 0.4 (under the boom's −21.1) — the files in
+`audio/jaywalk/` (`scripts/build-jaywalk-sounds.mjs --j2`, credited).
 
 ## THE MATCH (H4 — ONE LIFE; the cartridge — hidden: THE OWNER'S LIVE TEST)
 One run each on the SAME course, one life; the others are see-through ghosts; farthest wins, ties → the earlier tick. **Real matches run
@@ -1650,7 +1714,10 @@ calls** — the page never loads Firebase and never calls `/api`; it fetches onl
 the pure engine in the tab. **UNLISTED: nothing links to it** (no page, no script, no manifest — `tests/jaywalk-lab.test.mjs`); **no room,
 no database writes of any kind**. Everything on it stays (SOLO · MATCH · DAILY, ZOOM, ANGLE, SOUNDS, NEW SEED, `?fps=1`). Two honest
 footnotes: the shared audio engine reports a cut only from the owner's phone inside the app or on a `&debug=1` link — the lab drops that
-flag from its own address; and THE SKEW WRAPPER (every dynamic import's rule) asks the deploy's id ONCE if a module ever fails to link. A
+flag from its own address; and THE SKEW WRAPPER (every dynamic import's rule) asks the deploy's id ONCE if a module ever fails to link.
+**J2 — THE LINE CORRECTED (the owner's call on J1's OPEN FOR BEN):** "zero server calls" was not exact — since CITY G the shared audio
+engine COUNTS a leave once from any phone (`engine.js#quietAudio` → `errlog.js#countQuiet('snd')`: ONE anonymous beacon to `/api/log`, no
+id, nothing of the run). It is NOT blocked: the lab makes **no game calls** (no Firebase, no game `/api`), plus that one anonymous count. A
 browser with no WebGL gets the stage + one line saying so. (H1 + H2 had the owner's door: POST /api/admin whoami.)
 - **H6A:** the lab shows THE BIG MOMENTS as the game does (the end's words wait for the abduction / the lift — `view.holdMs`); its hooks `setT(t)` · `freeze(on)` · `ufoAt(lane)` · `flight(from)`; the checks' `--h6a[=blackbird|ufo|ship|perf]` (`kit/jaywalk-h6a.mjs`: each moment driven by day + night → `h6a/<group>/`; `perf` = the three moments + the on-demand load under a 4× CPU throttle).
 - **H5C:** the checks' `--h5c[=basics|sky|fog|ground|gates|lines|tail]` (the review's shots, day + night → `h5c/<group>/`; the skyline's picker on the page — only the current + the next picture held, the cross-fade; the gate sign's foot above his cap on every gate).

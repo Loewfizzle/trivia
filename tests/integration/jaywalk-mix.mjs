@@ -48,7 +48,7 @@ const rows = await p.evaluate(async (SOUNDS) => {
     out.push({ set: 'jaywalk', id: s.id, d: +buf.duration.toFixed(2), gain: s.gain, raw: +raw.i.toFixed(1), rawPk: +peak(buf).toFixed(1), bus: +L.i.toFixed(1), mom: +L.m.toFixed(1), pk: +peak(r).toFixed(1) });
   }
   for (const [id, m] of Object.entries(F.MIX)) {
-    const buf = await dec(`/audio/city/${m.f || id.replace(/@.*/, '')}.mp3`);
+    const buf = await dec(`/audio/city/${m.file || m.f || id.replace(/@.*/, '')}.mp3`);   // (J2: a row's `file` — the runways' own, ../jaywalk/…)
     if (!buf) { out.push({ id, miss: true }); continue; }
     const r = await through(buf, { gain: m.gain, rate: m.rate || 1, loop: !!m.loop, at: m.loop ? 0.08 : m.at || 0, secs: m.loop ? 4 : Math.min(6, (buf.duration - (m.at || 0)) / (m.rate || 1)) }), raw = lufs(buf), L = lufs(r);
     out.push({ set: 'city', id, d: +buf.duration.toFixed(2), gain: m.gain, rate: m.rate || 1, raw: +raw.i.toFixed(1), rawPk: +peak(buf).toFixed(1), bus: +L.i.toFixed(1), mom: +L.m.toFixed(1), pk: +peak(r).toFixed(1), what: m.what || '' });
@@ -73,6 +73,16 @@ console.log(MD ? '' : `\nthe music ducks: ${JSON.stringify(rows.duck)}`);
   const by = id => rows.out.find(r => r.id === id && r.set !== 'city'), sir = by('h2h-siren'), out = by('out-drop'), hit = by('hit');
   for (const w of ['train-bell', 'train-horn', 'horn', 'truck-horn']) { const r = by(w), under = !!(sir && r && sir.bus < r.bus && sir.mom < r.mom); if (!under) bad++; console.log(`${under ? 'ok  ' : 'LOUD'} the siren under the ${w}: ${sir && sir.bus} / ${sir && sir.mom} < ${r && r.bus} / ${r && r.mom}`); }
   const soft = !!(out && hit && out.bus < hit.bus); if (!soft) bad++; console.log(`${soft ? 'ok  ' : 'LOUD'} the out sound under your own hit: ${out && out.bus} < ${hit && hit.bus}`);
+}
+// J2 — THE RUNWAYS' SOUNDS (THE SOUND RULE — the rule itself: tests/jaywalk-runway-sound.test.mjs): the crackle's three takes level-matched
+// (within 2 LU integrated, 3.5 LU at their loudest 0.4 s — short takes of different shapes); THE REPEAT TELL's tick never louder than the crackle (both measures); the trail's
+// fire flicker UNDER the boom (both measures)
+{
+  const by = id => rows.out.find(r => r.id === id && r.set === 'city'), takes = ['radio-static_1', 'radio-static_2', 'radio-static_3'].map(by), tick = by('runway-tick'), fl = by('afterburner-flicker'), boom = by('sonic-boom');
+  const lo = Math.min(...takes.map(t => t.bus)), hi = Math.max(...takes.map(t => t.bus)), loM = Math.min(...takes.map(t => t.mom)), hiM = Math.max(...takes.map(t => t.mom));
+  const even = hi - lo <= 2 && hiM - loM <= 3.5; if (!even) bad++; console.log(`${even ? 'ok  ' : 'ODD '} the crackle's three takes level-matched: ${takes.map(t => `${t.bus} / ${t.mom}`).join(' · ')}`);
+  const soft = takes.every(t => tick.bus < t.bus && tick.mom < t.mom); if (!soft) bad++; console.log(`${soft ? 'ok  ' : 'LOUD'} the runway tick under every crackle: ${tick.bus} / ${tick.mom}`);
+  const under = fl.bus < boom.bus && fl.mom < boom.mom; if (!under) bad++; console.log(`${under ? 'ok  ' : 'LOUD'} the trail's flicker under the boom: ${fl.bus} / ${fl.mom} < ${boom.bus} / ${boom.mom}`);
 }
 console.log(bad ? `${bad} cue(s) CLIP or are missing` : `${rows.out.length} cues — none clips (every peak under −0.3 dBFS at the SFX bus)`);
 process.exit(bad ? 1 : 0);

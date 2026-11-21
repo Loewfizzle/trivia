@@ -428,6 +428,6 @@ test('THE PROOF PASS — A HOST HICCUP AT GO (HIGH RISE\'s REVIEW FIX A, ported)
   // the view: a run that ended while the match was marked unproven sends its end once proven again; a refresh never adopts from the game alone
   const v = (await import('node:fs')).readFileSync(new URL('../js/games/jaywalk/view.js', import.meta.url), 'utf8');
   assert.ok(v.includes("if (proven && mode === 'over' && !wroteE && run && isOver(run)) sendEnd();"), 'the end goes up once proven again — the match does not wait 18 s');
-  assert.ok(v.includes('if (S && (course.seed !== S.seed || go !== S.playAt || course.cv !== V) && (runs || g.unproven)) {'), 'never adopted from the game alone while the proof mirror is on its way (the inbox, Nov 20 — HIGH RISE S4B\'s own fix)');
+  assert.ok(v.includes('if (S && V && (course.seed !== S.seed || go !== S.playAt || course.cv !== V) && (runs || g.unproven)) {'), 'never adopted from the game alone while the proof mirror is on its way (the inbox, Nov 20 — HIGH RISE S4B\'s own fix)');
   assert.ok(v.includes('lateGo = !!myNode && goOf(myNode) > 0 && !onTime(myNode, firstGo(runs));') && v.includes('proven = !lateGo && ((haveGo && !g.unproven && mine(g)) || everProven);'), 'a GO of this phone\'s own past the window: nothing is written for it');
 });

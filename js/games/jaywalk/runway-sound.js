@@ -30,19 +30,19 @@ export function distGain(d, onScreen = true) {
  * screams + booms at its distance).
  */
 export function createRunwayEars() {
-  const seen = new Map();           // y0 → n (the runways drawn this frame)
+  const seenY = [], seenN = [];     // (the runways drawn this frame — two plain arrays, reused: nothing made a frame)
   let visit = null, lastAt = -1e12, take = -1, owed = false;   // (visit: { y0, n, cracked } · owed: a visit began, its crackle waits for its first tell)
   const inReach = (y0, n, k) => k >= y0 - RS.reach && k < y0 + n;
   return {
-    see(y0, n) { seen.set(y0, n); },
+    see(y0, n) { if (seenY.indexOf(y0) < 0) { seenY.push(y0); seenN.push(n); } },
     /** the frame's end: a visit begins / ends by where the kid is (his lane, a cell number — the lane he stands on) */
     frame(now, kidLane) {
       const k = Math.floor(kidLane);
       if (visit && (k >= visit.y0 + visit.n + RS.leave || k < visit.y0 - RS.reach - RS.leave)) visit = null;
       if (!visit) {
-        for (const [y0, n] of seen) if (inReach(y0, n, k)) { visit = { y0, n, cracked: false }; owed = true; break; }
+        for (let i = 0; i < seenY.length; i++) if (inReach(seenY[i], seenN[i], k)) { visit = { y0: seenY[i], n: seenN[i], cracked: false }; owed = true; break; }
       }
-      seen.clear();
+      seenY.length = 0; seenN.length = 0;
     },
     /** a lane of runway `y0` began its tell at `now` → what it sounds like for this kid */
     tell(y0, now) {
@@ -57,7 +57,7 @@ export function createRunwayEars() {
     /** the crackle take tell() just picked (rotating — never the same twice in a row) */
     take: () => RS.takes[Math.max(0, take)],
     /** a new run / the scene resting: no visit (the cooldown + the rotation carry on) */
-    reset() { visit = null; owed = false; seen.clear(); },
+    reset() { visit = null; owed = false; seenY.length = 0; seenN.length = 0; },
     state: () => ({ visit: visit ? { ...visit } : null, lastAt, take }),
   };
 }

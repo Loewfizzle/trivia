@@ -1,4 +1,4 @@
 {
- "hash": "3b90a514be705e56",
- "line": "RULES CHANGED: rooms/{CODE}/jw/{match}/{uid}/cv (new — JAYWALK J2's COURSE VERSION: written once by the player, 1 or 2, within 20 s of its own GO) + still CITY PART 2's rooms/{CODE}/gv + THE CONSOLE FIX's pt + jw/hr t0 if not yet published — RE-PUBLISH database.rules.json in the Firebase console (Downloads/NEON/database.rules.nov21-j2.json), any time AFTER the deploy is live and BEFORE 2026-11-27 4 am Eastern: the new code works on the old rules (the cv write refused → the run plays + counts as v1 until Nov 27), a phone on the old code works on the new ones"
+ "hash": "52da9be9212dee28",
+ "line": "RULES CHANGED: rooms/{CODE}/jw/{match}/{uid}/cv (new — JAYWALK J2's COURSE VERSION: written once by the player, 1 or 2, within 3 h of its own GO) + still CITY PART 2's rooms/{CODE}/gv + THE CONSOLE FIX's pt + jw/hr t0 if not yet published — RE-PUBLISH database.rules.json in the Firebase console (Downloads/NEON/database.rules.nov21-j2.json), any time AFTER the deploy is live and BEFORE 2026-11-27 4 am Eastern: the new code works on the old rules (the cv write refused → the run plays + counts as v1 until Nov 27), a phone on the old code works on the new ones"
 }

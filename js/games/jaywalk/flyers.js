@@ -50,12 +50,12 @@ export const FLY = Object.freeze({
  */
 export const MIX = Object.freeze({
   'radio-static_1': { gain: 0.34, what: 'THE BLACKBIRD — the radio crackle as a runway comes near (J2: once a visit, 8 s apart, three takes in turn)' },
-  'radio-static_2': { gain: 0.34, file: '../jaywalk/radio-static-2', what: '… its second take (J2 — original, CC0 1.0 Ben)' },
-  'radio-static_3': { gain: 0.4, file: '../jaywalk/radio-static-3', what: '… its third take (J2 — original, CC0 1.0 Ben)' },
+  'radio-static_2': { gain: 0.5, file: '../jaywalk/radio-static-2', what: '… its second take (J2 — original, CC0 1.0 Ben)' },
+  'radio-static_3': { gain: 0.56, file: '../jaywalk/radio-static-3', what: '… its third take (J2 — original, CC0 1.0 Ben)' },
   'runway-tick': { gain: 0.12, file: '../jaywalk/runway-tick', what: '… the REPEAT tell while you wait at / on a runway: a soft tick (J2 — original, CC0 1.0 Ben)' },
   'jet-scream': { gain: 0.62, at: 0.4, what: '… its scream, started so its peak lands on the pass (J2: faded by its distance)' },
   'sonic-boom': { gain: 0.8, what: '… the boom on the pass (J2: faded by its distance)' },
-  'afterburner-flicker': { gain: 0.3, file: '../jaywalk/afterburner-flicker', what: '… THE AFTERBURNER TRAIL burning on the lane, under the boom (J2 — "Big Branching Fire #1", Joseph SARDIN, CC0 1.0; faded by its distance)' },
+  'afterburner-flicker': { gain: 0.4, file: '../jaywalk/afterburner-flicker', what: '… THE AFTERBURNER TRAIL burning on the lane, under the boom (J2 — "Big Branching Fire #1", Joseph SARDIN, CC0 1.0; faded by its distance)' },
   'ufo-hum': { gain: 0.3, loop: true, what: 'THE UFO — its hum, nearer = louder (this is its loudest)' },
   'ufo-beam-on': { gain: 0.6, at: 3.0, what: 'THE ABDUCTION — the beam slams down' },
   'ufo-lift': { gain: 0.5, at: 3.4, what: '… the kid goes up' },
@@ -180,8 +180,8 @@ export function createFlyers(C) {
     // NO HITCH WHEN IT LANDS: the new material's program is compiled OFF the frame (three's compileAsync — the browser's parallel shader
     // compile), the meshes shown far under the ground for that one call; a browser without it falls back to the scene's own warm frame
     const ms = n === 'blackbird' ? [...jets, ...flames] : ufos.map(q => q.m);
-    for (const m of ms) { m.visible = true; m.position.set(0, -60, 0); }
-    const done = () => { for (const m of ms) if (m.position.y === -60) { m.visible = false; if (m.isInstancedMesh) { m.position.set(0, 0, 0); m.count = 0; } } };   // (J2: an instanced mesh's own place stays the world's — its jets carry theirs)
+    for (const m of ms) { m.visible = true; if (m.isInstancedMesh) { putIn(m, 0, 0, -60, 0, 0, 0, 0, 1, 1); m.count = 1; m.instanceMatrix.needsUpdate = true; } else m.position.set(0, -60, 0); }   // (J2: an instanced mesh stays where it is — its ONE warm instance goes under the ground; the next frame's end sets its count)
+    const done = () => { for (const m of ms) if (!m.isInstancedMesh && m.position.y === -60) m.visible = false; };
     try { const q = C.renderer.compileAsync(scene, cam); if (q && q.then) q.then(done, done); else { done(); C.rewarm(); } } catch { done(); C.rewarm(); }
   }
   let nj = 0, nf = 0, nu = 0, nk = 0, shakeNow = 0, humD = 99, dimNow = 0, duckK = 1, duckJ = 1, jetsSeen = 0;
@@ -231,7 +231,7 @@ export function createFlyers(C) {
       ears.see(y0, rn);
       const k = Math.floor((F.t - p.phase) / p.period) + (tell ? 1 : 0), key = p.band, S = snd.bands.get(key) || { k: -1, s: 0 };
       if (S.k !== k) { S.k = k; S.s = 0; snd.bands.set(key, S); if (snd.bands.size > 12) snd.bands.delete(snd.bands.keys().next().value); }
-      const pan = -dir * 0.6, g = distGain(-zc - F.ky);
+      const pan = -dir * 0.6, dl = -zc - F.ky, g = distGain(dl, dl > -3.5);   // (behind him past ~3 lanes = off the screen: silent)
       if (tell && !(S.s & 1) && left0 > p.tell - 20) {
         S.s |= 1;
         const w = ears.tell(y0, F.clock);
@@ -613,7 +613,8 @@ export function createFlyers(C) {
   /** the frame's end: what was not drawn this frame is put away; the UFO's hum follows how near it is */
   function end() {
     flush();
-    for (const [M, n] of [[jets[0], nj], [flames[0], nf]]) if (M) { M.count = n; M.visible = n > 0; if (n) M.instanceMatrix.needsUpdate = true; }
+    if (jets[0]) { const M = jets[0]; M.count = nj; M.visible = nj > 0; if (nj) M.instanceMatrix.needsUpdate = true; }
+    if (flames[0]) { const M = flames[0]; M.count = nf; M.visible = nf > 0; if (nf) M.instanceMatrix.needsUpdate = true; }
     lastSeen = jetsSeen; jetsSeen = 0;
     if (F.own && F.alive) ears.frame(F.clock, F.ky); else ears.reset();
     for (let i = nu; i < ufos.length; i++) { ufos[i].m.visible = false; ufos[i].id = -1; }

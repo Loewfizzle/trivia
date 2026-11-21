@@ -48,15 +48,15 @@ test('THE CHECK (runVersion): the proof\'s `cv` must BE the version in force at 
   for (const bad of [0, 3, -1, '2', 1.5, true]) assert.equal(V.runVersion(bad, 2, post), 0, `cv ${JSON.stringify(bad)}`);
 });
 
-test('THE DAILY\'s START (tryVersion): the SERVER picks the day\'s version — the phone only says the newest it knows; an old phone (none) gets v1 until THE GRACE, then is refused', () => {
+test('THE DAILY\'s START (tryVersion): the SERVER picks the day\'s version — the phone only says the newest it knows; ONE COURSE A DAY: an old phone on a v2 day is refused', () => {
   const now = S + 3600e3;
   assert.equal(V.tryVersion('d20261121', 2, S - 1000), 1, "today's daily: v1 even for a new phone");
   assert.equal(V.tryVersion('d20261121', null, S - 1000), 1);
   assert.equal(V.tryVersion('d20261122', 2, now), 2, "tomorrow's: v2");
   assert.equal(V.tryVersion('d20261122', 99, now), 2, 'a phone that claims a newer one still gets the DAY\'s');
-  assert.equal(V.tryVersion('d20261122', null, now), 1, 'an old phone in THE GRACE: v1');
-  assert.equal(V.tryVersion('d20261122', 1, now), 1, 'a phone that knows only v1, in THE GRACE: v1');
-  assert.equal(V.tryVersion('d20261128', null, G + 3600e3), 0, 'an old phone past THE GRACE: refused (it is told to refresh)');
+  assert.equal(V.tryVersion('d20261122', null, now), 0, 'ONE COURSE A DAY: an old phone on a v2 day is refused (told to refresh) — no grace for the daily');
+  assert.equal(V.tryVersion('d20261122', 1, now), 0, '… a phone that knows only v1 too');
+  assert.equal(V.tryVersion('d20261128', null, G + 3600e3), 0);
   // a try that began before 4 am keeps its own day (A RUN KEEPS ITS OWN DAY): its version is that day's — v1, even played past the switch
   assert.equal(V.tryVersion('d20261121', 2, S + 120e3), 1);
 });
@@ -81,11 +81,11 @@ test('THE TEST SWITCH: setCvSwitch moves it for a test only (the emulator\'s ?em
   assert.ok(src.includes("/[?&]emu(?:&|=|$)/.test(location.search"), 'an emulator page only');
 });
 
-test('THE RULE (database.rules.json): the proof\'s `cv` = the player\'s own, written ONCE, 1 or 2, within 20 s of its own GO — the smallest change (one leaf)', () => {
+test('THE RULE (database.rules.json): the proof\'s `cv` = the player\'s own, written ONCE, 1 or 2, within 3 h of its own GO — the smallest change (one leaf)', () => {
   const R = JSON.parse(readFileSync(new URL('../database.rules.json', import.meta.url), 'utf8'));
   const n = R.rules.rooms.$code.jw.$match.$uid;
   assert.deepEqual(Object.keys(n), ['go', 'cv', 'c', 'k', 'e', '$other']);
   assert.match(n.cv['.write'], /auth\.uid === \$uid/); assert.match(n.cv['.write'], /!data\.exists\(\)/);
-  assert.match(n.cv['.write'], /\/go'\)\.isNumber\(\)/); assert.match(n.cv['.write'], /\/go'\)\.val\(\) \+ 20000/);
+  assert.match(n.cv['.write'], /\/go'\)\.isNumber\(\)/); assert.match(n.cv['.write'], /\/go'\)\.val\(\) \+ 10800000/);
   assert.equal(n.cv['.validate'], 'newData.isNumber() && (newData.val() === 1 || newData.val() === 2)');
 });

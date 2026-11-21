@@ -106,6 +106,12 @@ async function day1() {
   ok(/^d/.test(seed1) && s1.isMatch === false, `TRY 1 plays the REAL view in MODES.daily on the DAY's seed from the server's START (${seed1.slice(0, 8)}…)`);
   if (H.SHOTS) await A.page.screenshot({ path: `${H.OUT}jr-02-run.png` });
   const node1 = await val(`dly/jaywalk/${day}/w/${await ev(A.page, 'window.__arcade.state.uid')}/0`);
+  // J2 — COURSE RULES v2: the SERVER picks the try's version at START (the day's — JW_CV=0 + the server's JW_CV_SWITCH_MS=0: v2) and keeps it
+  // in the try record; the phone plays exactly that course
+  { const V = await import('../../js/games/jaywalk/versions.js'); if (process.env.JW_CV != null) V.setCvSwitch(Number(process.env.JW_CV));
+    const want = V.versionOfDay(day), r0 = await rec(A.pid);
+    const tcv = r0 && r0.t && r0.t[0] ? (r0.t[0].cv || 1) : null;
+    ok(s1.cv === want && (tcv == null || tcv === want), `COURSE RULES v${want}: the try's version (record ${tcv == null ? '—' : `v${tcv}`}) = the day's = the course the phone plays (v${s1.cv})`); }
   ok(node1 && node1.go > 0 && node1.c && Object.values(node1.c).every(c => typeof c.at === 'number'), `the hops go up in chunks on the proof node, each stamped by the DATABASE (${Object.keys((node1 && node1.c) || {}).length} chunks)`);
   let stopped = false;
   if (!s1.over) {

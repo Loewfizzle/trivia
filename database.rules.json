@@ -734,7 +734,7 @@
                 ".validate": "newData.isNumber() && newData.val() === now"
               },
               "cv": {
-                ".write": "auth != null && auth.uid === $uid && newData.exists() && !data.exists() && root.child('rooms/' + $code + '/jw/' + $match + '/' + $uid + '/go').isNumber() && now < root.child('rooms/' + $code + '/jw/' + $match + '/' + $uid + '/go').val() + 20000",
+                ".write": "auth != null && auth.uid === $uid && newData.exists() && !data.exists() && root.child('rooms/' + $code + '/jw/' + $match + '/' + $uid + '/go').isNumber() && now < root.child('rooms/' + $code + '/jw/' + $match + '/' + $uid + '/go').val() + 10800000",
                 ".validate": "newData.isNumber() && (newData.val() === 1 || newData.val() === 2)"
               },
               "c": {

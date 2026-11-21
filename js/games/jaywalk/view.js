@@ -224,7 +224,7 @@ export function createView() {
     if (asked) return;
     asked = true;
     const m = matchId, path = `${nodePath()}/go`, runs = runsNow(), node = runs ? runs[uid] : null;
-    if (node && node.go > 0) { adopt(node.go, node.c, true, null, cvOfNode(node)); return; }   // (a refresh / a rejoin mid-run: the run so far is in the node)
+    if (node && node.go > 0) { rejoin(node); return; }   // (a refresh / a rejoin mid-run: the run so far is in the node)
     clearTimeout(goTimer);
     goTimer = setTimeout(() => { if (!gone && m === matchId && mode === 'wait') unproven('no answer'); }, GO_WAIT_MS);
     expectRefusal(path, 'jaywalk GO: already written (a rejoin) or the rules are not published yet');
@@ -232,14 +232,14 @@ export function createView() {
     stampT0(treePath(), 'jaywalk').then(() => dbSet(dbRef(path), serverTimestamp())).then(() => dbGet(dbRef(path))).then(snap => {
       if (gone || m !== matchId || mode !== 'wait') return;
       const v = snap.val();
-      if (typeof v === 'number' && v > 0) writeCv(v, versionAt(v)).then(cv => { if (!gone && m === matchId && mode === 'wait') adopt(v, null, true, null, cv); });
+      if (typeof v === 'number' && v > 0) { clearTimeout(goTimer); writeCv(v, versionAt(v)).then(cv => { if (!gone && m === matchId && mode === 'wait') adopt(v, null, true, null, cv); }); }   // (the GO is ON the server: never unproven for the cv's round trip)
       else unproven('no go');
     }).catch(() => {
       // refused: this run's GO is already there (a rejoin) — take the node; nothing there = unproven
       dbGet(dbRef(nodePath())).then(snap => {
         if (gone || m !== matchId || mode !== 'wait') return;
         const n = snap.val();
-        if (n && n.go > 0) adopt(n.go, n.c, true, null, cvOfNode(n)); else unproven('refused');
+        if (n && n.go > 0) rejoin(n); else unproven('refused');
       }).catch(() => { if (!gone && m === matchId && mode === 'wait') unproven('refused'); });
     });
   }
@@ -253,6 +253,13 @@ export function createView() {
   }
   /** a node read back from the SERVER (a rejoin): the version it replays on (an unknown one: the version in force — it will not count) */
   const cvOfNode = n => nodeVersion(n, versionAt(n.go)) || versionAt(n.go);
+  /** a SOLO rejoin: a node with its GO but no cv and NO hop yet (a refresh between the GO and the cv) writes it now; one with hops keeps
+   *  the version they were played on (no cv = v1, the run with no cv — never moved under them) */
+  function rejoin(n) {
+    const m = matchId;
+    if (n.cv == null && n.c == null) writeCv(n.go, versionAt(n.go)).then(cv => { if (!gone && m === matchId && mode === 'wait') adopt(n.go, null, true, null, cv); });
+    else adopt(n.go, n.c, true, null, cvOfNode(n));
+  }
   /** GO (a MATCH): this phone's own `go` — its proof of being there; the FIRST one to land is the match's (logic.js#firstGo). A refusal
    *  (this phone's clock a touch early, a rejoin) is looked at and tried again a few times — never a stuck start: the count runs on */
   function askGoMatch() {
@@ -730,13 +737,17 @@ export function createView() {
     if (S && runs && myN && myN.go > 0 && myN.cv == null && !cvAsked && mine(g)) {
       cvAsked = true; const m = matchId, p = `${nodePath()}/cv`;
       expectRefusal(p, 'jaywalk cv: the rules are not re-published yet (J2) — the match plays v1');
-      dbSet(dbRef(p), E).then(() => { cvMine = E; }, () => { if (!gone && m === matchId) { cvMine = runVersion(null, E, myN.go) || E; sync(); } });
+      dbSet(dbRef(p), E).then(() => { if (!gone && m === matchId) { cvMine = E; sync(); } }, () => { if (!gone && m === matchId) { cvMine = runVersion(null, E, myN.go) || E; sync(); } });
     }
-    const V = myN && myN.cv != null ? nodeVersion(myN, E) || E : cvMine || E;
+    // (the course is taken ONCE its version is SETTLED — a watcher / an unproven match: the version in force; a player: its node's cv, or its
+    //  own write's answer; until then the count runs on (by tick 0 the version in force is taken — a slow answer may still move it))
+    const late = !!myN && goOf(myN) > 0 && S && !onTime(myN, S.g0);
+    //  (its OWN write still in the air: the answer, never the mirror — the database shows a write locally before the server has taken it)
+    const V = !mine(g) || g.unproven || late ? E : cvAsked ? cvMine || (S && srvNow() >= S.playAt ? E : 0) : myN && myN.cv != null ? nodeVersion(myN, E) || E : S && srvNow() >= S.playAt ? E : 0;
     // (THE PROOF PASS — the inbox, Nov 20 ~12:49 am (2), HIGH RISE S4B's own fix: never adopted from the game ALONE while the proof mirror
     //  is still on its way — a refresh mid-match took the match with NO hops of its own replayed. A proven match in `play` always has a
     //  node to read: wait for it.)
-    if (S && (course.seed !== S.seed || go !== S.playAt || course.cv !== V) && (runs || g.unproven)) { if (TEST) adopts.push({ at: Math.round(srvNow() - S.playAt), seed: S.seed, t: run.t, hops: log.length, cv: V }); adoptMatch(S, runs, V); }
+    if (S && V && (course.seed !== S.seed || go !== S.playAt || course.cv !== V) && (runs || g.unproven)) { if (TEST) adopts.push({ at: Math.round(srvNow() - S.playAt), seed: S.seed, t: run.t, hops: log.length, cv: V }); adoptMatch(S, runs, V); }
     // (THE PROOF PASS: a GO of this phone's own that landed LATER than the window after THE FIRST GO is no run — the server drops it
     //  (core/proof.js#onTime): nothing is written for it. On the re-published rules such a GO is refused.)
     const myNode = runs ? runs[uid] : null;
