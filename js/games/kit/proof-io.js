@@ -40,10 +40,14 @@ export function stampT0(tree, label) {
  * match's (core/proof.js#firstGo). A TRANSACTION, never applied locally (THE NODES ARE THE TRUTH: the mirror holds confirmed GOs only).
  * → Promise<true = this phone's GO is there | false = refused (a touch early, past the window, the rules not published)>
  */
-export function writeMatchGo(tree, uid, label) {
+export function writeMatchGo(tree, uid, label, mirror = null) {
   const path = `${tree}/${uid}/go`;
+  // (THE CONSOLE FIX — THE FRESH-EYES REVIEW: the stamp costs a read + an update before the GO; a phone whose mirror already shows the tree
+  //  stamped or begun (another phone was first — the stamp would be refused anyway) writes its GO at once: the 5 s window is THE FIRST
+  //  phone's stamp, and a slow phone behind it must not spend three round trips first)
+  const begun = !!mirror && typeof mirror === 'object' && Object.keys(mirror).length > 0;
   expectRefusal(path, `${label} GO: already written (a rejoin), a touch early, or the rules are not published yet`);
   // (THE CONSOLE FIX: the GO behind the stamp's answer — the stamp needs the tree empty)
-  return stampT0(tree, label).then(() => runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }))
+  return (begun ? Promise.resolve() : stampT0(tree, label)).then(() => runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }))
     .then(() => true, () => dbGet(dbRef(path)).then(snap => typeof snap.val() === 'number'));
 }

@@ -1468,6 +1468,13 @@ test('THE CONSOLE FIX — THE DROPPED LEADER (PRISM DROP + OVERCLOCK): a player 
     await ref(`rooms/${A.code}/game/participants/${U[1]}`).set(null);
     await ref(`rooms/${A.code}/night/${A.matchId}/p/${U[1]}`).set(null);
     await rejects(report(U[0], A), 409, 'mismatch');
+    // (THE FRESH-EYES REVIEW: … and with the leader's SEAT deleted too — still refused)
+    tick(60_000);
+    const A2 = await seedRoom(gid, U);
+    await ref(`rooms/${A2.code}/game/participants/${U[1]}`).set(null);
+    await ref(`rooms/${A2.code}/night/${A2.matchId}/p/${U[1]}`).set(null);
+    await ref(`rooms/${A2.code}/players/${U[1]}`).set(null);
+    await rejects(report(U[0], A2), 409, 'mismatch');
     tick(60_000);
     const B = await seedRoom(gid, U);
     assert.equal((await report(U[0], B)).status, 'counted', `${gid}: the honest list counts as before`);

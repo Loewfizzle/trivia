@@ -328,6 +328,7 @@ function enterRoom(code, { solo = false } = {}) {
 
   listen('meta', meta => {
     if (!meta) { if (seen.meta) exitRoom(roomIdle(state.meta, serverNow()) ? 'ROOM CLOSED — NO GAME FOR AN HOUR' : 'ROOM CLOSED'); return; }
+    if (heldExit && heldExit.code === code && heldExit.opts.how === 'closed') roomMetaBack = true;   // (THE CONSOLE FIX: a held close whose meta came back)
     seen.meta = true;
     setState({ meta });
     // (a new host reads the round's sealed envelopes — its live paths change with the host: games/registry.js#livePathsFor)
@@ -375,6 +376,7 @@ function enterRoom(code, { solo = false } = {}) {
     setState({ kicked });
   });
   listen('game', game => {
+    if (!game && heldExit && heldExit.code === code && heldExit.opts.how === 'closed') { runHoldDone(); return; }   // (the room really is gone: nothing to play out)
     setState({ game });
     watchLive(code, game);
   });
@@ -488,14 +490,16 @@ globalThis.__nsRoomGone = leftRoom;   // (the hub the lazy chat reads before eve
 // host won. Now, while the game screen holds a live proven run (app.js's RUN HOLD — the hub), the exit WAITS: the run is played to its own
 // end and written (the rules take a player's own proof on their own GO alone — never the seat), THEN the phone leaves as it would have.
 // A LEAVE, a closed room, a seat moved to another device: never held.
-let heldExit = null;
-const HELD_HOWS = ['kick', 'lost'];
+let heldExit = null, roomMetaBack = false;
+const HELD_HOWS = ['kick', 'lost', 'closed'];   // (THE FRESH-EYES REVIEW: + 'closed' — a modified host deleted `meta` alone mid-match, every phone left; a room really
+//  deleted takes its game with it — the game listener's null lets the held exit go at once)
 /** app.js: the hold is over — the exit that waited for it goes now */
 export function runHoldDone() {
   const RH = globalThis.__nsRunHold;
   if (RH) RH.wait = false;
   const x = heldExit;
   heldExit = null;
+  if (x && x.opts.how === 'closed' && state.code === x.code && state.meta && roomMetaBack) { roomMetaBack = false; return; }   // (the room's meta came back: nothing closed after all)
   if (x && state.code === x.code) exitRoom(x.reason, x.kind, x.opts);
 }
 export function exitRoom(reason, kind = 'warn', { keepSeat = false, how = 'closed' } = {}) {

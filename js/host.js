@@ -53,7 +53,9 @@ function tick() {
   withChat(m => m.hostTick());
   // An hour without a game: the host closes the room (every phone gets ROOM CLOSED); everyone else leaves on
   // their own a little later in case the host's phone is asleep or the room can't be deleted.
-  if (roomIdle(state.meta, now - (isHost() ? 0 : 90_000))) { closeIdleRoom(); return; }
+  // (THE CONSOLE FIX — THE FRESH-EYES REVIEW: never while this phone holds a live proven run — a modified host's meta/activeAt in the past
+  //  made every honest phone close the room mid-match)
+  if (roomIdle(state.meta, now - (isHost() ? 0 : 90_000)) && !(globalThis.__nsRunHold && globalThis.__nsRunHold.held())) { closeIdleRoom(); return; }
   watchHand();
   if (isHost()) {
     wasHostAt = Date.now(); wasHostCode = state.code;

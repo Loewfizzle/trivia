@@ -99,13 +99,19 @@ test('THE WIRING (pinned): the router holds a game screen that holds a run — n
   assert.match(app, /st\.quit !== heldQuit/, 'a QUIT while held is the player\'s own way out');
   assert.match(app, /renderConnection\(st0\);/, 'SIGNAL LOST reads the real state');
   for (const f of ['startGame', 'playSolo', 'rematch', 'backToLobby']) assert.match(host, new RegExp(`export (async )?function ${f}\\([^)]*\\) \\{[^\\n]*\\n(  [^\\n]*\\n){0,3}  markMove\\(\\);`), `${f} marks this phone's own move`);
-  assert.match(room, /const HELD_HOWS = \['kick', 'lost'\];/, 'a kick / a lost seat waits for the run; a leave, a closed room never');
+  assert.match(room, /const HELD_HOWS = \['kick', 'lost', 'closed'\];/, 'a kick / a lost seat / a meta-only close waits for the run; a leave never');
+  assert.match(room, /if \(!game && heldExit && heldExit\.code === code && heldExit\.opts\.how === 'closed'\) \{ runHoldDone\(\); return; \}/, 'a room really deleted lets the held exit go at once');
+  assert.match(host, /closeIdleRoom\(\); return; \}/); assert.match(host, /&& !\(globalThis\.__nsRunHold && globalThis\.__nsRunHold\.held\(\)\)\) \{ closeIdleRoom\(\)/, 'the idle close never while a run is held (a host’s meta/activeAt in the past)');
+  assert.match(app, /\(ownNode && ownNode\.go > 0\)/, 'a phone with its own GO in the tree reports the match, named or not');
+  assert.match(rep, /for \(const u of proven\) if \(!names\.has\(u\)\) throw new ApiError\(409, 'mismatch'/, 'DROP_GUARD: seated or not');
   for (const v of ['js/games/jaywalk/view.js', 'js/games/highrise/view.js']) {
     const s = read(v);
     assert.match(s, /\n    holdsRun,\n    update\(state\)/, `${v}: the screen answers holdsRun`);
     assert.match(s, /createLiveWait\(liveOf\)/, `${v}: the podium waits for the live rivals`);
     assert.match(s, /RH\.on \|\| RH\.wait\) && !holdsRun\(\)\) pingRouter\(\)/, `${v}: the run over + written → follow the room`);
     assert.match(s, /createFinal\(\{ game: g,/, `${v}: the podium shows the game as scored here`);
+    assert.match(s, /proven = !lateGo && \(\(haveGo && !g\.unproven && mine\(g\)\) \|\| everProven\);/, `${v}: once proven, the host's participants / unproven can not take it back`);
+    assert.match(s, /writeMatchGo\(treePath\(\), uid, '\w+', runs\)/, `${v}: the GO skips the stamp when the mirror shows the tree begun`);
   }
   assert.equal((rep.match(/await holdLive\(\);/g) || []).length, 2, 'the server holds the in-room path AND the moved-on path');
   assert.match(rep, /throw new ApiError\(425, 'still_live'/);

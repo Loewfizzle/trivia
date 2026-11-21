@@ -108,6 +108,7 @@ export function createView() {
   // own PROVEN tower is climbed to its own end whatever the host's state says — no podium over it, the router keeps this screen through a
   // moved-on room; then its end is written and the phone follows. The podium waits for the rivals' live towers the same way.
   const pingRouter = createRouterPing(), liveWait = createLiveWait(liveOf);
+  let everProven = false;
   const runLive = () => isMatch && proven && started && adopted && !missed && !!S && !S.me(meRec).over;
   function holdsRun() {
     if (gone || !isMatch || !proven || !S) return false;
@@ -213,7 +214,7 @@ export function createView() {
     if (node && node.go > 0) { haveGo = true; return; }
     const again = () => { if (gone || m !== matchId) return; if (goTries++ < 7) setTimeout(() => { goAsked = false; }, 420); else refused(); };
     // (THE PROOF PASS: the stamp + the GO are the kit's — kit/proof-io.js#writeMatchGo, JAYWALK's too)
-    writeMatchGo(treePath(), uid, 'highrise').then(ok => { if (gone || m !== matchId) return; if (ok) haveGo = true; else again(); }, again);
+    writeMatchGo(treePath(), uid, 'highrise', runs).then(ok => { if (gone || m !== matchId) return; if (ok) haveGo = true; else again(); }, again);
   }
   /** THE PROOF PASS — "YOUR OWN PHONE MISSED THE GO" (REVIEW FIX A left it here): has a tower NOBODY TOUCHED already ended on the match's
    *  clock? (the fuse — the engine's own answer, never a guessed number) */
@@ -361,7 +362,9 @@ export function createView() {
     //  (core/proof.js#onTime): nothing is written for it, the out card says NOT COUNTED. On the re-published rules such a GO is refused.)
     const myNode = runs ? runs[uid] : null;
     lateGo = !!myNode && goOf(myNode) > 0 && !onTime(myNode, firstGo(runs));
-    proven = haveGo && !g.unproven && mine(g) && !lateGo;
+    // (THE CONSOLE FIX: once proven, the host's game can not take it back — participants / `unproven` rewritten mid-run stopped the chunks)
+    proven = !lateGo && ((haveGo && !g.unproven && mine(g)) || everProven);
+    if (proven) everProven = true;
     // (… a phone that MISSED THE START and has a GO of its own: its end is signalled once — the room never waits 18 s for it)
     if (missed && proven && !wroteE) { wroteE = true; spent = true; W.end({ f: 0, t: 0, w: 'slow' }); }
     // (THE CLOSE's REVIEW — SHOULD 1's take-back: a run that ENDED while the match was marked unproven (the host's hiccup) never wrote its

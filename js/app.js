@@ -367,7 +367,9 @@ setTimeout(markNow, 0);
 let reportedKey = '';
 subscribe(st => {
   const g = st.game;
-  if (!st.code || !g || g.phase !== 'final' || !g.participants || !g.participants[st.uid]) return;
+  // (THE CONSOLE FIX: … or a phone whose OWN proof node has its GO — the host may have left it off the list; the server's tree says who played)
+  const ownNode = st.live && st.live.runs && st.live.runs[st.uid];
+  if (!st.code || !g || g.phase !== 'final' || !((g.participants && g.participants[st.uid]) || (ownNode && ownNode.go > 0))) return;
   const k = `${st.code}_${g.matchId}`;
   if (k === reportedKey) return;
   reportedKey = k;

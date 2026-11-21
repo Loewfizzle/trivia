@@ -327,7 +327,7 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
     // (THE CONSOLE FIX — Group 2, THE DROPPED LEADER for the HOST-GRADED games (the proof pass closed it for JAYWALK + HIGH RISE): the
     //  host names the players at the start (host.js — never changed in a match) and the rules take a board only from one of them; at his
     //  `final` he left the leader out of the list + the night record → the leader's own board proves he played: never counted that way)
-    if (DROP_GUARD.includes(ex.gid)) { const names = new Set(named); for (const u of proven) if (players && players[u] && !names.has(u)) throw new ApiError(409, 'mismatch', 'A player of this match is missing from its result.'); }
+    if (DROP_GUARD.includes(ex.gid)) { const names = new Set(named); for (const u of proven) if (!names.has(u)) throw new ApiError(409, 'mismatch', 'A player of this match is missing from its result.'); }   // (THE FRESH-EYES REVIEW: seated or not — deleting the leader's seat too slipped past)
   }
   const playedIt = u => !proven || proven.has(u);
   // credit only uids with a SEAT in the room (players/{uid}) — a name in night.n is not a player — AND (FR7 FIXES B) their own proof

@@ -6,10 +6,12 @@
 //      both phones scored from the nodes, the match counted — BOB wins
 //   B. THE KICK: ALICE removes BOB mid-run → his phone plays the run out, writes its end, THEN leaves the room; the match counts — BOB wins
 //   C. THE ROOM MOVED ON (a new match id — an early REMATCH): BOB's phone stays on his run, then follows the room to the new match
-//   node tests/integration/e2e-console-fix.mjs "<chromium>" [outDir] [--game=jaywalk|highrise]
+//   D. (--meta) THE ROOM's META DELETED mid-run, then re-created: BOB plays on, stays in the room, the match counts — BOB wins
+//   node tests/integration/e2e-console-fix.mjs "<chromium>" [outDir] [--game=jaywalk|highrise] [--meta]
 if (process.env.GPU === 'off') delete process.env.GPU; else process.env.GPU = process.env.GPU || '1';   // (GPU=off: the software renderer — a machine whose GPU path is down)
 const { createHarness } = await import('./kit/harness.mjs');
 
+const META = process.argv.includes('--meta');   // (case D: the room's meta deleted mid-run — its own run: ALICE's honest test phone leaves the room on it)
 const ONLY = (process.argv.find(a => a.startsWith('--game=')) || '').slice(7);
 const OUTDIR = process.argv[3] && !process.argv[3].startsWith('--') ? process.argv[3] : './shots-console-fix';
 const H = await createHarness({ name: 'console-fix', slot: `cf${Date.now() % 10000}x`, hook: null, sizes: [[390, 844]], out: OUTDIR, extraArgs: ['--enable-webgl', '--ignore-gpu-blocklist'] });
@@ -111,6 +113,27 @@ try {
     const done1 = await until(async () => { const r = await dbGet(`results/${code}_${m1}`); return r && r.st === 'done' ? r : null; }, 90000, 1000);
     ok(!!done1 && done1.o && done1.o[pids[1]] && done1.o[pids[1]].win && !(done1.o[pids[0]] && done1.o[pids[0]].win), `${gid} A: COUNTED once BOB's run ended — BOB WINS, never the host who wrote \`final\` early`);
     await H.shot(A, `${gid}-a-podium`);
+    if (META) {
+    // ---- D. THE ROOM's META DELETED mid-run (THE FRESH-EYES REVIEW's HIGH: every phone's meta listener read it as ROOM CLOSED), then re-created
+    const { m: m4 } = await startBoth(false);
+
+    const meta4 = await dbGet(`rooms/${code}/meta`);
+    await dbPatch(`rooms/${code}`, { meta: null });
+    log(`${gid}: THE META — rooms/{CODE}/meta deleted while BOB plays`);
+    await sleep(1500);
+    await dbPatch(`rooms/${code}`, { meta: meta4 });
+    await sleep(2500);
+    const db4 = await X.state(B), dcode = await evalIn(B, s => s.code);
+    ok(db4.holds && X.live(db4) && dcode === code, `${gid} D: BOB's phone plays on through the meta deletion (still in the room on this phone)`);
+    await X.stop(B);
+    ok(await until(async () => (await dbGet(`rooms/${code}/${X.node}/${m4}/${uids[1]}/e`)) != null, 60000), `${gid} D: his run ends on its own + its end LANDED`);
+    await sleep(3000);
+    ok(await evalIn(B, s => !!s.code), `${gid} D: the meta came back — BOB stays in the room (nothing closed after all)`);
+    ok(await until(async () => evalIn(B, s => s.game && s.game.phase === 'final'), 120000), `${gid} D: the match's podium (ALICE's honest test phone left on the deletion — BOB carries the match as the new host)`);
+    const done4 = await until(async () => { const r = await dbGet(`results/${code}_${m4}`); return r && r.st === 'done' ? r : null; }, 120000, 1000);
+    ok(!!done4 && done4.o && done4.o[pids[1]] && done4.o[pids[1]].win, `${gid} D: counted — BOB WINS`);
+      continue;
+    }
     // ---- C. THE ROOM MOVED ON (an early REMATCH: a new match id)
     const { m: m3 } = await startBoth(false);
     const g3 = await dbGet(`rooms/${code}/game`);

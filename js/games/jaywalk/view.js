@@ -106,6 +106,7 @@ export function createView() {
   // own PROVEN match run is played to its own end whatever the host's state says — no podium over it, the router keeps this screen through
   // a moved-on room; then its end is written and the phone follows. The podium waits for the rivals' live runs the same way.
   const pingRouter = createRouterPing(), liveWait = createLiveWait(liveOf);
+  let everProven = false;
   const runLive = () => isMatch && proven && !D && mode === 'run' && !!run && !isOver(run);
   function holdsRun() {
     if (gone || !isMatch || !proven || D) return false;
@@ -190,7 +191,7 @@ export function createView() {
   function reset() {
     mode = 'wait'; course = START; run = createRun({ seed: 'start', mode: 'solo' }); log = []; queue = []; go = 0; proven = false; asked = false; goTries = 0; haveGo = false;
     newWriter(); wroteE = false; lateGo = false; overAt = 0; lanesShown = -1; markUntil = 0; shotAt = 0; revealed = false;
-    watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; liveRuns = null; orderKey = ''; countKey = ''; watchKey = ''; liveWait.reset();
+    watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; liveRuns = null; orderKey = ''; countKey = ''; watchKey = ''; liveWait.reset(); everProven = false;
     cues = createCues(); quiet(); if (night) night.rest(false);
     for (const G of ghosts.values()) if (G.tagEl) G.tagEl.remove();
     ghosts.clear();
@@ -243,7 +244,7 @@ export function createView() {
     const again = () => { if (gone || m !== matchId) return; if (goTries++ < 7) setTimeout(() => { asked = false; }, 420); else refused(); };
     // (a TRANSACTION, never applied locally — THE NODES ARE THE TRUTH. THE PROOF PASS: the stamp + the GO are the kit's —
     //  kit/proof-io.js#writeMatchGo, HIGH RISE's too)
-    writeMatchGo(treePath(), uid, 'jaywalk').then(ok => { if (gone || m !== matchId) return; if (ok) haveGo = true; else again(); }, again);
+    writeMatchGo(treePath(), uid, 'jaywalk', runs).then(ok => { if (gone || m !== matchId) return; if (ok) haveGo = true; else again(); }, again);
   }
   /** the engine caught up to the clock from a node's hop log (a refresh / a rejoin mid-run) */
   function catchUp() {
@@ -678,7 +679,10 @@ export function createView() {
     //  (core/proof.js#onTime): nothing is written for it. On the re-published rules such a GO is refused.)
     const myNode = runs ? runs[uid] : null;
     lateGo = !!myNode && goOf(myNode) > 0 && !onTime(myNode, firstGo(runs));
-    proven = haveGo && !g.unproven && mine(g) && !lateGo;
+    // (THE CONSOLE FIX: once proven, the host's game can not take it back — a participants list without this phone, or `unproven` written
+    //  mid-run, stopped its chunks + its end: the run was cut. The tree says who played: this phone's on-time GO)
+    proven = !lateGo && ((haveGo && !g.unproven && mine(g)) || everProven);
+    if (proven) everProven = true;
     // (THE PROOF PASS — A HOST HICCUP AT GO, the take-back (HIGH RISE's REVIEW FIX A): a run that ENDED while the match was marked
     //  unproven never wrote its `e` — once proven again the end goes up now: Call the Winner opens, the match does not wait 18 s)
     if (proven && mode === 'over' && !wroteE && run && isOver(run)) sendEnd();
