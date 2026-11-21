@@ -96,6 +96,8 @@ async function mount() {
   try { view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin, look }); }
   catch { app.querySelector('.jw-stage').append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); return; }   // (the page still loaded: its stage is up)
   markCamera(); setLook(look);
+  // J1 — THE LOOK CHECKS (`?j1=splits` · `splits9` · `moments` — lab-j1.js, lazy: the real end card's YOUR SPLITS + THE MATCH MOMENTS)
+  if (/^(splits9?|moments)$/.test(Q.get('j1') || '')) lazyImport(import('./lab-j1.js'), './lab-j1.js').then(m => m.mountJ1(app.querySelector('.jw-stage'), { what: Q.get('j1'), sfx: () => snd })).catch(() => {});
   // AUTOMATIC quality steps (the match kit's tiers 2 / 1 / 0): the frame time slips → a step down; headroom → back up
   const tierPath = [pin == null ? 2 : pin];   // (every tier the automatic steps went through — the pass's measure + ?fps=1 read it)
   const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });
@@ -144,10 +146,13 @@ async function mount() {
     check.className = `jw-check ${warped ? '' : same ? 'is-ok' : 'is-bad'}`;
     check.textContent = warped ? 'WARPED (a look check) — no replay' : same ? `REPLAY = LIVE · lane ${r.lanes} · tick ${r.tick} · ${log.length} hops`
       : `REPLAY ≠ LIVE — live lane ${live.lanes} t ${live.tick} ${live.cause} · replay lane ${r.lanes} t ${r.tick} ${r.cause} (${used}/${log.length} hops)`;
+    // (J1 — YOUR SPLITS on the lab's end too: the phone's own engine — no server here, so no NEW BEST marks)
+    if (endSp) { endSp.remove(); endSp = null; }
+    if (!warped) lazyImport(import('./splits-card.js'), './splits-card.js').then(m => { const SC = m.splitsCard(run.sp); if (SC.el && shown) { endSp = SC.el; end.append(SC.el); } }).catch(() => {});
     end.hidden = false;
     lab.ends.push({ seed, mode, same, live, replay: r, hops: log.length });
   }
-  let raf = 0, hudKey = '', holdAt = null, fakes = null, frozen = false, endAt = 0;
+  let raf = 0, hudKey = '', holdAt = null, fakes = null, frozen = false, endAt = 0, endSp = null;
   // HIGH RISE S4A — THE SOUND SYNC: a LIVE run holds the audio context awake (PODCAST MODE naps it between two effects — a hop's sound then
   // had to wake it first); a lease renewed once a second, let go when the run ends (audio/engine.js#holdAwake, through its hub)
   let awakeAt = 0;

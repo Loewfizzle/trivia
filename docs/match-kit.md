@@ -202,7 +202,9 @@ line: [colour, glow], day?: { name: [...], mode, line, gold } }` (a NEW GAME = i
 - **THE HEADER** — `createFinal({ …, mode: 'SOLO' | 'MATCH' })` turns the frame's kicker into `<GAME> · <MODE>` (`finHeader`): the name in its
   sign's colours (HIGH pink + RISE cyan · JAYWALK pink · OVERCLOCK orange · PRISM DROP ice blue · HOLD'EM casino red), the mode softer; shrunk
   to fit between the corner buttons (`fitHeader` — a ResizeObserver + the fonts, never a frame loop). Without `mode` (or a NEON row) the kicker
-  as given.
+  as given. **J1 (the owner's call, Nov 21): a game WITH modes shows its MODE in place of SOLO / MATCH** — the row's `modes` through
+  `endMode(id, key, solo)`: PRISM DROP · SCORE RUSH / BATTLE / SURVIVAL, HOLD'EM · CASH / TOURNAMENT; JAYWALK, HIGH RISE, OVERCLOCK (QUICK only)
+  keep SOLO / MATCH (a new game with modes = its `modes` map, nothing else).
 - **THE RESULT LINE** — `finLine(el, id, gold)`: the colour IS the letter (a hair-thin core, its own glow, a deeper outer glow, a dark keyline —
   css/components.css `.fn-*`); a win / finish line GOLD (`.is-gold` through `--c` — the row's colours sit INLINE, a stylesheet can't override
   `--fn`). The console frame's own title (`finFrame` → `.final.has-neon`): WINNER + DEADLOCK gold, SOLO RUN + ALL TIED the accent; a match's

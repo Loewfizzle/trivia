@@ -36,9 +36,9 @@ export function splitsCard(ticks) {
   const bests = (b, news) => {
     boxes.forEach((x, i) => {
       const n = (news || []).find(q => q.i === i);
-      if (n) { x.box.classList.add('is-new'); x.best.textContent = `NEW BEST · ${splitGain(n.tick, n.prev)}`; return; }
+      if (n) { x.box.classList.add('is-new'); x.best.replaceChildren('NEW BEST', h('b', splitGain(n.tick, n.prev))); return; }   // (the gain on its own line: every box keeps one width)
       x.box.classList.remove('is-new');
-      x.best.textContent = b[i] != null ? `BEST · ${splitClock(b[i])}` : '';
+      x.best.textContent = b[i] != null ? `BEST ${splitClock(b[i])}` : '';
     });
   };
   build(shown);

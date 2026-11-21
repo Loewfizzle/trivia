@@ -240,7 +240,7 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
 profiles/{pid}:   { n, nk (name key), t (tag "4821"), mn (THE VAULT 2B — the MEMBER Nº, server-only), a, c, x (XP), r (rank 0–4), at, h? (off the boards), m (counted matches — BNAME's
                     3-match floor) }   read: signed-in, ONE pid at a time (never the list — BNAME, Oct 28)
 uids/{uid}:       pid                                     read: that uid. The device ↔ profile link
-pstats/{pid}:     { xp, g{game:{p,w,…counters}}, wk, gw{game:{…}} (this week), b{board:{a, w, wk}} (records), day{k, g{}},
+pstats/{pid}:     { xp, g{game:{p,w,…counters}}, wk, gw{game:{…}} (this week), b{board:{a, w, wk}} (records), day{k, g{}}, jsp[] (JAYWALK J1 — the best tick per 50 lanes, the server's replay: core/splits.js),
                     last, m{matchKey: at} (matches already counted),
                     dl{n, last, days{<day>: {g, x, sw?}} (DFIX2 — the two newest days' counters; day{k, …} = a mirror of the newest), early, ph (PENTHOUSE days — granted at THE DAY'S CLOSE),
                        sw, sr{d, n} (DM2 — swept days IN A ROW: PERFECT WEEK), sp{d, n} (DFIX2 — the run held while yesterday may still sweep), sb (the best run)},

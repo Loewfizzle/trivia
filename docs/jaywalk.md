@@ -29,6 +29,7 @@ import map); the RULES are a pure engine that never knows about it.
 | DAILY B | Nov 18 2026 | `docs/games/passes/daily-b.md` | ✓ THE DAILY's PHONE HALF: its ticket (orange, the walk signal), the run on the REAL view, STOP, TRY AGAIN · DONE, TRY ENDED · N TRIES LEFT, its SHARE TODAY section, its cards + YOUR BEST — ships OFF ("THE DAILY — THE PHONE HALF", below) |
 | THE PROOF PASS (JAYWALK + HIGH RISE) | Nov 20 2026 | `docs/games/passes/proof-pass.md` | THE HOST-TRUST HOLES closed for `jw` (THE STAMP `t0`, GO within 5 s of it, the leaves on the player's OWN go, the lock by the stamp's age, the server's two guards) + THE PROOF WRITER shared with HIGH RISE; JAYWALK'S GO FIXES (a host hiccup at GO no longer voids the match; a GO alone is not a player; a refresh never adopts from the game alone; Call the Winner's no-run case); a verified solo run is a counted play — **a rules change** |
 | THE CONSOLE FIX (JAYWALK + HIGH RISE + the console) | Nov 20 2026 | `docs/games/passes/console-fix.md` | A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST: a `final` early, a moved-on room or a kick — the phone plays its run out, writes its end, THEN follows (THE RUN HOLD); the server holds the report (425 still_live) while a run is live, the cap ends the wait; the podium waits + re-scores from the nodes; a kicked proven player is credited; THE TREE CAP (1,000 stamped trees a room) — **a rules change** |
+| J1 — SPLITS · THE MATCH MOMENTS · THE NIGHT GLOW FIX | Nov 21 2026 | `docs/games/passes/jaywalk-j1.md` | SPLIT TIMES every 50 lanes on every end card (the server keeps the best splits from its own replay) · THE MATCH MOMENTS (the bigger order, OUT banners, the red X, HEAD TO HEAD + the siren, THE DUEL STRIP, LAST ONE STANDING — every out from the player's OWN end) · THE NIGHT GLOW FIX (the bloom's solid occluders) · + the city's END-SCREEN HEADER (a game's MODE) |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
 this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
@@ -203,6 +204,62 @@ rules), the replay + judge sims (unit), `tests/jaywalk-match.test.mjs` "THE PROO
   screen through a moved-on room (`holdsRun`), a kick waits; then `e` and the phone follows. The out phone's podium waits for a rival's live
   run (`kit/run-hold.js`) and is then scored from the nodes (`director.js#finalPatch`). The server's live rule: `director.js#liveOf`.
 - The solo + match GO now go up behind the stamp's answer (THE TREE CAP's counter is written with the stamp — `kit/proof-io.js#stampT0`).
+
+## J1 (Nov 21 — the owner, from friends' feedback; the pass log `docs/games/passes/jaywalk-j1.md`) — no rules change, REPLAY = LIVE untouched
+
+### SPLIT TIMES (`engine.js` `run.sp` · `core/splits.js` · `splits-card.js`)
+- **THE ENGINE** records the TICK each multiple of `SPLIT_EVERY` (50) lanes is FIRST landed on (`best` climbs one lane at a time — every multiple
+  is landed on exactly once) → `run.sp`, the replay's `splits` — ONE source for the phone and the server (a copy of a run takes its own copy:
+  `bot.js#copy`, `ghosts.js#copyRun`). 60 ticks = 1 s; shown m:ss (`splitClock`).
+- **THE ROWS**: THE JUDGE's row carries `sp` (`logic.js#scoreNode` — never for a refused log), the server's (`api/_lib/jaywalk.js#serverRow`),
+  the daily try's (`jaywalk-tries.js#scoreTry` — compact ticks: J3's time boards read them; lanes stay the daily's score).
+- **THE SERVER KEEPS THE BESTS** (`pstats.jsp` = [best tick to 50, to 100, …] — `core/splits.js#splitBests`, PURE): a counted SOLO / MATCH run
+  through `core/match-report.js#jaywalkExtra` (`sv` only, never `bad`) → `progress.js#matchStep` (past THE DAILY CEILING: nothing, as for
+  records); a daily try through `api/_lib/jaywalk-credit.js#creditTry` (THE THROWAWAY GATE + the reset, as for lanes — a `next` of null is
+  never committed). The answer `sp` = `{ r: this run's splits, b: the bests after it, n: [{ i, at, tick, prev }] — the ones it beat }` (the
+  match outcome; the daily's `credit.sp`). A split reached for the FIRST time becomes the best — never NEW BEST (nothing to be faster than).
+- **THE END CARD — YOUR SPLITS** (solo · match · the local end · the daily · the lab's end): one box per split REACHED, in order — the time
+  big, TO 50, the best under it; a NEW BEST = the green glow + NEW BEST + the gain on its own line (one width a box). The boxes show AT ONCE
+  from the phone's own engine (`keepOwnSplits` at `onOver`); the bests under them = the ones the server last told this phone (`jw:lab:splits`);
+  NEW BEST only from the server's answer for THIS run — its numbers win (a cut run's splits replace the boxes). A long run's row scrolls
+  sideways (snapping), a box never shrinks. The share image is unchanged.
+
+### THE MATCH MOMENTS (`moments.js` PURE · `moments-view.js` · `view.js#pumpMoments` / `#ghostAt`)
+- **EVERY OUT = THAT PLAYER's OWN END**: their proof node's `e` (this phone: its own engine) — never the host's phase, results or word: an
+  honest END GAME, an early `final` or a moved-on room never shows a fake OUT. THE MOTHERSHIP's `taken` is a finish, never an out. A refresh /
+  rejoin takes the state as it stands as its BASELINE: nothing replayed; the duel strip is drawn from the state.
+- **THE ORDER, BIGGER**: ~22 pt rows (20 on a short phone), OUT = a RED X in the dot's place + the name struck (red) + dimmed; your edge stays.
+- **THE OUT BANNER**: "MIA IS OUT" (the name in the player's colour) + "87 LANES · 3 LEFT" — a strip under the numeral (its words clear the
+  order list), ~1.5 s; outs within 1 s merge ("MIA + LIAM OUT" · "2 LEFT"); the out sound ONCE a banner; never on the out phone's own screen
+  (its OUT card says it — the banner waits out the card). **THE RED X**: where their ghost fell, if on screen — ~a car wide, ~60 % see-through,
+  their name small over it, gone in 1.5 s (it follows the camera by transform; the stage's size from a ResizeObserver).
+- **HEAD TO HEAD** — a 3+ player match narrows TO two (an out leaves exactly two), ONCE: the big words + "BEN 142 vs JUSTIN 138" (under the
+  banner's band), the screen's EDGES pulse red faster and faster (0.5 → 3 s) with the siren's wind-up, one flash at its peak, then the words
+  shrink into **THE DUEL STRIP** (both players' lanes, live; the leader marked by a SHAPE — a small triangle). **A 2-PLAYER MATCH**: no HEAD
+  TO HEAD, no siren — ever; the strip from GO. **LAST ONE STANDING** — everyone else out and this phone's run goes on: "+23 LANES AHEAD · KEEP
+  GOING" (behind the farthest out: "12 LANES TO THE LEAD"), its sound; the run continues (the podium already waits for live runs).
+- All of it in the TOP band only (≤ ~250 px at 390 × 844), pointer-events none, transform + opacity only; Reduced motion = a steady edge glow,
+  no pulse, no flash, no shrink.
+- **THE SOUNDS** (original sounds, CC0 1.0 Ben — `scripts/build-jaywalk-sounds.mjs`: the delivered 24-bit stereo WAVs → mono MP3 with the
+  pure-JS encoder HIGH RISE used, outside the repo): `out-drop` 8.3 KB · `h2h-siren` 59.1 KB · `last-standing` 18.7 KB, fetched for a MATCH
+  only (`sounds.js` `match`). THE MIX (measured): the siren −30.9 LUFS (loudest 0.4 s −27.7) — under the crossing bell (−21), the train horn
+  (−19), the car horn (−27.1 / −25.1) and the truck horn; pri 2 (a full house drops it before a train) · the out sound −27 under your own hit
+  (−26) · last standing −20.4. `jaywalk-mix.mjs` FAILS if the siren is ever louder than a train warning. Music off (podcast): 15 of 15 start.
+
+### THE NIGHT GLOW FIX (`night-fx.js#createBloom` · `OCC_LAYER` · `OCC_MAT`)
+The bloom used to render the lights (layer 1) alone — nothing solid blocked them: a box truck's trailer looked see-through at night. Now it
+draws the SOLID scene first into its target as flat black depth (every opaque instanced kind — vehicles, trains, trees, posts, barricades,
+logs, the areas' props, shops, the kid; never the tufts, the glows, the shadows, the ghosts), then the lights depth-tested against it. ONE
+shared override material (black, no fog — a fogged far occluder would tint the target —, both faces, a hair of polygon offset so a lamp ON a
+body's face stays lit), warmed with the rest. Tier 2 night only, as the bloom. Measured 4× CPU at 390 + 430: 60 fps held (a run 59.4 → 59.9,
+DOWNTOWN 60 → 60); the draw calls of the bloom frame 33–35 → 53–58 (the 8-kid frame 63 of the 64 line). `?occ=0` = the old bloom (A/B).
+Tests: `tests/integration/jaywalk-bloom.mjs` (a light behind K.trucks' own geometry: 9,180 → 0 on the target; beside + the near marker
+unchanged) · `jaywalk-lab.mjs --bloom-ab` / `--glow`.
+
+### THE LAB's J1 LOOK CHECKS (`lab-j1.js`, lazy)
+`jaywalk-lab.html?j1=splits` (a solo end card with YOUR SPLITS — the server's sample answer lands a moment later: one NEW BEST) ·
+`?j1=splits9` (a long run's row) · `?j1=moments` (the moments on a loop: an out + the red X → HEAD TO HEAD + the siren → THE DUEL STRIP →
+LAST ONE STANDING; the sounds after the first tap). The lab's own end shows YOUR SPLITS for a real (unwarped) run. Zero server calls.
 
 ## THE MATCH (H4 — ONE LIFE; the cartridge — hidden: THE OWNER'S LIVE TEST)
 One run each on the SAME course, one life; the others are see-through ghosts; farthest wins, ties → the earlier tick. **Real matches run

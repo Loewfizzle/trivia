@@ -250,6 +250,10 @@ try {
   ok(await board(pid) === v1.result.lanes, `the solo board (jaywalk-solo): best ${await board(pid)} — from the replay`);
   ok(await P.waitFor("!!document.querySelector('.jw-fin-best.is-new') && /NEW BEST/.test(document.querySelector('.jw-fin-best').textContent)", 10000), 'NEW BEST on the end screen — from the server\'s own answer');
   await P.shot('end-new-best.png');
+  // J1 — YOUR SPLITS on the real solo end card: one box per 50 lanes REACHED (the phone's own engine), the server's splits = its own replay
+  { const sp = await P.ev(`({ boxes: [...document.querySelectorAll('.jw-sp-box .jw-sp-t')].map(e => e.textContent), at: [...document.querySelectorAll('.jw-sp-box .jw-sp-at')].map(e => e.textContent) })`);
+    const want = Math.floor(v1.result.lanes / 50), srv = v1.result.splits || [];
+    ok(sp.boxes.length === want && srv.length === want && sp.at.every((t, i) => t === `TO ${(i + 1) * 50}`), `J1 — YOUR SPLITS: ${sp.boxes.length} box(es) for ${v1.result.lanes} lanes (${sp.boxes.join(' · ') || 'none — under 50'}) = the server's replay (${srv.length})`); }
   // CITY H1 — THE FADE NEVER SLICES A BOX (the polish reviewer: PERSONAL BEST SET cut in half by MORE BELOW's fade at 390): with the cue up, no
   // callout plaque crosses the fade's top line — one that would is moved down whole under the foot (ui/final.js#unslice)
   await P.ev("(() => { const f = document.querySelector('.final'); if (f) f.scrollTop = 0; return 1; })()"); await sleep(1500);
