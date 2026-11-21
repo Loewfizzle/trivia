@@ -227,7 +227,7 @@ export async function openRooms(now) {
 /** PLAY NOW — WHO'S ON (the owner only — ROLES.whoson; the LEDGER's IN THE CITY + /admin STATS): who's online now, built on the server from
  *  here/ (the hellos: the city, a daily), the live rooms (exact) and the daily's own record; each person as THE BOARD shows them (their slim
  *  card's public fields — publicRow: no pid, no key, no tag digits) + where + the last check-in; guests only counted */
-export async function whosOnNow(now = Date.now()) {
+export async function whosOnNow(now = Date.now(), { tags = false } = {}) {
   const [here, rooms] = await Promise.all([val('here'), liveRoomsRead(now)]);
   const today = streakDay(now), prev = dayOf(dayNum(today) - 1), asks = new Map();
   // (the daily's own record: a run started today — or yesterday's, still open — with no score yet)
@@ -239,7 +239,8 @@ export async function whosOnNow(now = Date.now()) {
   }));
   const L = whosOnList({ here: here || {}, rooms: rooms || {}, now, hereMs: HERE_MS, midDaily: (pid, d) => !!asks.get(`${pid}|${d}`) });
   const profs = await Promise.all(L.rows.map(r => val(`profiles/${r.pid}`)));
-  const rows = L.rows.map((r, i) => (profs[i] ? { card: publicRow(r.pid, profs[i]), where: r.where, at: r.at } : null)).filter(Boolean);
+  // (CITY PART 2 — THE OWNER'S NAME TAG: `t` only for THE OWNER's request (tags) — the crew / a favor never; the card stays publicRow's)
+  const rows = L.rows.map((r, i) => (profs[i] ? { card: publicRow(r.pid, profs[i]), where: r.where, at: r.at, ...(tags && profs[i].t != null ? { t: profs[i].t } : {}) } : null)).filter(Boolean);
   return { now, rows, guests: L.guests, window: HERE_MS };
 }
 
@@ -325,7 +326,7 @@ export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
   const role = await roleOf(me);
   if (body.action === 'radioWho') return { role };
   need(!!role, 'not_radio', 'This profile has no radio.');
-  if (body.action === 'radioWhosOn') { need(rolePower(role, 'whoson'), 'not_owner'); return whosOnNow(now); }
+  if (body.action === 'radioWhosOn') { need(rolePower(role, 'whoson'), 'not_owner'); return whosOnNow(now, { tags: role === 'owner' }); }
   switch (body.action) {
     case 'radioState': return state(me, role, uid, body, now);
     case 'radioCrewSet': return crewSet(me, role, body, now);

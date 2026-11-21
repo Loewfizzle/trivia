@@ -17,6 +17,7 @@ import { GAME_LIGHT } from '../board/view.js';
 import { groupErrors, groupReports, filterGroups, countLine } from './groups.js';
 import { lazyImport } from '../ui/lazy-import.js';
 import { big, statsBlocks, dailyChart } from './stats-view.js';   // (CITY C — ONE stats builder: /admin + the ☰ STATS sheet)
+import { ownerTag } from '../ui/owner-tag.js';
 
 const app = document.getElementById('app');
 const gameName = id => (GAMES.find(g => g.id === id) || { name: id }).name;
@@ -724,7 +725,7 @@ function renderSecond(r) {
     : tubeButton('UNDO', { kind: 'secondary', size: 'sm', cls: 'ad-btn', onClick: async () => { renderSecond(await call('noCount', { pid: a.pid, on: false })); toast(`${a.n} counts again`); audit(); } }));
   const row = a => h('li.ad-err.ad-sa',
     h('div.ad-err-top',
-      h('button.ad-err-m', { type: 'button', title: 'Open the player', onclick: () => open(a.pid) }, `${a.n}${fmtTag(a.t)}`),
+      h('button.ad-err-m', { type: 'button', title: 'Open the player', onclick: () => open(a.pid) }, a.n, ownerTag(a.t)),   // (CITY PART 2 — THE OWNER'S NAME TAG: bold white mono, the ONE helper)
       a.nc ? h('span.ad-tag.is-hidden', 'NOT COUNTED') : null,
       flip(a, !a.nc)),
     h('div.ad-err-meta',

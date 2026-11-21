@@ -3020,7 +3020,11 @@ test('PLAY NOW — WHO\'S ON: the city + a room + a solo run + a daily, sorted; 
     const txt = JSON.stringify(L);
     for (const p of [own, ava, ben, cat, dan]) assert.ok(!txt.includes(p.pid), 'no pid');
     assert.ok(!/uWho/.test(txt), 'no uid');
-    for (const r of L.rows) { assert.deepEqual(Object.keys(r).sort(), ['at', 'card', 'where']); for (const k of Object.keys(r.card)) assert.ok(['id', 'n', 'a', 'c', 'r', 'l', 'cd', 'es', 'tb', 'g'].includes(k), k); }
+    // (CITY PART 2 — THE OWNER'S NAME TAG: the owner's request carries each row's tag `t` BESIDE the card — never in the card's public fields)
+    for (const r of L.rows) { assert.deepEqual(Object.keys(r).filter(k => k !== 't').sort(), ['at', 'card', 'where']); for (const k of Object.keys(r.card)) assert.ok(['id', 'n', 'a', 'c', 'r', 'l', 'cd', 'es', 'tb', 'g'].includes(k), k); }
+    assert.ok(L.rows.every(r => r.t != null && /^\d{1,4}$/.test(String(r.t))), `every row's tag for the owner (${L.rows.map(r => r.t).join(', ')})`);
+    const { whosOnNow } = await import('../../api/_lib/radio.js');
+    assert.ok((await whosOnNow(now)).rows.every(r => !('t' in r)), 'no tag without the owner’s ask');
     // CAT finished the daily → back to THE CITY; the city count (THE NIXIE) reads the new shape
     await ref(`dly/password/${day}/r/${cat.pid}`).set(1234);
     const L2 = await adminAction('uWhoOwn00001', { action: 'radioWhosOn' }, now);

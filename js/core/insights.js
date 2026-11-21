@@ -49,7 +49,16 @@ export function liveRooms(rooms, now) {
 
 /** PURE: the whole STATS panel. */
 const NEW_KEEP = 40;   // (CITY H2: NEW THIS WEEK's list — the sheet's copy keeps at most this many faces)
-export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {}, now = Date.now(), topN = 10 } = {}) {
+/** PURE (CITY PART 2 — STATS → MATCHES PER DAY's PLAYERS LINE, the owner Nov 20): the DIFFERENT accounts that played ANYTHING each day — a room
+ *  match or a verified solo run (results/…/o) + a daily finish (dailyFin: { dYYYYMMDD: [pid…] }, the server's dly/{g}/{day}/r) — an account
+ *  DON'T COUNT marks (skip) or one without a profile (a removed test player) left out → { dYYYYMMDD: n } over `days` */
+export function playersPerDay(done, dailyFin, profiles, skip, days) {
+  const want = new Set(days), per = Object.fromEntries(days.map(k => [k, new Set()])), ok = pid => !!(profiles && profiles[pid]) && !(skip && skip[pid]);
+  for (const r of done || []) { const dk = dayKey(r.at); if (want.has(dk)) for (const pid of Object.keys(r.o || {})) if (ok(pid)) per[dk].add(pid); }
+  for (const [dk, pids] of Object.entries(dailyFin || {})) if (want.has(dk)) for (const pid of pids || []) if (ok(pid)) per[dk].add(pid);
+  return Object.fromEntries(days.map(k => [k, per[k].size]));
+}
+export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {}, now = Date.now(), topN = 10, dailyFin = {}, skip = {} } = {}) {
   const done = Object.values(results || {}).filter(r => r && r.st === 'done' && r.g && r.at);
   const wk = weekKey(now);
   const days30 = lastDays(now, 30);
@@ -113,7 +122,7 @@ export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {},
     live,
     today: { matches: matchesToday, players: activeToday, newPlayers: newToday },
     totals: { matches: done.length, players: Object.keys(profiles || {}).length, played: Object.keys(allCount).length, multiNight },
-    games: { today: todayGames, week: (gplay && gplay.week) || {}, all: (gplay && gplay.all) || {}, last30, avgPlayers, daily: days30.map(k => ({ k, n: daily[k] })) },
+    games: { today: todayGames, week: (gplay && gplay.week) || {}, all: (gplay && gplay.all) || {}, last30, avgPlayers, daily: (pp => days30.map(k => ({ k, n: daily[k], p: pp[k] })))(playersPerDay(done, dailyFin, profiles, skip, days30)) },   // (CITY PART 2: + p — the players line)
     players: { activeToday, activeWeek, returningWeek, newByWeek, newWeek, topToday, topWeek, topAll, topXp },
     times: { grid, max: Math.max(0, ...grid.flat()), days: 90 },
   };

@@ -396,8 +396,9 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       const [W, S] = await Promise.all([import('/js/ui/whos-on.js'), import('/js/ui/sheet.js')]);
       const now = Date.now();
       const rows = [
-        { card: { id: 'b1', n: 'BEN', l: 41, cd: 'card-closeencounter', es: null, a: null, c: '#ff4fa3' }, where: { k: 'city' }, at: now - 20e3 },
-        { card: { id: 'b2', n: 'DIME TIME', l: 17, cd: 'card-gift-buzzed', es: null, a: null, c: '#36e6ff' }, where: { k: 'room', code: 'GULF', g: 'prism', p: 'playing' }, at: now - 120e3 },
+        { card: { id: 'b1', n: 'BEN', l: 41, cd: 'card-closeencounter', es: null, a: null, c: '#ff4fa3' }, where: { k: 'city' }, at: now - 20e3, t: 1 },   // (CITY PART 2: + t — THE OWNER'S NAME TAG)
+        { card: { id: 'b2', n: 'BOI', l: 18, cd: 'card-gift-buzzed', es: null, a: null, c: '#36e6ff' }, where: { k: 'room', code: 'GULF', g: 'prism', p: 'playing' }, at: now - 120e3, t: 4821 },
+        { card: { id: 'b5', n: 'BOI', l: 2, cd: 'card-midnight', es: null, a: null, c: '#36e6ff' }, where: { k: 'solo', g: 'jaywalk' }, at: now - 30e3, t: 2207 },
         ...(o.long ? [{ card: { id: 'b3', n: 'ALEXANDRIA12', l: 9, cd: 'card-gilded' }, where: { k: 'daily', d: 'password' }, at: now - 200e3 },
           { card: { id: 'b4', n: 'KIM', l: 3, cd: 'card-midnight' }, where: { k: 'solo', g: 'overclock' }, at: now - 40e3 }] : []),
       ];

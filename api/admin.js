@@ -178,12 +178,24 @@ async function resetBoard(pid, b, now) {
 let statsCache = null;
 async function stats(now, fresh = false) {
   if (!fresh && statsCache && Math.abs(now - statsCache.at) < 30_000) return statsCache.data;
-  const [results, profiles, rooms, gplay] = await Promise.all([val('results'), val('profiles'), liveRoomsRead(now), activity(now)]);   // (FR7 FIXES B — C5: the live rooms by the index, never the whole tree)
-  const data = summarize({ results: results || {}, profiles: profiles || {}, rooms: rooms || {}, gplay, now });
+  const [results, profiles, rooms, gplay, fin, nc] = await Promise.all([val('results'), val('profiles'), liveRoomsRead(now), activity(now), dailyFinishers(now).catch(() => ({})), val('nocount').catch(() => null)]);   // (FR7 FIXES B — C5: the live rooms by the index, never the whole tree)
+  const data = summarize({ results: results || {}, profiles: profiles || {}, rooms: rooms || {}, gplay, now, dailyFin: fin, skip: nc || {} });   // (CITY PART 2: + the players line — the daily finishers + DON'T COUNT)
   // (FR7 FIXES C2 — THE SUPPORTED FLOOR: browsers below it, counted by api/log.js — never a BOOT HANG)
   try { const o = await val('logstats/old'); data.oldBrowsers = { n: (o && o.n) || 0, last: (o && o.last) || null }; } catch { data.oldBrowsers = { n: 0, last: null }; }
   statsCache = { at: now, data };
   return data;
+}
+
+// CITY PART 2 — STATS → MATCHES PER DAY's PLAYERS LINE: who FINISHED a daily on each of the last 30 streak days (dly/{g}/{day}/r — the open
+// dailies; a day the server no longer keeps simply adds nothing) — its OWN 5-min cache (the /admin page asks stats() every 30 s)
+let finCache = null;
+async function dailyFinishers(now) {
+  if (finCache && Math.abs(now - finCache.at) < 5 * 60e3) return finCache.data;
+  const games = await openDailies(now).catch(() => []), today = streakDay(now), days = Array.from({ length: 30 }, (_, i) => dayOf(dayNum(today) - i));
+  const out = {};
+  await Promise.all((games || []).map(g => Promise.all(days.map(async d => { const r = await val(`dly/${g}/${d}/r`).catch(() => null); if (r && typeof r === 'object') (out[d] ||= []).push(...Object.keys(r).filter(isPid)); }))));
+  finCache = { at: now, data: out };
+  return out;
 }
 
 // CITY C — STATS (the ☰ sheet — js/admin/stats-view.js#openStatsSheet): the HISTORY in ONE snapshot (progress/statsSnap — every phone, every
@@ -193,7 +205,7 @@ async function stats(now, fresh = false) {
 const STATS_SHEET_MS = 5 * 60e3, STATS_SHEET_FRESH_MS = 60e3;
 async function statsSheet(me, now, fresh = false) {
   const cur = await val('progress/statsSnap').catch(() => null);
-  if (cur && cur.v === 2 && cur.data && now - cur.at < (fresh ? STATS_SHEET_FRESH_MS : STATS_SHEET_MS) && now >= cur.at) return { ...cur.data, at: cur.at, cached: true };
+  if (cur && cur.v === 3 && cur.data && now - cur.at < (fresh ? STATS_SHEET_FRESH_MS : STATS_SHEET_MS) && now >= cur.at) return { ...cur.data, at: cur.at, cached: true };
   const [S, D, F, visits, spotted, who] = await Promise.all([stats(now, true), dailyStats(me, now).catch(() => null), founderState().catch(() => null), val('radio/visits'), val('radio/spotted'), dailyWho(now).catch(() => null)]);
   const days = []; for (let k = 6; k >= 0; k--) days.push(weekDayKey(now - k * 864e5));
   const daily = Object.fromEntries(((S.games && S.games.daily) || []).map(x => [x.k, x.n]));
@@ -207,7 +219,7 @@ async function statsSheet(me, now, fresh = false) {
     spotted: days.map(d => ({ d, n: Number(SP[d]) || 0 })),
   };
   const clean = JSON.parse(JSON.stringify(data));   // (no undefined into the database)
-  await ref('progress/statsSnap').set({ v: 2, at: now, data: clean })   /* (CITY D: v 2 — + who) */.catch(() => {});
+  await ref('progress/statsSnap').set({ v: 3, at: now, data: clean })   /* (CITY D: v 2 — + who; CITY PART 2: v 3 — + the players line) */.catch(() => {});
   return { ...clean, at: now, cached: false };
 }
 

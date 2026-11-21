@@ -8,6 +8,7 @@ import { h } from './dom.js';
 import { lazyImport } from './lazy-import.js';
 import { whereLine, agoLine, guestLine } from '../core/whos-on.js';
 import { GAMES, DAILIES } from '../config.js';
+import { ownerTag } from './owner-tag.js';
 
 export const WHO_REFRESH_MS = 30e3;
 const NAMES = Object.fromEntries([...GAMES, ...DAILIES].map(g => [g.id, g.name]));
@@ -36,7 +37,7 @@ export function whosOnBlock({ api }) {
       else {
         list.replaceChildren(...rows.map(r => {
           const st = SB.stripFor(SB.K, r.card);
-          return h('li.wo-row', { dataset: { k: r.where && r.where.k } }, h('div.wo-card', st.el), h('div.wo-meta', h('b.wo-where', ...whereParts(whereLine(r.where, NAMES))), h('small.wo-ago', agoLine(r.at, d.now))));
+          return h('li.wo-row', { dataset: { k: r.where && r.where.k } }, h('div.wo-card', st.el), h('div.wo-meta', ownerTag(r.t), h('b.wo-where', ...whereParts(whereLine(r.where, NAMES))), h('small.wo-ago', agoLine(r.at, d.now))));
         }));
         // (THE POOL FIXES add-on 3 — the owner's call: STATIC CARDS here, no animation — no effect surface, so each strip shows its BAKED
         //  STILL (vault/stills.js: a card drawn in code reads as its still wherever no effect paints it) or its CSS art; .is-still stops every
@@ -84,7 +85,7 @@ function openRoom({ api, openSheet, room }) {
   Promise.all([api('admin', { action: 'radioWhosOn' }), lazyImport(import('./strip-board.js'), './strip-board.js').then(m => m.stripKit().then(K => ({ ...m, K })))]).then(([d, SB]) => {
     const rows = ((d && d.rows) || []).filter(r => r.where && r.where.k === 'room' && r.where.code === room.code);
     list.classList.toggle('is-strips', rows.length > 0);
-    list.replaceChildren(...(rows.length ? rows.map(r => h('li.wo-row', h('div.wo-card', SB.stripFor(SB.K, r.card).el), h('div.wo-meta', h('small.wo-ago', agoLine(r.at, d.now))))) : [h('li.wo-wait', 'Only guests here (no card yet) — or they just left.')]));
+    list.replaceChildren(...(rows.length ? rows.map(r => h('li.wo-row', h('div.wo-card', SB.stripFor(SB.K, r.card).el), h('div.wo-meta', ownerTag(r.t), h('small.wo-ago', agoLine(r.at, d.now))))) : [h('li.wo-wait', 'Only guests here (no card yet) — or they just left.')]));
   }).catch(() => list.replaceChildren(h('li.wo-wait', 'Couldn’t ask the room — try again in a moment.')));
   return s;
 }

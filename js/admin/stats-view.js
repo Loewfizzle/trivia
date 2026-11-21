@@ -14,6 +14,7 @@ import { fmtTag } from '../core/names.js';
 import { GAMES, DAILIES } from '../config.js';
 import { lazyImport } from '../ui/lazy-import.js';
 import { neonTabs } from '../ui/neon-tabs.js';   // (CITY E: THE NEON TABS — ONE builder with THE BOARD's)
+import { ownerTag } from '../ui/owner-tag.js';
 
 const gameName = id => ([...GAMES, ...DAILIES].find(g => g.id === id) || { name: id }).name;
 const CYAN = '#5fe3ff';   // (CITY H2 — NO GOLD IN STATS: every bar the one cyan)
@@ -51,13 +52,23 @@ const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT
  *  no frame loop: its rect read then) */
 function dailyBlock(S) {
   const D = S.games.daily;
-  const max = Math.max(1, ...D.map(d => d.n));
+  // (CITY PART 2 — THE PLAYERS LINE (the owner, Nov 20): the DIFFERENT players who played anything that day, a PINK line + a dot a day over the
+  //  cyan bars — ONE scale (both are counts); an older snapshot without it = the bars alone)
+  const hasP = D.some(d => typeof d.p === 'number');
+  const max = Math.max(1, ...D.map(d => d.n), ...(hasP ? D.map(d => d.p || 0) : []));
   const date = k => new Date(Date.UTC(+k.slice(1, 5), +k.slice(5, 7) - 1, +k.slice(7, 9)));
   const label = k => { const d = date(k); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`; };
   const cols = D.map((d, i) => h('div.ad-col', { style: { '--h': `${(d.n / max) * 100}%` } }, h('i'), h('small', i % 5 === 4 || i === D.length - 1 ? label(d.k) : '')));
   const tip = h('div.st-tip', { hidden: true, role: 'status' });
   const hit = h('div.st-hit', { 'data-press': true, 'aria-label': 'Tap a day for its matches' });
-  const chart = h('div.st-chart', h('div.ad-cols.st-mpd', ...cols), hit, tip);
+  let line = null;
+  if (hasP) {
+    const pts = D.map((d, i) => `${((i + 0.5) / D.length) * 100},${100 - ((d.p || 0) / max) * 100}`).join(' ');
+    line = h('div.st-pl', { 'aria-hidden': 'true' });
+    line.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${pts}"/></svg>`;
+    line.append(...D.map((d, i) => h('i', { style: { '--x': `${((i + 0.5) / D.length) * 100}%`, '--y': `${((d.p || 0) / max) * 100}%` } })));
+  }
+  const chart = h('div.st-chart', h('div.ad-cols.st-mpd', ...cols), line, hit, tip);
   let on = -1, down = null;
   const outside = e => { if (!chart.contains(e.target)) close(); };
   function close() { if (on >= 0 && cols[on]) cols[on].classList.remove('is-on'); on = -1; tip.hidden = true; document.removeEventListener('pointerdown', outside, true); }
@@ -65,9 +76,9 @@ function dailyBlock(S) {
     if (on >= 0 && cols[on]) cols[on].classList.remove('is-on');
     on = i; cols[i].classList.add('is-on');
     const d = date(D[i].k);
-    tip.textContent = `${MON[d.getUTCMonth()]} ${d.getUTCDate()} · ${D[i].n} ${D[i].n === 1 ? 'MATCH' : 'MATCHES'}`;
+    tip.textContent = `${MON[d.getUTCMonth()]} ${d.getUTCDate()} · ${D[i].n} ${D[i].n === 1 ? 'MATCH' : 'MATCHES'}${hasP ? ` · ${D[i].p || 0} ${D[i].p === 1 ? 'PLAYER' : 'PLAYERS'}` : ''}`;
     tip.style.setProperty('--x', `${((i + 0.5) / D.length) * 100}%`);
-    tip.style.setProperty('--yf', String(D[i].n / max));
+    tip.style.setProperty('--yf', String(Math.max(D[i].n, hasP ? D[i].p || 0 : 0) / max));
     tip.dataset.edge = i < 4 ? 'l' : i > D.length - 5 ? 'r' : '';
     tip.hidden = false;
     document.addEventListener('pointerdown', outside, true);
@@ -81,8 +92,9 @@ function dailyBlock(S) {
   });
   return h('div.ad-block',
     h('h3', 'Matches per day · last 30 days'),
+    hasP ? h('p.st-legend', h('i.st-lg-bar', { 'aria-hidden': 'true' }), 'matches', h('span', { 'aria-hidden': 'true' }, ' · '), h('i.st-lg-dot', { 'aria-hidden': 'true' }), 'players') : null,
     chart,
-    h('p.ad-note', 'Tap a bar for its day.'));
+    h('p.ad-note', hasP ? 'Tap a day for both numbers. Players = different accounts that played anything that day.' : 'Tap a bar for its day.'));
 }
 
 function playersBlock(S, o) {
@@ -109,7 +121,7 @@ function playersSlim(S, o) {
   // (CITY H2: 3 cards, then SHOW ALL (N) — SHOW LESS folds it back)
   const list = view['players:all'] ? all : all.slice(0, FOLD);
   const ol = h('ol.wo-list.is-strips.is-still.st-players');
-  ol.append(...list.map(p => h('li.wo-row', h('div.wo-card', h('span.fr-knock-ph', String(p.n || '').toUpperCase())), h('div.wo-meta', h('b.wo-where', view.players === 'xp' ? `${(p.x || 0).toLocaleString()} XP` : `${p.n_matches} ${p.n_matches === 1 ? 'match' : 'matches'}`)))));
+  ol.append(...list.map(p => h('li.wo-row', h('div.wo-card', h('span.fr-knock-ph', String(p.n || '').toUpperCase())), h('div.wo-meta', ownerTag(p.t), h('b.wo-where', view.players === 'xp' ? `${(p.x || 0).toLocaleString()} XP` : `${p.n_matches} ${p.n_matches === 1 ? 'match' : 'matches'}`)))));
   fillWhenSized(ol, list);
   return h('div.ad-block',
     h('div.ad-row.ad-between', h('h3', 'Most active players'), tabs(view, 'players', [['today', 'Today'], ['week', 'This week'], ['all', 'All time'], ['xp', 'XP']], v => { view['players:all'] = false; o.rerender(v); })),
