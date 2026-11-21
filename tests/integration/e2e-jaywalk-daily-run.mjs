@@ -31,7 +31,7 @@ async function openApp(slot, name) {
   page.on('pageerror', e => H.errors.push(`${name} pageerror: ${e.message}`));
   page.on('console', m => { if (m.type() === 'error' && !/favicon|ERR_|net::|permission|Failed to load resource|WebGL|GPU stall/i.test(m.text())) H.errors.push(`${name}: ${m.text()}`); });
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
-  await page.goto(guardUrl(`${BASE}/?emu&slot=${slot}`, 'e2e-jaywalk-daily-run'));
+  await page.goto(guardUrl(`${BASE}/?emu&slot=${slot}${process.env.JW_CV != null ? `&jwcv=${process.env.JW_CV}` : ''}`, 'e2e-jaywalk-daily-run'));   // (J2: JW_CV=0 — v2, with a JW_CV_SWITCH_MS=0 server)
   await page.evaluate((s, n, lk) => { localStorage.setItem(`na:${s}:profile`, JSON.stringify({ name: n, color: 'orange', avatar: 'bolt' })); localStorage.setItem('nd:entered', '1'); if (lk) localStorage.setItem('ns:look', lk); }, slot, name, process.env.LOOK || '');
   await page.reload();
   await waitFor(page, `!document.getElementById('boot') && !!window.__arcade && !!(JSON.parse(localStorage.getItem('na:${slot}:me') || 'null') || {}).pid`, `${name}: the title + a profile`, 40000);

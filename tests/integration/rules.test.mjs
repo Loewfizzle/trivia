@@ -2249,5 +2249,5 @@ test('JAYWALK J2 — the jw proof node\'s cv: own uid, once, 1 or 2, only after 
   await assertSucceeds(set(ref(db('p2'), `${N}/cv`), 2), 'cv beside its GO');
   await assertFails(set(ref(db('p2'), `${N}/cv`), 1), 'written ONCE (never changed after the course is seen)');
   await assertFails(set(ref(db('p2'), `${N}/cv`), null), '… never removed');
-  await assertFails(set(ref(db('host'), `${R}/jw/mm1/host/cv`), 2), 'more than 3 h after its own GO (the chunks' own window): refused');
+  await assertFails(set(ref(db('host'), `${R}/jw/mm1/host/cv`), 2), 'more than 3 h after its own GO (the chunks\' own window): refused');
 });
