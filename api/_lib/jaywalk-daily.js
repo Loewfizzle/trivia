@@ -83,6 +83,7 @@ export const JAYWALK_DAILY = {
   /** 5-lane buckets (0 … 600 → 0 … 120) */
   bucket: score => jwLanes(score) / 5,
   judged: true, tries: TRIES,
+  splits: true,                                    // (J3 — THE TIME BOARDS: every closed try's server splits raise the day's split board — jaywalk-times.js)
   moves: [],                                       // (no dig, no chunk move, and NO PAUSE: a try never pauses — THE ROOM WINS ends it)
   load: day => jwDay(day),
   startTry, closeOpen,

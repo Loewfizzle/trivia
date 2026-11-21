@@ -17,6 +17,7 @@ import { featsOf } from '../../js/games/jaywalk/logic.js';
 import { logFromChunks, chunkTimes } from '../../js/games/jaywalk/replay.js';
 import { MODES, TICK_HZ } from '../../js/games/jaywalk/tuning.js';
 import { jwScore } from '../../js/core/daily-best.js';
+import { shareBest } from '../../js/core/jw-times.js';
 
 export const TRIES = 3;
 /** THE MOTHERSHIP's moment in ms (MODES.daily.cap — 5:00) */
@@ -107,11 +108,13 @@ export const dayScore = rec => { const b = bestTry(rec); return b ? b.s : null; 
 
 /**
  * DAILY B — SHARE TODAY's JAYWALK inputs (SPOILER-FREE: never the course, the seed or a hop): { t: [lanes | null — one per try, null =
- * unplayed / still open], b: the best try's index (-1 none), nb: 1 = a NEW DAILY BEST today, day } — js/games/jaywalk/daily-share.js draws them.
+ * unplayed / still open], b: the best try's index (-1 none), nb: 1 = a NEW DAILY BEST today, day, hs? (J3 — the best-time line: { at: the
+ * HIGHEST 50 reached today, t: its best tick from any try — the server's splits; none when no 50 was reached) } — daily-share.js draws them.
  */
 export function shareOf(rec, { day = null, nb = false } = {}) {
   const t = [null, null, null];
   for (const x of triesOf(rec)) if (isNum(x.e)) t[x.i] = Math.max(0, Math.floor(Number(x.l) || 0));
   const b = bestTry(rec);
-  return { t, b: b ? b.i : -1, nb: nb ? 1 : 0, day: /^d\d{8}$/.test(String(day || '')) ? String(day) : null };
+  const hs = shareBest(triesOf(rec));
+  return { t, b: b ? b.i : -1, nb: nb ? 1 : 0, day: /^d\d{8}$/.test(String(day || '')) ? String(day) : null, ...(hs ? { hs } : {}) };
 }

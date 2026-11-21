@@ -29,6 +29,8 @@ import { MIN_DAYS } from '../core/daily-points.js';
 import { syncMidFlag, wantFlag } from '../daily/room-flag.js';
 import { stripKit, stripFor, stripFx, markMine } from '../ui/strip-board.js';
 import { TOP_SHOW } from '../core/every.js';
+import { neonTabs } from '../ui/neon-tabs.js';
+import { timeClock, tabLabel } from '../core/jw-time-text.js';   // (J3 — THE TIME BOARDS' words only: the server builds the boards)
 
 // ------------------------------------------------------------------------------------------------ the sheet + each daily's thin meta
 let css = null, cssReady = false;
@@ -155,6 +157,8 @@ function openScreen(tab0) {
   const every = {};
   // DFIX5 — EVERYONE ON SCORES: the FRIENDS box (unchecked on every visit — never remembered), the `every` answer + its SHOW ALLs
   let friendsOnly = false, ev = null, evP = null, evAgain = false, evKey = '';
+  // J3 — THE TIME BOARDS: the tab picked per daily (0 = MOST LANES — the default; else the 50 shown) + each tab row's sideways scroll (kept over a repaint)
+  const timeTab = {}, tabScroll = {};
   const evAll = new Set();
   // CITY D — SCORES SHOWS INSTANTLY (the owner: ~5 s on the morning's first open — a cold function + its first database trips): the LAST scores this
   // phone saw today (EVERYONE today, the ALL TIME boards, YOUR TABLE's averages — kept per player in localStorage) paint AT ONCE, marked
@@ -193,7 +197,7 @@ function openScreen(tab0) {
     await loadMetas(t.dailies || []);
     if (gone) return;
     // (a repaint only when something on screen changed — a tap never lands on a row that was just rebuilt)
-    const sig = JSON.stringify([tab, t, names(), pidNow(), showAll, scope, pts, Object.keys(every).filter(k => every[k] !== 'loading'), friendsOnly, ev, [...evAll], rev]);   // (CITY D: rev — a fresh answer over a kept one)
+    const sig = JSON.stringify([tab, t, names(), pidNow(), showAll, scope, pts, Object.keys(every).filter(k => every[k] !== 'loading'), timeTab, friendsOnly, ev, [...evAll], rev]);   // (CITY D: rev — a fresh answer over a kept one)
     if (sig === lastSig && !sweepNext && !stampNext.size) return;
     lastSig = sig;
     dropSurfaces();
@@ -234,7 +238,7 @@ function openScreen(tab0) {
     // DAILY B — THE TICKET's STATES (today-logic.js#ticketState — PURE): BEFORE (the hook or DAILY BEST in the ticket's ink) · IN PROGRESS
     // (RESUME) · BETWEEN TRIES (a `tries` daily: the last try big, DAILY BEST, TRY AGAIN + its tries left) · ADMITTED (the result + the place —
     // "2ND OF 5 PLAYERS" — or the gold NEW DAILY BEST)
-    const row = dailyRow(d.id) || {}, S = ticketState(t, { ...d, tries: d.tries || row.tries, hook: d.hook || row.hook || row.tag || '' }, { lineOf, done: triesDone(d.id, t.day) });
+    const row = dailyRow(d.id) || {}, S = ticketState(t, { ...d, tries: d.tries || row.tries, allDay: !!(d.allDay || row.allDay), hook: d.hook || row.hook || row.tag || '' }, { lineOf, done: triesDone(d.id, t.day) });
     const st = S.st;
     const art = h('span.dy-art', { html: TICKET_ART[d.ticket] || TICKET_ART[row.ticket] || TICKET_ART.star });
     const serial = h('span.dy-serial', { 'aria-hidden': 'true' }, serialOf(t.day));
@@ -307,6 +311,21 @@ function openScreen(tab0) {
       const cut = tableCut(finishers, { all: !!showAll[d.id] });
       const soloTable = finishers.length <= 1;   // (DFIX3 — a table of one: the card alone, no rank; the ranks come with a second finisher)
       const extraOf = r => (r.me ? t.extra && t.extra[d.id] : ((t.friends && t.friends[r.pid] && t.friends[r.pid][d.id]) || {}).e);
+      // (J3 — THE TIME BOARDS at YOUR TABLE: `today`'s jt (the server's view of you + your friends' day bests) → the same tab row; a time tab
+      //  lists the table's times — a table of one: no place, as the lanes list)
+      const JT = t.jt && t.jt[d.id] && Array.isArray(t.jt[d.id].tabs) && t.jt[d.id].tabs.length ? t.jt[d.id] : null;
+      const tt = JT ? timeTabsEl(d, JT.tabs) : null;
+      const tq = tt && tt.cur ? JT.b[tt.cur] : null;
+      if (tq) {
+        const nm = names(), mine = me();
+        const rows = [...(tq.list || []), ...(tq.mine ? [{ ...tq.mine, below: !tq.mine.gated }] : [])].map(r => ({ ...r, pid: r.k, me: r.k === mine.pid, name: r.k === mine.pid ? mine.name : nm[r.k] || 'FRIEND' }));
+        const solo = rows.length <= 1;
+        const tl = h(`ol.board-list.is-strips.dy-cards.dy-times${solo ? '.is-solo' : ''}`, { 'aria-label': `${d.name} — your friends, fastest to ${tt.cur}` }, ...rows.map((r, i) => timeRow(d, r, i, { pid: r.pid, row: { n: r.name } }, r.name, solo)));
+        if (rows.length > 1) lonely = false;
+        els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } }, secHead(d), h('h3.dy-sub', 'YOUR FRIENDS · TODAY'), tt.el, tl));
+        dressCards(tl, rows, d);
+        continue;
+      }
       const list = h(`ol.board-list.is-strips.dy-cards${soloTable ? '.is-solo' : ''}`, { 'aria-label': `${d.name} — your friends` },
         ...cut.shown.map(r => h(`li.lb-row.lb-strip.dy-crow${r.me ? '.is-me' : ''}${r.place === 1 && !soloTable ? '.is-first' : ''}`, { dataset: { pid: r.pid } },
           h('span.lb-rank', r.place && !soloTable ? ordinal(r.place) : ''),
@@ -319,6 +338,7 @@ function openScreen(tab0) {
       els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } },
         secHead(d),
         h('h3.dy-sub', 'YOUR FRIENDS · TODAY'),
+        tt ? tt.el : null,
         cut.shown.length ? list : null,
         more,
         still ? h('p.dy-still', still) : null,
@@ -347,6 +367,21 @@ function openScreen(tab0) {
       else if (!E) sec.append(h('p.dy-quiet', 'The scores are resting. Try again in a minute.'));
       else if (!E.rows.length && !E.me) sec.append(h('p.dy-none', 'NO ONE HAS FINISHED YET'));
       else {
+        // (J3 — THE TIME BOARDS: a daily whose answer carries split times (JAYWALK — the server's, once you have played) → its tab row; a time tab
+        //  lists the fastest to that 50 in place of the lanes list)
+        const TB = E.times && Array.isArray(E.times.tabs) && E.times.tabs.length ? E.times : null;
+        const tt = TB ? timeTabsEl(d, TB.tabs) : null;
+        if (tt) sec.append(tt.el);
+        const tb = tt && tt.cur ? TB.b[tt.cur] : null;
+        if (tb) {
+          const rows = [...(tb.rows || []), ...(tb.me ? [{ ...tb.me, below: true }] : [])];
+          const list = h('ol.board-list.is-strips.dy-cards.dy-times', { 'aria-label': `${d.name} — fastest to ${tt.cur}, everyone today` }, ...rows.map((r, i) => timeRow(d, r, i, r.me && !r.id ? { pid: me().pid } : { id: r.id, dg: d.id, row: r }, r.me ? me().name : r.n)));
+          sec.append(list);
+          if (tb.more > (tb.rows || []).length && !evAll.has(d.id)) sec.append(h('button.dy-more', { type: 'button', 'data-press': true, onclick: () => { sfx('select'); evAll.add(d.id); paint(); } }, h('span', `SHOW ALL ${tb.more}`), h('i', { 'aria-hidden': 'true' })));
+          dressEvery(list, rows, d);
+          els.body.append(sec);
+          continue;
+        }
         const pl = t.place && t.place[d.id];
         const meRow = E.me ? { ...E.me, rank: E.me.gated ? null : E.me.rank || (pl && pl.p) || null, below: true } : null;
         const rows = [...E.rows, ...(meRow ? [meRow] : [])];
@@ -368,6 +403,25 @@ function openScreen(tab0) {
       h('div.lb-card.dy-card', opener(r.me && !r.id ? { pid: me().pid } : { id: r.id, dg: d.id, row: r }, r.me ? me().name : r.n), h('div.lb-sub',
         r.gated ? h('small.dy-cnote', 'NOT COUNTED') : null,
         h('span.lb-pts', shown ? resultEl(d.id, r.v, r.e) : h('span.lb-score.dy-cscore', 'PLAYED')))));
+  }
+  /** J3 — THE TIME BOARDS' tab row (THE NEON TABS, one sideways-scrolling row): MOST LANES (the default) · FASTEST TO 50 · TO 100 · … — a tab
+   *  only for a 50 someone in the shown scope reached; its scroll kept over a repaint → { el, cur (0 = MOST LANES | the 50 shown) } */
+  function timeTabsEl(d, lanes) {
+    const cur = lanes.includes(timeTab[d.id]) ? timeTab[d.id] : 0;
+    const T = neonTabs([{ v: 0, l: 'MOST LANES' }, ...lanes.map((l, i) => ({ v: l, l: tabLabel(l, i === 0) }))],
+      { value: cur, scroll: true, cls: 'dy-ttabs', label: `${d.name} — most lanes or the fastest times`, onPick: v => { sfx('select'); timeTab[d.id] = v; paint(); } });
+    T.el.addEventListener('scroll', () => { tabScroll[d.id] = T.el.scrollLeft; }, { passive: true });
+    requestAnimationFrame(() => { if (T.el.isConnected && tabScroll[d.id]) T.el.scrollLeft = tabScroll[d.id]; });
+    return { el: T.el, cur };
+  }
+  /** one TIME row: the place (equal times share it — THE DECO MEDALS for 1–3) · the card · the time under it (m:ss.t) — YOU framed, a gated YOU
+   *  = NOT COUNTED, no place */
+  function timeRow(d, r, i, target, name, solo = false) {
+    return h(`li.lb-row.lb-strip.dy-crow.dy-trow${r.me ? '.is-me' : ''}${r.rank === 1 && !solo ? '.is-first' : ''}${r.below ? '.is-below' : ''}`, { dataset: { pid: r.pid || r.id || `me${i}` } },
+      h('span.lb-rank', r.rank && !solo ? (rankMedal(r.rank, { size: 32 }) || ordinal(r.rank)) : ''),
+      h('div.lb-card.dy-card', opener(target, name), h('div.lb-sub',
+        r.gated ? h('small.dy-cnote', 'NOT COUNTED') : null,
+        h('span.lb-pts', h('span.lb-score.dy-cscore.dy-time', timeClock(r.t))))));
   }
   /** FIXES R2 (the owner's add-on, Nov 15 7:36 pm): a SCORES row's slim card is TAPPABLE — that player's page through THE BOARD's own opener
    *  (profile/player-page.js#openPlayer — never a second player page; YOUR row = your card). Press + lift (data-press — THE TAP WATCH; a touch

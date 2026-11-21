@@ -3,10 +3,12 @@
 //   daily.create(…) → the run's shell · createApiJudge() → THE DAILY KIT's judge (+ roomWins) · createView() → the run's screen
 // THE RUN = the REAL JAYWALK view (view.js — both looks, its sounds, its lines) in MODES.daily through ONE adapter (`state.jwDaily`): START →
 // the day's seed + the SERVER's go (tick 0 = go — the 3 · 2 · 1 is the lead) + the proof node's path (dly/jaywalk/{day}/w/{uid}/{try}); the
-// view appends its hops there as server-stamped chunks (THE DROPPED SIGNAL as every run); the end (out · THE MOTHERSHIP at 5:00 · STOP) →
+// view appends its hops there as server-stamped chunks (THE DROPPED SIGNAL as every run); the end (out · THE MOTHERSHIP at 5:00) →
 // this module writes `e` (awaited: the chunks before it have landed — one connection, in order) → FINISH → the SERVER's lanes on the end card,
-// never the phone's own count. NO PAUSE, NO RESUME: STOP, hiding the app, a refresh, leaving or THE ROOM WINS end the try (scored as it stands
-// — FINISH sent with keepalive on the way out; the server also closes a quiet try by itself). Between tries: TRY AGAIN (n TRIES LEFT) · DONE.
+// never the phone's own count. NO PAUSE, NO RESUME, NO STOP (J3 — THREE TRIES ALL DAY: a try ends only by a hit or THE MOTHERSHIP at 5:00):
+// hiding the app, a refresh, leaving or THE ROOM WINS still end the try (scored as it stands — FINISH sent with keepalive on the way out; the
+// server also closes a quiet try by itself — no peeking at the course). Between tries: TRY AGAIN (n TRIES LEFT) · COME BACK LATER (back to the
+// dailies — the day is NEVER marked done: the ticket keeps TRY AGAIN from the SERVER's tries until the 3rd try or 4 am).
 import { h } from '../../ui/dom.js';
 import { tubeButton } from '../../ui/components.js';
 import { lazyImport } from '../../ui/lazy-import.js';
@@ -14,7 +16,7 @@ import { lazyView, gameSheets } from '../lazy-view.js';
 import { dbRef, set as dbSet, serverTimestamp, want, release, expectRefusal } from '../../firebase.js';
 import { api } from '../../profile/api.js';
 import { createDailyJudge } from '../../daily/judge.js';
-import { todayNow, onToday, markTriesDone } from '../../daily/today.js';
+import { todayNow, onToday } from '../../daily/today.js';
 import { placeLine, tryEndedLine, NEW_BEST } from '../../daily/today-logic.js';
 import { stampSvg } from '../../daily/ticket-art.js';
 import { splitsCard } from './splits-card.js';
@@ -41,30 +43,26 @@ export function createApiJudge() {
 }
 
 /** the try's end, the phone's half: `e` = the server's time (the rules: once, inside the try's window) — the chunks before it have landed */
-// (refused only when there is nothing to end: a STOP in the 3 · 2 · 1 (before go) or past the try's window — the server closes it all the same)
+// (refused only when there is nothing to end: the app hidden in the 3 · 2 · 1 (before go) or past the try's window — the server closes it all the same)
 const writeEnd = path => { if (!path) return Promise.resolve(); expectRefusal(`${path}/e`, 'jaywalk daily: the try ended before GO / past its window'); return dbSet(dbRef(`${path}/e`), serverTimestamp()).catch(() => {}); };
 
 export function createView() {
   const JW = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('jaywalk'));
-  let host = null, ctx = null, inner = null, D = null, stage = null, stopBtn = null, card = null, gone = false, wanted = false, splits = null;
+  let host = null, ctx = null, inner = null, D = null, stage = null, card = null, gone = false, wanted = false, splits = null;
   let cur = null;       // the try in play: { i, left, path, ended }
   let offToday = null;
 
   /** a try in play on this phone (a start answered, its end not yet sent) */
   const playing = () => !!(cur && !cur.ended);
-  /** END THE TRY (STOP · hidden · leaving · a refresh): the view's run stops, `e`, then FINISH (keepalive when the page is going) */
-  function endTry(how) {
+  /** END THE TRY (hidden · leaving · a refresh — J3: there is no STOP): the view's run stops, `e`, then FINISH with keepalive (the page is going) */
+  function endTry() {
     if (!playing()) return null;
     cur.ended = true;
     if (D && D.stop) D.stop();
-    if (stopBtn) { stopBtn.remove(); stopBtn = null; }
     const path = cur.path, day = cur.day;
-    if (how === 'away') {
-      writeEnd(path);
-      api('daily', { action: 'finish', game: GAME_ID, ...(day ? { day } : {}) }, { keepalive: true }).catch(() => {});
-      return null;
-    }
-    return writeEnd(path);
+    writeEnd(path);
+    api('daily', { action: 'finish', game: GAME_ID, ...(day ? { day } : {}) }, { keepalive: true }).catch(() => {});
+    return null;
   }
   const onVis = () => { if (document.visibilityState === 'hidden') endTry('away'); };
   const onHide = () => endTry('away');
@@ -83,7 +81,6 @@ export function createView() {
         if (!run || !run.path) { showRefused({ code: 'no_tries', extra: r }); throw new Error('no run'); }
         D.path = run.path;
         cur = { i: Number(run.try) || 0, left: Number(run.left) || 0, path: run.path, day: r.day || null, ended: false };
-        addStop();
         return { seed: run.seed, go: run.go, cv: run.cv === 2 ? 2 : 1 };
       },
       end: (over, line, sp) => endCard(over, line, sp),
@@ -91,16 +88,9 @@ export function createView() {
     inner = JW();
     inner.mount(stage, { uid: ctx.uid, code: '', game: ctx.game, players: ctx.players || {}, meta: { status: 'playing' }, live: {}, liveKey: null, presence: {}, jwDaily: D });
   }
-  /** STOP — ends the try early (it counts as played): a second tap within 2.5 s (THE CONFIRM — never a mis-tap that costs a try) */
-  function addStop() {
-    if (stopBtn || gone) return;
-    stopBtn = tubeButton('STOP', { kind: 'secondary', size: 'sm', cls: 'dy-jw-stop', confirm: 'TAP AGAIN TO STOP', onClick: () => { const p = endTry('stop'); if (p) p.then(() => {}); } });
-    host.append(stopBtn);
-  }
-
-  /** the END CARD over the resting scene: the server's lanes for THIS try, DAILY BEST / the gold, TRY AGAIN (n TRIES LEFT) · DONE — or ADMITTED */
+  /** the END CARD over the resting scene: the server's lanes for THIS try, DAILY BEST / the gold, TRY AGAIN (n TRIES LEFT) · COME BACK LATER —
+   *  or (the 3rd try) ADMITTED */
   function endCard(over, line, sp) {
-    if (stopBtn) { stopBtn.remove(); stopBtn = null; }
     const big = h('div.dy-jw-big', '…');
     splits = splitsCard(sp);   // (J1 — YOUR SPLITS: at once from the phone's own engine; the server's answer marks the new bests)
     const note = h('div.dy-jw-note.dy-jw-end-rec', 'SCORING YOUR TRY');
@@ -145,8 +135,10 @@ export function createView() {
       return;
     }
     const again = tubeButton('TRY AGAIN', { kind: 'main', block: true, cls: 'dy-jw-again', attrs: { 'data-press': true }, onClick: () => tryAgain() });
-    const dn = tubeButton('DONE', { kind: 'secondary', block: true, cls: 'dy-jw-done', attrs: { 'data-press': true }, onClick: () => { markTriesDone(GAME_ID, r.day); if (ctx.onBack) ctx.onBack(true); } });
-    foot.replaceChildren(again, h('div.dy-jw-left', `${left} ${left === 1 ? 'TRY' : 'TRIES'} LEFT`), dn);
+    // (J3 — THREE TRIES ALL DAY: COME BACK LATER goes back to the dailies and marks NOTHING — the ticket keeps TRY AGAIN · n TRIES LEFT from the
+    //  SERVER's tries all day, on any phone; the old DONE (`markTriesDone` — ADMITTED with tries unused) is retired for JAYWALK)
+    const later = tubeButton('COME BACK LATER', { kind: 'secondary', block: true, cls: 'dy-jw-later', attrs: { 'data-press': true }, onClick: () => { if (ctx.onBack) ctx.onBack(false); } });
+    foot.replaceChildren(again, h('div.dy-jw-left', `${left} ${left === 1 ? 'TRY' : 'TRIES'} LEFT`), later);
   }
   function tryAgain() {
     if (gone) return;

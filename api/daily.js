@@ -77,6 +77,8 @@ import { compactResults } from './_lib/results-sweep.js';   // (CITY G — resul
 import { bestStep, bestView, pointsRaise, isBetter } from '../js/core/daily-best.js';   // (DAILY A — DAILY BEST + a better try's points)
 import { roomJoined } from './_lib/daily-room.js';
 import { creditTry as jwCredit } from './_lib/jaywalk-credit.js';   // (DAILY B — a try's cards + YOUR BEST)
+import { daySplits, dayBoard, tableSplits } from './_lib/jaywalk-times.js';   // (J3 — THE TIME BOARDS: the day's split board)
+import { timeView } from '../js/core/jw-times.js';
 
 /** DM1 — THE CALL BUDGET: generous for real play (both dailies, retries, refreshes), a flood refused */
 export const CALLS = { max: 400, windowMs: 10 * 60_000 };
@@ -442,12 +444,19 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         for (const [g, e] of Object.entries(ex)) if (tv[g] && tv[g].score != null) tv[g].e = e;
         friends[p] = tv;
       }));
+      // J3 — THE TIME BOARDS at YOUR TABLE: you + the friends with a COUNTED result there, each one's day split bests — once you have played;
+      // built here (core/jw-times.js#timeView — the phone only draws: { tabs, b: { lane: { list: [{ k: pid, t, rank, me? }], mine } } })
+      const jt = {};
+      await Promise.all(games.filter(g => mineScores[g] != null && dailyOf(g) && dailyOf(g).splits).map(async g => {
+        const got = await tableSplits(day, [pid, ...pids.filter(p => friends[p] && friends[p][g] && friends[p][g].score != null)]).catch(() => null);
+        if (got && Object.keys(got).length) jt[g] = timeView(got, { pid, unranked: !!gated[g], limit: 99 });
+      }));
       const [ls, createdAt] = await lsP;
       // DAILY A — DAILY BEST per live daily (one read — pstats/{pid}/db): { best: { s, day }, newBest, first } (DAILY B draws it)
       const db = (await dbP.catch(() => null)) || {}, best = {};
       for (const g of games) { const b = bestView(db[g], day); if (b.best) best[g] = b; }
       await closing;
-      return { day, dailies, best, ...(Object.keys(triesOut).length ? { tries: triesOut } : {}), mine: mineScores, gated, started, startedDay, stand, place: placeOf, ...(Object.keys(extraMine).length ? { extra: extraMine } : {}), ...(Object.keys(rfOf).length ? { rf: rfOf } : {}), lessons: ls || {}, friends, table: pids, ...(body.share ? { share: shareOf } : {}),
+      return { day, dailies, best, ...(Object.keys(triesOut).length ? { tries: triesOut } : {}), mine: mineScores, gated, started, startedDay, stand, place: placeOf, ...(Object.keys(extraMine).length ? { extra: extraMine } : {}), ...(Object.keys(rfOf).length ? { rf: rfOf } : {}), lessons: ls || {}, friends, table: pids, ...(Object.keys(jt).length ? { jt } : {}), ...(body.share ? { share: shareOf } : {}),
         ...(countsOn(createdAt, day) ? {} : { countsFrom: dayStartAt(dayOf(dayNum(day) + 1)) }) };
     }
     case 'every': {
@@ -480,7 +489,11 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
           const e = cart.extra ? await extraOf(cart, base, pid, { day, now }).catch(() => null) : null;
           me = { v: mineV, ...(e ? { e } : {}), me: 1, ...(gatedX || !countsOn(createdAt, day) ? { gated: 1 } : {}) };
         }
-        out[g] = { n: Number(n) || 0, played, rows: v.list.map(face), ...(me ? { me } : {}), more: v.more };
+        // J3 — THE TIME BOARDS (a `splits` cartridge — JAYWALK): per 50 lanes the day's fastest SERVER split of each counted player, from ONE read
+        // of the day's split board; only once YOU have played (the scores' own rule); DON'T COUNT + THE THROWAWAY GATE out (your own row stays —
+        // a gated YOU unranked); the same top cut + your place below it; equal times share a place
+        const times = cart.splits && played ? await timesFor({ pid, base, day, limit, friendsOf, nc, meGated: !!(gatedX || !countsOn(createdAt, day)), publicFaces }).catch(e => { console.warn('time boards', e && e.message); return null; }) : null;
+        out[g] = { n: Number(n) || 0, played, rows: v.list.map(face), ...(me ? { me } : {}), more: v.more, ...(times ? { times } : {}) };
       }));
       return { day, every: out };
     }
@@ -520,6 +533,23 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
     }
     default: throw new ApiError(400, 'bad_action');
   }
+}
+
+/** J3 — one daily's TIME BOARDS for `every` (see the call): the faces fetched only for the rows that can show (each tab's top + a margin) */
+async function timesFor({ pid, base, day, limit, friendsOf, nc, meGated, publicFaces }) {
+  const [map0, xs] = await Promise.all([dayBoard(day), val(`${base}/x`)]);
+  const gated = new Set(Object.keys(xs || {}));
+  const map = Object.fromEntries(Object.entries(map0).filter(([k]) => k === pid || (!nc.has(k) && !gated.has(k))));
+  const opts = { pid, friends: friendsOf, unranked: meGated };
+  const wide = timeView(map, { ...opts, limit: limit + 10 }), cands = new Set();
+  for (const t of Object.values(wide.b)) { for (const r of t.list) cands.add(r.k); if (t.mine) cands.add(t.mine.k); }
+  const faces = cands.size ? await publicFaces([...cands]) : {};
+  const hidden = new Set([...cands].filter(k => !faces[k] && k !== pid));
+  const V = timeView(map, { ...opts, hidden, limit });
+  const pub = (k, x) => { const f = faces[k] || {}; return { id: f.id, n: f.n, a: f.a, c: f.c, r: f.r, l: f.l, cd: f.cd, es: f.es, tb: f.tb, g: f.g, t: x.t, ...(x.rank ? { rank: x.rank } : {}), ...(x.me ? { me: 1 } : {}), ...(x.f ? { f: 1 } : {}), ...(x.gated ? { gated: 1 } : {}) }; };
+  const b = {};
+  for (const lane of V.tabs) { const t = V.b[lane]; b[lane] = { rows: t.list.map(x => pub(x.k, x)), ...(t.mine ? { me: pub(t.mine.k, t.mine) } : {}), more: t.more }; }
+  return { tabs: V.tabs, b };
 }
 
 /**
@@ -577,7 +607,11 @@ async function creditTry({ pid, cart, day, now, closed }) {
   if (res.items.length || res.ach.length) await bumpOwners(res.items, false, res.ach).catch(() => {});
   return { pbs: res.pbs, items: res.items, ach: res.ach, ...(res.sp ? { sp: res.sp } : {}) };
 }
-const creditQuiet = o => creditTry(o).catch(e => { console.warn('try credit', e && e.message); return null; });
+// (J3 — THE TIME BOARDS: every close also raises the player's day split board from the try's SERVER splits — a VIEW: the lanes, the points,
+//  ALL TIME + DAILY BEST never read it; written for every proven try, the THROWAWAY GATE + DON'T COUNT applied when it is read)
+const creditQuiet = o => Promise.all([
+  o && o.cart && o.cart.splits ? daySplits(o).catch(e => { console.warn('time board', e && e.message); return null; }) : null,
+  creditTry(o).catch(e => { console.warn('try credit', e && e.message); return null; })]).then(([, c]) => c);
 
 /**
  * DAILY A — FINISH for a `tries` cartridge (JAYWALK — the `finish` action + THE ROOM WINS): the open try CLOSED (its proof node replayed — as it

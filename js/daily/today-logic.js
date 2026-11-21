@@ -170,7 +170,8 @@ export function bestLine(id, s, lineOf) {
 /** the ticket's place line: "2ND OF 5 PLAYERS" (one finisher: "1ST OF 1 PLAYER") */
 export const placeLine = (p, n) => `${ordinal(p)} OF ${n} ${n === 1 ? 'PLAYER' : 'PLAYERS'}`;
 const lanesOf = l => `${l} ${l === 1 ? 'LANE' : 'LANES'}`;
-/** the DONE tap (a `tries` daily ended early on this phone — its tries left unused): the day it was tapped (per phone — js/daily/today.js) */
+/** the DONE tap (a `tries` daily ended early on this phone — its tries left unused): the day it was tapped (per phone — js/daily/today.js).
+ *  (J3 — a row with `allDay` (JAYWALK: THREE TRIES ALL DAY) ignores it: no DONE button, never ADMITTED before its last try; kept for any other) */
 export const DONE_KEY = 'dy:done';
 /** DAILY FIX — the between-tries ticket's big line: "LAST TRY · 143 LANES" */
 export const LAST_TRY = 'LAST TRY';
@@ -183,6 +184,8 @@ export const LAST_TRY = 'LAST TRY';
  *   the very FIRST best (`first`) is never gold. COUNTS FROM TOMORROW · THIS RUN COULDN'T BE CHECKED win over both.
  *   A `tries` daily (JAYWALK): between tries = the LAST try big ("LAST TRY · 143 LANES") + "DAILY BEST · 168 LANES" + TRY AGAIN with "2 TRIES LEFT";
  *   ADMITTED only once no try is left or the player tapped DONE (`done` — this phone's) — never while tries remain and one wasn't ended by DONE.
+ *   J3 — `d.allDay` (THREE TRIES ALL DAY): `done` is ignored — between tries all day (from the SERVER's tries, any phone), ADMITTED only after
+ *   the last try (the 4 am turn re-reads `today`: a new day's ticket).
  */
 export function ticketState(today, d, { lineOf = (id, v) => String(v), done = false } = {}) {
   const t = today || {}, id = d.id, B = (t.best && t.best[id]) || null, mine = has(t.mine, id) ? t.mine[id] : null;
@@ -202,7 +205,7 @@ export function ticketState(today, d, { lineOf = (id, v) => String(v), done = fa
     const closed = (T.tries || []).filter(x => !x.open), left = Math.max(0, Number(T.left ?? d.tries) || 0);
     if (!closed.length && !(T.tries || []).some(x => x.open)) return before('waiting');
     const open = (T.tries || []).some(x => x.open);
-    if (closed.length && mine != null && !open && (left === 0 || done)) return { st: 'done', result: lineOf(id, mine), line: doneLine(), act: null };
+    if (closed.length && mine != null && !open && (left === 0 || (done && !d.allDay))) return { st: 'done', result: lineOf(id, mine), line: doneLine(), act: null };
     const last = closed.length ? closed[closed.length - 1] : null;
     const bs = B && B.best ? B.best.s : mine;
     // (DAILY FIX — the owner: the big line names it — "LAST TRY · 143 LANES" — today's score is the BEST try, never the last)

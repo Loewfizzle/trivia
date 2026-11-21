@@ -34,6 +34,7 @@ import { TICK_HZ } from '../../js/games/jaywalk/tuning.js';
 import { jwScore, jwLanes } from '../../js/core/daily-best.js';
 import { dailyPoints } from '../../js/core/daily-points.js';
 import { TRIES, LEAD_MS, CAP_MS, GRACE_MS, QUIET_MS } from '../../api/_lib/jaywalk-tries.js';
+import { dayFromTries } from '../../js/core/jw-times.js';
 
 const NOW = Date.UTC(2026, 10, 18, 18, 0, 0);   // Wed Nov 18 2026, 1 pm Eastern
 const DAY = 86_400_000, WEEK_AGO = NOW - 30 * DAY;
@@ -147,8 +148,68 @@ test('THREE TRIES: the FIRST closed try counts the day (streak, XP once); a BETT
   assert.ok(feats.every(k => gf[`jaywalk-${k}`]), `every feat is a card flag (${feats.join(' ') || 'none'})`);
   // SHARE TODAY's JAYWALK inputs — spoiler-free: the tries' lanes + the best, never the course
   const sh = await D(uid, { action: 'today', share: true }, p.end + 40e3);
-  assert.deepEqual(Object.keys(sh.share.jaywalk).sort(), ['b', 'day', 'nb', 't']);
+  assert.deepEqual(Object.keys(sh.share.jaywalk).filter(k => k !== 'hs').sort(), ['b', 'day', 'nb', 't'], '(J3: + hs — the best-time split — once a 50 was reached)');
   assert.equal(sh.share.jaywalk.t.length, 3); assert.equal(sh.share.jaywalk.t[sh.share.jaywalk.b], jwLanes(strong));
+});
+
+test('J3 — THE TIME BOARDS: the day split board = each player best SERVER split per 50 from any try; `every` + `today` carry the tabs; a gated player out; a refused try writes nothing; the build from the records', async () => {
+  const day = streakDay(NOW);
+  const cal = await pidOf('jd-cal');
+  const triesOf = async pid => Object.entries((await val(`dly/jaywalk/${day}/p/${pid}/t`)) || {}).map(([i, x]) => ({ i: Number(i), ...x }));
+  const want = dayFromTries(await triesOf(cal));
+  assert.ok(want.length >= 1, `JayCal's strong try reached 50 (${want.length} splits)`);
+  assert.deepEqual(await val(`dly/jaywalk/${day}/sp/${cal}`), want, 'the board = the best per split of the closed tries (raised at every close)');
+  // a second counted player: one strong try
+  await ensure('jt-dee', 'TimDee');
+  const dee = await pidOf('jt-dee');
+  let s = await D('jt-dee', { action: 'start', game: 'jaywalk' }, NOW + 3600e3);
+  let p = await playTry(s, { botSeed: 'dee' });
+  await D('jt-dee', { action: 'finish', game: 'jaywalk' }, p.end);
+  const wantDee = dayFromTries(await triesOf(dee));
+  // a SAME-DAY account (THE THROWAWAY GATE): on the board's node, never on anyone else's view; its own view = NOT COUNTED, no place
+  await ensure('jt-eve', 'TimEve', NOW);
+  s = await D('jt-eve', { action: 'start', game: 'jaywalk' }, NOW + 7200e3);
+  p = await playTry(s, { botSeed: 'eve' });
+  await D('jt-eve', { action: 'finish', game: 'jaywalk' }, p.end);
+  const eve = await pidOf('jt-eve');
+  const E = (await D('jd-cal', { action: 'every' }, p.end + 1000)).every.jaywalk;
+  assert.ok(E.times, 'EVERYONE · TODAY carries the time boards (JayCal has played)');
+  assert.deepEqual(E.times.tabs, Array.from({ length: Math.max(want.length, wantDee.length) }, (_, i) => (i + 1) * 50), `a tab per 50 anyone counted reached (${E.times.tabs.join(' · ')})`);
+  const rows50 = [...E.times.b[50].rows, ...(E.times.b[50].me ? [E.times.b[50].me] : [])];
+  assert.equal(rows50.find(r => r.me).t, want[0], 'your time to 50 = your best server split');
+  assert.ok(rows50.some(r => r.t === wantDee[0] && !r.me), 'JayDee — their time to 50 listed');
+  assert.ok(!rows50.some(r => r.n === 'TimEve' || r.n === 'JAYEVE'), 'the same-day account is never on a time board');
+  assert.ok(rows50.every(r => !r.k && !r.pid), 'never a pid in a public row');
+  const sorted = rows50.map(r => r.t); assert.deepEqual(sorted, [...sorted].sort((a, b) => a - b), 'fastest first');
+  if (want[0] === wantDee[0]) assert.equal(rows50[0].rank, rows50[1].rank, 'equal times share a place');
+  if ((await val(`dly/jaywalk/${day}/sp/${eve}`))) {
+    const Ev = (await D('jt-eve', { action: 'every' }, p.end + 2000)).every.jaywalk;
+    const mine = Ev.times && Ev.times.b[50] && Ev.times.b[50].me;
+    assert.ok(mine && mine.gated && !mine.rank, 'the gated player — its own row: NOT COUNTED, no place');
+  }
+  // a player who has NOT played sees no time boards (the scores' own rule)
+  await ensure('jt-fay', 'TimFay');
+  assert.equal((await D('jt-fay', { action: 'every' }, p.end + 3000)).every.jaywalk.times, undefined);
+  // YOUR TABLE (`today`): your own split view
+  const t = await D('jd-cal', { action: 'today' }, p.end + 4000);
+  assert.deepEqual(t.jt.jaywalk.tabs, want.map((_, i) => (i + 1) * 50)); assert.equal(t.jt.jaywalk.b[50].list[0].k, cal);
+  // a REFUSED try (forged ahead of the clock) writes nothing — the board unchanged
+  await ensure('jt-gus', 'TimGus');
+  const gus = await pidOf('jt-gus');
+  s = await D('jt-gus', { action: 'start', game: 'jaywalk' }, NOW + 9000e3);
+  const live = await playTry(s, { botSeed: 'gus' });
+  await ref(`${s.run.path}/c`).set({ 0: { s: Object.values((await val(`${s.run.path}/c`)) || {}).map(c => c.s)[0] || 'a', at: s.run.go + 10 } });   // (the whole log stamped at once — far AHEAD of the clock)
+  const fg = await D('jt-gus', { action: 'finish', game: 'jaywalk' }, live.end);
+  if (fg.try && fg.try.bad) assert.equal(await val(`dly/jaywalk/${day}/sp/${gus}`), null, 'a refused try is never on a time board');
+  // THE BUILD: a day whose board is missing (tries closed before J3) is built ONCE from the records — the same numbers
+  const before = await val(`dly/jaywalk/${day}/sp`);
+  await ref(`dly/jaywalk/${day}`).update({ sp: null, spb: null });
+  const E2 = (await D('jd-cal', { action: 'every' }, p.end + 5000)).every.jaywalk;
+  assert.deepEqual(E2.times.tabs, E.times.tabs, 'rebuilt: the same tabs');
+  assert.deepEqual(await val(`dly/jaywalk/${day}/sp`), before, 'rebuilt from the records: the same board');
+  assert.equal(await val(`dly/jaywalk/${day}/spb`), 1);
+  // the time boards are a VIEW: the lanes result + the points unchanged
+  assert.equal(await val(`pstats/${cal}/dp/d/${day}/g/jaywalk`), dailyPoints('jaywalk', await val(`dly/jaywalk/${day}/r/${cal}`)));
 });
 
 test('condition 1 — AN UNFINISHED TRY is scored: on the next START (as it stands), by `today` only once it can\'t be in play, at THE DAY\'S CLOSE', async () => {

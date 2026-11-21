@@ -98,7 +98,7 @@ export const DAILIES = [
   // THE DROP A (Nov 13 — docs/prism.md "THE DROP"): PRISM DROP's daily — SURVIVAL on the day's pieces + rows, the server REPLAYS the run's input
   // log. Ships OFF (`on: false` — THE DROP B gives it its ticket + TODAY's third row; the owner goes live only at a 4 am turn)
   { id: 'drop', name: 'THE DROP', theme: 'prism', tag: 'DAILY · PRISM DROP', blurb: 'Everyone gets the same pieces and the same rising rows. Survive as long as you can. Once a day.', hook: 'Same pieces. Same rows. Hold on.', playable: false, daily: true, order: 3, measure: 'time', ticket: 'drop', lesson: true, ownMusic: true, on: false },
-  { id: 'jaywalk', name: 'JAYWALK', theme: 'jaywalk', hook: 'Three tries.', daily: true, order: 4, measure: 'lanes', ticket: 'jaywalk', lesson: false, on: false, tries: 3 },   // (DAILY A — docs/jaywalk.md)
+  { id: 'jaywalk', name: 'JAYWALK', theme: 'jaywalk', hook: 'Three tries.', daily: true, order: 4, measure: 'lanes', ticket: 'jaywalk', lesson: false, on: false, tries: 3, allDay: true },   // (DAILY A — docs/jaywalk.md; J3: allDay = THREE TRIES ALL DAY — never ADMITTED before the last try)
 ];
 // FIXES R3 — `measure` = the daily's MAIN MEASURE: the SHARE CARD's ONE big score (js/daily/share.js#measureOf — 'guesses' | 'time'; a new daily declares its own).
 // DM1 — PLUG-AND-PLAY: every row's `order` (the picker's order), `ticket` (its ticket art key — DM2), `lesson` (a first-time lesson — DFIX3's

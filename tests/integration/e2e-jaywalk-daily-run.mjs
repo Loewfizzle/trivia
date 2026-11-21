@@ -1,10 +1,12 @@
 // DAILY B — JAYWALK's DAILY on the REAL screens, end to end on the emulators: THE GO-LIVE (THE SCHEDULED GO-LIVE for JAYWALK + THE DROP from
 // today → TODAY shows 4 tickets, THE SWEEP 4 segments) → JAYWALK's ticket (orange, PLAY) → the run in the REAL JAYWALK view (MODES.daily, the
-// day's seed from the server's START, the hops on the proof node) → STOP (a second tap) → the END CARD shows the SERVER's lanes (the record's)
-// → TRY AGAIN (2 TRIES LEFT) → a REFRESH mid-try ends it (the ticket then shows the try as the server scored it — no RESUME anywhere) → THE
+// day's seed from the server's START, the hops on the proof node) → (J3) NO STOP anywhere: the bot past 50 lanes, then the kid left to the wall
+// → the END CARD shows the SERVER's lanes (the record's) + TRY AGAIN · 2 TRIES LEFT · COME BACK LATER → COME BACK LATER (nothing marked done:
+// the ticket keeps TRY AGAIN · 2 TRIES LEFT) → TRY AGAIN from the ticket → a REFRESH mid-try ends it (the ticket then shows the try as the server scored it — no RESUME anywhere) → THE
 // ROOM WINS on the 3rd (a host starts a game: the banner "TRY ENDED", the server's try `why: room`) → ADMITTED only now (the place line), never
 // while tries remained → YOUR BEST raised from the daily (pstats b['jaywalk-solo']) → SHARE TODAY's `today { share }` inputs for JAYWALK
-// (spoiler-free) → the share card on the preview page with 4 sections (night + day, full + a 360-px downscale).
+// (spoiler-free + J3's best-time line) → J3 THE TIME BOARDS: `every` + `today` carry the day's split board = the record's server splits
+// (best per split, a tab per 50 reached) → the SCORES tab row on the real screen → the share card on the preview page with 4 sections.
 //   DAILY_TEST=1 node scripts/serve.mjs <port> --emu   then   node tests/integration/e2e-jaywalk-daily-run.mjs "<browser>" [./shots-dir]   (LOOK=night | day: THE GAME LOOK)
 // The two schedules are removed at the end (the server's 30 s cache: run e2e-daily BEFORE this, never right after).
 process.env.FIREBASE_DATABASE_EMULATOR_HOST ||= '127.0.0.1:9000';
@@ -99,9 +101,11 @@ async function day1() {
   ok(ink === '#ffa53a', `its ink = the owner's orange (${ink})`);
   if (H.SHOTS) await H.shotAll(A.page, 'jr-01-today-before');
 
-  // ================================================================ TRY 1 — STOP
+  // ================================================================ TRY 1 — (J3) no STOP: the bot past 50 lanes (a split for THE TIME BOARDS), then the wall
   await tap(A.page, '.dy-ticket[data-id="jaywalk"] .dy-play');
   const s1 = await playTry(A.page, 420, 'TRY 1');
+  const noStop = await A.page.evaluate(() => ({ el: !!document.querySelector('.dy-jw-stop'), btn: [...document.querySelectorAll('.dy-run button')].some(b => /STOP/.test(b.textContent)) }));
+  ok(!noStop.el && !noStop.btn, 'THREE TRIES ALL DAY: no STOP element in the run (a try ends by a hit or THE MOTHERSHIP)');
   const seed1 = s1.seed;
   ok(/^d/.test(seed1) && s1.isMatch === false, `TRY 1 plays the REAL view in MODES.daily on the DAY's seed from the server's START (${seed1.slice(0, 8)}…)`);
   if (H.SHOTS) await A.page.screenshot({ path: `${H.OUT}jr-02-run.png` });
@@ -113,25 +117,27 @@ async function day1() {
     const tcv = r0 && r0.t && r0.t[0] ? (r0.t[0].cv || 1) : null;
     ok(s1.cv === want && (tcv == null || tcv === want), `COURSE RULES v${want}: the try's version (record ${tcv == null ? '—' : `v${tcv}`}) = the day's = the course the phone plays (v${s1.cv})`); }
   ok(node1 && node1.go > 0 && node1.c && Object.values(node1.c).every(c => typeof c.at === 'number'), `the hops go up in chunks on the proof node, each stamped by the DATABASE (${Object.keys((node1 && node1.c) || {}).length} chunks)`);
-  let stopped = false;
-  if (!s1.over) {
-    await tap(A.page, '.dy-jw-stop');
-    await sleep(150);
-    const armed = await A.page.evaluate(() => (document.querySelector('.dy-jw-stop') || {}).textContent || '');
-    ok(/TAP AGAIN/.test(armed), `STOP asks for a second tap ("${armed.trim()}") — a mis-tap never costs a try`);
-    await tap(A.page, '.dy-jw-stop');
-    stopped = true;
-  }
-  await waitFor(A.page, `!!document.querySelector('.dy-jw-end[data-lanes]')`, 'TRY 1: the end card with the server\'s lanes', 30000);
-  const end1 = await A.page.evaluate(() => { const c = document.querySelector('.dy-jw-end'); return { lanes: Number(c.dataset.lanes), left: Number(c.dataset.left), text: c.innerText.replace(/\s+/g, ' '), stamp: !!c.querySelector('.dy-stamp'), again: !!c.querySelector('.dy-jw-again') }; });
+  await waitFor(A.page, `window.__jwGame.state().best >= 56 || window.__jwGame.state().over`, 'TRY 1: past 50 lanes', 120000);
+  await A.page.evaluate(() => window.__jwGame.bot(false));   // (the kid left standing: the wall takes him — the try's own end, no STOP)
+  await waitFor(A.page, `!!document.querySelector('.dy-jw-end[data-lanes]')`, 'TRY 1: the end card with the server\'s lanes', 90000);
+  const end1 = await A.page.evaluate(() => { const c = document.querySelector('.dy-jw-end'); return { lanes: Number(c.dataset.lanes), left: Number(c.dataset.left), text: c.innerText.replace(/\s+/g, ' '), stamp: !!c.querySelector('.dy-stamp'), again: !!c.querySelector('.dy-jw-again'), later: !!c.querySelector('.dy-jw-later'), done: [...c.querySelectorAll('button')].some(b => /^\s*DONE\s*$/.test(b.textContent)) }; });
   let R = await rec(A.pid);
   const c1 = closedTries(R).find(x => x.i === 0);
-  ok(c1 && end1.lanes === c1.l, `the end card shows the SERVER's lanes (${end1.lanes} = the record's ${c1 && c1.l}) — never the phone's own count${stopped ? ' (STOPPED early: it counts as played)' : ''}`);
-  ok(end1.left === 2 && end1.again && /2 TRIES LEFT/.test(end1.text) && !end1.stamp && !/ADMITTED/.test(end1.text), `TRY AGAIN · 2 TRIES LEFT · DONE — no ADMITTED while tries remain ("${end1.text.slice(0, 90)}")`);
+  ok(c1 && end1.lanes === c1.l, `the end card shows the SERVER's lanes (${end1.lanes} = the record's ${c1 && c1.l}) — never the phone's own count`);
+  ok(end1.left === 2 && end1.again && end1.later && !end1.done && /2 TRIES LEFT/.test(end1.text) && /COME BACK LATER/.test(end1.text) && !end1.stamp && !/ADMITTED/.test(end1.text), `TRY AGAIN · 2 TRIES LEFT · COME BACK LATER (no DONE) — no ADMITTED while tries remain ("${end1.text.slice(0, 110)}")`);
   if (H.SHOTS) { await sleep(500); await A.page.screenshot({ path: `${H.OUT}jr-03-end1.png` }); }   // (after the card's 0.22 s fade)
 
+  // ================================================================ (J3) COME BACK LATER — back to the dailies, NOTHING marked done
+  await tap(A.page, '.dy-jw-later');
+  await waitFor(A.page, `!document.querySelector('.dy-run') && !!document.querySelector('.dy-ticket[data-id="jaywalk"]')`, 'COME BACK LATER: TODAY again', 15000);
+  let tb = null;
+  for (let i = 0; i < 20; i++) { tb = await ticket(A.page); if (tb && tb.st === 'between') break; await sleep(500); }
+  const doneKey = await ev(A.page, `localStorage.getItem('dy:done:jaywalk')`);
+  ok(tb && tb.st === 'between' && /TRY AGAIN/.test(tb.play) && /2 TRIES LEFT/.test(tb.left) && !tb.stamp && !doneKey, `COME BACK LATER marks nothing: the ticket keeps TRY AGAIN · 2 TRIES LEFT, no stamp (${tb && tb.text}; dy:done ${doneKey})`);
+  if (H.SHOTS) await H.shotAll(A.page, 'jr-03b-today-between-later');
+
   // ================================================================ TRY 2 — A REFRESH mid-try ends it
-  await tap(A.page, '.dy-jw-again');
+  await tap(A.page, '.dy-ticket[data-id="jaywalk"] .dy-play');
   await waitFor(A.page, `!!window.__jwGame && window.__jwGame.state().mode === 'run' && window.__jwGame.state().seed !== ${JSON.stringify('x')} && window.__jwGame.state().proven && window.__jwGame.state().t < 600`, 'TRY 2 started', 30000);
   const s2 = await playTry(A.page, 300, 'TRY 2');
   ok(s2.seed === seed1, 'TRY 2: the same course (the day\'s seed — every try, every player)');
@@ -190,7 +196,33 @@ async function day1() {
   // ================================================================ SHARE TODAY — JAYWALK's spoiler-free inputs + the card
   const sh = await api(A.page, { action: 'today', share: true });
   const J = sh.share && sh.share.jaywalk;
-  ok(J && Array.isArray(J.t) && J.t.length === 3 && J.t.every(v => v === null || Number.isInteger(v)) && Object.keys(J).every(k => ['t', 'b', 'nb', 'day'].includes(k)), `SHARE TODAY's JAYWALK inputs: ${JSON.stringify(J)} — the tries' lanes only, never the course`);
+  ok(J && Array.isArray(J.t) && J.t.length === 3 && J.t.every(v => v === null || Number.isInteger(v)) && Object.keys(J).every(k => ['t', 'b', 'nb', 'day', 'hs'].includes(k)), `SHARE TODAY's JAYWALK inputs: ${JSON.stringify(J)} — the tries' lanes (+ J3's best-time split) only, never the course`);
+  // ================================================================ J3 — THE TIME BOARDS: the day's split board = the record's server splits
+  { const { dayFromTries } = await import('../../js/core/jw-times.js');
+    const want = dayFromTries(closedTries(R));
+    const board = await val(`dly/jaywalk/${day}/sp/${A.pid}`);
+    ok(want.length >= 1 && JSON.stringify(board) === JSON.stringify(want), `THE DAY's SPLIT BOARD = the best per split of the closed tries' SERVER splits (${JSON.stringify(board)} = ${JSON.stringify(want)})`);
+    ok(J && J.hs && J.hs.at === want.length * 50 && J.hs.t === want[want.length - 1], `the share card's best-time line: TO ${J && J.hs && J.hs.at} (the highest 50 reached, its best tick ${J && J.hs && J.hs.t})`);
+    const E = (await api(A.page, { action: 'every' })).every.jaywalk;
+    const T = E && E.times;
+    ok(T && T.tabs.join(',') === want.map((_, i) => (i + 1) * 50).join(','), `EVERYONE · TODAY: a tab per 50 reached — ${T && T.tabs.join(' · ')}`);
+    const r50 = T && T.b[50] && (T.b[50].rows.find(r => r.me) || T.b[50].me);
+    ok(r50 && r50.t === want[0] && r50.rank >= 1, `… your time to 50 = the server's (${r50 && r50.t} ticks, place ${r50 && r50.rank})`);
+    const TT = (await api(A.page, { action: 'today' })).jt;
+    ok(TT && TT.jaywalk && TT.jaywalk.tabs.length === want.length && TT.jaywalk.b[50].list.some(r => r.k === A.pid && r.t === want[0]), 'YOUR TABLE · TODAY (`today`\'s jt) carries the same split for you');
+    ok(jwLanes(sh.mine.jaywalk) === best, 'the time boards never changed the lanes result');
+    // the SCORES screen: the tab row (MOST LANES first) → FASTEST TO 50 → a time row
+    await A.page.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'scores' } })));
+    await waitFor(A.page, `!!document.querySelector('.dy-sec[data-id="jaywalk"] .dy-ttabs')`, 'SCORES: JAYWALK\'s tab row', 20000);
+    const tabs = await A.page.evaluate(() => [...document.querySelectorAll('.dy-sec[data-id="jaywalk"] .dy-ttabs .nt-tab')].map(b => ({ t: b.textContent, on: b.classList.contains('is-on'), h: b.getBoundingClientRect().height })));
+    ok(tabs[0] && tabs[0].t === 'MOST LANES' && tabs[0].on && (tabs[1] || {}).t === 'FASTEST TO 50' && tabs.every(b => b.h >= 44), `the tabs: ${tabs.map(b => b.t).join(' · ')} — MOST LANES lit first, each ≥ 44 px tall`);
+    await tap(A.page, '.dy-sec[data-id="jaywalk"] .dy-ttabs .nt-tab[data-v="50"]');
+    await waitFor(A.page, `!!document.querySelector('.dy-sec[data-id="jaywalk"] .dy-times .dy-time')`, 'FASTEST TO 50: the time rows', 15000);
+    const tr = await A.page.evaluate(() => [...document.querySelectorAll('.dy-sec[data-id="jaywalk"] .dy-times .dy-time')].map(e => e.textContent));
+    const { timeClock } = await import('../../js/core/jw-time-text.js');
+    ok(tr.includes(timeClock(want[0])), `FASTEST TO 50 lists your time ${timeClock(want[0])} (${tr.join(' · ')})`);
+    if (H.SHOTS) await H.shotAll(A.page, 'jr-06b-scores-to50');
+    await screen(A.page); }
   ok(J && J.t[J.b] === best && jwLanes(sh.mine.jaywalk) === best, 'its best bar = the day\'s result');
   for (const lk of ['night', 'day']) {
     const pv = await H.browser.newPage();

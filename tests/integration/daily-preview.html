@@ -17,6 +17,9 @@
        &look=day | night                                                  the look (THE GAME LOOK — Settings in the app)
        DAILY B — &jw=play | before | between | done | gold    JAYWALK's ticket as the 4th (needs &drop=1): before (no best / DAILY BEST from an
                                                           earlier day) · between tries (TRY AGAIN, 2 TRIES LEFT) · ADMITTED (the place) · ADMITTED + NEW DAILY BEST
+       J3 — &jwt=1 (with &jw=done | between &tab=scores)  JAYWALK's TIME BOARDS: the tabs MOST LANES · FASTEST TO 50 · TO 100 · TO 150 · TO 200
+                                                          from sample SERVER splits through the REAL board code (core/jw-times.js#timeView — a tie at 50);
+                                                          &jwtab=<50|100|150|200> picks that tab (EVERYONE, or YOUR FRIENDS with &friends=1)
        DAILY FIX — &jwlast=<n>&jwbest=<n>                 the between ticket's LAST TRY + DAILY BEST lanes (888 = the widest; default 143 · 231)
        &best=1                                            a DAILY BEST from an earlier day on every daily (the before tickets read it) · &gold=<id> = that
                                                           finished daily's NEW DAILY BEST (the gold line) · &first=<id> = its very first best (no gold)
@@ -175,6 +178,27 @@ const table2 = q.get('solo') === '1' ? [] : table;
     return { n: below ? 30 : N, full: rows, played, rows: rows.slice(0, all ? N : 10), ...(below && played ? { me: { ...ME, rank: 23, v: scoreOf(9)[0] + 2, e: { sp: 1 }, me: 1 } } : {}), more: below ? 30 : N };
   };
   window.__dyEvery = { password: mk('password', i => [pwS[i], null]), coastclear: mk('coastclear', i => ccS[i]) };
+  // J3 — &jwt=1: JAYWALK on SCORES — its lanes list + THE TIME BOARDS from sample server splits (ticks to 50 / 100 / 150 / 200; BEN + ROOK tie at 50),
+  // the views built by the REAL server code (core/jw-times.js#timeView) — EVERYONE (public faces) + YOUR TABLE (`today`'s jt — you + 3 friends)
+  if (q.get('jwt') === '1' && JW && pick.mine.jaywalk != null) {
+    const JT = await import('/js/core/jw-times.js');
+    const jwS = (l, k = 4000) => l * 1e5 + (99999 - k);
+    const jwL = [212, 197, 188, 176, 171, 160, 152, 140, 133, 120, 110, 96, 81, 64];
+    window.__dyEvery.jaywalk = mk('jaywalk', i => [jwS(jwL[i], 3000 + i * 40), null]);
+    const reach = [4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1], at50 = [1716, 1902, 1902, 1985, 2044, 2101, 2160, 2233, 2290, 2381, 2440, 2512, 2604, 2731];
+    const split = (i, n) => Array.from({ length: n }, (_, j) => at50[i] + j * (2310 + ((i * 37 + j * 53) % 290)));
+    const map = {}, faceOf = {};
+    P.forEach((r, i) => { map[r.id] = split(i, reach[i]); faceOf[r.id] = r; });
+    map.bme = [1874, 4160, 6532]; faceOf.bme = ME;   // (YOU: to 150 — 2ND to 50)
+    const fr = new Set(P.filter(r => r.f).map(r => r.id));
+    const V = JT.timeView(map, { pid: 'bme', friends: fr, limit: 10 });
+    const pub = x => { const { f, ...face } = faceOf[x.k] || {}; void f; return { ...face, t: x.t, rank: x.rank, ...(x.me ? { me: 1 } : {}), ...(x.f ? { f: 1 } : {}) }; };
+    window.__dyEvery.jaywalk.times = { tabs: V.tabs, b: Object.fromEntries(V.tabs.map(l => [l, { rows: V.b[l].list.map(pub), ...(V.b[l].mine ? { me: pub(V.b[l].mine) } : {}), more: V.b[l].more }])) };
+    // YOUR TABLE: you + BEN · KIM · MAXIMILIANOS (their pids — `today`'s own) with their jaywalk results
+    const tmap = { P_ava: map.bme, P_ben: map.b1, P_kim: map.b3, P_max: map.b5 };
+    for (const [pp, l] of [['P_ben', 197], ['P_kim', 176], ['P_max', 160]]) if (pick.friends[pp]) pick.friends[pp].jaywalk = { score: jwS(l) };
+    pick.jt = { jaywalk: JT.timeView(tmap, { pid: 'P_ava', limit: 99 }) };
+  }
   if (pick.mine.password != null) pick.place = { ...(pick.place || {}), password: below ? { p: 23, n: 30 } : { p: 2, n: 14 }, ...(pick.mine.coastclear != null ? { coastclear: below ? { p: 23, n: 30 } : { p: 2, n: 14 } } : {}) };
   if (pick.mine.coastclear != null) pick.extraMine = { coastclear: { sp: 1 } };
   // YOUR TABLE's spots (the FRIENDS box): BEN clean, RAY two spots, KIM caught
@@ -188,7 +212,7 @@ const table2 = q.get('solo') === '1' ? [] : table;
     window.__dyBoard = { 'daily-password': brd(0), 'daily-coastclear': brd(2) };
   }
 }
-window.__dyToday = { day: 'd20261108', dailies, best: bestOf, ...(pick.tries ? { tries: pick.tries } : {}), mine: pick.mine, ...(pick.place ? { place: pick.place } : {}), ...(pick.extraMine ? { extra: pick.extraMine } : {}), gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table: table2, ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
+window.__dyToday = { day: 'd20261108', dailies, best: bestOf, ...(pick.tries ? { tries: pick.tries } : {}), mine: pick.mine, ...(pick.place ? { place: pick.place } : {}), ...(pick.extraMine ? { extra: pick.extraMine } : {}), gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table: table2, ...(pick.jt ? { jt: pick.jt } : {}), ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
 
 const { state, setState, subscribe } = await import('/js/store.js');
 state.uid = 'pv';
@@ -232,6 +256,14 @@ if (view === 'screen') {
   if (q.get('scope') === 'all') { await new Promise(r => setTimeout(r, 300)); const b = [...document.querySelectorAll('.dy-scope-b')].find(x => /ALL TIME/.test(x.textContent)); if (b) b.click(); await new Promise(r => setTimeout(r, 600)); }
   if (q.get('friends') === '1') { await new Promise(r => setTimeout(r, 300)); const b = document.querySelector('.dy-fbox'); if (b) b.click(); await new Promise(r => setTimeout(r, 300)); }
   if (q.get('tab') === 'scores') { for (let i = 0; i < 100 && ![...document.querySelectorAll('.dy-cards')].every(l => l.dataset.strips); i++) await new Promise(r => setTimeout(r, 50)); }
+  // (J3 — &jwtab=<lane>: JAYWALK's time tab tapped — the row scrolled to it, its strips in)
+  if (q.get('jwtab')) {
+    for (let i = 0; i < 60 && !document.querySelector('.dy-sec[data-id="jaywalk"] .dy-ttabs'); i++) await new Promise(r => setTimeout(r, 50));
+    const b = document.querySelector(`.dy-sec[data-id="jaywalk"] .dy-ttabs .nt-tab[data-v="${q.get('jwtab')}"]`);
+    if (b) { b.click(); await new Promise(r => setTimeout(r, 120)); const nb = document.querySelector(`.dy-sec[data-id="jaywalk"] .dy-ttabs .nt-tab[data-v="${q.get('jwtab')}"]`); if (nb) { const row = nb.parentElement; row.scrollLeft = Math.max(0, nb.getBoundingClientRect().left - row.getBoundingClientRect().left + row.scrollLeft - (row.clientWidth - nb.offsetWidth) / 2); row.dispatchEvent(new Event('scroll')); } }
+    for (let i = 0; i < 100 && ![...document.querySelectorAll('.dy-cards')].every(l => l.dataset.strips); i++) await new Promise(r => setTimeout(r, 50));
+    const sec = document.querySelector('.dy-sec[data-id="jaywalk"]'); if (sec) sec.scrollIntoView({ block: 'start' });
+  }
 } else if (view === 'share') {
   // DFIX3 — THE SHARE IMAGE at real size (the preview's own stage; the fonts loaded first so the canvas draws them)
   await import('/js/screens/daily.js').then(m => m.dailySheet());

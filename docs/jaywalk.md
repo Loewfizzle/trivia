@@ -32,6 +32,7 @@ import map); the RULES are a pure engine that never knows about it.
 | J1 — SPLITS · THE MATCH MOMENTS · THE NIGHT GLOW FIX | Nov 21 2026 | `docs/games/passes/jaywalk-j1.md` | SPLIT TIMES every 50 lanes on every end card (the server keeps the best splits from its own replay) · THE MATCH MOMENTS (the bigger order, OUT banners, the red X, HEAD TO HEAD + the siren, THE DUEL STRIP, LAST ONE STANDING — every out from the player's OWN end) · THE NIGHT GLOW FIX (the bloom's solid occluders) · + the city's END-SCREEN HEADER (a game's MODE) |
 | J2 — EVEN STARTS · THE BLACKBIRD's RUNWAYS · COURSE RULES v2 | Nov 21 2026 | `docs/games/passes/jaywalk-j2.md` | COURSE RULES v2 from the 4 am turn of Nov 22 (a course = seed + version; the version in the proof, checked against its GO; v1 frozen byte for byte) · no opening runs free · runways of 3–4 lanes, a jet each + THE AFTERBURNER TRAIL, every one proven passable · THE SOUND RULE · a RULES CHANGE (`jw/…/cv`) |
 | J2 FIX — THE BLACKBIRD YOU CAN SEE · A PREMIUM DAY RUNWAY | Nov 21 2026 | `docs/games/passes/jaywalk-j2fix.md` | v2's runway numbers before v2 went live: the jets 200 / 250 / 340 (seen), the tell 1.2 s, THE WAIT GUARD, the vapour trail, the sound re-synced; v2 FROZEN; THE PRE-FIX BUILD refused (THE END CHECK · the daily's `cvr`); the day runway's crisp lamps + heat trail; the night compare (`&rwnight=new`, the lab only) |
+| J3 — THE DAILY: TIME BOARDS · THREE TRIES ALL DAY · THE RED SNEAKER | Nov 21 2026 | `docs/games/passes/jaywalk-j3.md` | THE TIME BOARDS on the daily's SCORES · TODAY (MOST LANES · FASTEST TO 50 · TO 100 … — the day's split board from the server's replay splits, best of 3 per split, ties share a place, a VIEW) · the share card's best-time line · THREE TRIES ALL DAY (no STOP, COME BACK LATER, the ticket from the server's tries until the 3rd try / 4 am) · THE SNEAKER's upper NEON RED. No rules change |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
 this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
@@ -373,6 +374,49 @@ warning stays VISUAL (fair with the sound off). THE MIX (measured — `jaywalk-m
   COMPARE:** the same lamps + heat trail tuned for night (a small glow under a lit pip; the violet core on the road; electric-blue tongues with a
   CYAN heart — additive white would wash the blue out) behind **`jaywalk-lab.html?…&rwnight=new` ONLY** (`createNight({ rwNight })` — the
   lab passes it, the game + the poster never do: `tests/jaywalk-j2fix.test.mjs`). A later one-line add-on flips it if the owner prefers it.
+
+## J3 — THE DAILY: TIME BOARDS · THREE TRIES ALL DAY · THE RED SNEAKER (Nov 21 — the owner; the pass log `docs/games/passes/jaywalk-j3.md`) — no rules change, REPLAY = LIVE untouched
+
+### THREE TRIES ALL DAY (the phone — `daily-run.js` · `today-logic.js#ticketState` · `config.js#DAILIES` `allDay`)
+The server already let a player use the 3 tries any time until 4 am (the best counts). The phone now does too:
+- **NO STOP** — a try ends only by a hit or THE MOTHERSHIP at 5:00 (the button, its TAP AGAIN TO STOP confirm + its CSS are gone). Hiding the app,
+  a refresh, leaving or THE ROOM WINS still END the try (scored as it stands — no peeking at the course), exactly as before.
+- **THE END CARD**: TRY AGAIN (main) · "n TRIES LEFT" · **COME BACK LATER** (secondary — back to THE DAILIES, NOTHING marked: no `markTriesDone`);
+  after the 3rd try: the ADMITTED stamp + BACK TO THE DAILIES (unchanged).
+- **THE TICKET**: JAYWALK's row says `allDay: true` → `ticketState` ignores the old per-phone DONE (`today.js#triesDone` — KEPT, generic, for any
+  other `tries` daily that wants it): between tries the ticket shows LAST TRY · DAILY BEST · TRY AGAIN · n TRIES LEFT ALL DAY, from the SERVER's
+  tries (`today`'s `tries`) — after an app restart or on another phone the same. ADMITTED only after the 3rd try; at 4 am the day turns (the
+  dock + the screen re-read `today`: a new day's ticket; THE DAY'S CLOSE scores anything left open). One try played = the day's result.
+
+### THE TIME BOARDS (`js/core/jw-times.js` PURE · `api/_lib/jaywalk-times.js` · `api/daily.js` `every` + `today` · `js/screens/daily.js`)
+- **THE DAY's SPLIT BOARD** `dly/jaywalk/{day}/sp/{pid}` = [the best tick to 50, to 100, …] — each player's FASTEST time to every 50 from ANY of
+  the day's closed tries, from the SERVER's replay splits only (`scoreTry`'s `sp`, J1); raised by ONE transaction at every close
+  (`api/daily.js#creditQuiet` → `daySplits` — FINISH, the next START, THE ROOM WINS, `today`, THE DAY'S CLOSE — a cartridge with `splits: true`).
+  A refused try has no splits (never on a board). A day whose tries closed before J3 is built ONCE from its records (`dayBoard` → `spb: 1`).
+  Server-only under `dly/` — no rule, no phone read.
+- **EVERYONE · TODAY** (`every`): the time boards ride the JAYWALK row (`times: { tabs: [50, 100, …], b: { lane: { rows, me?, more } } }`) — ONE
+  read of the day's board (never a read per row), DON'T COUNT + THE THROWAWAY GATE out (a gated YOU: NOT COUNTED, no place), public faces only
+  for the rows that can show, the lanes board's own cut (10 · SHOW ALL 50) + your place below it; **only once you have played** (the scores'
+  rule — before that no times at all). **YOUR TABLE · TODAY** (`today`'s `jt`): you + the friends with a counted result, built on the server
+  (`timeView` — the phone only draws).
+- **THE TABS** (`timeTabsEl` — THE NEON TABS, one sideways-scrolling row, ≥ 44 px, no pills): **MOST LANES** (first, the default — the lanes list
+  unchanged) · **FASTEST TO 50** · **TO 100** · TO 150 … — a tab for every 50 someone in the shown scope reached ("as high as the guy goes"); the
+  row keeps its scroll over a repaint. A time row: place (THE DECO MEDALS 1–3) · the slim card · the time `m:ss.t` (tenths floored). **EQUAL
+  TIMES SHARE A PLACE** (both 1ST, the next 3RD). TODAY only — ALL TIME stays the lanes average; solo keeps personal-best splits only.
+- **A VIEW**: the time boards never touch the lanes result, the points, ALL TIME, DAILY BEST, the streak or XP (`tests/jaywalk-j3.test.mjs`).
+- **The phone's code stays light**: the daily screen + the share card import only `core/jw-time-text.js` (the words: `timeClock`, `tabLabel`,
+  `bestTimeLine` — its TICK_HZ / SPLIT_EVERY checked against tuning.js); the board logic + tuning.js stay on the server. Nothing in JAYWALK's
+  room preload graph.
+- **THE SHARE CARD's line** (`daily-share.js#timeOf`): ONE small line "TO 150 · 2:03" (the highest 50 reached today, its best time from any try —
+  `shareOf`'s `hs`, spoiler-free) under "BEST OF 3" (THE ONE RULE keeps the name / big / stat rows level with every other section; the bars
+  step down for it); none when no 50 was reached. The text line unchanged.
+- **The preview**: `tests/integration/daily-preview.html?state=swept&drop=1&dropst=done&jw=done&jwt=1&tab=scores` (`&jwtab=50|100|150|200`,
+  `&friends=1`, `&look=day`) — sample server splits through the REAL `timeView` (a tie at 50).
+
+### THE RED SNEAKER (`core/marks.js#MARKS.jaywalk` tube 1)
+The upper back to the owner's original **NEON RED `#ff3344`** (CITY H2 had set the house pink `#ff4fc4`): hue ≈ 355° — red, not pink (~322°), not
+orange; the sole + laces white + the cyan speed lines unchanged. ONE definition → the PLAY sheet, PICK A GAME, the signs that draw the mark, the
+card art (`ui/game-art.js`), the share image (`share.js#drawSignal`) follow. The daily TICKET's ink is the HIGH RISE chat's (`ticket-art.js`).
 
 ## THE MATCH (H4 — ONE LIFE; the cartridge — hidden: THE OWNER'S LIVE TEST)
 One run each on the SAME course, one life; the others are see-through ghosts; farthest wins, ties → the earlier tick. **Real matches run

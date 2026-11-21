@@ -23,7 +23,7 @@ test('THE REVIEW A8 — a press is a STOPPER only while a list a finger flung is
 
 test('the owner\'s add-on — every SCORES list\'s slim card opens THE PLAYER PAGE through THE BOARD\'s own opener (data-press)', () => {
   const d = read('js/screens/daily.js');
-  assert.equal((d.match(/h\('div\.lb-card\.dy-card', opener\(/g) || []).length, 4, 'friends today · everyone today · friends all time · everyone all time');
+  assert.equal((d.match(/h\('div\.lb-card\.dy-card', opener\(/g) || []).length, 5, 'friends today · everyone today · friends all time · everyone all time · (J3) a time row (everyone + friends)');
   assert.match(d, /function opener\(target, name\) \{[\s\S]{0,400}import\('\.\.\/profile\/player-page\.js'\)[\s\S]{0,120}m\.openPlayer\(target\)/, 'openPlayer — never a second player page');
   assert.match(d, /role: 'button', tabindex: '0', 'data-press': true/, 'press + lift; a keyboard reaches it');
 });

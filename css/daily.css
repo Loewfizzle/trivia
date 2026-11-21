@@ -342,13 +342,9 @@ body[data-look="day"] .dy-overlay { --dy-box-line: #16305c; --dy-box-on: #2f86ff
 .dy-end-body .cc-end.dy-endscr { --cc-mini: clamp(15px, calc((min(100vw, 460px) - 72px) / 9), 24px); }
 .dy-end-drop { display: block; width: min(100%, 420px); height: auto; margin: 0 auto; border-radius: 14px; }
 
-/* ---- DAILY B — JAYWALK's DAILY RUN (js/games/jaywalk/daily-run.js): the real game's view + STOP + the END CARD over the resting scene (the
+/* ---- DAILY B — JAYWALK's DAILY RUN (js/games/jaywalk/daily-run.js): the real game's view (J3: no STOP) + the END CARD over the resting scene (the
    game's own dark end-screen ground in both looks — css/jaywalk.css .jw-final). The ticket's orange (#ffa53a) is its accent. No pills. ---- */
 .dy-jw, .dy-jw-stage { position: absolute; inset: 0; }
-/* STOP: under the music corner, at the game column's right edge (the column is ≤ 0.62 × the height — css/jaywalk.css .jw-stage) */
-.dy-run .btn.dy-jw-stop { position: fixed; z-index: 8; top: calc(var(--safe-t) + 62px); right: calc(50vw - min(50vw, 31dvh) + 12px); min-height: 44px; min-width: 84px;
-  padding: 0 14px; border-radius: 10px; font-size: 12px; letter-spacing: 0.18em; }
-.dy-run .btn.dy-jw-stop::before, .dy-run .btn.dy-jw-stop::after { border-radius: 10px; }
 .dy-jw-end { --tk: #ffa53a; }
 .dy-jw-in { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center;
   padding: calc(var(--safe-t) + 72px) 22px calc(var(--safe-b) + 22px); }
@@ -368,3 +364,14 @@ body[data-look="day"] .dy-overlay .dy-jw-end .btn-primary { --tc: var(--tube-pin
 body[data-look="day"] .dy-overlay .dy-jw-end .btn-ghost { --tc: var(--tube-white); --tcore: var(--tube-white-core); --tg: var(--tube-white-glow); --tg2: transparent; }
 /* (the fresh-eyes review: by day the run's ‹ is navy — over the dark END CARD it vanished; there it is the card's white) */
 body[data-look="day"] .dy-run:has(.dy-jw-end) > .dy-back { color: #fff; }
+
+/* ---- J3 — THE TIME BOARDS (JAYWALK's daily — SCORES · TODAY, EVERYONE + YOUR FRIENDS): the tab row = THE NEON TABS (ui/neon-tabs.js — one
+   sideways-scrolling row, the words on the glass, the chosen one lit with its line: no pills) — MOST LANES · FASTEST TO 50 · TO 100 · …; a
+   time row's m:ss.t in the numbers' face. By day the words take the panel's navy (the night cream would sit on white glass). ---- */
+.dy-ttabs { margin: 0 -14px 8px; padding: 0 10px; scroll-padding-inline: 10px; scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
+.dy-ttabs .nt-tab { padding: 0 11px; letter-spacing: 0.12em; scroll-snap-align: start; color: var(--dy-dim); }
+.dy-ttabs .nt-tab.is-on { color: #ff8fe0; }
+body[data-look="day"] .dy-ttabs { box-shadow: inset 0 -1px 0 rgba(60, 100, 160, 0.22); }
+body[data-look="day"] .dy-ttabs .nt-tab.is-on { color: #b0127a; text-shadow: none; }
+body[data-look="day"] .dy-ttabs .nt-tab.is-on::after { background: #d81b8f; box-shadow: none; }
+.dy-cards .lb-pts .lb-score.dy-time { letter-spacing: 0.04em; }

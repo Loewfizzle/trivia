@@ -754,7 +754,7 @@ ONE pure rule per ticket — `js/daily/today-logic.js#ticketState(today, row, { 
   an EARLIER day's best (`newBest`), the gold NEW DAILY BEST in its place (`.dy-gold` — foil TEXT, never a pill). The very first best (`first`)
   is never gold. COUNTS FROM TOMORROW · THIS RUN COULDN'T BE CHECKED win over both.
 - **A `tries` daily** (JAYWALK): BETWEEN TRIES = the LAST try big + "DAILY BEST · …" + TRY AGAIN with "n TRIES LEFT" under it; ADMITTED only
-  once no try is left or the player tapped DONE (per phone, per day — `today.js#markTriesDone`); a try still open is never ADMITTED. THE ROOM
+  once no try is left or the player tapped DONE (per phone, per day — `today.js#markTriesDone`); a try still open is never ADMITTED. (J3 — a row with `allDay` — JAYWALK: THREE TRIES ALL DAY — has no DONE: between tries all day from the server's tries, ADMITTED only after the last one; docs/jaywalk.md "J3".) THE ROOM
   WINS: "TRY ENDED · N TRIES LEFT" (`tryEndedLine`), nothing held. → docs/jaywalk.md "THE DAILY — THE PHONE HALF".
 - **THE SWEEP METER**: one segment per LIVE daily (the owner: 3 until JAYWALK goes live, then 4), each lit in ITS ticket's ink (`--sk` from
   `TICKET_INK`, both looks); the meter IS the count — the "1 OF 3" words are gone (THE SWEEP · SWEPT stays its name).

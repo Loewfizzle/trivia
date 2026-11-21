@@ -1,10 +1,13 @@
 // JAYWALK's DAILY — SHARE TODAY's SECTION + its OWN card (DAILY B — docs/jaywalk.md "THE DAILY"; THE ONE RULE: js/daily/share.js#RHYTHM).
 // LAZY: registered in js/daily/share-today.js#SECTIONS (loaded only when a card is drawn — never in JAYWALK's preload graph). The inputs are the
 // SERVER's, SPOILER-FREE (api/_lib/jaywalk-tries.js#shareOf: each try's lanes, the best's index, NEW DAILY BEST) — NEVER the course.
-//   the section = JAYWALK (white — no win / lose) · the big BEST ("143 LANES") · "BEST OF 3" (+ " · NEW DAILY BEST") · THE ART = 3 TRY BARS
+//   the section = JAYWALK (white — no win / lose) · the big BEST ("143 LANES") · "BEST OF 3" (+ " · NEW DAILY BEST") · (J3) ONE small best-time
+//   line "TO 100 · 1:14" (the highest 50 reached today, its best time — the server's splits; under the stat line: THE ONE RULE keeps the name /
+//   big / stat rows level with every other section) · THE ART = 3 TRY BARS
 //   (~640 wide, centred; each = that try's lanes against the best; the best AMBER, the others dim; an unplayed try = an empty outline)
 //   jwInputs(o) — PURE (the only keys) · barsOf(inputs, w) — PURE (each bar's length + kind) · paintSection(c, …) · renderShare({ inputs, look })
 import { RHYTHM, OWN, shareFrame, shareFoot, prepShare, paintName, paintBig, paintStat } from '../../daily/share.js';
+import { bestTimeLine } from '../../core/jw-time-text.js';
 
 export const NAME = 'JAYWALK';
 export const TRIES = 3;
@@ -14,16 +17,19 @@ const AMBER = { night: '#ffa53a', day: '#e0661c' };
 const DIM = { night: 'rgba(226,222,246,0.34)', day: 'rgba(22,48,92,0.28)' };
 const RIM = { night: 'rgba(226,222,246,0.5)', day: 'rgba(22,48,92,0.42)' };
 
-/** PURE: the card's only inputs — { t: [lanes | null ×3], b: best index (-1 none), nb: NEW DAILY BEST, day } */
+/** PURE: the card's only inputs — { t: [lanes | null ×3], b: best index (-1 none), nb: NEW DAILY BEST, day, hs: { at, t } | null (J3) } */
 export function jwInputs(o = {}) {
   const t = Array.from({ length: TRIES }, (_, i) => { const v = o && Array.isArray(o.t) ? o.t[i] : null; return v == null || !Number.isFinite(Number(v)) ? null : Math.max(0, Math.min(9999, Math.floor(Number(v)))); });
   let b = Number.isInteger(o && o.b) && o.b >= 0 && o.b < TRIES && t[o.b] != null ? o.b : -1;
   if (b < 0) t.forEach((v, i) => { if (v != null && (b < 0 || v > t[b])) b = i; });
-  return { t, b, nb: !!(o && o.nb), day: /^d\d{8}$/.test(String((o && o.day) || '')) ? String(o.day) : null };
+  const hs = o && o.hs && Number.isInteger(o.hs.at) && o.hs.at >= 50 && o.hs.at % 50 === 0 && Number.isInteger(o.hs.t) && o.hs.t > 0 ? { at: o.hs.at, t: o.hs.t } : null;
+  return { t, b, nb: !!(o && o.nb), day: /^d\d{8}$/.test(String((o && o.day) || '')) ? String(o.day) : null, hs };
 }
 export const bestLanes = I => (I.b >= 0 ? I.t[I.b] : 0);
 export const lanesLine = n => `${n} ${n === 1 ? 'LANE' : 'LANES'}`;
 export const statOf = I => `BEST OF ${TRIES}${I.nb ? ' · NEW DAILY BEST' : ''}`;
+/** J3 — the best-time line ("TO 100 · 1:14") | '' (no 50 reached today) */
+export const timeOf = I => bestTimeLine(I && I.hs);
 /** PURE: the three bars — { len (0…w), kind: 'best' | 'try' | 'empty' } — a played try's bar = its lanes against the best (a 0-lane try a sliver) */
 export function barsOf(inputs, w = BARS_W) {
   const I = jwInputs(inputs), top = Math.max(1, bestLanes(I));
@@ -53,7 +59,9 @@ export function paintSection(c, { inputs, look = 'night', W = 1080 } = {}) {
   paintName(c, look, NAME, cx, R.nameY, R.namePx, W - 2 * R.COL);   // (WHITE — the daily has no win / lose)
   paintBig(c, look, lanesLine(bestLanes(I)), cx, R.bigY, R.bigPx, W - 2 * R.COL);
   paintStat(c, look, statOf(I), cx, R.statY, R.statPx, W - 2 * R.COL);
-  paintBars(c, look, I, cx, R.artY + 18, R.artH - 30, Math.min(BARS_W, W - 2 * R.COL));
+  const tl = timeOf(I);
+  if (tl) paintStat(c, look, tl, cx, R.artY + 14, Math.round(R.statPx * 0.82), W - 2 * R.COL);
+  paintBars(c, look, I, cx, R.artY + (tl ? 42 : 18), R.artH - (tl ? 54 : 30), Math.min(BARS_W, W - 2 * R.COL));
   c.restore();
 }
 
@@ -71,6 +79,8 @@ export function renderShare({ inputs, look = 'night' } = {}) {
   paintName(c, look, NAME, W / 2, OWN.nameY, OWN.namePx, W - 120);
   paintBig(c, look, lanesLine(bestLanes(I)), W / 2, OWN.bigY, OWN.bigPx, W - 160);
   paintStat(c, look, statOf(I), W / 2, OWN.statY, OWN.statPx, W - 120);
+  const tl = timeOf(I);
+  if (tl) paintStat(c, look, tl, W / 2, OWN.statY + 66, Math.round(OWN.statPx * 0.82), W - 120);
   paintBars(c, look, I, W / 2, OWN.artY + 120, 300, 760);
   shareFoot(c, { note: dateOf(I.day), dim: L.dim, color: day ? '#2f86ff' : AMBER.night, W, look });
   return cv;

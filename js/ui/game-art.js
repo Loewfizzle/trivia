@@ -322,7 +322,7 @@ const holdem = () => `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>
 <image href="${HOLDEM_TILE}" x="0" y="0" width="120" height="120" preserveAspectRatio="xMidYMid slice"/>
 <rect width="120" height="120" fill="url(#hd-shade)"/></svg>`;
 
-// JAYWALK (CITY H2): its neon mark THE SNEAKER (core/marks.js#MARKS.jaywalk — ONE definition: the pink upper, the white sole + laces, the cyan
+// JAYWALK (CITY H2): its neon mark THE SNEAKER (core/marks.js#MARKS.jaywalk — ONE definition: the red upper, the white sole + laces, the cyan
 // speed lines) lit on a night street over a zebra crossing; bold strokes + one glow + a white-hot core (reads at 72 pt)
 const JW_TUBES = MARKS.jaywalk.tubes.map(t => `<path d="${t.d}" stroke="${t.col}" stroke-width="10" opacity="0.55" filter="url(#jw-glow)"/><path d="${t.d}" stroke="${t.col}" stroke-width="6"/><path d="${t.d}" stroke="#fff6fb" stroke-width="1.6" opacity="0.85"/>`).join('');
 const JAYWALK = `<svg viewBox="0 0 120 120" aria-hidden="true"><defs>

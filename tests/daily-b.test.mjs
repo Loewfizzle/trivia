@@ -57,8 +57,10 @@ test('DAILY B — JAYWALK\'s ticket: before · BETWEEN TRIES (the last try big, 
   const two = { ...one, mine: { jaywalk: lanes(143) }, tries: { jaywalk: { used: 2, left: 1, tries: [tr(0, 143), tr(1, 98)] } } };
   const b2 = ticketState(two, JW, { lineOf });
   assert.equal(b2.result, 'LAST TRY · 98 LANES'); assert.equal(b2.under, '1 TRY LEFT'); assert.equal(b2.st, 'between');
-  // ADMITTED never shows while tries remain — only DONE (this phone) or none left
+  // ADMITTED never shows while tries remain — only DONE (this phone — a generic `tries` row) or none left
   assert.equal(ticketState(two, JW, { lineOf, done: true }).st, 'done');
+  // (J3 — THREE TRIES ALL DAY: JAYWALK's row says `allDay` — a DONE kept on this phone is ignored: still between, TRY AGAIN)
+  assert.equal(ticketState(two, { ...JW, allDay: true }, { lineOf, done: true }).st, 'between');
   const three = { ...two, place: { jaywalk: { p: 3, n: 7 } }, tries: { jaywalk: { used: 3, left: 0, tries: [tr(0, 143), tr(1, 98), tr(2, 120)] } } };
   const a = ticketState(three, JW, { lineOf });
   assert.deepEqual({ st: a.st, result: a.result, line: a.line.text, act: a.act }, { st: 'done', result: '143 LANES', line: '3RD OF 7 PLAYERS', act: null }, 'ADMITTED: the BEST try is the result');
@@ -97,7 +99,7 @@ test('DAILY B — SHARE TODAY: the JAYWALK section\'s inputs (spoiler-free), its
   for (const [i, l] of [[0, 143], [1, 168]]) { const o = openTry(rec, { uid: 'u', now: 1000 * (i + 1), startedAt: 1000 }); rec = closeTry(o.record, o.i, { l, k: 4000, s: lanes(l), w: 'car' }, { now: 2000 * (i + 1) }); }
   const S = shareOf(rec, { day: DAY, nb: true });
   assert.deepEqual(S, { t: [143, 168, null], b: 1, nb: 1, day: DAY });
-  assert.deepEqual(Object.keys(S).sort(), ['b', 'day', 'nb', 't'], 'only these keys — no seed, no course, no hop');
+  assert.deepEqual(Object.keys(S).sort(), ['b', 'day', 'nb', 't'], 'only these keys — no seed, no course, no hop (J3: + `hs` once a 50 was reached — tests/jaywalk-j3.test.mjs)');
   const I = jwInputs(S);
   assert.equal(statOf(I), 'BEST OF 3 · NEW DAILY BEST'); assert.equal(statOf({ ...I, nb: false }), 'BEST OF 3');
   const bars = barsOf(S);
@@ -145,9 +147,9 @@ test('DAILY B — PRACTICE never uses the day\'s seed; the daily lives OUTSIDE J
   assert.match(read('js/screens/daily.js'), /const DAILY_RUNS = \{ jaywalk: \(\) => lazyImport\(import\('\.\.\/games\/jaywalk\/daily-run\.js'\)/);
 });
 
-test('DAILY B — THE RUN\'s rules on the phone: no pause, no RESUME; STOP confirms; hidden / leaving / a refresh END the try; the end shows the SERVER\'s lanes', () => {
+test('DAILY B — THE RUN\'s rules on the phone: no pause, no RESUME; (J3) NO STOP; hidden / leaving / a refresh END the try; the end shows the SERVER\'s lanes', () => {
   const R = read('js/games/jaywalk/daily-run.js');
-  assert.match(R, /confirm: 'TAP AGAIN TO STOP'/);
+  assert.doesNotMatch(R.replace(/\/\/[^\n]*/g, ''), /TAP AGAIN TO STOP|dy-jw-stop|addStop/, 'J3 — THREE TRIES ALL DAY: no STOP button (a try ends by a hit or THE MOTHERSHIP)');
   assert.match(R, /if \(document\.visibilityState === 'hidden'\) endTry\('away'\)/);
   assert.match(R, /addEventListener\('pagehide', onHide\)/);
   assert.match(R, /api\('daily', \{ action: 'finish', game: GAME_ID, \.\.\.\(day \? \{ day \} : \{\}\) \}, \{ keepalive: true \}\)/);

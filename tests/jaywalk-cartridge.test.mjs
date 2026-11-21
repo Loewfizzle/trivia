@@ -108,7 +108,7 @@ test('REGISTERED: the mark (the signs\' pink), the theme, SOLO_OK + the report +
   assert.equal(MARKS.jaywalk.blade, 'JAYWALK'); assert.equal(MARKS.jaywalk.tubes.length, 3);
   const rgbOf = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)), [box, sole, speed] = MARKS.jaywalk.tubes;
   const [fr, fg, fb] = rgbOf(box.col), [sr, sg, sb] = rgbOf(sole.col), [cr, cg, cb] = rgbOf(speed.col);
-  assert.ok(fr > 230 && fb > fg && fg < 120, `the upper: hot pink (${box.col})`); assert.ok(sr > 240 && sg > 230 && sb > 230, `the sole + laces: white (${sole.col})`); assert.ok(cb > 220 && cg > 180 && cr < 120, `the speed lines: cyan (${speed.col})`);
+  assert.ok(fr > 230 && fg < 90 && fb < 110 && Math.abs(fb - fg) < 40, `the upper: neon red (J3 — was the house pink) — not pink, not orange (${box.col})`); assert.ok(sr > 240 && sg > 230 && sb > 230, `the sole + laces: white (${sole.col})`); assert.ok(cb > 220 && cg > 180 && cr < 120, `the speed lines: cyan (${speed.col})`);
   for (const t of MARKS.jaywalk.tubes) { const nums = t.d.match(/-?\d+(\.\d+)?/g).map(Number); assert.ok(Math.max(...nums) <= 100 && Math.min(...nums) >= 0, 'inside the 0–100 box'); }
   assert.ok((sole.d.match(/M/g) || []).length === 4, 'the sole + three laces'); assert.ok((speed.d.match(/M/g) || []).length === 2, 'two speed lines');
   assert.notEqual(box.col, MARKS.holdem.tubes[0].col);
