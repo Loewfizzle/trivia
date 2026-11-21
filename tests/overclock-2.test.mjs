@@ -311,7 +311,7 @@ test('8 players play all five newer challenges through the director; a rejoin an
 test('QUICK mode: 6 different challenges, categories spread, the 6th is the ×2 final', () => {
   assert.equal(MODES.quick, 6);
   // (the option list is checked as text — meta.js since SHELL 2.0 B1)
-  const idx = readFileSync('js/games/overclock/meta.js', 'utf8');   // (SHELL 2.0 B1: the options live in the thin meta)
+  const idx = readFileSync('js/games/metas.js', 'utf8');   // (SHELL 2.0 B1: the options live in the thin meta — CITY PART 1: its ROW in js/games/metas.js)
   assert.match(idx, /value: 'quick'[\s\S]*value: 'standard'[\s\S]*value: 'marathon'/,'QUICK · STANDARD · MARATHON in the options');
   for (let s = 0; s < 500; s++) {
     const game = createGame({ matchId: `q${s}`, settings: { mode: 'quick' }, participants: P8, now: 0, seed: `quick${s}`, bank: {}, trivia: { n: 0 } });

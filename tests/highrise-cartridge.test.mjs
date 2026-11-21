@@ -44,7 +44,7 @@ test('PLAYABLE (THE GO-LIVE, Nov 20): its GAMES row playable: true, live 2026-11
   setOwnerPhone(true);
   try { assert.equal(isOwnerTest('highrise'), false, 'not even on the owner\'s phone — no "· TEST" anywhere'); } finally { setOwnerPhone(false); }
   // the surfaces every playable game has (registration.test.mjs checks the full list)
-  assert.match(read('js/games/registry.js'), /import \* as highriseMeta from '\.\/highrise\/meta\.js';/, 'its thin meta at boot');
+  assert.match(read('js/games/metas.js'), /^  highrise: Object\.freeze\(\{/m, 'its thin meta at boot — its ROW in THE ONE META MODULE (CITY PART 1)');
   assert.match(read('js/ui/help.js'), /RULES\.highrise = \{/); assert.match(read('js/ui/help.js'), /highrise: 'HR'/, 'HOW TO PLAY + its tab');
   assert.match(read('js/ui/game-art.js'), /highrise: \(\) => HIGHRISE/, 'its tile (THE TOWER)');
   assert.match(read('js/board/view.js'), /'jaywalk', 'highrise'\]\);/, 'its tab on THE BOARD');
@@ -58,7 +58,8 @@ test('PLAYABLE (THE GO-LIVE, Nov 20): its GAMES row playable: true, live 2026-11
 
 test('THE CARTRIDGE (meta + director — PURE): SOLO, both looks, no options; `play` from the start; the run ends on the player\'s `e`; the rows are THE JUDGE\'s; PLAY AGAIN = a match of its own; a room of two can not start it yet (S4B)', async () => {
   assert.equal(META.SOLO, true); assert.deepEqual(META.LOOKS, ['day', 'night']); assert.deepEqual(META.OPTIONS, []); assert.equal(META.ACCENT, '#ff4fd8'); assert.equal(META.OWN_VICTORY_SOUND, true);
-  assert.doesNotMatch(read('js/games/highrise/meta.js'), /^import /m, 'meta.js imports nothing');
+  assert.match(read('js/games/highrise/meta.js'), /^import \{ META \} from '\.\.\/metas\.js';$/m, 'meta.js = its row of THE ONE META MODULE (pure — metas.js imports nothing)');
+  assert.doesNotMatch(read('js/games/metas.js'), /^import /m, 'metas.js imports nothing');
   const g = createGame({ matchId: M, settings: {}, participants: { u1: true }, now: 1000, seed: 'x' });
   assert.deepEqual({ id: g.id, phase: g.phase, mode: g.mode, matchId: g.matchId }, { id: 'highrise', phase: 'play', mode: 'solo', matchId: M });
   assert.equal(nextStep(g, { now: 2000, live: { runs: {} }, code: CODE }), null, 'no node: the run is not over');

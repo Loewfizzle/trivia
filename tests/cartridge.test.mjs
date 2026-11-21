@@ -18,6 +18,8 @@ function exportsOf(src, dir = null) {
   if (dir) for (const m of src.matchAll(/^export \* from '\.\/([\w-]+\.js)'/gm)) for (const n of exportsOf(read(`${dir}/${m[1]}`))) out.add(n);
   for (const m of src.matchAll(/^export\s+(?:async\s+)?(?:const|let|var|function\*?|class)\s+([A-Za-z_$][\w$]*)/gm)) out.add(m[1]);
   for (const m of src.matchAll(/^export\s*\{([^}]*)\}/gm)) for (const part of m[1].split(',')) { const n = part.trim().split(/\s+as\s+/).pop().trim(); if (n) out.add(n); }
+  // (CITY PART 1 — THE ONE META MODULE: a meta.js re-exports its row — `export const { A, B } = META.<id>;`)
+  for (const m of src.matchAll(/^export\s+const\s*\{([^}]*)\}\s*=/gm)) for (const part of m[1].split(',')) { const n = part.trim().split(/\s*:\s*/).pop().trim(); if (n) out.add(n); }
   return out;
 }
 const REG = read('js/games/registry.js');
@@ -105,11 +107,15 @@ test('what the console reads through the plug: the minimum (MIN_PLAYERS above th
 test("THE THIN META: the registry's static imports are the meta files only; every game loads by id; the meta = the cartridge's values", async () => {
   const statics = [...REG.matchAll(/^import .* from '(\.\/[^']+)'/gm)].map(m => m[1]);
   assert.deepEqual(statics.filter(s => /\/(index|logic|director|view)\.js$/.test(s)), [], 'no game code imported statically');
-  assert.deepEqual([...REG.matchAll(/^import \* as \w+ from '\.\/(\w+)\/meta\.js'/gm)].map(m => m[1]).sort(), [...PLAYABLE].sort());
+  // (CITY PART 1 — THE ONE META MODULE: the registry imports js/games/metas.js alone — a ROW for each playable game, a new game = a row)
+  assert.deepEqual(statics.filter(s => /meta/.test(s)), ['./metas.js'], 'the boot’s game data = ONE module');
+  const { META: ROWS } = await import('../js/games/metas.js');
+  assert.deepEqual(Object.keys(ROWS).sort(), [...PLAYABLE].sort(), 'a row for every playable game, no other');
   assert.equal(registered.length, 18);   // (HIGH RISE S4A: + HIGH RISE, being built)   // (HE3: + HOLD'EM, being built; THE DROP A: + THE DROP — daily-only; JAYWALK H1: + JAYWALK, being built)
   for (const id of CHECKED) {
     const meta = read(`js/games/${id}/meta.js`);
-    assert.doesNotMatch(meta, /^import /m, `${id}/meta.js imports nothing (pure + tiny)`);
+    if (PLAYABLE.includes(id)) assert.ok(meta.includes("import { META } from '../metas.js';\n") && meta.trimEnd().endsWith(`} = META.${id};`) && /^export const \{[^}]+\} = META\.\w+;$/m.test(meta), `${id}/meta.js = its ROW of metas.js (CITY PART 1)`);
+    else assert.doesNotMatch(meta, /^import /m, `${id}/meta.js imports nothing (pure + tiny)`);
     assert.ok(meta.length < 4000, `${id}/meta.js stays thin (${meta.length} bytes)`);
     const M = await import(`../js/games/${id}/meta.js`), L = await import(`../js/games/${id}/logic.js`);
     for (const k of ['DEFAULT_SETTINGS', 'chatLocked']) assert.equal(L[k], M[k], `${id}: logic.js ${k} IS the meta one (one source)`);
@@ -119,9 +125,10 @@ test("THE THIN META: the registry's static imports are the meta files only; ever
 });
 test("THE BOOT BYTES: no game's logic in the title's static graph (scripts/boot-bytes.mjs) — was ~297 KB of js/games", async () => {
   const { bootGraph } = await import('../scripts/boot-bytes.mjs');
-  const g = bootGraph(), games = g.rows.filter(r => r.f.startsWith('js/games/') && !/\/(meta|registry|cartridge|lazy-view)\.js$|\/kit\/|^js\/games\/pulse\/clock\.js$/.test(r.f));   // (pulse/clock.js = the console's shared audio clock — audio/synced-songs.js)
+  const g = bootGraph(), games = g.rows.filter(r => r.f.startsWith('js/games/') && !/\/(meta|metas|registry|cartridge|lazy-view)\.js$|\/kit\/|^js\/games\/pulse\/clock\.js$/.test(r.f));   /* (CITY PART 1: + metas.js — THE ONE META MODULE) */   // (pulse/clock.js = the console's shared audio clock — audio/synced-songs.js)
   assert.deepEqual(games.map(r => r.f), [], "only the metas + the console's own game files at boot");
   // (PD-6 — a NAMED raise, 34 → 36 KB: the contract's SOLO_RUNS check + PRISM DROP's solo list, +0.9 KB — 67 bytes of headroom was left; still no game logic)
   // (FIXES R2 — B2 T5, a named LOWERING 36 → 30 KB: cartridge.js split — its tables + the checker left boot (35.0 → 26.2 KB); JAYWALK's meta fits)
+  // (CITY PART 1 — THE ONE META MODULE: the five metas → one module: 29.5 → 25.0 KB, 308 → 304 boot modules — the room for the next go-lives)
   assert.ok(g.games < 30 * 1024, `js/games at boot: ${(g.games / 1024).toFixed(1)} KB`);
 });

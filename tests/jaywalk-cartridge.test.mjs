@@ -23,7 +23,7 @@ test('PLAYABLE (THE GO-LIVE PASS, Nov 17): its GAMES row is playable: true, no p
   assert.ok(!FROZEN_IDS.includes('jaywalk'), 'a playable game — never frozen');
   assert.equal(isPlayable('jaywalk'), true, 'THE ONE SWITCH is on: any phone starts it (no owner phone, no local page)');
   assert.deepEqual(GAMES.filter(x => x.playable).map(x => x.id).sort(), ['highrise', 'holdem', 'jaywalk', 'overclock', 'prism'], 'the playable five (HIGH RISE since its go-live, Nov 20)');
-  assert.match(read('js/games/registry.js'), /import \* as jaywalkMeta from '\.\/jaywalk\/meta\.js';/, 'its thin meta at boot, like every playable game');
+  assert.match(read('js/games/metas.js'), /^  jaywalk: Object\.freeze\(\{/m, 'its thin meta at boot, like every playable game — its ROW in THE ONE META MODULE (CITY PART 1)');
 });
 
 test('THE META (H4): NO OPTIONS — ONE LIFE everywhere; a few minutes (THE MOTHERSHIP at 6 is the rare end), the EVENING station, NIGHT (the day look: H5), SOLO; the contract', () => {

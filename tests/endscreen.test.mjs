@@ -2,6 +2,7 @@
 // (js/ui/final.js) — the BAR in the game's accent (dark words where they read ≥ 4.5 : 1 — core/fin-ink.js) + the quiet links. No game keeps
 // its own copy. The browser half: e2e-playnow / e2e-jaywalk / e2e-jaywalk-match / the harbor `gameflows` group.
 import { test } from 'node:test';
+import { META as META_ROWS } from '../js/games/metas.js';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { finInk, contrast, FIN_DARK } from '../js/core/fin-ink.js';
@@ -13,8 +14,8 @@ test('the bar\'s words: every playable game\'s ACCENT (+ JAYWALK, + the console\
   const ids = [...GAMES.filter(g => g.playable || g.preview).map(g => g.id)];
   const out = [];
   for (const id of ids) {
-    const m = /export const ACCENT = '(#[0-9a-f]{6})'/i.exec(read(`js/games/${id}/meta.js`));
-    assert.ok(m, `${id}: an ACCENT in its meta.js`);
+    const row = META_ROWS[id], m = row && /^#[0-9a-f]{6}$/i.test(row.ACCENT) ? [null, row.ACCENT] : /export const ACCENT = '(#[0-9a-f]{6})'/i.exec(read(`js/games/${id}/meta.js`));   // (CITY PART 1: a playable game's ACCENT = its row in js/games/metas.js)
+    assert.ok(m, `${id}: an ACCENT in its meta`);
     const ink = finInk(m[1]);
     assert.ok(contrast(m[1], ink) >= 4.5, `${id}: ${ink} on ${m[1]} = ${contrast(m[1], ink).toFixed(2)} : 1`);
     out.push(`${id} ${m[1]} → ${ink === FIN_DARK ? 'dark' : 'WHITE'} ${contrast(m[1], ink).toFixed(1)}:1`);

@@ -9,11 +9,7 @@
 // mid-match waits for it. A HIDDEN game has no meta (it's never offered); a FROZEN one never loads (FIXES R2 — B1: loadGame → null; the emulators' &frozen=1 loads it on purpose).
 //   META[id]           the thin meta (sync)            metaOf(id)   the loaded cartridge, else its meta (sync — what the console reads)
 //   GAME_MODULES[id]   the LOADED cartridge or none   loadGame(id) → Promise<cartridge|null>   onGameLoaded(fn) → off()
-import * as overclockMeta from './overclock/meta.js';
-import * as prismMeta from './prism/meta.js';
-import * as holdemMeta from './holdem/meta.js';   // (HE10: HOLD'EM playable — its thin meta at boot, like every playable game)
-import * as jaywalkMeta from './jaywalk/meta.js';   // (THE GO-LIVE PASS: JAYWALK playable — its thin meta at boot, the same)
-import * as highriseMeta from './highrise/meta.js';
+import { META as ROWS } from './metas.js';   // (CITY PART 1 — THE ONE META MODULE: every playable game's meta as a ROW in ONE boot module; a new game = a row, not a file)
 import { state } from '../store.js';
 import { FROZEN_IDS } from '../config.js';   // (FIXES R2 — B1: the frozen games are never loaded)
 import { unsealed } from './kit/seal.js';
@@ -32,7 +28,7 @@ const LOADERS = {
   highrise: () => import('./highrise/index.js'),
 };
 export const GAME_IDS = Object.freeze(Object.keys(LOADERS));
-export const META = Object.freeze({ overclock: overclockMeta, prism: prismMeta, holdem: holdemMeta, jaywalk: jaywalkMeta, highrise: highriseMeta });
+export const META = ROWS;
 export const GAME_MODULES = {};
 const pending = {}, loadedFns = new Set();
 // (FIXES R2 — B1: a FROZEN game is never loaded — config.js#FROZEN_IDS; the emulators' `&frozen=1` lets a test load one on purpose)

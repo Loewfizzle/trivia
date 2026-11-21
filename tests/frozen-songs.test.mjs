@@ -39,8 +39,9 @@ test('what is dropped is ONLY the frozen games\' songs (and they are really drop
   for (const f of dropped) assert.match(f, FROZEN, `${f} is a frozen game's song`);
   // (and no live game names one: the three playable games' + the dailies' MUSIC are stations or null)
   for (const g of ['overclock', 'prism', 'holdem', 'password', 'coastclear']) {
-    const meta = fs.readFileSync(`js/games/${g}/meta.js`, 'utf8');
-    const m = meta.match(/export const MUSIC = ([^;]+);/);
+    const meta = fs.readFileSync(`js/games/${g}/meta.js`, 'utf8'), rows = fs.readFileSync('js/games/metas.js', 'utf8');
+    // (CITY PART 1: a playable game's MUSIC = its row in js/games/metas.js — `MUSIC: '…'`)
+    const row = rows.slice(rows.indexOf(`  ${g}: Object.freeze({`)), m = meta.match(/export const MUSIC = ([^;]+);/) || (rows.includes(`  ${g}: Object.freeze({`) ? row.match(/MUSIC: ([^,]+),/) : null);
     assert.ok(m && /^(null|'mood:(morning|day|evening|late|party)')/.test(m[1].trim()), `${g}: MUSIC = ${m && m[1]}`);
   }
 });

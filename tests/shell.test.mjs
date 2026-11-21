@@ -131,8 +131,9 @@ test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the
   assert.match(f, /setState\(\{ podium: g\.matchId \}\)/);
   assert.match(read('js/app.js'), /const podium = st\.game\.phase === 'final' && st\.podium === st\.game\.matchId;/);
   assert.match(f, /el\.style\.setProperty\('--fin', mod\.ACCENT\)/);
-  const oc = read('js/games/overclock/meta.js');
-  assert.match(oc, /export const ACCENT = '#ff6a1a';/); assert.match(oc, /export const OWN_VICTORY_SOUND = true;/);
+  // (CITY PART 1 — THE ONE META MODULE: OVERCLOCK's meta = its ROW in js/games/metas.js)
+  const oc = read('js/games/metas.js');
+  assert.match(oc, /BANNER_NAME: 'OVERCLOCK', LOOKS: \['night'\], ACCENT: '#ff6a1a', OWN_VICTORY_SOUND: true,/);
   // (CITY F — END-SCREEN STANDARD A: ONE foot for every game — THE BAR (the screen's MAIN, solid, in the GAME's accent: THE SHELL's ONE named
   //  exception to THE NEON TUBE) + the quiet links; a MATCH's bar = REMATCH (the host's tap = host.js#rematch, a guest's = their vote))
   assert.match(f, /h\('button\.final-link\.final-back', \{ type: 'button', 'data-press': true, 'aria-label': 'Back to the room', onclick: backTap \}/);
