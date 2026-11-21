@@ -14,7 +14,7 @@
 //     cut 10 s: his tower holds (NO SIGNAL — never out), the queued taps land, the run counts in full) · REMATCH in place · a LATE JOINER WATCHES until
 //     the next REMATCH deals them in · THE HOST's PHONE DIES mid-match: a new host carries the match to its podium
 //   node tests/integration/e2e-highrise-match.mjs "<chromium>" [outDir] [--fast]     (--fast: two phones, one match, no rock-solid part)
-process.env.GPU = process.env.GPU || '1';
+if (process.env.GPU === 'off') delete process.env.GPU; else process.env.GPU = process.env.GPU || '1';   // (GPU=off: the software renderer — a machine whose GPU path is down; THE CONSOLE FIX)
 const { createHarness } = await import('./kit/harness.mjs');
 const { highriseMatch } = await import('../../api/_lib/highrise.js');
 const { matchStart, firstGo, GO_LEAD_MS, gameStandings, floorOf } = await import('../../js/games/highrise/logic.js');

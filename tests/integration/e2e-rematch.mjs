@@ -54,8 +54,11 @@ await H.run(async () => {
       //  10 min away: a director that walks back at phaseEndsAt (OVERCLOCK's) holds the podium)
       // (HOLD'EM: THE SERVER IS THE DEALER — its match ends the real way, the host's END GAME → the dealer → the podium by its director)
       if (id === 'holdem') { await sleep(2500); await host.evaluate(c => import('/js/games/holdem/index.js').then(m => m.endGame({ code: c })), H.code); }
+      // (THE CONSOLE FIX: a PROOF game's match ends the real way — a `final` written over live runs is the attack the phones now play through;
+      //  the idle kids / towers end on their own (the blackout · the fuse) and the host's own step writes the podium)
+      else if (id === 'jaywalk' || id === 'highrise') { /* the runs end by themselves */ }
       else await host.evaluate(c => import('/js/firebase.js').then(fb => fb.update(fb.dbRef(`rooms/${c}/game`), { phase: 'final', phaseEndsAt: window.__arcade.serverNow() + 600000, phaseStartAt: window.__arcade.serverNow() - 120000 })), H.code);
-      for (const p of P) await waitFor(p, () => !!document.querySelector('.final-rematch'), `${tag}: the end screen's REMATCH bar`, 70000);   // (OVERCLOCK's end runs its beats first — THE WINNER at its victory beat)
+      for (const p of P) await waitFor(p, () => !!document.querySelector('.final-rematch') && !!document.querySelector('.final-back'), `${tag}: the end screen's REMATCH bar`, 90000);   // (OVERCLOCK's end runs its beats first — THE WINNER at its victory beat)
       await sleep(600);
       // THE ROOM LINK FITS (the reviewer's item (1)): ROOM · SHARE each inside its half — the words + icon never through the divider, the 16 pt gutter
       //  kept — at 375 / 390 / 430 + 1440
@@ -64,6 +67,7 @@ await H.run(async () => {
         const fit = [];
         for (const [w, hh] of [[375, 812], [390, 844], [430, 932], [1440, 900]]) {
           await host.setViewport({ width: w, height: hh, deviceScaleFactor: 1, isMobile: w < 1000, hasTouch: w < 1000 }); await sleep(500);
+          await host.waitForFunction(() => !!document.querySelector('.final-back'), { timeout: 30000 }).catch(() => {});   // (a mobile ↔ desktop switch RELOADS the page: the end screen is waited for, never a fixed sleep — JAYWALK's scene on the software renderer takes a while)
           const g = await host.evaluate(() => {
             const box = el => { if (!el) return null; const r = [...el.children].map(c => c.getBoundingClientRect()).filter(q => q.width > 0); return r.length ? { l: Math.min(...r.map(q => q.left)), r: Math.max(...r.map(q => q.right)) } : null; };
             const d = document.querySelector('.final-links .final-div'), dv = d ? d.getBoundingClientRect() : null;
@@ -108,7 +112,8 @@ await H.run(async () => {
       for (const p of P) await waitFor(p, () => window.__arcade.route() === 'title' && window.__arcade.state.meta && window.__arcade.state.meta.status === 'lobby', `${tag}: back in the room`, 30000);
       await sleep(1500);
     }
-    const ref = []; for (const p of P) ref.push(await refusedOn(p));
+    const ref = []; for (const p of P) { const r = await refusedOn(p); r.h = r.h.filter(x => !/^update rooms\/\* \{(jw|hr)\/[^,]*, pt\}$/.test(x)); ref.push(r); }   // (THE CONSOLE FIX: two phones stamping a tree in the same instant — the loser's stamp + counter is refused by the rules, EXPECTED + silent; its GO lands in the winner's window)
+    if (ref.some(r => r.r.length || r.h.length || r.g)) log('refused', JSON.stringify(ref).slice(0, 1500));   // (which writes — the check's own evidence)
     ok(ref.every(r => !r.r.length && !r.h.length && !r.g), `${n} phones: 0 refused writes on every phone (${ref.map(r => r.r.length + r.h.length + r.g).join(' · ')})`);
   }
 });

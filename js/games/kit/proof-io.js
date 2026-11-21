@@ -48,6 +48,9 @@ export function writeMatchGo(tree, uid, label, mirror = null) {
   const begun = !!mirror && typeof mirror === 'object' && Object.keys(mirror).length > 0;
   expectRefusal(path, `${label} GO: already written (a rejoin), a touch early, or the rules are not published yet`);
   // (THE CONSOLE FIX: the GO behind the stamp's answer — the stamp needs the tree empty)
-  return (begun ? Promise.resolve() : stampT0(tree, label)).then(() => runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }))
+  // (two phones that both see the tree empty both stamp: the loser's stamp + counter is REFUSED by the rules — expected + silent, its GO
+  //  still lands in the winner's window. A turn order was tried and cost every other phone's GO a round trip: not worth it)
+  const stamp = begun ? Promise.resolve() : stampT0(tree, label);
+  return stamp.then(() => runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }))
     .then(() => true, () => dbGet(dbRef(path)).then(snap => typeof snap.val() === 'number'));
 }

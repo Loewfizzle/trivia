@@ -103,17 +103,94 @@ ways) + every older stamp test now writes the counter with it (`stampAt`); `test
 - **A kicked proven player is credited** in a proof match (seated or not) — the proof pass's "the tree says who played" carried to the seat.
 - **A held run's phone reports the match itself** when it follows a moved-on room (else nobody might — the host's phone never saw its podium).
 - **THE TREE CAP = 1,000 a room**, and it counts SOLO runs too (they stamp a tree each).
+- **An honest host's END GAME lets the others finish** their live runs (≤ 6:00) before they follow him back to the room — the rule as asked
+  ("not the room moving on"); with no night record those matches still count for nobody, as before.
+- **Once proven, a phone stays proven** in its match (`everProven`) — the host's participants / `unproven` can not stop its chunks.
 - **The end's acknowledgement is waited ≤ 8 s** after the run (END_OWED_MS) before a held phone follows the room.
 - **The podium re-scores from the nodes only when it waited** for a live run; an honest podium shows the host's numbers as before.
-- **`GPU=off` for `e2e-console-fix.mjs`**: the mini PC's real-GPU path hung on the city's first frame mid-pass (the code before this pass hung
-  the same way — the GPU process crashed in the test browser, not this pass's code); JAYWALK's attacks ran on SwiftShader, HIGH RISE's on
-  the GPU before it went down (its bots need real frame timing).
+- **`GPU=off`** (`e2e-console-fix`, `e2e-jaywalk-match`, `e2e-highrise-match`): the software renderer for a machine whose real-GPU path is
+  down (it was, mid-pass — the code before this pass hung the same way); the final numbers are all on the GPU.
 
-## THE FRESH-EYES REVIEW
-(below — filled at the close)
+## THE FRESH-EYES REVIEW (a separate agent that wrote none of it — a modified host, a modified rival, the honest flow)
+It proved its attacks against the real rules on the emulator (its own namespace) and by calling `processReport`. What it found, and what was done:
+1. **HIGH — the host deletes `meta` alone mid-match:** every phone's meta listener read ROOM CLOSED and left its run (the exit was not
+   held); he re-created meta, played on, wrote `final`, and the idle-out cut the rival. **FIXED:** a `closed` exit is held too
+   (`room.js#HELD_HOWS`); a room REALLY deleted lets it go at once (its game listener's null — the tree went with it); the meta back = nothing
+   closed (the phone stays). The void variant (a host's `meta/activeAt` in the past → every phone's idle close) — the idle close never runs
+   while a run is held (`host.js`). E2E case D (`--meta`): BOB plays on through the deletion, stays in the room, wins.
+2. **MEDIUM — DROP_GUARD dodged by deleting the leader's seat too.** **FIXED:** seated or not (honest lists always name every participant).
+3. **LOW–MEDIUM — the GO now waited the stamp's read + update** (a slow phone near the 5 s window). **FIXED:** a phone whose mirror shows the
+   tree stamped or begun writes its GO at once (`writeMatchGo(…, mirror)`) — only the first phone pays the stamp.
+4. **LOW — a dropped / kicked leader's own phone never queued its report** (app.js asked the host's list). **FIXED:** a phone with its own GO
+   in the tree reports the match, named or not.
+5. **LOW — `pt` self-exhaustion:** a host can stamp his OWN room's 1,000 trees by cycling match ids — it only bricks his own room after
+   Nov 27 (a fresh room is the answer). Left (named).
+6. **LOW (UX, by design) — an honest host's END GAME no longer ends the others' runs:** they play their run out (≤ 6:00), then follow; with
+   no night record those reports are 409 as before. Named in THE CALLS.
+- **Found while fixing 1–4 (mine): once PROVEN, the host's game could still take it back** — a participants list without the phone, or
+  `unproven` written mid-run, flipped `proven` off and the phone STOPPED sending chunks + its end. **FIXED:** the views latch it
+  (`everProven` — the tree says who played). (A host who marks a proven match `unproven` still VOIDS it at the server — a wreck, never a win.)
+- What held (its list): the `pt` rules (jumps, deletes, a lone counter, a stranger's stamp), presence (the host can only make others
+  offline — a longer wait, never shorter), stalling (bounded at the cap; rivals can not move THE FIRST GO), the kicked runner's writes, the
+  seatless credit (needs a replayed move off a GO written while seated + named), DROP_GUARD from a rival (a non-participant writes no
+  board), the honest 425 (= the director's endedFor; only a beat of presence lag), MAKE HOST to the leader, the double move (the 10-min lock).
 
-## THE FINAL RUN
-(below — filled at the close)
+## THE FINAL RUN (fresh emulators + this pass's own `serve.mjs --emu`, one at a time)
+| check | result |
+| --- | --- |
+| unit (`node --test tests/*.test.mjs`) | **2411 / 2411** |
+| rules (`rules.test.mjs` — all, + THE TREE CAP) | **98 / 98** |
+| `/api` (`server.test.mjs` — + THE CONSOLE FIX, THE DROPPED LEADER) | **71 / 71** |
+| the other server tests: dailies (module · jaywalk · drop) · HOLD'EM · progression · friends | **24 · 7 · 15 · 21 · 10 · 10** |
+| smoke | **24 / 24** |
+| `e2e-console-fix` — JAYWALK · HIGH RISE (A early final · C moved on · B kick) | **33 / 33 · 33 / 33** |
+| `e2e-console-fix --meta` (D the meta deleted) — JAYWALK · HIGH RISE | **24 / 24 · 24 / 24** |
+| `e2e-console-fix` JAYWALK on the rules AS PUBLISHED (the switch-over: new code, old rules) | **33 / 33** |
+| `e2e-jaywalk-match` (full) · `e2e-highrise-match` (full · FAST again after the last change) | **92 / 92 · 59 / 59 · 35 / 35** |
+| `e2e-jaywalk` · `e2e-highrise` (full) | **99 / 99 · 81 / 81** |
+| `e2e-holdem` (FAST) · `e2e-prism` (FAST) · `e2e-rematch` (PRISM · OVERCLOCK · HOLD'EM · JAYWALK) | **21 / 21 · 67 / 67 · 25 / 25** |
+| the presence test | **13 / 13** |
+| the HIGH RISE test page `highrise-play.mjs` (REPLAY = LIVE ✓ on every run) | **237 / 237** |
+| the city groups (`core, room, gamestart, cartridge, gameflows, sololook, oldrules, afterparty, makehost, tapfit`) | **109 / 109** |
+- Found BY the final run and fixed: a refused stamp + counter update (the room's path) was not matched by its child-path expectations →
+  `firebase.js` now treats an UPDATE whose every child path is expected as expected; the rematch suite ended JAYWALK's match by writing
+  `final` over live runs (the attack itself) → it lets proof matches end the real way; two phones stamping in the same instant leave the
+  loser's write refused (silent — a turn order was tried and reverted: it cost every other phone's GO a round trip) → the JAYWALK match +
+  rematch suites ignore that one expected line; an old fixture (a GO "now" with no end) is a live run by the new rule → a GO 2 min before.
+- The mini PC's real-GPU path was down for ~1.5 h mid-pass (the code before this pass hung the same way); the suites that force the GPU (the
+  match + attack E2Es) ran on it once it was back; the others use their default renderer as always. The full harbor suite: the cloud's, on a harbor-tagged push (THE LOCAL TESTING RULE) — this is a ci-tagged pass.
+- Every server this pass started was stopped at the end, by exact PID.
 
 ## OPEN FOR BEN
-(below — filled at the close)
+1. **RE-PUBLISH + the order:** `C:\Users\benja\Downloads\NEON\database.rules.nov20-console.json` → Firebase console → Realtime Database →
+   Rules → paste → Publish — **any time AFTER the deploy is live, before Nov 27** (today is best). Nothing breaks in between or after: the
+   new code falls back to the plain stamp on today's rules; a phone still on the old code GOes without a stamp on the new rules until Nov 27.
+2. **Your phone checks** (after the deploy; the rules can be before or after):
+   - A JAYWALK match with your brother: https://neonspeakeasy.com → HOST → PICK A GAME → JAYWALK — both play to the end, the podium, both counted.
+   - A HIGH RISE match the same way: https://neonspeakeasy.com → HOST → PICK A GAME → HIGH RISE — both counted.
+   - A quick solo of each: https://neonspeakeasy.com → PLAY → JAYWALK → PLAY NOW, then PLAY → HIGH RISE → PLAY NOW — XP shows (or "TODAY'S SOLO XP DONE").
+   - Nothing should look different in an honest match: the podium comes when the last player is out, as before.
+3. **The other games' audit, ranked (NOT fixed):** GROUP 2 above — (1) HOLD'EM when the room is moved on mid-table (S–M), (2) PRISM DROP +
+   OVERCLOCK forged results at `final` (your "the host stays trusted" call — fixes S to L), (3) PRISM rush's out-of-bounds score keeps the win
+   (S), (4) PRISM battle's fake board (L), (5) OVERCLOCK self-grading (L), (6) the boards' delete (S + rules), (7) a kicked player in the
+   host-graded games (your call). All in the inbox for each game's next pass. Little traffic → none urgent before strangers host rooms.
+4. **Notes to paste:**
+   - **For the JAYWALK chat:**
+     > THE CONSOLE FIX (Nov 20) touched JAYWALK's live code (+ HIGH RISE's): a live proven run is never taken away by the host — an early
+     > `final`, a moved-on room, a kick or a deleted `meta` no longer pulls a phone out of its run; it plays to its own end, writes `e`, THEN
+     > follows (view.js `holdsRun` + `runLive`; the router's RUN HOLD in app.js; room.js holds the exit). Once proven, a phone stays proven
+     > (the host's participants / `unproven` can not stop its chunks). The out phone's podium waits for a rival's live run and is then scored
+     > from the nodes (director.js#finalPatch exported, `liveOf` added). The server holds a match's report (425 still_live) while a run is
+     > live — the host's own endedFor rule + the cap. The GO goes up behind the stamp, which now writes the room's tree counter
+     > (`rooms/{CODE}/pt`, THE TREE CAP 1,000) — a phone that sees the tree begun skips the stamp. Rules re-publish pending (the console file).
+     > The engine, the judge, the clock rules: untouched.
+   - **For the CITY chat:**
+     > THE CONSOLE FIX (Nov 20) changed the shared console: app.js THE RUN HOLD (a game screen with `holdsRun()` true stays through a
+     > moved-on room on a frozen state — never against the phone's own LEAVE / QUIT / move: host.js#movedByMe), games/lazy-view.js forwards
+     > `holdsRun`, room.js holds a kick / a lost seat / a meta-only close while a run is held (runHoldDone), host.js skips the idle close while
+     > held, ui/final.js#createFinal takes an optional `game`, the report queue's `still_live` never runs out of tries. HOLD'EM's podium waits
+     > for the dealer's end. **THE SIGN HOLD is still yours** (`core/harbor-neon.js#SIGN_HOLD` — untouched by this pass). The boot: no new
+     > boot module (the hub lives in app.js).
+5. **Calls you can overrule:** THE CALLS MADE above — the two most worth a look: a kicked proven player is credited (seated or not), and an
+   honest host's END GAME now lets the others finish their runs (≤ 6:00) before they follow him. Plus: THE TREE CAP's 1,000 counts solo runs
+   too; the build machine's GPU path was down for the last part of the pass (the match suites ran on the software renderer).

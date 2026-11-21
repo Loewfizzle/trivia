@@ -61,7 +61,9 @@ function refused(op, r, patch, e) {
   const shape = `${op} ${pathShape(refPath(r))}${keys.length ? ` {${keys.join(', ')}}` : ''}`;
   // (CITY G: a ROOT update that deletes a room (the close + its word's rest) is that room's write — judged by the same quiet rule)
   const rp = refPath(r) === '/' && keys.length ? (Object.keys(patch).find(k => /^\/?rooms\/[^/]+$/.test(k)) || refPath(r)) : refPath(r);
-  const exOf = () => expectedOf(refPath(r)) || (rp !== refPath(r) ? expectedOf(String(rp).replace(/^\/?/, '/')) : null);   // (CITY I: + an expected refusal on the ROOM a root update deletes — the second close)
+  // (THE CONSOLE FIX: + an UPDATE whose every child path is expected — the stamp + the room's tree counter go up as ONE update on the room)
+  const kids = op === 'update' && patch && typeof patch === 'object' && !Array.isArray(patch) ? Object.keys(patch) : [];
+  const exOf = () => expectedOf(refPath(r)) || (rp !== refPath(r) ? expectedOf(String(rp).replace(/^\/?/, '/')) : null) || (kids.length && kids.every(k => expectedOf(`${refPath(r).replace(/\/$/, '')}/${k}`)) ? expectedOf(`${refPath(r).replace(/\/$/, '')}/${kids[0]}`) : null);   // (CITY I: + an expected refusal on the ROOM a root update deletes — the second close)
   const ex = exOf();
   if (ex) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${ex.label}:`, shape); } quietFor(ex); return; }
   if (/^\/?(rooms|chats)\//.test(rp)) { setTimeout(() => { const quiet = quietRoomRefusal(rp, { hostGone: safeGone, roomGone }); if (quiet) { countGone(); if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${quiet} — a write refused after ${quiet === 'no longer the host' ? 'the hand-off' : 'leaving'}:`, shape); } return; }

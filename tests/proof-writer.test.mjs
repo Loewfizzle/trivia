@@ -225,5 +225,5 @@ test('BOTH GAMES USE THE ONE WRITER — and the screens never write a chunk them
   assert.ok(jw.includes('io: proofIo(nodePath), pipe: !!D,'), 'JAYWALK\'s daily keeps the old way');
   assert.doesNotMatch(wr, /^import /m, 'the writer is PURE: no imports (the unit job installs nothing)');
   assert.ok(io.includes("expectRefusal(path, `${label} t0: the tree is already stamped or begun, or the rules are not re-published yet`, 8000, 'none');"), 'a refused stamp is EXPECTED and silent (no quiet count of its own)');
-  assert.ok(io.includes("return (begun ? Promise.resolve() : stampT0(tree, label)).then(() => runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }))"), "the GO goes up behind the stamp's answer (THE CONSOLE FIX: the stamp needs the tree empty)");
+  assert.ok(io.includes("return stamp.then(() => runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }))"), "the GO goes up behind the stamp's answer (THE CONSOLE FIX: the stamp needs the tree empty)");
 });

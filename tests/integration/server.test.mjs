@@ -57,7 +57,7 @@ const nextCode = () => { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; codeN++; return `
 function proofNodes(id, m, uids) {
   if (id === 'prism') return { prism: { [m]: Object.fromEntries(uids.map(u => [u, { st: 'out', at: clock, sc: 1 }])) } };
   if (id === 'overclock') return { oc: { [m]: { 1: Object.fromEntries(uids.map(u => [u, { done: true, doneAt: clock }])) } } };
-  if (id === 'jaywalk') return { jw: { [m]: Object.fromEntries(uids.map(u => [u, { go: clock }])) } };   // (JAYWALK H1: GO alone — a silent-but-present player)
+  if (id === 'jaywalk') return { jw: { [m]: Object.fromEntries(uids.map(u => [u, { go: clock - 120_000 }])) } };   // (JAYWALK H1: GO alone — a silent-but-present player; THE CONSOLE FIX: two minutes before the record (no presence = offline: the idle-out + the drop wait) — a GO of NOW would still be a live run, the report held)
   return {};
 }
 /** Seeds a room whose match just finished; returns { code, matchId, game }. */
