@@ -57,7 +57,12 @@ def accessor(j, bn, i):
     n, f = N[a['type']], FMT[a['componentType']]
     size = struct.calcsize(f) * n; stride = bv.get('byteStride', size)
     o = bv.get('byteOffset', 0) + a.get('byteOffset', 0)
-    return [struct.unpack_from('<' + f * n, bn, o + k * stride) for k in range(a['count'])]
+    out = [struct.unpack_from('<' + f * n, bn, o + k * stride) for k in range(a['count'])]
+    if QUANT[0] and a.get('normalized'):   # (J4 — a KHR_mesh_quantization source: its normalized ints → floats; only the winter step asks)
+        d = {5120: 127.0, 5121: 255.0, 5122: 32767.0, 5123: 65535.0}[a['componentType']]
+        out = [tuple(max(-1.0, x / d) for x in v) for v in out]
+    return out
+QUANT = [False]
 
 
 def quat_rot(q, v):
@@ -342,7 +347,8 @@ def credits_md():
           'Copied from the owner\'s delivery (Downloads\\grok\\jaywalk\\models\\) by `scripts/build-jaywalk-assets.py`. The Kenney models, the kid,',
           'the lighthouse + the boat are CC0 1.0 — no credit is required; the game\'s CREDITS (☰ → CREDITS) carry these lines anyway.', '',
           '- 3D models: Kenney — kenney.nl (CC0) — the cars, the train, the props (`LICENSE.txt`), THE KID (Mini Skate 2.0 "character-skate-boy" — `LICENSE-kid.txt`), the fishing boat (Watercraft Kit 2.1 — `LICENSE-kenney-watercraft.txt`), DOWNTOWN\'s storefronts (City Kit (Commercial) 2.1 — `LICENSE-kenney-city-kit-commercial.txt`; H6B)',
-          '- Light House: MaverickFX — https://poly.pizza/m/KRebJXIRb8 (CC0 1.0) — `LICENSE-lighthouse.txt`', '',
+          '- Light House: MaverickFX — https://poly.pizza/m/KRebJXIRb8 (CC0 1.0) — `LICENSE-lighthouse.txt`',
+          '- THE SEASONAL PACK (J4 — `assets/jaywalk/winter/`): Kenney — Holiday Kit 2.0, https://kenney.nl/assets/holiday-kit (CC0 1.0) — the snow pine, the decorated Christmas tree + two presents (baked into one mesh), the snowman — `../winter/LICENSE-kenney-holiday-kit.txt`', '',
           '## CC BY — THE FLYERS (H6A): these credits are REQUIRED wherever the models ship (`LICENSE-flyers.txt`)', '',
           '- `blackbird.glb` — Sr-71 by Kiiba — https://sketchfab.com/3d-models/sr-71-79e6c14217ab417abe524a99ffbb472e (CC BY 4.0). This work is based on "Sr-71" by Kiiba (https://sketchfab.com/Kiiba), licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/). Changes: recoloured near-black (Grok\'s delivery), flattened into one mesh with vertex colours, its normal map dropped, scaled.',
           '- `ufo.glb` — Flying saucer: Poly by Google — https://poly.pizza/m/b0N_HeT_Ttb (CC BY 3.0). Changes: one mesh with vertex colours, normals computed, the landing legs removed, scaled.',
@@ -579,9 +585,53 @@ def sounds():
     print(f'  sounds: {total} B in {len([f for f in os.listdir(OUT_A) if not f.endswith(".md")])} files + CREDITS.md ({len(rows)} rows)')
 
 
+# ---- J4 — WINTER: THE SEASONAL PACK (Kenney Holiday Kit 2.0, CC0 — Grok's delivery winter folder, quantized GLBs; the originals only read)
+#   → assets/jaywalk/winter/: snow-pine · xmas-tree (the tree + its presents baked in: ONE mesh, no extra draw call) · snowman.
+#   The same re-pack as the 12 (one mesh, the colormap in vertex colours, KHR_mesh_quantization). Fetched ONLY in season (Dec 1 → Mar 1) or
+#   when the lab forces a date — js/games/jaywalk/winter.js; never in JAYWALK's preload graph (outside its 2,600 KB line; its own cap 150 KB).
+WINTER_TREE = os.environ.get('JW_XMAS_TREE', 'christmas-tree')   # (THE PICK — docs/jaywalk.md "J4": Kenney's DECORATED tree (garlands, baubles, its star) + the code-drawn lights — the plain one read bare by day)
+def winter():
+    W = os.path.join(SRC, 'winter'); OUT_W = os.path.join(ROOT, 'assets', 'jaywalk', 'winter'); os.makedirs(OUT_W, exist_ok=True)
+    QUANT[0] = True
+    def load(name):
+        j, bn = read_glb(os.path.join(W, name + '.glb'))
+        im = j['images'][0]; bv = j['bufferViews'][im['bufferView']]
+        img = Image.open(io.BytesIO(bn[bv.get('byteOffset', 0): bv.get('byteOffset', 0) + bv['byteLength']])).convert('RGBA')
+        pos, nor, col, idx = flatten(j, bn, img)
+        lo = [min(p[k] for p in pos) for k in range(3)]; hi = [max(p[k] for p in pos) for k in range(3)]
+        cx, cz = (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2
+        return [(p[0] - cx, p[1] - lo[1], p[2] - cz) for p in pos], nor, col, idx
+    def place(m, s, ry, at):
+        pos, nor, col, idx = m; c, sn = math.cos(ry), math.sin(ry)
+        rot = lambda v: (v[0] * c + v[2] * sn, v[1], -v[0] * sn + v[2] * c)
+        return [tuple(rot(p)[k] * s + at[k] for k in range(3)) for p in pos], [rot(n) for n in nor], col, idx
+    def merge(*ms):
+        P, Nn, C, I = [], [], [], []
+        for pos, nor, col, idx in ms: base = len(P); P += pos; Nn += nor; C += col; I += [base + i for i in idx]
+        return P, Nn, C, I
+    total = 0
+    def out(name, m, src_bytes):
+        nonlocal total
+        pos, nor, col, idx = m
+        v, t, size = write_glb(os.path.join(OUT_W, name + '.glb'), name, pos, nor, col, None, idx)
+        lo = [min(p[k] for p in pos) for k in range(3)]; hi = [max(p[k] for p in pos) for k in range(3)]
+        total += size
+        print(f'  winter/{name:12s} {src_bytes:7d} → {size:6d} B · {v} verts · {t} tris · {round(hi[0] - lo[0], 2)} × {round(hi[1] - lo[1], 2)} × {round(hi[2] - lo[2], 2)}')
+    sz = lambda *ns: sum(os.path.getsize(os.path.join(W, n + '.glb')) for n in ns)
+    for n in ('snow-pine', 'snowman'): out(n, load(n), sz(n))   # (the candy cane DROPPED — the draw-call limit: docs/jaywalk.md "J4")
+    # THE CHRISTMAS TREE: the pick + its presents at its foot, in front (toward the camera, +z) — inside its own cell at the scene's scale
+    tree = load(WINTER_TREE); th = max(p[1] for p in tree[0]); k = th / 1.92   # (the presents sized to the plain tree's 1.92 m)
+    big, small = load('present-large'), load('present-small')
+    out('xmas-tree', merge(tree, place(big, 0.5 * k, 0.5, (0.4 * k, 0, 0.42 * k)), place(small, 0.52 * k, -0.35, (-0.42 * k, 0, 0.36 * k)), place(small, 0.42 * k, 0.9, (0.02 * k, 0, 0.56 * k))), sz(WINTER_TREE, 'present-large', 'present-small'))
+    QUANT[0] = False
+    shutil.copyfile(os.path.join(W, 'License.txt'), os.path.join(OUT_W, 'LICENSE-kenney-holiday-kit.txt'))
+    credits_md()
+    print(f'  THE SEASONAL PACK: {total} B ({total / 1024:.1f} KB — the cap 150 KB) · the tree: {WINTER_TREE}')
+
+
 if __name__ == '__main__':
     try: sys.stdout.reconfigure(encoding='utf-8')
     except Exception: pass
     print('JAYWALK — THE FILES IN, from', SRC)
-    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('flyers', flyers), ('shops', shops), ('skyline', skyline), ('sounds', sounds)):
+    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('flyers', flyers), ('shops', shops), ('skyline', skyline), ('sounds', sounds), ('winter', winter)):
         if not ONLY or name in ONLY: fn()

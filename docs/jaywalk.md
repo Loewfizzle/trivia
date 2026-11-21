@@ -33,6 +33,7 @@ import map); the RULES are a pure engine that never knows about it.
 | J2 — EVEN STARTS · THE BLACKBIRD's RUNWAYS · COURSE RULES v2 | Nov 21 2026 | `docs/games/passes/jaywalk-j2.md` | COURSE RULES v2 from the 4 am turn of Nov 22 (a course = seed + version; the version in the proof, checked against its GO; v1 frozen byte for byte) · no opening runs free · runways of 3–4 lanes, a jet each + THE AFTERBURNER TRAIL, every one proven passable · THE SOUND RULE · a RULES CHANGE (`jw/…/cv`) |
 | J2 FIX — THE BLACKBIRD YOU CAN SEE · A PREMIUM DAY RUNWAY | Nov 21 2026 | `docs/games/passes/jaywalk-j2fix.md` | v2's runway numbers before v2 went live: the jets 200 / 250 / 340 (seen), the tell 1.2 s, THE WAIT GUARD, the vapour trail, the sound re-synced; v2 FROZEN; THE PRE-FIX BUILD refused (THE END CHECK · the daily's `cvr`); the day runway's crisp lamps + heat trail; the night compare (`&rwnight=new`, the lab only) |
 | J3 — THE DAILY: TIME BOARDS · THREE TRIES ALL DAY · THE RED SNEAKER | Nov 21 2026 | `docs/games/passes/jaywalk-j3.md` | THE TIME BOARDS on the daily's SCORES · TODAY (MOST LANES · FASTEST TO 50 · TO 100 … — the day's split board from the server's replay splits, best of 3 per split, ties share a place, a VIEW) · the share card's best-time line · THREE TRIES ALL DAY (no STOP, COME BACK LATER, the ticket from the server's tries until the 3rd try / 4 am) · THE SNEAKER's upper NEON RED. No rules change |
+| J4 — WINTER: SNOW · CHRISTMAS · WET NEON STREETS | Nov 21 2026 | `docs/games/passes/jaywalk-j4.md` | a VIEW only: THE SEASON CLOCK (`season.js` — winter Dec 1 → Mar 1, Christmas Dec 1 → Jan 6, snow on half the days + always Dec 24–25), the snowy ground + plowed roads + snow on the tops, snow pines · lit Christmas trees (presents baked in) · snowmen from THE SEASONAL PACK (53 KB, outside the line), THE FALLING SNOW (one draw, never over the lane ahead), WET NEON STREETS (ships OFF — `&wet=1`), the lab's `&date=` `&snow=` `&wet=`. No rules change |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
 this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
@@ -418,6 +419,59 @@ The server already let a player use the 3 tries any time until 4 am (the best co
 The upper back to the owner's original **NEON RED `#ff3344`** (CITY H2 had set the house pink `#ff4fc4`): hue ≈ 355° — red, not pink (~322°), not
 orange; the sole + laces white + the cyan speed lines unchanged. ONE definition → the PLAY sheet, PICK A GAME, the signs that draw the mark, the
 card art (`ui/game-art.js`), the share image (`share.js#drawSignal`) follow. The daily TICKET's ink is the HIGH RISE chat's (`ticket-art.js`).
+
+## J4 — WINTER: SNOW · CHRISTMAS · WET NEON STREETS (Nov 21 — the owner; the pass log `docs/games/passes/jaywalk-j4.md`; the decisions `docs/games/plan.md` "JAYWALK J4") — a VIEW only: no rules change, REPLAY = LIVE untouched
+### THE GAMEPLAY LOCK (`tests/jaywalk-winter.test.mjs`)
+Winter is drawn, never played: course.js / logic.js / tuning.js / versions.js / replay.js / engine.js + the server's judge are untouched and never
+reach `season.js`, `night.js`, `night-fx.js` or `models.js` (an import-graph test); the same seeds give the same courses, hits + results in summer,
+deep winter and the melt (solo · the daily · a match, v1 + v2 — the phone's clock moved too); `decorOf` (what stands where) knows no season — winter
+only swaps WHICH model stands where a tree / a planter already stood, and the ground's look. The v1 / v2 frozen copies pass unchanged.
+### THE SEASON CLOCK (`season.js` — PURE; `tests/jaywalk-season.test.mjs`)
+`seasonOf(day)` → { winter 0 … 1, christmas 0 … 1, snowfall none · light · heavy, wet, melt }; every number in `SEASON`. WINTER: Dec 1 a dusting
+(0.18) → full by Dec 24 → full Jan + Feb → back to 0 over the last 7 days of February (patchy; the grass back; leap years: ITS February) → 0 from
+Mar 1. CHRISTMAS: 0.15 · 0.35 · 0.55 a week from Dec 1, 0.75 Dec 22–23, 1 on Dec 24–25, 0.7 to Jan 6, 0 from Jan 7. SNOWFALL: in every block of 4
+days exactly 2 snow (which 2: a hash of the block — the same on every phone; half the winter, never by chance a long spell), 45 % of them heavy;
+ALWAYS on Dec 24 (heavy) + Dec 25 (light); the melt week light only. THE DAY = the run's own 4 am Eastern day (`seasonAt` — `core/week.js#turnDay`):
+a solo run + the daily = their GO's day, a MATCH = THE FIRST GO's `playAt` (every phone in the room the same winter — `e2e-jaywalk-match`'s check).
+### THE SEASONAL PACK (`assets/jaywalk/winter/` — `build-jaywalk-assets.py --only=winter`; `models.js#loadWinter`)
+Kenney's Holiday Kit 2.0 (CC0 — credited: `ui/credits.js` + `models/CREDITS.md`), re-packed as the 12 (one mesh, the colormap in vertex colours,
+KHR_mesh_quantization): `snow-pine` 9.1 KB · `xmas-tree` 32.4 KB (**THE PICK: Kenney's DECORATED tree** — garlands, baubles, its own star — **+ two
+presents baked at its foot, one mesh**; the plain tree read bare by day; the code lights on top of it) · `snowman` 11.6 KB = **53.1 KB** (the cap 150).
+Fetched ONLY in season (Dec 1 → Mar 1) or on the lab's forced date (`prepSeason`, while the menu / the count shows — never blocking GO), never in
+the preload graph (outside the 2,600 KB line), kept once in. A run whose pack is not in by its start keeps the normal look (no swap mid-run); the
+new kinds are built HIDDEN and shown + warmed at a quiet frame (tick 0 / an end) — never mid-run. A lost context's rebuilt scene takes back EXACTLY
+the season its run applied (`reSeason` — never winter turned on mid-run) and fetches the pack for the next run. `SNOW` is written every frame.
+**THE CANDY CANE was DROPPED** (the draw-call order): DOWNTOWN's Christmas Eve night runway measured 65 calls with it, 63 without.
+### THE LOOK (`night.js` — `WIN_S` · `XMAS_*` · `FLAKES`; `night-fx.js#snowOn` · `#wetRoad` · `snowPatch` · `createSnow`)
+- THE GROUND (`snowOn`, the ground shader — no texture, no draw): coverage = noise over a threshold set by `winter` (the dusting / the melt =
+  patches, grass through) + a fine dusting; soft drifts + wind ridges; DAY crisp white with STRONG BLUE SHADOWS in the drifts + along every road /
+  water / rail bank (never white-on-white); NIGHT blue-lavender + a faint twinkling sparkle (tier ≥ 1); the pier planks + the bridge deck a little
+  less; a gateway's paving lighter, its trim always on top. Water, rails, the runways' chevrons + lamps, the Blackbird: unchanged.
+- THE ROADS: dark, PLOWED — slush banked along each curb (noise-broken, its shadow on the road), a wet sheen in the wheel ruts, a few flecks; the
+  lane paint on top.
+- THE TOPS (`fogUp(mat, { snow: true })` — the lambert props + every area piece; the posts never — their dark colours): a face looking up takes the
+  snow by the winter's amount, DARKENED as the thing is (the blackout, the dim edge columns — the instance colour's brightness).
+  The cars' roofs: NOT done (from above a white roof hides the car's colour — readability first). The logs + the trains: never.
+- THE PROPS: a round tree → a SNOW PINE, or (by `christmas`, up to half of them on Dec 24–25) a lit CHRISTMAS TREE; a planter → a SNOWMAN (up to
+  55 % as the snow deepens, none on a dusting); the grass tufts hide under deep snow. THE TREE LIGHTS: 22 a tree + the star's glow, on THE GLOW
+  BILLBOARDS (no draw of their own — put LAST, in whatever room the 900 have left after every gameplay light; only the instances in use are uploaded)
+  in red · gold · green · blue · pink — by night lamps that bloom, twinkling gently (never a strobe; steady with
+  reduce motion); by day small crisp saturated points; a faint coloured pool under the tree by night.
+- THE FALLING SNOW (`createSnow` — ONE draw): every motion in the vertex shader; the far flakes in a world box round the camera's focus (wrapped —
+  they never swim), none near the lens; HEAVY adds a few big soft flakes at the screen's EDGES only; every flake see-through and faded to 6 % over
+  the lanes just in front of the kid — the WHOLE width (a car coming from the side too); drawn BEFORE every light (`renderOrder` 1.5) — headlights, tail lights, the train's warning, the runway lamps
+  all show over it; by night a flake near a light catches its colour. 300 light · 760 heavy (half at tier 0 or with reduce motion — frozen then).
+- WET NEON STREETS (`wetRoad` — night, tier 2 only, inside the road's own shader): the asphalt darker + glossy, the ≤ 16 nearest lights (THE LIGHTS
+  — headlights, tail lights, the train's lamps, street lamps, the gates' neon, the blinking signals, the Christmas trees: `night.js#glow`) streak
+  softly toward the camera (a planar fake — the call: no screen-space pass, no texture), the night city's glow in the puddles; stronger + glossier in
+  winter (`wet` 0.55 → 1). **Ships OFF** (`season.js#WET_LIVE` false) — the lab's `&wet=1` only; a one-line add-on flips it.
+### THE LAB + THE CHECKS
+`jaywalk-lab.html` + `&date=YYYY-MM-DD` (the season forced to that day) · `&snow=none|light|heavy` · `&wet=1` (with `cv=2`, `look=day|night`, every
+other param) — the seed line shows the season; never the live game (the view reads none of them — a test). The emulator's E2Es: `JW_DAY=2026-12-24`
+(the page's test-only `&jwday=`, kept by `identity.js` like `jwcv`). The look checks: `jaywalk-lab.mjs --j4[=peek|strip|snow|wet|props]` (the
+composites built in the browser) · `--j4perf` = the busy runways on Christmas Eve, heavy snow, wet on.
+### MEASURED (the Beelink, 390 × 844 / 430 × 932 @3, tier 2, 8 kids, the runway's worst frame over a whole lap + 4× CPU)
+DOWNTOWN night **63** calls (J2 FIX's 61 + the snow + the snowmen) · day 35 · THE AIRFIELD night 49 · day 28 — fps 58.4 – 60 at 4× CPU, 390 + 430.
 
 ## THE MATCH (H4 — ONE LIFE; the cartridge — hidden: THE OWNER'S LIVE TEST)
 One run each on the SAME course, one life; the others are see-through ghosts; farthest wins, ties → the earlier tick. **Real matches run

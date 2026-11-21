@@ -6,8 +6,9 @@
 import * as THREE from 'three';
 import { FP, COLS, HOP_TICKS, MODES } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod, area, gateName } from './course.js';
-import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade } from './models.js';
-import { FOG_HEX, DAY_FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, dayEnv, createBloom, fogUp, FOG_UP, OCC_LAYER } from './night-fx.js';
+import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade, loadWinter } from './models.js';
+import { packDay } from './season.js';
+import { FOG_HEX, DAY_FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, dayEnv, createBloom, fogUp, FOG_UP, OCC_LAYER, SNOW, LIGHTS, createSnow } from './night-fx.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { skyPlan, skyHeld, skyRoom, skyShift, skyOff, SKY_FADE_MS, SKY_LOOK_MS, SKY_BAND, SKY_ASPECT, SKY_LIGHTS, SKY_NEON } from './skyline.js';
 import { CAM, createCamera } from './camera.js';
@@ -53,6 +54,18 @@ const FOG_LAYERS = Object.freeze([
   [-0.1, 0.6, 3.3, 2.1, 0.55, 0.28, 0xffffff, 0xecf2f6, 1.35],
 ]);
 const ease = t => t * t * (3 - 2 * t);
+/** J4 — WINTER (docs/jaywalk.md "J4 — WINTER"): a VIEW — only WHICH model stands where the course + decorOf already put a tree / a planter /
+ *  a cone, the ground's look, the falling snow + the wet streets. The sizes of the seasonal pack's models on the lane (native metres → cells) */
+const WIN_S = Object.freeze({ pine: 0.62, xmas: 0.6, snowman: 0.62 });   // (the CANDY CANE was DROPPED — the draw-call order: DOWNTOWN's Christmas Eve night runway measured 65 with it, 63 without)
+/** THE TREE LIGHTS (code-drawn, ONE kind with every light in the scene — the glow billboards): red · gold · green · blue · pink */
+const XMAS_HEX = [0xff3046, 0xffc23a, 0x36ff7a, 0x4a86ff, 0xff4fd8];
+/** each light's place on the plain tree (native metres, a spiral round its cone — the camera sees the front half) + the star on top */
+const XMAS_AT = Array.from({ length: 22 }, (_, k) => { const u = (k + 0.5) / 22, r = (0.68 * (1 - u) + 0.1) * 1.04, a = k * 2.4 + 0.6; return [Math.sin(a) * r, 0.36 + u * 1.62, Math.cos(a) * r]; });
+const XMAS_TOP = 2.2;   // (the decorated tree's star, native metres: a soft gold glow round it by night)
+const WK = Object.freeze(['w-pine', 'w-xmas', 'w-snowman']);   // (the pack's kinds)
+const NO_SEASON = Object.freeze({ day: '', winter: 0, christmas: 0, snowfall: 'none', wet: 0 });
+/** the falling snow: how many flakes (light · heavy) */
+const FLAKES = Object.freeze({ light: 300, heavy: 760 });
 
 export function createNight(host, o = {}) {
   // (J2 FIX — THE NIGHT COMPARE: the new crisp runway lamps + the heat trail by NIGHT too, on the LAB's `&rwnight=new` only — the game never
@@ -108,16 +121,20 @@ export function createNight(host, o = {}) {
         if (ax) { const q = i * aux[1]; ax.array[q] = a0; if (aux[1] > 1) ax.array[q + 1] = a1; if (aux[1] > 2) { ax.array[q + 2] = a2; ax.array[q + 3] = a3; } }
         i++;
       },
-      done() { m.count = i; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; if (ax) ax.needsUpdate = true; },
+      done() { m.count = i; upRange(m.instanceMatrix, i * 16); upRange(m.instanceColor, i * 3); if (ax) upRange(ax, i * aux[1]); },
+      left: () => n - i,
     };
   }
   const UP = new THREE.Vector3(0, 1, 0);
+  // (J4 — the fresh-eyes review: ONLY the instances in use go to the GPU — three's own kept range record, HIGH RISE's S4A pattern; a three
+  //  without it sends the whole buffer, as before. The glow billboards' cap grew 600 → 900 for the tree lights: never a bigger upload for it)
+  const upRange = (a, cnt) => { const u = a._updateRange; if (u && cnt > 0) { u.offset = 0; u.count = cnt; } a.needsUpdate = true; };
   /** THE TAIL LIGHT BAR: a thin red bar across a vehicle's rear, `vw` wide — it glows by night */
   function tailBar(x, y, z, vw, a) {
     K.flat.put(x, y, z, vw, 1, day ? 0.09 : 0.15, Math.PI / 2, day ? 0xd81828 : 0xff2030, 1, 4, (day ? 1 : 1.3) * a);
     if (!day) { K.flat.put(x, y + 0.002, z, vw * 0.92, 1, 0.05, Math.PI / 2, 0xffd6cc, 1, 4, 0.9 * a); K.flat.put(x, y - 0.002, z, vw * 1.25, 1, 0.5, Math.PI / 2, 0xff2030, 1, 4, 0.3 * a); }
   }
-  const lambert = () => fogUp(new THREE.MeshLambertMaterial({ vertexColors: true }));   // (fogUp — H5C: a thing fades into the far haze as the ground under it does)
+  const lambert = () => fogUp(new THREE.MeshLambertMaterial({ vertexColors: true }), { snow: true });   // (fogUp — H5C: a thing fades into the far haze as the ground under it does; J4: its tops take the winter's snow)
   const glossy = (rough, envI) => new THREE.MeshStandardMaterial({ roughness: rough, metalness: 0, envMapIntensity: envI });
 
   const ground = createGround(POOL, fogV);
@@ -127,7 +144,7 @@ export function createNight(host, o = {}) {
   const K = {
     shadow: kind(flatGeo, glowMaterial(fogV, { shadow: true }), 420, { aux: ['aFx', 2], raw: true, order: 1 }),
     flat: kind(flatGeo, glowMaterial(fogV), 720, { aux: ['aFx', 2], raw: true, order: 2, bloom: true }),          // pools · trails · beams · rings · edge lines
-    bill: kind(billGeo, glowMaterial(fogV, { bill: true }), 600, { aux: ['aFx', 2], raw: true, order: 3, bloom: true }),   // lamps · light quads · sparks
+    bill: kind(billGeo, glowMaterial(fogV, { bill: true }), 900, { aux: ['aFx', 2], raw: true, order: 3, bloom: true }),   // lamps · light quads · sparks
     trees: kind(GEO.tree, lambert(), 150),
     tufts: kind(GEO.tuft, lambert(), 220, { solid: false }),   // (J1: a grass tuft never hides a light pool)
     ...Object.fromEntries([1, 2, 3, 4].map(n => [`log${n}`, kind(GEO[`log${n}`], fogUp(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0, envMapIntensity: 0.25 })), 60)])),
@@ -167,6 +184,49 @@ export function createNight(host, o = {}) {
     needWarm = true;   // (H4B — the new kinds' programs + buffers are made in the NEXT frame, not when a car first drives in)
     return true;
   }).catch(() => false);
+
+  // ---- J4 — THE SEASON (setSeason — the view's, from the run's own day: season.js). THE SEASONAL PACK loads on prepSeason (the menu / the
+  //  count); a run whose pack is not in by its start keeps the normal look (no swap mid-run). The kinds come in with the pack.
+  let SZ = NO_SEASON, wetOn = false, packP = null, winterGeo = null, seasonWarm = false, xtN = 0;
+  const XT_MAX = 48, XT = new Float32Array(XT_MAX * 6);   // (this frame's Christmas trees, for their lights at the end — no garbage)
+  const snow = createSnow(FLAKES.heavy, fogV);
+  scene.add(snow.mesh);
+  function prepSeason(s) {
+    if (packP || !packDay(s)) return packP;
+    packP = loadWinter().then(gs => {
+      if (!gs) { packP = null; return false; }
+      if (dead) return false;
+      winterGeo = gs;
+      KM['w-pine'] = kind(gs['snow-pine'], lambert(), 150); KM['w-xmas'] = kind(gs['xmas-tree'], lambert(), 60);
+      KM['w-snowman'] = kind(gs.snowman, lambert(), 70);
+      for (const k of WK) KM[k].mesh.visible = false;   // (the review: hidden — nothing of theirs is built until the quiet frame shows them)
+      seasonWarm = true;   // (their programs + buffers made at the next quiet frame — never mid-run)
+      return true;
+    });
+    return packP;
+  }
+  /** the season for the run starting now (null = none) · wet = the WET NEON STREETS switch (the lab's; WET_LIVE in the game) → what it applied */
+  function setSeason(s, { wet = false } = {}) {
+    const want = s || NO_SEASON, pack = !!KM['w-pine'];
+    if (packDay(want)) prepSeason(want);
+    SZ = packDay(want) && !pack ? { ...NO_SEASON, wet: want.wet } : want;   // (the pack is not in yet: this run keeps the normal look)
+    wetOn = !!wet; SNOW.value = SZ.winter;
+    return SZ;
+  }
+  /** THE LIGHTS this frame (J4 — the wet streets' streaks + the snow's catch-light): the 16 nearest the kid */
+  const LQ = { n: 0, x: new Float32Array(16), z: new Float32Array(16), k: new Float32Array(16), c: new Int32Array(16), p: new Float32Array(16) };
+  let lWant = false, lkx = 0, lkz = 0;
+  function glow(x, z, hex, k) {
+    if (!lWant) return;
+    const pr = Math.abs(z - lkz) + 0.35 * Math.abs(x - lkx) + (z > lkz + 3 ? 6 : 0);   // (the lanes ahead of him matter; far behind the camera never)
+    let i = LQ.n;
+    if (i >= 16) { let wi = 0; for (let j = 1; j < 16; j++) if (LQ.p[j] > LQ.p[wi]) wi = j; if (LQ.p[wi] <= pr) return; i = wi; } else LQ.n++;
+    LQ.x[i] = x + COLS / 2; LQ.z[i] = -z; LQ.k[i] = k; LQ.c[i] = hex; LQ.p[i] = pr;
+  }
+  function lightsDone() {
+    for (let i = 0; i < LQ.n; i++) { const hx = LQ.c[i]; LIGHTS.pos[i].set(LQ.x[i], LQ.z[i], LQ.k[i], 0); LIGHTS.col[i].set(((hx >> 16) & 255) / 255, ((hx >> 8) & 255) / 255, (hx & 255) / 255); }
+    LIGHTS.n.value = LQ.n;
+  }
 
   const kidPos = new THREE.Vector3();
   const labelGeo = new THREE.PlaneGeometry(7.0, 0.875).rotateX(-Math.PI / 2);   // (BIG: the letters ≈ half a lane tall; 7 cells — H5C: the words are CENTRED on the screen (they ride the camera's column): never cut by its edge)
@@ -457,6 +517,7 @@ export function createNight(host, o = {}) {
   function warm() {
     const put = [];
     for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.put(0, -60, 0, 0.01, 0.01, 0.01, 0, 0xffffff, 1); q.done(); }
+    { const sg = snow.mesh.geometry; put.push([snow.mesh, snow.mesh.visible, 0, sg.instanceCount, true]); snow.mesh.visible = true; sg.instanceCount = Math.max(1, sg.instanceCount); }   // (J4 — the snow's program too)
     for (const m of [...(FL ? FL.meshes() : []), ...Object.values(LBL).map(L => L.m), fish]) { put.push([m, m.visible, m.position.y, m.count]); m.visible = true; m.position.y = -60; if (m.isInstancedMesh && !m.count) m.count = 1; }   // (J2: the jets are ONE instanced mesh — warmed with one in it)
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam); } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
     if (!otherWarm && lookSet) {
@@ -464,7 +525,7 @@ export function createNight(host, o = {}) {
       try { lookGL(); renderer.compile(scene, cam); renderer.render(scene, cam); } catch { /* as above */ }
       day = !day; lookGL();
     }
-    for (const [m, v, y, c] of put) { m.visible = v; m.position.y = y; if (m.isInstancedMesh) m.count = c; }
+    for (const [m, v, y, c, ig] of put) { m.visible = v; if (ig) { m.geometry.instanceCount = c; continue; } m.position.y = y; if (m.isInstancedMesh) m.count = c; }
     for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.done(); }
     warmed++;
   }
@@ -571,6 +632,7 @@ export function createNight(host, o = {}) {
     if (resting) resting--;
     clock += dt;
     const LF = day ? NOP : K.flat.put, LB = day ? NOP : K.bill.put, EK = day ? 0.8 : 0.5, fogK = day ? 2.4 : -0.96;
+    if (seasonWarm && (run.t === 0 || run.st === 'out' || run.st === 'taken')) { seasonWarm = false; for (const k of WK) KM[k].mesh.visible = true; needWarm = true; }   // (J4 — the pack's kinds warmed at a quiet frame, never mid-run)
     if (needWarm && w && h) { needWarm = false; warm(); }
     if (reveal !== revealT) { reveal = reduce ? revealT : reveal + (revealT - reveal) * Math.min(1, dt / 130); if (Math.abs(revealT - reveal) < 0.004) reveal = revealT; }
     if (course !== courseRef) { courseRef = course; vseed = strSeed(course.seed); decor.clear(); plots.clear(); }
@@ -659,6 +721,9 @@ export function createNight(host, o = {}) {
     const wallE = run.wall / FP, darkOf = i => clamp01(wallE - i), litOf = i => 1 + fogK * darkOf(i);
     lit *= litOf(Math.floor(ky));
     kidPos.set(px, flat ? 0.02 : py, pz);
+    const WIN = SZ.winter > 0 && !!KM['w-pine'], XM = WIN ? SZ.christmas : 0, falling = SZ.snowfall !== 'none';
+    lWant = !day && ((wetOn && tier === 2) || falling); LQ.n = 0; lkx = px; lkz = pz; xtN = 0;   // (J4 — THE LIGHTS this frame)
+    SNOW.value = WIN ? SZ.winter : 0;   // (every frame: another scene's teardown never zeroes this one's snow)
     const kidDraw = show ? [px, flat ? 0.02 : py, pz, s3[0] * KID_S, s3[1] * KID_S, s3[2] * KID_S, ry + KID_YAW, kidHex, 1, lit, poseA, rx, rz, poseB, poseK] : null;
     if (kidMat) kidMat.userData.u.uRim.value.copy(rimCol).multiplyScalar((day ? 0.16 : 0.5) * Math.min(1, lit));
     kidH = KID.h * s3[1] * KID_S;
@@ -694,16 +759,31 @@ export function createNight(host, o = {}) {
           const x = X(q.c + 0.5) + q.dx, zz = z + q.dz, dim = lt * (q.c < 0 || q.c >= COLS ? EK : 1);
           if (q.big) { if (q.k === 'shop' && !SH) shopGet(); drawBig(q, X(q.c + 0.5), z, { K, A: AK, lt, on: on && !day, day, ek: EK, SH: SH && SH.put }); }
           else if (AK[q.k]) { const [ps, sh] = PIECE[q.k]; AK[q.k].put(x, 0, zz, ps, ps, ps, q.ry, q.k === 'drum' ? DRUM_HEX[Math.floor(q.s * 2.999)] : 0xffffff, dim * 1.25); K.shadow.put(x, 0.03, zz + 0.06, sh[0], 1, sh[1], 0, 0, 1, 0, 0.45 * lt); }
-          else if (q.k === 'tree' || (q.k !== 'barricade' && !KM[q.k])) { const s = 0.72 + q.s * 0.3; K.trees.put(x, 0, zz, s, s, s, q.ry * 3, 0xffffff, dim); K.shadow.put(x, 0.03, zz + 0.1, 1.15 * s, 1.6, 1.0 * s, 0, 0, 1, 0, 0.5 * lt); }
+          else if (q.k === 'tree' || (q.k !== 'barricade' && !KM[q.k])) {
+            const s = 0.72 + q.s * 0.3;
+            if (!WIN) K.trees.put(x, 0, zz, s, s, s, q.ry * 3, 0xffffff, dim);
+            else if (hsh(vseed ^ (i * 313), q.c * 7 + 5) < XM * 0.5) {   // J4 — A CHRISTMAS TREE (its presents baked in) + its lights
+              const ws = WIN_S.xmas * (0.88 + q.s * 0.14), ry = q.ry * 0.5, ph = hsh(vseed ^ i, q.c + 90) * 40;
+              KM['w-xmas'].put(x, 0, zz, ws, ws, ws, ry, 0xffffff, dim);
+              if (xtN < XT_MAX) { const o = xtN++ * 6; XT[o] = x; XT[o + 1] = zz; XT[o + 2] = ws; XT[o + 3] = ry; XT[o + 4] = ph; XT[o + 5] = Math.min(1, dim); }   // (its lights: put LAST — the review: never one gameplay light lost to them)
+              if (on) { LF(x, 0.035, zz, 1.7, 1, 1.5, 0, XMAS_HEX[(ph | 0) % 5], 1, 0, 0.16 * lt); glow(x, zz, XMAS_HEX[(ph | 0) % 5], 0.5); }
+            } else { const ws = WIN_S.pine * s; KM['w-pine'].put(x, 0, zz, ws, ws, ws, q.ry * 3, 0xffffff, dim); }   // J4 — a SNOW PINE
+            K.shadow.put(x, 0.03, zz + 0.1, 1.15 * s, 1.6, 1.0 * s, 0, 0, 1, 0, 0.5 * lt);
+          }
           else if (q.k === 'barricade') { K.barricades.put(x, 0, zz, 1.04, 1.04, 1.04, q.ry * 0.22, 0xffffff, dim * 1.3); K.shadow.put(x, 0.03, zz + 0.06, 1.1, 1, 0.6, 0, 0, 1, 0, 0.45 * lt); if (on) K.bill.put(x + 0.4, 0.68, zz, 0.3, 0.3, 1, 0, 0xffa530, 1, 0, 0.95 * dim); }
-          else { const s = PROP_S[q.k]; KM[q.k].put(x, 0, zz, s, s, s, Math.round(q.ry) * Math.PI / 2 + (q.k === 'traffic-cone' ? q.ry : 0), 0xffffff, dim * 1.35); K.shadow.put(x, 0.03, zz + 0.06, 0.95, 1, 0.8, 0, 0, 1, 0, 0.45 * lt); }
+          else {
+            const wk = WIN && q.k === 'bush-planter' && hsh(vseed ^ (i * 271), q.c * 11 + 3) < 0.55 * clamp01((SZ.winter - 0.3) / 0.4) ? 'w-snowman' : '';   // J4 — some planters → SNOWMEN (more as the snow deepens)
+            if (wk) { const ws = WIN_S.snowman; KM[wk].put(x, 0, zz, ws, ws, ws, q.ry * 0.4, 0xffffff, dim * 1.1); }
+            else { const s = PROP_S[q.k]; KM[q.k].put(x, 0, zz, s, s, s, Math.round(q.ry) * Math.PI / 2 + (q.k === 'traffic-cone' ? q.ry : 0), 0xffffff, dim * 1.35); }
+            K.shadow.put(x, 0.03, zz + 0.06, 0.95, 1, 0.8, 0, 0, 1, 0, 0.45 * lt);
+          }
         }
         if (D.lamp && !(D.lamp < 0 ? sgL : sgR)) {                // a street lamp on the edge column: its head over the grass, a warm pool under it
           const side = D.lamp, x = X(side > 0 ? COLS + 0.55 : -0.55);
           if (KM['street-lamp']) KM['street-lamp'].put(x, 0, z, 2.7, 2.7, 2.7, side > 0 ? Math.PI / 2 : -Math.PI / 2, 0xffffff, lt * 1.3);
-          if (on) { LF(x - side * 0.75, 0.035, z, 3.6, 1, 3.0, 0, D.lampHex, 1, 0, 0.34 * lt); LB(x - side * 0.5, 1.72, z, 0.34, 0.34, 1, 0, D.lampHex, 1, 5, 0.8 * lt); }
+          if (on) { LF(x - side * 0.75, 0.035, z, 3.6, 1, 3.0, 0, D.lampHex, 1, 0, 0.34 * lt); LB(x - side * 0.5, 1.72, z, 0.34, 0.34, 1, 0, D.lampHex, 1, 5, 0.8 * lt); glow(x - side * 0.5, z, D.lampHex, 0.9 * lt); }
         }
-        if (tier > 0) for (const q of D.tufts) K.tufts.put(X(q[0]), 0, z - 0.5 + q[1], q[2], q[2], q[2], q[0] * 9, 0xffffff, lt * (q[0] < 0 || q[0] > COLS ? EK + 0.1 : 1));
+        if (tier > 0 && SZ.winter < 0.45) for (const q of D.tufts) K.tufts.put(X(q[0]), 0, z - 0.5 + q[1], q[2], q[2], q[2], q[0] * 9, 0xffffff, lt * (q[0] < 0 || q[0] > COLS ? EK + 0.1 : 1));
       } else if (L.type === 'road' || L.type === 'water') {
         const car = L.type === 'road', per = L.period / FP;
         if (!car) fxv = L.dir * L.v * 0.06;   // (H5B's add-on — THE WATER FLOWS the way its logs go: the lane's current in cells a second, for the ground's ripple caps + specks)
@@ -727,6 +807,7 @@ export function createNight(host, o = {}) {
                 if (truck) for (const m of [0, 0.34, 0.67, 1]) K.bill.put(cx + L.dir * (TRUCK.box[0] + (TRUCK.box[1] - TRUCK.box[0]) * m) * tz, 0.29, z + 0.4, 0.24, 0.24, 1, 0, 0xff9a1c, 1, 0, a1);
                 if (taxi) { K.bill.put(bx, 0.5, z, 0.3, 0.2, 1, 0, 0xfff3b0, 1, 5, a1); LB(bx, 0.5, z, 0.62, 0.42, 1, 0, 0xffc21e, 1, 0, 0.55 * a1); }   // its ROOF LIGHT: a small lit box + its warm halo
                 const rearX = truck ? tail : nose - L.dir * bodyL;
+                if (lWant) { glow(X(nose), z, 0xfff0c8, 1.1 * a1); glow(X(rearX), z, 0xff2a22, 0.85 * a1); }   // (J4 — its headlights + its tail on the wet road)
                 const vw = truck ? 0.9 : len < 1.5 ? 0.7 : 0.78;
                 LF(X(rearX - L.dir * (TAIL_LEN / 2 - 0.2)), 0.04, z, TAIL_LEN, 1, vw * 1.15, L.dir > 0 ? Math.PI : 0, 0xff2a22, 1, -1, 0.34 * a1);
                 LF(X(rearX - L.dir * 0.1), 0.041, z, 0.6, 1, vw * 0.9, 0, 0xff5a34, 1, 0, 0.3 * a1);
@@ -763,7 +844,7 @@ export function createNight(host, o = {}) {
             const x = X(c);
             K.posts.put(x, 0.3, z - 0.44, 0.1, 0.6, 0.1, 0, 0x2a2a34, lt); K.posts.put(x, 0.66, z - 0.46, 0.3, 0.34, 0.12, 0, 0x1c1c24, lt);   // (a post + its signal head's housing: a lamp, never a lollipop)
             K.bill.put(x, 0.66, z - 0.44, blink ? (day ? 0.7 : 0.62) : 0.24, blink ? (day ? 0.7 : 0.62) : 0.24, 1, 0, blink ? 0xff2a2a : tell ? 0x7a1414 : 0x32151b, 1, 5, (blink ? 1 : tell ? 0.8 : 0.7) * lt);
-            if (blink && on) K.flat.put(x, 0.04, z - 0.3, 2.2, 1, 1.5, 0, 0xff2020, 1, 0, (day ? 0.45 : 0.5) * lt);
+            if (blink && on) { K.flat.put(x, 0.04, z - 0.3, 2.2, 1, 1.5, 0, 0xff2020, 1, 0, (day ? 0.45 : 0.5) * lt); glow(x, z - 0.44, 0xff2020, 0.8 * lt); }
           }
           if (st.st === 'tell' && on) {                           // a warning glow on the side it comes from
             const pulse = 0.55 + 0.45 * Math.sin(t * 0.55), side = p.dir > 0 ? -1.2 : COLS + 1.2;
@@ -786,7 +867,7 @@ export function createNight(host, o = {}) {
                 LF(X(nose + p.dir * HEAD_REACH * 0.8), 0.05, z + e, HEAD_REACH * 1.6, 1, 0.95, p.dir > 0 ? 0 : Math.PI, 0xfff2d0, 1, 6, 0.6 * lt);
                 K.bill.put(X(nose), ty, z + e, day ? 0.24 : 0.36, day ? 0.24 : 0.36, 1, 0, 0xfff6d8, 1, 5, lt);
               }
-              tailBar(X(rear - p.dir * 0.03), ty + 0.04, z, 0.86, lt);   // (H6B — the cars' rule: a light bar across its tail …)
+              tailBar(X(rear - p.dir * 0.03), ty + 0.04, z, 0.86, lt); glow(X(nose), z, 0xfff2d0, 1.2 * lt); glow(X(rear), z, 0xff2a22, 0.8 * lt);   // (H6B — the cars' rule: a light bar across its tail …)
               LF(X(rear - p.dir * (TAIL_LEN * 0.65 - 0.2)), 0.05, z, TAIL_LEN * 1.3, 1, 1.0, p.dir > 0 ? Math.PI : 0, 0xff2a22, 1, -1, 0.3 * lt);   // … and ONE oval red pool starting at it, centred, as wide as the train
               LF(X(left + len / 2), 0.045, z + 0.55, len, 1, 0.9, 0, 0xffe2b8, 1, 4, 0.3 * lt);   // (its windows' light on the ground: warm — never blue)
             }
@@ -820,7 +901,7 @@ export function createNight(host, o = {}) {
           for (const x of [xl, xr]) { K.posts.put(x, 1.5, zf, 0.22, 3.0, 0.22, 0, wh, li); K.posts.put(x, 2.86, zf, 0.3, 0.4, 0.3, 0, pc, li); K.posts.put(x, 0.4, zf, 0.3, 0.8, 0.3, 0, pc, li); K.posts.put(x, 3.16, zf, 0.34, 0.2, 0.34, 0, wh, li); K.shadow.put(x, 0.03, zf, 0.9, 3.0, 0.7, 0, 0, 1, 0, 0.5 * Math.min(1, lt)); }
           for (let k = 0; k < 10; k++) K.flat.put(xl + (xr - xl) * (k + 0.5) / 10, 0.05, zf + 0.06, (xr - xl) / 10 + 0.02, 1, 0.38, 0, k % 2 ? wh : pc, 1, 4, 1);
         } else {
-          for (const x of [xl, xr]) { K.posts.put(x, 1.5, zf, 0.2, 3.0, 0.2, 0, 0x2b2b3c, lt); K.bill.put(x, 3.1, zf, 0.5, 0.5, 1, 0, hex, 1, 5, lt); for (let k = 0; k < 5; k++) K.bill.put(x, 0.4 + k * 0.55, zf, 0.3, 0.42, 1, 0, hex, 1, 4, 0.85 * lt); if (on) K.flat.put(x, 0.05, zf, 2.6, 1, 2.0, 0, hex, 1, 0, 0.4 * lt); }
+          for (const x of [xl, xr]) { glow(x, zf, hex, lt); K.posts.put(x, 1.5, zf, 0.2, 3.0, 0.2, 0, 0x2b2b3c, lt); K.bill.put(x, 3.1, zf, 0.5, 0.5, 1, 0, hex, 1, 5, lt); for (let k = 0; k < 5; k++) K.bill.put(x, 0.4 + k * 0.55, zf, 0.3, 0.42, 1, 0, hex, 1, 4, 0.85 * lt); if (on) K.flat.put(x, 0.05, zf, 2.6, 1, 2.0, 0, hex, 1, 0, 0.4 * lt); }
           K.flat.put(0, 0.05, zf + 0.06, (xr - xl) * 1.02, 1, 0.3, 0, hex, 1, 4, 0.9 * lt); K.flat.put(0, 0.052, zf + 0.06, xr - xl, 1, 0.08, 0, 0xffffff, 1, 4, 0.7 * lt);
           if (on) K.flat.put(0, 0.045, z, 11, 1, 1.2, 0, hex, 1, 4, 0.16 * lt);
         }
@@ -951,6 +1032,25 @@ export function createNight(host, o = {}) {
     if (day) { lip.position.set(0, 2.5 + 0.9, Z(wallE - 3.1)); lip.scale.set(60, 1.8, 1); }
     curtain.position.set(0, 1.2, Z(wallE - (day ? 3.1 : 2.3) - 20)); curtain.scale.set(60, 2.6, 40);   // (by night it starts where the ground is already fully dark: its straight front is never seen)
     ground.uniforms.uWall.value = wallE;
+    // J4 — THE TREE LIGHTS, LAST: whatever room the glow billboards have left after every gameplay light (a tree at a time, whole)
+    for (let j = 0; j < xtN && K.bill.left() > XMAS_AT.length + 2; j++) {
+      const o = j * 6, x = XT[o], zz = XT[o + 1], ws = XT[o + 2], ry = XT[o + 3], ph = XT[o + 4], dm = XT[o + 5], cr = Math.cos(ry), sr = Math.sin(ry);
+      for (let k = 0; k < XMAS_AT.length; k++) {
+        const L3 = XMAS_AT[k], lx = L3[0], ly = L3[1], lz = L3[2], tw = reduce ? 1 : 0.62 + 0.38 * Math.sin(clock / (820 + k * 37) + ph + k * 1.7);
+        K.bill.put(x + (lx * cr + lz * sr) * ws, ly * ws, zz + (-lx * sr + lz * cr) * ws, day ? 0.085 : 0.2, day ? 0.085 : 0.2, 1, 0, XMAS_HEX[(k + (ph | 0)) % 5], 1, day ? 11 : 5, (day ? 1 : 0.95) * tw * dm);
+      }
+      LB(x, XMAS_TOP * ws, zz, 0.42, 0.42, 1, 0, 0xffd27a, 1, 0, 0.6 * dm);   // (the star's glow — the model's own star by day)
+    }
+    // J4 — THE SEASON's frame: the wet streets (night, the top tier only, their switch), THE LIGHTS, the falling snow (ONE draw)
+    ground.uniforms.uWet.value = !day && wetOn && tier === 2 ? SZ.wet : 0;
+    lightsDone();
+    if (falling) {
+      const heavy = SZ.snowfall === 'heavy', U = snow.uniforms;
+      snow.show(Math.round(FLAKES[heavy ? 'heavy' : 'light'] * (tier === 0 || reduce ? 0.5 : 1)));
+      U.uTime.value = reduce ? 0 : clock / 1000; U.uFocus.value.set(rig.x(), 0, Z(camY + 7)); U.uAspect.value = w / Math.max(1, h);
+      U.uDay.value = day ? 1 : 0; U.uFall.value = heavy ? 1.7 : 1; U.uNear.value = heavy ? 1 : 0;
+      v3.copy(kidPos).project(cam); U.uKid.value.set(v3.x, v3.y, 0);
+    } else snow.show(0);
     for (const q of Object.values(K)) q.done();
     for (const q of Object.values(KM)) q.done();
     ground.uniforms.uTime.value = reduce ? 0 : clock / 1000;
@@ -1003,6 +1103,8 @@ export function createNight(host, o = {}) {
     /** SPECTATE (the camera moved to another kid): the kid's own feel starts clean */
     resetKid() { fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; fx.parts.length = 0; fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
     el, draw, resize: () => fit(), ready, setTier, tier: () => tier,
+    /** J4 — THE SEASON: prepSeason(s) starts THE SEASONAL PACK (in season only) · setSeason(s, { wet }) for the run starting now → what it applied */
+    prepSeason, setSeason, season: () => ({ ...SZ, wet: wetOn ? SZ.wet : 0, pack: !!KM['w-pine'] }),
     /** the lab's switches: ZOOM 7 · 8 · 9 + ANGLE straight · turned (eased; `snap` = at once) */
     setCamera(zoom, angle, snap) { rig.choose(zoom, angle, snap); },
     zoom: () => rig.zoom(), angle: () => rig.angle(),
@@ -1016,7 +1118,7 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px — the wider view's readability number */
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ binCap: K.bill.left(), warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); }, duck: () => (FL ? FL.duck() : 1),
     /** THE LOOK: 'day' | 'night' (at once; the same scene) */
@@ -1027,6 +1129,7 @@ export function createNight(host, o = {}) {
       for (const g of Object.values(GEO)) g.dispose();
       curtain.material.dispose(); lip.geometry.dispose(); lip.material.dispose(); lipTex.dispose(); if (FL) FL.destroy();
       if (kidGeo) { kidGeo.userData.poses.tex.dispose(); kidGeo.dispose(); }
+      scene.remove(snow.mesh); snow.dispose(); SNOW.value = 0; LIGHTS.n.value = 0;
       for (const L of Object.values(LBL)) { scene.remove(L.m); L.m.material.dispose(); L.tex.dispose(); L.cv.width = 0; L.cv.height = 0; }
       labelGeo.dispose(); fishGeo.dispose(); fishTex.dispose(); fish.material.dispose(); scene.remove(fish); fishCv.width = 0;
       G.cv.remove(); G.cv.width = 0; G.cv.height = 0; offLost();

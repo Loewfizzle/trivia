@@ -14,6 +14,7 @@ import { LOOKS as AREA_LOOKS } from './areas.js';
 import { createRun, step, isOver, resultOf, canLog } from './engine.js';
 import { replay } from './replay.js';
 import { versionAt } from './versions.js';
+import { labSeason } from './season.js';
 import { wireControls } from './controls.js';
 import { createTiers } from '../kit/tiers.js';
 import { getPref, setPref } from './lab-prefs.js';
@@ -26,6 +27,10 @@ const app = document.getElementById('app');
 const Q = new URLSearchParams(location.search);
 /** J2 — COURSE RULES v2: `?cv=2` previews v2 any time, `?cv=1` today's; none = the version in force by this phone's clock (a look check — the lab never counts) */
 const CV = Q.get('cv') === '2' ? 2 : Q.get('cv') === '1' ? 1 : versionAt(Date.now());
+/** J4 — WINTER's lab switches: `&date=YYYY-MM-DD` (the season clock forced to that day) · `&snow=none|light|heavy` · `&wet=1` (WET NEON STREETS) —
+ *  a look check only: they never reach the live game or any count. None = today's season by this phone's clock. */
+const SEA = labSeason(Q, Date.now());
+const SEA_LINE = SEA.season.winter > 0 || SEA.season.christmas > 0 || SEA.season.snowfall !== 'none' || SEA.wet ? ` · ${SEA.season.day.slice(5, 7)}/${SEA.season.day.slice(7)} winter ${SEA.season.winter}${SEA.season.christmas ? ` xmas ${SEA.season.christmas}` : ''} · snow ${SEA.season.snowfall}${SEA.wet ? ' · wet' : ''}` : '';
 // (no game calls: the shared audio engine's REPORTS of a cut come only from the owner's phone inside the app, or on a link that says
 //  &debug=1 — the lab drops that flag before the engine is ever installed; its one anonymous LEAVE count may still go — J2's corrected line)
 if (Q.has('debug')) { try { Q.delete('debug'); history.replaceState(null, '', `${location.pathname}${Q.toString() ? `?${Q}` : ''}`); } catch { /* fine */ } }
@@ -101,6 +106,8 @@ async function mount() {
   try { view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin, look, rwNight: Q.get('rwnight') === 'new' }); }   // (J2 FIX — `&rwnight=new`: THE NIGHT COMPARE, the lab only)
   catch { app.querySelector('.jw-stage').append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); return; }   // (the page still loaded: its stage is up)
   markCamera(); setLook(look);
+  // J4 — THE SEASON: the pack fetched now (in season / a forced date); the run waiting for its first touch takes it the moment it lands
+  if (view.prepSeason) Promise.resolve(view.prepSeason(SEA.season)).then(ok => { if (ok && !started && view.setSeason) view.setSeason(SEA.season, { wet: SEA.wet }); }, () => {});
   // J1 — THE LOOK CHECKS (`?j1=splits` · `splits9` · `moments` — lab-j1.js, lazy: the real end card's YOUR SPLITS + THE MATCH MOMENTS)
   if (/^(splits9?|moments)$/.test(Q.get('j1') || '')) lazyImport(import('./lab-j1.js'), './lab-j1.js').then(m => m.mountJ1(app.querySelector('.jw-stage'), { what: Q.get('j1'), sfx: () => snd })).catch(() => {});
   // AUTOMATIC quality steps (the match kit's tiers 2 / 1 / 0): the frame time slips → a step down; headroom → back up
@@ -130,7 +137,8 @@ async function mount() {
     cues = createCues(); if (snd) { snd.onCue({ cue: 'bell-off' }); snd.onCue({ cue: 'tick-off' }); }
     end.hidden = true; mark.textContent = 'TAP TO HOP · SWIPE TO MOVE'; markUntil = 0;
     for (const t of tabs) t.classList.toggle('is-on', t.dataset.mode === mode);
-    seedLine.textContent = `seed ${seed} · v${CV}`;
+    seedLine.textContent = `seed ${seed} · v${CV}${SEA_LINE}`;
+    if (view.setSeason) view.setSeason(SEA.season, { wet: SEA.wet });   // (J4 — every run starts with the season; a pack not in yet = the normal look)
     if (bot) bot = greedyBot({ seed });
     // H6B — `?lane=N` (the owner opens any area on his phone): A LOOK CHECK — the kid stands on the grass lane nearest N (the one before it first), the blackout
     // held behind him. WARPED: the run is no longer its log's — it never counts, is never replayed (the end says so), nothing is sent.

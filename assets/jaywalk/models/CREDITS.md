@@ -5,6 +5,7 @@ the lighthouse + the boat are CC0 1.0 — no credit is required; the game's CRED
 
 - 3D models: Kenney — kenney.nl (CC0) — the cars, the train, the props (`LICENSE.txt`), THE KID (Mini Skate 2.0 "character-skate-boy" — `LICENSE-kid.txt`), the fishing boat (Watercraft Kit 2.1 — `LICENSE-kenney-watercraft.txt`), DOWNTOWN's storefronts (City Kit (Commercial) 2.1 — `LICENSE-kenney-city-kit-commercial.txt`; H6B)
 - Light House: MaverickFX — https://poly.pizza/m/KRebJXIRb8 (CC0 1.0) — `LICENSE-lighthouse.txt`
+- THE SEASONAL PACK (J4 — `assets/jaywalk/winter/`): Kenney — Holiday Kit 2.0, https://kenney.nl/assets/holiday-kit (CC0 1.0) — the snow pine, the decorated Christmas tree + two presents (baked into one mesh), the snowman — `../winter/LICENSE-kenney-holiday-kit.txt`
 
 ## CC BY — THE FLYERS (H6A): these credits are REQUIRED wherever the models ship (`LICENSE-flyers.txt`)
 

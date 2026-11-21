@@ -223,6 +223,7 @@ try {
   const first = firstGo(nodes0);
   const goers = goUids(nodes0), T0S = stampOf(nodes0);
   ok(goers.length === N && first > 0, `every phone wrote its own GO (${goers.length} proof nodes)`);
+  if (process.env.JW_DAY) { const ss = []; for (const p of pages.slice(0, N)) ss.push(await p.evaluate(() => window.__jwGame.state().season)); ok(ss.every(q => q && (q.winter > 0 ? q.day === `d${process.env.JW_DAY.replace(/-/g, '')}` : true)) && ss.some(q => q.winter > 0), `J4 WINTER: ONE winter for the room — every phone's season day ${ss.map(q => q && q.day).join(' · ')} (winter ${ss.map(q => q && (q.pack ? q.winter : 'normal look')).join(' · ')})`); }
   if (OLD_RULES) ok(T0S === 0 && goers.length === N, 'THE SWITCH-OVER (the OLD rules): the stamp was refused, silently — every GO landed the old way');
   else ok(T0S > 0 && T0S <= first && goers.every(u => nodes0[u].go <= T0S + GO_WINDOW_MS), `THE PROOF PASS — THE STAMP: the tree's first write (t0, ${first - T0S} ms before THE FIRST GO); every GO within ${GO_WINDOW_MS} ms of it`);
   ok(game.g0 === first && game.playAt === first + GO_LEAD_MS && game.seed === seedOf(code, m, first), `THE FIRST GO (${first}) picked the course (${game.seed}) + tick 0 = that time + ${GO_LEAD_MS} ms`);

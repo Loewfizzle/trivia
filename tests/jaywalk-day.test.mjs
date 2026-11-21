@@ -57,7 +57,7 @@ test('A VIEW ONLY: no rule file, no replay, no server file knows the look — th
 
 test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind; the tells stay bold (the rails flash red, the runway\'s chevrons race); THE FOG BANK where the blackout is; the lights that only glow are off, the ones that must read are paint; no bloom', () => {
   const fx = read('js/games/jaywalk/night-fx.js'), n = code('night.js');
-  assert.match(fx, /#define DN\(n, d\) mix\(n, d, uDay\)/); assert.match(fx, /uDay: \{ value: 0 \}, uWall: \{ value: -99 \} \};/);
+  assert.match(fx, /#define DN\(n, d\) mix\(n, d, uDay\)/); assert.match(fx, /uDay: \{ value: 0 \}, uWall: \{ value: -99 \},/);   // (J4: + the season's uniforms after it)
   const main = fx.slice(fx.indexOf('void main() {\n  float type = vKind.x'), fx.indexOf('gl_FragColor = vec4(c, 1.0);'));
   for (const [kind, re] of [['grass', /c = mix\(DN\(vec3\(0\.064, 0\.192, 0\.092\), vec3\(/], ['the gate lane', /c = DN\(vec3\(0\.105, 0\.10, 0\.15\), vec3\(/], ['the road', /c = DN\(vec3\(0\.062, 0\.062, 0\.086\), vec3\(/], ['the water', /c = mix\(DN\(vec3\(0\.102, 0\.435, 0\.878\), vec3\(/], ['the rails', /c = DN\(vec3\(0\.088, 0\.078, 0\.09\), vec3\(/], ['the flight path', /c = DN\(vec3\(0\.088, 0\.086, 0\.104\), vec3\(/]]) assert.match(main, re, `${kind}: its night colour + its day colour`);
   // the day water: bright + saturated blue; the day road: a clean mid grey with white + yellow paint

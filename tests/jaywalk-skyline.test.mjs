@@ -76,7 +76,7 @@ test('THE VIEW: two layers cross-faded (opacity only), the pictures fetched thro
   // (the review: "the ground fades out before the things standing on it") — every lit material's fog follows the GROUND under the thing
   const fx = read('js/games/jaywalk/night-fx.js');
   assert.match(fx, /vFogDepth = -mvPosition\.z \+ uFogUp \* \(modelMatrix \* jwW\)\.y;/); assert.match(fx, /mat\.onBeforeCompile = sh => \{\s+fogPatch\(sh\);/, 'the painted materials too');
-  assert.match(n, /const lambert = \(\) => fogUp\(new THREE\.MeshLambertMaterial\(\{ vertexColors: true \}\)\);/); assert.match(n, /FOG_UP\.value = -fwd\.y;/, 'how much nearer a unit of height is: off the camera, every frame');
+  assert.match(n, /const lambert = \(\) => fogUp\(new THREE\.MeshLambertMaterial\(\{ vertexColors: true \}\), \{ snow: true \}\);/);   // (J4: + the winter's snow on its tops) assert.match(n, /FOG_UP\.value = -fwd\.y;/, 'how much nearer a unit of height is: off the camera, every frame');
   assert.match(fx, /float e = d \+ \(0\.6 \* vnoise\(/, 'the blackout: its edge per pixel off the wall itself — ragged, never a straight cut');
   const fog = /export const DAY_FOG_HEX = (0x[0-9a-f]{6});/.exec(read('js/games/jaywalk/night-fx.js'))[1].slice(2);
   assert.ok(css.includes(`.jw-farhaze[data-look='day'] { background: linear-gradient(#${fog} 0,`) && css.includes(`.jw-stage[data-look='day'] { background: #${fog};`), 'ONE day haze: the scene\'s fog = the far haze = the stage');

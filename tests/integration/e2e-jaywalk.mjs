@@ -32,6 +32,8 @@ const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 // (J2 — COURSE RULES v2: JW_CV=0 plays v2 from the start — serve.mjs started with JW_CV_SWITCH_MS=0 so the local /api agrees; without it the
 //  version is the one in force at the run's GO — today v1, from 2026-11-22 09:00 UTC v2)
 const JW_CV = process.env.JW_CV != null ? Number(process.env.JW_CV) : null;
+// (J4 — WINTER: JW_DAY=2026-12-24 plays on that season's day (the page's test-only `&jwday=`) — the run must count exactly as on any other day)
+const JW_DAY = /^\d{4}-\d{2}-\d{2}$/.test(process.env.JW_DAY || '') ? process.env.JW_DAY : null;
 const argv = process.argv.slice(2), PERF = argv.includes('--perf'), DROP = argv.includes('--drop'), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
 if (OUT) mkdirSync(OUT, { recursive: true });
 const DB = 'http://127.0.0.1:9000', NS = 'ns=demo-arcade-default-rtdb', AUTH = { Authorization: 'Bearer owner' };
@@ -58,7 +60,7 @@ async function phone(slot, dpr = Number(process.env.E2E_DPR) || 2, name = 'HOPPE
   // (BEFORE THE FLIP — THE CAMERA + THE TAKES ARE PINNED: this phone has the LAB's odd picks saved — ZOOM 7, TURNED, every B take; the game ignores them)
   await p.evaluateOnNewDocument(() => { try { for (const [k, v] of [['zoom', '7'], ['angle', 'turned'], ['snd:hop', 'b'], ['snd:land-wood', 'b'], ['snd:train-pass', 'b']]) localStorage.setItem(`jw:lab:${k}`, v); } catch { /* fine */ } });
   const waitFor = async (js, ms = 20000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await p.evaluate(js)) return true; } catch { /* navigating */ } await sleep(50); } return false; };
-  const open = async () => { await p.goto(guardUrl(`${BASE}/?emu&slot=${slot}&city=2&when=2026-11-10T20:30${JW_CV != null ? `&jwcv=${JW_CV}` : ''}`, 'e2e-jaywalk.mjs'), { waitUntil: 'domcontentloaded' }); if (!await waitFor(UP, 60000)) throw new Error('the city never came up'); };
+  const open = async () => { await p.goto(guardUrl(`${BASE}/?emu&slot=${slot}&city=2&when=2026-11-10T20:30${JW_CV != null ? `&jwcv=${JW_CV}` : ''}${JW_DAY ? `&jwday=${JW_DAY}` : ''}`, 'e2e-jaywalk.mjs'), { waitUntil: 'domcontentloaded' }); if (!await waitFor(UP, 60000)) throw new Error('the city never came up'); };
   await open();
   const ev = js => p.evaluate(js);
   // (THE PROOF PASS — the inbox's "e2e-jaywalk red at PLAY NOW", Nov 20 ~4:45 am: the tap read its target's place while its SHEET WAS STILL
@@ -148,6 +150,7 @@ try {
   ok(await P.waitFor(`${S}.game && ${S}.game.id === 'jaywalk' && !!document.querySelector('.jw-game canvas.jw-canvas') && !!${G}`, 25000), `PLAY NOW → the game's own screen (${Date.now() - tPlay} ms from the tap — THE SOLO START's walk inside)`);
   // ---- 3. GO with the server's time → the course
   ok(await P.waitFor(`${G}.state().mode === 'run'`, 8000), 'GO landed: the run is on');
+  if (JW_DAY) { await P.waitFor(`${G}.state().season && ${G}.state().season.pack`, 8000); const se = await P.ev(`${G}.state().season`); ok(se && (se.winter > 0 ? se.day === `d${JW_DAY.replace(/-/g, '')}` : true), `J4 WINTER: the run's season = ${se && se.day} · winter ${se && se.winter} · christmas ${se && se.christmas} · snow ${se && se.snowfall} · the pack ${se && se.pack ? 'in' : 'not in by GO (the normal look)'}`); }
   { const i = await P.ev(`${G}.state().info`); ok(i.zoom === 8 && i.angle === 'straight', `THE CAMERA IS PINNED: the lab's ZOOM 7 · TURNED saved on this phone — the game draws ZOOM ${i.zoom} · ${String(i.angle).toUpperCase()}`); }
   let g = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId, mode: ${S}.game.mode, phase: ${S}.game.phase, hostSeed: ${S}.game.seed, solo: !!(${S}.meta.settings && ${S}.meta.settings.solo && ${S}.meta.settings.solo.on) })`);
   ok(g.mode === 'solo' && g.phase === 'play' && g.solo && g.m[0] === 's', `PLAY NOW's solo room, SOLO ENDLESS, playing (match ${g.m})`);

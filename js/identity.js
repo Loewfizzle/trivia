@@ -79,8 +79,8 @@ export function setUrlRoom(code) {
   // (LOBBY FIXES: a PREVIEW link's city stays the same city in the room — the date, the place, the weather, a forced moment: the city rebuilt after
   //  a match (THE CITY PAUSE) reads them again; dropping them gave a city on another clock once HOST stopped remounting the title)
   // (THE SPEED PASS — FR6 A7: + lgnow (a forced legendary at once) + labmarks (localhost previews only) — a party night with a legendary in a
-  //  ROOM can be measured from a link; a real visitor's link has none of these) (J2: + jwcv — JAYWALK's course-version switch, a local emulator page only)
-  for (const k of ['when', 'tz', 'at', 'wx', 'force', 'lgnow', 'labmarks', 'jwcv']) if (params.has(k)) p.set(k, params.get(k));
+  //  ROOM can be measured from a link; a real visitor's link has none of these) (J2: + jwcv — JAYWALK's course-version switch, a local emulator page only; J4: + jwday — its season's day)
+  for (const k of ['when', 'tz', 'at', 'wx', 'force', 'lgnow', 'labmarks', 'jwcv', 'jwday']) if (params.has(k)) p.set(k, params.get(k));
   const qs = p.toString();
   history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : ''));
 }

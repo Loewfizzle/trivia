@@ -28,11 +28,54 @@ void main() {
 const GROUND_F = `
 precision highp float;
 uniform float uTime; uniform vec3 uFogCol; uniform float uQ; uniform float uDay; uniform float uWall;
+uniform float uSnow; uniform float uWet; uniform float uLN; uniform vec4 uL[16]; uniform vec3 uLC[16];   // (J4 — WINTER + WET NEON STREETS)
 #define DN(n, d) mix(n, d, uDay)
 varying vec2 vP; varying vec4 vKind; varying vec3 vState; varying float vFog; varying float vLane;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
 float joint(vec2 f, float w) { return smoothstep(0.0, w, f.x) * smoothstep(1.0, 1.0 - w, f.x) * smoothstep(0.0, w * 2.0, f.y) * smoothstep(1.0, 1.0 - w * 2.0, f.y); }
+// J4 — THE SNOW on a ground lane (uSnow: 0 none · a dusting → 1 full · the melt = patchy, the grass back): procedural (no texture), soft
+// drifts; DAY crisp white + STRONG BLUE SHADOWS in the drifts + along the banks (never white-on-white); NIGHT blue-lavender + a faint sparkle
+// (the neon / headlight pools are the glow quads' own light over it). bank = how near a road / water / rail edge (0 … 1).
+vec3 snowOn(vec3 c, float x, float lw, float bank, float k) {
+  if (uSnow < 0.001) return c;
+  float n = 0.62 * vnoise(vec2(x * 0.55, lw * 0.7) + 11.0) + 0.38 * vnoise(vec2(x * 1.9, lw * 2.3) + 5.0);
+  float thr = 1.12 - uSnow * 1.18, cov = smoothstep(thr - 0.1, thr + 0.1, n) * k;
+  float dust = uSnow * 0.35 * (0.5 + 0.5 * hash(floor(vec2(x * 22.0, lw * 22.0)))) * k;
+  float dr = vnoise(vec2(x * 0.5 + lw * 0.13, lw * 0.95) + 2.0), rip = vnoise(vec2(x * 2.6 - lw * 0.7, lw * 1.4));
+  float sas = smoothstep(0.2, 1.0, sin((x * 0.9 + lw * 2.4 + vnoise(vec2(x * 0.7, lw * 1.1)) * 3.5) * 3.1416)) * smoothstep(0.35, 0.7, dr);   // (wind ridges in the drifts)
+  vec3 lite = DN(vec3(0.40, 0.41, 0.60), vec3(0.975, 0.985, 1.0)), shad = DN(vec3(0.16, 0.17, 0.36), vec3(0.52, 0.64, 0.90));
+  float sh = clamp((1.0 - smoothstep(0.22, 0.72, dr)) * 0.72 + bank * 1.05 + (rip - 0.5) * 0.2 + sas * 0.12, 0.0, 1.0);
+  vec3 sn = mix(lite, shad, sh);
+  sn *= 0.985 + 0.03 * hash(floor(vec2(x * 30.0, lw * 30.0)));
+  if (uQ > 0.5) {   // (the sparkle: a few tiny glints, twinkling gently — brighter by night)
+    vec2 gq = vec2(x * 34.0, lw * 34.0); float gh = hash(floor(gq) + 1.3);
+    sn += vec3(1.0) * step(0.986, gh) * smoothstep(0.32, 0.0, length(fract(gq) - 0.5)) * (0.55 + 0.45 * sin(uTime * 2.2 + gh * 60.0)) * mix(0.55, 0.25, uDay) * cov;
+  }
+  return mix(mix(c, sn, dust), sn, cov);
+}
+// J4 — WET NEON STREETS: the lights' soft coloured streaks on the asphalt, running from under each light toward the camera (a planar fake —
+// no draw call, no texture: the ≤ 16 nearest lights the scene hands over each frame — night-fx.js uL / uLC), + the wet gloss itself.
+vec3 wetRoad(vec3 c, float x, float ly, float n1) {
+  float wv = uWet;
+  c *= 1.0 - 0.34 * wv;
+  float mot = vnoise(vec2(x * 1.6, ly * 0.9)) * 0.6 + 0.4 * vnoise(vec2(x * 5.0, ly * 3.0));
+  float gl = smoothstep(0.35, 0.8, mot);   // (the puddled patches gloss most)
+  vec3 add = vec3(0.0);
+  for (int i = 0; i < 16; i++) {
+    if (float(i) >= uLN) break;
+    vec4 L = uL[i]; float dx = x - L.x, dl = L.y - ly;
+    if (abs(dx) > 1.4 || dl < -0.35 || dl > 4.0) continue;
+    float w = 0.16 + 0.1 * max(dl, 0.0) + 0.06 * (1.0 - gl);
+    float along = smoothstep(-0.35, 0.05, dl) * exp(-max(dl, 0.0) * mix(0.95, 0.55, wv));
+    float wob = 0.05 * sin(ly * 9.0 + L.x * 3.0) * (0.5 + gl);
+    add += uLC[i] * L.z * exp(-(dx + wob) * (dx + wob) / (w * w)) * along * (0.45 + 0.75 * gl);
+  }
+  c += add * wv * 0.95;
+  vec3 sky = mix(vec3(0.20, 0.06, 0.24), vec3(0.06, 0.10, 0.26), smoothstep(0.3, 0.7, n1));   // (the night city's glow in the gloss)
+  c += sky * gl * wv * 0.3;
+  return c;
+}
 vec3 areaGround(float ar, float x, float z, float seed, float lane) {
   vec3 c;
   if (ar < 1.5) {
@@ -94,12 +137,13 @@ void main() {
     vec2 tq = vec2(x * 3.0, lw * 3.0); float th = hash(floor(tq) + 3.7);
     c *= 1.0 - 0.2 * step(0.87, th) * smoothstep(0.17, 0.05, length(fract(tq) - 0.5 - (vec2(fract(th * 37.0), fract(th * 91.0)) - 0.5) * 0.5));
     if (ar > 0.5) c = areaGround(ar, x, z, seed, vLane);
+    float soft = step(0.5, dn) * step(dn, 4.5), softU = step(0.5, up) * step(up, 4.5);
     if (type > 4.5) {                                             // a LANDMARK's lane: dark paving, a neon trim on both edges
       c = DN(vec3(0.105, 0.10, 0.15), vec3(0.80, 0.78, 0.72)) * (0.95 + 0.08 * hash(floor(vec2(x * 2.0, z * 2.0)) + seed)) * (joint(fract(vec2(x * 2.0, z * 2.0)), 0.03) * 0.22 + 0.78);   // (H5C: paving slabs + their joints — never a checker)
+      c = snowOn(c, x, lw, 0.0, 0.55);   // (J4 — the gateway's paving: a lighter snow, its trim always on top)
       float trim = smoothstep(0.05, 0.02, abs(z - 0.08)) + smoothstep(0.05, 0.02, abs(z - 0.92));
       c = mix(c + vec3(1.0, 0.25, 0.72) * trim * 0.75 * (1.0 - uDay), vec3(0.93, 0.30, 0.26), min(1.0, trim) * 0.9 * uDay);   // (by day: a PAINTED trim)
-    }
-    float soft = step(0.5, dn) * step(dn, 4.5), softU = step(0.5, up) * step(up, 4.5);
+    } else c = snowOn(c, x, lw, max((1.0 - smoothstep(0.0, 0.3, z)) * soft, (1.0 - smoothstep(0.0, 0.3, 1.0 - z)) * softU), ar > 0.5 && (ar < 1.5 || (ar > 3.5 && ar < 4.5)) ? 0.8 : 1.0);   // (J4 — the snow; the pier planks + the bridge deck a little less)
     float sk = mix(0.45, 0.16, uDay);
     c *= 1.0 - sk * (1.0 - smoothstep(0.0, 0.22, z)) * soft - sk * (1.0 - smoothstep(0.0, 0.22, 1.0 - z)) * softU;
   } else if (type < 1.5) {
@@ -114,6 +158,19 @@ void main() {
     float dash = step(fract(x * 0.5 + b * 0.37), 0.52);
     float ln = smoothstep(0.04, 0.012, z) * (1.0 - curbD) + smoothstep(0.04, 0.012, 1.0 - z) * (1.0 - curbU);
     vec3 neon = mod(b, 2.0) < 0.5 ? DN(vec3(1.0, 0.62, 0.9), vec3(1.0, 0.84, 0.20)) : DN(vec3(0.93, 0.86, 1.0), vec3(0.97, 0.97, 0.95));   // (H5B's add-on: the second line pale lilac — never cyan: blue on the ground = water)
+    float rly = mod(vLane, 64.0) + z;
+    if (uSnow > 0.001) {                                           // J4 — PLOWED: the asphalt stays dark; SLUSH banked along the curbs, a grey wet sheen in the wheel ruts
+      float sn = vnoise(vec2(x * 1.7, rly * 3.0)), sn2 = vnoise(vec2(x * 5.0, rly * 6.0));
+      float wB = (0.13 + 0.07 * sn) * smoothstep(0.0, 0.5, uSnow), slD = smoothstep(wB + 0.035, wB - 0.02, z) * curbD, slU = smoothstep(wB + 0.035, wB - 0.02, 1.0 - z) * curbU;
+      float sl = max(slD, slU) * (0.75 + 0.25 * sn2);
+      vec3 slush = DN(vec3(0.25, 0.25, 0.35), vec3(0.80, 0.82, 0.87)) * (0.86 + 0.18 * sn2);
+      c *= 1.0 - 0.18 * smoothstep(wB + 0.12, wB, min(z, 1.0 - z)) * max(curbD, curbU);   // (the bank's shadow on the road)
+      float rut = smoothstep(0.06, 0.0, abs(abs(fract(z * 2.0) - 0.5) - 0.25)) * 0.5 * uSnow;
+      c = mix(c, c * 1.18 + DN(vec3(0.015, 0.015, 0.03), vec3(0.04, 0.04, 0.05)), rut * (1.0 - sl));
+      c = mix(c, slush, sl * min(1.0, uSnow * 1.6));
+      c += DN(vec3(0.05, 0.05, 0.08), vec3(0.12, 0.12, 0.13)) * step(0.993, hash(floor(vec2(x * 26.0, rly * 26.0)))) * uSnow;   // (a few salt / slush flecks)
+    }
+    if (uWet > 0.001 && uDay < 0.5) c = wetRoad(c, x, vLane + z, vnoise(vec2(x * 0.5, rly * 0.4)));
     c = mix(c, neon * mix(0.62, 1.0, uDay), dash * ln);
   } else if (type < 2.5) {
     float t = uTime, flow = vState.y, xf = x - flow * t;          // (xf: carried by this lane's current — the specks)
@@ -204,7 +261,8 @@ export function createGround(n, fog) {
   const aL = new THREE.InstancedBufferAttribute(lane, 1), aK = new THREE.InstancedBufferAttribute(kind, 4), aS = new THREE.InstancedBufferAttribute(state, 3);
   for (const a of [aL, aK, aS]) a.setUsage(THREE.DynamicDrawUsage);
   g.setAttribute('aLane', aL); g.setAttribute('aKind', aK); g.setAttribute('aState', aS);
-  const uniforms = { uTime: { value: 0 }, uFog: { value: fog }, uFogCol: { value: new THREE.Vector3(...rgb(FOG_HEX)) }, uQ: { value: 1 }, uDay: { value: 0 }, uWall: { value: -99 } };
+  const uniforms = { uTime: { value: 0 }, uFog: { value: fog }, uFogCol: { value: new THREE.Vector3(...rgb(FOG_HEX)) }, uQ: { value: 1 }, uDay: { value: 0 }, uWall: { value: -99 },
+    uSnow: SNOW, uWet: { value: 0 }, uLN: LIGHTS.n, uL: { value: LIGHTS.pos }, uLC: { value: LIGHTS.col } };   // (J4 — the season + THE LIGHTS: one shared list, the snow reads it too)
   const mesh = new THREE.Mesh(g, new THREE.ShaderMaterial({ vertexShader: GROUND_V, fragmentShader: GROUND_F, uniforms }));
   mesh.frustumCulled = false; mesh.renderOrder = -1;
   return {
@@ -224,8 +282,29 @@ const FOG_UP_V = `#ifdef USE_FOG
   vFogDepth = -mvPosition.z + uFogUp * (modelMatrix * jwW).y;
 #endif`;
 const fogPatch = sh => { sh.uniforms.uFogUp = FOG_UP; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uFogUp;').replace('#include <fog_vertex>', FOG_UP_V); };
-/** a plain lit material whose fog follows the ground under the thing */
-export function fogUp(mat) { mat.onBeforeCompile = fogPatch; mat.customProgramCacheKey = () => 'jw-fogup'; return mat; }
+/** J4 — WINTER: the season's snow amount (0 … 1) — the ground + every prop's top read this ONE value */
+export const SNOW = { value: 0 };
+/** J4 — THE LIGHTS: the ≤ 16 lights near the kid this frame (x + 4.5, lane y, strength) + their colours — the wet streets' streaks + the snow's catch-light */
+export const LIGHTS = { n: { value: 0 }, pos: Array.from({ length: 16 }, () => new THREE.Vector4()), col: Array.from({ length: 16 }, () => new THREE.Vector3()) };
+const SNOW_V = `
+  jwSnowK = 1.0;
+  #ifdef USE_INSTANCING_COLOR
+    jwSnowK = max(instanceColor.r, max(instanceColor.g, instanceColor.b));
+  #endif
+  vec3 jwN = objectNormal;
+  #ifdef USE_INSTANCING
+    jwN = mat3(instanceMatrix) * jwN;
+  #endif
+  jwSnowUp = normalize(mat3(modelMatrix) * jwN).y;`;
+// (a top face takes the snow: its world normal's y — the ground's own amount; the colour is lit like the face, so the night's is lavender)
+const snowPatch = sh => {
+  fogPatch(sh); sh.uniforms.uSnowK = SNOW;
+  sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float jwSnowUp; varying float jwSnowK;').replace('#include <defaultnormal_vertex>', `#include <defaultnormal_vertex>${SNOW_V}`);
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float jwSnowUp; varying float jwSnowK; uniform float uSnowK;')
+    .replace('#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.95, 1.0) * min(jwSnowK, 1.0), smoothstep(0.62, 0.9, jwSnowUp) * smoothstep(0.08, 0.6, uSnowK) * 0.92);');
+};
+/** a plain lit material whose fog follows the ground under the thing (J4 — `snow`: its tops take the winter's snow) */
+export function fogUp(mat, { snow = false } = {}) { mat.onBeforeCompile = snow ? snowPatch : fogPatch; mat.customProgramCacheKey = () => (snow ? 'jw-fogup-snow' : 'jw-fogup'); return mat; }
 
 const GLOW_V = `
 attribute vec2 aFx;
@@ -420,4 +499,68 @@ export function createBloom(renderer) {
     /** the lights' target before the blur (J1's test reads it: tests/integration/jaywalk-bloom.mjs) */
     target: () => a,
   };
+}
+
+// ---- J4 — THE FALLING SNOW (ONE draw call): instanced soft flakes, ALL their motion in the vertex shader (no per-frame CPU work but the
+// uniforms). FAR flakes live in a world box round the camera's focus (wrapped — they never swim as the camera follows); the few BIG soft
+// near-camera flakes (heavy only) are screen-space, at the screen's EDGES only. Every flake is see-through and fades out over the lanes just
+// in front of the kid (uKid — his place on the screen); the lights draw AFTER it (renderOrder) — every gameplay light shows over the snow.
+// By night a flake near one of THE LIGHTS catches its colour. HEAVY SNOW CHANGES NOTHING IN PLAY: it is a picture over the scene.
+const SNOW_V2 = `
+attribute vec4 aSeed;
+uniform float uTime; uniform vec3 uFocus; uniform vec3 uKid; uniform float uAspect; uniform float uNear; uniform float uDay; uniform float uFall; uniform vec2 uFog; uniform float uLN; uniform vec4 uL[16]; uniform vec3 uLC[16];
+varying vec2 vUv; varying float vA; varying vec3 vCol;
+void main() {
+  vUv = position.xy + 0.5;
+  bool near = aSeed.w > 0.965 && uNear > 0.5;   // (heavy snow only)
+  float t = uTime;
+  vec3 col = mix(vec3(0.86, 0.88, 1.0), vec3(0.97, 0.985, 1.0), uDay);
+  float a;
+  vec4 clip;
+  if (near) {                                                        // a BIG soft flake near the lens — the screen's edges only
+    float side = aSeed.x < 0.5 ? -1.0 : 1.0, sp = 0.05 + 0.05 * aSeed.z;
+    float y = 1.25 - fract(aSeed.y + t * sp) * 2.5, x = side * (0.74 + 0.26 * fract(aSeed.x * 7.3) + 0.03 * sin(t * 0.7 + aSeed.z * 9.0));
+    float s = 0.045 + 0.05 * aSeed.z;
+    clip = vec4(x + position.x * s / uAspect * 2.0, y + position.y * s * 2.0, -0.999, 1.0);
+    a = 0.26 + 0.14 * aSeed.z;
+  } else {
+    float W = 15.0, D = 30.0, Hh = 5.5, sp = uFall * (0.75 + 0.5 * aSeed.w);
+    float y = Hh - mod(aSeed.y * Hh + t * sp, Hh);
+    float px = uFocus.x + (fract((aSeed.x * W - uFocus.x + 0.35 * sin(t * 0.45 + aSeed.z * 20.0) + t * 0.18) / W) - 0.5) * W;
+    float pz = uFocus.z + (fract((aSeed.z * D - uFocus.z) / D) - 0.5) * D;
+    vec4 mv = viewMatrix * vec4(px, y, pz, 1.0);
+    float s = (0.035 + 0.05 * aSeed.w * aSeed.w) * (1.0 + 0.35 * uFall);
+    mv.xy += position.xy * s * 2.0;
+    clip = projectionMatrix * mv;
+    a = (0.5 + 0.35 * aSeed.w) * (1.0 - smoothstep(uFog.x, uFog.y, -mv.z)) * smoothstep(0.0, 0.6, y) * smoothstep(0.42, 0.62, -mv.z / uFog.x);   // (none near the lens but the edge flakes: never a big blur mid-screen)
+    if (uDay < 0.5) for (int i = 0; i < 16; i++) {                  // (by night: a flake near a light catches its colour)
+      if (float(i) >= uLN) break;
+      vec2 d = vec2(px + 4.5 - uL[i].x, -pz - uL[i].y);
+      col += uLC[i] * uL[i].z * 0.55 / (1.0 + dot(d, d) * 2.5 + y * y * 0.35);
+    }
+  }
+  vec2 nd = clip.xy / clip.w; float dy = nd.y - uKid.y;   // (the lanes just in front of the kid — the WHOLE width, a car coming from the side too: kept clear)
+  a *= 1.0 - 0.94 * smoothstep(-0.16, -0.04, dy) * (1.0 - smoothstep(0.34, 0.5, dy));
+  vA = a; vCol = col;
+  gl_Position = clip;
+}`;
+const SNOW_F = `
+precision highp float;
+varying vec2 vUv; varying float vA; varying vec3 vCol;
+void main() { float d = length(vUv - 0.5) * 2.0, a = smoothstep(1.0, 0.25, d) * vA; if (a < 0.004) discard; gl_FragColor = vec4(min(vCol, vec3(1.0)), a); }`;
+/** the falling snow: `max` flakes (an instance count picks how many show) → { mesh, uniforms, show(count) } */
+export function createSnow(max, fog) {
+  const base = new THREE.PlaneGeometry(1, 1), g = new THREE.InstancedBufferGeometry();
+  g.index = base.index; g.setAttribute('position', base.attributes.position);
+  const seed = new Float32Array(max * 4);
+  let x = 0x9e3779b9;
+  const rnd = () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return (x >>> 0) / 4294967296; };
+  for (let i = 0; i < max * 4; i++) seed[i] = rnd();
+  g.setAttribute('aSeed', new THREE.InstancedBufferAttribute(seed, 4));
+  g.instanceCount = 0;
+  const uniforms = { uTime: { value: 0 }, uFocus: { value: new THREE.Vector3() }, uKid: { value: new THREE.Vector3(0, -0.2, 0) }, uAspect: { value: 0.46 }, uNear: { value: 0 }, uDay: { value: 0 }, uFall: { value: 1 }, uFog: { value: fog },
+    uLN: LIGHTS.n, uL: { value: LIGHTS.pos }, uLC: { value: LIGHTS.col } };
+  const mesh = new THREE.Mesh(g, new THREE.ShaderMaterial({ vertexShader: SNOW_V2, fragmentShader: SNOW_F, uniforms, transparent: true, depthWrite: false }));
+  mesh.frustumCulled = false; mesh.renderOrder = 1.5; mesh.visible = false;   // (after the shadows, BEFORE every light: the lights draw over the snow)
+  return { mesh, uniforms, show(n) { g.instanceCount = Math.min(max, n); mesh.visible = n > 0; }, dispose() { g.dispose(); base.dispose(); mesh.material.dispose(); } };
 }

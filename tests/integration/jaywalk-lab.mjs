@@ -605,6 +605,8 @@ try {
     if (!['jet', 'ufo', 'ship'].includes(w6)) await looksH6B(o.p, { ok, shot, sleep, waitFor, what: w6, reqs: o.reqs, top, open, up });
     // (THE MOMENTS' FINISH: H6A's own drive through each moment, its shots into this pass's folders — blackbird/ · ufo/ · ship/)
     for (const g of ['blackbird', 'ufo', 'ship']) if (!w6 || w6 === (g === 'blackbird' ? 'jet' : g)) await looksH6A(o.p, { ok, shot: (pg, n) => shot(pg, n.replace('h6a/', '')), sleep, waitFor, what: g, reqs: o.reqs }); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
+  // (J4 — WINTER: `--j4[=peek|strip|snow|wet|props]` — kit/jaywalk-j4.mjs; the shots → the outDir; `--j4perf` = the hard limits below)
+  { const j4 = argv.find(x => x === '--j4' || x.startsWith('--j4=')); if (j4) { const K = await import('./kit/jaywalk-j4.mjs'); const errs = []; await K.looksJ4({ open, up, ok, sleep, waitFor, out: OUT, what: j4.slice(5), b, errs }); if (errs.length) { console.log('PAGE ERRORS', errs.slice(0, 3)); fails.push('page errors'); } throw Object.assign(new Error('look only'), { look: true }); } }
   // (H6A — THE BIG MOMENTS: `--h6a[=blackbird|ufo|ship]` — kit/jaywalk-h6a.mjs; the shots → h6a/<group>/)
   { const h6a = argv.find(x => x === '--h6a' || x.startsWith('--h6a=')); if (h6a) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH6A(o.p, { ok, shot, sleep, waitFor, what: h6a.slice(6), reqs: o.reqs }); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   { const h5c = argv.find(x => x === '--h5c' || x.startsWith('--h5c=')); if (h5c) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5C(o.p, h5c.slice(6), o.reqs); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
@@ -707,19 +709,22 @@ try {
   } }
   // J2 — THE HARD LIMITS on a BUSY RUNWAY (--j2perf): 8 kids (the kid + 7 ghosts), NIGHT, tier 2, THE AIRFIELD's runways (v2) against its
   // v1 bands — the worst draw-call frame over a whole lap (frozen, every 4th tick) + the frame rate at 4× CPU with the world running, 390 + 430
-  if (argv.includes('--j2perf')) {
+  // (J4 — WINTER's limits, `--j4perf`: the same busy runways on Christmas Eve, HEAVY snow, WET NEON STREETS on — the label says J4PERF)
+  const J4P = argv.includes('--j4perf');
+  if (argv.includes('--j2perf') || J4P) {
     // (J2 FIX: v2 in BOTH looks + the lab's night compare `&rwnight=new` — the limits hold for each; v1 stays the night reference)
-    for (const [where, from] of [['DOWNTOWN', 250], ['THE AIRFIELD', 400]]) for (const [cv, look] of [[1, 'night'], [2, 'night'], [2, 'day'], [2, 'nightnew']]) for (const w of [390, 430]) {
-      const o = await open(w, w === 430 ? 932 : 844, 3, `&preview=1&seed=${where === 'DOWNTOWN' ? 'perfseed2' : 'look3'}&tier=2&zoom=8&angle=straight&look=${look === 'day' ? 'day' : 'night'}&cv=${cv}${look === 'nightnew' ? '&rwnight=new' : ''}`);
+    for (const [where, from] of [['DOWNTOWN', 250], ['THE AIRFIELD', 400]]) for (const [cv, look] of (J4P ? [[2, 'night'], [2, 'day']] : [[1, 'night'], [2, 'night'], [2, 'day'], [2, 'nightnew']])) for (const w of [390, 430]) {
+      const o = await open(w, w === 430 ? 932 : 844, 3, `&preview=1&seed=${where === 'DOWNTOWN' ? 'perfseed2' : 'look3'}&tier=2&zoom=8&angle=straight&look=${look === 'day' ? 'day' : 'night'}&cv=${cv}${look === 'nightnew' ? '&rwnight=new' : ''}${J4P ? '&date=2026-12-24&snow=heavy&wet=1' : ''}`);
       await up(o.p);
+      if (J4P) { await waitFor(o.p, 'window.__jwLab.view.season().pack', 15000); await o.p.evaluate(() => window.__jwLab.restart('solo', window.__jwLab.state().seed)); }
       const R = await o.p.evaluate(f => { const J = window.__jwLab; J.ghosts(7); return J.runway(f, 1); }, from);
       if (!R || R.y0 >= from + 50) { console.log(`J2PERF ${where} v${cv} ${look}: no runway in the area on this seed`); await o.close(); continue; }
       await o.p.evaluate(y => { const J = window.__jwLab; J.warp(y); J.ghosts(7); }, R.y0 - 1);
       await sleep(1500);
-      let worst = 0, at = -1;
+      let worst = 0, at = -1, binLeft = 1e9;
       for (let t = R.period * 8; t < R.period * 9; t += 4) {
-        const c = await o.p.evaluate(async tt => { const J = window.__jwLab; J.setT(tt); J.freeze(true); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); return J.state().info.calls; }, t);
-        if (c > worst) { worst = c; at = t; }
+        const [c, bl] = await o.p.evaluate(async tt => { const J = window.__jwLab; J.setT(tt); J.freeze(true); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); const i = J.state().info; return [i.calls, i.binCap]; }, t);
+        if (c > worst) { worst = c; at = t; } if (bl < binLeft) binLeft = bl;
       }
       await o.p.evaluate(() => window.__jwLab.freeze(false));
       await o.p.emulateCPUThrottling(4);
@@ -730,7 +735,8 @@ try {
       await o.p.emulateCPUThrottling(1);
       const avg = fr.reduce((a, c) => a + c, 0) / fr.length;
       const row = { where, cv, look, w, runway: `${R.y0} × ${R.n}`, worstCalls: worst, worstAt: at, runCalls: Math.max(...calls), frames: fr.length, fps: +(1000 / avg).toFixed(1), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1) };
-      console.log('J2PERF', JSON.stringify(row));
+      console.log(J4P ? 'J4PERF' : 'J2PERF', JSON.stringify({ ...row, season: J4P ? await o.p.evaluate(() => window.__jwLab.view.season()) : null }));
+      if (J4P) ok(binLeft > 0, `${where} ${look} ${w}: the glow billboards never full over the lap (${binLeft} left at the fullest — the tree lights go LAST)`);
       ok(row.worstCalls <= 64 && row.runCalls <= 64, `${where} v${cv} ${look} ${w}: 8 kids, tier 2 — the worst runway frame ${row.worstCalls} draw calls (running ${row.runCalls}) ≤ 64`);
       ok(row.fps >= 57 && !o.errs.length, `${where} v${cv} ${look} ${w}: 4× CPU on the runway — ${row.fps} fps (p95 ${row.p95Ms} ms, worst ${row.worstMs})`);
       await o.close();
@@ -1004,6 +1010,21 @@ try {
   await looks(p);
   await close();
   // ---- 5b. the frame rate at EACH TIER: 390 × 844 @3, 1× + 4× CPU, the bot playing
+  // (J4 — `--kidsperf`: the 8-KIDS row of --perf alone (tier 2 + 1, 4× CPU) — an A/B against a worktree in a minute, not the whole 25-minute run)
+  if (argv.includes('--kidsperf')) {
+    for (const tier of [2, 1]) for (let rep = 0; rep < 2; rep++) {
+      const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight`);
+      await up(o.p); await o.p.emulateCPUThrottling(4);
+      await o.p.evaluate(() => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.bot(true); J.ghosts(7); J.warp(J.find('grass', 252)); });
+      await sleep(1500); await o.p.evaluate(() => window.__jwLab.clearFrames()); await sleep(9000);
+      const f = await o.p.evaluate(() => ({ fr: window.__jwLab.frames(), i: window.__jwLab.state().info }));
+      await o.p.emulateCPUThrottling(1);
+      const fr = f.fr.slice().sort((a, c) => a - c), avg = fr.reduce((a, c) => a + c, 0) / fr.length;
+      console.log('KIDSPERF', JSON.stringify({ tier, rep, fps: +(1000 / avg).toFixed(1), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), calls: f.i.calls, tris: f.i.tris }));
+      await o.close();
+    }
+    throw Object.assign(new Error('look only'), { look: true });
+  }
   if (PERF) {
     const rows2 = [];
     for (const tier of [2, 1, 0]) for (const rate of [1, 4]) {

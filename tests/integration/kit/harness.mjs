@@ -62,7 +62,7 @@ export async function createHarness({ name, slot = 'e', hook = null, sizes = REV
     });
     await page.setViewport(VIEW);
     if (beforeLoad) await beforeLoad(page, i);   // (e.g. kit/lag.mjs#installLag — a slow line for one phone)
-    await page.goto(`${BASE}/?emu&slot=${slot}${i}${qs ? '&' + qs : ''}${process.env.JW_CV != null ? `&jwcv=${process.env.JW_CV}` : ''}`);   // (J2: JW_CV=0 — JAYWALK's course rules v2 from the start, with serve.mjs's JW_CV_SWITCH_MS=0)
+    await page.goto(`${BASE}/?emu&slot=${slot}${i}${qs ? '&' + qs : ''}${process.env.JW_CV != null ? `&jwcv=${process.env.JW_CV}` : ''}${/^\d{4}-\d{2}-\d{2}$/.test(process.env.JW_DAY || '') ? `&jwday=${process.env.JW_DAY}` : ''}`);   // (J4: JW_DAY — JAYWALK on that season's day)   // (J2: JW_CV=0 — JAYWALK's course rules v2 from the start, with serve.mjs's JW_CV_SWITCH_MS=0)
     pages[i] = page;
     return page;
   }
