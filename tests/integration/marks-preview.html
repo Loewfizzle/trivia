@@ -35,7 +35,10 @@ import { markSvg } from '/js/ui/mark-svg.js';
 import { gameArtSvg } from '/js/ui/game-art.js';
 import { TICKET_ART } from '/js/daily/ticket-art.js';
 const sizes = [24, 32, 40, 64], games = GAMES.filter(g => g.playable);
-const band = look => `<div class="band ${look}"><h4>${look.toUpperCase()}</h4>${games.map(g => `<div class="row"><b>${g.name}</b>${sizes.map(s => `<div class="cell">${markSvg(g, 'mk').replace('<svg ', `<svg width="${s}" height="${s}" style="stroke-width:7" `)}</div>`).join('')}</div>`).join('')}</div>`;
+// (J3 — &before=1: one more row under JAYWALK — its mark in CITY H2's house pink (#ff4fc4), the red's before / after)
+const before = new URLSearchParams(location.search).get('before') === '1';
+const cells = (g, swap) => sizes.map(s => `<div class="cell">${(swap ? markSvg(g, 'mk').split('#ff3344').join('#ff4fc4') : markSvg(g, 'mk')).replace('<svg ', `<svg width="${s}" height="${s}" style="stroke-width:7" `)}</div>`).join('');
+const band = look => `<div class="band ${look}"><h4>${look.toUpperCase()}</h4>${games.map(g => `<div class="row"><b>${g.name}</b>${cells(g)}</div>${before && g.id === 'jaywalk' ? `<div class="row"><b>BEFORE (PINK)</b>${cells(g, true)}</div>` : ''}`).join('')}</div>`;
 document.getElementById('out').innerHTML = band('night') + band('day') + `<div class="art"><h4>JAYWALK</h4><div class="card" id="jwcard"></div><div class="tk">${TICKET_ART.jaywalk}</div></div>`;
 document.getElementById('jwcard').append(gameArtSvg('jaywalk'));
 document.body.dataset.ready = '1';

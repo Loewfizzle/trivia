@@ -8,6 +8,8 @@
 // (spoiler-free + J3's best-time line) → J3 THE TIME BOARDS: `every` + `today` carry the day's split board = the record's server splits
 // (best per split, a tab per 50 reached) → the SCORES tab row on the real screen → the share card on the preview page with 4 sections.
 //   DAILY_TEST=1 node scripts/serve.mjs <port> --emu   then   node tests/integration/e2e-jaywalk-daily-run.mjs "<browser>" [./shots-dir]   (LOOK=night | day: THE GAME LOOK)
+//   J3_SHOTS=1 (+ a shots dir): J3's review shots — a second player plays all 3 tries to their END CARDS (try 1: TRY AGAIN · 2 TRIES LEFT ·
+//   COME BACK LATER; try 3: ADMITTED) + the ticket between tries, at 390 × 844 + 375 × 667 → daily-endcard-try1 / -try3 / daily-ticket-between
 // The two schedules are removed at the end (the server's 30 s cache: run e2e-daily BEFORE this, never right after).
 process.env.FIREBASE_DATABASE_EMULATOR_HOST ||= '127.0.0.1:9000';
 process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
@@ -78,7 +80,32 @@ async function fitChecks() {
   await pv.close();
 }
 const unschedule = async () => { for (const g of ['jaywalk', 'drop']) await ref(`progress/dlive/${g}`).remove().catch(() => {}); };
-await H.run(async () => { await fitChecks(); try { await day1(); } finally { await unschedule(); } });
+await H.run(async () => { await fitChecks(); try { await day1(); if (H.SHOTS && process.env.J3_SHOTS === '1') await j3Shots(); } finally { await unschedule(); } });
+
+/** J3 — the review shots: three whole tries (the bot past a split or two, then the wall — no STOP), each end card + the ticket between */
+async function j3Shots() {
+  const lk = process.env.LOOK || 'night';
+  const B = await openApp('jr3', 'JAYSHOT');
+  await ref(`ppriv/${B.pid}/at`).set(WEEK_AGO);
+  await screen(B.page);
+  await waitFor(B.page, `!!document.querySelector('.dy-ticket[data-id="jaywalk"] .dy-play')`, 'J3 shots: TODAY', 20000);
+  const both = async name => { for (const [w, h] of [[390, 844], [375, 667]]) { await B.page.setViewport({ width: w, height: h, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await sleep(600); await B.page.screenshot({ path: `${H.OUT}${name}-${lk}-${w}.png` }); } await B.page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true }); await sleep(300); };
+  for (let i = 0; i < 3; i++) {
+    await tap(B.page, '.dy-ticket[data-id="jaywalk"] .dy-play');
+    await playTry(B.page, 300, `J3 shots: try ${i + 1}`);
+    await waitFor(B.page, `window.__jwGame.state().best >= ${[56, 106, 70][i]} || window.__jwGame.state().over`, `J3 shots: try ${i + 1} played`, 180000).catch(() => {});
+    await B.page.evaluate(() => window.__jwGame.bot(false));
+    await waitFor(B.page, `!!document.querySelector('.dy-jw-end[data-lanes]') && /LANE/.test(document.querySelector('.dy-jw-big').textContent)`, `J3 shots: end card ${i + 1}`, 90000);
+    await sleep(900);
+    if (i === 0) await both('daily-endcard-try1');
+    if (i === 2) { await waitFor(B.page, `!!document.querySelector('.dy-jw-end .dy-stamp')`, 'J3 shots: ADMITTED', 15000); await both('daily-endcard-try3'); await tap(B.page, '.dy-jw-end .btn').catch(() => {}); break; }
+    await tap(B.page, '.dy-jw-later');
+    await waitFor(B.page, `!document.querySelector('.dy-run') && /TR(Y|IES) LEFT/.test((document.querySelector('.dy-ticket[data-id="jaywalk"] .dy-left') || {}).textContent || '')`, 'J3 shots: the ticket between tries', 20000);
+    if (i === 0) await both('daily-ticket-between');
+  }
+  ok(true, `J3 shots (${lk}): the end cards + the ticket between tries saved`);
+  await B.ctx.close();
+}
 
 async function day1() {
   const A = await openApp('jr1', 'JAYDAY');
@@ -205,7 +232,8 @@ async function day1() {
     ok(J && J.hs && J.hs.at === want.length * 50 && J.hs.t === want[want.length - 1], `the share card's best-time line: TO ${J && J.hs && J.hs.at} (the highest 50 reached, its best tick ${J && J.hs && J.hs.t})`);
     const E = (await api(A.page, { action: 'every' })).every.jaywalk;
     const T = E && E.times;
-    ok(T && T.tabs.join(',') === want.map((_, i) => (i + 1) * 50).join(','), `EVERYONE · TODAY: a tab per 50 reached — ${T && T.tabs.join(' · ')}`);
+    // (the day's board holds everyone's runs: the tabs run 50 … the farthest anyone counted reached — yours among them, never a gap)
+    ok(T && T.tabs.every((l, i) => l === (i + 1) * 50) && T.tabs.length >= want.length, `EVERYONE · TODAY: a tab per 50 reached (50 … the farthest) — ${T && T.tabs.join(' · ')}`);
     const r50 = T && T.b[50] && (T.b[50].rows.find(r => r.me) || T.b[50].me);
     ok(r50 && r50.t === want[0] && r50.rank >= 1, `… your time to 50 = the server's (${r50 && r50.t} ticks, place ${r50 && r50.rank})`);
     const TT = (await api(A.page, { action: 'today' })).jt;

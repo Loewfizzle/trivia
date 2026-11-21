@@ -43,3 +43,17 @@ The detail lives in `docs/jaywalk.md` "J3"; the owner's decisions in `docs/games
 ## GROUP 3 — THE RED SNEAKER
 `core/marks.js#MARKS.jaywalk` tube 1 `#ff4fc4` → **`#ff3344`** (hue ≈ 355°: red — pink is ~322°, orange 25°+). Sole / laces + speed lines unchanged.
 ONE definition: the PLAY sheet, PICK A GAME, the card art, the share image follow. The ticket's ink untouched (the HIGH RISE chat's).
+
+## THE VISUAL REVIEW (390 × 844 + 375 × 667, night + day — `Downloads\NEON\jaywalk-j3\`)
+- The boards: `daily-board-{lanes|to50|to150}-{everyone|friends}-{night|day}-{390x844|375x667}.png` (the preview's `&jwt=1` — sample server
+  splits through the REAL `timeView`; BEN + ROOK tie at 50 → both 3RD, the next 5TH). The end cards + the ticket: `daily-endcard-try1-*`,
+  `daily-endcard-try3-*` (a real phone on the emulators — `e2e-jaywalk-daily-run.mjs` with `J3_SHOTS=1`), `daily-ticket-between-*` (the preview:
+  the emulator's run shows THE TEST DAILY — kept out of the owner's shots). The share: `daily-share-{night|day}` (4 sections) +
+  `daily-share-own-*` (2). The mark: `sneaker-marks-390x844.png` (`marks-preview.html?before=1` — red beside the old pink, 24 · 32 · 40 · 64).
+- **Refine 1** — the tab row cut its last word at the panel's edge ("TO 15") — read as broken text → the row's ends FADE (a mask; 22 px of end
+  padding so the last tab clears the fade when scrolled to the end).
+- **Refine 2** — YOUR FRIENDS' time rows wore EVERYONE's deco medals while the same panel's lanes list ranks "1ST / 2ND" in words → the friends
+  scope ranks in words on every tab (medals stay EVERYONE's).
+- **Refine 3** — the share section's "TO 150 · 2:03" touched "BEST OF 3" on the 4-section card → 10 units lower, the bars stepped down with it.
+- THE RED SNEAKER reads RED at every size by night and by day — clearly apart from the pink before-row, nowhere near orange; the white sole /
+  laces + the cyan lines unchanged; the card art (bottom) glows red.

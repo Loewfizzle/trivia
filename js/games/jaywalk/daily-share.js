@@ -60,8 +60,8 @@ export function paintSection(c, { inputs, look = 'night', W = 1080 } = {}) {
   paintBig(c, look, lanesLine(bestLanes(I)), cx, R.bigY, R.bigPx, W - 2 * R.COL);
   paintStat(c, look, statOf(I), cx, R.statY, R.statPx, W - 2 * R.COL);
   const tl = timeOf(I);
-  if (tl) paintStat(c, look, tl, cx, R.artY + 14, Math.round(R.statPx * 0.82), W - 2 * R.COL);
-  paintBars(c, look, I, cx, R.artY + (tl ? 42 : 18), R.artH - (tl ? 54 : 30), Math.min(BARS_W, W - 2 * R.COL));
+  if (tl) paintStat(c, look, tl, cx, R.artY + 24, Math.round(R.statPx * 0.82), W - 2 * R.COL);   // (refine: a clear gap under BEST OF 3)
+  paintBars(c, look, I, cx, R.artY + (tl ? 52 : 18), R.artH - (tl ? 62 : 30), Math.min(BARS_W, W - 2 * R.COL));
   c.restore();
 }
 

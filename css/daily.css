@@ -368,7 +368,9 @@ body[data-look="day"] .dy-run:has(.dy-jw-end) > .dy-back { color: #fff; }
 /* ---- J3 — THE TIME BOARDS (JAYWALK's daily — SCORES · TODAY, EVERYONE + YOUR FRIENDS): the tab row = THE NEON TABS (ui/neon-tabs.js — one
    sideways-scrolling row, the words on the glass, the chosen one lit with its line: no pills) — MOST LANES · FASTEST TO 50 · TO 100 · …; a
    time row's m:ss.t in the numbers' face. By day the words take the panel's navy (the night cream would sit on white glass). ---- */
-.dy-ttabs { margin: 0 -14px 8px; padding: 0 10px; scroll-padding-inline: 10px; scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
+.dy-ttabs { margin: 0 -14px 8px; padding: 0 22px 0 10px; scroll-padding-inline: 10px; scroll-snap-type: x proximity; overscroll-behavior-x: contain;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 26px), transparent); }
+/* (refine 1: the row's ends FADE — a word cut at the panel's edge read as broken text; the fade says "more this way") */
 .dy-ttabs .nt-tab { padding: 0 11px; letter-spacing: 0.12em; scroll-snap-align: start; color: var(--dy-dim); }
 .dy-ttabs .nt-tab.is-on { color: #ff8fe0; }
 body[data-look="day"] .dy-ttabs { box-shadow: inset 0 -1px 0 rgba(60, 100, 160, 0.22); }

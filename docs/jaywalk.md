@@ -401,7 +401,8 @@ The server already let a player use the 3 tries any time until 4 am (the best co
   (`timeView` — the phone only draws).
 - **THE TABS** (`timeTabsEl` — THE NEON TABS, one sideways-scrolling row, ≥ 44 px, no pills): **MOST LANES** (first, the default — the lanes list
   unchanged) · **FASTEST TO 50** · **TO 100** · TO 150 … — a tab for every 50 someone in the shown scope reached ("as high as the guy goes"); the
-  row keeps its scroll over a repaint. A time row: place (THE DECO MEDALS 1–3) · the slim card · the time `m:ss.t` (tenths floored). **EQUAL
+  row keeps its scroll over a repaint; its ends FADE (a word cut at the panel's edge read as broken). A time row: place (EVERYONE: THE DECO
+  MEDALS 1–3 · YOUR FRIENDS: 1ST / 2ND in words, as its lanes list) · the slim card · the time `m:ss.t` (tenths floored). **EQUAL
   TIMES SHARE A PLACE** (both 1ST, the next 3RD). TODAY only — ALL TIME stays the lanes average; solo keeps personal-best splits only.
 - **A VIEW**: the time boards never touch the lanes result, the points, ALL TIME, DAILY BEST, the streak or XP (`tests/jaywalk-j3.test.mjs`).
 - **The phone's code stays light**: the daily screen + the share card import only `core/jw-time-text.js` (the words: `timeClock`, `tabLabel`,

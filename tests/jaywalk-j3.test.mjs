@@ -125,7 +125,7 @@ test('J3 — THE SHARE CARD\'s line: the HIGHEST 50 reached today + its best tim
   assert.equal(shareOf(openTry(null, { uid: 'u', now: 1, startedAt: 1 }).record, { day: DAY }).hs, undefined, 'no 50 reached → no line');
   assert.equal(timeOf(jwInputs({ t: [12, null, null], b: 0 })), '');
   assert.equal(jwInputs({ t: [1], hs: { at: 75, t: 10 } }).hs, null, 'a split must be a whole 50');
-  assert.match(read('js/games/jaywalk/daily-share.js'), /if \(tl\) paintStat\(c, look, tl, cx, R\.artY \+ 14/);
+  assert.match(read('js/games/jaywalk/daily-share.js'), /if \(tl\) paintStat\(c, look, tl, cx, R\.artY \+ 24/);
 });
 
 test('J3 — the time boards are a VIEW: the lanes result, the points, ALL TIME + DAILY BEST never read them; every close raises the board', () => {

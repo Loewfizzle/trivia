@@ -320,7 +320,7 @@ function openScreen(tab0) {
         const nm = names(), mine = me();
         const rows = [...(tq.list || []), ...(tq.mine ? [{ ...tq.mine, below: !tq.mine.gated }] : [])].map(r => ({ ...r, pid: r.k, me: r.k === mine.pid, name: r.k === mine.pid ? mine.name : nm[r.k] || 'FRIEND' }));
         const solo = rows.length <= 1;
-        const tl = h(`ol.board-list.is-strips.dy-cards.dy-times${solo ? '.is-solo' : ''}`, { 'aria-label': `${d.name} — your friends, fastest to ${tt.cur}` }, ...rows.map((r, i) => timeRow(d, r, i, { pid: r.pid, row: { n: r.name } }, r.name, solo)));
+        const tl = h(`ol.board-list.is-strips.dy-cards.dy-times${solo ? '.is-solo' : ''}`, { 'aria-label': `${d.name} — your friends, fastest to ${tt.cur}` }, ...rows.map((r, i) => timeRow(d, r, i, { pid: r.pid, row: { n: r.name } }, r.name, solo, false)));
         if (rows.length > 1) lonely = false;
         els.body.append(h('section.dy-sec', { style: inkVars(d.id), dataset: { id: d.id } }, secHead(d), h('h3.dy-sub', 'YOUR FRIENDS · TODAY'), tt.el, tl));
         dressCards(tl, rows, d);
@@ -414,11 +414,11 @@ function openScreen(tab0) {
     requestAnimationFrame(() => { if (T.el.isConnected && tabScroll[d.id]) T.el.scrollLeft = tabScroll[d.id]; });
     return { el: T.el, cur };
   }
-  /** one TIME row: the place (equal times share it — THE DECO MEDALS for 1–3) · the card · the time under it (m:ss.t) — YOU framed, a gated YOU
-   *  = NOT COUNTED, no place */
-  function timeRow(d, r, i, target, name, solo = false) {
+  /** one TIME row: the place (equal times share it — THE DECO MEDALS for 1–3 on EVERYONE; YOUR FRIENDS ranks in words, as its lanes list) · the
+   *  card · the time under it (m:ss.t) — YOU framed, a gated YOU = NOT COUNTED, no place */
+  function timeRow(d, r, i, target, name, solo = false, medal = true) {
     return h(`li.lb-row.lb-strip.dy-crow.dy-trow${r.me ? '.is-me' : ''}${r.rank === 1 && !solo ? '.is-first' : ''}${r.below ? '.is-below' : ''}`, { dataset: { pid: r.pid || r.id || `me${i}` } },
-      h('span.lb-rank', r.rank && !solo ? (rankMedal(r.rank, { size: 32 }) || ordinal(r.rank)) : ''),
+      h('span.lb-rank', r.rank && !solo ? ((medal && rankMedal(r.rank, { size: 32 })) || ordinal(r.rank)) : ''),
       h('div.lb-card.dy-card', opener(target, name), h('div.lb-sub',
         r.gated ? h('small.dy-cnote', 'NOT COUNTED') : null,
         h('span.lb-pts', h('span.lb-score.dy-cscore.dy-time', timeClock(r.t))))));
