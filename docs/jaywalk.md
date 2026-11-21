@@ -311,9 +311,11 @@ firsts + run caps kept). 5,000 seeds, the steady bot: time to 50 median **13.9 �
   the worst wait ≤ 4 s (the solo wall at its nearest gives 8 s).
 - **THE NUMBERS** (600 seeds): a BLIND cross (straight up, hop after hop) is hit **v1 6.5 % → v2 72 %** (lanes 120–249: 4.9 → 59 % ·
   250–449: 5.7 → 69 % · the loop: 7.3 → 77 %); the careful (greedy) bot killed per runway met **0 → 1.5 %**; runways to lane 450: 3.9 → 7.6.
-- **THE LOOK:** the runway lights race per lane in its own tell (night + day, as before); **the trail = fire on the road** — a glowing streak
-  (a hot core in an orange glow · by day a dark scorched band under bright orange paint) + a row of flickering flame tongues, cooling but
-  bright to the last deadly tick, then out fast (14 ticks of dim embers — never read as fire); drawn in night.js (never waiting for the
+- **THE LOOK:** the runway lights race per lane in its own tell (night + day, as before); **the trail = BLUE-PINK PLASMA on the road** (the
+  owner, Nov 21 — the first amber fire sank into the amber runway lights): a hot PINK streak with a violet core (by day a dark scorched band
+  under pink paint — BLUE ON THE GROUND = WATER, so no blue on the ground) + a row of standing plasma tongues (an electric-blue body, a hot
+  heart — cyan by night, white by day — a pink tip), cooling but bright to the last deadly tick, then out fast (14 ticks of dim violet
+  embers); drawn in night.js (never waiting for the
   lazy flyers' module), instanced — no draw call of its own. A v2 jet flies ONE lane (× 0.7 — `FLY.rwScale`); **all jets = ONE instanced
   mesh (6) + their flames ONE (12)** — one draw call however many fly.
 

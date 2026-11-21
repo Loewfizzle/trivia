@@ -471,9 +471,11 @@ export function createNight(host, o = {}) {
    *  `o.a` = the ghosts' fraction; `g.vis` / `o.off` = a late hop's CATCH-UP ({ x, y, u: 0 … 1, d }); `g.held` = unconfirmed. */
   /**
    * J2 — THE AFTERBURNER TRAIL (a v2 runway lane — course.js#laneHit: everything behind its jet burns through the pass, then the WHOLE lane
-   * for `p.trail` ticks): FIRE ON THE ROAD in both looks — a glowing burning streak (a hot core in an orange glow · by day a dark scorched
-   * streak under bright paint) + a row of flickering flame tongues, cooling as it ages but bright to the last deadly tick; then it goes
-   * out fast (EMBER ticks of dim embers — never read as fire). Instanced kinds only (no draw call of its own). `u` = ticks into the lap.
+   * for `p.trail` ticks): BLUE-PINK PLASMA in both looks (the owner, Nov 21: amber fire sank into the amber runway lights) — a glowing
+   * streak on the road (a white-violet core in a hot PINK glow · by day a dark scorched band under pink paint: BLUE ON THE GROUND = WATER,
+   * so the blue stays OFF the ground) + a row of standing plasma tongues (an electric-blue body, a white-hot heart, a pink tip), cooling as
+   * it ages but bright to the last deadly tick; then out fast (EMBER ticks of dim violet embers — never read as live). Instanced kinds only
+   * (no draw call of its own). `u` = ticks into the lap.
    */
   const EMBER = 14, burnHash = (i, k) => { const x = (Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1; return x < 0 ? x + 1 : x; };   // (0 … 1: the tongues stay inside their own lane)
   function burnLane(p, u, z, lt) {
@@ -486,19 +488,20 @@ export function createNight(host, o = {}) {
     const cx = X((x0 + x1) / 2), w = x1 - x0, A = Math.min(1, lt), fl = reduce ? 1 : 0.85 + 0.15 * Math.sin(clock / 47 + z * 3.1);
     if (day) {
       K.shadow.put(cx, 0.049, z, w, 1, 1.9, 0, 0, 1, 4, (live ? 1 : 0.6 * heat / 0.32) * A);                                 // the scorched streak (a dark band: the fire's paint reads on it)
-      if (live) { K.flat.put(cx, 0.052, z, w, 1, 1.5, 0, 0xff3c0c, 1, 4, A); K.flat.put(cx, 0.053, z, w, 1, 0.95, 0, 0xff7a14, 1, 4, A); K.flat.put(cx, 0.054, z, w, 1, 0.5, 0, 0xffe04a, 1, 4, (0.6 + 0.4 * heat) * A); }
+      if (live) { K.flat.put(cx, 0.052, z, w, 1, 1.5, 0, 0xd4127e, 1, 4, A); K.flat.put(cx, 0.053, z, w, 1, 0.95, 0, 0xff3cb4, 1, 4, A); K.flat.put(cx, 0.054, z, w, 1, 0.5, 0, 0xffd6f4, 1, 4, (0.6 + 0.4 * heat) * A); }
     } else {
-      K.flat.put(cx, 0.045, z, w, 1, 1.0, 0, 0xff4412, 1, 4, 0.8 * heat * fl * lt);   // (inside its own lane: never read as the next one burning)                                          // the glow round it
-      K.flat.put(cx, 0.05, z, w, 1, 0.42, 0, live ? 0xffb43a : 0x8a2a10, 1, 4, (live ? 0.9 : 0.6) * heat * lt);                   // the hot core
+      K.flat.put(cx, 0.045, z, w, 1, 1.0, 0, 0xff2aa8, 1, 4, 0.62 * heat * fl * lt);   // (inside its own lane: never read as the next one burning)                                          // the glow round it
+      K.flat.put(cx, 0.05, z, w, 1, 0.3, 0, live ? 0xa86cff : 0x5a1a6e, 1, 4, (live ? 0.6 : 0.6) * heat * lt);   // (violet, never white: additive light over the pink would blow out)                   // the hot core
     }
     if (!live) return;
-    // THE FLAMES: a tongue every 0.85 of a cell, each its own flicker (still with reduce motion: a steady height)
+    // THE PLASMA TONGUES: one every 0.85 of a cell, each its own flicker (still with reduce motion: a steady height) — blue body, white heart, pink tip
     for (let c = Math.ceil(x0 / 0.85) * 0.85; c < x1; c += 0.85) {
       const hsh0 = burnHash(Math.round(c * 7) + p.band * 31, 3), f = reduce ? 0.8 : 0.62 + 0.38 * Math.abs(Math.sin(clock / (70 + 40 * Math.abs(hsh0)) + hsh0 * 9)), hh = (0.42 + 0.34 * f) * heat;
       const x = X(c), zz = z + (hsh0 - 0.5) * 0.36;
       const fw = (day ? 1.15 : 0.7) * (0.8 + 0.2 * heat), fh = day ? hh * 1.4 : hh;
-      K.bill.put(x, fh * 0.45, zz, fw, fh, 1, 0, day ? 0xff4a0c : 0xff6a1e, 1, 9, (day ? 1 : 0.85) * A);   // a flame (narrow at its top)
-      K.bill.put(x, fh * 0.3, zz + 0.02, fw * 0.5, fh * 0.6, 1, 0, 0xffe066, 1, 9, (day ? 1 : 0.9) * A);                                 // its yellow heart
+      K.bill.put(x, fh * 0.66, zz - 0.01, fw * 0.75, fh * 1.05, 1, 0, day ? 0xe0189a : 0xff2ab8, 1, 9, (day ? 1 : 0.5) * A);   // its pink tip (the tongue's top, licking up past the blue)
+      K.bill.put(x, fh * 0.45, zz, fw, fh, 1, 0, day ? 0x1f5cff : 0x1e50ff, 1, 9, A);                                         // the plasma tongue (narrow at its top)
+      K.bill.put(x, fh * 0.28, zz + 0.02, fw * (day ? 0.5 : 0.36), fh * 0.5, 1, 0, day ? 0xd8f4ff : 0x7cc8ff, 1, 9, (day ? 1 : 0.55) * A);   // its hot heart (by night cyan — additive: white would wash the blue out)
     }
   }
 

@@ -121,6 +121,12 @@ course once). The daily-run checks the try's version.
    too hot.
 4. THE BOARD keeps v1 and v2 runs side by side (no reset; a v1 best stands).
 
+## AFTER THE PUSH — THE PLASMA TRAIL (the owner, Nov 21: blue-orange or blue-pink plasma — "it would register more against the amber runway lights")
+Blue-pink: an orange trail would still sit in the amber lamps' colour. The streak on the road is hot PINK with a violet core (BLUE ON THE
+GROUND = WATER — the blue stays off the ground); the standing tongues are electric blue with a pink tip and a hot heart (cyan by night —
+on the first try additive light over the pink washed a white heart out to a pink-white blur; white by day). Before / after (390, night +
+day): `Downloads\NEON\jaywalk-j2\plasma-before-after-390.png`. Colours only — the rules, the timing, the draw calls unchanged.
+
 ## THE FINAL RUN (local, the Beelink — my own emulators + `serve.mjs --emu`; Nov 21, finished ~12:05 pm ET — well before the 4 am switch)
 - unit `node --test tests/*.test.mjs` **2,487 / 2,487**
 - `e2e-jaywalk` FAST **102 / 102** · `e2e-jaywalk-match` FAST **103 / 103** · `--four` **101 / 101** · `--two` **7 / 7** · `e2e-console-fix`
