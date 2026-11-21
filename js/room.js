@@ -33,7 +33,7 @@ let lastRaw = null;   // the newest raw presence snapshot (the heal's retry read
 
 // (FIXES R2 — THE REVIEW F4: radioCrew joins — room A's stamp no longer survives into room B until B's listener fires; tests/fixes-r2.test.mjs:
 //  every key a room listener sets is reset here)
-const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, night: {}, rv: {}, roomRadio: [], radioCrew: null, live: {}, liveKey: null };
+const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, night: {}, rv: {}, gv: {}, roomRadio: [], radioCrew: null, live: {}, liveKey: null };
 
 function cleanProfile(profile) {
   return { name: sanitizeName(profile.name, NAME_MAX) || 'ANON', color: profile.color, avatar: sanitizeAvatar(profile.avatar) };
@@ -352,7 +352,8 @@ function enterRoom(code, { solo = false } = {}) {
     healPresence(code, presence);
   });
   listen('night', night => setState({ night: night || {} }));
-  listen('rv', rv => setState({ rv: rv || {} }));   // (LOBBY 2.0 B — THE REMATCH VOTE: each player's own vote, rv/{uid} = the match they want again)
+  listen('rv', rv => setState({ rv: rv || {} }));
+  listen('gv', gv => setState({ gv: gv || {} }));   // (CITY PART 2 — GAME VOTES: each guest's own vote for the next game, gv/{uid} = { g, at } — core/room-votes.js)   // (LOBBY 2.0 B — THE REMATCH VOTE: each player's own vote, rv/{uid} = the match they want again)
   // PROGRESSION B — BIRTHDAYS: on the player's birthday the server writes the room's HAPPY BDAY skywrite (once a day a room — DORMANT
   // until LOBBY 2.0 makes the lobby the live city; its phones play it then). Polish: only with a birthday on this phone, never waits.
   birthdayRoom(code);

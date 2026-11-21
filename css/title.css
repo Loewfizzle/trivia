@@ -1032,6 +1032,9 @@ body.rc-solo .rdk-dock { visibility: hidden !important; pointer-events: none !im
 .rdk-dot { position: absolute; top: 5px; right: 9px; width: 9px; height: 9px; border-radius: 50%; pointer-events: none; }
 .rdk-guests .rdk-dot { background: #ffd84a; box-shadow: 0 0 6px rgba(255, 216, 74, 0.9); }
 .rdk-chat .rdk-dot { background: #ff4fb8; box-shadow: 0 0 6px rgba(255, 79, 184, 0.9); }
+/* CITY PART 2 — GAME VOTES: the host's GAMES count (room-dock.js) — a small SQUARE count (no pill), dark on cyan, the number carries it */
+.rdk-cnt { position: absolute; top: 2px; right: 4px; min-width: 16px; height: 16px; padding: 0 3px; box-sizing: border-box; border-radius: 4px; background: #2ff0ff; color: #031216; font: 800 11px/16px var(--font-num); font-style: normal; text-align: center; pointer-events: none; box-shadow: 0 0 6px rgba(47, 240, 255, 0.7); }
+.rdk-cnt[hidden] { display: none; }
 .rdk-you .nd-tab-ic .avatar { --s: 26px; }
 /* PLAY (the host) / WAITING FOR <HOST> (a guest: the ring greyed, two lines of words) */
 .rdk-play .nd-host-label { display: flex; flex-direction: column; align-items: center; gap: 3px; }

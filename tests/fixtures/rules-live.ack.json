@@ -1,4 +1,4 @@
 {
- "hash": "1dcc2514461f7b22",
- "line": "RULES CHANGED: rooms/{CODE}/pt (new — THE TREE CAP: the room's stamped-tree counter, 1,000 a room) + rooms/{CODE}/jw/{matchId}/t0 + rooms/{CODE}/hr/{matchId}/t0 (the stamp only WITH the counter) — THE CONSOLE FIX — RE-PUBLISH database.rules.json in the Firebase console (Downloads\\NEON\\database.rules.nov20-console.json), any time AFTER the deploy is live: the new code works on the old rules (its plain stamp is the fallback), a phone still on the old code works on the new ones (GO without a stamp until Nov 27)"
+ "hash": "66b832dfd1371041",
+ "line": "RULES CHANGED: rooms/{CODE}/gv (new — CITY PART 2's GAME VOTES: each guest's own vote { g, at: now }, only in the lobby, the host clears them) + still THE CONSOLE FIX's rooms/{CODE}/pt + jw/hr t0 if not yet published — RE-PUBLISH database.rules.json in the Firebase console (Downloads/NEON/database.rules.nov21-part2.json), any time AFTER the deploy is live: the new code works on the old rules (no votes shown, a guest's tap reads HOW TO PLAY), a phone on the old code works on the new ones"
 }

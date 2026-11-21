@@ -549,6 +549,28 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
   font: 700 9.5px/1 var(--font-ui); font-style: normal; letter-spacing: 0.16em; color: #ffd977; }
 .rc-game-t span { font: 500 13px/1.3 var(--font-ui); color: rgba(240, 236, 250, 0.82); }
 .rc-game-go { font: 700 22px/1 var(--font-ui); font-style: normal; color: rgba(255, 255, 255, 0.8); }
+/* CITY PART 2 — GAME VOTES (room-city.js#openGames): a game's voters = their colour DOTS + the COUNT (the number carries it — colour-blind
+   safe), a tap on them = who; YOUR VOTE on the guest's own pick (a cyan keyline round the row); ? = HOW TO PLAY; MOST WANTED · <GAME> (n) on
+   top of the host's list = one tap starts it. No pills: square-cornered marks + a rounded RECTANGLE line. */
+.rc-gv { flex: none; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 44px; min-height: 44px; padding: 2px 4px; }
+.rc-gv[hidden] { display: none; }
+.rc-gv-dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; max-width: 52px; }
+.rc-gv-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c, #fff); box-shadow: 0 0 0 1.5px rgba(8, 7, 14, 0.9), 0 0 6px color-mix(in srgb, var(--c, #fff) 70%, transparent); }
+.rc-gv-n { font: 800 16px/1 var(--font-num); color: #fff; }
+.rc-gv-mine { align-self: flex-start; margin-top: 2px; padding: 3px 6px 2px; border-radius: 4px; background: #2ff0ff; color: #031216; font: 800 10px/1 var(--font-ui); font-style: normal; letter-spacing: 0.16em; }
+.rc-gv-mine[hidden] { display: none; }
+.rc-game.is-voted { box-shadow: inset 0 0 0 2px #2ff0ff, 0 0 14px rgba(47, 240, 255, 0.35); }
+.rc-game-help { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-right: -8px; border-radius: 10px; font: 800 18px/1 var(--font-display); color: rgba(255, 255, 255, 0.85); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28); }
+.rc-mw { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; margin-bottom: 12px; padding: 8px 14px; border: 0; border-radius: 12px; cursor: pointer; text-align: left; color: #fff6dc;
+  background: rgba(40, 28, 4, 0.82); box-shadow: inset 0 0 0 1.5px #ffc83c, 0 0 16px rgba(255, 200, 60, 0.3); font: 900 14px/1.2 var(--font-display); letter-spacing: 0.06em; }
+.rc-mw[hidden] { display: none; }
+.rc-mw.is-busy { opacity: 0.6; pointer-events: none; }
+.rc-mw-ic { font-style: normal; color: #ffc83c; font-size: 18px; }
+.rc-mw-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.rc-mw-t small { font: 800 10px/1 var(--font-ui); letter-spacing: 0.22em; color: #ffd257; }
+.rc-mw-t b { font: 900 15px/1.15 var(--font-display); letter-spacing: 0.06em; color: #fff6dc; }
+.rc-mw-sep { display: none; }
+.rc-mw-go { font: 800 11px/1 var(--font-ui); font-style: normal; letter-spacing: 0.16em; color: #ffd257; white-space: nowrap; }
 .rg-h { display: flex; justify-content: flex-end; }
 .rg-count { font: 800 11px/1 var(--font-ui); letter-spacing: 0.2em; color: rgba(240, 236, 250, 0.82); }
 .rg-strips { position: relative; display: flex; flex-direction: column; gap: 10px; }

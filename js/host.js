@@ -304,6 +304,9 @@ async function startGameNow(gameId, settings, quick = false) {
   const prevM = (state.game && state.game.matchId) || (state.meta && state.meta.back && state.meta.back.m) || null;
   const tGo = serverNow();
   await update(dbRef(`rooms/${state.code}`), { 'meta/go': { at: serverTimestamp(), m: matchId, g: gameId }, 'meta/back': null, rv: null }).catch(e => stampRefused('go', e));
+  // (CITY PART 2 — GAME VOTES clear at a start: their OWN write, never in the stamp's — rules without gv refuse it (THE RULES-LAG: the start
+  //  goes on, the refusal is the quiet 'late-vote'); only when there are votes to clear)
+  if (state.gv && Object.keys(state.gv).length) { expectRefusal(`rooms/${state.code}/gv`, 'the game votes cleared at a start (rules without gv)', 8000, 'late-vote'); update(dbRef(`rooms/${state.code}`), { gv: null }).catch(() => {}); }
   // (OC1 — THE CONTRACT's `used`: the room's night memory, rooms/{CODE}/meta/used, read once here — a cartridge deals around it, never
   //  reaching into the store for it — docs/cartridge.md "THE ROOM-NIGHT PATH")
   const used = (state.meta && state.meta.used) || {};

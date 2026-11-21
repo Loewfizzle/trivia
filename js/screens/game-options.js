@@ -38,19 +38,12 @@ export function optionCards(choices, value, onChange) {
   return wrap;
 }
 
-export function openGameOptions(g, { meta = null, onClose = null } = {}) {
-  // (HE8 — a game with no thin meta at boot (HOLD'EM, the owner's TEST): its cartridge first — it carries the same options)
-  if (!metaOf(g.id)) { loadGame(g.id).then(m => { if (m) openGameOptions(g, { meta, onClose }); else toast('Couldn’t load the game — try again', 'warn'); }, () => toast('Couldn’t load the game — try again', 'warn')); return; }
-  const mod = metaOf(g.id);   // (SHELL 2.0 B1 — THE THIN META: the sheet reads it; the cartridge starts loading now, so INITIATE is quick)
-  lazyImport(import('../games/preload.js'), '../games/preload.js').then(P => P.wireGame(g.id)).catch(() => {});   // (FRIENDS C: the whole graph at once)
-  loadGame(g.id).catch(() => {});
-  prefetch(mod.MUSIC);
-  preloadSheets(g.id);   // its screen's stylesheets, so the match starts styled at once
-  const saved = (meta && meta.settings && meta.settings[g.id]) || {};
+/** the settings a start uses: the game's defaults + the room's saved ones, every choice the room's size can't take set back (PD-2: a CHOICE may
+ *  carry when(players) too — PRISM DROP's BATTLE needs 2+, so a room of one sees SCORE RUSH + SURVIVAL only; a saved choice that isn't shown
+ *  falls back to the first one that is) — the options sheet's AND MOST WANTED's one-tap start (CITY PART 2) */
+export function settingsFor(mod, id, meta, players) {
+  const saved = (meta && meta.settings && meta.settings[id]) || {};
   const settings = { ...mod.DEFAULT_SETTINGS, ...saved };
-  const players = onlineCount();
-  // (PD-2: a CHOICE may carry when(players) too — PRISM DROP's BATTLE needs 2+, so a room of one sees SCORE RUSH + SURVIVAL only; a saved
-  //  choice that isn't shown falls back to the first one that is)
   const shownOptions = mod.OPTIONS.filter(o => !o.when || o.when(players))
     .map(o => (o.choices && o.choices.some(c => c.when) ? { ...o, choices: o.choices.filter(c => !c.when || c.when(players)) } : o));
   for (const o of mod.OPTIONS) if (!shownOptions.some(x => x.key === o.key)) settings[o.key] = mod.DEFAULT_SETTINGS[o.key];
@@ -59,6 +52,33 @@ export function openGameOptions(g, { meta = null, onClose = null } = {}) {
     if (!full || !full.choices || !full.choices.some(c => c.when) || !o.choices.length || o.type === 'multi') continue;
     if (!o.choices.some(c => String(c.value) === String(settings[o.key]))) settings[o.key] = o.choices[0].value;
   }
+  return { settings, shownOptions };
+}
+
+/** CITY PART 2 — MOST WANTED's ONE TAP: the guests' most-voted game starts at once with the room's saved settings (the options sheet skipped —
+ *  the host's own tap; votes are suggestions, never an auto-start) → true when it started */
+export async function quickStart(g, { meta = null } = {}) {
+  const mod = metaOf(g.id) || await loadGame(g.id).catch(() => null);
+  if (!mod) { toast('Couldn’t load the game — try again', 'warn'); return false; }
+  lazyImport(import('../games/preload.js'), '../games/preload.js').then(P => P.wireGame(g.id)).catch(() => {});
+  preloadSheets(g.id);
+  const min = minPlayersOf(mod, MIN_PLAYERS);
+  if (onlineCount() < min) { toast(`NEED ${min}+ CONNECTED PLAYERS`, 'err'); return false; }
+  const ok = await startGame(g.id, settingsFor(mod, g.id, meta, onlineCount()).settings).catch(e => { toast(String((e && e.message) || e).toUpperCase(), 'err'); return false; });
+  if (ok) closeAllSheets();
+  return !!ok;
+}
+
+export function openGameOptions(g, { meta = null, onClose = null } = {}) {
+  // (HE8 — a game with no thin meta at boot (HOLD'EM, the owner's TEST): its cartridge first — it carries the same options)
+  if (!metaOf(g.id)) { loadGame(g.id).then(m => { if (m) openGameOptions(g, { meta, onClose }); else toast('Couldn’t load the game — try again', 'warn'); }, () => toast('Couldn’t load the game — try again', 'warn')); return; }
+  const mod = metaOf(g.id);   // (SHELL 2.0 B1 — THE THIN META: the sheet reads it; the cartridge starts loading now, so INITIATE is quick)
+  lazyImport(import('../games/preload.js'), '../games/preload.js').then(P => P.wireGame(g.id)).catch(() => {});   // (FRIENDS C: the whole graph at once)
+  loadGame(g.id).catch(() => {});
+  prefetch(mod.MUSIC);
+  preloadSheets(g.id);   // its screen's stylesheets, so the match starts styled at once
+  const players = onlineCount();
+  const { settings, shownOptions } = settingsFor(mod, g.id, meta, players);
   const est = h('span.est');
   // (HE10: the connected count as an optional third argument — HOLD'EM's length depends on it; the other games ignore it)
   const renderEst = () => { const m = mod.estimateMinutes(settings, undefined, { players }); est.textContent = typeof m === 'string' ? m : `≈ ${m} MIN`; };   // (HE3: a word — HOLD'EM's CASH is "OPEN")

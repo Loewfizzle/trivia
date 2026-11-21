@@ -30,6 +30,7 @@ import { startShow, fileInOrder, backShow, voteState, GO_DEAD_MS, goWaiting } fr
 import { createRoomBanner } from './room-banner.js';
 import { lazyImport } from '../ui/lazy-import.js';
 import { holdCity } from '../ui/city-hold.js';
+import { tallyVotes, voteOrder, nextVote, myVote, newVotes, mostWantedLine } from '../core/room-votes.js';
 
 const rgbOf = id => { const x = colorHex(id).replace('#', ''); return [0, 2, 4].map(i => parseInt(x.slice(i, i + 2), 16)); };
 export const FRESH_MS = 12000;      // (a player who joined in the last 12 s walks in, even on a phone seeing the room for the first time)
@@ -196,24 +197,100 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
 
   // ---------------------------------------------------------------- GAMES / PLAY: the playable games (the host picks → the options + INITIATE)
   let gamesOpen = null;
+  // CITY PART 2 — GAME VOTES IN A ROOM (core/room-votes.js; rooms/{CODE}/gv/{uid} = { g, at }): a GUEST's tap on a game in GAMES = their vote
+  // (another game moves it, the same takes it back — "YOUR VOTE" on it; HOW TO PLAY on its own ? button); the HOST's list shows each game's
+  // voters as their colour DOTS + the count (most-voted first; a tap on the dots = who), MOST WANTED · <GAME> (n) on top = one tap starts it
+  // (game-options.js#quickStart — the host's own tap: votes are suggestions, never an auto-start); the dock's GAMES tab counts the new votes.
+  // Votes only in the lobby; the host's start clears them (host.js). THE RULES-LAG: on rules without gv a vote is refused → the quiet
+  // 'late-vote', votes go quiet for this page and a tap reads HOW TO PLAY as before (nothing shown, nothing broken).
+  const playableIds = () => GAMES.filter(g => g.playable).map(g => g.id);
+  const tally = () => tallyVotes(st.gv, players(), st.meta && st.meta.hostId, playableIds());
+  const lobbyNow = () => !!(st.meta && st.meta.status === 'lobby');
+  let votesOff = false, voteBusy = false;
+  const gvSeenKey = () => `rc:gv:${code()}`;
+  const gvSeen = () => { try { return Number(sessionStorage.getItem(gvSeenKey())) || 0; } catch { return 0; } };
+  const markGvSeen = () => { try { sessionStorage.setItem(gvSeenKey(), String(serverNow())); } catch { /* fine */ } };
+  const gamesN = () => (isHost() && lobbyNow() ? newVotes(st.gv, players(), st.meta && st.meta.hostId, playableIds(), gvSeen()) : 0);
+  function castVote(g) {
+    if (voteBusy || isHost()) return;
+    if (votesOff || !lobbyNow()) { openHelp(g.id); return; }
+    voteBusy = true;
+    const v = nextVote(myVote(st.gv, st.uid), g.id);
+    sfx(v ? 'select' : 'tap');
+    expectRefusal(`rooms/${code()}/gv/${st.uid}`, 'a game vote refused (the room had moved on, or rules without gv)', 8000, 'late-vote');
+    dbUpdate(dbRef(`rooms/${code()}`), { [`gv/${st.uid}`]: v ? { g: v, at: serverTimestamp() } : null })
+      .catch(e => { if (e && /permission|denied/i.test(String(e.code || e.message))) { votesOff = true; paintGames(); } else toast('COULD NOT REACH THE ROOM', 'err'); })
+      .finally(() => { voteBusy = false; });
+  }
+  const nameOfGame = id => (GAMES.find(x => x.id === id) || {}).name || id;
+  const whoLine = (r) => r.voters.map(u => String((players()[u] || {}).name || '?').toUpperCase()).join(' · ');
+  /** the open GAMES sheet's vote marks — set in place (text + attributes), after any finger lands (THE TAP WATCH) */
+  function paintGames() { afterTap(paintGamesNow); }
+  function paintGamesNow() {
+    const G = gamesOpen && gamesOpen.rows;
+    if (!G || destroyed) return;
+    const T = tally(), mine = myVote(st.gv, st.uid), host = isHost();
+    for (const [id, R] of G) {
+      const r = T.by[id], n = r ? r.n : 0, sig = `${n}|${r ? r.voters.map(u => (players()[u] || {}).color).join(',') : ''}|${mine === id ? 1 : 0}`;
+      if (R.sig === sig) continue; R.sig = sig;
+      R.dots.replaceChildren(...(r ? r.voters.slice(0, 8).map(u => h('i.rc-gv-dot', { style: { '--c': colorHex((players()[u] || {}).color) } })) : []));
+      R.n.textContent = n ? String(n) : '';
+      R.box.hidden = !n; R.box.setAttribute('aria-label', n ? `${n} vote${n === 1 ? '' : 's'}: ${r ? whoLine(r) : ''}` : '');
+      R.mine.hidden = !(mine === id && !host);
+      R.btn.classList.toggle('is-voted', mine === id && !host);
+    }
+    if (gamesOpen.mw) {
+      const line = host && lobbyNow() ? mostWantedLine(T, nameOfGame) : '';
+      gamesOpen.mw.hidden = !line; gamesOpen.mw.dataset.g = T.top ? T.top.g : '';
+      // (two lines: the small MOST WANTED over the game's name + its count — the words read whole at 375; the text stays the one line)
+      const m = /^(MOST WANTED) · (.*)$/.exec(line);
+      gamesOpen.mwT.replaceChildren(...(m ? [h('small', m[1]), h('i.rc-mw-sep', ' · '), h('b', m[2])] : []));
+    }
+    if (host) markGvSeen();
+  }
   async function openGames(asHost) {
     if (gamesOpen) return;
+    gamesOpen = { pending: true };
     const { openPfSheet } = await lazyImport(import('../profile/sheets.js'), '../profile/sheets.js');
     const base = GAMES.filter(g => g.playable || (asHost && isOwnerTest(g.id)));   // (HE8 — THE OWNER'S LIVE TEST: a game being built, on the owner's host phone only)
     const [{ markSvg }, { LOGO_ACC }, O] = await Promise.all([lazyImport(import('../ui/mark-svg.js'), '../ui/mark-svg.js'), lazyImport(import('../ui/tube-logo.js'), '../ui/tube-logo.js'), lazyImport(import('../core/game-order.js'), '../core/game-order.js').catch(() => null)]);
-    // (CITY H2 — THE GAMES LIST ORDER: the PLAY sheet's own order — most played first, a game's first 14 days on top with NEW)
-    const games = O ? O.shelfOrder(base, O.storedOrder()) : base;   // (FIXES R2 — the owner: the PLAY sheet's neon marks, never the poster tiles)
-    const list = h('div.rc-games', ...games.map(g => h('button.rc-game', { type: 'button', dataset: { theme: g.theme, game: g.id }, onclick: () => {
-      if (!asHost || !isHost()) { openHelp(g.id); return; }
-      // (SHELL 2.0 B1: the options open ON the picker — ‹ = back to the games, × = both)
-      // (the host picks ANOTHER game after a match: the REMATCH ring goes back to PLAY + every vote clears)
-      if (st.meta && st.meta.back && st.meta.back.rm) dbUpdate(dbRef(`rooms/${code()}`), { 'meta/back/rm': false, rv: null }).catch(() => {});
-      lazyImport(import('./game-options.js'), './game-options.js').then(m => m.openGameOptions(g, { meta: st.meta }));
-    } }, h('span.sh-row-ic.rc-game-ic', { style: { '--ic': LOGO_ACC[g.id] || '#d6f0ff' }, html: markSvg(g), 'aria-hidden': 'true' }), h('span.rc-game-t', g.isNew ? h('em.gm-new', 'NEW') : null, h('small', g.tag), h('b', g.name, isOwnerTest(g.id) ? h('em.rc-game-test', 'TEST') : null), h('span', g.blurb)), h('i.rc-game-go', '›'))));
-    const s = openPfSheet({ kicker: asHost && isHost() ? 'YOU’RE THE HOST' : `${hostName().toUpperCase()} PICKS THE GAME`, title: asHost && isHost() ? 'PICK A GAME' : 'THE GAMES', cls: 'rc-games-sheet',
-      body: [list, h('p.sh-note.is-small', asHost && isHost() ? 'Pick one, set it up, then INITIATE — everyone in the line is dealt in.' : 'Tap one to read how it plays while you wait.')],
+    // (CITY H2 — THE GAMES LIST ORDER: the PLAY sheet's own order — most played first, a game's first 14 days on top with NEW; CITY PART 2: the
+    //  HOST's list puts the voted games on top at the open — most votes first, a tie = the earliest vote; never re-ordered under a finger)
+    const shelf = O ? O.shelfOrder(base, O.storedOrder()) : base;   // (FIXES R2 — the owner: the PLAY sheet's neon marks, never the poster tiles)
+    const host = asHost && isHost(), guestVotes = !isHost() && lobbyNow() && !votesOff;
+    const games = host ? voteOrder(shelf, tally()) : shelf;
+    const rows = new Map();
+    const list = h('div.rc-games', ...games.map(g => {
+      const dots = h('span.rc-gv-dots', { 'aria-hidden': 'true' }), n = h('b.rc-gv-n'), mine = h('em.rc-gv-mine', { hidden: true }, 'YOUR VOTE');
+      const box = h('span.rc-gv', { hidden: true, role: 'button', 'data-gv': '1' }, dots, n);
+      const help = guestVotes ? h('span.rc-game-help', { role: 'button', 'aria-label': `How to play ${g.name}`, 'data-help': '1' }, '?') : null;
+      const btn = h('button.rc-game', { type: 'button', dataset: { theme: g.theme, game: g.id }, onclick: e => {
+        const t = e && e.target && e.target.closest ? e.target : null;
+        if (t && t.closest('[data-gv]')) { const r = tally().by[g.id]; if (r) toast(`${r.n} WANT${r.n === 1 ? 'S' : ''} ${String(g.name).toUpperCase()}`, 'ok', { sub: whoLine(r) }); return; }   // (the dots = who)
+        if (t && t.closest('[data-help]')) { openHelp(g.id); return; }
+        if (!asHost || !isHost()) { castVote(g); return; }
+        // (SHELL 2.0 B1: the options open ON the picker — ‹ = back to the games, × = both)
+        // (the host picks ANOTHER game after a match: the REMATCH ring goes back to PLAY + every vote clears)
+        if (st.meta && st.meta.back && st.meta.back.rm) dbUpdate(dbRef(`rooms/${code()}`), { 'meta/back/rm': false, rv: null }).catch(() => {});
+        lazyImport(import('./game-options.js'), './game-options.js').then(m => m.openGameOptions(g, { meta: st.meta }));
+      } }, h('span.sh-row-ic.rc-game-ic', { style: { '--ic': LOGO_ACC[g.id] || '#d6f0ff' }, html: markSvg(g), 'aria-hidden': 'true' }), h('span.rc-game-t', g.isNew ? h('em.gm-new', 'NEW') : null, h('small', g.tag), h('b', g.name, isOwnerTest(g.id) ? h('em.rc-game-test', 'TEST') : null), h('span', g.blurb), mine), box, help || h('i.rc-game-go', '›'));
+      rows.set(g.id, { btn, dots, n, box, mine, sig: '' });
+      return btn;
+    }));
+    // (MOST WANTED — the host's line on top: one tap = start it with the room's saved settings; hidden with no votes)
+    const mwT = h('span.rc-mw-t');
+    const mw = host ? h('button.rc-mw', { type: 'button', hidden: true, onclick: () => {
+      const g = GAMES.find(x => x.id === mw.dataset.g && x.playable); if (!g || mw.classList.contains('is-busy')) return;
+      mw.classList.add('is-busy'); sfx('select');
+      lazyImport(import('./game-options.js'), './game-options.js').then(m => m.quickStart(g, { meta: st.meta })).then(ok => { if (!ok) mw.classList.remove('is-busy'); }, () => mw.classList.remove('is-busy'));
+    } }, h('i.rc-mw-ic', { 'aria-hidden': 'true' }, '★'), mwT, h('i.rc-mw-go', { 'aria-hidden': 'true' }, 'START ›')) : null;
+    const note = host ? 'Pick one, set it up, then INITIATE — everyone in the line is dealt in.' : guestVotes ? `Tap a game to vote for it — ${hostName().toUpperCase()} still picks. ? = how to play.` : 'Tap one to read how it plays while you wait.';
+    const s = openPfSheet({ kicker: host ? 'YOU’RE THE HOST' : `${hostName().toUpperCase()} PICKS THE GAME`, title: host ? 'PICK A GAME' : 'THE GAMES', cls: 'rc-games-sheet',
+      body: [mw, list, h('p.sh-note.is-small', note)].filter(Boolean),
       onClose: () => { gamesOpen = null; } });
-    gamesOpen = s;
+    gamesOpen = { sheet: s, rows, mw, mwT };
+    paintGamesNow();
+    if (host) { markGvSeen(); paintDock(); }
   }
 
   // ---------------------------------------------------------------- GUESTS: the guest list (room-guests.js) + its yellow dot
@@ -368,7 +445,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     //  the rules, /admin Nov 17 10:27 pm. Nothing is queued any more; a key an older build left is simply dropped)
     if (vs.on) { try { sessionStorage.removeItem('ns:rv-wait'); } catch { /* fine */ } }
     const rm = vs.on ? { on: true, voted: !!(st.rv && st.rv[st.uid] === vs.m), n: vs.voters.length, total: vs.total, pips: vs.guests.map(u => ({ col: colorHex((P[u] || {}).color), on: vs.voters.includes(u) })) } : null;
-    dock.set({ host: isHost(), hostName: hostName(), alone: isHost() && ids.length === 1 && !invited() && !soloRoom(), newGame: isHost() && vs.on ? (ngSeen() ? 'calm' : 'breathe') : null, guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
+    dock.set({ gamesN: gamesN(), host: isHost(), hostName: hostName(), alone: isHost() && ids.length === 1 && !invited() && !soloRoom(), newGame: isHost() && vs.on ? (ngSeen() ? 'calm' : 'breathe') : null, guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
       you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm,
       // DM2 — THE ROOM WINS (the host's side): who of the room is mid-daily — DFIX2 (FABLE REVIEW #2 finding 6 → Ben's decision 4): each phone's
       // OWN flag on its player node (players/{uid}/dy — js/daily/room-flag.js), read live from the mirrored room; was a 20 s poll of /api
@@ -536,6 +613,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     paintFriends();
     paintNotes();
     if (guestsUi && guestsUi.update) guestsUi.update(st);
+    if (gamesOpen && gamesOpen.rows) paintGames();   // (CITY PART 2: the votes live on an open GAMES sheet)
     if (!raf) raf = requestAnimationFrame(frame);
   }
 
@@ -546,7 +624,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     vote: () => voteNow(),
     banner: () => banner.debug(),
     hostCard: () => (hostCard ? { text: hostCard.el.textContent } : null),
-    debug: () => ({ tags: [...tags.keys()], roster: roster(), seen: seen ? [...seen] : null,
+    debug: () => ({ gv: ({ tally: tally(), mine: myVote(st.gv, st.uid), n: gamesN(), off: votesOff, sheet: gamesOpen && gamesOpen.rows ? { mw: gamesOpen.mw ? (gamesOpen.mw.hidden ? '' : gamesOpen.mwT.textContent) : null, rows: [...gamesOpen.rows].map(([id, R]) => ({ id, n: R.n.textContent, dots: R.dots.children.length, mine: !R.mine.hidden })) } : null }),   // (CITY PART 2 — GAME VOTES: the votes E2E's read)
+      tags: [...tags.keys()], roster: roster(), seen: seen ? [...seen] : null,
       note: { kind: noteKind, on: noteEl.classList.contains('is-on'), text: noteWords.textContent, x: !noteX.hidden },   // (THE ROOM NOTE — the tests' read)
       hits: Object.fromEntries([...tags].map(([u, T]) => [u, T.hit && { x0: Math.round(T.hit.x0), x1: Math.round(T.hit.x1), y0: Math.round(T.hit.y0), y1: Math.round(T.hit.y1) }])) }),
     nearestAt,

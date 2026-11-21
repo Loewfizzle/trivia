@@ -201,6 +201,16 @@
             ".validate": "newData.isString() && (newData.val() === root.child('rooms/' + $code + '/meta/back/m').val() || (root.child('rooms/' + $code + '/meta/status').val() === 'playing' && root.child('rooms/' + $code + '/game/phase').val() === 'final' && newData.val() === root.child('rooms/' + $code + '/game/matchId').val()))"
           }
         },
+        "gv": {
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (!newData.exists() || root.child('rooms/' + $code + '/meta/status').val() === 'lobby')",
+            ".validate": "newData.hasChildren(['g', 'at']) && newData.child('g').isString() && newData.child('g').val().matches(/^[a-z]{2,12}$/) && newData.child('at').val() === now",
+            "g": { ".validate": true },
+            "at": { ".validate": true },
+            "$other": { ".validate": false }
+          }
+        },
         "game": {
           ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid"
         },

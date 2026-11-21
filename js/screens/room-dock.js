@@ -51,6 +51,9 @@ export function createRoomDock(on) {
   E.youTab = tab('nd-tab-you.rdk-you', 'Your card', ICON.guest, 'YOU', on.you);
   E.guestsTab = tab('rdk-guests', 'The guest list', RICON.guests, 'GUESTS', on.guests);
   E.gamesTab = tab('nd-tab-games.rdk-games', 'The games', ICON.games, 'GAMES', on.games);
+  // (CITY PART 2 — GAME VOTES: the HOST's GAMES tab counts the guests' new votes — a small square count, never a toast per vote, never a pill)
+  E.gvN = h('i.rdk-cnt', { 'aria-hidden': 'true', hidden: true });
+  E.gamesTab.append(E.gvN);
   E.chatTab = tab('rdk-chat', 'The room chat', RICON.chat, 'CHAT', on.chat);
   // (FIXES R2 — THE BOARD IN A ROOM: a 5th tab — THE BOARD as it opens outside a room. The icons + labels keep their size, every tab its
   //  44 × 44: the tabs 52 → 44 pt wide, the pill's padding + the ring gaps tighter — css/title.css .rdk-five)
@@ -79,6 +82,8 @@ export function createRoomDock(on) {
       E.gamesTab.querySelector('.rdk-lbl').textContent = 'GAMES';
       E.gamesTab.setAttribute('aria-label', ng ? 'New game — pick another game' : 'The games');
     }
+    const gn = v.host ? Math.max(0, v.gamesN | 0) : 0;
+    if ((E.gvN.dataset.n || '0') !== String(gn)) { E.gvN.dataset.n = String(gn); E.gvN.hidden = !gn; E.gvN.textContent = gn > 9 ? '9+' : String(gn); E.gamesTab.setAttribute('aria-label', gn ? `The games — ${gn} new game vote${gn === 1 ? '' : 's'}` : ng ? 'New game — pick another game' : 'The games'); }
     // (DM2: the host's MID-DAILY line — before START only; the rematch pill takes the spot after a match)
     const midN = v.host && !rm ? v.mid || 0 : 0;
     if ((E.mid.dataset.n || '0') !== String(midN)) { E.mid.dataset.n = String(midN); E.mid.hidden = !midN; E.mid.querySelector('.rdk-mid-t').textContent = midN ? `${midN} ${midN === 1 ? 'PLAYER IS' : 'PLAYERS ARE'} MID-DAILY` : ''; }

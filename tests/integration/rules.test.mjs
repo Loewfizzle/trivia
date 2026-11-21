@@ -245,6 +245,29 @@ test('LOBBY 2.0 B — THE REMATCH VOTE: your own vote for the match just played,
   await assertFails(set(ref(db('p2'), `${R}/rv/p2`), 'm1'), 'no vote while a game runs');
 });
 
+test('CITY PART 2 — GAME VOTES: your own vote { g, at: now } for the next game, only in the lobby; the host clears them all; a take-back any time', async () => {
+  const r = lobbyRoom();
+  r.rooms[CODE].players.p3 = { name: 'THREE', color: 'yellow', avatar: 'star', joinedAt: 3 };
+  await seed(r);
+  const V = g => ({ g, at: serverTimestamp() });
+  await assertSucceeds(set(ref(db('p2'), `${R}/gv/p2`), V('prism')), 'a guest votes in the lobby');
+  await assertSucceeds(set(ref(db('p2'), `${R}/gv/p2`), V('jaywalk')), 'moves it');
+  await assertSucceeds(remove(ref(db('p2'), `${R}/gv/p2`)), 'takes it back');
+  await assertFails(set(ref(db('p2'), `${R}/gv/p3`), V('prism')), 'never someone else’s vote');
+  await assertFails(set(ref(db('outsider'), `${R}/gv/outsider`), V('prism')), 'only a player in the room');
+  await assertFails(set(ref(db('p2'), `${R}/gv/p2`), { g: 'prism', at: 5 }), 'the time is the server’s');
+  await assertFails(set(ref(db('p2'), `${R}/gv/p2`), { g: 'NOT A GAME!', at: serverTimestamp() }), 'a game id only');
+  await assertFails(set(ref(db('p2'), `${R}/gv/p2`), { g: 'prism', at: serverTimestamp(), x: 1 }), 'nothing else in it');
+  await assertFails(set(ref(db('p2'), `${R}/gv/p2`), 'prism'), 'the shape { g, at }');
+  await assertSucceeds(set(ref(db('p3'), `${R}/gv/p3`), V('prism')));
+  await assertFails(set(ref(db('p2'), `${R}/gv`), null), 'a guest can’t clear the others');
+  await assertSucceeds(update(ref(db('host'), R), { gv: null }), 'the host clears every vote (the start)');
+  await assertSucceeds(set(ref(db('p3'), `${R}/gv/p3`), V('prism')));
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/meta/status`), 'playing'));
+  await assertFails(set(ref(db('p2'), `${R}/gv/p2`), V('prism')), 'no vote while a game runs');
+  await assertSucceeds(remove(ref(db('p3'), `${R}/gv/p3`)), 'a take-back is never refused');
+});
+
 test('CITY F — THE PODIUM VOTE (END-SCREEN STANDARD A): a guest votes REMATCH on the podium — your own, for the match on it, only once it is FINAL', async () => {
   const r = lobbyRoom();
   r.rooms[CODE].meta.status = 'playing';
