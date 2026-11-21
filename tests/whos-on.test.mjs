@@ -74,6 +74,6 @@ test('no new idle poll: the list refreshes every 30 s ONLY while it is open + on
   assert.match(readFileSync('js/screens/harbor/radio-ledger.js', 'utf8'), /h\('button\.rd-who'[\s\S]{0,300}m\.openWhosOn\(\{ api, openSheet \}\)/, 'IN THE CITY → WHO\'S ON');
   assert.match(readFileSync('js/admin/admin.js', 'utf8'), /m\.whosOnBlock\(\{ api \}\)/, '/admin STATS: the same builder');
   const radio = readFileSync('api/_lib/radio.js', 'utf8');
-  assert.match(radio, /if \(body\.action === 'radioWhosOn'\) \{ need\(rolePower\(role, 'whoson'\), 'not_owner'\); return whosOnNow\(now\); \}/, 'the owner ROLE checked on the server');
+  assert.ok(radio.includes("if (body.action === 'radioWhosOn') { need(rolePower(role, 'whoson'), 'not_owner'); return whosOnNow(now, { tags: role === 'owner' }); }"), 'the owner ROLE checked on the server (CITY PART 2: the name tags only for THE OWNER)');
   assert.match(radio, /card: publicRow\(r\.pid, profs\[i\]\)/, 'THE BOARD\'s public fields — never a pid');
 });
