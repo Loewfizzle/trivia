@@ -610,6 +610,31 @@ try {
   { const h5c = argv.find(x => x === '--h5c' || x.startsWith('--h5c=')); if (h5c) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5C(o.p, h5c.slice(6), o.reqs); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   { const h5b = argv.find(x => x === '--h5b' || x.startsWith('--h5b=')); if (h5b) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); if (h5b.slice(6) === 'tail') await looksTail(o.p); else if (h5b.slice(6) === 'addons') { await looksAddons(o.p); await looksTail(o.p); } else await looksH5B(o.p, h5b.slice(6), o.reqs); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); console.log(fails.length ? `\nFAILED: ${fails.length}` : '\nH5B OK'); await b.close(); process.exit(fails.length ? 1 : 0); } }
   { const h5 = argv.find(x => x === '--h5' || x.startsWith('--h5=')); if (h5) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5(o.p, h5.slice(5)); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
+  // J1 — THE NIGHT GLOW FIX's cost (--bloom-ab): tier 2 BY NIGHT (the bloom's only home), 4× CPU, 390 + 430 @3 — the bloom as it was
+  // (`&occ=0`: the lights through everything) against the occluders (the solid scene drawn as black depth first) — a run + DOWNTOWN
+  if (argv.includes('--bloom-ab')) {
+    for (const w of [390, 430]) for (const where of ['run', 'DOWNTOWN']) for (const occ of ['&occ=0', '']) {
+      const o = await open(w, w === 430 ? 932 : 844, 3, `&preview=1&seed=perfseed7&tier=2&zoom=8&angle=straight&look=night${occ}`);
+      await up(o.p); await o.p.emulateCPUThrottling(4);
+      await o.p.evaluate(() => { window.__jwLab.restart('solo', 'perfseed7'); window.__jwLab.bot(true); });
+      await sleep(1500);
+      const fr = [], calls = [];
+      for (const off of where === 'run' ? [0] : [2, 14, 26]) {
+        if (where !== 'run') await o.p.evaluate(l => { const J = window.__jwLab; if (J.state().over) { J.restart('solo', 'perfseed7'); J.bot(true); } J.warp(J.find('grass', l)); }, 250 + off);
+        await sleep(700); await o.p.evaluate(() => window.__jwLab.clearFrames()); await sleep(where === 'run' ? 12000 : 4000);
+        const f = await o.p.evaluate(() => ({ fr: window.__jwLab.frames(), i: window.__jwLab.state().info }));
+        fr.push(...f.fr); calls.push(f.i.calls);
+      }
+      await o.p.emulateCPUThrottling(1);
+      fr.sort((a, c) => a - c);
+      const avg = fr.reduce((a, c) => a + c, 0) / fr.length;
+      const row = { w, where, occluders: occ ? 'off (before)' : 'ON (after)', frames: fr.length, fps: +(1000 / avg).toFixed(1), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1), over33: fr.filter(x => x > 33.4).length, calls: Math.max(...calls) };
+      console.log('BLOOM-AB', JSON.stringify(row));
+      ok(row.fps >= 57 && !o.errs.length, `${w} ${where} tier 2 night 4× CPU, occluders ${row.occluders}: ${row.fps} fps · p95 ${row.p95Ms} · worst ${row.worstMs} · ${row.calls} calls`);
+      await o.close();
+    }
+    throw Object.assign(new Error('look only'), { look: true });
+  }
   if (argv.includes('--h4')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH4(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   if (argv.includes('--h3')) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH3(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }
   if (LOOK) { const o = await open(390, 844, 3, '&preview=1&seed=look3&fps=1'); await up(o.p); await sleep(600); await looks(o.p); await looksH3(o.p); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); }

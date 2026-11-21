@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JAYWALK — THE NIGHT GLOW FIX's test</title>
+  <!-- J1 — THE NIGHT GLOW FIX (js/games/jaywalk/night-fx.js#createBloom): a box truck on the solid layer, a light quad BEHIND it, one BESIDE
+       it and one ON its near face; the bloom's lights target is read back where each one is. Driven by tests/integration/jaywalk-bloom.mjs. -->
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+  <style>html, body { margin: 0; background: #000; } canvas { display: block; }</style>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { createBloom, OCC_LAYER } from '../../js/games/jaywalk/night-fx.js';
+import { buildTruck } from '../../js/games/jaywalk/models.js';
+
+const W = 390, H = 390;
+const renderer = new THREE.WebGLRenderer({ antialias: false });
+renderer.setPixelRatio(1); renderer.setSize(W, H); document.body.append(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b0716); scene.fog = new THREE.Fog(0x0b0716, 26, 35);
+// (the game's own camera shape: above + behind the lane, looking down the road — +z is toward the camera)
+const cam = new THREE.PerspectiveCamera(40, W / H, 1, 90); cam.position.set(0, 6, 7); cam.lookAt(0, 0.5, 0); cam.layers.enableAll();
+scene.add(new THREE.HemisphereLight(0x8fa0ff, 0x1a1030, 1.5));
+const truck = new THREE.InstancedMesh(buildTruck(), new THREE.MeshLambertMaterial({ vertexColors: true }), 1);
+truck.setMatrixAt(0, new THREE.Matrix4().compose(new THREE.Vector3(0, 0, 0), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2), new THREE.Vector3(0.94, 0.9, 1)));
+truck.layers.enable(OCC_LAYER); scene.add(truck);
+// the lights: additive, never writing depth (the game's glowMaterial's blend) — on the bloom's layer 1 (+ 0: the main picture)
+const lamp = (x, y, z, s) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(s, s), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); m.position.set(x, y, z); m.lookAt(cam.position); m.layers.enable(1); scene.add(m); return m; };
+// (behind: low behind the box's far side — the box covers it from this camera; beside: past the truck's nose, open; near: the amber
+//  marker's place, z + 0.4 — the side facing the camera)
+const L = { behind: lamp(-0.2, 0.3, -0.6, 0.25), beside: lamp(2.6, 0.3, -0.6, 0.25), near: lamp(0.3, 0.29, 0.45, 0.24) };
+const bloom = createBloom(renderer); bloom.size(W, H);
+const P = new THREE.Vector3();
+/** the light's centre on the bloom target (half size) → the sum of its red channel in a small box round it */
+function sumAt(m) {
+  const t = bloom.target(), w = t.width, h = t.height;
+  P.copy(m.position).project(cam);
+  const cx = Math.round((P.x * 0.5 + 0.5) * w), cy = Math.round((P.y * 0.5 + 0.5) * h), r = 3, n = 2 * r + 1, px = new Uint8Array(n * n * 4);
+  renderer.readRenderTargetPixels(t, cx - r, cy - r, n, n, px);
+  let s = 0; for (let i = 0; i < px.length; i += 4) s += px[i];
+  return s;
+}
+window.__bloomTest = (occ = true) => {
+  if (occ) truck.layers.enable(OCC_LAYER); else truck.layers.disable(OCC_LAYER);
+  renderer.render(scene, cam); bloom.render(scene, cam);
+  return { behind: sumAt(L.behind), beside: sumAt(L.beside), near: sumAt(L.near) };
+};
+window.__bloomReady = true;
+</script>
+</body>
+</html>

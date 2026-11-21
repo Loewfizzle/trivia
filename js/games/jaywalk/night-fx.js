@@ -374,6 +374,14 @@ void main() {
   gl_FragColor = vec4(c, 1.0);
 }`;
 const QUAD_V = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
+/** J1 — THE NIGHT GLOW FIX: the SOLID scene's layer (night.js#kind marks every opaque kind but the tufts: vehicles, trains, trees, posts,
+ *  barricades, logs, the areas' props, shops, the kid). The bloom draws it first as FLAT BLACK depth (OCC_MAT), then the lights (layer 1)
+ *  depth-tested against it — a light behind a box truck / a car / a train / a tree makes no glow on top of it. */
+export const OCC_LAYER = 2;
+/** ONE shared override material (warmed with the rest — night.js#warm renders the bloom once: no new program mid-run). Black, no fog (a fogged
+ *  far occluder would tint the bloom target), both faces (a mirrored instance never leaves a hole), pushed back a hair (a lamp ON a body's
+ *  face stays lit — the main picture shows it) */
+export const OCC_MAT = new THREE.MeshBasicMaterial({ color: 0x000000, fog: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 4, toneMapped: false });
 export function createBloom(renderer) {
   const opt = { depthBuffer: true, stencilBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter };
   const a = new THREE.WebGLRenderTarget(4, 4, opt), b = new THREE.WebGLRenderTarget(4, 4, { ...opt, depthBuffer: false }), c = new THREE.WebGLRenderTarget(4, 4, { ...opt, depthBuffer: false });
@@ -383,15 +391,20 @@ export function createBloom(renderer) {
   const add = new THREE.ShaderMaterial({ vertexShader: QUAD_V, fragmentShader: 'precision highp float; uniform sampler2D tMap; uniform float uK; varying vec2 vUv; void main() { gl_FragColor = vec4(texture2D(tMap, vUv).rgb * uK, 1.0); }',
     uniforms: { tMap: { value: null }, uK: { value: 0.6 } }, depthTest: false, depthWrite: false, transparent: true, blending: THREE.AdditiveBlending });
   const black = new THREE.Color(0x000000), keep = new THREE.Color();
+  // (the A/B — `?occ=0` on a page: the bloom as it was before J1, the lights through everything: the lab's before / after shots only)
+  const occOn = !(typeof location !== 'undefined' && /[?&]occ=0(?:&|$)/.test(location.search || ''));
   return {
     size(w, h) { a.setSize(Math.max(2, w >> 1), Math.max(2, h >> 1)); b.setSize(Math.max(2, w >> 2), Math.max(2, h >> 2)); c.setSize(Math.max(2, w >> 2), Math.max(2, h >> 2)); },
-    /** after the main picture: the lights again (layer 1) → blur → add */
+    /** after the main picture: the SOLID scene as black depth (J1 — OCC_LAYER), the lights again (layer 1) depth-tested → blur → add */
     render(scene, cam) {
-      const bg = scene.background, auto = renderer.autoClear;
+      const bg = scene.background, auto = renderer.autoClear, over = scene.overrideMaterial;
       renderer.getClearColor(keep); const alpha = renderer.getClearAlpha();
       scene.background = null; renderer.setClearColor(black, 1);
+      renderer.setRenderTarget(a); renderer.clear();
+      renderer.autoClear = false;
+      if (occOn) { cam.layers.set(OCC_LAYER); scene.overrideMaterial = OCC_MAT; renderer.render(scene, cam); scene.overrideMaterial = over; }
       cam.layers.set(1);
-      renderer.setRenderTarget(a); renderer.clear(); renderer.render(scene, cam);
+      renderer.render(scene, cam); renderer.autoClear = auto;
       cam.layers.enableAll(); scene.background = bg;
       quad.material = blur;
       blur.uniforms.tMap.value = a.texture; blur.uniforms.uStep.value.set(1 / b.width, 0); renderer.setRenderTarget(b); renderer.render(qs, qc);
@@ -401,5 +414,7 @@ export function createBloom(renderer) {
       renderer.autoClear = false; renderer.render(qs, qc); renderer.autoClear = auto;
     },
     dispose() { a.dispose(); b.dispose(); c.dispose(); quad.geometry.dispose(); blur.dispose(); add.dispose(); },
+    /** the lights' target before the blur (J1's test reads it: tests/integration/jaywalk-bloom.mjs) */
+    target: () => a,
   };
 }

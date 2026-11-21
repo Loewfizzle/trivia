@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { FP, COLS, HOP_TICKS, MODES } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod, area, gateName } from './course.js';
 import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade } from './models.js';
-import { FOG_HEX, DAY_FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, dayEnv, createBloom, fogUp, FOG_UP } from './night-fx.js';
+import { FOG_HEX, DAY_FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, dayEnv, createBloom, fogUp, FOG_UP, OCC_LAYER } from './night-fx.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { skyPlan, skyHeld, skyRoom, skyShift, skyOff, SKY_FADE_MS, SKY_LOOK_MS, SKY_BAND, SKY_ASPECT, SKY_LIGHTS, SKY_NEON } from './skyline.js';
 import { CAM, createCamera } from './camera.js';
@@ -79,7 +79,7 @@ export function createNight(host, o = {}) {
   const P = new THREE.Vector3(), S = new THREE.Vector3(), Q = new THREE.Quaternion(), E = new THREE.Euler(), M = new THREE.Matrix4(), C = new THREE.Color();
   const made = [];
   /** an instanced kind. put(x, y, z, sx, sy, sz, ry, hex, k): place + size + turn + colour (× k) */
-  function kind(geo, mat, n, { aux = null, raw = false, order = 0, bloom = false } = {}) {
+  function kind(geo, mat, n, { aux = null, raw = false, order = 0, bloom = false, solid = !bloom && !mat.transparent } = {}) {
     const g = aux ? geo.clone() : geo, m = new THREE.InstancedMesh(g, mat, n);
     m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     m.setColorAt(0, C.set(0xffffff)); m.instanceColor.setUsage(THREE.DynamicDrawUsage);
@@ -87,6 +87,7 @@ export function createNight(host, o = {}) {
     if (aux) { ax = new THREE.InstancedBufferAttribute(new Float32Array(n * aux[1]), aux[1]); ax.setUsage(THREE.DynamicDrawUsage); g.setAttribute(aux[0], ax); }
     m.frustumCulled = false; m.count = 0; m.renderOrder = order;
     if (bloom) m.layers.enable(1);
+    if (solid) m.layers.enable(OCC_LAYER);   // (J1 — THE NIGHT GLOW FIX: a solid thing hides the lights behind it from the bloom — night-fx.js#createBloom)
     scene.add(m); made.push({ m, g });
     const col = m.instanceColor.array;
     let i = 0;
@@ -125,7 +126,7 @@ export function createNight(host, o = {}) {
     flat: kind(flatGeo, glowMaterial(fogV), 720, { aux: ['aFx', 2], raw: true, order: 2, bloom: true }),          // pools · trails · beams · rings · edge lines
     bill: kind(billGeo, glowMaterial(fogV, { bill: true }), 600, { aux: ['aFx', 2], raw: true, order: 3, bloom: true }),   // lamps · light quads · sparks
     trees: kind(GEO.tree, lambert(), 150),
-    tufts: kind(GEO.tuft, lambert(), 220),
+    tufts: kind(GEO.tuft, lambert(), 220, { solid: false }),   // (J1: a grass tuft never hides a light pool)
     ...Object.fromEntries([1, 2, 3, 4].map(n => [`log${n}`, kind(GEO[`log${n}`], fogUp(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0, envMapIntensity: 0.25 })), 60)])),
     trucks: kind(GEO.truck, paintMaterial(glossy(0.3, 1), { instanced: true }), 24, { aux: ['aLit', 1] }),
     barricades: kind(GEO.barricade, lambert(), 40),
