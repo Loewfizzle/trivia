@@ -11,7 +11,7 @@ import { HERO } from '../js/vault/hero.js';
 const ROOT = new URL('../', import.meta.url);
 const CSS = new URL('css/vault.css', ROOT), OUT = new URL('assets/vault/still/', ROOT);
 const A = '/* CARD STILLS (GENERATED: node scripts/build-card-stills.mjs — LOAD FIX 3, NO BLACK TILES; js/vault/stills.js) */', Z = '/* /CARD STILLS */';
-const SIZES = { s: [360, 64], f: [400, 252], o: [360, 64] };   // (CITY C: o = a strip still baked TRANSPARENT — layered over the card's own material by a hand-written rule)
+const SIZES = { s: [360, 64], f: [400, 252], o: [360, 64], l: [360, 64] };   // (CITY PART 2: l = THE SLIM-CARD LAYER — transparent, the GENERATED ::before rule)   // (CITY C: o = a strip still baked TRANSPARENT — layered over the card's own material by a hand-written rule)
 
 /** the CSS block for a set of cards ({ card: { mat, kinds } }) — strips first, then the full cards (they win on the after-match tile, which wears both) */
 export function stillsBlock(rows) {
@@ -20,7 +20,10 @@ export function stillsBlock(rows) {
   const line = (sel, file, px = 50) => `${sel}:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/${file}') ${px}% 50% / cover no-repeat; }`;
   const s = rows.filter(r => r.kinds.includes('s')).map(r => line(`.vl-s-${r.mat}`, `${r.card}-s.webp`, r.hx != null ? r.hx : 66));
   const f = rows.filter(r => r.kinds.includes('f')).map(r => line(`.vl-fcm-${r.mat}`, `${r.card}-f.webp`));
-  return [A, ...s, ...f, Z].join('\n');
+  // (CITY PART 2 — THE SLIM-CARD LAYER: the effect's layer, baked transparent at the strip's 360 × 64, stretched to the strip's box over the card's
+  //  OWN CSS picture until the effect paints — .vl-mat::before is free on every material)
+  const l = rows.filter(r => r.kinds.includes('l')).map(r => `.vl-s-${r.mat}:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/${r.card}-l.webp') 0 0 / 100% 100% no-repeat; }`);
+  return [A, ...s, ...f, ...l, Z].join('\n');
 }
 export function withBlock(css, block) {
   const i = css.indexOf(A), j = css.indexOf(Z);
@@ -67,13 +70,13 @@ if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('scripts/bui
       return c;
     };
     // (a first pass starts every effect's own loads — sprites, plates, fonts — then the real one)
-    for (const r of rows) { const fx = FX[LOOKS[r.card].fx]; for (const k of r.kinds) try { draw(fx, r.card, ...SIZES[k], k === 'f', k === 'o'); } catch { /* the next pass */ } }
+    for (const r of rows) { const fx = FX[LOOKS[r.card].fx]; for (const k of r.kinds) try { draw(fx, r.card, ...SIZES[k], k === 'f', k === 'o' || k === 'l'); } catch { /* the next pass */ } }
     await new Promise(r => setTimeout(r, 3500));
     const out = {};
     for (const r of rows) {
       const fx = FX[LOOKS[r.card].fx];
       for (const k of r.kinds) {
-        const [W, H] = SIZES[k], c = draw(fx, r.card, W, H, k === 'f', k === 'o');
+        const [W, H] = SIZES[k], c = draw(fx, r.card, W, H, k === 'f', k === 'o' || k === 'l');
         const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let lit = 0;
         for (let i = 0; i < d.length; i += 4) if (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2] > 40) lit++;
         out[`${r.card}-${k}`] = { url: c.toDataURL('image/webp', 0.84), lit: +(lit / (d.length / 4)).toFixed(3) };

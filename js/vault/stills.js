@@ -6,7 +6,9 @@
 // `.fx-on`), so a live card never shows the still under its effect — no doubled picture, no look change where the effect runs.
 // A NEW card whose art is drawn in code = its row here + the build; `tests/card-stills.test.mjs` fails on a dark material that has neither a
 // still nor a place on its CSS_ART list. The art itself unchanged → no LAB_V bump (re-run the build after an effect's art edit).
-//   s: the strip's still · f: the full card's still · o: the strip's still baked TRANSPARENT (CITY C — over a material of its own, a hand rule) (PRISM DROP's three keep PD-5B's own full material — assets/vault/pd/)
+//   s: the strip's still · f: the full card's still · o: the strip's still baked TRANSPARENT (CITY C — over a material of its own, a hand rule)
+//   · l: THE SLIM-CARD LAYER (CITY PART 2 — the owner said YES to CITY I's call): a CSS-ART card's effect LAYER baked transparent, laid over its
+//     own CSS picture by the GENERATED rule (.vl-mat::before) until the effect paints — a list never shows the bare picture, then a layer popping in (PRISM DROP's three keep PD-5B's own full material — assets/vault/pd/)
 export const STILLS = Object.freeze({
   'card-inferno': 'sf', 'card-prism': 'sf', 'card-noir': 'sf', 'card-legend': 'sf', 'card-marquee-gold': 'sf', 'card-neoncamo': 'sf',
   'card-penthouse': 'sf', 'card-wildfire': 'sf', 'card-eternal': 'sf', 'card-witness': 'sf', 'card-founder': 'sf', 'card-house': 'sf',
@@ -18,6 +20,9 @@ export const STILLS = Object.freeze({
   'card-first-ko': 's', 'card-perfect-clear': 's', 'card-comeback': 's',
   // CITY C — THE STRIP MATCH: a gift whose picture is a layer of its effect (the material alone is its plain page) — its strip's still = the effect's frame
   'card-gift-goldenhour': 'o',   // (o: baked transparent, layered over its pink page — css/vault.css .vl-s-g-goldenhour:not(.fx-on))
+  // CITY PART 2 — THE SLIM-CARD LAYER: the nine CSS-ART cards whose live effect ADDS a layer (THE STRIP MATCH's 13, CITY I — docs/vault.md)
+  'card-aurora': 'l', 'card-frostbite': 'l', 'card-marquee': 'l', 'card-sg-btc': 'l', 'card-neonglass': 'l', 'card-century': 'l', 'card-smoke': 'l',
+  'card-glitter': 'l', 'card-dev-switchboard': 'l',
 });
 /** the cards whose material IS their picture in CSS (a gradient, a pattern, an image) — they read with no effect running */
 export const CSS_ART = Object.freeze(['card-brushed', 'card-smoke', 'card-frostbite', 'card-marquee', 'card-glitter', 'card-gilded', 'card-midnight',

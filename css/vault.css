@@ -1303,4 +1303,13 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-fcm-sg-aurora:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-aurora-f.webp') 50% 50% / cover no-repeat; }
 .vl-fcm-sg-fireball:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-fireball-f.webp') 50% 50% / cover no-repeat; }
 .vl-fcm-sg-skull:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-sg-skull-f.webp') 50% 50% / cover no-repeat; }
+.vl-s-auroraglass:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-aurora-l.webp') 0 0 / 100% 100% no-repeat; }
+.vl-s-frost:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-frostbite-l.webp') 0 0 / 100% 100% no-repeat; }
+.vl-s-marquee:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-marquee-l.webp') 0 0 / 100% 100% no-repeat; }
+.vl-s-sg-btc:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-sg-btc-l.webp') 0 0 / 100% 100% no-repeat; }
+.vl-s-neonglass:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-neonglass-l.webp') 0 0 / 100% 100% no-repeat; }
+.vl-s-century:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-century-l.webp') 0 0 / 100% 100% no-repeat; }
+.vl-s-smoke:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-smoke-l.webp') 0 0 / 100% 100% no-repeat; }
+.vl-s-glitter:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-glitter-l.webp') 0 0 / 100% 100% no-repeat; }
+.vl-s-devswitch:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-dev-switchboard-l.webp') 0 0 / 100% 100% no-repeat; }
 /* /CARD STILLS */

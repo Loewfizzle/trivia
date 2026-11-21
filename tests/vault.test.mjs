@@ -22,8 +22,8 @@ test('THE LAB\'s catalog: the 8 approved samples (1 common · 2 uncommon · 2 ra
 
 test('THE MARKS: approve · fix · cut · null (a clear); notes trimmed, control characters out, capped; anything else refused', () => {
   assert.deepEqual(MARKS, ['approve', 'fix', 'cut']);
-  assert.deepEqual(cleanMark('card-smoke', 'fix', '  thicker\nsmoke  '), { m: 'fix', note: 'thicker smoke', v: 1 });
-  assert.deepEqual(cleanMark('card-smoke', null, 'x'), { m: null, note: 'x', v: 1 });
+  assert.deepEqual(cleanMark('card-smoke', 'fix', '  thicker\nsmoke  '), { m: 'fix', note: 'thicker smoke', v: 2 });   // (CITY PART 2: card-smoke v 2 — THE SLIM-CARD LAYER)
+  assert.deepEqual(cleanMark('card-smoke', null, 'x'), { m: null, note: 'x', v: 2 });
   assert.equal(cleanMark('card-inferno', 'approve').v, 2);   // (THE LAB 2.0: the server stamps the version marked)
   assert.equal(cleanMark('card-nope', 'approve'), null); assert.equal(cleanMark('card-smoke', 'love'), null);
   assert.equal(cleanMark('card-smoke', 'fix', 'y'.repeat(999)).note.length, NOTE_MAX);

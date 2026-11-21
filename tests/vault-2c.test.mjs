@@ -21,12 +21,12 @@ test('THE LAB 2.0 — VERSIONS: every bumped item has its dated "what changed" l
     assert.ok(ch.some(c => c.v === v && /^\d{4}-\d{2}-\d{2}$/.test(c.at) && c.what.length > 12), `${id} v${v} says what changed`);
   }
   for (const id of Object.keys(LAB_CHANGES)) assert.ok(LAB_V[id], `${id}: a change line without a version bump`);
-  assert.equal(verOf('card-smoke'), 1); assert.equal(verOf('card-inferno'), 2);
+  assert.equal(verOf('card-brushed'), 1); assert.equal(verOf('card-inferno'), 2);
   assert.equal(labStatus('card-inferno', null), 'new');
   assert.equal(labStatus('card-inferno', { m: 'fix', v: 1 }), 'changed', 'his FIX at v1 → CHANGED at v2');
   assert.equal(labStatus('card-inferno', { m: 'approve' }), 'changed', 'an old mark (no v) = v1');
   assert.equal(labStatus('card-inferno', { m: 'approve', v: 2 }), 'approve');
-  assert.equal(labStatus('card-smoke', { m: 'approve' }), 'approve');
+  assert.equal(labStatus('card-brushed', { m: 'approve' }), 'approve');
   assert.deepEqual(NEEDS, ['new', 'changed']);
   assert.equal(cleanMark('full-card-founder', 'approve').v, 2, 'the server stamps the version marked');
   // (the what-changed text is the SERVER's — the client catalog carries only the numbers; the lab gets the lines with the marks, admins only)

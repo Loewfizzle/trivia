@@ -26,6 +26,8 @@ test('every still is on disk + the GENERATED block in css/vault.css is current',
     assert.ok(existsSync(new URL(`../assets/vault/still/${r.card}-${k}.webp`, import.meta.url)), `${r.card}-${k}.webp (node scripts/build-card-stills.mjs)`);
     // (CITY C: kind o = a transparent strip still layered over the card's own material by a hand-written rule)
     if (k === 'o') { assert.ok(css.includes(`.vl-s-${r.mat}:not(.fx-on) .vl-mat { background-image: url('../assets/vault/still/${r.card}-o.webp')`), `${r.card}: its transparent still layered`); continue; }
+    // (CITY PART 2 — kind l = THE SLIM-CARD LAYER: the effect's layer baked transparent, the GENERATED ::before over the card's own CSS picture)
+    if (k === 'l') { assert.ok(css.includes(`.vl-s-${r.mat}:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/${r.card}-l.webp')`), `${r.card}: its slim-card layer`); continue; }
     const sel = k === 's' ? `.vl-s-${r.mat}:not(.fx-on) > .vl-mat` : `.vl-fcm-${r.mat}:not(.fx-on) > .vl-mat`;
     assert.ok(css.includes(`${sel} { background: #05060a url('../assets/vault/still/${r.card}-${k}.webp')`), `${r.card}: its ${k === 's' ? 'strip' : 'full card'} still wired (${sel})`);
   }

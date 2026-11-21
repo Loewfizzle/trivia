@@ -302,8 +302,8 @@ export const LAB_V = Object.freeze({
   // (CITY C — THE SIGHTING CARDS IN THE STANDARD LAYOUT: every sighting's full card laid out like the others, its hero moved right of the plate)
   'full-card-sg-ufo': 2, 'full-card-sg-tr3b': 2, 'full-card-sg-f22': 2, 'full-card-sg-ghostship': 2, 'full-card-sg-skull': 2, 'full-card-sg-blackbird': 2, 'full-card-sg-fireball': 2, 'full-card-sg-aurora': 2,
   'glow-candle': 2,   // (FIXES R2: the letters candle-gold with a steady amber halo — the owner couldn't tell it was on)
-  'card-inferno': 2, 'full-card-inferno': 2, 'card-century': 4, 'full-card-century': 3,
-  'card-prism': 2, 'card-emerald': 2, 'card-sg-ufo': 2, 'card-marquee': 2,
+  'card-inferno': 2, 'full-card-inferno': 2, 'card-century': 5, 'full-card-century': 3,
+  'card-prism': 2, 'card-emerald': 2, 'card-sg-ufo': 2, 'card-marquee': 3,
   'card-camo': 2, 'card-sg-tr3b': 2,   // (SHELL 2.0 B2 — THE HERO-SPOT AUDIT + the 1 OF 1's gradient)
   'card-founder': 2, 'full-card-founder': 2, 'full-card-house': 2,
   // (CARD FIXES — the owner's LAB notes + THE CARD LAYOUT RULE: every gift's full card, the strips whose art moved, the dev line)
@@ -315,12 +315,14 @@ export const LAB_V = Object.freeze({
   'card-penthouse': 2, 'full-card-penthouse': 3,
   // (BOARD 2.0 B — THE LONG-NAME FIX: these full cards' art set right + its edges faded, so a 12-letter name stays on ONE line; the dial smaller + flush right)
   'full-card-safecracker': 2, 'full-card-ghost-run': 2, 'full-card-perfect-week': 2,   // (DM2 — PENTHOUSE's new face: design A · THE DIAL, drawn in code)   // (Nov 6: the tape card's strip v4 — its effects back on their spots)
-  'card-sg-btc': 2, 'full-card-sg-btc': 3,   // (THE BTC CARD — new premium art (Grok's ₿ balloon over the harbor) + THE BURNER FLARE; BOARD 2.0 A: the full card's name on one line, the sighting line back, the rise-in fixed)
-  'card-dev-switchboard': 4, 'card-dev-source': 4, 'full-card-dev-switchboard': 6, 'full-card-dev-source': 7,
+  'card-sg-btc': 3, 'full-card-sg-btc': 3,   // (THE BTC CARD — new premium art (Grok's ₿ balloon over the harbor) + THE BURNER FLARE; BOARD 2.0 A: the full card's name on one line, the sighting line back, the rise-in fixed)
+  'card-dev-switchboard': 5, 'card-dev-source': 4, 'full-card-dev-switchboard': 6, 'full-card-dev-source': 7,
   // (CITY E — THE LAB FEEDS EVERY PASS: the owner's two open FIX marks built — the Mostar flag card (the chequered flag → Mostar's old bridge, renamed) + the horseshoe as a U)
   'full-card-gift-zadomovinu': 2, 'card-gift-zadomovinu': 2, 'emb-horseshoe': 2,
   // (JAYWALK H6A — RIGHT OF WAY's picture redone by Grok: the game's real kid — the forward cap, the pink T-shirt)
   'card-rightofway': 2, 'full-card-rightofway': 2,
+  // (CITY PART 2 — THE SLIM-CARD LAYER: the nine CSS-art strips show their effect's layer from the first frame in every list — js/vault/stills.js kind 'l')
+  'card-aurora': 2, 'card-frostbite': 2, 'card-neonglass': 2, 'card-smoke': 2, 'card-glitter': 2,
 });
 /** an item's current version */
 export const verOf = id => LAB_V[id] || 1;
