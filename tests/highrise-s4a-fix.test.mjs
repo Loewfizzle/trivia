@@ -123,7 +123,7 @@ test('THE END, after S4B: the hero-number card is GONE (no stats strip, no dashe
 test('NO PINK FLASH when a run ends: the console\'s crown wash is off in HIGH RISE\'s end screen — and a browser watch samples the frames', () => {
   const css = read('css/highrise-play.css'), comp = read('css/components.css');
   // the cause, still in the console (a WINNER's flash — other games keep it): the frame's ::before washes the accent over the whole screen
-  assert.ok(comp.includes('.final.crowned::before'), 'the console crowns its podium frame (the cause, named)');
+  assert.ok(!/\.final(\.crowned)?::before\s*\{/.test(comp) &&!/@keyframes flash \{/.test(comp), 'the console\'s crown wash is GONE for every game (CITY PART 1)');
   assert.ok(css.includes('.hi-final .final::before { display: none; }'), 'HIGH RISE\'s end is how a tower fell: no wash at all');
   // the watch: a screencast of the end transition, every frame's pink share — a frame far over its before / after = a flash
   const fw = read('tests/integration/kit/flash-watch.mjs'), e2e = read('tests/integration/e2e-highrise.mjs'), pg = read('tests/integration/highrise-play.mjs');

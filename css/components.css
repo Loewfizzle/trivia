@@ -392,16 +392,9 @@
 
 /* ---- final / winner reveal ---- */
 .final { gap: 18px; }
-.final::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: var(--accent);
-  opacity: 0;
-  pointer-events: none;
-}
-.final.crowned::before { animation: flash 0.6s ease-out; }
-@keyframes flash { 0% { opacity: 0.55; } 100% { opacity: 0; } }
+/* CITY PART 1 — THE PINK FLASH, KILLED EVERYWHERE (the owner: "a pink flash when the round ends" — JAYWALK + HIGH RISE): the console's CROWN
+   WASH (.final.crowned::before — the game's accent at 55 % over the WHOLE screen for 0.6 s, 2.5 s after the end frame stood) is GONE for
+   every game, at the shared console; `crowned` still starts the winner's title + name. The guard: tests/integration/end-flash.mjs (every game) */
 .winner { text-align: center; min-height: 92px; }
 .winner-title {
   position: relative;

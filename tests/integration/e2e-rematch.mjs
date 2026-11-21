@@ -8,6 +8,7 @@
 // Also A LATE VOTE NEVER GOES IN: a guest's tap AFTER the match moved on writes nothing.
 //   node e2e-rematch.mjs "<browser>" [./shots-rematch]        (on the emulators + scripts/serve.mjs --emu; PHONES=2 (or 4) · GAMES=prism,holdem)
 import { createHarness } from './kit/harness.mjs';
+import { flashWatch } from './kit/flash-watch.mjs';   // (CITY PART 1 — THE PINK FLASH: every frame of the end screen's crown + the REMATCH → next start)
 
 const H = await createHarness({ name: 'rematch', slot: 'rm', sizes: [[390, 844]] });
 const { ok, log, sleep, waitFor, evalIn, pages } = H;
@@ -59,6 +60,10 @@ await H.run(async () => {
       else if (id === 'jaywalk' || id === 'highrise') { /* the runs end by themselves */ }
       else await host.evaluate(c => import('/js/firebase.js').then(fb => fb.update(fb.dbRef(`rooms/${c}/game`), { phase: 'final', phaseEndsAt: window.__arcade.serverNow() + 600000, phaseStartAt: window.__arcade.serverNow() - 120000 })), H.code);
       for (const p of P) await waitFor(p, () => !!document.querySelector('.final-rematch') && !!document.querySelector('.final-back'), `${tag}: the end screen's REMATCH bar`, 90000);   // (OVERCLOCK's end runs its beats first — THE WINNER at its victory beat)
+      // CITY PART 1 — NO PINK FLASH (the owner: "a pink flash when the round ends"): a guest's every presented frame from the end frame standing
+      // through the console's crown moment (2.5 s after it stands) to the settled screen — no large accent / pink full-screen frame
+      { const cdpF = await guests[0].target().createCDPSession(), fw = await flashWatch(H.browser, cdpF, { diff: true });   /* (colour-free: any game's accent) */ await sleep(3900); const fl = await fw.stop({ settle: 400 });
+        ok(fl.frames >= 10 && fl.flash.length === 0, `${tag}: NO PINK FLASH as the end screen crowns (${fl.frames} frames; the pinkest ${fl.worst ? `${(fl.worst.pink * 100).toFixed(0)} %` : '—'}, before ${(fl.before * 100).toFixed(0)} %, settled ${(fl.after * 100).toFixed(0)} %)${fl.flash.length ? ` — FLASH ${fl.flash.slice(0, 3).map(f => `${(f.pink * 100).toFixed(0)} % at ${f.t} ms`).join(' · ')}` : ''}`); }
       await sleep(600);
       // THE ROOM LINK FITS (the reviewer's item (1)): ROOM · SHARE each inside its half — the words + icon never through the divider, the 16 pt gutter
       //  kept — at 375 / 390 / 430 + 1440
@@ -90,6 +95,7 @@ await H.run(async () => {
       ok(gl === 'WAITING FOR THE HOST' && still === m0, `${tag}: every guest voted (the bar reads ${gl}) — still the same match, no auto-start`);
       // the route sampled every 100 ms on every phone, then the host's tap
       for (const p of P) await p.evaluate(() => { window.__rmR = [window.__arcade.route()]; clearInterval(window.__rmT); window.__rmT = setInterval(() => { const r = window.__arcade.route(); if (r !== window.__rmR.at(-1)) window.__rmR.push(r); }, 100); });
+      const cdpR = await guests[0].target().createCDPSession(), fwR = await flashWatch(H.browser, cdpR);   // (CITY PART 1: the REMATCH → the next start, every frame)
       const t0 = Date.now();
       ok(await tapBar(host), `${tag}: the host's REMATCH bar is tappable`);
       await sleep(400);
@@ -98,6 +104,7 @@ await H.run(async () => {
       for (const p of P) await waitFor(p, (s0, m) => { const s = window.__arcade.state; return s.game && s.game.matchId && s.game.matchId !== m && window.__arcade.route() === `game:${s.game.id}:${s.game.matchId}`; }, `${tag}: the next match on screen`, 20000, m0);
       const ms = Date.now() - t0;
       await sleep(700);
+      { const fl = await fwR.stop(); ok(fl.frames >= 6 && fl.flash.length === 0, `${tag}: NO PINK FLASH at REMATCH → the next start (${fl.frames} frames; the pinkest ${fl.worst ? `${(fl.worst.pink * 100).toFixed(0)} %` : '—'})`); }
       const m1 = await evalIn(host, s => s.game.matchId), ph = await evalIn(host, s => s.game.phase);
       const R = []; for (const p of P) R.push(await p.evaluate(() => { clearInterval(window.__rmT); return window.__rmR; }));
       const clean = R.every(r => r.length === 2 && r[0] === `game:${id}:${m0}` && r[1] === `game:${id}:${m1}`);
