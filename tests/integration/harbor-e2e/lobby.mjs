@@ -50,10 +50,13 @@ G('trivision', async () => {
   const t0 = await tri(A.page);
   // (CITY H2 — ONE FACE FROM THE FIRST FRAME: the board is ON the newest game (JAYWALK) at the reveal — its picture warmed under the boot screen,
   //  a CUT before any frame was painted, never an opening turn after it; then the shared clock's turns)
-  ok(t0 && /^jaywalk/.test(t0.board || '') && /^jaywalk/.test(t0.opened || '') && !(t0.turns || []).some(x => /^o/.test(x.id)), `THE TRI-VISION — at the reveal the board is ALREADY on the newest game (${t0 && t0.board}; opened ${t0 && t0.opened}; the picture warmed: ${t0 && t0.warmed})`);
+  // (CITY PART 2 — the cloud's red after CITY PART 1: the rotation is HIGH RISE → JAYWALK → HOLD'EM now, and &force=trivision dates JAYWALK
+  //  yesterday — the newest face is whichever the page's own dates say (core/harbor-trivision.js#newestFace), not a fixed JAYWALK)
+  const want0 = await ev(A.page, "import('/js/core/harbor-trivision.js').then(m => { const t = window.__district.tri(); return t && t.faces ? t.faces[m.newestFace(t.faces, m.faceDates())] : null; })");
+  ok(t0 && want0 && t0.opened === want0 && (t0.board === want0 || ((t0.turns || [])[0] || {}).from === want0) && !(t0.turns || []).some(x => /^o/.test(x.id)), `THE TRI-VISION — at the reveal the board is ALREADY on the newest game (${t0 && t0.board}; opened ${t0 && t0.opened}, the newest ${want0}; the picture warmed: ${t0 && t0.warmed})`);
   await waitFor(A.page, '(() => { const t = window.__district.tri(); return t && t.turns.length >= 1; })()', 'a turn', 30000).catch(() => {});
   const t1 = await tri(A.page), first = t1.turns[0];
-  ok(first && /^c|^f/.test(first.id) && /^jaywalk/.test(first.from), `the first turn is the CLOCK's, from JAYWALK (${first ? `${first.id}: ${first.from} → ${first.to}` : 'no turn'})`);
+  ok(first && /^c|^f/.test(first.id) && first.from === t0.opened, `the first turn is the CLOCK's, from the opening face (${first ? `${first.id}: ${first.from} → ${first.to}` : 'no turn'})`);
   // mid-turn: the slats on the crisp layer (an iPhone's 3×), then the board holds the new face
   await waitFor(A.page, '(() => { const t = window.__district.tri(); return t && t.turn && t.turn.u > 0.1 && t.turn.u < 0.9; })()', 'mid-turn', 20000).catch(() => {});
   const mid = await ev(A.page, "(() => { const t = window.__district.tri(); const cv = [...document.querySelectorAll('canvas.hc-crisp')].length; return { u: t.turn && t.turn.u, cv }; })()");
@@ -136,10 +139,10 @@ G('trivision-rebuild', async () => {
     await harborUp(p);
     const want = open_ ? 'jaywalk-open' : 'jaywalk';
     // the forced clock turns every 8 s: three faces = one 24 s cycle once the picture lands (5 s after the first ask)
-    await waitFor(p, `(() => { const t = window.__district.tri(); const seen = new Set([t.board, ...t.turns.map(x => x.to)]); return seen.has('${want}') && seen.has('drop') && [...seen].some(f => /^holdem/.test(f)); })()`, 'all three faces', 45000).catch(() => {});
+    await waitFor(p, `(() => { const t = window.__district.tri(); const seen = new Set([t.board, ...t.turns.map(x => x.to)]); return seen.has('${want}') && seen.has('highrise') && [...seen].some(f => /^holdem/.test(f)); })()`, 'all three faces', 45000).catch(() => {});
     const t = await ev(p, 'window.__district.tri()');
     const seen = [...new Set([t.board, ...t.turns.map(x => x.to)])];
-    ok(w0[warmKey] && inFlight && (t.faces || []).length === 3 && seen.includes(want) && seen.includes('drop') && seen.some(f => /^holdem/.test(f)),
+    ok(w0[warmKey] && inFlight && (t.faces || []).length === 3 && seen.includes(want) && seen.includes('highrise') && seen.some(f => /^holdem/.test(f)),   // (CITY PART 1: HIGH RISE replaced THE DROP's face)
       `THE ROOF BOARD after a rebuild mid-load${open_ ? ' (OPEN DAY — the OPEN NOW poster)' : ''}: the faces ${(t.faces || []).join(' · ') || 'none'} — turned to ${t.turns.map(x => x.to).join(' → ') || 'nothing'} (the first scene's picture request in flight at the teardown: ${inFlight})`);
     await Q.ctx.close();
   }
