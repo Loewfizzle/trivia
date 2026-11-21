@@ -1,29 +1,5 @@
 // CITY 2.0 — THE HARBOR, Part 4: THE WATER (docs/harbor/passes/part-4.md#the-water). The harbor between the far quay (z 230) and the railing
-// (z 64) is a real, deep body of water: a MIRROR of everything above it, in perspective, broken by ripples from the real wind.
-//
-//   the base (baked: waterSteps)   the water's own colour + depth — blue-green and paler where it meets the far quay by day,
-//                                  orange-pink at golden hour, near-black at night so the neon pops; darker toward the viewer
-//   the mirror (every frame)       the frame ABOVE the waterline, as drawn this frame (the sky, the skyline, its lit windows, the
-//                                  neon, the beacons, the searchlights, the quay lamps — whatever later parts add too, and the
-//                                  construction tower at whatever stage it is), copied once, flipped about the waterline
-//   the light columns (night)      a bright-pass of that copy (src³: only the lights survive) smeared into vertical columns by
-//                                  stretched copies — a light high on a tower reflects as a long column reaching into the near
-//                                  water, a low sign as a short one by the quay; calm = short and crisp, wind = long and broken
-//   the ripples                    the mirror drawn row by row (strips thin far, thick near) with a sideways wobble + a vertical
-//                                  break per row (waves are wavefronts parallel to the shore: one phase per depth), the rows'
-//                                  brightness flickering crest / trough — so every reflected light breaks into shimmering bands
-//   the wavelets                   two baked textures of perspective dashes (sky-lit crests, dark troughs) sliding against each
-//                                  other; their density follows the wind
-//   the paths                      the SUN's gold glitter path toward us when it is low (golden hour / dawn), the MOON's silver
-//                                  one at night (its real place + phase; none when down or behind real cloud), sun glints by day
-//   the near edge                  the water lapping at the foot of the near quay wall, behind the railing
-//
-// Cost: the work is split over frames — one BUILDS the mirror, the next COMPOSES the water (tier 2: 30 water frames a second;
-// tier 1: 20, wider strips, fewer copies); tier 0 and reduced motion = a calm baked mirror, re-drawn about once a second with the
-// ripples still (the lights still follow the city). HOOKS for later parts (docs/harbor.md
-// "stubs"): reflect(fn, axisY) — an object standing in the water drawn flipped about its own waterline (the wheel + the
-// lighthouse use it now; Part 5's boats, Rosie, the train, the beam) · light(x, y, col, a, w) — a light that is not in the frame
-// above the waterline (fireworks high in the sky, Part 10; the ghost ship's glow, 11a) as a column in the water · set({ rain, fog }) — the weather (rain roughens the mirror; the fog over the water is waterfog.js, 9a; the rain's rings: ATM).
+// (the full header: docs/harbor/boot-headers.md "js/screens/harbor/water.js" — moved CITY PART 2, THE BOOT's BYTE ROOM)
 import { rgb, mix } from './shapes.js';
 import { blit, safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { phaseClock } from '../../core/harbor-phase.js';

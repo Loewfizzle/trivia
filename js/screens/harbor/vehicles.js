@@ -1,25 +1,5 @@
 // CITY 2.0 — THE HARBOR, POL4: THE VEHICLE KIT — the city's period motorcars (~1915–1935), shared by every road: the street under the
-// dock (motorcar.js, the implied road's pass), the back road by the crossing (traffic.js) and 8b's police cars, cabs, the bootleggers'
-// truck + the trash truck (new MODELS of the same shape). The owner (FP3b note 11 + POL4's add-on): "too CARTOONISH — rebuild them as
-// late-1920s / early-1930s MOBSTER cars … a VARIETY … never the same car twice in a row … premium, readable at phone size".
-//
-// THE MODELS (side view, facing right; world units, 1 ≈ 0.85 m): each a set of numbers + a few style flags read by ONE painter:
-//   modelT    the 1920s Ford Model T sedan — tall + upright, a flat brass-rimmed radiator, slim cycle fenders, wooden artillery wheels
-//   modelA    the 1929 Ford Model A Tudor — a tall nickel radiator shell, a crowned roof, two-tone paint, wire wheels
-//   packard   the big Packard / Cadillac sedan (the mobster's car) — a LONG louvred hood, a tall chrome shield grille with its vertical
-//             bars, big headlamps on a bar + a pair of fog lamps, a SIDE-MOUNT spare in the front fender, chrome wire wheels on
-//             whitewalls, a trunk on its rack, deep paint
-//   roadster  a two-seat roadster with its top folded down + a RUMBLE SEAT behind (its lid open now and then, a passenger in it)
-//   coupe     a close-coupled coupe — a short cabin, a long rear deck, a chrome strip along its belt
-//   van       a panel delivery van — a tall box body with its trade lettered on the side (the bakery, the laundry, the ice man)
-//   taxi      a Checker-style cab — yellow over black, the CHECKER BAND along its belt, the TAXI lamp on its roof
-// THE LOOK (every model): deep GLOSSY paint (a lit shoulder band, the sky's reflection along the crown, a darker skirt), chrome glints
-// (crisp white specks on the grille, the lamps' rims, the bumpers, the hub caps), panel seams + door handles, the windows mirroring the
-// sky with a driver behind, the fenders sweeping into the running boards; at night deep tones lit by the street lamps (a 'lamp' look)
-// with the lamps LIT (live: motorcar.js / traffic.js — headlamp cores + tight halos, the tail lamp an ember); party nights a few carry a
-// soft NEON UNDERGLOW + lit trim (live — drawUnderglow).
-// BAKED once per model + look + paint + size into a sprite (bodySprite) + a wheel sprite per wheel kind (wheelSprite: its still tyre +
-// its turning part); only the wheels turn live.
+// (the full header: docs/harbor/boot-headers.md "js/screens/harbor/vehicles.js" — moved CITY PART 2, THE BOOT's BYTE ROOM)
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { rgb, shade, mix } from './shapes.js';
 

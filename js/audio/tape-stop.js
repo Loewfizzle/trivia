@@ -1,24 +1,5 @@
 // THE TAPE STOP IN WEB AUDIO (the TR-3B's power drain — docs/audio.md#the-tape-stop-in-web-audio).
-// The owner's iPhone (Oct 25, 11:29): with the bend ALONE on, the AUDIO panel read NOT SOUNDING, the song clock still, 13 reloads
-// failing; with it off, "sounding". Changing an <audio> element's playbackRate on iOS Safari stalls / silences it (and a reload keeps
-// the bent rate, so every heal failed too). So the element's playbackRate is NEVER touched again. Instead:
-//   PREPARE   as the craft arrives: the song's bytes (the file is in the cache: prefetch() fetched it before it played), the frames
-//             covering the next ~42 s of the song from where the element is (core/mp3-slice.js: placed to one frame), decoded into an
-//             AudioBuffer (~15 MB for 42 s; dropped after the run)
-//   BEND      when the first bend is asked: an AudioBufferSourceNode starts at the element's exact song time, crossfaded IN over
-//             `xf` s (the element's own gain down, the source's up — the same audio, so a linear fade sums flat), then the element is
-//             PAUSED. The source's playbackRate is ramped (speed + pitch together, like a record losing power); two oscillators on
-//             the rate make the WARBLE (a wow + a flutter) in the audio thread — no per-frame work. The song position is the exact
-//             integral of the rate (core/tape-math.js), so the beat and the panel still read a song clock.
-//   RELEASE   the rate ramped back to 1; then the element is SEEKED to where the tape got to (+ what it lost, for a room-clocked
-//             song), played, and once its clock is SEEN MOVING (nudged once if it landed off) the crossfade back; the source stops.
-//   WATCHDOG  the element's clock not moving within 1 s of play() → a fresh load at the right time (the caller's reload); still not
-//             within 1.5 s more → the fade back happens anyway and the music's health watch (music.js) takes it from there: the rate
-//             is 1, so its reloads work. A frozen graph, the page hidden, a new context or a new song ABORT the bend: the element
-//             resumes at the tape's time at once, no fade.
-//   DIRECT    on the direct path (no usable Web Audio) nothing is bent — the caller's duck is the only dip.
-// Everything is injected so tests/tape-stop.test.mjs drives it with a fake AudioContext + element: the element's playbackRate is never
-// assigned, a stalled element is reloaded, back-to-back runs never leave the music dead, a room-clocked song ends on the room's clock.
+// (the full header: docs/harbor/boot-headers.md "js/audio/tape-stop.js" — moved CITY PART 2, THE BOOT's BYTE ROOM)
 import { createSchedule, ramp, rateAt, posAt, lostAt, settledAt } from '../core/tape-math.js';
 import { sliceAt } from '../core/mp3-slice.js';
 

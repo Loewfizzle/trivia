@@ -1,26 +1,5 @@
 // CITY 2.0 — THE HARBOR, PART 8a: THE PROMENADE's plan (PURE — tested in tests/harbor.test.mjs; drawn by screens/harbor/stage.js).
-// What the near stage IS — its bands, where every lamp, tree, bench, cart, planter and the medallion stand, the
-// trees' season by the real date, the IMPLIED ROAD along the bottom edge (cars shown only as light) — not how it looks.
-//
-// The bands, back to front (world z; the camera's numbers in docs/harbor.md — on a 402 phone the promenade is the strip from the
-// road's near kerb, y ≈ 682, down to the dock's top, y ≈ 758):
-//   THE WATERSIDE ROAD   z 54–64 (core/harbor-layout.js: the bus, the cars, the two stop lights + the CROSSWALK between them)
-//   THE CURB BAND        z ≈ 52.6: the crabapple's grate (PROM: NO LAMPPOSTS — the tall pair by the crossing is gone)
-//   THE PLAZA / MIDDLE   z 41–48: open cobbles in front of the speakeasy's door (8 guests, the party line, crowds); the
-//                        CENTREPIECE SPOT just right of the door (an Art Deco medallion in a ring of smooth stone); the bench,
-//                        the vendor cart, the stone flower planters — in the clearly visible middle, never low by the dock
-//   THE FRONT WALK       z ≈ 36.5–38: THE CAB STAND (a bench at the front curb facing the street, the framing maple behind it),
-//                        the vendor cart left of the compass, the hydrant at the left curb (PROM: the two globe lamps are gone)
-//   THE IMPLIED LAMPS    PROM (the owner, Oct 28 — LOCKED): no lampposts on the promenade at all; a row of street lamps on OUR side
-//                        of the front street, just below the screen, behind the viewer (never drawn) — their warm light pools on the
-//                        street under the dock + the promenade, brightest at the front curb, falling off toward the railing; the
-//                        shadows climb UP the screen, away from us (core/harbor-light.js#IMPLIED)
-// NO FLAGPOLE (the owner, 8a: flags only on holidays / special events — a later part dresses the lamp posts then)
-//   THE IMPLIED ROAD     z < 36: its granite curb just under the dock's top edge, THE STREET below (FP2: full-bleed — setts, a
-//                        streetcar track, a manhole, a drain); while the dock shows, passing cars are LIGHT only (headlight
-//                        sweeps at night, a soft shadow by day); while it rests (hidden) the car itself rolls across (streetPlan)
-// NOTHING ALIVE UNDER THE DOCK while it shows. Positions are by SCREEN FRACTION on an upright phone (every phone the same picture); a wide screen
-// (desktop, sideways) repeats the curb band to the right and keeps the front row either side of the dock.
+// (the full header: docs/harbor/boot-headers.md "js/core/harbor-promenade.js" — moved CITY PART 2, THE BOOT's BYTE ROOM)
 
 import { rngFrom } from './rng.js';
 

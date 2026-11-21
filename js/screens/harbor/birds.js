@@ -1,26 +1,5 @@
 // CITY 2.0 — THE HARBOR, Part 6a: THE BIRDS (docs/harbor/passes/part-6a.md). Who is up comes from core/harbor-sky.js#birdsNow (the
-// hour, the month, the weather); every bird is a crafted silhouette drawn live (a few paths each — no sprite to tint), lit by
-// the hour: by day the gulls' white undersides against the city, at dusk dark shapes against the glowing sky.
-//   GULLS   harbor(c)  a few wheeling over the water in front of the skyline by day — long glides on bent "M" wings (white
-//                      body + underwings, grey mantle when they bank, black tips), a few lazy wingbeats to climb; nearer ones
-//                      bigger. Drawn before the water: the mirror reflects them.
-//   SWIFTS  low(c)     a screaming party darting round the rooftops on summer evenings (scythe wings, fast flicker)
-//   BATS    low(c)     summer dusk into the night: smooth looping paths with quick darts (a fast but smooth swerve ~once a
-//                      (11a-1: THE HALLOWEEN COLONY — s.hween: at dusk on Halloween night a stream of bats POURING out of a tower
-//                      crown (core/harbor-ghost.js#colonyBat: a corkscrew up out of the crown that opens into the sky), then a few
-//                      jinking round the roofs through the night; every bat a membrane silhouette — the arm, the fingers fanning to
-//                      the tip, the scalloped trailing edge, the ears — the leading edge rim-lit by the neon)
-//                      second, the bat banking into it), fast scalloped wings — core/harbor-flight.js#batAt
-//   GEESE   sky(c)     V's crossing a sky lane (never across the sign): never a perfect V — uneven arms, irregular spacing,
-//                      birds drifting in their slots, 1–2 stragglers trailing with a gap (flapping harder), now and then one
-//                      dropping back + rejoining or two trading places (core/harbor-flight.js#geesePlan); the wingbeats ripple
-//                      down each arm; autumn's head south (away: they shrink into the haze), spring's come toward us
-// Every path is a function of (its seed, the seconds since the flight began): frame-rate independent, no per-frame dice.
-// (The bats' old JITTER: they rode the raw roofline — a step function with 50–90 pt jumps at the building edges — so a bat
-// teleported up and down as it crossed one, flickering when its ±6 pt wobble straddled an edge. Now: core#smoothRoof.)
-//   HERON   sky(c)     the district's rare slow crossing on spring-to-autumn nights (neck folded, legs trailing) — &force=heron-sky
-//                      (8b1: &force=heron is the heron on its PILING at dawn now — wildlife.js)
-// Reduced effects: no birds on the wing (the district's rule). Heavy events elsewhere thin them (fs.density).
+// (the full header: docs/harbor/boot-headers.md "js/screens/harbor/birds.js" — moved CITY PART 2, THE BOOT's BYTE ROOM)
 import { birdsNow } from '../../core/harbor-sky.js';
 import { smoothRoof, roofAt as roofLerp, batPlan, batAt, geesePlan, goosePose, geeseTail } from '../../core/harbor-flight.js';
 import { colonyBat, COLONY_LEN } from '../../core/harbor-ghost.js';

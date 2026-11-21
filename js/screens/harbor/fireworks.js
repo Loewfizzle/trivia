@@ -1,23 +1,5 @@
 // CITY 2.0 — PART 10: THE FIREWORKS' RENDERER (core/harbor-fireworks.js plans the shows; decisions.md §6; docs/harbor/passes/part-10.md).
-// ONE GPU PARTICLE ENGINE on its own WebGL2 layer right ABOVE THE CITY's CANVAS and BEHIND THE LIT NEON SIGN (the owner, Oct 31 9:05 pm:
-// "the castle-and-fireworks postcard" — the sign stays on in front, the sky exploding round it; the city's crisp lettering stays in front
-// too), only while a show is near (created ~20 s before, freed after its smoke) — CLAUDE.md's "a WebGL layer for a sky".
-//   THE SPARKS   every spark is ONE instance: its origin, velocity, birth, life, drag + gravity — its flight is CLOSED FORM on the GPU
-//                (v → the wind + the fall's terminal speed under drag: p = o + v₀·e + w·(t − e), e = (1 − e^(−kt)) / k), so the CPU only
-//                writes a shell's instances ONCE (at its launch) and every frame is three instanced draws. A phone joining mid-show
-//                builds the shells already up from the same seeds → the same sky. Each spark is a soft capsule from where it was a
-//                trail ago to where it is (the chrysanthemum's + the willow's trails), cooling WHITE → its COLOUR → EMBER as it falls.
-//   THE SHELLS   peony (a sphere seen: the rim denser), chrysanthemum (trails), gold willow (long, slow, drooping gold), palm (thick
-//                arms), ring (a tilted circle), crossette (stars that split in four), glitter + strobe + crackle (twinkle / flash /
-//                the last-moment pops), comets (a few big tailed stars), multi-break (a second, inner break); the rising COMET of each
-//                launch with its spitting tail.
-//   THE CITY     every burst LIGHTS the city (a wash in its colour, falling off with distance — strongest on the buildings, softer on
-//                the water + the speakeasy, faint in the sky), the SMOKE (puffs that build up over a show, drift on THE WIND, lit from
-//                inside by the next bursts) + the WATER (the near layers mirrored + rippled in the harbor; the scene adds the light
-//                columns — water.light). THE LAYERS: the barges + the lighthouse in front of the skyline (hidden by the speakeasy,
-//                its billboard, the signs), the far shells BEHIND the towers (the roofline masks them).
-//   THE TIERS    THE TIER TABLE (fwSparks, fwTrails, fwSmoke, fwLights, fwMirror, fwDpr, fwRing) — fewer sparks, never ugly.
-// No WebGL2 → ok() is false and the scene keeps the district's 2D fireworks (never broken).
+// (the full header: docs/harbor/boot-headers.md "js/screens/harbor/fireworks.js" — moved CITY PART 2, THE BOOT's BYTE ROOM)
 import { glCtx, ctx2d } from '../../ui/canvas-safe.js';
 import { tierVal, budgetDpr } from '../../core/harbor-tiers.js';
 import { FW_COLORS, FW_LAYERS } from '../../core/harbor-fireworks.js';

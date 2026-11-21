@@ -1,31 +1,5 @@
 // CITY 2.0 — THE HARBOR, Part 6a: HOT AIR BALLOONS (docs/harbor/passes/part-6a.md; re-rendered PREMIUM in 6b). On calm, clear mornings and
-// summer evenings (only when the real wind is low: core/harbor-sky.js#balloonWeather + #balloonTime) a crafted balloon drifts slowly
-// across THE WHOLE SKY (6b: from under the corner buttons down to the crowns, behind the NEON sign, in front of the sun + the moon;
-// nearer = bigger + lower) — rarely a FESTIVAL of several spread over it at different heights + distances.
-//   6b PREMIUM     each GORE puffed between its load tapes (its own fabric shading), a soft highlight on the sun's side, the dark MOUTH
-//                  you see into from below (the flame inside it on a burn), the skirt, the cables, two tiny passengers over the rim;
-//                  THE BURNER's flare lights the whole envelope from inside (brightest by the mouth), the basket + the air round it
-//   THE SPECIALS   (sometimes in a normal flight, always at the festival) THE TWO ₿ BALLOONS, THE OPPOSITES at every hour (PERF-A — the
-//                  owner, Nov 1): 'bitcoin' all BLACK with a big ORANGE ₿ (at night still black, the ₿ glowing orange from inside) +
-//                  'btc-orange' all ORANGE with a BLACK ₿ (lit orange from inside at night) — never neighbours at the festival (apartSpots);
-//                  a nod, never explained · THE ALIEN HEAD — a special-shape grey
-//                  alien in green, big glossy black almond eyes, seamed fabric, the basket under its chin
-//   THE ENVELOPE   a teardrop of 12 gores: the stripes narrow toward its edges as they turn away (a sphere, not a flat
-//                  pattern), the load tapes on the seams, the crown's vent cap, the darker skirt; shaded as a sphere toward
-//                  the REAL sun's side (morning: the east, our left), a rim of sky light on the other
-//   THE BASKET     wicker (a weave + a leather rim), the burner frame, the cables up to the skirt
-//   THE BURNER     every 8–20 s a burn of a few pulses: a yellow-white flame up into the mouth — and at dusk the envelope LIGHTS
-//                  FROM INSIDE like a lantern (its own stripes glowing, brightest by the mouth)
-//   THE DISCO BALL (PERF-B — the owner, Nov 1: the festival's 7th, "make it VERY HIGH QUALITY") — a mirror-ball envelope: real TILES on
-//                  the sphere (rows narrowing to the poles, the gores' meridians), each reflecting what it faces — by day the sky above +
-//                  the warm city below + the sun's glints, at night the night sky + the city's neon; a handful of twinkling glints that
-//                  slide with its slow turn (THE TIER TABLE's discoGlints); the burner's warm flash in the lower tiles
-//   THE WHOLE SKY  (PERF-B — the owner, Nov 1: "put them HIGHER … they can go up IN FRONT OF THE NEON SIGN … drift up ABOVE it"): heights
-//                  spread from just over the roofs past the sign to under the corner buttons, never a row; BY DEPTH — the far / small ones
-//                  pass BEHIND the lit sign (the city's canvas), the near / big ones IN FRONT of it (a small overlay each, only while one
-//                  is over the sign); the sign's band is a place they CROSS (its rows squeezed: never hovering over the letters)
-// Positions are a function of the time since the event began (every phone sees the same sky): a slow drift with the real wind
-// (a crossing takes most of the event), a gentle rise and fall. Sprites per balloon per light; the flame + the glow live.
+// (the full header: docs/harbor/boot-headers.md "js/screens/harbor/balloons.js" — moved CITY PART 2, THE BOOT's BYTE ROOM)
 import { safeCtx, ctx2d, freeCanvases } from '../../ui/canvas-safe.js';
 import { tierVal } from '../../core/harbor-tiers.js';
 const TAU = Math.PI * 2;

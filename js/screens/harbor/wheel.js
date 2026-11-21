@@ -1,31 +1,5 @@
 // CITY 2.0 — THE HARBOR, Part 5: THE FERRIS WHEEL (docs/harbor/passes/part-5.md). A real steel wheel on its pier, turning slowly on
-// the real clock (one turn in 150 s — every phone shows it at the same angle):
-//
-//   the steel (a sprite, rotated)   the rim (two rings + the zigzag truss between them), 16 pairs of tension spokes crossing
-//                                   to the hub, an inner ring, the hub's plate + bolts — painted red steel by day, a dark
-//                                   silhouette at night; the sun's side of the rim catches the light (drawn per frame: it must
-//                                   not turn with the wheel)
-//   the gondolas (16 sprites)        cabins that HANG LEVEL from their pivots on the rim and sway a little; painted by day,
-//                                   their windows lit warm at night (a few empty and dark)
-//   the bulbs (night; sprites)       48 on the rim (three chase sets), 64 on the spokes (four rings), a star round the hub:
-//                                   PATTERNS on a 48 s show — steady, a chase round the rim, rings pulsing outward, a sparkle;
-//                                   their colours from a SCHEME (city warm white; halloween, christmas, valentine, stpatrick,
-//                                   july4, nye, party — the hooks for Parts 10 + 11a–c: harbor().wheel.scheme(name))
-//   the A-frames                     the back one baked with the pier (pier.js#aFrame), the front one a sprite over the wheel
-//   the light                        at night a warm haze round the wheel + its pool on the platform's deck
-//   the reflection                   reflect(ctx): the same wheel, flipped by the water (water.reflect, the mirror's 10 a second)
-//
-// Tier 0 + reduced motion: the bulbs steady (no show); reduced motion also stills the wheel (it stands at its angle).
-//
-// NEON PASS 5 — THE WHEEL AS A SHOWPIECE (the owner: with the dark offices behind it, it can stand out much more): bigger,
-// brighter bulbs, a wider soft halo round the rim, warm-lit gondolas, and its bulbs drawn ONE BY ONE into the 20-a-second cache
-// (a colour + a level each — ~170 small draws 20 times a second, never per frame):
-//   A NORMAL NIGHT   elegant + slow — a gentle colour wave travelling round the rim (gold, rose, ice in turn, ~14 s a lap), a
-//                    slow sparkle, and every ~40 s a spiral running out from the hub along the spokes
-//   A PARTY NIGHT    a light show on the beat in the party palette (core/harbor-show.js#PARTY_PAL, the city's colour scene),
-//                    a new routine every 4 bars — a rainbow chase round the rim, the spokes lighting in sequence like a clock
-//                    hand, spirals, bursts from the hub on the strong beats (and a big one on the drops); the whole wheel
-//                    punching with the city. Smooth envelopes everywhere: one of the party's stars, never a strobe.
+// (the full header: docs/harbor/boot-headers.md "js/screens/harbor/wheel.js" — moved CITY PART 2, THE BOOT's BYTE ROOM)
 import { project } from '../../core/harbor-layout.js';
 import { mix, rgb, shade, clamp01 } from './shapes.js';
 import { PARTY_PAL } from '../../core/harbor-show.js';

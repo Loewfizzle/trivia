@@ -1,27 +1,5 @@
 // CITY 2.0 — THE HARBOR's CITY SOUNDS (Part 8a; docs/audio.md#the-city-sounds): what in the city calls which slot. The scene
-// ticks it every frame (it looks ~4× a second); every event that exists today calls its slot, and an EMPTY slot is silent (the
-// player does nothing), so a recording dropped in later just starts sounding with its event.
-//   THE BED      city-hum-day / city-hum-night crossfading (equal power) on the city's ONE darkness (core/harbor-dark.js: the
-//                blue hour — the same input every light reads) LEAD it · water-lapping always, far + soft under the hum (FP).
-//                FP: ducked while the music is on (core/city-sounds.js#bedMix); with the music on it waits for the song to sound
-//                and fades in slowly — it never starts louder than the music
-//   THE SKY      (Oct 24: filled — the owner's recordings.) The aircraft are FLYBYS, chained while their thing is up (run(): each
-//                take its own swell, the next one starting as the last fades — never a seam): helicopter (its two flybys, panned
-//                with it, louder while it hovers) · airliner-far (the loudest plane crossing: its flyby from the start of the
-//                crossing, panned, swelling with it) · prop-plane (the banner plane, the skywriters) · geese (one flyover a V,
-//                panned with it) · drone-swarm (a bed: the drone show) · balloon-burner (a burn every ~6–18 s while balloons are
-//                up, far + low-passed). All of it WELL UNDER the bed and ducked with it under the music (bedMix's k)
-//   THE HARBOR   gulls (by day while gulls fly: mostly one call, now and then two or three in a row, random gaps of ~14–66 s,
-//                fewer when there are fewer — core/city-sounds.js#gullCalls / gullGap) · boat-putter (the water taxi
-//                crossing) · foghorn (the lighthouse, in real fog: every ~40–80 s)
-//   THE API      play(slot, o) / loop(slot, o) — the road's cars (Part 8: play('car-1920s-pass', { pan, gain }) → its handle's
-//                `peak` = s after the start when the car is nearest), anything later
-//   8P           THE SPEAKEASY's LIFE heard (speakeasy(b) with b.fr = the windows' frame): each moment's cues on the clock
-//                (core/city-sounds.js#MOMENT_CUES — the toast's clink, the wake's blind + sash, the cat landing, the bar through
-//                the open mirror door + its thud shut, the barbershop's opening), the barbershop's day (the bell in + out, snips
-//                while he cuts), the 3 am broom · THE BUS (bus(event, o)) · THE PEOPLE (step / laugh / cart / cartBell / line /
-//                rooftop) · THE JETS (jets(o): panned right → left, the music ducked round their peak — the slot's `duck`)
-// City 2.0's title only (the scene lives there); the Effects slider + Mute rule it (the SFX bus); all of it fails silently.
+// (the full header: docs/harbor/boot-headers.md "js/screens/harbor/sounds.js" — moved CITY PART 2, THE BOOT's BYTE ROOM)
 import { citySound, cityLoop, cityPrefetch, cityReady, citySoundsDebug } from '../../audio/city-sound.js';
 import { isFilled, takesOf, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween, JET_SYNC, jetPan, pickTakes, pickTake, rivetGap, thunderWhen, thunderLevel, thunderVerdict } from '../../core/city-sounds.js';
 import { routineAt, MOMENT } from '../../core/harbor-moments.js';

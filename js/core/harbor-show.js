@@ -1,32 +1,5 @@
 // CITY 2.0 — THE HARBOR: THE PARTY SHOW's director + THE EVERYDAY MOTION's pick (PURE: no DOM; tests/harbor.test.mjs).
-// docs/harbor/passes/neon-pass-3.md + #neon-pass-4.
-//
-// A party night is a CHOREOGRAPHED LIGHT SHOW across the skyline on the party beat (core/party.js's beat clock). NEON PASS 4 (the
-// owner: "the neon needs to be racing around the tubes — motion, flashes, shimmer; it has to look impressive"):
-//   THE HARD BEAT     every beat PUNCHES — a fast attack (~50 ms) to a clearly brighter peak, a quick decay — harder on the
-//                     downbeats + the drops, rippling across the skyline (punchEnv); the tubes never go dark (≥ ~0.7)
-//   RACING LIGHT      bright pulses racing round the WHOLE outline of most buildings (out.race: strength, out.dir, out.sp) — per
-//                     building speed + direction, some reversing every two bars, surging on the beat (the renderer integrates)
-//   FLASHES           crowns + spires flare on the strong beats (every crown on the drops), whole buildings punch on the drops,
-//                     a few towers STROBE colour-to-colour on the beat (a 60 ms crossfade — never a hard on/off)
-//   SCENES            colour sweeps, call-and-response, climbing ledge bands, fins in sequence, layered on the racing light —
-//                     a new scene every 20–40 s; ~a quarter of the city holds (no race, no effect) in any scene
-//   THE NIGHT         builds: a classy warm-up (9 pm) → the peak (11 pm) → calming after 1 am → the 2 am wind-down
-//                     (harborParty: the harbor's own curve; City 1.0's core/party.js energy is unchanged)
-// NEVER HEADACHE-INDUCING: no full-screen flashing, no hard on/off across large areas — the punch is brightness + glow on the
-// lights themselves, with a ≥ 40 ms attack (tested).
-//
-//   showItems(list)  the outline items' descriptors (built once per layout): { kind: 'hero'|'word'|'mid'|'band'|'quay'|'harbor'|
-//                    'far', x (0..1 across the screen), ledges, fins, crown, contour } → the director's cast
-//   showFrame(cast, f, out)   one frame: f = { bar, phase (0..1 of a breath), energy, ramp, name ('warm'|'peak'|'after'), tier,
-//                    motion, t (s), swell, finale, scene?, beatU (0..1 of a beat), beatT (s a beat), beatIdx (the beat in its
-//                    breath: 0 = the downbeat), beats (a beat counter), rate (breaths / s) } → out (reused): { scene, a[i] (the
-//                    item's tubes ×, up to ~2: the renderer draws the part over 1 additively), alt[i] (0..1 its party colour),
-//                    fx[i] (0 none · 2 ledges · 3 fins · 4 crown flash), k[i], ph[i], race[i] (0..1 racing light), dir[i] (±1, fixed all night),
-//                    sp[i] (speed ×), punch (the city's punch now 0..~1.6), drop, big, lights (the searchlights 0..1), beams
-//                    (the sky beams 0..1), sparkle, shimmer (0..1 how often the shimmer rolls), moving, peak }
-//   everyday(key, cast, signs)  tonight's calm motion: blinking / spelling signs, a colour-cycling sign, slow chasers, rotations
-//                    + scheme stages through the night — seeded by the night (the same all night)
+// (the full header: docs/harbor/boot-headers.md "js/core/harbor-show.js" — moved CITY PART 2, THE BOOT's BYTE ROOM)
 
 import { beatPunch, pulseOut } from './harbor-beat.js';
 import { knob } from './harbor-schedule.js';
