@@ -56,6 +56,7 @@ export const refusals = () => [];
 export const hostRefusals = () => [];
 export const goneRefusals = () => 0;   // (CITY A — item 6: the quiet count of refusals after leaving)
 export function setHostGone() {}
+export function setWoke() {}   // (CITY PART 1: host.js says when a stalled phone just woke)
 export function setRoomGone() {}   // (THE CHAT FALSE ALARM: room.js registers which room this phone left)
 export function expectRefusal() {}
 export async function syncTimeNoSocket() { return null; }   // (/api/time's offset — the previews keep the page's own clock)

@@ -8,7 +8,7 @@ import { dbRef, update, remove, get, runTransaction, serverTimestamp, serverNow,
 import { startOf, newMatchId, GO_ORPHAN_MS, goWaiting } from './core/room-show.js';
 import { minPlayersOf, rematchSettingsOf, frameProblems } from './games/cartridge.js';
 import { state, isHost, onlineMap, setState, subscribe } from './store.js';
-import { setHostGone, expectRefusal } from './firebase.js';
+import { setHostGone, setWoke, expectRefusal } from './firebase.js';
 import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE, staleProofPaths, isSoloMeta, soloSettings } from './core/room-logic.js';
 import { closeIdleRoom, createSoloRoom, leaveRoom } from './room.js';
 import { loadProfile } from './identity.js';
@@ -45,10 +45,44 @@ const HOST_GONE_MS = 15_000;
 let wasHostAt = 0, wasHostCode = null;
 export const lostHostRecently = () => !!wasHostCode && Date.now() - wasHostAt < HOST_GONE_MS && !(state.code === wasHostCode && isHost());
 setHostGone(lostHostRecently);
+// CITY PART 1 — THE WAKE HOLD + THE ONE HOST-WRITE GATE (a stalled host's mirror is as old as the stall): docs/harbor.md "THE WAKE HOLD"
+export const STALL_GAP_MS = 5000, WAKE_QUIET_MS = 30_000;
+let lastTickWall = 0, hiddenAt = 0, wokeAt = 0, wake = null;   // wake: { code, host (the mirror's hostId at the wake), ok: null|true|false, at, asking }
+export const justWoke = () => wokeAt > 0 && Date.now() - wokeAt < WAKE_QUIET_MS;
+setWoke(justWoke);
+const inRoom = () => !!(state.code && state.uid && state.players && state.players[state.uid]);
+function woke(why) {
+  wokeAt = Date.now();
+  wake = { code: state.code, host: state.meta && state.meta.hostId, ok: null, at: 0, asking: false, why };
+}
+/** THE ONE HOST-WRITE GATE: the mirror says host, this phone still seated, and no wake check pending (the mirror fresh) */
+export function hostWriteOk() {
+  if (!isHost() || !inRoom()) return false;
+  if (wake && wake.code === state.code && wake.ok !== true) {
+    if (state.meta && state.meta.hostId !== wake.host) { wake = null; return isHost(); }   // (the mirror moved: fresh)
+    askHost(); return false;
+  }
+  return true;
+}
+function askHost() {
+  const w = wake, code = state.code, t = Date.now();
+  if (!w || w.asking || t - w.at < 2500) return;
+  w.asking = true; w.at = t;
+  Promise.all([get(dbRef(`rooms/${code}/meta/hostId`)), get(dbRef(`rooms/${code}/players/${state.uid}`))]).then(([hs, ps]) => {
+    if (wake !== w || state.code !== code) return;
+    w.ok = hs.val() === state.uid && ps.exists();
+    if (w.ok) wake = null;
+    else lazyImport(import('./errlog.js'), './errlog.js').then(m => m.countQuiet && m.countQuiet('not-host')).catch(() => {});   // (it follows)
+  }).catch(() => {}).finally(() => { w.asking = false; });
+}
+export const wakeState = () => (wake ? { ...wake } : null);   // (tests)
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') hiddenAt = Date.now(); else if (hiddenAt && Date.now() - hiddenAt >= STALL_GAP_MS && isHost()) woke('back on screen'); });
 function tick() {
   // (PERF-A — Grok 5.4: the same player open in two tabs ran two host loops; the tab that yields (identity.js#watchDuplicateTabs) is idle)
   if (state.dupTab) return;
-  if (!state.code || !state.meta || !state.connected || !state.uid) return;
+  if (!state.code || !state.meta || !state.uid) return;
+  { const w = Date.now(); if (lastTickWall && w - lastTickWall >= STALL_GAP_MS && isHost()) woke(`a stall of ${((w - lastTickWall) / 1000).toFixed(1)} s`); lastTickWall = w; }   // (CITY PART 1: THE WAKE HOLD — before the connection check: a phone waking with a dead socket still knows)
+  if (!state.connected) return;
   const now = serverNow();
   withChat(m => m.hostTick());
   // An hour without a game: the host closes the room (every phone gets ROOM CLOSED); everyone else leaves on
@@ -58,6 +92,7 @@ function tick() {
   if (roomIdle(state.meta, now - (isHost() ? 0 : 90_000)) && !(globalThis.__nsRunHold && globalThis.__nsRunHold.held())) { closeIdleRoom(); return; }
   watchHand();
   if (isHost()) {
+    if (!hostWriteOk()) return;   // (CITY PART 1: held after a wake until a fresh read says this phone IS the host — else it follows)
     wasHostAt = Date.now(); wasHostCode = state.code;
     beat(now);
     clearDeadStart(now);
@@ -98,7 +133,7 @@ function watchHand() {
 let clearedGo = null;
 function clearDeadStart(now) {
   const age = goWaiting(state.meta, state.game, now), go = state.meta.go;
-  if (age == null || age < GO_ORPHAN_MS || starting || clearedGo === go.m) return;
+  if (age == null || age < GO_ORPHAN_MS || starting || clearedGo === go.m || !hostWriteOk()) return;
   clearedGo = go.m;
   update(dbRef(`rooms/${state.code}/meta`), { go: null }).catch(() => {});
   toast('THE START DIDN’T GO THROUGH — TAP PLAY TO TRY AGAIN', 'warn', 4500);
@@ -111,7 +146,7 @@ function beat(now) {
   // only a running game keeps the room alive (an idle lobby closes after ROOM_IDLE_MS)
   if (state.meta.status === 'playing' && now - lastActive > 10 * 60_000) { lastActive = now; patch.activeAt = serverTimestamp(); }
   hostStats.beats++;
-  if (!isHost()) return;   // (THE ERRORS GROUP: checked again right before the write)
+  if (!hostWriteOk()) return;   // (THE ERRORS GROUP: checked again right before the write — CITY PART 1: the one gate)
   update(dbRef(`rooms/${state.code}/meta`), patch).catch(() => {});
 }
 
@@ -147,7 +182,7 @@ const soloRoom = game => !!game && Object.keys(game.participants || {}).length =
 const pageHidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
 function soloHold(kind) {
   const game = state.game;
-  if (!state.code || !game || !isHost() || !soloRoom(game) || !state.meta || state.meta.status !== 'playing') return false;
+  if (!state.code || !game || !hostWriteOk() || !soloRoom(game) || !state.meta || state.meta.status !== 'playing') return false;
   const mod = GAME_MODULES[game.id];
   const f = mod && (kind === 'pause' ? mod.soloPause : mod.soloResume);
   if (typeof f !== 'function') return false;
@@ -178,7 +213,7 @@ function direct(now) {
   inflight = { sig, at: now };
   hostStats.steps++;
   if (step.lobby) { backToLobby(); return; }
-  if (!isHost()) return;   // (THE ERRORS GROUP: a newer hostId may have landed during the step)
+  if (!hostWriteOk()) return;   // (THE ERRORS GROUP: a newer hostId may have landed during the step — CITY PART 1: the one gate)
   update(dbRef(`rooms/${state.code}`), roomPatch(game, step)).catch(e => { inflight.sig = ''; console.warn('director', e); });
 }
 
@@ -248,7 +283,7 @@ export function startGame(gameId, settings, { quick = false, solo = false, inPla
 async function startGameNow(gameId, settings, quick = false) {
   lazyImport(import('./games/preload.js'), './games/preload.js').then(P => P.wireGame(gameId)).catch(() => {});   // (FRIENDS C — THE SLOW-3G START: its whole graph at once)
   const mod = await loadGame(gameId).catch(() => null);   // (SHELL 2.0 B1 — THE LAZY LOGIC: the cartridge loads on the host's tap; FRIENDS C: its whole graph at once)
-  if (!mod || !isHost()) return false;
+  if (!mod || !hostWriteOk()) return false;   // (CITY PART 1: the one host-write gate)
   // (WINDOWS — ONLY TWO GAMES PLAYABLE: a hidden game never starts — not from a rematch, an invite, a stale link or the console)
   if (!isPlayable(gameId)) { toast('COMING SOON', 'info'); return false; }
   // (FR7 FIXES A — B2: THE INITIATE GUARD — never a new game over the match the room is still playing; core/room-logic.js#gameRunning)
@@ -352,7 +387,7 @@ if (typeof globalThis !== 'undefined') globalThis.__nsPlayNow = Object.freeze({ 
 /** a same-game REMATCH. inPlace (CITY G — the end screen's bar): the 'r' start, no city / room / walk; the room's ring: the QUICK walk-in */
 export function rematch({ inPlace = false } = {}) {
   const back = state.meta && state.meta.back;
-  if (!isHost() || !(state.game || (back && back.g))) return Promise.resolve(false);
+  if (!hostWriteOk() || !(state.game || (back && back.g))) return Promise.resolve(false);
   markMove();
   const id = state.game ? state.game.id : back.g;
   const game = state.game;
@@ -368,6 +403,8 @@ let refusedSaid = false;
 function stampRefused(kind, e) {
   console.warn(kind, e);
   if (refusedSaid || !/permission/i.test(String(e && (e.code || e.message) || e))) return;
+  // (CITY PART 1: the blame only for a confirmed host IN the room — else the quiet 'not-host')
+  if (justWoke() || !isHost() || !inRoom() || (wake && wake.ok === false)) { lazyImport(import('./errlog.js'), './errlog.js').then(m => m.countQuiet && m.countQuiet('not-host')).catch(() => {}); return; }
   refusedSaid = true;
   lazyImport(import('./errlog.js'), './errlog.js').then(m => m.reportError(new Error(`ROOM STAMP REFUSED (${kind}) — the live database rules are older than the code: re-publish database.rules.json (meta/go, meta/back, rv)`), 'rules')).catch(() => {});
 }
@@ -395,7 +432,7 @@ async function pruneProofs(code, keep) {
 }
 
 export async function backToLobby() {
-  if (!isHost() || !state.code) return;
+  if (!hostWriteOk() || !state.code) return;   // (CITY PART 1: the one host-write gate)
   markMove();
   // (FR7 FIXES B: the seal + the proof nodes stay until the next start — a late report still finds them)
   const g = state.game;

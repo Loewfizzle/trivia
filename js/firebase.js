@@ -15,7 +15,7 @@ import { firebaseConfig } from './firebase-config.js';
 import { slot, useEmulator } from './identity.js';
 import { serverOffsetFrom } from './core/sync-math.js';
 import { noteDeploy } from './ui/lazy-import.js';
-import { isRefusal, pathShape, quietRoomRefusal } from './core/rules-lag.js';
+import { isRefusal, pathShape, quietRoomRefusal, QUIET_WOKE } from './core/rules-lag.js';
 import { lazyImport } from './ui/lazy-import.js';
 
 const SDK = 'https://www.gstatic.com/firebasejs/11.10.0';
@@ -45,6 +45,9 @@ export function setHostGone(fn) { hostGone = typeof fn === 'function' ? fn : () 
 let roomGone = () => false;
 /** room.js: (code) => true when this phone is no longer in that room (left · leaving · removed · closed) */
 export function setRoomGone(fn) { roomGone = typeof fn === 'function' ? fn : () => false; }
+// (CITY PART 1: host.js — just woke from a stall → a room refusal = the quiet 'not-host')
+let woke = () => false;
+export function setWoke(fn) { woke = typeof fn === 'function' ? fn : () => false; }
 /** the refusals put down to a host hand-off or a left room (tests) */
 export const hostRefusals = () => [...NOT_HOST];
 // (+ the add-on: an EXPECTED refusal — the leaving host's hand-off to an heir the rules refuse, a host claim the rules refuse — is said by its
@@ -66,7 +69,7 @@ function refused(op, r, patch, e) {
   const exOf = () => expectedOf(refPath(r)) || (rp !== refPath(r) ? expectedOf(String(rp).replace(/^\/?/, '/')) : null) || (kids.length && kids.every(k => expectedOf(`${refPath(r).replace(/\/$/, '')}/${k}`)) ? expectedOf(`${refPath(r).replace(/\/$/, '')}/${kids[0]}`) : null);   // (CITY I: + an expected refusal on the ROOM a root update deletes — the second close)
   const ex = exOf();
   if (ex) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${ex.label}:`, shape); } quietFor(ex); return; }
-  if (/^\/?(rooms|chats)\//.test(rp)) { setTimeout(() => { const quiet = quietRoomRefusal(rp, { hostGone: safeGone, roomGone }); if (quiet) { countGone(); if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${quiet} — a write refused after ${quiet === 'no longer the host' ? 'the hand-off' : 'leaving'}:`, shape); } return; }
+  if (/^\/?(rooms|chats)\//.test(rp)) { setTimeout(() => { const quiet = quietRoomRefusal(rp, { hostGone: safeGone, roomGone, woke }); if (quiet) { if (quiet === QUIET_WOKE) quietFor({ kind: 'not-host' }); else countGone(); if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${quiet} — a write refused after ${quiet === 'no longer the host' ? 'the hand-off' : 'leaving'}:`, shape); } return; }
     const late = exOf(); if (late) { if (!NOT_HOST.has(shape)) { NOT_HOST.add(shape); console.info(`[rules] ${late.label}:`, shape); } quietFor(late); return; }   // (CITY I: an expectation this phone learned DURING the settle — it saw the match end just after the refusal)
     report(shape); }, HOST_SETTLE_MS); return; }
   report(shape);

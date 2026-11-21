@@ -23,12 +23,12 @@ test('THE BLACK HELICOPTER: drawHeli names no variable of drawModel\'s (black ·
 
 test('STALE-HOST WRITES: a room / chat write refused while this phone has JUST lost the host = "no longer the host" (quiet), never the alarm; the host writes check again first', () => {
   const fb = read('js/firebase.js'), host = read('js/host.js'), lm = read('js/audio/lobby-music.js');
-  assert.match(fb, /if \(\/\^\\\/\?\(rooms\|chats\)\\\/\/\.test\(rp\)\) \{ setTimeout\(\(\) => \{ const quiet = quietRoomRefusal\(rp, \{ hostGone: safeGone, roomGone \}\); if \(quiet\) \{/, 'a room write waits HOST_SETTLE_MS, then asks');
+  assert.match(fb, /if \(\/\^\\\/\?\(rooms\|chats\)\\\/\/\.test\(rp\)\) \{ setTimeout\(\(\) => \{ const quiet = quietRoomRefusal\(rp, \{ hostGone: safeGone, roomGone, woke \}\); if \(quiet\) \{/, 'a room write waits HOST_SETTLE_MS, then asks (CITY PART 1: + woke — a stalled phone just woke = the quiet not-host)');
   assert.match(fb, /console\.info\(`\[rules\] \$\{quiet\} — a write refused after/);
   assert.match(host, /setHostGone\(lostHostRecently\);/);
-  assert.match(host, /if \(isHost\(\)\) \{\n    wasHostAt = Date\.now\(\); wasHostCode = state\.code;/);
-  assert.match(host, /if \(!isHost\(\)\) return;   \/\/ \(THE ERRORS GROUP: checked again right before the write\)/, 'the beat');
-  assert.match(host, /if \(!isHost\(\)\) return;   \/\/ \(THE ERRORS GROUP: a newer hostId may have landed during the step\)/, 'the director');
+  assert.match(host, /if \(isHost\(\)\) \{\n    if \(!hostWriteOk\(\)\) return;[^\n]*\n    wasHostAt = Date\.now\(\); wasHostCode = state\.code;/, 'CITY PART 1: THE WAKE HOLD first');
+  assert.match(host, /if \(!hostWriteOk\(\)\) return;   \/\/ \(THE ERRORS GROUP: checked again right before the write/, 'the beat (CITY PART 1: the one host-write gate)');
+  assert.match(host, /if \(!hostWriteOk\(\)\) return;   \/\/ \(THE ERRORS GROUP: a newer hostId may have landed during the step/, 'the director (CITY PART 1: the one host-write gate)');
   assert.match(lm, /if \(!\(store\.meta && store\.meta\.hostId === store\.uid\)\) return;/, 'the lobby song');
 });
 

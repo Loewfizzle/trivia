@@ -15,10 +15,11 @@ export const roomOfPath = path => { const m = /^\/?(?:rooms|chats)\/([^/]+)/.exe
 // left, was removed, the room closed — a typing ping or a send already on its way) is the leave's race, not a rules-lag. PURE: after the settle
 // (firebase.js waits HOST_SETTLE_MS for the newest room state), a refused room / chat write → its QUIET label (a console line), or null = the
 // alarm (/admin's errors: re-publish the rules). hostGone() = this phone lost the host moments ago; roomGone(code) = this phone isn't in that room.
-export const QUIET_HOST = 'no longer the host', QUIET_ROOM = 'no longer in the room';
-export function quietRoomRefusal(path, { hostGone = () => false, roomGone = () => false } = {}) {
+export const QUIET_HOST = 'no longer the host', QUIET_ROOM = 'no longer in the room', QUIET_WOKE = 'a stalled phone just woke (its mirror was old)';
+export function quietRoomRefusal(path, { hostGone = () => false, roomGone = () => false, woke = () => false } = {}) {
   const code = roomOfPath(path);
   if (!code) return null;
+  try { if (woke()) return QUIET_WOKE; } catch { /* fine */ }   // (CITY PART 1: a stalled phone just woke — its mirror was as old as the stall)
   try { if (hostGone()) return QUIET_HOST; } catch { /* fine */ }
   try { if (roomGone(code)) return QUIET_ROOM; } catch { /* fine */ }
   return null;
