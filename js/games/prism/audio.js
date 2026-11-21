@@ -20,7 +20,7 @@
 // clock − SPEAKER DELAY − what the browser can't report − the measured lead), and the musical SFX schedule on the song's own clock
 // (+ the lead) — never the server clock beside it. QUICK START: the songs stream in and start from their first slices
 // (synced-songs.js `quick`). A day song's CUE-IN (game.cu) is inside the voice's origin.
-import { getContext, getMusicBus, getSfxBus, getMaster } from '../../audio/engine.js';
+import { getContext, getMusicBus, getSfxBus, getMaster, isUnlocked } from '../../audio/engine.js';
 import { serverNow } from '../../firebase.js';
 import { settings } from '../../audio/settings.js';
 import { ctxAtServer, heard } from '../pulse/clock.js';
@@ -203,7 +203,7 @@ export function createHeardBeat(player) {
       const lc = leadOf(i), L = deaf.has(i) || lc.fast ? 0 : lc.v, un = unreported(), spk = speakerLead();   // (a lead still settling is not applied yet)
       const v = player.voice(i);
       const c = getContext();
-      if (v && c && c.state === 'running') {
+      if (v && c && c.state === 'running') {   // (a MUSIC gate — the synced song's own voice + clock: kept, CITY PART 1's sweep names it)
         const origin = v.origin;
         return {
           pos: heardSongPos({ heardCtx: heard(), origin, speaker: spk, unreported: un, lead: L }),
@@ -839,7 +839,7 @@ export function createSynth() {
     /** (the test hook) which of the skin's files are decoded + ready on this context */
     samplesReady: () => Object.keys(files).filter(name => !!sample(name)),
     play(name, opts) {
-      if (settings.muted || !ensure() || ctx.state !== 'running') return;
+      if (settings.muted || !ensure() || !isUnlocked()) return;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
       const fn = SOUNDS[voices[name]] || SOUNDS[name];
       if (fn) { try { fn(opts); } catch (e) { console.warn('prism sfx', name, e && e.message); } }
     },

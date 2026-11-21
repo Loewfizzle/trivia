@@ -42,7 +42,7 @@ export function pgSfx(name, { gain = 1, rate = 1 } = {}) {
     last[name] = now;
     const ctx = getContext(), bus = getSfxBus();
     const play = b => {
-      if (!b || !ctx || ctx.state !== 'running') return;   // (CITY G: FIXES R3's mode A sleep is gone — a running context, as ever)
+      if (!b || !ctx || !isUnlocked()) return;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
       const s = ctx.createBufferSource(), g = ctx.createGain();
       s.buffer = b; s.playbackRate.value = rate;
       g.gain.value = (GAIN[name] || 0.8) * gain;

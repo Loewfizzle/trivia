@@ -2,7 +2,7 @@
 //   tab (a glassy click over felt), rows (the cascade: a soft run of ticks), pb (a bell chime), top10 (a rising
 //   flourish), first (a short brass fanfare for #1), forge (rank-up: a swell, an anvil strike in light, a bloom).
 // Everything plays through the SFX bus (the settings slider) and is silent when muted or audio is locked.
-import { getContext, getSfxBus } from '../audio/engine.js';
+import { getContext, getSfxBus, isUnlocked } from '../audio/engine.js';
 import { settings } from '../audio/settings.js';
 
 let ctx = null, out = null, noise = null, hall = null;
@@ -22,7 +22,7 @@ function impulse(c, seconds, decay, bright) {
 
 function ready() {
   const c = getContext();
-  if (!c || c.state !== 'running' || settings.muted) return null;
+  if (!c || !isUnlocked() || settings.muted) return null;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
   if (ctx !== c) {
     ctx = c;
     const comp = ctx.createDynamicsCompressor();

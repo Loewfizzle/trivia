@@ -78,6 +78,8 @@ function sbuf(n) {
   return bufs.get(n);
 }
 const played = [];   // (the test hook: every sound asked for)
+/** CITY PART 1 — the music-off sweep's seam (tests/integration/podcast-sweep.mjs): one flyer sound by its MIX id, as the run plays it */
+export const playFlyerSound = id => play(String(id).replace(/@.*/, ''), { ...(MIX[id] || {}), loop: false, at: 0 });
 /** play `n` now → a handle { gain(v, s), stop(fadeS) } at once (it sounds as soon as its bytes are decoded — if it is still wanted) */
 function play(n, { gain = 1, rate = 1, loop = false, at = 0, pan = 0 } = {}) {
   played.push(n); if (played.length > 80) played.shift();
@@ -89,7 +91,7 @@ function play(n, { gain = 1, rate = 1, loop = false, at = 0, pan = 0 } = {}) {
     const t0 = performance.now();
     sbuf(n).then(b => {
       const ctx = getContext();
-      if (!b || H.dead || !ctx || ctx.state !== 'running' || (!loop && performance.now() - t0 > 400)) return;
+      if (!b || H.dead || !ctx || !isUnlocked() || (!loop && performance.now() - t0 > 400)) return;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
       const src = ctx.createBufferSource(), g = ctx.createGain();
       src.buffer = b; src.playbackRate.value = rate; src.loop = loop;
       if (loop) { src.loopStart = 0.08; src.loopEnd = Math.max(0.2, b.duration - 0.08); }
@@ -108,7 +110,7 @@ function rumble() {
   const H = { src: null, g: null, gain(v) { try { if (H.g) H.g.gain.setTargetAtTime(v, getContext().currentTime, 0.2); } catch { /* silent */ } }, stop(f = 0.6) { try { if (H.src) { const c = getContext(), t = c.currentTime; H.g.gain.setTargetAtTime(0, t, f / 3); H.src.stop(t + f + 0.1); } } catch { /* ended */ } } };
   try {
     const ctx = getContext();
-    if (!isUnlocked() || !ctx || ctx.state !== 'running') return H;
+    if (!isUnlocked() || !ctx) return H;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
     const n = Math.floor(ctx.sampleRate * 2), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
     let v = 0;
     for (let i = 0; i < n; i++) { v = (v + (Math.random() * 2 - 1) * 0.06) / 1.006; d[i] = v * 3.2; }

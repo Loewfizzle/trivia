@@ -85,7 +85,7 @@ export function ocLoop(name, { gain = 1, fadeMs = 400 } = {}) {
     const b = buffer(def[0]);
     const start = buf => {
       theBuf = buf || theBuf;
-      if (dead || held || !buf || ctx.state !== 'running') return;
+      if (dead || held || !buf || !isUnlocked()) return;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
       src = ctx.createBufferSource();
       src.buffer = buf; src.loop = true; src.loopStart = 0; src.loopEnd = buf.duration;
       src.connect(g);
@@ -110,7 +110,7 @@ export function ocHum({ gain = 1, ms = 1400 } = {}) {
   try {
     if (!isUnlocked()) return false;
     const ctx = getContext(), bus = getSfxBus();
-    if (!ctx || ctx.state !== 'running') return false;
+    if (!ctx || !isUnlocked()) return false;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
     const t = ctx.currentTime, o = ctx.createOscillator(), o2 = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
     o.type = 'sawtooth'; o.frequency.value = 120; o2.type = 'square'; o2.frequency.value = 240;
     f.type = 'lowpass'; f.frequency.value = 620; f.Q.value = 0.7;
@@ -137,7 +137,7 @@ export function ocSfx(name, { gain = 1 } = {}) {
     last[name] = now;
     const ctx = getContext(), bus = getSfxBus();
     const play = b => {
-      if (!b || !ctx || ctx.state !== 'running') return;
+      if (!b || !ctx || !isUnlocked()) return;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
       const s = ctx.createBufferSource(), g = ctx.createGain();
       s.buffer = b;
       g.gain.value = g0 * gain;
