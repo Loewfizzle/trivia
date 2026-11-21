@@ -97,7 +97,7 @@ export function finalScene(el, game, state) {
     // NEW PERSONAL BEST — only from the server's own answer (OC5: QUICK + STANDARD solo runs each have a board; /api down = just the score)
     if (!zero) lazyImport(import('../../profile/queue.js'), '../../profile/queue.js').then(Q => {
       const k = state && state.code ? Q.matchKey(state.code, game.matchId) : null;
-      // (OC5: QUICK runs have their own board now — overclock-quick-solo; a run that didn't beat it shows YOUR BEST from the outcome's bests)
+      // (CITY PART 1 — OVERCLOCK = ONE BOARD: a QUICK run's board is overclock-quick, solo or in a room; a STANDARD run has none — no line)
       const show = o => {
         if (!o || !best.isConnected) return;
         const pb = (o.pbs || []).find(x => /^overclock-/.test(String(x.b)));
@@ -107,7 +107,7 @@ export function finalScene(el, game, state) {
           best.textContent = pb.prev != null ? `WAS ${fmtNum(pb.prev)}` : 'YOUR FIRST ON THE BOARD';
           return;
         }
-        const b = Object.entries(o.bests || {}).find(([k]) => /^overclock-.*-solo$/.test(k));
+        const b = Object.entries(o.bests || {}).find(([k]) => k === 'overclock-quick');   // (CITY PART 1 — ONE BOARD: BEST QUICK RUN)
         if (b) best.textContent = `YOUR BEST · ${fmtNum(b[1])}`;
       };
       if (!k) return;

@@ -131,3 +131,15 @@ export function filledHoldem(cur, fill, wk) {
   if (fill && fill.week && weekOk) gw.holdem = merge(gw.holdem, fill.week);
   return { g, gw };
 }
+
+// CITY PART 1 — OVERCLOCK = ONE BOARD: THE SEED (the owner: "nobody starts from zero"). A player's BEST QUICK RUN (pstats b['overclock-quick'])
+// starts from their old QUICK · SOLO best (b['overclock-quick-solo'] — the retired board's record, kept): ALL TIME = the larger of the two, THIS
+// WEEK the same where the old row is this week's. PURE + idempotent (a second run = the same object); null = nothing to seed / nothing changes.
+export function seedOcQuick(b, wk) {
+  const old = b && b['overclock-quick-solo'];
+  if (!old || !(Number(old.a) > 0)) return null;
+  const cur = (b && b['overclock-quick']) || {}, next = { ...cur };
+  if (!(Number(cur.a) >= Number(old.a))) next.a = Number(old.a);
+  if (old.wk === wk && Number(old.w) > 0 && !(cur.wk === wk && Number(cur.w) >= Number(old.w))) { next.w = Number(old.w); next.wk = wk; }
+  return JSON.stringify(next) === JSON.stringify(cur) ? null : next;
+}

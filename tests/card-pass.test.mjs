@@ -51,14 +51,14 @@ test('B1: a solo run counts with ≥ 1 answered part or a total > 0 — and a mu
 });
 
 // ---- B3 — THE BOARD's two SOLO BEST labels → QUICK · SOLO and STANDARD · SOLO
-test('B3: the two OVERCLOCK solo boards say QUICK · SOLO and STANDARD · SOLO (never two "SOLO BEST")', async () => {
-  const { boardDef } = await import('../js/core/boards.js');
-  const q = boardDef('overclock-quick-solo'), s = boardDef('overclock-std-solo');
-  assert.ok(q && s, 'both solo boards exist');
-  assert.equal(q.label, 'QUICK · SOLO');
-  assert.equal(s.label, 'STANDARD · SOLO');
-  assert.equal(q.short, 'QUICK · SOLO', 'the tab + the column (board/view.js read `short`)');
-  assert.equal(s.short, 'STANDARD · SOLO');
+test('B3 → CITY PART 1 — OVERCLOCK = ONE BOARD: BEST QUICK RUN (short BEST SCORE), solo or in a room; its tab = that one board (no picker); the old three retired', async () => {
+  const { boardDef, tabBoards, RETIRED_BOARDS } = await import('../js/core/boards.js');
+  const q = boardDef('overclock-quick');
+  assert.ok(q && q.both, 'one board for a solo run AND a room match');
+  assert.equal(q.label, 'BEST QUICK RUN'); assert.equal(q.short, 'BEST SCORE');
+  assert.deepEqual(tabBoards('overclock').map(b => b.id), ['overclock-quick'], 'its tab: that one board — no picker (board/view.js hides it under 2)');
+  assert.deepEqual([...RETIRED_BOARDS].sort(), ['overclock-quick-solo', 'overclock-std', 'overclock-std-solo']);
+  for (const id of RETIRED_BOARDS) assert.equal(boardDef(id), null, `${id}: no definition — never written, never shown (its rows kept)`);
   assert.doesNotMatch(read('js/core/boards.js'), /'SOLO BEST'/);
 });
 

@@ -8,7 +8,7 @@ import { POINT_DAILIES, MIN_DAYS } from './daily-points.js';
 export const PERIODS = ['week', 'all'];
 export const MIN_WR_GAMES = 10;     // win rate shows only after this many games of that game
 
-const rec = (id, label, fmt, opts = {}) => ({ id, kind: 'record', label, fmt, dir: opts.dir || 1, short: opts.short || label, unit: opts.unit || '' });
+const rec = (id, label, fmt, opts = {}) => ({ id, kind: 'record', label, fmt, dir: opts.dir || 1, short: opts.short || label, unit: opts.unit || '', ...(opts.both ? { both: true } : {}) });   // (CITY PART 1 — `both`: a SOLO run and a ROOM match share this ONE board: match-report.js#soloBoard)
 const car = (id, label, opts = {}) => ({ id, kind: 'career', label, fmt: opts.fmt || 'int', dir: 1, short: opts.short || label, stat: opts.stat, min: opts.min || 0, ...(opts.tie ? { tie: opts.tie } : {}), ...(opts.note ? { note: opts.note } : {}), ...(opts.week ? { week: opts.week, all: opts.all || label } : {}) });
 
 // per game: records (pure skill) and career (activity + winning). `stat` = the career counter in pstats/g/{game}.
@@ -21,7 +21,11 @@ export const GAME_BOARDS = {
   // HIGH RISE (S4A — the server's replay only; written since THE GO-LIVE, Nov 20: api/_lib/highrise.js#HIGHRISE_COUNTS). Its value = a
   // tower as ONE sort number — the floor, then the perfects, then the earlier tick (js/games/highrise/logic.js#towerScore); fmt 'floor' shows the floor
   highrise: { records: [rec('highrise-solo', 'TALLEST TOWER', 'floor', { short: 'FLOORS' })], career: [] },
-  overclock: { records: [rec('overclock-std', 'STANDARD MATCH', 'int', { short: 'BEST SCORE' }), rec('overclock-std-solo', 'STANDARD · SOLO', 'int'), rec('overclock-quick-solo', 'QUICK · SOLO', 'int')], career: [] },
+  // CITY PART 1 — OVERCLOCK = ONE BOARD (the owner, Nov 19: "the whole overclock board menus and categories is complicated and weird — simplify"):
+  //  BEST QUICK RUN — a QUICK run of all six, SOLO OR IN A ROOM (`both`), the plausibility bound, a 0 never a record, DUMB LUCK's points left out
+  //  (match-report.js — THE DUMB LUCK CHECK); its tab = this one board (no picker — THIS WEEK / ALL TIME). STANDARD + MARATHON pay XP, no board.
+  //  The three old boards are RETIRED: no definition (hidden from every screen + never written), their rows KEPT in the database
+  overclock: { records: [rec('overclock-quick', 'BEST QUICK RUN', 'int', { short: 'BEST SCORE', both: true })], career: [], tab: ['overclock-quick'] },
   cipher: { records: [rec('cipher-score', 'BEST MATCH', 'int', { short: 'BEST SCORE' }), rec('cipher-fast5', 'FASTEST 5-LETTER SOLVE', 'ms', { dir: -1, short: 'FASTEST' })], career: [] },
   golf: { records: [rec('golf-par9', 'BEST 9 HOLES', 'par', { dir: -1, short: 'TO PAR' })], career: [] },
   gridlock: {
@@ -41,6 +45,9 @@ export const GAME_BOARDS = {
   holdem: { records: [], career: [car('holdem-tw', 'TOURNAMENT WINS', { stat: 'tw', tie: 'ko', fmt: 'twko', short: 'TOURNAMENT WINS', note: 'TOURNAMENTS ONLY (NOT CASH) · KOs BREAK A TIE' })], tab: ['holdem-tw'] },
 };
 export const BOARD_GAMES = Object.keys(GAME_BOARDS);
+/** CITY PART 1: the RETIRED board ids — no definition any more (never written, never shown); their lb/ + pstats b/ rows stay as they are.
+ *  overclock-quick-solo seeds overclock-quick once (core/board-fill.js#seedOcQuick — the owner's BACK-FILL) */
+export const RETIRED_BOARDS = Object.freeze(['overclock-std', 'overclock-std-solo', 'overclock-quick-solo']);
 // BOARD 2.0 A — THE OVERALL BOARDS (not under any game): `xp` = THE OVERALL BOARD — THIS WEEK = the XP earned since Monday 00:00 ET (pstats.xw),
 // ALL TIME = the total XP (the level order). Server-written like every board (lb/xp/{period}/{pid} — api/_lib/lb.js#overallPaths).
 const ovr = (id, label, o = {}) => ({ id, kind: 'overall', label, fmt: o.fmt || 'int', dir: 1, short: o.short || label, week: o.week || label, all: o.all || label, game: null, ...o });

@@ -123,7 +123,7 @@ test('board catalog: every game has WINS + WIN RATE; records, pulse songs, sort 
 
 test('every game reports its finished match: placings, wins, highlights, records', () => {
   assert.deepEqual([...REPORT_GAMES].sort(), GAMES.filter(g => !DEALER_GAMES.includes(g.id)).map(g => g.id).sort());   // (JAYWALK H1: a game BEING BUILT reports like the rest — the server still refuses it until its row is playable)   // (HE3 / HE10: HOLD'EM's result is the SERVER DEALER's own — api/_lib/holdem-store.js#reportMatch, never extractMatch; api/report.js#DEALER_GAMES)
-  const expectRec = { cipher: ['cipher-score', 'cipher-fast5'], overclock: ['overclock-std'], pulse: ['pulse-pulse1-normal'], golf: ['golf-par9'], slip: ['slip-dist'], stakes: ['stakes-chips', 'stakes-big'], rum: ['rum-f15'] };
+  const expectRec = { cipher: ['cipher-score', 'cipher-fast5'], overclock: [], pulse: ['pulse-pulse1-normal'], golf: ['golf-par9'], slip: ['slip-dist'], stakes: ['stakes-chips', 'stakes-big'], rum: ['rum-f15'] };
   const expectC = { signal: 'el', bluff: 'fool', agent: 'esc', prism: 'ko', gridlock: 'sunk' };
   for (const id of REPORT_GAMES) {
     const ex = extractMatch(finalGame(id, U), { pulseCounts });
@@ -139,8 +139,9 @@ test('every game reports its finished match: placings, wins, highlights, records
   // Score Rush is a PRISM DROP record; battle isn't
   assert.ok(extractMatch(finalGame('prism', U, { mode: 'rush' })).rows.ua.rec['prism-rush'] > 0);
   assert.equal(extractMatch(finalGame('prism', U)).rows.ua.rec['prism-rush'], undefined);
-  // OVERCLOCK: only the Standard (12) match is a record
-  assert.equal(extractMatch(finalGame('overclock', U, { mode: 'quick' })).rows.ua.rec['overclock-std'], undefined);
+  // OVERCLOCK = ONE BOARD (CITY PART 1): a QUICK room match is the record (BEST QUICK RUN); STANDARD never is
+  assert.equal(extractMatch(finalGame('overclock', U, { mode: 'quick' })).rows.ua.rec['overclock-quick'], 900);
+  assert.deepEqual(extractMatch(finalGame('overclock', U)).rows.ua.rec, {}, 'STANDARD: no board');
   // golf: 9 holes relative to par (par 27)
   assert.equal(extractMatch(finalGame('golf', U)).rows.ua.rec['golf-par9'], 22 - 27);
   // signal: the winner struck down all three
@@ -163,7 +164,7 @@ test('plausibility: impossible records are rejected, the match still counts', ()
     ['slip', { dist: Math.ceil(maxSlipDistance(243) * 1.05 + 41) }, 'slip-dist'],
     ['cipher', { fast5: 400 }, 'cipher-fast5'],
     ['prism', { mode: 'rush', rushScore: 99_999_999 }, 'prism-rush'],
-    ['overclock', { ocPts: 9999 }, 'overclock-std'],
+    ['overclock', { ocPts: 9999, mode: 'quick' }, 'overclock-quick'],
     ['golf', { golfStroke: 0 }, 'golf-par9'],
   ];
   for (const [id, opts, board] of imp) {
@@ -313,7 +314,7 @@ test('THE VAULT: unlocks by rank step; what you wear is always something you hav
 
 // OC5 — THE QUICK SOLO PERSONAL BEST: board overclock-quick-solo, computed by the SERVER from the room's record (a solo QUICK run, all six,
 // every result inside THE SCORING TABLE — logic.js#ptsCeiling — the order six real skill challenges); STANDARD's solo board unchanged
-test('OVERCLOCK — THE QUICK SOLO BOARD: a real solo QUICK run counts; a score no QUICK run can reach is refused; multiplayer + STANDARD unchanged', async () => {
+test('OVERCLOCK = ONE BOARD (CITY PART 1; was OC5 THE QUICK SOLO BOARD): a real solo QUICK run counts; a score no QUICK run can reach is refused; a QUICK room match counts; STANDARD writes nothing', async () => {
   const { createGame, nextStep } = await import('../js/games/overclock/director.js');
   const { partsFor } = await import('../js/games/overclock/challenges.js');
   const { matchMax, ptsCeiling, levelOf } = await import('../js/games/overclock/logic.js');
@@ -339,8 +340,7 @@ test('OVERCLOCK — THE QUICK SOLO BOARD: a real solo QUICK run counts; a score 
     const ex = extractMatch(g);
     assert.ok(ex.solo);
     const total = Object.values(g.results).reduce((s, r) => s + r.ua.pts, 0);
-    assert.equal(ex.rows.ua.rec['overclock-quick-solo'], total, `${seed}: the QUICK solo board = the run's total (${total})`);
-    assert.equal(ex.rows.ua.rec['overclock-std-solo'], undefined);
+    assert.equal(ex.rows.ua.rec['overclock-quick'], total, `${seed}: BEST QUICK RUN = the solo run's total (${total}) — CITY PART 1: the ONE board`);
     assert.deepEqual(ex.rejected, []);
     assert.ok(total <= matchMax(g.order));
   }
@@ -348,42 +348,42 @@ test('OVERCLOCK — THE QUICK SOLO BOARD: a real solo QUICK run counts; a score 
   const g = solo('quick', 'qs-3', (ci, p) => (ci === 2 ? Math.floor(p / 2) : p));
   const t1 = structuredClone(g); t1.results[2].ua.pts = ptsCeiling(t1.order[2], t1.results[2].ua.ok, t1.results[2].ua.parts, false) + 1;
   let ex = extractMatch(t1);
-  assert.equal(ex.rows.ua.rec['overclock-quick-solo'], undefined);
-  assert.ok(ex.rejected.some(r => r.uid === 'ua' && r.board === 'overclock-quick-solo'));
+  assert.equal(ex.rows.ua.rec['overclock-quick'], undefined);
+  assert.ok(ex.rejected.some(r => r.uid === 'ua' && r.board === 'overclock-quick'));
   assert.equal(ex.rows.ua.c.p, 1, 'still played');
   // the ceiling itself is fine (a run AT the table's max)
   const t2 = structuredClone(g); t2.results[2].ua.pts = ptsCeiling(t2.order[2], t2.results[2].ua.ok, t2.results[2].ua.parts, false);
-  assert.ok(extractMatch(t2).rows.ua.rec['overclock-quick-solo'] > 0);
+  assert.ok(extractMatch(t2).rows.ua.rec['overclock-quick'] > 0);
   // a solo "QUICK" with DUMB LUCK in it / a missing challenge / a fake 9999 / a non-integer → refused
   const t3 = structuredClone(g); t3.order[1] = 'dumbluck';
-  assert.equal(extractMatch(t3).rows.ua.rec['overclock-quick-solo'], undefined);
+  assert.equal(extractMatch(t3).rows.ua.rec['overclock-quick'], undefined);
   const t4 = structuredClone(g); delete t4.results[5];
-  assert.equal(extractMatch(t4).rows.ua.rec['overclock-quick-solo'], undefined, 'not all six played: no record (nothing to refuse)');
+  assert.equal(extractMatch(t4).rows.ua.rec['overclock-quick'], undefined, 'not all six played: no record (nothing to refuse)');
   const t5 = structuredClone(g); t5.results[0].ua.pts = 9999;
-  assert.ok(extractMatch(t5).rejected.some(r => r.board === 'overclock-quick-solo'));
+  assert.ok(extractMatch(t5).rejected.some(r => r.board === 'overclock-quick'));
   const t6 = structuredClone(g); t6.results[0].ua.pts += 0.5;
-  assert.ok(extractMatch(t6).rejected.some(r => r.board === 'overclock-quick-solo'));
+  assert.ok(extractMatch(t6).rejected.some(r => r.board === 'overclock-quick'));
   // the board exists (+ its label); MULTIPLAYER QUICK writes no solo record; STANDARD solo is unchanged
-  assert.equal(boardDef('overclock-quick-solo').label, 'QUICK · SOLO');
-  assert.equal(boardDef('overclock-quick'), null, 'no multiplayer QUICK board');
+  // (CITY PART 1 — OVERCLOCK = ONE BOARD: BEST QUICK RUN, solo or in a room; the three old boards retired — no definition, never written)
+  assert.equal(boardDef('overclock-quick').label, 'BEST QUICK RUN');
+  for (const old of ['overclock-quick-solo', 'overclock-std', 'overclock-std-solo']) assert.equal(boardDef(old), null, `${old}: retired`);
   ex = extractMatch(finalGame('overclock', U, { mode: 'quick' }));
-  for (const u of U) assert.equal(ex.rows[u].rec['overclock-quick-solo'], undefined);
+  for (const u of U) assert.ok(ex.rows[u].rec['overclock-quick'] > 0, 'a QUICK room match writes the ONE board for every player');
   const std = solo('standard', 'ss-1');
   ex = extractMatch(std);
-  assert.ok(ex.rows.ua.rec['overclock-std-solo'] > 0 && ex.rows.ua.rec['overclock-quick-solo'] === undefined, 'STANDARD solo → its own board, as before');
+  assert.deepEqual(ex.rows.ua.rec, {}, 'STANDARD solo: no board (XP only)');
   // OC8 — B1 (THE FABLE REVIEW: an AFK solo run wrote a 0 + "NEW PERSONAL BEST"): a run with nothing answered is never a record — QUICK or
   // STANDARD — and never a cheat (nothing refused); the match itself still reaches the server (the console's streak / XP rule is its own)
   for (const mode of ['quick', 'standard']) {
     const afk = solo(mode, `afk-${mode}`, () => 0);
     assert.equal(Object.values(afk.results).reduce((s, r) => s + r.ua.pts, 0), 0, `${mode}: the AFK run scored 0`);
     const e0 = extractMatch(afk);
-    assert.equal(e0.rows.ua.rec['overclock-quick-solo'], undefined, `${mode}: no 0 on the QUICK · SOLO board`);
-    assert.equal(e0.rows.ua.rec['overclock-std-solo'], undefined, `${mode}: no 0 on the STANDARD solo board`);
+    assert.equal(e0.rows.ua.rec['overclock-quick'], undefined, `${mode}: no 0 on BEST QUICK RUN`);
     assert.deepEqual(e0.rejected, [], `${mode}: an AFK run is not a cheat`);
   }
   // one right answer is enough to count (the smallest real run)
   const one = solo('quick', 'afk-one', ci => (ci === 0 ? 1 : 0));
-  assert.ok(extractMatch(one).rows.ua.rec['overclock-quick-solo'] > 0, 'one answered part → on the board');
+  assert.ok(extractMatch(one).rows.ua.rec['overclock-quick'] > 0, 'one answered part → on the board');
 });
 
 // PFIX-B (FABLE REVIEW finding 9) — THE SCORE RUSH BOUND FROM A SIM: full-skill bot runs on the real engine (scripts/sim-prism-rush.mjs) at the

@@ -158,22 +158,27 @@ function overclockExtra(game, uid, out, row, ctx, win) {
     if (order.some((t, ci) => t === OC_LUCK && res[ci] && (() => { const v = ocLuckVerify(game, ci); return v.ok && v.winners.includes(uid); })())) (out.f ||= {}).horseshoe = 1;
   }
   const mode = game.settings && game.settings.mode;
-  // THE QUICK SOLO PERSONAL BEST (OC5 — board overclock-quick-solo): a SOLO QUICK run, all six played, each result inside THE SCORING TABLE
-  // (logic.js#ptsCeiling — the most its ok / parts could score, ×2 on the last) + the order six real skill challenges (never DUMB LUCK alone)
-  // → rec 'overclock-quick' (the solo lane maps it to overclock-quick-solo); anything a real QUICK run can't reach is refused
-  if (uids.length === 1 && mode === 'quick' && num(game.total) === OC_MODES.quick && Object.keys(res).length === OC_MODES.quick) {
-    const bad = !ocRunPlausible(game, uid, OC_MODES.quick, false);
-    if (bad) out.rejected.push({ uid, board: 'overclock-quick-solo', v: row.score });
+  // CITY PART 1 — OVERCLOCK = ONE BOARD (was OC5's overclock-quick-solo + the STANDARD boards): BEST QUICK RUN — a QUICK run, all six played,
+  // SOLO OR IN A ROOM (the board's `both`: the solo lane keeps the id), each result inside THE SCORING TABLE (logic.js#ptsCeiling — ×2 on the
+  // last) + the order six real challenges (DUMB LUCK only with 2+, at most once, never last); anything a real QUICK run can't reach is refused.
+  // THE DUMB LUCK CHECK (measured: a 12-1 long shot pays luck.js#DL_MAX = 260 — a skill challenge's ceiling is 160, DUMB LUCK is never the ×2
+  // final): the BOARD score leaves DUMB LUCK's points out (ocBoardScore) — the match's own total + its podium unchanged. STANDARD + MARATHON:
+  // XP as ever, no board.
+  if (mode === 'quick' && num(game.total) === OC_MODES.quick && Object.keys(res).length === OC_MODES.quick) {
+    const v = ocBoardScore(game, uid);
+    if (!ocRunPlausible(game, uid, OC_MODES.quick, uids.length > 1)) out.rejected.push({ uid, board: 'overclock-quick', v: row.score });
     // (OC8 — B1, THE FABLE REVIEW: a phone left on the table wrote a 0 to the board + "NEW PERSONAL BEST") a run that scored nothing — no
-    // answered part, a total of 0 — is never a record (not a cheat either: just nothing to keep)
-    else if (Object.values(res).some(rr => num(rr && rr[uid] && rr[uid].pts) > 0) && Object.values(res).some(rr => num(rr && rr[uid] && rr[uid].ok) > 0)) out.rec['overclock-quick'] = row.score;
+    // answered part, nothing on the board score — is never a record (not a cheat either: just nothing to keep)
+    else if (v > 0 && Object.values(res).some(rr => num(rr && rr[uid] && rr[uid].ok) > 0)) out.rec['overclock-quick'] = v;
   }
-  if (mode !== 'standard' || num(game.total) !== OC_MODES.standard) return;
-  if (Object.keys(game.results || {}).length !== OC_MODES.standard) return; // not every challenge played
-  // (FR7 FIXES A — OC1: the STANDARD boards took 560 a challenge, 6,720 a match, where a perfect match is 2,080 — now THE SCORING TABLE's
-  // own bound, the QUICK board's: each result an integer ≤ ptsCeiling(type, ok, parts, last), the order real, the total ≤ matchMax)
-  if (!ocRunPlausible(game, uid, OC_MODES.standard, uids.length > 1)) out.rejected.push({ uid, board: 'overclock-std', v: row.score });
-  else if (uids.length > 1 || num(row.score) > 0) out.rec['overclock-std'] = row.score;   // (B1: a SOLO run of 0 is never a record)
+}
+/** CITY PART 1 — the BOARD score of an OVERCLOCK run: its points in every challenge EXCEPT DUMB LUCK (THE DUMB LUCK CHECK — a lucky ticket's 260
+ *  out-scores any skill challenge's 160; the match's total keeps it) */
+export function ocBoardScore(game, uid) {
+  const res = (game && game.results) || {}, ord = Array.isArray(game && game.order) ? game.order : Object.values((game && game.order) || {});
+  let s = 0;
+  for (const [ci, rr] of Object.entries(res)) if (ord[Number(ci)] !== OC_LUCK) s += num(rr && rr[uid] && rr[uid].pts);
+  return s;
 }
 
 /** OVERCLOCK's plausibility bound for a whole run (OC5's QUICK solo check; FR7 FIXES A made STANDARD take it too): `total` results, the order
@@ -386,7 +391,7 @@ export const SOLO_OK = Object.freeze({ overclock: ocMeta.SOLO === true, prism: p
  *  keep the gap like every game. */
 export const QUICK_SOLO = Object.freeze({ jaywalk: true, highrise: true });   // (HIGH RISE S4A: XP + the streak by JAYWALK's rules — the owner, Nov 19)
 /** a solo match's records go to the game's SOLO board (`<board>-solo` — core/boards.js), never the multiplayer one; none → dropped */
-export const soloBoard = b => (boardDef(`${b}-solo`) ? `${b}-solo` : null);
+export const soloBoard = b => { const d = boardDef(b); if (d && d.both) return b; return boardDef(`${b}-solo`) ? `${b}-solo` : null; };   // (CITY PART 1: a `both` board takes the solo run itself — OVERCLOCK's BEST QUICK RUN)
 export function unreportable(game) {
   if (!game || typeof game !== 'object') return 'no match';
   if (!STANDINGS[game.id]) return 'unknown game';

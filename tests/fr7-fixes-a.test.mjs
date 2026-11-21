@@ -40,26 +40,26 @@ test('PD1: PRISM DROP\'s test hook (the one-line robot) is installed only on a t
   } finally { globalThis.location = was; globalThis.window = w0; }
 });
 
-test('OC1: OVERCLOCK\'s STANDARD boards take THE SCORING TABLE\'s bound (a forged 6,720 is refused; an honest perfect match is kept)', async () => {
+test('OC1 → CITY PART 1: OVERCLOCK\'s ONE board (BEST QUICK RUN — a room QUICK match too) takes THE SCORING TABLE\'s bound (the old 560-a-challenge forge is refused; an honest perfect match is kept)', async () => {
   const { extractMatch } = await import('../js/core/match-report.js');
   const { matchMax, ptsCeiling } = await import('../js/games/overclock/logic.js');
   const { SKILL_TYPES } = await import('../js/games/overclock/challenges.js');
-  const order = SKILL_TYPES.slice(0, 12);
+  const order = SKILL_TYPES.slice(0, 6);
   const game = (resultsFor, uids = ['ua', 'ub']) => ({
-    id: 'overclock', phase: 'final', matchId: 'm1', participants: Object.fromEntries(uids.map(u => [u, true])), settings: { mode: 'standard' }, total: 12, order,
+    id: 'overclock', phase: 'final', matchId: 'm1', participants: Object.fromEntries(uids.map(u => [u, true])), settings: { mode: 'quick' }, total: 6, order,
     results: Object.fromEntries(order.map((t, ci) => [ci, Object.fromEntries(uids.map((u, i) => [u, resultsFor(t, ci, i)]))])),
   });
-  const perfect = (t, ci, i) => (i ? { pts: 0, ok: 0, parts: 3 } : { pts: ptsCeiling(t, 3, 3, ci === 11), ok: 3, parts: 3 });
+  const perfect = (t, ci, i) => (i ? { pts: 0, ok: 0, parts: 3 } : { pts: ptsCeiling(t, 3, 3, ci === 5), ok: 3, parts: 3 });
   const g1 = game(perfect);
   const honest = extractMatch(g1);
-  assert.ok(honest.rows.ua.rec['overclock-std'] > 0, 'the honest record is kept');
-  const rejected = (honest.rejected || []).filter(x => x.board === 'overclock-std');
-  assert.equal(rejected.length, 0, `a perfect honest match (${order.reduce((s, t, ci) => s + ptsCeiling(t, 3, 3, ci === 11), 0)} ≤ ${matchMax(order)}) is kept`);
-  // the review's forge: 560 a challenge (the old cap) — 6,720
+  assert.ok(honest.rows.ua.rec['overclock-quick'] > 0, 'the honest record is kept');
+  const rejected = (honest.rejected || []).filter(x => x.board === 'overclock-quick');
+  assert.equal(rejected.length, 0, `a perfect honest match (${order.reduce((s, t, ci) => s + ptsCeiling(t, 3, 3, ci === 5), 0)} ≤ ${matchMax(order)}) is kept`);
+  // the review's forge: 560 a challenge (the old cap)
   const forged = extractMatch(game((t, ci, i) => (i ? { pts: 0, ok: 0, parts: 1 } : { pts: 560, ok: 1, parts: 1 })));
-  assert.ok((forged.rejected || []).some(x => x.uid === 'ua' && x.board === 'overclock-std'), 'the 6,720 forge is refused');
+  assert.ok((forged.rejected || []).some(x => x.uid === 'ua' && x.board === 'overclock-quick'), 'the 560-a-challenge forge is refused');
   // more points than its own ok / parts allow (1 of 3 right and the speed bonus) — refused
-  const over = extractMatch(game((t, ci, i) => (i ? { pts: 0, ok: 0, parts: 3 } : { pts: ptsCeiling(t, 1, 3, ci === 11) + 1, ok: 1, parts: 3 })));
+  const over = extractMatch(game((t, ci, i) => (i ? { pts: 0, ok: 0, parts: 3 } : { pts: ptsCeiling(t, 1, 3, ci === 5) + 1, ok: 1, parts: 3 })));
   assert.ok((over.rejected || []).some(x => x.uid === 'ua'), 'a result above its ok / parts ceiling is refused');
   // an order that isn't a real one (a type that doesn't exist) — refused
   const bad = game(perfect); bad.order = order.map(() => 'made-up');
