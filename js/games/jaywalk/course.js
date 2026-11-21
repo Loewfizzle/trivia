@@ -7,7 +7,7 @@
 import { hashString, rngFrom } from '../../core/rng.js';
 import {
   FP, COLS, WIDTH, MID_COL, CALM_LANES, STRETCH, LANDMARKS, landmarkAt, heatAt, byHeat, MIX, FIRST, WATER_RUN_MAX, RAIL_RUN_MAX, ROAD, WATER, RAIL, FLIGHT, UFO, GRASS,
-  KID_HALF, LOG_GRACE, AREAS, NO_LEAN, areaIndex, EVEN, RUNWAY, MIN_TELL_TICKS, HOP_TICKS,
+  KID_HALF, LOG_GRACE, AREAS, NO_LEAN, areaIndex, EVEN, RUNWAY, HOP_TICKS,
 } from './tuning.js';
 
 const ri = (rand, a, b) => (b <= a ? a : a + Math.floor(rand() * (b - a + 1)));   // inclusive
@@ -139,9 +139,16 @@ function specials2(seed, s) {
     // THE STAGGER: the ticks between one lane's jet and the next — from the tight cluster to the lap shared evenly (by the seed); a layout
     // that leaves a careful kid too few start ticks a lap to get across (runwaySlack) is not used: the tight cluster instead (always fair)
     const even = Math.floor(P / n), D0 = ri(R, RUNWAY.gap[0], RUNWAY.gap[1] || even);
-    const lay = D => { const L = []; for (let j = 0; j < n; j++) L.push({ period: P, phase: mod(ph0 + slots[j] * D + jit[j], P), tell: Math.max(MIN_TELL_TICKS, RUNWAY.tell), len: FLIGHT.len, v: FLIGHT.v, pass: ceilDiv(WIDTH + FLIGHT.len, FLIGHT.v), dir: dirs[j], band: y0 + j, n: 1, trail: RUNWAY.trail, rw: y0, rn: n }); return L; };
+    // (J2 FIX — THE BLACKBIRD YOU CAN SEE: the jet's speed by where the runway is — the first runways slowest, from 250 a step faster, THE
+    //  AIRFIELD fastest; the tell 1.2 s, v2's own floor)
+    const v = RUNWAY.v[airfield ? 2 : y0 < 250 ? 0 : 1], tell = Math.max(RUNWAY.tellMin, RUNWAY.tell), pass = ceilDiv(WIDTH + RUNWAY.len, v);
+    const lay = D => { const L = []; for (let j = 0; j < n; j++) L.push({ period: P, phase: mod(ph0 + slots[j] * D + jit[j], P), tell, len: RUNWAY.len, v, pass, dir: dirs[j], band: y0 + j, n: 1, trail: RUNWAY.trail, rw: y0, rn: n }); return L; };
+    // (J2 FIX — the slower jets burn a lane longer: a layout must ALSO never keep a careful kid waiting past `wait` (runwayWait); the tight
+    //  cluster is tried next, and if even that fails, the cluster in LANE ORDER — the bottom lane's jet first: he follows the wave across)
+    const fits = L => runwaySlack(L) >= RUNWAY.slack && runwayWait(L) <= RUNWAY.wait;
     let lanes = lay(D0);
-    if (runwaySlack(lanes) < RUNWAY.slack) lanes = lay(RUNWAY.gap[0]);
+    if (!fits(lanes)) lanes = lay(RUNWAY.gap[0]);
+    if (!fits(lanes)) { slots.sort((a, b) => a - b); lanes = lay(RUNWAY.gap[0]); }
     out.rw.push({ id: `${s}:${k}`, y0, n, lanes });
   }
   return out;
@@ -163,6 +170,26 @@ export function runwaySlack(lanes) {
   let c = 0;
   for (let t = P; t < 2 * P; t++) if (hop(-1, t) && ok[0][t + HOP_TICKS]) c++;
   return c;
+}
+/**
+ * J2 FIX — FAIR BY CONSTRUCTION, the wait: the LONGEST a careful kid (the same model as runwaySlack — every column, waiting + hopping) can be
+ * kept from the safe lane before a runway to the safe lane after it, beyond the hops themselves, over every start tick of a lap (ticks).
+ * PURE, integers: a backward pass of the earliest arrival over four laps. (A start no way across in that horizon = a huge number.)
+ */
+export function runwayWait(lanes) {
+  const n = lanes.length, P = lanes[0].period, H = 4 * P, burn = lanes[0].pass + lanes[0].trail, half = HOP_TICKS >> 1, NO = 1e9;
+  const deadly = (j, t) => j >= 0 && j < n && mod(t - lanes[j].phase, P) < burn;
+  const hop = (j, t) => { for (let u = 1; u < half; u++) if (deadly(j, t + u)) return false; for (let u = half; u <= HOP_TICKS; u++) if (deadly(j + 1, t + u)) return false; return true; };
+  // A[j + 1][t] = the earliest tick idle on lane j at t (alive) lands on the lane after the runway (j = −1: the safe lane before; j = n: after)
+  const W = H + HOP_TICKS + 2, A = []; for (let j = 0; j <= n + 1; j++) A.push(new Int32Array(W).fill(NO));
+  for (let t = 0; t < W; t++) A[n + 1][t] = t;
+  for (let t = H; t >= 0; t--) for (let j = n - 1; j >= -1; j--) {
+    const w = j < 0 || !deadly(j, t + 1) ? A[j + 1][t + 1] : NO, h = hop(j, t) ? A[j + 2][t + HOP_TICKS] : NO;
+    A[j + 1][t] = w < h ? w : h;
+  }
+  let worst = 0;
+  for (let t = P; t < 2 * P; t++) { const w = A[0][t] - t - (n + 1) * HOP_TICKS; if (w > worst) worst = w; }
+  return worst;
 }
 /** the flight band (of a stretch's one or two) this lane is on — or null (J2 — v2: the runway lane's own `{ pulse }`) */
 const bandAt = (sp, i) => {

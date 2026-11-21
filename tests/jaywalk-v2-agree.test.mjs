@@ -14,7 +14,7 @@ import { replay as replayFrozen } from './fixtures/jaywalk-v1/replay.js';
 import { seedOf, matchStart, scoreRun, scoreNode, matchVersion } from '../js/games/jaywalk/logic.js';
 import { jaywalkSolo, jaywalkMatch } from '../api/_lib/jaywalk.js';
 import { scoreTry, openTry, CAP_MS, GRACE_MS } from '../api/_lib/jaywalk-tries.js';
-import { CV_SWITCH_MS, CV_GRACE_END_MS, versionAt, tryVersion, setCvSwitch } from '../js/games/jaywalk/versions.js';
+import { CV_SWITCH_MS, CV_GRACE_END_MS, CV_REV, versionAt, tryVersion, setCvSwitch } from '../js/games/jaywalk/versions.js';
 
 setCvSwitch(null);   // (the REAL switch: 2026-11-22 09:00 UTC)
 const CODE = 'WXYZ', AFTER = CV_SWITCH_MS + 3600e3, BEFORE = CV_SWITCH_MS - 3600e3, LATE = CV_GRACE_END_MS + 3600e3;
@@ -116,8 +116,8 @@ test('A MATCH on v2: the version = the one in force at THE FIRST GO — every ph
 });
 
 test('THE DAILY: today\'s (d20261121) is v1, tomorrow\'s (d20261122) v2 — the SERVER picks it at START (the try keeps cv 2), scoreTry replays the try on it = the phone\'s run', () => {
-  assert.equal(tryVersion('d20261121', 2, AFTER), 1); assert.equal(tryVersion('d20261122', 2, AFTER), 2);
-  const o = openTry(null, { uid: 'u1', now: AFTER, startedAt: AFTER, cv: tryVersion('d20261122', 2, AFTER) });
+  assert.equal(tryVersion('d20261121', 2, AFTER), 1); assert.equal(tryVersion('d20261122', 2, AFTER, CV_REV), 2); assert.equal(tryVersion('d20261122', 2, AFTER), 0);
+  const o = openTry(null, { uid: 'u1', now: AFTER, startedAt: AFTER, cv: tryVersion('d20261122', 2, AFTER, CV_REV) });
   assert.equal(o.record.t[0].cv, 2); assert.equal(o.cv, 2);
   const o1 = openTry(null, { uid: 'u1', now: AFTER, startedAt: AFTER, cv: 1 });
   assert.equal(o1.record.t[0].cv, undefined, 'a v1 try writes nothing new');

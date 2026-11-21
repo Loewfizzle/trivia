@@ -108,10 +108,16 @@ export const MIN_TELL_TICKS = 90;         // (1.5 s — the Blackbird's tell is 
  *   four     ‰ of runways with 4 lanes (else 3), by heat
  *   chance   ‰ a stretch gets runways: s2 = THE FISH MARKET (from lane `first`) · mid = 150–249 · deep = 250 on (+ `two` ‰ of those a 2nd)
  *   ufo      the most ‰ a stretch gives THE UFO first (never both in one stretch) · THE AIRFIELD: `airfield` runways, never a UFO
+ *   v        J2 FIX — THE BLACKBIRD YOU CAN SEE (the owner, Nov 21): a runway jet's speed (FP a tick) [lanes 120–249, from 250, THE AIRFIELD]
+ *            — it crosses the 8-column view in ≈ 0.67 · 0.53 · 0.39 s (J2 flew 1000: 0.13 s, felt, never seen). `len` = its body.
+ *   tell     the per-lane warning — 72 ticks = 1.2 s (J2: 1.6 s): the slower, SEEN jet keeps the threat about the same. v2's own floor
+ *            (`tellMin`); v1 keeps MIN_TELL_TICKS (1.5 s) — frozen.
  */
 export const RUNWAY = Object.freeze({
-  first: 120, tell: 96, trail: 42, jitter: 6, periodMin: 180,
-  gap: Object.freeze([18, 0]), slack: 24,   // (the stagger: the ticks between one lane's jet and the next, [fewest, 0 = the lap shared evenly] · a layout leaving under `slack` start ticks a lap with a way across is not used — course.js#runwaySlack)
+  first: 120, tell: 72, tellMin: 72, trail: 42, jitter: 6, periodMin: 180,
+  v: Object.freeze([200, 250, 340]), len: 3000,
+  gap: Object.freeze([18, 0]), slack: 24, wait: 216,   // (J2 FIX — `wait`: a layout that can keep a careful kid waiting more than 3.6 s is not used either — course.js#runwayWait)
+  // (the stagger: the ticks between one lane's jet and the next, [fewest, 0 = the lap shared evenly] · a layout leaving under `slack` start ticks a lap with a way across is not used — course.js#runwaySlack)
   period: Object.freeze([Object.freeze([240, 360]), Object.freeze([180, 270])]),
   four: Object.freeze([250, 750]),
   chance: Object.freeze({ s2: 420, mid: 560, deep: 760, two: 450 }),

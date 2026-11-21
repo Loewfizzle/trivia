@@ -55,13 +55,14 @@ export async function closeOpen({ pid, day, now, why = 'fin', onlyIfGone = false
  * settles the day's score); a 4th refused (409 no_tries). The proof node is opened HERE ({ go, z } — server-written: the phone never picks its
  * clock). → { run: { seed, try, go, z, path, left, tries } } | { refused: 'no_tries', run }
  */
-export async function startTry({ pid, uid, day, now, startedAt, cvs = null }) {
+export async function startTry({ pid, uid, day, now, startedAt, cvs = null, cvr = null }) {
   const base = `dly/jaywalk/${day}`;
   const prior = await closeOpen({ pid, day, now, why: 'start' });
   const { seed } = await jwDay(day);
   // (J2 — COURSE RULES v2: the day's version — the one in force at its 4 am — if the phone knows it (`cvs`: the newest it knows; an old-code
   //  phone sends none → v1 until THE GRACE ends, then it is told to refresh). The SERVER picks it; the phone plays what START answers)
-  const cv = tryVersion(day, cvs, now);
+  //  (J2 FIX: + `cvr` — the v2 numbers' revision the phone plays: a phone still on the pre-fix J2 build sends none → refused on a v2 day, told to refresh)
+  const cv = tryVersion(day, cvs, now, cvr);
   if (!cv) return { refused: 'old_version', prior, run: { seed: null } };
   let opened = null, refused = null;
   const tx = await ref(`${base}/p/${pid}`).transaction(cur => {

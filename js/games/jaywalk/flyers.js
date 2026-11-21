@@ -223,6 +223,11 @@ export function createFlyers(C) {
     if (p.trail) { sfetch(MIX['radio-static_2'].file); sfetch(MIX['radio-static_3'].file); sfetch(MIX['runway-tick'].file); sfetch(MIX['afterburner-flicker'].file); }
     const SC = p.trail ? FLY.rwScale : 1, JL = FLY.jetLen * SC;   // (J2: a v2 runway's jet flies ONE lane — smaller, never over the next lane)
     const dir = p.dir, left0 = p.period - u, tell = u >= p.period - p.tell, near = Math.abs(-zc - F.ky) < 10;
+    // (J2 FIX — THE BLACKBIRD YOU CAN SEE: a runway jet flies slowly enough to be seen, so its big moment is when it is OVER THE VIEW's
+    //  middle — `tc` ticks into the pass (v1's fast jet: ~6, the shock ring's own tick). The scream peaks there, the boom lands there,
+    //  the ring + flash + shake start there; the trail's fire follows at the pass's end. A v1 jet keeps its timing exactly: tc0 = 0.)
+    const tc = p.trail ? Math.max(0, Math.round((dir > 0 ? (F.camX + COLS / 2) * FP + p.len / 2 : COLS * FP + p.len / 2 - (F.camX + COLS / 2) * FP) / p.v)) : FLY.ring[0];
+    const tc0 = p.trail ? tc : 0, rel = tell ? -left0 : u, us = u - (tc - FLY.ring[0]);
     // THE SOUNDS — this phone's own living kid's (J2 — THE SOUND RULE, runway-sound.js): the radio crackle ONCE a visit to a runway
     // within reach (8 s apart, three takes in turn) · a soft tick for its later tells · every pass's scream (started so its peak lands on
     // the pass) + boom + (v2) the trail's fire — each faded by the lane's distance from him, silent off-screen
@@ -236,12 +241,12 @@ export function createFlyers(C) {
         S.s |= 1;
         const w = ears.tell(y0, F.clock);
         if (w === 'crackle') mix(ears.take()); else if (w === 'tick') mix('runway-tick');
-        if (g > 0) mix('jet-scream', { at: Math.max(0, 2.4 - left0 / TICK_HZ), pan, gain: MIX['jet-scream'].gain * g });
+        if (g > 0) mix('jet-scream', { at: Math.max(0, 2.4 - (left0 + tc0) / TICK_HZ), pan, gain: MIX['jet-scream'].gain * g });
       }
-      if (!(S.s & 2) && ((tell && left0 <= 14) || (!tell && u < 20))) { S.s |= 2; if (g > 0) mix('sonic-boom', { pan: pan * 0.5, gain: MIX['sonic-boom'].gain * g }); }
+      if (!(S.s & 2) && rel >= tc0 - 14 && rel < tc0 + 20) { S.s |= 2; if (g > 0) mix('sonic-boom', { pan: pan * 0.5, gain: MIX['sonic-boom'].gain * g }); }
       if (p.trail && !(S.s & 4) && !tell && u >= p.pass && u < p.pass + 20) { S.s |= 4; if (g > 0) mix('afterburner-flicker', { pan: pan * 0.4, gain: MIX['afterburner-flicker'].gain * g }); }
       // (the music ducks under a NEAR pass: from the tell's last second — the scream's peak — to the boom's tail)
-      if (g >= 0.5 && ((tell && left0 <= TICK_HZ) || (!tell && u < 100))) duckJ = DUCK.jet;
+      if (g >= 0.5 && rel >= tc0 - TICK_HZ && rel < tc0 + 100) duckJ = DUCK.jet;
     }
     // THE GLINT (the tell's last 0.5 s): AT THE SCREEN EDGE IT COMES FROM (the camera's own edge on the band's row) — a big four-point
     // star + the afterburners' flare (a blue-white heart in an orange rim), on a dark halo by day; it grows as the jet nears
@@ -286,7 +291,11 @@ export function createFlyers(C) {
       burn = () => {
         for (const e0 of [-0.56, 0.56]) {
           const e = e0 * SC;
-          K.flat.put(nx - dir * 5.4, y - 0.02, zc + e, 7.4, 1, 0.8, rz, 0xff4f9a, 1, 1, (day ? 0.5 : 0.3) * fl * lt);                 // the faint long tail
+          if (p.trail) {
+            // (J2 FIX — THE VAPOUR TRAIL: a runway jet draws a SHORT white trail off each nozzle — widening + fading in three steps — so the
+            //  SR-71's long dark silhouette reads against it, by night and day; the existing instanced kind: no draw call of its own)
+            for (let k = 0; k < 3; k++) K.flat.put(nx - dir * (1.35 + k * 1.15) * SC * 1.4, y - 0.02, zc + e * (1 + 0.12 * k), 1.9 * SC * 1.4, 1, (0.34 + 0.2 * k) * SC, rz, day ? 0xffffff : 0xe6f2ff, 1, 4, (day ? 0.8 : 0.5) * (1 - 0.3 * k) * lt);
+          } else K.flat.put(nx - dir * 5.4, y - 0.02, zc + e, 7.4, 1, 0.8, rz, 0xff4f9a, 1, 1, (day ? 0.5 : 0.3) * fl * lt);                 // the faint long tail
           K.flat.put(nx - dir * 1.9, y - 0.03, zc + e, 5.2, 1, 1.5, 0, 0xff7a2a, 1, 0, (day ? 0.3 : 0.22) * fl * lt);               // a soft warm glow round the flame
           K.bill.put(nx - dir * 0.1, y, zc + e, 0.8, 0.8, 1, 0, 0xeaf4ff, 1, 5, lt);                                                 // ONE hot core a nozzle
           // (BY DAY: heat shimmer behind the burners — pale wavering ribbons, further back)
@@ -297,20 +306,20 @@ export function createFlyers(C) {
     if (tell) { if (burn) burn(); return; }
     // AFTER IT: the contrails (a soft trail that widens as it fades — never a hairline), THE SHOCKWAVE RING on the ground (ONE thick ring,
     // a dark trailing edge by day), a short flash on the band (capped: the runway's lights still read), the shake
-    if (u < FLY.trail) {
+    if (u < FLY.trail && !p.trail) {   // (J2 FIX: a runway jet's trail is its short vapour, above — this long one was drawn for v1's fast jet)
       const q = u / FLY.trail, a = (1 - q) * (1 - q) * lt, end = X(pulseLeft(p, Math.min(u, p.pass + FLY.jetLead)) / FP + (dir > 0 ? 0 : p.len / FP)) - dir * 8.5, start = X(dir > 0 ? -3.5 : COLS + 3.5), mid = (start + end) / 2, w = Math.abs(end - start);
       if ((end - start) * dir > 0.5) for (const e of [-0.56, 0.56]) K.flat.put(mid, FLY.jetY - 0.02, zc + e, w, 1, 0.5 + 1.3 * q, 0, day ? 0xffffff : 0x9fd0ff, 1, 4, (day ? 0.6 : 0.5) * a);
     }
-    if (u >= FLY.ring[0] && u < FLY.ring[0] + FLY.ring[1]) {
-      const q = (u - FLY.ring[0]) / FLY.ring[1], d = (0.9 + 6.6 * easeOut(q)) * 2.5, a = Math.pow(1 - q, 1.3) * lt;
+    if (us >= FLY.ring[0] && us < FLY.ring[0] + FLY.ring[1]) {
+      const q = (us - FLY.ring[0]) / FLY.ring[1], d = (0.9 + 6.6 * easeOut(q)) * 2.5, a = Math.pow(1 - q, 1.3) * lt;
       if (day) K.shadow.raw(F.camX, 0.066, zc, d * 1.05, 1, d * 1.05 * 0.62, 0, 0, 1, 3, 0.75 * a);
       ring(F.camX, 0.07, zc, d, 0.62, 0xeaf6ff, (day ? 1 : 0.5) * a);
     }
-    if (u >= FLY.flash[0] && u < FLY.flash[0] + FLY.flash[1]) {
-      const a = 1 - (u - FLY.flash[0]) / FLY.flash[1];
+    if (us >= FLY.flash[0] && us < FLY.flash[0] + FLY.flash[1]) {
+      const a = 1 - (us - FLY.flash[0]) / FLY.flash[1];
       K.flat.put(F.camX, 0.08, zc, 12.5, 1, 2.0, 0, 0xffffff, 1, 4, (day ? 0.45 : 0.24) * a * lt);
     }
-    if (!reduce && near && u >= FLY.shakeFrom && u < FLY.shakeFrom + FLY.shakeTicks) shakeNow = FLY.shake * (1 - (u - FLY.shakeFrom) / FLY.shakeTicks);
+    if (!reduce && near && us >= FLY.shakeFrom && us < FLY.shakeFrom + FLY.shakeTicks) shakeNow = FLY.shake * (1 - (us - FLY.shakeFrom) / FLY.shakeTicks);
     if (burn) burn();
   }
   /** THE BLACKBIRD's HIT (night.js — the kid it blasted): `e` ms since it, where he stood, the way the jet flew — THE SHOCKWAVE is

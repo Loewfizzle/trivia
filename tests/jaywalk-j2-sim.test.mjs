@@ -5,7 +5,7 @@
 // (v1 ≈ 5 %); the trail kills with 'blackbird' and the boom moment still works; v2 lanes are pure (any order) and differ from v1's.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCourse, specials, typeAt, laneHit, pulseAt, runwaySlack } from '../js/games/jaywalk/course.js';
+import { createCourse, specials, typeAt, laneHit, pulseAt, runwaySlack, runwayWait } from '../js/games/jaywalk/course.js';
 import { createRun, step, isOver } from '../js/games/jaywalk/engine.js';
 import { replay } from '../js/games/jaywalk/replay.js';
 import { greedyBot, playBot } from '../js/games/jaywalk/bot.js';
@@ -49,7 +49,7 @@ test('EVEN STARTS: past the opening a v2 lane KIND is v1\'s — except a runway,
   assert.equal(same, all, `${same} / ${all}`);
 });
 
-test('THE RUNWAYS (v2): 3–4 flight lanes, a jet a lane on ONE lap, every tell ≥ MIN_TELL_TICKS, THE TRAIL, the lap 3 – 6 s, a SAFE ground lane before + after, from lane 120, never back to back, THE AIRFIELD four — 1,500 seeds', () => {
+test('THE RUNWAYS (v2): 3–4 flight lanes, a jet a lane on ONE lap, every tell 1.2 s (J2 FIX), the jet’s speed by where it is, THE TRAIL, the lap 3 – 6 s, a SAFE ground lane before + after, from lane 120, never back to back, THE AIRFIELD four — 1,500 seeds', () => {
   let n = 0, af = 0;
   for (const s of seeds(1500, 'rw')) {
     const C = createCourse(s, { cv: 2 }), R = runwaysOf(s);
@@ -64,7 +64,7 @@ test('THE RUNWAYS (v2): 3–4 flight lanes, a jet a lane on ONE lap, every tell 
       for (let j = 0; j < r.n; j++) {
         const L = C.lane(r.y0 + j), p = L.pulse;
         assert.equal(L.type, 'flight');
-        assert.ok(p.tell >= MIN_TELL_TICKS, 'the tell ≥ 1.5 s');
+        assert.ok(p.tell >= RUNWAY.tellMin && p.tell === RUNWAY.tell, 'the tell = 1.2 s (J2 FIX — v2’s own floor)');
         assert.ok(p.period >= RUNWAY.periodMin && p.period <= 360, `the lap ${p.period}`);
         assert.equal(p.trail, RUNWAY.trail); assert.equal(p.band, r.y0 + j); assert.equal(p.n, 1); assert.equal(p.rw, r.y0); assert.equal(p.rn, r.n);
         assert.ok(p.period - p.tell >= p.pass + p.trail, 'the tell begins only once the trail is out');
@@ -72,6 +72,9 @@ test('THE RUNWAYS (v2): 3–4 flight lanes, a jet a lane on ONE lap, every tell 
       const phases = r.lanes.map(p => p.phase);
       assert.ok(new Set(phases).size > 1, `${s} @${r.y0}: never all at once`);
       assert.ok(runwaySlack(r.lanes) >= RUNWAY.slack, `${s} @${r.y0}: a careful way across`);
+      assert.ok(runwayWait(r.lanes) <= RUNWAY.wait, `${s} @${r.y0}: the careful wait ≤ ${RUNWAY.wait} ticks (J2 FIX)`);
+      const air = (Math.floor(r.y0 / STRETCH) - 1) % 8 === 7, v = r.lanes[0].v;
+      assert.equal(v, RUNWAY.v[air ? 2 : r.y0 < 250 ? 0 : 1], `${s} @${r.y0}: the jet's speed`); assert.ok(r.lanes.every(p => p.v === v && p.len === RUNWAY.len));
     }
     for (let s2 = 8; s2 < 18; s2 += 8) { const sp = specials(s, s2, 2); assert.equal(sp.rw.length, RUNWAY.airfield, `${s}: THE AIRFIELD's runways`); assert.equal(sp.ufo, null); af++; }
   }

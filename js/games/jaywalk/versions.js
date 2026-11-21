@@ -17,6 +17,11 @@ export const CV_GRACE_END_MS = Date.UTC(2026, 10, 27, 9, 0, 0);
 /** the newest version this code knows (the daily's START tells the server so: an old phone says nothing) */
 export const CV_LATEST = 2;
 export const CV_IDS = Object.freeze([1, 2]);
+/** J2 FIX — the REVISION of v2's numbers this code plays: 2 = THE BLACKBIRD YOU CAN SEE (the jets slower, the tell 1.2 s — tuning.js#RUNWAY,
+ *  changed BEFORE v2 went live; v2 is FROZEN from here — tests/fixtures/jaywalk-v2/). A phone still on the pre-fix J2 build plays the old
+ *  numbers under the same `cv` 2: the daily's START refuses it on a v2 day (no `cvr` — it is told to refresh) and a solo / match run of its is
+ *  refused by THE END CHECK (replay.js#judgeRun: its own end `e` never matches the server's replay) — never a wrong count. */
+export const CV_REV = 2;
 
 // (TESTS ONLY — the emulator's E2E plays v2 before the real switch: the page's `?emu&jwcv=<ms>` · the local /api's JW_CV_SWITCH_MS, both
 //  honoured OFF Vercel only — api/_lib/jaywalk.js#cvFromEnv · view.js. The deployed site never moves the switch.)
@@ -48,9 +53,10 @@ export function runVersion(cv, E, go) {
 }
 /** the daily's START: the version a NEW try is opened on → 1 | 2, or 0 = refused. ONE COURSE A DAY ("a day's daily uses the version in force
  *  at its 4 am" — the fresh-eyes review's M4: no grace here): a v2 day refuses a phone that does not know v2 (it is told to refresh); a v1 day
- *  is v1 for everyone. `cvs` = the newest version the phone says it knows (none = an old-code phone). (`now` kept for the callers' shape) */
-export function tryVersion(day, cvs, now) {
+ *  is v1 for everyone. `cvs` = the newest version the phone says it knows (none = an old-code phone) · `cvr` = its v2 numbers' revision (J2 FIX:
+ *  none = the pre-fix J2 build — refused on a v2 day). (`now` kept for the callers' shape) */
+export function tryVersion(day, cvs, now, cvr = null) {
   const E = versionOfDay(day);
   void now;
-  return E === 1 ? 1 : Number(cvs) >= E ? E : 0;
+  return E === 1 ? 1 : Number(cvs) >= E && Number(cvr) >= CV_REV ? E : 0;
 }

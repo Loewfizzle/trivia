@@ -192,7 +192,7 @@ test('THE MOMENTS ARE A VIEW, ON DEMAND: flyers.js out of the eager graph, never
   assert.ok(num('glint') < T.FLIGHT.tell && T.FLIGHT.tell >= T.MIN_TELL_TICKS, 'inside the tell — the ≥ 1.5 s warning itself is the rules\', untouched');
   assert.match(fl, /if \(tell && left0 <= FLY\.glint\)/, 'drawn only while the tell runs');
   assert.ok(num('shake') * 390 / 8 <= 4, `the shake ≤ 4 px at ZOOM 8 on a 390 pt phone (${(num('shake') * 390 / 8).toFixed(2)})`);
-  assert.ok(num('shakeTicks') <= 12, '… for ≤ 200 ms'); assert.match(fl, /if \(!reduce && near && u >= FLY\.shakeFrom/, 'none with reduce motion');
+  assert.ok(num('shakeTicks') <= 12, '… for ≤ 200 ms'); assert.match(fl, /if \(!reduce && near && us? >= FLY\.shakeFrom/, 'none with reduce motion');
   assert.equal(num('abductMs'), 2000, 'THE ABDUCTION ≈ 2 s'); assert.match(fl, /warn: 10 \* TICK_HZ/, 'THE MOTHERSHIP warns for 10 s');
   assert.match(fl, /const GREEN = 0x4dff5a, GREEN_D = 0x12d83c;/, 'the UFO\'s ring is a clear yellow-GREEN (night · day)');
   assert.match(fl, /ring\(bx, 0\.05, bz, d, 1, day \? GREEN_D : GREEN, pu \* dim\);/, '… laid where the rules have it'); assert.doesNotMatch(fl, /K\.flat\.put\([^\n]*0x(22e0ff|4d7dff|1a6fe0|3fb0ff)/, 'never a water blue laid on the ground by the UFO');

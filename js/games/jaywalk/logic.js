@@ -85,7 +85,7 @@ export const featsOf = r => Object.keys(r.feats || {}).filter(k => r.feats[k]).j
  */
 export function scoreNode({ seed, mode, node, t0, from = null, until = null, out = null, cv = 1 }) {
   const log = node && node.c != null ? logFromChunks(node.c) : [], times = node && node.c != null ? chunkTimes(node.c) : [];
-  let j = log && times ? judgeRun({ seed, mode, log, go: t0, times, from, until, cv }) : { ok: false, why: 'chunks' }, bad = '';
+  let j = log && times ? judgeRun({ seed, mode, log, go: t0, times, from, until, cv, end: (node && node.e) || null }) : { ok: false, why: 'chunks' }, bad = '';
   if (!j.ok) { bad = String(j.why || 'refused').slice(0, 24); j = judgeRun({ seed, mode, log: [], until, cv: cv === 2 ? 2 : 1 }); }
   const r = j.result, f = bad ? '' : featsOf(r);
   if (out) out.hops = bad ? 0 : j.hops;   // (THE PROOF PASS: the hops THE JUDGE counted — "a GO alone is not a player", api/_lib/jaywalk.js#jwPlayed)

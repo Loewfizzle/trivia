@@ -33,10 +33,10 @@ cvFromEnv();
  * explain it (a slowed game) is CUT, never thrown away: the run counts up to its last on-time hop (`cut: { why: 'behind', tick }`). A
  * DROPPED SIGNAL (a silence, then the queued chunks arriving together) is never held against the run (replay.js#clockProblem).
  */
-export function verifyRun({ seed, mode = 'solo', log, go = null, times = null, from = null, cv = 1 } = {}) {
+export function verifyRun({ seed, mode = 'solo', log, go = null, times = null, from = null, cv = 1, end = null } = {}) {
   if (!MODES[mode]) return { ok: false, why: 'mode' };
   if (seedProblem(seed)) return { ok: false, why: 'seed' };
-  const j = judgeRun({ seed, mode, log, go, times, from, cv });
+  const j = judgeRun({ seed, mode, log, go, times, from, cv, end });   // (J2 FIX — `end`: THE END CHECK, v2 only)
   if (!j.ok) return j;
   if (!j.cut && !j.over) return { ok: false, why: 'never ended' };
   return j.cut ? { ok: true, result: j.result, cut: j.cut } : { ok: true, result: j.result };
@@ -52,7 +52,7 @@ export function verifyNode({ code, matchId, node } = {}) {
   if (!log || !times) return { ok: false, why: 'chunks' };
   // (J2: the course version in force at its GO, checked against the node's own `cv` — none = an old-code phone: v1 until THE GRACE ends)
   const cv = nodeVersion(node, versionAt(node.go));
-  const v = verifyRun({ seed: seedOf(String(code), String(matchId), node.go), mode: 'solo', log, go: node.go, times, cv });
+  const v = verifyRun({ seed: seedOf(String(code), String(matchId), node.go), mode: 'solo', log, go: node.go, times, cv, end: node.e || null });
   return v.ok && cv === 2 ? { ...v, cv } : v;
 }
 
@@ -97,7 +97,7 @@ export const JW_PLAYED_HOPS = 1;
 function firstChunkHops(S, node) {
   const c0 = node && node.c != null ? node.c[0] : null, o = { hops: 0 };
   if (c0 == null) return 0;
-  const r = scoreNode({ seed: S.seed, mode: 'match', node: { ...node, c: { 0: c0 } }, t0: S.playAt, from: S.g0, out: o, cv: nodeVersion(node, matchVersion(S)) });
+  const r = scoreNode({ seed: S.seed, mode: 'match', node: { ...node, c: { 0: c0 }, e: null }, t0: S.playAt, from: S.g0, out: o, cv: nodeVersion(node, matchVersion(S)) });
   return r.bad ? 0 : o.hops;
 }
 export function jaywalkMatch({ code, matchId, uids, nodes }) {

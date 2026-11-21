@@ -52,8 +52,12 @@ test('THE DAILY\'s START (tryVersion): the SERVER picks the day\'s version — t
   const now = S + 3600e3;
   assert.equal(V.tryVersion('d20261121', 2, S - 1000), 1, "today's daily: v1 even for a new phone");
   assert.equal(V.tryVersion('d20261121', null, S - 1000), 1);
-  assert.equal(V.tryVersion('d20261122', 2, now), 2, "tomorrow's: v2");
-  assert.equal(V.tryVersion('d20261122', 99, now), 2, 'a phone that claims a newer one still gets the DAY\'s');
+  assert.equal(V.tryVersion('d20261122', 2, now, V.CV_REV), 2, "tomorrow's: v2");
+  // (J2 FIX — a phone still on the PRE-FIX J2 build knows v2 but plays its old numbers: it sends no `cvr` → refused on a v2 day, told to refresh)
+  assert.equal(V.CV_REV, 2);
+  assert.equal(V.tryVersion('d20261122', 2, now), 0, 'the pre-fix J2 build (no cvr) is refused on a v2 day');
+  assert.equal(V.tryVersion('d20261122', 2, now, 1), 0, '… an older revision too');
+  assert.equal(V.tryVersion('d20261122', 99, now, V.CV_REV), 2, 'a phone that claims a newer one still gets the DAY\'s');
   assert.equal(V.tryVersion('d20261122', null, now), 0, 'ONE COURSE A DAY: an old phone on a v2 day is refused (told to refresh) — no grace for the daily');
   assert.equal(V.tryVersion('d20261122', 1, now), 0, '… a phone that knows only v1 too');
   assert.equal(V.tryVersion('d20261128', null, G + 3600e3), 0);

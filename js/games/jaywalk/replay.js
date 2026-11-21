@@ -144,8 +144,11 @@ export function clockProblem(go, times, { from = null } = {}) {
  * Refused: a log that breaks the bounds · AHEAD of the clock · a broken clock · a hop logged after the run had ended · a course version
  * that is no version (J2 — `cv` is the version the run replays on: the caller's versions.js#runVersion). A log BEHIND the
  * clock is CUT (`cut: { why, tick }`): the run counts up to its last on-time hop. `until` = score it as it stands at that tick.
+ * J2 FIX — THE END CHECK (v2 only): `end` = the phone's own end ({ l, t } — the proof's `e`, never a count): a v2 run that ENDED in the
+ * replay must have ended where the phone saw it end — else the phone played other v2 numbers (the pre-fix J2 build): 'old build', never
+ * counted. It can only refuse (a phone's claim never adds a lane); a cut run, a run still going or no `e` = not checked.
  */
-export function judgeRun({ seed, mode = 'solo', log, go = null, times = null, from = null, until = null, cv = 1 } = {}) {
+export function judgeRun({ seed, mode = 'solo', log, go = null, times = null, from = null, until = null, cv = 1, end = null } = {}) {
   if (cv !== 1 && cv !== 2) return { ok: false, why: 'version' };   // (J2 — versions.js#runVersion's 0: a version not in force at its GO, or none past THE GRACE)
   const bad = logProblem(log, mode);
   if (bad) return { ok: false, why: bad };
@@ -159,6 +162,7 @@ export function judgeRun({ seed, mode = 'solo', log, go = null, times = null, fr
   const r = replay({ seed, mode, log, cv, until: cut ? (until == null ? cut.tick : Math.min(until, cut.tick)) : until });
   if (!cut && r.over && r.used < log.length) return { ok: false, why: 'past the end' };
   const { used, over, ...result } = r;
+  if (cv === 2 && !cut && over && end && typeof end.l === 'number' && typeof end.t === 'number' && (end.l !== result.lanes || end.t !== result.tick)) return { ok: false, why: 'old build' };
   // (THE PROOF PASS: + `hops` — the hops the replay PLAYED: "a GO alone is not a player" reads it, never a phone's claim)
   return cut ? { ok: true, result, over, cut, hops: used } : { ok: true, result, over, hops: used };
 }
