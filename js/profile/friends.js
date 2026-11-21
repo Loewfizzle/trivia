@@ -62,7 +62,8 @@ const ACT = { add: 'friendAdd', accept: 'friendAccept', decline: 'friendDecline'
 /** one action → the server's answer { rel, pid, state } (the state adopted + every view repainted) */
 export async function friendDo(kind, target) {
   const body = { action: ACT[kind] };
-  if (target.pid) body.pid = target.pid; else if (target.code) body.code = target.code; else { body.b = target.b; body.bid = target.bid; }
+  // (a board row { b, bid } · a SCORES row { bid, dg } — the player page's own query: api/_lib/player.js#pidOfQuery on the server)
+  if (target.pid) body.pid = target.pid; else if (target.code) body.code = target.code; else { body.b = target.b; body.bid = target.bid || target.id; if (target.dg) body.dg = target.dg; }
   const r = await api('profile', body);
   adopt(r.state);
   return r;

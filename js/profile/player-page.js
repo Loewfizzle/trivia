@@ -115,7 +115,9 @@ export async function openPlayer(target = {}, o = {}) {
   /** THE BAR's first two: INVITE (in a room, a friend who isn't in it) or the friend button (ADD FRIEND · REQUESTED · ACCEPT · FRIENDS) + MORE (the ⋯ menu, by `rel`) */
   function actions(D) {
     const rel = D.rel || 'none', pid = target.pid || (D.card && D.card.pid) || null;
-    const ft = pid ? { pid } : { b: target.b, bid: target.bid };
+    // (CITY PART 1 — ADD FRIEND DID NOTHING: a SCORES row opens the page with { id, dg } — the friend target dropped both and the server refused
+    //  an empty one. The friend target IS the page's own query now — the server resolves it the same way (api/_lib/player.js#pidOfQuery))
+    const ft = pid ? { pid } : { ...q, bid: q.bid || q.id };
     const here = new Set(Object.values(state.players || {}).map(p => p && p.pid).filter(Boolean));
     const canInvite = !!(state.code && rel === 'friend' && pid && !here.has(pid));
     const slot = h('div.pp-main');
@@ -126,7 +128,7 @@ export async function openPlayer(target = {}, o = {}) {
         try { const r = await api('profile', { action: 'friendInvite', pid, room: state.code }); sent = true; toast(`${D.card.n} is invited`, 'ok', { sub: r.sent ? 'A notification is on its way — and it waits on their card for 30 min.' : 'It waits on their card for 30 min.' }); }
         catch (e) { toast((e && e.message) || 'Couldn’t send the invite.', 'warn'); }
       } }));
-    } else lazyImport(import('./friends-ui.js'), './friends-ui.js').then(m => { if (!gone) slot.replaceChildren(m.friendButton(ft, { name: D.card.n, size: 'sm', labels: BAR_LABELS })); }).catch(() => {});
+    } else lazyImport(import('./friends-ui.js'), './friends-ui.js').then(m => { if (!gone) slot.replaceChildren(m.friendButton(ft, { name: D.card.n, size: 'sm', labels: BAR_LABELS, rel: D.rel && D.rel !== 'self' ? D.rel : null })); }).catch(() => {});
     const more = tubeButton('MORE', { kind: 'secondary', size: 'sm', cls: 'pp-more', attrs: { 'data-press': true, 'aria-label': 'More — remove, block' }, onClick: () => openMore(D, ft, rel) });
     return [slot, more];
   }

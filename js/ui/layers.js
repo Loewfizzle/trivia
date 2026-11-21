@@ -15,6 +15,9 @@ export function takeLayer(el, { close = null, min = 0 } = {}) {
   //  FROM it still takes the next layer above it: review-6.md H2)
   z = Math.max(z + 1, min);
   if (el) { el.style.zIndex = String(z); el.dataset.layer = String(z); }
+  // (CITY PART 1 — ADD FRIEND DID NOTHING: a pop-up opened OVER a full card / the player page (body.vl-covered — THE COVER) is not "behind" it —
+  //  marked here so the cover's pause leaves its entrance alone (css/vault.css) — THE MESSAGE stood frozen at opacity 0 the same way)
+  if (el && el.dataset && typeof document !== 'undefined' && document.body && document.body.classList.contains('vl-covered')) el.dataset.overCover = '1';
   const entry = { el, close, t: now(), seen: false };
   open.push(entry);
   listenEsc();

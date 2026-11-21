@@ -40,7 +40,11 @@ export function friendButton(target, o = {}) {
   frSheet();
   const wrap = h('div.fr-btn-slot', { dataset: { pid: target.pid || '', bid: target.bid || '' } });
   let busy = false, shown = null;
-  const rel = () => (target.pid ? relOf(target.pid) : relOfBid(target.bid));
+  // (CITY PART 1: the player page passes the SERVER's own relation (`o.rel` — its answer's rel): the phone's cached list may be older (a request
+  //  that arrived since — the bar said ADD FRIEND over an ACCEPT). The hint stands until a FRESH list is in; a disagreement asks for one)
+  let hint = o.rel || null;
+  const listRel = () => (target.pid ? relOf(target.pid) : relOfBid(target.bid || target.id));
+  const rel = () => hint || listRel();
   // (CITY FIXES — THE TAP WATCH: ADD FRIEND was REBUILT when the friends list loaded (right after the card opened) + on every friends event,
   //  even unchanged — a tap in that moment hit a replaced button (iOS drops it). Now: rebuilt only when the relation CHANGES, never under a finger)
   const paint = (force = false) => afterTap(() => paintNow(force));
@@ -51,10 +55,13 @@ export function friendButton(target, o = {}) {
     if (!r || r === 'self') { wrap.replaceChildren(); wrap.hidden = true; return; }
     wrap.hidden = false;
     const kind = r === 'none' || r === 'in' ? 'main' : 'secondary';
+    // (CITY PART 1 — NEVER A DEAD TAP: the tube shows busy at once (dimmed, aria-busy, the label's blink) until the answer — /api's own timeout
+    //  ends a hung call with its sentence ON TOP of the page; the label follows the answer)
     const run = async k => {
-      if (busy) return; busy = true; b.classList.add('is-busy');
+      if (busy) return; busy = true; b.classList.add('is-busy'); b.setAttribute('aria-busy', 'true');
       try {
         const res = await friendDo(k, target);
+        hint = null;   // (the answer's state is adopted — the list is the truth from here)
         if (k === 'add') toast(res.rel === 'friend' ? `You and ${o.name || 'they'} are friends` : 'Friend request sent', 'ok', { sub: res.rel === 'friend' ? null : 'They’ll see it on their card.' });
         if (k === 'accept') toast(`You and ${o.name || 'they'} are friends`, 'ok');
       } catch (e) { toast(why(e), 'warn'); }
@@ -69,7 +76,8 @@ export function friendButton(target, o = {}) {
   };
   paint();
   const off = onFriends(() => { if (!wrap.isConnected && wrap.dataset.seen) { off(); return; } wrap.dataset.seen = '1'; paint(); });
-  loadFriends().then(() => paint()).catch(() => {});
+  const fresh = !!(hint && listRel() !== hint);
+  loadFriends({ fresh }).then(S => { if (hint && S) hint = null; paint(); }).catch(() => {});
   return wrap;
 }
 

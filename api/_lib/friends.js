@@ -6,7 +6,8 @@ import { ref, val } from './fb.js';
 import { ApiError } from './http.js';
 import { take } from './limit.js';
 import { isPid, publicProfile } from './profiles.js';
-import { boardId, topRows, publicName, publicFaces } from './lb.js';
+import { boardId, publicName, publicFaces } from './lb.js';
+import { pidOfQuery } from './player.js';
 import { boardDef } from '../../js/core/boards.js';
 import { FR, FR_WHY, friendStep, relOf, fresh, suggestions, recentPatch, inviteLive, tablePids } from '../../js/core/friends.js';
 import { sendPush, okEndpoint, vapid } from './push.js';
@@ -76,25 +77,15 @@ export async function boardTable(pid, b, now = Date.now()) {
 /** the pending-requests count (the badge on the profile button — `me` carries it) */
 export const pendingIn = async (pid, now = Date.now()) => Object.keys(fresh({ in: await val(`pfr/${pid}/in`) }, now).in).length;
 
-/** a board row's id (+ its board) → the pid behind it (this week's or the all-time top 100 — the row on screen) */
-async function pidOfRow(b, bid, now) {
-  if (!boardDef(String(b || '')) || !/^[0-9a-f]{16}$/.test(String(bid || ''))) return null;
-  for (const p of ['week', 'all']) {
-    const data = await topRows(String(b), p, now);
-    const row = data && data.rows.find(r => r.id === bid);
-    if (row) return row.pid;
-  }
-  return null;
-}
-
 const KINDS = { friendAdd: 'add', friendAccept: 'accept', friendDecline: 'decline', friendCancel: 'cancel', friendRemove: 'remove', friendBlock: 'block', friendUnblock: 'unblock' };
 
-/** one action { action, pid? | (b + bid) } → { ok, rel, pid, state } */
+/** one action { action, pid? | (b + bid) | (id + dg — a SCORES row) | code } → { ok, rel, pid, state } — a board / SCORES target through THE ONE
+ *  TARGET RESOLVER (player.js#pidOfQuery — the player page's own; CITY PART 1: SCORES' { id, dg } was sent as nothing and refused) */
 export async function friendDo(me, body, now = Date.now()) {
   const kind = KINDS[body.action];
   if (!kind) fail(400, 'bad_action');
   let other = isPid(body.pid) ? String(body.pid) : null;
-  if (!other && body.bid) other = await pidOfRow(body.b, body.bid, now);
+  if (!other && (body.bid || body.id)) other = await pidOfQuery({ b: body.b, bid: body.bid, id: body.id, dg: body.dg }, now);
   if (!other && body.code) other = await pidOfLink(body.code);   // (CITY C — THE ADD-ME LINK: the code → its owner, on the server only)
   if (!other) fail(404, 'no_profile');
   if (other === me) fail(400, 'self');

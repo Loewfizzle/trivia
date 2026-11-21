@@ -273,3 +273,22 @@ test('CITY C: THE ADD-ME LINK — a short server code (never a pid), THE THROWAW
   assert.equal(r.rel, 'out'); assert.ok(await val(`pfr/${nia}/in/${oz}`), 'the ADD from a link = the normal request');
   assert.equal((await act('fr-oz', { action: 'friendLinkGet', code })).rel, 'out');
 });
+
+test('CITY PART 1 — THE ONE TARGET RESOLVER: a SCORES row ({ bid, dg }) + a board row ({ b, bid }) are friend targets — the player page\'s own query', async () => {
+  const { boardId } = await import('../../api/_lib/lb.js');
+  const { streakDay } = await import('../../js/core/streak.js');
+  const { DAILIES } = await import('../../js/config.js');
+  const cy = await ensure('fr-cy', 'Cy'), dee = await ensure('fr-dee', 'Dee');
+  const dg = DAILIES[0].id, bid = boardId(dee);
+  await rejects(act('fr-cy', { action: 'friendAdd', bid, dg: 'nope' }), 404, 'no_profile');   // (an unknown daily: nothing resolves)
+  await rejects(act('fr-cy', { action: 'friendAdd' }), 404, 'no_profile');                     // (the old empty target: refused, as the owner saw)
+  await ref(`dly/${dg}/${streakDay(clock)}/t`).set({ v: 1, rows: [{ k: dee, s: 9 }] });
+  const page = await act('fr-cy', { action: 'player', id: bid, dg });
+  assert.equal(page.rel, 'none', 'the player page resolves the SCORES row');
+  const r = await act('fr-cy', { action: 'friendAdd', bid, dg });
+  assert.equal(r.rel, 'out'); assert.equal(r.pid, dee);
+  assert.ok(await val(`pfr/${dee}/in/${cy}`), 'the request landed from a SCORES target');
+  const r2 = await act('fr-dee', { action: 'friendAccept', id: boardId(cy), dg: 'nope', b: 'nope' }).catch(e => e);
+  assert.equal(r2.status, 404, 'a target the server can not place is refused (never someone else)');
+  await ref(`dly/${dg}`).remove();
+});

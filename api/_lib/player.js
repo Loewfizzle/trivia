@@ -69,14 +69,21 @@ async function partOf(pid, now) {
   return v;
 }
 
-export async function playerAnswer(uid, body = {}, now = Date.now()) {
-  if (!(await take(`pv_${String(uid).replace(/[.#$[\]/]/g, '_')}`, PLAYER_LIMIT.max, PLAYER_LIMIT.windowMs, now))) throw new ApiError(429, 'slow_down', 'Too many looks — wait a minute.');
-  const me = await pidOf(uid);   // (a viewer with no profile yet still sees the page — rel 'none')
+/** CITY PART 1 — ADD FRIEND ON THE PLAYER PAGE: THE ONE TARGET RESOLVER — the page's own query ({ pid } | { b, bid } | { id } | { id, dg } — a
+ *  board row, a SCORES row, a room's tag) → the pid behind it, the same for the page AND every friend action taken from it (api/_lib/friends.js) */
+export async function pidOfQuery(body = {}, now = Date.now()) {
   const id = String(body.pid || body.id || '');
   const bid = String(body.bid || (BID.test(id) ? id : ''));
   let pid = isPid(id) ? id : null;
   if (!pid && BID.test(bid) && typeof body.dg === 'string') pid = await pidOfDaily(body.dg, bid, now);
   if (!pid && BID.test(bid)) pid = await pidOfRow(body.b, bid, now);
+  return pid;
+}
+
+export async function playerAnswer(uid, body = {}, now = Date.now()) {
+  if (!(await take(`pv_${String(uid).replace(/[.#$[\]/]/g, '_')}`, PLAYER_LIMIT.max, PLAYER_LIMIT.windowMs, now))) throw new ApiError(429, 'slow_down', 'Too many looks — wait a minute.');
+  const me = await pidOf(uid);   // (a viewer with no profile yet still sees the page — rel 'none')
+  const pid = await pidOfQuery(body, now);
   if (!pid) throw new ApiError(404, 'no_profile', 'That player isn’t here.');
   const part = await partOf(pid, now);
   if (!part) throw new ApiError(404, 'no_profile', 'That player isn’t here.');
