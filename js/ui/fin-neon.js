@@ -15,6 +15,13 @@ const HEX = /^#[0-9a-f]{6}$/i;
 export const neonOf = id => (id && META[id] && META[id].NEON) || null;
 const put = (el, v) => { for (const k in v) if (HEX.test(String(v[k] || ''))) el.style.setProperty(k, v[k]); return el; };
 
+/** J1 (the city's ask, the owner's call Nov 21): the header's second word — a game WITH modes shows its MODE (the row's `modes`: PRISM DROP ·
+ *  SCORE RUSH / BATTLE / SURVIVAL, HOLD'EM · CASH / TOURNAMENT); a game without (JAYWALK, HIGH RISE, OVERCLOCK — QUICK only) SOLO / MATCH */
+export function endMode(id, key, solo = false) {
+  const N = neonOf(id), m = N && N.modes;
+  return m && key && m[key] ? m[key] : solo ? 'SOLO' : 'MATCH';
+}
+
 /** the header node: the name's words in their colours + " · MODE" softer — the frame's kicker or a card's top line (role heading) */
 export function finHeader(id, mode = 'SOLO') {
   const N = neonOf(id), m = String(mode || '').toUpperCase(), D = (N && N.day) || null;

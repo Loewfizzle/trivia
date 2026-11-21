@@ -14,6 +14,7 @@
 import { h, vibrate, reducedMotion } from '../../ui/dom.js';
 import { avatar, tubeButton } from '../../ui/components.js';
 import { createFinal } from '../../ui/final.js';
+import { endMode } from '../../ui/fin-neon.js';
 import { colorHex } from '../../config.js';
 import { dbRef, onValue, serverNow } from '../../firebase.js';
 import { settings, onSettings } from '../../audio/settings.js';
@@ -286,7 +287,7 @@ export function createView() {
     const cash = g.endMode === 'cash';
     finalView = createFinal({ rows: Array.isArray(g.rows) ? g.rows : [], players: st.players || {}, me: me(), presence: st.presence, scoreLabel: cash ? 'NET' : '',
       // (ui/final.js needs a winnerLine; HOLD'EM's body names the winner itself — the frame's WINNER line is hidden: css)
-      kicker: cash ? 'CASH · THE LEDGER' : 'TOURNAMENT · FINAL', mode: 'MATCH', winnerLine: nm => nm });   // (CITY PART 2 — THE END NEON's header: HOLD'EM · MATCH)
+      kicker: cash ? 'CASH · THE LEDGER' : 'TOURNAMENT · FINAL', mode: endMode('holdem', cash ? 'cash' : 'tournament'), winnerLine: nm => nm });   // (CITY PART 2 — THE END NEON's header; J1: its MODE — HOLD'EM · CASH / · TOURNAMENT)
     els.final = h('div.he-final', finalView.el);
     root.append(els.final);
     root.classList.add('is-final');

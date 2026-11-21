@@ -47,3 +47,19 @@ test('THE END NEON: ONE builder — every game\'s end frame passes its mode; HIG
   // (the fin-neon module stays DOM-only: no store, no fetch — the /highrise-play page builds its card with it)
   const m = read('js/ui/fin-neon.js'); assert.deepEqual((m.match(/^import .*$/gm) || []).map(l => l.replace(/.* from /, '')), ["'./dom.js';", "'../games/metas.js';"]);
 });
+
+// J1 — THE END-SCREEN HEADER (the city's ask, the owner's call Nov 21): a game WITH modes shows its MODE in place of SOLO / MATCH — ONE source,
+// the game's NEON row (`modes`); JAYWALK, HIGH RISE + OVERCLOCK (QUICK only — its "6 CHALLENGES" stays out) keep SOLO / MATCH
+test('J1 — THE HEADER\'s MODE: PRISM DROP · SCORE RUSH / BATTLE / SURVIVAL · HOLD\'EM · CASH / TOURNAMENT; the others SOLO / MATCH', async () => {
+  const { endMode } = await import('../js/ui/fin-neon.js');
+  assert.deepEqual(['rush', 'battle', 'survival'].map(k => endMode('prism', k, false)), ['SCORE RUSH', 'BATTLE', 'SURVIVAL']);
+  assert.equal(endMode('prism', 'rush', true), 'SCORE RUSH', 'a solo SCORE RUSH says its mode too');
+  assert.deepEqual(['cash', 'tournament'].map(k => endMode('holdem', k)), ['CASH', 'TOURNAMENT']);
+  for (const id of ['jaywalk', 'highrise', 'overclock']) { assert.equal(META[id].NEON.modes, undefined, `${id}: no modes row`); assert.equal(endMode(id, 'quick', true), 'SOLO'); assert.equal(endMode(id, 'quick', false), 'MATCH'); }
+  assert.match(read('js/games/prism/victory.js'), /mode: endMode\('prism', rush \? 'rush' : surv \? 'survival' : 'battle', soloOf\(game\)\)/);
+  assert.match(read('js/games/holdem/view.js'), /mode: endMode\('holdem', cash \? 'cash' : 'tournament'\)/);
+  assert.match(read('js/games/overclock/view.js'), /mode: Object\.keys\(game\.participants \|\| \{\}\)\.length === 1 \? 'SOLO' : 'MATCH'/, 'OVERCLOCK keeps SOLO / MATCH (its challenge count stays out)');
+  // (ONE line at 375 × 667: the frame's header shrinks to its box — fitHeader — never wraps)
+  assert.match(read('js/ui/final.js'), /fitHeader\(/);
+  assert.match(read('css/components.css'), /\.fn-kick \{[^}]*white-space: nowrap/);
+});

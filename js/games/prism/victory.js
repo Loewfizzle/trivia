@@ -6,6 +6,7 @@
 // 60 fps: nothing here animates but the frame's own pieces; the board is drawn once.
 import { h } from '../../ui/dom.js';
 import { createFinal } from '../../ui/final.js';
+import { endMode } from '../../ui/fin-neon.js';
 import { leaderboard, fmtNum } from '../../ui/components.js';
 import { colorHex } from '../../config.js';
 import { standings } from './logic.js';
@@ -96,7 +97,7 @@ export function buildFinal({ game, st, me }) {
   const rush = rushOf(game), surv = survOf(game);
   const finalView = createFinal({
     rows: finalRows(game), players: st.players, me, presence: st.presence, scoreLabel: rush ? 'PTS' : surv ? 'TIME' : 'KO',
-    kicker: rush ? 'SCORE RUSH · FINAL' : surv ? 'SURVIVAL · FINAL' : 'BATTLE · FINAL', mode: soloOf(game) ? 'SOLO' : 'MATCH',   // (CITY PART 2 — THE END NEON's header)
+    kicker: rush ? 'SCORE RUSH · FINAL' : surv ? 'SURVIVAL · FINAL' : 'BATTLE · FINAL', mode: endMode('prism', rush ? 'rush' : surv ? 'survival' : 'battle', soloOf(game)),   // (CITY PART 2 — THE END NEON's header; J1: its MODE — PRISM DROP · SCORE RUSH)
     winnerLine: nm => (rush ? `${nm} TOPS THE SONG` : surv ? `${nm} OUTLASTED EVERYONE` : `${nm} IS THE LAST ONE STANDING`),
   });
   return { finalView, wrap: h('div.pd-final', finalView.el) };

@@ -29,7 +29,7 @@ export const META = Object.freeze({
   prism: Object.freeze({
     MODES: PR_MODES, DEFAULT_SETTINGS: PR_DEF, MIN_PLAYERS: 2, SOLO: true, SOLO_MODES: PR_SOLO,
     SOLO_RUNS: [{ mode: 'rush', label: 'SCORE RUSH', sub: 'ONE SONG' }, { mode: 'survival', label: 'SURVIVAL', sub: 'UNTIL YOU TOP OUT' }],
-    MUSIC: null, BANNER_NAME: 'PRISM DROP', ACCENT: '#8fd8ff', NEON: { name: [['PRISM DROP', '#8fd8ff', '#2aa8ff']], mode: ['#cfe3ff', '#6a9cff'], line: ['#8fd8ff', '#2aa8ff'], day: { name: ['#1d5aa6'], mode: '#4a5670', line: '#1d5aa6', gold: '#7a4f00' } }, cleanSettings: prClean,
+    MUSIC: null, BANNER_NAME: 'PRISM DROP', ACCENT: '#8fd8ff', NEON: { name: [['PRISM DROP', '#8fd8ff', '#2aa8ff']], mode: ['#cfe3ff', '#6a9cff'], line: ['#8fd8ff', '#2aa8ff'], modes: { rush: 'SCORE RUSH', battle: 'BATTLE', survival: 'SURVIVAL' }, day: { name: ['#1d5aa6'], mode: '#4a5670', line: '#1d5aa6', gold: '#7a4f00' } }, cleanSettings: prClean,
     OPTIONS: [{ key: 'mode', label: 'MODE', type: 'list', choices: [
       { value: 'battle', label: 'BATTLE', sub: 'Clear lines to attack your friends — last one standing wins', when: n => n >= 2 },
       { value: 'rush', label: 'SCORE RUSH', sub: 'No attacks — one song, highest score wins' },
@@ -41,7 +41,7 @@ export const META = Object.freeze({
   // HOLD'EM — PLAY CHIPS ONLY: no money words anywhere ("CASH" is only the mode's name)
   holdem: Object.freeze({
     MODES: HE_MODES, SPEED_KEYS: HE_SPEEDS, DEFAULT_SETTINGS: HE_DEF, MIN_PLAYERS: 2, MAX_PLAYERS: 8,
-    MUSIC: 'mood:late', BANNER_NAME: "HOLD'EM", ACCENT: '#f2c14e', NEON: { name: [["HOLD'EM", '#ff5a64', '#ff1f3d']], mode: ['#ffb6ba', '#ff5a64'], line: ['#ff5a64', '#ff1f3d'] }, LOOKS: ['night'], OWN_VICTORY_SOUND: true,
+    MUSIC: 'mood:late', BANNER_NAME: "HOLD'EM", ACCENT: '#f2c14e', NEON: { name: [["HOLD'EM", '#ff5a64', '#ff1f3d']], mode: ['#ffb6ba', '#ff5a64'], line: ['#ff5a64', '#ff1f3d'], modes: { cash: 'CASH', tournament: 'TOURNAMENT' } }, LOOKS: ['night'], OWN_VICTORY_SOUND: true,
     CHAT_CHIPS: ['NICE HAND', 'NO WAY', 'WELL PLAYED', 'UNLUCKY'], chatLocked: () => false, END_HANDS: HE_END,
     endGameLine: node => {
       const get = k => { try { return JSON.parse(node && node.m && node.m[k]); } catch { return null; } };
