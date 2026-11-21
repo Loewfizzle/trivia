@@ -103,7 +103,7 @@ export async function friendDo(me, body, now = Date.now()) {
   // CITY C — THE KNOCK's PUSH: a request that LANDED (their in-map written — a block swallows it silently, then no push) → their phones, if they
   // turned notifications on; at most ONE a day per sender per receiver (rl/frp_<me>_<them>); a failed push never fails the request
   if (kind === 'add' && Object.prototype.hasOwnProperty.call(up, `pfr/${other}/in/${me}`) && up[`pfr/${other}/in/${me}`]) await requestPush(me, other, now).catch(() => {});
-  return { ok: true, rel: r.rel, pid: other, state: await friendsState(me, now) };
+  return { ok: true, rel: r.rel, ...(isPid(body.pid) ? { pid: other } : {}), state: await friendsState(me, now) };   // (CITY PART 1 — the review: a board / SCORES / link target never learns the pid behind it)
 }
 /** CITY C — the friend-request push (the INVITES' path: ppriv/{pid}/ps, the same VAPID keys) → phones reached */
 async function requestPush(me, to, now) {

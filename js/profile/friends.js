@@ -19,6 +19,8 @@ const save = () => { try { if (S && myPid()) localStorage.setItem(KEY, JSON.stri
 const mine = () => (S && S.pid === myPid() ? S : null);
 
 export const friendsNow = () => mine();
+/** CITY PART 1: when the list was last adopted from the server (0 = never this page) — the player page's bar keeps the server's rel until it moves */
+export const friendsAt = () => at;
 export function onFriends(fn) { subs.add(fn); return () => subs.delete(fn); }
 /** the pending-requests count (the badge on YOU) — from `me` (fr.in) or the list */
 export const pendingBadge = () => (mine() ? (S.in || []).length : badge);

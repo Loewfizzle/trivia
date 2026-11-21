@@ -91,8 +91,10 @@ test('every inline <script> in index.html parses; the floor + the hand-reload re
 // CITY PART 1 — A FIRST VISIT THAT NEVER LOADED (the owner's /admin, Nov 20: a Pixel 8 on 4G, nothing cached, BOOT HANG ×2 naming no gate)
 test('CITY PART 1: a SLOW LINE is no hang — still arriving at 12 s (the city not started) = a quiet count, no reload; a stall of 4 s or 45 s on screen acts', () => {
   assert.match(html, /STALL_MS = 4000, HARD_MS = 45000/, 'the stall + the hard ceiling');
-  assert.match(html, /performance\.getEntriesByType\('resource'\)\.length[\s\S]{0,80}if \(nr > resN\) \{ resN = nr; grewVis = vis; \}/, 'progress = a new file finished (once a second)');
-  const at = html.indexOf("if (!acted && stage !== 'the city started' && vis - grewVis < STALL_MS && vis < HARD_MS)");
+  assert.match(html, /performance\.getEntriesByType\('resource'\);[\s\S]{0,200}nr\+\+;[\s\S]{0,80}if \(nr > resN\) \{ resN = nr; grewVis = vis; \}/, 'progress = a new boot file (same-origin js / css) finished — once a second; an idle poll never counts (the review)');
+  assert.match(html, /CITY_OWN_MS = 8000/, 'a city that started late gets its own 8 s');
+  assert.match(html, /onScreen: function \(\) \{ return done \? NaN : vis; \}/, 'the page clock ends at the first reveal (a later scene keeps its own)');
+  const at = html.indexOf("if (!acted && vis < HARD_MS && (stage === 'the city started' ? cityAt >= 0 && vis - cityAt < CITY_OWN_MS : vis - grewVis < STALL_MS))");
   assert.ok(at > 0, 'the slow-line rule');
   const body = html.slice(at, html.indexOf('if (!acted) {', at));
   assert.match(body, /post\('slow-boot', 'slow-boot'\)/, "counted quietly ('slow-boot' — api/log.js QUIET_KINDS)");
@@ -102,7 +104,7 @@ test('CITY PART 1: a SLOW LINE is no hang — still arriving at 12 s (the city n
 test('CITY PART 1: the BOOT HANG row names the city\'s gates (+ the line: bytes, the slowest request, whether this load IS the watchdog\'s reload)', async () => {
   assert.match(html, /\+ gatesLine\(\) \+ netLine\(\)/, 'both lines in every boot snapshot');
   assert.match(html, /gates: function \(fn\) \{ gatesFn = fn; \}/, '__boot.gates (the scene registers)');
-  assert.match(html, /onScreen: function \(\) \{ return vis; \}/, '__boot.onScreen (the page\'s clock)');
+  assert.match(html, /onScreen: function \(\) \{ return done \? NaN : vis; \}/, '__boot.onScreen (the page\'s clock, until the first reveal)');
   assert.match(html, /this load is the watchdog\u2019s reload: ' \+ \(IS_RELOAD/, 'whether this load is the reload');
   const scene = read('js/screens/harbor/scene.js');
   assert.match(scene, /window\.__boot\.gates\(\(\) => \{/, 'the scene registers its gates');
@@ -114,5 +116,5 @@ test('CITY PART 1: THE PAGE\'S CLOCK — the network gates let go by the page\'s
   const scene = read('js/screens/harbor/scene.js');
   assert.match(scene, /const NET_LET_GO_MS = 5000, PAGE_LATE_MS = 6500;/);
   assert.match(scene, /const g = \{ bake: ready, fonts: fonts \|\| netGo, wx: wx \|\| netGo, sky: sky \|\| netGo, panel: panel \|\| netGo, songs: songs \|\| netGo, folk: folk \|\| netGo, board: board \|\| netGo \};/, 'every network gate — never the bake');
-  assert.match(scene, /const pageLate = pageOn > PAGE_LATE_MS && baker\.bakes >= 1 && litBaker\.bakes >= 1;/, 'a late page reveals only a baked city');
+  assert.match(scene, /const pageLate = pageOn > PAGE_LATE_MS && baker\.bakes >= 1 && litBaker\.bakes >= 1 && bakeCamShown === camSig && !baker\.pending && !litBaker\.pending;/, 'a late page reveals only a CURRENT baked city');
 });

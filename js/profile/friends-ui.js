@@ -11,7 +11,7 @@ import { h } from '../ui/dom.js';
 import { avatar, tubeButton, row, ICONS } from '../ui/components.js';
 import { toast } from '../ui/toast.js';
 import { openPfSheet } from './sheets.js';
-import { loadFriends, friendsNow, onFriends, relOf, relOfBid, friendDo, friendLinkUrl, knockHidden, hideKnock } from './friends.js';
+import { loadFriends, friendsNow, friendsAt, onFriends, relOf, relOfBid, friendDo, friendLinkUrl, knockHidden, hideKnock } from './friends.js';
 import { myPublic } from './me.js';
 import { FR_WHY } from '../core/friends.js';
 import { state } from '../store.js';
@@ -43,6 +43,7 @@ export function friendButton(target, o = {}) {
   // (CITY PART 1: the player page passes the SERVER's own relation (`o.rel` — its answer's rel): the phone's cached list may be older (a request
   //  that arrived since — the bar said ADD FRIEND over an ACCEPT). The hint stands until a FRESH list is in; a disagreement asks for one)
   let hint = o.rel || null;
+  const born = friendsAt(), fresher = () => friendsAt() > born;   // (the review: the hint goes only once a list NEWER than the page's answer is in — a failed load keeps it)
   const listRel = () => (target.pid ? relOf(target.pid) : relOfBid(target.bid || target.id));
   const rel = () => hint || listRel();
   // (CITY FIXES — THE TAP WATCH: ADD FRIEND was REBUILT when the friends list loaded (right after the card opened) + on every friends event,
@@ -75,9 +76,9 @@ export function friendButton(target, o = {}) {
     wrap.replaceChildren(b);
   };
   paint();
-  const off = onFriends(() => { if (!wrap.isConnected && wrap.dataset.seen) { off(); return; } wrap.dataset.seen = '1'; paint(); });
+  const off = onFriends(() => { if (!wrap.isConnected && wrap.dataset.seen) { off(); return; } wrap.dataset.seen = '1'; if (hint && fresher()) hint = null; paint(); });
   const fresh = !!(hint && listRel() !== hint);
-  loadFriends({ fresh }).then(S => { if (hint && S) hint = null; paint(); }).catch(() => {});
+  loadFriends({ fresh }).then(() => { if (hint && fresher()) hint = null; paint(); }).catch(() => {});
   return wrap;
 }
 

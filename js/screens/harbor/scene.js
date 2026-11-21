@@ -3004,7 +3004,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const g = { bake: ready, fonts: fonts || netGo, wx: wx || netGo, sky: sky || netGo, panel: panel || netGo, songs: songs || netGo, folk: folk || netGo, board: board || netGo };
     lastGates = g; lastGatesOn = on;
     for (const k in g) if (g[k] && gateAt[k] == null) gateAt[k] = Math.round(now - t0);
-    const pageLate = pageOn > PAGE_LATE_MS && baker.bakes >= 1 && litBaker.bakes >= 1;
+    const pageLate = pageOn > PAGE_LATE_MS && baker.bakes >= 1 && litBaker.bakes >= 1 && bakeCamShown === camSig && !baker.pending && !litBaker.pending;   // (the review: never a stale bake)
     if (pageLate && !late) { late = true; LOADLOG.add('note', `the page's clock: ${Math.round(pageOn)} ms on screen — a baked city reveals now (the network fills in after)`); }
     if (!(g.bake && g.fonts && g.wx && g.sky && g.panel && g.songs && g.folk && g.board) && !late) return;
     // (the look the weather brought must be IN the bake that shows: an answer that landed since the last look (read every 2.5 s) is

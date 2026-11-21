@@ -68,7 +68,7 @@ function askHost() {
   const w = wake, code = state.code, t = Date.now();
   if (!w || w.asking || t - w.at < 2500) return;
   w.asking = true; w.at = t;
-  Promise.all([get(dbRef(`rooms/${code}/meta/hostId`)), get(dbRef(`rooms/${code}/players/${state.uid}`))]).then(([hs, ps]) => {
+  Promise.race([Promise.all([get(dbRef(`rooms/${code}/meta/hostId`)), get(dbRef(`rooms/${code}/players/${state.uid}`))]), new Promise((_, no) => setTimeout(() => no(new Error('slow')), 5000))]).then(([hs, ps]) => {   // (a read that never answers: asked again)
     if (wake !== w || state.code !== code) return;
     w.ok = hs.val() === state.uid && ps.exists();
     if (w.ok) wake = null;

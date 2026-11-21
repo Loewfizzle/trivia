@@ -235,7 +235,7 @@ export function coverBehind(el) {   // (BOARD 2.0 B: THE PLAYER PAGE covers thro
   const city = holdCity();   // (DM2: the city's hold is shared + counted — ui/city-hold.js — a daily overlay may hold it too)
   if (!coverN++) document.body.classList.add('vl-covered');
   let done = false;
-  return () => { if (done) return; done = true; fx(); city(); if (!--coverN) document.body.classList.remove('vl-covered'); };
+  return () => { if (done) return; done = true; fx(); city(); if (!--coverN) { document.body.classList.remove('vl-covered'); document.querySelectorAll('[data-over-cover]').forEach(e => e.removeAttribute('data-over-cover')); } };   // (CITY PART 1: the marks go with the cover)
 }
 /** a sheet with the full card (approved art — else the Gilded card in its palette) */
 export async function openFullCard(id, who = {}) {

@@ -84,7 +84,7 @@
        TAP TO TRY AGAIN. The hang watch: a tiny worker beating from here (the city's scene feeds it its snapshot later — harbor/report.js). -->
   <script>
   (function () {
-    var W = window, D = document, LIMIT = 12000, RK = 'ns:boot-re', T0 = Date.now(), errs = [], stage = 'html', vis = 0, lastT = T0, done = false, sent = false, acted = 0, snapFn = null, hw = null, did = '', armedAt = -1, WAYOUT = 6000, gatesFn = null, IS_RELOAD = false, resN = 0, grewVis = 0, growT = 0, slowSent = false, STALL_MS = 4000, HARD_MS = 45000;
+    var W = window, D = document, LIMIT = 12000, RK = 'ns:boot-re', T0 = Date.now(), errs = [], stage = 'html', vis = 0, lastT = T0, done = false, sent = false, acted = 0, snapFn = null, hw = null, did = '', armedAt = -1, WAYOUT = 6000, gatesFn = null, IS_RELOAD = false, resN = 0, grewVis = 0, growT = 0, slowSent = false, STALL_MS = 4000, HARD_MS = 45000, cityAt = -1, CITY_OWN_MS = 8000;
     try { performance.setResourceTimingBufferSize(1500); } catch (e) { /* old browser */ }   // (250 by default — a boot asks for ~400 files: the report's "never arrived" needs them all)
     var ms = function () { return Math.round(Date.now() - T0); };
     try { IS_RELOAD = !!W.sessionStorage.getItem(RK); } catch (e) { /* no session storage */ }   // (CITY PART 1: THIS load = the watchdog's own reload?)
@@ -245,9 +245,10 @@
       // the reload began the ~2.5 MB again and hung the same way: BOOT HANG ×2). While the city has not started and the page's files are still
       // ARRIVING (a new one finished in the last STALL_MS), 12 s on screen is a slow line: counted quietly once ('slow-boot'), no report row,
       // no reload; the watchdog acts as before once nothing new arrived for STALL_MS, or at HARD_MS on screen
-      if (t - growT >= 1000) { growT = t; var nr = 0; try { nr = performance.getEntriesByType('resource').length; } catch (e) { /* old browser */ } if (nr > resN) { resN = nr; grewVis = vis; } }
+      if (t - growT >= 1000) { growT = t; var nr = 0; try { var es = performance.getEntriesByType('resource'); for (var q = 0; q < es.length; q++) if (/\/(js|css)\/[^?]*\.(js|css)(\?|$)/.test(es[q].name) && es[q].name.indexOf(location.origin) === 0) nr++; } catch (e) { /* old browser */ } if (nr > resN) { resN = nr; grewVis = vis; } }   // (the boot's OWN script + sheet files only: an idle poll never keeps a hung boot "arriving")
       if (done || vis < LIMIT) return;
-      if (!acted && stage !== 'the city started' && vis - grewVis < STALL_MS && vis < HARD_MS) {
+      // (the fresh-eyes review: a city that started LATE gets its own CITY_OWN_MS to reveal — never a BOOT HANG + reload milliseconds after it began)
+      if (!acted && vis < HARD_MS && (stage === 'the city started' ? cityAt >= 0 && vis - cityAt < CITY_OWN_MS : vis - grewVis < STALL_MS)) {
         if (!slowSent) { slowSent = true; note('a slow line: still arriving at ' + (vis / 1000).toFixed(1) + ' s on screen (' + resN + ' files in) — no reload'); post('slow-boot', 'slow-boot'); }
         return;
       }
@@ -259,12 +260,12 @@
     }, 250);
     if (OLD) { showOld(); oldOnce('at the boot'); }
     W.__boot = {
-      stage: function (s) { stage = s; keepLast(false); },                  // ('app' · 'title' · 'city' — app.js / title.js / scene.js)
+      stage: function (s) { stage = s; if (s === 'the city started' && cityAt < 0) cityAt = vis; keepLast(false); },                  // ('app' · 'title' · 'city' — app.js / title.js / scene.js)
       revealed: function () { if (!done) { done = true; dropLast(); try { W.sessionStorage.removeItem(RK); } catch (e) { /* fine */ } } },
       old: OLD, floorOf: floorOf,                                            // (FR7 FIXES C2: below the supported floor → app.js stops; the test's seam)   // (the boot screen lifted — a later hang may reload again)
       snap: function (fn) { snapFn = fn; },
       gates: function (fn) { gatesFn = fn; },                                // (CITY PART 1: the city's reveal gates for the report — scene.js)
-      onScreen: function () { return vis; },                                 // (CITY PART 1: ms ON SCREEN since the page began — the city's network gates let go by it)                                  // (the city's own snapshot for the hang watch — harbor/report.js; null = the boot's)
+      onScreen: function () { return done ? NaN : vis; },                    // (CITY PART 1: ms ON SCREEN since the page began — only until the first reveal: a later scene keeps its own clock)                                  // (the city's own snapshot for the hang watch — harbor/report.js; null = the boot's)
       mark: function (m) { if (hw) try { hw.postMessage({ t: 'mark', m: m }); } catch (e) { /* polish */ } },
       watching: function () { return !!hw; },
       reload: function (why, o) { if (done || prevReload()) return false; acted = 2; note('the app asked: ' + why); report(why); if (o && o.skew) { did += 'the modules re-fetched; '; refresh().then(reloadOnce); } else reloadOnce(); return true; },   // (true = the one reload is on its way; LOAD FIX 4: { skew } = the city's graph failed to LINK — its files asked for afresh first)

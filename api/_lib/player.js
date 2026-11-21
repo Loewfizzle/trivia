@@ -46,9 +46,9 @@ async function pidOfRow(b, bid, now) {
  *  (dly/{g}/{day}/t — the list the row came from; a finisher there need not be on any board yet). Today's streak day only. */
 async function pidOfDaily(g, bid, now) {
   if (!DAILIES.some(d => d.id === g)) return null;
-  const node = await val(`dly/${g}/${streakDay(now)}/t`);
-  const row = dailyTop(node).find(r => boardId(r.k) === bid);
-  return row ? row.k : null;
+  // (CITY PART 1 — the review: a page opened before the 4 am line, tapped after it — yesterday's list too)
+  for (const day of [streakDay(now), streakDay(now - 864e5)]) { const row = dailyTop(await val(`dly/${g}/${day}/t`)).find(r => boardId(r.k) === bid); if (row) return row.k; }
+  return null;
 }
 
 const cache = new Map();
