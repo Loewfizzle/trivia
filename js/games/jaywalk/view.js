@@ -276,7 +276,9 @@ export function createView() {
   function catchUp() {
     if (!log.length) return;
     let i = 0;
-    const target = tickNow().t;
+    // (J2 FIX — the fresh-eyes review: never stop short of a hop already on the server — a clock estimate that moved back would leave it
+    //  unplayed here while the server replays it: THE END CHECK would refuse the honest run. At most CLOCK.ahead ahead of the clock)
+    const target = Math.max(tickNow().t, log[log.length - 1].t + 1);
     while (!isOver(run) && run.t < target) { let d = ''; if (i < log.length && log[i].t === run.t) d = log[i++].d; step(run, course, d); }
   }
   /** a SOLO course lands: seed = hash(code + matchId + GO) — the run's tick 0 is GO; a node's chunks (a rejoin) are replayed to now */
