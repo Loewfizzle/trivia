@@ -140,7 +140,8 @@ test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the
   assert.match(f, /h\('button\.final-bar\.final-rematch', \{ type: 'button', 'data-press': true/);
   assert.match(f, /h\('button\.final-bar\.final-again', \{ type: 'button', 'data-press': true/);
   assert.match(f, /import\('\.\.\/host\.js'\), '\.\.\/host\.js'\)\.then\(m => m\.rematch\(\{ inPlace: true \}\)\)/, "the host's REMATCH — in place (CITY G)");
-  assert.match(f, /dbUpdate\(dbRef\(`rooms\/\$\{state\.code\}`\), \{ \[`rv\/\$\{state\.uid\}`\]: mine \? null : m \}\)/, "a guest's vote: rv/{uid} = this match");
+  assert.match(f, /writeVote\(state\.code, state\.uid, mine \? null : m\)/, "a guest's vote: rv/{uid} = this match (CITY PART 1: through writeVote — its late refusal a quiet count)");
+  assert.match(f, /return dbUpdate\(dbRef\(`rooms\/\$\{code\}`\), \{ \[`rv\/\$\{uid\}`\]: value \}\);/, 'writeVote writes rv/{uid}');
   assert.match(read('css/components.css'), /\.final-bar \{[\s\S]{0,400}border-radius: 12px;[\s\S]{0,200}background: var\(--fin, var\(--magenta\)\); color: var\(--fin-ink, #0b0a14\);/, "the bar: a rounded rect in the game's accent, never a pill");
   assert.ok(!/\.final-solo|\.final-row/.test(read('css/components.css')), 'the old three outlined boxes are gone');
   assert.match(f, /mod\.finalScene\(body, g, state\)/);
