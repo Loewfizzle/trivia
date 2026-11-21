@@ -249,6 +249,7 @@ const CLK = q.get('clk') != null ? Number(q.get('clk')) : null;
 if (!PLAY && !STAGED && STATE !== 'spectate') window.__clock = () => (t.deadline ? t.deadline - (CLK != null ? CLK : 12_500) : now + 400);
 
 const pub = publicOf(rec);
+if (STATE === 'final') Object.assign(pub, { ended: true, rep: true });   // (CITY PART 2: THE CONSOLE FIX's podium waits for the DEALER's end — the preview's match is over)
 const node = { seq: rec.seq, at: now, ...nestWire(toWire(pub)) };
 const hole = holeOf(rec, me);
 window.__fakeDb[`hole/PVWX/${me}`] = hole;

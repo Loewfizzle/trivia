@@ -621,6 +621,19 @@ body.bd-on .help-btn, body.help-open .help-btn { display: none; }
 .winner-title.is-tied { font-size: clamp(30px, 10.5vw, 54px); letter-spacing: 0.08em; }
 .winner { flex: none; overflow-x: clip; overflow-y: visible; }   /* (SHELL 2.0 A: the winner line wraps whole — never cut at the bottom) */
 .winner-name { line-height: 1.5; text-wrap: balance; }
+/* CITY PART 2 — THE END NEON (ui/fin-neon.js; the colours = js/games/metas.js NEON, set as --fn / --fn-g / --fn-day on each piece): the colour
+   IS the letter — a hair-thin bright core, the colour's own glow, a deeper outer glow, a dark keyline under it. By day an end on a light ground
+   (a row with `day` → .has-day) wears paint: its day ink, no glow. Gold = a win / finish line; the big number stays the one white hero. */
+.final > .sheet-kicker.fn-kick { align-self: stretch; text-align: center; padding: 6px var(--cb-room) 0; font: 900 clamp(15px, 4.9vw, 21px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; text-shadow: none; }
+.fn-hd b, .fn-hd i { font: inherit; font-style: normal; }
+.fn-w { color: var(--fn); text-shadow: 0 0 1px color-mix(in srgb, color-mix(in srgb, var(--fn) 10%, #fff) 75%, transparent), 0 0 10px color-mix(in srgb, var(--fn) 95%, transparent), 0 0 24px color-mix(in srgb, var(--fn-g) 60%, transparent), 0 2px 0 color-mix(in srgb, color-mix(in srgb, var(--fn-g) 7%, #000) 90%, transparent); }
+.fn-m { color: var(--fn); text-shadow: 0 0 10px color-mix(in srgb, var(--fn-g) 60%, transparent), 0 2px 0 color-mix(in srgb, color-mix(in srgb, var(--fn-g) 6%, #000) 90%, transparent); }
+.fn-line.fn-line, .final.has-neon .winner-title { --c: var(--fn); --cg: var(--fn-g); color: var(--c); text-shadow: 0 0 1px color-mix(in srgb, color-mix(in srgb, var(--c) 10%, #fff) 80%, transparent), 0 0 12px color-mix(in srgb, var(--c) 95%, transparent), 0 0 30px color-mix(in srgb, var(--cg) 65%, transparent), 0 3px 0 var(--ce, color-mix(in srgb, color-mix(in srgb, var(--cg) 7%, #000) 90%, transparent)); }
+.fn-line.fn-line.is-gold, .final.has-neon:not(.is-solo):not(.is-alltied) .winner-title { --c: #ffc83c; --cg: #ffaa1e; --ce: rgba(60, 30, 0, 0.9); }   /* (--c, never --fn: the row's colours sit INLINE on the line) */
+.final.has-neon:not(.is-solo):not(.is-alltied) .winner-name { color: #ffd257; }   /* (a match's winner line — a win line is GOLD) */
+body[data-look='day'] .fn-hd.has-day :is(.fn-w, .fn-m), body[data-look='day'] .fn-line.has-day.fn-line { color: var(--fn-day, var(--fn)); text-shadow: none; }
+body[data-look='day'] .final.has-neon.has-day .winner-title { color: var(--fn-day, var(--fn)); }   /* (the look's own shadow kept — PRISM DROP's crayon offset) */
+body[data-look='day'] .fn-line.has-day.is-gold.fn-line, body[data-look='day'] .final.has-neon.has-day:not(.is-solo):not(.is-alltied) :is(.winner-title, .winner-name) { color: var(--fn-gold-day, #7a4f00); }
 /* CITY F — END-SCREEN STANDARD A (the owner's pick, Nov 17 — docs/harbor/passes/city-f.md; ui/final.js): ONE foot for EVERY game's end
    screen — the BAR (the screen's MAIN: solid, in the GAME's accent --fin, its text --fin-ink — dark where it reads ≥ 4.5 : 1, white
    otherwise; THE SHELL's ONE named exception to THE NEON TUBE's pink) + under it the QUIET LINKS (an icon + a word, no box, a thin divider).

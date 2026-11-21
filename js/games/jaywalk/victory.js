@@ -12,6 +12,7 @@ import { seedOf, standings } from './logic.js';
 import { causeLine, runLine, hitVehicle } from './causes.js';
 import { getPref, setPref } from './lab-prefs.js';
 import { setNum, prepNums } from './numerals.js';
+import { finLine } from '../../ui/fin-neon.js';
 
 const BOARD = 'jaywalk-solo';
 // the phone remembers the best the SERVER last told it (a run counted after its end screen was left — HOP AGAIN — still lands here)
@@ -24,14 +25,14 @@ function watchBest(Q) {
 const num = n => Math.round(Number(n) || 0).toLocaleString('en-US');
 
 /** the body's pieces → { best(text, isNew) }. `note` = one quiet line under the lanes (an unproven run's NOT COUNTED) */
-export function buildEnd(el, { line, lanes, note = '' }) {
+export function buildEnd(el, { line, lanes, note = '', gold = false }) {
   const best = h('div.jw-fin-best', note || '');
   el.classList.add('jw-fin');
   // (H5A's add-on — THE BIG NUMERALS: numerals.js — room between the digits, a 1 with a base foot)
   const big = h('b');
   setNum(big, num(lanes)); prepNums(el);
   el.replaceChildren(
-    h('div.jw-fin-cause', { 'data-text': line }, line),
+    finLine(h('div.jw-fin-cause', { 'data-text': line }, line), 'jaywalk', gold),   // (CITY PART 2 — THE END NEON: JAYWALK's pink; THE MOTHERSHIP gold)
     h('div.jw-fin-n', big, h('span', Number(lanes) === 1 ? 'LANE' : 'LANES')),
     best);
   return {
@@ -109,7 +110,7 @@ function matchScene(el, game, state) {
   const E = endOf(game, uid, code), place = (standings(game).find(r => r.uid === uid) || {}).rank || 0;
   // (compact: the frame's WINNER line leads and the list follows — the words, then ONE line: the lanes + the place)
   const lanesTxt = `${num(E.lanes)} ${E.lanes === 1 ? 'LANE' : 'LANES'}`;
-  buildEnd(el, { line: E.ship ? `YOU ${E.line}` : E.line, lanes: E.lanes, note: game.unproven ? `${lanesTxt} · NOT COUNTED — NO LINE TO THE BOARD` : place ? `${E.ship ? '' : `${lanesTxt} · `}YOU FINISHED ${place}${['', 'ST', 'ND', 'RD'][place] || 'TH'}` : lanesTxt });
+  buildEnd(el, { gold: E.ship, line: E.ship ? `YOU ${E.line}` : E.line, lanes: E.lanes, note: game.unproven ? `${lanesTxt} · NOT COUNTED — NO LINE TO THE BOARD` : place ? `${E.ship ? '' : `${lanesTxt} · `}YOU FINISHED ${place}${['', 'ST', 'ND', 'RD'][place] || 'TH'}` : lanesTxt });
   // H6A — THE MOTHERSHIP = A FINISH LINE: gold words, the lanes big, a crown + a gold burst (the css — transform + opacity only)
   if (E.ship) { el.classList.add('is-ship'); el.prepend(h('div.jw-fin-crown', { 'aria-hidden': 'true' }, h('i'), h('b'))); }
   // H6A — YOUR BEST ANYWHERE: a counted match run past your best = NEW BEST here too (the server's own answer for this match)
@@ -136,7 +137,7 @@ export function finalScene(el, game, state) {
   el.dataset.mode = 'solo';
   const E = endOf(game, uid, code);
   const known = Number(getPref('best', '0')) || 0;
-  const B = buildEnd(el, { line: E.line, lanes: E.lanes });
+  const B = buildEnd(el, { line: E.line, lanes: E.lanes, gold: E.ship });
   if (known > 0) B.best(`YOUR BEST · ${num(known)}`);
   if (!code) return;
   // (YOUR TABLE: once the server has counted this run — its outcome — or a moment later, whichever comes first)

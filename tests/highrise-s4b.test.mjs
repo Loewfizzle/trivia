@@ -12,16 +12,17 @@ const HI = 'js/games/highrise/';
 test('THE END = JAYWALK\'S STANDARD: ONE builder (the page\'s card + the cartridge\'s body) — the header, the cause, the floor + FLOORS, YOUR BEST · n, n PERFECTS · BEST STREAK n; nothing else', () => {
   const e = read(`${HI}endscreen.js`), s = read(`${HI}stage.js`), f = read(`${HI}final.js`), v = read(`${HI}view.js`);
   assert.match(e, /const hd = header \? h\('div\.hi-ec-hd', endHeader\(header\)\) : null;\n  const el = h\('div\.hi-ec', hd, cause, n, fl, bestL, line\);/, 'top to bottom: (the header) · the cause · the number · FLOORS · the best · the stats line');
-  assert.match(e, /h\('b\.hi-hd-a', \{ 'aria-hidden': 'true' \}, 'HIGH'\), ' ', h\('b\.hi-hd-b', \{ 'aria-hidden': 'true' \}, 'RISE'\), h\('i\.hi-hd-m', \{ 'aria-hidden': 'true' \}, ` · \$\{m\}`\)/, 'the header\'s three words, each its own neon');
-  assert.match(e, /const m = mode === 'match' \? 'MATCH' : 'SOLO';/);
+  // (CITY PART 2 — THE END NEON: the header + the cause through the ONE shared builder, ui/fin-neon.js; the colours = metas.js NEON)
+  assert.ok(e.includes("export const endHeader = (mode = 'solo') => finHeader('highrise', mode === 'match' ? 'MATCH' : 'SOLO');"), 'the header = THE END NEON\'s builder');
+  assert.ok(e.includes("const cause = finLine(h('div.hi-ec-cause'), 'highrise')"), 'the cause = THE END NEON\'s line');
   assert.match(e, /fl\.textContent = f === 1 \? 'FLOOR' : 'FLOORS';/);
   assert.match(e, /export const statsLine = \(perfects, streak\) => `\$\{say\(perfects\)\} PERFECT\$\{whole\(perfects\) === 1 \? '' : 'S'\} · BEST STREAK \$\{say\(streak\)\}`;/);
   assert.match(e, /bestL\.textContent = !v \? '' : nb \? \(whole\(was\) > 0 \? `NEW BEST · WAS \$\{say\(was\)\}` : 'NEW BEST'\) : `YOUR BEST · \$\{say\(v\)\}`;/, 'YOUR BEST · n — NEW BEST (· WAS n) when beaten — no line with no best');
-  assert.match(e, /^import \{ h \} from '\.\.\/\.\.\/ui\/dom\.js';$/m); assert.equal((e.match(/^import /gm) || []).length, 1, 'a view\'s helper: DOM only — no rules, no storage, no fetch');
+  assert.match(e, /^import \{ h \} from '\.\.\/\.\.\/ui\/dom\.js';$/m); assert.ok(e.includes("import { finHeader, finLine } from '../../ui/fin-neon.js';")); assert.equal((e.match(/^import /gm) || []).length, 2, 'a view\'s helper: DOM only — no rules, no storage, no fetch');
   // ONE builder, two callers; the cartridge's header = the console frame's kicker
   assert.match(s, /const EC = endCard\(\{ header: MODE === 'solo' \? 'solo' : 'match' \}\), check = h\('div\.hi-check', \{ hidden: true \}\);/);
   assert.match(f, /const EC = endCard\(\), would = h\('div\.hi-fin-would', ''\);/); assert.match(f, /el\.replaceChildren\(EC\.el, would\);/);
-  assert.match(v, /kicker: endHeader\(/, 'the frame\'s kicker IS the header (HIGH RISE · SOLO / · MATCH in its own neon)');
+  assert.ok(v.includes("mode: solo ? 'SOLO' : 'MATCH'"), 'the frame\'s kicker IS the header (HIGH RISE · SOLO / · MATCH in its own neon — createFinal\'s `mode`)');
   assert.match(f, /setTimeout\(overBar, 0\);/, 'WOULD COUNT leaves the body at once: YOUR TABLE sits right under the personal numbers');
   // a NEW BEST: only of a best that was BEATEN on the page; a shortcut run never sets or compares one
   assert.match(s, /EC\.best\(best, best > was && was > 0, was\);/);
@@ -32,10 +33,11 @@ test('THE END = JAYWALK\'S STANDARD: ONE builder (the page\'s card + the cartrid
 
 test('THE END\'s COLOURS ARE REAL NEON, never all white: HIGH hot pink · RISE cyan · the mode lavender · the cause SATURATED HOT PINK (gold for the finish) · the number the one white hero · YOUR BEST gold; JAYWALK\'s sizes + veil', () => {
   const css = read('css/highrise-play.css'), jw = read('css/jaywalk.css');
-  assert.match(css, /\.hi-hd-a \{ color: #ff4fd8;/); assert.match(css, /\.hi-hd-b \{ color: #36c9ff;/); assert.match(css, /\.hi-hd-m \{ color: #c9b6ff;/);
-  assert.match(css, /\.hi-ec-cause \{ max-width: 11\.5em; font: 900 min\(34px, calc\(var\(--hi-w\) \* 0\.087\)\)\/1\.06 var\(--font-display\); letter-spacing: 0\.04em; color: #ff4fd8; text-wrap: balance;/, 'the cause: JAYWALK\'s 34 px / 1.06, the letters THEMSELVES hot pink');
+  const meta = read('js/games/metas.js');   // (CITY PART 2 — the colours: THE END NEON's ONE row, metas.js NEON → css/components.css .fn-*)
+  assert.ok(meta.includes("NEON: { name: [['HIGH', '#ff4fd8', '#ff2bd6'], ['RISE', '#36c9ff', '#0096ff']], mode: ['#c9b6ff', '#9e7eff'], line: ['#ff4fd8', '#ff2bd6'] }"), 'HIGH hot pink · RISE cyan · the mode lavender · the cause hot pink');
+  assert.ok(css.includes('.hi-ec-cause { max-width: 11.5em; font: 900 min(34px, calc(var(--hi-w) * 0.087))/1.06 var(--font-display); letter-spacing: 0.04em; text-wrap: balance; }'), 'the cause: JAYWALK\'s 34 px / 1.06');
   assert.match(jw, /\.jw-fin-cause \{ max-width: 11\.5em; font: 900 34px\/1\.06 var\(--font-display\); letter-spacing: 0\.04em;/, '(JAYWALK\'s own cause — the reference)');
-  assert.match(css, /\.hi-ec\.is-made \.hi-ec-cause \{[^}]*color: #ffc83c;/, 'MADE IT TO THE MOTHERSHIP = GOLD');
+  assert.ok(read('js/games/highrise/endscreen.js').includes("cause.classList.toggle('is-gold', !!made);"), 'MADE IT TO THE MOTHERSHIP = GOLD (the shared .fn-line.is-gold)');
   assert.match(css, /\.hi-ec-n \{[^}]*font: 700 clamp\(84px, calc\(var\(--hi-w\) \* 0\.256\), 104px\)\/0\.95 var\(--font-num\);[^}]*color: #fff;/, 'the floor: huge, WHITE');
   assert.match(css, /\.hi-ec-n \{[^}]*rgba\(0, 240, 255, 0\.85\)/, '… with the cyan glow');
   assert.match(css, /\.hi-ec-fl \{[^}]*font: 700 15px\/1 var\(--font-ui\); letter-spacing: 0\.34em;/); assert.match(jw, /\.jw-fin-n > span \{ font: 700 15px\/1 var\(--font-ui\); letter-spacing: 0\.34em;/);
@@ -147,7 +149,7 @@ test('THE MATCH on the phone (view.js): GO is a TRANSACTION never applied locall
   // OUT = WATCH: the ranked list's pick · a tap's pick while they climb · the one you follow STAYS while they climb (S5) · else THE LEADER
   assert.ok(v.includes('const f = pickAny && rivals.has(pickAny) ? pickAny : follow(others, followPick || followUid);') && v.includes('S.watch({ uid: f, name: R.name, seed: mSeed, taps: R.taps, done: () => R.done });'));
   assert.ok(v.includes("txt = `WATCHING ${F.name} · ${fl}${live.length > 1 || F.over ? ' · TAP FOR THE NEXT' : ''}`;") && v.includes('S.watchFloor()'), 'the watcher line: the DRAWN (delayed) tower floor — REVIEW FIX A');
-  assert.ok(v.includes("kicker: endHeader(solo ? 'solo' : 'match')") && v.includes("note: `${g.unproven ? 'NOT COUNTED' : END_WORDS[(res[r.uid] || {}).w] || 'NO TOWER'} · ${perfectsLine(r.perfects)}`"), 'the podium: HIGH RISE · MATCH; every row its floor + how the tower ended + its perfects');
+  assert.ok(v.includes("mode: solo ? 'SOLO' : 'MATCH'") && v.includes("note: `${g.unproven ? 'NOT COUNTED' : END_WORDS[(res[r.uid] || {}).w] || 'NO TOWER'} · ${perfectsLine(r.perfects)}`"), 'the podium: HIGH RISE · MATCH; every row its floor + how the tower ended + its perfects');
 });
 
 test('THE TAPES NEVER BLOCK THE PLAY (the stage + the scene): a rival under you = a tape on your tower — never the top slab, never in the bloom pass; at / over you = a tag in the clear column; the 3 nearest, merged; dim while a slab slides; a watched tower is never stepped to its fuse', async () => {

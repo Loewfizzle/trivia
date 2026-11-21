@@ -10,11 +10,14 @@ const HE_LENGTHS = { turbo: { 2: 11, 4: 15, 6: 19, 8: 20 }, standard: { 2: 31, 4
 // (JAYWALK + HIGH RISE: shut while your run is live (count + play), open once it ended (its `e`) or you watch)
 const runLocked = (game, uid, live) => { if (game.phase !== 'count' && game.phase !== 'play') return false; if (!game.participants || !game.participants[uid]) return false; const r = live && live.runs ? live.runs[uid] : undefined; return !(r && r.e); };
 
+// (CITY PART 2 — THE END NEON: NEON = the end screen's coloured neon, ONE row per game — name: [[word, colour, its outer glow]…] (the game's
+//  sign colours) · mode: '· SOLO / · MATCH' softer · line: the RESULT line (the accent) · day: paint inks where the end stands on a light ground
+//  — ui/fin-neon.js reads it; docs/match-kit.md "THE END NEON")
 export const META = Object.freeze({
   // OVERCLOCK — THE TIMINGS ARE THE OWNER's (Nov 4): never change them (tests/overclock-oc1.test.mjs pins every one)
   overclock: Object.freeze({
     CHALLENGE_MS: OC_CH, READY_MS: OC_READY, STANDINGS_MS: OC_ST, MODES: OC_MODES, DEFAULT_SETTINGS: { mode: 'quick' },
-    MUSIC: 'mood:evening', SOLO: true, BANNER_NAME: 'OVERCLOCK', LOOKS: ['night'], ACCENT: '#ff6a1a', OWN_VICTORY_SOUND: true,
+    MUSIC: 'mood:evening', SOLO: true, BANNER_NAME: 'OVERCLOCK', LOOKS: ['night'], ACCENT: '#ff6a1a', OWN_VICTORY_SOUND: true, NEON: { name: [['OVERCLOCK', '#ff6a1a', '#ff3d00']], mode: ['#ffc29a', '#ff7a2a'], line: ['#ff6a1a', '#ff3d00'] },
     OPTIONS: [{ key: 'mode', label: 'MODE', type: 'list', choices: [
       { value: 'quick', label: `QUICK · ${OC_MODES.quick}`, sub: 'Six different challenges · about 4 min' },
       { value: 'standard', label: `STANDARD · ${OC_MODES.standard}`, sub: 'Twelve different challenges' },
@@ -26,7 +29,7 @@ export const META = Object.freeze({
   prism: Object.freeze({
     MODES: PR_MODES, DEFAULT_SETTINGS: PR_DEF, MIN_PLAYERS: 2, SOLO: true, SOLO_MODES: PR_SOLO,
     SOLO_RUNS: [{ mode: 'rush', label: 'SCORE RUSH', sub: 'ONE SONG' }, { mode: 'survival', label: 'SURVIVAL', sub: 'UNTIL YOU TOP OUT' }],
-    MUSIC: null, BANNER_NAME: 'PRISM DROP', ACCENT: '#8fd8ff', cleanSettings: prClean,
+    MUSIC: null, BANNER_NAME: 'PRISM DROP', ACCENT: '#8fd8ff', NEON: { name: [['PRISM DROP', '#8fd8ff', '#2aa8ff']], mode: ['#cfe3ff', '#6a9cff'], line: ['#8fd8ff', '#2aa8ff'], day: { name: ['#1d5aa6'], mode: '#4a5670', line: '#1d5aa6', gold: '#7a4f00' } }, cleanSettings: prClean,
     OPTIONS: [{ key: 'mode', label: 'MODE', type: 'list', choices: [
       { value: 'battle', label: 'BATTLE', sub: 'Clear lines to attack your friends — last one standing wins', when: n => n >= 2 },
       { value: 'rush', label: 'SCORE RUSH', sub: 'No attacks — one song, highest score wins' },
@@ -38,7 +41,7 @@ export const META = Object.freeze({
   // HOLD'EM — PLAY CHIPS ONLY: no money words anywhere ("CASH" is only the mode's name)
   holdem: Object.freeze({
     MODES: HE_MODES, SPEED_KEYS: HE_SPEEDS, DEFAULT_SETTINGS: HE_DEF, MIN_PLAYERS: 2, MAX_PLAYERS: 8,
-    MUSIC: 'mood:late', BANNER_NAME: "HOLD'EM", ACCENT: '#f2c14e', LOOKS: ['night'], OWN_VICTORY_SOUND: true,
+    MUSIC: 'mood:late', BANNER_NAME: "HOLD'EM", ACCENT: '#f2c14e', NEON: { name: [["HOLD'EM", '#ff5a64', '#ff1f3d']], mode: ['#ffb6ba', '#ff5a64'], line: ['#ff5a64', '#ff1f3d'] }, LOOKS: ['night'], OWN_VICTORY_SOUND: true,
     CHAT_CHIPS: ['NICE HAND', 'NO WAY', 'WELL PLAYED', 'UNLUCKY'], chatLocked: () => false, END_HANDS: HE_END,
     endGameLine: node => {
       const get = k => { try { return JSON.parse(node && node.m && node.m[k]); } catch { return null; } };
@@ -68,12 +71,12 @@ export const META = Object.freeze({
   }),
   // JAYWALK — ONE LIFE EVERYWHERE (no options); both looks (body[data-look])
   jaywalk: Object.freeze({
-    DEFAULT_SETTINGS: {}, SOLO: true, MUSIC: 'mood:evening', BANNER_NAME: 'JAYWALK', LOOKS: ['day', 'night'], OWN_VICTORY_SOUND: true, ACCENT: '#ff4fc4',
+    DEFAULT_SETTINGS: {}, SOLO: true, MUSIC: 'mood:evening', BANNER_NAME: 'JAYWALK', LOOKS: ['day', 'night'], OWN_VICTORY_SOUND: true, ACCENT: '#ff4fc4', NEON: { name: [['JAYWALK', '#ff4fc4', '#ff2bb0']], mode: ['#ffb8e8', '#e85fc0'], line: ['#ff4fc4', '#ff2bb0'] },
     cleanSettings: () => ({}), OPTIONS: [], estimateMinutes: () => 3, chatLocked: runLocked,
     scoreLine: s => `${Math.floor(Math.max(0, Number(s) || 0) / 1e5)} LANES`,   // (the daily's score as a line — core/daily-best.js#jwScore)
   }),
   highrise: Object.freeze({
-    DEFAULT_SETTINGS: {}, SOLO: true, MUSIC: 'mood:evening', BANNER_NAME: 'HIGH RISE', LOOKS: ['day', 'night'], OWN_VICTORY_SOUND: true, ACCENT: '#ff4fd8',
+    DEFAULT_SETTINGS: {}, SOLO: true, MUSIC: 'mood:evening', BANNER_NAME: 'HIGH RISE', LOOKS: ['day', 'night'], OWN_VICTORY_SOUND: true, ACCENT: '#ff4fd8', NEON: { name: [['HIGH', '#ff4fd8', '#ff2bd6'], ['RISE', '#36c9ff', '#0096ff']], mode: ['#c9b6ff', '#9e7eff'], line: ['#ff4fd8', '#ff2bd6'] },
     cleanSettings: () => ({}), OPTIONS: [], estimateMinutes: () => 3, chatLocked: runLocked,
   }),
 });

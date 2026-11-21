@@ -1,0 +1,36 @@
+<!doctype html>
+<!-- CITY PART 2 — THE END NEON's preview (no Firebase): HIGH RISE's end card (endscreen.js#endCard — the page's + the cartridge's ONE builder)
+     on its veil, three cases side by side: a miss (SOLO), a NEW BEST (MATCH header), MADE IT TO THE MOTHERSHIP (gold). The A/B for "no look
+     change" when the card's code moves (the same page on an older tree: `node scripts/serve.mjs 5174` in a worktree).
+       ?look=day|night (body[data-look] — the card reads it live) -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>END NEON preview</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;1,700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/highrise-play.css">
+  <style>
+    body { margin: 0; background: #07060b; }
+    .en-row { display: flex; gap: 0; }
+    .en-cell { --hi-w: 390px; width: 390px; padding: 40px 0 30px; background: linear-gradient(#1b2350, #07060b); }
+  </style>
+</head>
+<body>
+<div class="en-row" id="row"></div>
+<script type="module">
+const q = new URLSearchParams(location.search);
+document.body.dataset.look = q.get('look') === 'day' ? 'day' : 'night';
+const { endCard } = await import('/js/games/highrise/endscreen.js');
+const row = document.getElementById('row');
+const add = (hd, set, best) => { const C = endCard({ header: hd }); C.set(set); C.best(...best); const d = document.createElement('div'); d.className = 'en-cell'; d.append(C.el); row.append(d); };
+add('solo', { words: 'MISSED THE STACK', made: false, floor: 75, perfects: 66, streak: 14 }, [119, false]);
+add('match', { words: 'SLIPPED OFF', made: false, floor: 63, perfects: 1, streak: 3 }, [63, true, 57]);
+add('solo', { words: 'MADE IT TO THE MOTHERSHIP', made: true, floor: 400, perfects: 211, streak: 40 }, [400, true, 355]);
+await document.fonts.ready;
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

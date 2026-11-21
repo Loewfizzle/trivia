@@ -31,6 +31,7 @@ export function writeVote(code, uid, value) {
   return dbUpdate(dbRef(`rooms/${code}`), { [`rv/${uid}`]: value });
 }
 import { finInk } from '../core/fin-ink.js';
+import { finHeader, finFrame, neonOf, fitHeader } from './fin-neon.js';
 
 // (CITY F — END-SCREEN STANDARD A: the foot's icons — drawn lines, currentColor; the bar's replay arrow, the links' share / home / room)
 const FIN_ICONS = {
@@ -54,7 +55,7 @@ const FIN_PINK = '#ff2bd6';   // (the console's pink — THE NEON TUBE's — whe
  * winnerLine(name): subtitle for a single winner.
  * scoreLabel: small caption under podium scores (e.g. 'HP').
  */
-export function createFinal({ rows, players, me, presence, winnerLine, scoreLabel = '', kicker = 'MATCH COMPLETE', extra = null, game = null }) {
+export function createFinal({ rows, players, me, presence, winnerLine, scoreLabel = '', kicker = 'MATCH COMPLETE', extra = null, game = null, mode = null }) {
   const cancelers = [], refreshers = [];
   // the global boards: personal bests, world ranks, XP, rank-ups (js/profile/callouts.js) — loaded on demand, never in the way
   const rcSlot = h('div.rc-slot');
@@ -212,8 +213,11 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   const top3 = !body || body.dataset.podium !== 'none';
   const listRows0 = body && body.dataset.podium === 'all' ? [] : top3 ? rows.slice(3) : rows;
   const listRows = allTied ? listRows0.map(r => ({ ...r, rank: '=' })) : listRows0;   // (B4: everyone level — '=' for all, nobody 01)
+  // (CITY PART 2 — THE END NEON: a game with a NEON row + a `mode` ('SOLO' / 'MATCH') → the header "<GAME> · <MODE>" in its sign's colours —
+  //  ui/fin-neon.js, the ONE builder; without either the kicker as given)
+  const neonKick = mode != null && g && neonOf(g.id) ? finHeader(g.id, mode) : null;
   const el = h('div.panel-full.final', solo ? { class: 'is-solo' } : allTied ? { class: 'is-alltied' } : null,
-    h('div.sheet-kicker', kicker),
+    neonKick ? h('div.sheet-kicker.fn-kick', neonKick) : h('div.sheet-kicker', kicker),
     h('div.winner', h('div.winner-title', { 'data-text': word, class: tied ? 'is-tied' : null }, word),
       h('div.winner-name', solo ? `${winner ? winner.name : ''}${rows[0] && rows[0].score != null ? ` · ${rows[0].scoreText || rows[0].score}` : ''}`.toUpperCase() : allTied ? 'NOBODY TAKES FIRST' : tied ? 'SHARED VICTORY' : winnerLine(winner ? winner.name : ''))),
     body || podium,
@@ -247,6 +251,8 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   const mt = setTimeout(measure, 900);
   // (FRIENDS B — THE END SCREEN TAKES THE GAME'S COLOUR: the cartridge's ACCENT tints the frame's main tube; missing = the pink)
   if (mod && typeof mod.ACCENT === 'string' && /^#[0-9a-f]{6}$/i.test(mod.ACCENT)) { el.classList.add('has-accent'); el.style.setProperty('--fin', mod.ACCENT); }
+  if (g) finFrame(el, g.id);
+  if (neonKick) cancelers.push(fitHeader(neonKick.parentElement));   // (THE END NEON: the WINNER title in gold, SOLO RUN / DEADLOCK in the game's accent — the game's NEON row)
   // (CITY F: the bar's text — dark on the accent where it reads ≥ 4.5 : 1, white where the accent is too dark; the console's pink without one)
   el.style.setProperty('--fin-ink', finInk(mod && /^#[0-9a-f]{6}$/i.test(String(mod.ACCENT || '')) ? mod.ACCENT : FIN_PINK));
   // (FRIENDS B — B2: THE VICTORY MUSIC waits for the BODY: app.js#musicFor plays the podium music once this frame is on screen — never during

@@ -36,7 +36,6 @@ import { CLOCK, packFrom, tapsFromChunks } from './proof.js';
 import { cleanBest } from './best.js';
 import { BOARD, SRV_BEST_KEY, TABLE_KEEP_MS, parseTable } from './lines.js';
 import { createStage, newSeed } from './stage.js';
-import { endHeader } from './endscreen.js';
 
 /** GO's answer is waited this long before a run goes on UNPROVEN (never a stuck start) */
 export const GO_WAIT_MS = 4000;
@@ -418,7 +417,7 @@ export function createView() {
     S.hideCard();   // (THE REVIEW: the podium takes the screen — the stage's own NO SIGNAL card is put away, a key can not restart under it)
     // (a MATCH's rows: everyone in order with their floor + how their tower ended + their perfects — the console lists them as slim cards)
     const res = g.results || {}, solo = g.mode === 'solo';
-    final = createFinal({ game: g, rows: gameStandings(g).map(r => ({ uid: r.uid, rank: r.rank, score: r.floor, ...(solo ? {} : { note: `${g.unproven ? 'NOT COUNTED' : END_WORDS[(res[r.uid] || {}).w] || 'NO TOWER'} · ${perfectsLine(r.perfects)}` }) })), players: st.players, me: uid, presence: st.presence, kicker: endHeader(solo ? 'solo' : 'match'), scoreLabel: 'FLOORS', winnerLine: nm => `${nm} BUILT THE TALLEST` });
+    final = createFinal({ game: g, rows: gameStandings(g).map(r => ({ uid: r.uid, rank: r.rank, score: r.floor, ...(solo ? {} : { note: `${g.unproven ? 'NOT COUNTED' : END_WORDS[(res[r.uid] || {}).w] || 'NO TOWER'} · ${perfectsLine(r.perfects)}` }) })), players: st.players, me: uid, presence: st.presence, kicker: solo ? 'HIGH RISE · SOLO' : 'HIGH RISE · MATCH', mode: solo ? 'SOLO' : 'MATCH', scoreLabel: 'FLOORS', winnerLine: nm => `${nm} BUILT THE TALLEST` });
     finalWrap = h('div.hi-final', final.el);
     S.el.classList.add('is-final'); S.el.append(finalWrap);
   }

@@ -102,12 +102,8 @@
 .hi-ec { display: grid; justify-items: center; gap: 10px; text-align: center; }
 .hi-ec-hd, .hi-final .final > .sheet-kicker { font: 900 clamp(15px, calc(var(--hi-w) * 0.049), 21px)/1.15 var(--font-display); letter-spacing: 0.1em; white-space: nowrap; }
 .hi-ec-hd { margin-bottom: 4px; }
-.hi-hd b, .hi-hd i { font: inherit; font-style: normal; }
-.hi-hd-a { color: #ff4fd8; text-shadow: 0 0 1px rgba(255, 236, 250, 0.75), 0 0 10px rgba(255, 79, 216, 0.95), 0 0 24px rgba(255, 43, 214, 0.6), 0 2px 0 rgba(20, 0, 14, 0.9); }
-.hi-hd-b { color: #36c9ff; text-shadow: 0 0 1px rgba(232, 250, 255, 0.75), 0 0 10px rgba(54, 201, 255, 0.95), 0 0 24px rgba(0, 150, 255, 0.6), 0 2px 0 rgba(0, 10, 24, 0.9); }
-.hi-hd-m { color: #c9b6ff; text-shadow: 0 0 10px rgba(158, 126, 255, 0.6), 0 2px 0 rgba(10, 4, 24, 0.9); }
-.hi-ec-cause { max-width: 11.5em; font: 900 min(34px, calc(var(--hi-w) * 0.087))/1.06 var(--font-display); letter-spacing: 0.04em; color: #ff4fd8; text-wrap: balance;
-  text-shadow: 0 0 1px rgba(255, 236, 250, 0.8), 0 0 12px rgba(255, 79, 216, 0.95), 0 0 30px rgba(255, 43, 214, 0.65), 0 3px 0 rgba(20, 0, 14, 0.9); }
+/* (the header's words + the cause's neon: THE END NEON — css/components.css .fn-*, the colours = js/games/metas.js NEON — CITY PART 2) */
+.hi-ec-cause { max-width: 11.5em; font: 900 min(34px, calc(var(--hi-w) * 0.087))/1.06 var(--font-display); letter-spacing: 0.04em; text-wrap: balance; }
 .hi-ec-n { margin-top: 6px; display: inline-flex; gap: 0.05em; font: 700 clamp(84px, calc(var(--hi-w) * 0.256), 104px)/0.95 var(--font-num); letter-spacing: 0.02em; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap;
   text-shadow: 0 0 2px #fff, 0 0 16px rgba(0, 240, 255, 0.85), 0 0 38px rgba(0, 190, 255, 0.45), 0 3px 0 rgba(0, 0, 0, 0.8); }
 .hi-ec-fl { margin-top: -6px; padding-left: 0.34em; font: 700 15px/1 var(--font-ui); letter-spacing: 0.34em; color: var(--text-dim); }
@@ -115,7 +111,7 @@
 .hi-ec-best.is-new { padding-left: 0.1em; font: 900 22px/1.1 var(--font-display); letter-spacing: 0.1em; text-shadow: 0 0 1px rgba(255, 250, 230, 0.8), 0 0 14px rgba(255, 200, 60, 0.95), 0 0 30px rgba(255, 170, 30, 0.65); animation: hi-new 0.5s cubic-bezier(0.2, 1.7, 0.4, 1) both; }
 @keyframes hi-new { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: none; } }
 .hi-ec-line { padding-left: 0.2em; font: 600 13px/1.2 var(--font-ui); letter-spacing: 0.2em; color: var(--text-dim); white-space: nowrap; }
-.hi-ec.is-made .hi-ec-cause { max-width: 13em; font-size: min(28px, calc(var(--hi-w) * 0.07)); color: #ffc83c; text-shadow: 0 0 1px rgba(255, 250, 230, 0.8), 0 0 12px rgba(255, 200, 60, 0.95), 0 0 30px rgba(255, 170, 30, 0.65), 0 3px 0 rgba(60, 30, 0, 0.9); }
+.hi-ec.is-made .hi-ec-cause { max-width: 13em; font-size: min(28px, calc(var(--hi-w) * 0.07)); }   /* (gold: the shared .fn-line.is-gold) */
 /* THE END's FOOT — END-SCREEN STANDARD A (S2 FIX, the owner; css/components.css .final-bar is the app's — this page loads no ui/final.js):
    ONE big SOLID glowing PLAY AGAIN bar in HIGH RISE's accent (--hi-accent: its sign's hot pink), dark ink on it; a rounded RECTANGLE
    (8 px corners — never a pill), full width inside the 16 pt gutters, 62 pt tall; the glow static. Above the page's note. */

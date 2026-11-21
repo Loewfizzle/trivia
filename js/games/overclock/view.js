@@ -800,7 +800,7 @@ export function createView() {
     if (old) old.remove();
     final = createFinal({
       rows: standings(game), players: st.players, me: me(), presence: st.presence, scoreLabel: 'PTS',
-      kicker: `OVERCLOCK · ${String(game.total)} CHALLENGES`,
+      kicker: `OVERCLOCK · ${String(game.total)} CHALLENGES`, mode: Object.keys(game.participants || {}).length === 1 ? 'SOLO' : 'MATCH',   // (CITY PART 2 — THE END NEON's header)
       winnerLine: nm => `${nm} RAN THE HOTTEST`,
     });
     els.overlay.append(final.el);

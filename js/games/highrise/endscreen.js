@@ -3,7 +3,8 @@
 // ONE builder for the test page's own card (stage.js) AND the cartridge's body inside the console's podium frame (final.js) — top to
 // bottom, JAYWALK's layout, type, sizes + spacing (js/games/jaywalk/victory.js#buildEnd · css .jw-fin*):
 //   the HEADER "HIGH RISE · SOLO" (· MATCH in a match) — HIGH in the sign's hot pink, RISE in its cyan, the mode in a soft lavender
-//     (endHeader: the cartridge hands it to the console's frame as its kicker; the page's card wears it itself)
+//     (CITY PART 2: THE END NEON's ONE builder — ui/fin-neon.js#finHeader, the colours = metas.js NEON; the console's frame shows it through
+//     createFinal's `mode`, the page's card wears it itself)
 //   the CAUSE — big neon words, up to two lines, SATURATED HOT PINK (the colour IS the letter: a hair-thin bright core + its glow);
 //     MADE IT TO THE MOTHERSHIP = GOLD
 //   THE FLOOR NUMBER, huge — the one WHITE hero, a cyan glow — and FLOORS under it
@@ -11,15 +12,13 @@
 // YOUR TABLE (final.js) follows right under the personal numbers; THE FOOT is the caller's (the console's universal footer · the page's
 // PLAY AGAIN bar). No stats strip, no dashed tower line, no pills. A VIEW's helper: DOM only — no rules, no storage, no fetch.
 import { h } from '../../ui/dom.js';
+import { finHeader, finLine } from '../../ui/fin-neon.js';
 
 const whole = n => Math.max(0, Math.floor(Number(n) || 0));
 const say = n => whole(n).toLocaleString('en-US');
 
 /** the header's words in their own neon: HIGH (hot pink) · RISE (cyan) · the mode (lavender) — one node, the frame's kicker or the card's top line */
-export function endHeader(mode = 'solo') {
-  const m = mode === 'match' ? 'MATCH' : 'SOLO';
-  return h('span.hi-hd', { role: 'heading', 'aria-level': '1', 'aria-label': `High Rise, ${m.toLowerCase()}` }, h('b.hi-hd-a', { 'aria-hidden': 'true' }, 'HIGH'), ' ', h('b.hi-hd-b', { 'aria-hidden': 'true' }, 'RISE'), h('i.hi-hd-m', { 'aria-hidden': 'true' }, ` · ${m}`));
-}
+export const endHeader = (mode = 'solo') => finHeader('highrise', mode === 'match' ? 'MATCH' : 'SOLO');
 /** "66 PERFECTS · BEST STREAK 14" (1 PERFECT) */
 export const statsLine = (perfects, streak) => `${say(perfects)} PERFECT${whole(perfects) === 1 ? '' : 'S'} · BEST STREAK ${say(streak)}`;
 
@@ -30,7 +29,7 @@ export const statsLine = (perfects, streak) => `${say(perfects)} PERFECT${whole(
  *   isNew = this run beat it (NEW BEST — `was` > 0: NEW BEST · WAS n)
  */
 export function endCard({ header = '' } = {}) {
-  const cause = h('div.hi-ec-cause'), n = h('div.hi-ec-n'), fl = h('div.hi-ec-fl', 'FLOORS'), bestL = h('div.hi-ec-best'), line = h('div.hi-ec-line');
+  const cause = finLine(h('div.hi-ec-cause'), 'highrise'), n = h('div.hi-ec-n'), fl = h('div.hi-ec-fl', 'FLOORS'), bestL = h('div.hi-ec-best'), line = h('div.hi-ec-line');
   const hd = header ? h('div.hi-ec-hd', endHeader(header)) : null;
   const el = h('div.hi-ec', hd, cause, n, fl, bestL, line);
   return {
@@ -39,7 +38,7 @@ export function endCard({ header = '' } = {}) {
     header(mode) { if (hd) hd.replaceChildren(endHeader(mode)); },
     set({ words, made, floor, perfects, streak }) {
       const f = whole(floor);
-      el.classList.toggle('is-made', !!made);
+      el.classList.toggle('is-made', !!made); cause.classList.toggle('is-gold', !!made);   // (MADE IT TO THE MOTHERSHIP = the gold line)
       cause.textContent = words || '';
       // (each digit its own box — a little room between two: a 1 never runs into its neighbour)
       n.replaceChildren(...[...String(f)].map(d => h('span.hi-dg', { 'aria-hidden': 'true' }, d)));

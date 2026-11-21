@@ -286,7 +286,7 @@ export function createView() {
     const cash = g.endMode === 'cash';
     finalView = createFinal({ rows: Array.isArray(g.rows) ? g.rows : [], players: st.players || {}, me: me(), presence: st.presence, scoreLabel: cash ? 'NET' : '',
       // (ui/final.js needs a winnerLine; HOLD'EM's body names the winner itself — the frame's WINNER line is hidden: css)
-      kicker: cash ? 'CASH · THE LEDGER' : 'TOURNAMENT · FINAL', winnerLine: nm => nm });
+      kicker: cash ? 'CASH · THE LEDGER' : 'TOURNAMENT · FINAL', mode: 'MATCH', winnerLine: nm => nm });   // (CITY PART 2 — THE END NEON's header: HOLD'EM · MATCH)
     els.final = h('div.he-final', finalView.el);
     root.append(els.final);
     root.classList.add('is-final');

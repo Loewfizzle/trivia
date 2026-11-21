@@ -96,7 +96,7 @@ export function buildFinal({ game, st, me }) {
   const rush = rushOf(game), surv = survOf(game);
   const finalView = createFinal({
     rows: finalRows(game), players: st.players, me, presence: st.presence, scoreLabel: rush ? 'PTS' : surv ? 'TIME' : 'KO',
-    kicker: rush ? 'SCORE RUSH · FINAL' : surv ? 'SURVIVAL · FINAL' : 'BATTLE · FINAL',
+    kicker: rush ? 'SCORE RUSH · FINAL' : surv ? 'SURVIVAL · FINAL' : 'BATTLE · FINAL', mode: soloOf(game) ? 'SOLO' : 'MATCH',   // (CITY PART 2 — THE END NEON's header)
     winnerLine: nm => (rush ? `${nm} TOPS THE SONG` : surv ? `${nm} OUTLASTED EVERYONE` : `${nm} IS THE LAST ONE STANDING`),
   });
   return { finalView, wrap: h('div.pd-final', finalView.el) };

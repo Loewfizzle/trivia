@@ -645,7 +645,7 @@ export function createView() {
     const solo = soloGame(g);
     if (callEl) { callEl.remove(); callEl = null; }
     if (outCard) { outCard.remove(); outCard = null; }
-    final = createFinal({ game: g, rows: finalRows(g, code), players: st.players, me: uid, presence: st.presence, kicker: solo ? 'JAYWALK · SOLO' : 'JAYWALK · MATCH', winnerLine: nm => `${nm} WENT THE FARTHEST` });
+    final = createFinal({ game: g, rows: finalRows(g, code), players: st.players, me: uid, presence: st.presence, kicker: solo ? 'JAYWALK · SOLO' : 'JAYWALK · MATCH', mode: solo ? 'SOLO' : 'MATCH', winnerLine: nm => `${nm} WENT THE FARTHEST` });
     finalWrap = h('div.jw-final', final.el);
     root.classList.add('is-over'); root.append(finalWrap); night.rest(true);   // (H6B: the scene rests behind the end screen)
   }
