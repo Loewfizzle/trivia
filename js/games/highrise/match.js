@@ -6,7 +6,7 @@
 import { CALL_MS, callBonus } from '../../core/playlist.js';
 import { TICK_HZ, MODES } from './tuning.js';
 import { matchStart, gameStandings } from './logic.js';
-import { firstGo, inMatch, fullDraw } from '../../core/proof.js';
+import { firstGo, inMatch, fullDraw, liveGoers } from '../../core/proof.js';
 
 export { CALL_MS };
 export const COUNT_MS = 3000;             // (3 · 2 · 1 before GO)
@@ -63,6 +63,17 @@ export function lastSeen(game, node) {
 /** has this player's run ended, as far as the room can tell? their own `e` — or a silence long enough that the fuse has ended the tower
  *  AND (offline) a dropped signal has had its time to come back */
 export const endedFor = (game, node, now, online) => !!(node && node.e) || now >= lastSeen(game, node) + IDLE_OUT_MS + (online ? 0 : DROP_WAIT_MS);
+
+/**
+ * THE CONSOLE FIX — THE LIVE RUNS of a match (core/proof.js#liveGoers on this game's clock: THE FIRST GO's tick 0, the 6:00 cap +
+ * END_GRACE_MS, IDLE_OUT_MS, DROP_WAIT_MS): the on-time towers not ended yet, read from the proof nodes ALONE (never the host's game) —
+ * THE SERVER holds a report while any is (api/report.js), the podium waits for them (view.js). → { uids, until }
+ */
+export function liveOf({ code, matchId, tree, now, online = null }) {
+  const S = tree ? matchStart(code, matchId, tree) : null;
+  if (!S) return { uids: [], until: 0 };
+  return liveGoers(tree, { now, online, playAt: S.playAt, capAt: capAt({ playAt: S.playAt }), idleMs: IDLE_OUT_MS, dropMs: DROP_WAIT_MS, graceMs: END_GRACE_MS });
+}
 
 /**
  * CALL THE WINNER (the match kit's piece; the call = the caller's own proof node's `k: { w, at }` — the rules: only once their own end

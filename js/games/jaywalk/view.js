@@ -21,6 +21,8 @@ import { LOOKS as AREA_LOOKS } from './areas.js';
 import { createRun, step, isOver, canLog, kidAt } from './engine.js';
 import { packLog, unpackLog, logFromChunks } from './replay.js';
 import { seedOf, startOf } from './logic.js';
+import { liveOf, finalPatch } from './director.js';
+import { createRouterPing, createLiveWait, END_OWED_MS } from '../kit/run-hold.js';
 import { createGhost, resetGhost, feedGhost, stepGhost, tagGroups } from './ghosts.js';
 import { wireControls } from './controls.js';
 import { createNight } from './night.js';
@@ -100,6 +102,21 @@ export function createView() {
   if (VIEWS) VIEWS.push(new WeakRef(frames));
   /** how long a run's end is seen before the end screen / the spectator's view covers it: THE ABDUCTION + THE MOTHERSHIP's lift are longer (H6A) */
   const hold = () => Math.max(END_HOLD_MS, night ? night.holdMs(run) : 0);
+  // THE CONSOLE FIX — THE RUN HOLD (kit/run-hold.js; docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): this phone's
+  // own PROVEN match run is played to its own end whatever the host's state says — no podium over it, the router keeps this screen through
+  // a moved-on room; then its end is written and the phone follows. The podium waits for the rivals' live runs the same way.
+  const pingRouter = createRouterPing(), liveWait = createLiveWait(liveOf);
+  const runLive = () => isMatch && proven && !D && mode === 'run' && !!run && !isOver(run);
+  function holdsRun() {
+    if (gone || !isMatch || !proven || D) return false;
+    if (runLive()) return true;
+    if (mode !== 'over' || !wroteE) return false;
+    const since = performance.now() - overAt;
+    return since < hold() || (since < END_OWED_MS && !!W && W.owes());
+  }
+  /** the podium after a wait: scored from the nodes as they stand now (the host's own step — director.js#finalPatch), never an early
+   *  `final`'s numbers */
+  const scoredNow = g => { try { return { ...g, ...finalPatch(g, runsNow() || {}, srvNow(), code) }; } catch { return g; } };
   // HIGH RISE S4A — THE SOUND SYNC (the owner plays with MUSIC OFF): PODCAST MODE naps the audio context between two effects — every hop's
   // sound then had to wake it first (on iOS at the finger's LIFT: the sound late by a variable beat). A LIVE run HOLDS IT AWAKE: a lease
   // renewed once a second from the frame (audio/engine.js#holdAwake, through its hub — THE STALE-MODULE RULE), let go when the run ends
@@ -173,7 +190,7 @@ export function createView() {
   function reset() {
     mode = 'wait'; course = START; run = createRun({ seed: 'start', mode: 'solo' }); log = []; queue = []; go = 0; proven = false; asked = false; goTries = 0; haveGo = false;
     newWriter(); wroteE = false; lateGo = false; overAt = 0; lanesShown = -1; markUntil = 0; shotAt = 0; revealed = false;
-    watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; liveRuns = null; orderKey = ''; countKey = ''; watchKey = '';
+    watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; liveRuns = null; orderKey = ''; countKey = ''; watchKey = ''; liveWait.reset();
     cues = createCues(); quiet(); if (night) night.rest(false);
     for (const G of ghosts.values()) if (G.tagEl) G.tagEl.remove();
     ghosts.clear();
@@ -202,8 +219,8 @@ export function createView() {
     clearTimeout(goTimer);
     goTimer = setTimeout(() => { if (!gone && m === matchId && mode === 'wait') unproven('no answer'); }, GO_WAIT_MS);
     expectRefusal(path, 'jaywalk GO: already written (a rejoin) or the rules are not published yet');
-    stampT0(treePath(), 'jaywalk');   // (THE PROOF PASS — THE STAMP: the tree's first write, right ahead of the GO — core/proof.js)
-    dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => {
+    // (THE PROOF PASS — THE STAMP: the tree's first write, right ahead of the GO — core/proof.js; THE CONSOLE FIX: the GO behind its answer)
+    stampT0(treePath(), 'jaywalk').then(() => dbSet(dbRef(path), serverTimestamp())).then(() => dbGet(dbRef(path))).then(snap => {
       if (gone || m !== matchId || mode !== 'wait') return;
       const v = snap.val();
       if (typeof v === 'number' && v > 0) adopt(v, null, true); else unproven('no go');
@@ -595,6 +612,7 @@ export function createView() {
     if (markUntil && now > markUntil) { markEl.textContent = ''; markUntil = 0; }
     if (arriveEl && arriveEl.on() && !arriveNow()) arriveEl.hide();   // (the Mothership's warning / the run's end takes the top: the banner goes at once — never stacked)
     if (mode === 'over' || (isMatch && g && g.phase === 'final')) endScreen();
+    { const RH = globalThis.__nsRunHold; if (RH && (RH.on || RH.wait) && !holdsRun()) pingRouter(); }   // (THE CONSOLE FIX: the run is over + written — follow the room)
   }
 
   // ---- the end
@@ -603,8 +621,13 @@ export function createView() {
     if (isMatch) {
       // (the match is over — the host's step: the podium for everyone)
       // (someone still standing at 6:00: the podium waits THE MOTHERSHIP's lift out)
-      const ship = mode === 'over' && Object.values(g && g.results || {}).some(r => r && r.x) && tickNow().t < MODES.match.cap + SHIP_SEEN;
-      if (g && g.phase === 'final' && !final && !ship && (mode !== 'over' || performance.now() - overAt >= hold())) showFinal(g);
+      if (!g || g.phase !== 'final' || final || runLive()) return;   // (THE CONSOLE FIX: a live proven run of this phone's own is played out first)
+      { const RH = globalThis.__nsRunHold; if (RH && RH.on) return; }   // (… the room moved on: no podium for a match it left — the phone follows it)
+      const ship = mode === 'over' && Object.values(g.results || {}).some(r => r && r.x) && tickNow().t < MODES.match.cap + SHIP_SEEN;
+      if (ship || (mode === 'over' && performance.now() - overAt < hold())) return;
+      // (… and a rival's run still LIVE — the host's `final` came early: this phone keeps watching; the cap ends the wait)
+      if (!g.unproven && liveWait.wait({ code, matchId, runs: runsNow(), presence: st.presence, now: srvNow(), skip: uid }).length) return;
+      showFinal(liveWait.waited() ? scoredNow(g) : g);
       return;
     }
     if (performance.now() - overAt < hold()) return;
@@ -621,7 +644,7 @@ export function createView() {
     const solo = soloGame(g);
     if (callEl) { callEl.remove(); callEl = null; }
     if (outCard) { outCard.remove(); outCard = null; }
-    final = createFinal({ rows: finalRows(g, code), players: st.players, me: uid, presence: st.presence, kicker: solo ? 'JAYWALK · SOLO' : 'JAYWALK · MATCH', winnerLine: nm => `${nm} WENT THE FARTHEST` });
+    final = createFinal({ game: g, rows: finalRows(g, code), players: st.players, me: uid, presence: st.presence, kicker: solo ? 'JAYWALK · SOLO' : 'JAYWALK · MATCH', winnerLine: nm => `${nm} WENT THE FARTHEST` });
     finalWrap = h('div.jw-final', final.el);
     root.classList.add('is-over'); root.append(finalWrap); night.rest(true);   // (H6B: the scene rests behind the end screen)
   }
@@ -689,7 +712,7 @@ export function createView() {
       reset();
       if (isMatch) root.classList.add('is-match');
       if (TEST) globalThis.__jwGame = {
-        state: () => ({ mode, proven, haveGo, matchId, go, seed: course.seed, t: run.t, st: run.st, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent: W ? W.state().sent : 0, chunks: W ? W.state().chunks : 0, acked: W ? W.state().acked : 0, lateGo, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
+        state: () => ({ mode, proven, haveGo, matchId, holds: holdsRun(), liveWaited: liveWait.waited(), go, seed: course.seed, t: run.t, st: run.st, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent: W ? W.state().sent : 0, chunks: W ? W.state().chunks : 0, acked: W ? W.state().acked : 0, lateGo, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
           lines: { best: lines.best, friends: lines.friends.map(f => `${f.n} ${f.v}`), record, shown: lineKey, flash: lanesEl.classList.contains('is-flash'), gold: lanesEl.classList.contains('is-record') },
           isMatch, watching, follow: followUid, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
           ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag, held: G.held, done: G.done, behind: G.behind, fade: +(G.fade || 0).toFixed(2), x: G.run.x / FP, name: G.name, shown: !!G.tagKey, text: G.tagEl.textContent })),
@@ -708,6 +731,7 @@ export function createView() {
       sync();
       raf = requestAnimationFrame(frame);
     },
+    holdsRun,
     update(state) { st = state; if (matchLeft()) lateProof('seen');   // (CITY I: from the moment this phone sees the match end, a chunk / e still in flight is an expected refusal)
       if (night) sync(); },
     unmount() {

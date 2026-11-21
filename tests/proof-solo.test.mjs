@@ -19,7 +19,7 @@ const solo = (s, k, row = {}) => matchStep(s, { key: `s${k}`, gid: 'jaywalk', ro
 test('THE LIST: the games whose runs the SERVER replays itself — JAYWALK + HIGH RISE (= api/report.js#PROOF_GAMES); one list, core/proof.js', () => {
   assert.deepEqual([...VERIFIED_SOLO], ['jaywalk', 'highrise']); assert.equal(VERIFIED_SOLO, CORE_LIST);
   const rep = read('api/report.js');
-  for (const g of VERIFIED_SOLO) assert.ok(new RegExp(`\\n  ${g}: Object\\.freeze\\(\\{ node: '\\w+', solo: \\w+, match: \\w+ \\}\\),`).test(rep), `${g} is a PROOF GAME on the server`);
+  for (const g of VERIFIED_SOLO) assert.ok(new RegExp(`\\n  ${g}: Object\\.freeze\\(\\{ node: '\\w+', solo: \\w+, match: \\w+, live: \\w+ \\}\\),`).test(rep), `${g} is a PROOF GAME on the server`);
   assert.equal((rep.slice(rep.indexOf('export const PROOF_GAMES'), rep.indexOf('});', rep.indexOf('export const PROOF_GAMES'))).match(/Object\.freeze\(\{ node:/g) || []).length, VERIFIED_SOLO.length, 'no proof game missing from the list, none extra');
 });
 

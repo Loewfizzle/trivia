@@ -183,7 +183,7 @@ test('A SEAT IS NOT A PLAY — the walk back keeps the proof nodes; A RE-START K
   const { staleProofPaths } = await import('../js/core/room-logic.js');
   assert.deepEqual(staleProofPaths({ prism: { A: {}, B: {}, Z: {} }, oc: { B: {}, Y: {} }, ocm: null }, ['B', 'C']), { 'prism/A': null, 'prism/Z': null, 'oc/Y': null });
   const rep = fs.readFileSync('api/report.js', 'utf8');
-  assert.match(rep, /if \(!\(players && players\[u\]\) \|\| !playedIt\(u\)\) delete ex\.rows\[u\];/, 'every credited uid needs its own proof');
+  assert.match(rep, /if \(!seatOk\(u\) \|\| !playedIt\(u\)\) delete ex\.rows\[u\];/, 'every credited uid needs its own proof'); assert.match(rep, /const seatOk = u => !!\(players && players\[u\]\) \|\| \(jwMatch && !!matchPlayed && matchPlayed\.has\(u\)\);/, 'a seat — or (THE CONSOLE FIX) a proof match\'s player the server\'s replay saw play');
   assert.match(rep, /const real = realPlayers\(named\.filter\(playedIt\), players, known\)\.length;/, 'dropped BEFORE the count');
 });
 

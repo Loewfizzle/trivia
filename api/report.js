@@ -25,7 +25,10 @@ import { noteSeen } from './_lib/seen.js';
 import { ref, val, emulated, adminPids } from './_lib/fb.js';
 import { jaywalkSolo, jaywalkMatch } from './_lib/jaywalk.js';
 import { highriseSolo, highriseMatch, HIGHRISE_COUNTS } from './_lib/highrise.js';
-import { goUids, firstGo, onTime } from '../js/core/proof.js';
+import { goUids, firstGo, onTime, liveRetryMs } from '../js/core/proof.js';
+import { liveOf as jaywalkLive } from '../js/games/jaywalk/director.js';   // (THE CONSOLE FIX: the live runs — PURE, the host's own rule)
+import { liveOf as highriseLive } from '../js/games/highrise/match.js';
+import { isOnline } from '../js/core/room-logic.js';
 import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
 import { applyMatch, wouldApply, needsRetry, mergeOutcomes, MIN_MATCH_GAP_MS } from './_lib/stats.js';
@@ -102,8 +105,8 @@ export { jaywalkSolo, jaywalkMatch };
 // exists ONLY from the server's replay of the players' proof nodes — { node (under rooms/{CODE}), solo, match }
 export { highriseSolo, highriseMatch };
 export const PROOF_GAMES = Object.freeze({
-  jaywalk: Object.freeze({ node: 'jw', solo: jaywalkSolo, match: jaywalkMatch }),
-  highrise: Object.freeze({ node: 'hr', solo: highriseSolo, match: highriseMatch }),
+  jaywalk: Object.freeze({ node: 'jw', solo: jaywalkSolo, match: jaywalkMatch, live: jaywalkLive }),
+  highrise: Object.freeze({ node: 'hr', solo: highriseSolo, match: highriseMatch, live: highriseLive }),
 });
 /**
  * HIGH RISE S4A — THE SWITCH (api/_lib/highrise.js#HIGHRISE_COUNTS — ON since THE GO-LIVE, Nov 20; false = the one-line KILL SWITCH). OFF: a
@@ -263,8 +266,21 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
     for (const [u, r] of Object.entries(M.game.results)) if (r.bad || r.cut) console.warn(`${night.g} match run`, `${code}_${matchId}`, u, r.bad || 'cut');
     return M.game;
   };
+  // THE CONSOLE FIX (Nov 20 — docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): a modified host wrote `final` (or
+  // moved the room on) while a rival's run was still LIVE, then reported — the replay cut that run where its phone had been stopped. Now
+  // no proof match is counted while any on-time run in it is still live (no `e`, its proof moved within the idle-out, the cap not passed —
+  // core/proof.js#liveGoers, the honest host's own rule; read from the players' own nodes + presence, nothing the host writes): 425 +
+  // retryAfter, the queue asks again (profile/queue.js — 'still_live' never runs out of tries); the cap ends every wait.
+  const holdLive = async () => {
+    if (!PG || !PG.live || !goers.length) return;
+    const pres = await val(`rooms/${code}/presence`);
+    const online = Object.fromEntries(goers.map(u => [u, isOnline(pres, u)]));
+    const L = PG.live({ code, matchId, tree: proofTree, now, online });
+    if (L.uids.length) throw new ApiError(425, 'still_live', 'A run of this match is still going — it counts the moment it ends.', { retryAfter: liveRetryMs(L.until, now) });
+  };
   if (game && game.matchId === matchId) {
     if (game.phase !== 'final') throw new ApiError(425, 'not_final', 'The match is still running.');
+    if (jwMatch) await holdLive();
     if (!(jwMatch && goers.includes(uid)) && (!game.participants || !game.participants[uid])) throw new ApiError(403, 'not_in_match');   // (a proof match: a player the tree proves may report, named or not)
     if (game.id !== night.g) throw new ApiError(409, 'mismatch', 'The match doesn’t match its record.');
     if (jwMatch && game.unproven) throw new ApiError(409, 'unverifiable', 'This match was played without its proof.');
@@ -287,6 +303,7 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
     // (the room moved on — a rematch: the finished match's proof nodes are still there (a start keeps the last match's) → the same replay
     //  for EVERYONE the night record names; a report landing after the rematch still credits them all)
     if (!goers.includes(uid) && !(night.p && Object.prototype.hasOwnProperty.call(night.p, uid))) throw new ApiError(403, 'not_in_match');
+    await holdLive();   // (THE CONSOLE FIX: the room moved on mid-match — a held phone is still playing its run out)
     try { ex = extractMatch(await jwMatchGame(Object.keys(night.p || {})), {}); } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(409, 'unverifiable', e.message); }
     src = 'proof';
   } else if (body.snap && typeof body.snap === 'object' && body.snap.matchId === matchId) {
@@ -308,7 +325,11 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   }
   const playedIt = u => !proven || proven.has(u);
   // credit only uids with a SEAT in the room (players/{uid}) — a name in night.n is not a player — AND (FR7 FIXES B) their own proof
-  for (const u of Object.keys(ex.rows)) if (!(players && players[u]) || !playedIt(u)) delete ex.rows[u];
+  // (THE CONSOLE FIX — THE TREE SAYS WHO PLAYED, the seat too: in a PROOF match a player the server's own replay saw PLAY is credited
+  //  seated or not — the host KICKED the leader mid-run (his phone plays the run out now: room.js#runHoldDone) and the seat check took
+  //  the win away all the same. A seat alone still never makes a player.)
+  const seatOk = u => !!(players && players[u]) || (jwMatch && !!matchPlayed && matchPlayed.has(u));
+  for (const u of Object.keys(ex.rows)) if (!seatOk(u) || !playedIt(u)) delete ex.rows[u];
   if (!ex.rows[uid]) throw new ApiError(403, 'not_in_match');
   // FR7-A's C1 — THE REAL PLAYER COUNT: what a win / a place pays grows with the player count, so the count is the match's REAL players
   // (never the length of a host-written list): seated in the room, or — a player who left after the match — an account the server

@@ -1859,6 +1859,14 @@ function proofRoom(gid, mid = 'mat1', phase = 'play', extra = {}) {
   Object.assign(r.rooms[CODE], extra);
   return r;
 }
+/** THE CONSOLE FIX — THE TREE CAP: the phone's stamp = the tree's `t0` + the room's next tree count (`pt`), ONE update — exactly
+ *  kit/proof-io.js#stampT0's write (`n` = the count it claims; default: the room's count + 1, read as that phone) */
+async function stampAt(d, path, { n = null } = {}) {
+  const [, code, node, m] = path.split('/'), room = `rooms/${code}`;
+  let cur = n != null ? n - 1 : 0;
+  if (n == null) { try { cur = Number((await get(ref(d, `${room}/pt/n`))).val()) || 0; } catch { cur = 0; } }
+  return update(ref(d, room), { [`${node}/${m}/t0`]: serverTimestamp(), pt: { n: cur + 1, m, g: node } });
+}
 const chunkOf = s => ({ s, at: serverTimestamp() });
 const MIN = 60000;
 
@@ -1866,16 +1874,16 @@ test('THE PROOF PASS — THE STAMP t0 (jw + hr): the tree\'s FIRST write, the SE
   for (const [gid, node] of PROOF_GAMES) {
     await seed(proofRoom(gid));
     const T = `${R}/${node}/mat1`;
-    await assertFails(set(ref(db(null), `${T}/t0`), serverTimestamp()), `${node}: signed out`);
-    await assertFails(set(ref(db('stranger'), `${T}/t0`), serverTimestamp()), `${node}: not in the room`);
-    await assertFails(set(ref(db('p3'), `${T}/t0`), serverTimestamp()), `${node}: seated but not in the match`);
+    await assertFails(stampAt(db(null), `${T}/t0`), `${node}: signed out`);
+    await assertFails(stampAt(db('stranger'), `${T}/t0`), `${node}: not in the room`);
+    await assertFails(stampAt(db('p3'), `${T}/t0`), `${node}: seated but not in the match`);
     await assertFails(set(ref(db('p2'), `${T}/t0`), now() - 20000), `${node}: never a time of the phone's choosing (=== now)`);
     await assertFails(set(ref(db('p2'), `${T}/t0`), now() + 20000), `${node}: … nor one from the future`);
     await assertFails(set(ref(db('p2'), `${T}/t0`), { at: 1 }), `${node}: a number only`);
-    await assertFails(set(ref(db('p2'), `${R}/${node}/mat2/t0`), serverTimestamp()), `${node}: only the match that is on`);
-    await assertSucceeds(set(ref(db('p2'), `${T}/t0`), serverTimestamp()), `${node}: ANY player of the match stamps it — not only the host`);
-    await assertFails(set(ref(db('p2'), `${T}/t0`), serverTimestamp()), `${node}: once`);
-    await assertFails(set(ref(db('host'), `${T}/t0`), serverTimestamp()), `${node}: once — the host neither`);
+    await assertFails(stampAt(db('p2'), `${R}/${node}/mat2/t0`), `${node}: only the match that is on`);
+    await assertSucceeds(stampAt(db('p2'), `${T}/t0`), `${node}: ANY player of the match stamps it — not only the host`);
+    await assertFails(stampAt(db('p2'), `${T}/t0`), `${node}: once`);
+    await assertFails(stampAt(db('host'), `${T}/t0`), `${node}: once — the host neither`);
     await assertFails(remove(ref(db('p2'), `${T}/t0`)), `${node}: never taken back by a player`);
     await assertFails(remove(ref(db('host'), `${T}/t0`)), `${node}: … nor by the host (he only ever deletes a whole tree, and not a live one)`);
     await assertFails(set(ref(db('host'), `${T}/t0/x`), 1), `${node}: nothing under it`);
@@ -1883,22 +1891,22 @@ test('THE PROOF PASS — THE STAMP t0 (jw + hr): the tree\'s FIRST write, the SE
     assert.ok(Math.abs(t0 - now()) < 30000, `${node}: the stamp is the server's time`);
     // only while the tree is EMPTY (a tree an old phone began with its GO is never stamped afterwards)
     await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/${node}/mat1`), { host: { go: now() - 500 } }));
-    await assertFails(set(ref(db('p2'), `${T}/t0`), serverTimestamp()), `${node}: never into a tree that has begun`);
+    await assertFails(stampAt(db('p2'), `${T}/t0`), `${node}: never into a tree that has begun`);
     // the GO window (the count: only its last 2 s) + a kicked / unseated player
     const r2 = proofRoom(gid, 'mat1', 'count'); r2.rooms[CODE].game.playAt = now() + 3000;
     await seed(r2);
-    await assertFails(set(ref(db('p2'), `${T}/t0`), serverTimestamp()), `${node}: not before the count's last 2 s`);
+    await assertFails(stampAt(db('p2'), `${T}/t0`), `${node}: not before the count's last 2 s`);
     await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { playAt: now() + 1200 }));
     await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/kicked/p2`), true));
-    await assertFails(set(ref(db('p2'), `${T}/t0`), serverTimestamp()), `${node}: a kicked player stamps nothing`);
+    await assertFails(stampAt(db('p2'), `${T}/t0`), `${node}: a kicked player stamps nothing`);
     await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), R), { 'kicked/p2': null, 'players/p2': null }));
-    await assertFails(set(ref(db('p2'), `${T}/t0`), serverTimestamp()), `${node}: an unseated player stamps nothing`);
-    await assertSucceeds(set(ref(db('host'), `${T}/t0`), serverTimestamp()), `${node}: in the count's last 2 s`);
+    await assertFails(stampAt(db('p2'), `${T}/t0`), `${node}: an unseated player stamps nothing`);
+    await assertSucceeds(stampAt(db('host'), `${T}/t0`), `${node}: in the count's last 2 s`);
     // lobby / final / another game: never
     for (const patch of [{ phase: 'final' }, { phase: 'play', id: gid === 'jaywalk' ? 'highrise' : 'jaywalk' }]) {
       const r3 = proofRoom(gid); Object.assign(r3.rooms[CODE].game, patch);
       await seed(r3);
-      await assertFails(set(ref(db('p2'), `${T}/t0`), serverTimestamp()), `${node}: never with ${JSON.stringify(patch)}`);
+      await assertFails(stampAt(db('p2'), `${T}/t0`), `${node}: never with ${JSON.stringify(patch)}`);
     }
   }
 });
@@ -1909,7 +1917,7 @@ test('THE PROOF PASS — hole (c) THE EARLY FIRST GO (jw + hr): a GO is taken on
     const room = proofRoom(gid); room.rooms[CODE].game.participants = { host: true };
     await seed(room);
     const T = `${R}/${node}/mat1`;
-    await assertSucceeds(set(ref(db('host'), `${T}/t0`), serverTimestamp()), `${node}: the host stamps the tree`);
+    await assertSucceeds(stampAt(db('host'), `${T}/t0`), `${node}: the host stamps the tree`);
     await assertSucceeds(set(ref(db('host'), `${T}/host/go`), serverTimestamp()), `${node}: … and GOes alone`);
     await assertFails(set(ref(db('p2'), `${T}/p2/go`), serverTimestamp()), `${node}: p2 is not named yet`);
     // … he adds the rival at once: inside the window the rival's GO lands (an honest start looks the same)
@@ -1924,7 +1932,7 @@ test('THE PROOF PASS — hole (c) THE EARLY FIRST GO (jw + hr): a GO is taken on
     // the host can not move the stamp to let himself / a friend in late, in any shape of write
     const r3 = proofRoom(gid); r3.rooms[CODE][node] = { mat1: { t0: now() - 60000, host: { go: now() - 59900 } } };
     await seed(r3);
-    await assertFails(set(ref(db('host'), `${T}/t0`), serverTimestamp()), `${node}: the stamp is never re-written`);
+    await assertFails(stampAt(db('host'), `${T}/t0`), `${node}: the stamp is never re-written`);
     await assertFails(update(ref(db('host'), T), { t0: serverTimestamp() }), `${node}: … not in an update`);
     await assertFails(update(ref(db('host'), R), { [`${node}/mat1/t0`]: serverTimestamp() }), `${node}: … not from the room`);
     await assertFails(set(ref(db('host'), T), { t0: now() }), `${node}: … not by writing the whole tree`);
@@ -1939,7 +1947,7 @@ test('THE PROOF PASS — hole (a) THE LEAF WRITES (jw + hr): a chunk, the end, t
     const T = `${R}/${node}/mat1`, N = `${T}/p2`;
     await assertFails(set(ref(db('p2'), `${N}/c/0`), chunkOf(s)), `${node}: no chunk without a GO of its own`);
     await assertFails(set(ref(db('p2'), `${N}/e`), end), `${node}: no end without a GO`);
-    await assertSucceeds(set(ref(db('p2'), `${T}/t0`), serverTimestamp()));
+    await assertSucceeds(stampAt(db('p2'), `${T}/t0`));
     await assertSucceeds(set(ref(db('p2'), `${N}/go`), serverTimestamp()));
     await assertSucceeds(set(ref(db('host'), `${T}/host/go`), serverTimestamp()));
     if (node === 'hr') await assertSucceeds(set(ref(db('p2'), `${N}/rs`), 'classic'), 'hr: the rule set, behind GO');
@@ -2011,7 +2019,7 @@ test('THE PROOF PASS — hole (b) THE PRE-DATED GO + THE LOCK BY THE STAMP (jw +
     await assertSucceeds(remove(ref(db('host'), tree('mold'))), `${node}: a tree stamped 11 min ago goes (no GO of the host's needed)`);
     // THE PRE-DATED GO: the host starts the match he pre-dated — no rival can GO into it (its stamp is 11 min old), nor stamp it again
     await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { matchId: 'mfut', phase: 'play', playAt: now() - 500 }));
-    await assertFails(set(ref(db('p2'), `${tree('mfut')}/t0`), serverTimestamp()), `${node}: the pre-dated tree is never stamped again`);
+    await assertFails(stampAt(db('p2'), `${tree('mfut')}/t0`), `${node}: the pre-dated tree is never stamped again`);
     await assertFails(set(ref(db('p2'), `${tree('mfut')}/p2/go`), serverTimestamp()), `${node}: no rival GOes into the pre-dated tree — nothing of theirs is ever in it`);
     await assertFails(set(ref(db('p2'), `${tree('mfut')}/p2/c/0`), chunkOf('1c')), `${node}: … and no chunk without a GO`);
     await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { matchId: 'mat1' }));
@@ -2027,17 +2035,17 @@ test('THE PROOF PASS — odd match ids + GO\'s own checks (jw + hr): a tree only
   for (const [gid, node] of PROOF_GAMES) {
     for (const bad of ['M1AB', 'ab', 'a'.repeat(17), 'a-b_c', 'été1', 'm 1x']) {
       await seed(proofRoom(gid, bad));
-      await assertFails(set(ref(db('p2'), `${R}/${node}/${bad}/t0`), serverTimestamp()), `${node}: no stamp under the id ${JSON.stringify(bad)}`);
+      await assertFails(stampAt(db('p2'), `${R}/${node}/${bad}/t0`), `${node}: no stamp under the id ${JSON.stringify(bad)}`);
       await assertFails(set(ref(db('p2'), `${R}/${node}/${bad}/p2/go`), serverTimestamp()), `${node}: no GO under the id ${JSON.stringify(bad)}`);
     }
     for (const good of ['abc', 'q8f3k2', 's0m3id', 'a'.repeat(16)]) {
       await seed(proofRoom(gid, good));
-      await assertSucceeds(set(ref(db('p2'), `${R}/${node}/${good}/t0`), serverTimestamp()), `${node}: a stamp under ${good}`);
+      await assertSucceeds(stampAt(db('p2'), `${R}/${node}/${good}/t0`), `${node}: a stamp under ${good}`);
       await assertSucceeds(set(ref(db('p2'), `${R}/${node}/${good}/p2/go`), serverTimestamp()), `${node}: a GO under ${good}`);
     }
     await seed(proofRoom(gid));
     const T = `${R}/${node}/mat1`;
-    await assertSucceeds(set(ref(db('host'), `${T}/t0`), serverTimestamp()));
+    await assertSucceeds(stampAt(db('host'), `${T}/t0`));
     await assertFails(set(ref(db('p2'), `${T}/p2/go`), now() - 1000), `${node}: GO = the server's time`);
     await assertFails(set(ref(db('p2'), `${T}/host/go`), serverTimestamp()), `${node}: never another player's GO`);
     await assertFails(set(ref(db('p3'), `${T}/p3/go`), serverTimestamp()), `${node}: seated, not in the match`);
@@ -2059,10 +2067,10 @@ test('THE PROOF PASS — the COUNT WINDOW of both nodes (SHOULD 9: hr\'s own): t
     const T = `${R}/${node}/mat1`;
     const r = proofRoom(gid, 'mat1', 'count'); r.rooms[CODE].game.playAt = now() + 3000;
     await seed(r);
-    await assertFails(set(ref(db('host'), `${T}/t0`), serverTimestamp()), `${node}: 3 s before the count's end: no stamp`);
+    await assertFails(stampAt(db('host'), `${T}/t0`), `${node}: 3 s before the count's end: no stamp`);
     await assertFails(set(ref(db('host'), `${T}/host/go`), serverTimestamp()), `${node}: … no GO`);
     await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { playAt: now() + 1000 }));
-    await assertSucceeds(set(ref(db('host'), `${T}/t0`), serverTimestamp()), `${node}: 1 s before it: the stamp`);
+    await assertSucceeds(stampAt(db('host'), `${T}/t0`), `${node}: 1 s before it: the stamp`);
     await assertSucceeds(set(ref(db('host'), `${T}/host/go`), serverTimestamp()), `${node}: … and GO`);
     await assertSucceeds(set(ref(db('host'), `${T}/host/c/0`), chunkOf(node === 'jw' ? 'U0' : '1c')), `${node}: a chunk right behind the GO, still in the count`);
     await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { phase: 'final' }));
@@ -2114,11 +2122,11 @@ test('THE PROOF PASS — THE SWITCH-OVER (jw + hr): a phone that has not refresh
     if (node === 'hr') { await assertSucceeds(set(ref(legacy.db('p2'), `${N}/c/1`), chunkOf(s))); await assertSucceeds(update(ref(legacy.db('p2'), N), { e: end }), 'hr · … its end'); }
     else await assertSucceeds(update(ref(legacy.db('p2'), N), { 'c/1': chunkOf(s), e: end }), 'jw · … the last chunk + the end, together');
     // … a NEW phone in the same match as an old one that went first: its stamp is refused (the tree has begun), its GO still lands
-    await assertFails(set(ref(legacy.db('host'), `${T}/t0`), serverTimestamp()), `${node} · a new phone behind an old one: no stamp (expected, silent)`);
+    await assertFails(stampAt(legacy.db('host'), `${T}/t0`), `${node} · a new phone behind an old one: no stamp (expected, silent)`);
     await assertSucceeds(set(ref(legacy.db('host'), `${T}/host/go`), serverTimestamp()), `${node} · … its GO lands all the same`);
     // … an OLD phone in the same match as a new one that went first: the stamp is there — its GO lands inside the 5 s
     await legacy.seed(proofRoom(gid));
-    await assertSucceeds(set(ref(legacy.db('host'), `${T}/t0`), serverTimestamp()));
+    await assertSucceeds(stampAt(legacy.db('host'), `${T}/t0`));
     await assertSucceeds(set(ref(legacy.db('host'), `${T}/host/go`), serverTimestamp()));
     await assertSucceeds(set(ref(legacy.db('p2'), `${N}/go`), serverTimestamp()), `${node} · an old phone behind a new one: GO inside the window`);
     // … the old host's prune (by his own GO's age) is still what the rules allow for a tree without a stamp
@@ -2130,7 +2138,7 @@ test('THE PROOF PASS — THE SWITCH-OVER (jw + hr): a phone that has not refresh
     // (2) AFTER THE SUNSET: no GO without the stamp; with it, as ever
     await strict.seed(proofRoom(gid));
     await assertFails(set(ref(strict.db('p2'), `${N}/go`), serverTimestamp()), `${node} · after the sunset: no GO without the stamp`);
-    await assertSucceeds(set(ref(strict.db('p2'), `${T}/t0`), serverTimestamp()), `${node} · … the stamp`);
+    await assertSucceeds(stampAt(strict.db('p2'), `${T}/t0`), `${node} · … the stamp`);
     await assertSucceeds(set(ref(strict.db('p2'), `${N}/go`), serverTimestamp()), `${node} · … then GO`);
     await assertSucceeds(set(ref(strict.db('p2'), `${N}/c/0`), chunkOf(s)), `${node} · … and the log`);
     // (3) OLD RULES + NEW CODE (the deploy is live, the rules not yet re-published): the stamp is refused, everything else works as before
@@ -2146,5 +2154,56 @@ test('THE PROOF PASS — THE SWITCH-OVER (jw + hr): a phone that has not refresh
     await assertFails(set(ref(before.db('p2'), `${N}/c/0`), chunkOf(s)), `${node} · old rules: the host's flip refuses the chunk (hole a)`);
     await before.admin(d => update(ref(d, `${R}/game`), { phase: 'play' }));
     await assertSucceeds(set(ref(before.db('p2'), `${N}/c/0`), chunkOf(s)), `${node} · old rules: the SAME index sent again lands (the phone's re-send)`);
+  }
+});
+
+// THE CONSOLE FIX (Nov 20 — docs/games/passes/console-fix.md, Group 3) — THE TREE CAP: a room holds at most TREE_CAP (1,000) stamped
+// trees. Every stamp advances the room's counter `pt` by one IN THE SAME WRITE (the rules take a stamp only with it, the counter only
+// with a new stamp); the counter is never deleted, never stepped back, never moved alone. + THE SWITCH-OVER of this change, both ways:
+// the rules as PUBLISHED before it (tests/fixtures/rules-live.json) + the new phone code · the new rules + the code live before it.
+test('THE CONSOLE FIX — THE TREE CAP (jw + hr): the stamp only WITH the room\'s counter, one step, a new tree only; never moved alone, deleted or stepped back; full at 1,000; the switch-over both ways', async () => {
+  const published = readFileSync(fileURLToPath(new URL('../fixtures/rules-live.json', import.meta.url)), 'utf8');
+  const before = await nsEnv('console-before', published), legacy = await nsEnv('console-legacy', withSunset(9999999999999)), strict = await nsEnv('console-strict', withSunset(1));
+  for (const [gid, node, s] of PROOF_GAMES) {
+    const T = `${R}/${node}/mat1`, TS = serverTimestamp();
+    await seed(proofRoom(gid));
+    await assertFails(set(ref(db('p2'), `${T}/t0`), TS), `${node}: a stamp WITHOUT the counter — refused`);
+    await assertFails(update(ref(db('p2'), R), { [`${node}/mat1/t0`]: TS, pt: { n: 2, m: 'mat1', g: node } }), `${node}: the counter skipping a step`);
+    await assertFails(update(ref(db('p2'), R), { [`${node}/mat1/t0`]: TS, pt: { n: 1, m: 'mat2', g: node } }), `${node}: the counter naming another tree`);
+    await assertFails(update(ref(db('p2'), R), { [`${node}/mat1/t0`]: TS, pt: { n: 1, m: 'mat1', g: node === 'jw' ? 'hr' : 'jw' } }), `${node}: the counter naming the other game's node`);
+    await assertFails(update(ref(db('p2'), R), { [`${node}/mat1/t0`]: TS, pt: { n: 1, m: 'mat1', g: node, x: 1 } }), `${node}: nothing else under the counter`);
+    await assertFails(set(ref(db('p2'), `${R}/pt`), { n: 1, m: 'mat1', g: node }), `${node}: the counter ALONE (no stamp) — refused`);
+    await assertSucceeds(stampAt(db('p2'), `${T}/t0`), `${node}: the stamp + the counter, one update`);
+    const pt = (await get(ref(db('host'), `${R}/pt`))).val();
+    assert.deepEqual(pt, { n: 1, m: 'mat1', g: node }, `${node}: the room's first tree`);
+    await assertFails(set(ref(db('host'), `${R}/pt`), { n: 2, m: 'mat1', g: node }), `${node}: the counter never moves for a tree that exists`);
+    await assertFails(remove(ref(db('host'), `${R}/pt`)), `${node}: the host never deletes the counter`);
+    await assertFails(set(ref(db('host'), `${R}/pt`), { n: 0, m: 'mat1', g: node }), `${node}: … nor steps it back`);
+    await assertFails(update(ref(db('stranger'), R), { [`${node}/mat1/t0`]: TS, pt: { n: 2, m: 'mat1', g: node } }), `${node}: a stranger advances nothing`);
+    // the next match: n = 2
+    const r2 = proofRoom(gid, 'mat2'); r2.rooms[CODE].pt = { n: 1, m: 'mat1', g: node };
+    await seed(r2);
+    await assertSucceeds(stampAt(db('host'), `${R}/${node}/mat2/t0`), `${node}: the next tree — the counter's next step`);
+    assert.equal((await get(ref(db('host'), `${R}/pt/n`))).val(), 2);
+    // FULL: at 1,000 no more stamps in this room (a GO without one — until the sunset; after it, no run here: a fresh room)
+    for (const [E, ok, what] of [[legacy, true, 'before the sunset: a GO without a stamp still lands'], [strict, false, 'after the sunset: no GO without one — a fresh room has its own 1,000']]) {
+      const r3 = proofRoom(gid, 'mat9'); r3.rooms[CODE].pt = { n: 1000, m: 'mat8', g: node };
+      await E.seed(r3);
+      await assertFails(stampAt(E.db('p2'), `${R}/${node}/mat9/t0`), `${node}: the 1,001st tree is refused`);
+      await (ok ? assertSucceeds : assertFails)(set(ref(E.db('p2'), `${R}/${node}/mat9/p2/go`), TS), `${node}: ${what}`);
+    }
+    // THE SWITCH-OVER (1): the rules as PUBLISHED before this pass + the NEW code — the combined write is refused (no `pt` rule), the
+    // plain stamp (the code's fallback) lands, GO + the log as before
+    await before.seed(proofRoom(gid));
+    await assertFails(stampAt(before.db('p2'), `${T}/t0`), `${node} · the published rules: the counter is unknown — the combined stamp is refused (expected, silent)`);
+    await assertSucceeds(set(ref(before.db('p2'), `${T}/t0`), TS), `${node} · … the fallback's plain stamp lands`);
+    await assertSucceeds(set(ref(before.db('p2'), `${T}/p2/go`), TS), `${node} · … then GO`);
+    await assertSucceeds(set(ref(before.db('p2'), `${T}/p2/c/0`), chunkOf(s)), `${node} · … and the log`);
+    // THE SWITCH-OVER (2): the NEW rules + the code live before this pass (a plain stamp, no counter) — its stamp is refused, its GO lands
+    // without one until the sunset (THE PROOF PASS's window); after it a phone that old would need a refresh (ONE DEPLOY AT A TIME does that)
+    await legacy.seed(proofRoom(gid));
+    await assertFails(set(ref(legacy.db('p2'), `${T}/t0`), TS), `${node} · new rules, a phone on the old code: its plain stamp is refused`);
+    await assertSucceeds(set(ref(legacy.db('p2'), `${T}/p2/go`), TS), `${node} · … its GO lands without one (until Nov 27)`);
+    await assertSucceeds(set(ref(legacy.db('p2'), `${T}/p2/c/0`), chunkOf(s)), `${node} · … and its log`);
   }
 });

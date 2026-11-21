@@ -8,8 +8,8 @@ import { APP_NAME, GAMES, DAILIES, gameRow } from './config.js';
 import { state, setState, subscribe } from './store.js';
 import { initFirebase, isConfigured, serverNow, lineInfo } from './firebase.js';
 import { inviteCode, watchDuplicateTabs, slot, loadSession } from './identity.js';
-import { resumeSession, armPresence, roomExists, soloRejoin, leaveRoom, exitRoom } from './room.js';
-import { startHostLoop } from './host.js';
+import { resumeSession, armPresence, roomExists, soloRejoin, leaveRoom, exitRoom, runHoldDone } from './room.js';
+import { startHostLoop, movedByMe } from './host.js';
 import { keepAwake } from './wakelock.js';
 import { GAME_MODULES, GAME_IDS, loadGame, metaOf } from './games/registry.js';
 import { lookLockOf } from './games/cartridge.js';
@@ -272,8 +272,39 @@ function musicFor(st) {
   return podium ? [(mod && mod.FINAL_MUSIC) || 'victory', track] : [track, typeof track === 'string' && track.startsWith('mood:') ? 'menu' : undefined].filter(x => x !== undefined);
 }
 
-function render(st) {
-  const key = routeKey(st);
+// THE CONSOLE FIX — THE RUN HOLD (Nov 20 — docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): a MODIFIED host moved
+// the room on mid-match (a new match id, a REMATCH, a new game, the room back to its lobby) — every honest phone left its LIVE run, he played
+// on and won. Now a game screen that says it holds a live PROVEN run of its own (`screen.holdsRun()` — the cartridge's: its GO landed, its
+// run not over, or its end not yet acknowledged) STAYS: it is given the state it was playing in (frozen at the last render of its own route;
+// the room's people + presence + signal kept fresh), plays the run to its own end, writes it, THEN the router follows the room — the
+// screen asks for that itself (`__nsRunHold.check()`). Never against this phone's OWN way out: a LEAVE (no room), a QUIT (st.quit changed),
+// a move this phone made (host.js#movedByMe). A kick / a lost seat waits the same way (room.js#runHoldDone).
+let heldSt = null, heldQuit = null, lastGame = null, lastLive = null, lastLiveKey = null, lastMeta = null, lastNight = null;
+const RUN_HOLD = { on: false, wait: false, check: () => { if (RUN_HOLD.wait && !RUN_HOLD.held()) runHoldDone(); render(state); }, held: () => !!(current && current.key.startsWith('game:') && screenHolds()) };
+globalThis.__nsRunHold = RUN_HOLD;   // (the hub a cartridge + room.js read — THE STALE-MODULE RULE)
+function screenHolds() { try { return !!(current.screen.holdsRun && current.screen.holdsRun()); } catch { return false; } }
+function holdFor(st, key) {
+  if (!current || current.key === key || !current.key.startsWith('game:')) return false;
+  if (!st.code || movedByMe()) return false;
+  if (heldSt ? st.quit !== heldQuit : st.quit && current.key.endsWith(`:${st.quit}`)) return false;
+  return screenHolds();
+}
+function render(st0) {
+  let st = st0, key = routeKey(st0);
+  if (holdFor(st0, key)) {
+    if (!heldSt) { heldSt = { ...st0, game: lastGame, live: lastLive, liveKey: lastLiveKey, meta: lastMeta, night: lastNight }; heldQuit = st0.quit; }
+    heldSt.players = st0.players; heldSt.presence = st0.presence; heldSt.kicked = st0.kicked; heldSt.connected = st0.connected; heldSt.net = st0.net;
+    st = heldSt; key = current.key; RUN_HOLD.on = true;
+  } else {
+    if (heldSt) {
+      // (the run played out in a room that moved on: THIS phone reports its own match — the server counts it once no run is live; the
+      //  host's phone never saw that match's podium, so it may never report it)
+      const g = heldSt.game, code = heldSt.code;
+      if (code && g && g.matchId && g.participants && g.participants[st0.uid]) withProfile().then(m => m.queue.queueReport(code, g)).catch(() => {});
+      heldSt = null; heldQuit = null; RUN_HOLD.on = false; runHoldDone();
+    }
+    if (key.startsWith('game:')) { lastGame = st0.game; lastLive = st0.live; lastLiveKey = st0.liveKey; lastMeta = st0.meta; lastNight = st0.night; }
+  }
   if (!(st.ready && st.code && !st.meta)) { clearTimeout(deadT); deadT = 0; } else if (!deadT) deadT = setTimeout(() => { deadT = 0; if (state.ready && state.code && !state.meta) dead(); }, UPLINK_WAIT_MS);
   if (st.ready || !st.code) { const [track, fallback] = musicFor(st); playMusic(track, fallback); }
   // theme follows the active game
@@ -283,7 +314,7 @@ function render(st) {
   paintDaily(st);
   paintCrew(st);
   keepAwake(!!(st.code && st.meta && st.meta.status === 'playing'));
-  renderConnection(st);
+  renderConnection(st0);
   // the menus (setup, the profile) sit on glass over a still of the city, like the title
   const glass = key.startsWith('setup') || key === 'profile';
   if (document.body.classList.contains('nd-glass') !== glass) { document.body.classList.toggle('nd-glass', glass); showBackdrop(glass); }

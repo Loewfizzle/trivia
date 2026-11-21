@@ -228,8 +228,14 @@ export function onlineCount() {
 // ring, INITIATE, the podium's REMATCH) gets the SAME promise while a start is in flight, and through the walk inside after it (START_MS):
 // a second tap during the show is the same start, never a second match.
 let starting = null;
+// THE CONSOLE FIX (Nov 20 — docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): the moment THIS phone moved the room on
+// itself (a start, a rematch, END GAME / back to the room) — the router's RUN HOLD (app.js) never holds a phone against its own tap
+let movedAt = -1e9;
+export const movedByMe = () => Date.now() - movedAt < 8000;
+const markMove = () => { movedAt = Date.now(); };
 export function startGame(gameId, settings, { quick = false, solo = false, inPlace = false } = {}) {
   if (starting) return starting;
+  markMove();
   // (PLAY NOW: a SOLO room's every start is THE SOLO START — the match id's leading 's', ~2 s — core/room-show.js#START.solo)
   const kind = solo || isSoloMeta(state.meta) ? 'solo' : inPlace ? 'inplace' : quick;
   const p = startGameNow(gameId, settings, kind);
@@ -301,6 +307,7 @@ async function startGameNow(gameId, settings, quick = false) {
 let soloRun = null;
 export function playSolo(gameId, { settings = null } = {}) {   // (PD-6: settings = a SOLO_RUNS button's { mode } — over the one-player defaults)
   if (soloRun) return soloRun;
+  markMove();
   const p = playSoloNow(gameId, settings);
   soloRun = p; p.finally(() => { if (soloRun === p) soloRun = null; });
   return p;
@@ -344,6 +351,7 @@ if (typeof globalThis !== 'undefined') globalThis.__nsPlayNow = Object.freeze({ 
 export function rematch({ inPlace = false } = {}) {
   const back = state.meta && state.meta.back;
   if (!isHost() || !(state.game || (back && back.g))) return Promise.resolve(false);
+  markMove();
   const id = state.game ? state.game.id : back.g;
   const game = state.game;
   return loadGame(id).catch(() => null).then(mod => {   // (SHELL 2.0 B1: the cartridge's rematchSettings — loaded, it's in the tab already)
@@ -386,6 +394,7 @@ async function pruneProofs(code, keep) {
 
 export async function backToLobby() {
   if (!isHost() || !state.code) return;
+  markMove();
   // (FR7 FIXES B: the seal + the proof nodes stay until the next start — a late report still finds them)
   const g = state.game;
   // (LOBBY 2.0 B — AFTER THE MATCH: the walk back out, THE WINNER's BANNER PLANE + the REMATCH ring all read this stamp — core/room-show.js.

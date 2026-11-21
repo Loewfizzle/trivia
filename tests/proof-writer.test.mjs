@@ -219,11 +219,11 @@ test('BOTH GAMES USE THE ONE WRITER — and the screens never write a chunk them
     assert.ok(v.includes("import { createProofWriter } from '../kit/proof-writer.js';") && v.includes("import { proofIo, stampT0, writeMatchGo } from '../kit/proof-io.js';"), `${name}: the kit's writer`);
     assert.doesNotMatch(v, /\/c\/\$\{/, `${name}: no chunk path of its own`);
     assert.doesNotMatch(v, /dbUpdate|runTransaction/, `${name}: the end + the GO transaction are the kit's`);
-    assert.ok(v.includes(`stampT0(treePath(), '${name}');`) && v.includes(`writeMatchGo(treePath(), uid, '${name}')`), `${name}: the stamp ahead of a solo GO; the kit's GO in a match`);
+    assert.ok(v.includes(`stampT0(treePath(), '${name}').then(() => dbSet(dbRef(path), serverTimestamp()))`) && v.includes(`writeMatchGo(treePath(), uid, '${name}')`), `${name}: the stamp ahead of a solo GO; the kit's GO in a match`);
     assert.ok(v.includes('W.close();'), `${name}: the writer is closed with the view`);
   }
   assert.ok(jw.includes('io: proofIo(nodePath), pipe: !!D,'), 'JAYWALK\'s daily keeps the old way');
   assert.doesNotMatch(wr, /^import /m, 'the writer is PURE: no imports (the unit job installs nothing)');
   assert.ok(io.includes("expectRefusal(path, `${label} t0: the tree is already stamped or begun, or the rules are not re-published yet`, 8000, 'none');"), 'a refused stamp is EXPECTED and silent (no quiet count of its own)');
-  assert.ok(io.indexOf('stampT0(tree, label);') < io.indexOf('return runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false })\n    .then('), 'the stamp is sent before the GO');
+  assert.ok(io.includes("return stampT0(tree, label).then(() => runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }))"), "the GO goes up behind the stamp's answer (THE CONSOLE FIX: the stamp needs the tree empty)");
 });

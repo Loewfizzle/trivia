@@ -483,8 +483,31 @@ export const exitHow = () => lastExit;
 export const leftRoom = code => !!code && (state.code !== code || leavingCode === code || !!(state.kicked && state.uid && state.kicked[state.uid]));
 setRoomGone(leftRoom);
 globalThis.__nsRoomGone = leftRoom;   // (the hub the lazy chat reads before every write — js/chat/chat.js#mayWrite)
+// THE CONSOLE FIX (Nov 20 — docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): the host REMOVES a player (a kick — or
+// his seat deleted, read as a lost seat) mid-match: that phone used to leave its LIVE run at once — the run was cut where the kick fell, the
+// host won. Now, while the game screen holds a live proven run (app.js's RUN HOLD — the hub), the exit WAITS: the run is played to its own
+// end and written (the rules take a player's own proof on their own GO alone — never the seat), THEN the phone leaves as it would have.
+// A LEAVE, a closed room, a seat moved to another device: never held.
+let heldExit = null;
+const HELD_HOWS = ['kick', 'lost'];
+/** app.js: the hold is over — the exit that waited for it goes now */
+export function runHoldDone() {
+  const RH = globalThis.__nsRunHold;
+  if (RH) RH.wait = false;
+  const x = heldExit;
+  heldExit = null;
+  if (x && state.code === x.code) exitRoom(x.reason, x.kind, x.opts);
+}
 export function exitRoom(reason, kind = 'warn', { keepSeat = false, how = 'closed' } = {}) {
   const code = state.code;
+  const RH = globalThis.__nsRunHold;
+  if (code && HELD_HOWS.includes(how) && RH && RH.held()) {
+    if (!heldExit) heldExit = { code, reason, kind, opts: { keepSeat, how } };
+    RH.wait = true;
+    if (how === 'kick') setState({ kicked: { ...(state.kicked || {}), [state.uid]: true } });   // (the self-heal never writes this phone back meanwhile)
+    return;
+  }
+  heldExit = null;
   // CITY D — NO MESSAGES A SOLO PLAYER NEVER NEEDED: a SOLO room (PLAY NOW's one-seat room — the player never saw a room) leaves without a word
   // ("ROOM CLOSED", "YOU WERE DISCONNECTED…", a leave's reason); the messages stay for real rooms with other people
   const solo = !!code && (isSoloMeta(state.meta) || soloRejoin(code));

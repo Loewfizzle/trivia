@@ -52,6 +52,8 @@ export function lazyView(load, css = []) {
       mount(e, s) { el = e; st = s; if (inner) inner.mount(e, s); },
       update(s) { st = s; if (inner && el) inner.update(s); },
       unmount() { gone = true; if (inner && el) inner.unmount(); el = null; },
+      // (THE CONSOLE FIX — THE RUN HOLD: the real view's answer — app.js keeps a screen whose own live proven run is not over)
+      holdsRun() { return !!(inner && el && typeof inner.holdsRun === 'function' && inner.holdsRun()); },
     };
   };
   createView.warm = () => (warmed ||= loadAll(load, css).catch(() => { warmed = null; }));

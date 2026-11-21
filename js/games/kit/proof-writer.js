@@ -156,5 +156,8 @@ export function createProofWriter({ count, pack, entriesOf, chunkMax, chunks, fl
       closed = true; gen++;
     },
     state: () => ({ sent, acked, chunks: next, flights: flights.length, dead, end: endState, verify: verify || !!rewind }),
+    /** THE CONSOLE FIX: the run's end is asked for and NOT acknowledged yet (waiting behind a chunk, or in the air) — a held phone stays on
+     *  its run until it is (no object made: read from a frame) */
+    owes: () => !closed && !dead && (endState === 1 || endState === 2),
   };
 }

@@ -12,16 +12,28 @@ export const proofIo = path => ({
   read: () => dbGet(dbRef(`${path()}/c`)).then(snap => snap.val()),
 });
 
+/** THE CONSOLE FIX — THE TREE CAP (database.rules.json `rooms/$code/pt`): a room holds at most this many stamped trees — every stamp
+ *  advances the room's counter by one IN THE SAME WRITE (the rules take a stamp only with it, and the counter only with a new stamp).
+ *  Pinned equal to the rules by tests/console-fix.test.mjs. A run past it plays as before until THE SWITCH-OVER's sunset (a GO without
+ *  a stamp), then UNPROVEN — a fresh room (BACK TO THE CITY → PLAY NOW) has its own 1,000. */
+export const TREE_CAP = 1000;
 /**
  * THE STAMP (core/proof.js): whoever GOes first stamps the match's tree — `t0`, the SERVER's time, once, only while the tree is empty
  * (the rules). A GO is then taken only within GO_WINDOW_MS of it, and the tree is locked for 10 min — nothing the host writes moves
- * either. A TRANSACTION never applied locally (a phone whose mirror already shows the stamp writes nothing). Refused = EXPECTED and
- * silent: another phone was first / began the tree, or the rules are not re-published yet (then GO works as before — the fallback).
+ * either. THE CONSOLE FIX: the stamp + the room's tree counter (`pt` — THE TREE CAP) in ONE update; refused (the counter moved under it,
+ * the tree begun, or the rules before THE CONSOLE FIX) → the plain stamp as before: a TRANSACTION, never applied locally. Every refusal is
+ * EXPECTED and silent: another phone was first / began the tree, or the rules are not re-published yet (then GO works as before — the
+ * fallback). → a Promise that settles once the stamp is decided — the GO goes up AFTER it (a GO first would make the tree "begun").
  */
 export function stampT0(tree, label) {
-  const path = `${tree}/t0`;
+  const path = `${tree}/t0`, [, code, node, m] = tree.split('/');
   expectRefusal(path, `${label} t0: the tree is already stamped or begun, or the rules are not re-published yet`, 8000, 'none');
-  return runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }).then(null, () => {});
+  expectRefusal(`rooms/${code}/pt`, `${label} t0: the room's tree counter moved, or the rules are not re-published yet`, 8000, 'none');
+  const plain = () => runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false });
+  return dbGet(dbRef(`rooms/${code}/pt/n`))
+    .then(snap => dbUpdate(dbRef(`rooms/${code}`), { [`${node}/${m}/t0`]: serverTimestamp(), pt: { n: (Number(snap.val()) || 0) + 1, m, g: node } }))
+    .catch(() => plain())
+    .then(null, () => {});
 }
 /**
  * GO (a MATCH): the stamp (if this phone is first), then this phone's own `go` — its proof of being there; the FIRST one to land is the
@@ -30,8 +42,8 @@ export function stampT0(tree, label) {
  */
 export function writeMatchGo(tree, uid, label) {
   const path = `${tree}/${uid}/go`;
-  stampT0(tree, label);
   expectRefusal(path, `${label} GO: already written (a rejoin), a touch early, or the rules are not published yet`);
-  return runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false })
+  // (THE CONSOLE FIX: the GO behind the stamp's answer — the stamp needs the tree empty)
+  return stampT0(tree, label).then(() => runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }))
     .then(() => true, () => dbGet(dbRef(path)).then(snap => typeof snap.val() === 'number'));
 }

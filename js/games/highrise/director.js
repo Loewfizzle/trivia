@@ -50,7 +50,7 @@ export function scoreMatchNode(game, node, rules = null) {
   if (game.g0 > 0 && !onTime(node, game.g0)) return { ...NONE, bad: 'late go' };
   return rowOf(judgeNode({ seed: game.seed, mode: 'match', node: { ...node, go: game.playAt }, mirror: true, rules }), node, false);
 }
-function finalPatch(game0, runs, now, code) {
+export function finalPatch(game0, runs, now, code) {
   if (game0.mode === 'solo') {
     const results = {};
     for (const uid of Object.keys(game0.participants || {})) results[uid] = scoreNode(code, game0.matchId, runs[uid]);

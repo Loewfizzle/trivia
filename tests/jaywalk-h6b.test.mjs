@@ -178,7 +178,7 @@ test('H6B — THE END SCREEN\'s MEMORY: the scene rests behind the end screen, t
   assert.match(FL, /if \(on\) \{ const f = ship\.on \? 2\.4 : 0\.6; if \(snd\.ship\) snd\.ship\.stop\(f\); if \(snd\.rum\) snd\.rum\.stop\(f\); snd\.ship = snd\.rum = null; duckNow = 1; \}/, 'the scene rests → the ship\'s loops fade, the duck lets go');
   assert.match(FL, /for \(let i = 0; i < n; i\+\+\) d\[i\] \*= 0\.9 \/ pk;/, 'the rumble is normalised: 0.9 × DUCK.rumble at the bus at most');
   assert.match(FL, /dead = true; offBed\(\); bufs\.clear\(\); bufCtx = null;/, 'the moments\' decoded sounds go with the scene');
-  assert.match(v, /const ship = mode === 'over' && Object\.values\(g && g\.results \|\| \{\}\)\.some\(r => r && r\.x\) && tickNow\(\)\.t < MODES\.match\.cap \+ SHIP_SEEN;/, 'a watcher sees the Mothership\'s lift before the podium');
+  assert.match(v, /const ship = mode === 'over' && Object\.values\(g\.results \|\| \{\}\)\.some\(r => r && r\.x\) && tickNow\(\)\.t < MODES\.match\.cap \+ SHIP_SEEN;/, 'a watcher sees the Mothership\'s lift before the podium');
   assert.match(v, /if \(!final && !localEnd\) \{ tiers\.sample\(now, performance\.now\(\) - t0\); if \(!pinned\) tiers\.tick\(now\); \}/, 'the tier is measured only while the scene is drawn');
   assert.match(v, /cv\.addEventListener\('webglcontextlost', lost\);/, 'THE LOST CONTEXT is noticed'); assert.match(v, /if \(gone \|\| night !== mine\) return;   \/\/ \(our own teardown/, '… but never our own teardown (BEFORE THE FLIP)'); assert.match(v, /cv\.addEventListener\('webglcontextrestored', remake\);/, '… and the scene rebuilt');
   { const sx = readFileSync(new URL('../js/games/jaywalk/sfx.js', import.meta.url), 'utf8');

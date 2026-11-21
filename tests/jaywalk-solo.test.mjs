@@ -221,7 +221,7 @@ test('THE END SCREEN\'s WORDS: one line per cause + vehicle — big neon words, 
 
 test('THE PHONE\'s SIDE OF THE PROOF (view.js): GO = the server\'s time, read back before the course is built; the chunks stamped by the server; the run on the server\'s clock; never a phone\'s clock or a claim', () => {
   const v = read('js/games/jaywalk/view.js').replace(/^\s*\/\/[^\n]*$/gm, '');
-  assert.match(v, /dbSet\(dbRef\(path\), serverTimestamp\(\)\)\.then\(\(\) => dbGet\(dbRef\(path\)\)\)/, 'GO written as the server\'s time, then READ BACK');
+  assert.match(v, /dbSet\(dbRef\(path\), serverTimestamp\(\)\)\)\.then\(\(\) => dbGet\(dbRef\(path\)\)\)/, 'GO written as the server\'s time, then READ BACK');
   assert.match(v, /const seed = ds \|\| isProof \? ds \|\| seedOf\(code, matchId, go\) :/, 'the course from GO (THE DAILY: the day\'s seed from its START — DAILY B)');
   assert.match(v, /course = START;/, 'THE START stands until it lands'); assert.match(v, /night\.setReveal\(0, true\)/); assert.match(v, /night\.setReveal\(1\)/);
   // (THE PROOF PASS: the chunks + the end go up through THE PROOF WRITER — kit/proof-writer.js + proof-io.js, HIGH RISE's too)
@@ -255,7 +255,7 @@ test('THE PHONE\'s SIDE OF THE PROOF (view.js): GO = the server\'s time, read ba
   assert.match(r, /const agree = jwMatch \|\| /, 'a match the server replayed itself needs no second opinion on its placings');
   // THE MATCH on the phone (H4): the first GO, the ghosts, the half-second chunks, Call the Winner, the frame for the share image
   assert.match(v, /const S = startOf\(g, runs, code\);/, 'the course + tick 0 from THE FIRST GO (H4B — logic.js#startOf: the nodes are the truth)');
-  assert.ok(v.includes("writeMatchGo(treePath(), uid, 'jaywalk')") && read('js/games/kit/proof-io.js').includes('return runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false })'),'H4B — a match\'s GO is a transaction never applied locally: the phone\'s own estimate is never in its mirror');
+  assert.ok(v.includes("writeMatchGo(treePath(), uid, 'jaywalk')") && read('js/games/kit/proof-io.js').includes('then(() => runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }))'),'H4B — a match\'s GO is a transaction never applied locally: the phone\'s own estimate is never in its mirror');
   assert.match(v, /srvNow\(\) >= g\.playAt - GO_EARLY_MS/, 'its own GO in the count\'s last 2 s (the rules\' window)');
   assert.match(v, /isMatch \? CLOCK\.flushMatchMs : CLOCK\.flushMs/); assert.match(v, /stepGhosts\(wt\);/, 'the ghosts: the others\' logs through the same engine, at THE WORLD\'s own tick (H4B)'); assert.doesNotMatch(v, /GHOST_DELAY/, 'no ghost delay any more');
   assert.match(v, /callEl = showCall\(\{/, 'Call the Winner = the match kit\'s piece'); assert.match(v, /const path = `\$\{nodePath\(\)\}\/k`;/, 'the call lives in the caller\'s own proof node');

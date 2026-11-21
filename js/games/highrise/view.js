@@ -28,7 +28,9 @@ import { backToLobby } from '../../host.js';
 import { seedOf, gameStandings, END_WORDS, perfectsLine } from './logic.js';
 import { TICK_HZ } from './tuning.js';
 import { RULES_DEFAULT } from './rules.js';
-import { startOf } from './match.js';
+import { startOf, liveOf } from './match.js';
+import { finalPatch } from './director.js';
+import { createRouterPing, createLiveWait, END_OWED_MS } from '../kit/run-hold.js';
 import { createRival, resetRival, feedRival, capRival, rivalOver, rivalEnd, rivalSilent, matchCalls, follow, nextFollow } from './rivals.js';
 import { CLOCK, packFrom, tapsFromChunks } from './proof.js';
 import { cleanBest } from './best.js';
@@ -102,6 +104,21 @@ export function createView() {
   const treePath = () => `rooms/${code}/hr/${matchId}`, nodePath = () => `${treePath()}/${uid}`;
   // (S5 — ZERO GARBAGE IN A MATCH: the live key is worked out once a GAME (a new snapshot = a new object), never 10 × a second — its JSON)
   let lkGame = null, lkKey = null;
+  // THE CONSOLE FIX — THE RUN HOLD (kit/run-hold.js; docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): this phone's
+  // own PROVEN tower is climbed to its own end whatever the host's state says — no podium over it, the router keeps this screen through a
+  // moved-on room; then its end is written and the phone follows. The podium waits for the rivals' live towers the same way.
+  const pingRouter = createRouterPing(), liveWait = createLiveWait(liveOf);
+  const runLive = () => isMatch && proven && started && adopted && !missed && !!S && !S.me(meRec).over;
+  function holdsRun() {
+    if (gone || !isMatch || !proven || !S) return false;
+    if (runLive()) return true;
+    if (!wroteE || !outRes) return false;
+    const since = performance.now() - outAt;
+    return since < (outRes.cause === 'made' ? MADE_SHOW_MS : OUT_SHOW_MS) || (since < END_OWED_MS && W.owes());
+  }
+  /** the podium after a wait: scored from the nodes as they stand now (the host's own step — director.js#finalPatch), never an early
+   *  `final`'s numbers */
+  const scoredNow = g => { try { return { ...g, ...finalPatch(g, runsNow() || {}, serverNow(), code) }; } catch { return g; } };
   const runsNow = () => { const g = st && st.game; if (!g) return null; if (g !== lkGame) { lkGame = g; lkKey = liveKeyFor(g); } return (st.liveKey === lkKey && st.live && st.live.runs) || null; };
   /** a server time → this page's clock (the stage's tick 0 is a performance.now() value) */
   const perfOf = srv => performance.now() - (serverNow() - srv);
@@ -166,8 +183,8 @@ export function createView() {
         return;
       }
       expectRefusal(path, 'highrise GO: already written (a rejoin) or the rules are not published yet');
-      stampT0(treePath(), 'highrise');   // (THE PROOF PASS — THE STAMP: the tree's first write, right ahead of the GO — core/proof.js)
-      dbSet(dbRef(path), serverTimestamp()).then(() => dbGet(dbRef(path))).then(snap => {
+      // (THE PROOF PASS — THE STAMP: the tree's first write, right ahead of the GO — core/proof.js; THE CONSOLE FIX: the GO behind its answer)
+      stampT0(treePath(), 'highrise').then(() => dbSet(dbRef(path), serverTimestamp())).then(() => dbGet(dbRef(path))).then(snap => {
         const v = snap.val();
         if (typeof v === 'number' && v > 0) { proof(v, null); writeRs(); } else unproven('no go');
       }).catch(() => {
@@ -359,10 +376,16 @@ export function createView() {
     // a watcher, a refresh on it: at once
     // (THE CLOSE's REVIEW: … and never held for ever — a tower still climbing when the match is over (its chunks did not arrive: nothing
     //  more can count) gets the podium after FINAL_HOLD_MS)
-    if (g.phase === 'final' && !final) {
+    // (THE CONSOLE FIX: never over a live proven tower of this phone's own — it climbs on to its own end; never for a match the room has
+    //  left (the router holds this screen: it follows the room once the run is written); and it waits for a rival's tower still LIVE —
+    //  the host's `final` came early — the cap ends that wait)
+    const RH = globalThis.__nsRunHold;
+    if (g.phase === 'final' && !final && !runLive() && !(RH && RH.on)) {
       if (!finalSeen) finalSeen = performance.now();
-      if (!adopted || !mine(g) || performance.now() - finalSeen > FINAL_HOLD_MS || (S.state().shown && (!outRes || performance.now() - outAt > (outRes.cause === 'made' ? 1400 : 500)))) { S.hud().count('', null); S.hud().watching(''); showFinal(g); }
+      const waiting = !g.unproven && adopted && liveWait.wait({ code, matchId, runs, presence: st.presence, now, skip: uid }).length > 0;
+      if (!waiting && (!adopted || !mine(g) || performance.now() - finalSeen > FINAL_HOLD_MS || (S.state().shown && (!outRes || performance.now() - outAt > (outRes.cause === 'made' ? 1400 : 500))))) { S.hud().count('', null); S.hud().watching(''); showFinal(liveWait.waited() ? scoredNow(g) : g); }
     }
+    if (RH && (RH.on || RH.wait) && !holdsRun()) pingRouter();   // (the run is over + written — follow the room)
   }
   /** the stage's end moment in a match: OUT (or the finish / the bell) — the watcher's view follows; the podium comes with the host's step */
   function endMatch(r) { if (!outRes) { outRes = r; outAt = performance.now(); } sync(); return { own: false, watch: true }; }
@@ -392,7 +415,7 @@ export function createView() {
     S.hideCard();   // (THE REVIEW: the podium takes the screen — the stage's own NO SIGNAL card is put away, a key can not restart under it)
     // (a MATCH's rows: everyone in order with their floor + how their tower ended + their perfects — the console lists them as slim cards)
     const res = g.results || {}, solo = g.mode === 'solo';
-    final = createFinal({ rows: gameStandings(g).map(r => ({ uid: r.uid, rank: r.rank, score: r.floor, ...(solo ? {} : { note: `${g.unproven ? 'NOT COUNTED' : END_WORDS[(res[r.uid] || {}).w] || 'NO TOWER'} · ${perfectsLine(r.perfects)}` }) })), players: st.players, me: uid, presence: st.presence, kicker: endHeader(solo ? 'solo' : 'match'), scoreLabel: 'FLOORS', winnerLine: nm => `${nm} BUILT THE TALLEST` });
+    final = createFinal({ game: g, rows: gameStandings(g).map(r => ({ uid: r.uid, rank: r.rank, score: r.floor, ...(solo ? {} : { note: `${g.unproven ? 'NOT COUNTED' : END_WORDS[(res[r.uid] || {}).w] || 'NO TOWER'} · ${perfectsLine(r.perfects)}` }) })), players: st.players, me: uid, presence: st.presence, kicker: endHeader(solo ? 'solo' : 'match'), scoreLabel: 'FLOORS', winnerLine: nm => `${nm} BUILT THE TALLEST` });
     finalWrap = h('div.hi-final', final.el);
     S.el.classList.add('is-final'); S.el.append(finalWrap);
   }
@@ -423,7 +446,7 @@ export function createView() {
       S.el.classList.add('hi-game');
       // THE NEXT FRIEND's tape (lines.js — YOUR TABLE's HIGH RISE bests, the SERVER's: empty while counting is OFF)
       loadTable(uid).then(T => { if (gone || !T) return; friends = T.friends; if (T.best > 0) ls.set(SRV_BEST_KEY, T.best); if (S) S.friends(); });
-      if (TEST) globalThis.__hiGame = { stage: S, writer: () => W.state(), state: () => ({ matchId, go, proven, spent, started, sent: W.state().sent, chunks: W.state().chunks, acked: W.state().acked, lateGo, missed, wroteE, final: !!final, leave: !!leaveBtn, friends: friends.map(f => `${f.n} ${f.v}`), stage: S.state(),
+      if (TEST) globalThis.__hiGame = { stage: S, writer: () => W.state(), state: () => ({ matchId, go, proven, holds: holdsRun(), liveWaited: liveWait.waited(), spent, started, sent: W.state().sent, chunks: W.state().chunks, acked: W.state().acked, lateGo, missed, wroteE, final: !!final, leave: !!leaveBtn, friends: friends.map(f => `${f.n} ${f.v}`), stage: S.state(),
         isMatch, haveGo, seed: mSeed, playAt: mPlayAt, adopted, watching: S.watching(), follow: followUid, call: !!callEl, callLine, out: !!outRes, outCard: !!outCard, hud: S.matchState(),
         rivals: [...rivals.values()].map(R => ({ uid: R.uid, name: R.name, floor: R.run.floor, perfects: R.run.perfects, taps: R.taps.length, over: rivalOver(R), end: rivalEnd(R), done: R.done, bad: R.bad, silent: !!(R.row && R.row.silent) })) }), setFriends(f) { friends = f; S.friends(); } };
       if (isMatch) { S.setMatch(true); pumpIv = setInterval(pumpMatch, 100); }
@@ -431,6 +454,7 @@ export function createView() {
       // PLAY AGAIN's remount (the console's INSTANT AGAIN): the next run starts at once — its tap WAS the PLAY AGAIN
       if (!isMatch && performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000 && state.game && state.game.phase === 'play' && mine(state.game)) S.start();
     },
+    holdsRun,
     update(state) { st = state; sync(); },
     unmount() {
       gone = true; clearTimeout(goTimer); clearTimeout(finalTimer); clearInterval(pumpIv);

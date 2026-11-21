@@ -73,6 +73,8 @@ export async function flush(force = false) {
       try {
         const r = await api('report', { code: item.code, matchId: item.matchId, snap: item.snap || undefined });
         // (M4: "count it in a moment" — a player of this match was credited < 45 s ago: resend after the server's retryAfter, at most RETRY_MAX times)
+        // (THE CONSOLE FIX: 'still_live' — a run of the match is still going; the SERVER's cap ends that wait, so it never uses up the tries)
+        if (r.ok === false && r.retry && r.retryAfter > 0 && r.code === 'still_live') throw Object.assign(new Error(r.code), { status: 425, after: Math.min(60_000, r.retryAfter), live: true });
         if (r.ok === false && r.retry && r.retryAfter > 0 && (item.w || 0) < RETRY_MAX) throw Object.assign(new Error(r.code), { status: 425, after: Math.min(5 * 60_000, r.retryAfter) });
         if (r.ok === false && r.retry && !(r.retryAfter > 0)) throw Object.assign(new Error(r.code), { status: 425 });   // still settling: soon
         done(item.k);
@@ -84,7 +86,7 @@ export async function flush(force = false) {
         const q = loadQueue();
         const x = q.find(y => y.k === item.k);
         // (FR7 FIXES B — FR7-A's NICE line: "still settling" (425) was retried every 2 s for up to 5 h — now 2, 4, 8 … s, at most 60 s)
-        if (x && e.after) { x.w = (x.w || 0) + 1; x.next = Date.now() + e.after + Math.round(Math.random() * 1500); saveQueue(q); }
+        if (x && e.after) { if (!e.live) x.w = (x.w || 0) + 1; x.next = Date.now() + e.after + Math.round(Math.random() * 1500); saveQueue(q); }
         else if (x) { x.n += 1; x.next = Date.now() + (e.status === 425 ? Math.min(SETTLE_MAX_MS, 2000 * 2 ** Math.max(0, x.n - 1)) : backoff(x.n)); saveQueue(q); }
       }
     }

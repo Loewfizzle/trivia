@@ -62,3 +62,42 @@ export function goUids(tree) {
  */
 export const inMatch = (runs, uid, g0) => onTime(runs && runs[uid], g0);
 export const fullDraw = (first, ids) => ids.length > 1 && first.length >= ids.length;
+
+// THE CONSOLE FIX (Nov 20 — docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): a MODIFIED host wrote `final` (or moved
+// the room on) mid-match — every honest phone left its live run, he played on, reported and won. Now a run that is STILL LIVE is waited
+// for: by the phones (the podium, the router) and by THE SERVER (no report counts while one is). "Live" reads NOTHING the host writes —
+// only the player's own node (its GO, its chunks' server stamps, its `e`), the player's own presence and the match's clock (THE FIRST GO).
+/** when a player's proof last moved (ms, a server time): their newest chunk's arrival, else their GO, else the match's tick 0 */
+export function lastSeenAt(node, playAt) {
+  let at = playAt || 0;
+  if (node && node.go > at) at = node.go;
+  const c = node && node.c;
+  if (c && typeof c === 'object') { let hi = -1; for (const k in c) { const i = Number(k); if (i > hi) hi = i; } const v = hi >= 0 ? c[hi] : null; if (v && v.at > at) at = v.at; }
+  return at;
+}
+/** the soonest a report waits again (ms) · the longest (a live run sends a chunk at least every few seconds — the wait is re-asked) */
+export const LIVE_RETRY_MIN_MS = 2000, LIVE_RETRY_MAX_MS = 20_000;
+/**
+ * THE LIVE RUNS of a proof match — the on-time GOs whose run has NOT ended as far as the database can tell: no `e`, its proof moved within
+ * `idleMs` (+ `dropMs` while its player is offline — THE DROPPED SIGNAL) and the cap (+ `graceMs`) not yet passed. EXACTLY the host's own
+ * "has it ended?" rule (director.js#endedFor — both games): an honest host writes `final` only once this is empty, so an honest match never
+ * waits for it. NEVER FOREVER: past `capAt + graceMs` nothing is live (a modified rival who keeps writing can stall a report to the cap,
+ * never past it); a dead phone idles out like it always did.
+ * `tree` = { uid: node, t0 } · `online` = { uid: bool } (null = everyone online) · → { uids, until } (`until`: when the soonest of them
+ * would end with no new chunk — the server's retryAfter)
+ */
+export function liveGoers(tree, { now, online = null, playAt, capAt, idleMs, dropMs = 0, graceMs = 0 }) {
+  const uids = [];
+  let until = 0;
+  const g0 = firstGo(tree);
+  if (!g0 || !(now < capAt + graceMs)) return { uids, until };
+  for (const u in tree) {
+    const node = tree[u];
+    if (!onTime(node, g0) || node.e != null) continue;
+    const end = Math.min(capAt + graceMs, lastSeenAt(node, playAt) + idleMs + (online && !online[u] ? dropMs : 0));
+    if (now < end) { uids.push(u); if (!until || end < until) until = end; }
+  }
+  return { uids, until };
+}
+/** the server's "count it in a moment" for a match with live runs: soon, never past the soonest end, re-asked */
+export const liveRetryMs = (until, now) => Math.max(LIVE_RETRY_MIN_MS, Math.min(LIVE_RETRY_MAX_MS, Math.ceil(until - now) + 500));

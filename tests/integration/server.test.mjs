@@ -1359,6 +1359,102 @@ test('JAYWALK H4 — THE MATCH: every run from the SERVER\'s replay, the owner\'
   tick();
 });
 
+// THE CONSOLE FIX (Nov 20 — docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): a modified host writes `final` while a
+// rival's run is still LIVE, then reports — the server waits (425 still_live + retryAfter) until that run has ended; the rival plays on to
+// his own end and WINS. Never forever: a dead phone idles out (18 s online · + 75 s offline), the cap ends every wait. Both games.
+test('THE CONSOLE FIX — a host\'s early `final` never counts over a LIVE run (both games): 425 still_live, the rival plays on and wins; a dead phone + the cap end the wait; the room moved on too', async () => {
+  const JW = { logic: await import('../../js/games/jaywalk/logic.js'), course: await import('../../js/games/jaywalk/course.js'), engine: await import('../../js/games/jaywalk/engine.js'), replay: await import('../../js/games/jaywalk/replay.js'), bot: await import('../../js/games/jaywalk/bot.js') };
+  const HR = { logic: await import('../../js/games/highrise/logic.js'), engine: await import('../../js/games/highrise/engine.js'), proof: await import('../../js/games/highrise/proof.js'), replay: await import('../../js/games/highrise/replay.js'), bot: await import('../../js/games/highrise/bot.js') };
+  await ref('testReportAll').set(null);
+  const U = ['u-cf1', 'u-cf2'], NAME = ['CFHOST', 'CFLEAD'];
+  for (let i = 0; i < 2; i++) await ensure(U[i], NAME[i]);
+  const P = await Promise.all(U.map(u => val(`uids/${u}`)));
+  let mN = 0;
+  /** a match the HOST ended early: the host's node complete (short), the leader's run LONGER — the room holds the leader's first `cut`
+   *  chunks, no `e`, the newest stamped `fresh` ms ago. → { code, matchId, nodes (the honest full ones), set(fn) } */
+  const seed = async (gid, { cut = 2, fresh = 1500, at = null, moved = false } = {}) => {
+    const code = nextCode(), node = gid === 'jaywalk' ? 'jw' : 'hr', g0 = clock - 150_000, L = gid === 'jaywalk' ? JW.logic : HR.logic, playAt = g0 + L.GO_LEAD_MS;
+    let matchId = '', sd = '', nodes = {}, score = {};
+    // (the fixture needs the leader FARTHER than the host + a run that goes on past the early end — tried on a few seeds until it is so)
+    for (let tries = 0; tries < 40; tries++) {
+    matchId = `c${(mN++).toString(36)}f${Math.floor(clock % 1e6).toString(36)}`.slice(0, 12); sd = L.seedOf(code, matchId, g0); nodes = {}; score = {};
+    U.forEach((u, i) => {
+      const c = {};
+      if (gid === 'jaywalk') {
+        const course = JW.course.createCourse(sd), run = JW.engine.createRun({ seed: sd, mode: 'match' });
+        const log = JW.bot.playBot(run, course, JW.bot.greedyBot({ seed: sd + u }), i ? 2400 : 300);
+        while (!JW.engine.isOver(run)) JW.engine.step(run, course, '');
+        let from = 0, k = 0;
+        while (from < log.length) { const edge = (Math.floor(log[from].t / 30) + 1) * 30; let to = from; while (to < log.length && log[to].t < edge) to++; c[k++] = { s: JW.replay.packLog(log.slice(0, to), from), at: playAt + Math.ceil(edge * 1000 / 60) + 140 }; from = to; }
+        nodes[u] = { go: g0 + i * 37, c, e: { l: run.best, t: run.bestT, w: run.cause } }; score[u] = run.best;
+      } else {
+        const taps = HR.bot.playBot(HR.engine.createRun({ seed: sd, mode: 'match' }), HR.bot.gaussBot({ sigmaMs: 14, seed: matchId + u }), { maxFloor: i ? 30 : 6 });
+        taps.forEach((t, k) => { c[k] = { s: HR.proof.packFrom(taps, k, k + 1), at: playAt + Math.round(t * 1000 / 60) + 200 }; });
+        const j = HR.replay.judgeRun({ seed: sd, mode: 'match', taps });
+        nodes[u] = { go: g0 + i * 37, c, e: { f: j.floor, t: j.tick, w: j.cause } }; score[u] = j.floor;
+      }
+    });
+    if (score[U[1]] > score[U[0]] && score[U[0]] > 0 && Object.keys(nodes[U[1]].c).length > cut + 2) break;
+    }
+    const lead = nodes[U[1]], keys = Object.keys(lead.c).map(Number).sort((a, b) => a - b).slice(0, cut);
+    assert.ok(Object.keys(lead.c).length > cut + 2, `the fixture: the leader's run goes on past the host's early end (${Object.keys(lead.c).length} chunks)`);
+    const liveLead = { go: lead.go, c: Object.fromEntries(keys.map((k, n) => [k, n === keys.length - 1 ? { ...lead.c[k], at: at != null ? at : clock - fresh } : lead.c[k]])) };
+    const participants = { [U[0]]: true, [U[1]]: true };
+    const game = { id: gid, matchId, phase: 'final', mode: 'match', seed: sd, playAt, g0, participants, phaseStartAt: clock, settings: {}, results: {} };
+    await ref(`rooms/${code}`).update({
+      meta: { hostId: U[0], status: 'playing', createdAt: clock - 600_000, activeAt: clock },
+      players: Object.fromEntries(U.map((u, i) => [u, { name: NAME[i], color: 'cyan', avatar: 'bolt', joinedAt: i + 1, pid: P[i] }])),
+      presence: Object.fromEntries(U.map(u => [u, { online: true, lastSeen: clock, v: 2, c: { k1: true } }])),
+      game: moved ? { ...game, matchId: 'cnextmatch', phase: 'count' } : game,
+      [`night/${matchId}`]: { g: gid, at: clock, p: { [U[0]]: 3, [U[1]]: 1 }, n: { [U[0]]: 'H', [U[1]]: 'L' } },   // (the host's forged night: him first)
+      [`${node}/${matchId}`]: { t0: g0, [U[0]]: nodes[U[0]], [U[1]]: liveLead },
+    });
+    return { code, matchId, nodes, node, set: (u, v) => ref(`rooms/${code}/${node}/${matchId}/${u}`).set(v), path: `rooms/${code}/${node}/${matchId}` };
+  };
+  for (const gid of ['jaywalk', 'highrise']) {
+    // ---- the attack: `final` mid-run, the host reports at once → held
+    tick(60_000);
+    const A = await seed(gid);
+    let held = null;
+    try { await report(U[0], A); } catch (e) { held = e; }
+    assert.ok(held && held.status === 425 && held.code === 'still_live', `${gid}: the host's report waits while the leader's run is live (${held && held.code})`);
+    assert.ok(held.extra.retryAfter >= 2000 && held.extra.retryAfter <= 20_000, `${gid}: asked again soon (${held.extra.retryAfter} ms)`);
+    assert.equal(await val(`results/${A.code}_${A.matchId}`), null, `${gid}: nothing sealed while a run is live`);
+    await rejects(report(U[1], A), 425, 'still_live');   // (the leader's own phone too)
+    // … the leader plays on to his own end (his own writes — the rules take them on his own GO alone): counted, HE wins
+    await A.set(U[1], A.nodes[U[1]]);
+    const rc = await report(U[0], A);
+    assert.equal(rc.status, 'counted', `${gid}: counted the moment the live run ended`);
+    assert.equal(!!rc.outcome.win, false, `${gid}: the host who ended the match early does NOT win`);
+    const done = await val(`results/${A.code}_${A.matchId}`);
+    assert.ok(done.o[P[1]] && done.o[P[1]].win, `${gid}: the leader — who played on — wins`);
+    // ---- the room MOVED ON (a new match) instead: the same wait on the moved-on path
+    tick(60_000);
+    const B = await seed(gid, { moved: true });
+    await rejects(report(U[0], B), 425, 'still_live');
+    await B.set(U[1], B.nodes[U[1]]);
+    assert.equal((await report(U[0], B)).status, 'counted', `${gid}: moved on — counted once the run ended`);
+    // ---- NEVER FOREVER: a dead phone (online, silent past the idle-out) is not waited for — an honest match's timing
+    tick(60_000);
+    const C = await seed(gid, { fresh: 19_000 });
+    assert.equal((await report(U[0], C)).status, 'counted', `${gid}: a phone silent 19 s (online) — counted at once, as the honest host would have ended it`);
+    // … offline: THE DROPPED SIGNAL's 75 s on top
+    tick(60_000);
+    const D = await seed(gid, { fresh: 30_000 });
+    await ref(`rooms/${D.code}/presence/${U[1]}`).set(null);
+    await rejects(report(U[0], D), 425, 'still_live');
+    assert.equal((await report(U[0], D, clock + 70_000)).status, 'counted', `${gid}: offline + silent 100 s — the wait is over`);
+    // … the cap: past it (+ the grace) nothing is live — a modified rival who keeps writing can stall a report to the cap, never past it
+    tick(60_000);
+    const capAt = clock - 150_000 + 2000 + 360_000;
+    const E = await seed(gid, { at: capAt - 1000 });
+    await rejects(report(U[0], E, capAt + 3000), 425, 'still_live');
+    assert.equal((await report(U[0], E, capAt + 4100)).status, 'counted', `${gid}: the cap + its grace end every wait`);
+  }
+  await ref('testReportAll').set(true);
+  tick();
+});
+
 // FR7 FIXES B — A SEAT IS NOT A PLAY (the owner's add-on — Grok's second opinion): EVERY credited uid needs its OWN node of THIS match in
 // THIS room (api/report.js#PROOF_TREES) — a seat alone is nothing
 test('FR7 FIXES B — A SEAT IS NOT A PLAY: a seated guest who wrote nothing gets nothing (no 2-player win for the host); a real match as before; challenge 0 skipped still counts', async () => {

@@ -47,12 +47,14 @@ const FIN_PINK = '#ff2bd6';   // (the console's pink — THE NEON TUBE's — whe
  * winnerLine(name): subtitle for a single winner.
  * scoreLabel: small caption under podium scores (e.g. 'HP').
  */
-export function createFinal({ rows, players, me, presence, winnerLine, scoreLabel = '', kicker = 'MATCH COMPLETE', extra = null }) {
+export function createFinal({ rows, players, me, presence, winnerLine, scoreLabel = '', kicker = 'MATCH COMPLETE', extra = null, game = null }) {
   const cancelers = [], refreshers = [];
   // the global boards: personal bests, world ranks, XP, rank-ups (js/profile/callouts.js) — loaded on demand, never in the way
   const rcSlot = h('div.rc-slot');
   let rc = null, gone = false;
-  const g = state.game;
+  // (THE CONSOLE FIX: `game` = the match as the game scored it on this phone — a podium that waited for a live run reads the nodes, never an
+  //  early `final`'s numbers; default the room's)
+  const g = game || state.game;
   if (state.code && g && g.matchId && g.participants && g.participants[me]) {
     lazyImport(import('../profile/callouts.js'), '../profile/callouts.js').then(m => { if (gone) return; rc = m.attachCallouts(state.code, g); rcSlot.append(rc.el); }).catch(() => {});
   }

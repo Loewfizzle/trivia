@@ -11,6 +11,7 @@
 // H3 — THE SOLO RUN: no count (PLAY NOW's walk inside is the wait) — `play` from the start; the run's own clock starts at the PLAYER's GO
 // (their proof node's server timestamp — the course is picked from it: logic.js#seedOf), never at game.playAt.
 import { cleanSettings, modeOf, capAt, scoreRuns, scoreCalls, matchStart, startOf, seedOf, goBeforeGiveUp, COUNT_MS, END_GRACE_MS, NO_GO_MS, DROP_WAIT_MS } from './logic.js';
+import { liveGoers } from '../../core/proof.js';
 
 /** a kid nobody moves is out within this (the blackout: 8 lanes behind at the start + its 3 s wait — ≈ 16 s; ≤ 9 s later on) */
 export const IDLE_OUT_MS = 18000;
@@ -27,7 +28,7 @@ export function createGame({ matchId, settings, participants, now, seed }) {
   };
 }
 
-function finalPatch(game0, runs, now, code) {
+export function finalPatch(game0, runs, now, code) {
   // (H4B — THE NODES ARE THE TRUTH: a match is scored on THE FIRST GO's course + clock, as the server's own count is; if the game ever
   // said otherwise the patch puts it right — never seen in the tests: the GO patch is derived from the same nodes)
   const S = game0.mode !== 'solo' ? startOf(game0, runs, code) : null, moved = !!S && (S.seed !== game0.seed || S.playAt !== game0.playAt);
@@ -48,6 +49,17 @@ export function lastSeen(game, node) {
 /** H4: has this player's run ended, as far as the room can tell? their own `e` — or a silence long enough that the kid is out AND (offline)
  *  a dropped signal has had its time to come back */
 export const endedFor = (game, node, now, online) => !!(node && node.e) || now >= lastSeen(game, node) + IDLE_OUT_MS + (online ? 0 : DROP_WAIT_MS);
+
+/**
+ * THE CONSOLE FIX — THE LIVE RUNS of a match (core/proof.js#liveGoers on this game's clock: THE FIRST GO's tick 0, THE MOTHERSHIP's cap
+ * + END_GRACE_MS, IDLE_OUT_MS, DROP_WAIT_MS): the on-time runs not ended yet, read from the proof nodes ALONE (never the host's game) —
+ * THE SERVER holds a report while any is (api/report.js), the podium waits for them (view.js). → { uids, until }
+ */
+export function liveOf({ code, matchId, tree, now, online = null }) {
+  const S = tree ? matchStart(code, matchId, tree) : null;
+  if (!S) return { uids: [], until: 0 };
+  return liveGoers(tree, { now, online, playAt: S.playAt, capAt: capAt({ mode: 'match', playAt: S.playAt }), idleMs: IDLE_OUT_MS, dropMs: DROP_WAIT_MS, graceMs: END_GRACE_MS });
+}
 
 /** → a patch, or null */
 export function nextStep(game, { now, live, code = '', online = null } = {}) {

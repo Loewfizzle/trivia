@@ -38,7 +38,8 @@ test('THE NUMBERS ARE THE RULES\' (database.rules.json `jw` + `hr`): the GO wind
     assert.ok(U.go['.write'].endsWith(`(${tree} + '/t0').isNumber() ? now <= ${tree} + '/t0').val() + ${GO_WINDOW_MS} : now < ${T0_SUNSET_MS})`), `${node}: a GO within GO_WINDOW_MS of the stamp — or, until the sunset, in a tree without one`);
     assert.ok(U.go['.write'].includes("$match.matches(/^[a-z0-9]{3,16}$/)") && M.t0['.write'].includes("$match.matches(/^[a-z0-9]{3,16}$/)"), `${node}: only under a real match id (api/report.js takes the same shape)`);
     assert.equal(M.t0['.validate'], 'newData.isNumber() && newData.val() === now', `${node}: the stamp = the server's time`);
-    assert.ok(M.t0['.write'].endsWith(`newData.exists() && !${tree}).exists()`), `${node}: the stamp only while the tree is EMPTY, never deleted by its writer`);
+    assert.ok(M.t0['.write'].includes(`newData.exists() && !${tree}).exists() && `), `${node}: the stamp only while the tree is EMPTY, never deleted by its writer`);
+    assert.ok(M.t0['.write'].endsWith(`.child('pt/g').val() === '${node}'`), `${node}: THE CONSOLE FIX — the stamp only WITH the room's tree counter (THE TREE CAP — tests/console-fix.test.mjs)`);
     assert.ok(M.t0['.write'].includes(`/game/id').val() === '${gid}'`) && M.t0['.write'].includes("/game/participants/' + auth.uid).exists()") && M.t0['.write'].includes("/kicked/' + auth.uid).exists()"), `${node}: by a seated, un-kicked player of this game's match`);
     const own = `${go}.isNumber() && now < ${go}.val() + ${LEAF_MS}`;
     for (const [leaf, rule] of [['c/$i', U.c.$i['.write']], ['e', U.e['.write']], ['k', U.k['.write']], ...(U.rs ? [['rs', U.rs['.write']]] : [])]) {
@@ -50,7 +51,7 @@ test('THE NUMBERS ARE THE RULES\' (database.rules.json `jw` + `hr`): the GO wind
     assert.ok(U.k.w['.validate'].startsWith(`newData.isString() && newData.val().length <= ${CALL_UID_MAX} && newData.val().matches(/^[A-Za-z0-9]+$/) && `), `${node}/k/w: a uid's shape, bounded (THE FRESH-EYES REVIEW: it had no bound)`);
     assert.ok(M['.write'].endsWith(`(!data.exists() || (data.child('t0').isNumber() ? data.child('t0').val() < now - ${PROOF_LOCK_MS} : (data.child(auth.uid).child('go').isNumber() && data.child(auth.uid).child('go').val() < now - ${PROOF_LOCK_MS})))`), `${node}: THE LOCK — by the stamp's age; a tree without one by the host's own GO, as before`);
   }
-  const same = s => JSON.stringify(s).split('highrise').join('G').split('jaywalk').join('G').split("/hr/'").join("/N/'").split("/jw/'").join("/N/'");
+  const same = s => JSON.stringify(s).split('highrise').join('G').split('jaywalk').join('G').split("/hr/'").join("/N/'").split("/jw/'").join("/N/'").split("=== 'jw'").join("=== 'N'").split("=== 'hr'").join("=== 'N'");   // (THE CONSOLE FIX: + the tree counter's node name)
   const jw = RULES.jw.$match, hr = RULES.hr.$match;
   assert.equal(same(jw.t0), same(hr.t0)); assert.equal(same(jw.$uid.go), same(hr.$uid.go)); assert.equal(same(jw['.write']), same(hr['.write'])); assert.equal(same(jw.$uid.k), same(hr.$uid.k)); assert.equal(same(jw.$uid.e['.write']), same(hr.$uid.e['.write']));
   assert.equal(same(hr.$uid.c.$i['.write']), `${same(jw.$uid.c.$i['.write']).slice(0, -1)} && !root.child('rooms/' + $code + '/N/' + $match + '/' + $uid + '/e').exists()"`, 'hr alone: nothing after its own end (as before)');

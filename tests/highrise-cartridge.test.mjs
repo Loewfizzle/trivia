@@ -269,7 +269,7 @@ test('THE NEXT FRIEND (lines.js — PURE): the LOWEST friend best above you, one
 test('THE VIEW WRITES THE PROOF — AND ONLY ITS OWN NODE: GO once (the server\'s time, read back), the chunks server-stamped, `e` once behind the last chunk; never after the match left `play`; the scene parked only over PLAY AGAIN', () => {
   const v = code('js/games/highrise/view.js');
   assert.ok(v.includes('const treePath = () => `rooms/${code}/hr/${matchId}`, nodePath = () => `${treePath()}/${uid}`;'), 'its own uid, its own match');
-  assert.match(v, /dbSet\(dbRef\(path\), serverTimestamp\(\)\)\.then\(\(\) => dbGet\(dbRef\(path\)\)\)/, 'GO: the server\'s time, read back — never the phone\'s estimate');
+  assert.match(v, /dbSet\(dbRef\(path\), serverTimestamp\(\)\)\)\.then\(\(\) => dbGet\(dbRef\(path\)\)\)/, 'GO: the server\'s time, read back — never the phone\'s estimate');
   assert.match(v, /fin\(\{ seed: seedOf\(code, matchId, go\), t0: perfOf\(go\), taps: old \|\| \[\] \}\);/, 'the seed = hash(code + matchId + GO); tick 0 = GO');
   // THE PROOF PASS: the chunks + the end go up through THE PROOF WRITER (kit/proof-writer.js + proof-io.js — JAYWALK's too)
   const io = code('js/games/kit/proof-io.js');
