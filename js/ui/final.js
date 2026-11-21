@@ -251,7 +251,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   const mt = setTimeout(measure, 900);
   // (FRIENDS B — THE END SCREEN TAKES THE GAME'S COLOUR: the cartridge's ACCENT tints the frame's main tube; missing = the pink)
   if (mod && typeof mod.ACCENT === 'string' && /^#[0-9a-f]{6}$/i.test(mod.ACCENT)) { el.classList.add('has-accent'); el.style.setProperty('--fin', mod.ACCENT); }
-  if (g) finFrame(el, g.id);
+  if (g) finFrame(el, g.id);   // (THE END NEON: WINNER + DEADLOCK (a shared win) in gold, SOLO RUN + ALL TIED in the game's accent — the game's NEON row)
   if (neonKick) cancelers.push(fitHeader(neonKick.parentElement));   // (THE END NEON: the WINNER title in gold, SOLO RUN / DEADLOCK in the game's accent — the game's NEON row)
   // (CITY F: the bar's text — dark on the accent where it reads ≥ 4.5 : 1, white where the accent is too dark; the console's pink without one)
   el.style.setProperty('--fin-ink', finInk(mod && /^#[0-9a-f]{6}$/i.test(String(mod.ACCENT || '')) ? mod.ACCENT : FIN_PINK));

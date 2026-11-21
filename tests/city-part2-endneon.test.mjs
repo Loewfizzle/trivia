@@ -43,7 +43,7 @@ test('THE END NEON: ONE builder — every game\'s end frame passes its mode; HIG
   assert.ok(read('js/games/jaywalk/victory.js').includes("finLine(h('div.jw-fin-cause'"), 'JAYWALK\'s cause = the builder\'s line');
   assert.doesNotMatch(read('css/highrise-play.css'), /\.hi-hd-[abm] \{/, 'no per-game copy of the header neon');
   const css = read('css/components.css');
-  assert.ok(css.includes('.fn-line.fn-line.is-gold, .final.has-neon:not(.is-solo):not(.is-alltied) .winner-title { --c: #ffc83c;'), 'a win line = GOLD (through --c: the row\'s own colours sit inline)');
+  assert.ok(css.includes('.fn-line.fn-line.is-gold, .final.has-neon:not(.is-solo):not(.is-alltied) .winner-title.winner-title { --c: #ffc83c;'), 'a win line = GOLD (through --c: the row\'s own colours sit inline)');
   // (the fin-neon module stays DOM-only: no store, no fetch — the /highrise-play page builds its card with it)
   const m = read('js/ui/fin-neon.js'); assert.deepEqual((m.match(/^import .*$/gm) || []).map(l => l.replace(/.* from /, '')), ["'./dom.js';", "'../games/metas.js';"]);
 });

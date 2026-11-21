@@ -36,6 +36,7 @@ import { CLOCK, packFrom, tapsFromChunks } from './proof.js';
 import { cleanBest } from './best.js';
 import { BOARD, SRV_BEST_KEY, TABLE_KEEP_MS, parseTable } from './lines.js';
 import { createStage, newSeed } from './stage.js';
+import { finLine } from '../../ui/fin-neon.js';   // (CITY PART 2 — THE REVIEW: the in-match OUT card's words through THE END NEON too)
 
 /** GO's answer is waited this long before a run goes on UNPROVEN (never a stuck start) */
 export const GO_WAIT_MS = 4000;
@@ -310,7 +311,7 @@ export function createView() {
     const since = performance.now() - outAt, r = outRes, hud = S.hud(), others = rows.filter(x => !x.me), live = others.filter(x => !x.over);
     if (r && !outCard && mine(g) && since < 60000) {
       const made = r.cause === 'made';
-      outCard = h(`div.hi-outcard${made ? '.is-made' : ''}`, h('div.hi-outcard-k', made ? 'THE FINISH LINE' : r.cause === 'cap' ? 'THE BELL' : 'OUT'), h('div.hi-ec-cause', g.unproven || !haveGo || lateGo ? 'NOT COUNTED' : END_WORDS[r.cause] || 'THE TOWER STANDS'), h('div.hi-outcard-n', `${r.floor} ${r.floor === 1 ? 'FLOOR' : 'FLOORS'}`));
+      outCard = h(`div.hi-outcard${made ? '.is-made' : ''}`, h('div.hi-outcard-k', made ? 'THE FINISH LINE' : r.cause === 'cap' ? 'THE BELL' : 'OUT'), finLine(h('div.hi-ec-cause', g.unproven || !haveGo || lateGo ? 'NOT COUNTED' : END_WORDS[r.cause] || 'THE TOWER STANDS'), 'highrise', made), h('div.hi-outcard-n', `${r.floor} ${r.floor === 1 ? 'FLOOR' : 'FLOORS'}`));
       hud.over.append(outCard);
       setTimeout(() => { if (outCard) outCard.classList.add('is-gone'); }, made ? MADE_SHOW_MS : OUT_SHOW_MS);
     }

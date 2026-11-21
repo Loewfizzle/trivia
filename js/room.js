@@ -560,6 +560,8 @@ export async function leaveRoom({ keepSeat = false, reason = null, heir: given =
       }
     }
     await onDisconnect(dbRef(`${R(code)}/presence/${uid}`)).cancel();
+    // (CITY PART 2 — THE REVIEW: a leaver's GAME VOTE goes first, in its own write — the rule wants the seat for a take-back; old rules refuse it quietly)
+    if (state.gv && state.gv[uid]) { expectRefusal(`${R(code)}/gv/${uid}`, 'a leaver\u2019s game vote (rules without gv)', 8000, 'late-vote'); await update(dbRef(R(code)), { [`gv/${uid}`]: null }).catch(() => {}); }
     await update(dbRef(R(code)), { [`presence/${uid}`]: null, [`players/${uid}`]: null });
   } catch (e) { console.warn('leave', e); }
   if (state.code === code) exitRoom(reason, 'info', { keepSeat, how: 'leave' });

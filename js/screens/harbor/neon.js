@@ -1185,7 +1185,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     boardPick(key, n = 0, l = L) { if (!l) return null; const sp = signSpots(l); return billboardPick(games, sp, assignSigns(games, sp, key), key, n); },
     /** CITY PART 2 — the games lit on a night's NAMED signs (the speakeasy blade skips them — core/harbor-neon.js#bladeGame); key: the night
      *  (default: the one the layout hangs) */
-    litSigns(key = assignKey, l = L) { if (!l || !key) return []; if (litMemo && litMemo.k === key && litMemo.l === l) return litMemo.v; const sp = signSpots(l), v = litSigns(assignSigns(games, sp, key), sp); litMemo = { k: key, l, v }; return v; },
+    litSigns(key = assignKey, l = L) { if (!l || !key) return []; if (!litMemo || litMemo.l !== l) litMemo = { l, m: new Map() }; let v = litMemo.m.get(key); if (v) return v; const sp = signSpots(l); v = litSigns(assignSigns(games, sp, key), sp); if (litMemo.m.size >= 4) litMemo.m.clear(); litMemo.m.set(key, v); return v; },   // (THE REVIEW: a few nights — the board asks tonight + tomorrow)
     /** 8b1 — THE BILLPOSTER: a board built for `show` (not hung — its poster + light for the sheets he pastes) */
     boardArt(id, show) { const it = items.find(x => x.kind === 'board' && x.id === id); if (!it) return null; const b = buildBillboard(it.b.spot, billboardContent(show, games), { dpr, roofY: it.b.roofY, roofX0: roofX0Of(it.b.spot) }); free(b.nightS); return b; },
     /** the game a board shows now (null: none / CITY CONTROL's own content) */

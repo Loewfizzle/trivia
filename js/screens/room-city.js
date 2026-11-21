@@ -212,14 +212,16 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   const markGvSeen = () => { try { sessionStorage.setItem(gvSeenKey(), String(serverNow())); } catch { /* fine */ } };
   const gamesN = () => (isHost() && lobbyNow() ? newVotes(st.gv, players(), st.meta && st.meta.hostId, playableIds(), gvSeen()) : 0);
   function castVote(g) {
-    if (voteBusy || isHost()) return;
-    if (votesOff || !lobbyNow()) { openHelp(g.id); return; }
+    if (voteBusy) return;
+    // (THE REVIEW: the host (a MAKE HOST since the sheet opened) / votes off / a start on its way → HOW TO PLAY, as before votes)
+    if (isHost() || votesOff || !lobbyNow() || goWaiting(st.meta, st.game, serverNow())) { openHelp(g.id); return; }
     voteBusy = true;
     const v = nextVote(myVote(st.gv, st.uid), g.id);
     sfx(v ? 'select' : 'tap');
     expectRefusal(`rooms/${code()}/gv/${st.uid}`, 'a game vote refused (the room had moved on, or rules without gv)', 8000, 'late-vote');
     dbUpdate(dbRef(`rooms/${code()}`), { [`gv/${st.uid}`]: v ? { g: v, at: serverTimestamp() } : null })
-      .catch(e => { if (e && /permission|denied/i.test(String(e.code || e.message))) { votesOff = true; paintGames(); } else toast('COULD NOT REACH THE ROOM', 'err'); })
+      // (THE REVIEW: votes go quiet only for a refusal IN a settled lobby — the rules without gv; a race with a start just drops the vote)
+      .catch(e => { if (e && /permission|denied/i.test(String(e.code || e.message))) { if (lobbyNow() && !goWaiting(st.meta, st.game, serverNow()) && players()[st.uid]) { votesOff = true; paintGames(); openHelp(g.id); } } else toast('COULD NOT REACH THE ROOM', 'err'); })
       .finally(() => { voteBusy = false; });
   }
   const nameOfGame = id => (GAMES.find(x => x.id === id) || {}).name || id;
@@ -251,6 +253,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   async function openGames(asHost) {
     if (gamesOpen) return;
     gamesOpen = { pending: true };
+    try { await openGamesNow(asHost); } catch (e) { console.warn('games', e); toast('COULDN’T OPEN THE GAMES — TAP AGAIN', 'warn'); } finally { if (gamesOpen && gamesOpen.pending) gamesOpen = null; }   // (THE REVIEW: a failed chunk never leaves GAMES dead)
+  }
+  async function openGamesNow(asHost) {
     const { openPfSheet } = await lazyImport(import('../profile/sheets.js'), '../profile/sheets.js');
     const base = GAMES.filter(g => g.playable || (asHost && isOwnerTest(g.id)));   // (HE8 — THE OWNER'S LIVE TEST: a game being built, on the owner's host phone only)
     const [{ markSvg }, { LOGO_ACC }, O] = await Promise.all([lazyImport(import('../ui/mark-svg.js'), '../ui/mark-svg.js'), lazyImport(import('../ui/tube-logo.js'), '../ui/tube-logo.js'), lazyImport(import('../core/game-order.js'), '../core/game-order.js').catch(() => null)]);

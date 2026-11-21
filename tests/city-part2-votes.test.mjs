@@ -33,8 +33,10 @@ test('the wiring: the room mirrors gv, the start clears it in its OWN write (rul
   const room = read('js/room.js'), host = read('js/host.js'), rc = read('js/screens/room-city.js');
   assert.ok(room.includes("listen('gv', gv => setState({ gv: gv || {} }));"));
   assert.ok(host.includes("update(dbRef(`rooms/${state.code}`), { gv: null })") && !/rv: null, gv: null/.test(host), 'the votes clear in their own write');
+  assert.ok(host.indexOf("update(dbRef(`rooms/${state.code}`), { gv: null })") > host.indexOf("'meta/status': 'playing',"), 'AFTER the status write (THE REVIEW: no vote slips in between; a failed start keeps them)');
+  assert.ok(room.includes("[`gv/${uid}`]: null"), 'a leaver’s vote goes with them');
   assert.ok(rc.includes("expectRefusal(`rooms/${code()}/gv/${st.uid}`") && rc.includes("'late-vote'"));
-  assert.ok(rc.includes('votesOff = true') && rc.includes("if (votesOff || !lobbyNow()) { openHelp(g.id); return; }"), 'THE RULES-LAG fallback: a refused vote → HOW TO PLAY as before');
+  assert.ok(rc.includes('votesOff = true') && rc.includes("if (isHost() || votesOff || !lobbyNow() || goWaiting(st.meta, st.game, serverNow())) { openHelp(g.id); return; }"), 'THE RULES-LAG fallback: a refused vote → HOW TO PLAY as before');
   assert.ok(rc.includes('dock.set({ gamesN: gamesN(),') && read('js/screens/room-dock.js').includes("E.gvN = h('i.rdk-cnt'"));
   const rules = JSON.parse(read('database.rules.json'));
   assert.ok(rules.rules.rooms.$code.gv.$uid['.write'].includes("meta/status').val() === 'lobby'"), 'a vote only in the lobby');
