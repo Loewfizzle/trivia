@@ -118,5 +118,17 @@ old rules a vote is refused (the quiet `late-vote`), votes go quiet for the page
   shape, only the host clears); the host's clear behind `hostWriteOk`, never in the start's write; repaints after the finger; contrast; no
   animated shadows; the tag only for `role === 'owner'`; the generated `::before` clashes with nothing.
 
-## THE FINAL RUN
-(filled in below)
+## THE FINAL RUN (this pass's own emulators + `serve.mjs --emu`, one suite at a time; the rules + /api on FRESH emulators after the browsers)
+| check | result |
+| --- | --- |
+| unit (`node --test tests/*.test.mjs`) | **2438 / 2438** |
+| rules (`rules.test.mjs`, + GAME VOTES) · `/api` (`server.test.mjs`, + the owner's tag) | **99 / 99 · 72 / 72** |
+| smoke · e2e-profiles | **24 / 24 · 148 / 148** |
+| e2e-votes (new) · end-flash (every game) · e2e-rematch (4 games' end screens) | **15 / 15 · 24 / 24 · 34 / 34** |
+| JAYWALK `e2e-jaywalk` FAST · HIGH RISE `e2e-highrise --fast` · PRISM DROP `e2e-prism` · HOLD'EM `e2e-holdem` · OVERCLOCK `e2e-oc-2` | **99 / 99 · 70 / 70 · 67 / 67 · 22 / 22 · 27 / 27** |
+| the harbor groups this pass touches (`core, neon, speakeasy, trivision, trivision-rebuild, trionce, room, dock, tapfit, load, gamestart, oldrules`) | **193 / 193** |
+| THE BOOT BUDGET (browser, the load group) | 340 requests (≤ 360) · 2,765 KB (≤ 2,900) · no audio |
+| THE BOOT (static) | 304 / 310 modules · 6,632,702 / 6,656,000 B (**23.3 KB room**; was 1.3 KB) · js/games 28.2 / 30 KB |
+- The full harbor suite: the cloud's, on this harbor-tagged push (THE LOCAL TESTING RULE).
+- Pre-existing, named: the cloud's `street` dancers' 1-jump flake (Group 0).
+- Every server this pass started was stopped at the end, by exact PID (the emulators, `serve.mjs --emu`, the A/B tree's :5174); the A/B worktree removed.
