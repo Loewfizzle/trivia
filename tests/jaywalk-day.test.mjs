@@ -31,7 +31,7 @@ test('THE SWITCH: JAYWALK has BOTH looks — the console\'s GAME LOOK setting is
   // the lab: its own switch (tabs, remembered, ?look=), an end on screen re-worded
   assert.match(lab, /let look = pick\('look', \['night', 'day'\], 'night'\);/); assert.match(lab, /h\('span\.jw-bar-k', 'LOOK'\), \.\.\.looks\)/);
   assert.match(lab, /function setLook\(l\) \{ look = l === 'day' \? 'day' : 'night'; setPref\('look', look\); if \(view && view\.setLook\) view\.setLook\(look\);/);
-  assert.match(lab, /createNight\(play, \{ kidColor, zoom, angle, tier: pin == null \? 2 : pin, look \}\)/);
+  assert.match(lab, /createNight\(play, \{ kidColor, zoom, angle, tier: pin == null \? 2 : pin, look[,}]/);
   // the scene: ONE scene, switched at once
   assert.match(n, /function setLook\(l\) \{/); assert.match(n, /setLook\(o\.look === 'day' \? 'day' : 'night'\);/); assert.match(n, /setLook, look: \(\) => \(day \? 'day' : 'night'\),/);
 });
@@ -76,13 +76,16 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   assert.match(main, /c = mix\(c, mix\(vec3\(0\.04, 0\.035, 0\.05\), vec3\(1\.0, 0\.94, 0\.38\), chd\), clamp\(band \* 1\.4, 0\.0, 1\.0\) \* uDay\);/, '… and the racing band at full contrast (near-black + yellow-white)');
   { const lin = v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4), lum = c => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]), cr = (a, b) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
     assert.ok(cr([1.0, 0.94, 0.38], [0.04, 0.035, 0.05]) > 12, 'the racing chevrons: > 12 : 1 against their own dark'); assert.ok(cr([1.0, 0.64, 0.04], [0.075, 0.07, 0.10]) > 7, 'the lane\'s chevrons: > 7 : 1'); }
-  assert.match(n, /const warn = day && tellF > 0, wig = warn && !reduce \? Math\.floor\(\(st\.left \|\| 0\) \/ 10\) & 1 : 0;/, 'the day lamps wig-wag off the rules\' own tick: 10 ticks a side = 3 a second (never faster), steady under reduce motion');
-  assert.match(n, /hex = hot \? 0xfff0a0 : \(c \+ \(e > 0 \? 1 : 0\) \+ wig\) & 1 \? 0xff2412 : 0xffa400;/, '… red / amber signal lamps, the racing head white-hot');
-  assert.match(n, /0x07070e, 1, 5, 0\.92 \* far\);/, '… each on a DARK backing');
+  // (J2 FIX — the owner, Nov 21: the big glowing lamp balls looked cheap → small CRISP fixtures: a running sequence off the rules' own tick —
+  //  a lamp lit every 21 ticks (under 3 a second), steady under reduce motion; the amber row + the red row; each in a DARK housing)
+  assert.match(n, /step = reduce \? 0 : Math\.floor\(k \/ 7\);/, 'the day lamps run off the rules\' own tick, steady under reduce motion');
+  assert.match(n, /const lit = reduce \|\| hot \|\| \(\(at - step\) % 3 \+ 3\) % 3 === 0, hex = e < 0 \? 0xffa400 : 0xff2412;/, '… amber / red signal lamps, every 3rd lit (under 3 a second each), the racing head too');
+  assert.match(n, /if \(day\) K\.flat\.put\(x, 0\.046, z \+ e, 0\.32, 1, 0\.2, 0, 0x30343c, 1, 12, 0\.85 \* far\);/, '… each in a DARK housing');
   { const fl = readFileSync(new URL('../js/games/jaywalk/flyers.js', import.meta.url), 'utf8');
     assert.match(fl, /K\.bill\.put\(ex, 0\.7, zc, 8\.4 \* g, 5\.8 \* g, 1, 0, 0x060a18, 1, 5, 0\.82 \* A\);/, 'the edge flare by day stands on a solid dark disc');
     assert.match(fl, /glint: 30,/, 'the glint stays the tell\'s LAST 0.5 s — inside the tell, never shortening it'); }
-  assert.match(n, /hot \? \(day \? 0\.9 : 0\.74\) : \(day \? 0\.22 : 0\.3\)/, 'the runway lights: dim lenses by day, BIGGER than at night when they race');
+  assert.match(n, /if \(!warn\) \{ K\.bill\.put\(x, 0\.1, z \+ e, 0\.11, 0\.11, 1, 0, day \? 0xa49c8c/, 'the runway lights off the tell: dim lenses by day (J2 FIX — small, crisp)');
+  assert.match(n, /hot \? 0\.74 : 0\.3, hot \? 0\.74 : 0\.3/, '… by night J2\'s lamps, as shipped');
   assert.match(n, /blink \? \(day \? 0\.7 : 0\.62\) : 0\.24/, 'the rail signals\' red lens is a touch bigger by day (H5C: in a dark signal head — a lamp, never a lollipop)'); assert.match(n, /K\.posts\.put\(x, 0\.66, z - 0\.46, 0\.3, 0\.34, 0\.12, 0, 0x1c1c24, lt\);/, 'the signal head\'s housing');
   // THE FOG BANK = the blackout's own darkness (vState.x), whitened — the same lanes, the same timing
   // (H5C — never a flat slab, never a hard line: the bank's edge is measured PER PIXEL off the wall itself (uWall), soft + ragged, the

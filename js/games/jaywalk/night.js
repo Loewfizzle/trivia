@@ -508,13 +508,13 @@ export function createNight(host, o = {}) {
   /**
    * J2 FIX — THE RUNWAY LAMPS, CRISP (the owner, Nov 21: the big glowing lamp balls looked cheap): every lamp a SMALL FIXTURE — a dark housing
    * set in the tarmac (by day: night's additive light has no dark) + a sharp bright PIP (shape 11 — a hard edge at 3×, no halo). Off the
-   * tell: a dim lens. In the tell + the pass: a RUNNING SEQUENCE across the lane toward the crossing (every 3rd lamp lit, stepping every 6
+   * tell: a dim lens. In the tell + the pass: a RUNNING SEQUENCE across the lane toward the crossing (every 3rd lamp lit, stepping every 7
    * ticks off the rules' own clock — steady, all lit, with reduce motion), the amber row + the red row, the racing head brightest. The
    * chevron arrows (the ground's shader) are untouched. By day always; by night on the lab's `&rwnight=new` only (a soft glow under a lit
    * pip there — the dark road needs it). Instanced kinds only.
    */
   function runwayLamps(p, st, tellF, head, z, lt) {
-    const warn = tellF > 0, k = st.st === 'pass' ? p.tell + st.s : p.tell - (st.left || 0), step = reduce ? 0 : Math.floor(k / 6);
+    const warn = tellF > 0, k = st.st === 'pass' ? p.tell + st.s : p.tell - (st.left || 0), step = reduce ? 0 : Math.floor(k / 7);
     for (let c = -1; c <= COLS; c++) {
       const at = p.dir > 0 ? c : COLS - 1 - c, far = c < 0 || c >= COLS ? 0.6 : 1, x = X(c + 0.5), hot = warn && head > -50 && at <= head && at > head - 3.2;
       for (const e of [-0.42, 0.42]) {

@@ -31,6 +31,7 @@ import map); the RULES are a pure engine that never knows about it.
 | THE CONSOLE FIX (JAYWALK + HIGH RISE + the console) | Nov 20 2026 | `docs/games/passes/console-fix.md` | A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST: a `final` early, a moved-on room or a kick — the phone plays its run out, writes its end, THEN follows (THE RUN HOLD); the server holds the report (425 still_live) while a run is live, the cap ends the wait; the podium waits + re-scores from the nodes; a kicked proven player is credited; THE TREE CAP (1,000 stamped trees a room) — **a rules change** |
 | J1 — SPLITS · THE MATCH MOMENTS · THE NIGHT GLOW FIX | Nov 21 2026 | `docs/games/passes/jaywalk-j1.md` | SPLIT TIMES every 50 lanes on every end card (the server keeps the best splits from its own replay) · THE MATCH MOMENTS (the bigger order, OUT banners, the red X, HEAD TO HEAD + the siren, THE DUEL STRIP, LAST ONE STANDING — every out from the player's OWN end) · THE NIGHT GLOW FIX (the bloom's solid occluders) · + the city's END-SCREEN HEADER (a game's MODE) |
 | J2 — EVEN STARTS · THE BLACKBIRD's RUNWAYS · COURSE RULES v2 | Nov 21 2026 | `docs/games/passes/jaywalk-j2.md` | COURSE RULES v2 from the 4 am turn of Nov 22 (a course = seed + version; the version in the proof, checked against its GO; v1 frozen byte for byte) · no opening runs free · runways of 3–4 lanes, a jet each + THE AFTERBURNER TRAIL, every one proven passable · THE SOUND RULE · a RULES CHANGE (`jw/…/cv`) |
+| J2 FIX — THE BLACKBIRD YOU CAN SEE · A PREMIUM DAY RUNWAY | Nov 21 2026 | `docs/games/passes/jaywalk-j2fix.md` | v2's runway numbers before v2 went live: the jets 200 / 250 / 340 (seen), the tell 1.2 s, THE WAIT GUARD, the vapour trail, the sound re-synced; v2 FROZEN; THE PRE-FIX BUILD refused (THE END CHECK · the daily's `cvr`); the day runway's crisp lamps + heat trail; the night compare (`&rwnight=new`, the lab only) |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
 this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
@@ -326,6 +327,52 @@ its distance** (1 next to him, × 0.75 a lane, silent from 8 lanes / off-screen)
 warning stays VISUAL (fair with the sound off). THE MIX (measured — `jaywalk-mix.mjs`, now its guards): radio-static_1 0.34 · _2 0.5 · _3 0.56
 (−26.7 / −26.3 / −25.5 LUFS into the bus) · runway-tick 0.12 (−35.5) · afterburner-flicker 0.4 (under the boom's −21.1) — the files in
 `audio/jaywalk/` (`scripts/build-jaywalk-sounds.mjs --j2`, credited).
+
+## J2 FIX (Nov 21 — the owner; the pass log `docs/games/passes/jaywalk-j2fix.md`) — THE BLACKBIRD YOU CAN SEE · A PREMIUM DAY RUNWAY · v2 FROZEN
+
+### THE BLACKBIRD YOU CAN SEE (v2 numbers, changed BEFORE v2 went live — `tuning.js#RUNWAY`; then v2 FROZEN)
+- **The jets slower — SEEN, not just felt:** `RUNWAY.v` = **200 · 250 · 340** FP a tick (lanes 120–249 · from 250 · THE AIRFIELD) — across the
+  8-column view in **0.67 · 0.53 · 0.39 s** (J2 flew 1000: 0.13 s). `RUNWAY.len` 3000 (the body). The tell **1.6 → 1.2 s** (`RUNWAY.tell` 72 =
+  v2's own floor `tellMin`; v1 keeps MIN_TELL_TICKS 1.5 s). The trail **0.7 s** (42) as before; the stagger, the safe lanes, `runwaySlack`
+  unchanged.
+- **THE WAIT GUARD** (`course.js#runwayWait` — the same model as runwaySlack: every column, waiting + hopping): a slower jet burns its lane
+  longer (pass + trail ≈ 100 ticks, was ≈ 54), and the first try kept a careful kid waiting up to 6.6 s (45 trapped start ticks of 155,000 in
+  the strict three-column search). Now a layout must ALSO keep the worst wait ≤ `RUNWAY.wait` **216 ticks (3.6 s)**, else the tight cluster;
+  if even that fails, **the cluster in LANE ORDER** (the bottom lane's jet first — the kid follows the wave across). Result (600 seeds, the
+  same as J2's): a blind cross **58.4 · 68.6 · 74.8 %** (J2 58.8 · 68.6 · 76.9), never trapped (0 of 579,344 start ticks), worst wait **3.58 s**.
+- **The vapour trail:** a SHORT white trail off each nozzle, from the flames' tips back, widening + fading in three steps (both looks — the
+  existing instanced `K.flat`, no draw call). v1's long contrail stays v1's.
+- **The sound + the shock re-synced** (`flyers.js#jet`): a runway jet's big moment is when it is OVER THE VIEW's MIDDLE — `tc` ticks into the
+  pass (≈ 30 at the first runways; v1's fast jet ≈ 6): the scream PEAKS there, the boom lands 14 ticks before it, the ring + flash + shake
+  start there, the duck spans it; the trail's fire at the pass's end. crackle → scream → boom → flicker, the distance fades unchanged. A v1
+  jet keeps its timing exactly.
+
+### v2 FROZEN + THE PRE-FIX J2 BUILD
+- **v2 FROZEN** like v1: `tests/fixtures/jaywalk-v2/` (course + tuning + engine + replay, never edited) — `tests/jaywalk-v2-frozen.test.mjs`
+  (750,000+ lanes byte for byte, every stretch's specials + the fairness checks, the hazards in time, 120 whole bot runs + their judging). A
+  change to v2 = a v3 at a later 4 am.
+- **A phone still on the PRE-FIX J2 build after the 4 am switch** plays the old v2 numbers under the same `cv` 2 (`tests/fixtures/jaywalk-v2-j2pre/`
+  — the pre-fix copy, test-only). Never a wrong count:
+  · **THE DAILY**: START now carries `cvr` (`versions.js#CV_REV` = 2 — the v2 numbers' revision); none on a v2 day → `old_version` → the
+    old phone's own "Refresh the page to play today's course." (`tryVersion`).
+  · **SOLO / MATCH — THE END CHECK** (`replay.js#judgeRun`, v2 only): a run that ENDED in the replay must have ended where the phone saw it end
+    (its own proof `e` — `{ l, t }`); else **'old build'** — refused, never counted. It can only refuse (a claim never adds a lane); a cut
+    run, a run still going or no `e` = not checked. The other way round the old phone's log hops past the fix course's end → **'past the end'**.
+    36 pre-fix solo runs (21 reached a runway): 19 counted exactly as their screens showed, 17 refused; with the end write lost, the same.
+
+### THE DAY RUNWAY — premium (a VIEW — `night.js#runwayLamps` + `#heatTrail`; the shader's shapes 11 · 12 · 13 in `night-fx.js`)
+- **THE LAMPS by day:** small crisp FIXTURES — a dark rounded housing set in the tarmac (shape 12, a hard anti-aliased edge) + a sharp bright
+  PIP (shape 11 — no halo, sharp at 3×). Off the tell: a dim lens. Tell + pass: a **RUNNING SEQUENCE** toward the crossing (every 3rd lamp
+  lit, a step every 7 ticks off the rules' clock; all lit + steady with reduce motion), the amber row + the red row, the racing head brightest.
+  No glow balls, no halos. The chevron arrows (the ground's shader) untouched.
+- **THE TRAIL by day = HEAT, NOT NEON:** a scorched soot streak + its charred core (paint — never the shadow kind's blue), a thin WHITE-HOT
+  centre line with a hot orange edge, see-through soft-edged BLUE-WHITE flame tongues standing up (shape 13: wide at the foot, the tip
+  fading to nothing, each its own flicker + sway — blue ONLY stands up), a faint HEAT SHIMMER (three translucent bands wavering over it — no
+  distortion pass), SMOKE WISPS rising as the 0.7 s ends (out with the embers). Draw calls: none of its own (`K.flat` / `K.bill` / `K.shadow`).
+- **BY NIGHT exactly as J2 shipped** (the owner: "looks amazing" — its dead day branches removed, the night values untouched). **THE NIGHT
+  COMPARE:** the same lamps + heat trail tuned for night (a small glow under a lit pip; the violet core on the road; electric-blue tongues with a
+  CYAN heart — additive white would wash the blue out) behind **`jaywalk-lab.html?…&rwnight=new` ONLY** (`createNight({ rwNight })` — the
+  lab passes it, the game + the poster never do: `tests/jaywalk-j2fix.test.mjs`). A later one-line add-on flips it if the owner prefers it.
 
 ## THE MATCH (H4 — ONE LIFE; the cartridge — hidden: THE OWNER'S LIVE TEST)
 One run each on the SAME course, one life; the others are see-through ghosts; farthest wins, ties → the earlier tick. **Real matches run

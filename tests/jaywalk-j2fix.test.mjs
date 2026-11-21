@@ -122,5 +122,5 @@ test('THE DAY RUNWAY (Group 2) + THE NIGHT COMPARE (Group 3): crisp lamps + the 
   for (const sh of ['11 a CRISP disc', '12 a CRISP rounded box', '13 a FLAME TONGUE']) assert.ok(FX.includes(sh), sh);
   assert.match(fns, /0x58a4ff/); assert.doesNotMatch(fns.slice(fns.indexOf('function heatTrail')), /K\.flat\.put\([^;]*0x58a4ff/, 'blue only STANDS UP (bills) — never on the ground');
   // the lamps blink in a running sequence (steady with reduce motion); no halo by day (the glow under a pip is the night compare's)
-  assert.match(fns, /step = reduce \? 0 : Math\.floor\(k \/ 6\)/); assert.match(fns, /if \(!day\) K\.flat\.put\(x, 0\.04, z \+ e, 0\.9, 1, 0\.7, 0, hex, 1, 0,/);
+  assert.match(fns, /step = reduce \? 0 : Math\.floor\(k \/ 7\)/); assert.match(fns, /if \(!day\) K\.flat\.put\(x, 0\.04, z \+ e, 0\.9, 1, 0\.7, 0, hex, 1, 0,/);
 });
