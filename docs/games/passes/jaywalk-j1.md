@@ -81,3 +81,22 @@ JAYWALK alone 38 modules / 434 KB → **42 / 459 KB**; its per-game line (the ci
    itself (its OUT card says it) · HEAD TO HEAD + the siren play on every phone in the match, watchers too · LAST ONE STANDING only on the
    survivor's phone; behind the farthest out it reads "12 LANES TO THE LEAD · KEEP GOING" · the duel strip's leader = a small white triangle ·
    the big moments sit just under the banner's band (≈ 160 px from the top at 390 × 844).
+
+## THE FRESH-EYES REVIEW (a separate agent that wrote none of it — no HIGH) → fixed (1f19ce7f)
+MEDIUM: a seat that never GOes / a phone that quits mid-run stayed "alive" in the moments (a fake duel, a siren against nobody, no LAST ONE
+STANDING) → only an on-time GO is in the moments, and a run the host's own idle rule (`director.js#liveOf`) calls over without its `e` is a
+QUIET end (it leaves the count; no banner, no sound). LOW, fixed: no moment's sound behind the podium · the red X hides off-screen ·
+the order list over the moments' layer · HEAD TO HEAD / LAST ONE STANDING sized to fit at 375 · the server's answer says "no split"
+explicitly (a cut run's boxes follow it) · a ghost's keep copies its splits · the lab's sizes read once / its card appended once.
+Kept as they are (named): the kid occludes in its rest pose (the occluder ignores the pose skinning — a few pixels) · a run that steps up
+from tier 1 to 2 compiles the occluder program then (the blur / add programs already do).
+
+## THE FINAL RUN (local, the Beelink — my own emulators + `serve.mjs --emu`)
+- unit `node --test tests/*.test.mjs` **2,459 / 2,459**
+- `e2e-jaywalk-match` FAST **103 / 103** (3 phones) · `--four` **101 / 101** · `--two` **7 / 7** · `e2e-jaywalk` FAST **100 / 100** ·
+  `e2e-jaywalk-daily-run` **57 / 57** (a DAILY_TEST server) · `end-flash` **24 / 24** · `e2e-console-fix` **55 / 55** · `audio-leave`
+  **28 / 28** · `audio-hush` **9 / 9** · smoke **24 / 24** · `jaywalk-podcast` **5 / 5** (15 of 15 sounds with music off) · `jaywalk-mix`
+  (the siren guard) green · `jaywalk-bloom` **4 / 4** · `jaywalk-lab --perf` **127 / 127**
+- `/api`: `server.test.mjs` **72 / 72** · `daily-jaywalk.test.mjs` **7 / 7** (rules: unchanged — not re-run)
+- One flake seen on the way (not this code): an earlier 3-phone run where ALICE's + CHARLIE's bots both died at lane 7 before BOB's step
+  (the reviewer's tests were loading the machine); the re-run is the 103 / 103 above.
