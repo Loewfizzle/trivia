@@ -84,9 +84,10 @@
        TAP TO TRY AGAIN. The hang watch: a tiny worker beating from here (the city's scene feeds it its snapshot later — harbor/report.js). -->
   <script>
   (function () {
-    var W = window, D = document, LIMIT = 12000, RK = 'ns:boot-re', T0 = Date.now(), errs = [], stage = 'html', vis = 0, lastT = T0, done = false, sent = false, acted = 0, snapFn = null, hw = null, did = '', armedAt = -1, WAYOUT = 6000;
+    var W = window, D = document, LIMIT = 12000, RK = 'ns:boot-re', T0 = Date.now(), errs = [], stage = 'html', vis = 0, lastT = T0, done = false, sent = false, acted = 0, snapFn = null, hw = null, did = '', armedAt = -1, WAYOUT = 6000, gatesFn = null, IS_RELOAD = false, resN = 0, grewVis = 0, growT = 0, slowSent = false, STALL_MS = 4000, HARD_MS = 45000;
     try { performance.setResourceTimingBufferSize(1500); } catch (e) { /* old browser */ }   // (250 by default — a boot asks for ~400 files: the report's "never arrived" needs them all)
     var ms = function () { return Math.round(Date.now() - T0); };
+    try { IS_RELOAD = !!W.sessionStorage.getItem(RK); } catch (e) { /* no session storage */ }   // (CITY PART 1: THIS load = the watchdog's own reload?)
     // FR7 FIXES C2 — THE SUPPORTED FLOOR (the owner's /admin, Nov 13: two BOOT HANGs from a bot's "Mac Chrome 83"): a browser below the floor
     // (Chrome 92 · Firefox 90 · Safari / iOS 15.4 — PLAY NOW 0d; js/core/browser-floor.js is the PURE twin; tests/safari-floor.test.mjs keeps the two in step)
     // gets a plain "too old" line on the boot screen, is counted ONCE a session ("old browsers: n" on /admin's STATS) and NEVER reports a
@@ -156,10 +157,20 @@
       return (why || 'THE BOOT') + '\nStage: ' + stage + ' · the core sheets ' + (cssIn() ? 'in' : 'NOT in (' + (W.__css || 0) + ' of 4)') + ' · the boot screen ' + (done ? 'gone' : 'up')
         + ' · on screen ' + (vis / 1000).toFixed(1) + ' s of ' + (ms() / 1000).toFixed(1) + ' s' + (did ? ' · did: ' + did : '')
         + '\nModules: ' + pre.length + ' in the boot preload' + (W.__bootPre && W.__bootPre.done ? ' (asked for)' : ' (NOT asked for yet)') + ' · never arrived: ' + open.length + (open.length ? ' — ' + open.slice(0, 30).join(' ') : '')
+        + gatesLine() + netLine()
         + '\nErrors: ' + (errs.length ? '\n  ' + errs.join('\n  ') : 'none caught')
         + '\nThe phone: ' + screen.width + '×' + screen.height + ' @' + (W.devicePixelRatio || 1) + ' · online ' + nav.onLine + (c && c.effectiveType ? ' · ' + c.effectiveType : '')
         + ' · service worker ' + (nav.serviceWorker && nav.serviceWorker.controller ? 'in control' + (swLast ? ' (' + swLast + ')' : '') : 'none') + ' · reloaded by the watchdog before: ' + (prevReload() ? 'yes' : 'no')
         + ' · other tabs open: ' + otherTabs();
+    }
+    // CITY PART 1 — A FIRST VISIT THAT NEVER LOADED (the owner's /admin, Nov 20: a Pixel 8 on 4G, nothing cached — the row named no gate): the
+    // report names the CITY's reveal gates (bake · fonts · wx · sky · panel · songs · folk · board — open at <ms> of the scene, or still
+    // closed — the scene registers them: __boot.gates), the bytes on the wire so far + the slowest request + what the city still asks for
+    function gatesLine() { var g = ''; try { g = gatesFn ? String(gatesFn() || '') : ''; } catch (e) { g = '(the gates failed: ' + (e && e.message) + ')'; } return '\nGates: ' + (g || (stage === 'the city started' ? 'none registered' : 'the city has not started')); }
+    function netLine() {
+      var n = 0, kb = 0, slow = null;
+      try { var rs = performance.getEntriesByType('resource'); for (var i = 0; i < rs.length; i++) { var r = rs[i]; n++; kb += (r.transferSize || r.encodedBodySize || 0) / 1024; if (!slow || r.duration > slow.duration) slow = r; } } catch (e) { return '\nThe line: (no resource timing)'; }
+      return '\nThe line: ' + n + ' requests done · ' + Math.round(kb) + ' KB on the wire' + (slow ? ' · the slowest ' + String(slow.name).replace(location.origin, '').slice(0, 90) + ' ' + Math.round(slow.duration) + ' ms (began ' + Math.round(slow.startTime) + ' ms)' : '') + ' · this load is the watchdog’s reload: ' + (IS_RELOAD ? 'yes' : 'no');
     }
     function prevReload() { try { return !!W.sessionStorage.getItem(RK); } catch (e) { return false; } }
     function post(kind, text) { try { fetch('/api/log', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, keepalive: true, body: JSON.stringify({ p: 'report', r: { kind: kind, text: text.slice(0, 20000) } }) }).catch(function () {}); } catch (e) { /* polish */ } }
@@ -230,7 +241,16 @@
       if (!done && t - keptAt >= 1000) { keptAt = t; keepLast(!lastText || t - lastFull >= SNAP_MS); if (t - lastFull >= SNAP_MS) lastFull = t; }
       if (OLD) return;   // (an old browser: its screen says so — no hang report, no reload, no TAP TO TRY AGAIN)
       if (!done && armedAt >= 0 && vis - armedAt >= WAYOUT) { did += 'TAP TO TRY AGAIN (the reload never came); '; armedAt = -2; offerTap(); }
+      // CITY PART 1 — A SLOW LINE IS NO HANG (a Pixel 8 on 4G, nothing cached: the watchdog RELOADED a first load that was still arriving —
+      // the reload began the ~2.5 MB again and hung the same way: BOOT HANG ×2). While the city has not started and the page's files are still
+      // ARRIVING (a new one finished in the last STALL_MS), 12 s on screen is a slow line: counted quietly once ('slow-boot'), no report row,
+      // no reload; the watchdog acts as before once nothing new arrived for STALL_MS, or at HARD_MS on screen
+      if (t - growT >= 1000) { growT = t; var nr = 0; try { nr = performance.getEntriesByType('resource').length; } catch (e) { /* old browser */ } if (nr > resN) { resN = nr; grewVis = vis; } }
       if (done || vis < LIMIT) return;
+      if (!acted && stage !== 'the city started' && vis - grewVis < STALL_MS && vis < HARD_MS) {
+        if (!slowSent) { slowSent = true; note('a slow line: still arriving at ' + (vis / 1000).toFixed(1) + ' s on screen (' + resN + ' files in) — no reload'); post('slow-boot', 'slow-boot'); }
+        return;
+      }
       if (!acted) {
         acted = 1; report('no reveal after ' + (LIMIT / 1000) + ' s on screen');
         var ok = false; try { ok = !!(cssIn() && W.__bootOut && W.__bootOut('watchdog')); } catch (e) { note('the reveal failed: ' + (e && e.message)); }
@@ -242,7 +262,9 @@
       stage: function (s) { stage = s; keepLast(false); },                  // ('app' · 'title' · 'city' — app.js / title.js / scene.js)
       revealed: function () { if (!done) { done = true; dropLast(); try { W.sessionStorage.removeItem(RK); } catch (e) { /* fine */ } } },
       old: OLD, floorOf: floorOf,                                            // (FR7 FIXES C2: below the supported floor → app.js stops; the test's seam)   // (the boot screen lifted — a later hang may reload again)
-      snap: function (fn) { snapFn = fn; },                                  // (the city's own snapshot for the hang watch — harbor/report.js; null = the boot's)
+      snap: function (fn) { snapFn = fn; },
+      gates: function (fn) { gatesFn = fn; },                                // (CITY PART 1: the city's reveal gates for the report — scene.js)
+      onScreen: function () { return vis; },                                 // (CITY PART 1: ms ON SCREEN since the page began — the city's network gates let go by it)                                  // (the city's own snapshot for the hang watch — harbor/report.js; null = the boot's)
       mark: function (m) { if (hw) try { hw.postMessage({ t: 'mark', m: m }); } catch (e) { /* polish */ } },
       watching: function () { return !!hw; },
       reload: function (why, o) { if (done || prevReload()) return false; acted = 2; note('the app asked: ' + why); report(why); if (o && o.skew) { did += 'the modules re-fetched; '; refresh().then(reloadOnce); } else reloadOnce(); return true; },   // (true = the one reload is on its way; LOAD FIX 4: { skew } = the city's graph failed to LINK — its files asked for afresh first)

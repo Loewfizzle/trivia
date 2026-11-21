@@ -87,3 +87,32 @@ test('every inline <script> in index.html parses; the floor + the hand-reload re
   assert.match(html, /revealed: function \(\) \{ if \(!done\) \{ done = true; dropLast\(\);/, 'a revealed boot leaves no record');
   assert.match(read('js/app.js'), /if \(window\.__boot && window\.__boot\.old\) throw new Error\(/, 'app.js stops at its top below the floor');
 });
+
+// CITY PART 1 — A FIRST VISIT THAT NEVER LOADED (the owner's /admin, Nov 20: a Pixel 8 on 4G, nothing cached, BOOT HANG ×2 naming no gate)
+test('CITY PART 1: a SLOW LINE is no hang — still arriving at 12 s (the city not started) = a quiet count, no reload; a stall of 4 s or 45 s on screen acts', () => {
+  assert.match(html, /STALL_MS = 4000, HARD_MS = 45000/, 'the stall + the hard ceiling');
+  assert.match(html, /performance\.getEntriesByType\('resource'\)\.length[\s\S]{0,80}if \(nr > resN\) \{ resN = nr; grewVis = vis; \}/, 'progress = a new file finished (once a second)');
+  const at = html.indexOf("if (!acted && stage !== 'the city started' && vis - grewVis < STALL_MS && vis < HARD_MS)");
+  assert.ok(at > 0, 'the slow-line rule');
+  const body = html.slice(at, html.indexOf('if (!acted) {', at));
+  assert.match(body, /post\('slow-boot', 'slow-boot'\)/, "counted quietly ('slow-boot' — api/log.js QUIET_KINDS)");
+  assert.match(body, /return;/, 'and nothing else: no report row, no reveal attempt, no reload');
+  assert.ok(!/reloadOnce|report\(/.test(body), 'never a reload or a BOOT HANG from the slow-line branch');
+});
+test('CITY PART 1: the BOOT HANG row names the city\'s gates (+ the line: bytes, the slowest request, whether this load IS the watchdog\'s reload)', async () => {
+  assert.match(html, /\+ gatesLine\(\) \+ netLine\(\)/, 'both lines in every boot snapshot');
+  assert.match(html, /gates: function \(fn\) \{ gatesFn = fn; \}/, '__boot.gates (the scene registers)');
+  assert.match(html, /onScreen: function \(\) \{ return vis; \}/, '__boot.onScreen (the page\'s clock)');
+  assert.match(html, /this load is the watchdog\u2019s reload: ' \+ \(IS_RELOAD/, 'whether this load is the reload');
+  const scene = read('js/screens/harbor/scene.js');
+  assert.match(scene, /window\.__boot\.gates\(\(\) => \{/, 'the scene registers its gates');
+  for (const g of ['bake', 'fonts', 'wx', 'sky', 'panel', 'songs', 'folk', 'board']) assert.ok(scene.includes(`'${g}'`), `the report names ${g}`);
+  assert.match(scene, /window\.__boot\.gates\(null\)/, 'and takes them back when it goes');
+  assert.match(read('api/log.js'), /QUIET_KINDS = \[[^\]]*'slow-boot'/, 'slow-boot is a quiet kind (read as text — THE UNIT JOB INSTALLS NOTHING)');
+});
+test('CITY PART 1: THE PAGE\'S CLOCK — the network gates let go by the page\'s time on screen; a BAKED city reveals from 6.5 s; the bake never early', () => {
+  const scene = read('js/screens/harbor/scene.js');
+  assert.match(scene, /const NET_LET_GO_MS = 5000, PAGE_LATE_MS = 6500;/);
+  assert.match(scene, /const g = \{ bake: ready, fonts: fonts \|\| netGo, wx: wx \|\| netGo, sky: sky \|\| netGo, panel: panel \|\| netGo, songs: songs \|\| netGo, folk: folk \|\| netGo, board: board \|\| netGo \};/, 'every network gate — never the bake');
+  assert.match(scene, /const pageLate = pageOn > PAGE_LATE_MS && baker\.bakes >= 1 && litBaker\.bakes >= 1;/, 'a late page reveals only a baked city');
+});

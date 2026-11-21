@@ -386,6 +386,17 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const wxRecent = () => performance.now() - wxChangedAt < 12000;
   // FP3a — THE LOAD GATE: dark until the first full frame is ready (the bake + lit windows, no resize for 400 ms, the fonts) → S.onReveal; never later than REVEAL_MAX (docs/harbor.md)
   const LOAD_WIN = 2500, REVEAL_MAX = 4500;
+  // (CITY PART 1 — THE PAGE'S CLOCK: the network's gates let go once the PAGE has been on screen this long; a baked city reveals from PAGE_LATE_MS)
+  const NET_LET_GO_MS = 5000, PAGE_LATE_MS = 6500;
+  const pageOnScreen = fallback => { try { const b = typeof window !== 'undefined' && window.__boot; const v = b && typeof b.onScreen === 'function' ? Number(b.onScreen()) : NaN; return Number.isFinite(v) ? v : fallback; } catch { return fallback; } };
+  let lastGates = null, lastGatesOn = 0;
+  // (CITY PART 1: THE BOOT HANG row names each gate — open at <ms> of this scene, or still CLOSED — the watchdog reads it while the boot screen is up)
+  if (typeof window !== 'undefined' && window.__boot && window.__boot.gates) window.__boot.gates(() => {
+    if (shownAt >= 0) return `revealed at ${Math.round(shownAt - t0)} ms of the scene (${revealWhy})`;
+    const names = ['bake', 'fonts', 'wx', 'sky', 'panel', 'songs', 'folk', 'board'];
+    const a = weatherAsk();
+    return `${names.map(k => (gateAt[k] != null ? `${k} ${gateAt[k]}` : `${k} CLOSED`)).join(' · ')} · the scene ${Math.round(lastGatesOn)} ms on screen${a ? ` · wx asked: ${a.status ? `HTTP ${a.status}` : a.err ? `failed (${a.err})` : 'waiting'}${a.ms != null ? ` in ${a.ms} ms` : ''}` : ' · wx not asked yet'}${lastGates ? '' : ' · no frame has tried the reveal yet'}`;
+  });
   // THE LOAD FIX — ONE CAMERA ON SCREEN: a camera change after the reveal holds the last frame AS SEEN over the city until the new camera is baked, then CUTS (docs/harbor.md "THE LOAD FIX")
   const HOLD_MAX = 4000;
   let heldStart = false;                    // (CITY G: this scene began under the last scene's picture — see `kept`)
@@ -2983,12 +2994,22 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const cs = clouds.stats(), sky = extrasIn && (cs.ready || clock.force.has('no-clouds'));
     const panel = !remoteStored || remoteApplied || on > WX_WAIT + 1500;   // (SP4: a stored JUST ME state lands before the reveal)
     const songs = !!partyDeckNow() || on > REVEAL_MAX - 500;
-    const late = on > REVEAL_MAX && !(((baker.bakes >= 1 && bakeCamShown !== camSig) || !box || !!resizeT || !!wantBuild || (!fonts && fontsAsked) || (people.ready && !people.ready())) && on < REVEAL_MAX + 2000);   // (CITY C 0c: + the title's faces already on their way + the people's staged first plan — the Chromebook's swap 0.8 s after a late reveal re-laid the dock + an 870 ms frame)
+    let late = on > REVEAL_MAX && !(((baker.bakes >= 1 && bakeCamShown !== camSig) || !box || !!resizeT || !!wantBuild || (!fonts && fontsAsked) || (people.ready && !people.ready())) && on < REVEAL_MAX + 2000);   // (CITY C 0c: + the title's faces already on their way + the people's staged first plan — the Chromebook's swap 0.8 s after a late reveal re-laid the dock + an 870 ms frame)
     const folk = (clock.force && clock.force.has && clock.force.has('no-people')) || !people.ready || people.ready() || on > REVEAL_MAX - 500;
     // (CITY H2 — ONE FACE FROM THE FIRST FRAME: the reveal waits for the roof board's PICKED poster (≤ REVEAL_MAX − 0.5 s; a failed load lets go))
     const bp = tri.pick, board = !bp || /^holdem/.test(bp) || (bp === 'jaywalk' ? !!tri.jw : bp === 'jaywalk-open' ? tri.jwOpen : bp === 'drop' ? !!tri.dr : true) || tri.fails > 0 || on > REVEAL_MAX - 500;
-    { const g = { bake: ready, fonts, wx, sky, panel, songs, folk, board }; for (const k in g) if (g[k] && gateAt[k] == null) gateAt[k] = Math.round(now - t0); }
-    if (!(ready && fonts && wx && sky && panel && songs && folk && board) && !late) return;
+    // CITY PART 1 — A FIRST VISIT THAT NEVER LOADED (a Pixel 8 on 4G, nothing cached): every cap above counts from THIS SCENE's start — on a slow
+    //  first visit the scene starts late (the module graph first) and then waited its caps again, past the watchdog's 12 s. THE PAGE'S CLOCK:
+    //  once the PAGE has been on screen NET_LET_GO_MS (index.html#__boot.onScreen), every gate that waits on the NETWORK lets go (the fonts, the
+    //  weather, the clouds, the panel's state, the songs, the people, the roof poster, the workers' traces) — they fill in after; and from
+    //  PAGE_LATE_MS a BAKED city reveals as a late one. The bake (this phone's own work) never lets go early.
+    const pageOn = pageOnScreen(on), netGo = pageOn > NET_LET_GO_MS;
+    const g = { bake: ready, fonts: fonts || netGo, wx: wx || netGo, sky: sky || netGo, panel: panel || netGo, songs: songs || netGo, folk: folk || netGo, board: board || netGo };
+    lastGates = g; lastGatesOn = on;
+    for (const k in g) if (g[k] && gateAt[k] == null) gateAt[k] = Math.round(now - t0);
+    const pageLate = pageOn > PAGE_LATE_MS && baker.bakes >= 1 && litBaker.bakes >= 1;
+    if (pageLate && !late) { late = true; LOADLOG.add('note', `the page's clock: ${Math.round(pageOn)} ms on screen — a baked city reveals now (the network fills in after)`); }
+    if (!(g.bake && g.fonts && g.wx && g.sky && g.panel && g.songs && g.folk && g.board) && !late) return;
     // (the look the weather brought must be IN the bake that shows: an answer that landed since the last look (read every 2.5 s) is
     // read now, and a changed look re-bakes once more, still dark)
     { const w = wxNow(), sig = w ? `${w.kind}|${w.at}` : 'none'; if (!late && sig !== wxSig) { lookAt = 0; heldAt('the weather look'); return; } }
@@ -3359,6 +3380,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (hsky && hsky.destroy) { try { hsky.destroy(); } catch { /* fine */ } }
       if (hprops && hprops.destroy) { try { hprops.destroy(); } catch { /* fine */ } }
       destroyed = true;
+      try { if (window.__boot && window.__boot.gates) window.__boot.gates(null); } catch { /* fine */ }   // (CITY PART 1: this scene's gates leave the report)
       stop(); LIVE.delete(liveMe);
       clearTimeout(resizeT); clearTimeout(relayT); clearTimeout(extrasT);
       document.removeEventListener('visibilitychange', onVis);
