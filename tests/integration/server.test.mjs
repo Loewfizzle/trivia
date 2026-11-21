@@ -534,7 +534,7 @@ test('every game (and every GRIDLOCK mode) is counted from its room with the rig
   const cases = [['cipher', {}], ['signal', {}], ['overclock', {}], ['bluff', {}], ['pulse', {}], ['golf', {}], ['agent', {}],
     ['prism', {}], ['prism', { mode: 'rush' }], ['slip', {}], ['gridlock', { mode: 'classic' }], ['gridlock', { mode: 'salvo' }],
     ['gridlock', { mode: 'royale' }], ['gridlock', { mode: 'arcade' }]];
-  const expectBoards = { cipher: ['cipher-wins', 'cipher-score', 'cipher-fast5'], signal: ['signal-wins', 'signal-el'], overclock: ['overclock-wins', 'overclock-std'],
+  const expectBoards = { cipher: ['cipher-wins', 'cipher-score', 'cipher-fast5'], signal: ['signal-wins', 'signal-el'], overclock: ['overclock-wins'],   /* (CITY PART 1 — OVERCLOCK = ONE BOARD: a STANDARD match writes no record board) */
     bluff: ['bluff-wins', 'bluff-fool'], pulse: ['pulse-wins', 'pulse-pulse1-normal'], golf: ['golf-wins', 'golf-par9'], agent: ['agent-wins', 'agent-esc'],
     prism: ['prism-wins', 'prism-ko'], slip: ['slip-wins', 'slip-dist'], gridlock: ['gridlock-wins', 'gridlock-sunk'] };
   const pid = (await ensure('u-all1', 'UALL1')).pid;
@@ -3211,4 +3211,45 @@ test('THE PROOF PASS — A VERIFIED SOLO RUN IS A COUNTED PLAY: a solo-only play
     assert.equal(await cp(pid), 4);
   } finally { process.env.BOARD_MIN_MATCHES = '1'; process.env.ADMIN_PIDS = ''; await ref('testReportAll').set(true); await ref('nocount').remove(); await ref('audit').remove(); clearBoardCache(); }
   tick();
+});
+
+
+// CITY PART 1 — OVERCLOCK = ONE BOARD (the owner, Nov 19): BEST QUICK RUN (lb/overclock-quick) — a 2-player QUICK match writes it for BOTH, a
+// SOLO QUICK run writes it, STANDARD writes nothing, a forged total is refused; THE SEED (the BACK-FILL) runs once, idempotent
+test('CITY PART 1 — OVERCLOCK = ONE BOARD: a room QUICK match writes both players, a solo QUICK run too; STANDARD nothing; a forge refused; THE SEED once', async () => {
+  const P = {};
+  for (const u of ['u-oq1', 'u-oq2', 'u-oq3', 'u-oq4', 'u-oq5', 'u-oq6']) { P[u] = (await ensure(u, u.toUpperCase().replace('-', ''))).pid; await ref(`pstats/${P[u]}/cp`).set(3); await ref(`profiles/${P[u]}/m`).set(3); }   // (listed: 3 counted plays)
+  tick(5 * 60_000);
+  const q = await seedRoom('overclock', ['u-oq1', 'u-oq2'], { mode: 'quick' });
+  assert.equal((await report('u-oq1', q)).status, 'counted');
+  for (const u of ['u-oq1', 'u-oq2']) assert.ok((await val(`lb/overclock-quick/all/${P[u]}`)) > 0, `${u}: on BEST QUICK RUN (a room match)`);
+  for (const u of ['u-oq1', 'u-oq2']) for (const old of ['overclock-std', 'overclock-std-solo', 'overclock-quick-solo']) assert.equal(await val(`lb/${old}/all/${P[u]}`), null, `${u}: never a retired board (${old})`);
+  tick(5 * 60_000);
+  const solo = await seedRoom('overclock', ['u-oq3'], { mode: 'quick' });
+  await ref(`rooms/${solo.code}/night/${solo.matchId}/p/u-oq3`).set(0);
+  assert.equal((await report('u-oq3', solo)).status, 'counted');
+  assert.ok((await val(`lb/overclock-quick/all/${P['u-oq3']}`)) > 0, 'a SOLO QUICK run: the same ONE board');
+  tick(5 * 60_000);
+  const std = await seedRoom('overclock', ['u-oq4', 'u-oq5']);
+  assert.equal((await report('u-oq4', std)).status, 'counted');
+  assert.equal(await val(`lb/overclock-quick/all/${P['u-oq4']}`), null, 'STANDARD: no board (XP only)');
+  assert.equal(((await val(`pstats/${P['u-oq4']}/g/overclock/p`)) || 0), 1, '…but it counted');
+  tick(5 * 60_000);
+  const forged = await seedRoom('overclock', ['u-oq5', 'u-oq6'], { mode: 'quick', ocPts: 9999 });
+  assert.equal((await report('u-oq5', forged)).status, 'counted', 'the match still counts');
+  assert.equal(await val(`lb/overclock-quick/all/${P['u-oq5']}`), null, 'the forged 9,999 a challenge: refused — no board row');
+  // THE SEED: an old QUICK · SOLO best → BEST QUICK RUN at the BACK-FILL, once (a second run = the same)
+  const old = { a: 1234 };
+  await ref(`pstats/${P['u-oq6']}/b/overclock-quick-solo`).set(old);
+  process.env.ADMIN_PIDS = `${P['u-oq6']}`;
+  try {
+    const dry = await adminAction('u-oq6', { action: 'boardsBackfill' });
+    assert.ok(((dry.backfill || dry).preview || {}).ocSeed >= 1, 'the preview counts the players it seeds');
+    await adminAction('u-oq6', { action: 'boardsBackfill', confirm: true });
+    assert.equal((await val(`pstats/${P['u-oq6']}/b/overclock-quick`)).a, 1234, 'seeded from QUICK · SOLO');
+    assert.deepEqual(await val(`pstats/${P['u-oq6']}/b/overclock-quick-solo`), old, 'the old row KEPT');
+    assert.equal(await val(`lb/overclock-quick/all/${P['u-oq6']}`), 1234, 'on THE BOARD at once');
+    await adminAction('u-oq6', { action: 'boardsBackfill', confirm: true });
+    assert.equal((await val(`pstats/${P['u-oq6']}/b/overclock-quick`)).a, 1234, 'a second run: the same');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('audit').remove(); }
 });
