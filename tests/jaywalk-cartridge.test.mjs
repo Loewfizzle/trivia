@@ -12,6 +12,8 @@ import { frameProblems } from '../js/games/cartridge.js';
 import { checkCartridge } from '../js/games/contract.js';
 import { MARKS } from '../js/core/marks.js';
 import { MODES, TICK_HZ } from '../js/games/jaywalk/tuning.js';
+import { setCvSwitch } from '../js/games/jaywalk/versions.js';
+setCvSwitch(Infinity);   // (J2: these cases are the MATCH / SOLO LOGIC on v1 courses at test times past the real switch — the versions themselves: tests/jaywalk-versions.test.mjs + jaywalk-v2-agree.test.mjs)
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const T0 = 1_800_000_000_000;

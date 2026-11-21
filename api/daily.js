@@ -207,11 +207,12 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       // DAILY A — A `tries` CARTRIDGE (JAYWALK): a NEW try every start (the open one closed first — condition 1 — and the day's score settled
       // from it); a 4th refused. Never a resume, never a pause.
       if (cart.tries) {
-        const r = await cart.startTry({ pid, uid, day, now, startedAt });
+        const r = await cart.startTry({ pid, uid, day, now, startedAt, cvs: body.cvs });   // (J2: `cvs` — the newest JAYWALK course version the phone knows)
         const fin = r.prior ? await finishRun({ pid, cart, day, now, today }).catch(e => { console.warn('try settle', e && e.code); return null; }) : null;
         if (r.prior) await creditQuiet({ pid, cart, day, now, closed: r.prior });
         const score = fin ? fin.score : done;
         if (r.refused === 'no_tries') throw new ApiError(409, 'no_tries', 'No tries left today.', { day, done: score ?? null, run: r.run });
+        if (r.refused === 'old_version') throw new ApiError(409, 'old_version', 'Refresh the page to play today\'s course.');
         if (r.refused) throw new ApiError(409, 'refused', 'Try that again.');
         return { day, startedAt, done: score ?? null, run: r.run, now, ...(fin ? { prior: { score: fin.score, counted: fin.counted, ...bestBits(fin) } } : {}) };
       }

@@ -18,6 +18,8 @@ import { causeLine, CAUSE_LINES, hitVehicle, vehicleAt, CAR_KINDS } from '../js/
 import { extractMatch, soloEmpty } from '../js/core/match-report.js';
 import { boardDef } from '../js/core/boards.js';
 import { OPTIONAL, META_KEYS, checkCartridge } from '../js/games/contract.js';
+import { setCvSwitch } from '../js/games/jaywalk/versions.js';
+setCvSwitch(Infinity);   // (J2: these cases are the MATCH / SOLO LOGIC on v1 courses at test times past the real switch — the versions themselves: tests/jaywalk-versions.test.mjs + jaywalk-v2-agree.test.mjs)
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const CODE = 'WXYZ', M = 'sabc12', GO = 1_800_000_000_000;
@@ -214,7 +216,7 @@ test('THE END SCREEN\'s WORDS: one line per cause + vehicle — big neon words, 
   const n = read('js/games/jaywalk/night.js');
   assert.match(n, /import \{ hsh, strSeed, vehicleAt \} from '\.\/causes\.js';/); assert.match(n, /const what = vehicleAt\(course, i, j\)/);
   const v = read('js/games/jaywalk/victory.js');
-  assert.match(v, /const seed = solo \? seedOf\(code, game\.matchId, r\.go\) : game\.seed;/, 'the course: a solo run\'s from its own GO, a match\'s the game\'s');
+  assert.match(v, /const seed = solo \? seedOf\(code, game\.matchId, r\.go\) : game\.seed[;,]/, 'the course: a solo run\'s from its own GO, a match\'s the game\'s');
   assert.match(v, /const vehicle = course \? hitVehicle\(course, \{ y: r\.y, x: r\.px, end: r\.e \}\) : '';/, 'the end screen reads it back from the result');
   assert.doesNotMatch(v + read('js/games/jaywalk/causes.js'), /[\u{1F300}-\u{1FAFF}✅❌]/u, 'no emoji');
 });

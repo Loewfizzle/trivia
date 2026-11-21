@@ -6,7 +6,7 @@
 import { api } from '../profile/api.js';
 import { runDay } from './run-day.js';
 
-export function createDailyJudge(game, { moves = {} } = {}) {
+export function createDailyJudge(game, { moves = {}, start = null } = {}) {
   const rd = runDay(game);
   const call = (action, extra) => api('daily', rd.with({ action, game, ...extra }));
   const judge = {
@@ -14,7 +14,7 @@ export function createDailyJudge(game, { moves = {} } = {}) {
     game,
     async start() {
       const asked = rd.asked();
-      const r = await api('daily', { action: 'start', game, ...(asked ? { day: asked } : {}) });
+      const r = await api('daily', { action: 'start', game, ...(start || {}), ...(asked ? { day: asked } : {}) });   // (J2: `start` — a cartridge's own START fields: JAYWALK's `cvs`)
       rd.started(r);
       return { startedAt: r.startedAt, done: r.done, run: r.run, day: r.day, now: r.now, ...(r.owner ? { owner: true } : {}) };   // (DFIX5 — the owner's readout: the server's word)
     },

@@ -16,8 +16,8 @@ const IDLE_TICKS = 5 * 60 * TICK_HZ;
  * A hop logged at tick t is applied IN tick t (a hop logged after the run ended is never played: `used` < log.length).
  * `until` (optional) stops at that tick (a run still going — the ghosts, a match scored as it stands).
  */
-export function replay({ seed, mode = 'solo', log = [], until = null } = {}) {
-  const run = createRun({ seed, mode }), course = createCourse(seed);
+export function replay({ seed, mode = 'solo', log = [], until = null, cv = 1 } = {}) {
+  const run = createRun({ seed, mode }), course = createCourse(seed, { cv });   // (J2 — `cv` = the COURSE VERSION: versions.js)
   const n = log.length, stop = (n ? log[n - 1].t : 0) + IDLE_TICKS;
   let i = 0;
   while (!isOver(run) && run.t <= stop && (until == null || run.t < until)) {
@@ -141,10 +141,12 @@ export function clockProblem(go, times, { from = null } = {}) {
 /**
  * THE JUDGE (H4 — PURE): ONE run from its hop log + its chunks' clock — the host's podium (logic.js#scoreNode) and the server's count
  * (api/_lib/jaywalk.js) run THIS, so they agree to the lane. → { ok: true, result (the replay's), over, cut? } | { ok: false, why }
- * Refused: a log that breaks the bounds · AHEAD of the clock · a broken clock · a hop logged after the run had ended. A log BEHIND the
+ * Refused: a log that breaks the bounds · AHEAD of the clock · a broken clock · a hop logged after the run had ended · a course version
+ * that is no version (J2 — `cv` is the version the run replays on: the caller's versions.js#runVersion). A log BEHIND the
  * clock is CUT (`cut: { why, tick }`): the run counts up to its last on-time hop. `until` = score it as it stands at that tick.
  */
-export function judgeRun({ seed, mode = 'solo', log, go = null, times = null, from = null, until = null } = {}) {
+export function judgeRun({ seed, mode = 'solo', log, go = null, times = null, from = null, until = null, cv = 1 } = {}) {
+  if (cv !== 1 && cv !== 2) return { ok: false, why: 'version' };   // (J2 — versions.js#runVersion's 0: a version not in force at its GO, or none past THE GRACE)
   const bad = logProblem(log, mode);
   if (bad) return { ok: false, why: bad };
   let cut = null;
@@ -154,7 +156,7 @@ export function judgeRun({ seed, mode = 'solo', log, go = null, times = null, fr
     if (c) cut = { why: 'behind', tick: c.tick };
     if (c) log = log.slice(0, c.hops);
   }
-  const r = replay({ seed, mode, log, until: cut ? (until == null ? cut.tick : Math.min(until, cut.tick)) : until });
+  const r = replay({ seed, mode, log, cv, until: cut ? (until == null ? cut.tick : Math.min(until, cut.tick)) : until });
   if (!cut && r.over && r.used < log.length) return { ok: false, why: 'past the end' };
   const { used, over, ...result } = r;
   // (THE PROOF PASS: + `hops` — the hops the replay PLAYED: "a GO alone is not a player" reads it, never a phone's claim)

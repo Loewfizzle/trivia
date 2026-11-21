@@ -8,6 +8,7 @@ import { ref, val } from './fb.js';
 import { dailySeed } from './dailies.js';   // (a cycle — dailies.js lists this cartridge; the seed is only read inside a call)
 import { TRIES, PROOF_DAYS, openTry, openOf, liveTry, scoreTry, closeTry, triesOf, triesView, leftOf, usedOf, dayScore, bestTry, shareOf } from './jaywalk-tries.js';
 import { jwLanes, bestView } from '../../js/core/daily-best.js';
+import { tryVersion } from '../../js/games/jaywalk/versions.js';
 
 const SEEDS = new Map();
 /** THE DAY: its seed (an HMAC of THE DAILY SECRET — the same for everyone, memoised per warm function) */
@@ -36,7 +37,7 @@ export async function closeOpen({ pid, day, now, why = 'fin', onlyIfGone = false
   const node = await val(proofPath(day, t.u, t.i));
   if (onlyIfGone && liveTry(t, node, now)) return null;
   const { seed } = await jwDay(day);
-  const result = scoreTry({ seed, go: t.go, z: t.z, node });
+  const result = scoreTry({ seed, go: t.go, z: t.z, node, cv: t.cv === 2 ? 2 : 1 });   // (J2: the version the try was opened on)
   let closed = null;
   await ref(`${base}/p/${pid}`).transaction(cur => {
     if (cur == null) return null;
@@ -54,13 +55,17 @@ export async function closeOpen({ pid, day, now, why = 'fin', onlyIfGone = false
  * settles the day's score); a 4th refused (409 no_tries). The proof node is opened HERE ({ go, z } — server-written: the phone never picks its
  * clock). → { run: { seed, try, go, z, path, left, tries } } | { refused: 'no_tries', run }
  */
-export async function startTry({ pid, uid, day, now, startedAt }) {
+export async function startTry({ pid, uid, day, now, startedAt, cvs = null }) {
   const base = `dly/jaywalk/${day}`;
   const prior = await closeOpen({ pid, day, now, why: 'start' });
   const { seed } = await jwDay(day);
+  // (J2 — COURSE RULES v2: the day's version — the one in force at its 4 am — if the phone knows it (`cvs`: the newest it knows; an old-code
+  //  phone sends none → v1 until THE GRACE ends, then it is told to refresh). The SERVER picks it; the phone plays what START answers)
+  const cv = tryVersion(day, cvs, now);
+  if (!cv) return { refused: 'old_version', prior, run: { seed: null } };
   let opened = null, refused = null;
   const tx = await ref(`${base}/p/${pid}`).transaction(cur => {
-    const r = openTry(cur, { uid, now, startedAt });
+    const r = openTry(cur, { uid, now, startedAt, cv });
     if (r.refused) { refused = r.refused; opened = null; return undefined; }
     refused = null; opened = r;
     return r.record;
@@ -68,7 +73,7 @@ export async function startTry({ pid, uid, day, now, startedAt }) {
   const rec = tx.snapshot.val();
   if (refused || !opened) return { refused: refused || 'open', prior, run: { seed, left: leftOf(rec), tries: triesView(rec) } };
   await ref(proofPath(day, uid, opened.i)).set({ go: opened.go, z: opened.z });
-  return { prior, run: { seed, try: opened.i, go: opened.go, z: opened.z, path: proofPath(day, uid, opened.i), left: leftOf(opened.record), tries: triesView(opened.record) } };
+  return { prior, run: { seed, try: opened.i, go: opened.go, z: opened.z, path: proofPath(day, uid, opened.i), left: leftOf(opened.record), tries: triesView(opened.record), ...(opened.cv === 2 ? { cv: 2 } : {}) } };
 }
 
 export const JW_BUCKETS = 121;

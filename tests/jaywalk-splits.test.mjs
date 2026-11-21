@@ -18,6 +18,8 @@ import { splitBests, cleanSplits, splitClock, splitGain, splitLane, SPLIT_MAX } 
 import { extractMatch } from '../js/core/match-report.js';
 import { matchStep } from '../js/core/progress.js';
 import { readFileSync } from 'node:fs';
+import { setCvSwitch } from '../js/games/jaywalk/versions.js';
+setCvSwitch(Infinity);   // (J2: these cases are the MATCH / SOLO LOGIC on v1 courses at test times past the real switch — the versions themselves: tests/jaywalk-versions.test.mjs + jaywalk-v2-agree.test.mjs)
 
 const T0 = 1_800_000_000_000;
 /** the greedy bot plays a `mode` run on `seed` (the recorder's own bounds) → { log, live: the phone's own result, firsts: the tick each 50 was first reached } */

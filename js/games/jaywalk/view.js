@@ -20,7 +20,8 @@ import { createArrival } from './arrival.js';
 import { LOOKS as AREA_LOOKS } from './areas.js';
 import { createRun, step, isOver, canLog, kidAt } from './engine.js';
 import { packLog, unpackLog, logFromChunks } from './replay.js';
-import { seedOf, startOf } from './logic.js';
+import { seedOf, startOf, matchVersion, nodeVersion } from './logic.js';
+import { versionAt, runVersion } from './versions.js';
 import { liveOf, finalPatch } from './director.js';
 import { createRouterPing, createLiveWait, END_OWED_MS } from '../kit/run-hold.js';
 import { createGhost, resetGhost, feedGhost, stepGhost, tagGroups } from './ghosts.js';
@@ -90,7 +91,7 @@ export function createView() {
   let orderEl = null, tagsEl = null, countEl = null, watchEl = null, overEl = null, outCard = null;
   // the run
   let code = '', uid = '', matchId = '', mode = 'wait', D = null;   // 'wait' (the course is on its way) · 'run' · 'over' (out / taken / watching)
-  let run = null, course = START, log = [], queue = [], go = 0, proven = false, asked = false, goTries = 0, haveGo = false;
+  let run = null, course = START, log = [], queue = [], go = 0, proven = false, asked = false, goTries = 0, haveGo = false, cvAsked = false, cvMine = 0;
   let wroteE = false, overAt = 0, goTimer = 0, shotAt = 0, lastPump = 0, lateGo = false;
   let t0srv = 0, t0perf = 0, last = 0, markUntil = 0, lanesShown = -1, sndOn = false, bot = null, pinned = false, revealed = false;
   // the match
@@ -196,7 +197,7 @@ export function createView() {
 
   // ---- THE RUN
   function reset() {
-    mode = 'wait'; course = START; run = createRun({ seed: 'start', mode: 'solo' }); log = []; queue = []; go = 0; proven = false; asked = false; goTries = 0; haveGo = false;
+    mode = 'wait'; course = START; run = createRun({ seed: 'start', mode: 'solo' }); log = []; queue = []; go = 0; proven = false; asked = false; goTries = 0; haveGo = false; cvAsked = false; cvMine = 0;
     newWriter(); wroteE = false; lateGo = false; overAt = 0; lanesShown = -1; markUntil = 0; shotAt = 0; revealed = false;
     watching = false; followUid = ''; followPick = ''; callLine = ''; callDone = false; liveRuns = null; orderKey = ''; countKey = ''; watchKey = ''; liveWait.reset(); everProven = false;
     cues = createCues(); quiet(); if (night) night.rest(false);
@@ -223,7 +224,7 @@ export function createView() {
     if (asked) return;
     asked = true;
     const m = matchId, path = `${nodePath()}/go`, runs = runsNow(), node = runs ? runs[uid] : null;
-    if (node && node.go > 0) { adopt(node.go, node.c, true); return; }   // (a refresh / a rejoin mid-run: the run so far is in the node)
+    if (node && node.go > 0) { adopt(node.go, node.c, true, null, cvOfNode(node)); return; }   // (a refresh / a rejoin mid-run: the run so far is in the node)
     clearTimeout(goTimer);
     goTimer = setTimeout(() => { if (!gone && m === matchId && mode === 'wait') unproven('no answer'); }, GO_WAIT_MS);
     expectRefusal(path, 'jaywalk GO: already written (a rejoin) or the rules are not published yet');
@@ -231,16 +232,27 @@ export function createView() {
     stampT0(treePath(), 'jaywalk').then(() => dbSet(dbRef(path), serverTimestamp())).then(() => dbGet(dbRef(path))).then(snap => {
       if (gone || m !== matchId || mode !== 'wait') return;
       const v = snap.val();
-      if (typeof v === 'number' && v > 0) adopt(v, null, true); else unproven('no go');
+      if (typeof v === 'number' && v > 0) writeCv(v, versionAt(v)).then(cv => { if (!gone && m === matchId && mode === 'wait') adopt(v, null, true, null, cv); });
+      else unproven('no go');
     }).catch(() => {
       // refused: this run's GO is already there (a rejoin) — take the node; nothing there = unproven
       dbGet(dbRef(nodePath())).then(snap => {
         if (gone || m !== matchId || mode !== 'wait') return;
         const n = snap.val();
-        if (n && n.go > 0) adopt(n.go, n.c, true); else unproven('refused');
+        if (n && n.go > 0) adopt(n.go, n.c, true, null, cvOfNode(n)); else unproven('refused');
       }).catch(() => { if (!gone && m === matchId && mode === 'wait') unproven('refused'); });
     });
   }
+  /** J2 — COURSE RULES v2: a solo run's version = the one in force at its own GO (versions.js), written beside it (`cv`) — the rules take it
+   *  once, after the GO; the server checks it against the GO. REFUSED (rules not re-published yet): the run plays the version the server
+   *  will replay a run with no `cv` on (v1 until THE GRACE ends) — the phone and the server always agree */
+  function writeCv(goAt, E) {
+    const path = `${nodePath()}/cv`;
+    expectRefusal(path, 'jaywalk cv: the rules are not re-published yet (J2) — the run plays v1');
+    return dbSet(dbRef(path), E).then(() => E, () => runVersion(null, E, goAt) || E);
+  }
+  /** a node read back from the SERVER (a rejoin): the version it replays on (an unknown one: the version in force — it will not count) */
+  const cvOfNode = n => nodeVersion(n, versionAt(n.go)) || versionAt(n.go);
   /** GO (a MATCH): this phone's own `go` — its proof of being there; the FIRST one to land is the match's (logic.js#firstGo). A refusal
    *  (this phone's clock a touch early, a rejoin) is looked at and tried again a few times — never a stuck start: the count runs on */
   function askGoMatch() {
@@ -261,11 +273,12 @@ export function createView() {
     while (!isOver(run) && run.t < target) { let d = ''; if (i < log.length && log[i].t === run.t) d = log[i++].d; step(run, course, d); }
   }
   /** a SOLO course lands: seed = hash(code + matchId + GO) — the run's tick 0 is GO; a node's chunks (a rejoin) are replayed to now */
-  function adopt(goAt, chunks, isProof, ds) {
+  function adopt(goAt, chunks, isProof, ds, cv) {
     clearTimeout(goTimer);
     go = goAt; proven = !!isProof;
     const seed = ds || isProof ? ds || seedOf(code, matchId, go) : `u${Math.floor(go).toString(36)}${Math.floor(Math.random() * 1e9).toString(36)}`;
-    course = createCourse(seed); run = createRun({ seed, mode: ds ? 'daily' : 'solo' });
+    // (J2: the COURSE VERSION — the daily's from its START, a solo run's from its GO (writeCv), an unproven run's the one in force now)
+    course = createCourse(seed, { cv: cv === 2 || cv === 1 ? cv : versionAt(go) }); run = createRun({ seed, mode: ds ? 'daily' : 'solo' });
     const old = chunks ? logFromChunks(chunks) : null;
     log = old || []; W.reset({ sent: log.length, next: chunks ? Object.keys(chunks).length : 0, verify: !!chunks });   // (CITY I: a rejoin's first write reads the chunks fresh)
     anchor();
@@ -280,8 +293,8 @@ export function createView() {
   }
   /** a MATCH's course lands (THE FIRST GO → the seed + tick 0; in `play` the game's own): the kid stands on it, the engine waits for
    *  tick 0. A rejoin: this player's own log so far is replayed to now. A watcher (not a participant) has no run of their own. */
-  function adoptMatch(S, runs) {
-    go = S.playAt; course = createCourse(S.seed); run = createRun({ seed: S.seed, mode: 'match' });
+  function adoptMatch(S, runs, cv) {
+    go = S.playAt; course = createCourse(S.seed, { cv }); run = createRun({ seed: S.seed, mode: 'match' });
     const node = runs && mine(st.game) ? runs[uid] : null, old = node && node.c ? logFromChunks(node.c) : null;
     log = old || []; W.reset({ sent: log.length, next: node && node.c ? Object.keys(node.c).length : 0, verify: !!(node && node.c) }); queue = [];   // (CITY I)
     if (node && node.go > 0) haveGo = true;
@@ -710,10 +723,20 @@ export function createView() {
     // the course + tick 0 (H4B — logic.js#startOf: THE NODES ARE THE TRUTH): THE FIRST GO among the proof nodes the SERVER sent — in the
     // count and in `play` alike, exactly what the server's own count derives; the game's own only with no node to read (an UNPROVEN match)
     const S = startOf(g, runs, code);
+    // (J2 — COURSE RULES v2: the match's version = the one in force at THE FIRST GO; this phone writes it beside its own GO once the first
+    //  GO is known (`cv` — the rules take it once; the host + the server check it). Its own node's word wins (a refusal: no `cv` → v1 in
+    //  THE GRACE — the version the server replays this node on)
+    const myN = runs && mine(g) ? runs[uid] : null, E = S ? matchVersion(S) : 1;
+    if (S && runs && myN && myN.go > 0 && myN.cv == null && !cvAsked && mine(g)) {
+      cvAsked = true; const m = matchId, p = `${nodePath()}/cv`;
+      expectRefusal(p, 'jaywalk cv: the rules are not re-published yet (J2) — the match plays v1');
+      dbSet(dbRef(p), E).then(() => { cvMine = E; }, () => { if (!gone && m === matchId) { cvMine = runVersion(null, E, myN.go) || E; sync(); } });
+    }
+    const V = myN && myN.cv != null ? nodeVersion(myN, E) || E : cvMine || E;
     // (THE PROOF PASS — the inbox, Nov 20 ~12:49 am (2), HIGH RISE S4B's own fix: never adopted from the game ALONE while the proof mirror
     //  is still on its way — a refresh mid-match took the match with NO hops of its own replayed. A proven match in `play` always has a
     //  node to read: wait for it.)
-    if (S && (course.seed !== S.seed || go !== S.playAt) && (runs || g.unproven)) { if (TEST) adopts.push({ at: Math.round(srvNow() - S.playAt), seed: S.seed, t: run.t, hops: log.length }); adoptMatch(S, runs); }
+    if (S && (course.seed !== S.seed || go !== S.playAt || course.cv !== V) && (runs || g.unproven)) { if (TEST) adopts.push({ at: Math.round(srvNow() - S.playAt), seed: S.seed, t: run.t, hops: log.length, cv: V }); adoptMatch(S, runs, V); }
     // (THE PROOF PASS: a GO of this phone's own that landed LATER than the window after THE FIRST GO is no run — the server drops it
     //  (core/proof.js#onTime): nothing is written for it. On the re-published rules such a GO is refused.)
     const myNode = runs ? runs[uid] : null;
@@ -731,13 +754,13 @@ export function createView() {
     const g = st.game;
     if (!g || !night) return;
     if (isMatch) { syncMatch(g); if (final) final.refresh(); return; }
-    if (D) { if (!asked) { asked = true; D.start().then(r => { if (!gone && r) adopt(r.go, null, true, r.seed); }, () => {}); } return; }
+    if (D) { if (!asked) { asked = true; D.start().then(r => { if (!gone && r) adopt(r.go, null, true, r.seed, r.cv === 2 ? 2 : 1); }, () => {}); } return; }
     if (g.phase === 'play' && mine(g) && soloGame(g)) askGo();
     // (a refresh on the podium: the run in the node, replayed to its end, stands behind the frame)
     if (g.phase === 'final' && mode === 'wait' && mine(g) && soloGame(g) && st.liveKey === liveKeyFor(g)) {
       const node = st.live && st.live.runs ? st.live.runs[uid] : null;
       asked = true; clearTimeout(goTimer);
-      if (node && node.go > 0) { adopt(node.go, node.c, true); wroteE = true; mode = 'over'; overAt = -1e9; } else { proven = true; mode = 'over'; overAt = -1e9; }
+      if (node && node.go > 0) { adopt(node.go, node.c, true, null, cvOfNode(node)); wroteE = true; mode = 'over'; overAt = -1e9; } else { proven = true; mode = 'over'; overAt = -1e9; }
     }
     if (final) final.refresh();
   }
@@ -755,7 +778,7 @@ export function createView() {
       reset();
       if (isMatch) root.classList.add('is-match');
       if (TEST) globalThis.__jwGame = {
-        state: () => ({ mode, proven, haveGo, matchId, holds: holdsRun(), liveWaited: liveWait.waited(), go, seed: course.seed, t: run.t, st: run.st, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent: W ? W.state().sent : 0, chunks: W ? W.state().chunks : 0, acked: W ? W.state().acked : 0, lateGo, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
+        state: () => ({ mode, proven, haveGo, matchId, holds: holdsRun(), liveWaited: liveWait.waited(), go, seed: course.seed, cv: course.cv || 0, t: run.t, st: run.st, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent: W ? W.state().sent : 0, chunks: W ? W.state().chunks : 0, acked: W ? W.state().acked : 0, lateGo, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
           lines: { best: lines.best, friends: lines.friends.map(f => `${f.n} ${f.v}`), record, shown: lineKey, flash: lanesEl.classList.contains('is-flash'), gold: lanesEl.classList.contains('is-record') },
           isMatch, watching, follow: followUid, moments: mom ? mom.info() : null, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
           ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag, held: G.held, done: G.done, behind: G.behind, fade: +(G.fade || 0).toFixed(2), x: G.run.x / FP, name: G.name, shown: !!G.tagKey, text: G.tagEl.textContent })),

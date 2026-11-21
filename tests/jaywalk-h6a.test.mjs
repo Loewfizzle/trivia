@@ -23,6 +23,8 @@ import { matchStep } from '../js/core/progress.js';
 import { ACH } from '../js/core/achievements.js';
 import { causeLine, CAUSE_LINES, SHIP_LINE } from '../js/games/jaywalk/causes.js';
 import { PRELOAD } from '../js/games/preload-graph.js';
+import { setCvSwitch } from '../js/games/jaywalk/versions.js';
+setCvSwitch(Infinity);   // (J2: these cases are the MATCH / SOLO LOGIC on v1 courses at test times past the real switch — the versions themselves: tests/jaywalk-versions.test.mjs + jaywalk-v2-agree.test.mjs)
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const CODE = 'ROOM', T0 = 1_800_000_000_000, msOf = tick => tick * 1000 / T.TICK_HZ;

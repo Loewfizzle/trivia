@@ -1,6 +1,9 @@
 // JAYWALK — THE COURSE (H1 — docs/jaywalk.md): every lane is a PURE function of (seed, lane index) — built alone, in any order, on the phone
 // or the server — and every hazard's position a PURE function of (lane, tick): cars, logs, trains, THE BLACKBIRD, THE UFO. No per-tick
 // simulation is needed to know where anything is. PURE: no DOM, no clock, no Math.random; integers + Math.floor only (tuning.js says why).
+// J2 — COURSE RULES v2 (versions.js): a course is a pure function of (seed, COURSE VERSION) — `cv` 1 (the default everywhere: the rules
+// exactly as they shipped up to J1 — tests/jaywalk-v1-frozen.test.mjs holds them to the frozen copy byte for byte) or 2 (EVEN STARTS +
+// THE BLACKBIRD's RUNWAYS). Every v2 change sits behind `cv >= 2`; the v1 path is never touched.
 import { hashString, rngFrom } from '../../core/rng.js';
 import {
   FP, COLS, WIDTH, MID_COL, CALM_LANES, STRETCH, LANDMARKS, landmarkAt, heatAt, byHeat, MIX, FIRST, WATER_RUN_MAX, RAIL_RUN_MAX, ROAD, WATER, RAIL, FLIGHT, UFO, GRASS,
@@ -25,7 +28,7 @@ export const gateName = lane => { const a = area(lane); return a.index < 0 ? '' 
 const leanOf = i => { const k = areaIndex(i); return k < 0 ? NO_LEAN : AREAS[k]; };
 
 /** a lane's RAW kind — the first draw of its own rng (the mix by heat × THE AREA's lean; nothing else is looked at) */
-export function rawType(seed, i) {
+export function rawType(seed, i, cv = 1) {
   if (i < CALM_LANES) return 'grass';
   const heat = heatAt(i), m = leanOf(i).mix, pc = (w, k) => Math.floor(w * m[k] / 100);
   const wg = Math.max(4, pc(byHeat(MIX.grass[0], MIX.grass[1], heat), 0)), wr = pc(byHeat(MIX.road[0], MIX.road[1], heat), 1);
@@ -36,7 +39,7 @@ export function rawType(seed, i) {
 
 /** A STRETCH's SPECIALS (the 50 lanes after a landmark): THE UFO (from lane 100) or THE BLACKBIRD's flight path (from lane 150) — rare, from
  *  the seed, NEVER both in one stretch. → { s, ufo: zone | null, bb: band | null } */
-export function specials(seed, s) {
+export function specials(seed, s, cv = 1) {
   const rand = rngFrom(hashString(`${seed}:s${s}`)), base = s * STRETCH, heat = heatAt(base);
   const pick = Math.floor(rand() * 1000);
   const a = ri(rand, 8, 30), b = ri(rand, 10, 38);
@@ -66,7 +69,8 @@ const ufoReach = (u, i) => !!u && i >= u.y0 - 1 && i <= u.y0 + u.h;
 
 /** a lane's FINAL kind: 'grass' | 'road' | 'water' | 'rail' | 'flight' — the raw kind after the course's rules (the calm opening, the
  *  landmark lanes, the flight path's bands, no water / rail under a UFO, never more than 3 water — or 3 rail — lanes in a row). Reads raw kinds only: no recursion. */
-export function typeAt(seed, i, sp = specials(seed, Math.floor(i / STRETCH))) {
+export function typeAt(seed, i, sp = null, cv = 1) {
+  if (!sp) sp = specials(seed, Math.floor(i / STRETCH), cv);
   if (i < CALM_LANES || i % STRETCH === 0) return 'grass';
   if (bandAt(sp, i)) return 'flight';
   let t = rawType(seed, i);
@@ -96,14 +100,14 @@ function layMovers(rand, { v, n, lenOf, gapOf, pad }) {
  *   road / water:  dir, v, period, pad, items [{ off, len }]   (cars · logs)
  *   rail / flight: pulse { period, phase, tell, pass, len, v, dir (+ band, n: the flight path's lanes share ONE pulse) } }
  */
-export function buildLane(seed, i) {
-  const s = Math.floor(i / STRETCH), sp = specials(seed, s), type = typeAt(seed, i, sp), heat = heatAt(i);
+export function buildLane(seed, i, cv = 1) {
+  const s = Math.floor(i / STRETCH), sp = specials(seed, s, cv), type = typeAt(seed, i, sp, cv), heat = heatAt(i);
   const rand = laneRand(seed, i); rand();   // (the first draw was the raw kind)
   const lane = { i, type, heat, mark: landmarkAt(i), ufo: ufoReach(sp.ufo, i) ? sp.ufo : null };
   if (type === 'grass') {
     const obs = [0, 0, 0, 0, 0, 0, 0, 0, 0];
     const calm = i < CALM_LANES || !!lane.mark;
-    const wet = !calm && (typeAt(seed, i - 1) === 'water' || typeAt(seed, i + 1) === 'water');   // (a log's rider may step off anywhere)
+    const wet = !calm && (typeAt(seed, i - 1, null, cv) === 'water' || typeAt(seed, i + 1, null, cv) === 'water');   // (a log's rider may step off anywhere)
     if (!calm && !wet) {
       let n = ri(rand, clamp(byHeat(GRASS.obstacles[0][0], GRASS.obstacles[1][0], heat), 0, 3), clamp(byHeat(GRASS.obstacles[0][1], GRASS.obstacles[1][1], heat), 0, 6));
       while (n-- > 0) { const c = ri(rand, 0, COLS - 2); obs[c >= MID_COL ? c + 1 : c] = 1; }   // (never the centre column)
@@ -122,7 +126,7 @@ export function buildLane(seed, i) {
     // H3 — every log its OWN length (1–4 cells: long ones early, short ones later — the weights by heat) + UNEVEN gaps (short · long). A
     // 1-cell log is the hard one: only on a slow lane (WATER.oneV) with no water lane beside it (a hop log-to-log always has ≥ 2 cells to land on)
     const W = [0, 1, 2, 3].map(k => Math.max(1, byHeat(WATER.lenW[0][k], WATER.lenW[1][k], heat))), sum = W[0] + W[1] + W[2] + W[3];
-    const one = v <= WATER.oneV && typeAt(seed, i - 1) !== 'water' && typeAt(seed, i + 1) !== 'water';
+    const one = v <= WATER.oneV && typeAt(seed, i - 1, null, cv) !== 'water' && typeAt(seed, i + 1, null, cv) !== 'water';
     const lenOf = () => { let r = Math.floor(rand() * sum), n = 0; while (n < 3 && r >= W[n]) r -= W[n++]; return (n === 0 && !one ? 2 : n + 1) * FP; };
     const extra = clamp(byHeat(WATER.gapExtra[0], WATER.gapExtra[1], heat), 800, 3200);
     const gapOf = () => (Math.floor(rand() * 1000) < WATER.shortOf ? ri(rand, WATER.gapShort[0], WATER.gapShort[1]) : WATER.gapMin + ri(rand, 0, extra));
@@ -143,6 +147,7 @@ export const moverLeft = (lane, item, tick) => mod(item.off + lane.dir * lane.v 
 export function pulseAt(p, tick) {
   const u = mod(tick - p.phase, p.period), k = Math.floor((tick - p.phase) / p.period);
   if (u < p.pass) return { st: 'pass', k, s: u, left: 0 };
+  if (p.trail && u < p.pass + p.trail) return { st: 'trail', k, s: u - p.pass, left: p.period - u };   // (J2 — v2's RUNWAYS: THE AFTERBURNER TRAIL burns on — still deadly)
   if (u >= p.period - p.tell) return { st: 'tell', k: k + 1, s: 0, left: p.period - u };
   return { st: 'idle', k, s: 0, left: p.period - u };
 }
@@ -163,8 +168,11 @@ export function laneHit(lane, tick, x) {
   }
   if (t === 'rail' || t === 'flight') {
     const p = lane.pulse, u = mod(tick - p.phase, p.period);
-    if (u >= p.pass) return '';
+    // (J2 — a v2 RUNWAY lane's jet lays THE AFTERBURNER TRAIL: everything behind it burns through the pass, then the WHOLE lane for
+    //  `trail` ticks after it — the cause stays 'blackbird'. A v1 pulse has no `trail`: the body alone, as it always was)
+    if (u >= p.pass) return p.trail && u < p.pass + p.trail ? 'blackbird' : '';
     const l = pulseLeft(p, u);
+    if (p.trail) return (p.dir > 0 ? x - KID_HALF < l + p.len : x + KID_HALF > l) ? 'blackbird' : '';
     return l < x + KID_HALF && l + p.len > x - KID_HALF ? (t === 'rail' ? 'train' : 'blackbird') : '';
   }
   return '';
@@ -184,13 +192,13 @@ export function carNear(lane, tick, x, reach) {
 
 /** THE COURSE of one seed: lane(i) built on demand + kept (a few hundred at most) — the same lanes whatever the order asked */
 export function createCourse(seed, o = {}) {
-  const key = String(seed), lanes = new Map(), keep = o.keep || 700;
+  const key = String(seed), lanes = new Map(), keep = o.keep || 700, cv = o.cv === 2 ? 2 : 1;   // (J2: the COURSE VERSION — 1 unless asked)
   return {
-    seed: key,
+    seed: key, cv,
     lane(i) {
       let L = lanes.get(i);
       if (!L) {
-        L = buildLane(key, i);
+        L = buildLane(key, i, cv);
         lanes.set(i, L);
         if (lanes.size > keep) lanes.delete(lanes.keys().next().value);
       }

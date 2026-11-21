@@ -136,7 +136,7 @@ test('DAILY B — PRACTICE never uses the day\'s seed; the daily lives OUTSIDE J
   assert.match(read('api/_lib/jaywalk-daily.js'), /seed: `d\$\{seed\}`/);
   // the view takes a daily seed ONLY through the daily adapter (state.jwDaily → D.start → adopt(…, r.seed)); a solo run's seed stays seedOf's
   const V = read('js/games/jaywalk/view.js');
-  assert.match(V, /D\.start\(\)\.then\(r => \{ if \(!gone && r\) adopt\(r\.go, null, true, r\.seed\); \}/);
+  assert.match(V, /D\.start\(\)\.then\(r => \{ if \(!gone && r\) adopt\(r\.go, null, true, r\.seed, r\.cv === 2 \? 2 : 1\); \}/);
   assert.match(V, /run = createRun\(\{ seed, mode: ds \? 'daily' : 'solo' \}\)/);
   assert.match(V, /D = state\.jwDaily \|\| null; isMatch = !D &&/);
   // nothing of the daily in the preload graph (the room's cartridge never imports it)

@@ -7,6 +7,7 @@ import { hashString } from '../../core/rng.js';
 import { CALL_MS, callBonus } from '../../core/playlist.js';
 import { judgeRun, logFromChunks, chunkTimes } from './replay.js';
 import { firstGo, onTime, goOf, inMatch, fullDraw } from '../../core/proof.js';
+import { versionAt, runVersion } from './versions.js';
 
 export { DEFAULT_SETTINGS, cleanSettings, chatLocked, CALL_MS };
 
@@ -63,6 +64,12 @@ export function startOf(game, runs, code) {
  *  host gave up (the unproven step's own time) was there all along — the match is proven: its course + tick 0 are the GO's (the director
  *  takes the mark back: director.js#nextStep). A GO stamped after it never moves a match already running on its stand-in. */
 export const goBeforeGiveUp = (game, S) => !!(S && game && game.phaseStartAt && S.g0 <= game.phaseStartAt);
+/** J2 — COURSE RULES v2 (versions.js): the version a MATCH is played on = the one in force at THE FIRST GO (`g0`; a stand-in course with no
+ *  GO: its tick 0 − the lead) — the phones, the host's podium and the server read this */
+export const matchVersion = S => versionAt(S && S.g0 > 0 ? S.g0 : S ? S.playAt - GO_LEAD_MS : 0);
+/** the version ONE run replays on, from its proof node: its own `cv` checked against the version in force at its GO (a solo run: its own
+ *  GO · a match: THE FIRST GO) — 1 | 2, or 0 = refused (versions.js#runVersion) */
+export const nodeVersion = (node, E) => runVersion(node && node.cv != null ? node.cv : null, E, goOf(node));
 /** the seed one player's run is played on: SOLO = from their own GO (null before it) · a MATCH = the game's (the director's GO patch) */
 export const runSeed = (game, node, code) => (game.mode === 'solo' ? (node && node.go > 0 ? seedOf(code, game.matchId, node.go) : null) : game.seed || null);
 
@@ -76,15 +83,16 @@ export const featsOf = r => Object.keys(r.feats || {}).filter(k => r.feats[k]).j
  * bad (why — a refused log: the run of a kid who never hopped) }. `t0` = tick 0 (a server time), `from` = the earliest a chunk may arrive,
  * `until` = score it as it stands at that tick. The host's podium and the server's count both come through here.
  */
-export function scoreNode({ seed, mode, node, t0, from = null, until = null, out = null }) {
+export function scoreNode({ seed, mode, node, t0, from = null, until = null, out = null, cv = 1 }) {
   const log = node && node.c != null ? logFromChunks(node.c) : [], times = node && node.c != null ? chunkTimes(node.c) : [];
-  let j = log && times ? judgeRun({ seed, mode, log, go: t0, times, from, until }) : { ok: false, why: 'chunks' }, bad = '';
-  if (!j.ok) { bad = String(j.why || 'refused').slice(0, 24); j = judgeRun({ seed, mode, log: [], until }); }
+  let j = log && times ? judgeRun({ seed, mode, log, go: t0, times, from, until, cv }) : { ok: false, why: 'chunks' }, bad = '';
+  if (!j.ok) { bad = String(j.why || 'refused').slice(0, 24); j = judgeRun({ seed, mode, log: [], until, cv: cv === 2 ? 2 : 1 }); }
   const r = j.result, f = bad ? '' : featsOf(r);
   if (out) out.hops = bad ? 0 : j.hops;   // (THE PROOF PASS: the hops THE JUDGE counted — "a GO alone is not a player", api/_lib/jaywalk.js#jwPlayed)
   // (J1 — SPLIT TIMES: `sp` = the ticks each 50 lanes was first reached, from THE JUDGE's own replay — none for a refused log)
   const sp = !bad && r.splits && r.splits.length ? r.splits : null;
-  return { l: r.lanes, t: r.tick, w: r.cause || '', e: r.end, y: r.y, px: r.x, ...(r.taken ? { x: 1 } : {}), ...(f ? { f } : {}), ...(sp ? { sp } : {}), ...(j.cut ? { cut: 1 } : {}), ...(bad ? { bad } : {}) };
+  // (J2: + `cv` 2 — the course version the row was judged on, so its end line can rebuild the lane that hit them; a v1 row is unchanged)
+  return { l: r.lanes, t: r.tick, w: r.cause || '', e: r.end, y: r.y, px: r.x, ...(r.taken ? { x: 1 } : {}), ...(f ? { f } : {}), ...(sp ? { sp } : {}), ...(j.cut ? { cut: 1 } : {}), ...(bad ? { bad } : {}), ...(cv === 2 ? { cv: 2 } : {}) };
 }
 /**
  * ONE player's result from their own node, to the server time `now` (a run still going is scored as it stands). No node / a refused log
@@ -98,8 +106,10 @@ export function scoreRun(game, node, now = null, code = '') {
   // (THE PROOF PASS — the server's guard, on the host's podium too: in a proven match a node with NO GO, or a GO later than the window
   //  after THE FIRST GO, is no run — the kid who never hopped, `bad` says why; api/_lib/jaywalk.js#jaywalkMatch drops it the same way)
   const late = !solo && game.g0 > 0 && node && !onTime(node, game.g0) ? (goOf(node) ? 'late go' : 'no go') : '';
-  if (late) return { ...scoreNode({ seed, mode: game.mode, node: null, t0, from: game.g0, until }), bad: late };
-  return { ...scoreNode({ seed, mode: game.mode, node, t0, from: solo ? null : game.g0 || null, until }), ...(solo ? { go: node.go } : {}) };
+  // (J2: the version — a solo run's at its own GO, a match's at THE FIRST GO — checked against the node's own `cv`)
+  const E = solo ? versionAt(node.go) : matchVersion(game), cv = nodeVersion(node, E);
+  if (late) return { ...scoreNode({ seed, mode: game.mode, node: null, t0, from: game.g0, until, cv: E }), bad: late };
+  return { ...scoreNode({ seed, mode: game.mode, node, t0, from: solo ? null : game.g0 || null, until, cv }), ...(solo ? { go: node.go } : {}) };
 }
 /** every participant's result (a silent-but-present player still has a run) */
 export function scoreRuns(game, runs, now = null, code = '') {

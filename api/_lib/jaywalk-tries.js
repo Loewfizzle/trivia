@@ -6,7 +6,7 @@
 // refresh, hiding the app or THE ROOM WINS ends the try (scored as it stands). Nothing a phone claims about lanes is read.
 //
 // THE RECORD (server-only, dly/jaywalk/{day}/p/{pid} — THE DROP's bookkeeping shape: st + e, a try list instead of a log):
-//   { st: startedAt, n: tries opened, t: { [i]: { u (the uid that opened it), go, z, e? (closed — server time), l?, k? (the tick of the best lane),
+//   { st: startedAt, n: tries opened, t: { [i]: { u (the uid that opened it), go, z, cv? (J2 — 2 = played on COURSE RULES v2; none = v1), e? (closed — server time), l?, k? (the tick of the best lane),
 //     s? (the try's score), w? (the cause), cut?, bad? (refused — why), why? ('fin' | 'start' | 'room' | 'quiet' | 'close') } }, e?: the last close }
 // THE PROOF NODE (dly/jaywalk/{day}/w/{uid}/{i} — the phone appends, database.rules.json): { go, z (both server-written at START), c: { [k]:
 //   { s: the packed hops, at: the SERVER's timestamp } } (append-only), e? (the phone's own end — a server timestamp; a signal, never a score) }.
@@ -52,13 +52,15 @@ export const triesView = rec => triesOf(rec).map(x => (isNum(x.e) ? { i: x.i, l:
  * START (inside the record's transaction): a NEW try — refused while one is open (the caller closes it first — condition 1) or once all
  * three are used. → { record, i, go, z } | { refused: 'open' | 'no_tries' }
  */
-export function openTry(rec0, { uid, now, startedAt }) {
+export function openTry(rec0, { uid, now, startedAt, cv = 1 }) {
   const rec = rec0 && typeof rec0 === 'object' ? rec0 : { st: startedAt || now, n: 0, t: {} };
   if (openOf(rec)) return { refused: 'open' };
   const i = usedOf(rec);
   if (i >= TRIES) return { refused: 'no_tries' };
   const go = now + LEAD_MS, z = go + CAP_MS + GRACE_MS;
-  return { record: { ...rec, st: rec.st || startedAt || now, n: i + 1, t: { ...(rec.t || {}), [i]: { u: String(uid), go, z } } }, i, go, z };
+  // (J2 — COURSE RULES v2: the try keeps the COURSE VERSION it is played on — the day's (versions.js#tryVersion, chosen by the SERVER at
+  //  START); a v1 try writes nothing new — a try with no `cv` is v1, as every try before J2 was)
+  return { record: { ...rec, st: rec.st || startedAt || now, n: i + 1, t: { ...(rec.t || {}), [i]: { u: String(uid), go, z, ...(cv === 2 ? { cv: 2 } : {}) } } }, i, go, z, cv: cv === 2 ? 2 : 1 };
 }
 
 /** is an open try still possibly in play at `now`? (no `e` on its node, z not passed, a chunk / GO within QUIET_MS) */
@@ -76,14 +78,14 @@ export function liveTry(t, node, now) {
  * an abandoned try's kid idles in the replay until the wall takes him (his lanes stay what he reached). A refused log = 0 lanes (`bad`).
  * → { l, k, s, w, f? (the feats — 'boom ufo airfield mothership'), cut?, bad? }
  */
-export function scoreTry({ seed, go, z = null, node }) {
+export function scoreTry({ seed, go, z = null, node, cv = 1 }) {
   // (the rules refuse a chunk past z — the server never reads one either: the log = the chunks up to the first one stamped after the window)
   let c = node && node.c;
   if (c && isNum(z)) { const kept = {}; for (let k = 0; c[k] != null && !(isNum(c[k].at) && c[k].at > z); k++) kept[k] = c[k]; c = kept; }
   const log = logFromChunks(c), times = chunkTimes(c);
   const bad = why => ({ l: 0, k: 0, s: jwScore(0, 0), w: '', bad: String(why || 'refused').slice(0, 24) });
   if (!log || !times) return bad('chunks');
-  const v = verifyRun({ seed: String(seed), mode: 'daily', log, go, times });
+  const v = verifyRun({ seed: String(seed), mode: 'daily', log, go, times, cv: cv === 2 ? 2 : 1 });   // (J2: the try's own version — its record's `cv`)
   if (!v.ok) return bad(v.why);
   const r = v.result;
   // (DAILY B: + the try's FEATS from the replay — `f`, the match's own word list: its four cards + YOUR BEST are credited from THIS — jaywalk-credit.js)

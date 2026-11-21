@@ -18,6 +18,7 @@ import { todayNow, onToday, markTriesDone } from '../../daily/today.js';
 import { placeLine, tryEndedLine, NEW_BEST } from '../../daily/today-logic.js';
 import { stampSvg } from '../../daily/ticket-art.js';
 import { splitsCard } from './splits-card.js';
+import { CV_LATEST } from './versions.js';
 
 export const GAME_ID = 'jaywalk';
 export const TRIES = 3;
@@ -33,7 +34,8 @@ export const daily = {
 
 /** THE DAILY KIT's judge: start · finish · roomWins (THE ROOM WINS — the server ends the try as it stands) · pause = roomWins (the screens' word) */
 export function createApiJudge() {
-  const j = createDailyJudge(GAME_ID, { moves: { roomWins: room => ({ room }) } });
+  // (J2 — COURSE RULES v2: START says the newest course version this phone knows — the SERVER picks the day's; an old phone says nothing)
+  const j = createDailyJudge(GAME_ID, { moves: { roomWins: room => ({ room }) }, start: { cvs: CV_LATEST } });
   j.pause = room => j.roomWins(room);
   return j;
 }
@@ -82,7 +84,7 @@ export function createView() {
         D.path = run.path;
         cur = { i: Number(run.try) || 0, left: Number(run.left) || 0, path: run.path, day: r.day || null, ended: false };
         addStop();
-        return { seed: run.seed, go: run.go };
+        return { seed: run.seed, go: run.go, cv: run.cv === 2 ? 2 : 1 };
       },
       end: (over, line, sp) => endCard(over, line, sp),
     };

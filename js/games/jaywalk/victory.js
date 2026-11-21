@@ -86,9 +86,9 @@ export function endOf(game, uid, code, courses = null) {
   let course = null;
   if (r.w === 'car' && r.e >= 0 && (solo ? r.go > 0 : !!(game && game.seed))) {
     try {
-      const seed = solo ? seedOf(code, game.matchId, r.go) : game.seed;
-      course = (courses && courses[seed]) || createCourse(seed);
-      if (courses) courses[seed] = course;
+      const seed = solo ? seedOf(code, game.matchId, r.go) : game.seed, cv = r.cv === 2 ? 2 : 1, key = `${seed}:${cv}`;   // (J2: the row's course version)
+      course = (courses && courses[key]) || createCourse(seed, { cv });
+      if (courses) courses[key] = course;
     } catch { course = null; }
   }
   // (causes.js#runLine — THE ONE path: a car hit is named by the vehicle the scene drew on that lane at that tick)

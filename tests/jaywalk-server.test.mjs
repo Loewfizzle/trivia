@@ -11,6 +11,8 @@ import { createCourse } from '../js/games/jaywalk/course.js';
 import { createRun, resultOf, step, isOver, canLog } from '../js/games/jaywalk/engine.js';
 import { packLog } from '../js/games/jaywalk/replay.js';
 import { greedyBot, playBot } from '../js/games/jaywalk/bot.js';
+import { setCvSwitch } from '../js/games/jaywalk/versions.js';
+setCvSwitch(Infinity);   // (J2: these cases are the MATCH / SOLO LOGIC on v1 courses at test times past the real switch — the versions themselves: tests/jaywalk-versions.test.mjs + jaywalk-v2-agree.test.mjs)
 
 /** an honest finished run: the bot plays, then the kid stands until the run ends */
 function honest(seed, mode, ticks = 1500) {
@@ -84,7 +86,7 @@ test('NOT a function (the 8 stay 8) + never imports fb.js', () => {
   const fns = readdirSync(new URL('../api/', import.meta.url)).filter(f => f.endsWith('.js'));
   assert.equal(fns.length, 8);
   const src = readFileSync(new URL('../api/_lib/jaywalk.js', import.meta.url), 'utf8');
-  assert.deepEqual([...src.matchAll(/^import .* from '([^']+)'/gm)].map(m => m[1]), ['../../js/games/jaywalk/replay.js', '../../js/games/jaywalk/tuning.js', '../../js/games/jaywalk/logic.js', '../../js/core/proof.js']);   // (H3: + the pure seedOf · H4: + the match's pure rules · THE PROOF PASS: + core/proof.js — PURE, no imports)
+  assert.deepEqual([...src.matchAll(/^import .* from '([^']+)'/gm)].map(m => m[1]), ['../../js/games/jaywalk/replay.js', '../../js/games/jaywalk/tuning.js', '../../js/games/jaywalk/logic.js', '../../js/games/jaywalk/versions.js', '../../js/core/proof.js']);   // (H3: + the pure seedOf · H4: + the match's pure rules · THE PROOF PASS: + core/proof.js — PURE, no imports · J2: + versions.js — PURE, no imports)
   for (const f of ['replay.js', 'tuning.js', 'logic.js', 'meta.js', 'course.js', 'engine.js']) assert.doesNotMatch(readFileSync(new URL(`../js/games/jaywalk/${f}`, import.meta.url), 'utf8'), /from '[^']*(firebase|fb)\.js'|from 'three'|\bdocument\.|\bwindow\./, `${f}: pure — the server runs it`);
   assert.match(readFileSync(new URL('../js/games/jaywalk/logic.js', import.meta.url), 'utf8'), /from '\.\.\/\.\.\/core\/playlist\.js'/, 'logic.js reads Call the Winner\'s numbers from core/playlist.js (pure: its one import is core/rng.js)');
 });

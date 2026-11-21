@@ -6,10 +6,22 @@
 // rooms/{CODE}/jw/{matchId}/{uid} read by the server (GO's server time → the course; the chunks → the log + its clock).
 import { judgeRun, seedProblem, logFromChunks, chunkTimes } from '../../js/games/jaywalk/replay.js';
 import { MODES } from '../../js/games/jaywalk/tuning.js';
-import { seedOf, matchStart, scoreNode, scoreCalls, featsOf } from '../../js/games/jaywalk/logic.js';
+import { seedOf, matchStart, scoreNode, scoreCalls, featsOf, matchVersion, nodeVersion } from '../../js/games/jaywalk/logic.js';
+import { versionAt, setCvSwitch } from '../../js/games/jaywalk/versions.js';
 import { onTime, goOf } from '../../js/core/proof.js';
 
 export { logFromChunks, seedOf };
+
+// J2 — COURSE RULES v2: the local emulator's E2E may move the switch (JW_CV_SWITCH_MS) — honoured OFF Vercel only (the deployed site never
+// moves it: api/_lib/dailies.js#testingEnv's rule). The page does the same from `?emu&jwcv=` (view.js) so the two agree.
+export function cvFromEnv(env = process.env) {
+  if (env.VERCEL || env.VERCEL_ENV || env.JW_CV_SWITCH_MS == null || env.JW_CV_SWITCH_MS === '') return false;
+  const ms = Number(env.JW_CV_SWITCH_MS);
+  if (!Number.isFinite(ms)) return false;
+  setCvSwitch(ms);
+  return true;
+}
+cvFromEnv();
 
 /**
  * → { ok: true, result: { lanes, tick, end, cause, taken, hits, y, x, feats: { boom, ufo, airfield, mothership } }, cut? } | { ok: false, why }
@@ -21,10 +33,10 @@ export { logFromChunks, seedOf };
  * explain it (a slowed game) is CUT, never thrown away: the run counts up to its last on-time hop (`cut: { why: 'behind', tick }`). A
  * DROPPED SIGNAL (a silence, then the queued chunks arriving together) is never held against the run (replay.js#clockProblem).
  */
-export function verifyRun({ seed, mode = 'solo', log, go = null, times = null, from = null } = {}) {
+export function verifyRun({ seed, mode = 'solo', log, go = null, times = null, from = null, cv = 1 } = {}) {
   if (!MODES[mode]) return { ok: false, why: 'mode' };
   if (seedProblem(seed)) return { ok: false, why: 'seed' };
-  const j = judgeRun({ seed, mode, log, go, times, from });
+  const j = judgeRun({ seed, mode, log, go, times, from, cv });
   if (!j.ok) return j;
   if (!j.cut && !j.over) return { ok: false, why: 'never ended' };
   return j.cut ? { ok: true, result: j.result, cut: j.cut } : { ok: true, result: j.result };
@@ -38,12 +50,15 @@ export function verifyNode({ code, matchId, node } = {}) {
   if (!node || typeof node !== 'object' || !(Number(node.go) > 0)) return { ok: false, why: 'no go' };
   const log = logFromChunks(node.c), times = chunkTimes(node.c);
   if (!log || !times) return { ok: false, why: 'chunks' };
-  return verifyRun({ seed: seedOf(String(code), String(matchId), node.go), mode: 'solo', log, go: node.go, times });
+  // (J2: the course version in force at its GO, checked against the node's own `cv` — none = an old-code phone: v1 until THE GRACE ends)
+  const cv = nodeVersion(node, versionAt(node.go));
+  const v = verifyRun({ seed: seedOf(String(code), String(matchId), node.go), mode: 'solo', log, go: node.go, times, cv });
+  return v.ok && cv === 2 ? { ...v, cv } : v;
 }
 
 /** the result row the match report reads (logic.js#scoreNode's shape) from the server's own verify — a refused run = a kid who never hopped */
 // (J1 — SPLIT TIMES: + `sp` — the ticks each 50 lanes was first reached in THE SERVER's replay; core/match-report.js#jaywalkExtra passes them on)
-export const serverRow = v => (v && v.ok ? { l: v.result.lanes, t: v.result.tick, w: v.result.cause || '', e: v.result.end, ...(v.result.taken ? { x: 1 } : {}), ...(featsOf(v.result) ? { f: featsOf(v.result) } : {}), ...(v.result.splits && v.result.splits.length ? { sp: v.result.splits } : {}), ...(v.cut ? { cut: 1 } : {}) } : { l: 0, t: 0, w: '', e: -1, bad: String((v && v.why) || 'refused').slice(0, 24) });
+export const serverRow = v => (v && v.ok ? { l: v.result.lanes, t: v.result.tick, w: v.result.cause || '', e: v.result.end, ...(v.result.taken ? { x: 1 } : {}), ...(featsOf(v.result) ? { f: featsOf(v.result) } : {}), ...(v.result.splits && v.result.splits.length ? { sp: v.result.splits } : {}), ...(v.cut ? { cut: 1 } : {}), ...(v.cv === 2 ? { cv: 2 } : {}) } : { l: 0, t: 0, w: '', e: -1, bad: String((v && v.why) || 'refused').slice(0, 24) });
 
 /**
  * H3 — THE SERVER'S OWN RESULT (PURE): a SOLO run is counted ONLY from the server's replay of the player's proof node (GO's server time →
@@ -82,7 +97,7 @@ export const JW_PLAYED_HOPS = 1;
 function firstChunkHops(S, node) {
   const c0 = node && node.c != null ? node.c[0] : null, o = { hops: 0 };
   if (c0 == null) return 0;
-  const r = scoreNode({ seed: S.seed, mode: 'match', node: { ...node, c: { 0: c0 } }, t0: S.playAt, from: S.g0, out: o });
+  const r = scoreNode({ seed: S.seed, mode: 'match', node: { ...node, c: { 0: c0 } }, t0: S.playAt, from: S.g0, out: o, cv: nodeVersion(node, matchVersion(S)) });
   return r.bad ? 0 : o.hops;
 }
 export function jaywalkMatch({ code, matchId, uids, nodes }) {
@@ -93,7 +108,8 @@ export function jaywalkMatch({ code, matchId, uids, nodes }) {
   for (const u of ids) {
     participants[u] = true;
     const node = nodes && nodes[u], o = { hops: 0 };
-    results[u] = onTime(node, S.g0) ? scoreNode({ seed: S.seed, mode: 'match', node, t0: S.playAt, from: S.g0, out: o }) : { l: 0, t: 0, w: '', e: -1, bad: goOf(node) ? 'late go' : 'no go' };
+    // (J2: every node on the MATCH's version — the one in force at THE FIRST GO — checked against its own `cv`)
+    results[u] = onTime(node, S.g0) ? scoreNode({ seed: S.seed, mode: 'match', node, t0: S.playAt, from: S.g0, out: o, cv: nodeVersion(node, matchVersion(S)) }) : { l: 0, t: 0, w: '', e: -1, bad: goOf(node) ? 'late go' : 'no go' };
     if (o.hops >= JW_PLAYED_HOPS || (results[u].bad && onTime(node, S.g0) && firstChunkHops(S, node) >= JW_PLAYED_HOPS)) played.push(u);
   }
   const game = { id: 'jaywalk', matchId, phase: 'final', mode: 'match', sv: 1, seed: S.seed, playAt: S.playAt, g0: S.g0, participants, settings: {}, results };

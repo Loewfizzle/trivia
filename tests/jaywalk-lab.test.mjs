@@ -46,7 +46,7 @@ test('NO ROOM, NO DATABASE WRITES: the lab + its view + its controls never impor
   }
   const lab = read('js/games/jaywalk/lab.js');
   assert.equal((lab.replace(/\/\/[^\n]*/g, '').match(/\bapi\(/g) || []).length, 0, 'ZERO server calls (H2B: the gate is gone)');
-  assert.match(lab, /replay\(\{ seed, mode, log \}\)/, 'the run replayed after each end …');
+  assert.match(lab, /replay\(\{ seed, mode, log(, cv: CV)? \}\)/, 'the run replayed after each end …');
   assert.match(lab, /REPLAY ≠ LIVE/, '… and a red line if the replay ≠ the live run');
   assert.match(lab, /Q\.get\('fps'\) === '1'/, 'the fps readout only with &fps=1');
   assert.match(lab, /if \(!started\) \{ if \(queue\.length \|\| bot\)/, 'tick 0 = the first touch');

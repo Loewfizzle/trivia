@@ -17,6 +17,8 @@ import { greedyBot, playBot } from '../js/games/jaywalk/bot.js';
 import { verifyRun, verifyNode, jaywalkMatch } from '../api/_lib/jaywalk.js';
 import { callBonus, CALL_MS } from '../js/core/playlist.js';
 import { extractMatch } from '../js/core/match-report.js';
+import { setCvSwitch } from '../js/games/jaywalk/versions.js';
+setCvSwitch(Infinity);   // (J2: these cases are the MATCH / SOLO LOGIC on v1 courses at test times past the real switch — the versions themselves: tests/jaywalk-versions.test.mjs + jaywalk-v2-agree.test.mjs)
 
 const CODE = 'ROOM', T0 = 1_800_000_000_000;
 const msOf = tick => tick * 1000 / T.TICK_HZ;
@@ -426,6 +428,6 @@ test('THE PROOF PASS — A HOST HICCUP AT GO (HIGH RISE\'s REVIEW FIX A, ported)
   // the view: a run that ended while the match was marked unproven sends its end once proven again; a refresh never adopts from the game alone
   const v = (await import('node:fs')).readFileSync(new URL('../js/games/jaywalk/view.js', import.meta.url), 'utf8');
   assert.ok(v.includes("if (proven && mode === 'over' && !wroteE && run && isOver(run)) sendEnd();"), 'the end goes up once proven again — the match does not wait 18 s');
-  assert.ok(v.includes('if (S && (course.seed !== S.seed || go !== S.playAt) && (runs || g.unproven)) {'), 'never adopted from the game alone while the proof mirror is on its way (the inbox, Nov 20 — HIGH RISE S4B\'s own fix)');
+  assert.ok(v.includes('if (S && (course.seed !== S.seed || go !== S.playAt || course.cv !== V) && (runs || g.unproven)) {'), 'never adopted from the game alone while the proof mirror is on its way (the inbox, Nov 20 — HIGH RISE S4B\'s own fix)');
   assert.ok(v.includes('lateGo = !!myNode && goOf(myNode) > 0 && !onTime(myNode, firstGo(runs));') && v.includes('proven = !lateGo && ((haveGo && !g.unproven && mine(g)) || everProven);'), 'a GO of this phone\'s own past the window: nothing is written for it');
 });

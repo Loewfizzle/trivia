@@ -11,6 +11,7 @@ import { createArrival } from './arrival.js';
 import { LOOKS as AREA_LOOKS } from './areas.js';
 import { createRun, step, isOver, resultOf, canLog } from './engine.js';
 import { replay } from './replay.js';
+import { versionAt } from './versions.js';
 import { wireControls } from './controls.js';
 import { createTiers } from '../kit/tiers.js';
 import { getPref, setPref } from './lab-prefs.js';
@@ -21,6 +22,8 @@ import { setNum, prepNums } from './numerals.js';
 
 const app = document.getElementById('app');
 const Q = new URLSearchParams(location.search);
+/** J2 — COURSE RULES v2: `?cv=2` previews v2 any time, `?cv=1` today's; none = the version in force by this phone's clock (a look check — the lab never counts) */
+const CV = Q.get('cv') === '2' ? 2 : Q.get('cv') === '1' ? 1 : versionAt(Date.now());
 // (ZERO server calls: the shared audio engine reports a cut only from the owner's phone inside the app, or on a link that says &debug=1 —
 //  the lab drops that flag from its own address before the engine is ever installed)
 if (Q.has('debug')) { try { Q.delete('debug'); history.replaceState(null, '', `${location.pathname}${Q.toString() ? `?${Q}` : ''}`); } catch { /* fine */ } }
@@ -108,11 +111,11 @@ async function mount() {
   const LANE0 = /^\d{1,5}$/.test(Q.get('lane') || '') ? Math.min(20000, Number(Q.get('lane'))) : 0;   // (`?lane=N` — a look check from lane N: WARPED, never counts)
   let steps = 0, slow = 0, warped = false, started = false, safe = false;   // (safe — a LOOK CHECK's warp only: the blackout holds still behind the kid; never in a real run)   // (started: the run's tick 0 is the FIRST touch — the page never runs the wall at a kid nobody is playing)
   function restart(m = mode, s = Q.get('seed') && !seed ? Q.get('seed') : newSeed()) {
-    mode = m; seed = s; course = createCourse(seed); run = createRun({ seed, mode }); log = []; queue = []; acc = 0; shown = false; overAt = 0; warped = false; started = false; safe = false;
+    mode = m; seed = s; course = createCourse(seed, { cv: CV }); run = createRun({ seed, mode }); log = []; queue = []; acc = 0; shown = false; overAt = 0; warped = false; started = false; safe = false;
     cues = createCues(); if (snd) { snd.onCue({ cue: 'bell-off' }); snd.onCue({ cue: 'tick-off' }); }
     end.hidden = true; mark.textContent = 'TAP TO HOP · SWIPE TO MOVE'; markUntil = 0;
     for (const t of tabs) t.classList.toggle('is-on', t.dataset.mode === mode);
-    seedLine.textContent = `seed ${seed}`;
+    seedLine.textContent = `seed ${seed} · v${CV}`;
     if (bot) bot = greedyBot({ seed });
     // H6B — `?lane=N` (the owner opens any area on his phone): A LOOK CHECK — the kid stands on the grass lane nearest N (the one before it first), the blackout
     // held behind him. WARPED: the run is no longer its log's — it never counts, is never replayed (the end says so), nothing is sent.
@@ -141,7 +144,7 @@ async function mount() {
     endT.textContent = runLine(course, live, look);
     endL.textContent = live.taken ? `LANE ${live.lanes} — THE FINISH LINE` : `LANE ${live.lanes}`;
     // THE DETERMINISM CHECK: the run replayed from its seed + hop log — the SAME code the server runs
-    const { used, ...r } = replay({ seed, mode, log });
+    const { used, ...r } = replay({ seed, mode, log, cv: CV });
     const same = JSON.stringify(r) === JSON.stringify(live) && used === log.length;
     check.className = `jw-check ${warped ? '' : same ? 'is-ok' : 'is-bad'}`;
     check.textContent = warped ? 'WARPED (a look check) — no replay' : same ? `REPLAY = LIVE · lane ${r.lanes} · tick ${r.tick} · ${log.length} hops`

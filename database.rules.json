@@ -733,6 +733,10 @@
                 ".write": "auth != null && auth.uid === $uid && $match.matches(/^[a-z0-9]{3,16}$/) && root.child('rooms/' + $code + '/game/id').val() === 'jaywalk' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + auth.uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (root.child('rooms/' + $code + '/game/phase').val() === 'play' || (root.child('rooms/' + $code + '/game/phase').val() === 'count' && now >= root.child('rooms/' + $code + '/game/playAt').val() - 2000)) && newData.exists() && !data.exists() && (root.child('rooms/' + $code + '/jw/' + $match + '/t0').isNumber() ? now <= root.child('rooms/' + $code + '/jw/' + $match + '/t0').val() + 5000 : now < 1795770000000)",
                 ".validate": "newData.isNumber() && newData.val() === now"
               },
+              "cv": {
+                ".write": "auth != null && auth.uid === $uid && newData.exists() && !data.exists() && root.child('rooms/' + $code + '/jw/' + $match + '/' + $uid + '/go').isNumber() && now < root.child('rooms/' + $code + '/jw/' + $match + '/' + $uid + '/go').val() + 20000",
+                ".validate": "newData.isNumber() && (newData.val() === 1 || newData.val() === 2)"
+              },
               "c": {
                 "$i": {
                   ".write": "auth != null && auth.uid === $uid && newData.exists() && !data.exists() && root.child('rooms/' + $code + '/jw/' + $match + '/' + $uid + '/go').isNumber() && now < root.child('rooms/' + $code + '/jw/' + $match + '/' + $uid + '/go').val() + 10800000",
