@@ -33,6 +33,7 @@ THE DAILY CEILING 20). **THE SIGN HOLD** (`core/harbor-neon.js#SIGN_HOLD`) keeps
 | REVIEW FIX B — THE SHARE CARD | Nov 20 2026 | `docs/games/passes/highrise-fix-b.md` | THE SHARE CARD = B · THE POSTER (the six HERO SHOTS from the real game — the hero camera, no flyers — full-bleed, always night, ALL GOLD for the finish; the live-frame capture GONE), THE DAY END SCREEN (one soft still of the day scene under a dark tint — no filter), THE WOULD COUNT LINE (wraps; NEW BEST only over the best shown), the `--fly` shot script |
 | THE GO-LIVE (+ the day end screen + the share card's type) | Nov 20 2026 | `docs/games/passes/highrise-golive.md` | THE DAY END SCREEN to the mockup (the camera pulled back, a NAVY tint, far less blur; every line measured) · THE SHARE CARD's TYPE ("10 FLOORS" + the band in pink) · THE FLIP (playable for everyone, NEW on top, HIGHRISE_COUNTS ON, its meta at boot, HOW TO PLAY, the tile, THE BOARD's tab, the credits group, the weekly goal's pool) · THE SIGN HOLD · /highrise-lab deleted · the two cards out of THE LAB |
 | THE PROOF PASS (JAYWALK + HIGH RISE) | Nov 20 2026 | `docs/games/passes/proof-pass.md` | THE HOST-TRUST HOLES closed (the review's MUST 2 a / b / c): THE STAMP `t0`, GO within 5 s of it, the leaves on the player's OWN go, the lock by the stamp's age, the server's two guards; THE PROOF WRITER shared with JAYWALK (one burst at a time, a refused chunk sent again); "your own phone missed the GO" → it WATCHES; a verified solo run is a counted play; the per-game budget 2,600 KB — **a rules change** |
+| THE CONSOLE FIX (JAYWALK + HIGH RISE + the console) | Nov 20 2026 | `docs/games/passes/console-fix.md` | A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST: a `final` early, a moved-on room or a kick — the phone plays its run out, writes its end, THEN follows (THE RUN HOLD); the server holds the report (425 still_live) while a run is live, the cap ends the wait; the podium waits + re-scores from the nodes; a kicked proven player is credited; THE TREE CAP (1,000 stamped trees a room) — **a rules change** |
 | S3 — THE DAY LOOK + THE FLYERS + DEEP SPACE | Nov 19 2026 | `docs/games/passes/highrise-s3.md` | THE DAY LOOK (frosted glass, one sun), THE LOOK SWITCH (AUTO · DAY · NIGHT, a 1.5 s cross-fade, never a hitch), THE FLYERS (the seed's Blackbird OR F-22 pair at 35–45 · the UFO at 85 · THE MOTHERSHIP from ~180), floor 200 (solo: the moment, then DEEP SPACE · `?mode=match`: THE FINISH + the gold card), the sounds final (ALL A), the 2 cards' art prepared |
 
 ## THE RULES (the owner's)
@@ -1029,3 +1030,10 @@ tests/highrise-fix-a.test.mjs (REVIEW FIX A) · tests/integration/highrise-spect
   HOLD'EM with THE DROP removed — and it LIFTS THE SIGN HOLD).
 - Still open: SHOULD 7 (the F-22's 1.1 MB before the first tap — the owner's iPhone A/B) · the cards' own motion · NO DAILY (the owner,
   Nov 18).
+
+## THE CONSOLE FIX (Nov 20 — `docs/match-kit.md` "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"; the pass log `docs/games/passes/console-fix.md`)
+- A live proven tower is climbed to its own end whatever the host's state says: no podium over it (`view.js#pumpMatch` — `runLive()`), the
+  router keeps the screen through a moved-on room (`holdsRun`), a kick waits; then `e` and the phone follows. The out phone's podium waits
+  for a rival's live tower (`kit/run-hold.js`), then is scored from the nodes (`director.js#finalPatch`). The server's live rule: `match.js#liveOf`.
+- FINAL_HOLD_MS (3 s) now applies only once this phone's own tower is over (it used to put the podium over a tower still climbing).
+- The solo + match GO now go up behind the stamp's answer (THE TREE CAP — `kit/proof-io.js#stampT0`).

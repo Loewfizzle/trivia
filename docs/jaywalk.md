@@ -28,6 +28,7 @@ import map); the RULES are a pure engine that never knows about it.
 | DAILY A | Nov 18 2026 | `docs/games/passes/daily-a.md` | ✓ THE DAILY's SERVER HALF (3 tries, the proof node, the 4 conditions, the points curve) + its test page — ships OFF ("THE DAILY", below) |
 | DAILY B | Nov 18 2026 | `docs/games/passes/daily-b.md` | ✓ THE DAILY's PHONE HALF: its ticket (orange, the walk signal), the run on the REAL view, STOP, TRY AGAIN · DONE, TRY ENDED · N TRIES LEFT, its SHARE TODAY section, its cards + YOUR BEST — ships OFF ("THE DAILY — THE PHONE HALF", below) |
 | THE PROOF PASS (JAYWALK + HIGH RISE) | Nov 20 2026 | `docs/games/passes/proof-pass.md` | THE HOST-TRUST HOLES closed for `jw` (THE STAMP `t0`, GO within 5 s of it, the leaves on the player's OWN go, the lock by the stamp's age, the server's two guards) + THE PROOF WRITER shared with HIGH RISE; JAYWALK'S GO FIXES (a host hiccup at GO no longer voids the match; a GO alone is not a player; a refresh never adopts from the game alone; Call the Winner's no-run case); a verified solo run is a counted play — **a rules change** |
+| THE CONSOLE FIX (JAYWALK + HIGH RISE + the console) | Nov 20 2026 | `docs/games/passes/console-fix.md` | A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST: a `final` early, a moved-on room or a kick — the phone plays its run out, writes its end, THEN follows (THE RUN HOLD); the server holds the report (425 still_live) while a run is live, the cap ends the wait; the podium waits + re-scores from the nodes; a kicked proven player is credited; THE TREE CAP (1,000 stamped trees a room) — **a rules change** |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
 this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
@@ -196,6 +197,12 @@ JAYWALK must play and count EXACTLY as before for an honest player — the same 
   (`docs/profiles.md` "THE FLOOR — WHO GETS LISTED").
 Proof it plays + counts as before: `e2e-jaywalk.mjs` + `e2e-jaywalk-match.mjs` (new rules; old rules `OLD_RULES=1`; the OLD client on the new
 rules), the replay + judge sims (unit), `tests/jaywalk-match.test.mjs` "THE PROOF PASS" (the guards · the host hiccup).
+
+## THE CONSOLE FIX (Nov 20 — `docs/match-kit.md` "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"; the pass log `docs/games/passes/console-fix.md`)
+- A live proven run is played out whatever the host's state says: no podium over it (`view.js#endScreen` — `runLive()`), the router keeps the
+  screen through a moved-on room (`holdsRun`), a kick waits; then `e` and the phone follows. The out phone's podium waits for a rival's live
+  run (`kit/run-hold.js`) and is then scored from the nodes (`director.js#finalPatch`). The server's live rule: `director.js#liveOf`.
+- The solo + match GO now go up behind the stamp's answer (THE TREE CAP's counter is written with the stamp — `kit/proof-io.js#stampT0`).
 
 ## THE MATCH (H4 — ONE LIFE; the cartridge — hidden: THE OWNER'S LIVE TEST)
 One run each on the SAME course, one life; the others are see-through ghosts; farthest wins, ties → the earlier tick. **Real matches run

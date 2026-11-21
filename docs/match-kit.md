@@ -100,14 +100,26 @@ run is SOLO only when the tree holds no other player's GO) · **a refused log st
 (`firstChunkHops` / `firstChunkFloor`: a sore loser breaking his own log after the podium stays a player who lost — the winner's win
 stands) · a Call the Winner pick is a uid's shape, ≤ 64 (`k/w` had no bound) · `hr`'s `rs` only within 10 s of its player's GO.
 
-**WHAT THIS DOES NOT CLOSE (named, not built — `docs/games/passes/proof-pass.md` OPEN FOR BEN):**
-- **THE HOST ENDS THE MATCH FOR EVERYONE BUT HIMSELF** (older than this pass): he writes `game/phase: 'final'` (or moves the room on) —
-  every honest phone leaves its run for the podium / the room; he plays on, then reports. The proof tree cannot stop it: the phones follow
-  the host's state out of a LIVE run. The fix is a CONSOLE rule ("a live proven run is never taken away by the host's state" + the server
-  holding a report while a node is still live) — a design of its own.
+**WHAT THIS DOES NOT CLOSE (named):**
+- ~~THE HOST ENDS THE MATCH FOR EVERYONE BUT HIMSELF~~ — **CLOSED by THE CONSOLE FIX (Nov 20)**: the section below.
 - The host can still WRECK his own room's match (never win by it): delete the whole room, pre-stamp a match id, never write `final`.
 - Up to ~3 s of head start inside the 5 s GO window (tick 0 = THE FIRST GO + 2 s); until the sunset a host who never stamps keeps the
   old lock on his tree (the server's guards still refuse him the win).
+
+## A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST (THE CONSOLE FIX, Nov 20 — `docs/games/passes/console-fix.md`)
+A modified host wrote `final` / moved the room on / kicked the leader mid-match — every honest phone left its live run, he played on and won.
+- **LIVE** = an on-time GO, no `e`, its proof moved within the idle-out (+ the drop wait offline), the cap (+ grace) not passed —
+  `core/proof.js#liveGoers` + each game's `liveOf`: the honest host's own `endedFor` + the cap (an honest match never waits for it).
+- **THE SERVER** holds the report (425 `still_live` + retryAfter, both paths — `api/report.js#holdLive`); the queue never runs out of tries
+  on it; the cap ends every wait. A proven player is credited seated or not (`seatOk` — a kicked leader).
+- **THE PHONES**: no podium over this phone's own live proven run; the out phone keeps watching while a rival's run is live, then the podium
+  scored from the nodes (`kit/run-hold.js`, `director.js#finalPatch`, `createFinal({ game })`). **THE RUN HOLD** (`app.js`): a screen whose
+  `holdsRun()` is true (forwarded by `games/lazy-view.js`) stays through a moved-on room on a frozen state, plays the run out, writes its end,
+  pings the router (`__nsRunHold.check()`) and follows — reporting its own match; never against the phone's own LEAVE / QUIT / move
+  (`host.js#movedByMe`). A kick / a lost seat waits the same way (`room.js#runHoldDone`).
+- **A NEW GAME ON THE PROOF TREE** gets it by exporting `holdsRun` from its view + a `liveOf` for its server entry (`api/report.js#PROOF_GAMES.live`).
+- **THE TREE CAP**: `rooms/{CODE}/pt` counts a room's stamped trees (1,000 — `kit/proof-io.js#TREE_CAP`); the stamp goes up only with it.
+- Tests: `tests/console-fix.test.mjs` · `server.test.mjs` "THE CONSOLE FIX" · `rules.test.mjs` "THE TREE CAP" · `e2e-console-fix.mjs`.
 
 **THE ORDER OF A RULES CHANGE HERE**: the phones' code first, the rules whenever after — the new code's stamp is refused silently on
 the old rules (`expectRefusal(…, 'none')`) and GO works as before; the old code's GO is taken on the new rules until the sunset.

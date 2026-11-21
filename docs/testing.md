@@ -1281,3 +1281,11 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   screen's still is HALF the width. `highrise-share.mjs`: "10 FLOORS" on one row + the band in pink, both read at 300 px.
 - The harbor groups: `room` (PICK A GAME = 5), `tapfit` (THE BOARD's SEVEN tabs on one row), `cartridge` (the metas
   `highrise,holdem,jaywalk,overclock,prism`; the plug = 8), `neon` (THE SIGN HOLD: no HIGH RISE sign anywhere in the city).
+
+## THE CONSOLE FIX (Nov 20 — docs/games/passes/console-fix.md)
+- `node tests/integration/e2e-console-fix.mjs "<chromium>" <outDir> --game=jaywalk|highrise` — two phones, the host's attacks written as the
+  admin: the early `final` (the honest phone plays on, its chunks land, the podium waits, then BOB wins), the room moved on (BOB stays on HIS
+  match, then follows), the kick (BOB plays out, his end lands, THEN he leaves; counted). ONE game a run (the kick ends the run's room).
+  `GPU=off` = the software renderer (a machine whose real-GPU path is down — JAYWALK passes there; HIGH RISE's bots need the GPU's timing).
+- `server.test.mjs` "THE CONSOLE FIX" (425 still_live, both games, both paths, the dead phone, offline, the cap) + "THE DROPPED LEADER
+  (PRISM DROP + OVERCLOCK)"; `rules.test.mjs` "THE TREE CAP" (every older stamp test writes the counter with it: `stampAt`).
