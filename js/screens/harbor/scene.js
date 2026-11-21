@@ -1118,7 +1118,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // 8b1 — the roof board + the blade, kept in step with the workers' traces
   const BOARD_ID = 'bb-left';
   let sheetK = '', sheetV = null, bladeK = '', bladeV = null, boardCheck = 0, boardHeld = 0;
-  const bladeGameOn = key => { const [y, m, d] = key.split('-').map(Number); return ghostAdGame(Date.UTC(y, m - 1, d, 23), signGames.map(g => g.id), null); };
+  // (CITY PART 2 — NEVER A GAME TWICE AS A SIGN: the speakeasy blade skips tonight's lit named signs — core/harbor-neon.js#bladeGame)
+  const litTonight = key => { try { return neon && neon.litSigns ? neon.litSigns(key) : []; } catch { return []; } };
+  const bladeGameOn = key => { const [y, m, d] = key.split('-').map(Number); return ghostAdGame(Date.UTC(y, m - 1, d, 23), signGames.map(g => g.id), litTonight(key)); };
   const boardGameOf = (key, l) => { try { let g = neon.boardPick(key, 0, l); const nx = new Date(Date.UTC(...key.split('-').map((v, i) => +v - (i === 1 ? 1 : 0))) + 864e5).toISOString().slice(0, 10), bl = [bladeGameOn(key), bladeGameOn(nx)]; for (let n = 1; n < 4 && g && bl.includes(g); n++) g = neon.boardPick(key, n, l) || g; return g === 'holdem' ? 'holdem-open' : g; } catch { return null; } };   // (CITY G: the day's pick of HOLD'EM = the playable game — NOW OPEN, never COMING SOON)
   // CITY FIXES + HOLD'EM — THE BASE POSTER (core/harbor-holdem.js): a day key the ad covers shows HOLD'EM instead of its game (the owner's
   // switch via the cached GET; &force=billboard-holdem (+ &holdem=open) = from TODAY on this phone — the billposter pastes it at his slot)
@@ -1629,7 +1631,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const playable = signGames;   // (CITY B: the ghost ad rotates the PLAYABLE games only — core/harbor-neon.js#signRoster)
   let speakMemo = null, trRevealSeen = false;
   function speakCtxFor(ms) {
-    const id = ghostAdGame(ms, playable.map(g => g.id), null), g = playable.find(g => g.id === id) || null;
+    const id = ghostAdGame(ms, playable.map(g => g.id), litTonight()), g = playable.find(g => g.id === id) || null;
     return { game: g ? { ...g, style: bladeStyle(adWeek(ms), bladeForce()) } : null };   // (SP5: the week's letter style + colours)
   }
   function bladeMs() {
@@ -1654,7 +1656,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (speakMemo && now - speakMemo.at < 4000 && Math.abs(cms - speakMemo.cms) < 60e3 && speakMemo.v.hushLit === !!hushPreview()) return speakMemo.v;
     const board = (neon.debug().boards[0] || {}).game || null;
     const want = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('ad') : null;     // (SP2: &ad=<game> previews any game's blade)
-    const id = (want && playable.some(g => g.id === want) ? want : null) || ghostAdGame(bladeMs(), playable.map(g => g.id), null);   // (C4d: no `month` — the ivy that read it is gone; a forced season re-baked the facade for nothing)
+    const id = (want && playable.some(g => g.id === want) ? want : null) || ghostAdGame(bladeMs(), playable.map(g => g.id), litTonight());   // (CITY PART 2: never a game lit on tonight's named signs)   // (C4d: no `month` — the ivy that read it is gone; a forced season re-baked the facade for nothing)
     const hushLit = !!hushPreview();
     const g0 = playable.find(g => g.id === id) || null, style = bladeStyle(adWeek(bladeMs()), bladeForce());   // (SP5: the week's blade look; &blade=<font>-<ink>-<panel> previews one)
     const v = { game: g0 ? { ...g0, style } : null, hushLit, key: `${id}|${style.key}|${hushLit ? 'h' : ''}` };

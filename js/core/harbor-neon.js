@@ -927,6 +927,13 @@ export const SIGN_HOLD = Object.freeze([]);   // (CITY PART 1, Nov 20: LIFTED �
 export function signRoster(games) {
   return (games || []).filter(g => g && g.playable && !g.daily && !SIGN_HOLD.includes(g.id));
 }
+/** CITY PART 2 — NEVER A GAME TWICE AS A SIGN THE SAME NIGHT (the owner, Nov 21: HIGH RISE showed three times on one screen — billboard + roof +
+ *  blade): the games lit on tonight's NAMED tube signs (the roofs + the hotel's blade + a wide screen's extra blades) from assignSigns' pick —
+ *  the speakeasy blade skips them (bladeGame). The roof billboard is a rotating ad and may repeat a roof sign. PURE */
+export const litSigns = (pick, spots) => [...new Set((spots || []).filter(s => s.kind === 'named').map(s => pick && pick.get(s.id)).filter(Boolean))];
+/** the speakeasy blade's game at ms (its week's ghost ad) — never a game lit on tonight's named signs (lit — litSigns); every name lit → the
+ *  week's own. ids: the sign roster's */
+export const bladeGame = (ms, ids, lit = []) => ghostAdGame(ms, ids, lit && lit.length ? lit : null);
 /** the owner's call (Nov 15): these names are ALWAYS two stacked words on every neon sign — never one line — where the spot takes two (a roof
  *  sign) or allows a split (`split` — the vertical blades) */
 export const SIGN_SPLIT = Object.freeze({ jaywalk: ['JAY', 'WALK'], overclock: ['OVER', 'CLOCK'], highrise: ['HIGH', 'RISE'] });   // (CITY PART 1: HIGH / RISE stacked on a roof sign; the hotel blade's column can not take it — 8 letters > cap + 1: PRISM / HOLDEM only, the owner's)

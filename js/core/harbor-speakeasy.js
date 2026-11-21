@@ -143,7 +143,11 @@ export function ghostAdGame(ms, ids, avoid = null) {
   const order = AD_ORDER.filter(id => have.has(id)).concat([...have].filter(id => !AD_ORDER.includes(id)).sort());
   if (!order.length) return null;
   const n = order.length, w = adWeek(ms), i = ((w % n) + n) % n;
-  return order[i] === avoid && n > 1 ? order[(i + 1) % n] : order[i];
+  // (CITY PART 2: `avoid` may be a LIST — the games lit on tonight's named signs: the next in the order that is none of them; all avoided →
+  //  the week's own — core/harbor-neon.js#bladeGame)
+  const av = [].concat(avoid == null ? [] : avoid);
+  for (let k = 0; k < n; k++) { const g = order[(i + k) % n]; if (!av.includes(g)) return g; }
+  return order[i];
 }
 
 // ---- PROM — THE BARBERSHOP AWNING, LIT FROM UNDERNEATH (the owner, Oct 28 — "B")

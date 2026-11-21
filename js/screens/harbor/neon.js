@@ -11,7 +11,7 @@
 //               light of the evening), each with its sputter-on / stutter-off, its tubes one by one; a rare flicker; a core flutter
 //   moments     hooks for later parts, previewed now with &force=: party (chasers + the beat + colour shifts), flash (a game's
 //               colours sweeping across the skyline: Lobby 2.0's start), scheme (holidays, CITY CONTROL)
-import { outlines, signSpots, signRoster, assignSigns, billboardPick, signText as spotText, nightKey, roleColour, SCHEMES, depthStrength, HAZE, depthLinks, partyPieces, lineKey, partySlot, neonClash } from '../../core/harbor-neon.js';
+import { outlines, signSpots, signRoster, assignSigns, billboardPick, litSigns, signText as spotText, nightKey, roleColour, SCHEMES, depthStrength, HAZE, depthLinks, partyPieces, lineKey, partySlot, neonClash } from '../../core/harbor-neon.js';
 import { project } from '../../core/harbor-layout.js';
 import { skyItems } from './skyline.js';
 import { tube, drawLit, drawGlass, caps, sprite, bbox, free, mix, rgba } from './tubes.js';
@@ -49,7 +49,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   // (CITY B — THE SIGNS ADVERTISE PLAYABLE GAMES ONLY: the scene hands the sign roster — core/harbor-neon.js#signRoster; a frozen game never hangs)
   const games = signRoster(allGames).map(g => ({ ...g, short: signName(g) }));
   let L = null, cam = null, dpr = 1, tier = 2, W = 0;
-  let signs = [], boards = [], outs = [], items = [], queue = [], key = '', scheme = 'city', assignKey = '';
+  let signs = [], boards = [], outs = [], items = [], queue = [], key = '', scheme = 'city', assignKey = '', litMemo = null;   // (CITY PART 2: litMemo — litSigns' last night)
   let built = 0, lastOn = false, mbSprites = 0, rev = 0, fresh = null;
   const comp = { far: null, near: null, harbor: null };   // tier 0: each group's lit neon as one image (when it is steady)
   const moment = { party: 0, flash: null, chase: false, scene: null, burnout: false, lamps: null, itemK: null };   // (itemK — MODELS: { itemId: 0..1 } one item's light, e.g. the Mothman's needle stuttering)
@@ -1183,6 +1183,9 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     },
     /** 8b1 — the roof board's game for a night key (the same pick its layout makes: neon's own games, with their signs' full names) */
     boardPick(key, n = 0, l = L) { if (!l) return null; const sp = signSpots(l); return billboardPick(games, sp, assignSigns(games, sp, key), key, n); },
+    /** CITY PART 2 — the games lit on a night's NAMED signs (the speakeasy blade skips them — core/harbor-neon.js#bladeGame); key: the night
+     *  (default: the one the layout hangs) */
+    litSigns(key = assignKey, l = L) { if (!l || !key) return []; if (litMemo && litMemo.k === key && litMemo.l === l) return litMemo.v; const sp = signSpots(l), v = litSigns(assignSigns(games, sp, key), sp); litMemo = { k: key, l, v }; return v; },
     /** 8b1 — THE BILLPOSTER: a board built for `show` (not hung — its poster + light for the sheets he pastes) */
     boardArt(id, show) { const it = items.find(x => x.kind === 'board' && x.id === id); if (!it) return null; const b = buildBillboard(it.b.spot, billboardContent(show, games), { dpr, roofY: it.b.roofY, roofX0: roofX0Of(it.b.spot) }); free(b.nightS); return b; },
     /** the game a board shows now (null: none / CITY CONTROL's own content) */

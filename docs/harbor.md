@@ -1629,4 +1629,12 @@ The pass log: [passes/city-part1.md](harbor/passes/city-part1.md).
   (`speakeasy-blade.js#BLADE_COLUMN`); never the hotel blade. Five games on four signs: four different a night, every one up each week.
 - **THE DAY PAINT:** a day face is PAINT (sun-faded enamel, cream / gold, a gold-leaf or dark keyline) — JAYWALK's is cream on raspberry now;
   the guard `tests/city-part1-signs.test.mjs` (no saturated / near-white-hot ink or keyline on a dark board).
+- **THE LED BILLBOARD EXCEPTION (the owner, Nov 21 — never "fix" it):** THE DAY PAINT is for NEON TUBE signs only. The roof billboard (THE
+  TRI-VISION — HIGH RISE's B1 poster, JAYWALK's, HOLD'EM's) is an LED SCREEN: real LED billboards glow by day, so its faces stay the SAME
+  picture by day as by night. No day variant of a poster, ever.
+- **NEVER A GAME TWICE AS A SIGN THE SAME NIGHT (CITY PART 2):** the speakeasy's side blade (the weekly game) SKIPS any game lit on tonight's
+  named tube signs — the roofs, the hotel blade, a wide screen's extra blades (`core/harbor-neon.js#litSigns` + `#bladeGame`; the scene's three
+  blade picks read `neon.litSigns()`); the next game in the ad's order that is not lit; every name lit → the week's own. The roof billboard is
+  a rotating ad and MAY repeat a roof sign. The clash it closes: a Monday morning (the painters still show last week's blade) or past midnight
+  (the night's signs, the new week's blade). The guard `tests/city-part2-blade.test.mjs` (every night of a year, 390 / 402 / 430 + the desk).
 - **THE RADIO BUTTON** sits 8 pt clear of ☰'s 44 × 44 (the harbor `tapfit` group: no tappable shares a point with a corner button's area).
