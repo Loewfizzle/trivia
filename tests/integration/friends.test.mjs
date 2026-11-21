@@ -286,7 +286,7 @@ test('CITY PART 1 — THE ONE TARGET RESOLVER: a SCORES row ({ bid, dg }) + a bo
   const page = await act('fr-cy', { action: 'player', id: bid, dg });
   assert.equal(page.rel, 'none', 'the player page resolves the SCORES row');
   const r = await act('fr-cy', { action: 'friendAdd', bid, dg });
-  assert.equal(r.rel, 'out'); assert.equal(r.pid, dee);
+  assert.equal(r.rel, 'out'); assert.equal(r.pid, undefined, 'a SCORES / board target never gets the pid back (the fresh-eyes review)');
   assert.ok(await val(`pfr/${dee}/in/${cy}`), 'the request landed from a SCORES target');
   const r2 = await act('fr-dee', { action: 'friendAccept', id: boardId(cy), dg: 'nope', b: 'nope' }).catch(e => e);
   assert.equal(r2.status, 404, 'a target the server can not place is refused (never someone else)');

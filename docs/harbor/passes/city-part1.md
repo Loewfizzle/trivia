@@ -136,8 +136,24 @@ No budget raised. The pass's own boot comments were trimmed to stay under the li
 - A refusal from a phone not confirmed as the host IN the room = the quiet `not-host` — a SEATED guest's own-node refusal still rings the
   re-publish alarm (THE RULES-LAG stands).
 
-## THE FINAL RUN
-(filled in below at the close)
+## THE FINAL RUN (this pass's own emulators + `serve.mjs --emu`, one suite at a time; the rules + /api on FRESH emulators after the browsers)
+| check | result |
+| --- | --- |
+| unit (`node --test tests/*.test.mjs`) | **2428 / 2428** |
+| rules (`rules.test.mjs`) · `/api` (`server.test.mjs` — + OVERCLOCK = ONE BOARD) · friends · dailies module · progression · HOLD'EM server | **98 / 98 · 72 / 72 · 11 / 11 · 24 / 24 · 10 / 10 · 21 / 21** |
+| smoke | **24 / 24** |
+| e2e-profiles (moved to OVERCLOCK's ONE board) | **148 / 148** |
+| e2e-friend-page (after the review's fixes) | **41 / 41** |
+| OVERCLOCK: e2e-oc-luck · e2e-oc-2 (N=4) | **22 / 22 · 27 / 27** |
+| JAYWALK `e2e-jaywalk` (FAST) · HIGH RISE `e2e-highrise --fast` | **99 / 99 · 70 / 70** |
+| audio-leave · audio-hush · podcast-sweep | **28 / 28 · 9 / 9 · 14 / 14** |
+| end-flash (every game) · e2e-stall-host · e2e-rematch (4 games: the crown watch, REMATCH → next, the late vote) | **24 / 24 · 8 / 8 · 34 / 34** |
+| the harbor groups this pass touches (`core, neon, load, tapfit, room, gamestart`) | **153 / 153** |
+| THE BOOT CLOCK (boot-time.mjs, cold, 390 × 844, cpu 2×): local 4G 7.0 s (HTTP/1.1: 6 connections — the module graph's arrival dominates); local slow line 17.3 s, ONE load (was two: 674 req) · live 4G (old code, HTTP/2) 6.9 s |
+- The full harbor suite: the cloud's, on this harbor-tagged push (THE LOCAL TESTING RULE).
+- Found by the final run + fixed: e2e-profiles leaned on the old STANDARD record's plaque + the QUICK · SOLO board (now the ONE board); my own
+  friends.test expected the pid back for a SCORES target (the review's privacy fix removed it).
+- Every server this pass started was stopped at the end, by exact PID.
 
 ## THE FRESH-EYES REVIEW (a separate agent that wrote none of it — read the code + the shots; 29b419f0 fixed what it found)
 1. **HIGH — the page's clock never stopped:** `__boot.onScreen` kept counting after the first reveal, so every LATER scene (back from a match,
