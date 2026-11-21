@@ -778,3 +778,17 @@ page's query (`player-page.js#actions`). The bar starts from the SERVER's relati
 for a fresh list when they disagree; a slow /api shows the tube busy (aria-busy). THE COVER (`css/vault.css`) never pauses THE MESSAGE
 (`.sh-msgs`) or a pop-up opened over the card (`data-over-cover` — `ui/layers.js`): every message over the page was frozen at opacity 0.
 Tests: `tests/integration/e2e-friend-page.mjs` (real touch taps, every entry point, every message SEEN) · `friends.test.mjs`.
+
+## THE OWNER'S NAME TAG (CITY PART 2, Nov 21 — the owner's Nov 20 9:28 am; mockup Downloads\NEON\city-h-refs\whos-on-tags.png)
+In the OWNER-ONLY lists the tag `#4821` shows in bold white mono at the top of each row's right-hand column (above its status line; nothing
+drawn on the card) — two accounts with one name told apart at a glance: WHO'S ON + a room's players (the radio), STATS' MOST ACTIVE, SECOND
+ACCOUNTS (+ /admin's own rows, as before). ONE helper: `js/ui/owner-tag.js#ownerTag`. The tag comes from the server ONLY for THE OWNER's ask
+(`api/_lib/radio.js#whosOnNow(now, { tags: role === 'owner' })` — the crew never; the card stays publicRow's; STATS is admin-only and
+`progress/statsSnap` is server-only). Never on a public screen — "never tag digits" stands. server.test "WHO'S ON" checks it.
+
+## STATS → MATCHES PER DAY's PLAYERS LINE (CITY PART 2, Nov 21 — the owner's Nov 20 2:18 pm)
+Over the cyan bars a PINK line + a dot a day = the DIFFERENT accounts that played ANYTHING that day (room matches + verified solo runs —
+results/…/o — + daily finishes — dly/{g}/{day}/r, the open dailies), DON'T COUNT accounts and removed test accounts (no profile) left out;
+ONE scale; a legend under the title; a tap = "NOV 19 · 34 MATCHES · 6 PLAYERS". `core/insights.js#playersPerDay` (pure, unit-tested) in the ONE
+STATS builder (`summarize` → `games.daily[i].p`); the daily finishers read on their own 5-min cache (`api/admin.js#dailyFinishers`);
+`progress/statsSnap` v 3. The past 30 days come from the records the server keeps (a day whose `dly/…/r` is gone adds only its matches).

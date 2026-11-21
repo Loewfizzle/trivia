@@ -882,3 +882,25 @@ smoke 19.2 · inferno 19 · dev-switchboard 12.9 · neoncamo 11.4 · glitter 10.
 - **Four baked-still cards** (inferno, noir, neoncamo, marquee-gold): `build-card-stills.mjs` re-baked them BYTE-IDENTICAL — the stills are current;
   the live strip draws its frame differently from its 360 × 64 bake (inferno's flames shorter) — the cause is not pinned (the renderer starts at tier 2
   = the bake's q 1). Left for the next VAULT pass with the numbers above.
+
+## THE SLIM-CARD LAYER (CITY PART 2, Nov 21 — the owner said YES to CITY I's call)
+The nine CSS-ART cards whose live effect ADDS a layer (aurora, frostbite, marquee, sg-btc, neonglass, century, smoke, glitter, dev-switchboard)
+show that layer in EVERY list from the first frame: `js/vault/stills.js` kind **`l`** = the effect's still frame baked TRANSPARENT at 360 × 64
+(`scripts/build-card-stills.mjs`), laid over the card's own CSS picture by the GENERATED `.vl-s-<mat>:not(.fx-on) > .vl-mat::before` (stretched
+to the strip's box — the better fit than a hero-anchored one, measured) until the effect paints. The other stills re-baked byte-identical;
+LAB_V bumped for the nine (+ their LAB_CHANGES line). `strip-match.mjs --still` before → after:
+| card | 402 before → after | 330 before → after |
+| --- | --- | --- |
+| aurora | 45 → 15.3 | 40.8 → 14.2 |
+| frostbite | 33.4 → 7.7 | 33.2 → under 9 |
+| marquee | 33.4 → 12.5 | 31.3 → 13.3 |
+| sg-btc | 32.8 → 24.3 | 31.6 → 24.9 |
+| neonglass | 25.7 → under 9 | 26.8 → under 9 |
+| century | 20.8 → under 9 | 19.4 → 11.9 |
+| smoke | 19.2 → 20.4 | 21.1 → 19.8 |
+| dev-switchboard | 13.2 → 9.8 | 11.3 → under 9 |
+| glitter | 10.5 → 12.8 | 10.6 → 11.8 |
+What is left is the effects' own framing (sg-btc's balloon sits further right live; smoke's wisps + glitter's hearts move) — never the bare
+picture popping a layer in. **The four baked-still cards** (inferno, noir, neoncamo, marquee-gold) stay as CITY I named them: re-baked
+byte-identical, the live renderer frames its first frame differently from the 360 × 64 bake (not pinned — not quick: the renderer's tier /
+pixel ratio at the strip's first frame); for the next VAULT pass.

@@ -111,6 +111,8 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - THE TAP WATCH (`ui/tapwatch.js`): EVERY TAP ACTS on its press + lift (`data-press` + `PRESS_IMPLICIT`); a Safari-gesture control = `data-gesture`, acted in the lift; never re-render under a finger; a fling-stop never acts; `:hover` only in `@media (hover: hover)` → docs/title.md.
 - COLOUR-BLIND: right / close = `--good` / `--close` only, NEVER by colour alone (a shape / mark too); `body[data-cb]` → docs/title.md (moved).
 - EVERYONE TIED = a DRAW for every game (`core/night.js#nightPoints`); every corner button's tap area 44 × 44 (harbor `tapfit`).
+- THE END NEON (CITY PART 2): every end screen's header (`<GAME> · SOLO / MATCH`, the name in its sign's colours) + result line (the accent; a win GOLD) through ONE builder (`ui/fin-neon.js`; ONE row per game: `metas.js` NEON) → docs/match-kit.md.
+- GAME VOTES (CITY PART 2): a guest's vote = `rooms/{CODE}/gv/{uid}` { g, at } (lobby only, suggestions — the host picks; MOST WANTED = one tap); the start clears them in its OWN write → docs/data-model.md.
 
 **Profiles, progression, THE BOARD** (→ docs/progression.md, docs/profiles.md — both (moved))
 - PROGRESSION: XP, levels, the streak, items, achievements, FOUNDER are written by the SERVER only (one transaction through the PURE steps in
@@ -127,6 +129,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST (THE CONSOLE FIX, Nov 20): no podium / route / kick over a phone's own live proven run (`screen.holdsRun` · app.js THE RUN HOLD · room.js#runHoldDone); the server holds a proof match's report while a run is live (`core/proof.js#liveGoers` = the host's own endedFor + the cap); THE TREE CAP (`rooms/{CODE}/pt`, 1,000) → docs/match-kit.md.
 - ITEM NAMES ONLY TO OWNERS (two named exceptions on THE PLAYER PAGE) · THE ADD-ME LINK (a server-made `flink/` code) + STATS (ONE builder, ONE snapshot) → docs/profiles.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".
 - SECOND ACCOUNTS + DON'T COUNT (CITY I, owner-only): hashed addresses only (`seen/`, LIVE, 14 d); DON'T COUNT = `nocount/{pid}` applied AT READ (boards, SCORES, the place line + N, THE PENTHOUSE), its own views unchanged, UNDO instant → docs/profiles.md.
+- THE OWNER'S NAME TAG (CITY PART 2): the tag only in OWNER-ONLY lists (`ui/owner-tag.js`), from the server only for THE OWNER's ask — never a public screen → docs/profiles.md.
 - FRIENDS: `pfr/{pid}` server-written, its owner reads it (`core/friends.js#friendStep`); PASSKEYS (`api/_lib/passkeys.js`, the RESTORE KEY stays the fallback) → docs/profiles.md (moved).
 - SLIM CARDS EVERYWHERE A PLAYER LIST SHOWS — only through `ui/strip-board.js` (never a second strip system); every place 1 / 2 / 3 = THE DECO MEDALS (`ui/medal.js`).
 - THE YOU ROW (CITY H2): YOUR card in EVERY slim-card list = ONE breathing pink glow (`ui/strip-board.js#markMine`); no list keeps its own "me" box / edge / tint → docs/vault.md.
@@ -137,10 +140,13 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 - A FULL CARD ON TOP HOLDS EVERYTHING BEHIND IT — every full card through `vault/full.js#openFullCard`.
 - THE CARD LAYOUT RULE (`js/vault/layout.js`) + THE CARD TEXT STANDARD; THE SLIM-CARD LONG-NAME STANDARD (`config.js#NAME_MAX` 12); THE HERO-SPOT RULE (`js/vault/hero.js`).
 - NO BLACK TILES: a card drawn in code = a baked still (`js/vault/stills.js` + `node scripts/build-card-stills.mjs`).
+- THE SLIM-CARD LAYER (CITY PART 2): a CSS-art card whose effect ADDS a layer = stills kind `l` (the layer baked transparent over its picture until the effect paints) → docs/vault.md.
 - THE GIFT CARDS: 1-of-1, given ONLY by the owner's `/admin → GIFTS`; the DEV cards the owner's only (`js/core/dev-cards.js`); a MEMBER Nº is server-only.
 - A pass that edits a lab item's art bumps `js/vault/catalog.js#LAB_V` + writes its line in `api/_lib/lab-text.js#LAB_CHANGES`.
 - An unknown path gets THE WRONG DOOR (`404.html` — keep vercel.json free of rewrites).
 - THE DAY PAINT (CITY PART 1): a sign's day face is PAINT — never a saturated / white-hot ink on a dark board (`tests/city-part1-signs.test.mjs`); THE PAGE'S CLOCK: the city's network gates let go by the page's time on screen → docs/harbor.md.
+- NEVER A GAME TWICE AS A SIGN (CITY PART 2): the speakeasy blade skips tonight's lit named signs (`harbor-neon.js#bladeGame`); THE LED BILLBOARD EXCEPTION: the tri-vision's posters never get a day variant → docs/harbor.md.
+- THE BOOT HEADERS (CITY PART 2): a boot module keeps a SHORT header — its long history lives in `docs/harbor/boot-headers.md` (THE BOOT's BYTE ROOM).
 - THE LAB FEEDS EVERY PASS: every pass runs scripts/lab-export.mjs <live> at its START and builds the open FIX marks (bump LAB_V + its LAB_CHANGES line) — rebuilt items show under CHANGED for the owner's re-mark → docs/vault.md.
 
 **The dailies** (→ docs/progression.md, docs/password.md, docs/coastclear.md; the full rule lines: docs/progression.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)")

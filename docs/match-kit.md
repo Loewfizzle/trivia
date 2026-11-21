@@ -194,3 +194,22 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
 3. **View on the match kit** (`docs/match-kit.md`) — renders purely from `state`, writes only its own node, checks `liveKey`.
 4. **Rules file** + cases in `tests/integration/rules.test.mjs` — remind the owner to re-publish.
 5. **E2E** `tests/integration/e2e-<id>.mjs` (`FAST=1` + the full path); add it to the smoke test. 6. **Screens** at three sizes, three refine passes; docs.
+
+## THE END NEON (CITY PART 2, Nov 21 — the owner's Nov 19 6:55 pm item 2; passes: docs/harbor/passes/city-part2.md "GROUP 2")
+HIGH RISE's approved end look, now EVERY game's — through ONE builder, `js/ui/fin-neon.js` (DOM only: the /highrise-play page builds its card
+with it too), the colours from ONE row per game: `js/games/metas.js` `NEON` = `{ name: [[word, colour, outer glow]…], mode: [colour, glow],
+line: [colour, glow], day?: { name: [...], mode, line, gold } }` (a NEW GAME = its row; never a per-screen copy).
+- **THE HEADER** — `createFinal({ …, mode: 'SOLO' | 'MATCH' })` turns the frame's kicker into `<GAME> · <MODE>` (`finHeader`): the name in its
+  sign's colours (HIGH pink + RISE cyan · JAYWALK pink · OVERCLOCK orange · PRISM DROP ice blue · HOLD'EM casino red), the mode softer; shrunk
+  to fit between the corner buttons (`fitHeader` — a ResizeObserver + the fonts, never a frame loop). Without `mode` (or a NEON row) the kicker
+  as given.
+- **THE RESULT LINE** — `finLine(el, id, gold)`: the colour IS the letter (a hair-thin core, its own glow, a deeper outer glow, a dark keyline —
+  css/components.css `.fn-*`); a win / finish line GOLD (`.is-gold` through `--c` — the row's colours sit INLINE, a stylesheet can't override
+  `--fn`). The console frame's own title (`finFrame` → `.final.has-neon`): WINNER + DEADLOCK gold, SOLO RUN + ALL TIED the accent; a match's
+  winner line gold. JAYWALK's cause + YOUR BEST gold; HIGH RISE's card + its in-match OUT card ARE the builder's (A/B on
+  `tests/integration/endneon-preview.html` against the old tree: within 8 / 255 at 3×).
+- **BY DAY** an end on a light ground (PRISM DROP's crayon paper) wears PAINT — the row's `day` inks, no glow (`body[data-look='day'] .has-day`);
+  JAYWALK + HIGH RISE stand on their dark veil in both looks. Contrast ≥ 4.5 : 1, the words carry the meaning: `tests/city-part2-endneon.test.mjs`.
+- Called a call: the header's mode is SOLO / MATCH for every game (the owner's format) — PRISM's BATTLE / SCORE RUSH, OVERCLOCK's N CHALLENGES,
+  HOLD'EM's CASH / TOURNAMENT left the header (OPEN FOR BEN in the pass log).
+- The shared no-flash guard `end-flash.mjs` stays every game's.

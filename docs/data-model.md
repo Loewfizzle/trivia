@@ -490,3 +490,12 @@ tests/fixtures/finals.mjs                                finished matches of eve
 ## THE RULES FROM CLAUDE.md (moved Nov 15 — FIXES R2 Part C: the text CLAUDE.md held, verbatim)
 chats/ fleets/ glsonar/ spy/ hsbet/ rrp/ seal/ hole/ {CODE}   ← top level, NOT readable like rooms/ (seal = THE SEAL; hole = HOLD'EM's cards; hrec/ server only)
 city2/live  seats/{pid}  profiles/{pid}  uids/{uid}  pstats/{pid}  lb/ results/ ppriv/ pkeys/ tags/ rl/ audit/ flags/ (server only)  ← docs/profiles.md
+
+## rooms/{CODE}/gv — GAME VOTES (CITY PART 2, Nov 21; `js/core/room-votes.js`)
+`gv/{uid}: { g: gameId, at: the server's time }` — a GUEST's own vote for the next game (the room's GAMES sheet: another game moves it, the
+same takes it back). Written by that player only, seated + not kicked, ONLY while `meta/status === 'lobby'` (a take-back any time); the shape
+checked (`g` = `[a-z]{2,12}`, `at` = now, nothing else). The HOST clears the whole node (delete only) — at a start, in its OWN write AFTER the
+status write (host.js#startGameNow: a failed start keeps them; rules without gv refuse it quietly — the start goes on); a leaver's vote goes
+with them (room.js). Read: the tally ignores the host, a player no longer seated, a game not playable; most votes first, a tie = the earliest
+`at`. Suggestions only — never an auto-start; MOST WANTED · <GAME> (n) on the host's list = the host's one-tap start (game-options.js#quickStart).
+Mirrored as `state.gv` (room.js listen). A refused vote = the quiet `late-vote`. RULES CHANGED (CITY PART 2 — re-published by the owner).
