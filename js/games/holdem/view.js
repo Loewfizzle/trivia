@@ -279,6 +279,9 @@ export function createView() {
   function paintFinal() {
     const g = st.game;
     if (!g || g.phase !== 'final' || !root) return;
+    // (THE CONSOLE FIX — Group 2: the podium never covers a dealer's table still in play — a modified host's early `final` took the
+    //  honest players off a live table (their seats went AWAY, his blinds bled them); the DEALER says when the game is over: pub.ended)
+    if (!finalView && current() && !pub.ended) return;
     if (finalView) { if (finalView.refresh) finalView.refresh(); return; }
     const cash = g.endMode === 'cash';
     finalView = createFinal({ rows: Array.isArray(g.rows) ? g.rows : [], players: st.players || {}, me: me(), presence: st.presence, scoreLabel: cash ? 'NET' : '',

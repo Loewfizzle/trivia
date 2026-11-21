@@ -1455,6 +1455,26 @@ test('THE CONSOLE FIX — a host\'s early `final` never counts over a LIVE run (
   tick();
 });
 
+// THE CONSOLE FIX — Group 2 (THE DROPPED LEADER, the host-graded games): the host names the players at the start; at his `final` he leaves
+// the leader out of the list + the night record — the leader's own board proves he played: refused, never counted that way
+test('THE CONSOLE FIX — THE DROPPED LEADER (PRISM DROP + OVERCLOCK): a player whose own board proves the match, left off the host’s result, voids the count; the honest list counts as before', async () => {
+  await ref('testReportAll').set(true);
+  for (const gid of ['prism', 'overclock']) {
+    const U = [`u-dl-${gid}1`, `u-dl-${gid}2`];
+    for (const u of U) await ensure(u, u.slice(-6).toUpperCase());
+    tick(60_000);
+    const A = await seedRoom(gid, U);
+    // the host's trick: the leader (U[1]) removed from the game's list + the night record after the match
+    await ref(`rooms/${A.code}/game/participants/${U[1]}`).set(null);
+    await ref(`rooms/${A.code}/night/${A.matchId}/p/${U[1]}`).set(null);
+    await rejects(report(U[0], A), 409, 'mismatch');
+    tick(60_000);
+    const B = await seedRoom(gid, U);
+    assert.equal((await report(U[0], B)).status, 'counted', `${gid}: the honest list counts as before`);
+  }
+  tick();
+});
+
 // FR7 FIXES B — A SEAT IS NOT A PLAY (the owner's add-on — Grok's second opinion): EVERY credited uid needs its OWN node of THIS match in
 // THIS room (api/report.js#PROOF_TREES) — a seat alone is nothing
 test('FR7 FIXES B — A SEAT IS NOT A PLAY: a seated guest who wrote nothing gets nothing (no 2-player win for the host); a real match as before; challenge 0 skipped still counts', async () => {

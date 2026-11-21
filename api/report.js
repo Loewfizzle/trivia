@@ -104,6 +104,8 @@ export { jaywalkSolo, jaywalkMatch };
 // HIGH RISE S4A — the SAME two paths (api/_lib/highrise.js: its own node `hr`, its own judge). THE PROOF GAMES: the games a result of which
 // exists ONLY from the server's replay of the players' proof nodes — { node (under rooms/{CODE}), solo, match }
 export { highriseSolo, highriseMatch };
+/** THE CONSOLE FIX — Group 2: the host-graded games whose result must name every player their own boards prove (THE DROPPED LEADER) */
+export const DROP_GUARD = Object.freeze(['prism', 'overclock']);
 export const PROOF_GAMES = Object.freeze({
   jaywalk: Object.freeze({ node: 'jw', solo: jaywalkSolo, match: jaywalkMatch, live: jaywalkLive }),
   highrise: Object.freeze({ node: 'hr', solo: highriseSolo, match: highriseMatch, live: highriseLive }),
@@ -322,6 +324,10 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
     // (REVIEW FIX A — MUST 3 + THE PROOF PASS: a MATCH of a proof game counts a player only with a MOVE in the server's own replay — a
     //  landed slab (HIGH RISE), a hop (JAYWALK): a GO alone is not a play)
     if (matchPlayed) proven = new Set([...proven].filter(u => matchPlayed.has(u)));
+    // (THE CONSOLE FIX — Group 2, THE DROPPED LEADER for the HOST-GRADED games (the proof pass closed it for JAYWALK + HIGH RISE): the
+    //  host names the players at the start (host.js — never changed in a match) and the rules take a board only from one of them; at his
+    //  `final` he left the leader out of the list + the night record → the leader's own board proves he played: never counted that way)
+    if (DROP_GUARD.includes(ex.gid)) { const names = new Set(named); for (const u of proven) if (players && players[u] && !names.has(u)) throw new ApiError(409, 'mismatch', 'A player of this match is missing from its result.'); }
   }
   const playedIt = u => !proven || proven.has(u);
   // credit only uids with a SEAT in the room (players/{uid}) — a name in night.n is not a player — AND (FR7 FIXES B) their own proof
