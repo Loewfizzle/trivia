@@ -20,7 +20,7 @@ import { state, isHost, setState } from '../store.js';
 import { isOnline, idleLeft } from '../core/room-logic.js';
 import { roomOrder } from '../core/harbor-room.js';
 import { exitHow, leaveRoom } from '../room.js';
-import { serverNow, dbRef, update as dbUpdate, serverTimestamp } from '../firebase.js';
+import { serverNow, dbRef, update as dbUpdate, serverTimestamp, expectRefusal } from '../firebase.js';
 import { createRoomDock } from './room-dock.js';
 import { sfx } from '../audio/sfx.js';
 import { openHelp } from '../ui/help-open.js';
@@ -349,7 +349,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     if (voting) return; voting = true;
     const mine = st.rv && st.rv[st.uid] === vs.m;
     sfx(mine ? 'tap' : 'select');
-    dbUpdate(dbRef(`rooms/${code()}`), { [`rv/${st.uid}`]: mine ? null : vs.m }).catch(() => toast('COULD NOT REACH THE ROOM', 'err')).finally(() => { voting = false; });
+    // (CITY PART 1: a vote that lands after the room moved on is refused by the rule — EXPECTED: the quiet 'late-vote', never an alarm or a toast)
+    expectRefusal(`rooms/${code()}/rv/${st.uid}`, 'a late rematch vote (the room had moved on)', 8000, 'late-vote');
+    dbUpdate(dbRef(`rooms/${code()}`), { [`rv/${st.uid}`]: mine ? null : vs.m }).catch(e => { if (!(e && /permission|denied/i.test(String(e.code || e.message)))) toast('COULD NOT REACH THE ROOM', 'err'); }).finally(() => { voting = false; });
   }
   const banner = createRoomBanner({ scene });
 

@@ -113,13 +113,24 @@ await H.run(async () => {
       // A LATE VOTE NEVER GOES IN: the old match's vote (a podium that's gone) → nothing written
       const late = await guests[0].evaluate((c, m) => import('/js/firebase.js').then(fb => fb.get(fb.dbRef(`rooms/${c}/rv`))).then(v => v.val()), H.code, m0);
       ok(!late || !Object.values(late).includes(m0), `${tag}: no old vote left in the room (rv ${JSON.stringify(late)})`);
+      // CITY PART 1 — THE LATE REMATCH VOTE, AGAIN (a slow Chromebook, /admin Nov 20 8:58 am): a vote HELD BACK until the next count had begun (the
+      // slow phone's write in flight while the room moved on) goes out through the end screen's own writer → the rule refuses it → 0 RULES
+      // REFUSED rows, ONE quiet count ('late-vote')
+      if (id === GAMES[0]) {
+        const q0 = await guests[0].evaluate(() => import('/js/errlog.js').then(m => m.quietCounts()['late-vote'] || 0));
+        const r0 = await refusedOn(guests[0]);
+        const res = await guests[0].evaluate((c, m) => import('/js/ui/final.js').then(F => F.writeVote(c, window.__arcade.state.uid, m)).then(() => 'written', e => 'refused'), H.code, m0);
+        await sleep(1500);
+        const q1 = await guests[0].evaluate(() => import('/js/errlog.js').then(m => m.quietCounts()['late-vote'] || 0)), r1 = await refusedOn(guests[0]);
+        ok(res === 'refused' && q1 === q0 + 1 && r1.r.length === r0.r.length, `${tag}: A LATE VOTE (held back past the next start) is refused by the rule — 0 RULES REFUSED rows (the alarm list ${r0.r.length} → ${r1.r.length}), 1 quiet count (late-vote ${q0} → ${q1}; ${res})`);
+      }
       // back to the room for the next game (the host's BACK TO THE ROOM)
       await host.evaluate(c => import('/js/firebase.js').then(fb => fb.update(fb.dbRef(`rooms/${c}/game`), { phase: 'final', phaseEndsAt: null })), H.code);
       await H.backToLobby(host);
       for (const p of P) await waitFor(p, () => window.__arcade.route() === 'title' && window.__arcade.state.meta && window.__arcade.state.meta.status === 'lobby', `${tag}: back in the room`, 30000);
       await sleep(1500);
     }
-    const ref = []; for (const p of P) { const r = await refusedOn(p); r.h = r.h.filter(x => !/^update rooms\/\* \{(jw|hr)\/[^,]*, pt\}$/.test(x)); ref.push(r); }   // (THE CONSOLE FIX: two phones stamping a tree in the same instant — the loser's stamp + counter is refused by the rules, EXPECTED + silent; its GO lands in the winner's window)
+    const ref = []; for (const p of P) { const r = await refusedOn(p); r.h = r.h.filter(x => !/^update rooms\/\* \{(jw|hr)\/[^,]*, pt\}$/.test(x) && !/^update rooms\/\* \{rv\/\*\}$/.test(x));   /* (CITY PART 1: + the deliberate late vote above — its quiet line) */ ref.push(r); }   // (THE CONSOLE FIX: two phones stamping a tree in the same instant — the loser's stamp + counter is refused by the rules, EXPECTED + silent; its GO lands in the winner's window)
     if (ref.some(r => r.r.length || r.h.length || r.g)) log('refused', JSON.stringify(ref).slice(0, 1500));   // (which writes — the check's own evidence)
     ok(ref.every(r => !r.r.length && !r.h.length && !r.g), `${n} phones: 0 refused writes on every phone (${ref.map(r => r.r.length + r.h.length + r.g).join(' · ')})`);
   }

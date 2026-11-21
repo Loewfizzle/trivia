@@ -22,7 +22,14 @@ import { pubOf } from '../profile/public.js';
 import { metaOf } from '../games/registry.js';
 import { lazyImport } from './lazy-import.js';
 import { isAllTied } from '../core/night.js';
-import { dbRef, update as dbUpdate } from '../firebase.js';
+import { dbRef, update as dbUpdate, expectRefusal } from '../firebase.js';
+/** CITY PART 1 — THE LATE REMATCH VOTE, AGAIN (/admin Nov 20 8:58 am, a slow Chromebook: RULES REFUSED rooms/*{rv/*}): a vote is written only
+ *  while THIS match's end screen is up, but a slow phone's write can land AFTER the room left 'final' (its mirror had not seen the move yet) —
+ *  the rule refuses it (correctly). That refusal is EXPECTED: a quiet count ('late-vote' — THE QUIET COUNTS), never a RULES REFUSED row */
+export function writeVote(code, uid, value) {
+  expectRefusal(`rooms/${code}/rv/${uid}`, 'a late rematch vote (the room had moved on)', 8000, 'late-vote');
+  return dbUpdate(dbRef(`rooms/${code}`), { [`rv/${uid}`]: value });
+}
 import { finInk } from '../core/fin-ink.js';
 
 // (CITY F — END-SCREEN STANDARD A: the foot's icons — drawn lines, currentColor; the bar's replay arrow, the links' share / home / room)
@@ -165,7 +172,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
       //  is ever written off the podium. The vote is written only while THIS match's end screen is up)
       const live = () => !gone && state.code && state.game && state.game.matchId === m && state.game.phase === 'final';
       if (!live()) { voting = false; pendingVote = null; paint(); return; }
-      dbUpdate(dbRef(`rooms/${state.code}`), { [`rv/${state.uid}`]: mine ? null : m }).catch(() => { if (pendingVote === m) pendingVote = null; })
+      writeVote(state.code, state.uid, mine ? null : m).catch(() => { if (pendingVote === m) pendingVote = null; })
         .finally(() => { voting = false; paint(); });
     };
     paint();
