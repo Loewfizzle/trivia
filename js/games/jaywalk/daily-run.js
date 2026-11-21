@@ -17,6 +17,7 @@ import { createDailyJudge } from '../../daily/judge.js';
 import { todayNow, onToday, markTriesDone } from '../../daily/today.js';
 import { placeLine, tryEndedLine, NEW_BEST } from '../../daily/today-logic.js';
 import { stampSvg } from '../../daily/ticket-art.js';
+import { splitsCard } from './splits-card.js';
 
 export const GAME_ID = 'jaywalk';
 export const TRIES = 3;
@@ -43,7 +44,7 @@ const writeEnd = path => { if (!path) return Promise.resolve(); expectRefusal(`$
 
 export function createView() {
   const JW = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('jaywalk'));
-  let host = null, ctx = null, inner = null, D = null, stage = null, stopBtn = null, card = null, gone = false, wanted = false;
+  let host = null, ctx = null, inner = null, D = null, stage = null, stopBtn = null, card = null, gone = false, wanted = false, splits = null;
   let cur = null;       // the try in play: { i, left, path, ended }
   let offToday = null;
 
@@ -83,7 +84,7 @@ export function createView() {
         addStop();
         return { seed: run.seed, go: run.go };
       },
-      end: (over, line) => endCard(over, line),
+      end: (over, line, sp) => endCard(over, line, sp),
     };
     inner = JW();
     inner.mount(stage, { uid: ctx.uid, code: '', game: ctx.game, players: ctx.players || {}, meta: { status: 'playing' }, live: {}, liveKey: null, presence: {}, jwDaily: D });
@@ -96,13 +97,14 @@ export function createView() {
   }
 
   /** the END CARD over the resting scene: the server's lanes for THIS try, DAILY BEST / the gold, TRY AGAIN (n TRIES LEFT) · DONE — or ADMITTED */
-  function endCard(over, line) {
+  function endCard(over, line, sp) {
     if (stopBtn) { stopBtn.remove(); stopBtn = null; }
     const big = h('div.dy-jw-big', '…');
+    splits = splitsCard(sp);   // (J1 — YOUR SPLITS: at once from the phone's own engine; the server's answer marks the new bests)
     const note = h('div.dy-jw-note.dy-jw-end-rec', 'SCORING YOUR TRY');
     const foot = h('div.dy-jw-foot');
     const kick = h('div.dy-jw-kick', cur ? `JAYWALK · TRY ${cur.i + 1} OF ${TRIES}` : 'JAYWALK');
-    card = h('div.jw-final.dy-jw-end', h('div.dy-jw-in', kick, over && line ? h('div.dy-jw-cause', line) : null, big, note, foot));
+    card = h('div.jw-final.dy-jw-end', h('div.dy-jw-in', kick, over && line ? h('div.dy-jw-cause', line) : null, big, note, splits.el, foot));
     const ended = cur && !cur.ended ? (cur.ended = true, writeEnd(cur.path)) : Promise.resolve();
     ended.then(() => ctx.judge.finish()).then(r => fill(r, big, note, foot, kick)).catch(e => {
       note.textContent = e && e.code === 'not_done' ? 'TRY ENDED' : 'COULDN’T SCORE IT — CHECK YOUR SIGNAL';
@@ -119,6 +121,8 @@ export function createView() {
     if (mine && mine.i != null) kick.textContent = `JAYWALK · TRY ${Number(mine.i) + 1} OF ${TRIES}`;
     big.textContent = lanesOf(lanes);
     card.dataset.lanes = String(lanes); card.dataset.left = String(left);
+    // (J1 — the SERVER's splits for this try (its replay — they win) + its best splits: the faster ones glow; the try still counts by lanes)
+    if (splits) splits.server({ ...((r.credit && r.credit.sp) || {}), r: (mine && mine.sp) || (r.credit && r.credit.sp && r.credit.sp.r) || null });
     const gold = !!(r.newBest && r.best && r.best.day === r.day);
     const bestS = r.best && r.best.s != null ? r.best.s : r.score;
     const done = left === 0;

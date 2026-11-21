@@ -16,6 +16,7 @@ import * as hiMeta from '../games/highrise/meta.js';
 import { gameStandings as highriseStandings, towerScore } from '../games/highrise/logic.js';
 import { boardDef } from './boards.js';
 import { VERIFIED_SOLO } from './proof.js';
+import { cleanSplits } from './splits.js';
 import { rankings as signalRankings } from '../games/signal/logic.js';
 import { standings as ocStandings, MODES as OC_MODES, roundWin as ocRoundWin, ptsCeiling as ocPtsCeiling, matchMax as ocMatchMax } from '../games/overclock/logic.js';
 import { SKILL_TYPES as OC_SKILL_TYPES } from '../games/overclock/challenges.js';
@@ -362,6 +363,9 @@ function jaywalkExtra(game, uid, out) {
   const solo = Object.keys(game.participants || {}).length === 1;
   if (num(r.l) > 0) out.rec[solo ? 'jaywalk' : 'jaywalk-solo'] = Math.floor(num(r.l));
   for (const k of String(r.f || '').split(' ')) if (JW_FEATS.includes(k) && !(solo && k === 'mothership')) (out.f ||= {})[k] = 1;
+  // (J1 — SPLIT TIMES: the run's splits from the SAME server replay → the player's best splits — core/progress.js#matchStep)
+  const sp = cleanSplits(r.sp);
+  if (sp.length) out.sp = sp;
 }
 
 // HIGH RISE (S4A — JAYWALK's rule): the tower of a run the SERVER replayed itself (`game.sv` — api/_lib/highrise.js#highriseSolo builds that

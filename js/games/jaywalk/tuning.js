@@ -22,6 +22,9 @@ export const STRETCH = 50;                // (a stretch = the 50 lanes from one 
 /** THE FIXED LANDMARKS, every 50 lanes, in this order — then the loop again, harder (H5A: each one's lane is the GATEWAY into its AREA — below) */
 export const LANDMARKS = Object.freeze(['THE DOCKS', 'THE FISH MARKET', 'THE RAIL YARD', 'THE BRIDGE', 'DOWNTOWN', 'THE CANAL', 'THE LIGHTHOUSE', 'THE AIRFIELD']);
 export const LOOP_LANES = STRETCH * LANDMARKS.length;   // 400
+/** J1 — SPLIT TIMES: the tick each multiple of this many lanes is FIRST reached (engine.js#land → the run's `sp`; the end card's boxes; the
+ *  server's best splits — core/splits.js). 60 ticks = 1 s. */
+export const SPLIT_EVERY = 50;
 /** the landmark AT this lane (null = none): lane 50 → THE DOCKS … 400 → THE AIRFIELD, 450 → THE DOCKS again */
 export const landmarkAt = lane => (lane > 0 && lane % STRETCH === 0 ? LANDMARKS[(lane / STRETCH - 1) % LANDMARKS.length] : null);
 

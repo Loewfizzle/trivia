@@ -10,11 +10,14 @@
 import { awardAll } from '../../js/core/achievements.js';
 import { boardDef, better } from '../../js/core/boards.js';
 import { weekKey } from '../../js/core/week.js';
+import { splitBests, cleanSplits } from '../../js/core/splits.js';
 
 export const JW_BEST_BOARD = 'jaywalk-solo';
 export const TRY_FEATS = Object.freeze(['boom', 'ufo', 'airfield', 'mothership']);
 
-export function creditTry(s0, { lanes = 0, feats = '', now = Date.now(), founderOpen = false } = {}) {
+// J1 — SPLIT TIMES: + `splits` (the try's, from its replay) → the best splits (pstats.jsp — core/splits.js, the match's own rule); the answer's
+//   `sp` = { r, b, n } always when the try reached a split (`next` null = nothing written — the caller never commits a null)
+export function creditTry(s0, { lanes = 0, feats = '', splits = null, now = Date.now(), founderOpen = false } = {}) {
   if (!s0 || typeof s0 !== 'object') return null;
   const next = { ...s0 }, pbs = [];
   let changed = false;
@@ -29,7 +32,14 @@ export function creditTry(s0, { lanes = 0, feats = '', now = Date.now(), founder
   const gf = (s0.pa && s0.pa.gf) || {};
   const add = String(feats || '').split(' ').filter(k => TRY_FEATS.includes(k)).map(k => `jaywalk-${k}`).filter(k => !gf[k]);
   if (add.length) { next.pa = { ...(s0.pa || {}), gf: { ...gf, ...Object.fromEntries(add.map(k => [k, 1])) } }; changed = true; }
-  if (!changed) return null;
+  let sp = null;
+  const runSp = cleanSplits(splits);   // (an array, or the object the database hands back for one)
+  if (runSp.length) {
+    const S = splitBests(s0.jsp, runSp);
+    if (S.changed) { next.jsp = S.next; changed = true; }
+    sp = { r: runSp, b: S.next, n: S.news };
+  }
+  if (!changed) return sp ? { next: null, pbs: [], items: [], ach: [], sp } : null;
   const aw = awardAll(next, now, { founderOpen });
-  return { next, pbs, items: aw.items, ach: aw.ach };
+  return { next, pbs, items: aw.items, ach: aw.ach, ...(sp ? { sp } : {}) };
 }

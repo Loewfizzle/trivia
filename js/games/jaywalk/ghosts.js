@@ -22,7 +22,7 @@ export const HELD_SHOW_MS = 900;
 export const GHOST_STEPS = 2700;
 const BEHIND_TICKS = 30;
 
-const copyRun = (to, r) => { Object.assign(to, r); to.near = { ...r.near }; to.took = { ...r.took }; return to; };
+const copyRun = (to, r) => { Object.assign(to, r); to.near = { ...r.near }; to.took = { ...r.took }; to.sp = r.sp.slice(); return to; };   // (J1: the splits too — never one array for two runs)
 
 export function createGhost(seed, mode = 'match') {
   return { conf: createRun({ seed, mode }), ci: 0, run: createRun({ seed, mode }), keep: {}, log: [], done: false, held: false, heldAt: 0, off: null, vis: null, behind: false };

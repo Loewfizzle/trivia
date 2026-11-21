@@ -33,6 +33,8 @@ import { createCues, cuesAt } from './cues.js';
 import { duckMusic, musicDuckLevel } from '../../audio/music.js';
 import { runLine } from './causes.js';
 import { buildEnd, finalRows } from './victory.js';
+import { splitsCard, keepOwnSplits } from './splits-card.js';
+import { createMomentsView } from './moments-view.js';
 import { keepShot, shotMs } from './shot.js';
 import { setNum, prepNums } from './numerals.js';
 import { BOARD, TABLE_KEEP_MS, parseTable, linesFor, isRecord, crossedFriends } from './lines.js';
@@ -97,6 +99,7 @@ export function createView() {
   let rosterEl = null, rosterKey = '';   // (H5B's add-on — THE NAMES AT THE START: who is playing, lined up through the 3 · 2 · 1)
   let cues = createCues(), ducked = null, duckT = 0, trainOn = false, momK = 1;   // (H5A — THE WORLD's SOUNDS: cues.js; the music's level before the train ducked it)
   let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;   // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
+  let mom = null, momAt = 0, stageW = 390, stageH = 844, offSize = null;   // (J1 — THE MATCH MOMENTS: moments-view.js; the stage's size from a ResizeObserver — never read in a frame)
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, liveRuns = null, orderKey = '', countKey = '', watchKey = '';
   const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
   if (VIEWS) VIEWS.push(new WeakRef(frames));
@@ -143,6 +146,10 @@ export function createView() {
     root = h('div.jw-stage.jw-game', play, h('div.jw-blackout'), tagsEl, h('div.jw-hud', lanesEl, markEl), orderEl, rosterEl, countEl, watchEl, hintEl, overEl);
     el.replaceChildren(root);
     arriveEl = createArrival(root, AREA_LOOKS);   // (BEFORE THE FLIP — THE ARRIVAL BANNER: arrival.js)
+    if (isMatch) {
+      mom = createMomentsView(root, { nameOf, colorOf: u => colorHex(((st.players && st.players[u]) || {}).color), sound: id => { if (sndOn) { try { SFX.play(id); } catch { /* silent */ } } } });
+      try { const ro = new ResizeObserver(es => { const r = es[0] && es[0].contentRect; if (r && r.width) { stageW = r.width; stageH = r.height; } }); ro.observe(root); offSize = () => ro.disconnect(); } catch { /* the defaults */ }
+    }
     const me = (st.players && st.players[uid]) || {};
     try {
       if (!had) scenesMade++;
@@ -156,7 +163,7 @@ export function createView() {
     offControls = wireControls(play, { onHop: hop, onAny: nextFollow });
     // the sounds: the SHARED SFX bus; silent if anything fails — audio is polish
     // (H4B — DECODED AHEAD: never a decode on the first tap)
-    try { SFX.fetchSounds(); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }
+    try { SFX.fetchSounds(); if (isMatch) SFX.fetchSounds(SFX.MATCH_SOUNDS); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }   // (J1: + THE MATCH MOMENTS' three, a match only)
   }
 
 // THE LOST CONTEXT: iOS can take the WebGL context away — the run goes on (the server's clock), so the scene is REBUILT the moment
@@ -390,6 +397,7 @@ export function createView() {
   /** the run is over: the last chunk, then `e` — the host's step ends the match on it (a signal: never read as a score) */
   function onOver() {
     mode = 'over'; overAt = performance.now(); shotAt = overAt + shotMs(run, course); queue = [];
+    keepOwnSplits(matchId, run.sp);   // (J1 — YOUR SPLITS: the end card's boxes from this phone's own engine, at once)
     awakeAt = 0; awake(false);   // (THE SOUND SYNC: the hold ends with the run — the hit's own sound plays out, then the context naps again)
     quiet();
     flush(true);
@@ -541,6 +549,27 @@ export function createView() {
     }
   }
 
+  // ---- J1 — THE MATCH MOMENTS (moments.js + moments-view.js): every OUT from that player's OWN end — their node's `e`, this phone's own
+  // engine — never the host's state (an honest END GAME never shows a fake OUT)
+  function pumpMoments(g, runs) {
+    const ids = Object.keys(g.participants || {}), ends = {}, lanes = {};
+    for (const u of ids) {
+      const e = runs[u] && runs[u].e, G = ghosts.get(u);
+      ends[u] = e || null;
+      lanes[u] = u === uid ? run.best : Math.max(G ? G.run.best : 0, e ? Number(e.l) || 0 : 0);
+    }
+    const own = mine(g) && run && isOver(run) ? { w: run.st === 'taken' ? 'taken' : run.cause, l: run.best } : null;
+    mom.pump({ ids, me: uid, ends, mine: own, lanes, quiet: !!outCard && !outCard.classList.contains('is-gone') });
+  }
+  /** where a fallen ghost lies on the stage now: [x, y, a cell's width] (px) — null when it is not over, taken, or off the screen */
+  function ghostAt(u) {
+    const G = ghosts.get(u);
+    if (!G || !isOver(G.run) || G.run.st === 'taken' || !night) return null;
+    const x = G.run.x / FP, y = G.run.y + 0.5, p = night.project(x, y), sx = p[0], sy = p[1], q = night.project(x + 1, y)[0];
+    if (!(sx > 0.03 && sx < 0.97 && sy > 0.12 && sy < 0.96)) return null;
+    return [sx * stageW, sy * stageH, Math.abs(q - sx) * stageW];
+  }
+
   // ---- the frame
   function frame(now) {
     if (gone) return;
@@ -584,6 +613,10 @@ export function createView() {
       extra = { ghosts: list, t: wt + wa, a: wa, off: F ? F.vis : null, own: drawRun === run };
       if (TEST) probe(list, F, wt);
       drawOrder(g, runs); drawWatch(g, runs);
+      if (mom && runs && course !== START && c && c.t >= 0) {
+        if (now - momAt > 100) { momAt = now; pumpMoments(g, runs); }
+        mom.frame(now, ghostAt);
+      }
     }
     if (isMatch || D) drawCount(g);
     drawLines(mine(g) && drawRun === run);
@@ -632,7 +665,7 @@ export function createView() {
       return;
     }
     if (performance.now() - overAt < hold()) return;
-    if (D) { if (!localEnd) { localEnd = D.end(isOver(run), lineOf(run, course)); root.classList.add('is-over'); root.append(localEnd); night.rest(true); } return; }
+    if (D) { if (!localEnd) { localEnd = D.end(isOver(run), lineOf(run, course), run.sp.slice()); root.classList.add('is-over'); root.append(localEnd); night.rest(true); } return; }
     if (proven) {
       if (g && g.phase === 'final') { if (!final) { hideLocalEnd(); showFinal(g); } }
       else if (!final && !localEnd && performance.now() - overAt > 6000) showLocalEnd(true);   // (the end has not reached the room — no signal: never a frozen screen)
@@ -654,6 +687,7 @@ export function createView() {
   function showLocalEnd(waiting) {
     const body = h('div.final-body.jw-fin-local');
     buildEnd(body, { line: lineOf(run, course), lanes: run.best, note: waiting ? 'NO SIGNAL — YOUR RUN COUNTS WHEN IT IS BACK' : 'NOT COUNTED — NO LINE TO THE BOARD' });
+    { const SC = splitsCard(run.sp); if (SC.el) body.append(SC.el); }   // (J1 — YOUR SPLITS: every run's end card — the phone's own engine; no server answer here)
     // (PLAY AGAIN here = another UNPROVEN run: this match's one GO is spent or refused)
     const again = waiting ? null : h('button.btn.btn-primary.btn-block', { type: 'button', onclick: () => { hideLocalEnd(); reset(); asked = true; unproven('again'); } }, h('span', 'PLAY AGAIN'));
     const PN = globalThis.__nsPlayNow, soloRoom = !!(PN && PN.isSolo && PN.isSolo());
@@ -718,7 +752,7 @@ export function createView() {
       if (TEST) globalThis.__jwGame = {
         state: () => ({ mode, proven, haveGo, matchId, holds: holdsRun(), liveWaited: liveWait.waited(), go, seed: course.seed, t: run.t, st: run.st, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent: W ? W.state().sent : 0, chunks: W ? W.state().chunks : 0, acked: W ? W.state().acked : 0, lateGo, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
           lines: { best: lines.best, friends: lines.friends.map(f => `${f.n} ${f.v}`), record, shown: lineKey, flash: lanesEl.classList.contains('is-flash'), gold: lanesEl.classList.contains('is-record') },
-          isMatch, watching, follow: followUid, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
+          isMatch, watching, follow: followUid, moments: mom ? mom.info() : null, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
           ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag, held: G.held, done: G.done, behind: G.behind, fade: +(G.fade || 0).toFixed(2), x: G.run.x / FP, name: G.name, shown: !!G.tagKey, text: G.tagEl.textContent })),
           roster: rosterEl && rosterEl.classList.contains('is-on') ? [...rosterEl.children].map(e => e.textContent) : [],
           adopts: adopts.slice(), seen: { ...watch }, g0: st.game ? st.game.g0 || 0 : 0,
@@ -754,6 +788,7 @@ export function createView() {
         if (performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000) park(play, night); else { night.destroy(); keepShot(null); try { SFX.release(); } catch { /* silent */ } }   // (leaving: the run's picture + ≈ 15 MB of decoded sounds are let go)
       }
       if (arriveEl) { arriveEl.destroy(); arriveEl = null; }
+      if (mom) { mom.destroy(); mom = null; } if (offSize) { offSize(); offSize = null; }
       if (root) root.remove();
       root = null; night = null;
     },

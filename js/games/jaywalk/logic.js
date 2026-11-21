@@ -82,7 +82,9 @@ export function scoreNode({ seed, mode, node, t0, from = null, until = null, out
   if (!j.ok) { bad = String(j.why || 'refused').slice(0, 24); j = judgeRun({ seed, mode, log: [], until }); }
   const r = j.result, f = bad ? '' : featsOf(r);
   if (out) out.hops = bad ? 0 : j.hops;   // (THE PROOF PASS: the hops THE JUDGE counted — "a GO alone is not a player", api/_lib/jaywalk.js#jwPlayed)
-  return { l: r.lanes, t: r.tick, w: r.cause || '', e: r.end, y: r.y, px: r.x, ...(r.taken ? { x: 1 } : {}), ...(f ? { f } : {}), ...(j.cut ? { cut: 1 } : {}), ...(bad ? { bad } : {}) };
+  // (J1 — SPLIT TIMES: `sp` = the ticks each 50 lanes was first reached, from THE JUDGE's own replay — none for a refused log)
+  const sp = !bad && r.splits && r.splits.length ? r.splits : null;
+  return { l: r.lanes, t: r.tick, w: r.cause || '', e: r.end, y: r.y, px: r.x, ...(r.taken ? { x: 1 } : {}), ...(f ? { f } : {}), ...(sp ? { sp } : {}), ...(j.cut ? { cut: 1 } : {}), ...(bad ? { bad } : {}) };
 }
 /**
  * ONE player's result from their own node, to the server time `now` (a run still going is scored as it stands). No node / a refused log

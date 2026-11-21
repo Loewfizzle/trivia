@@ -10,8 +10,8 @@
 //   EVERY sound has its pick (A) and, where one was delivered, a `-b` backup (B): the GAME plays A (the owner's pinned takes — BEFORE THE FLIP); the LAB plays this phone's audition pick (useLabPicks).
 import { getContext, getSfxBus, isUnlocked, onUnlock } from '../../audio/engine.js';
 import { getPref, setPref } from './lab-prefs.js';
-import { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S } from './sounds.js';
-export { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S };
+import { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S, MATCH_SOUNDS } from './sounds.js';
+export { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S, MATCH_SOUNDS };
 
 const DIR = new URL('../../../audio/jaywalk/', import.meta.url);
 export const JW_SFX_REV = 4;   // (bump when a sound file is replaced — 2: H5C's train bell · 3: H6B's NEW BEST = take B · 4: BEFORE THE FLIP's area arrival)
@@ -42,7 +42,7 @@ const total = { asked: 0, started: 0, by: {} };   // (… and how many EVER — 
 
 /** fetch the bytes now (no AudioContext needed). `ids`: which sounds (default: every sound in play); `both` = a sound's pick AND its
  *  backup (the audition's — the game fetches the take it plays: the owner's pick, A unless this phone chose B) */
-export function fetchSounds(ids = SOUNDS.filter(s => s.play).map(s => s.id), both = false) {
+export function fetchSounds(ids = SOUNDS.filter(s => s.play && !s.match).map(s => s.id), both = false) {   // (J1: the match's own sounds only when asked — view.js, a match)
   for (const id of ids) for (const k of both ? keysOf(BY[id]) : [`${id}:${pick(id)}`]) {
     if (bytes.has(k)) continue;
     const p = fetch(new URL(`${fileOf(id, k.slice(-1))}?v=${JW_SFX_REV}`, DIR)).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null)

@@ -13,6 +13,7 @@ import { causeLine, runLine, hitVehicle } from './causes.js';
 import { getPref, setPref } from './lab-prefs.js';
 import { setNum, prepNums } from './numerals.js';
 import { finLine } from '../../ui/fin-neon.js';
+import { splitsCard, ownSplits, rememberBests } from './splits-card.js';
 
 const BOARD = 'jaywalk-solo';
 // the phone remembers the best the SERVER last told it (a run counted after its end screen was left — HOP AGAIN — still lands here)
@@ -20,7 +21,7 @@ let watching = false;
 function watchBest(Q) {
   if (watching) return;
   watching = true;
-  Q.onOutcome((k, o) => { const pb = o && (o.pbs || []).find(x => x.b === BOARD), cur = o && (o.bests || {})[BOARD]; const v = pb ? pb.v : cur; if (v != null && Number(v) > (Number(getPref('best', '0')) || 0)) setPref('best', v); });
+  Q.onOutcome((k, o) => { const pb = o && (o.pbs || []).find(x => x.b === BOARD), cur = o && (o.bests || {})[BOARD]; const v = pb ? pb.v : cur; if (v != null && Number(v) > (Number(getPref('best', '0')) || 0)) setPref('best', v); if (o && o.sp && o.gid === 'jaywalk') rememberBests(o.sp.b); });
 }
 const num = n => Math.round(Number(n) || 0).toLocaleString('en-US');
 
@@ -102,6 +103,13 @@ export function finalRows(game, code) {
   return standings(game).map(r => ({ ...r, ...(solo ? {} : { note: endOf(game, r.uid, code, courses).line }) }));
 }
 
+/** J1 — YOUR SPLITS under the numbers (splits-card.js): this phone's own engine first, else the run's row (the host's replay — THE JUDGE) */
+function addSplits(el, game, uid) {
+  const r = ((game && game.results) || {})[uid] || {}, SC = splitsCard(ownSplits(game && game.matchId) || r.sp);
+  if (SC.el) el.append(SC.el);
+  return SC;
+}
+
 /** a MATCH's body: how YOU went out + your lanes (a watcher: nothing of their own); SHARE + the list under it are the console's */
 function matchScene(el, game, state) {
   const uid = state && state.uid, code = state && state.code, mine = !!(game.participants && game.participants[uid]);
@@ -113,11 +121,12 @@ function matchScene(el, game, state) {
   buildEnd(el, { gold: E.ship, line: E.ship ? `YOU ${E.line}` : E.line, lanes: E.lanes, note: game.unproven ? `${lanesTxt} · NOT COUNTED — NO LINE TO THE BOARD` : place ? `${E.ship ? '' : `${lanesTxt} · `}YOU FINISHED ${place}${['', 'ST', 'ND', 'RD'][place] || 'TH'}` : lanesTxt });
   // H6A — THE MOTHERSHIP = A FINISH LINE: gold words, the lanes big, a crown + a gold burst (the css — transform + opacity only)
   if (E.ship) { el.classList.add('is-ship'); el.prepend(h('div.jw-fin-crown', { 'aria-hidden': 'true' }, h('i'), h('b'))); }
+  const SC = addSplits(el, game, uid);
   // H6A — YOUR BEST ANYWHERE: a counted match run past your best = NEW BEST here too (the server's own answer for this match)
   if (code && E.lanes > 0 && !game.unproven) lazyImport(import('../../profile/queue.js'), '../../profile/queue.js').then(Q => {
     watchBest(Q);
     const k = Q.matchKey(code, game.matchId), nb = h('div.jw-fin-best');
-    const show = o => { const pb = o && (o.pbs || []).find(x => x.b === BOARD); if (!pb || nb.isConnected || !el.isConnected) return; setPref('best', pb.v); nb.textContent = pb.prev != null ? `NEW BEST · WAS ${num(pb.prev)}` : 'NEW BEST'; nb.classList.add('is-new'); el.querySelector('.jw-fin-best').after(nb); lazyImport(import('./sfx.js'), './sfx.js').then(S => S.play('new-best')).catch(() => {}); };
+    const show = o => { if (o && o.sp) SC.server(o.sp); const pb = o && (o.pbs || []).find(x => x.b === BOARD); if (!pb || nb.isConnected || !el.isConnected) return; setPref('best', pb.v); nb.textContent = pb.prev != null ? `NEW BEST · WAS ${num(pb.prev)}` : 'NEW BEST'; nb.classList.add('is-new'); el.querySelector('.jw-fin-best').after(nb); lazyImport(import('./sfx.js'), './sfx.js').then(S => S.play('new-best')).catch(() => {}); };
     show(Q.outcomeFor(k));
     const off = Q.onOutcome((kk, o) => { if (kk === k) show(o); }), iv = setInterval(() => { if (!el.isConnected) { clearInterval(iv); off(); } }, 3000);
   }).catch(() => {});
@@ -139,6 +148,7 @@ export function finalScene(el, game, state) {
   const known = Number(getPref('best', '0')) || 0;
   const B = buildEnd(el, { line: E.line, lanes: E.lanes, gold: E.ship });
   if (known > 0) B.best(`YOUR BEST · ${num(known)}`);
+  const SC = addSplits(el, game, uid);
   if (!code) return;
   // (YOUR TABLE: once the server has counted this run — its outcome — or a moment later, whichever comes first)
   let tabled = false;
@@ -152,6 +162,7 @@ export function finalScene(el, game, state) {
     const show = o => {
       if (!o || !el.isConnected) return;
       table();
+      if (o.sp) SC.server(o.sp);
       const pb = (o.pbs || []).find(x => x.b === BOARD), cur = (o.bests || {})[BOARD];
       if (pb) {
         setPref('best', pb.v);

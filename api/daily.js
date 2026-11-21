@@ -567,13 +567,14 @@ async function creditTry({ pid, cart, day, now, closed }) {
   const { founderOpen } = await import('./_lib/founder.js');
   const fOpen = await founderOpen(now).catch(() => false);
   let res = null;
-  await ref(`pstats/${pid}`).transaction(cur => { if (cur == null) return null; res = jwCredit(cur, { lanes: closed.l, feats: closed.f, now, founderOpen: fOpen }); return res ? res.next : undefined; });
+  await ref(`pstats/${pid}`).transaction(cur => { if (cur == null) return null; res = jwCredit(cur, { lanes: closed.l, feats: closed.f, splits: closed.sp || null, now, founderOpen: fOpen }); return res && res.next ? res.next : undefined; });
   if (!res) return null;
+  if (!res.next) return { pbs: [], items: [], ach: [], ...(res.sp ? { sp: res.sp } : {}) };   // (J1: nothing new to write — the splits' answer still goes to the end card)
   const [{ boardPaths, playCount, minMatches }, prof] = await Promise.all([import('./_lib/lb.js'), val(`profiles/${pid}`)]);
   const listed = !(prof && prof.h) && playCount(res.next) >= minMatches();
   if (res.pbs.length) await ref('/').update(boardPaths(pid, res.next, { hidden: !listed, now, only: 'jaywalk' })).catch(e => console.warn('try boards', e && e.message));
   if (res.items.length || res.ach.length) await bumpOwners(res.items, false, res.ach).catch(() => {});
-  return { pbs: res.pbs, items: res.items, ach: res.ach };
+  return { pbs: res.pbs, items: res.items, ach: res.ach, ...(res.sp ? { sp: res.sp } : {}) };
 }
 const creditQuiet = o => creditTry(o).catch(e => { console.warn('try credit', e && e.message); return null; });
 

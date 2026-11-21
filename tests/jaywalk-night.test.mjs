@@ -87,7 +87,7 @@ test('THE SKYLINE + THE SOUNDS: the night band ≤ 150 KB; every pick + every -b
   const have = readdirSync(new URL('audio/jaywalk/', root)).sort();
   const want = SOUNDS.flatMap(s => [`${s.id}.${s.ext || 'mp3'}`, ...(s.b ? [`${s.id}-b.${s.ext || 'mp3'}`] : [])]);
   assert.deepEqual(have, [...want, 'CREDITS.md'].sort(), 'audio/jaywalk = the table\'s files + CREDITS.md');
-  assert.equal(SOUNDS.length, 12); assert.equal(SOUNDS.filter(s => s.b).length, 3);   // (BEFORE THE FLIP: − the lights dying, + THE STOPWATCH (a WAV loop) + THE TRUCK HORN)   // (H4: ONE LIFE — the RESPAWN sound left with respawn · H5B: the CAR-PASS is gone · H5C: the bell = ONE take (set B), + the train horn, the landmark ping → the area arrival · H6B: NEW BEST = ONE take, its B)
+  assert.equal(SOUNDS.length, 15); assert.equal(SOUNDS.filter(s => s.b).length, 3);   // (J1: + out-drop · h2h-siren · last-standing — original sounds, CC0 1.0 Ben)   // (BEFORE THE FLIP: − the lights dying, + THE STOPWATCH (a WAV loop) + THE TRUCK HORN)   // (H4: ONE LIFE — the RESPAWN sound left with respawn · H5B: the CAR-PASS is gone · H5C: the bell = ONE take (set B), + the train horn, the landmark ping → the area arrival · H6B: NEW BEST = ONE take, its B)
   // (H5C — the painted day skylines: one an area, each ≤ 150 KB, the day band's own size)
   for (const id of ['docks', 'fish', 'yard', 'bridge', 'downtown', 'canal', 'lighthouse', 'airfield']) { const z = statSync(new URL(`assets/jaywalk/skyline-day-${id}.webp`, root)).size; assert.ok(z > 60 * 1024 && z <= 150 * 1024, `skyline-day-${id}.webp: ${z} B`); }
   for (const [f, frames] of [['train-bell.wav', 127540], ['stopwatch-tick.wav', 88200]]) {

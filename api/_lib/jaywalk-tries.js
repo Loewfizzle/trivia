@@ -88,7 +88,9 @@ export function scoreTry({ seed, go, z = null, node }) {
   const r = v.result;
   // (DAILY B: + the try's FEATS from the replay — `f`, the match's own word list: its four cards + YOUR BEST are credited from THIS — jaywalk-credit.js)
   const f = featsOf(r);
-  return { l: r.lanes, k: r.tick, s: jwScore(r.lanes, r.tick), w: r.cause || '', ...(f ? { f } : {}), ...(v.cut ? { cut: 1 } : {}) };
+  // (J1 — SPLIT TIMES: the try keeps its splits — compact, the ticks to 50, 100 … from the replay: J3's time boards read them; lanes stay the score)
+  const sp = r.splits && r.splits.length ? r.splits : null;
+  return { l: r.lanes, k: r.tick, s: jwScore(r.lanes, r.tick), w: r.cause || '', ...(f ? { f } : {}), ...(sp ? { sp } : {}), ...(v.cut ? { cut: 1 } : {}) };
 }
 
 /** CLOSE a try (inside the record's transaction): its result + `e` (server time) — a try already closed is left alone → the record | null */

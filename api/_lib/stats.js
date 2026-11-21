@@ -96,6 +96,7 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null, a
     }
     outcomes[pid] = {
       gid: ex.gid, rank: row.rank, win: row.win, n: ex.n, ...(res.capped ? { cap: true } : {}),   // (FR7 FIXES A — THE DAILY CEILING: played, paid nothing)
+      ...(res.sp ? { sp: res.sp } : {}),   // (J1 — SPLIT TIMES: { r, b, n } — this run's splits, the bests after it, the ones it beat: the end card's NEW BEST marks)
       ...(res.solo ? { so: res.solo } : {}),   // (PD-6 ADD-ON: a solo run's count today { n, max } — the solo podium's XP line reads it, never a guess)
       xp: { gain: res.xp.total, parts: res.xp.parts, from: res.from, to: stats.xp },
       rk: { from: r0, to: r1 }, lv: res.lv, items: res.items, ach: res.ach, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1, st: stats.st || null, sev: res.streak.ev,

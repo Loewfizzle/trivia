@@ -42,7 +42,8 @@ export function verifyNode({ code, matchId, node } = {}) {
 }
 
 /** the result row the match report reads (logic.js#scoreNode's shape) from the server's own verify — a refused run = a kid who never hopped */
-export const serverRow = v => (v && v.ok ? { l: v.result.lanes, t: v.result.tick, w: v.result.cause || '', e: v.result.end, ...(v.result.taken ? { x: 1 } : {}), ...(featsOf(v.result) ? { f: featsOf(v.result) } : {}), ...(v.cut ? { cut: 1 } : {}) } : { l: 0, t: 0, w: '', e: -1, bad: String((v && v.why) || 'refused').slice(0, 24) });
+// (J1 — SPLIT TIMES: + `sp` — the ticks each 50 lanes was first reached in THE SERVER's replay; core/match-report.js#jaywalkExtra passes them on)
+export const serverRow = v => (v && v.ok ? { l: v.result.lanes, t: v.result.tick, w: v.result.cause || '', e: v.result.end, ...(v.result.taken ? { x: 1 } : {}), ...(featsOf(v.result) ? { f: featsOf(v.result) } : {}), ...(v.result.splits && v.result.splits.length ? { sp: v.result.splits } : {}), ...(v.cut ? { cut: 1 } : {}) } : { l: 0, t: 0, w: '', e: -1, bad: String((v && v.why) || 'refused').slice(0, 24) });
 
 /**
  * H3 — THE SERVER'S OWN RESULT (PURE): a SOLO run is counted ONLY from the server's replay of the player's proof node (GO's server time →

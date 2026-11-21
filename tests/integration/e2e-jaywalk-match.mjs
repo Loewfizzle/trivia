@@ -133,9 +133,42 @@ async function eightMatch() {
   if (!perfDone) log('EIGHT PERF: not reached — the match ended before all eight were sampled in at 1 min');
 }
 
+// J1 — `--two`: A 2-PLAYER MATCH — THE DUEL STRIP from the start, NO HEAD TO HEAD / siren ever; one out → LAST ONE STANDING for the other
+// (from that player's OWN end), the out banner once. A run of its own (the 3-phone flow is skipped).
+const TWO = process.argv.includes('--two');
+async function twoMatch() {
+  const host = await H.joinAll(2);
+  await start(host, 2);
+  await all(2, (p, i) => waitFor(p, st => st.game.phase === 'play' && window.__jwGame.state().mode === 'run' && window.__jwGame.state().t >= 0, `${NAMES[i]}: GO`, 40000));
+  const d = await until(async () => { const m = (await all(2, p => state(p))).map(s => s.moments || {}); return m.every(x => /^(ALICE|BOB) \d+ · (ALICE|BOB) \d+$/.test(x.duel)) ? m : null; }, 6000);
+  ok(!!d, `J1 — 2 PLAYERS: THE DUEL STRIP from the start on both phones ("${d && d[0].duel}")`);
+  await all(2, p => G(p, 'window.__jwGame.bot(true)'));
+  await sleep(4000);
+  await H.shot(pages[0], 'j1-two-duel');
+  // (J1 — A REFRESH MID-DUEL: BOB reloads while both run — back on his run, the strip drawn from the state at once, no moment replayed)
+  await pages[1].reload();
+  await waitFor(pages[1], st => st.game && st.game.id === 'jaywalk' && !!window.__jwGame && window.__jwGame.state().mode === 'run', 'BOB: back on his run after a refresh', 30000);
+  const rj = await until(async () => { const m = (await state(pages[1])).moments; return m && m.duel ? m : null; }, 10000);
+  ok(!!rj && rj.h2h === 0 && rj.banners === 0 && rj.last === 0, `J1 — A REFRESH MID-DUEL: the strip is drawn from the state at once ("${rj && rj.duel}"), no moment replayed`);
+  await G(pages[1], 'window.__jwGame.bot(true)');
+  await sleep(1500);
+  await G(pages[1], 'window.__jwGame.bot(false)');
+  ok(!!await until(async () => (await state(pages[1])).over, 40000), 'BOB out (his own end)');
+  const al = await until(async () => { const s = await state(pages[0]); return s.over || s.moments.last === 1 ? s : null; }, 6000);
+  if (al && !al.over) {
+    ok(al.moments.last === 1 && (al.snd.by['last-standing'] || 0) === 1, 'J1 — LAST ONE STANDING on ALICE\'s phone (the 2-player case) + its sound');
+    ok(al.moments.banners === 1 && /^BOB IS OUT · \d+ LANES? · 1 LEFT$/.test(al.moments.banner), `J1 — the out banner, once: "${al.moments.banner}"`);
+    await H.shot(pages[0], 'j1-two-last-standing');
+  } else log('  (ALICE went out at the same moment — no survivor this run)');
+  const fin = await all(2, p => state(p));
+  ok(fin.every(s => s.moments.h2h === 0 && !(s.snd.by['h2h-siren'] > 0)), 'J1 — 2 PLAYERS: no HEAD TO HEAD, no siren — ever');
+  await G(pages[0], 'window.__jwGame.bot(false)');
+  await all(2, (p, i) => waitFor(p, st => st.game && st.game.phase === 'final', `${NAMES[i]}: the podium`, 60000));
+}
+
 let failed = false;
 try {
-  if (EIGHT) await eightMatch(); else {
+  if (TWO) await twoMatch(); else if (EIGHT) await eightMatch(); else {
   const N = process.argv.includes('--four') ? 4 : 3;   // (H5C — `--four`: a 4-PHONE match (DANA joins, by night); the cloud's run stays three)
   const host = await H.joinAll(N);
   const code = await evalIn(host, s => s.code);
@@ -288,6 +321,27 @@ try {
   ok(await until(async () => { const s = await state(pages[1]); return s.follow && s.follow !== f0; }, 5000), `a tap = the next player still in (the tap lands on ${under}; ghosts ${JSON.stringify((await state(pages[1])).ghosts.map(q => q.st))})`);
   sb = await state(pages[1]);
   ok(sb.outs === 1 && sb.order.some(r => /BOB/.test(r) && /OUT/.test(r)), `the order marks BOB out (a cross + a struck name — never colour alone): ${sb.order.join(' | ')}`);
+  // ---- 4b. J1 — THE MATCH MOMENTS (moments.js + moments-view.js): BOB's OWN end → the OUT banner ONCE on every other phone (never on his
+  //  own — his OUT card says it), the out sound once a banner, a red X at most once an out; with three phones his out narrows the match TO
+  //  two → HEAD TO HEAD + the siren exactly ONCE on every phone, then THE DUEL STRIP, live; a refresh mid-duel redraws the strip, replays nothing
+  { const ms = (await all(N, p => state(p))).map(s => s.moments || {}), others = ms.filter((_, i) => i !== 1);
+    ok(others.every(x => x.banners === 1 && new RegExp(`^BOB IS OUT · [0-9]+ LANES? · ${N - 1} LEFT$`).test(x.banner)), `J1 — THE OUT BANNER once on every other phone, from BOB's own end: ${others.map(x => `"${x.banner}"`).join(' · ')}`);
+    ok(ms[1].banners === 0, 'J1 — … never on BOB\'s own phone (his OUT card says it)');
+    ok(ms.every(x => x.xs <= x.out), `J1 — THE RED X: at most once an out (${ms.map(x => `${x.xs}/${x.out}`).join(' · ')})`);
+    const snd = (await all(N, p => state(p))).map(s => s.snd.by || {});
+    ok(snd.every((b, i) => (b['out-drop'] || 0) === (i === 1 ? 0 : 1)), `J1 — the out sound once a banner (${snd.map(b => b['out-drop'] || 0).join(' · ')})`);
+    if (N === 3) {
+      ok(!!await until(async () => (await all(N, p => state(p))).every(s => s.moments.h2h === 1), 6000), 'J1 — HEAD TO HEAD: 3 → 2 fires it on every phone (BOB\'s own out narrowed it)');
+      const s2 = (await all(N, p => state(p))).map(s => s.snd.by || {});
+      ok(s2.every(b => b['h2h-siren'] === 1), `J1 — … the siren exactly once on every phone (${s2.map(b => b['h2h-siren'] || 0).join(' · ')})`);
+      await H.shot(pages[1], 'j1-head-to-head');
+      const d1 = await until(async () => { const d = (await state(pages[1])).moments.duel; return /^(ALICE|CHARLIE) \d+ · (ALICE|CHARLIE) \d+$/.test(d) ? d : null; }, 6000);
+      ok(!!d1, `J1 — THE DUEL STRIP on the watcher's phone after the big words: "${d1}"`);
+      ok(!!await until(async () => { const d = (await state(pages[1])).moments.duel; return d && d !== d1; }, 10000), 'J1 — … it follows the lanes LIVE');
+      await H.shot(pages[1], 'j1-duel-strip');
+      // (the refresh mid-duel: the --two flow — reloading BOB here would wipe the share frame step 7 reads off his phone)
+    }
+  }
   await H.shot(pages[1], 'match-spectate');
   // H4B — SPECTATING stays smooth: BOB's phone following the leader for 3 s (the watched kid's late hops catch up — never a teleport)
   await G(pages[1], 'window.__jwGame.clearFrames()');
@@ -296,7 +350,9 @@ try {
   ok(spec.n > 120 && spec.p95 < 34, `H4B — spectating is smooth: ${(1000 / spec.avg).toFixed(1)} fps, p95 ${spec.p95.toFixed(1)} ms, worst ${spec.worst.toFixed(1)} ms over 3 s of watching`);
   await H.shot(pages[1], 'match-spectate-2');
   // ---- 5. CHARLIE out → only ALICE left; then ALICE → the match ends on the host's step
-  if (N > 3) { await G(pages[3], 'window.__jwGame.bot(false)'); ok(await until(async () => (await state(pages[3])).over, 40000), 'DANA (the 4th phone) out'); }
+  if (N > 3) { await G(pages[3], 'window.__jwGame.bot(false)'); ok(await until(async () => (await state(pages[3])).over, 40000), 'DANA (the 4th phone) out');
+    // (J1 — 4 → 3 → 2: BOB's out left three (no HEAD TO HEAD), DANA's leaves two → HEAD TO HEAD + the siren ONCE on every phone)
+    ok(!!await until(async () => (await all(N, p => state(p))).every(s => s.moments.h2h === 1 && (s.snd.by['h2h-siren'] || 0) === 1), 6000), 'J1 — FOUR PHONES: HEAD TO HEAD + the siren exactly once, when 4 → 3 → 2 (never at 3)'); }
   await G(pages[2], 'window.__jwGame.bot(false)');
   ok(await until(async () => (await state(pages[2])).over, 40000), 'CHARLIE out');
   ok(await until(async () => { const s = await state(pages[2]); return s.watching && (s.follow === uids[0] || (N > 3 && (await state(pages[0])).over)) && !s.call; }, 8000), '… CHARLIE watches ALICE (one player in: no call to make)');
@@ -304,6 +360,13 @@ try {
   const stillOn = await evalIn(host, s => s.game.phase) === 'play';
   ok(stillOn || (await state(pages[0])).over, stillOn ? 'the match goes on while one player is in' : 'ALICE went out right behind CHARLIE this run: the last player out ended the match');
   const aliceLive = await state(pages[0]);
+  // (J1 — LAST ONE STANDING: CHARLIE's own end left ALICE alone → her phone, once, with its sound; the others never)
+  if (stillOn) {
+    const al = await until(async () => { const s = await state(pages[0]); return s.moments.last === 1 ? s : null; }, 5000);
+    ok(!!al && (al.snd.by['last-standing'] || 0) === 1, `J1 — LAST ONE STANDING on ALICE's phone (the survivor), once + its sound (${al ? al.snd.by['last-standing'] : 0})`);
+    if (al) await H.shot(pages[0], 'j1-last-standing');
+    ok((await all(N, p => state(p))).every((s, i) => i === 0 || s.moments.last === 0), 'J1 — … never on a phone that is out');
+  }
   await G(pages[0], 'window.__jwGame.bot(false)');
   await all(N, (p, i) => waitFor(p, s => s.game && s.game.phase === 'final' && !!document.querySelector('.jw-final .final'), `${NAMES[i]}: the podium`, 60000));
   await sleep(3200);
@@ -539,6 +602,10 @@ try {
     const offHops = await until(async () => { const s = await state(pages[1]); return s.hops >= 3 ? s.hops : null; }, 20000);
     await host.evaluate(async () => { const s = window.__arcade.state, [D, F] = await Promise.all([import('/js/games/jaywalk/director.js'), import('/js/firebase.js')]); const p = D.endNow(s.game, { now: F.serverNow(), live: s.live, code: s.code }); if (p) await F.update(F.dbRef(`rooms/${s.code}/game`), p); });
     await all(N, (p, i) => (i === 1 ? Promise.resolve() : waitFor(p, s => s.game && s.game.phase === 'final', `${NAMES[i]}: the host ended match 3`, 30000)));
+    // (J1 — AN HONEST END GAME NEVER SHOWS A FAKE OUT: BOB's run had no `e` when the host ended — no phone named him out)
+    { const nodes3 = await dbGet(`rooms/${code}/jw/${m3}`), withE = u => !!(nodes3 && nodes3[u] && nodes3[u].e);
+      const al3 = await state(pages[0]);
+      ok(!withE(uids[1]) && !/BOB/.test(al3.moments.banner || ''), `J1 — THE HOST's END GAME: BOB (no own end yet) is never shown OUT on ALICE's phone (banner "${al3.moments.banner || ''}")`); }
     await pages[1].evaluate(() => import('/js/firebase.js').then(F => F.goOnline()));
     await waitFor(pages[1], s => s.game && s.game.phase === 'final', 'BOB: back online → the final', 30000);
     await sleep(4000);   // (the refusal's judgement settles in HOST_SETTLE_MS)

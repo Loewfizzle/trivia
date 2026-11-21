@@ -60,4 +60,12 @@ Credit appreciated, not required: "Success" by Sjonas88 (Freesound), CC0 1.0. ht
 (BigSoundBank), CC0 1.0. https://bigsoundbank.com/stopwatch-2-s2138.html · "Truck Horn" by Pierre SIBANARCO (BigSoundBank), CC0 1.0.
 https://bigsoundbank.com/truck-horn-s2721.html
 
+J1 — THE MATCH MOMENTS (the owner's picks, Nov 21 — scripts/build-jaywalk-sounds.mjs: 24-bit stereo WAV → mono MP3, levels in sounds.js):
+
+| file | title | author | licence | source |
+| --- | --- | --- | --- | --- |
+| out-drop.mp3 | "out-drop-1" — original sound created for JAYWALK, CC0 1.0 (Ben) | Ben | CC0 1.0 | created for this game |
+| h2h-siren.mp3 | "head-to-head-siren" — original sound created for JAYWALK, CC0 1.0 (Ben) | Ben | CC0 1.0 | created for this game |
+| last-standing.mp3 | "last-standing" — original sound created for JAYWALK, CC0 1.0 (Ben) | Ben | CC0 1.0 | created for this game |
+
 3D models: Kenney — kenney.nl (CC0) — `assets/jaywalk/models/LICENSE.txt`.

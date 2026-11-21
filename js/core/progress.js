@@ -14,6 +14,7 @@ import { streakDay, streakPlay, dayNum, dayOf, dayStartAt } from './streak.js';
 import { noteMatch, noteEvent, awardAll } from './achievements.js';
 import { todaysDailies, sweptDay, dailyXp, SWEEP_XP } from './daily.js';
 import { pointsStep } from './daily-points.js';
+import { splitBests } from './splits.js';
 const prevDayKey = d => dayOf(dayNum(d) - 1);
 
 export const KEEP_KEYS = 60;
@@ -134,6 +135,11 @@ export function matchStep(s0, { key, gid, row, n, now, at = now, gap = DEFAULT_G
     if (!(old && old.wk && wk < old.wk) && better(def, v, prevWeek)) { b.w = v; b.wk = wk; }   // (S1: an older week's record never replaces this week's)
     next.b[board] = b;
   }
+  // J1 — SPLIT TIMES (JAYWALK): the player's BEST tick per 50 lanes (pstats.jsp — [to 50, to 100, …]) from the server's own replay of this
+  // counted run (row.sp — core/match-report.js#jaywalkExtra; solo, match + the daily's tries all count — the daily: api/_lib/jaywalk-credit.js).
+  // The outcome carries { r: this run's splits, b: the bests after it, n: the splits it made faster } — the end card's NEW BEST marks
+  let sp = null;
+  if (row.sp && row.sp.length) { const S = splitBests(s.jsp, row.sp); if (S.changed) next.jsp = S.next; sp = { r: row.sp, b: S.next, n: S.news }; }
   const xp = solo ? soloXp(day.so || 0) : matchXp({ rank: row.rank, win: row.win, n, pbs: pbs.filter(p => !p.first).length, firstToday, gamesToday });
   if (solo) { day.so = (day.so || 0) + 1; if (!oldWeek) next.gs[gid] = (next.gs[gid] || 0) + 1; }   // (CITY FIXES: the week's solo plays — never the goal)
   // (PROGRESSION A: NO streak XP — the owner kept Grok's "streaks pay in milestones"; the old +10 % a night is gone)
@@ -164,7 +170,7 @@ export function matchStep(s0, { key, gid, row, n, now, at = now, gap = DEFAULT_G
   items.push(...aw.items);
   // (PD-6 ADD-ON — THE SOLO PODIUM SAYS WHAT IT PAID: a solo run's place in the streak day's solo count — n = this run's count (1 = the first),
   //  max = the runs that pay — the server's outcome carries it as `so`; the phone never computes it)
-  return { next, pbs, xp, from, prevStats: s, wk, lv, items, ach: aw.ach, streak: { n: next.st.n, ev: streak.ev }, ...(solo ? { solo: { n: day.so, max: SOLO_DAY_XP } } : {}) };
+  return { next, pbs, xp, from, prevStats: s, wk, lv, items, ach: aw.ach, streak: { n: next.st.n, ev: streak.ev }, ...(solo ? { solo: { n: day.so, max: SOLO_DAY_XP } } : {}), ...(sp ? { sp } : {}) };
 }
 
 /** THE DAILY CEILING (FR7 FIXES A): counted room matches a profile is PAID for in a streak day (4 am Eastern) — the 21st on plays for nothing */

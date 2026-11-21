@@ -610,6 +610,30 @@ try {
   { const h5c = argv.find(x => x === '--h5c' || x.startsWith('--h5c=')); if (h5c) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5C(o.p, h5c.slice(6), o.reqs); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   { const h5b = argv.find(x => x === '--h5b' || x.startsWith('--h5b=')); if (h5b) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); if (h5b.slice(6) === 'tail') await looksTail(o.p); else if (h5b.slice(6) === 'addons') { await looksAddons(o.p); await looksTail(o.p); } else await looksH5B(o.p, h5b.slice(6), o.reqs); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); console.log(fails.length ? `\nFAILED: ${fails.length}` : '\nH5B OK'); await b.close(); process.exit(fails.length ? 1 : 0); } }
   { const h5 = argv.find(x => x === '--h5' || x.startsWith('--h5=')); if (h5) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5(o.p, h5.slice(5)); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
+  // J1 — THE NIGHT GLOW FIX's shots (--glow [outDir]): the SAME frozen night moment with the bloom as it was (`&occ=0`) and with the
+  // occluders — every box truck in view on a road lane of the given stretch, the kid two lanes behind it; files glow-<lane>-<t>-before/after.png
+  if (argv.includes('--glow')) {
+    const pages = await Promise.all(['&occ=0', ''].map(q => open(390, 844, 3, `&preview=1&seed=look3&tier=2&zoom=8&angle=straight&look=night${q}`)));
+    for (const o of pages) await up(o.p);
+    let n = 0;
+    for (const t of [3000, 4200, 5400, 6600]) for (let lane = 150; lane < 400 && n < 24; lane++) {
+      const L = await pages[0].p.evaluate(l => window.__jwLab.lane(l), lane);
+      if (L.type !== 'road') continue;
+      for (const o of pages) await o.p.evaluate((l, tt) => { const J = window.__jwLab; J.warp(l - 2); J.setT(tt); J.freeze(true); }, lane, t);
+      const it = await pages[0].p.evaluate(l => window.__jwLab.items(l), lane);
+      const tr = it.items.find(x => x.what === 'truck' && x.left + x.len / 2 > 1.5 && x.left + x.len / 2 < 7.5);
+      if (!tr) continue;
+      await sleep(1600);   // (the camera's sideways follow eases in after a warp: both pages settled on the same frame)
+      const [sx, sy] = await pages[0].p.evaluate((c, l) => window.__jwLab.project(c, l), tr.left + tr.len / 2, lane + 0.5);
+      const clip = { x: Math.max(0, Math.round(sx * 390 - 110)), y: Math.max(0, Math.round(sy * 844 - 150)), width: 220, height: 190 };
+      if (clip.x + clip.width > 390) clip.x = 390 - clip.width;
+      for (const [k, o] of pages.entries()) await o.p.screenshot({ path: join(OUT || '.', `glow-${lane}-${t}-${k ? 'after' : 'before'}.png`), clip });
+      n++;
+    }
+    console.log(`GLOW: ${n} pairs → ${OUT}`);
+    for (const o of pages) await o.close();
+    throw Object.assign(new Error('look only'), { look: true });
+  }
   // J1 — THE NIGHT GLOW FIX's cost (--bloom-ab): tier 2 BY NIGHT (the bloom's only home), 4× CPU, 390 + 430 @3 — the bloom as it was
   // (`&occ=0`: the lights through everything) against the occluders (the solid scene drawn as black depth first) — a run + DOWNTOWN
   if (argv.includes('--bloom-ab')) {

@@ -67,5 +67,12 @@ for (const r of rows.out) {
   else console.log(`${clip ? 'CLIP' : 'ok  '} ${(r.set + ' ' + r.id).padEnd(34)} ${String(r.d).padStart(5)} s  raw ${String(r.raw).padStart(6)} LUFS pk ${String(r.rawPk).padStart(6)}  × ${String(r.gain).padEnd(5)} → bus ${String(r.bus).padStart(6)} LUFS (loudest ${String(r.mom).padStart(6)}) pk ${String(r.pk).padStart(6)} dBFS · out ${(r.bus + OUT_DB).toFixed(1)}`);
 }
 console.log(MD ? '' : `\nthe music ducks: ${JSON.stringify(rows.duck)}`);
+// J1 — THE SIREN UNDER THE TRAIN WARNING: HEAD TO HEAD's siren is quieter (integrated AND its loudest 0.4 s) than the crossing bell and every
+// horn — a train warning always cuts through it; the out sound sits under your own hit (it repeats through a match)
+{
+  const by = id => rows.out.find(r => r.id === id && r.set !== 'city'), sir = by('h2h-siren'), out = by('out-drop'), hit = by('hit');
+  for (const w of ['train-bell', 'train-horn', 'horn', 'truck-horn']) { const r = by(w), under = !!(sir && r && sir.bus < r.bus && sir.mom < r.mom); if (!under) bad++; console.log(`${under ? 'ok  ' : 'LOUD'} the siren under the ${w}: ${sir && sir.bus} / ${sir && sir.mom} < ${r && r.bus} / ${r && r.mom}`); }
+  const soft = !!(out && hit && out.bus < hit.bus); if (!soft) bad++; console.log(`${soft ? 'ok  ' : 'LOUD'} the out sound under your own hit: ${out && out.bus} < ${hit && hit.bus}`);
+}
 console.log(bad ? `${bad} cue(s) CLIP or are missing` : `${rows.out.length} cues — none clips (every peak under −0.3 dBFS at the SFX bus)`);
 process.exit(bad ? 1 : 0);

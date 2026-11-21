@@ -125,13 +125,15 @@ test('BEFORE THE FLIP — THE STOPWATCH (it replaced the lights dying): silent w
 
 test('THE TABLE: every sound in play; THE PRIORITY — your own hit / splash > the train > the horn > a hop + a landing; the caps; ≈ 8 voices; H5B — no car-pass row / file, THE HORN AT HALF, the train sounds\' fade', () => {
   const pri = id => SOUNDS.find(s => s.id === id).pri, max = id => SOUNDS.find(s => s.id === id).max;
-  assert.ok(SOUNDS.every(s => s.play), 'all in play'); assert.equal(SOUNDS.length, 12);   // (BEFORE THE FLIP: − the lights dying, + THE STOPWATCH + THE TRUCK HORN)
+  assert.ok(SOUNDS.every(s => s.play), 'all in play'); assert.equal(SOUNDS.length, 15);   // (BEFORE THE FLIP: − the lights dying, + THE STOPWATCH + THE TRUCK HORN · J1: + THE MATCH MOMENTS' three — match-only)
+  assert.deepEqual(SOUNDS.filter(s => s.match).map(s => s.id), ['out-drop', 'h2h-siren', 'last-standing'], 'J1: the match moments sounds are fetched for a match only');
   assert.equal(SOUNDS.find(s => s.id === 'car-pass'), undefined, 'the car-pass is GONE from the table (the game never fetches it, the audition never lists it)');
   for (const f of ['car-pass.mp3', 'car-pass-b.mp3']) assert.equal(existsSync(new URL(`../audio/jaywalk/${f}`, import.meta.url)), false, `${f} no longer ships`);
   assert.doesNotMatch(code('sfx.js') + code('cues.js') + code('view.js') + code('lab.js') + code('audition.js'), /car-pass/, 'no code names it');
   assert.equal(SOUNDS.find(s => s.id === 'horn').gain, 0.5, 'THE HORN AT HALF its level (H5A: 1.0)');
   assert.equal(FADE_S, 0.5); for (const id of ['train-bell', 'train-pass']) assert.equal(SOUNDS.find(s => s.id === id).fade, FADE_S, `${id} fades out over 0.5 s`);
-  for (const s of SOUNDS) if (!s.id.startsWith('train-')) assert.equal(s.fade, undefined, `${s.id} keeps its own end`);
+  for (const s of SOUNDS) if (!s.id.startsWith('train-') && s.id !== 'h2h-siren') assert.equal(s.fade, undefined, `${s.id} keeps its own end`);   // (J1: the siren fades if a train's voice takes its place)
+  assert.ok(pri('h2h-siren') < pri('train-bell') && pri('h2h-siren') <= pri('horn'), 'J1: THE SIREN sits under the train warning — a full house drops it first');
   for (const own of ['hit', 'splash']) for (const train of ['train-bell', 'train-pass']) assert.ok(pri(own) > pri(train));
   for (const train of ['train-bell', 'train-pass']) assert.ok(pri(train) > pri('horn'));
   for (const kid of ['hop', 'land-wood']) assert.ok(pri('horn') > pri(kid));

@@ -3,7 +3,7 @@
 // respawn, no blink, no one-up); every hazard is a pure function of
 // (lane, tick) (course.js). THE ONLY INPUT is THE HOP LOG: [{ t: tick, d: 'u' | 'l' | 'r' | 'd' }]. The phone's live run and the server's
 // replay run THIS code. PURE: no DOM, no three.js, never Math.random / Date.now / performance.now / a frame clock; integers + Math.floor only.
-import { FP, COLS, WIDTH, MID_COL, HOP_TICKS, MODES, WALL, wallPace, KID_HALF, LOOP_LANES, MIN_INPUT_GAP, DIRS, MAX_INPUTS_PER_SEC, MAX_LOG, TICK_HZ } from './tuning.js';
+import { FP, COLS, WIDTH, MID_COL, HOP_TICKS, MODES, WALL, wallPace, KID_HALF, LOOP_LANES, MIN_INPUT_GAP, DIRS, MAX_INPUTS_PER_SEC, MAX_LOG, TICK_HZ, SPLIT_EVERY } from './tuning.js';
 import { laneHit, logUnder, carNear, ufoX, ufoY, mod } from './course.js';
 
 const colOf = x => { const c = Math.floor(x / FP); return c < 0 ? 0 : c >= COLS ? COLS - 1 : c; };
@@ -19,6 +19,7 @@ export function createRun({ seed, mode = 'solo' } = {}) {
     fx: 0, fy: 0, tx: 0, ty: 0, k: 0,       // a hop in flight: from → to, k of HOP_TICKS
     buf: '',                                // ONE buffered hop
     best: 0, bestT: 0,                      // the farthest lane LANDED on + its tick (the ranking: lanes, then the earlier tick)
+    sp: [],                                 // J1 — SPLIT TIMES: sp[i] = the tick lane (i + 1) × SPLIT_EVERY was FIRST landed on
     wall: WALL.start, cause: '', end: -1, hits: 0,
     bbBand: -1, bbK: 0, boom: 0,            // THE BLACKBIRD's moment: standing on its lane when the tell began → hopped clear
     near: {}, took: {}, beam: -1,           // THE UFO's: the ones whose beam swept beside the kid · the ones that took them
@@ -61,6 +62,7 @@ function land(run, course, T, ev) {
   } else if (ev) ev.push({ e: 'land', on: 'ground' });
   if (run.y > run.best) {
     run.best = run.y; run.bestT = T;
+    if (run.y % SPLIT_EVERY === 0) run.sp.push(T);   // (J1: `best` climbs one lane at a time — every multiple is landed on exactly once)
     if (ev) { ev.push({ e: 'best', lane: run.y }); if (lane.mark) ev.push({ e: 'landmark', lane: run.y, name: lane.mark }); }
   }
   if (run.buf) { const b = run.buf; run.buf = ''; startHop(run, course, b, ev); }
@@ -155,6 +157,7 @@ export function resultOf(run) {
   const ids = Object.keys(run.near);
   return {
     lanes: run.best, tick: run.bestT, end: run.end, over: isOver(run),
+    splits: run.sp.slice(),                                           // (J1 — SPLIT TIMES: [tick to 50, tick to 100, …] — only the ones reached)
     y: run.y, x: run.x,                                               // (where the kid is / went out — the end screen names what hit them: causes.js)
     cause: run.st === 'taken' ? 'taken' : run.cause, taken: run.st === 'taken', hits: run.hits,
     feats: {
