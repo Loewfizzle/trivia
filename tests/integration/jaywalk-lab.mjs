@@ -612,6 +612,44 @@ try {
   { const h5 = argv.find(x => x === '--h5' || x.startsWith('--h5=')); if (h5) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH5(o.p, h5.slice(5)); if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3)); await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   // J1 — THE NIGHT GLOW FIX's shots (--glow [outDir]): the SAME frozen night moment with the bloom as it was (`&occ=0`) and with the
   // occluders — every box truck in view on a road lane of the given stretch, the kid two lanes behind it; files glow-<lane>-<t>-before/after.png
+  // J2 — THE BLACKBIRD's RUNWAYS + EVEN STARTS (--j2[=night|day|all]): COURSE RULES v2 (`&cv=2`) at 390 × 844 @3 — a runway mid-rhythm
+  // (a lane in its tell, a jet passing, a trail burning) by night + by day, THE AFTERBURNER TRAIL close, THE AIRFIELD, the even start
+  { const j2 = argv.find(x => x === '--j2' || x.startsWith('--j2=')); if (j2) {
+    const looks = j2.includes('=') ? (j2.split('=')[1] === 'all' ? ['night', 'day'] : [j2.split('=')[1]]) : ['night', 'day'];
+    const dir = join(OUT || '.', 'j2'); mkdirSync(dir, { recursive: true });
+    for (const look of looks) for (const w of [390, 430]) {
+      const o = await open(w, w === 430 ? 932 : 844, 3, `&preview=1&seed=look3&tier=2&zoom=8&angle=straight&look=${look}&cv=2`);
+      await up(o.p);
+      const pick = (R, want) => {   // (a tick where lane `want.pass` is mid-pass, another in its trail, another in its tell — as near as the layout allows)
+        let best = null;
+        for (let t = R.period * 6; t < R.period * 7; t++) {
+          const st = R.lanes.map(L => { const u = ((t - L.phase) % R.period + R.period) % R.period; return u < R.pass ? 'pass' : u < R.pass + R.trail ? 'trail' : u >= R.period - R.tell ? 'tell' : 'idle'; });
+          const us = R.lanes.map(L => ((t - L.phase) % R.period + R.period) % R.period);
+          const sc = want.reduce((a, k) => a + (st.includes(k) ? 1 : 0), 0) * 10 + (us.some(u => u >= 5 && u <= 7) ? 5 : 0) + (us.some(u => u >= R.pass + 8 && u <= R.pass + 20) ? 3 : 0);
+          if (!best || sc > best.sc) best = { t, sc, st };
+        }
+        return best;
+      };
+      for (const [name, k, want] of [['runway', 1, ['pass', 'trail', 'tell']], ['trail', 1, ['trail', 'trail']], ['runway2', 2, ['pass', 'tell']]]) {
+        const R = await o.p.evaluate(kk => window.__jwLab.runway(0, kk), k);
+        if (!R) continue;
+        const P = pick(R, want);
+        await o.p.evaluate((y, tt) => { const J = window.__jwLab; J.warp(y); J.setT(tt); J.freeze(true); }, R.y0 - 1, name === 'trail' ? P.t + 20 : P.t);
+        await sleep(1700);
+        await o.p.screenshot({ path: join(dir, `${name}-${look}-${w}.png`) });
+        console.log(`J2 ${look} ${w} ${name}: lane ${R.y0} × ${R.n} · P ${R.period} · t ${P.t} · ${P.st.join(' ')}`);
+      }
+      // THE AIRFIELD (lane 400 on): its four runways
+      { const R = await o.p.evaluate(() => window.__jwLab.runway(400, 1)); if (R) { const P = pick(R, ['pass', 'tell', 'trail']); await o.p.evaluate((y, tt) => { const J = window.__jwLab; J.warp(y); J.setT(tt); J.freeze(true); }, R.y0 - 1, P.t); await sleep(1700); await o.p.screenshot({ path: join(dir, `airfield-${look}-${w}.png`) }); console.log(`J2 ${look} ${w} airfield: lane ${R.y0} × ${R.n}`); } }
+      // THE EVEN START (lanes 0 …): the kid at the start, the world still
+      await o.p.evaluate(() => { const J = window.__jwLab; J.restart('solo', 'look3'); J.setT(400); J.freeze(true); }); await sleep(1400);
+      await o.p.screenshot({ path: join(dir, `start-${look}-${w}.png`) });
+      if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3));
+      ok(!o.errs.length, `J2 ${look} ${w}: no page errors`);
+      await o.close();
+    }
+    throw Object.assign(new Error('look only'), { look: true });
+  } }
   if (argv.includes('--glow')) {
     const pages = await Promise.all(['&occ=0', ''].map(q => open(390, 844, 3, `&preview=1&seed=look3&tier=2&zoom=8&angle=straight&look=night${q}`)));
     for (const o of pages) await up(o.p);

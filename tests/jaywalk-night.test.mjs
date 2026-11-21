@@ -85,7 +85,8 @@ test('THE SKYLINE + THE SOUNDS: the night band ≤ 150 KB; every pick + every -b
   const dayBand = statSync(new URL('assets/jaywalk/skyline-day.webp', root)).size;   // (H5B — THE DAY LOOK's band)
   assert.ok(dayBand > 40 * 1024 && dayBand <= 150 * 1024, `skyline-day.webp: ${dayBand} B`);
   const have = readdirSync(new URL('audio/jaywalk/', root)).sort();
-  const want = SOUNDS.flatMap(s => [`${s.id}.${s.ext || 'mp3'}`, ...(s.b ? [`${s.id}-b.${s.ext || 'mp3'}`] : [])]);
+  const want = [...SOUNDS.flatMap(s => [`${s.id}.${s.ext || 'mp3'}`, ...(s.b ? [`${s.id}-b.${s.ext || 'mp3'}`] : [])]),
+    ...['radio-static-2', 'radio-static-3', 'runway-tick', 'afterburner-flicker'].map(f => `${f}.mp3`)];   // (J2 — THE BLACKBIRD's RUNWAYS: flyers.js#MIX's own files, beside the table's)
   assert.deepEqual(have, [...want, 'CREDITS.md'].sort(), 'audio/jaywalk = the table\'s files + CREDITS.md');
   assert.equal(SOUNDS.length, 15); assert.equal(SOUNDS.filter(s => s.b).length, 3);   // (J1: + out-drop · h2h-siren · last-standing — original sounds, CC0 1.0 Ben)   // (BEFORE THE FLIP: − the lights dying, + THE STOPWATCH (a WAV loop) + THE TRUCK HORN)   // (H4: ONE LIFE — the RESPAWN sound left with respawn · H5B: the CAR-PASS is gone · H5C: the bell = ONE take (set B), + the train horn, the landmark ping → the area arrival · H6B: NEW BEST = ONE take, its B)
   // (H5C — the painted day skylines: one an area, each ≤ 150 KB, the day band's own size)

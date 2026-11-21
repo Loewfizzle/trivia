@@ -454,14 +454,14 @@ export function createNight(host, o = {}) {
   function warm() {
     const put = [];
     for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.put(0, -60, 0, 0.01, 0.01, 0.01, 0, 0xffffff, 1); q.done(); }
-    for (const m of [...(FL ? FL.meshes() : []), ...Object.values(LBL).map(L => L.m), fish]) { put.push([m, m.visible, m.position.y]); m.visible = true; m.position.y = -60; }
+    for (const m of [...(FL ? FL.meshes() : []), ...Object.values(LBL).map(L => L.m), fish]) { put.push([m, m.visible, m.position.y, m.count]); m.visible = true; m.position.y = -60; if (m.isInstancedMesh && !m.count) m.count = 1; }   // (J2: the jets are ONE instanced mesh — warmed with one in it)
     try { renderer.compile(scene, cam); renderer.render(scene, cam); if (bloom) bloom.render(scene, cam); } catch { /* a phone that can't: the kinds simply build as they come, as before */ }
     if (!otherWarm && lookSet) {
       otherWarm = true; day = !day;
       try { lookGL(); renderer.compile(scene, cam); renderer.render(scene, cam); } catch { /* as above */ }
       day = !day; lookGL();
     }
-    for (const [m, v, y] of put) { m.visible = v; m.position.y = y; }
+    for (const [m, v, y, c] of put) { m.visible = v; m.position.y = y; if (m.isInstancedMesh) m.count = c; }
     for (const q of [...Object.values(K), ...Object.values(KM)]) { q.reset(); q.done(); }
     warmed++;
   }
@@ -469,6 +469,39 @@ export function createNight(host, o = {}) {
   /** one frame: the run after its last tick, `a` (0 … 1) into the next one, `dt` ms since the last frame. `o.ghosts` (a match):
    *  [{ run, hex, out? }] — each gets `tag` = [x, y] on the screen (CSS px) or null. `o.t` = THE WORLD's TICK: all is drawn at it.
    *  `o.a` = the ghosts' fraction; `g.vis` / `o.off` = a late hop's CATCH-UP ({ x, y, u: 0 … 1, d }); `g.held` = unconfirmed. */
+  /**
+   * J2 — THE AFTERBURNER TRAIL (a v2 runway lane — course.js#laneHit: everything behind its jet burns through the pass, then the WHOLE lane
+   * for `p.trail` ticks): FIRE ON THE ROAD in both looks — a glowing burning streak (a hot core in an orange glow · by day a dark scorched
+   * streak under bright paint) + a row of flickering flame tongues, cooling as it ages but bright to the last deadly tick; then it goes
+   * out fast (EMBER ticks of dim embers — never read as fire). Instanced kinds only (no draw call of its own). `u` = ticks into the lap.
+   */
+  const EMBER = 14, burnHash = (i, k) => (Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1;
+  function burnLane(p, u, z, lt) {
+    const end = p.pass + p.trail;
+    if (u >= end + EMBER) return;
+    let x0 = -1.6, x1 = COLS + 1.6;
+    if (u < p.pass) { const l = pulseLeft(p, u) / FP, len = p.len / FP; if (p.dir > 0) x1 = Math.min(x1, l + len * 0.4); else x0 = Math.max(x0, l + len * 0.6); }
+    if (x1 - x0 < 0.2) return;
+    const age = u < p.pass ? 0 : u - p.pass, live = u < end, heat = live ? 1 - 0.4 * age / p.trail : 0.32 * (1 - (u - end) / EMBER);
+    const cx = X((x0 + x1) / 2), w = x1 - x0, A = Math.min(1, lt), fl = reduce ? 1 : 0.85 + 0.15 * Math.sin(clock / 47 + z * 3.1);
+    if (day) {
+      K.shadow.put(cx, 0.049, z, w, 1, 1.9, 0, 0, 1, 4, (live ? 1 : 0.6 * heat / 0.32) * A);                                 // the scorched streak (a dark band: the fire's paint reads on it)
+      if (live) { K.flat.put(cx, 0.052, z, w, 1, 1.5, 0, 0xff3c0c, 1, 4, A); K.flat.put(cx, 0.053, z, w, 1, 0.95, 0, 0xff7a14, 1, 4, A); K.flat.put(cx, 0.054, z, w, 1, 0.5, 0, 0xffe04a, 1, 4, (0.6 + 0.4 * heat) * A); }
+    } else {
+      K.flat.put(cx, 0.045, z, w, 1, 1.0, 0, 0xff4412, 1, 4, 0.8 * heat * fl * lt);   // (inside its own lane: never read as the next one burning)                                          // the glow round it
+      K.flat.put(cx, 0.05, z, w, 1, 0.42, 0, live ? 0xffb43a : 0x8a2a10, 1, 4, (live ? 0.9 : 0.6) * heat * lt);                   // the hot core
+    }
+    if (!live) return;
+    // THE FLAMES: a tongue every 0.85 of a cell, each its own flicker (still with reduce motion: a steady height)
+    for (let c = Math.ceil(x0 / 0.85) * 0.85; c < x1; c += 0.85) {
+      const hsh0 = burnHash(Math.round(c * 7) + p.band * 31, 3), f = reduce ? 0.8 : 0.62 + 0.38 * Math.abs(Math.sin(clock / (70 + 40 * Math.abs(hsh0)) + hsh0 * 9)), hh = (0.42 + 0.34 * f) * heat;
+      const x = X(c), zz = z + (hsh0 - 0.5) * 0.36;
+      const fw = (day ? 1.15 : 0.7) * (0.8 + 0.2 * heat), fh = day ? hh * 1.4 : hh;
+      K.bill.put(x, fh * 0.45, zz, fw, fh, 1, 0, day ? 0xff4a0c : 0xff6a1e, 1, 9, (day ? 1 : 0.85) * A);   // a flame (narrow at its top)
+      K.bill.put(x, fh * 0.3, zz + 0.02, fw * 0.5, fh * 0.6, 1, 0, 0xffe066, 1, 9, (day ? 1 : 0.9) * A);                                 // its yellow heart
+    }
+  }
+
   function draw(run, course, a, dt, o = null) {
     if (fitAsk) { const f = fitAsk === 2; fitAsk = 0; fitNow(f); }   // (a resize asked since the last frame: done HERE, before this frame renders)
     if (resting === 1) return;   // (rest(): its still is up)
@@ -716,6 +749,7 @@ export function createNight(host, o = {}) {
               if (on) K.flat.put(X(c + 0.5), 0.04, z + e, hot ? 1.7 : 0.8, 1, hot ? 1.2 : 0.6, 0, 0xffa820, 1, 0, (hot ? (day ? 0.6 : 0.75) : (day ? 0 : 0.35)) * lt * far);
             }
           }
+          if (p.trail) burnLane(p, u, z, lt);   // (J2 — v2's runways: THE AFTERBURNER TRAIL — drawn here, never waiting for the flyers' module)
           if (L.i === p.band) { if (FL) FL.jet(p, u, z - (p.n - 1) / 2, lt); else { flyGet(); if (s !== null) K.shadow.put(X(pulseLeft(p, s) / FP + p.len / FP / 2), 0.03, z - 0.5, 3.6, 1, 1.9, 0, 0, 1, 0, 0.6 * lt); } }
         }
       }

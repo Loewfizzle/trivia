@@ -68,4 +68,13 @@ J1 — THE MATCH MOMENTS (the owner's picks, Nov 21 — scripts/build-jaywalk-so
 | h2h-siren.mp3 | "head-to-head-siren" — original sound created for JAYWALK, CC0 1.0 (Ben) | Ben | CC0 1.0 | created for this game |
 | last-standing.mp3 | "last-standing" — original sound created for JAYWALK, CC0 1.0 (Ben) | Ben | CC0 1.0 | created for this game |
 
+J2 — THE BLACKBIRD's RUNWAYS (the owner's picks, Nov 21 — scripts/build-jaywalk-sounds.mjs --j2: 24-bit stereo WAV → mono MP3, levels in js/games/jaywalk/flyers.js#MIX):
+
+| file | title | author | licence | source |
+| --- | --- | --- | --- | --- |
+| radio-static-2.mp3 | "radio-static_2" — original sound created for JAYWALK, CC0 1.0 (Ben) | Ben | CC0 1.0 | created for this game |
+| radio-static-3.mp3 | "radio-static_3" — original sound created for JAYWALK, CC0 1.0 (Ben) | Ben | CC0 1.0 | created for this game |
+| runway-tick.mp3 | "runway-tick" — original sound created for JAYWALK, CC0 1.0 (Ben) | Ben | CC0 1.0 | created for this game |
+| afterburner-flicker.mp3 | "Big Branching Fire #1" by Joseph SARDIN (BigSoundBank), CC0 1.0, edited for JAYWALK. https://bigsoundbank.com/big-branching-fire-1-s0987.html | Joseph SARDIN | CC0 1.0 | BigSoundBank |
+
 3D models: Kenney — kenney.nl (CC0) — `assets/jaywalk/models/LICENSE.txt`.

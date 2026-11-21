@@ -108,8 +108,21 @@ async function mount() {
   // ---- the run: the pure engine, stepped at 60 ticks a second from the frame clock (the RULES never read it)
   let mode = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo', seed, course, run, log, queue = [], acc = 0, last = 0, overAt = 0, shown = false, bot = null, markUntil = 0;
   const frames = [], cost = [];   // (the frame times + the work in each frame, for &fps=1 + the pass's measure)
-  const LANE0 = /^\d{1,5}$/.test(Q.get('lane') || '') ? Math.min(20000, Number(Q.get('lane'))) : 0;   // (`?lane=N` — a look check from lane N: WARPED, never counts)
+  const LANE_Q = /^\d{1,5}$/.test(Q.get('lane') || '') ? Math.min(20000, Number(Q.get('lane'))) : 0;   // (`?lane=N` — a look check from lane N: WARPED, never counts)
   let steps = 0, slow = 0, warped = false, started = false, safe = false;   // (safe — a LOOK CHECK's warp only: the blackout holds still behind the kid; never in a real run)   // (started: the run's tick 0 is the FIRST touch — the page never runs the wall at a kid nobody is playing)
+  /** J2 — the `k`th Blackbird runway from a lane (v2: 3–4 lanes, a jet each · v1: a band of 2 sharing one): { y0, n, period, tell, pass,
+   *  trail, lanes: [{ phase, dir }] } | null */
+  function runwayFrom(from = 0, k = 1) {
+    for (let i = from; i < from + 2000; i++) {
+      const L = course.lane(i), p = L.pulse;
+      if (L.type !== 'flight' || (p.rw != null ? p.rw !== i : p.band !== i)) continue;
+      if (--k > 0) continue;
+      const n = p.rn || p.n, lanes = [];
+      for (let j = 0; j < n; j++) { const q = course.lane(i + j).pulse; lanes.push({ phase: q.phase, dir: q.dir }); }
+      return { y0: i, n, period: p.period, tell: p.tell, pass: p.pass, trail: p.trail || 0, lanes };
+    }
+    return null;
+  }
   function restart(m = mode, s = Q.get('seed') && !seed ? Q.get('seed') : newSeed()) {
     mode = m; seed = s; course = createCourse(seed, { cv: CV }); run = createRun({ seed, mode }); log = []; queue = []; acc = 0; shown = false; overAt = 0; warped = false; started = false; safe = false;
     cues = createCues(); if (snd) { snd.onCue({ cue: 'bell-off' }); snd.onCue({ cue: 'tick-off' }); }
@@ -119,6 +132,8 @@ async function mount() {
     if (bot) bot = greedyBot({ seed });
     // H6B — `?lane=N` (the owner opens any area on his phone): A LOOK CHECK — the kid stands on the grass lane nearest N (the one before it first), the blackout
     // held behind him. WARPED: the run is no longer its log's — it never counts, is never replayed (the end says so), nothing is sent.
+    // J2 — `?rw=N` (+ `?cv=2`): the same look check, the kid on the SAFE lane before the course's Nth Blackbird runway (v1: its Nth band)
+    const RW = /^\d{1,2}$/.test(Q.get('rw') || '') ? Number(Q.get('rw')) : 0, R = RW ? runwayFrom(0, RW) : null, LANE0 = R ? R.y0 - 1 : LANE_Q;
     if (LANE0) { let y = LANE0; for (let d = 0; d < 40; d++) { if (LANE0 - d > 0 && course.lane(LANE0 - d).type === 'grass') { y = LANE0 - d; break; } if (course.lane(LANE0 + d).type === 'grass') { y = LANE0 + d; break; } } warped = true; safe = true; run.y = y; run.best = y; run.wall = (y - 5) * FP; mark.textContent = `LOOK CHECK · LANE ${y} · TAP TO HOP`; }
   }
   const findLane = (kind, from = 0) => { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (kind === 'ufo' ? L.ufo && L.ufo.y0 === i : kind === 'mark' ? !!L.mark : L.type === kind) return i; } return -1; };
@@ -218,7 +233,7 @@ async function mount() {
     logAt(lane) { const L = course.lane(lane); if (L.type !== 'water') return -1; for (const it of L.items) { const l = moverLeft(L, it, run.t); if (l > 1500 && l + it.len < 7500) return l + it.len / 2; } return -1; },
     /** (a look check) a road / water lane's movers right now, in cells: [{ left, len }] + the lane's dir + v */
     items(lane) { const L = course.lane(lane); return { dir: L.dir || 0, v: L.v || 0, items: (L.items || []).map((it, j) => ({ left: moverLeft(L, it, run.t) / FP, len: it.len / FP, what: L.type === 'road' ? vehicleAt(course, lane, j) : 'log' })) }; },
-    find: findLane, lane0: () => LANE0, warped: () => warped,
+    find: findLane, lane0: () => LANE_Q, warped: () => warped,
     /** (THE TOUCH-UP PASS's check) the run + its course as they are — the share frame's moment (shot.js#shotMs) reads both */
     raw: () => ({ run: { ...run }, course }),
     pulse(lane) { const L = course.lane(lane); return L.pulse ? pulseAt(L.pulse, run.t) : null; },
@@ -227,6 +242,8 @@ async function mount() {
     setT(t) { warped = true; run.t = Math.max(0, Math.floor(t)); },
     freeze(on) { frozen = !!on; },
     ufoAt(lane) { const U = course.lane(lane).ufo; return U ? { x: ufoX(U, run.t), y: ufoY(U, run.t) / FP, id: U.id, y0: U.y0 } : null; },
+    runway: (from = 0, k = 1) => runwayFrom(from, k),
+    cv: () => CV,
     flight(from = 0) { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (L.type === 'flight' && L.pulse.band === i) return { lane: i, period: L.pulse.period, phase: L.pulse.phase, tell: L.pulse.tell, pass: L.pulse.pass, dir: L.pulse.dir }; } return null; },
     /** (a look check) hold the kid still the moment a hop is `k` ticks in (null = let go) — the world stops with him */
     hold(k) { holdAt = k; },

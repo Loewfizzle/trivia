@@ -43,6 +43,11 @@ export const MIX = Object.freeze({
   rail: [0, 14],
 });
 export const FIRST = Object.freeze({ road: CALM_LANES, water: 12, rail: 25, ufo: 100, flight: 150 });
+/** J2 — EVEN STARTS (COURSE RULES v2 only — versions.js; v1 never reads this): the opening (lanes CALM_LANES … STRETCH − 1) never runs
+ *  free. The kinds keep the heat's own mix, but its SPREAD is tightened, lane by lane in order (course.js#openingKinds): never more than
+ *  `grassRun` ground lanes in a row · never more than `grassPer10` in any 10 lanes running · never more than `hazardRun` hazard lanes in a
+ *  row (the other side of the same coin: the overall difficulty stays the curve's — measured, docs/jaywalk.md "EVEN STARTS"). */
+export const EVEN = Object.freeze({ grassRun: 2, grassPer10: 5, hazardRun: 3 });
 export const WATER_RUN_MAX = 3;           // (never more than 3 water lanes in a row)
 export const RAIL_RUN_MAX = 3;            // (… nor more than 3 rail lanes — H5A: THE RAIL YARD leans hard on them)
 
@@ -91,6 +96,28 @@ export const FLIGHT = Object.freeze({ lanes: 2, tell: 108, len: 3000, v: 1000, p
 /** THE UFO: a slow diagonal drift over a zone of grass + road lanes; its beam circle on the ground = the warning */
 export const UFO = Object.freeze({ lanes: 8, r: 1250, vx: [14, 24], vy: [7, 13], chance: [320, 450] });
 export const MIN_TELL_TICKS = 90;         // (1.5 s — the Blackbird's tell is never shorter: tests/jaywalk-sim.test.mjs)
+/**
+ * J2 — THE BLACKBIRD's RUNWAYS (COURSE RULES v2 only — versions.js; v1 keeps FLIGHT): a runway = a band of 3 or 4 flight lanes, EACH with
+ * its OWN jet on ONE shared lap, staggered (the lanes' passes spread round the lap in a shuffled order — never all at once: a kid weaves
+ * and times across). Every lane: its tell (≥ MIN_TELL_TICKS) → the pass (the body, `FLIGHT.len` at `FLIGHT.v`) → THE AFTERBURNER TRAIL
+ * (`trail` ticks: the whole lane still burns — touching it = 'blackbird') → quiet. A runway always has a SAFE ground lane right before
+ * and right after it (a place to wait — course.js#typeAt), never another runway back to back. FAIR BY CONSTRUCTION: every layout is
+ * checked as it is made (course.js#runwaySlack — a careful kid, waiting + hopping, gets across from at least `slack` start ticks of
+ * every lap); one that is not falls back to the tight cluster (`gap[0]`), which always leaves a calm gap the whole band is quiet in.
+ *   period   a lane's lap [at heat 0, at heat 1000] = [[min, max], [min, max]] ticks (4–6 s early → 3–4.5 s deeper; never under periodMin)
+ *   four     ‰ of runways with 4 lanes (else 3), by heat
+ *   chance   ‰ a stretch gets runways: s2 = THE FISH MARKET (from lane `first`) · mid = 150–249 · deep = 250 on (+ `two` ‰ of those a 2nd)
+ *   ufo      the most ‰ a stretch gives THE UFO first (never both in one stretch) · THE AIRFIELD: `airfield` runways, never a UFO
+ */
+export const RUNWAY = Object.freeze({
+  first: 120, tell: 96, trail: 42, jitter: 6, periodMin: 180,
+  gap: Object.freeze([18, 0]), slack: 24,   // (the stagger: the ticks between one lane's jet and the next, [fewest, 0 = the lap shared evenly] · a layout leaving under `slack` start ticks a lap with a way across is not used — course.js#runwaySlack)
+  period: Object.freeze([Object.freeze([240, 360]), Object.freeze([180, 270])]),
+  four: Object.freeze([250, 750]),
+  chance: Object.freeze({ s2: 420, mid: 560, deep: 760, two: 450 }),
+  ufo: Object.freeze({ s2: 380, mid: 300, deep: 240 }),
+  airfield: 4,
+});
 
 /** GRASS: obstacles (never on the centre column, never beside a water lane): how many, by heat */
 export const GRASS = Object.freeze({ obstacles: [[0, 3], [1, 5]] });

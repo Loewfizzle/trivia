@@ -3,7 +3,7 @@
 // machine has no ffmpeg / lame: the encoder is the PURE-JS one HIGH RISE's sounds used (scripts/build-highrise-sounds.mjs) — a build tool
 // only, installed OUTSIDE the repo, never in package.json, never shipped:
 //   (once, anywhere outside the repo)   npm i @breezystack/lamejs@1.2.7
-//   node scripts/build-jaywalk-sounds.mjs --lame <…/@breezystack/lamejs/dist/lamejs.js> [--kbps 96]
+//   node scripts/build-jaywalk-sounds.mjs --lame <…/@breezystack/lamejs/dist/lamejs.js> [--kbps 96] [--j1 | --j2]
 // The level is NOT changed here (no gain, no normalising): every cue's level is its row's gain in sounds.js, set by measurement (THE MIX).
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -19,6 +19,14 @@ export const J1_SOUNDS = Object.freeze([
   { id: 'h2h-siren', from: join(SRC, 'sfx8', 'head-to-head-siren.wav'), credit: 'head-to-head-siren' },
   { id: 'last-standing', from: join(SRC, 'sfx6', 'last-standing.wav'), credit: 'last-standing' },
 ]);
+/** J2 — THE BLACKBIRD's RUNWAYS (the owner's picks, Nov 21): the crackle's two new takes, the repeat tell's tick, the burning trail's fire */
+export const J2_SOUNDS = Object.freeze([
+  { id: 'radio-static-2', from: join(SRC, 'sfx9', 'radio-static_2.wav'), credit: 'radio-static_2' },
+  { id: 'radio-static-3', from: join(SRC, 'sfx9', 'radio-static_3.wav'), credit: 'radio-static_3' },
+  { id: 'runway-tick', from: join(SRC, 'sfx9', 'runway-tick.wav'), credit: 'runway-tick' },
+  { id: 'afterburner-flicker', from: join(SRC, 'sfx10', 'afterburner-flicker.wav'), credit: 'Big Branching Fire #1' },
+]);
+const PICK = argv.includes('--j2') ? J2_SOUNDS : argv.includes('--j1') ? J1_SOUNDS : [...J1_SOUNDS, ...J2_SOUNDS];   // (--j2 / --j1: one set only — the other's files stay as they are)
 const lamePath = arg('--lame') || process.env.LAMEJS;
 if (!lamePath || !existsSync(lamePath)) { console.error('give the encoder: --lame <path to @breezystack/lamejs/dist/lamejs.js> (npm i @breezystack/lamejs, outside the repo)'); process.exit(1); }
 const { Mp3Encoder } = await import(pathToFileURL(resolve(lamePath)).href);
@@ -45,7 +53,7 @@ function readWav(buf) {
 const db = v => (v > 0 ? (20 * Math.log10(v)).toFixed(1) : '-inf');
 console.log('| id | from | WAV | MP3 | seconds | RMS dBFS | peak dBFS |');
 console.log('| --- | --- | --- | --- | --- | --- | --- |');
-for (const S of J1_SOUNDS) {
+for (const S of PICK) {
   const raw = readFileSync(S.from), { rate, mono } = readWav(raw);
   const pcm = new Int16Array(mono.length);
   let sq = 0, pk = 0;

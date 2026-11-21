@@ -27,13 +27,15 @@ import { pulseLeft, ufoX, ufoY } from './course.js';
 import { parseGlb, MODEL_REV } from './models.js';
 import { getContext, getSfxBus, isUnlocked } from '../../audio/engine.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
+import { createRunwayEars, distGain } from './runway-sound.js';
 
 const MODELS = new URL('../../../assets/jaywalk/models/', import.meta.url), AUDIO = new URL('../../../audio/city/', import.meta.url);
 const X = c => c - COLS / 2, Z = l => -l;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v), ease = t => t * t * (3 - 2 * t), easeOut = t => 1 - (1 - t) * (1 - t) * (1 - t);
 /** THE NUMBERS (view only — the tests read them) */
 export const FLY = Object.freeze({
-  jetLen: 4.8, jetY: 1.3, jetLead: 16,           // (the SR-71: cells long — H6B: ≈ 1.3× H6A's 3.7; the rules' body is 3 —, how low it flies, the ticks it is drawn before + after its pass)
+  jetLen: 4.8, jetY: 1.3, jetLead: 16, rwScale: 0.7,   // (J2 — rwScale: a v2 RUNWAY lane's jet, × this — it flies one lane)
+           // (the SR-71: cells long — H6B: ≈ 1.3× H6A's 3.7; the rules' body is 3 —, how low it flies, the ticks it is drawn before + after its pass)
   glint: 30,                                     // (the tell's LAST 30 ticks = 0.5 s: the glint + the flare at the edge it comes from)
   shake: 0.075, shakeFrom: 5, shakeTicks: 12,    // (cells — ≈ 3.7 px at ZOOM 8 on a 390 pt phone; 12 ticks = 200 ms)
   ring: [6, 40], flash: [6, 8], trail: 34,      // (the shock ring: born 6 ticks into the pass, 40 ticks long · the band's white flash · the contrails' life)
@@ -47,9 +49,13 @@ export const FLY = Object.freeze({
  * row is the same file as THE MOTHERSHIP plays it (pitched down). The loops' gains are their LOUDEST (they follow the moment).
  */
 export const MIX = Object.freeze({
-  'radio-static_1': { gain: 0.34, what: 'THE BLACKBIRD — the radio crackle as its tell starts' },
-  'jet-scream': { gain: 0.62, at: 0.4, what: '… its scream, started so its peak lands on the pass' },
-  'sonic-boom': { gain: 0.8, what: '… the boom on the pass' },
+  'radio-static_1': { gain: 0.34, what: 'THE BLACKBIRD — the radio crackle as a runway comes near (J2: once a visit, 8 s apart, three takes in turn)' },
+  'radio-static_2': { gain: 0.34, file: '../jaywalk/radio-static-2', what: '… its second take (J2 — original, CC0 1.0 Ben)' },
+  'radio-static_3': { gain: 0.4, file: '../jaywalk/radio-static-3', what: '… its third take (J2 — original, CC0 1.0 Ben)' },
+  'runway-tick': { gain: 0.12, file: '../jaywalk/runway-tick', what: '… the REPEAT tell while you wait at / on a runway: a soft tick (J2 — original, CC0 1.0 Ben)' },
+  'jet-scream': { gain: 0.62, at: 0.4, what: '… its scream, started so its peak lands on the pass (J2: faded by its distance)' },
+  'sonic-boom': { gain: 0.8, what: '… the boom on the pass (J2: faded by its distance)' },
+  'afterburner-flicker': { gain: 0.3, file: '../jaywalk/afterburner-flicker', what: '… THE AFTERBURNER TRAIL burning on the lane, under the boom (J2 — "Big Branching Fire #1", Joseph SARDIN, CC0 1.0; faded by its distance)' },
   'ufo-hum': { gain: 0.3, loop: true, what: 'THE UFO — its hum, nearer = louder (this is its loudest)' },
   'ufo-beam-on': { gain: 0.6, at: 3.0, what: 'THE ABDUCTION — the beam slams down' },
   'ufo-lift': { gain: 0.5, at: 3.4, what: '… the kid goes up' },
@@ -79,7 +85,7 @@ function sbuf(n) {
 }
 const played = [];   // (the test hook: every sound asked for)
 /** CITY PART 1 — the music-off sweep's seam (tests/integration/podcast-sweep.mjs): one flyer sound by its MIX id, as the run plays it */
-export const playFlyerSound = id => play(String(id).replace(/@.*/, ''), { ...(MIX[id] || {}), loop: false, at: 0 });
+export const playFlyerSound = id => play((MIX[id] && MIX[id].file) || String(id).replace(/@.*/, ''), { ...(MIX[id] || {}), loop: false, at: 0 });
 /** play `n` now → a handle { gain(v, s), stop(fadeS) } at once (it sounds as soon as its bytes are decoded — if it is still wanted) */
 function play(n, { gain = 1, rate = 1, loop = false, at = 0, pan = 0 } = {}) {
   played.push(n); if (played.length > 80) played.shift();
@@ -139,14 +145,16 @@ export function createFlyers(C) {
     fetch(new URL(`${n}.glb?v=${MODEL_REV}`, MODELS)).then(r => (r.ok ? r.arrayBuffer() : null)).then(b => { if (b && !dead) { geo[n] = parseGlb(b); built(n); } }).catch(() => {});
   }
   const v3 = new THREE.Vector3();
-  // THE BLACKBIRD: two of them at the very most in view (THE AIRFIELD has two bands) — one geometry, one material
-  const jetMat = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0xffffff, roughness: 0.36, metalness: 0.6, envMapIntensity: 1.5, side: THREE.DoubleSide });
-  const jets = [];
+  let lastSeen = 0;   // (the jets on screen last frame — the tests' read)
+  // THE BLACKBIRD — J2: a v2 RUNWAY has a jet a lane (3–4, staggered) and THE AIRFIELD two runways in view: up to JETS at once, ONE
+  // instanced mesh (one draw call however many fly — THE HARD LIMIT: an 8-kid night frame stays ≤ 64), one geometry, one material
+  const JETS = 6, jetMat = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0xffffff, roughness: 0.36, metalness: 0.6, envMapIntensity: 1.5, side: THREE.DoubleSide });
+  const jets = [], O = new THREE.Object3D();   // (jets[0] = the instanced mesh once its model has landed · O = the one matrix maker, reused)
   // ITS AFTERBURNERS = SOLID FLAME CONES (H6B's second review: the additive ribbons washed to a white smear over the lit runway + the
   // ring by night, and read as see-through motion stripes by day): one opaque tapered cone a nozzle, unlit — white-hot at the nozzle,
   // blue, then orange, a pink tip — the same fire in both looks, drawn in front of everything on the ground; it glows by night (the
-  // bloom's layer). Four at the most in view (two jets).
-  const flameMat = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, toneMapped: false }), flames = [];
+  // bloom's layer). Two a jet (J2: one instanced mesh for them all).
+  const flameMat = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, toneMapped: false }), flames = [];   // (flames[0] = their instanced mesh — two a jet)
   function flameGeo() {
     const pos = [], col = [], idx = [], c = new THREE.Color(), SEG = 12;
     const rings = [[0, 0.62, 0xffffff], [0.07, 1, 0xf2f8ff], [0.2, 0.96, 0x7fc0ff], [0.34, 0.86, 0x3f8cff], [0.5, 0.72, 0xff8a1e], [0.72, 0.46, 0xff5a2a], [0.9, 0.2, 0xff4f9a], [1, 0.02, 0xff8ac8]];
@@ -163,19 +171,25 @@ export function createFlyers(C) {
   const ufos = [];
   const mk = (g, m) => { const o = new THREE.Mesh(g, m); o.visible = false; o.frustumCulled = false; scene.add(o); return o; };
   function built(n) {
-    if (n === 'blackbird') { for (let i = 0; i < 2; i++) { const m = mk(geo[n], jetMat); m.scale.setScalar(FLY.jetLen); m.rotation.order = 'YXZ'; jets.push(m); } geo.flame = flameGeo(); for (let i = 0; i < 4; i++) { const m = mk(geo.flame, flameMat); m.layers.enable(1); flames.push(m); } }
+    if (n === 'blackbird') {
+      const im = (g, m, k) => { const o = new THREE.InstancedMesh(g, m, k); o.instanceMatrix.setUsage(THREE.DynamicDrawUsage); o.count = 1; o.visible = false; o.frustumCulled = false; scene.add(o); return o; };
+      jets.push(im(geo[n], jetMat, JETS)); geo.flame = flameGeo(); const f = im(geo.flame, flameMat, JETS * 2); f.layers.enable(1); flames.push(f);
+    }
     if (n === 'ufo') for (let i = 0; i < 2; i++) { const m = mk(geo[n], ufoMat()); m.scale.setScalar(FLY.ufoD); m.rotation.order = 'XYZ'; ufos.push({ m, id: -1 }); }
     if (n === 'mothership') { bakeAsk = true; return; }
     // NO HITCH WHEN IT LANDS: the new material's program is compiled OFF the frame (three's compileAsync — the browser's parallel shader
     // compile), the meshes shown far under the ground for that one call; a browser without it falls back to the scene's own warm frame
     const ms = n === 'blackbird' ? [...jets, ...flames] : ufos.map(q => q.m);
     for (const m of ms) { m.visible = true; m.position.set(0, -60, 0); }
-    const done = () => { for (const m of ms) if (m.position.y === -60) m.visible = false; };
+    const done = () => { for (const m of ms) if (m.position.y === -60) { m.visible = false; if (m.isInstancedMesh) { m.position.set(0, 0, 0); m.count = 0; } } };   // (J2: an instanced mesh's own place stays the world's — its jets carry theirs)
     try { const q = C.renderer.compileAsync(scene, cam); if (q && q.then) q.then(done, done); else { done(); C.rewarm(); } } catch { done(); C.rewarm(); }
   }
-  let nj = 0, nf = 0, nu = 0, nk = 0, shakeNow = 0, humD = 99, dimNow = 0, duckK = 1, duckJ = 1;
+  let nj = 0, nf = 0, nu = 0, nk = 0, shakeNow = 0, humD = 99, dimNow = 0, duckK = 1, duckJ = 1, jetsSeen = 0;
+  /** one jet (or one of its flames) into its instanced mesh this frame — `sx` the scale's x (a flame's flicker), `sy` its y + z */
+  function putIn(M, i, x, y, z, rx, ry, rz, sx, sy) { O.position.set(x, y, z); O.rotation.set(rx, ry, rz, 'YXZ'); O.scale.set(sx, sy, sy); O.updateMatrix(); M.setMatrixAt(i, O.matrix); }
   /** play one of THE MIX's rows (`o` adds to it: a pan, a start that follows the moment) */
-  const mix = (id, o) => play(id.replace(/@.*/, ''), { ...MIX[id], ...o });
+  const mix = (id, o) => play(MIX[id].file || id.replace(/@.*/, ''), { ...MIX[id], ...o });
+  const ears = createRunwayEars();   // (J2 — THE SOUND RULE: runway-sound.js)
   // (the kid's own moments are asked for BEFORE night.js resets its instanced kinds for the frame: what they lay waits here)
   const pend = [], flush = () => { for (const f of pend) f(); pend.length = 0; };
   const snd = { bands: new Map(), hum: null, abd: 0, ship: null, rum: null, shipAt: -1 };
@@ -192,7 +206,7 @@ export function createFlyers(C) {
       for (const q of ufos) { const m = q.m.material; m.metalness = day ? 1 : 0.92; m.roughness = day ? 0.14 : 0.26; }
       if (ship.el) bakeAsk = true;   // (THE MOTHERSHIP's sprite is baked for the look: sunlit rim by day)
     }
-    nj = 0; nf = 0; nu = 0; shakeNow = 0; humD = 99;
+    nj = 0; nf = 0; nu = 0; shakeNow = 0; humD = 99; jetsSeen = 0;
     if (bakeAsk && C.renderer && geo.mothership) { bakeAsk = false; try { bakeShip(); } catch { ship.cv = null; } }
     flush();
   }
@@ -206,17 +220,28 @@ export function createFlyers(C) {
   /** one flight band this frame: its pulse, `u` = the ticks into its lap (0 = the pass begins), the band's middle z, how lit it is */
   function jet(p, u, zc, lt) {
     need('blackbird'); sfetch('jet-scream'); sfetch('sonic-boom'); sfetch('radio-static_1');
+    if (p.trail) { sfetch(MIX['radio-static_2'].file); sfetch(MIX['radio-static_3'].file); sfetch(MIX['runway-tick'].file); sfetch(MIX['afterburner-flicker'].file); }
+    const SC = p.trail ? FLY.rwScale : 1, JL = FLY.jetLen * SC;   // (J2: a v2 runway's jet flies ONE lane — smaller, never over the next lane)
     const dir = p.dir, left0 = p.period - u, tell = u >= p.period - p.tell, near = Math.abs(-zc - F.ky) < 10;
-    // THE SOUNDS — this phone's own living kid's, the band on his screen: the radio crackle as the warning starts, the jet scream
-    // (started so its peak lands on the pass), the sonic boom on it
-    if (F.own && F.alive && near) {
+    // THE SOUNDS — this phone's own living kid's (J2 — THE SOUND RULE, runway-sound.js): the radio crackle ONCE a visit to a runway
+    // within reach (8 s apart, three takes in turn) · a soft tick for its later tells · every pass's scream (started so its peak lands on
+    // the pass) + boom + (v2) the trail's fire — each faded by the lane's distance from him, silent off-screen
+    if (F.own && F.alive) {
+      const y0 = p.rw != null ? p.rw : p.band, rn = p.rn != null ? p.rn : p.n;
+      ears.see(y0, rn);
       const k = Math.floor((F.t - p.phase) / p.period) + (tell ? 1 : 0), key = p.band, S = snd.bands.get(key) || { k: -1, s: 0 };
-      if (S.k !== k) { S.k = k; S.s = 0; snd.bands.set(key, S); if (snd.bands.size > 6) snd.bands.delete(snd.bands.keys().next().value); }
-      const pan = -dir * 0.6;
-      if (tell && !(S.s & 1) && left0 > p.tell - 20) { S.s |= 1; mix('radio-static_1'); mix('jet-scream', { at: Math.max(0, 2.4 - left0 / TICK_HZ), pan }); }
-      if (!(S.s & 2) && ((tell && left0 <= 14) || (!tell && u < 20))) { S.s |= 2; mix('sonic-boom', { pan: pan * 0.5 }); }
-      // (the music ducks under it: from the tell's last second — the scream's peak — to the boom's tail)
-      if ((tell && left0 <= TICK_HZ) || (!tell && u < 100)) duckJ = DUCK.jet;
+      if (S.k !== k) { S.k = k; S.s = 0; snd.bands.set(key, S); if (snd.bands.size > 12) snd.bands.delete(snd.bands.keys().next().value); }
+      const pan = -dir * 0.6, g = distGain(-zc - F.ky);
+      if (tell && !(S.s & 1) && left0 > p.tell - 20) {
+        S.s |= 1;
+        const w = ears.tell(y0, F.clock);
+        if (w === 'crackle') mix(ears.take()); else if (w === 'tick') mix('runway-tick');
+        if (g > 0) mix('jet-scream', { at: Math.max(0, 2.4 - left0 / TICK_HZ), pan, gain: MIX['jet-scream'].gain * g });
+      }
+      if (!(S.s & 2) && ((tell && left0 <= 14) || (!tell && u < 20))) { S.s |= 2; if (g > 0) mix('sonic-boom', { pan: pan * 0.5, gain: MIX['sonic-boom'].gain * g }); }
+      if (p.trail && !(S.s & 4) && !tell && u >= p.pass && u < p.pass + 20) { S.s |= 4; if (g > 0) mix('afterburner-flicker', { pan: pan * 0.4, gain: MIX['afterburner-flicker'].gain * g }); }
+      // (the music ducks under a NEAR pass: from the tell's last second — the scream's peak — to the boom's tail)
+      if (g >= 0.5 && ((tell && left0 <= TICK_HZ) || (!tell && u < 100))) duckJ = DUCK.jet;
     }
     // THE GLINT (the tell's last 0.5 s): AT THE SCREEN EDGE IT COMES FROM (the camera's own edge on the band's row) — a big four-point
     // star + the afterburners' flare (a blue-white heart in an orange rim), on a dark halo by day; it grows as the jet nears
@@ -245,21 +270,22 @@ export function createFlyers(C) {
     const s = u < p.pass + FLY.jetLead ? u : u > p.period - FLY.jetLead ? u - p.period : null;
     let burn = null;
     if (s !== null) {
-      const len = p.len / FP, cx = X(pulseLeft(p, s) / FP + len / 2), M = jets[nj++], nx = cx - dir * 0.4 * FLY.jetLen, y = FLY.jetY;
-      if (M) { M.visible = true; M.position.set(cx, y, zc); M.rotation.set(0, dir * Math.PI / 2, dir * 0.24); }
+      const len = p.len / FP, cx = X(pulseLeft(p, s) / FP + len / 2), nx = cx - dir * 0.4 * JL, y = FLY.jetY * (0.6 + 0.4 * SC);
+      if (jets[0] && nj < JETS) { putIn(jets[0], nj++, cx, y, zc, 0, dir * Math.PI / 2, dir * 0.24, JL, JL); if (Math.abs(cx) < 6.5) jetsSeen++; }
       // ITS SHADOW sweeps the band's two lanes right under it: a hard jet-sized heart in a soft edge (by day it is laid as dark paint,
       // over the band's own lights + flash — the day's signature)
       if (day) K.flat.put(cx + 0.35, 0.083, zc + 0.2, 13.5, 1, 5.4, 0, 0x0a1430, 1, 0, 0.62 * Math.min(1, lt));   // (soft + cool: the second review — a hard black oval looked pasted on)
-      else K.shadow.put(cx, 0.03, zc, FLY.jetLen * 1.05, 1.4, 2.7, 0, 0, 1, 0, 0.85 * Math.min(1, lt));
+      else K.shadow.put(cx, 0.03, zc, JL * 1.05, 1.4, 2.7 * SC, 0, 0, 1, 0, 0.85 * Math.min(1, lt));
       LF(cx, 0.045, zc, 5.4, 1, 2.6, 0, 0xffd9a0, 1, 0, 0.14 * lt);                                    // (a thin warm rim: the runway's lights on its belly)
       const fl = reduce ? 1 : 0.84 + 0.16 * Math.sin(F.clock / 17), ry = dir > 0 ? Math.PI : 0, rz = dir > 0 ? 0 : Math.PI;
       // THE AFTERBURNERS — BLAZING (H6B): from each nozzle a SOLID flame cone (white-hot → blue → orange → a pink tip; it flickers in
       // length), ONE hot core at the nozzle, a faint long pink tail behind it, a soft warm glow round it — laid LAST (burn): nothing
       // washes it out, in either look
       const fy = dir > 0 ? Math.PI : 0;
-      for (const e of [-0.56, 0.56]) { const m = flames[nf++]; if (m) { m.visible = lt > 0.15; m.position.set(nx, y, zc + e); m.rotation.set(0, fy, 0); const k = reduce ? 1 : 0.9 + 0.2 * Math.sin(F.clock / 19 + e * 7); m.scale.set(3.3 * k, 0.3, 0.3); } }
+      if (flames[0] && lt > 0.15) for (const e0 of [-0.56, 0.56]) if (nf < JETS * 2) { const e = e0 * SC, k = reduce ? 1 : 0.9 + 0.2 * Math.sin(F.clock / 19 + e0 * 7); putIn(flames[0], nf++, nx, y, zc + e, 0, fy, 0, 3.3 * k * SC, 0.3 * SC); }
       burn = () => {
-        for (const e of [-0.56, 0.56]) {
+        for (const e0 of [-0.56, 0.56]) {
+          const e = e0 * SC;
           K.flat.put(nx - dir * 5.4, y - 0.02, zc + e, 7.4, 1, 0.8, rz, 0xff4f9a, 1, 1, (day ? 0.5 : 0.3) * fl * lt);                 // the faint long tail
           K.flat.put(nx - dir * 1.9, y - 0.03, zc + e, 5.2, 1, 1.5, 0, 0xff7a2a, 1, 0, (day ? 0.3 : 0.22) * fl * lt);               // a soft warm glow round the flame
           K.bill.put(nx - dir * 0.1, y, zc + e, 0.8, 0.8, 1, 0, 0xeaf4ff, 1, 5, lt);                                                 // ONE hot core a nozzle
@@ -587,8 +613,9 @@ export function createFlyers(C) {
   /** the frame's end: what was not drawn this frame is put away; the UFO's hum follows how near it is */
   function end() {
     flush();
-    for (let i = nj; i < jets.length; i++) jets[i].visible = false;
-    for (let i = nf; i < flames.length; i++) flames[i].visible = false;
+    for (const [M, n] of [[jets[0], nj], [flames[0], nf]]) if (M) { M.count = n; M.visible = n > 0; if (n) M.instanceMatrix.needsUpdate = true; }
+    lastSeen = jetsSeen; jetsSeen = 0;
+    if (F.own && F.alive) ears.frame(F.clock, F.ky); else ears.reset();
     for (let i = nu; i < ufos.length; i++) { ufos[i].m.visible = false; ufos[i].id = -1; }
     // (the kid's own moments are asked for BEFORE begin(): what they counted is closed here, at the frame's end)
     for (let i = nk; i < sparks.length; i++) sparks[i].q0 = -1;
@@ -610,7 +637,7 @@ export function createFlyers(C) {
     shake: () => shakeNow,
     /** the meshes night.js's warm frame must have seen (their programs + buffers made before the moment, never in it) */
     meshes: () => [...jets, ...flames, ...ufos.map(q => q.m)],
-    info: () => ({ models: Object.keys(geo), jets: jets.filter(m => m.visible && Math.abs(m.position.x) < 6.5).length, ufos: ufos.filter(q => q.m.visible).length, ship: !!(ship.cv && ship.cv.width), shipOn: ship.on, shipText: ship.txt ? ship.txt.textContent : '', abducting: abd.on, dim: dimO, sparks: sparks.filter(q => q.q0 >= 0).length, sounds: played.slice() }),
+    info: () => ({ models: Object.keys(geo), jets: lastSeen, ears: ears.state(), ufos: ufos.filter(q => q.m.visible).length, ship: !!(ship.cv && ship.cv.width), shipOn: ship.on, shipText: ship.txt ? ship.txt.textContent : '', abducting: abd.on, dim: dimO, sparks: sparks.filter(q => q.q0 >= 0).length, sounds: played.slice() }),
     /** H6B — THE END SCREEN's MEMORY (night.js#rest): THE MOTHERSHIP's sprite — 6.5 MB of canvases, baked at a match's start so her
      *  arrival costs no frame — is LET GO while the end screen covers the scene, unless she is up on it (the gold finish: the top of
      *  the end screen is see-through); baked again as the scene wakes (the next match's count) */

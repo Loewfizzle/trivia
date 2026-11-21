@@ -7,7 +7,7 @@
 import { hashString, rngFrom } from '../../core/rng.js';
 import {
   FP, COLS, WIDTH, MID_COL, CALM_LANES, STRETCH, LANDMARKS, landmarkAt, heatAt, byHeat, MIX, FIRST, WATER_RUN_MAX, RAIL_RUN_MAX, ROAD, WATER, RAIL, FLIGHT, UFO, GRASS,
-  KID_HALF, LOG_GRACE, AREAS, NO_LEAN, areaIndex,
+  KID_HALF, LOG_GRACE, AREAS, NO_LEAN, areaIndex, EVEN, RUNWAY, MIN_TELL_TICKS, HOP_TICKS,
 } from './tuning.js';
 
 const ri = (rand, a, b) => (b <= a ? a : a + Math.floor(rand() * (b - a + 1)));   // inclusive
@@ -37,9 +37,51 @@ export function rawType(seed, i, cv = 1) {
   return r < wg ? 'grass' : r < wg + wr ? 'road' : r < wg + wr + ww ? 'water' : 'rail';
 }
 
+/**
+ * J2 — EVEN STARTS (v2 only — tuning.js#EVEN): the OPENING's kinds (lanes 0 … STRETCH − 1) for a seed, decided IN ORDER — each lane's raw
+ * kind (its own first draw, as in v1), then the spread tightened: a ground lane past the run / the window's cap becomes a hazard (its own
+ * second rng — the lane's own draws stay its own), a hazard past its run becomes ground; never more than 3 water — or 3 rail — in a row;
+ * no water before FIRST.water, no rail before FIRST.rail. PURE: a function of the seed alone (memoised, a few seeds at a time) — the
+ * same whatever lane is asked first, on the phone or the server.
+ */
+const OPENINGS = new Map();
+function openingKinds(seed) {
+  let K = OPENINGS.get(seed);
+  if (K) return K;
+  K = new Array(STRETCH).fill('grass');
+  let g = 0, hz = 0;
+  const runOf = (i, t) => { let n = 0; while (i - 1 - n >= CALM_LANES && K[i - 1 - n] === t) n++; return n; };
+  const grassIn9 = i => { let n = 0; for (let j = Math.max(CALM_LANES, i - 9); j < i; j++) if (K[j] === 'grass') n++; return n; };
+  const hazard = i => {   // (a forced hazard: road · water · rail by the heat's own weights — never a 4th water / rail in a row)
+    const heat = heatAt(i), rand = rngFrom(hashString(`${seed}:e${i}`));
+    const wr = byHeat(MIX.road[0], MIX.road[1], heat), ww = i >= FIRST.water && runOf(i, 'water') < WATER_RUN_MAX ? byHeat(MIX.water[0], MIX.water[1], heat) : 0;
+    const wt = i >= FIRST.rail && runOf(i, 'rail') < RAIL_RUN_MAX ? byHeat(MIX.rail[0], MIX.rail[1], heat) : 0;
+    const r = Math.floor(rand() * (wr + ww + wt));
+    return r < wr ? 'road' : r < wr + ww ? 'water' : 'rail';
+  };
+  for (let i = CALM_LANES; i < STRETCH; i++) {
+    let t = rawType(seed, i, 2);
+    if ((t === 'water' && runOf(i, 'water') >= WATER_RUN_MAX) || (t === 'rail' && runOf(i, 'rail') >= RAIL_RUN_MAX)) t = 'grass';
+    if (t === 'grass' && (g >= EVEN.grassRun || grassIn9(i) >= EVEN.grassPer10)) t = hazard(i);
+    else if (t !== 'grass' && hz >= EVEN.hazardRun && g < EVEN.grassRun && grassIn9(i) < EVEN.grassPer10) t = 'grass';
+    K[i] = t;
+    if (t === 'grass') { g++; hz = 0; } else { hz++; g = 0; }
+  }
+  OPENINGS.set(seed, K);
+  if (OPENINGS.size > 16) OPENINGS.delete(OPENINGS.keys().next().value);
+  return K;
+}
+
 /** A STRETCH's SPECIALS (the 50 lanes after a landmark): THE UFO (from lane 100) or THE BLACKBIRD's flight path (from lane 150) — rare, from
  *  the seed, NEVER both in one stretch. → { s, ufo: zone | null, bb: band | null } */
+const SPECIALS2 = new Map();   // (J2 — v2's stretches, a few at a time: every lane asks for its stretch's, and a runway's layout is checked as it is made)
 export function specials(seed, s, cv = 1) {
+  if (cv >= 2) {
+    const key = `${seed}|${s}`;
+    let sp = SPECIALS2.get(key);
+    if (!sp) { sp = specials2(seed, s); SPECIALS2.set(key, sp); if (SPECIALS2.size > 96) SPECIALS2.delete(SPECIALS2.keys().next().value); }
+    return sp;
+  }
   const rand = rngFrom(hashString(`${seed}:s${s}`)), base = s * STRETCH, heat = heatAt(base);
   const pick = Math.floor(rand() * 1000);
   const a = ri(rand, 8, 30), b = ri(rand, 10, 38);
@@ -62,17 +104,84 @@ export function specials(seed, s, cv = 1) {
   else if (pick < cu + cb) out.bb = band(base + b, period, phase, dir);
   return out;
 }
-/** the flight band (of a stretch's one or two) this lane is on — or null */
-const bandAt = (sp, i) => (sp.bb && i >= sp.bb.y0 && i < sp.bb.y0 + sp.bb.n ? sp.bb : sp.bb2 && i >= sp.bb2.y0 && i < sp.bb2.y0 + sp.bb2.n ? sp.bb2 : null);
+/**
+ * J2 — A STRETCH's SPECIALS, COURSE RULES v2 (tuning.js#RUNWAY): THE UFO as in v1 (its zone drawn from the same stream — from lane 100,
+ * capped lower) or THE BLACKBIRD's RUNWAYS — from lane RUNWAY.first, more often from 250, THE AIRFIELD full of them; never both in one
+ * stretch. → { s, ufo, bb: null, bb2: null, rw: [{ id, y0, n, lanes: [the pulse of each lane] }] }
+ */
+function specials2(seed, s) {
+  const rand = rngFrom(hashString(`${seed}:s${s}`)), base = s * STRETCH, heat = heatAt(base);
+  const pick = Math.floor(rand() * 1000);
+  const a = ri(rand, 8, 30); ri(rand, 10, 38);   // (the UFO's zone + drift: v1's own draws, in v1's order)
+  const vx = ri(rand, UFO.vx[0], UFO.vx[1]) * (rand() < 0.5 ? 1 : -1), vy = ri(rand, UFO.vy[0], UFO.vy[1]) * (rand() < 0.5 ? 1 : -1);
+  const px = ri(rand, 0, 2 * WIDTH - 1), py = ri(rand, 0, 2 * UFO.lanes * FP - 1);
+  const out = { s, ufo: null, bb: null, bb2: null, rw: [] };
+  if (s < 2) return out;
+  const R = rngFrom(hashString(`${seed}:rw${s}`)), C = RUNWAY.chance, airfield = !!leanOf(base).flight;
+  const tier = s === 2 ? 's2' : base < 250 ? 'mid' : 'deep';
+  const cu = airfield ? 0 : Math.min(RUNWAY.ufo[tier], Math.min(450, byHeat(UFO.chance[0], UFO.chance[1], heat)));
+  if (pick < cu) { out.ufo = { id: s, y0: base + a, h: UFO.lanes, r: UFO.r, vx, vy, px, py }; return out; }
+  const sizeOf = () => (Math.floor(R() * 1000) < Math.min(950, byHeat(RUNWAY.four[0], RUNWAY.four[1], heat)) ? 4 : 3);
+  const at = [];   // [{ y0, n }]
+  if (airfield) { for (let k = 0; k < RUNWAY.airfield; k++) at.push({ y0: base + 3 + k * 11 + ri(R, 0, 2), n: sizeOf() }); }
+  else if (pick < cu + C[tier] * (1000 - cu) / 1000) {
+    const two = tier === 'deep' && Math.floor(R() * 1000) < C.two;
+    const n1 = sizeOf(), lo = Math.max(3, RUNWAY.first - base);
+    if (!two) at.push({ y0: base + ri(R, lo, 46 - n1), n: n1 });
+    else { const n2 = sizeOf(), y1 = ri(R, lo, 18); at.push({ y0: base + y1, n: n1 }, { y0: base + ri(R, y1 + n1 + 6, 46 - n2), n: n2 }); }
+  }
+  for (let k = 0; k < at.length; k++) {
+    const { y0, n } = at[k], h = heatAt(y0);
+    const P = Math.max(RUNWAY.periodMin, ri(R, byHeat(RUNWAY.period[0][0], RUNWAY.period[1][0], h), byHeat(RUNWAY.period[0][1], RUNWAY.period[1][1], h)));
+    const ph0 = ri(R, 0, P - 1), slots = [], dirs = [], jit = [];
+    for (let j = 0; j < n; j++) { slots.push(j); dirs.push(R() < 0.5 ? 1 : -1); jit.push(ri(R, 0, RUNWAY.jitter)); }
+    for (let j = n - 1; j > 0; j--) { const q = ri(R, 0, j), t = slots[j]; slots[j] = slots[q]; slots[q] = t; }   // (the order the jets come in: shuffled)
+    // THE STAGGER: the ticks between one lane's jet and the next — from the tight cluster to the lap shared evenly (by the seed); a layout
+    // that leaves a careful kid too few start ticks a lap to get across (runwaySlack) is not used: the tight cluster instead (always fair)
+    const even = Math.floor(P / n), D0 = ri(R, RUNWAY.gap[0], RUNWAY.gap[1] || even);
+    const lay = D => { const L = []; for (let j = 0; j < n; j++) L.push({ period: P, phase: mod(ph0 + slots[j] * D + jit[j], P), tell: Math.max(MIN_TELL_TICKS, RUNWAY.tell), len: FLIGHT.len, v: FLIGHT.v, pass: ceilDiv(WIDTH + FLIGHT.len, FLIGHT.v), dir: dirs[j], band: y0 + j, n: 1, trail: RUNWAY.trail, rw: y0, rn: n }); return L; };
+    let lanes = lay(D0);
+    if (runwaySlack(lanes) < RUNWAY.slack) lanes = lay(RUNWAY.gap[0]);
+    out.rw.push({ id: `${s}:${k}`, y0, n, lanes });
+  }
+  return out;
+}
+/**
+ * J2 — FAIR BY CONSTRUCTION: how many start ticks of a lap a CAREFUL kid on the safe lane before a runway can leave from and get across —
+ * waiting (on a lane while it is quiet) + hopping up (a hop = HOP_TICKS: the lane it left for the first half, the next one after —
+ * engine.js). A lane counts as deadly through its pass + its trail at EVERY column (the jet crosses the lane in `pass` ticks: the
+ * strictest column for each tick). PURE, integers: a backward pass over three laps of (lane, tick).
+ */
+export function runwaySlack(lanes) {
+  const n = lanes.length, P = lanes[0].period, H = 3 * P, burn = lanes[0].pass + lanes[0].trail, half = HOP_TICKS >> 1;
+  const deadly = (j, t) => j >= 0 && j < n && mod(t - lanes[j].phase, P) < burn;
+  // ok[j][t] = idle on lane j at tick t (alive) → across before the horizon; j = n is the safe lane after
+  const ok = []; for (let j = 0; j <= n; j++) ok.push(new Uint8Array(H + HOP_TICKS + 2));
+  ok[n].fill(1);
+  const hop = (j, t) => { for (let u = 1; u < half; u++) if (deadly(j, t + u)) return false; for (let u = half; u <= HOP_TICKS; u++) if (deadly(j + 1, t + u)) return false; return true; };
+  for (let t = H; t >= 0; t--) for (let j = n - 1; j >= 0; j--) ok[j][t] = (!deadly(j, t + 1) && ok[j][t + 1]) || (hop(j, t) && ok[j + 1][t + HOP_TICKS]) ? 1 : 0;
+  let c = 0;
+  for (let t = P; t < 2 * P; t++) if (hop(-1, t) && ok[0][t + HOP_TICKS]) c++;
+  return c;
+}
+/** the flight band (of a stretch's one or two) this lane is on — or null (J2 — v2: the runway lane's own `{ pulse }`) */
+const bandAt = (sp, i) => {
+  if (sp.rw) { for (const r of sp.rw) if (i >= r.y0 && i < r.y0 + r.n) return { pulse: r.lanes[i - r.y0] }; return null; }
+  return sp.bb && i >= sp.bb.y0 && i < sp.bb.y0 + sp.bb.n ? sp.bb : sp.bb2 && i >= sp.bb2.y0 && i < sp.bb2.y0 + sp.bb2.n ? sp.bb2 : null;
+};
+/** J2 — v2: the SAFE ground lane right before and right after every runway (a place to wait) */
+const waitAt = (sp, i) => { if (sp.rw) for (const r of sp.rw) if (i === r.y0 - 1 || i === r.y0 + r.n) return true; return false; };
 /** can THE UFO's beam reach this lane? (its zone + one lane each side — the circle's reach) */
 const ufoReach = (u, i) => !!u && i >= u.y0 - 1 && i <= u.y0 + u.h;
 
 /** a lane's FINAL kind: 'grass' | 'road' | 'water' | 'rail' | 'flight' — the raw kind after the course's rules (the calm opening, the
  *  landmark lanes, the flight path's bands, no water / rail under a UFO, never more than 3 water — or 3 rail — lanes in a row). Reads raw kinds only: no recursion. */
 export function typeAt(seed, i, sp = null, cv = 1) {
+  if (cv >= 2 && i >= 0 && i < STRETCH) return i < CALM_LANES ? 'grass' : openingKinds(seed)[i];   // (J2 — EVEN STARTS)
   if (!sp) sp = specials(seed, Math.floor(i / STRETCH), cv);
   if (i < CALM_LANES || i % STRETCH === 0) return 'grass';
   if (bandAt(sp, i)) return 'flight';
+  if (cv >= 2 && waitAt(sp, i)) return 'grass';
   let t = rawType(seed, i);
   if ((t === 'water' || t === 'rail') && ufoReach(sp.ufo, i)) return 'grass';
   if (t === 'water' || t === 'rail') {

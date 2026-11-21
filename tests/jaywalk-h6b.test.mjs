@@ -47,7 +47,7 @@ test('THE MATCH CHIPS are COMPACT: a small dot + the name short + the lanes, 13 
 });
 
 test('THE LAB LINK ?lane=N: a LOOK CHECK from the grass lane nearest N — WARPED from its first frame: never counts, never a replay; zero server calls', () => {
-  assert.match(LAB, /const LANE0 = \/\^\\d\{1,5\}\$\/\.test\(Q\.get\('lane'\) \|\| ''\) \? Math\.min\(20000, Number\(Q\.get\('lane'\)\)\) : 0;/, 'a plain number only');
+  assert.match(LAB, /const LANE_Q = \/\^\\d\{1,5\}\$\/\.test\(Q\.get\('lane'\) \|\| ''\) \? Math\.min\(20000, Number\(Q\.get\('lane'\)\)\) : 0;/, 'a plain number only');
   assert.match(LAB, /if \(LANE0\) \{ let y = LANE0; for \(let d = 0; d < 40; d\+\+\) \{[\s\S]{0,300}? warped = true; safe = true; run\.y = y; run\.best = y; run\.wall = \(y - 5\) \* FP;/, 'every run of that page starts there, WARPED');
   assert.match(LAB, /check\.textContent = warped \? 'WARPED \(a look check\) — no replay'/, 'its end says so: never REPLAY = LIVE');
   assert.doesNotMatch(LAB, /firebase|\/api\/|fetch\(/, 'the lab still loads no Firebase and calls no /api');
@@ -113,8 +113,10 @@ test('THE MIX: NEW BEST = its B take (ONE take — the sparkle is THE AREA ARRIV
   for (const s of SOUNDS) assert.ok(s.gain > 0.1 && s.gain <= 2.5, `${s.id}: ${s.gain}`);
   // the city's flyer sounds: ONE table, every play through it
   const mix = /export const MIX = Object\.freeze\(\{([\s\S]*?)\n\}\);/.exec(read('js/games/jaywalk/flyers.js'))[1], ids = [...mix.matchAll(/\n  '([\w@-]+)': \{ gain: ([\d.]+)/g)].map(m => [m[1], +m[2]]);
-  assert.deepEqual(ids.map(q => q[0]), ['radio-static_1', 'jet-scream', 'sonic-boom', 'ufo-hum', 'ufo-beam-on', 'ufo-lift', 'ufo-depart', 'ufo-beam-off', 'ufo-hum@ship', 'ufo-beam-on@ship', 'ufo-lift@ship']);
-  for (const [id, g] of ids) { assert.ok(g > 0.2 && g <= 0.9, `${id}: ${g}`); assert.ok(existsSync(new URL(`../audio/city/${id.replace(/@.*/, '')}.mp3`, import.meta.url)), `${id}: the city's own file`); }
+  assert.deepEqual(ids.map(q => q[0]), ['radio-static_1', 'radio-static_2', 'radio-static_3', 'runway-tick', 'jet-scream', 'sonic-boom', 'afterburner-flicker', 'ufo-hum', 'ufo-beam-on', 'ufo-lift', 'ufo-depart', 'ufo-beam-off', 'ufo-hum@ship', 'ufo-beam-on@ship', 'ufo-lift@ship']);
+  // (J2 — the runways' own files sit in audio/jaywalk (a row's `file`); THE REPEAT TELL's tick is soft on purpose — never as loud as the crackle)
+  const fileOf = id => { const m = new RegExp(`'${id}': \\{[^}]*file: '([^']+)'`).exec(mix); return m ? m[1] : id.replace(/@.*/, ''); };
+  for (const [id, g] of ids) { assert.ok(g > (id === 'runway-tick' ? 0.05 : 0.2) && g <= 0.9, `${id}: ${g}`); assert.ok(existsSync(new URL(`../audio/city/${fileOf(id)}.mp3`, import.meta.url)), `${id}: its file`); }
   assert.doesNotMatch(FL, /\bplay\('(?!ufo-hum)[\w-]+', \{ gain:/, 'no level outside the table'); assert.ok((FL.match(/\bmix\('/g) || []).length >= 10);
   const [jet, ufo, warn, ship] = num(FL, /export const DUCK = Object\.freeze\(\{ jet: ([\d.]+), ufo: ([\d.]+), warn: ([\d.]+), ship: ([\d.]+),/);
   for (const k of [jet, ufo, warn, ship]) assert.ok(k >= 0.25 && k < 0.7, `the music keeps ${k} of its level under a big moment`); assert.ok(ship < warn, 'deeper as THE MOTHERSHIP arrives');
