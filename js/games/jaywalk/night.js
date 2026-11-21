@@ -55,6 +55,9 @@ const FOG_LAYERS = Object.freeze([
 const ease = t => t * t * (3 - 2 * t);
 
 export function createNight(host, o = {}) {
+  // (J2 FIX — THE NIGHT COMPARE: the new crisp runway lamps + the heat trail by NIGHT too, on the LAB's `&rwnight=new` only — the game never
+  //  passes it: by night the runway stays exactly as J2 shipped it; by day the new ones always)
+  const RWN = o.rwNight === true;
   const reduce = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
   const devDpr = Math.min(window.devicePixelRatio || 1, 3);
   const renderer = new THREE.WebGLRenderer({ antialias: devDpr < 2, powerPreference: 'high-performance' });
@@ -486,22 +489,79 @@ export function createNight(host, o = {}) {
     if (x1 - x0 < 0.2) return;
     const age = u < p.pass ? 0 : u - p.pass, live = u < end, heat = live ? 1 - 0.4 * age / p.trail : 0.32 * (1 - (u - end) / EMBER);
     const cx = X((x0 + x1) / 2), w = x1 - x0, A = Math.min(1, lt), fl = reduce ? 1 : 0.85 + 0.15 * Math.sin(clock / 47 + z * 3.1);
-    if (day) {
-      K.shadow.put(cx, 0.049, z, w, 1, 1.9, 0, 0, 1, 4, (live ? 1 : 0.6 * heat / 0.32) * A);                                 // the scorched streak (a dark band: the fire's paint reads on it)
-      if (live) { K.flat.put(cx, 0.052, z, w, 1, 1.5, 0, 0xd4127e, 1, 4, A); K.flat.put(cx, 0.053, z, w, 1, 0.95, 0, 0xff3cb4, 1, 4, A); K.flat.put(cx, 0.054, z, w, 1, 0.5, 0, 0xffd6f4, 1, 4, (0.6 + 0.4 * heat) * A); }
-    } else {
-      K.flat.put(cx, 0.045, z, w, 1, 1.0, 0, 0xff2aa8, 1, 4, 0.62 * heat * fl * lt);   // (inside its own lane: never read as the next one burning)                                          // the glow round it
-      K.flat.put(cx, 0.05, z, w, 1, 0.3, 0, live ? 0xa86cff : 0x5a1a6e, 1, 4, (live ? 0.6 : 0.6) * heat * lt);   // (violet, never white: additive light over the pink would blow out)                   // the hot core
-    }
+    if (day || RWN) { heatTrail(p, u, z, x0, x1, cx, w, A, age, live, heat); return; }
+    // (BY NIGHT, as J2 shipped it — the owner: "looks amazing". The day's plasma paint gave way to J2 FIX's heat trail, heatTrail)
+    K.flat.put(cx, 0.045, z, w, 1, 1.0, 0, 0xff2aa8, 1, 4, 0.62 * heat * fl * lt);   // the glow round it (inside its own lane: never read as the next one burning)
+    K.flat.put(cx, 0.05, z, w, 1, 0.3, 0, live ? 0xa86cff : 0x5a1a6e, 1, 4, 0.6 * heat * lt);   // the hot core (violet, never white: additive light over the pink would blow out)
     if (!live) return;
     // THE PLASMA TONGUES: one every 0.85 of a cell, each its own flicker (still with reduce motion: a steady height) — blue body, white heart, pink tip
     for (let c = Math.ceil(x0 / 0.85) * 0.85; c < x1; c += 0.85) {
       const hsh0 = burnHash(Math.round(c * 7) + p.band * 31, 3), f = reduce ? 0.8 : 0.62 + 0.38 * Math.abs(Math.sin(clock / (70 + 40 * Math.abs(hsh0)) + hsh0 * 9)), hh = (0.42 + 0.34 * f) * heat;
       const x = X(c), zz = z + (hsh0 - 0.5) * 0.36;
-      const fw = (day ? 1.15 : 0.7) * (0.8 + 0.2 * heat), fh = day ? hh * 1.4 : hh;
-      K.bill.put(x, fh * 0.66, zz - 0.01, fw * 0.75, fh * 1.05, 1, 0, day ? 0xe0189a : 0xff2ab8, 1, 9, (day ? 1 : 0.5) * A);   // its pink tip (the tongue's top, licking up past the blue)
-      K.bill.put(x, fh * 0.45, zz, fw, fh, 1, 0, day ? 0x1f5cff : 0x1e50ff, 1, 9, A);                                         // the plasma tongue (narrow at its top)
-      K.bill.put(x, fh * 0.28, zz + 0.02, fw * (day ? 0.5 : 0.36), fh * 0.5, 1, 0, day ? 0xd8f4ff : 0x7cc8ff, 1, 9, (day ? 1 : 0.55) * A);   // its hot heart (by night cyan — additive: white would wash the blue out)
+      const fw = 0.7 * (0.8 + 0.2 * heat), fh = hh;
+      K.bill.put(x, fh * 0.66, zz - 0.01, fw * 0.75, fh * 1.05, 1, 0, 0xff2ab8, 1, 9, 0.5 * A);   // its pink tip (the tongue's top, licking up past the blue)
+      K.bill.put(x, fh * 0.45, zz, fw, fh, 1, 0, 0x1e50ff, 1, 9, A);                           // the plasma tongue (narrow at its top)
+      K.bill.put(x, fh * 0.28, zz + 0.02, fw * 0.36, fh * 0.5, 1, 0, 0x7cc8ff, 1, 9, 0.55 * A);   // its hot heart (cyan — additive: white would wash the blue out)
+    }
+  }
+
+  /**
+   * J2 FIX — THE RUNWAY LAMPS, CRISP (the owner, Nov 21: the big glowing lamp balls looked cheap): every lamp a SMALL FIXTURE — a dark housing
+   * set in the tarmac (by day: night's additive light has no dark) + a sharp bright PIP (shape 11 — a hard edge at 3×, no halo). Off the
+   * tell: a dim lens. In the tell + the pass: a RUNNING SEQUENCE across the lane toward the crossing (every 3rd lamp lit, stepping every 6
+   * ticks off the rules' own clock — steady, all lit, with reduce motion), the amber row + the red row, the racing head brightest. The
+   * chevron arrows (the ground's shader) are untouched. By day always; by night on the lab's `&rwnight=new` only (a soft glow under a lit
+   * pip there — the dark road needs it). Instanced kinds only.
+   */
+  function runwayLamps(p, st, tellF, head, z, lt) {
+    const warn = tellF > 0, k = st.st === 'pass' ? p.tell + st.s : p.tell - (st.left || 0), step = reduce ? 0 : Math.floor(k / 6);
+    for (let c = -1; c <= COLS; c++) {
+      const at = p.dir > 0 ? c : COLS - 1 - c, far = c < 0 || c >= COLS ? 0.6 : 1, x = X(c + 0.5), hot = warn && head > -50 && at <= head && at > head - 3.2;
+      for (const e of [-0.42, 0.42]) {
+        if (day) K.flat.put(x, 0.046, z + e, 0.32, 1, 0.2, 0, 0x30343c, 1, 12, 0.85 * far);                                         // the housing (a small crisp box set in the tarmac)
+        if (!warn) { K.bill.put(x, 0.1, z + e, 0.11, 0.11, 1, 0, day ? 0xa49c8c : 0x7a5a32, 1, 11, (day ? 0.8 : 0.7) * lt * far); continue; }   // a dim lens
+        const lit = reduce || hot || ((at - step) % 3 + 3) % 3 === 0, hex = e < 0 ? 0xffa400 : 0xff2412;
+        if (!lit) { K.bill.put(x, 0.1, z + e, 0.12, 0.12, 1, 0, day ? 0x6a3420 : 0x3a1408, 1, 11, far); continue; }
+        const sz = hot ? 0.27 : 0.21, y = 0.06 + sz * 0.5;
+        if (!day) K.flat.put(x, 0.04, z + e, 0.9, 1, 0.7, 0, hex, 1, 0, 0.42 * far);                                                  // (night compare: a small glow on the road)
+        K.bill.put(x, y, z + e, sz, sz, 1, 0, hex, 1, 11, far);                                                                         // the lamp
+        K.bill.put(x, y, z + e, sz * 0.42, sz * 0.42, 1, 0, 0xfff8e6, 1, 11, far);                                                       // its sharp bright pip
+      }
+    }
+  }
+  /**
+   * J2 FIX — THE TRAIL BY DAY = HEAT, NOT NEON (the owner, Nov 21): a SCORCHED dark streak on the asphalt + a thin WHITE-HOT centre line
+   * (a warm edge round it) + see-through, soft-edged BLUE-WHITE flame tongues standing up (shape 13: no solid cones, they flicker, their
+   * tips fade to nothing — BLUE ONLY STANDS UP: blue on the ground = water) + a faint HEAT SHIMMER (a translucent wavy band over it) +
+   * SMOKE WISPS rising as the 0.7 s ends. By night (the lab's `&rwnight=new` only): the same, tuned for additive light — the violet core on
+   * the road, electric-blue tongues with a CYAN heart (white would wash the blue out). Instanced kinds only (no draw call of its own).
+   */
+  function heatTrail(p, u, z, x0, x1, cx, w, A, age, live, heat) {
+    const T = p.trail, dying = live ? Math.max(0, (age - T * 0.5) / (T * 0.5)) : 1, gone = live ? 0 : (u - p.pass - T) / EMBER;
+    const sc = (live ? 1 : 1 - gone) * A;
+    if (day) { K.flat.put(cx, 0.049, z, w, 1, 1.9, 0, 0x2a2420, 1, 4, 0.82 * sc); K.flat.put(cx, 0.0495, z, w, 1, 0.9, 0, 0x120e0c, 1, 4, 0.9 * sc); }   // the SCORCHED streak + its charred core (soot, never blue)
+    else { K.shadow.put(cx, 0.049, z, w, 1, 1.9, 0, 0, 1, 4, 0.85 * sc); K.shadow.put(cx, 0.05, z, w, 1, 0.8, 0, 0, 1, 4, 0.7 * sc); }
+    if (live) {
+      K.flat.put(cx, 0.053, z, w, 1, day ? 0.5 : 0.36, 0, day ? 0xff6a10 : 0xa86cff, 1, 4, (day ? 0.8 : 0.6) * heat * A);                              // the line's hot edge (violet by night)
+      K.flat.put(cx, 0.054, z, w, 1, day ? 0.18 : 0.12, 0, day ? 0xfffbea : 0xe2d4ff, 1, 4, (day ? 0.65 + 0.35 * heat : 0.5 * heat) * A);                // the WHITE-HOT centre line
+      // THE HEAT SHIMMER: three translucent bands over the trail, each wavering on its own (a picture of heat — no distortion pass)
+      if (!reduce) for (let k = 0; k < 3; k++) {
+        const sx = x0 + (k + 0.5) * (x1 - x0) / 3, wv = Math.sin(clock / 83 + k * 2.1 + z * 1.7);
+        K.bill.put(X(sx), 0.95 + 0.07 * wv, z + 0.05 * Math.sin(clock / 61 + k), (x1 - x0) / 3 * 1.1, 0.34 + 0.06 * wv, 1, 0, day ? 0xfff6ea : 0x8aa8ff, 1, 4, (day ? 0.13 : 0.07) * heat * A);
+      }
+      // THE FLAME TONGUES: one every 0.85 of a cell, each its own flicker + sway (still with reduce motion: a steady height)
+      for (let c = Math.ceil(x0 / 0.85) * 0.85; c < x1; c += 0.85) {
+        const hs = burnHash(Math.round(c * 7) + p.band * 31, 3), f = reduce ? 0.8 : 0.6 + 0.4 * Math.abs(Math.sin(clock / (64 + 40 * hs) + hs * 9));
+        const hh = (0.5 + 0.42 * f) * (0.55 + 0.45 * heat) * (day ? 1.8 : 1.1), fw = (day ? 0.92 : 0.62) * (0.85 + 0.15 * heat);
+        const x = X(c + (reduce ? 0 : 0.06 * Math.sin(clock / 53 + hs * 11))), zz = z + (hs - 0.5) * 0.36;
+        K.bill.put(x, hh * 0.5, zz, fw, hh, 1, 0, day ? 0x58a4ff : 0x1e50ff, 1, 13, (day ? 0.8 : 0.95) * A);                                // the tongue (see-through)
+        K.bill.put(x, hh * 0.32, zz + 0.02, fw * 0.48, hh * 0.62, 1, 0, day ? 0xffffff : 0x7cd8ff, 1, 13, (day ? 0.95 : 0.6) * A);            // its hot heart (cyan by night)
+      }
+    }
+    // SMOKE WISPS as it dies: soft grey puffs rising + spreading, out with the embers
+    if (dying > 0 && gone < 1) for (let c = Math.ceil(x0 / 1.6) * 1.6 + 0.4; c < x1; c += 1.6) {
+      const hs = burnHash(Math.round(c * 5) + p.band * 17, 7), q = live ? dying * 0.6 : 0.6 + 0.4 * gone, sz = 0.9 + 1.3 * q;
+      K.bill.put(X(c + 0.3 * (hs - 0.5) + 0.25 * q), 0.45 + 1.5 * q, z + (hs - 0.5) * 0.3, sz, sz, 1, 0, day ? 0x3c3d42 : 0x3c4658, 1, 0, Math.sin(Math.PI * Math.min(1, q * 1.15)) * (day ? 0.9 : 0.34) * A);
     }
   }
 
@@ -735,21 +795,13 @@ export function createNight(host, o = {}) {
           const tellF = st.st === 'tell' ? 1 - st.left / p.tell : st.st === 'pass' ? 1 : 0;
           fxv = tellF * p.dir;
           const head = st.st === 'tell' ? (tellF * tellF * 7 + tellF * 2) % 1 * 14 - 2.5 : -99;
-          const warn = day && tellF > 0, wig = warn && !reduce ? Math.floor((st.left || 0) / 10) & 1 : 0;
-          for (let c = -1; c <= COLS; c++) {
+          // (J2 FIX — the crisp lamps by day (+ the lab's night compare): runwayLamps. BY NIGHT the lamps J2 shipped, untouched)
+          if (day || RWN) runwayLamps(p, st, tellF, head, z, lt);
+          else for (let c = -1; c <= COLS; c++) {
             const at = p.dir > 0 ? c : COLS - 1 - c, hot = head > -50 && at <= head && at > head - 3.2, far = c < 0 || c >= COLS ? 0.6 : 1;
-            if (warn) {
-              for (const e of [-0.42, 0.42]) {
-                const s = hot ? 1.3 : 0.86, hex = hot ? 0xfff0a0 : (c + (e > 0 ? 1 : 0) + wig) & 1 ? 0xff2412 : 0xffa400;
-                if (hot && on) K.flat.put(X(c + 0.5), 0.04, z + e, 2.4, 1, 1.7, 0, 0xffa820, 1, 0, 0.7 * far);
-                K.flat.put(X(c + 0.5), 0.046, z + e, s * 1.5, 1, s * 1.25, 0, 0x07070e, 1, 5, 0.92 * far);   // its dark backing
-                K.bill.put(X(c + 0.5), 0.07 + s * 0.26, z + e, s, s, 1, 0, hex, 1, 5, far);   // (standing ON the tarmac: sunk to its middle, a lamp had a flat-cut bottom)
-              }
-              continue;
-            }
             for (const e of [-0.42, 0.42]) {
-              K.bill.put(X(c + 0.5), 0.07, z + e, hot ? (day ? 0.9 : 0.74) : (day ? 0.22 : 0.3), hot ? (day ? 0.9 : 0.74) : (day ? 0.22 : 0.3), 1, 0, hot ? (day ? 0xffffff : 0xfff6dc) : (day ? 0xb9bec8 : 0xffcf8a), 1, 5, (hot ? 1 : 0.85) * lt * far);
-              if (on) K.flat.put(X(c + 0.5), 0.04, z + e, hot ? 1.7 : 0.8, 1, hot ? 1.2 : 0.6, 0, 0xffa820, 1, 0, (hot ? (day ? 0.6 : 0.75) : (day ? 0 : 0.35)) * lt * far);
+              K.bill.put(X(c + 0.5), 0.07, z + e, hot ? 0.74 : 0.3, hot ? 0.74 : 0.3, 1, 0, hot ? 0xfff6dc : 0xffcf8a, 1, 5, (hot ? 1 : 0.85) * lt * far);
+              if (on) K.flat.put(X(c + 0.5), 0.04, z + e, hot ? 1.7 : 0.8, 1, hot ? 1.2 : 0.6, 0, 0xffa820, 1, 0, (hot ? 0.75 : 0.35) * lt * far);
             }
           }
           if (p.trail) burnLane(p, u, z, lt);   // (J2 — v2's runways: THE AFTERBURNER TRAIL — drawn here, never waiting for the flyers' module)
@@ -964,7 +1016,7 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px — the wider view's readability number */
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ warmed, kid: !!kidGeo, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); }, duck: () => (FL ? FL.duck() : 1),
     /** THE LOOK: 'day' | 'night' (at once; the same scene) */

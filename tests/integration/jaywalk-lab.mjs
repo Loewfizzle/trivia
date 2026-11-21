@@ -650,14 +650,70 @@ try {
     }
     throw Object.assign(new Error('look only'), { look: true });
   } }
+  // J2 FIX — the pass's shots (--j2fix[=pair|jet] <outDir>; J2FIX_TAG names them — run it against the J2 build too with E2E_BASE): `pair` =
+  // the first runway with one lane mid-TRAIL and another mid-WARNING — day · night · night with &rwnight=new; `jet` = THE BLACKBIRD over the
+  // view's left third, middle and right third at the first runway + THE AIRFIELD, night + day. 390 + 430 @3, tier 2, frozen frames.
+  { const jf = argv.find(x => x === '--j2fix' || x.startsWith('--j2fix=')); if (jf) {
+    const what = jf.includes('=') ? jf.split('=')[1] : 'all', dir = OUT || '.', tag = process.env.J2FIX_TAG || 'fix';
+    mkdirSync(dir, { recursive: true });
+    const uOf = (R, L, t) => ((t - L.phase) % R.period + R.period) % R.period;
+    const stOf = (R, L, t) => { const u = uOf(R, L, t); return u < R.pass ? 'pass' : u < R.pass + R.trail ? 'trail' : u >= R.period - R.tell ? 'tell' : 'idle'; };
+    for (const w of [390, 430]) {
+      if (what === 'all' || what === 'pair') for (const [look, q] of [['day', ''], ['night', ''], ['nightnew', '&rwnight=new']]) {
+        const o = await open(w, w === 430 ? 932 : 844, 3, `&preview=1&seed=look3&tier=2&zoom=8&angle=straight&look=${look === 'day' ? 'day' : 'night'}&cv=2${q}`);
+        await up(o.p);
+        // (the runway with a lane mid-trail WHILE another is mid-warning — the first of the course's first four that has one; J2FIX_K pins it)
+        let R = null, best = null;
+        for (let k = 1; k <= 4; k++) {
+          if (process.env.J2FIX_K && Number(process.env.J2FIX_K) !== k) continue;
+          const Rk = await o.p.evaluate(kk => window.__jwLab.runway(0, kk), k);
+          if (!Rk) continue;
+          let bk = null;
+          for (let t = Rk.period * 6; t < Rk.period * 7; t++) {
+            let sc = 0, tr = 0, wn = 0;
+            for (const L of Rk.lanes) { const u = uOf(Rk, L, t); if (u >= Rk.pass + 6 && u <= Rk.pass + 22) tr = 10; else if (u >= Rk.period - Rk.tell * 0.7 && u <= Rk.period - Rk.tell * 0.3) wn = Math.max(wn, 12); else if (u < Rk.pass * 0.45) wn = Math.max(wn, 9); }
+            sc = tr + wn;
+            if (!bk || sc > bk.sc) bk = { t, sc, k };
+          }
+          if (!best || bk.sc > best.sc) { best = bk; R = Rk; }
+          if (best.sc >= 22) break;
+        }
+        await o.p.evaluate((y, tt) => { const J = window.__jwLab; J.warp(y); J.setT(tt); J.freeze(true); }, R.y0 - 1, best.t);
+        await sleep(1700);
+        await o.p.screenshot({ path: join(dir, `pair-${tag}-${look}-${w}.png`) });
+        // (+ the trail's END: the lane that was burning, 6 ticks before its last deadly tick — the smoke rising, the flames low)
+        { const L = R.lanes.find(q => { const u = uOf(R, q, best.t); return u >= R.pass && u < R.pass + R.trail; }); if (L) { const tt = best.t + (R.pass + R.trail - 6 - uOf(R, L, best.t)); await o.p.evaluate(x => { const J = window.__jwLab; J.setT(x); J.freeze(true); }, tt); await sleep(600); await o.p.screenshot({ path: join(dir, `late-${tag}-${look}-${w}.png`) }); console.log(`J2FIX late: t ${tt} (u ${uOf(R, L, tt)}) · the world at ${await o.p.evaluate(() => window.__jwLab.state().t)} · instances ${JSON.stringify(await o.p.evaluate(() => window.__jwLab.state().info.inst))}`); } }
+        console.log(`J2FIX ${tag} ${look} ${w}: runway ${best.k} — lane ${R.y0} × ${R.n} · t ${best.t} · sc ${best.sc} · ${R.lanes.map(L => stOf(R, L, best.t)).join(' ')}`);
+        ok(!o.errs.length, `J2FIX ${tag} ${look} ${w}: no page errors`); if (o.errs.length) console.log(o.errs.slice(0, 3));
+        await o.close();
+      }
+      if (what === 'all' || what === 'jet') for (const look of ['night', 'day']) for (const [where, from] of [['first', 0], ['airfield', 400]]) {
+        const o = await open(w, w === 430 ? 932 : 844, 3, `&preview=1&seed=look3&tier=2&zoom=8&angle=straight&look=${look}&cv=2`);
+        await up(o.p);
+        const R = await o.p.evaluate(f => window.__jwLab.runway(f, 1), from), L = R.lanes[0], v = L.v || 1000, len = L.len || 3000;
+        await o.p.evaluate(y => window.__jwLab.warp(y), R.y0 - 1);
+        for (const [k, col] of [[1, 2], [2, 4.5], [3, 7]]) {
+          const s = Math.round(L.dir > 0 ? (col * 1000 + len / 2) / v : (9000 + len / 2 - col * 1000) / v), t = L.phase + R.period * 8 + s;
+          await o.p.evaluate(tt => { const J = window.__jwLab; J.setT(tt); J.freeze(true); }, t);
+          await sleep(k === 1 ? 1700 : 500);
+          await o.p.screenshot({ path: join(dir, `jet-${tag}-${where}-${look}-${w}-${k}.png`) });
+        }
+        console.log(`J2FIX ${tag} jet ${where} ${look} ${w}: lane ${R.y0} · v ${v} · pass ${R.pass}`);
+        ok(!o.errs.length, `J2FIX ${tag} jet ${where} ${look} ${w}: no page errors`); if (o.errs.length) console.log(o.errs.slice(0, 3));
+        await o.close();
+      }
+    }
+    throw Object.assign(new Error('look only'), { look: true });
+  } }
   // J2 — THE HARD LIMITS on a BUSY RUNWAY (--j2perf): 8 kids (the kid + 7 ghosts), NIGHT, tier 2, THE AIRFIELD's runways (v2) against its
   // v1 bands — the worst draw-call frame over a whole lap (frozen, every 4th tick) + the frame rate at 4× CPU with the world running, 390 + 430
   if (argv.includes('--j2perf')) {
-    for (const [where, from] of [['DOWNTOWN', 250], ['THE AIRFIELD', 400]]) for (const cv of [1, 2]) for (const w of [390, 430]) {
-      const o = await open(w, w === 430 ? 932 : 844, 3, `&preview=1&seed=${where === 'DOWNTOWN' ? 'perfseed2' : 'look3'}&tier=2&zoom=8&angle=straight&look=night&cv=${cv}`);
+    // (J2 FIX: v2 in BOTH looks + the lab's night compare `&rwnight=new` — the limits hold for each; v1 stays the night reference)
+    for (const [where, from] of [['DOWNTOWN', 250], ['THE AIRFIELD', 400]]) for (const [cv, look] of [[1, 'night'], [2, 'night'], [2, 'day'], [2, 'nightnew']]) for (const w of [390, 430]) {
+      const o = await open(w, w === 430 ? 932 : 844, 3, `&preview=1&seed=${where === 'DOWNTOWN' ? 'perfseed2' : 'look3'}&tier=2&zoom=8&angle=straight&look=${look === 'day' ? 'day' : 'night'}&cv=${cv}${look === 'nightnew' ? '&rwnight=new' : ''}`);
       await up(o.p);
       const R = await o.p.evaluate(f => { const J = window.__jwLab; J.ghosts(7); return J.runway(f, 1); }, from);
-      if (!R || R.y0 >= from + 50) { console.log(`J2PERF ${where} v${cv}: no runway in the area on this seed`); await o.close(); continue; }
+      if (!R || R.y0 >= from + 50) { console.log(`J2PERF ${where} v${cv} ${look}: no runway in the area on this seed`); await o.close(); continue; }
       await o.p.evaluate(y => { const J = window.__jwLab; J.warp(y); J.ghosts(7); }, R.y0 - 1);
       await sleep(1500);
       let worst = 0, at = -1;
@@ -673,10 +729,10 @@ try {
       const fr = (await o.p.evaluate(() => window.__jwLab.frames())).sort((a, c) => a - c);
       await o.p.emulateCPUThrottling(1);
       const avg = fr.reduce((a, c) => a + c, 0) / fr.length;
-      const row = { where, cv, w, runway: `${R.y0} × ${R.n}`, worstCalls: worst, worstAt: at, runCalls: Math.max(...calls), frames: fr.length, fps: +(1000 / avg).toFixed(1), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1) };
+      const row = { where, cv, look, w, runway: `${R.y0} × ${R.n}`, worstCalls: worst, worstAt: at, runCalls: Math.max(...calls), frames: fr.length, fps: +(1000 / avg).toFixed(1), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1) };
       console.log('J2PERF', JSON.stringify(row));
-      ok(row.worstCalls <= 64 && row.runCalls <= 64, `${where} v${cv} ${w}: 8 kids, night, tier 2 — the worst runway frame ${row.worstCalls} draw calls (running ${row.runCalls}) ≤ 64`);
-      ok(row.fps >= 57 && !o.errs.length, `${where} v${cv} ${w}: 4× CPU on the runway — ${row.fps} fps (p95 ${row.p95Ms} ms, worst ${row.worstMs})`);
+      ok(row.worstCalls <= 64 && row.runCalls <= 64, `${where} v${cv} ${look} ${w}: 8 kids, tier 2 — the worst runway frame ${row.worstCalls} draw calls (running ${row.runCalls}) ≤ 64`);
+      ok(row.fps >= 57 && !o.errs.length, `${where} v${cv} ${look} ${w}: 4× CPU on the runway — ${row.fps} fps (p95 ${row.p95Ms} ms, worst ${row.worstMs})`);
       await o.close();
     }
     throw Object.assign(new Error('look only'), { look: true });

@@ -294,7 +294,7 @@ export function createFlyers(C) {
           if (p.trail) {
             // (J2 FIX — THE VAPOUR TRAIL: a runway jet draws a SHORT white trail off each nozzle — widening + fading in three steps — so the
             //  SR-71's long dark silhouette reads against it, by night and day; the existing instanced kind: no draw call of its own)
-            for (let k = 0; k < 3; k++) K.flat.put(nx - dir * (1.35 + k * 1.15) * SC * 1.4, y - 0.02, zc + e * (1 + 0.12 * k), 1.9 * SC * 1.4, 1, (0.34 + 0.2 * k) * SC, rz, day ? 0xffffff : 0xe6f2ff, 1, 4, (day ? 0.8 : 0.5) * (1 - 0.3 * k) * lt);
+            for (let k = 0; k < 3; k++) K.flat.put(nx - dir * (2.8 + k * 1.15) * SC * 1.4, y - 0.02, zc + e * (1 + 0.15 * k), 1.9 * SC * 1.4, 1, (0.46 + 0.26 * k) * SC, rz, day ? 0xffffff : 0xe6f2ff, 1, 4, (day ? 1 : 0.6) * (1 - 0.27 * k) * lt);   // (from the flames' tips back)
           } else K.flat.put(nx - dir * 5.4, y - 0.02, zc + e, 7.4, 1, 0.8, rz, 0xff4f9a, 1, 1, (day ? 0.5 : 0.3) * fl * lt);                 // the faint long tail
           K.flat.put(nx - dir * 1.9, y - 0.03, zc + e, 5.2, 1, 1.5, 0, 0xff7a2a, 1, 0, (day ? 0.3 : 0.22) * fl * lt);               // a soft warm glow round the flame
           K.bill.put(nx - dir * 0.1, y, zc + e, 0.8, 0.8, 1, 0, 0xeaf4ff, 1, 5, lt);                                                 // ONE hot core a nozzle

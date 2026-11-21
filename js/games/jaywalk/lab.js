@@ -98,7 +98,7 @@ async function mount() {
   const arrive = createArrival(app.querySelector('.jw-stage'), AREA_LOOKS);   // (BEFORE THE FLIP — THE ARRIVAL BANNER: the game's own, arrival.js)
   const pin = /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null;   // (`?tier=0|1|2` pins a quality tier — the pass's measure)
   let view;
-  try { view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin, look }); }
+  try { view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin, look, rwNight: Q.get('rwnight') === 'new' }); }   // (J2 FIX — `&rwnight=new`: THE NIGHT COMPARE, the lab only)
   catch { app.querySelector('.jw-stage').append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); return; }   // (the page still loaded: its stage is up)
   markCamera(); setLook(look);
   // J1 — THE LOOK CHECKS (`?j1=splits` · `splits9` · `moments` — lab-j1.js, lazy: the real end card's YOUR SPLITS + THE MATCH MOMENTS)
@@ -120,7 +120,7 @@ async function mount() {
       if (L.type !== 'flight' || (p.rw != null ? p.rw !== i : p.band !== i)) continue;
       if (--k > 0) continue;
       const n = p.rn || p.n, lanes = [];
-      for (let j = 0; j < n; j++) { const q = course.lane(i + j).pulse; lanes.push({ phase: q.phase, dir: q.dir }); }
+      for (let j = 0; j < n; j++) { const q = course.lane(i + j).pulse; lanes.push({ phase: q.phase, dir: q.dir, v: q.v, len: q.len }); }
       return { y0: i, n, period: p.period, tell: p.tell, pass: p.pass, trail: p.trail || 0, lanes };
     }
     return null;

@@ -102,3 +102,25 @@ test('THE PRE-FIX J2 BUILD\'s DAILY: refused at START on a v2 day (no `cvr` — 
   assert.equal(tryVersion('d20261122', 2, AFTER, CV_REV), 2);
   assert.equal(tryVersion('d20261121', 2, AFTER), 1);
 });
+
+test('THE DAY RUNWAY (Group 2) + THE NIGHT COMPARE (Group 3): crisp lamps + the heat trail by day; by night J2’s exactly unless the LAB asks (&rwnight=new) — the game never does; no new draw call (instanced kinds only)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const rd = f => readFileSync(new URL(`../js/games/jaywalk/${f}`, import.meta.url), 'utf8');
+  const N = rd('night.js'), FX = rd('night-fx.js'), LAB = rd('lab.js'), V = rd('view.js'), P = rd('poster.js');
+  // the switch: the lab's query only — never the game, never the poster
+  assert.match(N, /const RWN = o\.rwNight === true;/);
+  assert.match(LAB, /rwNight: Q\.get\('rwnight'\) === 'new'/);
+  for (const [f, s] of [['view.js', V], ['poster.js', P]]) assert.doesNotMatch(s, /rwNight|rwnight/, `${f} never turns the night compare on`);
+  // by day (or the compare) the new lamps + trail; by night the J2 lamps + plasma, as shipped
+  assert.match(N, /if \(day \|\| RWN\) runwayLamps\(p, st, tellF, head, z, lt\);\s*else for \(let c = -1; c <= COLS; c\+\+\)/);
+  assert.match(N, /if \(day \|\| RWN\) \{ heatTrail\(p, u, z, x0, x1, cx, w, A, age, live, heat\); return; \}/);
+  assert.match(N, /K\.bill\.put\(X\(c \+ 0\.5\), 0\.07, z \+ e, hot \? 0\.74 : 0\.3, hot \? 0\.74 : 0\.3, 1, 0, hot \? 0xfff6dc : 0xffcf8a, 1, 5,/, 'the night lamps J2 shipped');
+  assert.match(N, /K\.bill\.put\(x, fh \* 0\.45, zz, fw, fh, 1, 0, 0x1e50ff, 1, 9, A\);/, 'the night plasma tongue J2 shipped');
+  // the new pieces ride the existing instanced kinds (K.flat / K.bill / K.shadow) — three new shapes in the ONE glow shader
+  const fns = N.slice(N.indexOf('function runwayLamps('), N.indexOf('function draw('));
+  assert.doesNotMatch(fns, /new THREE\.|scene\.add\(/, 'no mesh of its own');
+  for (const sh of ['11 a CRISP disc', '12 a CRISP rounded box', '13 a FLAME TONGUE']) assert.ok(FX.includes(sh), sh);
+  assert.match(fns, /0x58a4ff/); assert.doesNotMatch(fns.slice(fns.indexOf('function heatTrail')), /K\.flat\.put\([^;]*0x58a4ff/, 'blue only STANDS UP (bills) — never on the ground');
+  // the lamps blink in a running sequence (steady with reduce motion); no halo by day (the glow under a pip is the night compare's)
+  assert.match(fns, /step = reduce \? 0 : Math\.floor\(k \/ 6\)/); assert.match(fns, /if \(!day\) K\.flat\.put\(x, 0\.04, z \+ e, 0\.9, 1, 0\.7, 0, hex, 1, 0,/);
+});
