@@ -5,7 +5,10 @@
 .rd-btn, .rd-modal { --rd-hi: #fff3cf; --rd-au: #e2b867; --rd-lo: #8e6a2b; --rd-tx: #e9e0cc; --rd-dim: #b3a78f; --rd-pk: #ff4fd8; --rd-amb: #ffb84a; --rd-ink: #1a1206; }
 
 /* ---- THE CORNER BUTTON: a third circle UNDER the ☰ (title + lobby: the split corners), the same glass + size, a brass radio */
-.rd-btn { display: none; position: fixed; z-index: 70; left: calc(var(--safe-l) + 12px); top: calc(var(--safe-t) + 10px + var(--cb) + var(--cb-gap));
+/* (CITY PART 1 — THE RADIO BUTTON SAT UNDER ☰'s TAP AREA (the owner's iPhone, /admin LOST TAP Nov 20 9:06 am: the lift landed on ☰): the two
+   44 × 44 tap areas met edge to edge (☰'s ended at 50, the radio's began at 50 — a finger at the seam went to ☰). Now a clear 8 pt between the
+   two AREAS (the radio 8 pt lower); the guard: the harbor tapfit group — no tappable shares a point with a corner button's area, 390 / 375 / 1440) */
+.rd-btn { display: none; position: fixed; z-index: 70; left: calc(var(--safe-l) + 12px); top: calc(var(--safe-t) + 10px + var(--cb) + var(--cb-gap) + 8px);
   width: var(--cb); height: var(--cb); border-radius: 50%; place-items: center; padding: 0; color: var(--rd-au);
   background: radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%), rgba(12, 14, 34, 0.62);
   border: 1px solid rgba(226, 184, 103, 0.42); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 5px 15px rgba(0, 0, 0, 0.32); transition: transform 0.12s; cursor: pointer; }

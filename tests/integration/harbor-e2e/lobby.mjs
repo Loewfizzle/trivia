@@ -446,6 +446,33 @@ G('tapfit', async () => {
       ok(got.length >= 1 && got.every(x => x.w >= 44 && x.h >= 44), `B2 — THE CORNER BUTTONS' TAP AREA ≥ 44 × 44 pt · ${name} ${w}×${h}: ${got.map(x => `${x.sel} ${x.w}×${x.h}${x.covered ? ' (covered)' : ''}`).join(' · ') || 'none found'}`);
     } finally { await ctx.close(); }
   }
+  // CITY PART 1 — NOTHING UNDER A CORNER BUTTON's TAP AREA (the owner's LOST TAP, Nov 20 9:06 am: the radio's tap went to ☰ — their 44 × 44 areas
+  // met edge to edge): on the title + the room's dock (act=room), with the radio button on the page (its real CSS — the owner's + the crew's
+  // phones have it), every tappable's own tap area (its box grown to 44 × 44 where smaller) never shares a point with ☰'s or the music's
+  // 44 × 44 area, at 390 / 375 / 1440
+  for (const [w, h] of [[390, 844], [375, 667], [1440, 900]]) for (const act of ['', 'room']) {
+    const ctx = await br.createBrowserContext(), p = await ctx.newPage();
+    try {
+      await p.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 900, hasTouch: w < 900 });
+      await p.goto(`${BASE}/tests/integration/title-preview.html${act ? `?act=${act}` : ''}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await waitFor(p, "!!document.querySelector('.menu-btn') && document.querySelector('.menu-btn').getBoundingClientRect().width > 0", 'the corner buttons', 30000).catch(() => {});
+      await sleep(1500);
+      // (the radio's own sheet, as the radio gate loads it — screens/harbor/radio.js)
+      await p.evaluate(() => new Promise(res => { if (document.querySelector('link[href$="radio.css"]')) return res(); const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/css/radio.css'; l.onload = l.onerror = () => res(); document.head.append(l); setTimeout(res, 4000); }));
+      const r = await p.evaluate(() => {
+        if (!document.querySelector('.rd-btn')) { const b = document.createElement('button'); b.className = 'rd-btn'; b.type = 'button'; b.setAttribute('aria-label', 'The radio'); document.body.append(b); }
+        const vis = el => { const cs = getComputedStyle(el), r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity) > 0.05 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth; };
+        const area = el => { const b = el.getBoundingClientRect(), W = Math.max(44, b.width), H = Math.max(44, b.height), cx = b.left + b.width / 2, cy = b.top + b.height / 2; return { x0: cx - W / 2, y0: cy - H / 2, x1: cx + W / 2, y1: cy + H / 2 }; };
+        const corners = [...document.querySelectorAll('.menu-btn, .music-btn')].filter(vis).map(el => ({ el, a: area(el), n: el.className.split(' ')[0] }));
+        const taps = [...document.querySelectorAll('button, a[href], [role="button"], [data-press]')].filter(el => vis(el) && !corners.some(c => c.el === el || c.el.contains(el) || el.contains(c.el)));
+        const bad = [];
+        for (const t of taps) { const a = area(t); for (const c of corners) if (a.x0 <= c.a.x1 && c.a.x0 <= a.x1 && a.y0 <= c.a.y1 && c.a.y0 <= a.y1) bad.push(`${(t.className || t.tagName).toString().split(' ')[0]} ↔ ${c.n}`); }
+        const rd = document.querySelector('.rd-btn'), m = document.querySelector('.menu-btn');
+        return { n: taps.length, corners: corners.length, bad: [...new Set(bad)], gap: rd && m ? Math.round(area(rd).y0 - area(m).y1) : null };
+      });
+      ok(r.corners >= 1 && r.n >= 3 && r.gap >= 8 && r.bad.length === 0, `CITY PART 1 — NOTHING UNDER A CORNER BUTTON's 44 × 44 · the ${act ? 'room dock' : 'title'} ${w}×${h}: ${r.n} tappables, ${r.corners} corner buttons, the radio's area ${r.gap} pt below ☰'s${r.bad.length ? ` — SHARED: ${r.bad.join(' · ')}` : ''}`);
+    } finally { await ctx.close(); }
+  }
   // THE BOARD's TOP REDONE (the owner's iPhone at 390, Nov 12 — "the whole top is messed up"): NO ☰ on THE BOARD (THE PROFILE's rule — ‹ BACK alone in
   // the top-left corner), the title on its own row, the SEVEN tabs on ONE row (THE GO-LIVE PASS: + JAYWALK · HIGH RISE's GO-LIVE: + HIGH RISE) — the title box, the tab row + the corner buttons never overlap, at the
   // phones' widths (+ 390 × 664: Safari with its bars) and the desktop, on the app's board + the public /board
