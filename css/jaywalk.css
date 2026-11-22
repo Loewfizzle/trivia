@@ -291,9 +291,15 @@
 .jw-x span { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); transform-origin: 50% 100%; margin-bottom: 2px; white-space: nowrap; font: 800 12px/1 var(--font-ui); letter-spacing: 0.08em; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.9); transition: transform 0.5s ease-out, opacity 0.5s ease-out; }
 @keyframes jw-x { 0% { opacity: 0; } 100% { opacity: 0.42; } }
 .jw-x.is-grave { animation: none; opacity: 1; }
-.jw-x.is-grave i { transform: scale(0.62); opacity: 0.26; }
-.jw-x.is-grave span { opacity: 0.66; transform: translate(-50%, calc(var(--s, 40px) * 0.19)) scale(0.92); }
-.jw-x.is-ahead { animation: none; opacity: 0.12; }
+/* (JT2's add-on — the owner, Nov 22: the settled X read as FADED on a real phone — dark red on dark grass vanished): now CLEARLY there for the
+   whole match — a brighter red X (night: a soft static glow, no bloom; day: a strong red + a thin dark edge), the name 12 px (over the player
+   list's 10 px); still smaller than the first flash (×0.62). Near the kid: ONLY on the lane he is about to hop into → 50 %, never lower */
+.jw-x.is-grave i { transform: scale(0.62); opacity: 0.92; }
+.jw-x.is-grave i::before, .jw-x.is-grave i::after { background: #ff3d5a; box-shadow: 0 0 3px rgba(255, 70, 100, 0.95), 0 0 9px rgba(255, 30, 70, 0.6), 0 0 0 1px rgba(30, 0, 8, 0.55); }
+.jw-x.is-grave span { opacity: 1; font-size: 12px; transform: translate(-50%, calc(var(--s, 40px) * 0.19)); }
+.jw-stage[data-look='day'] .jw-x.is-grave i::before, .jw-stage[data-look='day'] .jw-x.is-grave i::after { background: #e3122f; box-shadow: 0 0 0 1.5px rgba(36, 0, 8, 0.9); }
+.jw-stage[data-look='day'] .jw-x.is-grave span { text-shadow: 0 0 2px #120818, 0 1px 0 rgba(18, 8, 24, 0.95), 0 0 6px rgba(18, 8, 24, 0.85); }
+.jw-x.is-ahead { animation: none; opacity: 0.5; }
 /* HEAD TO HEAD: the words near the top (under the OUT banner's band — the out that narrowed it shows with it); the EDGES pulse red, faster and faster (0.5 → 3 s) with the siren's wind-up; one flash at its peak;
    from 3 s the words shrink up into THE DUEL STRIP */
 .jw-h2hw { position: absolute; inset: 0; }
@@ -327,7 +333,7 @@
 .jw-last span { font: 800 15px/1.2 var(--font-ui); letter-spacing: 0.14em; padding-left: 0.14em; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.8); }
 @keyframes jw-last { 0% { opacity: 0; transform: scale(0.7); } 12% { opacity: 1; transform: none; } 82% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 /* Reduced motion: every moment simply shows + goes (its own timer), a steady edge glow (.is-still), no flash, no shrink */
-@media (prefers-reduced-motion: reduce) { .jw-ban, .jw-h2h, .jw-last { animation: none; } .jw-x { animation: none; opacity: 0.4; } .jw-x, .jw-x i, .jw-x span { transition: none; } .jw-x.is-grave { opacity: 1; } .jw-x.is-ahead { opacity: 0.12; } .jw-flash { display: none; } .jw-h2h { transition: opacity 0.6s; } .jw-h2hw.is-shrink .jw-h2h { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .jw-ban, .jw-h2h, .jw-last { animation: none; } .jw-x { animation: none; opacity: 0.4; } .jw-x, .jw-x i, .jw-x span { transition: none; } .jw-x.is-grave { opacity: 1; } .jw-x.is-ahead { opacity: 0.5; } .jw-flash { display: none; } .jw-h2h { transition: opacity 0.6s; } .jw-h2hw.is-shrink .jw-h2h { transform: none; } }
 /* the watcher's line (the foot): who the camera follows · your call · what the room waits for */
 .jw-watch { position: absolute; z-index: 3; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 20px); text-align: center; pointer-events: none; font: 700 13px/1.35 var(--font-ui); letter-spacing: 0.16em; color: #fff;
   text-shadow: 0 0 10px rgba(34, 224, 255, 0.9), 0 2px 0 rgba(0, 0, 0, 0.85); }

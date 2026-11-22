@@ -247,6 +247,11 @@ rules), the replay + judge sims (unit), `tests/jaywalk-match.test.mjs` "THE PROO
   lane in front of the kid on screen (this phone's, or the one it follows — `view.js#kidOnScreen`) it fades to 12 % (`moments.js#graveAhead`:
   from half a lane behind the kid's middle to 2.5 lanes in front, the whole width). DOM overlay only — no draw call; solo has none. The lab:
   `jaywalk-lab.html?cv=2&j1=graves` (8 players, 4 out).
+  **JT2's add-on (the owner, Nov 22 — "they read as faded" on a real phone):** the settled X is CLEARLY there for the whole match — the X ×0.62
+  (still smaller than the flash) at 92 %, a brighter red with a soft static glow by night (no bloom, no filter), a strong red + a thin dark
+  edge by day; the name 12 px at 100 % (over the player list's 10 px). Near the kid the rule is LIGHT: only while the X sits on THE LANE HE IS
+  ABOUT TO HOP INTO (`graveAhead`: 0.5 → 1.5 lanes in front of his middle) it drops to 50 % — never lower — and is full again on his own lane,
+  once passed, or further up. Shots: `Downloads\NEON\jaywalk-graves\v2\` (8 players, 4 out, one X right in front of the kid).
 - **HEAD TO HEAD** — a 3+ player match narrows TO two (an out leaves exactly two), ONCE: the big words + "BEN 142 vs JUSTIN 138" (under the
   banner's band), the screen's EDGES pulse red faster and faster (0.5 → 3 s) with the siren's wind-up, one flash at its peak, then the words
   shrink into **THE DUEL STRIP** (both players' lanes, live; the leader marked by a SHAPE — a small triangle). **A 2-PLAYER MATCH**: no HEAD
@@ -580,6 +585,12 @@ JAYWALK wires it lazily (the first `gamepadconnected`, or a pad already there at
 path — the proof sees ordinary hops), A = a tap (TAP TO START / a hop / the next player when watching) or the end card's `[data-pad="a"]`
 (PLAY AGAIN · REMATCH · TRY AGAIN · BACK TO THE DAILIES), B = `[data-pad="b"]` (CITY · ROOM · COME BACK LATER). The first press says
 "🎮 CONNECTED" (`.jw-pad`, ~2 s) and does nothing else. 5.4 KB, never in the start bundle.
+### THE FINAL SCREEN's MEMORY WITH THE SEASONAL PACK (the owner's add-on — /admin: one PAGE KILLED on game:jaywalk/final, an iPhone on a pre-JT1 build)
+`night.js#rest` reaches the pack (`seasonal.js#rest`): the fall's particles off, the footprints + the burst piles let go, the fireworks'
+canvas FREED to 0 × 0 (no spark, no rocket — `fireworks.js#rest`), all made again by the next run. The guard (`kit/jaywalk-mem.mjs`
+`seasonRest` + `seasonLine`): every final screen in `e2e-jaywalk.mjs` + `e2e-jaywalk-match.mjs` (+ `--eight`'s 8 podiums) checks nothing
+seasonal is alive and the pixels stay ≤ `JW_FINAL_BUDGET_MB` (20, never raised); run them with `JW_DAY=2026-11-25 | 2026-12-24 | 2026-12-31`
+for the heavy days. The numbers per scene: the pass log.
 ### THE BOARD's AVERAGE (`core/board-avg.js` PURE · `core/progress.js#matchStep` · `api/_lib/stats.js` · `lb.js#topRows`)
 A record board MAY carry `avg: { days, min }` (core/boards.js); only `jaywalk-solo` does (14 · 5). A COUNTED solo run (the server's replay,
 `sv`) adds its lanes (0 too) to `pstats/{pid}/av/{board}` = `{ day: [runs, lanes] }` on its streak day — the 14 most recent PLAYED days

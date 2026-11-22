@@ -20,7 +20,7 @@ const { seedOf, firstGo, GO_LEAD_MS } = await import('../../js/games/jaywalk/log
 const { CAUSE_LINES, DAY_LINES } = await import('../../js/games/jaywalk/causes.js');
 
 const { installLag, setLag } = await import('./kit/lag.mjs');
-const { memAt, memLine, JW_FINAL_BUDGET_MB } = await import('./kit/jaywalk-mem.mjs');
+const { memAt, memLine, seasonLine, JW_FINAL_BUDGET_MB } = await import('./kit/jaywalk-mem.mjs');
 const { matchStart } = await import('../../js/games/jaywalk/logic.js');
 const { goUids, stampOf, GO_WINDOW_MS } = await import('../../js/core/proof.js');   // (THE PROOF PASS: the tree's stamp + its players' nodes)
 // THE PROOF PASS — THE SWITCH-OVER: `OLD_RULES=1` = this run is on the rules as published BEFORE the pass (kit/swap-rules.mjs loads them into
@@ -134,6 +134,12 @@ async function eightMatch() {
   const worstP95 = last ? Math.max(...last.filter(Boolean).map(r => r.p95)) : 0, heaps = last ? last.filter(Boolean).map(r => r.heap).filter(x => x != null) : [];
   ok(!!ok5, `--eight: every phone still drawing at ${lastMin} min — the worst p95 ${worstP95} ms; the heaps ${heaps.join(' / ')} MB; the live tree ${last && last[0] ? Math.round(last[0].tree / 1024) : '?'} KB`);
   if (!perfDone) log('EIGHT PERF: not reached — the match ended before all eight were sampled in at 1 min');
+  // (JT2's add-on — THE FINAL SCREEN's MEMORY in an 8-PLAYER match: every bot off → the last out ends it → every phone's podium measured)
+  await all(N8, p => T(G(p, 'window.__jwGame.bot(false)')));
+  await all(N8, (p, i) => waitFor(p, s => s.game && s.game.phase === 'final' && !!document.querySelector('.jw-final .final'), `${NAMES[i]}: the podium`, 120000));
+  await sleep(3000);
+  const m8 = []; for (let i = 0; i < N8; i++) { const q = await memAt(pages[i]); m8.push(q); console.log(memLine(`${NAMES[i]} — the 8-player final screen`, q, null)); console.log(seasonLine(NAMES[i], q)); }
+  ok(m8.every(q => q.rest && q.seasonRest && q.pix <= JW_FINAL_BUDGET_MB), `--eight: every phone's final screen RESTS, the season at rest, ${m8.map(q => q.pix).join(' · ')} MB held (the budget ${JW_FINAL_BUDGET_MB})`);
 }
 
 // J1 — `--two`: A 2-PLAYER MATCH — THE DUEL STRIP from the start, NO HEAD TO HEAD / siren ever; one out → LAST ONE STANDING for the other
@@ -414,7 +420,8 @@ try {
   const night = await dbGet(`rooms/${code}/night/${m}`);
   ok(night && night.g === 'jaywalk' && Object.keys(night.p || {}).length === N && (!right || (night.b && night.b[uids[1]] === fin.calls[uids[1]].bonus)), 'the night record: three placings' + (right ? ' + the call\'s game-night points' : ''));
   // H6B — THE END SCREEN's MEMORY (kit/jaywalk-mem.mjs): every phone's podium holds a small RESTING scene, under the budget
-  { await sleep(1500); const ms = []; for (let i = 0; i < N; i++) { const q = await memAt(pages[i]); ms.push(q); console.log(memLine(`${NAMES[i]} — the match's final screen`, q, null)); }
+  { await sleep(1500); const ms = []; for (let i = 0; i < N; i++) { const q = await memAt(pages[i]); ms.push(q); console.log(memLine(`${NAMES[i]} — the match's final screen`, q, null)); console.log(seasonLine(NAMES[i], q)); }
+    ok(ms.every(q => q.seasonRest), `THE SEASON AT REST behind every phone's podium (JT2): ${ms[0].season}`);
     ok(ms.every(q => q.rest && q.pix <= JW_FINAL_BUDGET_MB), `THE END SCREEN's MEMORY in a match: every phone's scene RESTS, ${ms.map(q => q.pix).join(' · ')} MB of pixels held (the budget ${JW_FINAL_BUDGET_MB})`); }
   await H.shot(pages[1], 'match-podium');
   await H.shot(pages[0], 'match-podium-winner');
@@ -590,7 +597,7 @@ try {
     ok(gold.ship && gold.crown && gold.cause === 'YOU MADE IT TO THE MOTHERSHIP' && Number(String(gold.big).replace(/\D/g, '')) === pick.live.lanes, `THE GOLD FINISH: "${gold.cause}" · ${gold.big} LANES + the crown`);
     ok(gold.best.some(t => /^NEW BEST/.test(t)), `NEW BEST on a MATCH end screen: ${gold.best.join(' | ')}`);
     ok(!/TAKEN/.test(gold.text), 'nothing on the end screen says TAKEN');
-    { await sleep(1200); const q = await memAt(host); console.log(memLine('the owner — THE MOTHERSHIP\'s final screen', q, null)); ok(q.rest && q.pix <= JW_FINAL_BUDGET_MB, `THE END SCREEN's MEMORY after THE MOTHERSHIP (its sprite is up behind the gold finish): ${q.pix} MB of pixels held (the budget ${JW_FINAL_BUDGET_MB})`); }
+    { await sleep(1200); const q = await memAt(host); console.log(memLine('the owner — THE MOTHERSHIP\'s final screen', q, null)); console.log(seasonLine('the owner — THE MOTHERSHIP', q)); ok(q.rest && q.seasonRest && q.pix <= JW_FINAL_BUDGET_MB, `THE END SCREEN's MEMORY after THE MOTHERSHIP (its sprite is up behind the gold finish): ${q.pix} MB of pixels held (the budget ${JW_FINAL_BUDGET_MB})`); }
     await H.shot(host, 'h6a-ship-gold-finish');
     // (the guest's own end-of-round moment — a level-up, an unlock — is tapped away: the shot is their podium)
     for (let i = 0; i < 6 && await pages[1].$('.pg-moment'); i++) { await pages[1].evaluate(() => { const m = document.querySelector('.pg-moment'), b = m && m.querySelector('.pg-btn'); if (b && m.classList.contains('is-end')) b.click(); else if (m) m.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); }); await sleep(900); }

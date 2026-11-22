@@ -26,7 +26,7 @@ import { chunkTimes } from '../../js/games/jaywalk/replay.js';
 import { CAUSE_LINES, DAY_LINES, hitVehicle } from '../../js/games/jaywalk/causes.js';
 import { createCourse } from '../../js/games/jaywalk/course.js';
 import { seedOf } from '../../js/games/jaywalk/logic.js';
-import { memAt, memLine, browserMb, JW_FINAL_BUDGET_MB } from './kit/jaywalk-mem.mjs';
+import { memAt, memLine, seasonLine, browserMb, JW_FINAL_BUDGET_MB } from './kit/jaywalk-mem.mjs';
 import { imgSize } from './kit/img-size.mjs';   // (THE FIX PASS: the link card is a JPEG since THE BEFORE-LAUNCH PASS)
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
@@ -80,7 +80,7 @@ const nodeOf = async (code, m, uid) => dbGet(`rooms/${code}/jw/${m}/${uid}`);
 // H6B — THE END SCREEN's MEMORY (kit/jaywalk-mem.mjs): what the page holds on each run's FINAL screen (a beat after it is up: the scene
 // resting, the share card built) + once mid-run for scale
 const mems = [], bpid = b.process() && b.process().pid;
-const memFinal = async (P, tag) => { await sleep(1500); const m = await memAt(P.p); mems.push({ tag, ...m }); console.log(memLine(tag, m, browserMb(bpid))); return m; };
+const memFinal = async (P, tag) => { await sleep(1500); const m = await memAt(P.p); mems.push({ tag, ...m }); console.log(memLine(tag, m, browserMb(bpid))); console.log(seasonLine(tag, m)); return m; };
 let endAt = 0;   // (when the last end screen came up)
 const toEnd = async (P, ms = 45000) => { const up = await P.waitFor(`${S}.game && ${S}.game.phase === 'final' && !!document.querySelector('.jw-final .jw-fin-cause')`, ms); endAt = Date.now(); return up; };
 // (H6B — a run that PAID XP opens the console's END-OF-ROUND MOMENT ≈ 4.5 s after the end screen, OVER its buttons: a kid run down early
@@ -473,6 +473,10 @@ try {
     ok(mems.length >= 5 && mems.every(m => m.rest), `on every run's final screen the scene RESTS (a small still, nothing drawn): ${mems.map(m => m.buf).join(' · ')}`);
     ok(peak <= JW_FINAL_BUDGET_MB, `THE END SCREEN's MEMORY: the most held on a final screen in ${mems.length} solo runs = ${peak} MB of pixels (the budget ${JW_FINAL_BUDGET_MB}; before H6B's fix: 40 at @3)`);
     ok(m5.pix <= mems[0].pix + 3, `… and it does not grow run over run (${mems.map(m => m.pix).join(' → ')} MB)`);
+    // (JT2's add-on — THE FINAL SCREEN's MEMORY with THE SEASONAL PACK in (JW_DAY = a heavy day): nothing seasonal alive behind any final
+    //  screen — the fall, the footprints, the burst piles, the fireworks' canvas freed; the final screen's own canvases never pile up)
+    ok(mems.every(m => m.seasonRest), `THE SEASON AT REST behind every final screen${JW_DAY ? ` (${JW_DAY})` : ''}: ${[...new Set(mems.map(m => m.season))].slice(0, 2).join(' | ')}`);
+    ok(m5.canvases <= mems[0].canvases + 1, `… the final screen's own canvases never pile up (${mems.map(m => m.canvases).join(' → ')})`);
   }
   const rf = await counted(g.code, g.m);
   const vf = verifyNode({ code: g.code, matchId: g.m, node: await nodeOf(g.code, g.m, uid) });

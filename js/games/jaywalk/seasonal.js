@@ -106,10 +106,10 @@ export function createSeasonal(A) {
   }
 
   // ---- JT1 — THE FIREWORKS (fireworks.js — Dec 31 · Jan 1 only)
-  let FW = null, fwP = null;
+  let FW = null, fwP = null, resting = false;   // (resting — JT2: behind a final screen; a canvas made then is freed at once)
   function loadFireworks() {
     if (FW || fwP) return fwP || Promise.resolve(true);
-    fwP = lazyImport(import('./fireworks.js'), './fireworks.js').then(M => { fwP = null; if (A.dead()) return false; FW = M.createFireworks({ host: A.sky(), reduce, sound: A.sound }); if (SZ.fireworks) FW.on(SZ.fireworks); return true; }, () => { fwP = null; return false; });
+    fwP = lazyImport(import('./fireworks.js'), './fireworks.js').then(M => { fwP = null; if (A.dead()) return false; FW = M.createFireworks({ host: A.sky(), reduce, sound: A.sound }); if (SZ.fireworks) FW.on(SZ.fireworks); if (resting) FW.rest(true); return true; }, () => { fwP = null; return false; });
     return fwP;
   }
 
@@ -327,7 +327,7 @@ export function createSeasonal(A) {
       }
       lightsDone();
       // J4 — THE FALL (ONE draw): the falling snow · JT1 — or the drifting leaves (light, see-through; never over the lane in front of the kid)
-      const falling = SZ.snowfall !== 'none', leaves = !falling && SZ.autumn > 0 && shaders;
+      const falling = !resting && SZ.snowfall !== 'none', leaves = !resting && !falling && SZ.autumn > 0 && shaders;   // (JT2: never behind a final screen — the scene draws its last frames into the still)
       if (falling || leaves) {
         const heavy = falling && SZ.snowfall === 'heavy', Uf = fall.uniforms;
         fall.show(Math.round((leaves ? FLAKES.leaves * (0.4 + 0.6 * SZ.autumn) : FLAKES[heavy ? 'heavy' : 'light']) * (f.tier === 0 || reduce ? 0.5 : 1)));
@@ -344,9 +344,10 @@ export function createSeasonal(A) {
       fall.mesh.visible = true; sg.instanceCount = Math.max(1, c);
       return () => { fall.mesh.visible = v; sg.instanceCount = c; };
     },
-    /** the end screen covers the scene: the fireworks stop drawing (their canvas cleared) */
-    rest(on) { if (FW) FW.rest(on); },
-    info: () => ({ shaders, models: !!models, hat: HG.on, prints: prN, piles: pilesN, bursts: burst.size, fall: fall.mesh.visible ? fall.mesh.geometry.instanceCount : 0, leaves: fall.uniforms.uLeaf.value === 1, fw: FW ? FW.info() : null }),
+    /** the end screen covers the scene (JT2's add-on — THE FINAL SCREEN's MEMORY): nothing seasonal stays alive behind it — the fall's
+     *  particles off, the footprints + the burst piles let go, the fireworks' canvas FREED (all made again by the next run's start) */
+    rest(on) { resting = !!on; if (on) { fall.show(0); prN = 0; burst.clear(); } if (FW) FW.rest(on); },
+    info: () => ({ resting, shaders, models: !!models, hat: HG.on, prints: prN, piles: pilesN, bursts: burst.size, fall: fall.mesh.visible ? fall.mesh.geometry.instanceCount : 0, leaves: fall.uniforms.uLeaf.value === 1, fw: FW ? FW.info() : null }),
     destroy() {
       A.scene.remove(fall.mesh); fall.dispose(); U.snow.value = 0; U.aut.value = 0; LIGHTS.n.value = 0;
       for (const g of HG.made) g.dispose();

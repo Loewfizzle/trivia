@@ -27,7 +27,12 @@ export const memAt = page => page.evaluate(async () => {
   for (const c of document.querySelectorAll('canvas')) if (c !== gl && c.width > 0) { const b = c.width * c.height * 4; cv += b; n++; if (b > MB / 2) big.push(`${name(c)} ${c.width}×${c.height}`); }
   try { const S = await import('/js/games/jaywalk/shot.js'), k = S.shotFor(s && s.matchId); if (k && k.canvas && k.canvas.width > 0 && !k.canvas.isConnected) { cv += k.canvas.width * k.canvas.height * 4; n++; big.push(`the run's picture ${k.canvas.width}×${k.canvas.height}`); } } catch { /* no picture kept */ }
   const r = v => Math.round(v * 10) / 10;
-  return { gl: r(glMb), bloom: r(bloomMb), canvas: r(cv / MB), canvases: n, pix: r(glMb + bloomMb + cv / MB), heap: performance.memory ? r(performance.memory.usedJSHeapSize / MB) : null,
+  // (JT2's add-on — THE SEASONAL PACK behind the final screen: nothing of it alive — the fall's particles, the footprints, the burst piles, the
+  //  fireworks' canvas + sparks (season.sp — seasonal.js#info); no pack this run = nothing to hold)
+  const sp = s && s.season && s.season.sp, fw = sp && sp.fw;
+  const seasonRest = !sp || (sp.resting === true && !sp.fall && !sp.prints && !sp.bursts && (!fw || (fw.px === 0 && fw.sparks === 0)));
+  const season = sp ? `${s.season.day} ${s.season.autumn > 0 ? 'autumn ' : ''}${s.season.winter > 0 ? 'winter ' : ''}${s.season.snowfall !== 'none' ? s.season.snowfall + ' snow ' : ''}${fw && fw.kind ? 'fireworks ' : ''}— fall ${sp.fall} · prints ${sp.prints} · piles burst ${sp.bursts} · fireworks ${fw ? `${fw.px} px ${fw.sparks} sparks` : 'none'}` : 'no pack';
+  return { seasonRest, season, gl: r(glMb), bloom: r(bloomMb), canvas: r(cv / MB), canvases: n, pix: r(glMb + bloomMb + cv / MB), heap: performance.memory ? r(performance.memory.usedJSHeapSize / MB) : null,
     rest: i.rest == null ? null : i.rest, dpr: i.dpr, big, buf: gl ? `${gl.width}×${gl.height}` : '' };
 });
 /** the whole browser's memory (MB) — every chrome.exe under the launched one (Windows); null elsewhere */
@@ -39,3 +44,5 @@ export function browserMb(pid) {
   } catch { return null; }
 }
 export const memLine = (tag, m, mb) => `MEM ${tag}: ${m.pix} MB held (the 3D buffer ${m.gl} [${m.buf} @${m.dpr}] + bloom ${m.bloom} + ${m.canvases} canvases ${m.canvas}${m.big && m.big.length ? ': ' + m.big.join(', ') : ''})${m.heap == null ? '' : ` · JS heap ${m.heap}`}${mb == null ? '' : ` · the browser ${mb}`} · ${m.rest ? 'RESTING' : m.rest === 0 ? 'live' : 'no rest (old code)'}`;
+/** the season's line (JT2): what of THE SEASONAL PACK is still alive behind the final screen */
+export const seasonLine = (tag, m) => `SEASON ${tag}: ${m.seasonRest ? 'at rest' : 'STILL ALIVE'} — ${m.season}`;

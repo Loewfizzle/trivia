@@ -7,13 +7,14 @@ export const H2H_STRIP_MS = 3000;      // (HEAD TO HEAD: the big text holds to h
 export const H2H_MS = 5000;            // (… gone by here: the strip stays for the rest of the duel)
 export const LAST_MS = 2600;           // (LAST ONE STANDING's card)
 
-/** THE GRAVESTONES — the lane in front of the kid stays clear (PURE): a mark at p = [x, y, cell] (stage px) sits in the band from half a lane
- *  behind the kid's middle to GRAVE_AHEAD lanes in front of it (forward = up the screen), the whole width → faded there. kid = [x, y, cell] | null */
-export const GRAVE_AHEAD = 2.5;
+/** THE GRAVESTONES — LIGHT near the kid (PURE; JT2's add-on — the owner, Nov 22: "they read as faded"): a mark at p = [x, y, cell] (stage px)
+ *  dims (to ~50 %, never lower — css .is-ahead) ONLY while it sits on THE LANE THE KID IS ABOUT TO HOP INTO — the band GRAVE_NEAR lanes in front
+ *  of his middle to GRAVE_AHEAD (forward = up the screen), the whole width; on his own lane, behind him (passed) or further up: full. kid = [x, y, cell] | null */
+export const GRAVE_NEAR = 0.5, GRAVE_AHEAD = 1.5;
 export function graveAhead(p, kid) {
   if (!p || !kid) return false;
   const c = Math.max(8, Number(kid[2]) || 40);
-  return p[1] > kid[1] - c * GRAVE_AHEAD && p[1] < kid[1] + c * 0.5;
+  return p[1] > kid[1] - c * GRAVE_AHEAD && p[1] <= kid[1] - c * GRAVE_NEAR;
 }
 
 export const createMoments = () => ({ base: false, seen: {}, h2h: false, last: false });

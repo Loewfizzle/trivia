@@ -120,3 +120,19 @@ test('ROOM — JAYWALK\'s own preload graph stays under 480 KB (515 before JT2 �
   assert.ok(kb < 480, `${kb.toFixed(1)} KB`);
   assert.match(readFileSync('docs/games/jaywalk-notes.md', 'utf8'), /^# JAYWALK — THE NOTES/);
 });
+
+// ---- THE ADD-ONS (the owner, mid-pass) — THE FINAL SCREEN's MEMORY with THE SEASONAL PACK · THE GRAVESTONES read clearly
+test('THE FINAL SCREEN\'s MEMORY: the scene\'s rest() reaches the pack — the fall off, the footprints + burst piles let go, the fireworks\' canvas FREED (made again after)', () => {
+  const n = readFileSync('js/games/jaywalk/night.js', 'utf8'), sp = readFileSync('js/games/jaywalk/seasonal.js', 'utf8'), fw = readFileSync('js/games/jaywalk/fireworks.js', 'utf8');
+  assert.match(n, /rest\(on\) \{[\s\S]{0,400}?if \(SP\) SP\.rest\(on\);/, 'night.js#rest → the pack');
+  assert.match(sp, /rest\(on\) \{ resting = !!on; if \(on\) \{ fall\.show\(0\); prN = 0; burst\.clear\(\); \} if \(FW\) FW\.rest\(on\); \}/);
+  assert.match(fw, /rest\(on\) \{ resting = !!on; if \(on\) \{ clear\(\); n = 0; pending\.length = 0; cv\.width = cv\.height = 0; \} else if \(!cv\.width && W\) \{ cv\.width = W; cv\.height = H; \} \}/);
+  assert.match(fw, /if \(!resting\) \{ cv\.width = W; cv\.height = H; \}/, 'a resize behind a final screen never makes the freed canvas again (the Dec 31 MOTHERSHIP final held 900 × 304 before)');
+  assert.match(n, /SP = M\.createSeasonal\(SPAPI\); if \(resting\) SP\.rest\(true\);/, 'a pack that lands behind a final screen rests at once');
+  assert.match(sp, /if \(SZ\.fireworks\) FW\.on\(SZ\.fireworks\); if \(resting\) FW\.rest\(true\);/, '… and its fireworks');
+  assert.match(sp, /const falling = !resting && SZ\.snowfall !== 'none', leaves = !resting && /, 'the fall never re-shown in the frames the scene draws into its still');
+  const k = readFileSync('tests/integration/kit/jaywalk-mem.mjs', 'utf8');
+  assert.match(k, /const seasonRest = !sp \|\| \(sp\.resting === true && !sp\.fall && !sp\.prints && !sp\.bursts && \(!fw \|\| \(fw\.px === 0 && fw\.sparks === 0\)\)\);/, 'the E2Es\' guard: nothing seasonal alive behind a final screen');
+  for (const f of ['tests/integration/e2e-jaywalk.mjs', 'tests/integration/e2e-jaywalk-match.mjs']) assert.match(readFileSync(f, 'utf8'), /seasonRest/, `${f} checks it`);
+  assert.match(readFileSync('tests/integration/kit/jaywalk-mem.mjs', 'utf8'), /export const JW_FINAL_BUDGET_MB = 20;/, 'the budget never raised');
+});

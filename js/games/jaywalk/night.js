@@ -185,7 +185,7 @@ export function createNight(host, o = {}) {
   /** fetch THE SEASONAL PACK for a day ('d20261224') — a season day only (or `force`: the lab) → a promise (true = the day's pieces are in) */
   function prepSeason(day, { force = false } = {}) {
     if (!force && !seasonWindow(day)) return Promise.resolve(false);
-    if (!spAsk) spAsk = lazyImport(import('./seasonal.js'), './seasonal.js').then(M => { if (dead) return null; SPAPI.ground = ground; SP = M.createSeasonal(SPAPI); return SP; }).catch(() => { spAsk = null; return null; });
+    if (!spAsk) spAsk = lazyImport(import('./seasonal.js'), './seasonal.js').then(M => { if (dead) return null; SPAPI.ground = ground; SP = M.createSeasonal(SPAPI); if (resting) SP.rest(true); return SP; }).catch(() => { spAsk = null; return null; });
     return spAsk.then(sp => (sp ? sp.prep(day) : false));
   }
   /** the season for the run starting now: its DAY · { wet (WET NEON STREETS — the lab's; WET_LIVE in the game), snow (the lab's forced fall),

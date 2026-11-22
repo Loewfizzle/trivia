@@ -71,8 +71,40 @@ row, YOUR row) + the end card.
 - THE LINE: the city + JAYWALK **2,549 KB** (2,584 before the pass); the game alone 45 modules / 479 KB; THE SEASONAL PACK untouched.
 - No rules change. Every server this pass started is stopped (the emulators, :5173); the preview server :5190 left up.
 
+## THE ADD-ONS (the owner, after the first push — built as the last group; a second tagged push)
+### THE FINAL SCREEN's MEMORY WITH THE SEASONAL PACK (/admin: one PAGE KILLED, game:jaywalk/final, iOS 18.7, build a0019bc — before JT1)
+Measured every final screen on the heavy days (`JW_DAY=` — the page's test-only `&jwday=`; the game takes no clock, so Dec 31 = the regular
+night bursts, not the 23:59 finale) at 390 × 844, against `JW_FINAL_BUDGET_MB` = 20 (never raised). **All under, before and after:**
+| scene | pixels held on the final screen | the season behind it |
+| --- | --- | --- |
+| solo, Nov 25 autumn (5 runs in a row) | 7.6 MB each (the 3D still 2.5 + the gate sign 0.7 + the run's picture 4.4) | was ALIVE: 150 leaves falling → **at rest** |
+| solo, Dec 24 heavy snow (5 runs) | 7.6 MB each | was ALIVE: 760 flakes → **at rest** |
+| solo, Dec 31 (5 runs) | 7.6 MB each | at rest, the fireworks' canvas freed (0 px) |
+| 3-player match, Nov 25 · Dec 24 · Dec 31 | 10 MB a phone (+ the city's backdrop 2.2) | at rest |
+| THE MOTHERSHIP's final, Dec 31 | was **4.2 MB — the fireworks' canvas 900 × 304 held** → **3.2 MB** | at rest, 0 px |
+| 8-player match end, Dec 24 (`--eight`) | 9.1 MB on each of the 8 phones | at rest |
+
+**Found + fixed:** (1) the pack's snow / leaves kept falling behind the final screen — the scene draws its last frames into the still and the
+pack re-showed the fall in them (`seasonal.js`: never while resting); (2) the fireworks' canvas was only CLEARED at rest — now FREED (0 × 0,
+no spark, no rocket) and made again on the next run; a resize behind the final screen made it again (the Dec 31 MOTHERSHIP final's 900 × 304)
+— no longer; (3) a pack or a fireworks canvas that lands while the scene rests is rested at once. The footprints + the burst piles are let go
+too. **The final screen itself:** nothing held twice — its canvases flat over 5 runs (2 solo · 4 match: the gate sign, the run's picture
+kept for SHARE, the city's backdrop); the confetti / podium are DOM. **THE GUARD:** `kit/jaywalk-mem.mjs#seasonRest` on every final screen of
+`e2e-jaywalk.mjs`, `e2e-jaywalk-match.mjs` (+ THE MOTHERSHIP's) and `--eight` (+ a canvases-never-pile-up check), `tests/jaywalk-jt2.test.mjs`.
+Runs: solo Nov 25 / Dec 24 / Dec 31 **120 / 120** each · match Nov 25 / Dec 24 / Dec 31 **106 / 106** each · `--eight` **6 / 6** · today's
+match **105 / 105** · solo **119 / 119** · unit **2,590**.
+
+### THE GRAVESTONES READ CLEARLY (`moments.js#graveAhead` · css `.jw-x.is-grave`)
+The settled X stays CLEARLY visible all match: ×0.62 (smaller than the flash) at 92 %, brighter red with a soft static glow by night (no
+bloom, no filter), strong red + a thin dark edge by day; the name 12 px at 100 % (the player list: 10 px). Near the kid: ONLY on the lane he
+is about to hop into (0.5 → 1.5 lanes ahead) → 50 %, never lower; full on his own lane, once passed, or further up. Visual only;
+`tests/jaywalk-moments.test.mjs` updated. Shots: `Downloads\NEON\jaywalk-graves\v2\` (night + day, 8 players, 4 out, MAXIMILIANOS's X right
+in front of the kid at 50 %).
+
 ## OPEN FOR BEN
 1. RE-PUBLISH: nothing (no rules change).
 2. The calls above (the tap = the first hop, the daily's 3 · 2 · 1 kept, PLAY AGAIN starts at once, the connecting press does nothing, B
    does nothing mid-run, the friend's words under the traffic, AVG under the best / its own line under a NEW BEST, no back-fill possible).
 3. HIGH RISE + the next games: THE CONTROLLER is one line each (`wirePad`) — not wired in this pass.
+4. THE ADD-ONS came after the first push: built + pushed as a SECOND tagged deploy (the pass's two cloud runs).
+5. The gate sign's canvas (0.7 MB) stays behind a final screen (small; the budget holds) — free it too in a later pass if you want every byte.

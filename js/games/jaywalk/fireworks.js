@@ -27,7 +27,7 @@ export function createFireworks({ host, reduce = false, sound = () => {}, rnd = 
   // (the canvas follows its box — a ResizeObserver, never a layout read in the frame — at ≤ 1.5× and ≤ ~0.35 MP: soft lights need no more)
   let ro = null;
   try { ro = new ResizeObserver(es => { const r = es[0] && es[0].contentRect; if (r && r.width) size(r.width, r.height); }); ro.observe(host); } catch { /* no observer: the default size */ size(640, 216); }
-  function size(w, h) { vis = Math.max(0.3, Math.min(1, (window.innerWidth || w) / Math.max(1, w))); k = Math.min(1.5, window.devicePixelRatio || 1, Math.sqrt(350000 / Math.max(1, w * h))); W = Math.max(1, Math.round(w * k)); H = Math.max(1, Math.round(h * k)); cv.width = W; cv.height = H; dirty = true; }   // (vis: the share of the picture's width on screen — it is wider than the phone)
+  function size(w, h) { vis = Math.max(0.3, Math.min(1, (window.innerWidth || w) / Math.max(1, w))); k = Math.min(1.5, window.devicePixelRatio || 1, Math.sqrt(350000 / Math.max(1, w * h))); W = Math.max(1, Math.round(w * k)); H = Math.max(1, Math.round(h * k)); if (!resting) { cv.width = W; cv.height = H; } dirty = true; }   // (JT2: a resize behind a final screen never makes the freed canvas again)   // (vis: the share of the picture's width on screen — it is wider than the phone)
   // the sparks: x, y, vx, vy (canvas px · px/s), age, life (s), colour, kind (0 spark · 1 rocket · 2 flash · 3 smoke)
   const N = FW.max, P = new Float32Array(N * 8);
   let n = 0;
@@ -102,8 +102,9 @@ export function createFireworks({ host, reduce = false, sound = () => {}, rnd = 
       }
       n = live; c2.globalAlpha = 1; c2.globalCompositeOperation = 'source-over'; dirty = true; shown = n;
     },
-    rest(on) { resting = !!on; if (on) clear(); },
-    info: () => ({ kind, sparks: shown, bursts, sounds, last: lastId, w: W, h: H }),
+    /** the end screen covers it (JT2's add-on — THE FINAL SCREEN's MEMORY): its pixels FREED (the canvas 0 × 0, no spark, no rocket) — made again on the way back */
+    rest(on) { resting = !!on; if (on) { clear(); n = 0; pending.length = 0; cv.width = cv.height = 0; } else if (!cv.width && W) { cv.width = W; cv.height = H; } },
+    info: () => ({ kind, sparks: shown, bursts, sounds, last: lastId, w: W, h: H, px: cv.width * cv.height, resting }),
     destroy() { if (ro) ro.disconnect(); clear(); cv.width = cv.height = 0; cv.remove(); },
   };
   function clear() { if (c2) c2.clearRect(0, 0, W, H); dirty = false; shown = 0; }
