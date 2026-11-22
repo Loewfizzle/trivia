@@ -17,7 +17,7 @@ import { lazyImport } from '../../ui/lazy-import.js';
  *  the podium's + the fallback */
 export const musicFor = () => [typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];
 
-export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('jaywalk'));
+export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('jaywalk'), { needs: globalThis.__nsViewNeeds ? globalThis.__nsViewNeeds.importMaps('JAYWALK') : null });   // (THE FIX PASS — P1: three.js through the import map — Safari < 16.4 gets a clear card, never a blank match)
 
 // THE PROOF NODE (rooms/{CODE}/jw/{matchId}/{uid}): written by the player AT GO (present = proven) + their hop log in chunks as they hop —
 // mirrored for everyone: the same seed + a player's log = their run, tick for tick (the see-through ghosts — H4)

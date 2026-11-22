@@ -506,6 +506,8 @@ export function playMusic(id, fallback = null) {
 
 /** Warm the HTTP cache for a track (called when a game is chosen). */
 export function prefetch(id, wait = false) {
+  // (THE FIX PASS — P5: the music off = no song fetched ahead — engine.js's hub, the one the synced player asks)
+  try { if (globalThis.__nsAudioRest && globalThis.__nsAudioRest()) return wait ? Promise.resolve(null) : null; } catch { /* the hub: polish */ }
   if (PROVIDERS[id]) return null;
   if (PLAYLISTS[id]) return prefetch(PLAYLISTS[id][listPos[id] || 0], wait);
   if (!FILES[id] || status[id] === 'missing') return null;

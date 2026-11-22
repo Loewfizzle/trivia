@@ -720,6 +720,7 @@ browser that works; C2's iOS 16 turned away iPhones on 15.4–15.8):
 | `createConicGradient` · `requestIdleCallback` · `OffscreenCanvas` · Web Push · wake lock | 16.1 · none · 16.4 · 16.4 · 16.4 | | | guarded where used |
 | CSS `color-mix()` (274) · `@property` (23) · `text-wrap` | 16.2 · 16.4 · 17.5 | 111 · 85 · 114 | 113 · 128 · 121 | the LOOK only (a declaration dropped) |
 | regex lookbehind · class static blocks · import attributes · regex `v` | 16.4 · 16.4 · 17.2 · 17 | | | never used (`tests/safari-floor.test.mjs`) |
+| import maps (three.js arrives as the bare name `three` — JAYWALK + HIGH RISE's 3D views) | 16.4 | 89 | 108 | **THOSE TWO GAMES ONLY** — below it their game screen is the card UPDATE YOUR iPHONE TO PLAY <GAME> + BACK TO THE ROOM (THE FIX PASS — P1: `ui/game-broke.js#needsImportMaps`, feature-detected by `HTMLScriptElement.supports('importmap')`, never a version sniff); every other game plays |
 
 Proof: `tests/safari-floor.test.mjs` (the UA table — iOS 15.3 old · 15.4 / 15.4.1 / 15.8 / 16 / 17 not; Chrome 91 / 92; Instagram on 15.4 not,
 Facebook on 15.2 old; Mac Safari 15.3 / 15.4; the fill's radii); `tests/integration/wk-floor.mjs` (WebKit with `roundRect` + the 16.x APIs TAKEN
@@ -1696,6 +1697,18 @@ The pass log: [passes/city-part1.md](harbor/passes/city-part1.md).
   a rotating ad and MAY repeat a roof sign. The clash it closes: a Monday morning (the painters still show last week's blade) or past midnight
   (the night's signs, the new week's blade). The guard `tests/city-part2-blade.test.mjs` (every night of a year, 390 / 402 / 430 + the desk).
 - **THE RADIO BUTTON** sits 8 pt clear of ☰'s 44 × 44 (the harbor `tapfit` group: no tappable shares a point with a corner button's area).
+
+
+### THE WAKE HOLD's FRESH CHECK IS A WRITE + ROOM IDLE ON A FRESH MIRROR (THE FIX PASS, Nov 22 — THE FABLE REVIEW's P2 + P3)
+- **P2:** the hold's "fresh read" was `get(meta/hostId)` + `get(players/{uid})` — the SDK (11.10) answers a get() from the listener's cache
+  whenever one covers the path (room.js listens on meta + players the whole time), so the hold lasted one tick and confirmed nothing (the
+  `e2e-stall-host` pass on the old code was the rules doing the work). Now `host.js#roundTrip`: ONE WRITE the cache can not answer — the
+  host's `meta/hostBeat` (accepted = still the host; refused = it follows, quiet `not-host`) — its ack comes after every event the server sent
+  before it (the listeners re-synced on the reconnect), so once it settles the mirror IS fresh; no answer in 5 s = asked again.
+- **P3:** a phone waking from a long sleep (the page alive) read its OLD `activeAt` (the SDK says "connected" before the listeners re-sync),
+  called the idle close on it and walked out of a live match. Now every seated phone confirms with its round trip first (a guest: its own
+  `presence/{uid}/lastSeen`), then asks again on what came back (`host.js#idleClose`) — the run hold still wins.
+- Tests: `tests/city-part1-host.test.mjs` (the write, the idle gate), `e2e-stall-host.mjs` 8/8.
 
 ## CITY PART 2 (Nov 21) — THE BOOT HEADERS · THE ROOM's GAME VOTES · THE SIGNS ONCE A NIGHT
 The pass log: [passes/city-part2.md](harbor/passes/city-part2.md).

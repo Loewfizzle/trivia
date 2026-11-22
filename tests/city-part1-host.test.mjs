@@ -22,7 +22,12 @@ test('the quiet rule: a room / chat refusal just after a stall wake = QUIET_WOKE
 test('THE WAKE HOLD + THE ONE GATE: a tick gap >= 5 s (or a 5 s hide) holds every host write until a fresh read of meta/hostId + the seat; every host write passes hostWriteOk', () => {
   const h = read('js/host.js');
   assert.match(h, /export const STALL_GAP_MS = 5000, WAKE_QUIET_MS = 30_000;/);
-  assert.match(h, /get\(dbRef\(`rooms\/\$\{code\}\/meta\/hostId`\)\), get\(dbRef\(`rooms\/\$\{code\}\/players\/\$\{state\.uid\}`\)\)/, 'the fresh read: the host + the seat');
+  // (THE FIX PASS — P2: the "fresh read" was a get() the SDK answers from the listener's cache — now ONE WRITE the cache can't answer)
+  assert.match(h, /const w = asHost \? update\(dbRef\(`rooms\/\$\{code\}\/meta`\), \{ hostBeat: serverTimestamp\(\) \}\) : update\(dbRef\(`rooms\/\$\{code\}\/presence\/\$\{state\.uid\}`\), \{ lastSeen: serverTimestamp\(\) \}\);/, 'the fresh check: a write (its ack after every earlier event)');
+  assert.match(h, /roundTrip\(code, true\)\.then\(r => \{/);
+  assert.match(h, /w\.ok = r === true && state\.meta && state\.meta\.hostId === state\.uid && inRoom\(\);/, 'the host + the seat, on the fresh mirror');
+  assert.match(h, /if \(idleNow\(\)\) \{ idleClose\(\); return; \}/, 'P3: ROOM IDLE only after the round trip');
+  assert.ok(!/get\(dbRef\(`rooms\/\$\{code\}\/meta\/hostId`\)\)/.test(h), 'no cached get() as the proof any more');
   assert.match(h, /if \(state\.meta && state\.meta\.hostId !== wake\.host\) \{ wake = null; return isHost\(\); \}/, 'the mirror moved = fresh');
   assert.ok(h.indexOf('woke(`a stall of') < h.indexOf('if (!state.connected) return;'), 'the wake is seen before the connection check (a dead socket still knows)');
   // every host write: the beat, the director, a dead start's clear, the solo hold, a start, a rematch, the walk back — through the gate

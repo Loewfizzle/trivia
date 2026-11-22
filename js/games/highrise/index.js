@@ -18,7 +18,7 @@ import { lazyImport } from '../../ui/lazy-import.js';
 export const musicFor = () => [typeof document !== 'undefined' && document.body && document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];
 
 // (the stage's own sheet — css/highrise-play.css, the test page's: ONE look for both)
-export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), ['kit', 'highrise-play']);
+export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), ['kit', 'highrise-play'], { needs: globalThis.__nsViewNeeds ? globalThis.__nsViewNeeds.importMaps('HIGH RISE') : null });   // (THE FIX PASS — P1: three.js through the import map — Safari < 16.4 gets a clear card, never a blank match)
 
 // THE PROOF NODE (rooms/{CODE}/hr/{matchId}/{uid} — proof.js): written by the player AT GO + their tap log in chunks as they drop
 export const livePaths = g => ({ runs: `hr/${g.matchId}` });

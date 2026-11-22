@@ -1,5 +1,5 @@
 // Entry point: boot Firebase, restore session, route state -> screen.
-import { setErrorContext, markScreen, countQuiet } from './errlog.js';   // first: errors from phones (it also sees errors while the app boots)
+import { setErrorContext, markScreen, countQuiet, reportError } from './errlog.js';   // first: errors from phones (it also sees errors while the app boots)
 import { installTapWatch } from './ui/tapwatch.js';   // (CITY FIXES: THE TAP WATCH — a lost first tap → /admin, + THE RESCUE)
 import { h, $ } from './ui/dom.js';
 import { watchLayers, layersOpen } from './ui/layers.js';
@@ -319,7 +319,7 @@ function render(st0) {
   const glass = key.startsWith('setup') || key === 'profile';
   if (document.body.classList.contains('nd-glass') !== glass) { document.body.classList.toggle('nd-glass', glass); showBackdrop(glass); }
 
-  if (current && current.key === key) { current.screen.update && current.screen.update(st); return; }
+  if (current && current.key === key) { try { current.screen.update && current.screen.update(st); } catch (e) { console.warn('update', key, e); reportError(e, 'screen update'); } return; }   // (THE FIX PASS — P8: a game screen's own boundary is lazy-view.js; any other screen's throw is reported, never a dead loop)
   const old = current;
   const el = h('section.screen');
   let screen = makeScreen(key);

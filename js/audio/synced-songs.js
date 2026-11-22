@@ -412,6 +412,15 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
       const t = serverNow();
       const starts = songStarts(game);
       const want = wanted(t, starts);
+      // (THE FIX PASS — P5: THE MUSIC OFF = NO SONG DOWNLOADED OR DECODED — HEAR THE HARBOR + ALL OFF fetched + decoded every song (2–3 MB +
+      //  ~64 MB of PCM each, ~50 MB of data an hour) that never played. The rest asked FIRST: the voices out, the decoded songs dropped; the
+      //  music back on = the window loaded again, the song re-joins at its place)
+      if (rest()) {
+        const c0 = getContext();
+        if (c0) for (const i of [...voices.keys()]) stopVoice(c0, i, 0.3);
+        for (const k of [...bufs.keys()]) if (!voices.has(Number(k.split(':')[1]))) drop(k);
+        return null;
+      }
       for (const i of want) if (i >= minIndex) load(i);
       // drop decoded songs we no longer need (a decoded song is tens of MB)
       for (const k of [...bufs.keys()]) {

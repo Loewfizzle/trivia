@@ -216,3 +216,11 @@
 /* SHELL 2.0 B2 — YOUR PREVIOUS KEY (screens/profile.js#prevKeyRow): two glass rows under YOUR KEY */
 .pf-prevkey { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
 .pf-prevkey-row .sh-row-l small { font-family: var(--font-mono); letter-spacing: 0.06em; word-break: break-all; }
+
+/* THE FIX PASS — P8 + P1: THE ERROR BOUNDARY's card on a game screen (js/games/lazy-view.js#brokeCard) — in a BOOT sheet, so it shows even
+   when the game's own sheets never came; straight edges (no pill), the shell's tube for the one way out */
+.gk-broke { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  padding: calc(var(--cb-room, 56px) + 16px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px); text-align: center; background: var(--bg-0, #05060f); }
+.gk-broke-t { font: 700 22px/1.2 var(--font-display); letter-spacing: 0.06em; color: var(--text, #fff); max-width: 22em; }
+.gk-broke-p { margin: 0; font: 500 16px/1.45 var(--font-ui); color: var(--text-dim, #c9cbe6); max-width: 26em; }
+.gk-broke-b { width: min(100%, 320px); margin-top: 6px; }

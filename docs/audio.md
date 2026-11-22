@@ -70,6 +70,19 @@ now ALL OFF (nothing runs, iOS left alone — a podcast keeps playing).
   that one step applies the button's own patch), `audio-leave`, `audio-cut`, `audio-hush`, `sound-sync`, `podcast-sweep`, `jaywalk-podcast`, the
   harbor `audio` group (HEAR THE HARBOR on the real city).
 
+## THE FIX PASS (Nov 22 — THE FABLE REVIEW's P4 + P5)
+- **P5 — THE MUSIC OFF = NO SONG DOWNLOADED OR DECODED.** HEAR THE HARBOR and ALL OFF still fetched + decoded every station song (2–3 MB +
+  ~64 MB of PCM each, ~50 MB of mobile data an hour on the title) that never played. Now `synced-songs.js#tick` asks the rest hub
+  (`engine.js#__nsAudioRest` — the music off or its volume 0) BEFORE its load loop: the voices out, the decoded songs dropped, nothing
+  fetched; the music back on loads the window again and the song re-joins at its place. `music.js#prefetch` asks the same hub (no song
+  fetched ahead). HEAR THE HARBOR's beds + one-offs + effects are untouched. `tests/fix-pass-audio.test.mjs` counts the fetches (red on the
+  old code).
+- **P4 — THE MEDIA CUT after an on-screen interruption.** `mediaCut(left)` is latched; an ON-SCREEN interruption (Siri, a call banner,
+  Control Center) set it, and the context coming back `running` while still visible never cleared it — every later leave skipped the cut
+  (a song element PLAYING at the first signal, the state CITY G fixed). Now the `running` branch (visible, not hushed — after both early
+  returns) clears the latch and closes the leave episode BEFORE the resume listeners. THE CUT IN ONE ORDER, `isUnlocked()`, MUTED = NOTHING
+  RUNS: unchanged. Test: the same file (an interruption → running → a real blur runs the cut in its own step; red on the old code).
+
 ## THE HOLD — A LIVE GAME RUN KEEPS THE CONTEXT AWAKE (HIGH RISE S4A — Nov 19 2026; the owner: "sometimes the sound isn't in sync with the blocks") — THE NAP IT BEAT IS RETIRED (HEAR THE HARBOR, above): the lease API stays, it changes nothing now
 **Why:** PODCAST MODE (below) naps the context 150 ms after each effect — right for the city, wrong for a game: a drop / a hop comes every second or
 two, so EVERY effect first had to wake the context (on iOS at the finger's LIFT — a variable delay between the picture and its sound).

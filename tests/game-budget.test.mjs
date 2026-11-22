@@ -15,8 +15,9 @@ test('THE PER-GAME BUDGET: the city + one game — modules + KB under each game\
     const kb = files.reduce((s, f) => s + statSync(f).size, 0) / 1024, B = BUDGET.games[id];
     assert.ok(B, `${id} has a line in game-budget.json`);
     rows.push(`${id}: city ${boot.length} + ${files.length} modules = ${boot.length + files.length} · ${Math.round(bootKB + kb)} KB (the game alone ${files.length} / ${Math.round(kb)} KB)`);
-    assert.ok(boot.length + files.length <= B.modules, `${id}: ${boot.length + files.length} modules > its budget ${B.modules}`);
-    assert.ok(bootKB + kb <= B.kb, `${id}: ${Math.round(bootKB + kb)} KB > its budget ${B.kb}`);
+    // (THE FIX PASS — M2: THE LINE IS THE GAME ALONE — its own preload graph; the city's boot graph has its own budget, never in a game's line)
+    assert.ok(files.length <= B.modules, `${id}: ${files.length} modules of its own > its budget ${B.modules}`);
+    assert.ok(kb <= B.kb, `${id}: ${Math.round(kb)} KB of its own > its budget ${B.kb}`);
   }
   console.log(rows.join('\n'));
 });

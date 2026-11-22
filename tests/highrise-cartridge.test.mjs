@@ -78,7 +78,7 @@ test('THE CARTRIDGE (meta + director — PURE): SOLO, both looks, no options; `p
   assert.deepEqual(scoreNode(CODE, M, null), { f: 0, p: 0, t: 0, w: '', e: -1, s: 0 }, 'no GO = no tower');
   const idx = read('js/games/highrise/index.js');
   assert.match(idx, /const n = Object\.keys\(participants \|\| \{\}\)\.length;\n  if \(n < 1 \|\| n > MATCH_MAX\) return null;/, 'one player = the solo run · 2 … 8 = THE MATCH (S4B — tests/highrise-match.test.mjs)');
-  assert.match(idx, /export const livePaths = g => \(\{ runs: `hr\/\$\{g\.matchId\}` \}\);/); assert.match(idx, /export const soloAgain = /); assert.match(idx, /lazyView\(\(\) => lazyImport\(import\('\.\/view\.js'\), '\.\/view\.js'\), \['kit', 'highrise-play'\]\)/, 'the stage\'s own sheet');
+  assert.match(idx, /export const livePaths = g => \(\{ runs: `hr\/\$\{g\.matchId\}` \}\);/); assert.match(idx, /export const soloAgain = /); assert.match(idx, /lazyView\(\(\) => lazyImport\(import\('\.\/view\.js'\), '\.\/view\.js'\), \['kit', 'highrise-play'\], \{ needs: globalThis\.__nsViewNeeds \? globalThis\.__nsViewNeeds\.importMaps\('HIGH RISE'\) : null \}\)/, 'the stage\'s own sheet');
 });
 
 test('THE PROOF (proof.js — PURE): the chunks ↔ the tap log; an honest node is judged to the phone\'s own run; nothing a phone claims is read', () => {

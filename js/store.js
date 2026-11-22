@@ -37,7 +37,9 @@ export function setState(patch) {
   queued = true;
   queueMicrotask(() => {
     queued = false;
-    for (const fn of listeners) fn(state);
+    // (THE FIX PASS — P8: ONE listener's throw never skips the rest — the report queue sat behind the router's render; the error still
+    //  reaches window.onerror → errlog, a moment later)
+    for (const fn of listeners) { try { fn(state); } catch (e) { setTimeout(() => { throw e; }, 0); } }
   });
 }
 

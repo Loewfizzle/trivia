@@ -64,17 +64,38 @@ export function hostWriteOk() {
   }
   return true;
 }
+// THE FIX PASS — P2: the "fresh read" was a get() — answered from the phone's OWN copy whenever a listener covers the path (the SDK's
+// repoGetValue; room.js listens on meta + players the whole time): the hold lasted one tick and confirmed nothing. Now ONE WRITE the cache
+// can not answer — its ack comes after every event the server sent before it (the listeners re-synced on the reconnect), so once it settles
+// the mirror IS fresh: the host's meta/hostBeat (accepted = still the host — the rules: meta/hostId === auth.uid; refused = it follows) · a
+// guest's own presence/lastSeen (P3). → true (settled, accepted) · false (refused) · 'slow' (no answer in 5 s: asked again)
+export function roundTrip(code, asHost) {
+  const w = asHost ? update(dbRef(`rooms/${code}/meta`), { hostBeat: serverTimestamp() }) : update(dbRef(`rooms/${code}/presence/${state.uid}`), { lastSeen: serverTimestamp() });
+  return Promise.race([w.then(() => true, () => false), new Promise(r => setTimeout(() => r('slow'), 5000))]);
+}
 function askHost() {
   const w = wake, code = state.code, t = Date.now();
   if (!w || w.asking || t - w.at < 2500) return;
   w.asking = true; w.at = t;
-  Promise.race([Promise.all([get(dbRef(`rooms/${code}/meta/hostId`)), get(dbRef(`rooms/${code}/players/${state.uid}`))]), new Promise((_, no) => setTimeout(() => no(new Error('slow')), 5000))]).then(([hs, ps]) => {   // (a read that never answers: asked again)
-    if (wake !== w || state.code !== code) return;
-    w.ok = hs.val() === state.uid && ps.exists();
+  roundTrip(code, true).then(r => {
+    if (wake !== w || state.code !== code || r === 'slow') return;   // (a write that never answers: asked again)
+    w.ok = r === true && state.meta && state.meta.hostId === state.uid && inRoom();
     if (w.ok) wake = null;
     else lazyImport(import('./errlog.js'), './errlog.js').then(m => m.countQuiet && m.countQuiet('not-host')).catch(() => {});   // (it follows)
   }).catch(() => {}).finally(() => { w.asking = false; });
 }
+// THE FIX PASS — P3: ROOM IDLE only on a FRESH mirror — a phone waking from a long sleep read its OLD activeAt (the SDK says "connected"
+// before the listeners re-sync), closed the room on it and walked out of a live match (the server refused the delete; the sleeper was out
+// with a ghost seat). Every seated phone confirms with its round trip first, then asks again on what came back.
+let idleAsk = null;
+const idleNow = () => roomIdle(state.meta, serverNow() - (isHost() ? 0 : 90_000)) && !(globalThis.__nsRunHold && globalThis.__nsRunHold.held());
+function idleClose() {
+  const code = state.code;
+  if (!code || (idleAsk && idleAsk.code === code)) return;
+  idleAsk = { code };
+  roundTrip(code, isHost()).then(r => { if (state.code === code && r !== 'slow' && idleNow()) closeIdleRoom(); }).catch(() => {}).finally(() => { if (idleAsk && idleAsk.code === code) idleAsk = null; });
+}
+export const idleAsking = () => !!idleAsk;   // (tests)
 export const wakeState = () => (wake ? { ...wake } : null);   // (tests)
 if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') hiddenAt = Date.now(); else if (hiddenAt && Date.now() - hiddenAt >= STALL_GAP_MS && isHost()) woke('back on screen'); });
 function tick() {
@@ -89,7 +110,7 @@ function tick() {
   // their own a little later in case the host's phone is asleep or the room can't be deleted.
   // (THE CONSOLE FIX — THE FRESH-EYES REVIEW: never while this phone holds a live proven run — a modified host's meta/activeAt in the past
   //  made every honest phone close the room mid-match)
-  if (roomIdle(state.meta, now - (isHost() ? 0 : 90_000)) && !(globalThis.__nsRunHold && globalThis.__nsRunHold.held())) { closeIdleRoom(); return; }
+  if (idleNow()) { idleClose(); return; }   // (THE FIX PASS — P3: on a FRESH mirror only — the round trip first)
   watchHand();
   if (isHost()) {
     if (!hostWriteOk()) return;   // (CITY PART 1: held after a wake until a fresh read says this phone IS the host — else it follows)

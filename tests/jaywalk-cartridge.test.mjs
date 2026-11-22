@@ -43,7 +43,7 @@ test('THE META (H4): NO OPTIONS — ONE LIFE everywhere; a few minutes (THE MOTH
   for (const k of ['start', 'prepare', 'step', 'livePaths', 'createView', 'finalRanks', 'nightBonus']) assert.match(idx, new RegExp(`export (async function|function|const) ${k}\\b`), `index.js exports ${k}`);
   assert.match(idx, /export const livePaths = g => \(\{ runs: `jw\/\$\{g\.matchId\}` \}\);/, 'everyone\'s proof nodes, mirrored: the hop logs ARE the ghosts');
   assert.match(idx, /export const step = \(game, \{ now, live, code, online \}\) => nextStep\(game, \{ now, live, code, online \}\);/, 'the step knows who is online (THE DROPPED SIGNAL\'s wait)');
-  assert.match(idx, /lazyView\(\(\) => lazyImport\(import\('\.\/view\.js'\), '\.\/view\.js'\), gameSheets\('jaywalk'\)\)/, 'createView = the lazy view');
+  assert.match(idx, /lazyView\(\(\) => lazyImport\(import\('\.\/view\.js'\), '\.\/view\.js'\), gameSheets\('jaywalk'\), \{ needs: globalThis\.__nsViewNeeds \? globalThis\.__nsViewNeeds\.importMaps\('JAYWALK'\) : null \}\)/, 'createView = the lazy view (THE FIX PASS — P1: + its feature card)');
   // the chat's lock: shut while you hop, open once your run ended / for a spectator
   const game = { phase: 'play', participants: { a: true } };
   assert.equal(META.chatLocked(game, 'a', { runs: {} }), true); assert.equal(META.chatLocked(game, 'a', { runs: { a: { e: { l: 3, t: 9 } } } }), false);

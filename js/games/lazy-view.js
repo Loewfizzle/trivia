@@ -3,6 +3,7 @@
 // the synchronous view contract { mount, update, unmount } that forwards to the real view once BOTH have loaded (never an
 // unstyled frame). index.html links only the sheets every screen needs (base, components, screens, title + chat, board, card).
 import { reportError } from '../errlog.js';
+import { brokeCard, BROKE_LINE } from '../ui/game-broke.js';   // (THE FIX PASS — P8 + P1)
 
 // The cascade order the sheets always had in index.html: a lazily loaded sheet is inserted at its old place among the
 // sheets already on the page, so which rule wins a tie never depends on which game was played first.
@@ -37,26 +38,47 @@ export const gameSheets = id => ['kit', id];
 
 const loadAll = (load, css) => Promise.all([load(), ...css.map(loadSheet)]).then(([m]) => m);
 
-/** css: stylesheet names (see gameSheets) to load with the view. */
-export function lazyView(load, css = []) {
+// THE FIX PASS — P8 + P1: THE ERROR BOUNDARY + THE FEATURE CARD — the card itself: js/ui/game-broke.js (outside js/games: THE BOOT BYTES' line)
+
+/** css: stylesheet names (see gameSheets) to load with the view · needs: a feature check (P1 — needsImportMaps) */
+export function lazyView(load, css = [], { needs = null } = {}) {
   // (LOBBY 2.0 B — THE CARTRIDGE PLUG: warm() loads the view + its sheets ahead — the console calls it on every phone at the game start)
   let warmed = null;
   const createView = function createView() {
-    let inner = null, el = null, st = null, gone = false;
-    loadAll(load, css).then(m => {
-      if (gone) return;
-      inner = m.createView();
-      if (el) inner.mount(el, st);
-    }).catch(e => { console.warn('game view', e); reportError(e, 'view load'); });
+    let inner = null, el = null, st = null, gone = false, broke = '';
+    const fail = (e, label, t = 'SOMETHING BROKE', p = BROKE_LINE) => {
+      if (broke) return;
+      broke = label;
+      console.warn('game view', label, e);
+      reportError(e, label);
+      if (inner && el) { try { inner.unmount(); } catch { /* it broke already */ } }
+      inner = null;
+      if (el) brokeCard(el, t, p);
+    };
+    const lacking = needs && !needs.ok();
+    if (lacking) { broke = 'needs'; reportError(new Error(`a game view needs ${needs.why}`), 'view needs'); }
+    else {
+      const go = n => loadAll(load, css).then(m => {
+        if (gone) return;
+        inner = m.createView();
+        if (el) { try { inner.mount(el, st); } catch (e) { fail(e, 'view mount'); } }
+      }, e => { if (gone) return; if (n < 1) setTimeout(() => { if (!gone) go(n + 1); }, 1500); else fail(e, 'view load'); });
+      go(0);
+    }
     return {
-      mount(e, s) { el = e; st = s; if (inner) inner.mount(e, s); },
-      update(s) { st = s; if (inner && el) inner.update(s); },
-      unmount() { gone = true; if (inner && el) inner.unmount(); el = null; },
+      mount(e, s) {
+        el = e; st = s;
+        if (lacking) { brokeCard(e, needs.t, needs.p); return; }
+        if (broke) { brokeCard(e, 'SOMETHING BROKE', BROKE_LINE); return; }
+        if (inner) { try { inner.mount(e, s); } catch (x) { fail(x, 'view mount'); } }
+      },
+      update(s) { st = s; if (inner && el && !broke) { try { inner.update(s); } catch (x) { fail(x, 'view update'); } } },
+      unmount() { gone = true; if (inner && el) { try { inner.unmount(); } catch (x) { console.warn('game view unmount', x); } } el = null; },
       // (THE CONSOLE FIX — THE RUN HOLD: the real view's answer — app.js keeps a screen whose own live proven run is not over)
-      holdsRun() { return !!(inner && el && typeof inner.holdsRun === 'function' && inner.holdsRun()); },
+      holdsRun() { return !!(inner && el && !broke && typeof inner.holdsRun === 'function' && inner.holdsRun()); },
     };
   };
-  createView.warm = () => (warmed ||= loadAll(load, css).catch(() => { warmed = null; }));
+  createView.warm = () => (needs && !needs.ok() ? Promise.resolve() : (warmed ||= loadAll(load, css).catch(() => { warmed = null; })));
   return createView;
 }
 
