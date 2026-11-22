@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 // (FIXES R1: the PURE half — api/_lib/backup.js reaches fb.js / firebase-admin, which the cloud's unit job doesn't install; the HTTP door's
 //  401 / 404 answers: tests/integration/backup.test.mjs)
-import { DURABLE, LIVE, SECRET, tokenVerdict, sliceOf, packPart, unpackPart, partMax } from '../api/_lib/backup-pure.js';
+import { DURABLE, LIVE, SECRET, tokenVerdict, sliceOf, packPart, unpackPart, partMax, unitsOf, sliceTree, deepMerge, UNIT_DEPTH, UNIT_MAX_RAW } from '../api/_lib/backup-pure.js';
 
 const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => (e.isDirectory() ? walk(path.join(d, e.name)) : e.name.endsWith('.js') ? [path.join(d, e.name)] : []));
 
@@ -46,4 +46,25 @@ test('a part round-trips (gzip JSON + its sha256), slices are stable + cover eve
   assert.deepEqual(by, keys.map(key => sliceOf(key, k)), 'stable');
   for (let i = 0; i < k; i++) assert.ok(by.filter(x => x === i).length > 60, `slice ${i} gets its share`);
   assert.ok(partMax({}) < 4.5e6 && partMax({ BACKUP_PART_MAX: '20000' }) === 20000);
+});
+
+// THE BEFORE-LAUNCH PASS — A6 (review-nov15): THE DEEP SLICES — units at a fixed depth (dly/<game>/<day>/<field> …), a giant branch descended,
+// every unit in exactly ONE slice, the partial trees merged back all the way down
+test('THE DEEP SLICES: dly sliced below its few big children; every unit in one slice; the deep merge restores the node exactly', () => {
+  assert.deepEqual({ ...UNIT_DEPTH }, { dly: 4, lb: 3, backups: 2 });
+  const dly = { jaywalk: { d1: { s: { a: 1, b: { x: 2 } }, r: 7 }, d2: { s: { c: 3 } } }, password: { d1: { s: { z: 9 } } } };
+  const U = unitsOf('dly', dly);
+  assert.deepEqual(U.map(u => u[0].join('/')), ['jaywalk/d1/s/a', 'jaywalk/d1/s/b', 'jaywalk/d1/r', 'jaywalk/d2/s/c', 'password/d1/s/z']);
+  for (const k of [2, 3, 7]) {
+    const seen = new Map();
+    let back = {};
+    for (let i = 0; i < k; i++) { const t = sliceTree(U, i, k); if (t) back = deepMerge(back, t); for (const [p] of U) if (sliceOf(p.join('/'), k) === i) seen.set(p.join('/'), (seen.get(p.join('/')) || 0) + 1); }
+    assert.ok([...seen.values()].every(n => n === 1) && seen.size === U.length, `k=${k}: every unit in exactly one slice`);
+    assert.deepEqual(back, dly, `k=${k}: merged back exactly`);
+  }
+  // a branch over UNIT_MAX_RAW is descended further (a fat profile node's one child)
+  const big = { p1: { blob: 'x'.repeat(UNIT_MAX_RAW + 10), y: 1 }, p2: { n: 1 } };
+  assert.deepEqual(unitsOf('profiles', big).map(u => u[0].join('/')), ['p1/blob', 'p1/y', 'p2']);
+  // the merge never lets a partial tree overwrite another's branch
+  assert.deepEqual(deepMerge({ a: { b: 1 } }, { a: { c: 2 } }), { a: { b: 1, c: 2 } });
 });

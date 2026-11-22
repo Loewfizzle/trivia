@@ -25,7 +25,9 @@ import { ApiError } from './http.js';
 import { dayNum, dayOf, streakDay } from '../../js/core/streak.js';
 import { DAILIES, GAMES } from '../../js/config.js';
 
-export const CARD_W = 540, CARD_H = 675, MAX_BYTES = 400 * 1024, KEEP_DAYS = 7;
+// (THE BEFORE-LAUNCH PASS — REVIEW A4 step 3, THE SPARK 1 GB MATHS — docs/progression.md "THE SHARE CARDS": a card is a JPEG now (~40–90 KB
+//  for the PNG's 79–246 KB) and kept 3 days (was 7). A PNG is still taken — a phone on the code before this deploy)
+export const CARD_W = 540, CARD_H = 675, MAX_BYTES = 400 * 1024, KEEP_DAYS = 3;
 // JAYWALK H4B's ADD-ON (the owner, Nov 16) — A RUN's CARD: a game's SHARE MY RUN sends the same kind of link (its picture = the run's share
 // image). `run: { room, m }` names a match; the server accepts the picture ONLY from a player the server's own COUNTED result of that match
 // names (results/{ROOM}_{m} — st 'done', its game, o[pid]) on that result's own day (today / yesterday). ONE run card per player per game
@@ -63,6 +65,57 @@ export function checkPng(buf) {
   }
   return 'not_png';
 }
+/** THE BEFORE-LAUNCH PASS — A4 step 3: the upload as a WHOLE baseline / progressive JPEG (PURE) — SOI, every marker segment inside the file,
+ *  a frame header (SOF0 / 1 / 2) at the card's exact size BEFORE the scan, the entropy data, and EOI ending EXACTLY at the last byte (a
+ *  trailing payload is refused, as THE WHOLE PNG's rule) → null ok | the reason */
+export function checkJpeg(buf) {
+  if (!Buffer.isBuffer(buf) || !buf.length) return 'no_image';
+  if (buf.length > MAX_BYTES) return 'too_big';
+  if (buf.length < 64 || buf[0] !== 0xff || buf[1] !== 0xd8) return 'not_jpeg';
+  let at = 2, sof = false, scan = false;
+  while (at + 2 <= buf.length) {
+    if (buf[at] !== 0xff) return 'not_jpeg';
+    const mk = buf[at + 1];
+    if (mk === 0xff) { at++; continue; }   // (fill bytes)
+    if (mk === 0xd9) return at + 2 === buf.length && sof && scan ? null : 'not_jpeg';
+    if (mk >= 0xd0 && mk <= 0xd7) { at += 2; continue; }
+    if (at + 4 > buf.length) return 'not_jpeg';
+    const len = buf.readUInt16BE(at + 2);
+    if (len < 2 || at + 2 + len > buf.length) return 'not_jpeg';
+    if (mk === 0xc0 || mk === 0xc1 || mk === 0xc2) {
+      if (len < 8) return 'not_jpeg';
+      if (buf.readUInt16BE(at + 5) !== CARD_H || buf.readUInt16BE(at + 7) !== CARD_W) return 'wrong_size';
+      sof = true;
+    } else if (mk >= 0xc3 && mk <= 0xcf && mk !== 0xc4 && mk !== 0xc8 && mk !== 0xcc) return 'not_jpeg';   // (no lossless / arithmetic frames)
+    if (mk === 0xda) {
+      if (!sof) return 'not_jpeg';
+      scan = true;
+      // the entropy-coded data: on to the next real marker (never a stuffed 00, a restart or a fill)
+      let i = at + 2 + len;
+      while (i + 1 < buf.length && !(buf[i] === 0xff && buf[i + 1] !== 0x00 && buf[i + 1] !== 0xff && !(buf[i + 1] >= 0xd0 && buf[i + 1] <= 0xd7))) i++;
+      if (i + 1 >= buf.length) return 'not_jpeg';
+      at = i;
+      continue;
+    }
+    at += 2 + len;
+  }
+  return 'not_jpeg';
+}
+/** the upload: a JPEG (the phones since THE BEFORE-LAUNCH PASS) or a PNG (the code before) → { bad } | { t: 'j' | 'p' } */
+export function checkCard(buf) {
+  if (Buffer.isBuffer(buf) && buf[0] === 0xff) { const bad = checkJpeg(buf); return bad ? { bad } : { t: 'j' }; }
+  const bad = checkPng(buf); return bad ? { bad } : { t: 'p' };
+}
+export const cardType = t => (t === 'j' ? 'image/jpeg' : 'image/png');
+/** REVIEW A17 (PURE): the share page's origin — the canonical site; localhost (the tests) and THIS deployment's own Vercel host (a preview:
+ *  VERCEL_URL / VERCEL_BRANCH_URL) as themselves; any other Host header → the canonical one, never echoed */
+export const CANON = 'https://www.neonspeakeasy.com';
+export function shareBase(hostHeader, env = process.env) {
+  const host = String(hostHeader || '').split(',')[0].trim().toLowerCase();
+  if (/^(localhost|127\.0\.0\.1)(:\d{1,5})?$/.test(host)) return `http://${host}`;
+  if (host && [env.VERCEL_URL, env.VERCEL_BRANCH_URL].filter(Boolean).map(h => String(h).toLowerCase()).includes(host)) return `https://${host}`;
+  return CANON;
+}
 /** the picture's fingerprint (the same bytes again = nothing written; the page's og:image `v`) */
 export const pngHash = buf => createHash('sha256').update(buf).digest('base64url').slice(0, 16);
 
@@ -84,7 +137,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&
 /** a RUN card's game, in the site's words (config.js GAMES) */
 export function runLabel(games) { const row = GAMES.find(r => r.id === (Array.isArray(games) ? games[0] : '')); return row ? String(row.name).toUpperCase() : 'A RUN'; }
 /** the link-preview page (PURE) — `base` = https://<host> of this request; `k: 'run'` = a game's run card (it opens the site's home) */
-export function sharePage({ code, name, games, day, base, v = '', k = '' }) {
+export function sharePage({ code, name, games, day, base, v = '', k = '', t = '' }) {
   const run = k === 'run';
   const title = [String(name || 'A PLAYER').toUpperCase(), run ? runLabel(games) : dailyLabel(games), dayLabel(day)].filter(Boolean).join(' · ');
   const img = `${base}/api/daily?si=${code}${v ? `&v=${encodeURIComponent(v)}` : ''}`, go = run ? '/' : '/?daily=1';
@@ -95,7 +148,7 @@ export function sharePage({ code, name, games, day, base, v = '', k = '' }) {
 <meta property="og:type" content="website"><meta property="og:site_name" content="Neon Speakeasy">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${esc(`${base}/api/daily?s=${code}`)}">
-<meta property="og:image" content="${esc(img)}"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="${CARD_W}"><meta property="og:image:height" content="${CARD_H}">
+<meta property="og:image" content="${esc(img)}"><meta property="og:image:type" content="${cardType(t)}"><meta property="og:image:width" content="${CARD_W}"><meta property="og:image:height" content="${CARD_H}">
 <meta property="og:image:alt" content="${esc(title)} — ${alt}">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:image" content="${esc(img)}">
 <meta http-equiv="refresh" content="0; url=${go}">
@@ -120,7 +173,7 @@ export async function saveShareCard({ pid, day, games, png, run = null, now = Da
   if (!gs.length) throw new ApiError(400, 'bad_game', 'Which daily?');
   if (typeof png !== 'string' || png.length > Math.ceil(MAX_BYTES / 3) * 4 + 8) throw new ApiError(413, 'too_big', 'The picture is too big.');
   const buf = Buffer.from(png, 'base64');
-  const bad = checkPng(buf);
+  const { bad, t } = checkCard(buf);
   if (bad) throw new ApiError(bad === 'too_big' ? 413 : 422, bad, 'That isn’t the day’s card.');
   // a JUDGED finish of every daily the card names, that day (the server's own result — dly/{g}/{day}/r/{pid})
   const [done, gated] = isRun ? [[], []] : await Promise.all([Promise.all(gs.map(g => val(`dly/${g}/${day}/r/${pid}`))), Promise.all(gs.map(g => val(`dly/${g}/${day}/x/${pid}`)))]);
@@ -142,7 +195,7 @@ export async function saveShareCard({ pid, day, games, png, run = null, now = Da
   const name = publicName((prof && prof.bid) || pid, prof && prof.n);
   // (the same code: the picture replaced in place — a link already sent keeps working; set, never merged: no stale field survives)
   await ref().update({
-    [`shr/${code}`]: { p: pid, d: day, g: gs, n: String(name || '').slice(0, 24), at: now, h, img: buf.toString('base64'), ...(isRun ? { k: 'run', s: owner } : {}) },
+    [`shr/${code}`]: { p: pid, d: day, g: gs, n: String(name || '').slice(0, 24), at: now, h, t, img: buf.toString('base64'), ...(isRun ? { k: 'run', s: owner } : {}) },
     [`shrx/${day}/${code}`]: owner,   // (the slot's owner: the sweep clears shrp/{owner}/{day})
   });
   return { code, v: h };
@@ -151,7 +204,7 @@ export async function saveShareCard({ pid, day, games, png, run = null, now = Da
 /** the stored card (the picture or only its words) — null when gone / expired */
 export async function readShare(code, { img = false, now = Date.now() } = {}) {
   if (!CODE_RE.test(String(code || ''))) return null;
-  const r = img ? await val(`shr/${code}`) : await Promise.all(['p', 'd', 'g', 'n', 'at', 'h', 'k'].map(k => val(`shr/${code}/${k}`))).then(([p, d, g, n, at, h, k]) => (p ? { p, d, g, n, at, h, ...(k ? { k } : {}) } : null));
+  const r = img ? await val(`shr/${code}`) : await Promise.all(['p', 'd', 'g', 'n', 'at', 'h', 'k', 't'].map(k => val(`shr/${code}/${k}`))).then(([p, d, g, n, at, h, k, t]) => (p ? { p, d, g, n, at, h, ...(k ? { k } : {}), ...(t ? { t } : {}) } : null));
   if (!r || !r.p) return null;
   if (now - Number(r.at || 0) > KEEP_DAYS * 864e5) return null;
   return r;

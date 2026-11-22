@@ -161,8 +161,12 @@ test("PD2 — SCORE RUSH's tighter margin (3 → 2.8, from a fresh sim): a run 3
 
 test('the NICE lines (FR7-A): HOST raced against 20 s with a plain line (one attempt at a time); a 425 backs off to 60 s; a radioWho NO remembered per profile', () => {
   const dock = fs.readFileSync('js/screens/title-dock.js', 'utf8');
-  assert.match(dock, /const HOST_WAIT_MS = 20_000;/);
-  assert.match(dock, /hostP = hostP \|\| createRoom\(p\)\.finally\(\(\) => \{ hostP = null; \}\);\s*await Promise\.race\(\[hostP, new Promise\(\(_, rej\) => setTimeout\(\(\) => rej\(new Error\('city-full'\)\), HOST_WAIT_MS\)\)\]\);/);
+  // (THE BEFORE-LAUNCH PASS — REVIEW B3 F2: the ONE create moved to room.js#hostRoom — the dock + setup's CREATE ROOM both call it)
+  const room = fs.readFileSync('js/room.js', 'utf8');
+  assert.match(room, /export const HOST_WAIT_MS = 20_000;/);
+  assert.match(room, /hostP = hostP \|\| createRoom\(p\)\.finally\(\(\) => \{ hostP = null; \}\);\s*return Promise\.race\(\[hostP, new Promise\(\(_, rej\) => setTimeout\(\(\) => rej\(new Error\('city-full'\)\), waitMs\)\)\]\);/);
+  assert.match(dock, /await hostRoom\(p\);/);
+  assert.match(fs.readFileSync('js/screens/setup.js', 'utf8'), /if \(mode === 'host'\) await hostRoom\(p\);/);
   assert.match(dock, /if \(\/city-full\/\.test\(m\)\) return 'The city’s full tonight — try again in a minute\.';/);
   const q = fs.readFileSync('js/profile/queue.js', 'utf8');
   assert.match(q, /e\.status === 425 \? Math\.min\(SETTLE_MAX_MS, 2000 \* 2 \*\* Math\.max\(0, x\.n - 1\)\)/);

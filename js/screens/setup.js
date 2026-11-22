@@ -6,7 +6,7 @@ import { sfx } from '../audio/sfx.js';
 import { COLORS, AVATAR_IDS, NAME_MAX, colorHex } from '../config.js';
 import { setState } from '../store.js';
 import { loadProfile, saveProfile } from '../identity.js';
-import { createRoom, joinRoom } from '../room.js';
+import { hostRoom, joinRoom } from '../room.js';
 import { firebaseReady } from '../firebase.js';
 import { normalizeCode, sanitizeName } from '../core/room-logic.js';
 import { lazyImport } from '../ui/lazy-import.js';
@@ -123,13 +123,13 @@ export function createSetup() {
       // Firebase loads in the background while the title screen is up; wait for it here if needed.
       await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
       if (mode === 'host' && game) { try { sessionStorage.setItem('nd:pick', game); } catch { /* the host picks by hand */ } }   // (PLAY WITH FRIENDS)
-      if (mode === 'host') await createRoom(p);
+      if (mode === 'host') await hostRoom(p);   // (BEFORE-LAUNCH — REVIEW B3 F2: ONE create at a time + the city-full line, as the dock)
       else await joinRoom(code, p);
       setState({ invite: '' });
     } catch (e) {
       const msg = String((e && e.message) || e);
       // Firebase errors are cryptic; our own messages are written for people.
-      const friendly = /permission|network|unavailable/i.test(msg) ? 'Couldn’t reach the game servers. Check your connection and try again.' : msg;
+      const friendly = /city-full/.test(msg) ? 'The city’s full tonight — try again in a minute.' : /permission|network|unavailable/i.test(msg) ? 'Couldn’t reach the game servers. Check your connection and try again.' : msg;
       els.err.textContent = friendly;
       els.err.hidden = false;
       sfx('invalid');

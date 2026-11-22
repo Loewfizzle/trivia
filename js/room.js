@@ -94,6 +94,15 @@ async function claimRoom(code) {
   return !!(res && res.committed && res.snapshot.exists() && res.snapshot.child('hostId').val() === state.uid);
 }
 
+// THE BEFORE-LAUNCH PASS — REVIEW B3 F2: HOST's ONE create (the dock + setup's CREATE ROOM): ONE attempt at a time — a second tap joins the
+// same one, never two rooms — raced against HOST_WAIT_MS ('city-full': the free plan's 101st connection never answers); a late success still
+// walks into the room
+export const HOST_WAIT_MS = 20_000;
+let hostP = null;
+export function hostRoom(p, waitMs = HOST_WAIT_MS) {
+  hostP = hostP || createRoom(p).finally(() => { hostP = null; });
+  return Promise.race([hostP, new Promise((_, rej) => setTimeout(() => rej(new Error('city-full')), waitMs))]);
+}
 export const createRoom = joining(async profile => {
   cancelResume();   // (LOAD FIX 4: a late boot resume never walks this phone back into its old room after a HOST)
   cleanupStaleRooms().catch(() => {});

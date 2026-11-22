@@ -12,7 +12,8 @@ import { liveKeyFor } from '../registry.js';
 import { settings, onSettings } from '../../audio/settings.js';
 import { getContext } from '../../audio/engine.js';
 import { hashString, rngFrom } from '../../core/rng.js';
-import { showCall as kitCall, createAnnouncer } from '../kit/index.js';
+import { showCall as kitCall } from '../kit/call.js';   // (BEFORE-LAUNCH — REVIEW B2 T6: the two modules, never the kit's barrel)
+import { createAnnouncer } from '../kit/moments.js';
 import { installTestHook, removeTestHook } from '../kit/hook.js';
 import * as E from './engine.js';
 import {

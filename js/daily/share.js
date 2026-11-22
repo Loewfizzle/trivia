@@ -309,7 +309,10 @@ export async function halfPng(cv) {
   try {
     const h = document.createElement('canvas'); h.width = LINK_W; h.height = LINK_H;
     const c = h.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(cv, 0, 0, LINK_W, LINK_H);
-    const b = await blobOf(h);
+    // (THE BEFORE-LAUNCH PASS — REVIEW A4 step 3: a JPEG — a third of the PNG's bytes on the phone's line + in the database; a browser that
+    //  can't = the PNG, as before. The share sheet's own picture stays the full PNG — shareFile)
+    const j = await new Promise(res => { try { h.toBlob(x => res(x), 'image/jpeg', 0.86); } catch { res(null); } });
+    const b = j && j.type === 'image/jpeg' ? j : await blobOf(h);
     h.width = h.height = 0;
     return b;
   } catch { return null; }

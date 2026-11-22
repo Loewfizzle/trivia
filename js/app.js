@@ -251,7 +251,7 @@ function musicFor(st) {
   // (DM2 — a daily RUN: THE MUSIC FOLLOWS THE LOOK, as on its own (daily/end.js#lookMusic) — the day deck by day, the evening deck by night)
   // (THE DROP B: a row with `ownMusic` — THE DROP — plays its game's own songs in its view: the console's music stays silent)
   if (dailyOn(st) && st.daily.v === 'run') return (DAILIES.find(d => d.id === st.daily.id) || gameRow(st.daily.id) || {}).ownMusic ? [null] : [document.body.dataset.look === 'day' ? 'mood:day' : 'mood:evening', 'menu'];
-  if (moodOn() && !(st.code && st.meta && st.meta.status === 'playing' && st.game && st.quit !== st.game.matchId)) {
+  if (moodOn() && !roomGameOn(st)) {   // (BEFORE-LAUNCH — REVIEW B3 F3: the ONE rule)
     if (lobbySynced && inLobby(st)) return [null];          // the room's synced song is playing (lobby-music.js)
     if (partySynced && !st.code) return [null];             // (NIGHT-C) the party's synced song is playing (party-music.js)
     return ['mood', 'menu'];
@@ -308,7 +308,7 @@ function render(st0) {
   if (!(st.ready && st.code && !st.meta)) { clearTimeout(deadT); deadT = 0; } else if (!deadT) deadT = setTimeout(() => { deadT = 0; if (state.ready && state.code && !state.meta) dead(); }, UPLINK_WAIT_MS);
   if (st.ready || !st.code) { const [track, fallback] = musicFor(st); playMusic(track, fallback); }
   // theme follows the active game
-  const theme = st.game && st.meta && st.meta.status === 'playing' && st.quit !== st.game.matchId ? (GAMES.find(g => g.id === st.game.id) || {}).theme : '';
+  const theme = roomGameOn(st) ? (GAMES.find(g => g.id === st.game.id) || {}).theme : '';
   document.body.dataset.theme = theme || (dailyOn(st) && st.daily.v === 'run' ? st.daily.id : '') || '';   // (DM2: a daily run wears its game's theme)
   paintLook(st);
   paintDaily(st);

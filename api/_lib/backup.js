@@ -16,8 +16,8 @@ import { ref, val, emulated } from './fb.js';
 import { ApiError } from './http.js';
 
 // (FIXES R1: the lists, the token's verdict, the slices + the packing live in ./backup-pure.js — the unit tests import that, never this file)
-export { DURABLE, LIVE, SECRET, partMax, WHO, tokenVerdict, sliceOf, packPart, unpackPart } from './backup-pure.js';
-import { DURABLE, LIVE, SECRET, partMax, WHO, tokenVerdict, sliceOf, packPart, unpackPart } from './backup-pure.js';
+export { DURABLE, LIVE, SECRET, partMax, WHO, tokenVerdict, sliceOf, packPart, unpackPart, unitsOf, sliceTree, deepMerge, UNIT_DEPTH } from './backup-pure.js';
+import { DURABLE, LIVE, SECRET, partMax, WHO, tokenVerdict, packPart, unpackPart, unitsOf, sliceTree, deepMerge } from './backup-pure.js';
 /** the token check (constant time; the env's token missing → 404: no backup door at all) */
 export function checkToken(given, env = process.env) {
   const v = tokenVerdict(given, env);
@@ -25,17 +25,39 @@ export function checkToken(given, env = process.env) {
   if (v) throw new ApiError(401, 'bad_token');
 }
 
-/** ONE part: the node (or its slice i/k) → { buf, sha } | { split: k } when the whole node is over the limit */
+/** ONE part: the node (or its slice i/k) → { buf, sha } | { split: k } when the whole node is over the limit
+ *  (THE BEFORE-LAUNCH PASS — THE DEEP SLICES, backup-pure.js#unitsOf: a slice = the node's DEEP units hashing to it; k is checked to FIT before
+ *  the 409 says it — every slice under the limit, else more slices, up to 64; one read of the node serves its slices on a warm function) */
+const snap = new Map();   // node → { at, v, units } — the 409's read, kept SNAP_MS for its slices (one read a night per warm instance)
+const SNAP_MS = 120_000;
+async function nodeOf(node, fresh) {
+  const c = snap.get(node);
+  if (!fresh && c && Date.now() - c.at < SNAP_MS) return c;
+  const v = await val(node), e = { at: Date.now(), v, units: null };
+  snap.set(node, e);
+  return e;
+}
 export async function exportPart(node, slice = null, env = process.env) {
   if (!DURABLE.includes(node)) throw new ApiError(404, 'no_part');
-  const v = await val(node);
+  const e = await nodeOf(node, !slice);
+  const v = e.v;
   if (slice) {
     const [i, k] = slice;
-    const sub = v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([key]) => sliceOf(key, k) === i)) : (i === 0 ? v : null);
-    return { ...packPart(sub), slice: [i, k] };
+    if (!v || typeof v !== 'object') return { ...packPart(i === 0 ? v : null), slice: [i, k] };
+    e.units ||= unitsOf(node, v);
+    return { ...packPart(sliceTree(e.units, i, k)), slice: [i, k] };
   }
   const p = packPart(v);
-  if (p.buf.length > partMax(env) && v && typeof v === 'object') return { split: Math.min(64, Math.ceil(p.buf.length / (partMax(env) * 0.5))) };   // (half the limit a slice: a slice compresses a little worse than the whole)
+  if (p.buf.length > partMax(env) && v && typeof v === 'object') {
+    e.units ||= unitsOf(node, v);
+    const max = partMax(env);
+    for (let k = Math.max(2, Math.ceil(p.buf.length / (max * 0.5))); k <= 64; k++) {
+      let fits = true;
+      for (let i = 0; i < k && fits; i++) fits = packPart(sliceTree(e.units, i, k)).buf.length <= max;
+      if (fits) return { split: k };
+    }
+    throw new ApiError(507, 'too_big', `${node}: no 64 slices fit under ${max} bytes — a unit alone is too big (backup-pure.js#UNIT_DEPTH)`);
+  }
   return p;
 }
 
@@ -80,7 +102,7 @@ export async function restoreToEmulators(parts) {
     const [node] = name.split('@');
     if (!DURABLE.includes(node)) continue;
     const v = unpackPart(buf);
-    if (name.includes('@')) nodes[node] = { ...(nodes[node] || {}), ...(v || {}) };
+    if (name.includes('@')) nodes[node] = deepMerge(nodes[node] || {}, v || {});   // (THE DEEP SLICES: partial trees — merged all the way down)
     else nodes[node] = v;
   }
   for (const [node, v] of Object.entries(nodes)) await ref(node).set(v && (typeof v !== 'object' || Object.keys(v).length) ? v : null);

@@ -25,10 +25,10 @@ if (missing.length) { console.error(`MISSING PARTS: ${missing.join(', ')} — no
 const ji = process.argv.indexOf('--json');
 if (ji > 0) {
   const { mkdirSync, writeFileSync } = await import('node:fs');
-  const { unpackPart } = await import('../../api/_lib/backup.js');
+  const { unpackPart, deepMerge } = await import('../../api/_lib/backup-pure.js');   // (THE DEEP SLICES: the pure half — no database for --json)
   const out = process.argv[ji + 1]; mkdirSync(out, { recursive: true });
   const nodes = {};
-  for (const [name, buf] of Object.entries(parts)) { const [node] = name.split('@'); const v = unpackPart(buf); nodes[node] = name.includes('@') ? { ...(nodes[node] || {}), ...(v || {}) } : v; }
+  for (const [name, buf] of Object.entries(parts)) { const [node] = name.split('@'); const v = unpackPart(buf); nodes[node] = name.includes('@') ? deepMerge(nodes[node] || {}, v || {}) : v; }
   for (const [node, v] of Object.entries(nodes)) writeFileSync(join(out, `${node}.json`), JSON.stringify(v));
   console.log(`${Object.keys(nodes).length} node files (every checksum OK) -> ${out} — import each at its node in the Firebase console`);
   process.exit(0);

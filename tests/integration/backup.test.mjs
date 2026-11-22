@@ -93,6 +93,20 @@ test('THE NIGHTLY BACKUP: the door, export → wipe → restore = identical, a b
     await ref('profiles').remove();
     await restoreToEmulators(S.parts);
     assert.deepEqual(await val('profiles'), prof0, 'the split part restores whole');
+    // THE BEFORE-LAUNCH PASS — A6, THE FAT `dly` (review-nov15): ONE child per daily, each alone past the limit — first-level slices could
+    // never fit (3 of 13 were over it, forever). The deep slices: every slice under the limit, the restore identical
+    const fatDay = n => Object.fromEntries(Array.from({ length: 60 }, (_, d) => [`d2026${String(1000 + d)}`, { s: Object.fromEntries(Array.from({ length: n }, (_, i) => [`p${i}x${d}`, { v: (i * 7919 + d) % 100000, t: i * 13 + d }])) }]));
+    await ref('dly').set({ jaywalk: fatDay(40), password: fatDay(40), coastclear: fatDay(40) });
+    const dly0 = await val('dly');
+    process.env.BACKUP_PART_MAX = '12000';   // (each child alone ~18 KB gzipped — over the limit: the first-level slices could never fit)
+    const D = await fetchAll('gh');
+    const dslices = Object.keys(D.parts).filter(k => k.startsWith('dly@'));
+    assert.ok(dslices.length >= 3, `dly split into ${dslices.length} slices`);
+    for (const k of dslices) assert.ok(D.parts[k].length <= 12000, `${k}: ${D.parts[k].length} B under the limit`);
+    await ref('dly').remove();
+    await restoreToEmulators(D.parts);
+    assert.deepEqual(await val('dly'), dly0, 'the fat dly restores whole (the deep merge)');
+    await ref('dly').remove();
   } finally {
     if (keepToken == null) delete process.env.BACKUP_TOKEN; else process.env.BACKUP_TOKEN = keepToken;
     if (keepMax == null) delete process.env.BACKUP_PART_MAX; else process.env.BACKUP_PART_MAX = keepMax;

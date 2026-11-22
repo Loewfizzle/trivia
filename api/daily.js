@@ -72,7 +72,7 @@ async function flaggedFinished(base, nc, viewer) {
   const n = await Promise.all([...nc].filter(f => f !== viewer).map(async f => { const [r, x] = await Promise.all([val(`${base}/r/${f}`), val(`${base}/x/${f}`)]); return r != null && !x ? 1 : 0; }));
   return n.reduce((a, b) => a + b, 0);
 }
-import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE } from './_lib/share-card.js';   // (CITY E — THE TAPPABLE SHARE CARD)
+import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE, cardType, shareBase } from './_lib/share-card.js';   // (CITY E — THE TAPPABLE SHARE CARD)
 import { compactResults } from './_lib/results-sweep.js';   // (CITY G — results/ compacted past 14 days)
 import { bestStep, bestView, pointsRaise, isBetter } from '../js/core/daily-best.js';   // (DAILY A — DAILY BEST + a better try's points)
 import { roomJoined } from './_lib/daily-room.js';
@@ -351,7 +351,11 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
           // a transaction's first call could still see null (a cold cache): never abort on it — write what the moves made (or the fresh record), so
           // the server checks it against the stored one and retries with the real record
           if (cur == null) return rec || { st: startedAt };
-          return rec !== cur ? rec : undefined;                     // nothing changed (a repeat, a refusal) → nothing written
+          // nothing changed (a repeat, a refusal) → nothing written. THE BEFORE-LAUNCH PASS — REVIEW A9: a HELD run's first attempt ran on the
+          // listener's CACHED record — an abort there was never checked against the database (another instance may have moved the run): the
+          // unchanged record goes back ONCE (a compare-and-set — a stale copy makes the database retry on the real record, then the answer stands)
+          if (rec === cur) return held && attempts === 1 ? cur : undefined;
+          return rec;
         });
         T.mark('tx', attempts);
       } finally { if (!held) recRef.off('value', hold); }
@@ -800,30 +804,30 @@ async function finishRun({ pid, cart, day, now, today = streakDay(now), result =
  *  expired code → the site's home, never an error page) · ?si=<code>&v=<h> → the PNG with an HOUR's edge cache (FIXES R1 A5 — was 7 days
  *  immutable: a card the owner deletes stops showing within the hour; the page names the picture by its hash, so a re-shared card is a new
  *  URL; a gone card → the site's link picture) */
-export async function shareGet(req, res) {
+export async function shareGet(req, res, now = Date.now()) {   // (THE BEFORE-LAUNCH PASS: the clock a parameter — the tests' own day)
   const q = new URL(req.url || '/', 'http://x').searchParams;
-  const host = String(req.headers['x-forwarded-host'] || req.headers.host || 'www.neonspeakeasy.com').split(',')[0].trim();
-  const proto = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host) ? 'http' : 'https';
-  const base = `${proto}://${host}`;
+  // (THE BEFORE-LAUNCH PASS — REVIEW A17: the page's own links from ONE canonical origin — a request's Host header is never echoed into a
+  //  link preview; localhost + this deployment's own preview host stay themselves — share-card.js#shareBase)
+  const base = shareBase(req.headers['x-forwarded-host'] || req.headers.host, process.env);
   const redirect = (to, cache) => { res.statusCode = 302; res.setHeader('Location', to); res.setHeader('Cache-Control', cache); res.end(); };
   if (q.has('si')) {
     const code = q.get('si');
-    const r = CODE_RE.test(code || '') ? await readShare(code, { img: true }).catch(() => null) : null;
+    const r = CODE_RE.test(code || '') ? await readShare(code, { img: true, now }).catch(() => null) : null;
     if (!r || !r.img) return redirect('/assets/og.jpg', 'public, max-age=300, s-maxage=300');
     const buf = Buffer.from(r.img, 'base64');
     res.statusCode = 200;
-    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Type', cardType(r.t || (buf[0] === 0xff ? 'j' : 'p')));   // (A4 step 3: a JPEG since THE BEFORE-LAUNCH PASS)
     res.setHeader('Content-Length', String(buf.length));
     res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');   // (FIXES R1 A5 — ≤ 1 h: a deleted card stops showing within the hour)
     return res.end(buf);
   }
   const code = q.get('s');
-  const r = CODE_RE.test(code || '') ? await readShare(code).catch(() => null) : null;
+  const r = CODE_RE.test(code || '') ? await readShare(code, { now }).catch(() => null) : null;
   if (!r) return redirect('/', 'public, max-age=60, s-maxage=60');
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600');
-  return res.end(sharePage({ code, name: r.n, games: r.g, day: r.d, base, v: r.h || '', k: r.k || '' }));
+  return res.end(sharePage({ code, name: r.n, games: r.g, day: r.d, base, v: r.h || '', k: r.k || '', t: r.t || '' }));
 }
 
 export default route(['POST', 'GET'], async (req, res) => {

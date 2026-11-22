@@ -60,6 +60,10 @@ test('THE CONSOLE NEVER NAMES A GAME: the room, the dock, the banner, the start,
   const files = ['js/app.js', 'js/host.js', 'js/room.js', 'js/store.js', 'js/screens/room-city.js', 'js/screens/room-dock.js', 'js/screens/room-guests.js',
     'js/screens/room-banner.js', 'js/screens/game-options.js', 'js/core/room-show.js', 'js/chat/chat.js', 'js/chat/ui.js', 'js/ui/final.js', 'js/games/cartridge.js', 'js/games/contract.js'];
   for (const f of files) { const s = read(f).replace(/\/\/[^\n]*/g, ''); for (const id of ids) assert.ok(!s.includes(id), `${f} names ${id}`); }
+  // (THE BEFORE-LAUNCH PASS — REVIEW B2 T7: the settings sheet, HOW TO PLAY, the title's taps + the intercom too — each with TODAY's names
+  //  allowed (the settings sheet's per-game rows, a frozen game's board), so a NEW game named there fails here)
+  const ALLOWED = { 'js/ui/settings-panel.js': ['prism', 'holdem', 'slip', 'pulse'], 'js/ui/help.js': [], 'js/screens/title-taps.js': ['pulse'], 'js/audio/intercom.js': [] };
+  for (const [f, ok] of Object.entries(ALLOWED)) { const s = read(f).replace(/\/\/[^\n]*/g, ''); for (const id of registered.filter(x => !ok.includes(x))) assert.ok(!s.includes(`'${id}'`), `${f} names '${id}'`); }
   // the chat's lock switch keeps ONLY the exempt games (the playable ones carry their own)
   const lg = read('js/chat/logic.js');
   for (const id of PLAYABLE) assert.ok(!lg.includes(`case '${id}'`), `chat/logic.js: ${id}'s lock lives in its cartridge`);

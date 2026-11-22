@@ -45,7 +45,7 @@ function start(r) {
 function pump() {
   pumping = false;
   const r = queue.shift();
-  if (r && live().length < CAP) start(r);
+  if (r && recs.get(r.el) === r && live().length < CAP) start(r);   // (BEFORE-LAUNCH — REVIEW A11: a strip forgotten while queued never starts)
   if (queue.length) { pumping = true; requestAnimationFrame(pump); }
 }
 const live = () => [...recs.values()].filter(r => r.S);

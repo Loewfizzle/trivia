@@ -28,3 +28,10 @@ test('THE LIVE LANE: every slim-card LIST goes through it — no surface over a 
   assert.doesNotMatch(g, /createSurface/);
   assert.match(g, /prio: fresh \? 1 : 0/, 'a joiner\'s entrance runs live first');
 });
+
+// THE BEFORE-LAUNCH PASS — REVIEW A11: a list destroyed while its strips wait in the start queue (their elements still in the page) never
+// gets a canvas outside the cap — the pump starts only a strip the lane still holds
+test('THE LIVE LANE: a strip forgotten while queued never starts (A11)', () => {
+  const src = read('js/ui/live-lane.js');
+  assert.match(src, /const r = queue\.shift\(\);\s*if \(r && recs\.get\(r\.el\) === r && live\(\)\.length < CAP\) start\(r\);/);
+});

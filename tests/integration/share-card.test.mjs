@@ -35,7 +35,7 @@ function png(w, h, noise = 0) {
 async function get(url) {
   const H = {}; let body = Buffer.alloc(0);
   const res = { statusCode: 200, setHeader: (k, v) => { H[k.toLowerCase()] = v; }, end: b => { if (b) body = Buffer.isBuffer(b) ? b : Buffer.from(String(b)); } };
-  await shareGet({ url, headers: { host: 'www.neonspeakeasy.com' } }, res);
+  await shareGet({ url, headers: { host: 'www.neonspeakeasy.com' } }, res, T0 + 3600_000);   // (the test's own day — the cards keep 3 days)
   return { status: res.statusCode, headers: H, body };
 }
 const ensure = (uid, name) => profileAction(uid, { action: 'ensure', name, avatar: 'bolt', color: 'cyan' }, '', T0);
@@ -146,6 +146,53 @@ test('CITY E — THE TAPPABLE SHARE CARD: accept / refuse, ONE a day (a re-share
 // a player its own COUNTED result of that match names (results/{ROOM}_{m} — st 'done', the game, o[pid]); ONE run card a player a game a
 // day in ITS OWN slot (the day's DAILIES card keeps its own), replaced in place under the same code; the page says the game + opens the
 // site's home; the owner's delete + the sweep clear its slot too.
+// THE BEFORE-LAUNCH PASS — REVIEW A4 step 3 (a JPEG card, 3 days kept) + A17 (the page's ONE canonical origin)
+/** a structurally whole baseline JPEG of w × h (SOI · APP0 · DQT · SOF0 · DHT · SOS · entropy bytes with a stuffed FF 00 · EOI) */
+function jpeg(w, h, seed = 1) {
+  const seg = (mk, body) => Buffer.concat([Buffer.from([0xff, mk]), Buffer.from([(body.length + 2) >> 8, (body.length + 2) & 255]), body]);
+  const sof = Buffer.from([8, h >> 8, h & 255, w >> 8, w & 255, 3, 1, 0x11, 0, 2, 0x11, 0, 3, 0x11, 0]);
+  const data = Buffer.from(Array.from({ length: 900 }, (_, i) => ((i * 37 + seed * 11) % 254)));
+  return Buffer.concat([Buffer.from([0xff, 0xd8]), seg(0xe0, Buffer.from('JFIF\0\x01\x01\0\0\x01\0\x01\0\0', 'latin1')), seg(0xdb, Buffer.alloc(65, 1)),
+    seg(0xc0, sof), seg(0xc4, Buffer.alloc(29, 0)), seg(0xda, Buffer.from([3, 1, 0, 2, 0x11, 3, 0x11, 0, 63, 0])), data, Buffer.from([0xff, 0x00, 0x12]), Buffer.from([0xff, 0xd9])]);
+}
+test('THE BEFORE-LAUNCH PASS — A4 step 3 + A17: a JPEG card taken + served as JPEG (a PNG still taken), a broken / padded / wrong-size JPEG refused, 3 days kept; the page\'s origin is canonical', async () => {
+  const was = await val('progress/dailies'); await ref('progress/dailies').set({ on: true, at: Date.UTC(2026, 9, 1) }); clearSwitchCache();
+  const j = await ensure('u-shr-j', 'ShareJay');
+  await ref(`dly/${G}/${today}/r/${j.pid}`).set(3);
+  const call = (buf, at = T0 + 1000) => dailyAction('u-shr-j', { action: 'shareCard', day: today, games: [G], png: buf.toString('base64') }, at);
+  const refused = async (p, code) => { await assert.rejects(p, e => e.code === code, `refused: ${code}`); };
+  try {
+    const { KEEP_DAYS } = await import('../../api/_lib/share-card.js');
+    assert.equal(KEEP_DAYS, 3, 'kept 3 days (the Spark 1 GB maths — docs/progression.md)');
+    await refused(call(jpeg(1080, 1350)), 'wrong_size');
+    await refused(call(Buffer.concat([jpeg(CARD_W, CARD_H), Buffer.from('<script>alert(1)</script>')])), 'not_jpeg');
+    const cut = jpeg(CARD_W, CARD_H); await refused(call(cut.subarray(0, cut.length - 300)), 'not_jpeg');
+    const r = await call(jpeg(CARD_W, CARD_H));
+    assert.match(r.code, /^[A-Za-z0-9_-]{12}$/);
+    assert.equal(await val(`shr/${r.code}/t`), 'j');
+    const pic = await get(`/api/daily?si=${r.code}`);
+    assert.equal(pic.headers['content-type'], 'image/jpeg'); assert.deepEqual([...pic.body.subarray(0, 2)], [0xff, 0xd8]);
+    const page = (await get(`/api/daily?s=${r.code}`)).body.toString();
+    assert.ok(page.includes('<meta property="og:image:type" content="image/jpeg">'), 'the page says JPEG');
+    // A17 — a forged Host never reaches the page; localhost stays itself
+    const res = { statusCode: 200, setHeader: () => {}, end: b => { res.body = String(b); } };
+    await shareGet({ url: `/api/daily?s=${r.code}`, headers: { host: 'evil.example', 'x-forwarded-host': 'evil.example' } }, res, T0 + 3600_000);
+    assert.ok(!res.body.includes('evil.example') && res.body.includes('https://www.neonspeakeasy.com/api/daily?si='), 'a forged host → the canonical origin');
+    const loc = { statusCode: 200, setHeader: () => {}, end: b => { loc.body = String(b); } };
+    await shareGet({ url: `/api/daily?s=${r.code}`, headers: { host: 'localhost:5173' } }, loc, T0 + 3600_000);
+    assert.ok(loc.body.includes('http://localhost:5173/api/daily?si='), 'localhost stays itself');
+    // gone after 3 days
+    const { readShare } = await import('../../api/_lib/share-card.js');
+    assert.ok(await readShare(r.code, { now: T0 + 2 * 864e5 }), 'there on day 3');
+    assert.equal(await readShare(r.code, { now: T0 + 3 * 864e5 + 5000 }), null, 'gone after 3 days');
+  } finally {
+    await ref(`dly/${G}/${today}/r/${j.pid}`).set(null);
+    for (const [c, v] of Object.entries((await val('shr')) || {})) if (v && v.p === j.pid) await ref().update({ [`shr/${c}`]: null, [`shrx/${v.d}/${c}`]: null });
+    await ref(`shrp/${j.pid}`).set(null);
+    await ref('progress/dailies').set(was); clearSwitchCache();
+  }
+});
+
 test('JAYWALK H4B — A RUN\'s CARD: only a counted result\'s player, its own slot (never the day\'s scorecard), replaced in place, the page opens the site', async () => {
   const a = await ensure('u-run-a', 'RunAmy'), b = await ensure('u-run-b', 'RunBob');
   const ok = png(CARD_W, CARD_H).toString('base64'), at = T0 + 500;
