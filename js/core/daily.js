@@ -47,7 +47,16 @@ export const listedDailies = () => dailyRows().filter(r => r.on !== false).map(r
 export function rowOpenOn(row, sched, day) {
   if (!row) return false;
   if (row.on !== false) return true;
-  return !!(sched && /^d\d{8}$/.test(String(sched.from || '')) && /^d\d{8}$/.test(String(day || '')) && String(day) >= String(sched.from));
+  const sc = schedOf(row, sched);
+  return !!(sc && /^d\d{8}$/.test(String(day || '')) && String(day) >= String(sc.from));
+}
+/** HIGH RISE DAILY B — THE SCHEDULED GO-LIVE IN CODE (the owner: "goes live by itself at the first 4 am after this deploy — no /admin step"): a row
+ *  may carry its own `liveFrom: 'dYYYYMMDD'` (config.js#DAILIES — set by the pass that ships it to the next 4 am turn after its deploy); the
+ *  owner's /admin schedule (progress/dlive) wins where both exist. → { from } | null */
+export function schedOf(row, sched) {
+  const K = /^d\d{8}$/;
+  if (sched && K.test(String(sched.from || ''))) return sched;
+  return row && K.test(String(row.liveFrom || '')) ? { from: String(row.liveFrom), code: true } : null;
 }
 /** CITY C 0a — a daily's GO-LIVE DAY (PURE — the roof board's DROP face counts its 14 days from it; api/_lib/dailies.js#goLive reads it):
  *  "live" exactly as the daily screen has it — THE GO-LIVE SWITCH on AND the row in the set (its own on-switch, or THE SCHEDULED GO-LIVE).
@@ -56,7 +65,8 @@ export function rowOpenOn(row, sched, day) {
 export function goLiveDay({ row, switchOn, sched, onDay, firstDay, today }) {
   const K = /^d\d{8}$/, ok = d => K.test(String(d || ''));
   if (!switchOn || !row || !ok(today)) return null;
-  if (sched && ok(sched.from)) return String(sched.from);
+  const sc = schedOf(row, sched);
+  if (sc) return String(sc.from);
   if (row.on === false) return null;
   for (const d of [onDay, firstDay]) if (ok(d) && String(d) <= String(today)) return String(d);
   return String(today);

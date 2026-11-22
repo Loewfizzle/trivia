@@ -594,8 +594,8 @@ function goLiveRows(st) {
   box.replaceChildren(...st.rows.map(r => h('div.ad-row.ad-dly-live', { dataset: { id: r.id, state: r.state } },
     h('b.ad-dly-state', `${r.name}: ${r.state === 'live' ? 'LIVE' : r.state === 'scheduled' ? `LIVE FROM ${dayLabel(r.from)} 4 AM` : 'OFF'}`),
     r.state === 'off' ? confirmBtn('GO LIVE AT THE NEXT 4 AM', () => act(r.id, false), 'is-primary') : null,
-    r.state === 'scheduled' ? confirmBtn('CANCEL', () => act(r.id, true)) : null,
-    h('span.ad-dim', r.always ? 'always in the set' : r.state === 'off' ? `would open ${dayLabel(st.next)} at 4 am` : r.state === 'scheduled' ? 'opens by itself — no deploy needed' : `live since ${dayLabel(r.from)}`))));
+    r.state === 'scheduled' && !r.code ? confirmBtn('CANCEL', () => act(r.id, true)) : null,   // (HIGH RISE DAILY B: a go-live set in code — the row's liveFrom — has no CANCEL)
+    h('span.ad-dim', r.always ? 'always in the set' : r.state === 'off' ? `would open ${dayLabel(st.next)} at 4 am` : r.state === 'scheduled' ? (r.code ? 'opens by itself — set by the deploy' : 'opens by itself — no deploy needed') : `live since ${dayLabel(r.from)}`))));
 }
 /** CITY E — THE BACKUPS row: GITHUB · THE PC, each its last pickup (when · how big) — red past 36 h (BACKUP_LATE_H) */
 const BACKUP_LATE_H = 36;

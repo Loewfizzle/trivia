@@ -129,3 +129,25 @@ test('HIGH RISE\'s SECTION — THE TOWER: every floor bottom-up where it landed 
   assert.equal(planToday(t, { highrise: { f: 1 } }).single, 'highrise');
   assert.equal(planToday({ ...t, mine: { password: 1, coastclear: 1, drop: 1, jaywalk: 1, highrise: 1 } }, {}).sections.length, 5);
 });
+
+import { rowOpenOn, schedOf, goLiveDay, nextLiveDay } from '../js/core/daily.js';
+
+test('GOES LIVE BY ITSELF — the row\'s own liveFrom (set to the first 4 am after the deploy): closed the day before, open from that 4 am turn; the owner\'s /admin schedule wins', () => {
+  const row = DAILIES.find(d => d.id === 'highrise');
+  assert.equal(row.on, false, 'the row still ships OFF — only its day opens it');
+  assert.match(row.liveFrom, /^d\d{8}$/);
+  const from = row.liveFrom, before = `d${String(Number(from.slice(1)) - 1)}`;
+  assert.equal(rowOpenOn(row, null, before), false, 'the day before (until 4 am Eastern): 4 tickets');
+  assert.equal(rowOpenOn(row, null, from), true, 'from its 4 am turn: 5');
+  assert.equal(rowOpenOn(row, null, 'd20991231'), true);
+  assert.deepEqual(schedOf(row, null), { from, code: true });
+  assert.deepEqual(schedOf(row, { from: 'd20261130' }), { from: 'd20261130' }, 'an /admin schedule wins');
+  assert.equal(rowOpenOn(row, { from: 'd20261130' }, from), false);
+  assert.equal(goLiveDay({ row, switchOn: true, sched: null, today: before }), from, 'the roof board / the go-live day reads it too');
+  assert.equal(goLiveDay({ row, switchOn: false, sched: null, today: from }), null, 'THE GO-LIVE SWITCH still gates everything');
+  // a row with no liveFrom is unchanged (JAYWALK / THE DROP — the owner's schedules in the database)
+  for (const id of ['jaywalk', 'drop']) { const r = DAILIES.find(d => d.id === id); assert.equal(r.liveFrom, undefined); assert.equal(rowOpenOn(r, null, 'd20991231'), false); }
+  // the day picked = the first 4 am AFTER the deploy (this pass deploys on Nov 21 Eastern, before midnight)
+  assert.equal(nextLiveDay(Date.parse('2026-11-21T20:30:00-05:00')), 'd20261122');
+  assert.equal(nextLiveDay(Date.parse('2026-11-22T02:30:00-05:00')), 'd20261122', 'a deploy after midnight but before 4 am still opens at that 4 am');
+});

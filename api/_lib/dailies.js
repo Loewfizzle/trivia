@@ -19,7 +19,7 @@
 import { createHmac } from 'node:crypto';
 import { ref, val } from './fb.js';
 import { dailySecret, clearSecretCache } from './daily-secret.js';
-import { registerDaily, unregisterDaily, dailyOf, dailyIds, dailyRows, dailyRow, todaysDailies, addDailyRow, removeDailyRow, rowOpenOn, nextLiveDay, goLiveDay } from '../../js/core/daily.js';
+import { registerDaily, unregisterDaily, dailyOf, dailyIds, dailyRows, dailyRow, todaysDailies, addDailyRow, removeDailyRow, rowOpenOn, nextLiveDay, goLiveDay, schedOf } from '../../js/core/daily.js';
 import { streakDay, dayNum, dayOf } from '../../js/core/streak.js';
 import { PW_DAILY } from './pw.js';
 import { CC_DAILY } from './cc.js';
@@ -90,8 +90,10 @@ export async function scheduleDaily(id, { cancel = false, by = null, now = Date.
   const row = dailyRow(id);
   if (!row || (row.test && !testing())) { const e = new Error('no_daily'); e.code = 'no_daily'; throw e; }
   if (row.on !== false) { const e = new Error('always_on'); e.code = 'always_on'; throw e; }
-  const today = streakDay(now), cur = cleanSched(await val(SCHED_PATH))[id] || null;
+  const today = streakDay(now), cur = schedOf(row, cleanSched(await val(SCHED_PATH))[id] || null);
   if (cur && cur.from <= today) { const e = new Error('already_live'); e.code = 'already_live'; throw e; }
+  // (HIGH RISE DAILY B: a go-live set IN CODE (the row's liveFrom) is the pass's — /admin may move it with its own schedule, never cancel it)
+  if (cancel && cur && cur.code) { const e = new Error('in_code'); e.code = 'in_code'; throw e; }
   if (cancel) await ref(`${SCHED_PATH}/${id}`).remove();
   else await ref(`${SCHED_PATH}/${id}`).set({ from: nextLiveDay(now), at: now, by });
   clearSwitchCache();
@@ -111,9 +113,9 @@ export async function dailiesState(now = Date.now()) {
   const live = await openDailies(now), sched = await dailySchedule(now), today = streakDay(now);
   // (THE DROP B: each row's go-live — 'live' (in the set from today) · 'scheduled' (+ its `from`) · 'off' — for /admin's rows)
   const rows = dailyRows().filter(r => !r.test || testing()).map(r => {
-    const sc = sched[r.id] || null;
+    const sc = schedOf(r, sched[r.id] || null);   // (HIGH RISE DAILY B: + a row's own liveFrom — the go-live set in code)
     const state = r.on !== false ? 'live' : sc && sc.from <= today ? 'live' : sc ? 'scheduled' : 'off';
-    return { id: r.id, name: r.name, state, always: r.on !== false, ...(sc ? { from: sc.from } : {}) };
+    return { id: r.id, name: r.name, state, always: r.on !== false, ...(sc ? { from: sc.from, ...(sc.code ? { code: true } : {}) } : {}) };
   });
   return { on: !!(v && v.on === true), at: (v && v.at) || null, by: (v && v.by) || null, test: testing(), live, today, next: nextLiveDay(now), rows };
 }
