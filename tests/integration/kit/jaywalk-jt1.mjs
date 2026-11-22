@@ -159,7 +159,7 @@ export async function looksJT1({ open, up, ok, sleep, waitFor, out, what = '', b
         files.push(await shotTo(o, `boom/${tag}-night-390-u${u}.png`));
       }
       console.log(`JT1 BOOM ${tag}: the pass's worst frame ${worst} draw calls · ${flat} glow-ground instances at the most (DOWNTOWN, night, 8 kids, 390)`);
-      ok(worst <= 64, `BOOM ${tag}: ≤ 64 draw calls through the pass (${worst})`);
+      ok(worst <= 96, `BOOM ${tag}: ≤ 96 draw calls through the pass at tier 2 (VARIETY A's line) (${worst})`);
       await compose(files.filter(Boolean), [8, 14, 22, 32].map(u => `${tag.toUpperCase()} · ${u} ticks into the pass`), `boom/${tag}-night-390-strip.png`, 4);
       if (out && tag === 'after') { const bf = join(out, 'boom/before-night-390-u32.png'); try { readFileSync(bf); await compose([bf, files[3]], ['BEFORE · the sonic-boom cloud', 'AFTER · the cloud gone'], 'blackbird-boom-before-after-390.png', 2); } catch { /* no before shot */ } }
     }

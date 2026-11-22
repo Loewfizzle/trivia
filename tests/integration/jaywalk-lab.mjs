@@ -28,6 +28,7 @@ import { looksH6B } from './kit/jaywalk-h6b.mjs';
 import { looksPreflip, flashScan } from './kit/jaywalk-preflip.mjs';
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
+import { callsMax } from '../../js/games/jaywalk/daylook.js';   // (VARIETY A — THE TIERS: the draw-call line per tier — 64 · 64 · 96)
 const argv = process.argv.slice(2), PERF = argv.includes('--perf'), WK = argv.includes('--webkit'), LOOK = argv.includes('--look'), OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
 if (OUT) mkdirSync(OUT, { recursive: true });
 const b = await puppeteer.launch({ executablePath: argv[0], headless: true, args: ['--enable-gpu', '--use-angle=d3d11', '--enable-webgl', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
@@ -752,7 +753,7 @@ try {
       const row = { where, cv, look, w, runway: `${R.y0} × ${R.n}`, worstCalls: worst, worstAt: at, runCalls: Math.max(...calls), frames: fr.length, fps: +(1000 / avg).toFixed(1), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1) };
       console.log(JT1P ? 'JT1PERF' : J4P ? 'J4PERF' : 'J2PERF', JSON.stringify({ ...row, scene: sk || '', season: J4P || JT1P ? await o.p.evaluate(() => window.__jwLab.view.season()) : null }));
       if (J4P) ok(binLeft > 0, `${where} ${look} ${w}: the glow billboards never full over the lap (${binLeft} left at the fullest — the tree lights go LAST)`);
-      ok(row.worstCalls <= 64 && row.runCalls <= 64, `${sk ? `${sk} ` : ''}${where} v${cv} ${look} ${w}: 8 kids, tier 2 — the worst runway frame ${row.worstCalls} draw calls (running ${row.runCalls}) ≤ 64`);
+      ok(row.worstCalls <= callsMax(2) && row.runCalls <= callsMax(2), `${sk ? `${sk} ` : ''}${where} v${cv} ${look} ${w}: 8 kids, tier 2 — the worst runway frame ${row.worstCalls} draw calls (running ${row.runCalls}) ≤ ${callsMax(2)}`);
       if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3));
       ok(row.fps >= 57 && !o.errs.length, `${sk ? `${sk} ` : ''}${where} v${cv} ${look} ${w}: 4× CPU on the runway — ${row.fps} fps (p95 ${row.p95Ms} ms, worst ${row.worstMs})`);
       await o.close();
@@ -1059,7 +1060,7 @@ try {
     // H5A — THE HEAVIEST AREAS at 4× CPU: DOWNTOWN (heavy traffic + the storefronts' neon), THE LIGHTHOUSE (its beam + the water), THE
     // RAIL YARD (the trains + the gantries + the containers) — the bot plays three slices of each stretch; tier 2 (the bloom) + tier 1
     // (H5B — BY NIGHT and BY DAY: the day look is the same scene — no bloom, the fog bank's puffs, the paint)
-    for (const [name, g] of [['DOWNTOWN', 250], ['THE LIGHTHOUSE', 350], ['THE RAIL YARD', 150]]) for (const tier of [2, 1]) for (const look of ['night', 'day']) {
+    for (const [name, g] of [['DOWNTOWN', 250], ['THE LIGHTHOUSE', 350], ['THE RAIL YARD', 150]]) for (const tier of [2, 1, 0]) for (const look of ['night', 'day']) {
       const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight&look=${look}`);
       await up(o.p); await o.p.emulateCPUThrottling(4);
       await o.p.evaluate(() => { window.__jwLab.restart('solo', 'perfseed7'); window.__jwLab.bot(true); });
@@ -1080,7 +1081,7 @@ try {
       await o.close();
     }
     // H5A — 8 KIDS: the kid + 7 ghosts (the instanced, skinned kid — one draw call for him, one for all the ghosts), DOWNTOWN, 4× CPU
-    for (const tier of [2, 1]) {
+    for (const tier of [2, 1, 0]) {
       const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight`);
       await up(o.p); await o.p.emulateCPUThrottling(4);
       await o.p.evaluate(() => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.bot(true); J.ghosts(7); J.warp(J.find('grass', 252)); });
@@ -1095,7 +1096,7 @@ try {
     }
     const at4 = rows2.filter(x => x.cpu === '4×');
     ok(at4.some(x => x.fps >= 55), `4× CPU: a tier holds 60 (${at4.map(x => `tier ${x.tier} ${x.fps}`).join(' · ')}) — the automatic steps find it`);
-    ok(rows2.every(x => x.calls <= 64), `≤ 64 draw calls a frame at every tier, in every area (${rows2.map(x => x.calls).join(' · ')})`);   // (H5A: the areas' own kinds — one call a kind in view)
+    ok(rows2.every(x => x.calls <= callsMax(x.tier ?? 2)), `≤ ${callsMax(0)} · ${callsMax(1)} · ${callsMax(2)} draw calls a frame at tier 0 · 1 · 2, in every area (${rows2.map(x => `t${x.tier}:${x.calls}`).join(' · ')})`);   // (H5A: the areas' own kinds — one call a kind in view)
     // THE SHOT's OWN HITCH (H2's shots read "49–54 fps · worst 217–250" at tier 2): a quiet run has no such frame — a screenshot makes one
     {
       const o = await open(390, 844, 3, '&preview=1&seed=perfseed7&tier=2&zoom=8&angle=turned');
