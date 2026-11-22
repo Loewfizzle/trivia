@@ -1,0 +1,59 @@
+<!doctype html>
+<!-- THE PERSONAL-BEST SHARE CARD's preview (no Firebase, no server calls): each share card drawn LIVE with the cartridges' own functions —
+     NORMAL beside PERSONAL BEST, stacked for a phone: JAYWALK's run card (night — its only look) · HIGH RISE's poster (night) · JAYWALK's
+     daily card (night + day — gold on a NEW DAILY BEST) · HIGH RISE's daily poster. The same draws tests/integration/pb-share.mjs checks.
+       ?only=jaywalk|highrise   (one game's cards) -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PB SHARE preview</title>
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+  <style>
+    body { margin: 0; background: #07060b; color: #f3e9ff; font: 600 15px/1.4 system-ui, sans-serif; }
+    .pp-wrap { max-width: 860px; margin: 0 auto; padding: 16px; }
+    h2 { font-size: 15px; letter-spacing: .12em; margin: 26px 0 10px; color: #ffd6f0; }
+    .pp-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 560px) { .pp-pair { grid-template-columns: 1fr; } }
+    figure { margin: 0; }
+    figcaption { font-size: 13px; letter-spacing: .1em; color: #c9b8dc; margin: 0 0 6px; }
+    img { width: 100%; height: auto; display: block; border-radius: 6px; }
+    .pp-wait { color: #c9b8dc; }
+  </style>
+</head>
+<body>
+<div class="pp-wrap" id="out"><p class="pp-wait">Drawing the cards…</p></div>
+<script type="module">
+const q = new URLSearchParams(location.search), only = q.get('only') || '';
+const out = document.getElementById('out');
+const J = await import('/js/games/jaywalk/share.js'), H = await import('/js/games/highrise/share.js'), D = await import('/js/daily/share.js');
+const JD = await import('/js/games/jaywalk/daily-share.js'), HD = await import('/js/games/highrise/daily-share.js');
+await D.shareFonts();
+out.replaceChildren();
+const pair = (title, normal, pb) => {
+  const h2 = document.createElement('h2'); h2.textContent = title;
+  const row = document.createElement('div'); row.className = 'pp-pair';
+  for (const [cap, cv] of [['NORMAL', normal], ['PERSONAL BEST', pb]]) {
+    const f = document.createElement('figure'), c = document.createElement('figcaption'), i = new Image();
+    c.textContent = cap; i.src = cv.toDataURL('image/png'); i.alt = `${title} — ${cap}`; f.append(c, i); row.append(f);
+  }
+  out.append(h2, row);
+};
+if (only !== 'highrise') {
+  const game = { matchId: 'pbm', mode: 'solo', results: { u1: { l: 143, w: 'car' } } };
+  pair('JAYWALK · RUN CARD', J.drawJwCard(game, { uid: 'u1', name: 'LOEWFIZZLE12', code: '', pb: false }), J.drawJwCard(game, { uid: 'u1', name: 'LOEWFIZZLE12', code: '', pb: true }));
+  for (const look of ['night', 'day']) {
+    const d = nb => JD.renderShare({ inputs: { t: [88, 143, 120], b: 1, nb, day: 'd20261121' }, look });
+    pair(`JAYWALK · DAILY (${look.toUpperCase()})`, d(false), d(true));
+  }
+}
+if (only !== 'jaywalk') {
+  const run = pb => ({ floor: 93, perfects: 31, cause: 'missed', made: false, mode: 'solo', name: 'LOEWFIZZLE12', pb });
+  const hero = await H.loadHero(H.hiRunCard(run(false)).hero);
+  pair('HIGH RISE · POSTER', H.drawHiCard(run(false), hero), H.drawHiCard(run(true), hero));
+  const d = nb => HD.renderShare({ inputs: { f: 93, p: 31, w: [], x: [], pf: [], nb, day: 'd20261121', c: 'missed' } });
+  pair('HIGH RISE · DAILY POSTER', await d(false), await d(true));
+}
+</script>
+</body>
+</html>

@@ -1962,4 +1962,5 @@ the band a line down + a size down). A normal run's card is unchanged. A card wa
 a PB lands (and the SHARE tap rebuilds it). The dailies: a NEW DAILY BEST paints the big line gold (`paintBig(…, { gold })` — JAYWALK's daily card
 night + day, both dailies' SHARE TODAY sections; HIGH RISE's own daily poster gets the gold + PERSONAL BEST). Spoiler-free as before; THE ONE FOOT +
 THE ONE RULE kept; the share code stays LAZY (nothing in the preload). Proof: `tests/integration/pb-share.mjs` (9 — gold on a PB, never on a
-normal card; the words lit + readable at 360 / 390) · shots `Downloads\NEON\pb-share\`.
+normal card; the words lit + readable at 360 / 390) · shots `Downloads\NEON\pb-share\` · the phone preview (the same draws, NORMAL beside PB,
+no server calls): `tests/integration/pb-share-preview.html` (`?only=jaywalk|highrise`; re-checked on HEAD Nov 22 — 9/9).
