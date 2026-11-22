@@ -845,6 +845,18 @@ test('THE FIX PASS — D2: the results compaction claims its day in the database
   await ref('rl/zz_results').set(null);
 });
 
+// THE FIX PASS — S3 b: /api/report's CALL BUDGET (the one helper, api/daily.js's): a flood refused before anything is read; another uid free
+test('THE FIX PASS — S3 b: the call budget (api/_lib/budget.js) — over max in the window refused, another uid free, a new window open', async () => {
+  const { callBudget } = await import('../../api/_lib/budget.js');
+  const { REPORT_CALLS } = await import('../../api/report.js');
+  assert.ok(REPORT_CALLS.max >= 180 && REPORT_CALLS.windowMs === 600_000, 'an honest 6-minute live hold (a retry ≥ every 2 s) fits');
+  const b = callBudget('tb', { max: 3, windowMs: 60_000 }), t = clock;
+  assert.deepEqual([1, 2, 3, 4].map(() => b('u-bud', t)), [true, true, true, false]);
+  assert.equal(b('u-bud2', t), true, 'another uid');
+  assert.equal(b('u-bud', t + 60_000), true, 'the next window');
+  await ref('rl').update({ 'tb_u-bud': null, 'tb_u-bud2': null });
+});
+
 // JAYWALK H1 — THE PROOF NODE (rooms/{CODE}/jw/{matchId}/{uid} — api/report.js#PROOF_TREES): written by the player AT GO → present = proven.
 // A player who wrote GO and never hopped (silent but present) still counts; a seated guest with no node does not. (H4: a match is the
 // server's replay of its proof nodes — at least one player must have hopped: a match where NOBODY ever did has nothing to count.)

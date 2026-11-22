@@ -101,3 +101,28 @@ export function liveGoers(tree, { now, online = null, playAt, capAt, idleMs, dro
 }
 /** the server's "count it in a moment" for a match with live runs: soon, never past the soonest end, re-asked */
 export const liveRetryMs = (until, now) => Math.max(LIVE_RETRY_MIN_MS, Math.min(LIVE_RETRY_MAX_MS, Math.ceil(until - now) + 500));
+
+// THE FIX PASS — S3 (a), THE CHUNK CEILING (THE FABLE REVIEW: a node took 10,000 chunks in any order — 2,000 went up in ONE 0.3 s write,
+// ~4.3 MB a player a match, re-judged by the host's director every 250 ms and read whole by every report). A node may hold at most
+// `seconds of its own clock × perSec + CHUNK_SLACK` chunks — the seconds from its GO to its NEWEST chunk's server stamp (the rules stamp
+// each `at` with the server's now: a burst can not buy itself time) — counted BEFORE anything is unpacked; past it the node is a REFUSED
+// log (the judge's `bad`). `perSec` = the game's own writer bound (a match sends each move within its flush interval, stop-and-wait —
+// JAYWALK 120 ms, HIGH RISE 150 ms: the review's "× 2" would refuse an honest fast match), so an honest phone can never reach it.
+export const CHUNK_SLACK = 10;
+/** → the most chunks a node may hold, or Infinity (no GO / no chunks: nothing to bound) */
+export function chunkCeiling(node, perSec) {
+  const c = node && node.c, go = Number(node && node.go) || 0;
+  if (!c || typeof c !== 'object' || !(go > 0)) return Infinity;
+  let hi = go;
+  for (const k in c) { const v = c[k], at = v && typeof v === 'object' ? Number(v.at) || 0 : 0; if (at > hi) hi = at; }
+  return Math.floor((hi - go) / 1000) * perSec + CHUNK_SLACK;
+}
+/** → true when a node holds more chunks than its own clock allows (one key count + one stamp read a chunk — no string touched) */
+export function overChunkCeiling(node, perSec) {
+  const c = node && node.c;
+  if (!c || typeof c !== 'object') return false;
+  const cap = chunkCeiling(node, perSec);
+  let n = 0;
+  for (const k in c) { void k; if (++n > cap) return true; }
+  return false;
+}

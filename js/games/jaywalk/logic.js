@@ -6,7 +6,9 @@ import { MODES, TICK_HZ, CLOCK } from './tuning.js';
 import { hashString } from '../../core/rng.js';
 import { CALL_MS, callBonus } from '../../core/playlist.js';
 import { judgeRun, logFromChunks, chunkTimes } from './replay.js';
-import { firstGo, onTime, goOf, inMatch, fullDraw } from '../../core/proof.js';
+import { firstGo, onTime, goOf, inMatch, fullDraw, overChunkCeiling } from '../../core/proof.js';
+/** THE FIX PASS — S3 a: the most chunks a second this game's writer can send (a match: each move within CLOCK.flushMatchMs, stop-and-wait) */
+export const CHUNKS_PER_SEC = Math.ceil(1000 / CLOCK.flushMatchMs);
 import { versionAt, runVersion } from './versions.js';
 
 export { DEFAULT_SETTINGS, cleanSettings, chatLocked, CALL_MS };
@@ -84,6 +86,8 @@ export const featsOf = r => Object.keys(r.feats || {}).filter(k => r.feats[k]).j
  * `until` = score it as it stands at that tick. The host's podium and the server's count both come through here.
  */
 export function scoreNode({ seed, mode, node, t0, from = null, until = null, out = null, cv = 1 }) {
+  // (THE FIX PASS — S3 a: THE CHUNK CEILING before anything is unpacked — a node fatter than its own clock allows is a refused log)
+  if (overChunkCeiling(node, CHUNKS_PER_SEC)) { if (out) out.hops = 0; return { ...scoreNode({ seed, mode, node: null, t0, until, cv: cv === 2 ? 2 : 1 }), bad: 'too many chunks' }; }
   const log = node && node.c != null ? logFromChunks(node.c) : [], times = node && node.c != null ? chunkTimes(node.c) : [];
   let j = log && times ? judgeRun({ seed, mode, log, go: t0, times, from, until, cv, end: (node && node.e) || null }) : { ok: false, why: 'chunks' }, bad = '';
   if (!j.ok) { bad = String(j.why || 'refused').slice(0, 24); j = judgeRun({ seed, mode, log: [], until, cv: cv === 2 ? 2 : 1 }); }

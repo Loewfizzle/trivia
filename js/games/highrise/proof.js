@@ -10,6 +10,9 @@ import { judgeRun, unpackTaps } from './replay.js';
 import { TICK_HZ } from './tuning.js';
 import { seedOf, firstGo } from './logic.js';
 import { RULES_DEFAULT, ruleSet } from './rules.js';
+import { overChunkCeiling } from '../../core/proof.js';
+/** THE FIX PASS — S3 a: the most chunks a second this game's writer can send (a match: each tap within view.js#FLUSH_MATCH_MS = 150, stop-and-wait) */
+export const CHUNKS_PER_SEC = 7;
 
 /**
  * THE CLOCK (JAYWALK's, number for number — a run is played ON the server's clock; every chunk carries the moment it ARRIVED):
@@ -98,6 +101,7 @@ export function judgeNode({ seed, mode = 'solo', node, mirror = false, rules = n
   //  node that names another one is refused — everyone in a match climbs by the same numbers)
   const rs = node.rs == null ? RULES_DEFAULT : node.rs;
   if (rules != null && rs !== rules) return { ok: false, why: 'rules' };
+  if (overChunkCeiling(node, CHUNKS_PER_SEC)) return { ok: false, why: 'too many chunks' };   // (THE FIX PASS — S3 a: before anything is unpacked)
   let taps = tapsFromChunks(node.c);
   const times = chunkTimes(node.c);
   if (!taps || !times) return { ok: false, why: 'chunks' };

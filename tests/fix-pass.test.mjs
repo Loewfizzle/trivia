@@ -47,3 +47,38 @@ test('D2 + D4: the compaction claims its DAY in the database; the share picture 
   const d = src('api/daily.js');
   assert.match(d, /const canon = shareImgQuery\(code, head\.h\);\s*if \(new URL\(req\.url \|\| '\/', 'http:\/\/x'\)\.search !== canon\) return redirect\(/);
 });
+
+test('S3 a: THE CHUNK CEILING — the review\'s 2,000-chunk burst is refused by both judges before anything is unpacked; an honest max-rate node is not', async () => {
+  const { chunkCeiling, overChunkCeiling, CHUNK_SLACK } = await import('../js/core/proof.js');
+  const jw = await import('../js/games/jaywalk/logic.js');
+  const hr = await import('../js/games/highrise/proof.js');
+  const { CLOCK } = await import('../js/games/jaywalk/tuning.js');
+  const go = 1_800_000_000_000;
+  // the rates are the writers' own bounds (a match: each move within the flush interval, stop-and-wait)
+  assert.equal(jw.CHUNKS_PER_SEC, Math.ceil(1000 / CLOCK.flushMatchMs));
+  assert.match(src('js/games/highrise/view.js'), /export const FLUSH_MATCH_MS = 150;/);
+  assert.ok(hr.CHUNKS_PER_SEC >= Math.ceil(1000 / 150));
+  const burst = { go, c: {} };   // (2,000 chunks in ONE write, 5 s after GO — every stamp the same server now)
+  let poked = 0;
+  for (let i = 0; i < 2000; i++) burst.c[i] = { get s() { poked++; return '1'; }, at: go + 5000 };
+  assert.equal(chunkCeiling(burst, 7), 5 * 7 + CHUNK_SLACK);
+  assert.ok(overChunkCeiling(burst, 7));
+  assert.equal(hr.judgeNode({ seed: 'x', mode: 'solo', node: burst }).why, 'too many chunks');
+  const row = jw.scoreNode({ seed: 'x', mode: 'solo', node: burst, t0: go });
+  assert.equal(row.bad, 'too many chunks');
+  assert.equal(poked, 0, 'no chunk string was read');
+  // an honest node at the writer's very bound: one chunk every flush for 60 s → under the ceiling
+  for (const [rate, ms] of [[jw.CHUNKS_PER_SEC, CLOCK.flushMatchMs], [hr.CHUNKS_PER_SEC, 150]]) {
+    const n = { go, c: {} };
+    for (let i = 0, t = 0; t <= 60_000; i++, t += ms) n.c[i] = { s: '1', at: go + t };
+    assert.ok(!overChunkCeiling(n, rate), `${Object.keys(n.c).length} chunks in 60 s at ${ms} ms each — under ${chunkCeiling(n, rate)}`);
+  }
+  assert.ok(!overChunkCeiling({ go, c: null }, 7) && !overChunkCeiling(null, 7) && chunkCeiling({ go: 0, c: {} }, 7) === Infinity);
+});
+
+test('S3 b: /api/report has a per-uid CALL BUDGET (api/daily.js\'s, ONE helper)', () => {
+  const r = src('api/report.js');
+  assert.match(r, /const reportBudget = callBudget\('rp', REPORT_CALLS\);/);
+  assert.match(r, /if \(!reportBudget\(uid, Date\.now\(\)\)\) throw new ApiError\(429, 'slow_down'/);
+  assert.match(src('api/daily.js'), /const budget = callBudget\('dc', CALLS\);/);
+});

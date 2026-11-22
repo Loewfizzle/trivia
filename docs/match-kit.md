@@ -115,6 +115,16 @@ stands) · a Call the Winner pick is a uid's shape, ≤ 64 (`k/w` had no bound) 
   self-grading of console-fix item 5, for that match; a kicked player in the host-graded games (item 7, your call). A host-graded match of
   2+ whose every report missed its final game (the honest host's move-on waits ≤ 6 s for its own) is NOT paid (the snapshot path).
 
+**THE CHUNK CEILING + THE REPORT BUDGET (THE FIX PASS, Nov 22 — THE FABLE REVIEW's S3 a + b; no rules change).** A node may hold at most
+`seconds from its GO to its NEWEST chunk's server stamp × perSec + CHUNK_SLACK (10)` chunks (`core/proof.js#overChunkCeiling` — one key
+count + one stamp read a chunk, BEFORE any string is unpacked); past it the node is a REFUSED log (`bad` / `why` = 'too many chunks') in
+BOTH judges — the host's director and the server (`jaywalk/logic.js#scoreNode`, `highrise/proof.js#judgeNode`). `perSec` is each game's
+own writer bound (a match sends each move within its flush interval, stop-and-wait: JAYWALK `ceil(1000 / CLOCK.flushMatchMs)` = 9,
+HIGH RISE 7 — the review's "× 2" would have refused an honest fast match). The review's burst (2,000 chunks in one 0.3 s write at second 5)
+is refused at once; the rules still take the writes (10,000 chunks, the stamp = now) — what changed is that nobody unpacks them. A NEW
+proof game: its own `CHUNKS_PER_SEC` beside its judge, the ceiling first. `/api/report` has a per-uid CALL BUDGET (`api/_lib/budget.js`
+— api/daily.js's, one helper: 240 calls / 10 min, an honest 6-minute live hold retries ≤ 180 times) → 429 `slow_down`, `retry`.
+
 ## HOST TRUST — THE HOST-GRADED GAMES (THE BEFORE-LAUNCH PASS, Nov 22 — `docs/harbor/passes/before-launch.md`)
 PRISM DROP + OVERCLOCK (`api/report.js#DROP_GUARD`) are host-authored at `final`; the server now checks the result against what ONLY each
 player could write, on the room path (the match still the room's game):

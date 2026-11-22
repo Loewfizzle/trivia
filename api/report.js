@@ -21,6 +21,7 @@
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { readFileSync } from 'node:fs';
 import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/http.js';
+import { callBudget } from './_lib/budget.js';   // (THE FIX PASS — S3 b)
 import { noteSeen } from './_lib/seen.js';
 import { ref, val, emulated, adminPids } from './_lib/fb.js';
 import { jaywalkSolo, jaywalkMatch } from './_lib/jaywalk.js';
@@ -443,6 +444,10 @@ async function credit({ key, uid, myPid, ex, pids, now, room, at, src }) {
 // they're part of the normal flow for every phone at the podium, not errors (browsers log every 4xx as one).
 // HE2 — THE HOLD'EM DEALER rides this function (STILL 8): POST /api/report { holdem: <op>, room, … } → _lib/holdem-store.js. Real HTTP
 // statuses (a stale tap is a 409 the phone reads, a flood a 429) + Server-Timing on every answer.
+/** THE FIX PASS — S3 b: /api/report's CALL BUDGET (api/daily.js's, the one helper — rl/rp_{uid}) */
+export const REPORT_CALLS = { max: 240, windowMs: 10 * 60_000 };
+const reportBudget = callBudget('rp', REPORT_CALLS);
+export const forgetReportBudget = () => reportBudget.forget();
 export default route(['POST'], async (req, res) => {
   const T = timing();
   const uid = await requireUser(req);
@@ -458,6 +463,9 @@ export default route(['POST'], async (req, res) => {
     return;
   }
   try {
+    // (THE FIX PASS — S3 b: THE CALL BUDGET — every report call is several database reads; an honest phone's podium retries ≤ every 2 s
+    //  while a run is live (≤ ~180 in a 6-minute hold) + its queue — a script's flood is refused before anything is read)
+    if (!reportBudget(uid, Date.now())) throw new ApiError(429, 'slow_down', 'Too many reports — wait a minute.', { retryAfter: 60_000 });
     send(res, 200, withShow(await processReport(uid, body, Date.now(), clientIp(req))));
   } catch (e) {
     if (!(e instanceof ApiError) || e.status >= 500 || e.status === 401) throw e;

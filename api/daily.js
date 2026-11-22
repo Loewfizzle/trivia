@@ -50,7 +50,7 @@ import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, adminPids, emulated } from './_lib/fb.js';
 import { pidOf } from './_lib/profiles.js';
 import { bumpOwners } from './_lib/owners.js';
-import { take } from './_lib/limit.js';
+import { callBudget } from './_lib/budget.js';
 import { dailySeed, openDailies, pickDay, liveFor } from './_lib/dailies.js';
 import { roomStarted, midDaily, roomGameProof } from './_lib/daily-room.js';
 import { closeDays, recloseDay, sweepRuns } from './_lib/daily-close.js';
@@ -91,21 +91,9 @@ export { timing };
 
 // DFIX3 — THE BUDGET OFF THE DIG PATH: a per-instance window counter decides AT ONCE; the shared count (rl/dc_{uid} — every warm instance) is
 // written behind it, never waited for, and its refusal lifts the local count so a flood across instances still stops within one round trip
-const BUDGET = new Map();
-function budget(uid, now) {
-  const key = String(uid).replace(/[.#$[\]/]/g, '_');
-  let b = BUDGET.get(key);
-  if (!b || now - b.t >= CALLS.windowMs || now < b.t) {
-    b = { n: 0, t: now };
-    BUDGET.set(key, b);
-    if (BUDGET.size > 4000) for (const k of [...BUDGET.keys()].slice(0, 1000)) BUDGET.delete(k);
-  }
-  if (b.n >= CALLS.max) return false;
-  b.n++;
-  take(`dc_${key}`, CALLS.max, CALLS.windowMs, now).then(ok => { if (!ok) b.n = Math.max(b.n, CALLS.max); }).catch(() => {});
-  return true;
-}
-export const forgetBudgets = () => BUDGET.clear();
+// (THE FIX PASS: ONE helper — api/_lib/budget.js — /api/report has its own)
+const budget = callBudget('dc', CALLS);
+export const forgetBudgets = () => budget.forget();
 
 // DFIX3 — uid → pid memoised a minute per warm instance (uids/{uid} is written once at the profile's creation; a restore re-links a device from the
 // profile screen, never mid-dig — the memo is short and only ever a HIT, a miss asks the database)
