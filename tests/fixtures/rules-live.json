@@ -178,11 +178,37 @@
             ".validate": "newData.isBoolean()"
           }
         },
+        "pt": {
+          ".write": "auth != null && newData.exists()",
+          ".validate": "newData.hasChildren(['n', 'm', 'g']) && newData.child('n').isNumber() && newData.child('n').val() === (data.child('n').isNumber() ? data.child('n').val() : 0) + 1 && newData.child('n').val() <= 1000 && newData.child('m').isString() && newData.child('m').val().matches(/^[a-z0-9]{3,16}$/) && (newData.child('g').val() === 'jw' || newData.child('g').val() === 'hr') && newData.parent().child(newData.child('g').val()).child(newData.child('m').val()).child('t0').val() === now && !data.parent().child(newData.child('g').val()).child(newData.child('m').val()).exists()",
+          "n": {
+            ".validate": "newData.isNumber()"
+          },
+          "m": {
+            ".validate": "newData.isString()"
+          },
+          "g": {
+            ".validate": "newData.isString()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
         "rv": {
           ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
           "$uid": {
             ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && ((root.child('rooms/' + $code + '/meta/status').val() === 'lobby' && root.child('rooms/' + $code + '/meta/back/rm').val() === true) || (root.child('rooms/' + $code + '/meta/status').val() === 'playing' && root.child('rooms/' + $code + '/game/phase').val() === 'final'))",
             ".validate": "newData.isString() && (newData.val() === root.child('rooms/' + $code + '/meta/back/m').val() || (root.child('rooms/' + $code + '/meta/status').val() === 'playing' && root.child('rooms/' + $code + '/game/phase').val() === 'final' && newData.val() === root.child('rooms/' + $code + '/game/matchId').val()))"
+          }
+        },
+        "gv": {
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (!newData.exists() || root.child('rooms/' + $code + '/meta/status').val() === 'lobby')",
+            ".validate": "newData.hasChildren(['g', 'at']) && newData.child('g').isString() && newData.child('g').val().matches(/^[a-z]{2,12}$/) && newData.child('at').val() === now",
+            "g": { ".validate": true },
+            "at": { ".validate": true },
+            "$other": { ".validate": false }
           }
         },
         "game": {
@@ -699,13 +725,17 @@
           "$match": {
             ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists() && !(newData.parent().parent().child('game/id').val() === 'jaywalk' && newData.parent().parent().child('game/matchId').val() === $match && (newData.parent().parent().child('game/phase').val() === 'count' || newData.parent().parent().child('game/phase').val() === 'play')) && (!data.exists() || (data.child('t0').isNumber() ? data.child('t0').val() < now - 600000 : (data.child(auth.uid).child('go').isNumber() && data.child(auth.uid).child('go').val() < now - 600000)))",
             "t0": {
-              ".write": "auth != null && $match.matches(/^[a-z0-9]{3,16}$/) && root.child('rooms/' + $code + '/game/id').val() === 'jaywalk' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + auth.uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (root.child('rooms/' + $code + '/game/phase').val() === 'play' || (root.child('rooms/' + $code + '/game/phase').val() === 'count' && now >= root.child('rooms/' + $code + '/game/playAt').val() - 2000)) && newData.exists() && !root.child('rooms/' + $code + '/jw/' + $match).exists()",
+              ".write": "auth != null && $match.matches(/^[a-z0-9]{3,16}$/) && root.child('rooms/' + $code + '/game/id').val() === 'jaywalk' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + auth.uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (root.child('rooms/' + $code + '/game/phase').val() === 'play' || (root.child('rooms/' + $code + '/game/phase').val() === 'count' && now >= root.child('rooms/' + $code + '/game/playAt').val() - 2000)) && newData.exists() && !root.child('rooms/' + $code + '/jw/' + $match).exists() && newData.parent().parent().parent().child('pt/n').val() === (root.child('rooms/' + $code + '/pt/n').isNumber() ? root.child('rooms/' + $code + '/pt/n').val() : 0) + 1 && newData.parent().parent().parent().child('pt/m').val() === $match && newData.parent().parent().parent().child('pt/g').val() === 'jw'",
               ".validate": "newData.isNumber() && newData.val() === now"
             },
             "$uid": {
               "go": {
                 ".write": "auth != null && auth.uid === $uid && $match.matches(/^[a-z0-9]{3,16}$/) && root.child('rooms/' + $code + '/game/id').val() === 'jaywalk' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + auth.uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (root.child('rooms/' + $code + '/game/phase').val() === 'play' || (root.child('rooms/' + $code + '/game/phase').val() === 'count' && now >= root.child('rooms/' + $code + '/game/playAt').val() - 2000)) && newData.exists() && !data.exists() && (root.child('rooms/' + $code + '/jw/' + $match + '/t0').isNumber() ? now <= root.child('rooms/' + $code + '/jw/' + $match + '/t0').val() + 5000 : now < 1795770000000)",
                 ".validate": "newData.isNumber() && newData.val() === now"
+              },
+              "cv": {
+                ".write": "auth != null && auth.uid === $uid && newData.exists() && !data.exists() && root.child('rooms/' + $code + '/jw/' + $match + '/' + $uid + '/go').isNumber() && now < root.child('rooms/' + $code + '/jw/' + $match + '/' + $uid + '/go').val() + 10800000",
+                ".validate": "newData.isNumber() && (newData.val() === 1 || newData.val() === 2)"
               },
               "c": {
                 "$i": {
@@ -761,7 +791,7 @@
           "$match": {
             ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists() && !(newData.parent().parent().child('game/id').val() === 'highrise' && newData.parent().parent().child('game/matchId').val() === $match && (newData.parent().parent().child('game/phase').val() === 'count' || newData.parent().parent().child('game/phase').val() === 'play')) && (!data.exists() || (data.child('t0').isNumber() ? data.child('t0').val() < now - 600000 : (data.child(auth.uid).child('go').isNumber() && data.child(auth.uid).child('go').val() < now - 600000)))",
             "t0": {
-              ".write": "auth != null && $match.matches(/^[a-z0-9]{3,16}$/) && root.child('rooms/' + $code + '/game/id').val() === 'highrise' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + auth.uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (root.child('rooms/' + $code + '/game/phase').val() === 'play' || (root.child('rooms/' + $code + '/game/phase').val() === 'count' && now >= root.child('rooms/' + $code + '/game/playAt').val() - 2000)) && newData.exists() && !root.child('rooms/' + $code + '/hr/' + $match).exists()",
+              ".write": "auth != null && $match.matches(/^[a-z0-9]{3,16}$/) && root.child('rooms/' + $code + '/game/id').val() === 'highrise' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/participants/' + auth.uid).exists() && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && (root.child('rooms/' + $code + '/game/phase').val() === 'play' || (root.child('rooms/' + $code + '/game/phase').val() === 'count' && now >= root.child('rooms/' + $code + '/game/playAt').val() - 2000)) && newData.exists() && !root.child('rooms/' + $code + '/hr/' + $match).exists() && newData.parent().parent().parent().child('pt/n').val() === (root.child('rooms/' + $code + '/pt/n').isNumber() ? root.child('rooms/' + $code + '/pt/n').val() : 0) + 1 && newData.parent().parent().parent().child('pt/m').val() === $match && newData.parent().parent().parent().child('pt/g').val() === 'hr'",
               ".validate": "newData.isNumber() && newData.val() === now"
             },
             "$uid": {
@@ -1465,6 +1495,35 @@
       }
     },
     "dly": {
+      "highrise": {
+        "$day": {
+          "w": {
+            "$uid": {
+              "$leg": {
+                "c": {
+                  "$i": {
+                    ".write": "auth != null && auth.uid === $uid && $leg.matches(/^[0-6]$/) && data.parent().parent().child('go').isNumber() && data.parent().parent().child('z').isNumber() && !data.parent().parent().child('e').exists() && now >= data.parent().parent().child('go').val() && now <= data.parent().parent().child('z').val() && !data.exists() && newData.exists()",
+                    ".validate": "$i.matches(/^(0|[1-9][0-9]{0,2})$/) && newData.hasChildren(['s', 'at'])",
+                    "s": {
+                      ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 400 && newData.val().matches(/^(0|[1-9a-z][0-9a-z]{0,5})([.](0|[1-9a-z][0-9a-z]{0,5}))*$/)"
+                    },
+                    "at": {
+                      ".validate": "newData.isNumber() && newData.val() === now"
+                    },
+                    "$other": {
+                      ".validate": false
+                    }
+                  }
+                },
+                "e": {
+                  ".write": "auth != null && auth.uid === $uid && $leg.matches(/^[0-6]$/) && data.parent().child('go').isNumber() && data.parent().child('z').isNumber() && now >= data.parent().child('go').val() && now <= data.parent().child('z').val() && !data.exists() && newData.exists()",
+                  ".validate": "newData.isNumber() && newData.val() === now"
+                }
+              }
+            }
+          }
+        }
+      },
       "jaywalk": {
         "$day": {
           "w": {
