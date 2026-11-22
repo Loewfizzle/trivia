@@ -99,8 +99,10 @@ export function nameInk(look, result = null) {
 }
 /** (1) THE NAME — the daily's own name as small clean neon in its RESULT's colour (a soft glow in the colour under a lighter core; by day
  *  plain ink — no glow), centred on cx; fitW = the widest it may print */
-export function paintName(c, look, name, cx, y, px, fitW = 0, result = null) {
-  const col = nameInk(look, result), t = String(name || '').toUpperCase();
+export function paintName(c, look, name, cx, y, px, fitW = 0, result = null, ink = null) {
+  // (HIGH RISE DAILY B — THE BIG FIVE: `ink` = the name in its TICKET's ink (night / day — share-today.js), glowing in it at night)
+  const col = ink || nameInk(look, result), t = String(name || '').toUpperCase();
+  if (ink) result = 'ink';
   c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
   const lo = Math.max(20, SMALL_MIN / scaleOf(c));   // (DAILY FIX — THE 360 FLOOR)
   let p = floorPx(c, px);

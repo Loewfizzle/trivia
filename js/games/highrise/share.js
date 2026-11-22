@@ -180,7 +180,7 @@ export function paintPoster(c, card, hero) {
   for (const f of lit) f(c, 'core');
   // the mode + the site under the title · the perfects + the name under the cause (plain lettering on the dark)
   c.save(); c.textAlign = 'center'; c.font = `700 ${L.modePx}px ${DISPLAY}`; c.fillStyle = gold ? '#ffe3a3' : '#dcd2ff';
-  spacedText(c, `${card.mode || 'SOLO'} · NEONSPEAKEASY`, W / 2 + 6, L.modeY, 12);
+  spacedText(c, `${card.mode || 'SOLO'} · NEONSPEAKEASY`, W / 2 + 6, L.modeY, 12, { maxW: W - 140 });   // (HIGH RISE DAILY B: the daily's longer tag kept off the edges — SOLO / MATCH never reach it)
   c.font = `800 ${L.statPx}px ${DISPLAY}`; c.fillStyle = gold ? '#ffeab8' : '#f1ecff';
   spacedText(c, card.stat || '', W / 2 + 5, L.statY, 10, { maxW: W - 120 }); c.restore();
   // THE FOOT (the kit's, every share card's): ONE straight thin neon line + NEONSPEAKEASY.COM — gold for THE FINISH

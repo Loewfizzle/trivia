@@ -81,6 +81,8 @@ export const timeOf = run => fmtTime(scoreOf(run).time);
 const byGuesses = () => measureOf('password') === 'guesses';
 export const bigOf = run => (byGuesses() ? guessesLine(run) : timeOf(run));
 export const statOf = run => (byGuesses() ? timeOf(run) : guessesLine(run));
+/** HIGH RISE DAILY B — THE BIG FIVE's line (share-today.js — text only): "5 GUESSES" / "2:54"; a locked-out run's fail word big — LOCKED OUT / its time */
+export const fiveLine = ({ run } = {}) => (resultOf(run) === FAILED ? { big: 'LOCKED OUT', stat: timeOf(run) } : { big: bigOf(run), stat: statOf(run) });
 /** THE ROOMS' sizes on the card (the door's scale — 1 = 34 × 44 — the tiles, the gap between the two columns, the label) */
 export const ROOMS = Object.freeze({ S: 2.3, cell: 56, gap: 10, colGap: 110, label: 24, ls: 4, padDoor: 14, padLabel: 20 });
 const roomsHead = () => 44 * ROOMS.S + ROOMS.padDoor + ROOMS.label + ROOMS.padLabel;

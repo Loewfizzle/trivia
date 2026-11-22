@@ -59,6 +59,11 @@ export function partsOf(I) {
   const m = /^(.*?)\s*·\s*(\d+:\d{2})\s*$/.exec(line);
   return { result: FAILED, big: m ? m[2] : '', stat: m ? m[1] : line };
 }
+/** HIGH RISE DAILY B — THE BIG FIVE's line (share-today.js — text only): "2:18" / "1 SPOTTED" (the strip's "+30 s" left off); CAUGHT big when caught */
+export function fiveLine({ inputs } = {}) {
+  const P = partsOf(pick(inputs)), spotted = String(P.stat || '').split(' · ')[0];
+  return P.result === FAILED ? { big: 'CAUGHT', stat: spotted } : { big: P.big, stat: spotted };
+}
 /** the content column a SHARE TODAY section keeps to (the card's rules — every section centred on the card's centre line inside it) */
 export const COL_PAD = RHYTHM.COL;
 

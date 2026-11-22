@@ -10,9 +10,10 @@
 // "NOT YET: <name>" line. ONE daily finished = that daily's OWN card, exactly as it is. A daily with no section painter (a new one plugged in) or
 // no share data → its name + its result line (its meta's scoreLine). Up to 6 sections, scaled evenly. Both looks (the day sky / the night neon).
 // THE BAR: shown 360 px wide in a text thread, THE PASSWORD's grid colours, the time and the address still read (the pass log's shots).
-import { shareFrame, prepShare, shareAddress, paintName, spacedText, spacedWidth, RHYTHM, FOOT, SMALL_MIN, base64Of, blobHash, keptLink, keepLink, rememberedLink } from './share.js';
+import { shareFrame, prepShare, shareAddress, paintName, paintBig, paintStat, spacedText, spacedWidth, RHYTHM, FOOT, SMALL_MIN, base64Of, blobHash, keptLink, keepLink, rememberedLink } from './share.js';
 import { shareTodayLine, MAX_ROWS } from './today-logic.js';
-import { dateLineOf } from './ticket-art.js';
+import { dateLineOf, inkOf } from './ticket-art.js';
+import { dailyRow } from '../core/daily.js';
 import { lazyImport } from '../ui/lazy-import.js';
 const list = t => (t && Array.isArray(t.dailies) ? t.dailies.slice(0, MAX_ROWS) : []);
 
@@ -33,7 +34,28 @@ const SECTIONS = {
     .then(([S, B]) => ({ S, input: s => ({ inputs: s, P: B }), ok: s => !!s && Number.isFinite(Number(s.t)) })) },
   // DAILY B — JAYWALK: its tries as three bars (js/games/jaywalk/daily-share.js — the server's spoiler-free inputs: never the course)
   jaywalk: { load: () => lazyImport(import('../games/jaywalk/daily-share.js'), '../games/jaywalk/daily-share.js').then(S => ({ S, input: s => ({ inputs: s }), ok: s => !!s && Array.isArray(s.t) })) },
+  // HIGH RISE DAILY B — HIGH RISE: the player's tower (js/games/highrise/daily-share.js — the server's spoiler-free inputs: never the seed); its
+  // own card = THE POSTER + the DAILY · ONE SHOT tag
+  highrise: { load: () => lazyImport(import('../games/highrise/daily-share.js'), '../games/highrise/daily-share.js').then(S => ({ S, input: s => ({ inputs: s }), ok: s => !!s && Number.isFinite(Number(s.f)) && Array.isArray(s.w) })) },
 };
+
+// ---- HIGH RISE DAILY B — THE BIG FIVE (the owner, Nov 21): 5 OR MORE dailies FINISHED → TEXT ONLY. Each section = the NAME in its TICKET's ink
+// (night / day — a glow at night) · the big result · ONE stat line (each cartridge's `fiveLine` — a failed run's fail word big: LOCKED OUT ·
+// CAUGHT); no art strips, no dividers. The 196-unit box: name 70 (centre y 24) · big 126 (y 106) · stat 46 (y 178); 16 between sections; scaled
+// to fit (≈ ×0.9 at 5 — never up). The header + the foot unchanged. 4 or fewer = EXACTLY the card before it.
+export const BIG_FIVE = 5;
+export const FIVE = Object.freeze({ H: 196, gap: 16, nameY: 24, namePx: 70, bigY: 106, bigPx: 126, statY: 178, statPx: 46, COL: 150 });
+/** PURE: the BIG FIVE's layout for n sections between top and bottom → { s, ys: [each box's top] } */
+export function fiveLayout(n, top, bottom) {
+  const need = n * FIVE.H + Math.max(0, n - 1) * FIVE.gap, s = Math.min(1, (bottom - top) / need);
+  const y0 = top + Math.max(0, (bottom - top) - need * s) / 2;
+  return { s, ys: Array.from({ length: n }, (_, i) => y0 + i * (FIVE.H + FIVE.gap) * s) };
+}
+/** the five lines (big · stat) for a finished daily: its cartridge's fiveLine on the server's inputs, else its result line alone */
+function fiveOf(sec, M, share, today, lineOf) {
+  if (M && typeof M.S.fiveLine === 'function') { try { const r = M.S.fiveLine(M.input(share[sec.id])); if (r && r.big) return r; } catch { /* the line below */ } }
+  return { big: String(lineOf(sec.id, today.mine[sec.id])), stat: '' };
+}
 
 /** the streak flame (js/progress/flame-art.js — the one flame everywhere) as a bitmap */
 async function flameImage(state, w, look = 'night') {
@@ -87,6 +109,23 @@ export async function drawToday(today, lineOf, look = document.body.dataset.look
   // add-on, Nov 14: THE PASSWORD's six-row grid keeps its tiles ≥ 22 px on the card): the scale is fitted to the SUM of the natural heights,
   // the spare room shared evenly, each section centred in its box.
   const notLine = plan.notYet.length ? `NOT YET: ${plan.notYet.join(' · ')}` : '';
+  // HIGH RISE DAILY B — THE BIG FIVE: 5 or more finished → the text-only sections (no strips, no rules between them)
+  if (plan.sections.length >= BIG_FIVE) {
+    const F = FIVE, L5 = fiveLayout(plan.sections.length, top, notLine ? 1150 : 1200), w = W / L5.s;
+    cv.sections = [];
+    plan.sections.forEach((sec, i) => {
+      const M = sec.own ? mods[sec.id] : null, ln = fiveOf(sec, M, share, today, lineOf), row = dailyRow(sec.id) || {};
+      cv.sections.push({ id: sec.id, y: L5.ys[i], s: L5.s, h: F.H, five: true });
+      c.save(); c.translate(0, L5.ys[i]); c.scale(L5.s, L5.s);
+      paintName(c, look, sec.name, w / 2, F.nameY, F.namePx, w - 2 * F.COL, null, inkOf(row.ticket || sec.id, look));
+      paintBig(c, look, ln.big, w / 2, F.bigY, F.bigPx, w - 2 * F.COL);
+      if (ln.stat) paintStat(c, look, ln.stat, w / 2, F.statY, F.statPx, w - 2 * F.COL);
+      c.restore();
+    });
+    if (notLine) { c.save(); c.font = `700 ${SMALL_MIN}px ${FONT_U}`; c.fillStyle = L.dim; spacedText(c, notLine, W / 2 + 3, FOOT.lineY - 40, 5); c.restore(); }
+    shareAddress(c, look, { W });
+    return cv;
+  }
   const bottom = notLine ? 1150 : 1200, gap = 24, n = Math.max(1, plan.sections.length), avail = bottom - top - gap * (n - 1);
   const natural = (sec, k) => { const M = sec.own ? mods[sec.id] : null; return M && M.S.sectionH ? M.S.sectionH({ ...M.input(share[sec.id]), W: W / k, k }) : RHYTHM.H; };
   let s = Math.min(1.45, avail / (n * RHYTHM.H)), hs = plan.sections.map(() => RHYTHM.H);
@@ -137,7 +176,9 @@ export function prepToday(today, lineOf, { streak = 0, look, pid = null } = {}) 
     const games = list(today).filter(d => today.mine && today.mine[d.id] != null).map(d => d.id);
     // (FIXES R1 — THE REVIEW A4: uploaded ONLY when this day's card CHANGED — the same picture again (a reload, the screen reopened) shares
     //  the remembered link; nothing goes up)
-    const upload = games.length ? async png => {
+    const upload = games.length ? async png0 => {
+      // (HIGH RISE DAILY B — HIGH RISE alone = THE POSTER: a photo-like picture — fitted under the server's cap as its run card is: kit/share-run.js#fitPng)
+      const png = await lazyImport(import('../games/kit/share-run.js'), '../games/kit/share-run.js').then(K => K.fitPng(png0)).catch(() => png0) || png0;
       const h = await blobHash(png).catch(() => '');
       const who = { pid: pid || '', day: today.day, h };
       const kept = h ? rememberedLink(keptLink(), who) : '';

@@ -74,3 +74,58 @@ test('THE TICKET — HIGH RISE in every state (ONE SHOT, not allDay)', () => {
   assert.equal(progLine({ measure: 'lanes' }, { f: 3 }), '', 'only a floors daily says FLOOR n');
   assert.equal(progLine(d, { f: 1 }), 'FLOOR 1 · ONE SHOT');
 });
+
+import { fiveLayout, FIVE, BIG_FIVE, HEAD, planToday } from '../js/daily/share-today.js';
+import { SMALL_MIN } from '../js/daily/share.js';
+import * as PWS from '../js/games/password/share.js';
+import * as CCS from '../js/games/coastclear/share.js';
+import * as DRS from '../js/games/drop/share.js';
+import * as JWS from '../js/games/jaywalk/daily-share.js';
+import * as HRS from '../js/games/highrise/daily-share.js';
+import { runFromShare, HIT, NEAR, MISS } from '../js/games/password/logic.js';
+
+test('THE BIG FIVE — from 5 FINISHED: the 196-unit box (name 70 · big 126 · stat 46), 16 between, ≈ ×0.9 at 5 under the streak header — never scaled up; the 360 floor holds', () => {
+  assert.equal(BIG_FIVE, 5);
+  assert.deepEqual({ ...FIVE }, { H: 196, gap: 16, nameY: 24, namePx: 70, bigY: 106, bigPx: 126, statY: 178, statPx: 46, COL: 150 });
+  const L = fiveLayout(5, HEAD.streak, 1200);
+  assert.ok(L.s > 0.88 && L.s < 0.95, `×${L.s.toFixed(3)}`);
+  assert.ok(L.ys[4] + FIVE.H * L.s <= 1200 + 0.01 && L.ys[0] >= HEAD.streak);
+  assert.equal(fiveLayout(5, 100, 1200).s, 1, 'room to spare: never scaled up');
+  // THE 360 FLOOR (DAILY FIX): no name / stat line under ~10 px at a 360-px-wide downscale — 5 AND 6 finished (+ the NOT YET line's lower bottom)
+  for (const [n, bottom] of [[5, 1200], [5, 1150], [6, 1200]]) {
+    const s = fiveLayout(n, HEAD.streak, bottom).s;
+    for (const px of [FIVE.namePx, FIVE.statPx]) assert.ok(px * s * 360 / 1080 >= 10 || px * s >= SMALL_MIN, `${n} at ${bottom}: ${px} → ${(px * s / 3).toFixed(1)} px at 360`);
+  }
+});
+
+test('THE BIG FIVE — each daily\'s ONE line (big · stat) from the server\'s spoiler-free inputs; a failed run\'s fail word big', () => {
+  const pw = { done: true, door: 1, startedAt: 1000, finishedAt: 175000, doors: [{ state: 'solved', marks: [[MISS, NEAR, MISS, MISS, HIT], [HIT, HIT, HIT, HIT, HIT]], n: 2 }, { state: 'solved', marks: [[NEAR, MISS, MISS, HIT, MISS], [HIT, HIT, NEAR, MISS, MISS], [HIT, HIT, HIT, HIT, HIT]], n: 3 }] };
+  assert.deepEqual(PWS.fiveLine({ run: runFromShare(pw) }), { big: '5 GUESSES', stat: '2:54' });
+  const lost = { ...pw, finishedAt: 420000, doors: [pw.doors[0], { state: 'failed', marks: Array.from({ length: 6 }, () => [NEAR, MISS, HIT, MISS, MISS]), n: 6 }] };
+  assert.equal(PWS.fiveLine({ run: runFromShare(lost) }).big, 'LOCKED OUT');
+  assert.deepEqual(CCS.fiveLine({ inputs: { head: 'COAST CLEAR', caught: false, time: '2:18', line: '1 SPOTTED · +30 s', spots: 1 } }), { big: '2:18', stat: '1 SPOTTED' });
+  assert.deepEqual(CCS.fiveLine({ inputs: { head: 'CAUGHT', caught: true, time: null, line: '3 SPOTTED · 1:58', spots: 3 } }), { big: 'CAUGHT', stat: '3 SPOTTED' });
+  assert.deepEqual(DRS.fiveLine({ inputs: { t: 158900, ln: 101, day: 'd20261121' } }), { big: '2:38.9', stat: '101 LINES' });
+  assert.deepEqual(JWS.fiveLine({ inputs: { t: [143, 120, null], b: 0, hs: { at: 100, t: 4560 } } }), { big: '143 LANES', stat: 'BEST OF 3' });
+  assert.deepEqual(HRS.fiveLine({ inputs: { f: 84, p: 32, w: [], x: [], pf: [] } }), { big: '84 FLOORS', stat: 'ONE SHOT · 32 PERFECTS' });
+  assert.deepEqual(HRS.fiveLine({ inputs: { f: 1, p: 1 } }), { big: '1 FLOOR', stat: 'ONE SHOT · 1 PERFECT' });
+});
+
+test('HIGH RISE\'s SECTION — THE TOWER: every floor bottom-up where it landed (~124 units at a full slab), filling the box; perfect floors lit; the inputs cleaned', () => {
+  const I = HRS.hrInputs({ f: 3, p: 1, w: [1, 0.8, 0.5], x: [0, 0.1, -0.15], pf: [1, 0, 0], seed: 'nope', k: 99, c: 'miss' });
+  assert.deepEqual(Object.keys(I).sort(), ['c', 'day', 'f', 'nb', 'p', 'pf', 'w', 'x']);
+  const T = HRS.towerOf(I, { cx: 540, bottom: 300, h: 120 });
+  assert.equal(T.length, 3);
+  assert.ok(Math.abs(T[0].w - HRS.TOWER_W) < 1e-9 && T[0].lit && !T[1].lit, 'the base a full slab, lit (a perfect)');
+  assert.ok(T[0].y > T[1].y && T[1].y > T[2].y, 'bottom-up');
+  assert.ok(Math.abs(T[1].x + T[1].w / 2 - (540 + 0.1 * HRS.TOWER_W)) < 1e-9, 'where it landed (its centre offset)');
+  // a short tower is not stretched into fat bricks; a tall one fills the box
+  assert.ok(T[0].h <= HRS.SLAB_MAX);
+  const tall = HRS.towerOf({ f: 120, w: Array(120).fill(0.6), x: Array(120).fill(0), pf: [] }, { bottom: 300, h: 120 });
+  assert.ok(Math.abs(300 - tall[119].y - 120) < 1e-6, 'the top floor at the box\'s top');
+  assert.equal(HRS.hrInputs({ c: 'hack' }).c, null, 'an unknown end word dropped');
+  // the plan: HIGH RISE alone = its OWN card (THE POSTER); five finished = five sections
+  const t = { day: 'd1', dailies: ['password', 'coastclear', 'drop', 'jaywalk', 'highrise'].map(id => ({ id, name: id })), mine: { highrise: 1 } };
+  assert.equal(planToday(t, { highrise: { f: 1 } }).single, 'highrise');
+  assert.equal(planToday({ ...t, mine: { password: 1, coastclear: 1, drop: 1, jaywalk: 1, highrise: 1 } }, {}).sections.length, 5);
+});

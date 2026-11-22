@@ -62,6 +62,8 @@ export function shareLine(inputs, site = 'neonspeakeasy.com') {
 }
 /** the stat line under the big time (the card + the section) */
 const statOf = I => (isEnd(I) ? `THE END · ${linesOf(I.ln)}` : linesOf(I.ln));
+/** HIGH RISE DAILY B — THE BIG FIVE's line (share-today.js — text only): "2:38.9" / "101 LINES" */
+export const fiveLine = ({ inputs } = {}) => { const I = dropInputs(inputs); return { big: timeOf(I.t), stat: statOf(I) }; };
 
 let mods = null;
 const load = () => (mods ||= Promise.all([lazyImport(import('../prism/share.js'), '../prism/share.js'), lazyImport(import('../prism/meta.js'), '../prism/meta.js')]).then(([P, M]) => ({ P, M })));

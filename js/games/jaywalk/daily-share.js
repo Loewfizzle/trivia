@@ -28,6 +28,8 @@ export function jwInputs(o = {}) {
 export const bestLanes = I => (I.b >= 0 ? I.t[I.b] : 0);
 export const lanesLine = n => `${n} ${n === 1 ? 'LANE' : 'LANES'}`;
 export const statOf = I => `BEST OF ${TRIES}${I.nb ? ' · NEW DAILY BEST' : ''}`;
+/** HIGH RISE DAILY B — THE BIG FIVE's line (share-today.js — text only — no bars, no time line): "143 LANES" / "BEST OF 3" */
+export const fiveLine = ({ inputs } = {}) => ({ big: lanesLine(bestLanes(jwInputs(inputs))), stat: `BEST OF ${TRIES}` });
 /** J3 — the best-time line ("TO 100 · 1:14") | '' (no 50 reached today) */
 export const timeOf = I => bestTimeLine(I && I.hs);
 /** PURE: the three bars — { len (0…w), kind: 'best' | 'try' | 'empty' } — a played try's bar = its lanes against the best (a 0-lane try a sliver) */

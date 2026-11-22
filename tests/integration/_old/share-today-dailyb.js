@@ -1,0 +1,157 @@
+// HIGH RISE DAILY B — THE EXPECTED COPY: js/daily/share-today.js as it was BEFORE the pass (35083b2c), its imports made absolute — share-same.html
+// checks the ≤ 4 cards stay pixel-identical (JAYWALK's section from the copy below, its bars RE-TAKEN ON PURPOSE in THE RECOLOUR's red).
+// THE DAILY MODULE — SHARE TODAY (BOARD 2.0 B — the owner's add-on, Nov 9: "SHARE TODAY = ONE CARD FROM EACH DAILY's OWN PIECES"; the ticket version
+// before it was "a weird one"). ONE 1080 × 1350 card: ONE header (the date + the streak flame), a SECTION per FINISHED daily in the dailies' order —
+// each drawn by THAT DAILY's own share card's pieces (its `paintSection` — js/games/<id>/share.js: the same painters its own card calls, never a
+// redraw or a copy; its own small wordmark on top), ONE foot (NEONSPEAKEASY.COM as the headline — CITY FIXES' rule; no per-daily footers).
+// SKINS 2B (the owner, Nov 14) — THE ONE RULE: every section = the daily's NAME (small neon that CARRIES THE RESULT: green made · red failed ·
+// white for THE DROP — never a win word) · ONE big TIME (white) · ONE grey stat line · ONE art strip, the SAME sizes + spacing in every section (js/daily/share.js#RHYTHM —
+// every section scaled by the SAME factor), centred in one column. NO PILLS, EVER: the foot = ONE straight thin neon line + NEONSPEAKEASY.COM in plain neon lettering (share.js#shareAddress).
+// The data: each section from its daily's SPOILER-FREE share inputs, which the SERVER builds from its record of the finished run (`today { share }`
+// — THE PASSWORD's marks + counts, COAST CLEAR's no-board inputs; never a word, a letter or the board). An unfinished daily = no section, one quiet
+// "NOT YET: <name>" line. ONE daily finished = that daily's OWN card, exactly as it is. A daily with no section painter (a new one plugged in) or
+// no share data → its name + its result line (its meta's scoreLine). Up to 6 sections, scaled evenly. Both looks (the day sky / the night neon).
+// THE BAR: shown 360 px wide in a text thread, THE PASSWORD's grid colours, the time and the address still read (the pass log's shots).
+import { shareFrame, prepShare, shareAddress, paintName, spacedText, spacedWidth, RHYTHM, FOOT, SMALL_MIN, base64Of, blobHash, keptLink, keepLink, rememberedLink } from '/js/daily/share.js';
+import { shareTodayLine, MAX_ROWS } from '/js/daily/today-logic.js';
+import { dateLineOf } from '/js/daily/ticket-art.js';
+import { lazyImport } from '/js/ui/lazy-import.js';
+const list = t => (t && Array.isArray(t.dailies) ? t.dailies.slice(0, MAX_ROWS) : []);
+
+const LOOKS = {
+  night: { bg0: '#05040c', bg1: '#140a24', ink: '#f6f2ff', dim: 'rgba(226,222,246,0.72)', sign: '#ff6fc8', glow: 'rgba(255,111,200,0.75)', rule: 'rgba(226,222,246,0.34)' },
+  day: { bg0: '#9fcdff', bg1: '#f2f8ff', ink: '#14284a', dim: '#3a5582', sign: '#16305c', glow: 'transparent', rule: 'rgba(22,48,92,0.4)' },
+};
+const FONT_U = '"Chakra Petch", system-ui, sans-serif';
+/** where the sections start: under the date alone · under the streak line (PFIX-3 — N6: the mockup's breath; it was 136 / 222) */
+export const HEAD = Object.freeze({ bare: 160, streak: 248 });
+/** the dailies whose OWN share card can paint a section: the module + its inputs from the server's share data */
+const SECTIONS = {
+  password: { load: () => Promise.all([lazyImport(import('/js/games/password/share.js'), '/js/games/password/share.js'), lazyImport(import('/js/games/password/logic.js'), '/js/games/password/logic.js')]).then(([S, G]) => ({ S, input: s => ({ run: G.runFromShare(s) }), ok: s => !!G.runFromShare(s) })) },
+  coastclear: { load: () => lazyImport(import('/js/games/coastclear/share.js'), '/js/games/coastclear/share.js').then(S => ({ S, input: s => ({ inputs: s }), ok: s => !!s })) },
+  // THE DROP B: its card / section from the server's spoiler-free inputs (the time, the lines, the final board with every junk row SOLID —
+  // api/_lib/drop.js#share) + PRISM DROP's board module (its mini — the tubes by night, the crayon by day)
+  drop: { load: () => Promise.all([lazyImport(import('/js/games/drop/share.js'), '/js/games/drop/share.js'), lazyImport(import('/js/games/prism/board.js'), '/js/games/prism/board.js')])
+    .then(([S, B]) => ({ S, input: s => ({ inputs: s, P: B }), ok: s => !!s && Number.isFinite(Number(s.t)) })) },
+  // DAILY B — JAYWALK: its tries as three bars (js/games/jaywalk/daily-share.js — the server's spoiler-free inputs: never the course)
+  jaywalk: { load: () => lazyImport(import('/tests/integration/_old/jw-daily-share-dailyb.js'), '/tests/integration/_old/jw-daily-share-dailyb.js').then(S => ({ S, input: s => ({ inputs: s }), ok: s => !!s && Array.isArray(s.t) })) },
+};
+
+/** the streak flame (js/progress/flame-art.js — the one flame everywhere) as a bitmap */
+async function flameImage(state, w, look = 'night') {
+  try {
+    const { flameSvg } = await lazyImport(import('/js/progress/flame-art.js'), '/js/progress/flame-art.js');
+    const s = new XMLSerializer().serializeToString(flameSvg(state, w, { glow: look !== 'day' }));   // (PFIX-3 — N7: by day no night glow)
+    return new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(s)}`; });
+  } catch { return null; }
+}
+
+/** the plan (PURE — tests/share-today.test.mjs): which dailies get a section, which read NOT YET, whether ONE daily's own card is the whole image */
+export function planToday(today, share = {}, painters = Object.keys(SECTIONS)) {
+  const ds = (today.dailies || []).slice(0, MAX_ROWS);
+  const done = ds.filter(d => today.mine && today.mine[d.id] != null);
+  const notYet = ds.filter(d => !done.includes(d));
+  const sections = done.map(d => ({ id: d.id, name: d.name, own: painters.includes(d.id) && share && share[d.id] != null }));
+  return { sections, notYet: notYet.map(d => d.name), single: sections.length === 1 && sections[0].own ? sections[0].id : null };
+}
+
+/**
+ * THE CARD (a canvas). { streak } = the profile's streak (the flame + its count), { share } = the server's spoiler-free inputs per daily (`today
+ * { share }`). Async: the dailies' share modules + the flame load on demand.
+ */
+export async function drawToday(today, lineOf, look = document.body.dataset.look === 'day' ? 'day' : 'night', { streak = 0, share = {} } = {}) {
+  const night = look !== 'day', L = LOOKS[look] || LOOKS.night;
+  const plan = planToday(today, share);
+  const mods = {};
+  await Promise.all(plan.sections.filter(s => s.own).map(async s => { try { mods[s.id] = await SECTIONS[s.id].load(); if (!mods[s.id].ok(share[s.id])) { delete mods[s.id]; s.own = false; } } catch { s.own = false; } }));
+  // ONE daily finished → that daily's OWN card, exactly as it is (its own sign, foot and all)
+  if (plan.single && mods[plan.single]) { const M = mods[plan.single]; return M.S.renderShare({ ...M.input(share[plan.single]), look }); }   // (THE DROP's is async — awaited by the caller)
+  const { cv, c, W } = shareFrame({ bg0: L.bg0, bg1: L.bg1 }, look);
+  const flame = streak > 0 ? await flameImage('lit', 160, look) : null;
+  if (night) { const hz = c.createRadialGradient(W / 2, -60, 0, W / 2, -60, 720); hz.addColorStop(0, 'rgba(255,111,200,0.14)'); hz.addColorStop(1, 'rgba(255,111,200,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, 1350); }
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  // ONE HEADER: the date + the streak flame (PD-4's Group 0 — the owner: ~1.4× bigger, it reads in a thread)
+  c.save(); c.font = `800 53px ${FONT_U}`; c.fillStyle = L.ink; spacedText(c, dateLineOf(today.day), W / 2 + 6, 82, 12); c.restore();
+  // (PFIX-3 — N6: the first section's breath under the header like the approved mockup — its name ≈ 100 px under the streak line's middle)
+  let top = HEAD.bare;
+  if (streak > 0) {
+    const fw = 72, fh = Math.round(fw * 160 / 140), label = `${streak}-DAY STREAK`;
+    c.save(); c.font = `800 45px ${FONT_U}`;
+    const tw = spacedWidth(c, label, 6), lx = W / 2 - (fw + 18 + tw) / 2;
+    if (flame) c.drawImage(flame, lx, 158 - fh / 2, fw, fh);
+    c.textAlign = 'left'; c.fillStyle = L.dim; spacedText(c, label, lx + fw + 18, 160, 6); c.restore();
+    c.textAlign = 'center';
+    top = HEAD.streak;
+  }
+  // THE SECTIONS — THE ONE RULE: the room between the header and the foot shared by the sections (≤ 6), every section drawn by its daily's own
+  // pieces at the SAME scale `s` (never past 1.45×: two dailies read bigger than three, never differently from each other). A section's
+  // NATURAL height is the rhythm's box (RHYTHM.H) — or its daily's own `sectionH` when its strip must GROW to stay readable (the owner's
+  // add-on, Nov 14: THE PASSWORD's six-row grid keeps its tiles ≥ 22 px on the card): the scale is fitted to the SUM of the natural heights,
+  // the spare room shared evenly, each section centred in its box.
+  const notLine = plan.notYet.length ? `NOT YET: ${plan.notYet.join(' · ')}` : '';
+  const bottom = notLine ? 1150 : 1200, gap = 24, n = Math.max(1, plan.sections.length), avail = bottom - top - gap * (n - 1);
+  const natural = (sec, k) => { const M = sec.own ? mods[sec.id] : null; return M && M.S.sectionH ? M.S.sectionH({ ...M.input(share[sec.id]), W: W / k, k }) : RHYTHM.H; };
+  let s = Math.min(1.45, avail / (n * RHYTHM.H)), hs = plan.sections.map(() => RHYTHM.H);
+  for (let i = 0; i < 4; i++) { hs = plan.sections.map(sec => natural(sec, s)); s = Math.min(1.45, avail / hs.reduce((a, h) => a + h, 0)); }
+  const spare = Math.max(0, avail - hs.reduce((a, h) => a + h, 0) * s) / n;
+  let y = top;
+  cv.sections = [];   // (where each section's rhythm box sits on the card — the look checks read it: tests/integration/share-same.html)
+  plan.sections.forEach((sec, i) => {
+    const box = hs[i] * s + spare;
+    // (DAILY FIX — the section rules read at a 360 downscale: 4 px (≈ 1.3 px there) in a firmer ink — they were 2 px at 12 % (gone at 360))
+    if (i) { c.save(); c.strokeStyle = L.rule; c.lineWidth = 4; c.beginPath(); c.moveTo(RHYTHM.COL, y - gap / 2); c.lineTo(W - RHYTHM.COL, y - gap / 2); c.stroke(); c.restore(); }
+    const M = sec.own ? mods[sec.id] : null;
+    cv.sections.push({ id: sec.id, y: y + Math.max(0, (box - hs[i] * s) / 2), s, h: hs[i] });
+    c.save(); c.translate(0, y); c.scale(s, s);
+    if (M) M.S.paintSection(c, { ...M.input(share[sec.id]), look, W: W / s, H: box / s, k: s });
+    else {
+      // a daily with no section painter / no share data: its name in the name's slot + its result line as the big result (the same rule)
+      const w = W / s, R = RHYTHM;
+      c.translate(0, Math.max(0, (box / s - R.H) / 2) + (R.H - (R.bigY + R.bigPx / 2)) / 2);
+      paintName(c, look, sec.name, w / 2, R.nameY, R.namePx, w - 2 * R.COL);
+      c.save(); let px = R.bigPx * 0.7; c.font = `700 ${px}px ${FONT_U}`; c.fillStyle = L.ink;
+      const t = String(lineOf(sec.id, today.mine[sec.id]));
+      while (px > 24 && spacedWidth(c, t, 3) > w - 2 * R.COL) { px -= 2; c.font = `700 ${px}px ${FONT_U}`; }
+      spacedText(c, t, w / 2 + 2, R.bigY + 6, 3); c.restore();
+    }
+    c.restore();
+    y += box + gap;
+  });
+  if (notLine) { c.save(); c.font = `700 ${SMALL_MIN}px ${FONT_U}`; c.fillStyle = L.dim; spacedText(c, notLine, W / 2 + 3, FOOT.lineY - 40, 5); c.restore(); }
+  // ONE FOOT = THE ADDRESS AS ITS HEADLINE (CITY FIXES — the dailies chat, Nov 8) — SKINS 2A, NO PILLS: ONE straight thin neon line + the
+  // address in plain neon lettering under it (the kit's foot — every share card's)
+  shareAddress(c, look, { W });
+  return cv;
+}
+
+/**
+ * SHARE TODAY, BUILT BEFORE THE TAP (PFIX-3 — FABLE REVIEW 2's S11): the server's spoiler-free share inputs for your finished runs (`today
+ * { share }`), the card and its PNG are made when the DAILY screen SHOWS the button (`warm()`); the tap (`send()`) then opens the share sheet
+ * at once with the ready file + the one line (js/daily/share.js#prepShare — one send at a time; no file sharing → the card shown in a sheet).
+ */
+export function prepToday(today, lineOf, { streak = 0, look, pid = null } = {}) {
+  return prepShare(async () => {
+    const line = shareTodayLine(today, (id, s) => String(lineOf(id, s)).toLowerCase());
+    let share = {};
+    try { const { dailyShare } = await lazyImport(import('/js/daily/contract.js'), '/js/daily/contract.js'); const r = await dailyShare(); share = (r && r.day === today.day && r.share) || {}; } catch { /* the sections fall back to the result lines */ }
+    // (CITY E — THE TAPPABLE SHARE CARD: the card's half-size PNG goes to the server while the screen opens; the tap then shares the LINK — its
+    //  preview IS this card. The dailies it names = the ones this player finished today (the server checks each has its judged result))
+    const games = list(today).filter(d => today.mine && today.mine[d.id] != null).map(d => d.id);
+    // (FIXES R1 — THE REVIEW A4: uploaded ONLY when this day's card CHANGED — the same picture again (a reload, the screen reopened) shares
+    //  the remembered link; nothing goes up)
+    const upload = games.length ? async png => {
+      const h = await blobHash(png).catch(() => '');
+      const who = { pid: pid || '', day: today.day, h };
+      const kept = h ? rememberedLink(keptLink(), who) : '';
+      if (kept) return kept;
+      const { dailyShareCard } = await lazyImport(import('/js/daily/contract.js'), '/js/daily/contract.js');
+      const r = await dailyShareCard(today.day, games, await base64Of(png));
+      const url = r && r.path ? new URL(r.path, location.origin).href : '';
+      if (url && h) keepLink({ ...who, url });
+      return url;
+    } : null;
+    return { cv: await drawToday(today, lineOf, look, { streak, share }), name: 'neon-speakeasy-dailies.png', line, upload };
+  });
+}
+/** SHARE TODAY at a tap with nothing prepared (the old path — kept for a caller that has no handle) */
+export const shareToday = (today, lineOf, opts = {}) => prepToday(today, lineOf, opts).send();

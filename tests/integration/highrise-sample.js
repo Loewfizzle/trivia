@@ -6,7 +6,7 @@ import { createRun, tap, stepTo, isOver } from '/js/games/highrise/engine.js';
 import { gaussBot } from '/js/games/highrise/bot.js';
 import { shareOf, hrScore } from '/js/games/highrise/held.js';
 
-export function sampleHrRun(seed = 'h20261121', floors = 84, sigmaMs = 14) {
+export function sampleHrRun(seed = 'h20261121', floors = 84, sigmaMs = 30) {
   const run = createRun({ seed, mode: 'daily' }), bot = gaussBot({ sigmaMs, seed });
   const events = [];
   let guard = 0;
@@ -18,5 +18,5 @@ export function sampleHrRun(seed = 'h20261121', floors = 84, sigmaMs = 14) {
     events.push(t);
   }
   const inputs = shareOf(seed, events);
-  return { events, inputs: { ...inputs, day: 'd20261121', nb: 0 }, score: hrScore(inputs.f, inputs.p, events.length ? events[events.length - 1] : 0) };
+  return { events, inputs: { ...inputs, day: 'd20261121', nb: 0, c: 'miss' }, score: hrScore(inputs.f, inputs.p, events.length ? events[events.length - 1] : 0) };
 }

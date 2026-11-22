@@ -178,7 +178,8 @@ export const HIGHRISE_DAILY = {
     const L = logOf(record, await nodesOf(day, record));
     const S = L.why ? { f: 0, p: 0, w: [], x: [], pf: [] } : shareOf(data.seed, L.events);
     const nb = pid ? bestView(await val(`pstats/${pid}/db/${GAME}`), day).newBest : false;
-    return { ...S, day: /^d\d{8}$/.test(String(day || '')) ? String(day) : null, nb: nb ? 1 : 0 };
+    // (HIGH RISE DAILY B — `c`: how the run ended, THE JUDGE's word (the own card's poster line) — kept on the record by the finish's judge)
+    return { ...S, day: /^d\d{8}$/.test(String(day || '')) ? String(day) : null, nb: nb ? 1 : 0, ...(record.w && !L.why ? { c: String(record.w) } : {}) };
   },
   /** HIGH RISE DAILY B — a HELD run's ticket (`today { prog }`): the floor the run stands on in the SERVER's own log (the legs it has — never the
    *  phone's word) + the holds left → { f, left } | null (no run / ended / a refused log) */
