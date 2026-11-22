@@ -1,8 +1,5 @@
 // JAYWALK — THE SCENE (H2 … H6B; three.js 0.160): the pure engine drawn in the smooth stylized 3D style — NIGHT + DAY are ONE scene
-// (setLook). The same interface as the graybox: draw(run, course, a, dt). A VIEW: it draws from (run, course) and writes nothing; no
-// rule, replay or server file imports it. What each part is + why → docs/jaywalk.md "THE NIGHT LOOK" · "THE DAY LOOK" · "THE AREAS" ·
-// "NO WEAK POINTS" · "THE BIG MOMENTS" (flyers.js — on demand) · "THE CAMERA" · "THE LINES" · "THE GHOSTS" · "THE FINAL POLISH".
-// Everything that repeats is INSTANCED; a window of lanes round the kid is alive; bloom at tier 2 only (setTier).
+// The long notes: docs/games/jaywalk-notes.md
 import * as THREE from 'three';
 import { FP, COLS, HOP_TICKS, MODES } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod, area, gateName } from './course.js';
@@ -59,8 +56,7 @@ const ease = t => t * t * (3 - 2 * t);
 const NO_SEASON = Object.freeze({ day: '', winter: 0, christmas: 0, snowfall: 'none', wet: 0, autumn: 0, hat: '', fireworks: '', any: false });
 
 export function createNight(host, o = {}) {
-  // (J2 FIX — THE NIGHT COMPARE: the new crisp runway lamps + the heat trail by NIGHT too, on the LAB's `&rwnight=new` only — the game never
-  //  passes it: by night the runway stays exactly as J2 shipped it; by day the new ones always)
+  // (J2 FIX — THE NIGHT COMPARE: the new crisp runway lamps + the heat trail by NIGHT too, on the LAB's `&rwnight=new` only — the game never …
   const RWN = o.rwNight === true;
   const reduce = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
   const devDpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -117,16 +113,14 @@ export function createNight(host, o = {}) {
     };
   }
   const UP = new THREE.Vector3(0, 1, 0);
-  // (J4 — the fresh-eyes review: ONLY the instances in use go to the GPU — three's own kept range record, HIGH RISE's S4A pattern; a three
-  //  without it sends the whole buffer, as before. The glow billboards' cap grew 600 → 900 for the tree lights: never a bigger upload for it)
+  // (J4 — the fresh-eyes review: ONLY the instances in use go to the GPU — three's own kept range record, HIGH RISE's S4A pattern; a three …
   const upRange = (a, cnt) => { const u = a._updateRange; if (u && cnt > 0) { u.offset = 0; u.count = cnt; } a.needsUpdate = true; };
   /** THE TAIL LIGHT BAR: a thin red bar across a vehicle's rear, `vw` wide — it glows by night */
   function tailBar(x, y, z, vw, a) {
     K.flat.put(x, y, z, vw, 1, day ? 0.09 : 0.15, Math.PI / 2, day ? 0xd81828 : 0xff2030, 1, 4, (day ? 1 : 1.3) * a);
     if (!day) { K.flat.put(x, y + 0.002, z, vw * 0.92, 1, 0.05, Math.PI / 2, 0xffd6cc, 1, 4, 0.9 * a); K.flat.put(x, y - 0.002, z, vw * 1.25, 1, 0.5, Math.PI / 2, 0xff2030, 1, 4, 0.3 * a); }
   }
-  // (fogUp — H5C: a thing fades into the far haze as the ground under it does · J4 / JT1: THE SEASONAL PACK patches these — the snow on the
-  //  tops; `leaf` = the round trees: autumn turns them)
+  // (fogUp — H5C: a thing fades into the far haze as the ground under it does · J4 / JT1: THE SEASONAL PACK patches these — the snow on the …
   const seaMats = [];
   let SP = null;   // (THE SEASONAL PACK, once it is in — prepSeason)
   const lambert = (leaf = false) => { const m = fogUp(new THREE.MeshLambertMaterial({ vertexColors: true })); seaMats.push([m, leaf]); if (SP) SP.patch(m, leaf); return m; };
@@ -180,9 +174,7 @@ export function createNight(host, o = {}) {
     return true;
   }).catch(() => false);
 
-  // ---- J4 + JT1 — THE SEASON (setSeason — the view's, from the run's own DAY): THE SEASONAL PACK (seasonal.js — its code; the winter models
-  //  + the fireworks fetched by it) loads on prepSeason (the menu / the count), ONLY on a season day (season-gate.js — Oct 20 → Mar 1) or when
-  //  the lab forces one. A run whose pack is not in by its start keeps the normal look (no swap mid-run).
+  // ---- J4 + JT1 — THE SEASON (setSeason — the view's, from the run's own DAY): THE SEASONAL PACK (seasonal.js — its code; the winter models …
   let SZ = NO_SEASON, wetOn = false, spAsk = null, onSound = null;
   const SPAPI = {
     scene, kind, K, KM, X, Z, COLS, hsh, reduce, fogV, build, parseGlb, mats: seaMats,
@@ -1016,8 +1008,7 @@ export function createNight(host, o = {}) {
     if (day) { lip.position.set(0, 2.5 + 0.9, Z(wallE - 3.1)); lip.scale.set(60, 1.8, 1); }
     curtain.position.set(0, 1.2, Z(wallE - (day ? 3.1 : 2.3) - 20)); curtain.scale.set(60, 2.6, 40);   // (by night it starts where the ground is already fully dark: its straight front is never seen)
     ground.uniforms.uWall.value = wallE;
-    // J4 + JT1 — THE SEASON's frame (seasonal.js): the tree lights LAST (whatever room the glow billboards have left after every gameplay
-    // light), the footprints, THE FALL (ONE draw — the snow or the leaves), the fireworks; the wet streets (night, the top tier, their switch)
+    // J4 + JT1 — THE SEASON's frame (seasonal.js): the tree lights LAST (whatever room the glow billboards have left after every gameplay …
     if (SE) { v3.copy(kidPos).project(cam); FR.kidX = v3.x; FR.kidY = v3.y; FR.camX = rig.x(); FR.camY = camY; FR.w = w; FR.h = h; SE.end(FR); }
     ground.uniforms.uWet.value = !day && wetOn && tier === 2 && SE ? SZ.wet : 0;
     for (const q of Object.values(K)) q.done();

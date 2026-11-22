@@ -1,9 +1,5 @@
 // JAYWALK — THE BIG NUMERALS (H5A's add-on — the owner, Nov 16: on his iMessage share card "172" read like "N2" — the 1's top flag
-// ran into the 7's top bar, the digits sat too tight). ONE helper for every place JAYWALK draws its big neon numerals — the in-game
-// lane counter + the end screen (DOM), the share card + the lines' words on the ground (canvas): MORE ROOM between two digits, and
-// A "1" THAT CAN'T MERGE — a 1 with a BASE FOOT. The fonts' own 1 (Chakra Petch, Orbitron) is a bare stem with a flag, so the foot
-// is drawn: the 1 is rasterised once a font, its stem found, and the foot laid across its base — the same picture in the DOM
-// (a pseudo-element placed by the measured numbers) and on a canvas (a rectangle). A VIEW's helper: no rules, no storage, no fetch.
+// The long notes: docs/games/jaywalk-notes.md
 import { ctx2d } from '../../ui/canvas-safe.js';
 
 /** the DOM numerals' font, as css/base.css names it (--font-num — the whole stack: a phone without the web font measures what it draws) */

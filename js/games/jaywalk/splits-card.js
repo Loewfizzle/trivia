@@ -1,8 +1,5 @@
 // JAYWALK J1 — YOUR SPLITS on every run's end card (solo · match · the daily — docs/jaywalk.md "SPLIT TIMES"): one box per split REACHED
-// (to 50, 100, 150 … — core/splits.js), in order: the time big, "TO 50" under it, the best under that; a NEW BEST = the green glow + NEW BEST +
-// the gain ("−0:04"). The boxes show AT ONCE from the phone's own engine (view.js#onOver keeps this run's `sp` here); the NEW BEST marks come
-// ONLY from the SERVER's answer for this run (its own replay — `{ r, b, n }`: profile/queue.js's outcome `sp` / the daily's `credit.sp`) and
-// its numbers win (a run the server cut shows the server's splits). Many splits = a row that scrolls sideways, never shrinking a box. No pills.
+// The long notes: docs/games/jaywalk-notes.md
 import { h } from '../../ui/dom.js';
 import { cleanSplits, splitLane, splitClock, splitGain } from '../../core/splits.js';
 import { getPref, setPref } from './lab-prefs.js';

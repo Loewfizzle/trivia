@@ -1,14 +1,5 @@
 // Match kit — Call the Winner: an eliminated player gets CALL_MS to pick who wins (one locked pick, a right call earns
-// game-night points through `nightBonus`). Refresh-safe: an existing call (st.live.calls) or a closed window just sets
-// the state line.
-//
-//   showCall({ overlay, prefix: 'gl', game, st, me, player, candidates, path, line, intro, ended, onState, sfx })
-//     candidates: uids still in (not me) — needs ≥ 2;  path: `rooms/${code}/glcall/${matchId}/${me}`
-//     line(uid) → the small text under a name;  intro(n) → the sentence;  ended() → true once the match is over
-//     onState(msg) → 'YOUR CALL · NAME' | 'NO CALL' (the HUD shows it);  sfx() on a pick
-//     canPick(uid) → false = no write for that pick (greyed); expect: a label → its refusal expected 90 s from the tap (JAYWALK's polish)
-//     ring: true → a COUNTDOWN RING beside the title (PD-2 — PRISM DROP): RING_TICKS ticks round a circle go out one by one + the seconds left
-//       in its middle (opacity only — never a repaint), in place of the bar
+// The long notes: docs/games/jaywalk-notes.md
 import { h } from '../../ui/dom.js';
 import { avatar } from '../../ui/components.js';
 import { toast } from '../../ui/toast.js';

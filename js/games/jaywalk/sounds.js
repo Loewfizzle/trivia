@@ -1,5 +1,5 @@
 // JAYWALK — THE SOUNDS' TABLE (H2 — docs/jaywalk.md "THE SOUNDS"). PURE, no imports (the unit tests read it; sfx.js plays it): every sound,
-// its words in THE AUDITION, whether a `-b` backup was delivered, the loop, its gain into the limiter, its PRIORITY — and the voice rule.
+// The long notes: docs/games/jaywalk-notes.md
 /** every JAYWALK sound: id, its words in the audition, a B backup?, a loop (the whole WAV), its gain into the limiter, its priority,
  *  `max` (how many of it may sound at once), `fade` (s — H5B: it NEVER stops dead: its own end, a stop and a dropped voice all ramp
  *  out through its gain). H5A — ALL IN PLAY (the owner picked ALL A): THE PRIORITY = your own hit / splash (4) > the train · the
@@ -28,15 +28,11 @@ export const SOUNDS = Object.freeze([
   { id: 'stopwatch-tick', label: 'THE STOPWATCH (LOOP)', b: false, gain: 0.9, pri: 3, loop: true, ext: 'wav', play: true, max: 1 },
   { id: 'area-arrive', label: 'AREA ARRIVAL', b: false, gain: 1.25, pri: 3, play: true },
   { id: 'new-best', label: 'NEW BEST', b: false, gain: 1.45, pri: 3, play: true },
-  // J1 — THE MATCH MOMENTS (the owner's picks — original sounds, CC0 1.0 Ben; scripts/build-jaywalk-sounds.mjs): `match` = fetched only for a
-  // MATCH (a solo run never downloads them). THE SIREN sits UNDER the train's bell + horns (a train warning cuts through it — pri 2, the
-  // horn's: a full house drops it first) · the out sound soft on repeat · levels MEASURED (tests/integration/jaywalk-mix.mjs — THE MIX)
+  // J1 — THE MATCH MOMENTS (the owner's picks — original sounds, CC0 1.0 Ben; scripts/build-jaywalk-sounds.mjs): `match` = fetched only for a …
   { id: 'out-drop', label: 'OUT (A MATCH)', b: false, gain: 0.28, pri: 3, play: true, match: true, max: 1 },
   { id: 'h2h-siren', label: 'HEAD TO HEAD SIREN', b: false, gain: 0.19, pri: 2, play: true, match: true, max: 1, fade: 0.4 },
   { id: 'last-standing', label: 'LAST ONE STANDING', b: false, gain: 0.6, pri: 3, play: true, match: true, max: 1 },
-  // JT1 — THE SEASONS (the owner, Nov 22 — CC0, the delivery's sfx11 + sfx12; scripts/build-jaywalk-sounds.mjs --jt1): `season` = fetched
-  // ONLY on its days (seasonSoundsOf — never on an ordinary day). A LEAF PILE's crunch (your own kid hopping into one) · THE FIREWORKS —
-  // distant + soft, the lowest priority (pri 1: any game sound outranks them), one at a time, UNDER the warnings (levels: THE MIX)
+  // JT1 — THE SEASONS (the owner, Nov 22 — CC0, the delivery's sfx11 + sfx12; scripts/build-jaywalk-sounds.mjs --jt1): `season` = fetched …
   { id: 'leaf-crunch', label: 'LEAF PILE (AUTUMN)', b: false, gain: 0.9, pri: 1, play: true, season: 'autumn', max: 1 },
   { id: 'firework-pops', label: 'FIREWORKS — POPS', b: false, gain: 0.22, pri: 1, play: true, season: 'fireworks', max: 1, fade: 0.4 },
   { id: 'firework-crackle', label: 'FIREWORKS — CRACKLE', b: false, gain: 0.2, pri: 1, play: true, season: 'fireworks', max: 1, fade: 0.4 },

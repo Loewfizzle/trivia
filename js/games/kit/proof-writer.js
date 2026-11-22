@@ -1,21 +1,5 @@
 // THE PROOF WRITER (THE PROOF PASS, Nov 20 — docs/match-kit.md "THE PROOF WRITER"): what a run WRITES to its proof node — the log in
-// chunks (c/{i}), then the end (e). ONE copy for JAYWALK + HIGH RISE (each had its own, 24 % the same code). PURE: no imports — the view
-// hands it the writes (`io`: proof-io.js), the unit test a fake (tests/proof-writer.test.mjs).
-//
-// WHY (the review's MUST 2 a — THE LEAF WRITES): the old writers sent every chunk at once and forgot it. A host on a modified phone
-// flipped the game's phase for a moment: a rival's chunk was REFUSED, the next index landed, the log had a hole and THE JUDGE refused the
-// whole run. And an honest phone DROPPED its own unsent moves the moment its mirror said the match had left `play` — the mirror is the
-// host's. Now:
-//   · ONE BURST AT A TIME: the next chunk leaves only once the one before it is ACKNOWLEDGED — a later chunk never lands before an
-//     earlier one (the judge reads the chunks' clock).
-//   · A REFUSED CHUNK IS SENT AGAIN: the node's chunks are read back from the SERVER (never the mirror), the writer goes on from what is
-//     really there — after 0.4 · 0.8 · 1.6 · 3 s … for as long as a chunk that lands can still count (GIVE_UP_MS).
-//   · NEVER DROPPED ON THE MIRROR ALONE: a mirror that says "the match moved on" only makes a refusal EXPECTED (a quiet count); the
-//     moves are dropped after LATE_TRIES refusals in that state — the match really is over.
-//   · A DEAD LINE (no answer for STALL_MS): the new moves queue up behind the unanswered chunk once a second — they land TOGETHER when
-//     the line is back, as they always did (THE DROPPED SIGNAL: the judge wants a burst, each chunk less late than the one before).
-//   · THE END goes up only behind the last chunk's acknowledgement (HIGH RISE's rules take no chunk once `e` is there).
-// `pipe` (JAYWALK's DAILY — its own node, its own rules: unreadable, nothing after its end): the old way — every chunk at once, none again.
+// The long notes: docs/games/jaywalk-notes.md
 
 export const STALL_MS = 1500, STALL_FLUSH_MS = 1000, LATE_TRIES = 3, END_TRIES = 5, GIVE_UP_MS = 90_000;
 export const RETRY_MS = Object.freeze([400, 800, 1600, 3000]);

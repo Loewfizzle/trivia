@@ -1,10 +1,5 @@
 // Match kit — quality tiers (2 high / 1 mid / 0 low) from measured frame pacing.
-// Steps down when the p75 frame time > 19.5 ms; steps back up after 8 s of p75 < 17.2 ms with < 6 ms of work a frame
-// (never back to a tier that failed). The same rule every renderer in the app uses.
-//
-//   const tiers = createTiers({ apply: t => { scene.setTier(t); sky.setTier(t); } });
-//   frame: const w0 = performance.now(); …draw…; tiers.sample(now, performance.now() - w0); tiers.tick(now);
-//   tiers.get() / tiers.set(t) (tests) / tiers.fps() / tiers.work()
+// The long notes: docs/games/jaywalk-notes.md
 /**
  * FR7 FIXES A — PD6, A CAPPED FRAME RATE IS NOT A SLOW PHONE (the city's rule since NEON PASS 5 — screens/harbor/scene-perf.js): iOS Low Power
  * Mode runs requestAnimationFrame at 30 Hz however light the page is, so the frames read ~33 ms and a tier rule stepped all the way down for

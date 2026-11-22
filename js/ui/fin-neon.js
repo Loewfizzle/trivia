@@ -1,12 +1,5 @@
 // THE END NEON (CITY PART 2 — the owner, Nov 19 6:55 pm item 2; docs/match-kit.md "THE END NEON"): ONE builder for the coloured neon on EVERY
-// game's end screen — HIGH RISE's look (S4B), now every game's:
-//   the HEADER "<GAME> · SOLO / · MATCH" — the game's NAME in its own sign's colours, the mode softer (finHeader — the console's frame kicker
-//     through createFinal's `mode`, or a page's own card);
-//   the RESULT line — saturated neon in the game's accent, the colour IS the letter (a hair-thin bright core + its glow); a win / finish line
-//     GOLD (finLine — a body's cause line; the console frame's own WINNER title through `.final.has-neon`).
-// The colours = the game's ONE row (js/games/metas.js NEON) — never a per-screen copy; `day` = paint inks for an end that stands on a light
-// ground (PRISM DROP's paper), read LIVE from body[data-look] (THE GAME LOOK). The words carry the meaning, never the colour alone (COLOUR-BLIND).
-// DOM only: no store, no fetch (HIGH RISE's /highrise-play page builds its card with it too).
+// The long notes: docs/games/jaywalk-notes.md
 import { h } from './dom.js';
 import { META } from '../games/metas.js';
 

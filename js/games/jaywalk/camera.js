@@ -1,16 +1,5 @@
 // JAYWALK — THE CAMERA (H2B — docs/jaywalk.md "THE CAMERA"): ONE camera for both views (the night look + the graybox behind ?gray=1), so
-// they always agree. PURE MATH — no three.js, no DOM, no clock of its own (the view hands it `dt`): it only needs a camera object with
-// `position.set(x, y, z)` + `lookAt(x, y, z)`.
-//   · ZOOM = the columns seen ACROSS THE SCREEN at the kid's row: 7 · 8 · 9 (default 8) — on EVERY screen shape (the lens is fitted to the
-//     screen's WIDTH: a shorter screen sees fewer lanes, never smaller columns). THE PROVEN RIG (H1: 16 up / 12 back — the kid seen from
-//     ≈ 53° above) is kept and scaled about the kid by zoom / 9.42.
-//   · THE SIDEWAYS FOLLOW: the camera's x eases to the kid's x (a hop is led to where it lands; a log ride is followed smoothly), CLAMPED
-//     so the view never shows more than PAST_EDGE (1) column past the play area's edge — cars + logs are still seen coming.
-//   · THE TURN: a slight yaw, TURN_DEG, about the kid — the lanes run on a gentle diagonal and the cars' sides show. ANGLE: STRAIGHT · TURNED
-//     (default STRAIGHT since H3). Swipes stay screen-relative (the rules never know).
-//   · THE FRAMING: the kid's feet sit KID_AT (62 %) down the screen on every screen shape → 3–4 lanes are seen behind him (THE BLACKOUT is
-//     seen climbing before it bites).
-// The rules never import this (tests/jaywalk-camera.test.mjs).
+// The long notes: docs/games/jaywalk-notes.md
 import { COLS } from './tuning.js';
 
 /** THE PROVEN RIG (H1) at 9.42 columns across: fov 54 on a 390 × 844 phone, 16 up / 12 back. `kidAt`: how far down the screen he stands. */
@@ -41,8 +30,7 @@ export function lensFor(aspect) {
 export const followLimit = zoom => Math.max(0, COLS / 2 + PAST_EDGE - zoom / 2);
 
 export function createCamera(o = {}) {
-  // (hero — THE POSTER's frame alone, H4: a low camera in front of the kid — { at: [dx, y, dz], look: [dx, y, dz], fov } from where he
-  //  stands; the game never passes it)
+  // (hero — THE POSTER's frame alone, H4: a low camera in front of the kid — { at: [dx, y, dz], look: [dx, y, dz], fov } from where he …
   const hero = o.hero || null;
   let zoom = ZOOMS.includes(o.zoom) ? o.zoom : ZOOM, angle = ANGLES.includes(o.angle) ? o.angle : ANGLE;
   let k = zoom / CAM.width, yaw = angle === 'turned' ? TURN_DEG * Math.PI / 180 : 0, x = 0, y = 0, fresh = true, lens = lensFor(0.462);

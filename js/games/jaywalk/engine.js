@@ -1,8 +1,5 @@
 // JAYWALK — THE ENGINE (H1 — docs/jaywalk.md): FIXED-STEP TICKS (tuning.js#TICK_HZ = 60 a second). The KID's state is the only thing
-// stepped — a hop in flight, riding a log, the wall behind them, alive / out / taken (H4 — ONE LIFE EVERYWHERE: one hit = out; no lives, no
-// respawn, no blink, no one-up); every hazard is a pure function of
-// (lane, tick) (course.js). THE ONLY INPUT is THE HOP LOG: [{ t: tick, d: 'u' | 'l' | 'r' | 'd' }]. The phone's live run and the server's
-// replay run THIS code. PURE: no DOM, no three.js, never Math.random / Date.now / performance.now / a frame clock; integers + Math.floor only.
+// The long notes: docs/games/jaywalk-notes.md
 import { FP, COLS, WIDTH, MID_COL, HOP_TICKS, MODES, WALL, wallPace, KID_HALF, LOOP_LANES, MIN_INPUT_GAP, DIRS, MAX_INPUTS_PER_SEC, MAX_LOG, TICK_HZ, SPLIT_EVERY } from './tuning.js';
 import { laneHit, logUnder, carNear, ufoX, ufoY, mod } from './course.js';
 

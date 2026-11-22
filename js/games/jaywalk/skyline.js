@@ -1,7 +1,5 @@
 // JAYWALK — THE PAINTED SKYLINES (H5C · H6B — docs/jaywalk.md "THE PAINTED SKYLINES"). PURE: WHICH picture the band shows at a lane
-// (8 a look, DAY + NIGHT: the look's plain picture with that area's landmark painted in — the same crop; the opening keeps the plain
-// one, the loop repeats the 8), which one to fetch ahead (only the current + the next are ever held), where the band rests, which of
-// the night's small lights a landmark covers (OFF there). The view (night.js) loads + cross-fades them. No rule / server file reads it.
+// The long notes: docs/games/jaywalk-notes.md
 import { area } from './course.js';
 
 /** the areas' ids, in the course's order (areas.js#LOOKS) — a picture's file is named by it */

@@ -1,6 +1,5 @@
 // JAYWALK — THE TUNING (H1 — docs/jaywalk.md): every number of the rules in ONE place. PURE, no imports, no DOM.
-// THE RULES' MATH IS CROSS-ENGINE SAFE: integers / fixed point and + − × ÷ + Math.floor only — never Math.sin / cos / pow / exp / sqrt
-// (V8 and JavaScriptCore may differ in the last bit; the phone's run and the server's replay must agree hop for hop). The view may use anything.
+// The long notes: docs/games/jaywalk-notes.md
 
 /** THE FIXED STEP: the rules count TICKS, never milliseconds — 60 a second. (The view turns its frame clock into ticks; the rules never read a clock.) */
 export const TICK_HZ = 60;
@@ -161,13 +160,7 @@ export const MAX_INPUTS_PER_SEC = 20;     // (… and never more than 20 in any 
 export const MAX_LOG = 60000;             // (a solo run's whole log; a capped mode's = its cap / MIN_INPUT_GAP at most)
 export const SEED_MAX = 64;
 
-// ---- THE CLOCK (H3 — the anti-cheat: a run is played ON the server's clock; tick 0 = GO, a server timestamp the rules enforce. Every
-// hop-log chunk carries its own server timestamp — the moment it ARRIVED. The server refuses a log that runs AHEAD of the real clock, and
-// stops counting one that falls BEHIND it — a slowed game — at the last hop that was on time.
-// H4 — THE DROPPED SIGNAL (the owner, Nov 16 — a phone in a moving van): the database queues writes while a phone is offline and stamps
-// them when they ARRIVE, so a lost connection looks like slow motion. They are told apart by HOW the chunks arrive (replay.js#clockProblem):
-//   · a DROP = a SILENCE, then a BURST of chunks landing together that catches up to the real clock → never held against the run (≤ `drop`)
-//   · SLOW MOTION = the ticks drifting behind the clock while the chunks keep arriving → cut, as before)
+// ---- THE CLOCK (H3 — the anti-cheat: a run is played ON the server's clock; tick 0 = GO, a server timestamp the rules enforce. Every …
 export const CLOCK = Object.freeze({
   ahead: 2 * TICK_HZ,                      // (a chunk's LAST hop: at most 2 s ahead of the chunk's own timestamp — the phone's clock estimate + a frame)
   behind: 8 * TICK_HZ,                     // (… its FIRST hop: at most 8 s behind it — the upload every second + a slow network)

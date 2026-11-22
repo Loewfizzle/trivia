@@ -1,10 +1,5 @@
 // JAYWALK — HOW YOU WENT OUT (H3 — docs/jaywalk.md "THE END SCREEN"): the end screen names it in big neon words — one line per cause +
-// vehicle (FLATTENED BY A TAXI · SWEPT AWAY · HIT BY THE 6:15 · THE LIGHTS WENT OUT). PURE (no DOM, no three.js).
-// H4 ADD-ON (the owner, Nov 16 — hit by a truck, the screen said "HIT BY A CAR"): **ONE SOURCE OF TRUTH for which vehicle a car IS** —
-// `vehicleAt(course, lane, j)`, from the course's seed. THE DRAWING (night.js) and THE WORDS (hitVehicle → causeLine) both read it, in
-// the game AND the lab, so the line always names the model on the screen. There is NO generic line: a kid a car got is always named
-// by its vehicle (sedan · hatchback · taxi · van · box truck); the train is THE 6:15. What hit the kid is read back from the run's own
-// end (the lane, the tick, the place — the engine's result), never stored anywhere.
+// The long notes: docs/games/jaywalk-notes.md
 import { FP, KID_HALF } from './tuning.js';
 import { moverLeft } from './course.js';
 

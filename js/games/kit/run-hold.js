@@ -1,15 +1,5 @@
 // THE CONSOLE FIX — THE RUN HOLD, the cartridge half (Nov 20 — docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST").
-// JAYWALK's + HIGH RISE's screens share it. A MODIFIED host wrote `final` (or moved the room on) while honest runs were LIVE — every phone
-// left its run for the podium / the room, he played on and won. Now:
-//   · A LIVE RUN IS PLAYED OUT: a phone whose own PROVEN run is live never shows the podium, and tells the router it holds the run
-//     (`holdsRun` — app.js's RUN HOLD keeps the screen through a moved-on room, room.js holds a kick); the run's end is written, THEN the
-//     phone follows the room (`pingRouter`).
-//   · THE PODIUM WAITS FOR THE LIVE RUNS (`createLiveWait`): a phone that is out (watching) sees `final` while a rival's run is still live
-//     (the game's liveOf — core/proof.js#liveGoers, the honest host's own "has it ended?" rule on the players' own nodes): it keeps
-//     watching; the podium comes once none is (the cap ends every wait) — scored then from the nodes as they stand (the game's own
-//     finalPatch), never the early `final`'s numbers.
-// An honest match never waits here: the host writes `final` only once no run is live.
-// Lazy (the cartridges'): app.js's hub is read through globalThis (THE STALE-MODULE RULE).
+// The long notes: docs/games/jaywalk-notes.md
 
 /** how long a held phone waits for its own end's acknowledgement after the run (a dead line: Firebase keeps the write queued — it lands
  *  when the line is back, the phone follows the room meanwhile) */

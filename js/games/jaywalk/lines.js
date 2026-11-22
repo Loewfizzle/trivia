@@ -1,13 +1,5 @@
 // JAYWALK — YOUR BEST LINE + THE NEXT FRIEND'S LINE (H4 add-on — the owner, Nov 16; docs/jaywalk.md "THE LINES"). PURE (no DOM, no clock,
-// no three.js): what the lines ARE — the view draws them (night.js#setLines) and plays their moments (view.js).
-//   · YOUR BEST LINE (a solo run — and, in a match, the player's own solo best): a GOLD line across the whole lane at the player's best
-//     lane, "YOUR BEST · 143" on the ground beside it. CROSSING it (landing on a lane past it) = from then on the run is a new record.
-//     No best yet (a first-ever run) = no line.
-//   · THE NEXT FRIEND'S LINE (solo runs only — a match already has the real players as ghosts): ONE white / cyan line at the LOWEST
-//     friend best that is still ahead of the player, "LIAM · 212" beside it. Crossing it → the next friend above appears. Never two friend
-//     lines at once; a friend at or behind the player never shows; no friend bests = no friend lines.
-// Both come from the SERVER-counted solo bests (the board jaywalk-solo): /api/profile { action: 'table' } — YOUR TABLE's own read (you +
-// the friends YOUR list names) — fetched ONCE at a run's start; nothing is asked during a run. Never a local guess.
+// The long notes: docs/games/jaywalk-notes.md
 export const BOARD = 'jaywalk-solo';
 /** the table's answer is kept this long on the phone: PLAY AGAIN restarts in a second — a friend's best has not moved since */
 export const TABLE_KEEP_MS = 90_000;

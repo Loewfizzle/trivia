@@ -1,7 +1,5 @@
 // JAYWALK — THE REPLAY (H1 — docs/jaywalk.md): replay({ seed, mode, log }) → the run's result, PURE — the SAME code the phone runs
-// (engine.js#step, tick by tick). The phone shows it after every run (the owner's determinism check on a real iPhone); the server's verify
-// (api/_lib/jaywalk.js) = these bounds + this replay. + THE HOP LOG's packed form (the proof node's chunks) + THE SPEED CHECK + THE JUDGE
-// (H4 — judgeRun: the ONE function the host's podium and the server's count both run).
+// The long notes: docs/games/jaywalk-notes.md
 import { MODES, DIRS, MIN_INPUT_GAP, MAX_INPUTS_PER_SEC, MAX_LOG, SEED_MAX, TICK_HZ, CLOCK } from './tuning.js';
 import { createCourse } from './course.js';
 import { createRun, step, isOver, resultOf, inputProblem } from './engine.js';
@@ -124,8 +122,7 @@ export function clockProblem(go, times, { from = null } = {}) {
       const now = tickOf(k.at);
       if (k.t1 > now + CLOCK.ahead) return { why: 'ahead' };
       if (k.t0 >= now - CLOCK.behind) drop = null;   // (on the clock — a drop before it is settled)
-      // (inside a burst the queued chunks arrive together: each one's lag is SMALLER than the one before — a lag that GROWS, or a burst
-      //  still late past its time, was slow motion all along: the run counts up to the burst's first hop)
+      // (inside a burst the queued chunks arrive together: each one's lag is SMALLER than the one before — a lag that GROWS, or a burst …
       else if (drop) { const lag = now - k.t0; if (k.at > drop.until || lag > drop.lag + CLOCK.jitter) return { why: 'behind', tick: drop.tick, hops: drop.hops }; drop.lag = lag; }
       else {
         const silence = Math.min(k.at - prev, CLOCK.drop);

@@ -1,13 +1,5 @@
 // JAYWALK — THE SOUNDS (H2 — docs/jaywalk.md "THE SOUNDS"; the files: audio/jaywalk/ + CREDITS.md). The site's sound-engine pattern
-// (docs/audio.md; HOLD'EM's sfx.js): the bytes fetched at preload (no AudioContext — nothing sounds before a tap), decoded ONCE when the
-// SHARED engine unlocks, each sound an AudioBufferSourceNode → its gain → A SOFT LIMITER → the console's SFX bus (the Effects slider, the
-// toggle, THE ONE MUTE and THE CUT apply there). ≈ 8 VOICES, by PRIORITY: your own hit / splash over a hop / a landing.
-// Audio is POLISH: locked, muted, a missing file — nothing plays, nothing throws; every hazard keeps its visual tell.
-//   IN PLAY: hop (pitch ± 6 %, gain ± 2 dB a hop) · land-wood (a landing on a log) · hit · splash (H2 — the engine's events: onEvent) +
-//   H5A — THE WORLD's (cues.js → onCue): the train bell (a seamless loop while the signals flash) + the train passing, a car passing (a
-//   whoosh — GONE with H5B, the owner), the horn (≤ 1 per 3 s, at half its level — H5B), the lights dying, a gateway (area-arrive — H5C), new-best,
-//   H5C — the TRAIN HORN (one blast a train, when its warning starts). The mix is H6's.
-//   EVERY sound has its pick (A) and, where one was delivered, a `-b` backup (B): the GAME plays A (the owner's pinned takes — BEFORE THE FLIP); the LAB plays this phone's audition pick (useLabPicks).
+// The long notes: docs/games/jaywalk-notes.md
 import { getContext, getSfxBus, isUnlocked, onUnlock } from '../../audio/engine.js';
 import { getPref, setPref } from './lab-prefs.js';
 import { SOUNDS, VOICES, HOP_VARY, admit, TRAIN_DUCK, FADE_S, MATCH_SOUNDS, seasonSoundsOf } from './sounds.js';
@@ -80,9 +72,7 @@ export function play(id, o = {}) {
   try {
     if (!bytes.has(key)) fetchSounds([id], true);
     const ctx = getContext();
-    // (isUnlocked() = running OR NAPPING — CITY I's PODCAST MODE suspends the context between effects and a source's own start wakes it
-    //  (engine.js#wakeFor): asking for `running` here made JAYWALK silent with the site's MUSIC OFF — HIGH RISE S2's review found it,
-    //  the same fix as js/games/highrise/sfx.js; tests/jaywalk-podcast.test.mjs + tests/integration/jaywalk-podcast.mjs)
+    // (isUnlocked() = running OR NAPPING — CITY I's PODCAST MODE suspends the context between effects and a source's own start wakes it …
     if (!isUnlocked() || !ctx || !bufs.get(key) || bufCtx !== ctx) {
       // (not ready: the first tap's own sound, or the first play of a sound just fetched — wait for the decode, play if still fresh)
       if (!o.late) { const go = () => decode().then(() => { if (performance.now() - t0 < (s.loop ? 1500 : 220)) { const h = play(id, { ...o, ab, late: true }); if (h && o.onLate) o.onLate(h); } }); if (isUnlocked()) go(); else if (!lockWait) { lockWait = true; onUnlock(() => { lockWait = false; go(); }); } }   // (locked / muted: ONE sound waits for the unlock — every call used to leave a listener there for good)
@@ -119,8 +109,7 @@ export function release() { stopAll(); bufs.clear(); bufCtx = null; }
 /** silence everything still sounding (the unmount, the lab closing) — a sound with a `fade` (the train's) ramps out, the rest stop */
 export function stopAll() { bellWant = false; bell = null; tickWant = null; tick = null; for (const v of [...live]) v.end(); live.clear(); }
 
-// H5A — THE WORLD's CUES (cues.js#cuesAt → here): the bell is ONE seamless loop held while the signals flash — started on `bell-on`
-// (a start that lands late, the first sound after an unlock, is still wanted or let go), FADED OUT on `bell-off` (H5B: 0.5 s — `FADE_S`)
+// H5A — THE WORLD's CUES (cues.js#cuesAt → here): the bell is ONE seamless loop held while the signals flash — started on `bell-on` …
 let bell = null, bellWant = false;
 // BEFORE THE FLIP — THE STOPWATCH: ONE loop, held while the dark is close; `tick` cues glide its level + speed, `tick-off` fades it out
 let tick = null, tickWant = null;   // (tickWant: the { level, rate } wanted now — null = silent)

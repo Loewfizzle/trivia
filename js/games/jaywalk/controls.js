@@ -1,8 +1,5 @@
 // JAYWALK — THE CONTROLS (H1 — docs/jaywalk.md "THE CONTROLS"): tap = hop forward · swipe = sideways · swipe down = back. EVERY TAP ACTS:
-// the play area keeps its OWN pointer events (`data-tap-own` — THE TAP WATCH never touches it; never a `click`: iOS Safari sends none to a
-// plain page area). A TAP fires on RELEASE (under ~12 px of movement); a SWIPE fires THE MOMENT it crosses its threshold (never on release);
-// a short flick between the two is read as its swipe — no touch is ever dropped. No page scroll / zoom / text selection on the play area.
-// (The engine keeps ONE buffered hop while a hop is in flight — engine.js.) Desktop: the arrows / WASD / space.
+// The long notes: docs/games/jaywalk-notes.md
 export const TAP_PX = 12;
 export const SWIPE_PX = 18;
 

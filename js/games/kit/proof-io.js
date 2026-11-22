@@ -1,6 +1,5 @@
 // THE PROOF WRITER's WRITES + GO (THE PROOF PASS, Nov 20 — docs/match-kit.md "THE PROOF WRITER"): the database half JAYWALK's + HIGH
-// RISE's screens share — proof-writer.js (PURE) decides WHAT goes up and when; this file sends it. Every write through firebase.js
-// (THE RULES-LAG: a refusal is seen).
+// The long notes: docs/games/jaywalk-notes.md
 import { dbRef, set as dbSet, get as dbGet, update as dbUpdate, runTransaction, serverTimestamp, expectRefusal } from '../../firebase.js';
 
 /** the writer's `io` for the proof node at `path()` (rooms/{CODE}/{jw|hr}/{matchId}/{uid} — read at each write: a view's match can move) */
@@ -42,14 +41,10 @@ export function stampT0(tree, label) {
  */
 export function writeMatchGo(tree, uid, label, mirror = null) {
   const path = `${tree}/${uid}/go`;
-  // (THE CONSOLE FIX — THE FRESH-EYES REVIEW: the stamp costs a read + an update before the GO; a phone whose mirror already shows the tree
-  //  stamped or begun (another phone was first — the stamp would be refused anyway) writes its GO at once: the 5 s window is THE FIRST
-  //  phone's stamp, and a slow phone behind it must not spend three round trips first)
+  // (THE CONSOLE FIX — THE FRESH-EYES REVIEW: the stamp costs a read + an update before the GO; a phone whose mirror already shows the tree …
   const begun = !!mirror && typeof mirror === 'object' && Object.keys(mirror).length > 0;
   expectRefusal(path, `${label} GO: already written (a rejoin), a touch early, or the rules are not published yet`);
-  // (THE CONSOLE FIX: the GO behind the stamp's answer — the stamp needs the tree empty)
-  // (two phones that both see the tree empty both stamp: the loser's stamp + counter is REFUSED by the rules — expected + silent, its GO
-  //  still lands in the winner's window. A turn order was tried and cost every other phone's GO a round trip: not worth it)
+  // (THE CONSOLE FIX: the GO behind the stamp's answer — the stamp needs the tree empty) …
   const stamp = begun ? Promise.resolve() : stampT0(tree, label);
   return stamp.then(() => runTransaction(dbRef(path), cur => (cur == null ? serverTimestamp() : undefined), { applyLocally: false }))
     .then(() => true, () => dbGet(dbRef(path)).then(snap => typeof snap.val() === 'number'));

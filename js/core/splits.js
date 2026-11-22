@@ -1,7 +1,5 @@
 // J1 — SPLIT TIMES (JAYWALK — docs/jaywalk.md "SPLIT TIMES"): the tick each multiple of SPLIT_EVERY (50) lanes was FIRST reached, from the
-// engine (js/games/jaywalk/engine.js — `run.sp`, the replay's `splits`): ONE source for the phone's end card and the server's replay.
-// PURE (no DOM, no clock) — the phone (the end card), core/progress.js#matchStep + api/_lib/jaywalk-credit.js (the server's BEST splits:
-// pstats.jsp = [best tick to 50, to 100, …] — kept by the SERVER from ITS OWN replay, a counted result only; never a phone's claim).
+// The long notes: docs/games/jaywalk-notes.md
 import { SPLIT_EVERY, TICK_HZ } from '../games/jaywalk/tuning.js';
 
 export { SPLIT_EVERY };

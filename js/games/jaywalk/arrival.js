@@ -1,11 +1,5 @@
 // JAYWALK — THE ARRIVAL BANNER (BEFORE THE FLIP — the owner, Nov 17: "when I cross it, it plays the noise, but nothing tells me where I am";
-// docs/jaywalk.md "THE AREA ARRIVAL"). The instant the kid crosses an area's gate lane: the area's name BIG at the top of the screen —
-// under the lane count, over the skyline band (its foot never past the far haze: never over a lane) — + a small LANE 50 line (a lap:
-// LAP 2 · LANE 450), ≈ 2.5 s, timed with the area-arrival sound. NIGHT = a neon sign (a dark board, a tube in the area's colour, a
-// quick flicker on) · DAY = a painted sign (the area's paint, a white trim, a drop-in swing) · reduced motion = a plain fade. ONE
-// element, built once; a show = its words + colours set + its CSS animation restarted (transform + opacity only). A VIEW: it reads the
-// course's area table, never the rules' state. The game (view.js — this phone's own kid only, never over the Mothership's warning or
-// the OUT card) and the lab (lab.js) both show it.
+// The long notes: docs/games/jaywalk-notes.md
 import { h } from '../../ui/dom.js';
 import { area } from './course.js';   // (the area table — PURE; the colours come in from the caller: areas.js#LOOKS needs three.js)
 

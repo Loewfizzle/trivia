@@ -1,13 +1,5 @@
 // THE PROOF TREE — what JAYWALK's `jw` + HIGH RISE's `hr` SHARE (THE PROOF PASS, Nov 20 — docs/match-kit.md "THE PROOF TREE"). PURE (no
-// DOM, no clock, no imports): the phones, the host's director and the SERVER read it. A match's tree:
-//   rooms/{CODE}/{jw|hr}/{matchId} = { t0 (THE STAMP — the server's time, the tree's FIRST write, once), {uid}: { go, c/{i}, e?, k?, rs? } }
-// THE HOST-TRUST HOLES (docs/games/passes/highrise-review.md MUST 2) are closed by three things that read NOTHING the host writes:
-//   · THE STAMP `t0` — one fixed key a tree: whoever GOes first stamps it (database.rules.json: the server's time, once, only while the
-//     tree is empty). A GO is taken only within GO_WINDOW_MS of it — nobody GOes alone early and adds the rivals later (hole c), and a
-//     tree may be deleted only once its stamp is 10 min old (hole b — core/room-logic.js#proofUnlocked).
-//   · the leaves (c/{i} · e · k · rs) hang on the player's OWN `go` + a time bound — never on game/phase (hole a).
-//   · THE SERVER's two guards (api/_lib/jaywalk.js · highrise.js): a node counts only with a GO (`goOf`), and a GO later than
-//     GO_WINDOW_MS after THE FIRST GO is no run (`onTime`) — they hold on the rules as published before this pass too.
+// The long notes: docs/games/jaywalk-notes.md
 
 /** a GO is on time within this of the tree's stamp (the rules) = of THE FIRST GO (the server's guard, the host's podium): 5 s —
  *  database.rules.json's `jw` / `hr` `go` rule carries the same number (pinned by tests/proof-pass.test.mjs) */
@@ -63,10 +55,7 @@ export function goUids(tree) {
 export const inMatch = (runs, uid, g0) => onTime(runs && runs[uid], g0);
 export const fullDraw = (first, ids) => ids.length > 1 && first.length >= ids.length;
 
-// THE CONSOLE FIX (Nov 20 — docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): a MODIFIED host wrote `final` (or moved
-// the room on) mid-match — every honest phone left its live run, he played on, reported and won. Now a run that is STILL LIVE is waited
-// for: by the phones (the podium, the router) and by THE SERVER (no report counts while one is). "Live" reads NOTHING the host writes —
-// only the player's own node (its GO, its chunks' server stamps, its `e`), the player's own presence and the match's clock (THE FIRST GO).
+// THE CONSOLE FIX (Nov 20 — docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): a MODIFIED host wrote `final` (or moved …
 /** when a player's proof last moved (ms, a server time): their newest chunk's arrival, else their GO, else the match's tick 0 */
 export function lastSeenAt(node, playAt) {
   let at = playAt || 0;
@@ -102,12 +91,7 @@ export function liveGoers(tree, { now, online = null, playAt, capAt, idleMs, dro
 /** the server's "count it in a moment" for a match with live runs: soon, never past the soonest end, re-asked */
 export const liveRetryMs = (until, now) => Math.max(LIVE_RETRY_MIN_MS, Math.min(LIVE_RETRY_MAX_MS, Math.ceil(until - now) + 500));
 
-// THE FIX PASS — S3 (a), THE CHUNK CEILING (THE FABLE REVIEW: a node took 10,000 chunks in any order — 2,000 went up in ONE 0.3 s write,
-// ~4.3 MB a player a match, re-judged by the host's director every 250 ms and read whole by every report). A node may hold at most
-// `seconds of its own clock × perSec + CHUNK_SLACK` chunks — the seconds from its GO to its NEWEST chunk's server stamp (the rules stamp
-// each `at` with the server's now: a burst can not buy itself time) — counted BEFORE anything is unpacked; past it the node is a REFUSED
-// log (the judge's `bad`). `perSec` = the game's own writer bound (a match sends each move within its flush interval, stop-and-wait —
-// JAYWALK 120 ms, HIGH RISE 150 ms: the review's "× 2" would refuse an honest fast match), so an honest phone can never reach it.
+// THE FIX PASS — S3 (a), THE CHUNK CEILING (THE FABLE REVIEW: a node took 10,000 chunks in any order — 2,000 went up in ONE 0.3 s write, …
 export const CHUNK_SLACK = 10;
 /** → the most chunks a node may hold, or Infinity (no GO / no chunks: nothing to bound) */
 export function chunkCeiling(node, perSec) {

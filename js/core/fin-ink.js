@@ -1,5 +1,5 @@
 // CITY F — END-SCREEN STANDARD A: the end screen's BAR is solid in the GAME's accent (ui/final.js) — its words dark where they read
-// ≥ 4.5 : 1 on that accent (WCAG's contrast), white where the accent is too dark. PURE (tests/endscreen.test.mjs walks every game's ACCENT).
+// The long notes: docs/games/jaywalk-notes.md
 export const FIN_DARK = '#0b0a14';
 const lin = c => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
 /** a #rrggbb colour's relative luminance */

@@ -1,11 +1,5 @@
 // THE PROGRESSION SOUNDS (PROGRESSION A) → THE PODIUM SOUNDS (FRIENDS B, Nov 8): Grok's NEW set (Downloads\grok\podium-sfx — warm jazzy-neon,
-// no hiss; already cut + levelled by him, copied as-is → audio/sfx/pg-*.mp3; the old builder's set retired). One palette:
-// pgSfx('xp-tick' | 'xp-total' | 'level-up' | 'medal-flip' | 'flame-on' | 'flash' | 'polaroid' | 'card-reveal' | 'achievement' | 'victory', { gain, rate }).
-// 'victory' = the podium frame's winner sting (ui/final.js — was the synth arpeggio the owner heard as a hiss; a cartridge with
-// OWN_VICTORY_SOUND skips it).
-// Quiet + felt (CLAUDE.md): through the engine's SFX bus (the SFX slider + mute apply), decoded once on first use. Audio is POLISH: before
-// the unlock, muted, missing files or a dead graph — nothing plays, nothing throws. `flash` + `polaroid` are PROGRESSION B's (the sightings'
-// flashbulb) — shipped now so B just plays them.
+// The long notes: docs/games/jaywalk-notes.md
 import { getContext, getSfxBus, isUnlocked } from './engine.js';
 
 export const PG_SOUNDS = ['xp-tick', 'xp-total', 'level-up', 'medal-flip', 'flame-on', 'flash', 'polaroid', 'card-reveal', 'achievement', 'victory'];

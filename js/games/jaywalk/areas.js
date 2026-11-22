@@ -1,16 +1,5 @@
 // JAYWALK — THE AREAS' LOOK (H5A — docs/jaywalk.md "THE AREAS"): a WHOLE STRETCH looks like the place. A VIEW: it reads the course
-// (course.js#area — the rules' own table), never writes it; nothing here is a rule. Per area: its GROUND (night-fx.js draws it by the
-// area's number), what an OBSTACLE on a play cell is drawn as (the rules' own obstacles — they must LOOK like obstacles), the EDGE
-// DRESSING in the dim edge columns of its ground lanes (crates, containers, market stalls, storefronts with their neon, canal houses,
-// the bridge's railings), its lamps, the skyline band's tint, and its SIGNATURE PIECES: THE DOCK CRANE + the bridge's towers STRADDLE
-// their lanes on thin legs that stand on the lane lines (the cars, the logs, the trains run between them); THE LIGHTHOUSE (+ its
-// sweeping beam — light only), THE CONTROL TOWER, the hangars, the neon fish's stall, the moored boats stand on a GROUND lane's edge
-// column. Nothing of an area ever stands on a play cell the rules call free, nothing covers a play column, and a road / water / rail
-// lane's edge column stays open: what comes down it is seen coming, as before.
-// Everything is built in code in the smooth toy style (models.js#build) except the lighthouse (MaverickFX, CC0) + the fishing boat
-// (Kenney, CC0). H5A = the night look. H5B = THE DAY LOOK (the same pieces sunlit — their lamps off, a shop's neon a painted board;
-// `c.day` + `c.ek`, the edge columns' dim, come from the scene) + THE LANDMARK MOMENT AT THE GATE (`sigOf`: the area's hero piece(s)
-// stand in the gate lane's own edge columns — the owner: the landmarks must be SEEN).
+// The long notes: docs/games/jaywalk-notes.md
 import * as THREE from 'three';
 import { COLS, STRETCH } from './tuning.js';
 import { area } from './course.js';
@@ -72,9 +61,7 @@ export function buildAreaGeo() {
     { g: ball(0.16), color: 0xff8a5a, at: [-0.13, 0.56, 0.03], scale: [1.5, 0.35, 0.6], rot: [0, 0.5, 0] },
     { g: ball(0.14), color: 0xc9cdd0, at: [0.17, 0.56, -0.06], scale: [1.5, 0.35, 0.6], rot: [0, -0.4, 0] },
   ]);
-  // an oil DRUM (H5C — the owner: NEVER BLUE (blue on the ground = water) + smaller): built WHITE — an instance's colour paints it red /
-  // orange / yellow (night.js#DRUM_HEX) — two rolled hoops a shade darker, a dark lid with its bung, a little WEAR: a rust bloom low
-  // on its side, a scuffed pale patch, a dent's shadow
+  // an oil DRUM (H5C — the owner: NEVER BLUE (blue on the ground = water) + smaller): built WHITE — an instance's colour paints it red / …
   G.drum = build([
     { g: cyl(0.27, 0.27, 0.66, 16), color: 0xffffff, at: [0, 0.33, 0], shade: by([0.66, 0.6]) },
     { g: cyl(0.287, 0.287, 0.05, 16), color: 0xb9b2aa, at: [0, 0.2, 0] },
@@ -147,8 +134,7 @@ export function buildAreaGeo() {
     { g: box(0.26, 4.4, 0.26), color: 0xd04a34, at: [0, 2.2, -0.34], shade: by([0.66, 0.08]) }, { g: box(0.26, 4.4, 0.26), color: 0xd04a34, at: [0, 2.2, 0.34], shade: by([0.66, 0.08]) },
     { g: box(0.2, 0.26, 0.9), color: 0xb03a28, at: [0, 4.2, 0] }, { g: box(0.2, 0.2, 0.9), color: 0xb03a28, at: [0, 2.6, 0] },
   ]);
-  // a HOUSE (white: an instance's colour paints it): a storefront / a canal house — 1.8 wide, 2 tall, a flat roof with its parapet,
-  // an awning on the face toward the play (+x)
+  // a HOUSE (white: an instance's colour paints it): a storefront / a canal house — 1.8 wide, 2 tall, a flat roof with its parapet, …
   G.house = build([
     { g: roundBox(1.8, 2.0, 1.0, 0.05, 1), color: 0xe2e2e8, at: [0, 1.0, 0], shade: by([0.55, 0.24]) },
     { g: box(1.9, 0.1, 1.08), color: 0x77777f, at: [0, 2.04, 0] },
@@ -197,8 +183,7 @@ export function sigOf(course, s, pick) {
   const base = s * STRETCH, T = lookAt(base), out = [], used = new Set();
   if (!T) return out;
   let side = pick(s, 3) < 0.5 ? -1 : 1;
-  // H5B — THE LANDMARK MOMENT AT THE GATE: the area's hero piece(s) in the GATE LANE's own two edge columns (a ground lane: nothing
-  // else is dressed there) — seen beside the arch as the kid comes up to it. THE CRANE + the towers straddle, as everywhere.
+  // H5B — THE LANDMARK MOMENT AT THE GATE: the area's hero piece(s) in the GATE LANE's own two edge columns (a ground lane: nothing …
   { const hero = T.hero || [], hs = pick(s, 5) < 0.5 ? -1 : 1; hero.forEach((w0, n) => { const what = w0 === 'crane' && course.lane(base + 1).type === 'flight' ? 'boat' : w0; if (what === 'pylons') out.push({ y0: base, side: -1, what, n: 90, hero: true }, { y0: base, side: 1, what, n: 90, hero: true }); else out.push({ y0: base, side: n ? -hs : hs, what, n: 90 + n, hero: true }); }); }
   const free = y => { const L = course.lane(y); return y > base + 1 && y < base + STRETCH - 2 && L.type !== 'flight' && !L.mark && !used.has(y); };
   const ground = y => free(y) && course.lane(y).type === 'grass';
@@ -265,8 +250,7 @@ export function drawSig(P, c) {
   const hot = k => (c.day ? lt * Math.min(1.12, (c.ek || 0.5) * 1.4 * k) : dim * k);   // (by day the sun lights a pale piece: never blown out)
   const lamp = (x, y, zz, hex, sz = 0.3, a = 0.9) => { if (on) K.bill.put(x, y, zz, sz, sz, 1, 0, hex, 1, 5, a * lt); };
   if (P.what === 'crane') {
-    // THE DOCK CRANE straddles two lanes: its four thin legs on the lane lines (whatever runs there runs between them), its boom
-    // reaching OUT over the harbour — nothing of it hangs over a play column
+    // THE DOCK CRANE straddles two lanes: its four thin legs on the lane lines (whatever runs there runs between them), its boom …
     const zc = Z(P.y0 + 1), x = x0 + s * 0.19;
     A.crane.put(x, 0, zc, 0.75, 0.82, 1.1, s < 0 ? Math.PI : 0, 0xffffff, hot(1.3));
     if (c.day) K.shadow.put(x, 0.03, zc, 2.2, 1, 2.4, 0, 0, 1, 0, 0.3 * Math.min(1, lt));
@@ -283,8 +267,7 @@ export function drawSig(P, c) {
     return null;
   }
   if (P.what === 'lighthouse') {
-    // THE LIGHTHOUSE on its rocks, on a ground lane's edge column — its lamp lit; the scene sweeps its beam across the lanes
-    // (H5B — the gate's hero stands as near the play as its edge column lets it: the lighthouse IS the moment)
+    // THE LIGHTHOUSE on its rocks, on a ground lane's edge column — its lamp lit; the scene sweeps its beam across the lanes …
     const B = BOX.lighthouse, sc = B ? 3.9 / B.h : 0.3, x = x0 + s * (P.hero ? 0.1 : 0.66);
     for (const [dx, dz, r] of [[0.75, 0.2, 1.25], [-0.5, 0.36, 0.8], [0.2, -0.38, 0.9], [1.5, -0.1, 1.5]]) { if (P.hero && dx < 0) continue; A.rock.put(x + s * dx, -0.04, z + dz, r, r, r, dx * 5, 0xffffff, hot(1)); }
     if (KM.lighthouse) KM.lighthouse.put(x, 0.1, z, sc, sc, sc, 0, 0xffffff, hot(1.7));

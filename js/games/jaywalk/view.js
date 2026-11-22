@@ -1,5 +1,5 @@
 // JAYWALK — THE GAME's SCREEN (H3 solo · H4 match · DAILY B: THE DAILY — `state.jwDaily`, js/games/jaywalk/daily-run.js): the scene (night.js), the kid, the controls + the sounds in the console's frame;
-// the RUN = this phone's pure engine on the SERVER's clock, ONE LIFE → docs/jaywalk.md "THE SOLO GAME" · "THE MATCH" · "THE GHOSTS".
+// The long notes: docs/games/jaywalk-notes.md
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { dbRef, set as dbSet, get as dbGet, serverTimestamp, serverNow, expectRefusal } from '../../firebase.js';
@@ -73,8 +73,7 @@ const TEST_DAY = TEST && (() => { const m = /[?&]jwday=(\d{4}-\d{2}-\d{2})/.exec
 const dayOfRun = at => (TEST_DAY || turnDay(at));
 if (TEST) { globalThis.__jwViews = () => VIEWS.filter(r => r.deref()).length; globalThis.__jwViewIds = () => VIEWS.map((r, i) => (r.deref() ? i : -1)).filter(i => i >= 0); globalThis.__jwScenes = () => scenesMade; }
 
-// THE LINES' DATA (lines.js): the SERVER-counted bests (yours + friends'), asked ONCE at a run's start, kept a short while;
-// /api down = the best last told still draws YOUR BEST, no friend lines
+// THE LINES' DATA (lines.js): the SERVER-counted bests (yours + friends'), asked ONCE at a run's start, kept a short while; …
 let table = null;   // { uid, at, p: Promise<{ best, friends } | null> }
 function loadTable(uid) {
   if (table && table.uid === uid && performance.now() - table.at < TABLE_KEEP_MS) return table.p;
@@ -114,9 +113,7 @@ export function createView() {
   if (VIEWS) VIEWS.push(new WeakRef(frames));
   /** how long a run's end is seen before the end screen / the spectator's view covers it: THE ABDUCTION + THE MOTHERSHIP's lift are longer (H6A) */
   const hold = () => Math.max(END_HOLD_MS, night ? night.holdMs(run) : 0);
-  // THE CONSOLE FIX — THE RUN HOLD (kit/run-hold.js; docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): this phone's
-  // own PROVEN match run is played to its own end whatever the host's state says — no podium over it, the router keeps this screen through
-  // a moved-on room; then its end is written and the phone follows. The podium waits for the rivals' live runs the same way.
+  // THE CONSOLE FIX — THE RUN HOLD (kit/run-hold.js; docs/match-kit.md "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"): this phone's …
   const pingRouter = createRouterPing(), liveWait = createLiveWait(liveOf);
   let everProven = false;
   const runLive = () => isMatch && proven && !D && mode === 'run' && !!run && !isOver(run);
@@ -130,9 +127,7 @@ export function createView() {
   /** the podium after a wait: scored from the nodes as they stand now (the host's own step — director.js#finalPatch), never an early
    *  `final`'s numbers */
   const scoredNow = g => { try { return { ...g, ...finalPatch(g, runsNow() || {}, srvNow(), code) }; } catch { return g; } };
-  // HIGH RISE S4A — THE SOUND SYNC (the owner plays with MUSIC OFF): PODCAST MODE naps the audio context between two effects — every hop's
-  // sound then had to wake it first (on iOS at the finger's LIFT: the sound late by a variable beat). A LIVE run HOLDS IT AWAKE: a lease
-  // renewed once a second from the frame (audio/engine.js#holdAwake, through its hub — THE STALE-MODULE RULE), let go when the run ends
+  // HIGH RISE S4A — THE SOUND SYNC (the owner plays with MUSIC OFF): PODCAST MODE naps the audio context between two effects — every hop's …
   let awakeAt = 0;
   const awake = on => { const f = globalThis.__nsHoldAwake; if (f) { try { f(on, 'jaywalk'); } catch { /* audio is polish */ } } };
   const syncs = TEST ? [] : null;   // (the pass's measure — tests/integration/sound-sync.mjs: when each hop's / landing's sound was asked)
@@ -171,14 +166,11 @@ export function createView() {
     // (H4B — THE TIER IS REMEMBERED: a phone that stepped down starts there next time)
     tiers = createTiers({ apply: t => { if (night) night.setTier(t); if (!pinned) setPref('tier', `${t}:${Math.round(serverNow())}`); }, initial: night.tier() });
     offControls = wireControls(play, { onHop: hop, onAny: nextFollow });
-    // the sounds: the SHARED SFX bus; silent if anything fails — audio is polish
-    // (H4B — DECODED AHEAD: never a decode on the first tap)
+    // the sounds: the SHARED SFX bus; silent if anything fails — audio is polish …
     try { SFX.fetchSounds(); if (isMatch) SFX.fetchSounds(SFX.MATCH_SOUNDS); seasonSounds(dayOfRun(serverNow())); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }   // (J1: + THE MATCH MOMENTS' three, a match only · JT1: the season's own, on a season day only)
   }
 
-// THE LOST CONTEXT: iOS can take the WebGL context away — the run goes on (the server's clock), so the scene is REBUILT the moment
-// it is back (or after 1.5 s); /admin hears once. A DELIBERATE teardown is never heard: the listeners come OFF (offGL) before
-// any destroy() (its forceContextLoss fires 'webglcontextlost') → docs/jaywalk.md "THE TEARDOWN"
+// THE LOST CONTEXT: iOS can take the WebGL context away — the run goes on (the server's clock), so the scene is REBUILT the moment …
   function watchGL() {
     if (offGL) offGL();
     const cv = play && play.querySelector('canvas.jw-canvas'), mine = night;
@@ -204,8 +196,7 @@ export function createView() {
     offGL = () => { offGL = null; clearTimeout(t); cv.removeEventListener('webglcontextlost', lost); cv.removeEventListener('webglcontextrestored', remake); };
   }
 
-  // ---- J4 — THE SEASON (season.js — a VIEW: the run's own day → the winter look; the rules never see it): a solo run + the daily = their GO's
-  //  day, a MATCH = THE FIRST GO's playAt (every phone in the room the same winter). A pack not in by the start = that run's normal look.
+  // ---- J4 — THE SEASON (season.js — a VIEW: the run's own day → the winter look; the rules never see it): a solo run + the daily = their GO's …
   let seasonRun = null;   // (the season this run APPLIED — its normal look if its pack was not in by its start)
   function seasonFor(at) { const d = at > 0 ? dayOfRun(at) : ''; seasonRun = null; if (night) { try { seasonRun = night.setSeason(d, { wet: WET_LIVE, now: srvNow }); seasonSounds(d); } catch { /* polish */ } } }
   /** JT1 — THE SEASON's sounds (sounds.js `season` rows): fetched on their day only (a leaf pile's crunch in autumn · the fireworks Dec 31 + Jan 1) */
@@ -298,16 +289,14 @@ export function createView() {
     const m = matchId, runs = runsNow(), node = runs ? runs[uid] : null;
     if (node && node.go > 0) { haveGo = true; return; }
     const again = () => { if (gone || m !== matchId) return; if (goTries++ < 7) setTimeout(() => { asked = false; }, 420); else refused(); };
-    // (a TRANSACTION, never applied locally — THE NODES ARE THE TRUTH. THE PROOF PASS: the stamp + the GO are the kit's —
-    //  kit/proof-io.js#writeMatchGo, HIGH RISE's too)
+    // (a TRANSACTION, never applied locally — THE NODES ARE THE TRUTH. THE PROOF PASS: the stamp + the GO are the kit's — …
     writeMatchGo(treePath(), uid, 'jaywalk', runs).then(ok => { if (gone || m !== matchId) return; if (ok) haveGo = true; else again(); }, again);
   }
   /** the engine caught up to the clock from a node's hop log (a refresh / a rejoin mid-run) */
   function catchUp() {
     if (!log.length) return;
     let i = 0;
-    // (J2 FIX — the fresh-eyes review: never stop short of a hop already on the server — a clock estimate that moved back would leave it
-    //  unplayed here while the server replays it: THE END CHECK would refuse the honest run. At most CLOCK.ahead ahead of the clock)
+    // (J2 FIX — the fresh-eyes review: never stop short of a hop already on the server — a clock estimate that moved back would leave it …
     const target = Math.max(tickNow().t, log[log.length - 1].t + 1);
     while (!isOver(run) && run.t < target) { let d = ''; if (i < log.length && log[i].t === run.t) d = log[i++].d; step(run, course, d); }
   }
@@ -417,12 +406,7 @@ export function createView() {
     lineKey = key; night.setLines(want);
   }
   /** THE PROOF: the new hops go up in chunks, each server-stamped on ARRIVAL; offline they queue + land together (THE DROPPED SIGNAL) */
-  // CITY I — A LATE PROOF CHUNK = A QUIET COUNT, NEVER A RULES REFUSED ROW (the inbox's 8:05 pm entry — the late k write's family, docs/jaywalk.md
-  // "THE LATE PROOF CHUNK"): the rules take c/{i} only in 'play' (+ the count's last 2 s) and once per index. (1) once this phone KNOWS the match
-  // left 'play' / moved on, no chunk (nor `e`) is written — the unsent hops are dropped + counted ('late-proof'); (2) from the moment it sees the
-  // end, a refusal of one already in flight is EXPECTED (firebase.js#expectRefusal — a quiet count; one refused while still in 'play' stays the
-  // alarm); (3) the first write after a REJOIN reads the node's chunks fresh and never re-sends an index that is there. The proof still verifies:
-  // once the phase is over every later chunk is refused too — no hole; the server's judge counts the run to its last LANDED hop.
+  // CITY I — A LATE PROOF CHUNK = A QUIET COUNT, NEVER A RULES REFUSED ROW (the inbox's 8:05 pm entry — the late k write's family, docs/jaywalk.md …
   const countQuietLate = () => lazyImport(import('../../errlog.js'), '../../errlog.js').then(m => { if (typeof m.countQuiet === 'function') m.countQuiet('late-proof'); }).catch(() => {});   // (THE STALE-MODULE RULE: an existing export, lazily)
   const matchLeft = () => !D && !!matchId && (!st.game || st.game.matchId !== matchId || (st.game.phase !== 'play' && st.game.phase !== 'count'));   // (past 'play' — the count's last 2 s still take a chunk)
   let lateSeen = '';
@@ -432,10 +416,7 @@ export function createView() {
     expectRefusal(`${nodePath()}/c`, `jaywalk: a proof chunk after the match ended (${why})`, 90_000, 'late-proof');
     expectRefusal(`${nodePath()}/e`, `jaywalk: the end after the match ended (${why})`, 90_000, 'late-proof');
   }
-  // THE PROOF PASS — THE PROOF WRITER (kit/proof-writer.js, HIGH RISE's too — the review's MUST 2 a): ONE burst at a time (the next chunk
-  // leaves once the one before is acknowledged), a REFUSED chunk is read back + sent again, the hops are NEVER dropped on the mirror alone
-  // (a mirror that says "the match moved on" only makes a refusal expected — (1) above now takes LATE_TRIES refusals), `e` behind the last
-  // chunk. A run's writer is its own (a late answer never touches the next run's). THE DAILY (its own node + rules): the old way (`pipe`).
+  // THE PROOF PASS — THE PROOF WRITER (kit/proof-writer.js, HIGH RISE's too — the review's MUST 2 a): ONE burst at a time (the next chunk …
   let W = null;
   function newWriter() {
     if (W) W.close();   // (the run before: what it logged leaves now; its late answers touch nothing)
@@ -603,11 +584,7 @@ export function createView() {
     }
   }
 
-  // ---- J1 — THE MATCH MOMENTS (moments.js + moments-view.js): every OUT from that player's OWN end — their node's `e`, this phone's own
-  // engine — never the host's state (an honest END GAME never shows a fake OUT)
-  // (THE FRESH-EYES REVIEW: only a player with an on-time GO is in the moments — a seat that never GOes is never a duellist; a run the
-  //  host's own rule calls over without its `e` (a phone that quit / died mid-run: director.js#liveOf — idle-out, never the host's word) is
-  //  a QUIET end: no banner, no sound, it just leaves the count)
+  // ---- J1 — THE MATCH MOMENTS (moments.js + moments-view.js): every OUT from that player's OWN end — their node's `e`, this phone's own …
   function pumpMoments(g, runs) {
     const g0 = firstGo(runs), ids = Object.keys(g.participants || {}).filter(u => u === uid ? mine(g) && (!runs[u] || onTime(runs[u], g0) || !goOf(runs[u])) : onTime(runs[u], g0)), ends = {}, lanes = {};
     let live = null;
@@ -662,8 +639,7 @@ export function createView() {
     if (isMatch && c) {
       const runs = runsNow();
       if (!revealed && srvNow() >= go - 260) { revealed = true; night.setReveal(1); }
-      // THE WORLD's TICK this frame (H4B): while this phone's kid runs, HIS (a stall is caught up over a few frames — the cars with him);
-      // once he is out / for a watcher, the clock's. The ghosts are stepped to it and the scene draws every car + log at it.
+      // THE WORLD's TICK this frame (H4B): while this phone's kid runs, HIS (a stall is caught up over a few frames — the cars with him); …
       const alive = mode === 'run' && !isOver(run), wt = alive ? run.t : Math.max(0, c.t), wa = alive ? a : c.t < 0 ? 0 : c.a;
       stepGhosts(wt);
       if (mode === 'over') afterOut(g, runs);
@@ -688,9 +664,7 @@ export function createView() {
     drawLines(mine(g) && drawRun === run);
     night.draw(drawRun, course, a, dt, extra); duckMoment();
     if (shotAt && performance.now() >= shotAt) takeShot();
-    // the ghosts' name tags: each over its kid; two that would sit on each other (everyone on the start cell) stack upward
-    // (H5B's add-on — THE GHOSTS STOP BLOCKING YOU: no tag through the count (the names are lined up — the roster); a ghost NEAR YOU
-    //  is faint and has no tag (night.js: `tag` = null); ghosts on the same / touching squares share ONE tag — the leader's name + "+N")
+    // the ghosts' name tags: each over its kid; two that would sit on each other (everyone on the start cell) stack upward …
     const placed = [], counting = !!rosterEl && rosterEl.classList.contains('is-on');
     if (extra) {
       const shown = counting ? [] : extra.ghosts.filter(G => G.tag), lead = new Map();
@@ -719,8 +693,7 @@ export function createView() {
   function endScreen() {
     const g = st.game;
     if (isMatch) {
-      // (the match is over — the host's step: the podium for everyone)
-      // (someone still standing at 6:00: the podium waits THE MOTHERSHIP's lift out)
+      // (the match is over — the host's step: the podium for everyone) …
       if (!g || g.phase !== 'final' || final || runLive()) return;   // (THE CONSOLE FIX: a live proven run of this phone's own is played out first)
       { const RH = globalThis.__nsRunHold; if (RH && RH.on) return; }   // (… the room moved on: no podium for a match it left — the phone follows it)
       const ship = mode === 'over' && Object.values(g.results || {}).some(r => r && r.x) && tickNow().t < MODES.match.cap + SHIP_SEEN;
@@ -768,37 +741,28 @@ export function createView() {
     if (!g || !night) return;
     const runs = runsNow();
     if (mine(g) && !asked && !haveGo && (g.phase === 'play' || (g.phase === 'count' && srvNow() >= g.playAt - GO_EARLY_MS))) askGoMatch();
-    // the course + tick 0 (H4B — logic.js#startOf: THE NODES ARE THE TRUTH): THE FIRST GO among the proof nodes the SERVER sent — in the
-    // count and in `play` alike, exactly what the server's own count derives; the game's own only with no node to read (an UNPROVEN match)
+    // the course + tick 0 (H4B — logic.js#startOf: THE NODES ARE THE TRUTH): THE FIRST GO among the proof nodes the SERVER sent — in the …
     const S = startOf(g, runs, code);
-    // (J2 — COURSE RULES v2: the match's version = the one in force at THE FIRST GO; this phone writes it beside its own GO once the first
-    //  GO is known (`cv` — the rules take it once; the host + the server check it). Its own node's word wins (a refusal: no `cv` → v1 in
-    //  THE GRACE — the version the server replays this node on)
+    // (J2 — COURSE RULES v2: the match's version = the one in force at THE FIRST GO; this phone writes it beside its own GO once the first …
     const myN = runs && mine(g) ? runs[uid] : null, E = S ? matchVersion(S) : 1;
     if (S && runs && myN && myN.go > 0 && myN.cv == null && !cvAsked && mine(g)) {
       cvAsked = true; const m = matchId, p = `${nodePath()}/cv`;
       expectRefusal(p, 'jaywalk cv: the rules are not re-published yet (J2) — the match plays v1');
       dbSet(dbRef(p), E).then(() => { if (!gone && m === matchId) { cvMine = E; sync(); } }, () => { if (!gone && m === matchId) { cvMine = runVersion(null, E, myN.go) || E; sync(); } });
     }
-    // (the course is taken ONCE its version is SETTLED — a watcher / an unproven match: the version in force; a player: its node's cv, or its
-    //  own write's answer; until then the count runs on (by tick 0 the version in force is taken — a slow answer may still move it))
+    // (the course is taken ONCE its version is SETTLED — a watcher / an unproven match: the version in force; a player: its node's cv, or its …
     const late = !!myN && goOf(myN) > 0 && S && !onTime(myN, S.g0);
     //  (its OWN write still in the air: the answer, never the mirror — the database shows a write locally before the server has taken it)
     const V = !mine(g) || g.unproven || late ? E : cvAsked ? cvMine || (S && srvNow() >= S.playAt ? E : 0) : myN && myN.cv != null ? nodeVersion(myN, E) || E : S && srvNow() >= S.playAt ? E : 0;
-    // (THE PROOF PASS — the inbox, Nov 20 ~12:49 am (2), HIGH RISE S4B's own fix: never adopted from the game ALONE while the proof mirror
-    //  is still on its way — a refresh mid-match took the match with NO hops of its own replayed. A proven match in `play` always has a
-    //  node to read: wait for it.)
+    // (THE PROOF PASS — the inbox, Nov 20 ~12:49 am (2), HIGH RISE S4B's own fix: never adopted from the game ALONE while the proof mirror …
     if (S && V && (course.seed !== S.seed || go !== S.playAt || course.cv !== V) && (runs || g.unproven)) { if (TEST) adopts.push({ at: Math.round(srvNow() - S.playAt), seed: S.seed, t: run.t, hops: log.length, cv: V }); adoptMatch(S, runs, V); }
-    // (THE PROOF PASS: a GO of this phone's own that landed LATER than the window after THE FIRST GO is no run — the server drops it
-    //  (core/proof.js#onTime): nothing is written for it. On the re-published rules such a GO is refused.)
+    // (THE PROOF PASS: a GO of this phone's own that landed LATER than the window after THE FIRST GO is no run — the server drops it …
     const myNode = runs ? runs[uid] : null;
     lateGo = !!myNode && goOf(myNode) > 0 && !onTime(myNode, firstGo(runs));
-    // (THE CONSOLE FIX: once proven, the host's game can not take it back — a participants list without this phone, or `unproven` written
-    //  mid-run, stopped its chunks + its end: the run was cut. The tree says who played: this phone's on-time GO)
+    // (THE CONSOLE FIX: once proven, the host's game can not take it back — a participants list without this phone, or `unproven` written …
     proven = !lateGo && ((haveGo && !g.unproven && mine(g)) || everProven);
     if (proven) everProven = true;
-    // (THE PROOF PASS — A HOST HICCUP AT GO, the take-back (HIGH RISE's REVIEW FIX A): a run that ENDED while the match was marked
-    //  unproven never wrote its `e` — once proven again the end goes up now: Call the Winner opens, the match does not wait 18 s)
+    // (THE PROOF PASS — A HOST HICCUP AT GO, the take-back (HIGH RISE's REVIEW FIX A): a run that ENDED while the match was marked …
     if (proven && mode === 'over' && !wroteE && run && isOver(run)) sendEnd();
     if (course !== START && runs) feedGhosts(g, runs);
   }

@@ -1,13 +1,5 @@
 // JAYWALK J1 — THE MATCH MOMENTS, the PURE half (docs/jaywalk.md "THE MATCH MOMENTS"; the screen: moments-view.js). Every "out" keys off
-// that player's OWN end of run — their proof node's `e` (this phone's own: its own engine's end) — NEVER the host's word: an honest END GAME,
-// a host's early `final` or a moved-on room never shows a fake OUT (THE CONSOLE FIX's rule). THE MOTHERSHIP's `taken` is a finish, not an out.
-//   · OUT — another player's own end: a banner (merged when outs land within OUT_MERGE_MS), a red X where their ghost fell, the out sound
-//     (THE GRAVESTONES, the owner's add-on Nov 21: the X STAYS — bright for X_MS, then a smaller, fainter X + the name pinned where they fell
-//     for the rest of the match, scrolling with the world; faded while it sits in the lane in front of this phone's kid — graveAhead)
-//   · HEAD TO HEAD — a match of 3+ players narrows TO two (an out leaves exactly two in) — ONCE; never at the start; never in a 2-player match
-//   · THE DUEL STRIP — while exactly two are in: a 2-player match from the start; a 3+ match after its HEAD TO HEAD (at once after a rejoin)
-//   · LAST ONE STANDING — everyone else is out and THIS phone's run goes on (the 2-player case too) — ONCE, for the survivor
-// A refresh / rejoin takes the state as it stands as its BASELINE (no moment replayed); the strip is drawn from the state itself.
+// The long notes: docs/games/jaywalk-notes.md
 export const OUT_MERGE_MS = 1000;      // (outs closer than this share ONE banner — "MIA + LIAM OUT")
 export const BANNER_MS = 1500;         // (the OUT banner: in · hold · out)
 export const X_MS = 1500;              // (the red X where a ghost fell: bright this long, then it SETTLES into its gravestone — never removed before the match ends)

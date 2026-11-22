@@ -1,9 +1,5 @@
 // JAYWALK — THE NIGHT LOOK's SHADERS + small pieces (H2 — docs/jaywalk.md "THE NIGHT LOOK"): the lanes' ground (ONE instanced plane a lane,
-// drawn in the shader: grass · asphalt + curbs + dashed lines · THE WATER (H5B's add-on: VIDEO-GAME WATER by night too — a clear saturated blue, ripple caps + specks drifting with the lane's current, a bold foam line; BLUE ON THE GROUND = WATER, NOTHING ELSE) · rails + sleepers · the flight path · a landmark's
-// paving — the edge columns dimmer, the BLACKOUT's per-lane darkness, the fog), the additive lights (flat on the ground + facing the
-// camera — pools, trails, beams, rings, lamps: NO real point light anywhere), the blob shadows, the paint patch (a car's body / the kid's
-// hoodie takes its colour; everything else keeps Kenney's), a tiny generated neon environment (the gloss) and THE HALF-RES BLOOM (top tier
-// only). Colours in these shaders are DISPLAY values (no colour-space pass): they match the scene's fog colour as the screen shows it.
+// The long notes: docs/games/jaywalk-notes.md
 import * as THREE from 'three';
 
 export const FOG_HEX = 0x0b0716;

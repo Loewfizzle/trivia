@@ -1,9 +1,5 @@
 // JAYWALK — THE COURSE (H1 — docs/jaywalk.md): every lane is a PURE function of (seed, lane index) — built alone, in any order, on the phone
-// or the server — and every hazard's position a PURE function of (lane, tick): cars, logs, trains, THE BLACKBIRD, THE UFO. No per-tick
-// simulation is needed to know where anything is. PURE: no DOM, no clock, no Math.random; integers + Math.floor only (tuning.js says why).
-// J2 — COURSE RULES v2 (versions.js): a course is a pure function of (seed, COURSE VERSION) — `cv` 1 (the default everywhere: the rules
-// exactly as they shipped up to J1 — tests/jaywalk-v1-frozen.test.mjs holds them to the frozen copy byte for byte) or 2 (EVEN STARTS +
-// THE BLACKBIRD's RUNWAYS). Every v2 change sits behind `cv >= 2`; the v1 path is never touched.
+// The long notes: docs/games/jaywalk-notes.md
 import { hashString, rngFrom } from '../../core/rng.js';
 import {
   FP, COLS, WIDTH, MID_COL, CALM_LANES, STRETCH, LANDMARKS, landmarkAt, heatAt, byHeat, MIX, FIRST, WATER_RUN_MAX, RAIL_RUN_MAX, ROAD, WATER, RAIL, FLIGHT, UFO, GRASS,
@@ -136,15 +132,12 @@ function specials2(seed, s) {
     const ph0 = ri(R, 0, P - 1), slots = [], dirs = [], jit = [];
     for (let j = 0; j < n; j++) { slots.push(j); dirs.push(R() < 0.5 ? 1 : -1); jit.push(ri(R, 0, RUNWAY.jitter)); }
     for (let j = n - 1; j > 0; j--) { const q = ri(R, 0, j), t = slots[j]; slots[j] = slots[q]; slots[q] = t; }   // (the order the jets come in: shuffled)
-    // THE STAGGER: the ticks between one lane's jet and the next — from the tight cluster to the lap shared evenly (by the seed); a layout
-    // that leaves a careful kid too few start ticks a lap to get across (runwaySlack) is not used: the tight cluster instead (always fair)
+    // THE STAGGER: the ticks between one lane's jet and the next — from the tight cluster to the lap shared evenly (by the seed); a layout …
     const even = Math.floor(P / n), D0 = ri(R, RUNWAY.gap[0], RUNWAY.gap[1] || even);
-    // (J2 FIX — THE BLACKBIRD YOU CAN SEE: the jet's speed by where the runway is — the first runways slowest, from 250 a step faster, THE
-    //  AIRFIELD fastest; the tell 1.2 s, v2's own floor)
+    // (J2 FIX — THE BLACKBIRD YOU CAN SEE: the jet's speed by where the runway is — the first runways slowest, from 250 a step faster, THE …
     const v = RUNWAY.v[airfield ? 2 : y0 < 250 ? 0 : 1], tell = Math.max(RUNWAY.tellMin, RUNWAY.tell), pass = ceilDiv(WIDTH + RUNWAY.len, v);
     const lay = D => { const L = []; for (let j = 0; j < n; j++) L.push({ period: P, phase: mod(ph0 + slots[j] * D + jit[j], P), tell, len: RUNWAY.len, v, pass, dir: dirs[j], band: y0 + j, n: 1, trail: RUNWAY.trail, rw: y0, rn: n }); return L; };
-    // (J2 FIX — the slower jets burn a lane longer: a layout must ALSO never keep a careful kid waiting past `wait` (runwayWait); the tight
-    //  cluster is tried next, and if even that fails, the cluster in LANE ORDER — the bottom lane's jet first: he follows the wave across)
+    // (J2 FIX — the slower jets burn a lane longer: a layout must ALSO never keep a careful kid waiting past `wait` (runwayWait); the tight …
     const fits = L => runwaySlack(L) >= RUNWAY.slack && runwayWait(L) <= RUNWAY.wait;
     let lanes = lay(D0);
     if (!fits(lanes)) lanes = lay(RUNWAY.gap[0]);
@@ -212,8 +205,7 @@ export function typeAt(seed, i, sp = null, cv = 1) {
   let t = rawType(seed, i);
   if ((t === 'water' || t === 'rail') && ufoReach(sp.ufo, i)) return 'grass';
   if (t === 'water' || t === 'rail') {
-    // (never more than 3 water — or 3 rail — lanes in a row: in a long raw run every 4th lane is ground. H5A: a run goes ON after its
-    //  break — THE CANAL / THE RAIL YARD read as water / rails with footings, not one block and then a field)
+    // (never more than 3 water — or 3 rail — lanes in a row: in a long raw run every 4th lane is ground. H5A: a run goes ON after its …
     const max = t === 'water' ? WATER_RUN_MAX : RAIL_RUN_MAX;
     let n = 0;
     while (n < i && rawType(seed, i - 1 - n) === t) n++;   // (the raw run behind this lane — it ends at the calm opening at the latest)
@@ -259,8 +251,7 @@ export function buildLane(seed, i, cv = 1) {
   } else if (type === 'water') {
     const dir = i % 2 ? 1 : -1;   // (two water lanes side by side always run OPPOSITE ways: a rider always meets the next lane's logs)
     const v = clamp(ri(rand, byHeat(WATER.vMin[0], WATER.vMin[1], heat), byHeat(WATER.vMax[0], WATER.vMax[1], heat)), 12, 80);
-    // H3 — every log its OWN length (1–4 cells: long ones early, short ones later — the weights by heat) + UNEVEN gaps (short · long). A
-    // 1-cell log is the hard one: only on a slow lane (WATER.oneV) with no water lane beside it (a hop log-to-log always has ≥ 2 cells to land on)
+    // H3 — every log its OWN length (1–4 cells: long ones early, short ones later — the weights by heat) + UNEVEN gaps (short · long). A …
     const W = [0, 1, 2, 3].map(k => Math.max(1, byHeat(WATER.lenW[0][k], WATER.lenW[1][k], heat))), sum = W[0] + W[1] + W[2] + W[3];
     const one = v <= WATER.oneV && typeAt(seed, i - 1, null, cv) !== 'water' && typeAt(seed, i + 1, null, cv) !== 'water';
     const lenOf = () => { let r = Math.floor(rand() * sum), n = 0; while (n < 3 && r >= W[n]) r -= W[n++]; return (n === 0 && !one ? 2 : n + 1) * FP; };
@@ -304,8 +295,7 @@ export function laneHit(lane, tick, x) {
   }
   if (t === 'rail' || t === 'flight') {
     const p = lane.pulse, u = mod(tick - p.phase, p.period);
-    // (J2 — a v2 RUNWAY lane's jet lays THE AFTERBURNER TRAIL: everything behind it burns through the pass, then the WHOLE lane for
-    //  `trail` ticks after it — the cause stays 'blackbird'. A v1 pulse has no `trail`: the body alone, as it always was)
+    // (J2 — a v2 RUNWAY lane's jet lays THE AFTERBURNER TRAIL: everything behind it burns through the pass, then the WHOLE lane for …
     if (u >= p.pass) return p.trail && u < p.pass + p.trail ? 'blackbird' : '';
     const l = pulseLeft(p, u);
     if (p.trail) return (p.dir > 0 ? x - KID_HALF < l + p.len : x + KID_HALF > l) ? 'blackbird' : '';

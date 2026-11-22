@@ -1,8 +1,5 @@
 // JAYWALK — THE MODELS (H2 — docs/jaywalk.md "THE NIGHT LOOK"): the 12 Kenney models (CC0 — assets/jaywalk/models/, re-packed by
-// scripts/build-jaywalk-assets.py: ONE mesh each, the colormap baked into vertex colours, a car's body paint in COLOR_0's alpha) through a
-// tiny GLB reader of our own (no loader add-on: the page's import map carries three's core only), THE KID (H5A — Kenney's skate boy, his
-// bones + poses read by the same reader), + everything BUILT IN CODE in the smooth toy style: the round puffy trees, THE LOGS (bark, cut ends, rings), the tufts, THE BOX TRUCK. Every geometry here carries `color` (linear RGB) +
-// `paint` (1 = the part that takes the player's / the car's colour). Kenney's normals are never recomputed.
+// The long notes: docs/games/jaywalk-notes.md
 import * as THREE from 'three';
 
 const DIR = new URL('../../../assets/jaywalk/models/', import.meta.url);

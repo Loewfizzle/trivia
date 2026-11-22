@@ -1,15 +1,5 @@
 // JAYWALK J1 — THE MATCH MOMENTS, the screen (docs/jaywalk.md "THE MATCH MOMENTS"; the rules: moments.js — PURE). All of it sits at the TOP
-// of the screen, under the lane numeral, pointer-events none — nothing covers the lanes ahead, nothing stays longer than its moment but the
-// small duel strip. Transform + opacity only; Reduced motion = a steady glow, no pulse, no flash.
-//   · THE OUT BANNER: "<NAME> IS OUT" (the name in the player's colour) + "87 LANES · 3 LEFT", ~1.5 s; outs within 1 s merge; the out sound
-//     once a banner
-//   · THE RED X → THE GRAVESTONE (the owner's add-on, Nov 21): where the out player's ghost fell — the see-through red X + their name for
-//     X_MS (as before), then it SETTLES: a smaller, fainter X + the name, pinned to that spot until the match ends (it scrolls with the world —
-//     the fallen ghost's own place, re-projected each frame; off the screen = hidden). Faded while it sits in the lane in front of the kid
-//     on screen (graveAhead). DOM overlay only (no draw call); a transform written only when the spot moves; solo has none (match only)
-//   · HEAD TO HEAD: the big words + "BEN 142 vs JUSTIN 138" → the screen's EDGES pulse red, faster with the siren → one flash at its peak →
-//     the words shrink into THE DUEL STRIP (both players' lanes, live, the leader marked by a shape — never colour alone)
-//   · LAST ONE STANDING: "+23 LANES AHEAD · KEEP GOING" + its sound — the run goes on
+// The long notes: docs/games/jaywalk-notes.md
 import { h } from '../../ui/dom.js';
 import { createMoments, stepMoments, bannerWords, lastWords, graveAhead, OUT_MERGE_MS, BANNER_MS, X_MS, H2H_STRIP_MS, H2H_MS, LAST_MS } from './moments.js';
 

@@ -1,15 +1,5 @@
 // JAYWALK — THE SOUND CUES (H5A — docs/jaywalk.md "THE SOUNDS"): WHEN the world's sounds play — PURE (no audio, no DOM, no clock: the
-// view hands it the run after each tick + that tick's events; sfx.js#onCue plays what it returns). The kid's own sounds (hop · land ·
-// hit · splash) stay the engine's events (sfx.js#onEvent). Every cue is about THIS phone's own kid — in a match a ghost makes no sound.
-//   · bell-on / bell-off — THE TRAIN BELL loops while a rail lane's signals flash NEAR the kid (its tell) and stops as the train passes
-//   · train-pass        — the moment a near train's pass begins (panned to the side it comes from)
-//   · train-horn        — H5C: ONE blast a train, the moment its WARNING STARTS (a near rail lane's tell begins), from its side
-//   (H5B — the owner: the CAR-PASS near-miss whoosh is GONE — no cue, no sound)
-//   · horn              — a car closing on the kid standing in its lane, ≤ 1 every 3 s
-//   · truck-horn        — BEFORE THE FLIP (the owner, Nov 17 7:21 pm): the SAME horn moments ALTERNATE car horn · truck horn (no horn added)
-//   · tick / tick-off   — BEFORE THE FLIP (the owner — it REPLACES "lights-die"): THE STOPWATCH — one loop, silent while the dark waits at its
-//                         5 lanes behind, fading in + speeding up as THE BLACKOUT / THE FOG BANK closes on him (tickOf: { level, rate })
-// The world's own moments are read straight off the course (pulseAt, moverLeft — pure functions of the tick): nothing here is a rule.
+// The long notes: docs/games/jaywalk-notes.md
 import { FP, KID_HALF, TICK_HZ } from './tuning.js';
 import { pulseAt, moverLeft } from './course.js';
 

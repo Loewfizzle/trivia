@@ -1,13 +1,5 @@
 // THE PODIUM's FRAME (SHELL 2.0 A — review-6.md D8, agreed with the Overclock chat): the CONSOLE owns the end-of-match screen's frame — the
-// kicker + the WINNER line, the XP box (profile/callouts.js) with the end-of-round moment's order after it ("already yours" / the next unlock,
-// THE CARD REVEAL), and THE FOOT — END-SCREEN STANDARD A since CITY F (the bar in the game's accent + the quiet links; below). HOLD'EM IN THE CITY —
-// B3 (HE9's Fable review: with 8 slim cards it was cut at 390 × 844, below the fold on the SE / sideways): THE ACTION ROW IS STICKY at the
-// screen's foot — ALWAYS ON SCREEN, every game — the frame's last piece (under the XP box when nothing follows it), over a solid backing
-// (--fin-bg: a game whose podium isn't the console's dark panel sets its own), with a soft fade + a small MORE BELOW cue while the cards run
-// past the fold (measured on a scroll + a resize only; the cue goes once scrolled). NEW GAME lives in the room's dock; REMATCH is the foot's bar.
-// A game draws its own BODY inside the frame by exporting finalScene(el, game, state) from its module (OVERCLOCK's "OVERCLOCKED", the
-// tube-sign name, the 2-1-3 podium, award chips, SOLO's NEW PERSONAL BEST); without it, the console's default podium rise (3rd, 2nd, 1st).
-// The full leaderboard follows the XP box; the button stays at the foot.
+// The long notes: docs/games/jaywalk-notes.md
 import { levelOf } from '../core/levels.js';
 import { fitName } from './fit.js';
 import { h, vibrate, reducedMotion } from './dom.js';
@@ -60,8 +52,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   // the global boards: personal bests, world ranks, XP, rank-ups (js/profile/callouts.js) — loaded on demand, never in the way
   const rcSlot = h('div.rc-slot');
   let rc = null, gone = false;
-  // (THE CONSOLE FIX: `game` = the match as the game scored it on this phone — a podium that waited for a live run reads the nodes, never an
-  //  early `final`'s numbers; default the room's)
+  // (THE CONSOLE FIX: `game` = the match as the game scored it on this phone — a podium that waited for a live run reads the nodes, never an …
   const g = game || state.game;
   if (state.code && g && g.matchId && g.participants && g.participants[me]) {
     lazyImport(import('../profile/callouts.js'), '../profile/callouts.js').then(m => { if (gone) return; rc = m.attachCallouts(state.code, g); rcSlot.append(rc.el); }).catch(() => {});
@@ -102,16 +93,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   // (SHELL 2.0 B1 — THE SOLO LANE: a room of one — no winner, no placing: SOLO RUN + the score; a game's own finalScene shows its solo body)
   const solo = !!(g && Object.keys(g.participants || {}).length === 1);
   const word = solo ? 'SOLO RUN' : allTied ? 'ALL TIED' : tied ? 'DEADLOCK' : 'WINNER';
-  // CITY F — END-SCREEN STANDARD A (the owner's pick, Nov 17 — Downloads\NEON\endscreen-standard-A.jpg): ONE foot for EVERY game's end screen,
-  // built HERE (no game keeps its own copy): ONE big SOLID bar in the GAME's ACCENT (the cartridge's ACCENT; the console's pink without one —
-  // THE SHELL's one named exception to THE NEON TUBE: the screen's MAIN button in the game's colour) + under it QUIET icon links, no boxes.
-  //   SOLO (PLAY NOW's solo room / a room of one): the bar = PLAY AGAIN (the replay icon) · the links = SHARE (when the cartridge shares) ·
-  //   CITY (BACK TO THE CITY — a solo room) or BACK TO THE ROOM (a room of one).
-  //   A MATCH: the bar = REMATCH — the host's tap = host.js#rematch (the same game + settings, everyone in); a guest's tap = THEIR VOTE
-  //   (rv/{uid} = this match — the room's ring counts it after the walk back; again = take it back) → the bar says WAITING FOR THE HOST +
-  //   the votes, never dead · the links = BACK TO THE ROOM (the host's brings the room back; a guest walks back alone) · SHARE.
-  // Dark text on the accent when it reads ≥ 4.5 : 1, white otherwise (finInk). Every control: data-press (the podium is a game's screen —
-  // the implicit press is off there) / SHARE data-gesture (Safari's own share sheet), a 44 pt tap area.
+  // CITY F — END-SCREEN STANDARD A (the owner's pick, Nov 17 — Downloads\NEON\endscreen-standard-A.jpg): ONE foot for EVERY game's end screen, …
   const PN = globalThis.__nsPlayNow;
   const soloRoom = !!(PN && PN.isSolo && PN.isSolo());
   const oneRoom = !soloRoom && !!PN && solo && isHost() && Object.keys(players || {}).length === 1;
@@ -122,9 +104,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     if (state.game && state.game.matchId) setState({ quit: state.game.matchId });
   };
   const back = h('button.final-link.final-back', { type: 'button', 'data-press': true, 'aria-label': 'Back to the room', onclick: backTap }, finIcon('room'), h('span', 'ROOM'));
-  // (PLAY NOW — PLAY AGAIN = the same game + options, THE SOLO START (JAYWALK H3 — THE INSTANT AGAIN: a cartridge with `soloAgain` starts its
-  //  next run with NO walk inside — games/kit/again.js, loaded with the podium); BACK TO THE CITY = the solo room closed like a QUIT. Read
-  //  through host.js's hub (__nsPlayNow) — this lazy chunk imports no new export)
+  // (PLAY NOW — PLAY AGAIN = the same game + options, THE SOLO START (JAYWALK H3 — THE INSTANT AGAIN: a cartridge with `soloAgain` starts its …
   const instant = (soloRoom || oneRoom) && mod && typeof mod.soloAgain === 'function' ? lazyImport(import('../games/kit/again.js'), '../games/kit/again.js').catch(() => null) : null;
   let leave = null, bar = null;
   if (soloRoom || oneRoom) {
@@ -168,9 +148,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
       voting = true;
       const mine = votes().mine;
       pendingVote = mine ? null : m; paint();
-      // (CITY G — A LATE VOTE NEVER GOES IN (/admin RULES REFUSED rooms/*{rv/*}, Nov 17 10:27 pm): CITY F queued a refused vote on the phone and
-      //  wrote it once the room was back — after the end screen was gone. Now a refused vote is DROPPED (the bar shows it is not in); nothing
-      //  is ever written off the podium. The vote is written only while THIS match's end screen is up)
+      // (CITY G — A LATE VOTE NEVER GOES IN (/admin RULES REFUSED rooms/*{rv/*}, Nov 17 10:27 pm): CITY F queued a refused vote on the phone and …
       const live = () => !gone && state.code && state.game && state.game.matchId === m && state.game.phase === 'final';
       if (!live()) { voting = false; pendingVote = null; paint(); return; }
       writeVote(state.code, state.uid, mine ? null : m).catch(() => { if (pendingVote === m) pendingVote = null; })
@@ -181,8 +159,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     cancelers.push(subscribe(paint));   // (the votes + the host move live — every phone's mirrored rv)
   }
   const canShare = !!(mod && typeof mod.shareRun === 'function' && g && g.participants && g.participants[me]);
-  // (JAYWALK BEFORE THE FLIP — a game whose card uploads at the tap: a slow first tap reads PREPARING…; 'ready' = the link is made but the
-  //  tap's user activation was spent on the upload (iOS) — the link reads SHARE again, lit, and the NEXT tap shares at once)
+  // (JAYWALK BEFORE THE FLIP — a game whose card uploads at the tap: a slow first tap reads PREPARING…; 'ready' = the link is made but the …
   const shareT = h('span', 'SHARE');
   const share = canShare ? h('button.final-link.final-share', { type: 'button', 'data-gesture': true, onclick: () => {
     if (busy(share)) return;
@@ -206,15 +183,11 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   let hostShown = null;
   function refresh() { hostShown = isHost(); back.dataset.host = hostShown ? '1' : '0'; for (const f of refreshers) f(); }
   refresh();
-  // (FRIENDS B — B4: a body that already shows the top three (OVERCLOCK's 2-1-3 podium, the console's own) → the results list starts at 4th;
-  //  a solo run / a room of ≤ 3 has no list then; a body that shows NO podium says so — el.dataset.podium = 'none' (OVERCLOCK's NOBODY
-  //  SCORED) → the whole list)
-  //  (HE4: a body that shows EVERY place itself — HOLD'EM's places / ledger as slim cards — says el.dataset.podium = 'all' → no list here)
+  // (FRIENDS B — B4: a body that already shows the top three (OVERCLOCK's 2-1-3 podium, the console's own) → the results list starts at 4th; …
   const top3 = !body || body.dataset.podium !== 'none';
   const listRows0 = body && body.dataset.podium === 'all' ? [] : top3 ? rows.slice(3) : rows;
   const listRows = allTied ? listRows0.map(r => ({ ...r, rank: '=' })) : listRows0;   // (B4: everyone level — '=' for all, nobody 01)
-  // (CITY PART 2 — THE END NEON: a game with a NEON row + a `mode` ('SOLO' / 'MATCH') → the header "<GAME> · <MODE>" in its sign's colours —
-  //  ui/fin-neon.js, the ONE builder; without either the kicker as given)
+  // (CITY PART 2 — THE END NEON: a game with a NEON row + a `mode` ('SOLO' / 'MATCH') → the header "<GAME> · <MODE>" in its sign's colours — …
   const neonKick = mode != null && g && neonOf(g.id) ? finHeader(g.id, mode) : null;
   const el = h('div.panel-full.final', solo ? { class: 'is-solo' } : allTied ? { class: 'is-alltied' } : null,
     neonKick ? h('div.sheet-kicker.fn-kick', neonKick) : h('div.sheet-kicker', kicker),
@@ -225,8 +198,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     extra,
     listRows.length ? leaderboard(listRows, players, { me, presence, stagger: 60 }) : null,
     actions);
-  // (B3: is there more below the fold? — on a scroll + whenever the frame or a piece of it changes size: the XP box lands late, the rows
-  //  stagger in; never in a frame loop)
+  // (B3: is there more below the fold? — on a scroll + whenever the frame or a piece of it changes size: the XP box lands late, the rows …
   const measure = () => {
     if (gone) return;
     el.classList.toggle('has-more', el.scrollHeight - el.clientHeight - el.scrollTop > 6);
@@ -255,13 +227,11 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   if (neonKick) cancelers.push(fitHeader(neonKick.parentElement));   // (THE END NEON: the WINNER title in gold, SOLO RUN / DEADLOCK in the game's accent — the game's NEON row)
   // (CITY F: the bar's text — dark on the accent where it reads ≥ 4.5 : 1, white where the accent is too dark; the console's pink without one)
   el.style.setProperty('--fin-ink', finInk(mod && /^#[0-9a-f]{6}$/i.test(String(mod.ACCENT || '')) ? mod.ACCENT : FIN_PINK));
-  // (FRIENDS B — B2: THE VICTORY MUSIC waits for the BODY: app.js#musicFor plays the podium music once this frame is on screen — never during
-  //  the last round's answer screen. Local state, keyed by the match — a refresh on the podium remounts the frame and sets it again)
+  // (FRIENDS B — B2: THE VICTORY MUSIC waits for the BODY: app.js#musicFor plays the podium music once this frame is on screen — never during …
   if (g && g.matchId && state.podium !== g.matchId) queueMicrotask(() => { if (!gone && state.podium !== g.matchId) setState({ podium: g.matchId }); });
   const t = setTimeout(() => {
     el.classList.add('crowned');
-    // (FRIENDS B — the winner sting = THE PODIUM SOUNDS' xylophone flourish (was the synth arpeggio); a cartridge with OWN_VICTORY_SOUND
-    //  plays its own — OVERCLOCK's fanfare — so the console stays quiet: never two winner sounds — B2)
+    // (FRIENDS B — the winner sting = THE PODIUM SOUNDS' xylophone flourish (was the synth arpeggio); a cartridge with OWN_VICTORY_SOUND …
     if (allTied) return;   // (B4: a draw — no winner sting, no buzz, no confetti)
     if (!(mod && mod.OWN_VICTORY_SOUND)) pgSfx('victory');
     if (rows[0] && rows[0].uid === me) vibrate([40, 60, 40, 60, 120]);

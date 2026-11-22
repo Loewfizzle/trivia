@@ -1,6 +1,5 @@
 // JAYWALK — THE MATCH's RULES (H1 + H4 — docs/jaywalk.md "THE MATCH"): one run each on the SAME course, ONE LIFE; the results are REPLAYED
-// from each player's own hop log (the proof node rooms/{CODE}/jw/{matchId}/{uid}) — never a number a phone claims. PURE (no DOM, no clock).
-// (THE THIN META: the console's values live in meta.js — one source)
+// The long notes: docs/games/jaywalk-notes.md
 import { DEFAULT_SETTINGS, cleanSettings, chatLocked } from './meta.js';
 import { MODES, TICK_HZ, CLOCK } from './tuning.js';
 import { hashString } from '../../core/rng.js';
@@ -107,8 +106,7 @@ export function scoreRun(game, node, now = null, code = '') {
   if (!seed) return { ...NONE };
   const t0 = solo ? node.go : game.playAt;
   const until = now == null ? null : solo ? Math.max(0, soloTick(t0, now)) + CLOCK.ahead : Math.max(0, tickAt(game, now));
-  // (THE PROOF PASS — the server's guard, on the host's podium too: in a proven match a node with NO GO, or a GO later than the window
-  //  after THE FIRST GO, is no run — the kid who never hopped, `bad` says why; api/_lib/jaywalk.js#jaywalkMatch drops it the same way)
+  // (THE PROOF PASS — the server's guard, on the host's podium too: in a proven match a node with NO GO, or a GO later than the window …
   const late = !solo && game.g0 > 0 && node && !onTime(node, game.g0) ? (goOf(node) ? 'late go' : 'no go') : '';
   // (J2: the version — a solo run's at its own GO, a match's at THE FIRST GO — checked against the node's own `cv`)
   const E = solo ? versionAt(node.go) : matchVersion(game), cv = nodeVersion(node, E);

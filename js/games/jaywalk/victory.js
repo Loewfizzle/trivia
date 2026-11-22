@@ -1,9 +1,5 @@
 // JAYWALK — THE END SCREEN (H3 — docs/jaywalk.md "THE END SCREEN"): the BODY inside the console's podium frame (ui/final.js owns the frame:
-// the XP box, THE FOOT — END-SCREEN STANDARD A since CITY F: PLAY AGAIN / REMATCH + SHARE · CITY / BACK TO THE ROOM). H4 — A MATCH: the
-// frame's own WINNER line, this body = HOW YOU WENT OUT + your lanes, and the console's results list under it = everyone in order as slim cards, each with their lanes + their own cause line
-// (finalRows' `note`). It names HOW YOU WENT OUT in big neon words (one line per cause + vehicle —
-// causes.js), the lanes, then YOUR BEST — or NEW BEST (a moment + the new-best sound), only from the SERVER's own answer (the server
-// replays the run: profile/queue.js's outcome — /api down = just the lanes). No pills, no emoji, no dev text.
+// The long notes: docs/games/jaywalk-notes.md
 import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { colorHex } from '../../config.js';
@@ -132,8 +128,7 @@ function matchScene(el, game, state) {
   }).catch(() => {});
   const calls = game.calls || {}, c = calls[uid];
   if (c) el.append(h('div.jw-fin-call', c.ok ? `YOUR CALL WAS RIGHT · +${c.bonus} POINTS` : 'YOUR CALL MISSED'));
-  // (SHARE MY RUN moved to the console's foot — CITY F, END-SCREEN STANDARD A: ui/final.js's SHARE link calls index.js#shareRun for a match too)
-  // (the winner's moment: the console's own sting is off for this game's solo end — a match plays it here, once the crown lands)
+  // (SHARE MY RUN moved to the console's foot — CITY F, END-SCREEN STANDARD A: ui/final.js's SHARE link calls index.js#shareRun for a match too) …
   const first = standings(game).filter(r => r.rank === 1);
   if (first.length === 1) setTimeout(() => { if (el.isConnected) lazyImport(import('../../audio/progress-sfx.js'), '../../audio/progress-sfx.js').then(m => m.pgSfx('victory')).catch(() => {}); }, 2500);
 }

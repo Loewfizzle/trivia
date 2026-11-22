@@ -1,17 +1,5 @@
 // JAYWALK — THE GHOSTS (H4B — docs/jaywalk.md "THE GHOSTS"): the other players' kids, IN STEP WITH THE WORLD ON SCREEN. PURE (no DOM,
-// no clock of its own: the view hands it the world's tick + the frame's time).
-// THE RULE (the owner, Nov 16 — after his first live match): a ghost is ALWAYS drawn consistent with the world on screen — never inside
-// a car, never in the water while alive. H4 drew a ghost 75 ticks BEHIND a world drawn NOW (a friend safe on a log 1.25 s ago was drawn
-// in the water today). Now:
-//   · `conf` — THE CONFIRMED RUN: every hop this phone has of them, each applied in its own tick, through the same engine.
-//   · `run`  — THE DRAWN RUN: `conf` stepped on to THE WORLD's TICK with no new hop assumed — they stand / ride their log with it, exactly
-//     as the rules would. A ghost's state IS the engine's state at the tick the cars + logs are drawn at.
-//   · A LATE HOP (it always is, by the network's delay): `run` is rebuilt from `conf`; where the ghost was drawn → where the rules put it
-//     now is `off`, closed in A QUICK HOP (never a teleport, never a slide along the ground).
-//   · A DEATH ONLY ONCE CONFIRMED: a ghost goes out only when that player's own log is complete (`done` — their node's `e` is here). Until
-//     then a drawn run that WOULD go out next tick HOLDS STILL in place (`held`) — a death never un-happens. Held longer than
-//     HELD_SHOW_MS (a dropped signal, not the network's beat) it is not drawn until its hops / its end arrive.
-// THE MOTHERSHIP takes a ghost at its fixed tick with nothing to confirm (it is the world's, not a hop's).
+// The long notes: docs/games/jaywalk-notes.md
 import { createRun, step, isOver, kidAt } from './engine.js';
 
 /** a late hop's catch-up lasts this long (ms) + a little per extra cell, never longer than the max */

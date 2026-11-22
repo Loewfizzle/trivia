@@ -1,5 +1,5 @@
 // JAYWALK — THE RUN's FRAME (docs/jaywalk.md "THE SHARE IMAGE" + "THE TOUCH-UP PASS"): the picture of the moment a player went out, kept
-// on this phone until the next run — the view takes it (night.js#snap), the share card draws it (share.js). Pure state, no DOM.
+// The long notes: docs/games/jaywalk-notes.md
 import { KID_HALF, TICK_MS } from './tuning.js';
 import { moverLeft } from './course.js';
 let held = null;

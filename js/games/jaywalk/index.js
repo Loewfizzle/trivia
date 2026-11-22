@@ -1,11 +1,5 @@
 // JAYWALK — THE CARTRIDGE (H1 — docs/jaywalk.md; the contract: js/games/contract.js, docs/cartridge.md). PLAYABLE since THE GO-LIVE
-// PASS (Nov 17): config.js GAMES `playable: true` — offered everywhere; its thin meta at boot (registry.js#META), HOW TO PLAY in ui/help.js.
-// H4 = THE MATCH (ONE LIFE): the course from THE FIRST GO, the ghosts (everyone's hop logs through the same engine), the live order, out =
-// SPECTATE + Call the Winner, the podium (the winner, the order, each player's cause line); the server replays every player's log.
-// H3 = THE SOLO GAME: the real view (view.js — the night look, the proof written as you hop), the end screen (victory.js), PLAY AGAIN.
-// H1 = the rules + the frame: start → THE GAME FRAME (id, matchId, participants, phase), a pure step (THE 3 S RULE: every patch moves the
-// phase), the live path (everyone's proof node — the hop logs ARE the ghosts), the ranks from THE REPLAY. Its screen: a stub until H2 / H4
-// (the graybox lives on /jaywalk-lab).
+// The long notes: docs/games/jaywalk-notes.md
 import { createGame, nextStep, nextRun, nightBonus as bonus } from './director.js';
 import { standings } from './logic.js';
 // (THE THIN META: DEFAULT_SETTINGS, OPTIONS, estimateMinutes, MUSIC, LOOKS, SOLO, the banner, the chat's lock, cleanSettings — meta.js)
@@ -19,8 +13,7 @@ export const musicFor = () => [typeof document !== 'undefined' && document.body 
 
 export const createView = lazyView(() => lazyImport(import('./view.js'), './view.js'), gameSheets('jaywalk'), { needs: globalThis.__nsViewNeeds ? globalThis.__nsViewNeeds.importMaps('JAYWALK') : null });   // (THE FIX PASS — P1: three.js through the import map — Safari < 16.4 gets a clear card, never a blank match)
 
-// THE PROOF NODE (rooms/{CODE}/jw/{matchId}/{uid}): written by the player AT GO (present = proven) + their hop log in chunks as they hop —
-// mirrored for everyone: the same seed + a player's log = their run, tick for tick (the see-through ghosts — H4)
+// THE PROOF NODE (rooms/{CODE}/jw/{matchId}/{uid}): written by the player AT GO (present = proven) + their hop log in chunks as they hop — …
 export const livePaths = g => ({ runs: `jw/${g.matchId}` });
 
 /** (a stand-in only: a SOLO run's course is picked AFTER its GO, a MATCH's after THE FIRST GO — logic.js#seedOf / matchStart — never this) */

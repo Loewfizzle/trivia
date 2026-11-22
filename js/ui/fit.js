@@ -1,22 +1,10 @@
 // THE NAME NEVER CUTS OFF (THE VAULT 1B — the owner's membership card showed "LOEWFIZZ…" for LOEWFIZZLE): a player's name is shown WHOLE,
-// always — never an ellipsis. fitName(el, { min }) sizes the text to its box: the CSS size first; too wide → shrunk to fit (never below
-// a readable minimum); still too wide at the minimum → TWO BALANCED LINES (the name split in the middle — WWWWWW / WWWWWW, never eleven
-// + one), sized so the longer half fits. Measured when the fonts are in + again only when the box itself changes width (a
-// ResizeObserver — never a layout read in a frame loop). NAME_MAX is 12: the widest twelve (WWWWWWWWWWWW) is checked at 390 on the
-// card, the strips + the podium (the profile E2E). The name must be the element's FIRST child (a text node); a badge after it stays.
-// Works on any element whose parent gives it its width (a flex child needs min-width: 0).
+// The long notes: docs/games/jaywalk-notes.md
 const fitted = new WeakMap();
 const fits = new WeakMap();   // (THE CARD PASS: each fitted element's fit — refit(el) runs it again when its box was capped from outside)
 /** fit an already-fitted element again now (its container's width changed by a script — e.g. a full card's plate capped off the hero) */
 export function refit(el) { const f = el && fits.get(el); if (f) f(); }
-// THE SPEED PASS — A FONT THAT ARRIVES LATE (LOBBY FIXES' cloud red: 2 of 42 glowing names overflowing in the lab's GLOWS — "a font-timing
-// flake"): `document.fonts.ready` only waits for the fonts ALREADY loading; a name whose face starts loading after it resolved was fitted on
-// the fallback face, and nothing fitted it again when the real one landed (the box's width doesn't change → no ResizeObserver). Every fitted
-// element re-fits once more when ANY font finishes loading (one listener; a disconnected element drops out)
-// PFIX-A (FABLE REVIEW PRISM finding 3 — THE RETAINER): the list holds each fit WEAKLY. It held the closures themselves (each one holds its
-// element) until a font next finished loading — after the first minute none ever does — so every podium's names pinned their whole screen
-// (PRISM's board canvases, ~12 MB a match). A fit lives exactly as long as its element (the `fits` WeakMap: element → fit); the list never
-// keeps one alive. Nothing else changes: a connected element still re-fits on a late font.
+// THE SPEED PASS — A FONT THAT ARRIVES LATE (LOBBY FIXES' cloud red: 2 of 42 glowing names overflowing in the lab's GLOWS — "a font-timing …
 const live = new Set();
 let lateOn = false;
 const weak = fn => (typeof WeakRef === 'function' ? new WeakRef(fn) : { deref: () => fn });
@@ -33,9 +21,7 @@ export function onFontsLoaded(fit, el = null) {
 /** (tests) how many fits the late-font list still names */
 export const lateFits = () => live.size;
 
-// JAYWALK THE POLISH PASS (the owner, Nov 18 6:55 am — "a name must never wrap mid-word on a slim card"): o.one = ONE LINE ONLY (the slim
-// cards — vault/strip.js): the CSS size, then shrunk to fit down to o.min, then — only if it still can't fit at the minimum — an ELLIPSIS
-// (`fit-cut`). Never the two-line split. (The full card, the podium, the dress keep the rule above: whole, two lines.)
+// JAYWALK THE POLISH PASS (the owner, Nov 18 6:55 am — "a name must never wrap mid-word on a slim card"): o.one = ONE LINE ONLY (the slim …
 /** fit one element's text; o.min = the smallest one-line font size (px), o.two = the largest two-line size (px; default 80 % of the CSS size); o.one = one line, then an ellipsis */
 export function fitName(el, o = {}) {
   if (!el || typeof window === 'undefined') return el;
