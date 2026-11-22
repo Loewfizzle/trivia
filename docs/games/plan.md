@@ -762,3 +762,12 @@
 - Props: Kenney Holiday Kit 2.0 (CC0) via Grok — Downloads\grok\jaywalk\winter\ (christmas-tree [decorated], christmas-tree-b [plain — for code lights], snowman, present-small, present-large, snow-pine, candy-cane). Grok's scale advice: ~0.33 christmas-tree, ~0.40 snow-pine / christmas-tree-b. Credit Kenney on the credits page.
 - THE GAMEPLAY LOCK: winter is VIEW ONLY — course.js / logic.js / tuning.js / versions.js and everything the server replays untouched; winter only swaps WHICH MODEL is drawn + the ground / road look. Proven by a replay test (winter forced on / off → identical courses, hits, results; solo + daily + match) + the frozen v1 / v2 copies.
 - THE SEASON CLOCK: one pure module from the game's own day (the 4 am Eastern turn) — solo = its GO's day, the daily = its day, a MATCH = the match start's day (every phone the same winter); never the phone's clock alone. LAB: &date=YYYY-MM-DD · &snow=none|light|heavy · &wet=1 (never the live game or a count).
+
+## THE HIGH RISE DAILY (owner, Nov 21) — DAILY A builds the server + the run (ships HIDDEN); DAILY B the look
+- A 5th daily, plug-and-play: its cartridge + ONE row in config.js#DAILIES (id 'highrise', order 5, measure 'floors', ticket 'highrise', hook 'One shot.', on: false) + its server half in api/_lib/dailies.js#SERVER_CARTS. NOT a rotation with JAYWALK.
+- ONE SHOT: one attempt a day (no tries, no allDay). Same course for everyone — seeded by the day (dailySeed('highrise', day)); practice = solo endless, never the day's seed.
+- Ends at THE MOTHERSHIP (floor 200, like a match). Ranking: floor → most perfects → the earlier tick. Score = FLOORS.
+- The server REPLAYS every run with HIGH RISE's judge (api/_lib/highrise.js) — the phone's word never counts. A run keeps its own day.
+- THE HELD RUN: a locked / hidden / refreshed / killed page RESUMES the run (never burns the one shot): from the last tap the SERVER has; the slab that was swinging restarts at its entry after a 3-2-1; nothing re-rolled. 3 HOLDS a run (THE DROP's 3 pauses pattern); after the 3rd, a hide ENDS the run at its last server tap (scored, counted). A run unfinished at the day's close is scored at its last server tap.
+- DAILY POINTS from the one table (a capped floors curve, the JAYWALK / DROP shape), EVERYONE ON SCORES, DAILY BEST = most floors, THE ONE DAY LINE, the backup's classification.
+- Look decisions for DAILY B (tickets, recolour, share card incl. THE BIG FIVE) are in claude/HIGHRISE-PLAN.md on the owner's side — DAILY B carries them.
