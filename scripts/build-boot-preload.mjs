@@ -45,7 +45,7 @@ export function preloadBlock(list = preloadList()) {
   //  the sheets' low-priority (print-media) requests behind 297 high-priority preloads on an HTTP/1.1 line — measured: the city laid out
   //  at 320×320 for 7 s; on the sheets first, then everything at once)
   return `${A}
-  <script>window.__bootPre=function(){if(window.__bootPre.done)return;window.__bootPre.done=1;var l=window.__bootPre.l,h=document.head;for(var i=0;i<l.length;i++){var e=document.createElement("link");e.rel="modulepreload";e.href="js/"+l[i]+".js";h.appendChild(e);}};window.__bootPre.l="${names.join(' ')}".split(" ");if(window.__css>=4)window.__bootPre();else setTimeout(window.__bootPre,1200);</script>
+  <script>window.__bootPre=function(){if(window.__bootPre.done||window.__nsBundle)return;window.__bootPre.done=1;var l=window.__bootPre.l,h=document.head;for(var i=0;i<l.length;i++){var e=document.createElement("link");e.rel="modulepreload";e.href="js/"+l[i]+".js";h.appendChild(e);}};window.__bootPre.l="${names.join(' ')}".split(" ");if(window.__css>=4)window.__bootPre();else setTimeout(window.__bootPre,1200);</script>
   ${Z}`;
 }
 export function withPreload(html, block = preloadBlock()) {

@@ -14,7 +14,8 @@ test('THE BOOT WATCHDOG is an inline CLASSIC script, ahead of every module, the 
   assert.ok(at > 0, 'index.html defines window.__boot (W.__boot)');
   const open = html.lastIndexOf('<script', at), tag = html.slice(open, html.indexOf('>', open) + 1);
   assert.equal(tag, '<script>', `the watchdog is a plain inline script (got ${tag}) — a module would die with the graph it watches`);
-  for (const later of ['<script type="importmap">', '<link rel="modulepreload" href="js/app.js">', 'href="css/base.css"', 'window.__bootPre=function', '<script type="module" src="js/app.js">'])
+  // (THE BEFORE-LAUNCH PASS — THE FIRST-VISIT BUNDLE: the import map + app.js are written by ONE loader, ahead of the stylesheets; the start at the body's end)
+  for (const later of ['W.__nsRoot = root', 'href="css/base.css"', 'window.__bootPre=function', '<script>window.__nsGo();</script>'])
     assert.ok(html.indexOf(later) > at, `the watchdog comes before ${later}`);
   assert.match(html, /LIMIT = 12000/, 'no reveal after 12 s on screen');
   assert.match(html, /D\.visibilityState === 'visible'\) vis \+= d/, 'the 12 s count only while the page is visible');

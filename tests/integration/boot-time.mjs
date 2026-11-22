@@ -27,12 +27,17 @@ const RUNS = Number(opt('runs', 3)) || 1, CPU = Number(opt('cpu', 0)) || 0, WARM
 const PRIME = Math.max(1, Number(opt('prime', 1)) || 1);
 const LIVE = !!opt('live', false), TAP = String(opt('tap', '1')) !== '0', LOG = !!opt('log', false);
 // (the lines: a home Wi-Fi ≈ 30 ms to the edge + ~50 Mbps; 4G ≈ 70 ms + 9 Mbps — per request, as Chromium applies it)
-const NETS = { wifi: { latency: 30, down: 50e6, up: 10e6 }, '4g': { latency: 70, down: 9e6, up: 3e6 }, '3g': { latency: 150, down: 1.6e6, up: 0.75e6 } };
+const NETS = { wifi: { latency: 30, down: 50e6, up: 10e6 }, '4g': { latency: 70, down: 9e6, up: 3e6 }, '3g': { latency: 150, down: 1.6e6, up: 0.75e6 },
+  // (THE BEFORE-LAUNCH PASS: Lighthouse's own "Slow 4G" — 150 ms, 1.6 Mbps down, 750 kbps up — the first-visit bundle's measuring line)
+  slow4g: { latency: 150, down: 1.6384e6, up: 0.75e6 } };
+// (--android: Chrome's Android profile — a mid phone's user agent + 412 × 915 @2.625, touch; --h2: the browser trusts serve.mjs --h2's local certificate)
+const ANDROID = !!opt('android', false);
 const NET = NETS[String(opt('net', 'none'))] || null;
 const SCENES = { day: 'when=2026-11-06T13:00&wx=clear', grey: 'when=2026-11-06T13:02&wx=overcast', night: 'when=2026-11-06T21:30&wx=clear' };
 const SCENE = String(opt('scene', 'grey'));
 const GR = '&tz=America/Detroit&at=42.96,-85.67';
-const url = guardUrl(LIVE ? `${BASE}/` : `${BASE}/?emu&slot=bt&${SCENES[SCENE] || SCENES.grey}${GR}&city=2`, 'boot-time.mjs');
+const QS = String(opt('qs', ''));   // (--qs &nobundle: THE FIRST-VISIT BUNDLE off — the modules one request each, as before)
+const url = guardUrl(LIVE ? `${BASE}/` : `${BASE}/?emu&slot=bt&${SCENES[SCENE] || SCENES.grey}${GR}&city=2${QS}`, 'boot-time.mjs');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // (in the page before anything runs: the reveal's moment + the long tasks as the page itself saw them)
@@ -65,7 +70,7 @@ const kindOf = (u, type) => {
   return (type || 'other').toLowerCase();
 };
 
-const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--no-sandbox'] });
+const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--no-sandbox', ...(BASE.startsWith('https://localhost') ? ['--ignore-certificate-errors'] : [])] });
 const results = [];
 
 async function throttle(cdp) {
@@ -165,7 +170,8 @@ function traceLongs(trace, revealMs) {
 for (let i = 0; i < RUNS; i++) {
   const ctx = await browser.createBrowserContext();
   const page = await ctx.newPage();
-  await page.setViewport({ width: W, height: H, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+  if (ANDROID) await page.setUserAgent('Mozilla/5.0 (Linux; Android 14; Pixel 7a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36');
+  await page.setViewport(ANDROID ? { width: 412, height: 915, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true } : { width: W, height: H, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
   await page.evaluateOnNewDocument(INIT);
   // (FR7 FIXES B: --prime N — the loads before the measured warm one; THE EDGE CACHE's worker fills its build's copy on its FIRST controlled load,
   //  so a true warm visit is the third: --prime 2)
@@ -178,7 +184,7 @@ await browser.close();
 
 const kb = b => `${(b / 1024).toFixed(0)} KB`;
 const med = a => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor((s.length - 1) / 2)] : -1; };
-console.log(`THE BOOT CLOCK — ${BASE}${LIVE ? ' (LIVE, read-only)' : ''} ${W}×${H}@3 ${CPU ? `cpu ${CPU}×` : 'cpu 1×'} net ${opt('net', 'none')} ${WARM ? 'WARM' : 'COLD'} · ${RUNS} run(s)`);
+console.log(`THE BOOT CLOCK — ${BASE}${LIVE ? ' (LIVE, read-only)' : ''} ${ANDROID ? 'ANDROID 412×915@2.625' : `${W}×${H}@3`} ${CPU ? `cpu ${CPU}×` : 'cpu 1×'} net ${opt('net', 'none')} ${WARM ? 'WARM' : 'COLD'} · ${RUNS} run(s)`);
 for (const r of results) {
   console.log(`  ${r.tag}: boot ${r.fcp} ms · reveal ${r.reveal} ms · tap → board ${r.tap == null ? '—' : r.tap + ' ms'} · before the reveal ${r.n} requests ${kb(r.bytes)}${WARM ? ` (sw ${r.sw}, its network ${r.swNet} — 304s ${r.sw304})` : ''} · long tasks ${r.lt.length} = ${r.lt.reduce((s, x) => s + x[1], 0)} ms · after it (2.5 s) ${r.after.length ? r.after.map(x => `${x[1]} ms @+${x[0] - r.reveal}`).join(', ') : 'none'}`);
   console.log('    ' + Object.entries(r.by).sort((a, b) => b[1].bytes - a[1].bytes).map(([k, o]) => `${k} ${o.n} / ${kb(o.bytes)}`).join(' · '));

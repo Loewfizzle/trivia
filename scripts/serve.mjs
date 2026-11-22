@@ -1,14 +1,20 @@
-// Static server for local testing: node scripts/serve.mjs [port] [--emu]
+// Static server for local testing: node scripts/serve.mjs [port] [--emu] [--h2]
+// (--h2 — THE BEFORE-LAUNCH PASS: HTTP/2 over TLS like Vercel's edge, a self-signed localhost certificate made with openssl in the OS temp folder;
+//  the browser needs --ignore-certificate-errors. For the cold-load measurements: on HTTP/1.1 a 300-module boot queues on 6 connections)
 // Then open http://localhost:5173/?emu (emulators) — add &slot=2, &slot=3 for more players.
 // Text assets are gzipped like Vercel does, so Lighthouse numbers are representative.
 // /api/<name> runs api/<name>.js like Vercel does (needs `npm install` at the repo root for firebase-admin);
 // --emu points those functions at the local emulators (database :9000, auth :9099). /board and /admin map to
 // board.html / admin.html like Vercel's cleanUrls.
 import { createServer } from 'node:http';
+import { createSecureServer } from 'node:http2';
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { gzipSync } from 'node:zlib';
+import { gzipSync, brotliCompressSync, constants as Z } from 'node:zlib';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const port = Number(process.argv.slice(2).find(a => /^\d+$/.test(a))) || 5173;
@@ -35,7 +41,13 @@ const types = {
 };
 const compressible = new Set(['.html', '.js', '.css', '.json', '.svg', '.webmanifest']);
 
-createServer(async (req, res) => {
+const H2 = process.argv.includes('--h2'), brCache = new Map();
+function localCert() {
+  const dir = tmpdir(), key = join(dir, 'ns-serve-h2.key'), cert = join(dir, 'ns-serve-h2.crt');
+  if (!existsSync(key) || !existsSync(cert)) execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', key, '-out', cert, '-days', '30', '-subj', '/CN=localhost'], { stdio: 'ignore' });
+  return { key: readFileSync(key), cert: readFileSync(cert) };
+}
+const handler = async (req, res) => {
   let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   const api = /^\/api\/([^/]+)$/.exec(path);
   if (api) { await runApi(api[1], req, res); return; }
@@ -53,7 +65,13 @@ createServer(async (req, res) => {
     let body = await readFile(file);
     const ext = extname(file);
     const headers = { 'content-type': types[ext] || 'application/octet-stream', 'cache-control': 'no-store' };
-    if (compressible.has(ext) && /\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+    // (--h2: brotli first, like Vercel's edge — each file compressed once, kept by its path + size)
+    const ae = req.headers['accept-encoding'] || '';
+    if (compressible.has(ext) && H2 && /\bbr\b/.test(ae)) {
+      const k = `${file}|${body.length}`, hit = brCache.get(k);
+      body = hit || brotliCompressSync(body, { params: { [Z.BROTLI_PARAM_QUALITY]: 11 } }); if (!hit) brCache.set(k, body);
+      headers['content-encoding'] = 'br';
+    } else if (compressible.has(ext) && /\bgzip\b/.test(ae)) {
       body = gzipSync(body);
       headers['content-encoding'] = 'gzip';
     }
@@ -71,4 +89,5 @@ createServer(async (req, res) => {
     if (!extname(path)) { try { const body = await readFile(join(root, '404.html')); res.writeHead(404, { 'content-type': types['.html'], 'cache-control': 'no-store' }).end(body); return; } catch { /* fall through */ } }
     res.writeHead(404).end('not found');
   }
-}).listen(port, () => console.log(`serving ${root} on http://localhost:${port}`));
+};
+(H2 ? createSecureServer({ ...localCert(), allowHTTP1: true }, handler) : createServer(handler)).listen(port, () => console.log(`serving ${root} on ${H2 ? 'https' : 'http'}://localhost:${port}${H2 ? ' (HTTP/2)' : ''}`));
