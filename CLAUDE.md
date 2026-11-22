@@ -26,7 +26,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 | `docs/progression.md` | PROGRESSION (levels, the streak, items, achievements, THE ONE DAY LINE), the daily contract + THE DAILY MODULE, SIGHTINGS |
 | `docs/vault.md` | THE VAULT: the cards' art, THE CARD LAB (`docs/vault-lab-marks.md` = the owner's marks, read FIRST), `js/fx/`, emblems, gems |
 | `docs/backup.md` | **THE NIGHTLY BACKUP** — the export, the two copies, the restore, a leaked token |
-| `docs/launch.md` | **THE LAUNCH** (THE RESET MORNING, FOUNDING MEMBER) + **THE PRIVATE FLIP** — the owner's steps; the edge cache |
+| `docs/launch.md` | **THE LAUNCH** (NO RESET — THE RESET MORNING cancelled Nov 21, FOUNDING MEMBER) + **THE PRIVATE FLIP** — the owner's steps; the edge cache |
 | `docs/profiles.md` | profiles, keys, FRIENDS, passkeys, `/api`, result reporting, THE BOARD, `/board`, `/admin`, the Vercel setup |
 | `docs/chat.md` · `docs/content.md` | room chat · adding questions / puzzles / words to any bank |
 | `docs/overclock.md` · `docs/prism.md` · `docs/holdem.md` | the three playable games (read before a pass on one) |

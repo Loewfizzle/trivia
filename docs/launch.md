@@ -1,5 +1,9 @@
 # THE LAUNCH + THE PRIVATE FLIP — the owner's steps
 
+> **THE RESET MORNING — CANCELLED by the owner, Nov 21; kept for reference only.** The launch will NOT reset progress: XP, levels, streaks,
+> boards and counted plays all stay as they are. Never schedule, suggest or build toward a reset. The /admin Progress reset tool stays as it
+> is (owner-only, unused) — no code change (the inbox's Nov 21 10:34 pm entry; docs/harbor/decisions.md "THE LAUNCH").
+
 Written in FR7 FIXES B (Nov 12 2026) from FR7-A's LAUNCH CHECKLIST (`docs/harbor/review-7a.md`) and the owner's split (plan.md "OWNER'S
 NOTES — NOV 12 (afternoon)"): **THE LAUNCH** comes first and the repo stays PUBLIC; **THE PRIVATE FLIP** comes later, only once people are
 really coming. Nothing here was run by a pass — every step is a tap or a command for the owner. Anti-cheat never depends on the code
