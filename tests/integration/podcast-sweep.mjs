@@ -27,8 +27,8 @@ const tapAt = async (x, y) => { await cdp.send('Input.dispatchTouchEvent', { typ
 ok(await waitFor("!document.getElementById('boot')", 45000), 'the city is up');
 await sleep(800);
 await tapAt(195, 300); await sleep(400); await tapAt(195, 300);   // (real touches on the sky: the first unlocks the audio)
-const health = () => p.evaluate(() => import('/js/audio/engine.js').then(E => { const h = E.audioHealth(); return { podcast: h.podcast, napping: h.napping, state: h.state, unlocked: h.unlocked }; }));
-ok(await waitFor("import('/js/audio/engine.js').then(E => E.audioHealth().podcast && E.audioUnlocked())", 8000), `MUSIC OFF = PODCAST MODE, the audio unlocked (${JSON.stringify(await health())})`);
+const health = () => p.evaluate(() => import('/js/audio/engine.js').then(E => { const h = E.audioHealth(); return { sound: h.sound, state: h.state, unlocked: h.unlocked }; }));
+ok(await waitFor("import('/js/audio/engine.js').then(E => E.audioHealth().sound === 'HEAR THE HARBOR' && E.audioUnlocked())", 8000), `MUSIC OFF = HEAR THE HARBOR, the audio unlocked (${JSON.stringify(await health())})`);
 
 // each case: { name, prep (once: fetch + decode), go (ask for the sound) } — run INSIDE the page
 const CASES = [
@@ -45,7 +45,6 @@ const CASES = [
   ['THE BOARD (a tab)', "const M = await import('/js/board/audio.js'); return () => M.boardSfx('tab');"],
 ];
 for (const [name, prep] of CASES) {
-  await waitFor("import('/js/audio/engine.js').then(E => E.audioHealth().napping)", 4000);   // (let the engine nap first: the sound must wake it)
   const before = await health();
   const r = await p.evaluate(async src => {
     const E = await import('/js/audio/engine.js');
@@ -56,7 +55,7 @@ for (const [name, prep] of CASES) {
     while (!started && performance.now() - t0 < 4000) { try { go(); } catch (e) { return { err: String(e && e.message || e) }; } await new Promise(r => setTimeout(r, 220)); started = E.voiceStarts().length > n0; }
     return { started, ms: Math.round(performance.now() - t0) };
   }, prep);
-  ok(!!r.started, `MUSIC OFF: ${name} — a sound STARTS${before.napping ? ' (woke the nap)' : ' (the context was awake)'}${r.err ? ` — error: ${r.err}` : ''}`);
+  ok(!!r.started, `MUSIC OFF: ${name} — a sound STARTS (the context ${before.state})${r.err ? ` — error: ${r.err}` : ''}`);
 }
 ok(errs.length === 0, `no page error (${errs.join(' | ')})`);
 await b.close();

@@ -47,7 +47,7 @@ export function createDailySfx({ dir, sounds }) {
     const [file, g0, , offset = 0, dur = 0] = sounds[name];
     const ctx = getContext(), bus = getSfxBus();
     const play = b => {
-      if (!b || !ctx || !isUnlocked()) return;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
+      if (!b || !ctx || !isUnlocked()) return;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — THE ONE GATE (engine.js), never the context's state)
       const s = ctx.createBufferSource(), g = ctx.createGain();
       s.buffer = b;
       g.gain.value = g0 * gain;
@@ -61,7 +61,7 @@ export function createDailySfx({ dir, sounds }) {
   /** the held sound, the moment the context runs (within CATCH_MS of being asked for) */
   function go() {
     const ctx = getContext();
-    if (!held || !ctx || !isUnlocked() || !audioUnlocked()) return;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
+    if (!held || !ctx || !isUnlocked() || !audioUnlocked()) return;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — THE ONE GATE (engine.js), never the context's state)
     const h0 = held; held = null;
     if (performance.now() - h0.at <= CATCH_MS) start(h0.name, h0.gain);
   }

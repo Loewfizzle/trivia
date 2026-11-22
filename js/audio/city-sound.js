@@ -117,6 +117,9 @@ function trim() {
 const lastTake = new Map();
 /** what the city played lately (newest last; tests + the panel): { slot, f, gain, at } */
 export const cityLog = [];
+/** THE SOUND TABLE's row (engine.js#soundNow through the hub — HEAR THE HARBOR): does it have `k` (beds / oneOffs)? No hub yet = yes */
+const rowHas = k => { const f = globalThis.__nsSoundRow; return !f || !!f()[k]; };
+
 /**
  * A one-shot from a slot. gain: × the slot's mix level; pan −1..1; rate: playback rate (+ a little pitch variety: ±jitter, 3 % by
  * default); delay: s from now; take: an index to force one.
@@ -131,9 +134,9 @@ export const cityLog = [];
 export function citySound(slot, { gain = 1, pan = 0, rate = 1, delay = 0, take = null, jitter = 0.03, sync = null, tap = false } = {}) {
   try {
     const s = slotOf(slot);
-    // (CITY I — MUSIC OFF = PODCAST MODE (was H1 EFFECTS ONLY): the city's own ambience (gulls, gusts, the traffic, its moments) is off too — it kept the context awake;
-    //  only a sound a TAP asked for (`tap` — the door's knock, a radio jack) still plays)
-    if (!s || !takesOf(slot).length || !isUnlocked() || !audible() || (!tap && globalThis.__nsBedsOff && globalThis.__nsBedsOff())) return null;
+    // (THE SOUND TABLE — HEAR THE HARBOR: the city's one-offs (gulls, gusts, the traffic, its moments) play whenever the row has them — music on
+    //  AND music off; ALL OFF has none (nothing runs). A sound a TAP asked for (`tap` — the door's knock, a radio jack) follows the effects alone)
+    if (!s || !takesOf(slot).length || !isUnlocked() || !audible() || (!tap && !rowHas('oneOffs'))) return null;
     let pick = take != null && takesOf(slot)[take] ? { take: takesOf(slot)[take], i: take } : pickTake(slot, Math.random, lastTake.has(slot) ? lastTake.get(slot) : -1);
     if (!pick) return null;
     // (PERF-A: a TIMED sound (its peak on the clock — a firework's boom) whose random take is still downloading would be dropped as late;
@@ -271,12 +274,12 @@ function pumpOne(L) {
   try {
     if (!L.want) return;
     const c = getContext();
-    // (CITY G: FIXES R3 mode A's rest is gone — with the music off the city's loops are EFFECTS and play under the 'ambient' session; the
+    // (CITY G: FIXES R3 mode A's rest is gone — with the music off the city's loops play (HEAR THE HARBOR, the 'playback' session); the
     //  leave's HARD CUT stops them in the master's own step. A loop still mid rest-fade from an older page comes back up)
     if (L.restAt) { L.restAt = 0; if (L.outG && L.c === c) setP(L.outG.gain, L.s.gain * L.gain, c, REST_FADE); }
     // (FIXES R2: the effects switched off → the loop goes only once their bus has REACHED 0 — dropped mid-sound it was a click into the mix)
-    // (CITY I — MUSIC OFF = PODCAST MODE: no loop plays in 'ambient' — faded out, then dropped; it comes back faded in with the music)
-    if (globalThis.__nsBedsOff && globalThis.__nsBedsOff()) { if (L.voices.length) { if (!L.offAt) { L.offAt = performance.now(); setP(L.outG.gain, 0, L.c, 0.08); } else if (performance.now() - L.offAt > 120) { drop(L); L.offAt = 0; } } return; }
+    // (THE SOUND TABLE: a row without beds (ALL OFF) — the loop faded out, then dropped; it comes back faded in with the row's beds)
+    if (!rowHas('beds')) { if (L.voices.length) { if (!L.offAt) { L.offAt = performance.now(); setP(L.outG.gain, 0, L.c, 0.08); } else if (performance.now() - L.offAt > 120) { drop(L); L.offAt = 0; } } return; }
     L.offAt = 0;
     if (!c || !isUnlocked() || !audible()) { if (L.voices.length && (!c || c !== L.c || (!audible() && sfxSilent()))) drop(L); return; }
     if (L.c && L.c !== c) drop(L);

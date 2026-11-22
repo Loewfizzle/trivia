@@ -419,7 +419,7 @@ async function review() {
     await shot(d.p, 'review-375x667-made.png');
     await d.close();
   }
-  // (3) THE SITE's MUSIC OFF (PODCAST MODE — the audio context naps between effects): the game still SOUNDS
+  // (3) THE SITE's MUSIC OFF (HEAR THE HARBOR — was PODCAST MODE): the game still SOUNDS
   {
     const d = await open(390, 844, 2, '?seed=pod', () => { try { localStorage.setItem('na:settings', JSON.stringify({ musicOff: true })); } catch { /* fine */ } });
     await ready(d.p); await waitFor(d.p, '!!window.__hiPlay.sfx', 5000); await sleep(600);
@@ -427,7 +427,7 @@ async function review() {
     for (let i = 0; i < 6; i++) { if (await atPerfect(d.p, 14) !== 'go') break; await tapAt(d, 195, 500); if ((await st(d.p)).over) break; }
     await sleep(300);
     const a = await d.p.evaluate(() => ({ asked: window.__hiPlay.sfx.wanted().length, played: window.__hiPlay.sfx.played().map(q => q.id) }));
-    ok(a.asked >= 6 && a.played.filter(q => q === 'drop').length >= 3, `MUSIC OFF (podcast mode): the sounds still start — ${a.played.length} of ${a.asked} asked (${[...new Set(a.played)].join(' · ')})`);
+    ok(a.asked >= 6 && a.played.filter(q => q === 'drop').length >= 3, `MUSIC OFF (HEAR THE HARBOR): the sounds still start — ${a.played.length} of ${a.asked} asked (${[...new Set(a.played)].join(' · ')})`);
     await d.close();
   }
   // (4) a best FAR above (behind the diagonal camera): the tag stays at the TOP of its clear column

@@ -22,7 +22,7 @@ function impulse(c, seconds, decay, bright) {
 
 function ready() {
   const c = getContext();
-  if (!c || !isUnlocked() || settings.muted) return null;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
+  if (!c || !isUnlocked() || settings.muted) return null;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — THE ONE GATE (engine.js), never the context's state)
   if (ctx !== c) {
     ctx = c;
     const comp = ctx.createDynamicsCompressor();

@@ -15,7 +15,7 @@
 // is seen frozen. On it: no crossfades (a cut between songs), the volume slider / ducks only where an element's volume works (not
 // iOS), mute + MUSIC OFF mute the element; the beat follows the song's grid (the kick listener hears nothing). At the next tap with
 // the graph seen running for 2 s the song moves back onto a Web Audio voice at its place.
-import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, canStart, inGesture, clockFrozen, graphOk, onResume, onRebuild, onGesture, onFrozen, tapFoundSilence, audioHealth, audioLog, audioEvents, graphDead as engineGraphDead, onLeaveCut, soundingHub, getMaster, audioHushed, onHush, onPodcast, podcastNow } from './engine.js';
+import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, canStart, inGesture, clockFrozen, graphOk, onResume, onRebuild, onGesture, onFrozen, tapFoundSilence, audioHealth, audioLog, audioEvents, graphDead as engineGraphDead, onLeaveCut, soundingHub, getMaster, audioHushed, onHush, onMusicRest, musicResting } from './engine.js';
 import { settings, onSettings } from './settings.js';
 import { musicUrl } from './music-url.js';
 import { createTapeStop } from './tape-stop.js';
@@ -163,7 +163,7 @@ function watchErrors(voice) {
 }
 // Activate an element inside the gesture (iOS), then park it (unless a song took it meanwhile).
 function activate(voice) {
-  if (audioHushed() || podcastNow()) { voice.needAct = true; return; }   // (CITY I: + PODCAST MODE — no silent element playing)
+  if (audioHushed() || musicResting()) { voice.needAct = true; return; }   // (HEAR THE HARBOR: the music resting — no silent element playing)
     // (CITY A — item 29: hushed — no silent activation loop; the unmuting tap activates it) (FIXES R3: + resting)
   voice.needAct = false;
   const silent = silentUrl || (silentUrl = silentWavUrl());
@@ -347,7 +347,7 @@ export function handoffFade(seconds) { nextStopFade = seconds; }
 
 function apply() {
   // (canStart: running — or inside a tap that just asked a fresh / suspended context to run: start the song IN the tap, iOS's rule)
-  if (!visible || audioHushed() || podcastNow()) return;   // (CITY I: + PODCAST MODE) (CITY A — item 29: hushed — nothing plays, nothing is started) (FIXES R3: + resting)
+  if (!visible || audioHushed() || musicResting()) return;   // (HEAR THE HARBOR: + the music resting) (CITY A — item 29: hushed — nothing plays, nothing is started) (FIXES R3: + resting)
   if ((!canStart() || !voices.length) && !useDirect()) return;   // (a dead graph with the direct element armed may still start a song)
   // the voices were re-made (a rebuilt context / a dead voice): the same song goes on from where it was
   if (carry && !current && desired) {
@@ -734,10 +734,10 @@ function hushMusic(on, why = 'hushed') {
   apply();
 }
 onHush(on => hushMusic(on, 'hushed'));
-// CITY I — MUSIC OFF = PODCAST MODE (engine.js#onPodcast): every element paused + the direct path released, exactly as THE HUSH does — no station
-// song element plays at a 0 bus (the owner's AUDIO LEAVE: "media: voice m:c2-evening12 PLAYING"); the song's place is carried; the music back
-// ON (a tap — its gesture) activates the elements again + the song goes on where the station is
-onPodcast(on => { if (on) hushMusic(true, 'podcast mode'); else if (!audioHushed()) hushMusic(false, 'music back'); });
+// THE GARDEN PARTY PASS — MUSIC OFF = HEAR THE HARBOR (engine.js#onMusicRest; was CITY I's nap mode): every element paused + the direct path
+// released, exactly as THE HUSH does — no station song element plays at a 0 bus (the owner's AUDIO LEAVE: "media: voice m:c2-evening12 PLAYING");
+// the song's place is carried; the music back ON (a tap — its gesture) activates the elements again + the song goes on where the station is
+onMusicRest(on => { if (on) hushMusic(true, 'music off'); else if (!audioHushed()) hushMusic(false, 'music back'); });
 // CITY G — THE MEDIA CUT: EVERY element paused in the leave's own step (its place kept; a blob's next tap re-activates it); a blur back = heal
 onLeaveCut((left, why) => {
   if (!left) { heal('back after a blur'); return; }
@@ -747,7 +747,7 @@ onLeaveCut((left, why) => {
 });
 soundingHub('media', () => { const on = [...voices, ...(direct ? [direct] : [])].filter(x => x.el && !x.el.paused); return on.length ? on.map(x => `${x.direct ? 'direct' : 'voice'} ${x.el.src && x.el.src.startsWith('blob:') ? 'silent blob' : x.id || 'song'} PLAYING${x.el.muted ? ' (el muted)' : ''}`).join(', ') : 'none playing'; });
 onGesture(() => {
-  if (audioHushed() || podcastNow()) return;   // (CITY A: hushed — a tap restarts nothing) (CITY I: + PODCAST MODE)
+  if (audioHushed() || musicResting()) return;   // (CITY A: hushed — a tap restarts nothing) (HEAR THE HARBOR: + the music resting)
   // elements whose activation never settled (iOS refused it outside a gesture; a pause aborted it): activate them again, in this tap
   for (const x of [...voices, ...(direct ? [direct] : [])]) if (!x.armed && x.el.src.startsWith('blob:') && (!current || x !== current.voice)) activate(x);
   if (!visible || !desired) return;

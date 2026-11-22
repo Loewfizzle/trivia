@@ -318,7 +318,7 @@ G('neon', async () => {
     ok(sg.last && sg.last.why === 'music' && sg.last.did === 'surge' && sg.count === 1, `THE MUSIC STARTING (the first tap, by day): the sign surged (${JSON.stringify(sg.last)})`);
     // (2) the music button OFF ≥ 1 s, then ON (after the 10 s cooldown) → the same surge again
     await waitFor(P.page, '!window.__district.surge().running && window.__district.surge().cool === 0', 'the cooldown over', 15000);
-    // (CITY H1 — CITY G's corner button is THREE-WAY: on → MUSIC OFF · EFFECTS ON → ALL SOUND OFF → ON — "back ON" is two taps more)
+    // (CITY H1 — CITY G's corner button is THREE-WAY: on → MUSIC OFF · HEAR THE HARBOR → ALL SOUND OFF → ON — "back ON" is two taps more)
     const soundOn = async () => { for (let k = 0; k < 3 && (await ev(P.page, "document.querySelector('.music-btn').dataset.sound")) !== 'on'; k++) { await tap(P.page, '.music-btn'); await sleep(120); } };
     await tap(P.page, '.music-btn'); await waitFor(P.page, `${CLOCK}.then(c => c < 0)`, 'the music off', 5000); await sleep(1300);
     await soundOn();

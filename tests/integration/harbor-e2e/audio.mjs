@@ -433,14 +433,14 @@ G('music', async () => {
     // the panel says it
     const diag = await ev(p, `(() => { const d = document.querySelector('.dbg-s[data-id=audio]'); return d ? d.textContent : ''; })()`);
     ok(/out DIRECT ELEMENT/.test(diag) && /alive \d/.test(diag) && /set playback at/.test(diag) && /FROZEN/.test(diag), `PANEL: the AUDIO block shows the output path, the contexts alive, the session type set + the frozen clock ("${diag.slice(0, 200)}…")`);
-    // the music button on the direct path: OFF mutes it (+ the session goes 'ambient'); ON again plays (+ 'playback')
+    // the music button on the direct path: OFF mutes it (HEAR THE HARBOR — the session stays 'playback'); ON again plays
     const mb = await ev(p, `(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
     await sleep(1600);        // (a tap within 1.5 s of a rescue is part of the same "play")
     await tapAt(p, mb[0], mb[1]); await sleep(500);
-    // (CITY G — THE THREE-WAY BUTTON: tap 1 = MUSIC OFF, the effects on → the element muted, the session 'ambient'; tap 2 = ALL SOUND OFF (the
+    // (CITY G — THE THREE-WAY BUTTON: tap 1 = MUSIC OFF = HEAR THE HARBOR → the element muted, the session 'playback' (THE GARDEN PARTY PASS); tap 2 = ALL SOUND OFF (the
     //  speaker ✕); tap 3 = SOUND ON → 'playback')
     const off = await ev(p, `Promise.all([import('/js/audio/music.js')]).then(([m]) => { const d = m.musicDiag(); const st = JSON.parse(localStorage.getItem('na:settings') || '{}'); return { off: st.musicOff, sfx: !st.sfxOff, gain: d.el ? d.el.gain : null, playing: d.playing, session: navigator.audioSession.type, btn: document.querySelector('.music-btn').dataset.sound }; })`);
-    ok(off.off === true && off.sfx && (off.gain === 0 || off.gain == null) && off.session === 'ambient' && off.btn === 'music', `MUSIC BUTTON on the direct path — tap 1: MUSIC OFF · EFFECTS ON (${off.off}/${off.sfx}, the element muted: gain ${off.gain}, the button ${off.btn}) — the session 'ambient' (${off.session})`);
+    ok(off.off === true && off.sfx && (off.gain === 0 || off.gain == null) && off.session === 'playback' && off.btn === 'music', `MUSIC BUTTON on the direct path — tap 1: MUSIC OFF · HEAR THE HARBOR (${off.off}/${off.sfx}, the element muted: gain ${off.gain}, the button ${off.btn}) — the session stays 'playback' (${off.session})`);
     await tapAt(p, mb[0], mb[1]); await sleep(400);
     const all = await ev(p, `({ btn: document.querySelector('.music-btn').dataset.sound, st: JSON.parse(localStorage.getItem('na:settings') || '{}') })`);
     ok(all.btn === 'all' && all.st.musicOff && all.st.sfxOff, `MUSIC BUTTON — tap 2: ALL SOUND OFF (the speaker ✕: ${all.btn})`);
@@ -682,24 +682,26 @@ G('mediacut', async () => {
   ok(h.after === 'all paused', `… hidden after it: every element still paused (${h.after})`);
   await ev(p, "Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('focus'))");
   await P.ctx.close();
-  // ---- CITY I — MUSIC OFF = PODCAST MODE (the owner's option 3, the 7:55 pm entry): on the REAL city with the music off, no loop sounds, no media
-  //  element plays, the context is SUSPENDED between effects; an effect wakes it, then it naps again; a leave finds it suspended
+  // ---- THE GARDEN PARTY PASS — MUSIC OFF = HEAR THE HARBOR (retires CITY I's PODCAST MODE): on the REAL city with the music off, the city's LOOPS
+  //  sound, no song element plays, the context RUNS (no nap), an effect sounds; a leave = C2's path (the master to 0 on the first signal)
   { const Q = await open({ slot: 'mc2', qs: `${NIGHT}&debug=1`, view: [402, 874] }), q = Q.page;
     await harborUp(q); await tapAt(q, 30, 300);
     await waitFor(q, "import('/js/audio/engine.js').then(E => E.audioUnlocked() && E.audioHealth().state === 'running')", 'the audio running', 8000).catch(() => {});
     await sleep(2500);
     await ev(q, "import('/js/audio/settings.js').then(m => m.updateSettings({ musicOff: true, sfxOff: false, muted: false }))");
-    await sleep(2500);
-    const a = await ev(q, "Promise.all([import('/js/audio/engine.js'), import('/js/audio/city-sound.js')]).then(([E, C]) => ({ h: E.audioHealth(), st: E.getContext().state, loops: C.citySoundsDebug().loops.filter(L => L.voices > 0).length, els: [...document.querySelectorAll('audio, video')].filter(e => !e.paused).length }))");
-    ok(a.h.podcast && a.st === 'suspended' && a.h.napping && a.h.master === 0 && a.loops === 0 && a.els === 0,
-      `PODCAST MODE (the real city): no loop (${a.loops} sounding), no element playing (${a.els}), the context ${a.st} between effects (napping ${a.h.napping}), master ${a.h.master}`);
-    const fx = await ev(q, `(async () => { const [E, X] = await Promise.all([import('/js/audio/engine.js'), import('/js/audio/sfx.js')]); X.sfx('select'); let ran = false;
-      for (let k = 0; k < 10; k++) { await new Promise(r => setTimeout(r, 30)); if (E.getContext().state === 'running') ran = true; }
-      await new Promise(r => setTimeout(r, 900)); return { ran, after: E.getContext().state }; })()`);
-    ok(fx.ran && fx.after === 'suspended', `… an effect wakes it (${fx.ran ? 'ran' : 'NEVER RAN'}), then it naps again (${fx.after})`);
+    const LOOPS = "Promise.all([import('/js/audio/engine.js'), import('/js/audio/city-sound.js')]).then(([E, C]) => C.citySoundsDebug().loops.filter(L => L.voices > 0).length > 0)";
+    const loopsOn = await waitFor(q, LOOPS, 'a city loop sounding', 15000).then(() => true, () => false);
+    await sleep(1200);
+    const a = await ev(q, "Promise.all([import('/js/audio/engine.js'), import('/js/audio/city-sound.js')]).then(([E, C]) => ({ h: E.audioHealth(), st: E.getContext().state, loops: C.citySoundsDebug().loops.filter(L => L.voices > 0).length, els: [...document.querySelectorAll('audio, video')].filter(e => !e.paused).length, music: E.getMusicBus().gain.value }))");
+    ok(loopsOn && a.h.sound === 'HEAR THE HARBOR' && a.st === 'running' && a.h.master > 0.9 && a.loops > 0 && a.els === 0 && a.music === 0,
+      `HEAR THE HARBOR (the real city): ${a.loops} loop(s) SOUNDING, no song element playing (${a.els}), the music bus ${a.music}, the context ${a.st} (master ${a.h.master}) — ${a.h.sound}`);
+    const fx = await ev(q, `(async () => { const [E, X] = await Promise.all([import('/js/audio/engine.js'), import('/js/audio/sfx.js')]); const an = E.getContext().createAnalyser(); an.fftSize = 2048; E.getMaster().connect(an); X.sfx('select'); let pk = 0; const d = new Float32Array(2048);
+      for (let k = 0; k < 10; k++) { await new Promise(r => setTimeout(r, 30)); an.getFloatTimeDomainData(d); for (const v of d) pk = Math.max(pk, Math.abs(v)); }
+      await new Promise(r => setTimeout(r, 900)); return { pk: +pk.toFixed(4), after: E.getContext().state }; })()`);
+    ok(fx.pk > 0.001 && fx.after === 'running', `… an effect SOUNDS (the output's peak ${fx.pk}) and the context stays ${fx.after} — no nap`);
     await ev(q, "window.dispatchEvent(new Event('blur')); Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))");
-    const lv = await ev(q, "import('/js/audio/engine.js').then(E => ({ h: E.audioHealth(), st: E.getContext().state }))");
-    ok(lv.st === 'suspended' && lv.h.master === 0, `… a leave between effects: the context ${lv.st}, master ${lv.h.master} — nothing to cut`);
+    const lv = await ev(q, "import('/js/audio/engine.js').then(E => ({ h: E.audioHealth(), log: E.audioEvents().slice(-8).map(x => x.m) }))");
+    ok(lv.h.master === 0 && lv.log.some(m => /the master 0 at once/.test(m)) && !lv.log.some(m => /hard cut/.test(m)), `… a leave: C2's path — the master 0 on the first signal, no hard cut (the master ${lv.h.master}; ${lv.log.filter(m => /fade|blur/.test(m)).join(' · ')})`);
     await Q.ctx.close(); }
   // ---- CITY H2 (the 3:52 pm entry) — THE FAST CYCLE: the music sounding, the corner button OFF → ALL OFF → ON inside about a second → the
   //  music back at once. (CITY H1 read music.js's own clock — -1 while the city's SYNCED STATION holds the song: the music was back, the

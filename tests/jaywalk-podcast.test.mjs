@@ -1,4 +1,4 @@
-// JAYWALK SOUNDS WITH THE SITE's MUSIC OFF (PODCAST MODE, CITY I — docs/audio.md): the shared engine SUSPENDS the audio context between
+// JAYWALK SOUNDS WITH THE SITE's MUSIC OFF (was PODCAST MODE, CITY I — retired by HEAR THE HARBOR, THE GARDEN PARTY PASS; the gate rule stays — docs/audio.md): the shared engine SUSPENDS the audio context between
 // effects ("napping") and a source's own start wakes it (engine.js#wakeFor) — engine.js#isUnlocked() counts a nap. A game's sound gate
 // that also asks for `ctx.state === 'running'` refuses every sound in that mode: JAYWALK was SILENT with music off (found by HIGH RISE
 // S2's fresh-eyes review, fixed in HIGH RISE S2 FIX). The browser's proof: tests/integration/jaywalk-podcast.mjs.
@@ -14,7 +14,7 @@ test('JAYWALK: a sound starts on a NAPPING audio context (music off) — its gat
   const code = s.split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n').replace(/\/\/.*$/gm, '');
   assert.doesNotMatch(code, /ctx\.state\s*!==\s*'running'/, 'no "running only" gate in JAYWALK\'s sounds');
   const e = read('js/audio/engine.js');
-  assert.match(e, /export const isUnlocked = \(\) => unlocked && !!ctx && \(ctx\.state === 'running' \|\| \(napping && ctx\.state === 'suspended'\)\);/, 'the engine: a podcast-mode nap counts as unlocked');
+  assert.match(e, /export const isUnlocked = \(\) => unlocked && !!ctx && ctx\.state === 'running';/, 'the engine: THE ONE GATE (HEAR THE HARBOR retired the nap — the gate stays the one place an effect asks)');
   // (HIGH RISE keeps the same rule — its own test pins it too)
   assert.doesNotMatch(read('js/games/highrise/sfx.js'), /ctx\.state !== 'running'/);
 });

@@ -1,7 +1,7 @@
 // CITY G — THE THREE-WAY BUTTON + THE SESSION BY STATE + THE HARD CUT + THE MEDIA CUT (the owner, Nov 16–17), on the REAL js/audio/engine.js
 // over a fake DOM + a fake AudioContext (FIXES R3's harness — its leave modes A / B / C1 / C2 are retired). What it proves off the device:
-// (1) the button's three states + Settings in step (PURE); (2) the session type per state, switched at once; (3) 'ambient' (the music off, the
-// effects on): the FIRST leave signal = the master 0 + the beds stopped in ONE step, the zeros held, then the suspend; (4) every media element
+// (1) the button's three states + Settings in step (PURE); (2) the session type per state, switched at once; (3) HEAR THE HARBOR (the music off —
+// THE GARDEN PARTY PASS: 'playback', the beds + one-offs + effects, no music, nothing naps) leaves by C2's path: the FIRST leave signal = the master 0 + the beds stopped in ONE step, the zeros held, then the suspend; (4) every media element
 // paused IN the cut's own step, "media after: all paused" in the AUDIO LEAVE row; (5) THE LEAVE RECORD as before; (6) MUTED = NOTHING RUNS.
 // What it can't prove: an iPhone's Core Audio — the owner's phone test (docs/harbor/passes/city-g.md).
 import test from 'node:test';
@@ -65,21 +65,26 @@ E.onLeaveCut((left, why) => { cuts.push({ left, why, bedsStoppedFirst: bedPaused
 let bedPaused = false;
 E.holdBed({ pause: () => { bedPaused = true; }, resume: () => { bedPaused = false; } });
 
-test('PURE — THE THREE-WAY BUTTON: on → MUSIC OFF · EFFECTS ON → ALL SOUND OFF → SOUND ON; Settings in step (the music on + the effects off = the plain note, the next tap = all off)', () => {
+test('PURE — THE THREE-WAY BUTTON: on → MUSIC OFF · HEAR THE HARBOR → ALL SOUND OFF → SOUND ON; Settings in step (the music on + the effects off = the plain note, the next tap = all off)', () => {
   let s = { musicOff: false, sfxOff: false, muted: false };
   const seen = [];
   for (let i = 0; i < 3; i++) { const t = R.soundTap(s); s = { ...s, ...t.patch }; seen.push([R.soundState(s), t.say]); }
-  assert.deepEqual(seen, [['music', 'MUSIC OFF · EFFECTS ON'], ['all', 'ALL SOUND OFF'], ['on', 'SOUND ON']]);
+  assert.deepEqual(seen, [['music', 'MUSIC OFF · HEAR THE HARBOR'], ['all', 'ALL SOUND OFF'], ['on', 'SOUND ON']]);
   assert.equal(R.soundState({ musicOff: false, sfxOff: true }), 'on', 'the music on + the effects off from Settings: the plain note');
   assert.deepEqual(R.soundTap({ musicOff: false, sfxOff: true }).patch, { musicOff: true, sfxOff: true, muted: false }, '… and the next tap = all off');
   assert.equal(R.soundState({ muted: true }), 'all', 'MUTE EVERYTHING (Settings) = the speaker ✕');
   assert.deepEqual(R.soundTap({ muted: true }).patch, { musicOff: false, sfxOff: false, muted: false }, '… and a tap brings everything back');
 });
 
-test('PURE — THE SESSION BY STATE: the music on = playback · the music off + the effects on = ambient · everything off = auto (iOS alone) · the mic = play-and-record', () => {
+test('PURE — THE SOUND TABLE: MUSIC ON = playback + everything · HEAR THE HARBOR = playback + the beds / one-offs / effects, NO music · ALL OFF = auto (iOS alone), nothing · the mic = play-and-record', () => {
+  assert.deepEqual(Object.keys(R.SOUND_TABLE), ['on', 'music', 'all']);
+  assert.deepEqual({ ...R.SOUND_TABLE.on }, { name: 'MUSIC ON', session: 'playback', music: true, beds: true, oneOffs: true, effects: true });
+  assert.deepEqual({ ...R.SOUND_TABLE.music }, { name: 'HEAR THE HARBOR', session: 'playback', music: false, beds: true, oneOffs: true, effects: true });
+  assert.deepEqual({ ...R.SOUND_TABLE.all }, { name: 'ALL OFF', session: '', music: false, beds: false, oneOffs: false, effects: false });
+  assert.ok(Object.isFrozen(R.SOUND_TABLE) && Object.isFrozen(R.SOUND_TABLE.music));
   assert.equal(R.sessionFor({ musicOff: false, sfxOff: false }), 'playback');
   assert.equal(R.sessionFor({ musicOff: false, sfxOff: true }), 'playback');
-  assert.equal(R.sessionFor({ musicOff: true, sfxOff: false }), 'ambient');
+  assert.equal(R.sessionFor({ musicOff: true, sfxOff: false }), 'playback', 'HEAR THE HARBOR: C2\'s no-squeal session, never \'ambient\'');
   assert.equal(R.sessionFor({ musicOff: true, sfxOff: true }), 'auto');
   assert.equal(R.sessionFor({ muted: true }), 'auto');
   assert.equal(R.sessionFor({ musicOff: true }, 1), 'play-and-record');
@@ -90,7 +95,7 @@ test('the session type switches AT ONCE with the state (the engine, the real set
   updateSettings({ musicOff: false, sfxOff: false, muted: false });
   assert.equal(session.type, 'playback');
   updateSettings({ musicOff: true });
-  assert.equal(session.type, 'ambient', 'the music off: another app\'s audio keeps playing');
+  assert.equal(session.type, 'playback', 'HEAR THE HARBOR: the same session as the music on (the owner accepted a podcast pausing)');
   updateSettings({ sfxOff: true });
   assert.equal(session.type, 'auto', 'everything off: iOS left alone (set back from the type we had set)');
   updateSettings({ musicOff: false, sfxOff: false });
@@ -126,7 +131,7 @@ test('THE LEAVE RECORD: sent as ONE AUDIO LEAVE row on the return (kind leave) �
   await sleep(1600);
   const leave = rows().filter(r => r.kind === 'leave');
   assert.equal(leave.length, 1);
-  assert.match(leave[0].text, /^AUDIO LEAVE · ctx at the leave: RUNNING · session playback · blur → pagehide \+\d+ ms → hidden \+\d+ ms → freeze/);
+  assert.match(leave[0].text, /^AUDIO LEAVE · ctx at the leave: RUNNING · MUSIC ON · session playback · blur → pagehide \+\d+ ms → hidden \+\d+ ms → freeze/);
   assert.match(leave[0].text, /back after \d+\.\d s \(visible/);
   assert.match(leave[0].text, /media after: all paused/);
   assert.equal(rec(), null, 'cleared once sent');
@@ -153,138 +158,112 @@ test('a blur that stays on screen (a share sheet, an alert) is no leave: nothing
   assert.deepEqual(cuts.map(c => c.left), [true, false], 'the media cut, then back (music.js heals the song)');
 });
 
-test('THE SQUEAL, FOR REAL (CITY H1): on a phone whose audio thread never runs, the master VALUE is 0 within one task of the first leave signal — the beds stopped in the SAME step, the zeros held, then the suspend', async () => {
+test('THE LEAVE in HEAR THE HARBOR = C2\'s path (THE GARDEN PARTY PASS — the \'ambient\' hard cut retired): the master RAMPS to 0 from the FIRST signal, the beds stop only after it, the zeros held, then the suspend', async () => {
   updateSettings({ musicOff: true, sfxOff: false, muted: false });
   if (ctx().state !== 'running') ctx().set('running');
   const fx = ctx().createBufferSource(); fx.start();   // (an effect sounding)
   await sleep(450);
   if (H().master !== 1) { win.fire('focus'); await sleep(450); }
-  assert.equal(H().state, 'running');
-  Param.spec = true;
+  assert.equal(H().state, 'running'); assert.equal(session.type, 'playback');
   bedPaused = false;
   const c = ctx(), s0 = c.suspends;
   delete store[R.LEAVE_REC_KEY];
   win.fire('blur');
-  assert.equal(H().master, 0, 'the master\'s VALUE 0 in the blur\'s own task (the old cut only scheduled it: 1.000 on the phone)');
-  assert.equal(bedPaused, true, 'the beds stopped in the SAME step');
-  const cutLine = rec().sig.find(x => /^cut: hard/.test(x.s));
-  assert.ok(cutLine && cutLine.m === 0, `the AUDIO LEAVE row's cut line reads m 0.000 (${cutLine && cutLine.m})`);
+  assert.equal(H().master, 0, 'the master to 0 on the first signal (a LEAVE_S ramp — the fake applies it at once)');
+  assert.equal(bedPaused, false, 'the beds NOT cut in the same step (never a loop cut while it sounds)');
+  await sleep(E.FADE.leaveS * 1000 + 60); await settle(() => bedPaused);
+  assert.equal(bedPaused, true, '… stopped once the ramp is done');
+  assert.ok(!rec().sig.some(x => /^cut: hard/.test(x.s)), 'no hard cut');
+  vis(false);
   assert.equal(c.suspends, s0, 'never suspended before the zeros are held');
-  await sleep(E.FADE.zeroHoldMs + 40); await settle(() => c.suspends === s0 + 1);
-  assert.equal(c.suspends, s0 + 1, 'suspended after the zeros');
-  Param.spec = false;
+  await sleep(E.FADE.leaveSuspendMs + 60); await settle(() => c.suspends === s0 + 1);
+  assert.equal(c.suspends, s0 + 1, 'suspended after the ramp + the zeros');
+  assert.ok(rec().sig.some(x => /^cut: the master ramped to 0/.test(x.s)), 'the AUDIO LEAVE row: the ramp');
   fx.stop();
-  win.fire('focus'); c.set('running'); await sleep(500);
+  vis(true); win.fire('focus'); c.set('running'); await sleep(500);
   updateSettings({ musicOff: false }); c.set('running');
 });
 
-test('MUSIC OFF = PODCAST MODE (CITY I — the owner\'s option 3): no beds; the context SUSPENDED between effects (never pretending); a tap resumes it IN the tap; an effect wakes it; one no tap follows is dropped; a leave finds it suspended; the music back = awake + the beds', async () => {
+test('HEAR THE HARBOR (THE GARDEN PARTY PASS — retires PODCAST MODE): the music off = the city\'s beds + one-offs + effects on \'playback\', the music RESTING (no element), the context RUNS between effects (no nap), the row\'s name in the AUDIO LEAVE row', async () => {
   updateSettings({ musicOff: false, sfxOff: false, muted: false });
-  ctx().set('running');
+  if (ctx().state !== 'running') { doc.fire('touchend'); ctx().set('running'); }
   await sleep(300);
-  bedPaused = false;
   updateSettings({ musicOff: true });
-  assert.equal(E.podcastNow(), true, 'music off + effects on = PODCAST MODE');
-  assert.equal(bedPaused, true, 'the beds paused at the switch');
-  const c = ctx(), s0 = c.suspends;
-  await sleep(150 + E.FADE.zeroHoldMs + 120); await settle(() => c.state === 'suspended');
-  assert.equal(c.state, 'suspended', 'nothing sounding: SUSPENDED (ctx.state says so — no pretending)');
-  assert.equal(c.suspends, s0 + 1); assert.equal(H().napping, true); assert.equal(H().master, 0, 'the master 0 before the suspend (THE ZEROS FIRST)');
-  // (the H1 load bug must not come back: the first tap resumes it IN the gesture)
-  let r0 = c.resumes;
-  doc.fire('touchend');
-  assert.ok(c.resumes > r0, 'a tap asks the napping context to run, inside the tap');
-  c.set('running');
-  assert.equal(H().napping, false); assert.equal(H().master, 1, 'running again at full level');
-  await sleep(150 + E.FADE.zeroHoldMs + 120); await settle(() => c.state === 'suspended');
-  assert.equal(c.state, 'suspended', 'asleep again ~250 ms after the tap (no effect played)');
-  // an effect with NO tap (a timer's): asks once, dropped if the context isn't running WAKE_WAIT_MS later — never played late
-  r0 = c.resumes;
-  const lone = c.createBufferSource(); let loneEnded = false; lone.start(); const end0 = lone._end; lone._end = () => { loneEnded = true; if (end0) end0(); };
-  assert.ok(c.resumes > r0, 'an effect started while napping asks the context to run');
-  assert.equal(H().voices >= 1, true);
-  await sleep(380); await settle(() => loneEnded);
-  assert.equal(loneEnded, true, 'no tap followed + the context never ran: the effect was DROPPED (stopped), never queued for later');
-  // an effect IN a tap: it plays (the context runs), then the nap follows its end
-  doc.fire('touchend');
-  const fx = c.createBufferSource(); fx.start();
-  c.set('running');
-  await sleep(320);
-  assert.equal(c.state, 'running', 'an effect sounding: awake');
-  fx.stop();
-  await sleep(150 + E.FADE.zeroHoldMs + 120); await settle(() => c.state === 'suspended');
-  assert.equal(c.state, 'suspended', '…its end → suspended again');
-  // a leave while napping: nothing to cut
-  const s1 = c.suspends; delete store[R.LEAVE_REC_KEY];
-  win.fire('blur');
-  assert.equal(c.state, 'suspended'); assert.equal(c.suspends, s1, 'a leave finds it suspended — nothing cut, nothing suspended again');
-  assert.equal(rec().first.ctx, 'suspended', 'THE LEAVE RECORD notes "ctx at the leave: suspended" up front');
-  win.fire('focus'); await sleep(500);
-  assert.equal(c.state, 'suspended', 'the return wakes nothing');
-  // the music back ON (a tap): awake at once + the beds back
-  doc.fire('touchend');
+  const c = ctx();
+  assert.equal(session.type, 'playback'); assert.equal(H().sound, 'HEAR THE HARBOR');
+  assert.equal(E.musicResting(), true, 'the music rests (music.js pauses every element)'); assert.equal(H().resting, true); assert.equal(H().hushed, false);
+  assert.equal(bedPaused, false, 'the beds RUN with the music off — the water, the hum, the boats are heard');
+  assert.equal(E.getMusicBus().gain.value, 0, 'the music bus 0'); assert.ok(E.getSfxBus().gain.value > 0, 'the effects bus up');
+  assert.equal(globalThis.__nsSoundRow().oneOffs, true, 'the city\'s one-offs through the hub');
+  const fx = c.createBufferSource(); fx.start(); fx.stop();
+  await sleep(900);
+  assert.equal(c.state, 'running', 'nothing sounding: still RUNNING — no nap, no wake-up lag on the next effect');
+  assert.equal(E.isUnlocked(), true, 'THE ONE GATE every effect asks: open');
+  assert.match(R.leaveReportText({ first: { ctx: 'running' }, sound: H().sound, sess: session.type, sig: [{ s: 'blur', ms: 0 }] }), /^AUDIO LEAVE · ctx at the leave: RUNNING · HEAR THE HARBOR · session playback · blur/, '/admin\'s AUDIO LEAVE: the ctx up front + the state\'s name');
   updateSettings({ musicOff: false });
-  assert.equal(E.podcastNow(), false); assert.equal(bedPaused, false, 'the beds back with the music');
-  c.set('running');
-  await sleep(150 + E.FADE.zeroHoldMs + 120);
-  assert.equal(c.state, 'running', 'music on: never napping');
+  assert.equal(E.musicResting(), false); assert.equal(H().resting, false); assert.equal(bedPaused, false); assert.equal(session.type, 'playback');
 });
 
-test('THE HOLD (HIGH RISE S4A — THE SOUND SYNC): a LIVE run holds the napping context AWAKE — a lease the game renews; let go / lapsed / hidden → the nap is back; the session type, the music, the hush + the leave are untouched', async () => {
+// THE TOGGLE BUG (the owner's iPhone, Nov 21 ~10 am): load in music-off → ALL OFF → MUSIC ON → MUSIC OFF left the beds running on 'ambient' →
+// the leave squealed. Now ONE row is applied whole: every path through the button + Settings from every starting state is checked, after EVERY
+// step, against the row's own columns (session · beds · music · effects · the hush) — the state can only ever be a function of the row.
+test('EVERY PATH lands on its row: every start state × every order of taps (and Settings\' own switches) → the session, the beds, the music\'s rest, the buses + the hush = THE SOUND TABLE\'s row', async () => {
+  const START = { on: { musicOff: false, sfxOff: false, muted: false }, music: { musicOff: true, sfxOff: false, muted: false }, all: { musicOff: true, sfxOff: true, muted: false } };
+  const STEPS = { tap: s => R.soundTap(s).patch, mute: () => ({ muted: true }), unmute: () => ({ muted: false }), fxOff: () => ({ sfxOff: true }), fxOn: () => ({ sfxOff: false }), musicOn: () => ({ musicOff: false }), musicOff: () => ({ musicOff: true }) };
+  const names = Object.keys(STEPS);
+  const paths = [[]];
+  for (let n = 0; n < 3; n++) for (const p of paths.slice()) if (p.length === n) for (const k of names) paths.push([...p, k]);
+  paths.push(['tap', 'tap', 'tap', 'tap', 'tap', 'tap'], ['tap', 'tap', 'tap', 'tap'], ['mute', 'tap', 'tap', 'tap', 'unmute']);   // (long button walks + the owner's order)
+  const want = st => { const r = R.SOUND_TABLE[st]; return { session: r.session || 'auto', beds: r.beds, resting: !r.music && st !== 'all', hushed: st === 'all', music: r.music, effects: r.effects }; };
+  const seen = () => { const sfx = E.getSfxBus().gain.value, mus = E.getMusicBus().gain.value; return { session: session.type || 'auto', beds: !bedPaused, resting: H().resting, hushed: H().hushed, music: mus > 0, effects: sfx > 0 }; };
+  let checked = 0;
+  for (const [st0, s0] of Object.entries(START)) for (const p of paths) {
+    updateSettings({ ...s0 });
+    let s = { ...s0 };
+    const check = where => {
+      const st = R.soundState(s);
+      const w = want(st), g = seen();
+      if (s.sfxOff && st !== 'all') w.effects = false;   // (the ☰ menu's SOUND EFFECTS toggle within a row)
+      if (st === 'all') w.beds = g.beds;   // (ALL OFF's beds stop at THE HUSH's suspend, under the master's zeros — checked on its own below)
+      assert.deepEqual(g, w, `from ${st0} via [${p.join(' → ')}] at ${where}: state ${st} (${R.SOUND_TABLE[st].name})`);
+      checked++;
+    };
+    check('the load');
+    p.forEach((k, i) => { const patch = STEPS[k](s); s = { ...s, ...patch }; updateSettings(patch); check(`step ${i + 1} (${k})`); });
+  }
+  assert.ok(checked > 1500, `${checked} states checked`);
+  // ALL OFF's beds: stopped at THE HUSH's suspend (the master's ramp + its zeros first — never a loop cut while it sounds)
+  updateSettings({ ...START.on }); bedPaused = false;
+  updateSettings({ ...START.all });
+  assert.equal(bedPaused, false, 'not cut at the switch (the master still ramping)');
+  await sleep(E.FADE.hushSuspendMs + 80); await settle(() => bedPaused);
+  assert.equal(bedPaused, true, 'stopped at the suspend of the hush'); assert.equal(H().master, 0);
+  updateSettings({ ...START.on });
+  assert.equal(bedPaused, false, 'back with the row');
+  // the owner's exact order: music-off → ALL OFF → MUSIC ON → MUSIC OFF = HEAR THE HARBOR on 'playback' (never 'ambient'), the beds running
+  updateSettings({ ...START.music }); updateSettings(R.soundTap(START.music).patch);
+  updateSettings(R.soundTap(START.all).patch); updateSettings(R.soundTap(START.on).patch);
+  assert.equal(R.soundState({ musicOff: true, sfxOff: false }), 'music'); assert.equal(session.type, 'playback'); assert.equal(bedPaused, false); assert.equal(H().sound, 'HEAR THE HARBOR');
+  updateSettings({ ...START.on });
+});
+
+test('THE HOLD (HIGH RISE S4A) after HEAR THE HARBOR: the lease still records itself + lapses by itself; it changes nothing — the session, the beds, the context, the hush', async () => {
   updateSettings({ musicOff: true, sfxOff: false, muted: false });
   const c = ctx();
-  doc.fire('touchend'); c.set('running');
-  await sleep(150 + E.FADE.zeroHoldMs + 120); await settle(() => c.state === 'suspended');
-  assert.equal(c.state, 'suspended', 'podcast mode, nothing sounding: asleep');
-  assert.equal(session.type, 'ambient');
+  doc.fire('touchend'); if (c.state !== 'running') c.set('running');
   assert.equal(typeof globalThis.__nsHoldAwake, 'function', 'the hub a lazy chunk reaches it through (THE STALE-MODULE RULE)');
-  // the run starts (the START tap): the hold asks the context to run AT ONCE; awake, it stays awake — no nap between two effects
-  doc.fire('touchend');   // (the START tap — its own silent blip is the tap's, not an effect's)
-  const n0 = H().naps, w0 = H().wakes, r0 = c.resumes;
+  const before = { session: session.type, beds: bedPaused, state: c.state, sus: c.suspends };
   globalThis.__nsHoldAwake(true, 'test');
-  assert.ok(c.resumes > r0 || c.state === 'running', 'the hold wakes a napping context (inside the START tap)');
-  c.set('running');
-  assert.equal(H().held, true); assert.equal(H().napping, false); assert.equal(H().master, 1);
-  for (let i = 0; i < 3; i++) { const fx = c.createBufferSource(); fx.start(); assert.equal(c.state, 'running', 'an effect finds the context RUNNING — on its moment'); fx.stop(); await sleep(320); E.holdAwake(true, 'test'); }
-  assert.equal(c.state, 'running', 'a second of silence between drops: still awake');
-  assert.equal(H().naps, n0, 'no nap while held'); assert.equal(H().wakes, w0, 'no effect had to wake it');
-  assert.ok(E.voiceStarts().slice(-3).every(r => r.wait === 0), 'the engine\'s own record: each source started on a running context (wait 0)');
-  assert.equal(session.type, 'ambient', 'the session type never changed: the phone\'s podcast keeps playing');
-  assert.equal(E.podcastNow(), true, 'still PODCAST MODE (no music, no beds)'); assert.equal(bedPaused, true);
-  // let go (the end card): the nap comes back
-  E.holdAwake(false, 'test');
-  assert.equal(H().held, false);
-  await sleep(150 + E.FADE.zeroHoldMs + 120); await settle(() => c.state === 'suspended');
-  assert.equal(c.state, 'suspended', 'released → asleep again between effects');
-  // A LEASE, never a latch: a game that stops renewing (a crash, an unmount) loses the hold by itself
-  doc.fire('touchend'); E.holdAwake(true, 'test'); c.set('running');
   assert.equal(H().held, true);
-  await sleep(E.HOLD_LEASE_MS + 250 + 150 + E.FADE.zeroHoldMs + 150); await settle(() => !H().held && c.state === 'suspended');
-  assert.equal(H().held, false, 'not renewed for HOLD_LEASE_MS: the lease lapsed');
-  assert.equal(c.state, 'suspended', '… and the context naps again by itself');
-  // hidden mid-run: the hold is dropped at once, the leave suspends as ever; back on screen nothing is woken until a tap / an effect
-  doc.fire('touchend'); E.holdAwake(true, 'test'); c.set('running');
-  vis(false);
-  assert.equal(H().held, false, 'a leave drops the hold');
-  await sleep(E.FADE.zeroHoldMs + 400); await settle(() => c.state === 'suspended');
-  assert.equal(c.state, 'suspended', 'hidden: suspended (the leave path as it was)');
-  vis(true); await sleep(300);
-  assert.equal(c.state, 'suspended', 'back on screen: nothing woken');
-  // MUTED = NOTHING RUNS, held or not
-  doc.fire('touchend'); c.set('running');
-  updateSettings({ muted: true });
-  await sleep(E.FADE.outS * 1000 + E.FADE.zeroHoldMs + 200);
-  const r1 = c.resumes;
+  assert.deepEqual({ session: session.type, beds: bedPaused, state: c.state, sus: c.suspends }, before, 'the hold changes nothing');
+  E.holdAwake(false, 'test'); assert.equal(H().held, false);
   E.holdAwake(true, 'test');
-  assert.equal(c.resumes, r1, 'muted: the hold resumes nothing'); assert.equal(c.state, 'suspended');
+  await sleep(E.HOLD_LEASE_MS + 250); await settle(() => !H().held);
+  assert.equal(H().held, false, 'not renewed for HOLD_LEASE_MS: the lease lapsed');
+  assert.equal(c.state, 'running', 'and nothing napped');
+  vis(false); E.holdAwake(true, 'test'); vis(true);
   E.holdAwake(false, 'test');
-  // the music ON: the hold changes nothing (the context runs anyway — never napping)
-  doc.fire('touchend');
-  updateSettings({ muted: false, musicOff: false, sfxOff: false });
-  c.set('running');
-  E.holdAwake(true, 'test'); E.holdAwake(false, 'test');
-  await sleep(150 + E.FADE.zeroHoldMs + 120);
-  assert.equal(c.state, 'running'); assert.equal(session.type, 'playback'); assert.equal(E.podcastNow(), false);
+  updateSettings({ musicOff: false });
 });
 
 test('MUTED = NOTHING RUNS: suspended after the ramp; a tap resumes nothing; leaving + coming back wakes nothing', async () => {

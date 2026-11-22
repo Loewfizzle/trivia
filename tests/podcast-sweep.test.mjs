@@ -40,7 +40,7 @@ test('THE GUARD: no effect player gates on the context being "running" — only 
     if (ALLOW.has(rel) || frozenDirs.some(d => rel.startsWith(d))) continue;
     readFileSync(f, 'utf8').split('\n').forEach((line, i) => { if (RUNNING.test(line) && !/a MUSIC gate/.test(line)) hits.push(`${rel}:${i + 1}: ${line.trim().slice(0, 120)}`); });
   }
-  assert.deepEqual(hits, [], `an effect must ask isUnlocked() (running OR napping — engine.js#wakeFor), never ctx.state:\n${hits.join('\n')}`);
+  assert.deepEqual(hits, [], `an effect must ask isUnlocked() (THE ONE GATE — engine.js), never ctx.state:\n${hits.join('\n')}`);
 });
 
 test('the 13 swept gates ask isUnlocked() (each file imports it from the engine)', () => {
@@ -51,8 +51,8 @@ test('the 13 swept gates ask isUnlocked() (each file imports it from the engine)
   }
 });
 
-test('the engine: isUnlocked() counts a podcast-mode NAP; every source start wakes it', () => {
+test('the engine: isUnlocked() is THE ONE GATE (HEAR THE HARBOR — the nap retired; a future idle rule changes this one line, never a game\'s gate)', () => {
   const e = readFileSync(join(ROOT, 'js/audio/engine.js'), 'utf8');
-  assert.match(e, /export const isUnlocked = \(\) => unlocked && !!ctx && \(ctx\.state === 'running' \|\| \(napping && ctx\.state === 'suspended'\)\);/);
-  assert.match(e, /noteStart\(c\); wakeFor\(src\);/, 'a start wakes the nap (countVoices)');
+  assert.match(e, /export const isUnlocked = \(\) => unlocked && !!ctx && ctx\.state === 'running';/);
+  assert.doesNotMatch(e, /napSoon|wakeFor|podCheck/, 'no nap machinery left');
 });

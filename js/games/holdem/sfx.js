@@ -103,7 +103,7 @@ function start(cues) {
   try {
     if (!cues || !cues.length || !isUnlocked()) return 0;
     const ctx = getContext();
-    if (!ctx || !isUnlocked()) return 0;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
+    if (!ctx || !isUnlocked()) return 0;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — THE ONE GATE (engine.js), never the context's state)
     // HE10 (A42): the first batch after an audio-engine rebuild (a new context — its buffers decoding) waits for them, then plays what's
     // still ahead (each cue its time less the wait; one already ≥ 150 ms late is dropped) — never silently lost
     if (bufCtx !== ctx || (decoding && !decoded(cues))) {

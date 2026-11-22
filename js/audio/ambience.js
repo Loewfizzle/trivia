@@ -220,7 +220,7 @@ export function neonCatch({ level = 1, dur = 0 } = {}) { return playNeon(NEON_RE
  * fully on (`hold` s), then FADES OUT smoothly over `fade` s (an equal-power curve: no sudden tail) and stops. → stop(fade s).
  */
 export function neonHumFade({ level = 1, fadeIn = 0.8, hold = 1.5, fade = 10 } = {}) {
-  if (!isUnlocked() || (globalThis.__nsBedsOff && globalThis.__nsBedsOff())) return () => {};   // (CITY I — PODCAST MODE: a bed — none with the music off)
+  if (!isUnlocked() || (globalThis.__nsSoundRow && !globalThis.__nsSoundRow().beds)) return () => {};   // (THE SOUND TABLE: a bed — none in ALL OFF; HEAR THE HARBOR has it)
   const ctx = getContext(), out = ctx.createGain();
   let src = null, stopped = false, endT = 0;
   out.gain.setValueAtTime(0, ctx.currentTime);

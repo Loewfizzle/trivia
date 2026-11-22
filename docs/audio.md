@@ -4,8 +4,8 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
 
 ## Audio
 - `installAudio()` (engine) + `installSettingsPanel()` run at boot. The AudioContext is created/resumed on the first
-  pointer/key event (iOS requires a gesture). `navigator.audioSession.type` (iOS 17+) = `'playback'` while the music is on (plays with the
-  silent switch on, like YouTube), `'ambient'` with the music off / muted (M4 below). A dead graph never silences the music: the song falls
+  pointer/key event (iOS requires a gesture). `navigator.audioSession.type` (iOS 17+) = THE SOUND TABLE's row: `'playback'` for MUSIC ON + HEAR THE HARBOR,
+  iOS left alone for ALL OFF (THE GARDEN PARTY PASS, below). A dead graph never silences the music: the song falls
   back to a plain `<audio>` element (THE DIRECT PATH, M4).
 - Music: `app.js` render calls `playMusic(track, fallback)` for the current state (menu for title/setup/lobby,
   `module.MUSIC` in a game, `'victory'` on the final phase with the game track as fallback). Same track = no-op (never
@@ -31,7 +31,46 @@ Audio engine, music system, playlists; loading, PWA, previews, Lighthouse.
   unmasking); a track change resets it.
 
 
-## THE HOLD — A LIVE GAME RUN KEEPS THE CONTEXT AWAKE (HIGH RISE S4A — Nov 19 2026; the owner: "sometimes the sound isn't in sync with the blocks")
+## THE GARDEN PARTY PASS — MUSIC OFF = HEAR THE HARBOR (Nov 21 2026 — the owner's call, the inbox's 10:08 am entry; retires CITY I's PODCAST MODE; docs/harbor/passes/garden-party.md)
+**Why:** in PODCAST MODE the city's background sounds (the water, the hum, the boats, the city's one-offs) only ever played UNDER the music, where
+they can't be heard — "why are we even having background sounds". And THE TOGGLE BUG (the owner's iPhone, the home-screen app, Nov 21 ~10 am): load
+in music-off → ALL OFF → MUSIC ON → MUSIC OFF left the beds running on the 'ambient' session → the leave SQUEALED again. The podcast setting is
+now ALL OFF (nothing runs, iOS left alone — a podcast keeps playing).
+- **THE SOUND TABLE (`audio/sound-state.js#SOUND_TABLE` — PURE, frozen):** the corner button's three states, ONE row each —
+  | state | button | session | music | beds | one-offs | effects |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | MUSIC ON | ♪ | 'playback' | ✓ | ✓ | ✓ | ✓ |
+  | HEAR THE HARBOR | ♪ slashed | 'playback' | — (resting: no element plays) | ✓ | ✓ | ✓ |
+  | ALL OFF | 🔈✕ | iOS left alone ('auto') | — | — | — | — (THE HUSH: nothing runs) |
+  Other apps' audio (a podcast) pauses while the site sounds in HEAR THE HARBOR — accepted by the owner. The ☰ menu's SOUND EFFECTS toggle can still
+  turn the effects off inside a row (MUSIC ON + effects off = the plain note; the next tap = ALL OFF).
+- **APPLIED WHOLE (`engine.js#applySound`):** every settings change (a tap, the ☰ menu, MUTE EVERYTHING, the page-quiet switch) and the boot apply
+  the row in ONE order — the buses → the session → the hush → the music's rest (`onMusicRest` → music.js pauses every element exactly as THE HUSH
+  does; `musicResting()` is a PURE read of the settings, never stale mid-change) → the beds. So every load state × every order of toggles lands in the
+  same state: `tests/audio-session.test.mjs` "EVERY PATH" walks every start × every 0–3 step order of taps + Settings' own switches (+ long walks +
+  the owner's exact order) and checks the session, the beds, the rest, the buses + the hush after EVERY step (> 1,500 states).
+- **Nothing naps any more:** CITY I's nap (the context suspended 150 ms after each effect) + its wake-ups are gone; the context runs while the page is
+  on screen and the row isn't ALL OFF. THE HOLD (below) keeps its lease API (games call it; `audioHealth().held`) — it changes nothing now.
+- **The leave = C2's path for BOTH sound rows** ('playback' + the master to 0 on a LEAVE_S ramp at the FIRST signal, the beds after the ramp, THE
+  ZEROS FIRST, the suspend). CITY G's HARD CUT (the master stepped to 0 — 'ambient' only) is RETIRED with 'ambient': with the beds running the step is
+  itself a burst (`tests/integration/audio-cut.mjs` D: 0.155 vs the sound's own 0.147) and the owner's iPhone squealed on the hard cut when the beds ran
+  on 'ambient'; C2 never squealed leaving or returning (the Nov 16 LEAVE MODE test). ALL OFF's beds stop at THE HUSH's suspend, under the master's
+  zeros (never a loop cut while it sounds — FIXES R2; audio-cut A + C).
+- **AN EFFECT ASKS `isUnlocked()`** — kept as THE ONE GATE (`unlocked && ctx.state === 'running'`; `tests/podcast-sweep.test.mjs` still forbids a
+  game's own `ctx.state` gate — a future idle rule changes this one line, never a game's).
+- **The city's sounds read the row** through the hub `globalThis.__nsSoundRow` (`city-sound.js#rowHas('oneOffs' / 'beds')`, `ambience.js#neonHumFade`)
+  — `__nsBedsOff` is gone.
+- **/admin's AUDIO LEAVE** keeps "ctx at the leave" up front + adds the state's name: `AUDIO LEAVE · ctx at the leave: RUNNING · HEAR THE HARBOR ·
+  session playback · …` (`leave-text.js`, the episode's `sound`).
+- **The idle cutoff + a yielded tab** use the page-quiet switch = the music off: they now land in HEAR THE HARBOR (the harbor plays on, no music).
+- **Tests:** unit — `audio-session` (the table, EVERY PATH, the leave, THE HOLD), `audio-hush`, `podcast-sweep`, `jaywalk-podcast`, `highrise-play`;
+  browser — `tests/integration/sound-table.mjs` (NEW: the real app + the real corner button LOADED in each state, tapped 0–4 times, checked against
+  the row after every step — Chromium with real Web Audio: HEAR THE HARBOR's loops SOUND, an effect SOUNDS, ALL OFF suspended; WebKit (no Web Audio
+  on Windows → a stand-in AudioContext): Safari's tap path + the table — from MUSIC ON the stand-in's silent song makes the tap THE MUSIC RESCUE, so
+  that one step applies the button's own patch), `audio-leave`, `audio-cut`, `audio-hush`, `sound-sync`, `podcast-sweep`, `jaywalk-podcast`, the
+  harbor `audio` group (HEAR THE HARBOR on the real city).
+
+## THE HOLD — A LIVE GAME RUN KEEPS THE CONTEXT AWAKE (HIGH RISE S4A — Nov 19 2026; the owner: "sometimes the sound isn't in sync with the blocks") — THE NAP IT BEAT IS RETIRED (HEAR THE HARBOR, above): the lease API stays, it changes nothing now
 **Why:** PODCAST MODE (below) naps the context 150 ms after each effect — right for the city, wrong for a game: a drop / a hop comes every second or
 two, so EVERY effect first had to wake the context (on iOS at the finger's LIFT — a variable delay between the picture and its sound).
 - **`engine.js#holdAwake(on, who)`** + its hub **`globalThis.__nsHoldAwake`** (a game's lazy chunk reads the hub — THE STALE-MODULE RULE). **A LEASE,
@@ -49,7 +88,7 @@ two, so EVERY effect first had to wake the context (on iOS at the finger's LIFT 
   lapsed / hidden → the nap is back; muted → nothing resumed; music on → nothing changes) + `tests/integration/sound-sync.mjs` (both games, music on +
   off, real touches: every gap ≤ 0.4 ms, 0 wake-ups in a live run — docs/highrise.md "THE SOUND SYNC").
 
-## CITY I — MUSIC OFF = PODCAST MODE (Nov 18 2026 — the owner's pick, OPTION 3; the inbox's 7:55 pm entry; docs/harbor/passes/city-i.md)
+## CITY I — MUSIC OFF = PODCAST MODE (RETIRED Nov 21 by HEAR THE HARBOR, above) (Nov 18 2026 — the owner's pick, OPTION 3; the inbox's 7:55 pm entry; docs/harbor/passes/city-i.md)
 **Why:** THE SQUEAL came back with H2's "music off = only the music". His AUDIO LEAVE (7:44 pm, build ca29a6e, iPhone 18.7, the home-screen app,
 music off + effects on): session ambient · the context RUNNING at the first signal, master 1.000, three beds live + a station song element PLAYING at a
 0 bus; the hard cut zeroed the master at +1 ms, the suspend was asked at +106 — and it STILL squealed. With iOS's 'ambient' session a RUNNING context

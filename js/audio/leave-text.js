@@ -13,9 +13,10 @@ export function leaveReportText(e) {
   const order = sig.filter(x => !/^media after|^cut:/.test(x.s)).map((x, i) => (i ? `${x.s} +${x.ms} ms` : x.s)).join(' → ') || 'no signal';
   const back = e.back ? `back after ${(e.back.ms / 1000).toFixed(1)} s (${e.back.why} · ctx ${e.back.st})` : 'NEVER CAME BACK (frozen or killed — sent at the next load)';
   const media = sig.find(x => /^media after/.test(x.s));
-  // (CITY I — PODCAST MODE: the context's state at the FIRST signal up front — the owner's phone test reads it at a glance)
+  // (CITY I: the context's state at the FIRST signal up front — the owner's phone test reads it at a glance; THE GARDEN PARTY PASS: + the sound
+  //  state's name — MUSIC ON · HEAR THE HARBOR · ALL OFF, sound-state.js#SOUND_TABLE)
   const at = e.first && e.first.ctx ? String(e.first.ctx) : '?';
-  const head = `AUDIO LEAVE · ctx at the leave: ${at.toUpperCase()}${e.first && e.first.napping ? ' (podcast mode, between effects)' : ''} · session ${e.sess || '?'} · ${order} · ${back} · ${media ? media.s : 'media after: (no cut seen)'}`;
+  const head = `AUDIO LEAVE · ctx at the leave: ${at.toUpperCase()} · ${e.sound || 'state ?'} · session ${e.sess || '?'} · ${order} · ${back} · ${media ? media.s : 'media after: (no cut seen)'}`;
   const first = `at the first signal: ${soundingLine(e.first)} · session ${e.session || 'n/a'} · ${e.vis || '?'} · ${e.dev || ''}`;
   const each = `signals: ${sig.map(x => `${x.s} +${x.ms} (ctx ${x.st}, m ${f3(x.m)})`).join(' · ')}`;
   return `${head}\n${first}\n${each}`.slice(0, 1500);

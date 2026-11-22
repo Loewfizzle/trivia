@@ -169,7 +169,7 @@ try {
   ok(d1 >= 8 && gs.stage.floor >= 6, `${d1} REAL taps dropped ${gs.stage.floor} floors (${gs.stage.perfects} perfect)`);
   ok(chunks.length >= 3 && chunks.every(c => typeof c.s === 'string' && Math.abs(c.at - srv) < 60000), `the proof: ${chunks.length} chunks, each stamped by the SERVER`);
   ok(log && JSON.stringify(log) === JSON.stringify(mine.slice(0, log.length)) && log.length >= mine.length - 1, `the chunks joined = the phone's own tap log (${log && log.length} of ${mine.length} taps up)`);
-  ok(a1.held && a1.state === 'running' && a1.podcast && a1.naps === a0.naps, `THE SOUND SYNC in the cartridge (MUSIC OFF): the run HOLDS the context awake — running, ${a1.naps - a0.naps} naps`);
+  ok(a1.held && a1.state === 'running' && a1.sound === 'HEAR THE HARBOR', `THE SOUND SYNC in the cartridge (MUSIC OFF = HEAR THE HARBOR): the run's lease held, the context running (${a1.sound})`);
   ok(gs.stage.lates === 0, 'no sound took the late path in play');
   await P.shot('run.png');
 

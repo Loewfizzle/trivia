@@ -24,7 +24,7 @@ const tapAt = async (x, y) => { await cdp.send('Input.dispatchTouchEvent', { typ
 
 ok(await waitFor('!!window.__jwLab && !!window.__jwLab.sfx', 20000), 'the lab is up, its sounds on the shared audio engine');
 await tapAt(195, 500); await sleep(500); await tapAt(195, 500);   // (real touches: the first unlocks the audio)
-await sleep(900);                                                  // (long enough for the engine to nap: MUSIC OFF suspends the context between effects)
+await sleep(900);
 // THE AUDITION (the SOUNDS sheet — the lab's run holds still under it)
 const snd = await p.evaluate(() => { const r = document.querySelector('.jw-snd').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
 await tapAt(snd[0], snd[1]);
@@ -36,7 +36,7 @@ const ids = SOUNDS.filter(s => s.play).map(s => s.id);
 const res = await p.evaluate(async list => {
   const S = window.__jwLab.sfx, out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
   for (const id of list) {
-    S.stopAll(); await wait(260);                                  // (a nap between two sounds: each one wakes the context itself)
+    S.stopAll(); await wait(260);
     const t0 = performance.now();
     let n0 = S.totals().started, started = false;
     while (!started && performance.now() - t0 < 4000) { S.play(id); await wait(160); started = S.totals().started > n0; }   // (a sound not decoded yet is asked again)
@@ -46,7 +46,7 @@ const res = await p.evaluate(async list => {
   return out;
 }, ids);
 const silent = ids.filter(id => !res[id]);
-ok(silent.length === 0, `MUSIC OFF (podcast mode): EVERY JAYWALK sound starts — ${ids.length - silent.length} of ${ids.length}${silent.length ? ` (silent: ${silent.join(' · ')})` : ` (${ids.join(' · ')})`}`);
+ok(silent.length === 0, `MUSIC OFF (HEAR THE HARBOR): EVERY JAYWALK sound starts — ${ids.length - silent.length} of ${ids.length}${silent.length ? ` (silent: ${silent.join(' · ')})` : ` (${ids.join(' · ')})`}`);
 const n0 = await p.evaluate(() => window.__jwLab.sfx.totals().started);
 for (const sel of ['[data-snd="hop:a"]', '[data-snd="hop:b"]', '[data-snd="hit:a"]']) {
   const at = await p.evaluate(q => { const el = document.querySelector(q); el.scrollIntoView({ block: 'center' }); const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, sel);

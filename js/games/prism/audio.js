@@ -839,7 +839,7 @@ export function createSynth() {
     /** (the test hook) which of the skin's files are decoded + ready on this context */
     samplesReady: () => Object.keys(files).filter(name => !!sample(name)),
     play(name, opts) {
-      if (settings.muted || !ensure() || !isUnlocked()) return;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — running OR napping, its own start wakes the nap: engine.js#wakeFor — never the context's state)
+      if (settings.muted || !ensure() || !isUnlocked()) return;   // (CITY PART 1 — SILENT WITH MUSIC OFF, THE SWEEP: an effect asks isUnlocked() — THE ONE GATE (engine.js), never the context's state)
       const fn = SOUNDS[voices[name]] || SOUNDS[name];
       if (fn) { try { fn(opts); } catch (e) { console.warn('prism sfx', name, e && e.message); } }
     },
