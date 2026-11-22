@@ -2258,8 +2258,13 @@ test('THE CONSOLE FIX — THE TREE CAP (jw + hr): the stamp only WITH the room\'
     // THE SWITCH-OVER (1): the rules as PUBLISHED before this pass + the NEW code — the combined write is refused (no `pt` rule), the
     // plain stamp (the code's fallback) lands, GO + the log as before
     await before.seed(proofRoom(gid));
-    await assertFails(stampAt(before.db('p2'), `${T}/t0`), `${node} · the published rules: the counter is unknown — the combined stamp is refused (expected, silent)`);
-    await assertSucceeds(set(ref(before.db('p2'), `${T}/t0`), TS), `${node} · … the fallback's plain stamp lands`);
+    // (HIGH RISE DAILY B: the owner RE-PUBLISHED since (e532904a — the fixture = the published rules, THE CONSOLE FIX's counter in it): this
+    //  case follows the fixture — before the publish the combined stamp is refused + the plain one lands; after it the combined one lands)
+    if (/"pt"/.test(published)) await assertSucceeds(stampAt(before.db('p2'), `${T}/t0`), `${node} · the published rules (re-published: they know the counter): the combined stamp lands`);
+    else {
+      await assertFails(stampAt(before.db('p2'), `${T}/t0`), `${node} · the published rules: the counter is unknown — the combined stamp is refused (expected, silent)`);
+      await assertSucceeds(set(ref(before.db('p2'), `${T}/t0`), TS), `${node} · … the fallback's plain stamp lands`);
+    }
     await assertSucceeds(set(ref(before.db('p2'), `${T}/p2/go`), TS), `${node} · … then GO`);
     await assertSucceeds(set(ref(before.db('p2'), `${T}/p2/c/0`), chunkOf(s)), `${node} · … and the log`);
     // THE SWITCH-OVER (2): the NEW rules + the code live before this pass (a plain stamp, no counter) — its stamp is refused, its GO lands

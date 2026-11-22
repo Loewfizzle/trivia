@@ -27,6 +27,9 @@ import { NEW_PROFILES } from '../../api/_lib/profiles.js';
 import { todaysDailies, dailyOf, DAILY_XP, SWEEP_XP } from '../../js/core/daily.js';
 import { streakDay, dayStartAt, dayNum, dayOf } from '../../js/core/streak.js';
 import { DAILIES } from '../../js/config.js';
+// (HIGH RISE DAILY B: HIGH RISE's row opens by its OWN day — liveFrom d20261122; this file's timelines run Nov–Dec on their own sets of
+//  dailies, so that row's go-live is taken off in THIS process — its own go-live is tests/highrise-daily-b.test.mjs + e2e-highrise-daily-b.mjs)
+for (const r of DAILIES) if (r.liveFrom) delete r.liveFrom;
 
 const NOW = Date.UTC(2026, 10, 10, 1, 0, 0);   // Mon Nov 9 2026, 8 pm Eastern
 const DAY = 86_400_000, WEEK_AGO = NOW - 7 * DAY;

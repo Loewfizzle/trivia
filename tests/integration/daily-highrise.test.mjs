@@ -230,7 +230,7 @@ test('AN ABANDONED RUN is scored at its last server tap: `today` once it can\'t 
   const again = await D(a2, { action: 'start', game: 'highrise' }, p2a.end + 4000);
   assert.ok(!again.run && again.done != null, `a START after the phone's own end: the run is over (${JSON.stringify({ run: !!again.run, done: again.done, ended: again.ended })})`);
   assert.equal(again.ended, 'fin');
-  assert.equal((await val(s2a.run.path)).x ?? null, null, 'the phone's end stays the phone's');
+  assert.equal((await val(s2a.run.path)).x ?? null, null, 'the phone’s end stays the phone’s');
   // (b) hidden mid-run WITH holds left: `today` never scores it — RESUME
   const b = 'hd-ivy'; await ensure(b, 'HiIvy');
   const pidB = await pidOf(b);
