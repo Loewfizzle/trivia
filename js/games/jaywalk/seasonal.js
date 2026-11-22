@@ -29,7 +29,7 @@ const NONE = Object.freeze({ day: '', winter: 0, christmas: 0, snowfall: 'none',
 
 /** JT1 — THE LEAF PILES: at most one in a block of `every` lanes, on these areas' walkable cells (the opening's grass · DOWNTOWN's sidewalks ·
  *  the canal's mossy pavers · the dunes' scrub — areas.js LOOKS index; -1 = the opening), from lane `from`; `share` of the blocks at full autumn */
-export const PILE = Object.freeze({ every: 3, from: 4, share: 0.62, areas: [-1, 4, 5, 6], max: 24, burstMs: 520 });
+export const PILE = Object.freeze({ every: 3, from: 4, share: 0.62, areas: [-1, 4, 5, 6], max: 24, burstMs: 520, s: 0.92, h: 0.72 });   // (s, h: the model's scale across + up)
 /** JT1 — THE FOOTPRINTS: a pooled ring of pairs, each fading over `ms` */
 export const PRINT = Object.freeze({ ring: 96, ms: 3600, len: 0.28, wide: 0.13, apart: 0.11 });
 /** JT1 — THE HATS' colours (the owner's mockups: a red Santa hat — white fur band + pom-pom; a striped party cone) */
@@ -45,7 +45,14 @@ const fnv = s => { let x = 0x811c9dc5; for (let i = 0; i < s.length; i++) { x ^=
 const WDIR = new URL('../../../assets/jaywalk/winter/', import.meta.url);
 export const WINTER_REV = 1;
 export const WINTER_MODELS = Object.freeze(['snow-pine', 'xmas-tree', 'snowman']);   // (J4: the candy cane DROPPED — the draw-call limit)
-let winterP = null;
+let winterP = null, pileP = null;
+/** VARIETY A — THE LEAF PILE (Polyfork "Raked Leaf Pile", CC BY 4.0 — build-jaywalk-assets.py --only=autumn): fetched only on an autumn day */
+const ADIR = new URL('../../../assets/jaywalk/autumn/', import.meta.url);
+export const PILE_REV = 1;
+function loadPileGeo(parseGlb) {
+  if (!pileP) pileP = fetch(new URL(`leaf-pile.glb?v=${PILE_REV}`, ADIR)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('leaf-pile')))).then(parseGlb).catch(() => { pileP = null; return null; });
+  return pileP;
+}
 function loadWinter(parseGlb) {
   if (!winterP) winterP = Promise.all(WINTER_MODELS.map(n => fetch(new URL(`${n}.glb?v=${WINTER_REV}`, WDIR)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(n)))).then(parseGlb)))
     .then(gs => Object.fromEntries(WINTER_MODELS.map((n, i) => [n, gs[i]])), () => { winterP = null; return null; });   // (a failed pack: tried again next time — never thrown)
@@ -182,17 +189,18 @@ export function createSeasonal(A) {
     HG.on = which; A.rewarm();
   }
 
-  // ---- JT1 — THE LEAF PILES (ONE instanced draw): a low mound of leaves; bursts when the kid lands in it (then lies scattered)
-  let KP = null, pileSeed = 0, pilesN = 0;
+  // ---- JT1 — THE LEAF PILES (ONE instanced draw) — VARIETY A: Polyfork's raked pile (the model, fetched on an autumn day; JT1's code-built
+  //  mound retired); bursts when the kid lands in it (then lies scattered). A run whose pile model is not in by its start shows none.
+  let KP = null, pileSeed = 0, pilesN = 0, pileG = null, pileGP = null;
   const burst = new Map();   // ('lane:col' → when it burst — this run)
+  function loadPile() {
+    if (pileG || pileGP) return pileGP || Promise.resolve(true);
+    pileGP = loadPileGeo(A.parseGlb).then(g => { pileGP = null; if (!g || A.dead()) return false; pileG = g; if (SZ.autumn > 0) pileKind(); return true; });
+    return pileGP;
+  }
   function pileKind() {
-    if (KP) return KP;
-    const parts = [{ g: new THREE.SphereGeometry(0.3, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2), color: 0xb8561a, at: [0, 0, 0], scale: [1.2, 0.42, 1.0], shade: y => 0.7 + y * 2.2 }];
-    for (let k = 0; k < 16; k++) {
-      const a = k * 2.399, rr = 0.07 + 0.26 * Math.sqrt((k + 0.5) / 16), x = Math.cos(a) * rr * 1.15, z = Math.sin(a) * rr, y = 0.11 * (1 - (rr / 0.33) ** 2) + 0.03;
-      parts.push({ g: new THREE.SphereGeometry(0.075, 6, 3), color: LEAF_HEX[k % 4], at: [x, Math.max(0.02, y), z], rot: [0.5 * Math.sin(k * 1.7), a, 0.4 * Math.cos(k * 2.3)], scale: [1.5, 0.22, 0.85] });
-    }
-    KP = KM['s-pile'] = kind(A.build(parts), A.lambert(), PILE.max);   // (in KM: the scene resets + uploads it with its own kinds each frame)
+    if (KP || !pileG) return KP;
+    KP = KM['s-pile'] = kind(pileG, A.lambert(), PILE.max);   // (in KM: the scene resets + uploads it with its own kinds each frame)
     KP.mesh.visible = false; seasonWarm = true;   // (warmed at a quiet frame with the rest)
     return KP;
   }
@@ -223,6 +231,7 @@ export function createSeasonal(A) {
     prep(day) {
       const s = seasonOf(day), ps = [];
       if (modelsDay(s)) ps.push(loadModels());
+      if (s.autumn > 0) ps.push(loadPile());
       if (s.fireworks) ps.push(loadFireworks());
       return Promise.all(ps).then(r => r.every(Boolean));
     },
@@ -236,7 +245,7 @@ export function createSeasonal(A) {
       SZ = { ...s, any: packDay(s) || s.snowfall !== 'none' || !!o.wet };
       pileSeed = fnv(SZ.day || 'none'); burst.clear(); prN = 0;
       nowFn = o.now || null; labClock = o.clock >= 0 ? o.clock : -1; labT0 = performance.now();
-      if (SZ.autumn > 0) pileKind();
+      if (SZ.autumn > 0) { loadPile(); pileKind(); }
       hatsTo(o.hat === false ? '' : SZ.hat);
       if (FW) FW.on(SZ.fireworks);
       if (!SZ.any) { fall.show(0); LIGHTS.n.value = 0; U.snow.value = 0; U.aut.value = 0; }   // (no season this run: nothing of the pack's is left on — the scene stops calling it)
@@ -280,8 +289,8 @@ export function createSeasonal(A) {
       const c = pileAt(i, L, AR, F.vseed);
       if (c < 0) return;
       const x = X(c + 0.5), b = burst.get(`${i}:${c}`), ry = hsh(F.vseed ^ (i * 191), 9) * 6.28, dim = lt * (F.day ? 1.05 : 1.25);
-      if (b == null) { KP.put(x, 0, z, 1.32, 1.25, 1.32, ry, 0xffffff, dim); K.shadow.put(x, 0.03, z + 0.04, 1.2, 1, 0.95, 0, 0, 1, 0, 0.45 * lt); }
-      else { const u = clamp01((F.clock - b) / 260); KP.put(x, 0, z, 1.32 + 0.55 * u, 1.25 - 0.95 * u, 1.32 + 0.55 * u, ry, 0xffffff, dim * 0.92); }   // (scattered: spread + flattened, it stays)
+      if (b == null) { KP.put(x, 0, z, PILE.s, PILE.h, PILE.s, ry, 0xffffff, dim); K.shadow.put(x, 0.03, z + 0.04, 1.2, 1, 0.95, 0, 0, 1, 0, 0.45 * lt); }
+      else { const u = clamp01((F.clock - b) / 260); KP.put(x, 0, z, PILE.s * (1 + 0.42 * u), PILE.h * (1 - 0.8 * u), PILE.s * (1 + 0.42 * u), ry, 0xffffff, dim * 0.92); }   // (scattered: spread + flattened, it stays)
       pilesN++;
     },
     /** a kid LANDED (yours: own · a rival's: not) on lane `L` at (cx cells, ly lanes) facing `dir` → the footprints + the snow puff on snow;
@@ -347,7 +356,7 @@ export function createSeasonal(A) {
     /** the end screen covers the scene (JT2's add-on — THE FINAL SCREEN's MEMORY): nothing seasonal stays alive behind it — the fall's
      *  particles off, the footprints + the burst piles let go, the fireworks' canvas FREED (all made again by the next run's start) */
     rest(on) { resting = !!on; if (on) { fall.show(0); prN = 0; burst.clear(); } if (FW) FW.rest(on); },
-    info: () => ({ resting, shaders, models: !!models, hat: HG.on, prints: prN, piles: pilesN, bursts: burst.size, fall: fall.mesh.visible ? fall.mesh.geometry.instanceCount : 0, leaves: fall.uniforms.uLeaf.value === 1, fw: FW ? FW.info() : null }),
+    info: () => ({ resting, shaders, models: !!models, hat: HG.on, prints: prN, piles: pilesN, pileModel: !!pileG, bursts: burst.size, fall: fall.mesh.visible ? fall.mesh.geometry.instanceCount : 0, leaves: fall.uniforms.uLeaf.value === 1, fw: FW ? FW.info() : null }),
     destroy() {
       A.scene.remove(fall.mesh); fall.dispose(); U.snow.value = 0; U.aut.value = 0; LIGHTS.n.value = 0;
       for (const g of HG.made) g.dispose();

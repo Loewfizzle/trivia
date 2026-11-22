@@ -48,8 +48,9 @@ test('JT1 ROOM FIRST: the season clock, the pack\'s code + the fireworks are NEV
   assert.doesNotMatch(strip(read('js/games/jaywalk/models.js')), /loadWinter|WINTER_MODELS/, 'the winter loader left models.js');
   assert.doesNotMatch(strip(read('js/games/jaywalk/view.js')), /from '\.\/season\.js'/, 'the view knows only the gate');
   // THE PACK's own size: its code + the winter models ≤ 150 KB (the owner's cap)
-  const code = PACK.reduce((a, f) => a + statSync(join(ROOT, f)).size, 0), dir = join(ROOT, 'assets/jaywalk/winter');
-  const models = readdirSync(dir).filter(f => f.endsWith('.glb')).reduce((a, f) => a + statSync(join(dir, f)).size, 0);
+  // (VARIETY A: + the autumn models — the leaf pile)
+  const code = PACK.reduce((a, f) => a + statSync(join(ROOT, f)).size, 0);
+  const models = ['winter', 'autumn'].map(d => join(ROOT, 'assets/jaywalk', d)).reduce((t, dir) => t + readdirSync(dir).filter(f => f.endsWith('.glb')).reduce((a, f) => a + statSync(join(dir, f)).size, 0), 0);
   assert.ok(code + models <= 150 * 1024, `THE SEASONAL PACK ${((code + models) / 1024).toFixed(1)} KB (code ${(code / 1024).toFixed(1)} + models ${(models / 1024).toFixed(1)}) ≤ 150 KB`);
 });
 

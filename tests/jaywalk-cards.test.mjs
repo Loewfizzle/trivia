@@ -118,7 +118,7 @@ test('H6A — EACH CARD IS GRANTED BY ITS OWN ACHIEVEMENT (game jaywalk), from i
 
 test('the credits: JAYWALK\'s card art + billboard art ("created with Grok") + H6A — its 3D models (the flyers are CC BY: their credit is REQUIRED)', () => {
   const all = CREDITS.filter(c => /JAYWALK/.test(c.title)), rows = all.filter(c => /card art/.test(c.title)), mods = all.filter(c => /3D models/.test(c.title));
-  assert.equal(rows.length, 1); assert.equal(mods.length, 4, 'H6B: each model\'s own line (the summary line that repeated them is gone) — J4: + the winter\'s (Holiday Kit)'); assert.ok(all.every(c => c.group === 'JAYWALK'), 'H6B: in the game\'s own credits group'); const mb = mods.map(c => c.by).join(' ¦ ');
+  assert.equal(rows.length, 1); assert.equal(mods.length, 5, 'H6B: each model\'s own line (the summary line that repeated them is gone) — J4: + the winter\'s (Holiday Kit) — VARIETY A: + the leaf pile (CC BY)'); assert.match(mods.map(c => c.by).join(' '), /Raked Leaf Pile by Polyfork .*CC BY 4\.0/); assert.ok(all.every(c => c.group === 'JAYWALK'), 'H6B: in the game\'s own credits group'); const mb = mods.map(c => c.by).join(' ¦ ');
   assert.match(mb, /by Kiiba \(https:\/\/sketchfab\.com\/Kiiba\), licensed under CC-BY-4\.0/); assert.match(mb, /Poly by Google — https:\/\/poly\.pizza\/m\/b0N_HeT_Ttb \(CC BY 3\.0\)/);
   assert.equal(rows.length, 1); assert.equal(rows[0].title, 'JAYWALK — card art + billboard art'); assert.match(rows[0].by, /Card art created with Grok \(Grok Imagine, xAI\)/);
 });

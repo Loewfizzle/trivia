@@ -600,6 +600,15 @@ under 5), YOUR row at the foot (`/api/profile ranks` → `av`), YOUR TABLE on th
 BEST: the AVG on its own line). Ranking unchanged (BEST). No back-fill: `results/` keeps every counted solo run but not its lanes (only a
 new best + 50-lane splits) — the average builds from the deploy.
 
+## VARIETY A — THE LEAF PILE · THE TIERS · THE DAY LOOK · TIMES OF DAY · THE FOG CHECK (Nov 22 — the owner; the pass log `docs/games/passes/jaywalk-variety-a.md`; the decisions `docs/games/plan.md` "JAYWALK VARIETY A") — a VIEW only: no rules change, REPLAY = LIVE untouched
+### THE LEAF PILE (`seasonal.js` `PILE` · `loadPile` — THE SEASONAL PACK; `build-jaywalk-assets.py --only=autumn`)
+JT1's code-built mound is RETIRED: the pile is Polyfork's **Raked Leaf Pile** (CC BY 4.0 — credited: `ui/credits.js` + `assets/jaywalk/autumn/CREDITS.md`
++ `models/CREDITS.md`; 609 tris), re-packed as the 12 (its two meshes one, its linear vertex colours → sRGB bytes **×1.55 red · ×1.42 green +
+a warm floor** — as delivered it read dark beside the autumn trees) → `assets/jaywalk/autumn/leaf-pile.glb` **33.2 KB**, fetched only on an
+autumn day (`prep` / `apply` — the pack's own folder, never the preload). `PILE.s` 0.92 across · `h` 0.72 up (≈ a cell). A run whose pile is not
+in by its start shows none (JT1's rule for the winter models). The hop-through burst + the scattered pile + the crunch unchanged. THE PACK:
+code 62.5 + models 87.6 KB of the 150 cap (`tests/jaywalk-jt1.test.mjs` counts `autumn/` too).
+
 ## THE MATCH (H4 — ONE LIFE; the cartridge — hidden: THE OWNER'S LIVE TEST)
 One run each on the SAME course, one life; the others are see-through ghosts; farthest wins, ties → the earlier tick. **Real matches run
 through THE OWNER'S LIVE TEST** (HE8's gate): the owner HOSTS (his room's GAMES list shows **JAYWALK · TEST**), his guests play normally —

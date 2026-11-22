@@ -348,7 +348,8 @@ def credits_md():
           'the lighthouse + the boat are CC0 1.0 — no credit is required; the game\'s CREDITS (☰ → CREDITS) carry these lines anyway.', '',
           '- 3D models: Kenney — kenney.nl (CC0) — the cars, the train, the props (`LICENSE.txt`), THE KID (Mini Skate 2.0 "character-skate-boy" — `LICENSE-kid.txt`), the fishing boat (Watercraft Kit 2.1 — `LICENSE-kenney-watercraft.txt`), DOWNTOWN\'s storefronts (City Kit (Commercial) 2.1 — `LICENSE-kenney-city-kit-commercial.txt`; H6B)',
           '- Light House: MaverickFX — https://poly.pizza/m/KRebJXIRb8 (CC0 1.0) — `LICENSE-lighthouse.txt`',
-          '- THE SEASONAL PACK (J4 — `assets/jaywalk/winter/`): Kenney — Holiday Kit 2.0, https://kenney.nl/assets/holiday-kit (CC0 1.0) — the snow pine, the decorated Christmas tree + two presents (baked into one mesh), the snowman — `../winter/LICENSE-kenney-holiday-kit.txt`', '',
+          '- THE SEASONAL PACK (J4 — `assets/jaywalk/winter/`): Kenney — Holiday Kit 2.0, https://kenney.nl/assets/holiday-kit (CC0 1.0) — the snow pine, the decorated Christmas tree + two presents (baked into one mesh), the snowman — `../winter/LICENSE-kenney-holiday-kit.txt`',
+          '- THE SEASONAL PACK (VARIETY A — `assets/jaywalk/autumn/`): Raked Leaf Pile by Polyfork — https://polyfork.dev/asset/raked-leaf-pile-a0d860 (CC BY 4.0 — REQUIRED; `../autumn/CREDITS.md`)', '',
           '## CC BY — THE FLYERS (H6A): these credits are REQUIRED wherever the models ship (`LICENSE-flyers.txt`)', '',
           '- `blackbird.glb` — Sr-71 by Kiiba — https://sketchfab.com/3d-models/sr-71-79e6c14217ab417abe524a99ffbb472e (CC BY 4.0). This work is based on "Sr-71" by Kiiba (https://sketchfab.com/Kiiba), licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/). Changes: recoloured near-black (Grok\'s delivery), flattened into one mesh with vertex colours, its normal map dropped, scaled.',
           '- `ufo.glb` — Flying saucer: Poly by Google — https://poly.pizza/m/b0N_HeT_Ttb (CC BY 3.0). Changes: one mesh with vertex colours, normals computed, the landing legs removed, scaled.',
@@ -629,9 +630,42 @@ def winter():
     print(f'  THE SEASONAL PACK: {total} B ({total / 1024:.1f} KB — the cap 150 KB) · the tree: {WINTER_TREE}')
 
 
+# ---- VARIETY A — THE LEAF PILE (Polyfork "Raked Leaf Pile", CC BY 4.0 — Grok's delivery autumn folder; the original only read)
+#   → assets/jaywalk/autumn/leaf-pile.glb: its two meshes as ONE, its baked vertex colours (linear floats) → the sRGB bytes the game's other
+#   models carry, BRIGHTENED + WARMED (as delivered it read dark beside the autumn trees in both looks), re-packed as the 12.
+PILE_LIFT = (1.55, 1.42, 1.0)   # (× each linear channel before the sRGB curve: warmer + brighter — red / gold lifted, blue held)
+PILE_FLOOR = 0.06               # (+ a little light in the deepest leaves: no black holes between them at 390)
+def autumn():
+    A = os.path.join(SRC, 'autumn'); OUT_A2 = os.path.join(ROOT, 'assets', 'jaywalk', 'autumn'); os.makedirs(OUT_A2, exist_ok=True)
+    src = os.path.join(A, 'leaf-pile.glb'); j, bn = read_glb(src)
+    pos, nor, col, idx = [], [], [], []
+    def walk(ni, T):
+        n = j['nodes'][ni]; t = n.get('translation', [0, 0, 0]); assert 'rotation' not in n and 'scale' not in n and 'matrix' not in n, n
+        wt = [T[k] + t[k] for k in range(3)]
+        if 'mesh' in n:
+            for p in j['meshes'][n['mesh']]['primitives']:
+                base = len(pos); a = p['attributes']
+                P, Nn, C = accessor(j, bn, a['POSITION']), accessor(j, bn, a['NORMAL']), accessor(j, bn, a['COLOR_0'])
+                pos.extend((q[0] + wt[0], q[1] + wt[1], q[2] + wt[2]) for q in P); nor.extend(Nn)
+                col.extend(tuple(srgb8(c[k] * PILE_LIFT[k] + PILE_FLOOR * (1, 0.6, 0.2)[k]) for k in range(3)) for c in C)
+                idx.extend(base + x[0] for x in accessor(j, bn, p['indices']))
+        for c in n.get('children', []): walk(c, wt)
+    for ni in j['scenes'][j.get('scene', 0)]['nodes']: walk(ni, [0, 0, 0])
+    lo = [min(p[k] for p in pos) for k in range(3)]; hi = [max(p[k] for p in pos) for k in range(3)]
+    cx, cz = (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2
+    pos = [(p[0] - cx, p[1] - lo[1], p[2] - cz) for p in pos]
+    v, t, size = write_glb(os.path.join(OUT_A2, 'leaf-pile.glb'), 'leaf-pile', pos, nor, col, None, idx, copyright='Raked Leaf Pile by Polyfork (https://polyfork.dev/asset/raked-leaf-pile-a0d860) — CC BY 4.0')
+    open(os.path.join(OUT_A2, 'CREDITS.md'), 'w', encoding='utf-8', newline='\n').write(
+        '# JAYWALK — THE SEASONAL PACK: autumn\n\n- `leaf-pile.glb` — Raked Leaf Pile by Polyfork — https://polyfork.dev/asset/raked-leaf-pile-a0d860 (CC BY 4.0, '
+        'https://creativecommons.org/licenses/by/4.0/). Changes: its two meshes merged into one, its vertex colours brightened + warmed, re-packed '
+        '(quantized) by `scripts/build-jaywalk-assets.py`. This credit is REQUIRED wherever the model ships (the game\'s CREDITS carry it).\n')
+    credits_md()
+    print(f'  autumn/leaf-pile {os.path.getsize(src):7d} → {size:6d} B · {v} verts · {t} tris · {round(hi[0] - lo[0], 3)} × {round(hi[1] - lo[1], 3)} × {round(hi[2] - lo[2], 3)}')
+
+
 if __name__ == '__main__':
     try: sys.stdout.reconfigure(encoding='utf-8')
     except Exception: pass
     print('JAYWALK — THE FILES IN, from', SRC)
-    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('flyers', flyers), ('shops', shops), ('skyline', skyline), ('sounds', sounds), ('winter', winter)):
+    for name, fn in (('models', models), ('kid', kid), ('landmarks', landmarks), ('flyers', flyers), ('shops', shops), ('skyline', skyline), ('sounds', sounds), ('winter', winter), ('autumn', autumn)):
         if not ONLY or name in ONLY: fn()
