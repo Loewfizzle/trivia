@@ -418,6 +418,9 @@ the last strong beat, the key, `lufs` / `tp` / `check` in the song's JSON; `writ
 SURVIVAL on the day's pieces + rising rows (the same for everyone), ONE counted run a day, score = TIME SURVIVED (lines break a tie). **Ships
 OFF** (`config.js#DAILIES` `on: false`) — THE DROP B (below) brought the ticket, TODAY's third row, SHARE TODAY, the hide pause, PRISM's songs,
 and THE SCHEDULED GO-LIVE (docs/progression.md — the owner turns it on from /admin, no deploy).
+**THE NAME (the owner, Nov 22):** players see it as **PRISM DROP** (the row's `name`, `meta.js#BANNER_NAME`, the share line + card, the run's
+title, the blade, the billboard's PRISM / DROP poster) — the real name, like JAYWALK's + HIGH RISE's dailies; "THE DROP" stays only the code's
+and the docs' name for the daily (id `drop`).
 
 | file | what |
 | --- | --- |

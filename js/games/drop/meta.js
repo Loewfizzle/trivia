@@ -9,7 +9,7 @@ export const estimateMinutes = () => 4;
 export const MUSIC = null;
 export const SOLO = true;
 export const MIN_PLAYERS = 1;
-export const BANNER_NAME = 'THE DROP';
+export const BANNER_NAME = 'PRISM DROP';
 /** DM2 — THE DAILY SCREEN's line for a score (spoiler-free): the time survived + the lines (THE END at 8:00) — drop.js#dropLine's words */
 export function scoreLine(score) {
   const d = Math.floor(Math.max(0, Number(score) || 0) / 1000), ln = Math.max(0, Math.round(Number(score) || 0) % 1000), s = Math.floor(d / 10);

@@ -1230,7 +1230,7 @@ export function createView() {
     let line;
     const played = game.phase === 'play' ? now - game.playStartAt : 0;
     if (rush()) line = `SCORE RUSH${eng ? ` · ${eng.score.toLocaleString('en-US')}` : ''}`;
-    else if (drop) line = `THE DROP${eng ? ` · ${mmss(drop.run.k * E.TICK)}` : ''}`;   // (THE DROP: the run's own clock — pauses stop it)
+    else if (drop) line = `PRISM DROP${eng ? ` · ${mmss(drop.run.k * E.TICK)}` : ''}`;   // (THE DROP: the run's own clock — pauses stop it)
     else if (surv() && solo()) line = `SURVIVAL${game.phase === 'play' ? ` · ${mmss(eng && eng.over ? 0 : played)}` : ''}`;
     else line = `${modeName()}${game.phase === 'play' ? ` · ${aliveOf(game).length} LEFT` : ''}`;
     const c = curSong >= 0 ? docOf(curSong) : null;

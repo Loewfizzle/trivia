@@ -140,7 +140,7 @@ function shell() {
       h('p.ad-dim', 'JAYWALK — the board’s second face: while both are ON the board TURNS between HOLD’EM and JAYWALK every 45–60 s (every phone the same face). COMING SOON until you say NOW OPEN — or set an OPEN DAY: from that day it reads NOW OPEN (the days before stay COMING SOON). OFF = HOLD’EM alone, no turning.'),
       h('div.ad-row', { id: 'ad-jw-row' }, h('span.ad-dim', 'Loading…')),
       // CITY B — THE DROP's face (the third): ON = 14 days from THE DROP's go-live, then it retires · OFF · KEEP ON
-      h('p.ad-dim', 'THE DROP — the board’s third face (THE DROP · NEW DAILY): it appears by itself on THE DROP’s go-live day and turns with the others for 14 days, then retires. ON = that window · OFF = never · KEEP ON = it never retires.'),
+      h('p.ad-dim', 'PRISM DROP’s DAILY — the board’s third face (PRISM DROP · NEW DAILY): it appears by itself on the daily’s go-live day and turns with the others for 14 days, then retires. ON = that window · OFF = never · KEEP ON = it never retires.'),
       h('div.ad-row', { id: 'ad-drop-row' }, h('span.ad-dim', 'Loading…'))),
     // DM2 — THE DAILIES (owner only — the server checks): THE GO-LIVE SWITCH (a second tap flips it) + THE RESEED (DM2 ADD-ON: server-side —
     // PREVIEW shows the plan, nothing written; RESEED NOW on a second tap: a fresh daily secret from the next 4 am, today + the past untouched)
@@ -537,12 +537,12 @@ function jaywalkRow(st) {
 function dropRow(st) {
   const row = document.getElementById('ad-drop-row');
   if (!row || !st) return;
-  const set = async mode => { const r = await call('billboardDrop', { mode }); toast(`THE DROP's face: ${{ on: 'ON (14 days from its go-live)', off: 'OFF', keep: 'KEEP ON' }[r.drop.mode]}`); dropRow({ ...st, mode: r.drop.mode }); audit(); };
+  const set = async mode => { const r = await call('billboardDrop', { mode }); toast(`PRISM DROP daily's face: ${{ on: 'ON (14 days from its go-live)', off: 'OFF', keep: 'KEEP ON' }[r.drop.mode]}`); dropRow({ ...st, mode: r.drop.mode }); audit(); };
   const word = { on: 'ON', off: 'OFF', keep: 'KEEP ON' };
   row.replaceChildren(
-    h('b.ad-dly-state', `THE DROP's FACE: ${word[st.mode] || 'ON'}`),
+    h('b.ad-dly-state', `PRISM DROP DAILY's FACE: ${word[st.mode] || 'ON'}`),
     ...['on', 'off', 'keep'].filter(m => m !== st.mode).map(m => confirmBtn(word[m], () => set(m), m === 'on' ? 'is-primary' : '')),
-    h('span.ad-dim', st.live ? `THE DROP goes live ${st.live} — the face ${st.mode === 'keep' ? 'stays on' : `retires after ${st.days || 14} days`}` : 'THE DROP isn’t scheduled live yet — the face waits for it'));
+    h('span.ad-dim', st.live ? `PRISM DROP's daily goes live ${st.live} — the face ${st.mode === 'keep' ? 'stays on' : `retires after ${st.days || 14} days`}` : 'PRISM DROP’s daily isn’t scheduled live yet — the face waits for it'));
 }
 async function dailies(st) {
   const row = document.getElementById('ad-dly-row'), out = document.getElementById('ad-dly-out');

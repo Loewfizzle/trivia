@@ -461,7 +461,7 @@ export function billboardContent(show, games) {
   // (CITY PART 1: HIGH RISE's OPEN NOW face — the B1 poster drawn WHOLE by highrise-art.js; only OPEN NOW, never COMING SOON)
   if (show && show.game === 'highrise') return { title: 'HIGH RISE', sub: 'OPEN NOW', poster: 'highrise', bar: 'open', game: null, lines: null, bg: [5, 3, 10], ink: [255, 79, 216], acc: [255, 79, 216] };
   // (CITY B: the third face — THE DROP · NEW DAILY, drawn in code by drop-art.js; SELF-LIT neon at night, never under the lamps' pools)
-  if (show && show.game === 'drop') return { title: 'THE DROP', sub: 'NEW DAILY', poster: 'drop', selfLit: true, game: null, lines: null, bg: [8, 6, 26], ink: [238, 241, 255], acc: [106, 63, 208] };
+  if (show && show.game === 'drop') return { title: 'PRISM DROP', sub: 'NEW DAILY', poster: 'drop', selfLit: true, game: null, lines: null, bg: [8, 6, 26], ink: [238, 241, 255], acc: [106, 63, 208] };
   const g = games.find(x => x.id === (show && show.game)) || null;
   if (g) { const acc = accOf(g); return { title: g.name, sub: g.tag || '', game: g, bg: mix(acc, [30, 18, 40], 0.78), ink: mix(acc, [255, 246, 226], 0.35), acc }; }
   return { title: (show && show.title) || 'NEON SPEAKEASY', sub: (show && show.sub) || 'YOUR FRIENDS ARE ALREADY INSIDE', game: null, bg: (show && show.bg) || [40, 22, 48], ink: (show && show.ink) || [255, 214, 120], acc: (show && show.acc) || [255, 46, 151] };

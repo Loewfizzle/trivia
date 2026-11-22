@@ -34,7 +34,7 @@ export const forgetDropDays = () => SEEDS.clear();
 export const DROP_BUCKETS = 97;
 
 export const DROP_DAILY = {
-  id: 'drop', name: 'THE DROP', better: 'high', buckets: DROP_BUCKETS,
+  id: 'drop', name: 'PRISM DROP', better: 'high', buckets: DROP_BUCKETS,
   bucket: score => tenthsOf(score) / 50,
   judged: true,
   moves: ['checkpoint', 'ppause', 'pause', 'resume'],

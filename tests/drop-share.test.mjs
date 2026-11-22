@@ -28,8 +28,8 @@ test('dropInputs: only the card\'s keys, cleaned; the board\'s holes always fill
 test('the time + the plain line: 5:12.4 · THE END at 8:00 · no emoji, the site', () => {
   assert.equal(timeOf(312400), '5:12.4');
   assert.equal(timeOf(480000), '8:00');
-  assert.equal(shareLine({ t: 312400, ln: 17, day: 'd20261113' }), 'THE DROP · FRI NOV 13 · 5:12.4 · 17 LINES · neonspeakeasy.com');
-  assert.equal(shareLine({ t: 480000, ln: 1, day: 'd20261113' }), 'THE DROP · FRI NOV 13 · 8:00 · THE END · 1 LINE · neonspeakeasy.com');
+  assert.equal(shareLine({ t: 312400, ln: 17, day: 'd20261113' }), 'PRISM DROP · FRI NOV 13 · 5:12.4 · 17 LINES · neonspeakeasy.com');
+  assert.equal(shareLine({ t: 480000, ln: 1, day: 'd20261113' }), 'PRISM DROP · FRI NOV 13 · 8:00 · THE END · 1 LINE · neonspeakeasy.com');
 });
 
 test('THE TICKET: THE DROP has its own art (the prism + the split light) + its own ink, night and day, distinct from THE PASSWORD + COAST CLEAR', () => {

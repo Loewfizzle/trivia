@@ -2,7 +2,7 @@
 //   THE ART (the left of the poster): a WHITE BEAM falling from the TOP edge into a prism (js/daily/ticket-art.js's drop prism, as a poster), its
 //            light leaving DOWNWARD as three VERTICAL spectral neon tubes (red · green · blue — PRISM's mark colours), 2–3 prism shards falling
 //            alongside with short trails. NEVER the left-beam → triangle → rainbow-fan layout (a famous album cover).
-//   THE WORDS (few — they read at billboard distance on a phone, unzoomed): THE (small) / DROP (big) · NEW DAILY · PRISM DROP (small).
+//   THE WORDS (few — they read at billboard distance on a phone, unzoomed): PRISM (small) / DROP (big) · NEW DAILY · ONCE A DAY (small) — the daily's real name (THE DROP renamed, Nov 22).
 //   NIGHT = neon (self-lit: the white light + the spectral colours glowing on a near-black field — never multiplied by the lamps' pools);
 //   DAY = the ticket's day violet (#6a3fd0) field, the art + the words printed crisp on it. No pills, no capsule frames.
 // Laid out in THE SAME POSTER BOX as HOLD'EM + JAYWALK (848 : 448, fitted inside the board) so their sizes compare one to one. Lazy (after the
@@ -78,7 +78,7 @@ export function paintDrop(x, R, night = false) {
     if (night) { x.save(); x.shadowColor = col; x.shadowBlur = r * 2; x.fillStyle = col; x.fill(); x.restore(); x.fillStyle = 'rgba(255,255,255,0.55)'; x.fill(); }
     else { x.fillStyle = col; x.fill(); x.strokeStyle = INK.day.key; x.lineWidth = Math.max(0.5, r * 0.25); x.stroke(); }
   }
-  // ---- THE WORDS (the right 56 %): THE / DROP big · NEW DAILY · PRISM DROP small — left-aligned on one column
+  // ---- THE WORDS (the right 56 %): PRISM / DROP big · NEW DAILY · ONCE A DAY small — left-aligned on one column
   const tx = X + W * 0.41, cw = W * 0.55;
   const word = (s, font, capH, base0, col, glow, track = 0) => {
     const px = fit(x, font, s, capH, cw); x.font = font(px);
@@ -89,9 +89,9 @@ export function paintDrop(x, R, night = false) {
     x.fillStyle = col; x.fillText(s, tx, base0);
     if ('letterSpacing' in x) x.letterSpacing = '0px';
   };
-  word('THE', FACE, H * 0.12, Y + H * 0.24, C.word, C.glow || C.word, 0.06);
+  word('PRISM', FACE, H * 0.12, Y + H * 0.24, C.word, C.glow || C.word, 0.06);
   word('DROP', FACE, H * 0.27, Y + H * 0.58, C.word, C.glow || C.word);
   word('NEW DAILY', UI, H * 0.125, Y + H * 0.78, C.sub, night ? '#8f7bff' : C.sub, 0.1);
-  word('PRISM DROP', UI, H * 0.075, Y + H * 0.92, C.small, night ? '#6f5cff' : C.small, 0.16);
+  word('ONCE A DAY', UI, H * 0.075, Y + H * 0.92, C.small, night ? '#6f5cff' : C.small, 0.16);
   x.restore();
 }

@@ -55,10 +55,10 @@ function dateOf(day) {
   return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }).replace(',', '').toUpperCase();
 }
 const isEnd = I => I.t >= END_MS;
-/** the one plain line: "THE DROP · FRI NOV 13 · 5:12.4 · 17 LINES · neonspeakeasy.com" (the bare domain, like the other dailies' — N7) */
+/** the one plain line: "PRISM DROP · FRI NOV 13 · 5:12.4 · 17 LINES · neonspeakeasy.com" (the bare domain, like the other dailies' — N7) */
 export function shareLine(inputs, site = 'neonspeakeasy.com') {
   const I = dropInputs(inputs);
-  return ['THE DROP', dateOf(I.day), timeOf(I.t), isEnd(I) ? 'THE END' : '', linesOf(I.ln), site].filter(Boolean).join(' · ');
+  return ['PRISM DROP', dateOf(I.day), timeOf(I.t), isEnd(I) ? 'THE END' : '', linesOf(I.ln), site].filter(Boolean).join(' · ');
 }
 /** the stat line under the big time (the card + the section) */
 const statOf = I => (isEnd(I) ? `THE END · ${linesOf(I.ln)}` : linesOf(I.ln));
@@ -105,7 +105,7 @@ export const SECTION_H = RHYTHM.H - RHYTHM.artH + STRIP_H;
 /** this section's natural height — share-today.js lays the card out by it */
 export const sectionH = () => SECTION_H;
 export const STRIP_ROWS = 8;
-export const NAME = 'THE DROP';
+export const NAME = 'PRISM DROP';
 /** PURE: the rows the strip shows — the stack's top `n` rows (a topped-out board: its top 8; a low stack: the bottom 8) → { from, to } (rows
  *  from the floor, `to` exclusive) */
 export function cropRows(board, n = STRIP_ROWS) {

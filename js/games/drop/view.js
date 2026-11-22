@@ -44,7 +44,7 @@ export function createView() {
     mount(el, state) {
       host = h('div.dr-host');
       el.append(host);
-      begin(state).catch(e => { console.warn('[drop]', e); if (!gone) host.replaceChildren(h('p.dy-quiet.dy-fail', 'THE DROP couldn’t start. Check your signal and try again.')); });
+      begin(state).catch(e => { console.warn('[drop]', e); if (!gone) host.replaceChildren(h('p.dy-quiet.dy-fail', 'PRISM DROP couldn’t start. Check your signal and try again.')); });
     },
     update() { /* the run is driven by the server's answers + its own clock — the console's state changes nothing here */ },
     unmount() { gone = true; if (drv) drv.stop(); if (inner) inner.unmount(); inner = null; if (host) host.remove(); },
@@ -313,7 +313,7 @@ export function createDriver({ judge, start, uid, hint = null, onHint = null }) 
       const sc = result && result.score != null ? result.score : scoreOf(run.k * TICK, run.eng.lines);
       // (CITY D: the time and the lines apart — the slim bar keeps the time only: THE DROP · 2:10.7 · SHARE)
       const line = dropLine(sc), cut = line.indexOf(' · ');
-      kids.push(h('b.dr-title', 'THE DROP'), h('span.dr-line', h('span.dr-t', cut > 0 ? line.slice(0, cut) : line), cut > 0 ? h('span.dr-ln', line.slice(cut)) : null));
+      kids.push(h('b.dr-title', 'PRISM DROP'), h('span.dr-line', h('span.dr-t', cut > 0 ? line.slice(0, cut) : line), cut > 0 ? h('span.dr-ln', line.slice(cut)) : null));
       kids.push(h('small.dr-sub', refused && (finished || !finishing) ? UNCHECKED : finished ? (result && result.counted === false ? 'COUNTS FROM TOMORROW' : 'SCORED') : 'SENDING YOUR RUN…'));
       // THE DROP B — SHARE: SHARE YOUR RUN's card with THE DROP's final board (every junk row SOLID — js/games/drop/share.js), the time, the lines
       if (finished && !refused) { kids.push(tubeButton('SHARE', { kind: 'secondary', cls: 'dr-share', onClick: () => shareRun(sc) })); sharer(sc).then(H => H.warm()).catch(() => {}); }   // (PFIX-3 — S11: built as the card shows)
