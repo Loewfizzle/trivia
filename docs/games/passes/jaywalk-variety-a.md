@@ -37,8 +37,36 @@ Every time of day + overcast × summer · autumn · winter (none / light / heavy
 → dark grey there (ground, billows, wisps, curtain, lip + the screen's foot). Everywhere else unchanged; night unchanged; never thinned.
 The sheet: `fog\sheet-390.png` (CHANGED marked in gold).
 
-## GROUP 6 — THE FINAL RUN
-(filled below)
+## GROUP 6 — THE FINAL RUN (local, the Beelink — my own fresh emulators + `DAILY_TEST=1 JW_CV_SWITCH_MS=0 serve.mjs --emu`, nothing else busy)
+**THE TIERS' MEASURE** (`jaywalk-lab.mjs --va=perf` — DOWNTOWN's busy runway, 8 kids, 390 × 844 @3; the worst frame over a whole runway lap;
+4× CPU for the fps — 54 / 54):
+| scene | tier 2 calls (≤ 96) | tier 1 (≤ 64) | tier 0 (≤ 64) | median fps t2 · t1 · t0 | worst frames |
+| --- | --- | --- | --- | --- | --- |
+| noon | 59 (the sun pass) | 36 | 34 | 59.9 · 59.9 · 59.9 | ≤ 17.0 ms |
+| sunrise | 57 | 35 | 35 | 59.9 · 59.9 · 59.9 | ≤ 16.9 |
+| golden | 57 | 36 | 34 | 59.9 · 59.9 · 59.9 | one 49.9 (t2), one 33.2 (t1), else ≤ 17 |
+| sunset | 59 | 35 | 35 | 59.9 · 59.9 · 59.9 | ≤ 17.1 |
+| overcast (no sun pass) | 35 | 36 | 35 | 59.9 · 59.9 · 59.9 | ≤ 17.0 |
+| night | 62 | 33 | 33 | 59.9 · 59.9 · 59.9 | ≤ 16.9 |
+| Nov 25 golden (autumn) | 59 | 36 | 35 | 59.9 · 59.9 · 59.9 | one 50 (t1), else ≤ 17 |
+| Dec 24 noon, heavy snow | 58 | 34 | 35 | 59.9 · 59.9 · 59.9 | ≤ 17.0 |
+| Dec 24 sunset, heavy snow | 56 | 35 | 35 | 59.9 · 59.9 · 59.9 | ≤ 17.0 |
+
+(the lone 33–50 ms frames: headless Chromium's known stall on the Beelink; p95 16.8 ms everywhere)
+- unit `node --test tests/*.test.mjs` **2,595 / 2,595** (+ `jaywalk-variety-a` 5; `jaywalk-day` / `-night` / `-areas` / `-jt1` / `-jt2` / `-cards`
+  updated to the new code — `jaywalk-jt2`'s ROOM line 480 → 520 KB, a named call: the game's own line is 610)
+- `e2e-jaywalk` FAST **119 / 119** (today) · Dec 24 **120 / 120** (the first try 115 / 120: THE CONTROLLER's lazy chunk missed its 3 s wait once
+  on a loaded run — green on the re-run, not this pass's code) · Nov 25 **120 / 120** — the final screen's memory 7.6 MB each (the 20 MB budget;
+  the sun's depth map freed behind it)
+- `e2e-jaywalk-match` FAST **107 / 107** (today — + THE HOST's STAMP: the same `game.lk` on all three phones, DAY = noon, NIGHT = night) ·
+  Dec 24 **108 / 108** · Nov 25 **108 / 108** · `e2e-jaywalk-daily-run` **69 / 69**
+- `jaywalk-lab.mjs` **103 / 103** · `--j4perf` **24 / 24** · `--jt1perf` **16 / 16** (worst 64 calls by night, unchanged) · `--perf` **134 / 134** (tiers 2 · 1 · 0 now — the most: 64 at tier 2 (an 8-kid night), 35 at tiers 1 / 0)
+- smoke **24 / 24** · `/api` `server.test.mjs` **76 / 76** · rules: not touched (no rules change)
+- THE LINE: the city + JAYWALK **2,573 KB** of 2,600 (2,549 before); the game alone **47 modules / 503.5 KB** of 52 / 610 (+ `daylook.js`,
+  `kit/look.js`). THE SEASONAL PACK **147.1 KB** of 150 (code 61.5 + models 85.6 — the leaf pile 32.4 of it).
+- Shots: `Downloads\NEON\jaywalk-variety-a\` — `tod\` (each time of day, overcast, before + sunrise × heavy snow, sunset × autumn, golden × light
+  snow, overcast × heavy snow) · `day\` (before / after, tiers 2 · 1 · 0, crops) · `pile\` · `fog\sheet-390.png`.
+- Every server this pass started is stopped (the emulators, :5173); the preview server :5190 left up.
 
 ## OPEN FOR BEN
 1. RE-PUBLISH: nothing (no rules change).

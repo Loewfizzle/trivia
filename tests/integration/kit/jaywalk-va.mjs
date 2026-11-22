@@ -40,6 +40,7 @@ export async function looksVA({ open, up, ok, sleep, waitFor, out, what = '', b,
   // THE TIMES OF DAY (+ overcast, + the day look BEFORE this pass): one frame each at 390, the kid at lane `lane`, the world frozen
   const todShot = async (name, q, { look = 'day', lane = 17, x = 4500, t = 2400, pack = true, tier = 2 } = {}) => {
     const o = await pg(390, q, { tier });
+    if (/snow=/.test(q)) await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000);   // (the winter models in before the run's season is applied)
     await stage(o, { look, lane, x, t, pack });
     const f = await shotTo(o, name), td = await o.p.evaluate(() => window.__jwLab.view.tod());
     errs.push(...o.errs); await o.close();
