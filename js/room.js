@@ -1,11 +1,11 @@
 // Room lifecycle: create / join / resume / leave / kick, live mirroring and presence.
 import {
   dbRef, get, set, update, remove, onValue, onDisconnect, serverTimestamp, serverNow,
-  query, orderByChild, endAt, limitToFirst, runTransaction, want, release, expectRefusal, setRoomGone } from './firebase.js';
+  runTransaction, want, release, expectRefusal, setRoomGone } from './firebase.js';
 import { state, setState } from './store.js';
 import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe, testMode, loadQueue } from './identity.js';
-import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence, isOnline, isSoloMeta, soloCode } from './core/room-logic.js';
-import { MAX_PLAYERS, ROOM_TTL_MS, NAME_MAX } from './config.js';
+import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence, isOnline, isSoloMeta, soloCode, ROOM_SIDE_NODES } from './core/room-logic.js';
+import { MAX_PLAYERS, NAME_MAX } from './config.js';
 import { pickLine } from './core/room-lines.js';
 import { hushCandidates, staleHush, claimFirst, missCooldown, recentMisses } from './core/hush.js';
 import { hostSeed } from './audio/lobby-music.js';
@@ -71,7 +71,6 @@ async function readRoomBasics(code) {
 
 // ---- HUSH WORDS: the room's code is a word (data/hushwords.json); js/core/hush.js picks it, the claim below makes it ours
 // The nodes outside rooms/ that belong to a room (secrets, chat): wiped when a room is made and when it closes.
-const ROOM_SIDE_NODES = ['chats', 'spy', 'fleets', 'glsonar', 'hsbet', 'rrp', 'rrsec', 'seal'];
 /** FIXES R2 — THE REVIEW B1: the room's side nodes cleared in ONE round trip — every remove at once (it was eight one after another on every room
  *  open: six of them frozen games' nodes). Not one multi-path update: that write is atomic — one path the live rules refuse (THE RULES-LAG, a
  *  frozen node's rule) would take every other delete down with it; each remove still fails alone, quietly. */
@@ -105,7 +104,6 @@ export function hostRoom(p, waitMs = HOST_WAIT_MS) {
 }
 export const createRoom = joining(async profile => {
   cancelResume();   // (LOAD FIX 4: a late boot resume never walks this phone back into its old room after a HOST)
-  cleanupStaleRooms().catch(() => {});
   await claimSeatFor(null);   // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: already seated on another device → MOVE HERE · CANCEL — seat.js)
   const [words, hush] = await Promise.all([
     loadHushWords(),
@@ -642,14 +640,7 @@ export async function closeIdleRoom() {
   closing = false;
 }
 
-// Deletes rooms idle for longer than ROOM_TTL_MS (and orphaned nodes without meta).
-export async function cleanupStaleRooms() {
-  const cutoff = serverNow() - ROOM_TTL_MS - 60_000;
-  const snap = await get(query(dbRef('rooms'), orderByChild('meta/activeAt'), endAt(cutoff), limitToFirst(20)));
-  const jobs = [];
-  snap.forEach(child => { jobs.push(closeRoom(child.key).catch(() => {})); });
-  await Promise.all(jobs);
-}
+// (THE FIX PASS — S2: the stale-room sweep moved to the SERVER — api/_lib/room-sweep.js, hourly; the rules list no rooms to a phone)
 
 // Used by the title screen to tell a player up front that an invite has expired.
 export const roomExists = joining(async input => {

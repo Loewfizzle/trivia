@@ -81,7 +81,7 @@ try {
     if (SHOTS) { await sleep(500); await p.screenshot({ path: `${SHOTS}/ticket-${id}-390.png` }); }
     await p.keyboard.press('Escape'); await sleep(500);
   }
-  await p.evaluate(r => import('/js/daily/end-sheet.js').then(m => m.openEndSheet({ id: 'drop', name: 'THE DROP' }, { answer: r })), dropEnd);
+  await p.evaluate(r => import('/js/daily/end-sheet.js').then(m => m.openEndSheet({ id: 'drop', name: 'PRISM DROP' }, { answer: r })), dropEnd);
   const dg = await p.waitForFunction(() => { const i = document.querySelector('.dy-end-body img.dy-end-drop'); return i && i.complete && i.naturalWidth > 0; }, { timeout: 15000 }).then(() => true, () => false);
   ok(dg, 'THE DROP: its final board + time / lines in the sheet (a still picture)');
   if (SHOTS) { await sleep(400); await p.screenshot({ path: `${SHOTS}/ticket-drop-390.png` }); }

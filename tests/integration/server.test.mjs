@@ -796,6 +796,39 @@ test('FR7 FIXES B — C5: the live rooms by the index — a stale room and the b
   } finally { await ref('rooms').update({ LIVA: null, LIVB: null, OLDD: null }); }
 });
 
+// THE FIX PASS — S2: THE STALE-ROOM SWEEP ON THE SERVER (api/_lib/room-sweep.js): the stale + the orphan go with their side nodes, the word
+// rests (never a solo room's), the live stay; the hourly claim runs it once
+test('THE FIX PASS — S2: the server sweeps the stale rooms (side nodes, the word, solo, the hourly claim)', async () => {
+  const { sweepStaleRooms, sweepRoomsIfDue } = await import('../../api/_lib/room-sweep.js');
+  const { forgetDue } = await import('../../api/_lib/due.js');
+  const now = clock;
+  await ref('/').update({
+    'rooms/SWPA': { meta: { hostId: 'u1', status: 'lobby', createdAt: now - 9e6, activeAt: now - 2 * 3600e3 }, players: { u1: { name: 'A' } } },
+    'rooms/SWPB': { meta: { hostId: 'u2', status: 'lobby', createdAt: now - 60e3, activeAt: now - 60e3 }, players: { u2: { name: 'B' } } },
+    'rooms/SWPC': { meta: { hostId: 'u3', status: 'playing', createdAt: now - 9e6, activeAt: now - 3 * 3600e3, settings: { solo: { on: true } } } },
+    'rooms/SWPD': { presence: { ghost: { online: false, lastSeen: 1 } } },
+    'chats/SWPA': { m1: { t: 'hi' } }, 'seal/SWPA': { x: 1 }, 'chats/SWPB': { m1: { t: 'kept' } },
+    'hush/SWPA': null, 'hush/SWPC': null, 'rl/zz_rooms': null,
+  });
+  try {
+    const r = await sweepStaleRooms({ now });
+    for (const c of ['SWPA', 'SWPC', 'SWPD']) assert.ok(r.codes.includes(c), `${c} swept (${r.codes.join(', ')})`);
+    assert.ok(!r.codes.includes('SWPB') && (await val('rooms/SWPB/meta')), 'the live room stays');
+    assert.equal(await val('rooms/SWPA'), null);
+    assert.equal(await val('chats/SWPA'), null, 'its chat goes with it');
+    assert.equal(await val('seal/SWPA'), null, 'its seal goes with it');
+    assert.ok(await val('chats/SWPB'), 'the live room’s chat stays');
+    assert.ok((await val('hush/SWPA') || {}).closedAt, 'the word rests');
+    assert.equal(await val('hush/SWPC'), null, 'a solo room rests no word');
+    await ref('rooms/SWPE').set({ meta: { hostId: 'u5', status: 'lobby', createdAt: now - 9e6, activeAt: now - 2 * 3600e3 } });
+    forgetDue();
+    assert.ok(await sweepRoomsIfDue(now), 'the first call in the hour sweeps');
+    assert.equal(await val('rooms/SWPE'), null);
+    forgetDue();
+    assert.equal(await sweepRoomsIfDue(now + 60e3), null, 'a second call in the same hour (another function) does not');
+  } finally { await ref('/').update({ 'rooms/SWPB': null, 'chats/SWPB': null, 'hush/SWPA': null, 'rl/zz_rooms': null }); }
+});
+
 // JAYWALK H1 — THE PROOF NODE (rooms/{CODE}/jw/{matchId}/{uid} — api/report.js#PROOF_TREES): written by the player AT GO → present = proven.
 // A player who wrote GO and never hopped (silent but present) still counts; a seated guest with no node does not. (H4: a match is the
 // server's replay of its proof nodes — at least one player must have hopped: a match where NOBODY ever did has nothing to count.)

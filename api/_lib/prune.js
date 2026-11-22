@@ -19,7 +19,7 @@ export function prunePlan({ phonelog = {}, errlog = {}, rl = {} } = {}, now = Da
   return {
     phonelog: reports.filter(r => (per[r.k] = (per[r.k] || 0) + 1) > REPORT_KEEP).map(r => r.id),
     errlog: Object.keys(errlog || {}).filter(k => !((errlog[k] && errlog[k].last) > now - ERR_KEEP_MS)),
-    rl: Object.keys(rl || {}).filter(k => k !== MARK.slice(3) && !((rl[k] && rl[k].t) > now - RL_KEEP_MS)),
+    rl: Object.keys(rl || {}).filter(k => !k.startsWith('zz_') && !((rl[k] && rl[k].t) > now - RL_KEEP_MS)),
   };
 }
 

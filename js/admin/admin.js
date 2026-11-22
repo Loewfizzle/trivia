@@ -200,8 +200,11 @@ function shell() {
   gifts();
   founderWin();
   loadStats();
-  // "live now" keeps itself current while the page is open and visible (the server caches it for 30 s)
-  setInterval(() => { if (document.visibilityState === 'visible') loadStats(false, true); }, 30_000);
+  // "live now" keeps itself current while the page is ON SCREEN AND FOCUSED (THE CITY'S IDLE POLLS) — LIVE NOW alone (THE FIX PASS — D1: the
+  // poll re-read ALL of results/ + profiles/ every 30 s, ~0.3 GB an hour of /admin left open); the rest = this load + the Refresh tap
+  setInterval(() => { if (liveOnScreen()) loadLive(); }, LIVE_POLL_MS);
+  document.addEventListener('visibilitychange', () => { if (liveOnScreen() && Date.now() - liveAt > LIVE_POLL_MS) loadLive(); });
+  window.addEventListener('focus', () => { if (liveOnScreen() && Date.now() - liveAt > LIVE_POLL_MS) loadLive(); });
 }
 
 /** CITY C — THE FOUNDER WINDOW's row: OPEN / CLOSED + since when + the founders · the switch (CLOSE / REOPEN, a second tap) */
@@ -426,6 +429,14 @@ const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const view = { games: '30', players: 'all' };   // opens on views that aren't empty on a Monday morning
 let S = null;
 
+// THE FIX PASS — D1: LIVE NOW's own small call (the rooms by the index) — only while the page is on screen + focused
+export const LIVE_POLL_MS = 30_000;
+let liveAt = 0;
+const liveOnScreen = () => document.visibilityState === 'visible' && (typeof document.hasFocus !== 'function' || document.hasFocus());
+async function loadLive() {
+  liveAt = Date.now();
+  try { const r = await api('admin', { action: 'live' }); if (S && r && r.live) { S = { ...S, live: r.live, at: r.at }; renderLive(); } } catch { /* try again at the next poll */ }
+}
 async function loadStats(fresh = false, quiet = false) {
   try {
     S = await (quiet ? api('admin', { action: 'stats' }) : call('stats', { fresh }));

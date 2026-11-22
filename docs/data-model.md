@@ -53,7 +53,8 @@ hush/{WORD}: { closedAt }               ← HUSH WORDS cooldown: written ONLY in
                                          Picking (js/core/hush.js): a random word with no entry younger than 24 h, claimed by a
                                          transaction on rooms/{WORD}/meta (two hosts never share one); all resting → the oldest
                                          rested word; no list → the old random code. Every close path (leave as the last one,
-                                         idle close, the stale-room sweep) goes through room.js#closeRoom.
+                                         idle close) goes through room.js#closeRoom; THE STALE-ROOM SWEEP is the SERVER's
+                                         (THE FIX PASS — S2: api/_lib/room-sweep.js, hourly — core/room-logic.js#roomSweepPatch).
 chats/{CODE}/                          ← top level (rooms/{CODE} is readable by any signed-in user; chat isn't)
   m/{key}:      { u, n, t ≤ 300, at } player line (own uid, server time) | { s, x ≤ 80, at } system line (host only)
   rate/{uid}:   server time of that player's last message (rules: ≥ 800 ms apart; written in the same update)
@@ -419,7 +420,13 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   enters `final`, `host.js` writes `night/{matchId}` from `module.finalRanks(game)` (+ `module.nightBonus(game)` → `b`).
 - **Per-game minimum:** a module may export `MIN_PLAYERS` (DOUBLE AGENT: 4). An option with `when(onlineCount)` only shows/applies when true.
 - **Idle rooms close after an hour without a game** (`ROOM_IDLE_MS`); `meta/activeAt` is stamped when a game starts / returns to the
-  lobby and every 10 min while one runs. The lobby warns for the last 10 min (host: KEEP OPEN). Rules let anyone delete a room idle > 1 h.
+  lobby and every 10 min while one runs. The lobby warns for the last 10 min (host: KEEP OPEN). Rules let a SEATED player delete a room idle > 1 h (THE FIX PASS — S2; a stranger never).
+  **THE ROOM LIST IS CLOSED (THE FIX PASS — S2, Nov 22):** `rooms/.read` is `false` — a phone reads ONE room by its hush word (the join,
+  the rejoin, host migration, the seated listener), never a list (the old rule let any signed-in client page through every live room, its
+  players' names + profile ids). THE STALE-ROOM SWEEP moved to the server: `api/_lib/room-sweep.js#sweepRoomsIfDue` — at most once an hour
+  (`api/_lib/due.js#claimDue`, a marker transaction on `rl/zz_rooms`), run from `/api/daily` `today` and the log prune (`api/log.js`); the rooms
+  idle past `ROOM_IDLE_MS` + 60 s (or with no meta) go with their side nodes (`core/room-logic.js#ROOM_SIDE_NODES`), their word rests (never a
+  solo room's). /admin + the radio's ROOMS OPEN read through the admin SDK (`rooms-live.js`) as before.
 - **Rematch / late joiners:** `rematch()` (host.js) restarts the same game with `meta.settings[gameId]` and every
   connected player — late joiners (who spectate the running game) are dealt in automatically.
 - **Live player data:** each module's `livePaths(game)` names the player-written paths for the current step.

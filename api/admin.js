@@ -81,7 +81,7 @@ import { boardDef, fromSort } from '../js/core/boards.js';
 import { nameKey } from '../js/core/names.js';
 import { houseNick, isBoardId } from '../js/core/nicknames.js';
 import { weekKey } from '../js/core/week.js';
-import { summarize } from '../js/core/insights.js';
+import { summarize, liveRooms } from '../js/core/insights.js';
 import { activity, gameOrder } from './_lib/activity.js';
 import { cleanRemote, isEmpty, toParams, describe, cleanDelay, DEFAULT_MINS, MAX_MINS } from '../js/core/harbor-remote.js';
 import { streakDay, dayNum, dayOf } from '../js/core/streak.js';
@@ -423,6 +423,8 @@ export async function adminAction(uid, body, now = Date.now()) {
       return { log, names };
     }
     case 'stats': return stats(now, !!body.fresh);
+    // (THE FIX PASS — D1: /admin's 30 s poll asks for LIVE NOW only — the rooms by the index, never results/ + profiles/ again)
+    case 'live': return { live: liveRooms(await liveRoomsRead(now), now), at: now };
     // CITY C — STATS in the ☰ menu (the owner only — this gate): ONE snapshot for everyone, built at most every STATS_SHEET_MS (REFRESH: a minute)
     case 'statsSheet': return statsSheet(me, now, !!body.fresh);
     case 'errors': return { errors: await errorList(now), quiet: await quietCounts() };

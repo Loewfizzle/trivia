@@ -61,7 +61,7 @@ for (const look of ['night', 'day']) {
   const T = await import('/js/daily/share-today.js'), DR = await import('/js/games/drop/share.js'), B = await import('/js/games/prism/board.js');
   // (THE DROP B add-on: a REAL finished run — drop-sample.js: the bot to its top-out, the log replayed as the server does)
   const DRUN = (await import('/tests/integration/drop-sample.js')).sampleDropRun('20261108', { day: 'd20261113' }), DROP_B = DRUN.raw;
-  const ROWS = [{ id: 'password', name: 'THE PASSWORD' }, { id: 'coastclear', name: 'COAST CLEAR' }, { id: 'drop', name: 'THE DROP' }];
+  const ROWS = [{ id: 'password', name: 'THE PASSWORD' }, { id: 'coastclear', name: 'COAST CLEAR' }, { id: 'drop', name: 'PRISM DROP' }];
   // (each from the SERVER's share shape — THE PASSWORD's marks + counts, never a word)
   const pwShare = { done: true, door: 1, startedAt: 1000, finishedAt: 175000, doors: RUNS.crack.doors.map(d => ({ state: d.state, marks: d.marks, n: d.marks.length })) };
   const SHARE = { password: pwShare, coastclear: CCS.clear, drop: DRUN.inputs };

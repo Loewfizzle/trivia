@@ -3,13 +3,13 @@
     ".read": false,
     ".write": false,
     "rooms": {
-      ".read": "auth != null && query.orderByChild == 'meta/activeAt' && query.limitToFirst != null && query.limitToFirst <= 25 && query.endAt != null",
+      ".read": false,
       ".indexOn": [
         "meta/activeAt"
       ],
       "$code": {
         ".read": "auth != null",
-        ".write": "auth != null && data.exists() && !newData.exists() && (data.child('meta/hostId').val() === auth.uid || !data.child('meta').exists() || data.child('meta/activeAt').val() < now - 3600000)",
+        ".write": "auth != null && data.exists() && !newData.exists() && (data.child('meta/hostId').val() === auth.uid || !data.child('meta').exists() || (data.child('meta/activeAt').val() < now - 3600000 && data.child('players').child(auth.uid).exists()))",
         ".validate": "$code.matches(/^[A-Z]{4}$/)",
         "meta": {
           ".write": "auth != null && ((!data.exists() && newData.child('hostId').val() === auth.uid) || data.child('hostId').val() === auth.uid)",

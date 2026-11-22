@@ -8,6 +8,23 @@ export function idleLeft(meta, now) {
 }
 export const roomIdle = (meta, now) => idleLeft(meta, now) <= 0;
 
+// THE FIX PASS — S2: the STALE-ROOM SWEEP runs on the SERVER (api/_lib/room-sweep.js — the rules list no rooms to a phone any more). ONE list
+// of a room's top-level side nodes (the client's close + the server's sweep), and the pure plan of what one sweep deletes.
+export const ROOM_SIDE_NODES = ['chats', 'spy', 'fleets', 'glsonar', 'hsbet', 'rrp', 'rrsec', 'seal'];
+/** PURE: the stale rooms (activeAt older than ttl + 60 s, or no meta at all) → the ONE multi-path delete (the room, its side nodes, its word rests) */
+export function roomSweepPatch(rooms, now, ttl = ROOM_IDLE_MS) {
+  const cutoff = now - ttl - 60_000, patch = {}, codes = [];
+  for (const [code, room] of Object.entries(rooms || {})) {
+    const meta = room && room.meta;
+    if (meta && !(typeof meta.activeAt === 'number' && meta.activeAt <= cutoff)) continue;   // live (or a missing stamp: never on missing data)
+    codes.push(code);
+    patch[`rooms/${code}`] = null;
+    for (const n of ROOM_SIDE_NODES) patch[`${n}/${code}`] = null;
+    if (meta && /^[A-Z]{4}$/.test(code) && !isSoloMeta(meta)) patch[`hush/${code}`] = { closedAt: now };   // (the word rests, as a phone's close)
+  }
+  return { codes, patch };
+}
+
 export function generateCode(rand = Math.random) {
   let s = '';
   for (let i = 0; i < CODE_LENGTH; i++) s += CODE_ALPHABET[Math.floor(rand() * CODE_ALPHABET.length)];

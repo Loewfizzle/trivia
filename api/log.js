@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto';
 import { route, send, readBody, clientIp } from './_lib/http.js';
 import { ref, fb } from './_lib/fb.js';
 import { pruneLogsIfDue } from './_lib/prune.js';
+import { sweepRoomsIfDue } from './_lib/room-sweep.js';
 import { dropAsBot } from '../js/core/bot-ua.js';
 import { tooOld } from '../js/core/browser-floor.js';
 
@@ -150,5 +151,6 @@ export default route(['POST', 'GET'], async (req, res) => {
   const kept = body && body.p === 'report' ? await logReport(body, meta) : await logErrors(body, meta);
   // (FR6 FIXES A — C8: a write prunes the logs + the rate-limit buckets, at most once an hour — never waiting for /admin)
   if (kept) await pruneLogsIfDue(meta.now).catch(e => console.warn('prune', e && e.message));
+  if (kept) await sweepRoomsIfDue(meta.now).catch(e => console.warn('room sweep', e && e.message));   // (THE FIX PASS — S2: hourly at most)
   send(res, 200, { kept });
 });

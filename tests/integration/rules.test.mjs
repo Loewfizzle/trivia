@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { ref, get, set, update, remove, query, orderByChild, endAt, limitToFirst, serverTimestamp, runTransaction } from 'firebase/database';
+import { ref, get, set, update, remove, query, orderByChild, startAt, endAt, limitToFirst, serverTimestamp, runTransaction } from 'firebase/database';
 
 const rules = readFileSync(fileURLToPath(new URL('../../database.rules.json', import.meta.url)), 'utf8');
 let env;
@@ -321,7 +321,8 @@ test('HUSH WORDS: hush/{WORD} only with the room it closes; anyone may sweep ent
   await assertSucceeds(update(ref(db('anyone')), { 'hush/OLDY': null }), 'an entry older than 24 h can be swept');
   // an idle room (anyone may close it) records its word too
   const idle = lobbyRoom(); idle.rooms[CODE].meta.activeAt = now() - 2 * 3600_000; await seed(idle);
-  await assertSucceeds(update(ref(db('stranger')), { [R]: null, [`hush/${CODE}`]: closed }), 'closing an idle room records its word');
+  await assertFails(update(ref(db('stranger')), { [R]: null, [`hush/${CODE}`]: closed }), 'THE FIX PASS S2: a stranger never closes an idle room');
+  await assertSucceeds(update(ref(db('p2')), { [R]: null, [`hush/${CODE}`]: closed }), 'a SEATED player closing an idle room records its word');
 });
 
 test('players write only their own node; host can remove others', async () => {
@@ -577,25 +578,28 @@ test('LAST SIGNAL targets: never in the final, never once you are out; PULSE boa
   await assertFails(set(ref(db('p2'), `${R}/pulse/m4/p2`), { ...board, s: 999999 }), 'no score after the song');
 });
 
-test('stale-room cleanup: query + delete only rooms idle > 1h (no game for an hour)', async () => {
+test('THE FIX PASS — S2: NO ROOM LIST for a phone (the sweep is the server’s); an idle room is closed only by a SEATED player', async () => {
   const old = now() - 61 * 60_000;
   await seed({
     rooms: {
-      OLDD: { meta: { hostId: 'x', status: 'lobby', createdAt: old, activeAt: old } },
-      NEWW: { meta: { hostId: 'x', status: 'lobby', createdAt: now(), activeAt: now() } },
+      OLDD: { meta: { hostId: 'x', status: 'lobby', createdAt: old, activeAt: old }, players: { x: player('X'), seat: player('SEAT') } },
+      NEWW: { meta: { hostId: 'x', status: 'lobby', createdAt: now(), activeAt: now() }, players: { x: player('X') } },
       ORPH: { presence: { ghost: { online: false, lastSeen: 1 } } },
     },
   });
   const me = db('cleaner');
   const cutoff = now() - 3600_000 - 30_000;
-  const snap = await assertSucceeds(get(query(ref(me, 'rooms'), orderByChild('meta/activeAt'), endAt(cutoff), limitToFirst(20))));
-  const found = Object.keys(snap.val() || {}).sort();
-  assert.deepEqual(found, ['OLDD', 'ORPH']);
-  await assertFails(get(query(ref(me, 'rooms'), orderByChild('meta/activeAt'), limitToFirst(500))), 'bounded listing only');
-  await assertFails(get(query(ref(me, 'rooms'), orderByChild('meta/hostId'), limitToFirst(5))), 'only by activeAt');
-  await assertFails(get(query(ref(me, 'rooms'), orderByChild('meta/activeAt'), limitToFirst(20))), 'an end is required (APP FIXES)');
-  await assertSucceeds(remove(ref(me, 'rooms/OLDD')));
-  await assertSucceeds(remove(ref(me, 'rooms/ORPH')));
+  // (the review's proof1: the old rule's own query, the far-future page, the next page — every one REFUSED now)
+  await assertFails(get(query(ref(me, 'rooms'), orderByChild('meta/activeAt'), endAt(cutoff), limitToFirst(20))), 'the old sweep’s own query');
+  await assertFails(get(query(ref(me, 'rooms'), orderByChild('meta/activeAt'), endAt(now() + 1e9), limitToFirst(2))), 'proof1: every live room, page 1');
+  await assertFails(get(query(ref(me, 'rooms'), orderByChild('meta/activeAt'), startAt(now() - 1500), endAt(now() + 1e9), limitToFirst(25))), 'proof1: the next page');
+  await assertFails(get(ref(me, 'rooms')), 'the whole node');
+  // what still works: a room by its HUSH WORD (the join, the rejoin, host migration all read one room)
+  await assertSucceeds(get(ref(me, 'rooms/NEWW/meta')), 'a room by its word');
+  await assertSucceeds(get(ref(me, 'rooms/NEWW')), 'one room whole (the seated phone’s listener)');
+  await assertFails(remove(ref(me, 'rooms/OLDD')), 'a stranger never deletes an idle room');
+  await assertSucceeds(remove(ref(db('seat'), 'rooms/OLDD')), 'a SEATED player closes the idle room (host.js#closeIdleRoom)');
+  await assertSucceeds(remove(ref(me, 'rooms/ORPH')), 'an orphan with no meta (as before)');
   await assertFails(remove(ref(me, 'rooms/NEWW')));
   await assertSucceeds(remove(ref(db('x'), 'rooms/NEWW')), 'host can close their room');
 });

@@ -75,7 +75,7 @@ const DROP3 = q.get('drop') === '1';
 // (THE DROP B add-on — a REAL finished run, never hand-made data: THE DROP's engine on a seed, the bot to its top-out, the log replayed as the
 //  server's finish does — tests/integration/drop-sample.js; &dropseed= picks another)
 const DROP_RUN = DROP3 || q.get('state') === 'ccdrop' ? (await import('/tests/integration/drop-sample.js')).sampleDropRun(q.get('dropseed') || '20261108') : null;
-if (DROP3) D.push({ id: 'drop', name: 'THE DROP', order: 3, ticket: 'drop', lesson: true, better: 'high', hook: 'Same pieces. Same rows. Hold on.' });
+if (DROP3) D.push({ id: 'drop', name: 'PRISM DROP', order: 3, ticket: 'drop', lesson: true, better: 'high', hook: 'Same pieces. Same rows. Hold on.' });
 // the friends' cards (api/_lib/friends.js#cardOf's shape): a legendary (BEN), a rare (KIM), an uncommon with the 12-letter name (MAXIMILIANOS),
 // LOU's zebra UNAPPROVED → plain, RAY with no card → the Gilded plain strip, SAM a common
 const F = (pid, n, a, c, cd, x, extra = {}) => ({ pid, n, a, c, l: Math.max(1, Math.round(x / 220)), x, cd, es: null, g: null, tb: null, mn: null, ...extra });

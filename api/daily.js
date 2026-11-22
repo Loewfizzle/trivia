@@ -72,7 +72,8 @@ async function flaggedFinished(base, nc, viewer) {
   const n = await Promise.all([...nc].filter(f => f !== viewer).map(async f => { const [r, x] = await Promise.all([val(`${base}/r/${f}`), val(`${base}/x/${f}`)]); return r != null && !x ? 1 : 0; }));
   return n.reduce((a, b) => a + b, 0);
 }
-import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE, cardType, shareBase } from './_lib/share-card.js';   // (CITY E — THE TAPPABLE SHARE CARD)
+import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE, cardType, shareBase } from './_lib/share-card.js';
+import { sweepRoomsIfDue } from './_lib/room-sweep.js';   // (THE FIX PASS — S2)   // (CITY E — THE TAPPABLE SHARE CARD)
 import { compactResults } from './_lib/results-sweep.js';   // (CITY G — results/ compacted past 14 days)
 import { bestStep, bestView, pointsRaise, isBetter } from '../js/core/daily-best.js';   // (DAILY A — DAILY BEST + a better try's points)
 import { roomJoined } from './_lib/daily-room.js';
@@ -394,6 +395,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       const closing = closeDays({ games, now }).then(() => sweepRuns({ games, now, settle: settleRun })).catch(() => null);
       sweepShares({ now }).catch(() => null);   // (CITY E: the share cards past 7 days — THE DAY'S CLOSE's sweep, no idle poll)
       compactResults({ now }).catch(() => null);   // (CITY G: results/ past 14 days compacted — js/core/results-compact.js — once a day, never waited on)
+      sweepRoomsIfDue(now).catch(() => null);   // (THE FIX PASS — S2: the stale rooms swept on the server, at most hourly — never waited on)
       if (!pid) { await closing; return { day, dailies, mine: {}, gated: {}, started: {}, stand: {}, lessons: {}, friends: {}, table: [], noProfile: true }; }
       const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {}, shareOf = {}, rfOf = {}, placeOf = {}, extraMine = {}, progOf = {};
       // (CITY D — SCORES SHOWS INSTANTLY: the profile's own reads + YOUR TABLE's friends list start NOW, beside the dailies' reads — never after)

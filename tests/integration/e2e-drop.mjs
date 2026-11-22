@@ -60,7 +60,7 @@ await H.run(async () => {
   ok(true, 'THE DROP mounts PRISM DROP\'s real view in its DROP mode (the board, the rail, SLAM)');
   await waitFor(A.page, 'window.__drop.state().k > 120', 'the run\'s clock (after the 3-2-1)', 15000);
   const top = await A.page.evaluate(() => document.querySelector('.pd-mode').textContent);
-  ok(/^THE DROP · \d+:\d\d$/.test(top), `the top line: ${top}`);
+  ok(/^PRISM DROP · \d+:\d\d$/.test(top), `the top line: ${top}`);
   ok(await A.page.evaluate(() => !!document.querySelector('.pd-rail .dr-pause') && document.querySelector('.dr-pause .dr-left').textContent === '3'), 'the PAUSE control at the rail\'s top, 3 left');
   // THE DROP B — PRISM DROP's OWN SONGS (the night set by night), the console's decks silent; the one-time hint on a first run
   const bt = await A.page.evaluate(() => (window.__prism && window.__prism.beat ? window.__prism.beat() : null));
@@ -141,14 +141,14 @@ await H.run(async () => {
   ok(Math.floor(r / 1000) === Math.round(end.t / 100) && r % 1000 === end.lines, `the score = the phone's run: tenths × 1000 + lines (${(end.t / 1000).toFixed(1)} s, ${end.lines} lines)`);
   ok(end.result.outcome && end.result.outcome.points === dailyPoints('drop', r), `the points (${end.result.outcome && end.result.outcome.points})`);
   const endCard = await A.page.evaluate(() => document.querySelector('.dr-card').innerText.replace(/\s+/g, ' '));
-  ok(/THE DROP/.test(endCard) && /SCORED/.test(endCard), `the end card: ${endCard}`);
+  ok(/PRISM DROP/.test(endCard) && /SCORED/.test(endCard), `the end card: ${endCard}`);
   await sizes(A.page, 'drop-04-end');
   // CITY D — THE END CARD SHRINKS (the owner: it never went away): ~1.5 s later a slim straight-edged bar at the board's foot — THE DROP · the
   // time · SHARE; a tap on the bar opens the card again, a tap outside it shrinks it at once
   await waitFor(A.page, 'window.__drop.bar()', 'the end card shrinks to its bar', 6000);
   const barOf = () => A.page.evaluate(() => { const c = document.querySelector('.dr-card'), r = c.getBoundingClientRect(), o = c.parentElement.getBoundingClientRect(); return { text: c.innerText.replace(/\s+/g, ' ').trim(), h: Math.round(r.height), foot: Math.round(o.bottom - r.bottom), share: !!c.querySelector('.dr-share'), rad: parseFloat(getComputedStyle(c).borderTopLeftRadius), at: [r.left + 30, r.top + r.height / 2], out: [o.left + o.width / 2, o.top + o.height * 0.3] }; });
   const bar = await barOf();
-  ok(bar.h <= 60 && bar.foot <= 16 && bar.share && /^THE DROP · \d+:\d\d/.test(bar.text) && !/SCORED|LINES?\b/.test(bar.text) && bar.rad <= 4, `THE END CARD SHRINKS: a ${bar.h}-pt bar ${bar.foot} pt off the board's foot, straight-edged (${bar.rad} px) — "${bar.text}"`);
+  ok(bar.h <= 60 && bar.foot <= 16 && bar.share && /^PRISM DROP\s+(·\s*)?\d+:\d\d/.test(bar.text) && !/SCORED|LINES?\b/.test(bar.text) && bar.rad <= 4, `THE END CARD SHRINKS: a ${bar.h}-pt bar ${bar.foot} pt off the board's foot, straight-edged (${bar.rad} px) — "${bar.text}"`);
   await sizes(A.page, 'drop-04b-bar');
   await A.page.mouse.click(...bar.at);
   await waitFor(A.page, '!window.__drop.bar()', 'a tap on the bar opens the card again', 3000);
@@ -162,7 +162,7 @@ await H.run(async () => {
   await ref('/').update(Object.fromEntries(['s', 'r', 'p', 'l', 'x'].map(k => [`dly/drop/${day}/${k}/${B.pid}`, null])));
   const sb = await dailyAction('e2e-dr-bob', { action: 'start', game: 'drop' });
   const fake = createDropRun(sb.run.seed);
-  for (let k = 0; k < 3600; k += 12) { stepTo(fake, k); input(fake, 'X'); }
+  stepTo(fake, 3600);   // (THE FIX PASS: 30 s of play the moment the run starts — the old slam-every-12-ticks forgery topped out at tick 120, 1 s, inside FAST_TOL_MS)
   const forged = await dailyAction('e2e-dr-bob', { action: 'checkpoint', game: 'drop', day: sb.day, at: 0, add: fake.log, k: fake.k }).then(() => null, e => e);
   ok(forged && forged.status === 422, `a log faster than the clock is refused (${forged && forged.code})`);
   const early = await dailyAction('e2e-dr-bob', { action: 'finish', game: 'drop', day: sb.day }).then(() => null, e => e);
