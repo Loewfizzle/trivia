@@ -31,7 +31,7 @@ const NONE = Object.freeze({ day: '', winter: 0, christmas: 0, snowfall: 'none',
  *  the canal's mossy pavers · the dunes' scrub — areas.js LOOKS index; -1 = the opening), from lane `from`; `share` of the blocks at full autumn */
 export const PILE = Object.freeze({ every: 3, from: 4, share: 0.62, areas: [-1, 4, 5, 6], max: 24, burstMs: 520 });
 /** JT1 — THE FOOTPRINTS: a pooled ring of pairs, each fading over `ms` */
-export const PRINT = Object.freeze({ ring: 96, ms: 3600, len: 0.25, wide: 0.12, apart: 0.105 });
+export const PRINT = Object.freeze({ ring: 96, ms: 3600, len: 0.28, wide: 0.13, apart: 0.11 });
 /** JT1 — THE HATS' colours (the owner's mockups: a red Santa hat — white fur band + pom-pom; a striped party cone) */
 const HAT = Object.freeze({ red: 0xd41e2c, fur: 0xf6f3ee, stripes: [0xff3fb4, 0x29d8ff, 0xffd23a], tassel: 0xffd23a });
 const LEAF_HEX = [0xff7a12, 0xf0381c, 0xffc624, 0xff9a2a];
@@ -319,7 +319,7 @@ export function createSeasonal(A) {
       for (let n = 0; n < prN; n++) {
         const o = ((prAt - 1 - n + PRINT.ring) % PRINT.ring) * 5, u = (clock - PR[o + 3]) / PRINT.ms;
         if (u >= 1 || u < 0) continue;
-        const a = PR[o + 4] * (1 - u) * (1 - u * 0.4) * (day ? 0.34 : 0.42), yaw = PR[o + 2], cs = Math.cos(yaw), sn = Math.sin(yaw);
+        const a = PR[o + 4] * (1 - u) * (1 - u * 0.4) * (day ? 0.27 : 0.42), yaw = PR[o + 2], cs = Math.cos(yaw), sn = Math.sin(yaw);
         for (const sd of [-1, 1]) {
           const dx = cs * PRINT.apart * sd, dz = -sn * PRINT.apart * sd, back = sd * 0.03;
           K.shadow.raw(PR[o] + dx + sn * back, 0.028, PR[o + 1] + dz + cs * back, PRINT.wide, 1, PRINT.len, yaw, 0, 1, 11, a);

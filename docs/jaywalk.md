@@ -34,6 +34,7 @@ import map); the RULES are a pure engine that never knows about it.
 | J2 FIX — THE BLACKBIRD YOU CAN SEE · A PREMIUM DAY RUNWAY | Nov 21 2026 | `docs/games/passes/jaywalk-j2fix.md` | v2's runway numbers before v2 went live: the jets 200 / 250 / 340 (seen), the tell 1.2 s, THE WAIT GUARD, the vapour trail, the sound re-synced; v2 FROZEN; THE PRE-FIX BUILD refused (THE END CHECK · the daily's `cvr`); the day runway's crisp lamps + heat trail; the night compare (`&rwnight=new`, the lab only) |
 | J3 — THE DAILY: TIME BOARDS · THREE TRIES ALL DAY · THE RED SNEAKER | Nov 21 2026 | `docs/games/passes/jaywalk-j3.md` | THE TIME BOARDS on the daily's SCORES · TODAY (MOST LANES · FASTEST TO 50 · TO 100 … — the day's split board from the server's replay splits, best of 3 per split, ties share a place, a VIEW) · the share card's best-time line · THREE TRIES ALL DAY (no STOP, COME BACK LATER, the ticket from the server's tries until the 3rd try / 4 am) · THE SNEAKER's upper NEON RED. No rules change |
 | J4 — WINTER: SNOW · CHRISTMAS · WET NEON STREETS | Nov 21 2026 | `docs/games/passes/jaywalk-j4.md` | a VIEW only: THE SEASON CLOCK (`season.js` — winter Dec 1 → Mar 1, Christmas Dec 1 → Jan 6, snow on half the days + always Dec 24–25), the snowy ground + plowed roads + snow on the tops, snow pines · lit Christmas trees (presents baked in) · snowmen from THE SEASONAL PACK (53 KB, outside the line), THE FALLING SNOW (one draw, never over the lane ahead), WET NEON STREETS (ships OFF — `&wet=1`), the lab's `&date=` `&snow=` `&wet=`. No rules change |
+| JT1 — SEASONS: ROOM FIRST · AUTUMN · THE HATS · FOOTPRINTS · NEW YEAR'S | Nov 22 2026 | `docs/games/passes/jaywalk-jt1.md` | a VIEW only: every seasonal layer is THE SEASONAL PACK's (`seasonal.js` + `seasonal-fx.js` + `season.js` + `fireworks.js` + J4's models — lazy, a season day only; the start bundle asks `season-gate.js`); AUTUMN Oct 20 → Nov 30 (turned trees, golden grass, fallen + drifting leaves, LEAF PILES that burst), the Santa hat Dec 1–31 + the party hat Jan 1 (in the kid's own geometry), FOOTPRINTS + a snow puff, NEW YEAR'S fireworks over the skyline (the finale before local midnight); the lab's `&clock=` · `&hat=0`. No rules change |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
 this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
@@ -477,7 +478,68 @@ other param) — the seed line shows the season; never the live game (the view r
 (the page's test-only `&jwday=`, kept by `identity.js` like `jwcv`). The look checks: `jaywalk-lab.mjs --j4[=peek|strip|snow|wet|props]` (the
 composites built in the browser) · `--j4perf` = the busy runways on Christmas Eve, heavy snow, wet on.
 ### MEASURED (the Beelink, 390 × 844 / 430 × 932 @3, tier 2, 8 kids, the runway's worst frame over a whole lap + 4× CPU)
+(JT1: the code below now lives in THE SEASONAL PACK — `seasonal.js` / `seasonal-fx.js`; the names in this section are the same there.)
 DOWNTOWN night **63** calls (J2 FIX's 61 + the snow + the snowmen) · day 35 · THE AIRFIELD night 49 · day 28 — fps 58.4 – 60 at 4× CPU, 390 + 430.
+
+
+## JT1 — SEASONS: ROOM FIRST · AUTUMN · THE HATS · FOOTPRINTS · NEW YEAR'S (Nov 22 — the owner; the pass log `docs/games/passes/jaywalk-jt1.md`; the decisions `docs/games/plan.md` "JAYWALK JT1") — a VIEW only: no rules change, REPLAY = LIVE untouched
+### ROOM FIRST — THE SEASONAL PACK (the owner's standing rule: every seasonal layer lives in the pack, NEVER the start bundle)
+- THE PACK = `seasonal.js` (the scene's season: J4's winter swaps, the tree lights, autumn's piles, the hats, the footprints, THE FALL, the lights
+  list) + `seasonal-fx.js` (the GLSL: J4's snow + plowed roads + WET NEON STREETS VERBATIM, autumn's ground + trees, THE FALL's snow / leaf mode)
+  + `season.js` (THE SEASON CLOCK) + `fireworks.js` (Dec 31 / Jan 1 only, fetched by the pack) + J4's winter models (`assets/jaywalk/winter/` —
+  the loader moved from models.js into seasonal.js). Code ≈ 57 KB + models 53 KB ≈ 110 KB of the 150 KB cap (`tests/jaywalk-jt1.test.mjs`).
+- THE START BUNDLE knows only `season-gate.js#seasonWindow` (Oct 20 → the last day of February — it agrees with `season.js#packDay` on every day,
+  a test) + the hooks: `night.js` fetches the pack through `lazyImport(import('./seasonal.js'))` on a season day (the lab's forced one too) and
+  calls it at fixed points of a frame (`quiet` · `frame` · `tree` · `planter` · `grass` · `land` · `end` · `warmIn` · `rest`); the ground keeps
+  STUBS (`night-fx.js //SEA{ … //}SEA` — `ground.setSea` swaps the pack's GLSL in); the lit materials are patched by the pack (`seaPatch`).
+- The pack's pieces come in at a QUIET moment: a run's START (`apply`), its tick 0, its end — never mid-run (J4's rule kept); a run whose winter
+  models are not in by its start keeps the normal winter look (autumn + the hats need no models).
+- THE LINE (THE FIX PASS's: the game alone): **529.3 → 515 KB** (the city + JAYWALK 2,599 → 2,584 KB) — 14.3 KB: ALL of J4's season-only code.
+  J4's "≈ 27 KB" estimate was its whole diff — the rest are the hooks + the J4 fixes that stay (the partial uploads, the glow cap). Not trimmed
+  further (the 25 KB target): that would mean moving other modules' notes out (THE BOOT HEADERS' pattern) — the owner's call.
+- PROVED: Dec 24 heavy snow, night + day, 390, reduced motion, the hats off (`&hat=0`): the code before vs this one — day **0.000 %** of the
+  pixels differ, night **0.833 % = its own noise floor** (before vs before) — `jaywalk-lab.mjs --jt1=ab` (a worktree on :5174).
+### THE SEASON CLOCK, extended (`season.js`)
+- AUTUMN 0 … 1: Oct 20 `autumnStart` (0.2) → 1 on Nov 1 (eased) → 1 to Nov 30 → **0 on Dec 1** (WINTER's dusting that morning — never a day of
+  both, a test over two years). THE HAT: `santa` Dec 1 → 31 · `party` Jan 1. THE FIREWORKS: `eve` Dec 31 · `day` Jan 1. `modelsDay` = the winter
+  models wanted (winter / Christmas only). The day = the run's own 4 am Eastern day as before (2 am on Jan 1 = the game day Dec 31: the eve).
+### AUTUMN (`seasonal-fx.js` + `seasonal.js` — night + day)
+- THE TREES: the round trees' canopy (green-dominant vertex colours) turns ORANGE · RED · GOLD in their own shader — a colour per tree from where it
+  stands (stable), the trees turning one by one as autumn grows; the colour × the canopy's own shading + a touch of its own warmth (it reads by night).
+- THE GROUND (no draw): real grass golden-olive (the opening; the canal's moss a little), FALLEN LEAVES (leaf shapes with a midrib, two scattered
+  layers; a few blown into the road's gutters); by night darker.
+- DRIFTING LEAVES: THE FALL's leaf mode (J4's snow mesh — its one draw): bigger, tumbling (the width breathes), slower, drifting sideways, see-through,
+  faded over the lanes in front of the kid like the snow; 60 → 150 by the autumn amount (half at tier 0 / reduce motion).
+- LEAF PILES (ONE instanced kind, `KM['s-pile']`): at most one in a block of 3 lanes (`PILE`), on the walkable cells of the opening's grass ·
+  DOWNTOWN's sidewalks · the canal · the dunes (never an obstacle, road, water, rail, gateway), from the course's seed + the day (`pileAt` — every
+  phone the same). The kid (or a rival) landing in one: it BURSTS — 22 leaves fly outward + low (~0.5 s, the particles) and it lies scattered for the
+  rest of the run; YOUR kid's burst plays `leaf-crunch` (sfx11). Purely visual: it never blocks or slows a kid.
+### THE HATS (`seasonal.js#hatsTo`)
+- Built in code (`models.js#build`): THE SANTA HAT (a red cone, its tip flopping, a white fur band + pom-pom) · THE PARTY HAT (a striped cone pink ·
+  cyan · gold + a gold tassel) — small, PERCHED on the crown (sunk a little, tipped back), the player colour still framing it. MERGED INTO THE KID's
+  OWN GEOMETRY (skinned by his head bone — found from the model: the top vertex's bone): every pose carries it, yours + the rivals' (their see-through
+  kind) — NO draw call of their own. Swapped at a run's start; off when the day has none.
+### FOOTPRINTS + THE SNOW PUFF (`seasonal.js#land` · `end`)
+- Every landing on a snowy lane (winter > 0, a grass lane) — yours + every rival's — leaves a PAIR of crisp-edged prints along the hop's direction,
+  fading over 3.6 s (`PRINT` — a ring of 96 pairs) on the blob shadows' kind (`K.shadow.raw` — no draw of their own): by night a lavender shadow on
+  the snow, by day a blue-grey dent; + a small snow puff (6 particles). Nothing on roads, water or rails.
+### NEW YEAR'S (`fireworks.js` — fetched only Dec 31 / Jan 1)
+- Their own small 2D canvas INSIDE the skyline's picture layer (it slides with the picture; ≤ 1.5×, ≤ 0.35 MP; a ResizeObserver) — over the
+  SKYLINE only, never the lanes; no draw call of the 3D scene. Rockets with a faint trail → bursts of neon streaks drooping + fading (some crackle),
+  a flash + its glow at the band's foot (the water). Dec 31: 0.5 bursts / s by night (0.17 by day — bolder strokes, a little smoke); THE FINALE in
+  the last 3 minutes before LOCAL midnight (`finaleOf` — the phone's clock; the lab's `&clock=HH:MM`) 2.4 / s, big ones; Jan 1: 0.14 / s by night
+  only. Reduce motion: none.
+- THE SOUNDS: `firework-pops` (sfx11) · `firework-crackle` · `firework-volley` (sfx12) — only as a burst opens on screen, never the same one twice
+  running, 3.2–6.5 s apart (1.7–3.2 in the finale), the lowest priority + one at a time, gain 0.2–0.22 (under the train's warning), fading out when a
+  game sound takes the voice; the game's own sfx (music / sound switches kept). Fetched only on their days (`sounds.js#seasonSoundsOf` — the leaf
+  crunch Oct 20 → Nov 30, the fireworks Dec 31 + Jan 1).
+### THE LAB + THE CHECKS
+`&date=` · `&snow=` · `&wet=` · look as before + **`&clock=HH:MM`** (the local time — the finale) + **`&hat=0`** (the hats off — the A/B only). Never
+the live game. `jaywalk-lab.mjs --jt1[=ab|autumn|santa|prints|fw|party]` (kit/jaywalk-jt1.mjs — the shots) · `--jt1perf` (the limits: DOWNTOWN's
+runway, 8 kids, night — Nov 25 · Dec 10 · Dec 24 heavy · Dec 31 23:59).
+### THE GAMEPLAY LOCK (`tests/jaywalk-jt1.test.mjs`)
+The rules, the replay, the director, the ghosts + the server's judge never reach the pack, the gate or the scene; the same seeds give the same
+courses, hits + results in summer, Nov 25, Dec 10, Dec 31 + Jan 1 (solo · the daily · a match, v1 + v2); the pack never writes the run or the course.
 
 ## THE MATCH (H4 — ONE LIFE; the cartridge — hidden: THE OWNER'S LIVE TEST)
 One run each on the SAME course, one life; the others are see-through ghosts; farthest wins, ties → the earlier tick. **Real matches run

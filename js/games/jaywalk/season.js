@@ -103,5 +103,6 @@ export function labClock(v) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(v || '');
   return m && +m[1] < 24 && +m[2] < 60 ? +m[1] * 60 + +m[2] : -1;
 }
-/** WET NEON STREETS ships OFF in the live game (the owner's call — a later one-line add-on flips it) */
+/** WET NEON STREETS ships OFF in the live game (the owner's call — a later one-line add-on flips it: JT1 — the game's own switch is view.js#WET_LIVE,
+ *  the start bundle never imports this module; this copy is the tests' + the lab's, kept equal — tests/jaywalk-winter.test.mjs) */
 export const WET_LIVE = false;

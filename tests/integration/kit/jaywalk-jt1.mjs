@@ -115,9 +115,9 @@ export async function looksJT1({ open, up, ok, sleep, waitFor, out, what = '', b
 
   if (all || what === 'prints') for (const look of ['night', 'day']) for (const w of [390, 430]) {
     const o = await pg(w, '&date=2026-12-10&snow=light');
-    await stage(o, { look, models: true, lane: 4, freeze: false });
-    // a few hops on grass (the opening): left, up, right, up — the prints behind
-    for (const d of ['u', 'l', 'u', 'r', 'u', 'u']) { await o.p.evaluate(dd => window.__jwLab.hop(dd), d); await sleep(330); }
+    await stage(o, { look, models: true, lane: 3, freeze: false });
+    // a few hops on the opening's snowy grass (lanes 3 + 4 on this seed): left, right, right, up, left, left — the prints behind
+    for (const d of ['l', 'r', 'r', 'u', 'l', 'l']) { await o.p.evaluate(dd => window.__jwLab.hop(dd), d); await sleep(330); }
     await sleep(200);
     const s = await season(o);
     ok(s.sp && s.sp.prints >= 3, `PRINTS ${look} ${w}: the footprints behind the hops (${s.sp && s.sp.prints} pairs)`);
