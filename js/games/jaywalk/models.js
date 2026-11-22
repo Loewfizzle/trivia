@@ -60,18 +60,7 @@ export async function loadKenney(names = KENNEY) {
   return out;
 }
 
-/** J4 — THE SEASONAL PACK (Kenney Holiday Kit 2.0, CC0 — scripts/build-jaywalk-assets.py --only=winter): fetched ONLY in season (Dec 1 →
- *  Mar 1) or when the lab forces a date — never in the preload graph (outside JAYWALK's 2,600 KB line; its own cap 150 KB:
- *  tests/jaywalk-winter.test.mjs). → { name: geometry } once ALL four are in, else null (that run keeps the normal look). Kept once loaded. */
-const WDIR = new URL('../../../assets/jaywalk/winter/', import.meta.url);
-export const WINTER_REV = 1;
-export const WINTER_MODELS = Object.freeze(['snow-pine', 'xmas-tree', 'snowman']);   // (J4: the candy cane DROPPED — the draw-call limit)
-let winterP = null;
-export function loadWinter() {
-  if (!winterP) winterP = Promise.all(WINTER_MODELS.map(n => fetch(new URL(`${n}.glb?v=${WINTER_REV}`, WDIR)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(n)))).then(parseGlb)))
-    .then(gs => Object.fromEntries(WINTER_MODELS.map((n, i) => [n, gs[i]])), () => { winterP = null; return null; });   // (a failed pack: tried again next time — never thrown)
-  return winterP;
-}
+// (J4's winter loader — THE SEASONAL PACK's models — lives in seasonal.js since JT1: never the start bundle)
 
 /** (H3 — the cartridge's preload, during the walk inside) the scene's model files into the HTTP cache — fetched, never parsed */
 export const warmModels = () => Promise.all([...SCENE_MODELS, 'kid'].map(n => fetch(new URL(`${n}.glb?v=${MODEL_REV}`, DIR)).catch(() => null)));

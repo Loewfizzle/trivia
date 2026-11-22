@@ -34,7 +34,20 @@ export const SOUNDS = Object.freeze([
   { id: 'out-drop', label: 'OUT (A MATCH)', b: false, gain: 0.28, pri: 3, play: true, match: true, max: 1 },
   { id: 'h2h-siren', label: 'HEAD TO HEAD SIREN', b: false, gain: 0.19, pri: 2, play: true, match: true, max: 1, fade: 0.4 },
   { id: 'last-standing', label: 'LAST ONE STANDING', b: false, gain: 0.6, pri: 3, play: true, match: true, max: 1 },
+  // JT1 — THE SEASONS (the owner, Nov 22 — CC0, the delivery's sfx11 + sfx12; scripts/build-jaywalk-sounds.mjs --jt1): `season` = fetched
+  // ONLY on its days (seasonSoundsOf — never on an ordinary day). A LEAF PILE's crunch (your own kid hopping into one) · THE FIREWORKS —
+  // distant + soft, the lowest priority (pri 1: any game sound outranks them), one at a time, UNDER the warnings (levels: THE MIX)
+  { id: 'leaf-crunch', label: 'LEAF PILE (AUTUMN)', b: false, gain: 0.9, pri: 1, play: true, season: 'autumn', max: 1 },
+  { id: 'firework-pops', label: 'FIREWORKS — POPS', b: false, gain: 0.22, pri: 1, play: true, season: 'fireworks', max: 1, fade: 0.4 },
+  { id: 'firework-crackle', label: 'FIREWORKS — CRACKLE', b: false, gain: 0.2, pri: 1, play: true, season: 'fireworks', max: 1, fade: 0.4 },
+  { id: 'firework-volley', label: 'FIREWORKS — VOLLEY', b: false, gain: 0.2, pri: 1, play: true, season: 'fireworks', max: 1, fade: 0.4 },
 ]);
+/** JT1 — the season's sounds for a day ('d20261231'): the leaf crunch Oct 20 → Nov 30 (season.js — AUTUMN), the fireworks on Dec 31 + Jan 1 */
+export function seasonSoundsOf(day) {
+  const m = /^d\d{4}(\d{2})(\d{2})$/.exec(day || ''), mo = m ? +m[1] : 0, d = m ? +m[2] : 0;
+  const k = (mo === 10 && d >= 20) || mo === 11 ? 'autumn' : (mo === 12 && d === 31) || (mo === 1 && d === 1) ? 'fireworks' : '';
+  return k ? SOUNDS.filter(s => s.season === k).map(s => s.id) : [];
+}
 /** J1 — the match-only sounds (view.js fetches them for a MATCH) */
 export const MATCH_SOUNDS = Object.freeze(SOUNDS.filter(s => s.match).map(s => s.id));
 /** the music ducks a little under the train (the bell + the pass): to this much of its level, in / out over these seconds */

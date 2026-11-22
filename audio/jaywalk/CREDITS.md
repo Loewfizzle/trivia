@@ -77,4 +77,13 @@ J2 — THE BLACKBIRD's RUNWAYS (the owner's picks, Nov 21 — scripts/build-jayw
 | runway-tick.mp3 | "runway-tick" — original sound created for JAYWALK, CC0 1.0 (Ben) | Ben | CC0 1.0 | created for this game |
 | afterburner-flicker.mp3 | "Big Branching Fire #1" by Joseph SARDIN (BigSoundBank), CC0 1.0, edited for JAYWALK. https://bigsoundbank.com/big-branching-fire-1-s0987.html | Joseph SARDIN | CC0 1.0 | BigSoundBank |
 
+JT1 — THE SEASONS (the owner's picks, Nov 22 — scripts/build-jaywalk-sounds.mjs --jt1: 24-bit mono WAV → mono MP3; fetched ONLY on their days — js/games/jaywalk/sounds.js#seasonSoundsOf; levels in sounds.js):
+
+| file | title | author | licence | source |
+| --- | --- | --- | --- | --- |
+| leaf-crunch.mp3 | "Feet in Leaves #1", edited for JAYWALK (excerpt, high-pass, a 4 kHz dip, fades) | Joseph SARDIN (BigSoundBank) | CC0 1.0 | https://bigsoundbank.com/feet-in-leaves-s0137.html |
+| firework-pops.mp3 | "Firework during New Years Eve @ Groningen.wav", edited for JAYWALK | JelleGeus (freesound 179987) | CC0 1.0 | https://freesound.org/s/179987/ |
+| firework-crackle.mp3 | "Fireworks #1", edited for JAYWALK (a whistle + one burst + its glitter tail) | Joseph SARDIN (BigSoundBank) | CC0 1.0 | https://bigsoundbank.com/fireworks-s0831.html |
+| firework-volley.mp3 | "Fireworks #2", edited for JAYWALK (a tight 7-pop ripple) | Pierre SIBANARCO (BigSoundBank) | CC0 1.0 | https://bigsoundbank.com/fireworks-2-s2672.html |
+
 3D models: Kenney — kenney.nl (CC0) — `assets/jaywalk/models/LICENSE.txt`.

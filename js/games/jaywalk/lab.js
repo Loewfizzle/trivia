@@ -28,9 +28,12 @@ const Q = new URLSearchParams(location.search);
 /** J2 — COURSE RULES v2: `?cv=2` previews v2 any time, `?cv=1` today's; none = the version in force by this phone's clock (a look check — the lab never counts) */
 const CV = Q.get('cv') === '2' ? 2 : Q.get('cv') === '1' ? 1 : versionAt(Date.now());
 /** J4 — WINTER's lab switches: `&date=YYYY-MM-DD` (the season clock forced to that day) · `&snow=none|light|heavy` · `&wet=1` (WET NEON STREETS) —
- *  a look check only: they never reach the live game or any count. None = today's season by this phone's clock. */
-const SEA = labSeason(Q, Date.now());
-const SEA_LINE = SEA.season.winter > 0 || SEA.season.christmas > 0 || SEA.season.snowfall !== 'none' || SEA.wet ? ` · ${SEA.season.day.slice(5, 7)}/${SEA.season.day.slice(7)} winter ${SEA.season.winter}${SEA.season.christmas ? ` xmas ${SEA.season.christmas}` : ''} · snow ${SEA.season.snowfall}${SEA.wet ? ' · wet' : ''}` : '';
+ *  JT1: `&clock=HH:MM` (the phone's LOCAL time forced — the New Year's finale before midnight) — a look check only: they never reach the live
+ *  game or any count. None = today's season by this phone's clock. */
+const SEA = labSeason(Q, Date.now()), SZ0 = SEA.season;
+const SEA_FORCE = SEA.forced || !!SEA.snow || SEA.wet;   // (the pack fetched on ANY day the lab asks for — the live game: season days only)
+const SEA_SET = { wet: SEA.wet, snow: SEA.snow, clock: SEA.clock, force: SEA_FORCE, hat: Q.get('hat') !== '0' };   // (`&hat=0` — the hats off: the A/B against the code before them only)
+const SEA_LINE = SZ0.winter > 0 || SZ0.christmas > 0 || SZ0.autumn > 0 || SZ0.hat || SZ0.fireworks || SZ0.snowfall !== 'none' || SEA.wet ? ` · ${SZ0.day.slice(5, 7)}/${SZ0.day.slice(7)}${SZ0.autumn ? ` autumn ${SZ0.autumn}` : ''}${SZ0.winter ? ` winter ${SZ0.winter}` : ''}${SZ0.christmas ? ` xmas ${SZ0.christmas}` : ''}${SZ0.hat && Q.get('hat') !== '0' ? ` · ${SZ0.hat} hat` : ''}${SZ0.fireworks ? ` · fireworks ${SZ0.fireworks}` : ''}${SEA.clock >= 0 ? ` · ${Q.get('clock')}` : ''} · snow ${SZ0.snowfall}${SEA.wet ? ' · wet' : ''}` : '';
 // (no game calls: the shared audio engine's REPORTS of a cut come only from the owner's phone inside the app, or on a link that says
 //  &debug=1 — the lab drops that flag before the engine is ever installed; its one anonymous LEAVE count may still go — J2's corrected line)
 if (Q.has('debug')) { try { Q.delete('debug'); history.replaceState(null, '', `${location.pathname}${Q.toString() ? `?${Q}` : ''}`); } catch { /* fine */ } }
@@ -94,7 +97,7 @@ async function mount() {
     sheetOpen = true;
     lazyImport(import('./audition.js'), './audition.js').then(A => A.openAudition({ press, onClose: () => { sheetOpen = false; last = 0; } })).catch(() => { sheetOpen = false; });
   });
-  if (!GRAY) Promise.all([lazyImport(import('../../audio/engine.js'), '../../audio/engine.js'), lazyImport(import('./sfx.js'), './sfx.js')]).then(([E, S]) => { E.installAudio(); S.useLabPicks(true); S.fetchSounds(); snd = S; lab.sfx = S; }).catch(() => { /* silent: audio is polish */ });
+  if (!GRAY) Promise.all([lazyImport(import('../../audio/engine.js'), '../../audio/engine.js'), lazyImport(import('./sfx.js'), './sfx.js')]).then(([E, S]) => { E.installAudio(); S.useLabPicks(true); S.fetchSounds(); S.fetchSounds(S.seasonSoundsOf(SZ0.day)); snd = S; lab.sfx = S; }).catch(() => { /* silent: audio is polish */ });
   // (the tools' row: ZOOM + ANGLE — the graybox follows the same camera; SOUNDS sits in the top left corner, off the play)
   const tools = h('div.jw-bar.jw-bar2', h('div.jw-tabs', h('span.jw-bar-k', 'ZOOM'), ...zooms), h('div.jw-tabs', ...angles));
   const lookBar = GRAY ? null : h('div.jw-bar.jw-bar3', h('div.jw-tabs', h('span.jw-bar-k', 'LOOK'), ...looks));
@@ -107,7 +110,8 @@ async function mount() {
   catch { app.querySelector('.jw-stage').append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); return; }   // (the page still loaded: its stage is up)
   markCamera(); setLook(look);
   // J4 — THE SEASON: the pack fetched now (in season / a forced date); the run waiting for its first touch takes it the moment it lands
-  if (view.prepSeason) Promise.resolve(view.prepSeason(SEA.season)).then(ok => { if (ok && !started && view.setSeason) view.setSeason(SEA.season, { wet: SEA.wet }); }, () => {});
+  if (view.prepSeason) Promise.resolve(view.prepSeason(SZ0.day, { force: SEA_FORCE })).then(ok => { if (ok && !started && view.setSeason) view.setSeason(SZ0.day, SEA_SET); }, () => {});
+  if (view.onSeasonSound) view.onSeasonSound(id => { if (snd) { try { snd.play(id); } catch { /* silent */ } } });   // (JT1 — a pile's crunch, the fireworks)
   // J1 — THE LOOK CHECKS (`?j1=splits` · `splits9` · `moments` — lab-j1.js, lazy: the real end card's YOUR SPLITS + THE MATCH MOMENTS)
   if (/^(splits9?|moments|graves)$/.test(Q.get('j1') || ''))   // (+ graves — THE GRAVESTONES: 8 players, 4 out)
  lazyImport(import('./lab-j1.js'), './lab-j1.js').then(m => m.mountJ1(app.querySelector('.jw-stage'), { what: Q.get('j1'), sfx: () => snd })).catch(() => {});
@@ -139,7 +143,7 @@ async function mount() {
     end.hidden = true; mark.textContent = 'TAP TO HOP · SWIPE TO MOVE'; markUntil = 0;
     for (const t of tabs) t.classList.toggle('is-on', t.dataset.mode === mode);
     seedLine.textContent = `seed ${seed} · v${CV}${SEA_LINE}`;
-    if (view.setSeason) view.setSeason(SEA.season, { wet: SEA.wet });   // (J4 — every run starts with the season; a pack not in yet = the normal look)
+    if (view.setSeason) view.setSeason(SZ0.day, SEA_SET);   // (J4 — every run starts with the season; a pack not in yet = the normal look)
     if (bot) bot = greedyBot({ seed });
     // H6B — `?lane=N` (the owner opens any area on his phone): A LOOK CHECK — the kid stands on the grass lane nearest N (the one before it first), the blackout
     // held behind him. WARPED: the run is no longer its log's — it never counts, is never replayed (the end says so), nothing is sent.

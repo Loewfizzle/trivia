@@ -37,13 +37,15 @@ const ok = (c, what) => { checks++; console.log(c ? 'OK  ' : 'FAIL', what); if (
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const waitFor = async (p, js, ms = 20000) => { const end = Date.now() + ms; while (Date.now() < end) { try { if (await p.evaluate(js)) return true; } catch { /* loading */ } await sleep(100); } return false; };
 const shot = async (p, name) => { if (OUT) { if (name.includes('/')) mkdirSync(join(OUT, name.slice(0, name.lastIndexOf('/'))), { recursive: true }); await p.screenshot({ path: join(OUT, name) }); } };
-const open = async (w, h, dpr, q = '') => {
+const open = async (w, h, dpr, q = '', o = {}) => {
   const ctx = await b.createBrowserContext(), p = await ctx.newPage(), errs = [], reqs = [];
-  try { await ctx.overridePermissions(BASE, ['clipboard-read', 'clipboard-write']); } catch { /* fine */ }
+  const base = o.base || BASE;   // (JT1 — the A/B: the code before on its own server)
+  if (o.reduce) await p.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+  try { await ctx.overridePermissions(base, ['clipboard-read', 'clipboard-write']); } catch { /* fine */ }
   p.on('pageerror', e => errs.push(String(e.message || e)));
   p.on('request', r => { if (!r.url().startsWith('data:')) reqs.push(r.url()); });   // (a data: URI — the sea wall's inline tile — is no request: nothing leaves the page)
   await p.setViewport({ width: w, height: h, deviceScaleFactor: dpr, isMobile: w < 700, hasTouch: w < 700 });
-  await p.goto(guardUrl(`${BASE}/jaywalk-lab?emu${q}`, 'jaywalk-lab'), { waitUntil: 'load' });
+  await p.goto(guardUrl(`${base}/jaywalk-lab?emu${q}`, 'jaywalk-lab'), { waitUntil: 'load' });
   return { p, errs, reqs, close: () => ctx.close() };
 };
 const st = p => p.evaluate(() => window.__jwLab.state());
@@ -606,6 +608,8 @@ try {
     // (THE MOMENTS' FINISH: H6A's own drive through each moment, its shots into this pass's folders — blackbird/ · ufo/ · ship/)
     for (const g of ['blackbird', 'ufo', 'ship']) if (!w6 || w6 === (g === 'blackbird' ? 'jet' : g)) await looksH6A(o.p, { ok, shot: (pg, n) => shot(pg, n.replace('h6a/', '')), sleep, waitFor, what: g, reqs: o.reqs }); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   // (J4 — WINTER: `--j4[=peek|strip|snow|wet|props]` — kit/jaywalk-j4.mjs; the shots → the outDir; `--j4perf` = the hard limits below)
+  // (JT1 — SEASONS: `--jt1[=ab|autumn|santa|prints|fw|party]` — kit/jaywalk-jt1.mjs; the shots → the outDir; `--ab <base>` = the code before, for `ab`)
+  { const jt1 = argv.find(x => x === '--jt1' || x.startsWith('--jt1=')); if (jt1) { const K = await import('./kit/jaywalk-jt1.mjs'); const errs = []; const abI = argv.indexOf('--ab'); await K.looksJT1({ open, up, ok, sleep, waitFor, out: OUT, what: jt1.slice(6), b, errs, abBase: abI > 0 ? argv[abI + 1] : 'http://localhost:5174' }); if (errs.length) { console.log('PAGE ERRORS', errs.slice(0, 3)); fails.push('page errors'); } throw Object.assign(new Error('look only'), { look: true }); } }
   { const j4 = argv.find(x => x === '--j4' || x.startsWith('--j4=')); if (j4) { const K = await import('./kit/jaywalk-j4.mjs'); const errs = []; await K.looksJ4({ open, up, ok, sleep, waitFor, out: OUT, what: j4.slice(5), b, errs }); if (errs.length) { console.log('PAGE ERRORS', errs.slice(0, 3)); fails.push('page errors'); } throw Object.assign(new Error('look only'), { look: true }); } }
   // (H6A — THE BIG MOMENTS: `--h6a[=blackbird|ufo|ship]` — kit/jaywalk-h6a.mjs; the shots → h6a/<group>/)
   { const h6a = argv.find(x => x === '--h6a' || x.startsWith('--h6a=')); if (h6a) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); await looksH6A(o.p, { ok, shot, sleep, waitFor, what: h6a.slice(6), reqs: o.reqs }); if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
@@ -711,12 +715,17 @@ try {
   // v1 bands — the worst draw-call frame over a whole lap (frozen, every 4th tick) + the frame rate at 4× CPU with the world running, 390 + 430
   // (J4 — WINTER's limits, `--j4perf`: the same busy runways on Christmas Eve, HEAVY snow, WET NEON STREETS on — the label says J4PERF)
   const J4P = argv.includes('--j4perf');
-  if (argv.includes('--j2perf') || J4P) {
+  // (JT1 — SEASONS' limits, `--jt1perf`: DOWNTOWN's busy runway, 8 kids, NIGHT — Nov 25 (autumn: the turned trees, leaves, piles) · Dec 10
+  //  (the Santa hats + footprints + light snow) · Dec 24 heavy snow · Dec 31 23:59 (the fireworks' finale) — the label says JT1PERF)
+  const JT1P = argv.includes('--jt1perf');
+  const JT1S = { 'nov25': '&date=2026-11-25', 'dec10': '&date=2026-12-10&snow=light', 'dec24': '&date=2026-12-24&snow=heavy', 'dec31': '&date=2026-12-31&clock=23:59' };
+  if (argv.includes('--j2perf') || J4P || JT1P) {
     // (J2 FIX: v2 in BOTH looks + the lab's night compare `&rwnight=new` — the limits hold for each; v1 stays the night reference)
-    for (const [where, from] of [['DOWNTOWN', 250], ['THE AIRFIELD', 400]]) for (const [cv, look] of (J4P ? [[2, 'night'], [2, 'day']] : [[1, 'night'], [2, 'night'], [2, 'day'], [2, 'nightnew']])) for (const w of [390, 430]) {
-      const o = await open(w, w === 430 ? 932 : 844, 3, `&preview=1&seed=${where === 'DOWNTOWN' ? 'perfseed2' : 'look3'}&tier=2&zoom=8&angle=straight&look=${look === 'day' ? 'day' : 'night'}&cv=${cv}${look === 'nightnew' ? '&rwnight=new' : ''}${J4P ? '&date=2026-12-24&snow=heavy&wet=1' : ''}`);
+    for (const [where, from] of (JT1P ? [['DOWNTOWN', 250]] : [['DOWNTOWN', 250], ['THE AIRFIELD', 400]])) for (const [cv, look, sk] of (JT1P ? Object.keys(JT1S).map(k => [2, 'night', k]) : J4P ? [[2, 'night'], [2, 'day']] : [[1, 'night'], [2, 'night'], [2, 'day'], [2, 'nightnew']])) for (const w of [390, 430]) {
+      const o = await open(w, w === 430 ? 932 : 844, 3, `&preview=1&seed=${where === 'DOWNTOWN' ? 'perfseed2' : 'look3'}&tier=2&zoom=8&angle=straight&look=${look === 'day' ? 'day' : 'night'}&cv=${cv}${look === 'nightnew' ? '&rwnight=new' : ''}${J4P ? '&date=2026-12-24&snow=heavy&wet=1' : ''}${JT1P ? JT1S[sk] : ''}`);
       await up(o.p);
       if (J4P) { await waitFor(o.p, 'window.__jwLab.view.season().pack', 15000); await o.p.evaluate(() => window.__jwLab.restart('solo', window.__jwLab.state().seed)); }
+      if (JT1P) { await waitFor(o.p, "(() => { const s = window.__jwLab.view.season(); return !!s.sp && (s.pack || !(s.winter > 0)); })()", 15000); await o.p.evaluate(() => window.__jwLab.restart('solo', window.__jwLab.state().seed)); }
       const R = await o.p.evaluate(f => { const J = window.__jwLab; J.ghosts(7); return J.runway(f, 1); }, from);
       if (!R || R.y0 >= from + 50) { console.log(`J2PERF ${where} v${cv} ${look}: no runway in the area on this seed`); await o.close(); continue; }
       await o.p.evaluate(y => { const J = window.__jwLab; J.warp(y); J.ghosts(7); }, R.y0 - 1);
@@ -735,10 +744,11 @@ try {
       await o.p.emulateCPUThrottling(1);
       const avg = fr.reduce((a, c) => a + c, 0) / fr.length;
       const row = { where, cv, look, w, runway: `${R.y0} × ${R.n}`, worstCalls: worst, worstAt: at, runCalls: Math.max(...calls), frames: fr.length, fps: +(1000 / avg).toFixed(1), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(2), worstMs: +fr[fr.length - 1].toFixed(1) };
-      console.log(J4P ? 'J4PERF' : 'J2PERF', JSON.stringify({ ...row, season: J4P ? await o.p.evaluate(() => window.__jwLab.view.season()) : null }));
+      console.log(JT1P ? 'JT1PERF' : J4P ? 'J4PERF' : 'J2PERF', JSON.stringify({ ...row, scene: sk || '', season: J4P || JT1P ? await o.p.evaluate(() => window.__jwLab.view.season()) : null }));
       if (J4P) ok(binLeft > 0, `${where} ${look} ${w}: the glow billboards never full over the lap (${binLeft} left at the fullest — the tree lights go LAST)`);
-      ok(row.worstCalls <= 64 && row.runCalls <= 64, `${where} v${cv} ${look} ${w}: 8 kids, tier 2 — the worst runway frame ${row.worstCalls} draw calls (running ${row.runCalls}) ≤ 64`);
-      ok(row.fps >= 57 && !o.errs.length, `${where} v${cv} ${look} ${w}: 4× CPU on the runway — ${row.fps} fps (p95 ${row.p95Ms} ms, worst ${row.worstMs})`);
+      ok(row.worstCalls <= 64 && row.runCalls <= 64, `${sk ? `${sk} ` : ''}${where} v${cv} ${look} ${w}: 8 kids, tier 2 — the worst runway frame ${row.worstCalls} draw calls (running ${row.runCalls}) ≤ 64`);
+      if (o.errs.length) console.log('PAGE ERRORS', o.errs.slice(0, 3));
+      ok(row.fps >= 57 && !o.errs.length, `${sk ? `${sk} ` : ''}${where} v${cv} ${look} ${w}: 4× CPU on the runway — ${row.fps} fps (p95 ${row.p95Ms} ms, worst ${row.worstMs})`);
       await o.close();
     }
     throw Object.assign(new Error('look only'), { look: true });

@@ -27,7 +27,10 @@ import { createRouterPing, createLiveWait, END_OWED_MS } from '../kit/run-hold.j
 import { createGhost, resetGhost, feedGhost, stepGhost, tagGroups } from './ghosts.js';
 import { wireControls } from './controls.js';
 import { createNight } from './night.js';
-import { seasonAt, seasonOf, parseDay, WET_LIVE } from './season.js';
+import { seasonWindow, dayKeyIn } from './season-gate.js';
+import { turnDay } from '../../core/week.js';
+/** J4 — WET NEON STREETS ships OFF in the live game (the owner's call — a later one-line add-on flips it; THE SEASONAL PACK carries it) */
+const WET_LIVE = false;
 import { getPref, setPref } from './lab-prefs.js';
 import { ZOOM, ANGLE } from './camera.js';
 import * as SFX from './sfx.js';
@@ -65,8 +68,9 @@ let scenesMade = 0, popN = 0;
 // (the leave check, a LOCAL emulator page only — wk-jaywalk-mem.mjs: the views still alive + the scenes made)
 const VIEWS = TEST ? [] : null;
 // (J4 — TESTS ONLY: `?emu&jwday=YYYY-MM-DD` plays the emulator's runs on that season's day — localhost + ?emu only, like `jwcv`)
-const TEST_DAY = TEST && (() => { const m = /[?&]jwday=(\d{4}-\d{2}-\d{2})/.exec(location.search || ''); return m && parseDay(m[1]) ? m[1] : null; })();
-const seasonOfRun = at => (TEST_DAY ? seasonOf(TEST_DAY) : seasonAt(at));
+const TEST_DAY = TEST && (() => { const m = /[?&]jwday=(\d{4}-\d{2}-\d{2})/.exec(location.search || ''); return m ? dayKeyIn(m[1]) || null : null; })();
+/** the run's DAY (JT1: a day key — THE SEASONAL PACK turns it into the season; the start bundle knows only season-gate.js) */
+const dayOfRun = at => (TEST_DAY || turnDay(at));
 if (TEST) { globalThis.__jwViews = () => VIEWS.filter(r => r.deref()).length; globalThis.__jwViewIds = () => VIEWS.map((r, i) => (r.deref() ? i : -1)).filter(i => i >= 0); globalThis.__jwScenes = () => scenesMade; }
 
 // THE LINES' DATA (lines.js): the SERVER-counted bests (yours + friends'), asked ONCE at a run's start, kept a short while;
@@ -163,13 +167,13 @@ export function createView() {
       look = lookNow(); night.setLook(look); root.dataset.look = look;   // (H5B — THE DAY LOOK: the scene + this screen's own words follow the phone's GAME LOOK)
     } catch { root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); night = null; return; }
     night.setReveal(0, true); watchGL();
-    try { night.prepSeason(seasonOfRun(serverNow())); } catch { /* polish */ }   // (J4 — THE SEASONAL PACK fetched while the menu / the count shows: in season only, never blocking GO)
+    try { night.prepSeason(dayOfRun(serverNow())); night.onSeasonSound(seasonSound); } catch { /* polish */ }   // (J4 — THE SEASONAL PACK fetched while the menu / the count shows: in season only, never blocking GO)
     // (H4B — THE TIER IS REMEMBERED: a phone that stepped down starts there next time)
     tiers = createTiers({ apply: t => { if (night) night.setTier(t); if (!pinned) setPref('tier', `${t}:${Math.round(serverNow())}`); }, initial: night.tier() });
     offControls = wireControls(play, { onHop: hop, onAny: nextFollow });
     // the sounds: the SHARED SFX bus; silent if anything fails — audio is polish
     // (H4B — DECODED AHEAD: never a decode on the first tap)
-    try { SFX.fetchSounds(); if (isMatch) SFX.fetchSounds(SFX.MATCH_SOUNDS); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }   // (J1: + THE MATCH MOMENTS' three, a match only)
+    try { SFX.fetchSounds(); if (isMatch) SFX.fetchSounds(SFX.MATCH_SOUNDS); seasonSounds(dayOfRun(serverNow())); sndOn = true; Promise.resolve(SFX.decode()).catch(() => {}); } catch { sndOn = false; }   // (J1: + THE MATCH MOMENTS' three, a match only · JT1: the season's own, on a season day only)
   }
 
 // THE LOST CONTEXT: iOS can take the WebGL context away — the run goes on (the server's clock), so the scene is REBUILT the moment
@@ -203,16 +207,21 @@ export function createView() {
   // ---- J4 — THE SEASON (season.js — a VIEW: the run's own day → the winter look; the rules never see it): a solo run + the daily = their GO's
   //  day, a MATCH = THE FIRST GO's playAt (every phone in the room the same winter). A pack not in by the start = that run's normal look.
   let seasonRun = null;   // (the season this run APPLIED — its normal look if its pack was not in by its start)
-  function seasonFor(at) { const s = at > 0 ? seasonOfRun(at) : null; seasonRun = s; if (night) { try { seasonRun = night.setSeason(s, { wet: WET_LIVE }); } catch { /* polish */ } } }
+  function seasonFor(at) { const d = at > 0 ? dayOfRun(at) : ''; seasonRun = null; if (night) { try { seasonRun = night.setSeason(d, { wet: WET_LIVE, now: srvNow }); seasonSounds(d); } catch { /* polish */ } } }
+  /** JT1 — THE SEASON's sounds (sounds.js `season` rows): fetched on their day only (a leaf pile's crunch in autumn · the fireworks Dec 31 + Jan 1) */
+  function seasonSounds(d) { if (!seasonWindow(d)) return; try { SFX.fetchSounds(SFX.seasonSoundsOf(d)); if (sndOn) Promise.resolve(SFX.decode()).catch(() => {}); } catch { /* audio is polish */ } }
+  /** JT1 — a sound THE SEASONAL PACK asks for (a burst pile, a firework opening) — through the game's own sfx: muted / locked = silent */
+  function seasonSound(id) { if (sndOn && !gone) { try { SFX.play(id); } catch { /* silent */ } } }
   /** a rebuilt scene (THE LOST CONTEXT) takes back EXACTLY the season its run applied — winter only if the run had it (never turned on mid-run);
    *  the pack fetched again for the next run either way */
   function reSeason() {
     const s = seasonRun, n = night; if (!n) return;
     try {
-      n.prepSeason(seasonOfRun(serverNow()));
-      if (!s) return;
-      n.setSeason(s, { wet: WET_LIVE });
-      if (s.winter > 0 || s.christmas > 0) Promise.resolve(n.prepSeason(s)).then(() => { if (night === n && seasonRun === s) n.setSeason(s, { wet: WET_LIVE }); }, () => {});
+      n.onSeasonSound(seasonSound);
+      n.prepSeason(dayOfRun(serverNow()));
+      if (!s || !s.any) return;
+      n.setSeason(s.day, { wet: WET_LIVE, now: srvNow });
+      Promise.resolve(n.prepSeason(s.day)).then(() => { if (night === n && seasonRun === s) n.setSeason(s.day, { wet: WET_LIVE, now: srvNow }); }, () => {});
     } catch { /* polish */ }
   }
 

@@ -3,7 +3,7 @@
 // machine has no ffmpeg / lame: the encoder is the PURE-JS one HIGH RISE's sounds used (scripts/build-highrise-sounds.mjs) — a build tool
 // only, installed OUTSIDE the repo, never in package.json, never shipped:
 //   (once, anywhere outside the repo)   npm i @breezystack/lamejs@1.2.7
-//   node scripts/build-jaywalk-sounds.mjs --lame <…/@breezystack/lamejs/dist/lamejs.js> [--kbps 96] [--j1 | --j2]
+//   node scripts/build-jaywalk-sounds.mjs --lame <…/@breezystack/lamejs/dist/lamejs.js> [--kbps 96] [--j1 | --j2 | --jt1]
 // The level is NOT changed here (no gain, no normalising): every cue's level is its row's gain in sounds.js, set by measurement (THE MIX).
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -26,7 +26,14 @@ export const J2_SOUNDS = Object.freeze([
   { id: 'runway-tick', from: join(SRC, 'sfx9', 'runway-tick.wav'), credit: 'runway-tick' },
   { id: 'afterburner-flicker', from: join(SRC, 'sfx10', 'afterburner-flicker.wav'), credit: 'Big Branching Fire #1' },
 ]);
-const PICK = argv.includes('--j2') ? J2_SOUNDS : argv.includes('--j1') ? J1_SOUNDS : [...J1_SOUNDS, ...J2_SOUNDS];   // (--j2 / --j1: one set only — the other's files stay as they are)
+/** JT1 — THE SEASONS (the owner, Nov 22 — all CC0; the delivery's sfx11 + sfx12): a leaf pile's crunch + the New Year's fireworks */
+export const JT1_SOUNDS = Object.freeze([
+  { id: 'leaf-crunch', from: join(SRC, 'sfx11', 'leaf-crunch.wav'), credit: 'Feet in Leaves #1 — Joseph SARDIN (BigSoundBank), CC0' },
+  { id: 'firework-pops', from: join(SRC, 'sfx11', 'firework-pops.wav'), credit: 'Firework during New Years Eve @ Groningen.wav — JelleGeus (freesound 179987), CC0' },
+  { id: 'firework-crackle', from: join(SRC, 'sfx12', 'firework-crackle.wav'), credit: 'Fireworks #1 — Joseph SARDIN (BigSoundBank), CC0' },
+  { id: 'firework-volley', from: join(SRC, 'sfx12', 'firework-volley.wav'), credit: 'Fireworks #2 — Pierre SIBANARCO (BigSoundBank), CC0' },
+]);
+const PICK = argv.includes('--jt1') ? JT1_SOUNDS : argv.includes('--j2') ? J2_SOUNDS : argv.includes('--j1') ? J1_SOUNDS : [...J1_SOUNDS, ...J2_SOUNDS, ...JT1_SOUNDS];   // (--jt1 / --j2 / --j1: one set only — the others' files stay as they are)
 const lamePath = arg('--lame') || process.env.LAMEJS;
 if (!lamePath || !existsSync(lamePath)) { console.error('give the encoder: --lame <path to @breezystack/lamejs/dist/lamejs.js> (npm i @breezystack/lamejs, outside the repo)'); process.exit(1); }
 const { Mp3Encoder } = await import(pathToFileURL(resolve(lamePath)).href);
