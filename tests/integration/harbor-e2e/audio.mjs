@@ -700,8 +700,9 @@ G('mediacut', async () => {
       await new Promise(r => setTimeout(r, 900)); return { pk: +pk.toFixed(4), after: E.getContext().state }; })()`);
     ok(fx.pk > 0.001 && fx.after === 'running', `… an effect SOUNDS (the output's peak ${fx.pk}) and the context stays ${fx.after} — no nap`);
     await ev(q, "window.dispatchEvent(new Event('blur')); Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange'))");
+    await sleep(160);   // (C2's ramp is LEAVE_S on the audio clock — read the master once it has run)
     const lv = await ev(q, "import('/js/audio/engine.js').then(E => ({ h: E.audioHealth(), log: E.audioEvents().slice(-8).map(x => x.m) }))");
-    ok(lv.h.master === 0 && lv.log.some(m => /the master 0 at once/.test(m)) && !lv.log.some(m => /hard cut/.test(m)), `… a leave: C2's path — the master 0 on the first signal, no hard cut (the master ${lv.h.master}; ${lv.log.filter(m => /fade|blur/.test(m)).join(' · ')})`);
+    ok(lv.h.master < 0.001 && lv.log.some(m => /the master 0 at once/.test(m)) && !lv.log.some(m => /hard cut/.test(m)), `… a leave: C2's path — the master 0 on the first signal, no hard cut (the master ${lv.h.master}; ${lv.log.filter(m => /fade|blur/.test(m)).join(' · ')})`);
     await Q.ctx.close(); }
   // ---- CITY H2 (the 3:52 pm entry) — THE FAST CYCLE: the music sounding, the corner button OFF → ALL OFF → ON inside about a second → the
   //  music back at once. (CITY H1 read music.js's own clock — -1 while the city's SYNCED STATION holds the song: the music was back, the

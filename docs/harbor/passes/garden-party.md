@@ -5,7 +5,21 @@ from ONE table applied whole; GARDEN PARTY is the LV 34 card; the last four slim
 keyboard on the first tap.
 
 ## OPEN FOR BEN
-(filled at the close)
+1. **RE-PUBLISH: nothing** (no rules change). J2's `database.rules.nov21-j2.json` is still yours before Nov 27 if not yet published.
+2. **MARK GARDEN PARTY in THE CARD LAB** (strip + full card — NEW, n 229 / 230): only approved art ships — until your APPROVE an owner sees its
+   placeholder palette. Shots: `Downloads\NEON\garden-party\`. Also re-mark INFERNO (v3), VELVET NOIR (v2), MARQUEE GOLD (v2) — CHANGED: their
+   list strips' first frame now matches the live strip (nothing about the cards themselves changed).
+3. **PHONE CHECKS** after the deploy:
+   - **music off = HEAR THE HARBOR**: tap ♪ once (the slash) — hear the water / the hum / the boats + the taps' effects, no music; leave + return the
+     home-screen app a few times: no squeal. **All off (🔈✕) + a podcast**: the podcast plays, the site is silent. (Music off now sounds through
+     the ring / silent switch — it is the same 'playback' session as music on, your spec.)
+   - **GARDEN PARTY**: in CUSTOMIZE (once approved) + on THE BOARD — the flowers fill the slim card, petals drift, the sun sparkles.
+   - **THE CODE BOX**: JOIN → one tap on the four boxes opens the keyboard.
+   - **A PB share card**: a new best in JAYWALK / HIGH RISE → SHARE: the number in gold + PERSONAL BEST (`Downloads\NEON\pb-share\`).
+4. **Calls you can overrule** (THE CALLS MADE below) — the two most likely: the idle cutoff (5 h) + a second tab now leave the harbor playing (the
+   "music off" switch), and HEAR THE HARBOR leaves by C2's ramp (the 'ambient' hard cut retired).
+5. Seen, not this pass's: `e2e-taps`' "TODAY'S SCORES opened" fails on this machine's emulators in both engines (no daily code touched — for the
+   daily chat); the harbor vault group's five 4×-CPU lobby speed checks fail on this machine on the PRE-pass code too (the cloud judges them).
 
 ## GROUP 0 — the start
 - THE LAB (`scripts/lab-export.mjs https://www.neonspeakeasy.com`): 224 marks, **no open FIX**; 10 CHANGED rows wait for the owner's re-mark.
@@ -93,3 +107,12 @@ the dailies' big line gold (JAYWALK night + day; HIGH RISE's daily poster gets P
 night-only, as HIGH RISE's poster) — the day shot is the daily card's. NEW `tests/integration/pb-share.mjs` 9 / 9; highrise-share 120 / 120;
 share-same 75 / 75 SAME; five source pins updated. Shots: Downloads\NEON\pb-share\ (normal vs PB, each card).
 A call: JAYWALK's daily keeps its own words under the gold big line ("BEST OF 3 · NEW DAILY BEST" — THE ONE RULE's single stat line).
+
+## THE FINAL RUN (this pass's own emulators + `serve.mjs --emu`; the rules + /api on FRESH emulators after the browsers)
+unit **2,543 / 0** · smoke **24 / 24** · e2e-profiles **148 / 148** · e2e-highrise (FAST) **70 / 70** · harbor music + mediacut + sounds + show +
+sheetstack **138 / 138** (mediacut re-run 6 / 6 after the check's own ramp wait) · harbor vault 53 / 58 (the lab counts green; the five 4×-CPU
+speed checks fail identically on the pre-pass code here — the cloud's call) · sound-table **181 / 181** (Chromium + WebKit) · audio-leave **27 / 27** ·
+audio-cut **33 / 33** · audio-hush **9 / 9** · sound-sync **42 / 42** · podcast-sweep **14 / 14** · jaywalk-podcast **5 / 5** · e2e-taps (N 4) THE CODE BOX
+4 / 4 both engines · strip-match (402 / 330 / 430) GARDEN PARTY + the four green · stills current · pb-share **9 / 9** · highrise-share **120 / 120** ·
+share-same **75 / 75** · rules **101 / 101** · /api server **72 / 72** · vault-2c + vault-2b (alone, a clean database) green.
+The full harbor suite: the cloud's, on this harbor-tagged push (THE LOCAL TESTING RULE). Every server this pass started stopped at the end.
