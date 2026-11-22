@@ -2,16 +2,27 @@
 // that player's OWN end of run — their proof node's `e` (this phone's own: its own engine's end) — NEVER the host's word: an honest END GAME,
 // a host's early `final` or a moved-on room never shows a fake OUT (THE CONSOLE FIX's rule). THE MOTHERSHIP's `taken` is a finish, not an out.
 //   · OUT — another player's own end: a banner (merged when outs land within OUT_MERGE_MS), a red X where their ghost fell, the out sound
+//     (THE GRAVESTONES, the owner's add-on Nov 21: the X STAYS — bright for X_MS, then a smaller, fainter X + the name pinned where they fell
+//     for the rest of the match, scrolling with the world; faded while it sits in the lane in front of this phone's kid — graveAhead)
 //   · HEAD TO HEAD — a match of 3+ players narrows TO two (an out leaves exactly two in) — ONCE; never at the start; never in a 2-player match
 //   · THE DUEL STRIP — while exactly two are in: a 2-player match from the start; a 3+ match after its HEAD TO HEAD (at once after a rejoin)
 //   · LAST ONE STANDING — everyone else is out and THIS phone's run goes on (the 2-player case too) — ONCE, for the survivor
 // A refresh / rejoin takes the state as it stands as its BASELINE (no moment replayed); the strip is drawn from the state itself.
 export const OUT_MERGE_MS = 1000;      // (outs closer than this share ONE banner — "MIA + LIAM OUT")
 export const BANNER_MS = 1500;         // (the OUT banner: in · hold · out)
-export const X_MS = 1500;              // (the red X where a ghost fell)
+export const X_MS = 1500;              // (the red X where a ghost fell: bright this long, then it SETTLES into its gravestone — never removed before the match ends)
 export const H2H_STRIP_MS = 3000;      // (HEAD TO HEAD: the big text holds to here, then shrinks into the duel strip)
 export const H2H_MS = 5000;            // (… gone by here: the strip stays for the rest of the duel)
 export const LAST_MS = 2600;           // (LAST ONE STANDING's card)
+
+/** THE GRAVESTONES — the lane in front of the kid stays clear (PURE): a mark at p = [x, y, cell] (stage px) sits in the band from half a lane
+ *  behind the kid's middle to GRAVE_AHEAD lanes in front of it (forward = up the screen), the whole width → faded there. kid = [x, y, cell] | null */
+export const GRAVE_AHEAD = 2.5;
+export function graveAhead(p, kid) {
+  if (!p || !kid) return false;
+  const c = Math.max(8, Number(kid[2]) || 40);
+  return p[1] > kid[1] - c * GRAVE_AHEAD && p[1] < kid[1] + c * 0.5;
+}
 
 export const createMoments = () => ({ base: false, seen: {}, h2h: false, last: false });
 

@@ -785,6 +785,29 @@ ONE pure rule per ticket — `js/daily/today-logic.js#ticketState(today, row, { 
   visible at 360. The reviewer's "vertical hairlines at x≈280 / 800" were the preview page's desktop column frame drawn over the card
   (`#stage::before / ::after`) — never in the PNG; the preview hides it now.
 - **A ticket result wraps only between its parts** (`daily.js#resultEl` — "2:38.9 ·" / "101 LINES", never "101" / "LINES").
+
+## HIGH RISE DAILY B — THE RECOLOUR · THE BIG FIVE · THE SCHEDULED GO-LIVE IN CODE (Nov 21 2026 — docs/games/passes/highrise-daily-b.md; the owner's decisions: docs/games/plan.md "HIGH RISE DAILY B"; HIGH RISE's own screens: docs/highrise.md "THE DAILY — THE SCREENS + GO LIVE")
+- **THE RECOLOUR** (`ticket-art.js#TICKET_INK` — the ONE ink table: the ticket's edge + holes + art + stamp, its PLAY tube, its SWEEP segment,
+  its SCORES panel, its BIG FIVE name): THE PASSWORD pink / blue (unchanged) · COAST CLEAR alien green `#9cff7a` / `#2e9a2a` (was cyan — its
+  game's touch pulse follows: css/coastclear.css `--cc-touch`) · THE DROP purple `#a77bff` at night too / `#6a3fd0` (was PRISM's white; its
+  pale stamp ink went with it) · JAYWALK RED `#ff4058` / `#d01f35` (was the orange — its share card's best bar + its daily end card follow) ·
+  HIGH RISE electric blue `#4fd6ff` / teal `#007f9e`. WHITE stays free for a future daily (a unit test: no night ink near white; every pair
+  far apart in both looks). THE NIGHT PAIR (THE PASSWORD's pink beside JAYWALK's red at real size): told apart — `#ff4058` kept.
+- **THE MARK ART** (`ticket-art.js#markArt`): JAYWALK + HIGH RISE tickets draw the GAME's OWN MARK (`core/marks.js`) in its OWN colours
+  (`--mc` / `--md`, css/daily.css `.mk`; a near-white tube navy by day — `markDay`; the mark's own tube width `--msw`); the other three keep
+  their ink art.
+- **THE BIG FIVE** (`share-today.js` — a NEW rule): 5 OR MORE dailies FINISHED → SHARE TODAY is TEXT ONLY — each section = the NAME in its
+  TICKET's ink (a glow at night: `share.js#paintName`'s `ink`) · the big result · ONE stat line (each cartridge's share module exports
+  `fiveLine(input) → { big, stat }`: "5 GUESSES" / "2:54" · "2:18" / "1 SPOTTED" · "2:38.9" / "101 LINES" · "143 LANES" / "BEST OF 3" · "84 FLOORS"
+  / "ONE SHOT · 32 PERFECTS"; a failed run's fail word big — LOCKED OUT · CAUGHT; a daily with none → its result line); no art strips, no rules
+  between sections. `FIVE` = the 196-unit box (name 70 at y 24 · big 126 at y 106 · stat 46 at y 178), 16 between, `fiveLayout` scales to fit
+  (×0.91 at 5 under the streak header — never up); the header + the foot unchanged; THE 360 FLOOR holds (a unit test, 5 + 6). 4 or fewer =
+  EXACTLY the card before it (share-same.html against `_old/share-today-dailyb.js`).
+- **THE SCHEDULED GO-LIVE IN CODE** (`core/daily.js#schedOf`): a DAILIES row may carry `liveFrom: 'dYYYYMMDD'` — opened at that day's 4 am
+  turn exactly like THE DROP B's `progress/dlive` schedule (which wins where both exist); set by the pass that ships the daily to the first
+  4 am after its deploy — no /admin step (HIGH RISE: d20261122). /admin lists it as scheduled "set by the deploy", with no CANCEL.
+- **5 TICKETS FIT** (`tests/integration/kit/daily-fit.mjs`, in e2e-daily + e2e-jaywalk-daily-run): 390 × 844 + 430 × 932 — the header, THE
+  SWEEP (5), all five tickets, SHARE TODAY + the countdown with NO scroll, both looks, every ticket state; 375 × 667 may scroll (nothing clipped).
 ## THE RULES FROM CLAUDE.md (moved Nov 13)
 
 THE CLAUDE.md DIET (FR7 FIXES C, Nov 13): CLAUDE.md keeps ONE line per rule with a pointer here; the full text it held for this area

@@ -281,12 +281,19 @@
 .jw-ban-h span { text-shadow: 0 0 10px currentColor, 0 2px 0 rgba(0, 0, 0, 0.85); }
 .jw-ban-s { font: 700 13px/1.2 var(--font-ui); letter-spacing: 0.2em; padding-left: 0.2em; color: #e6e9f6; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.9); }
 @keyframes jw-ban { 0% { opacity: 0; transform: translateY(-8px); } 12% { opacity: 1; transform: none; } 80% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-4px); } }
-/* THE RED X where a ghost fell: ~a car wide, ~60 % see-through, their name small above it; gone in 1.5 s */
-.jw-x { position: absolute; left: 0; top: 0; width: var(--s, 40px); height: var(--s, 40px); opacity: 0.4; animation: jw-x 1.5s ease-out both; }
+/* THE RED X where a ghost fell: ~a car wide, ~60 % see-through, their name small above it — for 1.5 s; then THE GRAVESTONE (the owner's add-on,
+   Nov 21): a smaller (×0.62), fainter X + the name (readable at 390), pinned there until the match ends; in the lane in front of the kid it fades
+   (.is-ahead). Transform + opacity only. */
+.jw-x { position: absolute; left: 0; top: 0; width: var(--s, 40px); height: var(--s, 40px); opacity: 0.42; animation: jw-x 0.18s ease-out both; transition: opacity 0.5s ease-out; }
+.jw-x i { position: absolute; inset: 0; display: block; transition: transform 0.5s ease-out, opacity 0.5s ease-out; }
 .jw-x i::before, .jw-x i::after { content: ''; position: absolute; left: 50%; top: 4%; width: 18%; height: 92%; margin-left: -9%; border-radius: 3px; background: #ff2a46; transform: rotate(45deg); }
 .jw-x i::after { transform: rotate(-45deg); }
-.jw-x span { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 2px; white-space: nowrap; font: 800 12px/1 var(--font-ui); letter-spacing: 0.08em; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.9); }
-@keyframes jw-x { 0% { opacity: 0; } 12% { opacity: 0.42; } 65% { opacity: 0.42; } 100% { opacity: 0; } }
+.jw-x span { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); transform-origin: 50% 100%; margin-bottom: 2px; white-space: nowrap; font: 800 12px/1 var(--font-ui); letter-spacing: 0.08em; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.9); transition: transform 0.5s ease-out, opacity 0.5s ease-out; }
+@keyframes jw-x { 0% { opacity: 0; } 100% { opacity: 0.42; } }
+.jw-x.is-grave { animation: none; opacity: 1; }
+.jw-x.is-grave i { transform: scale(0.62); opacity: 0.26; }
+.jw-x.is-grave span { opacity: 0.66; transform: translate(-50%, calc(var(--s, 40px) * 0.19)) scale(0.92); }
+.jw-x.is-ahead { animation: none; opacity: 0.12; }
 /* HEAD TO HEAD: the words near the top (under the OUT banner's band — the out that narrowed it shows with it); the EDGES pulse red, faster and faster (0.5 → 3 s) with the siren's wind-up; one flash at its peak;
    from 3 s the words shrink up into THE DUEL STRIP */
 .jw-h2hw { position: absolute; inset: 0; }
@@ -320,7 +327,7 @@
 .jw-last span { font: 800 15px/1.2 var(--font-ui); letter-spacing: 0.14em; padding-left: 0.14em; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.8); }
 @keyframes jw-last { 0% { opacity: 0; transform: scale(0.7); } 12% { opacity: 1; transform: none; } 82% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 /* Reduced motion: every moment simply shows + goes (its own timer), a steady edge glow (.is-still), no flash, no shrink */
-@media (prefers-reduced-motion: reduce) { .jw-ban, .jw-h2h, .jw-last { animation: none; } .jw-x { animation: none; opacity: 0.4; } .jw-flash { display: none; } .jw-h2h { transition: opacity 0.6s; } .jw-h2hw.is-shrink .jw-h2h { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .jw-ban, .jw-h2h, .jw-last { animation: none; } .jw-x { animation: none; opacity: 0.4; } .jw-x, .jw-x i, .jw-x span { transition: none; } .jw-x.is-grave { opacity: 1; } .jw-x.is-ahead { opacity: 0.12; } .jw-flash { display: none; } .jw-h2h { transition: opacity 0.6s; } .jw-h2hw.is-shrink .jw-h2h { transform: none; } }
 /* the watcher's line (the foot): who the camera follows · your call · what the room waits for */
 .jw-watch { position: absolute; z-index: 3; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 20px); text-align: center; pointer-events: none; font: 700 13px/1.35 var(--font-ui); letter-spacing: 0.16em; color: #fff;
   text-shadow: 0 0 10px rgba(34, 224, 255, 0.9), 0 2px 0 rgba(0, 0, 0, 0.85); }

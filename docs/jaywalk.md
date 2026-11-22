@@ -239,6 +239,12 @@ rules), the replay + judge sims (unit), `tests/jaywalk-match.test.mjs` "THE PROO
   order list), ~1.5 s; outs within 1 s merge ("MIA + LIAM OUT" · "2 LEFT"); the out sound ONCE a banner; never on the out phone's own screen
   (its OUT card says it; while that card is up no banner covers it — the order list marks the out, the red X still comes). **THE RED X**: where their ghost fell, if on screen — ~a car wide, ~60 % see-through,
   their name small over it, gone in 1.5 s (it follows the camera by transform; the stage's size from a ResizeObserver).
+  **THE GRAVESTONES** (the owner's add-on, Nov 21 — built in HIGH RISE DAILY B's pass): the X no longer goes — bright for `X_MS` (1.5 s, as
+  before), then it SETTLES (`.jw-x.is-grave`: the X ×0.62 at 26 %, the name 66 % — readable at 390 with up to 7 marks) and stays pinned to that
+  spot until the match ends (the fallen ghost's own place, re-projected each frame — it scrolls with the world; off screen = hidden). In the
+  lane in front of the kid on screen (this phone's, or the one it follows — `view.js#kidOnScreen`) it fades to 12 % (`moments.js#graveAhead`:
+  from half a lane behind the kid's middle to 2.5 lanes in front, the whole width). DOM overlay only — no draw call; solo has none. The lab:
+  `jaywalk-lab.html?cv=2&j1=graves` (8 players, 4 out).
 - **HEAD TO HEAD** — a 3+ player match narrows TO two (an out leaves exactly two), ONCE: the big words + "BEN 142 vs JUSTIN 138" (under the
   banner's band), the screen's EDGES pulse red faster and faster (0.5 → 3 s) with the siren's wind-up, one flash at its peak, then the words
   shrink into **THE DUEL STRIP** (both players' lanes, live; the leader marked by a SHAPE — a small triangle). **A 2-PLAYER MATCH**: no HEAD

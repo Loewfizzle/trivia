@@ -331,6 +331,10 @@ try {
     ok(others.every(x => x.banners === 1 && new RegExp(`^BOB IS OUT · [0-9]+ LANES? · ${N - 1} LEFT$`).test(x.banner)), `J1 — THE OUT BANNER once on every other phone, from BOB's own end: ${others.map(x => `"${x.banner}"`).join(' · ')}`);
     ok(ms[1].banners === 0, 'J1 — … never on BOB\'s own phone (his OUT card says it)');
     ok(ms.every(x => x.xs <= x.out), `J1 — THE RED X: at most once an out (${ms.map(x => `${x.xs}/${x.out}`).join(' · ')})`);
+    // (THE GRAVESTONES — the owner's add-on, Nov 21: past 1.5 s every red X has SETTLED and is still up — none removed mid-match)
+    await sleep(1800);
+    { const gs = (await all(N, p => state(p))).map(st => st.moments || {});
+      ok(gs.every(x => x.graves === x.xs && x.xsUp === x.xs), `THE GRAVESTONES: every X settled + still up past 1.5 s (${gs.map(x => `${x.xsUp} up · ${x.graves} graves / ${x.xs} X`).join(' · ')})`); }
     const snd = (await all(N, p => state(p))).map(s => s.snd.by || {});
     ok(snd.every((b, i) => (b['out-drop'] || 0) === (i === 1 ? 0 : 1)), `J1 — the out sound once a banner (${snd.map(b => b['out-drop'] || 0).join(' · ')})`);
     if (N === 3) {

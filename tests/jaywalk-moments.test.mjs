@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createMoments, stepMoments, bannerWords, lastWords, OUT_MERGE_MS, BANNER_MS, X_MS } from '../js/games/jaywalk/moments.js';
+import { createMoments, stepMoments, bannerWords, lastWords, graveAhead, GRAVE_AHEAD, OUT_MERGE_MS, BANNER_MS, X_MS } from '../js/games/jaywalk/moments.js';
 
 const e = (l, w = 'car') => ({ l, t: l * 30, w });
 const run = (M, ids, me, ends, mine = null, lanes = {}) => stepMoments(M, { ids, me, ends, mine, lanes });
@@ -110,4 +110,30 @@ test('THE SCREEN (moments-view.js + css): nothing over the lanes\' middle (the t
   assert.match(css, /\.jw-edge\.is-still \{ animation: jw-edge-still/);
   assert.match(css, /\.jw-duel-p\.is-lead::before/, 'the leader marked by a shape');
   assert.doesNotMatch(css.slice(css.indexOf('J1 — THE MATCH MOMENTS'), css.indexOf('@keyframes jw-last')), /border-radius: (999|50%)|border-radius: \d\d+px/, 'no pills');
+});
+
+test('THE GRAVESTONES (the owner’s add-on, Nov 21): the red X is bright for X_MS, then SETTLES and STAYS until the match ends; never in the lane in front of the kid; DOM only; solo has none', () => {
+  assert.equal(X_MS, 1500);
+  // the lane in front of the kid: from half a lane behind its middle to GRAVE_AHEAD lanes in front (forward = up the screen), the whole width
+  const kid = [195, 500, 44];
+  assert.equal(GRAVE_AHEAD, 2.5);
+  assert.equal(graveAhead([195, 470, 44], kid), true, 'the next lane, straight ahead');
+  assert.equal(graveAhead([20, 420, 44], kid), true, 'the lane ahead at the screen’s edge (the cars come from there)');
+  assert.equal(graveAhead([195, 515, 44], kid), true, 'on the kid’s own lane');
+  assert.equal(graveAhead([195, 380, 44], kid), false, 'three lanes up: kept');
+  assert.equal(graveAhead([195, 560, 44], kid), false, 'behind the kid: kept');
+  assert.equal(graveAhead([195, 470, 44], null), false, 'no kid on screen (over, the podium): nothing fades');
+  const v = readFileSync(new URL('../js/games/jaywalk/moments-view.js', import.meta.url), 'utf8');
+  assert.match(v, /if \(!X\.grave && now - X\.at > X_MS\) \{ X\.grave = true; X\.el\.classList\.add\('is-grave'\)/, 'past X_MS it settles — once');
+  assert.doesNotMatch(v.slice(v.indexOf('frame(now'), v.indexOf('reset()')), /X\.el\.remove\(\)|xs\.splice/, 'a gravestone is never removed mid-match (only reset — the next match)');
+  assert.match(v, /X\.el\.classList\.toggle\('is-ahead', ah\)/, 'faded in the kid’s lane — a class flip only when it changes');
+  assert.doesNotMatch(v, /getBoundingClientRect|clientWidth|offsetWidth/, 'no layout read in the frame');
+  const css = readFileSync(new URL('../css/jaywalk.css', import.meta.url), 'utf8');
+  assert.match(css, /\.jw-x\.is-grave i \{ transform: scale\(0\.62\); opacity: 0\.26; \}/, 'smaller + fainter X');
+  assert.match(css, /\.jw-x\.is-grave span \{ opacity: 0\.66;/, 'the name stays readable');
+  assert.match(css, /\.jw-x\.is-ahead \{ animation: none; opacity: 0\.12; \}/);
+  // the view passes the kid it draws (this phone's, or the one it follows) — match only (the moments exist only in a match)
+  const view = readFileSync(new URL('../js/games/jaywalk/view.js', import.meta.url), 'utf8');
+  assert.match(view, /mom\.frame\(now, ghostAt, \(\) => kidOnScreen\(drawRun\)\)/);
+  assert.match(view, /if \(isMatch && c\) \{/, 'inside the match branch only');
 });

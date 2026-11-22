@@ -8,7 +8,7 @@ ZERO GARBAGE IN PLAY (the iPhone's stalls), THE WELCOME + THE END (the owner's A
 glass-slab tower: one tap drops each slab, the overhang slices off, a PERFECT snaps into place. Its signs read HIGH / RISE stacked.
 JAYWALK is its quality benchmark AND its engine formula (docs/jaywalk.md): a pure engine, a result = THE REPLAY of the player's own input
 log, a preview on the live site. The owner's decisions: `docs/games/plan.md` "HIGH RISE — S1" · "— S2" · "— S2 FIX" · "— S3" · "— S4A" · "— S4A FIX" (+ its ADD-ONS)
-(**THE HIGH RISE DAILY** — the owner, Nov 21 (his Nov 18 "no daily" turned over): ONE SHOT a day, THE HELD RUN — "THE DAILY" below; ships OFF).
+(**THE HIGH RISE DAILY** — the owner, Nov 21 (his Nov 18 "no daily" turned over): ONE SHOT a day, THE HELD RUN — "THE DAILY" below; DAILY B: its screens + GOES LIVE BY ITSELF at the 4 am of Nov 22).
 
 **HIGH RISE IS LIVE (THE GO-LIVE, Nov 20)**: its `config.js` GAMES row is `playable: true, live: '2026-11-20'` — every phone's PLAY
 shelf + every room's PICK A GAME (on TOP with NEW its first 14 days), HOW TO PLAY, its tile (THE TOWER), its BOARD tab (TALLEST TOWER), its
@@ -20,6 +20,7 @@ THE DAILY CEILING 20). **THE SIGN HOLD** (`core/harbor-neon.js#SIGN_HOLD`) keeps
 ## THE PASSES — INDEX
 | pass | date | log | what it built |
 | --- | --- | --- | --- |
+| HIGH RISE DAILY B — THE SCREENS + GO LIVE | Nov 21 2026 | `docs/games/passes/highrise-daily-b.md` | THE RECOLOUR (every ticket's ink) + THE MARK ART, HIGH RISE's ticket in every state (FLOOR n · ONE SHOT from the server's log), the end card (JAYWALK's), the share section (THE TOWER) + its own card (THE POSTER + tag), THE BIG FIVE, GOES LIVE BY ITSELF (the row's `liveFrom`) |
 | HIGH RISE DAILY A — THE DAILY ITSELF (server + run; HIDDEN) | Nov 21 2026 | `docs/games/passes/highrise-daily-a.md` | the engine's daily mode + THE HOLD (a logged event the judge replays — `engine.js#hold`), THE HELD RUN in LEGS (`held.js`, PURE), the server half (`api/_lib/highrise-daily.js` — a `held` cartridge), the rules (`dly/highrise` leg nodes — A RULES CHANGE), the phone's run (`daily-run.js` on the real stage); the row `on: false` |
 | S1 — THE RULES | Nov 18 2026 | `docs/games/passes/highrise-s1.md` | the engine, the replay + the judge (server half), the bot sims + the tuned speed curve, THE LAB (/highrise-lab) |
 | S2 — THE NIGHT LOOK + SOLO | Nov 18–19 2026 | `docs/games/passes/highrise-s2.md` | THE TEST PAGE (/highrise-play — nothing counts): the glass tower, the cut + sparks, the perfect's ring, grow-back, the night plates + the reflection map, the HUD, YOUR BEST (this phone), the sounds + the audition; the rules: SOLO PAST 200 KEEPS TIGHTENING · the ranking by perfects |
@@ -1047,7 +1048,7 @@ HIGH RISE; THE DROP's face removed. **THE ROOF TUBE SIGN:** HIGH / RISE stacked,
 raspberry + teal paint on cream (`DAY_PAINT.highrise`). **THE SPEAKEASY BLADE:** ONE column, HIGH over RISE with a gap. Never the hotel blade.
 The pass log: docs/harbor/passes/city-part1.md.
 
-## THE DAILY (HIGH RISE DAILY A — Nov 21 2026; the owner's decisions: `docs/games/plan.md` "THE HIGH RISE DAILY"; the pass log `docs/games/passes/highrise-daily-a.md`) — SHIPS OFF
+## THE DAILY (HIGH RISE DAILY A — Nov 21 2026; the owner's decisions: `docs/games/plan.md` "THE HIGH RISE DAILY"; the pass log `docs/games/passes/highrise-daily-a.md`) — GOES LIVE BY ITSELF at the 4 am Eastern of Nov 22 (DAILY B — the row's `liveFrom`)
 A 5th daily, plug-and-play: `config.js#DAILIES` row `highrise` (order 5, measure 'floors', ticket 'highrise', hook 'One shot.', `on: false`) +
 `api/_lib/dailies.js#SERVER_CARTS.highrise` (`api/_lib/highrise-daily.js`) + `js/screens/daily.js#DAILY_RUNS.highrise` (`daily-run.js`). Not a
 rotation with JAYWALK. Its look (the ticket, the recolour, the share card incl. THE BIG FIVE) is DAILY B's.
@@ -1092,4 +1093,32 @@ rotation with JAYWALK. Its look (the ticket, the recolour, the share card incl. 
   (/api: start → chunks → hold → resume → finish; refused: a 2nd run, a 4th hold, ahead of the clock, another day; THE ROOM WINS; the close;
   DAILY POINTS; DAILY BEST; the prune) · `rules.test.mjs` (the leg nodes) · `e2e-highrise-daily.mjs` (a real phone: START, hidden mid-run,
   back, finish — the server's floors = the phone's; `DAILY_TEST=1 DAILY_TEST_OFF=highrise node scripts/serve.mjs <port> --emu`).
+
+### THE DAILY — THE SCREENS + GO LIVE (HIGH RISE DAILY B — Nov 21 2026; the owner's decisions: `docs/games/plan.md` "HIGH RISE DAILY B"; the pass log `docs/games/passes/highrise-daily-b.md`)
+- **GOES LIVE BY ITSELF — THE SCHEDULED GO-LIVE IN CODE:** the row keeps `on: false` + carries `liveFrom: 'd20261122'` (the first 4 am Eastern
+  after DAILY B's deploy) — `core/daily.js#schedOf`: `rowOpenOn` / `goLiveDay` / `api/_lib/dailies.js#dailiesState` + `scheduleDaily` read it
+  beside the owner's `progress/dlive` (his /admin schedule wins where both exist; a code schedule has no CANCEL — /admin says "set by the
+  deploy"). Before 4 am: 4 tickets + 4 sweep segments; from it: 5. THE GO-LIVE SWITCH still gates everything.
+- **THE TICKET** (`today-logic.js#ticketState`, ONE SHOT — not `allDay`): "One shot." + PLAY · "DAILY BEST · 112 FLOORS" (an earlier day's
+  best, the ticket's ink) · a HELD run: **"FLOOR 47 · ONE SHOT" + RESUME** — the floor the SERVER's own log stands on (`today { prog: { highrise:
+  { f, left } } }` — the cartridge's `progress`: `held.js#floorsAfter` over `logOf(record, nodes)`; the phone's word never read) · done:
+  "84 FLOORS" + the place line + ADMITTED · a new best: the gold NEW DAILY BEST. The art = THE TOWER (its game mark, `core/marks.js`, in its
+  own colours — `ticket-art.js#markArt`); its ink electric blue `#4fd6ff` / teal `#007f9e` by day (THE RECOLOUR — every daily's ink:
+  `ticket-art.js#TICKET_INK`).
+- **THE END CARD** (`daily-run.js`) = JAYWALK's daily end card in HIGH RISE's blue (`css/daily.css` `.dy-jw-end.dy-hr-end`): ADMITTED (the one
+  shot spent) · HIGH RISE · ONE SHOT · how it ended (the stage's own word) · the SERVER's floors big, ONE line · the place / DAILY BEST / the
+  gold NEW DAILY BEST · SHARE (`daily-share.js#prepDaily` — THE POSTER + the tag from the SERVER's share inputs, the link made at the tap) ·
+  BACK TO THE DAILIES — no TRY AGAIN. Its own dark ground in both looks (the tubes' 10 px corners — no capsule).
+- **THE SHARE CARDS** (`js/games/highrise/daily-share.js` — lazy, the dailies' share only, outside the preload graph): SHARE TODAY's section
+  on THE ONE RULE = HIGH RISE (white) · "84 FLOORS" · "ONE SHOT · 32 PERFECTS" · THE PLAYER'S TOWER (every landed floor's slab bottom-up where it
+  landed — `shareOf`'s w[] / x[] — 124 units at a full slab, filling the art box, the perfect floors lit in the ink, a glow at night). HIGH
+  RISE alone = its OWN card = THE POSTER (`share.js`, approved Nov 20) with "DAILY · ONE SHOT" in its mode line, always the night look; the
+  server adds `c` (how it ended — THE JUDGE's word) to the inputs for the poster's line. THE BIG FIVE (5+ finished — `share-today.js`): text
+  only, the name in its ticket's ink, "84 FLOORS" / "ONE SHOT · 32 PERFECTS" (`fiveLine`).
+- **SCORES:** generic — TODAY'S SCORES + ALL TIME (`daily-highrise`, EVERYONE default, ☐ FRIENDS), the measure FLOORS (its scoreLine).
+- **THE TESTS:** `tests/highrise-daily-b.test.mjs` (the inks, the mark art, the ticket's states, THE BIG FIVE's layout + lines + the 360 floor,
+  the tower, the go-live by the row's day) · `share-same.html` (≤ 4 finished pixel-identical to the card before the pass — `_old/*-dailyb.js`;
+  THE BIG FIVE; HIGH RISE alone = THE POSTER) · `kit/daily-fit.mjs` (5 TICKETS FIT — in e2e-daily + e2e-jaywalk-daily-run) ·
+  `e2e-highrise-daily-b.mjs` (`DAILY_TEST=1` ONLY: the server's set at 3:59 / 4:00 · TODAY 4 → 5 · the run from its ticket with a hide + a ‹
+  hold → FLOOR n · ONE SHOT + RESUME → the end card → ADMITTED · SHARE TODAY 1 = THE POSTER, 5 = THE BIG FIVE).
 

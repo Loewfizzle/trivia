@@ -151,6 +151,7 @@ per shipped feature; the detail in `docs/roadmap-history.md`) and the relevant `
 
 **The dailies** (→ docs/progression.md, docs/password.md, docs/coastclear.md; the full rule lines: docs/progression.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)")
 - A daily = its cartridge + ONE row in `config.js#DAILIES` (PLUG-AND-PLAY); THE SERVER JUDGES every guess (answers + THE DAILY SECRET only in the database); DAILY BEST · THE TICKET · A RUN KEEPS ITS OWN DAY · THE GO-LIVE SWITCH + THE SCHEDULED GO-LIVE · THE SHARE CARDS · EVERYONE ON SCORES → docs/progression.md.
+- THE BIG FIVE (HIGH RISE DAILY B): 5+ dailies finished → SHARE TODAY is TEXT ONLY (each name in its ticket's ink — `ticket-art.js#TICKET_INK`, ONE ink table); a row's `liveFrom` = THE SCHEDULED GO-LIVE IN CODE → docs/progression.md.
 
 **The games** (read the game's doc before a pass on it; each game's full rule lines: its doc, "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)")
 - OVERCLOCK: its timings are the owner's, NO SIDEWAYS SCROLL, right / wrong never ✓ / ✕, the pools are BUILT; ONE BOARD (CITY PART 1): BEST QUICK RUN, solo or room, DUMB LUCK's points left out → docs/overclock.md.

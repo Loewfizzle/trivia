@@ -109,7 +109,8 @@ async function mount() {
   // J4 — THE SEASON: the pack fetched now (in season / a forced date); the run waiting for its first touch takes it the moment it lands
   if (view.prepSeason) Promise.resolve(view.prepSeason(SEA.season)).then(ok => { if (ok && !started && view.setSeason) view.setSeason(SEA.season, { wet: SEA.wet }); }, () => {});
   // J1 — THE LOOK CHECKS (`?j1=splits` · `splits9` · `moments` — lab-j1.js, lazy: the real end card's YOUR SPLITS + THE MATCH MOMENTS)
-  if (/^(splits9?|moments)$/.test(Q.get('j1') || '')) lazyImport(import('./lab-j1.js'), './lab-j1.js').then(m => m.mountJ1(app.querySelector('.jw-stage'), { what: Q.get('j1'), sfx: () => snd })).catch(() => {});
+  if (/^(splits9?|moments|graves)$/.test(Q.get('j1') || ''))   // (+ graves — THE GRAVESTONES: 8 players, 4 out)
+ lazyImport(import('./lab-j1.js'), './lab-j1.js').then(m => m.mountJ1(app.querySelector('.jw-stage'), { what: Q.get('j1'), sfx: () => snd })).catch(() => {});
   // AUTOMATIC quality steps (the match kit's tiers 2 / 1 / 0): the frame time slips → a step down; headroom → back up
   const tierPath = [pin == null ? 2 : pin];   // (every tier the automatic steps went through — the pass's measure + ?fps=1 read it)
   const tiers = createTiers({ apply: t => { if (view.setTier) view.setTier(t); if (tierPath.length < 40) tierPath.push(t); }, initial: pin == null ? 2 : pin });

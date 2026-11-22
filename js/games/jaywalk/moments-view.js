@@ -3,19 +3,23 @@
 // small duel strip. Transform + opacity only; Reduced motion = a steady glow, no pulse, no flash.
 //   · THE OUT BANNER: "<NAME> IS OUT" (the name in the player's colour) + "87 LANES · 3 LEFT", ~1.5 s; outs within 1 s merge; the out sound
 //     once a banner
-//   · THE RED X: where the out player's ghost fell (on screen only) — a small see-through red X + their name, fading in 1.5 s
+//   · THE RED X → THE GRAVESTONE (the owner's add-on, Nov 21): where the out player's ghost fell — the see-through red X + their name for
+//     X_MS (as before), then it SETTLES: a smaller, fainter X + the name, pinned to that spot until the match ends (it scrolls with the world —
+//     the fallen ghost's own place, re-projected each frame; off the screen = hidden). Faded while it sits in the lane in front of the kid
+//     on screen (graveAhead). DOM overlay only (no draw call); a transform written only when the spot moves; solo has none (match only)
 //   · HEAD TO HEAD: the big words + "BEN 142 vs JUSTIN 138" → the screen's EDGES pulse red, faster with the siren → one flash at its peak →
 //     the words shrink into THE DUEL STRIP (both players' lanes, live, the leader marked by a shape — never colour alone)
 //   · LAST ONE STANDING: "+23 LANES AHEAD · KEEP GOING" + its sound — the run goes on
 import { h } from '../../ui/dom.js';
-import { createMoments, stepMoments, bannerWords, lastWords, OUT_MERGE_MS, BANNER_MS, X_MS, H2H_STRIP_MS, H2H_MS, LAST_MS } from './moments.js';
+import { createMoments, stepMoments, bannerWords, lastWords, graveAhead, OUT_MERGE_MS, BANNER_MS, X_MS, H2H_STRIP_MS, H2H_MS, LAST_MS } from './moments.js';
 
 const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
 
 /**
  * root = the game's stage · o = { sound(id), nameOf(uid), colorOf(uid) → css colour } → { pump(s), frame(now, ghostAt), reset(), info() }
  * pump({ ids, me, ends, mine, lanes, quiet }) — the match's state, ~10× a second (quiet = this phone's own OUT card is up: no banner over it)
- * frame(now, ghostAt) — every frame: the red X's follow their fallen ghost (ghostAt(uid) → [x, y, cellPx] on the stage | null)
+ * frame(now, ghostAt, kidAt) — every frame: the red X's follow their fallen ghost (ghostAt(uid) → [x, y, cellPx] on the stage | null); kidAt()
+ *   → the kid on screen [x, y, cellPx] | null (a gravestone in the lane in front of it fades)
  */
 export function createMomentsView(root, o) {
   const layer = h('div.jw-mom', { 'aria-live': 'polite' }), strip = h('div.jw-duel', { 'aria-label': 'The duel' });
@@ -23,7 +27,7 @@ export function createMomentsView(root, o) {
   root.append(layer);
   let M = createMoments(), banner = null, bannerAt = 0, bannerList = [], h2h = null, h2hAt = 0, last = null, lastAt = 0, stripKey = '', ids0 = 0;
   const xs = [], pendingX = new Map();   // (uid → the moment its out was seen: its ghost's fall is drawn once the ghost is over — ≤ 3 s)
-  const count = { out: 0, banners: 0, xs: 0, h2h: 0, last: 0, banner: '', duel: '' };
+  const count = { out: 0, banners: 0, xs: 0, graves: 0, h2h: 0, last: 0, banner: '', duel: '' };
   const nameEl = u => h('span', { style: { color: o.colorOf(u) } }, o.nameOf(u));
 
   function showBanner(list, left, now) {
@@ -87,28 +91,32 @@ export function createMomentsView(root, o) {
       if (last && now - lastAt > LAST_MS) { last.remove(); last = null; }
       drawStrip(S.duel, lanes, now);
     },
-    frame(now, ghostAt) {
+    frame(now, ghostAt, kidAt = null) {
+      const kid = kidAt ? kidAt() : null;
       for (const [u, at] of pendingX) {
         if (now - at > 3000) { pendingX.delete(u); continue; }
         const p = ghostAt(u);
         if (!p) continue;
         pendingX.delete(u);
         const el = h('div.jw-x', { style: { '--s': `${Math.round(Math.max(26, Math.min(64, p[2])))}px` } }, h('span', { style: { color: o.colorOf(u) } }, o.nameOf(u)), h('i'));
-        layer.append(el); xs.push({ u, el, at: now, k: '' }); count.xs++;
+        layer.append(el); xs.push({ u, el, at: now, k: '', grave: false, ah: false }); count.xs++;
       }
       for (let i = xs.length - 1; i >= 0; i--) {
         const X = xs[i];
-        if (now - X.at > X_MS) { X.el.remove(); xs.splice(i, 1); continue; }
+        // (THE GRAVESTONES: past X_MS the X settles — once — and stays for the rest of the match)
+        if (!X.grave && now - X.at > X_MS) { X.grave = true; X.el.classList.add('is-grave'); count.graves++; }
         const p = ghostAt(X.u);
         if (!p) { X.el.style.visibility = 'hidden'; continue; }   // (visibility — the X's own animation owns its opacity)
         X.el.style.visibility = '';
         const key = `${Math.round(p[0])},${Math.round(p[1])}`;
         if (key !== X.k) { X.k = key; X.el.style.transform = `translate3d(${Math.round(p[0])}px,${Math.round(p[1])}px,0) translate(-50%,-50%)`; }
+        const ah = graveAhead(p, kid);
+        if (ah !== X.ah) { X.ah = ah; X.el.classList.toggle('is-ahead', ah); }
       }
     },
     /** a new match (a rematch remounts the view; the same view's next match id) */
     reset() { M = createMoments(); for (const X of xs) X.el.remove(); xs.length = 0; pendingX.clear(); for (const e of [banner, h2h, last]) if (e) e.remove(); banner = h2h = last = null; stripKey = ''; strip.classList.remove('is-on'); },
-    info: () => ({ ...count, xsUp: xs.length }),
+    info: () => ({ ...count, xsUp: xs.length, ahead: xs.filter(X => X.ah).length }),
     destroy() { layer.remove(); },
   };
 }

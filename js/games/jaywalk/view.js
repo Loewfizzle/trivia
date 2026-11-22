@@ -620,6 +620,13 @@ export function createView() {
     return [sx * stageW, sy * stageH, Math.abs(q - sx) * stageW];
   }
 
+  /** THE GRAVESTONES: the kid on screen now (this phone's — or the one it follows): [x, y, a cell's width] (px) — null when over / no scene */
+  function kidOnScreen(r) {
+    if (!r || isOver(r) || !night) return null;
+    const x = r.x / FP, y = r.y + 0.5, p = night.project(x, y), q = night.project(x + 1, y)[0];
+    return [p[0] * stageW, p[1] * stageH, Math.abs(q - p[0]) * stageW];
+  }
+
   // ---- the frame
   function frame(now) {
     if (gone) return;
@@ -665,7 +672,7 @@ export function createView() {
       drawOrder(g, runs); drawWatch(g, runs);
       if (mom && runs && course !== START && c && c.t >= 0 && !root.classList.contains('is-over')) {   // (never behind the podium: no moment's sound over it)
         if (now - momAt > 100) { momAt = now; pumpMoments(g, runs); }
-        mom.frame(now, ghostAt);
+        mom.frame(now, ghostAt, () => kidOnScreen(drawRun));
       }
     }
     if (isMatch || D) drawCount(g);
