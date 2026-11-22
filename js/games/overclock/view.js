@@ -331,11 +331,12 @@ export function createView() {
     const w = { [`rooms/${st.code}/${path}`]: data };
     // (FR7 FIXES A: the envelope's fields one path each — the picks below never wiped by the next write)
     if (chal.extra && Object.keys(chal.extra).length) { for (const [k, v] of Object.entries(chal.extra)) w[`seal/${st.code}/${path}/${k}`] = v; w[`seal/${st.code}/${path}/at`] = serverTimestamp(); }
-    dbUpdate(dbRef(), w).catch(() => toast('TOO LATE — CHALLENGE CLOSED', 'err'));
-    // HOST-GRADED (grade.js): the picks sealed for the host's grade — their OWN write, so rules older than FR7 FIXES A refuse only this (the
-    // host then keeps the phones' own ok — index.js#gradeRoom), never the board above
+    // HOST-GRADED (grade.js): the picks sealed for the host's grade — THE BEFORE-LAUNCH PASS: IN THE BOARD's OWN WRITE (was a write of its own
+    // for rules older than FR7 FIXES A, long re-published): a host that saw the board's `done` before the last pick graded that part as
+    // missed, and THE SERVER's RE-GRADE (regrade.js) sees every pick — one atomic write, one view for both
     const a = HOST_GRADED.includes(chal.spec.type) ? packPicks(chal.local.picks) : null;
-    if (a) dbUpdate(dbRef(`seal/${st.code}/${path}`), { a, at: serverTimestamp() }).catch(() => {});
+    if (a) { w[`seal/${st.code}/${path}/a`] = a; w[`seal/${st.code}/${path}/at`] = serverTimestamp(); }
+    dbUpdate(dbRef(), w).catch(() => toast('TOO LATE — CHALLENGE CLOSED', 'err'));
     // THE COMBO's marks (logic.js#comboFold) — its OWN write: on rules older than OC1 it's refused alone, the board above still lands
     const s = marksString();
     if (s) dbUpdate(dbRef(`rooms/${st.code}/ocm/${game.matchId}/${game.ci}/${me()}`), { s, at: serverTimestamp() }).catch(() => {});

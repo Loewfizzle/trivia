@@ -656,7 +656,11 @@ test('overclock progress: own board during play, consistent counts, locked once 
   await assertFails(set(ref(db('p2'), `${R}/oc/m3/2/p2`), prog(4, 4, true)), 'finished boards are locked');
   await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'standings'));
   await assertFails(set(ref(db('host'), `${R}/oc/m3/2/host`), prog(1, 1, false)), 'challenge closed');
-  await assertSucceeds(update(ref(db('host'), R), { oc: null }));
+  // (THE BEFORE-LAUNCH PASS — THE REPORT LOCK: never the whole node, never the room's own match; another match's tree with no fresh night record — the host's)
+  await assertFails(update(ref(db('host'), R), { oc: null }), 'never the whole oc node');
+  await assertFails(update(ref(db('host'), R), { 'oc/m3': null }), 'never the room’s own match');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/matchId`), 'm4'));
+  await assertSucceeds(update(ref(db('host'), R), { 'oc/m3': null }), 'the match before, no night record: cleared');
 });
 
 test('overclock OC1: the combo marks during play + the READY tap after a challenge — your own, this challenge, its phase only', async () => {
@@ -681,7 +685,9 @@ test('overclock OC1: the combo marks during play + the READY tap after a challen
   await assertFails(set(ref(db('p2'), `${R}/ocnext/m3/2/p2`), { at: serverTimestamp(), x: 1 }), 'nothing else');
   await assertFails(set(ref(db('p2'), `${R}/ocnext/m3/1/p2`), { at: serverTimestamp() }), 'not an old screen');
   await assertFails(update(ref(db('p2'), R), { ocnext: null }), 'a guest never clears it');
-  await assertSucceeds(update(ref(db('host'), R), { ocm: null, ocnext: null }), 'the host clears both');
+  await assertFails(update(ref(db('host'), R), { ocm: null, ocnext: null }), 'THE REPORT LOCK: never the whole ocm node');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/matchId`), 'm4'));
+  await assertSucceeds(update(ref(db('host'), R), { 'ocm/m3': null, ocnext: null }), 'the host clears both (ocm per match)');
 });
 
 // ---------- Stage 3: NEURAL BLUFF + game night ----------
@@ -1734,6 +1740,32 @@ test('FR7 FIXES B — the host deletes ONE match\'s proof node (prism / oc / ocm
   }
   const left = (await get(ref(db('host'), `${R}/prism`))).val();
   assert.ok(left.mA && !left.mZ, 'the previous match kept, the older one gone');
+});
+
+// THE BEFORE-LAUNCH PASS — THE REPORT LOCK (console-fix.md item 6): a host-graded match's boards are the server's evidence while its report is
+// pending — never the room's own match, never within 10 min of its night record, never the whole node; the OVERCLOCK seal (its sealed picks)
+// is never wiped while an OVERCLOCK match is the room's game
+test('THE BEFORE-LAUNCH PASS — THE REPORT LOCK: prism / oc / ocm {match} never the room’s own match or within 10 min of its night record, never the whole node; the OVERCLOCK seal kept', async () => {
+  const proof = { prism: { mA: { p2: { st: 'out', at: 1 } }, mF: { p2: { st: 'out', at: 1 } }, mO: { p2: { st: 'out', at: 1 } } }, oc: { mA: { 0: { p2: { done: true } } }, mF: { 0: { p2: { done: true } } } }, ocm: { mA: { 0: { p2: '1' } } } };
+  const room = lobbyRoom(proof);
+  room.rooms[CODE].meta.status = 'playing';
+  room.rooms[CODE].game = { id: 'overclock', matchId: 'mA', phase: 'final', participants: { host: true, p2: true } };
+  room.rooms[CODE].night = { mA: { g: 'overclock', at: now() - 5000, p: { host: 3, p2: 2 } }, mF: { g: 'prism', at: now() - 120_000, p: { host: 3, p2: 2 } }, mO: { g: 'prism', at: now() - 3600_000, p: { host: 3, p2: 2 } } };
+  room.seal = { [CODE]: { oc: { mA: { 0: { p2: { a: '[1]', at: 1 } } } } } };
+  await seed(room);
+  for (const n of ['prism', 'oc', 'ocm']) {
+    await assertFails(update(ref(db('host'), R), { [`${n}/mA`]: null }), `${n}: the room’s own match (its final up) — never`);
+    await assertFails(remove(ref(db('host'), `${R}/${n}`)), `${n}: never the whole node`);
+  }
+  await assertFails(update(ref(db('host'), R), { 'prism/mF': null }), 'a match 2 minutes after its night record — its report may still be on its way');
+  await assertFails(update(ref(db('host'), R), { 'oc/mF': null }), '…the same for OVERCLOCK’s boards');
+  await assertSucceeds(update(ref(db('host'), R), { 'prism/mO': null }), 'an hour after its night record: the host’s to clear');
+  await assertFails(update(ref(db('p2'), R), { 'prism/mO': null }), 'a guest never');
+  await assertFails(remove(ref(db('host'), `seal/${CODE}`)), 'the OVERCLOCK seal while its match is the room’s game: kept (the server’s re-grade reads it)');
+  // the room moved on (a PRISM DROP start, the old match out of the game): mA's boards still locked by its night record, the seal free
+  await seed({ ...room, rooms: { [CODE]: { ...room.rooms[CODE], game: { id: 'prism', matchId: 'mB', phase: 'count', participants: { host: true, p2: true } } } } });
+  await assertFails(update(ref(db('host'), R), { 'prism/mA': null }), 'the last match 5 s after its night record — locked');
+  await assertSucceeds(remove(ref(db('host'), `seal/${CODE}`)), 'the seal, once no OVERCLOCK match is the room’s game');
 });
 
 // DAILY A — JAYWALK's DAILY PROOF NODE: dly/jaywalk/{day}/w/{uid}/{try} = { go, z (server-written at START), c/{i} = { s, at: the SERVER's

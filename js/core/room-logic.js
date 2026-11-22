@@ -156,9 +156,10 @@ export const GAME_ON_LINE = 'A GAME IS STILL ON — WAIT FOR ITS END';
  * match + the new one). PURE: trees = { node: { matchId: … } } → { 'node/matchId': null } for each stale match.
  */
 export function staleProofPaths(trees, keep = [], lock = null) {
-  const k = new Set(keep.filter(Boolean)), out = {}, L = lock && new Set(lock.nodes || []);
+  const k = new Set(keep.filter(Boolean)), out = {}, L = lock && new Set(lock.nodes || []), RL = lock && new Set(lock.reportNodes || []);
   for (const [node, t] of Object.entries(trees || {})) if (t && typeof t === 'object') for (const m of Object.keys(t)) {
     if (k.has(m) || (L && L.has(node) && !proofUnlocked(t[m], lock.uid, lock.now))) continue;   // (THE LIVE LOCK: the rules would refuse it — and one refused path takes the whole prune down)
+    if (RL && RL.has(node) && reportLocked(lock.night && lock.night[m], lock.now)) continue;
     out[`${node}/${m}`] = null;
   }
   return out;
@@ -171,6 +172,9 @@ export function staleProofPaths(trees, keep = [], lock = null) {
  * with the room. PURE: `lock` = { nodes: the locked proof nodes, uid: the host, now: the server's time } → only what the rules allow.
  */
 export const PROOF_LOCK_MS = 600_000;
+/** THE REPORT LOCK (BEFORE-LAUNCH — the rules' prism / oc / ocm {match}): a host-graded match's boards stay PROOF_LOCK_MS after its night record (docs/match-kit.md) */
+export const REPORT_LOCK_NODES = Object.freeze(['prism', 'oc', 'ocm']);
+export const reportLocked = (night, now) => !!night && typeof night.at === 'number' && night.at > now - PROOF_LOCK_MS - PROOF_LOCK_SLACK_MS;
 /** the phone's estimate of the server's clock is never trusted to the second */
 export const PROOF_LOCK_SLACK_MS = 30_000;
 /** THE PROOF PASS (Nov 20 — the review's MUST 2 b, THE PRE-DATED GO: the host wrote his GO under a FUTURE match id, waited 10 min, started

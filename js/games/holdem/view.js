@@ -39,6 +39,7 @@ import { skinOf, skinVars, assetUrl, skinAssets } from './skins.js';
 import { createTiers } from '../kit/tiers.js';
 import { BET, POT } from './chips.js';
 import { betSlider } from './bet-slider.js';
+import { createRouterPing } from '../kit/run-hold.js';
 
 const fmt = n => Math.round(n || 0).toLocaleString('en-US');
 /** a hand's category as the table names it — HE10 (A24): the ace-high straight flush is a ROYAL FLUSH (its rankings row lights too) */
@@ -85,6 +86,23 @@ export function createView() {
   const mySeat = () => { const t = table(); return t ? t.seats.find(x => x.id === me()) || null : null; };
   const myCards = () => { const t = table(); return hole && t && hole.h === t.hand && Array.isArray(hole.c) ? hole.c : null; };
   const current = () => !!(pub && st && st.game && pub.id === st.game.matchId);
+  // THE BEFORE-LAUNCH PASS — HOLD'EM's RUN HOLD (docs/holdem.md "THE TABLE IS NEVER TAKEN AWAY"; the console's RUN HOLD — app.js +
+  // games/lazy-view.js + kit/run-hold.js): a host who moves the room on mid-table (a new match, a REMATCH, the room back to its lobby)
+  // never pulls an honest player off a live table — the DEALER (the server) plays on, and this phone stays at it while it is SEATED and NOT
+  // OUT at a table the dealer has not ended. The router then freezes the room's state for this screen, so the table is read by THIS
+  // view's own listener while held; the dealer's own end (`pub.ended`) — or this seat going out — lets the phone follow the room.
+  // (LATCHED from the last table this screen showed as its match — never from a passing room state: the room's game + its table go away
+  //  in separate events, and the router asks in between)
+  const pingRouter = createRouterPing();
+  let ownOff = null, ownTable = null, latch = false;
+  const seatedLive = () => { const x = mySeat(), pl = pub.players && pub.players[me()]; return !pub.ended && !!x && x.status !== 'out' && !(pl && (pl.left || pl.leaving)); };
+  function holdsRun() { return !destroyed && latch; }
+  /** while the router holds this screen: the table straight from the room (the held state's `live` is frozen) */
+  function watchOwnTable() {
+    const RH = globalThis.__nsRunHold, want = !!(RH && RH.on && code());
+    if (want && !ownOff) ownOff = onValue(dbRef(`rooms/${code()}/holdem`), s => { ownTable = s.val(); if (st && !destroyed) update(st); }, () => {});
+    else if (!want && ownOff) { ownOff(); ownOff = null; ownTable = null; }
+  }
 
   // ------------------------------------------------------------------ the dealer's ops (a refusal just waits for the redraw)
   // (CITY G: the ops a timed-out call sends again once — each a no-op when repeated: act (its seq), pre (the same toggle), show, poke)
@@ -245,7 +263,9 @@ export function createView() {
     st = state;
     if (destroyed) return;
     const prevT = table(), prevK = L ? L.k : null;
-    pub = fromWire(st.live && st.live.table);
+    watchOwnTable();
+    pub = fromWire(ownOff && ownTable ? ownTable : st.live && st.live.table);
+    if (current()) latch = seatedLive();
     // THE MOTION: the events this phone hasn't shown — only fresh, only a whole run (a refresh / a sleep / a gap = the state as it is)
     let steps = [];
     if (pub && pub.id !== seenMatch) { seenMatch = pub.id; seenN = null; if (motion) motion.cancel(); stopAll(); }   // (HE10 — A36: a new match never hears the old one's tail)
@@ -274,6 +294,7 @@ export function createView() {
     schedulePoke();
     if (pub) primed = true;   // (HE10 — A38: primed only once a TABLE was shown — a refresh's first update with no table stays silent)
     wake();
+    { const RH = globalThis.__nsRunHold; if (RH && (RH.on || RH.wait) && !holdsRun()) pingRouter(); }   // (the table over / this seat out — follow the room)
   }
 
   // THE PODIUM: the console's frame (ui/final.js) with HOLD'EM's rows (the director stored them) — its body = final.js#finalScene
@@ -301,6 +322,7 @@ export function createView() {
 
   function unmount() {
     destroyed = true;
+    if (ownOff) { ownOff(); ownOff = null; }
     if (busy) { clearTimeout(busy.capT); clearTimeout(busy.safeT); }
     gameAwake(null);   // (HE8: back to the console's own wake rule)
     cancelAnimationFrame(raf); raf = 0; clearTimeout(levelT);
@@ -1079,7 +1101,7 @@ export function createView() {
 
   // ------------------------------------------------------------------ the E2E's hook (localhost / ?emu only)
   const hook = {
-    pub: () => pub, hole: () => hole, layout: () => L,
+    pub: () => pub, hole: () => hole, layout: () => L, holds: () => holdsRun(), ownTable: () => !!ownOff,   // (THE BEFORE-LAUNCH PASS: the run hold)
     ko: () => (els.ko ? els.ko.textContent : null), spectating: () => !!els.hero.querySelector('.he-spec'), leave: () => (els.leave.hidden ? '' : els.leave.dataset.k),
     motion: () => !!(motion && motion.busy()), award: () => awardNow && awardNow.line, potLine: () => els.pot.textContent + els.award.textContent,
     legal: () => { const t = table(); return t && running(t) ? legalActions(t) : null; },
@@ -1092,5 +1114,5 @@ export function createView() {
     busy: () => (busy ? { op: busy.op, wait: busy.wait, sent: !!(busy.el && busy.el.classList.contains('is-sent')) } : null), awake: () => awake, preOn: () => preOn(),
   };
 
-  return { mount, update, unmount };
+  return { mount, update, unmount, holdsRun };
 }

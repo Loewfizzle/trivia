@@ -140,7 +140,8 @@ test('every game reports its finished match: placings, wins, highlights, records
   assert.ok(extractMatch(finalGame('prism', U, { mode: 'rush' })).rows.ua.rec['prism-rush'] > 0);
   assert.equal(extractMatch(finalGame('prism', U)).rows.ua.rec['prism-rush'], undefined);
   // OVERCLOCK = ONE BOARD (CITY PART 1): a QUICK room match is the record (BEST QUICK RUN); STANDARD never is
-  assert.equal(extractMatch(finalGame('overclock', U, { mode: 'quick' })).rows.ua.rec['overclock-quick'], 900);
+  { const q = finalGame('overclock', U, { mode: 'quick' });   // (THE BEFORE-LAUNCH PASS: the fixture = an honest host's results — the record = ua's points)
+    assert.equal(extractMatch(q).rows.ua.rec['overclock-quick'], Object.values(q.results).reduce((s, r) => s + r.ua.pts, 0)); }
   assert.deepEqual(extractMatch(finalGame('overclock', U)).rows.ua.rec, {}, 'STANDARD: no board');
   // golf: 9 holes relative to par (par 27)
   assert.equal(extractMatch(finalGame('golf', U)).rows.ua.rec['golf-par9'], 22 - 27);

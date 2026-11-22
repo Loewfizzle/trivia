@@ -151,7 +151,7 @@ test('THE LIVE LOCK (the rules gap jw + hr shared): the host deletes ONE match\'
   assert.deepEqual(staleProofPaths(trees, ['keep'], { nodes: LOCKED_PROOF_NODES, uid: 'h', now: NOW }), { 'jw/a': null, 'hr/d': null, 'prism/f': null }, 'the held trees wait for a later start; the other games\' proofs as ever');
   assert.deepEqual(staleProofPaths(trees, ['keep']), { 'jw/a': null, 'jw/b': null, 'jw/c': null, 'hr/d': null, 'hr/e': null, 'prism/f': null }, 'no lock named: as before (FR7 FIXES B\'s own test)');
   const host = read('js/host.js'), again = read('js/games/kit/again.js');
-  assert.ok(host.includes('const gone = staleProofPaths(trees, keep, { nodes: LOCKED_PROOF_NODES, uid: state.uid, now: serverNow() });'), 'host.js#pruneProofs asks with the lock');
+  assert.ok(host.includes('const gone = staleProofPaths(trees, keep, { nodes: LOCKED_PROOF_NODES, uid: state.uid, now: serverNow(), reportNodes: REPORT_LOCK_NODES, night });'), 'host.js#pruneProofs asks with the lock');
   assert.ok(!host.includes('clearNewNodes(code)') && !host.includes('clearNewNodes(state.code)'), 'the proof nodes are never cleared whole (keepProof on every call)');
   assert.ok(again.includes('const held = m => serverNow() - (endedAt.get(m) || 0) < PROOF_LOCK_MS + PROOF_LOCK_SLACK_MS;') && again.includes('pruneRuns(code, recent, m => pending(matchKey(code, m)) || held(m))'), 'PLAY AGAIN keeps a run inside the lock in its list — as a queued one');
 });

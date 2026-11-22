@@ -67,7 +67,7 @@ export function ctx2d(cv, o) {
   track(cv);
   let x = null;
   try { x = cv.getContext('2d', o) || null; } catch { x = null; }
-  if (x) watchLoss(cv, x);
+  if (x) watchLoss(cv);
   return x;
 }
 
@@ -92,12 +92,14 @@ function track(cv) {
 // `contextlost` / `contextrestored` events (Safari 17+, Chrome) + `isContextLost()` (anyLost — asked on every return) — and a loss the
 // browser never reports is found by the scene's own sentinel pixel (scene.js#lostLook) and REPORTED here (reportLost). Whoever paints
 // a cache listens (onCanvasLost): the city re-fits through its one gate, the effect library drops its sprites.
-const ctxOf = typeof WeakMap === 'function' ? new WeakMap() : null, watched = typeof WeakSet === 'function' ? new WeakSet() : null;
+// (BEFORE-LAUNCH: a WeakSet — a WeakMap canvas → ctx kept its key alive in Blink; the context asked for when needed)
+const watched = typeof WeakSet === 'function' ? new WeakSet() : null;
+const ctx2dOf = cv => { try { return cv.getContext('2d'); } catch { return null; } };
 const lostFns = new Set();
 let lostN = 0;
-function watchLoss(cv, x) {
-  if (!ctxOf || !watched || watched.has(cv)) return;
-  watched.add(cv); ctxOf.set(cv, x);
+function watchLoss(cv) {
+  if (!watched || watched.has(cv)) return;
+  watched.add(cv);
   try {
     cv.addEventListener('contextlost', () => { lostN++; emitLost('a context lost'); });
     cv.addEventListener('contextrestored', () => emitLost('a context restored'));
@@ -112,10 +114,10 @@ export function reportLost(why) { lostN++; emitLost(why); }
 export const lostCount = () => lostN;
 /** any watched 2D context lost right now? (cheap enough for a return to the screen — never in a frame) */
 export function anyLost() {
-  if (!ctxOf) return false;
+  if (!watched) return false;
   for (const r of tracked) {
     const cv = r.deref(); if (!cv) { tracked.delete(r); continue; }
-    const x = ctxOf.get(cv);
+    const x = watched.has(cv) ? ctx2dOf(cv) : null;
     try { if (x && typeof x.isContextLost === 'function' && x.isContextLost()) return true; } catch { /* fine */ }
   }
   return false;
@@ -123,7 +125,7 @@ export function anyLost() {
 /** TESTS — a background purge as iOS does it, with no event: every watched 2D canvas's pixels wiped (its size set again) */
 export function purgeForTest() {
   let n = 0;
-  for (const r of tracked) { const cv = r.deref(); if (!cv || !(ctxOf && ctxOf.has(cv)) || !cv.width) continue; const w = cv.width; cv.width = 0; cv.width = w; n++; }
+  for (const r of tracked) { const cv = r.deref(); if (!cv || !(watched && watched.has(cv)) || !cv.width) continue; const w = cv.width; cv.width = 0; cv.width = w; n++; }
   return n;
 }
 
@@ -169,7 +171,7 @@ export function safeCtx(cv, o) {
   track(cv);
   let x = null;
   try { x = cv.getContext('2d', o) || null; } catch { x = null; }
-  if (x) { watchLoss(cv, x); return x; }
+  if (x) { watchLoss(cv); return x; }
   starved++;
   return nullCtx(cv);
 }

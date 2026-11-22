@@ -10,7 +10,7 @@ export const DURABLE = Object.freeze(['profiles', 'pstats', 'uids', 'seats', 'pr
   'nocount']);   // (CITY I — DON'T COUNT: the owner's decisions — no address in it)
 /** left out — live / ephemeral (a room's nodes, presence, the rate limits, caches, a passkey's one-time challenge, the 7-day share pictures) */
 export const LIVE = Object.freeze(['rooms', 'hush', 'chats', 'fleets', 'glsonar', 'spy', 'hsbet', 'rrp', 'rrsec', 'seal', 'hole', 'hrec', 'rl', 'here', 'wx',
-  'pkch', 'shr', 'shrx', 'shrp', 'testAdmins', 'testReportAll', 'testHoldemGate',
+  'pkch', 'shr', 'shrx', 'shrp', 'testAdmins', 'testReportAll', 'testHoldemGate', 'testHostTrustOff',
   'seen']);   // (CITY I — SECOND ACCOUNTS: hashed addresses, 14 days — LIVE, never DURABLE with addresses)
 /** left out ON PURPOSE — THE DAILY SECRET + THE FROZEN SCHEDULE (future answers): only in the database (tests/daily-secrets.test.mjs) */
 export const SECRET = Object.freeze(['dsecret', 'dsched']);

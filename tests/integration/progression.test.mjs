@@ -21,13 +21,13 @@ import { streakDay, dayNum, dayOf } from '../../js/core/streak.js';
 import { BAND_MIN } from '../../js/core/daily.js';
 import { processReport } from '../../api/report.js';
 import { progressEvent } from '../../api/_lib/events.js';
-import { finalGame } from '../fixtures/finals.mjs';
+import { finalGame, ocBoardsFor } from '../fixtures/finals.mjs';
 import { extractMatch } from '../../js/core/match-report.js';
 
 const NOW = Date.UTC(2026, 10, 10, 1, 0, 0);   // Mon Nov 9 2026, 8 pm Eastern
 const DAY = 86_400_000;
 const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak', 'progress', 'radio', 'testAdmins', 'gplay', 'pfr'];
-before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); await ref('testReportAll').set(true); });   // (HE10: frozen games reportable on the emulators only — api/report.js#reportableGame)
+before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); await ref('testReportAll').set(true); await ref('testHostTrustOff').set(null); });   // (HE10: frozen games reportable on the emulators only — api/report.js#reportableGame)
 after(async () => { await deleteApp(fb().app); });
 
 const ensure = (uid, name, at = NOW - 7 * 86_400_000) => profileAction(uid, { action: 'ensure', name, avatar: 'bolt', color: 'cyan' }, '', at);
@@ -151,8 +151,9 @@ async function seedRoom(id, uids, at, hostUid = uids[0]) {
   await ref(`rooms/${code}`).set({ meta: { hostId: hostUid, status: 'playing', createdAt: at, activeAt: at },
     players: Object.fromEntries(uids.map((u, i) => [u, { name: u.toUpperCase(), color: 'cyan', avatar: 'bolt', joinedAt: i }])), game, night: { [game.matchId]: night },
     // (FR7 FIXES B — A SEAT IS NOT A PLAY: each player's own node of the match, as a real match leaves it)
-    ...(id === 'prism' ? { prism: { [game.matchId]: Object.fromEntries(uids.map(u => [u, { st: 'out', at }])) } } : {}),
-    ...(id === 'overclock' ? { oc: { [game.matchId]: { 0: Object.fromEntries(uids.map(u => [u, { done: true, doneAt: at }])) } } } : {}) });
+    // (THE BEFORE-LAUNCH PASS — HOST TRUST: PRISM's boards carry the score the results copied; OVERCLOCK's every challenge — finals.mjs#ocBoardsFor)
+    ...(id === 'prism' ? { prism: { [game.matchId]: Object.fromEntries(uids.map(u => [u, { st: 'out', at, sc: game.results[u].sc, ln: game.results[u].ln }])) } } : {}),
+    ...(id === 'overclock' ? { oc: { [game.matchId]: ocBoardsFor(game, uids) } } : {}) });
   return { code, matchId: game.matchId };
 }
 

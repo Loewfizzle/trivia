@@ -252,17 +252,18 @@ export function createPeople() {
   // PEO — THE NEXT BLOCK PLANNED IN IDLE TIME: a phase block (two every 480 s) costs 3–23 ms to plan, and it landed INSIDE a frame every
   // four minutes (the measured hitch on an ordinary afternoon). Every 5 s the planner is asked for the city 70 s ahead in an idle callback,
   // so the block's visits sit in the cache before any frame needs them (pure: the same result whenever it is computed)
-  let warmAt = -1e9, warmBusy = false;
+  let warmAt = -1e9, warmBusy = false, dead = false, warmId = 0;
   function warm(t, ctx) {
     if (warmBusy || t - warmAt < 5) return;
     warmAt = t; warmBusy = true;
     // (CITY C 0c — THE CHROMEBOOK's 1.1 s FRAME: the warm planned the whole window 70 s ahead in ONE idle task (~1.1 s of routing at 4× CPU —
     //  a frame blocked behind it). Now ONE block of folkWarmSteps per task, as the first plan stages (staged()); then the whole moment (its
     //  detours round the solids — the blocks already in) in a task of its own; the roofs last)
-    const Mw = M, T = t + 70, idle = f => (typeof requestIdleCallback === 'function' ? requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 300));
+    const Mw = M, T = t + 70, idle = f => { warmId = typeof requestIdleCallback === 'function' ? requestIdleCallback(f, { timeout: 2500 }) : -setTimeout(f, 300); };
     let phase = 0;
     const run = () => {
-      if (!L || M !== Mw) { warmBusy = false; return; }
+      // (BEFORE-LAUNCH: destroy() ends the chain — a gone city's kept it alive ~a minute: docs/harbor.md KNOWN ISSUES)
+      if (dead || !L || M !== Mw) { warmBusy = false; return; }
       try {
         if (phase === 0) { const left = folkWarmSteps(T).filter(([w, k]) => !cache.has(`${w}|${k}`)); if (left.length) { folkAt(T, { L, M, ctx, warm: left[0] }, cache); idle(run); return; } phase = 1; }
         if (phase === 1) { folkAt(T, { L, M, ctx }, cache); phase = 2; idle(run); return; }
@@ -965,6 +966,6 @@ export function createPeople() {
       members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), y: +(m.s.y || 0).toFixed(2), sp: m.sp ? 1 : 0, dance: m.s.dance || null, pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),
       doors: { ...(now.doors || {}) }, cart: now.cart ? { on: !!now.cart.on, parked: !!now.cart.parked, x: +(now.cart.x || 0).toFixed(2) } : null, dance: { ...(now.dance || {}) }, dancers: now.members.filter(m => m.kind === 'dancer').length, watchers: now.members.filter(m => m.kind === 'watcher').length,
       roofMembers: roofNow.members.map(m => ({ kind: m.kind, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })), map: M ? { nodes: M.nodes, rects: M.rects.length } : null }),
-    destroy() { freeCanvases(cache, roofCache, looks); cache.clear(); roofCache.clear(); looks.clear(); kit.destroy(); },   // (THE LONG NIGHT: their canvases + the cars' freed at once)   // (THE LONG NIGHT: their canvases freed at once)
+    destroy() { dead = true; if (warmId > 0 && typeof cancelIdleCallback === 'function') cancelIdleCallback(warmId); else if (warmId < 0) clearTimeout(-warmId); warmId = 0; freeCanvases(cache, roofCache, looks); cache.clear(); roofCache.clear(); looks.clear(); kit.destroy(); },   // (THE LONG NIGHT: their canvases + the cars' freed at once)   // (THE LONG NIGHT: their canvases freed at once)
   };
 }

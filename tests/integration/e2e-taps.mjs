@@ -13,6 +13,7 @@ import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { guardUrl } from './kit/live-guard.mjs';
+import { dailyTestMode, DAILY_MODE_FIX } from './kit/daily-mode.mjs';
 import { val } from '../../api/_lib/fb.js';
 
 const ENGINE = process.env.ENGINE || 'chromium';
@@ -107,6 +108,9 @@ const backHome = async P => { await P.p.evaluate(() => import('/js/store.js').th
 
 try {
   const A = await phone('tpa');
+  // (THE BEFORE-LAUNCH PASS — the inbox, Nov 22 1:40 am: TODAY'S SCORES needs the server in the dailies' test mode — CITY G's start-up guard, as
+  //  e2e-daily / wk-press: said at once, never a 15 s wait that reads as a dailies bug)
+  if (!(await dailyTestMode(A.p))) { console.log(`FATAL ${DAILY_MODE_FIX}`); process.exit(1); }
   // (THE RESCUE stays ON here — the page as it ships; the watch's "lost" count = the drops the rescue saved: the pass log's data per control)
 
   // ---- THE TITLE

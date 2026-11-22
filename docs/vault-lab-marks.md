@@ -1,10 +1,10 @@
 # THE CARD LAB — the owner's marks (read this FIRST in the next VAULT pass)
 
-Exported 2026-11-22 02:47 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
+Exported 2026-11-22 06:41 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
 
 | # | item | tier | mark | note | when | v |
 | --- | --- | --- | --- | --- | --- | --- |
-| 116 | THE SWITCHBOARD (`card-dev-switchboard`) | legendary | APPROVE |  | 2026-11-06 00:11 UTC | CHANGED (marked v4, now v5) |
+| 116 | THE SWITCHBOARD (`card-dev-switchboard`) | legendary | APPROVE |  | 2026-11-22 06:33 UTC | v5 |
 | 117 | THE SOURCE (`card-dev-source`) | legendary | APPROVE |  | 2026-11-06 05:29 UTC | v4 |
 | 118 | THE SWITCHBOARD · FULL CARD (`full-card-dev-switchboard`) | legendary | APPROVE |  | 2026-11-06 00:11 UTC | v6 |
 | 119 | THE SOURCE · FULL CARD (`full-card-dev-source`) | legendary | APPROVE |  | 2026-11-17 11:24 UTC | v7 |
@@ -21,7 +21,7 @@ Exported 2026-11-22 02:47 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 38 | SKY DANCER (`card-sg-aurora`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC | v1 |
 | 39 | MAKE A WISH (`card-sg-fireball`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC | v1 |
 | 40 | HOT AIR, COLD BLOOD (`card-sg-skull`) | legendary | APPROVE |  | 2026-11-03 16:30 UTC | v1 |
-| 41 | FIX THE MONEY, FIX THE WORLD (`card-sg-btc`) | legendary | APPROVE |  | 2026-11-09 13:32 UTC | CHANGED (marked v2, now v3) |
+| 41 | FIX THE MONEY, FIX THE WORLD (`card-sg-btc`) | legendary | APPROVE |  | 2026-11-22 06:33 UTC | v3 |
 | 42 | LIGHTS OUT · FULL CARD (`full-card-sg-tr3b`) | legendary | APPROVE |  | 2026-11-15 22:09 UTC | v2 |
 | 43 | SKY KING · FULL CARD (`full-card-sg-blackbird`) | legendary | APPROVE |  | 2026-11-15 22:09 UTC | v2 |
 | 44 | AFTERBURNER · FULL CARD (`full-card-sg-f22`) | legendary | APPROVE |  | 2026-11-15 22:09 UTC | v2 |
@@ -31,12 +31,12 @@ Exported 2026-11-22 02:47 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 48 | HOT AIR, COLD BLOOD · FULL CARD (`full-card-sg-skull`) | legendary | APPROVE |  | 2026-11-15 22:10 UTC | v2 |
 | 49 | FIX THE MONEY, FIX THE WORLD · FULL CARD (`full-card-sg-btc`) | legendary | APPROVE |  | 2026-11-09 13:32 UTC | v3 |
 | 1 | BRUSHED GOLD (`card-brushed`) | common | APPROVE |  | 2026-11-03 11:00 UTC | v1 |
-| 2 | SMOKE ROOM (`card-smoke`) | uncommon | APPROVE |  | 2026-11-03 11:23 UTC | CHANGED (marked v1, now v2) |
-| 3 | FROSTBITE (`card-frostbite`) | uncommon | APPROVE |  | 2026-11-03 11:23 UTC | CHANGED (marked v1, now v2) |
-| 4 | INFERNO (`card-inferno`) | rare | APPROVE |  | 2026-11-04 02:05 UTC | v2 |
+| 2 | SMOKE ROOM (`card-smoke`) | uncommon | APPROVE |  | 2026-11-22 06:33 UTC | v2 |
+| 3 | FROSTBITE (`card-frostbite`) | uncommon | APPROVE |  | 2026-11-22 06:33 UTC | v2 |
+| 4 | INFERNO (`card-inferno`) | rare | APPROVE |  | 2026-11-22 06:33 UTC | v3 |
 | 5 | PRISM (`card-prism`) | rare | APPROVE |  | 2026-11-05 21:55 UTC | v2 |
-| 6 | THE MARQUEE (`card-marquee`) | epic | APPROVE |  | 2026-11-05 21:55 UTC | CHANGED (marked v2, now v3) |
-| 7 | GLITTER BOMB (`card-glitter`) | epic | APPROVE |  | 2026-11-03 11:24 UTC | CHANGED (marked v1, now v2) |
+| 6 | THE MARQUEE (`card-marquee`) | epic | APPROVE |  | 2026-11-22 06:33 UTC | v3 |
+| 7 | GLITTER BOMB (`card-glitter`) | epic | APPROVE |  | 2026-11-22 06:33 UTC | v2 |
 | 8 | I WANT TO BELIEVE (`card-sg-ufo`) | legendary | APPROVE |  | 2026-11-05 21:55 UTC | v2 |
 | 9 | BOLT · NEON (`emb-test-neon`) | common | APPROVE |  | 2026-11-03 19:36 UTC | v1 |
 | 10 | BOLT · PRISM (`emb-test-prism`) | rare | APPROVE |  | 2026-11-03 19:36 UTC | v1 |
@@ -45,7 +45,7 @@ Exported 2026-11-22 02:47 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 21 | HEARTBREAKER (`card-heartbreaker`) | uncommon | APPROVE |  | 2026-11-03 14:19 UTC | v1 |
 | 22 | BRASS DECO (`card-brass`) | common | APPROVE |  | 2026-11-03 14:19 UTC | v1 |
 | 23 | EMERALD & BRASS (`card-emerald`) | uncommon | APPROVE |  | 2026-11-05 21:55 UTC | v2 |
-| 24 | NEON GLASS (`card-neonglass`) | uncommon | APPROVE |  | 2026-11-03 14:19 UTC | CHANGED (marked v1, now v2) |
+| 24 | NEON GLASS (`card-neonglass`) | uncommon | APPROVE |  | 2026-11-22 06:33 UTC | v2 |
 | 25 | SILVER CHROME (`card-chrome`) | uncommon | APPROVE |  | 2026-11-03 14:19 UTC | v1 |
 | 26 | MIDNIGHT & CHAMPAGNE (`card-champagne`) | uncommon | APPROVE |  | 2026-11-03 14:19 UTC | v1 |
 | 11 | BRUSHED GOLD · FULL CARD (`full-card-brushed`) | common | APPROVE |  | 2026-11-03 14:20 UTC | v1 |
@@ -66,7 +66,7 @@ Exported 2026-11-22 02:47 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 50 | ZEBRA (`card-zebra`) | uncommon | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 51 | CAMO (`card-camo`) | uncommon | APPROVE |  | 2026-11-05 21:55 UTC | v2 |
 | 52 | VELVET ROOM (`card-velvet`) | rare | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
-| 53 | AURORA (`card-aurora`) | rare | APPROVE |  | 2026-11-03 16:39 UTC | CHANGED (marked v1, now v2) |
+| 53 | AURORA (`card-aurora`) | rare | APPROVE |  | 2026-11-22 06:33 UTC | v2 |
 | 54 | ONYX & ROSE GOLD (`card-rosegold`) | rare | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 55 | GOLD FOIL (`card-gold`) | rare | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 56 | THE 30-NIGHT FLAME (`card-flame30`) | rare | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
@@ -75,11 +75,11 @@ Exported 2026-11-22 02:47 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 59 | CARBON (`card-carbon`) | rare | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 60 | CONFETTI (`card-confetti`) | rare | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 61 | CIRCUIT (`card-circuit`) | rare | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
-| 62 | VELVET NOIR (`card-noir`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
+| 62 | VELVET NOIR (`card-noir`) | epic | APPROVE |  | 2026-11-22 06:33 UTC | v2 |
 | 63 | SAPPHIRE & SILVER (`card-sapphire`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 64 | PRISM LEGEND (`card-legend`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
-| 65 | CENTURY (`card-century`) | epic | APPROVE |  | 2026-11-05 21:55 UTC | CHANGED (marked v4, now v5) |
-| 66 | THE MARQUEE · GOLD BULBS (`card-marquee-gold`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
+| 65 | CENTURY (`card-century`) | epic | APPROVE |  | 2026-11-22 06:33 UTC | v5 |
+| 66 | THE MARQUEE · GOLD BULBS (`card-marquee-gold`) | epic | APPROVE |  | 2026-11-22 06:33 UTC | v2 |
 | 67 | PENTHOUSE (`card-penthouse`) | epic | APPROVE |  | 2026-11-08 18:47 UTC | v2 |
 | 68 | WILDFIRE (`card-wildfire`) | legendary | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 69 | ETERNAL FLAME (`card-eternal`) | legendary | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
@@ -227,4 +227,6 @@ Exported 2026-11-22 02:47 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 222 | RIGHT OF WAY · FULL CARD (`full-card-rightofway`) | legendary | APPROVE |  | 2026-11-17 11:24 UTC | v2 |
 | 223 | BEAM ME UP (`card-beammeup`) | epic | APPROVE |  | 2026-11-17 11:24 UTC | v1 |
 | 224 | BEAM ME UP · FULL CARD (`full-card-beammeup`) | epic | APPROVE |  | 2026-11-17 11:24 UTC | v1 |
+| 229 | GARDEN PARTY (`card-garden`) | epic | APPROVE |  | 2026-11-22 06:33 UTC | v1 |
+| 230 | GARDEN PARTY · FULL CARD (`full-card-garden`) | epic | APPROVE |  | 2026-11-22 06:33 UTC | v1 |
 | 208 | HORSESHOE (`emb-horseshoe`) | uncommon | APPROVE |  | 2026-11-15 22:10 UTC | v2 |

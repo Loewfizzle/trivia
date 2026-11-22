@@ -103,7 +103,7 @@ test('THE WIRING (pinned): the router holds a game screen that holds a run — n
   assert.match(room, /if \(!game && heldExit && heldExit\.code === code && heldExit\.opts\.how === 'closed'\) \{ runHoldDone\(\); return; \}/, 'a room really deleted lets the held exit go at once');
   assert.match(host, /closeIdleRoom\(\); return; \}/); assert.match(host, /&& !\(globalThis\.__nsRunHold && globalThis\.__nsRunHold\.held\(\)\)\) \{ closeIdleRoom\(\)/, 'the idle close never while a run is held (a host’s meta/activeAt in the past)');
   assert.match(app, /\(ownNode && ownNode\.go > 0\)/, 'a phone with its own GO in the tree reports the match, named or not');
-  assert.match(rep, /for \(const u of proven\) if \(!names\.has\(u\)\) throw new ApiError\(409, 'mismatch'/, 'DROP_GUARD: seated or not');
+  assert.match(rep, /for \(const u of proven\) if \(!names\.has\(u\)\) \{ await wreck\(key, uid, now, 'a dropped player'\)\.catch\(\(\) => \{\}\); throw new ApiError\(409, 'mismatch'/, 'DROP_GUARD: seated or not (THE BEFORE-LAUNCH PASS: + the sealed wreck)');
   for (const v of ['js/games/jaywalk/view.js', 'js/games/highrise/view.js']) {
     const s = read(v);
     assert.match(s, /\n    holdsRun,\n    update\(state\)/, `${v}: the screen answers holdsRun`);

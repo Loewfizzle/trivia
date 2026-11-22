@@ -19,6 +19,10 @@ const { pages, log, sleep, ok, evalIn, waitFor, uids, shotAll, openPlayer, BASE,
 const meOf = (page, slotId) => page.evaluate(s => JSON.parse(localStorage.getItem(`na:${s}:me`) || 'null'), slotId);
 const slotOf = i => `f${i}`;
 
+// (THE BEFORE-LAUNCH PASS — HOST TRUST: this suite scripts its OVERCLOCK / PRISM finals by hand to drive the podiums + plaques — the server's
+//  re-grade + the board cap (api/report.js) are tested on honest + forged matches in server.test.mjs; here they are switched off on the
+//  LOCAL EMULATORS only — `testHostTrustOff`, never honoured in production)
+await ref('testHostTrustOff').set(true);
 await H.run(async () => {
   // ---- 1. new players: a profile appears on its own after the name screen
   const host = await H.joinAll(2);

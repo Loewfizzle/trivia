@@ -3,10 +3,26 @@
 import { minBet, payout, START, LOAN } from '../../js/games/stakes/logic.js';
 import { playMatch } from '../../js/games/rum/bot.js';
 import { encodeWord, secretKey } from '../../js/games/cipher/logic.js';
+import { computeResults as ocComputeResults, levelOf as ocLevelOf } from '../../js/games/overclock/logic.js';
+import { timesOf as ocTimesOf } from '../../js/games/overclock/director.js';
+import { partsFor as ocPartsFor } from '../../js/games/overclock/challenges.js';
 
 export const T0 = Date.UTC(2026, 9, 14, 23, 0, 0); // a Wednesday evening, Eastern
 
 const parts = uids => Object.fromEntries(uids.map(u => [u, true]));
+
+// ---- OVERCLOCK as an honest host leaves it (THE BEFORE-LAUNCH PASS — js/games/overclock/regrade.js re-grades every challenge from these)
+export const ocStartAt = ci => T0 + 20_000 + ci * 60_000;
+/** challenge ci's boards for the uids that played it: player i (the participants' order) gets parts − i right, done 8 + 1.5·i s in */
+export function ocBoardsAt(game, ci, played) {
+  const all = Object.keys(game.participants || {}), n = ocPartsFor(game.order[ci], ocLevelOf(ci, game.total)), out = {};
+  for (const u of played) { const i = all.indexOf(u), at = ocStartAt(ci) + 8000 + i * 1500; out[u] = { p: n, ok: Math.max(0, n - i), n, done: true, at, doneAt: at }; }
+  return out;
+}
+/** the room's oc/{matchId} tree for those players (every challenge) */
+export function ocBoardsFor(game, played) {
+  return Object.fromEntries(Array.from({ length: game.total }, (_, ci) => [ci, ocBoardsAt(game, ci, played)]));
+}
 const byRank = (uids, f) => Object.fromEntries(uids.map((u, i) => [u, f(i, u)]));
 
 export function finalGame(id, uids, opts = {}) {
@@ -25,12 +41,24 @@ export function finalGame(id, uids, opts = {}) {
       uids.slice(1).reverse().forEach((u, k) => { out[u] = k + 2; log[k + 2] = { c: 0, ev: [{ t: 'hit', a: uids[0], v: u, d: 30 }, { t: 'out', u }] }; });
       return { ...base, settings: { hp: 100 }, hp: byRank(uids, i => (i ? 0 : 60)), sh: byRank(uids, () => 0), out, q: 20, log };
     }
-    case 'overclock': return {
-      ...base, settings: { mode: opts.mode || 'standard' }, total: opts.mode === 'quick' ? 6 : 12,
+    case 'overclock': {
       // (FR7 FIXES A — OC1: a real order; the STANDARD bound checks each result against its type's ceiling)
-      order: ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'timeline', 'closest'].slice(0, opts.mode === 'quick' ? 6 : 12),
-      results: Object.fromEntries(Array.from({ length: opts.mode === 'quick' ? 6 : 12 }, (_, ci) => [ci, byRank(uids, i => ({ pts: opts.ocPts != null && i === 0 ? opts.ocPts : 150 - i * 20, ok: 1, parts: 1 }))])),
-    };
+      // (THE BEFORE-LAUNCH PASS — THE SERVER's RE-GRADE: the results are what an HONEST HOST's director writes — computeResults over the
+      //  players' own boards (ocBoardsFor: player i gets parts − i right, done 8 + 1.5·i s into a challenge that opened at ocStartAt(ci)) +
+      //  the FASTEST clock tm; a player in opts.noProof wrote no board (0 everywhere). opts.ocPts = a FORGED first player's points)
+      const total = opts.mode === 'quick' ? 6 : 12;
+      const order = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'rewire', 'compass'].slice(0, total);
+      const g = { ...base, seed: `fixture-${base.matchId}`, settings: { mode: opts.mode || 'standard' }, total, order, results: {}, tm: {} };
+      const silent = new Set(opts.noProof || []);
+      for (let ci = 0; ci < total; ci++) {
+        const boards = ocBoardsAt(g, ci, uids.filter(u => !silent.has(u)));
+        const gc = { ...g, ci, playStartAt: ocStartAt(ci) };
+        g.results[ci] = ocComputeResults(gc, boards);
+        g.tm[ci] = ocTimesOf(gc, boards);
+        if (opts.ocPts != null) g.results[ci][uids[0]] = { ...g.results[ci][uids[0]], pts: opts.ocPts };
+      }
+      return g;
+    }
     case 'bluff': return { ...base, settings: { mode: 'standard' }, rounds: 3, results: Object.fromEntries([0, 1, 2].map(r => [r, byRank(uids, i => ({ pts: 1500 - i * 300, truth: true, fooled: i === 0 ? 2 : 0, likes: 0 }))])) };
     case 'pulse': return {
       ...base, settings: { song: 'pulse1', count: 1, diff: opts.diff || 'normal', echo: 'on' },

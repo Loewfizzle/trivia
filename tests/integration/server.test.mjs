@@ -29,7 +29,7 @@ import { clearBoardCache, boardId } from '../../api/_lib/lb.js';
 import { flagRow, FLAG_LIMITS } from '../../api/board.js';
 import { houseNick, NICK_ADJ, NICK_NOUN } from '../../js/core/nicknames.js';
 import { isOffensive } from '../../js/core/names.js';
-import { finalGame, cipherSigned } from '../fixtures/finals.mjs';
+import { finalGame, cipherSigned, ocBoardsFor } from '../fixtures/finals.mjs';
 import { weekKey } from '../../js/core/week.js';
 import { GAMES } from '../../js/config.js';   // (THE JAYWALK GO-LIVE PASS: the owner's-test branch pinned by flipping a row back in-process — holdem-server's pattern)
 import { RANKS } from '../../js/core/ranks.js';
@@ -44,7 +44,8 @@ const NODES = ['pkc', 'pkx', 'pkch', 'profiles', 'uids', 'pstats', 'ppriv', 'pke
 
 before(async () => {
   await ref('/').update(Object.fromEntries(NODES.map(n => [n, null])));
-  await ref('testReportAll').set(true);   // (HE10: the frozen games' report checks keep running — an emulator-only switch, api/report.js#reportableGame)
+  await ref('testReportAll').set(true);
+  await ref('testHostTrustOff').set(null);   // (THE BEFORE-LAUNCH PASS: e2e-profiles switches HOST TRUST off for its scripted podiums — never here)   // (HE10: the frozen games' report checks keep running — an emulator-only switch, api/report.js#reportableGame)
 });
 after(async () => { await deleteApp(fb().app); });
 
@@ -54,9 +55,11 @@ let codeN = 0;
 const nextCode = () => { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; codeN++; return `T${A[Math.floor(codeN / 24) % 24]}${A[codeN % 24]}Z`; };
 
 /** FR7 FIXES B: the nodes only each player writes in a real match (api/report.js#PROOF_TREES) */
-function proofNodes(id, m, uids) {
-  if (id === 'prism') return { prism: { [m]: Object.fromEntries(uids.map(u => [u, { st: 'out', at: clock, sc: 1 }])) } };
-  if (id === 'overclock') return { oc: { [m]: { 1: Object.fromEntries(uids.map(u => [u, { done: true, doneAt: clock }])) } } };
+function proofNodes(id, m, uids, game) {
+  // (THE BEFORE-LAUNCH PASS — HOST TRUST: the boards an honest match leaves — PRISM's carry the score + lines the results copied (SCORE RUSH
+  //  is capped at them); OVERCLOCK's every challenge's (THE SERVER's RE-GRADE rebuilds the results from them — finals.mjs#ocBoardsFor))
+  if (id === 'prism') return { prism: { [m]: Object.fromEntries(uids.map(u => [u, { st: 'out', at: clock, sc: (game && game.results && game.results[u] && game.results[u].sc) || 1, ln: (game && game.results && game.results[u] && game.results[u].ln) || 0 }])) } };
+  if (id === 'overclock') return { oc: { [m]: game ? ocBoardsFor(game, uids) : { 1: Object.fromEntries(uids.map(u => [u, { done: true, doneAt: clock }])) } } };
   if (id === 'jaywalk') return { jw: { [m]: Object.fromEntries(uids.map(u => [u, { go: clock - 120_000 }])) } };   // (JAYWALK H1: GO alone — a silent-but-present player; THE CONSOLE FIX: two minutes before the record (no presence = offline: the idle-out + the drop wait) — a GO of NOW would still be a live run, the report held)
   return {};
 }
@@ -79,7 +82,7 @@ async function seedRoom(id, uids, opts = {}, names = {}) {
     ...(boards ? { boards: { [game.matchId]: boards } } : {}),
     // (FR7 FIXES B — A SEAT IS NOT A PLAY: each player's OWN node of the match, as a real match leaves it; opts.noProof = the uids that wrote
     //  nothing — a forged seat)
-    ...proofNodes(id, game.matchId, uids.filter(u => !(opts.noProof || []).includes(u))),
+    ...proofNodes(id, game.matchId, uids.filter(u => !(opts.noProof || []).includes(u)), game),
   });
   return { code, matchId: game.matchId, game };
 }
@@ -1482,6 +1485,77 @@ test('THE CONSOLE FIX — THE DROPPED LEADER (PRISM DROP + OVERCLOCK): a player 
   tick();
 });
 
+// THE BEFORE-LAUNCH PASS — HOST TRUST (docs/match-kit.md "WHAT THIS DOES NOT CLOSE"): the host-graded games' results against the players' OWN
+// signed data — a modified HOST or RIVAL refused / no credit; the honest match unchanged; a refusal is a SEALED WRECK (no later path pays it)
+test('THE BEFORE-LAUNCH PASS — HOST TRUST: PRISM DROP\'s board cap + the bound\'s lost place + a live board put out; OVERCLOCK\'s re-grade; the sealed wreck; the snapshot\'s quick move-on', async () => {
+  const { maxRushScore } = await import('../../js/core/match-report.js');
+  const U = ['u-bl1', 'u-bl2'];
+  for (const u of U) await ensure(u, u.slice(-3).toUpperCase());
+  const pidOf2 = async u => val(`uids/${u}`);
+  // (1) PRISM RUSH — the HOST (u-bl2, second) writes himself 99,999 over his own board's 35,000 → capped: the real leader keeps the win
+  tick(60_000);
+  const R = await seedRoom('prism', U, { mode: 'rush' });
+  await ref(`rooms/${R.code}/meta/hostId`).set(U[1]);
+  await ref(`rooms/${R.code}/game/results/${U[1]}/sc`).set(99_999);
+  await ref(`rooms/${R.code}/night/${R.matchId}/p`).set({ [U[0]]: 2, [U[1]]: 3 });   // (his night record agrees with his game)
+  const r1 = await report(U[1], R);
+  const o1 = (await val(`results/${R.code}_${R.matchId}`)).o;
+  assert.equal(r1.status, 'counted');
+  assert.equal(o1[await pidOf2(U[0])].win, true, 'the leader by her own board wins');
+  assert.equal(o1[await pidOf2(U[1])].win, false, 'the host capped at his board: no win');
+  // (2) PRISM RUSH — a modified RIVAL (u-bl2) writes a board past THE RUSH BOUND (inside the rules' own) — the honest host copies it → it loses the place
+  tick(60_000);
+  const big = maxRushScore(60, 200) + 5000;
+  const V = await seedRoom('prism', U, { mode: 'rush' });
+  await ref(`rooms/${V.code}/game/results/${U[1]}/sc`).set(big);
+  await ref(`rooms/${V.code}/prism/${V.matchId}/${U[1]}/sc`).set(big);
+  await ref(`rooms/${V.code}/night/${V.matchId}/p`).set({ [U[0]]: 2, [U[1]]: 3 });
+  await report(U[0], V);
+  const o2 = (await val(`results/${V.code}_${V.matchId}`)).o;
+  assert.equal(o2[await pidOf2(U[1])].win, false, 'past the bound: no win');
+  assert.equal(o2[await pidOf2(U[0])].win, true, 'the honest player wins');
+  assert.notEqual(await val(`lb/prism-rush/all/${await pidOf2(U[1])}`), big, 'and never that record');
+  // (3) PRISM BATTLE — the host put the rival out while her board still said `play`, saved a second before → a sealed wreck
+  tick(60_000);
+  const B = await seedRoom('prism', U);
+  const outAt = (await val(`rooms/${B.code}/game/out/${U[1]}/at`));
+  await ref(`rooms/${B.code}/prism/${B.matchId}/${U[1]}`).set({ st: 'play', at: outAt - 1000, sc: 100, ln: 2 });
+  await rejects(report(U[0], B), 409, 'mismatch');
+  const w = await val(`results/${B.code}_${B.matchId}`);
+  assert.ok(w && w.st === 'done' && /live board/.test(w.bad), `sealed as a wreck (${JSON.stringify(w)})`);
+  assert.equal((await report(U[1], B, clock, { matchId: B.matchId })).outcome, null, 'every later report: nothing');
+  assert.ok(((await val('logstats/wreck')) || {}).n >= 1, 'the quiet count');
+  // (4) OVERCLOCK — the host lowers the rival's right answers in one challenge → refused (the re-grade), sealed
+  tick(60_000);
+  const O = await seedRoom('overclock', U, { mode: 'quick' });
+  await ref(`rooms/${O.code}/game/results/3/${U[0]}/ok`).set(1);
+  await rejects(report(U[1], O), 409, 'mismatch');
+  assert.match((await val(`results/${O.code}_${O.matchId}`)).bad, /overclock: the right answers \(challenge 4\)/);
+  // …and his own points up — refused
+  tick(60_000);
+  const O2 = await seedRoom('overclock', U, { mode: 'quick' });
+  await ref(`rooms/${O2.code}/game/results/0/${U[1]}/pts`).set(160);
+  await rejects(report(U[1], O2), 409, 'mismatch');
+  // the honest OVERCLOCK final: counted as ever, a 2-player win
+  tick(60_000);
+  const O3 = await seedRoom('overclock', U, { mode: 'quick' });
+  const r3 = await report(U[0], O3);
+  assert.equal(r3.status, 'counted'); assert.equal(r3.outcome.win, true);
+  // (5) THE SNAPSHOT's QUICK MOVE-ON: the host walks the room back 1 s after the final, before anyone reported → never paid from the placings
+  tick(60_000);
+  const S = await seedRoom('overclock', U, { mode: 'quick' });
+  const nightAt = (await val(`rooms/${S.code}/night/${S.matchId}/at`));
+  await ref(`rooms/${S.code}`).update({ game: null, 'meta/status': 'lobby', 'meta/back': { at: nightAt + 1000, m: S.matchId, g: 'overclock', rm: true } });
+  await rejects(report(U[1], S, clock, { matchId: S.matchId }), 409, 'mismatch');
+  // …a walk back after the podium (≥ 5 s) with nobody's report yet: the placings, as before
+  tick(60_000);
+  const S2 = await seedRoom('overclock', U, { mode: 'quick' });
+  const n2 = (await val(`rooms/${S2.code}/night/${S2.matchId}/at`));
+  await ref(`rooms/${S2.code}`).update({ game: null, 'meta/status': 'lobby', 'meta/back': { at: n2 + 30_000, m: S2.matchId, g: 'overclock', rm: true } });
+  assert.equal((await report(U[0], S2, clock, { matchId: S2.matchId })).status, 'counted');
+  tick();
+});
+
 // FR7 FIXES B — A SEAT IS NOT A PLAY (the owner's add-on — Grok's second opinion): EVERY credited uid needs its OWN node of THIS match in
 // THIS room (api/report.js#PROOF_TREES) — a seat alone is nothing
 test('FR7 FIXES B — A SEAT IS NOT A PLAY: a seated guest who wrote nothing gets nothing (no 2-player win for the host); a real match as before; challenge 0 skipped still counts', async () => {
@@ -1534,7 +1608,7 @@ test("FR7 FIXES B — a REMATCH started before A's report landed: A still credit
   await ensure('u-rm1', 'REMONE'); await ensure('u-rm2', 'REMTWO');
   const A = await seedRoom('prism', ['u-rm1', 'u-rm2']);
   // the rematch: a new match B is running; A's game blob is gone, its night record + its proof nodes stay
-  const B = finalGame('prism', ['u-rm1', 'u-rm2'], {}); B.matchId = 'mB' + A.matchId.slice(2); B.phase = 'play';
+  const B = finalGame('prism', ['u-rm1', 'u-rm2'], {}); B.matchId = 'mB' + A.matchId.slice(2); B.phase = 'play'; B.go = clock + 30_000;   // (the rematch's start stamp — after A's podium)
   await ref(`rooms/${A.code}`).update({ game: B, 'meta/status': 'playing', [`prism/${B.matchId}`]: { 'u-rm1': { st: 'play', at: clock } } });
   const r = await report('u-rm2', A, clock, { matchId: A.matchId });
   assert.equal(r.status, 'counted', `A counted after the rematch began (${r.status})`);
@@ -1550,7 +1624,7 @@ test("FR7 FIXES B — a REMATCH started before A's report landed: A still credit
 // never turns the other's win into a solo run; a seated guest whose phone never entered play still gets nothing
 test("FR7 FIXES B — PRESENT = PROVEN: a player who never taps is a counted loss; the other's 2-player WIN stands (OVERCLOCK + PRISM DROP)", async () => {
   const { XP } = await import('../../js/core/ranks.js');
-  for (const [g, silent] of [['overclock', { 0: { p: 0, ok: 0, n: 3, done: false, at: clock } }], ['prism', { st: 'play', at: clock, sc: 0, ln: 0 }]]) {
+  for (const [g, silent] of [['overclock', { 0: { p: 0, ok: 0, n: 3, done: false, at: clock } }], ['prism', { st: 'out', at: clock, sc: 0, ln: 0 }]]) {   // (THE BEFORE-LAUNCH PASS: a silent PRISM player's pieces lock by themselves — his board TOPS OUT; a `play` board put out is refused now)
     const a = `u-pp${g[0]}1`, b = `u-pp${g[0]}2`;
     await ensure(a, `PRES${g[0].toUpperCase()}A`); await ensure(b, `PRES${g[0].toUpperCase()}B`);
     const R = await seedRoom(g, [a, b], { noProof: [b] });
@@ -2367,7 +2441,8 @@ test('FR7-A C1 — THE REAL PLAYER COUNT: the 5,001-name forgery is refused; gho
   /** a room its "host" wrote by hand: only the host seated, a night record of its own making (the snapshot path's whole input) */
   const forge = async (uid, code, m, p, g = 'prism') => {
     // (FR7 FIXES B: the caller's own node of the match — what a real player leaves; the ghosts have none)
-    await ref(`rooms/${code}`).set({ meta: { hostId: uid, status: 'lobby', createdAt: clock, activeAt: clock }, players: { [uid]: seat(uid) }, night: { [m]: { g, at: clock, p } }, ...proofNodes(g, m, [uid]) });
+    // (THE BEFORE-LAUNCH PASS: + the walk back's stamp, 30 s after the record — a host-graded match moved on sooner is a wreck on this path)
+    await ref(`rooms/${code}`).set({ meta: { hostId: uid, status: 'lobby', createdAt: clock, activeAt: clock, back: { at: clock + 30_000, m, g, rm: true } }, players: { [uid]: seat(uid) }, night: { [m]: { g, at: clock, p } }, ...proofNodes(g, m, [uid]) });
     return { code, matchId: m };
   };
   const snapOf = room => ({ matchId: room.matchId });
@@ -2440,7 +2515,7 @@ test('FR7-A C1 — THE REAL PLAYER COUNT: the 5,001-name forgery is refused; gho
   const snap2 = ['u-rs1', 'u-rs2'];
   for (const u of snap2) await ensure(u, u.slice(2).toUpperCase());
   const S = await seedRoom('prism', snap2);
-  await ref(`rooms/${S.code}/game`).set(null);
+  await ref(`rooms/${S.code}`).update({ game: null, 'meta/back': { at: clock + 30_000, m: S.matchId, g: 'prism', rm: true } });   // (the walk back after the podium)
   const os = await paid(S, snap2, 2, snap2[0], snapOf(S));
   assert.equal(os.find(x => x.win).xp.gain, XP.played + XP.win + XP.newGame, 'the snapshot path: a 2-player win pays the same 95');
   // a player who LEFT after the match (no seat now, an account the server knows) still counts: the winner of three keeps the 3-player win
@@ -3240,7 +3315,7 @@ test('CITY PART 1 — OVERCLOCK = ONE BOARD: a room QUICK match writes both play
   assert.equal(((await val(`pstats/${P['u-oq4']}/g/overclock/p`)) || 0), 1, '…but it counted');
   tick(5 * 60_000);
   const forged = await seedRoom('overclock', ['u-oq5', 'u-oq6'], { mode: 'quick', ocPts: 9999 });
-  assert.equal((await report('u-oq5', forged)).status, 'counted', 'the match still counts');
+  await rejects(report('u-oq5', forged), 409, 'mismatch');   // (THE BEFORE-LAUNCH PASS — THE SERVER's RE-GRADE: was "the match still counts, no row")
   assert.equal(await val(`lb/overclock-quick/all/${P['u-oq5']}`), null, 'the forged 9,999 a challenge: refused — no board row');
   // THE SEED: an old QUICK · SOLO best → BEST QUICK RUN at the BACK-FILL, once (a second run = the same)
   const old = { a: 1234 };

@@ -33,7 +33,9 @@ import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
 import { applyMatch, wouldApply, needsRetry, mergeOutcomes, MIN_MATCH_GAP_MS } from './_lib/stats.js';
 import { bumpPlayed } from './_lib/activity.js';
-import { extractMatch, unreportable, REPORT_GAMES, DEALER_GAMES, SOLO_OK } from '../js/core/match-report.js';
+import { extractMatch, unreportable, REPORT_GAMES, DEALER_GAMES, SOLO_OK, prismVerify, movedOnAt } from '../js/core/match-report.js';
+import { ocRegrade } from '../js/games/overclock/regrade.js';
+import { ocBank } from './_lib/oc-banks.js';
 import { GAMES, MAX_PLAYERS } from '../js/config.js';
 import { regradeBoards, computeRoundResults } from '../js/games/cipher/logic.js';
 import { holdemAction, clockNow } from './_lib/holdem-store.js';
@@ -106,6 +108,14 @@ export { jaywalkSolo, jaywalkMatch };
 export { highriseSolo, highriseMatch };
 /** THE CONSOLE FIX — Group 2: the host-graded games whose result must name every player their own boards prove (THE DROPPED LEADER) */
 export const DROP_GUARD = Object.freeze(['prism', 'overclock']);
+/**
+ * THE BEFORE-LAUNCH PASS — HOST TRUST (docs/match-kit.md "WHAT THIS DOES NOT CLOSE", updated): a host-graded match (DROP_GUARD) whose
+ * result the server refuses is SEALED AS A WRECK — results/{key} done with nobody's outcome (+ the quiet count logstats/wreck): a refusal
+ * can never be followed by a later report that slips through another path (the snapshot's placings, after the host moved the room on).
+ * A wreck, never a win. → throws 409 'mismatch'.
+ */
+export const SNAP_GRACE_MS = 5000;
+export { movedOnAt };   // (PURE — core/match-report.js: when the room moved on from a match, by the server's own stamps)
 export const PROOF_GAMES = Object.freeze({
   jaywalk: Object.freeze({ node: 'jw', solo: jaywalkSolo, match: jaywalkMatch, live: jaywalkLive }),
   highrise: Object.freeze({ node: 'hr', solo: highriseSolo, match: highriseMatch, live: highriseLive }),
@@ -284,7 +294,7 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
     if (game.phase !== 'final') throw new ApiError(425, 'not_final', 'The match is still running.');
     if (jwMatch) await holdLive();
     if (!(jwMatch && goers.includes(uid)) && (!game.participants || !game.participants[uid])) throw new ApiError(403, 'not_in_match');   // (a proof match: a player the tree proves may report, named or not)
-    if (game.id !== night.g) throw new ApiError(409, 'mismatch', 'The match doesn’t match its record.');
+    if (game.id !== night.g) { if (DROP_GUARD.includes(night.g)) await wreck(key, uid, now, 'the game'); throw new ApiError(409, 'mismatch', 'The match doesn’t match its record.'); }
     if (jwMatch && game.unproven) throw new ApiError(409, 'unverifiable', 'This match was played without its proof.');
     try { ex = extractMatch(jwSolo ? await jwGame() : jwMatch ? await jwMatchGame(Object.keys(game.participants)) : game, { pulseCounts: loadPulseCounts() }); } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(409, 'unverifiable', e.message); }
     // the placings the host computed must be the night record's
@@ -295,8 +305,25 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
     const old = !ex.solo && isAllTied(ranks) ? Object.fromEntries(ranks.map(r => [r.uid, 3])) : null;
     const same = w => ranks.every(r => (w[r.uid] || 0) === ((night.p || {})[r.uid] || 0));
     const agree = jwMatch || ((same(want) || (old && same(old))) && Object.keys(night.p || {}).every(u => ex.rows[u]));
-    if (!agree) throw new ApiError(409, 'mismatch', 'The placings don’t match the room.');
+    if (!agree) { if (DROP_GUARD.includes(game.id)) await wreck(key, uid, now, 'placings'); throw new ApiError(409, 'mismatch', 'The placings don’t match the room.'); }
     if (game.id === 'cipher' && !cipherAgrees(game, await val(`rooms/${code}/boards/${matchId}`), code)) throw new ApiError(409, 'mismatch', 'The results don’t match the players’ boards.');
+    // THE BEFORE-LAUNCH PASS — HOST TRUST: the host-graded games' results against the players' OWN signed data (a refusal = a sealed wreck)
+    // (a scripted UI E2E's hand-made finals — e2e-profiles' podiums — on the LOCAL EMULATORS only: never honoured in production)
+    const trustOff = emulated() && (await val('testHostTrustOff')) === true;
+    if (game.id === 'prism' && !trustOff) {
+      // (the boards: only each player writes theirs, bounded by the play clock — SCORE RUSH capped at them + past THE RUSH BOUND loses its
+      //  place; BATTLE / SURVIVAL: a live board put out refuses the match — match-report.js#prismVerify)
+      const P = prismVerify(game, await val(`rooms/${code}/prism/${matchId}`));
+      if (P.bad) await wreck(key, uid, now, `prism: ${P.bad}`);
+      if (P.capped.length || P.voided.length) console.warn('prism rush corrected', key, 'capped', P.capped.join(','), 'past the bound', P.voided.join(','));
+      if (P.game !== game) { try { ex = extractMatch(P.game, { pulseCounts: loadPulseCounts() }); } catch (e) { throw new ApiError(409, 'unverifiable', e.message); } }
+    }
+    if (game.id === 'overclock' && !trustOff) {
+      // (THE SERVER's RE-GRADE — js/games/overclock/regrade.js: every challenge rebuilt from the seed + the deal + the sealed picks + the boards)
+      const [ocTree, sealTree] = await Promise.all([val(`rooms/${code}/oc/${matchId}`), val(`seal/${code}/oc/${matchId}`)]);
+      const R = ocRegrade(game, { oc: ocTree || {}, seal: sealTree || {}, bank: ocBank });
+      if (!R.ok) await wreck(key, uid, now, `overclock: ${R.why}${R.ci != null ? ` (challenge ${R.ci + 1})` : ''}`);
+    }
   } else if (jwSolo) {
     // (the room moved on — HOP AGAIN started the next run: this run's proof node is still there (the next start keeps it) → the same replay)
     try { ex = extractMatch(await jwGame(), {}); } catch (e) { throw new ApiError(409, 'unverifiable', e.message); }
@@ -311,6 +338,12 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   } else if (body.snap && typeof body.snap === 'object' && body.snap.matchId === matchId) {
     // the room moved on (a rematch): the PLACINGS from the night record only — never a client's game blob
     if (!(night.p && Object.prototype.hasOwnProperty.call(night.p, uid))) throw new ApiError(403, 'not_in_match');
+    // THE BEFORE-LAUNCH PASS — HOST TRUST: a host-graded match of 2+ moved on before anyone could report it (the honest phones report the
+    // moment it ends; the checks above need its final game) — never paid from the placings alone: a wreck. (A solo run is its own host.)
+    if (DROP_GUARD.includes(night.g) && Object.keys(night.p || {}).length >= 2) {
+      const moved = movedOnAt(matchId, game, meta);
+      if (moved == null || moved - night.at < SNAP_GRACE_MS) await wreck(key, uid, now, moved == null ? 'moved on (no stamp)' : 'moved on before its report');
+    }
     ex = placingsOnly(night); src = 'snap';
   } else {
     throw new ApiError(409, 'unverifiable', 'This match can’t be checked against its room any more.');
@@ -327,7 +360,7 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
     // (THE CONSOLE FIX — Group 2, THE DROPPED LEADER for the HOST-GRADED games (the proof pass closed it for JAYWALK + HIGH RISE): the
     //  host names the players at the start (host.js — never changed in a match) and the rules take a board only from one of them; at his
     //  `final` he left the leader out of the list + the night record → the leader's own board proves he played: never counted that way)
-    if (DROP_GUARD.includes(ex.gid)) { const names = new Set(named); for (const u of proven) if (!names.has(u)) throw new ApiError(409, 'mismatch', 'A player of this match is missing from its result.'); }   // (THE FRESH-EYES REVIEW: seated or not — deleting the leader's seat too slipped past)
+    if (DROP_GUARD.includes(ex.gid)) { const names = new Set(named); for (const u of proven) if (!names.has(u)) { await wreck(key, uid, now, 'a dropped player').catch(() => {}); throw new ApiError(409, 'mismatch', 'A player of this match is missing from its result.'); } }   // (THE FRESH-EYES REVIEW: seated or not — deleting the leader's seat too slipped past)
   }
   const playedIt = u => !proven || proven.has(u);
   // credit only uids with a SEAT in the room (players/{uid}) — a name in night.n is not a player — AND (FR7 FIXES B) their own proof
@@ -374,6 +407,13 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   return credit({ key, uid, myPid, ex, pids, now, room: { code, meta, win }, at, src });
 }
 
+/** (THE BEFORE-LAUNCH PASS — HOST TRUST: SNAP_GRACE_MS above) a refused host-graded match sealed as a wreck — results/{key} done with nobody's outcome + logstats/wreck → 409 */
+async function wreck(key, uid, now, why) {
+  console.warn('host-graded match refused', key, why);
+  await ref(`results/${key}`).transaction(cur => (cur && cur.st === 'done' ? undefined : { st: 'done', at: now, by: uid, o: {}, bad: String(why).slice(0, 80) })).catch(() => {});
+  await ref('logstats/wreck').transaction(cur => ({ n: ((cur && cur.n) || 0) + 1, last: now })).catch(() => {});
+  throw new ApiError(409, 'mismatch', 'The results don’t match the players’ own boards.');
+}
 /** the verified match → the players' stats (one processor at a time; M4's resend keeps the checked extract — THE DROP A Group 0 (c)) */
 async function credit({ key, uid, myPid, ex, pids, now, room, at, src }) {
   const { code, meta, win } = room;

@@ -405,6 +405,28 @@ await H.run(async () => {
 
   if (TOUGH_ONLY) { await toughness(host); return; }
 
+  // ---------------------------------------------------------- THE BEFORE-LAUNCH PASS — THE TABLE IS NEVER TAKEN AWAY (docs/holdem.md): a
+  // MODIFIED host moves the room back to its lobby mid-table — the dealer (the server) plays on; every seated phone STAYS at the table
+  // (HOLD'EM's own holdsRun — app.js's RUN HOLD), reads the table by its own listener, keeps playing; the room back → nothing held any more
+  if (FAST) {
+    const dbGet = path => fetch(`${DB}/${path}.json?ns=${NS}`, { headers: { Authorization: 'Bearer owner' } }).then(r => r.json());
+    const dbPatch = (path, v) => fetch(`${DB}/${path}.json?ns=${NS}`, { method: 'PATCH', headers: { Authorization: 'Bearer owner' }, body: JSON.stringify(v) });
+    const heldOf = p => p.evaluate(() => ({ route: window.__arcade.route(), holds: !!(window.__holdem && window.__holdem.holds()), own: !!(window.__holdem && window.__holdem.ownTable()), on: !!(globalThis.__nsRunHold && globalThis.__nsRunHold.on), code: window.__arcade.state.code })).catch(() => null);
+    const gSaved = await dbGet(`rooms/${H.code}/game`), seq0 = (await pub(pages[1])).seq;
+    await dbPatch(`rooms/${H.code}`, { game: null, 'meta/status': 'lobby' });
+    log("THE MOVE — the room back to its lobby while the table's hand is live");
+    await sleep(3000);
+    const held = await Promise.all(alive().map(i => heldOf(pages[i])));
+    ok(held.every(r => r && r.route.startsWith('game:') && r.holds && r.own && r.on && r.code === H.code), `THE TABLE IS NEVER TAKEN AWAY: every seated phone stays at the live table through the moved-on room, on its own listener (${JSON.stringify(held.map(r => r && [r.route.split(':')[0], r.holds, r.own]))})`);
+    await playOn(8000, new Set());
+    const seq1 = (await pub(pages[1])).seq;
+    ok(seq1 > seq0, `…the dealer plays on and a held phone sees every move (seq ${seq0} → ${seq1})`);
+    await dbPatch(`rooms/${H.code}`, { game: gSaved, 'meta/status': 'playing' });
+    await sleep(2500);
+    const back = await Promise.all(alive().map(i => heldOf(pages[i])));
+    ok(back.every(r => r && r.route.startsWith('game:') && !r.on && !r.own), `the room back: every phone on the live table, nothing held (${JSON.stringify(back.map(r => r && [r.on, r.own]))})`);
+  }
+
   if (FAST) {
     // ---------------------------------------------------------- FAST: a whole TURBO match at 3 — shoves to a winner, the podium, the room
     // (HE4: the first BUST — the busted phone shows THE KO CARD (a fresh bust), then SPECTATING in its own area; the seat goes on the others)

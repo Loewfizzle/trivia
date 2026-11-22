@@ -9,7 +9,7 @@ import { startOf, newMatchId, GO_ORPHAN_MS, goWaiting } from './core/room-show.j
 import { minPlayersOf, rematchSettingsOf, frameProblems } from './games/cartridge.js';
 import { state, isHost, onlineMap, setState, subscribe } from './store.js';
 import { setHostGone, setWoke, expectRefusal } from './firebase.js';
-import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE, staleProofPaths, isSoloMeta, soloSettings } from './core/room-logic.js';
+import { shouldClaimHost, isOnline, roomIdle, gameRunning, GAME_ON_LINE, staleProofPaths, REPORT_LOCK_NODES, isSoloMeta, soloSettings } from './core/room-logic.js';
 import { closeIdleRoom, createSoloRoom, leaveRoom } from './room.js';
 import { loadProfile } from './identity.js';
 import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
@@ -320,7 +320,8 @@ async function startGameNow(gameId, settings, quick = false) {
   }
   const { $room, ...game } = created;
   inflight = { sig: '', at: 0 };
-  wipeSeal(state.code);
+  // (BEFORE-LAUNCH: a match's seal can be the server's evidence (OVERCLOCK's re-grade — the rules keep it): a start from a podium keeps it)
+  if (!(state.game && state.game.matchId)) wipeSeal(state.code);   // (from the lobby only)
   await update(dbRef(`rooms/${state.code}`), {
     game: { ...game, go: serverTimestamp() },   // (the start's stamp in the match's own write too — core/room-show.js#goOf: the show never waits on a rules re-publish)
     ...($room || {}),
@@ -430,7 +431,8 @@ async function pruneProofs(code, keep) {
   try {
     const trees = {};
     await Promise.all(PROOF_NODE_LIST.map(async n => { const v = (await get(dbRef(`rooms/${code}/${n}`))).val(); if (v) trees[n] = v; }));
-    const gone = staleProofPaths(trees, keep, { nodes: LOCKED_PROOF_NODES, uid: state.uid, now: serverNow() });   // (THE LIVE LOCK: a tree the rules still hold waits for a later start)
+    const night = REPORT_LOCK_NODES.some(n => trees[n]) ? (await get(dbRef(`rooms/${code}/night`)).catch(() => null))?.val?.() || {} : {};
+    const gone = staleProofPaths(trees, keep, { nodes: LOCKED_PROOF_NODES, uid: state.uid, now: serverNow(), reportNodes: REPORT_LOCK_NODES, night });   // (THE LIVE LOCK + THE REPORT LOCK: what the rules hold waits)
     if (Object.keys(gone).length) await update(dbRef(`rooms/${code}`), gone).catch(() => {});
   } catch { /* polish: the room's deletion cleans the rest */ }
 }

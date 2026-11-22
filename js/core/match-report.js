@@ -287,13 +287,73 @@ function prismExtra(game, uid, out, row, ctx, win) {
   // streak day, no lane count) — a hidden-time run never pays more than a played one. Old results with no `sd` are left alone.
   if (mode === 'survival' && n === 1 && r.sd != null && r.t != null && num(r.t) > survivalCap(num(r.sd))) { out.rejected.push({ uid, board: 'prism-survival', v: num(r.t) }); out.hidden = 1; }
   if (!game.settings || game.settings.mode !== 'rush') return;
-  const sc = num(r.sc), ln = num(r.ln);
-  const sd = vals(game.sd).map(num);
-  const sec = Math.min(RUSH_MAX_S, Math.max(30, sd.reduce((s, x) => s + x, 0) / 1000 || RUSH_MAX_S));
-  // (one song, never longer than the longest there is: anything else is a host's own numbers)
-  const bad = sd.length > 1 || sd.some(x => !(x > 0) || x > RUSH_MAX_S * 1000);
-  if (bad || sc < 0 || ln < 0 || ln > maxRushLines(sec) || sc > maxRushScore(ln, sec)) { out.rejected.push({ uid, board: 'prism-rush', v: sc }); return; }
+  const sc = num(r.sc);
+  if (rushOutOfBounds(game, r)) { out.rejected.push({ uid, board: 'prism-rush', v: sc }); return; }
   if (sc > 0) out.rec['prism-rush'] = sc;
+}
+/** a SCORE RUSH's length in seconds, from the song the host wrote (game.sd) — one song, 30 s … RUSH_MAX_S; `bad` = more than one song or one
+ *  longer than the longest there is (a host's own numbers) */
+export function rushSec(game) {
+  const sd = vals(game && game.sd).map(num);
+  return { sec: Math.min(RUSH_MAX_S, Math.max(30, sd.reduce((s, x) => s + x, 0) / 1000 || RUSH_MAX_S)), bad: sd.length > 1 || sd.some(x => !(x > 0) || x > RUSH_MAX_S * 1000) };
+}
+/** a SCORE RUSH row past THE RUSH BOUND (maxRushLines / maxRushScore — the sim's best runs × the margin) — never a record, never a placing */
+export function rushOutOfBounds(game, r) {
+  const { sec, bad } = rushSec(game), sc = num(r && r.sc), ln = num(r && r.ln);
+  return bad || sc < 0 || ln < 0 || ln > maxRushLines(sec) || sc > maxRushScore(ln, sec);
+}
+
+/**
+ * THE BEFORE-LAUNCH PASS — HOST TRUST for PRISM DROP (docs/games/passes/console-fix.md's ranked list, items 1 + 3 — the owner approved them;
+ * docs/prism.md "HOST TRUST"). PURE: the room's final `game` + the players' OWN signed boards (rooms/{CODE}/prism/{matchId} — only each player
+ * writes theirs, the rules bound every field by the play clock, frozen once out) → { game, bad, capped, voided }:
+ * - SCORE RUSH — THE BOARD CAP: a row's score + lines are never above that player's own board (a host who wrote himself a bigger number gets
+ *   his board's; an honest host copies the boards at the end — the score only ever grows, so an honest row is never above it).
+ * - SCORE RUSH — PAST THE BOUND LOSES THE PLACE (item 3): a row past THE RUSH BOUND (a modified rival's own board can say any number the
+ *   rules allow) is ranked with a score of 0 — it loses its win / its placing, not just its record.
+ * - BATTLE / SURVIVAL — A LIVE BOARD IS NEVER PUT OUT (item 1): the host put a player out (any place below 1) whose own board still says
+ *   `play` and was saved within PRISM_FRESH_MS of that out — an honest director only puts out a board that topped out (`st: 'out'`), went
+ *   quiet for OFFLINE_OUT_MS (30 s) or whose phone went offline as long → `bad` (the match is refused). A solo run (one player) is its own host.
+ * `game` = the corrected copy the server credits from (the same object when nothing changed); the host's own placings are still checked
+ * against the night record on the ORIGINAL (api/report.js).
+ */
+export const PRISM_FRESH_MS = 10_000;
+/** THE BEFORE-LAUNCH PASS — PURE: when the room moved on from `matchId`, by the server's own stamps (the walk back's meta/back { at: now, m },
+ *  a rematch's game.go / meta/go { at, m }) — null unknown. api/report.js: a host-graded match of 2+ moved on within SNAP_GRACE_MS of its
+ *  night record is never paid from its placings alone (the snapshot path) */
+export function movedOnAt(matchId, game, meta) {
+  const m = meta || {};
+  if (m.back && m.back.m === matchId && typeof m.back.at === 'number') return m.back.at;
+  if (game && game.matchId && game.matchId !== matchId && typeof game.go === 'number') return game.go;
+  if (m.go && m.go.m && m.go.m !== matchId && typeof m.go.at === 'number') return m.go.at;
+  return null;
+}
+export function prismVerify(game, boards) {
+  const B = boards && typeof boards === 'object' ? boards : {};
+  const mode = game && game.settings && game.settings.mode, uids = Object.keys((game && game.participants) || {});
+  const out = { game, bad: null, capped: [], voided: [] };
+  if (!game || game.id !== 'prism') return out;
+  if (mode === 'rush') {
+    const res = { ...(game.results || {}) };
+    let changed = false;
+    for (const uid of uids) {
+      const r = res[uid]; if (!r) continue;
+      const b = B[uid] || {}, own = { sc: Math.max(0, num(b.sc)), ln: Math.max(0, num(b.ln)) };
+      let x = r;
+      if (num(r.sc) > own.sc || num(r.ln) > own.ln) { x = { ...x, sc: Math.min(num(r.sc), own.sc), ln: Math.min(num(r.ln), own.ln) }; out.capped.push(uid); }
+      if (rushOutOfBounds(game, x)) { x = { ...x, sc: 0 }; out.voided.push(uid); }
+      if (x !== r) { res[uid] = x; changed = true; }
+    }
+    if (changed) out.game = { ...game, results: res };
+    return out;
+  }
+  if (uids.length < 2) return out;
+  for (const [uid, o] of Object.entries(game.out || {})) {
+    if (!o || !uids.includes(uid)) continue;
+    const b = B[uid];
+    if (b && b.st !== 'out' && Number(b.at) > Number(o.at) - PRISM_FRESH_MS) { out.bad = `a live board put out (${uid})`; return out; }
+  }
+  return out;
 }
 
 function slipExtra(game, uid, out) {
