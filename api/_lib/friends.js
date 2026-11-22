@@ -67,11 +67,11 @@ export async function boardTable(pid, b, now = Date.now()) {
   const def = boardDef(String(b || ''));
   if (!def || def.kind !== 'record') fail(400, 'bad_board');
   const pids = [pid, ...tablePids(await node(pid), pid, null, now)];
-  const [vals, faces] = await Promise.all([Promise.all(pids.map(p => val(`pstats/${p}/b/${def.id}/a`))), publicFaces(pids)]);
+  const [vals, faces] = await Promise.all([Promise.all(pids.map(p => val(`pstats/${p}/b/${def.id}/a`))), publicFaces(pids, { av: def.avg ? def.id : null })]);   // (JT2: + the board's AVERAGE)
   const rows = [];
   pids.forEach((p, i) => {
     if (vals[i] == null || typeof vals[i] !== 'number') return;
-    const face = faces[p] || (p === pid ? { id: boardId(pid), n: 'YOU' } : null);
+    const face = faces[p] || (p === pid ? { id: boardId(pid), n: 'YOU', ...(def.avg ? { av: null } : {}) } : null);
     if (face) rows.push({ ...face, v: vals[i], ...(p === pid ? { me: true } : {}) });
   });
   rows.sort((x, y) => (def.dir === -1 ? x.v - y.v : y.v - x.v) || (x.me ? -1 : y.me ? 1 : 0));

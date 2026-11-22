@@ -35,6 +35,7 @@ import map); the RULES are a pure engine that never knows about it.
 | J3 — THE DAILY: TIME BOARDS · THREE TRIES ALL DAY · THE RED SNEAKER | Nov 21 2026 | `docs/games/passes/jaywalk-j3.md` | THE TIME BOARDS on the daily's SCORES · TODAY (MOST LANES · FASTEST TO 50 · TO 100 … — the day's split board from the server's replay splits, best of 3 per split, ties share a place, a VIEW) · the share card's best-time line · THREE TRIES ALL DAY (no STOP, COME BACK LATER, the ticket from the server's tries until the 3rd try / 4 am) · THE SNEAKER's upper NEON RED. No rules change |
 | J4 — WINTER: SNOW · CHRISTMAS · WET NEON STREETS | Nov 21 2026 | `docs/games/passes/jaywalk-j4.md` | a VIEW only: THE SEASON CLOCK (`season.js` — winter Dec 1 → Mar 1, Christmas Dec 1 → Jan 6, snow on half the days + always Dec 24–25), the snowy ground + plowed roads + snow on the tops, snow pines · lit Christmas trees (presents baked in) · snowmen from THE SEASONAL PACK (53 KB, outside the line), THE FALLING SNOW (one draw, never over the lane ahead), WET NEON STREETS (ships OFF — `&wet=1`), the lab's `&date=` `&snow=` `&wet=`. No rules change |
 | JT1 — SEASONS: ROOM FIRST · AUTUMN · THE HATS · FOOTPRINTS · NEW YEAR'S | Nov 22 2026 | `docs/games/passes/jaywalk-jt1.md` | a VIEW only: every seasonal layer is THE SEASONAL PACK's (`seasonal.js` + `seasonal-fx.js` + `season.js` + `fireworks.js` + J4's models — lazy, a season day only; the start bundle asks `season-gate.js`); AUTUMN Oct 20 → Nov 30 (turned trees, golden grass, fallen + drifting leaves, LEAF PILES that burst), the Santa hat Dec 1–31 + the party hat Jan 1 (in the kid's own geometry), FOOTPRINTS + a snow puff, NEW YEAR'S fireworks over the skyline (the finale before local midnight); the lab's `&clock=` · `&hat=0`. No rules change |
+| JT2 — TOUCH-UP: ROOM · THE MATCH FLAKE · THE FRIEND LINE · TAP TO START · THE CONTROLLER · BEST · AVG | Nov 22 2026 | `docs/games/passes/jaywalk-jt2.md` | the start bundle's long comment blocks → `docs/games/jaywalk-notes.md` (token-identical code) · THE STEADY BOT (the match flake's root) · the friend tape on the ground, half strength, fading (`lines.js#friendFade`) · TAP TO START (solo + the daily) · THE CONTROLLER (`kit/gamepad.js`) · THE BOARD's AVERAGE (`core/board-avg.js`) |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
 this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
@@ -546,6 +547,47 @@ runway, 8 kids, night — Nov 25 · Dec 10 · Dec 24 heavy · Dec 31 23:59).
 ### THE GAMEPLAY LOCK (`tests/jaywalk-jt1.test.mjs`)
 The rules, the replay, the director, the ghosts + the server's judge never reach the pack, the gate or the scene; the same seeds give the same
 courses, hits + results in summer, Nov 25, Dec 10, Dec 31 + Jan 1 (solo · the daily · a match, v1 + v2); the pack never writes the run or the course.
+
+## JT2 — TOUCH-UP (Nov 22 — the owner; the pass log `docs/games/passes/jaywalk-jt2.md`; the decisions `docs/games/plan.md` "JAYWALK JT2") — no rules change, REPLAY = LIVE untouched
+### ROOM — THE NOTES (`docs/games/jaywalk-notes.md`)
+Every comment block of 2+ lines in the 44 modules JAYWALK preloads moved there VERBATIM (each keeps its first line + " …"; a header keeps a
+pointer line). Token-identical code (acorn's token streams compared, all 45 files). The city + JAYWALK **2,584 → 2,540 KB** at the move; the
+game alone 515 → 470 KB. A pass that changes one of these modules writes its long notes in that doc (or here), one-line comments in code.
+### THE MATCH FLAKE — THE STEADY BOT (`bot.js#steadyBot`; `tests/jaywalk-jt2.test.mjs`)
+The cause (three passes' reds — "85 / 101 the night record", "84 / 103 the watch / call section", "STACKED TAGS MERGE none seen"): the match
+E2E's players were LAZY GREEDY BOTS, and on 1 course in 4 such a bot is out inside 45 s by luck (a car it waited in front of); when ALICE or
+CHARLIE was gone before BOB's step, CALL THE WINNER never opened and ~16–19 checks followed it red. A loaded machine made it likelier (the bot
+was asked once a FRAME, the engine catching up several ticks behind it). THE STEADY BOT searches 8 s (480 ticks) ahead through the real engine
+— a move, then the next choice, backtracking on a death, a dead-state memo — and takes the first move of a run that lives: **0 out of 1,000
+courses in 90 s** (the lazy bot: 189 of 400). Every TEST bot is now asked once a TICK (`view.js#tick`) — a stalled phone makes the same moves.
+The merged name tag is kept by the phone as it SHOWED it (`state().merged`, cleared by `clearMerged()`) — a 1–2 s moment, never polled.
+### THE FRIEND LINE (`night.js` the lines' loop · `lines.js#friendFade`)
+The NEXT FRIEND's tape: thinner (0.22 / 0.26 deep), half strength (0.5), a pale pink core (no white-hot line to bloom), ON THE GROUND at the
+lane's far edge (y 0.06 — a car on its lane hides it, one on the next lane stands clear) and its words DEPTH TESTED (under the traffic — YOUR
+BEST's still read over a van). It FADES as the kid comes: `friendFade(lanes ahead)` = 1 at ≥ 4, 0 at ≤ 1 (smoothstep); the posts sink with
+it; gone = not drawn. The crossing's burst + chime unchanged. The lab: `jaywalk-lab.html?friend=N` (a friend line N lanes ahead) +
+`jaywalk-lab.mjs --jt2=friend` (far / near on a busy road, night + day).
+### TAP TO START (`view.js#showStart` / `#begin`; css `.jw-start`)
+Solo + the daily: the kid on the start line, TAP TO START (30 px, the pink glow — HIGH RISE's start) + TAP TO HOP · SWIPE TO STEP; ☰ + the
+sound + the look reachable; nothing ticks, nothing is written. The FIRST hop / tap / key / pad A starts it: a solo run asks its GO then (THE
+STAMP first — the GO is always ≤ 5 s after `t0`, however long the wait; the E2E waits 60 s) and the tap's hop is the run's first (HOP TO
+START); the daily opens its try then (`D.start` — the try, its 3 · 2 · 1, its clock, THE MOTHERSHIP's 5:00 + the time boards from there).
+THE DAILY's start is VEILED (`.is-veiled`: the course dimmed + blurred, drawn twice a second under the blur) + "YOUR TRY STARTS AT THE TAP";
+leaving before the tap costs nothing. PLAY AGAIN / TRY AGAIN start at once (that tap was the start — `__nsAgainAt`). A refresh mid-run goes
+straight back to its run. Matches unchanged (the host's count). THE ROOM WINS unchanged.
+### THE CONTROLLER (`js/games/kit/gamepad.js` — docs/match-kit.md "THE CONTROLLER")
+JAYWALK wires it lazily (the first `gamepadconnected`, or a pad already there at mount): the D-pad + left stick = `hop(d)` (the swipe's own
+path — the proof sees ordinary hops), A = a tap (TAP TO START / a hop / the next player when watching) or the end card's `[data-pad="a"]`
+(PLAY AGAIN · REMATCH · TRY AGAIN · BACK TO THE DAILIES), B = `[data-pad="b"]` (CITY · ROOM · COME BACK LATER). The first press says
+"🎮 CONNECTED" (`.jw-pad`, ~2 s) and does nothing else. 5.4 KB, never in the start bundle.
+### THE BOARD's AVERAGE (`core/board-avg.js` PURE · `core/progress.js#matchStep` · `api/_lib/stats.js` · `lb.js#topRows`)
+A record board MAY carry `avg: { days, min }` (core/boards.js); only `jaywalk-solo` does (14 · 5). A COUNTED solo run (the server's replay,
+`sv`) adds its lanes (0 too) to `pstats/{pid}/av/{board}` = `{ day: [runs, lanes] }` on its streak day — the 14 most recent PLAYED days
+kept (a break never empties it). The average (one decimal) is written beside the best on the PROFILE (`profiles/{pid}/av/{board}`, null
+under 5 runs) — THE BOARD's rows already read the profile: no extra read. Shown: THE BOARD (app + /board) "296" + "AVG 225" under it (a dash
+under 5), YOUR row at the foot (`/api/profile ranks` → `av`), YOUR TABLE on the end card, the end card's YOUR BEST · 296 · AVG 225 (a NEW
+BEST: the AVG on its own line). Ranking unchanged (BEST). No back-fill: `results/` keeps every counted solo run but not its lanes (only a
+new best + 50-lane splits) — the average builds from the deploy.
 
 ## THE MATCH (H4 — ONE LIFE; the cartridge — hidden: THE OWNER'S LIVE TEST)
 One run each on the SAME course, one life; the others are see-through ghosts; farthest wins, ties → the earlier tick. **Real matches run

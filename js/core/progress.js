@@ -15,6 +15,7 @@ import { noteMatch, noteEvent, awardAll } from './achievements.js';
 import { todaysDailies, sweptDay, dailyXp, SWEEP_XP } from './daily.js';
 import { pointsStep } from './daily-points.js';
 import { splitBests } from './splits.js';
+import { avgStep, avgOf } from './board-avg.js';
 const prevDayKey = d => dayOf(dayNum(d) - 1);
 
 export const KEEP_KEYS = 60;
@@ -140,6 +141,15 @@ export function matchStep(s0, { key, gid, row, n, now, at = now, gap = DEFAULT_G
   // The outcome carries { r: this run's splits, b: the bests after it, n: the splits it made faster } — the end card's NEW BEST marks
   let sp = null;
   if (Array.isArray(row.sp)) { const S = splitBests(s.jsp, row.sp); if (S.changed) next.jsp = S.next; sp = { r: row.sp, b: S.next, n: S.news }; }
+  // JT2 — THE BOARD's AVERAGE (core/board-avg.js): a COUNTED SOLO run the server replayed (`sv`) adds its value to its board's box — the last
+  // 14 PLAYED days (pstats.av/{board} = { day: [runs, total] }); api/_lib/stats.js writes the average beside the profile's best
+  let av = null;
+  if (solo && row.sv === 1 && row.av && typeof row.av === 'object') for (const [board, v] of Object.entries(row.av)) {
+    const def = boardDef(board);
+    if (!def || !def.avg || !(Number(v) >= 0)) continue;
+    next.av = { ...(next.av || s.av || {}), [board]: avgStep(s.av && s.av[board], dk, v, def.avg.days) };
+    (av ||= {})[board] = avgOf(next.av[board], def.avg.min).avg;
+  }
   const xp = solo ? soloXp(day.so || 0) : matchXp({ rank: row.rank, win: row.win, n, pbs: pbs.filter(p => !p.first).length, firstToday, gamesToday });
   if (solo) { day.so = (day.so || 0) + 1; if (!oldWeek) next.gs[gid] = (next.gs[gid] || 0) + 1; }   // (CITY FIXES: the week's solo plays — never the goal)
   // (PROGRESSION A: NO streak XP — the owner kept Grok's "streaks pay in milestones"; the old +10 % a night is gone)
@@ -170,7 +180,7 @@ export function matchStep(s0, { key, gid, row, n, now, at = now, gap = DEFAULT_G
   items.push(...aw.items);
   // (PD-6 ADD-ON — THE SOLO PODIUM SAYS WHAT IT PAID: a solo run's place in the streak day's solo count — n = this run's count (1 = the first),
   //  max = the runs that pay — the server's outcome carries it as `so`; the phone never computes it)
-  return { next, pbs, xp, from, prevStats: s, wk, lv, items, ach: aw.ach, streak: { n: next.st.n, ev: streak.ev }, ...(solo ? { solo: { n: day.so, max: SOLO_DAY_XP } } : {}), ...(sp ? { sp } : {}) };
+  return { next, pbs, xp, from, prevStats: s, wk, lv, items, ach: aw.ach, streak: { n: next.st.n, ev: streak.ev }, ...(solo ? { solo: { n: day.so, max: SOLO_DAY_XP } } : {}), ...(sp ? { sp } : {}), ...(av ? { av } : {}) };
 }
 
 /** THE DAILY CEILING (FR7 FIXES A): counted room matches a profile is PAID for in a streak day (4 am Eastern) — the 21st on plays for nothing */

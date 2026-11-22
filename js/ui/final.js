@@ -103,17 +103,17 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     if (isHost()) { back.classList.add('is-busy'); Promise.resolve(backToLobby()).catch(err => { back.classList.remove('is-busy'); toast('Couldn’t go back', 'err', { sub: String((err && err.message) || err) }); }); return; }
     if (state.game && state.game.matchId) setState({ quit: state.game.matchId });
   };
-  const back = h('button.final-link.final-back', { type: 'button', 'data-press': true, 'aria-label': 'Back to the room', onclick: backTap }, finIcon('room'), h('span', 'ROOM'));
+  const back = h('button.final-link.final-back', { type: 'button', 'data-press': true, 'data-pad': 'b', 'aria-label': 'Back to the room', onclick: backTap }, finIcon('room'), h('span', 'ROOM'));
   // (PLAY NOW — PLAY AGAIN = the same game + options, THE SOLO START (JAYWALK H3 — THE INSTANT AGAIN: a cartridge with `soloAgain` starts its …
   const instant = (soloRoom || oneRoom) && mod && typeof mod.soloAgain === 'function' ? lazyImport(import('../games/kit/again.js'), '../games/kit/again.js').catch(() => null) : null;
   let leave = null, bar = null;
   if (soloRoom || oneRoom) {
-    bar = h('button.final-bar.final-again', { type: 'button', 'data-press': true, onclick: () => {
+    bar = h('button.final-bar.final-again', { type: 'button', 'data-press': true, 'data-pad': 'a', onclick: () => {
       if (busy(bar) || busy(leave)) return;
       bar.classList.add('is-busy');
       Promise.resolve(instant ? instant.then(A => (A ? A.instantAgain() : false)) : false).then(ok => ok || PN.again()).then(ok => { if (!ok) bar.classList.remove('is-busy'); }, () => bar.classList.remove('is-busy'));
     } }, finIcon('again'), h('span.final-bar-t', (mod && typeof mod.AGAIN_LABEL === 'string' && mod.AGAIN_LABEL) || 'PLAY AGAIN'));
-    leave = soloRoom ? h('button.final-link.final-city', { type: 'button', 'data-press': true, onclick: () => {
+    leave = soloRoom ? h('button.final-link.final-city', { type: 'button', 'data-press': true, 'data-pad': 'b', onclick: () => {
       if (busy(bar) || busy(leave)) return;
       leave.classList.add('is-busy');
       Promise.resolve(PN.leave()).catch(() => leave.classList.remove('is-busy'));
@@ -121,7 +121,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   } else {
     // A MATCH: REMATCH — the host starts it; a guest votes (the votes = the room's rv for THIS match, mirrored in state.rv)
     const sub = h('span.final-bar-s');
-    bar = h('button.final-bar.final-rematch', { type: 'button', 'data-press': true, onclick: () => rematchTap() }, finIcon('again'), h('span.final-bar-t', 'REMATCH'), sub);
+    bar = h('button.final-bar.final-rematch', { type: 'button', 'data-press': true, 'data-pad': 'a', onclick: () => rematchTap() }, finIcon('again'), h('span.final-bar-t', 'REMATCH'), sub);
     let voting = false;
     const votes = () => { const m = g && g.matchId, rv = state.rv || {}, ids = Object.keys(players || {}).filter(u => u !== (state.meta && state.meta.hostId)); return { n: ids.filter(u => rv[u] === m).length, of: ids.length, mine: !!(m && rv[state.uid] === m) || pendingVote === m }; };
     let pendingVote = null;

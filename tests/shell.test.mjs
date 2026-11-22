@@ -136,7 +136,7 @@ test('THE PODIUM\'s FRAME: the body (a game\'s finalScene or the podium) → the
   assert.match(oc, /BANNER_NAME: 'OVERCLOCK', LOOKS: \['night'\], ACCENT: '#ff6a1a', OWN_VICTORY_SOUND: true,/);
   // (CITY F — END-SCREEN STANDARD A: ONE foot for every game — THE BAR (the screen's MAIN, solid, in the GAME's accent: THE SHELL's ONE named
   //  exception to THE NEON TUBE) + the quiet links; a MATCH's bar = REMATCH (the host's tap = host.js#rematch, a guest's = their vote))
-  assert.match(f, /h\('button\.final-link\.final-back', \{ type: 'button', 'data-press': true, 'aria-label': 'Back to the room', onclick: backTap \}/);
+  assert.match(f, /h\('button\.final-link\.final-back', \{ type: 'button', 'data-press': true, 'data-pad': 'b', 'aria-label': 'Back to the room', onclick: backTap \}/);
   assert.match(f, /h\('button\.final-bar\.final-rematch', \{ type: 'button', 'data-press': true/);
   assert.match(f, /h\('button\.final-bar\.final-again', \{ type: 'button', 'data-press': true/);
   assert.match(f, /import\('\.\.\/host\.js'\), '\.\.\/host\.js'\)\.then\(m => m\.rematch\(\{ inPlace: true \}\)\)/, "the host's REMATCH — in place (CITY G)");

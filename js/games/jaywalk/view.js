@@ -109,6 +109,10 @@ export function createView() {
   let lines = { best: 0, friends: [] }, record = false, lineKey = '', tableN = 0;   // (THE LINES: your best + your friends' — the server's; record: this run is past your best)
   let mom = null, momAt = 0, stageW = 390, stageH = 844, offSize = null;   // (J1 — THE MATCH MOMENTS: moments-view.js; the stage's size from a ResizeObserver — never read in a frame)
   let isMatch = false, watching = false, followUid = '', followPick = '', callEl = null, callLine = '', callDone = false, liveRuns = null, orderKey = '', countKey = '', watchKey = '';
+  // JT2 — TAP TO START (solo + the daily; a match keeps the host's count): the run waits on the start line for the FIRST hop / tap / A — the
+  // proof's stamp (askGo) or the daily's try (D.start) only then, so the GO is always within the stamp's 5 s however long the wait was
+  let waitTap = false, startEl = null, firstHop = '', veilAt = 0, offPad = null;
+  let mergedSeen = '';   // (TEST — JT2: the last merged name tag ("ALICE +1") this screen put up: the E2E reads the moment, never polls for it)
   const frames = [], cost = [], stamps = [], adopts = [], watch = { n: 0, car: 0, water: 0, logs: 0, held: 0, air: 0, late: 0, undead: 0 };
   if (VIEWS) VIEWS.push(new WeakRef(frames));
   /** how long a run's end is seen before the end screen / the spectator's view covers it: THE ABDUCTION + THE MOTHERSHIP's lift are longer (H6A) */
@@ -313,6 +317,7 @@ export function createView() {
     anchor();
     catchUp();
     mode = 'run';
+    if (firstHop) { queue.push(firstHop); firstHop = ''; }   // (JT2: the hop that started the run is its first)
     revealed = true; if (night) night.setReveal(1);   // (the flag too: a lost context's rebuild reads it — THE POLISH PASS)
   }
   /** no proof here (no signal, the rules not published): a SOLO run still plays — on its own seed + clock, never counted */
@@ -340,15 +345,52 @@ export function createView() {
   const tickNow = () => { const x = (srvNow() - go) * TICK_HZ / 1000, t = Math.floor(x); return { t, a: x - t }; };
 
   function hop(d) {
+    if (waitTap) { begin(d); return; }
     if (mode !== 'run' || (run && isOver(run)) || queue.length >= 2 || tickNow().t < 0) return;
     queue.push(d);
     if (hintEl) { hintEl.remove(); hintEl = null; setPref('hint', '1'); }
+  }
+  /** JT2 — TAP TO START: the words on the start line (+ the daily's veil: the course behind dimmed + blurred, the try not spent) */
+  function showStart() {
+    waitTap = true;
+    const sub = h('div.jw-start-l', 'TAP TO HOP · SWIPE TO STEP');
+    startEl = h('div.jw-start', { 'aria-live': 'polite' }, h('div.jw-start-go', 'TAP TO START'), sub, D ? h('div.jw-start-l', 'YOUR TRY STARTS AT THE TAP') : null);
+    root.append(startEl); root.classList.add('is-waiting');
+    if (D) { root.classList.add('is-veiled'); veilAt = 0; }
+  }
+  function hideStart() { if (startEl) { startEl.remove(); startEl = null; } if (root) root.classList.remove('is-waiting', 'is-veiled'); }
+  /** the FIRST hop / tap / A: the run starts NOW — a solo run asks its GO (the stamp first), the daily opens its try; a hop is carried to tick 0 */
+  function begin(d) {
+    if (!waitTap || gone) return;
+    waitTap = false; hideStart();
+    if (d && !D) firstHop = d;
+    if (hintEl) { hintEl.remove(); hintEl = null; setPref('hint', '1'); }
+    sync();
+  }
+  /** THE CONTROLLER (kit/gamepad.js — lazy: fetched on the first pad this page sees): the same hops as a swipe; A = a tap; B = an end card's way out */
+  function padOn() {
+    if (offPad || gone) return;
+    offPad = () => {};
+    lazyImport(import('../kit/gamepad.js'), '../kit/gamepad.js').then(P => {
+      if (gone) return;
+      offPad = P.wirePad({ dir: d => hop(d), a: () => { if (watching) nextFollow(); else hop('u'); }, say: t => padSay(t, P.SAY_MS) });
+    }).catch(() => { offPad = null; });
+  }
+  const onPad = () => padOn();
+  /** the pad's quiet line ("🎮 CONNECTED") — over the run, the start AND an end card (its own small line under the corner buttons, ~2 s) */
+  let padEl = null, padT = 0;
+  function padSay(t, ms) {
+    if (!root) return;
+    if (!padEl) { padEl = h('div.jw-pad', { role: 'status' }); root.append(padEl); }
+    padEl.textContent = t; padEl.classList.add('is-on'); clearTimeout(padT);
+    padT = setTimeout(() => { if (padEl) padEl.classList.remove('is-on'); }, ms);
   }
   /** THE ARRIVAL BANNER may show now: a run on, nothing bigger on the top of the screen (the Mothership's warning in a match, the OUT card, the end, the console's moment) */
   const shipWarn = () => !!run && !!MODES[run.mode].cap && run.t >= MODES[run.mode].cap - SHIP_WARN;
   const arriveNow = () => !!arriveEl && mode === 'run' && !watching && !outCard && !final && !localEnd && !shipWarn() && !isOver(run);
   function tick() {
     let d = '';
+    if (bot && !queue.length) { const b = bot(run, course); if (b) queue.push(b); }   // (the TEST bots: asked once a TICK — a stalled phone catching up makes the same moves; JT2, the match flake)
     if (queue.length && canLog(log, run.t, queue[0], run.mode)) { d = queue.shift(); log.push({ t: run.t, d }); }
     const ev = [];
     step(run, course, d, ev);
@@ -513,6 +555,7 @@ export function createView() {
   }
   /** 3 · 2 · 1 · GO — from the match's own tick 0 once the first GO has landed (till then the count the host set) */
   function drawCount(g) {
+    if (waitTap) { if (countKey) { countKey = ''; countEl.textContent = ''; rosterEl.classList.remove('is-on'); } return; }   // (JT2: TAP TO START says it all — no GET READY under it)
     const t0 = course !== START ? go : g.playAt, left = t0 - srvNow();
     const txt = g.phase === 'final' || left < -700 ? '' : left <= 0 ? 'GO' : left > 3000 ? '' : String(Math.ceil(left / 1000));
     const key = course === START && left <= 0 ? 'GET READY' : txt;
@@ -622,12 +665,12 @@ export function createView() {
     const dt = last ? Math.min(250, now - last) : 16.7;
     last = now;
     if (!night || document.visibilityState === 'hidden') return;
+    if (waitTap && D) { if (now - veilAt < 500) return; veilAt = now; }   // (JT2 — the daily's veil: the blurred course is a near-still, never a blur re-run every frame)
     const t0 = performance.now(), g = st.game;
     let a = 0, c = null;
     if (isMatch && now - lastPump > 100) { lastPump = now; syncMatch(g); }
     if (mode !== 'wait') c = tickNow();
     if (mode === 'run') {
-      if (bot && !queue.length && !isOver(run) && c.t >= 0) { const b = bot(run, course); if (b) hop(b); }
       let n = 0;
       while (run.t < c.t && !isOver(run) && n++ < CATCH_UP) tick();
       a = isOver(run) || run.t < c.t || c.t < 0 ? 0 : c.a;
@@ -671,7 +714,7 @@ export function createView() {
       for (const q of tagGroups(shown.map(G => ({ id: G.uid, x: G.run.x / FP, y: G.run.y, best: G.run.best, name: G.name })))) lead.set(q.lead, q.text);
       for (const G of ghosts.values()) {
         const text = lead.get(G.uid), tg = text ? G.tag : null;
-        if (tg) { while (placed.some(q => Math.abs(q[0] - tg[0]) < 84 && Math.abs(q[1] - tg[1]) < 19)) tg[1] -= 20; placed.push(tg); if (text !== G.tagText) { G.tagText = text; G.tagEl.textContent = text; } }
+        if (tg) { while (placed.some(q => Math.abs(q[0] - tg[0]) < 84 && Math.abs(q[1] - tg[1]) < 19)) tg[1] -= 20; placed.push(tg); if (text !== G.tagText) { G.tagText = text; G.tagEl.textContent = text; if (TEST && /\+\d$/.test(text)) mergedSeen = text; } }
         const key = tg ? `${Math.round(tg[0])},${Math.round(tg[1])}` : '';
         if (key !== G.tagKey) { G.tagKey = key; if (tg) { G.tagEl.style.transform = `translate3d(${Math.round(tg[0])}px,${Math.round(tg[1])}px,0) translate(-50%,-100%)`; G.tagEl.style.opacity = '1'; } else G.tagEl.style.opacity = '0'; }
       }
@@ -728,9 +771,9 @@ export function createView() {
     buildEnd(body, { line: lineOf(run, course), lanes: run.best, note: waiting ? 'NO SIGNAL — YOUR RUN COUNTS WHEN IT IS BACK' : 'NOT COUNTED — NO LINE TO THE BOARD' });
     { const SC = splitsCard(run.sp); if (SC.el) body.append(SC.el); }   // (J1 — YOUR SPLITS: every run's end card — the phone's own engine; no server answer here)
     // (PLAY AGAIN here = another UNPROVEN run: this match's one GO is spent or refused)
-    const again = waiting ? null : h('button.btn.btn-primary.btn-block', { type: 'button', onclick: () => { hideLocalEnd(); reset(); asked = true; unproven('again'); } }, h('span', 'PLAY AGAIN'));
+    const again = waiting ? null : h('button.btn.btn-primary.btn-block', { type: 'button', 'data-pad': 'a', onclick: () => { hideLocalEnd(); reset(); asked = true; unproven('again'); } }, h('span', 'PLAY AGAIN'));
     const PN = globalThis.__nsPlayNow, soloRoom = !!(PN && PN.isSolo && PN.isSolo());
-    const leave = h(`button.btn.${waiting ? 'btn-primary' : 'btn-ghost'}.btn-block`, { type: 'button', onclick: () => { leave.classList.add('is-busy'); Promise.resolve(soloRoom ? PN.leave() : backToLobby()).catch(() => leave.classList.remove('is-busy')); } }, h('span', soloRoom ? 'BACK TO THE CITY' : 'BACK TO THE ROOM'));
+    const leave = h(`button.btn.${waiting ? 'btn-primary' : 'btn-ghost'}.btn-block`, { type: 'button', 'data-pad': waiting ? 'a' : 'b', onclick: () => { leave.classList.add('is-busy'); Promise.resolve(soloRoom ? PN.leave() : backToLobby()).catch(() => leave.classList.remove('is-busy')); } }, h('span', soloRoom ? 'BACK TO THE CITY' : 'BACK TO THE ROOM'));
     localEnd = h('div.jw-final.jw-local', h('div.jw-local-in', body, h('div.jw-local-foot', again, leave)));
     root.classList.add('is-over'); root.append(localEnd); night.rest(true);
   }
@@ -770,8 +813,12 @@ export function createView() {
     const g = st.game;
     if (!g || !night) return;
     if (isMatch) { syncMatch(g); if (final) final.refresh(); return; }
-    if (D) { if (!asked) { asked = true; D.start().then(r => { if (!gone && r) adopt(r.go, null, true, r.seed, r.cv === 2 ? 2 : 1); }, () => {}); } return; }
-    if (g.phase === 'play' && mine(g) && soloGame(g)) askGo();
+    if (D) { if (!asked && !waitTap) { asked = true; D.start().then(r => { if (!gone && r) adopt(r.go, null, true, r.seed, r.cv === 2 ? 2 : 1); }, () => {}); } return; }
+    if (g.phase === 'play' && mine(g) && soloGame(g)) {
+      const runs = runsNow(), n = runs ? runs[uid] : null;
+      if (waitTap && n && n.go > 0) { waitTap = false; hideStart(); }   // (a refresh / a rejoin mid-run: back on its run at once — never a second start)
+      if (!waitTap) askGo();
+    }
     // (a refresh on the podium: the run in the node, replayed to its end, stands behind the frame)
     if (g.phase === 'final' && mode === 'wait' && mine(g) && soloGame(g) && st.liveKey === liveKeyFor(g)) {
       const node = st.live && st.live.runs ? st.live.runs[uid] : null;
@@ -793,20 +840,23 @@ export function createView() {
       if (!night) return;
       reset();
       if (isMatch) root.classList.add('is-match');
+      else if (!(performance.now() - (globalThis.__nsAgainAt || -1e9) < 3000)) showStart();   // (JT2: PLAY AGAIN / TRY AGAIN — that tap was the start)
+      addEventListener('gamepadconnected', onPad);
+      try { if (navigator.getGamepads && [...navigator.getGamepads()].some(Boolean)) padOn(); } catch { /* no pads */ }
       if (TEST) globalThis.__jwGame = {
-        state: () => ({ mode, proven, haveGo, matchId, holds: holdsRun(), liveWaited: liveWait.waited(), go, seed: course.seed, cv: course.cv || 0, t: run.t, st: run.st, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent: W ? W.state().sent : 0, chunks: W ? W.state().chunks : 0, acked: W ? W.state().acked : 0, lateGo, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
+        state: () => ({ mode, waiting: waitTap, veiled: !!root && root.classList.contains('is-veiled'), pad: !!offPad, proven, haveGo, matchId, holds: holdsRun(), liveWaited: liveWait.waited(), go, seed: course.seed, cv: course.cv || 0, t: run.t, st: run.st, x: run.x, y: run.y, best: run.best, cause: run.cause, over: isOver(run), hops: log.length, sent: W ? W.state().sent : 0, chunks: W ? W.state().chunks : 0, acked: W ? W.state().acked : 0, lateGo, final: !!final, localEnd: !!localEnd, scenes: scenesMade,
           lines: { best: lines.best, friends: lines.friends.map(f => `${f.n} ${f.v}`), record, shown: lineKey, flash: lanesEl.classList.contains('is-flash'), gold: lanesEl.classList.contains('is-record') },
-          isMatch, watching, follow: followUid, moments: mom ? mom.info() : null, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
+          isMatch, merged: mergedSeen, watching, follow: followUid, moments: mom ? mom.info() : null, call: !!callEl, callLine, count: countKey, watch: watchKey, order: [...orderEl.children].map(li => li.textContent), outs: [...orderEl.querySelectorAll('.is-out')].length,
           ghosts: [...ghosts.values()].map(G => ({ uid: G.uid, t: G.run.t, y: G.run.y, best: G.run.best, st: G.run.st, hops: G.log.length, tag: !!G.tag, held: G.held, done: G.done, behind: G.behind, fade: +(G.fade || 0).toFixed(2), x: G.run.x / FP, name: G.name, shown: !!G.tagKey, text: G.tagEl.textContent })),
           roster: rosterEl && rosterEl.classList.contains('is-on') ? [...rosterEl.children].map(e => e.textContent) : [],
           adopts: adopts.slice(), seen: { ...watch }, g0: st.game ? st.game.g0 || 0 : 0,
           snd: { cues: SFX.cues(), wanted: SFX.wanted().map(q => q.id), by: SFX.totals().by, ducked: ducked != null },
           arrive: arriveEl ? arriveEl.text() : '', tier: night ? night.tier() : -1, info: night ? night.info() : null, season: night ? night.season() : null, kidPx: night ? night.kidHeightPx() : 0 }),
-        hop, syncs: () => syncs.slice(), frames: () => frames.slice(), cost: () => cost.slice(), clearFrames() { frames.length = 0; cost.length = 0; stamps.length = 0; },
+        hop, syncs: () => syncs.slice(), frames: () => frames.slice(), cost: () => cost.slice(), clearMerged() { mergedSeen = ''; }, clearFrames() { frames.length = 0; cost.length = 0; stamps.length = 0; },
         /** every frame so far: [ms after tick 0, the frame's length, its own work] — THE START's measure */
         timeline: () => { const z = t0perf + (go - t0srv); return frames.map((d, i) => [Math.round(stamps[i] - z), +d.toFixed(1), +cost[i].toFixed(1)]); },
         setTier(t) { pinned = t != null; if (t != null) tiers.set(t); },
-        bot(on, o) { if (!on) { bot = null; return; } lazyImport(import('./bot.js'), './bot.js').then(B => { bot = B.greedyBot({ seed: `${course.seed}${uid}`, ...(o || {}) }); }); },
+        bot(on, o) { if (!on) { bot = null; return; } lazyImport(import('./bot.js'), './bot.js').then(B => { const q = { seed: `${course.seed}${uid}`, ...(o || {}) }; bot = q.steady ? B.steadyBot(q) : B.greedyBot(q); }); },   // (JT2: `steady` — THE STEADY BOT, the E2E's players who must stay in)
         follow: nextFollow,
       };
       document.addEventListener('visibilitychange', onVis);
@@ -824,6 +874,7 @@ export function createView() {
       if (mode === 'run' && run && !isOver(run)) flush(true);   // (a QUIT mid-run: what was hopped is in the proof)
       if (W) W.close();   // (… what is logged leaves now, in order; nothing is tried again once the view is gone)
       if (offControls) offControls();
+      removeEventListener('gamepadconnected', onPad); if (offPad) { offPad(); offPad = null; } clearTimeout(padT); padEl = null;
       if (final) final.destroy();
       quiet();
       try { SFX.stopAll(); } catch { /* silent */ }

@@ -51,7 +51,14 @@ const closedTries = r => Object.entries((r && r.t) || {}).filter(([, x]) => x &&
 const click = (p, sel) => p.evaluate(q => { const e = document.querySelector(q); if (!e) throw new Error(`no ${q}`); e.click(); }, sel);
 const tap = async (p, sel) => { const b = await p.$(sel); if (!b) throw new Error(`no ${sel}`); await b.tap(); };
 /** PLAY / TRY AGAIN on the ticket → the run, the bot on, the run playing past `ticks` */
-async function playTry(p, ticks, what) {
+/** JT2 — TAP TO START: the try's start line → ONE tap on the stage (a remount by TRY AGAIN starts at once: nothing to tap) */
+async function startTap(p, what, before) {
+  await waitFor(p, `!!window.__jwGame && (window.__jwGame.state().waiting || window.__jwGame.state().mode === 'run')`, `${what}: the start line`, 30000);
+  if (await p.evaluate(() => window.__jwGame.state().waiting)) { if (before) await before(); await p.touchscreen.tap(195, 520); }
+}
+async function playTry(p, ticks, what, { before } = {}) {
+  // JT2 — TAP TO START: the try waits for the FIRST tap (the course behind veiled, the try NOT spent) — a tap on the stage starts it
+  await startTap(p, what, before);
   await waitFor(p, `!!window.__jwGame && window.__jwGame.state().mode === 'run' && window.__jwGame.state().proven`, `${what}: the run started (proven)`, 30000)
     .catch(async e => { log('DUMP', JSON.stringify(await p.evaluate(() => ({ g: window.__jwGame && window.__jwGame.state && (({ mode, proven, seed, t }) => ({ mode, proven, seed, t }))(window.__jwGame.state()), run: (document.querySelector('.dy-run') || {}).innerText, d: window.__daily2 && window.__daily2.state() })))); throw e; });
   await p.evaluate(() => window.__jwGame.bot(true));
@@ -112,7 +119,16 @@ async function day1() {
 
   // ================================================================ TRY 1 — (J3) no STOP: the bot past 50 lanes (a split for THE TIME BOARDS), then the wall
   await tap(A.page, '.dy-ticket[data-id="jaywalk"] .dy-play');
-  const s1 = await playTry(A.page, 420, 'TRY 1');
+  const s1 = await playTry(A.page, 420, 'TRY 1', { before: async () => {
+    // JT2 — THE DAILY's START: the day's course DIMMED + BLURRED behind TAP TO START, the try not spent (no try opened on the server) — then,
+    // after the wait, the tap opens it (its 3 · 2 · 1, its clock, THE MOTHERSHIP's 5:00 from there)
+    const w = await A.page.evaluate(() => ({ s: window.__jwGame.state(), words: [...document.querySelectorAll('.jw-start > div')].map(e => e.textContent), blur: getComputedStyle(document.querySelector('.jw-play')).filter }));
+    ok(w.s.waiting && w.s.veiled && /blur/.test(w.blur) && w.words[0] === 'TAP TO START' && w.words.includes('YOUR TRY STARTS AT THE TAP'), `THE DAILY's START: TAP TO START over the course dimmed + blurred (${w.blur}) — "${w.words.join(' · ')}"`);
+    if (H.SHOTS) await A.page.screenshot({ path: `${H.OUT}jt2-daily-start-390.png` });
+    await sleep(4000);
+    const r0 = await rec(A.pid);
+    ok(!(r0 && r0.n) && (await A.page.evaluate(() => window.__jwGame.state().t)) === 0, `… 4 s on it: the try NOT spent (the record: ${r0 ? JSON.stringify({ n: r0.n || 0 }) : 'none'}), nothing ticks`);
+  } });
   const noStop = await A.page.evaluate(() => ({ el: !!document.querySelector('.dy-jw-stop'), btn: [...document.querySelectorAll('.dy-run button')].some(b => /STOP/.test(b.textContent)) }));
   ok(!noStop.el && !noStop.btn, 'THREE TRIES ALL DAY: no STOP element in the run (a try ends by a hit or THE MOTHERSHIP)');
   const seed1 = s1.seed;
@@ -147,6 +163,7 @@ async function day1() {
 
   // ================================================================ TRY 2 — A REFRESH mid-try ends it
   await tap(A.page, '.dy-ticket[data-id="jaywalk"] .dy-play');
+  await startTap(A.page, 'TRY 2');   // (JT2 — TAP TO START)
   await waitFor(A.page, `!!window.__jwGame && window.__jwGame.state().mode === 'run' && window.__jwGame.state().seed !== ${JSON.stringify('x')} && window.__jwGame.state().proven && window.__jwGame.state().t < 600`, 'TRY 2 started', 30000);
   const s2 = await playTry(A.page, 300, 'TRY 2');
   // (J3: try 2 also plays on toward a split — a course where try 1's bot fell short still gives THE TIME BOARDS a time to check)

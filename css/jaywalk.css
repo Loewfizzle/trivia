@@ -476,3 +476,31 @@
 @media (prefers-reduced-motion: reduce) { .jw-arrive.is-on, .jw-arrive[data-look='day'].is-on { animation-name: jw-arr-fade; } }
 .jw-game.is-over .jw-arrive { visibility: hidden; }
 .jw-stage:not(.jw-game) .jw-arrive { top: min(calc(env(safe-area-inset-top) + 116px), calc(28% - 60px)); }   /* (the lab's HUD carries its mode line under the count) */
+
+/* JT2 — TAP TO START (solo + the daily — view.js#showStart): the kid on the start line, the words big in a soft dark fade at the foot (HIGH
+   RISE's start, the house's look); the corner buttons + ☰ stay above it. THE DAILY: the course behind DIMMED + BLURRED until the tap (one still
+   layer — the scene stops drawing under it). Touch passes through to the play area (the first hop / tap starts the run). */
+.jw-start { position: absolute; z-index: 3; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px); background: linear-gradient(to top, rgba(8, 4, 16, 0.72), rgba(8, 4, 16, 0.38) 30%, rgba(8, 4, 16, 0) 52%); }
+.jw-start-go { font: 700 30px/1 var(--font-display); letter-spacing: 0.2em; text-indent: 0.2em; color: #fff; white-space: nowrap;
+  text-shadow: 0 0 2px #fff, 0 0 14px rgba(255, 79, 216, 0.9), 0 0 30px rgba(255, 43, 214, 0.55), 0 2px 0 rgba(10, 7, 22, 0.6); animation: jw-start 1.6s ease-in-out infinite alternate; }
+@keyframes jw-start { from { opacity: 0.78; } to { opacity: 1; } }
+.jw-start-l { margin-top: 16px; font: 600 13px/1.35 var(--font-ui); letter-spacing: 0.22em; text-indent: 0.22em; color: #e4def8; text-align: center; padding: 0 16px; text-shadow: 0 1px 0 #0a0716, 0 0 8px #0a0716; }
+.jw-start-l + .jw-start-l { margin-top: 8px; color: #ffd6f0; }
+.jw-stage[data-look='day'] .jw-start-go { text-shadow: 0 0 2px #fff, 0 0 12px rgba(255, 79, 216, 0.85), var(--jw-ink); }
+.jw-stage.is-veiled .jw-play { filter: blur(7px) brightness(0.42) saturate(0.7); transform: scale(1.03); }
+.jw-stage.is-veiled .jw-lanes, .jw-stage.is-waiting .jw-hint { visibility: hidden; }
+.jw-stage.is-veiled .jw-start { background: rgba(8, 4, 16, 0.32); }
+@media (prefers-reduced-motion: reduce) { .jw-start-go { animation: none; } }
+/* JT2 — THE CONTROLLER's quiet line ("🎮 CONNECTED" · a disconnect): under the corner buttons, over the run, the start + an end card — ~2 s */
+.jw-pad { position: absolute; z-index: 9; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 60px); transform: translateX(-50%); pointer-events: none; opacity: 0; white-space: nowrap;
+  padding: 9px 14px 8px; border-radius: 10px; background: rgba(10, 6, 20, 0.9); box-shadow: inset 0 0 0 1px rgba(255, 79, 216, 0.55);
+  font: 800 14px/1 var(--font-display); letter-spacing: 0.16em; color: #ffd6f0; text-shadow: 0 1px 0 rgba(20, 0, 14, 0.95), 0 0 3px rgba(20, 0, 14, 0.9), 0 0 14px rgba(255, 79, 196, 0.7); transition: opacity 0.25s ease; }
+.jw-pad.is-on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .jw-pad { transition: none; } }
+/* JT2 — THE BOARD's AVERAGE in YOUR TABLE: "AVG 225" under each best (a dash under 5 runs); the side columns room for it */
+.jw-table-list.has-av { --jw-side: max(48px, calc(var(--jw-d, 2) * 0.8rem + 2px)); }
+.jw-table-list li > b { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.jw-table-av { font: 700 10px/1 var(--font-num, var(--font-ui)); letter-spacing: 0.06em; color: #cfc8ea; white-space: nowrap; }
+.jw-fin-avg { margin-top: 6px; font: 800 14px/1 var(--font-ui); letter-spacing: 0.2em; color: #ffd257; text-shadow: 0 1px 0 rgba(30, 14, 0, 0.9); }
+.jw-fin-avg:empty { display: none; }

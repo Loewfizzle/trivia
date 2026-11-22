@@ -33,6 +33,7 @@ import { avatar, tubeButton, row as shellRow } from '../ui/components.js';
 import { emblem } from '../ui/emblems.js';
 import { GAMES, DAILIES } from '../config.js';
 import { boardDef, recordBoards, careerBoards, tabBoards, fmtValue, MIN_WR_GAMES } from '../core/boards.js';
+import { avgLabel } from '../core/board-avg.js';
 import { POINT_DAILIES } from '../core/daily-points.js';
 import { weekEndsAt } from '../core/week.js';
 import { board as fetchBoard, reportRow } from '../profile/api.js';
@@ -215,10 +216,10 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   function dropSurface() { if (surface) { try { surface.destroy(); } catch { /* fine */ } surface = null; } if (seeMine) { seeMine.disconnect(); seeMine = null; } setInList(false); }
 
   /** the points under the rank: [the number, a small second line] (HOLD'EM's wins · KOs on two lines) */
-  function colValue(def, v) {
+  function colValue(def, v, av) {
     const d = { ...def, fmt: S.period === 'all' && def.allFmt ? def.allFmt : def.fmt };
     if (d.fmt === 'twko') { const [w, k] = fmtValue(d, v).split(' · '); return [w.replace(/ WINS?$/, 'W'), k]; }
-    return [fmtValue(d, v), null];
+    return [fmtValue(d, v), def.avg ? avgLabel(av) : null];   // (JT2 — a board with an AVERAGE: BEST, then AVG under it — "296" · "AVG 225", a dash under 5 runs)
   }
   function row(r, i, def) {
     const bid = myBid();
@@ -233,12 +234,12 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       : pub && r.id && !mine ? h('button.bd-open', { type: 'button', 'data-press': true, 'aria-label': `${name} — report`, onclick: () => openReport(r, def) }, strip.el)
         : h('div.bd-open', strip.el);
     markMine(strip.el, mine);   // (THE YOU ROW — ui/strip-board.js: the breathing glow round your card)
-    const [v, v2] = colValue(def, r.v);
+    const [v, v2] = colValue(def, r.v, r.av);
     const li = h('li.bd-row', {
       class: [top ? `is-top is-${r.rank}` : '', mine ? 'is-me' : ''].join(' '),
       dataset: { id: r.id || '', n: name || '' },
     },
-    h('div.bd-rk', h('span.bd-rank', (top && rankMedal(r.rank, { size: 30 })) || String(r.rank)), h('span.bd-v', v), v2 ? h('span.bd-v2', v2) : null),
+    h('div.bd-rk', h('span.bd-rank', (top && rankMedal(r.rank, { size: 30 })) || String(r.rank)), h('span.bd-v', v), v2 ? h('span.bd-v2', { class: def.avg ? 'is-av' : null }, v2) : null),
     h('div.bd-scard', card));
     if (surface) stripFx(K, surface, strip, (i % 40) + 1);
     return li;
@@ -405,7 +406,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       // the public page: your row only when this browser has a profile on the board
       const r = m && m.profile && m.profile.bid && S.rows.find(x => x.id === m.profile.bid);
       els.me.hidden = !r;
-      if (r) fillMe(def, { rank: r.rank, v: r.v }, m);
+      if (r) fillMe(def, { rank: r.rank, v: r.v, av: r.av }, m);
       return;
     }
     els.me.hidden = false;
@@ -429,7 +430,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       const need = (mine.need || def.minDays) - (mine.days || 0);
       return [null, `${need} MORE DAY${need === 1 ? '' : 'S'} TO BE RANKED`, mine.avg != null ? `YOUR AVERAGE ${Number(mine.avg).toFixed(1)}` : null];
     }
-    if (info && info.v != null) return [fmtValue({ ...def, fmt: S.period === 'all' && def.allFmt ? def.allFmt : def.fmt }, info.v), null];
+    if (info && info.v != null) return [fmtValue({ ...def, fmt: S.period === 'all' && def.allFmt ? def.allFmt : def.fmt }, info.v), def.avg ? avgLabel(info.av) : null];
     if (def && def.id === 'xp' && S.period === 'week') return ['0', 'NOT ON THE BOARD YET'];
     return [null, def && def.min ? `${MIN_WR_GAMES}+ GAMES` : def && def.kind === 'record' ? 'NO RECORD YET' : 'NOT RANKED YET'];
   }
@@ -459,14 +460,14 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
       const r = await ranks([def.id]);
       if (token !== S.token || destroyed) return;
       const x = r[def.id] && r[def.id][S.period === 'week' ? 'week' : 'all'];
-      const v = x || r[def.id] && r[def.id].mine ? { ...(x || {}), mine: r[def.id] && r[def.id].mine } : null;
+      const v = x || r[def.id] && r[def.id].mine ? { ...(x || {}), mine: r[def.id] && r[def.id].mine, ...(r[def.id] && 'av' in r[def.id] ? { av: r[def.id].av } : {}) } : null;
       myRankCache.set(key, { at: Date.now(), v });
       paintMe(def, 'done', v);
     } catch {
       if (token !== S.token || destroyed) return;
       // no rank from the server: show the row as it appears in the list, if it does
       const r = m.profile && m.profile.bid && S.rows.find(x => x.id === m.profile.bid);
-      paintMe(def, 'done', r ? { rank: r.rank, v: r.v } : null);
+      paintMe(def, 'done', r ? { rank: r.rank, v: r.v, av: r.av } : null);
     }
   }
 

@@ -34,8 +34,9 @@ export const forgetLiveDailies = () => { dliveMemo = null; };
 
 // BOARD 2.0 A — a public row = the board id + the USERNAME + the SLIM CARD's display ids (cd · es · tb · g) + the level, the rank emblem, the place, the
 // value. Never the pid, the key, the tag's digits or the member Nº (server.test.mjs walks every key)
-export const ROW_KEYS = Object.freeze(['id', 'n', 'a', 'c', 'r', 'l', 'cd', 'es', 'tb', 'g', 'rank', 'v']);
-const pub = r => ({ id: r.id, n: r.n, a: r.a, c: r.c, r: r.r, l: r.l || 1, cd: r.cd || null, es: r.es || null, tb: r.tb || null, g: r.g || null, rank: r.rank, v: r.v });
+// (JT2 — + `av`: the board's AVERAGE beside the best — only on a board that keeps one, core/boards.js `avg`; null = a dash)
+export const ROW_KEYS = Object.freeze(['id', 'n', 'a', 'c', 'r', 'l', 'cd', 'es', 'tb', 'g', 'rank', 'v', 'av']);
+const pub = r => ({ id: r.id, n: r.n, a: r.a, c: r.c, r: r.r, l: r.l || 1, cd: r.cd || null, es: r.es || null, tb: r.tb || null, g: r.g || null, rank: r.rank, v: r.v, ...('av' in r ? { av: r.av } : {}) });
 
 export async function boardQuery(q, now = Date.now()) {
   const b = String(q.b || '');

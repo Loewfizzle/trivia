@@ -139,7 +139,7 @@ test('THE SERVER\'S OWN RESULT → THE SOLO BEST: only a match the server replay
   const ex = extractMatch(J.game);
   assert.equal(ex.solo, true); assert.deepEqual(ex.rows[uid].rec, { 'jaywalk-solo': h.live.lanes }, 'the lanes on the solo board');
   assert.equal(ex.rows[uid].win, false); assert.equal(ex.rows[uid].empty, undefined);
-  assert.deepEqual({ ...boardDef('jaywalk-solo') }, { id: 'jaywalk-solo', kind: 'record', label: 'FARTHEST RUN', fmt: 'int', dir: 1, short: 'LANES', unit: '', game: 'jaywalk' }, 'lanes, max');
+  assert.deepEqual({ ...boardDef('jaywalk-solo') }, { id: 'jaywalk-solo', kind: 'record', label: 'FARTHEST RUN', fmt: 'int', dir: 1, short: 'LANES', unit: '', avg: { days: 14, min: 5 }, game: 'jaywalk' }, 'lanes, max (JT2: + THE BOARD\'s AVERAGE)');
   // the room's own results (the host wrote them) never earn a record — whatever they claim
   const claim = { id: 'jaywalk', matchId: M, phase: 'final', mode: 'solo', participants: { [uid]: true }, settings: {}, results: { [uid]: { l: 99999, t: 5 } } };
   assert.deepEqual(extractMatch(claim).rows[uid].rec, {}, 'a claim is never a record');

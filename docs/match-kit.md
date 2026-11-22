@@ -175,6 +175,15 @@ the old rules (`expectRefusal(…, 'none')`) and GO works as before; the old cod
 Tests: `tests/proof-writer.test.mjs` (the writer on a fake line — 300 random host-flip matches: never a hole) · `tests/proof-pass.test.mjs`
 · `rules.test.mjs` "THE PROOF PASS" (8 blocks, both nodes, + THE SWITCH-OVER against three copies of the rules).
 
+## THE CONTROLLER (JAYWALK JT2, Nov 22 — `js/games/kit/gamepad.js`; the owner: a SHARED kit piece any game plugs into with one line)
+`wirePad({ dir, a, b, say })` → off(): polls `navigator.getGamepads()` once a frame ONLY while wired (a game screen), standard mapping (the
+face buttons by position — a Nintendo-labelled pad's A = its right button, `nintendo(id)`), the D-pad 12–15 (+ a hat axis 9 for a pad without
+the standard mapping), the left stick (deadzone 0.5, re-armed under 0.3) → ONE `dir('u'|'d'|'l'|'r')` per press, no auto-repeat; A / B press
+the page's newest visible `[data-pad="a" | "b"]` control (an end card) else call `a()` / `b()`. A pad's first frame (Safari shows it only after
+a press) only LEARNS what is held and says "🎮 CONNECTED" once a page (`say`); a disconnect says CONTROLLER DISCONNECTED. Lazy-load it (the
+game's `gamepadconnected` listener — JAYWALK's `view.js#padOn`), never in a start bundle. `ui/final.js` marks REMATCH / PLAY AGAIN `a` and ROOM /
+CITY `b`. Plugged in: JAYWALK (JT2). HIGH RISE + the next games: one line each, later. Test: `e2e-jaywalk.mjs` 6d — a FAKE pad on the API.
+
 ## The E2E harness (`tests/integration/kit/harness.mjs`)
 ```js
 import { createHarness, REVIEW_SIZES } from './kit/harness.mjs';

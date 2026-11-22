@@ -100,6 +100,7 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 .bd-rank { min-height: 30px; display: grid; place-items: center; font: 800 15px/1 var(--font-num); font-variant-numeric: tabular-nums; color: rgba(228, 232, 255, 0.8); white-space: nowrap; letter-spacing: -0.02em; }
 .bd-v { max-width: 52px; overflow: hidden; text-overflow: ellipsis; font: 800 12.5px/1 var(--font-num); color: #fff; letter-spacing: 0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bd-v2 { font: 700 8.5px/1 var(--font-mono); letter-spacing: 0.08em; color: var(--bd-dim); white-space: nowrap; }
+.bd-v2.is-av { font: 700 10px/1 var(--font-num); letter-spacing: 0.04em; }   /* (JT2 — THE BOARD's AVERAGE: "AVG 225" under the best — readable at 375) */
 .bd-scard { position: relative; min-width: 0; }
 .bd-open { display: block; width: 100%; padding: 0; margin: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; border-radius: 12px; }
 div.bd-open { cursor: default; }

@@ -133,6 +133,8 @@ async function profilesOf(pids) {
 /** A row as the public sees it: the board id, the USERNAME (a rude one → its house nickname), the emblem, colour, rank + level. No pid, no key, no tag.
  *  BOARD 2.0 A — + the SLIM CARD's display ids (ui/strip-board.js#stripFor draws it): cd the worn card · es the emblem shape · tb its tube style ·
  *  g the name glow — ids that draw, never an item's NAME (those stay owner-only), never the member Nº */
+/** JT2 — THE BOARD's AVERAGE as the profile keeps it (api/_lib/stats.js writes profiles/{pid}/av/{board}) → a number | null (a dash) */
+export const avgOn = (p, board) => { const v = p && p.av && p.av[board]; return typeof v === 'number' && Number.isFinite(v) ? v : null; };
 export const publicName = (id, n) => (n && !isOffensive(n) ? String(n) : houseNick(id).n);
 export function publicRow(pid, p) {
   const id = boardId(pid);
@@ -142,9 +144,9 @@ export function publicRow(pid, p) {
 
 /** DFIX5 — EVERYONE ON SCORES: the public faces of some profiles (the slim card's ids — publicRow; cached like the boards' rows) → { pid: row | null }
  *  null = no profile, or HIDDEN from the boards (the opt-out / the admin's hide) — never listed */
-export async function publicFaces(pids) {
+export async function publicFaces(pids, { av = null } = {}) {
   const profs = await profilesOf([...new Set(pids)]);
-  return Object.fromEntries(Object.entries(profs).map(([pid, p]) => [pid, p && !p.h ? publicRow(pid, p) : null]));
+  return Object.fromEntries(Object.entries(profs).map(([pid, p]) => [pid, p && !p.h ? { ...publicRow(pid, p), ...(av ? { av: avgOn(p, av) } : {}) } : null]));   // (JT2: `av` = a board whose AVERAGE the caller shows)
 }
 
 export async function topRows(board, period, now = Date.now()) {
@@ -168,7 +170,7 @@ export async function topRows(board, period, now = Date.now()) {
     i++;
     if (r.s !== prev) { rank = i; prev = r.s; }
     // pid stays on the cached row for the server (REPORT finds a row by its id); api/board.js sends only the public fields
-    rows.push({ ...publicRow(r.pid, p), pid: r.pid, rank, v: fromSort(def, r.s) });
+    rows.push({ ...publicRow(r.pid, p), pid: r.pid, rank, v: fromSort(def, r.s), ...(def.avg ? { av: avgOn(p, board) } : {}) });   // (JT2: + the board's AVERAGE, off the profile it already read)
     if (rows.length >= TOP_N) break;
   }
   const data = { b: board, p: pk, rows, at: Date.now() };

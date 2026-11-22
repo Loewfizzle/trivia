@@ -190,7 +190,7 @@ test('BLUE ON THE GROUND = WATER, NOTHING ELSE: no gateway neon / paint, no line
   // (H5C — ONE FORM FOR BOTH lines: YOUR BEST is a GOLD tape between two posts too; on water the posts are buoys)
   const tape = n.slice(n.indexOf('const la = Math.min(1.4, ll), wet ='), n.indexOf('lab.m.visible = ll > 0.2;'));
   assert.ok(tape.length > 400);
-  assert.match(tape, /for \(const px0 of \[X\(-0\.03\), X\(COLS \+ 0\.03\)\]\) \{/); assert.match(tape, /K\.posts\.put\(px0, 0\.31, z, 0\.12, 0\.62, 0\.12,/, 'a short post at each edge of the play (on its boundary lines — it covers no cell)');
+  assert.match(tape, /for \(const px0 of \[X\(-0\.03\), X\(COLS \+ 0\.03\)\]\) \{/); assert.match(tape, /K\.posts\.put\(px0, fr \? 0\.17 \* fd : 0\.31, z, 0\.12, fr \? 0\.34 \* fd : 0\.62, 0\.12,/, 'a short post at each edge of the play (on its boundary lines — it covers no cell)');
   assert.match(tape, /K\.flat\.put\(0, 0\.36, z, 9\.06, 1,/, 'the band = a TAPE above the ground'); assert.match(tape, /K\.shadow\.raw\(0, 0\.052, z \+ 0\.07, 9\.0, 1, 0\.26,/, '… its thin shadow under it: it reads as lifted');
   assert.doesNotMatch(tape, /K\.flat\.put\(0, 0\.06[0-9]?, z, 13,/, 'no band lying on the lane');
 });
@@ -237,7 +237,7 @@ test('THE GHOSTS STOP BLOCKING YOU: NEAR YOU = FAINT (≈ 15 %, no tag, eased �
   assert.deepEqual(tagGroups([G('a', 1.5, 5, 5), G('b', 2.5, 5, 5), G('c', 3.5, 5, 5)]).map(q => q.text), ['A +2'], 'a chain of touching squares is one group');
   assert.deepEqual(tagGroups([G('b', 4.5, 9, 9), G('a', 4.5, 9, 9)]).map(q => q.lead), ['a'], 'level: the same leader on every phone (the id)');
   assert.match(v, /for \(const q of tagGroups\(shown\.map\(G => \(\{ id: G\.uid, x: G\.run\.x \/ FP, y: G\.run\.y, best: G\.run\.best, name: G\.name \}\)\)\)\) lead\.set\(q\.lead, q\.text\);/);
-  assert.match(v, /if \(text !== G\.tagText\) \{ G\.tagText = text; G\.tagEl\.textContent = text; \}/, 'the tag\'s words change only when they differ (never per frame)');
+  assert.match(v, /if \(text !== G\.tagText\) \{ G\.tagText = text; G\.tagEl\.textContent = text;( if \(TEST [^}]*;)? \}/, 'the tag\'s words change only when they differ (never per frame)');
   // view only
   for (const f of ['engine.js', 'course.js', 'replay.js', 'logic.js', 'director.js']) assert.doesNotMatch(code(f), /tagGroups|\.fade\b|roster/, `${f}: the rules are untouched`);
 });

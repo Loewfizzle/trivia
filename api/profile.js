@@ -43,6 +43,7 @@ import { noteSeen } from './_lib/seen.js';
 import { ensureProfile, pidOf, publicProfile, restore, newKey, rename, setShown, privateInfo, setPrefs } from './_lib/profiles.js';
 import { boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
+import { avgOf } from '../js/core/board-avg.js';
 import { founderOpen } from './_lib/founder.js';
 import { progressEvent } from './_lib/events.js';
 import { placeOf, skyFor, kpNow } from './sky.js';
@@ -78,6 +79,8 @@ export async function myRanks(pid, boards, now = Date.now()) {
     };
     // BOARD 2.0 A — a points board: YOUR average a day + the days played, even below MIN_DAYS (unranked on ALL TIME until then)
     if (def.points) { const v = overallValues(stats, now)[b]; out[b].mine = { avg: v ? v.avg : null, days: v ? v.days : 0, need: def.minDays }; }
+    // JT2 — a board with an AVERAGE (core/boards.js `avg`): YOUR average from your own stats (the same pure step the server keeps it by)
+    if (def.avg) out[b].av = avgOf(stats.av && stats.av[b], def.avg.min).avg;
   }));
   return out;
 }

@@ -100,7 +100,7 @@ export function createView() {
     const ended = cur && !cur.ended ? (cur.ended = true, writeEnd(cur.path)) : Promise.resolve();
     ended.then(() => ctx.judge.finish()).then(r => fill(r, big, note, foot, kick)).catch(e => {
       note.textContent = e && e.code === 'not_done' ? 'TRY ENDED' : 'COULDN’T SCORE IT — CHECK YOUR SIGNAL';
-      foot.replaceChildren(tubeButton('BACK TO THE DAILIES', { kind: 'main', block: true, attrs: { 'data-press': true }, onClick: () => ctx.onBack && ctx.onBack() }));
+      foot.replaceChildren(tubeButton('BACK TO THE DAILIES', { kind: 'main', block: true, attrs: { 'data-press': true, 'data-pad': 'a' }, onClick: () => ctx.onBack && ctx.onBack() }));
     });
     return card;
   }
@@ -131,13 +131,13 @@ export function createView() {
       // the 3rd try: ADMITTED — the best try is the day's result
       if (lanes !== jwLanes(r.score)) big.after(h('div.dy-jw-best', `YOUR BEST TODAY · ${lanesOf(jwLanes(r.score))}`));
       card.prepend(h('span.dy-stamp.dy-jw-stamp', { html: stampSvg(), role: 'img', 'aria-label': 'admitted — done for today' }));
-      foot.replaceChildren(tubeButton('BACK TO THE DAILIES', { kind: 'main', block: true, attrs: { 'data-press': true }, onClick: () => ctx.onBack && ctx.onBack(true) }));
+      foot.replaceChildren(tubeButton('BACK TO THE DAILIES', { kind: 'main', block: true, attrs: { 'data-press': true, 'data-pad': 'a' }, onClick: () => ctx.onBack && ctx.onBack(true) }));
       return;
     }
-    const again = tubeButton('TRY AGAIN', { kind: 'main', block: true, cls: 'dy-jw-again', attrs: { 'data-press': true }, onClick: () => tryAgain() });
+    const again = tubeButton('TRY AGAIN', { kind: 'main', block: true, cls: 'dy-jw-again', attrs: { 'data-press': true, 'data-pad': 'a' }, onClick: () => tryAgain() });
     // (J3 — THREE TRIES ALL DAY: COME BACK LATER goes back to the dailies and marks NOTHING — the ticket keeps TRY AGAIN · n TRIES LEFT from the
     //  SERVER's tries all day, on any phone; the old DONE (`markTriesDone` — ADMITTED with tries unused) is retired for JAYWALK)
-    const later = tubeButton('COME BACK LATER', { kind: 'secondary', block: true, cls: 'dy-jw-later', attrs: { 'data-press': true }, onClick: () => { if (ctx.onBack) ctx.onBack(false); } });
+    const later = tubeButton('COME BACK LATER', { kind: 'secondary', block: true, cls: 'dy-jw-later', attrs: { 'data-press': true, 'data-pad': 'b' }, onClick: () => { if (ctx.onBack) ctx.onBack(false); } });
     foot.replaceChildren(again, h('div.dy-jw-left', `${left} ${left === 1 ? 'TRY' : 'TRIES'} LEFT`), later);
   }
   function tryAgain() {
@@ -151,7 +151,7 @@ export function createView() {
     const left0 = e && (e.code === 'no_tries' || (e.status === 409 && /tries/i.test(String(e.message || ''))));
     host.replaceChildren(h('div.jw-final.dy-jw-end', h('div.dy-jw-in', h('div.dy-jw-kick', 'JAYWALK'),
       h('div.dy-jw-note', left0 ? 'NO TRIES LEFT TODAY — THEY COME BACK AT 4 AM' : 'THE DAILY COULDN’T START — CHECK YOUR SIGNAL'),
-      h('div.dy-jw-foot', tubeButton('BACK TO THE DAILIES', { kind: 'main', block: true, attrs: { 'data-press': true }, onClick: () => ctx.onBack && ctx.onBack() })))));
+      h('div.dy-jw-foot', tubeButton('BACK TO THE DAILIES', { kind: 'main', block: true, attrs: { 'data-press': true, 'data-pad': 'a' }, onClick: () => ctx.onBack && ctx.onBack() })))));
   }
 
   return {

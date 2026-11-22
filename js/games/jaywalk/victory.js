@@ -10,6 +10,7 @@ import { getPref, setPref } from './lab-prefs.js';
 import { setNum, prepNums } from './numerals.js';
 import { finLine } from '../../ui/fin-neon.js';
 import { splitsCard, ownSplits, rememberBests } from './splits-card.js';
+import { avgLabel } from '../../core/board-avg.js';
 
 const BOARD = 'jaywalk-solo';
 // the phone remembers the best the SERVER last told it (a run counted after its end screen was left — HOP AGAIN — still lands here)
@@ -23,7 +24,7 @@ const num = n => Math.round(Number(n) || 0).toLocaleString('en-US');
 
 /** the body's pieces → { best(text, isNew) }. `note` = one quiet line under the lanes (an unproven run's NOT COUNTED) */
 export function buildEnd(el, { line, lanes, note = '', gold = false }) {
-  const best = h('div.jw-fin-best', note || '');
+  const best = h('div.jw-fin-best', note || ''), avg = h('div.jw-fin-avg');
   el.classList.add('jw-fin');
   // (H5A's add-on — THE BIG NUMERALS: numerals.js — room between the digits, a 1 with a base foot)
   const big = h('b');
@@ -31,10 +32,11 @@ export function buildEnd(el, { line, lanes, note = '', gold = false }) {
   el.replaceChildren(
     finLine(h('div.jw-fin-cause', { 'data-text': line }, line), 'jaywalk', gold),   // (CITY PART 2 — THE END NEON: JAYWALK's pink; THE MOTHERSHIP gold)
     h('div.jw-fin-n', big, h('span', Number(lanes) === 1 ? 'LANE' : 'LANES')),
-    best);
+    best, avg);
   return {
-    best(text, isNew) {
-      best.textContent = text;
+    /** `av` (JT2 — THE BOARD's AVERAGE, "AVG 225"): beside YOUR BEST · n; under a NEW BEST on its own quiet line (the gold line is big) */
+    best(text, isNew, av = '') {
+      best.textContent = av && !isNew ? `${text} · ${av}` : text; avg.textContent = av && isNew ? av : '';
       if (isNew && !best.classList.contains('is-new')) { best.classList.add('is-new'); el.classList.add('is-new'); }
     },
   };
@@ -65,9 +67,9 @@ export function yourTable(el, me) {
     if (!rows.length || !slot.isConnected) { slot.remove(); return; }
     const strips = [], list = h('ol.jw-table-list', ...rows.map(r => {
       const st = SB.m.stripFor(SB.K, r, { friend: !r.me }); strips.push(st);
-      return h('li', { class: r.me ? 'is-me' : null }, h('span.jw-table-n', String(r.place)), h('div.jw-table-card', SB.m.markMine(st.el, !!r.me)), h('b', num(r.v)));   // (CITY H2 — THE YOU ROW: the shared glow, never this table's own box)
+      return h('li', { class: r.me ? 'is-me' : null }, h('span.jw-table-n', String(r.place)), h('div.jw-table-card', SB.m.markMine(st.el, !!r.me)), h('b', num(r.v), 'av' in r ? h('small.jw-table-av', avgLabel(r.av)) : null));   // (JT2: + THE BOARD's AVERAGE under the best)   // (CITY H2 — THE YOU ROW: the shared glow, never this table's own box)
     }));
-    list.style.setProperty('--jw-d', String(Math.max(...rows.map(r => num(r.v).length))));   // (the widest score's digits → the rank + score columns' ONE width — css .jw-table-list)
+    list.style.setProperty('--jw-d', String(Math.max(...rows.map(r => num(r.v).length)))); if (rows.some(r => 'av' in r)) list.classList.add('has-av');   // (the widest score's digits → the rank + score columns' ONE width — css .jw-table-list)
     slot.replaceChildren(h('div.jw-table-k', 'YOUR TABLE'), list);
     const surface = SB.K.liveList(list, { label: 'jaywalk-table' });
     strips.forEach((st, i) => SB.m.stripFx(SB.K, surface, st, i + 1));
@@ -159,11 +161,13 @@ export function finalScene(el, game, state) {
       table();
       if (o.sp) SC.server(o.sp);
       const pb = (o.pbs || []).find(x => x.b === BOARD), cur = (o.bests || {})[BOARD];
+      // (JT2 — THE BOARD's AVERAGE beside your best: the server's, after this run — from 5 counted solo runs; under that nothing is said)
+      const av = o.av && o.av[BOARD] != null ? avgLabel(o.av[BOARD]) : '';
       if (pb) {
         setPref('best', pb.v);
-        B.best(pb.prev != null ? `NEW BEST · WAS ${num(pb.prev)}` : 'NEW BEST', true);
+        B.best(pb.prev != null ? `NEW BEST · WAS ${num(pb.prev)}` : 'NEW BEST', true, av);
         lazyImport(import('./sfx.js'), './sfx.js').then(S => S.play('new-best')).catch(() => {});
-      } else if (cur != null) { setPref('best', cur); B.best(`YOUR BEST · ${num(cur)}`); }
+      } else if (cur != null) { setPref('best', cur); B.best(`YOUR BEST · ${num(cur)}`, false, av); }
     };
     show(Q.outcomeFor(k));
     const off = Q.onOutcome((kk, o) => { if (kk === k) show(o); });

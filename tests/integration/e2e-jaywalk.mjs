@@ -149,8 +149,24 @@ try {
   const tPlay = Date.now();
   await P.tap('.nd-card-solo');
   ok(await P.waitFor(`${S}.game && ${S}.game.id === 'jaywalk' && !!document.querySelector('.jw-game canvas.jw-canvas') && !!${G}`, 25000), `PLAY NOW → the game's own screen (${Date.now() - tPlay} ms from the tap — THE SOLO START's walk inside)`);
+  // ---- 2b. JT2 — TAP TO START: the kid waits on the start line; NOTHING ticks, nothing is written (no stamp, no GO) — a WAIT of 60 s
+  // (THE PROOF's "GO within 5 s of the stamp" must hold however long the wait), then ONE tap starts the run — it counts (step 5's report)
+  { ok(await P.waitFor(`${G}.state().waiting && !!document.querySelector('.jw-start .jw-start-go')`, 8000), 'TAP TO START: the start line, its words up');
+    const w = await P.ev(`({ s: ${G}.state(), go: document.querySelector('.jw-start-go').textContent, fs: parseFloat(getComputedStyle(document.querySelector('.jw-start-go')).fontSize), menu: !!document.querySelector('.menu-btn'), music: !!document.querySelector('.music-btn') })`);
+    ok(w.go === 'TAP TO START' && w.fs >= 24 && w.s.mode === 'wait' && w.s.t === 0 && w.menu && w.music, `… "${w.go}" (${w.fs} px — over the end card's main button), mode ${w.s.mode}, tick ${w.s.t}; ☰ + the sound still there`);
+    await P.shot('jt2-tap-to-start-390.png');
+    const g0 = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
+    const WAIT = Number(process.env.JT2_WAIT_MS || 60000);
+    await sleep(WAIT);
+    const w2 = await P.ev(`${G}.state()`), tree = await dbGet(`rooms/${g0.code}/jw/${g0.m}`);
+    ok(w2.waiting && w2.mode === 'wait' && w2.t === 0 && w2.hops === 0 && tree == null, `… ${Math.round(WAIT / 1000)} s on the start screen: still waiting — no tick, no stamp, no GO (the proof tree: ${tree == null ? 'empty' : JSON.stringify(tree).slice(0, 60)})`);
+    ok(await P.ev("document.querySelector('.jw-start-l').textContent") === 'TAP TO HOP · SWIPE TO STEP' && await P.ev("!document.querySelector('.jw-game.is-veiled')"), '… the controls under it (the first-run hint\'s words); a solo start is never veiled');
+    await P.p.touchscreen.tap(195, 520); }
   // ---- 3. GO with the server's time → the course
-  ok(await P.waitFor(`${G}.state().mode === 'run'`, 8000), 'GO landed: the run is on');
+  ok(await P.waitFor(`${G}.state().mode === 'run'`, 8000), 'GO landed: the run is on — THE TAP started it');
+  { const g1 = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`), tr = await dbGet(`rooms/${g1.code}/jw/${g1.m}`), me = tr && tr[uid];
+    ok(!!tr && typeof tr.t0 === 'number' && !!me && me.go - tr.t0 >= 0 && me.go - tr.t0 <= 5000, `THE STAMP AT THE TAP: t0 then the GO ${me ? me.go - tr.t0 : '?'} ms after it (≤ 5 s — the rules' window, after a 60 s wait)`);
+    ok(await P.waitFor(`${G}.state().best >= 1 && !document.querySelector('.jw-start')`, 4000), '… the tap that started it was its first hop (HOP TO START); the start words gone'); }
   if (JW_DAY) { await P.waitFor(`${G}.state().season && (${G}.state().season.pack || !!${G}.state().season.sp && !(${G}.state().season.winter > 0))`, 8000); const se = await P.ev(`${G}.state().season`); ok(se && se.day === `d${JW_DAY.replace(/-/g, '')}` && !!se.sp, `J4 + JT1 SEASONS: the run's season = ${se && se.day} · autumn ${se && se.autumn} · winter ${se && se.winter} · christmas ${se && se.christmas} · snow ${se && se.snowfall} · hat ${se && se.hat} · fireworks ${se && se.fireworks} · THE SEASONAL PACK ${se && se.sp ? 'in' : 'not in by GO (the normal look)'}${se && se.pack ? ' + the winter models' : ''}`); }
   { const i = await P.ev(`${G}.state().info`); ok(i.zoom === 8 && i.angle === 'straight', `THE CAMERA IS PINNED: the lab's ZOOM 7 · TURNED saved on this phone — the game draws ZOOM ${i.zoom} · ${String(i.angle).toUpperCase()}`); }
   let g = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId, mode: ${S}.game.mode, phase: ${S}.game.phase, hostSeed: ${S}.game.seed, solo: !!(${S}.meta.settings && ${S}.meta.settings.solo && ${S}.meta.settings.solo.on) })`);
@@ -168,7 +184,7 @@ try {
     ok(cvNode === wantCv && stCv === wantCv, `COURSE RULES v${wantCv}: the proof's cv (${cvNode}) = the version in force at its GO = the course the phone plays (v${stCv})`);
     ok(await P.ev(`import('/js/firebase.js').then(f => f.set(f.dbRef('rooms/' + ${S}.code + '/jw/' + ${S}.game.matchId + '/' + ${S}.uid + '/cv'), ${wantCv === 2 ? 1 : 2}).then(() => false, () => true))`), '… cv is written once (another version is refused)'); }
   ok(await P.ev(`import('/js/firebase.js').then(f => f.set(f.dbRef('rooms/' + ${S}.code + '/jw/' + ${S}.game.matchId + '/' + ${S}.uid + '/go'), f.serverTimestamp()).then(() => false, () => true))`), '… GO is written once (a second one is refused)');
-  ok(await P.ev("!!document.querySelector('.jw-hint') && /TAP TO HOP · SWIPE TO STEP/.test(document.querySelector('.jw-hint').textContent)"), 'the first-run hint: TAP TO HOP · SWIPE TO STEP');
+  ok(await P.ev("!document.querySelector('.jw-hint')"), 'the first-run hint said its words on the start line — gone with the start tap (JT2)');
   // (H5B — BOTH looks: the phone's GAME LOOK decides (AUTO = the real sun — so the check picks one: NIGHT first, DAY below))
   await P.ev("import('/js/games/kit/look.js').then(m => m.saveLook('night'))");
   ok(await P.waitFor(`document.body.dataset.look === 'night' && ${G}.state().info.look === 'night' && document.querySelector('.jw-game').dataset.look === 'night'`, 6000) && await P.ev("!!document.querySelector('.menu-btn') && !!document.querySelector('.music-btn')"), 'inside the console\'s game frame: the corner menu + music; GAME LOOK NIGHT → the night look (the scene, the stage, the console)');
@@ -414,6 +430,35 @@ try {
       bestNow = await board(pid);
     }
     await P.ev('clearInterval(window.__markT)');
+    // ---- 6d. JT2 — THE CONTROLLER (kit/gamepad.js): a FAKE PAD on the Gamepad API (an Xbox pad's standard mapping) drives one solo run —
+    // its first press only CONNECTS it (the line, no move); A = PLAY AGAIN on the end card (its data-pad="a") — the run on at once (that press
+    // WAS the start); the D-pad = hops (ONE per press); the left stick = a step (past the deadzone, once); the run's end → the end card again
+    if (await P.ev(`${S}.game && ${S}.game.phase === 'final'`)) {
+      await P.ev(`(() => { const b = () => ({ pressed: false, value: 0 }); window.__pad = { id: 'Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b13)', index: 0, connected: true, mapping: 'standard', timestamp: 0, axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, b) };
+        Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [window.__pad, null, null, null] }); window.dispatchEvent(new Event('gamepadconnected')); })()`);
+      const press = async (i, ms = 110) => { await P.ev(`window.__pad.buttons[${i}] = { pressed: true, value: 1 }`); await sleep(ms); await P.ev(`window.__pad.buttons[${i}] = { pressed: false, value: 0 }`); await sleep(140); };
+      const stick = async (x, y) => { await P.ev(`window.__pad.axes = [${x}, ${y}, 0, 0]`); await sleep(160); await P.ev('window.__pad.axes = [0, 0, 0, 0]'); await sleep(160); };
+      const m0 = await P.ev(`${S}.game.matchId`);
+      await press(0);   // (Safari shows a pad only after a press: this one CONNECTS it)
+      ok(await P.waitFor("(() => { const e = document.querySelector('.jw-pad'); return !!e && e.classList.contains('is-on') && e.textContent === '🎮 CONNECTED'; })()", 3000), 'THE CONTROLLER: its first press → "🎮 CONNECTED" (the quiet line, ~2 s) — and nothing else');
+      await P.shot('jt2-pad-connected-390.png');
+      ok(await P.ev(`${S}.game.phase === 'final' && ${S}.game.matchId === '${m0}'`), '… the connecting press did not press PLAY AGAIN');
+      await sleep(400); await press(0);
+      ok(await P.waitFor(`${S}.game && ${S}.game.matchId !== '${m0}' && !!${G} && ${G}.state().matchId === ${S}.game.matchId && ${G}.state().mode === 'run' && !${G}.state().waiting`, 15000), '… A = PLAY AGAIN on the end card → the next run on at once (that press was its start — no TAP TO START)');
+      ok(await P.waitFor(`${G}.state().pad`, 4000), '… the new screen wired the pad (the kit, fetched once)');
+      const y0 = (await P.ev(`${G}.state()`)).y;
+      for (let k = 0; k < 3; k++) await press(12);
+      const p1 = await P.ev(`${G}.state()`);
+      ok(p1.y === y0 + 3 && p1.hops === 3, `… the D-pad: 3 presses = 3 hops, one each (lane ${y0} → ${p1.y}, ${p1.hops} hops logged — the same input path as a swipe)`);
+      const x0 = (await P.ev(`${G}.state()`)).x;
+      await stick(0.95, 0.1);
+      const p2 = await P.ev(`${G}.state()`);
+      ok(p2.hops === 4, `… the left stick past the deadzone = ONE step sideways (x ${x0} → ${p2.x}${p2.x === x0 ? ', a bump' : ''}), no repeat while held`);
+      await stick(0.3, 0); ok((await P.ev(`${G}.state()`)).hops === 4, '… inside the deadzone: nothing');
+      ok(await toEnd(P, 60000), '… the pad run ends (the kid left standing)');
+      const gp = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`), vp = verifyNode({ code: gp.code, matchId: gp.m, node: await nodeOf(gp.code, gp.m, uid) });
+      ok(vp.ok && vp.result.lanes >= 3, `… THE PROOF saw ordinary hops: the server's replay counts the pad run (${vp.ok ? vp.result.lanes : vp.why} lanes)`);
+    }
     // (the next step wants a run in play)
     if (await P.ev(`${S}.game && ${S}.game.phase === 'final'`)) { const N = await again(); ok(N.up, 'PLAY AGAIN after the long run'); await hopUp(P, 1); }
   }

@@ -592,6 +592,10 @@ try {
     if (!w || w === 'kid') await K.looksKid(o.p, { ok, sleep, waitFor, OUT, only });
     if ((!w || w === 'words') && K.looksWords) await K.looksWords(o.p, { ok, sleep, waitFor, OUT, shot });
     if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
+  // (JT2 — THE FRIEND LINE: `--jt2=friend` — kit/jaywalk-jt2.mjs; the shots → friend/)
+  { const j2 = argv.find(x => x === '--jt2' || x.startsWith('--jt2=')); if (j2) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); const K = await import('./kit/jaywalk-jt2.mjs');
+    await K.looksFriend(o.p, { ok, sleep, waitFor, OUT, shot });
+    if (o.errs.length) { console.log('PAGE ERRORS', o.errs.slice(0, 3)); fails.push('page errors'); } await o.close(); throw Object.assign(new Error('look only'), { look: true }); } }
   // (THE POLISH PASS: `--polish[=share|lines]` — kit/jaywalk-polish.mjs; the shots → share/ · lines/)
   { const pol = argv.find(x => x === '--polish' || x.startsWith('--polish=')); if (pol) { const o = await open(390, 844, 3, '&preview=1&seed=look3'); await up(o.p); await sleep(600); const K = await import('./kit/jaywalk-polish.mjs'); const w = pol.slice(9);
     if (!w || w === 'share') await K.looksShare(o.p, { ok, sleep, waitFor, OUT });

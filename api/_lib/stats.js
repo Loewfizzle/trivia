@@ -78,6 +78,8 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null, a
     }
     const r0 = emblemRank(res.from), r1 = emblemRank(stats.xp);
     const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/l`]: levelOf(stats.xp), [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, [`profiles/${pid}/sd`]: (stats.st && stats.st.d) || null, [`profiles/${pid}/m`]: played, ...boardPaths(pid, stats, { hidden: !listed, now: at, only: ex.gid }), ...overallPaths(pid, stats, { hidden: hiddenOf(prof, stats), now: at }) };   // (BOARD 2.0 A: THE OVERALL BOARD in the same update as the XP)
+    // (JT2 — THE BOARD's AVERAGE: beside the best on the PROFILE — the board's rows already read it (lb.js#topRows): no extra read a board)
+    for (const [b, v] of Object.entries(res.av || {})) patch[`profiles/${pid}/av/${b}`] = v == null ? null : v;
     await ref('/').update(patch);
     // "X% OF PLAYERS HAVE THIS": the owners' counts (best effort — a count is display only)
     await bumpOwners(res.items, !matchCount(res.prevStats), res.ach).catch(e => console.warn('owners', e && e.message));
@@ -97,6 +99,7 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null, a
     outcomes[pid] = {
       gid: ex.gid, rank: row.rank, win: row.win, n: ex.n, ...(res.capped ? { cap: true } : {}),   // (FR7 FIXES A — THE DAILY CEILING: played, paid nothing)
       ...(res.sp ? { sp: res.sp } : {}),   // (J1 — SPLIT TIMES: { r, b, n } — this run's splits, the bests after it, the ones it beat: the end card's NEW BEST marks)
+      ...(res.av ? { av: res.av } : {}),   // (JT2 — THE BOARD's AVERAGE after this run: { board: avg | null } — the end card's "AVG 225")
       ...(res.solo ? { so: res.solo } : {}),   // (PD-6 ADD-ON: a solo run's count today { n, max } — the solo podium's XP line reads it, never a guess)
       xp: { gain: res.xp.total, parts: res.xp.parts, from: res.from, to: stats.xp },
       rk: { from: r0, to: r1 }, lv: res.lv, items: res.items, ach: res.ach, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1, st: stats.st || null, sev: res.streak.ev,
