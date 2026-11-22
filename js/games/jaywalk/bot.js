@@ -44,6 +44,50 @@ export function greedyBot({ look = 22, lazy = false, seed = 'bot' } = {}) {
     return hurry ? 'u' : '';
   };
 }
+/**
+ * JT2 — THE STEADY BOT (the match E2E's players who MUST stay in — the flake's root: a lazy bot died inside 45 s on 1 course in 4, by luck): at
+ * each choice it SEARCHES `horizon` ticks ahead through the real engine (a move, then the next choice — backtracking on a death) and takes the
+ * first move of a run that lives that long. Lazy (it keeps near the wall: the E2E's players stay together), dawdles on GRASS only. Its
+ * decisions are a pure function of the run's state, so a stalled phone that catches up tick by tick makes the SAME moves (view.js asks it
+ * once a TICK). PURE.
+ */
+export function steadyBot({ horizon = 480, seed = 'steady', budget = 20000, lazy = true } = {}) {
+  const rand = rngFrom(hashString(`jwsteady:${seed}`));
+  let plan = [], course0 = null, spent = 0, dead = new Set();
+  /** one move on a copy, then on to the next choice (a hop: till it lands · a wait: 6 ticks) — false = it dies on the way */
+  const settle = (c, d) => { const hits = c.hits; step(c, course0, d); if (d && c.st !== 'hop') return false; for (let i = 0; i < (d ? 24 : 6) && (!d || c.st === 'hop') && c.hits === hits && !isOver(c); i++) step(c, course0, ''); return c.hits === hits && !isOver(c); };
+  const order = c => {
+    const gap = c.y - Math.floor(c.wall / FP), grass = course0.lane(c.y).type === 'grass';
+    const side = rand() < 0.5 ? ['l', 'r'] : ['r', 'l'];
+    return lazy && grass && gap > WALL.behind - 2 ? ['', 'u', ...side, 'd'] : ['u', '', ...side, 'd'];
+  };
+  function dfs(c, until, path) {
+    if (c.t >= until) return true;
+    const key = `${c.t}:${c.x}:${c.y}:${c.best}`;
+    if (dead.has(key) || ++spent > budget) return false;
+    for (const d of order(c)) {
+      const n = copy(c);
+      if (!settle(n, d)) continue;
+      path.push({ t: c.t, d });
+      if (dfs(n, until, path)) return true;
+      path.pop();
+    }
+    if (spent <= budget) dead.add(key);   // (no way on from here: never searched twice)
+    return false;
+  }
+  return (run, course) => {
+    if (run.st !== 'idle') return '';
+    course0 = course;
+    while (plan.length && plan[0].t < run.t) plan.shift();
+    if (plan.length && plan[0].t > run.t) return '';   // (the plan's wait: its next choice comes later)
+    spent = 0; dead = new Set();
+    const path = [];
+    plan = dfs(copy(run), run.t + horizon, path) ? path : [];
+    if (!plan.length) return survives(run, course, 'u', 22) ? 'u' : '';
+    return plan.shift().d;
+  };
+}
+
 /** THE RANDOM BOT: a hop every few ticks, mostly forward */
 export function randomBot({ seed = 'r', every = 10 } = {}) {
   const rand = rngFrom(hashString(`jwrand:${seed}`));

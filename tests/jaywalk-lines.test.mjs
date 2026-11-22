@@ -83,13 +83,13 @@ test('THE SOURCES: the lines come from the server\'s table, asked ONCE a run; dr
   assert.match(view, /linesFor\(\{ best: lines\.best, friends: lines\.friends, reached: run\.best, solo: !isMatch \}\)/);
   assert.match(view, /drawLines\(mine\(g\) && drawRun === run\);/, 'your lines on YOUR run — never over a player you watch');
   // the drawing: across the whole lane on any kind — buoys on water — + the words on the ground + the burst
-  assert.match(night, /import \{ LINE_HEX \} from '\.\/lines\.js';/);
+  assert.match(night, /import \{ LINE_HEX, friendFade \} from '\.\/lines\.js';/);
   // H5C — ONE FORM FOR BOTH: a TAPE between two posts at the play's edges (GOLD = YOUR BEST · PINK = the friend's); on water the posts are BUOYS
-  assert.match(night, /wet = L\.type === 'water', cap = k === 'best' \? 0xfff0c0 : 0xffe4f6;/); assert.match(night, /if \(wet\) \{\s+K\.posts\.put\(px0, 0\.1 \+ bob, z, 0\.34, 0\.24, 0\.34, 0, 0xe8432e, la\);/, 'on water the posts become buoys (they bob)');
+  assert.match(night, /wet = L\.type === 'water', cap = k === 'best' \? 0xfff0c0 : 0xffe4f6/); assert.match(night, /if \(wet\) \{\s+const b = fr \? fd : 1;\s+K\.posts\.put\(px0, 0\.1 \* b \+ bob, z, 0\.34 \* b, 0\.24 \* b, 0\.34 \* b, 0, 0xe8432e, la\);/, 'on water the posts become buoys (they bob — JT2: a friend\'s sink away as the kid comes)');
   assert.match(night, /K\.flat\.put\(0, 0\.36, z, 9\.06, 1, \(day \? 0\.62 : 0\.5\) \+ fl \* 0\.25, 0, hex, 1, 4,/, 'the tape: across the play, a little above the ground, in the line\'s own colour');
   assert.doesNotMatch(night, /K\.flat\.put\(0, 0\.066, z, 13, 1,/, 'YOUR BEST is no longer a band lying on the lane');
   // H5C — THE WORDS ARE ALWAYS READABLE: drawn above the logs / cars / water (no depth test, last) — never over your own kid (the stencil)
-  assert.match(night, /new THREE\.MeshBasicMaterial\(\{ map: tex, transparent: true, depthWrite: false, depthTest: false \}\);\s+mat\.stencilWrite = true; mat\.stencilWriteMask = 0; mat\.stencilRef = 1; mat\.stencilFunc = THREE\.NotEqualStencilFunc;/, 'the words: no depth test; the kid\'s pixels are never drawn on');
+  assert.match(night, /new THREE\.MeshBasicMaterial\(\{ map: tex, transparent: true, depthWrite: false, depthTest: k === 'friend' \}\);[^\n]*\s+mat\.stencilWrite = true; mat\.stencilWriteMask = 0; mat\.stencilRef = 1; mat\.stencilFunc = THREE\.NotEqualStencilFunc;/, 'the words: YOUR BEST\'s no depth test (the friend\'s under the traffic — JT2); the kid\'s pixels are never drawn on');
   assert.match(night, /m\.renderOrder = 5; m\.visible = false; m\.frustumCulled = false; m\.layers\.enable\(1\); scene\.add\(m\);\s+LBL\[k\]/, '… drawn after the logs, the cars, the lights');
   assert.match(night, /setLines\(v\) \{/); assert.match(night, /flashLine\(k, lane\) \{/);
   assert.match(night, /new THREE\.PlaneGeometry\(7\.0, 0\.875\)\.rotateX\(-Math\.PI \/ 2\)/, 'the words: BIG on the ground — 7 cells wide, the letters half a lane tall');
@@ -105,8 +105,8 @@ test('THE SOURCES: the lines come from the server\'s table, asked ONCE a run; dr
 
 test('THE POLISH PASS — THE WORDS WIN: a line\'s words draw above every vehicle / log / train / prop — only your own kid covers them (+ the dark: the blackout curtain)', () => {
   const n = code('js/games/jaywalk/night.js');
-  const lbl = /const mat = new THREE\.MeshBasicMaterial\(\{ map: tex, transparent: true, depthWrite: false, depthTest: false \}\);[\s\S]{0,200}?mat\.stencilFunc = THREE\.NotEqualStencilFunc;\s*const m = new THREE\.Mesh\(labelGeo, mat\);\s*m\.renderOrder = (\d+)/.exec(n);
-  assert.ok(lbl, 'the words: transparent, NO depth test, masked only where the stencil says');
+  const lbl = /const mat = new THREE\.MeshBasicMaterial\(\{ map: tex, transparent: true, depthWrite: false, depthTest: k === 'friend' \}\);[\s\S]{0,260}?mat\.stencilFunc = THREE\.NotEqualStencilFunc;\s*const m = new THREE\.Mesh\(labelGeo, mat\);\s*m\.renderOrder = (\d+)/.exec(n);
+  assert.ok(lbl, 'the words: transparent, masked only where the stencil says — YOUR BEST\'s never depth tested (JT2: the FRIEND\'s are — under the traffic, the owner\'s Nov 22 call)');
   const orders = [...n.matchAll(/order: (\d+)/g)].map(x => +x[1]);
   assert.ok(orders.length >= 4 && Math.max(...orders) < +lbl[1], `every instanced kind (vehicles, logs, trains, props, the ghosts: orders ${orders.join(' · ')}) draws before the words (${lbl[1]})`);
   const writers = [...n.matchAll(/(\w+)\.stencilWrite = true;([^\n]*)/g)].filter(x => !/stencilWriteMask = 0/.test(x[2])).map(x => x[1]);

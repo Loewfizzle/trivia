@@ -122,6 +122,7 @@ async function mount() {
   // ---- the run: the pure engine, stepped at 60 ticks a second from the frame clock (the RULES never read it)
   let mode = MODE_IDS.includes(Q.get('mode')) ? Q.get('mode') : 'solo', seed, course, run, log, queue = [], acc = 0, last = 0, overAt = 0, shown = false, bot = null, markUntil = 0;
   const frames = [], cost = [];   // (the frame times + the work in each frame, for &fps=1 + the pass's measure)
+  const FRIEND_Q = /^\d{1,2}$/.test(Q.get('friend') || '') ? Math.max(1, Number(Q.get('friend'))) : 0;
   const LANE_Q = /^\d{1,5}$/.test(Q.get('lane') || '') ? Math.min(20000, Number(Q.get('lane'))) : 0;   // (`?lane=N` — a look check from lane N: WARPED, never counts)
   let steps = 0, slow = 0, warped = false, started = false, safe = false;   // (safe — a LOOK CHECK's warp only: the blackout holds still behind the kid; never in a real run)   // (started: the run's tick 0 is the FIRST touch — the page never runs the wall at a kid nobody is playing)
   /** J2 — the `k`th Blackbird runway from a lane (v2: 3–4 lanes, a jet each · v1: a band of 2 sharing one): { y0, n, period, tell, pass,
@@ -150,6 +151,8 @@ async function mount() {
     // J2 — `?rw=N` (+ `?cv=2`): the same look check, the kid on the SAFE lane before the course's Nth Blackbird runway (v1: its Nth band)
     const RW = /^\d{1,2}$/.test(Q.get('rw') || '') ? Number(Q.get('rw')) : 0, R = RW ? runwayFrom(0, RW) : null, LANE0 = R ? R.y0 - 1 : LANE_Q;
     if (LANE0) { let y = LANE0; for (let d = 0; d < 40; d++) { if (LANE0 - d > 0 && course.lane(LANE0 - d).type === 'grass') { y = LANE0 - d; break; } if (course.lane(LANE0 + d).type === 'grass') { y = LANE0 + d; break; } } warped = true; safe = true; run.y = y; run.best = y; run.wall = (y - 5) * FP; mark.textContent = `LOOK CHECK · LANE ${y} · TAP TO HOP`; }
+    // JT2 — `?friend=N`: THE NEXT FRIEND's line N lanes ahead of the kid's start (LIAM · lane) — hop toward it to watch it fade
+    if (FRIEND_Q && view.setLines) { const fl = run.y + FRIEND_Q; view.setLines({ best: null, friend: { lane: fl, text: `LIAM · ${fl}` } }); }
   }
   const findLane = (kind, from = 0) => { for (let i = from; i < from + 900; i++) { const L = course.lane(i); if (kind === 'ufo' ? L.ufo && L.ufo.y0 === i : kind === 'mark' ? !!L.mark : L.type === kind) return i; } return -1; };
   const hop = d => { if (!isOver(run) && queue.length < 2) queue.push(d); };

@@ -6,6 +6,11 @@ export const TABLE_KEEP_MS = 90_000;
 /** the two looks: GOLD = YOUR BEST, never anything else · white / cyan = a friend (never gold) */
 export const LINE_HEX = Object.freeze({ best: 0xffc53a, friend: 0xff4fd8 });   // (H5B's add-on — the owner: the friend line is NEON PINK, never blue / cyan — a pale cyan band across a lane read as a strip of water)
 
+/** JT2 — THE FRIEND LINE FADES as the kid comes: `ahead` = its lane − the kid's (a float while he hops) → 1 at ≥ FADE_FAR lanes ahead,
+ *  0 at ≤ FADE_NEAR (smooth between) — it never sits over the lane he is about to cross; the crossing's burst draws on its own */
+export const FADE_FAR = 4, FADE_NEAR = 1;
+export const friendFade = ahead => { const u = Math.min(1, Math.max(0, (ahead - FADE_NEAR) / (FADE_FAR - FADE_NEAR))); return u * u * (3 - 2 * u); };
+
 const lanesOf = v => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n > 0 ? n : 0; };
 const nameOf = n => String(n == null ? '' : n).replace(/[\u0000-\u001f]/g, '').trim().toUpperCase().slice(0, 12) || 'A FRIEND';
 /**

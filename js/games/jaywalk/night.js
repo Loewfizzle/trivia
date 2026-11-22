@@ -11,7 +11,7 @@ import { skyPlan, skyHeld, skyRoom, skyShift, skyOff, SKY_FADE_MS, SKY_LOOK_MS, 
 import { CAM, createCamera } from './camera.js';
 import { ctx2d, onCanvasLost } from '../../ui/canvas-safe.js';
 import { shade } from './arrival.js';
-import { LINE_HEX } from './lines.js';
+import { LINE_HEX, friendFade } from './lines.js';
 import { drawNum, numWidth } from './numerals.js';
 import { LOOKS, PIECE, buildAreaGeo, dressLane, sigOf, drawBig, drawSig, drawFishSign } from './areas.js';
 import { hsh, strSeed, vehicleAt } from './causes.js';   // (THE ONE SOURCE OF TRUTH for which vehicle a car IS — the end screen's cause line reads the same function)
@@ -208,7 +208,7 @@ export function createNight(host, o = {}) {
   for (const k of ['best', 'friend']) {
     const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 128;
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
-    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false });   // (alpha-blended in both looks: the letters carry a dark halo — they read on bright water + over a van)
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: k === 'friend' });   // (the dark halo: they read on bright water · JT2: the FRIEND's words lie UNDER the traffic — YOUR BEST's still read over a van)
     mat.stencilWrite = true; mat.stencilWriteMask = 0; mat.stencilRef = 1; mat.stencilFunc = THREE.NotEqualStencilFunc;
     const m = new THREE.Mesh(labelGeo, mat);
     m.renderOrder = 5; m.visible = false; m.frustumCulled = false; m.layers.enable(1); scene.add(m);
@@ -948,27 +948,38 @@ export function createNight(host, o = {}) {
       if (!Ln || Ln.lane < base || Ln.lane >= top) { lab.m.visible = false; continue; }
       const L = course.lane(Ln.lane), ll = litOf(Ln.lane), hex = LINE_HEX[k], both = k === 'friend' && LINES.best && LINES.best.lane === Ln.lane;
       const z = Z(Ln.lane + (both ? 0.8 : 0.93)), hit = crossed.find(q => q.k === k && q.lane === Ln.lane), fl = hit ? Math.max(0, 1 - (clock - hit.t0) / 700) : 0;
+      // (JT2 — THE FRIEND LINE: thinner + see-through (half), ON the ground — under every vehicle — and it FADES as the kid comes: lines.js#friendFade)
+      const fr = k === 'friend', fd = fr ? friendFade(Ln.lane - ky + 0.5) : 1;
+      if (fr && fd <= 0.002 && fl <= 0) { lab.m.visible = false; continue; }
       {
-        const la = Math.min(1.4, ll), wet = L.type === 'water', cap = k === 'best' ? 0xfff0c0 : 0xffe4f6;
+        const la = Math.min(1.4, ll), wet = L.type === 'water', cap = k === 'best' ? 0xfff0c0 : 0xffe4f6, ps = fr ? 0.5 * fd : 1;
         for (const px0 of [X(-0.03), X(COLS + 0.03)]) {
           const bob = wet && !reduce ? Math.sin(clock / 480 + px0 * 1.9) * 0.035 : 0;
           if (wet) {
-            K.posts.put(px0, 0.1 + bob, z, 0.34, 0.24, 0.34, 0, 0xe8432e, la); K.posts.put(px0, 0.27 + bob, z, 0.26, 0.1, 0.26, 0, 0xffffff, la); K.posts.put(px0, 0.5 + bob, z, 0.08, 0.36, 0.08, 0, cap, la);
-            K.flat.put(px0, 0.05, z, 1.1, 1, 0.8, 0, 0xffffff, 1, 3, (day ? 0.55 : 0.24) * Math.min(1, ll));
-          } else K.posts.put(px0, 0.31, z, 0.12, 0.62, 0.12, 0, cap, la);
-          K.bill.put(px0, 0.68 + bob, z, 0.5 + fl * 0.2, 0.5 + fl * 0.2, 1, 0, hex, 1, 5, ll); if (!day) K.flat.put(px0, 0.05, z, 1.3, 1, 1.0, 0, hex, 1, 0, 0.3 * ll);
+            const b = fr ? fd : 1;
+            K.posts.put(px0, 0.1 * b + bob, z, 0.34 * b, 0.24 * b, 0.34 * b, 0, 0xe8432e, la); K.posts.put(px0, 0.27 * b + bob, z, 0.26 * b, 0.1 * b, 0.26 * b, 0, 0xffffff, la); K.posts.put(px0, 0.5 * b + bob, z, 0.08 * b, 0.36 * b, 0.08 * b, 0, cap, la);
+            K.flat.put(px0, 0.05, z, 1.1, 1, 0.8, 0, 0xffffff, 1, 3, (day ? 0.55 : 0.24) * Math.min(1, ll) * ps);
+          } else K.posts.put(px0, fr ? 0.17 * fd : 0.31, z, 0.12, fr ? 0.34 * fd : 0.62, 0.12, 0, cap, la);
+          K.bill.put(px0, (fr ? (wet ? 0.68 * fd : 0.38 * fd) : 0.68) + bob, z, (fr ? 0.34 : 0.5) + fl * 0.2, (fr ? 0.34 : 0.5) + fl * 0.2, 1, 0, hex, 1, 5, ll * (fr ? ps + fl : 1)); if (!day) K.flat.put(px0, 0.05, z, 1.3, 1, 1.0, 0, hex, 1, 0, 0.3 * ll * ps);
         }
-        K.shadow.raw(0, 0.052, z + 0.07, 9.0, 1, 0.26, 0, 0, 1, 4, 0.5 * Math.min(1, ll));
-        if (day) K.flat.put(0, 0.358, z, 9.1, 1, 0.8, 0, k === 'best' ? 0x5a3a00 : 0x5a0a44, 1, 4, 0.6 * Math.min(1, ll));   // (by day: a dark edge under the tape — it must read on a sunlit lane)
-        K.flat.put(0, 0.36, z, 9.06, 1, (day ? 0.62 : 0.5) + fl * 0.25, 0, hex, 1, 4, (0.95 + fl * 0.4) * ll);
-        K.flat.put(0, 0.362, z, 9.06, 1, 0.13, 0, 0xffffff, 1, 4, (0.85 + fl * 0.3) * ll);
-        if (!reduce) for (let g = 0; g < 3; g++) K.bill.put(((clock / 1500 + g / 3) % 1) * 9 - 4.5, 0.4, z, 0.8, 0.3, 1, 0, hex, 1, 0, 0.7 * ll);
+        if (fr) {   // (the tape lies at the ground's edge of the lane: a car on its lane hides it, one on the next lane stands clear of it — never drawn over traffic)
+          K.shadow.raw(0, 0.03, z + 0.04, 9.0, 1, 0.16, 0, 0, 1, 4, 0.3 * fd * Math.min(1, ll));
+          if (day) K.flat.put(0, 0.055, z, 9.1, 1, 0.34, 0, 0x5a0a44, 1, 4, 0.35 * fd * Math.min(1, ll));
+          K.flat.put(0, 0.06, z, 9.06, 1, (day ? 0.26 : 0.22) + fl * 0.3, 0, hex, 1, 4, (0.5 * fd + fl * 1.2) * ll);
+          K.flat.put(0, 0.062, z, 9.06, 1, 0.05, 0, 0xffd6f0, 1, 4, (0.32 * fd + fl * 1.1) * ll);   // (a pale pink core — no white-hot line to bloom at night)
+        } else {
+          K.shadow.raw(0, 0.052, z + 0.07, 9.0, 1, 0.26, 0, 0, 1, 4, 0.5 * Math.min(1, ll));
+          if (day) K.flat.put(0, 0.358, z, 9.1, 1, 0.8, 0, 0x5a3a00, 1, 4, 0.6 * Math.min(1, ll));   // (by day: a dark edge under the tape — it must read on a sunlit lane)
+          K.flat.put(0, 0.36, z, 9.06, 1, (day ? 0.62 : 0.5) + fl * 0.25, 0, hex, 1, 4, (0.95 + fl * 0.4) * ll);
+          K.flat.put(0, 0.362, z, 9.06, 1, 0.13, 0, 0xffffff, 1, 4, (0.85 + fl * 0.3) * ll);
+          if (!reduce) for (let g = 0; g < 3; g++) K.bill.put(((clock / 1500 + g / 3) % 1) * 9 - 4.5, 0.4, z, 0.8, 0.3, 1, 0, hex, 1, 0, 0.7 * ll);
+        }
       }
       lab.m.visible = ll > 0.2;
       const wz = Z(Ln.lane + (both ? 1.42 : 0.42) - (L.mark ? 1 : 0));   // (H5A — a gateway lane carries its area's name: the line's words lie a lane lower)
-      K.shadow.raw(rig.x(), 0.062, wz, 7.6, 1, 0.9, 0, 0, 1, 4, (day ? 0.4 : 0.5) * Math.min(1, ll));
+      K.shadow.raw(rig.x(), 0.062, wz, 7.6, 1, 0.9, 0, 0, 1, 4, (day ? 0.4 : 0.5) * Math.min(1, ll) * fd);
       lab.m.position.set(rig.x(), 0.07, wz);   // (centred on the screen: the words ride the camera's own column — never cut by an edge)
-      lab.m.material.opacity = Math.min(1, ll);
+      lab.m.material.opacity = Math.min(1, ll) * fd;
     }
     for (let j = crossed.length - 1; j >= 0; j--) {
       const q = crossed[j], u = (clock - q.t0) / 700;

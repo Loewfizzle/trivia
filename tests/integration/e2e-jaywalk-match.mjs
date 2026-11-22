@@ -237,7 +237,10 @@ try {
   ok(sts.every(s => s.seed === SV0.seed && s.go === SV0.playAt), `H4B — every phone's seed + tick 0 = the server's own (matchStart of the proof nodes)${LAG ? ` — one phone ${LAG} ms slow` : ''}`);
   ok(sts.every(s => s.adopts.length === 1 && s.adopts[0].t === 0 && s.adopts[0].hops === 0), 'H4B — each phone took its course ONCE, before it had played a tick (never a switch)');
   // ---- 3. THE GHOSTS + THE LIVE ORDER
-  await all(N, p => G(p, 'window.__jwGame.bot(true, { lazy: true })'));
+  // (JT2 — THE MATCH FLAKE's root: the lazy bots died by LUCK — 1 course in 4 inside 45 s, so a player this flow needs in was sometimes out
+  //  before BOB's step (the call / watch section's cascade). THE STEADY BOT searches 8 s ahead (bot.js#steadyBot): none out in 90 s on 1,000
+  //  courses; asked once a TICK, so a loaded machine's stalls change nothing — tests/jaywalk-jt2.test.mjs)
+  await all(N, p => G(p, 'window.__jwGame.bot(true, { steady: true })'));
   if (START) {
     // THE START's measure: BOB's phone (@3, 4× CPU, a cold scene) from the count to 3 s after GO — the worst frame of each part
     await until(async () => (await state(pages[1])).t > 200, 12000);
@@ -293,12 +296,13 @@ try {
   //  lanes ahead, and Call the Winner's window had passed by the time the script looked. He now stops on a GROUND lane: he stands
   //  until the wall takes him, as the step means)
   await until(() => pages[1].evaluate(async () => { const J = window.__jwGame, s = J.state(), C = await import('/js/games/jaywalk/course.js'); if (s.st === 'idle' && C.createCourse(s.seed).lane(s.y).type === 'grass') { J.bot(false); return true; } return false; }), 20000, 40);
-  await G(pages[1], 'window.__jwGame.bot(false)');
+  await G(pages[1], 'window.__jwGame.bot(false)'); await G(pages[1], 'window.__jwGame.clearMerged()');   // (JT2: only a merge from here on counts)
   // H5B's add-on, in the real match: BOB stands still — on ALICE's phone his ghost falls behind her: AWAY from her, itself again, its
   // own tag "BOB"; on BOB's phone ALICE + CHARLIE hop on ahead on the same squares: ONE tag — the leader's name + "+1"
   { const [away, mg] = await Promise.all([   // (both at once: ALICE + CHARLIE are off BOB's screen within a few seconds)
       until(async () => { const s = await state(pages[0]), q = s.ghosts.find(x => x.name === 'BOB'); return q && q.shown && q.text === 'BOB' && q.fade < 0.2 ? q : null; }, 12000, 60),
-      until(async () => { const on = (await state(pages[1])).ghosts.filter(x => x.shown); const mg = on.find(x => /^(ALICE|CHARLIE|DANA) \+\d$/.test(x.text)); return mg && (N > 3 || on.length === 1) ? mg.text : null; }, 12000, 60)]);
+      // (JT2: the merged tag is a MOMENT — the phone keeps the last one it SHOWED (view.js `merged`); polled from here under load it was missed)
+      until(async () => { const m = (await state(pages[1])).merged; return /^(ALICE|CHARLIE|DANA) \+\d$/.test(m) ? m : null; }, 12000, 60)]);
     if (!away || !mg) { const [a, b] = await Promise.all([state(pages[0]), state(pages[1])]); log('  (the tags, as the two phones have them) ALICE y ' + a.y + ': ' + JSON.stringify(a.ghosts.map(q => [q.name, q.y, q.tag, q.shown, q.fade, q.text, q.st])) + ' · BOB y ' + b.y + ': ' + JSON.stringify(b.ghosts.map(q => [q.name, q.y, q.tag, q.shown, q.fade, q.text, q.st]))); }
     ok(!!away, 'a ghost AWAY from you is itself again and carries its own name (BOB, behind ALICE)');
     ok(!!mg, `STACKED TAGS MERGE: two ghosts on the same / touching squares share ONE tag on BOB's phone — "${mg || 'none seen'}"`);
