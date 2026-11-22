@@ -36,6 +36,7 @@ import map); the RULES are a pure engine that never knows about it.
 | J4 — WINTER: SNOW · CHRISTMAS · WET NEON STREETS | Nov 21 2026 | `docs/games/passes/jaywalk-j4.md` | a VIEW only: THE SEASON CLOCK (`season.js` — winter Dec 1 → Mar 1, Christmas Dec 1 → Jan 6, snow on half the days + always Dec 24–25), the snowy ground + plowed roads + snow on the tops, snow pines · lit Christmas trees (presents baked in) · snowmen from THE SEASONAL PACK (53 KB, outside the line), THE FALLING SNOW (one draw, never over the lane ahead), WET NEON STREETS (ships OFF — `&wet=1`), the lab's `&date=` `&snow=` `&wet=`. No rules change |
 | JT1 — SEASONS: ROOM FIRST · AUTUMN · THE HATS · FOOTPRINTS · NEW YEAR'S | Nov 22 2026 | `docs/games/passes/jaywalk-jt1.md` | a VIEW only: every seasonal layer is THE SEASONAL PACK's (`seasonal.js` + `seasonal-fx.js` + `season.js` + `fireworks.js` + J4's models — lazy, a season day only; the start bundle asks `season-gate.js`); AUTUMN Oct 20 → Nov 30 (turned trees, golden grass, fallen + drifting leaves, LEAF PILES that burst), the Santa hat Dec 1–31 + the party hat Jan 1 (in the kid's own geometry), FOOTPRINTS + a snow puff, NEW YEAR'S fireworks over the skyline (the finale before local midnight); the lab's `&clock=` · `&hat=0`. No rules change |
 | JT2 — TOUCH-UP: ROOM · THE MATCH FLAKE · THE FRIEND LINE · TAP TO START · THE CONTROLLER · BEST · AVG | Nov 22 2026 | `docs/games/passes/jaywalk-jt2.md` | the start bundle's long comment blocks → `docs/games/jaywalk-notes.md` (token-identical code) · THE STEADY BOT (the match flake's root) · the friend tape on the ground, half strength, fading (`lines.js#friendFade`) · TAP TO START (solo + the daily) · THE CONTROLLER (`kit/gamepad.js`) · THE BOARD's AVERAGE (`core/board-avg.js`) |
+| VARIETY A — THE LEAF PILE · THE TIERS · THE DAY LOOK · TIMES OF DAY · THE FOG CHECK | Nov 22 2026 | `docs/games/passes/jaywalk-variety-a.md` | a VIEW only: Polyfork's leaf pile (CC BY) in THE SEASONAL PACK · tier 2's line 96 draw calls (tiers 1/0 64 — `daylook.js#CALLS_MAX`) · THE DAY LOOK (contact shadows every tier, THE SUN's SHADOWS on tier 2 — a depth pass, the warm/cool grade stopping at the fog line, cloud shadows, the cars' shine by day, grass stripes + asphalt wear) · FIVE TIMES OF DAY on the city's sun model (`daylook.js`; a match = the HOST's sun, `game.lk`) + OVERCAST by date · THE FOG CHECK (dark grey fog over snow by day). No rules change |
 
 Art style: **SMOOTH STYLIZED 3D** (the owner, Nov 16 — rounded, glossy, toy-like; the target `Downloads\grok\jaywalk\concept\jaywalk-night-smooth.png`;
 this page's layout wins over the render's). The engine never cares. JAYWALK's flying hazards (THE BLACKBIRD, THE UFO, THE MOTHERSHIP) are REAL since H6A — "THE BIG MOMENTS", below.
@@ -608,6 +609,51 @@ a warm floor** — as delivered it read dark beside the autumn trees) → `asset
 autumn day (`prep` / `apply` — the pack's own folder, never the preload). `PILE.s` 0.92 across · `h` 0.72 up (≈ a cell). A run whose pile is not
 in by its start shows none (JT1's rule for the winter models). The hop-through burst + the scattered pile + the crunch unchanged. THE PACK:
 code 62.5 + models 87.6 KB of the 150 cap (`tests/jaywalk-jt1.test.mjs` counts `autumn/` too).
+### THE TIERS (`daylook.js#CALLS_MAX` — ONE table every perf check reads)
+Tier 2 may take **96** draw calls a frame (its sun-shadow pass); tiers 1 + 0 stay at **64**. `jaywalk-lab.mjs --perf` measures tier 0 too; the
+J2 / J4 / JT1 perf checks + the boom check read the table; `--va=perf` = DOWNTOWN's busy runway, 8 kids, every time of day + overcast + Nov 25 +
+Dec 24 heavy snow, tier 2 · 1 · 0: the worst draw-call frame over a whole lap + the MEDIAN fps / worst frames at 4× CPU (the pass log's table).
+### THE DAY LOOK (`daylook.js#GRADE` · `night.js#lookGL` / `#sunPass` · `night-fx.js` the ground's `uVA` block; `&va=0` = the look before)
+- **CONTACT SHADOWS** every tier (the instanced blobs — `K.shadow.put`'s day wrap; a touch stronger). **THE SUN's SHADOWS on tier 2 only**:
+  ONE depth pass (`sunPass` — `MeshDepthMaterial` RGBA-packed, 1024 × 2048 up the course, the casters on their own layer `SUN_LAYER` 5 — every
+  lambert / standard kind; the kid + the rivals NOT: the depth pass knows nothing of their skinning, their contact shadows stay) from the sun's
+  direction (`SUN`, as long as the time of day's elevation — clamped 14° … 68°), counted in the frame's draw calls; the ground samples it
+  (4 taps). Tiers 1 / 0 keep the cheap offset blob (the sun's direction, `GR.len` long); OVERCAST has neither (contact only).
+- **THE GRADE**: warm light (the key + `uWarm` on the ground) + cool shadows (the hemisphere's sky, `uCool` in the shadows), applied BEFORE the fog
+  bank in the ground shader — **the fog is never graded** (its billows are unlit paint). **Cloud shadows**: a slow noise over the ground only
+  (`uCloud` 0.13 at noon) — never on a car. **The cars' paint** by day: roughness 0.16 + env 1.6 (noon) — the night's cars untouched (0.28 / 1.1).
+- **THE GRASS** by day: mowing stripes a column wide (0.15), larger light / dark patches + a few sun-dried ones. **THE ASPHALT** by day: a fine
+  aggregate, the wheel tracks' wear, an occasional oil spot, hairline cracks. All in the ground's one shader: no texture, no draw.
+### THE TIMES OF DAY (`daylook.js` — PURE: `todOf` · `lightsOf` · `overcastDay` · `resolveTod` · `GRADE` · `sunAt` / `stampOf`)
+- **ON THE CITY's SUN MODEL**: the elevation from `core/sky.js#look` at the phone's place (its zone — the SAME place + the same day / night rule
+  as AUTO's `kit/look.js#sunUpNow`: night where `day + golden + dawn < 0.5`, ≈ −10.5° in the morning, −9° in the evening); the lights by
+  `core/harbor-dark.js` (DUSK → `litK('lamps' | 'neon')`). **THE BANDS** (`BANDS`): **sunrise** = a morning under +6° · **noon** = above (a
+  morning ≥ +6°, an evening ≥ +10°) · **golden** = an evening +10° … +2° · **sunset** = an evening under +2° into the blue hour · **night**.
+- **THE LOOKS** (`GRADE`): PINK SUNRISE (rosy key, lavender sky fill, the band's sky + water pink, **DEW** — small twinkling points on the
+  grass, no haze) · NOON (the day look) · GOLDEN (a warm low key, long soft shadows) · SUNSET (an orange key, purple fill, the scene darker) ·
+  NIGHT unchanged. **THE BAND**: the DAY picture graded in code — a still `filter` + a gradient sky in `color` blend (`.jw-skyline[data-tod]::after`);
+  never the night picture, never a cross-fade of the two; no stray lights. The far haze + the stage follow (`data-tod` / `data-wx`).
+- **THE LIGHTS BY TIME** (`lightsOf`): sunrise = the cars' + trains' lamps at HALF (`cars` 0.5: a lens a touch bigger, the halos small + faint —
+  NO beams, no glow pools) + the gates' NEON switching OFF through the morning (the city's neon ramp) · noon + golden = none · sunset = the
+  city's lamps ramp brings the lights ON (beams, tail pools, the street lamps, the areas' lamps once ≥ 0.5) + the neon ramp the gates' neon ·
+  night = as always (`K.flat` / `K.bill` additive + the bloom). By day everything stays paint (normal blending).
+- **OVERCAST** (`overcastDay(day)` — the run's own 4 am day key, a murmur hash: ≈ 1 day in 7 — 54 · 55 · 61 days in 2026 · 27 · 28, never
+  more than 3 in a row; day looks only): a flat soft key, a grey-blue band (desaturated), no sun shadows, no cloud shadows, a grey haze.
+- **WHO DECIDES** (`view.js#todFor`): the GAME LOOK — **AUTO** = the time of day by the clock: solo + the daily = the phone's own sun (re-read
+  each minute); **a MATCH = the HOST's sun at the start** (`index.js#start` stamps `game.lk = { e, m, n }` — the host's own `game` write, no new
+  rule; every phone the same look, locked for the match); **DAY** = noon · **NIGHT** = night (per phone, as always). Re-read once a second +
+  at once on a setting change ('ns-look'). Until the sun is read: the console's own day / night.
+- **THE SEASONAL PACK** layers on every time of day (snow light / heavy / none, autumn, the footprints, the hats) — the pack's ground runs inside
+  the same shader before the grade.
+- **THE LAB**: `&tod=sunrise|noon|golden|sunset|night` · `&weather=overcast|clear` (none = the date's own) · `&sun=<°>` (the ramps) · `&va=0`
+  (the day look before this pass) — with `&date=` `&snow=` `&clock=` `&look=`; never the live game. Checks: `jaywalk-lab.mjs --va[=pile|day|tod|fog|perf]`.
+### THE FOG CHECK (`night.js#fogCheck` / `#fogPaint` · `FOG_DARK` · css `.jw-stage[data-fog='dark']`)
+The white fog bank (the "keep moving" warning) was checked in every time of day + overcast × summer, autumn, winter (no / light / heavy snow)
++ night: it VANISHED only over the SNOW by day → there it is **DARK GREY** (its ground `uFogBank`, the billows, the wisps, the curtain, the lip +
+the screen's foot), by the snow cover that shows (`(winter − 0.3) / 0.35`, the winter models in). Everywhere else untouched; night unchanged;
+never thinned. The sheet: `Downloads\NEON\jaywalk-variety-a\fog\sheet-390.png`.
+### THE GAMEPLAY LOCK (`tests/jaywalk-variety-a.test.mjs`)
+course / engine / replay / logic / director / tuning / versions never reach `daylook.js`; `game.lk` is read by the view only.
 
 ## THE MATCH (H4 — ONE LIFE; the cartridge — hidden: THE OWNER'S LIVE TEST)
 One run each on the SAME course, one life; the others are see-through ghosts; farthest wins, ties → the earlier tick. **Real matches run

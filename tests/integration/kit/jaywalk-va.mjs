@@ -47,16 +47,17 @@ export async function looksVA({ open, up, ok, sleep, waitFor, out, what = '', b,
   };
   if (all || what === 'tod' || what.startsWith('tod:')) {
     const only = what.startsWith('tod:') ? what.slice(4).split('+') : null;
-    const rows = [['before', '&tod=noon&weather=clear&va=0'], ['sunrise', '&tod=sunrise&weather=clear'], ['noon', '&tod=noon&weather=clear'], ['golden', '&tod=golden&weather=clear'], ['sunset', '&tod=sunset&weather=clear'], ['night', '&tod=night'], ['overcast', '&tod=noon&weather=overcast']].filter(r => !only || only.includes(r[0]));
+    const rows = [['before', '&tod=noon&weather=clear&va=0'], ['sunrise', '&tod=sunrise&weather=clear'], ['noon', '&tod=noon&weather=clear'], ['golden', '&tod=golden&weather=clear'], ['sunset', '&tod=sunset&weather=clear'], ['night', '&tod=night'], ['overcast', '&tod=noon&weather=overcast'], ['sunrise-heavy-snow', '&tod=sunrise&weather=clear&date=2026-12-24&snow=heavy'], ['sunset-autumn', '&tod=sunset&weather=clear&date=2026-11-25'], ['golden-light-snow', '&tod=golden&weather=clear&date=2027-01-20&snow=light'], ['overcast-heavy-snow', '&tod=noon&weather=overcast&date=2026-12-24&snow=heavy']].filter(r => !only || only.includes(r[0]));
     const files = [], labels = [];
     for (const [k, q] of rows) {
       const r = await todShot(`tod/${k}-390.png`, q, { look: k === 'night' ? 'night' : 'day' });
-      ok(!!r.td && (k === 'before' ? r.td.tod === 'noon' : k === 'overcast' ? r.td.overcast : r.td.tod === k), `TOD ${k}: the scene shows ${JSON.stringify(r.td && { tod: r.td.tod, overcast: r.td.overcast, sun: r.td.sun })}`);
-      if (k !== 'night' && k !== 'overcast' && k !== 'before') ok(r.td.sun === true, `TOD ${k}: THE SUN's SHADOWS drawn (tier 2)`);
-      if (k === 'overcast') ok(r.td.sun === false, 'TOD overcast: no sun shadows');
+      const kk = k.split('-')[0];
+      ok(!!r.td && (k === 'before' ? r.td.tod === 'noon' : kk === 'overcast' ? r.td.overcast : r.td.tod === kk), `TOD ${k}: the scene shows ${JSON.stringify(r.td && { tod: r.td.tod, overcast: r.td.overcast, sun: r.td.sun })}`);
+      if (kk !== 'night' && kk !== 'overcast' && k !== 'before') ok(r.td.sun === true, `TOD ${k}: THE SUN's SHADOWS drawn (tier 2)`);
+      if (kk === 'overcast') ok(r.td.sun === false, 'TOD overcast: no sun shadows');
       files.push(r.f); labels.push(k.toUpperCase());
     }
-    await compose(files, labels, `tod/sheet-390${only ? `-${only.join('-')}` : ''}.png`, Math.min(files.length, 7), 260);
+    await compose(files, labels, `tod/sheet-390${only ? `-${only.join('-')}` : ''}.png`, Math.min(files.length, 6), 260);
   }
 
   // THE DAY LOOK — before (&va=0) / after at noon, 390: the whole frame + close-ups (the sun's + the contact shadows, the cars' shine, the
@@ -96,6 +97,45 @@ export async function looksVA({ open, up, ok, sleep, waitFor, out, what = '', b,
       errs.push(...o.errs); await o.close();
     }
     await compose(files, labels, 'fog/sheet-390.png', 6, 220, 440 / 390);
+  }
+
+  // THE TIERS' MEASURE (`perf` — run it alone, nothing else busy): DOWNTOWN's busy runway, 8 kids, every time of day + overcast + the heavy
+  // seasons, at tier 2 · 1 · 0: the worst draw-call frame over a whole runway lap (≤ daylook.js#callsMax) + 4× CPU: the MEDIAN fps + the worst frames
+  if (what === 'perf' || what.startsWith('perf:')) {
+    const { callsMax } = await import('../../../js/games/jaywalk/daylook.js');
+    const sel = what.startsWith('perf:') ? what.slice(5).split('+') : null;
+    const scenes = [['noon', '&tod=noon&weather=clear'], ['sunrise', '&tod=sunrise&weather=clear'], ['golden', '&tod=golden&weather=clear'], ['sunset', '&tod=sunset&weather=clear'], ['overcast', '&tod=noon&weather=overcast'], ['night', '&tod=night'],
+      ['nov25-golden', '&tod=golden&weather=clear&date=2026-11-25'], ['dec24-noon-heavy', '&tod=noon&weather=clear&date=2026-12-24&snow=heavy'], ['dec24-sunset-heavy', '&tod=sunset&weather=clear&date=2026-12-24&snow=heavy']].filter(r => !sel || sel.includes(r[0]));
+    const rows = [];
+    for (const [k, q] of scenes) for (const tier of [2, 1, 0]) {
+      const o = await open(390, 844, 3, `&preview=1&seed=perfseed2&tier=${tier}&zoom=8&angle=straight&cv=2${q}`);
+      await up(o.p);
+      await waitFor(o.p, "(() => { const s = window.__jwLab.view.season(); return !s.any || (!!s.sp && (s.pack || !(s.winter > 0))); })()", 30000);
+      await o.p.evaluate(() => window.__jwLab.restart('solo', window.__jwLab.state().seed));
+      const R = await o.p.evaluate(() => { const J = window.__jwLab; J.ghosts(7); return J.runway(250, 1); });
+      if (!R) { console.log(`VAPERF ${k} t${tier}: no runway`); await o.close(); continue; }
+      await o.p.evaluate(y => { const J = window.__jwLab; J.warp(y); J.ghosts(7); }, R.y0 - 1);
+      await sleep(1500);
+      let worst = 0;
+      for (let t = R.period * 8; t < R.period * 9; t += 4) {
+        const c = await o.p.evaluate(async tt => { const J = window.__jwLab; J.setT(tt); J.freeze(true); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); return J.state().info.calls; }, t);
+        if (c > worst) worst = c;
+      }
+      await o.p.evaluate(() => window.__jwLab.freeze(false));
+      await o.p.emulateCPUThrottling(4);
+      await sleep(1200); await o.p.evaluate(() => window.__jwLab.clearFrames());
+      let runCalls = 0;
+      for (let i = 0; i < 40; i++) { await sleep(200); runCalls = Math.max(runCalls, await o.p.evaluate(() => window.__jwLab.state().info.calls)); }
+      const fr = (await o.p.evaluate(() => window.__jwLab.frames())).sort((a, c) => a - c);
+      await o.p.emulateCPUThrottling(1);
+      const td = await o.p.evaluate(() => window.__jwLab.view.tod());
+      const med = fr[Math.floor(fr.length / 2)], row = { scene: k, tier, worstCalls: worst, runCalls, limit: callsMax(tier), frames: fr.length, fpsMedian: +(1000 / med).toFixed(1), p95Ms: +fr[Math.floor(fr.length * 0.95)].toFixed(1), worstMs: +fr[fr.length - 1].toFixed(1), worst3: fr.slice(-3).map(v => +v.toFixed(1)), sun: td && td.sun };
+      rows.push(row); console.log('VAPERF', JSON.stringify(row));
+      ok(row.worstCalls <= row.limit && row.runCalls <= row.limit, `${k} tier ${tier}: the worst runway frame ${row.worstCalls} draw calls (running ${row.runCalls}) ≤ ${row.limit}`);
+      ok(row.fpsMedian >= 59 && !o.errs.length, `${k} tier ${tier}: 4× CPU, 8 kids on the runway — MEDIAN ${row.fpsMedian} fps (p95 ${row.p95Ms} ms · worst ${row.worstMs} ms · ${row.worst3.join(' / ')})`);
+      errs.push(...o.errs); await o.close();
+    }
+    if (out) { const { writeFileSync } = await import('node:fs'); writeFileSync(join(out, `vaperf${sel ? '-' + sel.join('-') : ''}.json`), JSON.stringify(rows, null, 1)); }
   }
 
   if (all || what === 'pile') for (const look of ['night', 'day']) {

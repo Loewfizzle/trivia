@@ -872,7 +872,7 @@ export function createView() {
           roster: rosterEl && rosterEl.classList.contains('is-on') ? [...rosterEl.children].map(e => e.textContent) : [],
           adopts: adopts.slice(), seen: { ...watch }, g0: st.game ? st.game.g0 || 0 : 0,
           snd: { cues: SFX.cues(), wanted: SFX.wanted().map(q => q.id), by: SFX.totals().by, ducked: ducked != null },
-          arrive: arriveEl ? arriveEl.text() : '', tier: night ? night.tier() : -1, info: night ? night.info() : null, season: night ? night.season() : null, kidPx: night ? night.kidHeightPx() : 0 }),
+          arrive: arriveEl ? arriveEl.text() : '', tier: night ? night.tier() : -1, info: night ? night.info() : null, season: night ? night.season() : null, kidPx: night ? night.kidHeightPx() : 0, lk: st.game ? st.game.lk || null : null, tod: night && night.tod ? night.tod() : null }),
         hop, syncs: () => syncs.slice(), frames: () => frames.slice(), cost: () => cost.slice(), clearMerged() { mergedSeen = ''; }, clearFrames() { frames.length = 0; cost.length = 0; stamps.length = 0; },
         /** every frame so far: [ms after tick 0, the frame's length, its own work] — THE START's measure */
         timeline: () => { const z = t0perf + (go - t0srv); return frames.map((d, i) => [Math.round(stamps[i] - z), +d.toFixed(1), +cost[i].toFixed(1)]); },

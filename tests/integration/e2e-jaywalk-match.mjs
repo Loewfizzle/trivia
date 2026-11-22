@@ -292,6 +292,10 @@ try {
   const lookOf = p => p.evaluate(() => ({ body: document.body.dataset.look, stage: document.querySelector('.jw-game').dataset.look, scene: window.__jwGame.state().info.look, band: document.querySelector('.jw-skyline').dataset.look }));
   const lk = await all(N, lookOf);
   ok(lk.every((q, i) => q.scene === (i < 2 ? 'day' : 'night') && q.body === q.scene && q.stage === q.scene && q.band === q.scene), `THE DAY LOOK in a match: ALICE (host) ${lk[0].scene} · BOB ${lk[1].scene} · CHARLIE ${lk[2].scene} — each phone its own GAME LOOK`);
+  // VARIETY A — THE HOST's CLOCK: the start carries the host's sun (game.lk) — every phone reads the SAME stamp; a forced DAY = noon, NIGHT = night
+  { const S = await all(N, p => p.evaluate(() => { const s = window.__jwGame.state(); return { lk: s.lk, tod: s.tod && s.tod.tod }; }));
+    ok(!!S[0].lk && Number.isFinite(S[0].lk.e) && S.every(q => JSON.stringify(q.lk) === JSON.stringify(S[0].lk)), `THE TIMES OF DAY: the host's sun stamped in the start, the same on every phone (${JSON.stringify(S[0].lk)})`);
+    ok(S.every((q, i) => q.tod === (i < 2 ? 'noon' : 'night')), `… a phone on DAY shows noon, on NIGHT night (${S.map(q => q.tod).join(' · ')})`); }
   await pages[2].evaluate(() => import('/js/games/kit/look.js').then(m => m.saveLook('day')));
   ok(await until(async () => { const q = await lookOf(pages[2]); return q.scene === 'day' && q.stage === 'day' && q.band === 'day'; }, 6000), '… CHARLIE switches to DAY mid-match: his screen re-themes at once (read live)');
   ok((await all(N, p => state(p))).every(s => s.ghosts.length === N - 1 && s.seed === game.seed), '… the same match on all three: the look is a view');

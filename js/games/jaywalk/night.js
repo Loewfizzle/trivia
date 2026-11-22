@@ -1090,6 +1090,7 @@ export function createNight(host, o = {}) {
   // VARIETY A — THE SUN's SHADOWS (tier 2 only, a DAY look with sun): ONE depth pass of the casters (their own layer — the kid + the rivals
   // keep their contact shadows: the depth pass knows nothing of their skinning) from the sun, up the course from the camera; the ground reads it
   let SHD = null;
+  const WHITE_TEX = ground.uniforms.uShTex.value;   // (no depth map: the ground's 1 × 1 white)
   const SHD_BIAS = new THREE.Matrix4().set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1), clearC = new THREE.Color();
   function sunPass(camY) {
     if (!SHD) {
@@ -1107,6 +1108,7 @@ export function createNight(host, o = {}) {
     try { renderer.render(scene, SHD.eye); } finally { renderer.setRenderTarget(null); scene.overrideMaterial = null; scene.background = bg; renderer.setClearColor(clearC, ca); }
     ground.uniforms.uShM.value.copy(SHD_BIAS).multiply(SHD.eye.projectionMatrix).multiply(SHD.eye.matrixWorldInverse);
   }
+  function sunFree() { if (!SHD) return; SHD.rt.dispose(); SHD.mat.dispose(); SHD = null; ground.uniforms.uShTex.value = WHITE_TEX; ground.uniforms.uShK.value = 0; }
   let snapAsk = null, snapW = 1080, snapR = 0;
   /** the picture on the canvas right now → a 2D canvas `width` px wide (null if this phone can't) */
   function grab(width = 1080, rows = 0) {
@@ -1128,7 +1130,7 @@ export function createNight(host, o = {}) {
     rest(on) {
       if (!!resting === !!on) return;
       resting = on ? 3 : 0;
-      if (on) { if (bloom) { bloom.dispose(); bloom = null; } for (const f of [...skyHold.keys()]) if (f !== skyS.now) skyHold.delete(f); }
+      if (on) { if (bloom) { bloom.dispose(); bloom = null; } sunFree(); for (const f of [...skyHold.keys()]) if (f !== skyS.now) skyHold.delete(f); }   // (VARIETY A: the sun's depth map freed behind a final screen — made again by the next sunny frame)
       if (FL) FL.rest(on);
       if (SP) SP.rest(on);
       fit(true); if (!on) setTier(tier);
@@ -1165,7 +1167,7 @@ export function createNight(host, o = {}) {
     kidScreenY() { v3.copy(kidPos).project(cam); return (1 - v3.y) / 2; },
     /** how tall he stands on the screen, in CSS px — the wider view's readability number */
     kidHeightPx() { v3.copy(kidPos).project(cam); const y0 = v3.y; v3.set(kidPos.x, kidPos.y + kidH, kidPos.z).project(cam); return Math.abs(v3.y - y0) / 2 * h; },
-    info: () => ({ binCap: K.bill.left(), warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
+    info: () => ({ sunMap: !!SHD, binCap: K.bill.left(), warmed, kid: !!kidGeo, inst: { flat: K.flat.mesh.count, bill: K.bill.mesh.count, shadow: K.shadow.mesh.count }, programs: renderer.info.programs ? renderer.info.programs.length : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr, w, h, fov: cam.fov, tier, zoom: rig.zoom(), angle: rig.angle(), camX: rig.x(), yaw: rig.yaw(), bloom: !!bloom && !day, look: day ? 'day' : 'night', rest: resting, fly: FL ? FL.info() : null, shops: SH ? SH.info().models : 0, words: 'top', gate: gateInfo.on ? { ...gateInfo } : null, sky: { now: skyS.now, held: [...skyHold.keys()], fades: skyS.fades, shift: skyAt, bias: skyBiasT, off: skyLifeKey, fading: performance.now() < skyS.until }, foot: footAt, fog: [scene.fog.near, scene.fog.far] }),
     /** how long this run's end is SEEN before the end screen may cover it (ms; 0 = the view's own) · the moments' loops fade */
     holdMs: r => (FL ? FL.holdMs(r) : 0), quiet() { if (FL) FL.quiet(); }, duck: () => (FL ? FL.duck() : 1),
     /** THE LOOK: 'day' | 'night' (at once; the same scene) */
@@ -1185,6 +1187,7 @@ export function createNight(host, o = {}) {
       for (const g of Object.values(AGEO)) g.dispose();
       flatGeo.dispose(); billGeo.dispose(); unit.dispose(); ground.dispose();
       if (bloom) bloom.dispose();
+      sunFree();
       if (env) env.dispose();
       if (envDay) envDay.dispose();
       clearTimeout(skyLifeT); if (SH) SH.destroy();

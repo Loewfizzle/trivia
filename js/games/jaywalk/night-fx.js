@@ -93,7 +93,7 @@ vec3 areaGround(float ar, float x, float z, float seed, float lane) {
 }
 void main() {
   float type = vKind.x, dn = vKind.y, up = vKind.z, seed = vKind.w, x = vP.x, z = vP.y, ar = vState.z;
-  vec3 c;
+  vec3 c; float sig = 0.0;   // (VARIETY A: a WARNING's own paint — the rails' red flash, the runway's racing chevrons — is never graded or clouded)
   if (type < 0.5 || type > 4.5) {
     float lw = mod(vLane, 64.0) + z;
     float pat = vnoise(vec2(x * 0.42, lw * 0.42) + 3.0);
@@ -173,6 +173,7 @@ void main() {
     float r = max(smoothstep(0.04, 0.016, abs(z - 0.33)), smoothstep(0.04, 0.016, abs(z - 0.67)));
     c = mix(c, DN(vec3(0.50, 0.53, 0.64), vec3(0.84, 0.86, 0.90)), r);
     c = mix(c + vec3(0.85, 0.05, 0.07) * vState.y * (0.16 + 0.6 * r) * (1.0 - uDay), vec3(0.98, 0.10, 0.08), vState.y * (0.2 + 0.7 * r) * uDay);
+    sig = vState.y;
   } else {
     c = DN(vec3(0.088, 0.086, 0.104), vec3(0.46, 0.47, 0.50)) * (0.97 + 0.06 * hash(floor(vec2(x * 36.0, z * 36.0))));   // (by day: the PAINTED runway — a fine grain)
     float cl = step(fract(x * 0.5 + 0.25), 0.5) * smoothstep(0.035, 0.015, abs(z - 0.5));
@@ -189,6 +190,7 @@ void main() {
       float chd = step(fract(xx * 1.2 + abs(z - 0.5) * 1.4 - fx * 3.0), 0.5);
       c = mix(c, mix(vec3(0.075, 0.07, 0.10), vec3(1.0, 0.64, 0.04), chd), 0.66 * tl * uDay);
       c = mix(c, mix(vec3(0.04, 0.035, 0.05), vec3(1.0, 0.94, 0.38), chd), clamp(band * 1.4, 0.0, 1.0) * uDay);
+      sig = max(0.66 * tl, clamp(band * 1.4, 0.0, 1.0));
     }
   }
   float inner = smoothstep(-0.14, 0.1, x) * smoothstep(9.14, 8.9, x);
@@ -203,9 +205,9 @@ void main() {
         sh *= 0.25 * uShK;
       }
     }
-    c *= uWarm;
-    if (uCloud > 0.001) c *= 1.0 - uCloud * smoothstep(0.42, 0.78, vnoise(vec2(vW.x * 0.075 + uTime * 0.035, vW.z * 0.075 + uTime * 0.012) + 31.0));
-    c = mix(c, c * uCool * 0.6, sh);
+    c *= mix(uWarm, vec3(1.0), sig);
+    if (uCloud > 0.001) c *= 1.0 - uCloud * (1.0 - sig) * smoothstep(0.42, 0.78, vnoise(vec2(vW.x * 0.075 + uTime * 0.035, vW.z * 0.075 + uTime * 0.012) + 31.0));
+    c = mix(c, c * uCool * 0.6, sh * (1.0 - 0.7 * sig));
   }
   float dk = vState.x;
   float fl = dk > 0.02 && dk < 0.98 ? step(hash(vec2(floor(uTime * 14.0), vLane)), 0.35 + dk * 0.5) : 0.0;
