@@ -67,6 +67,12 @@ per daily, the first-level slices could never fit; THE DEEP SLICES below.)
    console → Realtime Database → Data → hover the node (e.g. `profiles`) → ⋮ → **Import JSON** → that node's file. Import REPLACES that node.
    Do `profiles`, `uids`, `ppriv`, `pkeys`, `pstats` first (the accounts), then the rest.
 5. **The daily secrets** were never in the backup: /admin → THE DAILIES → RESEED.
+6. **THE PEPPER (THE FIX PASS — THE FABLE REVIEW's D6):** every restore key and every board id is an HMAC of `KEY_PEPPER` (Vercel's env var;
+   without it, one derived from the service account's private key — `api/_lib/fb.js`). The pepper is in NEITHER backup copy. A restore into
+   the SAME project needs nothing; a restore into a NEW Firebase / Vercel project needs the SAME `KEY_PEPPER` set **before the first request**,
+   or no restore key works and every account is orphaned. **The owner keeps a copy of `KEY_PEPPER` (and the three `VAPID_*` keys) in his
+   password manager — his step, once** (Vercel → Settings → Environment Variables → reveal → copy into the password manager). Never print,
+   log, commit or change it. Fallback if the backup function itself is down: Firebase console → Realtime Database → Data → ⋮ → **Export JSON**.
 
 ## When the PC's copy is skipped (THE REVIEW A16 — written down, FIXES R1)
 - The PC's task is registered to run **only while Ben's user is signed in** (`install.ps1` — `LogonType Interactive`: no stored password). After
@@ -88,6 +94,7 @@ The token only READS the backup door — it can't sign in, write, or reach anyth
 
 ## Ben's steps (once)
 
+0. **(THE FIX PASS — D6)** Copy `KEY_PEPPER` + the three `VAPID_*` values from Vercel into your password manager (see Restore step 6).
 1. Vercel → the project → Settings → Environment Variables → add **`BACKUP_TOKEN`** (Production) = the contents of
    `C:\Users\benja\NeonBackups\token.txt` → **Redeploy** (an env change needs a deploy).
 2. Nothing else: the private repo, its workflow and its secret were made in CITY E (`gh` was signed in); the PC's task is registered.

@@ -27,7 +27,7 @@ test('THE PROOF TREE (core/proof.js): PURE; THE FIRST GO = the earliest go among
   assert.ok(inMatch(tree, 'a', 1001) && !inMatch(tree, 'c', 1001) && !inMatch(tree, 'zz', 1001) && !inMatch(tree, T0_KEY, 1001));
   assert.ok(fullDraw(['a', 'b'], ['a', 'b']) && !fullDraw(['a'], ['a', 'b']) && !fullDraw(['a'], ['a']), 'a full draw = everyone first, in a match of two or more');
   // (the report narrows a GO tree by goUids — api/report.js#provenUids: pinned in tests/jaywalk-match.test.mjs; run in server.test.mjs)
-  assert.ok(read('api/report.js').includes("const GO_TREES = new Set(['jaywalk', 'highrise']);"));
+  assert.ok((read('api/report.js') + read('api/_lib/trust-lists.js')).includes("const GO_TREES = new Set(['jaywalk', 'highrise']);"));
 });
 
 test('THE NUMBERS ARE THE RULES\' (database.rules.json `jw` + `hr`): the GO window, the leaves\' 3 h, the sunset, the 10-min lock — each pinned equal; the same rule text for both nodes but the game\'s name', () => {

@@ -28,7 +28,7 @@ const SERVER_LIVE = Object.freeze({ holdem: "HOLD'EM's public table — rooms/{C
 /** every place ONE game must be registered in → [[key, what is missing]] */
 async function gaps(g) {
   const reg = read('js/games/registry.js'), help = read('js/ui/help.js'), art = read('js/ui/game-art.js'), base = read('css/base.css');
-  const boardView = read('js/board/view.js'), boards = read('js/core/boards.js'), smoke = read('tests/integration/e2e-smoke.mjs'), report = read('api/report.js');
+  const boardView = read('js/board/view.js'), boards = read('js/core/boards.js'), smoke = read('tests/integration/e2e-smoke.mjs'), report = (read('api/report.js') + read('api/_lib/trust-lists.js'));
   const budget = JSON.parse(read('tests/integration/game-budget.json')), graph = read('js/games/preload-graph.js');
   const proofs = Object.fromEntries([...report.matchAll(/^\s{2}([a-z]+): m => \(\{ room: \[([^\]]*)\]/gm)].map(x => [x[1], [...x[2].matchAll(/`([a-z]+)\//g)].map(y => y[1])]));
   const id = g.id, idx = (() => { try { return read(`js/games/${id}/index.js`); } catch { return ''; } })();

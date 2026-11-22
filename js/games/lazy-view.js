@@ -38,9 +38,7 @@ export const gameSheets = id => ['kit', id];
 
 const loadAll = (load, css) => Promise.all([load(), ...css.map(loadSheet)]).then(([m]) => m);
 
-// THE FIX PASS — P8 + P1: THE ERROR BOUNDARY + THE FEATURE CARD — the card itself: js/ui/game-broke.js (outside js/games: THE BOOT BYTES' line)
-
-/** css: stylesheet names (see gameSheets) to load with the view · needs: a feature check (P1 — needsImportMaps) */
+/** css: stylesheet names (see gameSheets) · needs: a feature check (THE FIX PASS P1) — P8: one retry, then the card (docs/cartridge.md) */
 export function lazyView(load, css = [], { needs = null } = {}) {
   // (LOBBY 2.0 B — THE CARTRIDGE PLUG: warm() loads the view + its sheets ahead — the console calls it on every phone at the game start)
   let warmed = null;

@@ -435,6 +435,8 @@ function highriseExtra(game, uid, out) {
 }
 
 const EXTRA = { highrise: highriseExtra, jaywalk: jaywalkExtra, cipher: cipherExtra, signal: signalExtra, overclock: overclockExtra, bluff: bluffExtra, pulse: pulseExtra, golf: golfExtra, agent: agentExtra, prism: prismExtra, slip: slipExtra, gridlock: gridlockExtra, stakes: stakesExtra, rum: rumExtra };
+/** THE FIX PASS — M1: does a game have its report extract? (a missed EXTRA threw on every report — tests/proof-lists.test.mjs) */
+export const hasExtra = id => Object.prototype.hasOwnProperty.call(EXTRA, id);
 
 /** Is this a finished match we can count? (null = yes, else the reason) */
 // THE SOLO LANE (SHELL 2.0 B1 — D3): the cartridges a room of ONE may count (their meta's SOLO — the same flag the console starts them by)

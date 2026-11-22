@@ -1964,3 +1964,7 @@ night + day, both dailies' SHARE TODAY sections; HIGH RISE's own daily poster ge
 THE ONE RULE kept; the share code stays LAZY (nothing in the preload). Proof: `tests/integration/pb-share.mjs` (9 — gold on a PB, never on a
 normal card; the words lit + readable at 360 / 390) · shots `Downloads\NEON\pb-share\` · the phone preview (the same draws, NORMAL beside PB,
 no server calls): `tests/integration/pb-share-preview.html` (`?only=jaywalk|highrise`; re-checked on HEAD Nov 22 — 9/9).
+
+## THE RULES FROM CLAUDE.md (moved Nov 22 — THE FIX PASS, THE FABLE REVIEW's M3: the text CLAUDE.md held, verbatim)
+
+- JAYWALK: the rules PURE + CROSS-ENGINE SAFE, a result = THE REPLAY, the preview at /jaywalk-lab; THE SOLO RUN · THE MATCH · THE GHOSTS · THE LOOK(S) · THE AREAS · THE BIG MOMENTS · THE END SCREEN · BEFORE THE FLIP · THE RECORDER = ONE BOUND · J1: SPLITS (the bests the SERVER's replay keeps) · THE MATCH MOMENTS (an OUT = that player's OWN end, never the host's) · J2: COURSE RULES v2 — a course = (seed, VERSION), ONE source `versions.js`, the version in the proof (`cv`) CHECKED against its GO, v1 FROZEN (`tests/fixtures/jaywalk-v1/`) · J2 FIX: v2 FROZEN too (`tests/fixtures/jaywalk-v2/` — a change = a v3) + THE END CHECK (a v2 run's own `e` must match the replay, else 'old build') · J3: THREE TRIES ALL DAY (no STOP; the row's `allDay`) + THE TIME BOARDS (`dly/jaywalk/{day}/sp` — the server's splits, a VIEW: never the points) · J4: WINTER = a VIEW by the run's own day (`season.js`; THE SEASONAL PACK outside the line; WET ships OFF) → docs/jaywalk.md.

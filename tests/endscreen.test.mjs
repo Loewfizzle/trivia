@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import { META as META_ROWS } from '../js/games/metas.js';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { finInk, contrast, FIN_DARK } from '../js/core/fin-ink.js';
 import { GAMES } from '../js/config.js';
 
@@ -28,9 +28,11 @@ test('the bar\'s words: every playable game\'s ACCENT (+ JAYWALK, + the console\
 
 test('ONE foot: no game builds a PLAY AGAIN / REMATCH / BACK TO THE CITY button of its own', () => {
   for (const id of readdirSync(new URL('../js/games/', import.meta.url))) {
-    for (const f of ['view.js', 'victory.js', 'index.js']) {
+    // (THE FIX PASS — M6: EVERY file in the game's folder — the old list of three names could not see HIGH RISE's final.js / endscreen.js / stage.js)
+    const dir = new URL(`../js/games/${id}/`, import.meta.url);
+    if (!existsSync(dir) || !statSync(dir).isDirectory()) continue;
+    for (const f of readdirSync(dir).filter(n => n.endsWith('.js'))) {
       const p = `js/games/${id}/${f}`;
-      if (!existsSync(new URL(`../${p}`, import.meta.url))) continue;
       const src = read(p);
       assert.doesNotMatch(src, /h\('button[^']*', [^)]*\)?, h\('span', '(PLAY AGAIN|REMATCH|BACK TO THE CITY|SHARE MY RUN)'\)/, `${p} keeps its own foot button`);
     }

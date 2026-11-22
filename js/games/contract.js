@@ -107,3 +107,16 @@ export function checkCartridge(id, mod, o = {}) {
   return out;
 }
 
+
+// THE FIX PASS (Nov 22 — THE FABLE REVIEW's M6): FOUR CONVENTIONS THE CONSOLE RELIES ON, written down (the review found none of them in the
+// contract — a new game learned them by breaking). tests/console-fix.test.mjs + tests/endscreen.test.mjs loop over these, never a literal list.
+/** a PROOF game (core/proof.js#VERIFIED_SOLO — JAYWALK, HIGH RISE, the next ones): the server replays the players' own nodes */
+export const PROOF = Object.freeze({
+  LIVE_KEY: 'runs',          // livePaths(game) names the proof tree `runs` — app.js reads state.live.runs (THE RUN HOLD, the own-GO report)
+  VIEW_HOLD: 'holdsRun',     // the view answers holdsRun() — app.js keeps a screen whose own live proven run is not over (THE RUN HOLD)
+  SERVER_LIVE: 'liveOf',     // the cartridge's server side exports liveOf({ code, matchId, tree, now, online }) → { uids, until } (report.js holds)
+  VIEW_FILE: 'view.js',      // where the view lives (js/games/<id>/view.js) — the run-hold wiring is checked there
+});
+/** THE SHEET NAME: a game's stylesheet is css/<id>.css unless named here (games/preload.js#wireGame + the cartridge's lazyView read it) */
+export const SHEETS = Object.freeze({ highrise: 'highrise-play' });
+export const sheetOf = id => SHEETS[id] || id;

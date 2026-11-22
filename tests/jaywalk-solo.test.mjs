@@ -244,7 +244,7 @@ test('THE PHONE\'s SIDE OF THE PROOF (view.js): GO = the server\'s time, read ba
   assert.match(idx, /export \{ finalScene \} from '\.\/victory\.js';/); assert.match(idx, /export const shareRun =/); assert.match(idx, /export function preload\(\)/);
   // the server: the proof on both paths; the owner's-test branch is GENERIC now — kept for the next game being built (JAYWALK is playable
   // since THE GO-LIVE PASS: its GAMES row has no `preview`, so the branch never matches it — everyone's reports are counted)
-  const r = read('api/report.js');
+  const r = (read('api/report.js') + read('api/_lib/trust-lists.js'));
   assert.match(r, /if \(uid && GAMES\.some\(g => g\.id === id && g\.preview && !g\.playable\)\) \{\s*const owner = async u => \{ const pid = await pidOf\(u\); return !!pid && \(adminPids\(\)\.includes\(pid\) \|\|/, 'a game being built (none today — the branch waits for the next one): THE OWNER\'s test');
   assert.match(r, /if \(await owner\(uid\)\) return true;/);
   // (H4 — HIS GUESTS: a match THE OWNER PLAYED IN — his own proof node of that match in that room — counts for everyone in it)

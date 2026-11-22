@@ -64,11 +64,8 @@ export function hostWriteOk() {
   }
   return true;
 }
-// THE FIX PASS — P2: the "fresh read" was a get() — answered from the phone's OWN copy whenever a listener covers the path (the SDK's
-// repoGetValue; room.js listens on meta + players the whole time): the hold lasted one tick and confirmed nothing. Now ONE WRITE the cache
-// can not answer — its ack comes after every event the server sent before it (the listeners re-synced on the reconnect), so once it settles
-// the mirror IS fresh: the host's meta/hostBeat (accepted = still the host — the rules: meta/hostId === auth.uid; refused = it follows) · a
-// guest's own presence/lastSeen (P3). → true (settled, accepted) · false (refused) · 'slow' (no answer in 5 s: asked again)
+// THE FIX PASS — P2 + P3: ONE WRITE the cache can't answer (a get() is answered from the listener's cache) — its ack comes after every earlier
+// event: the mirror is fresh. → true · false (refused) · 'slow' (asked again) — docs/harbor.md "THE WAKE HOLD's FRESH CHECK"
 export function roundTrip(code, asHost) {
   const w = asHost ? update(dbRef(`rooms/${code}/meta`), { hostBeat: serverTimestamp() }) : update(dbRef(`rooms/${code}/presence/${state.uid}`), { lastSeen: serverTimestamp() });
   return Promise.race([w.then(() => true, () => false), new Promise(r => setTimeout(() => r('slow'), 5000))]);
@@ -84,9 +81,7 @@ function askHost() {
     else lazyImport(import('./errlog.js'), './errlog.js').then(m => m.countQuiet && m.countQuiet('not-host')).catch(() => {});   // (it follows)
   }).catch(() => {}).finally(() => { w.asking = false; });
 }
-// THE FIX PASS — P3: ROOM IDLE only on a FRESH mirror — a phone waking from a long sleep read its OLD activeAt (the SDK says "connected"
-// before the listeners re-sync), closed the room on it and walked out of a live match (the server refused the delete; the sleeper was out
-// with a ghost seat). Every seated phone confirms with its round trip first, then asks again on what came back.
+// (P3: ROOM IDLE only on a fresh mirror — every seated phone round-trips first)
 let idleAsk = null;
 const idleNow = () => roomIdle(state.meta, serverNow() - (isHost() ? 0 : 90_000)) && !(globalThis.__nsRunHold && globalThis.__nsRunHold.held());
 function idleClose() {
@@ -167,8 +162,7 @@ function beat(now) {
   lastBeat = now;
   const patch = { hostBeat: serverTimestamp() };
   // only a running game keeps the room alive (an idle lobby closes after ROOM_IDLE_MS)
-  // (THE FIX PASS — D8: a FINISHED game's end screen left open — a podium on a laptop — kept the room "playing" for ever (a socket of the
-  //  100, a beat every 2 s): past END_IDLE_MS in `final` the stamp stops, so the hour without a game closes it like any idle room)
+  // (THE FIX PASS — D8: an end screen left open stops stamping past END_IDLE_MS — the idle hour closes it)
   const endedLong = state.game && state.game.phase === 'final' && now - (Number(state.game.phaseStartAt) || Number(state.game.endAt) || now) > END_IDLE_MS;
   if (state.meta.status === 'playing' && !endedLong && now - lastActive > 10 * 60_000) { lastActive = now; patch.activeAt = serverTimestamp(); }
   hostStats.beats++;

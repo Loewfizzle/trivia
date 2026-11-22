@@ -1719,3 +1719,7 @@ The pass log: [passes/city-part2.md](harbor/passes/city-part2.md).
   tri-vision as an LED screen).
 - **THE ROOM's GAME VOTES** live in the room dock's GAMES sheet (`screens/room-city.js#openGames` — a guest's tap = a vote, the host's list
   = the dots + the count + MOST WANTED; the dock's GAMES count) — the node: docs/data-model.md `rooms/{CODE}/gv`.
+
+## THE RULES FROM CLAUDE.md (moved Nov 22 — THE FIX PASS, THE FABLE REVIEW's M3: the text CLAUDE.md held, verbatim)
+
+- The city's module rules — every force flag a panel row + every canvas through `safeCtx` · THE CITY TIMETABLE (every timed thing; THE GOLDEN TABLE) · THE WINDOW SCENES ARE TIMETABLE ROWS · THE RADIO (the server checks the ROLE) · THE LOAD + THE BOOT BUDGET + THE BOOT PRELOAD · THE BOOT WATCHDOG · THE REJOIN LIMIT · EVERY dynamic import through THE SKEW WRAPPER (`lazyImport`) · THE BOX GATE + NO TWO CAMERAS · THE LONG NIGHT's RULE · AWAY, LIGHT · THE ONE-STALL RULE · THE CITY'S IDLE POLLS · the debug flags · the SIGN FORCE · THE TRI-VISION · THE SIGNS → docs/harbor.md "THE RULES FROM CLAUDE.md (moved Nov 18 — CITY I …)".

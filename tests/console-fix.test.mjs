@@ -12,6 +12,8 @@ import * as HM from '../js/games/highrise/match.js';
 import * as HL from '../js/games/highrise/logic.js';
 import { createProofWriter } from '../js/games/kit/proof-writer.js';
 import { createLiveWait, createRouterPing, END_OWED_MS } from '../js/games/kit/run-hold.js';
+import { VERIFIED_SOLO } from '../js/core/proof.js';   // (THE FIX PASS — M6)
+import { PROOF } from '../js/games/contract.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const T = 1_790_000_000_000;
@@ -104,7 +106,8 @@ test('THE WIRING (pinned): the router holds a game screen that holds a run — n
   assert.match(host, /if \(idleNow\(\)\) \{ idleClose\(\); return; \}/); assert.match(host, /const idleNow = \(\) => roomIdle\(state\.meta, serverNow\(\) - \(isHost\(\) \? 0 : 90_000\)\) && !\(globalThis\.__nsRunHold && globalThis\.__nsRunHold\.held\(\)\);/, 'the idle close never while a run is held (a host’s meta/activeAt in the past) — THE FIX PASS P3: asked again after the round trip');
   assert.match(app, /\(ownNode && ownNode\.go > 0\)/, 'a phone with its own GO in the tree reports the match, named or not');
   assert.match(rep, /for \(const u of proven\) if \(!names\.has\(u\)\) \{ await wreck\(key, uid, now, 'a dropped player'\)\.catch\(\(\) => \{\}\); throw new ApiError\(409, 'mismatch'/, 'DROP_GUARD: seated or not (THE BEFORE-LAUNCH PASS: + the sealed wreck)');
-  for (const v of ['js/games/jaywalk/view.js', 'js/games/highrise/view.js']) {
+  // (THE FIX PASS — M6: EVERY proof game — core/proof.js#VERIFIED_SOLO — through the contract's PROOF block, never a literal list of two)
+  for (const v of VERIFIED_SOLO.map(id => `js/games/${id}/${PROOF.VIEW_FILE}`)) {
     const s = read(v);
     assert.match(s, /\n    holdsRun,\n    update\(state\)/, `${v}: the screen answers holdsRun`);
     assert.match(s, /createLiveWait\(liveOf\)/, `${v}: the podium waits for the live rivals`);

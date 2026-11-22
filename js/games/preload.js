@@ -5,13 +5,14 @@
 // seconds in (room-city.js), the host's options sheet + its tap and every phone's start wire the room's game, then load it as before.
 import { GAME_IDS, GAME_MODULES, loadGame } from './registry.js';
 import { PRELOAD } from './preload-graph.js';
+import { sheetOf } from './contract.js';
 
 const wired = new Set();
 export function wireGame(id) {
   if (typeof document === 'undefined' || !GAME_IDS.includes(id) || GAME_MODULES[id]) return false;
   const add = (rel, f, as) => { const href = new URL(`../../${f}`, import.meta.url).href; if (wired.has(href)) return; wired.add(href); const l = document.createElement('link'); l.rel = rel; l.href = href; if (as) l.as = as; document.head.append(l); };
   for (const f of PRELOAD[id] || []) add('modulepreload', f);
-  for (const n of ['kit', id]) add('preload', `css/${n}.css`, 'style');
+  for (const n of ['kit', sheetOf(id)]) add('preload', `css/${n}.css`, 'style');   // (THE FIX PASS — M6 / review C5: a game's sheet by its contract name — contract.js#SHEETS)
   return true;
 }
 /** the room's game: its graph wired at once, then loaded (registry.js#loadGame) */

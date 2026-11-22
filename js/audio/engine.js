@@ -104,9 +104,7 @@ function createContext() {
       if (!visibleNow || document.visibilityState === 'hidden') { if (master) silence(c); pendingFadeIn = false; setTimeout(() => { if (ctx === c && c.state === 'running' && (!visibleNow || document.visibilityState === 'hidden')) c.suspend().catch(() => {}); }, ZERO_HOLD_MS); audioLog('running off screen — silenced + suspended'); return; }
       // (FIXES R1 — THE REVIEW A15: a context that started itself while hushed — NOTHING RUNS)
       if (hushed) { hushNow('running while hushed'); return; }
-      // (THE FIX PASS — P4: back ON SCREEN after an on-screen interruption (Siri, a call banner): THE MEDIA CUT's latch is cleared and the
-      //  leave episode closed BEFORE the resume listeners — it stayed set, and every later leave skipped the cut: a song element PLAYING at
-      //  the first signal, the state CITY G fixed)
+      // (THE FIX PASS — P4: back on screen after an interruption — the cut's latch cleared, the episode closed; docs/audio.md)
       mediaCut(false, 'running again');
       if (episode) leaveBack('running again');
       if (pendingFadeIn) fadeIn('running again');

@@ -26,7 +26,7 @@ import { noteSeen } from './_lib/seen.js';
 import { ref, val, emulated, adminPids } from './_lib/fb.js';
 import { jaywalkSolo, jaywalkMatch } from './_lib/jaywalk.js';
 import { highriseSolo, highriseMatch, HIGHRISE_COUNTS } from './_lib/highrise.js';
-import { goUids, firstGo, onTime, liveRetryMs } from '../js/core/proof.js';
+import { goUids, firstGo, onTime, liveRetryMs, VERIFIED_SOLO } from '../js/core/proof.js';
 import { liveOf as jaywalkLive } from '../js/games/jaywalk/director.js';   // (THE CONSOLE FIX: the live runs — PURE, the host's own rule)
 import { liveOf as highriseLive } from '../js/games/highrise/match.js';
 import { isOnline } from '../js/core/room-logic.js';
@@ -107,15 +107,19 @@ export { jaywalkSolo, jaywalkMatch };
 // HIGH RISE S4A — the SAME two paths (api/_lib/highrise.js: its own node `hr`, its own judge). THE PROOF GAMES: the games a result of which
 // exists ONLY from the server's replay of the players' proof nodes — { node (under rooms/{CODE}), solo, match }
 export { highriseSolo, highriseMatch };
-/** THE CONSOLE FIX — Group 2: the host-graded games whose result must name every player their own boards prove (THE DROPPED LEADER) */
-export const DROP_GUARD = Object.freeze(['prism', 'overclock']);
+// (THE FIX PASS — M1: the pure lists live in ./_lib/trust-lists.js — re-exported here, every old import keeps working)
+export { DROP_GUARD, PROOF_NODES, PROOF_PATHS, proofPaths, PROOF_TREES } from './_lib/trust-lists.js';
+import { DROP_GUARD, PROOF_NODES, proofPaths, PROOF_TREES, FLAT_PROOF, GO_TREES } from './_lib/trust-lists.js';
 /** THE BEFORE-LAUNCH PASS — HOST TRUST (docs/match-kit.md "HOST TRUST"): a host-graded match (DROP_GUARD) the server refuses is a 409
  *  'mismatch' + the quiet count logstats/wreck — and (the fresh-eyes review, H1) such a match of 2+ is NEVER paid from the snapshot path: its
  *  checks need its final game, and the night record's placings are the host's own */
 export const PROOF_GAMES = Object.freeze({
-  jaywalk: Object.freeze({ node: 'jw', solo: jaywalkSolo, match: jaywalkMatch, live: jaywalkLive }),
-  highrise: Object.freeze({ node: 'hr', solo: highriseSolo, match: highriseMatch, live: highriseLive }),
+  jaywalk: Object.freeze({ node: PROOF_NODES.jaywalk, solo: jaywalkSolo, match: jaywalkMatch, live: jaywalkLive }),
+  highrise: Object.freeze({ node: PROOF_NODES.highrise, solo: highriseSolo, match: highriseMatch, live: highriseLive }),
 });
+// (THE FIX PASS — M1: a proof game missing here would be paid from the host's own game.results — for a solo run, the player's own claim. ONE
+//  guard at load (the /api tests import this file) + tests/proof-lists.test.mjs over the pure lists: every VERIFIED_SOLO id in every list)
+for (const id of VERIFIED_SOLO) if (!PROOF_GAMES[id] || !PROOF_TREES[id] || !GO_TREES.has(id)) throw new Error(`THE FIX PASS — M1: the proof game ${id} is missing from report.js's proof lists`);
 /**
  * HIGH RISE S4A — THE SWITCH (api/_lib/highrise.js#HIGHRISE_COUNTS — ON since THE GO-LIVE, Nov 20; false = the one-line KILL SWITCH). OFF: a
  * run is JUDGED and NOTHING is awarded (processReport returns WOULD COUNT before any claim / credit). On the LOCAL EMULATORS a test sets
@@ -146,34 +150,6 @@ export function wouldAward(row, w, rec) {
  */
 export const MAX_REPORT_NAMES = MAX_PLAYERS * 2;
 export const realPlayers = (names, seated, known) => names.filter(u => !!((seated && seated[u]) || (known && known[u])));
-/**
- * FR7 FIXES A — the owner's decision 6: a player who LEFT counts only with proof they sat in THAT room for THAT match — never just an
- * account that exists. The proof = a node of that match only THAT uid could write in that room (the rules: their own uid, phase-gated, during
- * the match — PRISM's board, OVERCLOCK's first challenge's board / its combo marks). A game with no such node here (the dealer's HOLD'EM
- * reports itself) → a leaver is not counted. PURE: → the room-relative paths to look for.
- */
-export const PROOF_PATHS = Object.freeze({
-  prism: (m, u) => [`prism/${m}/${u}`],
-  overclock: (m, u) => [`oc/${m}/0/${u}`, `ocm/${m}/0/${u}`],
-});
-export const proofPaths = (gid, matchId, uid) => (PROOF_PATHS[gid] ? PROOF_PATHS[gid](matchId, uid) : []);
-/**
- * FR7 FIXES B — A SEAT IS NOT A PLAY (the owner's add-on, Grok's second opinion): EVERY credited uid — seated or not — needs its OWN node of
- * THIS match in THIS room. ANY own node counts: PRISM DROP's board (prism/{m}/{u}); OVERCLOCK's board of ANY challenge (oc/{m}/{ci}/{u}), its
- * combo marks (ocm/{m}/{ci}/{u}) or its sealed picks (seal/{CODE}/oc/{m}/{key}/{u}) — a player who sat out challenge 0 but played the rest
- * still counts. The rooms where they live (PURE) → { room: [room-relative trees], seal: [seal-relative trees] }; a game with none here (the
- * dealer's HOLD'EM reports itself; the frozen games) → null = the seat rule as before.
- */
-export const PROOF_TREES = Object.freeze({
-  prism: m => ({ room: [`prism/${m}`], seal: [] }),
-  overclock: m => ({ room: [`oc/${m}`, `ocm/${m}`], seal: [`oc/${m}`] }),
-  jaywalk: m => ({ room: [`jw/${m}`], seal: [] }),   // (JAYWALK H1: written AT GO. THE PROOF PASS: a node counts only WITH its GO (provenUids), and in a MATCH only with a hop the server replayed — `played`)
-  highrise: m => ({ room: [`hr/${m}`], seal: [] }),   // (HIGH RISE S4A: the same — its own node)
-});
-/** the games whose proof tree is FLAT — { uid: node } (PRISM's boards, JAYWALK's runs); the others' = { ci | key: { uid: … } } (OVERCLOCK) */
-const FLAT_PROOF = new Set(['prism', 'jaywalk', 'highrise']);
-/** … of which the proof-node games: a node = { go, c, e } — it counts only with its GO (core/proof.js#goUids) */
-const GO_TREES = new Set(['jaywalk', 'highrise']);
 /** PURE: the uids a match's trees prove */
 export function provenUids(gid, trees) {
   const out = new Set();

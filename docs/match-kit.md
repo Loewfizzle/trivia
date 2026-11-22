@@ -264,3 +264,8 @@ line: [colour, glow], day?: { name: [...], mode, line, gold } }` (a NEW GAME = i
 - Called a call: the header's mode is SOLO / MATCH for every game (the owner's format) — PRISM's BATTLE / SCORE RUSH, OVERCLOCK's N CHALLENGES,
   HOLD'EM's CASH / TOURNAMENT left the header (OPEN FOR BEN in the pass log).
 - The shared no-flash guard `end-flash.mjs` stays every game's.
+
+## THE RULES FROM CLAUDE.md (moved Nov 22 — THE FIX PASS, THE FABLE REVIEW's M3: the text CLAUDE.md held, verbatim)
+
+- THE PROOF TREE (THE PROOF PASS, Nov 20 — `jw` + `hr`, ONE shared copy: `core/proof.js` + `games/kit/proof-writer.js` + `proof-io.js`): a rule never trusts what the HOST writes (`game/*`) to guard a proof tree — THE STAMP `t0` (the tree's first write, the server's time) · a GO only within 5 s of it · the leaves (c / e / k / rs) on the player's OWN `go` + 3 h · THE LIVE LOCK by the stamp's age, 10 min (`core/room-logic.js#proofUnlocked` — the clients ask only for what the rules allow); the server counts a node only WITH its GO and a match player only with a MOVE in its own replay (a GO alone is not a play); the phone sends ONE burst at a time, re-sends a refused chunk, never drops a move on the mirror alone → docs/match-kit.md "THE PROOF TREE + THE PROOF WRITER" · docs/highrise.md "THE LIVE LOCK".
+- A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST (THE CONSOLE FIX, Nov 20): no podium / route / kick over a phone's own live proven run (`screen.holdsRun` · app.js THE RUN HOLD · room.js#runHoldDone); the server holds a proof match's report while a run is live (`core/proof.js#liveGoers` = the host's own endedFor + the cap); THE TREE CAP (`rooms/{CODE}/pt`, 1,000); HOLD'EM's own `holdsRun` → docs/match-kit.md.

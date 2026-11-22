@@ -319,7 +319,7 @@ function render(st0) {
   const glass = key.startsWith('setup') || key === 'profile';
   if (document.body.classList.contains('nd-glass') !== glass) { document.body.classList.toggle('nd-glass', glass); showBackdrop(glass); }
 
-  if (current && current.key === key) { try { current.screen.update && current.screen.update(st); } catch (e) { console.warn('update', key, e); reportError(e, 'screen update'); } return; }   // (THE FIX PASS — P8: a game screen's own boundary is lazy-view.js; any other screen's throw is reported, never a dead loop)
+  if (current && current.key === key) { try { current.screen.update && current.screen.update(st); } catch (e) { console.warn('update', key, e); reportError(e, 'screen update'); } return; }   // (THE FIX PASS — P8)
   const old = current;
   const el = h('section.screen');
   let screen = makeScreen(key);

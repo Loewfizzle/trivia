@@ -116,8 +116,8 @@ test('REGISTERED: the mark (the signs\' pink), the theme, SOLO_OK + the report +
   assert.match(read('css/base.css'), /\[data-theme='jaywalk'\] \{[^}]*--accent: #ff4fc4/);
   const R = await import('../js/core/match-report.js'), reg = await import('../js/games/registry.js');
   assert.equal(R.SOLO_OK.jaywalk, true); assert.ok(R.REPORT_GAMES.includes('jaywalk'));
-  assert.match(read('api/report.js'), /jaywalk: m => \(\{ room: \[`jw\/\$\{m\}`\], seal: \[\] \}\)/);
-  assert.match(read('api/report.js'), /const FLAT_PROOF = new Set\(\['prism', 'jaywalk', 'highrise'\]\);/, 'its tree is { uid: node } — GO alone proves a player');
+  assert.match((read('api/report.js') + read('api/_lib/trust-lists.js')), /jaywalk: m => \(\{ room: \[`jw\/\$\{m\}`\], seal: \[\] \}\)/);
+  assert.match((read('api/report.js') + read('api/_lib/trust-lists.js')), /const FLAT_PROOF = new Set\(\['prism', 'jaywalk', 'highrise'\]\);/, 'its tree is { uid: node } — GO alone proves a player');
   assert.ok(reg.PROOF_NODE_LIST.includes('jw') && reg.NEW_PLAYER_NODES.includes('jw') && !reg.ALL_PLAYER_NODES.includes('jw'), 'jw: kept as proof, out of the atomic clear (new in the rules)');
   assert.ok(reg.GAME_IDS.includes('jaywalk') && reg.META.jaywalk && reg.META.jaywalk.BANNER_NAME === 'JAYWALK', 'its thin meta at boot (THE GO-LIVE PASS)');
   const { staleProofPaths } = await import('../js/core/room-logic.js');
