@@ -72,8 +72,9 @@ async function flaggedFinished(base, nc, viewer) {
   const n = await Promise.all([...nc].filter(f => f !== viewer).map(async f => { const [r, x] = await Promise.all([val(`${base}/r/${f}`), val(`${base}/x/${f}`)]); return r != null && !x ? 1 : 0; }));
   return n.reduce((a, b) => a + b, 0);
 }
-import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE, cardType, shareBase, shareImgQuery } from './_lib/share-card.js';
-import { sweepRoomsIfDue } from './_lib/room-sweep.js';   // (THE FIX PASS — S2)   // (CITY E — THE TAPPABLE SHARE CARD)
+import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE, cardType, shareBase, shareImgQuery } from './_lib/share-card.js';   // (CITY E — THE TAPPABLE SHARE CARD)
+import { sweepRoomsIfDue } from './_lib/room-sweep.js';   // (THE FIX PASS — S2)
+import { sweepSeen } from './_lib/seen.js';   // (THE FIX PASS — S9)
 import { compactResults } from './_lib/results-sweep.js';   // (CITY G — results/ compacted past 14 days)
 import { bestStep, bestView, pointsRaise, isBetter } from '../js/core/daily-best.js';   // (DAILY A — DAILY BEST + a better try's points)
 import { roomJoined } from './_lib/daily-room.js';
@@ -309,12 +310,16 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       if (!held) recRef.on('value', hold);
       let outs = [], attempts = 0;
       try {
-        const [rec0, startedAt, data, room] = await Promise.all([
+        let [rec0, startedAt, data, room] = await Promise.all([
           heldVal(recRef),
           held ? heldVal(held.sref) : val(`${base}/s/${pid}`), cart.load ? cart.load(day, now) : null,
           body.action === 'pause' ? roomStarted({ uid, pid, code: body.room, now }) : null]);
         // (HIGH RISE DAILY B — a `held` cartridge's FREE hold needs the game start's identity + a real party: roomGameProof)
-        const roomProof = body.action === 'pause' && room && cart.held ? await roomGameProof({ uid, pid, code: room, now }) : null;
+        // (THE FIX PASS — S6: EVERY cartridge's room pause — THE DROP's + COAST CLEAR's paused free for a room one person made with an incognito
+        //  tab: now the same proof, and refused unless ANOTHER player with a counted profile is in that game; THE DROP keys its pause to the
+        //  game start — ONE pause a start, as HIGH RISE's free hold)
+        const roomProof = body.action === 'pause' && room ? await roomGameProof({ uid, pid, code: room, now }) : null;
+        if (body.action === 'pause' && room && !cart.held && !(roomProof && roomProof.others >= 1)) room = null;
         T.mark('load');
         if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
         // (THE DROP A — a cartridge's `stash`: the upload's own data written beside the record — THE DROP's log chunk. PFIX-3 (FABLE REVIEW 2 —
@@ -384,6 +389,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       sweepShares({ now }).catch(() => null);   // (CITY E: the share cards past 7 days — THE DAY'S CLOSE's sweep, no idle poll)
       compactResults({ now }).catch(() => null);   // (CITY G: results/ past 14 days compacted — js/core/results-compact.js — once a day, never waited on)
       sweepRoomsIfDue(now).catch(() => null);   // (THE FIX PASS — S2: the stale rooms swept on the server, at most hourly — never waited on)
+      sweepSeen(now).catch(() => null);   // (THE FIX PASS — S9: the hashed addresses past 14 days, once a day — never waited on)
       if (!pid) { await closing; return { day, dailies, mine: {}, gated: {}, started: {}, stand: {}, lessons: {}, friends: {}, table: [], noProfile: true }; }
       const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {}, shareOf = {}, rfOf = {}, placeOf = {}, extraMine = {}, progOf = {};
       // (CITY D — SCORES SHOWS INSTANTLY: the profile's own reads + YOUR TABLE's friends list start NOW, beside the dailies' reads — never after)

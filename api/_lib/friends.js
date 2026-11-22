@@ -26,6 +26,8 @@ export async function cardOf(pid, at = 0) {
   // (DFIX2 — SLIM CARDS ON SCORES: + the XP + the member Nº, so a friend's strip is drawn exactly like a room player's — ui/strip-board.js)
   return { pid, bid: boardId(pid), n: p.n, t: p.t, a: p.a, c: p.c, l: p.l, x: p.x, mn: p.mn, cd: p.cd, g: p.g, tb: p.tb, es: p.es, at };
 }
+/** THE FIX PASS — S8: a card for anyone who is not an accepted friend — no tag digits, no member Nº */
+export const stranger = c => { if (!c) return c; const { t: _t, mn: _mn, ...face } = c; void _t; void _mn; return face; };
 const cards = async (m, order = null) => {
   const list = (order || Object.entries(m || {}).sort((x, y) => y[1] - x[1]).map(([p]) => p)).filter(isPid);
   return (await Promise.all(list.map(p => cardOf(p, (m && m[p]) || 0)))).filter(Boolean);
@@ -42,7 +44,9 @@ export async function friendsState(pid, now = Date.now()) {
   const [friends0, inn0, out0, blocked0, recent] = await Promise.all([cards(X.f), cards(X.in), cards(X.out), cards(X.b), cards(X.rp, sug)]);
   // (FR7 FIXES A — C6: a REQUEST is a stranger's name — a throwaway named anything could friendAdd any board row: the rude-name filter's HOUSE
   //  NICKNAME on the requests + the blocked, as THE BOARD shows it; your friends + the players you shared a room with keep their names)
-  const nick = list => list.map(c => ({ ...c, n: publicName(c.bid, c.n) }));
+  // (THE FIX PASS — S8: a card that is NOT an accepted friend never carries the tag digits or the member Nº — a friend request to any board
+  //  row answered with that stranger's `t` + `mn`; the slim card draws without them)
+  const nick = list => list.map(c => stranger({ ...c, n: publicName(c.bid, c.n) }));
   const inn = nick(inn0), out = nick(out0), blocked = nick(blocked0);
   // (BOARD 2.0 B — THE FRIENDS LIST as slim cards, by THIS WEEK's XP: each FRIEND's week counter (pstats/{pid}/xw — the OVERALL board's own number), the
   //  friends only — never a request, a block or a suggestion; the existing read, no new function)
@@ -51,7 +55,7 @@ export async function friendsState(pid, now = Date.now()) {
     const [hid, xw] = await Promise.all([val(`profiles/${c.pid}/h`), val(`pstats/${c.pid}/xw`)]);
     return { ...c, wx: hid ? null : weekXp({ xw }, now) };
   }));
-  return { friends, in: inn, out, blocked, recent: recent.map(c => ({ ...c, rel: relOf(A, pid, c.pid, now) })), caps: { max: FR.max, outMax: FR.outMax } };
+  return { friends, in: inn, out, blocked, recent: recent.map(c => stranger({ ...c, rel: relOf(A, pid, c.pid, now) })), caps: { max: FR.max, outMax: FR.outMax } };
 }
 
 /**
@@ -151,7 +155,7 @@ export async function friendLinkGet(me, body, now = Date.now()) {
   if (p === me) return { self: true };
   const c = await cardOf(p);
   if (!c) throw new ApiError(404, 'no_link', 'That friend link doesn’t work any more.');
-  const { pid: _p, bid: _b, ...face } = c;
+  const { pid: _p, bid: _b, ...face } = stranger(c);   // (THE FIX PASS — S8: no tag digits / member Nº either)
   return { card: { ...face, n: publicName(c.bid, c.n) }, rel: relOf(await node(me), me, p, now) };
 }
 

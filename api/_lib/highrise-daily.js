@@ -69,6 +69,24 @@ export async function endRun({ pid, day, now, why = 'fin' }) {
   return !!(v && v.e);
 }
 
+/**
+ * THE FIX PASS — S5: A LEG'S NODE IS ITS PROFILE'S. The node is keyed by the DEVICE's uid (dly/highrise/{day}/w/{uid}/{leg}) and START
+ * opened it with a plain set — a SECOND PROFILE on the same phone (a restore key) replaced the first one's open leg, chunks and all, and the
+ * first profile's next START read an empty log: ONE SHOT replayed from floor 0. Now the node names its profile (`p`, server-written) and a
+ * START that finds ANOTHER profile's node at its path ENDS that profile's run and JUDGES it from the node as it stands (its score kept on its
+ * record) BEFORE taking the node; the judge refuses a node whose GO is not its leg's (held.js#logOf — never another profile's taps).
+ */
+async function takeNode(day, uid, i, pid, now, seed) {
+  const n = await val(proofPath(day, uid, i)).catch(() => null);
+  if (!n || !n.p || n.p === pid) return;
+  const other = String(n.p);
+  try {
+    await endRun({ pid: other, day, now, why: 'close' });   // (an end word the run's card already knows)
+    const rec = await val(`${base(day)}/p/${other}`);
+    if (rec) await judged({ record: rec, data: { seed }, day, pid: other });
+  } catch (e) { console.warn('hr take node', e && e.message); }
+}
+
 /** what the phone gets for a leg: the seed, the leg (its GO, its tick T, its path), the log so far (play ticks), the holds left */
 const runOf = ({ seed, day, uid, i, go, z, t, events, rec, room }) => ({ seed, leg: i, go, z, t, path: proofPath(day, uid, i), ev: events, holds: holdsOf(rec).h, left: holdsLeft(rec), ...(i > 0 ? { held: 1 } : {}), ...(room ? { room: 1 } : {}) });
 
@@ -84,7 +102,8 @@ export async function startHeld({ pid, uid, day, now, startedAt, today = streakD
     const go = now + LEAD_MS, z = legEnd(go, 0);
     const tx = await recRef.transaction(cur => (cur == null ? { st: startedAt || now, l: { 0: { u: String(uid), go, z, t: 0 } } } : undefined));
     if (!tx.committed) return { refused: 'busy' };
-    await ref(proofPath(day, uid, 0)).set({ go, z });
+    await takeNode(day, uid, 0, pid, now, seed);
+    await ref(proofPath(day, uid, 0)).set({ go, z, p: pid });
     const made = tx.snapshot.val();
     return { run: runOf({ seed, day, uid, i: 0, go, z, t: 0, events: [], rec: made }) };
   }
@@ -115,7 +134,8 @@ export async function startHeld({ pid, uid, day, now, startedAt, today = streakD
     return made;
   });
   if (!tx.committed) return { refused: 'busy' };
-  await ref(proofPath(day, uid, i)).set({ go, z });
+  await takeNode(day, uid, i, pid, now, seed);
+  await ref(proofPath(day, uid, i)).set({ go, z, p: pid });
   return { run: runOf({ seed, day, uid, i, go, z, t: T, events: log.events, rec: made, room: kind === 'room' }) };
 }
 

@@ -660,15 +660,16 @@ await H.run(async () => {
     ok(!!(await val(`pstats/${me0.pid}/it/card-redline`)), 'REDLINE is still hers');
     // OC5 — THE QUICK SOLO PERSONAL BEST (CITY PART 1: the ONE board, overclock-quick — solo or room): that SOLO QUICK run is on it (its total); the victory body
     // says NEW PERSONAL BEST; a lower run afterwards says YOUR SCORE + YOUR BEST (the outcome's bests)
-    const qs = await val(`pstats/${me0.pid}/b/overclock-quick`);   // (CITY PART 1 — ONE BOARD: BEST QUICK RUN, solo or room)
-    ok(qs && qs.a === 155 * 6, `THE QUICK SOLO RUN on THE ONE BOARD: the server counted it (${JSON.stringify(qs)})`);
+    // (THE FIX PASS — S4, the owner's call: a SOLO QUICK run plays + pays XP, but the ONE board takes ROOM matches with 2+ verified players only)
+    const qs = await val(`pstats/${me0.pid}/b/overclock-quick`);
+    ok(qs && qs.a === 900, `THE QUICK SOLO RUN is NOT on THE ONE BOARD — it keeps the room matches' 900 (${JSON.stringify(qs)})`);
     const v1 = await p0.evaluate(() => ({ stamp: (document.querySelector('.oc-vic-stamp b') || {}).textContent, best: (document.querySelector('.oc-vic-best') || {}).textContent }));
-    ok(v1.stamp === 'NEW PERSONAL BEST', `THE SOLO VICTORY: "${v1.stamp}" (${v1.best})`);
+    ok(v1.stamp !== 'NEW PERSONAL BEST', `THE SOLO VICTORY never claims a board best: "${v1.stamp}" (${v1.best})`);
     await playOc(ocFinal(Array.from({ length: 6 }, () => ({ [uids[0]]: 40 })), [uids[0]]), { [uids[0]]: 'ALICE' }, 'solo-lower');
     await sleep(800);
     const v2 = await p0.evaluate(() => ({ stamp: (document.querySelector('.oc-vic-stamp b') || {}).textContent, best: (document.querySelector('.oc-vic-best') || {}).textContent }));
-    ok(v2.stamp === 'YOUR SCORE' && /YOUR BEST · 930/.test(v2.best || ''), `THE SOLO VICTORY, not a best: "${v2.stamp}" + "${v2.best}"`);
-    ok((await val(`pstats/${me0.pid}/b/overclock-quick`)).a === 930, 'the board keeps the best');
+    ok(v2.stamp !== 'NEW PERSONAL BEST', `THE SOLO VICTORY, not a best: "${v2.stamp}" + "${v2.best}"`);
+    ok((await val(`pstats/${me0.pid}/b/overclock-quick`)).a === 900, 'the board keeps the room best (a solo run never writes it — THE FIX PASS S4)');
     // OC5 — THE HORSESHOE: ALICE backed the winning horse of a DUMB LUCK race (the server replays the draw from the room's record), BOB didn't
     const L = await import('../../js/games/overclock/luck.js');
     const hs = ocFinal(Array.from({ length: 6 }, (_, ci) => ({ [uids[0]]: 90 + ci, [uids[1]]: 100 })));

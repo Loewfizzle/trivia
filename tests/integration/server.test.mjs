@@ -3349,7 +3349,7 @@ test('THE PROOF PASS — A VERIFIED SOLO RUN IS A COUNTED PLAY: a solo-only play
 
 // CITY PART 1 — OVERCLOCK = ONE BOARD (the owner, Nov 19): BEST QUICK RUN (lb/overclock-quick) — a 2-player QUICK match writes it for BOTH, a
 // SOLO QUICK run writes it, STANDARD writes nothing, a forged total is refused; THE SEED (the BACK-FILL) runs once, idempotent
-test('CITY PART 1 — OVERCLOCK = ONE BOARD: a room QUICK match writes both players, a solo QUICK run too; STANDARD nothing; a forge refused; THE SEED once', async () => {
+test('CITY PART 1 — OVERCLOCK = ONE BOARD: a room QUICK match writes both players; a solo QUICK run counts but writes NO row (THE FIX PASS S4); STANDARD nothing; a forge refused; THE SEED once', async () => {
   const P = {};
   for (const u of ['u-oq1', 'u-oq2', 'u-oq3', 'u-oq4', 'u-oq5', 'u-oq6']) { P[u] = (await ensure(u, u.toUpperCase().replace('-', ''))).pid; await ref(`pstats/${P[u]}/cp`).set(3); await ref(`profiles/${P[u]}/m`).set(3); }   // (listed: 3 counted plays)
   tick(5 * 60_000);
@@ -3361,7 +3361,9 @@ test('CITY PART 1 — OVERCLOCK = ONE BOARD: a room QUICK match writes both play
   const solo = await seedRoom('overclock', ['u-oq3'], { mode: 'quick' });
   await ref(`rooms/${solo.code}/night/${solo.matchId}/p/u-oq3`).set(0);
   assert.equal((await report('u-oq3', solo)).status, 'counted');
-  assert.ok((await val(`lb/overclock-quick/all/${P['u-oq3']}`)) > 0, 'a SOLO QUICK run: the same ONE board');
+  // (THE FIX PASS — S4, the owner's call: a SOLO QUICK run still plays + pays XP — the board takes ROOM matches with 2+ verified players only)
+  assert.equal(await val(`lb/overclock-quick/all/${P['u-oq3']}`), null, 'a SOLO QUICK run: NO board row (THE FIX PASS — S4)');
+  assert.equal(((await val(`pstats/${P['u-oq3']}/g/overclock/p`)) || 0), 1, '…but it counted (XP as ever)');
   tick(5 * 60_000);
   const std = await seedRoom('overclock', ['u-oq4', 'u-oq5']);
   assert.equal((await report('u-oq4', std)).status, 'counted');

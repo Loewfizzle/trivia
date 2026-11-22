@@ -37,7 +37,9 @@ export async function closeOpen({ pid, day, now, why = 'fin', onlyIfGone = false
   const node = await val(proofPath(day, t.u, t.i));
   if (onlyIfGone && liveTry(t, node, now)) return null;
   const { seed } = await jwDay(day);
-  const result = scoreTry({ seed, go: t.go, z: t.z, node, cv: t.cv === 2 ? 2 : 1 });   // (J2: the version the try was opened on)
+  // (THE FIX PASS — S5: a node whose GO is not this try's is ANOTHER profile's (the same phone's uid, a restore key): never judged as this try)
+  const mine = node && node.go != null && Number(node.go) !== Number(t.go) ? null : node;
+  const result = scoreTry({ seed, go: t.go, z: t.z, node: mine, cv: t.cv === 2 ? 2 : 1 });   // (J2: the version the try was opened on)
   let closed = null;
   await ref(`${base}/p/${pid}`).transaction(cur => {
     if (cur == null) return null;
@@ -46,7 +48,7 @@ export async function closeOpen({ pid, day, now, why = 'fin', onlyIfGone = false
     return nx || undefined;
   });
   // (the node's own `e` — no chunk lands after the close: the rules refuse a chunk once it is set)
-  if (closed && !(node && node.e)) await ref(`${proofPath(day, t.u, t.i)}/e`).set(now).catch(() => {});
+  if (closed && mine && !mine.e) await ref(`${proofPath(day, t.u, t.i)}/e`).set(now).catch(() => {});
   return closed;
 }
 
@@ -73,7 +75,11 @@ export async function startTry({ pid, uid, day, now, startedAt, cvs = null, cvr 
   });
   const rec = tx.snapshot.val();
   if (refused || !opened) return { refused: refused || 'open', prior, run: { seed, left: leftOf(rec), tries: triesView(rec) } };
-  await ref(proofPath(day, uid, opened.i)).set({ go: opened.go, z: opened.z });
+  // (THE FIX PASS — S5: the node names its profile; ANOTHER profile's open try at this path is CLOSED — judged from the node as it stands —
+  //  before the path is taken, never wiped under it)
+  const was = await val(proofPath(day, uid, opened.i)).catch(() => null);
+  if (was && was.p && was.p !== pid) await closeOpen({ pid: String(was.p), day, now, why: 'close' }).catch(() => null);
+  await ref(proofPath(day, uid, opened.i)).set({ go: opened.go, z: opened.z, p: pid });
   return { prior, run: { seed, try: opened.i, go: opened.go, z: opened.z, path: proofPath(day, uid, opened.i), left: leftOf(opened.record), tries: triesView(opened.record), ...(opened.cv === 2 ? { cv: 2 } : {}) } };
 }
 

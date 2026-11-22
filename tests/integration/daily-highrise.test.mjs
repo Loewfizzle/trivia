@@ -18,7 +18,7 @@ import assert from 'node:assert/strict';
 import { ref, val, fb } from '../../api/_lib/fb.js';
 import { deleteApp } from 'firebase-admin/app';
 import { profileAction } from '../../api/profile.js';
-import { dailyAction, settleRun } from '../../api/daily.js';
+import { dailyAction, settleRun, forgetPids } from '../../api/daily.js';
 import { clearSwitchCache, forgetPicks, loadDailies } from '../../api/_lib/dailies.js';
 import { forgetHrDays, HIGHRISE_DAILY } from '../../api/_lib/highrise-daily.js';
 import { sweepRuns, forgetSwept, forgetClosed } from '../../api/_lib/daily-close.js';
@@ -82,7 +82,7 @@ test('HIGH RISE\'s daily opens only through the test opener (its row ships OFF);
   assert.equal(s.run.z, legEnd(s.run.go, 0));
   assert.deepEqual([s.run.leg, s.run.t, s.run.left, s.run.ev], [0, 0, HOLDS, []]);
   assert.equal(s.run.path, `dly/highrise/${s.day}/w/hd-ann/0`);
-  assert.deepEqual(await val(s.run.path), { go: s.run.go, z: s.run.z }, 'the leg node opened by the SERVER (go + z)');
+  assert.deepEqual(await val(s.run.path), { go: s.run.go, z: s.run.z, p: await pidOf('hd-ann') }, 'the leg node opened by the SERVER (go + z + its profile — THE FIX PASS S5)');
   await ensure('hd-bob', 'HiBob');
   const b = await D('hd-bob', { action: 'start', game: 'highrise' }, NOW + 5000);
   assert.equal(b.run.seed, s.run.seed, 'everyone gets the same course');
@@ -267,3 +267,30 @@ test('THE PRUNE: the leg nodes past 7 days are deleted, the run\'s record + the 
   assert.equal(await HIGHRISE_DAILY.prune({ day, back: 9 }), 0, 'once');
   assert.equal(await HIGHRISE_DAILY.prune({ day: dayOf(dayNum('d20261121') - 5), back: 5 }), 0, 'a recent day keeps them');
 });
+
+// THE FIX PASS — S5 (THE FABLE REVIEW): a SECOND PROFILE on the SAME phone (a restore key: the same uid, another pid) STARTs — the first
+// profile's open leg is ENDED + JUDGED from its node as it stands before the path is taken; its next START is the run ended, never a new tower
+test('THE FIX PASS — S5: a second profile on the same phone never wipes the open leg — the first run is ended + judged first, ONE SHOT kept', async () => {
+  const uid = 'hd-shr';
+  await ensure(uid, 'ShareOne');
+  const p1 = await pidOf(uid);
+  const T0 = NOW + 3 * 3600e3;
+  const s1 = await D(uid, { action: 'start', game: 'highrise' }, T0);
+  const a = await playLeg(s1, { sigma: 25, floors: 6, botSeed: 'shr1' });
+  // the phone switches to ANOTHER profile (its restore key) — the same uid now names pid 2
+  await ensure('hd-shr-2', 'ShareTwo');
+  const p2 = await pidOf('hd-shr-2');
+  await ref(`uids/${uid}`).set(p2); forgetPids();   // (the function's uid → pid memo: a restore re-reads it)
+  const s2 = await D(uid, { action: 'start', game: 'highrise' }, a.end + 60e3);
+  assert.equal(s2.run.path, s1.run.path, 'the same node path (the device’s uid, leg 0)');
+  assert.equal((await val(s2.run.path)).p, p2, 'the node is profile 2’s now');
+  const r1 = await val(`dly/highrise/${s1.day}/p/${p1}`);
+  assert.ok(r1.e, 'profile 1’s run was ENDED before its node was taken');
+  assert.equal(r1.f, a.run.floor, `… and JUDGED from its node as it stood: ${r1.f} floors kept (the phone's ${a.run.floor})`);
+  // back on profile 1: its START is the run ended — never a fresh tower from floor 0
+  await ref(`uids/${uid}`).set(p1); forgetPids();
+  const back = await D(uid, { action: 'start', game: 'highrise' }, a.end + 120e3);
+  assert.ok(!back.run || !back.run.go, `ONE SHOT kept: no new leg (${JSON.stringify(back).slice(0, 120)})`);
+  await ref(`uids/${uid}`).set(p1);
+});
+

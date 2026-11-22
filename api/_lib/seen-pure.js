@@ -64,3 +64,15 @@ export function seenGroups(seen, now) {
     return { pids, first: Object.fromEntries(pids.map(p => [p, first[p]])), last: Object.fromEntries(pids.map(p => [p, last[p]])), shared: Math.max(...pids.map(p => shared.get(p) || 0)) };
   }).sort((a, b) => b.pids.length - a.pids.length || Math.max(...Object.values(b.last)) - Math.max(...Object.values(a.last)));
 }
+/** THE FIX PASS — S9 (PURE): the whole `seen` node → the multi-path delete of every sighting past SEEN_DAYS (an address left with none goes
+ *  whole) — "14 days" was true only on screen: an address nobody returned to kept its sightings for ever */
+export function seenSweepPlan(seen, now) {
+  const patch = {};
+  for (const [h, rec] of Object.entries(seen || {})) {
+    if (!rec || typeof rec !== 'object') { patch[`seen/${h}`] = null; continue; }
+    const keys = Object.keys(rec), stale = keys.filter(p => !(rec[p] && Number(rec[p].l) > now - SEEN_MS));
+    if (stale.length === keys.length) patch[`seen/${h}`] = null;
+    else for (const p of stale) patch[`seen/${h}/${p}`] = null;
+  }
+  return patch;
+}

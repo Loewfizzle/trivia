@@ -82,3 +82,25 @@ test('S3 b: /api/report has a per-uid CALL BUDGET (api/daily.js\'s, ONE helper)'
   assert.match(r, /if \(!reportBudget\(uid, Date\.now\(\)\)\) throw new ApiError\(429, 'slow_down'/);
   assert.match(src('api/daily.js'), /const budget = callBudget\('dc', CALLS\);/);
 });
+
+test('S9: the seen/ sweep plan — every sighting past 14 days goes, an address left with none goes whole', async () => {
+  const { seenSweepPlan, SEEN_MS } = await import('../api/_lib/seen-pure.js');
+  const now = 10e9, fresh = { f: now - 1e6, l: now - 1e6 }, old = { f: now - SEEN_MS - 2e6, l: now - SEEN_MS - 1e6 };
+  const plan = seenSweepPlan({ h1: { pa: fresh, pb: old }, h2: { pc: old }, h3: { pd: fresh } }, now);
+  assert.deepEqual(plan, { 'seen/h1/pb': null, 'seen/h2': null });
+  assert.match(src('api/daily.js'), /sweepSeen\(now\)\.catch\(\(\) => null\);/);
+});
+
+test('S8: a card for anyone who is not an accepted friend never carries the tag digits or the member Nº', () => {
+  const f = src('api/_lib/friends.js');
+  assert.match(f, /export const stranger = c => \{ if \(!c\) return c; const \{ t: _t, mn: _mn, \.\.\.face \} = c;/);
+  assert.match(f, /const nick = list => list\.map\(c => stranger\(/);
+  assert.match(f, /recent: recent\.map\(c => stranger\(/);
+  assert.match(f, /const \{ pid: _p, bid: _b, \.\.\.face \} = stranger\(c\);/);
+});
+
+test('D8: a finished game\'s end screen stops keeping the room alive after END_IDLE_MS (the hour without a game then closes it)', () => {
+  const h = src('js/host.js');
+  assert.match(h, /export const END_IDLE_MS = 15 \* 60_000;/);
+  assert.match(h, /if \(state\.meta\.status === 'playing' && !endedLong && now - lastActive > 10 \* 60_000\) \{ lastActive = now; patch\.activeAt = serverTimestamp\(\); \}/);
+});

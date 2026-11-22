@@ -85,7 +85,7 @@ test('JAYWALK\'s daily opens only through the test opener (its row ships OFF); S
   assert.equal(s.run.try, 0); assert.equal(s.run.left, TRIES - 1);
   const uid = 'jd-ann';
   assert.equal(s.run.path, `dly/jaywalk/${s.day}/w/${uid}/0`);
-  assert.deepEqual(await val(s.run.path), { go: s.run.go, z: s.run.z }, 'the proof node opened by the SERVER (go + z)');
+  assert.deepEqual(await val(s.run.path), { go: s.run.go, z: s.run.z, p: await pidOf('jd-ann') }, 'the proof node opened by the SERVER (go + z + its profile — THE FIX PASS S5)');
   await ensure('jd-bob', 'JayBob');
   const b = await D('jd-bob', { action: 'start', game: 'jaywalk' }, NOW + 5000);
   assert.equal(b.run.seed, s.run.seed, 'everyone gets the same course');

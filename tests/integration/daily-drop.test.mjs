@@ -161,12 +161,18 @@ test('PLAYER PAUSES: 3 a run (server-timed, the board\'s clock stopped), a 4th r
   await rejects(D('dr-eve', { action: 'pause', game: 'drop', day: P.day }, P.now + 100), 409, 'no_room_game');
   // a real room that started a game (2 players): accepted, free
   const pa = await pidOf('dr-eve');
-  await ref('rooms/DRPX').set({ meta: { hostId: 'x', status: 'playing', createdAt: P.now }, players: { 'dr-eve': { name: 'Eve', pid: pa }, x: { name: 'X' } } });
+  // (THE FIX PASS — S6: a room one person made — the second seat an incognito tab with no profile — is refused; a real party with another
+  //  COUNTED profile in a started game pauses ONCE a game start)
+  await ref('rooms/DRPX').set({ meta: { hostId: 'x', status: 'playing', createdAt: P.now, go: { m: 'gs1', at: P.now - 1000 } }, players: { 'dr-eve': { name: 'Eve', pid: pa }, x: { name: 'X' } } });
+  await rejects(P.send('pause', { room: 'DRPX' }), 409, 'no_room_game');
+  await ensure('dr-xav', 'Xav');
+  await ref('rooms/DRPX/players/x').set({ name: 'X', pid: await pidOf('dr-xav') });
   const rp = await P.send('pause', { room: 'DRPX' });
   assert.equal(rp.kd, 'r'); assert.equal(rp.left, 0, 'none of the 3 (all used before)');
   P.now += 5 * 60e3;
   const b = await D('dr-eve', { action: 'resume', game: 'drop', day: P.day }, P.now);
   P.pm = b.pm;
+  await rejects(P.send('pause', { room: 'DRPX' }), 409, 'room_used');   // (THE FIX PASS — S6: ONE room pause a game start)
   await P.play(3e3);
   assert.ok(!(await val(`dly/drop/${P.day}/p/${pa}`)).e, 'the run goes on after a 5-minute room game');
 });
@@ -240,7 +246,7 @@ test('THE REFUSALS: a forged log (stored by a checkpoint — refused by THE RE-P
   assert.equal(marked.rf, 'lock_mismatch'); assert.ok(marked.rk > 0 && marked.rk < marked.k, 'the record is marked: the reason + the tick it was scored at');
   let errs = null; for (let i = 0; i < 30 && !errs; i++) { errs = await val('errlog'); if (!errs) await new Promise(r => setTimeout(r, 50)); }
   const row = Object.values(errs || {})[0];
-  assert.ok(row && /THE DROP: a finish the replay refused \(lock_mismatch\)/.test(row.m) && row.p === 'server' && row.w === 'drop-refused' && row.n === 1, `reported to /admin's error log (${row && row.m})`);
+  assert.ok(row && /PRISM DROP: a finish the replay refused \(lock_mismatch\)/.test(row.m) && row.p === 'server' && row.w === 'drop-refused' && row.n === 1, `reported to /admin's error log (${row && row.m})`);
   assert.ok(!JSON.stringify(row).includes(pid), 'no id in the report');
   const td = await D('dr-fay', { action: 'today' }, P.now + 600);
   assert.equal(td.mine.drop, f.score); assert.ok(!td.started.drop, 'TODAY: done — never RESUME all day'); assert.deepEqual(td.rf, { drop: true });
@@ -283,7 +289,8 @@ test('ABANDONED: a run silent past its budgets is scored at its LAST checkpoint 
   Q.now = so.run.go;
   await Q.play(35e3);
   const ivy = await pidOf('dr-ivy');
-  await ref('rooms/DRPY').set({ meta: { hostId: 'y', status: 'playing', createdAt: Q.now }, players: { 'dr-ivy': { name: 'Ivy', pid: ivy }, y: { name: 'Y' } } });
+  await ensure('dr-yul', 'Yul');
+  await ref('rooms/DRPY').set({ meta: { hostId: 'y', status: 'playing', createdAt: Q.now, go: { m: 'gs2', at: Q.now - 1000 } }, players: { 'dr-ivy': { name: 'Ivy', pid: ivy }, y: { name: 'Y', pid: await pidOf('dr-yul') } } });
   await Q.send('pause', { room: 'DRPY' });
   forgetClosed(); forgetSwept();
   await D('dr-ann', { action: 'today' }, NOW + 7 * 60e3);

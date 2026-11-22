@@ -22,7 +22,8 @@ export const GAME_BOARDS = {
   // tower as ONE sort number — the floor, then the perfects, then the earlier tick (js/games/highrise/logic.js#towerScore); fmt 'floor' shows the floor
   highrise: { records: [rec('highrise-solo', 'TALLEST TOWER', 'floor', { short: 'FLOORS' })], career: [] },
   // CITY PART 1 — OVERCLOCK = ONE BOARD (the owner, Nov 19: "the whole overclock board menus and categories is complicated and weird — simplify"):
-  //  BEST QUICK RUN — a QUICK run of all six, SOLO OR IN A ROOM (`both`), the plausibility bound, a 0 never a record, DUMB LUCK's points left out
+  //  BEST QUICK RUN — a QUICK run of all six (`both`: the solo lane keeps the id — but THE FIX PASS S4: api/report.js writes it for ROOM matches
+  //  with 2+ verified players only), the plausibility bound, a 0 never a record, DUMB LUCK's points left out
   //  (match-report.js — THE DUMB LUCK CHECK); its tab = this one board (no picker — THIS WEEK / ALL TIME). STANDARD + MARATHON pay XP, no board.
   //  The three old boards are RETIRED: no definition (hidden from every screen + never written), their rows KEPT in the database
   overclock: { records: [rec('overclock-quick', 'BEST QUICK RUN', 'int', { short: 'BEST SCORE', both: true })], career: [], tab: ['overclock-quick'] },

@@ -72,6 +72,9 @@ export function logOf(rec, nodes) {
   const legs = legsOf(rec), events = [], out = [];
   for (const L of legs) {
     const node = nodes && nodes[L.i];
+    // (THE FIX PASS — S5: a node whose GO is not its leg's is ANOTHER run's — another profile on the same phone took the path: refused, never
+    //  read as this run's taps — and never an empty log that would let ONE SHOT start again from floor 0)
+    if (node && node.go != null && Number(node.go) !== Number(L.go)) return { events: [], legs: [], why: 'other leg' };
     const c = keptChunks(node && node.c, L.z);
     let local = tapsFromChunks(c);
     const times = chunkTimes(c);

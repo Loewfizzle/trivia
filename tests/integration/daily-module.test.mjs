@@ -479,10 +479,13 @@ test('DFIX2 finding 8 → decision 3 — THE ROOM WINS needs 2+ players: a room 
   await ensure('solo-ann', 'Solo'); await ensure('solo-bob', 'Partner');
   const pa = await pidOf('solo-ann');
   await D('solo-ann', { action: 'start', game: 'coastclear' }, T);
-  await ref('rooms/SOLO').set({ meta: { hostId: 'solo-ann', status: 'playing', createdAt: T }, players: { 'solo-ann': { name: 'Solo', pid: pa } } });
+  await ref('rooms/SOLO').set({ meta: { hostId: 'solo-ann', status: 'playing', createdAt: T, go: { m: 'gsolo', at: T - 1000 } }, players: { 'solo-ann': { name: 'Solo', pid: pa } } });
   await rejects(D('solo-ann', { action: 'pause', game: 'coastclear', room: 'SOLO' }, T + 1e3), 409, 'no_room_game');
+  // (THE FIX PASS — S6: a second seat with NO counted profile — an incognito tab — is still a room of one)
   await ref('rooms/SOLO/players/solo-bob').set({ name: 'Partner' });
-  assert.equal((await D('solo-ann', { action: 'pause', game: 'coastclear', room: 'SOLO' }, T + 2e3)).paused, true, 'two in the room: the clock stops');
+  await rejects(D('solo-ann', { action: 'pause', game: 'coastclear', room: 'SOLO' }, T + 1500), 409, 'no_room_game');
+  await ref('rooms/SOLO/players/solo-bob').set({ name: 'Partner', pid: await pidOf('solo-bob') });
+  assert.equal((await D('solo-ann', { action: 'pause', game: 'coastclear', room: 'SOLO' }, T + 2e3)).paused, true, 'two real players in the room: the clock stops');
   await D('solo-ann', { action: 'resume', game: 'coastclear' }, T + 3e3);
 });
 

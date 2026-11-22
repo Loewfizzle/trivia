@@ -160,12 +160,17 @@ function clearDeadStart(now) {
   toast('THE START DIDN’T GO THROUGH — TAP PLAY TO TRY AGAIN', 'warn', 4500);
 }
 
+/** THE FIX PASS — D8: how long a finished game's end screen keeps the room alive */
+export const END_IDLE_MS = 15 * 60_000;
 function beat(now) {
   if (now - lastBeat < HOST_BEAT_MS) return;
   lastBeat = now;
   const patch = { hostBeat: serverTimestamp() };
   // only a running game keeps the room alive (an idle lobby closes after ROOM_IDLE_MS)
-  if (state.meta.status === 'playing' && now - lastActive > 10 * 60_000) { lastActive = now; patch.activeAt = serverTimestamp(); }
+  // (THE FIX PASS — D8: a FINISHED game's end screen left open — a podium on a laptop — kept the room "playing" for ever (a socket of the
+  //  100, a beat every 2 s): past END_IDLE_MS in `final` the stamp stops, so the hour without a game closes it like any idle room)
+  const endedLong = state.game && state.game.phase === 'final' && now - (Number(state.game.phaseStartAt) || Number(state.game.endAt) || now) > END_IDLE_MS;
+  if (state.meta.status === 'playing' && !endedLong && now - lastActive > 10 * 60_000) { lastActive = now; patch.activeAt = serverTimestamp(); }
   hostStats.beats++;
   if (!hostWriteOk()) return;   // (THE ERRORS GROUP: checked again right before the write — CITY PART 1: the one gate)
   update(dbRef(`rooms/${state.code}/meta`), patch).catch(() => {});

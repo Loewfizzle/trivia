@@ -1099,6 +1099,11 @@ keep them. STANDARD + MARATHON: XP as ever, no board. The old three (`overclock-
 (`core/boards.js#RETIRED_BOARDS` — no definition: never written, never shown; their rows stay in the database). THE SEED: /admin's BACK-FILL
 starts each BEST QUICK RUN from the player's old QUICK · SOLO best (`core/board-fill.js#seedOcQuick` — idempotent). Tests:
 `tests/city-part1-overclock.test.mjs`, `server.test.mjs` "OVERCLOCK = ONE BOARD", `profiles.test.mjs`.
+**THE FIX PASS (Nov 22 — THE FABLE REVIEW's S4, the owner's call): ROOM MATCHES ONLY.** A SOLO QUICK run is its player's own host — the 7
+self-graded types keep the phone's own `ok`, the order is his to pick (a modified phone posted 1,117 of 1,120 from a solo run). It still PLAYS
+and PAYS XP as ever; only a ROOM match with 2+ VERIFIED players (`api/report.js` — the real player count, `ex.n`) writes the `overclock-quick`
+row (`api/report.js`: the row's `rec` dropped when `ex.n < 2`; the extract's solo lane unchanged). Rows already on the board stay; the
+BACK-FILL's one-time seed (above — review C3, left alone) is the owner's tool. `server.test.mjs` "OVERCLOCK = ONE BOARD", `e2e-profiles`.
 
 ## THE SERVER's RE-GRADE (THE BEFORE-LAUNCH PASS, Nov 22 — docs/match-kit.md "HOST TRUST")
 `games/overclock/regrade.js#ocRegrade` (PURE; `api/report.js` runs it on the room path with the pools from `api/_lib/oc-banks.js` — the

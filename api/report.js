@@ -382,6 +382,9 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
     ex.solo = true;
   }
   ex.n = ex.solo ? 1 : Math.min(MAX_PLAYERS, real);
+  // THE FIX PASS — S4 (the owner's call): OVERCLOCK's ONE public board (overclock-quick) takes ROOM matches with 2+ VERIFIED players only —
+  // a SOLO QUICK run is the player its own host (the self-graded types, the order he picks): it still plays + pays XP as ever, never a row
+  if (ex.gid === 'overclock' && ex.n < 2) for (const u of Object.keys(ex.rows)) if (ex.rows[u] && ex.rows[u].rec) delete ex.rows[u].rec['overclock-quick'];
 
   // (a uid with no profile is never given one here — it isn't counted: each phone makes its own profile when it joins)
   const pids = {};

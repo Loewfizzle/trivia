@@ -199,7 +199,10 @@ export function act({ action, body, record, now, seed, room = false }) {
   // THE ROOM WINS (DM1): free — its own cap
   if (!room) return { refused: 'no_room_game', status: 409 };
   if ((rec.rz || 0) >= ROOM_MAX_MS) return { refused: 'pause_limit', status: 409 };
-  return answer({ ...rec, pz: { ...pz, at: now, kd: 'r' } }, extra);
+  // (THE FIX PASS — S6: `room` = the game start's key (api/_lib/drop.js) — ONE room pause a game start; the clock froze before every piece)
+  const rk = typeof room === 'string' && room ? room : null;
+  if (rk && rec.rg && rec.rg[rk]) return { refused: 'room_used', status: 409 };   // (`rg` — the room games used: `rk` is the refused tick)
+  return answer({ ...rec, pz: { ...pz, at: now, kd: 'r' }, ...(rk ? { rg: { ...(rec.rg || {}), [rk]: 1 } } : {}) }, extra);
 }
 
 /**

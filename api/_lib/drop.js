@@ -57,7 +57,8 @@ export const DROP_DAILY = {
     const log = record.len ? joinChunks(await val(`${base}/l/${pid}`), record.len) : '';
     return { seed: data && data.seed, log: log || '', k: record.k, len: record.len, t: record.t, ...clockOf(record, now), ...(record.e ? { e: 1, o: record.o } : {}), ...(record.rf ? { rf: 1 } : {}), ...(record.pz && record.pz.rf && record.pz.at != null ? { refresh: 1 } : {}) };
   },
-  act: ({ action, body, record, now, data, room = false }) => act({ action, body, record, now, seed: data && data.seed, room }),
+  // (THE FIX PASS — S6: a room pause carries its GAME START's key — the judge takes ONE pause a start)
+  act: ({ action, body, record, now, data, room = false, roomProof = null }) => act({ action, body, record, now, seed: data && data.seed, room: room && roomProof && roomProof.key ? String(roomProof.key).replace(/[.#$/[\]]/g, '_').slice(0, 64) : room }),
   /** the score from the server's own record + the WHOLE log replayed — the phone's claim is never read; null = refused */
   async verify(seed, result, { record, data, base, pid, T } = {}) {
     if (!record || !record.e || !data) return null;
