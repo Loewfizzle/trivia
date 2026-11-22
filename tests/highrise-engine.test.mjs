@@ -27,7 +27,7 @@ const size = run => ({ w: run.x1 - run.x0, d: run.z1 - run.z0 });
 test('THE NUMBERS (fixed point): START 10000 · PERFECT 500 (5 %) · GROW 400 (4 %) after 6 · THIN 500 · the travel ±1.5 × the start width · 60 ticks a second · THE BEAT 12 · THE FUSE 2 sweeps', () => {
   assert.deepEqual([TICK_HZ, START, PERFECT, GROW, GROW_STREAK, THIN, TRAVEL, FUSE_SWEEPS, BEAT], [60, 10000, 500, 400, 6, 500, 15000, 2, 12]);
   assert.equal(PERFECT * 20, START); assert.equal(GROW * 25, START); assert.equal(THIN * 20, START); assert.equal(TRAVEL * 2, START * 3);
-  assert.deepEqual(MODES, { solo: { finish: null, capTicks: null }, match: { finish: 200, capTicks: 6 * 60 * 60 }, daily: { finish: 200, capTicks: 5 * 60 * 60 } });
+  assert.deepEqual(MODES, { solo: { finish: null, capTicks: null }, match: { finish: 200, capTicks: 6 * 60 * 60 }, daily: { finish: 200, capTicks: 5 * 60 * 60, holds: 3, roomHolds: 3 } });
   assert.deepEqual(MODE_IDS, ['solo', 'match', 'daily']);
   assert.ok(TRAVEL >= START, 'at either end of its travel a slab is FULLY OFF the tower — even two full-size slabs do not touch');
   assert.equal(FLOOR_TICKS_MAX, BEAT + FUSE_SWEEPS * SWEEP_MAX);

@@ -34,6 +34,8 @@ const freezeRow = r => {
  *   wobble      … ± this many ticks, the seed's pick, never out of the curve's band
  *   tight       SOLO PAST 200 KEEPS TIGHTENING: past floor `from` the sweep loses `by` ticks every `every` floors, never under `min`
  *   modes       each mode's `finish` (the floor that ends the run as MADE IT; null = endless) + `capTicks` (the tick the run ends where it stands; null = none)
+ *               + (HIGH RISE DAILY A — THE HELD RUN) `holds` (the player's holds a run may use — a hidden / refreshed page; none = 0) + `roomHolds` (THE ROOM
+ *               WINS' free holds — a room that really started a game); a hold in a mode without them is refused by the engine + the judge
  */
 export const RULE_SETS = Object.freeze({
   classic: freezeRow({
@@ -42,7 +44,7 @@ export const RULE_SETS = Object.freeze({
     travel: 15000, fuseSweeps: 2, beat: 12,
     sweep: [[1, 140], [120, 84]], wobble: 3,
     tight: { from: 200, every: 10, by: 3, min: 24 },
-    modes: { solo: { finish: null, capTicks: null }, match: { finish: 200, capTicks: 6 * 60 * TICK_HZ }, daily: { finish: 200, capTicks: 5 * 60 * TICK_HZ } },
+    modes: { solo: { finish: null, capTicks: null }, match: { finish: 200, capTicks: 6 * 60 * TICK_HZ }, daily: { finish: 200, capTicks: 5 * 60 * TICK_HZ, holds: 3, roomHolds: 3 } },
   }),
 });
 /** the rule set a run is played on when it names none (a node written before `rs` could be: classic) */

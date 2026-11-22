@@ -65,7 +65,7 @@ test('THE TABLE: every rule number in ONE row — "classic" = S1 / S2\'s numbers
   assert.deepEqual({ ...C, sweep: C.sweep.map(k => [...k]), tight: { ...C.tight }, modes: JSON.parse(JSON.stringify(C.modes)) }, {
     id: 'classic', start: 10000, perfect: 500, grow: 400, growStreak: 6, thin: 500, travel: 15000, fuseSweeps: 2, beat: 12,
     sweep: [[1, 140], [120, 84]], wobble: 3, tight: { from: 200, every: 10, by: 3, min: 24 },
-    modes: { solo: { finish: null, capTicks: null }, match: { finish: 200, capTicks: 21600 }, daily: { finish: 200, capTicks: 18000 } },
+    modes: { solo: { finish: null, capTicks: null }, match: { finish: 200, capTicks: 21600 }, daily: { finish: 200, capTicks: 18000, holds: 3, roomHolds: 3 } },
     sweepMax: 140, sweepMin: 84, floorTicksMax: 292,
   }, 'the start size · the perfect window · grow-back · too thin · the travel · the fuse · the landing beat · the speed curve + its wobble · the solo tightening · the caps');
   assert.ok(Object.isFrozen(C) && Object.isFrozen(C.sweep) && Object.isFrozen(C.sweep[0]) && Object.isFrozen(C.tight) && Object.isFrozen(C.modes) && Object.isFrozen(C.modes.match), 'a row can not be changed in place');

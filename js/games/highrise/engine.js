@@ -55,6 +55,7 @@ export function createRun({ seed, mode = 'solo', rules = RULES_DEFAULT } = {}) {
     s0: R.beat, S: 0, e: 0,                 // the slab's entry tick (in a beat: the NEXT one's) · its sweep ticks · its entry end (+1 / −1)
     streak: 0, perfects: 0, maxStreak: 0, taps: 0,
     cause: '', end: -1,                     // out: 'miss' | 'thin' | 'slow' · the tick the run ended
+    holds: 0, rh: 0,                        // (DAILY A — THE HELD RUN: the player's holds used · THE ROOM WINS' free holds used)
   };
 }
 export const isOver = run => run.st === 'out' || run.st === 'made' || run.st === 'cap';
@@ -139,6 +140,26 @@ export function tap(run, T, ev) {
   stepTo(run, T, ev);
   if (run.st !== 'slide' || T < run.s0 || run.taps >= MAX_TAPS) return false;
   drop(run, T, false, ev);
+  return true;
+}
+
+/**
+ * HIGH RISE DAILY A — THE HOLD (THE HELD RUN — docs/highrise.md "THE DAILY"): a LOGGED event { k: 'hold', t: T, r? } — the page was hidden /
+ * refreshed / killed (or THE ROOM WINS: `r`, a free one). The run stands as it was after its LAST TAP (the replay applies a hold WITHOUT
+ * stepping to T first: nothing happened in the gap — no fuse, no spawn); the slab of the next floor ENTERS AT T, its sweep from tick 0 —
+ * the 3-2-1 before it is not run time (T is a PLAY tick: the server picks T = the slab's own entry, so a hold costs no run time at all).
+ * A floor already placed never changes. → true = held · false = refused: a mode with no holds left (rules.js `holds` / `roomHolds` —
+ * the 4th player hold), the run over, T not a whole tick ≥ the slab's natural entry (in a beat) / the tick the run stands at (sliding).
+ */
+export function hold(run, T, room = false) {
+  if (!Number.isSafeInteger(T) || T < 0 || isOver(run)) return false;
+  const M = run.R.modes[run.mode], max = (room ? M.roomHolds : M.holds) || 0;
+  if ((room ? run.rh : run.holds) >= max) return false;
+  if (run.st === 'beat' ? T < run.s0 : T < run.t) return false;
+  const cap = M.capTicks;
+  if (cap != null && T >= cap) return false;
+  if (room) run.rh++; else run.holds++;
+  run.st = 'beat'; run.s0 = T; run.S = 0; run.e = 0;
   return true;
 }
 

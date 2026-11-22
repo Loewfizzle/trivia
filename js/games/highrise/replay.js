@@ -3,7 +3,7 @@
 // (api/_lib/highrise.js) = judgeRun. + THE TAP LOG's packed form.
 import { MAX_TAPS, SEED_MAX } from './tuning.js';
 import { RULE_SETS, RULES_DEFAULT, ruleSet } from './rules.js';
-import { createRun, stepTo, tap, isOver, resultOf, modeRow, endBy } from './engine.js';
+import { createRun, stepTo, tap, hold, isOver, resultOf, modeRow, endBy } from './engine.js';
 
 const CLASSIC = RULE_SETS[RULES_DEFAULT];
 /** the rule set a log names: none named = "classic" (a run recorded before runs named theirs); an unknown one = null (THE JUDGE refuses it) */
@@ -12,6 +12,9 @@ export const rulesOf = rules => (rules == null ? CLASSIC : ruleSet(rules));
 /** a seed = 1 … 64 printable ASCII characters, no space (seedOf makes [0-9a-z]) — nothing a transport could normalise into another seed */
 export const seedProblem = seed => (typeof seed !== 'string' || seed.length > SEED_MAX || !/^[!-~]+$/.test(seed) ? 'seed' : null);
 
+/** HIGH RISE DAILY A — a HOLD in a log (THE HELD RUN — engine.js#hold): { k: 'hold', t: the PLAY tick its slab enters at, r?: 1 (THE ROOM
+ *  WINS' free one) }. A log of a mode with holds (the daily) = taps (numbers) + holds, in order; every other mode's log is taps only. */
+export const isHold = x => x !== null && typeof x === 'object' && x.k === 'hold';
 /** the most taps a `mode` run can hold: a tap = a drop = a floor (the finishing floor ends the run) */
 export const maxTaps = (mode, R = CLASSIC) => { const M = modeRow(mode, R); return M && M.finish != null ? Math.min(M.finish, MAX_TAPS) : MAX_TAPS; };
 
@@ -26,10 +29,22 @@ export function tapsProblem(taps, mode = 'solo', R = CLASSIC) {
   const M = modeRow(mode, R);
   if (!M) return 'mode';
   if (!Array.isArray(taps)) return 'taps';
-  if (taps.length > maxTaps(mode, R)) return 'too many taps';
-  let prev = 0;   // (the base "landed" at tick 0)
+  if (taps.length > maxTaps(mode, R) + (M.holds || 0) + (M.roomHolds || 0)) return 'too many taps';
+  let prev = 0, n = 0, held = 0, rh = 0;   // (the base "landed" at tick 0)
   for (let i = 0; i < taps.length; i++) {
     const t = taps[i];
+    // (DAILY A — a HOLD: its slab enters at its tick — never before the natural entry (a beat after the last drop), never at / past the cap,
+    //  never past the mode's holds; the next tap is judged as if the last drop had landed a beat before the hold's tick)
+    if (isHold(t)) {
+      const T = t.t;
+      if (typeof T !== 'number' || !Number.isSafeInteger(T) || T < 0) return 'entry';
+      if (t.r ? ++rh > (M.roomHolds || 0) : ++held > (M.holds || 0)) return 'too many holds';
+      if (T < prev + R.beat) return 'hold too soon';
+      if (M.capTicks != null && T >= M.capTicks) return 'past the cap';
+      prev = T - R.beat;
+      continue;
+    }
+    if (++n > maxTaps(mode, R)) return 'too many taps';
     if (typeof t !== 'number' || !Number.isSafeInteger(t) || t < 0) return 'entry';
     if (i && t <= prev) return 'ticks not rising';
     if (t - prev < R.beat) return 'in the landing beat';
@@ -48,18 +63,25 @@ export function tapsProblem(taps, mode = 'solo', R = CLASSIC) {
 export function replay({ seed, mode = 'solo', taps = [], until = null, rules = RULES_DEFAULT } = {}) {
   if (until != null && !(Number.isSafeInteger(until) && until >= 0)) until = 0;   // (a bad `until` counts nothing — never the whole run)
   const run = createRun({ seed, mode, rules });
-  let used = 0, bad = -1, why = '';
+  let used = 0, bad = -1, why = '', lastT = 0;
   for (let i = 0; i < taps.length; i++) {
     const t = taps[i];
+    // (DAILY A — a HOLD: applied to the run AS IT STANDS after the event before it — never stepped to its tick first: nothing happened in the gap)
+    if (isHold(t)) {
+      if (until != null && t.t > until) break;
+      if (hold(run, t.t, !!t.r)) { lastT = t.t; continue; }
+      bad = i; why = isOver(run) ? 'past the end' : 'hold';
+      break;
+    }
     if (until != null && t > until) break;
     const over = isOver(run);
-    if (!over && tap(run, t)) { used++; continue; }
+    if (!over && tap(run, t)) { used++; lastT = t; continue; }
     bad = i;
     why = over || isOver(run) ? 'past the end' : run.st === 'beat' || t < run.s0 ? 'in the landing beat' : 'no slab';
     break;
   }
-  if (bad < 0) stepTo(run, until != null ? until : endBy(run, taps.length ? taps[taps.length - 1] : 0));
-  return { ...resultOf(run), used, bad, why };
+  if (bad < 0) stepTo(run, until != null ? until : endBy(run, lastT));
+  return { ...resultOf(run), used, bad, why, ...(run.holds || run.rh ? { holds: run.holds, rh: run.rh } : {}) };
 }
 
 /**
@@ -80,7 +102,7 @@ export function judgeRun({ seed, mode, taps, rules } = {}) {
   const r = replay({ seed, mode, taps, rules: R.id });
   if (r.bad >= 0) return { ok: false, why: r.why };
   if (!r.over) return { ok: false, why: 'never ended' };   // (can not happen: the fuse ends every run — kept as the judge's own floor)
-  return { ok: true, rules: R.id, floor: r.floor, tick: r.tick, end: r.end, cause: r.cause, made: r.made, perfects: r.perfects, maxStreak: r.maxStreak, taps: r.taps, feats: r.feats };
+  return { ok: true, rules: R.id, floor: r.floor, tick: r.tick, end: r.end, cause: r.cause, made: r.made, perfects: r.perfects, maxStreak: r.maxStreak, taps: r.taps, feats: r.feats, ...(r.holds || r.rh ? { holds: r.holds, rh: r.rh } : {}) };
 }
 
 // ---- THE PACKED LOG (S2's run node): each tap = the ticks since the tap before it (the first: since tick 0), base 36, '.' between — "1c.1k.2a"
