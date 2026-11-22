@@ -510,3 +510,20 @@
 .jw-table-av { font: 700 10px/1 var(--font-num, var(--font-ui)); letter-spacing: 0.06em; color: #cfc8ea; white-space: nowrap; }
 .jw-fin-avg { margin-top: 6px; font: 800 14px/1 var(--font-ui); letter-spacing: 0.2em; color: #ffd257; text-shadow: 0 1px 0 rgba(30, 14, 0, 0.9); }
 .jw-fin-avg:empty { display: none; }
+/* VARIETY A — THE TIMES OF DAY on the band (night.js sets data-tod / data-wx from daylook.js): the DAY picture GRADED in code (a still filter +
+   a gradient sky laid over it in `color` blend — its hue, the picture's own light) — never the night picture, never a cross-fade of the two (it
+   ghosts); no stray lights. Night: untouched. Nothing here animates (a still filter only). */
+.jw-skyline[data-look='day']::after { content: ''; position: absolute; left: 0; right: 0; top: 0; bottom: clamp(13px, 1.9vh, 18px); pointer-events: none; opacity: 0; mix-blend-mode: color; }
+.jw-skyline[data-tod='sunrise'] .jw-skyline-img { filter: saturate(0.9) brightness(1.05); }
+.jw-skyline[data-tod='sunrise']::after { opacity: 0.6; background: linear-gradient(#b48ef0 0%, #f39ad0 40%, #ffb0c4 56%, #e4a0dc 66%, #b49af2 100%); }
+.jw-skyline[data-tod='golden'] .jw-skyline-img { filter: sepia(0.4) saturate(1.25) brightness(1.04); }
+.jw-skyline[data-tod='golden']::after { opacity: 0.62; background: linear-gradient(#ffcf70 0%, #ffb050 55%, #ffc470 66%, #e0a060 100%); }
+.jw-skyline[data-tod='sunset'] .jw-skyline-img { filter: saturate(1.15) brightness(0.8); }
+.jw-skyline[data-tod='sunset']::after { opacity: 0.78; background: linear-gradient(#6a3ab0 0%, #c04a96 28%, #ff7a40 52%, #ff8a48 58%, #9a4aa8 68%, #5a3a9a 100%); }
+.jw-skyline[data-wx='overcast'] .jw-skyline-img { filter: saturate(0.22) brightness(0.92) contrast(0.9); }
+.jw-skyline[data-wx='overcast']::after { opacity: 0.35; background: linear-gradient(#8e9cb0, #a8b4c4); }
+.jw-skyline[data-tod='sunrise'] { background: #eccde0; } .jw-skyline[data-tod='golden'] { background: #f2dcb6; } .jw-skyline[data-tod='sunset'] { background: #c896ad; } .jw-skyline[data-wx='overcast'] { background: #c9d1d9; }
+.jw-farhaze[data-tod='sunrise'] { background: linear-gradient(#eccde0 0, rgba(236, 205, 224, 0.86) 22%, rgba(236, 205, 224, 0) 100%); }
+.jw-farhaze[data-tod='golden'] { background: linear-gradient(#f2dcb6 0, rgba(242, 220, 182, 0.86) 22%, rgba(242, 220, 182, 0) 100%); }
+.jw-farhaze[data-tod='sunset'] { background: linear-gradient(#c896ad 0, rgba(200, 150, 173, 0.86) 22%, rgba(200, 150, 173, 0) 100%); }
+.jw-farhaze[data-wx='overcast'] { background: linear-gradient(#c9d1d9 0, rgba(201, 209, 217, 0.86) 22%, rgba(201, 209, 217, 0) 100%); }

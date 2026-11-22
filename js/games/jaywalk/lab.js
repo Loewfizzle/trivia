@@ -15,6 +15,7 @@ import { createRun, step, isOver, resultOf, canLog } from './engine.js';
 import { replay } from './replay.js';
 import { versionAt } from './versions.js';
 import { labSeason } from './season.js';
+import { TODS, resolveTod } from './daylook.js';
 import { wireControls } from './controls.js';
 import { createTiers } from '../kit/tiers.js';
 import { getPref, setPref } from './lab-prefs.js';
@@ -34,6 +35,13 @@ const SEA = labSeason(Q, Date.now()), SZ0 = SEA.season;
 const SEA_FORCE = SEA.forced || !!SEA.snow || SEA.wet;   // (the pack fetched on ANY day the lab asks for — the live game: season days only)
 const SEA_SET = { wet: SEA.wet, snow: SEA.snow, clock: SEA.clock, force: SEA_FORCE, hat: Q.get('hat') !== '0' };   // (`&hat=0` — the hats off: the A/B against the code before them only)
 const SEA_LINE = SZ0.winter > 0 || SZ0.christmas > 0 || SZ0.autumn > 0 || SZ0.hat || SZ0.fireworks || SZ0.snowfall !== 'none' || SEA.wet ? ` · ${SZ0.day.slice(5, 7)}/${SZ0.day.slice(7)}${SZ0.autumn ? ` autumn ${SZ0.autumn}` : ''}${SZ0.winter ? ` winter ${SZ0.winter}` : ''}${SZ0.christmas ? ` xmas ${SZ0.christmas}` : ''}${SZ0.hat && Q.get('hat') !== '0' ? ` · ${SZ0.hat} hat` : ''}${SZ0.fireworks ? ` · fireworks ${SZ0.fireworks}` : ''}${SEA.clock >= 0 ? ` · ${Q.get('clock')}` : ''} · snow ${SZ0.snowfall}${SEA.wet ? ' · wet' : ''}` : '';
+/** VARIETY A — THE TIMES OF DAY's lab switches: `&tod=sunrise|noon|golden|sunset|night` · `&weather=overcast|clear` (none = the date's own
+ *  weather — 1 day in 7 grey) · `&sun=<°>` (the sun's elevation forced: the lights' + the neon's ramps) · `&va=0` (the day look BEFORE this pass —
+ *  the A/B). With &date= · &snow= · &clock= · &look=. A look check only: the live game reads none of them. */
+const TOD_Q = TODS.includes(Q.get('tod')) ? Q.get('tod') : null, WX_Q = /^(overcast|clear)$/.test(Q.get('weather') || '') ? Q.get('weather') : null;
+const SUN_Q = /^-?\d{1,2}(\.\d+)?$/.test(Q.get('sun') || '') ? Number(Q.get('sun')) : null, VA_Q = Q.get('va') !== '0';
+/** the lab's time of day for a LOOK tab: NIGHT = night · DAY = the forced time of day (a day one), else noon */
+const todFor = l => resolveTod('auto', null, SZ0.day, { tod: l === 'night' ? 'night' : TOD_Q && TOD_Q !== 'night' ? TOD_Q : 'noon', el: SUN_Q, weather: WX_Q });
 // (no game calls: the shared audio engine's REPORTS of a cut come only from the owner's phone inside the app, or on a link that says
 //  &debug=1 — the lab drops that flag before the engine is ever installed; its one anonymous LEAVE count may still go — J2's corrected line)
 if (Q.has('debug')) { try { Q.delete('debug'); history.replaceState(null, '', `${location.pathname}${Q.toString() ? `?${Q}` : ''}`); } catch { /* fine */ } }
@@ -81,10 +89,10 @@ async function mount() {
   const zooms = ZOOMS.map(n => press(h('button.jw-tab.jw-w', { type: 'button', 'data-zoom': String(n), 'aria-label': `Zoom: ${n} columns across` }, String(n)), () => setCamera(n, angle)));
   const angles = ANGLES.map(a => press(h('button.jw-tab.jw-ang', { type: 'button', 'data-angle': a, 'aria-label': `Angle: ${a}` }, a.toUpperCase()), () => setCamera(zoom, a)));
   // H5B — LOOK: DAY · NIGHT (the lab's own switch — the game follows the phone's GAME LOOK setting; `?look=day|night` for a link)
-  let look = pick('look', ['night', 'day'], 'night');
+  let look = TOD_Q ? (TOD_Q === 'night' ? 'night' : 'day') : pick('look', ['night', 'day'], 'night');
   const looks = ['day', 'night'].map(l => press(h('button.jw-tab.jw-lk', { type: 'button', 'data-look': l, 'aria-label': `Look: ${l}` }, l.toUpperCase()), () => pickLook(l)));
   const pickLook = l => { setLook(l); if (shown) endT.textContent = runLine(course, resultOf(run), look); };   // (… and an end on screen says the look's own words)
-  function setLook(l) { look = l === 'day' ? 'day' : 'night'; setPref('look', look); if (view && view.setLook) view.setLook(look); const st = app.querySelector('.jw-stage'); if (st) st.dataset.look = look; for (const b of looks) b.classList.toggle('is-on', b.dataset.look === look); }
+  function setLook(l) { look = l === 'day' ? 'day' : 'night'; setPref('look', look); if (view && view.setTod) view.setTod(todFor(look)); else if (view && view.setLook) view.setLook(look); const st = app.querySelector('.jw-stage'); if (st) st.dataset.look = look; for (const b of looks) b.classList.toggle('is-on', b.dataset.look === look); }
   const markCamera = () => { for (const b of zooms) b.classList.toggle('is-on', b.dataset.zoom === String(zoom)); for (const b of angles) b.classList.toggle('is-on', b.dataset.angle === angle); };
   function setCamera(z, a, snap) { zoom = z; angle = a; setPref('zoom', z); setPref('angle', a); view.setCamera(z, a, snap); markCamera(); }
   const end = h('div.jw-end', { hidden: true }), endT = h('div.jw-end-t'), endL = h('div.jw-end-l'), endGo = h('div.jw-end-go', 'TAP — PLAY AGAIN'), check = h('div.jw-check');
@@ -106,7 +114,7 @@ async function mount() {
   const arrive = createArrival(app.querySelector('.jw-stage'), AREA_LOOKS);   // (BEFORE THE FLIP — THE ARRIVAL BANNER: the game's own, arrival.js)
   const pin = /^[012]$/.test(Q.get('tier') || '') ? Number(Q.get('tier')) : null;   // (`?tier=0|1|2` pins a quality tier — the pass's measure)
   let view;
-  try { view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin, look, rwNight: Q.get('rwnight') === 'new' }); }   // (J2 FIX — `&rwnight=new`: THE NIGHT COMPARE, the lab only)
+  try { view = GRAY ? createGraybox(play, { kidColor, zoom, angle }) : createNight(play, { kidColor, zoom, angle, tier: pin == null ? 2 : pin, look, rwNight: Q.get('rwnight') === 'new', va: VA_Q }); }   // (J2 FIX — `&rwnight=new`: THE NIGHT COMPARE, the lab only)
   catch { app.querySelector('.jw-stage').append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); return; }   // (the page still loaded: its stage is up)
   markCamera(); setLook(look);
   // J4 — THE SEASON: the pack fetched now (in season / a forced date); the run waiting for its first touch takes it the moment it lands
@@ -143,7 +151,7 @@ async function mount() {
     cues = createCues(); if (snd) { snd.onCue({ cue: 'bell-off' }); snd.onCue({ cue: 'tick-off' }); }
     end.hidden = true; mark.textContent = 'TAP TO HOP · SWIPE TO MOVE'; markUntil = 0;
     for (const t of tabs) t.classList.toggle('is-on', t.dataset.mode === mode);
-    seedLine.textContent = `seed ${seed} · v${CV}${SEA_LINE}`;
+    { const td = view.tod ? view.tod() : null; seedLine.textContent = `seed ${seed} · v${CV}${SEA_LINE}${td && (TOD_Q || WX_Q || td.overcast) ? ` · ${td.tod}${td.overcast ? ' · overcast' : ''}` : ''}${VA_Q ? '' : ' · BEFORE'}`; }
     if (view.setSeason) view.setSeason(SZ0.day, SEA_SET);   // (J4 — every run starts with the season; a pack not in yet = the normal look)
     if (bot) bot = greedyBot({ seed });
     // H6B — `?lane=N` (the owner opens any area on his phone): A LOOK CHECK — the kid stands on the grass lane nearest N (the one before it first), the blackout

@@ -20,20 +20,20 @@ test('THE SWITCH: JAYWALK has BOTH looks — the console\'s GAME LOOK setting is
   assert.deepEqual(looksOf(META), ['day', 'night']); assert.equal(lookLockOf(META), null, 'no lock: ☰ → Settings → GAME LOOK works in a run');
   const v = code('view.js'), idx = code('index.js'), lab = code('lab.js'), n = code('night.js');
   // the game: the phone's own setting, re-read every frame (a change mid-run re-themes at once) — never a switch of its own, never the room's
-  assert.match(v, /const lookNow = \(\) => \(document\.body\.dataset\.look === 'day' \? 'day' : 'night'\);/);
+  assert.match(v, /const lookNow = \(\) => \(TODV \? TODV\.look : document\.body\.dataset\.look === 'day' \? 'day' : 'night'\);/);   // (VARIETY A: through THE TIME OF DAY — the console's day / night until the sun is read)
   assert.match(v, /createNight\(play, \{[^}]*look: lookNow\(\) \}\)/, 'the scene is made in the phone\'s look');
-  assert.match(v, /if \(night && root\) \{ const lk = lookNow\(\); if \(lk !== look\) \{ look = lk; night\.setLook\(lk\); root\.dataset\.look = lk; \} \}/, 'read LIVE in the frame');
+  assert.match(v, /if \(k !== todKey\) \{ todKey = k; TODV = r; night\.setTod\(r\); look = r\.look; root\.dataset\.look = r\.look; root\.dataset\.tod = r\.tod; \}/, 'read LIVE in the frame (VARIETY A: through THE TIME OF DAY, once a second + at once on a change)');
   assert.doesNotMatch(v, /game\.look|g\.look|meta\.look|settings\.look/, 'the look is this phone\'s (the site\'s GAME LOOK: per device, no lock) — never a field of the match');
   assert.doesNotMatch(v + idx, /saveLook|LOOK_LABEL/, 'the game draws no look switch of its own');
   // the music: the day deck by day, the evening deck by night (the existing mood stations)
   assert.match(idx, /export const musicFor = \(\) => \[typeof document !== 'undefined' && document\.body && document\.body\.dataset\.look === 'day' \? 'mood:day' : 'mood:evening', 'menu'\];/);
   assert.equal(META.MUSIC, 'mood:evening', 'the meta\'s station stays the fallback');
   // the lab: its own switch (tabs, remembered, ?look=), an end on screen re-worded
-  assert.match(lab, /let look = pick\('look', \['night', 'day'\], 'night'\);/); assert.match(lab, /h\('span\.jw-bar-k', 'LOOK'\), \.\.\.looks\)/);
-  assert.match(lab, /function setLook\(l\) \{ look = l === 'day' \? 'day' : 'night'; setPref\('look', look\); if \(view && view\.setLook\) view\.setLook\(look\);/);
+  assert.match(lab, /let look = TOD_Q \? \(TOD_Q === 'night' \? 'night' : 'day'\) : pick\('look', \['night', 'day'\], 'night'\);/); assert.match(lab, /h\('span\.jw-bar-k', 'LOOK'\), \.\.\.looks\)/);
+  assert.match(lab, /function setLook\(l\) \{ look = l === 'day' \? 'day' : 'night'; setPref\('look', look\); if \(view && view\.setTod\) view\.setTod\(todFor\(look\)\); else if \(view && view\.setLook\) view\.setLook\(look\);/);
   assert.match(lab, /createNight\(play, \{ kidColor, zoom, angle, tier: pin == null \? 2 : pin, look[,}]/);
   // the scene: ONE scene, switched at once
-  assert.match(n, /function setLook\(l\) \{/); assert.match(n, /setLook\(o\.look === 'day' \? 'day' : 'night'\);/); assert.match(n, /setLook, look: \(\) => \(day \? 'day' : 'night'\),/);
+  assert.match(n, /function setLook\(l, fromTod\) \{/); assert.match(n, /setLook\(o\.look === 'day' \? 'day' : 'night'\);/); assert.match(n, /setLook, look: \(\) => \(day \? 'day' : 'night'\),/);
 });
 
 test('THE FOG BANK\'s WORDS: by day the wall\'s line is LOST IN THE FOG (by night THE LIGHTS WENT OUT) — the same cause; every other line is the same in both looks; the views pass this screen\'s look', () => {
@@ -90,13 +90,13 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   // THE FOG BANK = the blackout's own darkness (vState.x), whitened — the same lanes, the same timing
   // (H5C — never a flat slab, never a hard line: the bank's edge is measured PER PIXEL off the wall itself (uWall), soft + ragged, the
   //  lane seen through its first metre, a cool shadow in front; night.js lays FOG_LAYERS — billows rolling at their own speeds)
-  assert.match(fx, /float ly = vLane \+ z, d = uWall - ly;/, 'the bank\'s edge per pixel, off the wall itself'); assert.match(fx, /float thin = smoothstep\(-1\.5, 0\.7, d \+ \(bn - 0\.5\) \* 1\.9\);/, 'soft + ragged (two drifting noise fields)'); assert.match(fx, /if \(d > 3\.4\) c = vec3\(0\.875, 0\.906, 0\.933\) \* 0\.98;\s+else if \(d > -3\.4\) \{/, 'only the pixels near the wall pay for the noise');
+  assert.match(fx, /float ly = vLane \+ z, d = uWall - ly;/, 'the bank\'s edge per pixel, off the wall itself'); assert.match(fx, /float thin = smoothstep\(-1\.5, 0\.7, d \+ \(bn - 0\.5\) \* 1\.9\);/, 'soft + ragged (two drifting noise fields)'); assert.match(fx, /if \(d > 3\.4\) c = uFogBank \* 0\.98;\s+else if \(d > -3\.4\) \{/, 'only the pixels near the wall pay for the noise (VARIETY A: the fog bank\'s colour a uniform — THE FOG CHECK)');
   assert.match(fx, /float fogA = thin \* mix\(0\.5, 1\.0, smoothstep\(0\.1, 2\.1, d\)\);/, 'the lane is seen THROUGH its first metre, solid two lanes in');
   // (THE GO-LIVE REVIEW — the fog's banding: the mottle fades out BEFORE the plain fog begins (d = 3.4: no step there); a puff is
   //  the glow's shape 10 — it fades INTO the ground (it was cut by it: a hard line across every puff) + is dithered; the bank's
   //  body ends under a soft LIP, never in a ruler-straight edge)
-  assert.match(fx, /c = mix\(c, vec3\(0\.875, 0\.906, 0\.933\) \* \(0\.98 \+ 0\.1 \* \(bn - 0\.5\) \* \(1\.0 - smoothstep\(1\.8, 3\.3, d\)\)\), clamp\(fogA, 0\.0, 1\.0\)\);/, 'the lane whitens under the bank — its mottle gone before the plain fog (0.98) begins');
-  assert.match(fx, /if \(d > 3\.4\) c = vec3\(0\.875, 0\.906, 0\.933\) \* 0\.98;/, '… the same 0.98 on both sides of d = 3.4');
+  assert.match(fx, /c = mix\(c, uFogBank \* \(0\.98 \+ 0\.1 \* \(bn - 0\.5\) \* \(1\.0 - smoothstep\(1\.8, 3\.3, d\)\)\), clamp\(fogA, 0\.0, 1\.0\)\);/, 'the lane whitens under the bank — its mottle gone before the plain fog (0.98) begins');
+  assert.match(fx, /if \(d > 3\.4\) c = uFogBank \* 0\.98;/, '… the same 0.98 on both sides of d = 3.4');
   assert.match(fx, /else if \(s > 9\.5\) \{ a = smoothstep\(1\.0, 0\.0, d\); a \*= a \* smoothstep\(0\.03, 1\.15, vY\);/, 'shape 10: a fog puff fades into the ground over its last metre');
   assert.match(fx, /vY = dot\(viewMatrix\[1\]\.xyz, mv\.xyz\) \+ cameraPosition\.y;/, '… by its own height over the ground');
   assert.equal((n.match(/, 1, 10, al( \* 0\.92)?\);/g) || []).length, 2, 'both halves of every puff (the lit top, the cool underside) are shape 10');
@@ -110,14 +110,14 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   assert.match(n, /curtain\.material\.color\.setHex\(day \? 0xdfe7ee : 0x000000\);/, 'the bank\'s body = the blackout\'s curtain');
   assert.match(n, /const wallE = run\.wall \/ FP, darkOf = i => clamp01\(wallE - i\)/, 'ONE wall: the run\'s own (the rules\')');
   // light vs paint
-  assert.match(n, /const LF = day \? NOP : K\.flat\.put, LB = day \? NOP : K\.bill\.put,/);
+  assert.match(n, /const LF = !day \? K\.flat\.put : TL\.beams > 0\.01 \? lfDay : NOP, LB = !day \? K\.bill\.put : TL\.cars > 0\.01 \? lbDay : NOP,/);
   for (const [what, re] of [['the headlights\' beams', /LF\(X\(nose \+ L\.dir \* HEAD_REACH \/ 2\)/], ['the tail glow', /LF\(X\(rearX - L\.dir \* \(TAIL_LEN \/ 2 - 0\.2\)\)/], ['a street lamp\'s pool', /LF\(x - side \* 0\.75, 0\.035, z, 3\.6/], ['the kid\'s glow pool', /LF\(px, feet \+ 0\.04, pz \+ 0\.04, 2\.3/], ['the logs\' amber underglow', /LF\(cx, 0\.045, z, len \+ 1\.1/]]) assert.match(n, re, `${what}: off by day`);
   assert.match(n, /m\.blending = day \? THREE\.NormalBlending : THREE\.AdditiveBlending; m\.uniforms\.uDay\.value = day \? 1 : 0;/, 'the lights that stay are PAINT by day');
   assert.match(fx, /if \(uDay > 0\.5\) gl_FragColor = vec4\(vCol, clamp\(k, 0\.0, 1\.0\)\); else gl_FragColor = vec4\(vCol \* k, 1\.0\);/);
   assert.match(n, /if \(day\) K\.shadow\.raw\(px, feet \+ 0\.043, pz \+ 0\.04, 1\.72 \* br, 1, 1\.42 \* br, 0, 0, 1, 3,/, 'THE KID by day: a soft shadow-ring + his colour inside it');
   // (H5C — things SIT on the ground: every shadow is TWO by day — a contact shadow straight under the thing + the sun's, thrown to one side by its height)
-  assert.match(n, /put0\(x \+ SUN\.x \* off, y - 0\.003, z \+ SUN\.z \* off, sx \* 1\.05, 1, sz \* 1\.05, ry, hex, k, a0, a \* 0\.62, \.\.\.r\);/, 'the sun\'s shadow: thrown to one side, by the thing\'s height');
-  assert.match(n, /put0\(x \+ SUN\.x \* 0\.05, y, z \+ SUN\.z \* 0\.05, sx \* 0\.9, 1, sz \* 0\.9, ry, hex, k, a0, a \* 0\.9, \.\.\.r\);/, '… + a tight contact shadow under it');
+  assert.match(n, /if \(sunK > 0\.01\) put0\(x \+ SUN\.x \* off, y - 0\.003, z \+ SUN\.z \* off, sx \* 1\.05 \* \(1 \+ 0\.45 \* \(L - 1\)\), 1, sz \* 1\.05, ry, hex, k, a0, a \* 0\.62 \* sunK, \.\.\.r\);/, 'the sun\'s shadow: thrown to one side, by the thing\'s height (VARIETY A: as long as the time of day\'s sun; tier 2 draws the real one, overcast none)');
+  assert.match(n, /put0\(x \+ SUN\.x \* 0\.05, y, z \+ SUN\.z \* 0\.05, sx \* 0\.9, 1, sz \* 0\.9, ry, hex, k, a0, a \* \(VA \? 0\.98 : 0\.9\), \.\.\.r\);/, '… + a tight contact shadow under it');
   assert.match(n, /if \(!day\) \{ put0\(x, y, z, sx, 1, sz, ry, hex, k, a0, a1, \.\.\.r\); return; \}/, 'by night: the one blob shadow, as before');
   assert.match(fx, /gl_FragColor = vec4\(vec3\(0\.03, 0\.07, 0\.17\) \* uDay, a \* vFx\.y \* \(1\.0 - vFog\)\);/, 'a day shadow is cool, never plain black');
   assert.match(n, /if \(bloom && !day\) bloom\.render\(scene, cam\);/);

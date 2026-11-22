@@ -24,7 +24,11 @@ function newSeed() {
 }
 
 export async function start({ matchId, settings, participants, now }) {
-  return createGame({ matchId, settings, participants, now, seed: newSeed() });
+  const g = createGame({ matchId, settings, participants, now, seed: newSeed() });
+  // VARIETY A — THE HOST's CLOCK (the owner): AUTO in a match = the time of day by the HOST's sun at the start (daylook.js — the city's model),
+  // sent with the start so every phone shows the same look (a VIEW: no rule, replay or count reads it; a phone on DAY / NIGHT keeps its own)
+  try { const D = await lazyImport(import('./daylook.js'), './daylook.js'), k = D.stampOf(await D.sunAt(now)); if (k) g.lk = k; } catch { /* polish: each phone's own clock */ }
+  return g;
 }
 
 export function prepare() { /* nothing to top up: every phone runs its own kid on the shared seed */ }

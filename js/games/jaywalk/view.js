@@ -27,6 +27,7 @@ import { createRouterPing, createLiveWait, END_OWED_MS } from '../kit/run-hold.j
 import { createGhost, resetGhost, feedGhost, stepGhost, tagGroups } from './ghosts.js';
 import { wireControls } from './controls.js';
 import { createNight } from './night.js';
+import { resolveTod, sunAt, sunOfStamp, lookChoice } from './daylook.js';
 import { seasonWindow, dayKeyIn } from './season-gate.js';
 import { turnDay } from '../../core/week.js';
 /** J4 — WET NEON STREETS ships OFF in the live game (the owner's call — a later one-line add-on flips it; THE SEASONAL PACK carries it) */
@@ -87,8 +88,23 @@ export const TIER_MEM_DAYS = 14;
 const tierMem = () => { const m = /^([012]):(\d+)$/.exec(getPref('tier', '')); return m && serverNow() - Number(m[2]) < TIER_MEM_DAYS * 864e5 ? Number(m[1]) : 2; };
 // THE CAMERA IS PINNED: ZOOM 8 · STRAIGHT (camera.js) — the lab's switches are never read here (jw:lab: keys = this screen's own memory)
 /** HOW A RUN ENDED, in the game's words (causes.js#runLine — the vehicle named is the one the scene drew) */
-/** H5B — THE LOOK on this phone now: the console's GAME LOOK (body[data-look] — AUTO · DAY · NIGHT, per phone, live) */
-const lookNow = () => (document.body.dataset.look === 'day' ? 'day' : 'night');
+/** H5B — THE LOOK on this phone now: the console's GAME LOOK (AUTO · DAY · NIGHT, per phone, live) — VARIETY A: through THE TIME OF DAY */
+const lookNow = () => (TODV ? TODV.look : document.body.dataset.look === 'day' ? 'day' : 'night');
+// VARIETY A — THE TIMES OF DAY (daylook.js): AUTO = the time of day by the clock on the CITY's sun model — the phone's own (solo + the daily) or
+// the HOST's, locked at the match's start (`game.lk` — every phone the same look); DAY = noon, NIGHT = night. Re-read once a second + at once
+// on a change of the setting ('ns-look'); the sun itself every minute.
+let TODV = null, SUNV = null, sunT = -1e9, sunAsk = false, todDirty = true;
+function phoneSun() {
+  if (!sunAsk && performance.now() - sunT > 55000) { sunAsk = true; sunAt(serverNow()).then(s => { if (s) { SUNV = s; todDirty = true; } }).finally(() => { sunAsk = false; sunT = performance.now(); }); }
+  return SUNV;
+}
+function todFor(stamp, day) {
+  let choice = lookChoice();
+  const sun = stamp ? sunOfStamp(stamp) : phoneSun();
+  if (choice === 'auto' && !sun) choice = document.body.dataset.look === 'day' ? 'day' : 'night';   // (the sun not read yet: the console's own day / night)
+  return resolveTod(choice, sun, day);
+}
+try { window.addEventListener('ns-look', () => { todDirty = true; }); } catch { /* not a browser */ }
 const lineOf = (r, course) => runLine(course, { cause: r.cause, y: r.y, x: r.x, end: r.end, lanes: r.best, taken: r.st === 'taken' }, lookNow());
 const hexNum = c => parseInt(String(colorHex(c) || '#00f0ff').slice(1), 16) || 0x00f0ff;
 
@@ -100,6 +116,7 @@ export function createView() {
   let code = '', uid = '', matchId = '', mode = 'wait', D = null;   // 'wait' (the course is on its way) · 'run' · 'over' (out / taken / watching)
   let run = null, course = START, log = [], queue = [], go = 0, proven = false, asked = false, goTries = 0, haveGo = false, cvAsked = false, cvMine = 0;
   let wroteE = false, overAt = 0, goTimer = 0, shotAt = 0, lastPump = 0, lateGo = false;
+  let todAt = -1e9, todKey = '';   // (VARIETY A — THE TIME OF DAY's last check + what the scene shows)
   let t0srv = 0, t0perf = 0, last = 0, markUntil = 0, lanesShown = -1, sndOn = false, bot = null, pinned = false, revealed = false;
   // the match
   const ghosts = new Map();   // uid → ghosts.js#createGhost (conf · run · log · done · held · vis · behind) + { uid, n (chunks read), lastT, hex, name, tagEl, dir, outAt }
@@ -186,7 +203,7 @@ export function createView() {
       const me = (st.players && st.players[followUid || uid]) || {}, o = { kidColor: colorHex(me.color), zoom: night.zoom(), angle: night.angle(), tier: night.tier(), look: lookNow() }, rest = night.resting();
       if (offGL) offGL();   // (the dead scene's destroy() is not a second loss)
       try { night.destroy(); } catch { /* its context is gone */ }
-      try { scenesMade++; night = createNight(play, o); night.setReveal(revealed ? 1 : 0, true); lineKey = ''; if (rest) night.rest(true); watchGL(); reSeason(); }
+      try { scenesMade++; night = createNight(play, o); night.setReveal(revealed ? 1 : 0, true); lineKey = ''; todKey = ''; todDirty = true; if (rest) night.rest(true); watchGL(); reSeason(); }
       catch { night = null; if (root) root.append(h('p.jw-nogl', 'This browser can’t draw the game here (it has no WebGL).')); }
     };
     const lost = e => {
@@ -661,7 +678,11 @@ export function createView() {
     if (gone) return;
     raf = requestAnimationFrame(frame);
     // (H5B — the GAME LOOK is read LIVE: it re-themes this screen at once)
-    if (night && root) { const lk = lookNow(); if (lk !== look) { look = lk; night.setLook(lk); root.dataset.look = lk; } }
+    if (night && root && (todDirty || now - todAt > 1000)) {   // (VARIETY A — THE TIME OF DAY: once a second, at once on a setting change)
+      todDirty = false; todAt = now;
+      const g0 = st.game, r = todFor(isMatch && g0 && g0.lk, (seasonRun && seasonRun.day) || dayOfRun(serverNow())), k = `${r.tod}|${r.overcast ? 1 : 0}|${Math.round(r.el * 2)}`;
+      if (k !== todKey) { todKey = k; TODV = r; night.setTod(r); look = r.look; root.dataset.look = r.look; root.dataset.tod = r.tod; }
+    }
     const dt = last ? Math.min(250, now - last) : 16.7;
     last = now;
     if (!night || document.visibilityState === 'hidden') return;

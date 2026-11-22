@@ -12,10 +12,10 @@ export const KIND = Object.freeze({ grass: 0, road: 1, water: 2, rail: 3, flight
 const GROUND_V = `
 attribute float aLane; attribute vec4 aKind; attribute vec3 aState;
 uniform vec2 uFog;
-varying vec2 vP; varying vec4 vKind; varying vec3 vState; varying float vFog; varying float vLane;
+varying vec2 vP; varying vec4 vKind; varying vec3 vState; varying float vFog; varying float vLane; varying vec3 vW;
 void main() {
   vec3 p = vec3(position.x * 46.0, 0.0, -(aLane + 0.5) + position.z);
-  vP = vec2(p.x + 4.5, 0.5 - position.z);
+  vP = vec2(p.x + 4.5, 0.5 - position.z); vW = p;
   vKind = aKind; vState = aState; vLane = aLane;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   vFog = smoothstep(uFog.x, uFog.y, -mv.z);
@@ -23,10 +23,15 @@ void main() {
 }`;
 const GROUND_F = `
 precision highp float;
+#include <packing>
 uniform float uTime; uniform vec3 uFogCol; uniform float uQ; uniform float uDay; uniform float uWall;
 uniform float uWet;   // (J4 — WINTER + WET NEON STREETS)
+// VARIETY A — THE DAY LOOK + THE TIMES OF DAY (daylook.js#GRADE): uVA (1 = the new day look · 0 = the lab's before), the sunlit tint, the
+// shadows' tint, the drifting cloud shadows, the sunrise's dew, THE SUN's SHADOWS (tier 2 — night.js's own depth pass), the fog bank's colour
+uniform float uVA; uniform vec3 uWarm; uniform vec3 uCool; uniform float uCloud; uniform float uDew;
+uniform sampler2D uShTex; uniform mat4 uShM; uniform float uShK; uniform vec2 uShTx; uniform vec3 uFogBank;
 #define DN(n, d) mix(n, d, uDay)
-varying vec2 vP; varying vec4 vKind; varying vec3 vState; varying float vFog; varying float vLane;
+varying vec2 vP; varying vec4 vKind; varying vec3 vState; varying float vFog; varying float vLane; varying vec3 vW;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
 float joint(vec2 f, float w) { return smoothstep(0.0, w, f.x) * smoothstep(1.0, 1.0 - w, f.x) * smoothstep(0.0, w * 2.0, f.y) * smoothstep(1.0, 1.0 - w * 2.0, f.y); }
@@ -93,8 +98,12 @@ void main() {
     float lw = mod(vLane, 64.0) + z;
     float pat = vnoise(vec2(x * 0.42, lw * 0.42) + 3.0);
     c = mix(DN(vec3(0.064, 0.192, 0.092), vec3(0.285, 0.59, 0.195)), DN(vec3(0.088, 0.242, 0.112), vec3(0.385, 0.705, 0.25)), smoothstep(0.15, 0.85, pat));
-    c *= 1.0 + (smoothstep(0.44, 0.56, abs(fract(x * 0.5) - 0.5) * 2.0) - 0.5) * mix(0.06, 0.075, uDay);
+    float va = uVA * uDay;
+    c *= 1.0 + (smoothstep(0.44, 0.56, abs(fract(x * 0.5) - 0.5) * 2.0) - 0.5) * mix(mix(0.06, 0.075, uDay), 0.15, va);   // (VARIETY A: the MOWING STRIPES a column wide read by day)
     c *= 0.975 + 0.05 * hash(floor(vec2(x * 19.0, lw * 19.0)));
+    if (va > 0.5) { float vn = vnoise(vec2(x * 0.16, lw * 0.16) + 9.0); c *= 0.9 + 0.2 * vn; c = mix(c, c * vec3(1.08, 1.02, 0.78), 0.45 * smoothstep(0.6, 0.85, vnoise(vec2(x * 0.3, lw * 0.3) + 21.0))); }   // (gentle variation: larger light / dark patches + a few sun-dried ones)
+    if (uDew > 0.001) { vec2 dq = vec2(x * 11.0, lw * 11.0); float dh = hash(floor(dq) + 5.3); float tw = 0.55 + 0.45 * sin(uTime * (1.7 + dh * 2.6) + dh * 60.0);
+      c += vec3(1.0, 0.97, 1.0) * uDew * step(0.9, dh) * tw * smoothstep(0.2, 0.0, length(fract(dq) - 0.5 - (vec2(fract(dh * 37.0), fract(dh * 91.0)) - 0.5) * 0.5)) * 0.85; }   // (THE DEW: small twinkling points — the pink sunrise's)
     vec2 tq = vec2(x * 3.0, lw * 3.0); float th = hash(floor(tq) + 3.7);
     c *= 1.0 - 0.2 * step(0.87, th) * smoothstep(0.17, 0.05, length(fract(tq) - 0.5 - (vec2(fract(th * 37.0), fract(th * 91.0)) - 0.5) * 0.5));
     if (ar > 0.5) c = areaGround(ar, x, z, seed, vLane);
@@ -111,6 +120,13 @@ void main() {
     float ag = mix(16.0, 42.0, uDay);
     c = DN(vec3(0.062, 0.062, 0.086), vec3(0.36, 0.37, 0.40)) * (mix(0.92, 0.966, uDay) + mix(0.16, 0.068, uDay) * hash(floor(vec2(x * ag, z * ag))));
     c *= 1.0 + uDay * 0.06 * (vnoise(vec2(x * 0.8, (mod(vLane, 64.0) + z) * 2.2)) - 0.5);
+    if (uVA * uDay > 0.5) {   // (VARIETY A — the asphalt by day: a fine aggregate, the wheel tracks' wear, an oil spot, hairline cracks)
+      float rl = mod(vLane, 64.0) + z;
+      c *= 0.9 + 0.13 * hash(floor(vec2(x * 70.0, rl * 70.0))) + 0.05 * vnoise(vec2(x * 9.0, rl * 9.0));
+      c *= 1.0 - 0.07 * (smoothstep(0.1, 0.0, abs(z - 0.3)) + smoothstep(0.1, 0.0, abs(z - 0.7))) * (0.6 + 0.4 * vnoise(vec2(x * 1.3, rl)));
+      float oh = hash(floor(vec2(x * 0.7, rl * 1.3)) + 2.1); c *= 1.0 - 0.18 * step(0.86, oh) * smoothstep(0.32, 0.05, length((fract(vec2(x * 0.7, rl * 1.3)) - 0.5) * vec2(1.0, 1.8)));
+      c *= 1.0 - 0.22 * smoothstep(0.022, 0.0, abs(vnoise(vec2(x * 1.7, rl * 1.7) + 4.0) - 0.5)) * smoothstep(0.55, 0.75, vnoise(vec2(x * 0.5, rl * 0.5) + 13.0));
+    }
     float curbD = step(0.5, abs(dn - 1.0)), curbU = step(0.5, abs(up - 1.0));
     float cd = (1.0 - smoothstep(0.075, 0.095, z)) * curbD, cu = (1.0 - smoothstep(0.075, 0.095, 1.0 - z)) * curbU;
     c *= 1.0 - 0.35 * (smoothstep(0.26, 0.09, z) * curbD + smoothstep(0.26, 0.09, 1.0 - z) * curbU);
@@ -178,17 +194,30 @@ void main() {
   float inner = smoothstep(-0.14, 0.1, x) * smoothstep(9.14, 8.9, x);
   float outer = smoothstep(-2.6, -1.0, x) * smoothstep(11.6, 10.0, x);
   c *= mix(mix(mix(0.30, 0.60, uDay), mix(0.52, 0.80, uDay), outer), 1.0, inner);
+  if (uDay > 0.5) {   // VARIETY A — the day's grade (daylook.js#GRADE): warm light, cool shadows, the sun's shadows (tier 2), the clouds drifting over
+    float sh = 0.0;
+    if (uShK > 0.001) {
+      vec4 s4 = uShM * vec4(vW, 1.0); vec3 q = s4.xyz / s4.w;
+      if (q.x > 0.0 && q.x < 1.0 && q.y > 0.0 && q.y < 1.0 && q.z < 1.0) {
+        for (int k = 0; k < 4; k++) { vec2 o = vec2(k == 0 || k == 3 ? -0.9 : 0.9, k < 2 ? -0.9 : 0.9) * uShTx; sh += step(unpackRGBAToDepth(texture2D(uShTex, q.xy + o)), q.z - 0.0016); }
+        sh *= 0.25 * uShK;
+      }
+    }
+    c *= uWarm;
+    if (uCloud > 0.001) c *= 1.0 - uCloud * smoothstep(0.42, 0.78, vnoise(vec2(vW.x * 0.075 + uTime * 0.035, vW.z * 0.075 + uTime * 0.012) + 31.0));
+    c = mix(c, c * uCool * 0.6, sh);
+  }
   float dk = vState.x;
   float fl = dk > 0.02 && dk < 0.98 ? step(hash(vec2(floor(uTime * 14.0), vLane)), 0.35 + dk * 0.5) : 0.0;
   if (uDay > 0.5) {
     float ly = vLane + z, d = uWall - ly;
-    if (d > 3.4) c = vec3(0.875, 0.906, 0.933) * 0.98;
+    if (d > 3.4) c = uFogBank * 0.98;
     else if (d > -3.4) {
       float bn = 0.62 * vnoise(vec2(x * 0.42 + uTime * 0.21, ly * 0.8 - uTime * 0.05)) + 0.38 * vnoise(vec2(x * 1.25 - uTime * 0.33, ly * 1.9 + 7.0));
       float thin = smoothstep(-1.5, 0.7, d + (bn - 0.5) * 1.9);
       float fogA = thin * mix(0.5, 1.0, smoothstep(0.1, 2.1, d));
       c *= 1.0 - 0.2 * smoothstep(-3.2, -0.3, d) * (1.0 - thin);
-      c = mix(c, vec3(0.875, 0.906, 0.933) * (0.98 + 0.1 * (bn - 0.5) * (1.0 - smoothstep(1.8, 3.3, d))), clamp(fogA, 0.0, 1.0));
+      c = mix(c, uFogBank * (0.98 + 0.1 * (bn - 0.5) * (1.0 - smoothstep(1.8, 3.3, d))), clamp(fogA, 0.0, 1.0));
     }
   } else {
     float ly = vLane + z, d = uWall - ly;
@@ -205,6 +234,7 @@ void main() {
 }`;
 
 const SEA_STUB = /\/\/SEA\{[\s\S]*?\/\/\}SEA/;
+const WHITE1 = (() => { const t = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat); t.needsUpdate = true; return t; })();   // (no sun pass: depth 1 everywhere)
 /** the lanes' ground: n instanced planes. → { mesh, lay(k, lane, kind, down, up, seed, dark, fx, area), done(n), uniforms } */
 export function createGround(n, fog) {
   const base = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), g = new THREE.InstancedBufferGeometry();
@@ -214,7 +244,10 @@ export function createGround(n, fog) {
   for (const a of [aL, aK, aS]) a.setUsage(THREE.DynamicDrawUsage);
   g.setAttribute('aLane', aL); g.setAttribute('aKind', aK); g.setAttribute('aState', aS);
   const uniforms = { uTime: { value: 0 }, uFog: { value: fog }, uFogCol: { value: new THREE.Vector3(...rgb(FOG_HEX)) }, uQ: { value: 1 }, uDay: { value: 0 }, uWall: { value: -99 },
-    uWet: { value: 0 } };   // (J4 — the season + THE LIGHTS: one shared list, the snow reads it too)
+    uWet: { value: 0 },   // (J4 — the season + THE LIGHTS: one shared list, the snow reads it too)
+    // VARIETY A — the day's grade + the sun's shadows (night.js#lookGL / #sunPass) + the fog bank's colour (THE FOG CHECK)
+    uVA: { value: 1 }, uWarm: { value: new THREE.Vector3(1, 1, 1) }, uCool: { value: new THREE.Vector3(1, 1, 1) }, uCloud: { value: 0 }, uDew: { value: 0 },
+    uShTex: { value: WHITE1 }, uShM: { value: new THREE.Matrix4() }, uShK: { value: 0 }, uShTx: { value: new THREE.Vector2(1 / 1024, 1 / 2048) }, uFogBank: { value: new THREE.Vector3(0.875, 0.906, 0.933) } };   // (J4 — the season + THE LIGHTS: one shared list, the snow reads it too)
   const mesh = new THREE.Mesh(g, new THREE.ShaderMaterial({ vertexShader: GROUND_V, fragmentShader: GROUND_F, uniforms }));
   mesh.frustumCulled = false; mesh.renderOrder = -1;
   return {
