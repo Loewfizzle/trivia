@@ -1289,3 +1289,14 @@ is below, VERBATIM (as of `48e3e157`). New detail goes in the sections above, no
   `GPU=off` = the software renderer (a machine whose real-GPU path is down — JAYWALK passes there; HIGH RISE's bots need the GPU's timing).
 - `server.test.mjs` "THE CONSOLE FIX" (425 still_live, both games, both paths, the dead phone, offline, the cap) + "THE DROPPED LEADER
   (PRISM DROP + OVERCLOCK)"; `rules.test.mjs` "THE TREE CAP" (every older stamp test writes the counter with it: `stampAt`).
+
+## THE FIX PASS (Nov 22) — the new checks
+- `tests/integration/e2e-fix-pass.mjs` (Chromium, ~20 s): P1 (a phone with no import maps → UPDATE YOUR iPHONE TO PLAY JAYWALK + BACK TO THE
+  ROOM) + P8 (a view that never loads → one retry → SOMETHING BROKE, reported). `tests/fix-pass.test.mjs` + `tests/fix-pass-audio.test.mjs`
+  (P4 + P5 on the real engine) + `tests/proof-lists.test.mjs` (M1) in the unit suite.
+- `boot-time.mjs` prints the EDGE count (http(s) to the site off the network — what Vercel counts); `wk-edge.mjs --qs &bundle=1` = the bundle's
+  path through the worker (its DEPLOY step now changes the file's hash too — THE CARRY moved the old copy and the check was red).
+- After running the daily suites on the same emulators, `server.test.mjs`'s "STATS → THE DAILIES" counts their players too — fresh
+  emulators first (the same class as the other leftovers above).
+- **`scripts/serve.mjs` caches every `/api` module for its whole life** — restart it after ANY change under `api/` before an E2E (THE FIX PASS's
+  first E2E round ran on the server code from before its groups).

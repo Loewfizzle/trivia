@@ -2839,3 +2839,21 @@ district" in code (the `nd-` class prefix, the `window.__district` test hook). `
 - CLEANUP: GitHub's `tests` job — the podcast-mode unit test waits for the actual condition; the boot wait's named allowance (`BOOT_WAIT_MS` 45 s); THE PER-GAME BUDGET: JAYWALK + HIGH RISE 2,600 KB.
 - A VERIFIED SOLO RUN IS A COUNTED PLAY: a JAYWALK / HIGH RISE solo run the server replayed + counted counts toward THE BOARD's 3 plays (the row's `sv`); the owner's BACK-FILL re-counts the old records (idempotent).
 - Tests: rules 97 (8 new blocks, both nodes) · unit `proof-writer` / `proof-pass` / `proof-solo` · the switch-over window end to end (old rules + new code, new rules + old code, both games).
+
+## THE FIX PASS — after THE FABLE REVIEW (Nov 22, 2026 — docs/harbor/passes/fix-pass.md)
+- RULES: `rooms/.read` false (THE ROOM LIST closed — a stranger paged through every live room, its players + profile ids); an idle room is
+  deleted only by a seated player; THE STALE-ROOM SWEEP moved to the server (`api/_lib/room-sweep.js`, hourly). Re-publish
+  `database.rules.nov22-fix.json`. S1 (the before-launch rules) confirmed published by the owner — the fixture updated.
+- THE FREE PLANS: THE FIRST-VISIT BUNDLE boots every visit but Safari's, the worker keeps it per build (visit two = one request), never on 2g,
+  the early bail; first-visit edge requests 455 → 157 (HTTP/2, Chrome's Android profile); /admin's poll = LIVE NOW only, on screen + focused;
+  the results compaction once a day across functions (`api/_lib/due.js`); the share picture = one edge copy.
+- THE CHEAP ABUSE CEILING: THE CHUNK CEILING in both judges (`core/proof.js#overChunkCeiling`); `/api/report`'s call budget.
+- PHONE STABILITY: music off = no song downloaded / decoded; THE MEDIA CUT after an on-screen interruption; THE WAKE HOLD's fresh check is a
+  write; ROOM IDLE on a fresh mirror only; THE ERROR BOUNDARY on every game screen (`ui/game-broke.js`); JAYWALK + HIGH RISE on iOS < 16.4 =
+  the UPDATE YOUR iPHONE card.
+- DAILIES + BOARDS: a second profile on a shared phone no longer wipes a HIGH RISE / JAYWALK daily run; THE ROOM WINS needs another counted
+  profile (THE DROP: one pause a game start); OVERCLOCK's board = room matches with 2+ verified players; no tag digits / member Nº on a
+  stranger's card; `seen/` swept; an end screen left open lets the room idle out.
+- BEFORE FREEFALL: `tests/proof-lists.test.mjs` (+ `api/_lib/trust-lists.js`), the contract's PROOF block + SHEETS, THE PER-GAME BUDGET = the
+  game alone, CLAUDE.md 40.6 → 36.8 KB, the pepper in the backup doc.
+

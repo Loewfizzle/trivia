@@ -22,6 +22,7 @@ import { isNew, dayKeyOf } from '../../js/core/game-order.js';
 import { streakDay } from '../../js/core/streak.js';
 import { seedOf, floorOf, perfectsOf, towerScore } from '../../js/games/highrise/logic.js';
 import { createRun, stepTo, tap as engineTap } from '../../js/games/highrise/engine.js';
+import { imgSize } from './kit/img-size.mjs';   // (THE FIX PASS: the link card is a JPEG since THE BEFORE-LAUNCH PASS)
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const argv = process.argv.slice(2), FAST = argv.includes('--fast') || process.env.FAST === '1', OUT = argv.slice(1).find(a => !a.startsWith('--')) || null;
@@ -97,7 +98,7 @@ async function shareLink(page, sel) {
   const meta = k => (new RegExp(`<meta property="${k}" content="([^"]*)"`).exec(html) || [])[1] || '';
   const img = meta('og:image').replace(/&amp;/g, '&');
   const png = img ? Buffer.from(await fetch(img).then(r => r.arrayBuffer())) : Buffer.alloc(0);
-  return { again, keys: Object.keys(d).sort(), url, files: (d.files || []).length, img, png: png.length > 24 && png.toString('latin1', 1, 4) === 'PNG' ? { w: png.readUInt32BE(16), h: png.readUInt32BE(20), bytes: png.length } : null };
+  return { again, keys: Object.keys(d).sort(), url, files: (d.files || []).length, img, png: imgSize(png) };
 }
 /** (the emulator stays clean for the other suites: this phone's run cards removed) */
 async function dropRunCards(pid) {

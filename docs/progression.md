@@ -203,6 +203,7 @@ chip, the host's "N players are mid-daily", the "counts from tomorrow" line, PEN
   the call's `room` (`judge.pause(room)`), else the profile's seat. Otherwise 409 `no_room_game` and the clock runs. The caps (3 pauses, 20 min) stay.
   THE PASSWORD has nothing to pause. **`room { room }` → `{ mid: [uid…] }`**: which players of YOUR room have a run in flight — uids only (the tests';
   the host's line reads THE MID-DAILY FLAG since DFIX2 — below).
+- **THE ROOM WINS needs a real party (THE FIX PASS — THE FABLE REVIEW's S6):** EVERY cartridge's room pause takes `daily-room.js#roomGameProof` — refused unless ANOTHER player with a counted profile (THE THROWAWAY GATE) is in the game the room started (a second seat from an incognito tab is a room of one); THE DROP keys its room pause to the game start (`rg` on its record — ONE pause a start, `room_used`), as HIGH RISE's free hold does.
 - **THE GO-LIVE SWITCH** (`progress/dailies` = `{ on, at, by }`, server-only): /admin `dailyState` · `dailySwitch { on }` (owner only — ADMIN_PIDS —
   audited `dailiesOn` / `dailiesOff`) · `dailyFresh` (typed FRESH; refused while ON: wipes `dly/` + `dsched/`). OFF (the default) → production
   answers every daily 404 `no_daily`; ON → the list's switched-on rows answer (never the fake). It can be flipped **at any time** (the ADD-ON);

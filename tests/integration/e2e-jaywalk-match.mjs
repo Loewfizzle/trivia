@@ -1,4 +1,5 @@
 // JAYWALK H4 — THE MATCH end to end, on the emulators + scripts/serve.mjs --emu (NEVER THE LIVE SITE): three phones, ONE LIFE each.
+import { imgSize } from './kit/img-size.mjs';   // (THE FIX PASS: the link card is a JPEG since THE BEFORE-LAUNCH PASS)
 //   · A PLAIN HOST (THE GO-LIVE PASS — JAYWALK is playable): the room's game list offers it (no TEST mark), every phone may start it, every
 //     player's run is counted
 //   · 3 · 2 · 1 · GO: every phone writes its own GO; THE FIRST GO picks the course + tick 0 — the same seed + clock on all three
@@ -69,7 +70,7 @@ async function shareLink(page, sel, spent = false) {
   const img = meta('og:image').replace(/&amp;/g, '&');
   const png = img ? Buffer.from(await fetch(img).then(r => r.arrayBuffer())) : Buffer.alloc(0);
   return { again, keys: Object.keys(d).sort(), url, code: (/[?&]s=([A-Za-z0-9_-]{12})/.exec(url) || [])[1] || '', title: meta('og:title'), img, go: (/url=([^"]*)"/.exec(html) || [])[1] || '',
-    png: png.length > 24 && png.toString('latin1', 1, 4) === 'PNG' ? { w: png.readUInt32BE(16), h: png.readUInt32BE(20), bytes: png.length } : null, buf: png };
+    png: imgSize(png), buf: png };
 }
 /** (the emulator stays clean for the other suites: every run card these phones uploaded — the end screens warm one each — is removed) */
 async function dropRunCards(pids) {

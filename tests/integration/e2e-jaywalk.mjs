@@ -27,6 +27,7 @@ import { CAUSE_LINES, DAY_LINES, hitVehicle } from '../../js/games/jaywalk/cause
 import { createCourse } from '../../js/games/jaywalk/course.js';
 import { seedOf } from '../../js/games/jaywalk/logic.js';
 import { memAt, memLine, browserMb, JW_FINAL_BUDGET_MB } from './kit/jaywalk-mem.mjs';
+import { imgSize } from './kit/img-size.mjs';   // (THE FIX PASS: the link card is a JPEG since THE BEFORE-LAUNCH PASS)
 
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 // (J2 — COURSE RULES v2: JW_CV=0 plays v2 from the start — serve.mjs started with JW_CV_SWITCH_MS=0 so the local /api agrees; without it the
@@ -114,7 +115,7 @@ async function shareLink(page, sel, spent = false, onReady = null) {
   const img = meta('og:image').replace(/&amp;/g, '&');
   const png = img ? Buffer.from(await fetch(img).then(r => r.arrayBuffer())) : Buffer.alloc(0);
   return { again, keys: Object.keys(d).sort(), url, code: (/[?&]s=([A-Za-z0-9_-]{12})/.exec(url) || [])[1] || '', title: meta('og:title'), img, go: (/url=([^"]*)"/.exec(html) || [])[1] || '',
-    png: png.length > 24 && png.toString('latin1', 1, 4) === 'PNG' ? { w: png.readUInt32BE(16), h: png.readUInt32BE(20), bytes: png.length } : null, buf: png };
+    png: imgSize(png), buf: png };
 }
 /** (the emulator stays clean for the other suites: every run card these phones uploaded — the end screens warm one each — is removed) */
 async function dropRunCards(pids) {

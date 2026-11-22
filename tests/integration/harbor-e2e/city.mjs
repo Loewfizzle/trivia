@@ -404,7 +404,7 @@ G('core', async () => {
   ok(d.city === 2 && hb && hb.shown && hb.bakes >= 1, `CITY 2: ?city=2 shows the Harbor (baked ${hb && hb.bakes}×, ${hb && hb.mem.mb} MB of ${hb && hb.mem.budget} MB)`);
   ok(hb.mem.mb <= hb.mem.budget, `MEMORY BUDGET: the baked layers fit the tier's budget (${hb.mem.mb} ≤ ${hb.mem.budget} MB; main canvas ${hb.main.mb} MB)`);
   ok(hb.mem.layers.every(l => l.dpr <= 2), 'MEMORY: baked layers capped at DPR 2 on a phone');
-  ok(A.files.some(u => /\/js\/screens\/harbor\/scene\.js/.test(u)), 'CITY 2: the harbor modules load with the flag');
+  ok(A.files.some(u => /\/js\/screens\/harbor\/scene\.js/.test(u)) || await ev(A.page, "(window.__nsBoot || {}).mode === 'bundle' && Object.values(window.__nsBlobs || {}).some(u => u.endsWith('/js/screens/harbor/scene.js'))"), 'CITY 2: the harbor modules load with the flag (THE FIX PASS: from the bundle in Chromium)');
   // C4d — FIREBASE AUTH's POLLING GONE (FR4 B2): with IndexedDB first, auth polled it every 800 ms on every page (~18 transactions in
   // 15 s); localStorage first (js/firebase.js) → none. Counted on this (parked) title over 15 s
   // (NIGHT-A2 — the cloud read 4–5 in both of NIGHT-A's runs, 0 here: a RACE, not polling. Firebase starts AFTER the title's first paint
@@ -623,6 +623,8 @@ G('panel', async () => { await panelSection(); await neonPass5Panel(); });
 // A sampler installed BEFORE the page mounts records every frame: the canvas's backing size, the scene's opacity, the harbor's shown /
 // bakes / fading; Safari's bars are played by two viewport changes in the load window (390×780 at 300 ms, back to 390×844 at 900 ms).
 G('load', async () => {
+  // (THE FIX PASS — D3: Chromium now boots from THE FIRST-VISIT BUNDLE; this group proves THE MODULES' path — Safari's, every fallback's —
+  //  so its pages ask for ?nobundle; the bundle's own checks: e2e-bundle.mjs, wk-edge.mjs --qs &bundle=1)
   const ctx = await (await launch()).createBrowserContext();
   const p = await ctx.newPage();
   p.on('pageerror', e => { errors.push(`load pageerror: ${e.message}`); log('load', 'PAGEERROR', e.message); });
@@ -647,7 +649,7 @@ G('load', async () => {
     requestAnimationFrame(tick);
   });
   const t0 = Date.now();
-  const nav = p.goto(`${BASE}/?emu&slot=ld&when=2026-10-23T13:00${GR}&force=no-people&city=2`);
+  const nav = p.goto(`${BASE}/?emu&nobundle&slot=ld&when=2026-10-23T13:00${GR}&force=no-people&city=2`);
   await sleep(300); await p.setViewport({ width: 390, height: 780, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await sleep(Math.max(0, 900 - (Date.now() - t0))); await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await nav;
@@ -702,7 +704,7 @@ G('load', async () => {
     }, cached ? ans : null, justme || null);
     await q.setRequestInterception(true);
     q.on('request', r => { if (shift && r.url().includes('/api/time')) r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ t: now() }) }).catch(() => {}); else if (r.url().includes('/api/sky')) setTimeout(() => r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...ans, at: now() }) }).catch(() => {}), delay); else r.continue().catch(() => {}); });
-    await q.goto(`${BASE}/?emu&slot=lw${intro ? '&intro=1' : ''}&city=2`);
+    await q.goto(`${BASE}/?emu&nobundle&slot=lw${intro ? '&intro=1' : ''}&city=2`);
     await waitFor(q, '!!window.__district && !!window.__district.harbor() && window.__district.harbor().shown', 'the reveal', 20000);
     await sleep(Math.max(4000, delay + 4000 - 2000));
     const h = await ev(q, '(() => { const h = window.__district.harbor(); return { log: h.loadLog, wx: window.__district.scene().wxKind }; })()');
@@ -759,7 +761,7 @@ export async function loadFix4Checks() {
     await p.setRequestInterception(true);
     let dead = false;
     p.on('request', r => { if (dead && /127\.0\.0\.1:(9000|9099)/.test(r.url())) return r.abort('internetdisconnected').catch(() => {}); r.continue().catch(() => {}); });
-    await p.goto(`${BASE}/?emu&slot=rj&when=2026-11-06T13:02&wx=overcast${GR}&city=2`);
+    await p.goto(`${BASE}/?emu&nobundle&slot=rj&when=2026-11-06T13:02&wx=overcast${GR}&city=2`);
     await waitFor(p, '!!window.__district && window.__district.phase().done', 'the title', 25000);
     await ev(p, "document.querySelector('.nd-hostbtn').click()");
     await waitFor(p, '!!(window.__arcade && window.__arcade.state.code && window.__arcade.state.meta)', 'the room', 20000);
@@ -826,7 +828,7 @@ async function loadFix3Checks() {
       r.continue().catch(() => {});
     });
     const t1 = Date.now();
-    p.goto(`${BASE}/?emu&slot=l3&when=2026-11-06T13:02&wx=overcast${GR}&city=2`, { timeout: 60000 }).catch(() => {});   // (not awaited: a stalled request can hold the load event)
+    p.goto(`${BASE}/?emu&nobundle&slot=l3&when=2026-11-06T13:02&wx=overcast${GR}&city=2`, { timeout: 60000 }).catch(() => {});   // (not awaited: a stalled request can hold the load event)
     let up = true;
     await waitFor(p, "(() => { const b = document.getElementById('boot'); return !!(window.__district && window.__district.loadProbe && window.__district.loadProbe().shown) && (!b || b.classList.contains('out')); })()", 'the reveal', 40000).catch(() => { up = false; });
     const revealMs = Date.now() - t1;
@@ -852,7 +854,7 @@ async function loadFix3Checks() {
     await p.evaluateOnNewDocument(() => { try { localStorage.setItem('nd:entered', '1'); } catch { /* fine */ } window.__bootReloadStub = () => { window.__reloadAsked = (window.__reloadAsked || 0) + 1; }; });
     await p.setRequestInterception(true);
     p.on('request', r => { const u = r.url(); if (u.includes('/api/log') && r.method() === 'POST') return r.respond({ status: 200, contentType: 'application/json', body: '{"kept":1}' }).catch(() => {}); if (/\/js\/screens\/harbor\/scene\.js$/.test(u)) return; r.continue().catch(() => {}); });
-    p.goto(`${BASE}/?emu&slot=l3w&when=2026-11-06T13:02&wx=overcast${GR}&city=2`, { timeout: 60000 }).catch(() => {});
+    p.goto(`${BASE}/?emu&nobundle&slot=l3w&when=2026-11-06T13:02&wx=overcast${GR}&city=2`, { timeout: 60000 }).catch(() => {});
     await waitFor(p, '!!(window.__boot && window.__boot.reload)', 'the watchdog', 20000).catch(() => {});
     await sleep(1500);
     const t0 = Date.now();
@@ -883,7 +885,7 @@ async function loadFix2Checks() {
     const reqs = new Map();
     cdp.on('Network.requestWillBeSent', e => { if (!reqs.has(e.requestId)) reqs.set(e.requestId, { url: e.request.url, at: e.wallTime * 1000, bytes: 0 }); });
     cdp.on('Network.loadingFinished', e => { const r = reqs.get(e.requestId); if (r) r.bytes = e.encodedDataLength; });
-    await p.goto(`${BASE}/?emu&slot=bb&when=2026-11-06T13:02&wx=overcast${GR}&city=2`);
+    await p.goto(`${BASE}/?emu&nobundle&slot=bb&when=2026-11-06T13:02&wx=overcast${GR}&city=2`);
     await waitFor(p, '!!window.__district && !!window.__district.loadProbe && window.__district.loadProbe().shown', 'the reveal', 30000);
     const at = await ev(p, 'performance.timeOrigin + performance.now()');
     await sleep(300);
@@ -917,7 +919,7 @@ async function loadFix2Checks() {
       if (clockMs && u.includes('/api/time')) { await sleep(2000); return r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ t: Date.now() + clockMs }) }).catch(() => {}); }
       r.continue().catch(() => {});
     });
-    await p.goto(`${BASE}/?emu&slot=${slot}&city=2`);
+    await p.goto(`${BASE}/?emu&nobundle&slot=${slot}&city=2`);
     await waitFor(p, 'window.__sk && window.__sk.shownAt >= 0', 'the reveal', 30000);
     shownWall = Date.now();
     if (sky.length > 1) { await sleep(3100); await ev(p, "import('/js/screens/harbor/live-weather.js').then(m => m.askWeatherNow())").catch(() => {}); }
@@ -950,7 +952,7 @@ async function loadFixChecks() {
   });
   await p.evaluateOnNewDocument(PROBE);
   const t1 = Date.now();
-  const nav = p.goto(`${BASE}/?emu&slot=lf&when=2026-11-06T13:02&wx=overcast${GR}&city=2`);
+  const nav = p.goto(`${BASE}/?emu&nobundle&slot=lf&when=2026-11-06T13:02&wx=overcast${GR}&city=2`);
   await sleep(300); await VP(800); await sleep(Math.max(0, 800 - (Date.now() - t1))); await VP(874);
   await nav;
   await waitFor(p, '!!window.__district && !!window.__district.loadProbe && window.__district.loadProbe().shown', 'the reveal', 20000);

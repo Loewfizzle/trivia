@@ -1123,6 +1123,13 @@ rotation with JAYWALK. Its look (the ticket, the recolour, the share card incl. 
   hold → FLOOR n · ONE SHOT + RESUME → the end card → ADMITTED · SHARE TODAY 1 = THE POSTER, 5 = THE BIG FIVE).
 
 
+### THE DAILY's SHARED PHONE (THE FIX PASS, Nov 22 — THE FABLE REVIEW's S5)
+A leg's node is keyed by the DEVICE's uid; a second profile on the same phone (a restore key) used to replace the first one's open leg, and
+the first profile's next START read an empty log — ONE SHOT replayed from floor 0. Now the node names its profile (`p`, server-written); a
+START that finds ANOTHER profile's node at its path ENDS that run and JUDGES it from the node as it stands (its floors kept) before taking the
+path (`api/_lib/highrise-daily.js#takeNode`); the judge refuses a node whose GO is not its leg's (`held.js#logOf` — 'other leg'). JAYWALK's
+daily: the same (another profile's open try closed first; never judged on the other's node). `daily-highrise.test.mjs` "S5".
+
 ## THE PERSONAL-BEST CARD (THE GARDEN PARTY PASS, Nov 21 — the owner's add-on, 11:16 pm; docs/harbor/passes/garden-party.md "GROUP 5")
 A run that is a NEW PERSONAL BEST — the SERVER's answer for that match (`profile/queue.js` outcome `pbs`, the same the end card's NEW BEST reads:
 JAYWALK any `jaywalk-solo` PB · HIGH RISE only a best BEATEN, `prev` > 0 — `kit/share-run.js#pbFrom`) — shares a card whose big number is in THE
