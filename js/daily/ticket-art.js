@@ -6,7 +6,20 @@ import { MARKS } from '../core/marks.js';
 /** an absolute path's numbers × k (a 100-box mark into the 24-box ticket art) */
 const scaleD = (d, k) => d.replace(/-?\d+(\.\d+)?/g, n => String(Math.round(Number(n) * k * 100) / 100));
 const tube = (d, vb = '0 0 24 24') => `<svg viewBox="${vb}" aria-hidden="true"><g class="t">${d}</g><g class="c">${d}</g></svg>`;
-/** a ticket's art by its key (config.js#DAILIES `ticket`): THE PASSWORD's door + keyhole · COAST CLEAR's lighthouse + beam · THE DROP's prism · JAYWALK's walk signal · a star */
+/** a near-white tube (the sneaker's sole + laces) → THE NAVY by day: a light tube vanishes on the cream paper */
+export const MARK_NAVY = '#16305c';
+const lum = hex => { const v = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+export const markDay = col => (/^#[0-9a-f]{6}$/i.test(col) && lum(col) > 0.75 ? MARK_NAVY : col);
+/** HIGH RISE DAILY B — a game's mark (core/marks.js) as ticket art: its tubes × 0.24 into the 24 box, each in ITS OWN colour (`--mc` night ·
+ *  `--md` day — css/daily.css .mk), the stroke = the mark's own tube width (`w` — HIGH RISE's floor lines sit 8 apart: the house 1.7 would
+ *  close them up), a lighter core by night (`.c`) */
+function markArt(key) {
+  const M = MARKS[key], sw = Math.round((M.w || 7) * 0.243 * 100) / 100;
+  const paths = M.tubes.map(t => `<path d="${scaleD(t.d, 0.24)}" style="--mc:${t.col};--md:${markDay(t.col)}"/>`).join('');
+  return `<svg viewBox="0 0 24 24" aria-hidden="true" class="mk-svg" style="--msw:${sw}"><g class="mk">${paths}</g><g class="c">${paths}</g></svg>`;
+}
+/** a ticket's art by its key (config.js#DAILIES `ticket`): THE PASSWORD's door + keyhole · COAST CLEAR's lighthouse + beam · THE DROP's prism ·
+ *  JAYWALK's sneaker + HIGH RISE's tower (their game marks, multi-colour) · a star */
 export const TICKET_ART = {
   password: tube('<path d="M6.6 20.6V4.6c0-.6.5-1.1 1.1-1.1h8.6c.6 0 1.1.5 1.1 1.1v16"/><circle cx="12" cy="10.6" r="1.6"/><path d="M12 12.2v3"/><path d="M4 20.6h16"/>'),
   coastclear: tube('<path d="M9.6 20.6l1.1-10.4h2.6l1.1 10.4"/><path d="M10 10.2h4M10.5 7.7h3l-.3-2.6h-2.4z"/><path d="M14.6 6.1l5.6-2.2M14.6 7.6l5.8 1"/><path d="M3.6 20.6c2.2-1.3 4.4-1.3 6.6 0s4.4 1.3 6.6 0 2.4-1 3.6-.6"/>'),
@@ -15,23 +28,27 @@ export const TICKET_ART = {
   // spectral tubes (red · green · blue — PRISM's mark colours; the `sp` strokes keep their own colours by day too)
   drop: `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="t"><path d="M12 3.2l7.8 15.2H4.2z"/><path d="M0.4 14.8l7-2.4"/></g><g class="c"><path d="M12 3.2l7.8 15.2H4.2z"/><path d="M0.4 14.8l7-2.4"/></g>`
     + `<g class="sp"><path d="M15.6 10.2l8-2.6" stroke="#ff5a6a"/><path d="M16.3 11.6h7.5" stroke="#4fe08a"/><path d="M17 13l6.8 2.8" stroke="#6aa8ff"/></g></svg>`,
-  // JAYWALK (CITY H2): THE SNEAKER (core/marks.js — the game's ONE mark: its tubes scaled into the 24 box), drawn in the ticket's ink
-  jaywalk: tube(MARKS.jaywalk.tubes.map(t => `<path d="${scaleD(t.d, 0.24)}"/>`).join('')),
+  // HIGH RISE DAILY B (the owner, Nov 21): JAYWALK (THE SNEAKER) + HIGH RISE (THE TOWER) = the GAME'S OWN MARK in its OWN colours (markArt)
+  jaywalk: markArt('jaywalk'),
+  highrise: markArt('highrise'),
 };
-/** THE DROP B — each ticket's INK by its key (the edge, the punched holes, the stub's art, the ADMITTED stamp) — night · day; a key not here = the
- *  house pink. THE DROP = PRISM DROP's WHITE LIGHT (its theme accent — its ice blue would twin COAST CLEAR's cyan) + a spectral violet by day,
- *  told apart at a glance by the prism's split beam. `stamp` = the stamp's own ink when it differs from the ticket's (night); `stampDay` = the
- *  same by day (DAILY FIX — THE PASSWORD's day stamp: its light blue was the faintest of the set on the cream paper). */
+/** THE DROP B — each ticket's INK by its key (the edge, the punched holes, the stub's art, the ADMITTED stamp, its SWEEP segment, its BIG FIVE
+ *  name) — night · day; a key not here = the house pink. `stamp` = the stamp's own ink when it differs from the ticket's (night); `stampDay` =
+ *  the same by day (DAILY FIX — THE PASSWORD's day stamp: its light blue was the faintest of the set on the cream paper).
+ *  HIGH RISE DAILY B — THE RECOLOUR (the owner, Nov 21): COAST CLEAR alien green (was cyan) · THE DROP purple at night too (was PRISM's white —
+ *  its pale stamp ink went with it: the stamp = the ticket's ink, as every other) · JAYWALK RED (was the orange) · HIGH RISE electric blue, teal
+ *  by day. WHITE stays free for a future daily. */
 export const TICKET_INK = {
   password: { night: '#ff5ec4', day: '#2f86ff', stampDay: '#1450c0' },   // (DAILY FIX — the day stamp a deeper blue: the light ink read faintest on cream)
-  coastclear: { night: '#5fe1ff', day: '#0f86b0' },
-  drop: { night: '#eef1ff', day: '#6a3fd0', stamp: '#d9ccff' },
-  jaywalk: { night: '#ffa53a', day: '#e0661c' },   // (DAILY A — the owner's orange: its ticket, its share section, its sweep segment)
+  coastclear: { night: '#9cff7a', day: '#2e9a2a' },
+  drop: { night: '#a77bff', day: '#6a3fd0' },
+  jaywalk: { night: '#ff4058', day: '#d01f35' },
+  highrise: { night: '#4fd6ff', day: '#007f9e' },
 };
 export const inkOf = (key, look = 'night') => { const k = TICKET_INK[key]; return k ? (look === 'day' ? k.day : k.night) : look === 'day' ? '#2f86ff' : '#ff6fc8'; };
 export const stampInkOf = (key, look = 'night') => { const k = TICKET_INK[key]; return k && look === 'day' && k.stampDay ? k.stampDay : k && k.stamp && look !== 'day' ? k.stamp : inkOf(key, look); };
 /** the art's PATHS alone (the share image draws them on its canvas through an SVG image) */
-export const TICKET_PATHS = Object.fromEntries(Object.entries(TICKET_ART).map(([k, v]) => [k, /<g class="t">(.*?)<\/g>/.exec(v)[1]]));
+export const TICKET_PATHS = Object.fromEntries(Object.entries(TICKET_ART).map(([k, v]) => [k, /<g class="(?:t|mk)">(.*?)<\/g>/.exec(v)[1]]));
 
 export const STAMP_WORD = 'ADMITTED';
 let stampN = 0;

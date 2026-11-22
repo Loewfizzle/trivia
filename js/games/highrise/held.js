@@ -94,6 +94,8 @@ export function standAfter(seed, events) {
   for (const x of events) { if (isOver(run)) break; if (isHold(x) ? !hold(run, x.t, !!x.r) : !tap(run, x)) break; }
   return run;
 }
+/** HIGH RISE DAILY B — the floors a run stands on after its events (a held run's ticket: "FLOOR 47 · ONE SHOT") */
+export const floorsAfter = (seed, events) => resultOf(standAfter(String(seed), events)).floor;
 /** THE NEXT HOLD's tick: the slab that was swinging (the next floor's) enters where its own entry was — no run time lost. null = the run is over */
 export function nextHoldTick(seed, events) {
   const run = standAfter(seed, events), T = run.st === 'beat' ? run.s0 : run.t;

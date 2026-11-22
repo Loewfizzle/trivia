@@ -4,7 +4,7 @@
 //   the section = JAYWALK (white — no win / lose) · the big BEST ("143 LANES") · "BEST OF 3" (+ " · NEW DAILY BEST") · (J3) ONE small best-time
 //   line "TO 100 · 1:14" (the highest 50 reached today, its best time — the server's splits; under the stat line: THE ONE RULE keeps the name /
 //   big / stat rows level with every other section) · THE ART = 3 TRY BARS
-//   (~640 wide, centred; each = that try's lanes against the best; the best AMBER, the others dim; an unplayed try = an empty outline)
+//   (~640 wide, centred; each = that try's lanes against the best; the best in the ticket's RED (DAILY B's recolour), the others dim; an unplayed try = an empty outline)
 //   jwInputs(o) — PURE (the only keys) · barsOf(inputs, w) — PURE (each bar's length + kind) · paintSection(c, …) · renderShare({ inputs, look })
 import { RHYTHM, OWN, shareFrame, shareFoot, prepShare, paintName, paintBig, paintStat } from '../../daily/share.js';
 import { bestTimeLine } from '../../core/jw-time-text.js';
@@ -13,7 +13,7 @@ export const NAME = 'JAYWALK';
 export const TRIES = 3;
 /** the art's width on the card (units of the 1080-wide card) */
 export const BARS_W = 640;
-const AMBER = { night: '#ffa53a', day: '#e0661c' };
+const AMBER = { night: '#ff4058', day: '#d01f35' };   // (HIGH RISE DAILY B — THE RECOLOUR: the best bar in JAYWALK's ticket RED — was the orange; the name kept)
 const DIM = { night: 'rgba(226,222,246,0.34)', day: 'rgba(22,48,92,0.28)' };
 const RIM = { night: 'rgba(226,222,246,0.5)', day: 'rgba(22,48,92,0.42)' };
 
@@ -74,7 +74,7 @@ function dateOf(day) {
 export function renderShare({ inputs, look = 'night' } = {}) {
   const I = jwInputs(inputs), day = look === 'day', L = CARD[day ? 'day' : 'night'];
   const { cv, c, W, H } = shareFrame(L, look);
-  if (!day) { const hz = c.createRadialGradient(W / 2, -80, 0, W / 2, -80, 700); hz.addColorStop(0, 'rgba(255,165,58,0.16)'); hz.addColorStop(1, 'rgba(255,165,58,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, H); }
+  if (!day) { const hz = c.createRadialGradient(W / 2, -80, 0, W / 2, -80, 700); hz.addColorStop(0, 'rgba(255,64,88,0.16)'); hz.addColorStop(1, 'rgba(255,64,88,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, H); }
   c.textAlign = 'center'; c.textBaseline = 'middle';
   paintName(c, look, NAME, W / 2, OWN.nameY, OWN.namePx, W - 120);
   paintBig(c, look, lanesLine(bestLanes(I)), W / 2, OWN.bigY, OWN.bigPx, W - 160);

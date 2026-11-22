@@ -389,7 +389,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       sweepShares({ now }).catch(() => null);   // (CITY E: the share cards past 7 days — THE DAY'S CLOSE's sweep, no idle poll)
       compactResults({ now }).catch(() => null);   // (CITY G: results/ past 14 days compacted — js/core/results-compact.js — once a day, never waited on)
       if (!pid) { await closing; return { day, dailies, mine: {}, gated: {}, started: {}, stand: {}, lessons: {}, friends: {}, table: [], noProfile: true }; }
-      const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {}, shareOf = {}, rfOf = {}, placeOf = {}, extraMine = {};
+      const mineScores = {}, gated = {}, started = {}, startedDay = {}, stand = {}, shareOf = {}, rfOf = {}, placeOf = {}, extraMine = {}, progOf = {};
       // (CITY D — SCORES SHOWS INSTANTLY: the profile's own reads + YOUR TABLE's friends list start NOW, beside the dailies' reads — never after)
       const lsP = Promise.all([val(`pstats/${pid}/ls`), createdAtOf(pid)]), pfrP = val(`pfr/${pid}`), dbP = val(`pstats/${pid}/db`);
       const triesOut = {};
@@ -408,6 +408,8 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
           if (triesOut[g].open) started[g] = true;
         } else if (s0 && v == null && dailyOf(g) && dailyOf(g).abandon) { const f = await settleRun({ pid, cart: dailyOf(g), day, now, today }).catch(() => null); if (f && f.score != null) { v = f.score; xg = await val(`${base}/x/${pid}`); } }
         if (s0 && v == null && !(dailyOf(g) && dailyOf(g).tries)) started[g] = true;   // (IN PROGRESS → RESUME)
+        // (HIGH RISE DAILY B — a HELD run's ticket: "FLOOR 47 · ONE SHOT" — the floor the SERVER's own log stands on (the cartridge's `progress`))
+        if (started[g] && dailyOf(g) && typeof dailyOf(g).progress === 'function') { const p = await dailyOf(g).progress({ pid, day, now }).catch(() => null); if (p) progOf[g] = p; }
         // DFIX2 (FABLE REVIEW #2, finding 7): YESTERDAY's run still in flight (DFIX1's yesterday-key rule — a tap resumes it) reads RESUME too
         if (!s0 && v == null && !(dailyOf(g) && dailyOf(g).tries)) {   // (DAILY A: a try never resumes — yesterday's is closed by THE DAY'S CLOSE)
           const [s1, r1] = await Promise.all([val(`dly/${g}/${yday}/s/${pid}`), val(`dly/${g}/${yday}/r/${pid}`)]);
@@ -470,7 +472,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       const db = (await dbP.catch(() => null)) || {}, best = {};
       for (const g of games) { const b = bestView(db[g], day); if (b.best) best[g] = b; }
       await closing;
-      return { day, dailies, best, ...(Object.keys(triesOut).length ? { tries: triesOut } : {}), mine: mineScores, gated, started, startedDay, stand, place: placeOf, ...(Object.keys(extraMine).length ? { extra: extraMine } : {}), ...(Object.keys(rfOf).length ? { rf: rfOf } : {}), lessons: ls || {}, friends, table: pids, ...(Object.keys(jt).length ? { jt } : {}), ...(body.share ? { share: shareOf } : {}),
+      return { day, dailies, best, ...(Object.keys(triesOut).length ? { tries: triesOut } : {}), mine: mineScores, gated, started, startedDay, stand, place: placeOf, ...(Object.keys(extraMine).length ? { extra: extraMine } : {}), ...(Object.keys(rfOf).length ? { rf: rfOf } : {}), ...(Object.keys(progOf).length ? { prog: progOf } : {}), lessons: ls || {}, friends, table: pids, ...(Object.keys(jt).length ? { jt } : {}), ...(body.share ? { share: shareOf } : {}),
         ...(countsOn(createdAt, day) ? {} : { countsFrom: dayStartAt(dayOf(dayNum(day) + 1)) }) };
     }
     case 'every': {

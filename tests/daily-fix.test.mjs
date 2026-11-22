@@ -91,7 +91,7 @@ test('DAILY FIX — THE SERIAL + THE PASSWORD\'s DAY STAMP read at real size', (
   assert.ok(lum(rgb(st)) < lum(rgb(TICKET_INK.password.day)));
   // night unchanged: the stamp = the ticket's own night ink (THE DROP keeps its own stamp ink)
   assert.equal(stampInkOf('password', 'night'), TICKET_INK.password.night);
-  assert.equal(stampInkOf('drop', 'night'), TICKET_INK.drop.stamp);
+  assert.equal(stampInkOf('drop', 'night'), TICKET_INK.drop.night);   // (HIGH RISE DAILY B: THE DROP's own pale stamp ink went with its white)
   assert.equal(stampInkOf('coastclear', 'day'), TICKET_INK.coastclear.day);
   assert.match(css, /body\[data-look="day"\] \.dy-stamp \{ color: var\(--tksd,/);
 });

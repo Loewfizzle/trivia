@@ -191,7 +191,8 @@ export function ticketState(today, d, { lineOf = (id, v) => String(v), done = fa
   const t = today || {}, id = d.id, B = (t.best && t.best[id]) || null, mine = has(t.mine, id) ? t.mine[id] : null;
   const earlier = B && B.best && B.best.day !== t.day ? B.best : null;
   const bestText = s => `DAILY BEST · ${bestLine(id, s, lineOf)}`;
-  const before = st => ({ st, line: earlier ? { text: bestText(earlier.s), best: true } : { text: d.hook || '' }, act: st === 'progress' ? 'RESUME' : 'PLAY' });
+  // (HIGH RISE DAILY B — a HELD run (`today.prog` — the floor the SERVER's log stands on): "FLOOR 47 · ONE SHOT" in the hook's place)
+  const before = st => { const P = st === 'progress' ? progLine(d, t.prog && t.prog[id]) : ''; return { st, line: P ? { text: P } : earlier ? { text: bestText(earlier.s), best: true } : { text: d.hook || '' }, act: st === 'progress' ? 'RESUME' : 'PLAY' }; };
   const doneLine = () => {
     if (t.gated && t.gated[id]) return { text: COUNTS_FROM_TOMORROW };
     if (t.rf && t.rf[id]) return { text: UNCHECKED };
@@ -215,6 +216,11 @@ export function ticketState(today, d, { lineOf = (id, v) => String(v), done = fa
   const st = rowState(t, id);
   if (st === 'done') return { st, result: lineOf(id, mine), line: doneLine(), act: null };
   return before(st);
+}
+/** HIGH RISE DAILY B — a held run's line (a `floors` daily: ONE SHOT, THE HELD RUN): "FLOOR 47 · ONE SHOT" | '' (no progress sent) */
+export function progLine(d, p) {
+  if (!p || !Number.isFinite(Number(p.f)) || (d && d.measure && d.measure !== 'floors')) return '';
+  return `FLOOR ${Math.max(0, Math.floor(Number(p.f)))} · ONE SHOT`;
 }
 /** THE ROOM WINS on a `tries` daily: the try ended, no RESUME — "TRY ENDED · 2 TRIES LEFT" (none left: "TRY ENDED") */
 export const tryEndedLine = left => (left > 0 ? `TRY ENDED · ${left} ${left === 1 ? 'TRY' : 'TRIES'} LEFT` : 'TRY ENDED');

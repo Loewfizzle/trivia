@@ -238,7 +238,7 @@ function openScreen(tab0) {
     // DAILY B — THE TICKET's STATES (today-logic.js#ticketState — PURE): BEFORE (the hook or DAILY BEST in the ticket's ink) · IN PROGRESS
     // (RESUME) · BETWEEN TRIES (a `tries` daily: the last try big, DAILY BEST, TRY AGAIN + its tries left) · ADMITTED (the result + the place —
     // "2ND OF 5 PLAYERS" — or the gold NEW DAILY BEST)
-    const row = dailyRow(d.id) || {}, S = ticketState(t, { ...d, tries: d.tries || row.tries, allDay: !!(d.allDay || row.allDay), hook: d.hook || row.hook || row.tag || '' }, { lineOf, done: triesDone(d.id, t.day) });
+    const row = dailyRow(d.id) || {}, S = ticketState(t, { ...d, tries: d.tries || row.tries, allDay: !!(d.allDay || row.allDay), hook: d.hook || row.hook || row.tag || '', measure: d.measure || row.measure }, { lineOf, done: triesDone(d.id, t.day) });
     const st = S.st;
     const art = h('span.dy-art', { html: TICKET_ART[d.ticket] || TICKET_ART[row.ticket] || TICKET_ART.star });
     const serial = h('span.dy-serial', { 'aria-hidden': 'true' }, serialOf(t.day));

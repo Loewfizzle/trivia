@@ -26,6 +26,7 @@ import { pausesOf } from '../../js/games/coastclear/logic.js';
 import { streakDay } from '../../js/core/streak.js';
 import { SWEEP_XP, DAILY_XP } from '../../js/core/daily.js';
 import { ccTouchChecks } from './kit/cc-touch.mjs';
+import { fitChecks } from './kit/daily-fit.mjs';
 
 const H = await createHarness({ name: 'daily', slot: 'dy', sizes: [[390, 844], [402, 874], [430, 932]] });
 const { log, sleep, ok, BASE, browser } = H;
@@ -66,6 +67,9 @@ await H.run(async () => {
   // ================================================================ 0. DAILY A — COAST CLEAR's TOUCH-DOWN (both CC_DIG_ON settings) + THE FITTED BOARD
   //   (the real view on its preview page — kit/cc-touch.mjs: 375 / 390 / 402 / 430, night + day)
   await ccTouchChecks({ browser, base: BASE, ok, log });
+  // HIGH RISE DAILY B — 5 TICKETS FIT (kit/daily-fit.mjs): 390 × 844 + 430 × 932 with NO scroll (5 tickets + THE SWEEP + SHARE TODAY + the
+  //   countdown), 375 × 667 may scroll — every ticket state, both looks
+  await fitChecks({ browser, BASE, ok, sleep, waitFor, name: 'e2e-daily' });
 
   // (nothing of the day's own data is wiped — the stored pair + board stay the server's; every phone here is a fresh profile; BOBBY's old try goes)
 

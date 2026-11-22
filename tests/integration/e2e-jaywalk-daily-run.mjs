@@ -16,6 +16,7 @@ process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
 process.env.GCLOUD_PROJECT ||= 'demo-arcade';
 import { createHarness } from './kit/harness.mjs';
 import { guardUrl } from './kit/live-guard.mjs';
+import { fitChecks as sharedFit } from './kit/daily-fit.mjs';
 import { dailyTestMode, DAILY_MODE_FIX } from './kit/daily-mode.mjs';
 import { ref, val } from '../../api/_lib/fb.js';
 import { streakDay } from '../../js/core/streak.js';
@@ -58,27 +59,8 @@ async function playTry(p, ticks, what) {
   return p.evaluate(() => window.__jwGame.state());
 }
 
-/** DAILY B — 4 TICKETS FIT: the preview page (the REAL screen, scripted `today`) at the three phones, both looks, every ticket state: the
- *  header + THE SWEEP + all 4 tickets on screen (the last ticket's bottom inside the viewport), no name / line clipped */
-async function fitChecks() {
-  const pv = await H.browser.newPage();
-  const states = ['state=waiting&drop=1&jw=before&best=1', 'state=one&drop=1&jw=between&best=1', 'state=one&drop=1&jw=between&best=1&jwlast=888&jwbest=888', 'state=swept&drop=1&dropst=done&jw=done', 'state=swept&drop=1&dropst=done&jw=gold&gold=password'];
-  for (const [w, h] of [[375, 667], [390, 844], [430, 932]]) for (const lk of ['night', 'day']) for (const q of states) {
-    await pv.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
-    await pv.goto(guardUrl(`${BASE}/tests/integration/daily-preview.html?${q}&look=${lk}`, 'e2e-jaywalk-daily-run'));
-    await waitFor(pv, `document.body.dataset.ready === '1' && document.querySelectorAll('.dy-ticket').length === 4`, `the preview ${q}`, 20000);
-    await sleep(120);
-    const f = await pv.evaluate(() => {
-      const ts = [...document.querySelectorAll('.dy-ticket')], last = ts[ts.length - 1].getBoundingClientRect(), head = document.querySelector('.dy-sign').getBoundingClientRect(), meter = document.querySelector('.dy-sweep').getBoundingClientRect();
-      const clipped = [...document.querySelectorAll('.dy-ticket .dy-name, .dy-ticket .dy-nw, .dy-ticket .dy-result')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent);
-      // (DAILY FIX — "LAST TRY · 888 LANES" on ONE line, its whole text inside its box)
-      for (const e of document.querySelectorAll('.dy-ticket .dy-result.is-last')) { const rg = document.createRange(); rg.selectNodeContents(e); const r = rg.getBoundingClientRect(), b = e.getBoundingClientRect(); if (r.height > parseFloat(getComputedStyle(e).fontSize) * 1.6 || r.right > b.right + 0.5) clipped.push(`${e.textContent} (wraps / cut)`); }
-      return { bottom: Math.round(last.bottom), H: innerHeight, head: Math.round(head.top), meter: Math.round(meter.top), segs: document.querySelectorAll('.dy-seg').length, clipped };
-    });
-    ok(f.bottom <= f.H && f.head >= 0 && f.meter > f.head && f.segs === 4 && !f.clipped.length, `FIT ${w}x${h} ${lk} ${q.replace(/state=|&drop=1|&dropst=done|&jwbest=\d+/g, '')}: the 4th ticket ends at ${f.bottom} of ${f.H}, header + THE SWEEP (4) above${f.clipped.length ? ` — CLIPPED ${f.clipped.join(' | ')}` : ''}`);
-  }
-  await pv.close();
-}
+/** DAILY B — 4 TICKETS FIT → HIGH RISE DAILY B — 5 TICKETS FIT: the shared check (kit/daily-fit.mjs — also e2e-daily's) */
+const fitChecks = () => sharedFit({ browser: H.browser, BASE, ok, sleep, waitFor, name: 'e2e-jaywalk-daily-run' });
 const unschedule = async () => { for (const g of ['jaywalk', 'drop']) await ref(`progress/dlive/${g}`).remove().catch(() => {}); };
 await H.run(async () => { await fitChecks(); try { await day1(); if (H.SHOTS && process.env.J3_SHOTS === '1') await j3Shots(); } finally { await unschedule(); } });
 
@@ -125,7 +107,7 @@ async function day1() {
   const t0 = await ticket(A.page);
   ok(t0 && t0.st === 'waiting' && /PLAY/.test(t0.play) && /JAYWALK/.test(t0.text), `JAYWALK's ticket before the first try: PLAY (${t0 && t0.text})`);
   const ink = await A.page.evaluate(() => getComputedStyle(document.querySelector('.dy-ticket[data-id="jaywalk"]')).getPropertyValue('--tk0').trim());
-  ok(ink === '#ffa53a', `its ink = the owner's orange (${ink})`);
+  ok(ink === '#ff4058', `its ink = HIGH RISE DAILY B's RED (${ink})`);
   if (H.SHOTS) await H.shotAll(A.page, 'jr-01-today-before');
 
   // ================================================================ TRY 1 — (J3) no STOP: the bot past 50 lanes (a split for THE TIME BOARDS), then the wall

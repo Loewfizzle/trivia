@@ -16,7 +16,7 @@ import { ref, val } from './fb.js';
 import { dailySeed } from './dailies.js';   // (a cycle — dailies.js lists this cartridge; the seed is only read inside a call)
 import { streakDay } from '../../js/core/streak.js';
 import { bestView } from '../../js/core/daily-best.js';
-import { LEAD_MS, QUIET_MS, PROOF_DAYS, HOLDS, ROOM_HOLDS, legsOf, legEnd, logOf, nextHoldTick, nextHoldKind, holdsOf, holdsLeft, judgeHeld, shareOf, hrFloors } from '../../js/games/highrise/held.js';
+import { LEAD_MS, QUIET_MS, PROOF_DAYS, HOLDS, ROOM_HOLDS, legsOf, legEnd, logOf, nextHoldTick, nextHoldKind, holdsOf, holdsLeft, judgeHeld, shareOf, hrFloors, floorsAfter } from '../../js/games/highrise/held.js';
 
 export const GAME = 'highrise';
 const SEEDS = new Map();
@@ -179,6 +179,16 @@ export const HIGHRISE_DAILY = {
     const S = L.why ? { f: 0, p: 0, w: [], x: [], pf: [] } : shareOf(data.seed, L.events);
     const nb = pid ? bestView(await val(`pstats/${pid}/db/${GAME}`), day).newBest : false;
     return { ...S, day: /^d\d{8}$/.test(String(day || '')) ? String(day) : null, nb: nb ? 1 : 0 };
+  },
+  /** HIGH RISE DAILY B — a HELD run's ticket (`today { prog }`): the floor the run stands on in the SERVER's own log (the legs it has — never the
+   *  phone's word) + the holds left → { f, left } | null (no run / ended / a refused log) */
+  async progress({ pid, day }) {
+    const record = await val(`${base(day)}/p/${pid}`);
+    if (!record || record.e || !record.l) return null;
+    const [data, nodes] = await Promise.all([hrDay(day), nodesOf(day, record)]);
+    const L = logOf(record, nodes);
+    if (L.why || !data) return null;
+    return { f: floorsAfter(data.seed, L.events), left: holdsLeft(record) };
   },
   /** THE DAY'S CLOSE + `today`'s settle gate (settleHeld does the work) */
   abandon: () => null,

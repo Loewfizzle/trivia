@@ -85,7 +85,7 @@ test('DAILY B — THE SWEEP meter: one segment per LIVE daily (3 until JAYWALK g
 });
 
 test('DAILY B — JAYWALK\'s ticket art + ink: its mark (core/marks.js — CITY H2: THE SNEAKER, its tubes scaled into the 24 box), the owner\'s orange both looks; the share card draws the same paths', () => {
-  assert.deepEqual(TICKET_INK.jaywalk, { night: '#ffa53a', day: '#e0661c' });
+  assert.deepEqual(TICKET_INK.jaywalk, { night: '#ff4058', day: '#d01f35' });   // (HIGH RISE DAILY B — THE RECOLOUR: the RED, was the orange)
   assert.equal((TICKET_PATHS.jaywalk.match(/<path /g) || []).length, 3, 'the mark\'s three tubes');
   assert.ok(TICKET_PATHS.jaywalk.includes('<path d="M4.82 8.69'), 'MARKS.jaywalk × 0.24');
   const row = DAILIES.find(d => d.id === 'jaywalk');

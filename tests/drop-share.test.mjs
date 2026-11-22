@@ -38,7 +38,7 @@ test('THE TICKET: THE DROP has its own art (the prism + the split light) + its o
   const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
   const far = (a, b) => Math.hypot(...hex(a).map((v, i) => v - hex(b)[i])) > 90;
   for (const look of ['night', 'day']) for (const other of ['password', 'coastclear']) assert.ok(far(inkOf('drop', look), inkOf(other, look)), `${look}: THE DROP's ink vs ${other}'s`);
-  assert.equal(stampInkOf('drop', 'night'), TICKET_INK.drop.stamp);
+  assert.equal(stampInkOf('drop', 'night'), TICKET_INK.drop.night, 'HIGH RISE DAILY B: the stamp = the ticket\'s purple (its pale stamp ink went with the white)');
   assert.equal(stampInkOf('drop', 'day'), TICKET_INK.drop.day);
   assert.equal(inkOf('nope', 'night'), '#ff6fc8', 'an unknown key = the house pink');
 });

@@ -149,6 +149,13 @@ body[data-look="day"] .dy-ticket[style*="--tksd"] .dy-stamp { opacity: 1; }
 body[data-look="day"] .dy-ticket[style*="--tksd"] .dy-stamp-svg rect:first-of-type { stroke-width: 3.6; }
 /* THE DROP B — the prism's split light: three spectral tubes that keep their own colours (the art's glow round them at night) */
 .dy-art .sp, .dy-sec-art .sp { stroke-width: 1.5; }
+/* HIGH RISE DAILY B — A GAME's MARK (JAYWALK's sneaker · HIGH RISE's tower — ticket-art.js#markArt): every tube in ITS OWN colour (--mc), the
+   mark's own tube width (--msw), a lighter core at night; by day the day colour (--md — a near-white tube = navy), no core, no glow */
+.dy-art .mk path, .dy-sec-art .mk path { stroke: var(--mc); stroke-width: var(--msw, 1.7); }
+.dy-art .mk-svg .c path, .dy-sec-art .mk-svg .c path { stroke: color-mix(in srgb, var(--mc) 25%, #fff); stroke-width: calc(var(--msw, 1.7) * 0.36); }
+.dy-art .mk-svg, .dy-sec-art .mk-svg { filter: drop-shadow(0 0 1.6px color-mix(in srgb, var(--tk) 80%, transparent)) drop-shadow(0 0 7px color-mix(in srgb, var(--tk) 40%, transparent)); }
+body[data-look="day"] .dy-art .mk path, body[data-look="day"] .dy-sec-art .mk path { stroke: var(--md); }
+body[data-look="day"] .dy-art .mk-svg, body[data-look="day"] .dy-sec-art .mk-svg { filter: none; }
 .dy-stamp-svg { display: block; width: 100%; height: 100%; overflow: visible; }
 body:not([data-look="day"]) .dy-stamp-svg { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--tk) 45%, transparent)); }
 /* the ink spread under a stamp coming down (its own layer — opacity only) */
@@ -343,21 +350,23 @@ body[data-look="day"] .dy-overlay { --dy-box-line: #16305c; --dy-box-on: #2f86ff
 .dy-end-drop { display: block; width: min(100%, 420px); height: auto; margin: 0 auto; border-radius: 14px; }
 
 /* ---- DAILY B — JAYWALK's DAILY RUN (js/games/jaywalk/daily-run.js): the real game's view (J3: no STOP) + the END CARD over the resting scene (the
-   game's own dark end-screen ground in both looks — css/jaywalk.css .jw-final). The ticket's orange (#ffa53a) is its accent. No pills. ---- */
+   game's own dark end-screen ground in both looks — css/jaywalk.css .jw-final). The ticket's ink (--tk — HIGH RISE DAILY B: JAYWALK's RED, HIGH
+   RISE's electric blue: the same card for both dailies' one-run end) is its accent. No pills. ---- */
 .dy-jw, .dy-jw-stage { position: absolute; inset: 0; }
-.dy-jw-end { --tk: #ffa53a; }
+.dy-jw-end { --tk: #ff4058; --jw-big: #fff6f4; }
+.dy-hr-end { --tk: #4fd6ff; --jw-big: #f2feff; }
 .dy-jw-in { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center;
   padding: calc(var(--safe-t) + 72px) 22px calc(var(--safe-b) + 22px); }
-.dy-jw-kick { font: 800 13px/1.2 var(--font-ui); letter-spacing: 0.22em; text-indent: 0.22em; color: #ffb766; }
+.dy-jw-kick { font: 800 13px/1.2 var(--font-ui); letter-spacing: 0.22em; text-indent: 0.22em; color: color-mix(in srgb, var(--tk) 62%, #fff); }
 .dy-jw-cause { max-width: 320px; font: 700 16px/1.3 var(--font-ui); letter-spacing: 0.05em; color: #fff3fb; text-wrap: balance; }
-.dy-jw-big { font: 700 64px/1 var(--font-num); letter-spacing: 0.04em; color: #fff6ea; text-shadow: 0 0 10px rgba(255, 165, 58, 0.85), 0 0 28px rgba(255, 165, 58, 0.5); }
+.dy-jw-big { font: 700 64px/1 var(--font-num); letter-spacing: 0.04em; color: var(--jw-big, #fff); text-shadow: 0 0 10px color-mix(in srgb, var(--tk) 85%, transparent), 0 0 28px color-mix(in srgb, var(--tk) 50%, transparent); }
 .dy-jw-best { font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.16em; color: rgba(255, 246, 234, 0.82); }
-.dy-jw-note { font: 800 13px/1.3 var(--font-ui); letter-spacing: 0.16em; color: #ffc98a; }
+.dy-jw-note { font: 800 13px/1.3 var(--font-ui); letter-spacing: 0.16em; color: color-mix(in srgb, var(--tk) 48%, #fff); }
 .dy-jw-note.dy-gold { font-weight: 900; color: #ffd36a; background: linear-gradient(100deg, #fff3c4 0%, #ffd36a 30%, #e7a92a 55%, #fff1b8 75%, #f2bd46 100%);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 5px rgba(255, 196, 80, 0.5)); }
 .dy-jw-foot { width: 100%; max-width: 340px; display: grid; gap: 10px; margin-top: 14px; }
 .dy-jw-left { margin-top: -4px; font: 700 11px/1 var(--font-ui); letter-spacing: 0.16em; color: rgba(255, 246, 234, 0.72); }
-.dy-jw-end .dy-jw-stamp { align-self: center; width: 150px; height: 56px; margin: calc(var(--safe-t) + 64px) auto -40px; color: #ffa53a; }
+.dy-jw-end .dy-jw-stamp { align-self: center; width: 150px; height: 56px; margin: calc(var(--safe-t) + 64px) auto -40px; color: var(--tk); }
 /* the END CARD is the game's dark end-screen ground in BOTH looks: its tubes stay the night's (the dailies' day retoken is for the paper screens) */
 body[data-look="day"] .dy-overlay .dy-jw-end .btn { --tube-in: rgba(9, 7, 20, 0.94); color: #fff; text-shadow: 0 0 10px rgba(255, 120, 225, 0.4); }
 body[data-look="day"] .dy-overlay .dy-jw-end .btn-primary { --tc: var(--tube-pink); --tcore: var(--tube-pink-core); --tg: var(--tube-pink-glow); --tg2: rgba(255, 79, 216, 0.3); }

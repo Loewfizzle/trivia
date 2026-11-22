@@ -20,6 +20,9 @@
        J3 — &jwt=1 (with &jw=done | between &tab=scores)  JAYWALK's TIME BOARDS: the tabs MOST LANES · FASTEST TO 50 · TO 100 · TO 150 · TO 200
                                                           from sample SERVER splits through the REAL board code (core/jw-times.js#timeView — a tie at 50);
                                                           &jwtab=<50|100|150|200> picks that tab (EVERYONE, or YOUR FRIENDS with &friends=1)
+       HIGH RISE DAILY B — &hr=play | before | progress | done | gold   HIGH RISE's ticket as the 5th (needs &drop=1&jw=…): before (DAILY BEST
+                                                          · 112 FLOORS) · progress (a held run: FLOOR 47 · ONE SHOT + RESUME) · ADMITTED (84 FLOORS · the place) ·
+                                                          + NEW DAILY BEST (131) — the share inputs a REAL bot run (highrise-sample.js); &hrf=<n> its floors (84)
        DAILY FIX — &jwlast=<n>&jwbest=<n>                 the between ticket's LAST TRY + DAILY BEST lanes (888 = the widest; default 143 · 231)
        &best=1                                            a DAILY BEST from an earlier day on every daily (the before tickets read it) · &gold=<id> = that
                                                           finished daily's NEW DAILY BEST (the gold line) · &first=<id> = its very first best (no gold)
@@ -134,6 +137,17 @@ if (JW) {
   if (JW === 'before' || JW === 'between' || JW === 'done') bestOf.jaywalk = { best: { s: lanes(JW === 'before' ? 212 : JBEST), day: 'd20261105' }, newBest: false, first: false };
   if (JW === 'gold') bestOf.jaywalk = { best: { s: lanes(168), day: 'd20261108' }, newBest: true, first: false };
 }
+// HIGH RISE DAILY B — HIGH RISE's row as the 5th ticket (&hr=…) — ONE SHOT, THE HELD RUN (the server's `today { prog }` for a held run)
+const HR = q.get('hr');
+const HR_RUN = HR ? (await import('/tests/integration/highrise-sample.js')).sampleHrRun('h20261121', Number(q.get('hrf') || (HR === 'gold' ? 131 : 84))) : null;
+if (HR) {
+  D.push({ id: 'highrise', name: 'HIGH RISE', order: 5, ticket: 'highrise', lesson: false, better: 'high', hook: 'One shot.' });
+  const fl = f => f * 1e8;
+  if (HR === 'progress') { pick.started = { ...(pick.started || {}), highrise: true }; pick.prog = { highrise: { f: 47, left: 2 } }; }
+  if (HR === 'done' || HR === 'gold') { pick.mine.highrise = HR_RUN.score; pick.place = { ...(pick.place || {}), highrise: { p: 2, n: 5 } }; }
+  if (HR === 'before' || HR === 'progress' || HR === 'done') bestOf.highrise = { best: { s: fl(112), day: 'd20261105' }, newBest: false, first: false };
+  if (HR === 'gold') bestOf.highrise = { best: { s: HR_RUN.score, day: 'd20261108' }, newBest: true, first: false };
+}
 if (q.get('best') === '1') {
   const B = { password: 3, coastclear: 74, drop: 2210017 };
   for (const [id, sc] of Object.entries(B)) if (!bestOf[id]) bestOf[id] = { best: { s: sc, day: 'd20261104' }, newBest: false, first: false };
@@ -212,7 +226,7 @@ const table2 = q.get('solo') === '1' ? [] : table;
     window.__dyBoard = { 'daily-password': brd(0), 'daily-coastclear': brd(2) };
   }
 }
-window.__dyToday = { day: 'd20261108', dailies, best: bestOf, ...(pick.tries ? { tries: pick.tries } : {}), mine: pick.mine, ...(pick.place ? { place: pick.place } : {}), ...(pick.extraMine ? { extra: pick.extraMine } : {}), gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table: table2, ...(pick.jt ? { jt: pick.jt } : {}), ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
+window.__dyToday = { day: 'd20261108', dailies, best: bestOf, ...(pick.tries ? { tries: pick.tries } : {}), mine: pick.mine, ...(pick.place ? { place: pick.place } : {}), ...(pick.prog ? { prog: pick.prog } : {}), ...(pick.extraMine ? { extra: pick.extraMine } : {}), gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table: table2, ...(pick.jt ? { jt: pick.jt } : {}), ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };
 
 const { state, setState, subscribe } = await import('/js/store.js');
 state.uid = 'pv';
@@ -233,7 +247,7 @@ async function scriptedShare() {
   // (DAILY B — JAYWALK's spoiler-free inputs, the server's shape: api/_lib/jaywalk-tries.js#shareOf — &jw=between: one try played)
   // (J3 — + `hs`, the best-time line's split: the highest 50 reached today + its best tick, as api/_lib/jaywalk-tries.js#shareOf sends it)
   const jwIn = JW === 'between' ? { t: [143, null, null], b: 0, nb: 0, day: 'd20261108', hs: { at: 100, t: 4560 } } : { t: [143, 168, 97], b: 1, nb: JW === 'gold' ? 1 : 0, day: 'd20261108', hs: { at: 150, t: 7398 } };
-  return { password: pwRun, coastclear: ccIn, ...(DROP_RUN ? { drop: DROP_RUN.inputs } : {}), ...(JW ? { jaywalk: jwIn } : {}) };
+  return { password: pwRun, coastclear: ccIn, ...(DROP_RUN ? { drop: DROP_RUN.inputs } : {}), ...(JW ? { jaywalk: jwIn } : {}), ...(HR_RUN ? { highrise: { ...HR_RUN.inputs, nb: HR === 'gold' ? 1 : 0 } } : {}) };
 }
 const view = q.get('view') || 'screen';
 window.__dyShare = await scriptedShare();
