@@ -66,7 +66,7 @@ export function shareFrame(L, look) {
  * (grown for a tall grid). The name, the big time and the stat line stay the SAME sizes in every section.
  */
 /** FIXES R3 — THE ONE RULE's big score: a daily's MAIN MEASURE ('guesses' | 'time') from its DAILIES row (config.js) — 'time' when it names none */
-export const MEASURES = Object.freeze(['time', 'guesses', 'lanes']);   // (DAILY A: JAYWALK's lanes — its card is DAILY B's)
+export const MEASURES = Object.freeze(['time', 'guesses', 'lanes', 'floors']);   // (DAILY A: JAYWALK's lanes — its card is DAILY B's · HIGH RISE DAILY A: its floors — its card is DAILY B's)
 export const measureOf = id => { const row = DAILIES.find(d => d.id === id) || gameRow(id), m = row && row.measure;   // (DAILY A: a DAILIES row first — JAYWALK's daily shares the game's id)
   return MEASURES.includes(m) ? m : 'time'; };
 export const RHYTHM = Object.freeze({ H: 312, COL: 150, nameY: 18, namePx: 40, bigY: 87, bigPx: 84, statY: 141, statPx: 32, artY: 167, artH: 145 });

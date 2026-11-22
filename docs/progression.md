@@ -914,6 +914,7 @@ CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines 
 
 - A daily = its cartridge + ONE row in `config.js#DAILIES` (+ its server half in `api/_lib/dailies.js#SERVER_CARTS`) — PLUG-AND-PLAY, no fixed count.
 - DAILY BEST (DAILY A): ONE pure table, each daily's own rule (`core/daily-best.js` → `pstats/{pid}/db`, server-written in the finish's stats transaction); a `tries` row (JAYWALK: 3, the best counts) = `api/_lib/jaywalk-daily.js` + pure `jaywalk-tries.js` → docs/jaywalk.md "THE DAILY".
+- A `held` daily (HIGH RISE DAILY A, Nov 21 — HIGH RISE, ships OFF): ONE SHOT in LEGS, a hidden / refreshed / killed page RESUMES (3 holds + THE ROOM WINS' free ones) = `api/_lib/highrise-daily.js` + pure `js/games/highrise/held.js`; `api/daily.js` start / finish / settleRun read `cart.held` (start = `startHeld` · finish = `endRun` first · settle = `settleHeld`); the bookkeeping is `finishRun`'s, never forked → docs/highrise.md "THE DAILY".
 - THE SERVER JUDGES every guess / move; answers + boards + THE DAILY SECRET live ONLY in the database (`tests/daily-secrets.test.mjs`) — never the pepper.
 - THE TICKET = ONE pure rule (`today-logic.js#ticketState`; never ADMITTED while tries remain), its PLAY in its `TICKET_INK`; a daily's run (`daily.js#DAILY_RUNS`) out of its game's preload graph; THE 360 FLOOR (`share.js#SMALL_MIN`).
 - A RUN KEEPS ITS OWN DAY (`js/daily/run-day.js`); THE THROWAWAY GATE; the phone side on the kit (`js/daily/` — never a copy in a game).

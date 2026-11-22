@@ -106,6 +106,8 @@ export function createView() {
     // (tick 0 of the PLAY clock on this page: the leg's GO is its tick T)
     // (the log so far = the server's — a resume's own HOLD put at its end: the same log the judge will replay)
     const events = [...(run.ev || []), ...(run.leg > 0 ? [run.room ? { k: 'hold', t: run.t, r: 1 } : { k: 'hold', t: run.t }] : [])];
+    // (the answer landed while the page is hidden: the run is held the moment the stage has adopted it — never live unseen)
+    if (document.visibilityState === 'hidden') setTimeout(() => away('hidden'), 0);
     return { mode: 'daily', seed: run.seed, t0: perfOf(run.go - T2ms(run.t)), events };
   }
   const T2ms = t => (t * 1000) / TICK_HZ;

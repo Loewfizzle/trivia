@@ -8,7 +8,7 @@ ZERO GARBAGE IN PLAY (the iPhone's stalls), THE WELCOME + THE END (the owner's A
 glass-slab tower: one tap drops each slab, the overhang slices off, a PERFECT snaps into place. Its signs read HIGH / RISE stacked.
 JAYWALK is its quality benchmark AND its engine formula (docs/jaywalk.md): a pure engine, a result = THE REPLAY of the player's own input
 log, a preview on the live site. The owner's decisions: `docs/games/plan.md` "HIGH RISE — S1" · "— S2" · "— S2 FIX" · "— S3" · "— S4A" · "— S4A FIX" (+ its ADD-ONS)
-(**NO DAILY for HIGH RISE** — the owner, Nov 18: the seed barely changes play; the engine's daily mode stays unused).
+(**THE HIGH RISE DAILY** — the owner, Nov 21 (his Nov 18 "no daily" turned over): ONE SHOT a day, THE HELD RUN — "THE DAILY" below; ships OFF).
 
 **HIGH RISE IS LIVE (THE GO-LIVE, Nov 20)**: its `config.js` GAMES row is `playable: true, live: '2026-11-20'` — every phone's PLAY
 shelf + every room's PICK A GAME (on TOP with NEW its first 14 days), HOW TO PLAY, its tile (THE TOWER), its BOARD tab (TALLEST TOWER), its
@@ -20,6 +20,7 @@ THE DAILY CEILING 20). **THE SIGN HOLD** (`core/harbor-neon.js#SIGN_HOLD`) keeps
 ## THE PASSES — INDEX
 | pass | date | log | what it built |
 | --- | --- | --- | --- |
+| HIGH RISE DAILY A — THE DAILY ITSELF (server + run; HIDDEN) | Nov 21 2026 | `docs/games/passes/highrise-daily-a.md` | the engine's daily mode + THE HOLD (a logged event the judge replays — `engine.js#hold`), THE HELD RUN in LEGS (`held.js`, PURE), the server half (`api/_lib/highrise-daily.js` — a `held` cartridge), the rules (`dly/highrise` leg nodes — A RULES CHANGE), the phone's run (`daily-run.js` on the real stage); the row `on: false` |
 | S1 — THE RULES | Nov 18 2026 | `docs/games/passes/highrise-s1.md` | the engine, the replay + the judge (server half), the bot sims + the tuned speed curve, THE LAB (/highrise-lab) |
 | S2 — THE NIGHT LOOK + SOLO | Nov 18–19 2026 | `docs/games/passes/highrise-s2.md` | THE TEST PAGE (/highrise-play — nothing counts): the glass tower, the cut + sparks, the perfect's ring, grow-back, the night plates + the reflection map, the HUD, YOUR BEST (this phone), the sounds + the audition; the rules: SOLO PAST 200 KEEPS TIGHTENING · the ranking by perfects |
 | S2 FIX — THE LAG HUNT | Nov 19 2026 | `docs/games/passes/highrise-s2-fix.md` | the owner's phone check: the lag spikes found + fixed (THE LAG RULES, THE HITCH COUNTER on `?fps=1`), YOUR BEST's tape = a thin gold OUTLINE, THE END's FOOT (the PLAY AGAIN bar), the sounds as MP3 (121 KB) |
@@ -50,8 +51,8 @@ THE DAILY CEILING 20). **THE SIGN HOLD** (`core/harbor-neon.js#SIGN_HOLD`) keeps
 - **THE FUSE:** an untapped slab drops by itself at the end of its 2nd sweep — the SAME drop; if it ends the run the cause is **TOO SLOW**.
 - **THE LANDING BEAT:** 12 ticks after each drop there is no slab — a tap then is not a drop (ignored, never logged; the judge refuses a
   log that holds one).
-- **THE MODES:** SOLO = endless · MATCH = floor 200 + a 6:00 cap · DAILY = floor 200 + a 5:00 cap (**UNUSED — NO DAILY for HIGH RISE**,
-  the owner, Nov 18: the seed barely changes play; the mode stays in the engine). Floor 200 = **MADE IT TO THE
+- **THE MODES:** SOLO = endless · MATCH = floor 200 + a 6:00 cap · DAILY = floor 200 + a 5:00 cap of PLAY time + 3 HOLDS (+ THE ROOM WINS'
+  3 free ones) — THE HIGH RISE DAILY (DAILY A, Nov 21 — "THE DAILY" below). Floor 200 = **MADE IT TO THE
   MOTHERSHIP** (a finish, not an out). The cap ends a run where it stands. **THE RANKING (S2 — the owner, Nov 18):** THE FLOOR
   first; at the SAME floor (above all: the Mothership's finishers — every clean run stands on floor 200 within a second, the curve sets
   the pace) → **THE MOST PERFECTS** → then the EARLIER tick. Match + daily alike (`logic.js#rankCompare` / `standings`); the podium's
@@ -1028,8 +1029,8 @@ tests/highrise-fix-a.test.mjs (REVIEW FIX A) · tests/integration/highrise-spect
 - ~~THE GO-LIVE~~ (done, Nov 20) → **THE PROOF PASS** (JAYWALK + HIGH RISE's host trust — the review's MUST 2; before strangers are invited;
   ends in a re-publish) → **THE CITY PASS** (the B1 billboard, the roof tube sign HIGH / RISE, the blades, the rotation HIGH RISE → JAYWALK →
   HOLD'EM with THE DROP removed — and it LIFTS THE SIGN HOLD).
-- Still open: SHOULD 7 (the F-22's 1.1 MB before the first tap — the owner's iPhone A/B) · the cards' own motion · NO DAILY (the owner,
-  Nov 18).
+- Still open: SHOULD 7 (the F-22's 1.1 MB before the first tap — the owner's iPhone A/B) · the cards' own motion · THE DAILY's look (DAILY B —
+  its ticket, the recolour, the share card incl. THE BIG FIVE: the owner's claude/HIGHRISE-PLAN.md).
 
 ## THE CONSOLE FIX (Nov 20 — `docs/match-kit.md` "A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST"; the pass log `docs/games/passes/console-fix.md`)
 - A live proven tower is climbed to its own end whatever the host's state says: no podium over it (`view.js#pumpMatch` — `runLive()`), the
@@ -1045,3 +1046,50 @@ tests/highrise-fix-a.test.mjs (REVIEW FIX A) · tests/integration/highrise-spect
 HIGH RISE; THE DROP's face removed. **THE ROOF TUBE SIGN:** HIGH / RISE stacked, #ff4fd8 over #35e3ff at night (`signs.js#SIGN_ACC2`), by day
 raspberry + teal paint on cream (`DAY_PAINT.highrise`). **THE SPEAKEASY BLADE:** ONE column, HIGH over RISE with a gap. Never the hotel blade.
 The pass log: docs/harbor/passes/city-part1.md.
+
+## THE DAILY (HIGH RISE DAILY A — Nov 21 2026; the owner's decisions: `docs/games/plan.md` "THE HIGH RISE DAILY"; the pass log `docs/games/passes/highrise-daily-a.md`) — SHIPS OFF
+A 5th daily, plug-and-play: `config.js#DAILIES` row `highrise` (order 5, measure 'floors', ticket 'highrise', hook 'One shot.', `on: false`) +
+`api/_lib/dailies.js#SERVER_CARTS.highrise` (`api/_lib/highrise-daily.js`) + `js/screens/daily.js#DAILY_RUNS.highrise` (`daily-run.js`). Not a
+rotation with JAYWALK. Its look (the ticket, the recolour, the share card incl. THE BIG FIVE) is DAILY B's.
+- **ONE SHOT, THE SAME COURSE:** one run a day; the seed = `dailySeed('highrise', day)` (THE DAILY SECRET — `h<n>`), mode 'daily' on the
+  CLASSIC rules: ends ON floor 200 (THE MOTHERSHIP — the match's finish), the table's 5:00 cap of PLAY time (TIME'S UP — a 3 · 2 · 1 and the
+  time hidden never count). Practice = solo (endless), never the day's seed. Ranking: FLOORS → MOST PERFECTS → THE EARLIER TICK = ONE number
+  (`held.js#hrScore`: floors × 1e8 + perfects × 1e5 + (99999 − tick), `better: 'high'`); the scoreLine "N FLOORS" (`metas.js`).
+- **THE HOLD (`engine.js#hold`, PURE):** a LOGGED event `{ k: 'hold', t, r? }` in the run's log (numbers = taps). The replay applies it to the
+  run AS IT STANDS after the event before it (never stepped to its tick — no fuse, no spawn in the gap); the next floor's slab ENTERS AT `t`,
+  its sweep from tick 0. A floor already placed never changes. The cap per run is rules data (`rules.js` daily row: `holds: 3`,
+  `roomHolds: 3`); a 4th (player) hold is refused by the engine AND the judge (`replay.js#tapsProblem` 'too many holds'); solo + match have none.
+- **THE HELD RUN = LEGS (`held.js`, PURE — the phone, the server, the tests):** leg 0 from START; one more leg per hold. THE RECORD
+  (`dly/highrise/{day}/p/{pid}`, server-only) `l/{i} = { u, go, z, t, r? }` — each leg's GO (the server's time, START + 3 s), its window `z`
+  (GO + the play left to the cap + 90 s), its PLAY tick `t` (leg 0: 0; a hold's: the slab's natural entry — the server picks it from the log it
+  HAS: `nextHoldTick`, so a hold costs no run time) + `room`, `e`, `o` (why it ended: fin · holds · over · gone · close · bad) and the judge's
+  answer (f p k s w h rh ms cut? bad?). THE LEG NODES (`dly/highrise/{day}/w/{uid}/{leg}` — the phone appends): `{ go, z }` server-written,
+  `c/{k} = { s: the packed taps in the leg's LOCAL ticks, at: the SERVER's timestamp }`, `e` (closed), `x` (the SERVER closed it — a hold / its
+  end: `settle` never takes it for the phone's FIN). THE LOG = leg 0's taps, then each later leg's hold + its taps + `t`; EVERY LEG passes THE
+  SPEED CHECK on its own clock (`proof.js#clockProblem` — ahead = no tower; behind = cut there, every later leg dropped); a hole = refused.
+- **THE SERVER (`api/_lib/highrise-daily.js` — a `held` cartridge; `api/daily.js` start / finish / settleRun know `cart.held`, no game name):**
+  START → a fresh run (leg 0) · a RESUME: **THE UNDO GUARD** — the open leg CLOSED FIRST (`x` + `e`: the rules take no chunk after it, so what
+  the server reads is final; a tap whose chunk never landed is gone with the hold), its chunks read, `T` picked, a new leg opened (ONE record
+  transaction — two starts at once: one wins, the other 409 `busy`) · or the run ENDED + scored (no hold left · the run over in the replay ·
+  a refused / cut log · a PAST day's run not in play). FINISH → the run ended (its leg closed) → THE JUDGE (`held.js#judgeHeld` →
+  `replay.js#judgeRun`) → `finishRun`'s bookkeeping, never forked (the streak, DAILY_XP once, THE SWEEP, PERFECT WEEK, THE THROWAWAY GATE,
+  DAILY POINTS — `daily-points.js` FLOOR + 90 × (floors / 200)^0.6, 200 = 100 — EVERYONE ON SCORES, PENTHOUSE, DAILY BEST — `daily-best.js`
+  row: most floors, the backfill reads it like the others — THE ONE DAY LINE). `pause { room }` = THE ROOM WINS: a FREE hold owed (the room
+  really started a game). `today` / THE DAY'S CLOSE settle a run that can't come back: its own FIN that never reached FINISH (the leg's `e`, no
+  `x`) · no hold left + quiet 20 s · a past day's run not in play — never one with a hold left (the ticket says RESUME); THE DAY'S CLOSE (two
+  days on) ends whatever is left, at its last server tap. No split boards (no `splits` flag). The share inputs (`share`, spoiler-free —
+  `held.js#shareOf`): `{ f, p, w[] (each floor's slab width on its slide axis, 0 … 1 of the start), x[] (its centre's offset), pf[] }`.
+  THE PRUNE: the leg nodes past 7 days (the record + the day's scores stay). The backup: under `dly/` (DURABLE — no new top-level node).
+- **THE PHONE (`daily-run.js` — the dailies screen loads it, never the cartridge: not in the preload graph / the 2,600 KB line):** the REAL
+  stage (`stage.js`, both looks, its sounds, its HUD) in mode 'daily'. START → the 3 · 2 · 1 → play; EVERY TAP's chunk goes up AT ONCE (the
+  proof writer's `pipe` — one connection keeps them in order). Hidden with a hold left → HELD (`stage.js#hold`: the clock stands, no touch
+  drops a slab) → back on screen: the last chunk ≤ 1.5 s to land, then START again = the hold (the 3 · 2 · 1, the slab from its entry — the
+  stage adopts the server's log + the hold: `adopt({ events })`). No hold left → a hide ENDS the run (`e`, FINISH with keepalive). The back
+  button = a hold (the ticket says RESUME). THE ROOM WINS = the run held here, the server told (a FREE hold). The end card (minimal — DAILY B
+  styles it; JAYWALK's daily card classes): the SERVER's floors, the place line / DAILY BEST, BACK TO THE DAILIES — no TRY AGAIN.
+- **THE TESTS:** `tests/highrise-daily.test.mjs` (REPLAY = LIVE with holds at random floors, 50 seeds · a hold never moves a placed floor ·
+  the 200 finish · the ranking keys · the 4th hold · the legs' log + each leg's clock · the share inputs) · `tests/integration/daily-highrise.test.mjs`
+  (/api: start → chunks → hold → resume → finish; refused: a 2nd run, a 4th hold, ahead of the clock, another day; THE ROOM WINS; the close;
+  DAILY POINTS; DAILY BEST; the prune) · `rules.test.mjs` (the leg nodes) · `e2e-highrise-daily.mjs` (a real phone: START, hidden mid-run,
+  back, finish — the server's floors = the phone's; `DAILY_TEST=1 DAILY_TEST_OFF=highrise node scripts/serve.mjs <port> --emu`).
+
