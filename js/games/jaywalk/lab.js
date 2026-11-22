@@ -254,6 +254,8 @@ async function mount() {
     clearFrames() { frames.length = 0; cost.length = 0; },
     stop() { cancelAnimationFrame(raf); view.destroy(); },
     // (the look checks only: put the kid on a lane far up the course — the run is then no longer its log's, the end screen says WARPED)
+    /** (VARIETY A's fog check) the blackout `n` lanes behind the kid now (a look check — the run is WARPED already) */
+    wallAt(n) { run.wall = Math.round((run.y - n) * FP); },
     warp(lane, o = {}) { warped = true; safe = o.safe !== false; run.y = lane; run.best = Math.max(run.best, lane); run.x = o.x == null ? 4.5 * FP : o.x; run.st = 'idle'; run.buf = ''; run.wall = (lane - 5) * FP; queue = []; started = true; mark.textContent = ''; },
     /** (a look check) the middle of a log on this water lane that is well inside the 9 columns right now (FP; −1 = none) */
     logAt(lane) { const L = course.lane(lane); if (L.type !== 'water') return -1; for (const it of L.items) { const l = moverLeft(L, it, run.t); if (l > 1500 && l + it.len < 7500) return l + it.len / 2; } return -1; },

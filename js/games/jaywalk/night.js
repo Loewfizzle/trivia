@@ -414,6 +414,7 @@ export function createNight(host, o = {}) {
     fogC = { top: FOG_LAYERS.map(f => mixHex(f[6], FOG_DARK.top)), under: FOG_LAYERS.map(f => mixHex(f[7], FOG_DARK.under)), wisp: mixHex(0xffffff, FOG_DARK.wisp) };
     const b = [0.875, 0.906, 0.933]; ground.uniforms.uFogBank.value.set(...b.map((v, i) => v + (FOG_DARK.ground[i] - v) * k));
     if (day) { curtain.material.color.setHex(mixHex(0xdfe7ee, FOG_DARK.curtain)); lip.material.color.setHex(mixHex(0xdfe7ee, FOG_DARK.curtain)); }
+    { const st = host.closest ? host.closest('.jw-stage') : null; if (st) { if (k > 0.5) st.dataset.fog = 'dark'; else delete st.dataset.fog; } }   // (the screen's foot fades into the same dark fog — css/jaywalk.css)
   }
   /** VARIETY A — THE TIME OF DAY this phone shows (daylook.js#resolveTod — the view's: AUTO by the clock, the HOST's in a match; DAY = noon) */
   function setTod(r) {

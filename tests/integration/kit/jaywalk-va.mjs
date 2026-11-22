@@ -84,13 +84,18 @@ export async function looksVA({ open, up, ok, sleep, waitFor, out, what = '', b,
     const files = [], labels = [];
     for (const [sk, sq] of seasons) for (const [lk, lq] of looks) {
       const o = await pg(390, lq + sq);
-      await stage(o, { look: lk === 'night' ? 'night' : 'day', lane: 17, pack: true });   // (the warp: the blackout 5 lanes behind the kid — the bank at the foot)
-      const td = await o.p.evaluate(() => window.__jwLab.view.tod());
-      files.push(await shotTo(o, `fog/${sk}-${lk}-390.png`, { x: 0, y: 440, width: 390, height: 404 }));
-      labels.push(`${sk} · ${lk}${td.fogDark > 0 ? ' · CHANGED' : ''}`);
+      const win = /winter/.test(sk);
+      if (win) await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000);
+      await stage(o, { look: lk === 'night' ? 'night' : 'day', lane: 17, pack: true });
+      await o.p.evaluate(() => { const J = window.__jwLab; J.wallAt(2.6); for (const b of document.querySelectorAll('.jw-bar, .jw-bar2, .jw-bar3')) b.style.visibility = 'hidden'; });   // (the bank 2.6 lanes behind the kid: in view at the foot; the lab's bars off the shot)
+      await sleep(400);
+      const td = await o.p.evaluate(() => window.__jwLab.view.tod()), se = await season(o);
+      if (win && sk !== 'winter-none') ok(se.pack && se.winter > 0.5, `FOG ${sk} ${lk}: the winter pack in (${se.pack} · winter ${se.winter})`);
+      files.push(await shotTo(o, `fog/${sk}-${lk}-390.png`, { x: 0, y: 404, width: 390, height: 440 }));
+      labels.push(`${sk} · ${lk}${td.fogDark > 0 && lk !== 'night' ? ' · CHANGED' : ''}`);
       errs.push(...o.errs); await o.close();
     }
-    await compose(files, labels, 'fog/sheet-390.png', 6, 220, 404 / 390);
+    await compose(files, labels, 'fog/sheet-390.png', 6, 220, 440 / 390);
   }
 
   if (all || what === 'pile') for (const look of ['night', 'day']) {

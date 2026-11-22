@@ -527,3 +527,5 @@
 .jw-farhaze[data-tod='golden'] { background: linear-gradient(#f2dcb6 0, rgba(242, 220, 182, 0.86) 22%, rgba(242, 220, 182, 0) 100%); }
 .jw-farhaze[data-tod='sunset'] { background: linear-gradient(#c896ad 0, rgba(200, 150, 173, 0.86) 22%, rgba(200, 150, 173, 0) 100%); }
 .jw-farhaze[data-wx='overcast'] { background: linear-gradient(#c9d1d9 0, rgba(201, 209, 217, 0.86) 22%, rgba(201, 209, 217, 0) 100%); }
+/* VARIETY A — THE FOG CHECK: where the white fog would vanish (white over the snow, by day) the bank is DARK GREY — the screen's foot with it */
+.jw-stage[data-look='day'][data-fog='dark'] .jw-blackout { background: linear-gradient(rgba(53, 58, 66, 0) 0, rgba(53, 58, 66, 0.55) 70%, rgba(53, 58, 66, 0.85) 100%); }
