@@ -161,7 +161,7 @@ const table2 = q.get('solo') === '1' ? [] : table;
 {
   const av = (avg, days) => ({ avg, days });
   const myDays = Number(q.get('days') ?? 7);
-  window.__dyPoints = q.get('pts') === 'down' ? null : { mine: { 'daily-password': av(83.3, myDays), 'daily-coastclear': av(77.1, myDays), daily: av(80.2, myDays) },
+  window.__dyPoints = q.get('pts') === 'down' ? null : { mine: { 'daily-password': av(83.3, myDays), 'daily-coastclear': av(77.1, myDays), 'daily-highrise': av(71.4, myDays), daily: av(80.2, myDays) },
     friends: { P_ben: { 'daily-password': av(91.2, 14), 'daily-coastclear': av(88.4, 12) }, P_kim: { 'daily-password': av(86.5, 10), 'daily-coastclear': av(70.2, 11) },
       P_max: { 'daily-password': av(95.0, 3) }, P_ray: { 'daily-coastclear': av(64.0, 13) }, P_lou: {}, P_sam: { 'daily-password': av(72.4, 18) } }, table: [] };
   const top = (cds) => cds.map(([n, cd, a, c, l, v], i) => ({ id: `b${i}`, n, cd, a, c, l, rank: i + 1, v }));
@@ -192,6 +192,12 @@ const table2 = q.get('solo') === '1' ? [] : table;
     return { n: below ? 30 : N, full: rows, played, rows: rows.slice(0, all ? N : 10), ...(below && played ? { me: { ...ME, rank: 23, v: scoreOf(9)[0] + 2, e: { sp: 1 }, me: 1 } } : {}), more: below ? 30 : N };
   };
   window.__dyEvery = { password: mk('password', i => [pwS[i], null]), coastclear: mk('coastclear', i => ccS[i]) };
+  // HIGH RISE DAILY B — &hr=…&tab=scores: HIGH RISE on TODAY'S SCORES (its floors, the measure FLOORS) + its ALL TIME board
+  if (HR) {
+    const hrF = [131, 112, 97, 96, 88, 84, 80, 71, 64, 60, 52, 47, 33, 20];
+    window.__dyEvery.highrise = mk('highrise', i => [hrF[i] * 1e8 + (20 + i) * 1e5 + 500 + i, null]);
+    for (const [pp, f] of [['P_ben', 112], ['P_kim', 96]]) if (pick.friends[pp]) pick.friends[pp].highrise = { score: f * 1e8 + 3e6 };
+  }
   // J3 — &jwt=1: JAYWALK on SCORES — its lanes list + THE TIME BOARDS from sample server splits (ticks to 50 / 100 / 150 / 200; BEN + ROOK tie at 50),
   // the views built by the REAL server code (core/jw-times.js#timeView) — EVERYONE (public faces) + YOUR TABLE (`today`'s jt — you + 3 friends)
   if (q.get('jwt') === '1' && JW && pick.mine.jaywalk != null) {
@@ -223,7 +229,7 @@ const table2 = q.get('solo') === '1' ? [] : table;
     const ranked = Number(q.get('days') ?? 7) >= 10;
     const avgs = [9410, 9350, 9320, 9280, 9190, 9120, 9050, 8990, 8870, 8800, 8720, 8650];
     const brd = shift => { const list = [...P.slice(shift), ...P.slice(0, shift)].slice(0, 12).map(({ f, ...r }) => r); if (ranked) list.splice(3, 0, { ...ME }); return list.slice(0, 12).map((r, i) => ({ ...r, rank: i + 1, v: avgs[i] })); };
-    window.__dyBoard = { 'daily-password': brd(0), 'daily-coastclear': brd(2) };
+    window.__dyBoard = { 'daily-password': brd(0), 'daily-coastclear': brd(2), ...(HR ? { 'daily-highrise': brd(4) } : {}) };
   }
 }
 window.__dyToday = { day: 'd20261108', dailies, best: bestOf, ...(pick.tries ? { tries: pick.tries } : {}), mine: pick.mine, ...(pick.place ? { place: pick.place } : {}), ...(pick.prog ? { prog: pick.prog } : {}), ...(pick.extraMine ? { extra: pick.extraMine } : {}), gated: pick.gated || {}, started: pick.started || {}, startedDay: {}, stand: pick.stand || {}, lessons: {}, friends: pick.friends, table: table2, ...(pick.jt ? { jt: pick.jt } : {}), ...(pick.countsFrom ? { countsFrom: pick.countsFrom } : {}) };

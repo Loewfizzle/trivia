@@ -41,7 +41,7 @@ const st = { ...state, view: 'title', uid: 'pv', ready: true, rejoin: q.get('rej
 // DM2 — THE DAILY BUTTON's states (&daily=waiting|done|off, &left=n of &of=n dailies) + THE ROOM WINS' RESUME chip (&held=1)
 if (q.get('daily')) {
   const T = await import('/js/daily/today.js');
-  const of = Math.max(1, Number(q.get('of') || 2)), ids = ['password', 'coastclear', 'nightcap', 'four', 'five', 'six'].slice(0, of);
+  const of = Math.max(1, Number(q.get('of') || 2)), ids = ['password', 'coastclear', 'drop', 'jaywalk', 'highrise', 'six'].slice(0, of);   // (HIGH RISE DAILY B: the five real dailies — &of=5&held=1 = a held HIGH RISE run)
   const left = q.get('daily') === 'done' ? 0 : Math.min(of, Number(q.get('left') || of));
   const mine = Object.fromEntries(ids.slice(0, of - left).map(id => [id, 7]));
   T.setToday(q.get('daily') === 'off' ? { dailies: [] } : { day: 'd20261108', dailies: ids.map((id, i) => ({ id, name: id.toUpperCase(), order: i + 1, ticket: id, better: 'low' })), mine, started: q.get('held') ? { [ids[ids.length - 1]]: true } : {}, friends: {}, table: [] });

@@ -115,7 +115,7 @@ test('SKINS 2B — THE ONE RULE: the NAME carries the result (green made · red 
     assert.ok(r2 > g2 + 70 && r2 > b2 + 50, `${look}: failed is red`);
   }
   const kit = read('js/daily/share.js');
-  assert.match(kit, /export function paintName\(c, look, name, cx, y, px, fitW = 0, result = null\)/);
+  assert.match(kit, /export function paintName\(c, look, name, cx, y, px, fitW = 0, result = null, ink = null\)/);   // (HIGH RISE DAILY B: + `ink` — THE BIG FIVE's names in their ticket's ink)
   assert.match(kit, /export function paintStat\(c, look, text, cx, y, px, fitW = 0\)/);
   const stat = kit.slice(kit.indexOf('export function paintStat'), kit.indexOf('/**\n * THE FOOT'));
   assert.match(stat, /c\.fillStyle = inkOf\(look\)\.stat;/, 'the stat line is ONE grey — never a coloured word');
@@ -133,7 +133,9 @@ test('SKINS 2B — THE ONE RULE: the NAME carries the result (green made · red 
   const pw = read('js/games/password/share.js');
   assert.match(pw, /export const resultOf = run => \(scoreOf\(run\)\.doors === DOORS \? MADE : FAILED\);/);
   assert.match(pw, /export const statOf = run => \(byGuesses\(\) \? timeOf\(run\) : guessesLine\(run\)\);/);
-  assert.doesNotMatch(code('js/games/password/share.js'), /HEAD_OUT|HEAD_IN|LOCKED OUT|WELCOME IN/);
+  // (HIGH RISE DAILY B — THE BIG FIVE, text only: a failed run's fail word IS its big line — the one place LOCKED OUT is drawn: fiveLine; never THE ONE RULE's section / own card)
+  const pwCode = code('js/games/password/share.js'), five = pwCode.indexOf('export const fiveLine');
+  assert.doesNotMatch(five < 0 ? pwCode : pwCode.slice(0, five) + pwCode.slice(pwCode.indexOf('\n', five)), /HEAD_OUT|HEAD_IN|LOCKED OUT|WELCOME IN/);
   const sec = pw.slice(pw.indexOf('export function paintSection'));
   assert.doesNotMatch(sec, /door\(|paintDoor|paintDoors/, "no doors in SHARE TODAY's strip (the daily's own card keeps them)");
   assert.match(pw, /export const TILE_MAX = (4[0-9]|5[0-9]), TILE_FLOOR = 22;/, 'the tiles are bigger (they were ≤ 36) + never under the floor');

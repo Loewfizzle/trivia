@@ -8,7 +8,9 @@
 // THE HELD RUN: hidden / refreshed / killed with a hold left = the run HELD (the clock stops; nothing ends) → back on screen: the queued chunk
 // a moment to land, then START again = a hold (the slab that was swinging enters again at its entry after a 3 · 2 · 1). No hold left: a hide
 // ENDS the run (`e`, FINISH with keepalive). Leaving with the back button = a hold (the ticket says RESUME). THE ROOM WINS = a FREE hold.
-// The end card (minimal — DAILY B styles it): the SERVER's floors, the place line, DAILY BEST, BACK TO THE DAILIES.
+// THE END CARD (HIGH RISE DAILY B — JAYWALK's daily end card, HIGH RISE's electric blue): ADMITTED (the one shot spent) · HIGH RISE · ONE SHOT ·
+// how it ended (the stage's own word) · the SERVER's floors big · the place line / DAILY BEST / the gold NEW DAILY BEST · SHARE (THE POSTER + the
+// DAILY · ONE SHOT tag — daily-share.js, the server's own share inputs) · BACK TO THE DAILIES — no TRY AGAIN.
 import { h } from '../../ui/dom.js';
 import { tubeButton } from '../../ui/components.js';
 import { lazyImport } from '../../ui/lazy-import.js';
@@ -18,6 +20,8 @@ import { api } from '../../profile/api.js';
 import { createDailyJudge } from '../../daily/judge.js';
 import { todayNow, onToday } from '../../daily/today.js';
 import { placeLine, NEW_BEST } from '../../daily/today-logic.js';
+import { stampSvg } from '../../daily/ticket-art.js';
+import { END_WORDS } from './logic.js';
 import { createProofWriter } from '../kit/proof-writer.js';
 import { CLOCK } from './proof.js';
 import { TICK_HZ } from './tuning.js';
@@ -145,25 +149,27 @@ export function createView() {
 
   // ---- the stage's own moments
   function over() { if (W) W.flush(true); }
-  function ended() {
+  function ended(live) {
     // (the stage's end moment — the out / THE MOTHERSHIP / TIME'S UP: `e` behind the last chunk, then FINISH → the SERVER's floors)
     if (state === 'done') return {};
     state = 'ending';
     if (W) W.end({});
     card = cardShell('SCORING YOUR RUN');
+    const said = live && END_WORDS[live.cause];
+    if (said && card.cause) { card.cause.textContent = said; card.cause.hidden = false; }
     const p = W ? Promise.race([lastChunk.catch(() => {}), new Promise(res => setTimeout(res, LAND_WAIT_MS))]) : Promise.resolve();
     p.then(() => ctx.judge.finish()).then(r => endCard(r), e => { if (card) { card.note.textContent = e && e.code === 'not_done' ? 'RUN ENDED' : 'COULDN’T SCORE IT — CHECK YOUR SIGNAL'; } });
     return {};   // (the stage's own card stays down: this is the daily's)
   }
 
-  // ---- THE END CARD (the SERVER's floors) — minimal: DAILY B styles it
+  // ---- THE END CARD (the SERVER's floors) — HIGH RISE DAILY B: JAYWALK's daily end card (css/daily.css .dy-jw-end + .dy-hr-end)
   function cardShell(noteText) {
     if (card && card.el.isConnected) { card.note.textContent = noteText; return card; }
     const big = h('div.dy-jw-big.dy-hr-big', '…'), note = h('div.dy-jw-note.dy-jw-end-rec', noteText), foot = h('div.dy-jw-foot');
-    const kick = h('div.dy-jw-kick', 'HIGH RISE · DAILY');
-    const el = h('div.jw-final.dy-jw-end.dy-hr-end', { style: { position: 'absolute', inset: '0', zIndex: '6' } }, h('div.dy-jw-in', kick, big, note, foot));
+    const kick = h('div.dy-jw-kick', 'HIGH RISE · ONE SHOT'), cause = h('div.dy-jw-cause', { hidden: true });
+    const el = h('div.dy-jw-end.dy-hr-end', h('div.dy-jw-in', kick, cause, big, note, foot));
     host.append(el);
-    return (card = { el, big, note, foot, kick });
+    return (card = { el, big, note, foot, kick, cause });
   }
   function endCard(r, why) {
     if (gone) return;
@@ -185,7 +191,22 @@ export function createView() {
     setNote();
     if (offToday) offToday();
     offToday = onToday(() => { if (!gone && C.note.isConnected) setNote(); });
-    C.foot.replaceChildren(tubeButton('BACK TO THE DAILIES', { kind: 'main', block: true, attrs: { 'data-press': true }, onClick: () => ctx.onBack && ctx.onBack(true) }));
+    // ADMITTED — the one shot is spent: the day's result (JAYWALK's after its 3rd try)
+    if (score != null && !C.el.querySelector('.dy-stamp')) C.el.prepend(h('span.dy-stamp.dy-jw-stamp', { html: stampSvg(), role: 'img', 'aria-label': 'admitted — done for today' }));
+    // SHARE — the day's HIGH RISE card (THE POSTER + the DAILY · ONE SHOT tag), built now from the SERVER's share inputs, sent at the tap (its link)
+    const share = score != null ? shareTube(r && r.day) : null;
+    C.foot.replaceChildren(...[share, tubeButton('BACK TO THE DAILIES', { kind: 'main', block: true, attrs: { 'data-press': true }, onClick: () => ctx.onBack && ctx.onBack(true) })].filter(Boolean));
+  }
+  /** SHARE on the end card: daily-share.js#prepDaily — the card drawn as the card shows (its PNG kept), the link made at the first tap (its user
+   *  activation kept: 'ready' → the NEXT tap shares it at once — the console's SHARE pattern) */
+  function shareTube(day) {
+    let H = null, busy = false;
+    const ready = lazyImport(import('./daily-share.js'), './daily-share.js').then(M => { H = M.prepDaily({ day }); H.warm(); return H; }).catch(() => null);
+    const b = tubeButton('SHARE', { kind: 'secondary', block: true, cls: 'dy-hr-share', attrs: { 'data-gesture': true }, onClick: async () => {
+      if (busy) return; busy = true;
+      try { const P = H || (await ready); if (P) await P.send(); } finally { busy = false; }   // ('ready' — the link made after the tap's activation ran out: the next tap shares it)
+    } });
+    return b;
   }
   function showFail(e) {
     const C = cardShell(e && e.code === 'busy' ? 'ONE MOMENT — TRY AGAIN' : 'THE DAILY COULDN’T START — CHECK YOUR SIGNAL');

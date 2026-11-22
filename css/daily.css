@@ -355,6 +355,17 @@ body[data-look="day"] .dy-overlay { --dy-box-line: #16305c; --dy-box-on: #2f86ff
 .dy-jw, .dy-jw-stage { position: absolute; inset: 0; }
 .dy-jw-end { --tk: #ff4058; --jw-big: #fff6f4; }
 .dy-hr-end { --tk: #4fd6ff; --jw-big: #f2feff; }
+/* (HIGH RISE DAILY B — HIGH RISE's end card is JAYWALK's: css/jaywalk.css is not on its page, so the card's own ground here — the same dark veil
+   over the resting tower, in both looks; it enters with a fade (opacity only)) */
+.dy-hr-end { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column;
+  background: linear-gradient(rgba(7, 6, 11, 0.55) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%); animation: dy-hr-in 0.22s ease-out both; }
+@keyframes dy-hr-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .dy-hr-end { animation: none; } }
+.dy-hr-end .dy-jw-cause:empty { display: none; }
+/* (refine 1: JAYWALK's card corners — css/jaywalk.css's .jw-final rule is not on this page: the tubes' 10 px corners here, never a capsule — NO PILLS;
+   "200 FLOORS" on ONE line at 375 — the big number a size down to the column, never wrapping) */
+.dy-hr-end .btn, .dy-hr-end .btn::before, .dy-hr-end .btn::after { border-radius: 10px; }
+.dy-hr-end .dy-hr-big { white-space: nowrap; font-size: clamp(42px, 13.4vw, 64px); }
 .dy-jw-in { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center;
   padding: calc(var(--safe-t) + 72px) 22px calc(var(--safe-b) + 22px); }
 .dy-jw-kick { font: 800 13px/1.2 var(--font-ui); letter-spacing: 0.22em; text-indent: 0.22em; color: color-mix(in srgb, var(--tk) 62%, #fff); }

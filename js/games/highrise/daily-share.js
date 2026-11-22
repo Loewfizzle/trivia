@@ -7,7 +7,8 @@
 //     HIGH RISE's ticket ink (a glow at night), the rest dim
 //   the OWN card (HIGH RISE the day's only finished daily) = THE POSTER (share.js — approved Nov 20) + a small "DAILY · ONE SHOT" tag
 //   THE BIG FIVE's line (share-today.js): { big: "84 FLOORS", stat: "ONE SHOT · 32 PERFECTS" }
-import { RHYTHM, paintName, paintBig, paintStat, prepShare } from '../../daily/share.js';
+import { RHYTHM, paintName, paintBig, paintStat, prepShare, base64Of } from '../../daily/share.js';
+import { lazyImport } from '../../ui/lazy-import.js';
 import { inkOf } from '../../daily/ticket-art.js';
 import { END_WORDS } from './logic.js';
 
@@ -69,7 +70,7 @@ export function paintSection(c, { inputs, look = 'night', W = 1080 } = {}) {
  *  tag in its mode line (always the night look — the poster's rule) */
 export async function renderShare({ inputs } = {}) {
   const I = hrInputs(inputs);
-  const S = await import('./share.js');
+  const S = await lazyImport(import('./share.js'), './share.js');
   const run = { floor: I.f, perfects: I.p, cause: I.c || '', made: I.f >= 200 || I.c === 'made', mode: 'solo', name: '' };
   const hero = await S.loadHero(S.hiRunCard(run).hero);
   const card = { ...S.hiRunCard(run), mode: DAILY_TAG };
@@ -81,3 +82,22 @@ export async function renderShare({ inputs } = {}) {
 }
 export const DAILY_TAG = 'DAILY · ONE SHOT';
 export const prepHr = ({ inputs } = {}) => prepShare(async () => ({ cv: await renderShare({ inputs }), name: 'high-rise-daily.png', line: shareLine(inputs) }));
+/** THE END CARD's SHARE (daily-run.js): the SERVER's share inputs for today's HIGH RISE (`today { share }` — never the phone's own numbers), THE
+ *  POSTER drawn when the card shows; the LINK made at the first tap (the half-size PNG fitted under the cap → /api daily shareCard — the server
+ *  takes it only with its own judged finish) — no link → the picture itself */
+export function prepDaily({ day } = {}) {
+  return prepShare(async () => {
+    const C = await lazyImport(import('../../daily/contract.js'), '../../daily/contract.js');
+    const r = await C.dailyShare().catch(() => null);
+    const inputs = r && (!day || r.day === day) && r.share && r.share.highrise;
+    if (!inputs) return null;
+    const upload = async half => {
+      const K = await lazyImport(import('../kit/share-run.js'), '../kit/share-run.js');
+      const png = await K.fitPng(half);
+      if (!png) return '';
+      const res = await C.dailyShareCard(r.day, ['highrise'], await base64Of(png)).catch(() => null);
+      return res && res.path ? new URL(res.path, location.origin).href : '';
+    };
+    return { cv: await renderShare({ inputs }), name: 'high-rise-daily.png', line: shareLine(inputs), upload, onTap: true };
+  });
+}
