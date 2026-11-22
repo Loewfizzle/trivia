@@ -6,7 +6,7 @@
 //   pointerdown, iOS unlocks on the later touchend; resume() is async after that) is held ≤ CATCH_MS and played the moment the context runs —
 //   never lost, never late beyond that; no gesture at all = it simply expires (a sound never plays without a gesture behind it).
 //   DECODE AT UNLOCK: once the audio unlocks every game's buffers decode at once (ONE module-level unlock hook), so a first sound never waits.
-// The music off + the ring / silent switch on = no effects on an iPhone (the session is 'ambient' then — engine.js; by design).
+// (THE GARDEN PARTY PASS — HEAR THE HARBOR: the music off is 'playback' too now, so the effects sound with the ring / silent switch on; ALL OFF = none.)
 //   const s = createDailySfx({ dir: URL, sounds: { name: [file, gain, gap ms, offset s?, dur s?] } })
 //   s.play(name, { gain }) → bool · s.bytes() → Promise (fetch every file now — no AudioContext needed) · s.played() → [{ name, at }] (the test hook)
 import { getContext, getSfxBus, isUnlocked, audioUnlocked, onUnlock } from '../audio/engine.js';

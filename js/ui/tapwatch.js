@@ -219,7 +219,7 @@ function onDown(e) {
       act: pressControl(el, gameOn()) || gestureControl(el, e.pointerType || 'touch'),   // (the control itself — a kick button inside a pressable row is its own; a press that BEGAN on a row acts even while its sheet still slides in: the 38-px shelf row)
     };
     // (THE FIELD IN A LABEL — on the press for data-focus-press: inside the touch, before any re-render)
-    if (press.type !== 'mouse') { const f = labelField(el); if (f) { press.field = f; if (el.matches('[data-focus-press]')) focusField(f); } }
+    if (press.type !== 'mouse') { const f = labelField(el); if (f) { press.field = f; if (el.matches('[data-focus-press]') && !press.stopper) focusField(f); } }   // (THE REVIEW: a touch that stops a scroll never focuses)
     // what re-renders while the finger is down (childList only, until the tap ends — off the rest of the time)
     if (typeof MutationObserver !== 'undefined') {
       const p = press;
@@ -256,7 +256,7 @@ function onUp(e) {
   lastUp = { p, at: performance.now() };
   if (p.stopper && p.up) { stopper = { x: p.up.x, y: p.up.y, at: performance.now() }; stats.stoppers = (stats.stoppers || 0) + 1; }
   // (THE FIELD IN A LABEL — the lift of a clean tap focuses it: iOS's keyboard opens here; the rescue never clicks it late)
-  try { if (p.field && p.up && p.sameAtUp && !p.cancelled && p.travel <= SLOP && p.field.isConnected && focusField(p.field)) { p.handled = true; stats.focused = (stats.focused || 0) + 1; } } catch { /* fine */ }
+  try { if (p.field && p.up && p.sameAtUp && !p.cancelled && !p.stopper && p.travel <= SLOP && p.field.isConnected && focusField(p.field)) { p.handled = true; stats.focused = (stats.focused || 0) + 1; } } catch { /* fine */ }
   // 4. EVERY TAP ACTS — a data-press control acts HERE, at the lift (its click dispatched once; the browser's own click swallowed in onClick)
   try {
     if (p.act && p.up && pressActs({ type: p.type, dur: p.dur, travel: p.travel, cancelled: p.cancelled, disabled: disabled(p.act), stopper: p.stopper })) {

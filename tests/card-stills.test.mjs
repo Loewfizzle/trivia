@@ -24,12 +24,12 @@ test('every card is covered: a picture in its material, a baked still, or a CSS-
 test('every still is on disk + the GENERATED block in css/vault.css is current', () => {
   for (const r of stillRows()) for (const k of r.kinds) {
     // (THE GARDEN PARTY PASS — kind w: a transparent still per width step, over the material by ::before, picked by a container query)
-    if (k === 'w') { for (const W of r.widths) assert.ok(existsSync(new URL(`../assets/vault/still/${r.card}-w${W}.webp`, import.meta.url)), `${r.card}-w${W}.webp`); assert.ok(css.includes(`.vl-s-${r.mat}:not(.fx-on) > .vl-mat { container-type: inline-size; }`) && r.widths.every(W => css.includes(`${r.card}-w${W}.webp`)), `${r.card}: its width stills wired`); continue; }
+    if (k === 'w') { for (const W of r.widths) assert.ok(existsSync(new URL(`../assets/vault/still/${r.card}-w${W}.webp`, import.meta.url)), `${r.card}-w${W}.webp`); assert.ok(css.includes(`.vl-strip.vl-s-${r.mat}:not(.fx-on) > .vl-mat { container-type: inline-size; }`) && css.includes(`.vl-strip.vl-dt-mini.vl-s-${r.mat}:not(.fx-on) > .vl-mat::before`) && r.widths.every(W => css.includes(`${r.card}-w${W}.webp`)), `${r.card}: its width stills wired`); continue; }
     assert.ok(existsSync(new URL(`../assets/vault/still/${r.card}-${k}.webp`, import.meta.url)), `${r.card}-${k}.webp (node scripts/build-card-stills.mjs)`);
     // (CITY C: kind o = a transparent strip still layered over the card's own material by a hand-written rule)
     if (k === 'o') { assert.ok(css.includes(`.vl-s-${r.mat}:not(.fx-on) .vl-mat { background-image: url('../assets/vault/still/${r.card}-o.webp')`), `${r.card}: its transparent still layered`); continue; }
     // (CITY PART 2 — kind l = THE SLIM-CARD LAYER: the effect's layer baked transparent, the GENERATED ::before over the card's own CSS picture)
-    if (k === 'l') { assert.ok(css.includes(`.vl-s-${r.mat}:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/${r.card}-l.webp')`), `${r.card}: its slim-card layer`); continue; }
+    if (k === 'l') { assert.ok(css.includes(`.vl-strip.vl-s-${r.mat}:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/${r.card}-l.webp')`), `${r.card}: its slim-card layer`); continue; }
     const sel = k === 's' ? `.vl-s-${r.mat}:not(.fx-on) > .vl-mat` : `.vl-fcm-${r.mat}:not(.fx-on) > .vl-mat`;
     assert.ok(css.includes(`${sel} { background: #05060a url('../assets/vault/still/${r.card}-${k}.webp')`), `${r.card}: its ${k === 's' ? 'strip' : 'full card'} still wired (${sel})`);
   }

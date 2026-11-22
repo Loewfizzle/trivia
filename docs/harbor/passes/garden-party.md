@@ -57,3 +57,31 @@ The full text: docs/title.md "THE FIELD IN A LABEL". THE TAP WATCH focuses a lab
 code box), every clean lift for any label-wrapped field; handled, never rescued. The code box's `setTimeout` focus removed. `e2e-taps.mjs` (N 4):
 THE CODE BOX 4 / 4 in WebKit + Chromium. Seen, NOT this pass's (no daily code touched): `e2e-taps` "TODAY'S SCORES opened (the dailies
 answered)" fails in both engines on this machine's emulators — named for the daily chat.
+
+## THE FRESH-EYES REVIEW (a separate agent that wrote none of it — the code + GARDEN PARTY's shots)
+Found (ranked) → what was done:
+1. MEDIUM — the `l` (CITY PART 2's) + `w` layers' selectors `.vl-s-<mat>:not(.fx-on) > .vl-mat::before` also matched the FULL card + the level-up
+   swatch (they carry `vl-s-<mat>` too) — a strip layer stretched over a full card until its first paint, for good on the swatch. **FIXED**: scoped to
+   `.vl-strip`; CUSTOMIZE's mini tile (a `.vl-strip`, far under 280 pt) gets the middle width cover-cropped at the hero.
+2. MEDIUM (a call) — the idle cutoff (5 h, no tap) + a yielded second tab use the page-quiet switch = the music off → now HEAR THE HARBOR: the harbor
+   plays on. **NAMED** (THE CALLS MADE): the switch means "the music off", as its words say ("Music paused"); overrule → those two reasons map to ALL OFF.
+3. LOW — the silent switch: the music off is 'playback' now, so the effects sound with the iPhone's ring / silent switch on (by the owner's spec).
+   **FIXED** the stale comment (js/daily/sfx.js); named for the owner below.
+4. LOW — a fling-stop on a label focused its field. **FIXED**: the lift + the press both skip a stopper touch.
+5. LOW — GARDEN PARTY's petals faded from 0.93 w — the gem sits at ~0.94. **FIXED**: gone by 0.92 w (the layer still re-baked).
+6. LOW — per-frame closures in gp-card.js's draw — in line with the other card effects (no zero-garbage rule outside HIGH RISE). Left.
+7. LOW — stale "nap" words in HIGH RISE's stage.js (the game chat's file) + a few test titles. Left (harmless).
+Checked fine by the reviewer: applySound's order, every transition (blur / hidden / interrupted returns), no song element in HEAR THE HARBOR, no
+removed export referenced, holdAwake's callers, the LV 34 grant (never twice), the shots' legibility, reduced motion, container-type on .vl-mat.
+
+## THE CALLS MADE (obvious / established — overrule any)
+- HEAR THE HARBOR leaves by C2's path (the 'ambient' hard cut retired — audio-cut D's burst with the beds on; your report of a squeal on it).
+- The idle cutoff + a yielded tab = the music off = the harbor plays on (review #2).
+- The music off now sounds through the iPhone's silent switch ('playback' — your spec's session).
+- GARDEN PARTY enters THE LAB as NEW at v1 (no LAB_V bump for a new item); its full card's plate may sit over the bouquet's left third (a 12-letter
+  name on one line).
+- NEON CAMO kept its old still (7.8 alone; 11.4 in the all-78 strip-match run — the renderer's tier under 78 live effects, not the still).
+
+## THE BOOT ROOM (THE BOOT BUDGET's bytes, 6,500 KB / 310 modules)
+Before (c557ba73): 304 modules, 20,747 B of room · After: 304 modules, **22,094 B** of room (the engine lost the nap) — GARDEN PARTY's art + effect
+never on the boot path (the vault's lazy chunks + its CSS's image only when a card shows).

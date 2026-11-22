@@ -41,7 +41,7 @@ function garden(c, s, t, Q) {
   const calm = full ? 1 : 0.88, tt = still ? STILL_T : t;
   c.save(); rrect(c, 0, 0, s.w, s.h, rad); c.clip();
   // (the strip: nothing over the name's plate side; the right edge (the tier gem's column) faded — in slot px)
-  const keep = x => (full ? 1 : smooth(0.5 * s.w, 0.6 * s.w, x) * (1 - smooth(0.93 * s.w, s.w, x)));
+  const keep = x => (full ? 1 : smooth(0.5 * s.w, 0.6 * s.w, x) * (1 - smooth(0.85 * s.w, 0.92 * s.w, x)));   // (THE REVIEW: gone before the gem's column)
   // 1 · THE SUN SPARKLES — the plate breathing (light with alpha, 'lighter')
   c.globalCompositeOperation = 'lighter';
   const sp = image(`${GP_ART}gp-sparkle.webp`);

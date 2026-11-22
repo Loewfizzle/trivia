@@ -26,10 +26,11 @@ export function stillsBlock(rows) {
   const f = rows.filter(r => r.kinds.includes('f')).map(r => line(`.vl-fcm-${r.mat}`, `${r.card}-f.webp`));
   // (CITY PART 2 — THE SLIM-CARD LAYER: the effect's layer, baked transparent at the strip's 360 × 64, stretched to the strip's box over the card's
   //  OWN CSS picture until the effect paints — .vl-mat::before is free on every material)
-  const l = rows.filter(r => r.kinds.includes('l')).map(r => `.vl-s-${r.mat}:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/${r.card}-l.webp') 0 0 / 100% 100% no-repeat; }`);
+  // (THE GARDEN PARTY PASS — THE REVIEW: the layers are the SLIM strip's — scoped to .vl-strip: a full card / the level-up swatch carry vl-s-<mat> too)
+  const l = rows.filter(r => r.kinds.includes('l')).map(r => `.vl-strip.vl-s-${r.mat}:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/${r.card}-l.webp') 0 0 / 100% 100% no-repeat; }`);
   // (THE GARDEN PARTY PASS — kind w: the material a container; its ::before = the transparent still of the nearest width, stretched)
   const w = rows.filter(r => r.kinds.includes('w')).flatMap(r => {
-    const sel = `.vl-s-${r.mat}:not(.fx-on) > .vl-mat`, ws = r.widths, url = W => `url('../assets/vault/still/${r.card}-w${W}.webp')`;
+    const sel = `.vl-strip.vl-s-${r.mat}:not(.fx-on) > .vl-mat`, ws = r.widths, url = W => `url('../assets/vault/still/${r.card}-w${W}.webp')`;
     const mid = ws.reduce((a, W) => (Math.abs(W - 380) < Math.abs(a - 380) ? W : a), ws[0]);
     const lines = [`${sel} { container-type: inline-size; }`, `${sel}::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: ${url(mid)} 0 0 / 100% 100% no-repeat; }`];
     ws.forEach((W, i) => {
@@ -37,6 +38,8 @@ export function stillsBlock(rows) {
       const q = [lo != null ? `(min-width: ${lo}px)` : '', hi != null ? `(max-width: ${hi - 0.02}px)` : ''].filter(Boolean).join(' and ');
       lines.push(`@container ${q} { ${sel}::before { background-image: ${url(W)}; } }`);
     });
+    // (CUSTOMIZE's mini tile — far under 280 pt: the middle width cover-cropped at the hero, as the old strip still was)
+    lines.push(`.vl-strip.vl-dt-mini.vl-s-${r.mat}:not(.fx-on) > .vl-mat::before { background: ${url(mid)} ${r.hx != null ? r.hx : 66}% 50% / cover no-repeat; }`);
     return lines;
   });
   return [A, ...s, ...f, ...l, ...w, Z].join('\n');
