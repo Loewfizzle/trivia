@@ -8,7 +8,7 @@ import { h } from '../../ui/dom.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { TICK_MS, TICK_HZ, MODES, MODE_IDS, SEED_MAX, TIGHT } from './tuning.js';
 import { RIVAL_TAPES } from './night.js';
-import { createRun, stepTo, tap, isOver, resultOf, endBy, slabInto } from './engine.js';
+import { createRun, stepTo, tap, hold, isOver, resultOf, endBy, slabInto } from './engine.js';
 import { replay } from './replay.js';
 import { endWords, tickOf } from './logic.js';
 import { createTower } from './tower.js';
@@ -281,6 +281,11 @@ export function createStage(app, o = {}) {
   // you = a right-edge tag in the clear column — the 3 nearest each way, merged when they would overlap, DIM while a slab slides.
   // OUT = WATCH: `watch(W)` swaps the tower on screen for a rival's — built from THEIR landed taps, never a tap assumed.
   let MH = null, matchOn = false, rivalRows = null, watchW = null, mine = null, mineT = null, wN = 0, dimWas = -1, frozen = 0, watchUi = false;
+  // HIGH RISE DAILY A — THE HELD RUN (the daily's driver: daily-run.js): `held` = the run is HELD (the page was hidden) — the clock stands, no
+  // touch drops a slab, until the driver hands the resumed run in (adopt — its log with the hold in it). `holdsAt` = the run's holds, each
+  // at its place in the tap log ({ at: the taps before it, t, r }) — the end card's REPLAY = LIVE replays the SAME log (taps + holds)
+  let held = false, heldTau = 0;
+  const holdsAt = [];
   // (REVIEW FIX A — THE PLAYBACK: wP the tick the watched tower is drawn at · wD its delay now · wDT the delay wanted (ticks) · wSeen the
   //  taps whose lateness is measured · wDrawn the furthest tick drawn of the slab now sliding · wPast taps that came after it · the ring
   //  of the last lateness values · wRec the pass's frame record (tests only — null in play))
@@ -469,7 +474,7 @@ export function createStage(app, o = {}) {
   function restart(s = FIXED || newSeed()) {
     stillN++; stage.classList.remove('has-still'); if (view.snap) view.snap(null);   // (THE CLOSE's REVIEW: a still asked for and not yet taken is let go — the next run's welcome never grabs it)
     wD = wDT = WATCH_DELAY_MS / TICK_MS; wPin = false; lateRing.fill(0); lateN = 0; wPast = 0; wAway = false;   // (REVIEW FIX A: a new run / match = the playback's own numbers afresh)
-    seed = s; momDue = -1; landF = -1e9; run = createRun({ seed, mode: MODE }); liveRun = null; watchW = null; mine = null; mineT = null; pendEnd = null; wN = 0; watchMode(false); if (MH) MH.reset(); for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0); skipP = 0; skipS = 0; streakTop = 0; taps = []; t0 = null; shown = false; card = false; overAt = 0; endedAt = 0; ev.length = 0; liveN = 0; sounded = 0; hush = false; starting = false; startN++; stage.classList.remove('is-starting');
+    seed = s; momDue = -1; landF = -1e9; run = createRun({ seed, mode: MODE }); liveRun = null; watchW = null; mine = null; mineT = null; pendEnd = null; wN = 0; watchMode(false); if (MH) MH.reset(); for (let i = 0; i < RIVAL_TAPES; i++) view.setRival(i, 0, 0, 0, 0); skipP = 0; skipS = 0; streakTop = 0; taps = []; holdsAt.length = 0; held = false; t0 = null; shown = false; card = false; overAt = 0; endedAt = 0; ev.length = 0; liveN = 0; sounded = 0; hush = false; starting = false; startN++; stage.classList.remove('is-starting');
     T = createTower(run, hooks, KEEP);
     best = Math.max(best, readBest()); tapeFloor = 0; newBest = false; bandNow = 0; notch = 0;   // (max: a phone whose storage is blocked still keeps its best for the visit)
     plan = flyPlan(seed); flown.jet = flown.ufo = flown.ship = NOFLY; wanted.clear(); needFloor = -1;
@@ -504,7 +509,12 @@ export function createStage(app, o = {}) {
     if (G.mode && MODE_IDS.includes(G.mode) && G.mode !== MODE) { MODE = G.mode; EC.header(MODE === 'solo' ? 'solo' : 'match'); }
     if ((MODE === 'match') !== matchOn) setMatch(MODE === 'match');
     restart(G.seed);
-    for (const tk of G.taps || []) { if (isOver(run) || !tap(run, tk, ev)) break; taps.push(tk); }
+    // (DAILY A — `events`: the held run's log, taps + its HOLDS (engine.js#hold) — played at once, unheard, the same as the judge replays it)
+    for (const x of G.events || G.taps || []) {
+      if (isOver(run)) break;
+      if (typeof x === 'number') { if (!tap(run, x, ev)) break; taps.push(x); }
+      else if (x && x.k === 'hold') { if (!hold(run, x.t, !!x.r)) break; holdsAt.push({ at: taps.length, t: x.t, r: x.r ? 1 : 0 }); }
+    }
     hush = taps.length > 0;
     live(G.t0);
   }
@@ -537,6 +547,7 @@ export function createStage(app, o = {}) {
     if (watchW) { if (o.onWatchTap) o.onWatchTap(); else if (hook.sim && hook.sim.next) hook.sim.next(); return; }   // (S4B — OUT = WATCH: a tap anywhere = the next player)
     if (shown && !card) return;   // (the cartridge: the console's podium is on its way — never a restart under it)
     if (shown) { if (now - overAt > RETRY_MS) { restart(); begin(ts); } return; }   // TAP TO PLAY AGAIN = the next run's START
+    if (held) return;   // (DAILY A — a HELD run: no touch drops a slab until the resumed run is handed in)
     if (t0 == null) { if (matchOn && !PAGE) return; begin(ts); return; }   // (a cartridge's MATCH starts on the count — never on a tap)
     if (isOver(run)) return;
     const tk = tickOf(ts, t0);
@@ -646,6 +657,14 @@ export function createStage(app, o = {}) {
     if (E && E.watch) { card = false; watchMode(true); hook.ends.push({ seed, mode: MODE, live, taps: taps.slice(), best, was, watch: true }); if (hook.ends.length > 50) hook.ends.shift(); if (E.page) pendEnd = { live, was, E: null }; return; }
     cardEnd(live, was, E);
   }
+  /** DAILY A — the run's whole log: the taps with its holds at their places (a run with no hold: the tap log itself) */
+  function logNow() {
+    if (!holdsAt.length) return taps;
+    const out = [];
+    let k = 0;
+    for (let i = 0; i <= taps.length; i++) { while (k < holdsAt.length && holdsAt[k].at === i) { const H = holdsAt[k++]; out.push(H.r ? { k: 'hold', t: H.t, r: 1 } : { k: 'hold', t: H.t }); } if (i < taps.length) out.push(taps[i]); }
+    return out;
+  }
   /** the end card's half of an end (the page's own card) — at once, or (S5, the test page's bot room) once WATCH is over */
   function cardEnd(live, was, E) {
     EC.set({ words: endSaid, made: live.made, floor: live.floor, perfects: live.perfects - skipP, streak: FROM ? streakTop : live.maxStreak });   // (a `?floor=N` start's floors count toward nothing)
@@ -655,10 +674,10 @@ export function createStage(app, o = {}) {
     stage.classList.add('is-ended'); tagDirty = true; endStill();
     stage.classList.toggle('is-made', live.made);
     // THE DETERMINISM CHECK (the owner's, on a real iPhone): the recorded tap log replayed through a FRESH engine — the judge's own code
-    const { used, bad, why, ...r } = replay({ seed, mode: MODE, taps });
+    const { used, bad, why, holds: _h, rh: _rh, ...r } = replay({ seed, mode: MODE, taps: logNow() });
     let same = bad < 0 && used === taps.length && JSON.stringify(r) === JSON.stringify(live), at = -1;
     const fresh = createRun({ seed, mode: MODE }), evR = [];
-    for (const t of taps) tap(fresh, t, evR);
+    for (const x of logNow()) { if (typeof x === 'number') tap(fresh, x, evR); else hold(fresh, x.t, !!x.r); }
     stepTo(fresh, endBy(fresh, taps.length ? taps[taps.length - 1] : 0), evR);
     for (let i = 0; i < Math.max(evR.length, liveN); i++) {
       const lv = i < liveN ? liveEv[i] : undefined;
@@ -804,6 +823,8 @@ export function createStage(app, o = {}) {
         else if (wD > wDT) wD = Math.max(wDT, wD - WATCH_SLEW * Math.min(250, gap) / TICK_MS);
         wP = Math.max(0, FS[TAU] - wD);
         feedWatch(!wAway && gap < LATE_MS); wAway = false;
+      } else if (held) {
+        FS[TAU] = heldTau;   // (DAILY A — a HELD run: the clock stands where the page was hidden; nothing steps)
       } else if (!isOver(run)) {
         const tk = Math.floor(FS[TAU]), cap = MODES[MODE].capTicks;
         if (TR) TR.lap(PH.other);
@@ -922,6 +943,10 @@ export function createStage(app, o = {}) {
     /** START with no tap (PLAY AGAIN's remount) · a run handed in whole (a rejoin) · tick 0 moved onto this page's clock again (back on screen) */
     start: () => { if (t0 == null && !shown) begin(performance.now()); }, adopt: G => adopt(G),
     setT0(ms) { if (t0 != null && ms > 0) { t0 = ms; last = 0; } },
+    /** DAILY A — THE HELD RUN: hold the run where it stands (the page hidden: the clock stops, no touch drops a slab) · let go (only an
+     *  adopt — the resumed run's log — moves it on; `false` without one is the driver's own undo) · the log (taps + holds) */
+    hold(on) { if (on && !held && t0 != null) heldTau = Math.max(0, ((last || performance.now()) - t0) / TICK_MS); held = !!on; },
+    held: () => held, log: () => logNow(),
     /** the run's tap log (the SAME list the engine's drops are logged in — the proof's chunks are cut from it) · its result as it stands */
     taps: () => taps, result: () => resultOf(mine || run), seed: () => seed,
     /** (S5 — ZERO GARBAGE IN A MATCH) YOUR numbers read into a record the caller keeps — what a match's pump asks 10 × a second */

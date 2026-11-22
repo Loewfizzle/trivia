@@ -16,7 +16,7 @@ export function createDailyJudge(game, { moves = {}, start = null } = {}) {
       const asked = rd.asked();
       const r = await api('daily', { action: 'start', game, ...(start || {}), ...(asked ? { day: asked } : {}) });   // (J2: `start` — a cartridge's own START fields: JAYWALK's `cvs`)
       rd.started(r);
-      return { startedAt: r.startedAt, done: r.done, run: r.run, day: r.day, now: r.now, ...(r.owner ? { owner: true } : {}) };   // (DFIX5 — the owner's readout: the server's word)
+      return { startedAt: r.startedAt, done: r.done, run: r.run, day: r.day, now: r.now, ...(r.owner ? { owner: true } : {}), ...(r.ended ? { ended: r.ended, fin: r.fin || null } : {}) };   // (DFIX5 — the owner's readout: the server's word · HIGH RISE DAILY A: a held run the START ended — its finish)
     },
     async finish() { const r = await call('finish', { result: null }); rd.scored(); return r; },
   };

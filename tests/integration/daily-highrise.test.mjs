@@ -216,6 +216,11 @@ test('AN ABANDONED RUN is scored at its last server tap: `today` once it can\'t 
   const pb = await playLeg(sb, { floors: 20, botSeed: 'ivy' });
   const tb = await D(b, { action: 'today' }, pb.end + 120e3);
   assert.equal(tb.mine.highrise, undefined, 'not scored while it can come back');
+  // (THE RACE the E2E found: the app's `today` on the return, beside the resume's START that has just CLOSED the leg — the server's close
+  //  (`x`) is never the phone's own FIN)
+  await ref(`${sb.run.path}/x`).set('hold'); await ref(`${sb.run.path}/e`).set(pb.end + 121e3);
+  const tb2 = await D(b, { action: 'today' }, pb.end + 122e3);
+  assert.equal(tb2.mine.highrise, undefined, 'a leg the SERVER closed (a hold mid-resume) never ends the run');
   assert.equal(tb.started.highrise, true, 'RESUME on the ticket');
   // THE DAY'S CLOSE (two days on — force): scored at its last server tap
   await sweepRuns({ games: ['highrise'], now: dayStartAt(dayOf(dayNum(sb.day) + 2)) + 3600e3, settle: settleRun });

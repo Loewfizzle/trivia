@@ -46,11 +46,15 @@ export function legLive(L, node, now) {
   const last = Math.max(L.go, ...Object.values((node && node.c) || {}).map(c => (c && Number.isFinite(c.at) ? c.at : 0)));
   return now - last < QUIET_MS;
 }
-/** CLOSE the open leg's node (its `e` = now, once): from here the rules take no chunk on it — what the server reads is final */
-async function closeLeg(day, rec, now) {
+/** CLOSE the open leg's node (its `e` = now, once): from here the rules take no chunk on it — what the server reads is final. `x` = the SERVER
+ *  closed it (a hold, the server's end) — written FIRST: `settle` never takes a hold's close for the phone's own FIN (the race the E2E found:
+ *  the app's `today` on the return, beside the resume's START) */
+async function closeLeg(day, rec, now, why = 'hold') {
   const L = lastLeg(rec);
   if (!L) return;
-  await ref(`${proofPath(day, L.u, L.i)}/e`).transaction(cur => (cur == null ? now : undefined)).catch(e => console.warn('hr close leg', e && e.message));
+  const path = proofPath(day, L.u, L.i);
+  await ref(`${path}/x`).set(why).catch(e => console.warn('hr close leg', e && e.message));
+  await ref(`${path}/e`).transaction(cur => (cur == null ? now : undefined)).catch(e => console.warn('hr close leg', e && e.message));
 }
 
 /** END the run (its open leg closed, the record's `e` + why) — once; → true = ended now or before */
@@ -58,7 +62,7 @@ export async function endRun({ pid, day, now, why = 'fin' }) {
   const rec = await val(`${base(day)}/p/${pid}`);
   if (!rec) return false;
   if (rec.e) return true;
-  await closeLeg(day, rec, now);
+  await closeLeg(day, rec, now, 'end');
   const tx = await ref(`${base(day)}/p/${pid}`).transaction(cur => (cur == null ? null : cur.e ? undefined : { ...cur, e: now, o: why }));
   const v = tx.snapshot.val();
   return !!(v && v.e);
@@ -118,8 +122,8 @@ export async function settleHeld({ pid, day, now, force = false, today = streakD
   if (force) return endRun({ pid, day, now, why: 'close' });
   const L = lastLeg(rec), node = L ? await val(proofPath(day, L.u, L.i)) : null;
   const live = legLive(L, node, now);
-  // (the phone's own end that never reached FINISH: its leg's `e` — the run is over)
-  if (node && Number.isFinite(node.e)) return endRun({ pid, day, now, why: 'fin' });
+  // (the phone's own end that never reached FINISH: its leg's `e` — never one the SERVER wrote (`x`: a hold's close, mid-resume)
+  if (node && Number.isFinite(node.e) && !node.x) return endRun({ pid, day, now, why: 'fin' });
   if (day !== today) return live ? null : endRun({ pid, day, now, why: 'close' });
   if (live || nextHoldKind(rec)) return null;
   return endRun({ pid, day, now, why: 'gone' });

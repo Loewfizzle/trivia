@@ -625,8 +625,9 @@ async function shareToday(t) {
 }
 
 // ------------------------------------------------------------------------------------------------ A RUN (+ its one-time hint)
-/** DAILY B — the dailies whose RUN is its own module (not the room cartridge): JAYWALK's tries (js/games/jaywalk/daily-run.js) */
-const DAILY_RUNS = { jaywalk: () => lazyImport(import('../games/jaywalk/daily-run.js'), '../games/jaywalk/daily-run.js') };
+/** DAILY B — the dailies whose RUN is its own module (not the room cartridge): JAYWALK's tries (js/games/jaywalk/daily-run.js) · HIGH RISE's held run */
+const DAILY_RUNS = { jaywalk: () => lazyImport(import('../games/jaywalk/daily-run.js'), '../games/jaywalk/daily-run.js'),
+  highrise: () => lazyImport(import('../games/highrise/daily-run.js'), '../games/highrise/daily-run.js') };   // (HIGH RISE DAILY A — ONE SHOT, THE HELD RUN)
 function openRun(id) {
   const O = overlay('dy-run', () => goScreen());
   const row = dailyRow(id) || {};
