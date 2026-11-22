@@ -478,7 +478,8 @@ G('sheetstack', async () => {
   await ev(q, "document.querySelector('.rg-sheet .sh-back').click()"); await sleep(400);
   // GAMES (a guest) → HOW TO PLAY over the games sheet
   await ev(q, "document.querySelector('.rdk-games').click()"); await waitFor(q, "document.querySelectorAll('.rc-games-sheet .rc-game').length >= 2", 'games', 8000);
-  await ev(q, "document.querySelector('.rc-games-sheet .rc-game').click()"); await sleep(700);
+  // (CITY PART 2 — GAME VOTES: a guest's tap on a game is their VOTE; HOW TO PLAY is the row's ? — THE GARDEN PARTY PASS: the check follows it)
+  await ev(q, "(document.querySelector('.rc-games-sheet .rc-game-help') || document.querySelector('.rc-games-sheet .rc-game')).click()"); await sleep(700);
   steps.push(['GAMES → HOW TO PLAY', await topAt(q)]);
   await ev(q, "(() => { const m = [...document.querySelectorAll('.sh:not(.is-out) .sh-back')].pop(); if (m) m.click(); })()"); await sleep(500);
   steps.push(['… closed → GAMES again', await topAt(q)]);
