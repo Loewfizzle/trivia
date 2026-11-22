@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { mayReport, cleanTap, RESCUE_MS } from '../js/ui/tapwatch.js';
+import { mayReport, cleanTap, RESCUE_MS, labelField } from '../js/ui/tapwatch.js';
 import { groupReports } from '../js/admin/groups.js';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1')), '..');
@@ -179,4 +179,20 @@ test('CITY D add-on: share / copy / passkey act inside the touch\'s lift, never 
   const K = fs.readFileSync(new URL('../js/profile/keypop.js', import.meta.url), 'utf8');
   assert.match(K, /B\.shareKey\(loadKey\(\), \{ onRefused: showKey \}\)/);
   assert.match(fs.readFileSync(new URL('../js/profile/bring.js', import.meta.url), 'utf8'), /if \(onRefused\) onRefused\(\); else toast/);
+});
+
+test('THE FIELD IN A LABEL (THE GARDEN PARTY PASS — the code box’s first tap): a <label> wrapping a TEXT field → that field (focused in the touch); never a checkbox / radio / range, a disabled or read-only one, or a non-label', () => {
+  const L = control => ({ tagName: 'LABEL', control });
+  const inp = (type, o = {}) => ({ tagName: 'INPUT', type, ...o });
+  for (const t of ['text', 'search', 'tel', 'email', 'password', 'number', 'url']) assert.equal(labelField(L(inp(t))).type, t);
+  assert.equal(labelField(L({ tagName: 'TEXTAREA' })).tagName, 'TEXTAREA');
+  for (const t of ['checkbox', 'radio', 'range', 'color', 'file', 'button']) assert.equal(labelField(L(inp(t))), null, t);
+  assert.equal(labelField(L(inp('text', { disabled: true }))), null);
+  assert.equal(labelField(L(inp('text', { readOnly: true }))), null);
+  assert.equal(labelField(L(null)), null); assert.equal(labelField({ tagName: 'DIV', control: inp('text') }), null); assert.equal(labelField(null), null);
+  const src = fs.readFileSync(path.join(ROOT, 'js/ui/tapwatch.js'), 'utf8'), dock = fs.readFileSync(path.join(ROOT, 'js/screens/title-dock.js'), 'utf8');
+  assert.match(src, /if \(el\.matches\('\[data-focus-press\]'\)\) focusField\(f\)/, 'the press focuses a data-focus-press label’s field');
+  assert.match(src, /p\.field && p\.up && p\.sameAtUp && !p\.cancelled && p\.travel <= SLOP[^;]*p\.handled = true/, 'a clean lift focuses it + the tap is handled (no rescue)');
+  assert.match(dock, /h\('label\.nd-codebox', \{ 'data-focus-press': '' \}/, 'the code box asks for the press');
+  assert.doesNotMatch(dock, /setTimeout\(\(\) => els\.code\.focus\(\), 0\)/, 'no focus outside the gesture any more');
 });

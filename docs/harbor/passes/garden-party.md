@@ -51,3 +51,9 @@ lay out by the strip's WIDTH (MARQUEE GOLD's bulb count steps every 10 pt); the 
 transparent, the lists' options, one per width step, over the material, picked by a container query (Chromium + WebKit). Strip match (max 9):
 inferno 19.2 → 7.2 · noir 20.9 → 1.3 · marquee-gold 10.3 → 0.4 at 402 (330 / 430 all under 2); NEON CAMO was already under (7.8) — kept.
 LAB_V: INFERNO 3, NOIR 2, MARQUEE GOLD 2 + their lines.
+
+## GROUP 4 — THE CODE BOX's FIRST TAP (the inbox's Nov 21 8:32 pm (2))
+The full text: docs/title.md "THE FIELD IN A LABEL". THE TAP WATCH focuses a label's text field in the touch — the press for `data-focus-press` (the
+code box), every clean lift for any label-wrapped field; handled, never rescued. The code box's `setTimeout` focus removed. `e2e-taps.mjs` (N 4):
+THE CODE BOX 4 / 4 in WebKit + Chromium. Seen, NOT this pass's (no daily code touched): `e2e-taps` "TODAY'S SCORES opened (the dailies
+answered)" fails in both engines on this machine's emulators — named for the daily chat.

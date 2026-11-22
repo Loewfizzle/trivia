@@ -113,6 +113,14 @@ try {
   // (CITY A: JOIN's reset waits 850 ms — the dock's pressTap ignores a click inside 800 ms of the tap it took (never twice): the old reset's
   //  click came sooner, was ignored, and the next measured tap closed the panel — counted LOST on the code before this pass too)
   await tapTest(A, 'JOIN (the hush word panel)', '.nd-tab-join', { land: "document.querySelector('.nd-actions').classList.contains('is-join')", reset: async () => { await sleep(850); await A.p.evaluate("document.querySelector('.nd-tab-join').click()"); await A.wait("!document.querySelector('.nd-actions').classList.contains('is-join')", 3000); } });
+  // THE GARDEN PARTY PASS — THE CODE BOX's FIRST TAP (the owner's LOST TAP, Nov 21 10:23 am — iOS sent no click to label.nd-codebox; the rescue's
+  // late click focused it with no keyboard): one tap on the hush-word boxes → the field focused BY THE TAP itself (ui/tapwatch.js#labelField —
+  // the watch's own count rises: never the rescue)
+  await tapTest(A, 'THE CODE BOX (the field focused in the tap)', '.nd-codebox', { n: Math.min(N, 8),
+    before: async () => { if (!(await A.p.evaluate("document.querySelector('.nd-actions').classList.contains('is-join')"))) { await sleep(850); await A.p.evaluate("document.querySelector('.nd-tab-join').click()"); await A.wait("!!document.querySelector('.nd-codebox') && document.querySelector('.nd-codebox').getBoundingClientRect().height > 20", 3000); await sleep(450); } await A.p.evaluate("(() => { if (document.activeElement) document.activeElement.blur(); window.__twF0 = window.__tapwatch.stats().focused || 0; })()"); },
+    land: "!!document.activeElement && document.activeElement.classList.contains('nd-code-in') && (window.__tapwatch.stats().focused || 0) > window.__twF0",
+    reset: async () => { await A.p.evaluate("document.activeElement && document.activeElement.blur()"); } });
+  if (await A.p.evaluate("document.querySelector('.nd-actions').classList.contains('is-join')")) { await sleep(850); await A.p.evaluate("document.querySelector('.nd-tab-join').click()"); await sleep(500); }
   await tapTest(A, 'PLAY (the shelf)', '.nd-tab-play', { land: "!!document.querySelector('.sh.is-in')", reset: () => closeSheets(A) });
   await tapTest(A, '☰ (the menu)', '.menu-btn', { land: "!!document.querySelector('.sh.gm.is-in')", reset: () => closeSheets(A) });
   // a sheet's row WHILE THE SHEET IS STILL SLIDING IN (≤ 320 ms after it opened)

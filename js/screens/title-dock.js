@@ -123,7 +123,7 @@ export function createDock(on) {
     h('h2.nd-jp-h', 'ENTER THE HUSH WORD'),
     els.msg,
     h('div.nd-jp-row',
-      h('label.nd-codebox', { onpointerdown: () => setTimeout(() => els.code.focus(), 0) }, els.code, ...els.boxes),
+      h('label.nd-codebox', { 'data-focus-press': '' }, els.code, ...els.boxes),   // (THE GARDEN PARTY PASS: the field focused ON THE PRESS + the lift, in the touch — ui/tapwatch.js#labelField; a mouse: the label's own click)
       els.go));
   // above the dock: REJOIN, and a note (a host that couldn't open, an expired invite)
   els.rejoin = h('div.nd-rejoin');

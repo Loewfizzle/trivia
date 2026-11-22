@@ -1068,3 +1068,14 @@ way out — no room rows) → LEAVE → the city on screen + its PLAY shelf open
 **JAYWALK's MARK = THE SNEAKER (the inbox's 4:48 pm entry):** core/marks.js — three tubes (the upper pink, the sole + three laces white, two cyan
 speed lines); ONE definition for the PLAY sheet, PICK A GAME, the city's signs, its card art (ui/game-art.js), its daily ticket (daily/ticket-art.js
 — the tubes × 0.24) and its share image. `tests/integration/marks-preview.html` = the four marks side by side, night + day.
+
+## THE FIELD IN A LABEL — THE CODE BOX's FIRST TAP (THE GARDEN PARTY PASS, Nov 21 — the owner's /admin LOST TAP, 10:23 am)
+The join-code box (`label.nd-codebox`, its field `.nd-code-in` an invisible input over the four boxes): iOS sent NO click to the label, so the field
+wasn't focused on the first tap; THE RESCUE's late click (350 ms on — outside the gesture) focused it WITHOUT the keyboard. Its old handler focused
+from a `setTimeout` on pointerdown — also outside the gesture. NOW (`ui/tapwatch.js#labelField` — THE TAP WATCH pattern, one place for every field):
+a touch on a `<label>` that wraps a TEXT field (text · search · tel · email · password · number · url · date… · a textarea — never a checkbox / radio /
+range, a disabled or read-only one) focuses it IN THE TOUCH — on the PRESS for a label marked **`data-focus-press`** (the code box: the owner's "on
+the press") and on every CLEAN LIFT (a pointerup is a user activation: iOS opens the keyboard there) — and the tap counts as handled (no rescue, no
+lost row; `stats().focused`). A mouse keeps the label's own click. The other label-wrapped fields (EDIT USERNAME, the radio's preset NAME, the
+keychain, setup's HUSH WORD / CALLSIGN, /admin's date) get the lift for free when a tap lands on the label's words. Proof: `tests/tapwatch.test.mjs`
+("THE FIELD IN A LABEL") + `e2e-taps.mjs` "THE CODE BOX" (WebKit + Chromium: 4 / 4 first taps, the field focused by the tap itself, 0 rescued).

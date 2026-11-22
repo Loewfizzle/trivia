@@ -29,6 +29,15 @@ export const TWIN_SEL = `[data-press], ${PRESS_IMPLICIT}, ${GESTURE_OWN}`;
 export function gestureControl(el, type = 'touch') {
   try { return !!(el && el.matches && type !== 'mouse' && el.matches(GESTURE_OWN) && !el.matches('[type="submit"], [data-press-tap], [data-tap-own], [data-tap-own] *')) ? el : null; } catch { return null; }
 }
+// THE GARDEN PARTY PASS — THE FIELD IN A LABEL (the owner's LOST TAP, Nov 21 10:23 am: label.nd-codebox — iOS sent no click, the rescue's late click
+// focused the field WITHOUT the keyboard): a touch on a <label> wrapping a text field focuses it IN THE GESTURE — on the press for a label that
+// says so (data-focus-press — the join-code box), on every clean lift (a pointerup is a user activation: iOS opens the keyboard) — handled, never rescued
+const TEXTY = /^(text|search|tel|url|email|password|number|date|time|datetime-local|month|week)$/;
+/** the text field a <label> wraps (label.control — never a checkbox / radio / range: their click does its own job), or null */
+export function labelField(el) {
+  try { if (!el || el.tagName !== 'LABEL') return null; const c = el.control; if (!c || c.disabled || c.readOnly) return null; return c.tagName === 'TEXTAREA' || (c.tagName === 'INPUT' && TEXTY.test(c.type || 'text')) ? c : null; } catch { return null; }
+}
+const focusField = f => { try { if (document.activeElement !== f) f.focus(); return document.activeElement === f; } catch { return false; } };
 /** the control a press acts on (the element itself), or null */
 export function pressControl(el, game = false) {
   try {
@@ -209,6 +218,8 @@ function onDown(e) {
       own: !!el.closest('[data-tap-own]'), game: gameOn(), where: screenName(), clicked: false, stopper: stopsScroll(performance.now(), lastScroll, lastDrag) && scrolledHolds(el),
       act: pressControl(el, gameOn()) || gestureControl(el, e.pointerType || 'touch'),   // (the control itself — a kick button inside a pressable row is its own; a press that BEGAN on a row acts even while its sheet still slides in: the 38-px shelf row)
     };
+    // (THE FIELD IN A LABEL — on the press for data-focus-press: inside the touch, before any re-render)
+    if (press.type !== 'mouse') { const f = labelField(el); if (f) { press.field = f; if (el.matches('[data-focus-press]')) focusField(f); } }
     // what re-renders while the finger is down (childList only, until the tap ends — off the rest of the time)
     if (typeof MutationObserver !== 'undefined') {
       const p = press;
@@ -244,6 +255,8 @@ function onUp(e) {
   } catch { /* fine */ }
   lastUp = { p, at: performance.now() };
   if (p.stopper && p.up) { stopper = { x: p.up.x, y: p.up.y, at: performance.now() }; stats.stoppers = (stats.stoppers || 0) + 1; }
+  // (THE FIELD IN A LABEL — the lift of a clean tap focuses it: iOS's keyboard opens here; the rescue never clicks it late)
+  try { if (p.field && p.up && p.sameAtUp && !p.cancelled && p.travel <= SLOP && p.field.isConnected && focusField(p.field)) { p.handled = true; stats.focused = (stats.focused || 0) + 1; } } catch { /* fine */ }
   // 4. EVERY TAP ACTS — a data-press control acts HERE, at the lift (its click dispatched once; the browser's own click swallowed in onClick)
   try {
     if (p.act && p.up && pressActs({ type: p.type, dur: p.dur, travel: p.travel, cancelled: p.cancelled, disabled: disabled(p.act), stopper: p.stopper })) {
