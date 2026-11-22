@@ -57,8 +57,10 @@ test('the daily\'s step: the streak + DAILY BREAD / THE SWEEP / EARLY BIRD / PEN
 // ---------------------------------------------------------------- DM1 — PLUG-AND-PLAY (no fixed count anywhere)
 test('DM1 — PLUG-AND-PLAY: a FAKE 3rd + 4th daily appear in the list, the live set, THE SWEEP and the XP cap with no other change; one fewer → the sweep needs one fewer', () => {
   const ids = () => todaysDailies();
-  assert.deepEqual(dailyRows().filter(r => !r.test).map(r => r.id), ['password', 'coastclear', 'drop', 'jaywalk'], 'config.js#DAILIES, in order');
+  assert.deepEqual(dailyRows().filter(r => !r.test).map(r => r.id), ['password', 'coastclear', 'drop', 'jaywalk', 'highrise'], 'config.js#DAILIES, in order');
   assert.equal(dailyRow('jaywalk').on, false, 'DAILY A: JAYWALK row ships OFF'); assert.equal(dailyRow('jaywalk').tries, 3, 'DAILY A: three tries');
+  assert.equal(dailyRow('highrise').on, false, 'HIGH RISE DAILY A: its row ships OFF (hidden)'); assert.equal(dailyRow('highrise').tries, undefined, 'ONE SHOT — no tries');
+  assert.deepEqual([dailyRow('highrise').order, dailyRow('highrise').measure, dailyRow('highrise').ticket, dailyRow('highrise').hook], [5, 'floors', 'highrise', 'One shot.']);
   assert.equal(dailyRow('drop').on, false, 'THE DROP A: its row ships OFF (never live in this pass)');
   assert.ok(dailyRows().every(r => r.ticket && typeof r.lesson === 'boolean' && Number.isFinite(r.order)), 'every row: order · ticket · lesson');
   assert.equal(dailyRow('coastclear').lesson, true, 'COAST CLEAR has a first-time lesson (DFIX3: THE ONE-TIME HINT under the board)');

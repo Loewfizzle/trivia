@@ -78,5 +78,6 @@ export const META = Object.freeze({
   highrise: Object.freeze({
     DEFAULT_SETTINGS: {}, SOLO: true, MUSIC: 'mood:evening', BANNER_NAME: 'HIGH RISE', LOOKS: ['day', 'night'], OWN_VICTORY_SOUND: true, ACCENT: '#ff4fd8', NEON: { name: [['HIGH', '#ff4fd8', '#ff2bd6'], ['RISE', '#36c9ff', '#0096ff']], mode: ['#c9b6ff', '#9e7eff'], line: ['#ff4fd8', '#ff2bd6'] },
     cleanSettings: () => ({}), OPTIONS: [], estimateMinutes: () => 3, chatLocked: runLocked,
+    scoreLine: s => { const f = Math.floor(Math.max(0, Number(s) || 0) / 1e8); return `${f} ${f === 1 ? 'FLOOR' : 'FLOORS'}`; },   // (DAILY A — held.js#hrScore)
   }),
 });

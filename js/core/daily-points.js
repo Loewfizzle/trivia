@@ -75,12 +75,24 @@ function jaywalkPoints(score) {
   return Math.min(POINTS_MAX - 1, Math.floor(POINTS_FLOOR + (POINTS_MAX - POINTS_FLOOR) * Math.pow(lanes / JW_TOP, 0.6)));
 }
 
+// ---- HIGH RISE (HIGH RISE DAILY A — score = floors × 1e8 + perfects × 1e5 + (99999 − tick): js/games/highrise/held.js#hrScore): FLOOR + 90 ×
+//   (floors / 200)^0.6 — THE MOTHERSHIP (floor 200, the run's finish) = 100 · 25 → 35 · 50 → 49 · 100 → 69 · 150 → 85; perfects + the tick only rank
+export const HR_TOP = 200;
+function highrisePoints(score) {
+  const s = Number(score);
+  if (!Number.isFinite(s) || s < 0) return null;
+  const floors = Math.floor(s / 1e8);
+  if (floors >= HR_TOP) return POINTS_MAX;
+  return Math.min(POINTS_MAX - 1, Math.floor(POINTS_FLOOR + (POINTS_MAX - POINTS_FLOOR) * Math.pow(floors / HR_TOP, 0.6)));
+}
+
 /** THE TABLE — a row per daily: its score → points (+ the row's own best / worst / lost, for the docs + the tests) */
 export const POINTS = Object.freeze({
   password: { of: passwordPoints, best: 2, worstWin: 12, lost: 206, label: 'both doors in 2 · both in 12 · locked out at the first door' },
   coastclear: { of: coastPoints, best: 30, worstWin: 3600, lost: 10090, label: 'cleared in 0:30 · cleared in 1:00:00 · caught with nothing opened' },
   drop: { of: dropPoints, best: DROP_END_TENTHS * 1000 + 120, worstWin: 600 * 1000, lost: 0, label: 'THE END (8:00) · 1:00 survived · topped out at once', high: true },
   jaywalk: { of: jaywalkPoints, best: 30099999 - 17000, worstWin: 5099999 - 3000, lost: 99999, label: '300 lanes · 50 · none', high: true },
+  highrise: { of: highrisePoints, best: 200e8 + 200e5 + 99999 - 12000, worstWin: 50e8 + 99999 - 3000, lost: 99999, label: 'THE MOTHERSHIP (200) · 50 floors · none', high: true },
 });
 /** the dailies with a points row (the boards' list — DAILIES' order) */
 export const POINT_DAILIES = DAILIES.map(d => d.id).filter(id => POINTS[id]);

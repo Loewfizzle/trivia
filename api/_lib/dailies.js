@@ -25,6 +25,7 @@ import { PW_DAILY } from './pw.js';
 import { CC_DAILY } from './cc.js';
 import { DROP_DAILY } from './drop.js';
 import { JAYWALK_DAILY } from './jaywalk-daily.js';
+import { HIGHRISE_DAILY } from './highrise-daily.js';
 
 export const FAKE_DAILY = {
   id: 'test', name: 'THE TEST DAILY', better: 'high', buckets: 101,
@@ -37,7 +38,7 @@ export const FAKE_DAILY = {
   },
 };
 /** a row's id → its SERVER cartridge (the list's rows; the test ones join through registerTestDaily) */
-export const SERVER_CARTS = { password: PW_DAILY, coastclear: CC_DAILY, drop: DROP_DAILY, jaywalk: JAYWALK_DAILY };   // (THE DROP A + DAILY A: their rows ship `on: false`)
+export const SERVER_CARTS = { password: PW_DAILY, coastclear: CC_DAILY, drop: DROP_DAILY, jaywalk: JAYWALK_DAILY, highrise: HIGHRISE_DAILY };   // (THE DROP A + DAILY A + HIGH RISE DAILY A: their rows ship `on: false`)
 const TEST_CARTS = new Map();
 /** PFIX-3 (the add-on, Nov 14 4:14 pm — "confirm a test / fake daily can NEVER reach a real card or the live site"): the test switch is
  *  honoured ONLY off Vercel. "Vercel has no DAILY_TEST" was a habit, not a guard — now a deployment (production OR preview: Vercel sets

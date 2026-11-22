@@ -1770,6 +1770,46 @@ test('DAILY A — JAYWALK daily proof node: own uid, append-only server-stamped 
   await assertFails(set(ref(db(null), `${D}/u1/0/c/2`), chunk('U3')), 'signed out: nothing');
 });
 
+// HIGH RISE DAILY A — THE HELD RUN's LEG NODES: dly/highrise/{day}/w/{uid}/{leg} = { go, z (server-written at START — a fresh run's leg 0, a
+// hold's next leg), c/{i} = { s, at: the SERVER's time } (append-only, the packed taps), e (closed: the phone's end, or the SERVER's at the
+// next hold) }. Own uid only · append-only chunks · server timestamps · nothing before go / after z / once e is set (FIN, the next hold) · the
+// phone never opens a leg (no second run, no hold of its own: the server opens them — leg 0 … 6 = the run + 3 holds + THE ROOM WINS' 3) ·
+// never read by a phone.
+test('HIGH RISE DAILY A — the held run\'s leg nodes: own uid, append-only server-stamped tap chunks, nothing after e (FIN / the next hold) or past z, no leg a phone opens, no 8th leg', async () => {
+  const D = 'dly/highrise/d20261121/w', t0 = now() - 5000;
+  await seed({ dly: { highrise: { d20261121: { w: {
+    u1: { 0: { go: t0 - 60000, z: t0 + 400000, e: t0 - 1000 }, 1: { go: t0, z: t0 + 395000 }, 2: { go: t0 - 900000, z: t0 - 500000 }, 3: { go: t0 + 60000, z: t0 + 455000 }, 7: { go: t0, z: t0 + 395000 } },
+    u2: { 0: { go: t0, z: t0 + 395000 } },
+  } } } } });
+  const chunk = s => ({ s, at: serverTimestamp() });
+  await assertSucceeds(set(ref(db('u1'), `${D}/u1/1/c/0`), chunk('1c')), 'a tap chunk on its own open leg');
+  await assertSucceeds(set(ref(db('u1'), `${D}/u1/1/c/1`), chunk('2a.1k')), 'the next chunk (two taps)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/1/c/1`), chunk('2b')), 'append-only: a chunk is never rewritten');
+  await assertFails(remove(ref(db('u1'), `${D}/u1/1/c/0`)), 'a chunk is never deleted');
+  await assertFails(set(ref(db('u1'), `${D}/u1/1/c/2`), { s: '1c', at: now() }), 'a CLIENT timestamp is refused (the server\'s only)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/1/c/2`), chunk('U4')), 'not a packed tap string');
+  await assertFails(set(ref(db('u1'), `${D}/u1/1/c/2`), chunk('01')), 'not canonical (a leading zero)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/1/c/2`), { s: '1c', at: serverTimestamp(), f: 200 }), 'no other field (a phone never claims floors)');
+  await assertFails(set(ref(db('u1'), `${D}/u2/0/c/0`), chunk('1c')), 'never another player\'s node');
+  await assertFails(set(ref(db('u1'), `${D}/u1/0/c/0`), chunk('1c')), 'nothing on a CLOSED leg (the server closed it at the next hold — a queued tap from before the hold never lands)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/2/c/0`), chunk('1c')), 'past z (the leg\'s window — its day — is over)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/3/c/0`), chunk('1c')), 'before go (the 3 · 2 · 1)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/7/c/0`), chunk('1c')), 'no 8th leg (index 0 … 6: the run + 3 holds + 3 free room holds)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/4/go`), serverTimestamp()), 'a phone never opens a leg (no second run, no hold of its own)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/1/go`), serverTimestamp()), 'a phone never moves its GO');
+  await assertFails(set(ref(db('u1'), `${D}/u1/1/z`), t0 + 999999), 'nor its z');
+  await assertFails(set(ref(db('u1'), `${D}/u1/1/t`), 0), 'nor a leg\'s tick (the record\'s, server-only)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/1/e`), now()), 'the end = a SERVER time');
+  await assertSucceeds(set(ref(db('u1'), `${D}/u1/1/e`), serverTimestamp()), 'the phone ends its run (FIN — the out, THE MOTHERSHIP, a hide with no hold left)');
+  await assertFails(set(ref(db('u1'), `${D}/u1/1/e`), serverTimestamp()), 'once');
+  await assertFails(set(ref(db('u1'), `${D}/u1/1/c/2`), chunk('1c')), 'nothing after FIN');
+  await assertFails(get(ref(db('u1'), `${D}/u1/1`)), 'never read by a phone (server-only — the rules\' default deny)');
+  await assertFails(get(ref(db('u1'), 'dly/highrise/d20261121/p')), 'the records: server-only');
+  await assertFails(set(ref(db('u1'), 'dly/highrise/d20261121/p/pAAAAAAAAAAA/room'), 1), 'a free hold is never the phone\'s (THE ROOM WINS: the server checks the room)');
+  await assertFails(set(ref(db('u1'), 'dly/highrise/d20261121/r/pAAAAAAAAAAA'), 200e8), 'the day\'s score: server-only');
+  await assertFails(set(ref(db(null), `${D}/u1/1/c/2`), chunk('1c')), 'signed out: nothing');
+});
+
 // HIGH RISE S4B — THE LIVE LOCK (the gap `jw` + `hr` shared — docs/highrise.md "THE LIVE LOCK"): the rule refused a delete of the LIVE
 // match's tree by looking at game/phase + game/matchId AFTER the write — but the HOST writes `game`. On a modified client: flip the phase
 // (or the match id, or the game), delete the tree, flip it back, write a new GO → a new seed; the honest phones never re-write their GO →

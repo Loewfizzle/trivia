@@ -218,6 +218,18 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
         if (r.refused) throw new ApiError(409, 'refused', 'Try that again.');
         return { day, startedAt, done: score ?? null, run: r.run, now, ...(fin ? { prior: { score: fin.score, counted: fin.counted, ...bestBits(fin) } } : {}) };
       }
+      // HIGH RISE DAILY A — A `held` CARTRIDGE (THE HELD RUN — ONE SHOT a day in LEGS): a fresh run, a RESUME (a hold used — the open leg
+      // closed first, the slab's entry picked from what the SERVER has) or, once it can't come back, the run ENDED + scored here
+      if (cart.held) {
+        if (done != null) return { day, startedAt, done, run: null, now };
+        const r = await cart.startHeld({ pid, uid, day, now, startedAt, today });
+        if (r.refused) throw new ApiError(409, 'busy', 'Try that again.');
+        if (r.ended) {
+          const fin = await finishRun({ pid, cart, day, now, today }).catch(e => { console.warn('held settle', e && e.code); return null; });
+          return { day, startedAt, done: fin ? fin.score : null, run: null, ended: r.ended, now, ...(fin ? { fin: { score: fin.score, counted: fin.counted, ...bestBits(fin), stand: fin.stand, outcome: fin.outcome } } : {}) };
+        }
+        return { day, startedAt, done: null, run: r.run, now };
+      }
       // (DFIX2 — OPTIONAL: the day's first start while the database hiccups — the picker's failure was swallowed above; the second load's →
       //  503 `busy`, which the phone retries, never a 500)
       const loadDay = () => (cart.load ? cart.load(day, now).catch(e => { throw new ApiError(503, 'busy', 'The dailies are waking up — try again in a moment.', { cause: String(e && e.message || e) }); }) : null);
@@ -352,6 +364,8 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
       const day = dayOfCall(body, now);
       const pid = await mine(uid), cart = cartOf(body.game);
       if (cart.tries) return finishTry({ pid, cart, day, now, today, why: 'fin', T });
+      // (HIGH RISE DAILY A — a `held` cartridge: FINISH ends the run first — its open leg closed: the judge reads every leg as it stands)
+      if (cart.held) await cart.endRun({ pid, day, now, why: 'fin' });
       return finishRun({ pid, cart, day, now, today, result: body.result, T });
     }
     // DAILY A — THE ROOM WINS for a `tries` cartridge (JAYWALK): joining a room (2+ players, this player in it) ENDS the open try — scored as it
@@ -560,6 +574,12 @@ async function timesFor({ pid, game, base, day, limit, friendsOf, nc, meGated, p
  */
 export async function settleRun({ pid, cart, day, now, today = streakDay(now), force = false }) {
   if (!cart || !cart.abandon) return null;
+  // HIGH RISE DAILY A — a `held` cartridge: a run that can't come back ENDED at its last server tap (force: THE DAY'S CLOSE), then scored
+  if (cart.held) {
+    const [ended, r] = await Promise.all([cart.settle({ pid, day, now, force, today }).catch(e => { console.warn('settle held', e && e.message); return null; }), val(`dly/${cart.id}/${day}/r/${pid}`)]);
+    if (!ended || r != null) return null;
+    return finishRun({ pid, cart, day, now, today }).catch(e => { console.warn('settle', cart.id, day, e && e.code); return null; });
+  }
   // DAILY A — a `tries` cartridge: its open try closed when it can't be in play (force: THE DAY'S CLOSE — whatever its state), then the day's score
   if (cart.tries) {
     const closed = await cart.settle({ pid, day, now, force }).catch(e => { console.warn('settle try', e && e.message); return null; });

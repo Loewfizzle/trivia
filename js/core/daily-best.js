@@ -6,6 +6,7 @@
 //   COAST CLEAR   the fastest CLEAR — CAUGHT never counts        (score = whole seconds; caught ≥ 10000)
 //   THE DROP      the longest time (the lines break a tie)       (score = tenths × 1000 + lines)
 //   JAYWALK       the most lanes (the earlier tick breaks a tie) (score = lanes × JW_SPAN + (JW_SPAN − 1 − tick) — jaywalk-daily's own)
+//   HIGH RISE     the most floors (perfects, then the earlier tick break a tie) (score = floors × 1e8 + perfects × 1e5 + (99999 − tick) — held.js#hrScore)
 // A record: { s: the best score, day: its streak day, at: when it was set, p?: the best from an EARLIER day it beat (none = the first ever) }.
 // THE ONE DAY LINE: the backfill reads only days from the progress reset's day on (a run before the reset is never paid — nor kept as a best).
 
@@ -23,6 +24,7 @@ export const BEST_RULES = Object.freeze({
   coastclear: Object.freeze({ better: 'low', counts: s => s >= 0 && s < 10000, label: 'the fastest clear — caught never counts' }),
   drop: Object.freeze({ better: 'high', counts: s => s >= 0, label: 'the longest time' }),
   jaywalk: Object.freeze({ better: 'high', counts: s => s >= 0, label: 'the most lanes (the earlier tick on a tie)' }),
+  highrise: Object.freeze({ better: 'high', counts: s => s >= 0, label: 'the most floors (perfects, then the earlier tick on a tie)' }),
 });
 export const BEST_DAILIES = Object.freeze(Object.keys(BEST_RULES));
 
