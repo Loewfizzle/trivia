@@ -533,6 +533,12 @@ DOWNTOWN night **63** calls (J2 FIX's 61 + the snow + the snowmen) · day 35 · 
   running, 3.2–6.5 s apart (1.7–3.2 in the finale), the lowest priority + one at a time, gain 0.2–0.22 (under the train's warning), fading out when a
   game sound takes the voice; the game's own sfx (music / sound switches kept). Fetched only on their days (`sounds.js#seasonSoundsOf` — the leaf
   crunch Oct 20 → Nov 30, the fireworks Dec 31 + Jan 1).
+### THE ADD-ON — THE SONIC-BOOM CLOUD REMOVED (`flyers.js#jet` — the owner, Nov 22)
+The Blackbird's shockwave ring on the ground (+ its dark day edge) and the band's white flash — the "cloud" that swept over the lanes right as
+the burning trail turns deadly — are GONE (both looks, v1 + v2). Kept: the sonic boom (its sound), the shake, the short white vapour trail, the
+plasma trail, the runway lamps; `FLY.ring[0]` still times the moment. DOWNTOWN's runway, night, 8 kids, 390: the pass's worst frame **61 → 61**
+draw calls (the cloud was 3 glow instances: 557 → 554 at the most) — `jaywalk-lab.mjs --jt1=boom` (BOOM_TAG=before / after). The lab: `?cv=2&rw=1`.
+(Where "THE BIG MOMENTS" / "THE BLACKBIRD" above still list the shockwave ring + the white flash, this wins.)
 ### THE LAB + THE CHECKS
 `&date=` · `&snow=` · `&wet=` · look as before + **`&clock=HH:MM`** (the local time — the finale) + **`&hat=0`** (the hats off — the A/B only). Never
 the live game. `jaywalk-lab.mjs --jt1[=ab|autumn|santa|prints|fw|party]` (kit/jaywalk-jt1.mjs — the shots) · `--jt1perf` (the limits: DOWNTOWN's

@@ -136,6 +136,36 @@ export async function looksJT1({ open, up, ok, sleep, waitFor, out, what = '', b
     errs.push(...o.errs); await o.close();
   }
 
+  // THE ADD-ON (Nov 22) — THE BLACKBIRD's SONIC-BOOM CLOUD removed: DOWNTOWN's first runway, NIGHT, 8 kids, 390 — frames through the pass +
+  // the worst draw calls / glow instances over its whole lap (BOOM_TAG=before|after names the shots; the before = the code with the cloud)
+  if (what === 'boom') {
+    const tag = process.env.BOOM_TAG || 'now', files = [];
+    const o = await open(390, 844, 3, '&preview=1&seed=perfseed2&tier=2&zoom=8&angle=straight&cv=2&look=night&date=2026-07-01');
+    await up(o.p); await sleep(800);
+    const R = await o.p.evaluate(() => { const J = window.__jwLab; J.restart('solo', 'perfseed2'); J.setLook('night'); return J.runway(250, 1); });
+    ok(!!R && R.trail > 0, `BOOM ${tag}: DOWNTOWN's first v2 runway (lane ${R && R.y0}, trail ${R && R.trail})`);
+    if (R) {
+      await o.p.evaluate(y => { const J = window.__jwLab; J.warp(y); J.ghosts(7); }, R.y0 - 1);
+      await sleep(1500);
+      const ph = R.lanes[0].phase, base = R.period * 8 + ((ph % R.period) + R.period) % R.period;
+      let worst = 0, flat = 0;
+      for (let u = -6; u < R.pass + 60; u += 2) {
+        const [c, fi] = await o.p.evaluate(async tt => { const J = window.__jwLab; J.setT(tt); J.freeze(true); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); const i = J.state().info; return [i.calls, i.inst.flat]; }, base + u);
+        worst = Math.max(worst, c); flat = Math.max(flat, fi);
+      }
+      for (const u of [8, 14, 22, 32]) {
+        await o.p.evaluate(async tt => { const J = window.__jwLab; J.setT(tt); J.freeze(true); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }, base + u);
+        await sleep(250);
+        files.push(await shotTo(o, `boom/${tag}-night-390-u${u}.png`));
+      }
+      console.log(`JT1 BOOM ${tag}: the pass's worst frame ${worst} draw calls · ${flat} glow-ground instances at the most (DOWNTOWN, night, 8 kids, 390)`);
+      ok(worst <= 64, `BOOM ${tag}: ≤ 64 draw calls through the pass (${worst})`);
+      await compose(files.filter(Boolean), [8, 14, 22, 32].map(u => `${tag.toUpperCase()} · ${u} ticks into the pass`), `boom/${tag}-night-390-strip.png`, 4);
+      if (out && tag === 'after') { const bf = join(out, 'boom/before-night-390-u32.png'); try { readFileSync(bf); await compose([bf, files[3]], ['BEFORE · the sonic-boom cloud', 'AFTER · the cloud gone'], 'blackbird-boom-before-after-390.png', 2); } catch { /* no before shot */ } }
+    }
+    errs.push(...o.errs); await o.close();
+  }
+
   if (all || what === 'party') for (const look of ['night', 'day']) {
     const o = await pg(390, '&date=2027-01-01');
     await stage(o, { look, models: true });

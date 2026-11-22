@@ -7,8 +7,8 @@
 // each SOUND from the city's own, already-credited set (audio/city/).
 //   · THE BLACKBIRD — every number a pure function of `u` (the ticks into the flight path's lap): the tell's last 0.5 s = a GLINT + an
 //     afterburner flare at the screen edge it comes from (inside the tell: the ≥ 1.5 s warning is never shortened); the pass = the real
-//     SR-71 low across the band, two blue-white afterburners + their shock diamonds, the vapor ring it punches through, the shockwave ring
-//     on the ground, a white flash on the band, two fading contrails, a tiny screen shake (≤ 4 px, ≤ 200 ms — none with reduce motion);
+//     SR-71 low across the band, two blue-white afterburners + their shock diamonds, two fading contrails (JT1's add-on: the shockwave
+//     ring on the ground + the band's white flash — THE SONIC-BOOM CLOUD — removed), a tiny screen shake (≤ 4 px, ≤ 200 ms — none with reduce motion);
 //     the radio crackle at the tell, the jet scream timed to peak on the pass, the sonic boom on it. By day: a black jet, its shadow
 //     sweeping the lanes, heat shimmer behind the burners.
 //   · THE UFO — the saucer drifts on the rules' path, HIGH (it goes see-through while it would cover the kid), spinning, its rim lights
@@ -38,7 +38,7 @@ export const FLY = Object.freeze({
            // (the SR-71: cells long — H6B: ≈ 1.3× H6A's 3.7; the rules' body is 3 —, how low it flies, the ticks it is drawn before + after its pass)
   glint: 30,                                     // (the tell's LAST 30 ticks = 0.5 s: the glint + the flare at the edge it comes from)
   shake: 0.075, shakeFrom: 5, shakeTicks: 12,    // (cells — ≈ 3.7 px at ZOOM 8 on a 390 pt phone; 12 ticks = 200 ms)
-  ring: [6, 40], flash: [6, 8], trail: 34,      // (the shock ring: born 6 ticks into the pass, 40 ticks long · the band's white flash · the contrails' life)
+  ring: [6, 40], trail: 34,      // (the boom's moment: 6 ticks into the pass — the shock ring + the band's flash it once drew are GONE (JT1's add-on) · the contrails' life)
   ufoY: 5.0, ufoD: 2.3,                          // (the saucer: how high, how wide — H6B: SMALLER + HIGHER (was 3.0 across at 4.7; any higher and the skyline band hides it): it stands over the lanes ≈ 5 ahead of its ring, never on a car / a log / a train he must read now; its beam circle is 2.5 cells across)
   abductMs: 2000,                                // (THE ABDUCTION, start to end)
   warn: 10 * TICK_HZ, liftMs: 2600,              // (THE MOTHERSHIP's warning: the cap − 10 s · how long a kid takes to rise into it)
@@ -310,15 +310,9 @@ export function createFlyers(C) {
       const q = u / FLY.trail, a = (1 - q) * (1 - q) * lt, end = X(pulseLeft(p, Math.min(u, p.pass + FLY.jetLead)) / FP + (dir > 0 ? 0 : p.len / FP)) - dir * 8.5, start = X(dir > 0 ? -3.5 : COLS + 3.5), mid = (start + end) / 2, w = Math.abs(end - start);
       if ((end - start) * dir > 0.5) for (const e of [-0.56, 0.56]) K.flat.put(mid, FLY.jetY - 0.02, zc + e, w, 1, 0.5 + 1.3 * q, 0, day ? 0xffffff : 0x9fd0ff, 1, 4, (day ? 0.6 : 0.5) * a);
     }
-    if (us >= FLY.ring[0] && us < FLY.ring[0] + FLY.ring[1]) {
-      const q = (us - FLY.ring[0]) / FLY.ring[1], d = (0.9 + 6.6 * easeOut(q)) * 2.5, a = Math.pow(1 - q, 1.3) * lt;
-      if (day) K.shadow.raw(F.camX, 0.066, zc, d * 1.05, 1, d * 1.05 * 0.62, 0, 0, 1, 3, 0.75 * a);
-      ring(F.camX, 0.07, zc, d, 0.62, 0xeaf6ff, (day ? 1 : 0.5) * a);
-    }
-    if (us >= FLY.flash[0] && us < FLY.flash[0] + FLY.flash[1]) {
-      const a = 1 - (us - FLY.flash[0]) / FLY.flash[1];
-      K.flat.put(F.camX, 0.08, zc, 12.5, 1, 2.0, 0, 0xffffff, 1, 4, (day ? 0.45 : 0.24) * a * lt);
-    }
+    // (JT1's add-on — the owner, Nov 22: THE SONIC-BOOM CLOUD IS GONE — the shockwave ring on the ground, its dark day edge + the band's white
+    //  flash swept over the lanes at the very moment the burning trail turns deadly. Kept: the boom (its sound), the shake, the short white
+    //  vapour trail, the plasma trail, the runway lamps. FLY.ring[0] still times the moment — the scream's peak, the boom, the shake)
     if (!reduce && near && us >= FLY.shakeFrom && us < FLY.shakeFrom + FLY.shakeTicks) shakeNow = FLY.shake * (1 - (us - FLY.shakeFrom) / FLY.shakeTicks);
     if (burn) burn();
   }

@@ -41,8 +41,22 @@ As built: `docs/jaywalk.md` "JT1 — SEASONS". The calls made (overrule any):
 `ab\` (Dec 24 before / after) · `autumn\` (Nov 25 night + day, 390 + 430, a pile → its burst → scattered) · `santa\` (close-ups, full frames,
 8 kids) · `prints\` · `fireworks\` (Dec 31 23:59 night + day) · `party\` (Jan 1).
 
-## THE FINAL RUN
-(see the commit message of the tagged push)
+## THE ADD-ON (the owner, typed in mid-pass — built as the last group) — THE SONIC-BOOM CLOUD REMOVED
+The Blackbird's shockwave ring on the ground (+ its dark day edge) and the band's white flash are gone (`flyers.js#jet`, both looks, v1 + v2);
+the boom's sound, the shake, the short vapour trail, the plasma trail + the runway lamps stay. DOWNTOWN's runway, night, 8 kids, 390: **61 → 61**
+draw calls through the pass (it was 3 glow instances — 557 → 554 at the most). No shot / perf test expected it (the city's own Blackbird keeps
+its cone + ring — another file). Shots: `Downloads\NEON\jaywalk-jt1\blackbird-boom-before-after-390.png` + `boom\` (frames through the pass).
+The lab: https://neonspeakeasy.com/jaywalk-lab.html?cv=2&rw=1
+
+## THE FINAL RUN (local, the Beelink — my own emulators + `DAILY_TEST=1 JW_CV_SWITCH_MS=0 serve.mjs --emu`)
+- unit `node --test tests/*.test.mjs` **2,579 / 2,579** (+ `jaywalk-jt1` 8; `jaywalk-winter` / `-season` / `-cues` / `-night` / `-skyline` updated)
+- v2 `e2e-jaywalk` FAST: `JW_DAY=2026-11-25` **103 / 103** · `JW_DAY=2026-12-31` **103 / 103** · today **102 / 102**
+- v2 `e2e-jaywalk-match` FAST: `JW_DAY=2026-12-10` 84 / 103 once (the J1 watch / call section — the same code then **105 / 105**), an ordinary
+  day **104 / 104** — a flake on the first run after three solo suites, not the season
+- `e2e-jaywalk-daily-run` v1 **67 / 67** · v2 **67 / 67** · smoke **24 / 24** · rules **103 / 103** · `/api` **76 / 76**
+- `jaywalk-lab --perf` **132 / 132** (the audition's counts: + the four season sounds) · `--j4perf` **24 / 24** · `--jt1perf` **16 / 16** ·
+  `--jt1=ab|autumn|santa|prints|fw|party|boom` all green
+- No rules change. Every server this pass started is stopped at its end.
 
 ## OPEN FOR BEN
 1. RE-PUBLISH: nothing (no rules change).
