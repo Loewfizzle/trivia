@@ -154,7 +154,7 @@ try {
   { ok(await P.waitFor(`${G}.state().waiting && !!document.querySelector('.jw-start .jw-start-go')`, 8000), 'TAP TO START: the start line, its words up');
     const w = await P.ev(`({ s: ${G}.state(), go: document.querySelector('.jw-start-go').textContent, fs: parseFloat(getComputedStyle(document.querySelector('.jw-start-go')).fontSize), menu: !!document.querySelector('.menu-btn'), music: !!document.querySelector('.music-btn') })`);
     ok(w.go === 'TAP TO START' && w.fs >= 24 && w.s.mode === 'wait' && w.s.t === 0 && w.menu && w.music, `… "${w.go}" (${w.fs} px — over the end card's main button), mode ${w.s.mode}, tick ${w.s.t}; ☰ + the sound still there`);
-    await P.shot('jt2-tap-to-start-390.png');
+    for (const lk of ['night', 'day']) { await P.ev(`import('/js/games/kit/look.js').then(m => m.saveLook('${lk}'))`); await P.waitFor(`${G}.state().info.look === '${lk}'`, 6000); await sleep(1800); await P.shot(`jt2-tap-to-start-${lk}-390.png`); }
     const g0 = await P.ev(`({ code: ${S}.code, m: ${S}.game.matchId })`);
     const WAIT = Number(process.env.JT2_WAIT_MS || 60000);
     await sleep(WAIT);
