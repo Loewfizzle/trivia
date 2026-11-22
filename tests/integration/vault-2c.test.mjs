@@ -55,5 +55,5 @@ test('THE LAB 2.0: a mark stores the version it was made at (a newer version lat
   await labMark('pid-owner', { id: 'card-smoke', mark: 'fix', note: 'x' }, NOW);
   const m = await labMarks();
   assert.equal(m['card-inferno'].v, verOf('card-inferno'));
-  assert.equal(m['card-smoke'].v, 1);
+  assert.equal(m['card-smoke'].v, verOf('card-smoke'), 'the version it was made at (CITY PART 2 bumped card-smoke to 2 — never a hard-coded 1)');
 });
