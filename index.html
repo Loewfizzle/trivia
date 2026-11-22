@@ -282,9 +282,9 @@
   <!-- fonts load without blocking first paint; the boot screen waits briefly for them -->
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap"></noscript>
-  <!-- THE FIRST-VISIT BUNDLE (THE BEFORE-LAUNCH PASS — docs/harbor.md; scripts/build-boot-bundle.mjs): a first visit (no service worker in
-       charge) on a SLOW line runs the boot graph from ONE file, /boot-bundle.json, through ONE import map (each module's @ns/ name + its real
-       URL → its blob); a fast line, a returning visitor, an old browser, ?nobundle or ANY failure of the bundle = the modules as before. three.js: only fetched when a game
+  <!-- THE FIRST-VISIT BUNDLE (THE BEFORE-LAUNCH PASS — docs/harbor.md; scripts/build-boot-bundle.mjs; THE FIX PASS: every visit but Safari's)
+       runs the boot graph from ONE file, /boot-bundle.json, through ONE import map (each module's @ns/ name + its real URL → its blob); Safari,
+       a 2g / sub-0.4 Mbps line, an old browser, ?nobundle or ANY failure of the bundle = the modules as before. three.js: only fetched when a game
        imports it. ES5 on purpose (an old engine runs this script). -->
   <script>
   (function () {
@@ -300,22 +300,30 @@
     }
     function done(fn) { start = fn; ready = true; if (wait) { wait = false; start(); } }
     var first = false;
-    // (MEASURED — docs/harbor.md "THE FIRST-VISIT BUNDLE": one file wins on a SLOW line (Slow 4G −2.2 s), loses on a fast one (4G +0.4 s: the
-    //  modules compile while they download): the bundle only where the browser's own line estimate says slow — or ?bundle=1)
-    var C = navigator.connection, slow = !!C && (!!C.saveData || /2g|3g/.test(C.effectiveType || '') || (C.downlink > 0 && C.downlink < 2 && C.rtt >= 150));
+    // (THE FIX PASS — D3 + P6 + P7, Nov 22 — docs/harbor.md "THE FIRST-VISIT BUNDLE": ~350 requests a cold visit was the free plan's FIRST limit
+    //  (~2,800 new visitors a month). The bundle now boots EVERY visit except Safari (any WebKit — every iPhone browser: the modules, as before)
+    //  — a first visit AND a return one: the service worker keeps /boot-bundle.json in the build's own cache (sw.js — pinned like a module,
+    //  carried by THE CARRY while it is unchanged), so visit two is ONE request, not the ~300-module refill (P6). P7: never on a 2g line or
+    //  under 0.4 Mbps (it could not finish inside the watchdog's 45 s), and a download that projects past BAIL_MS is left early for the modules)
+    var ua = navigator.userAgent || '', apple = /AppleWebKit\//.test(ua) && !/(Chrome|Chromium|Edg|OPR|SamsungBrowser)\//.test(ua);
+    var C = navigator.connection, crawl = !!C && (/(^|-)2g$/.test(C.effectiveType || '') || (C.downlink > 0 && C.downlink < 0.4));
     // (the fresh-eyes review M4: a tab whose boot already failed — the watchdog's own reload, ns:boot-re — never takes the bundle again)
     var again = false; try { again = !!W.sessionStorage.getItem('ns:boot-re'); } catch (e) { /* no session storage */ }
-    try { first = !again && (slow || /[?&]bundle=1(&|$)/.test(location.search)) && !(navigator.serviceWorker && navigator.serviceWorker.controller) && !/[?&]nobundle(=|&|$)/.test(location.search) && !!(W.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap') && W.fetch && W.Blob && W.URL && URL.createObjectURL && W.TextDecoder && W.ReadableStream); } catch (e) { first = false; }
+    try { first = !again && (/[?&]bundle=1(&|$)/.test(location.search) || (!apple && !crawl)) && !/[?&]nobundle(=|&|$)/.test(location.search) && !!(W.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap') && W.fetch && W.Blob && W.URL && URL.createObjectURL && W.TextDecoder && W.ReadableStream); } catch (e) { first = false; }
+    if (!first) W.__nsBoot.why = again ? 'again' : apple ? 'safari' : crawl ? 'slow-line' : 'off';
     if (!first) { done(modules('')); }
     else {
-      var B = W.__nsBundle = { at: Date.now(), grew: 0, bytes: 0 }, T0 = Date.now(), quiet = 0, rd = null;
+      var B = W.__nsBundle = { at: Date.now(), grew: 0, bytes: 0, z: 0 }, T0 = Date.now(), quiet = 0, rd = null, BAIL_MS = 35000;
       var ab = W.AbortController ? new AbortController() : null;
-      var dog = setInterval(function () { var t = B.grew || B.at; if (Date.now() - t > 8000) { if (rd) { try { rd.cancel(); } catch (e) { /* gone */ } } else if (ab) ab.abort(); } }, 1000);
+      // (8 s with no byte = stalled; P7: past 4 s, the bytes so far against the bundle's own size (its "z", in the first bytes) project the finish —
+      //  past BAIL_MS it is left for the modules NOW, never thrown away at the watchdog's 45 s)
+      var dog = setInterval(function () { var n = Date.now(), t = B.grew || B.at, el = n - T0, late = B.z > 0 && B.bytes > 0 && el > 4000 && el * B.z / B.bytes > BAIL_MS; if (n - t > 8000 || late) { B.why = late ? 'slow-line' : 'stalled'; clearInterval(dog); if (rd) { try { rd.cancel(); } catch (e) { /* gone */ } } else if (ab) ab.abort(); } }, 1000);
       fetch('boot-bundle.json', ab ? { signal: ab.signal } : undefined).then(function (r) {
         if (!r.ok || !r.body) throw new Error('the bundle: ' + r.status);
+        if (B.why) throw new Error(B.why);
         rd = r.body.getReader(); var dec = new TextDecoder(), parts = [];
         B.grew = Date.now();
-        return (function pump() { return rd.read().then(function (x) { if (x.done) { parts.push(dec.decode()); return parts.join(''); } B.grew = Date.now(); B.bytes += x.value.length; parts.push(dec.decode(x.value, { stream: true })); return pump(); }); })();
+        return (function pump() { return rd.read().then(function (x) { if (x.done) { parts.push(dec.decode()); return parts.join(''); } B.grew = Date.now(); B.bytes += x.value.length; var piece = dec.decode(x.value, { stream: true }); if (!B.z) { var mz = /"z":(\d+)/.exec((parts[0] || '') + piece); if (mz) B.z = +mz[1]; } parts.push(piece); return pump(); }); })();
       }).then(function (text) {
         var b = JSON.parse(text), m = { three: THREE }; W.__nsBlobs = {};
         if (!b || !b.f || !b.f.length) throw new Error('the bundle: empty');
@@ -323,7 +331,7 @@
         map(m); clearInterval(dog);
         W.__nsBoot.mode = 'bundle'; W.__nsBoot.ms = Date.now() - T0; W.__nsBoot.v = b.v; W.__nsBoot.n = b.f.length;
         done(function () { var s = D.createElement('script'); s.type = 'module'; s.textContent = 'import "@ns/js/app.js";'; D.body.appendChild(s); });
-      }).catch(function (e) { clearInterval(dog); done(modules(String((e && e.message) || e).slice(0, 120))); });
+      }).catch(function (e) { clearInterval(dog); done(modules(B.why || String((e && e.message) || e).slice(0, 120))); });
     }
     W.__nsGo = function () { if (ready) start(); else wait = true; };
   })();

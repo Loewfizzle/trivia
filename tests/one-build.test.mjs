@@ -30,7 +30,7 @@ test('the page\'s answer to ns:build-gone (CITY A — item 10): keep going on th
 });
 
 test('the worker: every page pinned (in memory + META), a miss reaches the network only while it is that build, a build\'s cache kept under its pages', () => {
-  assert.match(sw, /const CODE_RE = \/\^\\\/\(js\|css\)\\\/\/;/, '/js + /css are the code');
+  assert.ok(sw.includes(String.raw`const CODE_RE = /^\/((js|css)\/|boot-bundle\.json$)/;`), '/js + /css are the code (+ THE FIX PASS — P6: the boot bundle, one build file)');
   assert.match(sw, /modes\.set\(id, modeP\); modeP\.then\(M => pin\(id, M\)\)/, 'a page load pins its client');
   assert.match(sw, /caches\.open\(META\)\.then\(c => c\.put\('\/__pins'/, 'the pins persisted (a restarted worker still knows)');
   assert.match(sw, /const live = await liveBuild\(\);\s*if \(live && live !== M\.v\) \{[\s\S]{0,120}if \(!await askPage\(cid, M\.v, live\)\) \{ stats\.refused\+\+; return Response\.error\(\); \}/, 'the build is gone: ask the page, else refuse');

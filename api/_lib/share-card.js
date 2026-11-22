@@ -140,7 +140,7 @@ export function runLabel(games) { const row = GAMES.find(r => r.id === (Array.is
 export function sharePage({ code, name, games, day, base, v = '', k = '', t = '' }) {
   const run = k === 'run';
   const title = [String(name || 'A PLAYER').toUpperCase(), run ? runLabel(games) : dailyLabel(games), dayLabel(day)].filter(Boolean).join(' · ');
-  const img = `${base}/api/daily?si=${code}${v ? `&v=${encodeURIComponent(v)}` : ''}`, go = run ? '/' : '/?daily=1';
+  const img = `${base}/api/daily${shareImgQuery(code, v)}`, go = run ? '/' : '/?daily=1';
   const desc = run ? 'A run at the Neon Speakeasy — can you beat it?' : 'Today\'s dailies at the Neon Speakeasy — can you beat it?';
   const alt = run ? 'the run' : 'the day\'s scorecard', say = run ? 'Play at the Neon Speakeasy' : 'Play today\'s dailies at the Neon Speakeasy';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -202,6 +202,8 @@ export async function saveShareCard({ pid, day, games, png, run = null, now = Da
 }
 
 /** the stored card (the picture or only its words) — null when gone / expired */
+/** THE FIX PASS — D4: the picture's ONE canonical query (the page names it; anything else redirects here — one edge copy) */
+export const shareImgQuery = (code, h) => `?si=${code}${h ? `&v=${encodeURIComponent(h)}` : ''}`;
 export async function readShare(code, { img = false, now = Date.now() } = {}) {
   if (!CODE_RE.test(String(code || ''))) return null;
   const r = img ? await val(`shr/${code}`) : await Promise.all(['p', 'd', 'g', 'n', 'at', 'h', 'k', 't'].map(k => val(`shr/${code}/${k}`))).then(([p, d, g, n, at, h, k, t]) => (p ? { p, d, g, n, at, h, ...(k ? { k } : {}), ...(t ? { t } : {}) } : null));

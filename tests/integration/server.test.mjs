@@ -829,6 +829,22 @@ test('THE FIX PASS — S2: the server sweeps the stale rooms (side nodes, the wo
   } finally { await ref('/').update({ 'rooms/SWPB': null, 'chats/SWPB': null, 'hush/SWPA': null, 'rl/zz_rooms': null }); }
 });
 
+// THE FIX PASS — D2: the results compaction ONCE A DAY across every function (a COLD function no longer re-reads results/ — due.js#claimDay)
+test('THE FIX PASS — D2: the results compaction claims its day in the database (a second cold function does not run it)', async () => {
+  const { compactResults } = await import('../../api/_lib/results-sweep.js');
+  const { forgetDue } = await import('../../api/_lib/due.js');
+  const now = clock + 40 * 864e5;   // (a day nothing else in this file claims)
+  await ref('rl/zz_results').set(null);
+  forgetDue();
+  const first = await compactResults({ now });
+  assert.ok(first && typeof first.n === 'number', 'the first call of the day runs');
+  assert.ok((await val('rl/zz_results') || {}).d, 'the day is claimed in the database');
+  forgetDue();   // (= a fresh cold function: nothing remembered in memory)
+  const second = await compactResults({ now: now + 60e3 });
+  assert.deepEqual(second, { n: 0 }, 'a second function the same day does nothing');
+  await ref('rl/zz_results').set(null);
+});
+
 // JAYWALK H1 — THE PROOF NODE (rooms/{CODE}/jw/{matchId}/{uid} — api/report.js#PROOF_TREES): written by the player AT GO → present = proven.
 // A player who wrote GO and never hopped (silent but present) still counts; a seated guest with no node does not. (H4: a match is the
 // server's replay of its proof nodes — at least one player must have hopped: a match where NOBODY ever did has nothing to count.)

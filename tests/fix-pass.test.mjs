@@ -31,3 +31,19 @@ test('S2: no phone lists rooms any more — the rules say false, the client has 
   assert.match(src('api/daily.js'), /sweepRoomsIfDue\(now\)/);
   assert.match(src('api/log.js'), /sweepRoomsIfDue\(meta\.now\)/);
 });
+
+test('D1: /admin\'s 30 s poll asks LIVE NOW only (never results/ + profiles/ again), only on screen AND focused', () => {
+  const a = src('js/admin/admin.js');
+  assert.match(a, /setInterval\(\(\) => \{ if \(liveOnScreen\(\)\) loadLive\(\); \}, LIVE_POLL_MS\);/);
+  assert.match(a, /document\.visibilityState === 'visible' && \(typeof document\.hasFocus !== 'function' \|\| document\.hasFocus\(\)\)/);
+  assert.match(a, /api\('admin', \{ action: 'live' \}\)/);
+  assert.ok(!/setInterval\(\(\) => \{[^}]*loadStats\(/.test(a), 'no timer re-loads the whole STATS');
+  assert.match(src('api/admin.js'), /case 'live': return \{ live: liveRooms\(await liveRoomsRead\(now\), now\), at: now \};/);
+});
+
+test('D2 + D4: the compaction claims its DAY in the database; the share picture answers ONE canonical query', () => {
+  assert.match(src('api/_lib/results-sweep.js'), /if \(!\(await claimDay\('results', today, now\)\)\) return \{ n: 0 \};/);
+  assert.ok(!/const DONE = new Set\(\)/.test(src('api/_lib/results-sweep.js')));
+  const d = src('api/daily.js');
+  assert.match(d, /const canon = shareImgQuery\(code, head\.h\);\s*if \(new URL\(req\.url \|\| '\/', 'http:\/\/x'\)\.search !== canon\) return redirect\(/);
+});

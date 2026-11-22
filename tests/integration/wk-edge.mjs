@@ -24,7 +24,7 @@ const line = await startLine({ port: 5186, to: UP, rtt: 20, mbps: 80, prod: proc
 const browser = await webkit.launch();
 const results = [];
 const ok = (c, what) => { results.push({ ok: !!c, what }); console.log(c ? 'OK  ' : 'FAIL', what); };
-const URL0 = 'http://localhost:5186/?emu&slot=edge&when=2026-11-06T21:02&wx=clear&tz=America/Detroit&at=42.96,-85.67';
+const URL0 = 'http://localhost:5186/?emu&slot=edge&when=2026-11-06T21:02&wx=clear&tz=America/Detroit&at=42.96,-85.67' + (opt('qs', '') || '');   // (THE FIX PASS: --qs &bundle=1 = THE BUNDLE's path through the worker — its visit two; the deploy marker rides on config.js, so step 4 is the modules' check)
 const REVEALED = "(() => { const b = document.getElementById('boot'); return !!(window.__district && window.__district.loadProbe && window.__district.loadProbe().shown) && (!b || b.classList.contains('out')); })()";
 const STATS = `new Promise(res => { const c = navigator.serviceWorker && navigator.serviceWorker.controller; if (!c) return res(null);
   const on = e => { if (e.data && e.data.t === 'ns:sw-stats') { navigator.serviceWorker.removeEventListener('message', on); res(e.data); } };
@@ -68,7 +68,16 @@ const fill = await visit('2 the worker\'s first load');
 const warm = await visit('3 WARM (the same build)');
 const warm2 = await visit('3b WARM again');
 // 4. A DEPLOY: a new build id + one file changed (a marker the page shows) — the new code must be on screen at once
-line.set({ build: 'f6e5d4c3b2a1', rules: [{ re: '^/js/config\.js$', prepend: 'globalThis.__deployB = 1;\n' }] });
+// (THE FIX PASS: the deploy's changed file changes its HASH too — THE CARRY (CITY A) moves every file whose hash held, so a rig that changed
+//  config.js but not its line in file-hashes.json carried the OLD copy (this check was red on the old code) · and the same marker in the
+//  boot bundle's copy of config.js (+ its hash) for a --qs &bundle=1 run)
+const H0 = JSON.parse(fs.readFileSync(new URL('../../file-hashes.json', import.meta.url), 'utf8')).files;
+line.set({ build: 'f6e5d4c3b2a1', rules: [
+  { re: /^\/js\/config\.js$/, prepend: 'globalThis.__deployB = 1;\n' },
+  { re: /^\/boot-bundle\.json$/, from: '["js/config.js","', to: '["js/config.js","globalThis.__deployB = 1;' },
+  { re: /^\/file-hashes\.json$/, from: `"/js/config.js":"${H0['/js/config.js']}"`, to: '"/js/config.js":"deployb00001"' },
+  { re: /^\/file-hashes\.json$/, from: `"/boot-bundle.json":"${H0['/boot-bundle.json']}"`, to: '"/boot-bundle.json":"deployb00002"' },
+] });
 const dep = await visit('4 A DEPLOY (new build id)');
 const newCode = await p.evaluate('globalThis.__deployB === 1');
 const after = await visit('5 WARM after the deploy');

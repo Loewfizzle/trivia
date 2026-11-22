@@ -671,6 +671,29 @@ as ever, imports): **one module, one instance**, whoever asks; then `import "@ns
 - Tests: `tests/boot-bundle.test.mjs` (current, the rewrite, the loader's rules, THE CARRY never sees it) · `tests/integration/e2e-bundle.mjs`
   (Chromium + WebKit: the bundle, the fallback on a refused bundle, a fast line = the modules; one store instance; a real-file error frame).
 
+**THE FIX PASS (Nov 22 — THE FABLE REVIEW's D3 + P6 + P7, the owner's call: "on for EVERY first visit except Safari"):** the paragraphs
+above are the history; the rules now —
+- **Who gets it:** EVERY visit — first AND return — except Safari (any WebKit: `apple` in index.html — every iPhone browser keeps the
+  modules), a 2g line or a downlink under 0.4 Mbps (P7: it could not finish inside the watchdog's 45 s), an old browser (no import maps),
+  `?nobundle`, and a tab whose boot already failed (`ns:boot-re`). `?bundle=1` still forces it (WebKit too — the tests).
+- **P6 — visit two never pays it back:** the bundle is a BUILD FILE now — `sw.js#CODE_RE` pins `/boot-bundle.json` to its page's build like a
+  module (a miss is the network only while the network is still that build), and it is in `file-hashes.json` (THE CARRY moves an unchanged
+  bundle into the next build's cache — `scripts/build-file-hashes.mjs#ROOT_FILES`; run build-boot-bundle FIRST, then the hashes). So a
+  return visit boots from the worker's ONE copy: one request, never the ~300-module refill. A deploy that changes a boot module = that
+  phone downloads the new bundle once (~1.7 MB br).
+- **P7 — the early bail:** the bundle's first bytes carry its own size (`"z"` — `build-boot-bundle.mjs`); past 4 s the loader projects the
+  finish from the bytes so far and leaves for the modules at once past `BAIL_MS` (35 s) — never thrown away at the watchdog's 45 s
+  (`__nsBoot.why` = `slow-line`; 8 s without a byte = `stalled`).
+- **MEASURED (cold, Chrome's Android profile, 4× CPU, `boot-time.mjs` — its new EDGE count = http(s) to the site off the network):**
+  HTTP/2 + brotli (`serve.mjs --h2`, 3 runs, medians): 4G reveal **9.58 → 10.34 s** (+0.8 s — the cost the owner accepted), Slow 4G
+  **19.99 → 17.16 s**; edge requests a first visit **455 → 157** (before the reveal 328 → 25). HTTP/1.1 (`serve.mjs`): 4G 9.87 → 7.90 s,
+  448 → 146. Through the worker (`wk-edge.mjs --qs &bundle=1`, WebKit forced): visit 1 **56** · visit 2 **28** · warm **13** · a deploy 18 —
+  the warm reveal the same as the modules' (2.99 vs 3.04 s). Not measured: a warm Chromium boot through the worker (the worker never
+  registers on localhost in Chromium's rigs) — a blob module gets no V8 code cache, so a return boot may compile a little more.
+- Tests: `tests/boot-bundle.test.mjs` (the chooser, the bail, the worker pin, `z`), `e2e-bundle.mjs` (Chromium: no flag = the bundle;
+  WebKit: the modules; `?nobundle`), `wk-edge.mjs` (both paths 6/6 — its deploy step now changes the file's HASH too: THE CARRY had carried
+  the old config.js, red on the old code).
+
 ### ONE DEPLOY AT A TIME
 
 PLAY NOW's Group 0a (the owner, Nov 13 — STANDING: a phone NEVER runs two deploys' code at once). **The rule in the worker (`sw.js`):** every page

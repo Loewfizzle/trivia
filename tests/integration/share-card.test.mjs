@@ -38,6 +38,11 @@ async function get(url) {
   await shareGet({ url, headers: { host: 'www.neonspeakeasy.com' } }, res, T0 + 3600_000);   // (the test's own day — the cards keep 3 days)
   return { status: res.statusCode, headers: H, body };
 }
+/** THE FIX PASS — D4: a picture URL as a browser / link preview takes it — ONE redirect to the canonical query followed */
+async function getPic(url) {
+  const a = await get(url);
+  return a.status === 302 && /^\/api\/daily\?si=/.test(a.headers.location || '') ? { ...(await get(a.headers.location)), via: a.headers.location } : a;
+}
 const ensure = (uid, name) => profileAction(uid, { action: 'ensure', name, avatar: 'bolt', color: 'cyan' }, '', T0);
 const T0 = Date.UTC(2026, 10, 15, 18);   // (Sun Nov 15, 1 pm Eastern)
 const today = streakDay(T0), G = DAILIES[0].id, G2 = DAILIES[1].id;
@@ -83,8 +88,15 @@ test('CITY E — THE TAPPABLE SHARE CARD: accept / refuse, ONE a day (a re-share
     assert.ok(html.includes('<meta name="twitter:card" content="summary_large_image">'));
     assert.ok(html.includes('/?daily=1'), 'a person goes straight on to the daily');
     assert.ok(!html.includes(a.pid), 'no pid on the page');
-    const pic = await get(`/api/daily?si=${r1.code}`);
+    const pic = await getPic(`/api/daily?si=${r1.code}`);
     assert.equal(pic.status, 200); assert.equal(pic.headers['content-type'], 'image/png');
+    // THE FIX PASS — D4: ONE edge copy — a `v` that is not the picture's hash, or any extra value, is a redirect to the canonical URL (no picture read)
+    const canon = `/api/daily?si=${r1.code}&v=${encodeURIComponent(r1.v)}`;
+    assert.equal((await get(canon)).status, 200, 'the canonical URL is the picture');
+    for (const odd of [`/api/daily?si=${r1.code}&v=zzz`, `/api/daily?si=${r1.code}&v=${r1.v}&x=1`, `/api/daily?si=${r1.code}`, `/api/daily?v=${r1.v}&si=${r1.code}`]) {
+      const o = await get(odd);
+      assert.ok(o.status === 302 && o.headers.location === canon && o.body.length === 0, `${odd} → 302 ${canon} (${o.status} ${o.headers.location})`);
+    }
     const sm = Number((/s-maxage=(\d+)/.exec(pic.headers['cache-control']) || [])[1]);
     assert.ok(sm > 0 && sm <= 3600 && !/immutable/.test(pic.headers['cache-control']), `the picture's EDGE cache ≤ 1 h (${pic.headers['cache-control']}) — a deleted card stops within the hour`);
     assert.deepEqual([...pic.body.subarray(0, 4)], [0x89, 0x50, 0x4e, 0x47]);
@@ -170,7 +182,7 @@ test('THE BEFORE-LAUNCH PASS — A4 step 3 + A17: a JPEG card taken + served as 
     const r = await call(jpeg(CARD_W, CARD_H));
     assert.match(r.code, /^[A-Za-z0-9_-]{12}$/);
     assert.equal(await val(`shr/${r.code}/t`), 'j');
-    const pic = await get(`/api/daily?si=${r.code}`);
+    const pic = await getPic(`/api/daily?si=${r.code}`);
     assert.equal(pic.headers['content-type'], 'image/jpeg'); assert.deepEqual([...pic.body.subarray(0, 2)], [0xff, 0xd8]);
     const page = (await get(`/api/daily?s=${r.code}`)).body.toString();
     assert.ok(page.includes('<meta property="og:image:type" content="image/jpeg">'), 'the page says JPEG');
@@ -221,7 +233,7 @@ test('JAYWALK H4B — A RUN\'s CARD: only a counted result\'s player, its own sl
     assert.match(page, /<meta property="og:title" content="RUNAMY · JAYWALK · Nov 15">/); assert.match(page, new RegExp(`og:image" content="https://www.neonspeakeasy.com/api/daily\\?si=${r1.code}&amp;v=`));
     assert.match(page, /<meta http-equiv="refresh" content="0; url=\/">/, 'a tap on the picture opens the site\'s home'); assert.doesNotMatch(page, /daily=1|dailies/i);
     assert.match(page, /summary_large_image/, 'the BIG picture card');
-    const pic = await get(`/api/daily?si=${r1.code}`);
+    const pic = await getPic(`/api/daily?si=${r1.code}`);
     assert.equal(pic.status, 200); assert.equal(pic.headers['content-type'], 'image/png'); assert.equal(pic.body.length, Buffer.from(ok, 'base64').length);
     // the same picture again: nothing written; ANOTHER run that day (a new match, a new picture): the SAME code, the picture replaced
     assert.equal((await call('u-run-a')).same, true);

@@ -43,7 +43,10 @@ export function sourcesHash(list = bundleList()) {
 }
 export function buildBundle(list = bundleList()) {
   const f = list.map(p => [p, rewrite(p, readFileSync(resolve(ROOT, p), 'utf8'))]);
-  return { v: sourcesHash(list), n: f.length, f };
+  // (THE FIX PASS — P7: `z` = the file's own byte length, in its first bytes — the loader projects the finish from the bytes so far)
+  const b = { v: sourcesHash(list), n: f.length, z: 0, f };
+  for (let i = 0; i < 4; i++) b.z = Buffer.byteLength(bundleText(b));
+  return b;
 }
 export const bundleText = b => `${JSON.stringify(b)}\n`;
 

@@ -90,6 +90,21 @@ The taps in detail:
      million → ~12–35 %.
 9. **Tell people.** The links: https://www.neonspeakeasy.com (the city) · https://www.neonspeakeasy.com/board (THE BOARD — its link preview
    is the velvet board since FR7 FIXES B).
+   - **THE FREE PLANS, MEASURED AGAIN (THE FIX PASS, Nov 22 — after THE FABLE REVIEW's D1–D4):** Vercel's free million edge requests a
+     month was the FIRST limit to bite (~350 a cold visit → ~2,800 new visitors a month). Now THE FIRST-VISIT BUNDLE boots every visit but
+     Safari's (index.html; docs/harbor.md "THE FIRST-VISIT BUNDLE"), and the worker keeps the bundle per build (sw.js — visit two is ONE request
+     for the boot, never the ~300-module refill). Measured on the local line (`boot-time.mjs` — Chrome's Android profile, 4G, 4× CPU, cold; the
+     EDGE count = http(s) to the site off the network): a first visit **448 → 146 edge requests** (325 → 21 before the reveal; the rest is the
+     city's late files + a tap on THE BOARD), the reveal 9.9 → 7.9 s. Through the worker (`wk-edge.mjs --qs &bundle=1`, WebKit forced onto the
+     bundle): visit 1 **56**, visit 2 **28**, warm **13** (the modules: 410 · then the refill · 13). Safari (every iPhone browser) keeps the
+     modules: ~375 / ~357 / 15 as above. So the million holds ~6,800 Chrome / Android first visits a month (was ~2,800), ~2,700 iPhone ones —
+     the iPhone is now the edge budget's main user. A deploy that touches a boot module costs a returning Chrome phone ONE request + the bundle
+     (~1.7 MB on the wire) once; any other deploy carries it (THE CARRY).
+     The database's 10 GB download: /admin's 30 s poll asks LIVE NOW only (the rooms by the index — it re-read ALL of `results/` + `profiles/`,
+     ~0.3 GB an hour of /admin left open), only on screen AND focused (D1); the results compaction once a DAY across every function (D2 — it was
+     once per cold function); the share picture = ONE edge copy (D4 — any other query redirects to the canonical URL, never a picture read).
+     Still open: the owner / crew tab's `radioState` poll (every 20 s while visible, ~180 edge requests an hour — one tab left open all month
+     ≈ 13 % of the million) — close the tab, or a later pass slows it.
 10. **The weekly watch** (five numbers, Mondays): Vercel → Usage → **Edge Requests** + **Fast Data Transfer**; Firebase → Realtime Database →
    Usage → **peak connections** (the free line is 100) · **downloads** · **storage**; GitHub → the repo's size (Settings → the top) while
    public. The edge requests before vs with THE EDGE CACHE (step 8, live since THE CDN HOTFIX): FR7 FIXES B's numbers in

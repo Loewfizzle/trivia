@@ -1,7 +1,8 @@
 // THE BEFORE-LAUNCH PASS — THE FIRST-VISIT BUNDLE end to end (docs/harbor.md "THE FIRST-VISIT BUNDLE"): Chromium + Playwright's WebKit, cold.
 //   ?bundle=1  → the boot from /boot-bundle.json: the city reveals, 0 errors, ONE store instance for the bundle + a module imported by its real
 //                URL (a lazy chunk's view), a dynamic relative import inside the bundle works, an error names the REAL file (errlog's unblob)
-//   ?bundle=1 + the bundle refused → the modules (THE FALLBACK), the city reveals · no flag on an unthrottled line → the modules (fast lines)
+//   ?bundle=1 + the bundle refused → the modules (THE FALLBACK), the city reveals · no flag → the bundle in Chromium, the modules in WebKit
+//   (THE FIX PASS — D3: every visit but Safari's) · ?nobundle → the modules
 //   node e2e-bundle.mjs "<chromium>"     (the emulators + scripts/serve.mjs --emu; E2E_BASE for another port; WebKit: ~/wk/node_modules/playwright)
 import puppeteer from './kit/puppeteer.mjs';
 import { pathToFileURL } from 'node:url';
@@ -22,7 +23,8 @@ const CHECKS = async () => ({
 });
 
 async function engine(name, open) {
-  for (const [label, qs, block, want] of [['bundle', '&bundle=1', false, 'bundle'], ['fallback (the bundle refused)', '&bundle=1', true, 'modules'], ['a fast line (no flag)', '', false, 'modules']]) {
+  // (THE FIX PASS — D3: no flag = the bundle in Chromium, the modules in WebKit — Safari keeps the old path; ?nobundle = the modules anywhere)
+  for (const [label, qs, block, want] of [['bundle', '&bundle=1', false, 'bundle'], ['fallback (the bundle refused)', '&bundle=1', true, 'modules'], ['no flag (THE FIX PASS: every visit but Safari’s)', '', false, name === 'webkit' ? 'modules' : 'bundle'], ['?nobundle', '&nobundle', false, 'modules']]) {
     const P = await open(block), errs = [];
     P.onErr(t => errs.push(t));
     await P.goto(guardUrl(`${BASE}/${Q}${qs}`, 'e2e-bundle.mjs'));

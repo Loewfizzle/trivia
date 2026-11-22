@@ -1,6 +1,6 @@
 // THE BEFORE-LAUNCH PASS — THE FIRST-VISIT BUNDLE (docs/harbor.md "THE FIRST-VISIT BUNDLE"; scripts/build-boot-bundle.mjs): the generated
 // /boot-bundle.json is CURRENT (like the preload graph's), every module rewritten the one way, index.html's loader chooses it only for a
-// first visit and falls back to the modules on any failure, THE CARRY never sees it.
+// visit but Safari's (THE FIX PASS) and falls back to the modules on any failure; the worker keeps it per build (THE CARRY moves it unchanged).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -55,15 +55,18 @@ test('the rewrite: static relative imports → @ns/<path>; import.meta.url → t
   delete globalThis.__nsRoot;
 });
 
-test('index.html: ONE loader picks the bundle only for a FIRST visit; the modules as before otherwise and on any failure; nothing loads a module before its import map', () => {
+test('index.html: ONE loader picks the bundle for EVERY visit but Safari’s (THE FIX PASS — D3 + P6 + P7); the modules otherwise and on any failure; nothing loads a module before its import map', () => {
   const html = read('index.html');
   assert.ok(!/<script type="importmap">/.test(html), 'no static import map (the loader writes the ONE map)');
   assert.ok(!/<script type="module" src="js\/app\.js">/.test(html), 'no static app.js script (the loader starts it)');
   assert.ok(!/<link rel="modulepreload" href="js\/app\.js">/.test(html), 'no static modulepreload before the map (a module loading first would refuse the map)');
-  assert.match(html, /navigator\.serviceWorker\.controller/, 'a returning visitor (the worker in charge) = the modules');
+  assert.ok(!/navigator\.serviceWorker\.controller/.test(html.split('THE FIRST-VISIT BUNDLE (THE BEFORE-LAUNCH PASS')[1].split('</script>')[0]), 'P6: a returning visitor takes the bundle too (the worker keeps it — ONE request, never the ~300-module refill)');
+  assert.ok(html.includes(String.raw`apple = /AppleWebKit\//.test(ua) && !/(Chrome|Chromium|Edg|OPR|SamsungBrowser)\//.test(ua)`),'D3: Safari (any WebKit — every iPhone browser) = the modules');
+  assert.match(html, /crawl = !!C && \(\/\(\^\|-\)2g\$\/\.test\(C\.effectiveType \|\| ''\) \|\| \(C\.downlink > 0 && C\.downlink < 0\.4\)\)/, 'P7: never on 2g / under 0.4 Mbps');
+  assert.match(html, /late = B\.z > 0 && B\.bytes > 0 && el > 4000 && el \* B\.z \/ B\.bytes > BAIL_MS/, 'P7: a download that projects past BAIL_MS is left early');
+  assert.match(html, /BAIL_MS = 35000/);
   assert.match(html, /HTMLScriptElement\.supports\('importmap'\)/, 'an old browser = the modules');
   assert.match(html, /\[\?&\]nobundle/, '?nobundle = the modules');
-  assert.match(html, /var C = navigator\.connection, slow = /, 'a SLOW line only (the measured win) — or ?bundle=1');
   assert.match(html, /\.catch\(function \(e\) \{ clearInterval\(dog\); done\(modules\(/, 'any failure of the bundle = the modules');
   assert.match(html, /m\['@ns\/' \+ p\] = u; m\[root \+ p\] = u;/, 'each module under its @ns name AND its real URL: one instance, whoever asks');
   assert.match(html, /<script>window\.__nsGo\(\);<\/script>\s*<\/body>/, 'started where app.js was: at the body\'s end');
@@ -71,9 +74,13 @@ test('index.html: ONE loader picks the bundle only for a FIRST visit; the module
   assert.match(html, /W\.__nsBundle && W\.__nsBundle\.grew > bundleSeen/, 'THE BOOT WATCHDOG: the bundle\'s bytes arriving = still arriving (a slow line is no hang)');
 });
 
-test('THE CARRY + the deploy never see the bundle as a build file: outside js/ css/ assets/ data/, not in file-hashes.json, not ignored by Vercel', () => {
+test('THE FIX PASS — P6: the bundle IS a build file — pinned to its build by the worker (CODE_RE), carried while unchanged (file-hashes.json), deployed; its size `z` in its first bytes (P7)', () => {
   assert.ok(!BUNDLE_FILE.includes('/'), 'at the root');
-  assert.ok(!(JSON.parse(read('file-hashes.json')).files || {})[BUNDLE_FILE], 'not in THE CARRY\'s list');
+  assert.ok((JSON.parse(read('file-hashes.json')).files || {})['/' + BUNDLE_FILE], 'in THE CARRY’s list');
+  assert.ok(read('sw.js').includes(String.raw`const CODE_RE = /^\/((js|css)\/|boot-bundle\.json$)/;`), 'pinned like a module (a miss is the network only while it is still this build)');
   const ign = read('.vercelignore').split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
   assert.ok(!ign.some(l => l === BUNDLE_FILE || l === '*.json' || l === '/' + BUNDLE_FILE), 'deployed');
+  const txt = read(BUNDLE_FILE), b = JSON.parse(txt);
+  assert.equal(b.z, Buffer.byteLength(txt), 'z = the file’s own byte length');
+  assert.ok(txt.slice(0, 80).includes(`"z":${b.z}`), 'z in the first bytes');
 });

@@ -35,7 +35,7 @@ const LIVE_FRESH_MS = 3e3, VERIFY_MS = 2500, ASK_MS = 700, PIN_KEEP_MS = 10e3;
 // prefetch), the media element's range requests answered from that copy — never downloaded again per deploy; a new REV replaces it.
 const HASH_URL = '/file-hashes.json', AUDIO = 'na-audio-v1', CARRY_WAIT_MS = 2500;
 const carries = new Map();   // new build cache → the running carry (a miss waits for it, bounded)   // (a miss trusts a build answer ≤ 3 s old — a boot's first wave; later misses ask again)
-const CODE_RE = /^\/(js|css)\//;
+const CODE_RE = /^\/((js|css)\/|boot-bundle\.json$)/;   // (THE FIX PASS — P6: the boot bundle is pinned to its build like a module — its own build's copy, kept, carried)
 const modes = new Map();      // clientId → Promise<{ mode: 'build' | 'net', cache, v }>
 const pins = new Map();       // clientId → { v, cache, at }  (persisted: META /__pins)
 const mixOk = new Set();      // clientIds that answered `mix` (a match on screen): the network's files until their reload

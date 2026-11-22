@@ -123,7 +123,10 @@ async function oneLoad(ctx, page, tag) {
   const by = {};
   for (const r of before) { const k = kindOf(r.url, r.type); const o = by[k] || (by[k] = { n: 0, bytes: 0 }); o.n++; o.bytes += r.bytes; }
   const all = [...reqs.values()];
-  const row = { tag, fcp: Math.round(bt.fcp), reveal: Math.round(bt.reveal), tap, n: before.length, bytes: before.reduce((s, r) => s + r.bytes, 0), by,
+  // (THE FIX PASS — D3: the EDGE REQUESTS — what Vercel counts: http(s) to the site itself, off the network (never a blob: module, a data: URL,
+  //  the HTTP cache or the worker's own copy); `edgeAll` = the whole load, to 2.5 s after the reveal)
+  const site = new URL(BASE).origin, edge = r => r.url.startsWith(site + '/') && !r.cache && !r.sw;
+  const row = { tag, edge: before.filter(edge).length, edgeAll: all.filter(edge).length, fcp: Math.round(bt.fcp), reveal: Math.round(bt.reveal), tap, n: before.length, bytes: before.reduce((s, r) => s + r.bytes, 0), by,
     sw: before.filter(r => r.sw).length, cached: before.filter(r => r.cache).length, swNet: swReqs.length, sw304: swReqs.filter(r => r.status === 304).length,
     lt: bt.lt.filter(([s]) => s <= bt.reveal), after, longs, allN: all.length, log: L,
     urls: before.map(r => ({ u: r.url.replace(BASE, ''), k: kindOf(r.url, r.type), b: r.bytes, at: Math.round(r.at - origin) })) };
@@ -186,11 +189,11 @@ const kb = b => `${(b / 1024).toFixed(0)} KB`;
 const med = a => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor((s.length - 1) / 2)] : -1; };
 console.log(`THE BOOT CLOCK — ${BASE}${LIVE ? ' (LIVE, read-only)' : ''} ${ANDROID ? 'ANDROID 412×915@2.625' : `${W}×${H}@3`} ${CPU ? `cpu ${CPU}×` : 'cpu 1×'} net ${opt('net', 'none')} ${WARM ? 'WARM' : 'COLD'} · ${RUNS} run(s)`);
 for (const r of results) {
-  console.log(`  ${r.tag}: boot ${r.fcp} ms · reveal ${r.reveal} ms · tap → board ${r.tap == null ? '—' : r.tap + ' ms'} · before the reveal ${r.n} requests ${kb(r.bytes)}${WARM ? ` (sw ${r.sw}, its network ${r.swNet} — 304s ${r.sw304})` : ''} · long tasks ${r.lt.length} = ${r.lt.reduce((s, x) => s + x[1], 0)} ms · after it (2.5 s) ${r.after.length ? r.after.map(x => `${x[1]} ms @+${x[0] - r.reveal}`).join(', ') : 'none'}`);
+  console.log(`  ${r.tag}: boot ${r.fcp} ms · reveal ${r.reveal} ms · tap → board ${r.tap == null ? '—' : r.tap + ' ms'} · EDGE ${r.edge} before the reveal, ${r.edgeAll} in all · before the reveal ${r.n} requests ${kb(r.bytes)}${WARM ? ` (sw ${r.sw}, its network ${r.swNet} — 304s ${r.sw304})` : ''} · long tasks ${r.lt.length} = ${r.lt.reduce((s, x) => s + x[1], 0)} ms · after it (2.5 s) ${r.after.length ? r.after.map(x => `${x[1]} ms @+${x[0] - r.reveal}`).join(', ') : 'none'}`);
   console.log('    ' + Object.entries(r.by).sort((a, b) => b[1].bytes - a[1].bytes).map(([k, o]) => `${k} ${o.n} / ${kb(o.bytes)}`).join(' · '));
   if (r.longs) for (const l of r.longs) console.log(`    long @${l.at} ${l.ms} ms: ${l.top.join(' | ')}`);
   if (r.log) for (const l of r.log) console.log('    ' + l);
 }
-console.log(`  MEDIAN: boot ${med(results.map(r => r.fcp))} · reveal ${med(results.map(r => r.reveal))} · tap ${med(results.map(r => r.tap ?? -1))} · requests ${med(results.map(r => r.n))} · ${kb(med(results.map(r => r.bytes)))}`);
+console.log(`  MEDIAN: boot ${med(results.map(r => r.fcp))} · reveal ${med(results.map(r => r.reveal))} · tap ${med(results.map(r => r.tap ?? -1))} · EDGE ${med(results.map(r => r.edge))} / ${med(results.map(r => r.edgeAll))} in all · requests ${med(results.map(r => r.n))} · ${kb(med(results.map(r => r.bytes)))}`);
 const J = opt('json', '');
 if (J) writeFileSync(String(J), JSON.stringify({ base: BASE, cpu: CPU, net: opt('net', 'none'), warm: WARM, results }, null, 1));

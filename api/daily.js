@@ -72,7 +72,7 @@ async function flaggedFinished(base, nc, viewer) {
   const n = await Promise.all([...nc].filter(f => f !== viewer).map(async f => { const [r, x] = await Promise.all([val(`${base}/r/${f}`), val(`${base}/x/${f}`)]); return r != null && !x ? 1 : 0; }));
   return n.reduce((a, b) => a + b, 0);
 }
-import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE, cardType, shareBase } from './_lib/share-card.js';
+import { saveShareCard, readShare, sharePage, sweepShares, CODE_RE, cardType, shareBase, shareImgQuery } from './_lib/share-card.js';
 import { sweepRoomsIfDue } from './_lib/room-sweep.js';   // (THE FIX PASS — S2)   // (CITY E — THE TAPPABLE SHARE CARD)
 import { compactResults } from './_lib/results-sweep.js';   // (CITY G — results/ compacted past 14 days)
 import { bestStep, bestView, pointsRaise, isBetter } from '../js/core/daily-best.js';   // (DAILY A — DAILY BEST + a better try's points)
@@ -814,7 +814,14 @@ export async function shareGet(req, res, now = Date.now()) {   // (THE BEFORE-LA
   const redirect = (to, cache) => { res.statusCode = 302; res.setHeader('Location', to); res.setHeader('Cache-Control', cache); res.end(); };
   if (q.has('si')) {
     const code = q.get('si');
-    const r = CODE_RE.test(code || '') ? await readShare(code, { img: true, now }).catch(() => null) : null;
+    // (THE FIX PASS — D4: ONE edge copy a picture — the small fields first (its hash), and any OTHER query (a `v` that is not its hash, any
+    //  extra value) is answered with a redirect to the ONE canonical URL, never a fresh read of the picture: an unauthenticated download
+    //  multiplier before — every new `v` skipped the edge cache and read the whole stored picture)
+    const head = CODE_RE.test(code || '') ? await readShare(code, { now }).catch(() => null) : null;
+    if (!head) return redirect('/assets/og.jpg', 'public, max-age=300, s-maxage=300');
+    const canon = shareImgQuery(code, head.h);
+    if (new URL(req.url || '/', 'http://x').search !== canon) return redirect(`/api/daily${canon}`, 'public, max-age=3600, s-maxage=3600');
+    const r = await readShare(code, { img: true, now }).catch(() => null);
     if (!r || !r.img) return redirect('/assets/og.jpg', 'public, max-age=300, s-maxage=300');
     const buf = Buffer.from(r.img, 'base64');
     res.statusCode = 200;

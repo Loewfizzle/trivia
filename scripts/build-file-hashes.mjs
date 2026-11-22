@@ -10,6 +10,7 @@ import { resolve, dirname, join, relative } from 'node:path';
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1')), '..');
 export const DIRS = ['js', 'css', 'assets', 'data'];
+export const ROOT_FILES = ['boot-bundle.json'];   // (run build-boot-bundle.mjs FIRST, then this)
 export const OUT = 'file-hashes.json';
 const SKIP = /(^|\/)\.|\.map$|(^|\/)Thumbs\.db$/;
 
@@ -18,6 +19,7 @@ export function files() {
   const out = [];
   const walk = d => { for (const n of readdirSync(d).sort()) { const f = join(d, n), rel = relative(ROOT, f).split('\\').join('/'); if (SKIP.test(rel)) continue; if (statSync(f).isDirectory()) walk(f); else out.push(rel); } };
   for (const d of DIRS) walk(resolve(ROOT, d));
+  out.push(...ROOT_FILES);   // (THE FIX PASS — P6: the boot bundle is a build file too — an unchanged one is CARRIED, never downloaded again)
   return out.sort();
 }
 /** PURE: a file's bytes → its short hash (12 hex of a SHA-1 — a content id, not a secret) */
