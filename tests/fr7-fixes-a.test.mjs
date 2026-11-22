@@ -397,7 +397,7 @@ test('decision 4 — COAST CLEAR: a pause THE ROOM WINS forces does not count to
   // the server's replay accepts a finished run with an hour of room pause
   void replay;
   // the wiring: the server passes ITS check (never the phone's claim)
-  assert.match(read('api/daily.js'), /cart\.act\(\{ action: mv\.a, body: mv, record: rec, day, startedAt, now, data, room: !!room \}\)/);
+  assert.match(read('api/daily.js'), /cart\.act\(\{ action: mv\.a, body: mv, record: rec, day, startedAt, now, data, room: !!room(, roomProof)? \}\)/);
 });
 
 test('decision 5 — END GAME on HOLD\'EM goes THROUGH THE DEALER: places by chip count (a hand in progress voided), credited from 3 hands, else NO RESULT', async () => {
