@@ -1033,6 +1033,30 @@ test('JAYWALK H3 — THE SOLO RUN: the best from the SERVER\'s replay (never the
   assert.ok(tb.rows.every(r => /^[0-9a-f]{16}$/.test(r.id)), 'the board ids only');
   await rejects(boardTable(pid, 'xp', clock), 400, 'bad_board');
   await rejects(boardTable(pid, 'nope', clock), 400, 'bad_board');
+  // JT2 — THE BOARD's AVERAGE: every COUNTED solo run (A · B · S — the refused F never) adds its replayed lanes on its streak day; the
+  // average is written on the PROFILE beside the best from the 5th run (null = a dash before); THE BOARD's row, YOUR TABLE + the outcome carry it
+  { const box = () => stats(uid).then(s => (s.av || {})['jaywalk-solo'] || {}), runs = b => Object.values(b).reduce((n, p) => n + p[0], 0), lanes = b => Object.values(b).reduce((n, p) => n + p[1], 0);
+    let b = await box();
+    assert.equal(runs(b), 3, `three counted solo runs in the box (${JSON.stringify(b)}) — the refused one never`);
+    assert.ok(Object.keys(b).every(k => /^d\d{8}$/.test(k)), 'keyed by the streak day');
+    assert.equal(await val(`profiles/${pid}/av/jaywalk-solo`), null, 'under 5 runs: no average (a dash)');
+    assert.deepEqual(rs.outcome.av, { 'jaywalk-solo': null });
+    let last = null;
+    for (const t of [1800, 2200]) { tick(9000); const R = await seedRun(m => runOf(m, t)); last = await report(uid, R); assert.equal(last.status, 'counted'); }
+    b = await box();
+    const want = Math.round((lanes(b) / runs(b)) * 10) / 10;
+    assert.equal(runs(b), 5);
+    assert.equal(await val(`profiles/${pid}/av/jaywalk-solo`), want, `the 5th run: the average ${want} on the profile`);
+    assert.deepEqual(last.outcome.av, { 'jaywalk-solo': want }, 'the end card\'s answer carries it');
+    clearBoardCache();
+    const q = await boardQuery({ b: 'jaywalk-solo', p: 'all' }, clock), mine = q.rows.find(r => r.id === boardId(pid));
+    assert.ok(mine && mine.av === want && mine.v === await best(), `THE BOARD's row: BEST ${mine && mine.v} · AVG ${mine && mine.av} — no extra read (the profile it joins)`);
+    const t2 = await profileAction(uid, { action: 'table', b: 'jaywalk-solo' }, '', clock);
+    assert.equal(t2.rows.find(r => r.me).av, want, 'YOUR TABLE: your average'); assert.equal(t2.rows.find(r => !r.me).av, null, '… a friend with no runs: a dash');
+    const rk = await profileAction(uid, { action: 'ranks', boards: ['jaywalk-solo'] }, '', clock);
+    assert.equal(rk.ranks['jaywalk-solo'].av, want, 'YOUR row at the foot (ranks): your average');
+    clearBoardCache(); const g = await boardQuery({ b: 'golf-par9', p: 'all' }, clock);
+    assert.ok(g.rows.every(r => !('av' in r)), 'a board with no average carries none'); }
   await ref('testReportAll').set(true);
   tick();
 });
