@@ -85,7 +85,10 @@ export function nextStep(game, ctx) {
         const b = boards[uid];
         const pres = ctx.presence && ctx.presence[uid];
         const late = now - game.playStartAt >= OFFLINE_OUT_MS && !fresh0;
-        const gone = !(ctx.online && ctx.online[uid]) && (!pres || !pres.lastSeen || now - pres.lastSeen >= OFFLINE_OUT_MS) && late;
+        // (THE BEFORE-LAUNCH PASS — the fresh-eyes review H5: GONE needs the board quiet too — a phone that says offline but still saves is
+        //  never put out; the server refuses a live board put out — match-report.js#prismVerify)
+        const quiet = now - (Number(b && b.at) || game.playStartAt) >= OFFLINE_OUT_MS;
+        const gone = !(ctx.online && ctx.online[uid]) && (!pres || !pres.lastSeen || now - pres.lastSeen >= OFFLINE_OUT_MS) && late && quiet;
         // PFIX-A (FABLE REVIEW finding 2 + question E — AWAY): a board that has said nothing for OFFLINE_OUT_MS during play is OUT, credited to
         // nobody, whatever presence says — a hidden tab keeps its socket (online) but runs no frames: its board froze, no row could land on it.
         // The view's save is the heartbeat (≤ 3 s apart while its frames run); a board never written counts from GO.

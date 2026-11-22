@@ -25,6 +25,8 @@ import { BANK_TYPES } from './banks.js';
 import { mergeSealed } from '../kit/seal.js';
 
 const num = v => (Number.isFinite(Number(v)) ? Number(v) : 0);
+/** (the fresh-eyes review H4) the host's start may differ from the SERVER's stamp `game/ps/{ci}` by its clock's error — never more */
+export const PS_SLACK_MS = 1500;
 const same = (a, b) => Math.abs(num(a) - num(b)) < 1e-9;
 
 /**
@@ -45,7 +47,10 @@ export function ocRegrade(game, { oc = {}, seal = {}, bank = () => ({}) } = {}) 
     // (the host graded a bank type only with its pool loaded — a deal's ids index it; no deal = the challenge's seeded deck, graded the same)
     const graded = HOST_GRADED.includes(type) ? gradeRoom(g, { seal_boards: env }, { bank: t => (BANK_TYPES.includes(t) ? bank(t) || null : {}) }) : null;
     // (the server's own copy of a pool unreadable: it can't grade — the host's ok is held only to the player's own board, as before this pass)
-    const blind = HOST_GRADED.includes(type) && BANK_TYPES.includes(type) && !bank(type);
+    // (… and the fresh-eyes review M2: a deal naming an item this deploy's pool no longer has — a pool edited between deploys — the same)
+    const B0 = BANK_TYPES.includes(type) ? bank(type) : null, dl = game.deal && game.deal[ci];
+    const missing = Array.isArray(B0) && Array.isArray(dl) && dl.some(id => typeof id === 'string') && dl.some(id => typeof id === 'string' && !B0.some(it => it && it.id === id));
+    const blind = HOST_GRADED.includes(type) && BANK_TYPES.includes(type) && (!B0 || missing);
     const parts = partsFor(type, levelOf(ci, total));
     // THE ONE RACE ALLOWED (above): the host may have graded this player one part lower
     const late = u => HOST_GRADED.includes(type) && type !== 'timeline' && type !== 'closest' && !!(env[u] && pub[u]) && num(env[u].at) > num(pub[u].doneAt || pub[u].at);
@@ -60,18 +65,23 @@ export function ocRegrade(game, { oc = {}, seal = {}, bank = () => ({}) } = {}) 
     const okUsed = Object.fromEntries(uids.map(u => [u, R[u] ? num(R[u].ok) : 0]));
     // the challenge's start: the one P every finisher's FASTEST clock says (tm = round(doneAt − P), clamped 0 … CHALLENGE_MS)
     const T = tm[ci] || {};
+    // (the fresh-eyes review H4: EVERY finisher's clock holds — a clamped 0 says "done at the start", a clamped 30 s "done after the
+    //  clock" — and so does the SERVER's own stamp of the start, game/ps/{ci}, within PS_SLACK_MS: the host can't pick a start of his own)
     let lo = -Infinity, hi = Infinity;
+    const ps = game.ps && Number(game.ps[ci]);
+    if (ps > 0) { lo = ps - PS_SLACK_MS; hi = ps + PS_SLACK_MS; }
     for (const u of uids) {
       const b = pub[u];
       if (!(b && b.done && typeof b.doneAt === 'number')) continue;
       const t = Number(T[u]);
       if (!Number.isFinite(t)) return { ok: false, why: 'the clock', ci, uid: u };
-      if (t <= 0 || t >= CHALLENGE_MS) continue;   // (clamped: no speed bonus either way)
-      lo = Math.max(lo, b.doneAt - t - 0.5); hi = Math.min(hi, b.doneAt - t + 0.5);
+      if (t <= 0) lo = Math.max(lo, b.doneAt - 0.5);
+      else if (t >= CHALLENGE_MS) hi = Math.min(hi, b.doneAt - CHALLENGE_MS + 0.5);
+      else { lo = Math.max(lo, b.doneAt - t - 0.5); hi = Math.min(hi, b.doneAt - t + 0.5); }
     }
     if (lo > hi + 1e-6) return { ok: false, why: 'the clock (two starts)', ci };
-    // (nobody finished inside the clock: no speed bonus for anyone — any start far enough back gives the same points)
-    const starts = Number.isFinite(lo) ? [lo, hi] : [-1e15];
+    // (no bound at all: nobody finished, no stamp — no speed bonus for anyone; one side open: its far end of the window)
+    const starts = Number.isFinite(lo) && Number.isFinite(hi) ? [lo, hi] : Number.isFinite(lo) ? [lo, lo + CHALLENGE_MS] : Number.isFinite(hi) ? [hi - CHALLENGE_MS, hi] : [-1e15];
     const at = starts.map(P => computeResults({ ...g, playStartAt: P }, pub, okUsed));
     for (const u of uids) {
       const got = R[u] || {}, cands = at.map(r => r[u]);

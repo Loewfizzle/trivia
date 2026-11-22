@@ -34,8 +34,10 @@ test('the rewrite: static relative imports → @ns/<path>; import.meta.url → t
     "x.import('./nope.js');",
   ].join('\n');
   const out = rewrite('js/screens/title.js', src);
-  const [pre, ...lines] = out.split('\n');
-  assert.match(pre, /^const __nsMeta = globalThis\.__nsRoot \+ "js\/screens\/title\.js", __nsR = /, 'ONE prelude line');
+  const lines = out.split('\n'), cut = lines[0].indexOf('__nsI = s => import(__nsR(s)); ') + '__nsI = s => import(__nsR(s)); '.length, pre = lines[0].slice(0, cut);
+  lines[0] = lines[0].slice(cut);
+  assert.match(pre, /^const __nsMeta = globalThis\.__nsRoot \+ "js\/screens\/title\.js", __nsR = /, 'the prelude ON the first line (a stack\'s lines = the file\'s)');
+  assert.equal(lines.length, src.split('\n').length, 'no line added');
   assert.equal(lines[0], "import { h } from '@ns/js/ui/dom.js';");
   assert.equal(lines[1], "import '@ns/js/screens/side.js';");
   assert.equal(lines[2], "export * from '@ns/js/screens/more.js';");

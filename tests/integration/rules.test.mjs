@@ -1768,6 +1768,25 @@ test('THE BEFORE-LAUNCH PASS — THE REPORT LOCK: prism / oc / ocm {match} never
   await assertSucceeds(remove(ref(db('host'), `seal/${CODE}`)), 'the seal, once no OVERCLOCK match is the room’s game');
 });
 
+// THE BEFORE-LAUNCH PASS — THE FRESH-EYES REVIEW: a PRISM out is never future-dated (H2), OVERCLOCK's challenge start is the SERVER's (H4), an
+// OVERCLOCK board closes at its challenge's unseal (H5)
+test('THE BEFORE-LAUNCH PASS — game/out/{uid}/at ≤ now + 5 s · game/ps/{ci} = the server\u2019s now (kept, never moved) · an OVERCLOCK board closed at the unseal', async () => {
+  const r = lobbyRoom();
+  r.rooms[CODE].meta.status = 'playing';
+  r.rooms[CODE].game = { id: 'overclock', matchId: 'm5', ci: 1, ck: '1', phase: 'play', participants: { host: true, p2: true } };
+  await seed(r);
+  await assertSucceeds(update(ref(db('host'), `${R}/game`), { 'out/p2': { at: now(), place: 2 } }), 'an honest out: the host\u2019s now');
+  await assertFails(update(ref(db('host'), `${R}/game`), { 'out/p2': { at: now() + 60_000, place: 2 } }), 'never future-dated');
+  await assertFails(update(ref(db('host'), `${R}/game`), { 'out/p2': { at: 'later', place: 2 } }), 'a number');
+  await assertSucceeds(update(ref(db('host'), `${R}/game`), { 'ps/1': serverTimestamp() }), 'the start: the server\u2019s time');
+  await assertFails(update(ref(db('host'), `${R}/game`), { 'ps/2': now() - 30_000 }), 'never a time of his own');
+  await assertFails(update(ref(db('host'), `${R}/game`), { 'ps/1': now() + 1 }), 'never moved');
+  const prog = (p, ok, done) => ({ p, ok, n: 4, done, at: serverTimestamp(), ...(done ? { doneAt: serverTimestamp() } : {}) });
+  await assertSucceeds(set(ref(db('p2'), `${R}/oc/m5/1/p2`), prog(1, 1, false)), 'a board in play');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/unseal/oc`), '1'));
+  await assertFails(set(ref(db('p2'), `${R}/oc/m5/1/p2`), prog(2, 2, false)), 'unsealed: the board is closed (the host graded what was there)');
+});
+
 // DAILY A — JAYWALK's DAILY PROOF NODE: dly/jaywalk/{day}/w/{uid}/{try} = { go, z (server-written at START), c/{i} = { s, at: the SERVER's
 // time } (append-only), e (the phone's end — a server time) }. Own uid only · append-only chunks · server timestamps · nothing before go /
 // after z (the try's window — its day) / once e is set · try index 0 … 2 only · the phone never opens a try (go / z) and never reads.

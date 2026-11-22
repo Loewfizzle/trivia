@@ -49,7 +49,8 @@ gifts streak gplay pcount pkc pkx audit flags logstats errlog phonelog backups` 
 **The size (measured on the emulators, `tests/integration/backup.test.mjs`, Nov 15):** a seeded 4,000-player database (profiles, stats, keys,
 boards, 30 days × 3 dailies, 8,000 match results) = **1.70 MB gzipped in 29 parts** (the biggest: `dly` 1.12 MB), ~0.41 KB a player →
 **14 nights ≈ 24 MB = 4.8 % of a free private repo's 500 MB artifact storage**. No part comes near the 4.5 MB answer limit until roughly
-10× that (then `dly` splits by itself). Today's live database is a fraction of it.
+10× that. Today's live database is a fraction of it. (THE BEFORE-LAUNCH PASS corrected this line: `dly` did NOT split by itself — one child
+per daily, the first-level slices could never fit; THE DEEP SLICES below.)
 
 ## Restore (the owner's steps — the live database is NEVER restored by a script)
 
@@ -102,3 +103,23 @@ a part over the limit split + restored whole, THE REAL SIZE — `SEED=<players>`
 ## CITY I (Nov 18) — two new nodes
 `seen` (SECOND ACCOUNTS — hashed addresses, 14 days) = **LIVE** (never DURABLE with addresses); `nocount` (DON'T COUNT — the owner's decisions, no
 address in it) = **DURABLE**. `api/_lib/backup-pure.js` — `tests/backup.test.mjs`.
+
+## THE DEEP SLICES (THE BEFORE-LAUNCH PASS, Nov 22 — review-nov15 A6)
+A part over the limit used to be sliced by a hash of its FIRST-LEVEL keys: `dly` has one child per daily (five now), `lb` one per board,
+`backups` one per reset — once ONE child alone passed the 4.5 MB answer limit its slice could never fit, and the backup would fail every
+night from then on. Now (`api/_lib/backup-pure.js#unitsOf` · `sliceTree` · `deepMerge`, `api/_lib/backup.js#exportPart`):
+- a slice is made of the node's DEEP UNITS — its branches at a fixed depth (`UNIT_DEPTH`: `dly/<game>/<day>/<field>` = 4, `lb/<board>/<scope>`
+  = 3, `backups/<stamp>` = 2, everything else 1), any branch still over `UNIT_MAX_RAW` (512 KB of JSON) descended further — each unit to
+  slice `fnv1a(its path) % k`: the same units on every request (the database is live), a slice = a partial tree;
+- the 409's `k` is CHECKED to fit (every slice packed under the limit, else more slices, up to 64; none fits → 507 `too_big`, a unit
+  alone too big — raise its depth);
+- ONE read of the node serves its slices on a warm function (a 2-min snapshot) — no longer k + 1 reads of the whole node a night;
+- the restore merges a split node's parts ALL THE WAY DOWN (`deepMerge` — `restoreToEmulators` + `restore-emulators.mjs --json`); an old
+  backup's first-level slices merge the same way.
+- **The fetchers are unchanged** (`fetch.sh` / `fetch.ps1` in the private repo + the mini PC: the same `?backup=<node>&slice=i/k` and
+  `<node>@<i>of<k>.json.gz` names) — nothing for the owner to copy.
+- **The Spark maths:** CITY E's 4,000 seeded players = 1.70 MB gzipped a night (`dly` 1.12 MB of it); `dly` grows with every day played.
+  The download is now ~1× the node a night per copy (two copies) — ~3.4 MB a night ≈ 0.1 GB a month of Spark's 10 GB.
+- Tests: `tests/backup.test.mjs` "THE DEEP SLICES" (every unit in exactly one slice, merged back exactly, a giant branch descended) +
+  `tests/integration/backup.test.mjs` (a FAT `dly` — three children each ~18 KB gzipped at a 12 KB limit: every slice under it, restored
+  whole; red on the old code).

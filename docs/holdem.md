@@ -994,3 +994,12 @@ CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines 
 
 - HOLD'EM: the engine PURE + DETERMINISTIC; THE SERVER IS THE DEALER (the deck only in `hrec/{CODE}`); PLAY CHIPS ONLY — no money words;
   ANIMATIONS COME FROM THE STATE; THE PORTRAIT IS UNTOUCHED by sideways CSS → docs/holdem.md (moved).
+
+## THE TABLE IS NEVER TAKEN AWAY (THE BEFORE-LAUNCH PASS, Nov 22 — console-fix item 2)
+A host moving the room on mid-table (a new match, a REMATCH, the room back to its lobby) no longer pulls an honest player off the dealer's
+live table: HOLD'EM's view answers `holdsRun()` (forwarded by `games/lazy-view.js`; app.js's RUN HOLD keeps the screen on a frozen state)
+while this phone is SEATED, NOT OUT, at a table the dealer has not ended — LATCHED from the last table it showed as its match (the room's
+game + its table go in separate events and the router asks in between). While held the table is read by the view's OWN listener
+(`rooms/{CODE}/holdem` — the held state's `live` is frozen); the dealer's own end (`pub.ended`) or this seat going out lets the phone follow
+the room (kit/run-hold.js#createRouterPing). The dealer plays on as ever (the server). e2e-holdem FAST: the room back to its lobby
+mid-hand → every phone at the table on its own listener, the dealer's moves seen (seq 2 → 21), the room back → nothing held.

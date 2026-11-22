@@ -8,7 +8,7 @@ export * from './meta.js';
 // js/trivia/ (the shared feed: The Trivia API → Open Trivia DB → the bundled bank) stays exactly as it is for HIGH STAKES, LAST SIGNAL, BLUFF …
 // — OVERCLOCK imports nothing from it (tests/overclock-oc7.test.mjs).
 import { state } from '../../store.js';
-import { serverNow, update as dbUpdate, dbRef } from '../../firebase.js';
+import { serverNow, serverTimestamp, update as dbUpdate, dbRef } from '../../firebase.js';
 import { isOnline } from '../../core/room-logic.js';
 import { usedOf } from '../kit/night.js';
 import { dealMatch, DEALT, orderFor } from './deal.js';
@@ -140,6 +140,9 @@ export const step = (game, { code, now, live, online }) => {
     }
     if (Object.keys(rv).length) patch[`rv/${ck}`] = rv;
   }
+  // (THE BEFORE-LAUNCH PASS — the fresh-eyes review H4: the challenge's START stamped by the SERVER beside the host's own playStartAt — the
+  //  re-grade holds every finisher's clock to it, never only to the host's word — regrade.js; the rules: game/ps/{ci} === now)
+  if (patch && game.phase === 'ready' && patch.phase === 'play') patch[`ps/${game.ci}`] = serverTimestamp();
   return patch;
 };
 

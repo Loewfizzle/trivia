@@ -212,7 +212,19 @@
           }
         },
         "game": {
-          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid"
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid",
+          "out": {
+            "$uid": {
+              "at": {
+                ".validate": "newData.isNumber() && newData.val() <= now + 5000"
+              }
+            }
+          },
+          "ps": {
+            "$ci": {
+              ".validate": "newData.isNumber() && (newData.val() === now || (data.exists() && newData.val() === data.val()))"
+            }
+          }
         },
         "boards": {
           ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
@@ -287,7 +299,7 @@
             ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists() && newData.parent().parent().child('game/matchId').val() !== $match && !(root.child('rooms/' + $code + '/night/' + $match + '/at').isNumber() && root.child('rooms/' + $code + '/night/' + $match + '/at').val() > now - 600000)",
             "$c": {
               "$uid": {
-                ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'overclock' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/ck').val() === $c && root.child('rooms/' + $code + '/game/phase').val() === 'play' && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && !(data.child('done').val() === true) && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists()",
+                ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/game/id').val() === 'overclock' && root.child('rooms/' + $code + '/game/matchId').val() === $match && root.child('rooms/' + $code + '/game/ck').val() === $c && root.child('rooms/' + $code + '/game/phase').val() === 'play' && root.child('rooms/' + $code + '/game/participants/' + $uid).exists() && !(data.child('done').val() === true) && root.child('rooms/' + $code + '/game/unseal/oc').val() !== $c && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists()",
                 ".validate": "newData.hasChildren(['p', 'ok', 'n', 'done', 'at']) && newData.child('ok').val() <= newData.child('p').val() && newData.child('p').val() <= newData.child('n').val()",
                 "p": {
                   ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 12"

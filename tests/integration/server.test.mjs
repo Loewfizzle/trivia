@@ -1515,22 +1515,26 @@ test('THE BEFORE-LAUNCH PASS — HOST TRUST: PRISM DROP\'s board cap + the bound
   assert.equal(o2[await pidOf2(U[1])].win, false, 'past the bound: no win');
   assert.equal(o2[await pidOf2(U[0])].win, true, 'the honest player wins');
   assert.notEqual(await val(`lb/prism-rush/all/${await pidOf2(U[1])}`), big, 'and never that record');
-  // (3) PRISM BATTLE — the host put the rival out while her board still said `play`, saved a second before → a sealed wreck
+  // (3) PRISM BATTLE — the host put the rival out while her board still said `play`, saved a second before → refused (a plain 409 — the
+  //     fresh-eyes review: never sealed, a rival could cause one) + the quiet count
   tick(60_000);
   const B = await seedRoom('prism', U);
   const outAt = (await val(`rooms/${B.code}/game/out/${U[1]}/at`));
   await ref(`rooms/${B.code}/prism/${B.matchId}/${U[1]}`).set({ st: 'play', at: outAt - 1000, sc: 100, ln: 2 });
   await rejects(report(U[0], B), 409, 'mismatch');
-  const w = await val(`results/${B.code}_${B.matchId}`);
-  assert.ok(w && w.st === 'done' && /live board/.test(w.bad), `sealed as a wreck (${JSON.stringify(w)})`);
-  assert.equal((await report(U[1], B, clock, { matchId: B.matchId })).outcome, null, 'every later report: nothing');
+  assert.equal(await val(`results/${B.code}_${B.matchId}`), null, 'nothing paid, nothing sealed');
   assert.ok(((await val('logstats/wreck')) || {}).n >= 1, 'the quiet count');
-  // (4) OVERCLOCK — the host lowers the rival's right answers in one challenge → refused (the re-grade), sealed
+  // (4) OVERCLOCK — the host lowers the rival's right answers in one challenge → refused (the re-grade)
   tick(60_000);
   const O = await seedRoom('overclock', U, { mode: 'quick' });
   await ref(`rooms/${O.code}/game/results/3/${U[0]}/ok`).set(1);
   await rejects(report(U[1], O), 409, 'mismatch');
-  assert.match((await val(`results/${O.code}_${O.matchId}`)).bad, /overclock: the right answers \(challenge 4\)/);
+  assert.equal(await val(`results/${O.code}_${O.matchId}`), null);
+  // (the fresh-eyes review H4) — the host moves the RIVAL's clock to 0 to push her under THE HUMAN FLOOR: the server's own start refuses it
+  tick(60_000);
+  const O4 = await seedRoom('overclock', U, { mode: 'quick' });
+  await ref(`rooms/${O4.code}/game/tm/0/${U[0]}`).set(0);
+  await rejects(report(U[1], O4), 409, 'mismatch');
   // …and his own points up — refused
   tick(60_000);
   const O2 = await seedRoom('overclock', U, { mode: 'quick' });
@@ -1541,18 +1545,15 @@ test('THE BEFORE-LAUNCH PASS — HOST TRUST: PRISM DROP\'s board cap + the bound
   const O3 = await seedRoom('overclock', U, { mode: 'quick' });
   const r3 = await report(U[0], O3);
   assert.equal(r3.status, 'counted'); assert.equal(r3.outcome.win, true);
-  // (5) THE SNAPSHOT's QUICK MOVE-ON: the host walks the room back 1 s after the final, before anyone reported → never paid from the placings
-  tick(60_000);
-  const S = await seedRoom('overclock', U, { mode: 'quick' });
-  const nightAt = (await val(`rooms/${S.code}/night/${S.matchId}/at`));
-  await ref(`rooms/${S.code}`).update({ game: null, 'meta/status': 'lobby', 'meta/back': { at: nightAt + 1000, m: S.matchId, g: 'overclock', rm: true } });
-  await rejects(report(U[1], S, clock, { matchId: S.matchId }), 409, 'mismatch');
-  // …a walk back after the podium (≥ 5 s) with nobody's report yet: the placings, as before
-  tick(60_000);
-  const S2 = await seedRoom('overclock', U, { mode: 'quick' });
-  const n2 = (await val(`rooms/${S2.code}/night/${S2.matchId}/at`));
-  await ref(`rooms/${S2.code}`).update({ game: null, 'meta/status': 'lobby', 'meta/back': { at: n2 + 30_000, m: S2.matchId, g: 'overclock', rm: true } });
-  assert.equal((await report(U[0], S2, clock, { matchId: S2.matchId })).status, 'counted');
+  // (5) THE SNAPSHOT (the fresh-eyes review H1): the room moved on before anyone reported — a host-graded match of 2+ is NEVER paid from the
+  //     night record's placings (the host's own), however long after; the honest host's move-on waits for its own report (host.js#settleFinal)
+  for (const after of [1000, 30_000]) {
+    tick(60_000);
+    const S = await seedRoom('overclock', U, { mode: 'quick' });
+    const nightAt = (await val(`rooms/${S.code}/night/${S.matchId}/at`));
+    await ref(`rooms/${S.code}`).update({ game: { matchId: 'zzzz', go: 9e15 }, 'meta/status': 'lobby', 'meta/back': { at: nightAt + after, m: S.matchId, g: 'overclock', rm: true } });
+    await rejects(report(U[1], S, clock, { matchId: S.matchId }), 409, 'mismatch');
+  }
   tick();
 });
 
@@ -1603,19 +1604,19 @@ test('FR7 FIXES B — A SEAT IS NOT A PLAY: a seated guest who wrote nothing get
 // FR7 FIXES B — A RE-START KEEPS THE LAST MATCH's PROOF (Grok's honest-player review): match A ends, the host starts a REMATCH (B), and A's
 // report lands late through the snapshot path — the room keeps A's proof nodes (host.js#pruneProofs keeps the previous match), so everyone in A
 // is credited
-test("FR7 FIXES B — a REMATCH started before A's report landed: A still credits everyone (its proof kept)", async () => {
+test("FR7 FIXES B → THE BEFORE-LAUNCH PASS — a REMATCH started before A's report landed: a host-graded match is no longer paid from the snapshot (the host's own placings); the honest host's REMATCH waits for its own report first", async () => {
   const { XP } = await import('../../js/core/ranks.js');
   await ensure('u-rm1', 'REMONE'); await ensure('u-rm2', 'REMTWO');
   const A = await seedRoom('prism', ['u-rm1', 'u-rm2']);
   // the rematch: a new match B is running; A's game blob is gone, its night record + its proof nodes stay
   const B = finalGame('prism', ['u-rm1', 'u-rm2'], {}); B.matchId = 'mB' + A.matchId.slice(2); B.phase = 'play'; B.go = clock + 30_000;   // (the rematch's start stamp — after A's podium)
   await ref(`rooms/${A.code}`).update({ game: B, 'meta/status': 'playing', [`prism/${B.matchId}`]: { 'u-rm1': { st: 'play', at: clock } } });
-  const r = await report('u-rm2', A, clock, { matchId: A.matchId });
-  assert.equal(r.status, 'counted', `A counted after the rematch began (${r.status})`);
-  const o = (await val(`results/${A.code}_${A.matchId}`)).o;
-  assert.ok(o[await val('uids/u-rm1')] && o[await val('uids/u-rm2')], 'everyone in A credited');
-  const win = Object.values(o).find(x => x.win);
-  assert.ok(win && win.n === 2 && win.xp.gain === XP.played + XP.win + XP.newGame, 'a 2-player win, never a solo run');
+  void XP;
+  await rejects(report('u-rm2', A, clock, { matchId: A.matchId }), 409, 'mismatch');
+  assert.equal(await val(`results/${A.code}_${A.matchId}`), null, 'nothing paid from the host\'s own placings');
+  const host = (await import('node:fs')).readFileSync(new URL('../../js/host.js', import.meta.url), 'utf8');
+  assert.match(host, /return settleFinal\(\)\.then\(\(\) => loadGame\(id\)\)/, 'REMATCH waits for this phone\'s own report');
+  assert.match(host, /markMove\(\);\n  await settleFinal\(\);/, 'BACK TO THE ROOM too');
   tick();
 });
 
@@ -2460,12 +2461,10 @@ test('FR7-A C1 — THE REAL PLAYER COUNT: the 5,001-name forgery is refused; gho
   const p16 = { 'u-fg1': 3 };
   for (let i = 0; i < MAX_REPORT_NAMES - 1; i++) p16[`gh${i}`] = i === 0 ? 2 : i === 1 ? 1 : 0;
   const B = await forge('u-fg1', 'FRGB', 'm02', p16);
-  const rb = await report('u-fg1', B, clock, snapOf(B));
-  assert.equal(rb.status, 'counted');
-  assert.equal(rb.outcome.win, false, 'ghosts are nobody to beat: never a win');
-  assert.equal(rb.outcome.n, 1, 'the count = the real players');
-  assert.equal(rb.outcome.xp.gain, SOLO_XP, `the forgery pays a solo run's XP (${rb.outcome.xp.gain})`);
-  assert.deepEqual((await stats('u-fg1')).g.prism, { p: 1 }, 'a played game, no win on the career board');
+  // (THE BEFORE-LAUNCH PASS — HOST TRUST: a host-graded record of 2+ names on the snapshot path pays NOTHING now — it was a solo run's XP)
+  await rejects(report('u-fg1', B, clock, snapOf(B)), 409, 'mismatch');
+  void SOLO_XP;
+  assert.equal((await stats('u-fg1'))?.xp || 0, 0, 'the forgery pays nothing');
   assert.equal(await levelOf('u-fg1'), 1, 'still LEVEL 1');
   // …and a game that doesn't play solo is refused outright (nobody else was there)
   tick();
@@ -2511,13 +2510,7 @@ test('FR7-A C1 — THE REAL PLAYER COUNT: the 5,001-name forgery is refused; gho
   const o8 = await paid(await seedRoom('prism', eight), eight, 8);
   assert.equal(o8.find(x => x.win).xp.gain, XP.played + XP.win + 6 * XP.winPerExtra + XP.newGame, 'an 8-player win: 131 XP, as before');
   assert.equal(o8.find(x => x.rank === 2).xp.gain, XP.played + XP.second + 5 * XP.secondPerExtra + XP.newGame, 'its 2nd place: 90 XP, as before');
-  // the snapshot path too (the room moved on before the report): a real 2-player match, placings only — the same win
-  const snap2 = ['u-rs1', 'u-rs2'];
-  for (const u of snap2) await ensure(u, u.slice(2).toUpperCase());
-  const S = await seedRoom('prism', snap2);
-  await ref(`rooms/${S.code}`).update({ game: null, 'meta/back': { at: clock + 30_000, m: S.matchId, g: 'prism', rm: true } });   // (the walk back after the podium)
-  const os = await paid(S, snap2, 2, snap2[0], snapOf(S));
-  assert.equal(os.find(x => x.win).xp.gain, XP.played + XP.win + XP.newGame, 'the snapshot path: a 2-player win pays the same 95');
+  // (the snapshot path for a host-graded game of 2+: never paid now — THE BEFORE-LAUNCH PASS, the room path's checks need the final game)
   // a player who LEFT after the match (no seat now, an account the server knows) still counts: the winner of three keeps the 3-player win
   const three = ['u-rl1', 'u-rl2', 'u-rl3'];
   for (const u of three) await ensure(u, u.slice(2).toUpperCase());

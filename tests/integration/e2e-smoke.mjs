@@ -113,6 +113,9 @@ async function backToLobbyNow(id) {
   const back = s => !s.game || s.meta.status === 'lobby', guest = pages[1];
   for (let attempt = 1; attempt <= 3; attempt++) {
     const hp = await hostNow(`${id}: back to lobby`);
+    // (THE BEFORE-LAUNCH PASS — THE TABLE IS NEVER TAKEN AWAY: a seated HOLD'EM guest stays at a live table through a moved-on room — the honest
+    //  host ends the table through the dealer first, ☰ END GAME, as the menu does)
+    if (id === 'holdem' && attempt === 1) { await hp.evaluate(() => Promise.all([import('/js/games/holdem/index.js'), import('/js/store.js')]).then(([m, st]) => m.endGame({ code: st.state.code }))).catch(e => log('NOTE', `endGame threw: ${e.message}`)); await waitFor(guest, s => !!(s.live && s.live.table && s.live.table.m && /"ended":true|ended/.test(JSON.stringify(s.live.table.m))), 'the dealer ended the table', 15000).catch(() => {}); }
     await hp.evaluate(() => import('/js/host.js').then(m => m.backToLobby())).catch(e => log('NOTE', `backToLobby threw: ${e.message}`));
     try { await waitFor(guest, back, `${id}: back to lobby`, 30000); if (attempt > 1) log('NOTE', `${id}: back in the lobby on attempt ${attempt}`); return; }
     catch {

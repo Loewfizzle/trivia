@@ -1099,3 +1099,21 @@ keep them. STANDARD + MARATHON: XP as ever, no board. The old three (`overclock-
 (`core/boards.js#RETIRED_BOARDS` — no definition: never written, never shown; their rows stay in the database). THE SEED: /admin's BACK-FILL
 starts each BEST QUICK RUN from the player's old QUICK · SOLO best (`core/board-fill.js#seedOcQuick` — idempotent). Tests:
 `tests/city-part1-overclock.test.mjs`, `server.test.mjs` "OVERCLOCK = ONE BOARD", `profiles.test.mjs`.
+
+## THE SERVER's RE-GRADE (THE BEFORE-LAUNCH PASS, Nov 22 — docs/match-kit.md "HOST TRUST")
+`games/overclock/regrade.js#ocRegrade` (PURE; `api/report.js` runs it on the room path with the pools from `api/_lib/oc-banks.js` — the
+same built files the phones fetch, each by its literal URL): every challenge of the final game rebuilt exactly as the host's director did —
+`grade.js#gradeRoom` from the seed + the deal + the SEALED picks (`seal/{CODE}/oc/{m}/{ci}/{uid}`), then `logic.js#computeResults` over the
+players' own boards. A result that disagrees refuses the match (409 'mismatch', THE SEALED WRECK): **`ok`** = min(the board, the graded
+picks) (a pool the server can't read = held only to the board); **`pts`** from that ok + the board's server-stamped `doneAt` + the
+challenge's start, read back from the host's FASTEST clock `tm/{ci}` (ONE start for EVERY finisher, a clamped 0 / 30 s too; the half-ms
+rounding window) and held within `PS_SLACK_MS` (1.5 s) of the SERVER's own stamp `game/ps/{ci}` (index.js#step writes it at the challenge's
+open — the rules: === now; an old host's match has none)
++ THE HUMAN FLOOR's `fl`; CLOSEST CALL's bonus from everyone's re-graded guesses; DUMB LUCK = its race replayed (`luck.js#dlVerify`).
+**THE ONE RACE ALLOWED:** an old phone's last pick in a write of its own after its board's done → that player's ok may be one part under
+the server's grade (the host saw the board first). **The picks now ride the board's own write** (view.js — one atomic write). **STILL
+ACCEPTED (named):** the 7 self-graded types (signal lock, memory, unscramble, missing link, higher or lower, compass, rewire — the phone's
+own ok, the server checks only that the host copied it); the start within 1.5 s of the server's stamp is the host's; DUMB LUCK is the
+host's draw; a host who WIPES the seal before reporting gets the boards' own ok (that match self-graded — the seal's lock reads the host's
+game/id); a pool missing a dealt item = blind for that challenge (held to the board). A deploy that edits a pool item mid-night could refuse that night's matches dealt from it (the deal
+names item ids). THE REPORT LOCK: `oc/{match}` + `ocm/{match}` as PRISM's; the OVERCLOCK seal kept while its match is the room's game.

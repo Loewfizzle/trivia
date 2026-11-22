@@ -303,12 +303,15 @@
     // (MEASURED — docs/harbor.md "THE FIRST-VISIT BUNDLE": one file wins on a SLOW line (Slow 4G −2.2 s), loses on a fast one (4G +0.4 s: the
     //  modules compile while they download): the bundle only where the browser's own line estimate says slow — or ?bundle=1)
     var C = navigator.connection, slow = !!C && (!!C.saveData || /2g|3g/.test(C.effectiveType || '') || (C.downlink > 0 && C.downlink < 2 && C.rtt >= 150));
-    try { first = (slow || /[?&]bundle=1(&|$)/.test(location.search)) && !(navigator.serviceWorker && navigator.serviceWorker.controller) && !/[?&]nobundle(=|&|$)/.test(location.search) && !!(W.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap') && W.fetch && W.Blob && W.URL && URL.createObjectURL && W.TextDecoder && W.ReadableStream); } catch (e) { first = false; }
+    // (the fresh-eyes review M4: a tab whose boot already failed — the watchdog's own reload, ns:boot-re — never takes the bundle again)
+    var again = false; try { again = !!W.sessionStorage.getItem('ns:boot-re'); } catch (e) { /* no session storage */ }
+    try { first = !again && (slow || /[?&]bundle=1(&|$)/.test(location.search)) && !(navigator.serviceWorker && navigator.serviceWorker.controller) && !/[?&]nobundle(=|&|$)/.test(location.search) && !!(W.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap') && W.fetch && W.Blob && W.URL && URL.createObjectURL && W.TextDecoder && W.ReadableStream); } catch (e) { first = false; }
     if (!first) { done(modules('')); }
     else {
       var B = W.__nsBundle = { at: Date.now(), grew: 0, bytes: 0 }, T0 = Date.now(), quiet = 0, rd = null;
-      var dog = setInterval(function () { if (B.grew && Date.now() - B.grew > 8000 && rd) { try { rd.cancel(); } catch (e) { /* gone */ } } }, 1000);
-      fetch('boot-bundle.json').then(function (r) {
+      var ab = W.AbortController ? new AbortController() : null;
+      var dog = setInterval(function () { var t = B.grew || B.at; if (Date.now() - t > 8000) { if (rd) { try { rd.cancel(); } catch (e) { /* gone */ } } else if (ab) ab.abort(); } }, 1000);
+      fetch('boot-bundle.json', ab ? { signal: ab.signal } : undefined).then(function (r) {
         if (!r.ok || !r.body) throw new Error('the bundle: ' + r.status);
         rd = r.body.getReader(); var dec = new TextDecoder(), parts = [];
         B.grew = Date.now();

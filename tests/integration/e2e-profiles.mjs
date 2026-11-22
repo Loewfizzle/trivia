@@ -72,6 +72,7 @@ await H.run(async () => {
   //  player's own challenge board — A SEAT IS NOT A PLAY — written here as the players would have)
   // (CITY PART 1 — OVERCLOCK = ONE BOARD: a QUICK match carries the record — BEST QUICK RUN — its plaque; a STANDARD one has no board now)
   const game = finalGame('overclock', [uids[0], uids[1]], { matchId: `e2e${Date.now().toString(36).slice(-6)}`, mode: 'quick' });
+  delete game.ps;   // (THE BEFORE-LAUNCH PASS: the server stamps a challenge's start — a phone can't write the fixture's own times)
   // (OVERCLOCK's podium = THE VICTORY, after the last challenge's beats + THE FINAL STANDINGS, timed from the phase's start: the phase began
   //  40 s ago, so the victory is up at once; the host's director ends 'final' at phaseEndsAt — 90 s away)
   // (CITY PART 1: ONE BOARD for solo + room — ALICE's room run is 600 (100 a challenge, still 1ST), so step 7's SOLO 720 is her new best;
@@ -215,7 +216,7 @@ await H.run(async () => {
   // trophies) …; ACCOUNT at the foot (EDIT PROFILE · YOUR KEY · the birthday · the opt-out); no BOARD button on the profile
   const lay = await p3.evaluate(() => { const sc = document.querySelector('.pf-scroll'), kids = [...sc.children].filter(k => !k.matches('.pf-knock-slot'));   /* (CITY I: CITY C's KNOCK slot sits between the card + CUSTOMIZE by design — a waiting request's card right under YOURS) */ const at = sel => kids.findIndex(k => k.matches(sel) || !!k.querySelector(sel));
     return { card: at('.pf-card-slot'), cz: at('.pg-cz'), prog: at('.pg-prof'), mast: at('.pf-mastery'), acc: at('.pf-account'), board: [...sc.querySelectorAll('button')].some(b => /^THE BOARD$/.test(b.textContent.trim())), edit: !sc.querySelector('.pf-account .pf-er-name, .pf-account .pf-edit'),
-      goal: !!document.querySelector('.pg-prof .pf-goal-t'), old: /NOT PLAYED YET|MEMBERSHIP/.test(document.querySelector('.pf-screen').textContent), menu: (() => { const m = document.querySelector('.menu-btn'); return !!m && getComputedStyle(m).display !== 'none'; })(),
+      goal: !!document.querySelector('.pg-prof .pf-goal-t'), old: /NOT PLAYED YET|MEMBERSHIP/.test([...document.querySelectorAll('.pf-screen .fr-tl')].reduce((t, r) => t.replace(r.textContent, ''), document.querySelector('.pf-screen').textContent)),   /* (THE BEFORE-LAUNCH PASS: the TODAY table's own rows — .fr-tl, "NOT PLAYED YET" for a daily you haven't played today — are not the retired stats) */ menu: (() => { const m = document.querySelector('.menu-btn'); return !!m && getComputedStyle(m).display !== 'none'; })(),
       kidsSeen: kids.map(k => k.className.split(' ')[0]).join(' '), medals: document.querySelectorAll('.pg-trophies .pg-medal').length, chips: document.querySelectorAll('.pg-trophies .pg-rw[data-id]').length }; });
   ok(lay.card === 0 && lay.cz === 1 && lay.prog > lay.cz && lay.mast > lay.prog && lay.acc > lay.mast && !lay.board && lay.edit && lay.medals >= 2 && lay.chips >= 2 && lay.goal && !lay.old && !lay.menu,
     `THE PROFILE (LOBBY 2.0 A): the card (${lay.card}) → CUSTOMIZE YOUR CARD (${lay.cz}) → the sections + THE GOAL TILE (${lay.prog}, ${lay.goal}) → MASTERY (${lay.mast}) → ACCOUNT (${lay.acc}); no BOARD button, no NOT PLAYED YET / MEMBERSHIP (${!lay.old}), no ☰ on the page (${!lay.menu}); ${lay.medals} trophies with ${lay.chips} reward chips${lay.cz === 1 ? '' : ` [${lay.kidsSeen}]`}`);

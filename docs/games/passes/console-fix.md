@@ -72,6 +72,8 @@ Fixed (cheap, fits Group 1's rule):
   count (409 `mismatch` — `api/report.js#DROP_GUARD`). `server.test.mjs` "THE DROPPED LEADER (PRISM DROP + OVERCLOCK)".
 
 NOT fixed — ranked by real risk (the site has little traffic: family rooms, a host you know — that lowers the urgency of every one):
+**→ THE BEFORE-LAUNCH PASS (Nov 22 — docs/match-kit.md "HOST TRUST"): items 1, 2, 3 + 6 FIXED (+ OVERCLOCK's re-grade); 4 + 5 stay the
+accepted limits (their big fixes); 7 your call, as before.**
 1. **PRISM DROP + OVERCLOCK — a forged result at `final` · MEDIUM in kind, LOW urgency.** Their results are HOST-AUTHORED (report.js takes
    the host's `game` + night; the bounds only gate RECORDS). The owner's standing call: "the host stays trusted (a cheater must be the
    host)" (docs/harbor/passes/fr7-fixes-a.md). Fixes: PRISM rush — cap a row's score at the player's own board (S); PRISM battle / survival

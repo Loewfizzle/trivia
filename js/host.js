@@ -390,13 +390,16 @@ if (typeof globalThis !== 'undefined') globalThis.__nsPlayNow = Object.freeze({ 
 // Same game, same settings, everyone currently connected (late joiners included).
 // (LOBBY 2.0 B — THE REMATCH RING: back in the room the match is gone (game: null) — the game it replays is meta/back's)
 /** a same-game REMATCH. inPlace (CITY G — the end screen's bar): the 'r' start, no city / room / walk; the room's ring: the QUICK walk-in */
+// (THE BEFORE-LAUNCH PASS — HOST TRUST: the server checks a host-graded match only while it is the room's game — the honest host's REMATCH /
+//  BACK first lets this phone's own report of the podium's match land, ≤ 6 s; profile/queue.js#settle)
+const settleFinal = () => { const g = state.game; return g && g.phase === 'final' && g.matchId && state.code ? lazyImport(import('./profile/queue.js'), './profile/queue.js').then(q => q.settle(q.matchKey(state.code, g.matchId), 6000)).catch(() => {}) : Promise.resolve(); };
 export function rematch({ inPlace = false } = {}) {
   const back = state.meta && state.meta.back;
   if (!hostWriteOk() || !(state.game || (back && back.g))) return Promise.resolve(false);
   markMove();
   const id = state.game ? state.game.id : back.g;
   const game = state.game;
-  return loadGame(id).catch(() => null).then(mod => {   // (SHELL 2.0 B1: the cartridge's rematchSettings — loaded, it's in the tab already)
+  return settleFinal().then(() => loadGame(id)).catch(() => null).then(mod => {   // (SHELL 2.0 B1: the cartridge's rematchSettings — loaded, it's in the tab already)
     const settings = (state.meta.settings && state.meta.settings[id]) || (game && game.settings) || (mod && mod.DEFAULT_SETTINGS) || (metaOf(id) || {}).DEFAULT_SETTINGS || {};
     return startGame(id, rematchSettingsOf(mod, settings, game), { quick: true, inPlace: inPlace && !!(state.game && state.game.phase === 'final') });
   });   // (THE CARTRIDGE PLUG: a game may adjust its rematch)   // (LOBBY FIXES: the QUICK start)
@@ -440,6 +443,7 @@ async function pruneProofs(code, keep) {
 export async function backToLobby() {
   if (!hostWriteOk() || !state.code) return;   // (CITY PART 1: the one host-write gate)
   markMove();
+  await settleFinal();
   // (FR7 FIXES B: the seal + the proof nodes stay until the next start — a late report still finds them)
   const g = state.game;
   // (LOBBY 2.0 B — AFTER THE MATCH: the walk back out, THE WINNER's BANNER PLANE + the REMATCH ring all read this stamp — core/room-show.js.

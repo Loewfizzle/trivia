@@ -681,7 +681,7 @@ SHARE TODAY sends a **LINK** (+ the same line) whose link-preview picture IS the
   ≤ 400 KB → a server-made 12-char code; ONE card a player a day (FIXES R1: under ONE code for the day — a re-share replaces its picture). Stored server-only: `shr/{code}` = { p, d, g, n, at, img }
   · `shrx/{day}/{code}` = pid (the sweep's index) · `shrp/{pid}/{day}` = code. `GET ?s=<code>` = the preview page (og:title `<NAME> · <DAILY> ·
   <day>` — the public name, ONE daily's name or THE DAILIES, "Nov 15"; og:image `?si=`; summary_large_image; → `/?daily=1`); `GET ?si=<code>` = the PNG,
-  `s-maxage` 1 h (FIXES R1 — was 7 days + immutable); an unknown / expired code → `/` (the picture → `/assets/og.jpg`). THE DAY'S CLOSE sweeps cards past 7 days
+  `s-maxage` 1 h (FIXES R1 — was 7 days + immutable); an unknown / expired code → `/` (the picture → `/assets/og.jpg`). THE DAY'S CLOSE sweeps cards past KEEP_DAYS (3 since THE BEFORE-LAUNCH PASS — was 7)
   (`sweepShares`, once a day per warm function — no idle poll). /admin → THE DAILIES → SHARE CARDS (list + delete one).
 - **`/?daily=1`** (`js/app.js`): the DAILY screen opens once the city is up (never in a room); the flag dropped from the address at once.
 - **Cost ≈ 3 requests a share** (the upload, the page, the picture — repeated preview fetches are edge hits). Tests: `tests/integration/share-card.test.mjs`
@@ -963,3 +963,18 @@ OVERCLOCK has ONE record board — `overclock-quick` (BEST QUICK RUN, solo or in
 board definition may say `both` (a SOLO run and a ROOM match share it — `match-report.js#soloBoard` keeps the id). A RETIRED board
 (`core/boards.js#RETIRED_BOARDS`) has no definition: the writer + every screen skip it, its rows stay. /admin → THE BOARDS → BACK-FILL now also
 seeds BEST QUICK RUN from the old QUICK · SOLO best (`core/board-fill.js#seedOcQuick`; the preview counts the players — `ocSeed`).
+
+## THE SHARE CARDS — A JPEG, 3 DAYS, ONE ORIGIN (THE BEFORE-LAUNCH PASS, Nov 22 — review-nov15 A4 step 3 + A17)
+- **The link card is a JPEG** (`js/daily/share.js#halfPng` — quality 0.86 at 540 × 675; a browser that can't = the PNG as before): the
+  server takes a WHOLE JPEG (`api/_lib/share-card.js#checkJpeg` — SOI, every segment inside the file, a frame header at the card's exact size
+  before the scan, EOI at the very last byte: a trailing payload refused, as THE WHOLE PNG's rule) or a PNG (a phone on the code before);
+  stored with its type `t` ('j' / 'p'), served + named (`og:image:type`) as it is. The share sheet's own picture stays the full PNG.
+- **Kept 3 days** (`KEEP_DAYS`, was 7). **THE SPARK 1 GB MATHS:** a PNG card was 79–246 KB (~220 KB typical) × 7 days → ~650 daily
+  finishers filled the free plan's 1 GB with cards alone; a JPEG card is ~40–90 KB (~70 KB typical) × 3 days → ~210 KB a daily finisher
+  → **~4,700 daily finishers** before the cards alone reach 1 GB (a run card per counted JAYWALK / HIGH RISE share adds its own, the same
+  size). The purge: THE DAY'S CLOSE sweeps past KEEP_DAYS; /admin → THE DAILIES deletes one; the picture's edge copy ≤ 1 h.
+- **ONE canonical origin** (A17 — `share-card.js#shareBase`): the page's own links (og:url, og:image) are https://www.neonspeakeasy.com —
+  a request's Host header is never echoed into a link preview; localhost (the tests) and this deployment's own Vercel host (VERCEL_URL /
+  VERCEL_BRANCH_URL — a preview) stay themselves.
+- Tests: `tests/integration/share-card.test.mjs` "A4 step 3 + A17" (a JPEG taken + served as JPEG, a padded / cut / wrong-size one
+  refused, gone after 3 days, a forged Host → the canonical origin); `shareGet` takes the clock (the tests' own day).

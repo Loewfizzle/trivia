@@ -307,8 +307,8 @@ export function rushOutOfBounds(game, r) {
  * THE BEFORE-LAUNCH PASS — HOST TRUST for PRISM DROP (docs/games/passes/console-fix.md's ranked list, items 1 + 3 — the owner approved them;
  * docs/prism.md "HOST TRUST"). PURE: the room's final `game` + the players' OWN signed boards (rooms/{CODE}/prism/{matchId} — only each player
  * writes theirs, the rules bound every field by the play clock, frozen once out) → { game, bad, capped, voided }:
- * - SCORE RUSH — THE BOARD CAP: a row's score + lines are never above that player's own board (a host who wrote himself a bigger number gets
- *   his board's; an honest host copies the boards at the end — the score only ever grows, so an honest row is never above it).
+ * - SCORE RUSH — THE BOARD IS THE SCORE: a row's score + lines = that player's own board (the fresh-eyes review: a cap alone let a host
+ *   write a RIVAL's row low; an honest host copies the boards at the end — the score only ever grows).
  * - SCORE RUSH — PAST THE BOUND LOSES THE PLACE (item 3): a row past THE RUSH BOUND (a modified rival's own board can say any number the
  *   rules allow) is ranked with a score of 0 — it loses its win / its placing, not just its record.
  * - BATTLE / SURVIVAL — A LIVE BOARD IS NEVER PUT OUT (item 1): the host put a player out (any place below 1) whose own board still says
@@ -318,16 +318,6 @@ export function rushOutOfBounds(game, r) {
  * against the night record on the ORIGINAL (api/report.js).
  */
 export const PRISM_FRESH_MS = 10_000;
-/** THE BEFORE-LAUNCH PASS — PURE: when the room moved on from `matchId`, by the server's own stamps (the walk back's meta/back { at: now, m },
- *  a rematch's game.go / meta/go { at, m }) — null unknown. api/report.js: a host-graded match of 2+ moved on within SNAP_GRACE_MS of its
- *  night record is never paid from its placings alone (the snapshot path) */
-export function movedOnAt(matchId, game, meta) {
-  const m = meta || {};
-  if (m.back && m.back.m === matchId && typeof m.back.at === 'number') return m.back.at;
-  if (game && game.matchId && game.matchId !== matchId && typeof game.go === 'number') return game.go;
-  if (m.go && m.go.m && m.go.m !== matchId && typeof m.go.at === 'number') return m.go.at;
-  return null;
-}
 export function prismVerify(game, boards) {
   const B = boards && typeof boards === 'object' ? boards : {};
   const mode = game && game.settings && game.settings.mode, uids = Object.keys((game && game.participants) || {});
@@ -336,13 +326,14 @@ export function prismVerify(game, boards) {
   if (mode === 'rush') {
     const res = { ...(game.results || {}) };
     let changed = false;
+    // (the fresh-eyes review, H3: the score + lines ARE each player's own board — a host who wrote a rival's row below it no longer wins by it;
+    //  a row the host left out is the board's too)
     for (const uid of uids) {
-      const r = res[uid]; if (!r) continue;
-      const b = B[uid] || {}, own = { sc: Math.max(0, num(b.sc)), ln: Math.max(0, num(b.ln)) };
-      let x = r;
-      if (num(r.sc) > own.sc || num(r.ln) > own.ln) { x = { ...x, sc: Math.min(num(r.sc), own.sc), ln: Math.min(num(r.ln), own.ln) }; out.capped.push(uid); }
+      const r = res[uid] || {}, b = B[uid] || {}, own = { sc: Math.max(0, num(b.sc)), ln: Math.max(0, num(b.ln)) };
+      let x = res[uid] || null;
+      if (!x || num(r.sc) !== own.sc || num(r.ln) !== own.ln) { x = { ...r, sc: own.sc, ln: own.ln }; out.capped.push(uid); }
       if (rushOutOfBounds(game, x)) { x = { ...x, sc: 0 }; out.voided.push(uid); }
-      if (x !== r) { res[uid] = x; changed = true; }
+      if (x !== res[uid]) { res[uid] = x; changed = true; }
     }
     if (changed) out.game = { ...game, results: res };
     return out;

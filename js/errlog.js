@@ -44,9 +44,9 @@ export function shortStack(stack, origin) {
     .filter(Boolean).slice(0, 5).join('\n'), 700);
 }
 
-// (THE FIRST-VISIT BUNDLE — index.html: a module run from its blob URL → its real URL + line − 1, the bundle's one-line prelude)
+// (THE FIRST-VISIT BUNDLE — index.html: a module run from its blob URL → its real URL; the prelude shares its first line)
 const BL = () => globalThis.__nsBlobs || null;
-const unblob = t => (BL() && t ? t.replace(/(blob:[^\s)]+?):(\d+):(\d+)/g, (x, u, l, c) => (BL()[u] ? `${BL()[u]}:${Math.max(0, l - 1)}:${c}` : x)) : t);
+const unblob = t => (BL() && t ? t.replace(/(blob:[^\s)]+?):(\d+):(\d+)/g, (x, u, l, c) => (BL()[u] ? `${BL()[u]}:${l}:${c}` : x)) : t);
 /** PURE: an error event or rejection reason → { m, s, l, c, k } to report, or null to skip it.
  *  input: { message, filename, lineno, colno, error } (a window 'error' event) or { reason } (an unhandled rejection). */
 export function normalizeError(input, origin) {
@@ -59,7 +59,7 @@ export function normalizeError(input, origin) {
   if (IGNORE.some(re => re.test(m))) return null;
   // the file the error came from: the event's own, else the stack's first frame (THE FIRST-VISIT BUNDLE: a blob's frames → the real file)
   const stack = unblob(err && err.stack ? String(err.stack) : '');
-  if (BL() && BL()[input.filename]) input = { ...input, filename: BL()[input.filename], lineno: Math.max(0, (Number(input.lineno) || 1) - 1) };
+  if (BL() && BL()[input.filename]) input = { ...input, filename: BL()[input.filename] };
   if (extensionNoise(m, stack) || extensionNoise('', input.filename)) return { ext: true };   // (CITY A — item 28: counted, never a row)
   const firstFrame = /(https?:\/\/[^\s)]+?):(\d+):(\d+)/.exec(stack);
   const file = input.filename || (firstFrame && firstFrame[1]) || '';

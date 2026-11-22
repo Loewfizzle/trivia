@@ -33,7 +33,7 @@ import { pidOf } from './_lib/profiles.js';
 import { dedupePids } from '../js/core/progress.js';
 import { applyMatch, wouldApply, needsRetry, mergeOutcomes, MIN_MATCH_GAP_MS } from './_lib/stats.js';
 import { bumpPlayed } from './_lib/activity.js';
-import { extractMatch, unreportable, REPORT_GAMES, DEALER_GAMES, SOLO_OK, prismVerify, movedOnAt } from '../js/core/match-report.js';
+import { extractMatch, unreportable, REPORT_GAMES, DEALER_GAMES, SOLO_OK, prismVerify } from '../js/core/match-report.js';
 import { ocRegrade } from '../js/games/overclock/regrade.js';
 import { ocBank } from './_lib/oc-banks.js';
 import { GAMES, MAX_PLAYERS } from '../js/config.js';
@@ -108,14 +108,9 @@ export { jaywalkSolo, jaywalkMatch };
 export { highriseSolo, highriseMatch };
 /** THE CONSOLE FIX — Group 2: the host-graded games whose result must name every player their own boards prove (THE DROPPED LEADER) */
 export const DROP_GUARD = Object.freeze(['prism', 'overclock']);
-/**
- * THE BEFORE-LAUNCH PASS — HOST TRUST (docs/match-kit.md "WHAT THIS DOES NOT CLOSE", updated): a host-graded match (DROP_GUARD) whose
- * result the server refuses is SEALED AS A WRECK — results/{key} done with nobody's outcome (+ the quiet count logstats/wreck): a refusal
- * can never be followed by a later report that slips through another path (the snapshot's placings, after the host moved the room on).
- * A wreck, never a win. → throws 409 'mismatch'.
- */
-export const SNAP_GRACE_MS = 5000;
-export { movedOnAt };   // (PURE — core/match-report.js: when the room moved on from a match, by the server's own stamps)
+/** THE BEFORE-LAUNCH PASS — HOST TRUST (docs/match-kit.md "HOST TRUST"): a host-graded match (DROP_GUARD) the server refuses is a 409
+ *  'mismatch' + the quiet count logstats/wreck — and (the fresh-eyes review, H1) such a match of 2+ is NEVER paid from the snapshot path: its
+ *  checks need its final game, and the night record's placings are the host's own */
 export const PROOF_GAMES = Object.freeze({
   jaywalk: Object.freeze({ node: 'jw', solo: jaywalkSolo, match: jaywalkMatch, live: jaywalkLive }),
   highrise: Object.freeze({ node: 'hr', solo: highriseSolo, match: highriseMatch, live: highriseLive }),
@@ -338,12 +333,10 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   } else if (body.snap && typeof body.snap === 'object' && body.snap.matchId === matchId) {
     // the room moved on (a rematch): the PLACINGS from the night record only — never a client's game blob
     if (!(night.p && Object.prototype.hasOwnProperty.call(night.p, uid))) throw new ApiError(403, 'not_in_match');
-    // THE BEFORE-LAUNCH PASS — HOST TRUST: a host-graded match of 2+ moved on before anyone could report it (the honest phones report the
-    // moment it ends; the checks above need its final game) — never paid from the placings alone: a wreck. (A solo run is its own host.)
-    if (DROP_GUARD.includes(night.g) && Object.keys(night.p || {}).length >= 2) {
-      const moved = movedOnAt(matchId, game, meta);
-      if (moved == null || moved - night.at < SNAP_GRACE_MS) await wreck(key, uid, now, moved == null ? 'moved on (no stamp)' : 'moved on before its report');
-    }
+    // THE BEFORE-LAUNCH PASS — HOST TRUST (the fresh-eyes review, H1): a host-graded match of 2+ is never paid from the placings alone —
+    // the checks above need its final game (the honest phones report the moment it ends; the honest host's move-on waits for its own
+    // report — host.js#settleFinal). A solo run is its own host.
+    if (DROP_GUARD.includes(night.g) && Object.keys(night.p || {}).length >= 2) await wreck(key, uid, now, 'the snapshot (moved on before any report)');
     ex = placingsOnly(night); src = 'snap';
   } else {
     throw new ApiError(409, 'unverifiable', 'This match can’t be checked against its room any more.');
@@ -407,10 +400,10 @@ export async function processReport(uid, body, now = Date.now(), ip = '') {
   return credit({ key, uid, myPid, ex, pids, now, room: { code, meta, win }, at, src });
 }
 
-/** (THE BEFORE-LAUNCH PASS — HOST TRUST: SNAP_GRACE_MS above) a refused host-graded match sealed as a wreck — results/{key} done with nobody's outcome + logstats/wreck → 409 */
+/** (THE BEFORE-LAUNCH PASS — HOST TRUST) a refused host-graded match: the quiet count logstats/wreck, then 409 — never sealed (the fresh-eyes
+ *  review, M3: a refusal a modified RIVAL can cause must stay a plain answer, never final for everyone) */
 async function wreck(key, uid, now, why) {
   console.warn('host-graded match refused', key, why);
-  await ref(`results/${key}`).transaction(cur => (cur && cur.st === 'done' ? undefined : { st: 'done', at: now, by: uid, o: {}, bad: String(why).slice(0, 80) })).catch(() => {});
   await ref('logstats/wreck').transaction(cur => ({ n: ((cur && cur.n) || 0) + 1, last: now })).catch(() => {});
   throw new ApiError(409, 'mismatch', 'The results don’t match the players’ own boards.');
 }

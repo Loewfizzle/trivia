@@ -48,13 +48,14 @@ export function finalGame(id, uids, opts = {}) {
       //  the FASTEST clock tm; a player in opts.noProof wrote no board (0 everywhere). opts.ocPts = a FORGED first player's points)
       const total = opts.mode === 'quick' ? 6 : 12;
       const order = ['unscramble', 'memory', 'oddone', 'math', 'pattern', 'trivia', 'stroop', 'reflex', 'count', 'truefalse', 'rewire', 'compass'].slice(0, total);
-      const g = { ...base, seed: `fixture-${base.matchId}`, settings: { mode: opts.mode || 'standard' }, total, order, results: {}, tm: {} };
+      const g = { ...base, seed: `fixture-${base.matchId}`, settings: { mode: opts.mode || 'standard' }, total, order, results: {}, tm: {}, ps: {} };
       const silent = new Set(opts.noProof || []);
       for (let ci = 0; ci < total; ci++) {
         const boards = ocBoardsAt(g, ci, uids.filter(u => !silent.has(u)));
         const gc = { ...g, ci, playStartAt: ocStartAt(ci) };
         g.results[ci] = ocComputeResults(gc, boards);
         g.tm[ci] = ocTimesOf(gc, boards);
+        g.ps[ci] = ocStartAt(ci);   // (the server's own stamp of the challenge's start — THE BEFORE-LAUNCH PASS, the review H4)
         if (opts.ocPts != null) g.results[ci][uids[0]] = { ...g.results[ci][uids[0]], pts: opts.ocPts };
       }
       return g;

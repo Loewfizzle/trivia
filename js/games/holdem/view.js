@@ -94,13 +94,14 @@ export function createView() {
   // (LATCHED from the last table this screen showed as its match — never from a passing room state: the room's game + its table go away
   //  in separate events, and the router asks in between)
   const pingRouter = createRouterPing();
-  let ownOff = null, ownTable = null, latch = false;
+  let ownOff = null, ownTable = null, latch = false, latchM = '';
   const seatedLive = () => { const x = mySeat(), pl = pub.players && pub.players[me()]; return !pub.ended && !!x && x.status !== 'out' && !(pl && (pl.left || pl.leaving)); };
   function holdsRun() { return !destroyed && latch; }
   /** while the router holds this screen: the table straight from the room (the held state's `live` is frozen) */
   function watchOwnTable() {
     const RH = globalThis.__nsRunHold, want = !!(RH && RH.on && code());
-    if (want && !ownOff) ownOff = onValue(dbRef(`rooms/${code()}/holdem`), s => { ownTable = s.val(); if (st && !destroyed) update(st); }, () => {});
+    // (the handle FIRST: the listener answers at once from the cache, inside onValue — a re-entered update must see it held, never subscribe again)
+    if (want && !ownOff) { let off = null, on = true; ownOff = () => { on = false; if (off) off(); }; off = onValue(dbRef(`rooms/${code()}/holdem`), s => { ownTable = s.val(); if (on && st && !destroyed) update(st); }, () => {}); if (!on) off(); }
     else if (!want && ownOff) { ownOff(); ownOff = null; ownTable = null; }
   }
 
@@ -265,7 +266,7 @@ export function createView() {
     const prevT = table(), prevK = L ? L.k : null;
     watchOwnTable();
     pub = fromWire(ownOff && ownTable ? ownTable : st.live && st.live.table);
-    if (current()) latch = seatedLive();
+    if (current()) { latch = seatedLive(); latchM = pub.id; } else if (pub && pub.id !== latchM) latch = false;   // (the review M5: another table = this one is over)
     // THE MOTION: the events this phone hasn't shown — only fresh, only a whole run (a refresh / a sleep / a gap = the state as it is)
     let steps = [];
     if (pub && pub.id !== seenMatch) { seenMatch = pub.id; seenN = null; if (motion) motion.cancel(); stopAll(); }   // (HE10 — A36: a new match never hears the old one's tail)

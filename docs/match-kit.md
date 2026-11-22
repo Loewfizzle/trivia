@@ -105,6 +105,45 @@ stands) · a Call the Winner pick is a uid's shape, ≤ 64 (`k/w` had no bound) 
 - The host can still WRECK his own room's match (never win by it): delete the whole room, pre-stamp a match id, never write `final`.
 - Up to ~3 s of head start inside the 5 s GO window (tick 0 = THE FIRST GO + 2 s); until the sunset a host who never stamps keeps the
   old lock on his tree (the server's guards still refuse him the win).
+- **The HOST-GRADED games (THE BEFORE-LAUNCH PASS, Nov 22 — the section HOST TRUST below):** CLOSED — PRISM DROP's forged rush score (capped
+  at the player's own board), a rush rival past THE RUSH BOUND keeping the win (it loses its place), a live battle / survival board put out
+  (refused), OVERCLOCK's forged totals (the server's re-grade), the boards deleted while a report is pending (THE REPORT LOCK), HOLD'EM's
+  moved-on table (its `holdsRun`). STILL OPEN (accepted): PRISM BATTLE's fake board that never goes out (console-fix item 4 — a replay
+  judge, L); OVERCLOCK's 7 self-graded types (the phone's own `ok`, item 5 — server-dealt answers, L); a challenge's START time is the
+  host's within 1.5 s of the SERVER's stamp `game/ps/{ci}` (an old host with no stamp: his FASTEST clock only); DUMB LUCK is the host's
+  draw; a host who WIPES the OVERCLOCK seal (flipping game/id, or deleting meta) before reporting gets the boards' own `ok` graded — the
+  self-grading of console-fix item 5, for that match; a kicked player in the host-graded games (item 7, your call). A host-graded match of
+  2+ whose every report missed its final game (the honest host's move-on waits ≤ 6 s for its own) is NOT paid (the snapshot path).
+
+## HOST TRUST — THE HOST-GRADED GAMES (THE BEFORE-LAUNCH PASS, Nov 22 — `docs/harbor/passes/before-launch.md`)
+PRISM DROP + OVERCLOCK (`api/report.js#DROP_GUARD`) are host-authored at `final`; the server now checks the result against what ONLY each
+player could write, on the room path (the match still the room's game):
+- **PRISM DROP** (`core/match-report.js#prismVerify`, docs/prism.md "HOST TRUST"): SCORE RUSH — every row's score + lines ARE that
+  player's own signed board (`prism/{m}/{uid}`; a lowered or missing row too); a row past THE RUSH BOUND ranked with 0 (loses its win /
+  place, not only its record). BATTLE / SURVIVAL — a player put out (any place) whose board still says `play`, saved within
+  PRISM_FRESH_MS (10 s) of the out → refused (the director only puts out a topped-out board or one QUIET 30 s — "gone" needs the board quiet
+  too, so a phone that only SAYS offline is never put out); the out's stamp can't be future-dated (rules: `game/out/{uid}/at ≤ now + 5 s`). The host's placings are still checked against the night record on the
+  ORIGINAL; the credit uses the corrected game.
+- **OVERCLOCK** (`games/overclock/regrade.js`, docs/overclock.md "THE SERVER's RE-GRADE"): every challenge rebuilt — `ok` = min(the
+  board, the server's grade of the SEALED picks), the points from that `ok` + the board's server-stamped `doneAt` + the challenge's start
+  read back from the host's `tm` — EVERY finisher's clock (a clamped 0 / 30 s too) and the SERVER's stamp of the start (`game/ps/{ci}` —
+  the cartridge's step writes it at the challenge's open; the rules: === now) within 1.5 s; DUMB LUCK's race replayed. The board closes at
+  its challenge's unseal (rules — the host grades what was there).
+- **A REFUSAL** of a DROP_GUARD match (the re-grade, a live board put out, the placings, the game id, a dropped player) = 409 'mismatch' +
+  the quiet count `logstats/wreck` (never sealed — a rival could cause one). **THE SNAPSHOT PATH never pays a DROP_GUARD match of 2+** (its
+  checks need the final game; the night record's placings are the host's own): the honest host's REMATCH / BACK first lets its own report of
+  the podium's match land (`host.js#settleFinal` — `profile/queue.js#settle`, ≤ 6 s). (The first draft's "sealed wreck" + a 5 s grace on the
+  move-on stamps: THE FRESH-EYES REVIEW broke both — a host-written `game.go`, a final never shown.)
+- **THE REPORT LOCK** (`database.rules.json` prism · oc · ocm `{match}` — console-fix item 6): never the room's own match, never within
+  10 min of its night record (`core/room-logic.js#reportLocked` — the host's prune skips it, never one refused path), no whole-node delete;
+  `seal/{CODE}` is kept while an OVERCLOCK match is the room's game (its sealed picks are the re-grade's evidence — host.js wipes the seal
+  only from the lobby). RULES CHANGED (the re-publish: the pass summary).
+- **HOLD'EM** (docs/holdem.md "THE TABLE IS NEVER TAKEN AWAY"): its own `holdsRun` — seated, not out, the dealer's table not ended (LATCHED
+  from the last table the screen showed as its match: the room's game + table vanish in separate events) — and its table by its own listener
+  while held (the router freezes `live`).
+- Tests: `tests/before-launch.test.mjs` (the pure halves), server.test "THE BEFORE-LAUNCH PASS — HOST TRUST" (a modified host / rival
+  on the emulators), rules.test "THE REPORT LOCK", e2e-holdem FAST "THE TABLE IS NEVER TAKEN AWAY". A scripted UI suite's hand-made finals
+  (e2e-profiles) switch it off on the EMULATORS only — `testHostTrustOff`, never honoured in production.
 
 ## A LIVE PROVEN RUN IS NEVER TAKEN AWAY BY THE HOST (THE CONSOLE FIX, Nov 20 — `docs/games/passes/console-fix.md`)
 A modified host wrote `final` / moved the room on / kicked the leader mid-match — every honest phone left its live run, he played on and won.

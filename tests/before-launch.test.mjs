@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { finalGame, ocBoardsFor, ocStartAt } from './fixtures/finals.mjs';
-import { prismVerify, maxRushScore, PRISM_FRESH_MS, movedOnAt } from '../js/core/match-report.js';
+import { prismVerify, maxRushScore, PRISM_FRESH_MS } from '../js/core/match-report.js';
 import { ocRegrade } from '../js/games/overclock/regrade.js';
 import { computeResults, levelOf } from '../js/games/overclock/logic.js';
 import { timesOf } from '../js/games/overclock/director.js';
@@ -27,9 +27,13 @@ test('PRISM DROP SCORE RUSH — THE BOARD CAP: a host above his own board gets h
   assert.deepEqual(v.capped, ['ub']);
   assert.equal(v.game.results.ub.sc, boards.ub.sc, 'capped at his own board');
   assert.equal(f.results.ub.sc, 99_999, 'the room\'s own game never mutated');
-  // a board that a slow mirror saw lower than the end (the host copied less): never raised — the cap only lowers
-  const low = clone(g); low.results.uc.sc = 100;
-  assert.equal(prismVerify(low, boards).game, low);
+  // (the fresh-eyes review H3) the host writes a RIVAL's row low: the rival's own board is her score
+  const low = clone(g); low.results.ua.sc = 100;
+  const v2 = prismVerify(low, boards);
+  assert.equal(v2.game.results.ua.sc, boards.ua.sc, 'the board is the score — a lowered rival keeps hers');
+  // a row the host left out: the board's
+  const gone = clone(g); delete gone.results.uc;
+  assert.equal(prismVerify(gone, boards).game.results.uc.sc, boards.uc.sc);
 });
 
 test('PRISM DROP SCORE RUSH — PAST THE BOUND LOSES THE PLACE: a modified rival\'s board past THE RUSH BOUND is ranked with 0, the honest winner wins', () => {
@@ -123,10 +127,17 @@ test('THE REPORT LOCK: a host-graded match\'s boards stay 10 min after its night
   }
 });
 
-test('THE SNAPSHOT PATH\'s move-on stamp: the walk back, a rematch\'s start — the server\'s own times', () => {
-  assert.equal(movedOnAt('m1', null, { back: { m: 'm1', at: 500 } }), 500);
-  assert.equal(movedOnAt('m1', { matchId: 'm2', go: 700 }, {}), 700);
-  assert.equal(movedOnAt('m1', null, { go: { m: 'm2', at: 800 } }), 800);
-  assert.equal(movedOnAt('m1', { matchId: 'm1' }, {}), null);
-  assert.equal(movedOnAt('m1', null, { back: { m: 'm0', at: 5 } }), null, 'another match\'s walk back');
+test('OVERCLOCK — the fresh-eyes review: a rival\'s clock moved to 0 (under THE HUMAN FLOOR) against the server\'s start · the seal wiped · a pool that lost a dealt item (blind)', () => {
+  const g = finalGame('overclock', U, { mode: 'quick' }), oc = ocBoardsFor(g, U);
+  const fl = clone(g); fl.tm[0].ua = 0;   // (+ the host's own clock fixed to match his choice)
+  assert.equal(ocRegrade(fl, { oc, bank }).why, 'the clock (two starts)');
+  const noPs = clone(g); delete noPs.ps;   // (an old host: no stamp — the clamped clock still has to hold)
+  noPs.tm[0].ua = 0;
+  assert.equal(ocRegrade(noPs, { oc, bank }).why, 'the clock (two starts)');
+  const ci = 3, spec = generate('math', { seed: g.seed, ci, level: levelOf(ci, g.total), occ: 0, deal: null }, {});
+  const seal = { [ci]: Object.fromEntries(U.map(u => [u, { a: JSON.stringify(spec.problems.map(p => p.ans)), at: oc[ci][u].doneAt }])) };
+  assert.deepEqual(ocRegrade(g, { oc, seal, bank }), { ok: true }, 'the picks there: as ever');
+  assert.equal(ocRegrade(g, { oc, seal: {}, bank }).ok, true, 'no picks anywhere (old rules / nothing answered sealed): the boards\' own ok, as the host');
 });
+
+

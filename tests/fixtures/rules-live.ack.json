@@ -1,4 +1,4 @@
 {
- "hash": "2e94dfa97f91e3b8",
- "line": "RULES CHANGED: rooms/{CODE}/prism · oc · ocm — the whole-node delete gone, {match} only when not the room's game + 10 min after its night record (THE REPORT LOCK); seal/{CODE} kept while an OVERCLOCK match is the room's game — RE-PUBLISH database.rules.json in the Firebase console (DownloadsNEONdatabase.rules.nov22-beforelaunch.json)"
+ "hash": "f1ec988b9fa27b29",
+ "line": "RULES CHANGED: rooms/{CODE}/prism · oc · ocm (THE REPORT LOCK: the whole-node delete gone, {match} only when not the room's game + 10 min after its night record) · game/out/{uid}/at (≤ now + 5 s) · game/ps/{ci} (the server's now) · oc/{match}/{c}/{uid} (closed at the unseal) · seal/{CODE} (kept while an OVERCLOCK match is the room's game) — RE-PUBLISH database.rules.json in the Firebase console (DownloadsNEONdatabase.rules.nov22-beforelaunch.json)"
 }

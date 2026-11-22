@@ -824,3 +824,12 @@ CITY I brought CLAUDE.md from 40.9 KB to under 32 KB: these standing-rule lines 
 - PRISM DROP: never the words "Tetris", "tetromino" or "T-spin"; THE ANTI-CHEAT RULES A PASS MUST KEEP (the board node's write window) → docs/prism.md (moved).
 - PRISM's SKINS: ONE definition each in `prism/skins.js` + its art — no skin-specific path; `prism-skin-snap.mjs` IDENTICAL after a refactor → docs/prism.md "THE SKINS".
 - THE DROP: the phone PLAYS, the server REPLAYS (ONE pure engine — `prism/drop.js` + `drop-judge.js`); a log upload never re-sends the log (chunks beside a small record); a pause never waits on its chunk, a refused finish is scored at its last provable point (PFIX-3) → docs/prism.md "THE DROP".
+
+## HOST TRUST (THE BEFORE-LAUNCH PASS, Nov 22 — docs/match-kit.md "HOST TRUST")
+The server no longer takes a PRISM DROP result on the host's word alone (`core/match-report.js#prismVerify`, run by `api/report.js` on the
+room path): **SCORE RUSH** — each row's score + lines ARE that player's own signed board (`prism/{m}/{uid}` — the fresh-eyes review: a cap
+alone let a host write a RIVAL low); a row past THE RUSH BOUND (`maxRushScore`) is ranked with a score of 0 — it LOSES ITS WIN / PLACE, not only
+its record (console-fix item 3). **BATTLE / SURVIVAL** — a player put out whose own board still says `play`, saved within
+`PRISM_FRESH_MS` (10 s) of that out, refuses the match (item 1 — the director only puts out a topped-out board or one quiet
+OFFLINE_OUT_MS: "gone" needs the board quiet too since this pass; the out's `at` ≤ now + 5 s by the rules). A refusal = a 409, counted. **STILL ACCEPTED:** a fake BATTLE board that never goes out (item 4 — a replay judge, L). THE
+REPORT LOCK (rules): `prism/{match}` never deleted while it is the room's game or within 10 min of its night record.

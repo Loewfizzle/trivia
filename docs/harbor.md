@@ -647,6 +647,30 @@ size again. `__district.away()`.
   blocks the first frame on the city.
 
 
+### THE FIRST-VISIT BUNDLE (THE BEFORE-LAUNCH PASS, Nov 22 — the owner's ONE generated file, the preload-graph pattern)
+**THE DECISION (named):** a FIRST visit on a SLOW line boots from ONE file instead of ~300 modules. `node scripts/build-boot-bundle.mjs`
+(after ANY boot module changes — `tests/boot-bundle.test.mjs` fails when stale, like the preload graph's) writes **`/boot-bundle.json`**:
+THE BOOT PRELOAD's 304 modules (js/app.js + its ENTRIES' static graphs), each REWRITTEN at build time — a static relative import →
+`@ns/<path>`, `import.meta.url` → the module's REAL URL (`__nsMeta`), a dynamic `import(x)` → `__nsI(x)` (a relative x resolved against the
+real URL — a blob URL is no base). **index.html's ONE loader** (an inline classic script where the import map was) fetches it (its bytes
+streamed — THE BOOT WATCHDOG counts them as "still arriving"; 8 s without a byte = abort), makes a blob URL per module and writes ONE import
+map naming each module TWICE — `@ns/<path>` (what the bundled modules import) and its REAL URL (what a lazy chunk, fetched from the network
+as ever, imports): **one module, one instance**, whoever asks; then `import "@ns/js/app.js"` at the body's end (`window.__nsGo()`).
+- **Who gets it:** no service worker in charge (a first visit, a cleared cache) AND a line the browser itself reports slow
+  (`navigator.connection`: saveData, 2g / 3g, or < 2 Mbps with ≥ 150 ms) — or `?bundle=1`. **Everyone else = the modules exactly as before**:
+  a fast line, a returning visitor (the worker in charge), Safari (no line estimate), an old browser (no import maps), `?nobundle`, and ANY
+  failure of the bundle (its fetch, its parse — then THE BOOT PRELOAD's modulepreloads, which skip themselves while the bundle is on).
+- **WHY ONLY A SLOW LINE (measured — cold, Chrome's Android profile, 4× CPU, HTTP/2 + brotli: `serve.mjs --h2`, `boot-time.mjs --android
+  --net 4g|slow4g`, 3 runs each, medians):** the bundle on every first visit = Slow 4G 17.53 → 15.35 s, but 4G 7.35 → 7.75 s (the modules
+  COMPILE WHILE THEY DOWNLOAD; the bundle runs only once all of it is in). Shipped as decided: Slow 4G **17.53 → 15.04 s**, 4G **7.35 →
+  7.20 s** (the modules). Bytes on the wire: the modules 2,378 KB br vs the bundle ~1,720 KB br.
+- **Unchanged:** THE CARRY (the bundle sits at the root, outside js/ css/ assets/ data/ — never a build cache's copy, not in
+  file-hashes.json); ONE DEPLOY AT A TIME (the bundle is only ever fetched by a page no worker serves; it is this deploy's own files,
+  generated with them; its lazy chunks are the network's as on any first visit); THE SKEW WRAPPER + lazy chunks; THE BOOT BUDGET (not
+  raised). **errlog** names a blob frame's REAL file + line (`__nsBlobs`, the prelude's one line).
+- Tests: `tests/boot-bundle.test.mjs` (current, the rewrite, the loader's rules, THE CARRY never sees it) · `tests/integration/e2e-bundle.mjs`
+  (Chromium + WebKit: the bundle, the fallback on a refused bundle, a fast line = the modules; one store instance; a real-file error frame).
+
 ### ONE DEPLOY AT A TIME
 
 PLAY NOW's Group 0a (the owner, Nov 13 — STANDING: a phone NEVER runs two deploys' code at once). **The rule in the worker (`sw.js`):** every page
@@ -881,6 +905,14 @@ one-day AMBER tubes with them. Now:
   to the real calendar there: no leaves before ~Nov 15). Proof: the harbor `thanks` group (Nov 20 · Nov 24 · the force on Nov 1 + IN season Nov 16).
 
 ## KNOWN ISSUES — OPEN (C4d, Oct 29 2026: one list; each pass's own section in its log keeps the history)
+
+**Fixed by THE BEFORE-LAUNCH PASS (Nov 22) — the cloud's perf MEMORY red (+26 → +39 MB over 20 title↔setup cycles since CITY I; "never
+reproduced here"):** it was the BROWSER — the cloud runs stable Chrome, this machine Playwright's Chromium. Stable Chrome 157 here: +63 MB.
+Two causes, both fixed: (1) `people.js#warm` — the next block's idle-time planner re-queued itself step by step; on a page that is never idle
+each step waits its whole 2.5 s `requestIdleCallback` timeout, so every closed city lived on ~a minute in the queued closures — `destroy()`
+now ends the chain + cancels the queued callback (`dead`); (2) `ui/canvas-safe.js` kept a WeakMap canvas → its context: the context points
+back at its canvas inside Blink, so the value kept its own key alive — a WeakSet now, the context asked for when needed. +63 → +5.1 MB,
+flat at 40 cycles (+5.3). A pass that adds an idle / timer CHAIN in the city ends it in its module's destroy.
 
 **Open**
 - **THE HOLD LETS GO BEFORE A SLOW RE-BAKE LANDS (4× CPU)** (THE POOL FIXES 0e, Nov 13 — docs/games/passes/pool-fixes.md): `hours-dusk@16:40` at
@@ -1286,6 +1318,7 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | CITY H2 — THE LISTS | Nov 18 | [passes/city-h2.md](harbor/passes/city-h2.md) | the inbox first (MUSIC OFF = ONLY THE MUSIC OFF — H1's doze undone, the effects dead at a music-off load fixed; NEVER A DEAD SCREEN; the roof board's ONE FACE FROM THE FIRST FRAME), THE BOARD's layout B + its re-baked skyline strip, THE YOU ROW (one breathing glow), STATS (tiles, order, the tap box, no gold, the folds, NEW THIS WEEK), the games list by popularity + NEW, the pink-tube streak flame, JAYWALK's sneaker mark |
 | CITY PART 1 — BUGS + MUST-HAVES | Nov 20–21 | [passes/city-part1.md](harbor/passes/city-part1.md) | ADD FRIEND (the cover froze every message; SCORES' target), the slow first visit, music off = effects, HIGH RISE on the signs + THE DAY PAINT, OVERCLOCK = ONE BOARD, the pink flash gone, THE ONE META MODULE, the wake hold, the late vote, the radio button |
 | CITY PART 2 — LOOKS + FEATURES | Nov 21 | [passes/city-part2.md](harbor/passes/city-part2.md) | THE BOOT's BYTE ROOM (the boot headers moved), THE END NEON, GAME VOTES, STATS' players line, THE OWNER'S NAME TAG, NEVER A GAME TWICE AS A SIGN + THE LED BILLBOARD EXCEPTION, THE SLIM-CARD LAYER |
+| THE BEFORE-LAUNCH PASS | Nov 22 | [passes/before-launch.md](harbor/passes/before-launch.md) | HOST TRUST (PRISM + OVERCLOCK + HOLD'EM, THE REPORT LOCK — rules), THE FIRST-VISIT BUNDLE, the MEMORY red (the idle chain + the WeakMap), the backup's DEEP SLICES, the JPEG link card, the review's before-launch items |
 | THE GARDEN PARTY PASS | Nov 21 | [passes/garden-party.md](harbor/passes/garden-party.md) | MUSIC OFF = HEAR THE HARBOR (THE SOUND TABLE), GARDEN PARTY (LV 34), THE LAST FOUR SLIM CARDS, THE CODE BOX's first tap, THE PERSONAL-BEST SHARE CARD, NO RESET |
 | CITY I — HOUSEKEEPING | Nov 18 | [passes/city-i.md](harbor/passes/city-i.md) | H2's cloud reds (the plate, REMATCH in the ring, the dock labels) + the two pre-existing (THE FROZEN-GAME HANG behind e2e-profiles' CIPHER podium + THE LOST SEAT LINK; strip-match's 13 named), HOW TO PLAY out of the boot (ui/help-open.js), THE CLAUDE.md TRIM (→ 31.5 KB), SECOND ACCOUNTS + DON'T COUNT, the idempotent close; the inbox: MUSIC OFF = PODCAST MODE, THE LATE PROOF CHUNK, THE BOARD's controls row, THE WEEK as rows |
 | CITY D — FIXES | Nov 15 | [passes/city-d.md](harbor/passes/city-d.md) | the presence red = a test flake (DUMB LUCK dealt first) · THE LIVE LANE (every slim-card list = stills, ≤ 3 live on screen, no GPU canvas) + CUSTOMIZE stills · a killed-page marker · the leaving squeal with effects on (master 0 at once, beds stopped) · THE DROP's end card → a bar · no room messages for a solo player · the owner's slim card LV · four different games on the four named signs, the hotel blade PRISM / HOLDEM · SCORES at once (kept scores + the server's trips cut) · add-ons: gesture taps at the lift, STATS fixed + WHO, THE DROP in the roof rotation |

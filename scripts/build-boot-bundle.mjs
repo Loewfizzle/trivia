@@ -30,10 +30,10 @@ export function rewrite(path, src) {
   let out = src.replace(STATIC, (m, pre, q, spec) => `${pre}${q}@ns/${posix.normalize(posix.join(dir, spec))}${q}`);
   out = out.replace(/\bimport\.meta\.url\b/g, '__nsMeta');
   out = out.replace(DYNAMIC, '__nsI(');
-  // (the prelude: the real URL, a resolver for a dynamic import's relative name, the dynamic import itself — ONE line, so a stack's line
-  //  numbers are the file's own + 1)
+  // (the prelude: the real URL, a resolver for a dynamic import's relative name, the dynamic import itself — on the FIRST line, so a stack's
+  //  line numbers are the file's own)
   const pre = `const __nsMeta = globalThis.__nsRoot + ${JSON.stringify(path)}, __nsR = s => (typeof s === 'string' && /^\\.{1,2}\\//.test(s) ? new URL(s, __nsMeta).href : s), __nsI = s => import(__nsR(s));`;
-  return `${pre}\n${out}`;
+  return `${pre} ${out}`;
 }
 /** the sources' own hash (what the bundle was built from — the staleness check) */
 export function sourcesHash(list = bundleList()) {
