@@ -71,6 +71,8 @@ export const ITEM_ROWS = [
   C('card-rightofway', 'RIGHT OF WAY', 'legendary', '#05040c', '#9fd0ff', '#ff2fa8', 'The whole runway. All yours.'),
   // JAYWALK H6A — THE MOTHERSHIP's card (Grok's art assets/vault/jw/mothership.webp, the motion js/fx/jw-cards.js#beamMeUp)
   C('card-beammeup', 'BEAM ME UP', 'epic', '#04040a', '#ffe9c0', '#ffd27a', 'Still standing when they came for you.'),
+  // THE GARDEN PARTY PASS (Nov 21) — GARDEN PARTY, the LV 34 epic (Grok's art assets/vault/gp/, the motion js/fx/gp-card.js — the petals + the sun sparkles)
+  C('card-garden', 'GARDEN PARTY', 'epic', '#3a2532', '#ffe6f0', '#ffb3d9', 'Roses, a teacup, the whole afternoon.'),
   // HIGH RISE S4A — ITS TWO CARDS (Grok's art assets/vault/hi/ — S3; js/fx/hi-specs.js: the crops + the hero boxes; no layer of their own yet):
   // unlocked by HIGH RISE's achievements below — the feat flags from the SERVER's replay of a run. Awarded since THE GO-LIVE (Nov 20 —
   // api/_lib/highrise.js#HIGHRISE_COUNTS ON); a collection shows only what its player owns
@@ -298,6 +300,7 @@ export const LEVEL_REWARD_ROWS = [
   { lvl: 28, item: 'glow-neon' },
   { lvl: 30, item: 'tube-breath' },
   { lvl: 32, item: 'card-velvet' },
+  { lvl: 34, item: 'card-garden' },           // (THE GARDEN PARTY PASS — the owner, Nov 21; owners already past 34 get it once at their next `me` call: progress.js#carryOver — never twice)
   { lvl: 35, item: 'card-aurora' },
   { lvl: 37, item: 'emb-crescent' },
   { lvl: 38, item: 'glow-fire' },             // (THE VAULT 2B)

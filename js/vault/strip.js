@@ -105,6 +105,8 @@ export const LOOKS = Object.freeze({
   'card-closeencounter': { mat: 'jw-closeencounter', fx: 'jwClose' },
   'card-rightofway': { mat: 'jw-rightofway', fx: 'jwRight' },
   'card-beammeup': { mat: 'jw-beammeup', fx: 'jwBeam' },   // (H6A — THE MOTHERSHIP's card)
+  // THE GARDEN PARTY PASS — GARDEN PARTY (LV 34): Grok's garden table = the material (css/vault.css .vl-s-gp-garden), the petals + sparkles = js/fx/gp-card.js
+  'card-garden': { mat: 'gp-garden', fx: 'gpGarden' },
   // HIGH RISE S4A — ITS TWO CARDS: Grok's art = the material (css/vault.css .vl-s-hi-* — js/fx/hi-specs.js holds the same crops); no layer of their own yet
   'card-abovetheclouds': { mat: 'hi-abovetheclouds' },
   'card-topoftheworld': { mat: 'hi-topoftheworld' },

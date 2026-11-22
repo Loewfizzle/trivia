@@ -17,6 +17,7 @@ import { artMap } from '../fx/gift.js';
 import { OC_SPECS, ocMap } from '../fx/oc-specs.js';
 import { JW_SPECS, jwMap } from '../fx/jw-specs.js';
 import { HI_SPECS } from '../fx/hi-specs.js';
+import { GP_SPECS, gpMap } from '../fx/gp-specs.js';
 import { PW_SPECS, pwMap } from '../fx/pw-specs.js';
 import { CC_SPECS, ccMap } from '../fx/cc-specs.js';
 import { DM_SPECS, dmMap } from '../fx/dm-specs.js';
@@ -43,6 +44,8 @@ export function heroBox(card, w, h) {
   if (J) { const M = jwMap(w, h, J.full), [x, y, bw, bh] = J.heroFull; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
   const HI = HI_SPECS[card];   // (HIGH RISE S4A — its two cards: JAYWALK's own format + map)
   if (HI) { const M = jwMap(w, h, HI.full), [x, y, bw, bh] = HI.heroFull; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
+  const G = GP_SPECS[card];   // (THE GARDEN PARTY PASS — GARDEN PARTY: the bouquet, the vase, the teacup; its art fills the card, set right)
+  if (G) { const M = gpMap(w, h, G.full), [x, y, bw, bh] = G.heroFull; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
   const P = PW_SPECS[card];   // (PW2 — THE PASSWORD's card: 1280 × 720 too)
   if (P) { const M = pwMap(w, h, P.full), [x, y, bw, bh] = P.heroFull; return [M.ox + x * M.k, M.oy + y * M.k, bw * M.k, bh * M.k]; }
   const Q = CC_SPECS[card];   // (CC2 — COAST CLEAR's card: 1280 × 720 too)

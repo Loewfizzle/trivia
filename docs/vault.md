@@ -904,3 +904,31 @@ What is left is the effects' own framing (sg-btc's balloon sits further right li
 picture popping a layer in. **The four baked-still cards** (inferno, noir, neoncamo, marquee-gold) stay as CITY I named them: re-baked
 byte-identical, the live renderer frames its first frame differently from the 360 × 64 bake (not pinned — not quick: the renderer's tier /
 pixel ratio at the strip's first frame); for the next VAULT pass.
+
+## GARDEN PARTY — the LV 34 epic (THE GARDEN PARTY PASS, Nov 21 — docs/harbor/passes/garden-party.md)
+The owner's girl cards = **GARDEN PARTY ONLY** (PINK RIOT + THE VANITY not built — their art stays in `Downloads\grok\girl-cards\`, untouched).
+Built like the JAYWALK cards: Grok's master + two FX plates (COPIES in `art/garden-party/src/`, + Grok's notes) → `assets/vault/gp/` by
+`scripts/build-garden-party.mjs` — the master converted; **the petals plate is REAL ALPHA** (8 chroma-keyed cut-outs): each petal found as its own
+island of alpha + packed into ONE sheet (`gp-petals.webp` — `gp-specs.js#PETALS`: its box + its centre on the plate) so each can drift on its own;
+**the sparkle plate** light on black → light with alpha, cropped + halved (`gp-sparkle.webp`), its brightest starbursts found (`GLINTS`). The build
+also draws the slim / full previews at the spec's crops (`%TEMP%/gp-preview-*.png`).
+- **THE SLIM CARD framed ON THE BOUQUET** (the owner): zoomed IN (120 % by the width — the art fills the strip, no ground band) so the flowers fill
+  the strip: the bouquet's heart (the lilac rose + the peach peony) at 0.78 across, the blurred rose garden behind the plate (a 12-letter name on
+  one line at 330–430). The plate a plum glass (rgba(24,10,22,.84) — the art behind it is light); the tier gem gets a soft plum backing (as SONIC
+  BOOM's) so the stone reads on the petals; the frame in the roses' blush.
+- **THE FULL CARD**: the art FILLS it (113 % by its width — 1.586 : 1), set right. Its `heroFull` = the bouquet's face, the vase, the teacup + the
+  macarons: the plate may sit over the bouquet's left third so a 12-letter name stays on ONE line (refine 1 — at the whole table's box it wrapped
+  LOEWFI / ZZLE12). THE CARD TEXT STANDARD's dark wash reads on the mid-tone art as given (no card-own text treatment).
+- **THE MOTION** (`js/fx/gp-card.js`, epic = two effects): **THE PETALS** drift down through the sunlit air over the bouquet — each its own speed
+  (52–70 art px/s), a sway, a tumble (a turn + a flip: its width breathing), faded in at the top + out at the foot; at the still moment each sits
+  exactly where Grok put it (`petalAt` — PURE). **THE SUN SPARKLES** — the plate breathing ('lighter') + its starbursts twinkling IN TURN (`glintAt`
+  — never all at once). On the strip ×0.88 and kept off the plate's side + the gem's column (THE PROMINENCE RULE reads the tier). Reduced motion =
+  the still frame.
+- **NO BLACK TILES / THE STRIP MATCH**: a CSS-ART card whose effect adds a layer → stills kind **`l`** (`card-garden-l.webp` — THE SLIM-CARD LAYER);
+  `strip-match.mjs --still`: **0.3 at 402 · 1.9 at 330** (the line: 9).
+- **Wiring**: `api/_lib/catalog.js` (the item + `{ lvl: 34 }` — the name only on the server: NAMES ONLY TO OWNERS) · `js/core/levels.js#REWARD_LEVELS`
+  (+34) · `js/vault/catalog.js` (lab n 229 / 230, NEW v1 — a new item never shows CHANGED, so no LAB_V bump) · `api/_lib/lab-text.js` · `js/vault/strip.js`
+  LOOKS · `css/vault.css` `.vl-s-gp-garden` / `.vl-fcm-gp-garden` · `js/fx/index.js` (`gpGarden`) · `vault/hero.js` + `vault/layout.js` (the hero
+  boxes) · `vault/stills.js`. Previews: `fullcard-preview.html?cards=card-garden&strip=1` · `&dress=card-garden` (NEW — CUSTOMIZE wearing it) ·
+  `friends-preview.html?player=P_nova&cd=card-garden` (THE PLAYER PAGE) · `board2-preview.html?cd=card-garden` (NEW `cd`). Shots:
+  `Downloads\NEON\garden-party\`.

@@ -6,7 +6,7 @@
 <title>Full cards — preview</title>
 <!-- CITY C — the REAL full cards (js/vault/full.js#fullCardEl) without Firebase, one under the other, each with its live effect:
      ?cards=card-founder,card-dev-switchboard,…  &fd=1 (a FOUNDING MEMBER)  &no=12 (MEMBER Nº)  &lv=12  &name=AMBER  &still=1 (reduced motion)
-     &glow=glow-candle (the name's glow) · &emb=emb-horseshoe (the emblem on the plate + the strip) · &gilded=1 (+ THE GILDED fallback card — progress/card.js) · &strip=1 (+ each card's slim strip under it). The local server only. -->
+     &glow=glow-candle (the name's glow) · &emb=emb-horseshoe (the emblem on the plate + the strip) · &gilded=1 (+ THE GILDED fallback card — progress/card.js) · &strip=1 (+ each card's slim strip under it) · &dress=<card> (CUSTOMIZE wearing it). The local server only. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
 <link rel="stylesheet" href="/css/base.css">
@@ -56,6 +56,12 @@ if (q.get('strips')) {
     if (LOOKS[id] && LOOKS[id].fx && FX[LOOKS[id].fx]) surf2.add(l, FX[LOOKS[id].fx], fxOpts(id, { seed: 1, calm: 1, radius: 12 }));
   }
   window.__stripIds = ids;
+}
+// (THE GARDEN PARTY PASS — CUSTOMIZE: ?dress=<card id> opens the REAL dress screen (js/vault/dress.js#openDress) wearing it, a few cards owned beside it)
+if (q.get('dress')) {
+  const { openDress } = await import('/js/vault/dress.js');
+  const own = Object.fromEntries([q.get('dress'), 'card-velvet', 'card-aurora', 'card-beammeup', 'card-emerald', 'card-inferno'].map(id => [id, 1]));
+  openDress({ profile: { n: who.name, a: 'bolt', c: 'magenta', cd: q.get('dress'), x: 400000 }, stats: { it: own, xp: 400000 } }, { name: who.name });
 }
 if (q.get('gilded') === '1') { app.append(h('div.lbl', 'THE GILDED (fallback)')); app.append(gildedCard({ n: who.name, a: 'hex', c: 'yellow', x: 9000, at: who.at, fd: who.fd, mn: Number(who.no) })); }
 document.fonts.ready.then(() => setTimeout(() => { document.body.dataset.ready = '1'; }, 900));

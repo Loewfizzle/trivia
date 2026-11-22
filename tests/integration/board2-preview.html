@@ -143,6 +143,7 @@
   const CARDS = ['card-sg-aurora', 'card-inferno', 'card-chrome', 'card-emerald', 'card-heartbreaker', 'card-neonglass', 'card-velvet', null, 'card-carbon', 'card-sapphire', 'card-noir', 'card-brass', 'card-zebra', 'card-marquee'];
   const NAMES = ['NOVA', 'MAXIMILIANOS', 'KIM', 'DEX', 'LUNA', 'ROOK', 'JUNO', 'VEE', 'KAI', 'IRIS', 'BO', 'REMY', 'SASHA', 'THEO', 'PIP', 'MARLOWE', 'QUINN', 'WREN', 'JAX', 'ECHO'];
   const ME = { n: 'AVA', a: 'bolt', c: 'magenta', cd: 'card-marquee', l: 23, r: 2, es: null, tb: null, g: null };
+  if (q.get('cd')) { ME.cd = q.get('cd'); CARDS[1] = q.get('cd'); }   // (THE GARDEN PARTY PASS: &cd=<card> — the YOU row + the 12-letter row wear it)
   const MY = q.has('far') ? 1342 : 14;
   function rows(kind) {
     let v = kind === 'avg' ? 9410 : 4860;

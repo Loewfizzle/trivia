@@ -1,0 +1,447 @@
+GIRL CARDS — RIOT ROSE, MIDNIGHT ROSES, THE VANITY
+NEON SPEAKEASY  —  14 Nov 2026, America/Detroit
+Free only. Built-in Grok Imagine (GenerateImage). AI-generated, not CC0.
+Suggested credit: "Art created with Grok".
+
+DESTINATION
+  C:\Users\benja\Downloads\grok\girl-cards\   (Beelink)
+  Worked in /workspace/neon/girl-cards/deliver/
+  Brief: /workspace/neon/girl-cards/girl-cards-brief.md
+
+SIZE
+  All nine card files, and the preview, are PNG or JPEG as named.
+  The three masters are 1280×720 RGB, Grok Imagine's native 16:9. Converted from the
+  tool's JPEG to PNG with no resize, no upscale, no crop, no stretch.
+  All six FX plates are 1280×720 RGB on pure #000.
+  preview-sheet.jpg is 1360×6656 (masters, slim-strip crops, FX plates, and additive comps).
+
+USAGE TERMS
+  The built-in Grok Imagine (GenerateImage) tool does not state usage terms in its
+  interface or schema.
+  I fetched https://x.ai/legal/faq this session (SpaceXSI Consumer FAQs). That page says:
+    "You own the Inputs and Outputs. You are free to use Grok’s Outputs (including
+    generated images) from your conversations as you wish, including for commercial
+    use. You own Grok’s Outputs and you grant SpaceXSI certain use rights pursuant to
+    SpaceXSI’s Consumer Terms. We do ask that you attribute the generated work to Grok
+    as provided in SpaceXSI’s Brand Guidelines available on SpaceXSI’s legal website."
+  The FAQ describes grok.com / Grok mobile consumer use. The built-in tool does not
+  expose a separate contract, so whether those terms apply to this tool is not
+  independently certified. Consumer terms: https://x.ai/legal/terms-of-service.
+  These are AI-generated images, NOT CC0.
+
+GENERATIONS (9 used: 3 masters + 6 FX plates). No backup masters.
+  All three first-take masters were kept. Each has some zone misses (listed below),
+  but the hero placement is strong — especially the roses in the slim band — and a
+  second take was not justified as a "real flaw" in the way a missing or unreadable
+  hero would be. (On a previous card job, retries often repeated the same layout.)
+
+WHICH TO USE
+  riot-master.png, riot-fx-neon.png, riot-fx-sparks.png
+  roses-master.png, roses-fx-petals.png, roses-fx-bokeh.png
+  vanity-master.png, vanity-fx-bulbs.png, vanity-fx-glints.png
+
+HERO POSITIONS  (Rec.709 luma used for zone checks)
+  Slim band = y 38–62% (rows 273–446, 173 px). Target focus: 75% x, 50% y.
+
+  RIOT ROSE  —  riot-master.png
+    The rose in the jacket pocket is the hero.
+    Rose centre  71.6% x,  50.0% y     (x near 75%: close;  y at 50%: YES)
+    Rose bloom bbox  x 67.0–76.2%   y 43.1–57.6%
+    The whole bloom sits inside the y 38–62% slim band: YES. The slim crop shows
+    the rose, the jacket torso, and the neon star, with a dark left for the name.
+    Jacket (whole garment) is in the right half; the hook and collar sit above
+    y 25%, and the hem sits a little below y 80%.
+    Left 42% mean L 2.1 vs rest 20.1 (ratio 0.104) — dark wet brick, calm: YES
+    Top-right gem zone: mostly dark (mean L 6.9, max 87). The spray-painted rose
+    sits just left of it; the neon starts below it.
+    Bottom-left text zone: dark (max 47).
+    Bottom-right text zone: a floor highlight / neon drip reaches it (max 209).
+    Right 6% margin: the painted neon squiggles and star enter it (max 222).
+
+  MIDNIGHT ROSES  —  roses-master.png
+    The large open rose is the hero.
+    Rose centre (spiral heart, brightness-weighted)  72.6% x,  48.1% y
+      (x near 75%: close;  y in 38–62% and near 50%: YES)
+    Bloom bbox  x 60.9–88.2%   y 27.8–70.7%
+    The spiral heart is in the slim band. The top and bottom petals extend
+    outside it, so the slim crop clips those outer petals but keeps the face
+    of the rose. Readable and on-brief for "most important part".
+    Left 42% mean L 5.7 vs rest 32.6 (ratio 0.176) — dark leaves and plum
+    shadow, calm: mostly YES. A little faint foliage only.
+    Top-right gem zone: a background rose / bokeh reaches it (max 194).
+    Right 6% margin: a supporting rose enters it (max 209).
+    Bottom corners: relatively calm (max 30 / 84).
+
+  THE VANITY  —  vanity-master.png
+    The bulb-ringed mirror is the hero.
+    Mirror centre (bright-bulb centroid)  74.9% x,  39.7% y
+    Bbox midpoint of the bulb ring  76.1% x,  37.5% y
+    (x at 75%: YES;  y at the top of the 38–62% band, a little high of 50%)
+    The slim crop shows the lower two-thirds of the mirror, the perfume
+    stopper, and the start of the drape. It still reads as the vanity.
+    Left 42% mean L 7.9 vs rest 52.0 (ratio 0.151) — dark velvet curtain, but
+    the pink satin and the left end of the table (gold Deco trim) cross into
+    the left 42% and into the bottom-left text zone (max 242).
+    Top-right gem zone: the upper-right bulbs and gold frame enter it (max 227).
+    Bottom-right text zone: the table's gold Greek-key trim sits in it (max 222).
+    Right 6% margin: the peony and satin enter it (max 222).
+    All four props are present: unlabelled pink crystal perfume, pearls,
+    powder puff, and a pink peony. The mirror is empty of any person
+    (it reflects a dark room). Gold trim is bold Deco / Greek-key, not filigree.
+
+FX PLATES  (all 1280×720, processed)
+  Treatment, same as earlier Neon Speakeasy FX plates:
+    1. Per-pixel factor = smoothstep(4, 14) on the max RGB channel (black point).
+    2. A 6% short-side (~43 px) edge feather, with the fade starting at 16 px
+       so the 1 / 8 / 16 px borders are exact #000 (meanRGB 0, maxRGB 0).
+  Verified numerically on every plate: 1, 8 and 16 px borders are exact #000.
+
+  Placement adjustments (no stretch; paste onto black, then the treatment above):
+    riot-fx-neon.png    shifted 50 px left, because the raw tubes sat only 28 px
+                        from the right edge and the 43 px feather would have
+                        eaten them. They now sit slightly inward of the painted
+                        neon on the master, so the additive comp shows a second
+                        set of tubes rather than a perfect overlay.
+    vanity-fx-bulbs.png shifted 38 px up to line up with the master's bulb ring.
+                        After the shift, the FX centroid is 74.5% x, 40.0% y
+                        vs the master's 74.7% x, 39.9% y. A slight residual
+                        offset remains on a few individual bulbs. The top of
+                        the ring is gently softened by the edge feather (the
+                        master's top bulbs also sit near the top 6%).
+    vanity-fx-glints.png shifted 40 px left so the glints sit more over the
+                        bottle and pearls and survive the right-edge feather.
+    riot-fx-sparks, roses-fx-bokeh, vanity-fx-glints: the left 42% was zeroed
+                        to clear faint leaks into the name-plate zone.
+
+  riot-fx-neon.png     two hot-pink squiggles + a star, right side, gem zone clear.
+  riot-fx-sparks.png   pink and silver glitter / stud glints over the jacket area.
+  roses-fx-petals.png  seven glowing blush-pink petals in the right half, as if
+                       drifting. One upper-right petal sits in the gem zone (max 255).
+  roses-fx-bokeh.png   soft gold and pink bokeh discs in the mid/right. Some dots
+                       remain in the gem zone and near the feathered right edge.
+  vanity-fx-bulbs.png  a ring of warm round bulb glows, aligned as above.
+                       Upper-right glows enter the gem zone (same as the master).
+  vanity-fx-glints.png 4-point gold and pink starbursts. They cover the bottle and
+                       pearls, and also fall on the peony and the table.
+
+ZOOM CHECKS (text / logos / brands / forbidden symbols)
+  No people, faces, hands or human silhouettes in any master (the vanity mirror
+  is empty). No readable text, letters, numbers, logos, brands, UI, frame or gem.
+  Perfume bottle has no label. Jacket has no visible brand marks. Neon is shapes
+  only (squiggles and a star). The alley stencil is a spray-painted rose, not a
+  heart and not a skull. Gold table trim is a Greek-key / Deco pattern, not
+  lettering. No anarchy symbols, no blood, no big heart shapes. Nothing adult.
+
+CANDID MISSES
+  1. RIOT ROSE: the painted neon squiggles and star enter the right 6% margin.
+     A hem / floor highlight reaches the bottom-right text zone. The jacket
+     hook sits above y 25% and the hem a little below y 80%. The rose centre
+     is at 72% x, slightly left of the 75% target (y is exact).
+  2. MIDNIGHT ROSES: a supporting rose enters the right 6% margin. A background
+     rose / bokeh reaches the gem zone. The hero bloom is taller than the slim
+     band, so the crop clips its top and bottom petals (the heart stays in).
+  3. THE VANITY: the most layout misses of the three. The mirror centre is a
+     little high (40% y vs 50%). Upper-right bulbs and frame enter the gem zone.
+     Pink satin and the table's gold trim enter the left 42% and the bottom-left
+     text zone. The gold Greek-key apron sits in the bottom-right text zone.
+     The peony and satin enter the right 6%.
+  4. FX: neon tubes do not sit exactly on the painted ones (50 px inset, see
+     above). One petal and some bokeh occupy the roses gem zone. Vanity glints
+     also land on the peony and table. Top bulb glows are slightly softened
+     by the edge feather.
+  5. No backup masters were made. If Ben wants the vanity table and bulbs
+     pulled out of the text and gem zones, that would be a new take.
+
+WHAT IS CLEAN
+  No text, logos, people, hearts, skulls or adult content. All three slim
+  strips read clearly on a phone-width crop. Riot and Midnight Roses have
+  strong dark name-plate fields. Colour, lighting and the semi-realistic
+  3D key-art finish match the brief. FX borders are exact #000. The three
+  cards look different from each other and have no big heart motif.
+
+FOR CLAUDE
+  Don't write code yet. The slim-band heroes work (Riot best, then Roses,
+  Vanity a little high). Please flag whether the vanity's gem-zone bulbs and
+  the gold trim in the text corners need a reshoot, and how you'd animate
+  the six FX plates (neon flicker, spark twinkle, petal drift, bokeh pulse,
+  bulbs lighting in sequence, glint twinkle) on mobile, including blend mode
+  and whether to drop or dim FX in the name / gem / text zones.
+  Don't push or deploy anything without Ben's OK.
+
+
+========================================================================
+PINK RIOT  —  replaces RIOT ROSE
+14 Nov 2026, America/Detroit
+========================================================================
+
+PINK RIOT is the retake of RIOT ROSE. The old card's jacket was strong, but
+at phone size it read as mostly black. This card keeps the empty studded
+jacket and swaps the pocket rose for a big hot-pink neon lightning bolt, so
+hot pink (#ff2bd6) dominates and the card pops at 380×236. MIDNIGHT ROSES
+and THE VANITY are unchanged. The original riot-master / riot-fx-* files
+were left in place and were not deleted or overwritten.
+
+FILES  (all 1280×720 PNG, plus an optional preview)
+  pink-riot-master.png
+  pink-riot-fx-neon.png
+  pink-riot-fx-sparks.png
+  preview-pink-riot.jpg   (new sheet, the original preview-sheet.jpg was not overwritten)
+  notes.txt               (this file, appended — not replaced)
+
+  Box path of the master: /workspace/neon/girl-cards/deliver/pink-riot-master.png
+  Destination: C:\Users\benja\Downloads\grok\girl-cards\
+
+SIZE
+  The master is 1280×720 RGB, Grok Imagine's native 16:9. Converted from the
+  tool's JPEG to PNG with no resize, no upscale, no crop, no stretch.
+  Both FX plates are 1280×720 RGB on pure #000, same treatment as the first
+  girl-cards plates:
+    1. Per-pixel factor = smoothstep(4, 14) on the max RGB channel (black point).
+    2. A 6% short-side (~43 px) edge feather, fade starting at 16 px, so the
+       1 / 8 / 16 px borders are exact #000 (meanRGB 0, maxRGB 0). Verified.
+
+GENERATIONS (3 used: 1 master + 2 FX plates). No backup master.
+  The first-take master was kept. It has some zone misses (listed below), but
+  the jacket lands on the 75% / 50% target, the card is clearly pink at phone
+  size, and there are no people, roses, text or forbidden symbols. A second
+  take was not justified as a "real flaw".
+
+HERO POSITIONS  (Rec.709 luma; measured on the master)
+  Slim band = y 38–62% (rows 273–446, 173 px). Target focus: 75% x, 50% y.
+
+  PINK RIOT  —  pink-riot-master.png
+    The empty jacket is the hero in the right half. The neon bolt sits on the
+    wall beside it (slightly overlapping the left sleeve), not strictly behind it.
+
+    Jacket centre (geometric midpoint of the garment bbox, hook excluded)
+        75.0% x,  48.3% y     (x at 75%: YES;  y near 50%: YES)
+        Jacket bbox  x 61.7–88.3%   y 17.4–79.2%
+        Mass/mean of the leather mask is 74.0% x, 45.5% y (pulled up by the
+        denser shoulders). The hook sits above y 25%, near the top of the frame.
+        The hem is around y 79%. The bandana hangs at about 75.8% x, 65.1% y,
+        so the slim crop shows its top and clips its lower tip.
+
+    Bolt centre (brightness-weighted neon tube, Y>200, x<860, y<570)
+        56.8% x,  41.3% y
+        Tube bbox  x 48.4–67.1%   y 10.4–77.4%
+        Height 67.1% of the frame (483 px). The brief asked for about 40%
+        tall (~288 px), spanning roughly y 30–70%. This bolt is taller: it
+        starts at 10.4% y (well above 30%) and ends at 77.4% y. It stays out
+        of the gem corner (the gem is x>85%). The left tip of the tube is at
+        48.4%; a faint halo reaches about 40.6%, just inside the left 42%.
+
+    Left 42% mean L 5.7 vs rest 23.8 (ratio 0.238) — dark wet brick, faintly
+      pink-tinted, low detail: YES. A little bolt halo and floor glitter only.
+    Top-right gem zone: mostly dark (mean L 4.8, max 131). Spray-paint
+      splatters enter the lower-left of the gem box (peak at 85.6% x, 18.1% y).
+      The stars themselves sit below the gem box.
+    Bottom-left text zone: pink glitter / the left edge of the bolt's floor
+      reflection (max 184, near the 45% x boundary).
+    Bottom-right text zone: wet-ground glitter (max 200).
+    Right 6% margin: a little spray and glitter (max 105).
+    Slim crop: reads clearly — mid-bolt zigzag, jacket torso, top of the
+      bandana, and the stars, with a dark left for the name.
+
+  PINK DOMINANCE (vs the kept riot-master.png, same metric)
+    Share of pink-hued pixels at mid-to-high brightness (luma ≥ 40, R>80,
+    R>G+15, B>0.5G, R>0.7B):
+      riot-master       1.78%   (saturated hot-pink 1.44%;  mean luma 12.6)
+      pink-riot-master  9.65%   (saturated hot-pink 8.57%;  mean luma 16.2)
+    About 5.4× the pink-hued share, and about 6.0× the saturated hot-pink
+    share. Mean luma only rises a little because the left 42% stays dark.
+
+FX PLATES
+  pink-riot-fx-neon.png
+    The bolt glow alone, plus a soft lilac halo, on pure #000.
+    Raw plate was already close. Shifted 5 px left and 5 px up (no stretch,
+    pasted onto black) so it registers to the master tube, then the usual
+    black-point + feather treatment. After the shift, the FX centroid is
+    56.7% x, 41.4% y vs the master's 56.8% x, 41.3% y. The tube itself is
+    not clipped by the feather (treated top at y 65; the feather ends at
+    43 px). A very faint halo reaches the top feather zone (max luma 10).
+    Left 42% and the gem corner are clear (max 0).
+
+  pink-riot-fx-sparks.png
+    The generated plate had the pink/silver wet-ground glitter and the bolt's
+    floor reflection, well lined up with the master, but almost no stud glints
+    in the jacket. Six 4-point silver-pink glints were drawn at measured
+    stud / snap positions on the jacket (left shoulder, left collar, right
+    shoulder, right chest, mid-chest hardware, lower-left snap). The left
+    42% was zeroed (with a short ramp to 45%) to clear the name-plate zone,
+    same as riot-fx-sparks / roses-fx-bokeh / vanity-fx-glints. Ground glitter
+    still occupies the bottom text corners and a little of the right 6%,
+    matching the master. Gem corner is clear (max 0).
+
+ZOOM CHECKS
+  No people, faces, hands or silhouettes. No roses, no hearts (the spray
+  shapes are 5-point stars). No readable text, letters, numbers, logos or
+  brands at 4× on the bandana (it has a dark paisley print and a dotted
+  border, not glyphs), the jacket, or the neon (shape only). No anarchy
+  symbols, no skulls, nothing adult.
+
+CANDID MISSES
+  1. The bolt is taller than the brief: 67% of the frame, not about 40%.
+     It is also beside the jacket (with a slight sleeve overlap) rather
+     than strictly behind it, so its centre is at 57% x, not 75% x. The
+     jacket, not the bolt, is the 75% / 50% hero. I kept the tall bolt
+     because that is what makes the card pop pink at phone size.
+  2. A faint bolt halo nicks the left 42% on the master (~18 px). Spray
+     splatters enter the gem corner. Pink glitter and the floor reflection
+     enter both bottom text corners. A little spray/glitter reaches the
+     right 6%.
+  3. The hook sits above y 25%. The jacket hem is around y 79%. The slim
+     crop clips the top and bottom of the tall bolt and the bottom of the
+     bandana; the mid-bolt, torso and bandana top still read clearly.
+  4. FX sparks: stud glints were added in processing because the generated
+     plate did not include them. No extra generation was used.
+
+WHICH TO USE
+  For the early unlock that used to be RIOT ROSE, use
+    pink-riot-master.png, pink-riot-fx-neon.png, pink-riot-fx-sparks.png
+  Leave the delivered riot-* files on disk; do not delete them unless Ben
+  says so. Don't push or deploy anything without Ben's OK.
+
+
+========================================================================
+GARDEN PARTY  —  replaces MIDNIGHT ROSES
+14 Nov 2026, America/Detroit
+========================================================================
+
+GARDEN PARTY is the daytime retake of MIDNIGHT ROSES. Ben wanted one card
+in the set that is light and airy (pastel, elegant, a luxury-perfume / bridal
+magazine look), so this card is no longer "midnight". PINK RIOT and THE VANITY
+are unchanged. The original roses-master / roses-fx-* files were left in place
+and were not deleted or overwritten. The riot-* and pink-riot-* files were
+not touched either.
+
+FILES  (master and sparkle 1280×720 PNG; petals 1280×720 RGBA)
+  garden-master.png
+  garden-fx-petals.png      transparent PNG, real alpha, 8 cut-out petals
+  garden-fx-sparkle.png     on pure #000
+  preview-garden.jpg        new sheet (lettering mock, phone crop, FX, comps)
+  notes.txt                 this file, appended — not replaced
+
+  Box path of the master: /workspace/neon/girl-cards/deliver/garden-master.png
+  Destination: C:\Users\benja\Downloads\grok\girl-cards\
+
+SIZE
+  The master is 1280×720 RGB, Grok Imagine's native 16:9. Converted from the
+  tool's JPEG to PNG with no resize, no upscale, no crop, no stretch, then a
+  mid-tone grade (below) was applied on that same canvas.
+  garden-fx-petals.png is 1280×720 RGBA (not a light-on-black plate).
+  garden-fx-sparkle.png is 1280×720 RGB on pure #000, same black-point +
+  6% feather treatment as the earlier girl-cards plates. 1 / 8 / 16 px
+  borders are exact #000 (meanRGB 0, maxRGB 0). Verified.
+
+GENERATIONS (3 used: 1 master + 2 FX plates). No backup master.
+  The first-take master was kept. It has some layout misses (listed below),
+  but the hero is complete and elegant, it reads at 380×236, and there are
+  no people, text, logos or big hearts. The critical pale-zone problem was
+  fixed with a disclosed mid-tone grade rather than a second generation.
+
+HERO POSITIONS  (Rec.709 luma; measured on the finished master)
+  Slim band = y 38–62% (rows 273–446, 173 px). Target focus: 75% x, 50% y.
+
+  GARDEN PARTY  —  garden-master.png
+    A tall crystal vase overflowing with pastel roses and peonies, a gold-
+    trim porcelain teacup on its saucer, two pink macarons, and a pale pink
+    silk ribbon, on a white wrought-iron garden table, late-morning sun.
+
+    Bouquet centre (brightness-weighted blooms)  74.5% x,  24.1% y
+      (x near 75%: YES;  y well above the 38–62% slim band)
+      Bloom bbox  x 54.7–92.2%   y 0.0–43.1%
+      Only about 16% of the bloom pixels sit in the slim band. The slim crop
+      still shows the lower roses and the top of the vase, and reads as the
+      garden-party bouquet, but the face of the arrangement is high.
+
+    Vase centre  70.1% x,  60.3% y     (in the slim band; a little left of 75%)
+      The 75% / 50% target lands on the vase body, just below the rim.
+
+    Teacup is at about 85% x, 70% y, mostly below the slim band. The top of
+    the cup just reaches it. Macarons sit at x 87.5–98.0% (they enter the
+    right 6% margin).
+
+MID-TONE ZONES  (CIE L* 0–100, Rec.709 luma, contrast vs white)
+  The raw take was too pale in the gem corner (mean L* 78, contrast 1.8:1)
+  and the white table filled the bottom-right text zone (mean L* 61.5, 48%
+  of that box under 3:1). The left 42% was already a useful mid-tone
+  (mean L* 44.9). I applied a gentle, texture-preserving mid-tone grade —
+  a highlight multiply plus a little dusty-rose / mauve / sage tint, soft-
+  feathered, with the bouquet, teacup and macarons protected. After the grade:
+
+    LEFT 42%     mean L* 44.0   max 78.3   L*>70  0.5%
+                 contrast vs white  mean 6.52   median 5.51   share <3:1  16.8%
+                 (the remaining <3:1 patches are paler blossom highlights;
+                 a name-plate mock still reads clearly)
+
+    GEM corner   mean L* 51.9   max 72.8   L*>70  0.0%
+                 contrast vs white  mean 4.25   median 4.36   share <3:1   2.1%
+
+    BOTTOM-LEFT  mean L* 29.4   max 69.1   L*>70  0.0%
+                 contrast vs white  mean 10.33  median 10.33  share <3:1   0.8%
+                 (shaded foliage; a little darker than a "soft mid-tone",
+                 but white text is very readable)
+
+    BOTTOM-RIGHT mean L* 48.6   max 77.2   L*>70  0.1%
+                 contrast vs white  mean 4.94   median 4.58   share <3:1   2.2%
+                 (the white filigree table was shaded to a dusty rose mid-tone
+                 in this box, feathered upward so there is no hard line)
+
+  White "PLAYER NAME" / corner-text mocks are on preview-garden.jpg.
+
+FX PLATES
+  garden-fx-petals.png
+    Generated as 9 pastel petals on a flat chroma-green screen, then cut out
+    with a chroma key, a 2 px matte choke, and a strong green despill so
+    there is no green or black fringe (checked on white, black and mid-grey,
+    and at 3×). The plate was shifted 90 px left (no stretch, on a
+    transparent canvas) so the top-right petal cleared the gem box. One
+    petal that landed in the bottom-right text zone was dropped, leaving
+    8 separate blush, peach and lilac petals in the right half, which is
+    inside the 6–10 asked for. Left 42%, the gem box, both text corners
+    and the right 6% are empty of petal alpha.
+
+  garden-fx-sparkle.png
+    4-point champagne-gold starbursts and soft warm bokeh on pure #000,
+    processed with smoothstep(4, 14) on max RGB and a 6% short-side edge
+    feather (fade from 16 px). Borders are exact #000. The left 42% and
+    the gem corner were zeroed. The text corners were also cleared after
+    treatment. The field sits over the bouquet and vase, with some glints
+    near the cup and gold trim; it is a sparkle field, not a one-to-one
+    of every crystal facet. A few glints remain in the right 6% margin.
+
+ZOOM CHECKS
+  No people, faces, hands or silhouettes. No readable text, letters,
+  numbers, logos or brands at 4× on the teacup (gold floral / vine trim
+  only), the macarons (plain pink, no marks), the ribbon or the table
+  filigree. No big heart shapes. Nothing childish.
+
+CANDID MISSES
+  1. The bouquet centre is high (24% y, not 50%). Most of the blooms sit
+     above the slim band. I kept the take because the vase lands on the
+     75% / 50% mark, the slim crop still reads, the 380×236 view is
+     strong, and a retake that lowered the bouquet was as likely to lose
+     the teacup and macarons or drive the table deeper into the text
+     corners. (Same lesson as an earlier card job: retries often repeat
+     the layout.)
+  2. The macarons and the table rim enter the right 6% (macarons out to
+     98% x).
+  3. The teacup sits mostly below the slim band.
+  4. The mid-tone grade is visible in the gem corner as a slightly
+     duskier mauve patch (feathered, not a hard box). A little pale
+     blossom in the left 42% still sits under 3:1 contrast vs white.
+  5. FX sparkle is a field over the hero, not a precise map of every
+     gold rim, and a few glints enter the right 6%.
+
+WHAT IS CLEAN
+  Daytime, pastel, elegant. All the brief's hero props are present. White
+  text reads in the name and corner mocks. No text, people, logos or
+  hearts in the art. Petals have a real alpha channel and no green fringe.
+  Sparkle borders are exact #000. The card looks clearly different from
+  PINK RIOT (hot-pink night) and THE VANITY (mauve and gold, indoors).
+
+WHICH TO USE
+  For the card that used to be MIDNIGHT ROSES, use
+    garden-master.png, garden-fx-petals.png, garden-fx-sparkle.png
+  Leave the delivered roses-* files on disk; do not delete them unless Ben
+  says so. Don't push or deploy anything without Ben's OK.

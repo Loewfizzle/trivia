@@ -50,6 +50,7 @@ import { ccGhost } from './cc-cards.js';
 import { dmWeek } from './dm-cards.js';   // (DM2 — PERFECT WEEK)
 import { phDial } from './ph-dial.js';    // (DM2 — PENTHOUSE · THE DIAL, drawn in code)
 import { pdFirstKo, pdPerfect, pdComeback } from './pd-cards.js';   // (PD-5B — PRISM DROP's three cards, drawn in code)
+import { gpGarden } from './gp-card.js';   // (THE GARDEN PARTY PASS — GARDEN PARTY: the petals drifting + the sun sparkles)
 import { btcCard } from './btc-card.js';  // (THE BTC CARD — THE BTC CARD's premium art + THE BURNER FLARE)
 
 /** COMBO (THE VAULT 1C — an EPIC's two effects together on ONE slot): parts = [[effect, opts the part overrides]…], drawn in order */
@@ -92,4 +93,6 @@ export const FX = Object.freeze({ deco, ufo, laser, smoke, frost, flames, prism,
   phDial,
   // PD-5B — PRISM DROP's three cards (drawn in code, the night's neon): the block that cracks + bursts · the empty well's rainbow · the clear off the red line
   pdFirstKo, pdPerfect, pdComeback,
+  // THE GARDEN PARTY PASS — GARDEN PARTY (LV 34, epic): Grok's garden table as the material; Grok's petals drift + the sun sparkles twinkle (gp-card.js)
+  gpGarden,
   platinum: combo('platinum', 'epic', [sheen, { tint: '214,228,255', gain: 2.4 }], [bevel, null]) });

@@ -23,9 +23,11 @@ export const STILLS = Object.freeze({
   // CITY PART 2 — THE SLIM-CARD LAYER: the nine CSS-ART cards whose live effect ADDS a layer (THE STRIP MATCH's 13, CITY I — docs/vault.md)
   'card-aurora': 'l', 'card-frostbite': 'l', 'card-marquee': 'l', 'card-sg-btc': 'l', 'card-neonglass': 'l', 'card-century': 'l', 'card-smoke': 'l',
   'card-glitter': 'l', 'card-dev-switchboard': 'l',
+  // THE GARDEN PARTY PASS — GARDEN PARTY: its picture is Grok's art (CSS), its effect ADDS the petals + the sparkles → the layer baked transparent
+  'card-garden': 'l',
 });
 /** the cards whose material IS their picture in CSS (a gradient, a pattern, an image) — they read with no effect running */
 export const CSS_ART = Object.freeze(['card-brushed', 'card-smoke', 'card-frostbite', 'card-marquee', 'card-glitter', 'card-gilded', 'card-midnight',
   'card-brass', 'card-heartbreaker', 'card-emerald', 'card-neonglass', 'card-chrome', 'card-champagne', 'card-sg-btc', 'card-zebra', 'card-camo',
   'card-velvet', 'card-aurora', 'card-rosegold', 'card-gold', 'card-flame30', 'card-marble', 'card-carbon', 'card-confetti', 'card-circuit',
-  'card-sapphire', 'card-century', 'card-platinum', 'card-dev-switchboard']);
+  'card-sapphire', 'card-century', 'card-platinum', 'card-dev-switchboard', 'card-garden']);

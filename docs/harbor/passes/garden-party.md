@@ -29,3 +29,18 @@ The full text: docs/audio.md "THE GARDEN PARTY PASS — MUSIC OFF = HEAR THE HAR
 - Tests: unit `audio-session` 14 (the table · EVERY PATH > 1,500 states · the leave · THE HOLD), `audio-hush`, `podcast-sweep`, `jaywalk-podcast`;
   browser — NEW `sound-table.mjs` 181 / 181 (Chromium + WebKit), `audio-leave` 27 / 27, `audio-cut` 33 / 33, `audio-hush` 9 / 9, `sound-sync`
   42 / 42, `podcast-sweep` 14 / 14, `jaywalk-podcast` 5 / 5.
+
+## GROUP 2 — GARDEN PARTY (the inbox's Nov 21 8:32 pm (1) + its 8:34 pm correction)
+The full text: docs/vault.md "GARDEN PARTY". GARDEN PARTY only (PINK RIOT + THE VANITY untouched, unbuilt) — epic, the purple gem, **LV 34**
+(`LEVEL_REWARD_ROWS` + `REWARD_LEVELS`); owners already past 34 get it ONCE through THE CARRY-OVER (the existing added-row pattern —
+`progress.js#carryOver` at the next match / `me` call; `grant` never re-adds an owned id).
+- The art: copies in `art/garden-party/src/` → `scripts/build-garden-party.mjs` → `assets/vault/gp/` (garden 103 KB · petals sheet 14 KB ·
+  sparkle 33 KB — never on the boot path: the vault's lazy chunks + the card's CSS only).
+- The motion `js/fx/gp-card.js` (the petals drifting + the sun sparkles twinkling in turn); the still `card-garden-l.webp` (THE SLIM-CARD LAYER);
+  THE STRIP MATCH 0.3 (402) / 1.9 (330).
+- THE CALL MADE (the established rule): NEW in THE LAB at v1 (n 229 / 230) — a new item never shows CHANGED, so no LAB_V bump; its lab text written.
+- Refine 1 (the full card): the hero box was the whole table → a 12-letter name wrapped (LOEWFI / ZZLE12); now the bouquet's face → one line
+  at 375 / 390 / 1440 (the plate over the bouquet's left third). Refine 2 (the strip): the tier gem's plum backing (SONIC BOOM's pattern).
+- Shots (Downloads\NEON\garden-party\): the full + slim card at 390 / 375 / 1440, CUSTOMIZE (NEW `fullcard-preview.html?dress=`), THE PLAYER PAGE,
+  THE BOARD (NEW `board2-preview.html?cd=`).
+- `tests/garden-party.test.mjs` (7): the row, the one-time grant, names only to owners, the lab, the crop = the CSS, the hero, the plates, the motion.

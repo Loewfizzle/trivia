@@ -66,6 +66,10 @@ Gilded-family slot — a name + palette for THE VAULT to design) · 65 tube OLD 
 + 5 old glows are level rewards at the levels their old rank steps were worth (EMBER = FIRST ROUND's).
 **THE CARRY-OVER:** a profile from before levels gets every reward its XP had earned (+ the achievements its stats already prove, +
 FOUNDER while open) the first time it's touched — its next match, or the `me` call (the card screen).
+**THE GARDEN PARTY PASS (Nov 21) added 34 GARDEN PARTY** (epic — the owner's girl cards = GARDEN PARTY only; `REWARD_LEVELS` has 34): an ADDED ROW
+reaches players already past LV 34 through THE CARRY-OVER above — `carryOver` grants every row its XP has earned and the player lacks, at their
+next match or `me` call; `grant` never adds an owned id, so it lands ONCE (`tests/garden-party.test.mjs`). Its art ships once the owner APPROVES it in
+THE CARD LAB (NEW, n 229 / 230 — until then an owner sees its placeholder palette).
 **THE ART (THE VAULT 1A, Nov 3 — docs/vault.md):** the first REAL arts are the 8 sample cards as SLIM STRIPS (BRUSHED GOLD — now a
 common · SMOKE ROOM · FROSTBITE · INFERNO · PRISM · THE MARQUEE · GLITTER BOMB · I WANT TO BELIEVE) on THE EFFECT LIBRARY (`js/fx/`), in
 THE CARD LAB for the owner's marks; new ids `card-smoke`, `card-frostbite`, `card-inferno`, `card-prism` (where they unlock: 1B),

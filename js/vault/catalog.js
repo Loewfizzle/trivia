@@ -284,6 +284,11 @@ LAB.push(
   { id: 'card-beammeup', kind: 'card', tier: 'epic', n: 223 },
   { id: 'full-card-beammeup', kind: 'full', of: 'card-beammeup', tier: 'epic', n: 224 },
 );
+// THE GARDEN PARTY PASS (Nov 21) — GARDEN PARTY: the LV 34 epic (the owner's girl cards = GARDEN PARTY only; PINK RIOT + THE VANITY not built)
+LAB.push(
+  { id: 'card-garden', kind: 'card', tier: 'epic', n: 229 },
+  { id: 'full-card-garden', kind: 'full', of: 'card-garden', tier: 'epic', n: 230 },
+);
 // HIGH RISE's TWO CARDS (ABOVE THE CLOUDS · TOP OF THE WORLD — n 225–228) LEFT THE LAB at its GO-LIVE (the owner, Nov 20: "the two cards' lab
 // marks removed"): they ship as they are, approved by that call — js/vault/approved.js#SHIPPED; their tiers + looks are their own
 // (core/items.js · vault/strip.js LOOKS · fx/hi-specs.js), never a lab row.
