@@ -15,7 +15,7 @@
 //   · THE CARD: THE FRAME IS THE HERO — larger (the kit's `box` option: 984 × 792 of the card's 1080 × 1350), zoomed on the kid + what
 //     got him, brighter; the cause line ONCE (the big one in the frame — the result line under the name is gone); the lanes in the big
 //     neon numerals, THE SIGNAL, the name, neonspeakeasy.com stay. Reads as a small iMessage preview.
-import { runCard, drawRunCard, LINK_MAX, LINK_HARD, quant, fitPng } from '../kit/share-run.js';
+import { runCard, drawRunCard, LINK_MAX, LINK_HARD, quant, fitPng, pbFoil, pbFrom, PB_GLOW, PB_WORDS } from '../kit/share-run.js';
 import { spacedText, prepShare, blobHash, base64Of } from '../../daily/share.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { state as live } from '../../store.js';
@@ -72,6 +72,8 @@ export function shotCrop(src, box, kidX = 0.5, kidY = 0.62, zoom = SHOT_ZOOM, up
 export const BAND = 'rgba(7,6,11,0.72)';
 /** the big lanes' size on the card (px of its 1080) */
 export const BIG_PX = 236;
+/** THE PERSONAL-BEST CARD: the big number stands this much higher, PERSONAL BEST under it at PB_PX (≥ the unit's 52 — readable unzoomed) */
+export const PB_UP = 74, PB_PX = 56;
 /** the middle: THE RUN's FRAME (zoomed on the kid, lifted) under the words, the lanes + the icon over it — or, with no frame, the dark */
 export function drawRunMiddle(c, box, card, shot) {
   const { x, y, w, h } = box, r = 30;
@@ -108,19 +110,22 @@ export function drawRunMiddle(c, box, card, shot) {
   drawSignal(c, x + w - 168, y + 24, 144);
   // the lanes: the game's big neon numerals at the foot
   // (H5A's add-on — THE BIG NUMERALS: numerals.js — room between the digits + a 1 with a base foot: "172" never reads "N2")
+  // (THE PERSONAL-BEST CARD — the kit's PB_FOIL: the number in THE HOUSE GOLD with its glow, a size up off the foot, PERSONAL BEST under it)
+  const pb = !!card.pb, by = y + h - 42 - (pb ? PB_UP : 0);
   c.save(); c.textAlign = 'left'; c.font = `900 ${BIG_PX}px ${DISPLAY}`;
-  const big = card.big || '0';
-  c.shadowColor = card.accent; c.shadowBlur = 46; c.fillStyle = '#fff3fb'; drawNum(c, big, x + 32, y + h - 42, BIG_PX, DISPLAY, 900);
-  c.shadowBlur = 12; drawNum(c, big, x + 32, y + h - 42, BIG_PX, DISPLAY, 900);
-  const bw = numWidth(c, big, BIG_PX, DISPLAY, 900);
-  c.shadowBlur = 0; c.font = `800 52px ${DISPLAY}`; c.fillStyle = '#ffd6f0'; spacedText(c, card.bigUnit || 'LANES', x + 32 + bw + 28, y + h - 52, 12);
+  const big = card.big || '0', bw = numWidth(c, big, BIG_PX, DISPLAY, 900);
+  const fill = pb ? pbFoil(c, x + 32, by - BIG_PX * 0.8, x + 32 + bw, by) : '#fff3fb', glow = pb ? PB_GLOW : card.accent;
+  c.shadowColor = glow; c.shadowBlur = 46; c.fillStyle = fill; drawNum(c, big, x + 32, by, BIG_PX, DISPLAY, 900);
+  c.shadowBlur = 12; drawNum(c, big, x + 32, by, BIG_PX, DISPLAY, 900);
+  c.shadowBlur = 0; c.font = `800 52px ${DISPLAY}`; c.fillStyle = pb ? '#ffe7a6' : '#ffd6f0'; spacedText(c, card.bigUnit || 'LANES', x + 32 + bw + 28, by - 10, 12);
+  if (pb) { c.font = `900 ${PB_PX}px ${DISPLAY}`; c.shadowColor = PB_GLOW; c.shadowBlur = 26; c.fillStyle = pbFoil(c, x + 32, y + h - 90, x + 32 + 620, y + h - 36); spacedText(c, PB_WORDS, x + 36, y + h - 38, 10); c.shadowBlur = 6; spacedText(c, PB_WORDS, x + 36, y + h - 38, 10); }
   c.restore();
 }
 /** the whole card for this player's run on this phone → a canvas (null: this phone can't) */
-export function drawJwCard(game, { uid, name, code }) {
+export function drawJwCard(game, { uid, name, code, pb = false }) {
   const held0 = shotFor(game && game.matchId), E = endOf(game, uid, code);
   const shot = held0;
-  const card = { ...jwRunCard(game, { uid, name }), line: (shot && shot.line) || E.line };
+  const card = { ...jwRunCard(game, { uid, name }), line: (shot && shot.line) || E.line, pb: !!pb };
   return drawRunCard(card, (c, box, k) => drawRunMiddle(c, box, k, shot), JW_CARD);
 }
 
@@ -131,10 +136,15 @@ export const LINK_KEY = 'ns:shr:jw';   // ({ pid, h, url } — the last run card
 // (S5 — HIGH RISE shares the same machinery: the size fitter lives in the share kit now — kit/share-run.js — re-exported here unchanged)
 export { LINK_MAX, LINK_HARD, quant, fitPng };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-let held = null;   // { m, prep } — ONE match's share at a time on this phone
+let held = null;   // { m, prep, pb } — ONE match's share at a time on this phone
+// THE PERSONAL-BEST CARD: the server's answer for THIS match (profile/queue.js — the same `pbs` the end card's NEW BEST reads); a card warmed
+// before it landed is built again (re-warmed the moment a PB lands; the SHARE tap rebuilds it too)
+export const PB_BOARD = 'jaywalk-solo';
+let Qm = null;
+const pbNow = (game, code) => !!(Qm && code && game && pbFrom(Qm.outcomeFor(Qm.matchKey(code, game.matchId)), PB_BOARD));
 function prepRun(game, state) {
   const m = game && game.matchId, uid = state && state.uid, code = state && state.code;
-  if (held && held.m === m) return held;
+  if (held && held.m === m && (held.pb === null || held.pb === pbNow(game, code))) return held;
   const here = () => !!(live.game && live.game.matchId === m);
   const upload = game && !game.unproven && code ? async half => {
     if (!here()) return '';
@@ -161,8 +171,18 @@ function prepRun(game, state) {
   } : null;
   const me = (state && state.players && state.players[uid]) || {};
   // (a build that would land in the NEXT run — PLAY AGAIN tapped while the fonts were still coming — is dropped: never a hitch mid-hop)
-  const prep = prepShare(async () => (here() ? { cv: drawJwCard(game, { uid, name: me.name, code }), name: 'neon-speakeasy-jaywalk.png', line: '', upload, onTap: true } : null));
-  held = { m, prep };
+  const mine = { m, prep: null, pb: null };
+  mine.prep = prepShare(async () => {
+    if (!here()) return null;
+    if (!Qm && code && !game.unproven) {
+      Qm = await lazyImport(import('../../profile/queue.js'), '../../profile/queue.js').catch(() => null);
+      // (a PB that lands after the card was warmed: the card is warmed again with the gold)
+      if (Qm) Qm.onOutcome((k, o) => { if (held && held.pb === false && live.game && code && k === Qm.matchKey(code, live.game.matchId) && pbFrom(o, PB_BOARD)) { held = null; warmShare(live.game, live); } });
+    }
+    const pb = pbNow(game, code); mine.pb = pb;
+    return { cv: drawJwCard(game, { uid, name: me.name, code, pb }), name: 'neon-speakeasy-jaywalk.png', line: '', upload, onTap: true };
+  });
+  held = mine;
   return held;
 }
 /** the end screen is up: the card is DRAWN (its PNG kept on the phone) — nothing goes up until SHARE */

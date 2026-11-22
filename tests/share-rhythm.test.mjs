@@ -355,5 +355,5 @@ test('FIXES R3 — ONE big SCORE = the daily\'s MAIN MEASURE: THE PASSWORD its g
   assert.match(pw, /paintBig\(c, look, bigOf\(run\), W \/ 2, OWN\.bigY, OWN\.bigPx, W - 120\);/, 'its own card: the guesses big (fitted)');
   assert.match(pw, /paintBig\(c, look, bigOf\(run\), W \/ 2, R\.bigY, R\.bigPx, W - 2 \* R\.COL\);/, 'SHARE TODAY\'s section: the same');
   for (const p of ['js/games/coastclear/share.js', 'js/games/drop/share.js']) assert.doesNotMatch(read(p), /bigOf|measureOf\('(coastclear|drop)'\) === 'guesses'/, `${p}: the time stays big`);
-  assert.match(read('js/daily/share.js'), /export function paintBig\(c, look, text, cx, y, px, fitW = 0\)/, 'a long word line shrinks to its column');
+  assert.match(read('js/daily/share.js'), /export function paintBig\(c, look, text, cx, y, px, fitW = 0(, \{ gold = false \} = \{\})?\)/, 'a long word line shrinks to its column');
 });

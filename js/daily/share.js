@@ -117,16 +117,26 @@ export function paintName(c, look, name, cx, y, px, fitW = 0, result = null, ink
   } else { c.fillStyle = col; spacedText(c, t, x, y, ls); }
   c.restore();
 }
+// THE PERSONAL-BEST SHARE CARD (THE GARDEN PARTY PASS — the owner, Nov 21): THE HOUSE GOLD = NEW DAILY BEST's foil (css/daily.css .dy-gold — the
+// night's light foil with its glow, the day's deep gold), ONE table for every card (games/kit/share-run.js re-exports it for the run cards)
+export const PB_FOIL = Object.freeze([[0, '#fff3c4'], [0.3, '#ffd36a'], [0.55, '#e7a92a'], [0.75, '#fff1b8'], [1, '#f2bd46']]);
+export const PB_FOIL_DAY = Object.freeze([[0, '#8a5c00'], [0.4, '#b07a12'], [0.7, '#6e4600'], [1, '#9c6a08']]);
+export const PB_GLOW = '#ffc83c', PB_WORDS = 'PERSONAL BEST';
+/** the gold foil across a box (a slight diagonal, as the CSS's 100deg) */
+export function pbFoil(c, x0, y0, x1, y1, look = 'night') { const g = c.createLinearGradient(x0, y0, x1, y1 + (x1 - x0) * 0.08); for (const [o, col] of (look === 'day' ? PB_FOIL_DAY : PB_FOIL)) g.addColorStop(o, col); return g; }
 /** (2) THE BIG SCORE (the daily's main measure — a time, or THE PASSWORD's guesses) — the number font's bold, the ink (white by night),
- *  centred on cx; fitW = the widest it may print (a long word line shrinks to it — FIXES R3) */
-export function paintBig(c, look, text, cx, y, px, fitW = 0) {
+ *  centred on cx; fitW = the widest it may print (a long word line shrinks to it — FIXES R3)
+ *  (THE PERSONAL-BEST CARD: `gold` = a NEW DAILY BEST — the house gold foil + its glow by night) */
+export function paintBig(c, look, text, cx, y, px, fitW = 0, { gold = false } = {}) {
   const t = String(text == null ? '' : text);
   c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
   let p = px;
   const set = () => { c.font = `700 ${p}px ${FONT_TEXT}`; };
   set();
   while (fitW && p > 24 && c.measureText(t).width > fitW) { p -= 2; set(); }
-  c.fillStyle = inkOf(look).ink; c.fillText(t, cx, y);
+  if (gold) { const w = c.measureText(t).width; c.fillStyle = pbFoil(c, cx - w / 2, y - p / 2, cx + w / 2, y + p / 2, look); if (look !== 'day') { c.shadowColor = PB_GLOW; c.shadowBlur = Math.round(p * 0.3); c.fillText(t, cx, y); c.shadowBlur = 0; } }
+  else c.fillStyle = inkOf(look).ink;
+  c.fillText(t, cx, y);
   c.restore();
 }
 /** (3) THE STAT LINE — ONE grey line, centred on cx (never a coloured word: a lost run is said by the NAME's red); fitW = the widest it may print */

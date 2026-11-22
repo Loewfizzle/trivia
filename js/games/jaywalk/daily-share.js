@@ -59,7 +59,7 @@ export function paintSection(c, { inputs, look = 'night', W = 1080 } = {}) {
   const I = jwInputs(inputs), R = RHYTHM, cx = W / 2;
   c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
   paintName(c, look, NAME, cx, R.nameY, R.namePx, W - 2 * R.COL);   // (WHITE — the daily has no win / lose)
-  paintBig(c, look, lanesLine(bestLanes(I)), cx, R.bigY, R.bigPx, W - 2 * R.COL);
+  paintBig(c, look, lanesLine(bestLanes(I)), cx, R.bigY, R.bigPx, W - 2 * R.COL, { gold: I.nb });   // (THE PERSONAL-BEST CARD: a NEW DAILY BEST in the house gold)
   paintStat(c, look, statOf(I), cx, R.statY, R.statPx, W - 2 * R.COL);
   const tl = timeOf(I);
   if (tl) paintStat(c, look, tl, cx, R.artY + 24, Math.round(R.statPx * 0.82), W - 2 * R.COL);   // (refine: a clear gap under BEST OF 3)
@@ -79,7 +79,7 @@ export function renderShare({ inputs, look = 'night' } = {}) {
   if (!day) { const hz = c.createRadialGradient(W / 2, -80, 0, W / 2, -80, 700); hz.addColorStop(0, 'rgba(255,64,88,0.16)'); hz.addColorStop(1, 'rgba(255,64,88,0)'); c.fillStyle = hz; c.fillRect(0, 0, W, H); }
   c.textAlign = 'center'; c.textBaseline = 'middle';
   paintName(c, look, NAME, W / 2, OWN.nameY, OWN.namePx, W - 120);
-  paintBig(c, look, lanesLine(bestLanes(I)), W / 2, OWN.bigY, OWN.bigPx, W - 160);
+  paintBig(c, look, lanesLine(bestLanes(I)), W / 2, OWN.bigY, OWN.bigPx, W - 160, { gold: I.nb });
   paintStat(c, look, statOf(I), W / 2, OWN.statY, OWN.statPx, W - 120);
   const tl = timeOf(I);
   if (tl) paintStat(c, look, tl, W / 2, OWN.statY + 66, Math.round(OWN.statPx * 0.82), W - 120);

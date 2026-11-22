@@ -60,7 +60,7 @@ export function paintSection(c, { inputs, look = 'night', W = 1080 } = {}) {
   const I = hrInputs(inputs), R = RHYTHM, cx = W / 2;
   c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
   paintName(c, look, NAME, cx, R.nameY, R.namePx, W - 2 * R.COL);   // (WHITE — the daily has no win / lose)
-  paintBig(c, look, floorsLine(I.f), cx, R.bigY, R.bigPx, W - 2 * R.COL);
+  paintBig(c, look, floorsLine(I.f), cx, R.bigY, R.bigPx, W - 2 * R.COL, { gold: I.nb });   // (THE PERSONAL-BEST CARD: a NEW DAILY BEST in the house gold)
   paintStat(c, look, statOf(I), cx, R.statY, R.statPx, W - 2 * R.COL);
   paintTower(c, look, I, cx, R.artY + 14, R.artH - 18);
   c.restore();
@@ -71,7 +71,7 @@ export function paintSection(c, { inputs, look = 'night', W = 1080 } = {}) {
 export async function renderShare({ inputs } = {}) {
   const I = hrInputs(inputs);
   const S = await lazyImport(import('./share.js'), './share.js');
-  const run = { floor: I.f, perfects: I.p, cause: I.c || '', made: I.f >= 200 || I.c === 'made', mode: 'solo', name: '' };
+  const run = { floor: I.f, perfects: I.p, cause: I.c || '', made: I.f >= 200 || I.c === 'made', mode: 'solo', name: '', pb: I.nb };   // (THE PERSONAL-BEST CARD: a NEW DAILY BEST = the gold + PERSONAL BEST)
   const hero = await S.loadHero(S.hiRunCard(run).hero);
   const card = { ...S.hiRunCard(run), mode: DAILY_TAG };
   const cv = document.createElement('canvas'); cv.width = 1080; cv.height = 1350;

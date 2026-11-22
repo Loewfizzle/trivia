@@ -120,7 +120,7 @@ test('THE CLOSE\'s REVIEW — the baked HUD is WARMED behind the welcome (no bak
   assert.ok(s.includes("stage.classList.add('is-welcome'); warmHud();") && s.includes("if (best > 0 && !FROM && !matchOn) { stage.classList.add('is-gold'); BN.warm(); stage.classList.remove('is-gold'); }") && s.includes('BL.warm(`${cls}|${sk}`, words);'));
   assert.ok(b.includes('while (sets.size > SETS_KEPT)') && b.includes('if (S0.glyphs !== glyphs) zero(S0.glyphs);'), 'an evicted set\'s canvases are zeroed');
   assert.ok(b.includes('cssW = 0;   // (cssW: a new dpr') && b.includes('if (d !== dpr) { dpr = d; cssW = 0; }'));
-  assert.ok(sh.includes('const run = runOf(game, uid), hero = await loadHero(hiRunCard(run).hero);'), 'the judge\'s numbers (REVIEW FIX B: the card keeps no frame of its own — the host\'s result rows alone)');
+  assert.ok(sh.includes('const run = runOf(game, uid), hero = await loadHero(hiRunCard(run).hero), pb = pbNow(game, code);'), 'the judge\'s numbers (REVIEW FIX B: the card keeps no frame of its own — the host\'s result rows alone)');
   assert.deepEqual(parseShadows('rgb(255, 255, 255) 0px 0px 2px, rgba(255, 79, 216, 0.95) 0px 0px 14px, rgba(10, 7, 22, 0.55) 0px 3px 0px'), [{ color: 'rgb(255, 255, 255)', x: 0, y: 0, blur: 2 }, { color: 'rgba(255, 79, 216, 0.95)', x: 0, y: 0, blur: 14 }, { color: 'rgba(10, 7, 22, 0.55)', x: 0, y: 3, blur: 0 }]);
   assert.deepEqual(parseShadows('0px 1px 0px rgb(10, 7, 22)'), [{ color: 'rgb(10, 7, 22)', x: 0, y: 1, blur: 0 }], 'colour last too');
   assert.deepEqual(parseShadows('none'), []);

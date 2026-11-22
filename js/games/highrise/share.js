@@ -16,7 +16,7 @@
 // at the first SHARE tap (prepShare's onTap), fitted under the server's cap (fitPng). BEHIND THE SWITCH: the server takes a run's card only
 // with its own COUNTED result (api/_lib/share-card.js) — with HIGHRISE_COUNTS off there is none, so the phone asks nothing once the server
 // has said WOULD COUNT (final.js sets globalThis.__hiWould) and the picture itself goes out (no link, no text). Lazy (index.js#shareRun).
-import { runCard, fitPng, RUN_W, RUN_H } from '../kit/share-run.js';
+import { runCard, fitPng, RUN_W, RUN_H, pbFoil, pbFrom, PB_GLOW, PB_WORDS } from '../kit/share-run.js';
 import { spacedText, spacedWidth, shareAddress, prepShare, blobHash, base64Of } from '../../daily/share.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
 import { lazyImport } from '../../ui/lazy-import.js';
@@ -35,15 +35,17 @@ export const HERO_DIR = new URL('../../../assets/highrise/share/', import.meta.u
  *  foot follows at its own place: daily/share.js FOOT) */
 export const POSTER_L = Object.freeze({ titleY: 122, titlePx: 92, modeY: 172, modePx: 30, bigY: 440, bigPx: 270, unitPx: 72, unitGap: 30, bandY: 546, bandPx: 68, causeY: 1092, causePx: 76, causeLh: 80, statY: 1158, statPx: 40 });
 const NUMS = '"Chakra Petch", system-ui, sans-serif';
+/** THE PERSONAL-BEST CARD: the band's line moves this far down (PERSONAL BEST takes its place under the floor) */
+export const PB_BAND_DY = 78;
 const DISPLAY = '"Orbitron", "Chakra Petch", system-ui, sans-serif';
 
 /** PURE: the card's words + numbers from a run's PUBLIC fields → the kit's card + the poster's own lines + its hero shot */
-export function hiRunCard({ floor = 0, perfects = 0, cause = '', made = false, mode = 'solo', name = '' } = {}) {
+export function hiRunCard({ floor = 0, perfects = 0, cause = '', made = false, mode = 'solo', name = '', pb = false } = {}) {
   const f = Math.max(0, Math.floor(Number(floor) || 0)), p = Math.max(0, Math.floor(Number(perfects) || 0)), gold = !!made;
   const card = runCard({ game: 'highrise', title: 'HIGH RISE', mode: mode === 'match' ? 'MATCH' : 'SOLO', name, big: String(f), bigUnit: f === 1 ? 'FLOOR' : 'FLOORS', result: '', look: 'night', accent: gold ? GOLD : PINK });
   const b = BANDS[bandAt(f)];
   return {
-    ...card, gold, hero: gold ? 'mothership' : b.id,
+    ...card, gold, pb: !!pb, hero: gold ? 'mothership' : b.id,
     line: gold ? END_WORDS.made : END_WORDS[cause] || 'THE TOWER STANDS',
     band: b.name,   // (THE GO-LIVE: its own pink line under "10 FLOORS" — card.bigUnit stands beside the number)
     stat: `${p} ${p === 1 ? 'PERFECT' : 'PERFECTS'}${card.name ? ` · ${card.name}` : ''}`,
@@ -142,7 +144,8 @@ export function paintPoster(c, card, hero) {
   lit.push(neon('HIGH', x0 + wh / 2 - tls / 2, L.titleY, { px: L.titlePx, glow: gold ? GOLD : PINK, core: gold ? GOLD_CORE : '#ffe6f8', ls: tls }));
   lit.push(neon('RISE', x0 + wh + gap + wr / 2 - tls / 2, L.titleY, { px: L.titlePx, glow: gold ? GOLD : CYAN, core: gold ? GOLD_CORE : '#e8fbff', ls: tls }));
   // THE FLOOR, huge in the sky: the game's numerals — white-hot, a CYAN glow (gold for THE FINISH); a size down for a long number
-  const big = card.big || '0', glow = gold ? GOLD : CYAN;
+  // (THE PERSONAL-BEST CARD — the kit's PB_FOIL: the floor in THE HOUSE GOLD with its glow; PERSONAL BEST on the band's line, the band a line under)
+  const pb = !!card.pb, big = card.big || '0', glow = gold || pb ? (pb && !gold ? PB_GLOW : GOLD) : CYAN;
   let px = L.bigPx;
   // (numWidth measures in the context's OWN font — set to each size tried)
   c.save(); if ('letterSpacing' in c) c.letterSpacing = '0px';   // (THE CLOSE's REVIEW: only where the canvas HAS it — an older iPhone's would gain a plain property, and daily/share.js#tracks would stop spacing by hand)
@@ -152,21 +155,22 @@ export function paintPoster(c, card, hero) {
   c.font = `900 ${L.unitPx}px ${DISPLAY}`;
   const uw = spacedWidth(c, unit, uls), row = q => nw(q) + L.unitGap + uw;
   while (px > 160 && row(px) > W - 120) px -= 10;
-  const bx = (W - row(px)) / 2, ux = bx + nw(px) + L.unitGap;
+  const nwx = nw(px), bx = (W - row(px)) / 2, ux = bx + nwx + L.unitGap;
   c.restore();
   card.row = { px, bx, ux, uw };   // (where the row stands — the share check reads it)
   lit.push((g, pass, k = 1) => {
     g.save(); g.textAlign = 'left'; if ('letterSpacing' in g) g.letterSpacing = '0px'; g.font = `700 ${px}px ${NUMS}`;
-    if (pass === 'core') g.fillStyle = gold ? '#fff6dc' : '#f2feff';
-    else { g.fillStyle = pass === 'wide' ? glow : (gold ? '#ffe7a6' : '#9eefff'); g.shadowColor = glow; g.shadowBlur = (pass === 'wide' ? 64 : 22) * k; }
+    if (pass === 'core') g.fillStyle = pb ? pbFoil(g, bx, L.bigY - px * 0.8, bx + nwx, L.bigY) : gold ? '#fff6dc' : '#f2feff';
+    else { g.fillStyle = pass === 'wide' ? glow : (gold || pb ? '#ffe7a6' : '#9eefff'); g.shadowColor = glow; g.shadowBlur = (pass === 'wide' ? 64 : 22) * k; }
     drawNum(g, big, bx, L.bigY, px, NUMS, 700);
     if (pass === 'wide') drawNum(g, big, bx, L.bigY, px, NUMS, 700);
     g.restore();
   });
   // FLOORS right beside the number, on its baseline (bold CYAN, tight — gold for THE FINISH) · THE BAND on its own line under it (PINK neon,
   // bigger + bolder, tight — gold for THE FINISH)
-  lit.push(neon(unit, ux + uw / 2 - uls / 2, L.bigY, { px: L.unitPx, glow, core: gold ? '#ffefc4' : '#b8f6ff', ls: uls, weight: 900, wide: 0.16 }));
-  lit.push(neon(card.band || '', W / 2, L.bandY, { px: L.bandPx, glow: gold ? GOLD : PINK, core: gold ? GOLD_CORE : '#ffd9f5', ls: 3, weight: 900, wide: 0.34, maxW: W - 110 }));
+  lit.push(neon(unit, ux + uw / 2 - uls / 2, L.bigY, { px: L.unitPx, glow, core: gold || pb ? '#ffefc4' : '#b8f6ff', ls: uls, weight: 900, wide: 0.16 }));
+  if (pb) lit.push(neon(PB_WORDS, W / 2, L.bandY, { px: L.bandPx, glow: PB_GLOW, core: GOLD_CORE, ls: 4, weight: 900, wide: 0.34, maxW: W - 110 }));
+  lit.push(neon(card.band || '', W / 2, L.bandY + (pb ? PB_BAND_DY : 0), { px: pb ? Math.round(L.bandPx * 0.82) : L.bandPx, glow: gold ? GOLD : PINK, core: gold ? GOLD_CORE : '#ffd9f5', ls: 3, weight: 900, wide: 0.34, maxW: W - 110 }));
   // THE CAUSE (hot pink · gold), 1 or 2 lines — its LAST line on causeY
   c.save(); c.font = `900 ${L.causePx}px ${DISPLAY}`;
   const rows = card.line ? wrap2(c, card.line, W - 110, 3) : [];
@@ -207,10 +211,14 @@ export function runOf(game, uid) {
   const r = ((game && game.results) || {})[uid] || {};
   return { floor: Number(r.f) || 0, perfects: Number(r.p) || 0, cause: String(r.w || ''), made: r.w === 'made', mode: game && game.mode === 'solo' ? 'solo' : 'match' };
 }
-let held = null;   // { m, prep } — ONE match's share at a time on this phone
+let held = null;   // { m, prep, pb } — ONE match's share at a time on this phone
+// THE PERSONAL-BEST CARD: the server's answer for THIS match — NEW BEST as the end card says it (final.js: only a best BEATEN, `prev` > 0)
+export const PB_BOARD = 'highrise-solo';
+let Qm = null;
+const pbNow = (game, code) => !!(Qm && code && game && pbFrom(Qm.outcomeFor(Qm.matchKey(code, game.matchId)), PB_BOARD, true));
 function prepRun(game, state) {
   const m = game && game.matchId, uid = state && state.uid, code = state && state.code;
-  if (held && held.m === m) return held;
+  if (held && held.m === m && (held.pb === null || held.pb === pbNow(game, code))) return held;
   const here = () => !!(live.game && live.game.matchId === m);
   // (BEHIND THE SWITCH: no upload once the server has said WOULD COUNT for this match — the picture itself goes out; the server refuses a
   //  run's card without its own counted result anyway: api/_lib/share-card.js)
@@ -237,13 +245,18 @@ function prepRun(game, state) {
     return '';
   } : null;
   const me = (state && state.players && state.players[uid]) || {};
-  const prep = prepShare(async () => {
+  const mine = { m, prep: null, pb: null };
+  mine.prep = prepShare(async () => {
     if (!here()) return null;
+    if (!Qm && code && !game.unproven) {
+      Qm = await lazyImport(import('../../profile/queue.js'), '../../profile/queue.js').catch(() => null);
+      if (Qm) Qm.onOutcome((k, o) => { if (held && held.pb === false && live.game && code && k === Qm.matchKey(code, live.game.matchId) && pbFrom(o, PB_BOARD, true)) { held = null; warmShare(live.game, live); } });
+    }
     // (the numbers = THE JUDGE's — the host's result rows: the podium's + the counted result's; the picture = the band's hero shot)
-    const run = runOf(game, uid), hero = await loadHero(hiRunCard(run).hero);
-    return { cv: drawHiCard({ ...run, name: me.name }, hero), name: 'neon-speakeasy-high-rise.png', line: '', upload, onTap: true };
+    const run = runOf(game, uid), hero = await loadHero(hiRunCard(run).hero), pb = pbNow(game, code); mine.pb = pb;
+    return { cv: drawHiCard({ ...run, name: me.name, pb }, hero), name: 'neon-speakeasy-high-rise.png', line: '', upload, onTap: true };
   });
-  held = { m, prep };
+  held = mine;
   return held;
 }
 /** the end screen is up: the card is DRAWN (its PNG kept on the phone) — nothing goes up until SHARE */

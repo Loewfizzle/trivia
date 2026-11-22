@@ -85,3 +85,11 @@ removed export referenced, holdAwake's callers, the LV 34 grant (never twice), t
 ## THE BOOT ROOM (THE BOOT BUDGET's bytes, 6,500 KB / 310 modules)
 Before (c557ba73): 304 modules, 20,747 B of room · After: 304 modules, **22,094 B** of room (the engine lost the nap) — GARDEN PARTY's art + effect
 never on the boot path (the vault's lazy chunks + its CSS's image only when a card shows).
+
+## GROUP 5 — THE PERSONAL-BEST SHARE CARD (the inbox's Nov 21 11:16 pm — arrived before the final tests: built)
+The full text: docs/jaywalk.md / docs/highrise.md "THE PERSONAL-BEST CARD". A server-confirmed NEW PERSONAL BEST → the big number in the house gold
+(NEW DAILY BEST's foil — ONE table in daily/share.js) + PERSONAL BEST under it, on JAYWALK's run card + HIGH RISE's poster; a NEW DAILY BEST paints
+the dailies' big line gold (JAYWALK night + day; HIGH RISE's daily poster gets PERSONAL BEST too). JAYWALK's card has no day look (its run card is
+night-only, as HIGH RISE's poster) — the day shot is the daily card's. NEW `tests/integration/pb-share.mjs` 9 / 9; highrise-share 120 / 120;
+share-same 75 / 75 SAME; five source pins updated. Shots: Downloads\NEON\pb-share\ (normal vs PB, each card).
+A call: JAYWALK's daily keeps its own words under the gold big line ("BEST OF 3 · NEW DAILY BEST" — THE ONE RULE's single stat line).

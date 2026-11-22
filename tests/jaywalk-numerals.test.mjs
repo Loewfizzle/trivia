@@ -42,7 +42,7 @@ test('EVERY PLACE draws its big numerals through numerals.js: the share card, th
   assert.equal(NUM_FAMILY, "'Chakra Petch', system-ui, sans-serif"); assert.match(read('css/base.css'), /--font-num: 'Chakra Petch', system-ui, sans-serif;/, 'the same stack the DOM draws with');
   for (const bad of [/fetch\(/, /localStorage/, /firebase/, /Math\.random/]) assert.doesNotMatch(N, bad, `numerals.js: ${bad}`);
   // THE SHARE CARD: the big lanes
-  assert.match(S, /c\.shadowBlur = 46; c\.fillStyle = '#fff3fb'; drawNum\(c, big, x \+ 32, y \+ h - 42, BIG_PX, DISPLAY, 900\);/); assert.match(S, /const bw = numWidth\(c, big, BIG_PX, DISPLAY, 900\);/, 'LANES sits after the numeral\'s real width');
+  assert.match(S, /c\.shadowBlur = 46; c\.fillStyle = fill; drawNum\(c, big, x \+ 32, by, BIG_PX, DISPLAY, 900\);/); assert.match(S, /bw = numWidth\(c, big, BIG_PX, DISPLAY, 900\);/, 'LANES sits after the numeral\'s real width');
   assert.doesNotMatch(S, /fillText\(big,/, 'never the plain run of digits again');
   // THE END SCREEN, THE LANE COUNTER (the game + the lab)
   assert.match(V, /setNum\(big, num\(lanes\)\); prepNums\(el\);/); assert.match(W, /lanesEl = h\('div\.jw-lanes'\); setNum\(lanesEl, 0\); prepNums\(lanesEl\);/); assert.match(W, /lanesShown = shownBest; setNum\(lanesEl, shownBest\);/);

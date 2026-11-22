@@ -1122,3 +1122,14 @@ rotation with JAYWALK. Its look (the ticket, the recolour, the share card incl. 
   `e2e-highrise-daily-b.mjs` (`DAILY_TEST=1` ONLY: the server's set at 3:59 / 4:00 · TODAY 4 → 5 · the run from its ticket with a hide + a ‹
   hold → FLOOR n · ONE SHOT + RESUME → the end card → ADMITTED · SHARE TODAY 1 = THE POSTER, 5 = THE BIG FIVE).
 
+
+## THE PERSONAL-BEST CARD (THE GARDEN PARTY PASS, Nov 21 — the owner's add-on, 11:16 pm; docs/harbor/passes/garden-party.md "GROUP 5")
+A run that is a NEW PERSONAL BEST — the SERVER's answer for that match (`profile/queue.js` outcome `pbs`, the same the end card's NEW BEST reads:
+JAYWALK any `jaywalk-solo` PB · HIGH RISE only a best BEATEN, `prev` > 0 — `kit/share-run.js#pbFrom`) — shares a card whose big number is in THE
+HOUSE GOLD (NEW DAILY BEST's foil, ONE table: `daily/share.js#PB_FOIL` / `pbFoil`, with its glow) + a clear **PERSONAL BEST** line under it
+(JAYWALK's run card: the lanes a line up, PERSONAL BEST at 56 px — ≥ the unit's 52; HIGH RISE's poster: PERSONAL BEST on the band's line at 68 px,
+the band a line down + a size down). A normal run's card is unchanged. A card warmed before the server's answer landed is warmed again the moment
+a PB lands (and the SHARE tap rebuilds it). The dailies: a NEW DAILY BEST paints the big line gold (`paintBig(…, { gold })` — JAYWALK's daily card
+night + day, both dailies' SHARE TODAY sections; HIGH RISE's own daily poster gets the gold + PERSONAL BEST). Spoiler-free as before; THE ONE FOOT +
+THE ONE RULE kept; the share code stays LAZY (nothing in the preload). Proof: `tests/integration/pb-share.mjs` (9 — gold on a PB, never on a
+normal card; the words lit + readable at 360 / 390) · shots `Downloads\NEON\pb-share\`.

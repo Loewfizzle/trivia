@@ -6,7 +6,7 @@
 // phone's share sheet with the IMAGE + the site's URL; no file sharing → the line + the image saved (js/daily/share.js#sendShare).
 // Lazy: the console's podium (ui/final.js) asks the cartridge's shareRun on the first SHARE.
 import { ctx2d } from '../../ui/canvas-safe.js';
-import { sendShare, shareAddress, spacedText, SHARE_W, SHARE_H, SITE } from '../../daily/share.js';
+import { sendShare, shareAddress, spacedText, SHARE_W, SHARE_H, SITE, PB_FOIL, PB_GLOW, PB_WORDS, pbFoil } from '../../daily/share.js';
 
 export const RUN_W = SHARE_W, RUN_H = SHARE_H;
 const clip = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f]/g, '').slice(0, n);
@@ -97,6 +97,16 @@ export async function shareRunCard(card, drawMiddle) {
 
 // ---- THE LINK's PICTURE (JAYWALK H4B — moved here from js/games/jaywalk/share.js in HIGH RISE S5: both games' run cards go up through it)
 /** the link's picture is kept under this (the server's cap is 400 KB — a game frame is a heavy PNG; the dailies' cards are 79–246 KB) */
+// ---- THE PERSONAL-BEST SHARE CARD (THE GARDEN PARTY PASS — the owner, Nov 21 11:16 pm): a run that is a NEW PERSONAL BEST (the SERVER's — the
+// moment its end card shows NEW BEST) shows its big number in THE HOUSE GOLD (NEW DAILY BEST's foil — css/daily.css .dy-gold — with its glow)
+// + a clear PERSONAL BEST line under it; a normal run's card unchanged. ONE gold for every game's card (JAYWALK · HIGH RISE · the dailies')
+export { PB_FOIL, PB_GLOW, PB_WORDS, pbFoil };   // (the gold's ONE table lives in daily/share.js — NEW DAILY BEST's)
+/** PURE: is this run a NEW PERSONAL BEST — the server's answer (`o.pbs`) on `board`; `beaten` = only a best that BEAT an earlier one (HIGH RISE's
+ *  end card: NEW BEST only when `prev` > 0 — a first counted run says YOUR BEST) */
+export function pbFrom(o, board, beaten = false) {
+  const pb = o && Array.isArray(o.pbs) ? o.pbs.find(x => x && x.b === board) : null;
+  return !!pb && (!beaten || Math.floor(Number(pb.prev) || 0) > 0);
+}
 export const LINK_MAX = 300 * 1024, LINK_HARD = 390 * 1024;
 /** PURE: a colour channel on `bits` bits (its high bits repeated below — white stays white) */
 export const quant = (v, bits) => ((v >> (8 - bits)) << (8 - bits)) | (v >> bits);

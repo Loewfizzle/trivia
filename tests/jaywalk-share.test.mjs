@@ -55,7 +55,7 @@ test('THE LINK\'s PICTURE fits the server: over 300 KB it is re-encoded on 6, th
 test('THE SHARE SENDS ONLY THE LINK: the dailies\' sender (the link alone when there is one — else the picture, with NO text); the card is built + uploaded BEFORE the tap; the server is asked for a RUN\'s card', () => {
   const s = code('js/games/jaywalk/share.js'), v = code('js/games/jaywalk/victory.js'), d = read('js/daily/share.js'), k = read('js/games/kit/share-run.js');
   assert.doesNotMatch(s, /runLine|shareRunCard|sendShare\(/, 'no "My JAYWALK run — … · https://…" line any more');
-  assert.match(s, /prepShare\(async \(\) => \(here\(\) \? \{ cv: drawJwCard\(game, \{ uid, name: me\.name, code \}\), name: 'neon-speakeasy-jaywalk\.png', line: '', upload, onTap: true \} : null\)\)/, 'the kit\'s prepare — the line is EMPTY; a build that would land in the next run is dropped; BEFORE THE FLIP: the card UPLOADS ONLY ON SHARE');
+  assert.match(s, /prepShare\(async \(\) => \{\s*if \(!here\(\)\) return null;[\s\S]{0,700}return \{ cv: drawJwCard\(game, \{ uid, name: me\.name, code, pb \}\), name: 'neon-speakeasy-jaywalk\.png', line: '', upload, onTap: true \};/, 'the kit\'s prepare — the line is EMPTY; a build that would land in the next run is dropped; BEFORE THE FLIP: the card UPLOADS ONLY ON SHARE');
   assert.match(d, /if \(url && canShareLink\(url\)\) \{\s*try \{ shareHold\(\); await navigator\.share\(\{ url \}\); return 'shared'; \}/, 'the site\'s rule (FIXES R1): the LINK ONLY');
   assert.doesNotMatch(s, /navigator\.share/, 'JAYWALK never calls the share sheet itself — ONE sender');
   assert.match(s, /api\('daily', \{ action: 'shareCard', games: \['jaywalk'\], run: \{ room: code, m \}, png: b64 \}\)/, 'a RUN\'s card: the match named, never a claim of lanes');

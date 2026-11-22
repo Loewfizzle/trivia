@@ -85,6 +85,6 @@ test('THE SHARE CARD\'S TYPE: "10 FLOORS" on one row, the band on its own pink l
   assert.deepEqual([c.big, c.bigUnit, c.band, c.sub], ['10', 'FLOORS', 'THE ROOFTOPS', undefined]);
   assert.ok(POSTER_L.unitPx >= 64 && POSTER_L.bandPx >= 60 && POSTER_L.bandY > POSTER_L.bigY, 'FLOORS + the band big enough to read at 300 px');
   const src = read('js/games/highrise/share.js');
-  assert.match(src, /lit\.push\(neon\(card\.band \|\| '', W \/ 2, L\.bandY, \{ px: L\.bandPx, glow: gold \? GOLD : PINK,/, 'the band PINK (gold on the finish)');
+  assert.match(src, /lit\.push\(neon\(card\.band \|\| '', W \/ 2, L\.bandY \+ \(pb \? PB_BAND_DY : 0\), \{ px: pb \? Math\.round\(L\.bandPx \* 0\.82\) : L\.bandPx, glow: gold \? GOLD : PINK,/, 'the band PINK (gold on the finish; THE GARDEN PARTY PASS: a line down + a size down on a PERSONAL BEST card)');
   assert.match(src, /lit\.push\(neon\(unit, ux \+ uw \/ 2 - uls \/ 2, L\.bigY,/, 'FLOORS on the number\'s baseline, right of it');
 });
