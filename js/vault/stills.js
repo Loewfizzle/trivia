@@ -9,8 +9,12 @@
 //   s: the strip's still · f: the full card's still · o: the strip's still baked TRANSPARENT (CITY C — over a material of its own, a hand rule)
 //   · l: THE SLIM-CARD LAYER (CITY PART 2 — the owner said YES to CITY I's call): a CSS-ART card's effect LAYER baked transparent, laid over its
 //     own CSS picture by the GENERATED rule (.vl-mat::before) until the effect paints — a list never shows the bare picture, then a layer popping in (PRISM DROP's three keep PD-5B's own full material — assets/vault/pd/)
+//   · w: THE GARDEN PARTY PASS — THE LAST FOUR SLIM CARDS (inferno, noir, marquee-gold — CITY I's "not pinned"; NEON CAMO already matched, kept `s`): the strip's still baked
+//     TRANSPARENT with the lists' own options (STILL_OPTS) at every width step (stillWidths), over the card's OWN material (.vl-mat::before — a
+//     container query picks the width, stretched): the causes were the bake's calm 0 (INFERNO's flames taller than a list's), the width (the
+//     effects lay out by it — MARQUEE GOLD's bulb count steps every 10 pt) + the bake's black ground in place of the material (docs/vault.md)
 export const STILLS = Object.freeze({
-  'card-inferno': 'sf', 'card-prism': 'sf', 'card-noir': 'sf', 'card-legend': 'sf', 'card-marquee-gold': 'sf', 'card-neoncamo': 'sf',
+  'card-inferno': 'wf', 'card-prism': 'sf', 'card-noir': 'wf', 'card-legend': 'sf', 'card-marquee-gold': 'wf', 'card-neoncamo': 'sf',
   'card-penthouse': 'sf', 'card-wildfire': 'sf', 'card-eternal': 'sf', 'card-witness': 'sf', 'card-founder': 'sf', 'card-house': 'sf',
   'card-dev-source': 'sf',
   // THE 8 SIGHTING CARDS (THE VAULT 1C — the city's own models)
@@ -26,6 +30,10 @@ export const STILLS = Object.freeze({
   // THE GARDEN PARTY PASS — GARDEN PARTY: its picture is Grok's art (CSS), its effect ADDS the petals + the sparkles → the layer baked transparent
   'card-garden': 'l',
 });
+/** kind w: a list strip's own fx options (strip-board.js / strip.js — calm 1; the first row's seed) */
+export const STILL_OPTS = Object.freeze({ radius: 0, seed: 1, calm: 1 });
+/** kind w: the widths baked (pt) — every 20 from 280 to 480; MARQUEE GOLD every 10 (its bulbs: round((w − 10) / 10) across — the same count inside each step) */
+export const stillWidths = card => { const st = card === 'card-marquee-gold' ? 10 : 20, out = []; for (let w = 280; w <= 480; w += st) out.push(w); return out; };
 /** the cards whose material IS their picture in CSS (a gradient, a pattern, an image) — they read with no effect running */
 export const CSS_ART = Object.freeze(['card-brushed', 'card-smoke', 'card-frostbite', 'card-marquee', 'card-glitter', 'card-gilded', 'card-midnight',
   'card-brass', 'card-heartbreaker', 'card-emerald', 'card-neonglass', 'card-chrome', 'card-champagne', 'card-sg-btc', 'card-zebra', 'card-camo',

@@ -44,3 +44,10 @@ The full text: docs/vault.md "GARDEN PARTY". GARDEN PARTY only (PINK RIOT + THE 
 - Shots (Downloads\NEON\garden-party\): the full + slim card at 390 / 375 / 1440, CUSTOMIZE (NEW `fullcard-preview.html?dress=`), THE PLAYER PAGE,
   THE BOARD (NEW `board2-preview.html?cd=`).
 - `tests/garden-party.test.mjs` (7): the row, the one-time grant, names only to owners, the lab, the crop = the CSS, the hero, the plates, the motion.
+
+## GROUP 3 — THE LAST FOUR SLIM CARDS (inferno, noir, neoncamo, marquee-gold)
+The full text: docs/vault.md "THE LAST FOUR SLIM CARDS". Pinned: INFERNO's still had calm 0 (a list draws calm 1 — the flames shorter); all three
+lay out by the strip's WIDTH (MARQUEE GOLD's bulb count steps every 10 pt); the still replaced the material with black. Fixed: stills kind `w` —
+transparent, the lists' options, one per width step, over the material, picked by a container query (Chromium + WebKit). Strip match (max 9):
+inferno 19.2 → 7.2 · noir 20.9 → 1.3 · marquee-gold 10.3 → 0.4 at 402 (330 / 430 all under 2); NEON CAMO was already under (7.8) — kept.
+LAB_V: INFERNO 3, NOIR 2, MARQUEE GOLD 2 + their lines.

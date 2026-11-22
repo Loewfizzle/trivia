@@ -23,6 +23,8 @@ test('every card is covered: a picture in its material, a baked still, or a CSS-
 
 test('every still is on disk + the GENERATED block in css/vault.css is current', () => {
   for (const r of stillRows()) for (const k of r.kinds) {
+    // (THE GARDEN PARTY PASS — kind w: a transparent still per width step, over the material by ::before, picked by a container query)
+    if (k === 'w') { for (const W of r.widths) assert.ok(existsSync(new URL(`../assets/vault/still/${r.card}-w${W}.webp`, import.meta.url)), `${r.card}-w${W}.webp`); assert.ok(css.includes(`.vl-s-${r.mat}:not(.fx-on) > .vl-mat { container-type: inline-size; }`) && r.widths.every(W => css.includes(`${r.card}-w${W}.webp`)), `${r.card}: its width stills wired`); continue; }
     assert.ok(existsSync(new URL(`../assets/vault/still/${r.card}-${k}.webp`, import.meta.url)), `${r.card}-${k}.webp (node scripts/build-card-stills.mjs)`);
     // (CITY C: kind o = a transparent strip still layered over the card's own material by a hand-written rule)
     if (k === 'o') { assert.ok(css.includes(`.vl-s-${r.mat}:not(.fx-on) .vl-mat { background-image: url('../assets/vault/still/${r.card}-o.webp')`), `${r.card}: its transparent still layered`); continue; }

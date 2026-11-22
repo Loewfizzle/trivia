@@ -6,7 +6,7 @@ import { registerLabText } from '../js/vault/catalog.js';
 registerLabText(LAB_TEXT);
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LAB, LAB_IDS, MARKS, cleanMark, NOTE_MAX, GUESTS } from '../js/vault/catalog.js';
+import { LAB, LAB_IDS, MARKS, cleanMark, NOTE_MAX, GUESTS, verOf } from '../js/vault/catalog.js';
 import { ITEM } from '../js/core/items.js';
 import { LEVEL_REWARDS } from '../js/core/levels.js';
 import { tierVal } from '../js/core/harbor-tiers.js';
@@ -24,7 +24,7 @@ test('THE MARKS: approve · fix · cut · null (a clear); notes trimmed, control
   assert.deepEqual(MARKS, ['approve', 'fix', 'cut']);
   assert.deepEqual(cleanMark('card-smoke', 'fix', '  thicker\nsmoke  '), { m: 'fix', note: 'thicker smoke', v: 2 });   // (CITY PART 2: card-smoke v 2 — THE SLIM-CARD LAYER)
   assert.deepEqual(cleanMark('card-smoke', null, 'x'), { m: null, note: 'x', v: 2 });
-  assert.equal(cleanMark('card-inferno', 'approve').v, 2);   // (THE LAB 2.0: the server stamps the version marked)
+  assert.equal(cleanMark('card-inferno', 'approve').v, verOf('card-inferno'));   // (THE LAB 2.0: the server stamps the version marked)
   assert.equal(cleanMark('card-nope', 'approve'), null); assert.equal(cleanMark('card-smoke', 'love'), null);
   assert.equal(cleanMark('card-smoke', 'fix', 'y'.repeat(999)).note.length, NOTE_MAX);
   assert.equal(cleanMark('card-smoke', 'approve', 42).note, '');

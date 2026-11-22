@@ -307,7 +307,7 @@ export const LAB_V = Object.freeze({
   // (CITY C — THE SIGHTING CARDS IN THE STANDARD LAYOUT: every sighting's full card laid out like the others, its hero moved right of the plate)
   'full-card-sg-ufo': 2, 'full-card-sg-tr3b': 2, 'full-card-sg-f22': 2, 'full-card-sg-ghostship': 2, 'full-card-sg-skull': 2, 'full-card-sg-blackbird': 2, 'full-card-sg-fireball': 2, 'full-card-sg-aurora': 2,
   'glow-candle': 2,   // (FIXES R2: the letters candle-gold with a steady amber halo — the owner couldn't tell it was on)
-  'card-inferno': 2, 'full-card-inferno': 2, 'card-century': 5, 'full-card-century': 3,
+  'card-inferno': 3, 'full-card-inferno': 2, 'card-century': 5, 'full-card-century': 3,
   'card-prism': 2, 'card-emerald': 2, 'card-sg-ufo': 2, 'card-marquee': 3,
   'card-camo': 2, 'card-sg-tr3b': 2,   // (SHELL 2.0 B2 — THE HERO-SPOT AUDIT + the 1 OF 1's gradient)
   'card-founder': 2, 'full-card-founder': 2, 'full-card-house': 2,
@@ -328,6 +328,8 @@ export const LAB_V = Object.freeze({
   'card-rightofway': 2, 'full-card-rightofway': 2,
   // (CITY PART 2 — THE SLIM-CARD LAYER: the nine CSS-art strips show their effect's layer from the first frame in every list — js/vault/stills.js kind 'l')
   'card-aurora': 2, 'card-frostbite': 2, 'card-neonglass': 2, 'card-smoke': 2, 'card-glitter': 2,
+  // (THE GARDEN PARTY PASS — THE LAST FOUR SLIM CARDS: the list strip's still frame = the live strip's from the first frame (stills.js kind 'w'); INFERNO 2 → 3)
+  'card-noir': 2, 'card-marquee-gold': 2,
 });
 /** an item's current version */
 export const verOf = id => LAB_V[id] || 1;

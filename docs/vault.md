@@ -932,3 +932,19 @@ also draws the slim / full previews at the spec's crops (`%TEMP%/gp-preview-*.pn
   boxes) · `vault/stills.js`. Previews: `fullcard-preview.html?cards=card-garden&strip=1` · `&dress=card-garden` (NEW — CUSTOMIZE wearing it) ·
   `friends-preview.html?player=P_nova&cd=card-garden` (THE PLAYER PAGE) · `board2-preview.html?cd=card-garden` (NEW `cd`). Shots:
   `Downloads\NEON\garden-party\`.
+
+## THE LAST FOUR SLIM CARDS — PINNED + FIXED (THE GARDEN PARTY PASS, Nov 21 — CITY I's "not pinned")
+The causes, measured one at a time (the bake vs a list strip, a coarse-grid diff — `strip-match.mjs`'s own metric):
+- **INFERNO**: `calm` — every list passes `calm: 1` (strip-board.js, strip.js, picker.js), which draws the flames' band 0.85 tall; the bake had none
+  (calm 0) — CITY I's "inferno's flames shorter" — + the WIDTH (the fire's tiles across the strip) + the bake's BLACK ground in place of its red gradient.
+- **VELVET NOIR**: the width (the smoke's layout) + the black ground in place of its velvet. (Its seed only moves the smoke's phase — rows 2+ differ
+  by the smoke's moment, the same variety the motion gives; the still is the first row's.)
+- **MARQUEE GOLD**: the width — its bulbs are `round((w − 10) / 10)` across: a 360-pt bake shown at 370 had a bulb fewer.
+- **NEON CAMO**: already under the line (7.8 at 402 · 8.9 at 330) — kept as it was.
+THE FIX (`js/vault/stills.js` kind **`w`** + `scripts/build-card-stills.mjs`): the strip's still baked TRANSPARENT with the lists' own options
+(`STILL_OPTS` — calm 1, seed 1) at EVERY width step (`stillWidths` — every 20 pt from 280 to 480; MARQUEE GOLD every 10 pt, on its bulb-count
+steps), at 1.5× (a lossless alpha at 2× was ~35 KB a width), laid over the card's OWN material by `.vl-mat::before`; the material is a container
+(`container-type: inline-size`, only while the effect isn't painting) and a container query picks the nearest width, stretched to the strip (the
+best fit, measured). Chromium + WebKit pick the right file (300 / 352 / 402 / 470 checked). ~1 MB on disk (43 files); a strip fetches ONE (~20 KB).
+`strip-match.mjs --still` before → after: **inferno 19.2 → 7.2 (402) · 14.4 → 1.6 (330) · noir 20.9 → 1.3 · 16.8 → 1.0 · marquee-gold 10.3 → 0.4 ·
+11.3 → 0.5** (430: 1.5 · 0.9 · 0.4). LAB_V: INFERNO 3, NOIR 2, MARQUEE GOLD 2 (+ their LAB_CHANGES lines — the art itself unchanged).

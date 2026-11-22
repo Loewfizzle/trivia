@@ -1269,11 +1269,8 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-fc-since small, .vl-fc-since b { white-space: nowrap; }
 
 /* CARD STILLS (GENERATED: node scripts/build-card-stills.mjs — LOAD FIX 3, NO BLACK TILES; js/vault/stills.js) */
-.vl-s-inferno:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-inferno-s.webp') 66% 50% / cover no-repeat; }
 .vl-s-prism:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-prism-s.webp') 64% 50% / cover no-repeat; }
-.vl-s-noir:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-noir-s.webp') 66% 50% / cover no-repeat; }
 .vl-s-legend:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-legend-s.webp') 66% 50% / cover no-repeat; }
-.vl-s-marqueegold:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-marquee-gold-s.webp') 66% 50% / cover no-repeat; }
 .vl-s-neoncamo:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-neoncamo-s.webp') 66% 50% / cover no-repeat; }
 .vl-s-penthouse:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-penthouse-s.webp') 77% 50% / cover no-repeat; }
 .vl-s-wildfire:not(.fx-on) > .vl-mat { background: #05060a url('../assets/vault/still/card-wildfire-s.webp') 66% 50% / cover no-repeat; }
@@ -1324,4 +1321,53 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 .vl-s-glitter:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-glitter-l.webp') 0 0 / 100% 100% no-repeat; }
 .vl-s-devswitch:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-dev-switchboard-l.webp') 0 0 / 100% 100% no-repeat; }
 .vl-s-gp-garden:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-garden-l.webp') 0 0 / 100% 100% no-repeat; }
+.vl-s-inferno:not(.fx-on) > .vl-mat { container-type: inline-size; }
+.vl-s-inferno:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-inferno-w380.webp') 0 0 / 100% 100% no-repeat; }
+@container (max-width: 289.98px) { .vl-s-inferno:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-inferno-w280.webp'); } }
+@container (min-width: 290px) and (max-width: 309.98px) { .vl-s-inferno:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-inferno-w300.webp'); } }
+@container (min-width: 310px) and (max-width: 329.98px) { .vl-s-inferno:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-inferno-w320.webp'); } }
+@container (min-width: 330px) and (max-width: 349.98px) { .vl-s-inferno:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-inferno-w340.webp'); } }
+@container (min-width: 350px) and (max-width: 369.98px) { .vl-s-inferno:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-inferno-w360.webp'); } }
+@container (min-width: 370px) and (max-width: 389.98px) { .vl-s-inferno:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-inferno-w380.webp'); } }
+@container (min-width: 390px) and (max-width: 409.98px) { .vl-s-inferno:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-inferno-w400.webp'); } }
+@container (min-width: 410px) and (max-width: 429.98px) { .vl-s-inferno:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-inferno-w420.webp'); } }
+@container (min-width: 430px) and (max-width: 449.98px) { .vl-s-inferno:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-inferno-w440.webp'); } }
+@container (min-width: 450px) and (max-width: 469.98px) { .vl-s-inferno:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-inferno-w460.webp'); } }
+@container (min-width: 470px) { .vl-s-inferno:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-inferno-w480.webp'); } }
+.vl-s-noir:not(.fx-on) > .vl-mat { container-type: inline-size; }
+.vl-s-noir:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-noir-w380.webp') 0 0 / 100% 100% no-repeat; }
+@container (max-width: 289.98px) { .vl-s-noir:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-noir-w280.webp'); } }
+@container (min-width: 290px) and (max-width: 309.98px) { .vl-s-noir:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-noir-w300.webp'); } }
+@container (min-width: 310px) and (max-width: 329.98px) { .vl-s-noir:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-noir-w320.webp'); } }
+@container (min-width: 330px) and (max-width: 349.98px) { .vl-s-noir:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-noir-w340.webp'); } }
+@container (min-width: 350px) and (max-width: 369.98px) { .vl-s-noir:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-noir-w360.webp'); } }
+@container (min-width: 370px) and (max-width: 389.98px) { .vl-s-noir:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-noir-w380.webp'); } }
+@container (min-width: 390px) and (max-width: 409.98px) { .vl-s-noir:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-noir-w400.webp'); } }
+@container (min-width: 410px) and (max-width: 429.98px) { .vl-s-noir:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-noir-w420.webp'); } }
+@container (min-width: 430px) and (max-width: 449.98px) { .vl-s-noir:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-noir-w440.webp'); } }
+@container (min-width: 450px) and (max-width: 469.98px) { .vl-s-noir:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-noir-w460.webp'); } }
+@container (min-width: 470px) { .vl-s-noir:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-noir-w480.webp'); } }
+.vl-s-marqueegold:not(.fx-on) > .vl-mat { container-type: inline-size; }
+.vl-s-marqueegold:not(.fx-on) > .vl-mat::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: url('../assets/vault/still/card-marquee-gold-w380.webp') 0 0 / 100% 100% no-repeat; }
+@container (max-width: 284.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w280.webp'); } }
+@container (min-width: 285px) and (max-width: 294.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w290.webp'); } }
+@container (min-width: 295px) and (max-width: 304.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w300.webp'); } }
+@container (min-width: 305px) and (max-width: 314.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w310.webp'); } }
+@container (min-width: 315px) and (max-width: 324.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w320.webp'); } }
+@container (min-width: 325px) and (max-width: 334.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w330.webp'); } }
+@container (min-width: 335px) and (max-width: 344.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w340.webp'); } }
+@container (min-width: 345px) and (max-width: 354.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w350.webp'); } }
+@container (min-width: 355px) and (max-width: 364.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w360.webp'); } }
+@container (min-width: 365px) and (max-width: 374.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w370.webp'); } }
+@container (min-width: 375px) and (max-width: 384.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w380.webp'); } }
+@container (min-width: 385px) and (max-width: 394.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w390.webp'); } }
+@container (min-width: 395px) and (max-width: 404.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w400.webp'); } }
+@container (min-width: 405px) and (max-width: 414.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w410.webp'); } }
+@container (min-width: 415px) and (max-width: 424.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w420.webp'); } }
+@container (min-width: 425px) and (max-width: 434.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w430.webp'); } }
+@container (min-width: 435px) and (max-width: 444.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w440.webp'); } }
+@container (min-width: 445px) and (max-width: 454.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w450.webp'); } }
+@container (min-width: 455px) and (max-width: 464.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w460.webp'); } }
+@container (min-width: 465px) and (max-width: 474.98px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w470.webp'); } }
+@container (min-width: 475px) { .vl-s-marqueegold:not(.fx-on) > .vl-mat::before { background-image: url('../assets/vault/still/card-marquee-gold-w480.webp'); } }
 /* /CARD STILLS */
