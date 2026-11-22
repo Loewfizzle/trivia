@@ -75,7 +75,7 @@ as the phone's own FIN → the run ended at 14 floors while the phone played on.
 leg it closed; `/api` case "THE RACE" + the E2E.
 
 ## OPEN FOR BEN
-- **RE-PUBLISH THE RULES** (above).
+- ~~**RE-PUBLISH THE RULES**~~ — done by the owner, Nov 21 (the fixture = the published rules, the ack removed: e532904a).
 - Nothing else new — DAILY B carries the look (the ticket, the recolour, the share card incl. THE BIG FIVE — your claude/HIGHRISE-PLAN.md).
   Call 4 (the 5:00 cap) and call 9 (YOUR BEST / cards) are yours to flip if you want them different.
 
