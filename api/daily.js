@@ -52,7 +52,7 @@ import { pidOf } from './_lib/profiles.js';
 import { bumpOwners } from './_lib/owners.js';
 import { take } from './_lib/limit.js';
 import { dailySeed, openDailies, pickDay, liveFor } from './_lib/dailies.js';
-import { roomStarted, midDaily } from './_lib/daily-room.js';
+import { roomStarted, midDaily, roomGameProof } from './_lib/daily-room.js';
 import { closeDays, recloseDay, sweepRuns } from './_lib/daily-close.js';
 import { dailyOf, bucketOf, standing, todayView, todaysDailies, dailyRow, BAND_MIN } from '../js/core/daily.js';
 import { streakDay, dayNum, dayOf, dayStartAt, countsOn } from '../js/core/streak.js';
@@ -324,6 +324,8 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
           heldVal(recRef),
           held ? heldVal(held.sref) : val(`${base}/s/${pid}`), cart.load ? cart.load(day, now) : null,
           body.action === 'pause' ? roomStarted({ uid, pid, code: body.room, now }) : null]);
+        // (HIGH RISE DAILY B — a `held` cartridge's FREE hold needs the game start's identity + a real party: roomGameProof)
+        const roomProof = body.action === 'pause' && room && cart.held ? await roomGameProof({ uid, pid, code: room, now }) : null;
         T.mark('load');
         if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
         // (THE DROP A — a cartridge's `stash`: the upload's own data written beside the record — THE DROP's log chunk. PFIX-3 (FABLE REVIEW 2 —
@@ -341,7 +343,7 @@ export async function dailyAction(uid, body, now = Date.now(), T = noTiming) {
           attempts++; outs = [];
           let rec = cur;
           for (const mv of list) {
-            const r = cart.act({ action: mv.a, body: mv, record: rec, day, startedAt, now, data, room: !!room });
+            const r = cart.act({ action: mv.a, body: mv, record: rec, day, startedAt, now, data, room: !!room, roomProof });
             if (r.refused) outs.push({ refused: r.refused, status: r.status || 409 });
             else outs.push({ resp: r.resp });
             if (r.record) rec = r.record;                          // (a refusal may still close a pause — the record it hands back is kept)

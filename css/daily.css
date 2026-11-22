@@ -358,7 +358,11 @@ body[data-look="day"] .dy-overlay { --dy-box-line: #16305c; --dy-box-on: #2f86ff
 /* (HIGH RISE DAILY B — HIGH RISE's end card is JAYWALK's: css/jaywalk.css is not on its page, so the card's own ground here — the same dark veil
    over the resting tower, in both looks; it enters with a fade (opacity only)) */
 .dy-hr-end { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column;
-  background: linear-gradient(rgba(7, 6, 11, 0.55) 0, rgba(7, 6, 11, 0.9) 26%, rgba(7, 6, 11, 0.96) 100%); animation: dy-hr-in 0.22s ease-out both; }
+  background: linear-gradient(rgba(7, 6, 11, 0.93) 0, rgba(7, 6, 11, 0.95) 30%, rgba(7, 6, 11, 0.97) 100%); animation: dy-hr-in 0.22s ease-out both; }
+/* (THE FRESH-EYES REVIEW: the stage's HUD — the floor numeral, the area, the clock — showed through round the stamp: gone under the card; the ‹
+   stays a live control ABOVE the card, at full contrast) */
+.dy-hr:has(.dy-hr-end) .hi-hud { visibility: hidden; }
+.dy-run:has(.dy-hr-end) > .dy-back { z-index: 8; color: #fff; }
 @keyframes dy-hr-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .dy-hr-end { animation: none; } }
 .dy-hr-end .dy-jw-cause:empty { display: none; }

@@ -183,17 +183,29 @@ test('REFUSED: chunks AHEAD of the clock = no tower (0 floors — still the day\
   void pid2;
 });
 
-test('THE ROOM WINS: a FREE hold (the room really started a game) — uses none of the 3; a fake / lonely room refused; a pause on a finished run refused', async () => {
+test('THE ROOM WINS: a FREE hold (the room really started a game) — uses none of the 3; a fake / lonely room refused (DAILY B: + a game start id, + an OTHER player with a counted profile; ONE free hold a start, never an older start); a pause on a finished run refused', async () => {
   const uid = 'hd-gus'; await ensure(uid, 'HiGus');
   const pid = await pidOf(uid);
   const s = await D(uid, { action: 'start', game: 'highrise' }, NOW + 400e3);
   const p = await playLeg(s, { floors: 8, botSeed: 'gus' });
   await rejects(D(uid, { action: 'pause', game: 'highrise', day: s.day }, p.end + 100), 409, 'no_room_game');
+  // (HIGH RISE DAILY B — THE FRESH-EYES REVIEW: a room one player made alone — status 'playing', a second uid with no counted profile, no
+  //  game start id — paid 3 free holds; now refused)
   await ref('rooms/HRWX').set({ meta: { hostId: 'host', status: 'playing' }, players: { [uid]: { name: 'GUS', pid }, host: { name: 'HOST' } } });
+  await rejects(D(uid, { action: 'pause', game: 'highrise', day: s.day, room: 'HRWX' }, p.end + 150), 409, 'no_room_game');
+  const hpid = (await ensure('hd-gus-host', 'HiGusHost'), await pidOf('hd-gus-host'));
+  const fresh = (await ensure('hd-gus-alt', 'HiGusAlt', p.end - 1000), await pidOf('hd-gus-alt'));   // (a same-day second account: not a party)
+  await ref('rooms/HRWX').set({ meta: { hostId: 'host', status: 'playing', go: { at: p.end + 150, m: 'mhrwx1', g: 'overclock' } }, players: { [uid]: { name: 'GUS', pid }, host: { name: 'ALT', pid: fresh } } });
+  await rejects(D(uid, { action: 'pause', game: 'highrise', day: s.day, room: 'HRWX' }, p.end + 180), 409, 'no_room_game');
+  await ref('rooms/HRWX/players/host').set({ name: 'HOST', pid: hpid });
   const r = await D(uid, { action: 'pause', game: 'highrise', day: s.day, room: 'HRWX' }, p.end + 200);
   assert.equal(r.held, 1);
   const back = await D(uid, { action: 'start', game: 'highrise' }, p.end + 60e3);
   assert.equal(back.run.leg, 1); assert.equal(back.run.room, 1, 'the free hold'); assert.equal(back.run.left, HOLDS, 'none of the 3 used');
+  // ONE free hold a game start: the same start again → room_used; a start from before this leg's GO → room_old
+  await rejects(D(uid, { action: 'pause', game: 'highrise', day: s.day, room: 'HRWX' }, back.run.go + 2000), 409, 'room_used');
+  await ref('rooms/HRWX/meta/go').set({ at: p.end + 170, m: 'mhrwx0', g: 'overclock' });
+  await rejects(D(uid, { action: 'pause', game: 'highrise', day: s.day, room: 'HRWX' }, back.run.go + 2100), 409, 'room_old');
   const p2 = await playLeg(back, { botSeed: 'gus' });
   await writeEnd(back.run.path, p2.endAll);
   const f = await D(uid, { action: 'finish', game: 'highrise' }, p2.endAll + 100);
@@ -209,6 +221,16 @@ test('AN ABANDONED RUN is scored at its last server tap: `today` once it can\'t 
   await writeEnd(sa.run.path, pa.endAll);
   const ta = await D(a, { action: 'today' }, pa.endAll + 30e3);
   assert.equal(ta.mine.highrise, hrScore(pa.run.floor, pa.run.perfects, pa.run.at), 'scored by `today`');
+  // (a2 — HIGH RISE DAILY B, THE FRESH-EYES REVIEW: the phone's OWN end (the fuse — not in the log) with its FINISH blocked, then a START →
+  //  the run ENDED there (scored), never a hold that revives it; the leg keeps saying it was the phone's (no `x` written over its `e`))
+  const a2 = 'hd-hap'; await ensure(a2, 'HiHap');
+  const s2a = await D(a2, { action: 'start', game: 'highrise' }, NOW + 520e3);
+  const p2a = await playLeg(s2a, { floors: 3, botSeed: 'hap' });
+  await writeEnd(s2a.run.path, p2a.end + 500);
+  const again = await D(a2, { action: 'start', game: 'highrise' }, p2a.end + 4000);
+  assert.ok(!again.run && again.done != null, `a START after the phone's own end: the run is over (${JSON.stringify({ run: !!again.run, done: again.done, ended: again.ended })})`);
+  assert.equal(again.ended, 'fin');
+  assert.equal((await val(s2a.run.path)).x ?? null, null, 'the phone's end stays the phone's');
   // (b) hidden mid-run WITH holds left: `today` never scores it — RESUME
   const b = 'hd-ivy'; await ensure(b, 'HiIvy');
   const pidB = await pidOf(b);

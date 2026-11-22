@@ -16,7 +16,7 @@ import { ref, val } from './fb.js';
 import { dailySeed } from './dailies.js';   // (a cycle — dailies.js lists this cartridge; the seed is only read inside a call)
 import { streakDay } from '../../js/core/streak.js';
 import { bestView } from '../../js/core/daily-best.js';
-import { LEAD_MS, QUIET_MS, PROOF_DAYS, HOLDS, ROOM_HOLDS, legsOf, legEnd, logOf, nextHoldTick, nextHoldKind, holdsOf, holdsLeft, judgeHeld, shareOf, hrFloors, floorsAfter } from '../../js/games/highrise/held.js';
+import { LEAD_MS, QUIET_MS, PROOF_DAYS, HOLDS, ROOM_HOLDS, legsOf, legEnd, logOf, nextHoldTick, nextHoldKind, holdsOf, holdsLeft, judgeHeld, shareOf, hrFloors, floorsAfter, roomFree, roomKey } from '../../js/games/highrise/held.js';
 
 export const GAME = 'highrise';
 const SEEDS = new Map();
@@ -53,8 +53,9 @@ async function closeLeg(day, rec, now, why = 'hold') {
   const L = lastLeg(rec);
   if (!L) return;
   const path = proofPath(day, L.u, L.i);
-  await ref(`${path}/x`).set(why).catch(e => console.warn('hr close leg', e && e.message));
-  await ref(`${path}/e`).transaction(cur => (cur == null ? now : undefined)).catch(e => console.warn('hr close leg', e && e.message));
+  // (THE FRESH-EYES REVIEW: `x` + `e` in ONE transaction, only while the leg is still open — a leg the PHONE closed (its own end: `e`, no `x`)
+  //  keeps saying so; `x` before was written over it, and a START could then revive a run the fuse had ended)
+  await ref(path).transaction(cur => (cur && cur.e != null ? undefined : { ...(cur || {}), x: why, e: now })).catch(e => console.warn('hr close leg', e && e.message));
 }
 
 /** END the run (its open leg closed, the record's `e` + why) — once; → true = ended now or before */
@@ -91,7 +92,11 @@ export async function startHeld({ pid, uid, day, now, startedAt, today = streakD
   const legs = legsOf(rec), L = legs[legs.length - 1];
   if (!L) { await endRun({ pid, day, now, why: 'bad' }); return { ended: 'bad' }; }
   // (a past day: only a run still IN PLAY crosses 4 am — read before the leg is closed)
-  if (day !== today && !legLive(L, await val(proofPath(day, L.u, L.i)), now)) { await endRun({ pid, day, now, why: 'close' }); return { ended: 'close' }; }
+  const node = await val(proofPath(day, L.u, L.i));
+  // (THE FRESH-EYES REVIEW: the open leg already closed BY THE PHONE (its own end — the fuse, a miss, the 200th floor: `e`, no `x`) whose FINISH
+  //  never came = the run ENDED there — never a hold: a blocked FINISH can't revive a run the fuse ended)
+  if (node && Number.isFinite(node.e) && !node.x) { await endRun({ pid, day, now, why: 'fin' }); return { ended: 'fin' }; }
+  if (day !== today && !legLive(L, node, now)) { await endRun({ pid, day, now, why: 'close' }); return { ended: 'close' }; }
   // THE UNDO GUARD: the open leg closed FIRST — then what the server has is final; a tap the server never got is gone with the hold
   await closeLeg(day, rec, now);
   const nodes = await nodesOf(day, rec), log = logOf(rec, nodes);
@@ -155,14 +160,18 @@ export const HIGHRISE_DAILY = {
     return J.s;
   },
   /** THE ROOM WINS (`pause { room }` — api/daily.js checks the room really started a game): a FREE hold owed — the next START opens it */
-  act({ action, record, room = false }) {
+  act({ action, record, room = false, roomProof = null }) {
     if (action !== 'pause') return { refused: 'bad_move', status: 400 };
     if (!record || !record.l) return { refused: 'not_started' };
     if (record.e) return { refused: 'done' };
     if (!room) return { refused: 'no_room_game' };
     if (record.room) return { record, resp: { held: 1 } };
     if (holdsOf(record).r >= ROOM_HOLDS) return { refused: 'pause_limit' };
-    return { record: { ...record, room: 1 }, resp: { held: 1 } };
+    // (HIGH RISE DAILY B — THE FRESH-EYES REVIEW: a FREE hold = ONE per REAL game start — roomFree: the start's own id never used before,
+    //  stamped after the open leg's GO (an interruption of THIS leg), 1+ OTHER player with a profile old enough to count)
+    const why = roomFree(record, roomProof);
+    if (why) return { refused: why };
+    return { record: { ...record, room: 1, rk: { ...(record.rk || {}), [roomKey(roomProof.key)]: 1 } }, resp: { held: 1 } };
   },
   /** what a resumed / ended screen gets without a start: the holds + whether the run is over */
   resume: ({ record, data }) => ({ seed: data && data.seed, holds: holdsOf(record).h, left: holdsLeft(record), ...(record && record.e ? { e: 1 } : {}) }),

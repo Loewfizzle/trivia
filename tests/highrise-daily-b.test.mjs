@@ -4,6 +4,7 @@
 //   THE TICKET        HIGH RISE in every state: One shot. · DAILY BEST · 112 FLOORS · FLOOR 47 · ONE SHOT + RESUME · 84 FLOORS + the place · NEW DAILY BEST
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { TICKET_ART, TICKET_INK, TICKET_PATHS, markDay, MARK_NAVY, inkOf, stampInkOf } from '../js/daily/ticket-art.js';
 import { ticketState, progLine } from '../js/daily/today-logic.js';
 import { MARKS } from '../js/core/marks.js';
@@ -150,4 +151,21 @@ test('GOES LIVE BY ITSELF — the row\'s own liveFrom (set to the first 4 am aft
   // the day picked = the first 4 am AFTER the deploy (this pass deploys on Nov 21 Eastern, before midnight)
   assert.equal(nextLiveDay(Date.parse('2026-11-21T20:30:00-05:00')), 'd20261122');
   assert.equal(nextLiveDay(Date.parse('2026-11-22T02:30:00-05:00')), 'd20261122', 'a deploy after midnight but before 4 am still opens at that 4 am');
+});
+
+import { roomFree, roomKey } from '../js/games/highrise/held.js';
+
+test('THE FRESH-EYES REVIEW — THE ROOM WINS\' FREE hold: ONE per REAL game start (its id), started after the open leg\'s GO, an OTHER player with a counted profile', () => {
+  const rec = { l: { 0: { u: 'a', go: 10_000, z: 9e9, t: 0 } } };
+  assert.equal(roomFree(rec, null), 'no_room_game');
+  assert.equal(roomFree(rec, { key: 'm1', at: 20_000, others: 0 }), 'no_room_game', 'a room one player made alone (no counted other)');
+  assert.equal(roomFree(rec, { key: '', at: 20_000, others: 2 }), 'no_room_game', 'no game start id');
+  assert.equal(roomFree(rec, { key: 'm1', at: 20_000, others: 1 }), '', 'a real start, a real party');
+  assert.equal(roomFree({ ...rec, rk: { [roomKey('m1')]: 1 } }, { key: 'm1', at: 20_000, others: 1 }), 'room_used', 'the same start never pays twice');
+  assert.equal(roomFree(rec, { key: 'm2', at: 1_000, others: 1 }), 'room_old', 'a start from before this leg — not an interruption of it');
+  assert.equal(roomKey('a.b/c[d]#$'), 'a_b_c_d___');
+  const S = readFileSync(new URL('../api/_lib/highrise-daily.js', import.meta.url), 'utf8');
+  assert.match(S, /const why = roomFree\(record, roomProof\);/);
+  assert.match(S, /if \(node && Number\.isFinite\(node\.e\) && !node\.x\) \{ await endRun\(\{ pid, day, now, why: 'fin' \}\); return \{ ended: 'fin' \}; \}/, 'a START after the phone\'s own end ends the run (never a hold)');
+  assert.match(S, /await ref\(path\)\.transaction\(cur => \(cur && cur\.e != null \? undefined : \{ \.\.\.\(cur \|\| \{\}\), x: why, e: now \}\)\)/, 'x + e in ONE transaction, only on an open leg');
 });

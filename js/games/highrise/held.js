@@ -146,3 +146,15 @@ export function shareOf(seed, events) {
 }
 /** the run's end as the phone's own engine sees it from a log (the phone's resume + its end card's REPLAY = LIVE) */
 export const replayHeld = (seed, events) => replay({ seed: String(seed), mode: MODE, taps: events });
+
+/** a game start's id as a record key (no . # $ / [ ]) */
+export const roomKey = k => String(k).replace(/[.#$/[\]]/g, '_').slice(0, 64);
+/** HIGH RISE DAILY B — may this game start pay a FREE hold? (PURE — the unit test) → '' (yes) | the refusal: 'no_room_game' (no start id / no
+ *  real party — a room one player made alone) · 'room_used' (this start already paid one) · 'room_old' (it started before the open leg's GO) */
+export function roomFree(record, P) {
+  if (!P || !P.key || !Number.isFinite(Number(P.at)) || !(P.others >= 1)) return 'no_room_game';
+  if (record && record.rk && record.rk[roomKey(P.key)]) return 'room_used';
+  const Ls = legsOf(record), L = Ls.length ? Ls[Ls.length - 1] : null;
+  if (L && Number(P.at) < Number(L.go) - 5000) return 'room_old';
+  return '';
+}

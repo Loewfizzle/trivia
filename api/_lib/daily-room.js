@@ -5,7 +5,7 @@
 //     profile's seat (seats/{pid} — ONE ACCOUNT, ONE ROOM). Anything else → refused (the clock keeps running).
 //   MID-DAILY: which players of a room have a daily run in flight (a start, no result) — their uids ONLY: never which daily, never the run.
 import { val } from './fb.js';
-import { streakDay, dayNum, dayOf } from '../../js/core/streak.js';
+import { streakDay, dayNum, dayOf, countsOn } from '../../js/core/streak.js';
 
 export const GO_FRESH_MS = 120_000;
 /** THE ROOM WINS needs this many players in the room (DFIX2 — a room of one can't pause a daily) */
@@ -25,6 +25,22 @@ export async function roomStarted({ uid, pid, code, now = Date.now() }) {
   // DFIX2 (FABLE REVIEW #2, finding 8 → Ben's decision 3): a room of ONE isn't a party — 2+ real players (distinct uids) dealt into the game
   const party = Object.keys(players).filter(u => players[u]).length >= MIN_PARTY;
   return inIt && started && party ? c : null;
+}
+
+/** HIGH RISE DAILY B (THE FRESH-EYES REVIEW — a room one player made alone paid 3 free holds): what a FREE HOLD needs beyond roomStarted —
+ *  the game start's own identity + who else is really there → { key (the start's match id — ONE free hold a game start), at (its stamp, the
+ *  server's time), others (OTHER players in it with their OWN profile old enough to count — THE THROWAWAY GATE: a same-day second account is
+ *  not a party) } | null. (A client can write a room; it can't age a second profile or reuse one start for two holds.) */
+export async function roomGameProof({ uid, pid, code, now = Date.now() }) {
+  if (typeof code !== 'string' || !CODE.test(code)) return null;
+  const [meta, players] = await Promise.all([val(`rooms/${code}/meta`), val(`rooms/${code}/players`)]);
+  const go = meta && meta.go, key = go && typeof go.m === 'string' && go.m ? go.m : null, at = go && Number(go.at);
+  if (!key || !Number.isFinite(at) || !players) return null;
+  const today = streakDay(now), PID = /^p[a-z2-9]{11}$/;
+  const otherPids = [...new Set(Object.entries(players).filter(([u, p]) => u !== uid && p && PID.test(String(p.pid || '')) && p.pid !== pid).map(([, p]) => p.pid))];
+  const ages = await Promise.all(otherPids.map(p => val(`ppriv/${p}/at`).catch(() => null)));
+  const others = ages.filter(a => Number(a) > 0 && countsOn(a, today)).length;
+  return { key, at, others };
 }
 
 /** DAILY A — THE ROOM WINS for JAYWALK's tries: has this player JOINED `code`'s room with someone else in it (2+ players)? → the code | null

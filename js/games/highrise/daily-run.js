@@ -216,7 +216,8 @@ export function createView() {
 
   return {
     mount(el, st) {
-      host = h('div.dy-hr', { style: { position: 'relative', width: '100%', height: '100%' } }); el.append(host); ctx = st;
+      // (THE FRESH-EYES REVIEW: absolute, edge to edge — as JAYWALK's .dy-jw: the stage's own .screen padding showed the day sky round the run)
+      host = h('div.dy-hr', { style: { position: 'absolute', inset: '0' } }); el.append(host); ctx = st;
       want(WANT); wanted = true;   // (THE PARKED DATABASE: the chunks need the socket while the run is open)
       document.addEventListener('visibilitychange', onVis);
       addEventListener('pagehide', onHide);
