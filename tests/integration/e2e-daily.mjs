@@ -33,6 +33,10 @@ const { log, sleep, ok, BASE, browser } = H;
 const day = streakDay(Date.now());
 const WEEK_AGO = Date.now() - 7 * 864e5;
 let W1 = '', W2 = '', MISS = '';
+// THE LIVE LIST (JAYWALK SMOOTH 3): how many dailies are up is the SERVER's `today`, never a number in this file (a new daily's go-live turned this suite
+// red twice). The suite PLAYS these three; any other live daily is credited to ALICE on the server just before her last finish, so THE SWEEP still means all of them.
+const PLAYS = ['password', 'coastclear', 'test'];
+let LIVE = [], N = 0, OTHERS = [];
 /** the day's pair the SERVER judges from (its stored pair — never recomputed here: the server's own memo + THE DAILY SECRET decide) */
 async function words() {
   [W1, W2] = (await pwDay(day)).words;
@@ -119,24 +123,26 @@ await H.run(async () => {
     const cf = await dailyAction('e2e-dy-bob', { action: 'finish', game: 'coastclear' });
     log(`BOBBY's COAST CLEAR: ${cf.score} (1 spot)`); }
   if (!(await dailyTestMode(A.page))) H.fail(DAILY_MODE_FIX);   // (CITY G: the evening "red" — a server without DAILY_TEST=1)
-  await today(A.page);
+  LIVE = ((await today(A.page)).dailies || []).map(x => x.id); N = LIVE.length; OTHERS = LIVE.filter(id => !PLAYS.includes(id));
+  ok(PLAYS.every(id => LIVE.includes(id)), `the server's live list holds the suite's three dailies (${LIVE.join(', ')})`);
+  log(`THE LIVE LIST: ${N} dailies (${LIVE.join(', ')})`);
   await waitFor(A.page, `(() => { const t = document.querySelector('.nd-tab-daily'); return t && !t.hidden; })()`, 'the DAILY button', 20000);
   let d = await dock(A.page);
-  ok(d.state === 'waiting' && d.n === '3', `the REAL app: WAITING · ${d.n} (THE PASSWORD, COAST CLEAR + the fake 3rd — DAILY_TEST's test daily)`);
+  ok(d.state === 'waiting' && d.n === String(N), `the REAL app: WAITING · ${d.n} (the server's live list: ${N})`);
   // the fake 3rd daily, finished through /api (its seed → the target)
   const s = await api(A.page, { action: 'start', game: 'test' });
   await api(A.page, { action: 'finish', game: 'test', result: { guess: s.seed % 1000 } });
   await today(A.page);
-  await waitFor(A.page, `document.querySelector('.nd-tab-daily .nd-dy-n').textContent === '2'`, 'the count after one finish', 8000);
-  ok(true, 'the count follows the finishes: 3 → 2');
+  await waitFor(A.page, `document.querySelector('.nd-tab-daily .nd-dy-n').textContent === '${N - 1}'`, 'the count after one finish', 8000);
+  ok(true, `the count follows the finishes: ${N} → ${N - 1}`);
 
   // ================================================================ 3. THE DAILY SCREEN: TODAY + SCORES
   await click(A.page, '.nd-tab-daily');
-  await waitFor(A.page, `document.querySelectorAll('.dy-ticket').length === 3`, 'THE DAILY SCREEN', 10000);
+  await waitFor(A.page, `document.querySelectorAll('.dy-ticket').length === ${N}`, 'THE DAILY SCREEN', 10000);
   let tk = await tickets(A.page);
-  ok(tk.join() === 'password:waiting,coastclear:waiting,test:done', `TODAY: one ticket per live daily, in the list's order (${tk.join(', ')})`);
+  ok(tk.join() === LIVE.map(id => `${id}:${id === 'test' ? 'done' : 'waiting'}`).join(), `TODAY: one ticket per live daily, in the list's order (${tk.join(', ')})`);
   const look = await A.page.evaluate(() => ({ pills: [...document.querySelectorAll('.dy-overlay *')].filter(e => parseFloat(getComputedStyle(e).borderRadius) >= 40 && e.getBoundingClientRect().width > 60).length, emoji: /\p{Extended_Pictographic}/u.test(document.querySelector('.dy-overlay').innerText), seg: document.querySelectorAll('.dy-seg').length, next: document.querySelector('.dy-next').textContent, menu: getComputedStyle(document.querySelector('.menu-btn')).display }));
-  ok(look.pills === 0 && !look.emoji && look.seg === 3 && /^NEW DAILIES IN \d+:\d\d:\d\d$/.test(look.next) && look.menu === 'none', `TODAY's look: no pills, no emoji, THE SWEEP meter of 3, the 4 am countdown ("${look.next}"), BACK in the ☰'s corner`);
+  ok(look.pills === 0 && !look.emoji && look.seg === N && /^NEW DAILIES IN \d+:\d\d:\d\d$/.test(look.next) && look.menu === 'none', `TODAY's look: no pills, no emoji, THE SWEEP meter of ${N}, the 4 am countdown ("${look.next}"), BACK in the ☰'s corner`);
   if (H.SHOTS) await H.shotAll(A.page, 'dy-01-today');
   await click(A.page, '.dy-tab:nth-child(2)');
   await waitFor(A.page, `!!document.querySelector('.dy-sec')`, 'SCORES', 6000);
@@ -234,7 +240,8 @@ await H.run(async () => {
     const tap = async (x, y, anywhere = false) => {
       // (plain = the DAILY screen's own non-button surface, with no button within 14 px above / below — a real button is never pressed here)
       // (CITY B: + 8 px left / right — a touch at a button's very edge is the button's: a lit roof sign behind SEE THE FULL BOARD's end found it)
-      const plain = anywhere || await pg.evaluate((x, y) => [[0, -14], [0, 0], [0, 14], [-8, 0], [8, 0]].every(([dx, d]) => { const e = document.elementFromPoint(x + dx, y + d); return !!(e && e.closest('.dy-overlay') && !e.closest('button, a, input, label, [role="button"], [data-press]')); }), Math.round(x), Math.round(y));
+      // (SMOOTH 3: + a ticket's whole action cell `.dy-act` — the browser's touch adjustment gives a touch beside PLAY to PLAY: with a 4th ticket a sign's point landed there)
+      const plain = anywhere || await pg.evaluate((x, y) => [[0, -14], [0, 0], [0, 14], [-8, 0], [8, 0]].every(([dx, d]) => { const e = document.elementFromPoint(x + dx, y + d); return !!(e && e.closest('.dy-overlay') && !e.closest('button, a, input, label, [role="button"], [data-press], .dy-act')); }), Math.round(x), Math.round(y));
       if (!plain) return false;
       await pg.touchscreen.tap(Math.round(x), Math.round(y)); await new Promise(r => setTimeout(r, 40));
       return true;
@@ -282,7 +289,7 @@ await H.run(async () => {
     await sweep('SCORES · ALL TIME', '.dy-sec .dy-crow, .dy-sec .dy-card, .dy-sec .lb-row, .dy-sec p');
     await pg.evaluate(() => { const b = [...document.querySelectorAll('.dy-scope-b')].find(x => /TODAY/.test(x.textContent)); if (b) b.click(); });
     await click(pg, '.dy-tab:nth-child(1)');
-    await waitFor(pg, `document.querySelectorAll('.dy-ticket').length === 3`, 'TODAY for the taps', 8000);
+    await waitFor(pg, `document.querySelectorAll('.dy-ticket').length === ${N}`, 'TODAY for the taps', 8000);
     const u2 = await sweep('TODAY · the results list (the tickets)', '.dy-ticket');
     ok(u1.length + u2.length > 0, `a billboard's own points lay under the DAILY screen's plain areas (${u1.length} on SCORES, ${u2.length} on TODAY) — the taps above would have reached it`);
     // THE TEETH: with the screen CLOSED the same kind of tap opens the game's card (the point is a real billboard; the rule lifts with the screen)
@@ -326,14 +333,15 @@ await H.run(async () => {
   ok(leak.surfaces === 0 && leak.canvases === 0, `30 opens / closes of SCORES: 0 surfaces, 0 card lists left (${JSON.stringify(leak)})`);
   // DFIX2 — THE 4 AM TURN on an open DAILY screen: a stale answer (yesterday's day) is re-read by the turn, no reload — the screen stays, the day is today's
   await A.page.evaluate(() => import('/js/store.js').then(m => m.setState({ daily: { v: 'screen', tab: 'today' } })));
-  await waitFor(A.page, `document.querySelectorAll('.dy-ticket').length === 3`, 'TODAY again', 8000);
+  await waitFor(A.page, `document.querySelectorAll('.dy-ticket').length === ${N}`, 'TODAY again', 8000);
   const turned = await A.page.evaluate(async () => { const T = await import('/js/daily/today.js'); const nav = performance.getEntriesByType('navigation').length; window.__daily2.stale(); const before = T.todayNow().day; await window.__daily2.turn(); return { before, after: T.todayNow().day, tickets: document.querySelectorAll('.dy-ticket').length, nav, overlay: !!document.querySelector('.dy-screen') }; });
-  ok(turned.before === 'd00000000' && turned.after === day && turned.tickets === 3 && turned.overlay, `the 4 am turn re-reads today (${turned.before} → ${turned.after}) with the screen open, no reload`);
+  ok(turned.before === 'd00000000' && turned.after === day && turned.tickets === N && turned.overlay, `the 4 am turn re-reads today (${turned.before} → ${turned.after}) with the screen open, no reload`);
   await click(A.page, '.dy-screen .dy-back');
   await waitFor(A.page, `!document.querySelector('.dy-overlay')`, 'the screen closed', 6000);
 
   // ================================================================ 6. THE ROOM WINS — the full loop on COAST CLEAR
   const Hst = await openApp('dyh', 'HOSTA');
+  await backdate(Hst.pid);   // (THE FIX PASS S6: a room game stops a daily's clock only with ANOTHER player whose profile is older than today — the owner's anti-cheat rule)
   const code = await Hst.page.evaluate(() => import('/js/room.js').then(async m => { const { loadProfile } = await import('/js/identity.js'); await m.createRoom(loadProfile()); return window.__arcade.state.code; }));
   await waitFor(Hst.page, `!!window.__arcade.state.code && !!window.__arcade.state.meta`, 'the host\'s room', 20000);
   await A.page.evaluate(c => import('/js/room.js').then(async m => { const { loadProfile } = await import('/js/identity.js'); await m.joinRoom(c, loadProfile()); }), code);
@@ -342,7 +350,7 @@ await H.run(async () => {
   // the ☰ menu's row → the dailies → RESUME COAST CLEAR (inside the room)
   await click(A.page, '.menu-btn');
   await waitFor(A.page, `!!document.querySelector('.gm-dailies')`, 'the ☰ row', 6000);
-  ok(/1 LEFT/.test(await ev(A.page, `document.querySelector('.gm-dailies').innerText`)), 'the ☰ menu (in the room): THE DAILIES · 1 LEFT');
+  { const left = 1 + OTHERS.length; ok(new RegExp(`${left} LEFT`).test(await ev(A.page, `document.querySelector('.gm-dailies').innerText`)), `the ☰ menu (in the room): THE DAILIES · ${left} LEFT`); }
   await click(A.page, '.gm-dailies');
   await waitFor(A.page, `!!document.querySelector('.dy-ticket[data-id="coastclear"] .dy-play')`, 'the screen from the menu', 8000);
   await click(A.page, '.dy-ticket[data-id="coastclear"] .dy-play');
@@ -387,6 +395,8 @@ await H.run(async () => {
   ok((await val(`rooms/${code}/players/${aUid}/dy`)) === true, 'the flag stays while the run is open in the room');
 
   // ================================================================ 7. COAST CLEAR cleared by taps → THE SWEEP
+  // (THE LIVE LIST: the other live dailies count as finished for ALICE — their result + the day's counter — so this finish is the day's last)
+  for (const g of OTHERS) await ref('/').update({ [`dly/${g}/${day}/r/${A.pid}`]: 12, [`pstats/${A.pid}/dl/days/${day}/g/${g}`]: 1 });
   const board = await ccBoard(day), LIGHTS = new Set(board.lights);   // (the day's STORED board — the server's)
   for (let guard = 0; guard < 200; guard++) {
     const next = await A.page.evaluate(L => { const c = [...document.querySelectorAll('.dy-run .cc-cell')].find(x => !x.classList.contains('is-open') && !L.includes(+x.dataset.i)); return c ? +c.dataset.i : -1; }, [...LIGHTS]);
