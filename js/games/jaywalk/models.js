@@ -17,7 +17,9 @@ const WIDTH = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 };
 /** (VARIETY B2 — THE TAPS) a colour byte → its linear value: one table, never a pow per vertex */
 const LIN8 = new Float32Array(256).map((_, i) => lin(i / 255));
 /** one of OUR re-packed GLBs (one node, one mesh, one primitive: POSITION · NORMAL · COLOR_0 · indices) → a BufferGeometry in the node's scale. … */
-export function parseGlb(buf) {
+export function parseGlb(buf) { const it = parseGlbSteps(buf); let r = it.next(); while (!r.done) r = it.next(); return r.value; }
+/** SMOOTH — the same parse in small pieces: the loader runs as many as fit a frame's time box */
+export function* parseGlbSteps(buf) {
   const dv = new DataView(buf);
   if (dv.getUint32(0, true) !== 0x46546c67) throw new Error('not a GLB');
   const jl = dv.getUint32(12, true), json = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 20, jl))), bin = 20 + jl + 8;
@@ -38,13 +40,19 @@ export function parseGlb(buf) {
     return { out, n, count: a.count };
   };
   const node = json.nodes[0], prim = json.meshes[node.mesh].primitives[0], s = (node.scale || [1, 1, 1])[0];
-  const P = read(prim.attributes.POSITION), N = read(prim.attributes.NORMAL);
+  yield;
+  const P = read(prim.attributes.POSITION);
+  yield;
+  const N = read(prim.attributes.NORMAL);
+  yield;
   const pos = P.out; for (let v = 0; v < pos.length; v++) pos[v] *= s;
   const col = new Float32Array(P.count * 3), paint = new Float32Array(P.count), CV = view(prim.attributes.COLOR_0);
   if (CV && CV.k === 1 / 255) { const { src, st } = CV; for (let v = 0; v < P.count; v++) { const b = v * st; col[v * 3] = LIN8[src[b]]; col[v * 3 + 1] = LIN8[src[b + 1]]; col[v * 3 + 2] = LIN8[src[b + 2]]; paint[v] = src[b + 3] < 128 ? 1 : 0; } }
   else { const C = read(prim.attributes.COLOR_0); for (let v = 0; v < P.count; v++) { for (let c = 0; c < 3; c++) col[v * 3 + c] = lin(C.out[v * 4 + c]); paint[v] = C.out[v * 4 + 3] < 0.5 ? 1 : 0; } }
+  yield;
   const IV = view(prim.indices), ia = json.accessors[prim.indices];
   const idx = IV && IV.st === 1 && (ia.componentType === 5123 || ia.componentType === 5125) ? IV.src.slice(0, ia.count) : (() => { const I = read(prim.indices); return P.count > 65535 ? Uint32Array.from(I.out) : Uint16Array.from(I.out); })();
+  yield;
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.BufferAttribute(N.out, 3));

@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { FP, COLS, HOP_TICKS, MODES, areaIndex } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod, area, gateName } from './course.js';
-import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade, build, parseGlb } from './models.js';
+import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade, build, parseGlb, parseGlbSteps } from './models.js';
 import { seasonWindow } from './season-gate.js';
 import { FOG_HEX, DAY_FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, dayEnv, createBloom, fogUp, FOG_UP, OCC_LAYER, DAY_ROLL } from './night-fx.js';
 import { lazyImport } from '../../ui/lazy-import.js';
@@ -64,8 +64,8 @@ const FOG_DARK = Object.freeze({ ground: [0.25, 0.27, 0.30], top: 0x4b5058, unde
 export function createNight(host, o = {}) {
   // (J2 FIX — THE NIGHT COMPARE: the new crisp runway lamps + the heat trail by NIGHT too, on the LAB's `&rwnight=new` only — the game never …
   const RWN = o.rwNight === true;
-  const SMOOTH = o.smooth !== false;   // (SMOOTH — the lab's `&smooth=0` = this pass's savings off, for the owner's A/B)
   setWinterTraffic(false);   // (B2: a new scene starts with no winter trucks — its run's season turns them on)
+  const SMOOTH = o.smooth !== false;   // (SMOOTH — the lab's `&smooth=0` = this pass's savings off, for the owner's A/B)
   const reduce = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
   const devDpr = Math.min(window.devicePixelRatio || 1, 3);
   const renderer = new THREE.WebGLRenderer({ antialias: devDpr < 2, powerPreference: 'high-performance' });
@@ -205,7 +205,7 @@ export function createNight(host, o = {}) {
   const unkindQ = q => { casters.delete(q); const at = made.findIndex(e => e.m === q.mesh); if (at >= 0) { const { m, g } = made[at]; made.splice(at, 1); scene.remove(m); if (g) g.dispose(); m.dispose(); } };
   const unkind = name => { const q = KM[name]; if (!q) return; delete KM[name]; delete BOX[name]; unkindQ(q); };
   const VL = createVariety({
-    parseGlb,
+    parseGlb, parseSteps: SMOOTH ? parseGlbSteps : null,
     add(id, g) {
       if (dead) { g.dispose(); return; }
       if (!vMat) { vMat = paintMaterial(glossy(0.28, 1.1), { instanced: true, roll: true }); carMats.push(vMat); lookGL(); }
@@ -351,7 +351,7 @@ export function createNight(host, o = {}) {
   let SH = null, shopAsk = null;
   // VARIETY B2 — THE AREA TREES + THE EDGE DECORATION (props.js — lazy: until it is in, today's round tree draws); its own per-area loader
   let PR = null, prAsk = null;
-  const prGet = () => { if (!prAsk) prAsk = lazyImport(import('./props.js'), './props.js').then(M => { if (dead) return; PR = M.createProps({ kind, lambert, parseGlb, unkind: unkindQ, K, reduce, clock: () => clock }); decor.clear(); vwKey = -1; needWarm = true; }).catch(() => { prAsk = null; }); };
+  const prGet = () => { if (!prAsk) prAsk = lazyImport(import('./props.js'), './props.js').then(M => { if (dead) return; PR = M.createProps({ kind, lambert, parseGlb, parseSteps: SMOOTH ? parseGlbSteps : null, unkind: unkindQ, K, reduce, clock: () => clock }); decor.clear(); vwKey = -1; needWarm = true; }).catch(() => { prAsk = null; }); };
   const shopGet = () => { if (!shopAsk) shopAsk = lazyImport(import('./shops.js'), './shops.js').then(M => { if (!dead) SH = M.createShops({ kind, K, rewarm() { needWarm = true; } }); }).catch(NOP); };
   const flyGet = () => { if (!flyAsk) flyAsk = lazyImport(import('./flyers.js'), './flyers.js').then(M => { if (!dead) FL = M.createFlyers({ renderer, scene, cam, host, K, hazeAt, reduce, rewarm() { needWarm = true; } }); }).catch(NOP); };
   const curtain = new THREE.Mesh(unit, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.93, depthWrite: false, fog: false }));

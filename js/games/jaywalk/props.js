@@ -77,7 +77,7 @@ export function createProps(A) {
   const G = buildPieces();
   for (const [id, g] of Object.entries(G)) { const b = g.boundingBox; BOX[id] = b.max.y; PK[id] = A.kind(g, id === 'c-shrub' ? leafMat : plainMat, id === 'c-shrub' ? 40 : 16, { cast: id === 'c-shrub' }); }
   const L = createVariety({
-    parseGlb: A.parseGlb, ids: propIds, url: urlOf, known: new Set(),
+    parseGlb: A.parseGlb, parseSteps: A.parseSteps, ids: propIds, url: urlOf, known: new Set(),
     add(id, g) { const tree = id[0] === 't', leaf = tree && TREES[id.slice(2)].leaf; PK[id] = A.kind(g, leaf ? leafMat : plainMat, tree ? 60 : 20, { cast: tree }); },
     drop(id) { const q = PK[id]; if (q) { delete PK[id]; A.unkind(q); } },
   });

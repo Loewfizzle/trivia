@@ -15,7 +15,7 @@ export const lane0 = ar => (ar < 0 ? 8 : 50 * (ar + 1) + 10);
 export async function looksVB2({ open, up, ok, sleep, waitFor, out, what = '', b, errs = [], tag = 'after', abBase = null }) {
   const all = !what;
   const pg = async (q, o = {}) => {
-    const p = await open(o.w || 390, o.h || 844, 3, `&preview=1&seed=${o.seed || 'look3'}&tier=${o.tier ?? 2}&zoom=8&angle=straight&cv=2${q}`, o);
+    const p = await open(o.w || 390, o.h || 844, 3, `&preview=1&seed=${o.seed || 'look3'}&tier=${o.tier ?? 2}&zoom=8&angle=straight&cv=2${q}${process.env.VB2_Q || ''}`, o);
     await up(p.p);
     return p;
   };

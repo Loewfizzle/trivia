@@ -74,3 +74,25 @@ test('THE SUN PASS: only casters that can reach seen ground, no depth written ba
   assert.match(n, /const SUN = Object\.freeze\(\{ x: 0\.97, z: -0\.24/, 'the cut relies on shadows falling AWAY from the camera (SUN.z < 0)');
   assert.match(n, /SUN_MAP = \[1024, 2048\]/, 'the map keeps its size');
 });
+
+test('THE TIME BOX: small pieces inside the slice, one new model a frame, nothing in a hop, old path without parseSteps', async () => {
+  const { createVariety, PUMP } = await import('../js/games/jaywalk/variety.js');
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) });
+  try {
+    let t = 0;
+    const log = [], cost = 0.6;
+    const parseSteps = function* (b) { for (let k = 0; k < 4; k++) { t += cost; log.push('piece'); yield; } t += cost; return { dispose() {} }; };
+    const V = createVariety({ parseGlb: () => { throw new Error('the boxed path never parses whole'); }, parseSteps, add: id => log.push(`add ${id}`), drop: () => {}, now: () => t, ids: () => ['a', 'b'], url: id => id, known: new Set() });
+    V.want([0]);
+    await new Promise(r => setTimeout(r, 5));
+    assert.equal(V.pump(Infinity), false, 'the frame a hop starts in: nothing');
+    const before = t; assert.equal(V.pump(0), true);
+    assert.ok(t - before <= PUMP.slice + cost + 1e-9, `one box stays near ${PUMP.slice} ms (${(t - before).toFixed(1)})`);
+    assert.ok(log.length >= 2 && log.length <= 4, `several small pieces in one frame (${log.length})`);
+    let frames = 1;
+    while (V.info().held.length < 2 && frames < 30) { const adds = log.filter(x => x.startsWith('add')).length; V.pump(0); frames++; assert.ok(log.filter(x => x.startsWith('add')).length - adds <= 1, 'one new model a frame'); }
+    assert.deepEqual(V.info().held, ['a', 'b']);
+    assert.equal(V.info().staged, 0);
+  } finally { globalThis.fetch = realFetch; }
+});

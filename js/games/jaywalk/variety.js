@@ -77,16 +77,42 @@ export const VARIETY_REV = 2;
 export const warmVariety = () => Promise.all(areaIds(-1).map(id => fetch(new URL(`${id}.glb?v=${VARIETY_REV}`, DIR)).catch(() => null)));
 
 /** VARIETY B2 — THE TAPS: a frame that has already worked this long (ms) — or whose kid has just left the ground — takes no loading step; … */
-export const PUMP = Object.freeze({ budget: 7, starve: 24 });
+export const PUMP = Object.freeze({ budget: 7, starve: 24, slice: 2 });
 /** … */
-export function createVariety({ parseGlb, add, drop, now = () => performance.now(), ids = areaWants, url = id => new URL(`${id}.glb?v=${VARIETY_REV}`, DIR), known = KNOWN }) {
+export function createVariety({ parseGlb, parseSteps = null, add, drop, now = () => performance.now(), ids = areaWants, url = id => new URL(`${id}.glb?v=${VARIETY_REV}`, DIR), known = KNOWN }) {
   const held = new Map(), queue = [];
-  let wanted = new Set(), dead = false, retryAt = 0, staged = null, starve = 0, worst = 0;
+  let wanted = new Set(), dead = false, retryAt = 0, staged = null, starve = 0, worst = 0, cur = null;
   const drops = [];
   function fetchOne(id) {
     held.set(id, 'loading');
     fetch(url(id)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(id))))
       .then(b => { if (!dead && wanted.has(id)) queue.push([id, b]); else held.delete(id); }, () => { held.delete(id); retryAt = now() + 5000; });
+  }
+  /** SMOOTH — THE TIME BOX: small pieces until `PUMP.slice` ms are gone (less in a frame already busy; one piece when it is over budget). A new
+   *  model goes live at most once a frame and ends the box: its GPU upload lands in the NEXT frame's render, never two in one frame */
+  function boxed(busy) {
+    if (dead || (!cur && !staged && !queue.length && !drops.length)) { starve = 0; return false; }
+    if (busy > PUMP.budget && ++starve < PUMP.starve) return false;
+    starve = 0;
+    const t0 = now(), limit = Math.max(0, Math.min(PUMP.slice, PUMP.budget - busy));
+    do {
+      if (drops.length) drop(drops.shift());
+      else if (cur) {
+        if (!wanted.has(cur.id)) { held.delete(cur.id); cur = null; continue; }
+        try { const r = cur.it.next(); if (r.done) { staged = [cur.id, r.value]; cur = null; } } catch { held.delete(cur.id); cur = null; }
+      } else if (staged) {
+        const [id, g] = staged; staged = null;
+        if (!wanted.has(id)) { held.delete(id); g.dispose(); continue; }
+        try { add(id, g); held.set(id, 'in'); known.add(id); } catch { held.delete(id); }
+        break;
+      } else if (queue.length) {
+        const [id, b] = queue.shift();
+        if (!wanted.has(id)) { held.delete(id); continue; }
+        cur = { id, it: parseSteps(b) };
+      } else break;
+    } while (now() - t0 < limit);
+    worst = Math.max(worst, now() - t0);
+    return true;
   }
   return {
     /** a failed file's retry is due (the scene then asks again) */
@@ -100,6 +126,7 @@ export function createVariety({ parseGlb, add, drop, now = () => performance.now
     },
     /** busy = this frame's work so far (ms) — Infinity when the kid has just hopped: no step this frame. → a step taken? */
     pump(busy = 0) {
+      if (parseSteps) return boxed(busy);
       if (dead || (!staged && !queue.length && !drops.length)) { starve = 0; return false; }
       if (busy > PUMP.budget && ++starve < PUMP.starve) return false;
       starve = 0;
@@ -117,7 +144,7 @@ export function createVariety({ parseGlb, add, drop, now = () => performance.now
       worst = Math.max(worst, now() - t0);
       return true;
     },
-    info: () => ({ held: [...held].filter(e => e[1] === 'in').map(e => e[0]).sort(), loading: [...held].filter(e => e[1] === 'loading').length, queued: queue.length, staged: staged ? 1 : 0, drops: drops.length, worst: Math.round(worst * 10) / 10 }),
-    destroy() { dead = true; queue.length = 0; if (staged) { staged[1].dispose(); staged = null; } },
+    info: () => ({ held: [...held].filter(e => e[1] === 'in').map(e => e[0]).sort(), loading: [...held].filter(e => e[1] === 'loading').length, queued: queue.length, staged: (staged ? 1 : 0) + (cur ? 1 : 0), drops: drops.length, worst: Math.round(worst * 10) / 10 }),
+    destroy() { dead = true; queue.length = 0; cur = null; if (staged) { staged[1].dispose(); staged = null; } },
   };
 }
