@@ -733,6 +733,14 @@ the same course has the same slots + lengths (a VIEW); no variety file in the pr
 - **THE LOADER** (`variety.js#piece`, `models.js#parseGlbSteps`): ONE small piece a frame. A 2 ms box of several pieces made later frames ~60 % slower in most pages at 6× CPU (cause not found): don't bring it back without the A/B.
 - **The checks:** `jaywalk-lab.mjs --smooth=hud|tiers|same|table|casters|gpu|ab:<look>:<tier>:<reps>` · every perf run through `kit/frame-report.mjs` (≤ 1 % dropped, ≤ 1 % big).
 
+
+## SMOOTH 2 — THE AUTUMN HITCH · WINTER · THE ONE-OFF SPIKE · THE METER (Nov 23 — the owner; the pass log `docs/games/passes/jaywalk-smooth2.md`)
+- **A season never adds BIG frames:** `jaywalk-lab.mjs --smooth=season` plays every season against summer, noon + night, tiers 2 + 1. Seasonal frame paths make no garbage (no closures, string keys, option objects); particles are pooled (`night.js#part`).
+- **Nothing reads a canvas back mid-run:** the gate sign is drawn again on each approach (`tests/jaywalk-smooth2.test.mjs`).
+- **What a run first needs is warmed before play:** the flyers' three programs (`night.js#flyWarm`: if a flyer's material settings change, change its stand-in too) and the first area banner's paint (`arrival.js`, `.is-warm`).
+- **The meter** (`&hud=1`): repaints once a second, never during a 10 S TEST. Its result adds LATE (a late callback, no picture lost) and JS (BIG frames that followed 14 ms+ of JS; the rest are the GPU or the system).
+- The periodic autumn stall the owner measured did not reproduce on the Beelink: his phone's meter is the judge.
+
 ## VARIETY B2 — THE B1 FIXES · AREA TREES + PLANTERS · EDGE DECORATION · WINTER SNOWPLOWS + SALT TRUCKS (Nov 22 — the owner; the pass log `docs/games/passes/jaywalk-variety-b2.md`; the decisions `docs/games/plan.md` "JAYWALK VARIETY B2") — a VIEW only: no rules change, REPLAY = LIVE untouched
 ### WHITE VEHICLES BY DAY (`night-fx.js#paintMaterial` `roll` · `DAY_ROLL`)
 The vehicles' paint only (the plain cars, the variety vehicles, the box truck — never the kid): by day a near-white body becomes a soft OFF-WHITE
