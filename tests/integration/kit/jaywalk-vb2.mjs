@@ -151,4 +151,20 @@ export async function looksVB2({ open, up, ok, sleep, waitFor, out, what = '', b
     ok(n === 0, `PLOWS: none on a summer run (${n})`);
     errs.push(...o.errs); await o.close();
   }
+
+  // THE DESKTOP CHECK (every pass — 1440 × 900): the trees + the edge pieces through the desktop framing, day + a winter night
+  if (what === 'desk') {
+    const files = [], labels = [];
+    for (const [name, ar] of [['downtown', 4], ['docks', 0], ['lighthouse', 6], ['airfield', 7]]) for (const [lk, q, look] of [['day', '&tod=noon&weather=clear&date=2026-07-15', 'day'], ['winter-night', '&tod=night&date=2026-12-24&snow=heavy', 'night']]) {
+      const o = await pg(q, { w: 1440, h: 900 });
+      if (lk !== 'day') await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000);
+      await waitFor(o.p, '!!window.__jwLab.view.info().props', 20000);
+      await o.p.evaluate((l, k) => { const J = window.__jwLab; J.freeze(false); J.bot(false); J.ghosts(0); J.restart('solo', 'look3'); J.setLook(k); J.setCamera(8, 'straight', true); J.warp(l, { x: 4500 }); J.setT(2400); J.freeze(true); }, lane0(ar), look);
+      await waitFor(o.p, `(() => { const i = window.__jwLab.view.info(), v = i.props; return v && !v.loading && !v.queued && !v.staged && !i.variety.loading && !i.variety.queued && !i.variety.staged; })()`, 30000);
+      await sleep(1800);
+      files.push(await shotTo(o, `desk/${name}-${lk}-1440.png`)); labels.push(`${name.toUpperCase()} · ${lk}`);
+      errs.push(...o.errs); await o.close();
+    }
+    await compose(files, labels, 'desk/sheet-1440.png', 2, 720, 900 / 1440);
+  }
 }
