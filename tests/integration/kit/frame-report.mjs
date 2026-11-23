@@ -2,9 +2,9 @@
 // p50 · p95 · p99 · worst · dropped (> 20 ms) · big (> 33 ms), and a budget on the dropped frames. The median alone can't see a stutter.
 import { frameStats } from '../../../js/games/jaywalk/lab-hud-stats.js';
 
-/** the budget, from the measured baseline on the Beelink (docs/games/passes/jaywalk-smooth.md): a share of the run's frames, so a run's length
- *  doesn't move it. `minFrames`: a shorter sample only reports. */
-export const FRAME_BUDGET = Object.freeze({ dropPct: 3, bigPct: 1.5, minFrames: 120 });
+/** the budget, from the measured baseline on the Beelink (154 runs at 4× CPU: at most 0.3 % dropped — docs/games/passes/jaywalk-smooth.md): a share
+ *  of the run's frames, so a run's length doesn't move it. `minFrames`: a shorter sample only reports. The cloud's 2-core runner has no GPU: it only reports. */
+export const FRAME_BUDGET = Object.freeze({ dropPct: 1, bigPct: 1, minFrames: 120 });
 
 export function stutterOf(list) {
   const s = frameStats(list), k = s.n ? 100 / s.n : 0;
@@ -16,6 +16,6 @@ export const stutterLine = s => `${s.n} frames · p50 ${s.p50.toFixed(1)} · p95
 export function frameCheck(ok, label, list, budget = FRAME_BUDGET) {
   const s = stutterOf(list);
   console.log(`     FRAMES ${label}: ${stutterLine(s)}`);
-  if (budget && s.n >= budget.minFrames) ok(s.dropPct <= budget.dropPct && s.bigPct <= budget.bigPct, `${label}: dropped frames within the budget (${s.dropPct.toFixed(1)} % of ≤ ${budget.dropPct} · big ${s.bigPct.toFixed(1)} % of ≤ ${budget.bigPct})`);
+  if (budget && !process.env.CI && s.n >= budget.minFrames) ok(s.dropPct <= budget.dropPct && s.bigPct <= budget.bigPct, `${label}: dropped frames within the budget (${s.dropPct.toFixed(1)} % of ≤ ${budget.dropPct} · big ${s.bigPct.toFixed(1)} % of ≤ ${budget.bigPct})`);
   return s;
 }
