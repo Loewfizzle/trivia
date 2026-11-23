@@ -54,7 +54,16 @@ const tap = async (p, sel) => { const b = await p.$(sel); if (!b) throw new Erro
 /** JT2 — TAP TO START: the try's start line → ONE tap on the stage (a remount by TRY AGAIN starts at once: nothing to tap) */
 async function startTap(p, what, before) {
   await waitFor(p, `!!window.__jwGame && (window.__jwGame.state().waiting || window.__jwGame.state().mode === 'run')`, `${what}: the start line`, 30000);
-  if (await p.evaluate(() => window.__jwGame.state().waiting)) { if (before) await before(); await p.touchscreen.tap(195, 520); }
+  if (!(await p.evaluate(() => window.__jwGame.state().waiting))) return;
+  if (before) await before();
+  // (B2 — THE TRY-3 FLAKE: one fixed tap at (195, 520) — in a room the room dock sits low and a tap could land off the stage, or before its
+  //  controls were wired: the try never started (30 s). The tap goes to the STAGE's own middle and is tapped again until the run starts)
+  for (let k = 0; k < 6; k++) {
+    const at = await p.evaluate(() => { const e = document.querySelector('.jw-game .jw-play') || document.querySelector('.jw-game canvas.jw-canvas'); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height * 0.55]; });
+    await p.touchscreen.tap(...(at || [195, 520]));
+    const on = await waitFor(p, `!window.__jwGame.state().waiting`, `${what}: the tap started it`, 4000).then(() => true, () => false);
+    if (on) return;
+  }
 }
 async function playTry(p, ticks, what, { before } = {}) {
   // JT2 — TAP TO START: the try waits for the FIRST tap (the course behind veiled, the try NOT spent) — a tap on the stage starts it

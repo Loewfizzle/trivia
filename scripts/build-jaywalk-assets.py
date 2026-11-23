@@ -671,6 +671,7 @@ def autumn():
 #  bus ships 0.64 grey on every material — its yellow is given here; the tanker's olive + oxblood → a red cab + a steel tank). → assets/jaywalk/
 #  variety/<id>.glb + CREDITS.md + the licences. Fetched PER AREA, ahead of it (variety.js) — never the start bundle.
 KENNEY_CAR = 'Kenney (kenney.nl) — Car Kit 3.1 — CC0 1.0'
+SLIM = '--fat' not in sys.argv   # (B2: the wheels slimmed + the undersides dropped; --fat = B1's files)
 VARIETY_SRC = [
     # id, file (under variety\), turn (° about y → the front to +z), paint, recolor {material: hex}, copyright, credit line
     ('police', 'police.glb', 0, False, {}, KENNEY_CAR, '"police" — Kenney Car Kit 3.1 (kenney.nl), CC0 1.0'),
@@ -714,14 +715,113 @@ def m4_trs(n):
     return [[R[i][0] * s[0], R[i][1] * s[1], R[i][2] * s[2], t[i]] for i in range(3)] + [[0, 0, 0, 1]]
 
 
-def flatten_any(j, bn, img, recolor):
+# VARIETY B2 — SLIMMER DOWNLOADS: a wheel node (Kenney's Car Kit: wheel-front-left … wheel-back · Polyfork's tug: wheel-fl-mesh …) is 264–428
+# triangles of a car's ~2,300 — from the game's camera (a car ≈ 40 px at 390) a 10-sided wheel reads the same: WHEEL_SEG sides, the tread, the
+# outer face = a tyre ring + its hub (the wheel's own two colours: the darkest + the lightest it had), a plain inner cap. ~60 triangles.
+WHEEL_NODE = re.compile(r'^wheel-(front|back)-(left|right)$|^wheel-back$|^wheel-(fl|fr|rl|rr)-mesh$')
+WHEEL_SEG = 10
+def low_wheel(P, C, cx_body=0.0):
+    """P: the wheel's vertices (world), C: their sRGB bytes → (pos, nor, col, idx) of a low wheel in the same box"""
+    lo = [min(p[k] for p in P) for k in range(3)]; hi = [max(p[k] for p in P) for k in range(3)]
+    ext = [hi[k] - lo[k] for k in range(3)]; ax = ext.index(min(ext)); u, v = [k for k in range(3) if k != ax]
+    ctr = [(lo[k] + hi[k]) / 2 for k in range(3)]; r = max(ext[u], ext[v]) / 2; hw = ext[ax] / 2
+    lum = lambda c: 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+    from collections import Counter
+    cnt = Counter(C); common = [c for c, _ in cnt.most_common(6)]
+    tyre = min(common, key=lum); hub = max(common, key=lum)
+    out = 1 if ctr[ax] >= cx_body else -1   # (the outer face: away from the body's middle)
+    pos, nor, col, idx = [], [], [], []
+    def vtx(a_u, a_v, a_ax, n, c):
+        p = [0, 0, 0]; p[u] = ctr[u] + a_u; p[v] = ctr[v] + a_v; p[ax] = ctr[ax] + a_ax
+        q = [0, 0, 0]; q[u], q[v], q[ax] = n
+        pos.append(tuple(p)); nor.append(tuple(q)); col.append(c); return len(pos) - 1
+    import math as m
+    ang = [2 * m.pi * i / WHEEL_SEG for i in range(WHEEL_SEG)]
+    # the tread (smooth radial normals)
+    ra = [vtx(r * m.cos(a), r * m.sin(a), -hw, (m.cos(a), m.sin(a), 0), tyre) for a in ang]
+    rb = [vtx(r * m.cos(a), r * m.sin(a), hw, (m.cos(a), m.sin(a), 0), tyre) for a in ang]
+    for i in range(WHEEL_SEG):
+        k = (i + 1) % WHEEL_SEG; idx += [ra[i], rb[i], rb[k], ra[i], rb[k], ra[k]]
+    # the outer face: a tyre ring (r → 0.62 r) + the hub (0.62 r → the centre, a touch proud)
+    for side in (out, -out):
+        n = (0, 0, side); z = side * hw
+        if side == out:
+            o1 = [vtx(r * m.cos(a), r * m.sin(a), z, n, tyre) for a in ang]
+            o2 = [vtx(0.62 * r * m.cos(a), 0.62 * r * m.sin(a), z, n, tyre) for a in ang]
+            h1 = [vtx(0.62 * r * m.cos(a), 0.62 * r * m.sin(a), z + side * 0.04 * hw, n, hub) for a in ang]
+            hc = vtx(0, 0, z + side * 0.08 * hw, n, hub)
+            for i in range(WHEEL_SEG):
+                k = (i + 1) % WHEEL_SEG; idx += [o1[i], o1[k], o2[k], o1[i], o2[k], o2[i], h1[i], h1[k], hc]
+        else:
+            c1 = [vtx(r * m.cos(a), r * m.sin(a), z, n, tyre) for a in ang]; cc = vtx(0, 0, z, n, tyre)
+            for i in range(WHEEL_SEG):
+                k = (i + 1) % WHEEL_SEG; idx += [c1[i], c1[k], cc]
+    # each triangle facing its normal's way (the writer keeps the order; the game draws front faces)
+    for t in range(0, len(idx), 3):
+        a, b, c = (pos[i] for i in idx[t:t + 3]); e1 = [b[k] - a[k] for k in range(3)]; e2 = [c[k] - a[k] for k in range(3)]
+        fn = (e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]); nn = nor[idx[t]]
+        cen = [(a[k] + b[k] + c[k]) / 3 - ctr[k] for k in range(3)]
+        want = nn if abs(sum(x * x for x in nn)) > 0 else cen
+        if sum(fn[k] * want[k] for k in range(3)) < 0: idx[t + 1], idx[t + 2] = idx[t + 2], idx[t + 1]
+    return pos, nor, col, idx
+
+def drop_down(pos, nor, idx, k=-0.6):
+    """the triangles whose three normals all point DOWN (the undersides — the game's camera is always above) left out"""
+    out = []
+    for t in range(0, len(idx), 3):
+        if all(nor[i][1] < k for i in idx[t:t + 3]): continue
+        out += idx[t:t + 3]
+    return out
+
+def seen_only(pos, idx, res=384):
+    """B2 — THE HIDDEN INSIDES OUT: the triangles that win at least one pixel when the model is drawn (orthographic, a depth buffer) from the
+    directions the game's camera can see it — every azimuth (a vehicle drives either way, turned) at 30 · 55 · 80° up + straight down — are
+    kept; the rest (seats behind opaque glass, chassis members, undersides, faces inside faces) never reach a screen. Needs numpy (python -P -E)."""
+    import numpy as np
+    P = np.array(pos, dtype=np.float64); T = np.array(idx, dtype=np.int64).reshape(-1, 3)
+    keep = np.zeros(len(T), bool)
+    c = (P.max(0) + P.min(0)) / 2; R = np.linalg.norm(P - c, axis=1).max() or 1
+    dirs = [(0.0, 1.0, 0.0)] + [(math.cos(e) * math.cos(a), math.sin(e), math.cos(e) * math.sin(a)) for e in (math.radians(30), math.radians(55), math.radians(80)) for a in [k * math.pi / 4 for k in range(8)]]
+    for d in dirs:
+        f = np.array(d); f /= np.linalg.norm(f)
+        up = np.array([0.0, 0.0, 1.0]) if abs(f[1]) > 0.99 else np.array([0.0, 1.0, 0.0])
+        rgt = np.cross(up, f); rgt /= np.linalg.norm(rgt); u2 = np.cross(f, rgt)
+        Q = P - c; sx = (Q @ rgt / R * 0.5 + 0.5) * (res - 1); sy = (Q @ u2 / R * 0.5 + 0.5) * (res - 1); dz = Q @ f   # (dz: nearer the eye = larger)
+        zb = np.full((res, res), -1e18); ib = np.full((res, res), -1, np.int64)
+        for ti, (a, b, cc) in enumerate(T):
+            x0, y0, x1, y1, x2, y2 = sx[a], sy[a], sx[b], sy[b], sx[cc], sy[cc]
+            area = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0)
+            if abs(area) < 1e-12: continue
+            if area < 0 and False: continue
+            lx, hx = int(max(0, math.floor(min(x0, x1, x2)))), int(min(res - 1, math.ceil(max(x0, x1, x2))))
+            ly, hy = int(max(0, math.floor(min(y0, y1, y2)))), int(min(res - 1, math.ceil(max(y0, y1, y2))))
+            if hx < lx or hy < ly: continue
+            gx, gy = np.meshgrid(np.arange(lx, hx + 1) + 0.0, np.arange(ly, hy + 1) + 0.0)
+            w0 = ((x1 - gx) * (y2 - gy) - (x2 - gx) * (y1 - gy)) / area; w1 = ((x2 - gx) * (y0 - gy) - (x0 - gx) * (y2 - gy)) / area; w2 = 1 - w0 - w1
+            m = (w0 >= -0.02) & (w1 >= -0.02) & (w2 >= -0.02)
+            if not m.any():   # (a sliver under a pixel: its nearest pixel stands in)
+                m = np.zeros_like(m); m[int(round((y0 + y1 + y2) / 3)) - ly if 0 <= int(round((y0 + y1 + y2) / 3)) - ly < m.shape[0] else 0, int(round((x0 + x1 + x2) / 3)) - lx if 0 <= int(round((x0 + x1 + x2) / 3)) - lx < m.shape[1] else 0] = True
+                w0 = w1 = w2 = np.full(m.shape, 1 / 3)
+            z = w0 * dz[a] + w1 * dz[b] + w2 * dz[cc]
+            sub = zb[ly:hy + 1, lx:hx + 1]; win = m & (z > sub)
+            sub[win] = z[win]; ib[ly:hy + 1, lx:hx + 1][win] = ti
+        keep[np.unique(ib[ib >= 0])] = True
+    return [int(i) for t in T[keep] for i in t]
+
+def flatten_any(j, bn, img, recolor, slim=False):
     """every primitive in the scene's space → pos, nor, sRGB colour bytes, idx. A vertex's colour = the material's base colour × its COLOR_0
-    × its texture (sampled at its UV) — the glTF rule, in linear light, then the sRGB byte"""
+    × its texture (sampled at its UV) — the glTF rule, in linear light, then the sRGB byte. B2 `slim`: the wheel nodes → low_wheel"""
     px = img.load() if img else None
     pos, nor, col, idx = [], [], [], []
     def lin(c8): c = c8 / 255; return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
     def walk(ni, M):
         n = j['nodes'][ni]; W = m_mul(M, m4_trs(n))
+        if 'mesh' in n and slim and WHEEL_NODE.match(n.get('name', '')):
+            sub = flatten_one(j, bn, px, img, recolor, n, W, lin)
+            wp, wn, wc, wi = low_wheel(sub[0], sub[2])
+            b0 = len(pos); pos.extend(wp); nor.extend(wn); col.extend(wc); idx.extend(b0 + i for i in wi)
+            for c in n.get('children', []): walk(c, W)
+            return
         if 'mesh' in n:
             for p in j['meshes'][n['mesh']]['primitives']:
                 assert p.get('mode', 4) == 4
@@ -747,6 +847,27 @@ def flatten_any(j, bn, img, recolor):
     return pos, nor, col, idx
 
 
+def flatten_one(j, bn, px, img, recolor, n, W, lin):
+    """one node's primitives in the scene's space → pos, nor, sRGB colour bytes (flatten_any's rule)"""
+    pos, nor, col = [], [], []
+    for p in j['meshes'][n['mesh']]['primitives']:
+        a = p['attributes']; mat = j['materials'][p['material']] if 'material' in p else {}
+        pbr = mat.get('pbrMetallicRoughness', {}); base = list(pbr.get('baseColorFactor', [1, 1, 1, 1]))[:3]
+        if mat.get('name') in recolor: h = recolor[mat['name']]; base = [lin((h >> 16) & 255), lin((h >> 8) & 255), lin(h & 255)]
+        tex = px if 'baseColorTexture' in pbr and px else None
+        P, Nn = read_acc(j, bn, a['POSITION']), read_acc(j, bn, a['NORMAL'])
+        C = read_acc(j, bn, a['COLOR_0']) if 'COLOR_0' in a else None
+        UV = read_acc(j, bn, a['TEXCOORD_0']) if tex and 'TEXCOORD_0' in a else None
+        for k in range(len(P)):
+            q = P[k]; pos.append(tuple(W[i][0] * q[0] + W[i][1] * q[1] + W[i][2] * q[2] + W[i][3] for i in range(3)))
+            nor.append(Nn[k])
+            c = list(base)
+            if C: c = [c[i] * C[k][i] for i in range(3)]
+            if UV: Wd, Hd = img.size; s_ = px[min(Wd - 1, max(0, int(UV[k][0] * Wd))), min(Hd - 1, max(0, int(UV[k][1] * Hd)))]; c = [c[i] * lin(s_[i]) for i in range(3)]
+            col.append(tuple(srgb8(x) for x in c))
+    return pos, nor, col
+
+
 def variety():
     import zipfile
     V = os.path.join(SRC, 'variety'); OUT_V = os.path.join(ROOT, 'assets', 'jaywalk', 'variety'); os.makedirs(OUT_V, exist_ok=True)
@@ -758,7 +879,11 @@ def variety():
     for vid, f, turn, paint, recolor, cr, line in VARIETY_SRC:
         src = os.path.join(V, f.replace('/', os.sep)); j, bn = read_glb(src)
         img = kenney_map if any('baseColorTexture' in m.get('pbrMetallicRoughness', {}) for m in j.get('materials', [])) else None
-        pos, nor, col, idx = flatten_any(j, bn, img, recolor)
+        pos, nor, col, idx = flatten_any(j, bn, img, recolor, slim=SLIM)
+        if SLIM: n0 = len(idx) // 3; idx = seen_only(pos, drop_down(pos, nor, idx)); print(f'  ({vid}: {n0} → {len(idx) // 3} tris seen)')
+        if SLIM:   # (only the vertices a kept triangle uses)
+            used = sorted(set(idx)); rm = {o: k for k, o in enumerate(used)}
+            pos = [pos[i] for i in used]; nor = [nor[i] for i in used]; col = [col[i] for i in used]; idx = [rm[i] for i in idx]
         t = math.radians(turn); c, s = math.cos(t), math.sin(t)
         rot = lambda v: (v[0] * c + v[2] * s, v[1], -v[0] * s + v[2] * c)
         pos = [rot(p) for p in pos]; nor = [rot(n) for n in nor]

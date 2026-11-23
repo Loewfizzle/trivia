@@ -82,8 +82,13 @@ async function dropRunCards(pids) {
 const CAUSES = new Set([...Object.values(CAUSE_LINES), ...Object.values(DAY_LINES)]);   // (H5B: by day the wall's line is the fog's)
 const isCause = t => CAUSES.has(t) || /^(YOU )?MADE IT TO THE MOTHERSHIP$/.test(t) || t === 'OUT';
 
+/** VARIETY B2 — THE DEC 24 FLAKE: on a season day a phone whose seasonal pack is not in by GO keeps the normal look for that run (J4's rule — by
+ *  design); on a loaded box one of three phones sometimes missed it, and "ONE season for the room" then compared a packless phone. The pack's
+ *  modules are put in each page's module cache first (as on a phone that has played before) — the season check then tests the season, not a race. */
+const warmPack = async n => { if (!process.env.JW_DAY) return; for (let i = 0; i < n; i++) await pages[i].evaluate(() => Promise.all([import('/js/games/jaywalk/season.js'), import('/js/games/jaywalk/seasonal.js'), import('/js/games/jaywalk/seasonal-fx.js')]).then(() => true, () => false)); };
 /** start a JAYWALK match from the host's phone and wait for every phone's game screen */
 async function start(host, n) {
+  await warmPack(n);
   ok(await H.startGame(host, 'jaywalk', {}), 'the host starts JAYWALK');
   for (let i = 0; i < n; i++) await waitFor(pages[i], s => s.game && s.game.id === 'jaywalk' && !!window.__jwGame && !!document.querySelector('.jw-game canvas.jw-canvas'), `${NAMES[i]}: the match screen`, 40000);
 }
@@ -209,6 +214,7 @@ try {
     cdpB = await pages[1].target().createCDPSession();
     await cdpB.send('Emulation.setCPUThrottlingRate', { rate: 4 });
   }
+  await warmPack(N);
   ok(await H.startGame(host, 'jaywalk', {}), 'the host starts JAYWALK — a plain host (THE GO-LIVE PASS)');
   if (START && process.argv.includes('--profile')) {   // (from the moment the match is in the room's state: the walk inside + the count + 1 s)
     await waitFor(pages[1], st => st.game && st.game.id === 'jaywalk', 'BOB: the match is in the state', 20000);

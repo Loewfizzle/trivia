@@ -64,22 +64,27 @@ export const varietyKnown = id => KNOWN.has(id);
 export const knowAll = (on = true) => { if (on) for (const id of VARIETY_IDS) KNOWN.add(id); else KNOWN.clear(); };
 
 const DIR = new URL('../../../assets/jaywalk/variety/', import.meta.url);
-export const VARIETY_REV = 1;
+export const VARIETY_REV = 2;   // (B2: the files slimmed — the wheels, the undersides, the hidden insides)
 /** the OPENING's files into the HTTP cache (the cartridge's preload, during the walk inside — its 1.5 MB line: THE DOCKS' come in from the
  *  scene itself while the menu / the count shows) — fetched, never parsed */
 export const warmVariety = () => Promise.all(areaIds(-1).map(id => fetch(new URL(`${id}.glb?v=${VARIETY_REV}`, DIR)).catch(() => null)));
 
+/** VARIETY B2 — THE TAPS: a frame that has already worked this long (ms) — or whose kid has just left the ground — takes no loading step;
+ *  after STARVE frames skipped in a row, one step is taken anyway (a phone that is always busy still gets its models) */
+export const PUMP = Object.freeze({ budget: 7, starve: 24 });
 /**
- * THE PER-AREA LOADER: want(list of area indices) → the files of those areas fetched (the ones no longer wanted FREED — drop(id)); pump() at a
- * frame parses at most ONE model (a frame never pays for two); a file that fails is asked again 5 s later (never a stall: the slot draws its
- * plain vehicle meanwhile). → { want, pump, info, destroy }
+ * THE PER-AREA LOADER: want(list of area indices) → the files of those areas fetched (the ones no longer wanted FREED — drop(id)); pump(busy)
+ * at the END of a frame takes at most ONE STEP (B2: a model's parse, OR its kind made — never both in one frame), and none when the frame was
+ * busy (PUMP); a file that fails is asked again 5 s later (never a stall: the slot draws its plain vehicle meanwhile). The steps' cost is kept
+ * (info: `worst` ms). `ids` (an area → its model ids) · `url` · `known` let B2's trees + edge pieces share this loader. → { want, pump, info, destroy }
  */
-export function createVariety({ parseGlb, add, drop, now = () => performance.now() }) {
+export function createVariety({ parseGlb, add, drop, now = () => performance.now(), ids = areaIds, url = id => new URL(`${id}.glb?v=${VARIETY_REV}`, DIR), known = KNOWN }) {
   const held = new Map(), queue = [];   // id → 'loading' | 'in' · the fetched buffers waiting for a frame
-  let wanted = new Set(), dead = false, retryAt = 0;
+  let wanted = new Set(), dead = false, retryAt = 0, staged = null, starve = 0, worst = 0;
+  const drops = [];   // (B2: the models no longer wanted — freed ONE a step too: an area passed never frees six kinds in one frame)
   function fetchOne(id) {
     held.set(id, 'loading');
-    fetch(new URL(`${id}.glb?v=${VARIETY_REV}`, DIR)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(id))))
+    fetch(url(id)).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(id))))
       .then(b => { if (!dead && wanted.has(id)) queue.push([id, b]); else held.delete(id); }, () => { held.delete(id); retryAt = now() + 5000; });
   }
   return {
@@ -87,18 +92,30 @@ export function createVariety({ parseGlb, add, drop, now = () => performance.now
     due: () => retryAt > 0 && now() > retryAt,
     want(areas) {
       retryAt = 0;
-      wanted = new Set(areas.flatMap(areaIds));
+      wanted = new Set(areas.flatMap(ids));
+      for (let k = drops.length - 1; k >= 0; k--) if (wanted.has(drops[k])) { held.set(drops[k], 'in'); drops.splice(k, 1); }   // (wanted again before it was freed: kept)
       for (const id of wanted) if (!held.has(id)) fetchOne(id);
-      for (const [id, st] of [...held]) if (!wanted.has(id)) { held.delete(id); if (st === 'in') drop(id); }
+      for (const [id, st] of [...held]) if (!wanted.has(id)) { held.delete(id); if (st === 'in') drops.push(id); }
     },
-    pump() {
-      const q = queue.shift();
-      if (!q || dead) return;
-      const [id, b] = q;
-      if (!wanted.has(id)) { held.delete(id); return; }
-      try { add(id, parseGlb(b)); held.set(id, 'in'); KNOWN.add(id); } catch { held.delete(id); }
+    /** busy = this frame's work so far (ms) — Infinity when the kid has just hopped: no step this frame */
+    pump(busy = 0) {
+      if (dead || (!staged && !queue.length && !drops.length)) { starve = 0; return; }
+      if (busy > PUMP.budget && ++starve < PUMP.starve) return;
+      starve = 0;
+      const t0 = now();
+      if (drops.length) drop(drops.shift());
+      else if (staged) {
+        const [id, g] = staged; staged = null;
+        if (!wanted.has(id)) { held.delete(id); g.dispose(); return; }
+        try { add(id, g); held.set(id, 'in'); known.add(id); } catch { held.delete(id); }
+      } else {
+        const [id, b] = queue.shift();
+        if (!wanted.has(id)) { held.delete(id); return; }
+        try { staged = [id, parseGlb(b)]; } catch { held.delete(id); }
+      }
+      worst = Math.max(worst, now() - t0);
     },
-    info: () => ({ held: [...held].filter(e => e[1] === 'in').map(e => e[0]).sort(), loading: [...held].filter(e => e[1] === 'loading').length, queued: queue.length }),
-    destroy() { dead = true; queue.length = 0; },
+    info: () => ({ held: [...held].filter(e => e[1] === 'in').map(e => e[0]).sort(), loading: [...held].filter(e => e[1] === 'loading').length, queued: queue.length, staged: staged ? 1 : 0, drops: drops.length, worst: Math.round(worst * 10) / 10 }),
+    destroy() { dead = true; queue.length = 0; if (staged) { staged[1].dispose(); staged = null; } },
   };
 }

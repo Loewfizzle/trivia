@@ -5,7 +5,7 @@ import { FP, COLS, HOP_TICKS, MODES, areaIndex } from './tuning.js';
 import { moverLeft, pulseAt, pulseLeft, logUnder, ufoX, ufoY, mod, area, gateName } from './course.js';
 import { loadKenney, loadKid, KID, SCENE_MODELS, buildTree, buildTuft, buildLog, LOG, buildTruck, TRUCK, buildBarricade, build, parseGlb } from './models.js';
 import { seasonWindow } from './season-gate.js';
-import { FOG_HEX, DAY_FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, dayEnv, createBloom, fogUp, FOG_UP, OCC_LAYER } from './night-fx.js';
+import { FOG_HEX, DAY_FOG_HEX, KIND, rgb, createGround, glowMaterial, paintMaterial, neonEnv, dayEnv, createBloom, fogUp, FOG_UP, OCC_LAYER, DAY_ROLL } from './night-fx.js';
 import { lazyImport } from '../../ui/lazy-import.js';
 import { skyPlan, skyHeld, skyRoom, skyShift, skyOff, SKY_FADE_MS, SKY_LOOK_MS, SKY_BAND, SKY_ASPECT, SKY_LIGHTS, SKY_NEON } from './skyline.js';
 import { CAM, createCamera } from './camera.js';
@@ -146,7 +146,7 @@ export function createNight(host, o = {}) {
     trees: kind(GEO.tree, lambert(true), 150),
     tufts: kind(GEO.tuft, lambert(), 220, { solid: false, cast: false }),   // (J1: a grass tuft never hides a light pool)
     ...Object.fromEntries([1, 2, 3, 4].map(n => [`log${n}`, kind(GEO[`log${n}`], fogUp(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0, envMapIntensity: 0.25 })), 60)])),
-    trucks: kind(GEO.truck, paintMaterial(glossy(0.3, 1), { instanced: true }), 24, { aux: ['aLit', 1] }),
+    trucks: kind(GEO.truck, paintMaterial(glossy(0.3, 1), { instanced: true, roll: true }), 24, { aux: ['aLit', 1] }),
     barricades: kind(GEO.barricade, lambert(), 40),
     posts: kind(unit, fogUp(new THREE.MeshLambertMaterial({ color: 0xffffff })), 280),
   };
@@ -182,7 +182,7 @@ export function createNight(host, o = {}) {
     }
     for (const [name, g] of Object.entries(geos)) {
       const b = g.boundingBox; BOX[name] = { w: b.max.x - b.min.x, h: b.max.y, l: b.max.z - b.min.z, cz: (b.max.z + b.min.z) / 2, x0: b.min.x, z0: b.min.z, z1: b.max.z };
-      if (name.startsWith('car-')) { const cm = paintMaterial(glossy(0.28, 1.1), { instanced: true }); carMats.push(cm); KM[name] = kind(g, cm, 40, { aux: ['aLit', 1] }); }
+      if (name.startsWith('car-')) { const cm = paintMaterial(glossy(0.28, 1.1), { instanced: true, roll: true }); carMats.push(cm); KM[name] = kind(g, cm, 40, { aux: ['aLit', 1] }); }
       else if (name.startsWith('train-')) KM[name] = kind(g, fogUp(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0, envMapIntensity: 0.9 })), 40);
       else KM[name] = kind(g, lambert(), name === 'lighthouse' ? 2 : name === 'fishing-boat' ? 6 : 70);
     }
@@ -197,7 +197,7 @@ export function createNight(host, o = {}) {
     parseGlb,
     add(id, g) {
       if (dead) { g.dispose(); return; }
-      if (!vMat) { vMat = paintMaterial(glossy(0.28, 1.1), { instanced: true }); carMats.push(vMat); lookGL(); }
+      if (!vMat) { vMat = paintMaterial(glossy(0.28, 1.1), { instanced: true, roll: true }); carMats.push(vMat); lookGL(); }
       const b = g.boundingBox; BOX[`v-${id}`] = { w: b.max.x - b.min.x, h: b.max.y, l: b.max.z - b.min.z, cz: (b.max.z + b.min.z) / 2 };
       KM[`v-${id}`] = kind(g, vMat, 24, { aux: ['aLit', 1] }); g.dispose();   // (kind() keeps its own clone)
     },
@@ -421,6 +421,7 @@ export function createNight(host, o = {}) {
     rim.color.setHex(day ? 0xffffff : 0xff6ad0); rim.intensity = g ? g.rim : day ? 0.3 : 1.25;
     U.uVA.value = VA ? 1 : 0;
     if (g) { U.uWarm.value.set(...g.warm); U.uCool.value.set(...g.cool); U.uCloud.value = g.cloud; U.uDew.value = g.dew; } else { U.uWarm.value.set(1, 1, 1); U.uCool.value.set(1, 1, 1); U.uCloud.value = 0; U.uDew.value = 0; }
+    DAY_ROLL.value = day ? 1 : 0;   // (B2 — WHITE VEHICLES BY DAY: the off-white + the highlight roll-off — night-fx.js#paintMaterial `roll`)
     for (const m of carMats) { m.roughness = g ? g.gloss : 0.28; m.envMapIntensity = g ? g.shine : 1.1; }   // (VARIETY A — the paint shines in the sun by day; the night's cars untouched)
     if (K.trucks) { const m = K.trucks.mesh.material; m.roughness = g ? g.gloss + 0.04 : 0.3; m.envMapIntensity = g ? g.shine * 0.9 : 1; }
     fogPaint();
@@ -710,6 +711,7 @@ export function createNight(host, o = {}) {
   }
   function draw(run, course, a, dt, o = null) {
     if (fitAsk) { const f = fitAsk === 2; fitAsk = 0; fitNow(f); }   // (a resize asked since the last frame: done HERE, before this frame renders)
+    const fT0 = performance.now();   // (B2 — THE TAPS: the loaders step only in a light frame — their pump at the end)
     if (resting === 1) return;   // (rest(): its still is up)
     if (resting) resting--;
     clock += dt;
@@ -830,7 +832,7 @@ export function createNight(host, o = {}) {
     const sl = Math.round(skyShift(skyBias, rig.x() * 2.2 - rig.yaw() * 28, skyRoomPc, skyMax, skyMin) * 20) / 20;
     if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; wallStone.style.transform = wallDay.style.transform = `translate3d(${(-sl * skyPicW * 0.0115).toFixed(1)}px,0,0)`; }
 
-    { const c0 = Math.floor(camY), a0 = areaIndex(c0 - 12), a1 = areaIndex(c0 + 20), a2 = areaIndex(c0 + 52), vk = (a0 + 2) * 100 + (a1 + 2) * 10 + a2 + 2; if (vk !== vwKey || VL.due()) { vwKey = vk; VL.want([...new Set([a0, a1, a2])]); } VL.pump(); }   // (VARIETY B1 — the areas near: their models in ahead, the passed ones freed)
+    { const c0 = Math.floor(camY), a0 = areaIndex(c0 - 12), a1 = areaIndex(c0 + 20), a2 = areaIndex(c0 + 52), vk = (a0 + 2) * 100 + (a1 + 2) * 10 + a2 + 2; if (vk !== vwKey || VL.due()) { vwKey = vk; VL.want([...new Set([a0, a1, a2])]); } }   // (VARIETY B1 — the areas near: their models in ahead, the passed ones freed)
     for (const q of Object.values(K)) q.reset();
     for (const q of Object.values(KM)) q.reset();
     if (capT) flyGet();
@@ -1159,6 +1161,8 @@ export function createNight(host, o = {}) {
       const sx = (1 + v3.x) / 2, sy = (1 - v3.y) / 2;
       g.tag = v3.z < 1 && sx > 0.04 && sx < 0.96 && sy > 0.2 && sy < 0.9 ? [sx * w, sy * h] : null;
     }
+    // VARIETY B2 — THE TAPS: ONE loading step a frame (a parse OR a kind made), at the END — none in a busy frame or the one a hop starts in
+    VL.pump(run.st === 'hop' && run.k < 2 ? Infinity : performance.now() - fT0);
   }
   // VARIETY A — THE SUN's SHADOWS (tier 2 only, a DAY look with sun): ONE depth pass of the casters (their own layer — the kid + the rivals
   // keep their contact shadows: the depth pass knows nothing of their skinning) from the sun, up the course from the camera; the ground reads it
@@ -1251,6 +1255,8 @@ export function createNight(host, o = {}) {
     /** THE LOOK: 'day' | 'night' (at once; the same scene) */
     setLook, look: () => (day ? 'day' : 'night'),
     /** VARIETY A — THE TIME OF DAY (daylook.js#resolveTod) · what it shows now · the fog check's amount */
+    /** (the lab's tap measure — VARIETY B2) every area model let go + the near areas wanted again: an area's arrival, the kid in place */
+    varietyAgain() { VL.want([]); vwKey = -1; },
     setTod, tod: () => (TD ? { ...TD, grade: !!GR, sun: sunReal, fogDark } : null), fogDark: () => fogDark,
     destroy() {
       dead = true; ro.disconnect(); VL.destroy(); taxiTex.dispose(); taxiCv.width = 0;

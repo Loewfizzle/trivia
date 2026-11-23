@@ -16,28 +16,44 @@ const COMP = { 5120: Int8Array, 5121: Uint8Array, 5122: Int16Array, 5123: Uint16
 const NORM = { 5120: 127, 5121: 255, 5122: 32767, 5123: 65535 };
 const WIDTH = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 };
 
-/** one of OUR re-packed GLBs (one node, one mesh, one primitive: POSITION · NORMAL · COLOR_0 · indices) → a BufferGeometry in the node's scale */
+/** (VARIETY B2 — THE TAPS) a colour byte → its linear value: one table, never a pow per vertex */
+const LIN8 = new Float32Array(256).map((_, i) => lin(i / 255));
+/** one of OUR re-packed GLBs (one node, one mesh, one primitive: POSITION · NORMAL · COLOR_0 · indices) → a BufferGeometry in the node's scale.
+ *  B2: read through typed-array VIEWS (aligned — our writer's layout) — a model parses in ~1 ms where the DataView reads took 8–17 ms at 6× CPU */
 export function parseGlb(buf) {
   const dv = new DataView(buf);
   if (dv.getUint32(0, true) !== 0x46546c67) throw new Error('not a GLB');
   const jl = dv.getUint32(12, true), json = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 20, jl))), bin = 20 + jl + 8;
+  /** an accessor → { src (a view of its component type), st (its stride in components), n, count, k (the normalising factor) } */
+  const view = i => {
+    const a = json.accessors[i], bv = json.bufferViews[a.bufferView], T = COMP[a.componentType], n = WIDTH[a.type], es = T.BYTES_PER_ELEMENT;
+    const stride = bv.byteStride || es * n, at = bin + (bv.byteOffset || 0) + (a.byteOffset || 0), k = a.normalized ? 1 / NORM[a.componentType] : 1;
+    if (at % es || stride % es) return null;
+    return { src: new T(buf, at, ((a.count - 1) * stride + n * es) / es), st: stride / es, n, count: a.count, k };
+  };
   const read = i => {
-    const a = json.accessors[i], bv = json.bufferViews[a.bufferView], T = COMP[a.componentType], n = WIDTH[a.type];
+    const V = view(i);
+    if (V) { const { src, st, n, count, k } = V, out = new Float32Array(count * n); for (let v = 0, o = 0; v < count; v++) for (let c = 0, b = v * st; c < n; c++) out[o++] = src[b + c] * k; return { out, n, count }; }
+    const a = json.accessors[i], bv = json.bufferViews[a.bufferView], T = COMP[a.componentType], n = WIDTH[a.type];   // (an unaligned file: the slow path)
     const stride = bv.byteStride || T.BYTES_PER_ELEMENT * n, at = bin + (bv.byteOffset || 0) + (a.byteOffset || 0), k = a.normalized ? 1 / NORM[a.componentType] : 1;
     const out = new Float32Array(a.count * n), get = { 5120: 'getInt8', 5121: 'getUint8', 5122: 'getInt16', 5123: 'getUint16', 5125: 'getUint32', 5126: 'getFloat32' }[a.componentType];
     for (let v = 0; v < a.count; v++) for (let c = 0; c < n; c++) out[v * n + c] = dv[get](at + v * stride + c * T.BYTES_PER_ELEMENT, true) * k;
     return { out, n, count: a.count };
   };
   const node = json.nodes[0], prim = json.meshes[node.mesh].primitives[0], s = (node.scale || [1, 1, 1])[0];
-  const P = read(prim.attributes.POSITION), N = read(prim.attributes.NORMAL), C = read(prim.attributes.COLOR_0), I = read(prim.indices);
-  const pos = P.out.map(v => v * s), col = new Float32Array(P.count * 3), paint = new Float32Array(P.count);
-  for (let v = 0; v < P.count; v++) { for (let c = 0; c < 3; c++) col[v * 3 + c] = lin(C.out[v * 4 + c]); paint[v] = C.out[v * 4 + 3] < 0.5 ? 1 : 0; }
+  const P = read(prim.attributes.POSITION), N = read(prim.attributes.NORMAL);
+  const pos = P.out; for (let v = 0; v < pos.length; v++) pos[v] *= s;
+  const col = new Float32Array(P.count * 3), paint = new Float32Array(P.count), CV = view(prim.attributes.COLOR_0);
+  if (CV && CV.k === 1 / 255) { const { src, st } = CV; for (let v = 0; v < P.count; v++) { const b = v * st; col[v * 3] = LIN8[src[b]]; col[v * 3 + 1] = LIN8[src[b + 1]]; col[v * 3 + 2] = LIN8[src[b + 2]]; paint[v] = src[b + 3] < 128 ? 1 : 0; } }
+  else { const C = read(prim.attributes.COLOR_0); for (let v = 0; v < P.count; v++) { for (let c = 0; c < 3; c++) col[v * 3 + c] = lin(C.out[v * 4 + c]); paint[v] = C.out[v * 4 + 3] < 0.5 ? 1 : 0; } }
+  const IV = view(prim.indices), ia = json.accessors[prim.indices];
+  const idx = IV && IV.st === 1 && (ia.componentType === 5123 || ia.componentType === 5125) ? IV.src.slice(0, ia.count) : (() => { const I = read(prim.indices); return P.count > 65535 ? Uint32Array.from(I.out) : Uint16Array.from(I.out); })();
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.BufferAttribute(N.out, 3));
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   g.setAttribute('paint', new THREE.BufferAttribute(paint, 1));
-  g.setIndex(new THREE.BufferAttribute(P.count > 65535 ? Uint32Array.from(I.out) : Uint16Array.from(I.out), 1));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
   g.computeBoundingBox();
   // (H5A — THE KID: each vertex's ONE bone + THE POSES — the skin matrices, 3 rows of 4 floats a bone, a row of the texture a frame)
   const X = json.extras && json.extras.poses;

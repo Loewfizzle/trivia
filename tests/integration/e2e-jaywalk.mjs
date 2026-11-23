@@ -369,8 +369,8 @@ try {
   ok(ln.best === B1 && B1 === v1.result.lanes && ln.shown.startsWith(`${B1}|`) && !ln.record, `YOUR BEST LINE at lane ${B1} — the server-counted best (the board's ${B1}); the friend's line again ahead ("${ln.shown}")`);
   const nb0 = await P.ev("import('/js/games/jaywalk/sfx.js').then(S => S.wanted().filter(x => x.id === 'new-best').length)");
   await P.shot('line-best-coming.png');   // (two lanes up the calm opening: the gold line + its words ahead)
-  await P.ev(`${G}.bot(true)`);
-  const crossedB = await P.waitFor(`${G}.state().lines.record`, 30000);
+  await P.ev(`${G}.bot(true, { steady: true })`);   // (B2 — THE DEC 24 FLAKE: the greedy bot could die short of the best on a slow box; THE STEADY BOT stays in)
+  const crossedB = await P.waitFor(`${G}.state().lines.record || ${G}.state().over`, 60000) && await P.ev(`${G}.state().lines.record`);
   await P.shot('line-best-crossed.png');
   ln = (await P.ev(`${G}.state()`)).lines;
   await P.ev(`${G}.bot(false)`);

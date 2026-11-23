@@ -346,17 +346,27 @@ mat4 jwRow(int y) {
 mat4 jwPose(float row) { float f = fract(row); int y = int(floor(row)); return jwRow(y) * (1.0 - f) + jwRow(y + 1) * f; }`;
 /** THE PAINT PATCH on a lit material: vertices marked `paint` take the tint (an instance's colour, or uTint) by their own brightness; the
  *  rest keep their vertex colours; `lit` (0 … 1 — the blackout, the dim edge columns) scales both. */
-export function paintMaterial(mat, { instanced = false, rim = false, skin = null, fade = false } = {}) {
+/** VARIETY B2 — WHITE VEHICLES BY DAY: 0 at night (the night's cars untouched — every use below is an exact no-op at 0), 1 by day (night.js#lookGL) */
+export const DAY_ROLL = { value: 0 };
+const ROLL_V = 'float jwMn = min(vColor.r, min(vColor.g, vColor.b)); vColor *= 1.0 - 0.2 * uRoll * smoothstep(0.42, 0.82, jwMn);';   // (a near-white body → a soft off-white by day)
+/** the day's HIGHLIGHT ROLL-OFF: past the knee a lit colour is eased toward 1 (its hue kept — every channel by one factor), never clipped flat:
+ *  a white bus keeps its panels + windows; the darker parts (glass, trim, lines) are below the knee — untouched */
+const ROLL_F = 'if (uRoll > 0.0) { float jwPk = max(outgoingLight.r, max(outgoingLight.g, outgoingLight.b)); if (jwPk > 0.58) outgoingLight *= mix(1.0, (0.58 + 0.38 * (1.0 - exp((0.58 - jwPk) / 0.38))) / jwPk, uRoll); }';
+export function paintMaterial(mat, { instanced = false, rim = false, skin = null, fade = false, roll = false } = {}) {
   const u = { uTint: { value: new THREE.Color(0xffffff) }, uLit: { value: 1 }, uRim: { value: new THREE.Color(0x000000) }, uPose: { value: skin } };
   mat.vertexColors = true;
   mat.onBeforeCompile = sh => {
     fogPatch(sh);
     sh.uniforms.uTint = u.uTint; sh.uniforms.uLit = u.uLit;
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', `#include <common>\nattribute float paint;\n${skin ? SKIN_V : instanced ? 'attribute float aLit;' : 'uniform vec3 uTint; uniform float uLit;'}`)
-      .replace('#include <color_vertex>', instanced
+      .replace('#include <common>', `#include <common>\nattribute float paint;\n${skin ? SKIN_V : instanced ? 'attribute float aLit;' : 'uniform vec3 uTint; uniform float uLit;'}${roll ? '\nuniform float uRoll;' : ''}`)
+      .replace('#include <color_vertex>', (instanced
         ? `vColor = mix(color, instanceColor * (0.22 + 1.6 * dot(color, vec3(0.299, 0.587, 0.114))), paint) * ${skin ? 'mod(aKid.x, 8.0)' : 'aLit'};${fade ? ' vJwA = 1.0 - 0.68 * floor(aKid.x / 8.0) / 15.0;' : ''}`
-        : 'vColor = mix(color, uTint * (0.22 + 1.6 * dot(color, vec3(0.299, 0.587, 0.114))), paint) * uLit;');
+        : 'vColor = mix(color, uTint * (0.22 + 1.6 * dot(color, vec3(0.299, 0.587, 0.114))), paint) * uLit;') + (roll ? `\n${ROLL_V}` : ''));
+    if (roll) {
+      sh.uniforms.uRoll = DAY_ROLL;
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uRoll;').replace('#include <opaque_fragment>', `${ROLL_F}\n#include <opaque_fragment>`);
+    }
     if (skin) {
       sh.uniforms.uPose = u.uPose;
       sh.vertexShader = sh.vertexShader
@@ -373,7 +383,7 @@ export function paintMaterial(mat, { instanced = false, rim = false, skin = null
         .replace('#include <opaque_fragment>', 'outgoingLight += uRim * pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 2.6);\n#include <opaque_fragment>');
     }
   };
-  mat.customProgramCacheKey = () => `jw-paint-${instanced ? 'i' : 'u'}${rim ? 'r' : ''}${skin ? 's' : ''}${fade ? 'f' : ''}`;
+  mat.customProgramCacheKey = () => `jw-paint-${instanced ? 'i' : 'u'}${rim ? 'r' : ''}${skin ? 's' : ''}${fade ? 'f' : ''}${roll ? 'w' : ''}`;
   mat.userData.u = u;
   return mat;
 }
