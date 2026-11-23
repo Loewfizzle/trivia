@@ -26,7 +26,7 @@ const nearHex = (a, b) => Math.abs((a >> 16) - (b >> 16)) + Math.abs(((a >> 8) &
 export const carTint = (k, kid) => { for (let q = 0; q < NEON.length; q++) { const t = NEON[(k + q) % NEON.length]; if (!nearHex(t, kid)) return t; } return NEON[k]; };
 const TAXI_HEX = 0xf6b100;
 /** VARIETY B1 — the variety vehicles' lamps by slot: [half the lamps' spread, their height] · the tail bar's width */
-const V_LAMPS = [null, [0.225, 0.2], [0.26, 0.24], [0.25, 0.3]], V_VW = [0, 0.7, 0.78, 0.9];
+const V_LAMPS = [null, [0.225, 0.2], [0.26, 0.24], [0.25, 0.3]], V_VW = [0, 0.7, 0.78, 0.9], TRUCK_LAMPS = [0, 0.34, 0.67, 1], RAIL_AT = [-0.3, 3, 6, 9.3], LINE_KEYS = ['best', 'friend'];
 const DPR_AT = [1.5, 2, 3];
 const LAMPS = Object.freeze({ 'car-sedan': [0.225, 0.2], 'car-hatchback': [0.225, 0.2], 'car-taxi': [0.225, 0.2], 'car-van': [0.26, 0.24], truck: [0.25, 0.3], train: [0.2, 0.45] });
 const HEAD_REACH = 1.35, TAIL_LEN = 1.2;
@@ -174,14 +174,14 @@ export function createNight(host, o = {}) {
   // night), TL = what glows by time; VA false = the lab's BEFORE (&va=0); sunReal = THE SUN's SHADOWS drawn by the depth pass this frame
   let TD = null, GR = null, TL = lightsOf('night', -20), sunReal = false, fogDark = 0, sunF = -1;
   const VA = o.va !== false;
-  { const put0 = K.shadow.put; K.shadow.raw = put0; K.shadow.put = (x, y, z, sx, sy, sz, ry, hex, k, a0, a1, ...r) => {
-    if (!day) { put0(x, y, z, sx, 1, sz, ry, hex, k, a0, a1, ...r); return; }
+  { const put0 = K.shadow.put; K.shadow.raw = put0; K.shadow.put = (x, y, z, sx, sy, sz, ry, hex, k, a0, a1, rx = 0, rz = 0, a2 = 0, a3 = 0) => {   // (SMOOTH 2: named, never a rest array + a spread — the frame's most-called wrapper)
+    if (!day) { put0(x, y, z, sx, 1, sz, ry, hex, k, a0, a1, rx, rz, a2, a3); return; }
     // by day: a tight CONTACT shadow (every tier) + THE SUN's — this cheap offset copy on tiers 1 / 0 (tier 2: the depth pass draws the real one),
     // as long as the time of day's sun (golden: long), none on an OVERCAST day
     const a = a1 == null ? 1 : a1, L = VA && GR ? GR.len : 1, sunK = (1 - ease(sunF < 0 ? 0 : sunF)) * (VA && GR ? GR.sun : 1);
     const off = Math.min(SUN.len * L * (sy === 1 ? 0.55 : sy), (0.4 * Math.min(sx, sz) + 0.14) * L);
-    if (sunK > 0.01) put0(x + SUN.x * off, y - 0.003, z + SUN.z * off, sx * 1.05 * (1 + 0.45 * (L - 1)), 1, sz * 1.05, ry, hex, k, a0, a * 0.62 * sunK, ...r);
-    put0(x + SUN.x * 0.05, y, z + SUN.z * 0.05, sx * 0.9, 1, sz * 0.9, ry, hex, k, a0, a * (VA ? 0.98 : 0.9), ...r);
+    if (sunK > 0.01) put0(x + SUN.x * off, y - 0.003, z + SUN.z * off, sx * 1.05 * (1 + 0.45 * (L - 1)), 1, sz * 1.05, ry, hex, k, a0, a * 0.62 * sunK, rx, rz, a2, a3);
+    put0(x + SUN.x * 0.05, y, z + SUN.z * 0.05, sx * 0.9, 1, sz * 0.9, ry, hex, k, a0, a * (VA ? 0.98 : 0.9), rx, rz, a2, a3);
   }; }
   const AGEO = buildAreaGeo(), AK = {};
   for (const [name, g] of Object.entries(AGEO)) AK[name] = K[`a_${name}`] = kind(g, lambert(), { bollard: 60, crate: 90, icecrate: 60, drum: 70, rock: 90, hydrant: 40, container: 60, stall: 30, rail: 60, house: 24 }[name] || 6);
@@ -571,7 +571,10 @@ export function createNight(host, o = {}) {
 
   const fx = { t: -1, st: 'idle', hits: 0, y: 0, yaw: Math.PI, landAt: -1e9, landOn: '', hit: null, parts: [], wob: null, shake: 0, seen: false, out: 0, endT: -1, after: 0 };
   let clock = 0, kidH = 0;
-  const part = (kindOf, x, y, z, life, a = {}) => { if (fx.parts.length < 60) fx.parts.push({ k: kindOf, x, y, z, t0: clock, life, ...a }); };
+  // (SMOOTH 2 — THE POOL: a particle's record is reused, every optional field written each time: a burst makes no garbage)
+  const partFree = [], NO_PART = Object.freeze({});
+  const part = (kindOf, x, y, z, life, a = NO_PART) => { if (fx.parts.length >= 60) return; const q = partFree.pop() || {}; q.k = kindOf; q.x = x; q.y = y; q.z = z; q.t0 = clock; q.life = life; q.hex = a.hex; q.vx = a.vx; q.vy = a.vy; q.vz = a.vz; q.r0 = a.r0; q.r1 = a.r1; q.sz = a.sz; q.al = a.al; q.g = a.g; q.sh = a.sh; fx.parts.push(q); };
+  const partsClear = () => { while (fx.parts.length) partFree.push(fx.parts.pop()); };
   function splash(x, z, hex = 0x9fe8ff) {
     part('ring', x, 0.06, z, 520, { hex, r0: 0.25, r1: 1.25 });
     part('ring', x, 0.06, z, 760, { hex, r0: 0.1, r1: 0.9 });
@@ -693,12 +696,13 @@ export function createNight(host, o = {}) {
     K.shadow.put(cx, 0.03, z, len * 1.12, V.slot === 3 ? 1.05 : V.slot === 2 ? 0.7 : 0.55, 1.05, 0, 0, 1, 0, (day ? 0.85 : 0.6) * dim);
     if (V.spray && !reduce) spray(V.spray, nose, nose - L.dir * bodyL, L.dir, z, dim, hsh(vseed ^ (i * 977), j + 5));
     if (!on) return;
-    const [hw, hy] = V_LAMPS[V.slot], a1 = dim, back = L.dir > 0 ? 0 : Math.PI, rearX = nose - L.dir * bodyL, vw = V_VW[V.slot];
+    const lp = V_LAMPS[V.slot], hw = lp[0], hy = lp[1], a1 = dim, back = L.dir > 0 ? 0 : Math.PI, rearX = nose - L.dir * bodyL, vw = V_VW[V.slot];
     if (lWant) { glow(X(nose), z, 0xfff0c8, 1.1 * a1); glow(X(rearX), z, 0xff2a22, 0.85 * a1); }
     LF(X(rearX - L.dir * (TAIL_LEN / 2 - 0.2)), 0.04, z, TAIL_LEN, 1, vw * 1.15, L.dir > 0 ? Math.PI : 0, 0xff2a22, 1, -1, 0.34 * a1);
     LF(X(rearX - L.dir * 0.1), 0.041, z, 0.6, 1, vw * 0.9, 0, 0xff5a34, 1, 0, 0.3 * a1);
     tailBar(X(rearX - L.dir * 0.03), hy + 0.06, z, vw, a1);
-    for (const e of [-hw, hw]) {
+    for (let es = -1; es <= 1; es += 2) {
+      const e = es * hw;
       LF(X(nose + L.dir * HEAD_REACH / 2), 0.04, z + e, HEAD_REACH, 1, 0.8, back, 0xfff0c8, 1, 6, 0.5 * a1);
       K.bill.put(X(nose), hy, z + e, day ? 0.13 + 0.07 * TL.cars : 0.2, day ? 0.13 + 0.07 * TL.cars : 0.2, 1, 0, 0xfff0c0, 1, 5, (day ? 0.7 + 0.3 * TL.cars : 0.8) * a1);
     }
@@ -712,7 +716,8 @@ export function createNight(host, o = {}) {
     }
     if (V.light && (!day || TL.cars > 0.6)) {
       const bxl = X(nose - L.dir * bodyL * V.bar[0]), by = V.h * V.bar[1] + 0.04, ph = hsh(vseed ^ (i * 977), j + 3), f = reduce ? 0.5 : (clock / 190 + ph * 4) % 2 < 1 ? 1 : 0;
-      for (const [dz, hex, on1] of [[-0.13, 0xff2236, f], [0.13, 0x2f6bff, 1 - f]]) {
+      for (let bk = 0; bk < 2; bk++) {
+        const dz = bk ? 0.13 : -0.13, hex = bk ? 0x2f6bff : 0xff2236, on1 = bk ? 1 - f : f;
         K.bill.put(bxl, by, z + dz, 0.2, 0.2, 1, 0, hex, 1, 5, (0.35 + 0.65 * on1) * a1);
         if (on1 || reduce) LB(bxl, by, z + dz, 0.95, 0.75, 1, 0, hex, 1, 0, (reduce ? 0.3 : 0.6) * a1);
         if (on1 && !reduce) LF(bxl, 0.045, z + dz * 3, 1.6, 1, 1.3, 0, hex, 1, 0, 0.16 * a1);
@@ -723,10 +728,14 @@ export function createNight(host, o = {}) {
   let vLF = NOP, vLB = NOP;
   function taxiDress(bx, z, bodyL, h, dim, on) {
     const n = 7, sq = bodyL * 0.7 / n, x0 = bx - sq * (n - 1) / 2;
-    for (const side of [-1, 1]) for (let k = 0; k < n; k++) K.checker.put(x0 + k * sq, h * 0.64, z + side * 0.345, sq, 0.08, 0.06, 0, (k + (side > 0 ? 0 : 1)) % 2 ? 0x15151a : 0xf4f4f0, dim * (day ? 1 : 0.85));
+    for (let sk = 0; sk < 2; sk++) for (let k = 0, side = sk ? 1 : -1; k < n; k++) K.checker.put(x0 + k * sq, h * 0.64, z + side * 0.345, sq, 0.08, 0.06, 0, (k + (side > 0 ? 0 : 1)) % 2 ? 0x15151a : 0xf4f4f0, dim * (day ? 1 : 0.85));
     const lit = on && (!day || TL.cars > 0.6);
     K.taxiSign.put(bx, h + 0.15, z, 0.56, 0.21, 1, 0, 0xffffff, lit ? 2.1 : dim * (day ? 1 : 0.55), 1, 1, -0.95);
   }
+  // SMOOTH 2 — NO GARBAGE IN THE FRAME: the hot loops' names + small lists, made once (docs/jaywalk.md "SMOOTH 2")
+  const KID_DRAW = new Float64Array(14), LOGQ = [null, K.log1, K.log2, K.log3, K.log4], V_KEY = {}, C_KEY = {};
+  const vKey = id => V_KEY[id] || (V_KEY[id] = `v-${id}`), cKey = id => C_KEY[id] || (C_KEY[id] = `car-${id}`);
+  const BIGC = { K, A: AK, lt: 0, on: false, day: false, ek: 0, SH: null }, SIGC = { K, A: AK, KM, BOX, X, Z, lt: 0, on: false, day: false, ek: 0, T: null, h: (a, b) => hsh(vseed ^ (a * 2659), b), course: null };
   function draw(run, course, a, dt, o = null) {
     if (fitAsk) { const f = fitAsk === 2; fitAsk = 0; fitNow(f); }
     const fT0 = performance.now();
@@ -743,7 +752,7 @@ export function createNight(host, o = {}) {
     if (course !== courseRef) { courseRef = course; vseed = strSeed(course.seed); decor.clear(); plots.clear(); }
     if (run.st === 'out' || run.st === 'taken') { if (fx.endT !== run.end) { fx.endT = run.end; fx.after = 0; } fx.after += dt * 0.06; } else { fx.endT = -1; fx.after = 0; }
     const capT = MODES[run.mode].cap, tr = o && o.t != null ? o.t : run.t + a + fx.after, t = capT && tr > capT ? capT + 40 * (1 - Math.exp((capT - tr) / 40)) : tr, lane = course.lane(run.y);
-    if (run.t < fx.t || (run.t === 0 && fx.t !== 0)) { fx.hits = 0; fx.hit = null; fx.parts.length = 0; fx.yaw = Math.PI; fx.landAt = -1e9; fx.wob = null; fx.seen = false; fx.st = 'idle'; fx.out = 0; }
+    if (run.t < fx.t || (run.t === 0 && fx.t !== 0)) { fx.hits = 0; fx.hit = null; partsClear(); fx.yaw = Math.PI; fx.landAt = -1e9; fx.wob = null; fx.seen = false; fx.st = 'idle'; fx.out = 0; }
     let kx = run.x / FP, ky = run.y + 0.5, lift = 0, f = 0, hopDir = '';
     if (run.st === 'hop') {
       f = Math.min(1, (run.k + a) / HOP_TICKS);
@@ -834,7 +843,7 @@ export function createNight(host, o = {}) {
       if (seaLand.on) SE.land(seaLand.L, seaLand.x, seaLand.y, fx.dir, true, area(Math.floor(seaLand.y)).index);
     }
     seaLand.on = false;
-    const kidDraw = show ? [px, flat ? 0.02 : py, pz, s3[0] * KID_S, s3[1] * KID_S, s3[2] * KID_S, ry + KID_YAW, kidHex, 1, lit, poseA, rx, rz, poseB, poseK] : null;
+    if (show) { const D = KID_DRAW; D[0] = px; D[1] = flat ? 0.02 : py; D[2] = pz; D[3] = s3[0] * KID_S; D[4] = s3[1] * KID_S; D[5] = s3[2] * KID_S; D[6] = ry + KID_YAW; D[7] = kidHex; D[8] = lit; D[9] = poseA; D[10] = rx; D[11] = rz; D[12] = poseB; D[13] = poseK; }
     if (kidMat) kidMat.userData.u.uRim.value.copy(rimCol).multiplyScalar((day ? 0.16 : 0.5) * Math.min(1, lit));
     kidH = KID.h * s3[1] * KID_S;
 
@@ -852,12 +861,12 @@ export function createNight(host, o = {}) {
     if (sl !== skyAt) { skyAt = sl; skyImg.style.transform = `translate3d(${(-50 - sl).toFixed(2)}%,0,0)`; wallStone.style.transform = wallDay.style.transform = `translate3d(${(-sl * skyPicW * 0.0115).toFixed(1)}px,0,0)`; }
 
     { const c0 = Math.floor(camY), a0 = areaIndex(c0 - 12), a1 = areaIndex(c0 + 20), a2 = areaIndex(c0 + 52), vk = (a0 + 2) * 100 + (a1 + 2) * 10 + a2 + 2; if (vk !== vwKey || VL.due() || (PR && PR.due())) { vwKey = vk; const near = [...new Set([a0, a1, a2])]; VL.want(near); if (PR) PR.want(near); } if (!prAsk) prGet(); }
-    for (const q of Object.values(K)) q.reset();
-    for (const q of Object.values(KM)) q.reset();
+    for (const k in K) K[k].reset();   // (SMOOTH 2: no array a frame)
+    for (const k in KM) KM[k].reset();
     if (PR) for (const q of PR.kinds()) q.reset();
     if (capT) flyGet();
     if (FL) FL.begin({ t, clock, dt, day, w, h, camX: rig.x(), kx: px, kz: pz, ky, own: !o || o.own !== false, alive: run.st === 'idle' || run.st === 'hop' });
-    if (kidDraw && KM.kid) KM.kid.put(...kidDraw);
+    if (show && KM.kid) { const D = KID_DRAW; KM.kid.put(D[0], D[1], D[2], D[3], D[4], D[5], D[6], D[7], 1, D[8], D[9], D[10], D[11], D[12], D[13]); }
     const kindOf = L => (L.mark ? KIND.mark : KIND[L.type]);
     let beam = null, sign = null, gateSeen = false;
     const base = Math.floor(camY) - BACK, top = base + BACK + Math.min(AHEAD, Math.ceil(24 * rig.k()) + 2);
@@ -871,7 +880,7 @@ export function createNight(host, o = {}) {
           if (q.edge && (q.c < 0 ? sgL : sgR)) continue;
           const x = X(q.c + 0.5) + q.dx, zz = z + q.dz, dim = lt * (q.c < 0 || q.c >= COLS ? EK : 1);
           if (q.deco === 2) { if (PR) PR.deco(q, x, zz, dim, lt); continue; }
-          if (q.big) { if (q.k === 'shop' && !SH) shopGet(); drawBig(q, X(q.c + 0.5), z, { K, A: AK, lt, on: on && areaOn, day, ek: EK, SH: SH && SH.put }); }
+          if (q.big) { if (q.k === 'shop' && !SH) shopGet(); BIGC.lt = lt; BIGC.on = on && areaOn; BIGC.day = day; BIGC.ek = EK; BIGC.SH = SH && SH.put; drawBig(q, X(q.c + 0.5), z, BIGC); }
           else if (AK[q.k]) { const [ps, sh] = PIECE[q.k]; AK[q.k].put(x, 0, zz, ps, ps, ps, q.ry, q.k === 'drum' ? DRUM_HEX[Math.floor(q.s * 2.999)] : 0xffffff, dim * 1.25); K.shadow.put(x, 0.03, zz + 0.06, sh[0], 1, sh[1], 0, 0, 1, 0, 0.45 * lt); }
           else if (q.k === 'tree' || q.tk || (q.k !== 'barricade' && !KM[q.k])) {
             const s = 0.72 + q.s * 0.3;
@@ -901,11 +910,11 @@ export function createNight(host, o = {}) {
             const cx = X(left + len / 2), inside = left + len > 0 && left < COLS, dim = lt * (inside ? 1 : EK + 0.05);
             if (car) {
               let what = vehicleAt(course, i, j);
-              const V = VARIETY[what], vq = V ? KM[`v-${what}`] : null;
+              const V = VARIETY[what], vq = V ? KM[vKey(what)] : null;
               if (V && !vq) what = plainAt(course, i, j);
               const taxi = what === 'taxi', nk = Math.floor(hsh(vseed ^ (i * 104729), j * 31 + 7) * NEON.length), tint = taxi ? TAXI_HEX : carTint(nk, kidHex);
-              if (vq) { drawVariety(V, vq, BOX[`v-${what}`], L, left, len, z, tint, dim, on, i, j); continue; }
-              const name = what === 'truck' ? 'car-van' : `car-${what}`, q = KM[name], B = BOX[name], ry = L.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+              if (vq) { drawVariety(V, vq, BOX[vKey(what)], L, left, len, z, tint, dim, on, i, j); continue; }
+              const name = what === 'truck' ? 'car-van' : cKey(what), q = KM[name], B = BOX[name], ry = L.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
               const bodyL = len < 1.5 ? 0.96 : 1.9, sz = B ? bodyL / B.l : 1, sx = B ? (len < 1.5 ? 0.7 : 0.78) / B.w : 1, sy = B ? (len < 1.5 ? 0.42 : 0.52) : 1;
               const nose = left + (L.dir > 0 ? len - 0.02 : 0.02), bx = X(nose - L.dir * bodyL / 2), tail = left + (L.dir > 0 ? 0.02 : len - 0.02);
               const truck = what === 'truck', tz = (len - 0.1) / TRUCK.len;
@@ -914,8 +923,8 @@ export function createNight(host, o = {}) {
               if (taxi && B) taxiDress(bx, z, bodyL, B.h * sy, dim, on);
               K.shadow.put(cx, 0.03, z, len * 1.12, truck ? 1.05 : len > 1.5 ? 0.7 : 0.55, 1.05, 0, 0, 1, 0, (day ? 0.85 : 0.6) * lt);
               if (on) {
-                const [hw, hy] = LAMPS[truck ? 'truck' : name], a1 = dim, back = L.dir > 0 ? 0 : Math.PI;
-                if (truck) for (const m of [0, 0.34, 0.67, 1]) K.bill.put(cx + L.dir * (TRUCK.box[0] + (TRUCK.box[1] - TRUCK.box[0]) * m) * tz, 0.29, z + 0.4, 0.24, 0.24, 1, 0, 0xff9a1c, 1, 0, a1);
+                const lp = LAMPS[truck ? 'truck' : name], hw = lp[0], hy = lp[1], a1 = dim, back = L.dir > 0 ? 0 : Math.PI;
+                if (truck) for (let mi = 0; mi < 4; mi++) { const m = TRUCK_LAMPS[mi]; K.bill.put(cx + L.dir * (TRUCK.box[0] + (TRUCK.box[1] - TRUCK.box[0]) * m) * tz, 0.29, z + 0.4, 0.24, 0.24, 1, 0, 0xff9a1c, 1, 0, a1); }
                 if (taxi) { K.bill.put(bx, 0.5, z, 0.3, 0.2, 1, 0, 0xfff3b0, 1, 5, a1); LB(bx, 0.5, z, 0.62, 0.42, 1, 0, 0xffc21e, 1, 0, 0.55 * a1); }
                 const rearX = truck ? tail : nose - L.dir * bodyL;
                 if (lWant) { glow(X(nose), z, 0xfff0c8, 1.1 * a1); glow(X(rearX), z, 0xff2a22, 0.85 * a1); }
@@ -923,7 +932,8 @@ export function createNight(host, o = {}) {
                 LF(X(rearX - L.dir * (TAIL_LEN / 2 - 0.2)), 0.04, z, TAIL_LEN, 1, vw * 1.15, L.dir > 0 ? Math.PI : 0, 0xff2a22, 1, -1, 0.34 * a1);
                 LF(X(rearX - L.dir * 0.1), 0.041, z, 0.6, 1, vw * 0.9, 0, 0xff5a34, 1, 0, 0.3 * a1);
                 tailBar(X(rearX - L.dir * 0.03), hy + 0.06, z, vw, a1);
-                for (const e of [-hw, hw]) {
+                for (let es = -1; es <= 1; es += 2) {
+                  const e = es * hw;
                   LF(X(nose + L.dir * HEAD_REACH / 2), 0.04, z + e, HEAD_REACH, 1, 0.8, back, 0xfff0c8, 1, 6, 0.5 * a1);
                   K.bill.put(X(nose), hy, z + e, day ? 0.13 + 0.07 * TL.cars : 0.2, day ? 0.13 + 0.07 * TL.cars : 0.2, 1, 0, 0xfff0c0, 1, 5, (day ? 0.7 + 0.3 * TL.cars : 0.8) * a1);
                 }
@@ -932,7 +942,7 @@ export function createNight(host, o = {}) {
               const wob = fx.wob && fx.wob.lane === i && fx.wob.j === j && lap === 0 ? clock - fx.wob.t0 : 9e9, wv = wob < 520 && !reduce ? Math.exp(-wob / 170) * Math.sin(wob / 42) : 0;
               const by = bobOf(i, j) + LOG_FEET - LOG.top - wv * 0.07, rock = reduce ? 0 : Math.sin(clock / 880 + i * 1.3 + j * 2.1) * 0.04 + wv * 0.16;
               const n = Math.max(1, Math.min(4, Math.round(len))), tailX = L.dir > 0 ? left : left + len;
-              K[`log${n}`].put(cx, by, z, 1, 1, 1, 0, 0xffffff, dim * 1.12, 1, 1, rock);
+              LOGQ[n].put(cx, by, z, 1, 1, 1, 0, 0xffffff, dim * 1.12, 1, 1, rock);
               K.shadow.put(cx, 0.047, z + 0.06, len * 1.06 + 0.25, 0.35, 1.25, 0, 0, 1, 0, 0.5 * Math.min(1, lt));
               if (on) {
                 const lw = len + 0.1, ld = 0.92, asp = 7 + Math.min(9.9, lw / ld) / 10, rp = reduce ? 0.4 : (clock / 1700 + j * 0.37 + i * 0.21) % 1;
@@ -951,7 +961,8 @@ export function createNight(host, o = {}) {
           const tell = st.st === 'tell', blink = tell && Math.floor(t / 8) % 2 === 0;
           railGone = !tell && (st.st === 'pass' || s !== null);
           fxv = tell ? (blink ? 1 : 0.35) : 0;
-          for (const c of [-0.3, 3, 6, 9.3]) {
+          for (let ci = 0; ci < 4; ci++) {
+            const c = RAIL_AT[ci];
             const x = X(c);
             K.posts.put(x, 0.3, z - 0.44, 0.1, 0.6, 0.1, 0, 0x2a2a34, lt); K.posts.put(x, 0.66, z - 0.46, 0.3, 0.34, 0.12, 0, 0x1c1c24, lt);
             K.bill.put(x, 0.66, z - 0.44, blink ? (day ? 0.7 : 0.62) : 0.24, blink ? (day ? 0.7 : 0.62) : 0.24, 1, 0, blink ? 0xff2a2a : tell ? 0x7a1414 : 0x32151b, 1, 5, (blink ? 1 : tell ? 0.8 : 0.7) * lt);
@@ -969,12 +980,13 @@ export function createNight(host, o = {}) {
             for (let c = 0; c < n - 1; c++) {
               const cx = X(nose - p.dir * (fl + cl * (c + 0.5)));
               KM['train-carriage'].put(cx, 0, z, sc, sc, cl / Cg.l, ry, 0xffffff, lt);
-              if (on) for (const wx of [-0.62, 0, 0.62]) LB(cx + wx, 0.98, z + 0.3, 0.4, 0.26, 1, 0, c % 2 ? 0x7fe6ff : 0xffe6a8, 1, 0, 0.9 * lt);   // lit windows
+              if (on) for (let wi = -1; wi <= 1; wi++) LB(cx + wi * 0.62, 0.98, z + 0.3, 0.4, 0.26, 1, 0, c % 2 ? 0x7fe6ff : 0xffe6a8, 1, 0, 0.9 * lt);   // lit windows
             }
             K.shadow.put(X(left + len / 2), 0.03, z, len * 1.03, 1.2, 1.25, 0, 0, 1, 0, 0.65 * lt);
             if (on) {
-              const [tw, ty] = LAMPS.train, rear = nose - p.dir * len;
-              for (const e of [-tw, tw]) {
+              const tw = LAMPS.train[0], ty = LAMPS.train[1], rear = nose - p.dir * len;
+              for (let es = -1; es <= 1; es += 2) {
+                const e = es * tw;
                 LF(X(nose + p.dir * HEAD_REACH * 0.8), 0.05, z + e, HEAD_REACH * 1.6, 1, 0.95, p.dir > 0 ? 0 : Math.PI, 0xfff2d0, 1, 6, 0.6 * lt);
                 K.bill.put(X(nose), ty, z + e, day ? 0.24 + 0.08 * TL.cars : 0.36, day ? 0.24 + 0.08 * TL.cars : 0.36, 1, 0, 0xfff6d8, 1, 5, lt);
               }
@@ -991,7 +1003,8 @@ export function createNight(host, o = {}) {
           if (day || RWN) runwayLamps(p, st, tellF, head, z, lt);
           else for (let c = -1; c <= COLS; c++) {
             const at = p.dir > 0 ? c : COLS - 1 - c, hot = head > -50 && at <= head && at > head - 3.2, far = c < 0 || c >= COLS ? 0.6 : 1;
-            for (const e of [-0.42, 0.42]) {
+            for (let es = -1; es <= 1; es += 2) {
+              const e = es * 0.42;
               K.bill.put(X(c + 0.5), 0.07, z + e, hot ? 0.74 : 0.3, hot ? 0.74 : 0.3, 1, 0, hot ? 0xfff6dc : 0xffcf8a, 1, 5, (hot ? 1 : 0.85) * lt * far);
               if (on) K.flat.put(X(c + 0.5), 0.04, z + e, hot ? 1.7 : 0.8, 1, hot ? 1.2 : 0.6, 0, 0xffa820, 1, 0, (hot ? 0.75 : 0.35) * lt * far);
             }
@@ -1022,9 +1035,9 @@ export function createNight(host, o = {}) {
         if (!gateSeen && near > 0.01 && dk < 0.8) { writeGate(gateName(i), hex, LOOKS[AR].paint); gateShow(near); gateSeen = true; gateInfo.on = true; gateInfo.text = gateName(i); gateInfo.y = 0.24 + 0.82 * w * 176 / 1024 / h; gateInfo.d = dg; gateInfo.a = near; }
       }
       const PL = AR >= 0 ? sigAt(i) : null;
-      if (PL) for (const P of PL) { const r = drawSig(P, { K, A: AK, KM, BOX, X, Z, lt, on: on && areaOn, day, ek: EK, T: LOOKS[AR], h: (a, b) => hsh(vseed ^ (a * 2659), b), course }); if (r && r.beam && on) beam = { at: r.beam, side: P.side, lt: Math.min(1, lt) }; if (r && r.sign && on && !sign) sign = { at: r.sign, lt: Math.min(1, lt) }; }
+      if (PL) for (const P of PL) { SIGC.lt = lt; SIGC.on = on && areaOn; SIGC.day = day; SIGC.ek = EK; SIGC.T = LOOKS[AR]; SIGC.course = course; const r = drawSig(P, SIGC); if (r && r.beam && on) beam = { at: r.beam, side: P.side, lt: Math.min(1, lt) }; if (r && r.sign && on && !sign) sign = { at: r.sign, lt: Math.min(1, lt) }; }
       if (AR >= 0 && LOOKS[AR].footbridge && L.type === 'water' && i % 2 === 0) AK.footbridge.put(X(i % 4 ? -0.6 : COLS + 0.6), 0, z, 1.05, 1.0, 0.86, 0, 0xffffff, lt * (EK + 0.2));
-      if (AR >= 0 && LOOKS[AR].gantry && L.type === 'rail') for (const sd of [-1, 1]) {
+      if (AR >= 0 && LOOKS[AR].gantry && L.type === 'rail') for (let sd = -1; sd <= 1; sd += 2) {
         const gx = X(sd < 0 ? -0.55 : COLS + 0.55);
         K.posts.put(gx - 0.42, 0.95, z - 0.47, 0.07, 1.9, 0.07, 0, 0x3a3a48, lt * (EK + 0.2)); K.posts.put(gx + 0.42, 0.95, z - 0.47, 0.07, 1.9, 0.07, 0, 0x3a3a48, lt * (EK + 0.2)); K.posts.put(gx, 1.9, z - 0.47, 0.95, 0.08, 0.08, 0, 0x4a4a5a, lt * (EK + 0.2));
         K.bill.put(gx, 1.72, z - 0.47, 0.26, 0.26, 1, 0, fxv ? 0xff2a2a : railGone ? 0x24302a : 0x40ff80, 1, 5, 0.9 * lt);
@@ -1083,8 +1096,8 @@ export function createNight(host, o = {}) {
       g.wx = gpx; g.wy = gpy + KID.h * gs + 0.16; g.wz = gpz; g.tag = gone > 0 || g.fade > 0.45 ? null : true;
     }
     if (flat) K.shadow.put(px, 0.034, pz + 0.12, 1.5 * flat.wide, 1, 1.3 * flat.wide, 0, 0, 1, 0, 0.5 * lit);
-    for (const k of ['best', 'friend']) {
-      const Ln = LINES[k], lab = LBL[k];
+    for (let lk = 0; lk < 2; lk++) {
+      const k = LINE_KEYS[lk], Ln = LINES[k], lab = LBL[k];
       if (!Ln || Ln.lane < base || Ln.lane >= top) { lab.m.visible = false; continue; }
       const L = course.lane(Ln.lane), ll = litOf(Ln.lane), hex = LINE_HEX[k], both = k === 'friend' && LINES.best && LINES.best.lane === Ln.lane;
       const z = Z(Ln.lane + (both ? 0.8 : 0.93)), hit = crossed.find(q => q.k === k && q.lane === Ln.lane), fl = hit ? Math.max(0, 1 - (clock - hit.t0) / 700) : 0;
@@ -1093,7 +1106,8 @@ export function createNight(host, o = {}) {
       if (fr && fd <= 0.002 && fl <= 0) { lab.m.visible = false; continue; }
       {
         const la = Math.min(1.4, ll), wet = L.type === 'water', cap = k === 'best' ? 0xfff0c0 : 0xffe4f6, ps = fr ? 0.5 * fd : 1;
-        for (const px0 of [X(-0.03), X(COLS + 0.03)]) {
+        for (let pi = 0; pi < 2; pi++) {
+          const px0 = X(pi ? COLS + 0.03 : -0.03);
           const bob = wet && !reduce ? Math.sin(clock / 480 + px0 * 1.9) * 0.035 : 0;
           if (wet) {
             const b = fr ? fd : 1;
@@ -1130,7 +1144,7 @@ export function createNight(host, o = {}) {
     if (FL) { if (capT) FL.ship(tr, capT, taken ? fx.out : -1, 1); FL.end(); }
     for (let j = fx.parts.length - 1; j >= 0; j--) {
       const q = fx.parts[j], u = (clock - q.t0) / q.life;
-      if (u >= 1) { fx.parts.splice(j, 1); continue; }
+      if (u >= 1) { partFree.push(q); const P = fx.parts; for (let m = j + 1; m < P.length; m++) P[m - 1] = P[m]; P.length--; continue; }
       if (q.k === 'ring') { const r = q.r0 + (q.r1 - q.r0) * ease(u); K.flat.put(q.x, q.y, q.z, r * 2, 1, r * 2 * (q.sz || 0.7), 0, q.hex, 1, 3, (1 - u) * (q.al || 0.8)); }
       else { const s = (clock - q.t0) / 1000, sz = q.sz || 0.16, yy = q.y + q.vy * s - (q.g || 6.5) * s * s; K.bill.put(q.x + q.vx * s, q.g ? Math.max(0.02, yy) : yy, q.z + q.vz * s, sz, sz, 1, 0, q.hex, 1, q.sh || 0, (1 - u) * (q.al || 1)); }
     }
@@ -1138,7 +1152,7 @@ export function createNight(host, o = {}) {
       const T = reduce ? 0 : clock / 1000, wrap = v => ((v % 19) + 19) % 19 - 9.5;
       K.shadow.raw(0, 0.06, Z(wallE + 1.25), 34, 1, 3.2, 0, 0, 1, 4, 0.2);
       for (let li = 0; li < FOG_LAYERS.length; li++) {
-        const [dz, y0, sw, sh, al, sp, top, under, stp] = FOG_LAYERS[li];
+        const FLi = FOG_LAYERS[li], dz = FLi[0], y0 = FLi[1], sw = FLi[2], sh = FLi[3], al = FLi[4], sp = FLi[5], stp = FLi[8];
         if (tier === 0 && li === 1) continue;
         for (let c = -9.5, id = 0; c < 9.5; c += stp, id++) {
           const r1 = hsh(977 + li * 31, id), r2 = hsh(1543 + li * 17, id), sz = 0.74 + 0.52 * r1;
@@ -1162,8 +1176,8 @@ export function createNight(host, o = {}) {
     // J4 + JT1 — THE SEASON's frame (seasonal.js): the tree lights LAST (whatever room the glow billboards have left after every gameplay …
     if (SE) { v3.copy(kidPos).project(cam); FR.kidX = v3.x; FR.kidY = v3.y; FR.camX = rig.x(); FR.camY = camY; FR.w = w; FR.h = h; SE.end(FR); }
     ground.uniforms.uWet.value = !day && wetOn && tier === 2 && SE ? SZ.wet : 0;
-    for (const q of Object.values(K)) q.done();
-    for (const q of Object.values(KM)) q.done();
+    for (const k in K) K[k].done();
+    for (const k in KM) KM[k].done();
     if (PR) for (const q of PR.kinds()) q.done();
     ground.uniforms.uTime.value = reduce ? 0 : clock / 1000;
     renderer.info.reset();
@@ -1265,7 +1279,7 @@ export function createNight(host, o = {}) {
       part('ring', kidPos.x, 0.06, Z(lane + 0.93), 520, { hex: LINE_HEX[k], r0: 0.3, r1: k === 'best' ? 2.6 : 1.6 });
     },
     /** SPECTATE (the camera moved to another kid): the kid's own feel starts clean */
-    resetKid() { fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; fx.parts.length = 0; fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
+    resetKid() { fx.t = -1; fx.st = 'idle'; fx.hits = 0; fx.hit = null; partsClear(); fx.landAt = -1e9; fx.wob = null; fx.seen = true; fx.out = 0; },
     el, draw, resize: () => fit(), ready, setTier, tier: () => tier,
     /** J4 — THE SEASON: prepSeason(s) starts THE SEASONAL PACK (in season only) · setSeason(s, { wet }) for the run starting now → what it applied */
     prepSeason, setSeason, season: () => ({ ...SZ, wet: wetOn ? SZ.wet : 0, pack: !!KM['w-pine'], sp: SP ? SP.info() : null }),

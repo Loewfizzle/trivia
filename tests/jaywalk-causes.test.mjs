@@ -126,7 +126,8 @@ test('THE SOURCES: the drawing, the game\'s views, the podium + THE LAB all read
   assert.match(night, /import \{ hsh, strSeed, vehicleAt, plainAt \} from '\.\/causes\.js';/);
   assert.match(night, /let what = vehicleAt\(course, i, j\);/, 'night.js draws the model vehicleAt names');   /* (VARIETY B1: an area model not in → plainAt, which vehicleAt then names too) */
   assert.doesNotMatch(night, /CAR_KINDS|vehicleOf/, 'no picker of its own');
-  assert.match(night, /const name = what === 'truck' \? 'car-van' : `car-\$\{what\}`/, 'the model drawn IS the kind (car-sedan · car-hatchback · car-taxi · car-van; the truck its own mesh)');
+  assert.match(night, /cKey = id => C_KEY\[id\] \|\| \(C_KEY\[id\] = `car-\$\{id\}`\)/, 'SMOOTH 2: the car model names are built once, not per car per frame');
+  assert.match(night, /const name = what === 'truck' \? 'car-van' : cKey\(what\)/, 'the model drawn IS the kind (car-sedan · car-hatchback · car-taxi · car-van; the truck its own mesh)');
   // THE LAB: the same table, the same function — its own CAUSE words are gone
   assert.match(lab, /import \{ runLine, hitVehicle, vehicleAt \} from '\.\/causes\.js';/);
   assert.match(lab, /endT\.textContent = runLine\(course, live, look\);/, 'the lab\'s end line = causes.js#runLine on the live result');

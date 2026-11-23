@@ -62,6 +62,7 @@ vec3 leafAt(vec2 q, float dens, float salt, out float m) {
   float d = length(vec2(p.x / s, p.y / (s * 0.5 * tip)));
   m = 1.0 - smoothstep(0.78, 1.0, d);
   m *= 1.0 - 0.35 * smoothstep(0.06, 0.0, abs(p.y)) * step(abs(p.x), s * 0.8);   // (its midrib)
+  if (m <= 0.0) return vec3(0.0);   // (SMOOTH 2: outside the leaf's shape nothing is mixed in — its colour's two hashes skipped)
   float pick = hash(id + salt + 11.2);
   vec3 col = pick < 0.42 ? vec3(0.96, 0.44, 0.08) : pick < 0.72 ? vec3(0.82, 0.15, 0.07) : vec3(0.99, 0.74, 0.13);
   return col * (0.82 + 0.3 * hash(id + salt + 2.6));
@@ -69,12 +70,14 @@ vec3 leafAt(vec2 q, float dens, float salt, out float m) {
 vec3 leavesOn(vec3 c, float x, float lw, float k, float ar) {
   if (uAut < 0.001) return c;
   float gk = ar < 0.5 ? 1.0 : ar > 5.5 && ar < 6.5 ? 0.6 : 0.0;
-  vec3 gold = c * vec3(1.5, 1.12, 0.4) + DN(vec3(0.022, 0.012, 0.0), vec3(0.075, 0.045, 0.0));
-  c = mix(c, gold, uAut * 0.78 * gk * (0.7 + 0.3 * vnoise(vec2(x * 0.6, lw * 0.6))));
+  if (gk > 0.0) {   // (SMOOTH 2: paving takes no gold — its noise skipped)
+    vec3 gold = c * vec3(1.5, 1.12, 0.4) + DN(vec3(0.022, 0.012, 0.0), vec3(0.075, 0.045, 0.0));
+    c = mix(c, gold, uAut * 0.78 * gk * (0.7 + 0.3 * vnoise(vec2(x * 0.6, lw * 0.6))));
+  }
   float dens = uAut * k * mix(0.16, 0.34, gk), m1, m2;
-  vec3 l1 = leafAt(vec2(x * 3.2, lw * 3.2), dens, 7.7, m1), l2 = leafAt(vec2(x * 5.1 + 0.37, lw * 5.1 + 0.61), dens * 0.9, 21.3, m2);
+  vec3 l1 = leafAt(vec2(x * 3.2, lw * 3.2), dens, 7.7, m1);
   float nk = mix(0.36, 0.93, uDay);
-  c = mix(c, l2 * nk, m2 * 0.95);
+  if (m1 < 1.0) { vec3 l2 = leafAt(vec2(x * 5.1 + 0.37, lw * 5.1 + 0.61), dens * 0.9, 21.3, m2); c = mix(c, l2 * nk, m2 * 0.95); }   // (SMOOTH 2: under a whole top leaf the lower one can't show)
   c = mix(c, l1 * nk, m1);
   return c;
 }
@@ -93,8 +96,7 @@ vec3 seaRoad(vec3 c, float x, float z, float rly, float curbD, float curbU) {
     }
     if (uAut > 0.001) {                                            // JT1 — a few LEAVES blown into the gutters (along the curbs only)
       float gz = min(z * curbD + (1.0 - curbD) * 9.0, (1.0 - z) * curbU + (1.0 - curbU) * 9.0), m;
-      vec3 l = leafAt(vec2(x * 4.3, rly * 4.3), uAut * 0.5, 33.1, m);
-      c = mix(c, l * mix(0.32, 0.86, uDay), m * smoothstep(0.17, 0.08, gz));
+      if (gz < 0.17) { vec3 l = leafAt(vec2(x * 4.3, rly * 4.3), uAut * 0.5, 33.1, m); c = mix(c, l * mix(0.32, 0.86, uDay), m * smoothstep(0.17, 0.08, gz)); }   // (SMOOTH 2: only the gutters pay for a leaf)
     }
   return c;
 }

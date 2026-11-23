@@ -200,7 +200,7 @@ export function createSeasonal(A) {
   // ---- JT1 — THE LEAF PILES (ONE instanced draw) — VARIETY A: Polyfork's raked pile (the model, fetched on an autumn day; JT1's code-built
   //  mound retired); bursts when the kid lands in it (then lies scattered). A run whose pile model is not in by its start shows none.
   let KP = null, pileSeed = 0, pilesN = 0, pileG = null, pileGP = null;
-  const burst = new Map();   // ('lane:col' → when it burst — this run)
+  const burst = new Map();   // (lane × 16 + col → when it burst — this run; SMOOTH 2: a number, never a string a frame)
   function loadPile() {
     if (pileG || pileGP) return pileGP || Promise.resolve(true);
     pileGP = loadPileGeo(A.parseGlb).then(g => { pileGP = null; if (!g || A.dead()) return false; pileG = g; if (SZ.autumn > 0) pileKind(); return true; });
@@ -215,10 +215,10 @@ export function createSeasonal(A) {
   /** the pile on lane i (its column) or -1 — PURE from the course's seed + the run's day: the same on every phone */
   function pileAt(i, L, AR, vseed) {
     if (!(SZ.autumn > 0) || i < PILE.from || L.type !== 'grass' || L.mark || !PILE.areas.includes(AR)) return -1;
-    const b = Math.floor(i / PILE.every), h = k => hsh(vseed ^ pileSeed ^ Math.imul(b, 7349), k);
-    if (i !== b * PILE.every + Math.floor(h(1) * PILE.every)) return -1;
-    if (h(2) > PILE.share * (0.45 + 0.55 * SZ.autumn)) return -1;
-    const c0 = Math.floor(h(3) * COLS);
+    const b = Math.floor(i / PILE.every), hk = vseed ^ pileSeed ^ Math.imul(b, 7349);   // (SMOOTH 2: asked per grass lane per frame — no closure)
+    if (i !== b * PILE.every + Math.floor(hsh(hk, 1) * PILE.every)) return -1;
+    if (hsh(hk, 2) > PILE.share * (0.45 + 0.55 * SZ.autumn)) return -1;
+    const c0 = Math.floor(hsh(hk, 3) * COLS);
     for (let d = 0; d < COLS; d++) { const c = (c0 + d) % COLS; if (!L.obs[c]) return c; }
     return -1;
   }
@@ -227,6 +227,7 @@ export function createSeasonal(A) {
   const PR = new Float32Array(PRINT.ring * 5);   // x, z, yaw, t0, strength
   let prAt = 0, prN = 0;
   let F = null;   // (this frame's numbers — night.js)
+  const PART = { hex: 0, vx: 0, vy: 0, vz: 0, sz: 0, al: 0, g: 0, sh: 0 };   // (SMOOTH 2: one options record — night.js#part copies it into its pool)
   /** a QUIET moment (a run's start · its tick 0 · its end — never mid-run) brings in what came: the shaders, the kinds, the hats */
   function quiet() {
     if (SZ.any && !shaders) shadersOn();
@@ -299,7 +300,7 @@ export function createSeasonal(A) {
       if (!KP || !shaders) return;
       const c = pileAt(i, L, AR, F.vseed);
       if (c < 0) return;
-      const x = X(c + 0.5), b = burst.get(`${i}:${c}`), ry = hsh(F.vseed ^ (i * 191), 9) * 6.28, dim = lt * (F.day ? 1.05 : 1.25);
+      const x = X(c + 0.5), b = burst.get(i * 16 + c), ry = hsh(F.vseed ^ (i * 191), 9) * 6.28, dim = lt * (F.day ? 1.05 : 1.25);
       if (b == null) { KP.put(x, 0, z, PILE.s, PILE.h, PILE.s, ry, 0xffffff, dim); K.shadow.put(x, 0.03, z + 0.04, 1.2, 1, 0.95, 0, 0, 1, 0, 0.45 * lt); }
       else { const u = clamp01((F.clock - b) / 260); KP.put(x, 0, z, PILE.s * (1 + 0.42 * u), PILE.h * (1 - 0.8 * u), PILE.s * (1 + 0.42 * u), ry, 0xffffff, dim * 0.92); }   // (scattered: spread + flattened, it stays)
       pilesN++;
@@ -310,10 +311,10 @@ export function createSeasonal(A) {
       if (!F || !shaders) return;
       const i = Math.floor(ly), c = Math.floor(cx), x = X(cx), z = Z(ly);
       if (SZ.autumn > 0 && KP) {
-        const pc = pileAt(i, L, AR, F.vseed), key = `${i}:${c}`;
+        const pc = pileAt(i, L, AR, F.vseed), key = i * 16 + c;
         if (pc === c && !burst.has(key)) {
           burst.set(key, F.clock);
-          if (!reduce) for (let k = 0; k < 22; k++) { const a = k / 22 * Math.PI * 2 + (k % 3) * 0.3, sp = 1.8 + (k % 4) * 0.55; A.part('drop', X(c + 0.5), 0.12, z, PILE.burstMs, { hex: LEAF_HEX[k % 4], vx: Math.cos(a) * sp, vz: Math.sin(a) * sp * 0.6, vy: 1.6 + (k % 5) * 0.38, sz: k % 3 ? 0.17 : 0.22, al: F.day ? 1 : 0.85, g: 6.5, sh: 11 }); }   // (outward + low: past the kid's edge in 0.5 s — never over him or a lane's danger for long)
+          if (!reduce) for (let k = 0; k < 22; k++) { const a = k / 22 * Math.PI * 2 + (k % 3) * 0.3, sp = 1.8 + (k % 4) * 0.55, B = PART; B.hex = LEAF_HEX[k % 4]; B.vx = Math.cos(a) * sp; B.vz = Math.sin(a) * sp * 0.6; B.vy = 1.6 + (k % 5) * 0.38; B.sz = k % 3 ? 0.17 : 0.22; B.al = F.day ? 1 : 0.85; B.g = 6.5; B.sh = 11; A.part('drop', X(c + 0.5), 0.12, z, PILE.burstMs, B); }   // (outward + low: past the kid's edge in 0.5 s — never over him or a lane's danger for long)
           if (own) A.sound('leaf-crunch');
         }
       }
@@ -321,7 +322,7 @@ export function createSeasonal(A) {
       const yaw = dir === 'l' ? Math.PI / 2 : dir === 'r' ? -Math.PI / 2 : 0;
       const o = prAt * 5; PR[o] = x; PR[o + 1] = z; PR[o + 2] = yaw; PR[o + 3] = F.clock; PR[o + 4] = (own ? 1 : 0.8) * clamp01(0.35 + SZ.winter * 1.2) * (L.mark ? 0.7 : 1);
       prAt = (prAt + 1) % PRINT.ring; prN = Math.min(PRINT.ring, prN + 1);
-      if (!reduce) for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + 0.4; A.part('drop', x, 0.06, z + 0.05, 420, { hex: F.day ? 0xe4ecf8 : 0xc8ccf0, vx: Math.cos(a) * 0.55, vz: Math.sin(a) * 0.35, vy: 0.75 + (k % 3) * 0.2, sz: 0.2, al: F.day ? 0.85 : 0.3, g: 2.2 }); }   // (the small snow puff)
+      if (!reduce) for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + 0.4, B = PART; B.hex = F.day ? 0xe4ecf8 : 0xc8ccf0; B.vx = Math.cos(a) * 0.55; B.vz = Math.sin(a) * 0.35; B.vy = 0.75 + (k % 3) * 0.2; B.sz = 0.2; B.al = F.day ? 0.85 : 0.3; B.g = 2.2; B.sh = 0; A.part('drop', x, 0.06, z + 0.05, 420, B); }   // (the small snow puff)
     },
     /** the end of a frame (after every gameplay light): the tree lights (LAST), THE FALL, the prints, the fireworks */
     end(f) {
@@ -340,7 +341,7 @@ export function createSeasonal(A) {
         const o = ((prAt - 1 - n + PRINT.ring) % PRINT.ring) * 5, u = (clock - PR[o + 3]) / PRINT.ms;
         if (u >= 1 || u < 0) continue;
         const a = PR[o + 4] * (1 - u) * (1 - u * 0.4) * (day ? 0.27 : 0.42), yaw = PR[o + 2], cs = Math.cos(yaw), sn = Math.sin(yaw);
-        for (const sd of [-1, 1]) {
+        for (let sd = -1; sd <= 1; sd += 2) {
           const dx = cs * PRINT.apart * sd, dz = -sn * PRINT.apart * sd, back = sd * 0.03;
           K.shadow.raw(PR[o] + dx + sn * back, 0.028, PR[o + 1] + dz + cs * back, PRINT.wide, 1, PRINT.len, yaw, 0, 1, 11, a);
         }

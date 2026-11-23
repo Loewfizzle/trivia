@@ -116,9 +116,9 @@ test('THE SCENE BY DAY: one ground shader with DN(night, day) on every lane kind
   assert.match(fx, /if \(uDay > 0\.5\) gl_FragColor = vec4\(vCol, clamp\(k, 0\.0, 1\.0\)\); else gl_FragColor = vec4\(vCol \* k, 1\.0\);/);
   assert.match(n, /if \(day\) K\.shadow\.raw\(px, feet \+ 0\.043, pz \+ 0\.04, 1\.72 \* br, 1, 1\.42 \* br, 0, 0, 1, 3,/, 'THE KID by day: a soft shadow-ring + his colour inside it');
   // (H5C — things SIT on the ground: every shadow is TWO by day — a contact shadow straight under the thing + the sun's, thrown to one side by its height)
-  assert.match(n, /if \(sunK > 0\.01\) put0\(x \+ SUN\.x \* off, y - 0\.003, z \+ SUN\.z \* off, sx \* 1\.05 \* \(1 \+ 0\.45 \* \(L - 1\)\), 1, sz \* 1\.05, ry, hex, k, a0, a \* 0\.62 \* sunK, \.\.\.r\);/, 'the sun\'s shadow: thrown to one side, by the thing\'s height (VARIETY A: as long as the time of day\'s sun; tier 2 draws the real one, overcast none)');
-  assert.match(n, /put0\(x \+ SUN\.x \* 0\.05, y, z \+ SUN\.z \* 0\.05, sx \* 0\.9, 1, sz \* 0\.9, ry, hex, k, a0, a \* \(VA \? 0\.98 : 0\.9\), \.\.\.r\);/, '… + a tight contact shadow under it');
-  assert.match(n, /if \(!day\) \{ put0\(x, y, z, sx, 1, sz, ry, hex, k, a0, a1, \.\.\.r\); return; \}/, 'by night: the one blob shadow, as before');
+  assert.match(n, /if \(sunK > 0\.01\) put0\(x \+ SUN\.x \* off, y - 0\.003, z \+ SUN\.z \* off, sx \* 1\.05 \* \(1 \+ 0\.45 \* \(L - 1\)\), 1, sz \* 1\.05, ry, hex, k, a0, a \* 0\.62 \* sunK, rx, rz, a2, a3\);/, 'the sun\'s shadow: thrown to one side, by the thing\'s height (VARIETY A: as long as the time of day\'s sun; tier 2 draws the real one, overcast none)');
+  assert.match(n, /put0\(x \+ SUN\.x \* 0\.05, y, z \+ SUN\.z \* 0\.05, sx \* 0\.9, 1, sz \* 0\.9, ry, hex, k, a0, a \* \(VA \? 0\.98 : 0\.9\), rx, rz, a2, a3\);/, '… + a tight contact shadow under it');
+  assert.match(n, /if \(!day\) \{ put0\(x, y, z, sx, 1, sz, ry, hex, k, a0, a1, rx, rz, a2, a3\); return; \}/, 'by night: the one blob shadow, as before');
   assert.match(fx, /gl_FragColor = vec4\(vec3\(0\.03, 0\.07, 0\.17\) \* uDay, a \* vFx\.y \* \(1\.0 - vFog\)\);/, 'a day shadow is cool, never plain black');
   assert.match(n, /if \(bloom && !day\) bloom\.render\(scene, cam\);/);
   // the gate by day: painted — never neon
@@ -190,7 +190,7 @@ test('BLUE ON THE GROUND = WATER, NOTHING ELSE: no gateway neon / paint, no line
   // (H5C — ONE FORM FOR BOTH lines: YOUR BEST is a GOLD tape between two posts too; on water the posts are buoys)
   const tape = n.slice(n.indexOf('const la = Math.min(1.4, ll), wet ='), n.indexOf('lab.m.visible = ll > 0.2;'));
   assert.ok(tape.length > 400);
-  assert.match(tape, /for \(const px0 of \[X\(-0\.03\), X\(COLS \+ 0\.03\)\]\) \{/); assert.match(tape, /K\.posts\.put\(px0, fr \? 0\.17 \* fd : 0\.31, z, 0\.12, fr \? 0\.34 \* fd : 0\.62, 0\.12,/, 'a short post at each edge of the play (on its boundary lines — it covers no cell)');
+  assert.match(tape, /const px0 = X\(pi \? COLS \+ 0\.03 : -0\.03\);/); assert.match(tape, /K\.posts\.put\(px0, fr \? 0\.17 \* fd : 0\.31, z, 0\.12, fr \? 0\.34 \* fd : 0\.62, 0\.12,/, 'a short post at each edge of the play (on its boundary lines — it covers no cell)');
   assert.match(tape, /K\.flat\.put\(0, 0\.36, z, 9\.06, 1,/, 'the band = a TAPE above the ground'); assert.match(tape, /K\.shadow\.raw\(0, 0\.052, z \+ 0\.07, 9\.0, 1, 0\.26,/, '… its thin shadow under it: it reads as lifted');
   assert.doesNotMatch(tape, /K\.flat\.put\(0, 0\.06[0-9]?, z, 13,/, 'no band lying on the lane');
 });

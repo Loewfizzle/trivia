@@ -172,7 +172,7 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   // THE LOGS (H3 — the owner, Nov 16): all the SAME thickness, each its OWN length (1–4 cells — one geometry a length, nothing stretched), round +
   // half-sunk (lit on top, dark down the sides), bark grain along the length, pale ringed ends; NO moss, NO branch stub, NO dot
   assert.match(m, /export function buildLog\(len\)/); assert.match(n, /log1: buildLog\(1\), log2: buildLog\(2\), log3: buildLog\(3\), log4: buildLog\(4\), truck/, 'one geometry a length — nothing stretched');
-  assert.match(n, /K\[`log\$\{n\}`\]\.put\(cx, by, z, 1, 1, 1, 0,/, '… drawn at scale 1: every log the same thickness');
+  assert.match(n, /LOGQ\[n\]\.put\(cx, by, z, 1, 1, 1, 0,/, '… drawn at scale 1: every log the same thickness');
   assert.match(m, /export const LOG = Object\.freeze\(\{ r: 0\.36, top: 0\.36 \}\);/, 'ONE radius — a true circle across');
   assert.doesNotMatch(m, /const rad = x =>/, 'no wobble in its thickness'); assert.match(m, /GRAIN = \[1, 1, 0\.7,/, 'bark grain along the length');
   assert.match(m, /const lit = a => 0\.3 \+ 0\.86 \* Math\.pow\(Math\.max\(0, Math\.cos\(a - 1\.3\)\), 2\.2\);/, 'lit on its shoulder, dark down the sides: round');
@@ -185,7 +185,7 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   assert.doesNotMatch(m + n, /buildMoss|K\.moss|CircleGeometry\(0\.083|const stub = build\(/, 'NO moss, NO branch stub, NO dot — nothing that could read as a pickup');
   assert.match(n, /const LOG_FEET = 0\.33;/, 'half-sunk: the kid stands on its round back');
   assert.match(n, /roughness: 0\.82, metalness: 0, envMapIntensity: 0\.25/, 'rough wood: the bark is seen, never a glow');
-  const logLights = n.slice(n.indexOf('K[`log${n}`].put('), n.indexOf('} else {\n        const p = L.pulse'));
+  const logLights = n.slice(n.indexOf('LOGQ[n].put('), n.indexOf('} else {\n        const p = L.pulse'));
   assert.match(logLights, /0xffa23a, 1, 0, 0\.\d+ \* dim\);/, 'a soft light on the water round it'); assert.match(logLights, /0xffb060, 1, asp, \(day \? 0\.\d+ : 0\.\d+\) \* dim\);/, 'THE WATERLINE: a thin amber ring hugging the log (the glow shader\'s stadium ring)');
   assert.match(logLights, /0x[0-9a-f]{6}, 1, 7 \+ [^;]*0\.\d+\) \* \(1 - rp\) \* dim\);/, '… + a small ripple ring swelling off it');
   assert.match(fxs, /a thin STADIUM ring \(the waterline round a log/, 'shape 7');
@@ -195,7 +195,7 @@ test('H2B\'s LOOK FIXES: the water reads as water, the kid always stands out, a 
   assert.match(n, /const LAMPS = Object\.freeze\(\{ 'car-sedan': \[[\d.]+, [\d.]+\], 'car-hatchback': \[[\d.]+, [\d.]+\], 'car-taxi': \[[\d.]+, [\d.]+\], 'car-van': \[[\d.]+, [\d.]+\], truck: \[[\d.]+, [\d.]+\], train: \[[\d.]+, [\d.]+\] \}\);/);
   const reach = /const HEAD_REACH = ([\d.]+), TAIL_LEN = ([\d.]+);/.exec(n);
   assert.ok(reach && +reach[1] >= 1 && +reach[1] <= 1.5 && +reach[2] >= 0.9 && +reach[2] <= 1.3, `a headlight's glow is gone within ${reach && reach[1]} cells, a tail light's within ${reach && reach[2]}`);
-  assert.match(n, /for \(const e of \[-hw, hw\]\) \{[^}]*0xfff0c8, 1, 6, 0\.5 \* a1\);[^}]*0xfff0c0, 1, 5,[^}]*\}/, 'a car: two beams, two head lamps (H6B: its tail is ONE light bar — tailBar)');
+  assert.match(n, /for \(let es = -1; es <= 1; es \+= 2\) \{\s*const e = es \* hw;[^}]*0xfff0c8, 1, 6, 0\.5 \* a1\);[^}]*0xfff0c0, 1, 5,[^}]*\}/, 'a car: two beams, two head lamps (H6B: its tail is ONE light bar — tailBar)');
   // THE TAIL LIGHTS (H5B's add-on — the owner, 9:45 pm): ONE soft merged red pool a vehicle, pinned under its rear (never two streaks, never a gap), half the old strength, inside its lane; none by day
   // H5C — the finish (the owner): the pool STARTS AT THE LAMPS (0.2 under the bumper — no gap, either way it drives), a short OVAL stretching backward (the glow's shape −1: hot at the lamps, fading out behind) + a small warmer core at the lamps
   assert.match(n, /const vw = truck \? 0\.9 : len < 1\.5 \? 0\.7 : 0\.78;\s*LF\(X\(rearX - L\.dir \* \(TAIL_LEN \/ 2 - 0\.2\)\), 0\.04, z, TAIL_LEN, 1, vw \* 1\.15, L\.dir > 0 \? Math\.PI : 0, 0xff2a22, 1, -1, 0\.34 \* a1\);\s*LF\(X\(rearX - L\.dir \* 0\.1\), 0\.041, z, 0\.6, 1, vw \* 0\.9, 0, 0xff5a34, 1, 0, 0\.3 \* a1\);\s*tailBar\(X\(rearX - L\.dir \* 0\.03\), hy \+ 0\.06, z, vw, a1\);/, 'ONE oval pool CENTRED on the lane behind the vehicle, as wide as it (H6B), starting under the bumper, fading backward; a warm core; THE LIGHT BAR across its rear');

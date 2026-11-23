@@ -74,12 +74,13 @@ export const warmProps = () => Promise.all(propIds(-1).map(id => fetch(urlOf(id)
  */
 export function createProps(A) {
   const leafMat = A.lambert(true), plainMat = A.lambert(false), PK = {}, BOX = {};
+  let kindList = null;   // (SMOOTH 2: the scene asks for the list twice a frame — one array until a kind comes or goes)
   const G = buildPieces();
   for (const [id, g] of Object.entries(G)) { const b = g.boundingBox; BOX[id] = b.max.y; PK[id] = A.kind(g, id === 'c-shrub' ? leafMat : plainMat, id === 'c-shrub' ? 40 : 16, { cast: id === 'c-shrub' }); }
   const L = createVariety({
     parseGlb: A.parseGlb, parseSteps: A.parseSteps, ids: propIds, url: urlOf, known: new Set(),
-    add(id, g) { const tree = id[0] === 't', leaf = tree && TREES[id.slice(2)].leaf; PK[id] = A.kind(g, leaf ? leafMat : plainMat, tree ? 60 : 20, { cast: tree }); },
-    drop(id) { const q = PK[id]; if (q) { delete PK[id]; A.unkind(q); } },
+    add(id, g) { const tree = id[0] === 't', leaf = tree && TREES[id.slice(2)].leaf; PK[id] = A.kind(g, leaf ? leafMat : plainMat, tree ? 60 : 20, { cast: tree }); kindList = null; },
+    drop(id) { const q = PK[id]; if (q) { delete PK[id]; kindList = null; A.unkind(q); } },
   });
   return {
     dress,
@@ -103,7 +104,7 @@ export function createProps(A) {
       A.K.shadow.put(x, 0.03, zz + 0.05, P.sh[0] * hh / P.h, 1, P.sh[1] * hh / P.h, ry, 0, 1, 0, 0.36 * lt);
     },
     /** every kind of its own (the scene resets + uploads them each frame, warms them with the rest) */
-    kinds: () => Object.values(PK),
+    kinds: () => kindList || (kindList = Object.values(PK)),
     info: () => ({ ...L.info(), kinds: Object.keys(PK).length }),
     destroy() { L.destroy(); },
   };

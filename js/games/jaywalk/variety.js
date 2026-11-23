@@ -61,7 +61,7 @@ export function varietyAt(ar, slot, u) {
   const L = (AREA_SETS[ar] || {})[slot];
   if (!L) return '';
   let c = 0;
-  for (const [id, k] of L) { c += k; if (u < c) return id; }
+  for (let n = 0; n < L.length; n++) { c += L[n][1]; if (u < c) return L[n][0]; }   // (SMOOTH 2: asked per car per frame — no iterator)
   return '';
 }
 

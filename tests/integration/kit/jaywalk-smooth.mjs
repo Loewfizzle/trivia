@@ -12,6 +12,14 @@ export const SCENES = {
   night: '&tod=night&weather=clear&date=2026-07-15',
   snow: '&tod=noon&weather=clear&date=2026-12-24&snow=heavy',
 };
+/** SMOOTH 2 — every season's look for THE SAME PICTURE (`--smooth=same:<names>`, against the code before with `--ab <base>`) */
+export const SEASON_SCENES = {
+  ...SCENES,
+  autumn: '&tod=noon&weather=clear&date=2026-11-23', autumnNight: '&tod=night&weather=clear&date=2026-11-23', autumnGolden: '&tod=golden&weather=clear&date=2026-11-25',
+  snowNight: '&tod=night&weather=clear&date=2026-12-24&snow=heavy', lightSnow: '&tod=noon&weather=clear&date=2027-01-20&snow=light', lightNight: '&tod=night&weather=clear&date=2027-01-20&snow=light',
+  eve: '&tod=night&weather=clear&date=2026-12-31&clock=21:00',
+};
+const seasonIn = '(() => { const s = window.__jwLab.view.season(); return !!(s.pack || (s.sp && s.sp.pileModel)); })()';
 
 /** in the page: every GPU pass timed by the render target it drew to (`main` = the canvas), + the JS time between binding a target and leaving it */
 const installTimers = () => {
@@ -97,11 +105,11 @@ export async function looksSmooth({ open, up, ok, sleep, waitFor, out, what = ''
     const looks = what.startsWith('same:') ? what.slice(5).split('+') : ['noon', 'golden', 'night', 'snow'], LANES = [['downtown', 252], ['docks', 60], ['canal', 310], ['airfield', 410]];
     const cmpCtx = await b.createBrowserContext(), cmp = await cmpCtx.newPage();
     const diff = (A, B) => cmp.evaluate(async (a, c) => { const load = async u => { const i = new Image(); i.src = u; await i.decode(); const v = new OffscreenCanvas(i.width, i.height), x = v.getContext('2d', { willReadFrequently: true }); x.drawImage(i, 0, 0); return x.getImageData(0, 0, i.width, i.height).data; }; const P = await load(a), Q = await load(c); let n = 0, big = 0; for (let k = 0; k < P.length; k += 4) { const d = Math.max(Math.abs(P[k] - Q[k]), Math.abs(P[k + 1] - Q[k + 1]), Math.abs(P[k + 2] - Q[k + 2])); if (d > 2) n++; if (d > big) big = d; } return { pct: 100 * n / (P.length / 4), big }; }, `data:image/png;base64,${A}`, `data:image/png;base64,${B}`);
-    const frozen = async (sq, tier, smooth, lane, t) => { const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight&cv=2${sq}${smooth ? '' : '&smooth=0'}`, { reduce: true }); await up(o.p); if (/snow=/.test(sq)) await waitFor(o.p, 'window.__jwLab.view.season().pack', 30000); await o.p.evaluate(l => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.warp(J.find('grass', l)); }, lane); await waitFor(o.p, '(() => { const i = window.__jwLab.view.info(), v = i.variety, p = i.props; return v && !v.loading && !v.queued && !v.staged && !v.drops && p && !p.loading && !p.queued && !p.staged && !p.drops; })()', 30000); await sleep(1400); return o; };
+    const frozen = async (sq, tier, smooth, lane, t) => { const o = await open(390, 844, 3, `&preview=1&seed=perfseed7&tier=${tier}&zoom=8&angle=straight&cv=2${sq}${smooth || abBase ? '' : '&smooth=0'}`, { reduce: true, ...(!smooth && abBase ? { base: abBase } : {}) }); await up(o.p); if (/snow=|date=2026-1[12]-(2[3-5]|31)/.test(sq)) await waitFor(o.p, seasonIn, 30000); await o.p.evaluate(l => { const J = window.__jwLab; J.restart('solo', 'perfseed7'); J.warp(J.find('grass', l)); }, lane); await waitFor(o.p, '(() => { const i = window.__jwLab.view.info(), v = i.variety, p = i.props; return v && !v.loading && !v.queued && !v.staged && !v.drops && p && !p.loading && !p.queued && !p.staged && !p.drops; })()', 30000); await sleep(1400); return o; };
     const grab = async (o, t) => { await o.p.evaluate(tt => { const J = window.__jwLab; J.freeze(false); J.setT(tt); J.freeze(true); }, t); await sleep(1250); return o.p.screenshot({ encoding: 'base64' }); };
     let worst = 0, count = 0;
     for (const lk of looks) for (const tier of [2, 1]) for (const [an, lane] of tier === 2 ? LANES : LANES.slice(0, 1)) {
-      const A = await frozen(SCENES[lk], tier, true, lane), B = await frozen(SCENES[lk], tier, false, lane);
+      const A = await frozen(SEASON_SCENES[lk], tier, true, lane), B = await frozen(SEASON_SCENES[lk], tier, false, lane);
       const ticks = tier === 2 && an === 'downtown' ? [2400, 2401, 2402, 2403, 2404, 2405] : [2400, 3100];
       let w = 0, big = 0;
       for (const t of ticks) { const a = await grab(A, t), c = await grab(B, t), d = await diff(a, c); count++; if (d.pct > w) w = d.pct; if (d.big > big) big = d.big; if (out && t === ticks[0]) { const f = join(out, 'same', `${lk}-t${tier}-${an}.png`); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, Buffer.from(a, 'base64')); } }

@@ -76,7 +76,7 @@ test('WHAT STANDS WHERE: an obstacle is drawn ONLY where the rules have one; eve
   }
   assert.ok(obs > 2000 && edge > 4000 && lamps > 500, `${obs} obstacles, ${edge} edge pieces, ${lamps} lamps laid`);
   // the scene: a big / built piece is drawn BEFORE the tree fallback (a crate is never a tree); an edge piece is half-lit
-  assert.match(N, /if \(q\.big\) \{ if \(q\.k === 'shop' && !SH\) shopGet\(\); drawBig\(q, X\(q\.c \+ 0\.5\), z, \{ K, A: AK, lt, on: on && areaOn, day, ek: EK, SH: SH && SH\.put \}\); \}\s*else if \(AK\[q\.k\]\) \{[^}]*\}\s*else if \(q\.k === 'tree'/);
+  assert.match(N, /if \(q\.big\) \{ if \(q\.k === 'shop' && !SH\) shopGet\(\); BIGC\.lt = lt; BIGC\.on = on && areaOn; BIGC\.day = day; BIGC\.ek = EK; BIGC\.SH = SH && SH\.put; drawBig\(q, X\(q\.c \+ 0\.5\), z, BIGC\); \}\s*else if \(AK\[q\.k\]\) \{[^}]*\}\s*else if \(q\.k === 'tree'/);
   assert.match(N, /dim = lt \* \(q\.c < 0 \|\| q\.c >= COLS \? EK : 1\)/, 'the edge columns stay dim'); assert.match(N, /EK = day \? 0\.8 : 0\.5,/, '… half-lit by night, a step dimmer by day (H5B)');
 });
 
