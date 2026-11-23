@@ -1,5 +1,10 @@
 // THE DAILIES' RETRY RULE (PURE — no DOM: the unit tests + every daily share it)
 /** an error worth another try (no signal, the server's own trouble) — never a refusal */
+/** THE ROOM WINS, told truthfully (VARIETY B2's cloud fix — the owner): the server refused a clocked daily's pause (a party of brand-new profiles,
+ *  the pause caps) → its clock IS running through the match: the screen must not go on saying SAVED. '' = nothing to correct */
+export const ROOM_CLOCK_RUNS = 'YOUR DAILY’S CLOCK IS STILL RUNNING';
+const CLOCK_DAILIES = new Set(['coastclear', 'drop']), NO_PAUSE = new Set(['no_room_game', 'pause_limit', 'room_used']);
+export const refusedLine = (id, res) => (CLOCK_DAILIES.has(id) && !!res && !res.ok && !!res.error && NO_PAUSE.has(res.error.code) ? ROOM_CLOCK_RUNS : '');
 export const retryable = e => !e || e.status === 0 || e.status >= 500 || e.code === 'offline' || e.code === 'http';
 
 /**

@@ -14,7 +14,7 @@ import { rankMedal } from '../ui/medal.js';
 import { tubeButton } from '../ui/components.js';
 import { sfx } from '../audio/sfx.js';
 import { state, setState } from '../store.js';
-import { retryWhile } from '../daily/retry.js';
+import { retryWhile, refusedLine } from '../daily/retry.js';
 import { serverNow } from '../firebase.js';
 import { loadProfile } from '../identity.js';
 import { takeLayer, onCloseAll } from '../ui/layers.js';
@@ -101,7 +101,8 @@ function roomWins(st) {
     // (DAILY B — a `tries` daily (JAYWALK): the try ENDS — no hold, no RESUME — "TRY ENDED · 2 TRIES LEFT"; the server scores it as it stands)
     if (r.tries) banner(tryEndedLine(r.left()));
     else { holdRun(r.id, r.day()); banner(); }
-    r.pause(st.code);
+    const asked = r.pause(st.code), id = r.id;
+    if (!r.tries && asked) asked.then(res => { const line = refusedLine(id, res); if (line) banner(line); });   // (a refused pause: the clock runs — the banner never goes on saying SAVED)
   }
   if (run) { run.close(); run = null; }
   if (scr) { scr.close(); scr = null; }
@@ -709,7 +710,7 @@ function openRun(id) {
       // (the first try always goes — THE GAME START's closeAll comes at the go stamp, BEFORE the room says 'playing'; the retries while that
       // room is starting or playing)
       let first = true;
-      retryWhile(() => j.pause(code), { alive: () => { if (first) { first = false; return true; } return state.code === code && !!state.meta && (state.meta.status === 'playing' || !!state.meta.go); } }).catch(() => {});
+      return retryWhile(() => j.pause(code), { alive: () => { if (first) { first = false; return true; } return state.code === code && !!state.meta && (state.meta.status === 'playing' || !!state.meta.go); } }).catch(() => null);
     },
     close() {
       gone = true; timers.forEach(clearTimeout);

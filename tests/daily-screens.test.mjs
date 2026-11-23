@@ -3,6 +3,7 @@
 // the everyone line (only with a standing — the server sends one from 50 counting finishers), the host's MID-DAILY line, SHARE TODAY's line.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { refusedLine, ROOM_CLOCK_RUNS } from '../js/daily/retry.js';
 import { dockState, rowState, sweepState, tableFor, ordinal, everyoneLine, midLine, shareTodayLine, COUNTS_FROM_TOMORROW, ROOM_BANNER, RESUME_CHIP } from '../js/daily/today-logic.js';
 
 const D = (...ids) => ids.map((id, i) => ({ id, name: id.toUpperCase(), order: i + 1, better: 'low' }));
@@ -127,4 +128,16 @@ test('DFIX3 — the ADMITTED stamp is DRAWN (an SVG: a double rounded border + t
   assert.ok(!/[✓✕⌫]|\p{Extended_Pictographic}/u.test(a), 'no glyph, no emoji');
   assert.deepEqual(Object.keys(TICKET_ART).sort(), Object.keys(TICKET_PATHS).sort());
   for (const k of Object.keys(TICKET_PATHS)) assert.ok(TICKET_ART[k].includes(TICKET_PATHS[k]), `${k}: the share image draws the same paths`);
+});
+
+test('THE ROOM WINS, told truthfully: a REFUSED pause of a clocked daily corrects the banner; a pause that landed, a dropped line or a daily with no clock never does', () => {
+  const no = code => ({ ok: false, resp: null, error: { status: 409, code } });
+  for (const id of ['coastclear', 'drop']) for (const code of ['no_room_game', 'pause_limit', 'room_used']) assert.equal(refusedLine(id, no(code)), ROOM_CLOCK_RUNS, `${id} ${code}`);
+  assert.equal(refusedLine('coastclear', { ok: true, resp: { paused: true } }), '', 'paused: SAVED was true');
+  assert.equal(refusedLine('coastclear', { ok: false, resp: null }), '', 'retries ran out (no answer): not known to be refused');
+  assert.equal(refusedLine('coastclear', no('done')), '', 'the run was over');
+  assert.equal(refusedLine('coastclear', null), '');
+  assert.equal(refusedLine('highrise', no('no_room_game')), '', 'HIGH RISE holds its run: no clock to report');
+  assert.equal(refusedLine('jaywalk', no('no_room_game')), '', 'a try-based daily has its own TRY ENDED line');
+  assert.ok(ROOM_CLOCK_RUNS.length <= 35, 'one line at 390, as long as the SAVED banner');
 });

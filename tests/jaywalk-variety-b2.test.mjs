@@ -129,3 +129,18 @@ test('B2 — THE TAPS: the extra passes see the same lights (three never re-reso
   assert.match(n, /VL\.destroy\(\); if \(PR\) PR\.destroy\(\); if \(winterT\) setWinterTraffic\(false\);/, 'the teardown stops both loaders + the winter flag');
   assert.match(p, /sw = P\.sway && !A\.reduce \?/, 'the windsock holds still with reduce motion');
 });
+
+test('B2 — THE DOCKS + THE FISH MARKET get green: some EDGE crates are palms; a play-cell crate never is; THE BRIDGE unchanged', () => {
+  assert.deepEqual(DECO_SETS[0].palm.from, ['crate']); assert.deepEqual(DECO_SETS[1].palm.from, ['crate', 'icecrate']); assert.equal(DECO_SETS[3], undefined);
+  let palms = 0, kept = 0;
+  for (let i = 1; i < 2000; i++) for (const ai of [0, 1]) {
+    const h = (a, b) => ((Math.sin((i * 131 + a * 17 + b * 7) * 12.9898) * 43758.5453) % 1 + 1) % 1;
+    const d = { obs: [{ c: 3, k: 'crate' }, { c: -1, k: 'crate', edge: true }, { c: COLS, k: ai ? 'icecrate' : 'crate', edge: true }], lamp: 0 };
+    dress(d, i, { mark: '' }, ai, h);
+    assert.equal(d.obs.find(q => q.c === 3).k, 'crate', 'a play cell keeps its crate');
+    assert.equal(d.obs.length, 3, 'one piece a slot');
+    for (const q of d.obs) if (q.c !== 3) { if (q.tk === 'palm') { palms++; assert.equal(q.k, 'tree'); } else kept++; }
+  }
+  const share = palms / (palms + kept);
+  assert.ok(share > 0.4 && share < 0.7, `about half the edge crates (${share.toFixed(2)})`);
+});

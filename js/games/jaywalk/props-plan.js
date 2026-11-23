@@ -22,8 +22,8 @@ export const TREE_SETS = Object.freeze({
 export const DECO_SETS = Object.freeze({
   '-1': { p: 0.9, ids: ['e-bench', 'e-trashcan', 'e-sign', 'e-mailbox'] },
   4: { p: 0, swap: 'hydrant', ids: ['e-bench', 'e-busstop', 'e-trashcan', 'e-mailbox', 'e-sign'] },
-  0: { p: 1, ids: ['e-buoy', 'e-rowboat', 'e-barrel', 'c-fishcrate', 'bollard', 't-palm'] },
-  1: { p: 1, ids: ['c-fishcrate', 'e-barrel', 'e-buoy', 'e-rowboat', 't-palm'] },
+  0: { p: 1, palm: { from: ['crate'], p: 0.55 }, ids: ['e-buoy', 'e-rowboat', 'e-barrel', 'c-fishcrate', 'bollard', 't-palm'] },
+  1: { p: 1, palm: { from: ['crate', 'icecrate'], p: 0.55 }, ids: ['c-fishcrate', 'e-barrel', 'e-buoy', 'e-rowboat', 't-palm'] },
   2: { p: 1, ids: ['c-railsignal', 'c-railties', 't-tall', 't-shrub'] },
   5: { p: 1, ids: ['e-bench', 'e-fence', 'e-trashcan', 't-oak'] },
   6: { p: 0.85, ids: ['e-rocks', 'e-fence', 'e-rocks', 't-palm'] },
@@ -70,6 +70,7 @@ export function dress(d, i, L, ai, h) {
       : id === 'bollard' ? { c, k: 'bollard', s: 0.5, ry: 0, dx: side * 0.12, dz: 0, r: 0, edge: true, deco: 1 }
         : { c, k: id, s: h(c * 5 + 3, 23), ry: (h(c + 31, 24) - 0.5) * 0.5, dx: side * 0.14, dz: (h(c + 7, 25) - 0.5) * 0.24, edge: true, deco: 2, side });
     const id = D.ids[Math.floor(h(c * 11 + 1, 26) * D.ids.length) % D.ids.length];
+    if (D.palm) { const q = here.find(x => x.edge && D.palm.from.includes(x.k)); if (q && h(c * 23 + 6, 28) < D.palm.p) { d.obs[d.obs.indexOf(q)] = deco('t-palm'); continue; } }   // (the owner: some EDGE crates at THE DOCKS + THE FISH MARKET are palms — never a play cell)
     if (D.swap) { const q = here.find(x => x.k === D.swap && x.edge); if (q) d.obs[d.obs.indexOf(q)] = deco(id); continue; }
     if (here.length || h(c * 19 + 4, 27) >= D.p) continue;
     d.obs.push(deco(id));

@@ -765,7 +765,8 @@ its first line + " …"); token-identical (acorn). JAYWALK's graph 531 → 466 K
   drawn `TREES[k].h` tall and `xz` across — the crown ≈ 0.8 of its cell at the largest (a blocked cell reads FULL, as the round tree did).
 - **THE MIX** (`TREE_SETS`): the opening thin street trees + a few oaks (palms by THE DOCKS' gate, lanes 41 …) · DOWNTOWN 40 % of its
   planters as thin street trees · THE CANAL oaks + thin · THE LIGHTHOUSE palms + the odd oak. THE DOCKS · FISH MARKET · RAIL YARD · BRIDGE ·
-  AIRFIELD hold no tree cell (their props are crates, drums, cones) — their mixes show as MARGIN TREES (the edge decoration).
+  AIRFIELD hold no tree cell (their props are crates, drums, cones) — their mixes show as MARGIN TREES (the edge decoration); at THE DOCKS +
+  THE FISH MARKET about half the EDGE crates are palms (`DECO_SETS[n].palm` — the owner, THE CLOUD FIX; a play cell's crate never).
 - **SEASONS**: autumn turns the deciduous ones (their material is the pack's leaf kind) — palms stay green; winter dusts them (the pack's snow
   tops) and a palm becomes a SNOW PINE; J4's Christmas trees replace any tree by its own rule (`seasonal.js#tree` — `tk`); today's round tree
   (a model not in yet) keeps J4's pine swap.

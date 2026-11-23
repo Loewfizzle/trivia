@@ -221,7 +221,9 @@ await H.run(async () => {
   // (DM1 — THE ROOM WINS: the server pauses only for a room that really started a game, with this phone in it)
   const pUid = await p.evaluate(() => window.__daily.uid);
   // (DFIX2 — THE ROOM WINS needs 2+ players: a second player in the room, else a room of one can't stop the clock)
-  await ref('rooms/CCEE').set({ meta: { hostId: pUid, status: 'playing', createdAt: Date.now() }, players: { [pUid]: { name: 'ALICE', pid: await pidOf(p) }, 'cc-e2e-bob': { name: 'BOB' } } });
+  // (THE FIX PASS S6: the game start's stamp + ANOTHER player with a COUNTED profile — this fixture predated it)
+  await ref('ppriv/pccee2ebob22/at').set(Date.now() - 7 * 86_400_000);
+  await ref('rooms/CCEE').set({ meta: { hostId: pUid, status: 'playing', createdAt: Date.now(), go: { m: 'gccee', at: Date.now(), g: 'overclock' } }, players: { [pUid]: { name: 'ALICE', pid: await pidOf(p) }, 'cc-e2e-bob': { name: 'BOB', pid: 'pccee2ebob22' } } });
   await p.evaluate(() => window.__api({ action: 'pause', room: 'CCEE' }));
   await grab(p);
   await p.evaluate(() => window.__suspend());
