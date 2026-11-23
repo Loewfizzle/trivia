@@ -823,3 +823,7 @@
 
 ## JAYWALK SMOOTH 2 (Nov 23 2026 — the owner's iPhone measurements; the pass log: `docs/games/passes/jaywalk-smooth2.md`)
 - (Nov 23) The felt lag = the AUTUMN layer's periodic stall (BIG frames ~6 / 10 s at autumn noon vs ~2 in summer), proven on the owner's iPhone with the &hud=1 meter. Not resolution, not sun shadows. Seasonal layers must never add BIG frames: their spawning / recycling / updates must make no garbage and no per-frame rebuilds. Winter is checked the same way before Dec 1.
+
+## JAYWALK SMOOTH 3 + WINTER READY (Nov 23 2026 — the owner, after the Fable review; the pass log: `docs/games/passes/jaywalk-smooth3.md`)
+- (Nov 23) Fable review: the day choppiness since Variety A is most likely the `mix-blend-mode: color` ::after layer over the skyline (css/jaywalk.css ~line 525) on every DAY look, even at opacity 0. It forces the whole stage (3D canvas included) into an extra compositor pass every frame (Chromium: 2 passes vs 1). Rule from now on: no blend-mode / filter / backdrop layer may sit over or group with the 3D canvas unless it is visibly doing something, and then isolated from the canvas.
+- The day GPU diet (Fable #2) and the upload diet (#3) happen ONLY if the owner's meter still shows day worse than night after this pass.
